@@ -8,6 +8,7 @@ import { gate } from "@/featureGate";
 import { getAuditContext } from "@/lib/audit";
 import { getAppBaseUrl } from "@/lib/url";
 import { messageRegistry } from "@/registry/messageRegistry";
+import { userGroupEvaluator } from "@/features/core/userGroup/services/server";
 
 import { drizzleMessageOverrideStore } from "../overrides/store";
 import { drizzleMessageTemplateSource } from "../templates/source";
@@ -31,6 +32,12 @@ export const sendMessageDeps: MessageSendDeps = {
   channels,
   enrichers,
   audiences,
+  // グループ宛て(門 userGroups が閉なら拒む。評価の口も閉なら 404)
+  groups: {
+    enabled: () => gate.enabled("userGroups"),
+    sendTarget: (groupId) => userGroupEvaluator.sendTarget(groupId),
+    memberWhere: (groupId, options) => userGroupEvaluator.memberWhere(groupId, options),
+  },
   registry: messageRegistry,
   config: messagingConfig,
   now: () => new Date(),

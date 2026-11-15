@@ -4,6 +4,7 @@
 // - 動的(条件の木を SQL に)・静的(一員)・定期計算(今の版の一員)の count / isMember / listMemberIds(keyset)、evaluate の試しの一覧
 // - 6 つの部品が実 DB で引ける(ロール・状態・登録の時期・最後のログイン・タグ・静的グループの一員)、削除した利用者は母集団の外
 // - 誤り: しまった 409・版の無い定期計算 409・heavy の動的の isMember 409・門が閉 404・時間の上限 503
+// - 送信の固定: sendTarget(人数・上限・定期計算の版)と memberWhere(固定した版・述語・上限 409・門 404)
 // 実行: pnpm test --db src/features/core/userGroup/services/server/evaluation/evaluator.db.test.ts
 
 import { after, describe, test } from "node:test";
@@ -111,6 +112,26 @@ describe("ユーザーグループの評価の口(実 DB、戻す)", { skip }, (
         await tx.update(T.UserGroupTable).set({ current_version: 1 }).where(sql`${T.UserGroupTable.id} = ${scheduled!.id}`);
         assert.equal((await e.count({ groupId: scheduled!.id })).count, 1);
         assert.equal(await e.isMember(scheduled!.id, old), true);
+
+        // 送信の固定(D58): 送り始めの確かめ(定期計算は今の版を返す)と、固定の時の述語(固定した版・1 文で users から引ける)
+        const idsWhere = async (where: import("drizzle-orm").SQL) =>
+          sorted((await tx.select({ id: UserTable.id }).from(UserTable).where(where)).map((row) => row.id));
+        assert.deepEqual(await e.sendTarget(scheduled!.id), { count: 1, memberLimit: 3, overLimit: false, version: 1 });
+        const [version2] = await tx.insert(T.UserGroupVersionTable).values({ group_id: scheduled!.id, version: 2, status: "ready" }).returning();
+        await tx.insert(T.UserGroupVersionMemberTable).values({ version_id: version2!.id, user_id: fresh });
+        await tx.update(T.UserGroupTable).set({ current_version: 2 }).where(sql`${T.UserGroupTable.id} = ${scheduled!.id}`);
+        const pinned = await e.memberWhere(scheduled!.id, { version: 1 });
+        assert.deepEqual(await idsWhere(pinned.where), [old], "送り始めに固定した版 1 の一員");
+        assert.equal(pinned.count, 1);
+        assert.equal(pinned.timeoutMs, 10_000);
+        assert.deepEqual(await idsWhere((await e.memberWhere(scheduled!.id)).where), [fresh], "版を渡さなければ今の版");
+        await assert.rejects(e.memberWhere(scheduled!.id, { version: 9 }), (error) => code(error, 409));
+        assert.deepEqual(await idsWhere((await e.memberWhere(staticGroup!.id)).where), sorted([fresh, admin]));
+        assert.deepEqual((await e.sendTarget(dynamic!.id)).overLimit, true);
+        assert.equal((await e.sendTarget(dynamic!.id)).version, null);
+        await assert.rejects(e.memberWhere(dynamic!.id), (error) => code(error, 409), "動的の 4 人は上限 3 を超える");
+        await assert.rejects(evaluator({ gate: false }).memberWhere(staticGroup!.id), (error) => code(error, 404));
+        await assert.rejects(evaluator({ gate: false }).sendTarget(staticGroup!.id), (error) => code(error, 404));
 
         // 誤り: しまった 409・heavy の動的の isMember 409・門が閉 404・その場の定義の誤り 400・時間の上限 503
         await tx.update(T.UserGroupTable).set({ status: "archived" }).where(sql`${T.UserGroupTable.id} = ${staticGroup!.id}`);

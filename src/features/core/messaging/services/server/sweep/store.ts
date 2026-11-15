@@ -3,22 +3,27 @@
 // 掃き出し・保持の掃除の DB の読み書き(drizzle)。
 // - 配達の行の取り: UPDATE … WHERE id IN (SELECT … FOR UPDATE SKIP LOCKED) で lease を付ける(並走する cron と重ならない)
 // - 展開: 回の行を FOR UPDATE SKIP LOCKED で取り、配達の行と再開の位置を同じ取引で書く
+// - グループ宛ての固定(D58): 同じ取引の savepoint で SET LOCAL statement_timeout の後に 1 文の INSERT … SELECT(時間の上限なら savepoint を戻し回を止める)
 // - 消す: SKIP LOCKED の CTE で 1 文 = 最大 limit 行(auditLog の掃除と同じ形)
 
 import { and, asc, count, eq, inArray, isNotNull, isNull, lt, lte, ne, notExists, or, sql } from "drizzle-orm";
 
-import { db } from "@/lib/drizzle";
+import { db, type TransactionClient } from "@/lib/drizzle";
+import { UserTable } from "@/features/core/user/entities/drizzle";
+import { availableUserWhere } from "@/features/core/user/services/server/availableUsers";
 
 import { MessageDeliveryTable, MessageEventTable } from "../../../entities/delivery";
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageIdempotencyKeyTable } from "../../../entities/idempotencyKey";
 import { MessageInboxItemTable } from "../../../entities/inbox";
+import type { MessageDispatchInsert } from "../../../entities/model";
+import { MessageDispatchRecipientTable } from "../../../entities/recipient";
 import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
 import { boundInboxImageRefs } from "../inbox/imageBinding";
 import { cleanupDetachedInboxImages, detachInboxImages, storageInboxImageLedger } from "../inbox/imageBindingLedger";
 import { bindExpansionImage } from "./expandImage";
 import { expiredDeliveriesDeleteSql, expiredDispatchesSelectSql, expiredEventsDeleteSql } from "./retentionSql";
-import type { MessageRetentionStore, MessageSweepStore } from "./types";
+import type { ExpansionWrite, MessageRetentionStore, MessageSweepStore } from "./types";
 
 const IN_FLIGHT = ["queued", "sending"] as const;
 
@@ -27,6 +32,41 @@ function rowsOf<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[];
   const rows = (result as { rows?: unknown }).rows;
   return Array.isArray(rows) ? (rows as T[]) : [];
+}
+
+const TIMEOUT_CODE = "57014";
+
+function isStatementTimeout(error: unknown): boolean {
+  for (let current: unknown = error, depth = 0; current && depth < 5; depth += 1) {
+    if ((current as { code?: unknown }).code === TIMEOUT_CODE) return true;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
+/**
+ * グループの一員を回の受信者の一覧へ 1 文で書く(1 つの時点。利用できる利用者・送り始めの線以前の登録だけ)。
+ * 時間の上限を超えたら false(savepoint を戻すので取引は続けられる)
+ */
+async function freezeRecipients(tx: TransactionClient, dispatchId: string, freeze: NonNullable<ExpansionWrite["freeze"]>): Promise<boolean> {
+  try {
+    await tx.transaction(async (savepoint) => {
+      await savepoint.execute(sql.raw(`set local statement_timeout = ${Math.max(1, Math.floor(freeze.timeoutMs))}`));
+      await savepoint
+        .insert(MessageDispatchRecipientTable)
+        .select(
+          savepoint
+            .select({ dispatch_id: sql<string>`${dispatchId}::uuid`.as("dispatch_id"), user_id: UserTable.id })
+            .from(UserTable)
+            .where(and(freeze.where, availableUserWhere(), lte(UserTable.createdAt, freeze.createdBefore))),
+        )
+        .onConflictDoNothing();
+    });
+    return true;
+  } catch (error) {
+    if (isStatementTimeout(error)) return false;
+    throw error;
+  }
 }
 
 export const drizzleMessageSweepStore: MessageSweepStore = {
@@ -64,6 +104,12 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
       if (!dispatch) return false;
       // 共有のお知らせの行の画像は回に結ぶ(回の行を排他で持ったこの取引の中で)
       const write = await bindExpansionImage(storageInboxImageLedger, tx, dispatch, await step(dispatch));
+      if (write.freeze) {
+        const frozen = await freezeRecipients(tx, dispatch.id, write.freeze);
+        const patch: Partial<MessageDispatchInsert> = frozen ? write.patch : write.freeze.timeoutPatch;
+        await tx.update(MessageDispatchTable).set(patch).where(eq(MessageDispatchTable.id, dispatch.id));
+        return true;
+      }
       if (write.rows.length > 0) {
         const created = await tx
           .insert(MessageDeliveryTable)

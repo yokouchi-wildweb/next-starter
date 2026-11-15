@@ -35,7 +35,10 @@ export type MemoryStore = MessageSendStore & {
   dispatches: (MessageDispatchInsert & { id: string })[];
   deliveries: MessageDelivery[];
   movedKeys: Set<string>;
-  users: (MessageUserRow & { role?: string })[];
+  /** createdAt = 登録の時刻(送り始めの線。省略 = 線より前) */
+  users: (MessageUserRow & { role?: string; createdAt?: Date })[];
+  /** 回の受信者の一覧(グループ宛て、本物は message_dispatch_recipients) */
+  recipients: { dispatch_id: string; user_id: string }[];
   endpoints: { userId: string; channel: string; address: string }[];
   /** touchEndpoints の呼び出し(経路・宛先・時刻) */
   endpointTouches: { channel: string; entries: { userId: string; address: string }[]; at: Date }[];
@@ -52,6 +55,7 @@ export function createMemoryStore(): MemoryStore {
     deliveries: [],
     movedKeys: new Set(),
     users: [],
+    recipients: [],
     endpoints: [],
     endpointTouches: [],
     preferences: [],
@@ -80,7 +84,8 @@ export function createMemoryStore(): MemoryStore {
       if (values.idempotency_key && store.dispatches.some((row) => row.idempotency_key === values.idempotency_key)) {
         throw new MessageIdempotencyConflict();
       }
-      const row = { ...values, id: randomUUID() };
+      // 回を作った時刻(本物は default now()。送り始めの線に使う)
+      const row = { createdAt: new Date(), ...values, id: randomUUID() };
       store.dispatches.push(row);
       return { id: row.id };
     },
@@ -143,11 +148,20 @@ export function createMemoryStore(): MemoryStore {
     async listUserIds(filter, cursor, limit) {
       const all = store.users
         .filter((user) => !filter.roles || filter.roles.includes(user.role ?? "user"))
+        .filter((user) => !filter.createdBefore || !user.createdAt || user.createdAt <= filter.createdBefore)
         .map((user) => user.id)
         .sort()
         .filter((id) => !cursor || id > cursor);
       const userIds = all.slice(0, limit);
       return { userIds, nextCursor: all.length > limit ? userIds[userIds.length - 1] : null };
+    },
+    async listRecipientIds(dispatchId, cursor, limit) {
+      const all = store.recipients
+        .filter((row) => row.dispatch_id === dispatchId && (!cursor || row.user_id > cursor))
+        .map((row) => row.user_id)
+        .sort();
+      const userIds = all.slice(0, limit);
+      return { userIds, nextCursor: userIds.length === limit ? userIds[userIds.length - 1]! : null };
     },
     async countUserIds(filter) {
       return store.users.filter((user) => !filter.roles || filter.roles.includes(user.role ?? "user")).length;

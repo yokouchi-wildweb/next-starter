@@ -12,6 +12,8 @@
 //   残し、テンプレートを呼び出した時は template_id + template_version を固定する(cron はその文面と版の変数の宣言で組み直す)
 // 経路(D86): 種類の経路。input.channels はその回だけの絞り(種類の外・空は 400)。自動の送り手は渡さない
 // 口の中ですぐ送る種別(性質 sendInEntry = security、D72・D80): 予約・audience は 400、宛先が多くても後回しにせず展開して最初の束を口の中で送る
+// グループ宛て(D58): 送り始めに門・しまった・壊れた・人数の上限を確かめ(DomainError、回を作らない)、定期計算は今の版を回に固定する。
+//   一員は cron が送り始めの後に 1 文で回の受信者の一覧へ書く(sweep/expandStep.ts)
 
 import { kindTraits } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
@@ -143,7 +145,26 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export const ESTIMATE_CAP = 10_000;
 
 /** 宛先数の見込み(送る時に展開で数え直す) */
-export type RecipientEstimate = { count: number; capped: boolean; fixedAtSend: true };
+export type RecipientEstimate = {
+  count: number;
+  capped: boolean;
+  fixedAtSend: true;
+  /** グループ宛てだけ: 人数の上限と、超えているか(超えたグループには送れない) */
+  memberLimit?: number;
+  overLimit?: boolean;
+};
+
+const GROUPS_CLOSED = "ユーザーグループの機能が閉じています(グループ宛てには送れません)";
+
+/** グループ宛ての送り始めの確かめ(門・しまった・壊れた・版・人数の上限)。定期計算は固定する版を返す */
+async function checkGroupTarget(deps: MessageSendDeps, groupId: string): Promise<{ version: number | null }> {
+  if (!deps.groups || !deps.groups.enabled()) throw new DomainError(GROUPS_CLOSED, { status: 404 });
+  const target = await deps.groups.sendTarget(groupId);
+  if (target.overLimit) {
+    throw new DomainError(`グループの人数 ${target.count} が上限 ${target.memberLimit} を超えています`, { status: 409 });
+  }
+  return { version: target.version };
+}
 
 /** 描いたプレビュー */
 export type MessagePreview = {
@@ -204,6 +225,8 @@ export function createMessageSender(deps: MessageSendDeps) {
       /** 要求の中で展開を終える(小さな送信) */
       expanded: boolean;
       authored?: MessageDispatchAuthored;
+      /** グループ宛ての送り始めに固定した定期計算の版(静的・動的は null) */
+      groupVersion?: number | null;
     },
   ): Promise<string> {
     const { channels, vars, policy, recipientCount, queueVars, expanded, authored } = values;
@@ -211,7 +234,9 @@ export function createMessageSender(deps: MessageSendDeps) {
     const scheduled = input.scheduledAt !== undefined;
     // cron が展開する回(大きな送信・予約)は宛先の一覧を回に置く
     const audience = input.audience
-      ? { ...input.audience }
+      ? input.audience.type === "group"
+        ? { ...input.audience, version: values.groupVersion ?? null }
+        : { ...input.audience }
       : scheduled || recipientCount > deps.config.smallSendMaxRecipients
         ? { type: "recipients", recipients: input.recipients, recipientVars: input.recipientVars ?? null }
         : { type: "recipients", count: recipientCount };
@@ -286,6 +311,8 @@ export function createMessageSender(deps: MessageSendDeps) {
       );
     }
 
+    const group = input.audience?.type === "group" ? await checkGroupTarget(deps, input.audience.groupId) : null;
+
     if (large || scheduled) {
       // 回の行だけ。展開は cron(予約は時刻に processing になってから)。宛先の数は展開の時に数え直す
       const dispatchId = await insertDispatch(resolved, input, {
@@ -296,6 +323,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         queueVars: true,
         expanded: false,
         authored: options.authored,
+        groupVersion: group?.version ?? null,
       });
       return {
         dispatchId,
@@ -562,7 +590,9 @@ export function createMessageSender(deps: MessageSendDeps) {
     },
 
     /**
-     * 宛先数の見込み(送る時に数え直す)。全員・ロールは数、audiences は項目の count か上限まで数える、選んだ利用者は居る人の数
+     * 宛先数の見込み(送る時に数え直す)。全員・ロールは数、audiences は項目の count か上限まで数える、選んだ利用者は居る人の数、
+     * グループは一員の数と上限(超えても投げない。送る口が 409 で拒む)
+     * @throws DomainError(404) グループ: 門が閉・無い / (409) しまった・壊れた・版が無い / (503) 時間の上限
      */
     async estimateRecipients(
       target: { audience: MessageAudienceSpec } | { userIds: readonly string[] },
@@ -572,6 +602,11 @@ export function createMessageSender(deps: MessageSendDeps) {
         return { count: users.length, capped: false, fixedAtSend: true };
       }
       const spec = target.audience;
+      if (spec.type === "group") {
+        if (!deps.groups || !deps.groups.enabled()) throw new DomainError(GROUPS_CLOSED, { status: 404 });
+        const counted = await deps.groups.sendTarget(spec.groupId);
+        return { count: counted.count, capped: false, fixedAtSend: true, memberLimit: counted.memberLimit, overLimit: counted.overLimit };
+      }
       if (spec.type === "all") return { count: await deps.store.countUserIds({}), capped: false, fixedAtSend: true };
       if (spec.type === "role") {
         return { count: await deps.store.countUserIds({ roles: spec.roles }), capped: false, fixedAtSend: true };

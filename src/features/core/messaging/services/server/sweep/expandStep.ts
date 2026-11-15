@@ -8,10 +8,15 @@
 // - 全員・ロール宛てのお知らせ(inApp)は、中身が受信者に依らなければ受信者ごとの行を作らず、最初の束で回に 1 行の共有の
 //   message_inbox_items(user_id null、target_roles = ロールか null)を書き、数は束ごとに targeted・sent へ足す(D32)。
 //   共有の行は利用者ごとの inApp の好みを書く時には当てない(受け取り箱の利用者の API が回の category で見る人の好みを当てる)
+// - 送り始めの線(D58): 全員・ロールは回の scheduled_at ?? createdAt 以前に登録した利用者だけ(それより後の登録は入らない)
+// - グループ宛て(D58): 最初の 1 回で 1 文の INSERT … SELECT により 1 つの時点の一員(利用できる利用者・線以前の登録)を
+//   回の受信者の一覧へ書く(配達の行は作らない)。その後は一覧だけから束ごとに配達の行を作る(お知らせは受信者ごと、共有の行は作らない)。
+//   固定の時にグループが使えない(門が閉・しまった・壊れた・版が無い・人数の上限・時間の上限)→ 回を cancelled にし metadata.cancelReason に理由
 
+import { DomainError } from "@/lib/errors";
 import { listVariables } from "@/lib/structuredDocument/shared";
 
-import type { MessageDispatch, MessageInboxItemInsert } from "../../../entities/model";
+import type { MessageDispatch, MessageDispatchInsert, MessageInboxItemInsert } from "../../../entities/model";
 import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
 import { channelContent, renderValue, toVariableMap } from "../sendMessage/context";
 import { definitionOfDispatch } from "../sendMessage/dispatchDefinition";
@@ -30,7 +35,8 @@ import type { MessageAudienceSpec, MessageRecipient, MessageSendDeps } from "../
 import type { ExpansionWrite } from "./types";
 
 type StoredAudience =
-  | MessageAudienceSpec
+  | Exclude<MessageAudienceSpec, { type: "group" }>
+  | { type: "group"; groupId: string; version?: number | null }
   | {
       type: "recipients";
       recipients?: MessageRecipient[];
@@ -38,6 +44,53 @@ type StoredAudience =
     };
 
 const INDEX_PREFIX = "i:";
+/** グループ宛ての一覧の段の再開の位置("l:" = 一覧の最初から、"l:<利用者 id>" = その次から) */
+const LIST_PREFIX = "l:";
+const GROUPS_CLOSED = "ユーザーグループの機能が閉じています";
+const FREEZE_TIMEOUT = "グループの一員の書き出しが時間内に終わりませんでした(条件を絞るか定期計算にしてください)";
+
+/** 送り始めの線(予約は予約の時刻、他は回を作った時刻) */
+function sendStartOf(dispatch: MessageDispatch): Date {
+  return dispatch.scheduled_at ?? dispatch.createdAt;
+}
+
+/** 配達の行を 1 つも作る前に回を止める(グループの固定ができない時) */
+function cancelPatch(dispatch: MessageDispatch, reason: string, now: Date): Partial<MessageDispatchInsert> {
+  return {
+    status: "cancelled",
+    expand_cursor: MESSAGE_EXPAND_DONE,
+    completed_at: now,
+    metadata: { ...(dispatch.metadata ?? {}), cancelReason: reason },
+    updatedAt: now,
+  };
+}
+
+/** グループ宛ての最初の 1 回: 一員を回の受信者の一覧へ 1 文で書く書き込み(書けなければ回を止める) */
+async function freezeGroup(
+  deps: MessageSendDeps,
+  dispatch: MessageDispatch,
+  audience: { groupId: string; version?: number | null },
+  now: Date,
+): Promise<ExpansionWrite> {
+  try {
+    if (!deps.groups || !deps.groups.enabled()) throw new DomainError(GROUPS_CLOSED, { status: 404 });
+    const member = await deps.groups.memberWhere(audience.groupId, { version: audience.version ?? null });
+    return {
+      rows: [],
+      freeze: {
+        groupId: audience.groupId,
+        where: member.where,
+        createdBefore: sendStartOf(dispatch),
+        timeoutMs: member.timeoutMs,
+        timeoutPatch: cancelPatch(dispatch, FREEZE_TIMEOUT, now),
+      },
+      patch: { expand_cursor: LIST_PREFIX, updatedAt: now },
+    };
+  } catch (error) {
+    if (error instanceof DomainError) return { rows: [], patch: cancelPatch(dispatch, error.message, now) };
+    throw error;
+  }
+}
 const IN_APP = "inApp";
 /** 受信者に依らない差し込みの鍵(回の vars の鍵とこれだけなら共有の行にできる) */
 const RECIPIENT_INDEPENDENT_CONTEXT = ["serviceName", "appBaseUrl"];
@@ -120,6 +173,8 @@ export async function expandDispatchChunk(deps: MessageSendDeps, dispatch: Messa
   let inboxItem: MessageInboxItemInsert | undefined;
   let sharedSent = 0;
 
+  if (audience.type === "group" && dispatch.expand_cursor === null) return freezeGroup(deps, dispatch, audience, now);
+
   if (audience.type === "recipients") {
     const list = audience.recipients ?? [];
     recipientVars = audience.recipientVars ?? null;
@@ -134,7 +189,11 @@ export async function expandDispatchChunk(deps: MessageSendDeps, dispatch: Messa
     const end = start + slice.length;
     nextCursor = end >= list.length ? MESSAGE_EXPAND_DONE : `${INDEX_PREFIX}${end}`;
   } else {
-    const chunk = await resolveAudienceChunk(deps, audience, dispatch.expand_cursor);
+    // グループは回の受信者の一覧から、全員・ロールは送り始めの線以前の登録から
+    const chunk =
+      audience.type === "group"
+        ? await deps.store.listRecipientIds(dispatch.id, dispatch.expand_cursor?.slice(LIST_PREFIX.length) || null, deps.config.expandChunkSize)
+        : await resolveAudienceChunk(deps, audience, dispatch.expand_cursor, { createdBefore: sendStartOf(dispatch) });
     const userCount = new Set(chunk.userIds).size;
     // 全員・ロール宛てのお知らせは共有の 1 行にできるか(中身が受信者に依らない)
     const shared =
@@ -165,7 +224,7 @@ export async function expandDispatchChunk(deps: MessageSendDeps, dispatch: Messa
     }
     // どの経路でも止められた利用者は数えない(共有のお知らせが届く送信では全員に届くので引かない、D31)
     recipientCount += userCount - (shared ? 0 : result.stoppedUserIds.size);
-    nextCursor = chunk.nextCursor ?? MESSAGE_EXPAND_DONE;
+    nextCursor = chunk.nextCursor === null ? MESSAGE_EXPAND_DONE : audience.type === "group" ? `${LIST_PREFIX}${chunk.nextCursor}` : chunk.nextCursor;
   }
 
   const channelCounts = mergeCounts(channels, dispatch.channel_counts, counts);

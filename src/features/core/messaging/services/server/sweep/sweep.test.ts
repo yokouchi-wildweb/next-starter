@@ -4,10 +4,14 @@
 // - d3: 予約と大きな送信・audience を再開の位置から展開し、終えたら status・channel_counts・recipient_count・vars を確定
 // - d4: 続きを送るは 1 束だけ
 // - d5: 保持の日数で消し、お知らせが参照する回は残し、回の冪等の鍵を移す
+// - グループ宛て(D58): 最初の 1 回で一員を回の受信者の一覧へ書き(配達の行なし、送り始めの線より後の登録は外す)、その後は一覧だけから
+//   束ごとに配達の行。固定できない(門が閉・グループの誤り・時間の上限)回は cancelled + cancelReason。お知らせは受信者ごと
+// - 送り始めの線(D58): 全員・ロール宛ては回を作った時刻より後に登録した利用者を入れない
 // 実行: pnpm test src/features/core/messaging/services/server/sweep
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
+import { sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { createDefineMessage, type ChannelSendResult, type MessageRegistry } from "@/lib/messaging";
@@ -413,4 +417,99 @@ test("配信停止(D35): キューに置いた後で止めた人は、送る直�
   assert.deepEqual([u5.status, u5.reason, u5.next_attempt_at, u5.lock_token], ["suppressed", "preference", null, null]);
   assert.ok(!channel.calls.flat().some((target) => target.userId === "u5"));
   assert.equal(world.store.dispatches[0].status, "completed");
+});
+
+/** グループの読み口の偽物(一員は world.groupMembers、固定の 1 文はメモリの expandOne が写す) */
+function fakeGroups(world: ReturnType<typeof createMemoryWorld>, options: { open?: () => boolean; fail?: () => Error | null } = {}) {
+  return {
+    enabled: options.open ?? (() => true),
+    async sendTarget(groupId: string) {
+      const count = world.groupMembers.get(groupId)?.length ?? 0;
+      return { count, memberLimit: 100, overLimit: false, version: null };
+    },
+    async memberWhere(groupId: string) {
+      const failure = options.fail?.();
+      if (failure) throw failure;
+      return { where: sql`true`, count: world.groupMembers.get(groupId)?.length ?? 0, timeoutMs: 1000 };
+    },
+  };
+}
+
+const oneChunkPerRun = (deps: ReturnType<typeof setup>["deps"]) => ({
+  ...deps,
+  config: { ...deps.config, sweep: { ...deps.config.sweep, expandChunksPerRun: 1 } },
+});
+
+test("グループ宛て(D58): 最初に一覧へ書き(配達なし・線より後の登録は外す)、その後は一覧だけから束ごとに送る", async () => {
+  const { world, deps, sender } = setup({ users: 6 });
+  world.store.users.find((user) => user.id === "u6")!.createdAt = new Date(Date.now() + 3_600_000);
+  world.groupMembers.set("g1", ["u2", "u3", "u4", "u5", "u6"]);
+  deps.groups = fakeGroups(world);
+  await sender.sendMessageToMany(notice, { audience: { type: "group", groupId: "g1" }, vars: { item: "x" } });
+  const dispatch = world.store.dispatches[0];
+  const slow = oneChunkPerRun(deps);
+
+  await sweepMessages(slow, { deadline: farFuture() });
+  assert.equal(dispatch.expand_cursor, "l:");
+  assert.deepEqual(world.store.recipients.map((row) => row.user_id).sort(), ["u2", "u3", "u4", "u5"], "u6 は送り始めより後の登録");
+  assert.equal(world.store.deliveries.length, 0, "書き終えるまで配達を作らない");
+
+  // 書いた後でグループが変わっても宛先は変わらない(続きは一覧の位置から)
+  world.groupMembers.set("g1", ["u1"]);
+  await sweepMessages(slow, { deadline: farFuture() });
+  assert.ok(dispatch.expand_cursor?.startsWith("l:u"), "一覧の段の再開の位置");
+  for (let i = 0; i < 5; i += 1) await sweepMessages(slow, { deadline: farFuture() });
+  assert.equal(dispatch.expand_cursor, MESSAGE_EXPAND_DONE);
+  assert.deepEqual(world.store.deliveries.map((row) => row.user_id).sort(), ["u2", "u3", "u4", "u5"]);
+  assert.equal(dispatch.recipient_count, 4);
+  assert.equal(dispatch.status, "completed");
+});
+
+test("グループ宛て(D58): 固定の時に門が閉・グループの誤り・時間の上限なら回を cancelled にし理由を残す(配達なし)", async () => {
+  const cases: { name: string; open?: boolean; fail?: Error; timeout?: boolean; reason: RegExp }[] = [
+    { name: "門", open: false, reason: /閉じています/ },
+    { name: "しまった", fail: new DomainError("グループ「g」はしまってあります", { status: 409 }), reason: /しまってあります/ },
+    { name: "時間", timeout: true, reason: /時間内に終わりませんでした/ },
+  ];
+  for (const item of cases) {
+    const { world, deps, sender } = setup();
+    world.groupMembers.set("g1", ["u1", "u2"]);
+    let open = true;
+    let fail: Error | null = null;
+    deps.groups = fakeGroups(world, { open: () => open, fail: () => fail });
+    await sender.sendMessageToMany(notice, { audience: { type: "group", groupId: "g1" }, vars: { item: "x" } });
+    open = item.open ?? true;
+    fail = item.fail ?? null;
+    world.freezeTimesOut = item.timeout ?? false;
+    await sweep(deps);
+    const dispatch = world.store.dispatches[0];
+    assert.equal(dispatch.status, "cancelled", item.name);
+    assert.equal(dispatch.expand_cursor, MESSAGE_EXPAND_DONE, item.name);
+    assert.match(String((dispatch.metadata as { cancelReason?: string }).cancelReason), item.reason, item.name);
+    assert.equal(world.store.deliveries.length, 0, item.name);
+    assert.equal(world.store.recipients.length, 0, item.name);
+  }
+});
+
+test("グループ宛て(D58): お知らせは受信者ごとの行(共有の行を作らない)", async () => {
+  const { world, deps, inApp, news, sender } = setupInApp("{{item}} が入荷しました");
+  world.groupMembers.set("g1", ["u1", "u2", "u3"]);
+  deps.groups = fakeGroups(world);
+  await sender.sendMessageToMany(news, { audience: { type: "group", groupId: "g1" }, vars: { item: "靴" } });
+  for (let i = 0; i < 4; i += 1) await sweep(deps);
+  assert.equal(world.inboxItems.length, 0);
+  assert.equal(world.store.deliveries.filter((row) => row.channel === "inApp").length, 3);
+  assert.equal(inApp.calls.flat().length, 3);
+  assert.equal(world.store.dispatches[0].status, "completed");
+});
+
+test("送り始めの線(D58): 全員・ロール宛ては回を作った時刻より後に登録した利用者を入れない", async () => {
+  const { world, deps, sender } = setup({ users: 4 });
+  world.store.users.find((user) => user.id === "u4")!.createdAt = new Date(Date.now() + 3_600_000);
+  await sender.sendMessageToMany(notice, { audience: { type: "all" }, vars: { item: "x" } });
+  await sender.sendMessageToMany(notice, { audience: { type: "role", roles: ["user"] }, vars: { item: "y" } });
+  for (let i = 0; i < 4; i += 1) await sweep(deps);
+  const [all, role] = world.store.dispatches;
+  assert.deepEqual(world.store.deliveries.filter((row) => row.dispatch_id === all.id).map((row) => row.user_id).sort(), ["u1", "u2", "u3"]);
+  assert.deepEqual(world.store.deliveries.filter((row) => row.dispatch_id === role.id).map((row) => row.user_id).sort(), ["u2", "u3"]);
 });

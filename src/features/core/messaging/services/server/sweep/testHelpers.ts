@@ -19,6 +19,10 @@ export type MemoryWorld = {
   inboxItems: MessageInboxItemInsert[];
   /** 保持の掃除が回から外した画像の参照(本物は storageObjectService.detach) */
   detachedImageRefs: string[];
+  /** グループの一員(固定の 1 文の代わり: freeze.groupId の一員のうち店の利用者で線以前の登録を一覧へ書く) */
+  groupMembers: Map<string, string[]>;
+  /** true = 固定の 1 文が時間の上限を超えたことにする */
+  freezeTimesOut: boolean;
 };
 
 const time = (value: Date | null | undefined) => (value ? value.getTime() : null);
@@ -30,6 +34,7 @@ export function createMemoryWorld(): MemoryWorld {
   const events: MemoryWorld["events"] = [];
   const inboxItems: MessageInboxItemInsert[] = [];
   const detachedImageRefs: string[] = [];
+  const groupMembers = new Map<string, string[]>();
   const dispatches = () => store.dispatches as unknown as MessageDispatch[];
 
   const sweepStore: MessageSweepStore = {
@@ -50,6 +55,22 @@ export function createMemoryWorld(): MemoryWorld {
       );
       if (!target) return false;
       const write = await step({ ...target });
+      if (write.freeze) {
+        if (world.freezeTimesOut) {
+          Object.assign(target, write.freeze.timeoutPatch);
+          return true;
+        }
+        const line = write.freeze.createdBefore;
+        for (const userId of groupMembers.get(write.freeze.groupId) ?? []) {
+          const user = store.users.find((row) => row.id === userId);
+          if (!user || (user.createdAt && user.createdAt > line)) continue;
+          if (!store.recipients.some((row) => row.dispatch_id === target.id && row.user_id === userId)) {
+            store.recipients.push({ dispatch_id: target.id, user_id: userId });
+          }
+        }
+        Object.assign(target, write.patch);
+        return true;
+      }
       await store.insertDeliveries(write.rows as MessageDeliveryInsert[], write.eventsFor);
       if (write.inboxItem) inboxItems.push(write.inboxItem);
       Object.assign(target, write.patch);
@@ -169,7 +190,19 @@ export function createMemoryWorld(): MemoryWorld {
     },
   };
 
-  return { store, sweepStore, retentionStore, inboxDispatchIds, movedKeyRows, events, inboxItems, detachedImageRefs };
+  const world: MemoryWorld = {
+    store,
+    sweepStore,
+    retentionStore,
+    inboxDispatchIds,
+    movedKeyRows,
+    events,
+    inboxItems,
+    detachedImageRefs,
+    groupMembers,
+    freezeTimesOut: false,
+  };
+  return world;
 }
 
 export function createSweepDeps(
