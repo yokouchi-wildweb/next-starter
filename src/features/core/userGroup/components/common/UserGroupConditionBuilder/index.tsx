@@ -146,6 +146,7 @@ function GroupNode({ node, level, criteria, actions, disabled }: NodeProps & { n
           <SelectInput
             value={node.op}
             options={OP_OPTIONS}
+            showPlaceholderOption={false}
             disabled={disabled}
             onChange={(value) => value && actions.setOp(node.id, String(value) as ConditionGroupOp)}
           />
@@ -168,6 +169,7 @@ function GroupNode({ node, level, criteria, actions, disabled }: NodeProps & { n
         <SelectInput
           value=""
           options={pickOptions}
+          showPlaceholderOption={false}
           placeholder="条件を足す"
           disabled={disabled}
           onChange={(value) => value && actions.addCriterion(node.id, String(value))}

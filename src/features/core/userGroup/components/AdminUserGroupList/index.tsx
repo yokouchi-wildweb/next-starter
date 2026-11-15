@@ -54,7 +54,7 @@ export function AdminUserGroupList() {
             <Label htmlFor="user-group-filter-status" className="text-xs">
               状態
             </Label>
-            <SelectInput id="user-group-filter-status" value={status} onChange={(v) => setStatus(v ? String(v) : "active")} options={STATUS_OPTIONS} />
+            <SelectInput id="user-group-filter-status" value={status} onChange={(v) => setStatus(v ? String(v) : "active")} options={STATUS_OPTIONS} showPlaceholderOption={false} />
           </Stack>
         </Flex>
         <Button type="button" size="sm" variant="primary" onClick={modal.openNew}>

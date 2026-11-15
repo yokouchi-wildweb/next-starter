@@ -5,6 +5,7 @@
 // - 書く欄: 作る(動的の POST・固定は startStatic)/ 直す(変えた欄だけ PATCH)/ 種類の選択肢 / 重い条件の注意
 // - 固定: incomplete の間は同じ元で送り直し、進み具合と終わり / 見込み: 理由・古い見込み / 一員・例外: 足す・外す
 // - 既存の固定のグループに足す(一括操作): mode add の結果、断られた理由
+// - モーダル: 固定の進み具合は始めた開いた回だけ(閉じて開き直すと出さない)
 // 実行: pnpm test src/features/core/userGroup/hooks/userGroupHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -438,5 +439,23 @@ test("useAddToUserGroup: mode add で足し結果を返す、断られたらサ�
   assert.equal(view.value().reason, "人数の上限を超えます");
   await act(async () => view.value().clear());
   assert.equal(view.value().reason, null);
+  await view.unmount();
+});
+
+test("useUserGroupModal: 固定の進み具合は始めた開いた回だけ。閉じて「新しく作る」を開き直すと出さない", async () => {
+  staticRounds = [{ status: "replaced", memberCount: 2, added: 2, removed: 0, skipped: 0 }];
+  const view = await mount(() => {
+    const [open, setOpen] = useState(true);
+    return { modal: hooks.useUserGroupModal({ open, groupId: null }), setOpen };
+  });
+  await act(async () => {
+    await view.value().modal.freeze.start({ name: "固定", from: { type: "users", userIds: ["u1", "u2"] } });
+  });
+  assert.equal(view.value().modal.freeze.progress.status, "done");
+  await act(async () => view.value().setOpen(false));
+  await act(async () => view.value().setOpen(true));
+  assert.equal(view.value().modal.freeze.progress.status, "idle");
+  assert.equal(view.value().modal.freeze.running, false);
+  assert.equal(view.value().modal.mode, "create", "前の回で作ったグループを開き直しに持ち越さない");
   await view.unmount();
 });

@@ -3,7 +3,7 @@
 // @/lib/crud/components の bulk*Action と同じ形(meta + options → BulkActionItem)。選んだ記録の id = 利用者 id。
 // - bulkCreateUserGroupAction: 選んだ人で固定のグループを作る(名前・説明)。一員の書き込みが途中なら自動で送り直し、終わるまで進み具合を出す
 // - bulkAddToUserGroupAction: 選んだ人を既存の固定のグループに足す(使用中の固定のグループを名前で選ぶ)
-// 人数の上限などで断られた時はサーバーの理由を出す。内部の鍵・id は出さない(D94)。門 userGroups の出し分けは項目の feature
+// 終わったらグループ名と人数のトースト。人数の上限などで断られた時はサーバーの理由を出す。内部の鍵・id は出さない(D94)。門 userGroups の出し分けは項目の feature
 
 "use client";
 
@@ -19,6 +19,7 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import Modal from "@/components/Overlays/Modal";
 import { Para } from "@/components/TextBlocks/Para";
 import { err } from "@/lib/errors";
+import { useToast } from "@/lib/toast";
 import type { BulkActionItem, BulkActionProps } from "@/lib/tableSuite";
 
 import { UserGroupFreezeProgress } from "@/features/core/userGroup/components/common/UserGroupFreezeProgress";
@@ -41,9 +42,11 @@ function CreateFromSelection({ selection, onDone, label }: BulkActionProps<unkno
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const { showToast } = useToast();
   const freeze = useUserGroupFreeze({
-    onDone: () => {
+    onDone: (group) => {
       setOpen(false);
+      showToast(`「${group.name}」を作りました(${count(group.count.value ?? 0)})`, "success");
       onDone();
     },
   });
@@ -108,6 +111,7 @@ function AddSelection({ selection, onDone, label }: BulkActionProps<unknown> & {
   const [groupId, setGroupId] = useState("");
   const { catalog, error: catalogError } = useUserGroupCriteriaCatalog(open);
   const adding = useAddToUserGroup();
+  const { showToast } = useToast();
   const ids = selection.selectedIds.map(String);
   const groups = catalog?.options.staticGroups ?? [];
   const openModal = () => {
@@ -119,6 +123,10 @@ function AddSelection({ selection, onDone, label }: BulkActionProps<unknown> & {
     const done = await adding.add(groupId, ids);
     if (done) {
       setOpen(false);
+      showToast(
+        `「${done.group.name}」に ${count(done.added)}を足しました${done.skipped > 0 ? `(${count(done.skipped)}はもう入っていたか、足せませんでした)` : ""}`,
+        "success",
+      );
       onDone();
     }
   };

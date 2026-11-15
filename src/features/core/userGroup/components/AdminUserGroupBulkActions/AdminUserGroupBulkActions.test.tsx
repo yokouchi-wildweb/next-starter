@@ -1,6 +1,7 @@
 // 管理一覧の一括操作の作成関数の検査(jsdom の上で描く。hook・Modal・入力は偽物)。
 // - bulkCreateUserGroupAction: 名前を入れて「作る」= 固定の流れを選んだ利用者 id で始める、進み具合の部品、0 人ならボタンを押せない
 // - bulkAddToUserGroupAction: 固定のグループを名前で選んで「足す」= mode add、通れば onDone、断られた理由を出す、id は出さない
+// - 終わったらグループ名と人数のトースト(作る・足す)
 // 実行: pnpm test src/features/core/userGroup/components/AdminUserGroupBulkActions/AdminUserGroupBulkActions.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -19,13 +20,19 @@ g.IS_REACT_ACT_ENVIRONMENT = true;
 const GROUP_ID = "22222222-2222-4222-8222-222222222222";
 const events: unknown[] = [];
 let addReason: string | null = null;
-let addResult: unknown = { added: 2 };
+let addResult: unknown = { added: 2, skipped: 1, memberCount: 5, group: { name: "春の招待" } };
+let freezeOnDone: ((group: unknown) => void) | undefined;
+const toasts: string[] = [];
+mock.module("@/lib/toast", { namedExports: { useToast: () => ({ showToast: (message: string) => void toasts.push(message) }) } });
 mock.module("@/features/core/userGroup/hooks/useUserGroupFreeze", {
   namedExports: {
-    useUserGroupFreeze: () => ({
+    useUserGroupFreeze: (options: { onDone?: (group: unknown) => void }) => ({
       progress: { status: "idle" },
       running: false,
-      start: async (input: unknown) => void events.push(["start", input]),
+      start: async (input: unknown) => {
+        freezeOnDone = options.onDone;
+        events.push(["start", input]);
+      },
       cancel: () => {},
       clear: () => {},
     }),
@@ -89,7 +96,9 @@ after(() => dom.window.close());
 beforeEach(() => {
   events.length = 0;
   addReason = null;
-  addResult = { added: 2 };
+  addResult = { added: 2, skipped: 1, memberCount: 5, group: { name: "春の招待" } };
+  toasts.length = 0;
+  freezeOnDone = undefined;
 });
 
 const selection = (ids: string[]) => ({ selectedIds: ids, selectedRows: [], selectedKeys: ids, count: ids.length, clear: () => {} });
@@ -117,6 +126,9 @@ test("作る: 名前を入れて作る = 選んだ利用者 id で固定の流�
   await click(view.container, "name");
   await click(view.container, "作る");
   assert.deepEqual(events, [["start", { name: "春の招待", description: null, from: { type: "users", userIds: ["u1", "u2"] } }]]);
+  await act(async () => freezeOnDone?.({ name: "春の招待", count: { value: 2, state: "counted" } }));
+  assert.deepEqual(toasts, ["「春の招待」を作りました(2 人)"]);
+  assert.deepEqual(events.at(-1), "done");
   await view.unmount();
 });
 
@@ -139,6 +151,7 @@ test("足す: 名前で選んで足す = mode add、通れば onDone、id は出
   await click(view.container, "pick:春の招待");
   await click(view.container, "足す");
   assert.deepEqual(events, [["add", GROUP_ID, ["u1"]], "done"]);
+  assert.deepEqual(toasts, ["「春の招待」に 2 人を足しました(1 人はもう入っていたか、足せませんでした)"]);
   await view.unmount();
 });
 
@@ -151,5 +164,6 @@ test("足す: 断られたらサーバーの理由を出し、onDone しない",
   await click(view.container, "pick:春の招待");
   await click(view.container, "足す");
   assert.deepEqual(events, [["add", GROUP_ID, ["u1"]]]);
+  assert.deepEqual(toasts, [], "断られたらトーストを出さない");
   await view.unmount();
 });

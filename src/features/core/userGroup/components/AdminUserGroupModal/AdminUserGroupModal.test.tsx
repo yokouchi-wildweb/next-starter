@@ -99,6 +99,7 @@ mock.module("@/features/core/userGroup/hooks/useUserGroupExceptions", {
   namedExports: { useUserGroupExceptions: () => ({ include: people(), exclude: people() }) },
 });
 let tabbed: Record<string, unknown> | null = null;
+const selects: Record<string, Record<string, unknown>> = {};
 mock.module("@/components/Overlays/TabbedModal", {
   defaultExport: (props: Record<string, unknown>) => {
     tabbed = props;
@@ -124,7 +125,14 @@ mock.module("@/components/Form/Button", {
   },
 });
 mock.module("@/components/Form/Input/Manual", {
-  namedExports: { Input: () => createElement("input"), Textarea: () => createElement("textarea"), SelectInput: () => createElement("span") },
+  namedExports: {
+    Input: () => createElement("input"),
+    Textarea: () => createElement("textarea"),
+    SelectInput: (props: Record<string, unknown>) => {
+      selects[String(props.id ?? "")] = props;
+      return createElement("span");
+    },
+  },
 });
 const stub = (name: string) => {
   const Stub = () => createElement("div", { "data-part": name });
@@ -263,5 +271,22 @@ test("一覧: 行は名前・種類・人数。「新しく作る」と行でモ
   await act(async () => (rowButton as HTMLElement).click());
   await act(async () => [...view.container.querySelectorAll("button")].find((b) => b.textContent === "新しく作る")!.click());
   assert.deepEqual(events, [`open:${GROUP_ID}`, "new"]);
+  assert.equal(selects["user-group-filter-status"].showPlaceholderOption, false, "状態は必ず値がある");
+  await view.unmount();
+});
+
+test("選択欄: 種類・間隔・状態に「選択してください」を出さない、間隔の既定は空でない値(選ぶと null)", async () => {
+  const set: unknown[] = [];
+  formState = baseForm("scheduled");
+  (formState.fields as Record<string, unknown>).setIntervalMinutes = (v: unknown) => void set.push(v);
+  const view = await render(modal());
+  assert.equal(selects["user-group-kind"].showPlaceholderOption, false);
+  const interval = selects["user-group-interval"];
+  assert.equal(interval.showPlaceholderOption, false);
+  assert.equal(interval.value, "default");
+  assert.ok((interval.options as { value: string }[]).every((o) => o.value !== ""), "空の値の選択肢は無い");
+  (interval.onChange as (v: string) => void)("default");
+  (interval.onChange as (v: string) => void)("360");
+  assert.deepEqual(set, [null, 360]);
   await view.unmount();
 });
