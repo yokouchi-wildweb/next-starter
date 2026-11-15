@@ -63,7 +63,7 @@ mock.module("@/features/core/messaging/services/client/sendClient", {
     },
     estimateAdminRecipients: async (input: unknown) => {
       calls.push(["estimate", input]);
-      return { count: 12, capped: false, fixedAtSend: true };
+      return { count: 12, fixedAtSend: true };
     },
     sendAdminTestMessage: async (input: unknown) => {
       calls.push(["test", input]);

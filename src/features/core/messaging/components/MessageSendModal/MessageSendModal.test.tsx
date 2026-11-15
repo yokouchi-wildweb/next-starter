@@ -52,7 +52,7 @@ const baseState = () => ({
   audienceError: null,
   canSend: true,
   preview: null,
-  estimate: { count: 5, capped: false },
+  estimate: { count: 5 },
   result: null,
   isPreviewing: false,
   isTesting: false,

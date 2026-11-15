@@ -15,7 +15,7 @@ import { DISPATCH_STATUS_DISPLAY } from "../DispatchStatusBadge";
 
 export type SendConfirmViewProps = {
   /** 見込み(bulk は null で、選んだ記録の数を出す) */
-  estimate: { count: number; capped: boolean } | null;
+  estimate: { count: number } | null;
   bulk?: { recordCount: number; recordNoun: string } | null;
   /** 予約の時刻(ISO、今送るなら null) */
   scheduledAt: string | null;
@@ -29,7 +29,7 @@ export function SendConfirmView({ estimate, bulk, scheduledAt, templateVersion, 
   const who = bulk
     ? `選んだ ${bulk.recordCount} 件の${bulk.recordNoun}に紐づく利用者`
     : estimate
-      ? `${estimate.count}${estimate.capped ? " 名以上" : " 名"}(送る時に数え直します)`
+      ? `${estimate.count} 名(送る時に数え直します)`
       : "-";
   return (
     <Stack space={2} data-slot="send-confirm-view">

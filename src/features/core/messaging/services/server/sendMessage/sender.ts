@@ -144,7 +144,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** 宛先数の見込み(送る時に展開で数え直す) */
 export type RecipientEstimate = {
   count: number;
-  capped: boolean;
   fixedAtSend: true;
   /** グループ宛てだけ: 人数の上限と、超えているか(超えたグループには送れない) */
   memberLimit?: number;
@@ -596,16 +595,16 @@ export function createMessageSender(deps: MessageSendDeps) {
     ): Promise<RecipientEstimate> {
       if ("userIds" in input) {
         const users = await deps.store.findUsers([...new Set(input.userIds)]);
-        return { count: users.length, capped: false, fixedAtSend: true };
+        return { count: users.length, fixedAtSend: true };
       }
       const spec = input.target;
       if (spec.type === "group") {
         if (!deps.groups || !deps.groups.enabled()) throw new DomainError(GROUPS_CLOSED, { status: 404 });
         const counted = await deps.groups.sendTarget(spec.groupId);
-        return { count: counted.count, capped: false, fixedAtSend: true, memberLimit: counted.memberLimit, overLimit: counted.overLimit };
+        return { count: counted.count, fixedAtSend: true, memberLimit: counted.memberLimit, overLimit: counted.overLimit };
       }
-      if (spec.type === "all") return { count: await deps.store.countUserIds({}), capped: false, fixedAtSend: true };
-      return { count: await deps.store.countUserIds({ roles: spec.roles }), capped: false, fixedAtSend: true };
+      if (spec.type === "all") return { count: await deps.store.countUserIds({}), fixedAtSend: true };
+      return { count: await deps.store.countUserIds({ roles: spec.roles }), fixedAtSend: true };
     },
 
     /**
