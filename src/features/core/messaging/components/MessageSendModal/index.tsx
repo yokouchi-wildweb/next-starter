@@ -23,7 +23,7 @@ import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 
 import { MessagePreview } from "@/features/core/messaging/components/common/MessagePreview";
-import { SendAudiencePicker } from "@/features/core/messaging/components/common/SendAudiencePicker";
+import { SendTargetPicker } from "@/features/core/messaging/components/common/SendTargetPicker";
 import { SendCategoryChannels } from "@/features/core/messaging/components/common/SendCategoryChannels";
 import { SendConfirmView, SendResultView } from "@/features/core/messaging/components/common/SendConfirmView";
 import { SendContentFields } from "@/features/core/messaging/components/common/SendContentFields";
@@ -154,9 +154,9 @@ export function MessageSendModal({
         ) : null}
         <Block title="宛先">
           {bulk ? (
-            <SendAudiencePicker kind="bulk" recordCount={bulk.recordIds.length} recordNoun={bulk.recordNoun} />
+            <SendTargetPicker kind="bulk" recordCount={bulk.recordIds.length} recordNoun={bulk.recordNoun} />
           ) : (
-            <SendAudiencePicker kind="select" value={m.audience} onChange={m.setAudience} roles={m.roles} />
+            <SendTargetPicker kind="select" value={m.target} onChange={m.setTarget} roles={m.roles} groups={m.groups} note={m.targetNote} />
           )}
         </Block>
         {m.templatesAvailable ? (
@@ -209,9 +209,9 @@ export function MessageSendModal({
             />
           </Block>
         ) : null}
-        {m.contentError || m.audienceError ? (
+        {m.contentError || m.targetError ? (
           <Para size="sm" tone="muted" className="my-0">
-            {m.audienceError ?? m.contentError}
+            {m.targetError ?? m.contentError}
           </Para>
         ) : null}
         {m.preview ? (
@@ -240,7 +240,7 @@ export function MessageSendModal({
           <Button type="button" size="sm" variant="outline" disabled={m.isSending} onClick={m.backToEdit}>
             戻る
           </Button>
-          <Button type="button" size="sm" variant="primary" disabled={m.isSending} onClick={() => void send()}>
+          <Button type="button" size="sm" variant="primary" disabled={m.isSending || m.estimateOverLimit} onClick={() => void send()}>
             {m.isSending ? <Spinner className="size-4" /> : null}
             {m.showSchedule && m.scheduleMode === "at" ? "予約する" : "送る"}
           </Button>

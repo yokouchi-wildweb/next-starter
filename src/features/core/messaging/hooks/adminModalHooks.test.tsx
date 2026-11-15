@@ -4,7 +4,7 @@
 // - useAdminDispatchDetail: 配達の絞り / 取り消す・取り下げる・再送(includeUnknown を渡して戻す)・続きを送る → 知らせ、失敗も知らせ
 // - useAdminMessageTemplateList / useAdminMessageOverrideList: 絞り・モーダルの開き先
 // - useMessageTemplateModal: 閉じている間は取らない / 作る → 同じモーダルで直す形 / 開き直すと作った id とタブが戻る
-// - useMessageTemplateVersion: id と版がそろった時だけ 1 版を取る / useModalSession: 開く度に増える
+// - useMessageTemplateVersion: id と版がそろった時だけ 1 版を取る (useModalSession は src/hooks/useModalSession.test.ts)
 // - closeConfirm: テンプレートの書く欄・文言の上書きの下書き
 // - C9: モーダルの操作の後の一覧(作った = 取り直す・公開 / 取り下げ = 行を置き換える・絞りから外れた行は外す)、onChanged は form から
 // - 作った直後に 1 件がまだ無い間は読み込み中(空の中身を出さない)
@@ -278,18 +278,6 @@ test("useAdminMessageOverrideList: 一覧と開き先", async () => {
   assert.equal(view.value().items.length, 1);
   await act(async () => view.value().modal.openMessage("user.welcome"));
   assert.deepEqual([view.value().modal.open, view.value().modal.messageKey], [true, "user.welcome"]);
-  await view.unmount();
-});
-
-test("useModalSession: 閉 → 開 の度に増える", async () => {
-  const view = await mount((p: { open: boolean }) => hooks.useModalSession(p.open), { open: false });
-  assert.equal(view.value(), 0);
-  await view.rerender({ open: true });
-  assert.equal(view.value(), 1);
-  await view.rerender({ open: false });
-  assert.equal(view.value(), 1);
-  await view.rerender({ open: true });
-  assert.equal(view.value(), 2);
   await view.unmount();
 });
 

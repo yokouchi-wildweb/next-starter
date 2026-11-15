@@ -38,7 +38,10 @@ const baseState = () => ({
   pendingLoad: null as string | null,
   loadNote: null as string | null,
   draft: { source: "adhoc", template: null, content: {}, vars: {} },
-  audience: { type: "all", roles: [], userIds: [] },
+  target: { type: "all", roles: [], groupId: "", userIds: [] },
+  groups: [],
+  targetNote: null,
+  estimateOverLimit: false,
   roles: [],
   allowedCategories: [{ key: "notice", label: "お知らせ" }],
   category: "notice",
@@ -49,7 +52,7 @@ const baseState = () => ({
   scheduleError: null,
   scheduleNote: "注記",
   contentError: null,
-  audienceError: null,
+  targetError: null,
   canSend: true,
   preview: null,
   estimate: { count: 5 },
@@ -63,7 +66,7 @@ const baseState = () => ({
   cancelLoad: () => events.push("cancelLoad"),
   setChannelFields: () => {},
   setVar: () => {},
-  setAudience: () => {},
+  setTarget: () => {},
   setCategory: () => {},
   toggleChannel: () => {},
   setScheduleMode: () => {},
@@ -106,7 +109,7 @@ const stub = (name: string) => {
   return Stub;
 };
 mock.module("@/features/core/messaging/components/common/SendTemplatePicker", { namedExports: { SendTemplatePicker: stub("template") } });
-mock.module("@/features/core/messaging/components/common/SendAudiencePicker", { namedExports: { SendAudiencePicker: stub("audience") } });
+mock.module("@/features/core/messaging/components/common/SendTargetPicker", { namedExports: { SendTargetPicker: stub("target") } });
 mock.module("@/features/core/messaging/components/common/SendCategoryChannels", { namedExports: { SendCategoryChannels: stub("category") } });
 mock.module("@/features/core/messaging/components/common/SendContentFields", { namedExports: { SendContentFields: stub("content") } });
 mock.module("@/features/core/messaging/components/common/SendSchedule", { namedExports: { SendSchedule: stub("schedule") } });
@@ -163,7 +166,7 @@ const parts = (container: HTMLElement) => [...container.querySelectorAll("[data-
 test("書く段: 部品を並べ、confirmOnClose に closeConfirm、ボタンで hook を呼ぶ", async () => {
   const view = await render(createElement(MessageSendModal, { mode: { type: "new" } }));
   // 並び(D47): 宛先 → テンプレートから読み込む → カテゴリーと経路 → 文言 → 送る時刻
-  assert.deepEqual(parts(view.container), ["audience", "template", "category", "content", "schedule"]);
+  assert.deepEqual(parts(view.container), ["target", "template", "category", "content", "schedule"]);
   assert.equal(dialogProps!.open, false, "上書きの確かめは読み込みを待つ時だけ");
   assert.deepEqual(modalConfirm, { enabled: true, message: "書きかけ" });
   await act(async () => button(view.container, "新しく送る")!.click());
@@ -179,8 +182,8 @@ test("テンプレートを呼び出せない時・bulk は予約を出さない
   const view = await render(
     createElement(MessageSendModal, { mode: { type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録" } }),
   );
-  assert.deepEqual(parts(view.container), ["audience", "category", "content"]);
-  assert.equal(view.container.querySelector("[data-part=audience]")?.getAttribute("data-kind"), "bulk");
+  assert.deepEqual(parts(view.container), ["target", "category", "content"]);
+  assert.equal(view.container.querySelector("[data-part=target]")?.getAttribute("data-kind"), "bulk");
   await view.unmount();
 });
 
@@ -192,6 +195,12 @@ test("確認の段: 送る → confirmSend、戻る → backToEdit / 結果の�
   await act(async () => exact(view.container, "送る")!.click());
   assert.deepEqual(events, ["back", "send"]);
   await view.unmount();
+
+  // 見込みが人数の上限を超えた = 送るを押せない(理由は確認の部品が出す)
+  state = { ...baseState(), step: "confirm", estimateOverLimit: true };
+  const over = await render(createElement(MessageSendModal, { mode: { type: "new" } }));
+  assert.equal(exact(over.container, "送る")?.disabled, true);
+  await over.unmount();
 
   state = { ...baseState(), step: "done", result: { kind: "send", result: { status: "queued", queuedCount: 0, dispatchId: "d1" } } };
   const done = await render(createElement(MessageSendModal, { mode: { type: "new" } }));

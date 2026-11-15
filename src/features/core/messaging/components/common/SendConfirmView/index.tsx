@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/SendConfirmView/index.tsx
-// 部品(props だけ): 送るモーダルの確認の段(宛先数の見込み・送る時刻・テンプレートの版)と、結果の段(状態・回へのリンク・一括の後処理)
+// 部品(props だけ): 送るモーダルの確認の段(宛先数の見込み・上限を超えた理由・送る時刻・テンプレートの版)と、結果の段(状態・回へのリンク・一括の後処理)
 
 "use client";
 
@@ -14,8 +14,8 @@ import { Span } from "@/components/TextBlocks/Span";
 import { DISPATCH_STATUS_DISPLAY } from "../DispatchStatusBadge";
 
 export type SendConfirmViewProps = {
-  /** 見込み(bulk は null で、選んだ記録の数を出す) */
-  estimate: { count: number } | null;
+  /** 見込み(bulk は null で、選んだ記録の数を出す)。overLimit = 人数の上限を超えた(理由を出す。送るは入れ物が止める) */
+  estimate: { count: number; overLimit?: boolean; memberLimit?: number } | null;
   bulk?: { recordCount: number; recordNoun: string } | null;
   /** 予約の時刻(ISO、今送るなら null) */
   scheduledAt: string | null;
@@ -36,6 +36,11 @@ export function SendConfirmView({ estimate, bulk, scheduledAt, templateVersion, 
       <Para size="sm" className="my-0">
         宛先: {who}
       </Para>
+      {estimate?.overLimit ? (
+        <Para size="sm" tone="destructive" className="my-0" data-slot="send-confirm-over-limit">
+          {`宛先の人数 ${estimate.count.toLocaleString("ja-JP")} 人が上限 ${(estimate.memberLimit ?? 0).toLocaleString("ja-JP")} 人を超えているため送れません`}
+        </Para>
+      ) : null}
       <Para size="sm" className="my-0">
         カテゴリー: {categoryLabel} / 経路: {channels.join("・")}
       </Para>

@@ -18,7 +18,7 @@ import { AllowedKeysHint } from "@/features/core/messaging/components/common/All
 import { dispatchKindLabel } from "@/features/core/messaging/components/common/DispatchRow";
 import { OverrideFieldEditor } from "@/features/core/messaging/components/common/OverrideFieldEditor";
 import { useMessageOverrideEditor } from "@/features/core/messaging/hooks/useMessageOverrideEditor";
-import { useModalSession } from "@/features/core/messaging/hooks/useModalSession";
+import { useModalSession } from "@/hooks/useModalSession";
 
 export type AdminMessageOverrideModalProps = {
   open: boolean;

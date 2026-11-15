@@ -6,9 +6,10 @@
 // 開き方(mode):
 // - new: 回の一覧の「新しく送る」。POST /api/admin/messaging/send(門 messagingBroadcast の内側)
 // - sameAs: 回の詳細の「同じ内容で送る」。その回の文面・カテゴリー・宛先の形を写す(本文を残さない回は件名・題だけ。
-//   選んだ利用者に送った回は同じ利用者を選んだ形)。テンプレートの回はそのテンプレートを今の公開版で呼び出す(送るのは今の公開版だけ、
+//   グループ宛ての回は同じグループ(今は選べなければ選び直し、全員に広げない)・選んだ利用者に送った回は同じ利用者を選んだ形)。テンプレートの回はそのテンプレートを今の公開版で呼び出す(送るのは今の公開版だけ、
 //   古い版は 409)。直して送った回は直した文言を写す。公開中でないテンプレートはその場で書く形にして sameAsNote で知らせる
 // - bulk: 管理一覧の一括操作。宛先 = 選んだ記録(target + recordIds)、POST /api/admin/messaging/bulk-send(門の外)。予約は無い
+// 宛先 = 全員・ロール・グループ(門 userGroups が開でグループがある時だけ)・選んだ利用者。見込みが上限を超えたら確認の段で送れない(D64)
 // 流れ(D47): 宛先 → テンプレートから読み込む(任意、門 messagingTemplates が開の時だけ。カテゴリー・経路・欄・画像が写り、全部直せる)→ カテゴリー(宛先で選べる物、D80)
 // → 経路の絞り(カテゴリーの経路の中、既定は全部オン)→ 文言の無い経路は空欄で見せ、送る前に止める(D85、サーバーの 400 と同じ線)
 // → 予約(bulk 以外)→ プレビュー・自分へのテスト送信 → 見込み → 確認 → 送る → 結果。
@@ -78,7 +79,7 @@ export type MessageSendMode =
       source?: string;
     };
 
-export type MessageSendAudienceType = "all" | "role" | "users";
+export type MessageSendTargetType = "all" | "role" | "group" | "users";
 export type MessageSendStep = "edit" | "confirm" | "done";
 export type MessageSendTemplate = AdminSendOptions["templates"][number];
 
@@ -93,7 +94,8 @@ export type MessageSendDraft = {
   vars: Record<string, string>;
 };
 
-export type MessageSendAudience = { type: MessageSendAudienceType; roles: string[]; userIds: string[] };
+/** 宛先(group = ユーザーグループ。groupId は値としてだけ持ち、画面には名前を出す、D94) */
+export type MessageSendTarget = { type: MessageSendTargetType; roles: string[]; groupId: string; userIds: string[] };
 
 export type MessageSendResult =
   | { kind: "send"; result: AdminSendResult }
@@ -234,16 +236,25 @@ export function sameAsNoteOf(mode: MessageSendMode, templates: readonly MessageS
     : "この回のテンプレートは今は公開されていないため、その場で書く欄で書き直してください(写せる文言がありませんでした)";
 }
 
-/** mode から導く初めの宛先(sameAs = 回の宛先の形。選んだ利用者に送った回は同じ利用者を選んだ形) */
-export function initialAudienceOf(mode: MessageSendMode): MessageSendAudience {
-  const blank: MessageSendAudience = { type: "all", roles: [], userIds: [] };
+/** mode から導く初めの宛先(sameAs = 回の宛先の形。グループ宛ての回は同じグループ、選んだ利用者に送った回は同じ利用者を選んだ形) */
+export function initialTargetOf(mode: MessageSendMode): MessageSendTarget {
+  const blank: MessageSendTarget = { type: "all", roles: [], groupId: "", userIds: [] };
   if (mode.type !== "sameAs") return blank;
-  const audience = record(mode.dispatch.target);
-  if (audience.type === "role" && Array.isArray(audience.roles)) return { ...blank, type: "role", roles: audience.roles.map(String) };
-  if (audience.type === "all") return blank;
-  // 全員・ロールでない回(選んだ利用者・一覧の一括)= 選んだ利用者の形。利用者 id は回の詳細が返す時だけ写す(多すぎる回は選び直し)
+  if (mode.dispatch.targetGroup) return { ...blank, type: "group", groupId: mode.dispatch.targetGroup.id };
+  const target = record(mode.dispatch.target);
+  if (target.type === "role" && Array.isArray(target.roles)) return { ...blank, type: "role", roles: target.roles.map(String) };
+  if (target.type === "all") return blank;
+  // 全員・ロール・グループでない回(選んだ利用者・一覧の一括)= 選んだ利用者の形。利用者 id は回の詳細が返す時だけ写す(多すぎる回は選び直し)
   return { ...blank, type: "users", userIds: [...(mode.dispatch.targetUserIds ?? [])] };
 }
+
+/** 見込みが人数の上限を超えた時の理由(確認の段に出し、送るを止める) */
+export function overLimitText(estimate: Pick<RecipientEstimate, "count" | "memberLimit">): string {
+  return `宛先の人数 ${estimate.count.toLocaleString("ja-JP")} 人が上限 ${(estimate.memberLimit ?? 0).toLocaleString("ja-JP")} 人を超えているため送れません`;
+}
+
+/** 前の回のグループが今は選べない時の知らせ(全員に広げない、D64) */
+export const TARGET_GROUP_GONE_NOTE = "前の回のグループは今は選べません(保管されたか、ユーザーグループの機能が閉じています)。宛先を選び直してください";
 
 export type UseMessageSendModalOptions = {
   mode: MessageSendMode;
@@ -263,7 +274,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const [pendingLoad, setPendingLoad] = useState<string | null>(null);
   /** 読み込みの知らせ(テンプレートのカテゴリーがこの宛先で使えない時) */
   const [loadNote, setLoadNote] = useState<string | null>(null);
-  const [audienceState, setAudienceState] = useState<MessageSendAudience | null>(null);
+  const [targetState, setTargetState] = useState<MessageSendTarget | null>(null);
   const [chosenCategory, setChosenCategory] = useState<string | null>(null);
   const [channelsOff, setChannelsOff] = useState<string[]>([]);
   const [scheduleMode, setScheduleModeState] = useState<"now" | "at">("now");
@@ -303,8 +314,16 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     () => (optionsLoaded ? sameAsNoteOf(mode, templates, initialDraft) : null),
     [optionsLoaded, mode, templates, initialDraft],
   );
-  const initialAudience = useMemo(() => initialAudienceOf(mode), [mode]);
-  const audience = audienceState ?? initialAudience;
+  const groups = useMemo(() => sendOptions.options?.groups ?? [], [sendOptions.options]);
+  // sameAs のグループが今の選択肢に無い(保管・門が閉)= グループは選ばれていない形にして知らせる(全員に広げない)
+  const initialTarget = useMemo(() => {
+    const first = initialTargetOf(mode);
+    if (first.type !== "group" || !sendOptions.options || groups.some((group) => group.id === first.groupId)) return first;
+    return { ...first, groupId: "" };
+  }, [mode, sendOptions.options, groups]);
+  const targetGroupGone =
+    targetState === null && mode.type === "sameAs" && mode.dispatch.targetGroup !== null && initialTarget.type === "group" && initialTarget.groupId === "";
+  const target = targetState ?? initialTarget;
   const loadedTemplate = useMemo(
     () => (draft.template ? (templates.find((item) => item.id === draft.template!.id) ?? null) : null),
     [draft.template, templates],
@@ -315,9 +334,9 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     () =>
       allCategories.filter(
         (option) =>
-          option.targets.includes(isBulk ? "bulk" : audience.type),
+          option.targets.includes(isBulk ? "bulk" : target.type),
       ),
-    [allCategories, isBulk, audience.type],
+    [allCategories, isBulk, target.type],
   );
   const preferredCategory =
     chosenCategory ??
@@ -366,7 +385,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       if (!template) return;
       const next = draftFromTemplate(template);
       const allowed = allowedCategories.find((option) => option.key === template.category) ?? null;
-      const target = allowed ?? categoryOption;
+      const nextCategory = allowed ?? categoryOption;
       if (allowed) {
         setChosenCategory(allowed.key);
         setLoadNote(null);
@@ -375,7 +394,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
         setLoadNote(`テンプレートのカテゴリー「${label}」はこの宛先では選べないため、カテゴリーは今のままです`);
       }
       setDraftState(next);
-      setChannelsOff((target?.channels ?? []).filter((key) => isBlankChannel(next, key)));
+      setChannelsOff((nextCategory?.channels ?? []).filter((key) => isBlankChannel(next, key)));
       setHandEdited(false);
       setPreview(null);
     },
@@ -399,9 +418,9 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     setLoadNote(null);
     setPreview(null);
   }, [draft.content]);
-  const setAudience = useCallback(
-    (patch: Partial<MessageSendAudience>) => setAudienceState((prev) => ({ ...(prev ?? initialAudience), ...patch })),
-    [initialAudience],
+  const setTarget = useCallback(
+    (patch: Partial<MessageSendTarget>) => setTargetState((prev) => ({ ...(prev ?? initialTarget), ...patch })),
+    [initialTarget],
   );
   const setCategory = useCallback((key: string) => {
     setChosenCategory(key);
@@ -444,20 +463,21 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     return { content, category, channels: sendChannels };
   }, [draft, loadedTemplate, category, sendChannels]);
 
-  const buildAudience = useCallback((): AdminSendInput["target"] => {
-    if (audience.type === "role") return { type: "role", roles: audience.roles };
-    if (audience.type === "users") return { type: "users", userIds: audience.userIds };
+  const buildTarget = useCallback((): AdminSendInput["target"] => {
+    if (target.type === "role") return { type: "role", roles: target.roles };
+    if (target.type === "group") return { type: "group", groupId: target.groupId };
+    if (target.type === "users") return { type: "users", userIds: target.userIds };
     return { type: "all" };
-  }, [audience]);
+  }, [target]);
 
   const buildSendInput = useCallback(
     (): AdminSendInput => ({
       ...buildContent(),
-      target: buildAudience(),
+      target: buildTarget(),
       ...(scheduleMode === "at" && scheduledAt ? { scheduledAt } : {}),
       idempotencyKey,
     }),
-    [buildContent, buildAudience, scheduleMode, scheduledAt, idempotencyKey],
+    [buildContent, buildTarget, scheduleMode, scheduledAt, idempotencyKey],
   );
 
   const buildBulkInput = useCallback((): AdminBulkSendInput => {
@@ -485,20 +505,21 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     return null;
   }, [draft, loadedTemplate, sendChannels, channelLabels]);
 
-  const audienceError = useMemo(() => {
+  const targetError = useMemo(() => {
     if (!isBulk) {
-      if (audience.type === "role" && audience.roles.length === 0) return "ロールを選んでください";
-      if (audience.type === "users" && audience.userIds.length === 0) return "利用者を選んでください";
+      if (target.type === "role" && target.roles.length === 0) return "ロールを選んでください";
+      if (target.type === "group" && target.groupId === "") return "グループを選んでください";
+      if (target.type === "users" && target.userIds.length === 0) return "利用者を選んでください";
     } else if (mode.recordIds.length === 0) {
       return "記録を選んでください";
     }
     if (!category) return "この宛先に送れるカテゴリーがありません";
     return null;
-  }, [isBulk, audience, mode, category]);
+  }, [isBulk, target, mode, category]);
 
-  const canSend = optionsLoaded && !contentError && !audienceError && !scheduleError;
+  const canSend = optionsLoaded && !contentError && !targetError && !scheduleError;
   const dirty =
-    open && step !== "done" && (draftState !== null || audienceState !== null || chosenCategory !== null || channelsOff.length > 0 || scheduledAt !== "");
+    open && step !== "done" && (draftState !== null || targetState !== null || chosenCategory !== null || channelsOff.length > 0 || scheduledAt !== "");
   useUnsavedGuard(dirty);
 
   // ---- 操作 ----
@@ -538,10 +559,10 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       const late = scheduleErrorOf(scheduleMode, scheduledAt, maxDays, Date.now());
       setScheduleError(late);
       if (late) throw new Error(late);
-      setEstimate(await estimateMutation.trigger({ target: buildAudience() }));
+      setEstimate(await estimateMutation.trigger({ target: buildTarget() }));
     }
     setStep("confirm");
-  }, [isBulk, scheduleMode, scheduledAt, maxDays, estimateMutation, buildAudience]);
+  }, [isBulk, scheduleMode, scheduledAt, maxDays, estimateMutation, buildTarget]);
 
   /** 確認から書く欄へ戻る */
   const backToEdit = useCallback(() => setStep("edit"), []);
@@ -558,6 +579,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
         setStep("edit");
         throw new Error(late);
       }
+      if (estimate?.overLimit) throw new Error(overLimitText(estimate));
       sent = { kind: "send", result: await sendMutation.trigger(buildSendInput()) };
     }
     setResult(sent);
@@ -565,7 +587,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     setIdempotencyKey(newKey());
     onSent?.(sent);
     return sent;
-  }, [isBulk, bulkMutation, buildBulkInput, scheduleMode, scheduledAt, maxDays, sendMutation, buildSendInput, onSent]);
+  }, [isBulk, bulkMutation, buildBulkInput, scheduleMode, scheduledAt, maxDays, sendMutation, buildSendInput, onSent, estimate]);
 
   const reset = useCallback(() => {
     setStep("edit");
@@ -573,7 +595,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     setHandEdited(false);
     setPendingLoad(null);
     setLoadNote(null);
-    setAudienceState(null);
+    setTargetState(null);
     setChosenCategory(null);
     setChannelsOff([]);
     setScheduleModeState("now");
@@ -612,8 +634,12 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     templates,
     loadedTemplate,
     draft,
-    audience,
+    target,
     roles: sendOptions.options?.roles ?? [],
+    /** 選べるグループ(使用中・名前と種類の表示名。門 userGroups が閉なら空 = グループを選ばせない) */
+    groups,
+    /** 宛先の知らせ(sameAs の前の回のグループが今は選べない時) */
+    targetNote: targetGroupGone ? TARGET_GROUP_GONE_NOTE : null,
     allowedCategories,
     category,
     channels,
@@ -624,10 +650,12 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     scheduleError,
     scheduleNote: `予約の粒度は cron の周期です(Vercel Hobby では 1 日 1 回なので、時刻より遅れて送られます)。${maxDays} 日先まで予約できます。`,
     contentError,
-    audienceError,
+    targetError,
     canSend,
     preview,
     estimate,
+    /** 見込みが人数の上限を超えている(確認の段で送れない。サーバーも 409 で断る、D64) */
+    estimateOverLimit: Boolean(estimate?.overLimit),
     result,
     isPreviewing: previewMutation.isMutating,
     isTesting: testMutation.isMutating,
@@ -645,7 +673,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     loadNote,
     setChannelFields,
     setVar,
-    setAudience,
+    setTarget,
     setCategory,
     toggleChannel,
     setScheduleMode,

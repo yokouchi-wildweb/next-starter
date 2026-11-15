@@ -1,7 +1,7 @@
 // 送るモーダルの部品(props だけ)の検査。jsdom の上で描く(押す操作のある部品)・文字で見る。
 // - SendTemplatePicker: 「テンプレートから読み込む」の小窓で選ぶ / 読み込み中は名前・版・別の読み込み・「テンプレートを外す」
 // - SendContentFields: その場で書く時もテンプレートの時も経路の欄の部品・文言なしの印・変数の欄(テンプレートの時だけ)
-// - SendAudiencePicker: bulk は選んだ記録の数だけ / select は種類の選び
+// - SendTargetPicker: bulk は選んだ記録の数だけ / select は種類の選び、グループは名前(種類)で選び id は出さない、グループが無ければ選択肢に出さない
 // - SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・文言なしの印
 // - SendSchedule: 予約の時だけ時刻・注記・誤り
 // - SendLegalNotice: 法の義務の告知の注意(D83)をいつも出し、メールがオフなら警告の色
@@ -31,7 +31,8 @@ mock.module("@/components/Form/Input/Manual", {
     },
     SwitchInput: (props: { label: string; value: boolean; onChange: (v: boolean) => void }) =>
       createElement("button", { type: "button", "data-switch": props.label, onClick: () => props.onChange(!props.value) }, `${props.label}:${props.value ? "on" : "off"}`),
-    RadioGroupInput: (props: { value: string }) => createElement("span", { "data-radio": props.value }),
+    RadioGroupInput: (props: { value: string; options?: { value: string; label: string }[] }) =>
+      createElement("span", { "data-radio": props.value, "data-options": (props.options ?? []).map((o) => o.value).join("|") }),
     MultiSelectInput: () => createElement("span", { "data-multi": "1" }),
     DatetimeInput: () => createElement("input", { "data-datetime": "1" }),
     Input: (props: Record<string, unknown>) => createElement("input", { id: props.id as string, defaultValue: props.value as string }),
@@ -73,7 +74,7 @@ let createRoot: typeof import("react-dom/client").createRoot;
 let parts: {
   SendTemplatePicker: typeof import("../common/SendTemplatePicker").SendTemplatePicker;
   SendContentFields: typeof import("../common/SendContentFields").SendContentFields;
-  SendAudiencePicker: typeof import("../common/SendAudiencePicker").SendAudiencePicker;
+  SendTargetPicker: typeof import("../common/SendTargetPicker").SendTargetPicker;
   SendCategoryChannels: typeof import("../common/SendCategoryChannels").SendCategoryChannels;
   SendSchedule: typeof import("../common/SendSchedule").SendSchedule;
   SendLegalNotice: typeof import("../common/SendLegalNotice").SendLegalNotice;
@@ -86,7 +87,7 @@ before(async () => {
   parts = {
     ...(await import("../common/SendTemplatePicker")),
     ...(await import("../common/SendContentFields")),
-    ...(await import("../common/SendAudiencePicker")),
+    ...(await import("../common/SendTargetPicker")),
     ...(await import("../common/SendCategoryChannels")),
     ...(await import("../common/SendSchedule")),
     ...(await import("../common/SendLegalNotice")),
@@ -179,20 +180,35 @@ test("SendContentFields: その場で書く欄 / テンプレートの欄 / 文�
   await tpl.unmount();
 });
 
-test("SendAudiencePicker: bulk は記録の数、select は種類の選び", async () => {
-  const bulk = await render(createElement(parts.SendAudiencePicker, { kind: "bulk", recordCount: 3, recordNoun: "振込レビュー" }));
+test("SendTargetPicker: bulk は記録の数、select は種類の選び、グループは名前(種類)で id を出さない", async () => {
+  const bulk = await render(createElement(parts.SendTargetPicker, { kind: "bulk", recordCount: 3, recordNoun: "振込レビュー" }));
   assert.match(bulk.container.textContent ?? "", /選んだ 3 件の振込レビュー/);
   await bulk.unmount();
-  const select = await render(
-    createElement(parts.SendAudiencePicker, {
+  const value = { type: "users" as const, roles: [], groupId: "", userIds: [] };
+  const noGroups = await render(createElement(parts.SendTargetPicker, { kind: "select", value, onChange: () => {}, roles: [] }));
+  assert.ok(noGroups.container.querySelector("[data-users]"));
+  assert.equal(noGroups.container.querySelector("[data-radio]")?.getAttribute("data-options"), "all|role|users", "グループが無ければ選択肢に出さない");
+  await noGroups.unmount();
+  const GROUP_ID = "33333333-3333-4333-8333-333333333333";
+  const picked: unknown[] = [];
+  selects.length = 0;
+  const withGroups = await render(
+    createElement(parts.SendTargetPicker, {
       kind: "select",
-      value: { type: "users", roles: [], userIds: [] },
-      onChange: () => {},
+      value: { ...value, type: "group" as const },
+      onChange: (patch: unknown) => void picked.push(patch),
       roles: [],
+      groups: [{ id: GROUP_ID, label: "常連", kindLabel: "動的" }],
+      note: "前の回のグループは今は選べません",
     }),
   );
-  assert.ok(select.container.querySelector("[data-users]"));
-  await select.unmount();
+  assert.equal(withGroups.container.querySelector("[data-radio]")?.getAttribute("data-options"), "all|role|group|users");
+  assert.match(withGroups.container.textContent ?? "", /常連\(動的\)/);
+  assert.match(withGroups.container.textContent ?? "", /前の回のグループは今は選べません/);
+  assert.doesNotMatch(withGroups.container.textContent ?? "", new RegExp(GROUP_ID));
+  selects.find((item) => item.label === "グループ")!.onChange(GROUP_ID);
+  assert.deepEqual(picked, [{ groupId: GROUP_ID }]);
+  await withGroups.unmount();
 });
 
 test("SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・文言なしの印", async () => {
@@ -248,7 +264,19 @@ test("SendConfirmView / SendResultView", async () => {
   assert.match(confirm.container.textContent ?? "", /12 名\(送る時に数え直します\)/);
   assert.match(confirm.container.textContent ?? "", /今送ります/);
   assert.match(confirm.container.textContent ?? "", /v3/);
+  assert.equal(confirm.container.querySelector('[data-slot="send-confirm-over-limit"]'), null);
   await confirm.unmount();
+  const over = await render(
+    createElement(parts.SendConfirmView, {
+      estimate: { count: 150_000, overLimit: true, memberLimit: 100_000 },
+      scheduledAt: null,
+      templateVersion: null,
+      channels: ["メール"],
+      categoryLabel: "キャンペーン",
+    }),
+  );
+  assert.match(over.container.textContent ?? "", /宛先の人数 150,000 人が上限 100,000 人を超えているため送れません/);
+  await over.unmount();
   const bulk = await render(
     createElement(parts.SendConfirmView, {
       estimate: null,
