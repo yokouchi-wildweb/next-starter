@@ -13,7 +13,7 @@ import { MESSAGE_DELIVERY_STATUSES, MESSAGE_DISPATCH_STATUSES } from "../../../e
 import { assertAdminActor, type AdminCheckDeps } from "./assertAdmin";
 import { operationFlags, type DispatchPolicy } from "./operations";
 import { ADMIN_SEND_MAX_USERS } from "./send";
-import { toDeliveryRow, toDispatchDetail, toDispatchSummary, type AdminDeliveryRow, type AdminDispatchDetail, type AdminDispatchSummary } from "./dispatchDto";
+import { targetGroupIdOf, toDeliveryRow, toDispatchDetail, toDispatchSummary, type AdminDeliveryRow, type AdminDispatchDetail, type AdminDispatchSummary } from "./dispatchDto";
 
 /** keyset の印(時刻 + id。中身は組み立てずに次の呼び出しへそのまま渡す) */
 export type AdminCursor = { createdAt: Date; id: string };
@@ -80,7 +80,16 @@ export type AdminReadDeps = AdminCheckDeps & {
   sourceLabel: (source: string) => Promise<string | null>;
   /** 回の操作の判定に要る値(連絡の性質と失敗の数) */
   operationInputs: (row: MessageDispatch) => Promise<{ policy: DispatchPolicy; counts: { failed: number; unknown: number } }>;
+  /** ユーザーグループの名前(id → 名前、しまったグループも。門 userGroups が閉なら空。無い = 名前を出さない) */
+  groupNames?: (groupIds: readonly string[]) => Promise<Map<string, string>>;
 };
+
+/** 回の宛先のグループの名前(1 頁に 1 回) */
+async function groupNamesOf(deps: AdminReadDeps, rows: readonly MessageDispatch[]): Promise<Map<string, string>> {
+  const ids = [...new Set(rows.map(targetGroupIdOf).filter((id): id is string => id !== null))];
+  if (ids.length === 0 || !deps.groupNames) return new Map();
+  return deps.groupNames(ids);
+}
 
 export type AdminPage<T> = { items: T[]; nextCursor: string | null };
 
@@ -100,7 +109,8 @@ export async function listDispatches(deps: AdminReadDeps, query: ListDispatchesQ
   await assertAdminActor(deps);
   const { cursor, limit, ...filter } = parseQuery(ListDispatchesQuerySchema, query);
   const rows = await deps.dispatchStore.listDispatches(filter, cursor ? decodeCursor(cursor) : null, limit + 1);
-  return page(rows, limit, toDispatchSummary);
+  const groupNames = await groupNamesOf(deps, rows.slice(0, limit));
+  return page(rows, limit, (row) => toDispatchSummary(row, groupNames));
 }
 
 /** @throws DomainError(404) */
@@ -109,15 +119,17 @@ export async function findDispatch(deps: AdminReadDeps, id: string): Promise<Adm
   const row = await deps.dispatchStore.findDispatch(id);
   if (!row) throw new DomainError("送信記録が見つかりません", { status: 404 });
   const { policy, counts } = await deps.operationInputs(row);
-  const [audienceUserIds, sourceLabel, names] = await Promise.all([
+  const [audienceUserIds, sourceLabel, names, groupNames] = await Promise.all([
     audienceUserIdsOf(deps, row),
     deps.sourceLabel(row.source),
     row.actor_id ? deps.dispatchStore.userNames([row.actor_id]) : Promise.resolve(new Map<string, string>()),
+    groupNamesOf(deps, [row]),
   ]);
   return toDispatchDetail(row, operationFlags(row, policy, counts), {
     audienceUserIds,
     sourceLabel,
     actorName: row.actor_id ? (names.get(row.actor_id) ?? null) : null,
+    groupNames,
   });
 }
 

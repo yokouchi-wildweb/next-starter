@@ -27,8 +27,8 @@ export const MESSAGE_KINDS = [
  */
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 
-/** 管理者がその場で書いて送れる宛先(管理の送る画面と一覧の一括) */
-export type MessageAdminAudience = "all" | "role" | "audience" | "users" | "bulk";
+/** 管理者がその場で書いて送れる宛先(管理の送る画面と一覧の一括)。group = ユーザーグループ(全員・ロールと同じ種別だけ) */
+export type MessageAdminAudience = "all" | "role" | "group" | "audience" | "users" | "bulk";
 
 /** 本文の残し方(types.ts の MessageRecord と同じ語彙) */
 type RecordDefault = "meta" | "vars" | "full";
@@ -83,10 +83,10 @@ export const MESSAGE_KIND_TRAITS: Readonly<Record<MessageKind, MessageKindTraits
   },
   transactional: { ...BASE },
   security: { ...BASE, addressStop: "hardBounce", recordDefault: "meta", throttle: false, emailFixed: true, sendInEntry: true },
-  announcement: { ...BASE, adminFreeText: ["all", "role", "audience", "users"], recordDefault: "full" },
+  announcement: { ...BASE, adminFreeText: ["all", "role", "group", "audience", "users"], recordDefault: "full" },
   direct: { ...BASE, adminFreeText: ["users", "bulk"], recordDefault: "full" },
   activity: { ...BASE, userStoppable: true },
-  marketing: { ...BASE, userStoppable: true, adminFreeText: ["all", "role", "audience", "users", "bulk"] },
+  marketing: { ...BASE, userStoppable: true, adminFreeText: ["all", "role", "group", "audience", "users", "bulk"] },
 };
 
 export function isMessageKind(value: unknown): value is MessageKind {

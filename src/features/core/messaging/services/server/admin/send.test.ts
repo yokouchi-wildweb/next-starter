@@ -3,6 +3,7 @@
 //   宛先(全員・ロール・audiences・選んだ利用者)、予約、監査(sent / scheduled / test_sent)
 // - カテゴリー(必須): 種別 announcement・direct・marketing だけ、宛先の種類は性質 adminFreeText。経路の制限は無い(LINE・fork の経路も)
 // - プレビュー・テスト送信の宛先は操作した管理者、見込みは送る時に数え直す印つき、選択肢
+// - グループ宛て(announcement・marketing だけ、direct は 400、見込みは送る口のまま)、選択肢のグループ
 // - 管理者でなければ 403
 // 実行: pnpm test src/features/core/messaging/services/server/admin/send.test.ts
 import { test } from "node:test";
@@ -34,7 +35,9 @@ const categories: Record<string, MessageCategory> = {
 };
 const result = { dispatchId: "d1", status: "processing" as const, deliveries: [], queuedCount: 0, channelCounts: {} };
 
-function setup(options: { role?: string; actorId?: string | null } = {}) {
+const GROUP = "22222222-2222-4222-8222-222222222222";
+
+function setup(options: { role?: string; actorId?: string | null; groups?: { id: string; label: string; kindLabel: string }[] } = {}) {
   const calls: { fn: string; args: unknown[] }[] = [];
   const audits: AuditRecordInput[] = [];
   const channel = (key: string, extra: Partial<MessageChannel> = {}): MessageChannel => ({
@@ -65,6 +68,7 @@ function setup(options: { role?: string; actorId?: string | null } = {}) {
     categories,
     audiences: { buyers: { key: "buyers", label: "購入者", args: z.object({}), resolveUserIds: async () => ({ userIds: [], nextCursor: null }) } },
     roles: () => [{ id: "user", label: "ユーザー" }],
+    groupOptions: async () => options.groups ?? [],
     listPublishedTemplates: async () => [],
     maxScheduleDays: () => 90,
   };
@@ -209,10 +213,10 @@ test("見込みは送る口の数(送る時に数え直す印)、選択肢は有
   assert.deepEqual(
     options.categories.map((o) => [o.key, o.kind, o.audiences.join(",")]),
     [
-      ["announcement", "announcement", "all,role,audience,users"],
+      ["announcement", "announcement", "all,role,group,audience,users"],
       ["operatorDirect", "direct", "users,bulk"],
-      ["marketing", "marketing", "all,role,audience,users,bulk"],
-      ["promoPush", "marketing", "all,role,audience,users,bulk"],
+      ["marketing", "marketing", "all,role,group,audience,users,bulk"],
+      ["promoPush", "marketing", "all,role,group,audience,users,bulk"],
     ],
   );
   assert.equal(options.maxScheduleDays, 90);
@@ -222,4 +226,26 @@ test("管理者でなければ 403", async () => {
   const { deps } = setup({ role: "user" });
   await rejectsWith(adminSend(deps, { content: ADHOC, category: "marketing", channels: ["email"], audience: { type: "all" } }), 403);
   await rejectsWith(adminSendOptions(deps), 403);
+});
+
+test("グループ宛て: announcement・marketing は送る口へ { type: group, groupId }、direct は 400、見込みは送る口のまま、選択肢のグループ", async () => {
+  const { deps, calls, audits } = setup({ groups: [{ id: GROUP, label: "常連", kindLabel: "固定(選んだ人)" }] });
+  await adminSend(deps, { content: ADHOC, category: "announcement", audience: { type: "group", groupId: GROUP } });
+  assert.deepEqual((calls[0].args[0] as Record<string, unknown>).audience, { type: "group", groupId: GROUP });
+  assert.deepEqual(audits[0].metadata?.audience, { type: "group", groupId: GROUP });
+  await adminSend(deps, { content: ADHOC, category: "marketing", audience: { type: "group", groupId: GROUP } });
+  assert.equal(calls.length, 2);
+  await rejectsWith(adminSend(deps, { content: ADHOC, category: "operatorDirect", audience: { type: "group", groupId: GROUP } }), 400);
+  await rejectsWith(adminSend(deps, { content: ADHOC, category: "announcement", audience: { type: "group", groupId: "x" } }), 400);
+  assert.equal(calls.length, 2);
+
+  await adminSendEstimate(deps, { audience: { type: "group", groupId: GROUP } });
+  assert.deepEqual(calls[2], { fn: "estimate", args: [{ audience: { type: "group", groupId: GROUP } }] });
+
+  const options = await adminSendOptions(deps);
+  assert.deepEqual(options.groups, [{ id: GROUP, label: "常連", kindLabel: "固定(選んだ人)" }]);
+  assert.ok(options.categories.find((category) => category.key === "announcement")!.audiences.includes("group"));
+  assert.equal(options.categories.find((category) => category.key === "operatorDirect")!.audiences.includes("group"), false);
+  // 門 userGroups が閉なら部品が空を返す(結びは index.ts)
+  assert.deepEqual((await adminSendOptions(setup().deps)).groups, []);
 });

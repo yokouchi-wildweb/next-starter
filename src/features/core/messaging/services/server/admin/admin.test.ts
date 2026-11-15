@@ -3,6 +3,7 @@
 // - 一括送信: userIds / target + recordIds、重複を除く、中身は送る画面と同じ { content, template?, vars? }(D92)を送る口 sendAuthored へ、
 //   カテゴリー(必須、bulk で送れる種別 direct・marketing だけ)、送り元、afterSend(送った文面と出どころ、失敗しても送信は戻さない)、監査 1 行、選択肢
 // - 読む口: 絞り込みの検査、keyset の印、DTO(本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の回)
+// - グループ宛ての回: 一覧・1 件に宛先のグループ { id(値だけ), name }、名前は 1 ページに 1 回引く、引けなければ null、detail.audience は形だけ
 // - 続きを送る: 監査 1 行
 // 実行: pnpm test src/features/core/messaging/services/server/admin
 import { test } from "node:test";
@@ -438,4 +439,42 @@ test("続きを送る: 進めて監査 1 行、管理者でなければ 403", as
   assert.deepEqual(await adminContinueSending(deps, "d1"), result);
   assert.deepEqual([audits[0].action, audits[0].targetId], ["messaging.dispatch.continued", "d1"]);
   await rejects403(adminContinueSending({ ...deps, ...check(ctx("user1", "user")) }, "d1"));
+});
+
+test("グループ宛ての回: 一覧・1 件に targetGroup { id, name }(1 ページに 1 回引く)、引けなければ name null、detail.audience は形だけ", async () => {
+  const G1 = "33333333-3333-4333-8333-333333333333";
+  const G2 = "44444444-4444-4444-8444-444444444444";
+  const group = (groupId: string) => ({ type: "group", groupId, version: 3 });
+  const rows = [dispatchRow({ id: "d2", audience: group(G1) }), dispatchRow({ id: "d1", audience: group(G2) }), dispatchRow({ id: "d0" })];
+  const asked: string[][] = [];
+  const store: AdminDispatchStore = {
+    listDispatches: async (_filter, _after, limit) => rows.slice(0, limit),
+    findDispatch: async (id) => rows.find((row) => row.id === id) ?? null,
+    listDeliveries: async () => [],
+    listDispatchUserIds: async () => [],
+    userNames: async () => new Map(),
+  };
+  const deps = {
+    ...check(ctx("admin1")),
+    dispatchStore: store,
+    operationInputs: async () => ({ policy: null, counts: { failed: 0, unknown: 0 } }),
+    sourceLabel: async () => null,
+    groupNames: async (ids: readonly string[]) => {
+      asked.push([...ids]);
+      return new Map(ids.filter((id) => id === G1).map((id) => [id, "常連"]));
+    },
+  };
+  const page = await listDispatches(deps, { limit: "3" } as never);
+  assert.deepEqual(
+    page.items.map((item) => item.targetGroup),
+    [{ id: G1, name: "常連" }, { id: G2, name: null }, null],
+  );
+  assert.deepEqual(asked, [[G1, G2]], "1 ページに 1 回、グループ宛ての回の分だけ");
+  const one = await findDispatch(deps, "d2");
+  assert.deepEqual(one.targetGroup, { id: G1, name: "常連" });
+  assert.deepEqual(one.audience, { type: "group" }, "固定した版・id は audience に出さない");
+  // 名前の部品が無い(門 userGroups が閉の結び)なら name null
+  const closed = await findDispatch({ ...deps, groupNames: undefined }, "d2");
+  assert.deepEqual(closed.targetGroup, { id: G1, name: null });
+  assert.equal(toDispatchSummary(dispatchRow()).targetGroup, null);
 });
