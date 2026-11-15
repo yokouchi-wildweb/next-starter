@@ -17,4 +17,10 @@ export const userGroupEvaluator = createUserGroupEvaluator({
 });
 
 export { compileUserGroupDefinition, type CompileOptions } from "./compile";
-export { createUserGroupEvaluator, type UserGroupEvaluator, type UserGroupEvaluatorDeps } from "./evaluator";
+export {
+  createUserGroupEvaluator,
+  type UserGroupEvaluator,
+  type UserGroupEvaluatorDeps,
+  type UserGroupMemberWhere,
+  type UserGroupSendTarget,
+} from "./evaluator";

@@ -2,7 +2,7 @@
 //
 // 送る口の DB の読み書き(drizzle)。送る口の処理は MessageSendStore の形だけを見る(テストは偽物を渡す)。
 
-import { and, asc, count, eq, gt, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, count, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
@@ -14,6 +14,7 @@ import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageEndpointTable } from "../../../entities/endpoint";
 import { MessageIdempotencyKeyTable } from "../../../entities/idempotencyKey";
 import { MessagePreferenceTable, MessageSuppressionTable } from "../../../entities/preference";
+import { MessageDispatchRecipientTable } from "../../../entities/recipient";
 import { MESSAGE_ALL } from "../../../entities/schema";
 import { MessageIdempotencyConflict } from "./errors";
 import type { MessageSendStore } from "./types";
@@ -137,6 +138,8 @@ export const drizzleMessageSendStore: MessageSendStore = {
     if (filter.roles) {
       conditions.push(inArray(UserTable.role, [...filter.roles] as (typeof UserTable.role.enumValues)[number][]));
     }
+    // 送り始めの線より後に登録した利用者は入れない
+    if (filter.createdBefore) conditions.push(lte(UserTable.createdAt, filter.createdBefore));
     if (cursor) conditions.push(gt(UserTable.id, cursor));
     const rows = await db
       .select({ id: UserTable.id })
@@ -155,6 +158,19 @@ export const drizzleMessageSendStore: MessageSendStore = {
     }
     const [row] = await db.select({ value: count() }).from(UserTable).where(and(...conditions));
     return Number(row?.value ?? 0);
+  },
+
+  async listRecipientIds(dispatchId, cursor, limit) {
+    const R = MessageDispatchRecipientTable;
+    const rows = await db
+      .select({ id: R.user_id })
+      .from(R)
+      .innerJoin(UserTable, eq(UserTable.id, R.user_id))
+      .where(and(eq(R.dispatch_id, dispatchId), isNull(UserTable.deletedAt), cursor ? gt(R.user_id, cursor) : undefined))
+      .orderBy(asc(R.user_id))
+      .limit(limit);
+    const userIds = rows.map((row) => row.id);
+    return { userIds, nextCursor: userIds.length === limit ? userIds[userIds.length - 1]! : null };
   },
 
   async findOptOuts(userIds, category, kind, channels) {

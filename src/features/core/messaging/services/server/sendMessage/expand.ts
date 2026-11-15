@@ -240,17 +240,21 @@ export async function expandBroadcastChunk(
 }
 
 /**
- * audience の次の束の利用者 id(keyset)。束の人数は config.expandChunkSize。
+ * audience の次の束の利用者 id(keyset)。束の人数は config.expandChunkSize。全員・ロールは createdBefore(送り始めの線)以前の登録だけ。
  * @throws DomainError(400) audiences の項目が無い・引数が合わない
  */
 export async function resolveAudienceChunk(
   deps: MessageSendDeps,
   spec: MessageAudienceSpec,
   cursor: MessageAudienceCursor,
+  options: { createdBefore?: Date } = {},
 ): Promise<{ userIds: string[]; nextCursor: MessageAudienceCursor }> {
   const limit = deps.config.expandChunkSize;
-  if (spec.type === "all") return deps.store.listUserIds({}, cursor, limit);
-  if (spec.type === "role") return deps.store.listUserIds({ roles: spec.roles }, cursor, limit);
+  const line = options.createdBefore ? { createdBefore: options.createdBefore } : {};
+  if (spec.type === "all") return deps.store.listUserIds({ ...line }, cursor, limit);
+  if (spec.type === "role") return deps.store.listUserIds({ roles: spec.roles, ...line }, cursor, limit);
+  // グループは回の受信者の一覧から引く(expandStep.ts。ここへは来ない)
+  if (spec.type === "group") throw new DomainError("グループ宛ては回の受信者の一覧から展開します", { status: 500 });
   const audience = deps.audiences[spec.key];
   if (!audience) throw new DomainError(`宛先の集め方 ${spec.key} がありません`, { status: 400 });
   const args = audience.args.safeParse(spec.args);

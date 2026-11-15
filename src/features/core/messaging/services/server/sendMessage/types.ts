@@ -10,6 +10,8 @@ import type {
   MessageRegistry,
 } from "@/lib/messaging";
 
+import type { SQL } from "drizzle-orm";
+
 import type { MessagingConfig } from "../../../config";
 import type {
   MessageDelivery,
@@ -28,11 +30,26 @@ export type MessageRecipient =
   | { userId: string }
   | { channel: string; address: string };
 
-/** 全員・ロール・audiences の受け口の項目(展開は cron が束ごとに行う) */
+/**
+ * 全員・ロール・audiences の受け口の項目・ユーザーグループ(展開は cron が束ごとに行う)。
+ * 全員・ロールは送り始めの時刻の線より後に登録した利用者を入れない。グループは送り始めの後に 1 文で一員を回の受信者の一覧へ書き、
+ * その一覧だけから送る(D58)
+ */
 export type MessageAudienceSpec =
   | { type: "all" }
   | { type: "role"; roles: readonly string[] }
-  | { type: "audience"; key: string; args?: unknown };
+  | { type: "audience"; key: string; args?: unknown }
+  | { type: "group"; groupId: string };
+
+/** ユーザーグループの読み口(userGroup の評価の口を門 userGroups の後ろで結ぶ。無い = グループ宛てを拒む) */
+export type MessageGroupSource = {
+  /** 門 userGroups が開か */
+  enabled: () => boolean;
+  /** 送り始めの確かめ(人数・上限、定期計算は固定する版)。404 / 409 / 503 は DomainError */
+  sendTarget: (groupId: string) => Promise<{ count: number; memberLimit: number; overLimit: boolean; version: number | null }>;
+  /** 固定の時の一員の述語(users に付ける)。上限・版・門も確かめる(DomainError) */
+  memberWhere: (groupId: string, options: { version: number | null }) => Promise<{ where: SQL; count: number; timeoutMs: number }>;
+};
 
 type CommonSendInput = {
   /** 定義の vars に渡す値(定義の zod で検査する) */
@@ -165,14 +182,20 @@ export type MessageSendStore = {
   /** 配達の行を更新する。events = 同じ取引で書く内部の事件 */
   updateDelivery: (id: string, patch: Partial<MessageDeliveryInsert>, events?: readonly MessageEventRowInsert[]) => Promise<void>;
   findUsers: (ids: readonly string[]) => Promise<MessageUserRow[]>;
-  /** 全員・ロールの利用者 id を keyset で引く(id の昇順、利用できる利用者だけ) */
+  /** 全員・ロールの利用者 id を keyset で引く(id の昇順、利用できる利用者だけ。createdBefore = 送り始めの線、その時刻以前の登録だけ) */
   listUserIds: (
-    filter: { roles?: readonly string[] },
+    filter: { roles?: readonly string[]; createdBefore?: Date },
     cursor: string | null,
     limit: number,
   ) => Promise<{ userIds: string[]; nextCursor: string | null }>;
   /** 全員・ロールの利用者の数(listUserIds と同じ条件。管理の送信の見込み) */
   countUserIds: (filter: { roles?: readonly string[] }) => Promise<number>;
+  /** 回の受信者の一覧(グループ宛て)の利用者 id を keyset で引く(id の昇順、削除した利用者は外す) */
+  listRecipientIds: (
+    dispatchId: string,
+    cursor: string | null,
+    limit: number,
+  ) => Promise<{ userIds: string[]; nextCursor: string | null }>;
   /**
    * 配信停止の好みの行(利用者 × (種類 か '*') × (経路 か '*')、kind は null か連絡の種別)。channel が '*' の行はそのまま '*' で返す
    * (種別まるごとの行 = kind X・'*'・'*' は種別 X の連絡の全経路に当たる)
@@ -246,6 +269,8 @@ export type MessageSendDeps = {
   channels: Readonly<Record<string, MessageChannel>>;
   enrichers: Readonly<Record<string, MessageEnricher>>;
   audiences: Readonly<Record<string, MessageAudience>>;
+  /** ユーザーグループ(無い = グループ宛てを 404 で拒む) */
+  groups?: MessageGroupSource;
   registry: MessageRegistry;
   config: MessagingConfig;
   now: () => Date;

@@ -2,6 +2,8 @@
 //
 // 送信の掃き出し・続きを送る・保持の掃除の DB の読み書きの形(テストはメモリの偽物を渡す)。
 
+import type { SQL } from "drizzle-orm";
+
 import type {
   MessageDelivery,
   MessageDeliveryInsert,
@@ -20,6 +22,17 @@ export type ExpansionWrite = {
   eventsFor?: (created: readonly MessageDelivery[]) => MessageEventRowInsert[];
   /** 全員・ロール宛てのお知らせの共有の 1 行(回の最初の束で 1 度だけ、D32) */
   inboxItem?: MessageInboxItemInsert;
+  /**
+   * グループ宛ての固定(D58): 同じ取引で 1 文の INSERT INTO message_dispatch_recipients SELECT … FROM users WHERE
+   * (where ∧ 利用できる利用者 ∧ created_at <= createdBefore)。時間の上限(timeoutMs)を超えたら patch の代わりに timeoutPatch
+   */
+  freeze?: {
+    groupId: string;
+    where: SQL;
+    createdBefore: Date;
+    timeoutMs: number;
+    timeoutPatch: Partial<MessageDispatchInsert>;
+  };
 };
 
 /** 経路ごと・状態ごと・理由ごとの配達の行の数 */

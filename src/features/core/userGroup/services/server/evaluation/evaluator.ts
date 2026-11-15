@@ -1,5 +1,5 @@
 // src/features/core/userGroup/services/server/evaluation/evaluator.ts
-// 評価の口(D99・D102・D103): count・isMember・listMemberIds・evaluate。部品(db・部品の一覧・設定・門・時刻)を受けて作る
+// 評価の口(D99・D102・D103): count・isMember・listMemberIds・evaluate と、連絡の送信の固定の口 sendTarget・memberWhere(D58)。部品(db・部品の一覧・設定・門・時刻)を受けて作る
 // (--db のテストは戻す取引を db に渡す)。
 // - 母集団 = 削除されていない利用者(利用できる状態かは部品「状態」か使い手が見る。連絡は user の availableUserWhere を足す)
 // - 静的 = user_group_members / 定期計算 = 今の版の user_group_version_members(まだ版が無い = 409)/ 動的 = 条件の木を SQL にして引く
@@ -7,8 +7,10 @@
 // - 誤り: 門 userGroups が閉 = 404(黙って false・全員に置き換えない)、無いグループ = 404、しまった(archived)・壊れた条件 = 409、
 //   その場の定義の誤り = 400、時間の上限(statement_timeout)を超えた = 503
 // - 人数の上限(memberLimit)は overLimit で返す(止めるのは使う所: 送信の固定・静的グループへの書き込み)
+// - 送信の固定(D58): 送り始めに sendTarget で確かめて定期計算の版を決め、固定の時に memberWhere が users に付ける述語を返す。
+//   使い手(連絡)はそれを 1 文の INSERT … SELECT に埋め、1 つの時点の一員を書く(時間の上限 timeoutMs も使い手が SET LOCAL で掛ける)
 
-import { and, asc, count, eq, gt, isNull, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, eq, gt, inArray, isNull, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
@@ -46,6 +48,12 @@ type Source =
   | { kind: "users"; where: SQL }
   | { kind: "members"; groupId: string }
   | { kind: "version"; versionId: string };
+
+/** 送り始めの確かめ(人数と上限、定期計算は固定する版の番号。他は null) */
+export type UserGroupSendTarget = UserGroupCount & { version: number | null };
+
+/** 固定の時の一員の述語(users に付ける。削除されていない利用者だけ)と、その 1 文に掛ける時間の上限 */
+export type UserGroupMemberWhere = { where: SQL; count: number; timeoutMs: number };
 
 const groupIdSchema = z.string().uuid();
 const TIMEOUT_CODE = "57014";
@@ -105,18 +113,23 @@ export function createUserGroupEvaluator(deps: UserGroupEvaluatorDeps) {
     return { where, heavy: checked.heavy };
   }
 
-  async function sourceOf(group: UserGroup): Promise<Source> {
+  /** pinnedVersion = 定期計算の決めた版(送り始めに固定した版。省略 = 今の版) */
+  async function sourceOf(group: UserGroup, pinnedVersion?: number | null): Promise<Source> {
     if (group.kind === "static") return { kind: "members", groupId: group.id };
     if (group.kind === "scheduled") {
-      if (group.current_version === null) {
+      const number = pinnedVersion ?? group.current_version;
+      if (number === null) {
         throw new DomainError(`グループ「${group.name}」はまだ計算し終えた版がありません`, { status: 409 });
       }
       const [version] = await deps.db
         .select({ id: UserGroupVersionTable.id })
         .from(UserGroupVersionTable)
-        .where(and(eq(UserGroupVersionTable.group_id, group.id), eq(UserGroupVersionTable.version, group.current_version)))
+        .where(and(eq(UserGroupVersionTable.group_id, group.id), eq(UserGroupVersionTable.version, number)))
         .limit(1);
-      if (!version) throw new DomainError(`グループ「${group.name}」の今の版がありません`, { status: 409 });
+      if (!version) {
+        const which = pinnedVersion == null ? "今の版" : `送り始めに固定した版(${number})`;
+        throw new DomainError(`グループ「${group.name}」の${which}がありません`, { status: 409 });
+      }
       return { kind: "version", versionId: version.id };
     }
     const { tree } = await storedTree(group);
@@ -143,6 +156,19 @@ export function createUserGroupEvaluator(deps: UserGroupEvaluatorDeps) {
       .from(UserGroupVersionMemberTable)
       .innerJoin(UserTable, eq(UserTable.id, UserGroupVersionMemberTable.user_id))
       .where(and(eq(UserGroupVersionMemberTable.version_id, source.versionId), notDeleted, ...extra));
+  }
+
+  /** 引く元を users に付ける述語にする(固定の 1 文が users から引くため) */
+  function whereOf(source: Source): SQL {
+    if (source.kind === "users") return and(notDeleted, source.where)!;
+    const ids =
+      source.kind === "members"
+        ? deps.db.select({ id: UserGroupMemberTable.user_id }).from(UserGroupMemberTable).where(eq(UserGroupMemberTable.group_id, source.groupId))
+        : deps.db
+            .select({ id: UserGroupVersionMemberTable.user_id })
+            .from(UserGroupVersionMemberTable)
+            .where(eq(UserGroupVersionMemberTable.version_id, source.versionId));
+    return and(notDeleted, inArray(UserTable.id, ids))!;
   }
 
   async function countOf(tx: TransactionClient, source: Source): Promise<number> {
@@ -198,6 +224,34 @@ export function createUserGroupEvaluator(deps: UserGroupEvaluatorDeps) {
       const rows = await withTimeout((tx) => selectIds(tx, source, extra).orderBy(asc(UserTable.id)).limit(limit));
       const userIds = rows.map((row) => row.id);
       return { userIds, nextCursor: userIds.length === limit ? userIds[userIds.length - 1]! : null };
+    },
+
+    /**
+     * 連絡の送り始めの確かめ: 人数と上限と、定期計算なら固定する版(今の版)。上限を超えても投げない(使い手が止める)
+     * @throws count と同じ
+     */
+    async sendTarget(groupId: string): Promise<UserGroupSendTarget> {
+      assertOpen();
+      const group = await loadGroup(groupId);
+      const source = await sourceOf(group);
+      const counted = withLimit(await withTimeout((tx) => countOf(tx, source)));
+      return { ...counted, version: group.kind === "scheduled" ? group.current_version : null };
+    },
+
+    /**
+     * 連絡の送信の固定の時の一員の述語(users に付ける)。門・しまった・壊れた・版・人数の上限を先に確かめる。
+     * version = sendTarget が返した版(定期計算。その版が消えていれば 409)
+     * @throws DomainError(409) 人数の上限を超えた・送り始めの版が無い ほか count と同じ
+     */
+    async memberWhere(groupId: string, options: { version?: number | null } = {}): Promise<UserGroupMemberWhere> {
+      assertOpen();
+      const group = await loadGroup(groupId);
+      const source = await sourceOf(group, group.kind === "scheduled" ? options.version : null);
+      const counted = withLimit(await withTimeout((tx) => countOf(tx, source)));
+      if (counted.overLimit) {
+        throw new DomainError(`グループ「${group.name}」の人数 ${counted.count} が上限 ${counted.memberLimit} を超えています`, { status: 409 });
+      }
+      return { where: whereOf(source), count: counted.count, timeoutMs: Math.max(1, Math.floor(deps.config.evaluation.timeoutMs)) };
     },
 
     /**

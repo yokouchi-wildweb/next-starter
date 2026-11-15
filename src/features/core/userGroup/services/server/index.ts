@@ -14,6 +14,8 @@ export {
   userGroupEvaluator,
   type UserGroupEvaluator,
   type UserGroupEvaluatorDeps,
+  type UserGroupMemberWhere,
+  type UserGroupSendTarget,
 } from "./evaluation";
 export {
   createStaticMemberWriter,

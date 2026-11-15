@@ -5,6 +5,7 @@
 // - record meta / vars / full、required と秘密を差し込む連絡は描いた本文をどこにも残さない
 // - ChannelError の分類 → 行の状態、required は要求の中で短く再送して尽きたら failed、非 required の一時は queued + next_attempt_at
 // - 小さな送信は最初の束だけ要求の中、残りは queued。大きな送信・audience は回の行だけ
+// - グループ宛て(D58): 送り始めに門・しまった・壊れた・人数の上限を確かめ(DomainError、回を作らない)、定期計算の版を回に固定する。見込みは数と上限
 // - 帳簿を読む経路で送れた宛先は端末の帳簿の last_used_at を経路ごとに 1 回記録する(自前の引き方の経路・送れなかった宛先は記録しない、記録の失敗は送信を変えない)
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage
 import { test } from "node:test";
@@ -363,6 +364,61 @@ test("大きな送信と audience は回の行だけ書き、展開しない", a
   // cron が描くために vars を持つ(record meta は cron が終わりに消す)
   assert.deepEqual(store.dispatches[1].vars, { item: "x" });
   assert.equal(channel.calls.length, 0);
+});
+
+test("グループ宛て(D58): 送り始めに確かめ、回の行だけ書き(定期計算の版を固定)、門が閉・上限・グループの誤りは回を作らない", async () => {
+  const { DomainError: Err } = await import("@/lib/errors");
+  const targets: Record<string, { count: number; version: number | null } | Error> = {
+    scheduled: { count: 2, version: 7 },
+    fixed: { count: 1, version: null },
+    big: { count: 11, version: null },
+    archived: new Err("グループ「x」はしまってあります", { status: 409 }),
+  };
+  let open = true;
+  const groups = {
+    enabled: () => open,
+    async sendTarget(groupId: string) {
+      const target = targets[groupId];
+      if (!target) throw new Err("グループがありません", { status: 404 });
+      if (target instanceof Error) throw target;
+      return { count: target.count, memberLimit: 10, overLimit: target.count > 10, version: target.version };
+    },
+    memberWhere: async () => {
+      throw new Error("送る口は呼ばない");
+    },
+  };
+  const store = createMemoryStore();
+  const sender = createMessageSender(createDeps({ store, channels: { test: createTestChannel() }, groups }));
+  const send = (groupId: string) => sender.sendMessageToMany(notice, { audience: { type: "group", groupId }, vars: { item: "x" } });
+
+  const result = await send("scheduled");
+  assert.equal(result.status, "processing");
+  assert.deepEqual(store.dispatches[0].audience, { type: "group", groupId: "scheduled", version: 7 });
+  assert.equal(store.dispatches[0].expand_cursor, null);
+  assert.equal(store.deliveries.length, 0);
+  await send("fixed");
+  assert.deepEqual(store.dispatches[1].audience, { type: "group", groupId: "fixed", version: null });
+
+  await assertDomainError(send("big"), 409);
+  await assertDomainError(send("archived"), 409);
+  await assertDomainError(send("missing"), 404);
+  open = false;
+  await assertDomainError(send("fixed"), 404);
+  assert.equal(store.dispatches.length, 2, "誤りの時は回を作らない");
+  await assertDomainError(createMessageSender(createDeps({ store, channels: { test: createTestChannel() } })).sendMessageToMany(notice, { audience: { type: "group", groupId: "fixed" }, vars: { item: "x" } }), 404);
+  open = true;
+
+  // 見込み: 数と上限(超えても投げない)
+  assert.deepEqual(await sender.estimateRecipients({ audience: { type: "group", groupId: "big" } }), {
+    count: 11,
+    capped: false,
+    fixedAtSend: true,
+    memberLimit: 10,
+    overLimit: true,
+  });
+  await assertDomainError(sender.estimateRecipients({ audience: { type: "group", groupId: "archived" } }), 409);
+  open = false;
+  await assertDomainError(sender.estimateRecipients({ audience: { type: "group", groupId: "fixed" } }), 404);
 });
 
 test("秘密・required の連絡は audience と大きな送信を拒む", async () => {

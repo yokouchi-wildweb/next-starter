@@ -8,6 +8,7 @@ export * from "./inbox";
 export * from "./model";
 export * from "./override";
 export * from "./preference";
+export * from "./recipient";
 export * from "./schema";
 export * from "./subscriber";
 export * from "./template";

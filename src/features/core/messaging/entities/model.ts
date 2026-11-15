@@ -5,6 +5,7 @@ import { MessageDispatchTable } from "./drizzle";
 import type { MessageEndpointTable } from "./endpoint";
 import type { MessageIdempotencyKeyTable } from "./idempotencyKey";
 import type { MessageOverrideTable } from "./override";
+import type { MessageDispatchRecipientTable } from "./recipient";
 import type { MessageSubscriberCursorTable, MessageSubscriberFailureTable } from "./subscriber";
 import type {
   MessageInboxItemTable,
@@ -29,6 +30,9 @@ import type {
 
 export type MessageDispatch = typeof MessageDispatchTable.$inferSelect;
 export type MessageDispatchInsert = typeof MessageDispatchTable.$inferInsert;
+
+export type MessageDispatchRecipient = typeof MessageDispatchRecipientTable.$inferSelect;
+export type MessageDispatchRecipientInsert = typeof MessageDispatchRecipientTable.$inferInsert;
 
 /** 送信ジョブの状態（値の意味は schema.ts の MESSAGE_DISPATCH_STATUSES を参照） */
 export type MessageDispatchStatus = (typeof MESSAGE_DISPATCH_STATUSES)[number];
