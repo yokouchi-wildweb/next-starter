@@ -1,8 +1,9 @@
 // 送るモーダルの hook useMessageSendModal の検査(jsdom の上で描く。client service・門・離れる前の確認は偽物)。
-// - 純粋な関数: scheduleErrorOf / templateVarsForInput / isBlankChannel / initialDraftOf / initialAudienceOf
+// - 純粋な関数: scheduleErrorOf / templateVarsForInput / isBlankChannel / initialDraftOf / initialTargetOf
 // - new: テンプレートを呼び出す → 文言が写る → 直す → カテゴリー(宛先で絞る)→ 経路の絞り(既定は全部オン)→ 文言の無い経路は止める
 //   → 予約の検査 → プレビュー・テスト送信 → 見込み → 確認 → 送る(鍵を作り直す)・書きかけの確認・閉じると初めに戻る
 // - 門 messagingTemplates が閉ならテンプレートを出さない
+// - グループ宛て: 選ぶまで止まる・体 target group・上限超えは確認で送れない / sameAs のグループ(選べなければ知らせ、全員に広げない)
 // - sameAs: 文面・カテゴリー・宛先の形を写す / テンプレートの回は呼び出しの形 / 選んだ利用者の回は同じ利用者 /
 //   直して送った回は直した文言(今の公開版で)/ 公開中でないテンプレートはその場で書く形 + 知らせ
 // - 経路の表示名は送る・一括送信とも選択肢の label(お知らせ)
@@ -36,7 +37,7 @@ const categories = [
   { key: "notice", label: "お知らせ", kind: "announcement", channels: ["email", "inApp"], targets: ["all", "role"] },
   { key: "lineNotice", label: "LINE のお知らせ", kind: "announcement", channels: ["email", "inApp", "line", "fax"], targets: ["role"] },
   { key: "operatorDirect", label: "運営から", kind: "direct", channels: ["email", "inApp"], targets: ["users", "bulk"] },
-  { key: "campaign", label: "キャンペーン", kind: "marketing", channels: ["email", "inApp"], targets: ["all", "users", "bulk"] },
+  { key: "campaign", label: "キャンペーン", kind: "marketing", channels: ["email", "inApp"], targets: ["all", "group", "users", "bulk"] },
 ];
 const SEND_OPTIONS = {
   channels: [
@@ -46,6 +47,7 @@ const SEND_OPTIONS = {
   roles: [{ id: "user", label: "利用者" }],
   templates: [template],
   categories,
+  groups: [{ id: "g1", label: "常連", kindLabel: "動的" }],
   maxScheduleDays: 90,
 };
 
@@ -61,8 +63,9 @@ mock.module("@/features/core/messaging/services/client/sendClient", {
       calls.push(["preview", input]);
       return { messageKey: "k", kind: "marketing", category: "campaign", template: null, channels: [] };
     },
-    estimateAdminRecipients: async (input: unknown) => {
+    estimateAdminRecipients: async (input: { target?: { type: string } }) => {
       calls.push(["estimate", input]);
+      if (input.target?.type === "group") return { count: 150_000, fixedAtSend: true, memberLimit: 100_000, overLimit: true };
       return { count: 12, fixedAtSend: true };
     },
     sendAdminTestMessage: async (input: unknown) => {
@@ -137,6 +140,10 @@ const mount = async <T,>(useHook: () => T) => {
   return { value: () => latest.current!, unmount: () => act(async () => root.unmount()) };
 };
 const NEW = { type: "new" } as const;
+const SAME_AS = {
+  type: "sameAs",
+  dispatch: { id: "d0", category: "campaign", target: { type: "all" }, targetGroup: null, headings: { email: "元の件名", inApp: "元の題" }, body: null, templateId: null, templateVersion: null },
+} as const;
 
 test("純粋な関数", () => {
   const now = Date.UTC(2026, 10, 13);
@@ -148,19 +155,28 @@ test("純粋な関数", () => {
   const adhoc = hooks.initialDraftOf({ type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録", defaults: { content: { inApp: { title: "題" } } } }, []);
   assert.equal(hooks.isBlankChannel(adhoc, "email"), true);
   assert.equal(hooks.isBlankChannel({ ...adhoc, content: { ...adhoc.content, inApp: { title: "題", body: "本文" } } }, "inApp"), false);
-  assert.deepEqual(hooks.initialAudienceOf({ type: "sameAs", dispatch: { target: { type: "role", roles: ["user"] } } as never }), {
+  assert.deepEqual(hooks.initialTargetOf({ type: "sameAs", dispatch: { target: { type: "role", roles: ["user"] } } as never }), {
     type: "role",
     roles: ["user"],
+    groupId: "",
     userIds: [],
   });
-  assert.equal(hooks.initialAudienceOf({ type: "sameAs", dispatch: { target: null } as never }).type, "users");
+  // グループ宛ての回 = 同じグループ(id は値としてだけ)
+  assert.deepEqual(hooks.initialTargetOf({ type: "sameAs", dispatch: { target: { type: "group" }, targetGroup: { id: "g1", name: "常連" } } as never }), {
+    type: "group",
+    roles: [],
+    groupId: "g1",
+    userIds: [],
+  });
+  assert.equal(hooks.initialTargetOf({ type: "sameAs", dispatch: { target: null } as never }).type, "users");
   // 選んだ利用者に送った回(recipients)= 同じ利用者を選んだ形。id が無い(多すぎる)回は選び直し
-  assert.deepEqual(hooks.initialAudienceOf({ type: "sameAs", dispatch: { target: { type: "recipients", count: 2 }, targetUserIds: ["u1", "u2"] } as never }), {
+  assert.deepEqual(hooks.initialTargetOf({ type: "sameAs", dispatch: { target: { type: "recipients", count: 2 }, targetUserIds: ["u1", "u2"] } as never }), {
     type: "users",
     roles: [],
+    groupId: "",
     userIds: ["u1", "u2"],
   });
-  assert.deepEqual(hooks.initialAudienceOf({ type: "sameAs", dispatch: { target: { type: "recipients", count: 20_000 }, targetUserIds: null } as never }).userIds, []);
+  assert.deepEqual(hooks.initialTargetOf({ type: "sameAs", dispatch: { target: { type: "recipients", count: 20_000 }, targetUserIds: null } as never }).userIds, []);
 });
 
 test("new: 呼び出し → 直す → カテゴリー → 経路の絞り → 空の経路で止まる → 予約 → プレビュー・テスト → 見込み → 確認 → 送る", async () => {
@@ -242,11 +258,11 @@ test("new: 宛先を選んだ利用者に変えるとカテゴリーが変わり
   const m = () => view.value();
   await act(async () => m().setOpen(true));
   assert.equal(m().templatesAvailable, false);
-  await act(async () => m().setAudience({ type: "users" }));
+  await act(async () => m().setTarget({ type: "users" }));
   assert.deepEqual(m().allowedCategories.map((c) => c.key), ["operatorDirect", "campaign"]);
-  assert.equal(m().audienceError, "利用者を選んでください");
-  await act(async () => m().setAudience({ userIds: ["u1"] }));
-  assert.equal(m().audienceError, null);
+  assert.equal(m().targetError, "利用者を選んでください");
+  await act(async () => m().setTarget({ userIds: ["u1"] }));
+  assert.equal(m().targetError, null);
   assert.match(m().contentError ?? "", /文言がありません/, "その場で書く欄が空なら止める");
   await view.unmount();
 });
@@ -265,7 +281,7 @@ test("sameAs: 文面・カテゴリー・宛先の形を写す。テンプレー
   const m = () => view.value();
   await act(async () => m().setOpen(true));
   assert.equal(m().category, "notice");
-  assert.deepEqual(m().audience.roles, ["user"]);
+  assert.deepEqual(m().target.roles, ["user"]);
   assert.deepEqual(m().draft.content.email, { subject: "元の件名", paragraphs: [] }, "本文を残さない回は件名だけ");
   assert.equal(m().contentError, null, "件名・題があれば送れる(段落・本文は任意、経路の zod と同じ線)");
   await view.unmount();
@@ -293,7 +309,7 @@ test("sameAs: 文面・カテゴリー・宛先の形を写す。テンプレー
   assert.equal(edited.value().draft.source, "template");
   assert.equal(edited.value().draft.template?.version, 3);
   assert.deepEqual(edited.value().draft.content, editedContent);
-  assert.deepEqual([edited.value().audience.type, edited.value().audience.userIds], ["users", ["u9"]]);
+  assert.deepEqual([edited.value().target.type, edited.value().target.userIds], ["users", ["u9"]]);
   await edited.unmount();
 
   // 公開中でないテンプレート: その場で書く形へ写し、知らせを出す
@@ -359,7 +375,7 @@ test("その場で書く: 経路の欄の形で全部の経路、空の任意の
   const view = await mount(() => hooks.useMessageSendModal({ mode: NEW }));
   const m = () => view.value();
   await act(async () => m().setOpen(true));
-  await act(async () => m().setAudience({ type: "role", roles: ["user"] }));
+  await act(async () => m().setTarget({ type: "role", roles: ["user"] }));
   await act(async () => m().setCategory("lineNotice"));
   assert.deepEqual(m().channels.map((c) => c.key), ["email", "inApp", "line", "fax"], "LINE と fork の経路も出る");
   assert.match(m().contentError ?? "", /文言がありません/);
@@ -399,7 +415,7 @@ test("読み込み: 宛先で選べないカテゴリーは今のまま + 知ら
   const m = () => view.value();
   await act(async () => m().setOpen(true));
   // 宛先 ロール → campaign(all / users / bulk)は選べない
-  await act(async () => m().setAudience({ type: "role", roles: ["user"] }));
+  await act(async () => m().setTarget({ type: "role", roles: ["user"] }));
   const before = m().category;
   await act(async () => m().loadTemplate(TEMPLATE_ID));
   assert.equal(m().category, before, "選べないカテゴリーは今のまま");
@@ -432,4 +448,43 @@ test("読み込み: 宛先で選べないカテゴリーは今のまま + 知ら
   assert.equal(bulk.value().category, "campaign", "bulk でもテンプレートのカテゴリー(bulk で選べる)");
   assert.deepEqual(bulk.value().sendChannels, ["email"]);
   await bulk.unmount();
+});
+
+test("グループ宛て: 選ぶまで止まる、体は target group、見込みが上限を超えたら確認で送れない(理由つき)", async () => {
+  const view = await mount(() => hooks.useMessageSendModal({ mode: NEW }));
+  const m = () => view.value();
+  await act(async () => m().setOpen(true));
+  assert.deepEqual(m().groups, [{ id: "g1", label: "常連", kindLabel: "動的" }]);
+  await act(async () => m().setTarget({ type: "group" }));
+  assert.equal(m().targetError, "グループを選んでください");
+  await act(async () => m().setTarget({ groupId: "g1" }));
+  assert.equal(m().targetError, null);
+  assert.deepEqual(m().buildSendInput().target, { type: "group", groupId: "g1" });
+  assert.ok(m().allowedCategories.every((option) => option.targets.includes("group")), "グループに送れるカテゴリーだけ");
+  await act(async () => m().setChannelFields("email", { subject: "件名", paragraphs: ["本文"] }));
+  await act(async () => m().setChannelFields("inApp", { title: "題", body: "本文" }));
+  await act(async () => m().requestConfirm());
+  assert.equal(m().step, "confirm");
+  assert.equal(m().estimateOverLimit, true);
+  calls.length = 0;
+  await act(async () => {
+    await assert.rejects(m().confirmSend(), /上限 100,000 人を超えている/);
+  });
+  assert.equal(calls.filter((c) => c[0] === "send").length, 0, "送らない");
+  await view.unmount();
+});
+
+test("sameAs のグループ: 今も選べれば同じグループ、選べなければ選んでいない形 + 知らせ(全員に広げない)", async () => {
+  const same = (groupId: string) => ({ ...SAME_AS, dispatch: { ...SAME_AS.dispatch, target: { type: "group" }, targetGroup: { id: groupId, name: "前の" } } });
+  const kept = await mount(() => hooks.useMessageSendModal({ mode: same("g1") as never }));
+  await act(async () => kept.value().setOpen(true));
+  assert.deepEqual([kept.value().target.type, kept.value().target.groupId, kept.value().targetNote], ["group", "g1", null]);
+  await kept.unmount();
+  const gone = await mount(() => hooks.useMessageSendModal({ mode: same("archived") as never }));
+  await act(async () => gone.value().setOpen(true));
+  assert.deepEqual([gone.value().target.type, gone.value().target.groupId], ["group", ""]);
+  assert.equal(gone.value().targetNote, hooks.TARGET_GROUP_GONE_NOTE);
+  assert.equal(gone.value().targetError, "グループを選んでください");
+  assert.equal(gone.value().canSend, false);
+  await gone.unmount();
 });

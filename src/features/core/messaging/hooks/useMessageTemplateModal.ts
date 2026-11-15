@@ -15,7 +15,7 @@ import type { MessageTemplateAction } from "./useMessageTemplateForm";
 
 import { useMessageTemplate, useMessageTemplateOptions } from "./useMessageTemplate";
 import { useMessageTemplateVersions } from "./useMessageTemplateVersions";
-import { useModalSession } from "./useModalSession";
+import { useModalSession } from "@/hooks/useModalSession";
 
 /** モーダルのタブ */
 export type MessageTemplateModalTab = "text" | "variables" | "versions";

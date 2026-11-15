@@ -15,7 +15,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { AdminUserGroupDetail } from "../services/client/userGroupAdminClient";
 
 import type { UserGroupAction } from "./useAdminUserGroupList";
-import { useModalSession } from "./useModalSession";
+import { useModalSession } from "@/hooks/useModalSession";
 import { useUserGroup, useUserGroupCriteriaCatalog } from "./useUserGroup";
 import { useUserGroupFreeze } from "./useUserGroupFreeze";
 

@@ -53,7 +53,6 @@ export {
   type MessageTemplateModalTab,
   type UseMessageTemplateModalOptions,
 } from "./useMessageTemplateModal";
-export { useModalSession } from "./useModalSession";
 export {
   useMessageTemplateForm,
   emptyChannelContent,
@@ -72,12 +71,14 @@ export {
   isBlankChannel,
   draftFromTemplate,
   initialDraftOf,
-  initialAudienceOf,
+  initialTargetOf,
+  overLimitText,
+  TARGET_GROUP_GONE_NOTE,
   type MessageSendMode,
   type MessageSendDefaults,
   type MessageSendDraft,
-  type MessageSendAudience,
-  type MessageSendAudienceType,
+  type MessageSendTarget,
+  type MessageSendTargetType,
   type MessageSendChannel,
   type MessageSendResult,
   type MessageSendStep,
