@@ -70,7 +70,8 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
      - a point that needs a design choice → decide it in the order, or write in `notes:` `ask <issuer> by msg if a design choice comes up (stop, do not invent)`
      - file a quest when only small judgement is left | overlap with other open quests is fine (the quest team merges them)
    - `status:` = `open` at filing | afterwards only mailbox.mjs rewrites it (route → routed, take → taken, release → the state before taking, unroute → open, resolve → to done/ with the RESOLUTION's status (done / partial / relayed / rejected / withdrawn); never by hand)
-4. **write the file without asking first** with `node .claude/skills/order/mailbox.mjs file --to=<self | target fork-id> --title=<title> --need=<need> [--kind=quest] --why=<why> --done-when=<done_when> --constraints=<constraints> --refs=<refs> --notes=<notes> [--tried=<tried>] --slug=<slug>` (the fields of step 3; never a hand Write) | once the target is fixed, waiting for approval like `この内容で起票していいですか?` is **prohibited** (filing is a plain md file, fixable later by edit / move / delete):
+4. **write the file without asking first** with `node .claude/skills/order/mailbox.mjs file` (never a hand Write) | once the target is fixed, waiting for approval like `この内容で起票していいですか?` is **prohibited** (filing is a plain md file, fixable later by edit / move / delete):
+   - options = the fields of step 3: `--to=<self | target fork-id> --title=<title> --need=<need> [--kind=quest] --why=<why> --done-when=<done_when> --constraints=<constraints> --refs=<refs> --notes=<notes> [--tried=<tried>] --slug=<slug>`
    - it fills `id` / `from:` / `to:` / `date:` / `status: open`, creates the inbox folder if missing, writes `<target box>/<ts>-<slug>.md` (a clash in the same second gets `-2`) and prints the path
 5. after writing, report in Japanese:
    - **line 1 = the target**: `宛先: <宛先リポ名>(<理由を短く>)`
