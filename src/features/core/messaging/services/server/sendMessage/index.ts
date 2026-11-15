@@ -15,7 +15,6 @@ import { drizzleMessageTemplateSource } from "../templates/source";
 import { buildUnsubscribeUrl, isUnsubscribeConfigured } from "../unsubscribe/token";
 
 import { messagingConfig } from "../../../config";
-import { audiences } from "../../../extensions/audiences";
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
@@ -31,7 +30,6 @@ export const sendMessageDeps: MessageSendDeps = {
   store: drizzleMessageSendStore,
   channels,
   enrichers,
-  audiences,
   // グループ宛て(門 userGroups が閉なら拒む。評価の口も閉なら 404)
   groups: {
     enabled: () => gate.enabled("userGroups"),
@@ -75,13 +73,13 @@ export const estimateRecipients = sender.estimateRecipients;
 export const sendResolved = sender.sendResolved;
 export { definitionOfDispatch } from "./dispatchDefinition";
 
-export { createMessageSender, ESTIMATE_CAP, type MessagePreview, type MessageSender, type RecipientEstimate } from "./sender";
+export { createMessageSender, type MessagePreview, type MessageSender, type RecipientEstimate } from "./sender";
 export { MessageIdempotencyConflict } from "./errors";
 export { drizzleMessageSendStore } from "./store";
 export {
   addressRecipientKey,
   expandBroadcastChunk,
-  resolveAudienceChunk,
+  resolveTargetChunk,
   userRecipientKey,
   type PlannedDelivery,
 } from "./expand";

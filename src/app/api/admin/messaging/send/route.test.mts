@@ -73,36 +73,36 @@ test("宣言: 5 つの口が全部管理者だけ", () => {
 });
 
 test("body をそのまま渡す", async () => {
-  const body = { content: { inApp: { title: "t", body: "b" } }, category: "announcement", audience: { type: "all" } };
+  const body = { content: { inApp: { title: "t", body: "b" } }, category: "announcement", target: { type: "all" } };
   await send.POST(post("", body));
   await preview.POST(post("/preview", body));
-  await estimate.POST(post("/estimate", { audience: { type: "all" } }));
+  await estimate.POST(post("/estimate", { target: { type: "all" } }));
   await testSend.POST(post("/test", body));
   await options.GET(new NextRequest(`${BASE}/options`));
   assert.deepEqual(calls, [
     ["adminSend", body],
     ["adminSendPreview", body],
-    ["adminSendEstimate", { audience: { type: "all" } }],
+    ["adminSendEstimate", { target: { type: "all" } }],
     ["adminSendTest", body],
     ["adminSendOptions"],
   ]);
 });
 
 test("カテゴリーの body は入口で止めずに service へ渡す(検査は service)", async () => {
-  const body = { category: "operatorDirect", audience: { type: "all" } };
+  const body = { category: "operatorDirect", target: { type: "all" } };
   const res = await send.POST(post("", body));
   assert.equal(res.status, 200);
   assert.deepEqual(calls, [["adminSend", body]]);
 });
 
 test("グループ宛ての body と見込みもそのまま service へ渡す(検査は service と送る口)", async () => {
-  const audience = { type: "group", groupId: "22222222-2222-4222-8222-222222222222" };
-  const body = { content: { inApp: { title: "t", body: "b" } }, category: "announcement", audience };
+  const target = { type: "group", groupId: "22222222-2222-4222-8222-222222222222" };
+  const body = { content: { inApp: { title: "t", body: "b" } }, category: "announcement", target };
   await send.POST(post("", body));
-  await estimate.POST(post("/estimate", { audience }));
+  await estimate.POST(post("/estimate", { target }));
   assert.deepEqual(calls, [
     ["adminSend", body],
-    ["adminSendEstimate", { audience }],
+    ["adminSendEstimate", { target }],
   ]);
 });
 

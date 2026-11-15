@@ -246,7 +246,6 @@ export function createDeps(overrides: Partial<MessageSendDeps> & { store: Memory
   return {
     channels: {},
     enrichers: {},
-    audiences: {},
     registry: {} satisfies MessageRegistry,
     categories: TEST_CATEGORIES,
     config: testConfig,

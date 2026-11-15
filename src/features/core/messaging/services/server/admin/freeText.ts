@@ -3,10 +3,10 @@
 // 管理者がその場で書いて送る連絡(D65・D80・D85)の種別ごとの定義と、選んだカテゴリーの検査。
 // - 種別 announcement・direct・marketing の 3 つ。定義は messages/admin<Kind>.ts(authored = 文面を送るたびに受け取る、D92)
 // - 送る時は選んだカテゴリーの種別の定義の鍵で、受けた文面を組む(sendMessage/authoredDefinition.ts。その場で書く連絡もテンプレートも同じ)
-// - 宛先の種類(all・role・audience・users・bulk)は種別の性質 adminFreeText で確かめる
+// - 宛先の種類(all・role・group・users・bulk)は種別の性質 adminFreeText で確かめる
 // - 経路はカテゴリーの経路(LINE・fork の経路も、文面があれば送れる)
 
-import { MESSAGE_KIND_TRAITS, type MessageAdminAudience, type MessageCategory, type MessageKind } from "@/lib/messaging";
+import { MESSAGE_KIND_TRAITS, type MessageAdminTarget, type MessageCategory, type MessageKind } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import { message as adminAnnouncement } from "../../../messages/adminAnnouncement";
@@ -43,7 +43,7 @@ export function adminFreeTextMessageKeyOf(kind: string): string | null {
 export function adminFreeTextCategoryOf(
   categories: Readonly<Record<string, MessageCategory>>,
   key: string,
-  options: { audience: MessageAdminAudience | null },
+  options: { target: MessageAdminTarget | null },
 ): MessageCategory & { kind: AdminFreeTextKind } {
   const category = categories[key];
   if (!category) throw new DomainError(`カテゴリー ${key} はありません`, { status: 400 });
@@ -52,8 +52,8 @@ export function adminFreeTextCategoryOf(
       status: 400,
     });
   }
-  if (options.audience && !MESSAGE_KIND_TRAITS[category.kind].adminFreeText.includes(options.audience)) {
-    throw new DomainError(`カテゴリー ${key}(種別 ${category.kind})はこの宛先(${options.audience})に送れません`, { status: 400 });
+  if (options.target && !MESSAGE_KIND_TRAITS[category.kind].adminFreeText.includes(options.target)) {
+    throw new DomainError(`カテゴリー ${key}(種別 ${category.kind})はこの宛先(${options.target})に送れません`, { status: 400 });
   }
   return category as MessageCategory & { kind: AdminFreeTextKind };
 }
@@ -64,7 +64,7 @@ export type AdminFreeTextCategoryOption = {
   label: string;
   kind: MessageKind;
   channels: string[];
-  audiences: MessageAdminAudience[];
+  targets: MessageAdminTarget[];
 };
 
 export function adminFreeTextCategoryOptions(
@@ -78,7 +78,7 @@ export function adminFreeTextCategoryOptions(
       label: category.label,
       kind: category.kind,
       channels: [...category.channels],
-      audiences: [...MESSAGE_KIND_TRAITS[category.kind].adminFreeText],
+      targets: [...MESSAGE_KIND_TRAITS[category.kind].adminFreeText],
     }))
     .filter(filter);
 }

@@ -39,14 +39,6 @@ export const extensionPoints = {
     side: "server",
     key: "key",
   },
-  // 宛先の集め方(管理の送信): audiences/<名前>.ts の export const audience(鍵・表示名・引数の zod・keyset で利用者 id)
-  audiences: {
-    dir: "audiences",
-    export: "audience",
-    type: { from: "@/lib/messaging", name: "MessageAudience" },
-    side: "server",
-    key: "key",
-  },
   // 送り元: sources/<名前>.ts の export const source(鍵・表示名)
   sources: {
     dir: "sources",

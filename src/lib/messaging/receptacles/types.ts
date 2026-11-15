@@ -175,30 +175,6 @@ export type MessageCategoryGroup = {
 };
 
 // ---------------------------------------------------------------------------
-// audiences: 宛先の集め方(管理の送信)
-// ---------------------------------------------------------------------------
-
-/** keyset で次の束を引く印 */
-export type MessageAudienceCursor = string | null;
-
-/**
- * 宛先の集め方の項目(messaging/audiences/<名前>.ts の export const audience)
- */
-export type MessageAudience = {
-  key: string;
-  label: string;
-  /** 管理画面で選ぶ引数 */
-  args: z.ZodTypeAny;
-  /** 宛先の数(管理の送信の見込み。無ければ resolveUserIds を上限まで数える)。送る時に数え直す */
-  count?: (args: unknown) => Promise<number>;
-  /** 利用者 id の束を keyset で返す(nextCursor = null で終わり) */
-  resolveUserIds: (
-    args: unknown,
-    cursor: MessageAudienceCursor,
-  ) => Promise<{ userIds: string[]; nextCursor: MessageAudienceCursor }>;
-};
-
-// ---------------------------------------------------------------------------
 // sources: 送り元
 // ---------------------------------------------------------------------------
 

@@ -1,7 +1,7 @@
 // 送信の掃き出し・続きを送る・保持の掃除の検査(メモリの store。SQL の取り方・消し方は store.ts、同じ規則をメモリで写す)
 // - d2: lease で取って送る、transient は間を広げて送り直し尽きたら failed、permanent は failed、
 //   unknown・lease の切れた sending は送り直さない、複数の宛先は一時の失敗の宛先だけ送り直す
-// - d3: 予約と大きな送信・audience を再開の位置から展開し、終えたら status・channel_counts・recipient_count・vars を確定
+// - d3: 予約と大きな送信・target を再開の位置から展開し、終えたら status・channel_counts・recipient_count・vars を確定
 // - d4: 続きを送るは 1 束だけ
 // - d5: 保持の日数で消し、お知らせが参照する回は残し、回の冪等の鍵を移す
 // - グループ宛て(D58): 最初の 1 回で一員を回の受信者の一覧へ書き(配達の行なし、送り始めの線より後の登録は外す)、その後は一覧だけから
@@ -181,10 +181,10 @@ test("d2: 定義が一覧に無い回の行は failed(definition_missing)", asyn
   assert.equal(world.store.deliveries.find((row) => row.last_error === "definition_missing")?.status, "failed");
 });
 
-test("d3: audience を再開の位置から束ごとに展開し、終えたら数と状態を確定する", async () => {
+test("d3: target を再開の位置から束ごとに展開し、終えたら数と状態を確定する", async () => {
   const { world, deps, sender } = setup({ users: 5 });
   world.store.endpoints = world.store.endpoints.filter((row) => row.userId !== "u5");
-  await sender.sendMessageToMany(notice, { audience: { type: "all" }, vars: { item: "x" } });
+  await sender.sendMessageToMany(notice, { target: { type: "all" }, vars: { item: "x" } });
   const dispatch = world.store.dispatches[0];
   assert.equal(dispatch.expand_cursor, null);
   assert.equal(dispatch.recipient_count, 0);
@@ -234,7 +234,7 @@ test("d3: 大きな選んだ宛先は一覧の番号から展開し、受信者�
 
 test("d3: 予約の時刻が来た回を動かす", async () => {
   const { world, deps, sender } = setup();
-  await sender.sendMessageToMany(notice, { audience: { type: "role", roles: ["admin"] }, vars: { item: "x" } });
+  await sender.sendMessageToMany(notice, { target: { type: "role", roles: ["admin"] }, vars: { item: "x" } });
   const dispatch = world.store.dispatches[0];
   Object.assign(dispatch, { status: "scheduled", scheduled_at: later(600) });
   await sweep(deps);
@@ -248,8 +248,8 @@ test("d3: 予約の時刻が来た回を動かす", async () => {
 
 test("d4: 続きを送るは 1 つの回を 1 束だけ進める", async () => {
   const { world, deps, sender } = setup({ users: 5 });
-  await sender.sendMessageToMany(notice, { audience: { type: "all" }, vars: { item: "x" } });
-  await sender.sendMessageToMany(notice, { audience: { type: "all" }, vars: { item: "y" } });
+  await sender.sendMessageToMany(notice, { target: { type: "all" }, vars: { item: "x" } });
+  await sender.sendMessageToMany(notice, { target: { type: "all" }, vars: { item: "y" } });
   const [first, second] = world.store.dispatches;
   const result = await continueDispatch(deps, first.id);
   assert.equal(result.expanded, true);
@@ -351,7 +351,7 @@ function setupInApp(inAppBody: string) {
 
 test("d3(D32): 全員・ロール宛てのお知らせは回に 1 行の共有の行で、受信者ごとの inApp の行を作らない", async () => {
   const { world, deps, inApp, news, sender } = setupInApp("{{item}} が入荷しました");
-  await sender.sendMessageToMany(news, { audience: { type: "role", roles: ["user"] }, vars: { item: "靴" } });
+  await sender.sendMessageToMany(news, { target: { type: "role", roles: ["user"] }, vars: { item: "靴" } });
   await sweep(deps);
   const dispatch = world.store.dispatches[0];
   assert.equal(world.inboxItems.length, 1);
@@ -384,7 +384,7 @@ test("d3(D32): 全員・ロール宛てのお知らせは回に 1 行の共有�
 
 test("d3(D32): お知らせの中身が受信者に依れば、全員宛てでも受信者ごとの行", async () => {
   const { world, deps, inApp, news, sender } = setupInApp("{{recipientName}} 様");
-  await sender.sendMessageToMany(news, { audience: { type: "all" }, vars: { item: "靴" } });
+  await sender.sendMessageToMany(news, { target: { type: "all" }, vars: { item: "靴" } });
   await sweep(deps);
   assert.equal(world.inboxItems.length, 0);
   assert.equal(world.store.deliveries.filter((row) => row.channel === "inApp").length, 3);
@@ -394,7 +394,7 @@ test("d3(D32): お知らせの中身が受信者に依れば、全員宛てで�
 test("配信停止(D35・D46): 全員宛ての展開で止めた利用者は行を作らず suppressed に数え、recipient_count から引く", async () => {
   const { world, deps, sender } = setup({ users: 3 });
   world.store.preferences.push({ userId: "u2", category: "*", channel: "*" });
-  await sender.sendMessageToMany(notice, { audience: { type: "all" }, vars: { item: "x" } });
+  await sender.sendMessageToMany(notice, { target: { type: "all" }, vars: { item: "x" } });
   for (let i = 0; i < 3; i += 1) await sweep(deps);
   const dispatch = world.store.dispatches[0];
   assert.deepEqual(world.store.deliveries.map((row) => row.user_id).sort(), ["u1", "u3"]);
@@ -445,7 +445,7 @@ test("グループ宛て(D58): 最初に一覧へ書き(配達なし・線より
   world.store.users.find((user) => user.id === "u6")!.createdAt = new Date(Date.now() + 3_600_000);
   world.groupMembers.set("g1", ["u2", "u3", "u4", "u5", "u6"]);
   deps.groups = fakeGroups(world);
-  await sender.sendMessageToMany(notice, { audience: { type: "group", groupId: "g1" }, vars: { item: "x" } });
+  await sender.sendMessageToMany(notice, { target: { type: "group", groupId: "g1" }, vars: { item: "x" } });
   const dispatch = world.store.dispatches[0];
   const slow = oneChunkPerRun(deps);
 
@@ -477,7 +477,7 @@ test("グループ宛て(D58): 固定の時に門が閉・グループの誤り�
     let open = true;
     let fail: Error | null = null;
     deps.groups = fakeGroups(world, { open: () => open, fail: () => fail });
-    await sender.sendMessageToMany(notice, { audience: { type: "group", groupId: "g1" }, vars: { item: "x" } });
+    await sender.sendMessageToMany(notice, { target: { type: "group", groupId: "g1" }, vars: { item: "x" } });
     open = item.open ?? true;
     fail = item.fail ?? null;
     world.freezeTimesOut = item.timeout ?? false;
@@ -495,7 +495,7 @@ test("グループ宛て(D58): お知らせは受信者ごとの行(共有の行
   const { world, deps, inApp, news, sender } = setupInApp("{{item}} が入荷しました");
   world.groupMembers.set("g1", ["u1", "u2", "u3"]);
   deps.groups = fakeGroups(world);
-  await sender.sendMessageToMany(news, { audience: { type: "group", groupId: "g1" }, vars: { item: "靴" } });
+  await sender.sendMessageToMany(news, { target: { type: "group", groupId: "g1" }, vars: { item: "靴" } });
   for (let i = 0; i < 4; i += 1) await sweep(deps);
   assert.equal(world.inboxItems.length, 0);
   assert.equal(world.store.deliveries.filter((row) => row.channel === "inApp").length, 3);
@@ -506,8 +506,8 @@ test("グループ宛て(D58): お知らせは受信者ごとの行(共有の行
 test("送り始めの線(D58): 全員・ロール宛ては回を作った時刻より後に登録した利用者を入れない", async () => {
   const { world, deps, sender } = setup({ users: 4 });
   world.store.users.find((user) => user.id === "u4")!.createdAt = new Date(Date.now() + 3_600_000);
-  await sender.sendMessageToMany(notice, { audience: { type: "all" }, vars: { item: "x" } });
-  await sender.sendMessageToMany(notice, { audience: { type: "role", roles: ["user"] }, vars: { item: "y" } });
+  await sender.sendMessageToMany(notice, { target: { type: "all" }, vars: { item: "x" } });
+  await sender.sendMessageToMany(notice, { target: { type: "role", roles: ["user"] }, vars: { item: "y" } });
   for (let i = 0; i < 4; i += 1) await sweep(deps);
   const [all, role] = world.store.dispatches;
   assert.deepEqual(world.store.deliveries.filter((row) => row.dispatch_id === all.id).map((row) => row.user_id).sort(), ["u1", "u2", "u3"]);

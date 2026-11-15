@@ -1,6 +1,6 @@
 # userGroup（ユーザーグループ）
 
-利用者の集まり（グループ）を名前つきで持つ core ドメイン（評議会の決定 D96〜D104）。連絡の宛先・限定ページ・ガチャの参加資格など、送ること以外にも多くのドメインが使う。呼び方は「ユーザーグループ」に揃え、「オーディエンス（audience）」の語は使わない（D100）。
+利用者の集まり（グループ）を名前つきで持つ core ドメイン（評議会の決定 D96〜D104）。連絡の宛先・限定ページ・ガチャの参加資格など、送ること以外にも多くのドメインが使う。呼び方は「ユーザーグループ」に揃え、ほかの呼び名は使わない（D100）。
 
 今あるもの: 表・条件の部品の受け口と上流の部品 6 つ・条件の定義の木の検査・評価の口（count・isMember・listMemberIds・evaluate）・静的グループへ書く口（replaceMembers・addMembers・removeMembers）・定期計算の cron（user-group-recompute）・管理の API（`/api/admin/user-groups/**`）・管理画面（`/admin/user-groups`）・門・設定。
 

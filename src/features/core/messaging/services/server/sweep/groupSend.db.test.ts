@@ -117,7 +117,7 @@ describe("グループ宛ての送信の固定(実 DB、書いた行は消す)",
     };
     const sender = createMessageSender(deps);
     const send = async () => {
-      const result = await sender.sendMessageToMany(notice, { audience: { type: "group", groupId: group!.id }, vars: { item: "x" } });
+      const result = await sender.sendMessageToMany(notice, { target: { type: "group", groupId: group!.id }, vars: { item: "x" } });
       const id = result.dispatchId!;
       cleanup.unshift(() => db.delete(MessageDispatchTable).where(eq(MessageDispatchTable.id, id)));
       return id;

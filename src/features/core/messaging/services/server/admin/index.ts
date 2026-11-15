@@ -19,7 +19,6 @@ import { USER_GROUP_KIND_LABELS } from "@/features/core/userGroup/services/serve
 import { messagingConfig } from "../../../config";
 import type { MessageDispatch } from "../../../entities/model";
 import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../entities/template";
-import { audiences } from "../../../extensions/audiences";
 import { bulkSendTargets } from "../../../extensions/bulkSendTargets";
 import { messageRegistry } from "@/registry/messageRegistry";
 
@@ -200,7 +199,6 @@ const sendDeps: AdminSendDeps = {
   recordAudit,
   channels,
   categories,
-  audiences,
   roles: () => ALL_ROLES.map((role) => ({ id: role.id, label: role.label })),
   groupOptions,
   async listPublishedTemplates() {

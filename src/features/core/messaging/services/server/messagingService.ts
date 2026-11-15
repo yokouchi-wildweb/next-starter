@@ -48,7 +48,7 @@ import { continueSending } from "./sweep";
 export const messagingService = {
   /** 連絡の定義(messages/<名前>.ts)を 1 人へ送る(新しい送る口。README「新しい送る口」) */
   sendMessage,
-  /** 連絡の定義を選んだ宛先か audience へ送る(新しい送る口) */
+  /** 連絡の定義を選んだ宛先か宛先の指定(全員・ロール・グループ)へ送る(新しい送る口) */
   sendMessageToMany,
   /** 管理者が書いた文面で送る(その場で書く連絡とテンプレートを呼び出した文面。テンプレートは版を回に固定、予約もできる) */
   sendAuthored,

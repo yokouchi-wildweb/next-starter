@@ -28,7 +28,7 @@ export const MESSAGE_KINDS = [
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 
 /** 管理者がその場で書いて送れる宛先(管理の送る画面と一覧の一括)。group = ユーザーグループ(全員・ロールと同じ種別だけ) */
-export type MessageAdminAudience = "all" | "role" | "group" | "audience" | "users" | "bulk";
+export type MessageAdminTarget = "all" | "role" | "group" | "users" | "bulk";
 
 /** 本文の残し方(types.ts の MessageRecord と同じ語彙) */
 type RecordDefault = "meta" | "vars" | "full";
@@ -42,7 +42,7 @@ export type MessageKindTraits = {
   /** 住所の停止のどれに従うか: hardBounce = hard bounce だけ(苦情の停止を越えて届ける)/ all = 苦情・ワンクリック・手作業も */
   addressStop: "hardBounce" | "all";
   /** 管理者がその場で書いて送れる宛先(空 = コードの定義からだけ) */
-  adminFreeText: readonly MessageAdminAudience[];
+  adminFreeText: readonly MessageAdminTarget[];
   /** 本文の残し方の既定(定義の record が無い時) */
   recordDefault: RecordDefault;
   /** 管理画面で文言を直せるか(adminEditable) */
@@ -52,7 +52,7 @@ export type MessageKindTraits = {
   /** 種類の経路の上書きで email を外せないか(functional・security のメール、D86) */
   emailFixed: boolean;
   /**
-   * 送る口の中ですぐ送るか(security、D72・D80): 予約・宛先の集め方は 400(選んだ宛先だけ)、宛先が多くても後回しの列に入れず
+   * 送る口の中ですぐ送るか(security、D72・D80): 予約と全員・ロール・グループ宛ては 400(選んだ宛先だけ)、宛先が多くても後回しの列に入れず
    * 展開して最初の 1 束を口の中で送る
    */
   sendInEntry: boolean;
@@ -83,10 +83,10 @@ export const MESSAGE_KIND_TRAITS: Readonly<Record<MessageKind, MessageKindTraits
   },
   transactional: { ...BASE },
   security: { ...BASE, addressStop: "hardBounce", recordDefault: "meta", throttle: false, emailFixed: true, sendInEntry: true },
-  announcement: { ...BASE, adminFreeText: ["all", "role", "group", "audience", "users"], recordDefault: "full" },
+  announcement: { ...BASE, adminFreeText: ["all", "role", "group", "users"], recordDefault: "full" },
   direct: { ...BASE, adminFreeText: ["users", "bulk"], recordDefault: "full" },
   activity: { ...BASE, userStoppable: true },
-  marketing: { ...BASE, userStoppable: true, adminFreeText: ["all", "role", "group", "audience", "users", "bulk"] },
+  marketing: { ...BASE, userStoppable: true, adminFreeText: ["all", "role", "group", "users", "bulk"] },
 };
 
 export function isMessageKind(value: unknown): value is MessageKind {

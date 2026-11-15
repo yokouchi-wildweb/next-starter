@@ -186,10 +186,9 @@ test("SendAudiencePicker: bulk は記録の数、select は種類の選び", asy
   const select = await render(
     createElement(parts.SendAudiencePicker, {
       kind: "select",
-      value: { type: "users", roles: [], audienceKey: "", userIds: [] },
+      value: { type: "users", roles: [], userIds: [] },
       onChange: () => {},
       roles: [],
-      audiences: [],
     }),
   );
   assert.ok(select.container.querySelector("[data-users]"));
