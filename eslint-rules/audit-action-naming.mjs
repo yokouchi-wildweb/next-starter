@@ -10,6 +10,15 @@
 // 2. createCrudService の audit: { actionPrefix: "..." }
 //    → actionPrefix が文字列リテラルでない、または `<domain>(.<entity>)*` パターンに合わない場合に error
 //
+// 3. 注入された記録関数に渡す監査の入力(AuditRecordInput の形)
+//    deps.recordAudit({ targetType, targetId, action: "..." }) のように auditLogger を直に呼ばない経路でも、
+//    action と targetType を持つオブジェクトリテラル = 監査の入力とみなし、呼び先の名前によらず action を照合する
+//    (recordMany の配列の要素、変数に置いた入力も同じ)。照合するのは値が分かる形だけ:
+//    - 文字列リテラル・式のないテンプレート・その三項(a ? "x.y.created" : "x.y.updated")
+//    - 囲む関数の引数をそのまま渡す形(function audit(group, action) { recordAudit({ ..., action }) })
+//      → 同じファイルの中のその関数の呼び出しの、その位置の実引数を上と同じく照合する
+//    それ以外の動的な値は報告しない(注入の経路は値の受け渡しが正当。runtime の validateActionName が最後に投げる)
+//
 // 動的な action 名（テンプレートリテラル等）は ESLint では検証できないため、
 // 文字列リテラル必須 + 静的パターン照合という 2 段で守る。
 // runtime には validateActionName() があるので、誤って動的値を渡しても最終的には throw する。
@@ -74,6 +83,72 @@ const auditActionNamingRule = {
     },
   },
   create(context) {
+    const sourceCode = context.sourceCode;
+
+    /** 文字列として値が分かる action の候補(リテラル・式のないテンプレート・三項の両側)を集める。分からない枝は無視 */
+    function collectStaticStrings(node, out) {
+      if (!node) return out;
+      if (node.type === "Literal" && typeof node.value === "string") out.push({ node, value: node.value });
+      else if (node.type === "TemplateLiteral" && node.expressions.length === 0) out.push({ node, value: node.quasis[0].value.cooked ?? "" });
+      else if (node.type === "ConditionalExpression") {
+        collectStaticStrings(node.consequent, out);
+        collectStaticStrings(node.alternate, out);
+      } else if (["TSAsExpression", "TSSatisfiesExpression", "TSNonNullExpression"].includes(node.type)) {
+        collectStaticStrings(node.expression, out);
+      }
+      return out;
+    }
+
+    function reportInvalidStrings(node) {
+      for (const { node: literal, value } of collectStaticStrings(node, [])) {
+        if (!ACTION_PATTERN.test(value)) {
+          context.report({ node: literal, messageId: "actionInvalid", data: { value, pattern: PATTERN_HUMAN } });
+        }
+      }
+    }
+
+    /** 識別子の変数(スコープを上へたどる) */
+    function resolveVariable(identifier) {
+      let scope = sourceCode.getScope(identifier);
+      while (scope) {
+        const variable = scope.set.get(identifier.name);
+        if (variable) return variable;
+        scope = scope.upper;
+      }
+      return null;
+    }
+
+    /** 関数ノードの名前の変数(function f / const f = () => / const f = function) */
+    function functionNameVariable(fn) {
+      if (fn.type === "FunctionDeclaration" && fn.id) return resolveVariable(fn.id);
+      const parent = fn.parent;
+      if (parent?.type === "VariableDeclarator" && parent.init === fn && parent.id.type === "Identifier") return resolveVariable(parent.id);
+      return null;
+    }
+
+    /** action の値が囲む関数の引数そのものなら、同じファイルの呼び出しの実引数を照合する */
+    function checkPassThroughParam(identifier) {
+      const variable = resolveVariable(identifier);
+      const def = variable?.defs[0];
+      if (!def || def.type !== "Parameter") return;
+      const fn = def.node;
+      const index = fn.params.indexOf(def.name);
+      if (index < 0) return; // 分割代入・既定値付きの引数は追わない
+      const fnVariable = functionNameVariable(fn);
+      if (!fnVariable) return;
+      for (const reference of fnVariable.references) {
+        const call = reference.identifier.parent;
+        if (call?.type !== "CallExpression" || call.callee !== reference.identifier) continue;
+        reportInvalidStrings(call.arguments[index]);
+      }
+    }
+
+    /** オブジェクトリテラルが監査の入力の形(action と targetType を持つ)か */
+    function isAuditInputShape(node) {
+      const keys = new Set(node.properties.map(getPropertyKeyName));
+      return keys.has("action") && keys.has("targetType");
+    }
+
     function checkAction(prop, methodName) {
       const value = prop.value;
       if (value.type !== "Literal" || typeof value.value !== "string") {
@@ -119,6 +194,18 @@ const auditActionNamingRule = {
           if (getPropertyKeyName(prop) === "action") {
             checkAction(prop, methodName);
           }
+        }
+      },
+
+      // 注入された記録関数に渡す監査の入力(呼び先の名前によらない)。auditLogger.record の直の引数は上で見る
+      ObjectExpression(node) {
+        if (!isAuditInputShape(node)) return;
+        const parent = node.parent;
+        if (parent?.type === "CallExpression" && parent.arguments[0] === node && isAuditLoggerCall(parent)) return;
+        for (const prop of node.properties) {
+          if (getPropertyKeyName(prop) !== "action") continue;
+          if (prop.value.type === "Identifier") checkPassThroughParam(prop.value);
+          else reportInvalidStrings(prop.value);
         }
       },
 
