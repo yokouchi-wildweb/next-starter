@@ -2,16 +2,16 @@
 //
 // 宛先の展開: 受信者 × 経路 → 配達の行の計画(宛先の解決は経路の resolveAddresses、無ければ端末の帳簿)。
 // - 選んだ宛先(explicit): 宛先の無い受信者も suppressed + reason no_address の行にして呼び手へ返す(D46)
-// - 全員・ロール・audiences(broadcast): 宛先の無い利用者は行を作らず、経路ごとの数 skipped_no_address に数える(D46)
-//   束ごとの展開(expandBroadcastChunk / resolveAudienceChunk)は cron(次の指令)が呼ぶ
+// - 全員・ロール・グループ(broadcast): 宛先の無い利用者は行を作らず、経路ごとの数 skipped_no_address に数える(D46)
+//   束ごとの展開(expandBroadcastChunk / resolveTargetChunk)は cron が呼ぶ
 // - 経路の項目が無い・enabled: false の経路は channel_off(explicit は行、broadcast は suppressed に数える)
 
-import type { MessageAudienceCursor, MessageChannel } from "@/lib/messaging";
+import type { MessageChannel } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import type { MessageDeliveryInsert, MessageDeliveryReason } from "../../../entities/model";
 import { checkStops, hashAddress, type StopContext } from "./stops";
-import type { MessageAudienceSpec, MessageRecipient, MessageSendDeps, MessageUserRow } from "./types";
+import type { MessageTargetSpec, MessageRecipient, MessageSendDeps, MessageUserRow } from "./types";
 
 /** 配達の行の計画 1 つ */
 export type PlannedDelivery = {
@@ -157,7 +157,7 @@ function countFullyStopped(planned: readonly PlannedDelivery[]): number {
 
 /**
  * queued の計画に配信停止を当てる。mode row = 理由つきの suppressed の行にする(選んだ宛先)/
- * drop = 計画から外す(全員・ロール・audiences、D46)。どちらも経路ごとの suppressed に数える
+ * drop = 計画から外す(全員・ロール・グループ、D46)。どちらも経路ごとの suppressed に数える
  */
 async function applyStops(
   deps: MessageSendDeps,
@@ -194,7 +194,7 @@ async function applyStops(
 }
 
 /**
- * 全員・ロール・audiences の 1 束の展開(cron が呼ぶ)。宛先の無い利用者は行を作らず skipped_no_address に数える。
+ * 全員・ロール・グループの 1 束の展開(cron が呼ぶ)。宛先の無い利用者は行を作らず skipped_no_address に数える。
  */
 export async function expandBroadcastChunk(
   deps: MessageSendDeps,
@@ -240,26 +240,20 @@ export async function expandBroadcastChunk(
 }
 
 /**
- * audience の次の束の利用者 id(keyset)。束の人数は config.expandChunkSize。全員・ロールは createdBefore(送り始めの線)以前の登録だけ。
- * @throws DomainError(400) audiences の項目が無い・引数が合わない
+ * 全員・ロールの次の束の利用者 id(keyset)。束の人数は config.expandChunkSize。createdBefore(送り始めの線)以前の登録だけ。
+ * グループは回の受信者の一覧から引く(sweep/expandStep.ts。ここへは来ない)
  */
-export async function resolveAudienceChunk(
+export async function resolveTargetChunk(
   deps: MessageSendDeps,
-  spec: MessageAudienceSpec,
-  cursor: MessageAudienceCursor,
+  spec: MessageTargetSpec,
+  cursor: string | null,
   options: { createdBefore?: Date } = {},
-): Promise<{ userIds: string[]; nextCursor: MessageAudienceCursor }> {
+): Promise<{ userIds: string[]; nextCursor: string | null }> {
   const limit = deps.config.expandChunkSize;
   const line = options.createdBefore ? { createdBefore: options.createdBefore } : {};
   if (spec.type === "all") return deps.store.listUserIds({ ...line }, cursor, limit);
   if (spec.type === "role") return deps.store.listUserIds({ roles: spec.roles, ...line }, cursor, limit);
-  // グループは回の受信者の一覧から引く(expandStep.ts。ここへは来ない)
-  if (spec.type === "group") throw new DomainError("グループ宛ては回の受信者の一覧から展開します", { status: 500 });
-  const audience = deps.audiences[spec.key];
-  if (!audience) throw new DomainError(`宛先の集め方 ${spec.key} がありません`, { status: 400 });
-  const args = audience.args.safeParse(spec.args);
-  if (!args.success) throw new DomainError(`宛先の集め方 ${spec.key} の引数が合いません`, { status: 400 });
-  return audience.resolveUserIds(args.data, cursor);
+  throw new DomainError("グループ宛ては回の受信者の一覧から展開します", { status: 500 });
 }
 
 /**

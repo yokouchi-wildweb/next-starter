@@ -156,7 +156,7 @@ export function MessageSendModal({
           {bulk ? (
             <SendAudiencePicker kind="bulk" recordCount={bulk.recordIds.length} recordNoun={bulk.recordNoun} />
           ) : (
-            <SendAudiencePicker kind="select" value={m.audience} onChange={m.setAudience} roles={m.roles} audiences={m.audiences} />
+            <SendAudiencePicker kind="select" value={m.audience} onChange={m.setAudience} roles={m.roles} />
           )}
         </Block>
         {m.templatesAvailable ? (

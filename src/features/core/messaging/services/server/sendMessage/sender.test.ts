@@ -4,7 +4,7 @@
 // - 冪等の鍵: message_dispatches と message_idempotency_keys の両方で 409
 // - record meta / vars / full、required と秘密を差し込む連絡は描いた本文をどこにも残さない
 // - ChannelError の分類 → 行の状態、required は要求の中で短く再送して尽きたら failed、非 required の一時は queued + next_attempt_at
-// - 小さな送信は最初の束だけ要求の中、残りは queued。大きな送信・audience は回の行だけ
+// - 小さな送信は最初の束だけ要求の中、残りは queued。大きな送信・target は回の行だけ
 // - グループ宛て(D58): 送り始めに門・しまった・壊れた・人数の上限を確かめ(DomainError、回を作らない)、定期計算の版を回に固定する。見込みは数と上限
 // - 帳簿を読む経路で送れた宛先は端末の帳簿の last_used_at を経路ごとに 1 回記録する(自前の引き方の経路・送れなかった宛先は記録しない、記録の失敗は送信を変えない)
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage
@@ -16,7 +16,7 @@ import { z } from "zod";
 import { ChannelError, createDefineMessage, secretVar, type MessageRegistry } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
-import { expandBroadcastChunk, resolveAudienceChunk } from "./expand";
+import { expandBroadcastChunk, resolveTargetChunk } from "./expand";
 import { hashAddress } from "./stops";
 import { createMessageSender } from "./sender";
 import { FIXED_NOW, createDeps, createMemoryStore, createTestChannel } from "./testHelpers";
@@ -101,7 +101,7 @@ test("d2: 回の新しい列と、宛先 × 経路の配達の行", async () => 
   assert.equal(dispatch.source, "shop.notice");
   assert.equal(dispatch.recipient_count, 2);
   assert.equal(dispatch.actor_id, "admin-1");
-  assert.deepEqual(dispatch.audience, { type: "recipients", count: 2 });
+  assert.deepEqual(dispatch.target, { type: "recipients", count: 2 });
   assert.deepEqual(dispatch.headings, { test: "テストサービス: 靴" });
   assert.equal(dispatch.status, "completed");
   assert.deepEqual(dispatch.channel_counts, {
@@ -137,9 +137,9 @@ test("d2: 選んだ宛先で宛先の無い利用者は suppressed + no_address 
 test("d2: 全員・ロールの展開は宛先の無い利用者の行を作らず skipped_no_address に数える", async () => {
   const { deps, store } = setup({ users: 4 });
   store.endpoints = store.endpoints.filter((row) => row.userId !== "u4");
-  const first = await resolveAudienceChunk(deps, { type: "all" }, null);
+  const first = await resolveTargetChunk(deps, { type: "all" }, null);
   assert.deepEqual(first.userIds, ["u1", "u2"]);
-  const second = await resolveAudienceChunk(deps, { type: "all" }, first.nextCursor);
+  const second = await resolveTargetChunk(deps, { type: "all" }, first.nextCursor);
   assert.deepEqual(second.userIds, ["u3", "u4"]);
   const chunk = await expandBroadcastChunk(deps, {
     channels: ["test"],
@@ -148,7 +148,7 @@ test("d2: 全員・ロールの展開は宛先の無い利用者の行を作ら�
   });
   assert.deepEqual(chunk.planned.map((plan) => plan.recipientKey), ["user:u3"]);
   assert.deepEqual(chunk.counts.test, { targeted: 2, skippedNoAddress: 1, suppressed: 0 });
-  const admins = await resolveAudienceChunk(deps, { type: "role", roles: ["admin"] }, null);
+  const admins = await resolveTargetChunk(deps, { type: "role", roles: ["admin"] }, null);
   assert.deepEqual(admins.userIds, ["u1"]);
 });
 
@@ -346,7 +346,7 @@ test("小さな送信は最初の束だけ送り、残りは queued + next_attem
   assert.equal(store.dispatches[0].completed_at, null);
 });
 
-test("大きな送信と audience は回の行だけ書き、展開しない", async () => {
+test("大きな送信と target は回の行だけ書き、展開しない", async () => {
   const { sender, store, channel } = setup({ users: 6 });
   const large = await sender.sendMessageToMany(notice, {
     recipients: ["u1", "u2", "u3", "u4", "u5", "u6"].map((userId) => ({ userId })),
@@ -355,11 +355,11 @@ test("大きな送信と audience は回の行だけ書き、展開しない", a
   assert.equal(large.status, "processing");
   assert.equal(store.deliveries.length, 0);
   assert.equal(store.dispatches[0].recipient_count, 6);
-  assert.equal((store.dispatches[0].audience as { type: string }).type, "recipients");
+  assert.equal((store.dispatches[0].target as { type: string }).type, "recipients");
 
-  const all = await sender.sendMessageToMany({ ...notice, record: "meta" }, { audience: { type: "all" }, vars: { item: "x" }, showToLaterSignups: true });
+  const all = await sender.sendMessageToMany({ ...notice, record: "meta" }, { target: { type: "all" }, vars: { item: "x" }, showToLaterSignups: true });
   assert.equal(all.status, "processing");
-  assert.deepEqual(store.dispatches[1].audience, { type: "all" });
+  assert.deepEqual(store.dispatches[1].target, { type: "all" });
   assert.equal(store.dispatches[1].show_to_later_signups, true);
   // cron が描くために vars を持つ(record meta は cron が終わりに消す)
   assert.deepEqual(store.dispatches[1].vars, { item: "x" });
@@ -389,15 +389,15 @@ test("グループ宛て(D58): 送り始めに確かめ、回の行だけ書き(
   };
   const store = createMemoryStore();
   const sender = createMessageSender(createDeps({ store, channels: { test: createTestChannel() }, groups }));
-  const send = (groupId: string) => sender.sendMessageToMany(notice, { audience: { type: "group", groupId }, vars: { item: "x" } });
+  const send = (groupId: string) => sender.sendMessageToMany(notice, { target: { type: "group", groupId }, vars: { item: "x" } });
 
   const result = await send("scheduled");
   assert.equal(result.status, "processing");
-  assert.deepEqual(store.dispatches[0].audience, { type: "group", groupId: "scheduled", version: 7 });
+  assert.deepEqual(store.dispatches[0].target, { type: "group", groupId: "scheduled", version: 7 });
   assert.equal(store.dispatches[0].expand_cursor, null);
   assert.equal(store.deliveries.length, 0);
   await send("fixed");
-  assert.deepEqual(store.dispatches[1].audience, { type: "group", groupId: "fixed", version: null });
+  assert.deepEqual(store.dispatches[1].target, { type: "group", groupId: "fixed", version: null });
 
   await assertDomainError(send("big"), 409);
   await assertDomainError(send("archived"), 409);
@@ -405,26 +405,26 @@ test("グループ宛て(D58): 送り始めに確かめ、回の行だけ書き(
   open = false;
   await assertDomainError(send("fixed"), 404);
   assert.equal(store.dispatches.length, 2, "誤りの時は回を作らない");
-  await assertDomainError(createMessageSender(createDeps({ store, channels: { test: createTestChannel() } })).sendMessageToMany(notice, { audience: { type: "group", groupId: "fixed" }, vars: { item: "x" } }), 404);
+  await assertDomainError(createMessageSender(createDeps({ store, channels: { test: createTestChannel() } })).sendMessageToMany(notice, { target: { type: "group", groupId: "fixed" }, vars: { item: "x" } }), 404);
   open = true;
 
   // 見込み: 数と上限(超えても投げない)
-  assert.deepEqual(await sender.estimateRecipients({ audience: { type: "group", groupId: "big" } }), {
+  assert.deepEqual(await sender.estimateRecipients({ target: { type: "group", groupId: "big" } }), {
     count: 11,
     capped: false,
     fixedAtSend: true,
     memberLimit: 10,
     overLimit: true,
   });
-  await assertDomainError(sender.estimateRecipients({ audience: { type: "group", groupId: "archived" } }), 409);
+  await assertDomainError(sender.estimateRecipients({ target: { type: "group", groupId: "archived" } }), 409);
   open = false;
-  await assertDomainError(sender.estimateRecipients({ audience: { type: "group", groupId: "fixed" } }), 404);
+  await assertDomainError(sender.estimateRecipients({ target: { type: "group", groupId: "fixed" } }), 404);
 });
 
-test("秘密・required の連絡は audience と大きな送信を拒む", async () => {
+test("秘密・required の連絡は target と大きな送信を拒む", async () => {
   const secret = defineTestMessage({ ...notice, key: "auth.code", vars: z.object({ item: secretVar(z.string()) }) });
   const { sender, store } = setup();
-  await assertDomainError(sender.sendMessageToMany(secret, { audience: { type: "all" }, vars: { item: "1" } }), 400);
+  await assertDomainError(sender.sendMessageToMany(secret, { target: { type: "all" }, vars: { item: "1" } }), 400);
   assert.equal(store.dispatches.length, 0);
 });
 
@@ -672,13 +672,13 @@ const securityAlert = defineTestMessage({
   content: { test: { title: "警告 {{item}}" } },
 });
 
-test("security(性質 sendInEntry): 予約と audience は 400、宛先が多くても口の中で展開して最初の束を送る", async () => {
+test("security(性質 sendInEntry): 予約と target は 400、宛先が多くても口の中で展開して最初の束を送る", async () => {
   const { sender, store, channel } = setup({ users: 7 });
   await assertDomainError(
     sender.sendMessageToMany(securityAlert, { recipients: [{ userId: "u1" }], vars: { item: "x" }, scheduledAt: new Date(FIXED_NOW.getTime() + 60_000) }),
     400,
   );
-  await assertDomainError(sender.sendMessageToMany(securityAlert, { audience: { type: "all" }, vars: { item: "x" } }), 400);
+  await assertDomainError(sender.sendMessageToMany(securityAlert, { target: { type: "all" }, vars: { item: "x" } }), 400);
   assert.equal(store.dispatches.length, 0);
   // smallSendMaxRecipients(5)を越える 7 人: 回の行だけにせず展開し、最初の束(inRequestBatchSize 2)を口の中で送る
   const recipients = Array.from({ length: 7 }, (_, i) => ({ userId: `u${i + 1}` }));

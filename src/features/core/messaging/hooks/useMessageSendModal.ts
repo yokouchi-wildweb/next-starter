@@ -78,7 +78,7 @@ export type MessageSendMode =
       source?: string;
     };
 
-export type MessageSendAudienceType = "all" | "role" | "audience" | "users";
+export type MessageSendAudienceType = "all" | "role" | "users";
 export type MessageSendStep = "edit" | "confirm" | "done";
 export type MessageSendTemplate = AdminSendOptions["templates"][number];
 
@@ -93,7 +93,7 @@ export type MessageSendDraft = {
   vars: Record<string, string>;
 };
 
-export type MessageSendAudience = { type: MessageSendAudienceType; roles: string[]; audienceKey: string; userIds: string[] };
+export type MessageSendAudience = { type: MessageSendAudienceType; roles: string[]; userIds: string[] };
 
 export type MessageSendResult =
   | { kind: "send"; result: AdminSendResult }
@@ -236,14 +236,13 @@ export function sameAsNoteOf(mode: MessageSendMode, templates: readonly MessageS
 
 /** mode から導く初めの宛先(sameAs = 回の宛先の形。選んだ利用者に送った回は同じ利用者を選んだ形) */
 export function initialAudienceOf(mode: MessageSendMode): MessageSendAudience {
-  const blank: MessageSendAudience = { type: "all", roles: [], audienceKey: "", userIds: [] };
+  const blank: MessageSendAudience = { type: "all", roles: [], userIds: [] };
   if (mode.type !== "sameAs") return blank;
-  const audience = record(mode.dispatch.audience);
+  const audience = record(mode.dispatch.target);
   if (audience.type === "role" && Array.isArray(audience.roles)) return { ...blank, type: "role", roles: audience.roles.map(String) };
-  if (audience.type === "audience" && typeof audience.key === "string") return { ...blank, type: "audience", audienceKey: audience.key };
   if (audience.type === "all") return blank;
-  // 全員・ロール・集め方でない回(選んだ利用者・一覧の一括)= 選んだ利用者の形。利用者 id は回の詳細が返す時だけ写す(多すぎる回は選び直し)
-  return { ...blank, type: "users", userIds: [...(mode.dispatch.audienceUserIds ?? [])] };
+  // 全員・ロールでない回(選んだ利用者・一覧の一括)= 選んだ利用者の形。利用者 id は回の詳細が返す時だけ写す(多すぎる回は選び直し)
+  return { ...blank, type: "users", userIds: [...(mode.dispatch.targetUserIds ?? [])] };
 }
 
 export type UseMessageSendModalOptions = {
@@ -316,7 +315,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     () =>
       allCategories.filter(
         (option) =>
-          option.audiences.includes(isBulk ? "bulk" : audience.type),
+          option.targets.includes(isBulk ? "bulk" : audience.type),
       ),
     [allCategories, isBulk, audience.type],
   );
@@ -445,9 +444,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     return { content, category, channels: sendChannels };
   }, [draft, loadedTemplate, category, sendChannels]);
 
-  const buildAudience = useCallback((): AdminSendInput["audience"] => {
+  const buildAudience = useCallback((): AdminSendInput["target"] => {
     if (audience.type === "role") return { type: "role", roles: audience.roles };
-    if (audience.type === "audience") return { type: "audience", key: audience.audienceKey };
     if (audience.type === "users") return { type: "users", userIds: audience.userIds };
     return { type: "all" };
   }, [audience]);
@@ -455,7 +453,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const buildSendInput = useCallback(
     (): AdminSendInput => ({
       ...buildContent(),
-      audience: buildAudience(),
+      target: buildAudience(),
       ...(scheduleMode === "at" && scheduledAt ? { scheduledAt } : {}),
       idempotencyKey,
     }),
@@ -490,7 +488,6 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const audienceError = useMemo(() => {
     if (!isBulk) {
       if (audience.type === "role" && audience.roles.length === 0) return "ロールを選んでください";
-      if (audience.type === "audience" && !audience.audienceKey) return "宛先の集め方を選んでください";
       if (audience.type === "users" && audience.userIds.length === 0) return "利用者を選んでください";
     } else if (mode.recordIds.length === 0) {
       return "記録を選んでください";
@@ -514,7 +511,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     (input) => (isBulk ? sendAdminBulkTestMessage(input) : sendAdminTestMessage(input)),
     revalidateKeys,
   );
-  const estimateMutation = useDomainMutation<RecipientEstimate, { audience: AdminSendInput["audience"] }>(
+  const estimateMutation = useDomainMutation<RecipientEstimate, { target: AdminSendInput["target"] }>(
     `${ADMIN_SEND_KEY}/modal/estimate`,
     (input) => estimateAdminRecipients(input),
   );
@@ -541,7 +538,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       const late = scheduleErrorOf(scheduleMode, scheduledAt, maxDays, Date.now());
       setScheduleError(late);
       if (late) throw new Error(late);
-      setEstimate(await estimateMutation.trigger({ audience: buildAudience() }));
+      setEstimate(await estimateMutation.trigger({ target: buildAudience() }));
     }
     setStep("confirm");
   }, [isBulk, scheduleMode, scheduledAt, maxDays, estimateMutation, buildAudience]);
@@ -617,7 +614,6 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     draft,
     audience,
     roles: sendOptions.options?.roles ?? [],
-    audiences: sendOptions.options?.audiences ?? [],
     allowedCategories,
     category,
     channels,

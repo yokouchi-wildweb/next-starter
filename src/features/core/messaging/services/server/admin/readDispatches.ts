@@ -119,14 +119,14 @@ export async function findDispatch(deps: AdminReadDeps, id: string): Promise<Adm
   const row = await deps.dispatchStore.findDispatch(id);
   if (!row) throw new DomainError("送信記録が見つかりません", { status: 404 });
   const { policy, counts } = await deps.operationInputs(row);
-  const [audienceUserIds, sourceLabel, names, groupNames] = await Promise.all([
-    audienceUserIdsOf(deps, row),
+  const [targetUserIds, sourceLabel, names, groupNames] = await Promise.all([
+    targetUserIdsOf(deps, row),
     deps.sourceLabel(row.source),
     row.actor_id ? deps.dispatchStore.userNames([row.actor_id]) : Promise.resolve(new Map<string, string>()),
     groupNamesOf(deps, [row]),
   ]);
   return toDispatchDetail(row, operationFlags(row, policy, counts), {
-    audienceUserIds,
+    targetUserIds,
     sourceLabel,
     actorName: row.actor_id ? (names.get(row.actor_id) ?? null) : null,
     groupNames,
@@ -144,17 +144,17 @@ export async function dispatchCategoryOptions(
 }
 
 /**
- * 選んだ利用者に送った回(audience.type = "recipients")の利用者 id(「同じ内容で送る」が同じ利用者を選んだ形で開くため)。
+ * 選んだ利用者に送った回(target.type = "recipients")の利用者 id(「同じ内容で送る」が同じ利用者を選んだ形で開くため)。
  * 回が宛先の一覧を持つ(予約・大きな送信)ならそこから、数だけの回(小さな送信)は配達の行から。
  * ADMIN_SEND_MAX_USERS を超える回・ほかの宛先の形は null(選び直し)
  */
-export async function audienceUserIdsOf(deps: Pick<AdminReadDeps, "dispatchStore">, row: MessageDispatch): Promise<string[] | null> {
-  const audience = (row.audience ?? null) as { type?: unknown; recipients?: unknown } | null;
-  if (!audience || audience.type !== "recipients") return null;
-  if (Array.isArray(audience.recipients)) {
+export async function targetUserIdsOf(deps: Pick<AdminReadDeps, "dispatchStore">, row: MessageDispatch): Promise<string[] | null> {
+  const target = (row.target ?? null) as { type?: unknown; recipients?: unknown } | null;
+  if (!target || target.type !== "recipients") return null;
+  if (Array.isArray(target.recipients)) {
     const ids = [
       ...new Set(
-        audience.recipients.flatMap((recipient) => {
+        target.recipients.flatMap((recipient) => {
           const userId = (recipient as { userId?: unknown } | null)?.userId;
           return typeof userId === "string" && userId !== "" ? [userId] : [];
         }),

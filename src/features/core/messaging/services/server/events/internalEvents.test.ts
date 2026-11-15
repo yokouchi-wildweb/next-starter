@@ -67,7 +67,7 @@ test("cron: 送れた・失敗・閉じる の事件を書く", async () => {
       ? { address: target.address, kind: "permanent", reason: "bad" }
       : { address: target.address, kind: "sent", provider: "fake", providerMessageId: "p" },
   );
-  await sender.sendMessageToMany(notice, { audience: { type: "all" }, vars: { item: "x" } });
+  await sender.sendMessageToMany(notice, { target: { type: "all" }, vars: { item: "x" } });
   assert.equal(world.store.events.length, 0);
   await sweepMessages(deps, deadline());
   assert.deepEqual(summary(world.store.events), ["delivery.failed", "delivery.sent", "dispatch.completed"]);
@@ -84,7 +84,7 @@ test("購読が聞いている種類だけ書く・購読なしは書かない",
 
   const none = setup([]);
   await none.sender.sendMessageToMany(notice, { recipients: [{ userId: "u1" }, { userId: "u3" }], vars: { item: "x" } });
-  await none.sender.sendMessageToMany(notice, { audience: { type: "all" }, vars: { item: "x" } });
+  await none.sender.sendMessageToMany(notice, { target: { type: "all" }, vars: { item: "x" } });
   await sweepMessages(none.deps, deadline());
   assert.equal(none.world.store.events.length, 0);
 });

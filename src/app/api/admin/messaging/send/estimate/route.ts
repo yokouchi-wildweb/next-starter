@@ -1,6 +1,6 @@
 // src/app/api/admin/messaging/send/estimate/route.ts
 //
-// 管理者向け: 宛先数の見込み { audience } → { count, capped, fixedAtSend }(送る時に数え直す)。門 messagingBroadcast が閉なら 404
+// 管理者向け: 宛先数の見込み { target } → { count, capped, fixedAtSend, memberLimit?, overLimit? }(送る時に数え直す)。門 messagingBroadcast が閉なら 404
 //
 // POST /api/admin/messaging/send/estimate
 

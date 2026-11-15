@@ -3,7 +3,6 @@
 // 新しい送る口(sendMessage / sendMessageToMany)の入出力と、送る口が使う部品(deps)の型。
 
 import type {
-  MessageAudience,
   MessageCategory,
   MessageChannel,
   MessageEnricher,
@@ -31,14 +30,13 @@ export type MessageRecipient =
   | { channel: string; address: string };
 
 /**
- * 全員・ロール・audiences の受け口の項目・ユーザーグループ(展開は cron が束ごとに行う)。
+ * 全員・ロール・ユーザーグループ(展開は cron が束ごとに行う)。
  * 全員・ロールは送り始めの時刻の線より後に登録した利用者を入れない。グループは送り始めの後に 1 文で一員を回の受信者の一覧へ書き、
  * その一覧だけから送る(D58)
  */
-export type MessageAudienceSpec =
+export type MessageTargetSpec =
   | { type: "all" }
   | { type: "role"; roles: readonly string[] }
-  | { type: "audience"; key: string; args?: unknown }
   | { type: "group"; groupId: string };
 
 /** ユーザーグループの読み口(userGroup の評価の口を門 userGroups の後ろで結ぶ。無い = グループ宛てを拒む) */
@@ -81,11 +79,11 @@ export type SendMessageInput = CommonSendInput & {
   recipientVars?: Record<string, unknown>;
 };
 
-/** 一括の送信(選んだ宛先の一覧か、audience のどちらか 1 つ) */
+/** 一括の送信(選んだ宛先の一覧か、宛先の指定 target のどちらか 1 つ) */
 export type SendMessageToManyInput = CommonSendInput &
   (
-    | { recipients: readonly MessageRecipient[]; audience?: never }
-    | { audience: MessageAudienceSpec; recipients?: never }
+    | { recipients: readonly MessageRecipient[]; target?: never }
+    | { target: MessageTargetSpec; recipients?: never }
   ) & {
     /** 受信者ごとの値(鍵 = recipient_key: user:<id> | addr:<hash>) */
     recipientVars?: Readonly<Record<string, Record<string, unknown>>>;
@@ -151,7 +149,7 @@ export type SendMessageResult = {
   dispatchId: string | null;
   /** disabled = 上書きで enabled:false の連絡(回を作らない) */
   status: MessageDispatchStatus | "disabled";
-  /** 要求の中で作った配達の行(大きな送信・audience では空。cron が展開する) */
+  /** 要求の中で作った配達の行(大きな送信・全員・ロール・グループ宛てでは空。cron が展開する) */
   deliveries: MessageDeliveryOutcome[];
   /** queued のまま cron に任せた配達の行の数 */
   queuedCount: number;
@@ -268,7 +266,6 @@ export type MessageSendDeps = {
   store: MessageSendStore;
   channels: Readonly<Record<string, MessageChannel>>;
   enrichers: Readonly<Record<string, MessageEnricher>>;
-  audiences: Readonly<Record<string, MessageAudience>>;
   /** ユーザーグループ(無い = グループ宛てを 404 で拒む) */
   groups?: MessageGroupSource;
   registry: MessageRegistry;

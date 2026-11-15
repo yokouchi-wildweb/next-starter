@@ -92,10 +92,10 @@ export const MessageDispatchTable = pgTable(
     /** 種類の鍵（配信停止の単位。messaging/categories の鍵） */
     category: text("category"),
     /**
-     * 宛先の指定（全員 / ロール / 選んだ利用者 / audiences の鍵と引数 / グループ { type: "group", groupId, version }）。
+     * 宛先の指定（全員 / ロール / 選んだ利用者 / グループ { type: "group", groupId, version }）。
      * グループの version = 送り始めに固定した定期計算の版（静的・動的は null）
      */
-    audience: jsonb("audience").$type<Record<string, unknown>>(),
+    target: jsonb("target").$type<Record<string, unknown>>(),
     /** 任意の分類タグ */
     tags: text("tags").array(),
     /** 予約送信の時刻（null = 即時） */
@@ -117,7 +117,7 @@ export const MessageDispatchTable = pgTable(
     /** 取り下げた時刻（取り下げても status は送った結果のまま） */
     retracted_at: timestamp("retracted_at", { withTimezone: true }),
     /**
-     * 展開の再開位置(cron が大きな送信・audience を束ごとに展開する)。
+     * 展開の再開位置(cron が大きな送信・全員・ロール・グループ宛てを束ごとに展開する)。
      * null = まだ展開していない / keyset の印か "i:<番号>"(選んだ宛先の一覧) = 途中 /
      * MESSAGE_EXPAND_DONE("~done") = 展開を終えた(小さな送信は要求の中で終えるので最初から DONE)。
      * グループ宛て: null = 受信者の一覧(message_dispatch_recipients)をまだ書いていない / "l:" か "l:<利用者 id>" = 一覧を書き終え、

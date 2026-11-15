@@ -3,7 +3,7 @@
 // - 一括送信: userIds / target + recordIds、重複を除く、中身は送る画面と同じ { content, template?, vars? }(D92)を送る口 sendAuthored へ、
 //   カテゴリー(必須、bulk で送れる種別 direct・marketing だけ)、送り元、afterSend(送った文面と出どころ、失敗しても送信は戻さない)、監査 1 行、選択肢
 // - 読む口: 絞り込みの検査、keyset の印、DTO(本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の回)
-// - グループ宛ての回: 一覧・1 件に宛先のグループ { id(値だけ), name }、名前は 1 ページに 1 回引く、引けなければ null、detail.audience は形だけ
+// - グループ宛ての回: 一覧・1 件に宛先のグループ { id(値だけ), name }、名前は 1 ページに 1 回引く、引けなければ null、detail.target は形だけ
 // - 続きを送る: 監査 1 行
 // 実行: pnpm test src/features/core/messaging/services/server/admin
 import { test } from "node:test";
@@ -233,7 +233,7 @@ const dispatchRow = (over: Partial<MessageDispatch> = {}): MessageDispatch =>
     template_edited: false,
     authored_content: null,
     category: "marketing",
-    audience: null,
+    target: null,
     tags: null,
     scheduled_at: null,
     channel_counts: null,
@@ -366,9 +366,9 @@ test("回 1 件: 書いて送った文面と、選んだ利用者に送った回
   const rows: Record<string, MessageDispatch> = {
     edited: dispatchRow({ id: "edited", template_id: "t1", template_version: 2, template_edited: true, authored_content: { email: { subject: "直した" } } } as never),
     plain: dispatchRow({ id: "plain", template_id: "t1", template_version: 2, template_edited: false, authored_content: null } as never),
-    listed: dispatchRow({ id: "listed", audience: { type: "recipients", recipients: [{ userId: "a" }, { userId: "b" }, { userId: "a" }] } as never }),
-    counted: dispatchRow({ id: "counted", audience: { type: "recipients", count: 2 } as never }),
-    role: dispatchRow({ id: "role", audience: { type: "role", roles: ["user"] } as never }),
+    listed: dispatchRow({ id: "listed", target: { type: "recipients", recipients: [{ userId: "a" }, { userId: "b" }, { userId: "a" }] } as never }),
+    counted: dispatchRow({ id: "counted", target: { type: "recipients", count: 2 } as never }),
+    role: dispatchRow({ id: "role", target: { type: "role", roles: ["user"] } as never }),
   };
   const store: AdminDispatchStore = {
     listDispatches: async () => [],
@@ -389,14 +389,14 @@ test("回 1 件: 書いて送った文面と、選んだ利用者に送った回
   const edited = await findDispatch(deps, "edited");
   assert.deepEqual([edited.templateEdited, edited.content], [true, { email: { subject: "直した" } }]);
   const plain = await findDispatch(deps, "plain");
-  assert.deepEqual([plain.templateEdited, plain.content, plain.audienceUserIds], [false, null, null]);
-  assert.deepEqual((await findDispatch(deps, "listed")).audienceUserIds, ["a", "b"]);
+  assert.deepEqual([plain.templateEdited, plain.content, plain.targetUserIds], [false, null, null]);
+  assert.deepEqual((await findDispatch(deps, "listed")).targetUserIds, ["a", "b"]);
   assert.deepEqual(userIdCalls, [], "一覧を持つ回は配達を引かない");
-  assert.deepEqual((await findDispatch(deps, "counted")).audienceUserIds, ["u1", "u2"]);
+  assert.deepEqual((await findDispatch(deps, "counted")).targetUserIds, ["u1", "u2"]);
   assert.deepEqual(userIdCalls, [["counted", 10_001]]);
   fromDeliveries = Array.from({ length: 10_001 }, (_, i) => `u${i}`);
-  assert.equal((await findDispatch(deps, "counted")).audienceUserIds, null, "上限を超える回は選び直し");
-  assert.equal((await findDispatch(deps, "role")).audienceUserIds, null);
+  assert.equal((await findDispatch(deps, "counted")).targetUserIds, null, "上限を超える回は選び直し");
+  assert.equal((await findDispatch(deps, "role")).targetUserIds, null);
   // 送り元は受け口に表示名がある時だけ表示名、無ければ null(鍵は返さない)
   assert.equal((await findDispatch(deps, "role")).sourceLabel, "管理者の一括送信");
   rows.role = dispatchRow({ id: "role", source: "fork.unknown" });
@@ -441,11 +441,11 @@ test("続きを送る: 進めて監査 1 行、管理者でなければ 403", as
   await rejects403(adminContinueSending({ ...deps, ...check(ctx("user1", "user")) }, "d1"));
 });
 
-test("グループ宛ての回: 一覧・1 件に targetGroup { id, name }(1 ページに 1 回引く)、引けなければ name null、detail.audience は形だけ", async () => {
+test("グループ宛ての回: 一覧・1 件に targetGroup { id, name }(1 ページに 1 回引く)、引けなければ name null、detail.target は形だけ", async () => {
   const G1 = "33333333-3333-4333-8333-333333333333";
   const G2 = "44444444-4444-4444-8444-444444444444";
   const group = (groupId: string) => ({ type: "group", groupId, version: 3 });
-  const rows = [dispatchRow({ id: "d2", audience: group(G1) }), dispatchRow({ id: "d1", audience: group(G2) }), dispatchRow({ id: "d0" })];
+  const rows = [dispatchRow({ id: "d2", target: group(G1) }), dispatchRow({ id: "d1", target: group(G2) }), dispatchRow({ id: "d0" })];
   const asked: string[][] = [];
   const store: AdminDispatchStore = {
     listDispatches: async (_filter, _after, limit) => rows.slice(0, limit),
@@ -472,7 +472,7 @@ test("グループ宛ての回: 一覧・1 件に targetGroup { id, name }(1 ペ
   assert.deepEqual(asked, [[G1, G2]], "1 ページに 1 回、グループ宛ての回の分だけ");
   const one = await findDispatch(deps, "d2");
   assert.deepEqual(one.targetGroup, { id: G1, name: "常連" });
-  assert.deepEqual(one.audience, { type: "group" }, "固定した版・id は audience に出さない");
+  assert.deepEqual(one.target, { type: "group" }, "固定した版・id は target に出さない");
   // 名前の部品が無い(門 userGroups が閉の結び)なら name null
   const closed = await findDispatch({ ...deps, groupNames: undefined }, "d2");
   assert.deepEqual(closed.targetGroup, { id: G1, name: null });

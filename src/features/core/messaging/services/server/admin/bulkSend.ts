@@ -175,7 +175,7 @@ export function adminBulkSendPreview(deps: AdminContentDeps, rawInput: unknown):
 
 /** 一括送信の自分へのテスト送信(宛先 = 操作した管理者だけ、is_test、監査 test_sent) */
 export function adminBulkSendTest(deps: AdminContentDeps, rawInput: unknown): Promise<AdminSendResult> {
-  return testAdminContent(deps, rawInput, { audience: "bulk", source: `${BULK_SOURCE}.test` });
+  return testAdminContent(deps, rawInput, { target: "bulk", source: `${BULK_SOURCE}.test` });
 }
 
 /** 一括送信の選択肢: 経路(表示名は受け口の label、送るモーダルと同じ)・bulk で送れるカテゴリー(adhoc = その場で書く連絡に使える)と、門 messagingTemplates が開の時だけ公開中のテンプレート */
@@ -191,7 +191,7 @@ export async function adminBulkSendOptions(
   await assertAdminActor(deps);
   return {
     channels: adminChannelOptions(deps.channels),
-    categories: adminFreeTextCategoryOptions(deps.categories, (option) => option.audiences.includes("bulk")),
+    categories: adminFreeTextCategoryOptions(deps.categories, (option) => option.targets.includes("bulk")),
     templates: deps.templatesOpen() ? await deps.listPublishedTemplates() : [],
   };
 }

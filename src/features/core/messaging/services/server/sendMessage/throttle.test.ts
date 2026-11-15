@@ -170,8 +170,8 @@ test("同時の 2 つの送り: 鍵の lock でお知らせ 1 つ・メール 1 
 
 test("全員・ロール宛ての回は間引かない(共有の 1 行、メールも全部送る)", async () => {
   const ctx = setup();
-  await ctx.sender.sendMessageToMany(chat, { audience: { type: "all" }, vars: { roomId: "r1", text: "全員" } });
-  await ctx.sender.sendMessageToMany(chat, { audience: { type: "all" }, vars: { roomId: "r1", text: "全員 2" } });
+  await ctx.sender.sendMessageToMany(chat, { target: { type: "all" }, vars: { roomId: "r1", text: "全員" } });
+  await ctx.sender.sendMessageToMany(chat, { target: { type: "all" }, vars: { roomId: "r1", text: "全員 2" } });
   await sweepMessages(ctx.deps, { deadline: new Date(Date.now() + 60_000) });
   assert.equal(ctx.throttle.items.length, 0);
   assert.equal(ctx.world.inboxItems.length, 2);

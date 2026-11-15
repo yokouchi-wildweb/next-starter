@@ -9,7 +9,7 @@
 // - 出さない: provider の生の値(provider_message_id・事件の payload)と last_error の文。失敗は状態・reason と、last_error の符号の部分
 //   (errorCode、文は constants/deliveryErrors.ts)で見る
 // - グループ宛ての回: targetGroup { id, name }(id は「同じ内容で送る」が開き直す値としてだけ、画面に出さない、D94・D60)。
-//   名前は読む時のグループ名(しまったグループも)、門 userGroups が閉・消えたグループは null。detail.audience は { type: "group" } だけ
+//   名前は読む時のグループ名(しまったグループも)、門 userGroups が閉・消えたグループは null。detail.target は { type: "group" } だけ
 // - 前の送る口の回(message_key が null): 件名・本文は S2 の写しが前の列から headings / rendered へ移した。記録の段(record)を持たないので、
 //   本文は段に依らず rendered を返す(前の列を消す前の管理の見え方を保つ)
 
@@ -45,7 +45,7 @@ export type AdminDispatchTargetGroup = { id: string; name: string | null };
 
 export type AdminDispatchDetail = AdminDispatchSummary & {
   record: MessageRecord | null;
-  audience: Record<string, unknown> | null;
+  target: Record<string, unknown> | null;
   tags: string[];
   reason: string | null;
   metadata: Record<string, unknown> | null;
@@ -56,7 +56,7 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   /** 管理者が書いて送った文面(書いた文面の回だけ、ほかは null。経路ごとの欄、差し込む前の字) */
   content: Record<string, unknown> | null;
   /** 選んだ利用者に送った回の利用者 id(「同じ内容で送る」の写し)。ほかの宛先の形・多すぎる回は null */
-  audienceUserIds: string[] | null;
+  targetUserIds: string[] | null;
   /** 送り元の表示名(受け口 sources に表示名がある時だけ。画面は送り元の鍵を見せない、D46) */
   sourceLabel: string | null;
   /** 送った人の名前(利用者なら users.name、system なら null。画面は id でなくこれを出す、D46) */
@@ -112,9 +112,9 @@ export function headingsOf(row: Pick<MessageDispatch, "headings">): MessageChann
 }
 
 /** グループ宛ての回のグループ id(ほかは null) */
-export function targetGroupIdOf(row: Pick<MessageDispatch, "audience">): string | null {
-  const audience = row.audience as { type?: unknown; groupId?: unknown } | null;
-  return audience?.type === "group" && typeof audience.groupId === "string" ? audience.groupId : null;
+export function targetGroupIdOf(row: Pick<MessageDispatch, "target">): string | null {
+  const target = row.target as { type?: unknown; groupId?: unknown } | null;
+  return target?.type === "group" && typeof target.groupId === "string" ? target.groupId : null;
 }
 
 /** groupNames = グループ id → 名前(引けた物だけ) */
@@ -150,19 +150,19 @@ export function toDispatchDetail(
   row: MessageDispatch,
   operations: DispatchOperationFlags,
   extras: {
-    audienceUserIds?: string[] | null;
+    targetUserIds?: string[] | null;
     sourceLabel?: string | null;
     actorName?: string | null;
     groupNames?: ReadonlyMap<string, string>;
   } = {},
 ): AdminDispatchDetail {
-  const { audienceUserIds = null, sourceLabel = null, actorName = null, groupNames } = extras;
+  const { targetUserIds = null, sourceLabel = null, actorName = null, groupNames } = extras;
   const keep = keepsDispatchBody(row.record);
   return {
     ...toDispatchSummary(row, groupNames),
     record: row.record,
     // グループ宛ては宛先の形だけ(id は targetGroup に値として、固定した版は出さない)
-    audience: targetGroupIdOf(row) ? { type: "group" } : row.audience,
+    target: targetGroupIdOf(row) ? { type: "group" } : row.target,
     tags: row.tags ?? [],
     reason: row.reason,
     metadata: row.metadata,
@@ -170,7 +170,7 @@ export function toDispatchDetail(
     templateVersion: row.template_version,
     templateEdited: row.template_edited,
     content: (row.authored_content as Record<string, unknown> | null) ?? null,
-    audienceUserIds,
+    targetUserIds,
     sourceLabel,
     actorName,
     // 前の送る口の回は記録の段を持たない(写しが前の列の本文を rendered へ移した)→ 段に依らず返す

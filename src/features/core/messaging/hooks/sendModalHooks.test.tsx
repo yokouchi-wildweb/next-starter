@@ -33,10 +33,10 @@ const template = {
   variables: [{ key: "discount", label: "割引", type: "number", required: true, source: "dispatch" }],
 };
 const categories = [
-  { key: "notice", label: "お知らせ", kind: "announcement", channels: ["email", "inApp"], audiences: ["all", "role", "audience"] },
-  { key: "lineNotice", label: "LINE のお知らせ", kind: "announcement", channels: ["email", "inApp", "line", "fax"], audiences: ["role"] },
-  { key: "operatorDirect", label: "運営から", kind: "direct", channels: ["email", "inApp"], audiences: ["users", "bulk"] },
-  { key: "campaign", label: "キャンペーン", kind: "marketing", channels: ["email", "inApp"], audiences: ["all", "users", "bulk"] },
+  { key: "notice", label: "お知らせ", kind: "announcement", channels: ["email", "inApp"], targets: ["all", "role"] },
+  { key: "lineNotice", label: "LINE のお知らせ", kind: "announcement", channels: ["email", "inApp", "line", "fax"], targets: ["role"] },
+  { key: "operatorDirect", label: "運営から", kind: "direct", channels: ["email", "inApp"], targets: ["users", "bulk"] },
+  { key: "campaign", label: "キャンペーン", kind: "marketing", channels: ["email", "inApp"], targets: ["all", "users", "bulk"] },
 ];
 const SEND_OPTIONS = {
   channels: [
@@ -44,7 +44,6 @@ const SEND_OPTIONS = {
     { key: "inApp", label: "お知らせ" },
   ],
   roles: [{ id: "user", label: "利用者" }],
-  audiences: [],
   templates: [template],
   categories,
   maxScheduleDays: 90,
@@ -76,7 +75,7 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
   namedExports: {
     getAdminBulkSendOptions: async () => ({
       channels: SEND_OPTIONS.channels,
-      categories: categories.filter((c) => c.audiences.includes("bulk")),
+      categories: categories.filter((c) => c.targets.includes("bulk")),
       templates: [template],
     }),
     adminBulkSend: async (input: unknown) => {
@@ -149,21 +148,19 @@ test("純粋な関数", () => {
   const adhoc = hooks.initialDraftOf({ type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録", defaults: { content: { inApp: { title: "題" } } } }, []);
   assert.equal(hooks.isBlankChannel(adhoc, "email"), true);
   assert.equal(hooks.isBlankChannel({ ...adhoc, content: { ...adhoc.content, inApp: { title: "題", body: "本文" } } }, "inApp"), false);
-  assert.deepEqual(hooks.initialAudienceOf({ type: "sameAs", dispatch: { audience: { type: "role", roles: ["user"] } } as never }), {
+  assert.deepEqual(hooks.initialAudienceOf({ type: "sameAs", dispatch: { target: { type: "role", roles: ["user"] } } as never }), {
     type: "role",
     roles: ["user"],
-    audienceKey: "",
     userIds: [],
   });
-  assert.equal(hooks.initialAudienceOf({ type: "sameAs", dispatch: { audience: null } as never }).type, "users");
+  assert.equal(hooks.initialAudienceOf({ type: "sameAs", dispatch: { target: null } as never }).type, "users");
   // 選んだ利用者に送った回(recipients)= 同じ利用者を選んだ形。id が無い(多すぎる)回は選び直し
-  assert.deepEqual(hooks.initialAudienceOf({ type: "sameAs", dispatch: { audience: { type: "recipients", count: 2 }, audienceUserIds: ["u1", "u2"] } as never }), {
+  assert.deepEqual(hooks.initialAudienceOf({ type: "sameAs", dispatch: { target: { type: "recipients", count: 2 }, targetUserIds: ["u1", "u2"] } as never }), {
     type: "users",
     roles: [],
-    audienceKey: "",
     userIds: ["u1", "u2"],
   });
-  assert.deepEqual(hooks.initialAudienceOf({ type: "sameAs", dispatch: { audience: { type: "recipients", count: 20_000 }, audienceUserIds: null } as never }).userIds, []);
+  assert.deepEqual(hooks.initialAudienceOf({ type: "sameAs", dispatch: { target: { type: "recipients", count: 20_000 }, targetUserIds: null } as never }).userIds, []);
 });
 
 test("new: 呼び出し → 直す → カテゴリー → 経路の絞り → 空の経路で止まる → 予約 → プレビュー・テスト → 見込み → 確認 → 送る", async () => {
@@ -221,14 +218,14 @@ test("new: 呼び出し → 直す → カテゴリー → 経路の絞り → �
   });
   assert.equal(m().step, "confirm");
   assert.equal(m().estimate?.count, 12);
-  assert.deepEqual(calls[2], ["estimate", { audience: { type: "all" } }]);
+  assert.deepEqual(calls[2], ["estimate", { target: { type: "all" } }]);
   await act(async () => {
     await m().confirmSend();
   });
   const sent = calls[3][1] as Record<string, unknown>;
   assert.equal(calls[3][0], "send");
   assert.equal(sent.scheduledAt, at);
-  assert.deepEqual(sent.audience, { type: "all" });
+  assert.deepEqual(sent.target, { type: "all" });
   assert.equal(m().step, "done");
   assert.equal(m().dirty, false);
   assert.notEqual(m().buildSendInput().idempotencyKey, firstKey, "送った後は鍵を作り直す");
@@ -258,7 +255,7 @@ test("sameAs: 文面・カテゴリー・宛先の形を写す。テンプレー
   const dispatch = {
     id: "d0",
     category: "notice",
-    audience: { type: "role", roles: ["user"] },
+    target: { type: "role", roles: ["user"] },
     headings: { email: "元の件名", inApp: "元の題" },
     body: null,
     templateId: null,
@@ -274,7 +271,7 @@ test("sameAs: 文面・カテゴリー・宛先の形を写す。テンプレー
   await view.unmount();
 
   const fromTemplate = await mount(() =>
-    hooks.useMessageSendModal({ mode: { type: "sameAs", dispatch: { ...dispatch, category: "campaign", audience: { type: "all" }, templateId: TEMPLATE_ID, templateVersion: 2 } as never } }),
+    hooks.useMessageSendModal({ mode: { type: "sameAs", dispatch: { ...dispatch, category: "campaign", target: { type: "all" }, templateId: TEMPLATE_ID, templateVersion: 2 } as never } }),
   );
   await act(async () => fromTemplate.value().setOpen(true));
   assert.equal(fromTemplate.value().draft.source, "template");
@@ -288,7 +285,7 @@ test("sameAs: 文面・カテゴリー・宛先の形を写す。テンプレー
     hooks.useMessageSendModal({
       mode: {
         type: "sameAs",
-        dispatch: { ...dispatch, category: "campaign", audience: { type: "recipients", count: 1 }, audienceUserIds: ["u9"], templateId: TEMPLATE_ID, templateVersion: 2, templateEdited: true, content: editedContent } as never,
+        dispatch: { ...dispatch, category: "campaign", target: { type: "recipients", count: 1 }, targetUserIds: ["u9"], templateId: TEMPLATE_ID, templateVersion: 2, templateEdited: true, content: editedContent } as never,
       },
     }),
   );

@@ -17,7 +17,7 @@ export {
   isMessageKind,
   kindTraits,
   kindsWhere,
-  type MessageAdminAudience,
+  type MessageAdminTarget,
   type MessageKindTraits,
 } from "./definition/kinds";
 export type { EmailFields, MessageEmailViewModule, MessageEmailViewProps } from "./definition/emailView";
@@ -71,8 +71,6 @@ export type {
   ChannelSendTarget,
   ChannelWebhook,
   ChannelWebhookEvent,
-  MessageAudience,
-  MessageAudienceCursor,
   MessageCategory,
   MessageCategoryGroup,
   MessageChannel,

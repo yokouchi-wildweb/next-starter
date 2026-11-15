@@ -4,14 +4,14 @@
 //
 // 流れ: 定義に上書きを重ねて検査 → vars の検査 → 冪等の鍵(両表)→ 回の行 →
 //   小さな送信: 展開 → 配達の行 → 最初の束を経路の send へ → 行と回の数を記録
-//   大きな送信・audience: 回の行だけ(status processing)。展開と送信は cron(次の指令)
+//   大きな送信・全員・ロール・グループ宛て: 回の行だけ(status processing)。展開と送信は cron(次の指令)
 // required と秘密を差し込む連絡(noBody)はキューに置けないので、要求の中で全部を送り切る(小さな選んだ宛先だけ)
-// 予約(scheduledAt): 回の行だけ(status scheduled、宛先の一覧は回の audience に置く)。cron の activateScheduled が時刻に processing にして展開する
+// 予約(scheduledAt): 回の行だけ(status scheduled、宛先の一覧は回の target に置く)。cron の activateScheduled が時刻に processing にして展開する
 // 会話の間引き(定義の throttle): 経路の send の前に受信者ごとに当てる(throttle.ts。cron の送りも同じ)
 // 管理者が書いた文面(sendAuthored、D92): その場で書く連絡もテンプレートを呼び出して直した文面も同じ組み方。回に書いた文面(authored_content)を
 //   残し、テンプレートを呼び出した時は template_id + template_version を固定する(cron はその文面と版の変数の宣言で組み直す)
 // 経路(D86): 種類の経路。input.channels はその回だけの絞り(種類の外・空は 400)。自動の送り手は渡さない
-// 口の中ですぐ送る種別(性質 sendInEntry = security、D72・D80): 予約・audience は 400、宛先が多くても後回しにせず展開して最初の束を口の中で送る
+// 口の中ですぐ送る種別(性質 sendInEntry = security、D72・D80): 予約と全員・ロール・グループ宛ては 400、宛先が多くても後回しにせず展開して最初の束を口の中で送る
 // グループ宛て(D58): 送り始めに門・しまった・壊れた・人数の上限を確かめ(DomainError、回を作らない)、定期計算は今の版を回に固定する。
 //   一員は cron が送り始めの後に 1 文で回の受信者の一覧へ書く(sweep/expandStep.ts)
 
@@ -58,7 +58,7 @@ import type {
   SendMessageToManyInput,
   MessageDispatchAuthored,
   SendAuthoredInput,
-  MessageAudienceSpec,
+  MessageTargetSpec,
   MessageTemplateVersionSource,
 } from "./types";
 
@@ -141,9 +141,6 @@ type ManyOptions = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** audiences の項目に count が無い時に数える上限 */
-export const ESTIMATE_CAP = 10_000;
-
 /** 宛先数の見込み(送る時に展開で数え直す) */
 export type RecipientEstimate = {
   count: number;
@@ -233,10 +230,10 @@ export function createMessageSender(deps: MessageSendDeps) {
     const actor = deps.actor();
     const scheduled = input.scheduledAt !== undefined;
     // cron が展開する回(大きな送信・予約)は宛先の一覧を回に置く
-    const audience = input.audience
-      ? input.audience.type === "group"
-        ? { ...input.audience, version: values.groupVersion ?? null }
-        : { ...input.audience }
+    const target = input.target
+      ? input.target.type === "group"
+        ? { ...input.target, version: values.groupVersion ?? null }
+        : { ...input.target }
       : scheduled || recipientCount > deps.config.smallSendMaxRecipients
         ? { type: "recipients", recipients: input.recipients, recipientVars: input.recipientVars ?? null }
         : { type: "recipients", count: recipientCount };
@@ -259,7 +256,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         message_key: resolved.key,
         kind: resolved.kind,
         category: resolved.category,
-        audience,
+        target,
         tags: input.tags ? [...input.tags] : null,
         channel_counts: emptyChannelCounts(channels),
         headings: buildHeadings(deps, resolved, channels, vars, policy),
@@ -292,13 +289,13 @@ export function createMessageSender(deps: MessageSendDeps) {
     const uniqueCount = new Set(recipients.map(recipientKeyOf)).size;
     const scheduled = input.scheduledAt !== undefined;
     const inEntry = Boolean(kindTraits(resolved.kind)?.sendInEntry);
-    if (inEntry && (scheduled || input.audience)) {
+    if (inEntry && (scheduled || input.target)) {
       throw new DomainError(`種別 ${resolved.kind} の連絡は予約・宛先の集め方では送れません(選んだ宛先に今すぐ送る、${resolved.key})`, {
         status: 400,
       });
     }
     // 口の中ですぐ送る種別は宛先が多くても展開して最初の束を口の中で送る(残りは cron)
-    const large = !inEntry && (Boolean(input.audience) || uniqueCount > deps.config.smallSendMaxRecipients);
+    const large = !inEntry && (Boolean(input.target) || uniqueCount > deps.config.smallSendMaxRecipients);
 
     if (scheduled && policy.noBody) {
       throw new DomainError(`止められない連絡と秘密を差し込む連絡は予約できません(${resolved.key})`, { status: 400 });
@@ -311,7 +308,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       );
     }
 
-    const group = input.audience?.type === "group" ? await checkGroupTarget(deps, input.audience.groupId) : null;
+    const group = input.target?.type === "group" ? await checkGroupTarget(deps, input.target.groupId) : null;
 
     if (large || scheduled) {
       // 回の行だけ。展開は cron(予約は時刻に processing になってから)。宛先の数は展開の時に数え直す
@@ -319,7 +316,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         channels,
         vars,
         policy,
-        recipientCount: input.audience ? 0 : large ? uniqueCount : 0,
+        recipientCount: input.target ? 0 : large ? uniqueCount : 0,
         queueVars: true,
         expanded: false,
         authored: options.authored,
@@ -431,7 +428,7 @@ export function createMessageSender(deps: MessageSendDeps) {
     // 会話の間引き(throttle のある連絡だけ。決めた行は間引きが書いたので、ここでは状態だけ写す)
     const throttled = await applyThrottle(deps, {
       dispatchId,
-      audienceType: input.audience?.type ?? null,
+      targetType: input.target?.type ?? null,
       resolved,
       vars,
       policy,
@@ -539,7 +536,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         { single: true },
       );
     },
-    /** 一括で送る(選んだ宛先か audience) */
+    /** 一括で送る(選んだ宛先か宛先の指定 target) */
     sendMessageToMany: (definition: AnyMessageDefinition, input: SendMessageToManyInput) =>
       sendToMany(definition, input),
     /**
@@ -590,40 +587,25 @@ export function createMessageSender(deps: MessageSendDeps) {
     },
 
     /**
-     * 宛先数の見込み(送る時に数え直す)。全員・ロールは数、audiences は項目の count か上限まで数える、選んだ利用者は居る人の数、
+     * 宛先数の見込み(送る時に数え直す)。全員・ロールは数、選んだ利用者は居る人の数、
      * グループは一員の数と上限(超えても投げない。送る口が 409 で拒む)
      * @throws DomainError(404) グループ: 門が閉・無い / (409) しまった・壊れた・版が無い / (503) 時間の上限
      */
     async estimateRecipients(
-      target: { audience: MessageAudienceSpec } | { userIds: readonly string[] },
+      input: { target: MessageTargetSpec } | { userIds: readonly string[] },
     ): Promise<RecipientEstimate> {
-      if ("userIds" in target) {
-        const users = await deps.store.findUsers([...new Set(target.userIds)]);
+      if ("userIds" in input) {
+        const users = await deps.store.findUsers([...new Set(input.userIds)]);
         return { count: users.length, capped: false, fixedAtSend: true };
       }
-      const spec = target.audience;
+      const spec = input.target;
       if (spec.type === "group") {
         if (!deps.groups || !deps.groups.enabled()) throw new DomainError(GROUPS_CLOSED, { status: 404 });
         const counted = await deps.groups.sendTarget(spec.groupId);
         return { count: counted.count, capped: false, fixedAtSend: true, memberLimit: counted.memberLimit, overLimit: counted.overLimit };
       }
       if (spec.type === "all") return { count: await deps.store.countUserIds({}), capped: false, fixedAtSend: true };
-      if (spec.type === "role") {
-        return { count: await deps.store.countUserIds({ roles: spec.roles }), capped: false, fixedAtSend: true };
-      }
-      const audience = deps.audiences[spec.key];
-      if (!audience) throw new DomainError(`宛先の集め方 ${spec.key} がありません`, { status: 400 });
-      const args = audience.args.safeParse(spec.args);
-      if (!args.success) throw new DomainError(`宛先の集め方 ${spec.key} の引数が合いません`, { status: 400 });
-      if (audience.count) return { count: await audience.count(args.data), capped: false, fixedAtSend: true };
-      let total = 0;
-      let cursor: string | null = null;
-      do {
-        const page: { userIds: string[]; nextCursor: string | null } = await audience.resolveUserIds(args.data, cursor);
-        total += page.userIds.length;
-        cursor = page.nextCursor;
-      } while (cursor !== null && total < ESTIMATE_CAP);
-      return { count: Math.min(total, ESTIMATE_CAP), capped: cursor !== null || total > ESTIMATE_CAP, fixedAtSend: true };
+      return { count: await deps.store.countUserIds({ roles: spec.roles }), capped: false, fixedAtSend: true };
     },
 
     /**

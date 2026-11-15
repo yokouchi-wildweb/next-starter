@@ -8,7 +8,7 @@ import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
 export type MessagingConfig = {
   /**
    * 小さな送信の上限(選んだ利用者の人数)。これ以下は要求の中で展開して最初の束を送る。
-   * これを超える送信と audiences・全員・ロール宛ては回の行だけを書き、展開と送信は cron に任せる
+   * これを超える送信と全員・ロール・グループ宛ては回の行だけを書き、展開と送信は cron に任せる
    */
   smallSendMaxRecipients: number;
   /** 要求の中で送る最初の束の配達の行の数(残りは queued のまま cron が送る) */
@@ -22,7 +22,7 @@ export type MessagingConfig = {
    * - line: LINE push(既定 切。開ける時は LINE の Messaging API の env と userLineProfile の機能も要る)
    */
   channels: { line: { enabled: boolean } };
-  /** 全員・ロール・audiences の展開の 1 束の人数(cron が使う) */
+  /** 全員・ロール・グループ宛ての展開の 1 束の人数(cron が使う) */
   expandChunkSize: number;
   /**
    * 送信の掃き出し(cron messaging-send-sweep)

@@ -199,7 +199,7 @@ export async function sendClaimed(
     // 会話の間引き(鍵の lock の中で受信者の行を読み直して決める。決めた行は間引きが lease ごと書いたので数えるだけ)
     const throttled = await applyThrottle(deps, {
       dispatchId: dispatch!.id,
-      audienceType: (dispatch!.audience as { type?: string } | null)?.type ?? null,
+      targetType: (dispatch!.target as { type?: string } | null)?.type ?? null,
       resolved,
       vars,
       policy,

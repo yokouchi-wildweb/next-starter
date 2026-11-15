@@ -63,8 +63,8 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
     },
     getAdminBulkSendOptions: async () => ({
       categories: [
-        { key: "operatorDirect", label: "運営からのご連絡", kind: "direct", channels: ["email", "inApp"], audiences: ["users", "bulk"], adhoc: true },
-        { key: "marketing", label: "キャンペーン情報", kind: "marketing", channels: ["email", "inApp"], audiences: ["bulk"], adhoc: true },
+        { key: "operatorDirect", label: "運営からのご連絡", kind: "direct", channels: ["email", "inApp"], targets: ["users", "bulk"], adhoc: true },
+        { key: "marketing", label: "キャンペーン情報", kind: "marketing", channels: ["email", "inApp"], targets: ["bulk"], adhoc: true },
       ],
     }),
     adminBulkSend: async (input: Record<string, unknown>) => {

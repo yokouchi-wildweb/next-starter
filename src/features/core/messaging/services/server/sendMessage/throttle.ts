@@ -12,7 +12,7 @@
 // - 間引かない時(最初の 1 通・window の後・既読の後): inApp の行はこの取引の中で新しいお知らせ(鍵つき・回数 1)を書いて sent、
 //   他の経路の行は throttle_key だけ入れて普通に送る(後から来た同じ鍵の送りがこの行・このお知らせを見て間引く)
 // - お知らせは経路の send を通さずにここで書く(lock を経路の呼び出しの間持たないため)。行の形は channels/inApp の inAppItemRow
-// - 全員・ロール宛ての回(共有の 1 行)は間引かない(どの経路も)。audiences の項目と選んだ宛先の回は間引く
+// - 全員・ロール宛ての回(共有の 1 行)は間引かない(どの経路も)。グループ宛てと選んだ宛先の回は間引く
 
 import { createHash } from "node:crypto";
 
@@ -58,9 +58,9 @@ export type ThrottleResult = {
 export function throttleApplies(
   deps: MessageSendDeps,
   resolved: AnyResolvedMessageDefinition,
-  audienceType: string | null | undefined,
+  targetType: string | null | undefined,
 ): boolean {
-  return Boolean(resolved.throttle && deps.throttle && audienceType !== "all" && audienceType !== "role");
+  return Boolean(resolved.throttle && deps.throttle && targetType !== "all" && targetType !== "role");
 }
 
 /**
@@ -70,7 +70,7 @@ export async function applyThrottle(
   deps: MessageSendDeps,
   params: {
     dispatchId: string;
-    audienceType: string | null | undefined;
+    targetType: string | null | undefined;
     resolved: AnyResolvedMessageDefinition;
     /** 回の vars(by の値) */
     vars: Readonly<Record<string, unknown>>;
@@ -81,7 +81,7 @@ export async function applyThrottle(
   const { dispatchId, resolved, vars, policy } = params;
   const throttle = resolved.throttle;
   const store = deps.throttle;
-  if (!throttle || !store || !throttleApplies(deps, resolved, params.audienceType)) {
+  if (!throttle || !store || !throttleApplies(deps, resolved, params.targetType)) {
     return { jobs: params.jobs.map((entry) => entry.job), decided: [] };
   }
 

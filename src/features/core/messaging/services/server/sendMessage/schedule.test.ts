@@ -69,7 +69,7 @@ test("予約: scheduled の回だけを作り、時刻に cron が展開して�
   const dispatch = world.store.dispatches[0];
   assert.equal(dispatch.status, "scheduled");
   assert.deepEqual(dispatch.scheduled_at, later(3600));
-  assert.deepEqual((dispatch.audience as { recipients: unknown[] }).recipients, [{ userId: "u1" }, { userId: "u2" }]);
+  assert.deepEqual((dispatch.target as { recipients: unknown[] }).recipients, [{ userId: "u1" }, { userId: "u2" }]);
   assert.equal(world.store.deliveries.length, 0);
   assert.equal(channel.calls.length, 0);
 

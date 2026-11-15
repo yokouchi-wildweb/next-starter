@@ -10,7 +10,6 @@ import { z } from "zod";
 import type {
   ChannelSendResult,
   ChannelSendTarget,
-  MessageAudience,
   MessageCategory,
   MessageChannel,
   MessageEnricher,
@@ -70,7 +69,7 @@ test("経路: 宛先ごとの結果を返す", async () => {
   assert.ok(wrongAddressing && wrongKind && noSend);
 });
 
-test("値・種類・宛先の集め方・送り元・購読", async () => {
+test("値・種類・送り元・購読", async () => {
   const enricher: MessageEnricher = {
     key: "rank",
     messages: ["auth.verification"],
@@ -88,14 +87,6 @@ test("値・種類・宛先の集め方・送り元・購読", async () => {
   // @ts-expect-error 経路の無い種類は書けない
   const noChannels: MessageCategory = { key: "y", label: "y", kind: "activity" };
   void noChannels;
-
-  const audience: MessageAudience = {
-    key: "activeUsers",
-    label: "有効な利用者",
-    args: z.object({ since: z.string() }),
-    resolveUserIds: async (_args, cursor) => (cursor === null ? { userIds: ["u1", "u2"], nextCursor: "u2" } : { userIds: [], nextCursor: null }),
-  };
-  assert.deepEqual(await audience.resolveUserIds({}, null), { userIds: ["u1", "u2"], nextCursor: "u2" });
 
   const source: MessageSource = { key: "shippingRequest.bulk", label: "発送リクエストの一斉送信" };
 
