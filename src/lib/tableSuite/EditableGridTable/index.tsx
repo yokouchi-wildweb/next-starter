@@ -20,6 +20,7 @@ import {
   ReorderableRow,
   DragHandleHead,
   useTableReorder,
+  InfiniteTableFooter,
 } from "../shared";
 import { resolveColumnTextAlignClass, resolveRowClassName, ROW_HEIGHT_CLASS } from "../types";
 import type { EditableGridColumn, EditableGridTableProps } from "./types";
@@ -49,6 +50,7 @@ export default function EditableGridTable<T>({
   highlightReadonlyCells = true,
   scrollContainerRef,
   bottomSentinelRef,
+  infiniteFooter,
   disableRowHover = false,
   sort,
   onSortChange,
@@ -191,6 +193,7 @@ export default function EditableGridTable<T>({
         </TableBody>
       </Table>
       </TableReorderProvider>
+      {infiniteFooter ? <InfiniteTableFooter {...infiniteFooter} /> : null}
       {bottomSentinelRef ? (
         <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
       ) : null}

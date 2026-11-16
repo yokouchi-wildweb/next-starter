@@ -38,6 +38,7 @@ export {
 // DataTable 固有コンポーネント
 // ============================================================
 export { TableFooter, TableCaption } from "./DataTable/components";
+export { InfiniteTableFooter, type InfiniteTableFooterProps } from "./shared/InfiniteTableFooter";
 
 // ============================================================
 // 型定義

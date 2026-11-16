@@ -364,6 +364,8 @@ reorderable={{
 | `cellPaddingX` | `PaddingSize` | `"sm"` | セルの水平パディング |
 | `cellPaddingY` | `PaddingSize` | `"none"` | セルの垂直パディング |
 | `disableRowHover` | `boolean` | `false` | 行ホバー時の背景色変更を無効化 |
+| `scrollContainerRef` / `bottomSentinelRef` | `Ref<HTMLDivElement>` | - | スクロール領域の div / 最下部の sentinel(無限スクロールの IntersectionObserver の root / target) |
+| `infiniteFooter` | `InfiniteTableFooterProps` | - | 表の中の無限スクロールの足元(下の「無限スクロールの足元」) |
 
 ### カラム幅
 
@@ -441,6 +443,30 @@ const fullWidthRows: FullWidthRow[] = [
 - `afterIndex` が items の範囲を超える場合は末尾に丸められる。items が空のときはすべて先頭に描画される
 - セルは `p-0` で描画されるため、パディングは `render` 内で自分で付ける
 - **`afterIndex` は現在の items に対する位置**。ソート・ページ変更などで items が変わる際は使用側が再計算する責任を持つ（ページネーション環境ではサーバー側で位置を算出して渡すことを推奨）
+
+### 無限スクロールの足元（infiniteFooter）
+
+表のスクロール領域の中で続きを読むとき(`maxHeight` で表が自分でスクロールする)、フックの `sentinelRef` を `bottomSentinelRef` に、`isFetchingMore` / `hasMore` / `total` を `infiniteFooter` に渡す。スクロール領域の中・表の下・sentinel の直前に、読み込み中(Spinner +「読み込み中...」)と、続きが無くなったときの終端(`total` があれば「全 N 件を表示しました」、無ければ `completedText`)が出る。待機中は何も出さない。DataTable・RecordSelectionTable・EditableGridTable で同じ。表をページ全体のスクロールで読む(`maxHeight="none"`)なら、表を `InfiniteScrollList` で包む方(`src/components/Widgets/InfiniteScrollList/README.md`)。
+
+```tsx
+const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
+const { items, total, isFetchingMore, hasMore, sentinelRef } = useMyRows({ observerOptions: { root: scrollEl } });
+
+<DataTable
+  items={items}
+  columns={columns}
+  scrollContainerRef={setScrollEl}
+  bottomSentinelRef={sentinelRef}
+  infiniteFooter={{ isFetchingMore, hasMore, total }}
+/>
+```
+
+| key | 型 | 説明 |
+|---|---|---|
+| `isFetchingMore` / `hasMore` | `boolean` | フックの値 |
+| `total` | `number \| null` | 全件数(任意)。あれば終端が「全 N 件を表示しました」 |
+| `completedText` | `ReactNode` | `total` が無いときの終端の文(既定「すべて表示しました」) |
+| `fetchingMoreNode` / `completedNode` | `ReactNode` | 読み込み中 / 終端の差し替え(`completedNode={null}` で終端を出さない) |
 
 ## ディレクトリ構造
 

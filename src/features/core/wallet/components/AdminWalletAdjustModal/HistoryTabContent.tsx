@@ -47,6 +47,24 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
       observerOptions: OBSERVER_OPTIONS,
     });
 
+  // 詳細モーダルの「関連するバッチ処理」の表(バッチの中の 1 件ずつ)
+  const recordColumns: DataTableColumn<WalletHistoryBatchSummarySerialized["records"][number]>[] = [
+    { header: "日時", render: (record) => formatDate(record.createdAt) },
+    {
+      header: "操作",
+      render: (record) => (
+        <>
+          {getMethodLabelMap().get(record.change_method) ?? record.change_method} / {formatDeltaRecord(record)}
+        </>
+      ),
+    },
+    {
+      header: "残高遷移",
+      render: (record) => `${formatNumber(record.balance_before)} → ${formatNumber(record.balance_after)}`,
+    },
+    { header: "理由", render: (record) => record.reason ?? "-" },
+  ];
+
   const columns: DataTableColumn<WalletHistoryBatchSummarySerialized>[] = [
     {
       header: "日時",
@@ -177,33 +195,13 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
             <Para size="sm" weight="medium">
               関連するバッチ処理
             </Para>
-            <div className="rounded-md border border-border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 text-left">日時</th>
-                    <th className="px-3 py-2 text-left">操作</th>
-                    <th className="px-3 py-2 text-left">残高遷移</th>
-                    <th className="px-3 py-2 text-left">理由</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detailHistory.records.map((record) => (
-                    <tr key={record.id} className="border-t border-border/60">
-                      <td className="px-3 py-2">{formatDate(record.createdAt)}</td>
-                      <td className="px-3 py-2">
-                        {getMethodLabelMap().get(record.change_method) ?? record.change_method} /{" "}
-                        {formatDeltaRecord(record)}
-                      </td>
-                      <td className="px-3 py-2">
-                        {formatNumber(record.balance_before)} → {formatNumber(record.balance_after)}
-                      </td>
-                      <td className="px-3 py-2">{record.reason ?? "-"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              items={detailHistory.records}
+              columns={recordColumns}
+              className="rounded-md border border-border"
+              maxHeight="none"
+              getKey={(record) => record.id}
+            />
           </div>
         ) : null
       }

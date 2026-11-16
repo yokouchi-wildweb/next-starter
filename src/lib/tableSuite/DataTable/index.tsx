@@ -18,6 +18,7 @@ import {
   ReorderableRow,
   DragHandleHead,
   useTableReorder,
+  InfiniteTableFooter,
 } from "../shared";
 import { cn } from "@/lib/cn";
 import type {
@@ -122,6 +123,7 @@ export default function DataTable<T>({
   emptyValueFallback,
   scrollContainerRef,
   bottomSentinelRef,
+  infiniteFooter,
   rowHeight = "md",
   cellPaddingX = "sm",
   cellPaddingY = "none",
@@ -254,6 +256,7 @@ export default function DataTable<T>({
         </TableBody>
       </Table>
       </TableReorderProvider>
+      {infiniteFooter ? <InfiniteTableFooter {...infiniteFooter} /> : null}
       {bottomSentinelRef ? (
         <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
       ) : null}

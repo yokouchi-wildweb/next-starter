@@ -21,6 +21,7 @@ import {
   ReorderableRow,
   DragHandleHead,
   useTableReorder,
+  InfiniteTableFooter,
 } from "../shared";
 import type { DataTableProps } from "../DataTable";
 import {
@@ -95,6 +96,7 @@ export default function RecordSelectionTable<T>({
   selectionBehavior = "row",
   selectColumnLabel = "選択",
   bottomSentinelRef,
+  infiniteFooter,
   scrollContainerRef,
   bulkActions,
   bulkActionsSpacing,
@@ -328,6 +330,7 @@ export default function RecordSelectionTable<T>({
           </TableBody>
         </Table>
         </TableReorderProvider>
+        {infiniteFooter ? <InfiniteTableFooter {...infiniteFooter} /> : null}
         {bottomSentinelRef ? (
           <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
         ) : null}

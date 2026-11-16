@@ -4,6 +4,8 @@ import type React from "react";
 
 import type { ReorderResult } from "@/lib/sortableList";
 
+import type { InfiniteTableFooterProps } from "./shared/InfiniteTableFooter";
+
 // バリアント定義を再エクスポート
 export {
   type RowHeight,
@@ -76,6 +78,11 @@ export type TableStylingProps<T> = {
    * 無限スクロールなどで IntersectionObserver の target に利用できる。
    */
   bottomSentinelRef?: React.Ref<HTMLDivElement>;
+  /**
+   * 表の中で無限スクロールするときの足元(読み込み中 / 全 N 件表示済み)。スクロール領域の中・表の下・sentinel の直前に出る。
+   * 未指定なら何も出さない(今の出力のまま)。フックの isFetchingMore / hasMore / total を渡す
+   */
+  infiniteFooter?: InfiniteTableFooterProps;
 };
 
 export const resolveRowClassName = <T,>(
