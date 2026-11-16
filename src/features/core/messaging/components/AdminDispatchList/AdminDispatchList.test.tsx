@@ -27,6 +27,8 @@ const selects: Record<string, SelectProps> = {};
 mock.module("@/components/Form/Input/Manual", {
   namedExports: {
     DateInput: () => createElement("input"),
+    // 一覧の選択(lib/tableSuite の BulkActionBar、J109)の「選択モード」の切り替え
+    SwitchInput: (props: { label?: string }) => createElement("input", { type: "checkbox", "aria-label": props.label }),
     Input: (props: { id?: string }) => createElement("input", { id: props.id }),
     SelectInput: (props: SelectProps) => {
       if (props.id) selects[props.id] = props;
@@ -47,7 +49,7 @@ mock.module("@/features/core/messaging/components/MessageSendModal", { namedExpo
 const DISPATCH = {
   id: "d1",
   messageKey: "messaging.adminMarketing",
-  kind: "marketing",
+  kind: "promotion",
   category: "campaign",
   source: "messaging.adminBulk",
   sourceLabel: null as string | null,
@@ -63,10 +65,14 @@ const DISPATCH = {
   createdAt: "2026-11-01T00:00:00.000Z",
   completedAt: null,
   scheduledAt: null,
-  retractedAt: null,
+  deletedAt: null as string | null,
   body: null,
   reason: null,
-  operations: {},
+  operations: {
+    canDelete: { allowed: true, reason: null },
+    canResend: { allowed: false, reason: "no_failed", mode: null, failed: 0, unknown: 0 },
+    canContinue: { allowed: false, reason: "not_processing" },
+  },
 };
 let kind = "";
 let listItems: Record<string, unknown>[] = [DISPATCH];
@@ -100,7 +106,7 @@ mock.module("@/features/core/messaging/hooks/useAdminDispatches", {
   },
 });
 const CATS = [
-  { key: "campaign", label: "キャンペーン", kind: "marketing" },
+  { key: "campaign", label: "キャンペーン", kind: "promotion" },
   { key: "operatorDirect", label: "運営からのご連絡", kind: "direct" },
 ];
 mock.module("@/features/core/messaging/hooks/useAdminDispatchCategories", {
@@ -125,8 +131,11 @@ mock.module("@/features/core/messaging/hooks/useAdminDispatchDetail", {
       deliveryFilters: { status: "", setStatus: () => {}, channel: "", setChannel: () => {} },
       includeUnknown: false,
       setIncludeUnknown: () => {},
-      cancel: async () => {},
-      retract: async () => {},
+      remove: async () => {},
+      deleteSummary: null,
+      deleteSummaryLoading: false,
+      deleteSummaryError: null,
+      setDeleteConfirmOpen: () => {},
       resend: async () => {},
       continueDispatch: async () => {},
     }),
@@ -160,34 +169,32 @@ const render = async (element: ReturnType<typeof createElement>) => {
   await act(async () => root.render(element));
   return { container, unmount: () => act(async () => root.unmount()) };
 };
-const KEY_LIKE = /messaging\.admin|campaign|operatorDirect|\binApp\b|\bemail\b|\bmarketing\b/;
+const KEY_LIKE = /messaging\.admin|campaign|operatorDirect|\binApp\b|\bemail\b|\bpromotion\b/;
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("一覧: 定義の鍵の欄は無く、カテゴリーは種別を選ぶまで押せない。行は表示名で鍵を出さない", async () => {
+test("一覧: 定義の鍵の欄は無く、カテゴリーは種別を選ぶまで押せない。行は表示名で鍵を出さない", async () => {
   const view = await render(createElement(AdminDispatchList));
   assert.equal(view.container.querySelector("#dispatch-filter-key"), null);
   assert.equal(selects["dispatch-filter-category"].disabled, true);
   assert.deepEqual(selects["dispatch-filter-category"].options, []);
   assert.equal(selects["dispatch-filter-kind"].options?.length, 7);
   const text = view.container.textContent ?? "";
-  assert.match(text, /キャンペーン情報/, "種別の表示名");
+  assert.match(text, /プロモーション/, "種別の表示名");
   assert.match(text, /キャンペーン/);
   assert.match(text, /メール \/ お知らせ/);
   assert.doesNotMatch(text, KEY_LIKE);
   await view.unmount();
 
-  kind = "marketing";
+  kind = "promotion";
   const chosen = await render(createElement(AdminDispatchList));
   assert.equal(selects["dispatch-filter-category"].disabled, false);
   assert.deepEqual(selects["dispatch-filter-category"].options, [{ value: "campaign", label: "キャンペーン" }]);
   await chosen.unmount();
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("詳細: 種別・カテゴリーの表示名、送り元は表示名がある時だけ、鍵は出さない", async () => {
+test("詳細: 種別・カテゴリーの表示名、送り元は表示名がある時だけ、鍵は出さない", async () => {
   const view = await render(createElement(AdminDispatchDetail, { dispatchId: "d1" }));
   const text = view.container.textContent ?? "";
-  assert.match(text, /キャンペーン情報/);
+  assert.match(text, /プロモーション/);
   assert.match(text, /キャンペーン/);
   assert.doesNotMatch(text, /送信元/, "表示名が無ければ行ごと出さない");
   assert.doesNotMatch(text, /定義の鍵/);
@@ -201,8 +208,7 @@ test.skip("詳細: 種別・カテゴリーの表示名、送り元は表示名�
   await labeled.unmount();
 });
 
-// D69: restore before ship
-test.skip("詳細: 送信者は名前、本文は経路の欄(生の JSON なし)、配達は利用者の名前・表に無い符号は決まった文", async () => {
+test("詳細: 送信者は名前、本文は経路の欄(生の JSON なし)、配達は利用者の名前・表に無い符号は決まった文", async () => {
   const UID = "60ce3c85-1111-4111-8111-111111111111";
   detail = {
     ...DISPATCH,
@@ -219,8 +225,8 @@ test.skip("詳細: 送信者は名前、本文は経路の欄(生の JSON なし
   assert.match(text, /本文の段落/);
   assert.match(text, /お知らせの本文/);
   assert.doesNotMatch(text, /\{"/, "生の JSON は出さない");
-  assert.match(text, /利用者 山田/);
-  assert.match(text, /利用者 \(名前の無い利用者\)/);
+  assert.match(text, /宛先 山田/);
+  assert.match(text, /宛先 \(名前未設定のユーザー\)/);
   assert.match(text, /a@example\.test/, "メールの宛先は出す");
   assert.doesNotMatch(text, new RegExp(UID), "利用者の id・お知らせの宛先は出さない");
   assert.match(text, /送信できませんでした/);
@@ -234,8 +240,7 @@ test.skip("詳細: 送信者は名前、本文は経路の欄(生の JSON なし
   await system.unmount();
 });
 
-// D69: restore before ship (J101: delete replaces cancel / retract, flags canDelete / canResend / canContinue, deletedAt)
-test.skip("グループ宛ての回: 一覧の行と詳細にグループの名前、名前が無ければ「グループ」、id は出さない", async () => {
+test("グループ宛ての回: 一覧の行と詳細にグループの名前、名前が無ければ「グループ」、id は出さない", async () => {
   const GROUP_ID = "44444444-4444-4444-8444-444444444444";
   const named = { ...DISPATCH, id: "d2", targetGroup: { id: GROUP_ID, name: "常連" } };
   const unnamed = { ...DISPATCH, id: "d3", targetGroup: { id: GROUP_ID, name: null } };

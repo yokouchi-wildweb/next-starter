@@ -272,8 +272,7 @@ test("new: 宛先を選んだ利用者に変えるとカテゴリーが変わり
   await view.unmount();
 });
 
-// D69: restore before ship
-test.skip("sameAs: 文面・カテゴリー・宛先の形を写す。テンプレートの回は呼び出しの形", async () => {
+test("sameAs: 文面・カテゴリー・宛先の形を写す。テンプレートの回は呼び出しの形", async () => {
   const dispatch = {
     id: "d0",
     category: "notice",
@@ -327,14 +326,14 @@ test.skip("sameAs: 文面・カテゴリー・宛先の形を写す。テンプ�
   await act(async () => gone.value().setOpen(true));
   assert.equal(gone.value().draft.source, "adhoc");
   assert.deepEqual(gone.value().draft.content.email, { subject: "件名X", paragraphs: ["段1", "段2"] }, "欄の形のまま写す");
-  assert.match(gone.value().sameAsNote ?? "", /写しました/);
+  assert.match(gone.value().sameAsNote ?? "", /内容を直接入力の欄にコピーしました/);
   await gone.unmount();
 
   const nothing = await mount(() =>
     hooks.useMessageSendModal({ mode: { type: "sameAs", dispatch: { ...dispatch, templateId: "gone", templateVersion: 1, templateEdited: false, content: null, headings: {} } as never } }),
   );
   await act(async () => nothing.value().setOpen(true));
-  assert.match(nothing.value().sameAsNote ?? "", /書き直してください/);
+  assert.match(nothing.value().sameAsNote ?? "", /内容を入力し直してください/);
   await nothing.unmount();
 });
 

@@ -211,8 +211,7 @@ test("SendTargetPicker: bulk は記録の数、select は種類の選び、グ�
   await withGroups.unmount();
 });
 
-// D69: restore before ship
-test.skip("SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・未入力の印", async () => {
+test("SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・未入力の印", async () => {
   const toggles: [string, boolean][] = [];
   const view = await render(
     createElement(parts.SendCategoryChannels, {
@@ -233,7 +232,7 @@ test.skip("SendCategoryChannels: カテゴリーが無い文言・経路の切�
   const none = await render(
     createElement(parts.SendCategoryChannels, { categories: [], category: "", onCategoryChange: () => {}, channels: [], onToggleChannel: () => {} }),
   );
-  assert.match(none.container.textContent ?? "", /送れるカテゴリーがありません/);
+  assert.match(none.container.textContent ?? "", /この宛先に使えるカテゴリーがありません/);
   await none.unmount();
 });
 
@@ -252,8 +251,7 @@ test("SendSchedule: 予約の時だけ時刻・注記・誤り", async () => {
   await at.unmount();
 });
 
-// D69: restore before ship
-test.skip("SendConfirmView / SendResultView", async () => {
+test("SendConfirmView / SendResultView", async () => {
   const confirm = await render(
     createElement(parts.SendConfirmView, {
       estimate: { count: 12 },
@@ -289,14 +287,14 @@ test.skip("SendConfirmView / SendResultView", async () => {
       categoryLabel: "運営から",
     }),
   );
-  assert.match(bulk.container.textContent ?? "", /選んだ 2 件の振込レビュー/);
+  assert.match(bulk.container.textContent ?? "", /選択した 2 件の振込レビューに関連するユーザー/);
   await bulk.unmount();
   const result = await render(
     createElement(parts.SendResultView, { status: "processing", queuedCount: 0, dispatchHref: "/admin/messaging/d1", afterSend: { ok: false, error: "x" }, recordNoun: "振込レビュー" }),
   );
   assert.match(result.container.textContent ?? "", /送信を受け付けました/);
   assert.doesNotMatch(result.container.textContent ?? "", /queued/, "状態は表示名(鍵は出さない)");
-  assert.match(result.container.textContent ?? "", /送った後の処理に失敗しました: x/);
+  assert.match(result.container.textContent ?? "", /振込レビューの送信後の処理に失敗しました: x/);
   assert.ok(result.container.querySelector("a[href='/admin/messaging/d1']"));
   await result.unmount();
 });

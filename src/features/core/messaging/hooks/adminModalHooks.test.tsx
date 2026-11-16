@@ -1,8 +1,7 @@
-// @ts-nocheck D69: restore before ship (J101: delete replaces cancel / retract, flags canDelete / canResend / canContinue, deletedAt)
 // 管理のモーダルと一覧・回の画面の流れの hook の検査(jsdom の上で描く。client service・toast・離れる前の確認は偽物)。
 // - useAdminDispatchFilters: 入力と確定を分ける・期間は日付 → ISO(まで = 翌日未満)・種別 → カテゴリー(種別を変えると空)・clear
 // - useAdminDispatchCategories: 種別ごとの選択肢・表示名(鍵は出さない)
-// - useAdminDispatchDetail: 配達の絞り / 取り消す・取り下げる・再送(includeUnknown を渡して戻す)・送信を再開 → 知らせ、失敗も知らせ
+// - useAdminDispatchDetail: 配達の絞り / 削除の見込み(確認を開いている間だけ)・削除する・再送(includeUnknown を渡して戻す)・送信を再開 → 知らせ、失敗も知らせ
 // - useAdminMessageTemplateList / useAdminMessageOverrideList: 絞り・モーダルの開き先
 // - useMessageTemplateModal: 閉じている間は取らない / 作る → 同じモーダルで直す形 / 開き直すと作った id とタブが戻る
 // - useMessageTemplateVersion: id と版がそろった時だけ 1 版を取る (useModalSession は src/hooks/useModalSession.test.ts)
@@ -93,13 +92,37 @@ mock.module("@/features/core/messaging/services/client/templateClient", {
     archiveMessageTemplate: async () => detail({ status: "archived" }),
   },
 });
-const DISPATCH = { id: "d1", status: "processing", operations: {} };
+const DISPATCH = {
+  id: "d1",
+  status: "processing",
+  deletedAt: null,
+  operations: {
+    canDelete: { allowed: true, reason: null },
+    canResend: { allowed: true, reason: null, mode: "requeue", failed: 1, unknown: 1 },
+    canContinue: { allowed: true, reason: null },
+  },
+};
+const DELETE_SUMMARY = {
+  found: 1,
+  deleted: 0,
+  scheduled: 0,
+  unsent: 3,
+  channels: [{ key: "inApp", label: "お知らせ", removable: true, sent: 2 }],
+  sharedInbox: 0,
+};
 mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
   namedExports: {
-    // J102(D88): the delete hooks import these; D69: no assertion on them until the tests are restored
-    deleteAdminDispatch: async (id: string) => ({ dispatchId: id, alreadyDeleted: false, canceledDeliveries: 0, removed: [], failedChannels: [] }),
+    // D88: 取り消し・取り下げは削除(戻せない)に替わった
+    deleteAdminDispatch: async (id: string) => {
+      maybeFail();
+      calls.push(["delete"]);
+      return { dispatchId: id, alreadyDeleted: false, canceledDeliveries: 3, removed: [{ channel: "inApp", removed: 2 }], failedChannels: [] };
+    },
     bulkDeleteAdminDispatches: async () => ({ results: [] }),
-    adminDispatchDeleteSummary: async () => ({ found: 0, deleted: 0, scheduled: 0, unsent: 0, channels: [], sharedInbox: 0 }),
+    adminDispatchDeleteSummary: async (ids: readonly string[]) => {
+      calls.push(["deleteSummary", [...ids]]);
+      return DELETE_SUMMARY;
+    },
     getAdminDispatch: async () => DISPATCH,
     getAdminDispatchCategories: async () => [
       { key: "campaign", label: "キャンペーン", kind: "promotion" },
@@ -111,18 +134,9 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
       calls.push(["deliveries", params.status ?? null, params.channel ?? null]);
       return { items: [], nextCursor: null };
     },
-    cancelAdminDispatch: async () => {
-      maybeFail();
-      calls.push(["cancel"]);
-      return { canceledDeliveries: 1 };
-    },
-    retractAdminDispatch: async () => {
-      calls.push(["retract"]);
-      return { deletedInboxItems: 2, canceledDeliveries: 3 };
-    },
-    resendAdminDispatch: async (_id: string, input: { includeUnknown?: boolean }) => {
+    resendAdminDispatch: async (id: string, input: { includeUnknown?: boolean }) => {
       calls.push(["resend", input.includeUnknown]);
-      return { mode: "same_dispatch", failed: 1, unknown: 1 };
+      return { dispatchId: id, mode: "requeue", failed: 1, unknown: 1, newDispatchId: null };
     },
     continueAdminDispatch: async () => {
       calls.push(["continue"]);
@@ -132,15 +146,35 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
 });
 mock.module("@/features/core/messaging/services/client/overrideClient", {
   namedExports: {
-    // J99: the editor hook asks for a preview (D86); D69: no assertion on it until the tests are restored
+    // J99(D86): 編集の hook がプレビューを取る(この file では検査しない。overrideHooks.test.tsx が見る)
     previewMessageOverride: async (_key: string, input: { channel: string }) => ({ channel: input.channel, html: null, text: null }),
     listMessageOverrides: async () => [{ key: "user.welcome", kind: "transactional", category: "x", editableCount: 1, editedCount: 0, codeChangedCount: 0, orphanCount: 0 }],
     getMessageOverride: async (key: string) => ({
       key,
+      label: "ようこそ",
       kind: "transactional",
       category: "x",
+      categoryLabel: null,
       allowedKeys: [],
-      fields: [{ path: "email.subject", effective: "件名", code: "件名", override: null }],
+      // J99(D83): 経路の一覧と欄の表示の約束
+      channels: [{ key: "email", label: "メール", previewComponent: null }],
+      fields: [
+        {
+          path: "email.subject",
+          channel: "email",
+          field: "subject",
+          meta: { label: "件名", input: "line" },
+          editable: true,
+          codeValue: "件名",
+          value: null,
+          effective: "件名",
+          edited: false,
+          codeChanged: false,
+          orphan: false,
+          problem: null,
+          updatedAt: null,
+        },
+      ],
     }),
     saveMessageOverride: async () => ({}),
     resetMessageOverride: async () => ({}),
@@ -230,8 +264,7 @@ test("useAdminDispatchFilters: 入力は「絞り込み」で確定、期間は�
   await view.unmount();
 });
 
-// D69: restore before ship (J101: delete replaces cancel / retract, flags canDelete / canResend / canContinue, deletedAt)
-test.skip("useAdminDispatchDetail: 配達の絞り・操作の知らせ・再送は includeUnknown を渡して戻す", async () => {
+test("useAdminDispatchDetail: 配達の絞り・操作の知らせ・再送は includeUnknown を渡して戻す", async () => {
   const view = await mount(() => hooks.useAdminDispatchDetail("d1"), {});
   const d = () => view.value();
   await settle();
@@ -240,24 +273,31 @@ test.skip("useAdminDispatchDetail: 配達の絞り・操作の知らせ・再送
   await settle();
   assert.deepEqual(calls.filter((c) => c[0] === "deliveries").at(-1), ["deliveries", "failed", null]);
 
-  await act(async () => d().cancel());
-  await act(async () => d().retract());
+  // 削除の見込みは確認を開いている間だけ取る(D88)
+  assert.equal(d().deleteSummary, null);
+  assert.equal(calls.some((c) => c[0] === "deleteSummary"), false, "確認を開くまで取らない");
+  await act(async () => d().setDeleteConfirmOpen(true));
+  await settle();
+  assert.deepEqual(d().deleteSummary, DELETE_SUMMARY);
+  assert.equal(d().deleteSummaryLoading, false);
+  assert.equal(d().deleteSummaryError, null);
+
+  await act(async () => d().remove());
   await act(async () => d().setIncludeUnknown(true));
   await act(async () => d().resend());
   assert.equal(d().includeUnknown, false, "送った後は戻す");
   await act(async () => d().continueDispatch());
   assert.deepEqual(
     calls.filter((c) => c[0] !== "deliveries"),
-    [["cancel"], ["retract"], ["resend", true], ["continue"]],
+    [["deleteSummary", ["d1"]], ["delete"], ["resend", true], ["continue"]],
   );
   assert.deepEqual(toasts, [
-    "success:予約を取り消しました",
-    "success:公開を停止しました(お知らせ 2 件を削除し、未送信 3 件を止めました)",
+    "success:送信を削除しました(お知らせ 2 件を削除し、未送信 3 件を止めました)",
     "success:2 件を再送しました",
     "success:送信を再開しました(送信 4 / 失敗 0)",
   ]);
   failNext = true;
-  await act(async () => d().cancel());
+  await act(async () => d().remove());
   assert.equal(toasts.at(-1), "error:だめ");
   await view.unmount();
 });
@@ -336,8 +376,7 @@ test("useMessageTemplateForm: onCreated に作った id、closeConfirm は書き
   await view.unmount();
 });
 
-// D69: restore before ship (J99 back: editor layout needs jsdom getComputedStyle / detail.channels in fixtures)
-test.skip("useMessageOverrideEditor: closeConfirm は下書きのある間だけ", async () => {
+test("useMessageOverrideEditor: closeConfirm は下書きのある間だけ", async () => {
   const view = await mount(() => hooks.useMessageOverrideEditor("user.welcome"), {});
   await settle();
   const e = () => view.value();

@@ -16,15 +16,33 @@ g.HTMLElement = dom.window.HTMLElement;
 g.Node = dom.window.Node;
 g.MouseEvent = dom.window.MouseEvent;
 g.IS_REACT_ACT_ENVIRONMENT = true;
+// 経路のタブ(StateTabs = Radix Tabs・Presence)が読むブラウザの API(D80 の 2 つの欄)
+g.getComputedStyle = dom.window.getComputedStyle.bind(dom.window);
+g.requestAnimationFrame = dom.window.requestAnimationFrame.bind(dom.window);
+g.cancelAnimationFrame = dom.window.cancelAnimationFrame.bind(dom.window);
 
 const events: string[] = [];
 let editor: Record<string, unknown> = {};
 let editorMounts = 0;
-const FIELD = { path: "email.subject" };
+// 欄は経路ごと(D80 の右の欄 = 今の経路のタブの欄だけ。欄の表示の約束 meta は経路の受け口から、D83)
+const CHANNEL = { key: "email", label: "メール", previewComponent: null };
+const emailField = (field: string) => ({ path: `email.${field}`, channel: "email", field, meta: {}, editable: true, effective: "" });
+const FIELDS = [emailField("subject"), emailField("body")];
 const baseEditor = () => ({
-  detail: { key: "user.welcome", label: "会員登録の完了", kind: "transactional", category: "x", categoryLabel: "お手続き", fields: [FIELD, { path: "email.body" }] },
+  detail: { key: "user.welcome", label: "会員登録の完了", kind: "transactional", category: "x", categoryLabel: "お手続き", channels: [CHANNEL], fields: FIELDS },
   error: null,
   isLoading: false,
+  channels: [CHANNEL],
+  activeChannel: "email",
+  setActiveChannel: (key: string) => events.push(`channel:${key}`),
+  activeChannelInfo: CHANNEL,
+  activeFields: FIELDS,
+  activeFieldMeta: { subject: {}, body: {} },
+  activeValues: { subject: "", body: "" },
+  focusedPath: null,
+  setFocusedPath: () => {},
+  previewHtml: null,
+  previewLoading: false,
   allowedKeys: [],
   closeConfirm: { enabled: true, message: "下書き" },
   valueOf: () => "",
@@ -96,17 +114,20 @@ const mountRoot = () => {
 const parts = (container: HTMLElement) => [...container.querySelectorAll("[data-part]")].map((el) => el.getAttribute("data-part"));
 const props = (open: boolean, messageKey: string | null) => ({ open, onOpenChange: () => {}, messageKey });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("鍵が無い間は描かない / 欄を並べ、confirmOnClose に closeConfirm", async () => {
+test("鍵が無い間は描かない / 欄を並べ、confirmOnClose に closeConfirm", async () => {
   const view = mountRoot();
   await view.draw(createElement(AdminMessageOverrideModal, props(true, null)));
   assert.equal(modalProps, null);
   await view.draw(createElement(AdminMessageOverrideModal, props(true, "user.welcome")));
   assert.deepEqual(parts(view.container), ["keys", "field", "field"]);
+  // 2 つの欄(D80): 右 = 経路のタブ(今の経路の欄だけ)、左 = プレビュー
+  assert.deepEqual([...view.container.querySelectorAll("[role=tab]")].map((el) => el.textContent), ["メール"]);
+  assert.ok(view.container.querySelector("[data-slot=message-editor-layout]"));
+  assert.match(view.container.textContent ?? "", /プレビュー/);
   assert.deepEqual(modalProps!.confirmOnClose, { enabled: true, message: "下書き" });
   // 連絡の名前・種別とカテゴリーの表示名で、鍵は出さない(D46)
   assert.equal(modalProps!.title, "文言を編集: 会員登録の完了");
-  assert.match(view.container.textContent ?? "", /お手続きのお知らせ \/ お手続き/);
+  assert.match(view.container.textContent ?? "", /種類: 手続き通知 \/ カテゴリー: お手続き/);
   assert.doesNotMatch(view.container.textContent ?? "", /user\.welcome|transactional/);
   await view.unmount();
 });
@@ -124,11 +145,10 @@ test("読み込み中 / 開き直すと中身を作り直す", async () => {
   await view.unmount();
 });
 
-// D69: restore before ship (J99: list items need channels for the channel badges)
-test.skip("一覧: 行でモーダルの開き先を変える", async () => {
+test("一覧: 行でモーダルの開き先を変える", async () => {
   const { AdminMessageOverrideList } = await import("../AdminMessageOverrideList");
   listState = {
-    items: [{ key: "user.welcome", label: "会員登録の完了", kind: "transactional", category: "x", categoryLabel: "お手続き", editableCount: 1, editedCount: 0, codeChangedCount: 0, orphanCount: 0 }],
+    items: [{ key: "user.welcome", label: "会員登録の完了", kind: "transactional", category: "x", categoryLabel: "お手続き", channels: [{ key: "email", label: "メール", previewComponent: null }], editableCount: 1, editedCount: 0, codeChangedCount: 0, orphanCount: 0 }],
     error: null,
     isLoading: false,
     modal: { open: false, setOpen: () => {}, messageKey: null, openMessage: (key: string) => events.push(`open:${key}`) },
@@ -138,6 +158,8 @@ test.skip("一覧: 行でモーダルの開き先を変える", async () => {
   await act(async () => (view.container.querySelector("button") as HTMLButtonElement).click());
   assert.deepEqual(events, ["open:user.welcome"]);
   assert.match(view.container.textContent ?? "", /会員登録の完了/);
+  // 種類の経路を札で並べる(J99)
+  assert.equal(view.container.querySelector("[data-slot=override-message-channels]")?.textContent, "メール");
   assert.doesNotMatch(view.container.textContent ?? "", /user\.welcome|transactional/);
   assert.equal(view.container.querySelector("a"), null);
   await view.unmount();
