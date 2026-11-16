@@ -1,6 +1,7 @@
 // src/features/core/userGroup/components/common/UserGroupMemberList/index.tsx
 // 部品(props だけ): 人の一覧(表示名、無限スクロール)と、利用者を選ぶ部品で選んで足す・1 人ずつ外す。
-// 静的グループの一員と例外の人(入れる人・外す人)で使う。流れは hook useUserGroupStaticMembers / useUserGroupExceptions
+// 静的グループの一員と例外の人(入れる人・外す人)で使う。流れは hook useUserGroupStaticMembers / useUserGroupExceptions。
+// draft = 作る前の下書き(選ぶ部品だけを出し、選んだ人は作成の時に書く。一覧・追加のボタンは出さない)
 
 "use client";
 
@@ -15,16 +16,39 @@ import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { UserAsyncMultiSelect } from "@/features/core/user/components/common/UserAsyncMultiSelect";
 import type { UserGroupPeopleState } from "@/features/core/userGroup/hooks/useUserGroupPeople";
 
+export type UserGroupMemberDraft = { value: string[]; onChange: (values: readonly (string | number | boolean)[]) => void; hint: string };
+
 export type UserGroupMemberListProps = {
   title: string;
   description?: string;
-  people: UserGroupPeopleState;
   addLabel: string;
   emptyText: string;
   disabled?: boolean;
-};
+} & ({ people: UserGroupPeopleState; draft?: never } | { draft: UserGroupMemberDraft; people?: never });
 
-export function UserGroupMemberList({ title, description, people, addLabel, emptyText, disabled = false }: UserGroupMemberListProps) {
+export function UserGroupMemberList(props: UserGroupMemberListProps) {
+  const { title, description, addLabel, emptyText, disabled = false } = props;
+  if (props.draft) {
+    return (
+      <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="user-group-people">
+        <Stack space={1}>
+          <SecTitle as="h3" size="md">
+            {title}
+          </SecTitle>
+          {description ? (
+            <Para size="sm" tone="muted" className="my-0">
+              {description}
+            </Para>
+          ) : null}
+        </Stack>
+        <UserAsyncMultiSelect value={props.draft.value} onChange={props.draft.onChange} />
+        <Para size="sm" tone="muted" className="my-0">
+          {props.draft.hint}
+        </Para>
+      </Stack>
+    );
+  }
+  const people = props.people;
   const { query } = people;
   return (
     <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="user-group-people">

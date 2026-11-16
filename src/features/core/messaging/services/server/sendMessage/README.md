@@ -12,6 +12,9 @@
 - `previewMessage`（経路ごとの差し込み済みの欄と描いた結果）・`estimateRecipients({ target })` → `{ count, fixedAtSend: true, memberLimit?, overLimit? }`（グループは一員の数と人数の上限、利用できない人を外す前の数。送る時に展開で数え直す）
 - 戻り値は回の id・状態・数。選んだ宛先で宛先の無い受信者・止めた受信者は理由つきで返る
 - 定義の誤りは 500、`enabled: false` は回を作らず `status: "disabled"`、vars の誤り・知らない鍵は 400、冪等の鍵の重複は 409
+- 連絡はその定義のフォルダのドメインに属する（生成の一覧の鍵 `<ドメインのフォルダ名>.<ファイル名>`）。ドメインが門で閉じていれば（そのフォルダを載せた機能が全部閉、`gate.domainOpen`）、送る口は回も配達も作らず `status: "disabled"` を返す（投げない = 呼び手の業務は止めない、警告を 1 行）。上流のドメインも fork のドメインも同じで、fork は自分の規則の入切で自分の連絡を止められる（`domainGate.ts`、D77）
+  - cron（掃き出し）は閉じたドメインの連絡の置いてある行を送らず、状態を戻して 1 時間先送りする（開けば送る。保持の掃除の日数を過ぎれば消える）
+  - 文言の編集（管理画面の上書き）も閉じたドメインの連絡を一覧に出さず、1 件・保存・戻すは 404
 
 ## Internals
 
@@ -26,7 +29,7 @@
 
 ### 管理者が書いた文面（authoredDefinition.ts・dispatchDefinition.ts）
 
-- 定義の鍵 = 送るカテゴリーの種別の authored の定義（`messaging.adminAnnouncement` / `adminDirect` / `adminMarketing`）。種別が announcement・direct・marketing でないカテゴリーは 400（送る時も cron の組み直しも）
+- 定義の鍵 = 送るカテゴリーの種別の authored の定義（`messaging.adminAnnouncement` / `adminDirect` / `adminPromotion`）。種別が announcement・direct・promotion でないカテゴリーは 400（送る時も cron の組み直しも）
 - **経路 = 種類の経路 ∩ その回の絞り（`channels`）。その中に文面の無い経路が 1 つでもあれば 400**（黙って落とさない）。欄は経路の受け口の zod で検査。`{{鍵}}` = 当たる enrichers の鍵 + テンプレートの版の変数、知らない鍵は 400。authored の定義は上書きと管理画面の文言を重ねない
 - 文面は回の `authored_content` に残し、予約・cron の組み直し・再送はその文面で組む（後でテンプレートを直しても送った文面のまま）
 - テンプレートを読み込んだ時: 今の公開版を回の `template_id`・`template_version` に固定（今の公開版でない・取り下げ済み・未公開は 409、無いテンプレートは 404）。版から直したかを `template_edited` に残す

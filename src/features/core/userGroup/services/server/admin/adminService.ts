@@ -7,7 +7,7 @@
 // - 静的グループ: 選んだ利用者・別のグループの今の一員・タグの今の持ち主から作る・置き換える(予算つき、終わらなければ incomplete)、足す・外す
 // - 一員の一覧(静的)と例外の人の一覧(足す人・外す人)。利用者 id の順の keyset、id と表示名だけ、消した利用者は出さない
 // - 条件の部品の一覧(表示名・欄・重さと、ロール・状態・タグ・静的グループの選択肢)
-// - service でも管理者を確かめる。監査 user_group.group.{created, updated, archived}・user_group.exceptions.updated・
+// - service でも管理者を確かめる。監査 user_group.group.{created, updated, archived, restored}・user_group.exceptions.updated・
 //   user_group.members.{replaced, added, removed}(操作した管理者が actor。利用者 id は監査に入れない)
 
 import { and, asc, desc, eq, gt, inArray, isNull, lt, or, sql } from "drizzle-orm";
@@ -330,6 +330,28 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
     return result;
   }
 
+  /** 作る時の例外の人を持ち主付きの静的グループへ書く(居る・削除されていない利用者だけ。人数の上限は 409)。tx の中で */
+  async function insertExceptionMembers(tx: Executor, group: UserGroup, targetId: string, userIds: readonly string[]): Promise<number> {
+    if (userIds.length > deps.config.memberLimit) {
+      throw new DomainError(`グループ「${group.name}」の例外の人数 ${userIds.length} が上限 ${deps.config.memberLimit} を超えています`, { status: 409 });
+    }
+    const size = Math.max(1, deps.config.write.batchSize);
+    let written = 0;
+    for (let start = 0; start < userIds.length; start += size) {
+      const present = await tx
+        .select({ id: UserTable.id })
+        .from(UserTable)
+        .where(and(inArray(UserTable.id, userIds.slice(start, start + size)), isNull(UserTable.deletedAt)));
+      if (present.length === 0) continue;
+      await tx
+        .insert(UserGroupMemberTable)
+        .values(present.map((row) => ({ group_id: targetId, user_id: row.id })))
+        .onConflictDoNothing();
+      written += present.length;
+    }
+    return written;
+  }
+
   /** 例外のグループ(無ければ 2 つ作って定義を包む)。tx の中で */
   async function ensureExceptionGroups(tx: Executor, group: UserGroup): Promise<ExceptionGroupIds> {
     const definition = await definitionOf(group.id, tx);
@@ -395,6 +417,16 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
         throw new DomainError("固定グループには条件を設定できません(メンバーは選んで追加します)", { status: 400 });
       }
       if (parsed.kind !== "static" && parsed.definition === undefined) throw new DomainError("条件が設定されていません", { status: 400 });
+      const include = [...new Set(parsed.exceptions?.include ?? [])];
+      const exclude = [...new Set(parsed.exceptions?.exclude ?? [])];
+      const withExceptions = include.length > 0 || exclude.length > 0;
+      if (withExceptions && parsed.kind === "static") {
+        throw new DomainError("固定グループには例外を設定できません(メンバーを直接追加・削除してください)", { status: 400 });
+      }
+      if (include.some((userId) => exclude.includes(userId))) {
+        throw new DomainError("同じユーザーを「常に含める人」と「常に除外する人」の両方に入れることはできません", { status: 400 });
+      }
+      const counts = { includeCount: 0, excludeCount: 0 };
       const group = await deps.db.transaction(async (tx) => {
         const checked = parsed.kind === "static" ? null : await checkBase(parsed.definition, tx);
         const [row] = await tx
@@ -407,9 +439,15 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
           })
           .returning();
         if (checked) await saveDefinition(tx, row!.id, checked.tree, checked.heavy);
+        if (withExceptions) {
+          // 例外の人: 持ち主付きの静的グループ 2 つと包んだ定義、一員(居る利用者だけ)をグループと同じ取引で書く(途中で止めない)
+          const ids = await ensureExceptionGroups(tx, row!);
+          counts.includeCount = await insertExceptionMembers(tx, row!, ids.includeId, include);
+          counts.excludeCount = await insertExceptionMembers(tx, row!, ids.excludeId, exclude);
+        }
         return row!;
       });
-      await audit(group, "user_group.group.created");
+      await audit(group, "user_group.group.created", withExceptions ? counts : {});
       return detailOf(group);
     },
 
@@ -473,6 +511,19 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       if (group.status === "archived") return detailOf(group);
       const [row] = await deps.db.update(G).set({ status: "archived", updatedAt: deps.now() }).where(eq(G.id, group.id)).returning();
       await audit(row!, "user_group.group.archived");
+      return detailOf(row!);
+    },
+
+    /**
+     * アーカイブしたグループを使用中に戻す(定期計算は次の cron で期限が来れば計算し直す)
+     * @throws DomainError(409) アーカイブ中でない / (404) 無い
+     */
+    async restoreGroup(id: string): Promise<AdminUserGroupDetail> {
+      await assertUserGroupAdmin(deps);
+      const group = await loadGroup(id);
+      if (group.status !== "archived") throw new DomainError(`グループ「${group.name}」はアーカイブされていません`, { status: 409 });
+      const [row] = await deps.db.update(G).set({ status: "active", updatedAt: deps.now() }).where(eq(G.id, group.id)).returning();
+      await audit(row!, "user_group.group.restored");
       return detailOf(row!);
     },
 

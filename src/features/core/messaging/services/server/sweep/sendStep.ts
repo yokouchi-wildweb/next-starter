@@ -4,6 +4,7 @@
 // 回の vars + 行の受信者ごとの値 + enrichers + 共通の文脈。
 // - 定義が一覧に無い・検査に落ちる → failed(reason の符号だけ)
 // - 経路の項目が無い・enabled: false → suppressed + channel_off
+// - 連絡のドメインが門で閉じている → 送らずに lease を外し、状態を戻して DOMAIN_CLOSED_RETRY_MS 先送り(開けば送る、D77)
 // - 送る直前に配信停止を確かめ直す(好み・宛先の停止 → suppressed + reason。宛先の 1 つにもう送れた行は sent のまま)
 // - 送った後の行の受信者ごとの値は回の record に従う(meta なら消す)。full なら描いた本文を残す
 // - throttle のある連絡は経路の send の前に間引きを当てる(sendMessage/throttle.ts)
@@ -26,6 +27,9 @@ import { deliveryEvents } from "../events/internalEvents";
 import type { MessageSweepDeps } from "./types";
 
 export type SendStepResult = { processed: number; sent: number; failed: number; queued: number; other: number };
+
+/** ドメインが閉じた連絡の行を次に見るまでの時間(毎分の cron が同じ行を取り続けないように) */
+const DOMAIN_CLOSED_RETRY_MS = 60 * 60 * 1000;
 
 function addressesOf(row: MessageDelivery): string[] {
   const targets = row.targets as MessageDeliveryTarget[] | null;
@@ -100,6 +104,16 @@ export async function sendClaimed(
     /** 前の実行で宛先の 1 つにもう送れた行(delivery.sent は書いた後) */
     const sentBefore = (row: MessageDelivery) =>
       ((row.targets as MessageDeliveryTarget[] | null) ?? []).some((target) => target.status === "sent");
+    // 連絡のドメインが門で閉じていれば送らない: 取った状態(sending)を戻して先送りする(事件は書かない)
+    if (deps.domainOpen && !deps.domainOpen(resolved.key)) {
+      const retryAt = new Date(deps.now().getTime() + DOMAIN_CLOSED_RETRY_MS);
+      for (const row of group) {
+        const status = sentBefore(row) ? "sent" : "queued";
+        await deps.sweepStore.updateClaimed(row.id, lockToken, { ...release, status, next_attempt_at: retryAt, updatedAt: deps.now() }, []);
+        count(status === "sent" ? "other" : "queued");
+      }
+      continue;
+    }
     const rowsById = new Map(group.map((row) => [row.id, row]));
     const vars = (dispatch!.vars ?? {}) as Record<string, unknown>;
     const userIds = [...new Set(group.flatMap((row) => (row.user_id ? [row.user_id] : [])))];

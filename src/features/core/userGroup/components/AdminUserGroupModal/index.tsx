@@ -137,7 +137,7 @@ function UserGroupModalBody({
           <ConfirmPopover
             trigger={
               <Button type="button" size="sm" variant="outline" disabled={form.dirty || freeze.running}>
-                アーカイブ
+                アーカイブする
               </Button>
             }
             title="アーカイブ"
@@ -145,6 +145,19 @@ function UserGroupModalBody({
             confirmLabel="アーカイブする"
             confirmVariant="destructive"
             onConfirm={form.archive}
+          />
+        ) : null}
+        {group && locked ? (
+          <ConfirmPopover
+            trigger={
+              <Button type="button" size="sm" variant="primary">
+                アクティブに戻す
+              </Button>
+            }
+            title="アクティブに戻す"
+            description="このグループを使用中に戻します"
+            confirmLabel="アクティブに戻す"
+            onConfirm={form.restore}
           />
         ) : null}
         {!locked ? (
@@ -317,7 +330,19 @@ function UserGroupModalBody({
   const tabs = [
     { value: "basic", label: "基本", content: basicTab },
     ...(!isStatic ? [{ value: "condition", label: "条件", content: conditionTab }] : []),
-    ...(group ? [{ value: "people", label: group.kind === "static" ? "メンバー" : "例外", content: peopleContent }] : []),
+    ...(group
+      ? [{ value: "people", label: group.kind === "static" ? "メンバー" : "例外", content: peopleContent }]
+      : !isStatic
+        ? [
+            {
+              value: "people",
+              label: "例外",
+              content: (
+                <UserGroupExceptionsEditor draft={form.exceptionsDraft} counts={null} scheduled={fields.kind === "scheduled"} />
+              ),
+            },
+          ]
+        : []),
   ];
 
   return (

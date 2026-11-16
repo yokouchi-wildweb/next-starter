@@ -10,6 +10,7 @@ import { getAppBaseUrl } from "@/lib/url";
 import { messageRegistry } from "@/registry/messageRegistry";
 import { userGroupEvaluator } from "@/features/core/userGroup/services/server";
 
+import { messageDomainOpen } from "../domainGate";
 import { drizzleMessageOverrideStore } from "../overrides/store";
 import { drizzleMessageTemplateSource } from "../templates/source";
 import { buildUnsubscribeUrl, isUnsubscribeConfigured } from "../unsubscribe/token";
@@ -28,6 +29,8 @@ import type { MessageSendDeps } from "./types";
 /** 送る口の本物の部品(掃き出しの cron も同じ部品を使う) */
 export const sendMessageDeps: MessageSendDeps = {
   store: drizzleMessageSendStore,
+  // 連絡のドメインが門で閉じていれば送らない(D77)
+  domainOpen: messageDomainOpen,
   channels,
   enrichers,
   // グループ宛て(門 userGroups が閉なら拒む。評価の口も閉なら 404)

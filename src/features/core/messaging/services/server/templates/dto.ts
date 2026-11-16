@@ -2,8 +2,18 @@
 //
 // 保存されたテンプレートの管理へ返す形(型だけ。client の service も型で読む)。経路は持たない: content の鍵 = 文言のある経路
 
+import type { ChannelFieldMeta } from "@/lib/messaging";
+
 import type { MessageTemplateStatus } from "../../../entities/model";
 import type { MessageTemplateVariable } from "../../../entities/schema";
+
+/** 画面が読む経路 1 つ(鍵・表示名・欄の表示の約束・プレビューの部品の鍵)。送る画面の選択肢も同じ形 */
+export type AdminChannelOption = {
+  key: string;
+  label: string;
+  fieldMeta: Readonly<Record<string, ChannelFieldMeta>>;
+  previewComponent: string | null;
+};
 
 export type AdminTemplateSummary = {
   id: string;
@@ -48,9 +58,9 @@ export type AdminTemplatePage = { items: AdminTemplateSummary[]; nextCursor: str
 
 /** 画面の選択肢(作る・直す画面が最初に読む) */
 export type AdminTemplateOptions = {
-  /** 使える経路(受け口にあり enabled: false でない物) */
-  channels: { key: string; label: string }[];
-  /** 種類(種別 announcement・direct・marketing の物だけ) */
+  /** 使える経路(受け口にあり enabled: false でない物)。欄の表示の約束とプレビューの部品の鍵も(D83 D85) */
+  channels: AdminChannelOption[];
+  /** 種類(種別 announcement・direct・promotion の物だけ) */
   categories: { key: string; label: string; description: string | null }[];
   /** 変数を宣言する前から使える {{鍵}}(共通の文脈 ∪ 管理の定義 3 本の provides) */
   baseAllowedKeys: string[];

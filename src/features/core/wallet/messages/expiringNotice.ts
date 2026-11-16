@@ -28,8 +28,6 @@ export const message = defineMessage({
     /** サービスの短い名前(business.serviceNameShort) */
     serviceNameShort: z.string(),
   }),
-  // 管理画面で直せる文言の欄(門 messagingOverrides。URL を持つ cta・preheader・footer はコードだけ)
-  adminEditable: ["email.subject", "email.paragraphs", "inApp.title", "inApp.body"],
   content: {
     email: {
       subject: "{{currencyLabel}}の有効期限が近づいています",

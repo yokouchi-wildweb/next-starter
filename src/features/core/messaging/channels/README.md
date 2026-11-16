@@ -5,6 +5,7 @@
 経路の受け口（`extensionPoints.ts` の `channels`）に上流が出す 3 本 email・inApp・line。fork の経路（push・SMS など）も同じ形で自分のドメインの `channels/<名前>.ts` に足す。項目の形は src/lib/messaging/README.md「受け口の項目」。
 
 - 経路の入切: 項目の `enabled: false` は項目が無い経路と同じ（配達は `suppressed` + `channel_off`）。門の機能ではない
+- 欄の表示の約束 `fieldMeta`（必須、D83）: 管理画面の文言の編集が欄ごとの見出し・説明・入力の種類に使う。email = subject（1 行）・preheader（1 行）・heading（1 行）・paragraphs（複数行の並び）・cta（`parts` = 文言 1 行・行き先 url）・footer（複数行）/ inApp = title（1 行）・body（複数行）・image（画像）・link（url）/ line = text（複数行）。fork の経路も書く。プレビューの部品の鍵 `previewComponent` は任意（上流の 3 本は持たない）
 - 表示名は項目の `label`（inApp = お知らせ）。選択肢を持たない所は `constants/channelLabels.ts` の `MESSAGE_CHANNEL_LABELS`（同じ値、テストで照合）
 
 ## Internals

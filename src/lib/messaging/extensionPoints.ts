@@ -11,6 +11,6 @@ export const extensionPoints = {
     overrides: "src/features/**/messages/*.ts",
     export: "messageOverride",
     side: "server",
-    overrideOf: ["label", "content", "extras", "enabled", "adminEditable", "record", "throttle"],
+    overrideOf: ["label", "content", "extras", "enabled", "adminEditableOnly", "record", "throttle"],
   },
 } as const;

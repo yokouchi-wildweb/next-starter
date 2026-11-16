@@ -1,10 +1,14 @@
 // src/features/core/messaging/services/server/overrides/overrideService.ts
 //
 // 管理画面の文言の上書き(D21・D24・D28)の管理の service。/api/admin/messaging/overrides が呼ぶ。
-// - 一覧: 生成の一覧の連絡のうち、fork の override を重ねた後に adminEditable がある(か行が残る)連絡
-// - 1 件: 欄ごとに コードの値・管理画面の値・送る時の値・印(直した / コードが変わった / 孤立)と使ってよい {{鍵}}
-// - 保存: 送る口と同じ検査(lib/messaging checkAdminFieldValue)を通った値だけ。直した時のコードの値も残す
+// - 一覧: 生成の一覧の連絡(門の開いたドメインの物)のうち、直せる欄(adminEditablePaths)がある(か行が残る)連絡
+// - 1 件: 種類の経路(fork の種類の上書きの後)と、その経路の欄の全部(既定で全部直せる、D83。adminEditableOnly は絞り)。
+//   欄ごとに 表示の約束(経路の fieldMeta)・コードの値・管理画面の値・送る時の値・印(直した / コードが変わった / 孤立)と使ってよい {{鍵}}
+// - 保存: 送る口と同じ検査(lib/messaging checkAdminFieldValue)を通った値だけ。直した時のコードの値も残す。
+//   値の画像(storage:// の参照)は保存の台帳で行に結び、差し替え・既定に戻すで外れた物を外す(imageBinding.ts)
 // - 既定に戻す = 行を消す。保存と戻すは監査に残す(messaging.override.updated / .reset、値は残さない)
+// - プレビュー(D86): 経路 1 つを、送る時の値に未保存の値を重ねて連絡の描き方で描く。文字の欄は data-field="<経路.欄>" の印で包む
+//   (プレビューの時だけ、previewMarkers.ts)。経路に preview が無ければ html は null(画面が自分で描く)
 // - service でも管理者を確かめる(D42)
 
 import { isDeepStrictEqual } from "node:util";
@@ -12,20 +16,26 @@ import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 
 import {
+  adminEditablePaths,
   adminFieldAllowedKeys,
   adminFieldCodeValue,
   checkAdminFieldValue,
   type AdminFieldCheckOptions,
+  type ChannelFieldMeta,
 } from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
 import { assertAdminActor, type AdminCheckDeps } from "../admin/assertAdmin";
+import { bindOverrideImages, releaseOverrideImages, type OverrideImageLedger } from "./imageBinding";
+import { applyPreviewMarkers, wrapPreviewFields } from "./previewMarkers";
 import type {
+  AdminOverrideChannel,
   AdminOverrideField,
   AdminOverrideMessageDetail,
   AdminOverrideMessageSummary,
+  MessageOverridePreview,
 } from "./dto";
 import type { MessageOverrideRecord, MessageOverrideStore } from "./types";
 
@@ -40,25 +50,55 @@ export type OverrideServiceDeps = AdminCheckDeps & {
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
   /** 種類の表示名(受け口の label。無ければ null) */
   categoryLabel: (category: string) => string | null;
+  /** 経路の受け口の項目の表示(無い経路は null) */
+  channelInfo: (channel: string) => { label: string; fieldMeta: Readonly<Record<string, ChannelFieldMeta>>; previewComponent?: string } | null;
+  /** 画像を行に結ぶ台帳(無ければ結ばない = テスト) */
+  images?: OverrideImageLedger<unknown>;
+  /** 経路のプレビュー(経路の受け口の preview。無い経路は null) */
+  channelPreview?: (
+    channel: string,
+    input: { messageKey: string; content: unknown; category?: string },
+  ) => Promise<{ html?: string; text?: string }> | null;
 };
+
+export const PreviewMessageOverrideInputSchema = z
+  .object({ channel: z.string().min(1).max(100), values: z.record(z.string().max(200), z.unknown()).default({}) })
+  .strict();
+
 
 export const SaveMessageOverrideInputSchema = z
   .object({ fieldPath: z.string().min(1).max(200), value: z.unknown() })
   .strict();
 
+function channelsOf(resolved: AnyResolvedMessageDefinition, deps: Pick<OverrideServiceDeps, "channelInfo">): AdminOverrideChannel[] {
+  return resolved.channels.flatMap((key) => {
+    const info = deps.channelInfo(key);
+    return info ? [{ key, label: info.label, previewComponent: info.previewComponent ?? null }] : [];
+  });
+}
+
+function metaOf(deps: Pick<OverrideServiceDeps, "channelInfo">, channel: string, field: string): ChannelFieldMeta {
+  return deps.channelInfo(channel)?.fieldMeta[field] ?? { label: field, input: "line" };
+}
+
 function buildFields(
   resolved: AnyResolvedMessageDefinition,
   check: AdminFieldCheckOptions,
   rows: readonly MessageOverrideRecord[],
+  deps: Pick<OverrideServiceDeps, "channelInfo">,
 ): AdminOverrideField[] {
-  const editable = (resolved.adminEditable ?? []).map(String);
+  const editable = adminEditablePaths(resolved, check.channels);
   const paths = [...editable, ...rows.map((row) => row.fieldPath).filter((path) => !editable.includes(path))];
   return paths.map((path) => {
+    const [channel = "", field = ""] = path.split(".");
     const row = rows.find((item) => item.fieldPath === path);
     const codeValue = adminFieldCodeValue(resolved, path) ?? null;
     const problem = row ? checkAdminFieldValue(resolved, path, row.value, check) : null;
     return {
       path,
+      channel,
+      field,
+      meta: metaOf(deps, channel, field),
       editable: editable.includes(path),
       codeValue,
       value: row ? row.value : null,
@@ -82,7 +122,7 @@ export function createOverrideService(deps: OverrideServiceDeps) {
   async function detail(messageKey: string): Promise<AdminOverrideMessageDetail> {
     const { resolved, check } = await requireDefinition(messageKey);
     const rows = await deps.store.listByMessage(messageKey);
-    if (!resolved.adminEditable?.length && rows.length === 0) {
+    if (adminEditablePaths(resolved, check.channels).length === 0 && rows.length === 0) {
       throw new DomainError(`連絡 ${messageKey} は管理画面で直せません`, { status: 404 });
     }
     return {
@@ -92,11 +132,45 @@ export function createOverrideService(deps: OverrideServiceDeps) {
       category: resolved.category ?? null,
       categoryLabel: resolved.category ? deps.categoryLabel(resolved.category) : null,
       allowedKeys: adminFieldAllowedKeys(resolved, check.variableKeys),
-      fields: buildFields(resolved, check, rows),
+      channels: channelsOf(resolved, deps),
+      fields: buildFields(resolved, check, rows, deps),
     };
   }
 
   return {
+    /**
+     * 経路 1 つのプレビュー(未保存の値 values = { "<経路.欄>": 値 } を送る時の値に重ねる)。
+     * @throws DomainError(400) 入力の誤り・連絡に無い経路 / (403) 管理者でない / (404) 連絡が無い
+     */
+    async previewMessage(messageKey: string, input: unknown): Promise<MessageOverridePreview> {
+      await assertAdminActor(deps);
+      const parsed = PreviewMessageOverrideInputSchema.safeParse(input);
+      if (!parsed.success) throw new DomainError("プレビューの入力が正しくありません", { status: 400 });
+      const { channel, values } = parsed.data;
+      const { resolved, check } = await requireDefinition(messageKey);
+      if (!resolved.channels.includes(channel)) throw new DomainError("この通知に無い送信方法です", { status: 400 });
+      const rows = await deps.store.listByMessage(messageKey);
+      const base = { ...((resolved.content as Record<string, Record<string, unknown> | undefined>)[channel] ?? {}) };
+      for (const field of buildFields(resolved, check, rows, deps)) {
+        if (field.channel === channel && field.editable) base[field.field] = field.effective;
+      }
+      for (const [path, value] of Object.entries(values)) {
+        const [pathChannel, field] = path.split(".");
+        if (pathChannel === channel && field) base[field] = value;
+      }
+      const meta = deps.channelInfo(channel)?.fieldMeta ?? {};
+      const rendered = await deps.channelPreview?.(channel, {
+        messageKey,
+        content: wrapPreviewFields(channel, base, meta),
+        ...(resolved.category ? { category: resolved.category } : {}),
+      });
+      return {
+        channel,
+        html: rendered?.html ? applyPreviewMarkers(rendered.html) : null,
+        text: rendered?.text ?? null,
+      };
+    },
+
     /** 編集できる連絡の一覧 */
     async listMessages(): Promise<AdminOverrideMessageSummary[]> {
       await assertAdminActor(deps);
@@ -106,14 +180,15 @@ export function createOverrideService(deps: OverrideServiceDeps) {
         const loaded = await deps.loadDefinition(key);
         if (!loaded) continue;
         const own = rows.filter((row) => row.messageKey === key);
-        if (!loaded.resolved.adminEditable?.length && own.length === 0) continue;
-        const fields = buildFields(loaded.resolved, loaded.check, own);
+        if (adminEditablePaths(loaded.resolved, loaded.check.channels).length === 0 && own.length === 0) continue;
+        const fields = buildFields(loaded.resolved, loaded.check, own, deps);
         summaries.push({
           key,
           label: loaded.resolved.label,
           kind: loaded.resolved.kind,
           category: loaded.resolved.category ?? null,
           categoryLabel: loaded.resolved.category ? deps.categoryLabel(loaded.resolved.category) : null,
+          channels: channelsOf(loaded.resolved, deps),
           editableCount: fields.filter((field) => field.editable).length,
           editedCount: fields.filter((field) => field.edited).length,
           orphanCount: fields.filter((field) => field.orphan).length,
@@ -141,13 +216,20 @@ export function createOverrideService(deps: OverrideServiceDeps) {
       const { resolved, check } = await requireDefinition(messageKey);
       const problem = checkAdminFieldValue(resolved, fieldPath, value, check);
       if (problem) throw new DomainError(problem.message, { status: 400 });
-      await deps.store.upsert({
-        messageKey,
-        fieldPath,
-        value,
-        codeValue: adminFieldCodeValue(resolved, fieldPath) ?? null,
-        updatedBy: deps.context()?.actorId ?? null,
-      });
+      const actorId = deps.context()?.actorId ?? null;
+      const images = deps.images;
+      const cleanupIds: string[] = [];
+      await deps.store.upsert(
+        { messageKey, fieldPath, value, codeValue: adminFieldCodeValue(resolved, fieldPath) ?? null, updatedBy: actorId },
+        images
+          ? async (tx, row) => {
+              const bound = await bindOverrideImages(images, tx, { ...row, fieldPath, actorUserId: actorId, value });
+              cleanupIds.push(...bound.cleanupIds);
+              return bound.value;
+            }
+          : undefined,
+      );
+      if (images && cleanupIds.length > 0) await images.cleanup(cleanupIds);
       await deps.recordAudit({
         targetType: "message_override",
         targetId: `${messageKey}:${fieldPath}`,
@@ -164,7 +246,14 @@ export function createOverrideService(deps: OverrideServiceDeps) {
     async resetField(messageKey: string, fieldPath: string): Promise<AdminOverrideMessageDetail> {
       await assertAdminActor(deps);
       await requireDefinition(messageKey);
-      const removed = await deps.store.remove(messageKey, fieldPath);
+      const images = deps.images;
+      const cleanupIds: string[] = [];
+      const removed = await deps.store.remove(
+        messageKey,
+        fieldPath,
+        images ? async (tx, row) => void cleanupIds.push(...(await releaseOverrideImages(images, tx, row))) : undefined,
+      );
+      if (images && cleanupIds.length > 0) await images.cleanup(cleanupIds);
       if (!removed) throw new DomainError(`${messageKey} ${fieldPath} は直していません`, { status: 404 });
       await deps.recordAudit({
         targetType: "message_override",

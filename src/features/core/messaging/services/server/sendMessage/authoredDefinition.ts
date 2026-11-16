@@ -1,8 +1,8 @@
 // src/features/core/messaging/services/server/sendMessage/authoredDefinition.ts
 //
 // 管理者が書いた文面(その場で書く連絡・テンプレートを呼び出して直した文面、D85・D92)→ 送る口の定義。両方とも同じ組み方:
-// - 鍵は送るカテゴリーの種別の管理の定義(authored)の鍵(messaging.adminAnnouncement・adminDirect・adminMarketing、admin/freeText.ts。宛名の
-//   enricher displayName もこの鍵に当たる)。種別が announcement・direct・marketing でないカテゴリーは 400(送る時も cron の組み直しも)
+// - 鍵は送るカテゴリーの種別の管理の定義(authored)の鍵(messaging.adminAnnouncement・adminDirect・adminPromotion、admin/freeText.ts。宛名の
+//   enricher displayName もこの鍵に当たる)。種別が announcement・direct・promotion でないカテゴリーは 400(送る時も cron の組み直しも)
 // - 種別と経路は種類から(D86)。経路 = 種類の経路 ∩ その回の絞り、その中に文面の無い経路が 1 つでもあれば 400(黙って落とさない)
 // - 経路ごとの欄は経路の受け口の zod で検査する(fork の経路も)。{{鍵}} = 当たる enrichers の鍵 + テンプレートの版の変数、知らない鍵は 400
 // - 画像(storage://)は文面に自由に入れられる(送る口がお知らせの行を書く時に回へ結ぶ: 自分の上げた画像は attach、ほかは複製)
@@ -120,7 +120,7 @@ export function resolveAuthoredDefinition(
   if (!category) throw new DomainError(`${label} の種類 ${input.category} がありません`, { status: 500 });
   if (!isAdminFreeTextKind(category.kind)) {
     throw new DomainError(
-      `${label} はカテゴリー ${input.category}(種別 ${category.kind})では送れません(announcement・direct・marketing のカテゴリーで送る)`,
+      `${label} はカテゴリー ${input.category}(種別 ${category.kind})では送れません(announcement・direct・promotion のカテゴリーで送る)`,
       { status: 400 },
     );
   }

@@ -54,7 +54,7 @@ export type MessageContent<C extends ChannelFieldSchemas = UpstreamChannelFields
   [K in keyof C]?: z.input<C[K]>;
 };
 
-/** 欄の名前(`<経路>.<欄>`)。adminEditable が使う */
+/** 欄の名前(`<経路>.<欄>`)。adminEditableOnly が使う */
 export type MessageFieldPath<C extends ChannelFieldSchemas = UpstreamChannelFields> = {
   [K in keyof C & string]: `${K}.${keyof z.input<C[K]> & string}`;
 }[keyof C & string];

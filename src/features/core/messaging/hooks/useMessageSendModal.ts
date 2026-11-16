@@ -21,6 +21,8 @@ import { useCallback, useMemo, useState } from "react";
 
 import { useGate } from "@/featureGate/client";
 import { useDomainMutation } from "@/lib/crud/hooks";
+import type { ChannelFieldMeta } from "@/lib/messaging";
+
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
 
 import {
@@ -102,7 +104,14 @@ export type MessageSendResult =
   | { kind: "bulk"; result: AdminBulkSendResult };
 
 /** 送り先の経路 1 つ(カテゴリーの経路) */
-export type MessageSendChannel = { key: string; label: string; on: boolean; blank: boolean };
+export type MessageSendChannel = {
+  key: string;
+  label: string;
+  on: boolean;
+  blank: boolean;
+  /** 経路の欄の表示の約束(選択肢の経路、D83。取れる前は空 = 値の鍵を 1 行で出す) */
+  fieldMeta: Readonly<Record<string, ChannelFieldMeta>>;
+};
 
 /** その場で書く欄の今の部品が書ける経路(欄の作り直しは画面の指令。サーバーは全部の経路の文面を受ける) */
 const newKey = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
@@ -307,6 +316,12 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     for (const channel of (isBulk ? bulkOptions.options?.channels : sendOptions.options?.channels) ?? []) labels[channel.key] = channel.label;
     return labels;
   }, [isBulk, bulkOptions.options, sendOptions.options]);
+  // 経路の欄の表示の約束(D83)。送る・一括送信の選択肢の経路から
+  const channelMeta = useMemo(() => {
+    const meta: Record<string, Readonly<Record<string, ChannelFieldMeta>>> = {};
+    for (const channel of (isBulk ? bulkOptions.options?.channels : sendOptions.options?.channels) ?? []) meta[channel.key] = channel.fieldMeta ?? {};
+    return meta;
+  }, [isBulk, bulkOptions.options, sendOptions.options]);
   const maxDays = sendOptions.options?.maxScheduleDays ?? 90;
 
   const initialDraft = useMemo(() => initialDraftOf(mode, templates), [mode, templates]);
@@ -366,8 +381,9 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
         label: channelLabels[key] ?? key,
         on: !channelsOff.includes(key),
         blank: isBlankChannel(draft, key),
+        fieldMeta: channelMeta[key] ?? {},
       })),
-    [categoryChannels, channelLabels, channelsOff, draft],
+    [categoryChannels, channelLabels, channelMeta, channelsOff, draft],
   );
 
   // ---- 欄の操作 ----

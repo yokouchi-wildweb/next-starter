@@ -98,7 +98,7 @@ export type SendMessageToManyInput = CommonSendInput &
 export type SendAuthoredInput = Omit<SendMessageToManyInput, "recipientVars" | "vars"> & {
   /** 送る文面(経路ごとの欄。経路の受け口の zod で検査し、{{鍵}} を差し込む) */
   content: Record<string, unknown>;
-  /** 送るカテゴリー(種別 announcement・direct・marketing)。種別と経路はこの種類から */
+  /** 送るカテゴリー(種別 announcement・direct・promotion)。種別と経路はこの種類から */
   category: string;
   /** 呼び出したテンプレート(今の公開版でなければ 409)。版の変数の宣言で vars を検査し、回に版を固定する */
   template?: { templateId: string; version: number };
@@ -263,6 +263,11 @@ export type MessageThrottleStore = {
 
 /** 送る口が使う部品 */
 export type MessageSendDeps = {
+  /**
+   * 連絡のドメインが門で開いているか(鍵 <ドメイン>.<名前>、D77)。閉なら送る口は回も配達も作らず disabled を返し、
+   * cron は置いてある行を送らずに先送りする。省略 = 常に開(テストの部品)
+   */
+  domainOpen?: (messageKey: string) => boolean;
   store: MessageSendStore;
   channels: Readonly<Record<string, MessageChannel>>;
   enrichers: Readonly<Record<string, MessageEnricher>>;

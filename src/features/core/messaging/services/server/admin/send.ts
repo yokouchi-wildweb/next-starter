@@ -5,7 +5,7 @@
 //   (今の公開版でなければ 409)・vars? = テンプレートの変数の値(template がある時だけ)。組み方は sendMessage/authoredDefinition.ts
 // - 宛先 target: 全員 / ロール / ユーザーグループ(groupId。門 userGroups が閉・しまった・壊れた・人数の上限は送る口が拒む)/
 //   選んだ利用者(userIds)
-// - カテゴリー(必須): 種別 announcement・direct・marketing のカテゴリーの鍵。宛先の種類は種別の性質 adminFreeText で確かめる
+// - カテゴリー(必須): 種別 announcement・direct・promotion のカテゴリーの鍵。宛先の種類は種別の性質 adminFreeText で確かめる
 //   (./freeText.ts。誤りは 400)。鍵はその種別の authored の定義(messages/admin<Kind>.ts)
 // - 経路: カテゴリーの経路の中の絞り(省略 = 全部、D86)。使う経路はどれも文面が要る(無ければ 400)。LINE・fork の経路も送れる
 // - 予約: scheduledAt(ISO 8601)。過ぎた・遠すぎる時刻は送る口が 400。拾うのは cron の周期(Hobby は 1 日 1 回)
@@ -26,6 +26,7 @@ import type { AnyMessageDefinition } from "../sendMessage/definition";
 import { activeChannel } from "../sendMessage/expand";
 import type { MessagePreview, RecipientEstimate } from "../sendMessage/sender";
 import type { MessageTargetSpec, SendAuthoredInput, SendMessageResult, SendMessageToManyInput } from "../sendMessage/types";
+import type { AdminChannelOption } from "../templates/dto";
 import { assertAdminActor, type AdminCheckDeps } from "./assertAdmin";
 import { adminFreeTextCategoryOf, adminFreeTextCategoryOptions, type AdminFreeTextCategoryOption } from "./freeText";
 
@@ -53,7 +54,7 @@ export const adminContentFields = {
   template: AdminMessageTemplateSchema.optional(),
   /** テンプレートの変数の値(回に 1 組。template がある時だけ) */
   vars: z.record(z.string(), z.unknown()).optional(),
-  /** 送るカテゴリー(種別 announcement・direct・marketing) */
+  /** 送るカテゴリー(種別 announcement・direct・promotion) */
   category: z.string().trim().min(1).max(100),
   /** 送る経路(カテゴリーの経路の中の絞り。省略 = 全部。その中に文言の無い経路があれば 400) */
   channels: z.array(z.string().min(1)).min(1).max(20).optional(),
@@ -106,7 +107,7 @@ export type AdminSendGroupOption = { id: string; label: string; kindLabel: strin
 
 /** 送る画面の選択肢 */
 export type AdminSendOptions = {
-  channels: { key: string; label: string }[];
+  channels: AdminChannelOption[];
   roles: { id: string; label: string }[];
   /** 使用中のユーザーグループ(名前の順、id は値としてだけ。門 userGroups が閉なら空) */
   groups: AdminSendGroupOption[];
@@ -120,7 +121,7 @@ export type AdminSendOptions = {
     content: Record<string, unknown>;
     variables: { key: string; label: string; type: string; required: boolean; default?: unknown; source: string }[];
   }[];
-  /** 送れるカテゴリー(種別 announcement・direct・marketing、宛先の種類で絞る) */
+  /** 送れるカテゴリー(種別 announcement・direct・promotion、宛先の種類で絞る) */
   categories: AdminFreeTextCategoryOption[];
   /** 予約できる日数(config.schedule.maxDaysAhead) */
   maxScheduleDays: number;
@@ -325,7 +326,7 @@ export async function adminSendTest(deps: AdminSendDeps, rawInput: unknown): Pro
 export function adminChannelOptions(channels: Readonly<Record<string, MessageChannel>>): AdminSendOptions["channels"] {
   return Object.keys(channels).flatMap((key) => {
     const channel = activeChannel(channels, key);
-    return channel ? [{ key, label: channel.label }] : [];
+    return channel ? [{ key, label: channel.label, fieldMeta: channel.fieldMeta, previewComponent: channel.previewComponent ?? null }] : [];
   });
 }
 

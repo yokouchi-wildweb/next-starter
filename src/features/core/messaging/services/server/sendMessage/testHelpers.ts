@@ -192,7 +192,7 @@ export function createTestChannel(
   return {
     key,
     label: "テスト",
-    addressing: "user",
+    addressing: "user", fieldMeta: {},
     fields: z.object({ title: z.string(), body: z.string().optional() }).strict(),
     calls,
     async send(targets) {
@@ -227,15 +227,15 @@ export const FIXED_NOW = new Date("2026-11-10T00:00:00.000Z");
 
 /** テストの種類(種別と経路は種類から引く D81・D86)。テストの定義はこの鍵を category に書く */
 export const TEST_CATEGORIES: Readonly<Record<string, MessageCategory>> = {
-  news: { key: "news", label: "お知らせ", kind: "marketing", channels: ["test"] },
+  news: { key: "news", label: "お知らせ", kind: "promotion", channels: ["test"] },
   account: { key: "account", label: "アカウント", kind: "transactional", channels: ["test"] },
   accountEmail: { key: "accountEmail", label: "アカウント(メール)", kind: "functional", channels: ["email"] },
-  newsInApp: { key: "newsInApp", label: "お知らせ(2 経路)", kind: "marketing", channels: ["test", "inApp"] },
+  newsInApp: { key: "newsInApp", label: "お知らせ(2 経路)", kind: "promotion", channels: ["test", "inApp"] },
   chat: { key: "chat", label: "チャット", kind: "transactional", channels: ["inApp", "mail"] },
   chatMail: { key: "chatMail", label: "チャット(メール)", kind: "transactional", channels: ["mail"] },
   shop: { key: "shop", label: "ショップ", kind: "transactional", channels: ["email", "inApp"] },
   shopEmail: { key: "shopEmail", label: "ショップ(メール)", kind: "transactional", channels: ["email"] },
-  marketing: { key: "marketing", label: "キャンペーン情報", kind: "marketing", channels: ["email", "inApp"] },
+  marketing: { key: "promotion", label: "キャンペーン情報", kind: "promotion", channels: ["email", "inApp"] },
   operatorDirect: { key: "operatorDirect", label: "運営からのご連絡", kind: "direct", channels: ["email", "inApp"] },
   directTest: { key: "directTest", label: "個別の連絡(テストの経路)", kind: "direct", channels: ["test"] },
   alert: { key: "alert", label: "セキュリティの警告", kind: "security", channels: ["test"] },

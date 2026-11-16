@@ -16,7 +16,10 @@ import { UserTable } from "@/features/core/user/entities/drizzle";
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
+import { messageDomainOpen } from "../domainGate";
 import { channelFieldSchemas, enricherKeysFor, resolveDefinition } from "../sendMessage/definition";
+import type { OverrideImageLedger } from "./imageBinding";
+import { storageOverrideImageLedger } from "./imageBindingLedger";
 import { createOverrideService } from "./overrideService";
 import { drizzleMessageOverrideStore } from "./store";
 
@@ -27,10 +30,11 @@ const service = createOverrideService({
     const [row] = await db.select({ role: UserTable.role }).from(UserTable).where(eq(UserTable.id, userId)).limit(1);
     return row ? (getRoleCategory(row.role) ?? null) : null;
   },
-  messageKeys: () => Object.keys(messageRegistry),
+  // 閉じたドメインの連絡は一覧に出さず、1 件・保存・戻すは無い連絡と同じ 404(D77)
+  messageKeys: () => Object.keys(messageRegistry).filter(messageDomainOpen),
   async loadDefinition(messageKey) {
     const entry = messageRegistry[messageKey];
-    if (!entry) return null;
+    if (!entry || !messageDomainOpen(messageKey)) return null;
     try {
       const { message } = await entry.definition();
       if (!message) return null;
@@ -47,14 +51,26 @@ const service = createOverrideService({
   },
   recordAudit: (input) => auditLogger.record(input),
   categoryLabel: (category) => categories[category]?.label ?? null,
+  channelInfo(channel) {
+    const item = channels[channel];
+    return item ? { label: item.label, fieldMeta: item.fieldMeta, previewComponent: item.previewComponent } : null;
+  },
+  images: storageOverrideImageLedger as OverrideImageLedger<unknown>,
+  channelPreview(channel, input) {
+    const item = channels[channel];
+    return item?.preview ? item.preview({ ...input, messageKey: input.messageKey as never }) : null;
+  },
 });
 
 export const listMessageOverrides = service.listMessages;
 export const getMessageOverrides = service.getMessage;
 export const saveMessageOverride = service.saveField;
 export const resetMessageOverride = service.resetField;
+export const previewMessageOverride = service.previewMessage;
 
-export { createOverrideService, SaveMessageOverrideInputSchema } from "./overrideService";
+export { createOverrideService, PreviewMessageOverrideInputSchema, SaveMessageOverrideInputSchema } from "./overrideService";
+export { existingOverrideIds } from "./store";
+export { OVERRIDE_IMAGE_RECORD_TYPE } from "./imageBinding";
 export type { OverrideService, OverrideServiceDeps } from "./overrideService";
 export type * from "./dto";
 export type { MessageOverrideRecord, MessageOverrideStore } from "./types";

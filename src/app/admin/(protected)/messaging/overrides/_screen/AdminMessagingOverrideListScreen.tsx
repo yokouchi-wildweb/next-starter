@@ -6,19 +6,20 @@
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
 import type { ScreenProps } from "@/lib/screens/types";
+import { AdminMessagingSectionTabs } from "@/features/core/messaging/components/AdminMessagingSectionTabs";
 import { AdminMessageOverrideList } from "@/features/core/messaging/components/AdminMessageOverrideList";
 
 import { loadAdminMessagingOverrideListScreen } from "./loader";
 
 export const metadata = {
-  title: "文言の編集",
+  title: "システム通知",
 };
 
 export async function AdminMessagingOverrideListScreen(props: ScreenProps) {
   await loadAdminMessagingOverrideListScreen(props);
 
   return (
-    <AdminPage title="文言の編集">
+    <AdminPage title="システム通知" center={<AdminMessagingSectionTabs variant="header" />}>
       <Section>
         <AdminMessageOverrideList />
       </Section>

@@ -123,6 +123,16 @@ export async function updateUserGroup(id: string, input: UpdateUserGroupInput): 
   }
 }
 
+/** アーカイブしたグループを使用中に戻す */
+export async function restoreUserGroup(id: string): Promise<AdminUserGroupDetail> {
+  try {
+    const res = await axios.post<AdminUserGroupDetail>(`${one(id)}/restore`);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "使用中に戻せませんでした");
+  }
+}
+
 /** 保管(一覧の既定と選択肢に出さない) */
 export async function archiveUserGroup(id: string): Promise<AdminUserGroupDetail> {
   try {

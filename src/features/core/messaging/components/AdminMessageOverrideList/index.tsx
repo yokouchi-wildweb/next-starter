@@ -73,9 +73,16 @@ export function AdminMessageOverrideList() {
                 </SoftBadge>
               ) : null}
             </Flex>
+            <Flex align="center" gap="xs" wrap="wrap" data-slot="override-message-channels">
+              {item.channels.map((channel) => (
+                <SoftBadge key={channel.key} variant="outline" size="sm">
+                  {channel.label}
+                </SoftBadge>
+              ))}
+            </Flex>
             <Flex gap="sm" wrap="wrap">
               <Span size="sm" tone="muted">
-                {dispatchKindLabel(item.kind) ?? "-"} / {item.categoryLabel ?? "-"}
+                種類: {dispatchKindLabel(item.kind) ?? "-"} / カテゴリー: {item.categoryLabel ?? "-"}
               </Span>
               <Span size="sm" tone="muted">
                 編集できる項目 {item.editableCount}

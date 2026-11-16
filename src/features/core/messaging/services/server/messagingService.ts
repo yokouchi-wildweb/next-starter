@@ -24,7 +24,7 @@ import {
 import { listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
 import { listUserMessageHistory } from "./history";
 import { inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";
-import { getMessageOverrides, listMessageOverrides, resetMessageOverride, saveMessageOverride } from "./overrides";
+import { getMessageOverrides, listMessageOverrides, previewMessageOverride, resetMessageOverride, saveMessageOverride } from "./overrides";
 import { getMessagePreferences, setMessagePreference } from "./preferences";
 import {
   archiveMessageTemplate,
@@ -101,6 +101,8 @@ export const messagingService = {
   /** 管理画面の文言の上書き(/api/admin/messaging/overrides が呼ぶ。service でも管理者を確かめる): 一覧・1 件・欄の保存・既定に戻す */
   listMessageOverrides,
   getMessageOverrides,
+  /** 文言の編集のプレビュー(未保存の値を重ね、欄に data-field の印、D86) */
+  previewMessageOverride,
   saveMessageOverride,
   resetMessageOverride,
   /** 保存されたテンプレート(/api/admin/messaging/templates が呼ぶ。service でも管理者を確かめる) */

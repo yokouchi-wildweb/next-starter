@@ -41,9 +41,9 @@ export const messageRegistry: MessageRegistry = {
     key: "messaging.adminDirect",
     definition: () => import("@/features/core/messaging/messages/adminDirect"),
   },
-  "messaging.adminMarketing": {
-    key: "messaging.adminMarketing",
-    definition: () => import("@/features/core/messaging/messages/adminMarketing"),
+  "messaging.adminPromotion": {
+    key: "messaging.adminPromotion",
+    definition: () => import("@/features/core/messaging/messages/adminPromotion"),
   },
   "user.earlyRegistrationComplete": {
     key: "user.earlyRegistrationComplete",

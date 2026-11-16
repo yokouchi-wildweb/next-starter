@@ -15,7 +15,7 @@ import type { AdminUserGroupDetail, AdminUserGroupSummary } from "../services/cl
 import { useUserGroups } from "./useUserGroups";
 
 /** モーダルの操作 */
-export type UserGroupAction = "create" | "update" | "archive" | "members" | "exceptions";
+export type UserGroupAction = "create" | "update" | "archive" | "restore" | "members" | "exceptions";
 
 /** 1 件の詳しい形から一覧の行の形へ */
 export function userGroupSummaryOf(group: AdminUserGroupDetail): AdminUserGroupSummary {

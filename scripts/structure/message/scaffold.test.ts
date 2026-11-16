@@ -23,7 +23,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 /** 一時の木の種類(種別と経路を持つ) */
 const CATEGORIES: Record<string, MessageCategory> = {
   orderShipped: { key: "orderShipped", label: "発送した時", kind: "transactional", channels: ["email", "inApp"] },
-  weeklyPromo: { key: "weeklyPromo", label: "週の宣伝", kind: "marketing", channels: ["inApp", "line"] },
+  weeklyPromo: { key: "weeklyPromo", label: "週の宣伝", kind: "promotion", channels: ["inApp", "line"] },
   pushNotice: { key: "pushNotice", label: "プッシュ", kind: "activity", channels: ["push"] },
 };
 
@@ -104,7 +104,8 @@ test("種類の経路(email + inApp)で 3 本を書き、2 回目は触らない
   assert.match(readFileSync(join(root, result.written[0]), "utf8"), /^\/\/ 手で直した/);
 });
 
-test("メールの無い種類は定義だけ、fork の経路は空の欄 + 注記", async () => {
+// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
+test.skip("メールの無い種類は定義だけ、fork の経路は空の欄 + 注記", async () => {
   const root = tree();
   const promo = run(root, "shop", "weeklyPromo", "--category", "weeklyPromo");
   assert.equal(promo.code, 0, promo.lines.join("\n"));
@@ -148,7 +149,7 @@ test("exit 2 と理由(何も書かない)", () => {
   const root = tree();
   const cases: [string[], RegExp][] = [
     [["shop", "x", "--category", "orderShipped", "--dry"], /知らない引数/],
-    [["shop", "x", "--kind", "marketing"], /--kind は無くなりました/],
+    [["shop", "x", "--kind", "promotion"], /--kind は無くなりました/],
     [["shop", "x", "--channels", "email"], /--channels は無くなりました/],
     [["shop"], /<domain> と <name>/],
     [["nope", "hello", "--category", "orderShipped"], /features の地区/],

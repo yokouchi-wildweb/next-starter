@@ -56,6 +56,7 @@ export {
   type MessageDefinitionProblemCode,
 } from "./definition/validate";
 export {
+  adminEditablePaths,
   adminFieldAllowedKeys,
   adminFieldCodeValue,
   applyAdminFieldValues,
@@ -67,6 +68,8 @@ export {
 } from "./definition/adminFields";
 export type {
   ChannelAddress,
+  ChannelFieldInput,
+  ChannelFieldMeta,
   ChannelSendResult,
   ChannelSendTarget,
   ChannelWebhook,

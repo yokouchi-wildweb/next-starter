@@ -43,8 +43,8 @@ const detail = (extra: Record<string, unknown> = {}) => ({
 });
 const OPTIONS = {
   channels: [
-    { key: "email", label: "メール" },
-    { key: "inApp", label: "お知らせ" },
+    { key: "email", label: "メール", fieldMeta: {}, previewComponent: null },
+    { key: "inApp", label: "お知らせ", fieldMeta: {}, previewComponent: null },
   ],
   categories: [{ key: "marketing", label: "お知らせ", description: null }],
   baseAllowedKeys: ["serviceName", "displayName"],

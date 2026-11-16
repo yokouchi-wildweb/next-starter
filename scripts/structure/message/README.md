@@ -7,7 +7,7 @@ pnpm generate message -- <domain> <name> --category <key> --label <名前> [--co
 ```
 
 - 書く物(無い時だけ。あれば触らず「残しました」と出して exit 0):
-  - `src/features/<domain>/messages/<name>.ts` — 定義(`defineMessage`。鍵 `<domain>.<name>`・category・例の vars 1 つ・種類の経路ごとの欄。種別と経路は書かない = 種類から引く D81・D86)。秘密の値(`secretVar`)・管理画面で直せる欄(`adminEditable`)・会話の間引き(`throttle`)・本文の残し方(`record`)は注記の行で案内するだけで付けない
+  - `src/features/<domain>/messages/<name>.ts` — 定義(`defineMessage`。鍵 `<domain>.<name>`・category・例の vars 1 つ・種類の経路ごとの欄。種別と経路は書かない = 種類から引く D81・D86)。秘密の値(`secretVar`)・管理画面で直せる欄の絞り(`adminEditableOnly`、無ければ全部の欄を直せる)・会話の間引き(`throttle`)・本文の残し方(`record`)は注記の行で案内するだけで付けない
   - `messages/views/<name>.tsx` — メールの描き方の 1 行スイッチ(`export { EmailView } from "./<name>.default"`)
   - `messages/views/<name>.default.tsx` — 既定の描き方(lib/mail の部品。メールの経路の既定と同じ見た目)。email の無い連絡は描き方を書かない
 - 書いた時は `pnpm generate registry`(`src/registry/messageRegistry.ts`)と `pnpm generate extensions`(1 行スイッチの受け口の一覧の行)を回す

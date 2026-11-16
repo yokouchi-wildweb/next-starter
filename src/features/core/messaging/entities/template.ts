@@ -30,7 +30,7 @@ export const MessageTemplateTable = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     /** 種類の鍵（配信停止の単位） */
-    category: text("category").notNull().default("marketing"),
+    category: text("category").notNull().default("promotion"),
     /** 経路ごとの欄（lib/messaging の MessageContent と同じ形。鍵 = 文言のある経路） */
     content: jsonb("content").$type<MessageContent>().notNull(),
     /** 送る時に入れる値と受信者ごとの値の宣言 */
