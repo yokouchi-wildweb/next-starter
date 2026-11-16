@@ -63,7 +63,7 @@ beforeEach(() => {
       { key: "campaign", optedOut: false },
       { key: "likes", optedOut: false },
     ],
-    kinds: [{ kind: "marketing", optedOut: true }],
+    kinds: [{ kind: "promotion", optedOut: true }],
     channels: [
       {
         key: "email", label: "メール", hasAddress: true, connectHref: null, optedOut: false,
@@ -72,12 +72,12 @@ beforeEach(() => {
             { key: null, label: null, categories: [cat("likes", "いいね")] },
             { key: "social", label: "つながり", categories: [cat("follows", "フォロー")] },
           ] },
-          { kind: "marketing", groups: [{ key: null, label: null, categories: [cat("campaign", "キャンペーン", true, "kind")] }] },
+          { kind: "promotion", groups: [{ key: null, label: null, categories: [cat("campaign", "キャンペーン", true, "kind")] }] },
         ],
       },
       {
         key: "line", label: "LINE", hasAddress: false, connectHref: "/api/auth/line/login", optedOut: false,
-        kinds: [{ kind: "marketing", groups: [{ key: null, label: null, categories: [cat("campaign", "キャンペーン")] }] }],
+        kinds: [{ kind: "promotion", groups: [{ key: null, label: null, categories: [cat("campaign", "キャンペーン")] }] }],
       },
     ],
   };
@@ -99,11 +99,10 @@ const order = (c: HTMLElement, parts: string[]) => {
   assert.deepEqual([...at].sort((a, b) => a - b), at, `並びが違う: ${parts.join(" > ")}`);
 };
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("並び: 経路 > 種別の枠 > グループ(無い方が先)> 種類。種別の枠にスイッチは無い", async () => {
+test("並び: 経路 > 種別の枠 > グループ(無い方が先)> 種類。種別の枠にスイッチは無い", async () => {
   const view = await mount();
-  order(view.container, ["すべての通知を受け取らない", "メール", "ご利用に伴うお知らせ", "いいね", "つながり", "フォロー", "キャンペーン情報", "キャンペーン", "LINE"]);
-  assert.equal(byLabel(view.container, "キャンペーン情報"), null, "種別のスイッチは無い");
+  order(view.container, ["すべての通知を受け取らない", "メール", "アクティビティ", "いいね", "つながり", "フォロー", "プロモーション", "キャンペーン", "LINE"]);
+  assert.equal(byLabel(view.container, "プロモーション"), null, "種別のスイッチは無い");
   await view.unmount();
 });
 

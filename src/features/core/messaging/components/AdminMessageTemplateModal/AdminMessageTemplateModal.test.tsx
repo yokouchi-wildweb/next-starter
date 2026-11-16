@@ -18,6 +18,10 @@ g.HTMLElement = dom.window.HTMLElement;
 g.Node = dom.window.Node;
 g.MouseEvent = dom.window.MouseEvent;
 g.IS_REACT_ACT_ENVIRONMENT = true;
+// 経路のタブ(StateTabs = Radix Tabs・Presence)が読むブラウザの API(D80 の 2 つの欄)
+g.getComputedStyle = dom.window.getComputedStyle.bind(dom.window);
+g.requestAnimationFrame = dom.window.requestAnimationFrame.bind(dom.window);
+g.cancelAnimationFrame = dom.window.cancelAnimationFrame.bind(dom.window);
 g.IntersectionObserver = class {
   observe() {}
   unobserve() {}
@@ -155,12 +159,14 @@ const render = async (element: ReturnType<typeof createElement>) => {
   await act(async () => root.render(element));
   return { container, unmount: () => act(async () => root.unmount()) };
 };
-const texts = (container: HTMLElement) => [...container.querySelectorAll("button")].map((b) => (b.textContent ?? "").trim());
+// 帯の操作のボタン(内容のタブの送信方法のタブ = role="tab" は除く。D80 の 2 つの欄)
+const actionButtons = (container: HTMLElement) => [...container.querySelectorAll<HTMLButtonElement>("button:not([role=tab])")];
+const texts = (container: HTMLElement) => actionButtons(container).map((b) => (b.textContent ?? "").trim());
+const channelTabs = (container: HTMLElement) => [...container.querySelectorAll("[role=tab]")].map((b) => (b.textContent ?? "").trim());
 const tabValues = () => (tabbed!.tabs as { value: string }[]).map((t) => t.value);
 const open = { open: true, onOpenChange: (v: boolean) => events.push(`open:${v}`) };
 
-// D69: restore before ship (J99 back: editor layout needs jsdom getComputedStyle / detail.channels in fixtures)
-test.skip("作る: 文言・変数のタブ、帯は「下書きを作成」、confirmOnClose と onCreated を渡す", async () => {
+test("作る: 文言・変数のタブ、帯は「下書きを作成」、confirmOnClose と onCreated を渡す", async () => {
   const view = await render(createElement(AdminMessageTemplateModal, open));
   assert.deepEqual(tabValues(), ["text", "variables"]);
   assert.deepEqual(tabbed!.confirmOnClose, { enabled: true, message: "書きかけ" });
@@ -170,16 +176,16 @@ test.skip("作る: 文言・変数のタブ、帯は「下書きを作成」、c
   assert.match(view.container.textContent ?? "", /カテゴリー/);
   assert.doesNotMatch(view.container.textContent ?? "", /種類/);
   assert.equal(view.container.querySelector("#template-key"), null, "鍵は打たせない(サーバーが作る)");
+  assert.deepEqual(channelTabs(view.container), ["メール"], "内容のタブは送信方法ごとのタブ(使える経路を全部、D85)");
   assert.deepEqual(texts(view.container), ["下書きを作成"]);
-  await act(async () => (view.container.querySelector("button") as HTMLButtonElement).click());
+  await act(async () => actionButtons(view.container)[0].click());
   assert.deepEqual(events, ["save"]);
   (tabbed!.onValueChange as (v: string) => void)("variables");
   assert.deepEqual(events.at(-1), "tab:variables");
   await view.unmount();
 });
 
-// D69: restore before ship
-test.skip("直す: バージョン履歴のタブ(帯なし)、取り下げ・公開は ConfirmPopover", async () => {
+test("直す: バージョン履歴のタブ(帯なし)、取り下げ・公開は ConfirmPopover", async () => {
   modalState = { ...baseModal(), mode: "edit", template: TEMPLATE };
   formState = { ...baseForm(), dirty: false, canPublish: true };
   const view = await render(createElement(AdminMessageTemplateModal, { ...open, templateId: "t1" }));
@@ -187,15 +193,14 @@ test.skip("直す: バージョン履歴のタブ(帯なし)、取り下げ・�
   assert.equal((tabbed!.tabs as { value: string; footer?: unknown }[])[2].footer, null);
   assert.deepEqual(texts(view.container), ["アーカイブ", "ok:アーカイブする", "公開", "ok:公開する", "保存"]);
   const click = async (label: string) =>
-    act(async () => [...view.container.querySelectorAll("button")].find((b) => b.textContent === label)!.click());
-  await click("ok:取り下げる");
+    act(async () => actionButtons(view.container).find((b) => b.textContent === label)!.click());
+  await click("ok:アーカイブする");
   await click("ok:公開する");
   assert.deepEqual(events, ["archive", "publish"]);
   await view.unmount();
 });
 
-// D69: restore before ship (J99 back: editor layout needs jsdom getComputedStyle / detail.channels in fixtures)
-test.skip("取り下げた: 帯の操作なし / 読み込み中・見つからないは普通の Modal", async () => {
+test("取り下げた: 帯の操作なし / 読み込み中・見つからないは普通の Modal", async () => {
   modalState = { ...baseModal(), mode: "edit", template: { ...TEMPLATE, status: "archived" } };
   formState = { ...baseForm(), archived: true, dirty: false };
   const view = await render(createElement(AdminMessageTemplateModal, { ...open, templateId: "t1" }));

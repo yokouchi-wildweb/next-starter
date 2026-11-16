@@ -19,6 +19,9 @@ g.IS_REACT_ACT_ENVIRONMENT = true;
 
 const field = (path: string, effective: unknown, extra: Record<string, unknown> = {}) => ({
   path,
+  channel: path.split(".")[0],
+  field: path.split(".")[1],
+  meta: { label: path, input: "line" },
   editable: true,
   codeValue: effective,
   value: null,
@@ -32,20 +35,31 @@ const field = (path: string, effective: unknown, extra: Record<string, unknown> 
 });
 const detail = () => ({
   key: "user.registrationComplete",
+  label: "登録の完了",
   kind: "transactional",
   category: "account",
+  categoryLabel: null,
   allowedKeys: ["displayName", "serviceName"],
-  fields: [field("email.subject", "ようこそ {{serviceName}}"), field("email.paragraphs", ["a", "b"])],
+  // J99(D83): 経路の一覧と欄の表示の約束(fieldMeta)
+  channels: [{ key: "email", label: "メール", previewComponent: null }],
+  fields: [
+    field("email.subject", "ようこそ {{serviceName}}"),
+    field("email.paragraphs", ["a", "b"], { meta: { label: "段落", input: "text", list: true } }),
+  ],
 });
 
 let listCalls = 0;
 let detailCalls = 0;
 const saves: { key: string; input: unknown }[] = [];
 const resets: { key: string; path: string }[] = [];
+const previews: { key: string; input: unknown }[] = [];
 mock.module("@/features/core/messaging/services/client/overrideClient", {
   namedExports: {
-    // J99: the editor hook asks for a preview (D86); D69: no assertion on it until the tests are restored
-    previewMessageOverride: async (_key: string, input: { channel: string }) => ({ channel: input.channel, html: null, text: null }),
+    // J99(D86): 編集の hook が下書きを重ねたプレビューを取る
+    previewMessageOverride: async (key: string, input: { channel: string }) => {
+      previews.push({ key, input });
+      return { channel: input.channel, html: `<p>${input.channel}</p>`, text: null };
+    },
     listMessageOverrides: async () => {
       listCalls += 1;
       return [{ key: "user.registrationComplete", kind: "transactional", category: "account", editableCount: 3, editedCount: 0, orphanCount: 0, codeChangedCount: 0 }];
@@ -90,6 +104,7 @@ beforeEach(() => {
   detailCalls = 0;
   saves.length = 0;
   resets.length = 0;
+  previews.length = 0;
   guarded.length = 0;
 });
 
@@ -114,6 +129,9 @@ const mount = async <T,>(useHook: () => T) => {
   return { value: () => latest.current!, unmount: () => act(async () => root.unmount()) };
 };
 
+/** プレビューの待ち(400ms)の後まで進める */
+const waitPreview = () => act(async () => new Promise((r) => setTimeout(r, 450)));
+
 test("unknownKeysOf / toEditable", () => {
   assert.deepEqual(hooks.unknownKeysOf("{{a}} {{b}} {{a}}", ["a"]), ["b"]);
   assert.deepEqual(hooks.unknownKeysOf(["{{x}}", "{{y}}"], ["y"]), ["x"]);
@@ -128,14 +146,23 @@ test("useMessageOverrides: 一覧を取る", async () => {
   await view.unmount();
 });
 
-// D69: restore before ship (J99 back: editor layout needs jsdom getComputedStyle / detail.channels in fixtures)
-test.skip("useMessageOverrideEditor: 下書き・知らない鍵・保存・元の文言に戻す・離れる前の確認", async () => {
+test("useMessageOverrideEditor: 下書き・知らない鍵・保存・元の文言に戻す・離れる前の確認", async () => {
   const view = await mount(() => ({ editor: hooks.useMessageOverrideEditor("user.registrationComplete"), list: hooks.useMessageOverrides() }));
   const editor = () => view.value().editor;
   const [subject, paragraphs] = editor().detail!.fields;
   assert.equal(editor().valueOf(subject), "ようこそ {{serviceName}}");
   assert.equal(editor().hasDrafts, false);
   assert.equal(guarded.at(-1), false);
+  // 2 つの欄の編集(D80 / D86): 初めは最初の経路、少し待ってプレビューを取る
+  assert.equal(editor().activeChannel, "email");
+  assert.deepEqual(editor().activeFields.map((f) => f.path), ["email.subject", "email.paragraphs"]);
+  assert.deepEqual(editor().activeFieldMeta.paragraphs, { label: "段落", input: "text", list: true });
+  await waitPreview();
+  assert.deepEqual(previews, [{ key: "user.registrationComplete", input: { channel: "email", values: {} } }]);
+  assert.equal(editor().previewHtml, "<p>email</p>");
+  assert.equal(editor().previewLoading, false);
+  await act(async () => editor().setFocusedPath("email.subject"));
+  assert.equal(editor().focusedPath, "email.subject");
 
   await act(async () => editor().setDraft(subject, "やあ {{nickname}}"));
   assert.equal(editor().isDirty(subject), true);
@@ -147,6 +174,10 @@ test.skip("useMessageOverrideEditor: 下書き・知らない鍵・保存・元�
   assert.equal(editor().isDirty(subject), false);
 
   await act(async () => editor().setDraft(paragraphs, ["a2", "b"]));
+  assert.equal(editor().previewLoading, true, "下書きが変われば描き直し中");
+  await waitPreview();
+  assert.deepEqual(previews.at(-1), { key: "user.registrationComplete", input: { channel: "email", values: { "email.paragraphs": ["a2", "b"] } } });
+  assert.equal(editor().previewLoading, false);
   const beforeDetail = detailCalls;
   const beforeList = listCalls;
   await act(async () => {

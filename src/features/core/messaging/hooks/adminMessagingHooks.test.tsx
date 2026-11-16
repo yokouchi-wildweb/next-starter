@@ -1,9 +1,10 @@
-// @ts-nocheck D69: restore before ship (J101: delete replaces cancel / retract, flags canDelete / canResend / canContinue, deletedAt)
 // 管理の送信と回の hook の検査(jsdom の上で描く。client service は偽物)。
 // - useAdminDispatches: 絞り込みを毎回渡し、先頭は cursor なし、続きは前の nextCursor、null で終端
 // - useAdminDispatchDeliveries: 回の id と絞り込みを渡す
 // - useContinueDispatch: client を呼び、回 1 件(useAdminDispatch)を取り直す
-// - useCancelDispatch / useRetractDispatch / useResendDispatch: client を呼び、回 1 件を取り直す
+// - useDeleteDispatch / useResendDispatch: client を呼び、回 1 件を取り直す(D88: 取り消し・取り下げは削除に替わった)
+// - useDispatchDeleteSummary: 確認を開いている間(enabled かつ ids あり)だけ見込みを取る
+// - useBulkDeleteDispatches: client を呼び、消せた id を返して知らせる(できなかった分も数える)、失敗は知らせて空
 // - 一括送信の流れは送るモーダルの hook(sendModalHooks.test.tsx)
 // 実行: pnpm test src/features/core/messaging/hooks/adminMessagingHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -31,12 +32,28 @@ const sends: Record<string, unknown>[] = [];
 let detailCalls = 0;
 let continues = 0;
 const operations: unknown[][] = [];
+let failBulk = false;
 mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
   namedExports: {
-    // J102(D88): the delete hooks import these; D69: no assertion on them until the tests are restored
-    deleteAdminDispatch: async (id: string) => ({ dispatchId: id, alreadyDeleted: false, canceledDeliveries: 0, removed: [], failedChannels: [] }),
-    bulkDeleteAdminDispatches: async () => ({ results: [] }),
-    adminDispatchDeleteSummary: async () => ({ found: 0, deleted: 0, scheduled: 0, unsent: 0, channels: [], sharedInbox: 0 }),
+    deleteAdminDispatch: async (id: string) => {
+      operations.push(["delete", id]);
+      return { dispatchId: id, alreadyDeleted: false, canceledDeliveries: 2, removed: [{ channel: "inApp", removed: 1 }], failedChannels: [] };
+    },
+    bulkDeleteAdminDispatches: async (ids: readonly string[]) => {
+      operations.push(["bulkDelete", [...ids]]);
+      if (failBulk) throw new Error("だめ");
+      return {
+        results: ids.map((id) =>
+          id === "locked"
+            ? { dispatchId: id, ok: false, reason: "not_found", message: "見つかりません" }
+            : { dispatchId: id, ok: true, result: { dispatchId: id, alreadyDeleted: false, canceledDeliveries: 0, removed: [], failedChannels: [] } },
+        ),
+      };
+    },
+    adminDispatchDeleteSummary: async (ids: readonly string[]) => {
+      operations.push(["deleteSummary", [...ids]]);
+      return { found: ids.length, deleted: 0, scheduled: 1, unsent: 2, channels: [{ key: "inApp", label: "お知らせ", removable: true, sent: 3 }], sharedInbox: 0 };
+    },
     listAdminDispatches: async (params: Record<string, unknown>) => {
       listCalls.push(params);
       if (!params.cursor) return { items: [summary("a"), summary("b")], nextCursor: "cur-b" };
@@ -48,19 +65,11 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
     },
     getAdminDispatch: async (id: string) => {
       detailCalls += 1;
-      return { id, status: "processing" };
+      return { id, status: "processing", deletedAt: null, operations: { canDelete: { allowed: true, reason: null }, canResend: { allowed: true, reason: null, mode: "requeue", failed: 1, unknown: 0 }, canContinue: { allowed: true, reason: null } } };
     },
     continueAdminDispatch: async () => {
       continues += 1;
       return { expanded: false, claimed: 1, sent: 1, failed: 0, completed: false };
-    },
-    cancelAdminDispatch: async (id: string) => {
-      operations.push(["cancel", id]);
-      return { dispatchId: id, status: "cancelled" };
-    },
-    retractAdminDispatch: async (id: string) => {
-      operations.push(["retract", id]);
-      return { dispatchId: id, deletedInboxItems: 1, canceledDeliveries: 2, detachedImages: 0 };
     },
     resendAdminDispatch: async (id: string, input: unknown) => {
       operations.push(["resend", id, input]);
@@ -78,7 +87,8 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
     },
   },
 });
-mock.module("@/lib/toast", { namedExports: { useToast: () => ({ showToast: () => {} }) } });
+const toasts: string[] = [];
+mock.module("@/lib/toast", { namedExports: { useToast: () => ({ showToast: (m: string, kind: string) => void toasts.push(`${kind}:${m}`) }) } });
 
 let act: typeof import("react").act;
 let createRoot: typeof import("react-dom/client").createRoot;
@@ -98,6 +108,8 @@ beforeEach(() => {
   detailCalls = 0;
   continues = 0;
   operations.length = 0;
+  toasts.length = 0;
+  failBulk = false;
 });
 
 const mount = async <T,>(useHook: () => T) => {
@@ -154,29 +166,75 @@ test("useContinueDispatch: client を呼び、回 1 件を取り直す", async (
   await view.unmount();
 });
 
-// D69: restore before ship (J101: delete replaces cancel / retract, flags canDelete / canResend / canContinue, deletedAt)
-test.skip("取り消し・取り下げ・再送の hook: client を呼び、回 1 件を取り直す", async () => {
+test("削除・再送の hook: client を呼び、回 1 件を取り直す", async () => {
   const view = await mount(() => ({
     one: hooks.useAdminDispatch("disp-1"),
-    cancel: hooks.useCancelDispatch("disp-1"),
-    retract: hooks.useRetractDispatch("disp-1"),
+    remove: hooks.useDeleteDispatch("disp-1"),
     resend: hooks.useResendDispatch("disp-1"),
   }));
+  assert.equal(view.value().one.dispatch?.operations.canDelete.allowed, true);
   const before = detailCalls;
   await act(async () => {
-    await view.value().cancel.trigger();
+    const res = await view.value().remove.trigger();
+    assert.equal(res.canceledDeliveries, 2);
   });
-  const afterCancel = detailCalls;
-  assert.ok(afterCancel > before, "取り消しの後に回を取り直す");
+  const afterDelete = detailCalls;
+  assert.ok(afterDelete > before, "削除の後に回を取り直す");
   await act(async () => {
-    await view.value().retract.trigger();
-    await view.value().resend.trigger({ includeUnknown: true });
+    const res = await view.value().resend.trigger({ includeUnknown: true });
+    assert.equal(res.mode, "requeue");
   });
   assert.deepEqual(operations, [
-    ["cancel", "disp-1"],
-    ["retract", "disp-1"],
+    ["delete", "disp-1"],
     ["resend", "disp-1", { includeUnknown: true }],
   ]);
-  assert.ok(detailCalls > afterCancel, "取り下げ・再送の後も回を取り直す");
+  assert.ok(detailCalls > afterDelete, "再送の後も回を取り直す");
+  await view.unmount();
+});
+
+test("useDispatchDeleteSummary: 確認を開いている間(enabled かつ ids あり)だけ見込みを取る", async () => {
+  const closed = await mount(() => hooks.useDispatchDeleteSummary(["b", "a"], false));
+  const empty = await mount(() => hooks.useDispatchDeleteSummary([], true));
+  assert.equal(closed.value().summary, null);
+  assert.equal(empty.value().summary, null);
+  assert.deepEqual(operations, [], "閉じている間・ids が空の間は取らない");
+  await closed.unmount();
+  await empty.unmount();
+
+  const open = await mount(() => hooks.useDispatchDeleteSummary(["b", "a"], true));
+  await act(async () => new Promise((r) => setTimeout(r, 0)));
+  assert.deepEqual(operations, [["deleteSummary", ["b", "a"]]]);
+  assert.equal(open.value().summary?.found, 2);
+  assert.equal(open.value().summary?.unsent, 2);
+  assert.equal(open.value().isLoading, false);
+  assert.equal(open.value().error, null);
+  await open.unmount();
+});
+
+test("useBulkDeleteDispatches: 消せた id を返して知らせる、できなかった分も数える、失敗は知らせて空", async () => {
+  const view = await mount(() => hooks.useBulkDeleteDispatches());
+  assert.equal(hooks.DISPATCH_DELETE_MAX, 100);
+  let done: string[] = [];
+  await act(async () => {
+    done = await view.value().remove(["a", "b"]);
+  });
+  assert.deepEqual(done, ["a", "b"]);
+  assert.equal(toasts.at(-1), "success:2 件を削除しました");
+  await act(async () => {
+    done = await view.value().remove(["a", "locked"]);
+  });
+  assert.deepEqual(done, ["a"]);
+  assert.equal(toasts.at(-1), "warning:1 件を削除しました(1 件は削除できませんでした)");
+  failBulk = true;
+  await act(async () => {
+    done = await view.value().remove(["a"]);
+  });
+  assert.deepEqual(done, []);
+  assert.equal(toasts.at(-1), "error:だめ");
+  assert.deepEqual(operations, [
+    ["bulkDelete", ["a", "b"]],
+    ["bulkDelete", ["a", "locked"]],
+    ["bulkDelete", ["a"]],
+  ]);
   await view.unmount();
 });
