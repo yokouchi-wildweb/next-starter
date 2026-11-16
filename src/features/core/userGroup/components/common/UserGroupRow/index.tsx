@@ -46,9 +46,20 @@ export function UserGroupRow({ group, onOpen }: UserGroupRowProps) {
             {group.kindLabel}
           </Span>
           <Flex align="center" gap="xs" wrap="wrap">
-            <Span size="sm" data-slot="user-group-count">
-              {userGroupCountText(group.count)}
-            </Span>
+            {group.count.state === "estimated" ? (
+              <>
+                <Span size="sm" data-slot="user-group-count">
+                  {`約 ${(group.count.value ?? 0).toLocaleString("ja-JP")} 人`}
+                </Span>
+                <Span size="sm" tone="muted">
+                  (見積もり)
+                </Span>
+              </>
+            ) : (
+              <Span size="sm" data-slot="user-group-count">
+                {userGroupCountText(group.count)}
+              </Span>
+            )}
             {group.recompute ? <UserGroupRecomputeStatus recompute={group.recompute} inline /> : null}
           </Flex>
         </Flex>
