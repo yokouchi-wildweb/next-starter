@@ -11,7 +11,7 @@ import { getAuditContext } from "@/lib/audit";
 import { db } from "@/lib/drizzle";
 
 import { userGroupConfig } from "../../../config";
-import { criteria } from "../../../extensions/criteria";
+import { activeCriteria as criteria } from "../activeCriteria";
 import { createUserGroupEvaluator, userGroupEvaluator } from "../evaluation";
 import { staticMemberWriter } from "../writes";
 import { createUserGroupAdminService } from "./adminService";

@@ -18,6 +18,9 @@ export type UserGroupCriterionContext = { now: Date };
  * - fields: 管理画面の条件の欄(フォームの欄の型。name = args の鍵)
  * - weight: cheap = 1 人の確かめ・その場の評価に使える / heavy = 重い(含む動的グループは 1 人の確かめを拒み、定期計算にすれば使える)
  * - where: users の行への SQL の述語(users の列を読む。他の表は EXISTS の副問い合わせで)
+ * - enabled: false = 使わない(fork は上流の部品の隣の <名前>.override.ts で enabled・label・description を変えられる。
+ *   inStaticGroup は止められない = 例外の人と静的グループの条件が使う)
+ * - available: 部品が読む機能が開いているか(例: 購入金額の合計は門 payment)。false の間は部品の一覧に無い(呼ぶたびに読む)
  */
 export type UserGroupCriterion<Args extends z.ZodTypeAny = z.ZodTypeAny> = {
   key: string;
@@ -26,6 +29,8 @@ export type UserGroupCriterion<Args extends z.ZodTypeAny = z.ZodTypeAny> = {
   args: Args;
   fields: readonly FieldConfig[];
   weight: "cheap" | "heavy";
+  enabled?: boolean;
+  available?: () => boolean;
   // メソッドの書き方(引数の型が項目ごとに違っても一覧 Record<string, UserGroupCriterion> に入る)
   where(args: z.infer<Args>, ctx: UserGroupCriterionContext): SQL;
 };

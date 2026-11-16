@@ -6,7 +6,7 @@ import { createDeadline } from "@/lib/cron";
 import { db } from "@/lib/drizzle";
 
 import { userGroupConfig } from "../../../config";
-import { criteria } from "../../../extensions/criteria";
+import { activeCriteria as criteria } from "../activeCriteria";
 import { createUserGroupRecompute, type UserGroupRecomputeResult } from "./recompute";
 
 const recompute = createUserGroupRecompute({ db, criteria, config: userGroupConfig, now: () => new Date() });

@@ -39,7 +39,6 @@ before(async () => {
   ({ createRoot } = await import("react-dom/client"));
   ({ UserGroupCriterionFields } = await import("./index"));
   criteria = [
-    (await import("../../../criteria/status")).criterion,
     (await import("../../../criteria/signupPeriod")).criterion,
     (await import("../../../criteria/lastLoginPeriod")).criterion,
     (await import("../../../criteria/hasTag")).criterion,

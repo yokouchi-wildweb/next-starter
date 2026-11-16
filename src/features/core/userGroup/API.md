@@ -59,7 +59,7 @@
   - `from` = `{ type: "users", userIds }` / `{ type: "group", groupId }`（別のグループの今の一員）/ `{ type: "tag", tagId }`（タグの今の持ち主）
   - 1 回の要求の予算は `admin.freezeBudgetMs`。`members.status` が `incomplete` なら、画面が同じ `from` で `{ mode: "replace" }` を送り直すと続きから書く（サーバーは元を覚えない）
 - `GET /api/admin/user-groups/[id]/members?cursor&limit` → `{ items: [{ id, name }], nextCursor }`（静的だけ、`limit` 1〜100 既定 50、削除した利用者は出さない）
-- `GET /api/admin/user-groups/criteria` → `{ criteria: [{ key, label, description, weight, weightLabel, fields }], options: { roles, statuses, tags, staticGroups }, kinds }`。タグ・静的グループの選択肢は `fields` にも入れて返す（`admin.optionsLimit` 件まで）
+- `GET /api/admin/user-groups/criteria` → `{ criteria: [{ key, label, description, weight, weightLabel, fields }], options: { tags, staticGroups }, kinds }`（使える部品だけ: `enabled: false`・読む機能が閉の部品は出ない）。タグ・静的グループの選択肢は `fields` にも入れて返す（`admin.optionsLimit` 件まで）
 - 監査（`targetType` `user_group`、操作した管理者が actor、metadata は名前・種類・数だけで利用者 id は入れない）: `user_group.group.created` / `updated` / `archived`・`user_group.exceptions.updated`・`user_group.members.replaced` / `added` / `removed`
 
 ### 管理画面の部品と hook
