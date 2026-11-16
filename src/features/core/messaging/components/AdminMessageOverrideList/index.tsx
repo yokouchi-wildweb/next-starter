@@ -38,7 +38,7 @@ export function AdminMessageOverrideList() {
   if (items.length === 0) {
     return (
       <Para tone="muted" align="center">
-        文言を直せる連絡はありません
+        文言を編集できる通知はありません
       </Para>
     );
   }
@@ -59,17 +59,17 @@ export function AdminMessageOverrideList() {
               <Span weight="semiBold">{item.label}</Span>
               {item.editedCount > 0 ? (
                 <SoftBadge variant="info" size="sm">
-                  直した {item.editedCount}
+                  編集済み {item.editedCount}
                 </SoftBadge>
               ) : null}
               {item.codeChangedCount > 0 ? (
                 <SoftBadge variant="warning" size="sm">
-                  コードが変わった {item.codeChangedCount}
+                  元の文言が更新 {item.codeChangedCount}
                 </SoftBadge>
               ) : null}
               {item.orphanCount > 0 ? (
                 <SoftBadge variant="destructive" size="sm">
-                  孤立 {item.orphanCount}
+                  使われていない {item.orphanCount}
                 </SoftBadge>
               ) : null}
             </Flex>
@@ -78,7 +78,7 @@ export function AdminMessageOverrideList() {
                 {dispatchKindLabel(item.kind) ?? "-"} / {item.categoryLabel ?? "-"}
               </Span>
               <Span size="sm" tone="muted">
-                直せる欄 {item.editableCount}
+                編集できる項目 {item.editableCount}
               </Span>
             </Flex>
           </Stack>

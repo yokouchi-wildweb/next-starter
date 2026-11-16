@@ -11,14 +11,14 @@ import { AdminDispatchList } from "@/features/core/messaging/components/AdminDis
 import { loadAdminMessagingDispatchListScreen } from "./loader";
 
 export const metadata = {
-  title: "送信の履歴",
+  title: "送信一覧",
 };
 
 export async function AdminMessagingDispatchListScreen(props: ScreenProps) {
   await loadAdminMessagingDispatchListScreen(props);
 
   return (
-    <AdminPage title="送信の履歴">
+    <AdminPage title="送信一覧">
       <Section>
         <AdminDispatchList />
       </Section>

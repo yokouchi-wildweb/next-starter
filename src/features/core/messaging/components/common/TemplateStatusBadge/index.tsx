@@ -11,7 +11,7 @@ type Variant = NonNullable<SoftBadgeProps["variant"]>;
 export const TEMPLATE_STATUS_DISPLAY: Record<string, { label: string; variant: Variant }> = {
   draft: { label: "下書き", variant: "muted" },
   published: { label: "公開中", variant: "success" },
-  archived: { label: "取り下げ", variant: "outline" },
+  archived: { label: "アーカイブ", variant: "outline" },
 };
 
 export type TemplateStatusBadgeProps = {
@@ -24,7 +24,7 @@ export type TemplateStatusBadgeProps = {
 };
 
 export function TemplateStatusBadge({ status, currentVersion, hasUnpublishedChanges, size = "sm" }: TemplateStatusBadgeProps) {
-  const display = TEMPLATE_STATUS_DISPLAY[status] ?? { label: "そのほかの状態", variant: "muted" as Variant };
+  const display = TEMPLATE_STATUS_DISPLAY[status] ?? { label: "その他", variant: "muted" as Variant };
   return (
     <>
       <SoftBadge variant={display.variant} size={size}>

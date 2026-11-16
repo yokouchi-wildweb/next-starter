@@ -1,7 +1,7 @@
 // 送るモーダルの入れ物と、開く口の検査(jsdom の上で描く。hook・Modal・部品の一部は偽物)。
 // - 入れ物: ボタンで開く / 書く段は部品を並べる(テンプレートは呼び出せる時だけ、予約は bulk で出さない)/
 //   confirmOnClose に hook の closeConfirm を渡す / 確認の段は「送る」で confirmSend、「戻る」で backToEdit / 結果の段
-// - 開く口: 回の一覧の「新しく送る」は門 messagingBroadcast が開の時だけ
+// - 開く口: 回の一覧の「新規送信」は門 messagingBroadcast が開の時だけ
 // 実行: pnpm test src/features/core/messaging/components/MessageSendModal/MessageSendModal.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -158,21 +158,21 @@ const render = async (element: ReturnType<typeof createElement>) => {
 };
 const button = (container: HTMLElement, text: string) =>
   [...container.querySelectorAll("button")].find((b) => (b.textContent ?? "").includes(text)) as HTMLButtonElement | undefined;
-/** 文言がちょうど一致するボタン(「送る」と「新しく送る」を分ける) */
+/** 文言がちょうど一致するボタン(「送る」と「新規送信」を分ける) */
 const exact = (container: HTMLElement, text: string) =>
   [...container.querySelectorAll("button")].find((b) => (b.textContent ?? "").trim() === text) as HTMLButtonElement | undefined;
 const parts = (container: HTMLElement) => [...container.querySelectorAll("[data-part]")].map((el) => el.getAttribute("data-part"));
 
 test("書く段: 部品を並べ、confirmOnClose に closeConfirm、ボタンで hook を呼ぶ", async () => {
   const view = await render(createElement(MessageSendModal, { mode: { type: "new" } }));
-  // 並び(D47): 宛先 → テンプレートから読み込む → カテゴリーと経路 → 文言 → 送る時刻
+  // 並び(D47): 宛先 → テンプレートから読み込む → カテゴリーと送信方法 → 文言 → 送信日時
   assert.deepEqual(parts(view.container), ["target", "template", "category", "content", "schedule"]);
   assert.equal(dialogProps!.open, false, "上書きの確かめは読み込みを待つ時だけ");
   assert.deepEqual(modalConfirm, { enabled: true, message: "書きかけ" });
-  await act(async () => button(view.container, "新しく送る")!.click());
+  await act(async () => button(view.container, "新規送信")!.click());
   await act(async () => button(view.container, "プレビュー")!.click());
   await act(async () => button(view.container, "自分にテスト送信")!.click());
-  await act(async () => button(view.container, "確認へ")!.click());
+  await act(async () => button(view.container, "確認に進む")!.click());
   assert.deepEqual(events, ["open:true", "preview", "test", "confirm"]);
   await view.unmount();
 });
@@ -192,14 +192,14 @@ test("確認の段: 送る → confirmSend、戻る → backToEdit / 結果の�
   const view = await render(createElement(MessageSendModal, { mode: { type: "new" } }));
   assert.deepEqual(parts(view.container), ["confirm"]);
   await act(async () => button(view.container, "戻る")!.click());
-  await act(async () => exact(view.container, "送る")!.click());
+  await act(async () => exact(view.container, "送信する")!.click());
   assert.deepEqual(events, ["back", "send"]);
   await view.unmount();
 
   // 見込みが人数の上限を超えた = 送るを押せない(理由は確認の部品が出す)
   state = { ...baseState(), step: "confirm", estimateOverLimit: true };
   const over = await render(createElement(MessageSendModal, { mode: { type: "new" } }));
-  assert.equal(exact(over.container, "送る")?.disabled, true);
+  assert.equal(exact(over.container, "送信する")?.disabled, true);
   await over.unmount();
 
   state = { ...baseState(), step: "done", result: { kind: "send", result: { status: "queued", queuedCount: 0, dispatchId: "d1" } } };
@@ -208,23 +208,23 @@ test("確認の段: 送る → confirmSend、戻る → backToEdit / 結果の�
   await done.unmount();
 });
 
-test("開く口: 回の一覧の「新しく送る」は門 messagingBroadcast が開の時だけ", async () => {
+test("開く口: 回の一覧の「新規送信」は門 messagingBroadcast が開の時だけ", async () => {
   const { AdminDispatchList } = await import("../AdminDispatchList");
   state = { ...baseState(), open: false };
   const open = await render(createElement(AdminDispatchList));
-  assert.ok(button(open.container, "新しく送る"));
+  assert.ok(button(open.container, "新規送信"));
   await open.unmount();
   broadcastOpen = false;
   const closed = await render(createElement(AdminDispatchList));
-  assert.equal(button(closed.container, "新しく送る"), undefined);
+  assert.equal(button(closed.container, "新規送信"), undefined);
   await closed.unmount();
 });
 
 test("手で直した書きかけの上に読み込む時は Dialog で確かめ、読み込みの知らせを出す", async () => {
-  state = { ...baseState(), pendingLoad: "t1", loadNote: "テンプレートのカテゴリー「春」はこの宛先では選べないため、カテゴリーは今のままです" };
+  state = { ...baseState(), pendingLoad: "t1", loadNote: "テンプレートのカテゴリー「春」はこの宛先では選べないため、カテゴリーは変更していません" };
   const view = await render(createElement(MessageSendModal, { mode: { type: "new" } }));
   assert.equal(dialogProps!.open, true);
-  assert.equal(dialogProps!.confirmLabel, "置き換えて読み込む");
+  assert.equal(dialogProps!.confirmLabel, "置き換える");
   await act(async () => (dialogProps!.onConfirm as () => void)());
   await act(async () => (dialogProps!.onOpenChange as (v: boolean) => void)(false));
   assert.deepEqual(events, ["confirmLoad", "cancelLoad"]);

@@ -35,7 +35,7 @@ export function SendTemplatePicker({ templates, loaded, onLoad, onUnload }: Send
       value={loaded?.id}
       confirmLabel="読み込む"
       searchable={templates.length > SEARCH_FROM}
-      searchPlaceholder="名前で探す"
+      searchPlaceholder="名前で検索"
       emptyMessage="公開中のテンプレートはありません"
       onConfirm={(value) => onLoad(value)}
     />
@@ -51,7 +51,7 @@ export function SendTemplatePicker({ templates, loaded, onLoad, onUnload }: Send
         </Span>
         {chooser("別のテンプレートを読み込む")}
         <Button type="button" size="sm" variant="ghost" onClick={onUnload}>
-          テンプレートを外す
+          テンプレートの読み込みを解除
         </Button>
       </Flex>
     );
@@ -60,7 +60,7 @@ export function SendTemplatePicker({ templates, loaded, onLoad, onUnload }: Send
     <Flex align="center" gap="xs" wrap="wrap" data-slot="send-template-picker">
       {chooser("テンプレートから読み込む")}
       <Span size="xs" tone="muted">
-        (任意。カテゴリー・経路・文言・画像を写し、読み込んだ後も直せます)
+        (任意。カテゴリー・送信方法・内容・画像をコピーし、読み込んだ後も編集できます)
       </Span>
     </Flex>
   );

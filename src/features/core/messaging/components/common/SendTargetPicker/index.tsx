@@ -33,7 +33,7 @@ export function SendTargetPicker(props: SendTargetPickerProps) {
   if (props.kind === "bulk") {
     return (
       <Para size="sm" className="my-0" data-slot="send-target-picker">
-        選んだ {props.recordCount} 件の{props.recordNoun}に紐づく利用者(同じ利用者には 1 通にまとめます)
+        選択した {props.recordCount} 件の{props.recordNoun}に関連するユーザー(同じユーザーには 1 通にまとめます)
       </Para>
     );
   }
@@ -43,7 +43,7 @@ export function SendTargetPicker(props: SendTargetPickerProps) {
     { value: "all", label: "全員" },
     { value: "role", label: "ロール" },
     ...(groups.length > 0 || value.type === "group" ? [{ value: "group", label: "グループ" }] : []),
-    { value: "users", label: "選んだ利用者" },
+    { value: "users", label: "ユーザーを選ぶ" },
   ];
   return (
     <Stack space={2} data-slot="send-target-picker">

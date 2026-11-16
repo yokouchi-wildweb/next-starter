@@ -1,6 +1,6 @@
-// 文言の上書きの hook の検査(jsdom の上で描く。client service・toast・離れる前の確認は偽物)。
+// 文言の編集の hook の検査(jsdom の上で描く。client service・toast・離れる前の確認は偽物)。
 // - useMessageOverrides: 一覧を取る
-// - useMessageOverrideEditor: 初めは送る時の値 / 下書き(元に戻せば消える)/ 知らない {{鍵}} / 保存・既定に戻すは client を呼び、
+// - useMessageOverrideEditor: 初めは送る時の値 / 下書き(元に戻せば消える)/ 知らない {{鍵}} / 保存・元の文言に戻すは client を呼び、
 //   下書きを捨て、1 連絡と一覧を取り直す / 下書きがある間だけ離れる前の確認
 // - unknownKeysOf / toEditable(純粋な関数)
 // 実行: pnpm test src/features/core/messaging/hooks/overrideHooks.test.tsx
@@ -126,7 +126,7 @@ test("useMessageOverrides: 一覧を取る", async () => {
   await view.unmount();
 });
 
-test("useMessageOverrideEditor: 下書き・知らない鍵・保存・既定に戻す・離れる前の確認", async () => {
+test("useMessageOverrideEditor: 下書き・知らない鍵・保存・元の文言に戻す・離れる前の確認", async () => {
   const view = await mount(() => ({ editor: hooks.useMessageOverrideEditor("user.registrationComplete"), list: hooks.useMessageOverrides() }));
   const editor = () => view.value().editor;
   const [subject, paragraphs] = editor().detail!.fields;

@@ -84,7 +84,7 @@ function InAppCard({ fields }: { fields: Record<string, unknown> }) {
       </Para>
       {str(fields.link) ? (
         <Span size="xs" tone="muted">
-          行き先: {str(fields.link)}
+          リンク先: {str(fields.link)}
         </Span>
       ) : null}
     </Stack>
@@ -104,7 +104,7 @@ function OtherFields({ channel }: { channel: MessagePreviewChannel }) {
   return (
     <Stack space={1} className="rounded-md border border-border p-3">
       <Span size="xs" tone="muted">
-        そのほかの欄
+        その他の項目
       </Span>
       {Object.entries(fields).map(([name, value]) => (
         <Span key={name} size="sm" className="whitespace-pre-wrap">
@@ -119,7 +119,7 @@ export function MessagePreview({ channels, emailHeight = 480 }: MessagePreviewPr
   if (channels.length === 0) {
     return (
       <Para size="sm" tone="muted" className="my-0">
-        プレビューする経路がありません
+        プレビューできる送信方法がありません
       </Para>
     );
   }

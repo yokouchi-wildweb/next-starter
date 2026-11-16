@@ -19,22 +19,22 @@ export function OverrideFieldMarks({ field, dirty = false }: OverrideFieldMarksP
     <Flex align="center" gap="xs" wrap="wrap" data-slot="override-field-marks">
       {field.edited ? (
         <SoftBadge variant="info" size="sm">
-          直した
+          編集済み
         </SoftBadge>
       ) : null}
       {field.codeChanged ? (
         <SoftBadge variant="warning" size="sm">
-          コードが変わった
+          元の文言が更新されました
         </SoftBadge>
       ) : null}
       {field.orphan ? (
         <SoftBadge variant="destructive" size="sm">
-          孤立(コードの値で送る)
+          使われていない(元の文言で送信)
         </SoftBadge>
       ) : null}
       {!field.editable ? (
         <SoftBadge variant="muted" size="sm">
-          直せなくなった欄
+          編集できなくなった項目
         </SoftBadge>
       ) : null}
       {dirty ? (

@@ -117,7 +117,7 @@ export async function listDispatches(deps: AdminReadDeps, query: ListDispatchesQ
 export async function findDispatch(deps: AdminReadDeps, id: string): Promise<AdminDispatchDetail> {
   await assertAdminActor(deps);
   const row = await deps.dispatchStore.findDispatch(id);
-  if (!row) throw new DomainError("送信記録が見つかりません", { status: 404 });
+  if (!row) throw new DomainError("送信が見つかりません", { status: 404 });
   const { policy, counts } = await deps.operationInputs(row);
   const [targetUserIds, sourceLabel, names, groupNames] = await Promise.all([
     targetUserIdsOf(deps, row),
@@ -175,7 +175,7 @@ export async function listDeliveries(
   await assertAdminActor(deps);
   const { cursor, limit, ...filter } = parseQuery(ListDeliveriesQuerySchema, query);
   const dispatch = await deps.dispatchStore.findDispatch(dispatchId);
-  if (!dispatch) throw new DomainError("送信記録が見つかりません", { status: 404 });
+  if (!dispatch) throw new DomainError("送信が見つかりません", { status: 404 });
   const rows = await deps.dispatchStore.listDeliveries(dispatchId, filter, cursor ? decodeCursor(cursor) : null, limit + 1);
   // 利用者の名前は 1 ページに 1 回だけ引く(id は見せない、D46)
   const ids = [...new Set(rows.slice(0, limit).flatMap((row) => (row.user_id ? [row.user_id] : [])))];
