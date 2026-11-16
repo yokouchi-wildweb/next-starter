@@ -83,9 +83,11 @@ export function BulkActionBar<T>({
         sticky && (placement === "top" ? "top-0" : "bottom-0")
       )}
     >
+      {/* 中の行の高さの下限 = sm のボタン(h-9)+ 上下の余白(py-3)+ 枠(1px × 2)。選択の on / off でボタンや「選択解除」が出入りしても
+          バーの高さが変わってがたつかないように */}
       <div
         className={cn(
-          "flex items-center gap-4 rounded-lg border px-4 py-3 transition-colors",
+          "flex min-h-[3.875rem] items-center gap-4 rounded-lg border px-4 py-3 transition-colors",
           hasSelection
             ? "border-primary/20 bg-primary/5"
             : "border-muted-foreground/20 bg-muted/50"

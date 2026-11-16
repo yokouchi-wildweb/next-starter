@@ -6,13 +6,13 @@
 
 "use client";
 
-import { Button } from "@/components/Form/Button";
 import { SelectInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
+import { CreateButton } from "@/lib/crud/components";
 
 import { AdminUserGroupModal } from "@/features/core/userGroup/components/AdminUserGroupModal";
 import { UserGroupRow } from "@/features/core/userGroup/components/common/UserGroupRow";
@@ -20,9 +20,9 @@ import { useAdminUserGroupList, type UserGroupStatusFilter } from "@/features/co
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
 const KIND_OPTIONS = [
-  { value: "dynamic", label: "条件で自動" },
+  { value: "dynamic", label: "自動で都度抽出" },
   { value: "scheduled", label: "定期的に更新" },
-  { value: "static", label: "手動で指定" },
+  { value: "static", label: "作成時に固定" },
 ];
 // すべて = 使用中とアーカイブの両方(既定、D87)。値は all(空の値は Radix の SelectItem が受けない)
 const STATUS_OPTIONS = [
@@ -59,9 +59,7 @@ export function AdminUserGroupList() {
             <SelectInput id="user-group-filter-status" value={status} onChange={(v) => setStatus((v ? String(v) : "all") as UserGroupStatusFilter)} options={STATUS_OPTIONS} showPlaceholderOption={false} />
           </Stack>
         </Flex>
-        <Button type="button" size="sm" variant="primary" onClick={modal.openNew}>
-          新規作成
-        </Button>
+        <CreateButton onClick={modal.openNew} />
       </Flex>
       <InfiniteScrollList
         items={query.items}

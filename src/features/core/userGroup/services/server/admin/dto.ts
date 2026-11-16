@@ -8,9 +8,9 @@ import type { UserGroupDefinitionNode, UserGroupKind, UserGroupStatus } from "..
 import type { ReplaceMembersResult } from "../writes";
 
 export const USER_GROUP_KIND_LABELS: Record<UserGroupKind, string> = {
-  dynamic: "条件で自動",
+  dynamic: "自動で都度抽出",
   scheduled: "定期的に更新",
-  static: "手動で指定",
+  static: "作成時に固定",
 };
 
 export const USER_GROUP_STATUS_LABELS: Record<UserGroupStatus, string> = {

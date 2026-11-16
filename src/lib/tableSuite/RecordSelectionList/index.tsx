@@ -4,6 +4,7 @@
 // 選択の出し方(selectionMode、D97 D98)・無限スクロールの番兵は表と同じ物を使う。
 // - 1 件 = 左のチェックの列 + カードの本体(renderItem)。チェックの列は全高・押しやすい幅で、列のどこを押しても選択が切り替わる(D99)。
 //   キーボードと aria はチェックボックスのまま(列はマウスの当たりを広げるだけ)
+// - 選択の on / off(toggle)ではチェックの列が幅と濃さで出入りする(200ms の linear、表のチェックの列と同じ)
 // - 見出しの行が無いので「すべて選択」はバーの左に出す(読み込み済みの選べる行が対象)
 // - isSelectable(item) が false の行はチェックを出さず、すべて選択からも外す
 
@@ -121,17 +122,26 @@ export default function RecordSelectionList<T>({
       <div className={cn("flex w-full flex-col gap-2", className)} data-slot="record-selection-list">
         {keyedItems.length === 0 ? emptyNode : null}
         {keyedItems.map(({ item, key, index }) => {
-          const selectable = selectionOn && (!isSelectable || isSelectable(item));
+          const selectable = !isSelectable || isSelectable(item);
           const selected = selectedKeySet.has(key);
           return (
-            <div key={key} className="flex items-stretch gap-1" data-selected={selected ? "true" : undefined}>
-              {selectionOn ? (
-                selectable ? (
+            <div key={key} className="flex items-stretch" data-selected={selected ? "true" : undefined}>
+              {/* チェックの列はいつも置き、選択の on / off で幅と濃さを動かす(200ms の linear、表のチェックの列と同じ)。
+                  off の間は inert(押せない・フォーカスしない・読み上げない) */}
+              <div
+                className={cn(
+                  "shrink-0 overflow-hidden transition-[width,margin,opacity] duration-200 ease-linear",
+                  selectionOn ? "mr-1 w-11 opacity-100" : "mr-0 w-0 opacity-0",
+                )}
+                inert={!selectionOn}
+                aria-hidden={selectionOn ? undefined : true}
+              >
+                {selectable ? (
                   // 列全体を押すと切り替わる(チェックそのものを押した時は二重にしない)
                   <div
-                    className="flex w-11 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-muted/60"
+                    className="flex h-full w-11 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-muted/60"
                     onClick={(event) => {
-                      if (isCheckboxEvent(event)) return;
+                      if (!selectionOn || isCheckboxEvent(event)) return;
                       updateKeySelection(key);
                     }}
                     data-slot="record-selection-list-check"
@@ -143,10 +153,8 @@ export default function RecordSelectionList<T>({
                       onCheckedChange={(checked) => updateKeySelection(key, checked === true)}
                     />
                   </div>
-                ) : (
-                  <div className="w-11 shrink-0" aria-hidden="true" />
-                )
-              ) : null}
+                ) : null}
+              </div>
               <div className="min-w-0 flex-1">{renderItem(item, { selected, index })}</div>
             </div>
           );

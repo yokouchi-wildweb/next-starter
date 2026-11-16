@@ -1,10 +1,14 @@
 // src/features/core/userGroup/components/common/UserGroupConditionBuilder/index.tsx
 // 部品(props だけ): 条件の組み立て。根の組(すべて満たす / いずれかを満たす)の中に条件と条件グループ(2 階層まで。グループの中は条件だけ)。
+// 見た目: 根の組 = 枠つきのカード(下に追加の操作) / 条件グループ = 左に色の帯 + 「条件グループ」の札 + 薄い地 / 並んだ条件の間に「かつ・または」 / 並びは条件 → 条件グループ(足した順にかかわらず。条件を追加は条件のすぐ下、グループを追加は一番下) / 番号の札(グループの外の条件 = 1・2…、条件グループ = a・b…、その中 = a1・a2…。並びから毎回数える) / 条件・条件グループは右上でたたむ(見出しと 1 行の要約だけ。開閉は画面だけの状態。グループをたたむと中の条件もたたまれ、開き直すと条件はたたんだまま)
 // - どの条件・グループも「含める / 除外する」を選べる(not。両方を見せた 2 択)/ 条件は部品の label で選び、引数は部品の欄から(UserGroupCriterionFields)
 // - 画面で組めない深い定義は読むだけで出し(label と引数の表示)、「作り直す」で空の組から組める
 // 流れ(木の形・足す外す・定義の木への変換)は hook useUserGroupConditionBuilder。部品の鍵は出さない(D94)
 
 "use client";
+
+import { Fragment, useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/Form/Button";
 import { RadioGroupInput, SelectInput } from "@/components/Form/Input/Manual";
@@ -36,29 +40,72 @@ export type UserGroupConditionBuilderProps = {
   disabled?: boolean;
 };
 
-const OP_OPTIONS = (Object.keys(CONDITION_OP_LABELS) as ConditionGroupOp[]).map((value) => ({ value, label: CONDITION_OP_LABELS[value] }));
+const OP_OPTIONS = (Object.keys(CONDITION_OP_LABELS) as ConditionGroupOp[]).map((value) => ({
+  value,
+  label: CONDITION_OP_LABELS[value],
+}));
 const UNKNOWN_CRITERION = "使用できない条件";
 const NEGATE_OPTIONS = [
   { value: "include", label: "含める" },
   { value: "exclude", label: "除外する" },
 ];
 
-/** 引数の表示(選択肢は label に。読むだけの表示) */
+const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T/;
+const formatDateTime = (iso: string) => {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString("ja-JP", { dateStyle: "short", timeStyle: "short" });
+};
+
+/** 開く・たたむの切り替え(右上。たたむと見出しと要約だけ) */
+function CollapseToggle({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  return (
+    <Button
+      type="button"
+      size="icon"
+      variant="ghost"
+      onClick={onToggle}
+      aria-expanded={open}
+      aria-label={open ? "たたむ" : "開く"}
+      title={open ? "たたむ" : "開く"}
+      className="size-8 text-muted-foreground"
+      data-slot="condition-collapse"
+    >
+      <ChevronDown className={`size-4 transition-transform ${open ? "rotate-180" : ""}`} />
+    </Button>
+  );
+}
+
+/** 引数の表示(選択肢は label に。日時は読める形に。読むだけの表示・たたんだ時の要約) */
 function describeArgs(criterion: CriterionCatalogItem | undefined, args: unknown): string {
   if (!criterion || !args || typeof args !== "object") return "";
   const parts: string[] = [];
   for (const field of criterion.fields) {
     const value = (args as Record<string, unknown>)[field.name];
     if (value === undefined || value === null || value === "") continue;
-    const options = ((field as { options?: { value: unknown; label: string }[] }).options ?? []) as { value: unknown; label: string }[];
-    const show = (item: unknown) => options.find((option) => String(option.value) === String(item))?.label ?? (options.length > 0 ? "削除された選択肢" : String(item));
-    const text = Array.isArray(value) ? value.map(show).join("・") : show(value);
+    const options = ((field as { options?: { value: unknown; label: string }[] }).options ?? []) as {
+      value: unknown;
+      label: string;
+    }[];
+    const show = (item: unknown) =>
+      options.find((option) => String(option.value) === String(item))?.label ??
+      (options.length > 0 ? "削除された選択肢" : String(item));
+    const text = Array.isArray(value)
+      ? value.map(show).join("・")
+      : typeof value === "string" && ISO_DATETIME.test(value)
+        ? formatDateTime(value)
+        : show(value);
     parts.push(`${field.label ?? ""}: ${text}`);
   }
   return parts.join(" / ");
 }
 
-function ReadOnlyNode({ node, criteria }: { node: UserGroupDefinitionNode; criteria: readonly CriterionCatalogItem[] }) {
+function ReadOnlyNode({
+  node,
+  criteria,
+}: {
+  node: UserGroupDefinitionNode;
+  criteria: readonly CriterionCatalogItem[];
+}) {
   if ("op" in node && node.op === "not") {
     return (
       <Stack space={1} className="border-l-2 border-border pl-3">
@@ -104,8 +151,7 @@ function NegateChoice({ node, actions, disabled }: Omit<NodeProps, "level" | "cr
       aria-label="含める・除外する"
       value={node.negate ? "exclude" : "include"}
       options={NEGATE_OPTIONS}
-      displayType="standard"
-      buttonSize="sm"
+      displayType="segmented"
       disabled={disabled}
       onChange={(v) => actions.setNegate(node.id, v === "exclude")}
       data-slot="negate"
@@ -113,12 +159,47 @@ function NegateChoice({ node, actions, disabled }: Omit<NodeProps, "level" | "cr
   );
 }
 
-function CriterionNode({ node, criteria, actions, disabled }: Omit<NodeProps, "level"> & { node: Extract<ConditionDraftNode, { type: "criterion" }> }) {
-  const criterion = criteria.find((c) => c.key === node.part);
+/** 番号の札(条件 = 1・2… / グループの中 = a1・a2…) */
+function NumberTag({ children }: { children: string }) {
   return (
-    <Stack space={2} className="rounded-md border border-border bg-card p-3" data-slot="condition-criterion">
+    <Span
+      size="xs"
+      weight="semiBold"
+      tone="muted"
+      className="min-w-6 rounded-md bg-muted px-1.5 py-0.5 text-center tabular-nums"
+      data-slot="condition-number"
+    >
+      {children}
+    </Span>
+  );
+}
+
+function CriterionNode({
+  node,
+  number,
+  defaultOpen = true,
+  criteria,
+  actions,
+  disabled,
+}: Omit<NodeProps, "level"> & {
+  node: Extract<ConditionDraftNode, { type: "criterion" }>;
+  number: string;
+  /** 初めに開いておくか(グループを開き直した時はたたんだ状態から) */
+  defaultOpen?: boolean;
+}) {
+  const criterion = criteria.find((c) => c.key === node.part);
+  const [open, setOpen] = useState(defaultOpen);
+  const summary = criterion ? describeArgs(criterion, node.args) : "";
+  return (
+    <Stack
+      space={2}
+      className="rounded-md border border-border bg-card p-3"
+      data-slot="condition-criterion"
+      data-collapsed={open ? undefined : ""}
+    >
       <Flex align="center" justify="between" gap="xs" wrap="wrap">
         <Flex align="center" gap="xs" wrap="wrap">
+          <NumberTag>{number}</NumberTag>
           <Span weight="semiBold">{criterion?.label ?? UNKNOWN_CRITERION}</Span>
           {criterion?.weight === "heavy" ? (
             <Span size="sm" tone="warning">
@@ -126,72 +207,219 @@ function CriterionNode({ node, criteria, actions, disabled }: Omit<NodeProps, "l
             </Span>
           ) : null}
         </Flex>
-        <Flex gap="xs">
+        <Flex align="center" gap="xs">
           <NegateChoice node={node} actions={actions} disabled={disabled} />
           <Button type="button" size="sm" variant="ghost" disabled={disabled} onClick={() => actions.remove(node.id)}>
             削除
           </Button>
+          <CollapseToggle open={open} onToggle={() => setOpen((v) => !v)} />
         </Flex>
       </Flex>
-      {criterion?.description ? (
+      {!open ? (
+        <Para size="sm" tone="muted" className="my-0 line-clamp-1" data-slot="condition-summary">
+          {summary || "未入力"}
+        </Para>
+      ) : null}
+      {open && criterion?.description ? (
         <Para size="sm" tone="muted" className="my-0">
           {criterion.description}
         </Para>
       ) : null}
-      {criterion ? (
-        <UserGroupCriterionFields fields={criterion.fields} args={node.args} onChange={(args) => actions.setArgs(node.id, args)} disabled={disabled} />
+      {open && criterion ? (
+        <UserGroupCriterionFields
+          fields={criterion.fields}
+          inlineGroups={criterion.inlineGroups}
+          args={node.args}
+          onChange={(args) => actions.setArgs(node.id, args)}
+          disabled={disabled}
+        />
       ) : null}
     </Stack>
   );
 }
 
-function GroupNode({ node, level, criteria, actions, disabled }: NodeProps & { node: ConditionDraftGroup }) {
+/** 並んだ条件の間に置く合わせ方の印(すべて = かつ / いずれか = または) */
+function JoinMark({ op }: { op: ConditionGroupOp }) {
+  return (
+    <Flex align="center" gap="sm" aria-hidden data-slot="condition-join">
+      <Span className="h-px flex-1 bg-border">{null}</Span>
+      <Span
+        size="xs"
+        weight="medium"
+        tone="muted"
+        className="rounded-full border border-border bg-background px-2.5 py-0.5"
+      >
+        {op === "and" ? "かつ" : "または"}
+      </Span>
+      <Span className="h-px flex-1 bg-border">{null}</Span>
+    </Flex>
+  );
+}
+
+/** 条件グループの記号(0 → a、25 → z、26 → aa) */
+function groupLetter(index: number): string {
+  let n = index;
+  let out = "";
+  do {
+    out = String.fromCharCode(97 + (n % 26)) + out;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return out;
+}
+
+function GroupNode({
+  node,
+  level,
+  letter = "",
+  criteria,
+  actions,
+  disabled,
+}: NodeProps & { node: ConditionDraftGroup; /** 条件グループの記号(根は空) */ letter?: string }) {
+  const isRoot = level === 1;
+  const [open, setOpen] = useState(true);
+  const expanded = isRoot || open;
+  // グループをたたんだ時にあった条件は、開き直すとたたんだ状態で出す(後から足した条件は開いて出る)
+  const [closedIds, setClosedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleGroup = () => {
+    if (open) setClosedIds(new Set(node.children.map((child) => child.id)));
+    setOpen(!open);
+  };
+  // 番号は並びから毎回数える(足す・消すと付け直す)。根 = 条件は 1・2…、グループは a・b… / グループの中 = a1・a2…
+  let criterionCount = 0;
+  let groupCount = 0;
+  const numbers = node.children.map((child) =>
+    child.type === "group" ? groupLetter(groupCount++) : `${letter}${++criterionCount}`,
+  );
+  // 見せる順は「条件 → 条件グループ」(組の中の並びは結果を変えないので、足した順にかかわらず分けて出す)
+  const leaves = node.children.filter(
+    (child): child is Extract<ConditionDraftNode, { type: "criterion" }> => child.type === "criterion",
+  );
+  const groups = node.children.filter((child): child is ConditionDraftGroup => child.type === "group");
+  const numberOf = new Map(node.children.map((child, index) => [child.id, numbers[index]]));
   const pickOptions = criteria.map((criterion) => ({
     value: criterion.key,
     label: criterion.weight === "heavy" ? `${criterion.label}(${criterion.weightLabel})` : criterion.label,
   }));
   return (
-    <Stack space={3} className={level === 1 ? "" : "rounded-md border border-dashed border-border p-3"} data-slot={`condition-group-${level}`}>
+    <Stack
+      space={3}
+      className={
+        isRoot
+          ? "rounded-lg border border-border bg-card p-4"
+          : "rounded-lg border border-border border-l-4 border-l-primary/60 bg-muted/40 p-3"
+      }
+      data-slot={`condition-group-${level}`}
+    >
       <Flex align="center" justify="between" gap="xs" wrap="wrap">
         <Flex align="center" gap="xs" wrap="wrap">
-          <Span size="sm">{level === 1 ? "次の条件を" : "このグループの条件を"}</Span>
+          {isRoot ? null : (
+            <Span size="xs" weight="semiBold" tone="primary" className="rounded-full bg-primary/10 px-2.5 py-0.5">
+              {`条件グループ ${letter}`}
+            </Span>
+          )}
+          <Span size="sm">{isRoot ? "次の条件を" : "この中の条件を"}</Span>
           <SelectInput
             value={node.op}
             options={OP_OPTIONS}
             showPlaceholderOption={false}
+            size="sm"
+            className="w-auto data-[size=sm]:h-9"
             disabled={disabled}
             onChange={(value) => value && actions.setOp(node.id, String(value) as ConditionGroupOp)}
           />
           <NegateChoice node={node} actions={actions} disabled={disabled} />
         </Flex>
-        {level > 1 ? (
-          <Button type="button" size="sm" variant="ghost" disabled={disabled} onClick={() => actions.remove(node.id)}>
-            グループを削除
-          </Button>
-        ) : null}
+        {isRoot ? null : (
+          <Flex align="center" gap="xs">
+            <Button type="button" size="sm" variant="ghost" disabled={disabled} onClick={() => actions.remove(node.id)}>
+              グループを削除
+            </Button>
+            <CollapseToggle open={open} onToggle={toggleGroup} />
+          </Flex>
+        )}
       </Flex>
-      {node.children.map((child) =>
-        child.type === "group" ? (
-          <GroupNode key={child.id} node={child} level={level + 1} criteria={criteria} actions={actions} disabled={disabled} />
-        ) : (
-          <CriterionNode key={child.id} node={child} criteria={criteria} actions={actions} disabled={disabled} />
-        ),
+      {!expanded ? (
+        <Para size="sm" tone="muted" className="my-0" data-slot="condition-summary">
+          {node.children.length === 0
+            ? "条件はまだありません"
+            : `条件 ${node.children.length} 件(${numbers.join("・")})`}
+        </Para>
+      ) : (
+        <Stack space={2}>
+          {leaves.length === 0 && groups.length === 0 ? (
+            <Para
+              size="sm"
+              tone="muted"
+              align="center"
+              className="my-0 rounded-md border border-dashed border-border px-3 py-4"
+            >
+              {isRoot
+                ? "設定された条件がありません"
+                : "このグループに条件を追加してください"}
+            </Para>
+          ) : null}
+          {leaves.map((child, index) => (
+            <Fragment key={child.id}>
+              {index > 0 ? <JoinMark op={node.op} /> : null}
+              <CriterionNode
+                node={child}
+                number={numberOf.get(child.id) ?? ""}
+                defaultOpen={!closedIds.has(child.id)}
+                criteria={criteria}
+                actions={actions}
+                disabled={disabled}
+              />
+            </Fragment>
+          ))}
+          <Flex align="center" gap="xs" wrap="wrap" data-slot="condition-add-criterion">
+            <SelectInput
+              value=""
+              options={pickOptions}
+              showPlaceholderOption={false}
+              placeholder={isRoot ? "＋ 条件を追加" : "＋ グループに条件を追加"}
+              size="sm"
+              className="w-auto border-dashed data-[size=sm]:h-9"
+              disabled={disabled}
+              onChange={(value) => value && actions.addCriterion(node.id, String(value))}
+            />
+          </Flex>
+          {groups.map((child, index) => (
+            <Fragment key={child.id}>
+              {leaves.length > 0 || index > 0 ? <JoinMark op={node.op} /> : null}
+              <GroupNode
+                node={child}
+                level={level + 1}
+                letter={numberOf.get(child.id) ?? ""}
+                criteria={criteria}
+                actions={actions}
+                disabled={disabled}
+              />
+            </Fragment>
+          ))}
+          {isRoot ? (
+            <Flex
+              align="center"
+              gap="xs"
+              wrap="wrap"
+              className="mt-1 border-t border-border pt-3"
+              data-slot="condition-add-group"
+            >
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={disabled}
+                onClick={() => actions.addGroup(node.id)}
+              >
+                ＋ 条件グループを追加
+              </Button>
+              <Span size="xs" tone="muted">
+                複数の条件をまとめて判定できます
+              </Span>
+            </Flex>
+          ) : null}
+        </Stack>
       )}
-      <Flex align="center" gap="xs" wrap="wrap">
-        <SelectInput
-          value=""
-          options={pickOptions}
-          showPlaceholderOption={false}
-          placeholder="条件を追加"
-          disabled={disabled}
-          onChange={(value) => value && actions.addCriterion(node.id, String(value))}
-        />
-        {level === 1 ? (
-          <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={() => actions.addGroup(node.id)}>
-            条件グループを追加
-          </Button>
-        ) : null}
-      </Flex>
     </Stack>
   );
 }

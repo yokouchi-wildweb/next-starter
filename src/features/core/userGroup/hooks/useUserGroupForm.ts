@@ -46,7 +46,7 @@ export function intervalLabel(minutes: number): string {
 }
 
 export const HEAVY_WARNING =
-  "処理が重い条件が含まれています。「条件で自動」のままでは、1 人ずつの判定(限定ページ・参加資格など)に使えません。「定期的に更新」にすると使えます";
+  "処理が重い条件が含まれています。「自動で都度抽出」のままでは、1 人ずつの判定(限定ページ・参加資格など)に使えません。「定期的に更新」にすると使えます";
 
 /** 固定のグループの一員の元(作る時) */
 export type StaticSourceDraft = { type: "users" | "tag" | "group"; userIds: string[]; tagId: string; groupId: string };

@@ -12,6 +12,7 @@ import { Button } from "@/components/Form/Button";
 import { DateInput, Input, SelectInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
+import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
@@ -36,6 +37,8 @@ export type AdminDispatchListProps = {
   initialFilters?: AdminDispatchFilters;
   /** 1 回の件数(既定 50、最大 100) */
   limit?: number;
+  /** 「新規送信」を一覧の上に出すか(既定 true)。ページのヘッダーに置く画面は false にして AdminDispatchSendButton を置く */
+  showSendButton?: boolean;
 };
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
@@ -54,7 +57,13 @@ const BULK_ACTIONS = selectBulkActions(Object.values(adminBulkActions));
 const dispatchKey = (dispatch: AdminDispatchSummary) => dispatch.id;
 const selectableDispatch = (dispatch: AdminDispatchSummary) => !dispatch.deletedAt;
 
-export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchListProps) {
+/** 「新規送信」(送るモーダルの new)。門 messagingBroadcast が閉なら出さない。ページのヘッダー(AdminPage の actions)にも置ける */
+export function AdminDispatchSendButton() {
+  const canSend = useGate().enabled("messagingBroadcast");
+  return canSend ? <MessageSendModal mode={NEW_MODE} triggerVariant="primary" /> : null;
+}
+
+export function AdminDispatchList({ initialFilters = {}, limit, showSendButton = true }: AdminDispatchListProps) {
   const canSend = useGate().enabled("messagingBroadcast");
   const { filters, apply, clear, fields } = useAdminDispatchFilters(initialFilters);
   const categories = useAdminDispatchCategories();
@@ -62,25 +71,31 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
 
   return (
     <Stack space={4}>
-      {canSend ? (
+      {showSendButton && canSend ? (
         <Flex justify="end">
           <MessageSendModal mode={NEW_MODE} triggerVariant="primary" />
         </Flex>
       ) : null}
-      <Flex align="end" gap="sm" wrap="wrap" className="rounded-md border border-border bg-card p-3">
-        <Stack space={1}>
+      {/* 絞り込みは格子で幅を決める(選んだ値の長さで欄の幅が変わり、後ろの欄が動かないように)。
+          広い画面 = 6 欄 + ボタンを 1 行、中 = 3 列、狭い = 2 列 */}
+      <Grid
+        gap="sm"
+        className="items-end rounded-md border border-border bg-card p-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-[repeat(6,minmax(0,1fr))_auto]"
+        data-slot="dispatch-filters"
+      >
+        <Stack space={1} className="min-w-0">
           <Label htmlFor="dispatch-filter-from" className="text-xs">
             期間(開始)
           </Label>
-          <DateInput id="dispatch-filter-from" value={fields.fromDate} onValueChange={fields.setFromDate} />
+          <DateInput id="dispatch-filter-from" className="w-full" value={fields.fromDate} onValueChange={fields.setFromDate} />
         </Stack>
-        <Stack space={1}>
+        <Stack space={1} className="min-w-0">
           <Label htmlFor="dispatch-filter-to" className="text-xs">
             期間(終了)
           </Label>
-          <DateInput id="dispatch-filter-to" value={fields.toDate} onValueChange={fields.setToDate} />
+          <DateInput id="dispatch-filter-to" className="w-full" value={fields.toDate} onValueChange={fields.setToDate} />
         </Stack>
-        <Stack space={1}>
+        <Stack space={1} className="min-w-0">
           <Label htmlFor="dispatch-filter-kind" className="text-xs">
             種類
           </Label>
@@ -92,7 +107,7 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
             placeholder="すべて"
           />
         </Stack>
-        <Stack space={1}>
+        <Stack space={1} className="min-w-0">
           <Label htmlFor="dispatch-filter-category" className="text-xs">
             カテゴリー
           </Label>
@@ -102,10 +117,10 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
             onChange={(v) => fields.setCategory(v ? String(v) : "")}
             options={categories.optionsOf(fields.kind)}
             disabled={!fields.kind}
-            placeholder={fields.kind ? "すべて" : "先に種類を選んでください"}
+            placeholder={fields.kind ? "すべて" : "種類を選択してください"}
           />
         </Stack>
-        <Stack space={1}>
+        <Stack space={1} className="min-w-0">
           <Label htmlFor="dispatch-filter-channel" className="text-xs">
             送信方法
           </Label>
@@ -117,7 +132,7 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
             placeholder="すべて"
           />
         </Stack>
-        <Stack space={1}>
+        <Stack space={1} className="min-w-0">
           <Label htmlFor="dispatch-filter-status" className="text-xs">
             状態
           </Label>
@@ -129,15 +144,16 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
             placeholder="すべて"
           />
         </Stack>
-        <Flex gap="xs">
-          <Button type="button" size="sm" variant="primary" onClick={apply}>
+        {/* ボタンは選択欄(トリガーは h-auto + py-3)と同じ高さに */}
+        <Flex gap="xs" justify="end" className="col-span-full lg:col-span-1">
+          <Button type="button" size="sm" variant="primary" className="h-auto py-3" onClick={apply}>
             絞り込み
           </Button>
-          <Button type="button" size="sm" variant="outline" onClick={clear}>
+          <Button type="button" size="sm" variant="outline" className="h-auto py-3" onClick={clear}>
             クリア
           </Button>
         </Flex>
-      </Flex>
+      </Grid>
 
       <InfiniteScrollList
         items={query.items}

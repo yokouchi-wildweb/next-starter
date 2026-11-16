@@ -53,6 +53,8 @@ export type AdminUserGroupModalProps = {
 };
 
 const MODAL_WIDTH = "880px";
+/** 本体の高さ(タブを替えても揺れないよう固定。中身が長いタブは本体の中でスクロール。画面より高ければ Modal が縮める) */
+const MODAL_BODY_HEIGHT = "70vh";
 /** 定期計算の間隔の「既定」の選択肢の値(null = 設定の既定) */
 export const INTERVAL_DEFAULT = "default";
 
@@ -236,20 +238,47 @@ function UserGroupModalBody({
           <Label htmlFor="user-group-kind" className="text-sm">
             種類
           </Label>
-          <SelectInput
-            id="user-group-kind"
-            value={fields.kind}
-            disabled={fields.kindLocked}
-            showPlaceholderOption={false}
-            options={fields.kindOptions.map((option) => ({ value: option.value, label: option.label }))}
-            onChange={(v) => v && fields.setKind(String(v))}
-          />
+          <Flex align="center" gap="xs" wrap="wrap">
+            <SelectInput
+              id="user-group-kind"
+              value={fields.kind}
+              disabled={fields.kindLocked}
+              showPlaceholderOption={false}
+              className="min-w-48 flex-1"
+              options={fields.kindOptions.map((option) => ({ value: option.value, label: option.label }))}
+              onChange={(v) => v && fields.setKind(String(v))}
+            />
+            {group && group.kind !== "static" && !locked ? (
+              <PromptPopover
+                trigger={
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-auto self-stretch"
+                    disabled={freeze.running || form.dirty}
+                    data-slot="user-group-freeze-current"
+                  >
+                    固定グループとして保存
+                  </Button>
+                }
+                title="固定グループとして保存"
+                description="今このグループに含まれるユーザーで、新しい固定グループを作成します(このグループはそのまま残ります)。新しい固定グループの名前"
+                defaultValue={`${group.name}(固定)`}
+                confirmLabel="作成"
+                validation={(value) => (value.trim() === "" ? "グループ名を入力してください" : null)}
+                onConfirm={async (value) => {
+                  await modal.freezeCurrent(value.trim());
+                }}
+              />
+            ) : null}
+          </Flex>
           <Para size="sm" tone="muted" className="my-0" data-slot="user-group-kind-help">
             {KIND_HELP[fields.kind]}
           </Para>
           {group && group.kind !== "static" ? (
             <Para size="sm" tone="muted" className="my-0">
-              「条件で自動」と「定期的に更新」の間でだけ変更できます(「定期的に更新」から変えると、集計済みのメンバーは消えます)
+              「自動で都度抽出」と「定期的に更新」の間でだけ変更できます(「定期的に更新」から変えると、集計済みのメンバーは消えます)
             </Para>
           ) : null}
         </Stack>
@@ -326,31 +355,6 @@ function UserGroupModalBody({
   ) : (
     <Stack space={4}>
       <UserGroupExceptionsEditor exceptions={exceptions} editors={{ include: includeEditor, exclude: excludeEditor }} counts={group.exceptions} scheduled={group.kind === "scheduled"} disabled={locked} />
-      {!locked ? (
-        <Stack space={2} className="rounded-md border border-border bg-card p-4" data-slot="user-group-freeze-current">
-          <Para size="sm" tone="muted" className="my-0">
-            今このグループに含まれるユーザーで、新しい固定グループを作成します(このグループはそのまま残ります)
-          </Para>
-          <Flex>
-            <PromptPopover
-              trigger={
-                <Button type="button" size="sm" variant="outline" disabled={freeze.running || form.dirty}>
-                  現在のメンバーで固定グループを作成
-                </Button>
-              }
-              title="現在のメンバーで固定グループを作成"
-              description="新しい固定グループの名前"
-              defaultValue={`${group.name}(固定)`}
-              confirmLabel="作成"
-              validation={(value) => (value.trim() === "" ? "グループ名を入力してください" : null)}
-              onConfirm={async (value) => {
-                await modal.freezeCurrent(value.trim());
-              }}
-            />
-          </Flex>
-          <UserGroupFreezeProgress progress={freeze.progress} onCancel={freeze.cancel} onClear={freeze.clear} />
-        </Stack>
-      ) : null}
     </Stack>
   );
 
@@ -378,6 +382,7 @@ function UserGroupModalBody({
       onOpenChange={onOpenChange}
       title={group ? `ユーザーグループを編集: ${group.name}` : "ユーザーグループを作成"}
       maxWidth={MODAL_WIDTH}
+      height={MODAL_BODY_HEIGHT}
       tabs={tabs}
       value={tabs.some((tab) => tab.value === modal.tab) ? modal.tab : "basic"}
       onValueChange={modal.setTab}

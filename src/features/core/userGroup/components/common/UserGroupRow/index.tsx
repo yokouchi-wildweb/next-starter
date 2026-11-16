@@ -1,5 +1,5 @@
 // src/features/core/userGroup/components/common/UserGroupRow/index.tsx
-// 部品(props だけ): 一覧の 1 行。名前・種類の表示名・人数(数えた / 見込み / 数えていない / まだ無い)・保管・定期計算の様子。
+// 部品(props だけ): 一覧の 1 行。名前・種類の表示名・人数(数えた / 見込み / 数えていない / まだ無い)・保管・定期計算の様子(人数の右に括弧で)。
 // 押すと onOpen(直すモーダル)。内部の鍵・id は出さない(D94)。
 // 行の右の操作(D92、渡した物だけ): アーカイブする(使用中)/ アクティブに戻す(アーカイブ済み)・削除。どれも ConfirmPopover。
 // 行に乗る・行の中に入る(focus-within)と出る。触る画面(hover: none)と狭い幅ではいつも出す。操作は行の開くボタンの外(押してもモーダルは開かない)。
@@ -62,11 +62,24 @@ export function UserGroupRow({ group, onOpen, onArchive, onRestore, onDelete }: 
             <Span size="sm" tone="muted">
               {group.kindLabel}
             </Span>
-            <Span size="sm" data-slot="user-group-count">
-              {userGroupCountText(group.count)}
-            </Span>
+            <Flex align="center" gap="xs" wrap="wrap">
+              {group.count.state === "estimated" ? (
+                <>
+                  <Span size="sm" data-slot="user-group-count">
+                    {`約 ${(group.count.value ?? 0).toLocaleString("ja-JP")} 人`}
+                  </Span>
+                  <Span size="sm" tone="muted">
+                    (見積もり)
+                  </Span>
+                </>
+              ) : (
+                <Span size="sm" data-slot="user-group-count">
+                  {userGroupCountText(group.count)}
+                </Span>
+              )}
+              {group.recompute ? <UserGroupRecomputeStatus recompute={group.recompute} inline /> : null}
+            </Flex>
           </Flex>
-          {group.recompute ? <UserGroupRecomputeStatus recompute={group.recompute} /> : null}
         </Stack>
       </Button>
       {hasActions ? (
@@ -101,7 +114,7 @@ export function UserGroupRow({ group, onOpen, onArchive, onRestore, onDelete }: 
             group.deletable ? (
               <ConfirmPopover
                 trigger={
-                  <Button type="button" size="sm" variant="ghost" className="text-destructive-text">
+                  <Button type="button" size="sm" variant="destructiveGhost">
                     削除
                   </Button>
                 }

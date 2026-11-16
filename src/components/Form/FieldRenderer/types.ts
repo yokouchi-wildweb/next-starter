@@ -96,6 +96,8 @@ export type InlineFieldGroup = {
   fields: string[];
   /** 各フィールドの幅（Tailwindクラス、例: ["w-24", "w-20", "w-20"]）省略時は均等 */
   fieldWidths?: string[];
+  /** 各フィールドの前後に添える文字（fields と同じ順。例: [{}, { prefix: "〜" }]、[{ suffix: "以上" }]）。API を通る定義でも使えるよう文字だけ */
+  inputConfigs?: { prefix?: string; suffix?: string }[];
   /** フィールドが必須かどうか */
   required?: boolean;
   /** 説明テキスト */

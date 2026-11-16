@@ -34,7 +34,15 @@ export function UserGroupMembershipPicker({ editor, disabled = false }: UserGrou
           disabled={disabled}
         />
       </Stack>
-      <Button type="button" size="sm" variant="primary" disabled={disabled || pending === 0 || editor.applying} onClick={() => void editor.apply()}>
+      {/* 選ぶ欄(トリガーは h-auto + py-3)の 1 行の高さに合わせる */}
+      <Button
+        type="button"
+        size="sm"
+        variant="primary"
+        className="h-auto py-3"
+        disabled={disabled || pending === 0 || editor.applying}
+        onClick={() => void editor.apply()}
+      >
         {`適用(追加 ${editor.addCount}・削除 ${editor.removeCount})`}
       </Button>
     </Flex>

@@ -13,6 +13,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
+import { CreateButton } from "@/lib/crud/components";
 
 import { TEMPLATE_STATUS_DISPLAY, TemplateStatusBadge } from "@/features/core/messaging/components/common/TemplateStatusBadge";
 import { AdminMessageTemplateModal } from "@/features/core/messaging/components/AdminMessageTemplateModal";
@@ -45,9 +46,7 @@ export function AdminMessageTemplateList() {
             placeholder="すべて"
           />
         </Stack>
-        <Button type="button" size="sm" variant="primary" onClick={modal.openNew}>
-          新規作成
-        </Button>
+        <CreateButton onClick={modal.openNew} />
       </Flex>
       <InfiniteScrollList
         items={query.items}
