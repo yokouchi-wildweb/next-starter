@@ -40,6 +40,9 @@ export function createLineChannel(deps: LineChannelDeps): MessageChannel {
     },
     ...(deps.connectHref ? { connectHref: deps.connectHref } : {}),
     resolveAddresses: (userIds) => deps.findLineUserIds(userIds),
+    // ひな形の描き方(D124): LINE は要約の短い本文(無ければ本文)の文、行き先があれば次の行に URL
+    summaryRenderable: true,
+    renderFromSummary: (summary) => ({ text: [summary.shortBody ?? summary.body, summary.link?.url].filter(Boolean).join("\n") }),
     async send(targets) {
       const results: ChannelSendResult[] = [];
       for (const target of targets) {

@@ -68,6 +68,7 @@ export {
 } from "./definition/adminFields";
 export type {
   ChannelAddress,
+  ChannelRendered,
   ChannelFieldInput,
   ChannelFieldMeta,
   ChannelSendResult,
@@ -79,6 +80,9 @@ export type {
   MessageChannel,
   MessageEnricher,
   MessageEnricherContext,
+  MessageLayoutEmailRenderer,
+  MessageLayoutInAppRenderer,
+  MessageLayoutItem,
   MessageEvent,
   MessageEventType,
   MessageSource,

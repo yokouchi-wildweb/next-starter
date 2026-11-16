@@ -62,6 +62,16 @@ export function createInAppChannel(deps: InAppChannelDeps): MessageChannel {
       link: { label: "リンク先", help: "押したときに開くページ", input: "url" },
     },
     remove: async ({ dispatchId }) => ({ removed: await deps.removeDispatch(dispatchId) }),
+    // ひな形の描き方(D124): お知らせの行は要約から描く(題・本文・画像・行き先)。ひな形の inApp の描き方は client の一覧(画面が描く)
+    summaryRenderable: true,
+    renderFromSummary: (summary) => ({
+      content: {
+        title: summary.title,
+        body: summary.body,
+        ...(summary.image ? { image: summary.image } : {}),
+        ...(summary.link ? { link: summary.link.url } : {}),
+      },
+    }),
     resolveAddresses: async (userIds) => userIds.map((userId) => ({ userId, address: userId })),
     async send(targets) {
       const deliveryIdOf = (key: string) => key.split(":")[0];
