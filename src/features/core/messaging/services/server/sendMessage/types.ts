@@ -98,7 +98,7 @@ export type SendMessageToManyInput = CommonSendInput &
 export type SendAuthoredInput = Omit<SendMessageToManyInput, "recipientVars" | "vars"> & {
   /** 送る文面(経路ごとの欄。経路の受け口の zod で検査し、{{鍵}} を差し込む) */
   content: Record<string, unknown>;
-  /** 送るカテゴリー(種別 announcement・direct・marketing)。種別と経路はこの種類から */
+  /** 送るカテゴリー(種別 announcement・direct・promotion)。種別と経路はこの種類から */
   category: string;
   /** 呼び出したテンプレート(今の公開版でなければ 409)。版の変数の宣言で vars を検査し、回に版を固定する */
   template?: { templateId: string; version: number };

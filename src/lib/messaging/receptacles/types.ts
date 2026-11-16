@@ -71,6 +71,25 @@ export type ChannelWebhook = {
   normalize: (verified: unknown) => ChannelWebhookEvent[];
 };
 
+/** 欄の入力の種類(管理画面の文言の編集が欄ごとに描く入力) */
+export type ChannelFieldInput = "line" | "text" | "image" | "url" | "select";
+
+/**
+ * 経路の欄 1 つの表示の約束(D83)。管理画面(文言の編集・テンプレート)が欄の見出し・説明・入力の種類を読む。
+ * - line = 1 行の文字 / text = 複数行の文字 / image = 画像(storage:// の参照か URL)/ url = 行き先 / select = options から選ぶ
+ * - list: true = 値が並び(例 メールの段落 string[]。input は並びの 1 つの入力)
+ * - parts = 値が object(例 メールのボタン { label, url })。鍵ごとの約束(input は parts の無い時の既定の描き方に使わない)
+ */
+export type ChannelFieldMeta = {
+  label: string;
+  help?: string;
+  input: ChannelFieldInput;
+  /** input select の選択肢 */
+  options?: readonly { value: string; label: string }[];
+  list?: true;
+  parts?: Readonly<Record<string, ChannelFieldMeta>>;
+};
+
 /**
  * 経路の項目(messaging/channels/<名前>.ts の export const channel)
  */
@@ -87,6 +106,16 @@ export type MessageChannel = {
   enabled?: boolean;
   /** 経路の欄の zod(定義の content.<鍵> の形。生成の一覧で MessageContent に合成される) */
   fields: z.ZodTypeAny;
+  /**
+   * 欄ごとの表示の約束(D83、必須)。鍵 = fields の欄の名前。管理画面の文言の編集は経路の欄を全部この順で出す
+   * (約束の無い欄は欄の名前を見出しに 1 行の入力で出す)
+   */
+  fieldMeta: Readonly<Record<string, ChannelFieldMeta>>;
+  /**
+   * 管理画面のプレビューの部品の鍵(任意、D83)。画面が自分の部品の表から引く(client の部品は server の項目に置けないため鍵で渡す)。
+   * 無い・画面が知らない鍵 = 欄をそのまま見せる
+   */
+  previewComponent?: string;
   /** 他の経路の欄から中身を作る宣言(例 push = inApp の title・body・link)。連絡ごとは定義の extras.<経路> */
   contentFrom?: { channel: string; map: Record<string, string> };
   /** 宛先の解決(既定は端末の帳簿 message_endpoints。email・line は自前の帳簿) */

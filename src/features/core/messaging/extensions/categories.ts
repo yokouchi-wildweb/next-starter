@@ -8,9 +8,9 @@ import { category as categories_announcement } from "@/features/core/messaging/c
 import { category as categories_earlyRegistration } from "@/features/core/messaging/categories/earlyRegistration";
 import { category as categories_emailChange } from "@/features/core/messaging/categories/emailChange";
 import { category as categories_emailVerification } from "@/features/core/messaging/categories/emailVerification";
-import { category as categories_marketing } from "@/features/core/messaging/categories/marketing";
 import { category as categories_operatorDirect } from "@/features/core/messaging/categories/operatorDirect";
 import { category as categories_passwordReset } from "@/features/core/messaging/categories/passwordReset";
+import { category as categories_promotion } from "@/features/core/messaging/categories/promotion";
 import { category as categories_registrationComplete } from "@/features/core/messaging/categories/registrationComplete";
 import { category as categories_walletAdjusted } from "@/features/core/messaging/categories/walletAdjusted";
 import { category as categories_walletExpired } from "@/features/core/messaging/categories/walletExpired";
@@ -22,9 +22,9 @@ const categoriesList: MessageCategory[] = [
   categories_earlyRegistration,
   categories_emailChange,
   categories_emailVerification,
-  categories_marketing,
   categories_operatorDirect,
   categories_passwordReset,
+  categories_promotion,
   categories_registrationComplete,
   categories_walletAdjusted,
   categories_walletExpired,

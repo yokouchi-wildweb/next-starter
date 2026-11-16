@@ -1,16 +1,15 @@
 // src/features/core/messaging/constants/kindLabels.ts
 //
-// 種別(kind)の利用者向けの表示名(好みのページの種別の枠の見出し)。
-// 名前は仮: 種別の表示名の見直しは計画書の OUT_OF_SCOPE(後の回で lib の種別の表か config へ移す)。並びは lib の MESSAGE_KINDS
+// 種別(kind)の表示名(D81。好みのページの種別の枠の見出し・管理画面の種別)。並びは lib の MESSAGE_KINDS
 
 import type { MessageKind } from "@/lib/messaging";
 
 export const MESSAGE_KIND_LABELS: Record<MessageKind, string> = {
-  functional: "サービスからのお知らせ",
-  transactional: "お手続きのお知らせ",
-  security: "セキュリティのお知らせ",
-  announcement: "運営からのお知らせ",
-  direct: "運営からの個別のご連絡",
-  activity: "ご利用に伴うお知らせ",
-  marketing: "キャンペーン情報",
+  functional: "機能通知",
+  transactional: "手続き通知",
+  security: "セキュリティ",
+  announcement: "運営告知",
+  direct: "個別連絡",
+  activity: "アクティビティ",
+  promotion: "プロモーション",
 };

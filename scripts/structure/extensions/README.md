@@ -155,7 +155,7 @@ export const extensionPoints = {
 | `derive/gateRequires.mjs` | 規則の requires の被覆の検査(機能のドメインの requires の先が自分・依存先・基盤のどれか) |
 | `derive/gateSettingPaths.mjs` | 同じ変換の一部(設定の節の feature → settingSections・説明用の settingPaths) |
 | `derive/settingRoles.mjs` | setting の上書きは権限を絞るだけ(広げる上書きを止める) |
-| `derive/messageGuards.mjs` | 止められない連絡(required)の守り: 連絡の定義と上書きを字面で読み、enabled:false・email の除外・adminEditable・throttle を止める(点 = lib/messaging の messages) |
+| `derive/messageGuards.mjs` | 止められない連絡(required)の守り: 連絡の定義と上書きを字面で読み、enabled:false・email の除外・adminEditableOnly・throttle を止める(点 = lib/messaging の messages) |
 | `pureImports.mjs` | 値 import の推移の検査と override のキーの読み取り |
 | `switches.mjs` / `overrides.mjs` | 1 行スイッチの形、上流の override の検査 |
 | `orphans.mjs` / `overrideKeys.mjs` | 孤立の検査(.override・.replace、1 つ)・上書きの対象の点の宣言に無い鍵 |

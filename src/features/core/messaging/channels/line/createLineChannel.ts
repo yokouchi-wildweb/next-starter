@@ -35,6 +35,9 @@ export function createLineChannel(deps: LineChannelDeps): MessageChannel {
     addressing: "user",
     enabled: deps.enabled,
     fields: lineFieldsSchema,
+    fieldMeta: {
+      text: { label: "本文", input: "text" },
+    },
     ...(deps.connectHref ? { connectHref: deps.connectHref } : {}),
     resolveAddresses: (userIds) => deps.findLineUserIds(userIds),
     async send(targets) {

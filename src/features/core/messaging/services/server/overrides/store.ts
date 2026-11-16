@@ -1,6 +1,8 @@
 // src/features/core/messaging/services/server/overrides/store.ts
 
-import { and, eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+
+import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
@@ -26,21 +28,51 @@ export const drizzleMessageOverrideStore: MessageOverrideStore = {
   async listAll() {
     return (await db.select(columns).from(MessageOverrideTable)) as MessageOverrideRecord[];
   },
-  async upsert({ messageKey, fieldPath, value, codeValue, updatedBy }) {
-    const now = new Date();
-    await db
-      .insert(MessageOverrideTable)
-      .values({ message_key: messageKey, field_path: fieldPath, value, code_value: codeValue ?? null, updated_by: updatedBy })
-      .onConflictDoUpdate({
-        target: [MessageOverrideTable.message_key, MessageOverrideTable.field_path],
-        set: { value, code_value: codeValue ?? null, updated_by: updatedBy, updatedAt: now },
-      });
+  async upsert({ messageKey, fieldPath, value, codeValue, updatedBy }, bind) {
+    await db.transaction(async (tx) => {
+      const now = new Date();
+      const [current] = await tx
+        .select({ id: MessageOverrideTable.id, value: MessageOverrideTable.value })
+        .from(MessageOverrideTable)
+        .where(and(eq(MessageOverrideTable.message_key, messageKey), eq(MessageOverrideTable.field_path, fieldPath)))
+        .for("update")
+        .limit(1);
+      const rowId = current?.id ?? randomUUID();
+      const written = bind ? await bind(tx, { rowId, previousValue: current?.value ?? null }) : value;
+      await tx
+        .insert(MessageOverrideTable)
+        .values({ id: rowId, message_key: messageKey, field_path: fieldPath, value: written, code_value: codeValue ?? null, updated_by: updatedBy })
+        .onConflictDoUpdate({
+          target: [MessageOverrideTable.message_key, MessageOverrideTable.field_path],
+          set: { value: written, code_value: codeValue ?? null, updated_by: updatedBy, updatedAt: now },
+        });
+    });
   },
-  async remove(messageKey, fieldPath) {
-    const deleted = await db
-      .delete(MessageOverrideTable)
-      .where(and(eq(MessageOverrideTable.message_key, messageKey), eq(MessageOverrideTable.field_path, fieldPath)))
-      .returning({ id: MessageOverrideTable.id });
-    return deleted.length > 0;
+  async remove(messageKey, fieldPath, release) {
+    return db.transaction(async (tx) => {
+      const deleted = await tx
+        .delete(MessageOverrideTable)
+        .where(and(eq(MessageOverrideTable.message_key, messageKey), eq(MessageOverrideTable.field_path, fieldPath)))
+        .returning({ id: MessageOverrideTable.id, value: MessageOverrideTable.value });
+      if (deleted.length === 0) return false;
+      if (release) for (const row of deleted) await release(tx, { rowId: row.id, value: row.value });
+      return true;
+    });
   },
 };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * 渡した id のうち、上書きの行がまだある id(uuid の形でない id は「無い」)。
+ * storage の照合(cron storage-sweep)が record_type messaging.override の有無の関数として使う
+ */
+export async function existingOverrideIds(ids: readonly string[]): Promise<ReadonlySet<string>> {
+  const candidates = [...new Set(ids.filter((id) => UUID.test(id)))];
+  if (candidates.length === 0) return new Set();
+  const rows = await db
+    .select({ id: MessageOverrideTable.id })
+    .from(MessageOverrideTable)
+    .where(inArray(MessageOverrideTable.id, candidates));
+  return new Set(rows.map((row) => row.id));
+}

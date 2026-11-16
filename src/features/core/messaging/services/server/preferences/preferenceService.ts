@@ -104,7 +104,7 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
       const channel = activeChannel(deps.channels, key);
       return channel ? [channel] : [];
     });
-  // 表に出す種類 = 利用者が止められる種別(性質 userStoppable: activity・marketing)の種類だけ
+  // 表に出す種類 = 利用者が止められる種別(性質 userStoppable: activity・promotion)の種類だけ
   const listedCategories = () => Object.values(deps.categories).filter((category) => kindTraits(category.kind)?.userStoppable);
   /** 種類のある利用者が止められる種別(MESSAGE_KINDS の順) */
   const listedKinds = (): MessageKind[] => {

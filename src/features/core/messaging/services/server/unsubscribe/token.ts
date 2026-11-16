@@ -3,7 +3,7 @@
 // ワンクリックの配信停止の署名つきトークン(D35、ログイン不要の URL)。
 // token = base64url(JSON {v:1, r: recipient_key, c: category, ch: channel, a?: address_hash, mk?: message_key, d?: dispatch_id}) + "." + base64url(HMAC-SHA256(鍵, 前半))
 // mk / d = 停止を連絡・回に結ぶ値(集計の軸)。後から足したので無いトークン(前に送ったメール)も同じ版で通る(無い = null)
-// 鍵 = env MESSAGING_UNSUBSCRIBE_SECRET(pnpm ops setup env が乱数で作る)。鍵が無い時は作れない(送る口が marketing・activity の
+// 鍵 = env MESSAGING_UNSUBSCRIBE_SECRET(pnpm ops setup env が乱数で作る)。鍵が無い時は作れない(送る口が promotion・activity の
 // メールを明示の失敗にする)し、届いたトークンも通さない。
 // URL(事業の素性の url(@/business)は使わない。どちらも getAppBaseUrl() + 住所 + ?token=<token>):
 // - One-Click の POST の先 = /api/messaging/unsubscribe(List-Unsubscribe のヘッダ。RFC 8058 のメールソフトがここへ POST する)

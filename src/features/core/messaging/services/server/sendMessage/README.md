@@ -29,7 +29,7 @@
 
 ### 管理者が書いた文面（authoredDefinition.ts・dispatchDefinition.ts）
 
-- 定義の鍵 = 送るカテゴリーの種別の authored の定義（`messaging.adminAnnouncement` / `adminDirect` / `adminMarketing`）。種別が announcement・direct・marketing でないカテゴリーは 400（送る時も cron の組み直しも）
+- 定義の鍵 = 送るカテゴリーの種別の authored の定義（`messaging.adminAnnouncement` / `adminDirect` / `adminPromotion`）。種別が announcement・direct・promotion でないカテゴリーは 400（送る時も cron の組み直しも）
 - **経路 = 種類の経路 ∩ その回の絞り（`channels`）。その中に文面の無い経路が 1 つでもあれば 400**（黙って落とさない）。欄は経路の受け口の zod で検査。`{{鍵}}` = 当たる enrichers の鍵 + テンプレートの版の変数、知らない鍵は 400。authored の定義は上書きと管理画面の文言を重ねない
 - 文面は回の `authored_content` に残し、予約・cron の組み直し・再送はその文面で組む（後でテンプレートを直しても送った文面のまま）
 - テンプレートを読み込んだ時: 今の公開版を回の `template_id`・`template_version` に固定（今の公開版でない・取り下げ済み・未公開は 409、無いテンプレートは 404）。版から直したかを `template_edited` に残す

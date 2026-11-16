@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/admin/freeText.ts
 //
 // 管理者がその場で書いて送る連絡(D65・D80・D85)の種別ごとの定義と、選んだカテゴリーの検査。
-// - 種別 announcement・direct・marketing の 3 つ。定義は messages/admin<Kind>.ts(authored = 文面を送るたびに受け取る、D92)
+// - 種別 announcement・direct・promotion の 3 つ。定義は messages/admin<Kind>.ts(authored = 文面を送るたびに受け取る、D92)
 // - 送る時は選んだカテゴリーの種別の定義の鍵で、受けた文面を組む(sendMessage/authoredDefinition.ts。その場で書く連絡もテンプレートも同じ)
 // - 宛先の種類(all・role・group・users・bulk)は種別の性質 adminFreeText で確かめる
 // - 経路はカテゴリーの経路(LINE・fork の経路も、文面があれば送れる)
@@ -11,17 +11,17 @@ import { DomainError } from "@/lib/errors";
 
 import { message as adminAnnouncement } from "../../../messages/adminAnnouncement";
 import { message as adminDirect } from "../../../messages/adminDirect";
-import { message as adminMarketing } from "../../../messages/adminMarketing";
+import { message as adminPromotion } from "../../../messages/adminPromotion";
 
 /** 管理者がその場で書いて送れる種別 */
-export const ADMIN_FREE_TEXT_KINDS = ["announcement", "direct", "marketing"] as const;
+export const ADMIN_FREE_TEXT_KINDS = ["announcement", "direct", "promotion"] as const;
 export type AdminFreeTextKind = (typeof ADMIN_FREE_TEXT_KINDS)[number];
 
 /** 種別ごとの定義(authored。その場で書く連絡とテンプレートの送りが同じ鍵) */
-export const ADMIN_FREE_TEXT_DEFINITIONS: Readonly<Record<AdminFreeTextKind, typeof adminMarketing>> = {
+export const ADMIN_FREE_TEXT_DEFINITIONS: Readonly<Record<AdminFreeTextKind, typeof adminPromotion>> = {
   announcement: adminAnnouncement,
   direct: adminDirect,
-  marketing: adminMarketing,
+  promotion: adminPromotion,
 };
 
 /** 3 本の鍵(enricher の当て先・テンプレートの使える鍵) */

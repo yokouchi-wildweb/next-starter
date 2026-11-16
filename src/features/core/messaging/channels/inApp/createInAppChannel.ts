@@ -52,6 +52,12 @@ export function createInAppChannel(deps: InAppChannelDeps): MessageChannel {
     label: "お知らせ",
     addressing: "user",
     fields: inAppFieldsSchema,
+    fieldMeta: {
+      title: { label: "タイトル", input: "line" },
+      body: { label: "本文", input: "text" },
+      image: { label: "画像", input: "image" },
+      link: { label: "リンク先", help: "押したときに開くページ", input: "url" },
+    },
     resolveAddresses: async (userIds) => userIds.map((userId) => ({ userId, address: userId })),
     async send(targets) {
       const deliveryIdOf = (key: string) => key.split(":")[0];

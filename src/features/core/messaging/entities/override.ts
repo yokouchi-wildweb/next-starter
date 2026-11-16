@@ -1,7 +1,7 @@
 // src/features/core/messaging/entities/override.ts
 //
 // 管理画面の文言の上書き(D21・D24・D28)。直した欄だけ行がある(1 行 = 連絡 × 欄)。
-// - field_path = "<経路>.<欄>"(定義の adminEditable と同じ書き方)
+// - field_path = "<経路>.<欄>"(定義の adminEditableOnly と同じ書き方)
 // - value = 管理者が書いた値 / code_value = 直した時のコードの値(fork の override を重ねた後)。今のコードの値と違えば「コードが変わった」
 // - 既定に戻す = 行を消す。定義の鍵はコードなので外部キーは持たない
 

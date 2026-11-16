@@ -1,11 +1,11 @@
 // scripts/structure/extensions/derive/messageGuards.mjs
 // 止められない連絡(required)の守り。連絡の定義 messages/<名前>.ts と隣の上書き <名前>.override.ts を字面で読み(実行しない)、
-// - required の上書き: enabled: false にしない・adminEditable(書くなら)は空・throttle(書くなら)は null だけ
-// - 守りに関わる値(定義の required・category・adminEditable、上書きの enabled・adminEditable、種類の kind・channels・group)はリテラルで書く
+// - required の上書き: enabled: false にしない・adminEditableOnly(書くなら)は空・throttle(書くなら)は null だけ
+// - 守りに関わる値(定義の required・category・adminEditableOnly、上書きの enabled・adminEditableOnly、種類の kind・channels・group)はリテラルで書く
 // - label(全部の定義に必須、D46): 管理画面に出す連絡の名前。字面の空でない文字列(上書きで変えられる = 表示だけ)
 // - category(全部の定義に必須、D81): リテラルで、categories の受け口(messaging の点 categories)の項目の鍵のどれか。
 //   文面(content)は種類の経路の分だけ要る(D86)。上書きでは category を変えられない(宣言の overrideOf に無い = ../overrideKeys.mjs)
-// - required の定義: 種類の経路に "email" がある・adminEditable が空・throttle が無い
+// - required の定義: 種類の経路に "email" がある・adminEditableOnly が空・throttle が無い
 // - authored: true の定義(文面を送るたびに受け取る、D92): 文面(content)の経路を見ない・上書きのファイルを置けない
 // - 上流(src/features/core)の functional の種類の連絡: 上書きで enabled: false にしない(D68)
 // - 種類の上書き(categories/<名前>.override.ts): functional・security の種類の channels から "email" を外さない(D86)。
@@ -287,15 +287,15 @@ export function checkMessageGuards(repoRoot, points, files) {
       }
     }
     const required = readLiteralProperty(definition, "required");
-    const adminEditable = readLiteralProperty(definition, "adminEditable");
-    for (const r of [required, adminEditable]) if (r.problem) problems.push(`${path}: ${r.problem}(required の守りを字面で確かめるため)`);
+    const adminEditableOnly = readLiteralProperty(definition, "adminEditableOnly");
+    for (const r of [required, adminEditableOnly]) if (r.problem) problems.push(`${path}: ${r.problem}(required の守りを字面で確かめるため)`);
     if (required.problem || required.value !== true) continue;
 
     if (categoryItem?.channels && !categoryItem.channels.includes("email")) {
       problems.push(`${path}: required の連絡の種類(${categoryItem.path})の経路に "email" を含める`);
     }
-    if (!adminEditable.problem && adminEditable.present && !(Array.isArray(adminEditable.value) && adminEditable.value.length === 0)) {
-      problems.push(`${path}: required の連絡に adminEditable は付けられない`);
+    if (!adminEditableOnly.problem && adminEditableOnly.present && !(Array.isArray(adminEditableOnly.value) && adminEditableOnly.value.length === 0)) {
+      problems.push(`${path}: required の連絡に adminEditableOnly は付けられない`);
     }
     if (readPresence(definition, "throttle").present) problems.push(`${path}: required の連絡に throttle は付けられない`);
 
@@ -304,11 +304,11 @@ export function checkMessageGuards(repoRoot, points, files) {
     const override = exportedObject(overridePath, readFileSync(join(repoRoot, overridePath), "utf8"), overrideExport);
     if (!override) continue; // 形の違い・空は ../overrideKeys.mjs と ../orphans.mjs が言う
     const enabled = readLiteralProperty(override, "enabled");
-    const oEditable = readLiteralProperty(override, "adminEditable");
+    const oEditable = readLiteralProperty(override, "adminEditableOnly");
     for (const r of [enabled, oEditable]) if (r.problem) problems.push(`${overridePath}: ${r.problem}(上書きの先が required の連絡のため)`);
     if (!enabled.problem && enabled.present && enabled.value !== true) problems.push(`${overridePath}: required の連絡は止められない(enabled: false にしない)`);
     if (!oEditable.problem && oEditable.present && !(Array.isArray(oEditable.value) && oEditable.value.length === 0)) {
-      problems.push(`${overridePath}: required の連絡に adminEditable は付けられない`);
+      problems.push(`${overridePath}: required の連絡に adminEditableOnly は付けられない`);
     }
     const throttle = readPresence(override, "throttle");
     if (throttle.present && !throttle.isNull) problems.push(`${overridePath}: required の連絡に throttle は付けられない`);

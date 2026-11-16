@@ -28,8 +28,8 @@ export type TemplateImageLedger<Tx> = {
   copy: (ref: string) => Promise<string>;
 };
 
-/** 中身の文字列を置き換えた写しを返す(入れ子の object・配列も) */
-function mapStrings(value: unknown, map: (text: string) => string): unknown {
+/** 中身の文字列を置き換えた写しを返す(入れ子の object・配列も。文言の上書きの画像も使う) */
+export function mapStrings(value: unknown, map: (text: string) => string): unknown {
   if (typeof value === "string") return map(value);
   if (Array.isArray(value)) return value.map((item) => mapStrings(item, map));
   if (value && typeof value === "object") {
@@ -38,7 +38,8 @@ function mapStrings(value: unknown, map: (text: string) => string): unknown {
   return value;
 }
 
-function collectRefs(value: unknown, out: Set<string>): Set<string> {
+/** 中身の storage:// の参照を集める(文言の上書きの画像も使う) */
+export function collectRefs(value: unknown, out: Set<string>): Set<string> {
   if (typeof value === "string") {
     if (isStorageRef(value)) out.add(value);
   } else if (Array.isArray(value)) {

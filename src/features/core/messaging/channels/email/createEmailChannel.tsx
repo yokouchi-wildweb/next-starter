@@ -9,7 +9,7 @@
 // - MailSendError の分類(transient / permanent / unknown)をそのまま結果に写す。それ以外の例外は unknown
 // - preview: 管理の送信のプレビュー。送る時と同じ描き方で HTML を返す(停止のリンクは好みのページか見本の URL)
 // - webhook(D36・D44): resend / sendgrid の verify(鍵は env、無ければ WebhookNotConfiguredError)+ normalize(lib/mail/webhooks)
-// - 配信停止(D35・D57): 宛先に category がある = 好みに従う連絡(marketing・activity)。
+// - 配信停止(D35・D57): 宛先に category がある = 好みに従う連絡(promotion・activity)。
 //   List-Unsubscribe のヘッダもあれば、ヘッダを lib/mail に渡し本文の最後に停止のリンクを出す。
 //   本文のリンクの先 = 好みのページ(門 messagingPreferences が開 = deps.preferencesPageUrl() が値を返す時)、閉ならワンクリックの URL。
 //   ヘッダ(List-Unsubscribe・List-Unsubscribe-Post)は門に関わらずワンクリックの URL のまま
@@ -110,6 +110,18 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
     label: "メール",
     addressing: "user",
     fields: emailFieldsSchema,
+    fieldMeta: {
+      subject: { label: "件名", input: "line" },
+      preheader: { label: "プレヘッダー", help: "受信一覧で件名の横に見える短い文", input: "line" },
+      heading: { label: "見出し", input: "line" },
+      paragraphs: { label: "本文の段落", input: "text", list: true },
+      cta: {
+        label: "ボタン",
+        input: "url",
+        parts: { label: { label: "ボタンの文言", input: "line" }, url: { label: "ボタンの行き先", input: "url" } },
+      },
+      footer: { label: "フッター", input: "text" },
+    },
     resolveAddresses: (userIds) => deps.findEmails(userIds),
     webhooks: emailWebhooks(deps),
     // プレビュー: 送る時と同じ描き方(連絡の鍵の view、無ければ既定)で HTML を描く。停止のリンクは見本の URL
@@ -136,7 +148,7 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
         const content = target.content as EmailViewContent;
         const listUnsubscribe = target.headers?.["List-Unsubscribe"];
         if (target.category && !listUnsubscribe) {
-          // 停止のヘッダを付けられない marketing・activity のメールは送らない(D57)
+          // 停止のヘッダを付けられない promotion・activity のメールは送らない(D57)
           results.push({ address: target.address, kind: "permanent", reason: "unsubscribe_key_missing" });
           continue;
         }

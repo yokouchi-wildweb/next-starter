@@ -57,16 +57,19 @@ export type MessageDefinition<
   category: string;
   /** 呼び手が渡す値 */
   vars: Vars;
-  /** 止められない連絡(認証など)。enabled:false・email の除外・adminEditable・throttle を付けられない */
+  /** 止められない連絡(認証など)。enabled:false・email の除外・adminEditableOnly・throttle を付けられない */
   required?: boolean;
-  /** 管理画面で直せる欄の名前(`<経路>.<欄>`)。required の連絡は空 */
-  adminEditable?: readonly MessageFieldPath<C>[];
+  /**
+   * 管理画面で直せる欄の絞り(`<経路>.<欄>`、D83)。無い = 種類の経路の欄を全部直せる(種別の性質 adminTextOverride が true・
+   * required でも authored でもない連絡)。書いた時だけその欄に絞る。required の連絡は付けない
+   */
+  adminEditableOnly?: readonly MessageFieldPath<C>[];
   /** 本文の残し方(既定 = 種別の性質の recordDefault) */
   record?: MessageRecord;
   throttle?: MessageThrottle<VarKeys<Vars>>;
   /**
    * 文面を送るたびに受け取る連絡(管理者がその場で書く・テンプレートの文面を送る、D92)。定義は鍵・種類・記録の段だけを持ち、
-   * content は空 {}・vars は空の z.object({}) で書く(送る口が受けた文面で埋めてから検査する)。adminEditable・throttle・上書きは付けられない
+   * content は空 {}・vars は空の z.object({}) で書く(送る口が受けた文面で埋めてから検査する)。adminEditableOnly・throttle・上書きは付けられない
    */
   authored?: true;
   /** 経路ごとの欄(種類の経路の分だけ必須。authored の定義は空 {}) */
@@ -86,7 +89,7 @@ export type MessageOverride<C extends ChannelFieldSchemas = UpstreamChannelField
   extras?: Record<string, unknown>;
   /** 連絡 1 本の入切(既定 true)。上流の functional の連絡は止められない(D68) */
   enabled?: boolean;
-  adminEditable?: readonly MessageFieldPath<C>[];
+  adminEditableOnly?: readonly MessageFieldPath<C>[];
   record?: MessageRecord;
   throttle?: MessageThrottle | null;
 };

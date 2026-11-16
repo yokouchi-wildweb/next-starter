@@ -53,7 +53,7 @@ export const AdminBulkSendInputSchema = z
     /** 受け口 bulkSendTargets の鍵と、その一覧で選んだ記録の id */
     target: z.string().trim().min(1).optional(),
     recordIds: idList.optional(),
-    /** 送る中身・カテゴリー(種別の性質 adminFreeText に bulk がある種別: direct・marketing)・経路の絞り(送る画面と同じ) */
+    /** 送る中身・カテゴリー(種別の性質 adminFreeText に bulk がある種別: direct・promotion)・経路の絞り(送る画面と同じ) */
     ...adminContentFields,
     /** 二重送信を防ぐ鍵(クライアント発行) */
     idempotencyKey: z.string().trim().min(8).max(128).optional(),

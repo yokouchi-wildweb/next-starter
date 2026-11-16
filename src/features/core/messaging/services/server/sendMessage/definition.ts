@@ -7,6 +7,7 @@
 import type { z } from "zod";
 
 import {
+  adminEditablePaths,
   UPSTREAM_CHANNEL_FIELDS,
   applyAdminFieldValues,
   resolveMessageDefinition,
@@ -86,7 +87,8 @@ export async function resolveDefinition(
   }
   const resolved = resolveMessageDefinition(definition, override, deps.categories[definition.category]!);
   const adminOverrides = deps.adminOverrides;
-  if (!adminOverrides || !resolved.adminEditable?.length || !adminOverrides.enabled()) return resolved;
+  if (!adminOverrides || !adminOverrides.enabled()) return resolved;
+  if (adminEditablePaths(resolved, channelFieldSchemas(deps.channels)).length === 0) return resolved;
 
   const values = await adminOverrides.load(definition.key);
   if (values.length === 0) return resolved;
