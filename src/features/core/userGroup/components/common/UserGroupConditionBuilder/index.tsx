@@ -190,7 +190,7 @@ function GroupNode({ node, level, criteria, actions, disabled }: NodeProps & { n
             options={OP_OPTIONS}
             showPlaceholderOption={false}
             size="sm"
-            className="w-auto"
+            className="w-auto data-[size=sm]:h-9"
             disabled={disabled}
             onChange={(value) => value && actions.setOp(node.id, String(value) as ConditionGroupOp)}
           />
