@@ -3,8 +3,8 @@
 // 管理者向け: ユーザーグループ。門 userGroups が閉なら 404。service でも管理者を確かめ、監査を残す
 //
 // GET  /api/admin/user-groups/[id]/members?q&cursor&limit   静的グループの今の一員(q = 名前かメールの部分一致) { items: [{ id, name }], nextCursor }
-// POST /api/admin/user-groups/[id]/members   静的グループの一員 { mode: "add", userIds } | { mode: "replace", from } | { mode: "remove", userIds }
-//   replace が incomplete を返したら同じ body で送り直すと続きから。remove は { memberCount } を返す
+// POST /api/admin/user-groups/[id]/members   静的グループの一員 { mode: "add", userIds } | { mode: "replace", from } | { mode: "remove", userIds } | { mode: "clear" }(全員を外す)
+//   replace・clear が incomplete を返したら同じ body で送り直すと続きから。remove は { memberCount } を返す
 //   静的でないグループは 409
 
 import { gate } from "@/featureGate";
