@@ -54,8 +54,8 @@ const DELIVERY_STATUS_OPTIONS = Object.entries(DELIVERY_STATUS_DISPLAY).map(([va
 
 export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
   const canSend = useGate().enabled("messagingBroadcast");
-  const { dispatch, error, isLoading, deliveries, deliveryFilters, includeUnknown, setIncludeUnknown, remove, resend, continueDispatch } =
-    useAdminDispatchDetail(dispatchId, { observerOptions: OBSERVER_OPTIONS });
+  const detail = useAdminDispatchDetail(dispatchId);
+  const { dispatch, error, isLoading, deliveries, deliveryFilters, includeUnknown, setIncludeUnknown, remove, resend, continueDispatch } = detail;
   const categories = useAdminDispatchCategories();
 
   if (isLoading && !dispatch) {
@@ -88,6 +88,10 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
         includeUnknown={includeUnknown}
         onIncludeUnknownChange={setIncludeUnknown}
         onDelete={remove}
+        deleteSummary={detail.deleteSummary}
+        deleteSummaryLoading={detail.deleteSummaryLoading}
+        deleteSummaryError={detail.deleteSummaryError}
+        onDeleteConfirmOpenChange={detail.setDeleteConfirmOpen}
         onResend={resend}
         stateLine={dispatchStateLine(dispatch)}
         canContinue={dispatch.operations.canContinue.allowed}

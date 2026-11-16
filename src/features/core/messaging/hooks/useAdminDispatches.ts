@@ -25,13 +25,13 @@ export type UseAdminDispatchesOptions = {
 
 export function useAdminDispatches(options: UseAdminDispatchesOptions = {}) {
   const { filters = {}, limit = DEFAULT_LIMIT, enabled, observerOptions } = options;
-  const { from, to, kind, category, channel, status } = filters;
+  const { from, to, kind, category, channel, status, deleted } = filters;
   return useInfiniteScrollQuery<AdminDispatchSummary, Record<string, never>>({
     cursorFetcher: ({ cursor, limit: pageLimit }) =>
-      listAdminDispatches({ from, to, kind, category, channel, status, cursor, limit: pageLimit }),
+      listAdminDispatches({ from, to, kind, category, channel, status, deleted, cursor, limit: pageLimit }),
     limit,
     enabled,
     observerOptions,
-    deps: [from, to, kind, category, channel, status, limit],
+    deps: [from, to, kind, category, channel, status, deleted, limit],
   });
 }

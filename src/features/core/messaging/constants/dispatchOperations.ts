@@ -36,7 +36,7 @@ export const DISPATCH_OPERATION_REASON_TEXT: Record<DispatchOperationReason, str
 
 /** 回の詳細で操作の上に出す状態の 1 行(D71 の言い方)。知らない状態は null */
 export function dispatchStateLine(dispatch: { status: string; scheduledAt: string | null; deletedAt: string | null }): string | null {
-  if (dispatch.deletedAt) return "この送信は削除しました";
+  if (dispatch.deletedAt) return "この送信は削除済みです";
   switch (dispatch.status) {
     case "scheduled": {
       const at = dispatch.scheduledAt ? new Date(dispatch.scheduledAt) : null;

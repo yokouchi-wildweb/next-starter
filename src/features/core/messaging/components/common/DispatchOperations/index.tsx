@@ -21,13 +21,21 @@ import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { Para } from "@/components/TextBlocks/Para";
 
 import { DISPATCH_OPERATION_REASON_TEXT } from "@/features/core/messaging/constants/dispatchOperations";
-import type { AdminDispatchDetail } from "@/features/core/messaging/services/client/adminMessagingClient";
+import type { AdminDeleteSummary, AdminDispatchDetail } from "@/features/core/messaging/services/client/adminMessagingClient";
+
+import { DispatchDeleteSummary } from "../DispatchDeleteSummary";
 
 export type DispatchOperationsProps = {
   operations: AdminDispatchDetail["operations"];
   /** 再送で「送れたか分からない」宛先も含めるか */
   includeUnknown: boolean;
   onIncludeUnknownChange: (value: boolean) => void;
+  /** 削除の見込み(確認を開いている間に呼び手が取る、D88) */
+  deleteSummary?: AdminDeleteSummary | null;
+  deleteSummaryLoading?: boolean;
+  deleteSummaryError?: unknown;
+  /** 削除の確認を開いた・閉じた(見込みを取る合図) */
+  onDeleteConfirmOpenChange?: (open: boolean) => void;
   onDelete: () => Promise<void>;
   onResend: () => Promise<void>;
   /** 操作の上に出す状態の 1 行(null = 出さない) */
@@ -54,9 +62,14 @@ export function DispatchOperations({
   stateLine = null,
   canContinue = false,
   onContinue,
+  deleteSummary = null,
+  deleteSummaryLoading = false,
+  deleteSummaryError = null,
+  onDeleteConfirmOpenChange,
 }: DispatchOperationsProps) {
   const [open, setOpen] = useState<Op | null>(null);
   const close = (next: boolean) => {
+    if (!next) onDeleteConfirmOpenChange?.(false);
     if (!next) setOpen(null);
   };
   const { canDelete, canResend: resend } = operations;
@@ -75,7 +88,10 @@ export function DispatchOperations({
         {anyOperation ? (
           <Flex align="center" justify="end" gap="sm" wrap="wrap">
             {canDelete.allowed ? (
-              <Button type="button" size="sm" variant="outline" onClick={() => setOpen("delete")}>
+              <Button type="button" size="sm" variant="outline" onClick={() => {
+                  setOpen("delete");
+                  onDeleteConfirmOpenChange?.(true);
+                }}>
                 削除
               </Button>
             ) : null}
@@ -107,14 +123,16 @@ export function DispatchOperations({
         layer="alert"
         overlayLayer="alert"
         title="送信を削除"
-        description="この送信を削除します。まだ送信していない分と予約は送られず、お知らせは受け取った人から消えます。送信済みのメール・LINE は取り消せません。この操作は元に戻せません。"
         confirmLabel="削除する"
+        confirmVariant="destructive"
         cancelLabel="キャンセル"
         onConfirm={async () => {
           await onDelete();
           setOpen(null);
         }}
-      />
+      >
+        <DispatchDeleteSummary summary={deleteSummary} isLoading={deleteSummaryLoading} error={deleteSummaryError} />
+      </Dialog>
 
       <Dialog
         open={open === "resend"}

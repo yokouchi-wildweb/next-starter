@@ -16,6 +16,7 @@ import { useAdminDispatch } from "./useAdminDispatch";
 import { useAdminDispatchDeliveries } from "./useAdminDispatchDeliveries";
 import { useContinueDispatch } from "./useContinueDispatch";
 import { useDeleteDispatch } from "./useDeleteDispatch";
+import { useDispatchDeleteSummary } from "./useDispatchDeleteSummary";
 import { useResendDispatch } from "./useResendDispatch";
 
 export type UseAdminDispatchDetailOptions = {
@@ -30,6 +31,9 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
   const [deliveryStatus, setDeliveryStatus] = useState("");
   const [deliveryChannel, setDeliveryChannel] = useState("");
   const [includeUnknown, setIncludeUnknown] = useState(false);
+  // 削除の確認を開いている間だけ見込みを取る(D88)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const deleteSummary = useDispatchDeleteSummary([dispatchId], deleteConfirmOpen);
   const deliveries = useAdminDispatchDeliveries(dispatchId, {
     filters: { status: deliveryStatus || undefined, channel: deliveryChannel || undefined },
     limit: options.limit,
@@ -94,6 +98,11 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
     includeUnknown,
     setIncludeUnknown,
     remove,
+    /** 削除の見込み(確認の Dialog に出す) */
+    deleteSummary: deleteSummary.summary,
+    deleteSummaryLoading: deleteSummary.isLoading,
+    deleteSummaryError: deleteSummary.error,
+    setDeleteConfirmOpen,
     resend,
     continueDispatch,
   };
