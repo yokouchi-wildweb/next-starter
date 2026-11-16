@@ -481,8 +481,14 @@ export function SeamlessAvDemo() {
 
           {/* 操作 */}
           <Flex gap="xs" align="center" wrap="wrap">
-            <Button variant="outline" onClick={() => void handleLoad()} disabled={!canLoad}>
-              {status === "loading" ? "読み込み中..." : "読み込み(プリロード)"}
+            <Button
+              variant="outline"
+              onClick={() => void handleLoad()}
+              disabled={!canLoad}
+              loading={status === "loading"}
+              loadingLabel="読み込み中..."
+            >
+              読み込み(プリロード)
             </Button>
             <Button onClick={() => void play()} disabled={!canPlay}>
               再生

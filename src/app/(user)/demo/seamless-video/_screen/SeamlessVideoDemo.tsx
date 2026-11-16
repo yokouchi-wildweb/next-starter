@@ -292,8 +292,13 @@ export function SeamlessVideoDemo() {
                   />
                   muxed音声を鳴らす(方式A確認)
                 </label>
-                <Button onClick={() => void handlePlay()} disabled={status === "loading" || !env.mse}>
-                  {status === "loading" ? "読み込み中..." : "連結して再生"}
+                <Button
+                  onClick={() => void handlePlay()}
+                  disabled={!env.mse}
+                  loading={status === "loading"}
+                  loadingLabel="読み込み中..."
+                >
+                  連結して再生
                 </Button>
               </Flex>
             </Flex>

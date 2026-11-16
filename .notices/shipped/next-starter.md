@@ -519,3 +519,4 @@
 - id:20261117-163825-form-text-color | severity:info | checkpoint:form-text-color
 - id:20261117-173914-test-file-time-limit | severity:info | checkpoint:test-file-time-limit
 - id:20261117-181158-test-force-exit | severity:info | checkpoint:test-force-exit | fixes:20261117-173914-test-file-time-limit | pick:clean
+- id:20261117-060703-loading-parts | severity:info | checkpoint:loading-parts
