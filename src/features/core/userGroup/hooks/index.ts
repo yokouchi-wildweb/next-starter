@@ -4,7 +4,7 @@
 export { USER_GROUPS_KEY, USER_GROUP_CRITERIA_KEY, userGroupKey } from "./userGroupKeys";
 export { useUserGroups, type UseUserGroupsOptions } from "./useUserGroups";
 export { useUserGroup, useUserGroupCriteriaCatalog } from "./useUserGroup";
-export { useAdminUserGroupList, userGroupSummaryOf, type UserGroupAction } from "./useAdminUserGroupList";
+export { useAdminUserGroupList, userGroupSummaryOf, type UserGroupAction, type UserGroupStatusFilter } from "./useAdminUserGroupList";
 export {
   CONDITION_MAX_DEPTH,
   CONDITION_OP_LABELS,

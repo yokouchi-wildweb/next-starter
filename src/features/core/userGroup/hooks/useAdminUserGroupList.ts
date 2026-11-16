@@ -23,14 +23,18 @@ export function userGroupSummaryOf(group: AdminUserGroupDetail): AdminUserGroupS
   return { id, name, description, kind, kindLabel, status, statusLabel, count, recompute, createdAt, updatedAt };
 }
 
+/** 一覧の状態の絞り(all = すべて) */
+export type UserGroupStatusFilter = "all" | "active" | "archived";
+
 export type UseAdminUserGroupListOptions = {
   observerOptions?: IntersectionObserverInit;
 };
 
 export function useAdminUserGroupList(options: UseAdminUserGroupListOptions = {}) {
   const [kind, setKind] = useState("");
-  const [status, setStatus] = useState<"active" | "archived">("active");
-  const query = useUserGroups({ kind: kind || undefined, status, observerOptions: options.observerOptions });
+  // 状態の絞り: all = 使用中とアーカイブの両方(既定、D87)。API には all を送らない
+  const [status, setStatus] = useState<UserGroupStatusFilter>("all");
+  const query = useUserGroups({ kind: kind || undefined, status: status === "all" ? undefined : status, observerOptions: options.observerOptions });
   const [modalOpen, setModalOpen] = useState(false);
   const [groupId, setGroupId] = useState<string | null>(null);
 
@@ -47,7 +51,7 @@ export function useAdminUserGroupList(options: UseAdminUserGroupListOptions = {}
   const onChanged = useCallback(
     (group: AdminUserGroupDetail, action: UserGroupAction) => {
       if (action === "create") return revalidate();
-      if (group.status !== status || (kind && group.kind !== kind)) return removeItems((item) => item.id === group.id);
+      if ((status !== "all" && group.status !== status) || (kind && group.kind !== kind)) return removeItems((item) => item.id === group.id);
       updateItems(
         (item) => item.id === group.id,
         () => userGroupSummaryOf(group),
