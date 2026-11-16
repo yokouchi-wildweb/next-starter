@@ -9,7 +9,7 @@
 //   グループ宛ての回は同じグループ(今は選べなければ選び直し、全員に広げない)・選んだ利用者に送った回は同じ利用者を選んだ形)。テンプレートの回はそのテンプレートを今の公開版で呼び出す(送るのは今の公開版だけ、
 //   古い版は 409)。直して送った回は直した文言を写す。公開中でないテンプレートはその場で書く形にして sameAsNote で知らせる
 // - bulk: 管理一覧の一括操作。宛先 = 選んだ記録(target + recordIds)、POST /api/admin/messaging/bulk-send(門の外)。予約は無い
-// 宛先 = 全員・ロール・グループ(門 userGroups が開でグループがある時だけ)・選んだ利用者。見込みが上限を超えたら確認の段で送れない(D64)
+// 宛先 = 全員・ロール・グループ(門 userGroups が開の時。0 件なら作成へ案内)・選んだ利用者。見込みが上限を超えたら確認の段で送れない(D64)
 // 流れ(D47): 宛先 → テンプレートから読み込む(任意、門 messagingTemplates が開の時だけ。カテゴリー・経路・欄・画像が写り、全部直せる)→ カテゴリー(宛先で選べる物、D80)
 // → 経路の絞り(カテゴリーの経路の中、既定は全部オン)→ 文言の無い経路は空欄で見せ、送る前に止める(D85、サーバーの 400 と同じ線)
 // → 予約(bulk 以外)→ プレビュー・自分へのテスト送信 → 見込み → 確認 → 送る → 結果。
@@ -654,6 +654,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     roles: sendOptions.options?.roles ?? [],
     /** 選べるグループ(使用中・名前と種類の表示名。門 userGroups が閉なら空 = グループを選ばせない) */
     groups,
+    /** 門 userGroups が開か(開ならグループが 0 件でもグループの選択肢を出す) */
+    groupsEnabled: gate.enabled("userGroups"),
     /** 宛先の知らせ(sameAs の前の回のグループが今は選べない時) */
     targetNote: targetGroupGone ? TARGET_GROUP_GONE_NOTE : null,
     allowedCategories,

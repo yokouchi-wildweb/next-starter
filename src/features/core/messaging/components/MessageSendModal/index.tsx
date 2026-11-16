@@ -156,7 +156,7 @@ export function MessageSendModal({
           {bulk ? (
             <SendTargetPicker kind="bulk" recordCount={bulk.recordIds.length} recordNoun={bulk.recordNoun} />
           ) : (
-            <SendTargetPicker kind="select" value={m.target} onChange={m.setTarget} roles={m.roles} groups={m.groups} note={m.targetNote} />
+            <SendTargetPicker kind="select" value={m.target} onChange={m.setTarget} roles={m.roles} groups={m.groups} groupsEnabled={m.groupsEnabled} note={m.targetNote} />
           )}
         </Block>
         {m.templatesAvailable ? (

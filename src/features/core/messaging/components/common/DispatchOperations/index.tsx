@@ -1,10 +1,12 @@
 // src/features/core/messaging/components/common/DispatchOperations/index.tsx
-// 部品(props だけ): 回の管理の操作のボタン(予約を取り消す・取り下げる・失敗分を再送)。
-// - できるかと理由は AdminDispatchDetail.operations(server と同じ判定)。できない操作は押せず、理由の文を出す
-//   (文は constants/dispatchOperations.ts。409 の本文は読まない)
-// - 押すと確認の Dialog(onConfirm の Promise の間 loading)。取り下げは戻せない・送ったメールは取り戻せないと書く
+// 部品(props だけ): 回の管理の操作(予約を取り消す・公開を停止・失敗分を再送・送信を再開)と、その上の状態の 1 行。
+// - できるかは AdminDispatchDetail.operations(server と同じ判定)。今できる操作のボタンだけを並べ、できない操作は出さない
+//   (押せないボタン・理由の文は出さない)。できる操作が 1 つも無ければボタンの行ごと出さない
+// - 状態の 1 行は呼び手が渡す(constants/dispatchOperations.ts の dispatchStateLine)
+// - 押すと確認の Dialog(onConfirm の Promise の間 loading)。公開の停止は戻せない・送信済みのメールは取り消せないと書く
 // - 再送は 同じ回で送り直す / 新しい回として送る と失敗・不明の数を出し、不明がある時だけ「不明も含める」(二重に届くおそれ)を選べる。
 //   その値は呼び手が持つ(includeUnknown / onIncludeUnknownChange)
+// - 送信を再開は canContinue(送信中の回)の時だけ、ConfirmPopover で確かめる
 
 "use client";
 
@@ -15,8 +17,8 @@ import { SwitchInput } from "@/components/Form/Input/Manual";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Dialog } from "@/components/Overlays/Dialog";
+import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { Para } from "@/components/TextBlocks/Para";
-import { Span } from "@/components/TextBlocks/Span";
 
 import { DISPATCH_OPERATION_REASON_TEXT } from "@/features/core/messaging/constants/dispatchOperations";
 import type { AdminDispatchDetail } from "@/features/core/messaging/services/client/adminMessagingClient";
@@ -29,6 +31,11 @@ export type DispatchOperationsProps = {
   onCancel: () => Promise<void>;
   onRetract: () => Promise<void>;
   onResend: () => Promise<void>;
+  /** 操作の上に出す状態の 1 行(null = 出さない) */
+  stateLine?: string | null;
+  /** 送信を再開できるか(送信中の回) */
+  canContinue?: boolean;
+  onContinue?: () => Promise<void>;
 };
 
 type Op = "cancel" | "retract" | "resend";
@@ -39,32 +46,6 @@ export function operationReasonText(reason: string | null): string | null {
   return (DISPATCH_OPERATION_REASON_TEXT as Record<string, string>)[reason] ?? reason;
 }
 
-function OperationButton({
-  label,
-  allowed,
-  reason,
-  onClick,
-}: {
-  label: string;
-  allowed: boolean;
-  reason: string | null;
-  onClick: () => void;
-}) {
-  const text = allowed ? null : operationReasonText(reason);
-  return (
-    <Stack space={1}>
-      <Button type="button" size="sm" variant="outline" disabled={!allowed} onClick={onClick}>
-        {label}
-      </Button>
-      {text ? (
-        <Span size="xs" tone="muted" className="max-w-56">
-          {text}
-        </Span>
-      ) : null}
-    </Stack>
-  );
-}
-
 export function DispatchOperations({
   operations,
   includeUnknown,
@@ -72,6 +53,9 @@ export function DispatchOperations({
   onCancel,
   onRetract,
   onResend,
+  stateLine = null,
+  canContinue = false,
+  onContinue,
 }: DispatchOperationsProps) {
   const [open, setOpen] = useState<Op | null>(null);
   const close = (next: boolean) => {
@@ -79,14 +63,50 @@ export function DispatchOperations({
   };
   const { cancel, retract, resend } = operations;
   const resendCount = resend.failed + (includeUnknown ? resend.unknown : 0);
+  const showContinue = canContinue && onContinue !== undefined;
+  const anyOperation = cancel.allowed || retract.allowed || resend.allowed || showContinue;
 
   return (
     <>
-      <Flex align="start" justify="end" gap="sm" wrap="wrap" data-slot="dispatch-operations">
-        <OperationButton label="予約を取り消す" allowed={cancel.allowed} reason={cancel.reason} onClick={() => setOpen("cancel")} />
-        <OperationButton label="公開を停止" allowed={retract.allowed} reason={retract.reason} onClick={() => setOpen("retract")} />
-        <OperationButton label="失敗分を再送" allowed={resend.allowed} reason={resend.reason} onClick={() => setOpen("resend")} />
-      </Flex>
+      <Stack space={2} data-slot="dispatch-operations">
+        {stateLine ? (
+          <Para size="sm" className="my-0" data-slot="dispatch-state-line">
+            {stateLine}
+          </Para>
+        ) : null}
+        {anyOperation ? (
+          <Flex align="center" justify="end" gap="sm" wrap="wrap">
+            {cancel.allowed ? (
+              <Button type="button" size="sm" variant="outline" onClick={() => setOpen("cancel")}>
+                予約を取り消す
+              </Button>
+            ) : null}
+            {retract.allowed ? (
+              <Button type="button" size="sm" variant="outline" onClick={() => setOpen("retract")}>
+                公開を停止
+              </Button>
+            ) : null}
+            {resend.allowed ? (
+              <Button type="button" size="sm" variant="outline" onClick={() => setOpen("resend")}>
+                失敗分を再送
+              </Button>
+            ) : null}
+            {showContinue ? (
+              <ConfirmPopover
+                trigger={
+                  <Button type="button" size="sm" variant="outline">
+                    送信を再開
+                  </Button>
+                }
+                title="送信を再開"
+                description="止まっている送信を一部進めます(残りは自動の処理でも送信されます)。"
+                confirmLabel="再開する"
+                onConfirm={onContinue}
+              />
+            ) : null}
+          </Flex>
+        ) : null}
+      </Stack>
 
       <Dialog
         open={open === "cancel"}

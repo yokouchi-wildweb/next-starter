@@ -37,3 +37,26 @@ export const DISPATCH_OPERATION_REASON_TEXT: Record<DispatchOperationReason, str
   no_failed: "再送する失敗した宛先がありません",
   no_input_copy: "本文が保存されていないため再送できません。新しく送信してください",
 };
+
+/** 回の詳細で操作の上に出す状態の 1 行(D71 の言い方)。知らない状態は null */
+export function dispatchStateLine(dispatch: { status: string; scheduledAt: string | null; retractedAt: string | null }): string | null {
+  if (dispatch.retractedAt) return "この送信は公開を停止しています";
+  switch (dispatch.status) {
+    case "scheduled": {
+      const at = dispatch.scheduledAt ? new Date(dispatch.scheduledAt) : null;
+      if (!at || Number.isNaN(at.getTime())) return "この送信は予約中です";
+      const pad = (n: number) => String(n).padStart(2, "0");
+      return `この送信は予約中です(${at.getMonth() + 1}/${at.getDate()} ${pad(at.getHours())}:${pad(at.getMinutes())} に送信)`;
+    }
+    case "processing":
+      return "送信中です";
+    case "completed":
+      return "送信が完了しました";
+    case "completed_with_failures":
+      return "送信が完了しました(一部の宛先に送信できませんでした)";
+    case "cancelled":
+      return "この予約は取り消されました";
+    default:
+      return null;
+  }
+}
