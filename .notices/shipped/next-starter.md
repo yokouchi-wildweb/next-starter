@@ -512,3 +512,4 @@
 - id:20261115-115409-admin-dashboard-receptacle | severity:action-required | checkpoint:admin-dashboard-receptacle
 - id:20261115-120151-messaging-group-target | severity:breaking | checkpoint:messaging-group-target
 - id:20261115-152748-user-group-readme-finish | severity:breaking | checkpoint:user-group-readme-finish
+- id:20261117-062227-restore-skipped-tests | severity:info | checkpoint:restore-skipped-tests
