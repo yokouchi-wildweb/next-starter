@@ -11,7 +11,7 @@ import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
@@ -26,9 +26,7 @@ export function AdminMessageOverrideList() {
 
   if (isLoading && items.length === 0) {
     return (
-      <Flex justify="center" className="py-8">
-        <Spinner className="size-6" />
-      </Flex>
+      <InlineLoader />
     );
   }
   if (error) {

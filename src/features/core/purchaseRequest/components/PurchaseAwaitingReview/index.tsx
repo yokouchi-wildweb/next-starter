@@ -18,7 +18,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { usePurchaseStatus } from "@/features/core/purchaseRequest/hooks/usePurchaseStatus";
 import { CurrencyDisplay, getCurrencyConfigBySlug } from "@/features/core/wallet";
 
@@ -52,9 +52,7 @@ export function PurchaseAwaitingReview({ slug }: PurchaseAwaitingReviewProps) {
 
   if (loading) {
     return (
-      <Flex justify="center" padding={{ base: "md", sm: "lg" }}>
-        <Spinner className="h-8 w-8" />
-      </Flex>
+      <InlineLoader size="lg" />
     );
   }
 

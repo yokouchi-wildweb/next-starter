@@ -23,7 +23,7 @@ import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import Dialog from "@/components/Overlays/Dialog";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import Modal from "@/components/Overlays/Modal";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { Para } from "@/components/TextBlocks/Para";
@@ -63,9 +63,7 @@ export function AdminMessageTemplateModal({ open, onOpenChange, templateId = nul
     return (
       <Modal open={open} onOpenChange={onOpenChange} title={templateId || m.mode === "edit" ? "テンプレートを編集" : "テンプレートを作成"} maxWidth={MODAL_WIDTH}>
         {m.state === "loading" ? (
-          <Flex justify="center" className="py-8">
-            <Spinner className="size-6" />
-          </Flex>
+          <InlineLoader />
         ) : (
           <Para tone="destructive" align="center">
             {err(m.error, "テンプレートを取得できませんでした")}

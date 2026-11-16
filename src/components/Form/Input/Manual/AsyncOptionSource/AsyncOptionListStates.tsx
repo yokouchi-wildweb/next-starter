@@ -5,10 +5,10 @@
 // 非同期候補リストの状態表示（初回ロード / 初回エラー / 追加読み込み中 / 末尾到達 / 追加読み込みエラー）。
 // useAsyncOptionSource の FetchState をそのまま受けて描画する。3 消費者で共通。
 
-import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks/Span";
 
@@ -37,10 +37,8 @@ export function AsyncOptionInitialState({
 }: InitialStateProps) {
   if (state.items.length === 0 && state.status === "loading") {
     return (
-      <Flex align="center" justify="center" gap="xs" className="py-6 text-sm text-muted-foreground">
-        <Loader2 className="size-4 animate-spin" />
-        {loadingMessage}
-      </Flex>
+      // 共通の部品の既定の見た目を保つ(L1.2): 余白と文字の大きさは前の値
+      <InlineLoader size="sm" message={loadingMessage} className="py-6 text-sm text-muted-foreground" />
     );
   }
 
@@ -75,10 +73,7 @@ export function AsyncOptionListFooter({ state, hasMore, onRetry }: FooterProps) 
 
   if (state.status === "loading") {
     return (
-      <Flex align="center" justify="center" gap="xs" className="py-2 text-xs text-muted-foreground">
-        <Loader2 className="size-3 animate-spin" />
-        読み込み中
-      </Flex>
+      <InlineLoader size="sm" message="読み込み中" spinnerClassName="size-3" />
     );
   }
 

@@ -4,7 +4,8 @@
 
 import { useState, type FormEvent } from "react";
 import { Link } from "@/components/Navigation";
-import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle, AlertCircle } from "lucide-react";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
@@ -48,12 +49,7 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
   if (phase === "initial" || phase === "validating") {
     return (
       <section id="reset-password" className="w-full">
-        <Stack gap="lg" className="text-center">
-          <div className="flex justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-          <Para align="center">リンクを確認しています...</Para>
-        </Stack>
+        <InlineLoader size="lg" message="リンクを確認しています..." />
       </section>
     );
   }

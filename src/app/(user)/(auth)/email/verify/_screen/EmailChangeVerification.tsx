@@ -5,7 +5,8 @@
 "use client";
 
 import { Link } from "@/components/Navigation";
-import { CheckCircleIcon, XCircleIcon, LoaderIcon, MailIcon, LockIcon } from "lucide-react";
+import { CheckCircleIcon, XCircleIcon, MailIcon, LockIcon } from "lucide-react";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
@@ -18,10 +19,7 @@ export function EmailChangeVerification() {
   return (
     <Section className="w-full max-w-md">
       {(phase === "initial" || phase === "checking_auth") && (
-        <Stack gap="md" className="items-center">
-          <LoaderIcon className="h-12 w-12 animate-spin text-muted-foreground" />
-          <p className="text-muted-foreground">読み込み中...</p>
-        </Stack>
+        <InlineLoader size="lg" message="読み込み中..." />
       )}
 
       {phase === "require_login" && (
@@ -55,7 +53,7 @@ export function EmailChangeVerification() {
               </p>
             )}
           </Stack>
-          <LoaderIcon className="h-6 w-6 animate-spin text-primary" />
+          <InlineLoader />
         </Stack>
       )}
 

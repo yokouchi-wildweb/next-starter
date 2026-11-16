@@ -19,6 +19,7 @@ import { Label } from "@/components/Form/Label";
 import { StateTabs, StateTabsContent } from "@/components/Navigation/StateTabs";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
@@ -102,9 +103,7 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
 /** 読み込み中 */
 export function DispatchDetailLoading() {
   return (
-    <Flex justify="center" className="py-8">
-      <Spinner className="size-6" />
-    </Flex>
+    <InlineLoader />
   );
 }
 

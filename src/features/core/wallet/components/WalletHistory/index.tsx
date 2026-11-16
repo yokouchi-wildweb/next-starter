@@ -8,7 +8,7 @@ import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { useMyWalletHistoryBatches } from "@/features/core/walletHistory/hooks/useMyWalletHistoryBatches";
@@ -74,11 +74,7 @@ export function WalletHistory({ slug }: WalletHistoryProps) {
         sentinelRef={sentinelRef}
         onRetry={retry}
         completedText="すべて表示しました"
-        initialLoadingNode={
-          <Flex justify="center" padding={{ base: "md", sm: "lg" }}>
-            <Spinner className="h-8 w-8" />
-          </Flex>
-        }
+        initialLoadingNode={<InlineLoader size="lg" />}
         errorNode={
           <Block padding={{ base: "md", sm: "lg" }} className="rounded-lg border border-destructive/30 bg-destructive/10">
             <Para tone="destructive" align="center">

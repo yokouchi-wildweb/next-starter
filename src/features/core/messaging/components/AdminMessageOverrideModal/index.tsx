@@ -17,7 +17,7 @@
 import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import Modal from "@/components/Overlays/Modal";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { Para } from "@/components/TextBlocks/Para";
@@ -102,9 +102,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
       confirmOnClose={editor.closeConfirm}
     >
       {editor.isLoading && !detail ? (
-        <Flex justify="center" className="py-8">
-          <Spinner className="size-6" />
-        </Flex>
+        <InlineLoader />
       ) : !detail ? (
         <Para tone="muted" align="center">
           {editor.error ? err(editor.error, "文言を取得できませんでした") : "この通知の文言は編集できません"}

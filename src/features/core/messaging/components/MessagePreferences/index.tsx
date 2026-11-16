@@ -18,7 +18,7 @@ import { SwitchInput } from "@/components/Form/Input/Manual";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { Para } from "@/components/TextBlocks/Para";
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
@@ -65,7 +65,7 @@ export function MessagePreferences({ emptyText = "設定できる通知はあり
         </Stack>
       );
     }
-    return <Flex justify="center">{isLoading ? <Spinner className="size-6" /> : null}</Flex>;
+    return isLoading ? <InlineLoader /> : null;
   }
 
   // 変えている最中と全部の停止の間は、ほかの切り替えを押せなくする(全部の行の下はどれも戻せない)

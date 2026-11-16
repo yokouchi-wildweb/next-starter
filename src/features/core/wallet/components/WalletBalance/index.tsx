@@ -10,7 +10,7 @@ import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { walletConfig } from "@/features/wallet/config";
 import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
@@ -97,9 +97,7 @@ export function WalletBalance({
   // ローディング中
   if (isLoading) {
     return (
-      <Flex justify="center" padding={{ base: "md", sm: "lg" }}>
-        <Spinner className="h-8 w-8" />
-      </Flex>
+      <InlineLoader size="lg" />
     );
   }
 

@@ -17,7 +17,7 @@ import { Input, SelectInput, Textarea } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import Modal from "@/components/Overlays/Modal";
 import { ConfirmPopover, PromptPopover } from "@/components/Overlays/Popover";
 import TabbedModal from "@/components/Overlays/TabbedModal";
@@ -72,9 +72,7 @@ export function AdminUserGroupModal({ open, onOpenChange, groupId = null, onChan
     return (
       <Modal open={open} onOpenChange={onOpenChange} title={m.mode === "edit" ? "ユーザーグループを編集" : "ユーザーグループを作成"} maxWidth={MODAL_WIDTH}>
         {m.state === "loading" ? (
-          <Flex justify="center" className="py-8">
-            <Spinner className="size-6" />
-          </Flex>
+          <InlineLoader />
         ) : (
           <Para tone="destructive" align="center">
             {err(m.error, "ユーザーグループを取得できませんでした")}

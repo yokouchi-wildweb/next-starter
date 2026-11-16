@@ -15,7 +15,7 @@ import { Input, SelectInput, Textarea } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import Modal from "@/components/Overlays/Modal";
 import { Para } from "@/components/TextBlocks/Para";
 import { err } from "@/lib/errors";
@@ -158,9 +158,7 @@ function AddSelection({ selection, onDone, label }: BulkActionProps<unknown> & {
               {err(catalogError, "固定グループの一覧を取得できませんでした")}
             </Para>
           ) : !catalog ? (
-            <Flex justify="center" className="py-4">
-              <Spinner className="size-5" />
-            </Flex>
+            <InlineLoader />
           ) : groups.length === 0 ? (
             <Para size="sm" tone="muted" className="my-0">
               追加できる固定グループがありません(「選択したユーザーでグループを作成」で作れます)

@@ -19,7 +19,7 @@ import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import Dialog from "@/components/Overlays/Dialog";
 import Modal from "@/components/Overlays/Modal";
 import { Para } from "@/components/TextBlocks/Para";
@@ -152,9 +152,7 @@ export function MessageSendModal({
     if (!m.optionsLoaded) {
       if (m.optionsError) return <Para tone="destructive">{err(m.optionsError, "選択肢を取得できませんでした")}</Para>;
       return (
-        <Flex justify="center" className="py-8">
-          <Spinner className="size-6" />
-        </Flex>
+        <InlineLoader />
       );
     }
     if (m.step === "done" && m.result) {

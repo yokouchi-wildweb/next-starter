@@ -4,7 +4,8 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
-import { ArrowLeftIcon, Loader2Icon } from "lucide-react";
+import { ArrowLeftIcon } from "lucide-react";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 
 import {
   Command,
@@ -92,10 +93,7 @@ export function SessionRenderer({ onClose, onBack }: CategoryRendererProps) {
     return (
       <Command className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
         <CommandList>
-          <div className="flex items-center justify-center gap-3 py-8 text-muted-foreground">
-            <Loader2Icon className="size-5 animate-spin" />
-            <span>{processing.message}</span>
-          </div>
+          <InlineLoader message={processing.message} />
         </CommandList>
       </Command>
     );

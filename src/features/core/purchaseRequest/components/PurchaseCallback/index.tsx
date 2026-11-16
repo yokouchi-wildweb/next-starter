@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { usePurchaseStatusPolling } from "../../hooks/usePurchaseStatusPolling";
 
@@ -39,10 +39,7 @@ export function PurchaseCallback({ slug }: PurchaseCallbackProps) {
   return (
     <Stack gap="xl">
       <Flex direction="column" align="center" gap="lg">
-        <Spinner className="h-12 w-12 text-info-text" />
-        <Para align="center" size="lg">
-          決済結果を確認中です...
-        </Para>
+        <InlineLoader size="lg" message="決済結果を確認中です..." />
         <Para align="center" tone="muted" size="sm">
           しばらくお待ちください
         </Para>
