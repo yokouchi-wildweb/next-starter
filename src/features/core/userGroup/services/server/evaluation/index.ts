@@ -5,7 +5,7 @@ import { gate } from "@/featureGate";
 import { db } from "@/lib/drizzle";
 
 import { userGroupConfig } from "../../../config";
-import { criteria } from "../../../extensions/criteria";
+import { activeCriteria as criteria } from "../activeCriteria";
 import { createUserGroupEvaluator } from "./evaluator";
 
 export const userGroupEvaluator = createUserGroupEvaluator({

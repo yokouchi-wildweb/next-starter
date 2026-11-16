@@ -39,7 +39,6 @@ before(async () => {
   ({ UserGroupConditionBuilder } = await import("./index"));
   ({ conditionFromDefinition } = await import("../../../hooks/useUserGroupConditionBuilder"));
   const parts = [
-    (await import("../../../criteria/status")).criterion,
     (await import("../../../criteria/signupPeriod")).criterion,
     (await import("../../../criteria/hasTag")).criterion,
   ];
@@ -67,7 +66,7 @@ const renderRoot = async (definition: unknown) => {
 };
 
 test("足したばかりの条件(引数が空)を描ける", async () => {
-  const view = await renderRoot({ op: "and", children: [{ part: "status", args: {} }] });
+  const view = await renderRoot({ op: "and", children: [{ part: "hasTag", args: {} }] });
   assert.deepEqual(view.errors, []);
   assert.equal(view.container.querySelectorAll('[data-slot="user-group-criterion-fields"]').length, 1);
   await view.unmount();
@@ -77,7 +76,7 @@ test("保存した木(2 段・not・引数つき)を描ける", async () => {
   const view = await renderRoot({
     op: "or",
     children: [
-      { part: "status", args: { statuses: ["active"] } },
+      { part: "signupPeriod", args: { withinDays: 7 } },
       { op: "not", child: { op: "and", children: [{ part: "signupPeriod", args: { withinDays: 30 } }, { part: "hasTag", args: { tagIds: [], match: "all" } }] } },
     ],
   });

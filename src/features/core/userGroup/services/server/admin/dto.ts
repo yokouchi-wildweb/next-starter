@@ -91,8 +91,6 @@ export type AdminUserGroupOption = { value: string; label: string };
 export type AdminUserGroupCriteriaCatalog = {
   criteria: { key: string; label: string; description: string | null; weight: "cheap" | "heavy"; weightLabel: string; fields: FieldConfig[] }[];
   options: {
-    roles: AdminUserGroupOption[];
-    statuses: AdminUserGroupOption[];
     tags: AdminUserGroupOption[];
     staticGroups: AdminUserGroupOption[];
   };

@@ -267,7 +267,6 @@ describe("ユーザーグループの管理の service(実 DB、戻す)", { skip
         assert.equal(catalog.options.staticGroups.some((option) => owners.some((o) => o.id === option.value)), false);
         const tagField = catalog.criteria.find((item) => item.key === "hasTag")!.fields.find((field) => field.name === "tagIds") as { options?: unknown[] };
         assert.ok((tagField.options ?? []).length > 0);
-        assert.ok(catalog.options.roles.length > 0 && catalog.options.statuses.length > 0);
 
         // 監査の名前(利用者 id は入れない)
         const actions = new Set(audits.map((row) => row.action));
