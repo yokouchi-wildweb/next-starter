@@ -142,7 +142,7 @@ function CriterionNode({ node, criteria, actions, disabled }: Omit<NodeProps, "l
         </Para>
       ) : null}
       {criterion ? (
-        <UserGroupCriterionFields fields={criterion.fields} args={node.args} onChange={(args) => actions.setArgs(node.id, args)} disabled={disabled} />
+        <UserGroupCriterionFields fields={criterion.fields} inlineGroups={criterion.inlineGroups} args={node.args} onChange={(args) => actions.setArgs(node.id, args)} disabled={disabled} />
       ) : null}
     </Stack>
   );
