@@ -1,6 +1,6 @@
 // src/features/core/userGroup/components/common/UserGroupConditionBuilder/index.tsx
 // 部品(props だけ): 条件の組み立て。根の組(すべて満たす / いずれかを満たす)の中に条件と条件グループ(2 階層まで。グループの中は条件だけ)。
-// 見た目: 根の組 = 枠つきのカード(下に追加の操作) / 条件グループ = 左に色の帯 + 「条件グループ」の札 + 薄い地 / 並んだ条件の間に「かつ・または」 / 番号の札(グループの外の条件 = 1・2…、条件グループ = a・b…、その中 = a1・a2…。並びから毎回数える) / 条件・条件グループは右上でたたむ(見出しと 1 行の要約だけ。開閉は画面だけの状態)
+// 見た目: 根の組 = 枠つきのカード(下に追加の操作) / 条件グループ = 左に色の帯 + 「条件グループ」の札 + 薄い地 / 並んだ条件の間に「かつ・または」 / 番号の札(グループの外の条件 = 1・2…、条件グループ = a・b…、その中 = a1・a2…。並びから毎回数える) / 条件・条件グループは右上でたたむ(見出しと 1 行の要約だけ。開閉は画面だけの状態。グループをたたむと中の条件もたたまれ、開き直すと条件はたたんだまま)
 // - どの条件・グループも「含める / 除外する」を選べる(not。両方を見せた 2 択)/ 条件は部品の label で選び、引数は部品の欄から(UserGroupCriterionFields)
 // - 画面で組めない深い定義は読むだけで出し(label と引数の表示)、「作り直す」で空の組から組める
 // 流れ(木の形・足す外す・定義の木への変換)は hook useUserGroupConditionBuilder。部品の鍵は出さない(D94)
@@ -177,12 +177,18 @@ function NumberTag({ children }: { children: string }) {
 function CriterionNode({
   node,
   number,
+  defaultOpen = true,
   criteria,
   actions,
   disabled,
-}: Omit<NodeProps, "level"> & { node: Extract<ConditionDraftNode, { type: "criterion" }>; number: string }) {
+}: Omit<NodeProps, "level"> & {
+  node: Extract<ConditionDraftNode, { type: "criterion" }>;
+  number: string;
+  /** 初めに開いておくか(グループを開き直した時はたたんだ状態から) */
+  defaultOpen?: boolean;
+}) {
   const criterion = criteria.find((c) => c.key === node.part);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(defaultOpen);
   const summary = criterion ? describeArgs(criterion, node.args) : "";
   return (
     <Stack
@@ -272,6 +278,12 @@ function GroupNode({
   const isRoot = level === 1;
   const [open, setOpen] = useState(true);
   const expanded = isRoot || open;
+  // グループをたたんだ時にあった条件は、開き直すとたたんだ状態で出す(後から足した条件は開いて出る)
+  const [closedIds, setClosedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleGroup = () => {
+    if (open) setClosedIds(new Set(node.children.map((child) => child.id)));
+    setOpen(!open);
+  };
   // 番号は並びから毎回数える(足す・消すと付け直す)。根 = 条件は 1・2…、グループは a・b… / グループの中 = a1・a2…
   let criterionCount = 0;
   let groupCount = 0;
@@ -316,7 +328,7 @@ function GroupNode({
             <Button type="button" size="sm" variant="ghost" disabled={disabled} onClick={() => actions.remove(node.id)}>
               グループを削除
             </Button>
-            <CollapseToggle open={open} onToggle={() => setOpen((v) => !v)} />
+            <CollapseToggle open={open} onToggle={toggleGroup} />
           </Flex>
         )}
       </Flex>
@@ -355,6 +367,7 @@ function GroupNode({
                 <CriterionNode
                   node={child}
                   number={numbers[index]}
+                  defaultOpen={!closedIds.has(child.id)}
                   criteria={criteria}
                   actions={actions}
                   disabled={disabled}
