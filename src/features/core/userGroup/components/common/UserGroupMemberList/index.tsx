@@ -81,7 +81,7 @@ export function UserGroupMemberList(props: UserGroupMemberListProps) {
         loading={people.summary.isInitialLoading}
         onOpenList={() => people.setListOpen(true)}
       />
-      <UserGroupPeopleModal title={title} people={people} emptyText={emptyText} disabled={disabled} />
+      <UserGroupPeopleModal title={title} people={people} emptyText={emptyText} disabled={disabled} total={total} />
     </Stack>
   );
 }

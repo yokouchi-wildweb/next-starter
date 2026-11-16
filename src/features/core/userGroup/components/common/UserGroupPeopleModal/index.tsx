@@ -1,14 +1,18 @@
 // src/features/core/userGroup/components/common/UserGroupPeopleModal/index.tsx
 // 部品(props だけ、流れは hook useUserGroupPeople): 人の一覧のサブのモーダル(D93)。
-// 名前の検索・無限スクロール(カーソル)・行ごとのチェック・「選んだ N 名を削除」(ConfirmPopover)。グループのモーダルの上に重ねて開く
+// 名前の検索・無限スクロール(カーソル)・行ごとのチェック・「選んだ N 名を削除」(ConfirmPopover)・「全員を削除(計 N 名)」(Dialog、
+// 検索に関係なく全部。検索を入れている間は押せない、D94)。グループのモーダルの上に重ねて開く
 
 "use client";
+
+import { useState } from "react";
 
 import { Button } from "@/components/Form/Button";
 import { BooleanCheckboxInput, Input } from "@/components/Form/Input/Manual";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import Modal from "@/components/Overlays/Modal";
+import { Dialog } from "@/components/Overlays/Dialog";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
@@ -22,10 +26,14 @@ export type UserGroupPeopleModalProps = {
   emptyText: string;
   /** 外せない(アーカイブ済みなど) */
   disabled?: boolean;
+  /** 全部の人数(「全員を削除(計 N 名)」。null = 分からない) */
+  total?: number | null;
 };
 
-export function UserGroupPeopleModal({ title, people, emptyText, disabled = false }: UserGroupPeopleModalProps) {
+export function UserGroupPeopleModal({ title, people, emptyText, disabled = false, total = null }: UserGroupPeopleModalProps) {
   const { query } = people;
+  const [clearOpen, setClearOpen] = useState(false);
+  const totalText = total !== null ? `計 ${total.toLocaleString("ja-JP")} 名` : "全員";
   const count = people.selectedIds.length;
   return (
     <Modal open={people.listOpen} onOpenChange={people.setListOpen} title={title} maxWidth="560px">
@@ -64,7 +72,22 @@ export function UserGroupPeopleModal({ title, people, emptyText, disabled = fals
           )}
         </InfiniteScrollList>
         {!disabled ? (
-          <Flex justify="end">
+          <Flex align="center" justify="end" gap="xs" wrap="wrap">
+            {people.searching ? (
+              <Span size="xs" tone="muted">
+                検索を消すと使えます
+              </Span>
+            ) : null}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="border-destructive text-destructive-text"
+              disabled={people.searching || people.busy || total === 0}
+              onClick={() => setClearOpen(true)}
+            >
+              {`全員を削除(${totalText})`}
+            </Button>
             <ConfirmPopover
               trigger={
                 <Button type="button" size="sm" variant="destructive" disabled={count === 0 || people.busy}>
@@ -80,6 +103,21 @@ export function UserGroupPeopleModal({ title, people, emptyText, disabled = fals
           </Flex>
         ) : null}
       </Stack>
+      <Dialog
+        open={clearOpen}
+        onOpenChange={setClearOpen}
+        layer="alert"
+        overlayLayer="alert"
+        title="全員を削除"
+        description={`${title.replace(/[(（].*[)）]$/, "")}の${total !== null ? ` ${total.toLocaleString("ja-JP")} 名` : ""}を全員削除します。元に戻せません。`}
+        confirmLabel="全員を削除する"
+        confirmVariant="destructive"
+        cancelLabel="キャンセル"
+        onConfirm={async () => {
+          await people.clearAll();
+          setClearOpen(false);
+        }}
+      />
     </Modal>
   );
 }

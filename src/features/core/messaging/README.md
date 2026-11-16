@@ -105,6 +105,7 @@ HTTP の口と返す形は口のフォルダの README:
 - `categoryGroups/`（`group`: `MessageCategoryGroup`）: 種類のグループ（好みのページの見出し、同じ種別の種類だけ、`order` の順）。上流は出荷しない
 - `sources/`（`source`: `MessageSource`）: 送り元の表示名。上流は管理の送り元 4 つ（`adminSend`・`adminSendTest`・`adminBulk`・`adminBulkTest`）。回の詳細の送り元は `sources/` → 同じ鍵の連絡の `label` → 一括の対象 `<対象>.bulk(.test)` の順に引く（`services/server/admin/sourceLabels.ts`）
 - `bulkSendTargets/`（`bulkSendTarget`: `MessageBulkSendTarget`、型は `services/server/admin/types.ts`）: 管理一覧の一括送信の対象（選んだ記録 → 利用者 id・送った後の処理）。上流は `bankTransferReview`（services/server/admin/README.md）
+- `adminBulkActions/`（`bulkAction`: `MessagingDispatchAdminBulkActionItem`、型は `types/adminBulkAction.ts`、client）: 送信一覧の一括操作（D95）。上流の既定 = `delete.tsx`（削除）。fork は項目を足す・`<名前>.override.ts` で `enabled`・`order`（作り方: src/lib/tableSuite/README.md「一括操作の受け口」）
 - `channelPreviews/`（`preview`: `ChannelPreviewItem`、型は `types/channelPreview.ts`、client）: 管理画面のプレビューの部品（`{ key, Component }`、鍵 = 経路の受け口の `previewComponent`）。fork の経路の見た目を文言の編集・テンプレートのプレビューに出す。上流の email・inApp・line は部品の中で描くので項目は無い
 - `subscribers/`（`subscriber`: `MessageSubscriber`）: 送った後の事件の購読（少なくとも 1 回）。上流の項目は無い（services/server/subscribers/README.md）
 

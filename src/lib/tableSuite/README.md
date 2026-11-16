@@ -8,6 +8,7 @@
 |---|---|
 | DataTable | 読み取り専用の一覧表示 |
 | RecordSelectionTable | 行選択 + 一括操作 |
+| RecordSelectionList | カードの一覧の行選択 + 一括操作（RecordSelectionTable の兄弟） |
 | EditableGridTable | インライン編集 |
 
 ## 基本的な使い方
@@ -44,6 +45,42 @@ import { RecordSelectionTable } from "@/lib/tableSuite";
 />
 ```
 
+#### 選択の出し方（selectionMode）
+
+`selectionMode`（既定 `"onSelect"`）はチェックと一括操作バーをいつ出すか。RecordSelectionTable と RecordSelectionList で同じ。
+
+- `"onSelect"`: チェックはいつも出し、バーは 1 件以上選んだ時だけ
+- `"always"`: チェックもバーもいつも出す
+- `"toggle"`: バーはいつも出し、その中の「選択モード」の切り替え（SwitchInput）が入の間だけチェックと操作を出す。切にすると選択を空に戻す
+- `selectionBehavior`（`"row"` = 行を押して選ぶ / `"checkbox"` = チェックだけで選ぶ）とは別の軸。toggle の切の間は行を押しても選ばない
+- 旧 `bulkActionsAlwaysVisible` は無い（`false` → `"onSelect"`、`true` → `"always"`）
+
+### RecordSelectionList
+
+RecordSelectionTable のカードの一覧の兄弟（D95）。選択の状態・一括操作バー・`selectionMode`・受け口の項目（`BulkActionItems`）は表と同じ物を使う。1 件 = 左のチェックの列 + `renderItem(item, { selected, index })` のカード。
+
+- チェックの列はカードの全高・押しやすい幅で、列のどこを押しても選択が切り替わる（チェックの aria-label・キーボードはそのまま）
+- 見出しの行が無いので「すべて選択」はバーの左に出る（読み込み済みの選べる行が対象）
+- `isSelectable(item)` が false の行はチェックを出さず、すべて選択からも外す
+- 無限スクロールは呼び手の `InfiniteScrollList` の children の中に置く（番兵は InfiniteScrollList が持つ。`bottomSentinelRef` は自前で番兵を置くとき用）
+
+```tsx
+import { BulkActionItems, RecordSelectionList, selectBulkActions } from "@/lib/tableSuite";
+
+<InfiniteScrollList items={query.items} /* … */>
+  {(items) => (
+    <RecordSelectionList
+      items={items}
+      getKey={(item) => item.id}
+      isSelectable={(item) => !item.deletedAt}
+      selectionMode="toggle"
+      bulkActions={(selection) => <BulkActionItems items={actions} selection={selection} onDone={query.revalidate} />}
+      renderItem={(item) => <Row item={item} />}
+    />
+  )}
+</InfiniteScrollList>
+```
+
 ### 一括操作の受け口（管理一覧）
 
 管理一覧の一括操作は、`bulkActions` の中に手で書かず、持ち主のドメインの受け口 `adminBulkActions` に **1 項目 1 ファイル**で置く（棚の評議会 D149）。上流の既定の操作も同じ受け口の項目で、fork は項目を足すか、上流の項目を `<名前>.override.ts` で外す・並べ替える。
@@ -69,7 +106,7 @@ export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
 export const override = { enabled: false };
 ```
 
-- 受け口のある一覧: user の 3 一覧（`src/features/core/user/adminBulkActions/`）・お知らせ（`src/features/core/notification/adminBulkActions/`、既定 = 一括削除）・振込審査（`src/features/core/bankTransferReview/adminBulkActions/`、既定 = メール一斉送信）・pnpm generate domain で作るドメインの一覧（`src/features/<domain>/adminBulkActions/`。受け口の宣言 `extensionPoints.ts` と型は生成器が書く。項目が無ければ選択の無い素の表）
+- 受け口のある一覧: user の 3 一覧（`src/features/core/user/adminBulkActions/`）・お知らせ（`src/features/core/notification/adminBulkActions/`、既定 = 一括削除）・振込審査（`src/features/core/bankTransferReview/adminBulkActions/`、既定 = メール一斉送信）・送信一覧（`src/features/core/messaging/adminBulkActions/`、既定 = 削除、RecordSelectionList）・pnpm generate domain で作るドメインの一覧（`src/features/<domain>/adminBulkActions/`。受け口の宣言 `extensionPoints.ts` と型は生成器が書く。項目が無ければ選択の無い素の表）
 - 項目を置いた・消したら `pnpm generate extensions`（一覧 `extensions/adminBulkActions.ts` を作り直す）。書式: `scripts/structure/extensions/README.md`
 
 `bulkActionsSticky`（既定 false）を付けると、一括操作バーがスクロールコンテナの端（`bulkActionsPosition` が top なら上端、bottom なら下端）に留まる。スクロールする Modal の本体など、テーブルの外の祖先がスクロールするときに `maxHeight="none"` と組み合わせて使う。バーはそのスクロールコンテナの最上端に留まるので、固定ヘッダーの下に潜るページ全体のスクロールには向かない。
@@ -415,7 +452,8 @@ tableSuite/
   shared/               # 共通コンポーネント（Table, TableRow, SortableTableHead 等）
   utils/                # ユーティリティ（sortItems, sortState）
   DataTable/            # 読み取り専用テーブル
-  RecordSelectionTable/ # 行選択テーブル
+  RecordSelectionTable/ # 行選択テーブル（選択の状態・一括操作バー・selectionMode もここ）
+  RecordSelectionList/  # カードの一覧の行選択（RecordSelectionTable の部品を使う）
   EditableGridTable/    # インライン編集テーブル
 ```
 
