@@ -7,7 +7,7 @@ import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
 import type { ScreenProps } from "@/lib/screens/types";
 import { AdminMessagingSectionTabs } from "@/features/core/messaging/components/AdminMessagingSectionTabs";
-import { AdminDispatchList } from "@/features/core/messaging/components/AdminDispatchList";
+import { AdminDispatchList, AdminDispatchSendButton } from "@/features/core/messaging/components/AdminDispatchList";
 
 import { loadAdminMessagingDispatchListScreen } from "./loader";
 
@@ -19,9 +19,10 @@ export async function AdminMessagingDispatchListScreen(props: ScreenProps) {
   await loadAdminMessagingDispatchListScreen(props);
 
   return (
-    <AdminPage title="メッセージ管理" center={<AdminMessagingSectionTabs variant="header" />}>
+    // 「新規送信」はヘッダーの行の右(本文の一段を使わない)
+    <AdminPage title="メッセージ管理" center={<AdminMessagingSectionTabs variant="header" />} actions={<AdminDispatchSendButton />}>
       <Section>
-        <AdminDispatchList />
+        <AdminDispatchList showSendButton={false} />
       </Section>
     </AdminPage>
   );

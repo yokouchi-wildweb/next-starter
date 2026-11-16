@@ -37,6 +37,8 @@ export type AdminDispatchListProps = {
   initialFilters?: AdminDispatchFilters;
   /** 1 回の件数(既定 50、最大 100) */
   limit?: number;
+  /** 「新規送信」を一覧の上に出すか(既定 true)。ページのヘッダーに置く画面は false にして AdminDispatchSendButton を置く */
+  showSendButton?: boolean;
 };
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
@@ -55,7 +57,13 @@ const BULK_ACTIONS = selectBulkActions(Object.values(adminBulkActions));
 const dispatchKey = (dispatch: AdminDispatchSummary) => dispatch.id;
 const selectableDispatch = (dispatch: AdminDispatchSummary) => !dispatch.deletedAt;
 
-export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchListProps) {
+/** 「新規送信」(送るモーダルの new)。門 messagingBroadcast が閉なら出さない。ページのヘッダー(AdminPage の actions)にも置ける */
+export function AdminDispatchSendButton() {
+  const canSend = useGate().enabled("messagingBroadcast");
+  return canSend ? <MessageSendModal mode={NEW_MODE} triggerVariant="primary" /> : null;
+}
+
+export function AdminDispatchList({ initialFilters = {}, limit, showSendButton = true }: AdminDispatchListProps) {
   const canSend = useGate().enabled("messagingBroadcast");
   const { filters, apply, clear, fields } = useAdminDispatchFilters(initialFilters);
   const categories = useAdminDispatchCategories();
@@ -63,7 +71,7 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
 
   return (
     <Stack space={4}>
-      {canSend ? (
+      {showSendButton && canSend ? (
         <Flex justify="end">
           <MessageSendModal mode={NEW_MODE} triggerVariant="primary" />
         </Flex>
