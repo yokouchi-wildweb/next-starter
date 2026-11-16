@@ -49,8 +49,8 @@ function useSide(side: UserGroupExceptionSide, options: UseUserGroupExceptionsOp
     enabled,
     addPeople,
     removePerson,
-    addedMessage: side === "include" ? "入れる人に足しました" : "外す人に足しました",
-    removedMessage: side === "include" ? "入れる人から外しました" : "外す人から外しました",
+    addedMessage: side === "include" ? "常に含める人に追加しました" : "常に除外する人に追加しました",
+    removedMessage: side === "include" ? "常に含める人から削除しました" : "常に除外する人から削除しました",
     observerOptions,
   });
 }

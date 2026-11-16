@@ -20,7 +20,7 @@ export type CompileOptions = {
 export function compileUserGroupDefinition(tree: UserGroupDefinitionNode, options: CompileOptions): SQL {
   const status = options.source === "stored" ? 409 : 400;
   const broken = (message: string) =>
-    new DomainError(options.source === "stored" ? `グループの条件が壊れています: ${message}` : message, { status });
+    new DomainError(options.source === "stored" ? `グループの条件が正しくありません: ${message}` : message, { status });
 
   const walk = (node: UserGroupDefinitionNode, path: string): SQL => {
     if ("part" in node) {

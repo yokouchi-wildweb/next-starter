@@ -11,11 +11,11 @@
 
 3 つの種類（`kind`）:
 
-- `dynamic`（動的）: 条件の定義を保存し、使う時にその場で引く
-- `scheduled`（定期計算）: cron が条件で計算し、計算し終えた版を一度に切り替える。使う時は今の版を読む。重い条件はこちらにする
-- `static`（固定・静的）: 利用者 id の並びそのもの。画面で選んだ人・タグを持つ今の人・別のグループの今の一員から作る。SQL で書けない条件は fork の task が書く
+- `dynamic`（動的。画面の表示名「条件で自動」）: 条件の定義を保存し、使う時にその場で引く
+- `scheduled`（定期計算。画面の表示名「定期的に更新」）: cron が条件で計算し、計算し終えた版を一度に切り替える。使う時は今の版を読む。重い条件はこちらにする
+- `static`（固定・静的。画面の表示名「手動で指定」、操作では「固定グループ」）: 利用者 id の並びそのもの。画面で選んだ人・タグを持つ今の人・別のグループの今の一員から作る。SQL で書けない条件は fork の task が書く
 
-状態（`status`）は `active`（使用中）/ `archived`（保管: 残すが選択肢に出さず、新しい宛先・条件に使えない）。動的・定期計算には「例外の人」（条件に関わらず足す人・外す人）を付けられる。
+状態（`status`）は `active`（使用中）/ `archived`（保管。画面の表示名「アーカイブ」: 残すが選択肢に出さず、新しい宛先・条件に使えない）。動的・定期計算には「例外の人」（条件に関わらず足す人・外す人）を付けられる。
 
 上限:
 
@@ -57,8 +57,8 @@ const result = await runAsSystem(() =>
 if (result.status === "incomplete") return { ok: true, pending: true }; // 次の実行で同じ呼び出しを繰り返すと続きから
 ```
 
-- 書いた静的グループは、動的・定期計算の条件から部品「静的グループの一員」で使える
-- 管理画面（`/admin/user-groups`）は一覧・作る / 直す・人数の見込みと試し・例外の人・静的グループの一員・保管ができる。利用者一覧の一括操作から「選んだ人で固定のグループを作る」「固定のグループに足す」もできる（門が閉なら出ない）
+- 書いた静的グループは、動的・定期計算の条件から部品「固定グループのメンバー」（`inStaticGroup`）で使える
+- 管理画面（`/admin/user-groups`）は一覧・作成 / 編集・対象人数の見積もりと該当ユーザーの例・例外（常に含める人 / 常に除外する人）・固定グループのメンバー・アーカイブができる。条件は「次の条件をすべて満たす / いずれかを満たす」と、条件・条件グループごとの「含める / 除外する」で組む。利用者一覧の一括操作から「選択したユーザーでグループを作成」「固定グループに追加」もできる（門が閉なら出ない）。画面の言葉はよくある管理画面の言い方に揃える（内部の鍵・id は出さない）
 
 ## API
 
@@ -101,7 +101,7 @@ export const criterion: UserGroupCriterion<typeof args> = {
 - `where(args, { now })`: users の行への SQL の述語。他の表は EXISTS の副問い合わせで書く。1 回の評価は全部の部品に同じ `now` を渡す
 - 部品は SQL の述語だけを返す（利用者 id を集める関数は書かない）。raw SQL に Date を埋めない（`.toISOString()` か drizzle の演算子に渡す）
 - 部品が読む列には索引が要る（全員を相手に毎回引くため）。索引を足したら `pnpm db:push` の後に `pnpm db:push:check` = 0（`.desc()` を使い、普通の列と式を 1 つの索引に混ぜない）。users の status / deleted_at / created_at / last_authenticated_at / role と user_to_user_tag の user_tag_id には索引がある
-- SQL で書けない条件は部品にしない: fork の task が静的グループへ書き（Usage）、条件からは部品「静的グループの一員」で使う
+- SQL で書けない条件は部品にしない: fork の task が静的グループへ書き（Usage）、条件からは部品「固定グループのメンバー」（`inStaticGroup`）で使う
 
 上流の部品（どれも cheap）:
 
@@ -110,7 +110,7 @@ export const criterion: UserGroupCriterion<typeof args> = {
 - `signupPeriod`（登録の時期）: `{ from?, to?, withinDays? }`（1 つ以上、重ねると and。`withinDays` = 評価の時刻から N 日以内）
 - `lastLoginPeriod`（最後のログインの時期）: 同じ形 + `notWithinDays?`（N 日ログインしていない。一度もログインしていない人も含む）
 - `hasTag`（タグ）: `{ tagIds, match: "any" | "all" }`
-- `inStaticGroup`（静的グループの一員）: `{ groupId }`。指せるのは使用中の静的グループ（保存の時に確かめる）
+- `inStaticGroup`（固定グループのメンバー）: `{ groupId }`。指せるのは使用中の静的グループ（保存の時に確かめる）
 
 ### 設定（`config.ts`、上書き `src/config/features/userGroup.config.ts`）
 

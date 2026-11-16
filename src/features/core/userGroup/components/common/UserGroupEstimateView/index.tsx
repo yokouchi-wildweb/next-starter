@@ -27,10 +27,10 @@ export function UserGroupEstimateView({ result, reason, isLoading, stale, canRun
   return (
     <Stack space={2} className="rounded-md border border-border bg-muted/30 p-4" data-slot="user-group-estimate">
       <Flex align="center" justify="between" gap="xs" wrap="wrap">
-        <Span weight="semiBold">人数の見込み</Span>
+        <Span weight="semiBold">対象人数の見積もり</Span>
         <Button type="button" size="sm" variant="outline" disabled={!canRun} onClick={onRun}>
           {isLoading ? <Spinner className="size-4" /> : null}
-          {result || reason ? "数え直す" : "今の条件で数える"}
+          {result || reason ? "再計算" : "見積もる"}
         </Button>
       </Flex>
       {reason ? (
@@ -43,28 +43,28 @@ export function UserGroupEstimateView({ result, reason, isLoading, stale, canRun
           <Span data-slot="estimate-count">{`約 ${result.count.toLocaleString("ja-JP")} 人`}</Span>
           {result.overLimit ? (
             <Para size="sm" tone="warning" className="my-0">
-              {`人数の上限(${result.memberLimit.toLocaleString("ja-JP")} 人)を超えています。送る宛先・固定のグループには使えません`}
+              {`上限(${result.memberLimit.toLocaleString("ja-JP")} 人)を超えています。配信の宛先や固定グループには使えません`}
             </Para>
           ) : null}
           {result.sample.length > 0 ? (
             <Para size="sm" tone="muted" className="my-0" data-slot="estimate-sample">
-              {`試し: ${result.sample.map((user) => user.name ?? "名前のない利用者").join("、")}`}
+              {`該当ユーザーの例: ${result.sample.map((user) => user.name ?? "名前未設定のユーザー").join("、")}`}
             </Para>
           ) : (
             <Para size="sm" tone="muted" className="my-0">
-              当てはまる人はいません
+              該当するユーザーはいません
             </Para>
           )}
         </Stack>
       ) : null}
       {stale ? (
         <Para size="sm" tone="muted" className="my-0">
-          条件を変えたので、数え直すと今の見込みになります
+          条件が変更されました。再計算すると最新の見積もりになります
         </Para>
       ) : null}
       {!result && !reason ? (
         <Para size="sm" tone="muted" className="my-0">
-          保存の前でも、今の条件で人数と何人かの名前を見られます
+          保存する前に、今の条件に該当する人数とユーザーの例を確認できます
         </Para>
       ) : null}
     </Stack>

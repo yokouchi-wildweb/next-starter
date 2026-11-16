@@ -46,7 +46,7 @@ function CreateFromSelection({ selection, onDone, label }: BulkActionProps<unkno
   const freeze = useUserGroupFreeze({
     onDone: (group) => {
       setOpen(false);
-      showToast(`「${group.name}」を作りました(${count(group.count.value ?? 0)})`, "success");
+      showToast(`「${group.name}」を作成しました(${count(group.count.value ?? 0)})`, "success");
       onDone();
     },
   });
@@ -73,23 +73,23 @@ function CreateFromSelection({ selection, onDone, label }: BulkActionProps<unkno
         }}
         title={label}
         maxWidth="560px"
-        confirmOnClose={{ enabled: freeze.running, message: "一員を書いている途中です。閉じると途中で止まります。閉じてもよろしいですか？" }}
+        confirmOnClose={{ enabled: freeze.running, message: "メンバーを登録しています。閉じると登録が中断されます。閉じてもよろしいですか？" }}
         footer={
           <Flex justify="end" gap="xs">
             <Button type="button" size="sm" variant="primary" disabled={freeze.running || name.trim() === "" || ids.length === 0} onClick={() => void start()}>
               {freeze.running ? <Spinner className="size-4" /> : null}
-              作る
+              作成
             </Button>
           </Flex>
         }
       >
         <Stack space={3}>
           <Para size="sm" tone="muted" className="my-0">
-            {`選んだ ${count(ids.length)}で固定のグループを作ります`}
+            {`選択した ${count(ids.length)}で固定グループを作成します`}
           </Para>
           <Stack space={1}>
             <Label htmlFor="bulk-user-group-name" className="text-sm">
-              名前
+              グループ名
             </Label>
             <Input id="bulk-user-group-name" value={name} disabled={freeze.running} onChange={(e) => setName(e.target.value)} />
           </Stack>
@@ -124,7 +124,7 @@ function AddSelection({ selection, onDone, label }: BulkActionProps<unknown> & {
     if (done) {
       setOpen(false);
       showToast(
-        `「${done.group.name}」に ${count(done.added)}を足しました${done.skipped > 0 ? `(${count(done.skipped)}はもう入っていたか、足せませんでした)` : ""}`,
+        `「${done.group.name}」に ${count(done.added)}を追加しました${done.skipped > 0 ? `(${count(done.skipped)}は登録済みか、追加できませんでした)` : ""}`,
         "success",
       );
       onDone();
@@ -146,18 +146,18 @@ function AddSelection({ selection, onDone, label }: BulkActionProps<unknown> & {
           <Flex justify="end" gap="xs">
             <Button type="button" size="sm" variant="primary" disabled={adding.isAdding || groupId === "" || ids.length === 0} onClick={() => void add()}>
               {adding.isAdding ? <Spinner className="size-4" /> : null}
-              足す
+              追加
             </Button>
           </Flex>
         }
       >
         <Stack space={3}>
           <Para size="sm" tone="muted" className="my-0">
-            {`選んだ ${count(ids.length)}を固定のグループに足します(もう入っている人はそのまま)`}
+            {`選択した ${count(ids.length)}を固定グループに追加します(登録済みのユーザーはそのままです)`}
           </Para>
           {catalogError ? (
             <Para size="sm" tone="destructive" className="my-0">
-              {err(catalogError, "固定のグループの一覧を取得できませんでした")}
+              {err(catalogError, "固定グループの一覧を取得できませんでした")}
             </Para>
           ) : !catalog ? (
             <Flex justify="center" className="py-4">
@@ -165,18 +165,18 @@ function AddSelection({ selection, onDone, label }: BulkActionProps<unknown> & {
             </Flex>
           ) : groups.length === 0 ? (
             <Para size="sm" tone="muted" className="my-0">
-              使用中の固定のグループがありません(「選んだ人でグループを作る」で作れます)
+              追加できる固定グループがありません(「選択したユーザーでグループを作成」で作れます)
             </Para>
           ) : (
             <Stack space={1}>
               <Label htmlFor="bulk-user-group-target" className="text-sm">
-                足す先
+                追加先のグループ
               </Label>
               <SelectInput
                 id="bulk-user-group-target"
                 value={groupId}
                 options={groups.map((group) => ({ value: group.value, label: group.label }))}
-                placeholder="固定のグループを選ぶ"
+                placeholder="固定グループを選ぶ"
                 disabled={adding.isAdding}
                 onChange={(v) => setGroupId(v ? String(v) : "")}
               />
@@ -198,7 +198,7 @@ export function bulkCreateUserGroupAction<Row = unknown, Access = unknown>(
   meta: ItemMeta<Access>,
   options: BulkUserGroupActionOptions = {},
 ): BulkActionItem<Row, Access> {
-  const label = options.label ?? "選んだ人でグループを作る";
+  const label = options.label ?? "選択したユーザーでグループを作成";
   const Component = (props: BulkActionProps<Row>) => (
     <CreateFromSelection {...(props as BulkActionProps<unknown>)} selection={{ ...props.selection, count: options.disabled ? 0 : props.selection.count }} label={label} />
   );
@@ -211,7 +211,7 @@ export function bulkAddToUserGroupAction<Row = unknown, Access = unknown>(
   meta: ItemMeta<Access>,
   options: BulkUserGroupActionOptions = {},
 ): BulkActionItem<Row, Access> {
-  const label = options.label ?? "固定のグループに足す";
+  const label = options.label ?? "固定グループに追加";
   const Component = (props: BulkActionProps<Row>) => (
     <AddSelection {...(props as BulkActionProps<unknown>)} selection={{ ...props.selection, count: options.disabled ? 0 : props.selection.count }} label={label} />
   );

@@ -92,9 +92,9 @@ export function createStaticMemberWriter(deps: StaticMemberWriterDeps) {
     const query = db.select().from(UserGroupTable).where(eq(UserGroupTable.id, groupId)).limit(1);
     const [group] = lock ? await query.for("update") : await query;
     if (!group) throw new DomainError("グループがありません", { status: 404 });
-    if (group.status === "archived") throw new DomainError(`グループ「${group.name}」はしまってあります`, { status: 409 });
+    if (group.status === "archived") throw new DomainError(`グループ「${group.name}」はアーカイブ済みです`, { status: 409 });
     if (group.kind !== "static") {
-      throw new DomainError(`グループ「${group.name}」は静的グループではないので一員を書けません(${group.kind})`, { status: 409 });
+      throw new DomainError(`グループ「${group.name}」は固定グループではないため、メンバーを登録できません`, { status: 409 });
     }
     return group;
   }

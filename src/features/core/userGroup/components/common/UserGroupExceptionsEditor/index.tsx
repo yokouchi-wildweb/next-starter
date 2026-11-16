@@ -22,23 +22,23 @@ export function UserGroupExceptionsEditor({ exceptions, counts, scheduled = fals
   return (
     <Stack space={3} data-slot="user-group-exceptions">
       <Para size="sm" tone="muted" className="my-0">
-        条件とは別に、決まった人を入れる・外すことができます。片方に足した人はもう片方から外れます
-        {scheduled ? "(定期計算のグループは次の計算で反映します)" : ""}
+        条件に関係なく、特定のユーザーを常に含める・常に除外することができます。一方に追加したユーザーは、もう一方から削除されます
+        {scheduled ? "(「定期的に更新」のグループは次の更新で反映されます)" : ""}
       </Para>
       <UserGroupMemberList
-        title={`入れる人${counts ? `(${counts.includeCount.toLocaleString("ja-JP")} 人)` : ""}`}
-        description="条件に合わなくてもこのグループに入れる人"
+        title={`常に含める人${counts ? `(${counts.includeCount.toLocaleString("ja-JP")} 人)` : ""}`}
+        description="条件に合わなくても、このグループに含めるユーザー"
         people={exceptions.include}
-        addLabel="入れる人に足す"
-        emptyText="入れる人はいません"
+        addLabel="追加"
+        emptyText="常に含める人はいません"
         disabled={disabled}
       />
       <UserGroupMemberList
-        title={`外す人${counts ? `(${counts.excludeCount.toLocaleString("ja-JP")} 人)` : ""}`}
-        description="条件に合ってもこのグループから外す人"
+        title={`常に除外する人${counts ? `(${counts.excludeCount.toLocaleString("ja-JP")} 人)` : ""}`}
+        description="条件に合っても、このグループから除外するユーザー"
         people={exceptions.exclude}
-        addLabel="外す人に足す"
-        emptyText="外す人はいません"
+        addLabel="追加"
+        emptyText="常に除外する人はいません"
         disabled={disabled}
       />
     </Stack>

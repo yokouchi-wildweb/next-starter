@@ -114,9 +114,9 @@ function parseOr400<S extends z.ZodTypeAny>(schema: S, value: unknown, message: 
 
 const iso = (value: Date | null | undefined) => (value ? value.toISOString() : null);
 
-const HEAVY_NOTICE = "重い条件を含むので、1 人ずつの確かめ(この人が一員か)はできません。定期計算にすれば使えます";
-const SCHEDULED_NOTICE = "一員は定期計算で書いた版です。条件・例外の変更は次の計算(毎時。Vercel Hobby では 1 日 1 回)の後に反映されます";
-const NO_VERSION_NOTICE = "まだ計算し終えた版がありません。次の計算の後に人数と一員が出ます";
+const HEAVY_NOTICE = "処理が重い条件を含むため、1 人ずつの判定(このユーザーがメンバーか)には使えません。「定期的に更新」にすると使えます";
+const SCHEDULED_NOTICE = "メンバーは定期的な集計の結果です。条件や例外の変更は、次の更新(毎時。Vercel Hobby では 1 日 1 回)の後に反映されます";
+const NO_VERSION_NOTICE = "まだ集計されていません。次の更新の後に人数とメンバーが表示されます";
 
 /** 木の中の「静的グループの一員」の葉が指すグループ id */
 function staticGroupRefs(tree: UserGroupDefinitionNode, out: Set<string> = new Set()): Set<string> {
@@ -184,7 +184,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
   }
 
   function assertStatic(group: UserGroup): void {
-    if (group.kind !== "static") throw new DomainError(`グループ「${group.name}」は静的グループではありません`, { status: 409 });
+    if (group.kind !== "static") throw new DomainError(`グループ「${group.name}」は固定グループではありません`, { status: 409 });
   }
 
   async function recomputeOf(group: UserGroup): Promise<AdminUserGroupRecompute> {
@@ -270,7 +270,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       const usable = new Set(rows.filter((g) => g.kind === "static" && g.status === "active" && g.owner_group_id === null).map((g) => g.id));
       const bad = refs.filter((id) => !usable.has(id));
       if (bad.length > 0) {
-        throw new DomainError("条件「静的グループの一員」が指すグループが、使える静的グループではありません(しまった・無い・例外用のグループは選べません)", { status: 400 });
+        throw new DomainError("条件「固定グループのメンバー」で選んだグループは使えません(アーカイブ済み・削除済み・例外用のグループは選べません)", { status: 400 });
       }
     }
     return { tree: node, heavy: checked.heavy };
@@ -293,7 +293,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
   async function supplierOf(source: StaticMemberSource, targetId: string): Promise<UserIdSupplier> {
     if (source.type === "users") return arraySupplier(source.userIds);
     if (source.type === "group") {
-      if (source.groupId === targetId) throw new DomainError("同じグループから一員を写せません", { status: 400 });
+      if (source.groupId === targetId) throw new DomainError("同じグループのメンバーはコピーできません", { status: 400 });
       await loadGroup(source.groupId);
       const max = deps.config.evaluation.listLimitMax;
       return async (after, limit) => (await deps.evaluator.listMemberIds(source.groupId, { cursor: after, limit: Math.min(limit, max) })).userIds;
@@ -315,7 +315,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
   /** 静的グループを供給の一員で置き換える(1 回の要求の予算。終わらなければ incomplete、同じ元でもう一度呼ぶと続き) */
   async function replaceFrom(group: UserGroup, source: StaticMemberSource) {
     if (source.type === "users" && source.userIds.length > deps.config.memberLimit) {
-      throw new DomainError(`選んだ人数が上限 ${deps.config.memberLimit} を超えます(${source.userIds.length} 人)`, { status: 409 });
+      throw new DomainError(`選択した人数(${source.userIds.length} 人)が上限 ${deps.config.memberLimit} 人を超えています`, { status: 409 });
     }
     const supplier = await supplierOf(source, group.id);
     const result = await deps.writer.replaceMembers(group.id, supplier, { deadline: createDeadline(deps.config.admin.freezeBudgetMs) });
@@ -333,7 +333,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
   /** 例外のグループ(無ければ 2 つ作って定義を包む)。tx の中で */
   async function ensureExceptionGroups(tx: Executor, group: UserGroup): Promise<ExceptionGroupIds> {
     const definition = await definitionOf(group.id, tx);
-    if (!definition) throw new DomainError(`グループ「${group.name}」の条件が壊れています: 定義がありません`, { status: 409 });
+    if (!definition) throw new DomainError(`グループ「${group.name}」の条件が正しくありません: 条件が設定されていません`, { status: 409 });
     const owners = await ownerGroupIds(group.id, tx);
     const unwrapped = unwrapExceptions(definition.tree, owners);
     if (unwrapped.exceptions) return unwrapped.exceptions;
@@ -392,9 +392,9 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       await assertUserGroupAdmin(deps);
       const parsed = parseOr400(CreateUserGroupInputSchema, input, "グループの入力が正しくありません");
       if (parsed.kind === "static" && parsed.definition !== undefined) {
-        throw new DomainError("静的グループは条件の定義を持ちません(一員は選んで書きます)", { status: 400 });
+        throw new DomainError("固定グループには条件を設定できません(メンバーは選んで追加します)", { status: 400 });
       }
-      if (parsed.kind !== "static" && parsed.definition === undefined) throw new DomainError("条件の定義がありません", { status: 400 });
+      if (parsed.kind !== "static" && parsed.definition === undefined) throw new DomainError("条件が設定されていません", { status: 400 });
       const group = await deps.db.transaction(async (tx) => {
         const checked = parsed.kind === "static" ? null : await checkBase(parsed.definition, tx);
         const [row] = await tx
@@ -423,13 +423,13 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       const patch = parseOr400(UpdateUserGroupInputSchema, input, "グループの入力が正しくありません");
       const { group, changed } = await deps.db.transaction(async (tx) => {
         const current = await loadGroup(id, tx, true);
-        if (current.status === "archived") throw new DomainError(`グループ「${current.name}」はしまってあります`, { status: 409 });
+        if (current.status === "archived") throw new DomainError(`グループ「${current.name}」はアーカイブ済みです`, { status: 409 });
         const kind: UserGroupKind = patch.kind ?? current.kind;
         if (kind !== current.kind && (kind === "static" || current.kind === "static")) {
-          throw new DomainError("静的グループと動的・定期計算の間で種類は付け替えられません(新しいグループを作ってください)", { status: 409 });
+          throw new DomainError("「手動で指定」と「条件で自動」「定期的に更新」の間では種類を変更できません(新しいグループを作成してください)", { status: 409 });
         }
         if (kind === "static" && patch.definition !== undefined) {
-          throw new DomainError("静的グループは条件の定義を持ちません", { status: 409 });
+          throw new DomainError("固定グループには条件を設定できません", { status: 409 });
         }
         const changed = Object.keys(patch);
         if (patch.definition !== undefined) {
@@ -482,7 +482,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
      */
     async estimate(input: unknown): Promise<AdminUserGroupEstimate> {
       await assertUserGroupAdmin(deps);
-      const parsed = parseOr400(EstimateUserGroupInputSchema, input, "見込みの入力が正しくありません");
+      const parsed = parseOr400(EstimateUserGroupInputSchema, input, "見積もりの入力が正しくありません");
       const sampleLimit = deps.config.evaluation.sampleLimit;
       let base: { count: number; memberLimit: number; overLimit: boolean; heavy: boolean; ids: string[] };
       if (!("groupId" in parsed)) {
@@ -521,9 +521,9 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       await assertUserGroupAdmin(deps);
       const parsed = parseOr400(UpdateUserGroupExceptionsInputSchema, input, "例外の入力が正しくありません");
       const group = await loadGroup(id);
-      if (group.status === "archived") throw new DomainError(`グループ「${group.name}」はしまってあります`, { status: 409 });
+      if (group.status === "archived") throw new DomainError(`グループ「${group.name}」はアーカイブ済みです`, { status: 409 });
       if (group.kind === "static") {
-        throw new DomainError("静的グループに例外はありません(一員を直接足す・外してください)", { status: 409 });
+        throw new DomainError("固定グループには例外を設定できません(メンバーを直接追加・削除してください)", { status: 409 });
       }
       const ids = await deps.db.transaction((tx) => ensureExceptionGroups(tx, group));
       const includeAdd = parsed.include?.add ?? [];
@@ -550,7 +550,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
      */
     async createStaticGroup(input: unknown): Promise<AdminStaticGroupResult> {
       await assertUserGroupAdmin(deps);
-      const parsed = parseOr400(CreateStaticUserGroupInputSchema, input, "静的グループの入力が正しくありません");
+      const parsed = parseOr400(CreateStaticUserGroupInputSchema, input, "固定グループの入力が正しくありません");
       if (parsed.from.type === "group") await loadGroup(parsed.from.groupId);
       const [group] = await deps.db
         .insert(G)
@@ -568,7 +568,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
      */
     async updateStaticMembers(id: string, input: unknown): Promise<AdminStaticGroupResult | AdminStaticMembersRemoved> {
       await assertUserGroupAdmin(deps);
-      const parsed = parseOr400(UpdateStaticMembersInputSchema, input, "一員の入力が正しくありません");
+      const parsed = parseOr400(UpdateStaticMembersInputSchema, input, "メンバーの入力が正しくありません");
       const group = await loadGroup(id);
       assertStatic(group);
       if (parsed.mode === "replace") return { group: await detailOf(group), members: await replaceFrom(group, parsed.from) };
@@ -590,7 +590,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
      */
     async listStaticMembers(id: string, query: unknown = {}): Promise<AdminUserGroupMemberPage> {
       await assertUserGroupAdmin(deps);
-      const { cursor, limit } = parseOr400(ListStaticMembersQuerySchema, query, "一員の一覧の条件が正しくありません");
+      const { cursor, limit } = parseOr400(ListStaticMembersQuerySchema, query, "メンバー一覧の条件が正しくありません");
       const group = await loadGroup(id);
       assertStatic(group);
       return memberPageOf(group.id, cursor, limit);
@@ -605,7 +605,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       const { side, cursor, limit } = parseOr400(ListExceptionMembersQuerySchema, query, "例外の人の一覧の条件が正しくありません");
       const group = await loadGroup(id);
       if (group.kind === "static") {
-        throw new DomainError("静的グループに例外はありません(一員を直接足す・外してください)", { status: 409 });
+        throw new DomainError("固定グループには例外を設定できません(メンバーを直接追加・削除してください)", { status: 409 });
       }
       const definition = await definitionOf(group.id);
       const exceptions = definition ? unwrapExceptions(definition.tree, await ownerGroupIds(group.id)).exceptions : null;
@@ -639,7 +639,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
           label: criterion.label,
           description: criterion.description ?? null,
           weight: criterion.weight,
-          weightLabel: criterion.weight === "heavy" ? "重い(定期計算向け)" : "軽い",
+          weightLabel: criterion.weight === "heavy" ? "処理が重い条件" : "通常の条件",
           fields: criterion.fields.map((field) =>
             fill[field.name] && !(field as { options?: unknown }).options ? { ...field, options: fill[field.name] } : { ...field },
           ),

@@ -7,14 +7,14 @@ import type { UserGroupDefinitionNode, UserGroupKind, UserGroupStatus } from "..
 import type { ReplaceMembersResult } from "../writes";
 
 export const USER_GROUP_KIND_LABELS: Record<UserGroupKind, string> = {
-  dynamic: "動的(使う時に条件で引く)",
-  scheduled: "定期計算(決まった間隔で計算した一員)",
-  static: "固定(選んだ人)",
+  dynamic: "条件で自動",
+  scheduled: "定期的に更新",
+  static: "手動で指定",
 };
 
 export const USER_GROUP_STATUS_LABELS: Record<UserGroupStatus, string> = {
   active: "使用中",
-  archived: "保管",
+  archived: "アーカイブ",
 };
 
 /**

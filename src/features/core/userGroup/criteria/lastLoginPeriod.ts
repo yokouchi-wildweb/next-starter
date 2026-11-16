@@ -13,16 +13,16 @@ const args = periodArgs({ notWithinDays: z.number().int().min(1).max(3650).optio
 
 export const criterion: UserGroupCriterion<typeof args> = {
   key: "lastLoginPeriod",
-  label: "最後のログインの時期",
-  description: "最後にログインした日時がこの期間の利用者(または N 日ログインしていない利用者)",
+  label: "最終ログイン日",
+  description: "最後にログインした日時がこの期間のユーザー(または一定の日数ログインしていないユーザー)",
   args,
   fields: [
     ...PERIOD_FIELDS,
     {
       name: "notWithinDays",
-      label: "ログインしていない日数",
+      label: "ログインしていない日数(以上)",
       formInput: "numberInput",
-      helperText: "評価する時点から何日ログインしていないか(一度もログインしていない人も含む)",
+      helperText: "指定した日数以上ログインしていないユーザー(一度もログインしていないユーザーも含みます)",
     },
   ],
   weight: "cheap",

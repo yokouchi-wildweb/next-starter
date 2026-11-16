@@ -18,9 +18,9 @@ export type UserGroupRowProps = {
 /** 人数の表示 */
 export function userGroupCountText(count: AdminUserGroupCount): string {
   if (count.state === "counted") return `${(count.value ?? 0).toLocaleString("ja-JP")} 人`;
-  if (count.state === "estimated") return `約 ${(count.value ?? 0).toLocaleString("ja-JP")} 人(今数えた見込み)`;
-  if (count.state === "not_computed") return "人数は数えていません(条件が重いか、時間の上限)";
-  return "人数はまだありません(計算の前)";
+  if (count.state === "estimated") return `約 ${(count.value ?? 0).toLocaleString("ja-JP")} 人(見積もり)`;
+  if (count.state === "not_computed") return "人数は未計算です(条件が重いか、時間内に数えきれませんでした)";
+  return "まだ集計されていません";
 }
 
 export function UserGroupRow({ group, onOpen }: UserGroupRowProps) {

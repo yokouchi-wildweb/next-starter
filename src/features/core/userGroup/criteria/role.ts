@@ -13,7 +13,7 @@ const args = z.object({ roles: z.array(z.string().min(1)).min(1).max(50) }).stri
 export const criterion: UserGroupCriterion<typeof args> = {
   key: "role",
   label: "ロール",
-  description: "選んだロールのどれかの利用者",
+  description: "選んだロールのいずれかのユーザー",
   args,
   fields: [{ name: "roles", label: "ロール", formInput: "multiSelect", options: ALL_ROLES.map((role) => ({ value: role.id, label: role.label })) }],
   weight: "cheap",
