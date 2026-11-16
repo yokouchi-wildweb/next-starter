@@ -192,6 +192,9 @@ add src/features/core/messaging/channels/*.{ts,tsx}  # 受け口 channels
 add src/features/core/messaging/channels/*/**  # 受け口 channels(フォルダ形)
 add src/features/core/messaging/enrichers/*.{ts,tsx}  # 受け口 enrichers
 add src/features/core/messaging/enrichers/*/**  # 受け口 enrichers(フォルダ形)
+add src/features/core/messaging/layouts/*/email.tsx  # 受け口 layoutEmails・layoutInApps・layouts
+add src/features/core/messaging/layouts/*/inApp.tsx  # 受け口 layoutEmails・layoutInApps・layouts
+add src/features/core/messaging/layouts/*/layout.ts  # 受け口 layoutEmails・layoutInApps・layouts
 add src/features/core/messaging/sources/*.{ts,tsx}  # 受け口 sources
 add src/features/core/messaging/sources/*/**  # 受け口 sources(フォルダ形)
 add src/features/core/messaging/subscribers/*.{ts,tsx}  # 受け口 subscribers
@@ -267,6 +270,7 @@ edit src/features/core/user/messages/views/earlyRegistrationComplete.tsx  # 1 �
 edit src/features/core/user/messages/views/registrationComplete.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/wallet/messages/views/expiredNotice.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/wallet/messages/views/expiringNotice.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
+edit src/lib/mail/frame/MailFrame.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 add src/app/_providers/ForkProviders.replace.{ts,tsx}  # 1 行スイッチ src/app/_providers/ForkProviders.tsx の丸ごと置き換え
 add src/app/admin/_layout/AdminHeader.replace.{ts,tsx}  # 1 行スイッチ src/app/admin/_layout/AdminHeader.tsx の丸ごと置き換え
 add src/features/core/auth/components/Registration/RateLimitWarningContent.replace.{ts,tsx}  # 1 行スイッチ src/features/core/auth/components/Registration/RateLimitWarningContent.tsx の丸ごと置き換え
@@ -282,6 +286,7 @@ add src/features/core/user/messages/views/earlyRegistrationComplete.replace.{ts,
 add src/features/core/user/messages/views/registrationComplete.replace.{ts,tsx}  # 1 行スイッチ src/features/core/user/messages/views/registrationComplete.tsx の丸ごと置き換え
 add src/features/core/wallet/messages/views/expiredNotice.replace.{ts,tsx}  # 1 行スイッチ src/features/core/wallet/messages/views/expiredNotice.tsx の丸ごと置き換え
 add src/features/core/wallet/messages/views/expiringNotice.replace.{ts,tsx}  # 1 行スイッチ src/features/core/wallet/messages/views/expiringNotice.tsx の丸ごと置き換え
+add src/lib/mail/frame/MailFrame.replace.{ts,tsx}  # 1 行スイッチ src/lib/mail/frame/MailFrame.tsx の丸ごと置き換え
 edit src/app/api/cron/*/task.override.ts  # 上書き cronTasks(schedule・disabled)
 edit src/features/**/messages/*.override.ts  # 上書き messages(label・content・extras・enabled・adminEditableOnly・record・throttle)
 edit src/features/**/services/server/domainEntry.override.ts  # 上書き domainEntries(access)

@@ -159,6 +159,28 @@ export function MailFooter({ theme, children, style }: BaseProps) {
   );
 }
 
+/** 画像(本文の幅いっぱい。src は表示できる URL = storage の参照は呼び手が解決する) */
+export function MailImage({ src, alt = "", style }: { src: string; alt?: string; style?: CSSProperties }) {
+  return (
+    <Section style={{ margin: "16px 0" }}>
+      <Img src={src} alt={alt} width="100%" style={{ display: "block", maxWidth: "100%", height: "auto", borderRadius: "6px", ...style }} />
+    </Section>
+  );
+}
+
+/** 箇条書き(メールの表示の差が出にくい「・」の段落の並び) */
+export function MailList({ theme, items, style }: Pick<BaseProps, "theme" | "style"> & { items: ReactNode[] }) {
+  return (
+    <Section style={{ margin: "8px 0 16px" }}>
+      {items.map((item, index) => (
+        <Text key={index} style={{ color: theme.foreground, fontSize: "16px", lineHeight: "24px", margin: "0 0 4px", paddingLeft: "1em", textIndent: "-1em", ...style }}>
+          ・{item}
+        </Text>
+      ))}
+    </Section>
+  );
+}
+
 /** 区切り線 */
 export function MailDivider({ theme, style }: Pick<BaseProps, "theme" | "style">) {
   return (

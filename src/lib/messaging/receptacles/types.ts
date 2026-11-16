@@ -7,6 +7,8 @@
 import type { z } from "zod";
 
 import type { ChannelErrorKind } from "../definition/errors";
+import type { MessageChannelRendering } from "../layout/rendering";
+import type { MessageLayout, MessageLayoutSummary, MessageLayoutValues } from "../layout/types";
 import type { MessageKey, MessageKind } from "../definition/types";
 
 // ---------------------------------------------------------------------------
@@ -90,10 +92,15 @@ export type ChannelFieldMeta = {
   parts?: Readonly<Record<string, ChannelFieldMeta>>;
 };
 
+/** 経路が描いた物(email = HTML、inApp = お知らせの行の中身、line = 本文の文) */
+export type ChannelRendered = { html?: string; text?: string; content?: Record<string, unknown> };
+
 /**
- * 経路の項目(messaging/channels/<名前>.ts の export const channel)
+ * 経路の項目(messaging/channels/<名前>.ts の export const channel)。
+ * ひな形の描き方の 3 段(D124)の宣言 MessageChannelRendering を任意で持つ: renderGeneric(欄の型とブロックを宣言の順に描く)・
+ * genericFieldTypes(描ける型、無い = 全部)・summaryRenderable + renderFromSummary(要約から描ける)。fields / fieldMeta は今の送る口のまま
  */
-export type MessageChannel = {
+export type MessageChannel = MessageChannelRendering<ChannelRendered> & {
   /** 経路の鍵(定義の content・defaultChannels の鍵) */
   key: string;
   label: string;
@@ -259,4 +266,27 @@ export type MessageSubscriber = {
   filter?: { messages?: readonly MessageKey[]; channels?: readonly string[] };
   /** 事件の束を処理する。投げると印を進めず次回もう一度渡る */
   handle: (events: readonly MessageEvent[]) => Promise<void>;
+};
+
+// ---------------------------------------------------------------------------
+// layouts: ひな形(D122)。layouts/<名前>/ のフォルダ 1 つが 1 つのひな形
+// ---------------------------------------------------------------------------
+
+/** ひな形の宣言(layouts/<名前>/layout.ts の export const layout) */
+export type MessageLayoutItem = MessageLayout;
+
+/**
+ * メールの描き方(layouts/<名前>/email.tsx の export const emailRenderer、server)。layout = ひな形の鍵。
+ * Component は 1 行スイッチ(<部品>.tsx → <部品>.default.tsx)にしておくと fork が .replace で見た目だけ替えられる。
+ * 色の型はメールの部品の lib が決めるので never(どの色の型の部品も受ける)
+ */
+export type MessageLayoutEmailRenderer = {
+  layout: string;
+  Component: (props: { values: MessageLayoutValues; summary: MessageLayoutSummary; theme: never; unsubscribeUrl?: string }) => unknown;
+};
+
+/** お知らせの描き方(layouts/<名前>/inApp.tsx の export const inAppRenderer、client)。layout = ひな形の鍵 */
+export type MessageLayoutInAppRenderer = {
+  layout: string;
+  Component: (props: { values: MessageLayoutValues; summary: MessageLayoutSummary }) => unknown;
 };

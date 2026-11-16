@@ -7,6 +7,7 @@
 - 経路の入切: 項目の `enabled: false` は項目が無い経路と同じ（配達は `suppressed` + `channel_off`）。門の機能ではない
 - 欄の表示の約束 `fieldMeta`（必須、D83）: 管理画面の文言の編集が欄ごとの見出し・説明・入力の種類に使う。email = subject（1 行）・preheader（1 行）・heading（1 行）・paragraphs（複数行の並び）・cta（`parts` = 文言 1 行・行き先 url）・footer（複数行）/ inApp = title（1 行）・body（複数行）・image（画像）・link（url）/ line = text（複数行）。fork の経路も書く。プレビューの部品の鍵 `previewComponent` は任意（上流の 3 本は持たない）
 - 届けた物の取り下げ `remove({ dispatchId })`（任意、D89）: 管理の削除が呼ぶ。持つ経路 = 消せる経路（削除の見込みの `removable`）。上流は inApp だけ（お知らせの行・共有の行を消し、回の画像を外す。何度呼んでも同じ）。email・line は持たない（送った物は残る）。fork の経路も消せるなら持つ
+- ひな形の描き方の宣言（D124、`MessageChannelRendering`。描き方の 3 段は `../layouts/README.md`）: email = 汎用の描き方 `renderGeneric`（欄の型とブロックを宣言の順に lib/mail の部品で、全部の型、`email/genericView.tsx`）と要約から（題・画像・本文・行き先のボタン）/ inApp = 要約から（お知らせの行の中身 `{ title, body, image?, link? }`）/ line = 要約から（`shortBody ?? body` と行き先の URL）。fork の経路も描けるものを宣言する（汎用か `summaryRenderable: true` + `renderFromSummary`）
 - 表示名は項目の `label`（inApp = お知らせ）。選択肢を持たない所は `constants/channelLabels.ts` の `MESSAGE_CHANNEL_LABELS`（同じ値、テストで照合）
 
 ## Internals

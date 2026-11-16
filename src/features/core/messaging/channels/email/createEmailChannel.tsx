@@ -44,6 +44,7 @@ import {
 import { unsubscribePageUrlOf } from "../../services/server/unsubscribe/token";
 import { WebhookNotConfiguredError } from "../../services/server/webhooks/errors";
 
+import { GenericEmailView, SummaryEmailView } from "./genericView";
 import { hasRenderFallbackMarker } from "./fallback";
 import { EmailView, type EmailViewComponent, type EmailViewContent } from "./view";
 
@@ -124,6 +125,14 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
     },
     resolveAddresses: (userIds) => deps.findEmails(userIds),
     webhooks: emailWebhooks(deps),
+    // ひな形の描き方(D124): 汎用 = 欄の型とブロックを宣言の順に描く(全部の型を描ける)/ 要約 = 題・本文・画像・行き先
+    async renderGeneric({ fields, values }) {
+      return { html: await deps.render(<GenericEmailView fields={fields} values={values} theme={deps.theme} />) };
+    },
+    summaryRenderable: true,
+    async renderFromSummary(summary) {
+      return { html: await deps.render(<SummaryEmailView summary={summary} theme={deps.theme} />) };
+    },
     // プレビュー: 送る時と同じ描き方(連絡の鍵の view、無ければ既定)で HTML を描く。停止のリンクは見本の URL
     async preview({ messageKey, content, category }) {
       const View = (await deps.loadView(messageKey)) ?? EmailView;

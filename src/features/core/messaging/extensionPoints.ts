@@ -82,4 +82,30 @@ export const extensionPoints = {
     key: "key",
     overrideOf: ["enabled", "order"],
   },
+  // ひな形(D122): layouts/<名前>/ のフォルダ 1 つが 1 つのひな形。宣言とメールの描き方は server の一覧、お知らせの描き方は client の一覧(ひな形の鍵で引く)。
+  // 描き方の部品は 1 行スイッチ(<部品>.tsx → <部品>.default.tsx)にでき、fork は .replace で見た目だけ替える。書き方: layouts/README.md
+  layouts: {
+    dir: "layouts",
+    files: "*/layout.ts",
+    export: "layout",
+    type: { from: "@/lib/messaging", name: "MessageLayoutItem" },
+    side: "server",
+    key: "key",
+  },
+  layoutEmails: {
+    dir: "layouts",
+    files: "*/email.tsx",
+    export: "emailRenderer",
+    type: { from: "@/lib/messaging", name: "MessageLayoutEmailRenderer" },
+    side: "server",
+    key: "layout",
+  },
+  layoutInApps: {
+    dir: "layouts",
+    files: "*/inApp.tsx",
+    export: "inAppRenderer",
+    type: { from: "@/lib/messaging", name: "MessageLayoutInAppRenderer" },
+    side: "client",
+    key: "layout",
+  },
 };
