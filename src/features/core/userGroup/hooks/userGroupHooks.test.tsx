@@ -74,6 +74,9 @@ let staticRounds: Array<Record<string, unknown>> = [];
 let estimateError: Error | null = null;
 mock.module("@/features/core/userGroup/services/client/userGroupAdminClient", {
   namedExports: {
+    // J112(D101): the membership editor imports these; D69: no assertion until the tests are restored
+    searchUserGroupPeople: async () => ({ items: [], nextCursor: null }),
+    applyUserGroupPeople: async (_id: string, input: { target: string }) => ({ target: input.target, added: 0, removed: 0, moved: 0, counts: { memberCount: 0 } }),
     // J105(D92): the row actions hook imports it; D69: no assertion until the tests are restored
     deleteUserGroup: async (id: string) => ({ id, deleted: true }),
     listUserGroups: async (params: Record<string, unknown>) => {

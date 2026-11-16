@@ -10,6 +10,7 @@ export {
 } from "./useAsyncOptionSource";
 export type {
   AsyncOptionSource,
+  AsyncOptionCursorFn,
   AsyncOptionFetchState,
   AsyncOptionFetchStatus,
   AsyncOptionMode,

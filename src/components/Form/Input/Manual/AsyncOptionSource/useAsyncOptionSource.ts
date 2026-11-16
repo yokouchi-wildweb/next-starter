@@ -13,6 +13,9 @@
 //
 // 選択モデル（単一 / 複数 / session snapshot）とクローム（トリガー / Popover / Modal）は
 // 消費者側の責務で、このフックには含めない。
+//
+// 取得は 2 形(どちらか 1 つ): searchFn = page / limit → { results, total }(CRUD の search)/
+// cursorFn = cursor / limit → { items, nextCursor }(カーソルで取る口、D102。次があるか = nextCursor の有無。総数は使わない)
 
 import {
   type KeyboardEvent,
@@ -36,6 +39,8 @@ export type AsyncOptionFetchState = {
   total: number;
   status: AsyncOptionFetchStatus;
   errorMessage: string | null;
+  /** cursorFn の時の次の位置(null = 終わり) */
+  nextCursor?: string | null;
 };
 
 export type AsyncOptionMode = "browse" | "search";
@@ -51,9 +56,20 @@ export const INITIAL_ASYNC_OPTION_FETCH_STATE: AsyncOptionFetchState = {
 /** スクロール末尾からこの距離（px）以内に入ったら次ページを取得する */
 const SCROLL_LOAD_THRESHOLD_PX = 100;
 
+/** カーソルで取る口の 1 回分(cursorFn) */
+export type AsyncOptionCursorFn<T> = (params: {
+  /** 検索の語(browse の時は無し) */
+  searchQuery?: string;
+  /** 前の回の nextCursor(1 回目は null) */
+  cursor: string | null;
+  limit: number;
+}) => Promise<{ items: T[]; nextCursor: string | null }>;
+
 export type UseAsyncOptionSourceOptions<T> = {
-  /** 検索関数（既存の client.search をそのまま渡せる） */
-  searchFn: (params: SearchParams) => Promise<PaginatedResult<T>>;
+  /** 検索関数（既存の client.search をそのまま渡せる）。cursorFn とどちらか 1 つ */
+  searchFn?: (params: SearchParams) => Promise<PaginatedResult<T>>;
+  /** カーソルで取る口(D102)。searchFn とどちらか 1 つ */
+  cursorFn?: AsyncOptionCursorFn<T>;
   /** T → Options に変換 */
   getOptionFromResult: (item: T) => Options;
   /** 検索対象フィールド */
@@ -117,6 +133,7 @@ type CacheEntry<T> = { option: Options; item?: T };
 
 export function useAsyncOptionSource<T>({
   searchFn,
+  cursorFn,
   getOptionFromResult,
   searchFields,
   searchRank = true,
@@ -166,13 +183,29 @@ export function useAsyncOptionSource<T>({
     }
   }, [initialOptions, cacheEntries]);
 
+  // ---- 1 回分の取得(searchFn か cursorFn) ----
+  const fetchOnce = useCallback(
+    async (
+      params: Omit<SearchParams, "page" | "limit"> & { page: number },
+      cursor: string | null,
+    ): Promise<{ results: T[]; total: number; nextCursor?: string | null }> => {
+      if (cursorFn) {
+        const result = await cursorFn({ searchQuery: params.searchQuery, cursor, limit });
+        return { results: result.items, total: 0, nextCursor: result.nextCursor };
+      }
+      if (!searchFn) throw new Error("searchFn か cursorFn を渡してください");
+      return searchFn({ ...params, limit });
+    },
+    [cursorFn, searchFn, limit],
+  );
+
   // ---- ロード（browse / search） ----
   const loadBrowsePage = useCallback(
-    async (page: number, replace: boolean) => {
+    async (page: number, replace: boolean, cursor: string | null = null) => {
       const myId = ++browseRequestIdRef.current;
       setBrowseState((prev) => ({ ...prev, status: "loading", errorMessage: null }));
       try {
-        const result = await searchFn({ page, limit });
+        const result = await fetchOnce({ page }, replace ? null : cursor);
         if (browseRequestIdRef.current !== myId) return;
         const entries = result.results.map((item) => ({
           option: getOptionFromResult(item),
@@ -186,6 +219,7 @@ export function useAsyncOptionSource<T>({
           total: result.total,
           status: "idle",
           errorMessage: null,
+          nextCursor: result.nextCursor,
         }));
       } catch (err) {
         if (browseRequestIdRef.current !== myId) return;
@@ -196,7 +230,7 @@ export function useAsyncOptionSource<T>({
         }));
       }
     },
-    [searchFn, limit, getOptionFromResult, cacheEntries],
+    [fetchOnce, getOptionFromResult, cacheEntries],
   );
 
   // searchRank は spec オブジェクトがインラインで渡されることが多いため、内容で同一性を判定する
@@ -208,20 +242,17 @@ export function useAsyncOptionSource<T>({
   );
 
   const loadSearchPage = useCallback(
-    async (page: number, replace: boolean, queryOverride?: string) => {
+    async (page: number, replace: boolean, queryOverride?: string, cursor: string | null = null) => {
       const trimmed = (queryOverride ?? searchQuery).trim();
       if (trimmed.length < minChars) return;
 
       const myId = ++searchRequestIdRef.current;
       setSearchState((prev) => ({ ...prev, status: "loading", errorMessage: null }));
       try {
-        const result = await searchFn({
-          searchQuery: trimmed,
-          searchFields,
-          searchRank: resolvedSearchRank,
-          page,
-          limit,
-        });
+        const result = await fetchOnce(
+          { searchQuery: trimmed, searchFields, searchRank: resolvedSearchRank, page },
+          replace ? null : cursor,
+        );
         if (searchRequestIdRef.current !== myId) return;
         const entries = result.results.map((item) => ({
           option: getOptionFromResult(item),
@@ -235,6 +266,7 @@ export function useAsyncOptionSource<T>({
           total: result.total,
           status: "idle",
           errorMessage: null,
+          nextCursor: result.nextCursor,
         }));
       } catch (err) {
         if (searchRequestIdRef.current !== myId) return;
@@ -248,10 +280,9 @@ export function useAsyncOptionSource<T>({
     [
       searchQuery,
       minChars,
-      searchFn,
+      fetchOnce,
       searchFields,
       resolvedSearchRank,
-      limit,
       getOptionFromResult,
       cacheEntries,
     ],
@@ -306,8 +337,11 @@ export function useAsyncOptionSource<T>({
   // ---- 派生値 ----
   const mode: AsyncOptionMode = hasSearched ? "search" : "browse";
   const activeState = mode === "search" ? searchState : browseState;
-  const browseHasMore = browseState.page > 0 && browseState.page * limit < browseState.total;
-  const searchHasMore = searchState.page > 0 && searchState.page * limit < searchState.total;
+  // cursorFn = 次の位置があるか / searchFn = 読んだ数が総数より少ないか
+  const hasMoreOf = (state: AsyncOptionFetchState) =>
+    state.page > 0 && (cursorFn ? state.nextCursor != null : state.page * limit < state.total);
+  const browseHasMore = hasMoreOf(browseState);
+  const searchHasMore = hasMoreOf(searchState);
   const hasMore = mode === "search" ? searchHasMore : browseHasMore;
   const isBrowseLoaded = browseState.page > 0 || browseState.status !== "idle";
 
@@ -319,15 +353,17 @@ export function useAsyncOptionSource<T>({
 
   const loadMore = useCallback(() => {
     if (!hasMore || activeState.status !== "idle") return;
-    if (mode === "search") loadSearchPage(activeState.page + 1, false);
-    else loadBrowsePage(activeState.page + 1, false);
-  }, [hasMore, activeState.status, activeState.page, mode, loadSearchPage, loadBrowsePage]);
+    const cursor = activeState.nextCursor ?? null;
+    if (mode === "search") loadSearchPage(activeState.page + 1, false, undefined, cursor);
+    else loadBrowsePage(activeState.page + 1, false, cursor);
+  }, [hasMore, activeState.status, activeState.page, activeState.nextCursor, mode, loadSearchPage, loadBrowsePage]);
 
   const retryLoadMore = useCallback(() => {
     if (activeState.status !== "error") return;
-    if (mode === "search") loadSearchPage(activeState.page + 1, false);
-    else loadBrowsePage(activeState.page + 1, false);
-  }, [activeState.status, activeState.page, mode, loadSearchPage, loadBrowsePage]);
+    const cursor = activeState.nextCursor ?? null;
+    if (mode === "search") loadSearchPage(activeState.page + 1, false, undefined, cursor);
+    else loadBrowsePage(activeState.page + 1, false, cursor);
+  }, [activeState.status, activeState.page, activeState.nextCursor, mode, loadSearchPage, loadBrowsePage]);
 
   const handleScroll = useCallback(
     (event: UIEvent<HTMLDivElement>) => {
