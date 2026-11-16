@@ -1,10 +1,13 @@
 // src/features/core/userGroup/components/common/UserGroupConditionBuilder/index.tsx
 // 部品(props だけ): 条件の組み立て。根の組(すべて満たす / いずれかを満たす)の中に条件と条件グループ(2 階層まで。グループの中は条件だけ)。
+// 見た目: 根の組 = 枠つきのカード(下に追加の操作) / 条件グループ = 左に色の帯 + 「条件グループ」の札 + 薄い地 / 並んだ条件の間に「かつ・または」
 // - どの条件・グループも「含める / 除外する」を選べる(not。両方を見せた 2 択)/ 条件は部品の label で選び、引数は部品の欄から(UserGroupCriterionFields)
 // - 画面で組めない深い定義は読むだけで出し(label と引数の表示)、「作り直す」で空の組から組める
 // 流れ(木の形・足す外す・定義の木への変換)は hook useUserGroupConditionBuilder。部品の鍵は出さない(D94)
 
 "use client";
+
+import { Fragment } from "react";
 
 import { Button } from "@/components/Form/Button";
 import { RadioGroupInput, SelectInput } from "@/components/Form/Input/Manual";
@@ -145,16 +148,43 @@ function CriterionNode({ node, criteria, actions, disabled }: Omit<NodeProps, "l
   );
 }
 
+/** 並んだ条件の間に置く合わせ方の印(すべて = かつ / いずれか = または) */
+function JoinMark({ op }: { op: ConditionGroupOp }) {
+  return (
+    <Flex align="center" gap="sm" aria-hidden data-slot="condition-join">
+      <Span className="h-px flex-1 bg-border" />
+      <Span size="xs" weight="medium" tone="muted" className="rounded-full border border-border bg-background px-2.5 py-0.5">
+        {op === "and" ? "かつ" : "または"}
+      </Span>
+      <Span className="h-px flex-1 bg-border" />
+    </Flex>
+  );
+}
+
 function GroupNode({ node, level, criteria, actions, disabled }: NodeProps & { node: ConditionDraftGroup }) {
+  const isRoot = level === 1;
   const pickOptions = criteria.map((criterion) => ({
     value: criterion.key,
     label: criterion.weight === "heavy" ? `${criterion.label}(${criterion.weightLabel})` : criterion.label,
   }));
   return (
-    <Stack space={3} className={level === 1 ? "" : "rounded-md border border-dashed border-border p-3"} data-slot={`condition-group-${level}`}>
+    <Stack
+      space={3}
+      className={
+        isRoot
+          ? "rounded-lg border border-border bg-card p-4"
+          : "rounded-lg border border-border border-l-4 border-l-primary/60 bg-muted/40 p-3"
+      }
+      data-slot={`condition-group-${level}`}
+    >
       <Flex align="center" justify="between" gap="xs" wrap="wrap">
         <Flex align="center" gap="xs" wrap="wrap">
-          <Span size="sm">{level === 1 ? "次の条件を" : "このグループの条件を"}</Span>
+          {isRoot ? null : (
+            <Span size="xs" weight="semiBold" tone="primary" className="rounded-full bg-primary/10 px-2.5 py-0.5">
+              条件グループ
+            </Span>
+          )}
+          <Span size="sm">{isRoot ? "次の条件を" : "この中の条件を"}</Span>
           <SelectInput
             value={node.op}
             options={OP_OPTIONS}
@@ -164,29 +194,40 @@ function GroupNode({ node, level, criteria, actions, disabled }: NodeProps & { n
           />
           <NegateChoice node={node} actions={actions} disabled={disabled} />
         </Flex>
-        {level > 1 ? (
+        {isRoot ? null : (
           <Button type="button" size="sm" variant="ghost" disabled={disabled} onClick={() => actions.remove(node.id)}>
             グループを削除
           </Button>
-        ) : null}
+        )}
       </Flex>
-      {node.children.map((child) =>
-        child.type === "group" ? (
-          <GroupNode key={child.id} node={child} level={level + 1} criteria={criteria} actions={actions} disabled={disabled} />
-        ) : (
-          <CriterionNode key={child.id} node={child} criteria={criteria} actions={actions} disabled={disabled} />
-        ),
+      {node.children.length === 0 ? (
+        <Para size="sm" tone="muted" align="center" className="my-0 rounded-md border border-dashed border-border px-3 py-4">
+          {isRoot ? "条件はまだありません。下の「条件を追加」から足してください" : "このグループに条件を追加してください"}
+        </Para>
+      ) : (
+        <Stack space={2}>
+          {node.children.map((child, index) => (
+            <Fragment key={child.id}>
+              {index > 0 ? <JoinMark op={node.op} /> : null}
+              {child.type === "group" ? (
+                <GroupNode node={child} level={level + 1} criteria={criteria} actions={actions} disabled={disabled} />
+              ) : (
+                <CriterionNode node={child} criteria={criteria} actions={actions} disabled={disabled} />
+              )}
+            </Fragment>
+          ))}
+        </Stack>
       )}
-      <Flex align="center" gap="xs" wrap="wrap">
+      <Flex align="center" gap="xs" wrap="wrap" className={isRoot ? "border-t border-border pt-3" : ""}>
         <SelectInput
           value=""
           options={pickOptions}
           showPlaceholderOption={false}
-          placeholder="条件を追加"
+          placeholder={isRoot ? "条件を追加" : "このグループに条件を追加"}
           disabled={disabled}
           onChange={(value) => value && actions.addCriterion(node.id, String(value))}
         />
-        {level === 1 ? (
+        {isRoot ? (
           <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={() => actions.addGroup(node.id)}>
             条件グループを追加
           </Button>
