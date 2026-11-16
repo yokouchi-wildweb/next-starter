@@ -131,14 +131,23 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   // 連絡の描き方(messages/views/<名前>.tsx → <名前>.default、auth 5・user 2・wallet 2)も 1 行スイッチ
   // MailFrame.default は全メールの枠(src/lib/mail/frame、指令 54 D122: fork は MailFrame.replace で一度に替える)
   // NoticeEmail.default・NoticeInApp.default は上流のひな形「汎用のお知らせ」の見た目(messaging/layouts/notice、指令 54 d5)
+  // Link・Welcome・Statement・Alert の Email / InApp.default は上流のひな形「認証のリンク」「ようこそ」「お知らせの明細」「セキュリティの警告」の見た目(指令 55 d4)
   const targets = plan.switches.map((s: { target: string }) => s.target).sort();
   assert.deepEqual(targets, [
     "AdminHeader.default",
+    "AlertEmail.default",
+    "AlertInApp.default",
     "ForkProviders.default",
+    "LinkEmail.default",
+    "LinkInApp.default",
     "MailFrame.default",
     "NoticeEmail.default",
     "NoticeInApp.default",
     "RateLimitWarningContent.default",
+    "StatementEmail.default",
+    "StatementInApp.default",
+    "WelcomeEmail.default",
+    "WelcomeInApp.default",
     "accountLocked.default",
     "earlyRegistration.default",
     "earlyRegistrationComplete.default",
