@@ -1,25 +1,118 @@
 // src/components/Common/Pagination.tsx
 "use client";
 
-import { useState, type KeyboardEvent } from "react";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
 
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useShelfRouter as useRouter } from "@/components/Navigation/NavigationPort";
 
+import { Button } from "@/components/Form/Button/Button";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 
-export type PaginationProps = {
+type PaginationBaseProps = {
   page: number;
   perPage: number;
   total: number;
-  makeHref: (page: number) => string;
   /** ページ番号を直接入力してジャンプするUIを表示する */
   usePageJump?: boolean;
+  /**
+   * 詰めた形: 「前 / p / N / 次」だけを出す(範囲の文・最初 / 最後・番号を出さない)。端の前 / 次は押せない形で残す
+   * @default false
+   */
+  compact?: boolean;
 };
 
-export default function Pagination({ page, perPage, total, makeHref, usePageJump }: PaginationProps) {
+/** リンクで送る(URL にページを持つ一覧) */
+type PaginationHrefProps = {
+  makeHref: (page: number) => string;
+  onPageChange?: never;
+};
+
+/** ボタンで送る(ページを状態で持つ一覧)。押すとそのページ番号で呼ぶ */
+type PaginationCallbackProps = {
+  onPageChange: (page: number) => void;
+  makeHref?: never;
+};
+
+/** 送り方は makeHref(リンク)か onPageChange(ボタン)のどちらか一方 */
+export type PaginationProps = PaginationBaseProps & (PaginationHrefProps | PaginationCallbackProps);
+
+type PageControlProps = {
+  page: number;
+  makeHref?: (page: number) => string;
+  onPageChange?: (page: number) => void;
+  variant: "ghost" | "outline";
+  disabled?: boolean;
+  "aria-label"?: string;
+  children: ReactNode;
+};
+
+/** 送りの 1 つ: makeHref ならリンク、onPageChange(または押せない)ならボタン。見た目は同じ */
+function PageControl({ page, makeHref, onPageChange, variant, disabled, "aria-label": ariaLabel, children }: PageControlProps) {
+  if (makeHref && !disabled) {
+    return (
+      <LinkButton href={makeHref(page)} size="sm" variant={variant} className="px-1 min-w-8" aria-label={ariaLabel}>
+        {children}
+      </LinkButton>
+    );
+  }
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant={variant}
+      className="px-1 min-w-8"
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onClick={() => onPageChange?.(page)}
+    >
+      {children}
+    </Button>
+  );
+}
+
+/**
+ * ページ送り。送り方は 2 通り(型でどちらか一方):
+ * - `makeHref`: リンクで送る(URL にページを持つ一覧。管理一覧の Header など)
+ * - `onPageChange`: ボタンで送る(ページを状態で持つ一覧)。押すとそのページ番号で呼ぶ
+ * `compact` は「前 / p / N / 次」だけの詰めた形(範囲の文を別に出す画面向け)。`usePageJump` はどちらの形・送り方とも組める
+ */
+export default function Pagination({
+  page,
+  perPage,
+  total,
+  makeHref,
+  onPageChange,
+  usePageJump,
+  compact = false,
+}: PaginationProps) {
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const go = { makeHref, onPageChange };
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-1 text-sm whitespace-nowrap" data-slot="pagination-compact">
+        <PageControl {...go} page={currentPage - 1} variant="ghost" disabled={currentPage <= 1} aria-label="Previous page">
+          <ChevronLeft className="size-4" />
+        </PageControl>
+        <span className="px-1 tabular-nums">
+          {currentPage} / {totalPages}
+        </span>
+        <PageControl
+          {...go}
+          page={currentPage + 1}
+          variant="ghost"
+          disabled={currentPage >= totalPages}
+          aria-label="Next page"
+        >
+          <ChevronRight className="size-4" />
+        </PageControl>
+        {usePageJump && <PageJumpInput currentPage={currentPage} totalPages={totalPages} {...go} />}
+      </div>
+    );
+  }
+
   const start = (currentPage - 1) * perPage + 1;
   const end = Math.min(currentPage * perPage, total);
   const pages: number[] = [];
@@ -36,24 +129,20 @@ export default function Pagination({ page, perPage, total, makeHref, usePageJump
   const showPrev = currentPage > 1;
   const showNext = currentPage < totalPages;
   const showLast = currentPage < totalPages;
-  const firstHref = makeHref(1);
-  const prevHref = makeHref(Math.max(1, currentPage - 1));
-  const nextHref = makeHref(Math.min(totalPages, currentPage + 1));
-  const lastHref = makeHref(totalPages);
   return (
     <div className="flex items-center gap-1 text-sm whitespace-nowrap">
       <span className="mr-2 whitespace-nowrap">
         {start} - {end} （{total}件中）
       </span>
       {showFirst && (
-        <LinkButton href={firstHref} size="sm" variant="ghost" className="px-1 min-w-8" aria-label="First page">
+        <PageControl {...go} page={1} variant="ghost" aria-label="First page">
           <ChevronsLeft className="size-4" />
-        </LinkButton>
+        </PageControl>
       )}
       {showPrev && (
-        <LinkButton href={prevHref} size="sm" variant="ghost" className="px-1 min-w-8" aria-label="Previous page">
+        <PageControl {...go} page={Math.max(1, currentPage - 1)} variant="ghost" aria-label="Previous page">
           <ChevronLeft className="size-4" />
-        </LinkButton>
+        </PageControl>
       )}
       {pages.map((p) =>
         p === currentPage ? (
@@ -61,22 +150,22 @@ export default function Pagination({ page, perPage, total, makeHref, usePageJump
             {p}
           </span>
         ) : (
-          <LinkButton key={p} href={makeHref(p)} size="sm" variant="outline" className="px-1 min-w-8">
+          <PageControl key={p} {...go} page={p} variant="outline">
             {p}
-          </LinkButton>
+          </PageControl>
         ),
       )}
       {showNext && (
-        <LinkButton href={nextHref} size="sm" variant="ghost" className="px-1 min-w-8" aria-label="Next page">
+        <PageControl {...go} page={Math.min(totalPages, currentPage + 1)} variant="ghost" aria-label="Next page">
           <ChevronRight className="size-4" />
-        </LinkButton>
+        </PageControl>
       )}
       {showLast && (
-        <LinkButton href={lastHref} size="sm" variant="ghost" className="px-1 min-w-8" aria-label="Last page">
+        <PageControl {...go} page={totalPages} variant="ghost" aria-label="Last page">
           <ChevronsRight className="size-4" />
-        </LinkButton>
+        </PageControl>
       )}
-      {usePageJump && <PageJumpInput currentPage={currentPage} totalPages={totalPages} makeHref={makeHref} />}
+      {usePageJump && <PageJumpInput currentPage={currentPage} totalPages={totalPages} {...go} />}
     </div>
   );
 }
@@ -85,10 +174,12 @@ function PageJumpInput({
   currentPage,
   totalPages,
   makeHref,
+  onPageChange,
 }: {
   currentPage: number;
   totalPages: number;
-  makeHref: (page: number) => string;
+  makeHref?: (page: number) => string;
+  onPageChange?: (page: number) => void;
 }) {
   const router = useRouter();
   const [value, setValue] = useState(String(currentPage));
@@ -99,7 +190,8 @@ function PageJumpInput({
       setValue(String(currentPage));
       return;
     }
-    router.push(makeHref(parsed));
+    if (makeHref) router.push(makeHref(parsed));
+    else onPageChange?.(parsed);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

@@ -15,7 +15,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Pagination } from "@/components/Navigation";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import type { BankTransferReviewStatus } from "@/features/core/bankTransferReview";
 import { useAdminBankTransferReviewList } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewList";
@@ -109,31 +109,7 @@ export function BankTransferReviewListPanel({ status }: Props) {
               振込明細CSVで一括判定
             </Button>
             {totalPages > 1 ? (
-              <Flex gap="xs" align="center">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  aria-label="前のページ"
-                >
-                  <ChevronLeft className="size-4" />
-                </Button>
-                <Para size="xs" tone="muted">
-                  {page} / {totalPages}
-                </Para>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  aria-label="次のページ"
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-              </Flex>
+              <Pagination page={page} perPage={PAGE_LIMIT} total={total} onPageChange={setPage} compact />
             ) : null}
           </Flex>
         </Flex>
