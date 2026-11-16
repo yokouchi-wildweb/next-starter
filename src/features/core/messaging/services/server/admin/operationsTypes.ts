@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/admin/operationsTypes.ts
 //
-// 管理の操作(予約の取り消し・取り下げ・失敗の再送)の DB の読み書き(テストは偽物を渡す)。Tx = 取引
+// 管理の操作(削除・削除の見込み・失敗の再送)の DB の読み書き(テストは偽物を渡す)。Tx = 取引
 
 import type { MessageDispatch, MessageDispatchInsert } from "../../../entities/model";
 
@@ -18,16 +18,17 @@ export type MessageOperationsStore<Tx> = {
   /** 回の行を排他で読み(無ければ null)、同じ取引で run する。外した画像の実物は commit の後に消す(呼び手が cleanupImages) */
   withLockedDispatch: <T>(id: string, run: (tx: Tx, dispatch: MessageDispatch | null) => Promise<T>) => Promise<T>;
   updateDispatch: (tx: Tx, id: string, patch: Partial<MessageDispatchInsert>) => Promise<void>;
-  /** 回のお知らせの行(共有の 1 行と受信者ごとの行)を消す。消した数 */
-  deleteInboxItems: (tx: Tx, dispatchId: string) => Promise<number>;
   /**
    * 未送信の配達を止める: queued → canceled(next_attempt_at null)、送れた行の宛先ごとの送り直しの予定も止める。
    * 送っている途中(sending、lease 中)の行は触らない。止めた行の数
    */
   cancelUnsent: (tx: Tx, dispatchId: string, now: Date) => Promise<number>;
-  /** 回に結んだお知らせの画像を台帳から外す(保持の掃除と同じ)。外した台帳の行の id */
-  detachImages: (tx: Tx, dispatchId: string, refs: readonly string[]) => Promise<string[]>;
-  cleanupImages: (ids: readonly string[]) => Promise<void>;
+  /** 回の行(削除の見込み。無い id は返さない) */
+  findDispatches: (ids: readonly string[]) => Promise<Pick<MessageDispatch, "id" | "status" | "deleted_at">[]>;
+  /** 回の配達の数(経路 × status) */
+  deliveryCounts: (dispatchIds: readonly string[]) => Promise<{ channel: string; status: string; count: number }[]>;
+  /** 共有のお知らせの行(user_id null)を持つ回の数 */
+  countSharedInbox: (dispatchIds: readonly string[]) => Promise<number>;
   /** failed(と includeUnknown なら unknown)の配達の数(lease 中の行は数えない) */
   countFailed: (tx: Tx | null, dispatchId: string) => Promise<{ failed: number; unknown: number }>;
   /**

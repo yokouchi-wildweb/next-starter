@@ -54,7 +54,7 @@ const DELIVERY_STATUS_OPTIONS = Object.entries(DELIVERY_STATUS_DISPLAY).map(([va
 
 export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
   const canSend = useGate().enabled("messagingBroadcast");
-  const { dispatch, error, isLoading, deliveries, deliveryFilters, includeUnknown, setIncludeUnknown, cancel, retract, resend, continueDispatch } =
+  const { dispatch, error, isLoading, deliveries, deliveryFilters, includeUnknown, setIncludeUnknown, remove, resend, continueDispatch } =
     useAdminDispatchDetail(dispatchId, { observerOptions: OBSERVER_OPTIONS });
   const categories = useAdminDispatchCategories();
 
@@ -87,11 +87,10 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
         operations={dispatch.operations}
         includeUnknown={includeUnknown}
         onIncludeUnknownChange={setIncludeUnknown}
-        onCancel={cancel}
-        onRetract={retract}
+        onDelete={remove}
         onResend={resend}
         stateLine={dispatchStateLine(dispatch)}
-        canContinue={dispatch.status === "processing"}
+        canContinue={dispatch.operations.canContinue.allowed}
         onContinue={continueDispatch}
       />
 
@@ -161,7 +160,7 @@ function DispatchSummary({ dispatch, categoryLabel }: { dispatch: AdminDispatchD
   return (
     <Stack space={4} className="rounded-md border border-border bg-card p-4" data-slot="dispatch-summary">
       <Flex align="center" gap="xs" wrap="wrap">
-        <DispatchStatusBadge status={dispatch.status} retractedAt={dispatch.retractedAt} size="md" />
+        <DispatchStatusBadge status={dispatch.status} deletedAt={dispatch.deletedAt} size="md" />
         {dispatch.isTest ? <Span size="sm" tone="muted">テスト</Span> : null}
         <Span size="lg" weight="semiBold">
           {dispatchHeading(dispatch)}

@@ -43,21 +43,22 @@
 汎用 CRUD の search には乗せない。
 
 - `GET /dispatches/categories` → `{ items: { key, label, kind }[] }`（カテゴリーの受け口の全部）
-- `GET /dispatches`: `from`・`to`（作った時刻）・`kind`・`category`・`channel`・`status`・`cursor`・`limit`（既定 50、最大 100）→ `{ items: AdminDispatchSummary[], nextCursor }`（新しい順、keyset）。定義の鍵では絞らない
+- `GET /dispatches`: `from`・`to`（作った時刻）・`kind`・`category`・`channel`・`status`・`deleted`（`exclude` 既定 = 削除した回を出さない / `only` / `include`）・`cursor`・`limit`（既定 50、最大 100）→ `{ items: AdminDispatchSummary[], nextCursor }`（新しい順、keyset）。定義の鍵では絞らない
 - `GET /dispatches/[id]` → `AdminDispatchDetail`: 回の中身・`operations`（下）・`targetGroup` `{ id, name }`（グループ宛ての回、id は値だけ。門 `userGroups` が閉なら名前は取れない）・「同じ内容で送る」が写す `templateEdited`・`templateContent`（直して送った回の文言）・`targetUserIds`（選んだ利用者の回の利用者 id。10,000 人を超える・ほかの宛先は null）
 - `GET /dispatches/[id]/deliveries`: `status`・`channel`・`cursor`・`limit` → `{ items: AdminDeliveryRow[], nextCursor }`（古い順）
 - 返す項目は `dispatchDto.ts` 1 か所: 鍵・種別・種類・送り元（`sourceLabel`）・状態・経路・件名 / 題・数・送った人（`actorName`、system は「システム」）・時刻・テストかは常に / 回の本文（rendered）と vars は記録の段が vars・full の時 / 配達の本文は full の時だけ / 宛先は出す（`userName`）/ provider の生の値と `last_error` の文は出さない（符号 `errorCode`、文は `constants/deliveryErrors.ts`）。`message_key` が null の前の回は件名・題・本文を `rendered` から
 
-### 回の操作（operations.ts、`/dispatches/[id]/{cancel, retract, resend}`）
+### 回の操作（operations.ts、`DELETE /dispatches/[id]`・`/dispatches/bulk-delete`・`/dispatches/delete-summary`・`/dispatches/[id]/resend`）
 
-どの操作も回の行を `FOR UPDATE` で持った 1 つの取引（`operationsStore.ts`）。できない操作は 409 と理由の符号（DomainError の `code`）。符号と文は `constants/dispatchOperations.ts`（`DISPATCH_OPERATION_REASONS` / `DISPATCH_OPERATION_REASON_TEXT`）の 1 か所で、回の 1 件の `operations`（`cancel` / `retract` / `resend` ごとに `{ allowed, reason }`、resend は `mode`・`failed`・`unknown` も、判定 `operationFlags`）と 409 の文が同じ物を読む。
+どの操作も回の行を `FOR UPDATE` で持った 1 つの取引（`operationsStore.ts`）。できない操作は 409 と理由の符号（DomainError の `code`）。符号と文は `constants/dispatchOperations.ts`（`DISPATCH_OPERATION_REASONS` / `DISPATCH_OPERATION_REASON_TEXT`）の 1 か所で、回の 1 件の `operations`（`canDelete` / `canResend` / `canContinue` ごとに `{ allowed, reason }`、canResend は `mode`・`failed`・`unknown` も、判定 `operationFlags`）と 409 の文が同じ物を読む。
 
-- `POST /cancel`: `scheduled` でまだ展開していない回だけ `cancelled`（ほかは `not_scheduled` / `already_started`）。監査 `messaging.dispatch.cancelled`
-- `POST /retract`: 回のお知らせの行（共有の行と受信者ごとの行）を消し、`queued` の配達を `canceled`、送り直しと展開を止めて `retracted_at`。**回の status は変えない**。送ったメールは取り戻せない。お知らせの画像は台帳から外す。2 回目 `retracted`・予約のまま `scheduled_use_cancel`・取り消した回は 409。戻す操作は無い。監査 `messaging.dispatch.retracted`
+- `DELETE /dispatches/[id]`（D88、予約の取り消し・取り下げを置き換えた）: どの状態の回も消す。取引で `queued` の配達を `canceled`・送り直しの予定を止め、展開を終わりにして `deleted_at`（**status は変えない**。予約の回も cron が拾わない）。commit の後に消せる経路の `remove`（経路の項目、上流は inApp = お知らせの行・共有の行・画像を外す）を呼ぶ。送ったメール・LINE は残る。削除済みにもう一度 = `remove` だけ呼び直す（`alreadyDeleted: true`、監査なし）。`remove` の失敗は `failedChannels` に残す（もう一度消せば呼び直す）→ `AdminDeleteResult { dispatchId, alreadyDeleted, canceledDeliveries, removed: [{ channel, removed }], failedChannels }`。戻す操作は無い。監査 `messaging.dispatch.deleted`
+- `POST /dispatches/bulk-delete` `{ ids }`（1〜100 件、`ADMIN_DELETE_MAX_IDS`）→ `{ results: [{ dispatchId, ok: true, result } | { dispatchId, ok: false, reason, message }] }`。回ごとに 1 件の削除と同じ（回ごとの取引・監査）
+- `POST /dispatches/delete-summary` `{ ids }`（同じ上限、書かない）→ `{ found, deleted, scheduled, unsent, channels: [{ key, label, removable, sent }], sharedInbox }`。`removable` = 経路が `remove` を持つ（受け取った人から消える）/ false = 届いた物は残る。`sharedInbox` = 全員・ロール宛ての共有のお知らせの行を持つ回の数（配達の行が無い分）
 - `POST /resend` `{ includeUnknown? }`: required でない回の `failed` の配達だけ（`unknown` は `includeUnknown: true` の時だけ、回の `metadata.possibleDuplicate` に残す）。履歴 `metadata.resends`
   - record `vars` / `full`: 同じ回のまま行を `queued` に戻す（attempts 0、冪等の鍵は同じ）。回は `processing` に戻り、最初の 1 束を続きを送るで、残りは cron。`sending` の行は触らない
   - record `meta`: 回の vars の写しで失敗の宛先へ新しい回（`metadata.resendOf`、テンプレートは同じ版、送った id は `metadata.resentDeliveryIds`）。写しが無い = `no_input_copy`
-  - 409: `secret`（送り手のコードからもう一度送る）・`required`・`definition_missing`・取り下げ / 取り消し済み・`scheduled`・`no_failed`。監査 `messaging.dispatch.resent`
+  - 409: `secret`（送り手のコードからもう一度送る）・`required`・`definition_missing`・`deleted`・`cancelled`・`scheduled`・`no_failed`。監査 `messaging.dispatch.resent`
 
 ### 続きを送る・利用者ごとの履歴
 

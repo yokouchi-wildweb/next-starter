@@ -9,8 +9,12 @@ import { db } from "@/lib/drizzle";
 import { MessageDeliveryTable } from "../../entities/delivery";
 import { MessageDispatchTable } from "../../entities/drizzle";
 import { MessageInboxItemTable } from "../../entities/inbox";
-import { bindInboxImages } from "../../services/server/inbox/imageBinding";
-import { storageInboxImageLedger } from "../../services/server/inbox/imageBindingLedger";
+import { bindInboxImages, boundInboxImageRefs, INBOX_IMAGES_METADATA_KEY } from "../../services/server/inbox/imageBinding";
+import {
+  cleanupDetachedInboxImages,
+  detachInboxImages,
+  storageInboxImageLedger,
+} from "../../services/server/inbox/imageBindingLedger";
 import { createInAppChannel } from "./createInAppChannel";
 
 export const channel = createInAppChannel({
@@ -53,5 +57,30 @@ export const channel = createInAppChannel({
       if (metadata) await tx.update(MessageDispatchTable).set({ metadata }).where(eq(MessageDispatchTable.id, dispatchId));
       return map;
     });
+  },
+  async removeDispatch(dispatchId) {
+    // 回の行を排他で持ち、行を消して画像を外す(外した実物は commit の後に消す)
+    const detached: string[] = [];
+    const removed = await db.transaction(async (tx) => {
+      const [dispatch] = await tx
+        .select({ metadata: MessageDispatchTable.metadata })
+        .from(MessageDispatchTable)
+        .where(eq(MessageDispatchTable.id, dispatchId))
+        .for("update");
+      const rows = await tx
+        .delete(MessageInboxItemTable)
+        .where(eq(MessageInboxItemTable.dispatch_id, dispatchId))
+        .returning({ id: MessageInboxItemTable.id });
+      const metadata = (dispatch?.metadata as Record<string, unknown> | null) ?? null;
+      if (metadata && INBOX_IMAGES_METADATA_KEY in metadata) {
+        detached.push(...(await detachInboxImages(tx, dispatchId, boundInboxImageRefs(metadata))));
+        const rest = { ...metadata };
+        delete rest[INBOX_IMAGES_METADATA_KEY];
+        await tx.update(MessageDispatchTable).set({ metadata: rest }).where(eq(MessageDispatchTable.id, dispatchId));
+      }
+      return rows.length;
+    });
+    await cleanupDetachedInboxImages(detached);
+    return removed;
   },
 });

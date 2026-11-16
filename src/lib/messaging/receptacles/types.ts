@@ -141,6 +141,12 @@ export type MessageChannel = {
     /** 好みに従う連絡の種類(あれば停止のリンクの見本を出す) */
     category?: string;
   }) => Promise<{ html?: string; text?: string }>;
+  /**
+   * 届けた物を取り下げる(任意、D89)。管理の「削除」が回を消す時に呼ぶ(例 inApp = 受け取り箱の行・共有の行・画像)。
+   * 持つ経路 = 消せる経路(removable)。持たない経路(email・line など)の届けた物はそのまま残る。
+   * 何度呼んでも同じ結果になるように書く(消す途中で落ちた回はもう一度削除すると呼び直す)
+   */
+  remove?: (input: { dispatchId: string }) => Promise<{ removed: number }>;
   /** 未送信の宛先の束を送る。宛先ごとの結果を返す(投げると束の全部を unknown として扱う) */
   send: (targets: readonly ChannelSendTarget[]) => Promise<ChannelSendResult[]>;
   /** provider → webhook の検証と正規化 */

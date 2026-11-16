@@ -73,7 +73,7 @@
 - 最初の 1 通・window の後・既読の後はふつうに送る。`{{collapsedCount}}` = ふつうは 1、置き換えた時はその回数（throttle のある連絡だけの鍵）
 - 排他: 鍵の `pg_advisory_xact_lock` を持った取引の中で回 × 受信者の行を読み直して 1 度だけ決め、その受信者の全部の行に書く（要求の中と cron が重なっても 2 通にならない。経路の呼び出しの間は lock を持たない）。お知らせの行はこの取引の中で書く（形は `channels/inApp` の `inAppItemRow`）
 - 間引くのは受信者ごとの行だけ: 全員・ロール宛て（共有の 1 行）は間引かない。グループ宛てと選んだ宛先は間引く
-- `collapsed_dispatch_ids` は FK を持たない。取り下げ・保持・画像はお知らせの今の `dispatch_id` に従う
+- `collapsed_dispatch_ids` は FK を持たない。削除・保持・画像はお知らせの今の `dispatch_id` に従う
 
 ## Verification
 

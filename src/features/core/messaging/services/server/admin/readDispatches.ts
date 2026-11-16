@@ -41,6 +41,8 @@ export const ListDispatchesQuerySchema = z.object({
   category: z.string().trim().min(1).max(100).optional(),
   channel: z.string().trim().min(1).optional(),
   status: z.enum(MESSAGE_DISPATCH_STATUSES).optional(),
+  /** 削除した回(D88): exclude = 出さない(既定)/ only = 削除した回だけ / include = 両方 */
+  deleted: z.enum(["exclude", "only", "include"]).default("exclude"),
   cursor: z.string().min(1).optional(),
   limit: limitSchema,
 });

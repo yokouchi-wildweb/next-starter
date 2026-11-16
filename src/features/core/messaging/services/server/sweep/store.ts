@@ -74,7 +74,14 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
     const due = db
       .select({ id: MessageDispatchTable.id })
       .from(MessageDispatchTable)
-      .where(and(eq(MessageDispatchTable.status, "scheduled"), lte(MessageDispatchTable.scheduled_at, now)))
+      // 削除した予約の回は拾わない(D88)
+      .where(
+        and(
+          eq(MessageDispatchTable.status, "scheduled"),
+          lte(MessageDispatchTable.scheduled_at, now),
+          isNull(MessageDispatchTable.deleted_at),
+        ),
+      )
       .limit(limit)
       .for("update", { skipLocked: true });
     const rows = await db
@@ -91,6 +98,8 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
         eq(MessageDispatchTable.status, "processing"),
         // 古い送る口の行(message_key なし)は展開しない
         isNotNull(MessageDispatchTable.message_key),
+        // 削除した回は展開しない(削除は展開の位置も終わりにする。念のため)
+        isNull(MessageDispatchTable.deleted_at),
         or(isNull(MessageDispatchTable.expand_cursor), ne(MessageDispatchTable.expand_cursor, MESSAGE_EXPAND_DONE)),
       ];
       if (dispatchId) conditions.push(eq(MessageDispatchTable.id, dispatchId));
