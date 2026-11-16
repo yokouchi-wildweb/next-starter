@@ -22,11 +22,15 @@ import { Para } from "@/components/TextBlocks/Para";
  * エラーは 2 通り: 初回ロードの失敗 (items が 0 件) は `errorNode` に置き換え、その下に「再試行」(`onRetry`) を出す。
  * 追加ロードの失敗 (items が 1 件以上) は一覧を残したまま末尾にエラーと「再試行」を出す。
  *
+ * 続きの読み方は 2 通り: 既定 (`loadMode` 省略 = "auto") は末尾の sentinel が見えたらフックが読む。
+ * `loadMode="button"` は sentinel を付けず「もっと見る」ボタン (`onLoadMore`) で読む。
+ * `direction="prepend"` は足元 (sentinel / ボタン・読み込み中・追加の失敗・終端) を一覧の上に出す (古い物を上に足すチャット等)。
+ *
  * 呼び出し側は items を生で受け取る render-prop (`children`) でリスト本体を組み立てる。
  * grouped モードのような「items を使わない別レイアウトに切り替わる」分岐は本コンポーネントの上位で行うこと。
  * 詳細: ./README.md
  */
-export type InfiniteScrollListProps<TItem> = {
+type InfiniteScrollListBaseProps<TItem> = {
   /** フックから来るリスト本体 */
   items: TItem[];
   /** 初回ロード中 (フック由来) */
@@ -37,11 +41,9 @@ export type InfiniteScrollListProps<TItem> = {
   hasMore: boolean;
   /** フェッチエラー (フック由来) */
   error?: unknown;
-  /** IntersectionObserver の sentinel ref (フック由来) */
-  sentinelRef: (node: HTMLElement | null) => void;
   /** items.length > 0 のときのリスト描画 */
   children: (items: TItem[]) => ReactNode;
-  /** items が 0 件のときの表示。初回ロード完了後、エラーなしのときに出る。 */
+  /** items が 0 件のときの表示。初回ロード完了後、エラーなしのときに出る。未指定 = 既定の文、null = 何も出さない */
   emptyNode?: ReactNode;
   /** 初回ロード中の表示。 */
   initialLoadingNode?: ReactNode;
@@ -59,7 +61,35 @@ export type InfiniteScrollListProps<TItem> = {
   completedText?: string;
   /** 終端メッセージを抑制したい場合 (例: 短いフィルタ結果で「完了」を出すのが冗長な画面)。 */
   hideCompletedNotice?: boolean;
+  /** 追加読み込み中に足元に出す中身 (既定 = Spinner +「読み込み中...」)。auto では sentinel の要素の中に入る */
+  fetchingMoreNode?: ReactNode;
+  /** 終端 (全件表示済み) の表示の差し替え (既定 = 線 + completedText)。hideCompletedNotice が優先 */
+  completedNode?: ReactNode;
+  /** 足元を一覧の下 (append、既定) / 上 (prepend: 古い物を上に足す) のどちらに出すか @default "append" */
+  direction?: "append" | "prepend";
 };
+
+type InfiniteScrollAutoLoadProps = {
+  /** 末尾の sentinel が見えたらフックが続きを読む @default "auto" */
+  loadMode?: "auto";
+  /** IntersectionObserver の sentinel ref (フック由来) */
+  sentinelRef: (node: HTMLElement | null) => void;
+  onLoadMore?: never;
+  loadMoreLabel?: never;
+};
+
+type InfiniteScrollButtonLoadProps = {
+  /** 「もっと見る」ボタンで続きを読む (sentinel を付けない) */
+  loadMode: "button";
+  /** ボタンで呼ぶ続きの取得 (フックの loadMore) */
+  onLoadMore: () => void;
+  /** ボタンの文言 @default "もっと見る" */
+  loadMoreLabel?: ReactNode;
+  sentinelRef?: (node: HTMLElement | null) => void;
+};
+
+export type InfiniteScrollListProps<TItem> = InfiniteScrollListBaseProps<TItem> &
+  (InfiniteScrollAutoLoadProps | InfiniteScrollButtonLoadProps);
 
 const DefaultInitialLoading = () => (
   <Flex justify="center" padding={{ base: "lg", sm: "2xl" }}>
@@ -79,21 +109,37 @@ const DefaultEmpty = () => (
   </Flex>
 );
 
-export function InfiniteScrollList<TItem>({
-  items,
-  isInitialLoading,
-  isFetchingMore,
-  hasMore,
-  error,
-  sentinelRef,
-  children,
-  emptyNode,
-  initialLoadingNode,
-  errorNode,
-  onRetry,
-  completedText = "すべてのアイテムを表示しました",
-  hideCompletedNotice = false,
-}: InfiniteScrollListProps<TItem>) {
+const DefaultFetchingMore = () => (
+  <>
+    <Spinner className="size-4 text-muted-foreground" />
+    <Para tone="muted" size="sm">
+      読み込み中...
+    </Para>
+  </>
+);
+
+export function InfiniteScrollList<TItem>(props: InfiniteScrollListProps<TItem>) {
+  const {
+    items,
+    isInitialLoading,
+    isFetchingMore,
+    hasMore,
+    error,
+    children,
+    emptyNode,
+    initialLoadingNode,
+    errorNode,
+    onRetry,
+    completedText = "すべてのアイテムを表示しました",
+    hideCompletedNotice = false,
+    fetchingMoreNode,
+    completedNode,
+    direction = "append",
+    loadMode = "auto",
+    sentinelRef,
+    onLoadMore,
+    loadMoreLabel,
+  } = props;
   if (isInitialLoading) {
     return <>{initialLoadingNode ?? <DefaultInitialLoading />}</>;
   }
@@ -113,48 +159,61 @@ export function InfiniteScrollList<TItem>({
     );
   }
   if (items.length === 0) {
-    return <>{emptyNode ?? <DefaultEmpty />}</>;
+    // null = 何も出さない (undefined のときだけ既定)
+    return <>{emptyNode === undefined ? <DefaultEmpty /> : emptyNode}</>;
   }
 
-  return (
+  const footer = error ? (
+    // 追加ロードの失敗: 読み込み済みの一覧は残し、末尾でエラーと再試行を出す
+    // (フックは失敗時に hasMore=false にするので、センチネルも終端メッセージも出さない)
+    <Flex justify="center" align="center" gap="sm" paddingBlock="lg">
+      <Para tone="destructive" size="sm">
+        続きの読み込みに失敗しました
+      </Para>
+      {onRetry ? (
+        <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+          再試行
+        </Button>
+      ) : null}
+    </Flex>
+  ) : hasMore ? (
+    loadMode === "button" ? (
+      // 手で押して読む: sentinel を付けず、読み込み中はボタンの loading で示す
+      <Flex justify="center" paddingBlock="md">
+        <Button type="button" variant="outline" size="sm" onClick={onLoadMore} loading={isFetchingMore}>
+          {loadMoreLabel ?? "もっと見る"}
+        </Button>
+      </Flex>
+    ) : (
+      // DOM は hasMore の間ずっと残して IntersectionObserver を維持する。
+      // 中身は isFetchingMore のときだけ表示し、待機中に「読み込み中」が誤って出続けるのを防ぐ。
+      // h-12 で高さを確保しレイアウト揺れを抑える。
+      <Flex ref={sentinelRef} justify="center" align="center" gap="xs" className="h-12">
+        {isFetchingMore && (fetchingMoreNode === undefined ? <DefaultFetchingMore /> : fetchingMoreNode)}
+      </Flex>
+    )
+  ) : hideCompletedNotice ? null : completedNode !== undefined ? (
+    completedNode
+  ) : (
+    <Flex justify="center" align="center" gap="xs" paddingBlock="lg">
+      <Block className="h-px w-12 bg-border" />
+      <Para tone="muted" size="xs">
+        {completedText}
+      </Para>
+      <Block className="h-px w-12 bg-border" />
+    </Flex>
+  );
+
+  // prepend は足元を一覧の上に出す (古い物を上に足す)。子は同じ items のまま
+  return direction === "prepend" ? (
+    <>
+      {footer}
+      {children(items)}
+    </>
+  ) : (
     <>
       {children(items)}
-      {error ? (
-        // 追加ロードの失敗: 読み込み済みの一覧は残し、末尾でエラーと再試行を出す
-        // (フックは失敗時に hasMore=false にするので、センチネルも終端メッセージも出さない)
-        <Flex justify="center" align="center" gap="md" paddingBlock={{ base: "md", sm: "lg" }}>
-          <Para tone="destructive" size="sm">
-            続きの読み込みに失敗しました
-          </Para>
-          {onRetry ? (
-            <Button type="button" variant="outline" size="sm" onClick={onRetry}>
-              再試行
-            </Button>
-          ) : null}
-        </Flex>
-      ) : hasMore ? (
-        // DOM は hasMore の間ずっと残して IntersectionObserver を維持する。
-        // 中身は isFetchingMore のときだけ表示し、待機中に「読み込み中」が誤って出続けるのを防ぐ。
-        // h-12 で高さを確保しレイアウト揺れを抑える。
-        <Flex ref={sentinelRef} justify="center" align="center" gap="xs" className="h-12">
-          {isFetchingMore && (
-            <>
-              <Spinner className="size-4 text-muted-foreground" />
-              <Para tone="muted" size="sm">
-                読み込み中...
-              </Para>
-            </>
-          )}
-        </Flex>
-      ) : !hideCompletedNotice ? (
-        <Flex justify="center" align="center" gap="xs" paddingBlock={{ base: "md", sm: "lg" }}>
-          <Block className="h-px w-12 bg-border" />
-          <Para tone="muted" size="xs">
-            {completedText}
-          </Para>
-          <Block className="h-px w-12 bg-border" />
-        </Flex>
-      ) : null}
+      {footer}
     </>
   );
 }

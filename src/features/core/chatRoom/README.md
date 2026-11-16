@@ -195,30 +195,45 @@ Firestore SDK を直接操作する。管理画面向けには自動生成の CR
 `useChatScreen` を使えば、メッセージ取得・送信・楽観的 UI・既読更新を一行で接続できる。
 
 ```tsx
+import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { useChatScreen } from "@/features/chatRoom/hooks/firestore/useChatScreen";
 
 function ChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
   const {
-    displayMessages, isLoading, hasMore, loadMore,
+    displayMessages, isLoading, isLoadingMore, hasMore, loadMore,
     sendText, sendFile, retry, dismiss, cancelUpload,
   } = useChatScreen(roomId, uid);
 
   return (
     <div>
-      {hasMore && <button onClick={loadMore}>過去のメッセージを読み込む</button>}
-
-      {displayMessages.map((dm) => (
-        <MessageBubble
-          key={dm.message.id}
-          message={dm.message}
-          isPending={dm.isPending}
-          sendingStatus={dm.sendingStatus}
-          uploadProgress={dm.uploadProgress}
-          onRetry={() => retry(dm.message.id)}
-          onDismiss={() => dismiss(dm.message.id)}
-          onCancelUpload={() => cancelUpload(dm.message.id)}
-        />
-      ))}
+      {/* 過去のメッセージ: InfiniteScrollList(@/components/Widgets/InfiniteScrollList)のボタンで読む形 + 上に足す向き */}
+      <InfiniteScrollList
+        items={displayMessages}
+        isInitialLoading={isLoading}
+        isFetchingMore={isLoadingMore}
+        hasMore={hasMore}
+        loadMode="button"
+        onLoadMore={() => void loadMore()}
+        loadMoreLabel="過去のメッセージを読み込む"
+        direction="prepend"
+        hideCompletedNotice
+        emptyNode={null}
+      >
+        {(items) =>
+          items.map((dm) => (
+            <MessageBubble
+              key={dm.message.id}
+              message={dm.message}
+              isPending={dm.isPending}
+              sendingStatus={dm.sendingStatus}
+              uploadProgress={dm.uploadProgress}
+              onRetry={() => retry(dm.message.id)}
+              onDismiss={() => dismiss(dm.message.id)}
+              onCancelUpload={() => cancelUpload(dm.message.id)}
+            />
+          ))
+        }
+      </InfiniteScrollList>
 
       <MessageInput onSendText={sendText} onSendFile={sendFile} />
     </div>

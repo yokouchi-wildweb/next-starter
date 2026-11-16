@@ -58,6 +58,30 @@ export function OrderList() {
 
 `useInfiniteScrollQuery` の呼び出しは client service を包んだドメインの派生フック（`features/<domain>/hooks/`）に置きます（Component から client service を直接呼ばない規約）。派生フックはフックの戻り値をそのまま返せば、`updateItems` などもそのまま使えます。
 
+### ボタンで読む・上に足す
+
+自動で読まずに「もっと見る」で読む一覧は `loadMode="button"` と `onLoadMore`（フックの `loadMore`）を渡す。sentinel は付けない（`sentinelRef` は要らない）。読み込み中はボタンが `loading` になる。古い物を上に足す一覧（チャットの過去メッセージ等）は `direction="prepend"` で、足元（ボタン / sentinel・読み込み中・追加の失敗・終端）が一覧の上に出る。
+
+```tsx
+<InfiniteScrollList
+  items={messages}
+  isInitialLoading={isLoading}
+  isFetchingMore={isLoadingMore}
+  hasMore={hasMore}
+  loadMode="button"
+  onLoadMore={() => void loadMore()}
+  loadMoreLabel="過去のメッセージを読み込む"
+  direction="prepend"
+  hideCompletedNotice
+  emptyNode={null}
+>
+  {(items) => items.map((m) => <MessageBubble key={m.id} message={m} />)}
+</InfiniteScrollList>
+```
+
+- `direction="prepend"` + 自動（上端の sentinel）で読むときは、上に足したときのスクロール位置をブラウザの scroll anchoring（CSS `overflow-anchor`、既定で有効）に任せる。位置を自分で扱う画面はボタンで読む
+- 取得の向き（古い物を前に足す・カーソル）は呼び手のフックが持つ。`useInfiniteScrollQuery` は末尾に足す
+
 ## アクション後の一覧の反映
 
 一覧の項目を変えるアクション（status 変更、削除など）の後は、再取得せずにフックの操作で反映します。
@@ -90,9 +114,15 @@ else removeItems((o) => done.has(o.id));
 | `isFetchingMore` | `boolean` | フックの `isFetchingMore` |
 | `hasMore` | `boolean` | フックの `hasMore` |
 | `error` | `unknown` | フックの `error`（任意） |
-| `sentinelRef` | `(node: HTMLElement \| null) => void` | フックの `sentinelRef` |
+| `sentinelRef` | `(node: HTMLElement \| null) => void` | フックの `sentinelRef`（既定の自動読み込みで必須。`loadMode="button"` では不要） |
+| `loadMode` | `"auto" \| "button"` | 続きの読み方（既定 `auto` = sentinel で自動）。`button` は「もっと見る」ボタン |
+| `onLoadMore` | `() => void` | `loadMode="button"` で必須。ボタンで呼ぶ続きの取得（フックの `loadMore`） |
+| `loadMoreLabel` | `ReactNode` | ボタンの文言（既定「もっと見る」） |
+| `direction` | `"append" \| "prepend"` | 足元を一覧の下（既定）/ 上に出す |
 | `children` | `(items: TItem[]) => ReactNode` | 一覧本体の描画（1 件以上のときだけ呼ばれる） |
-| `emptyNode` / `initialLoadingNode` / `errorNode` | `ReactNode` | 各状態の表示の差し替え（任意。`errorNode` は初回ロードのエラーだけ。再試行はこの部品が `errorNode` の下に付けるので、`errorNode` の中に組み込まない） |
+| `emptyNode` / `initialLoadingNode` / `errorNode` | `ReactNode` | 各状態の表示の差し替え（任意。`errorNode` は初回ロードのエラーだけ。再試行はこの部品が `errorNode` の下に付けるので、`errorNode` の中に組み込まない）。`emptyNode={null}` は空のとき何も出さない |
+| `fetchingMoreNode` | `ReactNode` | 追加読み込み中に足元に出す中身（既定 = Spinner +「読み込み中...」）。自動読み込みでは sentinel の要素（高さ h-12）の中に入る |
+| `completedNode` | `ReactNode` | 終端（全件表示済み）の表示の差し替え（`hideCompletedNotice` が優先） |
 | `onRetry` | `() => void` | フックの `retry`（任意。失敗したページを取り直す）。初回ロードの失敗ではエラー表示の下、追加ロードの失敗では一覧の末尾の「再試行」で呼ぶ。省略するとエラー文だけ |
 | `completedText` | `string` | 終端メッセージ（既定「すべてのアイテムを表示しました」） |
 | `hideCompletedNotice` | `boolean` | 終端メッセージを出さない |
@@ -102,4 +132,4 @@ else removeItems((o) => done.has(o.id));
 - グループ表示など「items を使わない別レイアウト」への切り替えは、この部品の外（上位）で分岐する
 - 一覧がスクロールコンテナの中にあるときは、フックの `observerOptions.root` にそのコンテナを渡す
 - タブに戻ったときに最新化したい一覧（メッセージ・スレッド等、SWR の revalidateOnFocus 相当）は、フックに `revalidateOnFocus: true` を渡す（既定 false）。一覧を表示したまま `revalidate()` する（5 秒に 1 回まで。複数ページ読み込み済みなら 1 ページ目に戻る）
-- 見た目（スピナー・文言・余白）は `*Node` props で差し替える。部品の中身を fork で編集しない
+- 見た目（スピナー・文言・余白）は `*Node` props で差し替える。部品の中身を fork で編集しない。既定の中身（初回の Spinner・足元の Spinner +「読み込み中...」）は fork の画面の見た目を変えないため今のまま

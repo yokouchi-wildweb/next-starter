@@ -53,16 +53,26 @@ export type UseChatScreenReturn = {
  * ```tsx
  * function ChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
  *   const {
- *     displayMessages, isLoading, hasMore, loadMore,
+ *     displayMessages, isLoading, isLoadingMore, hasMore, loadMore,
  *     sendText, sendFile, retry, dismiss, cancelUpload,
  *   } = useChatScreen(roomId, uid);
  *
  *   return (
  *     <div>
- *       {hasMore && <button onClick={loadMore}>過去のメッセージ</button>}
- *       {displayMessages.map((dm) => (
- *         <MessageBubble key={dm.message.id} {...dm} />
- *       ))}
+ *       <InfiniteScrollList
+ *         items={displayMessages}
+ *         isInitialLoading={isLoading}
+ *         isFetchingMore={isLoadingMore}
+ *         hasMore={hasMore}
+ *         loadMode="button"
+ *         onLoadMore={() => void loadMore()}
+ *         loadMoreLabel="過去のメッセージ"
+ *         direction="prepend"
+ *         hideCompletedNotice
+ *         emptyNode={null}
+ *       >
+ *         {(items) => items.map((dm) => <MessageBubble key={dm.message.id} {...dm} />)}
+ *       </InfiniteScrollList>
  *       <MessageInput onSendText={sendText} onSendFile={sendFile} />
  *     </div>
  *   );
