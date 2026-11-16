@@ -1,6 +1,6 @@
 // src/features/core/userGroup/components/common/UserGroupPeopleModal/index.tsx
 // 部品(props だけ、流れは hook useUserGroupPeople): 人の一覧のサブのモーダル(D93)。
-// 名前の検索・無限スクロール(カーソル)・行ごとのチェック・「選んだ N 名を削除」(ConfirmPopover)。グループのモーダルの上に重ねて開く
+// 名前の検索・無限スクロール(カーソル)・行ごとのチェック(行のどこを押しても選べる、乗ると色、選んだ行は primary の薄い地)・「選んだ N 名を削除」(ConfirmPopover)。グループのモーダルの上に重ねて開く
 
 "use client";
 
@@ -48,18 +48,37 @@ export function UserGroupPeopleModal({ title, people, emptyText, disabled = fals
         >
           {(items) => (
             <Stack space={1}>
-              {items.map((person) => (
-                <Flex key={person.id} align="center" gap="xs" className="border-b border-border py-1" data-slot="user-group-person">
-                  {!disabled ? (
-                    <BooleanCheckboxInput
-                      value={people.isSelected(person.id)}
-                      onChange={(on) => people.toggle(person.id, on === true)}
-                      aria-label={`${person.name ?? "名前未設定のユーザー"}を選ぶ`}
-                    />
-                  ) : null}
-                  <Span size="sm">{person.name ?? "名前未設定のユーザー"}</Span>
-                </Flex>
-              ))}
+              {items.map((person) => {
+                const selected = people.isSelected(person.id);
+                const name = person.name ?? "名前未設定のユーザー";
+                // 行のどこを押しても選ぶ・外す(マウスの手間を減らす)。キーボードはチェックボックスで操作する
+                return (
+                  <Flex
+                    key={person.id}
+                    align="center"
+                    gap="sm"
+                    onClick={disabled ? undefined : () => people.toggle(person.id, !selected)}
+                    className={[
+                      "rounded-md px-3 py-2 transition-colors",
+                      disabled ? "" : "cursor-pointer select-none hover:bg-muted",
+                      selected ? "bg-primary/10 hover:bg-primary/15" : "",
+                    ].join(" ")}
+                    data-slot="user-group-person"
+                    data-selected={selected ? "" : undefined}
+                  >
+                    {!disabled ? (
+                      <Span className="inline-flex" onClick={(e) => e.stopPropagation()}>
+                        <BooleanCheckboxInput
+                          value={selected}
+                          onChange={(on) => people.toggle(person.id, on === true)}
+                          aria-label={`${name}を選ぶ`}
+                        />
+                      </Span>
+                    ) : null}
+                    <Span size="sm">{name}</Span>
+                  </Flex>
+                );
+              })}
             </Stack>
           )}
         </InfiniteScrollList>
