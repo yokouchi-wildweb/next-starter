@@ -41,6 +41,8 @@ import {
   type AdminUserGroupCount,
   type AdminUserGroupCriteriaCatalog,
   type AdminUserGroupDeleted,
+  type AdminUserGroupPeopleApplied,
+  type AdminUserGroupPeoplePage,
   type AdminUserGroupDetail,
   type AdminStaticMembersRemoved,
   type AdminUserGroupEstimate,
@@ -51,12 +53,16 @@ import {
   type AdminUserGroupSummary,
 } from "./dto";
 import { unwrapExceptions, wrapWithExceptions, type ExceptionGroupIds } from "./exceptions";
+import { applyPeopleIn, memberCountIn, searchPeopleRows } from "./people";
 import { deleteReasonsOf, referencesOf } from "./references";
 import {
   CreateStaticUserGroupInputSchema,
   CreateUserGroupInputSchema,
   EstimateUserGroupInputSchema,
   ListExceptionMembersQuerySchema,
+  PeopleApplyInputSchema,
+  PeopleSearchQuerySchema,
+  type PeopleTarget,
   ListStaticMembersQuerySchema,
   ListUserGroupsQuerySchema,
   UpdateStaticMembersInputSchema,
@@ -194,6 +200,30 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       items: page.map((row) => ({ id: row.id, name: row.name ?? null })),
       nextCursor: rows.length > limit ? encodeMemberCursor(page[page.length - 1]!.id) : null,
     };
+  }
+
+  /** 人の対象とグループの種類が合うか(一員 = 固定グループ / 例外 = 動的・定期計算) */
+  function assertPeopleTarget(group: UserGroup, target: PeopleTarget): void {
+    if (target === "members") assertStatic(group);
+    else if (group.kind === "static") {
+      throw new DomainError("固定グループには例外を設定できません(メンバーを直接追加・削除してください)", { status: 409 });
+    }
+  }
+
+  /** 探す時の対象の静的グループと例外の反対側(例外がまだ無ければ null = 誰も入っていない) */
+  async function peopleSidesOf(
+    group: UserGroup,
+    target: PeopleTarget,
+  ): Promise<{ targetId: string | null; otherId: string | null; otherSide: "include" | "exclude" | null }> {
+    assertPeopleTarget(group, target);
+    if (target === "members") return { targetId: group.id, otherId: null, otherSide: null };
+    const definition = await definitionOf(group.id);
+    const exceptions = definition ? unwrapExceptions(definition.tree, await ownerGroupIds(group.id)).exceptions : null;
+    const otherSide = target === "include" ? "exclude" : "include";
+    if (!exceptions) return { targetId: null, otherId: null, otherSide };
+    return target === "include"
+      ? { targetId: exceptions.includeId, otherId: exceptions.excludeId, otherSide }
+      : { targetId: exceptions.excludeId, otherId: exceptions.includeId, otherSide };
   }
 
   function assertStatic(group: UserGroup): void {
@@ -717,6 +747,81 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
         return { items: [], nextCursor: null };
       }
       return memberPageOf(side === "include" ? exceptions.includeId : exceptions.excludeId, cursor, limit, q);
+    },
+
+    /**
+     * 人を探す(D101): 名前かメールアドレスの部分一致(管理の利用者の選択と同じ)、利用者 id の順の keyset。
+     * 1 人ずつに対象の一覧に入っているか(inList)と例外の反対側(otherSide)を付ける。id の一覧を丸ごとは返さない
+     * @throws DomainError(409) 対象とグループの種類が合わない / (404) 無い / (400) 条件・cursor
+     */
+    async peopleSearch(id: string, query: unknown = {}): Promise<AdminUserGroupPeoplePage> {
+      await assertUserGroupAdmin(deps);
+      const { target, q, cursor, limit } = parseOr400(PeopleSearchQuerySchema, query, "検索の条件が正しくありません");
+      const group = await loadGroup(id);
+      const after = decodeMemberCursor(cursor);
+      const sides = await peopleSidesOf(group, target);
+      const rows = await searchPeopleRows(deps.db, { targetGroupId: sides.targetId, otherGroupId: sides.otherId, q, after, limit });
+      const page = rows.slice(0, limit);
+      return {
+        items: page.map((row) => ({ id: row.id, name: row.name, inList: row.inList, otherSide: row.inOther ? sides.otherSide : null })),
+        nextCursor: rows.length > limit ? encodeMemberCursor(page[page.length - 1]!.id) : null,
+      };
+    },
+
+    /**
+     * 足し外しを 1 回で(D101、1 つの取引)。例外の片側へ足した人は反対側から外す(moved)。新しい人数を返す
+     * @throws DomainError(409) 対象とグループの種類が合わない・アーカイブ済み・人数の上限 / (404) 無い / (400) 入力
+     */
+    async peopleApply(id: string, input: unknown): Promise<AdminUserGroupPeopleApplied> {
+      await assertUserGroupAdmin(deps);
+      const parsed = parseOr400(PeopleApplyInputSchema, input, "足す・外す人の入力が正しくありません");
+      const group = await loadGroup(id);
+      if (group.status === "archived") throw new DomainError(`グループ「${group.name}」はアーカイブ済みです`, { status: 409 });
+      assertPeopleTarget(group, parsed.target);
+      const result = await deps.db.transaction(async (tx) => {
+        // グループの行を排他で持つ(固定グループの置き換えの入れ替え・例外の書き込みと重ならない)
+        await loadGroup(group.id, tx, true);
+        let targetId = group.id;
+        let otherId: string | null = null;
+        if (parsed.target !== "members") {
+          const ids = await ensureExceptionGroups(tx, group);
+          targetId = parsed.target === "include" ? ids.includeId : ids.excludeId;
+          otherId = parsed.target === "include" ? ids.excludeId : ids.includeId;
+        }
+        const applied = await applyPeopleIn(tx, {
+          groupId: targetId,
+          otherGroupId: otherId,
+          add: parsed.add,
+          remove: parsed.remove,
+          batchSize: deps.config.write.batchSize,
+        });
+        const count = await memberCountIn(tx, targetId);
+        if (count > deps.config.memberLimit) {
+          throw new DomainError(`人数 ${count} 人が上限 ${deps.config.memberLimit} 人を超えるため反映できません`, { status: 409 });
+        }
+        if (parsed.target !== "members") {
+          // 定期計算は定義の時刻が最後の版より新しいと次の cron で計算し直す(例外の人の変更も同じ扱い)
+          await tx.update(D).set({ updatedAt: deps.now() }).where(eq(D.group_id, group.id));
+          await tx.update(G).set({ updatedAt: deps.now() }).where(eq(G.id, group.id));
+          const other = await memberCountIn(tx, otherId!);
+          const counts =
+            parsed.target === "include" ? { includeCount: count, excludeCount: other } : { includeCount: other, excludeCount: count };
+          return { ...applied, counts };
+        }
+        return { ...applied, counts: { memberCount: count } };
+      });
+      if (parsed.target === "members") {
+        await audit(group, "user_group.members.applied", { added: result.added, removed: result.removed, ...result.counts });
+      } else {
+        await audit(group, "user_group.exceptions.updated", {
+          side: parsed.target,
+          added: result.added,
+          removed: result.removed,
+          moved: result.moved,
+          ...result.counts,
+        });
+      }
+      return { target: parsed.target, ...result };
     },
 
     /** 条件の部品の一覧と選択肢(画面は label を出し、key は定義の木の値としてだけ使う) */

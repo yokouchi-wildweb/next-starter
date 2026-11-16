@@ -63,8 +63,10 @@
   - `from` = `{ type: "users", userIds }` / `{ type: "group", groupId }`（別のグループの今の一員）/ `{ type: "tag", tagId }`（タグの今の持ち主）
   - 1 回の要求の予算は `admin.freezeBudgetMs`。`members.status` が `incomplete` なら、画面が同じ `from` で `{ mode: "replace" }` を送り直すと続きから書く（サーバーは元を覚えない）
 - `GET /api/admin/user-groups/[id]/members?q&cursor&limit` → `{ items: [{ id, name }], nextCursor }`（`q` = 名前かメールアドレスの部分一致 1〜100 文字、D93。例外の人の一覧も同じ。静的だけ、`limit` 1〜100 既定 50、削除した利用者は出さない）
+- `GET /api/admin/user-groups/[id]/people-search?target=members|include|exclude&q&cursor&limit` → `{ items: [{ id, name, inList, otherSide }], nextCursor }`（D101。利用者を名前かメールアドレスの部分一致で探し、利用者 id の順の keyset。`inList` = 対象の一覧に入っている・`otherSide` = 例外の反対側に入っている（一員は null）。id の一覧を丸ごとは返さない。members は固定グループだけ、include / exclude は動的・定期計算だけ、ほかは 409）
+- `POST /api/admin/user-groups/[id]/people-apply` `{ target, add, remove }`（各 10,000 件まで、同じ人を両方は 400）→ `{ target, added, removed, moved, counts }`（D101。1 つの取引で外す → 足す。例外の片側へ足した人は反対側から外れ `moved` に数える。`counts` = 新しい人数 `{ memberCount }` か `{ includeCount, excludeCount }`。人数の上限を超えれば 409 で何も変えない。監査 `user_group.members.applied` / `user_group.exceptions.updated`）
 - `GET /api/admin/user-groups/criteria` → `{ criteria: [{ key, label, description, weight, weightLabel, fields, inlineGroups }], options: { tags, staticGroups }, kinds }`（`inlineGroups` = 欄を横に 1 行で並べる組、FieldRenderer の `InlineFieldGroup` の形 `{ key, label, fields, fieldWidths? }`、無ければ []、D90。上流: 期間の部品 = 期間 from〜to と直近 withinDays の 2 行・購入金額の合計 = 基準・通貨・下限・タグ = タグと一致条件）（使える部品だけ: `enabled: false`・読む機能が閉の部品は出ない）。タグ・静的グループの選択肢は `fields` にも入れて返す（`admin.optionsLimit` 件まで）
-- 監査（`targetType` `user_group`、操作した管理者が actor、metadata は名前・種類・数だけで利用者 id は入れない）: `user_group.group.created` / `updated` / `archived` / `restored` / `deleted`・`user_group.exceptions.updated`・`user_group.members.replaced` / `added` / `removed` / `cleared`
+- 監査（`targetType` `user_group`、操作した管理者が actor、metadata は名前・種類・数だけで利用者 id は入れない）: `user_group.group.created` / `updated` / `archived` / `restored` / `deleted`・`user_group.exceptions.updated`・`user_group.members.replaced` / `added` / `removed` / `cleared` / `applied`
 
 ### 管理画面の部品と hook
 
