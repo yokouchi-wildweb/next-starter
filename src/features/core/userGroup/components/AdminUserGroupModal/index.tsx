@@ -52,6 +52,8 @@ export type AdminUserGroupModalProps = {
 };
 
 const MODAL_WIDTH = "880px";
+/** 本体の高さ(タブを替えても揺れないよう固定。中身が長いタブは本体の中でスクロール。画面より高ければ Modal が縮める) */
+const MODAL_BODY_HEIGHT = "70vh";
 /** 定期計算の間隔の「既定」の選択肢の値(null = 設定の既定) */
 export const INTERVAL_DEFAULT = "default";
 
@@ -351,6 +353,7 @@ function UserGroupModalBody({
       onOpenChange={onOpenChange}
       title={group ? `ユーザーグループを編集: ${group.name}` : "ユーザーグループを作成"}
       maxWidth={MODAL_WIDTH}
+      height={MODAL_BODY_HEIGHT}
       tabs={tabs}
       value={tabs.some((tab) => tab.value === modal.tab) ? modal.tab : "basic"}
       onValueChange={modal.setTab}
