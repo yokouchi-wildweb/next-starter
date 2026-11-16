@@ -12,14 +12,14 @@ import { AdminDispatchList } from "@/features/core/messaging/components/AdminDis
 import { loadAdminMessagingDispatchListScreen } from "./loader";
 
 export const metadata = {
-  title: "送信一覧",
+  title: "メッセージ管理",
 };
 
 export async function AdminMessagingDispatchListScreen(props: ScreenProps) {
   await loadAdminMessagingDispatchListScreen(props);
 
   return (
-    <AdminPage title="送信一覧" center={<AdminMessagingSectionTabs variant="header" />}>
+    <AdminPage title="メッセージ管理" center={<AdminMessagingSectionTabs variant="header" />}>
       <Section>
         <AdminDispatchList />
       </Section>
