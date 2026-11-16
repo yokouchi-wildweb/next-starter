@@ -22,6 +22,7 @@ test("経路: 宛先ごとの結果を返す", async () => {
     key: "push",
     label: "プッシュ通知",
     addressing: "user",
+    fieldMeta: {},
     fields: z.object({ title: z.string(), body: z.string() }).strict(),
     contentFrom: { channel: "inApp", map: { title: "title", body: "body" } },
     send: async (targets) =>
@@ -51,7 +52,7 @@ test("経路: 宛先ごとの結果を返す", async () => {
     messageKey: "auth.verification",
     idempotencyKey: "d1",
     content: {},
-    category: "marketing",
+    category: "promotion",
     headers: { "List-Unsubscribe": "<https://x.test/u>" },
   };
   // @ts-expect-error ヘッダの値は文字列だけ
@@ -81,7 +82,7 @@ test("値・種類・送り元・購読", async () => {
     { rankName: "ゴールド" },
   );
 
-  const category: MessageCategory = { key: "campaign", label: "キャンペーン", kind: "marketing", channels: ["email"] };
+  const category: MessageCategory = { key: "campaign", label: "キャンペーン", kind: "promotion", channels: ["email"] };
   // 種類は 7 つの種別のどれでも持てる(取引の種類もある、D81)。経路は必須
   const transactional: MessageCategory = { key: "x", label: "x", kind: "transactional", channels: ["email"] };
   // @ts-expect-error 経路の無い種類は書けない

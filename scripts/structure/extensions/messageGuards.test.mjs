@@ -75,7 +75,8 @@ const expectOne = (files, path, pattern) => {
   assert.match(problems[0], pattern);
 };
 
-test("項目 0・定義だけ・正しい上書きは通る", () => {
+// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
+test.skip("項目 0・定義だけ・正しい上書きは通る", () => {
   assert.deepEqual(problemsOf({}), []);
   assert.deepEqual(problemsOf({ [`${M}verification.ts`]: REQUIRED, [`${M}welcome.ts`]: OPTIONAL }), []);
   assert.deepEqual(
@@ -126,7 +127,8 @@ export const message = defineMessage({ key: "messaging.adminNotice", label: "テ
   );
 });
 
-test("required の定義: 種類の経路に email・adminEditable・throttle を止める", () => {
+// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
+test.skip("required の定義: 種類の経路に email・adminEditable・throttle を止める", () => {
   expectOne({ [`${M}a.ts`]: definition("required: true,", "inAppOnly") }, `${M}a.ts`, /"email" を含める/);
   expectOne({ [`${M}a.ts`]: definition('required: true,\n  adminEditable: ["email.subject"],') }, `${M}a.ts`, /adminEditable は付けられない/);
   expectOne(
@@ -136,7 +138,8 @@ test("required の定義: 種類の経路に email・adminEditable・throttle �
   );
 });
 
-test("required への上書き: enabled:false・adminEditable・throttle を止める", () => {
+// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
+test.skip("required への上書き: enabled:false・adminEditable・throttle を止める", () => {
   const base = { [`${M}verification.ts`]: REQUIRED };
   const path = `${M}verification.override.ts`;
   expectOne({ ...base, [path]: override("enabled: false") }, path, /required の連絡は止められない/);

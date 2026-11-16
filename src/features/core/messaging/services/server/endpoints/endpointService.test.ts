@@ -21,7 +21,7 @@ import type { MessageEndpointStore } from "./types";
 const NOW = new Date("2026-11-11T00:00:00.000Z");
 
 function channel(key: string, extra: Partial<MessageChannel> = {}): MessageChannel {
-  return { key, label: key, addressing: "user", fields: z.object({}), send: async () => [], ...extra };
+  return { key, label: key, addressing: "user", fieldMeta: {}, fields: z.object({}), send: async () => [], ...extra };
 }
 
 function setup() {

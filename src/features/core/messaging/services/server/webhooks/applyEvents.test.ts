@@ -175,7 +175,7 @@ test("受け口: 知らない経路・provider 404、鍵なし 503、署名の�
   const channel = (verify: () => unknown): MessageChannel => ({
     key: "email",
     label: "メール",
-    addressing: "user",
+    addressing: "user", fieldMeta: {},
     fields: z.object({}),
     send: async () => [],
     webhooks: { resend: { verify, normalize: () => [] } },

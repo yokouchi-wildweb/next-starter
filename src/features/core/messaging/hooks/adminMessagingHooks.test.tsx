@@ -23,7 +23,7 @@ g.IntersectionObserver = class {
   disconnect() {}
 };
 
-const summary = (id: string) => ({ id, headings: {}, messageKey: "messaging.adminMarketing" });
+const summary = (id: string) => ({ id, headings: {}, messageKey: "messaging.adminPromotion" });
 const listCalls: Record<string, unknown>[] = [];
 const deliveryCalls: { id: string; params: Record<string, unknown> }[] = [];
 const sends: Record<string, unknown>[] = [];
@@ -64,7 +64,7 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
     getAdminBulkSendOptions: async () => ({
       categories: [
         { key: "operatorDirect", label: "運営からのご連絡", kind: "direct", channels: ["email", "inApp"], targets: ["users", "bulk"], adhoc: true },
-        { key: "marketing", label: "キャンペーン情報", kind: "marketing", channels: ["email", "inApp"], targets: ["bulk"], adhoc: true },
+        { key: "promotion", label: "キャンペーン情報", kind: "promotion", channels: ["email", "inApp"], targets: ["bulk"], adhoc: true },
       ],
     }),
     adminBulkSend: async (input: Record<string, unknown>) => {
@@ -117,14 +117,14 @@ const mount = async <T,>(useHook: () => T) => {
 };
 
 test("useAdminDispatches: 絞り込みを渡し、先頭は cursor なし → 続きは nextCursor → null で終端", async () => {
-  const view = await mount(() => hooks.useAdminDispatches({ filters: { status: "processing", kind: "marketing" }, limit: 2 }));
+  const view = await mount(() => hooks.useAdminDispatches({ filters: { status: "processing", kind: "promotion" }, limit: 2 }));
   assert.deepEqual(view.value().items.map((i) => i.id), ["a", "b"]);
   await act(async () => view.value().loadMore());
   assert.deepEqual(view.value().items.map((i) => i.id), ["a", "b", "c"]);
   assert.equal(view.value().hasMore, false);
   assert.equal(listCalls[0].cursor, null);
   assert.equal(listCalls[0].status, "processing");
-  assert.equal(listCalls[0].kind, "marketing");
+  assert.equal(listCalls[0].kind, "promotion");
   assert.equal(listCalls[1].cursor, "cur-b");
   await view.unmount();
 });
