@@ -39,7 +39,6 @@ before(async () => {
   ({ UserGroupConditionBuilder } = await import("./index"));
   ({ conditionFromDefinition } = await import("../../../hooks/useUserGroupConditionBuilder"));
   const parts = [
-    (await import("../../../criteria/status")).criterion,
     (await import("../../../criteria/signupPeriod")).criterion,
     (await import("../../../criteria/hasTag")).criterion,
   ];

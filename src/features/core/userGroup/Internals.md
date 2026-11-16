@@ -25,6 +25,7 @@
 
 ### 条件の木の検査と組み立て
 
+- 部品の一覧は `activeCriteria`（`services/server/activeCriteria.ts`）: 生成の一覧（fork の `<名前>.override.ts` を重ねた後）から `enabled: false` と `available()` が false の部品を外して見せる（読むたびに `available` を確かめる）。部品の一覧の API・定義の検査・評価の口・定期計算はどれもこれを読む。`inStaticGroup` が `enabled: false` なら読み込みで投げる
 - `checkUserGroupDefinition` が形（zod）・節の数と深さ（`definition.maxNodes` / `maxDepth`）・部品の鍵・引数（部品の `args` の zod）を確かめ、重い部品を含むかを返す。保存する時は `has_heavy` に残す
 - 「静的グループの一員」が指せるのは使用中の静的グループで、例外の持ち主付きでないものだけ（管理の service が保存の前に確かめる）
 - 組み立ては and / or / not を SQL の and / or / not に、葉を部品の `where(args, { now })` にする。保存した木の部品が無い・引数が今の zod に合わない時は「壊れた条件」として 409

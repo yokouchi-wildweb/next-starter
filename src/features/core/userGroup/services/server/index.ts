@@ -7,7 +7,7 @@ export {
   type UserGroupDefinitionCheck,
   type UserGroupDefinitionLimits,
 } from "./definition/checkDefinition";
-export { criteria as userGroupCriteria } from "../../extensions/criteria";
+export { activeCriteria as userGroupCriteria, createActiveCriteria } from "./activeCriteria";
 export {
   compileUserGroupDefinition,
   createUserGroupEvaluator,

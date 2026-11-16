@@ -627,10 +627,6 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
         .where(and(eq(G.kind, "static"), eq(G.status, "active"), isNull(G.owner_group_id)))
         .orderBy(asc(G.name))
         .limit(limit);
-      const optionsOf = (key: string, field: string): AdminUserGroupOption[] =>
-        ((deps.criteria[key]?.fields.find((f) => f.name === field) as { options?: AdminUserGroupOption[] } | undefined)?.options ?? []).map(
-          (option) => ({ value: String(option.value), label: option.label }),
-        );
       // 選択肢を画面に任せていた欄(タグ・静的グループ)は、ここで選択肢を入れる
       const fill: Record<string, AdminUserGroupOption[]> = { tagIds: tags, groupId: staticGroups };
       return {
@@ -644,7 +640,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
             fill[field.name] && !(field as { options?: unknown }).options ? { ...field, options: fill[field.name] } : { ...field },
           ),
         })),
-        options: { roles: optionsOf("role", "roles"), statuses: optionsOf("status", "statuses"), tags, staticGroups },
+        options: { tags, staticGroups },
         kinds: (Object.keys(USER_GROUP_KIND_LABELS) as UserGroupKind[]).map((value) => ({ value, label: USER_GROUP_KIND_LABELS[value] })),
       };
     },
