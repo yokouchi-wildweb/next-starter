@@ -23,7 +23,7 @@ export async function AdminMessagingDispatchScreen(props: ScreenProps<AdminMessa
       title="送信の詳細"
       actions={
         <LinkButton href="/admin/messaging" size="sm" variant="outline">
-          一覧へ
+          送信一覧へ
         </LinkButton>
       }
     >

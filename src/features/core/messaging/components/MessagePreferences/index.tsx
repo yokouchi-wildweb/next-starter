@@ -36,7 +36,7 @@ export type MessagePreferencesProps = {
   emptyText?: string;
 };
 
-const FAILED = "通知の設定を変えられませんでした";
+const FAILED = "通知設定を変更できませんでした";
 
 export function MessagePreferences({ emptyText = "設定できる通知はありません" }: MessagePreferencesProps) {
   const { showToast } = useToast();
@@ -55,7 +55,7 @@ export function MessagePreferences({ emptyText = "設定できる通知はあり
       return (
         <Stack space={2}>
           <Para tone="destructive" align="center">
-            {err(error, "通知の設定の取得に失敗しました")}
+            {err(error, "通知設定を取得できませんでした")}
           </Para>
           <Flex justify="center">
             <Button type="button" variant="outline" size="sm" onClick={() => void retry()}>
@@ -80,16 +80,16 @@ export function MessagePreferences({ emptyText = "設定できる通知はあり
       <Block className="rounded-md border border-border p-4">
         <Flex justify="between" align="center" gap="md">
           <Stack space={0}>
-            <Para weight="bold">すべての連絡を止める</Para>
+            <Para weight="bold">すべての通知を受け取らない</Para>
             <Para size="sm" tone="muted">
-              お知らせ・メールをまとめて止めます(取引の連絡は届きます)
+              お知らせ・メールをまとめて停止します(お手続きなど重要なお知らせは届きます)
             </Para>
           </Stack>
           <SwitchInput
             value={preferences.allOptedOut}
             onChange={(stopAll) => guard(() => setAll(stopAll))}
             disabled={busy}
-            aria-label="すべての連絡を止める"
+            aria-label="すべての通知を受け取らない"
           />
         </Flex>
       </Block>

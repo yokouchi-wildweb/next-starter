@@ -114,10 +114,10 @@ const record = (value: unknown): Record<string, unknown> =>
 /** 予約の時刻の誤り(無ければ null)。now を受ける純粋な関数 */
 export function scheduleErrorOf(mode: "now" | "at", scheduledAt: string, maxDays: number, now: number): string | null {
   if (mode !== "at") return null;
-  if (!scheduledAt) return "予約の時刻を入れてください";
+  if (!scheduledAt) return "予約日時を入力してください";
   const at = new Date(scheduledAt).getTime();
-  if (Number.isNaN(at)) return "予約の時刻が正しくありません";
-  if (at <= now) return "予約の時刻は今より後にしてください";
+  if (Number.isNaN(at)) return "予約日時が正しくありません";
+  if (at <= now) return "予約日時は現在より後にしてください";
   if (at > now + maxDays * 24 * 60 * 60 * 1000) return `予約できるのは ${maxDays} 日先までです`;
   return null;
 }
@@ -232,8 +232,8 @@ export function sameAsNoteOf(mode: MessageSendMode, templates: readonly MessageS
     typeof value === "string" ? value.trim() !== "" : Array.isArray(value) ? value.some(hasText) : value && typeof value === "object" ? Object.values(value).some(hasText) : false;
   const copied = Object.values(draft.content).some(hasText);
   return copied
-    ? "この回のテンプレートは今は公開されていないため、文言をその場で書く欄へ写しました"
-    : "この回のテンプレートは今は公開されていないため、その場で書く欄で書き直してください(写せる文言がありませんでした)";
+    ? "元の送信のテンプレートは現在公開されていないため、内容を直接入力の欄にコピーしました"
+    : "元の送信のテンプレートは現在公開されていないため、内容を入力し直してください(コピーできる内容がありませんでした)";
 }
 
 /** mode から導く初めの宛先(sameAs = 回の宛先の形。グループ宛ての回は同じグループ、選んだ利用者に送った回は同じ利用者を選んだ形) */
@@ -250,11 +250,11 @@ export function initialTargetOf(mode: MessageSendMode): MessageSendTarget {
 
 /** 見込みが人数の上限を超えた時の理由(確認の段に出し、送るを止める) */
 export function overLimitText(estimate: Pick<RecipientEstimate, "count" | "memberLimit">): string {
-  return `宛先の人数 ${estimate.count.toLocaleString("ja-JP")} 人が上限 ${(estimate.memberLimit ?? 0).toLocaleString("ja-JP")} 人を超えているため送れません`;
+  return `宛先数 ${estimate.count.toLocaleString("ja-JP")} 人が上限 ${(estimate.memberLimit ?? 0).toLocaleString("ja-JP")} 人を超えているため送信できません`;
 }
 
 /** 前の回のグループが今は選べない時の知らせ(全員に広げない、D64) */
-export const TARGET_GROUP_GONE_NOTE = "前の回のグループは今は選べません(保管されたか、ユーザーグループの機能が閉じています)。宛先を選び直してください";
+export const TARGET_GROUP_GONE_NOTE = "元の送信のグループは現在選べません(アーカイブされたか、ユーザーグループ機能が無効です)。宛先を選び直してください";
 
 export type UseMessageSendModalOptions = {
   mode: MessageSendMode;
@@ -400,8 +400,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
         setChosenCategory(allowed.key);
         setLoadNote(null);
       } else {
-        const label = allCategories.find((option) => option.key === template.category)?.label ?? "(今は無いカテゴリー)";
-        setLoadNote(`テンプレートのカテゴリー「${label}」はこの宛先では選べないため、カテゴリーは今のままです`);
+        const label = allCategories.find((option) => option.key === template.category)?.label ?? "(削除されたカテゴリー)";
+        setLoadNote(`テンプレートのカテゴリー「${label}」はこの宛先では選べないため、カテゴリーは変更していません`);
       }
       setDraftState(next);
       setChannelsOff((nextCategory?.channels ?? []).filter((key) => isBlankChannel(next, key)));
@@ -513,11 +513,11 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       const missing = (loadedTemplate?.variables ?? []).filter(
         (variable) => variable.source === "dispatch" && variable.required && variable.default === undefined && !draft.vars[variable.key]?.trim(),
       );
-      if (missing.length > 0) return `変数 ${missing.map((v) => v.label || v.key).join("・")} を入れてください`;
+      if (missing.length > 0) return `変数「${missing.map((v) => v.label || v.key).join("・")}」を入力してください`;
     }
-    if (sendChannels.length === 0) return "送る経路を選んでください(カテゴリーの経路の中から)";
+    if (sendChannels.length === 0) return "送信方法を 1 つ以上選んでください";
     const blank = sendChannels.filter((key) => isBlankChannel(draft, key));
-    if (blank.length > 0) return `経路 ${blank.map((key) => channelLabels[key] ?? key).join("・")} の文言がありません(書くか経路を外してください)`;
+    if (blank.length > 0) return `${blank.map((key) => channelLabels[key] ?? key).join("・")} の内容が入力されていません(入力するか、送信方法から外してください)`;
     return null;
   }, [draft, loadedTemplate, sendChannels, channelLabels]);
 
@@ -525,11 +525,11 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     if (!isBulk) {
       if (target.type === "role" && target.roles.length === 0) return "ロールを選んでください";
       if (target.type === "group" && target.groupId === "") return "グループを選んでください";
-      if (target.type === "users" && target.userIds.length === 0) return "利用者を選んでください";
+      if (target.type === "users" && target.userIds.length === 0) return "ユーザーを選んでください";
     } else if (mode.recordIds.length === 0) {
-      return "記録を選んでください";
+      return "対象を選んでください";
     }
-    if (!category) return "この宛先に送れるカテゴリーがありません";
+    if (!category) return "この宛先に使えるカテゴリーがありません";
     return null;
   }, [isBulk, target, mode, category]);
 
@@ -644,7 +644,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     /** 書きかけ(閉じる・離れる前に確かめる) */
     dirty,
     /** Modal の confirmOnClose に渡す */
-    closeConfirm: { enabled: dirty, message: "書きかけの連絡は送っていません。閉じてもよろしいですか？" },
+    closeConfirm: { enabled: dirty, message: "入力中の内容は送信されていません。閉じてもよろしいですか？" },
     /** テンプレートを呼び出せるか(門 messagingTemplates が開で公開中のテンプレートがある) */
     templatesAvailable: templates.length > 0,
     templates,
@@ -664,7 +664,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     scheduleMode,
     scheduledAt,
     scheduleError,
-    scheduleNote: `予約の粒度は cron の周期です(Vercel Hobby では 1 日 1 回なので、時刻より遅れて送られます)。${maxDays} 日先まで予約できます。`,
+    scheduleNote: `予約は定期処理のタイミングで送信されます(Vercel Hobby では 1 日 1 回のため、指定時刻より遅れることがあります)。${maxDays} 日先まで予約できます。`,
     contentError,
     targetError,
     canSend,

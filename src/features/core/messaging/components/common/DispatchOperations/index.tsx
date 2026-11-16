@@ -84,7 +84,7 @@ export function DispatchOperations({
     <>
       <Flex align="start" justify="end" gap="sm" wrap="wrap" data-slot="dispatch-operations">
         <OperationButton label="予約を取り消す" allowed={cancel.allowed} reason={cancel.reason} onClick={() => setOpen("cancel")} />
-        <OperationButton label="取り下げる" allowed={retract.allowed} reason={retract.reason} onClick={() => setOpen("retract")} />
+        <OperationButton label="公開を停止" allowed={retract.allowed} reason={retract.reason} onClick={() => setOpen("retract")} />
         <OperationButton label="失敗分を再送" allowed={resend.allowed} reason={resend.reason} onClick={() => setOpen("resend")} />
       </Flex>
 
@@ -94,9 +94,9 @@ export function DispatchOperations({
         layer="alert"
         overlayLayer="alert"
         title="予約を取り消す"
-        description="この予約の回を取り消します。まだ 1 通も送っていないので、誰にも届きません。"
+        description="この予約を取り消します。まだ送信していないため、誰にも届きません。"
         confirmLabel="取り消す"
-        cancelLabel="やめる"
+        cancelLabel="キャンセル"
         onConfirm={async () => {
           await onCancel();
           setOpen(null);
@@ -108,10 +108,10 @@ export function DispatchOperations({
         onOpenChange={close}
         layer="alert"
         overlayLayer="alert"
-        title="取り下げる"
-        description="この回のお知らせ(受け取り箱の行)を消し、まだ送っていない配達を止めます。送ったメールは取り戻せません。取り下げは戻せません。"
-        confirmLabel="取り下げる"
-        cancelLabel="やめる"
+        title="公開を停止"
+        description="この送信のお知らせを削除し、まだ送信していない分を止めます。送信済みのメールは取り消せません。この操作は元に戻せません。"
+        confirmLabel="公開を停止する"
+        cancelLabel="キャンセル"
         onConfirm={async () => {
           await onRetract();
           setOpen(null);
@@ -124,8 +124,8 @@ export function DispatchOperations({
         layer="alert"
         overlayLayer="alert"
         title="失敗分を再送"
-        confirmLabel={`${resendCount} 件を送り直す`}
-        cancelLabel="やめる"
+        confirmLabel={`${resendCount} 件を再送する`}
+        cancelLabel="キャンセル"
         onConfirm={async () => {
           await onResend();
           setOpen(null);
@@ -134,19 +134,19 @@ export function DispatchOperations({
         <Stack space={3}>
           <Para size="sm" className="my-0">
             {resend.mode === "new_dispatch"
-              ? "この連絡は本文を残さないので、失敗した宛先へ新しい回として送ります(元の回は変えません)。"
-              : "失敗した配達をこの回のまま送り直します。"}
+              ? "この通知は本文を保存していないため、失敗した宛先へ新しい送信として送ります(元の送信は変わりません)。"
+              : "失敗した宛先へ、この送信のまま再送します。"}
           </Para>
           <Para size="sm" tone="muted" className="my-0">
-            失敗 {resend.failed} 件 / 送れたか不明 {resend.unknown} 件
+            失敗 {resend.failed} 件 / 送信結果が不明 {resend.unknown} 件
           </Para>
           {resend.unknown > 0 ? (
             <SwitchInput
               size="sm"
               value={includeUnknown}
               onChange={onIncludeUnknownChange}
-              label="送れたか不明の宛先も含める"
-              description="届いていた場合は同じ連絡が 2 通届きます(回の記録に二重の可能性を残します)。"
+              label="送信結果が不明の宛先も含める"
+              description="すでに届いていた場合、同じ通知が 2 通届きます。"
             />
           ) : null}
         </Stack>

@@ -220,7 +220,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
         setCreatedId(created.id);
         onCreated?.(created.id);
         onChanged?.(created, "create");
-        showToast("下書きを作りました", "success");
+        showToast("下書きを作成しました", "success");
       }
     } catch (e) {
       showToast(err(e, "保存できませんでした"), "error");
@@ -245,9 +245,9 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     try {
       const archived = await archiveMutation.trigger();
       onChanged?.(archived, "archive");
-      showToast("取り下げました", "success");
+      showToast("アーカイブしました", "success");
     } catch (e) {
-      showToast(err(e, "取り下げられませんでした"), "error");
+      showToast(err(e, "アーカイブできませんでした"), "error");
     }
   }, [id, archiveMutation, showToast, onChanged]);
 
@@ -265,7 +265,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     /** 公開できるか(保存済み・書きかけ無し・取り下げていない・公開していない変更がある) */
     canPublish: Boolean(id) && !dirty && !archived && Boolean(template?.hasUnpublishedChanges),
     /** モーダルを閉じる前の確かめ(Modal の confirmOnClose に渡す) */
-    closeConfirm: { enabled: dirty, message: "保存していない書きかけがあります。閉じてもよろしいですか？" },
+    closeConfirm: { enabled: dirty, message: "保存していない変更があります。閉じてもよろしいですか？" },
     fields: {
       name,
       setName,

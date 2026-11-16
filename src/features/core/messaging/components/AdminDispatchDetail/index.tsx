@@ -96,12 +96,12 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
           <ConfirmPopover
             trigger={
               <Button type="button" size="sm" variant="outline">
-                続きを送る
+                送信を再開
               </Button>
             }
-            title="続きを送る"
-            description="この回を 1 束だけ進めます(残りは cron も送ります)。"
-            confirmLabel="送る"
+            title="送信を再開"
+            description="止まっている送信を一部進めます(残りは自動の処理でも送信されます)。"
+            confirmLabel="再開する"
             onConfirm={continueDispatch}
           />
         </Flex>
@@ -109,7 +109,7 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
 
       <Stack space={3}>
         <SecTitle as="h2" size="lg">
-          配達
+          送信状況
         </SecTitle>
         <Flex align="end" gap="sm" wrap="wrap">
           <Stack space={1}>
@@ -126,7 +126,7 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
           </Stack>
           <Stack space={1}>
             <Label htmlFor="delivery-filter-channel" className="text-xs">
-              経路
+              送信方法
             </Label>
             <SelectInput
               id="delivery-filter-channel"
@@ -147,7 +147,7 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
           onRetry={deliveries.retry}
           emptyNode={
             <Para tone="muted" align="center">
-              配達はありません
+              送信状況はまだありません
             </Para>
           }
           completedText="すべて表示しました"
@@ -181,23 +181,23 @@ function DispatchSummary({ dispatch, categoryLabel }: { dispatch: AdminDispatchD
       </Flex>
 
       <Stack space={1}>
-        <Field label="種別" value={dispatchKindLabel(dispatch.kind) ?? "-"} />
-        <Field label="カテゴリー" value={categoryLabel ?? (dispatch.category ? "今は無いカテゴリー" : "-")} />
-        {dispatch.sourceLabel ? <Field label="送り元" value={dispatch.sourceLabel} /> : null}
-        <Field label="経路" value={dispatch.channels.map(messageChannelLabel).join(" / ")} />
+        <Field label="種類" value={dispatchKindLabel(dispatch.kind) ?? "-"} />
+        <Field label="カテゴリー" value={categoryLabel ?? (dispatch.category ? "削除されたカテゴリー" : "-")} />
+        {dispatch.sourceLabel ? <Field label="送信元" value={dispatch.sourceLabel} /> : null}
+        <Field label="送信方法" value={dispatch.channels.map(messageChannelLabel).join(" / ")} />
         {dispatch.targetGroup ? <Field label="宛先" value={dispatchTargetGroupLabel(dispatch) ?? "グループ"} /> : null}
-        <Field label="宛先の数" value={`${dispatch.recipientCount} 名`} />
-        <Field label="送った人" value={dispatch.actorName ?? (dispatch.actor.id ? "(名前の無い利用者)" : "システム")} />
-        <Field label="作った日時" value={formatAdminDateTime(dispatch.createdAt)} />
-        {dispatch.scheduledAt ? <Field label="予約の日時" value={formatAdminDateTime(dispatch.scheduledAt)} /> : null}
-        <Field label="終えた日時" value={formatAdminDateTime(dispatch.completedAt)} />
+        <Field label="宛先数" value={`${dispatch.recipientCount} 名`} />
+        <Field label="送信者" value={dispatch.actorName ?? (dispatch.actor.id ? "(名前未設定のユーザー)" : "システム")} />
+        <Field label="作成日時" value={formatAdminDateTime(dispatch.createdAt)} />
+        {dispatch.scheduledAt ? <Field label="予約日時" value={formatAdminDateTime(dispatch.scheduledAt)} /> : null}
+        <Field label="完了日時" value={formatAdminDateTime(dispatch.completedAt)} />
         {dispatch.reason ? <Field label="理由" value={dispatch.reason} /> : null}
       </Stack>
 
       {headings.length > 0 ? (
         <Stack space={1}>
           {headings.map(([channel, text]) => (
-            <Field key={channel} label={`件名・題(${messageChannelLabel(channel)})`} value={text} />
+            <Field key={channel} label={`件名・タイトル(${messageChannelLabel(channel)})`} value={text} />
           ))}
         </Stack>
       ) : null}
@@ -207,8 +207,8 @@ function DispatchSummary({ dispatch, categoryLabel }: { dispatch: AdminDispatchD
           {counts.map(([channel, c]) => (
             <Field
               key={channel}
-              label={`数(${messageChannelLabel(channel)})`}
-              value={`対象 ${c.targeted} / 送信 ${c.sent} / 失敗 ${c.failed} / 停止中 ${c.suppressed} / 宛先なし ${c.skipped_no_address} / 抑え ${c.skipped_throttled}`}
+              label={`件数(${messageChannelLabel(channel)})`}
+              value={`対象 ${c.targeted} / 送信 ${c.sent} / 失敗 ${c.failed} / 送信停止 ${c.suppressed} / 宛先なし ${c.skipped_no_address} / 頻度制限 ${c.skipped_throttled}`}
             />
           ))}
         </Stack>
@@ -240,7 +240,7 @@ function DispatchSummary({ dispatch, categoryLabel }: { dispatch: AdminDispatchD
         </Stack>
       ) : (
         <Span size="sm" tone="muted">
-          本文はこの回の記録の段では残していません
+          この送信は本文を保存していません
         </Span>
       )}
     </Stack>

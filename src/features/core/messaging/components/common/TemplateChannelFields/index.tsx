@@ -74,7 +74,7 @@ function JsonFields({ channel, value, onChange, disabled }: TemplateChannelField
   return (
     <Stack space={1}>
       <Label htmlFor={`template-${channel}-json`} className="text-sm">
-        欄(JSON)
+        内容(JSON)
       </Label>
       <Textarea
         id={`template-${channel}-json`}
@@ -99,7 +99,7 @@ function JsonFields({ channel, value, onChange, disabled }: TemplateChannelField
       />
       {invalid ? (
         <Para size="sm" tone="destructive" className="my-0">
-          JSON のオブジェクトとして読めません
+          JSON の形式が正しくありません
         </Para>
       ) : null}
     </Stack>
@@ -127,7 +127,7 @@ export function TemplateChannelFields(props: TemplateChannelFieldsProps) {
           disabled={disabled}
         />
         <Grid columns="two" gap="sm">
-          <TextField id={id("cta-label")} label="ボタンの文言(任意)" value={str(cta.label)} onChange={(v) => set("cta", { ...cta, label: v })} disabled={disabled} />
+          <TextField id={id("cta-label")} label="ボタンのテキスト(任意)" value={str(cta.label)} onChange={(v) => set("cta", { ...cta, label: v })} disabled={disabled} />
           <TextField id={id("cta-url")} label="ボタンの URL(任意)" value={str(cta.url)} onChange={(v) => set("cta", { ...cta, url: v })} disabled={disabled} />
         </Grid>
         <TextField id={id("footer")} label="フッター(任意)" value={str(value.footer)} onChange={(v) => set("footer", v)} rows={2} disabled={disabled} />
@@ -137,7 +137,7 @@ export function TemplateChannelFields(props: TemplateChannelFieldsProps) {
   if (channel === "inApp") {
     return (
       <Stack space={3} data-slot="template-channel-fields">
-        <TextField id={id("title")} label="題" value={str(value.title)} onChange={(v) => set("title", v)} disabled={disabled} />
+        <TextField id={id("title")} label="タイトル" value={str(value.title)} onChange={(v) => set("title", v)} disabled={disabled} />
         <TextField id={id("body")} label="本文" value={str(value.body)} onChange={(v) => set("body", v)} rows={6} disabled={disabled} />
         <Stack space={1}>
           <Label className="text-sm">画像(任意)</Label>
@@ -147,7 +147,7 @@ export function TemplateChannelFields(props: TemplateChannelFieldsProps) {
             onValueChange={(url) => set("image", url ?? "")}
           />
         </Stack>
-        <TextField id={id("link")} label="押したときの行き先(任意)" value={str(value.link)} onChange={(v) => set("link", v)} disabled={disabled} />
+        <TextField id={id("link")} label="リンク先 URL(任意)" value={str(value.link)} onChange={(v) => set("link", v)} disabled={disabled} />
       </Stack>
     );
   }

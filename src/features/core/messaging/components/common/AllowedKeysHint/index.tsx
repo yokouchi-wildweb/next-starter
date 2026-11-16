@@ -23,7 +23,7 @@ export function AllowedKeysHint({ allowedKeys, unknownKeys = [], showTitle = tru
     <Stack space={1} data-slot="allowed-keys-hint">
       {showTitle ? (
         <Span size="sm" tone="muted">
-          使える差し込み(文の中に {"{{鍵}}"} と書く)
+          使える変数(本文の中に {"{{変数名}}"} と書きます)
         </Span>
       ) : null}
       {allowedKeys.length > 0 ? (
@@ -36,13 +36,13 @@ export function AllowedKeysHint({ allowedKeys, unknownKeys = [], showTitle = tru
         </Flex>
       ) : (
         <Span size="sm" tone="muted">
-          この連絡に使える差し込みはありません
+          この通知で使える変数はありません
         </Span>
       )}
       {unknownKeys.length > 0 ? (
         <Flex align="center" gap="xs" wrap="wrap">
           <Span size="sm" tone="destructive">
-            使えない差し込み:
+            使えない変数:
           </Span>
           {unknownKeys.map((key) => (
             <SoftBadge key={key} variant="destructive" size="sm" className="font-mono">

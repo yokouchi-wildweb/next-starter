@@ -25,7 +25,7 @@ const FIELD_LABELS: Record<string, string> = {
   subject: "件名",
   heading: "見出し",
   paragraphs: "段落",
-  title: "題",
+  title: "タイトル",
   body: "本文",
   preheader: "プレヘッダー",
 };
@@ -113,7 +113,7 @@ export function OverrideFieldEditor({
       {field.edited ? (
         <Stack space={1}>
           <Span size="xs" tone="muted">
-            コードの値
+            元の文言
           </Span>
           <Para size="sm" tone="muted" className="my-0 whitespace-pre-wrap rounded bg-muted/40 p-2">
             {asText(field.codeValue)}
@@ -124,19 +124,19 @@ export function OverrideFieldEditor({
       <Flex justify="end" gap="xs" wrap="wrap">
         {dirty ? (
           <Button type="button" size="sm" variant="ghost" onClick={onDiscard}>
-            下書きを捨てる
+            入力を破棄
           </Button>
         ) : null}
         {field.edited ? (
           <ConfirmPopover
             trigger={
               <Button type="button" size="sm" variant="outline">
-                既定に戻す
+                元の文言に戻す
               </Button>
             }
-            title="既定に戻す"
-            description="この欄の管理画面の値を消し、コードの値で送ります。"
-            confirmLabel="戻す"
+            title="元の文言に戻す"
+            description="この項目で編集した文言を削除し、元の文言で送信します。"
+            confirmLabel="元に戻す"
             onConfirm={onReset}
           />
         ) : null}
@@ -148,7 +148,7 @@ export function OverrideFieldEditor({
               </Button>
             }
             title="保存"
-            description="次に送る連絡からこの文言で送ります。"
+            description="次に送信する通知から、この文言で送信します。"
             confirmLabel="保存する"
             onConfirm={onSave}
           />

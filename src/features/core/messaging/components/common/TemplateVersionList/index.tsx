@@ -33,7 +33,7 @@ export function TemplateVersionList({ versions, currentVersion }: TemplateVersio
   if (versions.length === 0) {
     return (
       <Para size="sm" tone="muted" className="my-0">
-        まだ公開した版はありません
+        公開したバージョンはまだありません
       </Para>
     );
   }
@@ -51,7 +51,7 @@ export function TemplateVersionList({ versions, currentVersion }: TemplateVersio
               {when(version.createdAt)}
             </Span>
             <Span size="sm" tone="muted">
-              {version.categoryLabel ?? "今は無いカテゴリー"} / {Object.keys(version.content).map(messageChannelLabel).join(" / ")}
+              {version.categoryLabel ?? "削除されたカテゴリー"} / {Object.keys(version.content).map(messageChannelLabel).join(" / ")}
             </Span>
           </Flex>
           <Button
@@ -60,14 +60,14 @@ export function TemplateVersionList({ versions, currentVersion }: TemplateVersio
             variant="ghost"
             onClick={() => setOpened(opened === version.version ? null : version.version)}
           >
-            {opened === version.version ? "閉じる" : "中身を見る"}
+            {opened === version.version ? "閉じる" : "内容を見る"}
           </Button>
         </Flex>
       ))}
       {shown ? (
         <Stack space={3} className="rounded bg-muted/40 p-3">
           <Span size="sm" tone="muted">
-            v{shown.version} の中身
+            v{shown.version} の内容
           </Span>
           <MessagePreview
             channels={Object.keys(shown.content).map((key) => ({ key, label: messageChannelLabel(key), fields: shown.content[key] ?? {} }))}

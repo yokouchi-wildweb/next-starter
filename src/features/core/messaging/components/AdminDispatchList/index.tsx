@@ -57,19 +57,19 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
       <Flex align="end" gap="sm" wrap="wrap" className="rounded-md border border-border bg-card p-3">
         <Stack space={1}>
           <Label htmlFor="dispatch-filter-from" className="text-xs">
-            期間(から)
+            期間(開始)
           </Label>
           <DateInput id="dispatch-filter-from" value={fields.fromDate} onValueChange={fields.setFromDate} />
         </Stack>
         <Stack space={1}>
           <Label htmlFor="dispatch-filter-to" className="text-xs">
-            期間(まで)
+            期間(終了)
           </Label>
           <DateInput id="dispatch-filter-to" value={fields.toDate} onValueChange={fields.setToDate} />
         </Stack>
         <Stack space={1}>
           <Label htmlFor="dispatch-filter-kind" className="text-xs">
-            種別
+            種類
           </Label>
           <SelectInput
             id="dispatch-filter-kind"
@@ -89,12 +89,12 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
             onChange={(v) => fields.setCategory(v ? String(v) : "")}
             options={categories.optionsOf(fields.kind)}
             disabled={!fields.kind}
-            placeholder={fields.kind ? "すべて" : "種別を先に選ぶ"}
+            placeholder={fields.kind ? "すべて" : "先に種類を選んでください"}
           />
         </Stack>
         <Stack space={1}>
           <Label htmlFor="dispatch-filter-channel" className="text-xs">
-            経路
+            送信方法
           </Label>
           <SelectInput
             id="dispatch-filter-channel"
@@ -118,7 +118,7 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
         </Stack>
         <Flex gap="xs">
           <Button type="button" size="sm" variant="primary" onClick={apply}>
-            絞り込む
+            絞り込み
           </Button>
           <Button type="button" size="sm" variant="outline" onClick={clear}>
             クリア
@@ -136,7 +136,7 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
         onRetry={query.retry}
         emptyNode={
           <Para tone="muted" align="center">
-            送った回はありません
+            送信はまだありません
           </Para>
         }
         completedText="すべて表示しました"

@@ -7,7 +7,7 @@
 import { Para } from "@/components/TextBlocks/Para";
 
 export const SEND_LEGAL_NOTICE_TEXT =
-  "法の義務で必ず届ける告知は、経路にメールを含めてください(全員宛てのお知らせは配達の記録を持たず、届かなかった人を確かめられません)";
+  "法律上必ず届ける必要がある告知は、送信方法にメールを含めてください(全員宛てのお知らせは送信状況を記録しないため、届かなかった人を確認できません)";
 
 export type SendLegalNoticeProps = {
   /** メールがオンの経路にあるか */

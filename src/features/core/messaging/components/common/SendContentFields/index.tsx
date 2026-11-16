@@ -40,7 +40,7 @@ export function SendContentFields({ source, channels, content, onChange, variabl
               </Span>
               {channel.blank ? (
                 <SoftBadge variant="warning" size="sm">
-                  文言がありません
+                  内容が入力されていません
                 </SoftBadge>
               ) : null}
             </Flex>
@@ -64,7 +64,7 @@ export function SendContentFields({ source, channels, content, onChange, variabl
                 id={`send-var-${variable.key}`}
                 type={variable.type === "number" ? "number" : "text"}
                 value={vars[variable.key] ?? ""}
-                placeholder={variable.default !== undefined ? `既定: ${String(variable.default)}` : undefined}
+                placeholder={variable.default !== undefined ? `初期値: ${String(variable.default)}` : undefined}
                 onChange={(e) => onVarChange?.(variable.key, e.target.value)}
               />
             </Stack>

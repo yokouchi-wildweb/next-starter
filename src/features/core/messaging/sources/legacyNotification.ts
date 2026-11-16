@@ -4,4 +4,4 @@
 
 import type { MessageSource } from "@/lib/messaging";
 
-export const source: MessageSource = { key: "legacy.notification", label: "前のお知らせ" };
+export const source: MessageSource = { key: "legacy.notification", label: "以前のお知らせ機能" };

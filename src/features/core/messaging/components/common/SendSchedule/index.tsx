@@ -17,7 +17,7 @@ export type SendScheduleProps = {
 };
 
 const OPTIONS = [
-  { value: "now", label: "今送る" },
+  { value: "now", label: "今すぐ送信" },
   { value: "at", label: "予約する" },
 ];
 
@@ -27,7 +27,7 @@ export function SendSchedule({ mode, scheduledAt, error, note, onModeChange, onS
       <RadioGroupInput value={mode} options={OPTIONS} onChange={(v) => onModeChange(v === "at" ? "at" : "now")} />
       {mode === "at" ? (
         <Stack space={1}>
-          <DatetimeInput aria-label="予約の時刻" value={scheduledAt} outputFormat="iso" onValueChange={onScheduledAtChange} />
+          <DatetimeInput aria-label="予約日時" value={scheduledAt} outputFormat="iso" onValueChange={onScheduledAtChange} />
           <Para size="xs" tone="muted" className="my-0">
             {note}
           </Para>

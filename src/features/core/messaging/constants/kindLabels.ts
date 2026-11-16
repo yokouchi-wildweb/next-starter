@@ -6,11 +6,11 @@
 import type { MessageKind } from "@/lib/messaging";
 
 export const MESSAGE_KIND_LABELS: Record<MessageKind, string> = {
-  functional: "サービスの機能の連絡",
+  functional: "サービスからのお知らせ",
   transactional: "お手続きのお知らせ",
   security: "セキュリティのお知らせ",
   announcement: "運営からのお知らせ",
-  direct: "運営からの個別の連絡",
+  direct: "運営からの個別のご連絡",
   activity: "ご利用に伴うお知らせ",
   marketing: "キャンペーン情報",
 };
