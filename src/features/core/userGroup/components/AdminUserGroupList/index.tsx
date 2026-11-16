@@ -20,9 +20,9 @@ import { useAdminUserGroupList } from "@/features/core/userGroup/hooks/useAdminU
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
 const KIND_OPTIONS = [
-  { value: "dynamic", label: "条件で自動" },
+  { value: "dynamic", label: "自動で都度抽出" },
   { value: "scheduled", label: "定期的に更新" },
-  { value: "static", label: "手動で指定" },
+  { value: "static", label: "作成時に固定" },
 ];
 const STATUS_OPTIONS = [
   { value: "active", label: "使用中" },

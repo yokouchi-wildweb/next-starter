@@ -224,7 +224,7 @@ function UserGroupModalBody({
           </Para>
           {group && group.kind !== "static" ? (
             <Para size="sm" tone="muted" className="my-0">
-              「条件で自動」と「定期的に更新」の間でだけ変更できます(「定期的に更新」から変えると、集計済みのメンバーは消えます)
+              「自動で都度抽出」と「定期的に更新」の間でだけ変更できます(「定期的に更新」から変えると、集計済みのメンバーは消えます)
             </Para>
           ) : null}
         </Stack>

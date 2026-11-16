@@ -464,7 +464,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
         if (current.status === "archived") throw new DomainError(`グループ「${current.name}」はアーカイブ済みです`, { status: 409 });
         const kind: UserGroupKind = patch.kind ?? current.kind;
         if (kind !== current.kind && (kind === "static" || current.kind === "static")) {
-          throw new DomainError("「手動で指定」と「条件で自動」「定期的に更新」の間では種類を変更できません(新しいグループを作成してください)", { status: 409 });
+          throw new DomainError("「作成時に固定」と「自動で都度抽出」「定期的に更新」の間では種類を変更できません(新しいグループを作成してください)", { status: 409 });
         }
         if (kind === "static" && patch.definition !== undefined) {
           throw new DomainError("固定グループには条件を設定できません", { status: 409 });
