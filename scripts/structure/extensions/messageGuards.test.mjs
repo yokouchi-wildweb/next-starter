@@ -62,7 +62,7 @@ export const message = defineMessage({
 });
 `;
 const REQUIRED = definition("required: true,");
-const OPTIONAL = definition('adminEditable: ["email.subject"],', "notice");
+const OPTIONAL = definition('adminEditableOnly: ["email.subject"],', "notice");
 const override = (props) => `import type { MessageOverride } from "@/lib/messaging";\n\nexport const messageOverride = { ${props} } satisfies MessageOverride;\n`;
 const categoryOverride = (props) => `export const override = { ${props} };\n`;
 
@@ -75,16 +75,15 @@ const expectOne = (files, path, pattern) => {
   assert.match(problems[0], pattern);
 };
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("項目 0・定義だけ・正しい上書きは通る", () => {
+test("項目 0・定義だけ・正しい上書きは通る", () => {
   assert.deepEqual(problemsOf({}), []);
   assert.deepEqual(problemsOf({ [`${M}verification.ts`]: REQUIRED, [`${M}welcome.ts`]: OPTIONAL }), []);
   assert.deepEqual(
     problemsOf({
       [`${M}verification.ts`]: REQUIRED,
-      [`${M}verification.override.ts`]: override('content: { email: { subject: "新しい件名" } }, enabled: true, adminEditable: [], throttle: null'),
+      [`${M}verification.override.ts`]: override('content: { email: { subject: "新しい件名" } }, enabled: true, adminEditableOnly: [], throttle: null'),
       [`${M}welcome.ts`]: OPTIONAL,
-      [`${M}welcome.override.ts`]: override('enabled: false, adminEditable: ["inApp.title"]'),
+      [`${M}welcome.override.ts`]: override('enabled: false, adminEditableOnly: ["inApp.title"]'),
     }),
     [],
   );
@@ -127,10 +126,9 @@ export const message = defineMessage({ key: "messaging.adminNotice", label: "テ
   );
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("required の定義: 種類の経路に email・adminEditable・throttle を止める", () => {
+test("required の定義: 種類の経路に email・adminEditableOnly・throttle を止める", () => {
   expectOne({ [`${M}a.ts`]: definition("required: true,", "inAppOnly") }, `${M}a.ts`, /"email" を含める/);
-  expectOne({ [`${M}a.ts`]: definition('required: true,\n  adminEditable: ["email.subject"],') }, `${M}a.ts`, /adminEditable は付けられない/);
+  expectOne({ [`${M}a.ts`]: definition('required: true,\n  adminEditableOnly: ["email.subject"],') }, `${M}a.ts`, /adminEditableOnly は付けられない/);
   expectOne(
     { [`${M}a.ts`]: definition('required: true,\n  throttle: { by: ["verificationUrl"], mode: "window", seconds: 60 },') },
     `${M}a.ts`,
@@ -138,12 +136,11 @@ test.skip("required の定義: 種類の経路に email・adminEditable・thrott
   );
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("required への上書き: enabled:false・adminEditable・throttle を止める", () => {
+test("required への上書き: enabled:false・adminEditableOnly・throttle を止める", () => {
   const base = { [`${M}verification.ts`]: REQUIRED };
   const path = `${M}verification.override.ts`;
   expectOne({ ...base, [path]: override("enabled: false") }, path, /required の連絡は止められない/);
-  expectOne({ ...base, [path]: override('adminEditable: ["email.subject"]') }, path, /adminEditable は付けられない/);
+  expectOne({ ...base, [path]: override('adminEditableOnly: ["email.subject"]') }, path, /adminEditableOnly は付けられない/);
   expectOne({ ...base, [path]: override('throttle: { by: ["verificationUrl"], mode: "window", seconds: 60 }') }, path, /throttle は付けられない/);
 });
 
