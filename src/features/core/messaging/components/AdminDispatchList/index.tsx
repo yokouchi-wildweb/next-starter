@@ -109,7 +109,7 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
             onChange={(v) => fields.setCategory(v ? String(v) : "")}
             options={categories.optionsOf(fields.kind)}
             disabled={!fields.kind}
-            placeholder={fields.kind ? "すべて" : "先に種類を選んでください"}
+            placeholder={fields.kind ? "すべて" : "種類を選択してください"}
           />
         </Stack>
         <Stack space={1} className="min-w-0">
