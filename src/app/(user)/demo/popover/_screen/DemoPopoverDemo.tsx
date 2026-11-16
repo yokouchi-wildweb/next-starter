@@ -28,6 +28,7 @@ import useSWR from "swr";
 import { sampleClient } from "@/features/sample/services/client/sampleClient";
 import type { SampleWithRelations } from "@/features/sample/entities/model";
 import { Flex } from "@/components/Layout/Flex";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { Tooltip } from "@/components/Overlays/Tooltip";
 import { HoverCard } from "@/components/Overlays/HoverCard";
 import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";
@@ -540,7 +541,7 @@ export function DemoPopoverDemo() {
           </Stack>
 
           {isLoadingSamples ? (
-            <div className="py-8 text-center text-muted-foreground">読み込み中...</div>
+            <InlineLoader message="読み込み中..." />
           ) : samples.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">
               サンプルデータがありません。管理画面からデータを追加してください。

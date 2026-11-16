@@ -25,7 +25,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Button } from "@/components/Form/Button/Button";
 import { Para, Span } from "@/components/TextBlocks";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { resolveStorageSrc } from "@/lib/storage";
 import { useToast } from "@/lib/toast";
 
@@ -168,9 +168,7 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
                 className="w-full max-h-80 rounded-md bg-muted object-contain"
               />
               {isUploading && (
-                <Block className="absolute inset-0 flex items-center justify-center rounded-md bg-overlay/40">
-                  <Spinner className="h-8 w-8 text-overlay-foreground" />
-                </Block>
+                <ScreenLoader mode="local" className="rounded-md" spinnerClassName="h-8 w-8" />
               )}
             </Block>
             <Flex justify="center" gap="md" wrap="wrap">

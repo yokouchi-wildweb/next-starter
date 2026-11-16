@@ -4,9 +4,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CameraIcon, ImageIcon, LoaderIcon, Trash2Icon, UserIcon } from "lucide-react";
+import { CameraIcon, ImageIcon, Trash2Icon, UserIcon } from "lucide-react";
 
 import { Stack } from "@/components/Layout/Stack";
+import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { AppImage } from "@/components/Media/AppImage";
 import {
   DEFAULT_AVATAR_ACCEPT_TYPES,
@@ -187,7 +188,7 @@ export function AccountAvatarSection({
             {/* オーバーレイ */}
             <span className="absolute inset-0 flex items-center justify-center rounded-full bg-overlay/0 transition-colors group-hover:bg-overlay/40">
               {isBusy ? (
-                <LoaderIcon className="h-6 w-6 animate-spin text-overlay-foreground opacity-0 group-hover:opacity-100" />
+                <Spinner className="h-6 w-6 text-overlay-foreground opacity-0 group-hover:opacity-100" />
               ) : (
                 <CameraIcon className="h-6 w-6 text-overlay-foreground opacity-0 transition-opacity group-hover:opacity-100" />
               )}
