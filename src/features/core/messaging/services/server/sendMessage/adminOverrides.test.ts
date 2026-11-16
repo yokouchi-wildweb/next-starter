@@ -1,6 +1,7 @@
 // 送る口の管理画面の文言(resolveDefinition の adminOverrides)の検査
 // - 門が開: 管理画面の値 > fork の override > 上流の既定(欄ごと)。定義ごとに 1 回だけ読む
-// - 門が閉・adminEditable が無い連絡: 読まない、コードの値のまま
+// - 門が閉: 読まない、コードの値のまま
+// - adminEditableOnly の無い連絡は種類の経路の欄を全部読む(D83)。文言を直せない種別(functional)の連絡は読まない
 // - 通らない欄(直せなくなった・型・並びの数・使えない {{鍵}}・秘密の鍵)はその欄だけコードの値
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage/adminOverrides.test.ts
 import { test } from "node:test";
@@ -82,8 +83,7 @@ test("門が閉・読み口なし: DB の値を使わない(読まない)", asyn
   assert.equal(emailOf(await resolveDefinition(definition, { registry: registry, channels: {}, enrichers: enrichers, categories })).subject, "fork の件名");
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("adminEditable の無い連絡は読まない", async () => {
+test("adminEditableOnly の無い連絡は全部の欄を読み(D83)、文言を直せない種別は読まない", async () => {
   const plain = defineMessage({
     key: "shop.plain",
     label: "テストの連絡",
@@ -91,14 +91,26 @@ test.skip("adminEditable の無い連絡は読まない", async () => {
     vars: z.object({}),
     content: { email: { subject: "件名" } },
   });
-  const { loads, adminOverrides } = source(true, [{ fieldPath: "email.subject", value: "x" }]);
-  const resolved = await resolveDefinition(plain, { registry: {} as MessageRegistry, channels: {}, enrichers: {}, categories, adminOverrides: adminOverrides });
-  assert.equal(emailOf(resolved).subject, "件名");
-  assert.deepEqual(loads, []);
+  const open = source(true, [{ fieldPath: "email.subject", value: "x" }]);
+  const resolved = await resolveDefinition(plain, { registry: {} as MessageRegistry, channels: {}, enrichers: {}, categories, adminOverrides: open.adminOverrides });
+  assert.equal(emailOf(resolved).subject, "x");
+  assert.deepEqual(open.loads, ["shop.plain"]);
+
+  // functional(種別の性質 adminTextOverride が false)の連絡は直せる欄が無い = 読まない
+  const functional = defineMessage({
+    key: "shop.verify",
+    label: "テストの確認",
+    category: "accountEmail",
+    vars: z.object({}),
+    content: { email: { subject: "確認の件名" } },
+  });
+  const fixed = source(true, [{ fieldPath: "email.subject", value: "x" }]);
+  const unchanged = await resolveDefinition(functional, { registry: {} as MessageRegistry, channels: {}, enrichers: {}, categories, adminOverrides: fixed.adminOverrides });
+  assert.equal(emailOf(unchanged).subject, "確認の件名");
+  assert.deepEqual(fixed.loads, []);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("通らない欄はその欄だけコードの値(空で送らない)", async () => {
+test("通らない欄はその欄だけコードの値(空で送らない)", async () => {
   const warn = console.warn;
   const warnings: string[] = [];
   console.warn = (message: string) => warnings.push(message);

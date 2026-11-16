@@ -54,8 +54,7 @@ test("誤りを見つける: 鍵の食い違い・上書きの誤り・EmailView
   assert.ok(problems[2].startsWith("shop.noView: 描き方が EmailView を export していない"));
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("category: 受け口に無い鍵は誤り、文面は種類の経路の分だけ要る(種別と経路は種類から)", async () => {
+test("category: 受け口に無い鍵は誤り、文面は種類の経路の分だけ要る(種別と経路は種類から)", async () => {
   const fields = { test: z.object({ title: z.string() }).strict(), inApp: z.object({ title: z.string(), body: z.string() }).strict() };
   const defineTestMessage = createDefineMessage<typeof fields>();
   const base = { vars: z.object({ item: z.string() }), content: { test: { title: "{{item}}" } } };
