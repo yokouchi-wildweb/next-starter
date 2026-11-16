@@ -43,12 +43,19 @@ function useSide(side: UserGroupExceptionSide, options: UseUserGroupExceptionsOp
     },
     [groupId, side, onChanged],
   );
+  // 片側の全員を外す(D94)
+  const clearPeople = useCallback(async () => {
+    if (!groupId) return;
+    const fresh = await updateUserGroupExceptions(groupId, { [side]: { clear: true } });
+    onChanged?.(fresh);
+  }, [groupId, side, onChanged]);
   return useUserGroupPeople({
     fetchPage: groupId ? (cursor, limit, q) => listUserGroupExceptions(groupId, { side, cursor, limit, q }) : null,
     deps: [groupId, side],
     enabled,
     addPeople,
     removePeople,
+    clearPeople,
     addedMessage: side === "include" ? "常に含める人に追加しました" : "常に除外する人に追加しました",
     removedMessage: side === "include" ? "常に含める人から削除しました" : "常に除外する人から削除しました",
     observerOptions,

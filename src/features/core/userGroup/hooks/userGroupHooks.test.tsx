@@ -124,7 +124,8 @@ mock.module("@/features/core/userGroup/services/client/userGroupAdminClient", {
     },
   },
 });
-mock.module("@/lib/toast", { namedExports: { useToast: () => ({ showToast: () => {} }) } });
+// J110(D94): the people hook uses useLoadingToast while adding; D69: no assertion until the tests are restored
+mock.module("@/lib/toast", { namedExports: { useToast: () => ({ showToast: () => {} }), useLoadingToast: () => {} } });
 const guarded: boolean[] = [];
 mock.module("@/lib/unsavedGuard", { namedExports: { useUnsavedGuard: (when: boolean) => void guarded.push(when) } });
 

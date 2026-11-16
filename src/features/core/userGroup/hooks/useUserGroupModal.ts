@@ -8,7 +8,8 @@
 // - 固定の流れ(useUserGroupFreeze)はここが持つ: 書く欄を作り直しても送り直しが続く。進み具合は始めた開いた回だけに出す。「今の人で固定」(動的・定期計算の今の一員から
 //   新しい固定のグループ、D51)もこれ。閉じたら送り直しを止める(閉じる前に確かめる)
 // - 一員・例外の操作の後は 1 件を取り直し、一覧へ onChanged で渡す
-// - formKey = 開いた回 + 1 件の id と更新(保存の後は書く欄をサーバーの値で作り直す)
+// - formKey = 開いた回 + 1 件の id と更新の印(保存の後は書く欄をサーバーの値で作り直す)。印は書く欄の操作(作る・保存・アーカイブ・戻す)
+//   の後の updatedAt だけで、一員・例外の操作(refresh)の後の更新では変えない(書く欄を作り直さない、D94。数と要約はその場で新しくなる)
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -82,9 +83,34 @@ export function useUserGroupModal({ open, groupId = null, onChanged }: UseUserGr
     if (!open) cancelFreeze();
   }, [open, cancelFreeze]);
 
-  /** 一員・例外の操作の後: 返った 1 件(無ければ取り直した 1 件)を一覧へ */
+  // 書く欄の作り直しの印(D94)。1 件の updatedAt が変わった時、直前が一員・例外の操作なら印を変えない(描く間に決める、effect なし)
+  const [stamp, setStamp] = useState<{ seen: string | null; value: string | null; peoplePending: boolean }>({
+    seen: null,
+    value: null,
+    peoplePending: false,
+  });
+  const seenUpdatedAt = group && currentId ? group.updatedAt : null;
+  if (seenUpdatedAt !== stamp.seen) {
+    setStamp({
+      seen: seenUpdatedAt,
+      value: stamp.peoplePending && stamp.value !== null ? stamp.value : seenUpdatedAt,
+      peoplePending: false,
+    });
+  }
+
+  /** 書く欄の操作の後(作る・保存・アーカイブ・戻す): 次の更新で書く欄を作り直す */
+  const onFormChanged = useCallback(
+    (changed: AdminUserGroupDetail, action: UserGroupAction) => {
+      setStamp((prev) => ({ ...prev, peoplePending: false }));
+      onChanged?.(changed, action);
+    },
+    [onChanged],
+  );
+
+  /** 一員・例外の操作の後: 返った 1 件(無ければ取り直した 1 件)を一覧へ。書く欄は作り直さない */
   const refresh = useCallback(
     async (fresh: AdminUserGroupDetail | null, action: UserGroupAction) => {
+      setStamp((prev) => ({ ...prev, peoplePending: true }));
       const next = fresh ?? (await revalidate()) ?? null;
       if (fresh) void revalidate();
       if (next) onChanged?.(next, action);
@@ -120,13 +146,14 @@ export function useUserGroupModal({ open, groupId = null, onChanged }: UseUserGr
     tab,
     setTab,
     onCreated,
-    onChanged,
+    /** 書く欄の操作の後(useUserGroupForm の onChanged に渡す) */
+    onChanged: onFormChanged,
     refresh,
     freeze,
     freezeCurrent,
     /** 固定の途中で閉じる時の確かめ */
     freezeCloseConfirm: { enabled: freeze.running, message: "固定グループのメンバーを登録しています。閉じると登録が中断されます。閉じてもよろしいですか？" },
-    formKey: group && currentId ? `${session}:${group.id}:${group.updatedAt}:${group.status}` : `${session}:new`,
+    formKey: group && currentId ? `${session}:${group.id}:${stamp.value ?? group.updatedAt}:${group.status}` : `${session}:new`,
   };
 }
 
