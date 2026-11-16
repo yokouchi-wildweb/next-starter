@@ -36,7 +36,7 @@ export function dispatchDeleteSummaryLines(summary: AdminDeleteSummary): string[
 
 export function DispatchDeleteSummary({ summary, isLoading = false, error = null }: DispatchDeleteSummaryProps) {
   return (
-    <Stack space={2} data-slot="dispatch-delete-summary">
+    <Stack gap="xs" data-slot="dispatch-delete-summary">
       {isLoading && !summary ? (
         <Flex justify="center" className="py-4">
           <Spinner className="size-5" />

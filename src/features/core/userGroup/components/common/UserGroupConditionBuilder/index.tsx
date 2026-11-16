@@ -108,7 +108,7 @@ function ReadOnlyNode({
 }) {
   if ("op" in node && node.op === "not") {
     return (
-      <Stack space={1} className="border-l-2 border-border pl-3">
+      <Stack gap="2xs" className="border-l-2 border-border pl-3">
         <Span size="sm" weight="semiBold">
           除外する
         </Span>
@@ -118,7 +118,7 @@ function ReadOnlyNode({
   }
   if ("op" in node) {
     return (
-      <Stack space={1} className="border-l-2 border-border pl-3">
+      <Stack gap="2xs" className="border-l-2 border-border pl-3">
         <Span size="sm" weight="semiBold">
           {CONDITION_OP_LABELS[node.op]}
         </Span>
@@ -192,7 +192,7 @@ function CriterionNode({
   const summary = criterion ? describeArgs(criterion, node.args) : "";
   return (
     <Stack
-      space={2}
+      gap="xs"
       className="rounded-md border border-border bg-card p-3"
       data-slot="condition-criterion"
       data-collapsed={open ? undefined : ""}
@@ -241,7 +241,7 @@ function CriterionNode({
 /** 並んだ条件の間に置く合わせ方の印(すべて = かつ / いずれか = または) */
 function JoinMark({ op }: { op: ConditionGroupOp }) {
   return (
-    <Flex align="center" gap="sm" aria-hidden data-slot="condition-join">
+    <Flex align="center" gap="md" aria-hidden data-slot="condition-join">
       <Span className="h-px flex-1 bg-border">{null}</Span>
       <Span
         size="xs"
@@ -302,7 +302,7 @@ function GroupNode({
   }));
   return (
     <Stack
-      space={3}
+      gap="sm"
       className={
         isRoot
           ? "rounded-lg border border-border bg-card p-4"
@@ -345,7 +345,7 @@ function GroupNode({
             : `条件 ${node.children.length} 件(${numbers.join("・")})`}
         </Para>
       ) : (
-        <Stack space={2}>
+        <Stack gap="xs">
           {leaves.length === 0 && groups.length === 0 ? (
             <Para
               size="sm"
@@ -415,7 +415,7 @@ export function UserGroupConditionBuilder({
 }: UserGroupConditionBuilderProps) {
   if (!root) {
     return (
-      <Stack space={3} data-slot="condition-read-only">
+      <Stack gap="sm" data-slot="condition-read-only">
         {readOnlyNote ? (
           <Para size="sm" tone="muted" className="my-0">
             {readOnlyNote}
@@ -433,7 +433,7 @@ export function UserGroupConditionBuilder({
     );
   }
   return (
-    <Stack space={3} data-slot="condition-builder">
+    <Stack gap="sm" data-slot="condition-builder">
       <GroupNode node={root} level={1} criteria={criteria} actions={actions} disabled={disabled} />
       {/* 条件グループを足す所は根の枠の外の下(枠の中の「＋ 条件を追加」と離して違いを分ける) */}
       <Flex align="center" gap="xs" wrap="wrap" className="pt-1" data-slot="condition-add-group">

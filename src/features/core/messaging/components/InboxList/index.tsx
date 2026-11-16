@@ -38,7 +38,7 @@ export function InboxList({ unreadOnly = false, limit, emptyText = "お知らせ
   });
 
   return (
-    <Stack space={3}>
+    <Stack gap="sm">
       <Flex justify="center">
         <Button
           type="button"
@@ -67,7 +67,7 @@ export function InboxList({ unreadOnly = false, limit, emptyText = "お知らせ
         completedText="すべて表示しました"
       >
         {(items) => (
-          <Stack space={1}>
+          <Stack gap="2xs">
             {items.map((item) => (
               <InboxItemRow key={item.id} item={item} onOpen={open} />
             ))}

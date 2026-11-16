@@ -49,7 +49,7 @@ export function UserGroupRow({ group, onOpen, onArchive, onRestore, onDelete }: 
         onClick={onOpen}
         className="block h-auto min-w-0 flex-1 whitespace-normal px-4 py-3 text-left"
       >
-        <Stack space={1}>
+        <Stack gap="2xs">
           <Flex align="center" gap="xs" wrap="wrap">
             <Span weight="semiBold">{group.name}</Span>
             {archived ? (
@@ -58,7 +58,7 @@ export function UserGroupRow({ group, onOpen, onArchive, onRestore, onDelete }: 
               </Span>
             ) : null}
           </Flex>
-          <Flex gap="sm" wrap="wrap">
+          <Flex gap="md" wrap="wrap">
             <Span size="sm" tone="muted">
               {group.kindLabel}
             </Span>
@@ -127,7 +127,7 @@ export function UserGroupRow({ group, onOpen, onArchive, onRestore, onDelete }: 
             ) : (
               <Tooltip
                 content={
-                  <Stack space={1}>
+                  <Stack gap="2xs">
                     {group.deleteReasons.map((reason) => (
                       <Span key={reason} size="xs" tone="inherit">
                         {reason}

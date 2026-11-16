@@ -23,10 +23,10 @@ const OPTIONS = [
 
 export function SendSchedule({ mode, scheduledAt, error, note, onModeChange, onScheduledAtChange }: SendScheduleProps) {
   return (
-    <Stack space={2} data-slot="send-schedule">
+    <Stack gap="xs" data-slot="send-schedule">
       <RadioGroupInput value={mode} options={OPTIONS} onChange={(v) => onModeChange(v === "at" ? "at" : "now")} />
       {mode === "at" ? (
-        <Stack space={1}>
+        <Stack gap="2xs">
           <DatetimeInput aria-label="予約日時" value={scheduledAt} outputFormat="iso" onValueChange={onScheduledAtChange} />
           <Para size="xs" tone="muted" className="my-0">
             {note}

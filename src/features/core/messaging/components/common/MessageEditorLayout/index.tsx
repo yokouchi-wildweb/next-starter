@@ -24,7 +24,7 @@ export type MessageEditorLayoutProps = {
 
 export function MessageEditorLayout({ channels, activeChannel, onChannelChange, preview, children }: MessageEditorLayoutProps) {
   return (
-    <Flex direction="column" gap="md" className="md:flex-row-reverse md:items-start" data-slot="message-editor-layout">
+    <Flex direction="column" gap="lg" className="md:flex-row-reverse md:items-start" data-slot="message-editor-layout">
       <Block className="min-w-0 md:w-1/2">
         <StateTabs
           tabs={channels.map((channel) => ({ value: channel.key, label: channel.label }))}
@@ -38,7 +38,7 @@ export function MessageEditorLayout({ channels, activeChannel, onChannelChange, 
           </StateTabsContent>
         </StateTabs>
       </Block>
-      <Stack space={2} className="min-w-0 md:sticky md:top-0 md:w-1/2">
+      <Stack gap="xs" className="min-w-0 md:sticky md:top-0 md:w-1/2">
         <Span size="sm" weight="semiBold">
           プレビュー
         </Span>

@@ -348,7 +348,7 @@ export function AsyncMultiSelectInput<T>({
           <Stack gap="none" padding="none" className={PICKER_POPOVER_BODY_CLASS}>
             <Command shouldFilter={false} className="min-h-0">
               {selectedView === "inline" ? (
-                <Stack space={0} className="flex min-h-0 flex-col px-2 pt-2">
+                <Stack gap="none" className="flex min-h-0 flex-col px-2 pt-2">
                   <CommandInput
                     autoFocus
                     placeholder={searchPlaceholder}

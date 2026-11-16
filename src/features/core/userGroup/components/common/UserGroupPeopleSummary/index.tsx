@@ -28,7 +28,7 @@ export function userGroupPeopleSummaryText(names: readonly (string | null)[], to
 export function UserGroupPeopleSummary({ names, total, loading = false, onOpenList }: UserGroupPeopleSummaryProps) {
   const empty = !loading && (total === 0 || names.length === 0);
   return (
-    <Flex align="center" justify="between" gap="sm" wrap="wrap" data-slot="user-group-people-summary">
+    <Flex align="center" justify="between" gap="md" wrap="wrap" data-slot="user-group-people-summary">
       <Span size="sm" tone={empty ? "muted" : undefined} className="min-w-0">
         {loading && names.length === 0 ? "読み込み中…" : userGroupPeopleSummaryText(names, total)}
       </Span>

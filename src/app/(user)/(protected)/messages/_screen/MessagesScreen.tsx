@@ -16,7 +16,7 @@ export async function MessagesScreen(props: ScreenProps) {
 
   return (
     <UserPage containerType="narrowStack">
-      <Stack space={2}>
+      <Stack gap="xs">
         <UserPageTitle>お知らせ</UserPageTitle>
         <InboxList />
       </Stack>

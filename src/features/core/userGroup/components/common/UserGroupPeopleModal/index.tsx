@@ -38,7 +38,7 @@ export function UserGroupPeopleModal({ title, people, emptyText, disabled = fals
   const count = people.selectedIds.length;
   return (
     <Modal open={people.listOpen} onOpenChange={people.setListOpen} title={title} maxWidth="560px">
-      <Stack space={3} data-slot="user-group-people-modal">
+      <Stack gap="sm" data-slot="user-group-people-modal">
         <Input aria-label="名前で検索" placeholder="名前で検索" value={people.q} onChange={(e) => people.setQ(e.target.value)} />
         <InfiniteScrollList
           items={query.items}
@@ -56,7 +56,7 @@ export function UserGroupPeopleModal({ title, people, emptyText, disabled = fals
           completedText="すべて表示しました"
         >
           {(items) => (
-            <Stack space={1}>
+            <Stack gap="2xs">
               {items.map((person) => {
                 const selected = people.isSelected(person.id);
                 const name = person.name ?? "名前未設定のユーザー";
@@ -65,7 +65,7 @@ export function UserGroupPeopleModal({ title, people, emptyText, disabled = fals
                   <Flex
                     key={person.id}
                     align="center"
-                    gap="sm"
+                    gap="md"
                     onClick={disabled ? undefined : () => people.toggle(person.id, !selected)}
                     className={[
                       "rounded-md px-3 py-2 transition-colors",

@@ -24,8 +24,8 @@ const TYPE_OPTIONS = (Object.keys(STATIC_SOURCE_LABELS) as StaticSourceDraft["ty
 
 export function UserGroupStaticSourceFields({ value, onChange, tags, staticGroups, disabled = false }: UserGroupStaticSourceFieldsProps) {
   return (
-    <Stack space={3} data-slot="user-group-static-source">
-      <Stack space={1}>
+    <Stack gap="sm" data-slot="user-group-static-source">
+      <Stack gap="2xs">
         <Label className="text-sm">メンバーの指定方法</Label>
         <RadioGroupInput
           value={value.type}

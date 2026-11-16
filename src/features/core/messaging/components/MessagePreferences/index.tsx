@@ -53,7 +53,7 @@ export function MessagePreferences({ emptyText = "設定できる通知はあり
   if (!preferences) {
     if (error) {
       return (
-        <Stack space={2}>
+        <Stack gap="xs">
           <Para tone="destructive" align="center">
             {err(error, "通知設定を取得できませんでした")}
           </Para>
@@ -76,10 +76,10 @@ export function MessagePreferences({ emptyText = "設定できる通知はあり
   const shownChannels = preferences.channels.filter((channel) => channel.kinds.length > 0);
 
   return (
-    <Stack space={4}>
+    <Stack gap="md">
       <Block className="rounded-md border border-border p-4">
-        <Flex justify="between" align="center" gap="md">
-          <Stack space={0}>
+        <Flex justify="between" align="center" gap="lg">
+          <Stack gap="none">
             <Para weight="bold">すべての通知を受け取らない</Para>
             <Para size="sm" tone="muted">
               お知らせ・メールをまとめて停止します(お手続きなど重要なお知らせは届きます)
@@ -109,7 +109,7 @@ export function MessagePreferences({ emptyText = "設定できる通知はあり
             {channel.kinds.map((frame) => (
               <PreferenceKindFrame key={frame.kind} label={MESSAGE_KIND_LABELS[frame.kind]}>
                 {frame.groups.map((group) => (
-                  <Stack key={group.key ?? "-"} space={2}>
+                  <Stack key={group.key ?? "-"} gap="xs">
                     <PreferenceGroupHeading label={group.label} />
                     {group.categories.map((category) => {
                       const firstPlace = !placedCategoryWide.has(category.key);

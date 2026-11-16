@@ -79,14 +79,14 @@ export function DispatchOperations({
 
   return (
     <>
-      <Stack space={2} data-slot="dispatch-operations">
+      <Stack gap="xs" data-slot="dispatch-operations">
         {stateLine ? (
           <Para size="sm" className="my-0" data-slot="dispatch-state-line">
             {stateLine}
           </Para>
         ) : null}
         {anyOperation ? (
-          <Flex align="center" justify="end" gap="sm" wrap="wrap">
+          <Flex align="center" justify="end" gap="md" wrap="wrap">
             {canDelete.allowed ? (
               <Button type="button" size="sm" variant="outline" onClick={() => {
                   setOpen("delete");
@@ -147,7 +147,7 @@ export function DispatchOperations({
           setOpen(null);
         }}
       >
-        <Stack space={3}>
+        <Stack gap="sm">
           <Para size="sm" className="my-0">
             {resend.mode === "new_dispatch"
               ? "この通知は本文を保存していないため、失敗した宛先へ新しい送信として送ります(元の送信は変わりません)。"

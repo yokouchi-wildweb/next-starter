@@ -158,7 +158,7 @@ function UserGroupModalBody({
   ];
 
   const footer = (
-    <Stack space={1}>
+    <Stack gap="2xs">
       <Flex justify="end" gap="xs" wrap="wrap">
         {group && !locked ? (
           <ConfirmPopover
@@ -203,9 +203,9 @@ function UserGroupModalBody({
   );
 
   const basicTab = (
-    <Stack space={4}>
+    <Stack gap="md">
       {group ? (
-        <Flex align="center" gap="sm" wrap="wrap">
+        <Flex align="center" gap="md" wrap="wrap">
           <Span size="sm" data-slot="user-group-count">
             {userGroupCountText(group.count)}
           </Span>
@@ -221,20 +221,20 @@ function UserGroupModalBody({
           {notice}
         </Para>
       ))}
-      <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="user-group-meta">
-        <Stack space={1}>
+      <Stack gap="sm" className="rounded-md border border-border bg-card p-4" data-slot="user-group-meta">
+        <Stack gap="2xs">
           <Label htmlFor="user-group-name" className="text-sm">
             グループ名
           </Label>
           <Input id="user-group-name" value={fields.name} disabled={locked} onChange={(e) => fields.setName(e.target.value)} />
         </Stack>
-        <Stack space={1}>
+        <Stack gap="2xs">
           <Label htmlFor="user-group-description" className="text-sm">
             説明(任意)
           </Label>
           <Textarea id="user-group-description" value={fields.description} rows={2} disabled={locked} onChange={(e) => fields.setDescription(e.target.value)} />
         </Stack>
-        <Stack space={1}>
+        <Stack gap="2xs">
           <Label htmlFor="user-group-kind" className="text-sm">
             種類
           </Label>
@@ -283,7 +283,7 @@ function UserGroupModalBody({
           ) : null}
         </Stack>
         {fields.kind === "scheduled" ? (
-          <Stack space={1}>
+          <Stack gap="2xs">
             <Label htmlFor="user-group-interval" className="text-sm">
               更新の間隔
             </Label>
@@ -300,7 +300,7 @@ function UserGroupModalBody({
         ) : null}
       </Stack>
       {!group && isStatic ? (
-        <Stack space={3} className="rounded-md border border-border bg-card p-4">
+        <Stack gap="sm" className="rounded-md border border-border bg-card p-4">
           <UserGroupStaticSourceFields
             value={fields.source}
             onChange={fields.setSource}
@@ -315,7 +315,7 @@ function UserGroupModalBody({
   );
 
   const conditionTab = (
-    <Stack space={4}>
+    <Stack gap="md">
       {form.heavyWarning ? (
         <Para size="sm" tone="warning" className="my-0" data-slot="user-group-heavy">
           {form.heavyWarning}
@@ -353,7 +353,7 @@ function UserGroupModalBody({
       disabled={locked}
     />
   ) : (
-    <Stack space={4}>
+    <Stack gap="md">
       <UserGroupExceptionsEditor exceptions={exceptions} editors={{ include: includeEditor, exclude: excludeEditor }} counts={group.exceptions} scheduled={group.kind === "scheduled"} disabled={locked} />
     </Stack>
   );

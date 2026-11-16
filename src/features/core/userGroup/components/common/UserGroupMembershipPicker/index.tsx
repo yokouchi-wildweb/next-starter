@@ -21,7 +21,7 @@ export function UserGroupMembershipPicker({ editor, disabled = false }: UserGrou
   const pending = editor.addCount + editor.removeCount;
   return (
     <Flex align="start" gap="xs" wrap="wrap" data-slot="user-group-membership-picker">
-      <Stack space={1} className="min-w-64 flex-1">
+      <Stack gap="2xs" className="min-w-64 flex-1">
         <AsyncMultiSelectInput
           value={editor.value}
           onChange={editor.onChange}

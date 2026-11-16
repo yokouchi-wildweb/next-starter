@@ -29,7 +29,7 @@ export function UserGroupCriterionFields({ fields, inlineGroups = [], args, onCh
   const shown = disabled ? base.map((field) => ({ ...field, disabled: true })) : base;
   return (
     <FormProvider {...methods}>
-      <Stack space={3} data-slot="user-group-criterion-fields">
+      <Stack gap="sm" data-slot="user-group-criterion-fields">
         <FieldRenderer control={methods.control} methods={methods} baseFields={shown} inlineGroups={[...inlineGroups]} />
       </Stack>
     </FormProvider>

@@ -38,8 +38,8 @@ export function UserGroupMemberList(props: UserGroupMemberListProps) {
   const { title, description, addLabel, emptyText, disabled = false, total = null, editor } = props;
   if (props.draft) {
     return (
-      <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="user-group-people">
-        <Stack space={1}>
+      <Stack gap="sm" className="rounded-md border border-border bg-card p-4" data-slot="user-group-people">
+        <Stack gap="2xs">
           <SecTitle as="h3" size="md">
             {title}
           </SecTitle>
@@ -58,8 +58,8 @@ export function UserGroupMemberList(props: UserGroupMemberListProps) {
   }
   const people = props.people;
   return (
-    <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="user-group-people">
-      <Stack space={1}>
+    <Stack gap="sm" className="rounded-md border border-border bg-card p-4" data-slot="user-group-people">
+      <Stack gap="2xs">
         <SecTitle as="h3" size="md">
           {title}
         </SecTitle>
@@ -73,7 +73,7 @@ export function UserGroupMemberList(props: UserGroupMemberListProps) {
         <UserGroupMembershipPicker editor={editor} />
       ) : !disabled ? (
         <Flex align="start" gap="xs" wrap="wrap">
-          <Stack space={1} className="min-w-64 flex-1">
+          <Stack gap="2xs" className="min-w-64 flex-1">
             <UserAsyncMultiSelect value={people.picks} onChange={people.setPicks} />
           </Stack>
           {/* 選ぶ欄(トリガーは py-3 の h-auto)の 1 行の高さに合わせる。選んだ人が増えて欄が伸びてもボタンは上の 1 行ぶんのまま */}
