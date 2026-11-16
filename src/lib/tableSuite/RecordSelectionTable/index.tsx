@@ -161,7 +161,8 @@ export default function RecordSelectionTable<T>({
 
   const reorder = useTableReorder({ items, getKey, reorderable, sort, guardUnsaved });
   // 選択列（+ ハンドル列）を含めた全カラムを結合して描画する
-  const fullWidthColSpan = columns.length + (selectionOn ? 1 : 0) + (reorder.enabled ? 1 : 0);
+  // 選択の列は off でも幅 0 で置いている(出入りを動かすため)ので、いつも 1 列と数える
+  const fullWidthColSpan = columns.length + 1 + (reorder.enabled ? 1 : 0);
 
   // 一括操作バー用のselectionオブジェクトを作成
   const bulkActionSelection = React.useMemo<BulkActionSelection<T>>(() => {
@@ -208,8 +209,9 @@ export default function RecordSelectionTable<T>({
           <TableHeader>
             <TableRow disableHover>
               {reorder.enabled && <DragHandleHead />}
-              {selectionOn ? (
+              {(
                 <SelectionHeaderCell
+                  visible={selectionOn}
                   label={resolvedSelectColumnLabel}
                   isCheckboxSelection={isCheckboxSelection}
                   checked={isAllSelected}
@@ -217,7 +219,7 @@ export default function RecordSelectionTable<T>({
                   onToggle={(checked) => updateAllSelection(checked)}
                   onRequestToggle={() => updateAllSelection(!isAllSelected)}
                 />
-              ) : null}
+              )}
               {columns.map((col, idx) => (
                 <SortableTableHead
                   key={idx}
@@ -260,15 +262,16 @@ export default function RecordSelectionTable<T>({
                   data-selected={isSelected ? "true" : undefined}
                   disableHover={disableRowHover}
                 >
-                  {selectionOn ? (
+                  {(
                     <SelectionCell
+                      visible={selectionOn}
                       label={resolvedSelectColumnLabel}
                       rowIndex={itemIndex}
                       isCheckboxSelection={isCheckboxSelection}
                       isSelected={isSelected}
                       onToggle={(checked) => updateKeySelection(key, checked)}
                     />
-                  ) : null}
+                  )}
                   {columns.map((col, idx) => (
                     <TableCell
                       key={idx}
