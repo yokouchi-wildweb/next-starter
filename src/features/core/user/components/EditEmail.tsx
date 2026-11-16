@@ -4,7 +4,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
-import { MailIcon, LoaderIcon } from "lucide-react";
+import { MailIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Input } from "@/components/Form/Input/Manual/Input";
@@ -131,11 +131,12 @@ export function EditEmail({ currentEmail }: EditEmailProps) {
                 <Button
                   type="button"
                   onClick={handleSend}
-                  disabled={isLoading || !editEmail.trim()}
+                  disabled={!editEmail.trim()}
+                  loading={isLoading}
+                  loadingLabel="送信中..."
                   className="w-full"
                 >
-                  {isLoading && <LoaderIcon className="h-4 w-4 animate-spin" />}
-                  {isLoading ? "送信中..." : "確認メールを送信"}
+                  確認メールを送信
                 </Button>
                 <Button
                   type="button"

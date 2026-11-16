@@ -28,7 +28,6 @@ import { Button } from "@/components/Form/Button/Button";
 import { BooleanCheckboxInput } from "@/components/Form/Input/Manual/BooleanCheckboxInput";
 import { Textarea } from "@/components/Form/Input/Manual/Textarea";
 import { Para, Span } from "@/components/TextBlocks";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { sanitizeRedirectPath } from "@/lib/url";
@@ -232,16 +231,11 @@ export function ConfirmTransferModal({
             type="button"
             variant="default"
             onClick={() => execute()}
-            disabled={isSubmitting || !canSubmit}
+            disabled={!canSubmit}
+            loading={isSubmitting}
+            loadingLabel="送信中..."
           >
-            {isSubmitting ? (
-              <Flex align="center" gap="xs">
-                <Spinner className="h-4 w-4" />
-                <span>送信中...</span>
-              </Flex>
-            ) : (
-              "この内容で申告する"
-            )}
+            この内容で申告する
           </Button>
         </Flex>
       </Stack>

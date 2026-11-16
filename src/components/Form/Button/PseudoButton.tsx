@@ -6,9 +6,10 @@ import { baseButtonClassName } from "@/components/Primitives/Button";
 import { cn } from "@/lib/cn";
 
 import { buttonVariants, type ButtonStyleProps } from "./button-variants";
-import type { ButtonProps } from "./Button";
+import type { ButtonLoadingProps, ButtonProps } from "./Button";
 
-type PseudoButtonProps = ButtonProps;
+/** div で描くので読み込み中の指定(loading / loadingLabel)は持たない */
+type PseudoButtonProps = Omit<ButtonProps, keyof ButtonLoadingProps>;
 
 const isSpaceKey = (key: string) => key === " " || key === "Spacebar";
 

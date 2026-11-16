@@ -76,8 +76,7 @@ function CreateFromSelection({ selection, onDone, label }: BulkActionProps<unkno
         confirmOnClose={{ enabled: freeze.running, message: "メンバーを登録しています。閉じると登録が中断されます。閉じてもよろしいですか？" }}
         footer={
           <Flex justify="end" gap="xs">
-            <Button type="button" size="sm" variant="primary" disabled={freeze.running || name.trim() === "" || ids.length === 0} onClick={() => void start()}>
-              {freeze.running ? <Spinner className="size-4" /> : null}
+            <Button type="button" size="sm" variant="primary" disabled={name.trim() === "" || ids.length === 0} loading={freeze.running} onClick={() => void start()}>
               作成
             </Button>
           </Flex>
@@ -144,8 +143,7 @@ function AddSelection({ selection, onDone, label }: BulkActionProps<unknown> & {
         maxWidth="560px"
         footer={
           <Flex justify="end" gap="xs">
-            <Button type="button" size="sm" variant="primary" disabled={adding.isAdding || groupId === "" || ids.length === 0} onClick={() => void add()}>
-              {adding.isAdding ? <Spinner className="size-4" /> : null}
+            <Button type="button" size="sm" variant="primary" disabled={groupId === "" || ids.length === 0} loading={adding.isAdding} onClick={() => void add()}>
               追加
             </Button>
           </Flex>

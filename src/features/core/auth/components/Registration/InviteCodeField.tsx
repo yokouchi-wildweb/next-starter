@@ -14,7 +14,6 @@ import { ControlledField } from "@/components/Form";
 import { Button } from "@/components/Form/Button/Button";
 import { TextInput } from "@/components/Form/Input/Controlled";
 import { Flex, Stack } from "@/components/Layout";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { Span } from "@/components/TextBlocks";
 import type { InviteCodeApplyState } from "@/features/core/auth/hooks/useInviteCodeValidation";
 import { INVITE_CODE_APPLIED_MESSAGE } from "@/features/core/referral/constants/inviteCodeValidation";
@@ -90,9 +89,11 @@ export function InviteCodeField<TFieldValues extends FieldValues>({
             variant="outline"
             size="md"
             onClick={() => void apply(field.value ?? "")}
-            disabled={isLoading || !(field.value ?? "").trim()}
+            disabled={!(field.value ?? "").trim()}
+            loading={isLoading}
+            loadingLabel={null}
           >
-            {isLoading ? <Spinner className="h-4 w-4" /> : "適用"}
+            適用
           </Button>
         </Flex>
       )}

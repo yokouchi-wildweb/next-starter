@@ -7,7 +7,6 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button/Button";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
 
 type PurchaseButtonProps = {
   onPurchase: () => Promise<void>;
@@ -45,18 +44,11 @@ export function PurchaseButton({
             size="lg"
             className="w-full max-w-xs"
             onClick={handlePurchase}
-            disabled={isLoading || disabled}
+            disabled={disabled}
+            loading={isLoading}
+            loadingLabel="処理中..."
           >
-            {isLoading ? (
-              <Flex align="center" gap="xs">
-                <Spinner className="h-4 w-4" />
-                <span>処理中...</span>
-              </Flex>
-            ) : disabled && disabledLabel ? (
-              disabledLabel
-            ) : (
-              "購入する"
-            )}
+            {disabled && disabledLabel ? disabledLabel : "購入する"}
           </Button>
         </Flex>
       </Stack>

@@ -1,7 +1,7 @@
 // src/components/Form/Button/index.ts
 
 export { Button, buttonVariants } from "./Button";
-export type { ButtonProps, ButtonStyleProps } from "./Button";
+export type { ButtonLoadingProps, ButtonProps, ButtonStyleProps } from "./Button";
 
 export { LinkButton } from "./LinkButton";
 export type { LinkButtonProps } from "./LinkButton";

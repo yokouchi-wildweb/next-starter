@@ -7,16 +7,30 @@ import * as React from "react";
 import { Button as ShadcnButton } from "@/components/Primitives/Button";
 import { cn } from "@/lib/cn";
 
+import { resolveButtonLoading, type ButtonLoadingProps } from "./Button";
 import { tabletButtonVariants, type TabletButtonStyleProps } from "./tablet-button-variants";
 
 export type TabletButtonProps = React.ComponentPropsWithoutRef<typeof ShadcnButton> &
   TabletButtonStyleProps & {
     /** クリックイベントを親要素に伝播させるか @default false */
     propagateClick?: boolean;
-  };
+  } & ButtonLoadingProps;
 
 const TabletButton = React.forwardRef<HTMLButtonElement, TabletButtonProps>(
-  ({ className, variant, size, fullWidth, propagateClick = false, onClick, ...props }, ref) => {
+  (
+    {
+      className,
+      variant,
+      size,
+      fullWidth,
+      propagateClick = false,
+      onClick,
+      loading,
+      loadingLabel,
+      ...props
+    },
+    ref,
+  ) => {
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (!propagateClick) {
         e.stopPropagation();
@@ -30,6 +44,7 @@ const TabletButton = React.forwardRef<HTMLButtonElement, TabletButtonProps>(
         className={cn(tabletButtonVariants({ variant, size, fullWidth, className }))}
         onClick={handleClick}
         {...props}
+        {...resolveButtonLoading({ loading, loadingLabel, ...props })}
       />
     );
   },

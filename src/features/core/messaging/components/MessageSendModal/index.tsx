@@ -357,8 +357,7 @@ export function MessageSendModal({
           <Button type="button" size="sm" variant="outline" disabled={m.isSending} onClick={m.backToEdit}>
             戻る
           </Button>
-          <Button type="button" size="sm" variant="primary" disabled={m.isSending || m.estimateOverLimit} onClick={() => void send()}>
-            {m.isSending ? <Spinner className="size-4" /> : null}
+          <Button type="button" size="sm" variant="primary" disabled={m.estimateOverLimit} loading={m.isSending} onClick={() => void send()}>
             {m.showSchedule && m.scheduleMode === "at" ? "予約する" : "送信する"}
           </Button>
         </Flex>
@@ -373,16 +372,13 @@ export function MessageSendModal({
           <Span size="xs">{null}</Span>
         )}
         <Flex justify="end" gap="xs" wrap="wrap">
-          <Button type="button" size="sm" variant="outline" disabled={Boolean(m.contentError) || m.isPreviewing} onClick={() => void preview()}>
-            {m.isPreviewing ? <Spinner className="size-4" /> : null}
+          <Button type="button" size="sm" variant="outline" disabled={Boolean(m.contentError)} loading={m.isPreviewing} onClick={() => void preview()}>
             あなた宛ての表示例
           </Button>
-          <Button type="button" size="sm" variant="outline" disabled={Boolean(m.contentError) || m.isTesting} onClick={() => void sendTest()}>
-            {m.isTesting ? <Spinner className="size-4" /> : null}
+          <Button type="button" size="sm" variant="outline" disabled={Boolean(m.contentError)} loading={m.isTesting} onClick={() => void sendTest()}>
             自分にテスト送信
           </Button>
-          <Button type="button" size="sm" variant="primary" disabled={!m.canSend || isEstimating} onClick={() => void toConfirm()}>
-            {isEstimating ? <Spinner className="size-4" /> : null}
+          <Button type="button" size="sm" variant="primary" disabled={!m.canSend} loading={isEstimating} onClick={() => void toConfirm()}>
             確認に進む
           </Button>
         </Flex>

@@ -10,7 +10,6 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button/Button";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
 
 export function DummyPaymentForm() {
   const searchParams = useSearchParams();
@@ -144,18 +143,12 @@ export function DummyPaymentForm() {
           <Flex direction="column" gap="md">
             <Button
               onClick={() => handlePayment(true)}
-              disabled={loading}
+              loading={loading}
+              loadingLabel="処理中..."
               variant="default"
               className="w-full"
             >
-              {loading ? (
-                <Flex align="center" gap="xs">
-                  <Spinner className="h-4 w-4" />
-                  <span>処理中...</span>
-                </Flex>
-              ) : (
-                "決済を完了する"
-              )}
+              決済を完了する
             </Button>
 
             <Button

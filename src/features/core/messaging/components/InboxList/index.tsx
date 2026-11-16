@@ -9,7 +9,6 @@
 import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { Para } from "@/components/TextBlocks/Para";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 
@@ -45,9 +44,9 @@ export function InboxList({ unreadOnly = false, limit, emptyText = "お知らせ
           variant="outline"
           size="sm"
           onClick={() => void markAll()}
-          disabled={isMarkingAll || unreadCount === 0}
+          disabled={unreadCount === 0}
+          loading={isMarkingAll}
         >
-          {isMarkingAll ? <Spinner className="size-4" /> : null}
           すべて既読にする
         </Button>
       </Flex>

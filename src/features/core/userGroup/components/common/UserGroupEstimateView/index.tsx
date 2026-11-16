@@ -7,7 +7,6 @@
 import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 
@@ -28,8 +27,7 @@ export function UserGroupEstimateView({ result, reason, isLoading, stale, canRun
     <Stack gap="xs" className="rounded-md border border-border bg-muted/30 p-4" data-slot="user-group-estimate">
       <Flex align="center" justify="between" gap="xs" wrap="wrap">
         <Span weight="semiBold">対象人数の見積もり</Span>
-        <Button type="button" size="sm" variant="outline" disabled={!canRun} onClick={onRun}>
-          {isLoading ? <Spinner className="size-4" /> : null}
+        <Button type="button" size="sm" variant="outline" disabled={!canRun} loading={isLoading} onClick={onRun}>
           {result || reason ? "再計算" : "対象者を集計"}
         </Button>
       </Flex>

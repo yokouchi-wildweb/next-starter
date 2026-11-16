@@ -9,7 +9,6 @@
 
 import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { Para } from "@/components/TextBlocks/Para";
 
 import { InboxDetailModal } from "@/features/core/messaging/components/common/InboxDetailModal";
@@ -37,8 +36,7 @@ export function InboxUnreadModal() {
           </Button>
         ) : (
           <>
-            <Button type="button" variant="outline" onClick={() => void skip()} disabled={isSkipping}>
-              {isSkipping ? <Spinner className="size-4" /> : null}
+            <Button type="button" variant="outline" onClick={() => void skip()} loading={isSkipping}>
               スキップ
             </Button>
             <Button type="button" onClick={next}>

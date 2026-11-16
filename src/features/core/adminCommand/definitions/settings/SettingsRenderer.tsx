@@ -3,9 +3,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { ArrowLeftIcon, ChevronRightIcon, Loader2Icon } from "lucide-react";
+import { ArrowLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useToast } from "@/lib/toast";
 
+import { Button } from "@/components/Form/Button";
 import {
   Command,
   CommandEmpty,
@@ -184,23 +185,18 @@ export function SettingsRenderer({ onClose, onBack }: CategoryRendererProps) {
             <p className="mt-2 text-xs text-muted-foreground">{view.field.description}</p>
           )}
           <div className="mt-3 flex justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="xs"
               onClick={handleBackToList}
-              className="px-3 py-1.5 text-sm rounded-md hover:bg-accent"
               disabled={isMutating}
             >
               キャンセル
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2"
-              disabled={isMutating}
-            >
-              {isMutating && <Loader2Icon className="size-4 animate-spin" />}
+            </Button>
+            <Button type="button" variant="primary" size="xs" onClick={handleSave} loading={isMutating}>
               保存
-            </button>
+            </Button>
           </div>
         </div>
       </Command>

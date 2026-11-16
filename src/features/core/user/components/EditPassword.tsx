@@ -4,7 +4,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
-import { LoaderIcon, CheckCircleIcon } from "lucide-react";
+import { CheckCircleIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { PasswordInput } from "@/components/Form/Input/Manual/PasswordInput";
@@ -103,11 +103,12 @@ export function EditPassword({ email }: EditPasswordProps) {
               <Button
                 type="button"
                 onClick={handleChange}
-                disabled={isLoading || !currentPassword.trim() || !newPassword.trim()}
+                disabled={!currentPassword.trim() || !newPassword.trim()}
+                loading={isLoading}
+                loadingLabel="変更中..."
                 className="w-full"
               >
-                {isLoading && <LoaderIcon className="h-4 w-4 animate-spin" />}
-                {isLoading ? "変更中..." : "パスワードを変更"}
+                パスワードを変更
               </Button>
             </Stack>
           )}

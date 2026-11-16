@@ -11,7 +11,6 @@ import { Input } from "@/components/Form/Input/Manual/Input";
 import { Button } from "@/components/Form/Button/Button";
 import { Span } from "@/components/TextBlocks";
 import { Para } from "@/components/TextBlocks/Para";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { useValidateCouponForCategory } from "@/features/core/coupon/hooks/useValidateCouponForCategory";
 import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
 import { getActiveCoupon } from "@/features/core/wallet/utils/couponParam";
@@ -152,9 +151,11 @@ function CouponInputBody({ paymentAmount, purchaseAmount, onApply, onClear }: Co
             variant="outline"
             size="md"
             onClick={handleApply}
-            disabled={isLoading || !code.trim()}
+            disabled={!code.trim()}
+            loading={isLoading}
+            loadingLabel={null}
           >
-            {isLoading ? <Spinner className="h-4 w-4" /> : "適用"}
+            適用
           </Button>
         </Flex>
         {errorMessage && (

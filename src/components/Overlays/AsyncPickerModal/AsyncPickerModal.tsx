@@ -17,7 +17,6 @@
 //  - multiple=false: 行クリックで即 onConfirm([value], [item]) → close
 
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
 
 import { Command, CommandInput } from "@/components/Primitives/Command";
 import { Button } from "@/components/Form/Button/Button";
@@ -294,9 +293,9 @@ export function AsyncPickerModal<T>({
             type="button"
             variant="primary"
             onClick={() => void confirm(selected)}
-            disabled={isExecuting || selected.length === 0}
+            disabled={selected.length === 0}
+            loading={isExecuting}
           >
-            {isExecuting ? <Loader2 className="size-4 animate-spin" /> : null}
             {resolvedConfirmLabel}
           </Button>
         ) : null}

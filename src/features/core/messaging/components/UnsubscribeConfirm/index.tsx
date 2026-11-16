@@ -6,7 +6,6 @@
 import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { Para } from "@/components/TextBlocks/Para";
 
 export type UnsubscribeConfirmProps = {
@@ -29,8 +28,7 @@ export function UnsubscribeConfirm({ categoryLabel, channelLabel, onConfirm, pen
       </Para>
       {errorText ? <Para tone="destructive">{errorText}</Para> : null}
       <Flex justify="center">
-        <Button type="button" onClick={onConfirm} disabled={pending}>
-          {pending ? <Spinner className="size-4" /> : null}
+        <Button type="button" onClick={onConfirm} loading={pending}>
           配信を停止する
         </Button>
       </Flex>

@@ -6,7 +6,6 @@ import { useCallback } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoaderIcon } from "lucide-react";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { ControlledField } from "@/components/Form";
@@ -135,11 +134,11 @@ export function EditProfile({
             )}
             <Button
               type="submit"
-              disabled={loading}
+              loading={loading}
+              loadingLabel="保存中..."
               className="w-full"
             >
-              {loading && <LoaderIcon className="h-4 w-4 animate-spin" />}
-              {loading ? "保存中..." : "保存"}
+              保存
             </Button>
           </AppForm>
         </div>

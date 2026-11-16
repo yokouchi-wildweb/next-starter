@@ -444,6 +444,27 @@ const tableOptions: Options[] = tables.map((t) => ({
 
 ---
 
+## Button の読み込み中（loading / loadingLabel）
+
+`Button`（`@/components/Form/Button`）と `TabletButton` は、実行中の表示を `loading` で持つ。ボタンの中に Spinner を手で組まない。
+
+- `loading`: true のとき押せなくし（`disabled`）、`aria-busy` を付け、子の前に Spinner（既定の形）を出す。`disabled` の式に実行中の値を足さなくてよい
+- `loadingLabel`: 読み込み中に子の代わりに出す中身。未指定 = 子のまま（Spinner + 子）、文字 = Spinner + その文字、`null` = Spinner だけ
+- 渡さなければ今の出力のまま（DOM・class とも変わらない）
+- `asChild` では効かない: 子（Link など）に Spinner を足さず、`disabled` / `aria-busy` だけ付く
+- `PseudoButton`（div で描く）は持たない
+
+```tsx
+<Button onClick={save} disabled={!canSave} loading={isSaving} loadingLabel="保存中...">
+  保存
+</Button>
+<Button variant="outline" onClick={apply} loading={isApplying} loadingLabel={null}>
+  適用
+</Button>
+```
+
+---
+
 ## ディレクトリ構造
 
 ```

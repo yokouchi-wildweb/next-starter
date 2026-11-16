@@ -30,7 +30,6 @@ import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { Para, Span } from "@/components/TextBlocks";
 
 import { circledNumber } from "./stepNumber";
@@ -198,9 +197,11 @@ export function ImageJudgmentSection({
                   size="lg"
                   className="w-full max-w-xs"
                   onClick={handleJudge}
-                  disabled={loading || isRateLimited}
+                  disabled={isRateLimited}
+                  loading={loading}
+                  loadingLabel="判定中..."
                 >
-                  {renderButtonContent({ loading, result, isRateLimited })}
+                  {renderButtonContent({ result, isRateLimited })}
                 </Button>
               </Flex>
             )}
@@ -220,22 +221,12 @@ export function ImageJudgmentSection({
 }
 
 function renderButtonContent({
-  loading,
   result,
   isRateLimited,
 }: {
-  loading: boolean;
   result: JudgmentResult | null;
   isRateLimited: boolean;
 }) {
-  if (loading) {
-    return (
-      <>
-        <Spinner className="h-4 w-4" />
-        判定中...
-      </>
-    );
-  }
   if (isRateLimited) {
     return "しばらく時間を置いてからお試しください";
   }

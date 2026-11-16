@@ -188,8 +188,7 @@ function UserGroupModalBody({
           />
         ) : null}
         {!locked ? (
-          <Button type="button" size="sm" variant="primary" disabled={isSaving || freeze.running || !form.canSave} onClick={() => void save()}>
-            {isSaving ? <Spinner className="size-4" /> : null}
+          <Button type="button" size="sm" variant="primary" disabled={freeze.running || !form.canSave} loading={isSaving} onClick={() => void save()}>
             {group ? "保存" : "作成"}
           </Button>
         ) : null}
