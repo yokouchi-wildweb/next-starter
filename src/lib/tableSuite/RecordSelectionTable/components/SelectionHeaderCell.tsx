@@ -4,7 +4,7 @@ import { Checkbox, type CheckedState } from "@/components/Primitives/Checkbox";
 import { cn } from "@/lib/cn";
 
 // visible = 選択の on / off。列はいつも置き、off は幅 0・透明・inert(押せない・フォーカスしない・読み上げない)。
-// 出入りは幅と濃さを 600ms の linear で動かす(RecordSelectionList のチェックの列と同じ)
+// 出入りは幅と濃さを 200ms の linear で動かす(RecordSelectionList のチェックの列と同じ)
 
 import { TableHead } from "../../shared";
 import { isCheckboxEvent } from "../utils/checkboxEvent";
@@ -50,7 +50,7 @@ export function SelectionHeaderCell({
   return (
     <TableHead
       className={cn(
-        "transition-[padding] duration-[600ms] ease-linear",
+        "transition-[padding] duration-200 ease-linear",
         visible ? "w-10" : "w-0 px-0",
         visible && isCheckboxSelection && "cursor-pointer select-none",
       )}
@@ -60,7 +60,7 @@ export function SelectionHeaderCell({
     >
       <div
         className={cn(
-          "flex h-full items-center justify-center overflow-hidden transition-[width,opacity] duration-[600ms] ease-linear",
+          "flex h-full items-center justify-center overflow-hidden transition-[width,opacity] duration-200 ease-linear",
           visible ? "w-10 opacity-100" : "w-0 opacity-0",
         )}
       >

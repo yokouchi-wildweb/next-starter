@@ -4,7 +4,7 @@
 // 選択の出し方(selectionMode、D97 D98)・無限スクロールの番兵は表と同じ物を使う。
 // - 1 件 = 左のチェックの列 + カードの本体(renderItem)。チェックの列は全高・押しやすい幅で、列のどこを押しても選択が切り替わる(D99)。
 //   キーボードと aria はチェックボックスのまま(列はマウスの当たりを広げるだけ)
-// - 選択の on / off(toggle)ではチェックの列が幅と濃さで出入りする(600ms の linear、表のチェックの列と同じ)
+// - 選択の on / off(toggle)ではチェックの列が幅と濃さで出入りする(200ms の linear、表のチェックの列と同じ)
 // - 見出しの行が無いので「すべて選択」はバーの左に出す(読み込み済みの選べる行が対象)
 // - isSelectable(item) が false の行はチェックを出さず、すべて選択からも外す
 
@@ -126,11 +126,11 @@ export default function RecordSelectionList<T>({
           const selected = selectedKeySet.has(key);
           return (
             <div key={key} className="flex items-stretch" data-selected={selected ? "true" : undefined}>
-              {/* チェックの列はいつも置き、選択の on / off で幅と濃さを動かす(600ms の linear、表のチェックの列と同じ)。
+              {/* チェックの列はいつも置き、選択の on / off で幅と濃さを動かす(200ms の linear、表のチェックの列と同じ)。
                   off の間は inert(押せない・フォーカスしない・読み上げない) */}
               <div
                 className={cn(
-                  "shrink-0 overflow-hidden transition-[width,margin,opacity] duration-[600ms] ease-linear",
+                  "shrink-0 overflow-hidden transition-[width,margin,opacity] duration-200 ease-linear",
                   selectionOn ? "mr-1 w-11 opacity-100" : "mr-0 w-0 opacity-0",
                 )}
                 inert={!selectionOn}
