@@ -279,7 +279,7 @@ export function BankTransferReviewTable({
       selectionBehavior="row"
       selectedKeys={selectedKeys}
       onSelectionChange={(keys) => onSelectionChange(keys)}
-      bulkActionsAlwaysVisible
+      selectionMode="always"
       bulkActionsEmptyMessage="レビューを選択すると一括操作できます"
       bulkActions={(selection) => (
         <BulkActionItems items={bulkActionItems} selection={selection} onDone={onBulkActionDone} />

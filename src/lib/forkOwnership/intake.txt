@@ -178,6 +178,8 @@ add src/features/core/coupon/adminSectionTabs/*.{ts,tsx}  # 受け口 sectionTab
 add src/features/core/coupon/adminSectionTabs/*/**  # 受け口 sectionTabs(フォルダ形)
 add src/features/core/interactionTracking/targetRules/*.{ts,tsx}  # 受け口 targetRules
 add src/features/core/interactionTracking/targetRules/*/**  # 受け口 targetRules(フォルダ形)
+add src/features/core/messaging/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkActions
+add src/features/core/messaging/adminBulkActions/*/**  # 受け口 adminBulkActions(フォルダ形)
 add src/features/core/messaging/bulkSendTargets/*.{ts,tsx}  # 受け口 bulkSendTargets
 add src/features/core/messaging/bulkSendTargets/*/**  # 受け口 bulkSendTargets(フォルダ形)
 add src/features/core/messaging/categories/*.{ts,tsx}  # 受け口 categories

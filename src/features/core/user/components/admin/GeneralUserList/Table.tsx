@@ -44,7 +44,7 @@ export default function GeneralUserListTable({ users, editBasePath }: Props) {
           getKey={(user) => user.id}
           emptyValueFallback={adminDataTableFallback}
           selectionBehavior={selection.behavior}
-          bulkActionsAlwaysVisible={selection.bulkActionsAlwaysVisible}
+          selectionMode={selection.selectionMode}
           bulkActions={(selected) => <BulkActionItems items={bulkActions} selection={selected} onDone={onBulkDone} />}
         />
       ) : (

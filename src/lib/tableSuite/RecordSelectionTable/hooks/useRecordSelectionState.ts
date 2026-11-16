@@ -105,5 +105,7 @@ export function useRecordSelectionState<T>({
     isPartialSelection,
     updateKeySelection,
     updateAllSelection,
+    /** 選択をこの鍵の並びに置き換える(一部の行だけのすべて選択など) */
+    replaceSelection: emitSelectionChange,
   };
 }

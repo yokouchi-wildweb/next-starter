@@ -624,7 +624,7 @@ export function ProfileCard({ user }: { user: User }) {
 | `canAdjustWallet` | ポイント操作を出すか（gate `wallet` が開いていて `walletConfig.enableAdminBalanceAdjust`） |
 | `canManage` | 管理モーダルを使うか（`userConfig.enableUserManagement`）。false = 削除の確認ダイアログ |
 | `canMemo` | メモの列を出すか（`userConfig.enableUserMemo`） |
-| `selection` | `{ enabled, behavior, bulkActionsAlwaysVisible }`（`userConfig.userListPage`。`enabled` = `enableSelectionTable.general`） |
+| `selection` | `{ enabled, behavior, selectionMode }`（`userConfig.userListPage`。`enabled` = `enableSelectionTable.general`） |
 | `bulkActions` / `onBulkDone` | 一括操作の項目（受け口 `adminBulkActions` の `"general"`）と、`BulkActionItems` の `onDone` に渡す再読み込み |
 | `adjust` | `{ target, open(user), close, onAdjusted }`。`onAdjusted` は `AdminWalletAdjustModal` の `onSuccess` に渡す再読み込み |
 | `manage` | `{ target, open(user), close }`（`AdminUserManageModal` 用） |
@@ -677,7 +677,7 @@ export function GeneralUserListTable({ users, coinBalanceMap }: { users: User[];
       getKey={(u) => u.id}
       onRowClick={setHistoryUser}
       selectionBehavior={t.selection.behavior}
-      bulkActionsAlwaysVisible={t.selection.bulkActionsAlwaysVisible}
+      selectionMode={t.selection.selectionMode}
       bulkActions={(selection) => <BulkActionItems items={t.bulkActions} selection={selection} onDone={t.onBulkDone} />}
     />
   ) : (

@@ -72,4 +72,14 @@ export const extensionPoints = {
     side: "client",
     key: "key",
   },
+  // 送信一覧の一括操作(client、D95): adminBulkActions/<名前>.tsx の export const bulkAction(上流の既定 = 削除)。
+  // fork は項目を足す・<名前>.override.ts で enabled・order を変える(user の受け口と同じ形)
+  adminBulkActions: {
+    dir: "adminBulkActions",
+    export: "bulkAction",
+    type: { from: "@/features/core/messaging/types/adminBulkAction", name: "MessagingDispatchAdminBulkActionItem" },
+    side: "client",
+    key: "key",
+    overrideOf: ["enabled", "order"],
+  },
 };
