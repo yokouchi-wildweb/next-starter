@@ -30,7 +30,7 @@ export function UserGroupEstimateView({ result, reason, isLoading, stale, canRun
         <Span weight="semiBold">対象人数の見積もり</Span>
         <Button type="button" size="sm" variant="outline" disabled={!canRun} onClick={onRun}>
           {isLoading ? <Spinner className="size-4" /> : null}
-          {result || reason ? "再計算" : "見積もる"}
+          {result || reason ? "再計算" : "対象者を集計"}
         </Button>
       </Flex>
       {reason ? (
