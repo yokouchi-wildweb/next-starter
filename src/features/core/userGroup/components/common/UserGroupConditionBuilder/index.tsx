@@ -1,6 +1,6 @@
 // src/features/core/userGroup/components/common/UserGroupConditionBuilder/index.tsx
 // 部品(props だけ): 条件の組み立て。根の組(すべて満たす / いずれかを満たす)の中に条件と条件グループ(2 階層まで。グループの中は条件だけ)。
-// 見た目: 根の組 = 枠つきのカード(下に追加の操作) / 条件グループ = 左に色の帯 + 「条件グループ」の札 + 薄い地 / 並んだ条件の間に「かつ・または」
+// 見た目: 根の組 = 枠つきのカード(下に追加の操作) / 条件グループ = 左に色の帯 + 「条件グループ」の札 + 薄い地 / 並んだ条件の間に「かつ・または」 / 番号の札(グループの外の条件 = 1・2…、条件グループ = a・b…、その中 = a1・a2…。並びから毎回数える)
 // - どの条件・グループも「含める / 除外する」を選べる(not。両方を見せた 2 択)/ 条件は部品の label で選び、引数は部品の欄から(UserGroupCriterionFields)
 // - 画面で組めない深い定義は読むだけで出し(label と引数の表示)、「作り直す」で空の組から組める
 // 流れ(木の形・足す外す・定義の木への変換)は hook useUserGroupConditionBuilder。部品の鍵は出さない(D94)
@@ -116,12 +116,28 @@ function NegateChoice({ node, actions, disabled }: Omit<NodeProps, "level" | "cr
   );
 }
 
-function CriterionNode({ node, criteria, actions, disabled }: Omit<NodeProps, "level"> & { node: Extract<ConditionDraftNode, { type: "criterion" }> }) {
+/** 番号の札(条件 = 1・2… / グループの中 = a1・a2…) */
+function NumberTag({ children }: { children: string }) {
+  return (
+    <Span size="xs" weight="semiBold" tone="muted" className="min-w-6 rounded-md bg-muted px-1.5 py-0.5 text-center tabular-nums" data-slot="condition-number">
+      {children}
+    </Span>
+  );
+}
+
+function CriterionNode({
+  node,
+  number,
+  criteria,
+  actions,
+  disabled,
+}: Omit<NodeProps, "level"> & { node: Extract<ConditionDraftNode, { type: "criterion" }>; number: string }) {
   const criterion = criteria.find((c) => c.key === node.part);
   return (
     <Stack space={2} className="rounded-md border border-border bg-card p-3" data-slot="condition-criterion">
       <Flex align="center" justify="between" gap="xs" wrap="wrap">
         <Flex align="center" gap="xs" wrap="wrap">
+          <NumberTag>{number}</NumberTag>
           <Span weight="semiBold">{criterion?.label ?? UNKNOWN_CRITERION}</Span>
           {criterion?.weight === "heavy" ? (
             <Span size="sm" tone="warning">
@@ -161,8 +177,30 @@ function JoinMark({ op }: { op: ConditionGroupOp }) {
   );
 }
 
-function GroupNode({ node, level, criteria, actions, disabled }: NodeProps & { node: ConditionDraftGroup }) {
+/** 条件グループの記号(0 → a、25 → z、26 → aa) */
+function groupLetter(index: number): string {
+  let n = index;
+  let out = "";
+  do {
+    out = String.fromCharCode(97 + (n % 26)) + out;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return out;
+}
+
+function GroupNode({
+  node,
+  level,
+  letter = "",
+  criteria,
+  actions,
+  disabled,
+}: NodeProps & { node: ConditionDraftGroup; /** 条件グループの記号(根は空) */ letter?: string }) {
   const isRoot = level === 1;
+  // 番号は並びから毎回数える(足す・消すと付け直す)。根 = 条件は 1・2…、グループは a・b… / グループの中 = a1・a2…
+  let criterionCount = 0;
+  let groupCount = 0;
+  const numbers = node.children.map((child) => (child.type === "group" ? groupLetter(groupCount++) : `${letter}${++criterionCount}`));
   const pickOptions = criteria.map((criterion) => ({
     value: criterion.key,
     label: criterion.weight === "heavy" ? `${criterion.label}(${criterion.weightLabel})` : criterion.label,
@@ -181,7 +219,7 @@ function GroupNode({ node, level, criteria, actions, disabled }: NodeProps & { n
         <Flex align="center" gap="xs" wrap="wrap">
           {isRoot ? null : (
             <Span size="xs" weight="semiBold" tone="primary" className="rounded-full bg-primary/10 px-2.5 py-0.5">
-              条件グループ
+              {`条件グループ ${letter}`}
             </Span>
           )}
           <Span size="sm">{isRoot ? "次の条件を" : "この中の条件を"}</Span>
@@ -212,9 +250,9 @@ function GroupNode({ node, level, criteria, actions, disabled }: NodeProps & { n
             <Fragment key={child.id}>
               {index > 0 ? <JoinMark op={node.op} /> : null}
               {child.type === "group" ? (
-                <GroupNode node={child} level={level + 1} criteria={criteria} actions={actions} disabled={disabled} />
+                <GroupNode node={child} level={level + 1} letter={numbers[index]} criteria={criteria} actions={actions} disabled={disabled} />
               ) : (
-                <CriterionNode node={child} criteria={criteria} actions={actions} disabled={disabled} />
+                <CriterionNode node={child} number={numbers[index]} criteria={criteria} actions={actions} disabled={disabled} />
               )}
             </Fragment>
           ))}
