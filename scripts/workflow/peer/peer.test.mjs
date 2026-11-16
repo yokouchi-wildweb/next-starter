@@ -94,13 +94,11 @@ test("印: pid・procStart が今のプロセスと合う時だけ有効(pid の
   assert.equal(markIsValid(null, { procStart }), false);
 });
 
-test("門: tmux の値 + tmux の中 + 自分の id だけ通す。チームの道具のタブも通す", () => {
+test("門: tmux の値 + tmux の中 + 自分の id だけ通す", () => {
   const base = { AGENT_TERMINAL: "tmux", TMUX: "/s,1,0", TMUX_PANE: "%1", CLAUDE_CODE_SESSION_ID: A };
   assert.deepEqual(checkGate(base), { ok: true, selfId: A });
   assert.match(checkGate({ ...base, AGENT_TERMINAL: "none" }).reason, /AGENT_TERMINAL が tmux でない/);
   assert.match(checkGate({ ...base, TMUX: "" }).reason, /tmux の外/);
-  assert.deepEqual(checkGate({ ...base, TK_TEAM: "council" }), { ok: true, selfId: A });
-  assert.deepEqual(checkGate({ ...base, LOUNGE_ROLE: "x" }), { ok: true, selfId: A });
   assert.match(checkGate({ ...base, CLAUDE_CODE_SESSION_ID: "" }).reason, /セッション id/);
 });
 

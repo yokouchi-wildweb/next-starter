@@ -524,3 +524,4 @@
 - id:20261117-104950-overlay-parts | severity:info | checkpoint:overlay-parts
 - id:20261117-115305-input-parts | severity:info | checkpoint:input-parts
 - id:20261117-120558-admin-manage-tabs | severity:info | checkpoint:admin-manage-tabs
+- id:20261116-114820-agent-terminal-explicit-values | severity:info | checkpoint:agent-terminal-explicit-values

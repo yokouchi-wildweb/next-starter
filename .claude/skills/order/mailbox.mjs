@@ -242,11 +242,17 @@ function localRepos(self) {
 //   それ以外: <origin> | branch:<b> | cwd:<path>
 export function fromLine(env, { origin, repoId, branch, cwd }) {
   const repo = origin || repoId;
-  if (env.TK_TEAM && env.TK_INSTANCE) {
-    const role = env.TK_LABEL || env.TK_ROLE || "-";   // TK_LABEL が無いのは、それを渡す前に起動したタブ
-    return `${env.TK_TEAM} ${env.TK_INSTANCE} | role:${role} | repo:${repo} | branch:${branch || "-"} | cwd:${cwd}`;
-  }
+  const team = teamIssuer(env);
+  if (team) return `${team} | repo:${repo} | branch:${branch || "-"} | cwd:${cwd}`;
   return `${repo} | branch:${branch || "-"} | cwd:${cwd}`;
+}
+
+// チームのタブの発行元 `<team> <instance> | role:<役職名>`(無ければ null)。チームの印の環境変数を読むのはこの 1 か所だけ
+// (from: と taken_by / routed_by の名前が同じ値になる)
+function teamIssuer(env) {
+  if (!env.TK_TEAM || !env.TK_INSTANCE) return null;
+  const role = env.TK_LABEL || env.TK_ROLE || "-";   // TK_LABEL が無いのは、それを渡す前に起動したタブ
+  return `${env.TK_TEAM} ${env.TK_INSTANCE} | role:${role}`;
 }
 
 // 指令の発行元（from: の値）を読む。先頭が発行元
@@ -375,9 +381,10 @@ export function orderStatus(text) {
 }
 
 // 動いている者の名前（taken_by / routed_by に書く）
-//   チームのタブ: <team> <instance> | role:<役職名>（from: と同じ環境変数）| リポのセッション: <origin> | branch:<b>
+//   チームのタブ: <team> <instance> | role:<役職名>（from: と同じ teamIssuer）| リポのセッション: <origin> | branch:<b>
 export function actorOf(env, { origin, repoId, branch }) {
-  if (env.TK_TEAM && env.TK_INSTANCE) return `${env.TK_TEAM} ${env.TK_INSTANCE} | role:${env.TK_LABEL || env.TK_ROLE || "-"}`;
+  const team = teamIssuer(env);
+  if (team) return team;
   return `${origin || repoId} | branch:${branch || "-"}`;
 }
 
@@ -397,7 +404,9 @@ export function routedMatches(routedTo, actor, as, env = {}) {
   const norm = (s) => String(s).trim().replace(/\s+/g, " ");
   const want = norm(routedTo);
   const names = as ? [as] : [actor, actorKey(actor)];
-  if (!as && env.TK_TEAM && env.TK_INSTANCE) names.push(`${env.TK_TEAM} ${env.TK_INSTANCE}`, `${env.TK_TEAM}:${env.TK_INSTANCE}`);
+  // チームの者（role: 欄あり）は <team> <instance> と <team>:<instance> でも（actor から。環境変数は読まない）
+  const key = actorKey(actor);
+  if (!as && String(actor).includes("| role:") && /^\S+ \S+$/.test(key)) names.push(key.replace(" ", ":"));
   return names.some((n) => norm(n) === want);
 }
 

@@ -139,15 +139,15 @@ test("門が閉じている → start / cwd / prompt / bell とも出さず書�
   }
 });
 
-test("hook.mjs そのもの: チームの道具のタブでも動き、PEER_BOXES を渡されたセッションだけが箱を受け持つ", () => {
+test("hook.mjs そのもの: PEER_BOXES を渡されたセッションだけが箱を受け持つ", () => {
   const root = temp();
   const run = (mode, env, input = {}) =>
     spawnSync(process.execPath, [path.join(here, "hook.mjs"), mode], { input: JSON.stringify(input), encoding: "utf8", env: { PATH: process.env.PATH, ...env } });
-  const team = run("start", { ...openEnv(root), TK_TEAM: "council", PEER_BOXES: "council/r1" });
+  const team = run("start", { ...openEnv(root), PEER_BOXES: "council/r1" });
   assert.equal(team.status, 0);
   assert.deepEqual(JSON.parse(team.stdout).hookSpecificOutput.watchPaths, [boxDir(root, SELF), boxDir(root, "council/r1")]);
-  // 席のタブ: 同じチームの環境でも PEER_BOXES を渡されなければ自分の会話の箱だけ
-  const seat = run("start", { ...openEnv(root), TK_TEAM: "council", CLAUDE_CODE_SESSION_ID: "seat-3333" });
+  // 席のタブ: PEER_BOXES を渡されなければ自分の会話の箱だけ
+  const seat = run("start", { ...openEnv(root), CLAUDE_CODE_SESSION_ID: "seat-3333" });
   assert.deepEqual(JSON.parse(seat.stdout).hookSpecificOutput.watchPaths, [boxDir(root, "seat-3333")]);
   const open = run("start", openEnv(root), { source: "startup" });
   assert.equal(open.status, 0);

@@ -49,10 +49,12 @@ try {
       // この端末でできることの案内(どの source でも。圧縮の後も入れ直す)
       process.stdout.write(readFileSync(guideFile(readAgentTerminal()), "utf8"));
       const manual = readMark(dir, "precompact") === "manual";
-      const text = AFTER_TEXT[readMark(dir, "after")] ?? AFTER_TEXT.continue;
+      const after = readMark(dir, "after");
+      const text = AFTER_TEXT[after] ?? AFTER_TEXT.continue;
       writeMark(dir, "precompact", "");
       writeMark(dir, "after", "");
-      if (input.source === "compact" && manual && session) {
+      // 印 after = none(compactSelf --then none、または /compact を打つ道具が afterCompact で書いた)= 何も打たない
+      if (input.source === "compact" && manual && session && after !== "none") {
         const child = spawn(process.execPath, [path.join(HERE, "lib.waiter.mjs"), "continue", text], {
           detached: true,
           stdio: "ignore",

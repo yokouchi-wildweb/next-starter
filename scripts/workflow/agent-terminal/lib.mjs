@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 export const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-/** AGENT_TERMINAL が取る値。無い・知らない値 = none(端末に頼る道具はすべて何もしない) */
+/** AGENT_TERMINAL が取る値(この会話が tmux を使うか)。無い・知らない値 = none(端末に頼る道具はすべて何もしない) */
 export const TERMINALS = ["tmux", "none"];
 
 /** プロジェクトの既定値のファイル(git に入る)。人ごとの上書きはプロセスの環境変数 AGENT_TERMINAL */
@@ -45,6 +45,11 @@ export function readAgentTerminal(env = process.env, file = DEFAULT_FILE) {
 /** 圧縮の頼み先のコマンド(空白で区切った実行ファイルと引数)と、残すことを渡す環境変数 */
 export const COMPACT_CMD_ENV = "AGENT_COMPACT_CMD";
 export const COMPACT_FOCUS_ENV = "AGENT_COMPACT_FOCUS";
+/** 頼み先に渡す、圧縮の後に打つ 1 行の種類(compactSelf の --then の値。頼み先はそれを印 after に書く: afterCompact) */
+export const COMPACT_THEN_ENV = "AGENT_COMPACT_THEN";
+
+/** 圧縮の後に打つ 1 行の種類(印 after の値。none = 何も打たない) */
+export const AFTER_COMPACT = ["continue", "wait", "none"];
 
 /**
  * 圧縮の頼み先(AGENT_COMPACT_CMD)。{ cmd, args, env: <渡す環境変数の追加> } か null
@@ -52,28 +57,7 @@ export const COMPACT_FOCUS_ENV = "AGENT_COMPACT_FOCUS";
  */
 export function compactHandoff(env = process.env, focus = "") {
   const words = (env[COMPACT_CMD_ENV] ?? "").trim().split(/\s+/).filter(Boolean);
-  if (words.length > 0) return { cmd: words[0], args: words.slice(1), env: { [COMPACT_FOCUS_ENV]: focus } };
-  return legacyHandoff(env, focus).compact;
-}
-
-/**
- * 古い形の値(切り替えで消す)。値を書く側がまだ一般の値(AGENT_TERMINAL=none・AGENT_COMPACT_CMD)を書かない間だけ、
- * その古い環境変数を読む。古い名前はこの関数の中だけに置く。
- * driven = 端末は別の道具が持つ / compact = 古い形の頼み先(そろう時だけ)
- * @returns {{ driven: boolean, compact: { cmd: string, args: string[], env: Record<string, string> } | null }}
- */
-export function legacyHandoff(env = process.env, focus = "") {
-  const driven = ["TK_TEAM", "LOUNGE_ROLE", "GUILD_ROLE", "FLEET_ROLE", "COUNCIL_ROLE"].some((k) => (env[k] ?? "") !== "");
-  const [tool, instance, tab] = ["TK_TEAM", "TK_INSTANCE", "TK_TAB"].map((k) => (env[k] ?? "").trim());
-  const compact = tool && instance && tab ? { cmd: tool, args: ["compact", instance, tab], env: { TK_COMPACT_FOCUS: focus } } : null;
-  return { driven, compact };
-}
-
-/**
- * 端末は別の道具が持つ(AGENT_TERMINAL=none、または古い形の値)。圧縮も打ち込みもそちらが受け持つので、ここでは何もしない
- */
-export function isDrivenByAnotherTool(env = process.env) {
-  return readAgentTerminal(env) === "none" || legacyHandoff(env).driven;
+  return words.length > 0 ? { cmd: words[0], args: words.slice(1), env: { [COMPACT_FOCUS_ENV]: focus } } : null;
 }
 
 /** 端末ごとの案内(SessionStart で文脈に入れる)。値ごとに 1 ファイル、none には無い */
@@ -81,10 +65,13 @@ export const guideFile = (terminal) => path.join(HERE, `AGENT_TERMINAL.${termina
 
 /** 今のペイン(tmux の中で、AGENT_TERMINAL=tmux のときだけ)。{ socket, pane, key } か null */
 export function currentPane(env = process.env) {
-  if (readAgentTerminal(env) !== "tmux" || isDrivenByAnotherTool(env)) return null;
-  const socket = (env.TMUX ?? "").split(",")[0];
-  const pane = env.TMUX_PANE ?? "";
-  if (!socket || !/^%\d+$/.test(pane)) return null;
+  if (readAgentTerminal(env) !== "tmux") return null;
+  return paneOf((env.TMUX ?? "").split(",")[0], env.TMUX_PANE ?? "");
+}
+
+/** あるペイン(socket のパスとペイン id %N)の { socket, pane, key }。形が違えば null(別のペインの印を書く道具が使う) */
+export function paneOf(socket, pane) {
+  if (!socket || !/^%\d+$/.test(pane ?? "")) return null;
   const key = `${createHash("md5").update(socket).digest("hex").slice(0, 10)}_${pane.slice(1)}`;
   return { socket, pane, key };
 }

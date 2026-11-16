@@ -3,7 +3,7 @@
 // hook.mjs(continue)と compactSelf.mjs(compact)が detached で残す。打つのは次がそろったときだけ:
 //   - compact: 予約したときの返答が終わった(Stop の印 idle が予約時の値 <prev idle> から変わった)
 //   - 入力欄が画面にあって空(人の下書き・確認の画面・作業中の表示には打たない。lib.mjs boxText)
-// compact の [then](continue | wait)は、/compact を打てたときだけ印 after に書く(圧縮の後に hook.mjs が読む。
+// compact の [then](continue | wait | none)は、/compact を打てたときだけ印 after に書く(圧縮の後に hook.mjs が読む。
 // 打たずにやめた予約の印が残って、後で人が打つ /compact の続きを変えないように)
 // 打たずにやめるとき(どれも typein.log に 1 行):
 //   - そのペインの会話が変わった(/clear・別の claude。SessionStart の印 session が予約時と違う)
