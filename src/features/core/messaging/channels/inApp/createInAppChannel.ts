@@ -7,6 +7,7 @@
 // - 回の id は配達の行(冪等の鍵 = 配達の id)から引く。同じ回 × 利用者の行が既にあれば書かない(送り直しで重ねない)
 // - 画像(storage:// の参照)は書く前に回へ結び(bindImages、services/server/inbox/imageBinding.ts)、結んだ参照を行に書く。
 //   台帳の持ち主は回(宛先ごとの行は同じ 1 つのファイルを指す)
+// - 取り下げ(remove): 管理の削除が呼ぶ。回の行を全部消し、画像を台帳から外す(何度呼んでも同じ)
 // - throttle のある連絡の行は、この send ではなく間引きの処理(services/server/sendMessage/throttle.ts)が inAppItemRow の形で書く
 
 import { inAppFieldsSchema, type ChannelSendResult, type MessageChannel } from "@/lib/messaging";
@@ -21,6 +22,8 @@ export type InAppChannelDeps = {
   insertItems: (rows: readonly MessageInboxItemInsert[]) => Promise<void>;
   /** 回に画像を結ぶ(元の参照 → 行に書く参照)。回ごとに 1 回呼ぶ */
   bindImages: (dispatchId: string, refs: readonly string[]) => Promise<Map<string, string>>;
+  /** 回のお知らせの行(共有の行・受信者ごとの行)を消し、回に結んだ画像を外す(管理の削除、D89)。消した行の数 */
+  removeDispatch: (dispatchId: string) => Promise<number>;
   now: () => Date;
 };
 
@@ -58,6 +61,7 @@ export function createInAppChannel(deps: InAppChannelDeps): MessageChannel {
       image: { label: "画像", input: "image" },
       link: { label: "リンク先", help: "押したときに開くページ", input: "url" },
     },
+    remove: async ({ dispatchId }) => ({ removed: await deps.removeDispatch(dispatchId) }),
     resolveAddresses: async (userIds) => userIds.map((userId) => ({ userId, address: userId })),
     async send(targets) {
       const deliveryIdOf = (key: string) => key.split(":")[0];

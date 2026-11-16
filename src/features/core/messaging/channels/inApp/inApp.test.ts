@@ -18,6 +18,7 @@ function setup(existing: string[] = []) {
     now: () => now,
     findDispatchIds: async (ids) => new Map(ids.filter((id) => id !== "missing").map((id) => [id, "dispatch-1"])),
     findExistingItems: async () => new Set(existing),
+    removeDispatch: async () => 0,
     insertItems: async (rows) => {
       inserted.push(...rows);
     },

@@ -177,7 +177,7 @@ export function createMessagingAnalytics(deps: MessagingAnalyticsDeps) {
         tags: row.tags ?? [],
         sentAt: row.anchor.toISOString(),
         status: row.status,
-        retracted: row.retractedAt !== null,
+        deleted: row.deletedAt !== null,
         metrics: toMetrics(buckets.get(row.id)?.cur ?? emptyCounts(), {
           trackingEnabled: tracking,
           detailRetained: row.anchor >= cutoff,

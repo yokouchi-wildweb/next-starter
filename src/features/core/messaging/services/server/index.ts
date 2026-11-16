@@ -69,9 +69,10 @@ export type {
 } from "./admin";
 export type { MessagePreview, RecipientEstimate, SendAuthoredInput } from "./sendMessage";
 export type {
-  AdminCancelResult,
+  AdminBulkDeleteResult,
+  AdminDeleteResult,
+  AdminDeleteSummary,
   AdminResendResult,
-  AdminRetractResult,
   DispatchOperationFlag,
   DispatchOperationFlags,
   DispatchOperationReason,

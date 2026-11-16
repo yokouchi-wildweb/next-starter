@@ -20,7 +20,7 @@
 - 自分宛ての行（`user_id` = 見る人）か、共有の行（`user_id` null で `target_roles` が null = 全員 か 見る人のロールを含む）。グループ宛てと選んだ宛先は受信者ごとの行
 - 共有の行: 回の `show_to_later_signups` が false なら、見る人の登録より前に公開された行は見せない
 - 共有の行: 好みに従う回（`userStoppable`、kind の無い前の回も）で、見る人が inApp か `"*"` の経路で回の `category` か `"*"` を止めていれば見せない（共有の行は書く時に好みを当てないので読む時に当てる）
-- 取り下げた回の行は消えている（`retracted_at` は回にだけ残る）
+- 削除した回の行は消えている（inApp の `remove`。`deleted_at` は回にだけ残る）
 
 ### 既読（readState.ts）
 
@@ -35,7 +35,7 @@
   - 回の actor が上げた未紐付けの `notification.image` → そのまま attach
   - 別の人の・ほかの業務行に結ばれた・用途の違う画像 → 回ごとに 1 回 copy して複製を attach（元と ref を共有しない）。複製の失敗は投げる
   - 対応 `{ <元の参照>: <結んだ参照> }` を回の `metadata.inboxImages` に残し、束・送り直しは同じファイルを使う
-- 外す: 保持の掃除が回を消す取引の中で detach（`record_removed`）。保持の掃除を通らずに回が消えた画像は storage の照合（cron storage-sweep）が `existingDispatchIds`（`dispatchRecords.ts`）で外す。取り下げは画像を回に結んだまま残す
+- 外す: 保持の掃除が回を消す取引の中で detach（`record_removed`）。保持の掃除を通らずに回が消えた画像は storage の照合（cron storage-sweep）が `existingDispatchIds`（`dispatchRecords.ts`）で外す。管理の削除（inApp の `remove`）は行を消す取引の中で回の画像を外す（`record_removed`）
 
 ## Verification
 

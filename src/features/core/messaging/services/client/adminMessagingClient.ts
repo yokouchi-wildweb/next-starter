@@ -23,9 +23,10 @@ import type {
   AdminDispatchSummary,
 } from "@/features/core/messaging/services/server/admin/dispatchDto";
 import type {
-  AdminCancelResult,
+  AdminBulkDeleteResult,
+  AdminDeleteResult,
+  AdminDeleteSummary,
   AdminResendResult,
-  AdminRetractResult,
 } from "@/features/core/messaging/services/server/admin/operations";
 import type {
   AdminSendPreviewInput,
@@ -43,13 +44,14 @@ export type {
   AdminBulkSendOptions,
   AdminBulkSendResult,
   AdminFreeTextCategoryOption,
-  AdminCancelResult,
+  AdminBulkDeleteResult,
+  AdminDeleteResult,
+  AdminDeleteSummary,
   AdminDeliveryRow,
   AdminDispatchCategoryOption,
   AdminDispatchDetail,
   AdminDispatchSummary,
   AdminResendResult,
-  AdminRetractResult,
   ContinueSendingResult,
 };
 
@@ -188,23 +190,33 @@ export async function continueAdminDispatch(id: string): Promise<ContinueSending
   }
 }
 
-/** 予約の取り消し(予約でまだ展開していない回だけ。他は 409) */
-export async function cancelAdminDispatch(id: string): Promise<AdminCancelResult> {
+/** 回の削除(D88、どの状態でも。未送信・予約は送られず、お知らせは消える。送ったメール・LINE は残る。戻せない) */
+export async function deleteAdminDispatch(id: string): Promise<AdminDeleteResult> {
   try {
-    const res = await axios.post<AdminCancelResult>(`${BASE}/dispatches/${encodeURIComponent(id)}/cancel`);
+    const res = await axios.delete<AdminDeleteResult>(`${BASE}/dispatches/${encodeURIComponent(id)}`);
     return res.data;
   } catch (error) {
-    throw normalizeHttpError(error, "予約を取り消せませんでした");
+    throw normalizeHttpError(error, "送信を削除できませんでした");
   }
 }
 
-/** 取り下げ(お知らせの行を消し、未送信の配達を止める。戻せない。送ったメールは取り戻せない) */
-export async function retractAdminDispatch(id: string): Promise<AdminRetractResult> {
+/** 回のまとめての削除(1〜100 件、回ごとの結果) */
+export async function bulkDeleteAdminDispatches(ids: readonly string[]): Promise<AdminBulkDeleteResult> {
   try {
-    const res = await axios.post<AdminRetractResult>(`${BASE}/dispatches/${encodeURIComponent(id)}/retract`);
+    const res = await axios.post<AdminBulkDeleteResult>(`${BASE}/dispatches/bulk-delete`, { ids });
     return res.data;
   } catch (error) {
-    throw normalizeHttpError(error, "取り下げられませんでした");
+    throw normalizeHttpError(error, "送信を削除できませんでした");
+  }
+}
+
+/** 削除の見込み(確認の画面。経路ごとの送れた数・消せるか・未送信・予約の数) */
+export async function adminDispatchDeleteSummary(ids: readonly string[]): Promise<AdminDeleteSummary> {
+  try {
+    const res = await axios.post<AdminDeleteSummary>(`${BASE}/dispatches/delete-summary`, { ids });
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "削除の見込みを読み込めませんでした");
   }
 }
 

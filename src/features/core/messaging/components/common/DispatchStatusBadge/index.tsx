@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/DispatchStatusBadge/index.tsx
-// 部品(props だけ): 回の状態の印(message_dispatches.status)。取り下げた回は「取り下げ」を重ねる
+// 部品(props だけ): 回の状態の印(message_dispatches.status)。削除した回は「削除済み」を重ねる(D88)
 
 "use client";
 
@@ -18,12 +18,12 @@ export const DISPATCH_STATUS_DISPLAY: Record<string, { label: string; variant: V
 
 export type DispatchStatusBadgeProps = {
   status: string;
-  /** 取り下げた時刻(あれば「取り下げ」) */
-  retractedAt?: string | null;
+  /** 削除した時刻(あれば「削除済み」) */
+  deletedAt?: string | null;
   size?: SoftBadgeProps["size"];
 };
 
-export function DispatchStatusBadge({ status, retractedAt, size = "sm" }: DispatchStatusBadgeProps) {
+export function DispatchStatusBadge({ status, deletedAt, size = "sm" }: DispatchStatusBadgeProps) {
   // 表に無い状態は鍵を見せず「そのほかの状態」(D46)
   const display = DISPATCH_STATUS_DISPLAY[status] ?? { label: "その他", variant: "muted" as Variant };
   return (
@@ -31,9 +31,9 @@ export function DispatchStatusBadge({ status, retractedAt, size = "sm" }: Dispat
       <SoftBadge variant={display.variant} size={size}>
         {display.label}
       </SoftBadge>
-      {retractedAt ? (
+      {deletedAt ? (
         <SoftBadge variant="muted" size={size}>
-          公開停止
+          削除済み
         </SoftBadge>
       ) : null}
     </>

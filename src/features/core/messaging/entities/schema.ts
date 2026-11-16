@@ -12,8 +12,8 @@ import { z } from "zod";
  *   （processing のまま残っている行は「送信が走ったかもしれない」ことを示す）
  * - completed: 送信処理が最後まで走り、成功/失敗件数が確定した行
  * - completed_with_failures: 最後まで走ったが失敗した配達がある行
- * - cancelled: 1 通も送る前に止めた回（予約の取り消し・展開前）だけ。
- *   送った後の取り下げは status を変えず retracted_at を残す
+ * - cancelled: 1 通も送る前に止めた回（宛先のグループを固められなかった回など）。
+ *   管理者の削除は status を変えず deleted_at を残す（D88）
  */
 export const MESSAGE_DISPATCH_STATUSES = [
   "scheduled",

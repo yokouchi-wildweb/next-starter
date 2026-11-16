@@ -11,7 +11,6 @@ import { MessageDeliveryTable } from "../../../entities/delivery";
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageInboxItemTable } from "../../../entities/inbox";
 import type { MessageDeliveryTarget } from "../../../entities/schema";
-import { cleanupDetachedInboxImages, detachInboxImages } from "../inbox/imageBindingLedger";
 import type { FailedDeliveryRow, MessageOperationsStore } from "./operationsTypes";
 
 const d = MessageDeliveryTable;
@@ -36,14 +35,6 @@ export const drizzleMessageOperationsStore: MessageOperationsStore<TransactionCl
     await tx.update(MessageDispatchTable).set(patch).where(eq(MessageDispatchTable.id, id));
   },
 
-  async deleteInboxItems(tx, dispatchId) {
-    const rows = await tx
-      .delete(MessageInboxItemTable)
-      .where(eq(MessageInboxItemTable.dispatch_id, dispatchId))
-      .returning({ id: MessageInboxItemTable.id });
-    return rows.length;
-  },
-
   async cancelUnsent(tx, dispatchId, now) {
     const queued = await tx
       .update(d)
@@ -65,8 +56,32 @@ export const drizzleMessageOperationsStore: MessageOperationsStore<TransactionCl
     return queued.length + retrying.length;
   },
 
-  detachImages: (tx, dispatchId, refs) => detachInboxImages(tx, dispatchId, refs),
-  cleanupImages: (ids) => cleanupDetachedInboxImages(ids),
+  async findDispatches(ids) {
+    if (ids.length === 0) return [];
+    return db
+      .select({ id: MessageDispatchTable.id, status: MessageDispatchTable.status, deleted_at: MessageDispatchTable.deleted_at })
+      .from(MessageDispatchTable)
+      .where(inArray(MessageDispatchTable.id, [...ids]));
+  },
+
+  async deliveryCounts(dispatchIds) {
+    if (dispatchIds.length === 0) return [];
+    const rows = await db
+      .select({ channel: d.channel, status: d.status, count: sql<number>`count(*)::int` })
+      .from(d)
+      .where(inArray(d.dispatch_id, [...dispatchIds]))
+      .groupBy(d.channel, d.status);
+    return rows.map((row) => ({ channel: row.channel, status: row.status, count: Number(row.count) }));
+  },
+
+  async countSharedInbox(dispatchIds) {
+    if (dispatchIds.length === 0) return 0;
+    const [row] = await db
+      .select({ count: sql<number>`count(distinct ${MessageInboxItemTable.dispatch_id})::int` })
+      .from(MessageInboxItemTable)
+      .where(and(inArray(MessageInboxItemTable.dispatch_id, [...dispatchIds]), isNull(MessageInboxItemTable.user_id)));
+    return Number(row?.count ?? 0);
+  },
 
   async countFailed(tx, dispatchId) {
     const rows = await (tx ?? db)

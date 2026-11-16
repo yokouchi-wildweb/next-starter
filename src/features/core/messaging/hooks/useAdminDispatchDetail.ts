@@ -4,7 +4,7 @@
 //
 // 管理: 送った回 1 件の画面の流れ(AdminDispatchDetail はこれを呼んで部品を並べるだけ。CLAUDE.md core_ui)。
 // - 回 1 件(useAdminDispatch)と配達の一覧(状態・経路で絞る、useAdminDispatchDeliveries)
-// - 回の操作: 予約を取り消す・取り下げる・失敗分を再送(includeUnknown = 届いたか分からない分も)・続きを送る
+// - 回の操作: 削除(D88)・失敗分を再送(includeUnknown = 届いたか分からない分も)・続きを送る
 //   どれも成功したら配達を取り直して知らせ(toast)を出し、失敗は知らせだけ(Promise は ConfirmPopover の loading 用に返す)
 
 import { useCallback, useState } from "react";
@@ -14,10 +14,9 @@ import { useToast } from "@/lib/toast";
 
 import { useAdminDispatch } from "./useAdminDispatch";
 import { useAdminDispatchDeliveries } from "./useAdminDispatchDeliveries";
-import { useCancelDispatch } from "./useCancelDispatch";
 import { useContinueDispatch } from "./useContinueDispatch";
+import { useDeleteDispatch } from "./useDeleteDispatch";
 import { useResendDispatch } from "./useResendDispatch";
-import { useRetractDispatch } from "./useRetractDispatch";
 
 export type UseAdminDispatchDetailOptions = {
   /** 配達の 1 回の件数(既定 50、最大 100) */
@@ -38,31 +37,20 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
   });
   const { revalidate: revalidateDeliveries } = deliveries;
   const { continueSending } = useContinueDispatch(dispatchId);
-  const { trigger: cancelTrigger } = useCancelDispatch(dispatchId);
-  const { trigger: retractTrigger } = useRetractDispatch(dispatchId);
+  const { trigger: deleteTrigger } = useDeleteDispatch(dispatchId);
   const { trigger: resendTrigger } = useResendDispatch(dispatchId);
 
-  /** 予約を取り消す */
-  const cancel = useCallback(async () => {
+  /** 削除する(未送信・予約は送られず、お知らせは消える。送ったメール・LINE は残る) */
+  const remove = useCallback(async () => {
     try {
-      await cancelTrigger();
+      const res = await deleteTrigger();
       revalidateDeliveries();
-      showToast("予約を取り消しました", "success");
+      const removed = res.removed.reduce((sum, item) => sum + item.removed, 0);
+      showToast(`送信を削除しました(お知らせ ${removed} 件を削除し、未送信 ${res.canceledDeliveries} 件を止めました)`, "success");
     } catch (e) {
-      showToast(err(e, "予約を取り消せませんでした"), "error");
+      showToast(err(e, "送信を削除できませんでした"), "error");
     }
-  }, [cancelTrigger, revalidateDeliveries, showToast]);
-
-  /** 取り下げる(お知らせを消し、まだの配達を止める) */
-  const retract = useCallback(async () => {
-    try {
-      const res = await retractTrigger();
-      revalidateDeliveries();
-      showToast(`公開を停止しました(お知らせ ${res.deletedInboxItems} 件を削除し、未送信 ${res.canceledDeliveries} 件を止めました)`, "success");
-    } catch (e) {
-      showToast(err(e, "公開を停止できませんでした"), "error");
-    }
-  }, [retractTrigger, revalidateDeliveries, showToast]);
+  }, [deleteTrigger, revalidateDeliveries, showToast]);
 
   /** 失敗分を再送(送ったら includeUnknown を戻す) */
   const resend = useCallback(async () => {
@@ -105,8 +93,7 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
     },
     includeUnknown,
     setIncludeUnknown,
-    cancel,
-    retract,
+    remove,
     resend,
     continueDispatch,
   };

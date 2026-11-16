@@ -36,7 +36,8 @@ export type AdminDispatchSummary = {
   createdAt: string;
   completedAt: string | null;
   scheduledAt: string | null;
-  retractedAt: string | null;
+  /** 削除した時刻(D88。削除した回は一覧に既定で出ない) */
+  deletedAt: string | null;
   /** グループ宛ての回の宛先のグループ(id は値としてだけ。名前が引けなければ null)。ほかの宛先は null */
   targetGroup: AdminDispatchTargetGroup | null;
 };
@@ -136,7 +137,7 @@ export function toDispatchSummary(row: MessageDispatch, groupNames: ReadonlyMap<
     createdAt: row.createdAt.toISOString(),
     completedAt: iso(row.completed_at),
     scheduledAt: iso(row.scheduled_at),
-    retractedAt: iso(row.retracted_at),
+    deletedAt: iso(row.deleted_at),
     targetGroup: groupId ? { id: groupId, name: groupNames.get(groupId) ?? null } : null,
   };
 }

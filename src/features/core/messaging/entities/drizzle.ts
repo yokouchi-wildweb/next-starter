@@ -114,8 +114,11 @@ export const MessageDispatchTable = pgTable(
     show_to_later_signups: boolean("show_to_later_signups")
       .notNull()
       .default(false),
-    /** 取り下げた時刻（取り下げても status は送った結果のまま） */
-    retracted_at: timestamp("retracted_at", { withTimezone: true }),
+    /**
+     * 管理者が削除した時刻（D88。どの状態でも削除できる。status は削除した時のまま。削除した回は展開・送信・予約の拾いから外れ、
+     * 管理の一覧は既定で出さない。消せる経路の届けた物は経路の remove が消す）
+     */
+    deleted_at: timestamp("deleted_at", { withTimezone: true }),
     /**
      * 展開の再開位置(cron が大きな送信・全員・ロール・グループ宛てを束ごとに展開する)。
      * null = まだ展開していない / keyset の印か "i:<番号>"(選んだ宛先の一覧) = 途中 /
