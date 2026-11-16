@@ -6,6 +6,7 @@
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
 import type { ScreenProps } from "@/lib/screens/types";
+import { AdminMessagingSectionTabs } from "@/features/core/messaging/components/AdminMessagingSectionTabs";
 import { AdminMessageTemplateList } from "@/features/core/messaging/components/AdminMessageTemplateList";
 
 import { loadAdminMessagingTemplateListScreen } from "./loader";
@@ -18,7 +19,7 @@ export async function AdminMessagingTemplateListScreen(props: ScreenProps) {
   await loadAdminMessagingTemplateListScreen(props);
 
   return (
-    <AdminPage title="テンプレート">
+    <AdminPage title="テンプレート" center={<AdminMessagingSectionTabs variant="header" />}>
       <Section>
         <AdminMessageTemplateList />
       </Section>
