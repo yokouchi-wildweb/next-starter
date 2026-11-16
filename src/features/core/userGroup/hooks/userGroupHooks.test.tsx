@@ -199,9 +199,9 @@ test("条件: 3 段以上・not の重なりは組めない(読むだけ = null)
 
 test("条件: 問題(空の組・知らない部品)と重い部品", () => {
   const root = hooks.conditionFromDefinition({ op: "and", children: [{ part: "gone" }, { op: "or", children: [{ part: "slow" }] }] } as never)!;
-  assert.deepEqual(hooks.conditionProblems(root, CATALOG.criteria as never), ["今は使えない条件があります(外してください)"]);
+  assert.deepEqual(hooks.conditionProblems(root, CATALOG.criteria as never), ["使用できない条件があります(削除してください)"]);
   assert.equal(hooks.conditionHasHeavy(root, CATALOG.criteria as never), true);
-  assert.deepEqual(hooks.conditionProblems(hooks.emptyConditionRoot(), CATALOG.criteria as never), ["条件を 1 つ以上足してください"]);
+  assert.deepEqual(hooks.conditionProblems(hooks.emptyConditionRoot(), CATALOG.criteria as never), ["条件を 1 つ以上追加してください"]);
 });
 
 test("条件の引数: 日時は ISO・空の欄は落とす・数の文字は数、ISO は Date へ戻す", () => {
@@ -314,7 +314,7 @@ test("useUserGroupForm(作る): 動的は定義つきの POST、固定は startS
   await act(async () => f().fields.setKind("static"));
   assert.equal(f().canSave, true, "選んだ人 = 0 人でも作れる");
   await act(async () => f().fields.setSource({ type: "tag", userIds: [], tagId: "", groupId: "" }));
-  assert.deepEqual(f().problems, ["一員の元を選んでください"]);
+  assert.deepEqual(f().problems, ["メンバーの指定方法を選んでください"]);
   await act(async () => f().fields.setSource({ type: "tag", userIds: [], tagId: "tag-1", groupId: "" }));
   await act(async () => f().save());
   assert.deepEqual(started, [{ name: "常連", description: null, from: { type: "tag", tagId: "tag-1" } }]);

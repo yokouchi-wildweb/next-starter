@@ -1,6 +1,6 @@
 // 条件の組み立ての部品の検査(jsdom の上で描く。Button・SelectInput・引数の欄は偽物)。
-// - 部品は label で出し鍵は出さない(D94)/ 組を足すのは根だけ(2 段まで)/ 当てはまる ⇄ 当てはまらない / 外す / 条件を足す
-// - 読むだけの定義: 合わせ方・not・部品の label と引数(選択肢は label)、「作り直す」
+// - 部品は label で出し鍵は出さない(D94)/ 条件グループを追加するのは根だけ(2 階層まで)/ 含める・除外するの 2 択(両方見せる)/ 削除 / 条件を追加
+// - 表示のみの定義: 合わせ方・除外・部品の label と引数(選択肢は label)、「作り直す」
 // 実行: pnpm test src/features/core/userGroup/components/common/UserGroupConditionBuilder/UserGroupConditionBuilder.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -30,6 +30,15 @@ mock.module("@/components/Form/Input/Manual", {
         "span",
         { "data-select": props.placeholder ?? "op" },
         ...props.options.map((o) => createElement("button", { type: "button", key: o.value, onClick: () => props.onChange(o.value) }, `pick:${o.label}`)),
+      ),
+    // 含める / 除外する: 両方の選択肢を出し、今の値に印(aria-pressed)
+    RadioGroupInput: (props: { value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) =>
+      createElement(
+        "span",
+        { "data-radio": props.value },
+        ...props.options.map((o) =>
+          createElement("button", { type: "button", key: o.value, "aria-pressed": o.value === props.value, onClick: () => props.onChange(o.value) }, `radio:${o.label}`),
+        ),
       ),
   },
 });
@@ -94,34 +103,38 @@ const click = async (container: HTMLElement, text: string, index = 0) => {
   await act(async () => button.click());
 };
 
-test("組める形: label で出し鍵は出さない、組を足すのは根だけ、当てはまらない・外す・足す", async () => {
+test("組める形: label で出し鍵は出さない、条件グループの追加は根だけ、含める・除外する・削除・追加", async () => {
   const view = await render({ root: ROOT, problems: ["空の組があります"] });
   const text = view.container.textContent ?? "";
   assert.match(text, /ロール/);
   assert.match(text, /重い\(定期計算向け\)/);
   assert.doesNotMatch(text, /hasTag|"role"/);
   assert.match(text, /空の組があります/);
-  assert.equal([...view.container.querySelectorAll("button")].filter((b) => b.textContent === "組を足す").length, 1, "2 段目の組には組を足せない");
+  assert.equal([...view.container.querySelectorAll("button")].filter((b) => b.textContent === "条件グループを追加").length, 1, "2 階層目のグループにはグループを追加できない");
+  // 含める / 除外する は両方の選択肢を出し、今の方に印(状態だけを出すボタンにしない)
+  const radios = [...view.container.querySelectorAll("[data-radio]")];
+  assert.deepEqual(radios.map((r) => r.getAttribute("data-radio")), ["include", "include", "exclude", "include"]);
+  assert.deepEqual([...radios[2].querySelectorAll("button")].map((b) => [b.textContent, b.getAttribute("aria-pressed")]), [["radio:含める", "false"], ["radio:除外する", "true"]]);
   assert.equal(view.container.querySelectorAll('[data-part="fields"]').length, 2);
-  await click(view.container, "組を足す");
-  await click(view.container, "当てはまる人");
-  await click(view.container, "当てはまらない人");
-  await click(view.container, "組を外す");
-  await click(view.container, "pick:ロール"); // 先に描かれるのは 2 段目の組の「条件を足す」
-  await click(view.container, "pick:どれか 1 つを満たす");
+  await click(view.container, "条件グループを追加");
+  await click(view.container, "radio:除外する"); // 先頭 = 根のグループ
+  await act(async () => (radios[2].querySelectorAll("button")[0] as HTMLButtonElement).click()); // 2 階層目のグループを含めるへ
+  await click(view.container, "グループを削除");
+  await click(view.container, "pick:ロール"); // 先に描かれるのは 2 階層目のグループの「条件を追加」
+  await click(view.container, "pick:いずれかを満たす");
   assert.deepEqual(events, ["group:r", "negate:r:true", "negate:g1:false", "remove:g1", "add:g1:role", "op:r:or"]);
   await view.unmount();
 });
 
-test("読むだけ: 合わせ方・not・部品の label と引数(選択肢は label)、作り直す", async () => {
+test("表示のみ: 合わせ方・除外・部品の label と引数(選択肢は label)、作り直す", async () => {
   const definition = { op: "and", children: [{ op: "or", children: [{ op: "not", child: { part: "hasTag", args: { tagIds: ["t1"] } } }] }, { part: "gone" }] };
   const view = await render({ root: null, readOnlyDefinition: definition, readOnlyNote: "読むだけです" });
   const text = view.container.textContent ?? "";
   assert.match(text, /読むだけです/);
   assert.match(text, /すべて満たす/);
-  assert.match(text, /当てはまらない人/);
+  assert.match(text, /除外する/);
   assert.match(text, /タグ\(タグ: 常連\)/);
-  assert.match(text, /今は使えない条件/);
+  assert.match(text, /使用できない条件/);
   assert.doesNotMatch(text, /t1|hasTag|gone/);
   await click(view.container, "作り直す");
   assert.deepEqual(events, ["reset"]);

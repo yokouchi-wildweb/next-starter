@@ -28,13 +28,13 @@ export function UserGroupFreezeProgress({ progress, onCancel, onClear }: UserGro
             <Spinner className="size-4" />
             <Para size="sm" className="my-0">
               {progress.rounds === 0
-                ? "固定のグループを作っています…"
-                : `一員を書いています(${progress.staged.toLocaleString("ja-JP")} 人まで書きました)…`}
+                ? "固定グループを作成しています…"
+                : `メンバーを登録しています(${progress.staged.toLocaleString("ja-JP")} 人まで登録済み)…`}
             </Para>
           </Flex>
           {onCancel ? (
             <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-              止める
+              中止
             </Button>
           ) : null}
         </Flex>
@@ -42,8 +42,8 @@ export function UserGroupFreezeProgress({ progress, onCancel, onClear }: UserGro
       {progress.status === "done" ? (
         <Flex align="center" justify="between" gap="xs" wrap="wrap">
           <Para size="sm" className="my-0">
-            {`「${progress.group.name}」に ${progress.memberCount.toLocaleString("ja-JP")} 人を書きました${
-              progress.skipped > 0 ? `(${progress.skipped.toLocaleString("ja-JP")} 人は入りませんでした)` : ""
+            {`「${progress.group.name}」に ${progress.memberCount.toLocaleString("ja-JP")} 人を登録しました${
+              progress.skipped > 0 ? `(${progress.skipped.toLocaleString("ja-JP")} 人は登録できませんでした)` : ""
             }`}
           </Para>
           {onClear ? (
@@ -55,7 +55,7 @@ export function UserGroupFreezeProgress({ progress, onCancel, onClear }: UserGro
       ) : null}
       {progress.status === "failed" ? (
         <Para size="sm" tone="destructive" className="my-0">
-          {progress.group ? `「${progress.group.name}」の一員を書けませんでした: ${progress.reason}` : progress.reason}
+          {progress.group ? `「${progress.group.name}」のメンバーを登録できませんでした: ${progress.reason}` : progress.reason}
         </Para>
       ) : null}
     </Stack>

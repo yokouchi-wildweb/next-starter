@@ -25,12 +25,12 @@ export function useAddToUserGroup() {
     setReason(null);
     try {
       const response = await updateStaticMembers(groupId, { mode: "add", userIds: [...userIds] });
-      if (!("group" in response) || response.members.status !== "added") throw new Error("固定のグループに足せませんでした");
+      if (!("group" in response) || response.members.status !== "added") throw new Error("固定グループに追加できませんでした");
       const done = { group: response.group, added: response.members.added, skipped: response.members.skipped, memberCount: response.members.memberCount };
       setResult(done);
       return done;
     } catch (error) {
-      setReason(err(error, "固定のグループに足せませんでした"));
+      setReason(err(error, "固定グループに追加できませんでした"));
       return null;
     } finally {
       setIsAdding(false);

@@ -13,10 +13,10 @@ const args = z.object({ groupId: z.string().uuid() }).strict();
 
 export const criterion: UserGroupCriterion<typeof args> = {
   key: "inStaticGroup",
-  label: "静的グループの一員",
-  description: "選んだ静的グループに入っている利用者",
+  label: "固定グループのメンバー",
+  description: "選んだ固定グループのメンバー",
   args,
-  fields: [{ name: "groupId", label: "静的グループ", formInput: "select", helperText: "選択肢は管理画面が静的グループの一覧から出す" }],
+  fields: [{ name: "groupId", label: "固定グループ", formInput: "select" }],
   weight: "cheap",
   where: ({ groupId }) =>
     sql`exists (select 1 from ${UserGroupMemberTable} where ${and(

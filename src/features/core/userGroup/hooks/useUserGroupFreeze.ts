@@ -64,7 +64,7 @@ export function useUserGroupFreeze({ onStarted, onDone }: UseUserGroupFreezeOpti
       while (result.members.status === "incomplete") {
         rounds += 1;
         setProgress({ status: "running", rounds, staged: result.members.staged, groupName: group.name });
-        if (rounds > FREEZE_MAX_ROUNDS) throw new Error("一員の書き込みが終わりませんでした。もう一度お試しください");
+        if (rounds > FREEZE_MAX_ROUNDS) throw new Error("メンバーの登録が完了しませんでした。もう一度お試しください");
         const next = await updateStaticMembers(group.id, { mode: "replace", from: input.from });
         if (!alive()) return null;
         result = next as AdminStaticGroupResult;
@@ -76,7 +76,7 @@ export function useUserGroupFreeze({ onStarted, onDone }: UseUserGroupFreezeOpti
       callbacks.current.onDone?.(group);
       return group;
     } catch (error) {
-      if (alive()) setProgress({ status: "failed", reason: err(error, "固定のグループを作れませんでした"), group });
+      if (alive()) setProgress({ status: "failed", reason: err(error, "固定グループを作成できませんでした"), group });
       return null;
     }
   }, []);

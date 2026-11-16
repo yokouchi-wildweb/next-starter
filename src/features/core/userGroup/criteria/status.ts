@@ -12,8 +12,8 @@ const args = z.object({ statuses: z.array(z.enum(USER_STATUSES)).min(1) }).stric
 
 export const criterion: UserGroupCriterion<typeof args> = {
   key: "status",
-  label: "状態",
-  description: "選んだ状態のどれかの利用者",
+  label: "アカウントの状態",
+  description: "選んだ状態のいずれかのユーザー",
   args,
   fields: [{ name: "statuses", label: "状態", formInput: "multiSelect", options: USER_STATUSES.map((value) => ({ value, label: USER_STATUS_LABELS[value] })) }],
   weight: "cheap",

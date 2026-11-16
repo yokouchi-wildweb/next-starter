@@ -1,6 +1,6 @@
 // ユーザーグループの作る・直すモーダルの入れ物と一覧の検査(jsdom の上で描く。hook・Modal・部品は偽物)。
 // - タブ: 動的を作る = 基本・条件 / 固定を作る = 基本(一員の元)/ 直す 動的 = 基本・条件・例外の人 / 直す 固定 = 基本・一員
-// - confirmOnClose = form の closeConfirm、固定の途中は freeze の確かめ / 下の帯: 作る = 「作る」/ 直す = 保管(ConfirmPopover)・保存
+// - confirmOnClose = form の closeConfirm、固定の途中は freeze の確かめ / 下の帯: 作る = 「作成」/ 直す = アーカイブ(ConfirmPopover)・保存
 // - 重い条件の注意・サーバーの注意 / 読み込み中・取れない時は普通の Modal / 内部の鍵・id を出さない
 // - 一覧: 行は名前・種類・人数、「新しく作る」と行でモーダルの開き先を変える
 // 実行: pnpm test src/features/core/userGroup/components/AdminUserGroupModal/AdminUserGroupModal.test.tsx
@@ -182,8 +182,8 @@ test("動的を作る: 基本・条件、帯は「作る」、confirmOnClose は
   const view = await render(modal());
   assert.deepEqual(tabValues(), ["基本", "条件"]);
   assert.deepEqual(tabbed!.confirmOnClose, { enabled: true, message: "書きかけ" });
-  assert.deepEqual(buttons(view.container), ["作る"]);
-  assert.equal(tabbed!.title, "ユーザーグループを作る");
+  assert.deepEqual(buttons(view.container), ["作成"]);
+  assert.equal(tabbed!.title, "ユーザーグループを作成");
   await view.unmount();
 });
 
@@ -195,26 +195,26 @@ test("固定を作る: 基本だけ(一員の元を出す)", async () => {
   await view.unmount();
 });
 
-test("直す 動的: 基本・条件・例外の人、保管(ConfirmPopover)・保存、サーバーの注意、鍵・id を出さない", async () => {
+test("直す 動的: 基本・条件・例外、アーカイブ(ConfirmPopover)・保存、サーバーの注意、鍵・id を出さない", async () => {
   modalState = { ...baseModal(), mode: "edit", group: group() };
   formState = { ...baseForm(), dirty: false };
   const view = await render(modal({ groupId: GROUP_ID }));
-  assert.deepEqual(tabValues(), ["基本", "条件", "例外の人"]);
+  assert.deepEqual(tabValues(), ["基本", "条件", "例外"]);
   assert.match(view.container.textContent ?? "", /サーバーの注意/);
   assert.match(view.container.textContent ?? "", /3 人/);
   assert.doesNotMatch(view.container.textContent ?? "", new RegExp(GROUP_ID));
-  const ok = [...view.container.querySelectorAll("button")].find((b) => b.textContent === "ok:保管する")!;
+  const ok = [...view.container.querySelectorAll("button")].find((b) => b.textContent === "ok:アーカイブする")!;
   await act(async () => ok.click());
   assert.deepEqual(events, ["archive"]);
   assert.ok(buttons(view.container).includes("保存"));
   await view.unmount();
 });
 
-test("直す 固定: 基本・一員 / 例外の人タブでは「今の人で固定」", async () => {
+test("直す 固定: 基本・メンバー / 例外タブでは「現在のメンバーで固定グループを作成」", async () => {
   modalState = { ...baseModal(), mode: "edit", group: group({ kind: "static", exceptions: null }), tab: "people" };
   formState = baseForm("static");
   const fixed = await render(modal({ groupId: GROUP_ID }));
-  assert.deepEqual(tabValues(), ["基本", "一員"]);
+  assert.deepEqual(tabValues(), ["基本", "メンバー"]);
   assert.ok(fixed.container.querySelector('[data-part="members"]'));
   await fixed.unmount();
 
@@ -222,7 +222,7 @@ test("直す 固定: 基本・一員 / 例外の人タブでは「今の人で�
   formState = { ...baseForm(), dirty: false };
   const dynamic = await render(modal({ groupId: GROUP_ID }));
   assert.ok(dynamic.container.querySelector('[data-part="exceptions"]'));
-  assert.ok(buttons(dynamic.container).includes("今の人で固定"));
+  assert.ok(buttons(dynamic.container).includes("現在のメンバーで固定グループを作成"));
   await dynamic.unmount();
 });
 
@@ -232,7 +232,7 @@ test("重い条件の注意を条件のタブに出す / 固定の途中は閉�
   const view = await render(modal());
   assert.match(view.container.textContent ?? "", /重い条件を含みます/);
   assert.deepEqual(tabbed!.confirmOnClose, { enabled: true, message: "固定の途中" });
-  assert.equal([...view.container.querySelectorAll("button")].find((b) => b.textContent === "作る")?.disabled, true);
+  assert.equal([...view.container.querySelectorAll("button")].find((b) => b.textContent === "作成")?.disabled, true);
   await view.unmount();
 });
 
@@ -265,11 +265,11 @@ test("一覧: 行は名前・種類・人数。「新しく作る」と行でモ
   const text = view.container.textContent ?? "";
   assert.match(text, /常連/);
   assert.match(text, /動的/);
-  assert.match(text, /人数は数えていません/);
+  assert.match(text, /人数は未計算です/);
   const row = view.container.querySelector('[data-slot="user-group-row"]') as HTMLElement | null;
   const rowButton = row ?? [...view.container.querySelectorAll("button")].find((b) => b.textContent?.includes("常連"))!;
   await act(async () => (rowButton as HTMLElement).click());
-  await act(async () => [...view.container.querySelectorAll("button")].find((b) => b.textContent === "新しく作る")!.click());
+  await act(async () => [...view.container.querySelectorAll("button")].find((b) => b.textContent === "新規作成")!.click());
   assert.deepEqual(events, [`open:${GROUP_ID}`, "new"]);
   assert.equal(selects["user-group-filter-status"].showPlaceholderOption, false, "状態は必ず値がある");
   await view.unmount();
@@ -288,5 +288,12 @@ test("選択欄: 種類・間隔・状態に「選択してください」を出
   (interval.onChange as (v: string) => void)("default");
   (interval.onChange as (v: string) => void)("360");
   assert.deepEqual(set, [null, 360]);
+  await view.unmount();
+});
+
+test("種類の選択の下に 1 行の説明(今の種類の物)", async () => {
+  formState = baseForm("scheduled");
+  const view = await render(modal());
+  assert.match(view.container.querySelector('[data-slot="user-group-kind-help"]')?.textContent ?? "", /決まった間隔で集計/);
   await view.unmount();
 });

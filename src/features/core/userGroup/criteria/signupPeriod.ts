@@ -10,8 +10,8 @@ const args = periodArgs();
 
 export const criterion: UserGroupCriterion<typeof args> = {
   key: "signupPeriod",
-  label: "登録の時期",
-  description: "会員登録した日時がこの期間の利用者",
+  label: "登録日",
+  description: "会員登録した日時がこの期間のユーザー",
   args,
   fields: PERIOD_FIELDS,
   weight: "cheap",

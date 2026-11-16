@@ -83,7 +83,7 @@ export function createUserGroupEvaluator(deps: UserGroupEvaluatorDeps) {
       });
     } catch (error) {
       if (isTimeout(error)) {
-        throw new DomainError("人数の見込みが時間内に終わりませんでした(条件を絞るか定期計算にしてください)", { status: 503 });
+        throw new DomainError("対象人数の見積もりが時間内に終わりませんでした(条件を絞り込むか、「定期的に更新」にしてください)", { status: 503 });
       }
       throw error;
     }
@@ -93,7 +93,7 @@ export function createUserGroupEvaluator(deps: UserGroupEvaluatorDeps) {
     if (!groupIdSchema.safeParse(groupId).success) throw new DomainError("グループの id が正しくありません", { status: 400 });
     const [group] = await deps.db.select().from(UserGroupTable).where(eq(UserGroupTable.id, groupId)).limit(1);
     if (!group) throw new DomainError("グループがありません", { status: 404 });
-    if (group.status === "archived") throw new DomainError(`グループ「${group.name}」はしまってあります`, { status: 409 });
+    if (group.status === "archived") throw new DomainError(`グループ「${group.name}」はアーカイブ済みです`, { status: 409 });
     return group;
   }
 
@@ -103,7 +103,7 @@ export function createUserGroupEvaluator(deps: UserGroupEvaluatorDeps) {
       .from(UserGroupDefinitionTable)
       .where(eq(UserGroupDefinitionTable.group_id, group.id))
       .limit(1);
-    if (!row) throw new DomainError(`グループ「${group.name}」の条件が壊れています: 定義がありません`, { status: 409 });
+    if (!row) throw new DomainError(`グループ「${group.name}」の条件が正しくありません: 条件が設定されていません`, { status: 409 });
     return { tree: row.tree, heavy: row.has_heavy };
   }
 
@@ -119,7 +119,7 @@ export function createUserGroupEvaluator(deps: UserGroupEvaluatorDeps) {
     if (group.kind === "scheduled") {
       const number = pinnedVersion ?? group.current_version;
       if (number === null) {
-        throw new DomainError(`グループ「${group.name}」はまだ計算し終えた版がありません`, { status: 409 });
+        throw new DomainError(`グループ「${group.name}」はまだ集計されていません`, { status: 409 });
       }
       const [version] = await deps.db
         .select({ id: UserGroupVersionTable.id })
@@ -127,7 +127,7 @@ export function createUserGroupEvaluator(deps: UserGroupEvaluatorDeps) {
         .where(and(eq(UserGroupVersionTable.group_id, group.id), eq(UserGroupVersionTable.version, number)))
         .limit(1);
       if (!version) {
-        const which = pinnedVersion == null ? "今の版" : `送り始めに固定した版(${number})`;
+        const which = pinnedVersion == null ? "集計結果" : `配信開始時に固定した集計結果(${number})`;
         throw new DomainError(`グループ「${group.name}」の${which}がありません`, { status: 409 });
       }
       return { kind: "version", versionId: version.id };
@@ -203,7 +203,7 @@ export function createUserGroupEvaluator(deps: UserGroupEvaluatorDeps) {
       assertOpen();
       const group = await loadGroup(groupId);
       if (group.kind === "dynamic" && (await storedTree(group)).heavy) {
-        throw new DomainError(`グループ「${group.name}」は重い条件を含むので 1 人ずつ確かめられません(定期計算にしてください)`, { status: 409 });
+        throw new DomainError(`グループ「${group.name}」は処理が重い条件を含むため、1 人ずつの判定に使えません(「定期的に更新」にしてください)`, { status: 409 });
       }
       if (!z.string().uuid().safeParse(userId).success) return false;
       const source = await sourceOf(group);

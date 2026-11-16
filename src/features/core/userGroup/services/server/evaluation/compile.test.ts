@@ -44,7 +44,7 @@ test("壊れた葉: 保存したグループは 409、その場の定義は 400"
         assert.ok(error instanceof DomainError);
         assert.equal(error.status, status);
         assert.match(error.message, pattern);
-        if (source === "stored") assert.match(error.message, /壊れています/);
+        if (source === "stored") assert.match(error.message, /条件が正しくありません/);
         return true;
       });
     }
