@@ -198,6 +198,11 @@ export function createMessageSender(deps: MessageSendDeps) {
       options.resolved ??
       (await resolveDefinition(definition, deps));
     if (!resolved.enabled) return null;
+    // 連絡のドメインが門で閉じていれば送らない(回も配達も作らない、呼び手の業務は止めない。D77)
+    if (deps.domainOpen && !deps.domainOpen(resolved.key)) {
+      console.warn(`[messaging] 連絡 ${resolved.key} はドメインが閉じているので送りません(disabled)`);
+      return null;
+    }
     const channels = resolveChannels(resolved, input.channels, deps.channels);
     const vars = parseVars(resolved, input.vars);
     for (const values of Object.values(input.recipientVars ?? {})) checkRecipientVars(resolved, values);

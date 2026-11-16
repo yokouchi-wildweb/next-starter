@@ -16,6 +16,7 @@ import { UserTable } from "@/features/core/user/entities/drizzle";
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
+import { messageDomainOpen } from "../domainGate";
 import { channelFieldSchemas, enricherKeysFor, resolveDefinition } from "../sendMessage/definition";
 import { createOverrideService } from "./overrideService";
 import { drizzleMessageOverrideStore } from "./store";
@@ -27,10 +28,11 @@ const service = createOverrideService({
     const [row] = await db.select({ role: UserTable.role }).from(UserTable).where(eq(UserTable.id, userId)).limit(1);
     return row ? (getRoleCategory(row.role) ?? null) : null;
   },
-  messageKeys: () => Object.keys(messageRegistry),
+  // 閉じたドメインの連絡は一覧に出さず、1 件・保存・戻すは無い連絡と同じ 404(D77)
+  messageKeys: () => Object.keys(messageRegistry).filter(messageDomainOpen),
   async loadDefinition(messageKey) {
     const entry = messageRegistry[messageKey];
-    if (!entry) return null;
+    if (!entry || !messageDomainOpen(messageKey)) return null;
     try {
       const { message } = await entry.definition();
       if (!message) return null;
