@@ -163,3 +163,21 @@ export function checkBuiltCss(sources: readonly CssSource[], builtCss: string): 
   }
   return { missing, unverifiable, checked };
 }
+
+/**
+ * class 名 → CSS のセレクタの字面(Tailwind の出力どおり)。: ( ) . / [ ] , % # は \ で逃がし、
+ * 先頭の数字は符号で逃がす(2xl:… → .\32 xl\:…)
+ */
+export function classSelector(className: string): string {
+  const escaped = className.replace(/[:().\/[\],%#]/g, (c) => `\\${c}`);
+  return `.${escaped.replace(/^\d/, (d) => `\\${d.charCodeAt(0).toString(16)} `)}`;
+}
+
+/**
+ * 余白の段の class の表(src/components/Layout/spacingClasses.generated.ts)の class が、出力 CSS に全部あるか。
+ * Tailwind は字面に現れる class しか出力しないので、表のファイルが走査から外れる・表の class の形が Tailwind の
+ * 読めない形になる、のどちらでも抜ける。返り値 = 出力に無い class
+ */
+export function checkSpacingClasses(classes: readonly string[], builtCss: string): string[] {
+  return classes.filter((cls) => !builtCss.includes(classSelector(cls)));
+}

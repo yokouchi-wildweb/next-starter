@@ -13,6 +13,8 @@ import { fileURLToPath } from "node:url";
 
 import {
   checkBuiltCss,
+  checkSpacingClasses,
+  classSelector,
   collectDefinedNames,
   collectRelativeImports,
   resolveImportGraph,
@@ -95,4 +97,22 @@ test("resolveImportGraph: 実リポの global.css から上流の既定値ファ
   assert.ok(byFile.has("src/styles/core/index.css"), "core/index.css を入れ子で辿る");
   assert.ok(byFile.has("src/styles/palette.css"), "fork の palette.css も global.css から辿る");
   assert.ok(!byFile.get("src/styles/core/animations.css").some((n) => n.startsWith("--animate-")), "@theme 内は対象外");
+});
+
+test("classSelector: Tailwind の出力どおり : ( ) . を逃がし、先頭の数字は符号で逃がす", () => {
+  assert.equal(classSelector("gap-(--space-md)"), ".gap-\\(--space-md\\)");
+  assert.equal(classSelector("sm:px-(--space-2xs)"), ".sm\\:px-\\(--space-2xs\\)");
+  assert.equal(classSelector("gap-0.5"), ".gap-0\\.5");
+  assert.equal(classSelector("2xl:gap-(--space-md)"), ".\\32 xl\\:gap-\\(--space-md\\)");
+});
+
+test("checkSpacingClasses: 出力 CSS に無い class を返す(前方一致で通さない)", () => {
+  const built = ".gap-\\(--space-md\\){gap:var(--space-md)}@media (width>=40rem){.sm\\:gap-\\(--space-md\\){gap:var(--space-md)}}";
+  assert.deepEqual(checkSpacingClasses(["gap-(--space-md)", "sm:gap-(--space-md)"], built), []);
+  // 前方一致の見本は字面にしない(Tailwind が拾って CSS に出してしまう)
+  const truncated = ["gap-(--space-", "m)"].join("");
+  assert.deepEqual(checkSpacingClasses(["gap-(--space-md)", truncated, "md:gap-(--space-md)"], built), [
+    truncated,
+    "md:gap-(--space-md)",
+  ]);
 });

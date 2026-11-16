@@ -7,6 +7,7 @@
 // 2. core/palette.css の .dark は :root に無い変数を持ち込まない(ライトで未定義の変数を作らない)
 // 3. core/palette.css は値だけを持つ(@theme や @custom-variant などの構造を含まない)
 // 4. core/index.css が upstream の CSS を読み、global.css はそれを最初に、fork の 4 ファイルを後に読む(後勝ちの上書き契約)
+// 5. 余白の段のトークン --space-<名前> は core/config.css の :root にあり、値は段の一覧(spacingScale.ts)の px と一致。@theme に --spacing-* は置かない
 //
 // 検証対象は src/styles/core/(upstream 所有)。src/styles/ 直下の CSS は下流所有(中身は fork ごとに自由)なので、
 // 入口の形と upstream が出荷する中身(コメントだけ)以外は見ない。
@@ -16,6 +17,8 @@ import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { SPACING_SCALE } from "@/components/Layout/spacingScale";
 
 const stylesDir = dirname(fileURLToPath(import.meta.url));
 const entryDir = resolve(stylesDir, "..");
@@ -161,4 +164,25 @@ test("upstream が出荷する直下の palette / typography / overrides / gradi
   }
   const entry = stripComments(readEntry("global.css")).trim();
   assert.match(entry, /^(@import\s+"\.\/[a-z_/]+\.css";\s*)+$/, "global.css に upstream が @import 以外を書いている");
+});
+
+test("余白の段のトークンは core/config.css の :root にあり、値は段の一覧の px と一致(@theme の --spacing-* にしない)", () => {
+  const config = stripComments(read("config.css"));
+  const root = [...config.matchAll(/:root\s*\{([^}]*)\}/g)].map((m) => m[1]).join("\n");
+  const declared = new Map([...root.matchAll(/--space-([a-z0-9-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+  const toPx = (value) => {
+    const rem = /^([\d.]+)rem$/.exec(value);
+    if (rem) return Number(rem[1]) * 16;
+    const px = /^([\d.]+)px$/.exec(value);
+    return px ? Number(px[1]) : NaN;
+  };
+  assert.deepEqual([...declared.keys()], Object.keys(SPACING_SCALE), "--space-* の名前と並びが段の一覧と違う");
+  for (const [name, px] of Object.entries(SPACING_SCALE)) assert.equal(toPx(declared.get(name)), px, `--space-${name}`);
+  for (const file of readdirSync(stylesDir).filter((f) => f.endsWith(".css"))) {
+    const css = stripComments(read(file));
+    for (const block of css.matchAll(/@theme[^{]*\{([^}]*)\}/g)) {
+      assert.doesNotMatch(block[1], /--spacing(-[a-z0-9-]+)?\s*:/, `${file} の @theme に --spacing が置かれた(数値の class・max-w-2xl 等が動く)`);
+      assert.doesNotMatch(block[1], /--space-[a-z0-9-]+\s*:/, `${file} の @theme に --space-* が置かれた(:root に置く)`);
+    }
+  }
 });
