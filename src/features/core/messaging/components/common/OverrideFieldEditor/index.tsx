@@ -5,7 +5,7 @@
 "use client";
 
 import { Button } from "@/components/Form/Button";
-import { Textarea } from "@/components/Form/Input/Manual";
+import { Input, Textarea } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
@@ -31,6 +31,13 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 /** "<経路>.<欄>" → 表示名(知らない名前はそのまま) */
+const SINGLE_LINE_NAMES = new Set(["subject", "preheader", "heading", "title", "label", "url", "link"]);
+
+/** 一行の欄か(件名・プレヘッダー・見出し・タイトル・ボタンの文言・URL。改行を入れない、D78) */
+export function isSingleLineOverrideField(path: string): boolean {
+  return SINGLE_LINE_NAMES.has(path.split(".").pop() ?? "");
+}
+
 export function overrideFieldLabel(path: string): string {
   const [channel, ...rest] = path.split(".");
   const name = rest.join(".");
@@ -100,7 +107,11 @@ export function OverrideFieldEditor({
             ))}
           </Stack>
         ) : (
-          <Textarea id={id} value={value} rows={field.path.endsWith(".subject") || field.path.endsWith(".title") ? 2 : 4} onChange={(e) => onChange(e.target.value)} />
+          isSingleLineOverrideField(field.path) ? (
+            <Input id={id} value={value} onChange={(e) => onChange(e.target.value.replace(/\r?\n/g, " "))} />
+          ) : (
+            <Textarea id={id} value={value} rows={4} onChange={(e) => onChange(e.target.value)} />
+          )
         )
       ) : (
         <Para size="sm" tone="muted" className="my-0 whitespace-pre-wrap">

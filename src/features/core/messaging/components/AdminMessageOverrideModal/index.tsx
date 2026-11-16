@@ -18,6 +18,7 @@ import { AllowedKeysHint } from "@/features/core/messaging/components/common/All
 import { dispatchKindLabel } from "@/features/core/messaging/components/common/DispatchRow";
 import { OverrideFieldEditor } from "@/features/core/messaging/components/common/OverrideFieldEditor";
 import { useMessageOverrideEditor } from "@/features/core/messaging/hooks/useMessageOverrideEditor";
+import { useCopyMessageVariable } from "@/features/core/messaging/hooks/useCopyMessageVariable";
 import { useModalSession } from "@/hooks/useModalSession";
 
 export type AdminMessageOverrideModalProps = {
@@ -37,6 +38,7 @@ export function AdminMessageOverrideModal({ open, onOpenChange, messageKey }: Ad
 
 function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; onOpenChange: (open: boolean) => void; messageKey: string }) {
   const editor = useMessageOverrideEditor(messageKey);
+  const copyKey = useCopyMessageVariable();
   const { detail } = editor;
 
   return (
@@ -69,7 +71,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
             <Para size="sm" tone="muted" className="my-0">
               編集した項目だけ、ここで設定した文言で送信します。デザインとリンクは変わりません。
             </Para>
-            <AllowedKeysHint allowedKeys={editor.allowedKeys} />
+            <AllowedKeysHint allowedKeys={editor.allowedKeys} onCopyKey={copyKey} />
           </Stack>
 
           {detail.fields.map((field) => (

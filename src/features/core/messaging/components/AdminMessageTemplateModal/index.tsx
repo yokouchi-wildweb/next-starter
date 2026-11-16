@@ -35,6 +35,7 @@ import {
   type MessageTemplateAction,
 } from "@/features/core/messaging/hooks/useMessageTemplateForm";
 import { useMessageTemplateModal } from "@/features/core/messaging/hooks/useMessageTemplateModal";
+import { useCopyMessageVariable } from "@/features/core/messaging/hooks/useCopyMessageVariable";
 import type { AdminTemplateDetail } from "@/features/core/messaging/services/client/templateClient";
 
 export type AdminMessageTemplateModalProps = {
@@ -86,6 +87,7 @@ function TemplateModalBody({
 }) {
   const { template, versions } = modal;
   const form = useMessageTemplateForm({ template, options, onCreated: modal.onCreated, onChanged: modal.onChanged });
+  const copyKey = useCopyMessageVariable();
   const { fields } = form;
   const { execute: save, isExecuting: isSaving } = useAsyncAction(form.save);
   const locked = form.archived;
@@ -198,7 +200,7 @@ function TemplateModalBody({
       </Stack>
 
       <Stack space={2} className="rounded-md border border-border bg-muted/30 p-4">
-        <AllowedKeysHint allowedKeys={form.allowedKeys} unknownKeys={form.unknownKeys} />
+        <AllowedKeysHint allowedKeys={form.allowedKeys} unknownKeys={form.unknownKeys} onCopyKey={copyKey} />
       </Stack>
 
       {channelChoices.map(({ key: channel }) => (

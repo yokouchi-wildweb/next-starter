@@ -37,6 +37,9 @@ export const textToParagraphs = (text: string) =>
     .map((paragraph) => paragraph.trim())
     .filter((paragraph) => paragraph !== "");
 
+/** 一行の欄(件名・タイトル・見出し・ボタン・URL)は改行を空白にする(貼り付けた改行も、D78) */
+const oneLine = (value: string) => value.replace(/\r?\n/g, " ");
+
 function TextField({
   id,
   label,
@@ -62,7 +65,7 @@ function TextField({
       {rows ? (
         <Textarea id={id} value={value} rows={rows} disabled={disabled} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
       ) : (
-        <Input id={id} value={value} disabled={disabled} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+        <Input id={id} value={value} disabled={disabled} placeholder={placeholder} onChange={(e) => onChange(oneLine(e.target.value))} />
       )}
     </Stack>
   );
