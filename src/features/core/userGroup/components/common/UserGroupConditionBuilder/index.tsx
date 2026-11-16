@@ -354,7 +354,7 @@ function GroupNode({
               className="my-0 rounded-md border border-dashed border-border px-3 py-4"
             >
               {isRoot
-                ? "条件はまだありません。下の「条件を追加」から足してください"
+                ? "設定された条件がありません"
                 : "このグループに条件を追加してください"}
             </Para>
           ) : null}
@@ -376,7 +376,7 @@ function GroupNode({
               value=""
               options={pickOptions}
               showPlaceholderOption={false}
-              placeholder={isRoot ? "＋ 条件を追加" : "＋ このグループに条件を追加"}
+              placeholder={isRoot ? "＋ 条件を追加" : "＋ グループに条件を追加"}
               size="sm"
               className="w-auto border-dashed data-[size=sm]:h-9"
               disabled={disabled}
@@ -414,7 +414,7 @@ function GroupNode({
                 ＋ 条件グループを追加
               </Button>
               <Span size="xs" tone="muted">
-                複数の条件をまとめて、別の合わせ方(いずれか など)で組みたい時に
+                複数の条件をまとめて判定できます
               </Span>
             </Flex>
           ) : null}
