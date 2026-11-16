@@ -113,7 +113,14 @@ const BEFORE_TITLE_HEADER = `<h1 class="tracking-tight text-2xl font-normal text
 const withoutLegacyMarks = (html: string) =>
   html.replace(/ id="(?:header|footer|main)"/g, "").replace(/ data-component="Main"/g, "").replace(/ data-admin-main-wrapper="true"/g, "");
 const PROTECTED = withoutLegacyMarks(BEFORE_PROTECTED);
-const PAGE_MAIN = withoutLegacyMarks(BEFORE_PAGE);
+/**
+ * 余白の段の区切り(余白の議会 N3)で変わった管理のページの Main の余白の class(同じ px、並びも不変):
+ * padding="lg" → { base: "md", sm: "lg" }、paddingBlock="xl" → { base: "lg", sm: "2xl" }
+ */
+const ADMIN_MAIN_SPACING_BEFORE = "p-4 sm:p-6 py-6 sm:py-10";
+const ADMIN_MAIN_SPACING = "p-(--space-md) sm:p-(--space-lg) py-(--space-lg) sm:py-(--space-2xl)";
+const withSpacingScale = (html: string) => html.replace(ADMIN_MAIN_SPACING_BEFORE, ADMIN_MAIN_SPACING);
+const PAGE_MAIN = withSpacingScale(withoutLegacyMarks(BEFORE_PAGE));
 
 // ---- AdminLayout(外枠)と AdminHeader(行の部品・1 行スイッチ) ----
 
@@ -221,7 +228,7 @@ test("AdminPage title = ページの題: h1 は本文の先頭の 1 つ(SP は�
   const html = page(<AdminPage title="T" tabs={<i id="t" />}>CHILD</AdminPage>);
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1, "h1 は 1 つ");
   assert.ok(html.includes(`<div data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex">${TITLE_COMPACT}</div>`), html);
-  assert.ok(html.includes(`<main class="max-w-screen overflow-hidden mx-auto w-full p-4 sm:p-6 py-6 sm:py-10">${TITLE_BODY}<div class="mb-6"><i id="t"></i></div>CHILD</main>`), "題は本文の先頭(タブの前)");
+  assert.ok(html.includes(`<main class="max-w-screen overflow-hidden mx-auto w-full ${ADMIN_MAIN_SPACING}">${TITLE_BODY}<div class="mb-6"><i id="t"></i></div>CHILD</main>`), "題は本文の先頭(タブの前)");
   // 見た目の元: 前の PageTitle placement="header" の本文側(sm:hidden)と同じクラスに、PC で消す手段だけ sm:sr-only に替えた物
   assert.equal(TITLE_BODY.replace(" sm:sr-only", " sm:hidden").replace(' data-slot="admin-page-title"', ""), BEFORE_TITLE_HEADER);
 });
