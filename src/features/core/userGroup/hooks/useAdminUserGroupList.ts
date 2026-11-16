@@ -3,7 +3,7 @@
 // src/features/core/userGroup/hooks/useAdminUserGroupList.ts
 //
 // 管理: ユーザーグループの一覧の流れ(AdminUserGroupList はこれを呼んで部品を並べるだけ。CLAUDE.md core_ui)。
-// - 種類で絞る(空 = すべて)・状態(既定 使用中。保管したものは「保管」を選んだ時だけ)+ 無限スクロール(useUserGroups、カーソル)
+// - 種類で絞る(空 = すべて)・状態(既定 すべて、D87)+ 無限スクロール(useUserGroups、カーソル)
 // - 作る・直すモーダル(AdminUserGroupModal)の開き先: openNew = 作る、openGroup(id) = その 1 件を直す。閉じても開き先は残す
 // - モーダルの操作の後(onChanged): 作った = 先頭から取り直す / 保管・状態が絞りから外れた = 行を外す / ほか = 返った 1 件で行を置き換える。
 //   無限スクロールの一覧には SWR のキーの再検証が届かないため
@@ -12,10 +12,11 @@ import { useCallback, useState } from "react";
 
 import type { AdminUserGroupDetail, AdminUserGroupSummary } from "../services/client/userGroupAdminClient";
 
+import { useUserGroupRowActions } from "./useUserGroupRowActions";
 import { useUserGroups } from "./useUserGroups";
 
 /** モーダルの操作 */
-export type UserGroupAction = "create" | "update" | "archive" | "restore" | "members" | "exceptions";
+export type UserGroupAction = "create" | "update" | "archive" | "restore" | "members" | "exceptions" | "delete";
 
 /** 1 件の詳しい形から一覧の行の形へ */
 export function userGroupSummaryOf(group: AdminUserGroupDetail): AdminUserGroupSummary {
@@ -59,13 +60,20 @@ export function useAdminUserGroupList(options: UseAdminUserGroupListOptions = {}
     },
     [kind, status, revalidate, updateItems, removeItems],
   );
+  // 行の操作(D92): アーカイブ・戻すは onChanged と同じ規則、削除は行を外す
+  const rowActions = useUserGroupRowActions({
+    onChanged,
+    onDeleted: (id) => removeItems((item) => item.id === id),
+  });
 
   return {
     kind,
     setKind,
     status,
-    setStatus: (next: string) => setStatus(next === "archived" ? "archived" : "active"),
+    setStatus: (next: string) => setStatus(next === "archived" || next === "active" ? next : "all"),
     query,
+    /** 行の右の操作(アーカイブする・アクティブに戻す・削除。ConfirmPopover の onConfirm に渡す) */
+    rowActions,
     modal: {
       open: modalOpen,
       setOpen: setModalOpen,

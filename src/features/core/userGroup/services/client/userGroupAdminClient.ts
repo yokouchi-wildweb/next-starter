@@ -16,6 +16,7 @@ import type {
   AdminStaticMembersRemoved,
   AdminUserGroupCount,
   AdminUserGroupCriteriaCatalog,
+  AdminUserGroupDeleted,
   AdminUserGroupDetail,
   AdminUserGroupEstimate,
   AdminUserGroupMember,
@@ -52,6 +53,7 @@ export type {
   AdminStaticMembersRemoved,
   AdminUserGroupCount,
   AdminUserGroupCriteriaCatalog,
+  AdminUserGroupDeleted,
   AdminUserGroupDetail,
   AdminUserGroupEstimate,
   AdminUserGroupMember,
@@ -140,6 +142,16 @@ export async function archiveUserGroup(id: string): Promise<AdminUserGroupDetail
     return res.data;
   } catch (error) {
     throw normalizeHttpError(error, "保管できませんでした");
+  }
+}
+
+/** 削除(D92)。使われている(削除していない送信の宛先・ほかのグループの条件)と 409 で理由の文 */
+export async function deleteUserGroup(id: string): Promise<AdminUserGroupDeleted> {
+  try {
+    const res = await axios.delete<AdminUserGroupDeleted>(one(id));
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "グループを削除できませんでした");
   }
 }
 

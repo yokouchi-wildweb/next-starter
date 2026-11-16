@@ -2,7 +2,7 @@
 // セクションコンテナ(管理: ユーザーグループの一覧)。種類・状態で絞る + 無限スクロール(カーソル)。
 // 行 = 名前・種類・人数(数えた / 見込み / 数えていない / まだ無い)・定期計算の最後の時刻と失敗(UserGroupRow)。例外の持ち主つきのグループはサーバーが出さない。
 // アーカイブしたものは状態で「アーカイブ」を選んだ時だけ。行を押すと直すモーダル、上の「新規作成」で作るモーダル(AdminUserGroupModal)。
-// 流れは hook useAdminUserGroupList。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
+// 行の右の操作(アーカイブする・アクティブに戻す・削除、D92)は hook の rowActions。流れは hook useAdminUserGroupList。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
 
@@ -32,7 +32,7 @@ const STATUS_OPTIONS = [
 ];
 
 export function AdminUserGroupList() {
-  const { kind, setKind, status, setStatus, query, modal } = useAdminUserGroupList({ observerOptions: OBSERVER_OPTIONS });
+  const { kind, setKind, status, setStatus, query, modal, rowActions } = useAdminUserGroupList({ observerOptions: OBSERVER_OPTIONS });
 
   return (
     <Stack space={4}>
@@ -81,7 +81,14 @@ export function AdminUserGroupList() {
         {(items) => (
           <Stack space={2}>
             {items.map((group) => (
-              <UserGroupRow key={group.id} group={group} onOpen={() => modal.openGroup(group.id)} />
+              <UserGroupRow
+                key={group.id}
+                group={group}
+                onOpen={() => modal.openGroup(group.id)}
+                onArchive={() => rowActions.archive(group.id)}
+                onRestore={() => rowActions.restore(group.id)}
+                onDelete={() => rowActions.remove(group.id)}
+              />
             ))}
           </Stack>
         )}

@@ -40,3 +40,4 @@ export { useUserGroupStaticMembers } from "./useUserGroupStaticMembers";
 export { useUserGroupExceptions, type UserGroupExceptionsState } from "./useUserGroupExceptions";
 export { useUserGroupModal, type UserGroupModalState, type UserGroupModalTab } from "./useUserGroupModal";
 export { useAddToUserGroup, type AddToUserGroupResult, type AddToUserGroupState } from "./useAddToUserGroup";
+export { useUserGroupRowActions, type UseUserGroupRowActionsOptions } from "./useUserGroupRowActions";
