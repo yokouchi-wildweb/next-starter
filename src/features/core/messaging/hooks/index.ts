@@ -97,3 +97,4 @@ export {
   type UseInboxUnreadModalOptions,
 } from "./useInboxUnreadModal";
 export { useUnsubscribe, type UnsubscribeStatus } from "./useUnsubscribe";
+export { useCopyMessageVariable } from "./useCopyMessageVariable";
