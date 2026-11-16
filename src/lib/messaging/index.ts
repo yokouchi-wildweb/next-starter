@@ -84,3 +84,32 @@ export type {
   MessageSource,
   MessageSubscriber,
 } from "./receptacles/types";
+export {
+  MESSAGE_BLOCK_KIND_LABELS,
+  MESSAGE_BLOCK_KINDS,
+  MESSAGE_BLOCK_SCHEMAS,
+  messageBlockSchema,
+  messageBlocksSchema,
+  type MessageBlock,
+  type MessageBlockKind,
+  type MessageBlocksConstraint,
+} from "./layout/blocks";
+export {
+  fieldValueSchema,
+  MESSAGE_FIELD_TYPE_LABELS,
+  MESSAGE_FIELD_TYPES,
+  requiredValue,
+  type MessageFieldShape,
+  type MessageFieldSpec,
+  type MessageFieldType,
+  type MessageFieldValue,
+} from "./layout/vocabulary";
+export {
+  defineMessageLayout,
+  type MessageLayout,
+  type MessageLayoutFields,
+  type MessageLayoutSummary,
+  type MessageLayoutValues,
+} from "./layout/types";
+export { applyLayoutRevisions, fieldBelongsTo, fieldsForChannel, layoutValuesSchema } from "./layout/values";
+export { resolveRendering, type MessageChannelRendering, type MessageRenderingResolution } from "./layout/rendering";

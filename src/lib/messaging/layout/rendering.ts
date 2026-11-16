@@ -1,0 +1,75 @@
+// src/lib/messaging/layout/rendering.ts
+//
+// 描き方の 3 段(D124): ひな形のその経路の描き方 > 経路の汎用の描き方 > 要約。どれでも描けなければ「描けない(理由)」。
+// テンプレートの保存・プレビュー・送る前の検査がこの解決を呼んで止める。経路の項目への宣言の追加は別の作業(ここは型と解決だけ)。
+
+import type { MessageLayout, MessageLayoutFields, MessageLayoutSummary, MessageLayoutValues } from "./types";
+import { fieldsForChannel } from "./values";
+import type { MessageFieldShape, MessageFieldType } from "./vocabulary";
+
+/** 経路が持てる描き方の宣言(R = 経路が描いた物。email = HTML など) */
+export type MessageChannelRendering<R = unknown> = {
+  /** 欄の型とブロックの語彙を宣言の順に描く汎用の描き方 */
+  renderGeneric?: (input: { fields: MessageLayoutFields; values: MessageLayoutValues }) => R | Promise<R>;
+  /** 汎用の描き方が描ける欄の型(無い = 全部) */
+  genericFieldTypes?: readonly MessageFieldType[];
+  /** 要約から描ける(D124 の宣言)。true なら renderFromSummary が要る */
+  summaryRenderable?: boolean;
+  renderFromSummary?: (summary: MessageLayoutSummary) => R | Promise<R>;
+};
+
+export type MessageRenderingResolution =
+  | { from: "layout" }
+  | { from: "channel"; fields: MessageLayoutFields }
+  | { from: "summary"; summary: MessageLayoutSummary }
+  | { cannotRender: string };
+
+/** 欄の宣言が使う型(並び・組の中も) */
+function typesOf(shape: MessageFieldShape, out: Set<MessageFieldType>): Set<MessageFieldType> {
+  out.add(shape.type);
+  if (shape.type === "list") typesOf(shape.of, out);
+  if (shape.type === "group") for (const child of Object.values(shape.fields)) typesOf(child, out);
+  return out;
+}
+
+/**
+ * 描き方を決める(D124 の順)。
+ * - hasLayoutRenderer: ひな形のフォルダがこの経路の描き方を持つか(受け口の生成の一覧が知っている)
+ * - 汎用は経路の欄の型を全部描ける時だけ
+ * - 要約は経路が summaryRenderable を宣言し renderFromSummary を持つ時だけ(要約の関数が投げれば描けない)
+ */
+export function resolveRendering(input: {
+  layout: MessageLayout;
+  channelKey: string;
+  hasLayoutRenderer: boolean;
+  channel: MessageChannelRendering;
+  values: MessageLayoutValues;
+}): MessageRenderingResolution {
+  const { layout, channelKey, channel } = input;
+  if (input.hasLayoutRenderer) return { from: "layout" };
+
+  const fields = fieldsForChannel(layout, channelKey) as MessageLayoutFields;
+  const unsupported: MessageFieldType[] = [];
+  if (channel.renderGeneric) {
+    const used = new Set<MessageFieldType>();
+    for (const spec of Object.values(fields)) typesOf(spec, used);
+    const allowed = channel.genericFieldTypes;
+    unsupported.push(...[...used].filter((type) => allowed && !allowed.includes(type)));
+    if (unsupported.length === 0) return { from: "channel", fields };
+  }
+
+  if (channel.summaryRenderable && channel.renderFromSummary) {
+    try {
+      return { from: "summary", summary: layout.summary(input.values) };
+    } catch (error) {
+      return {
+        cannotRender: `ひな形「${layout.label}」の要約を作れません(${error instanceof Error ? error.message : String(error)})`,
+      };
+    }
+  }
+
+  const why = !channel.renderGeneric
+    ? "経路に汎用の描き方が無く"
+    : `経路の汎用の描き方が欄の型(${unsupported.join("・")})を描けず`;
+  return { cannotRender: `経路 ${channelKey} はひな形「${layout.label}」を描けません: ひな形にこの経路の描き方が無く、${why}、要約から描けるとも宣言していません` };
+}
