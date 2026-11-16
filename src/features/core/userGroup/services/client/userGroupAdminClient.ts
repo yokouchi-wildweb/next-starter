@@ -180,11 +180,11 @@ export async function updateUserGroupExceptions(id: string, input: UpdateUserGro
 /** 例外の人の一覧(側ごと、カーソル) */
 export async function listUserGroupExceptions(
   id: string,
-  params: { side: UserGroupExceptionSide; cursor?: string | null; limit?: number },
+  params: { side: UserGroupExceptionSide; cursor?: string | null; limit?: number; q?: string },
 ): Promise<AdminUserGroupMemberPage> {
   try {
     const res = await axios.get<AdminUserGroupMemberPage>(`${one(id)}/exceptions`, {
-      params: { side: params.side, cursor: params.cursor ?? undefined, limit: params.limit },
+      params: { side: params.side, cursor: params.cursor ?? undefined, limit: params.limit, q: params.q || undefined },
     });
     return res.data;
   } catch (error) {
@@ -216,10 +216,13 @@ export async function updateStaticMembers(
 }
 
 /** 静的グループの一員の一覧(表示名、カーソル) */
-export async function listStaticMembers(id: string, params: { cursor?: string | null; limit?: number } = {}): Promise<AdminUserGroupMemberPage> {
+export async function listStaticMembers(
+  id: string,
+  params: { cursor?: string | null; limit?: number; q?: string } = {},
+): Promise<AdminUserGroupMemberPage> {
   try {
     const res = await axios.get<AdminUserGroupMemberPage>(`${one(id)}/members`, {
-      params: { cursor: params.cursor ?? undefined, limit: params.limit },
+      params: { cursor: params.cursor ?? undefined, limit: params.limit, q: params.q || undefined },
     });
     return res.data;
   } catch (error) {

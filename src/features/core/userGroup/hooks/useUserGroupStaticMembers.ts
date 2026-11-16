@@ -32,20 +32,20 @@ export function useUserGroupStaticMembers({ groupId, enabled = true, onChanged, 
     },
     [groupId, onChanged],
   );
-  const removePerson = useCallback(
-    async (userId: string) => {
+  const removePeople = useCallback(
+    async (userIds: string[]) => {
       if (!groupId) return;
-      await updateStaticMembers(groupId, { mode: "remove", userIds: [userId] });
+      await updateStaticMembers(groupId, { mode: "remove", userIds });
       onChanged?.(null);
     },
     [groupId, onChanged],
   );
   return useUserGroupPeople({
-    fetchPage: groupId ? (cursor, limit) => listStaticMembers(groupId, { cursor, limit }) : null,
+    fetchPage: groupId ? (cursor, limit, q) => listStaticMembers(groupId, { cursor, limit, q }) : null,
     deps: [groupId],
     enabled,
     addPeople,
-    removePerson,
+    removePeople,
     addedMessage: "メンバーを追加しました",
     removedMessage: "メンバーから削除しました",
     observerOptions,
