@@ -39,6 +39,7 @@ gate.assert("wallet");         // 閉じていれば DomainError(404、決まっ
 gate.path("/wallet/history");  // { open: true } | { open: false; rule: FeatureName; redirectTo?: string }
 gate.filter(menuItems);        // 閉じた機能の住所を指す項目を除く(既定は item.href、順は保つ)
 gate.filter(rows, (row) => row.link); // href を持たない型は住所の取り出し方を渡す(型で必須)
+gate.domainOpen("wallet");     // ドメイン(src/features/<名前> か core/<名前> のフォルダ名)が開いているか。載せた機能が全部閉なら false、どの規則にも載らなければ true
 ```
 
 - `gate.assert`: service・API が自分で止まるときに使う。文言は「お探しのページは見つかりませんでした」で固定、機能の名前・`code`・`details` は出さない(閉じた機能の存在を利用者に知らせない)。未知の名前は `gate.enabled` と同じく throw
