@@ -15,7 +15,7 @@ import { UserTable } from "@/features/core/user/entities/drizzle";
 import { walletConfig } from "@/features/core/wallet/config";
 import type { UserGroupCriterion } from "@/features/userGroup/types";
 
-import { periodWhere } from "../utils/criteriaPeriod";
+import { PERIOD_INLINE_GROUPS, periodWhere } from "../utils/criteriaPeriod";
 
 const walletTypes = Object.keys(walletConfig.currency);
 
@@ -70,6 +70,7 @@ export const criterion: UserGroupCriterion<typeof args> = {
     },
     { name: "min", label: "下限(この値以上)", formInput: "numberInput" },
   ],
+  inlineGroups: [...PERIOD_INLINE_GROUPS, { key: "amount", label: "金額", fields: ["basis", "walletType", "min"] }],
   weight: "heavy",
   available: () => gate.enabled("payment") && gate.enabled("wallet"),
   where(value, { now }) {

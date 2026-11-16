@@ -690,6 +690,12 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
           fields: criterion.fields.map((field) =>
             fill[field.name] && !(field as { options?: unknown }).options ? { ...field, options: fill[field.name] } : { ...field },
           ),
+          // 欄を横に並べる組(D90)。部品の欄に無い name は落とし、空になった組は出さない
+          inlineGroups: (criterion.inlineGroups ?? []).flatMap((group) => {
+            const names = new Set(criterion.fields.map((field) => field.name));
+            const fields = group.fields.filter((name) => names.has(name));
+            return fields.length > 0 ? [{ ...group, fields }] : [];
+          }),
         })),
         options: { tags, staticGroups },
         kinds: (Object.keys(USER_GROUP_KIND_LABELS) as UserGroupKind[]).map((value) => ({ value, label: USER_GROUP_KIND_LABELS[value] })),
