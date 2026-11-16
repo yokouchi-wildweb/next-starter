@@ -207,9 +207,60 @@ test("d2: padding が className に落ちて paddingInline が残るなら一覧
   assert.match(untraceable[0].reason, /勝ってしまう/);
 });
 
-test("d2: Grid の columnGap none は prop を外す", () => {
+test("d2: Grid の columnGap none は prop を外し、columnGap・rowGap は gapX・gapY に名前を変える", () => {
   const { text } = go(tsx(`export const A = () => <Grid gap="md" columnGap="none" rowGap="xs" />;`));
-  assert.match(text, /<Grid gap="md" rowGap="2xs" \/>/);
+  assert.match(text, /<Grid gap="md" gapY="2xs" \/>/);
+  const both = go(tsx(`export const A = ({ c }) => <Grid columnGap={c ? "none" : "lg"} rowGap="md" />;`)).text;
+  assert.match(both, /<Grid gapX=\{c \? undefined : "lg"\} gapY="md" \/>/);
+  // 新しい名前は書き換え済み = 触らない
+  const done = go(tsx(`export const A = () => <Grid gapX="md" gapY="2xs" />;`));
+  assert.equal(done.changes.length, 0);
+  assert.match(done.text, /<Grid gapX="md" gapY="2xs" \/>/);
+});
+
+test("中継部品: AppForm fieldSpace・ConfiguredFields space・UserTagList space は Stack の space、UserPage padding は Main の padding で写す(prop 名は変えない)", () => {
+  const source = [
+    `import { AppForm } from "@/components/Form/AppForm";`,
+    `import { AppForm as F2 } from "@/components/Form";`,
+    `import { ConfiguredFields } from "@/components/Form/Field";`,
+    `import { UserTagList } from "@/features/userTag/components/common/UserTagList";`,
+    `import { UserPage } from "@/app/(user)/_layout/UserPage";`,
+    `export const A = ({ c }) => (<UserPage padding="lg"><AppForm fieldSpace={6} /><F2 fieldSpace={c ? 4 : 2} /><ConfiguredFields space={8} />` +
+      `<UserTagList space={1} /></UserPage>);`,
+  ].join("\n");
+  const { text, untraceable } = go(source, { fileRel: "src/app/x/A.tsx" });
+  assert.deepEqual(untraceable, []);
+  assert.match(text, /<UserPage padding=\{\{ base: "md", sm: "lg" \}\}>/);
+  assert.match(text, /<AppForm fieldSpace="lg" \/>/);
+  assert.match(text, /<F2 fieldSpace=\{c \? "md" : "xs"\} \/>/);
+  assert.match(text, /<ConfiguredFields space="xl" \/>/);
+  assert.match(text, /<UserTagList space="2xs" \/>/);
+  // 2 回目(書き換え前と照らす)は 0 件、段の名前は書き換え済み
+  const again = go(text, { fileRel: "src/app/x/A.tsx", baseSource: source });
+  assert.equal(again.text, text);
+  assert.equal(again.changes.length, 0);
+});
+
+test("中継部品: 段に乗らない値は className に落とさず一覧(className は中の部品に届かない)", () => {
+  const source = [
+    `import { AppForm } from "@/components/Form/AppForm";`,
+    `import { ConfiguredFields } from "@/components/Form/Field/Configured";`,
+    `export const A = () => (<><AppForm fieldSpace={5} className="x" /><ConfiguredFields space={0.5} /></>);`,
+  ].join("\n");
+  const { text, untraceable } = go(source, { fileRel: "src/app/x/A.tsx" });
+  assert.equal(text, source);
+  assert.deepEqual(
+    untraceable.map((e) => [e.component, e.prop, /中継の prop の値が段に乗らない/.test(e.reason)]),
+    [
+      ["AppForm", "fieldSpace", true],
+      ["ConfiguredFields", "space", true],
+    ],
+  );
+});
+
+test("中継部品: 同じ名前のほかの部品は触らない", () => {
+  const source = [`import { AppForm } from "@/lib/other";`, `export const A = () => <AppForm fieldSpace={6} />;`].join("\n");
+  assert.equal(go(source, { fileRel: "src/app/x/A.tsx" }).text, source);
 });
 
 test("d2: 同じファイルの const(オブジェクトの中も)を定義の側で写す", () => {

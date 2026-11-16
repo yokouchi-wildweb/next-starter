@@ -6,6 +6,9 @@
 // - 旧表は書き換え前の版(--base)の src/components/Layout の 4 ファイル(commonVariants.ts・Grid.tsx・Flex.tsx・Stack.tsx)から読む(手書きしない)
 // - 幅で大きさが変わる値は { base, sm } に、段に乗らない値は className に落とす。Stack の space は gap に名前を変える
 // - JSX の字面に加え、同じファイルの const(オブジェクトの中も)・三項・?? の枝まで追う
+// - Grid の columnGap・rowGap は gapX・gapY に名前を変える(Stack の space → gap と同じく、葉が全部写せたときだけ)
+// - 上流の中継部品の prop(AppForm fieldSpace・ConfiguredFields space・UserTagList space = Stack の space、
+//   UserPage padding = Main の padding)も中の部品の旧表で写す。prop 名は変えない。段に乗らない値は一覧
 // - 新旧で名前が重なる(sm・md など)ため、書き換え済みかは名前で見分けず、書き換え前の版(--base)の同じ箇所の値と照らす。
 //   だから --apply は --base <書き換え前のコミット> を必ず要する(無い・--no-base なら何も書かずに止まる)。同じ --base なら何度走らせても同じ結果
 //
@@ -58,6 +61,32 @@ export const COMPONENT_PROPS = {
   Grid: [...COMMON, "gap", "columnGap", "rowGap"],
   Stack: [...COMMON, "space"],
 };
+/** prop の改名(旧 → 新)。葉が全部写せたときだけ名前を変える。新しい名前は新しい API にしかない = 書き換え済み */
+export const RENAMES = {
+  Stack: { space: "gap" },
+  Grid: { columnGap: "gapX", rowGap: "gapY" },
+};
+/**
+ * 上流の中継部品: 自分の prop を中の Layout 部品の余白 prop へそのまま渡す部品(L2.3)。
+ * prop 名は変えず、値だけを中の部品の旧表で写す。段に乗らない値は className に落とせない(中の部品に届かない)ので一覧
+ */
+export const RELAYS = {
+  AppForm: { modules: ["src/components/Form/AppForm", "src/components/Form"], props: { fieldSpace: ["Stack", "space"] } },
+  ConfiguredFields: {
+    modules: [
+      "src/components/Form/Field/Configured/ConfiguredFields",
+      "src/components/Form/Field/Configured",
+      "src/components/Form/Field",
+    ],
+    props: { space: ["Stack", "space"] },
+  },
+  UserTagList: { modules: ["src/features/core/userTag/components/common/UserTagList"], props: { space: ["Stack", "space"] } },
+  UserPage: { modules: ["src/app/(user)/_layout/UserPage"], props: { padding: ["Main", "padding"] } },
+};
+/** 部品(Layout と中継)→ 写す prop */
+const propsOf = (component) => COMPONENT_PROPS[component] ?? (RELAYS[component] ? Object.keys(RELAYS[component].props) : undefined);
+const isPart = (name) => Boolean(propsOf(name));
+
 /** 旧表を読むファイル */
 export const TABLE_FILES = {
   common: `${LAYOUT_DIR}/commonVariants.ts`,
@@ -246,6 +275,9 @@ export function buildMapping(tables) {
       mapping[component][prop] = Object.fromEntries(Object.entries(table).map(([key, classes]) => [key, mapClasses(classes)]));
     }
   }
+  for (const [relay, { props }] of Object.entries(RELAYS)) {
+    mapping[relay] = Object.fromEntries(Object.entries(props).map(([prop, [component, target]]) => [prop, mapping[component][target]]));
+  }
   return mapping;
 }
 
@@ -274,13 +306,19 @@ function createChecked(fileName, text) {
   return { sf, checker: program.getTypeChecker() };
 }
 
-/** import 元がどの Layout 部品か(@/components/Layout・@/components/Layout/<X>・相対・TextBlocks の Main) */
+/** import 元がどの部品か(@/components/Layout・@/components/Layout/<X>・相対・TextBlocks の Main・中継部品の置き場) */
 function layoutModule(specifier, fileRel) {
   let target = specifier;
   if (specifier.startsWith(".")) target = posix.normalize(posix.join(posix.dirname(fileRel), specifier));
   else if (specifier.startsWith("@/")) target = `src/${specifier.slice(2)}`;
   else return undefined;
   target = target.replace(/\/index$/, "");
+  // core のドメインは core/ を省いて import できる(@/features/userTag/… → src/features/core/userTag/…)
+  const coreTarget = target.replace(/^src\/features\/(?!core\/)/, "src/features/core/");
+  const relays = Object.entries(RELAYS)
+    .filter(([, relay]) => relay.modules.includes(target) || relay.modules.includes(coreTarget))
+    .map(([name]) => name);
+  if (relays.length > 0) return { only: relays };
   if (target === LAYOUT_DIR) return { all: true };
   if (target === "src/components/TextBlocks") return { only: ["Main"] };
   if (target.startsWith(`${LAYOUT_DIR}/`)) {
@@ -304,8 +342,8 @@ function layoutImports(sf, fileRel) {
     }
     for (const element of bindings.elements) {
       const imported = (element.propertyName ?? element.name).text;
-      if (element.isTypeOnly || !COMPONENT_PROPS[imported]) continue;
-      if (source.all || source.only.includes(imported)) locals.set(element.name.text, imported);
+      if (element.isTypeOnly || !isPart(imported)) continue;
+      if (source.all ? COMPONENT_PROPS[imported] : source.only.includes(imported)) locals.set(element.name.text, imported);
     }
   }
   return { locals, namespaces };
@@ -316,7 +354,7 @@ function componentOf(tagName, imports) {
   if (ts.isPropertyAccessExpression(tagName) && ts.isIdentifier(tagName.expression)) {
     const source = imports.namespaces.get(tagName.expression.text);
     const name = tagName.name.text;
-    if (source && COMPONENT_PROPS[name] && (source.all || source.only.includes(name))) return name;
+    if (source && isPart(name) && (source.all ? COMPONENT_PROPS[name] : source.only.includes(name))) return name;
   }
   return undefined;
 }
@@ -446,11 +484,10 @@ function analyze(source, fileRel) {
       }
       const name = attribute.name.getText(sf);
       if (name === "className") className = attribute;
-      else if (COMPONENT_PROPS[component].includes(name) || (component === "Stack" && name === "gap")) attrs.set(name, attribute);
+      else if (propsOf(component).includes(name)) attrs.set(name, attribute);
     }
     const element = { node, component, key: `${component}#${index}`, attrs, spread, className, props: [] };
     for (const [name, attribute] of attrs) {
-      if (component === "Stack" && name === "gap") continue; // Stack の gap は新しい API にしかない = 書き換え済み
       const init = attribute.initializer;
       let found;
       if (!init) found = [{ kind: "untraceable", node: attribute, reason: "式(値のない prop)" }];
@@ -563,7 +600,7 @@ export function transformSource(source, { fileRel = "src/file.tsx", mapping, def
   for (const element of elements) {
     if (element.spread) list(element, "*", element.spread, "spread(余白 prop が入りうる)");
     for (const [prop, value] of Object.entries(defaults[element.component] ?? {})) {
-      if (element.attrs.has(prop) || element.spread || !COMPONENT_PROPS[element.component].includes(prop)) continue;
+      if (element.attrs.has(prop) || element.spread || !propsOf(element.component).includes(prop)) continue;
       const result = mapping[element.component][prop]?.[value];
       const px = result && resultToPx(result);
       if (px && !px.empty && (px.base > 0 || px.sm > 0)) {
@@ -598,8 +635,8 @@ export function transformSource(source, { fileRel = "src/file.tsx", mapping, def
             use.state = "listed";
             use.reason = `書き換え前の版と食い違う(前: ${valueText(before)})`;
           }
-        } else if (prop.name !== "space" && typeof value === "string" && STEP_PX.has(value)) {
-          use.state = "already"; // 新しい段にしかない名前(2xs・2xl・3xl・4xl)
+        } else if (!RENAMES[element.component]?.[prop.name] && typeof value === "string" && !leaf.numeric && STEP_PX.has(value)) {
+          use.state = "already"; // 新しい段にしかない名前(2xs・2xl・3xl・4xl)、中継の prop の段の名前
         } else {
           use.state = "listed";
           use.reason = `旧表にない値(${valueText(value)})`;
@@ -660,6 +697,10 @@ export function transformSource(source, { fileRel = "src/file.tsx", mapping, def
         fail(group, `三項・?? の枝が段に乗らない(${first.result.classes})`);
         continue;
       }
+      if (RELAYS[first.element.component] && first.result.kind === "class") {
+        fail(group, `中継の prop の値が段に乗らない(${first.result.classes}、className は中の部品に届かない)`);
+        continue;
+      }
       if (!leaf.ctx && leaf.path === "" && first.result.kind === "class") {
         const axes = AXIS_OF[first.prop.name] ?? [];
         if (axes.some((axis) => first.element.attrs.has(axis))) {
@@ -668,18 +709,20 @@ export function transformSource(source, { fileRel = "src/file.tsx", mapping, def
         }
       }
     }
-    // Stack の space は prop 名を gap に変えるので、葉が全部写せるときだけ書く
+    // 改名する prop(Stack の space → gap、Grid の columnGap → gapX 等)は、葉が全部写せるときだけ書く
     for (const element of elements) {
-      if (element.component !== "Stack") continue;
+      const renames = RENAMES[element.component];
+      if (!renames) continue;
       for (const prop of element.props) {
-        if (prop.name !== "space") continue;
+        const to = renames[prop.name];
+        if (!to) continue;
         const mine = uses.filter((use) => use.prop === prop);
         const stuck = mine.find((use) => use.state === "listed");
         if (!stuck) continue;
         for (const use of mine) {
           if (use.state === "map") {
             use.state = "listed";
-            use.reason = "Stack の space の別の枝が写せない(gap へ名前を変えられない)";
+            use.reason = `${element.component} の ${prop.name} の別の枝が写せない(${to} へ名前を変えられない)`;
             changed = true;
           }
         }
@@ -740,14 +783,19 @@ export function transformSource(source, { fileRel = "src/file.tsx", mapping, def
     counts[result.kind] += 1;
     changes.push(record);
   }
-  // Stack の space → gap(葉が全部写せた prop だけ。className に落ちたものは prop ごと消えている)
+  // 改名(葉が全部写せた prop だけ。className に落ちた・直に外した prop は属性ごと消えている)
   for (const element of elements) {
-    if (element.component !== "Stack") continue;
+    const renames = RENAMES[element.component];
+    if (!renames) continue;
     for (const prop of element.props) {
-      if (prop.name !== "space") continue;
+      const to = renames[prop.name];
+      if (!to) continue;
       const mine = uses.filter((use) => use.prop === prop);
-      if (mine.length === 0 || mine.some((use) => use.state !== "map") || mine.some((use) => use.result.kind === "class")) continue;
-      replace(prop.attribute.name, "gap");
+      if (mine.length === 0 || mine.some((use) => use.state !== "map")) continue;
+      const gone = mine.some(
+        (use) => use.result.kind === "class" || (use.result.kind === "remove" && !use.leaf.ctx && use.leaf.path === ""),
+      );
+      if (!gone) replace(prop.attribute.name, to);
     }
   }
   for (const [element, classes] of classesFor) {
@@ -865,7 +913,7 @@ export function run(root, { base, write = false } = {}) {
     .sort();
   for (const rel of files) {
     const source = readFileSync(join(root, rel), "utf8");
-    if (!/Layout|TextBlocks/.test(source)) continue;
+    if (!/Layout|TextBlocks|AppForm|ConfiguredFields|UserTagList|UserPage|components\/Form/.test(source)) continue;
     const result = transformSource(source, { fileRel: rel, mapping, defaults, baseSource: reader.read(rel, source) });
     for (const [key, value] of Object.entries(result.counts)) report.counts[key] += value;
     report.changes.push(...result.changes);
