@@ -18,6 +18,8 @@ export type CreateButtonProps = ButtonStyleProps & {
   icon?: LucideIcon;
   /** カスタムhref（省略時は管理画面の新規作成パスを自動生成） */
   href?: string;
+  /** 押した時の処理（モーダルで作る一覧など）。渡すとリンクではなくボタンになり、domain / href は使わない */
+  onClick?: () => void;
 };
 
 export function CreateButton({
@@ -27,7 +29,17 @@ export function CreateButton({
   href,
   size = "md",
   variant = "primary",
+  onClick,
 }: CreateButtonProps) {
+  if (onClick) {
+    return (
+      <Button type="button" size={size} variant={variant} onClick={onClick} style={{ gap: "0.15rem" }}>
+        <Icon className="h-4 w-4" />
+        {label}
+      </Button>
+    );
+  }
+
   // hrefが直接指定されていればそれを使用、なければdomainから生成
   const resolvedHref = href ?? (() => {
     if (!domain) {
