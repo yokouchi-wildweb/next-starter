@@ -2,6 +2,7 @@
 // 管理の API が返す形(表示名を先に。内部の鍵は値としてだけ持つ、D94)
 
 import type { FieldConfig } from "@/components/Form/Field/types";
+import type { InlineFieldGroup } from "@/components/Form/FieldRenderer/types";
 
 import type { UserGroupDefinitionNode, UserGroupKind, UserGroupStatus } from "../../../entities/schema";
 import type { ReplaceMembersResult } from "../writes";
@@ -89,7 +90,7 @@ export type AdminUserGroupOption = { value: string; label: string };
 
 /** 条件の部品の一覧(key は定義の木の値としてだけ使う。画面は label を出す) */
 export type AdminUserGroupCriteriaCatalog = {
-  criteria: { key: string; label: string; description: string | null; weight: "cheap" | "heavy"; weightLabel: string; fields: FieldConfig[] }[];
+  criteria: { key: string; label: string; description: string | null; weight: "cheap" | "heavy"; weightLabel: string; fields: FieldConfig[]; inlineGroups: InlineFieldGroup[] }[];
   options: {
     tags: AdminUserGroupOption[];
     staticGroups: AdminUserGroupOption[];

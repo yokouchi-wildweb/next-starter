@@ -110,7 +110,8 @@ export type MessagingDispatchRow = {
   /** 送った時刻(予約なら予約の時刻)ISO */
   sentAt: string;
   status: string;
-  retracted: boolean;
+  /** 管理者が削除した回(D88) */
+  deleted: boolean;
   metrics: MessagingMetrics;
 };
 
@@ -180,7 +181,7 @@ export type DispatchPageRow = {
   tags: string[] | null;
   anchor: Date;
   status: string;
-  retractedAt: Date | null;
+  deletedAt: Date | null;
 };
 
 /** 集計の SQL の部分(テストは偽物を渡す) */

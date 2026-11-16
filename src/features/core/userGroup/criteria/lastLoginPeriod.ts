@@ -7,7 +7,7 @@ import { z } from "zod";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import type { UserGroupCriterion } from "@/features/userGroup/types";
 
-import { andAll, notWithinDaysWhere, PERIOD_FIELDS, periodArgs, periodWhere } from "../utils/criteriaPeriod";
+import { andAll, notWithinDaysWhere, PERIOD_FIELDS, PERIOD_INLINE_GROUPS, periodArgs, periodWhere } from "../utils/criteriaPeriod";
 
 const args = periodArgs({ notWithinDays: z.number().int().min(1).max(3650).optional() });
 
@@ -25,6 +25,7 @@ export const criterion: UserGroupCriterion<typeof args> = {
       helperText: "指定した日数以上ログインしていないユーザー(一度もログインしていないユーザーも含みます)",
     },
   ],
+  inlineGroups: PERIOD_INLINE_GROUPS,
   weight: "cheap",
   where: ({ notWithinDays, ...period }, { now }) =>
     andAll([

@@ -7,10 +7,11 @@ import {
   adminBulkSendOptions,
   adminBulkSendPreview,
   adminBulkSendTest,
-  adminCancelScheduled,
+  adminBulkDeleteDispatches,
   adminContinueSending,
+  adminDeleteDispatch,
+  adminDispatchDeleteSummary,
   adminResendFailed,
-  adminRetract,
   adminSend,
   adminSendEstimate,
   adminSendOptions,
@@ -69,9 +70,10 @@ export const messagingService = {
   adminSendEstimate,
   adminSendTest,
   adminSendOptions,
-  /** 管理の回の操作(/api/admin/messaging/dispatches/[id]/{cancel, retract, resend}): 予約の取り消し・取り下げ・失敗の再送 */
-  adminCancelScheduled,
-  adminRetract,
+  /** 管理の回の操作(D88): 削除(DELETE dispatches/[id])・まとめて削除(bulk-delete)・削除の見込み(delete-summary)・失敗の再送([id]/resend) */
+  adminDeleteDispatch,
+  adminBulkDeleteDispatches,
+  adminDispatchDeleteSummary,
   adminResendFailed,
   /** 管理の「続きを送る」(監査ログに 1 行) */
   adminContinueSending,

@@ -7,6 +7,7 @@ import type { SQL } from "drizzle-orm";
 import type { z } from "zod";
 
 import type { FieldConfig } from "@/components/Form/Field/types";
+import type { InlineFieldGroup } from "@/components/Form/FieldRenderer/types";
 
 /** where に渡す文脈(評価の時刻。同じ評価の中では全部の部品が同じ時刻を見る) */
 export type UserGroupCriterionContext = { now: Date };
@@ -16,6 +17,7 @@ export type UserGroupCriterionContext = { now: Date };
  * - key: 定義の木の葉 { part: key, args } が指す鍵(一意)
  * - args: 引数の zod(定義を保存する時・評価する時に通す。誤りは DomainError)
  * - fields: 管理画面の条件の欄(フォームの欄の型。name = args の鍵)
+ * - inlineGroups: 欄を横に 1 行で並べる組(任意、D90。FieldRenderer の InlineFieldGroup の形: key・label・fields = 欄の name・fieldWidths?)
  * - weight: cheap = 1 人の確かめ・その場の評価に使える / heavy = 重い(含む動的グループは 1 人の確かめを拒み、定期計算にすれば使える)
  * - where: users の行への SQL の述語(users の列を読む。他の表は EXISTS の副問い合わせで)
  * - enabled: false = 使わない(fork は上流の部品の隣の <名前>.override.ts で enabled・label・description を変えられる。
@@ -28,6 +30,7 @@ export type UserGroupCriterion<Args extends z.ZodTypeAny = z.ZodTypeAny> = {
   description?: string;
   args: Args;
   fields: readonly FieldConfig[];
+  inlineGroups?: readonly InlineFieldGroup[];
   weight: "cheap" | "heavy";
   enabled?: boolean;
   available?: () => boolean;

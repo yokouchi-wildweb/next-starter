@@ -45,9 +45,10 @@ import {
 } from "./bulkSend";
 import { adminContinueSending as adminContinueSendingWith } from "./continueSending";
 import {
-  adminCancelScheduled as adminCancelScheduledWith,
+  adminBulkDeleteDispatches as adminBulkDeleteDispatchesWith,
+  adminDeleteDispatch as adminDeleteDispatchWith,
+  adminDispatchDeleteSummary as adminDispatchDeleteSummaryWith,
   adminResendFailed as adminResendFailedWith,
-  adminRetract as adminRetractWith,
   policyOf,
   type AdminOperationsDeps,
 } from "./operations";
@@ -119,21 +120,24 @@ async function definitionOf(row: Parameters<typeof definitionOfDispatch>[1]) {
   }
 }
 
-/** 回の操作(取り消し・取り下げ・再送)の部品 */
+/** 回の操作(削除・削除の見込み・再送)の部品 */
 const operationsDeps: AdminOperationsDeps<Parameters<Parameters<typeof drizzleMessageOperationsStore.withLockedDispatch>[1]>[0]> = {
   ...adminCheck,
   store: drizzleMessageOperationsStore,
   now: () => new Date(),
+  channels: () => Object.values(channels),
   definitionOf,
   sendResolved,
   continueSending,
   recordAudit,
 };
 
-/** 予約の取り消し */
-export const adminCancelScheduled = (dispatchId: string) => adminCancelScheduledWith(operationsDeps, dispatchId);
-/** 取り下げ */
-export const adminRetract = (dispatchId: string) => adminRetractWith(operationsDeps, dispatchId);
+/** 回の削除(D88、どの状態でも。削除済みは消せる経路の remove だけを呼び直す) */
+export const adminDeleteDispatch = (dispatchId: string) => adminDeleteDispatchWith(operationsDeps, dispatchId);
+/** 回のまとめての削除({ ids } 100 件まで) */
+export const adminBulkDeleteDispatches = (input: unknown) => adminBulkDeleteDispatchesWith(operationsDeps, input);
+/** 削除の見込み({ ids } 100 件まで、確認の画面) */
+export const adminDispatchDeleteSummary = (input: unknown) => adminDispatchDeleteSummaryWith(operationsDeps, input);
 /** 失敗の再送({ includeUnknown? }) */
 export const adminResendFailed = (dispatchId: string, input?: unknown) => adminResendFailedWith(operationsDeps, dispatchId, input);
 
@@ -276,11 +280,12 @@ export {
   adminFreeTextMessageKeyOf,
 } from "./freeText";
 export type { AdminFreeTextCategoryOption, AdminFreeTextKind } from "./freeText";
-export { AdminResendInputSchema } from "./operations";
+export { ADMIN_DELETE_MAX_IDS, AdminDispatchIdsInputSchema, AdminResendInputSchema } from "./operations";
 export type {
-  AdminCancelResult,
+  AdminBulkDeleteResult,
+  AdminDeleteResult,
+  AdminDeleteSummary,
   AdminResendResult,
-  AdminRetractResult,
   DispatchOperationFlag,
   DispatchOperationFlags,
   DispatchOperationReason,

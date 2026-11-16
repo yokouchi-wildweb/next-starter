@@ -1,8 +1,11 @@
 // src/app/api/admin/messaging/dispatches/[id]/route.ts
 //
-// 管理者向け: 回 1 件(AdminDispatchDetail。本文は記録の段が vars / full のときだけ)
+// 管理者向け: 回 1 件(AdminDispatchDetail。本文は記録の段が vars / full のときだけ)と回の削除(D88)
+// - DELETE: どの状態の回も消す(論理削除。未送信を止め、予約は送られず、消せる経路の届けた物を消す。送ったメール・LINE は残る)。
+//   削除済みは同じ結果(消せる経路を呼び直す)。返す形 AdminDeleteResult。監査ログに 1 行
 //
 // GET /api/admin/messaging/dispatches/[id]
+// DELETE /api/admin/messaging/dispatches/[id]
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { messagingService } from "@/features/core/messaging/services/server/messagingService";
@@ -16,4 +19,13 @@ export const GET = createApiRoute<Params>(
     access: { roleCategories: ["admin"] },
   },
   async (_req, { params }) => messagingService.findDispatch(params.id),
+);
+
+export const DELETE = createApiRoute<Params>(
+  {
+    operation: "DELETE /api/admin/messaging/dispatches/[id]",
+    operationType: "write",
+    access: { roleCategories: ["admin"] },
+  },
+  async (_req, { params }) => messagingService.adminDeleteDispatch(params.id),
 );

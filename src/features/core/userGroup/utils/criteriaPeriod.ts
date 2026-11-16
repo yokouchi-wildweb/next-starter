@@ -6,6 +6,7 @@ import { and, gte, isNull, lt, lte, or, type AnyColumn, type SQL } from "drizzle
 import { z } from "zod";
 
 import type { FieldConfig } from "@/components/Form/Field/types";
+import type { InlineFieldGroup } from "@/components/Form/FieldRenderer/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -33,6 +34,12 @@ export const PERIOD_FIELDS: readonly FieldConfig[] = [
   { name: "from", label: "開始日時(この日時以降)", formInput: "datetimeInput" },
   { name: "to", label: "終了日時(この日時以前)", formInput: "datetimeInput" },
   { name: "withinDays", label: "直近 N 日以内", formInput: "numberInput", helperText: "今日から数えて何日以内か" },
+];
+
+/** 期間の欄の並べ方(D90): 開始〜終了を 1 行、直近 N 日を短い別の行 */
+export const PERIOD_INLINE_GROUPS: readonly InlineFieldGroup[] = [
+  { key: "period", label: "期間", fields: ["from", "to"] },
+  { key: "recent", label: "直近 N 日以内", fields: ["withinDays"], fieldWidths: ["w-24"] },
 ];
 
 /** 列の期間の述語(from 以後・to 以前・now から withinDays 日以内の and) */

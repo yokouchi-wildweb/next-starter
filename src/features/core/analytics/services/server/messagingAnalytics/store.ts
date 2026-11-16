@@ -329,7 +329,7 @@ async function dispatchPage(params: Parameters<MessagingAnalyticsStore["dispatch
     await db.execute(sql`
       SELECT ${D.id} AS id, ${D.message_key} AS message_key, ${D.category} AS category, ${D.kind} AS kind,
         ${D.template_id} AS template_id, ${D.tags} AS tags, ${anchor} AS anchor, ${D.status} AS status,
-        ${D.retracted_at} AS retracted_at
+        ${D.deleted_at} AS deleted_at
       FROM ${D}
       WHERE ${dispatchWhere(scope, { withLegacy: false })} ${cursor}
       ORDER BY ${anchor} DESC, ${D.id} DESC
@@ -346,7 +346,7 @@ async function dispatchPage(params: Parameters<MessagingAnalyticsStore["dispatch
     tags: (row.tags as string[] | null) ?? null,
     anchor: toDate(row.anchor)!,
     status: String(row.status),
-    retractedAt: toDate(row.retracted_at),
+    deletedAt: toDate(row.deleted_at),
   }));
 }
 

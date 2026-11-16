@@ -40,7 +40,7 @@
 
 どの口も管理者カテゴリだけ（`createApiRoute` の access `{ roleCategories: ["admin"] }`）、門 `userGroups` が閉なら 404。service でも管理者か system かを確かめる（403）。返す形は表示名が先（`kindLabel`・`statusLabel`）で、内部の鍵は値としてだけ持つ。例外の持ち主付きのグループは一覧・1 件・選択肢に出さない（404）。
 
-- `GET /api/admin/user-groups?kind&status&cursor&limit` → `{ items, nextCursor }`。`status` 既定 active、`limit` 1〜50 既定 20、新しい順
+- `GET /api/admin/user-groups?kind&status&cursor&limit` → `{ items, nextCursor }`。`status` は省略可(無ければ使用中とアーカイブの両方、D87)、`limit` 1〜50 既定 20、新しい順
   - 1 件の形: `id`・`name`・`description`・`kind` / `kindLabel`・`status` / `statusLabel`・`count`・`recompute`・`createdAt`・`updatedAt`
   - `count: { value, state }`: `counted`（静的 = 一員の数、定期計算 = 今の版の人数）/ `estimated`（動的をその場で数えた）/ `not_computed`（時間の上限・1 ページの予算が尽きた・壊れた条件）/ `none`（定期計算に版がまだ無い）
   - `recompute`（定期計算だけ）: `{ intervalMinutes, defaultIntervalMinutes, lastComputedAt, lastFailure: { at, reason } | null, computing }`
@@ -61,7 +61,7 @@
   - `from` = `{ type: "users", userIds }` / `{ type: "group", groupId }`（別のグループの今の一員）/ `{ type: "tag", tagId }`（タグの今の持ち主）
   - 1 回の要求の予算は `admin.freezeBudgetMs`。`members.status` が `incomplete` なら、画面が同じ `from` で `{ mode: "replace" }` を送り直すと続きから書く（サーバーは元を覚えない）
 - `GET /api/admin/user-groups/[id]/members?cursor&limit` → `{ items: [{ id, name }], nextCursor }`（静的だけ、`limit` 1〜100 既定 50、削除した利用者は出さない）
-- `GET /api/admin/user-groups/criteria` → `{ criteria: [{ key, label, description, weight, weightLabel, fields }], options: { tags, staticGroups }, kinds }`（使える部品だけ: `enabled: false`・読む機能が閉の部品は出ない）。タグ・静的グループの選択肢は `fields` にも入れて返す（`admin.optionsLimit` 件まで）
+- `GET /api/admin/user-groups/criteria` → `{ criteria: [{ key, label, description, weight, weightLabel, fields, inlineGroups }], options: { tags, staticGroups }, kinds }`（`inlineGroups` = 欄を横に 1 行で並べる組、FieldRenderer の `InlineFieldGroup` の形 `{ key, label, fields, fieldWidths? }`、無ければ []、D90。上流: 期間の部品 = 期間 from〜to と直近 withinDays の 2 行・購入金額の合計 = 基準・通貨・下限・タグ = タグと一致条件）（使える部品だけ: `enabled: false`・読む機能が閉の部品は出ない）。タグ・静的グループの選択肢は `fields` にも入れて返す（`admin.optionsLimit` 件まで）
 - 監査（`targetType` `user_group`、操作した管理者が actor、metadata は名前・種類・数だけで利用者 id は入れない）: `user_group.group.created` / `updated` / `archived` / `restored`・`user_group.exceptions.updated`・`user_group.members.replaced` / `added` / `removed`
 
 ### 管理画面の部品と hook

@@ -1,9 +1,9 @@
 // src/features/core/messaging/components/common/DispatchOperations/index.tsx
-// 部品(props だけ): 回の管理の操作(予約を取り消す・公開を停止・失敗分を再送・送信を再開)と、その上の状態の 1 行。
+// 部品(props だけ): 回の管理の操作(削除・失敗分を再送・送信を再開、D88)と、その上の状態の 1 行。
 // - できるかは AdminDispatchDetail.operations(server と同じ判定)。今できる操作のボタンだけを並べ、できない操作は出さない
 //   (押せないボタン・理由の文は出さない)。できる操作が 1 つも無ければボタンの行ごと出さない
 // - 状態の 1 行は呼び手が渡す(constants/dispatchOperations.ts の dispatchStateLine)
-// - 押すと確認の Dialog(onConfirm の Promise の間 loading)。公開の停止は戻せない・送信済みのメールは取り消せないと書く
+// - 押すと確認の Dialog(onConfirm の Promise の間 loading)。削除は戻せない・送信済みのメール・LINE は取り消せないと書く
 // - 再送は 同じ回で送り直す / 新しい回として送る と失敗・不明の数を出し、不明がある時だけ「不明も含める」(二重に届くおそれ)を選べる。
 //   その値は呼び手が持つ(includeUnknown / onIncludeUnknownChange)
 // - 送信を再開は canContinue(送信中の回)の時だけ、ConfirmPopover で確かめる
@@ -21,15 +21,22 @@ import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { Para } from "@/components/TextBlocks/Para";
 
 import { DISPATCH_OPERATION_REASON_TEXT } from "@/features/core/messaging/constants/dispatchOperations";
-import type { AdminDispatchDetail } from "@/features/core/messaging/services/client/adminMessagingClient";
+import type { AdminDeleteSummary, AdminDispatchDetail } from "@/features/core/messaging/services/client/adminMessagingClient";
+
+import { DispatchDeleteSummary } from "../DispatchDeleteSummary";
 
 export type DispatchOperationsProps = {
   operations: AdminDispatchDetail["operations"];
   /** 再送で「送れたか分からない」宛先も含めるか */
   includeUnknown: boolean;
   onIncludeUnknownChange: (value: boolean) => void;
-  onCancel: () => Promise<void>;
-  onRetract: () => Promise<void>;
+  /** 削除の見込み(確認を開いている間に呼び手が取る、D88) */
+  deleteSummary?: AdminDeleteSummary | null;
+  deleteSummaryLoading?: boolean;
+  deleteSummaryError?: unknown;
+  /** 削除の確認を開いた・閉じた(見込みを取る合図) */
+  onDeleteConfirmOpenChange?: (open: boolean) => void;
+  onDelete: () => Promise<void>;
   onResend: () => Promise<void>;
   /** 操作の上に出す状態の 1 行(null = 出さない) */
   stateLine?: string | null;
@@ -38,7 +45,7 @@ export type DispatchOperationsProps = {
   onContinue?: () => Promise<void>;
 };
 
-type Op = "cancel" | "retract" | "resend";
+type Op = "delete" | "resend";
 
 /** できない理由の文(符号が無ければ null) */
 export function operationReasonText(reason: string | null): string | null {
@@ -50,21 +57,25 @@ export function DispatchOperations({
   operations,
   includeUnknown,
   onIncludeUnknownChange,
-  onCancel,
-  onRetract,
+  onDelete,
   onResend,
   stateLine = null,
   canContinue = false,
   onContinue,
+  deleteSummary = null,
+  deleteSummaryLoading = false,
+  deleteSummaryError = null,
+  onDeleteConfirmOpenChange,
 }: DispatchOperationsProps) {
   const [open, setOpen] = useState<Op | null>(null);
   const close = (next: boolean) => {
+    if (!next) onDeleteConfirmOpenChange?.(false);
     if (!next) setOpen(null);
   };
-  const { cancel, retract, resend } = operations;
+  const { canDelete, canResend: resend } = operations;
   const resendCount = resend.failed + (includeUnknown ? resend.unknown : 0);
   const showContinue = canContinue && onContinue !== undefined;
-  const anyOperation = cancel.allowed || retract.allowed || resend.allowed || showContinue;
+  const anyOperation = canDelete.allowed || resend.allowed || showContinue;
 
   return (
     <>
@@ -76,14 +87,12 @@ export function DispatchOperations({
         ) : null}
         {anyOperation ? (
           <Flex align="center" justify="end" gap="sm" wrap="wrap">
-            {cancel.allowed ? (
-              <Button type="button" size="sm" variant="outline" onClick={() => setOpen("cancel")}>
-                予約を取り消す
-              </Button>
-            ) : null}
-            {retract.allowed ? (
-              <Button type="button" size="sm" variant="outline" onClick={() => setOpen("retract")}>
-                公開を停止
+            {canDelete.allowed ? (
+              <Button type="button" size="sm" variant="outline" onClick={() => {
+                  setOpen("delete");
+                  onDeleteConfirmOpenChange?.(true);
+                }}>
+                削除
               </Button>
             ) : null}
             {resend.allowed ? (
@@ -109,34 +118,21 @@ export function DispatchOperations({
       </Stack>
 
       <Dialog
-        open={open === "cancel"}
+        open={open === "delete"}
         onOpenChange={close}
         layer="alert"
         overlayLayer="alert"
-        title="予約を取り消す"
-        description="この予約を取り消します。まだ送信していないため、誰にも届きません。"
-        confirmLabel="取り消す"
+        title="送信を削除"
+        confirmLabel="削除する"
+        confirmVariant="destructive"
         cancelLabel="キャンセル"
         onConfirm={async () => {
-          await onCancel();
+          await onDelete();
           setOpen(null);
         }}
-      />
-
-      <Dialog
-        open={open === "retract"}
-        onOpenChange={close}
-        layer="alert"
-        overlayLayer="alert"
-        title="公開を停止"
-        description="この送信のお知らせを削除し、まだ送信していない分を止めます。送信済みのメールは取り消せません。この操作は元に戻せません。"
-        confirmLabel="公開を停止する"
-        cancelLabel="キャンセル"
-        onConfirm={async () => {
-          await onRetract();
-          setOpen(null);
-        }}
-      />
+      >
+        <DispatchDeleteSummary summary={deleteSummary} isLoading={deleteSummaryLoading} error={deleteSummaryError} />
+      </Dialog>
 
       <Dialog
         open={open === "resend"}

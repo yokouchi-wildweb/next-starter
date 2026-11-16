@@ -285,7 +285,7 @@ const deliveryRow = (over: Partial<MessageDelivery> = {}): MessageDelivery =>
     ...over,
   }) as MessageDelivery;
 
-const FLAGS = operationFlags({ status: "completed", expand_cursor: null, retracted_at: null, record: "meta", vars: null }, null, {
+const FLAGS = operationFlags({ status: "completed", deleted_at: null, record: "meta", vars: null }, null, {
   failed: 0,
   unknown: 0,
 });
@@ -362,7 +362,7 @@ test.skip("読む口: 1 件多く引いて次の印を作る、絞り込みを s
   assert.equal(deliveries.nextCursor, null);
   await assert.rejects(findDispatch(deps, "nope"), (e: unknown) => e instanceof DomainError && e.status === 404);
   await assert.rejects(listDeliveries(deps, "nope"), (e: unknown) => e instanceof DomainError && e.status === 404);
-  assert.equal((await findDispatch(deps, "d1")).operations.retract.allowed, true);
+  assert.equal((await findDispatch(deps, "d1")).operations.canDelete.allowed, true);
   await rejects403(listDispatches({ ...check(ctx("user1", "user")), dispatchStore: store, operationInputs, sourceLabel: async () => null }));
 });
 

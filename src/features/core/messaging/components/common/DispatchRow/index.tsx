@@ -63,7 +63,7 @@ export function DispatchRow({ dispatch, href, categoryLabel = null }: DispatchRo
     >
       <Stack space={1}>
         <Flex align="center" gap="xs" wrap="wrap">
-          <DispatchStatusBadge status={dispatch.status} retractedAt={dispatch.retractedAt} />
+          <DispatchStatusBadge status={dispatch.status} deletedAt={dispatch.deletedAt} />
           {dispatch.isTest ? <Span size="sm" tone="muted">テスト</Span> : null}
           <Span weight="semiBold">{dispatchHeading(dispatch)}</Span>
         </Flex>

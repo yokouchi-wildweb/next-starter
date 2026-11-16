@@ -16,7 +16,7 @@ import { CreateButton } from "@/lib/crud/components";
 
 import { AdminUserGroupModal } from "@/features/core/userGroup/components/AdminUserGroupModal";
 import { UserGroupRow } from "@/features/core/userGroup/components/common/UserGroupRow";
-import { useAdminUserGroupList } from "@/features/core/userGroup/hooks/useAdminUserGroupList";
+import { useAdminUserGroupList, type UserGroupStatusFilter } from "@/features/core/userGroup/hooks/useAdminUserGroupList";
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
 const KIND_OPTIONS = [
@@ -24,7 +24,9 @@ const KIND_OPTIONS = [
   { value: "scheduled", label: "定期的に更新" },
   { value: "static", label: "作成時に固定" },
 ];
+// すべて = 使用中とアーカイブの両方(既定、D87)。値は all(空の値は Radix の SelectItem が受けない)
 const STATUS_OPTIONS = [
+  { value: "all", label: "すべて" },
   { value: "active", label: "使用中" },
   { value: "archived", label: "アーカイブ" },
 ];
@@ -54,7 +56,7 @@ export function AdminUserGroupList() {
             <Label htmlFor="user-group-filter-status" className="text-xs">
               状態
             </Label>
-            <SelectInput id="user-group-filter-status" value={status} onChange={(v) => setStatus(v ? String(v) : "active")} options={STATUS_OPTIONS} showPlaceholderOption={false} />
+            <SelectInput id="user-group-filter-status" value={status} onChange={(v) => setStatus((v ? String(v) : "all") as UserGroupStatusFilter)} options={STATUS_OPTIONS} showPlaceholderOption={false} />
           </Stack>
         </Flex>
         <CreateButton onClick={modal.openNew} />

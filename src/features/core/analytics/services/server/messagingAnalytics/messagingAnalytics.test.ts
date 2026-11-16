@@ -198,8 +198,8 @@ test("dispatches: 回の管理が閉なら空、開なら回ごとの数と curs
     async dispatchPage(params) {
       pages.push(params);
       return [
-        { id: D1, messageKey: "shop.notice", category: "news", kind: "marketing", templateId: null, tags: ["sale"], anchor: new Date("2026-11-10T00:00:00Z"), status: "completed", retractedAt: null },
-        { id: D2, messageKey: "shop.notice", category: "news", kind: "marketing", templateId: null, tags: null, anchor: new Date("2026-11-09T00:00:00Z"), status: "completed", retractedAt: new Date("2026-11-10T00:00:00Z") },
+        { id: D1, messageKey: "shop.notice", category: "news", kind: "marketing", templateId: null, tags: ["sale"], anchor: new Date("2026-11-10T00:00:00Z"), status: "completed", deletedAt: null },
+        { id: D2, messageKey: "shop.notice", category: "news", kind: "marketing", templateId: null, tags: null, anchor: new Date("2026-11-09T00:00:00Z"), status: "completed", deletedAt: new Date("2026-11-10T00:00:00Z") },
       ];
     },
     async dispatchCounts(scope) {
