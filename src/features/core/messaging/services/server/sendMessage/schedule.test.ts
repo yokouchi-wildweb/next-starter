@@ -58,8 +58,7 @@ async function rejects400(run: Promise<unknown>, message: RegExp) {
   });
 }
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("予約: scheduled の回だけを作り、時刻に cron が展開して送る", async () => {
+test("予約: scheduled の回だけを作り、時刻に cron が展開して送る", async () => {
   const { world, deps, sender, channel } = setup();
   const result = await sender.sendMessageToMany(notice, {
     recipients: [{ userId: "u1" }, { userId: "u2" }],
@@ -83,8 +82,7 @@ test.skip("予約: scheduled の回だけを作り、時刻に cron が展開し
   assert.equal(world.store.deliveries.filter((row) => row.status === "sent").length, 2);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("予約: 過ぎた時刻・遠すぎる時刻・秘密を差し込む連絡は 400(回を作らない)", async () => {
+test("予約: 過ぎた時刻・遠すぎる時刻・秘密を差し込む連絡は 400(回を作らない)", async () => {
   const { world, sender } = setup();
   const base = { recipients: [{ userId: "u1" }], vars: { item: "x" } };
   await rejects400(sender.sendMessageToMany(notice, { ...base, scheduledAt: T0 }), /過ぎて/);

@@ -235,7 +235,7 @@ export const TEST_CATEGORIES: Readonly<Record<string, MessageCategory>> = {
   chatMail: { key: "chatMail", label: "チャット(メール)", kind: "transactional", channels: ["mail"] },
   shop: { key: "shop", label: "ショップ", kind: "transactional", channels: ["email", "inApp"] },
   shopEmail: { key: "shopEmail", label: "ショップ(メール)", kind: "transactional", channels: ["email"] },
-  marketing: { key: "promotion", label: "キャンペーン情報", kind: "promotion", channels: ["email", "inApp"] },
+  promotion: { key: "promotion", label: "キャンペーン情報", kind: "promotion", channels: ["email", "inApp"] },
   operatorDirect: { key: "operatorDirect", label: "運営からのご連絡", kind: "direct", channels: ["email", "inApp"] },
   directTest: { key: "directTest", label: "個別の連絡(テストの経路)", kind: "direct", channels: ["test"] },
   alert: { key: "alert", label: "セキュリティの警告", kind: "security", channels: ["test"] },
