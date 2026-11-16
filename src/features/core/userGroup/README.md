@@ -7,7 +7,7 @@
 - グループであるもの: 名前をつけて何度も使う集まり（「VIP」「30 日ログインしていない人」「キャンペーンの当選者」）
 - グループでないもの: 出来事に伴う宛先（ある人のフォロワー・欲しい物の登録者・ある予約の人）。その機能が自分で利用者を引き、連絡なら選んだ宛先（`recipients`）として送る。グループを作って渡さない
 - user に列も表も足さない独立したドメイン。門 `userGroups`（既定 閉）がドメインごと閉じる
-- 母集団は削除されていない利用者。利用できる状態か（停止・休会・デモ）は条件の部品「状態」か使い手が見る（連絡はグループの一員にも user の「利用できる利用者」の述語をかける）
+- 母集団は削除されていない利用者。利用できる状態か（停止・休会・デモ）は使い手が見る（連絡はグループの一員にも user の「利用できる利用者」の述語をかける）
 
 3 つの種類（`kind`）:
 
@@ -98,19 +98,22 @@ export const criterion: UserGroupCriterion<typeof args> = {
 - `args`: 引数の zod。定義を保存する時と評価する時に通す
 - `fields`: 管理画面の欄（フォームの欄の型 `FieldConfig`、`name` = `args` の鍵）。選択肢が要る欄は `options` を持たせる
 - `weight`: `cheap`（1 人の確かめ・その場の評価に使える）/ `heavy`（重い。含む動的グループは 1 人の確かめを拒み、定期計算にすれば使える。動的のまま保存はできる）
+- `enabled?` / `available?`: `enabled: false` = 使わない。`available()` = 部品が読む機能が開いているか（呼ぶたびに読む）。どちらかで外れた部品は部品の一覧に出ず、定義に使うと「知らない部品」の誤り（保存は 400、保存済みの定義は壊れた条件の 409）
 - `where(args, { now })`: users の行への SQL の述語。他の表は EXISTS の副問い合わせで書く。1 回の評価は全部の部品に同じ `now` を渡す
 - 部品は SQL の述語だけを返す（利用者 id を集める関数は書かない）。raw SQL に Date を埋めない（`.toISOString()` か drizzle の演算子に渡す）
 - 部品が読む列には索引が要る（全員を相手に毎回引くため）。索引を足したら `pnpm db:push` の後に `pnpm db:push:check` = 0（`.desc()` を使い、普通の列と式を 1 つの索引に混ぜない）。users の status / deleted_at / created_at / last_authenticated_at / role と user_to_user_tag の user_tag_id には索引がある
 - SQL で書けない条件は部品にしない: fork の task が静的グループへ書き（Usage）、条件からは部品「固定グループのメンバー」（`inStaticGroup`）で使う
 
-上流の部品（どれも cheap）:
+fork は上流の部品の隣に `criteria/<名前>.override.ts` を置き、`export const override = { enabled?, label?, description? }` で止める・名前と説明を変えられる（鍵・引数・述語は変えられない）。`inStaticGroup` は止められない（例外の人と静的グループの条件が使う。`enabled: false` はサーバーの読み込みで止まる）。
 
-- `role`（ロール）: `{ roles }` のどれか
-- `status`（状態）: `{ statuses }` のどれか。利用できる人だけにしたい時は「有効」を選ぶ
+上流の部品（5 つ）:
+
 - `signupPeriod`（登録の時期）: `{ from?, to?, withinDays? }`（1 つ以上、重ねると and。`withinDays` = 評価の時刻から N 日以内）
 - `lastLoginPeriod`（最後のログインの時期）: 同じ形 + `notWithinDays?`（N 日ログインしていない。一度もログインしていない人も含む）
 - `hasTag`（タグ）: `{ tagIds, match: "any" | "all" }`
 - `inStaticGroup`（固定グループのメンバー）: `{ groupId }`。指せるのは使用中の静的グループ（保存の時に確かめる）
+- `purchaseTotal`（購入金額の合計、heavy）: `{ withinDays? | from? / to?, basis: "payment" | "coins", walletType?, min }`。完了した購入（purchase_requests の status completed）を完了日時の期間で合計し、`min` 以上の人。基準は支払額（payment_amount、円、既定）かコイン数（amount、通貨 `walletType` を選ぶ）。返金は引かない（上流に返金の記録が無い）。門 payment（と wallet）が閉なら部品の一覧に出ない
+- `signupPeriod` / `lastLoginPeriod` / `hasTag` / `inStaticGroup` は cheap。利用できる状態（停止など）やロールで絞る部品は上流に無い（要る fork は自分の部品を足す）
 
 ### 設定（`config.ts`、上書き `src/config/features/userGroup.config.ts`）
 

@@ -17,19 +17,12 @@ const query = (key: string, args: unknown) => {
   return dialect.sqlToQuery(criterion.where(criterion.args.parse(args), { now: NOW }));
 };
 
-test("6 つの部品が一覧にあり、どれも cheap で、欄がある", () => {
-  assert.deepEqual(Object.keys(criteria).sort(), ["hasTag", "inStaticGroup", "lastLoginPeriod", "role", "signupPeriod", "status"]);
+test("5 つの部品が一覧にあり、購入金額の合計だけ heavy で、どれも欄がある", () => {
+  assert.deepEqual(Object.keys(criteria).sort(), ["hasTag", "inStaticGroup", "lastLoginPeriod", "purchaseTotal", "signupPeriod"]);
   for (const criterion of Object.values(criteria)) {
-    assert.equal(criterion.weight, "cheap", criterion.key);
+    assert.equal(criterion.weight, criterion.key === "purchaseTotal" ? "heavy" : "cheap", criterion.key);
     assert.ok(criterion.fields.length > 0, criterion.key);
   }
-});
-
-test("ロール・状態: どれかの値(IN)。空・知らない状態は止まる", () => {
-  assert.match(query("role", { roles: ["admin", "user"] }).sql, /"role" in \(\$1, \$2\)/);
-  assert.match(query("status", { statuses: ["active"] }).sql, /"status" in \(\$1\)/);
-  assert.equal(criteria.role!.args.safeParse({ roles: [] }).success, false);
-  assert.equal(criteria.status!.args.safeParse({ statuses: ["nope"] }).success, false);
 });
 
 test("登録の時期: from / to / 直近の日数(Date は引数)、どれも無い・from > to は止まる", () => {
