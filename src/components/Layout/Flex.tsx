@@ -3,26 +3,10 @@ import { ComponentProps } from "react";
 
 import { cn } from "@/lib/cn";
 
-import {
-  appearance,
-  padding,
-  paddingBlock,
-  paddingInline,
-  margin,
-  marginBlock,
-  marginInline,
-} from "./commonVariants";
+import { appearance } from "./commonVariants";
+import { boxSpacingClassName, spacingClassName, type BoxSpacingProps, type SpacingValue } from "./spacing";
 
 const flexVariantDefinitions = {
-  gap: {
-    none: "gap-0",
-    xs: "gap-2",
-    sm: "gap-4",
-    md: "gap-6",
-    lg: "gap-8",
-    xl: "gap-12",
-    xxl: "gap-16",
-  },
   direction: {
     row: "flex-row",
     column: "flex-col",
@@ -48,26 +32,20 @@ const flexVariantDefinitions = {
   },
 } as const;
 
-/** Flex用のレイアウトバリアント（spaceを除外） */
+/** Flex用のレイアウトバリアント(見た目だけ。余白は spacing.ts) */
 const flexLayoutVariants = {
   appearance,
-  padding,
-  paddingBlock,
-  paddingInline,
-  margin,
-  marginBlock,
-  marginInline,
 } as const;
 
-const flexVariants = cva("flex", {
-  variants: {
-    ...flexLayoutVariants,
-    ...flexVariantDefinitions,
-  },
-});
+const flexLayoutVariantsCva = cva("flex", { variants: flexLayoutVariants });
+const flexVariants = cva("", { variants: flexVariantDefinitions });
 
 type FlexProps = Omit<ComponentProps<"div">, "className"> &
-  VariantProps<typeof flexVariants> & {
+  VariantProps<typeof flexLayoutVariantsCva> &
+  VariantProps<typeof flexVariants> &
+  BoxSpacingProps & {
+    /** 子要素の間の余白(段の名前 / 幅別。既定 none = 0) */
+    gap?: SpacingValue | null;
     className?: string;
   };
 
@@ -108,20 +86,13 @@ export function Flex({
   className,
   ...props
 }: FlexProps) {
-  const variantClasses = flexVariants({
-    appearance,
-    padding,
-    paddingBlock,
-    paddingInline,
-    margin,
-    marginBlock,
-    marginInline,
-    gap,
-    direction,
-    align,
-    justify,
-    wrap,
-  });
+  // 並びは旧来の class の順(flex → 見た目 → 余白 → gap → 配置)を保つ
+  const variantClasses = cn(
+    flexLayoutVariantsCva({ appearance }),
+    boxSpacingClassName({ padding, paddingBlock, paddingInline, margin, marginBlock, marginInline }),
+    spacingClassName("gap", gap),
+    flexVariants({ direction, align, justify, wrap }),
+  );
 
   return <div data-component="Flex" className={cn(variantClasses, className)} {...props} />;
 }

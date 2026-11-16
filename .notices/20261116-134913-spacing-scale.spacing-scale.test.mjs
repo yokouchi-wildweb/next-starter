@@ -21,9 +21,6 @@ import {
   transformSource,
 } from "./20261116-134913-spacing-scale.spacing-scale.mjs";
 
-const repo = join(dirname(fileURLToPath(import.meta.url)), "..");
-const readRepo = (rel) => readFileSync(join(repo, rel), "utf8");
-const { tables, mapping, defaults } = loadSpacingTables(readRepo);
 
 // 手書きの写し(今の Layout の表)。ファイルの表が変わればここと食い違って落ちる
 const HAND_TABLES = {
@@ -52,13 +49,54 @@ const HAND_TABLES = {
   },
 };
 
+// 書き換え前の Layout の 4 ファイル(と既定値を読む部品のファイル)の見本。上流はこの区切りで旧表を消したので、
+// テストは今の木ではなく、この見本(= 手書きの写しから組んだ旧い形のソース)から読む。
+// 見本は書き換え前のコミット(余白の区切りの直前)の実物と同じ表・既定値になる(d5 の 1 件目が確かめる)
+const literal = (record) => `{ ${Object.entries(record).map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(", ")} }`;
+const OLD_SOURCES = {
+  "src/components/Layout/commonVariants.ts": Object.entries(HAND_TABLES.common)
+    .map(([prop, record]) => `export const ${prop} = ${literal(record)} as const;`)
+    .join("\n"),
+  "src/components/Layout/Grid.tsx": [
+    `const gridVariantDefinitions = { gap: ${literal(HAND_TABLES.Grid.gap)}, columnGap: ${literal(HAND_TABLES.Grid.columnGap)}, rowGap: ${literal(HAND_TABLES.Grid.rowGap)} } as const;`,
+    `export function Grid({ gap = "none", columnGap, rowGap, autoFlow = "row", alignItems = "stretch", justifyItems = "stretch", justifyContent = "start" }) { return null; }`,
+  ].join("\n"),
+  "src/components/Layout/Flex.tsx": [
+    `const flexVariantDefinitions = { gap: ${literal(HAND_TABLES.Flex.gap)} } as const;`,
+    `export function Flex({ gap = "none", direction = "row", align = "stretch", justify = "start", wrap = "nowrap" }) { return null; }`,
+  ].join("\n"),
+  "src/components/Layout/Stack.tsx": [
+    `const SPACING_SCALE = [${Object.keys(HAND_TABLES.Stack.space).join(", ")}] as const;`,
+    `export function Stack({ space = 0 }) { return null; }`,
+  ].join("\n"),
+  "src/components/Layout/Main.tsx": `export function Main({ padding = "md", verticalAlign = "center" }) { return null; }`,
+  "src/components/Layout/Block.tsx": `export function Block({ padding }) { return null; }`,
+  "src/components/Layout/InBlock.tsx": `export function InBlock({ padding }) { return null; }`,
+  "src/components/Layout/Section.tsx": `export function Section({ padding }) { return null; }`,
+};
+const readOld = (rel) => {
+  if (!(rel in OLD_SOURCES)) throw new Error(`見本に無い: ${rel}`);
+  return OLD_SOURCES[rel];
+};
+const { tables, mapping, defaults } = loadSpacingTables(readOld);
+
 const tsx = (body, imports = `import { Block, Flex, Grid, Main, Section, Stack } from "@/components/Layout";`) => `${imports}\n${body}\n`;
 const go = (source, options = {}) => transformSource(source, { mapping, defaults, ...options });
 
 // ---------------------------------------------------------------- d5 旧表はファイルから
 
-test("d5: 旧表は Layout の 4 ファイルから読み、手書きの写しと一致する", () => {
+test("d5: 旧表は Layout の 4 ファイル(の見本)から読み、手書きの写しと一致する。既定値は書き換え前の実物と同じ", () => {
   assert.deepEqual(tables, HAND_TABLES);
+  // 書き換え前のコミット(余白の区切りの直前、上流)の loadDefaults の結果
+  assert.deepEqual(defaults, {
+    Block: {},
+    InBlock: {},
+    Section: {},
+    Main: { padding: "md", verticalAlign: "center" },
+    Flex: { gap: "none", direction: "row", align: "stretch", justify: "start", wrap: "nowrap" },
+    Grid: { gap: "none", autoFlow: "row", alignItems: "stretch", justifyItems: "stretch", justifyContent: "start" },
+    Stack: { space: "0" },
+  });
   assert.deepEqual(Object.values(TABLE_FILES).sort(), [
     "src/components/Layout/Flex.tsx",
     "src/components/Layout/Grid.tsx",
@@ -69,7 +107,7 @@ test("d5: 旧表は Layout の 4 ファイルから読み、手書きの写し�
 });
 
 test("d5: ファイルの表が変われば(写しと食い違えば)読んだ表も変わる", () => {
-  const changed = (rel) => readRepo(rel).replace('md: "gap-6"', 'md: "gap-5"');
+  const changed = (rel) => readOld(rel).replace('"md": "gap-6"', '"md": "gap-5"');
   assert.notDeepEqual(loadSpacingTables(changed).tables, HAND_TABLES);
 });
 
@@ -285,11 +323,10 @@ test("d3: 書き換え前と食い違う値(写した後でもない)は一覧",
 test("d3: run をリポで 2 回(dry-run → apply → apply、同じ base)、2 回目は 0 ファイル", () => {
   const root = mkdtempSync(join(tmpdir(), "spacing-scale-"));
   try {
-    for (const rel of Object.values(TABLE_FILES)) {
+    for (const [rel, text] of Object.entries(OLD_SOURCES)) {
       mkdirSync(dirname(join(root, rel)), { recursive: true });
-      cpSync(join(repo, rel), join(root, rel));
+      writeFileSync(join(root, rel), text);
     }
-    cpSync(join(repo, "src/components/Layout/Main.tsx"), join(root, "src/components/Layout/Main.tsx"));
     mkdirSync(join(root, "src/app"), { recursive: true });
     writeFileSync(join(root, "src/app/A.tsx"), SAMPLE);
     const gitIn = (...args) => execFileSync("git", ["-C", root, ...args], { stdio: "ignore" });

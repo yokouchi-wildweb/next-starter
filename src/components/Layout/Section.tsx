@@ -4,6 +4,7 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
 import { createLayoutVariants } from "./commonVariants";
+import { boxSpacingClassName, type BoxSpacingProps } from "./spacing";
 
 const sectionVariants = createLayoutVariants("block");
 
@@ -15,7 +16,8 @@ type BaseSectionProps<T extends SectionElement> = Omit<ComponentProps<T>, "class
 };
 
 export type SectionProps<T extends SectionElement = "section"> = BaseSectionProps<T> &
-  VariantProps<typeof sectionVariants>;
+  VariantProps<typeof sectionVariants> &
+  BoxSpacingProps;
 
 export function Section<T extends SectionElement = "section">({
   as,
@@ -36,15 +38,8 @@ export function Section<T extends SectionElement = "section">({
       data-component={`Section:${Component}`}
       {...props}
       className={cn(
-        sectionVariants({
-          appearance,
-          padding,
-          paddingBlock,
-          paddingInline,
-          margin,
-          marginBlock,
-          marginInline,
-        }),
+        sectionVariants({ appearance }),
+        boxSpacingClassName({ padding, paddingBlock, paddingInline, margin, marginBlock, marginInline }),
         className,
       )}
     />

@@ -7,6 +7,7 @@ import FullScreen, { type FullScreenLayer } from "@/components/Layout/FullScreen
 import { cn } from "@/lib/cn";
 
 import { createLayoutVariants } from "./commonVariants";
+import { boxSpacingClassName, type BoxSpacingProps, type SpacingValue } from "./spacing";
 
 const mainLayoutVariants = createLayoutVariants("mx-auto w-full");
 
@@ -26,8 +27,12 @@ const layoutMaxWidths: Partial<Record<ContainerType, CSSProperties["maxWidth"]>>
   wideShowcase: "var(--layout-width-wide-showcase)",
 };
 
+/** padding を書かない Main の内側の余白(12px → sm 以上で 16px) */
+export const MAIN_DEFAULT_PADDING: SpacingValue = { base: "sm", sm: "md" };
+
 export type MainProps = ComponentProps<"main"> &
-  VariantProps<typeof mainLayoutVariants> & {
+  VariantProps<typeof mainLayoutVariants> &
+  BoxSpacingProps & {
     children: ReactNode;
     containerType?: ContainerType;
     fullscreenLayer?: FullScreenLayer;
@@ -44,7 +49,7 @@ export type MainProps = ComponentProps<"main"> &
 export function Main({
   containerType,
   appearance,
-  padding = "md",
+  padding = MAIN_DEFAULT_PADDING,
   paddingBlock,
   paddingInline,
   margin,
@@ -69,15 +74,8 @@ export function Main({
         data-slot="main"
         className={cn(
           "max-w-screen overflow-hidden",
-          mainLayoutVariants({
-            appearance,
-            padding,
-            paddingBlock,
-            paddingInline,
-            margin,
-            marginBlock,
-            marginInline,
-          }),
+          mainLayoutVariants({ appearance }),
+          boxSpacingClassName({ padding, paddingBlock, paddingInline, margin, marginBlock, marginInline }),
           className,
         )}
         {...props}
@@ -93,15 +91,8 @@ export function Main({
         <main
           data-slot="main"
           className={cn(
-            mainLayoutVariants({
-              appearance,
-              padding,
-              paddingBlock,
-              paddingInline,
-              margin,
-              marginBlock,
-              marginInline,
-            }),
+            mainLayoutVariants({ appearance }),
+            boxSpacingClassName({ padding, paddingBlock, paddingInline, margin, marginBlock, marginInline }),
             className,
           )}
           {...props}
@@ -120,15 +111,8 @@ export function Main({
           className={cn(
             verticalAlignClass,
             "mx-auto w-full max-w-screen overflow-clip bg-surface",
-            mainLayoutVariants({
-              appearance,
-              padding,
-              paddingBlock,
-              paddingInline,
-              margin,
-              marginBlock,
-              marginInline,
-            }),
+            mainLayoutVariants({ appearance }),
+            boxSpacingClassName({ padding, paddingBlock, paddingInline, margin, marginBlock, marginInline }),
             className,
           )}
           style={{ maxWidth: layoutMaxWidths.contentShell }}
@@ -160,15 +144,8 @@ export function Main({
         <main
           data-slot="main"
           className={cn(
-            mainLayoutVariants({
-              appearance,
-              padding,
-              paddingBlock,
-              paddingInline,
-              margin,
-              marginBlock,
-              marginInline,
-            }),
+            mainLayoutVariants({ appearance }),
+            boxSpacingClassName({ padding, paddingBlock, paddingInline, margin, marginBlock, marginInline }),
             className,
           )}
           {...props}

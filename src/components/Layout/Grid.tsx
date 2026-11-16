@@ -4,35 +4,9 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
 import { layoutVariants } from "./commonVariants";
+import { boxSpacingClassName, spacingClassName, type BoxSpacingProps, type SpacingValue } from "./spacing";
 
 const gridVariantDefinitions = {
-  gap: {
-    none: "gap-0",
-    xs: "gap-1",
-    sm: "gap-2",
-    md: "gap-4",
-    lg: "gap-6",
-    xl: "gap-8",
-    xxl: "gap-12",
-  },
-  columnGap: {
-    none: "",
-    xs: "gap-x-1",
-    sm: "gap-x-2",
-    md: "gap-x-4",
-    lg: "gap-x-6",
-    xl: "gap-x-8",
-    xxl: "gap-x-12",
-  },
-  rowGap: {
-    none: "",
-    xs: "gap-y-1",
-    sm: "gap-y-2",
-    md: "gap-y-4",
-    lg: "gap-y-6",
-    xl: "gap-y-8",
-    xxl: "gap-y-12",
-  },
   columns: {
     auto: "",
     one: "grid-cols-1",
@@ -80,16 +54,20 @@ const gridVariantDefinitions = {
   },
 } as const;
 
-const gridVariants = cva("grid", {
-  variants: {
-    ...layoutVariants,
-    ...gridVariantDefinitions,
-  },
-});
+const gridLayoutVariants = cva("grid", { variants: layoutVariants });
+const gridVariants = cva("", { variants: gridVariantDefinitions });
 
 type GridProps =
   Omit<ComponentProps<"div">, "className"> &
-  VariantProps<typeof gridVariants> & {
+  VariantProps<typeof gridLayoutVariants> &
+  VariantProps<typeof gridVariants> &
+  BoxSpacingProps & {
+    /** セルの間の余白(段の名前 / 幅別。既定 none = 0) */
+    gap?: SpacingValue | null;
+    /** 列の間(横)の余白。gap より後に効く */
+    gapX?: SpacingValue | null;
+    /** 行の間(縦)の余白。gap より後に効く */
+    gapY?: SpacingValue | null;
     className?: string;
   };
 
@@ -103,8 +81,8 @@ export function Grid({
   marginBlock,
   marginInline,
   gap = "none",
-  columnGap,
-  rowGap,
+  gapX,
+  gapY,
   columns,
   rows,
   autoFlow = "row",
@@ -115,24 +93,15 @@ export function Grid({
   ...props
 
 }: GridProps) {
-  const variantClasses = gridVariants({
-    appearance,
-    padding,
-    paddingBlock,
-    paddingInline,
-    margin,
-    marginBlock,
-    marginInline,
-    gap,
-    columnGap,
-    rowGap,
-    columns,
-    rows,
-    autoFlow,
-    alignItems,
-    justifyItems,
-    justifyContent,
-  });
+  // 並びは旧来の class の順(grid → 見た目 → 余白 → gap → 配置)を保つ
+  const variantClasses = cn(
+    gridLayoutVariants({ appearance }),
+    boxSpacingClassName({ padding, paddingBlock, paddingInline, margin, marginBlock, marginInline }),
+    spacingClassName("gap", gap),
+    spacingClassName("gapX", gapX),
+    spacingClassName("gapY", gapY),
+    gridVariants({ columns, rows, autoFlow, alignItems, justifyItems, justifyContent }),
+  );
 
   return <div data-component="Grid" className={cn(variantClasses, className)} {...props} />;
 }

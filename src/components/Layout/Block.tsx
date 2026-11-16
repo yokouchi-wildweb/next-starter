@@ -4,17 +4,18 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
 import { createLayoutVariants } from "./commonVariants";
+import { boxSpacingClassName, type BoxSpacingProps } from "./spacing";
 
 const blockVariants = createLayoutVariants("block");
 
-type BlockProps = ComponentProps<"div"> & VariantProps<typeof blockVariants>;
+type BlockProps = ComponentProps<"div"> & VariantProps<typeof blockVariants> & BoxSpacingProps;
 
 /**
  * シンプルなブロック要素コンポーネント
  *
  * ## 用途
  * - 生のdivタグの代わりに使用
- * - padding/marginなどの余白をvariantで制御したい場合
+ * - padding/marginなどの余白を段の名前(spacing.ts の SpacingValue)で付けたい場合
  * - appearanceでカード風の見た目を適用したい場合
  *
  * ## 他コンポーネントとの違い
@@ -47,15 +48,8 @@ export function Block({
       data-component="Block"
       {...props}
       className={cn(
-        blockVariants({
-          appearance,
-          padding,
-          paddingBlock,
-          paddingInline,
-          margin,
-          marginBlock,
-          marginInline,
-        }),
+        blockVariants({ appearance }),
+        boxSpacingClassName({ padding, paddingBlock, paddingInline, margin, marginBlock, marginInline }),
         className,
       )}
     />

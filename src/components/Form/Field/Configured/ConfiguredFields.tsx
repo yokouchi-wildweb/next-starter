@@ -4,7 +4,7 @@
 
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 
-import { Stack, type StackSpace } from "@/components/Layout";
+import { Stack, type SpacingValue } from "@/components/Layout";
 import type { FieldConfig } from "../types";
 import { ConfiguredField } from "./ConfiguredField";
 
@@ -19,8 +19,8 @@ export type ConfiguredFieldsProps<TFieldValues extends FieldValues> = {
   className?: string;
   /** 内部のInputコンポーネントに適用するクラス名（全Inputに同じクラスを適用） */
   inputClassName?: string;
-  /** フィールド間のギャップ（Tailwind spacing scale、デフォルト: 4） */
-  space?: StackSpace;
+  /** フィールド間の余白(段の名前 / 幅別、既定 md = 16px) */
+  space?: SpacingValue;
 };
 
 /**
@@ -48,7 +48,7 @@ export type ConfiguredFieldsProps<TFieldValues extends FieldValues> = {
  * <ConfiguredFields
  *   control={control}
  *   fieldConfigs={domainFields}
- *   space={6}
+ *   space="lg"
  * />
  * ```
  */
@@ -58,7 +58,7 @@ export function ConfiguredFields<TFieldValues extends FieldValues>({
   names,
   className,
   inputClassName,
-  space = 4,
+  space = "md",
 }: ConfiguredFieldsProps<TFieldValues>) {
   // フィールド名をキーにした Map を作成
   const fieldConfigMap = new Map<string, FieldConfig>();
@@ -78,7 +78,7 @@ export function ConfiguredFields<TFieldValues extends FieldValues>({
   }
 
   return (
-    <Stack space={space} className={className}>
+    <Stack gap={space} className={className}>
       {fieldsToRender.map((fieldConfig) => (
         <ConfiguredField
           key={fieldConfig.name}

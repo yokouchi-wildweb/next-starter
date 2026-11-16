@@ -99,10 +99,15 @@ const BEFORE = {
  */
 const withoutLegacyMarks = (html: string) =>
   html.replace(/ id="(?:header|header-[a-z-]+|main|main-container|main-layout)"/g, "").replace(/ data-component="Main(?::container|:layout)?"/g, "");
+/**
+ * 余白の段の区切り(余白の議会 N3)で変わった Main の既定の padding の class: p-3 sm:p-4 → p-(--space-sm) sm:p-(--space-md)
+ * (同じ 12 → 16px、並びも不変。値はトークン --space-sm・--space-md)
+ */
+const withSpacingScale = (html: string) => html.replace(" p-3 sm:p-4\"", " p-(--space-sm) sm:p-(--space-md)\"");
 const BEFORE_MAIN = {
-  userPage: withoutLegacyMarks(BEFORE.userPage),
-  mainSurface: withoutLegacyMarks(BEFORE.mainSurface),
-  mainPlain: withoutLegacyMarks(BEFORE.mainPlain),
+  userPage: withSpacingScale(withoutLegacyMarks(BEFORE.userPage)),
+  mainSurface: withSpacingScale(withoutLegacyMarks(BEFORE.mainSurface)),
+  mainPlain: withSpacingScale(withoutLegacyMarks(BEFORE.mainPlain)),
 } as const;
 
 const CTA = "お問い合わせ";

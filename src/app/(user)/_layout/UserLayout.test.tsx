@@ -121,7 +121,14 @@ const withoutHeaderVar = (html: string) => html.replace("--app-header-height:0px
  */
 const withoutLegacyMarks = (html: string) =>
   html.replace('id="user-app-container" data-user-app-container="" ', "").replace('<div id="stretch-wrapper" class=', "<div class=");
-const frameDims = () => withoutLegacyMarks(withoutHeaderVar(withSlotsAndSafeArea(withFrameRoot(withBottomNavVar(BEFORE_SWITCH)))));
+/**
+ * 余白の段の区切り(余白の議会 N3)で変わった Layout の余白の class: 外枠の Flex の gap 既定 none = gap-0 → gap-(--space-none)
+ * (同じ 0px、並びも不変。値はトークン --space-none)
+ */
+const withSpacingScale = (html: string) =>
+  html.replace('<div data-component="Flex" class="flex gap-0 flex-col', '<div data-component="Flex" class="flex gap-(--space-none) flex-col');
+const frameDims = () =>
+  withSpacingScale(withoutLegacyMarks(withoutHeaderVar(withSlotsAndSafeArea(withFrameRoot(withBottomNavVar(BEFORE_SWITCH))))));
 
 const render = (node: ReactNode) => renderToStaticMarkup(node);
 
@@ -213,7 +220,7 @@ test("slot に null を渡すとその部品を描かない(bottomNav はスペ�
 test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, () => {
   assert.equal(
     render(allNull()),
-    '<div data-component="Flex" class="flex gap-0 flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
+    '<div data-component="Flex" class="flex gap-(--space-none) flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
       'data-slot="app-container" data-frame-root=""' + rootHideAttr() + ">" +
       '<div class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">CHILD</div><x-modal></x-modal></div>',
   );

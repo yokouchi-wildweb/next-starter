@@ -5,40 +5,22 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/cn";
 
-import { appearance, padding, paddingBlock, paddingInline, margin, marginBlock, marginInline } from "./commonVariants";
-
-// Tailwind の spacing scale に準拠した gap 値
-const SPACING_SCALE = [
-  0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 9, 10,
-  11, 12, 14, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 72, 80, 96,
-] as const;
-
-export type StackSpace = (typeof SPACING_SCALE)[number];
-
-// space 値から gap クラスを生成
-const getGapClass = (space: StackSpace): string => {
-  // 小数点を含む場合は特殊処理（0.5 -> gap-0.5）
-  return `gap-${space}`;
-};
+import { appearance } from "./commonVariants";
+import { boxSpacingClassName, spacingClassName, type BoxSpacingProps, type SpacingValue } from "./spacing";
 
 const stackVariants = cva("flex flex-col", {
   variants: {
     appearance,
-    padding,
-    paddingBlock,
-    paddingInline,
-    margin,
-    marginBlock,
-    marginInline,
   },
 });
 
 type StackVariantProps = VariantProps<typeof stackVariants>;
 
 type StackProps = Omit<ComponentProps<"div">, "className"> &
-  StackVariantProps & {
-    /** 子要素間の縦方向のスペース（Tailwind spacing scale） */
-    space?: StackSpace;
+  StackVariantProps &
+  BoxSpacingProps & {
+    /** 子要素間の縦方向の余白(段の名前 / 幅別。既定 none = 0) */
+    gap?: SpacingValue | null;
     className?: string;
   };
 
@@ -65,19 +47,19 @@ type StackProps = Omit<ComponentProps<"div">, "className"> &
  * - グリッドレイアウト → Gridを使用
  *
  * @example
- * <Stack space={6}>
+ * <Stack gap="lg">
  *   <div>Item 1</div>
  *   <div>Item 2</div>
  * </Stack>
  *
  * @example
- * <Stack space={4} padding="md">
+ * <Stack gap="md" padding={{ base: "sm", sm: "md" }}>
  *   <p>Paragraph 1</p>
  *   <p>Paragraph 2</p>
  * </Stack>
  */
 export function Stack({
-  space = 0,
+  gap = "none",
   appearance,
   padding,
   paddingBlock,
@@ -88,23 +70,14 @@ export function Stack({
   className,
   ...props
 }: StackProps) {
-  const gapClass = getGapClass(space);
-
   return (
     <div
       data-component="Stack"
       {...props}
       className={cn(
-        stackVariants({
-          appearance,
-          padding,
-          paddingBlock,
-          paddingInline,
-          margin,
-          marginBlock,
-          marginInline,
-        }),
-        gapClass,
+        stackVariants({ appearance }),
+        boxSpacingClassName({ padding, paddingBlock, paddingInline, margin, marginBlock, marginInline }),
+        spacingClassName("gap", gap),
         className,
       )}
     />

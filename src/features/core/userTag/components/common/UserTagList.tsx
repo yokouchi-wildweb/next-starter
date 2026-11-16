@@ -7,7 +7,8 @@ import type { UserTag } from "@/features/core/userTag/entities/model";
 import { useUserTagList } from "@/features/core/userTag/hooks/useUserTagList";
 import { getTagColorStyle } from "@/features/core/userTag/constants/colors";
 import { SolidBadge, type SolidBadgeProps } from "@/components/Badge";
-import { Stack, type StackSpace } from "@/components/Layout/Stack";
+import { Stack } from "@/components/Layout/Stack";
+import type { SpacingValue } from "@/components/Layout/spacing";
 import { cn } from "@/lib/cn";
 
 export type UserTagListProps = {
@@ -17,8 +18,8 @@ export type UserTagListProps = {
   size?: SolidBadgeProps["size"];
   /** 並び方向（row: 横並び, column: 縦並び） */
   direction?: "row" | "column";
-  /** 要素間のスペース */
-  space?: StackSpace;
+  /** 要素間の余白(段の名前 / 幅別、既定 2xs = 4px) */
+  space?: SpacingValue;
 };
 
 /**
@@ -29,7 +30,7 @@ export function UserTagList({
   tagIds,
   size = "sm",
   direction = "row",
-  space = 1,
+  space = "2xs",
 }: UserTagListProps) {
   const { data: allTags = [] } = useUserTagList({
     revalidateOnFocus: false,
@@ -48,7 +49,7 @@ export function UserTagList({
 
   return (
     <Stack
-      space={space}
+      gap={space}
       className={cn(direction === "row" && "flex-row flex-wrap")}
     >
       {displayTags.map((tag) => {

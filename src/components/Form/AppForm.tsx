@@ -12,7 +12,8 @@ import type {
 } from "react-hook-form";
 import { FormProvider } from "react-hook-form";
 
-import { Stack, type StackSpace } from "@/components/Layout/Stack";
+import { Stack } from "@/components/Layout/Stack";
+import type { SpacingValue } from "@/components/Layout/spacing";
 import { useShelfUnsavedSource } from "@/components/Navigation/NavigationPort";
 import type { MediaState, MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
 import { useToast } from "@/lib/toast";
@@ -84,7 +85,8 @@ export type AppFormProps<TFieldValues extends FieldValues = FieldValues> = {
   allowEnterWhen?: AllowEnterWhen;
   pending?: boolean;
   disableWhilePending?: boolean;
-  fieldSpace?: StackSpace;
+  /** フィールドの間の余白(段の名前 / 幅別、既定 lg = 24px) */
+  fieldSpace?: SpacingValue;
   children: React.ReactNode;
   /**
    * メディアアップロード状態（外部から渡す場合）
@@ -145,7 +147,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     allowEnterWhen,
     pending = false,
     disableWhilePending = true,
-    fieldSpace = 6,
+    fieldSpace = "lg",
     children,
     className,
     onKeyDown,
@@ -423,7 +425,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
                 disabled={disableWhilePending ? isBusy : undefined}
                 className="contents"
               >
-                <Stack space={fieldSpace}>{children}</Stack>
+                <Stack gap={fieldSpace}>{children}</Stack>
               </fieldset>
             </form>
           </AppFormMediaContext.Provider>
