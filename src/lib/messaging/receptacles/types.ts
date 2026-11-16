@@ -272,8 +272,8 @@ export type MessageSubscriber = {
 // layouts: ひな形(D122)。layouts/<名前>/ のフォルダ 1 つが 1 つのひな形
 // ---------------------------------------------------------------------------
 
-/** ひな形の宣言(layouts/<名前>/layout.ts の export const layout) */
-export type MessageLayoutItem = MessageLayout;
+/** ひな形の宣言(layouts/<名前>/layout.ts の export const layout)。folder = ひな形のフォルダの名前(生成の一覧が付ける) */
+export type MessageLayoutItem = MessageLayout & { folder?: string };
 
 /**
  * メールの描き方(layouts/<名前>/email.tsx の export const emailRenderer、server)。layout = ひな形の鍵。
@@ -282,11 +282,15 @@ export type MessageLayoutItem = MessageLayout;
  */
 export type MessageLayoutEmailRenderer = {
   layout: string;
+  /** ひな形のフォルダの名前(生成の一覧が付ける) */
+  folder?: string;
   Component: (props: { values: MessageLayoutValues; summary: MessageLayoutSummary; theme: never; unsubscribeUrl?: string }) => unknown;
 };
 
 /** お知らせの描き方(layouts/<名前>/inApp.tsx の export const inAppRenderer、client)。layout = ひな形の鍵 */
 export type MessageLayoutInAppRenderer = {
   layout: string;
+  /** ひな形のフォルダの名前(生成の一覧が付ける) */
+  folder?: string;
   Component: (props: { values: MessageLayoutValues; summary: MessageLayoutSummary }) => unknown;
 };

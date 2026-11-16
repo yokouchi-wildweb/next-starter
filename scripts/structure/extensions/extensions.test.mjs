@@ -795,3 +795,26 @@ test("requires の被覆: 例外の表(機能:ドメイン→先)は通し、そ
   assert.match(checkRequiresCoverage([items[0], items[1]].map((i) => (i.name === "notification" ? { ...i, dependsOn: ["notificationTemplate"] } : i)), districts, { [key]: "理由" })[0], /例外 .* はもう当たらない/);
   assert.deepEqual(checkRequiresCoverage([items[1]], districts, { [key]: "理由" }), [], "その機能の規則が無ければ数えない");
 });
+
+test("files の点: 1 つのフォルダを 2 つ以上の点が別々のファイル名で読むと、どの点にも項目が入る(D107)", () => {
+  const root = fixture({
+    "src/features/note/extensionPoints.ts": point(
+      [
+        `  layouts: { dir: "layouts", files: "*/layout.ts", export: "layout", type: { from: "@/t", name: "L" }, side: "server", key: "key" },`,
+        `  layoutEmails: { dir: "layouts", files: "*/email.tsx", export: "emailRenderer", type: { from: "@/t", name: "E" }, side: "server", key: "layout" },`,
+        `  layoutInApps: { dir: "layouts", files: "*/inApp.tsx", export: "inAppRenderer", type: { from: "@/t", name: "I" }, side: "client", key: "layout" },`,
+      ].join("\n"),
+    ),
+    "src/features/note/layouts/notice/layout.ts": 'export const layout = { key: "notice" };\n',
+    "src/features/note/layouts/notice/email.tsx": 'export const emailRenderer = { layout: "notice" };\n',
+    "src/features/note/layouts/notice/inApp.tsx": 'export const inAppRenderer = { layout: "notice" };\n',
+    "src/features/note/layouts/plain/layout.ts": 'export const layout = { key: "plain" };\n',
+  });
+  const plan = planExtensions(root);
+  assert.deepEqual(plan.problems, []);
+  assert.deepEqual(itemsOf(plan, "src/features/note", "layouts").map((i) => i.name), ["notice", "plain"]);
+  assert.deepEqual(itemsOf(plan, "src/features/note", "layoutEmails").map((i) => i.name), ["notice"]);
+  assert.deepEqual(itemsOf(plan, "src/features/note", "layoutInApps").map((i) => i.name), ["notice"]);
+  assert.match(plan.outputs["src/features/note/extensions/layoutInApps.ts"], /import \{ inAppRenderer as layoutInApps_notice \} from "@\/features\/note\/layouts\/notice\/inApp";/);
+  rmSync(root, { recursive: true, force: true });
+});

@@ -3,6 +3,10 @@
 
 import type { MessageLayoutItem } from "@/lib/messaging";
 
-const layoutsList: MessageLayoutItem[] = [];
+import { layout as layouts_notice } from "@/features/core/messaging/layouts/notice/layout";
+
+const layoutsList: MessageLayoutItem[] = [
+  { ...layouts_notice, folder: "notice" },
+];
 export const layouts: Readonly<Record<string, MessageLayoutItem>> = Object.assign(Object.create(null), Object.fromEntries(layoutsList.map((item) => [String(item.key), item])));
 if (Object.keys(layouts).length !== layoutsList.length) throw new Error("layouts: key が重複している項目がある");
