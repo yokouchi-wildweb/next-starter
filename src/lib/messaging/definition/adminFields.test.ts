@@ -45,8 +45,7 @@ test("使ってよい鍵: vars(秘密を除く)・共通の文脈・provides", (
   assert.deepEqual(adminFieldCodeValue(resolved, "email.paragraphs"), ["一", "二"]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("通る値と落ちる値", () => {
+test("通る値と落ちる値", () => {
   assert.equal(checkAdminFieldValue(resolved, "email.subject", "{{recipientName}} {{name}} 様"), null);
   assert.equal(checkAdminFieldValue(resolved, "email.paragraphs", ["a", "b"]), null);
   const cases: [string, unknown, string][] = [
@@ -66,8 +65,7 @@ test.skip("通る値と落ちる値", () => {
   assert.equal(checkAdminFieldValue(resolved, "email.subject", "{{displayName}}", { variableKeys: ["displayName"] }), null);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("重ね方: 通る欄だけ差し替え、落ちた欄はコードの値で rejected に返す", () => {
+test("重ね方: 通る欄だけ差し替え、落ちた欄はコードの値で rejected に返す", () => {
   const { resolved: merged, rejected } = applyAdminFieldValues(resolved, [
     { fieldPath: "email.subject", value: "新しい件名" },
     { fieldPath: "inApp.body", value: "{{nope}}" },

@@ -103,27 +103,26 @@ const click = async (container: HTMLElement, text: string, index = 0) => {
   await act(async () => button.click());
 };
 
-// D69: restore before ship
-test.skip("組める形: label で出し鍵は出さない、条件グループの追加は根だけ、含める・除外する・削除・追加", async () => {
+test("組める形: label で出し鍵は出さない、条件グループの追加は根だけ、含める・除外する・削除・追加", async () => {
   const view = await render({ root: ROOT, problems: ["空の組があります"] });
   const text = view.container.textContent ?? "";
   assert.match(text, /ロール/);
   assert.match(text, /重い\(定期計算向け\)/);
   assert.doesNotMatch(text, /hasTag|"role"/);
   assert.match(text, /空の組があります/);
-  assert.equal([...view.container.querySelectorAll("button")].filter((b) => b.textContent === "条件グループを追加").length, 1, "2 階層目のグループにはグループを追加できない");
+  assert.equal([...view.container.querySelectorAll("button")].filter((b) => b.textContent?.trim() === "＋ 条件グループを追加").length, 1, "2 階層目のグループにはグループを追加できない");
   // 含める / 除外する は両方の選択肢を出し、今の方に印(状態だけを出すボタンにしない)
   const radios = [...view.container.querySelectorAll("[data-radio]")];
   assert.deepEqual(radios.map((r) => r.getAttribute("data-radio")), ["include", "include", "exclude", "include"]);
   assert.deepEqual([...radios[2].querySelectorAll("button")].map((b) => [b.textContent, b.getAttribute("aria-pressed")]), [["radio:含める", "false"], ["radio:除外する", "true"]]);
   assert.equal(view.container.querySelectorAll('[data-part="fields"]').length, 2);
-  await click(view.container, "条件グループを追加");
+  await click(view.container, "＋ 条件グループを追加");
   await click(view.container, "radio:除外する"); // 先頭 = 根のグループ
   await act(async () => (radios[2].querySelectorAll("button")[0] as HTMLButtonElement).click()); // 2 階層目のグループを含めるへ
   await click(view.container, "グループを削除");
-  await click(view.container, "pick:ロール"); // 先に描かれるのは 2 階層目のグループの「条件を追加」
+  await click(view.container, "pick:ロール"); // 先に描かれるのは根の「条件を追加」(並びは条件 → 条件グループ、3f1f1257a)
   await click(view.container, "pick:いずれかを満たす");
-  assert.deepEqual(events, ["group:r", "negate:r:true", "negate:g1:false", "remove:g1", "add:g1:role", "op:r:or"]);
+  assert.deepEqual(events, ["group:r", "negate:r:true", "negate:g1:false", "remove:g1", "add:r:role", "op:r:or"]);
   await view.unmount();
 });
 

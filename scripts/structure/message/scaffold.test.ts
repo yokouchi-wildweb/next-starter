@@ -104,8 +104,7 @@ test("種類の経路(email + inApp)で 3 本を書き、2 回目は触らない
   assert.match(readFileSync(join(root, result.written[0]), "utf8"), /^\/\/ 手で直した/);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("メールの無い種類は定義だけ、fork の経路は空の欄 + 注記", async () => {
+test("メールの無い種類は定義だけ、fork の経路は空の欄 + 注記", async () => {
   const root = tree();
   const promo = run(root, "shop", "weeklyPromo", "--category", "weeklyPromo");
   assert.equal(promo.code, 0, promo.lines.join("\n"));

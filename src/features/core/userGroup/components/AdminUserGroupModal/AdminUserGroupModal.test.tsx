@@ -38,6 +38,9 @@ const group = (extra: Record<string, unknown> = {}) => ({
   notices: ["サーバーの注意"],
   exceptions: { includeCount: 0, excludeCount: 0 },
   heavy: false,
+  // J105(D92): 一覧の行の削除の可否と理由
+  deletable: true,
+  deleteReasons: [],
   ...extra,
 });
 let modalState: Record<string, unknown> = {};
@@ -178,10 +181,10 @@ const modal = (props: Record<string, unknown> = {}) => createElement(AdminUserGr
 const tabValues = () => (tabbed!.tabs as { value: string; label: string }[]).map((t) => t.label);
 const buttons = (container: HTMLElement) => [...container.querySelectorAll("button")].map((b) => b.textContent);
 
-// D69: restore before ship (作る時も「例外」のタブが出る: 期待するタブに 例外 を足す)
-test.skip("動的を作る: 基本・条件、帯は「作る」、confirmOnClose は form の物", async () => {
+test("動的を作る: 基本・条件・例外、帯は「作る」、confirmOnClose は form の物", async () => {
   const view = await render(modal());
-  assert.deepEqual(tabValues(), ["基本", "条件"]);
+  // 作る時も「例外」のタブが出る(作る前に例外の人を選べる)
+  assert.deepEqual(tabValues(), ["基本", "条件", "例外"]);
   assert.deepEqual(tabbed!.confirmOnClose, { enabled: true, message: "書きかけ" });
   assert.deepEqual(buttons(view.container), ["作成"]);
   assert.equal(tabbed!.title, "ユーザーグループを作成");
@@ -211,8 +214,7 @@ test("直す 動的: 基本・条件・例外、アーカイブ(ConfirmPopover)�
   await view.unmount();
 });
 
-// D69: restore before ship
-test.skip("直す 固定: 基本・メンバー / 例外タブでは「現在のメンバーで固定グループを作成」", async () => {
+test("直す 固定: 基本・メンバー / 動的は例外のタブ、「固定グループとして保存」は基本のタブ(D91)", async () => {
   modalState = { ...baseModal(), mode: "edit", group: group({ kind: "static", exceptions: null }), tab: "people" };
   formState = baseForm("static");
   const fixed = await render(modal({ groupId: GROUP_ID }));
@@ -224,8 +226,14 @@ test.skip("直す 固定: 基本・メンバー / 例外タブでは「現在の
   formState = { ...baseForm(), dirty: false };
   const dynamic = await render(modal({ groupId: GROUP_ID }));
   assert.ok(dynamic.container.querySelector('[data-part="exceptions"]'));
-  assert.ok(buttons(dynamic.container).includes("現在のメンバーで固定グループを作成"));
   await dynamic.unmount();
+
+  // D91(298562a47): 今の一員で固定グループを作る操作は基本のタブの種類の横へ移った
+  modalState = { ...baseModal(), mode: "edit", group: group(), tab: "basic" };
+  formState = { ...baseForm(), dirty: false };
+  const basic = await render(modal({ groupId: GROUP_ID }));
+  assert.ok(buttons(basic.container).includes("固定グループとして保存"));
+  await basic.unmount();
 });
 
 test("重い条件の注意を条件のタブに出す / 固定の途中は閉じる前に freeze の確かめ", async () => {
@@ -246,8 +254,7 @@ test("読み込み中・取れない時は普通の Modal", async () => {
   await view.unmount();
 });
 
-// D69: restore before ship (J105: rows now render the action area (Tooltip / rowActions); fixtures lack deletable / rowActions)
-test.skip("一覧: 行は名前・種類・人数。「新しく作る」と行でモーダルの開き先を変える", async () => {
+test("一覧: 行は名前・種類・人数。「新しく作る」と行でモーダルの開き先を変える", async () => {
   listState = {
     kind: "",
     setKind: () => {},
@@ -263,14 +270,18 @@ test.skip("一覧: 行は名前・種類・人数。「新しく作る」と行�
       retry: () => {},
     },
     modal: { open: false, setOpen: () => {}, groupId: null, openNew: () => events.push("new"), openGroup: (id: string) => events.push(`open:${id}`), onChanged: () => {} },
+    // J105(D92): 行の右の操作
+    rowActions: { archive: async () => {}, restore: async () => {}, remove: async () => {} },
   };
   const view = await render(createElement(AdminUserGroupList));
   const text = view.container.textContent ?? "";
   assert.match(text, /常連/);
   assert.match(text, /動的/);
   assert.match(text, /人数は未計算です/);
+  // 行は開く口のボタン + 右の操作(J105)。開くのは名前を持つボタン
   const row = view.container.querySelector('[data-slot="user-group-row"]') as HTMLElement | null;
-  const rowButton = row ?? [...view.container.querySelectorAll("button")].find((b) => b.textContent?.includes("常連"))!;
+  assert.ok(row, "行がある");
+  const rowButton = [...row.querySelectorAll("button")].find((b) => b.textContent?.includes("常連"))!;
   await act(async () => (rowButton as HTMLElement).click());
   await act(async () => [...view.container.querySelectorAll("button")].find((b) => b.textContent === "新規作成")!.click());
   assert.deepEqual(events, [`open:${GROUP_ID}`, "new"]);

@@ -90,8 +90,7 @@ test("label(管理画面の連絡の名前)は必須で空にできない、上�
   assert.equal(applyMessageOverride(verification, { label: "別の名前" }).label, "別の名前");
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("required の守り: email の除外・adminEditable・throttle を止める", () => {
+test("required の守り: email の除外・adminEditable・throttle を止める", () => {
   const def = defineMessage({
     ...verification,
     category: "accountInApp",
@@ -106,8 +105,7 @@ test.skip("required の守り: email の除外・adminEditable・throttle を止
   ]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("上書きを重ねた結果を検査: required への enabled:false・email の除外・adminEditable の付与を止める", () => {
+test("上書きを重ねた結果を検査: required への enabled:false・email の除外・adminEditable の付与を止める", () => {
   const override: MessageOverride = {
     enabled: false,
     adminEditableOnly: ["email.subject"],
@@ -178,8 +176,7 @@ test("variableKeys で足した鍵(enrichers の provides)は {{鍵}} で許す"
   assert.ok(problems[0].message.includes("{{unknownKey}}"));
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("欄の検査: 欄の zod に合わない・種類の経路に欄が無い・知らない経路・定義に無い adminEditable", () => {
+test("欄の検査: 欄の zod に合わない・種類の経路に欄が無い・知らない経路・定義に無い adminEditable", () => {
   const def = defineMessage({
     ...reply,
     category: "chatLine",
@@ -213,8 +210,7 @@ test("throttle の検査と鍵の形", () => {
   ]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("種類の検査: 受け口に無い鍵は誤り、種別の性質で文言の上書き・間引きを止める", () => {
+test("種類の検査: 受け口に無い鍵は誤り、種別の性質で文言の上書き・間引きを止める", () => {
   assert.deepEqual(codes(validate({ ...verification, category: "nope" })), ["unknown_category"]);
   // security は間引けない、functional は文言を直せない(required でなくても)
   const alert = defineMessage({ ...verification, category: "alert", required: false, throttle: { by: ["verificationUrl"], mode: "window", seconds: 60 } });
@@ -227,8 +223,7 @@ test.skip("種類の検査: 受け口に無い鍵は誤り、種別の性質で�
   assert.deepEqual(resolved.channels, ["inApp", "email"]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("authored(文面を送るたびに受け取る): 空の content は通り、文面・adminEditable・throttle・上書きは止める", () => {
+test("authored(文面を送るたびに受け取る): 空の content は通り、文面・adminEditable・throttle・上書きは止める", () => {
   const authored = defineMessage({ key: "admin.free", label: "テストの連絡", category: "chat", authored: true, vars: z.object({}), content: {} });
   assert.deepEqual(validate(authored), [], "種類の経路の文面が無くても通る");
   assert.deepEqual(codes(validate({ ...authored, content: { inApp: { title: "t", body: "b" } } })), ["authored_content"]);
@@ -239,8 +234,7 @@ test.skip("authored(文面を送るたびに受け取る): 空の content は通
   assert.deepEqual(codes(validate(filled, { variableKeys: ["displayName"] })), ["missing_content"]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("種類の受け口の検査: 種別・経路・グループ(同じ種別だけ)", () => {
+test("種類の受け口の検査: 種別・経路・グループ(同じ種別だけ)", () => {
   const groups = { social: { key: "social", label: "交流", order: 1 } };
   assert.deepEqual(
     validateMessageCategories(
@@ -264,8 +258,7 @@ test.skip("種類の受け口の検査: 種別・経路・グループ(同じ種
   assert.deepEqual(problems.map((p) => p.code).sort(), ["empty_channels", "group_kind_mismatch", "unknown_group", "unknown_kind"]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("種別の性質の表(D80)", () => {
+test("種別の性質の表(D80)", () => {
   assert.deepEqual([...MESSAGE_KINDS], ["functional", "transactional", "security", "announcement", "direct", "activity", "promotion"]);
   assert.deepEqual(kindsWhere((t) => t.userStoppable), ["activity", "promotion"]);
   assert.deepEqual(kindsWhere((t) => !t.upstreamDisable), ["functional"]);
@@ -353,11 +346,10 @@ type DeclaredKeys = (typeof extensionPoints.messages.overrideOf)[number];
 type Equal<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 const overrideKeysMatch: Equal<keyof MessageOverride, DeclaredKeys> = true;
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("上書きの型の鍵と宣言の overrideOf は同じ", () => {
+test("上書きの型の鍵と宣言の overrideOf は同じ", () => {
   assert.equal(overrideKeysMatch, true);
   assert.deepEqual([...extensionPoints.messages.overrideOf].sort(), [
-    "adminEditable",
+    "adminEditableOnly",
     "content",
     "enabled",
     "extras",

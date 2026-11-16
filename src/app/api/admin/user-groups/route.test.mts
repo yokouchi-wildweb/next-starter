@@ -1,5 +1,5 @@
 // src/app/api/admin/user-groups/route.test.mts
-// /api/admin/user-groups 以下の 8 ファイル(12 の口)の検査(Factory・門・userGroup の管理の service は偽物)。
+// /api/admin/user-groups 以下の 8 ファイル(13 の口)の検査(Factory・門・userGroup の管理の service は偽物)。
 // - 宣言: 全部の口が access { roleCategories: ["admin"] }、静的グループへ書く 2 つは maxDuration 60
 // - 門 userGroups が閉なら 404 で service を呼ばない
 // - 一覧の条件・body・id をそのまま service へ渡す
@@ -87,9 +87,8 @@ beforeEach(() => {
   calls.length = 0;
 });
 
-// D69: restore before ship (J104: DELETE /api/admin/user-groups/[id] added = 13 handlers)
-test.skip("宣言: 12 の口が全部管理者だけ、静的グループへ書く 2 つは maxDuration 60", () => {
-  assert.equal(declared.length, 12);
+test("宣言: 13 の口が全部管理者だけ、静的グループへ書く 2 つは maxDuration 60", () => {
+  assert.equal(declared.length, 13);
   for (const entry of declared) assert.deepEqual(entry.access, { roleCategories: ["admin"] }, entry.operation);
   assert.equal(members.maxDuration, 60);
   assert.equal(staticGroup.maxDuration, 60);

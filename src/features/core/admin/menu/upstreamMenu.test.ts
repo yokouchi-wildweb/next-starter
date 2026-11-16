@@ -42,11 +42,10 @@ const upstreamTest = (name: string, fn: () => void) =>
 const shape = (menu: ReturnType<typeof buildAdminMenu>) =>
   menu.categories.map((c) => [c.label, c.rows.map((r) => r.label)]);
 
-// D69: restore before ship
-test.skip("全部開いた admin: マーケティング → リクエスト管理 → データ管理 → ユーザー管理 → コミュニティ → システム", () => {
+test("全部開いた admin: マーケティング → リクエスト管理 → データ管理 → ユーザー管理 → コミュニティ → システム", () => {
   const menu = buildAdminMenu(input(() => false));
   assert.deepEqual(shape(menu), [
-    ["マーケティング", ["送信一覧", "クーポン"]],
+    ["マーケティング", ["メッセージ管理", "クーポン"]],
     ["リクエスト管理", ["銀行振込レビュー"]],
     ["データ管理", ["サンプル", "サンプルカテゴリ", "サンプルタグ"]],
     ["ユーザー管理", ["登録ユーザー", "システム管理者", "デモユーザー", "ユーザータグ", "ユーザーグループ"]],
@@ -85,11 +84,10 @@ upstreamTest("門番の規則を全部閉じた admin: 規則の無い住所の�
   ]);
 });
 
-// D69: restore before ship
-test.skip("管理者でない(ロール user): ロールの絞りの無い行だけ", () => {
+test("管理者でない(ロール user): ロールの絞りの無い行だけ", () => {
   const menu = buildAdminMenu({ ...input(() => false), role: "user" });
   assert.deepEqual(shape(menu), [
-    ["マーケティング", ["送信一覧", "クーポン"]],
+    ["マーケティング", ["メッセージ管理", "クーポン"]],
     ["データ管理", ["サンプル", "サンプルカテゴリ", "サンプルタグ"]],
     ["コミュニティ", ["チャットルーム"]],
     ["システム", ["基本設定", "メンテナンス"]],

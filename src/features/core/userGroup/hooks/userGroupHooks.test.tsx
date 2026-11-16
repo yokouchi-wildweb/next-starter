@@ -269,15 +269,20 @@ test("useUserGroupConditionBuilder: 深い定義は読むだけ、作り直す�
   await view.unmount();
 });
 
-// D69: restore before ship (J100: default filter is all = status undefined, archive keeps the row)
-test.skip("useAdminUserGroupList: 種類・状態を渡す。作った = 取り直し / 保管 = 外す / ほか = 置き換え", async () => {
+test("useAdminUserGroupList: 種類・状態を渡す(既定はすべて)。作った = 取り直し / 絞りに合わない = 外す / ほか = 置き換え", async () => {
   const view = await mount(() => hooks.useAdminUserGroupList());
-  assert.deepEqual(listCalls.at(-1), { kind: undefined, status: "active", cursor: null, limit: 20 });
+  // J100: 状態の絞りの既定は「すべて」(status を送らない)
+  assert.deepEqual(listCalls.at(-1), { kind: undefined, status: undefined, cursor: null, limit: 20 });
   await act(async () => view.value().setKind("static"));
   assert.equal(listCalls.at(-1)?.kind, "static");
   await act(async () => view.value().setKind(""));
   await act(async () => view.value().modal.onChanged(detail({ name: "直した" }) as never, "update"));
   assert.equal(view.value().query.items[0].name, "直した");
+  // J100: 絞りが「すべて」なら保管しても行は残り、状態だけ変わる
+  await act(async () => view.value().modal.onChanged(detail({ status: "archived" }) as never, "archive"));
+  assert.deepEqual(view.value().query.items.map((item) => [item.id, item.status]), [[ID, "archived"], ["g2", "active"]]);
+  // 「使用中」で絞っている時に保管すると行を外す
+  await act(async () => view.value().setStatus("active"));
   await act(async () => view.value().modal.onChanged(detail({ status: "archived" }) as never, "archive"));
   assert.deepEqual(view.value().query.items.map((item) => item.id), ["g2"]);
   const before = listCalls.length;
@@ -402,13 +407,18 @@ test("useUserGroupEstimate: 押した時だけ数える、理由はサーバー�
   await view.unmount();
 });
 
-// D69: restore before ship (J107: the list loads only while the sub-modal is open (listOpen); the tab shows summary = 3 names)
-test.skip("useUserGroupStaticMembers: 一覧(表示名)・足す・1 人外す(mode remove)", async () => {
+test("useUserGroupStaticMembers: 要約・一覧(サブのモーダルを開いた時だけ、表示名)・足す・1 人外す(mode remove)", async () => {
   const changed: unknown[] = [];
   const view = await mount(() => hooks.useUserGroupStaticMembers({ groupId: "s1", onChanged: (group) => changed.push(group?.id ?? null) }));
+  // J107: タブの中は要約(先頭 3 名)、一覧はサブのモーダルを開いている間だけ取る
+  assert.deepEqual(view.value().summary.items.map((p) => p.name), ["花子", null]);
+  assert.deepEqual(view.value().query.items, []);
+  await act(async () => view.value().setListOpen(true));
   assert.deepEqual(view.value().query.items.map((p) => p.name), ["花子", null]);
+  calls.length = 0;
   await act(async () => view.value().remove("u1"));
-  assert.deepEqual(calls.at(-1), ["members", "s1", { mode: "remove", userIds: ["u1"] }]);
+  // 外した後は要約を取り直す(J107)ので、最後の呼び出しではなく一員の書き込みを探す
+  assert.deepEqual(calls.find((c) => c[0] === "members"), ["members", "s1", { mode: "remove", userIds: ["u1"] }]);
   assert.deepEqual(view.value().query.items.map((p) => p.id), ["u2"]);
   await act(async () => view.value().setPicks(["u3"]));
   await act(async () => view.value().add());
@@ -418,8 +428,7 @@ test.skip("useUserGroupStaticMembers: 一覧(表示名)・足す・1 人外す(m
   await view.unmount();
 });
 
-// D69: restore before ship (J107: the list loads only while the sub-modal is open (listOpen); the tab shows summary = 3 names)
-test.skip("useUserGroupExceptions: 側ごとの一覧、足すと両方を取り直す、外すは 1 人", async () => {
+test("useUserGroupExceptions: 側ごとの一覧、足すと両方を取り直す、外すは 1 人", async () => {
   const view = await mount(() => hooks.useUserGroupExceptions({ groupId: ID }));
   assert.deepEqual(calls.filter((c) => c[0] === "listExceptions").map((c) => c[2]).sort(), ["exclude", "include"]);
   await act(async () => view.value().include.setPicks(["u5"]));
@@ -427,8 +436,10 @@ test.skip("useUserGroupExceptions: 側ごとの一覧、足すと両方を取り
   await act(async () => view.value().include.add());
   assert.deepEqual(calls.find((c) => c[0] === "exceptions"), ["exceptions", ID, { include: { add: ["u5"] } }]);
   assert.deepEqual(calls.filter((c) => c[0] === "listExceptions").map((c) => c[2]).sort(), ["exclude", "include"]);
+  calls.length = 0;
   await act(async () => view.value().exclude.remove("u9"));
-  assert.deepEqual(calls.at(-1), ["exceptions", ID, { exclude: { remove: ["u9"] } }]);
+  // 外した後は要約を取り直す(J107)ので、最後の呼び出しではなく例外の書き込みを探す
+  assert.deepEqual(calls.find((c) => c[0] === "exceptions"), ["exceptions", ID, { exclude: { remove: ["u9"] } }]);
   await view.unmount();
 });
 
