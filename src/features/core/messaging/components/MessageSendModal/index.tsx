@@ -9,6 +9,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Send } from "lucide-react";
 
 import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
@@ -19,6 +20,7 @@ import Modal from "@/components/Overlays/Modal";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { CreateButton } from "@/lib/crud/components";
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 
@@ -268,10 +270,15 @@ export function MessageSendModal({
   const title = label ?? DEFAULT_LABEL[mode.type];
   return (
     <>
-      <Button type="button" size="sm" variant={triggerVariant} disabled={disabled} onClick={() => m.setOpen(true)}>
-        {icon}
-        {title}
-      </Button>
+      {mode.type === "new" ? (
+        // 一覧の上の「新規送信」は管理一覧の「新規作成」と同じ形(CreateButton。アイコンは送る印)
+        <CreateButton icon={Send} label={title} variant={triggerVariant} disabled={disabled} onClick={() => m.setOpen(true)} />
+      ) : (
+        <Button type="button" size="sm" variant={triggerVariant} disabled={disabled} onClick={() => m.setOpen(true)}>
+          {icon}
+          {title}
+        </Button>
+      )}
       <Modal
         open={m.open}
         onOpenChange={m.setOpen}

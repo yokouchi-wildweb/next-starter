@@ -20,6 +20,8 @@ export type CreateButtonProps = ButtonStyleProps & {
   href?: string;
   /** 押した時の処理（モーダルで作る一覧など）。渡すとリンクではなくボタンになり、domain / href は使わない */
   onClick?: () => void;
+  /** 押せなくする(onClick の時だけ) */
+  disabled?: boolean;
 };
 
 export function CreateButton({
@@ -30,10 +32,11 @@ export function CreateButton({
   size = "md",
   variant = "primary",
   onClick,
+  disabled,
 }: CreateButtonProps) {
   if (onClick) {
     return (
-      <Button type="button" size={size} variant={variant} onClick={onClick} style={{ gap: "0.15rem" }}>
+      <Button type="button" size={size} variant={variant} onClick={onClick} disabled={disabled} style={{ gap: "0.15rem" }}>
         <Icon className="h-4 w-4" />
         {label}
       </Button>
