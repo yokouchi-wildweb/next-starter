@@ -157,6 +157,19 @@ export const messageOverride = {
 - `applyAdminFieldValues(resolved, values, options)` → `{ resolved, rejected }`: 通る欄だけ差し替え、通らない欄はコードの値のまま `rejected` に返す(空で送らない)
 - `adminFieldCodeValue(resolved, fieldPath)`: 欄のコードの値
 
+## ひな形(layout/、D122〜D124)
+
+連絡の見た目の型。ひな形 = 欄の宣言・仮の文・要約(必須)・管理者が選べる印・改版の対応。種別・カテゴリー・経路を知らない(経路だけの欄は欄の `channels` に経路の鍵を値として持つだけ)。経路ごとの描き方はひな形のフォルダのファイル(server = email、client = inApp)が持ち、型は持たない。今の送る口・経路の `fields` / `fieldMeta` はまだこれを使わない(付け替えは後の区切り)。
+
+- `defineMessageLayout({ key, label, description?, fields, summary, adminSelectable?, revisions? })`: 欄の宣言から中身の型(`MessageLayoutValues`)を引く
+- 欄の宣言 `MessageFieldSpec`: `type`(語彙)・`label`・`placeholder?`・`required?`・`channels?`(使う経路の鍵、無い = 全部)。`select` は `options`、`list` は `of`・`min?`・`max?`、`group` は `fields`、`blocks` は `allow?`・`min?`・`max?`
+- 欄の型の語彙(`layout/vocabulary.ts`、lib で固定。fork は増やさず、入力の部品を src/wiring/formInputs に登録する): `line` 1 行の文・`paragraph` 段落・`longText` 長い文・`image` 画像(storage:// の参照か URL)・`button` ボタン `{ label, url }`・`link` リンク `{ label?, url }`・`date` 日付 YYYY-MM-DD・`number` 数・`select` 選択肢・`list` 並び・`group` 組・`keyValue` 項目と値 `[{ key, value }]`・`blocks` ブロックの並び。型ごとの zod は `fieldValueSchema(shape)`
+- ブロック(`layout/blocks.ts`): `heading` 小見出し・`paragraph` 段落・`button` ボタン・`image` 画像・`divider` 区切り・`keyValueTable` 項目と値の表・`bulletList` 箇条書き。`messageBlocksSchema({ allow?, min?, max? })` が許す種類と数で絞る(知らない種類は通らない)
+- 要約 `MessageLayoutSummary` = `{ title, body, image?, link?: { label?, url }, shortBody? }`(プッシュ・LINE は `shortBody ?? body`)
+- 中身の検査 `layoutValuesSchema(layout, { channels? })`: 必須を守る(空文字・空の並びも通さない)。`channels` を渡すと、そのどれにも使われない経路だけの欄は求めない。知らない鍵は通らない。経路の欄だけ = `fieldsForChannel(layout, channel)`
+- 改版の対応 `applyLayoutRevisions(values, layout.revisions)`: 前の版の鍵 → 新しい版の鍵、`null` は捨てる。新しい鍵に値があれば今の値を残す。テンプレートの保存値と文言の上書きの両方に当てる
+- 描き方の 3 段 `resolveRendering({ layout, channelKey, hasLayoutRenderer, channel, values })`: ひな形のその経路の描き方(`{ from: "layout" }`)> 経路の汎用の描き方(`renderGeneric`、`genericFieldTypes` が経路の欄の型を全部含む時、`{ from: "channel", fields }`)> 要約(経路が `summaryRenderable: true` と `renderFromSummary` を持つ時、`{ from: "summary", summary }`)。どれでも描けない・要約が投げる = `{ cannotRender: 理由 }`。テンプレートの保存・プレビュー・送る前の検査がこれで止める。経路の宣言の型は `MessageChannelRendering`(経路の項目への追加は別の作業)
+
 ## 受け口の項目(receptacles/types.ts)
 
 ドメイン messaging の受け口(`src/features/core/messaging/extensionPoints.ts`、表は `src/features/core/messaging/README.md`「受け口」)に置く項目の型。
