@@ -37,7 +37,7 @@ test("done: RESOLUTION を追記して done/ へ移す（/wen・council collect 
 
 test("先頭の status: は RESOLUTION の status に揃う（partial / relayed / rejected / withdrawn も）", () => {
   const head = (p) => readFileSync(p, "utf8").match(/^status: (\S+)$/m)[1];
-  const p = box("council q1 | legate:l1 order:01");
+  const p = box("council q1 | build:b1 order:01");
   assert.equal(head(resolveOrder(p.file, { status: "partial", body: `${BODY}findings: x\nverify: y\n`, by: BY })), "partial");
   const r = box();
   assert.equal(head(resolveOrder(r.file, { status: "relayed", body: "relayed_to: o/1.md\nnotes: n\n", by: BY })), "relayed");
@@ -61,7 +61,7 @@ test("done: 要る行が無ければ何も書かずに止める", () => {
 });
 
 test("評議会からの指令の done は findings / verify も要る", () => {
-  const { file } = box("council q1 | legate:l1 order:01");
+  const { file } = box("council q1 | build:b1 order:01");
   assert.throws(() => resolveOrder(file, { status: "done", body: BODY, by: BY }), /findings: verify:/);
   const dest = resolveOrder(file, { status: "partial", body: `${BODY}findings: none\nverify: ran x\n`, by: BY });
   assert.match(readFileSync(dest, "utf8"), /status: partial\n[\s\S]*\nverify: ran x\n$/);
@@ -120,12 +120,14 @@ test("from: チームのタブでは発行元 = そのチーム、リポは repo
   assert.match(fromLine(old, where), /^fleet 20261024-220119 \| role:orchestrator \| /);
 });
 
-test("requester: 先頭が発行元。council（legate）/ team / repo を見分ける", () => {
+test("requester: 先頭が発行元。council（実装）/ team / repo を見分ける", () => {
   assert.deepEqual(requester("git@x:Acme/App.git | branch:main | cwd:/w/app"), { kind: "repo", label: "git@x:Acme/App.git", repo: "git@x:Acme/App.git" });
+  assert.deepEqual(requester("council q1 | build:b1 order:01"), { kind: "council", label: "council q1", repo: null });
+  // 切り替えの前に受け箱に入った古い形の頭（legate:l<k>）も評議会からと読む
   assert.deepEqual(requester("council q1 | legate:l1 order:01"), { kind: "council", label: "council q1", repo: null });
   assert.deepEqual(requester("council q1 | instance:i1 | cwd:/w/app").kind, "council");
   assert.deepEqual(requester("guild g1 | role:Architect | repo:git@x:Acme/App.git | branch:main | cwd:/w/app"), { kind: "team", label: "guild g1 Architect", repo: "git@x:Acme/App.git" });
-  // 評議会のタブ（議長など）が /order で書いた指令は legate のものではない: findings / verify は要らない
+  // 評議会のタブ（議長など）が /order で書いた指令は実装のものではない: findings / verify は要らない
   assert.equal(requester("council c1 | role:Chair | repo:git@x:Acme/App.git").kind, "team");
   const { file } = box("council c1 | role:Chair | repo:git@x:Acme/App.git | branch:main | cwd:/w/app");
   resolveOrder(file, { status: "done", body: BODY, by: BY });
@@ -227,7 +229,7 @@ test("actorOf / sameActor: リポは origin + branch、チームは <team> <inst
   assert.ok(routedMatches("guild:g1", GUILD, undefined, GUILD_ENV));
   assert.ok(routedMatches("council c1", "council c1 | role:Chair", undefined, { TK_TEAM: "council", TK_INSTANCE: "c1" }));
   assert.ok(!routedMatches("guild:g2", GUILD, undefined, GUILD_ENV));
-  assert.ok(routedMatches("legate q1.2 plan-03", ME, "legate q1.2 plan-03"));
+  assert.ok(routedMatches("build q1.2 plan-03", ME, "build q1.2 plan-03"));
 });
 
 test("古い指令（status: なし・知らない値）は open。take → release で open に戻り、ログが残る", () => {

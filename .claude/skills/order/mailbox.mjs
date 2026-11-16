@@ -4,14 +4,14 @@
 //   <root>/<fork-id>/*.md      = そのリポ宛ての未対応の指令
 //   <root>/<fork-id>/done/*.md = 対応済み
 //   fork-id = 各 checkout の repo.json の repo_id（古い形は .claude/rules/project.md の `fork_id:`。小文字・数字・ハイフン。下記 forkIdOf）
-//   council の legate は council 自身のフォルダ（~/.team/_council/legates/）にあり、ここには単発の指令（from: council <議題id>）だけが入る
+//   council の実装（build）は council 自身のフォルダ（~/.team/_council/builds/）にあり、ここには単発の指令（from: council <議題id>）だけが入る
 // 使い方:
 //   node mailbox.mjs self    自リポの fork-id と受信箱
 //   node mailbox.mjs from    起票する指令の from: 行（チームのタブなら発行元はそのチーム。下記 fromLine）
 //   node mailbox.mjs repos   手元のリポ（自リポと同じ親ディレクトリにあるもの）と各受信箱
 //   node mailbox.mjs me      この者の名前（taken_by / routed_by に書く値。下記 actorOf）
 //   node mailbox.mjs inbox   自リポ宛ての未対応の指令（状態 open | routed | taken、waiting_on: の待ち、担当が自分なら (you)）
-//   node mailbox.mjs route <指令> --to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS> [--by=]
+//   node mailbox.mjs route <指令> --to=<council <id> | guild:<instance|name> | build <id>.<k> [plan-SS]> [--by=]
 //                            振り分ける: open | routed → routed（振り直し可）。着手中は断る
 //   node mailbox.mjs take <指令> [--as=<id>]      着手する: open → taken。routed は振り分け先の本人だけ（違えば担当を出して断る）
 //   node mailbox.mjs release <指令> [--as=<id>] [--force=<理由>]   手放す: taken → 取る前の状態（取った者だけ）
@@ -237,7 +237,7 @@ function localRepos(self) {
 }
 
 // 起票する指令の from: の値。チームのタブ（起動スクリプトが TK_TEAM 等を export する）では発行元 = そのチームで、
-// 動いていたリポは repo: に参考として残す。評議会の legate の `council <議題id> | instance:…` と同じく先頭が発行元
+// 動いていたリポは repo: に参考として残す。評議会の実装の `council <議題id> | instance:…` と同じく先頭が発行元
 //   チーム: <team> <instance> | role:<役職名> | repo:<origin> | branch:<b> | cwd:<path>
 //   それ以外: <origin> | branch:<b> | cwd:<path>
 export function fromLine(env, { origin, repoId, branch, cwd }) {
@@ -256,7 +256,7 @@ function teamIssuer(env) {
 }
 
 // 指令の発行元（from: の値）を読む。先頭が発行元
-//   council = 評議会の legate（`council <議題id> | …`、role: 欄なし）| team = チームの役職（role: 欄あり）| repo = リポのセッション
+//   council = 評議会の実装（`council <議題id> | build:b<k> order:NN` など、role: 欄なし）| team = チームの役職（role: 欄あり）| repo = リポのセッション
 // 戻り値 { kind, label（一覧に出す名前）, repo（発行元のリポ。council は null）}
 export function requester(from) {
   const [head = "", ...rest] = from.split(" | ").map((x) => x.trim());
@@ -305,7 +305,7 @@ function orderState(path) {
   return { state: "missing", path: cur };
 }
 
-// RESOLUTION の本文（--body）に status ごとに要る行。評議会の legate からの指令（requester が council）の done / partial は findings / verify も
+// RESOLUTION の本文（--body）に status ごとに要る行。評議会の実装からの指令（requester が council）の done / partial は findings / verify も
 const REQUIRED = {
   done: ["implemented", "consume", "propagate", "notice", "notes"],
   partial: ["implemented", "consume", "propagate", "notice", "notes"],
@@ -322,7 +322,7 @@ function isoNow(d = new Date()) {
 }
 
 // ---- 指令の状態（status: は 1 つの値）--------------------------------------------------------------
-// open（未対応）→ routed（評議会・ギルド・legate の計画に振り分け済み）→ taken（担当が着手）→ 答え（REQUIRED の status）
+// open（未対応）→ routed（評議会・ギルド・実装の計画書に振り分け済み）→ taken（担当が着手）→ 答え（REQUIRED の status）
 // routed は routed_to / routed_by / routed_at、taken は taken_by / taken_at を先頭に持つ（今の状態。release で taken_* は消える）。
 // 移り変わりは末尾の `## STATUS_LOG` に 1 行ずつ足す（消さない。前の担当が見える）。答え（resolve）の記録は RESOLUTION が持つ。
 // status: が無い・知らない値の古い指令は open として読む
@@ -398,7 +398,7 @@ export function sameActor(a, b) {
   return actorKey(a) === actorKey(b);
 }
 
-// routed_to（council <id> | guild:<instance|name> | legate <id>.<k> plan-SS）がこの者を指すか。
+// routed_to（council <id> | guild:<instance|name> | build <id>.<k> [plan-SS]）がこの者を指すか。
 // as = 明示した名前（--as）。チームのタブは council <instance> / <team>:<instance> / <team> <instance> とも照合する
 export function routedMatches(routedTo, actor, as, env = {}) {
   const norm = (s) => String(s).trim().replace(/\s+/g, " ");
@@ -433,7 +433,7 @@ function liveOrder(orderPath) {
 
 // 振り分ける: open | routed → routed（振り直しも可。ログに残る）。taken は断る（取った者が release してから）
 export function routeOrder(orderPath, { to, by, now = isoNow() }) {
-  if (!to) throw new Error("--to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS> が要ります");
+  if (!to) throw new Error("--to=<council <id> | guild:<instance|name> | build <id>.<k> [plan-SS]> が要ります");
   const text = liveOrder(orderPath);
   const s = orderStatus(text);
   if (s === "taken") throw new Error(`着手中です（${whoHas(text)}）: 振り分けるなら取った者が release してから`);

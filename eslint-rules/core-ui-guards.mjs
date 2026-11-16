@@ -22,7 +22,7 @@
 //
 // 有効なのは upstream(目録の先頭の節)だけ。fork では off(eslint.config.mjs)。demo のページは対象外(lib の使い方の見本)。
 // option allow = 今残る部品の許可一覧(repo 相対パス)。縮める一方:
-//   部品を hook 化したら、どの legate・どの作業でもその行を消す。一覧の行が当たらなくなると pnpm test eslint-rules/core-ui-guards.test.mjs が落ちる。
+//   部品を hook 化したら、どの実装・どの作業でもその行を消す。一覧の行が当たらなくなると pnpm test eslint-rules/core-ui-guards.test.mjs が落ちる。
 //   行を足すのは規則(対象・検出)を広げて既存の部品が当たった時だけ。
 
 import fs from "node:fs";

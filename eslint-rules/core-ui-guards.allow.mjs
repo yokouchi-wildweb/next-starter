@@ -3,7 +3,7 @@
 // core-ui-guards の許可一覧: useForm や守りの処理をまだ部品の中に持つ core の部品・既定 Screen の部品(repo 相対パス)。
 // 縮める一方。新しい部品の行は足さない(新しい部品は最初から公開 hook を呼ぶ)。
 // 行を足してよいのは規則(対象・検出)を広げて既存の部品が当たった時だけ(その時は理由と、消す予定の先を書く)。
-// 部品を hook 化したら、どの legate・どの作業でもその行を消す。
+// 部品を hook 化したら、どの実装・どの作業でもその行を消す。
 // 当たらなくなった行が残ると pnpm test eslint-rules/core-ui-guards.test.mjs が落ちる(消し忘れの検出)。
 
 export const CORE_UI_GUARDS_ALLOW = [

@@ -1,33 +1,33 @@
 ---
 name: inbox
-description: List, read and handle the one-off orders addressed to this repo (from /order or a council legate, self-addressed ones included) - judge acceptance against this repo's role, and relay what needs another repo's work | When the user asks to see or work this repo's inbox, or names an order id / file
+description: List, read and handle the one-off orders addressed to this repo (from /order or a council's build, self-addressed ones included) - judge acceptance against this repo's role, and relay what needs another repo's work | When the user asks to see or work this repo's inbox, or names an order id / file
 argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
 ---
 
-role: handle the **ORDERs** addressed to this repo (one-off orders filed by `/order`; a council legate's orders have the same form)
+role: handle the **ORDERs** addressed to this repo (one-off orders filed by `/order`; a council build's orders have the same form)
 - sender = head of the order's `from:` | repo = origin URL | own repo = self-addressed plan | team role = `<team> <instance> | role:<role name> | repo:…` (fleet Admiral, guild Architect …; the issuer is that team, repo: = the repo it ran in) | council = `council <topic id>` | how they are written: `.claude/skills/order/SKILL.md` step 3
 - every order: think whether to accept it against this repo's role before acting
 
 mailbox: `~/.team/orders/` (shared folder; real place = `root:` of `mailbox.mjs self`; outside git; layout explained in `.claude/skills/order/SKILL.md`)
 - **own inbox** = `<root>/<own fork-id>/` (fork-id = `repo_id` of `repo.json`) | place and contents from `node .claude/skills/order/mailbox.mjs inbox` (run at the repo root) | never read other repos' inboxes
 - unhandled = `*.md` directly in the inbox | handled = moved to the inbox's `done/`
-- **state** (head `status:` of the order, one value; old orders without it = open): `open` = unhandled | `routed` = routed to a council / guild / legate plan (`routed_to:` = owner) | `taken` = the owner started (`taken_by:` = owner) | answers = done / partial / relayed / rejected / withdrawn (moved to `done/`)
+- **state** (head `status:` of the order, one value; old orders without it = open): `open` = unhandled | `routed` = routed to a council / guild / build plan (`routed_to:` = owner) | `taken` = the owner started (`taken_by:` = owner) | answers = done / partial / relayed / rejected / withdrawn (moved to `done/`)
   - transitions stay in the order's trailing `## STATUS_LOG` | never edit the state by hand → `mailbox.mjs route | take | release | unroute | resolve`
 - **owner guard**:
   - taking = when the human approves the first proposal after reading the order (HANDLE step 3) → record it with `node .claude/skills/order/mailbox.mjs take <order>` | reading, choosing or launching is not taking (quest and guild too)
   - open = anyone may take | routed = only the routed target (otherwise mailbox.mjs prints the owner and refuses)
   - an order taken by someone else / routed to another owner: list it, never work it (relay, send back and withdraw included) | ask the human what to do (leave it to the owner / re-route by the human's call `route --to=` / clean up a stopped session `release --force=<reason>`)
   - resolve is refused for non-owners too (only when the human decides: `--force=<reason>`; the RESOLUTION keeps `forced:`)
-- own name = `mailbox.mjs me` (repo session = `<origin> | branch:<b>`, team tab = `<team> <instance> | role:…`) | team tabs are matched to `council <instance>` / `guild:<instance>` routes automatically | routed by name (`guild:<name>`, `legate <id>.<k> plan-SS`) → add `--as=<that name>` to take / release / resolve
+- own name = `mailbox.mjs me` (repo session = `<origin> | branch:<b>`, team tab = `<team> <instance> | role:…`) | team tabs are matched to `council <instance>` / `guild:<instance>` routes automatically | routed by name (`guild:<name>`, `build <id>.<k> plan-SS`) → add `--as=<that name>` to take / release / resolve
 - **standard place to work**: start the order's work in one tab (Seeker) by typing `quest <order id>` in a terminal (a normal work session, not a guild)
   - taking: when the human approves the first proposal, the Seeker records it as `quest <instance> | role:Seeker` | a council Chair (Archon included) reaches that tab with `msg --order <order id>`
   - working in a normal session is allowed, but then messages cannot reach it (the lead can only append to the order) | inside a Seeker tab, use this skill's HANDLE mode as is
 - unhandled orders with a `waiting_on:` line = this repo asked another repo and waits for the result (RELAY: ask and wait below) | mailbox.mjs prints `waiting` while a target is open, `resumable` when all are handled
 - the order's `to:` is not this repo (misdelivered) → do not take it, follow RELAY / SEND BACK / WITHDRAW below
-- **orders from a council** = `from: council <topic id> | legate:l<k> order:NN`:
-  - one step of a council legate (the council's mechanism that issues orders one at a time and verifies each) that needs work in this repo | the body's `order:` holds the council's order as is
+- **orders from a council** = `from: council <topic id> | build:b<k> order:NN` (older orders: `legate:l<k>`):
+  - one step of a council's build (the council's mechanism that issues orders one at a time and verifies each) that needs work in this repo | the body's `order:` holds the council's order as is
   - handled like a normal order | the differences are written at each place of HANDLE below (stop at the boundary, `output:`, RESOLUTION findings / verify)
-  - the council sees the order move to `done/`, takes in the RESOLUTION and verifies it itself | the legate's index and folder are the council's: this session never touches them
+  - the council sees the order move to `done/`, takes in the RESOLUTION and verifies it itself | the build's index and folder are the council's: this session never touches them
 
 target: $ARGUMENTS
 

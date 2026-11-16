@@ -12,15 +12,15 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
   - fork-id = `repo_id` of that repo's `repo.json` (old form: `fork_id:` of `.claude/rules/project.md`; lowercase, digits, hyphens)
   - undeclared repos (no line / old `-`) use the old name only during migration (origin URL from the host on, `.git` removed, `/` → `--`, lowercase; no origin → `local--<directory name>`)
   - a declared repo's inbox moves from the old-name box when mailbox.mjs reads the name; the old name stays as a link to the new box
-- the inbox holds one-off orders only | serial / grouped orders are handled inside a council legate
+- the inbox holds one-off orders only | serial / grouped orders are handled inside a council's build
 - **check sheet** = `<order name>.check.md` beside an order (browser checks: pages, steps, expectations, results) + `<order name>.check/` (screenshots of ng items) | the order's head `check_sheet:` names it | not an order: lists skip it, `resolve` moves it to done/ with the order | format: `.claude/skills/order/checkSheet.mjs` head comment
 - the receiving repo reads its inbox with `/inbox` | the filing session checks the state with `/wen`
-- **order state** (head `status:`, one value): `open` → `routed` (routed to a council / guild / legate plan; `routed_to:` / `routed_by:` / `routed_at:`) → `taken` (the owner started; `taken_by:` / `taken_at:`) → answer (done / partial / relayed / rejected / withdrawn, to `done/`)
+- **order state** (head `status:`, one value): `open` → `routed` (routed to a council / guild / build plan; `routed_to:` / `routed_by:` / `routed_at:`) → `taken` (the owner started; `taken_by:` / `taken_at:`) → answer (done / partial / relayed / rejected / withdrawn, to `done/`)
   - transitions are appended to the trailing `## STATUS_LOG` | old orders without `status:` = open | mailbox.mjs refuses taking / answering by non-owners (usage: `.claude/skills/inbox/SKILL.md`, owner guard)
 - helper: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox [--quest] | name-check <名前> | file | route | take | release | unroute | resolve>` (run at the repo root)
   - `file` = write one order into a repo's inbox (the single writer of order files: /order step 4 and the tools call it; options: mailbox.mjs head comment)
   - `from` = the `from:` line of the order being filed | `me` = your own name as written for an owner
-  - `route <order> --to=<council <id> | guild:<instance|name> | legate <id>.<k> plan-SS>` = route | `take <order> [--as=]` = take | `release <order>` = let go | `unroute <order>` = take a route back (routed → open; the owner it was routed to or the one who routed it, else `--force=<reason>`)
+  - `route <order> --to=<council <id> | guild:<instance|name> | build <id>.<k> [plan-SS]>` = route | `take <order> [--as=]` = take | `release <order>` = let go | `unroute <order>` = take a route back (routed → open; the owner it was routed to or the one who routed it, else `--force=<reason>`)
   - `name-check` = may this name become this repo's repo_id (no clash with fleet.conf, local repos, existing inboxes; used by /fork-init)
   - `resolve` = answer an order: append the RESOLUTION and move to done/ | env `ORDER_RESOLVED_HOOK` (path of an executable) set → after answering it is called with the done/ order's path (unset → nothing; team tabs use it to notify the sender)
   - `inbox --quest` = quests (`kind: quest`) only | steps: `.claude/skills/inbox/SKILL.md` step 4
@@ -60,7 +60,7 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
    - head of `from:` = the issuer (3 kinds; readers tell them apart with mailbox.mjs `requester`):
      - repo session = `<origin url> | branch:<branch> | cwd:<path>`
      - team role = `<team> <instance> | role:<役職名> | repo:<origin url> | branch:<branch> | cwd:<path>` (e.g. `fleet 20261024-220119 | role:Admiral | …`; repo: = the repo it ran in, for reference)
-     - council legate = `council <議題id> | …` (written by the legate itself; no role: field)
+     - council build = `council <議題id> | build:b<k> order:NN` (written by the council's build itself; no role: field)
    - self-addressed: a later session without this context reads it → write everything known in this conversation into `why:` and `refs:` (how far it was decided, open points, files to read)
    - `<slug>` = a short kebab (English) from need
    - `title:` = a short Japanese title humans read in lists (team launch screens, `mailbox.mjs inbox`) | a noun phrase of about 20 chars saying what is done (e.g. `チャットルームの UID 不一致を直す`) | the list shows title and id side by side → no id or date in the title
