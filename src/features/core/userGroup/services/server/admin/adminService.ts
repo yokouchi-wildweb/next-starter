@@ -7,7 +7,7 @@
 // - 静的グループ: 選んだ利用者・別のグループの今の一員・タグの今の持ち主から作る・置き換える(予算つき、終わらなければ incomplete)、足す・外す
 // - 一員の一覧(静的)と例外の人の一覧(足す人・外す人)。利用者 id の順の keyset、id と表示名だけ、消した利用者は出さない
 // - 条件の部品の一覧(表示名・欄・重さと、ロール・状態・タグ・静的グループの選択肢)
-// - service でも管理者を確かめる。監査 user_group.group.{created, updated, archived}・user_group.exceptions.updated・
+// - service でも管理者を確かめる。監査 user_group.group.{created, updated, archived, restored}・user_group.exceptions.updated・
 //   user_group.members.{replaced, added, removed}(操作した管理者が actor。利用者 id は監査に入れない)
 
 import { and, asc, desc, eq, gt, inArray, isNull, lt, or, sql } from "drizzle-orm";
@@ -473,6 +473,19 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       if (group.status === "archived") return detailOf(group);
       const [row] = await deps.db.update(G).set({ status: "archived", updatedAt: deps.now() }).where(eq(G.id, group.id)).returning();
       await audit(row!, "user_group.group.archived");
+      return detailOf(row!);
+    },
+
+    /**
+     * アーカイブしたグループを使用中に戻す(定期計算は次の cron で期限が来れば計算し直す)
+     * @throws DomainError(409) アーカイブ中でない / (404) 無い
+     */
+    async restoreGroup(id: string): Promise<AdminUserGroupDetail> {
+      await assertUserGroupAdmin(deps);
+      const group = await loadGroup(id);
+      if (group.status !== "archived") throw new DomainError(`グループ「${group.name}」はアーカイブされていません`, { status: 409 });
+      const [row] = await deps.db.update(G).set({ status: "active", updatedAt: deps.now() }).where(eq(G.id, group.id)).returning();
+      await audit(row!, "user_group.group.restored");
       return detailOf(row!);
     },
 

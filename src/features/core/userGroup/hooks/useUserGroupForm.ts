@@ -19,6 +19,7 @@ import { useUnsavedGuard } from "@/lib/unsavedGuard";
 
 import {
   archiveUserGroup,
+  restoreUserGroup,
   createUserGroup,
   updateUserGroup,
   type AdminUserGroupCriteriaCatalog,
@@ -118,6 +119,11 @@ export function useUserGroupForm({ group, catalog, onCreated, onChanged, startSt
     () => archiveUserGroup(id!),
     revalidateKeys,
   );
+  const restoreMutation = useDomainMutation<AdminUserGroupDetail, void>(
+    `${USER_GROUPS_KEY}/${id ?? "new"}/restore`,
+    () => restoreUserGroup(id!),
+    revalidateKeys,
+  );
 
   const trimmedDescription = description.trim() === "" ? null : description.trim();
   const usesCondition = kind !== "static";
@@ -201,6 +207,18 @@ export function useUserGroupForm({ group, catalog, onCreated, onChanged, startSt
     }
   }, [id, archiveMutation, onChanged, showToast]);
 
+  /** アーカイブしたグループを使用中に戻す(戻した後は直せる) */
+  const restore = useCallback(async () => {
+    if (!id) return;
+    try {
+      const done = await restoreMutation.trigger();
+      onChanged?.(done, "restore");
+      showToast("使用中に戻しました", "success");
+    } catch (e) {
+      showToast(err(e, "使用中に戻せませんでした"), "error");
+    }
+  }, [id, restoreMutation, onChanged, showToast]);
+
   return {
     mode: id ? ("edit" as const) : ("create" as const),
     archived,
@@ -209,6 +227,7 @@ export function useUserGroupForm({ group, catalog, onCreated, onChanged, startSt
     canSave: dirty && problems.length === 0 && !archived,
     save,
     archive,
+    restore,
     /** 重い条件の注意(出さない = null) */
     heavyWarning: kind === "dynamic" && heavy ? HEAVY_WARNING : null,
     /** モーダルを閉じる前の確かめ(Modal の confirmOnClose に渡す) */

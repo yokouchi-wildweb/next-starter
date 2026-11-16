@@ -47,7 +47,8 @@
 - `POST /api/admin/user-groups` 作る `{ name, description?, kind, definition?, recomputeIntervalMinutes? }`（動的・定期計算は定義が要る、静的は持たない。間隔は 60〜43,200 分か null）→ 1 件の詳しい形
 - `GET /api/admin/user-groups/[id]` → 一覧の形 + `definition`（例外の包みを外した元の定義。静的は null）・`heavy`・`notices`（画面に出す注意）・`exceptions: { includeCount, excludeCount } | null`
 - `PATCH /api/admin/user-groups/[id]` 直す（名前・説明・種類・定義・間隔）。種類の付け替えは動的 ⇄ 定期計算だけ（静的との間は 409）。保管したグループは 409
-- `POST /api/admin/user-groups/[id]/archive` 保管
+- `POST /api/admin/user-groups/[id]/archive` 保管（画面「アーカイブする」）
+- `POST /api/admin/user-groups/[id]/restore` 使用中に戻す（画面「アクティブに戻す」。アーカイブ中でなければ 409。定期計算は次の cron で期限が来れば計算し直す）
 - `POST /api/admin/user-groups/estimate` `{ definition }` か `{ groupId }` → `{ count, memberLimit, overLimit, heavy, sample: [{ id, name }] }`（メールは返さない。時間の上限で 503）
 - `PUT /api/admin/user-groups/[id]/exceptions` `{ include?: { add?, remove? }, exclude?: { add?, remove? } }`（動的・定期計算だけ、静的は 409）→ 1 件の詳しい形。足す人に入れた人は外す人から外れる（逆も）
 - `GET /api/admin/user-groups/[id]/exceptions?side=include|exclude&cursor&limit` → `{ items: [{ id, name }], nextCursor }`（`limit` 1〜100 既定 50、例外がまだ無ければ空、静的は 409）
@@ -60,7 +61,7 @@
   - 1 回の要求の予算は `admin.freezeBudgetMs`。`members.status` が `incomplete` なら、画面が同じ `from` で `{ mode: "replace" }` を送り直すと続きから書く（サーバーは元を覚えない）
 - `GET /api/admin/user-groups/[id]/members?cursor&limit` → `{ items: [{ id, name }], nextCursor }`（静的だけ、`limit` 1〜100 既定 50、削除した利用者は出さない）
 - `GET /api/admin/user-groups/criteria` → `{ criteria: [{ key, label, description, weight, weightLabel, fields }], options: { tags, staticGroups }, kinds }`（使える部品だけ: `enabled: false`・読む機能が閉の部品は出ない）。タグ・静的グループの選択肢は `fields` にも入れて返す（`admin.optionsLimit` 件まで）
-- 監査（`targetType` `user_group`、操作した管理者が actor、metadata は名前・種類・数だけで利用者 id は入れない）: `user_group.group.created` / `updated` / `archived`・`user_group.exceptions.updated`・`user_group.members.replaced` / `added` / `removed`
+- 監査（`targetType` `user_group`、操作した管理者が actor、metadata は名前・種類・数だけで利用者 id は入れない）: `user_group.group.created` / `updated` / `archived` / `restored`・`user_group.exceptions.updated`・`user_group.members.replaced` / `added` / `removed`
 
 ### 管理画面の部品と hook
 
