@@ -161,7 +161,7 @@ async function rejectsWith(run: Promise<unknown>, status: number, code?: string)
 }
 
 test("d1 削除: どの状態でも deleted_at、未送信を止め、展開を止め、status はそのまま、消せる経路を消し、監査 deleted", async () => {
-  for (const status of ["scheduled", "processing", "completed", "cancelled"]) {
+  for (const status of ["scheduled", "processing", "completed", "cancelled"] as const) {
     const world = setup({ status, expand_cursor: status === "scheduled" ? null : "i:4" });
     const result = await adminDeleteDispatch(world.deps, "d1");
     assert.deepEqual(result, {
