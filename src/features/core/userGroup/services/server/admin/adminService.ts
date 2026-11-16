@@ -330,6 +330,28 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
     return result;
   }
 
+  /** 作る時の例外の人を持ち主付きの静的グループへ書く(居る・削除されていない利用者だけ。人数の上限は 409)。tx の中で */
+  async function insertExceptionMembers(tx: Executor, group: UserGroup, targetId: string, userIds: readonly string[]): Promise<number> {
+    if (userIds.length > deps.config.memberLimit) {
+      throw new DomainError(`グループ「${group.name}」の例外の人数 ${userIds.length} が上限 ${deps.config.memberLimit} を超えています`, { status: 409 });
+    }
+    const size = Math.max(1, deps.config.write.batchSize);
+    let written = 0;
+    for (let start = 0; start < userIds.length; start += size) {
+      const present = await tx
+        .select({ id: UserTable.id })
+        .from(UserTable)
+        .where(and(inArray(UserTable.id, userIds.slice(start, start + size)), isNull(UserTable.deletedAt)));
+      if (present.length === 0) continue;
+      await tx
+        .insert(UserGroupMemberTable)
+        .values(present.map((row) => ({ group_id: targetId, user_id: row.id })))
+        .onConflictDoNothing();
+      written += present.length;
+    }
+    return written;
+  }
+
   /** 例外のグループ(無ければ 2 つ作って定義を包む)。tx の中で */
   async function ensureExceptionGroups(tx: Executor, group: UserGroup): Promise<ExceptionGroupIds> {
     const definition = await definitionOf(group.id, tx);
@@ -395,6 +417,16 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
         throw new DomainError("固定グループには条件を設定できません(メンバーは選んで追加します)", { status: 400 });
       }
       if (parsed.kind !== "static" && parsed.definition === undefined) throw new DomainError("条件が設定されていません", { status: 400 });
+      const include = [...new Set(parsed.exceptions?.include ?? [])];
+      const exclude = [...new Set(parsed.exceptions?.exclude ?? [])];
+      const withExceptions = include.length > 0 || exclude.length > 0;
+      if (withExceptions && parsed.kind === "static") {
+        throw new DomainError("固定グループには例外を設定できません(メンバーを直接追加・削除してください)", { status: 400 });
+      }
+      if (include.some((userId) => exclude.includes(userId))) {
+        throw new DomainError("同じユーザーを「常に含める人」と「常に除外する人」の両方に入れることはできません", { status: 400 });
+      }
+      const counts = { includeCount: 0, excludeCount: 0 };
       const group = await deps.db.transaction(async (tx) => {
         const checked = parsed.kind === "static" ? null : await checkBase(parsed.definition, tx);
         const [row] = await tx
@@ -407,9 +439,15 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
           })
           .returning();
         if (checked) await saveDefinition(tx, row!.id, checked.tree, checked.heavy);
+        if (withExceptions) {
+          // 例外の人: 持ち主付きの静的グループ 2 つと包んだ定義、一員(居る利用者だけ)をグループと同じ取引で書く(途中で止めない)
+          const ids = await ensureExceptionGroups(tx, row!);
+          counts.includeCount = await insertExceptionMembers(tx, row!, ids.includeId, include);
+          counts.excludeCount = await insertExceptionMembers(tx, row!, ids.excludeId, exclude);
+        }
         return row!;
       });
-      await audit(group, "user_group.group.created");
+      await audit(group, "user_group.group.created", withExceptions ? counts : {});
       return detailOf(group);
     },
 

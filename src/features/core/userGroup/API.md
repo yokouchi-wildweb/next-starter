@@ -45,6 +45,7 @@
   - `count: { value, state }`: `counted`（静的 = 一員の数、定期計算 = 今の版の人数）/ `estimated`（動的をその場で数えた）/ `not_computed`（時間の上限・1 ページの予算が尽きた・壊れた条件）/ `none`（定期計算に版がまだ無い）
   - `recompute`（定期計算だけ）: `{ intervalMinutes, defaultIntervalMinutes, lastComputedAt, lastFailure: { at, reason } | null, computing }`
 - `POST /api/admin/user-groups` 作る `{ name, description?, kind, definition?, recomputeIntervalMinutes? }`（動的・定期計算は定義が要る、静的は持たない。間隔は 60〜43,200 分か null）→ 1 件の詳しい形
+  - 動的・定期計算は `exceptions?: { include?: userIds, exclude?: userIds }`（例外の人）も渡せる。グループ・例外の人のグループ・一員を 1 つの取引で書き、誤り（静的に渡した・同じ人が両方 400、人数の上限 409）は作成ごと取り消す
 - `GET /api/admin/user-groups/[id]` → 一覧の形 + `definition`（例外の包みを外した元の定義。静的は null）・`heavy`・`notices`（画面に出す注意）・`exceptions: { includeCount, excludeCount } | null`
 - `PATCH /api/admin/user-groups/[id]` 直す（名前・説明・種類・定義・間隔）。種類の付け替えは動的 ⇄ 定期計算だけ（静的との間は 409）。保管したグループは 409
 - `POST /api/admin/user-groups/[id]/archive` 保管（画面「アーカイブする」）

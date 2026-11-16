@@ -26,6 +26,8 @@ export const CreateUserGroupInputSchema = z
     kind: z.enum(USER_GROUP_KINDS),
     definition: z.unknown().optional(),
     recomputeIntervalMinutes: interval,
+    /** 例外の人(動的・定期計算だけ。グループと同じ取引で書く) */
+    exceptions: z.object({ include: userIds.optional(), exclude: userIds.optional() }).strict().optional(),
   })
   .strict();
 

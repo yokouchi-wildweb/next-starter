@@ -88,6 +88,9 @@ export function useUserGroupForm({ group, catalog, onCreated, onChanged, startSt
   const [kind, setKindState] = useState<UserGroupKind>(initialKind);
   const [intervalMinutes, setIntervalMinutes] = useState<number | null>(initialInterval);
   const [source, setSource] = useState<StaticSourceDraft>({ type: "users", userIds: [], tagId: "", groupId: "" });
+  // 作る時の例外の人(動的・定期計算。作成の時にグループと同じ取引で書く。同じ人は片方だけ)
+  const [draftInclude, setDraftInclude] = useState<string[]>([]);
+  const [draftExclude, setDraftExclude] = useState<string[]>([]);
   const condition = useUserGroupConditionBuilder({ definition: group?.definition ?? null, criteria });
 
   const kindOptions = useMemo(() => {
@@ -151,7 +154,9 @@ export function useUserGroupForm({ group, catalog, onCreated, onChanged, startSt
       condition.touched ||
       source.userIds.length > 0 ||
       source.tagId !== "" ||
-      source.groupId !== "";
+      source.groupId !== "" ||
+      draftInclude.length > 0 ||
+      draftExclude.length > 0;
   useUnsavedGuard(dirty);
 
   const heavy = usesCondition && (condition.readOnly ? Boolean(group?.heavy) : condition.heavy);
@@ -186,6 +191,7 @@ export function useUserGroupForm({ group, catalog, onCreated, onChanged, startSt
         kind,
         definition,
         ...(kind === "scheduled" ? { recomputeIntervalMinutes: intervalMinutes } : {}),
+        ...(draftInclude.length > 0 || draftExclude.length > 0 ? { exceptions: { include: draftInclude, exclude: draftExclude } } : {}),
       });
       onCreated?.(created.id);
       onChanged?.(created, "create");
@@ -193,7 +199,7 @@ export function useUserGroupForm({ group, catalog, onCreated, onChanged, startSt
     } catch (e) {
       showToast(err(e, "保存できませんでした"), "error");
     }
-  }, [id, updateMutation, patch, onChanged, showToast, kind, source, startStatic, name, trimmedDescription, condition, createMutation, intervalMinutes, onCreated]);
+  }, [id, updateMutation, patch, onChanged, showToast, kind, source, startStatic, name, trimmedDescription, condition, createMutation, intervalMinutes, onCreated, draftInclude, draftExclude]);
 
   /** 保管(一覧の既定と選択肢に出さない) */
   const archive = useCallback(async () => {
@@ -233,6 +239,21 @@ export function useUserGroupForm({ group, catalog, onCreated, onChanged, startSt
     /** モーダルを閉じる前の確かめ(Modal の confirmOnClose に渡す) */
     closeConfirm: { enabled: dirty, message: "保存していない変更があります。閉じてもよろしいですか？" },
     condition,
+    /** 作る時の例外の人(片方に入れた人はもう片方から外す) */
+    exceptionsDraft: {
+      include: draftInclude,
+      exclude: draftExclude,
+      setInclude: (values: readonly (string | number | boolean)[]) => {
+        const next = values.map(String);
+        setDraftInclude(next);
+        setDraftExclude((prev) => prev.filter((userId) => !next.includes(userId)));
+      },
+      setExclude: (values: readonly (string | number | boolean)[]) => {
+        const next = values.map(String);
+        setDraftExclude(next);
+        setDraftInclude((prev) => prev.filter((userId) => !next.includes(userId)));
+      },
+    },
     fields: {
       name,
       setName,
