@@ -46,8 +46,8 @@ export function useUserGroupStaticMembers({ groupId, enabled = true, onChanged, 
     enabled,
     addPeople,
     removePerson,
-    addedMessage: "一員を足しました",
-    removedMessage: "一員から外しました",
+    addedMessage: "メンバーを追加しました",
+    removedMessage: "メンバーから削除しました",
     observerOptions,
   });
 }

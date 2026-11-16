@@ -120,7 +120,7 @@ export function createUserGroupRecompute(deps: UserGroupRecomputeDeps) {
       .from(UserGroupDefinitionTable)
       .where(eq(UserGroupDefinitionTable.group_id, group.id))
       .limit(1);
-    if (!definition) throw new DomainError(`グループ「${group.name}」の条件が壊れています: 定義がありません`, { status: 409 });
+    if (!definition) throw new DomainError(`グループ「${group.name}」の条件が正しくありません: 条件が設定されていません`, { status: 409 });
     const where = compileUserGroupDefinition(definition.tree, { criteria: deps.criteria, now: version.startedAt, source: "stored" });
     return async (after, limit) => {
       const rows = await deps.db

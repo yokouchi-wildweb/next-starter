@@ -128,7 +128,7 @@ describe("定期計算(実 DB、戻す)", { skip }, () => {
         const afterFail = await versions();
         latest = afterFail.at(-1)!;
         assert.equal(latest.status, "failed");
-        assert.match(latest.error ?? "", /条件が壊れています/);
+        assert.match(latest.error ?? "", /条件が正しくありません/);
         assert.equal(afterFail.filter((v) => v.status === "failed").length, 1);
         assert.equal((await groupRow()).current_version, kept[1]!.version);
 

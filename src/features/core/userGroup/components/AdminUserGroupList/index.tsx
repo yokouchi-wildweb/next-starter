@@ -1,7 +1,7 @@
 // src/features/core/userGroup/components/AdminUserGroupList/index.tsx
 // セクションコンテナ(管理: ユーザーグループの一覧)。種類・状態で絞る + 無限スクロール(カーソル)。
 // 行 = 名前・種類・人数(数えた / 見込み / 数えていない / まだ無い)・定期計算の最後の時刻と失敗(UserGroupRow)。例外の持ち主つきのグループはサーバーが出さない。
-// 保管したものは状態で「保管」を選んだ時だけ。行を押すと直すモーダル、上の「新しく作る」で作るモーダル(AdminUserGroupModal)。
+// アーカイブしたものは状態で「アーカイブ」を選んだ時だけ。行を押すと直すモーダル、上の「新規作成」で作るモーダル(AdminUserGroupModal)。
 // 流れは hook useAdminUserGroupList。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
@@ -20,13 +20,13 @@ import { useAdminUserGroupList } from "@/features/core/userGroup/hooks/useAdminU
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
 const KIND_OPTIONS = [
-  { value: "dynamic", label: "動的" },
-  { value: "scheduled", label: "定期計算" },
-  { value: "static", label: "固定" },
+  { value: "dynamic", label: "条件で自動" },
+  { value: "scheduled", label: "定期的に更新" },
+  { value: "static", label: "手動で指定" },
 ];
 const STATUS_OPTIONS = [
   { value: "active", label: "使用中" },
-  { value: "archived", label: "保管" },
+  { value: "archived", label: "アーカイブ" },
 ];
 
 export function AdminUserGroupList() {
@@ -58,7 +58,7 @@ export function AdminUserGroupList() {
           </Stack>
         </Flex>
         <Button type="button" size="sm" variant="primary" onClick={modal.openNew}>
-          新しく作る
+          新規作成
         </Button>
       </Flex>
       <InfiniteScrollList
@@ -71,7 +71,7 @@ export function AdminUserGroupList() {
         onRetry={query.retry}
         emptyNode={
           <Para tone="muted" align="center">
-            {status === "archived" ? "保管したグループはありません" : "ユーザーグループはありません"}
+            {status === "archived" ? "アーカイブしたグループはありません" : "ユーザーグループはありません"}
           </Para>
         }
         completedText="すべて表示しました"

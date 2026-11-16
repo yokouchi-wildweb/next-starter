@@ -45,15 +45,15 @@ export function intervalLabel(minutes: number): string {
 }
 
 export const HEAVY_WARNING =
-  "重い条件を含みます。動的のままでは 1 人ずつの確かめ(限定ページ・参加資格など)に使えません。定期計算にすると使えます";
+  "処理が重い条件が含まれています。「条件で自動」のままでは、1 人ずつの判定(限定ページ・参加資格など)に使えません。「定期的に更新」にすると使えます";
 
 /** 固定のグループの一員の元(作る時) */
 export type StaticSourceDraft = { type: "users" | "tag" | "group"; userIds: string[]; tagId: string; groupId: string };
 
 export const STATIC_SOURCE_LABELS: Record<StaticSourceDraft["type"], string> = {
-  users: "選んだ人",
-  tag: "タグを持つ今の人",
-  group: "固定のグループの今の一員",
+  users: "ユーザーを選ぶ",
+  tag: "タグを持つユーザー",
+  group: "別の固定グループのメンバー",
 };
 
 export function staticSourceOf(draft: StaticSourceDraft): StaticMemberSource | null {
@@ -151,9 +151,9 @@ export function useUserGroupForm({ group, catalog, onCreated, onChanged, startSt
   const heavy = usesCondition && (condition.readOnly ? Boolean(group?.heavy) : condition.heavy);
   const problems = useMemo(() => {
     const out: string[] = [];
-    if (name.trim() === "") out.push("名前を入れてください");
+    if (name.trim() === "") out.push("グループ名を入力してください");
     if (usesCondition) out.push(...condition.problems);
-    if (!group && kind === "static" && staticSourceOf(source) === null) out.push("一員の元を選んでください");
+    if (!group && kind === "static" && staticSourceOf(source) === null) out.push("メンバーの指定方法を選んでください");
     return out;
   }, [name, usesCondition, condition.problems, group, kind, source]);
 
@@ -183,7 +183,7 @@ export function useUserGroupForm({ group, catalog, onCreated, onChanged, startSt
       });
       onCreated?.(created.id);
       onChanged?.(created, "create");
-      showToast("グループを作りました", "success");
+      showToast("グループを作成しました", "success");
     } catch (e) {
       showToast(err(e, "保存できませんでした"), "error");
     }
@@ -195,9 +195,9 @@ export function useUserGroupForm({ group, catalog, onCreated, onChanged, startSt
     try {
       const done = await archiveMutation.trigger();
       onChanged?.(done, "archive");
-      showToast("保管しました", "success");
+      showToast("アーカイブしました", "success");
     } catch (e) {
-      showToast(err(e, "保管できませんでした"), "error");
+      showToast(err(e, "アーカイブできませんでした"), "error");
     }
   }, [id, archiveMutation, onChanged, showToast]);
 
@@ -212,7 +212,7 @@ export function useUserGroupForm({ group, catalog, onCreated, onChanged, startSt
     /** 重い条件の注意(出さない = null) */
     heavyWarning: kind === "dynamic" && heavy ? HEAVY_WARNING : null,
     /** モーダルを閉じる前の確かめ(Modal の confirmOnClose に渡す) */
-    closeConfirm: { enabled: dirty, message: "保存していない書きかけがあります。閉じてもよろしいですか？" },
+    closeConfirm: { enabled: dirty, message: "保存していない変更があります。閉じてもよろしいですか？" },
     condition,
     fields: {
       name,

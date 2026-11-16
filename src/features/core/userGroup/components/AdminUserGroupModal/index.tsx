@@ -55,12 +55,19 @@ const MODAL_WIDTH = "880px";
 /** 定期計算の間隔の「既定」の選択肢の値(null = 設定の既定) */
 export const INTERVAL_DEFAULT = "default";
 
+/** 種類の選択の下の 1 行の説明 */
+const KIND_HELP: Record<string, string> = {
+  dynamic: "条件に合うユーザーを、使うたびにその場で集めます",
+  scheduled: "条件に合うユーザーを、決まった間隔で集計して保存します(重い条件でも使えます)",
+  static: "選んだユーザーをそのままメンバーにします",
+};
+
 export function AdminUserGroupModal({ open, onOpenChange, groupId = null, onChanged }: AdminUserGroupModalProps) {
   const m = useUserGroupModal({ open, groupId, onChanged });
 
   if (m.state !== "ready" || !m.catalog) {
     return (
-      <Modal open={open} onOpenChange={onOpenChange} title={m.mode === "edit" ? "ユーザーグループを直す" : "ユーザーグループを作る"} maxWidth={MODAL_WIDTH}>
+      <Modal open={open} onOpenChange={onOpenChange} title={m.mode === "edit" ? "ユーザーグループを編集" : "ユーザーグループを作成"} maxWidth={MODAL_WIDTH}>
         {m.state === "loading" ? (
           <Flex justify="center" className="py-8">
             <Spinner className="size-6" />
@@ -119,7 +126,7 @@ function UserGroupModalBody({
   const closeConfirm = freeze.running ? modal.freezeCloseConfirm : form.closeConfirm;
   // 既定の間隔は空でない印で持つ(選択肢の値に空の文字は使えない: Radix の Select.Item が実行時に拒む)
   const intervalOptions = [
-    { value: INTERVAL_DEFAULT, label: fields.defaultIntervalMinutes ? `既定(${intervalLabel(fields.defaultIntervalMinutes)})` : "既定の間隔" },
+    { value: INTERVAL_DEFAULT, label: fields.defaultIntervalMinutes ? `既定(${intervalLabel(fields.defaultIntervalMinutes)})` : "既定" },
     ...fields.intervalChoices.map((minutes) => ({ value: String(minutes), label: intervalLabel(minutes) })),
   ];
 
@@ -130,12 +137,12 @@ function UserGroupModalBody({
           <ConfirmPopover
             trigger={
               <Button type="button" size="sm" variant="outline" disabled={form.dirty || freeze.running}>
-                保管
+                アーカイブ
               </Button>
             }
-            title="保管"
-            description="保管すると一覧の既定と選択肢に出なくなり、新しい宛先・条件に使えなくなります(グループは残ります)。"
-            confirmLabel="保管する"
+            title="アーカイブ"
+            description="アーカイブすると一覧と選択肢に表示されなくなり、新しい配信や条件に使えなくなります。グループ自体は残ります。"
+            confirmLabel="アーカイブする"
             confirmVariant="destructive"
             onConfirm={form.archive}
           />
@@ -143,7 +150,7 @@ function UserGroupModalBody({
         {!locked ? (
           <Button type="button" size="sm" variant="primary" disabled={isSaving || freeze.running || !form.canSave} onClick={() => void save()}>
             {isSaving ? <Spinner className="size-4" /> : null}
-            {group ? "保存" : "作る"}
+            {group ? "保存" : "作成"}
           </Button>
         ) : null}
       </Flex>
@@ -164,7 +171,7 @@ function UserGroupModalBody({
           </Span>
           {locked ? (
             <Span size="sm" tone="muted">
-              保管したグループは直せません
+              アーカイブ済みのグループは編集できません
             </Span>
           ) : null}
         </Flex>
@@ -177,7 +184,7 @@ function UserGroupModalBody({
       <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="user-group-meta">
         <Stack space={1}>
           <Label htmlFor="user-group-name" className="text-sm">
-            名前
+            グループ名
           </Label>
           <Input id="user-group-name" value={fields.name} disabled={locked} onChange={(e) => fields.setName(e.target.value)} />
         </Stack>
@@ -199,16 +206,19 @@ function UserGroupModalBody({
             options={fields.kindOptions.map((option) => ({ value: option.value, label: option.label }))}
             onChange={(v) => v && fields.setKind(String(v))}
           />
+          <Para size="sm" tone="muted" className="my-0" data-slot="user-group-kind-help">
+            {KIND_HELP[fields.kind]}
+          </Para>
           {group && group.kind !== "static" ? (
             <Para size="sm" tone="muted" className="my-0">
-              動的と定期計算の間だけ変えられます(定期計算から動的にすると計算した版は消えます)
+              「条件で自動」と「定期的に更新」の間でだけ変更できます(「定期的に更新」から変えると、集計済みのメンバーは消えます)
             </Para>
           ) : null}
         </Stack>
         {fields.kind === "scheduled" ? (
           <Stack space={1}>
             <Label htmlFor="user-group-interval" className="text-sm">
-              計算の間隔
+              更新の間隔
             </Label>
             <SelectInput
               id="user-group-interval"
@@ -266,11 +276,11 @@ function UserGroupModalBody({
 
   const peopleContent = !group ? null : group.kind === "static" ? (
     <UserGroupMemberList
-      title="一員"
-      description="このグループの人。選んで足す・1 人ずつ外せます"
+      title="メンバー"
+      description="このグループのメンバーです。ユーザーを選んで追加・削除できます"
       people={members}
-      addLabel="一員に足す"
-      emptyText="一員はいません"
+      addLabel="メンバーに追加"
+      emptyText="メンバーはいません"
       disabled={locked}
     />
   ) : (
@@ -279,20 +289,20 @@ function UserGroupModalBody({
       {!locked ? (
         <Stack space={2} className="rounded-md border border-border bg-card p-4" data-slot="user-group-freeze-current">
           <Para size="sm" tone="muted" className="my-0">
-            今このグループに入っている人で、新しい固定のグループを作ります(このグループはそのまま残ります)
+            今このグループに含まれるユーザーで、新しい固定グループを作成します(このグループはそのまま残ります)
           </Para>
           <Flex>
             <PromptPopover
               trigger={
                 <Button type="button" size="sm" variant="outline" disabled={freeze.running || form.dirty}>
-                  今の人で固定
+                  現在のメンバーで固定グループを作成
                 </Button>
               }
-              title="今の人で固定"
-              description="新しい固定のグループの名前"
+              title="現在のメンバーで固定グループを作成"
+              description="新しい固定グループの名前"
               defaultValue={`${group.name}(固定)`}
-              confirmLabel="作る"
-              validation={(value) => (value.trim() === "" ? "名前を入れてください" : null)}
+              confirmLabel="作成"
+              validation={(value) => (value.trim() === "" ? "グループ名を入力してください" : null)}
               onConfirm={async (value) => {
                 await modal.freezeCurrent(value.trim());
               }}
@@ -307,14 +317,14 @@ function UserGroupModalBody({
   const tabs = [
     { value: "basic", label: "基本", content: basicTab },
     ...(!isStatic ? [{ value: "condition", label: "条件", content: conditionTab }] : []),
-    ...(group ? [{ value: "people", label: group.kind === "static" ? "一員" : "例外の人", content: peopleContent }] : []),
+    ...(group ? [{ value: "people", label: group.kind === "static" ? "メンバー" : "例外", content: peopleContent }] : []),
   ];
 
   return (
     <TabbedModal
       open={open}
       onOpenChange={onOpenChange}
-      title={group ? `ユーザーグループを直す: ${group.name}` : "ユーザーグループを作る"}
+      title={group ? `ユーザーグループを編集: ${group.name}` : "ユーザーグループを作成"}
       maxWidth={MODAL_WIDTH}
       tabs={tabs}
       value={tabs.some((tab) => tab.value === modal.tab) ? modal.tab : "basic"}

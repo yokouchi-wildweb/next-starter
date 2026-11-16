@@ -57,8 +57,8 @@ test("useUserAdminBulkActions: 門が開なら出て、userGroups が閉なら�
 test("部品: 門 userGroups が閉なら何も描かない / 開ならボタン", () => {
   const props = { selection: { selectedIds: ["u1"], selectedRows: [], selectedKeys: ["u1"], count: 1, clear: () => {} }, onDone: () => {} };
   const html = (key: string) => renderToStaticMarkup(createElement(adminBulkActions[key].Component, props as never));
-  assert.match(html("userGroupCreate"), /選んだ人でグループを作る/);
-  assert.match(html("userGroupAdd"), /固定のグループに足す/);
+  assert.match(html("userGroupCreate"), /選択したユーザーでグループを作成/);
+  assert.match(html("userGroupAdd"), /固定グループに追加/);
   closed.add("userGroups");
   assert.equal(html("userGroupCreate"), "");
   assert.equal(html("userGroupAdd"), "");

@@ -14,17 +14,17 @@ const args = z
 export const criterion: UserGroupCriterion<typeof args> = {
   key: "hasTag",
   label: "タグ",
-  description: "選んだタグを持つ利用者(どれか 1 つ / 全部)",
+  description: "選んだタグを持つユーザー",
   args,
   fields: [
-    { name: "tagIds", label: "タグ", formInput: "multiSelect", helperText: "選択肢は管理画面がタグの一覧から出す" },
+    { name: "tagIds", label: "タグ", formInput: "multiSelect" },
     {
       name: "match",
-      label: "合わせ方",
+      label: "一致条件",
       formInput: "radio",
       options: [
-        { value: "any", label: "どれか 1 つ" },
-        { value: "all", label: "全部" },
+        { value: "any", label: "いずれかのタグを持つ" },
+        { value: "all", label: "すべてのタグを持つ" },
       ],
       defaultValue: "any",
     },

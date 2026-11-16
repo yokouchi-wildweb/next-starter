@@ -26,7 +26,7 @@ export function UserGroupStaticSourceFields({ value, onChange, tags, staticGroup
   return (
     <Stack space={3} data-slot="user-group-static-source">
       <Stack space={1}>
-        <Label className="text-sm">一員の元</Label>
+        <Label className="text-sm">メンバーの指定方法</Label>
         <RadioGroupInput
           value={value.type}
           options={TYPE_OPTIONS}
@@ -50,7 +50,7 @@ export function UserGroupStaticSourceFields({ value, onChange, tags, staticGroup
         <SelectInput
           value={value.groupId}
           options={staticGroups.map((group) => ({ value: group.value, label: group.label }))}
-          placeholder="固定のグループを選ぶ"
+          placeholder="固定グループを選ぶ"
           disabled={disabled}
           onChange={(next) => onChange({ ...value, groupId: next ? String(next) : "" })}
         />

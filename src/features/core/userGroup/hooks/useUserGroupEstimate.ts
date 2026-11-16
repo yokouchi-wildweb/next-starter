@@ -26,7 +26,7 @@ export function useUserGroupEstimate(definition: UserGroupDefinitionNode | null)
       const result = await estimateUserGroup({ definition });
       setOutcome({ forJson: json, result, reason: null });
     } catch (error) {
-      setOutcome({ forJson: json, result: null, reason: err(error, "人数の見込みを出せませんでした") });
+      setOutcome({ forJson: json, result: null, reason: err(error, "対象人数を見積もれませんでした") });
     } finally {
       setIsLoading(false);
     }

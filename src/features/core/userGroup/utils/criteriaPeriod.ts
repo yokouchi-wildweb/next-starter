@@ -24,15 +24,15 @@ export function periodArgs<E extends z.ZodRawShape = {}>(extra: E = {} as E) {
   return z
     .object({ ...periodShape, ...extra })
     .strict()
-    .refine((value) => Object.values(value).some((item) => item !== undefined), { message: "期間をどれか 1 つ指定してください" })
-    .refine((value) => !(value.from && value.to) || value.from <= value.to, { message: "from は to より前にしてください" });
+    .refine((value) => Object.values(value).some((item) => item !== undefined), { message: "期間の項目をいずれか 1 つ入力してください" })
+    .refine((value) => !(value.from && value.to) || value.from <= value.to, { message: "開始日時は終了日時より前にしてください" });
 }
 
 /** 期間の欄(name = 引数の鍵) */
 export const PERIOD_FIELDS: readonly FieldConfig[] = [
-  { name: "from", label: "この日時以後", formInput: "datetimeInput" },
-  { name: "to", label: "この日時以前", formInput: "datetimeInput" },
-  { name: "withinDays", label: "直近の日数", formInput: "numberInput", helperText: "評価する時点から何日以内か" },
+  { name: "from", label: "開始日時(この日時以降)", formInput: "datetimeInput" },
+  { name: "to", label: "終了日時(この日時以前)", formInput: "datetimeInput" },
+  { name: "withinDays", label: "直近 N 日以内", formInput: "numberInput", helperText: "今日から数えて何日以内か" },
 ];
 
 /** 列の期間の述語(from 以後・to 以前・now から withinDays 日以内の and) */

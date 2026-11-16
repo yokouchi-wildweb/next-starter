@@ -52,7 +52,7 @@ export function useUserGroupPeople(options: UseUserGroupPeopleOptions) {
       revalidate();
       showToast(addedMessage, "success");
     } catch (error) {
-      showToast(err(error, "足せませんでした"), "error");
+      showToast(err(error, "追加できませんでした"), "error");
     } finally {
       setBusy(false);
     }
@@ -66,7 +66,7 @@ export function useUserGroupPeople(options: UseUserGroupPeopleOptions) {
         removeItems((item) => item.id === userId);
         showToast(removedMessage, "success");
       } catch (error) {
-        showToast(err(error, "外せませんでした"), "error");
+        showToast(err(error, "削除できませんでした"), "error");
       } finally {
         setBusy(false);
       }

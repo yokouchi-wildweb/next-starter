@@ -26,19 +26,19 @@ export function UserGroupRecomputeStatus({ recompute, showReason = false }: User
   return (
     <Flex gap="sm" wrap="wrap" data-slot="user-group-recompute">
       <Span size="sm" tone="muted">
-        {recompute.intervalMinutes === null ? `既定の間隔(${every(recompute.defaultIntervalMinutes)})` : every(recompute.intervalMinutes)}
+        {recompute.intervalMinutes === null ? `既定(${every(recompute.defaultIntervalMinutes)})` : every(recompute.intervalMinutes)}
       </Span>
       <Span size="sm" tone="muted">
-        {last ? `最後の計算 ${last}` : "まだ計算していません"}
+        {last ? `最終更新 ${last}` : "まだ更新されていません"}
       </Span>
       {recompute.computing ? (
         <Span size="sm" tone="muted">
-          計算中
+          更新中
         </Span>
       ) : null}
       {recompute.lastFailure ? (
         <Span size="sm" tone="destructive" data-slot="user-group-recompute-failure">
-          {`計算に失敗${failedAt ? `(${failedAt})` : ""}${showReason && recompute.lastFailure.reason ? `: ${recompute.lastFailure.reason}` : ""}`}
+          {`更新に失敗${failedAt ? `(${failedAt})` : ""}${showReason && recompute.lastFailure.reason ? `: ${recompute.lastFailure.reason}` : ""}`}
         </Span>
       ) : null}
     </Flex>

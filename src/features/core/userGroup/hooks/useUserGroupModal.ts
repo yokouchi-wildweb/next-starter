@@ -125,7 +125,7 @@ export function useUserGroupModal({ open, groupId = null, onChanged }: UseUserGr
     freeze,
     freezeCurrent,
     /** 固定の途中で閉じる時の確かめ */
-    freezeCloseConfirm: { enabled: freeze.running, message: "固定のグループの一員を書いている途中です。閉じると途中で止まります。閉じてもよろしいですか？" },
+    freezeCloseConfirm: { enabled: freeze.running, message: "固定グループのメンバーを登録しています。閉じると登録が中断されます。閉じてもよろしいですか？" },
     formKey: group && currentId ? `${session}:${group.id}:${group.updatedAt}:${group.status}` : `${session}:new`,
   };
 }

@@ -45,7 +45,7 @@ export const CONDITION_MAX_DEPTH = 2;
 
 export const CONDITION_OP_LABELS: Record<ConditionGroupOp, string> = {
   and: "すべて満たす",
-  or: "どれか 1 つを満たす",
+  or: "いずれかを満たす",
 };
 
 let seq = 0;
@@ -124,10 +124,10 @@ export function conditionProblems(root: ConditionDraftGroup, criteria: readonly 
   const problems: string[] = [];
   const walk = (node: ConditionDraftNode, top: boolean) => {
     if (node.type === "criterion") {
-      if (!criteria.some((c) => c.key === node.part)) problems.push("今は使えない条件があります(外してください)");
+      if (!criteria.some((c) => c.key === node.part)) problems.push("使用できない条件があります(削除してください)");
       return;
     }
-    if (node.children.length === 0) problems.push(top ? "条件を 1 つ以上足してください" : "空の組があります(条件を足すか外してください)");
+    if (node.children.length === 0) problems.push(top ? "条件を 1 つ以上追加してください" : "条件が空のグループがあります(条件を追加するか、グループを削除してください)");
     node.children.forEach((child) => walk(child, false));
   };
   walk(root, true);
@@ -251,7 +251,7 @@ export function useUserGroupConditionBuilder({ definition, criteria }: UseUserGr
     readOnly: root === null,
     /** 読むだけの時に出す元の定義 */
     readOnlyDefinition: root === null ? definition : null,
-    readOnlyNote: root === null ? "この条件は画面で組める形(2 段まで)より深いため、読むだけで出しています。直すには作り直してください" : null,
+    readOnlyNote: root === null ? "この条件は画面で編集できる形(2 階層まで)より複雑なため、表示のみです。編集するには作り直してください" : null,
     /** 組を変えたか(読むだけのまま = 変えていない) */
     touched,
     problems,

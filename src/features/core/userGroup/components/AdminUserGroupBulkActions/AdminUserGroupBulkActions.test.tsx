@@ -120,38 +120,38 @@ test("作る: 名前を入れて作る = 選んだ利用者 id で固定の流�
   const item = creators.bulkCreateUserGroupAction({ key: "userGroupCreate", lists: ["general"], order: 20 });
   assert.deepEqual([item.key, item.lists, item.order], ["userGroupCreate", ["general"], 20]);
   const view = await render(item.Component as never, ["u1", "u2"]);
-  await click(view.container, "選んだ人でグループを作る");
-  assert.equal(byText(view.container, "作る")?.disabled, true, "名前が無い間は押せない");
+  await click(view.container, "選択したユーザーでグループを作成");
+  assert.equal(byText(view.container, "作成")?.disabled, true, "名前が無い間は押せない");
   assert.ok(view.container.querySelector('[data-part="freeze"]'));
   await click(view.container, "name");
-  await click(view.container, "作る");
+  await click(view.container, "作成");
   assert.deepEqual(events, [["start", { name: "春の招待", description: null, from: { type: "users", userIds: ["u1", "u2"] } }]]);
   await act(async () => freezeOnDone?.({ name: "春の招待", count: { value: 2, state: "counted" } }));
-  assert.deepEqual(toasts, ["「春の招待」を作りました(2 人)"]);
+  assert.deepEqual(toasts, ["「春の招待」を作成しました(2 人)"]);
   assert.deepEqual(events.at(-1), "done");
   await view.unmount();
 });
 
 test("作る・足す: 0 人ならボタンを押せない", async () => {
   const create = await render(creators.bulkCreateUserGroupAction({ key: "c" }).Component as never, []);
-  assert.equal(byText(create.container, "選んだ人でグループを作る")?.disabled, true);
+  assert.equal(byText(create.container, "選択したユーザーでグループを作成")?.disabled, true);
   await create.unmount();
   const add = await render(creators.bulkAddToUserGroupAction({ key: "a" }).Component as never, []);
-  assert.equal(byText(add.container, "固定のグループに足す")?.disabled, true);
+  assert.equal(byText(add.container, "固定グループに追加")?.disabled, true);
   await add.unmount();
 });
 
 test("足す: 名前で選んで足す = mode add、通れば onDone、id は出さない", async () => {
   const item = creators.bulkAddToUserGroupAction({ key: "userGroupAdd", lists: ["general"], order: 30 });
   const view = await render(item.Component as never, ["u1"]);
-  await click(view.container, "固定のグループに足す");
+  await click(view.container, "固定グループに追加");
   assert.match(view.container.textContent ?? "", /春の招待/);
   assert.doesNotMatch(view.container.textContent ?? "", new RegExp(GROUP_ID));
-  assert.equal(byText(view.container, "足す")?.disabled, true, "選ぶまで押せない");
+  assert.equal(byText(view.container, "追加")?.disabled, true, "選ぶまで押せない");
   await click(view.container, "pick:春の招待");
-  await click(view.container, "足す");
+  await click(view.container, "追加");
   assert.deepEqual(events, [["add", GROUP_ID, ["u1"]], "done"]);
-  assert.deepEqual(toasts, ["「春の招待」に 2 人を足しました(1 人はもう入っていたか、足せませんでした)"]);
+  assert.deepEqual(toasts, ["「春の招待」に 2 人を追加しました(1 人は登録済みか、追加できませんでした)"]);
   await view.unmount();
 });
 
@@ -159,10 +159,10 @@ test("足す: 断られたらサーバーの理由を出し、onDone しない",
   addReason = "人数の上限を超えます";
   addResult = null;
   const view = await render(creators.bulkAddToUserGroupAction({ key: "a" }).Component as never, ["u1"]);
-  await click(view.container, "固定のグループに足す");
+  await click(view.container, "固定グループに追加");
   assert.match(view.container.textContent ?? "", /人数の上限を超えます/);
   await click(view.container, "pick:春の招待");
-  await click(view.container, "足す");
+  await click(view.container, "追加");
   assert.deepEqual(events, [["add", GROUP_ID, ["u1"]]]);
   assert.deepEqual(toasts, [], "断られたらトーストを出さない");
   await view.unmount();

@@ -67,10 +67,10 @@ export function UserGroupMemberList({ title, description, people, addLabel, empt
           <Stack space={1}>
             {items.map((person) => (
               <Flex key={person.id} align="center" justify="between" gap="xs" className="border-b border-border py-1" data-slot="user-group-person">
-                <Span size="sm">{person.name ?? "名前のない利用者"}</Span>
+                <Span size="sm">{person.name ?? "名前未設定のユーザー"}</Span>
                 {!disabled ? (
                   <Button type="button" size="sm" variant="ghost" disabled={people.busy} onClick={() => void people.remove(person.id)}>
-                    外す
+                    削除
                   </Button>
                 ) : null}
               </Flex>
