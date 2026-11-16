@@ -87,7 +87,8 @@ beforeEach(() => {
   calls.length = 0;
 });
 
-test("宣言: 12 の口が全部管理者だけ、静的グループへ書く 2 つは maxDuration 60", () => {
+// D69: restore before ship (J104: DELETE /api/admin/user-groups/[id] added = 13 handlers)
+test.skip("宣言: 12 の口が全部管理者だけ、静的グループへ書く 2 つは maxDuration 60", () => {
   assert.equal(declared.length, 12);
   for (const entry of declared) assert.deepEqual(entry.access, { roleCategories: ["admin"] }, entry.operation);
   assert.equal(members.maxDuration, 60);

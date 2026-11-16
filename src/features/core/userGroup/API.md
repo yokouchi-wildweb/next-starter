@@ -48,6 +48,7 @@
   - 動的・定期計算は `exceptions?: { include?: userIds, exclude?: userIds }`（例外の人）も渡せる。グループ・例外の人のグループ・一員を 1 つの取引で書き、誤り（静的に渡した・同じ人が両方 400、人数の上限 409）は作成ごと取り消す
 - `GET /api/admin/user-groups/[id]` → 一覧の形 + `definition`（例外の包みを外した元の定義。静的は null）・`heavy`・`notices`（画面に出す注意）・`exceptions: { includeCount, excludeCount } | null`
 - `PATCH /api/admin/user-groups/[id]` 直す（名前・説明・種類・定義・間隔）。種類の付け替えは動的 ⇄ 定期計算だけ（静的との間は 409）。保管したグループは 409
+- `DELETE /api/admin/user-groups/[id]` 削除（D92、どの状態でも）→ `{ id, deleted: true }`。削除していない送信の宛先・ほかのグループの条件（固定グループの一員）で使われていれば 409（code `group_referenced`、文に理由）。消すと定義・版・一員・例外の人のグループも消える。一覧・1 件の形に `deletable`・`deleteReasons`（行の操作に出す理由の文）。監査 `user_group.group.deleted`
 - `POST /api/admin/user-groups/[id]/archive` 保管（画面「アーカイブする」）
 - `POST /api/admin/user-groups/[id]/restore` 使用中に戻す（画面「アクティブに戻す」。アーカイブ中でなければ 409。定期計算は次の cron で期限が来れば計算し直す）
 - `POST /api/admin/user-groups/estimate` `{ definition }` か `{ groupId }` → `{ count, memberLimit, overLimit, heavy, sample: [{ id, name }] }`（メールは返さない。時間の上限で 503）
@@ -62,7 +63,7 @@
   - 1 回の要求の予算は `admin.freezeBudgetMs`。`members.status` が `incomplete` なら、画面が同じ `from` で `{ mode: "replace" }` を送り直すと続きから書く（サーバーは元を覚えない）
 - `GET /api/admin/user-groups/[id]/members?cursor&limit` → `{ items: [{ id, name }], nextCursor }`（静的だけ、`limit` 1〜100 既定 50、削除した利用者は出さない）
 - `GET /api/admin/user-groups/criteria` → `{ criteria: [{ key, label, description, weight, weightLabel, fields, inlineGroups }], options: { tags, staticGroups }, kinds }`（`inlineGroups` = 欄を横に 1 行で並べる組、FieldRenderer の `InlineFieldGroup` の形 `{ key, label, fields, fieldWidths? }`、無ければ []、D90。上流: 期間の部品 = 期間 from〜to と直近 withinDays の 2 行・購入金額の合計 = 基準・通貨・下限・タグ = タグと一致条件）（使える部品だけ: `enabled: false`・読む機能が閉の部品は出ない）。タグ・静的グループの選択肢は `fields` にも入れて返す（`admin.optionsLimit` 件まで）
-- 監査（`targetType` `user_group`、操作した管理者が actor、metadata は名前・種類・数だけで利用者 id は入れない）: `user_group.group.created` / `updated` / `archived` / `restored`・`user_group.exceptions.updated`・`user_group.members.replaced` / `added` / `removed`
+- 監査（`targetType` `user_group`、操作した管理者が actor、metadata は名前・種類・数だけで利用者 id は入れない）: `user_group.group.created` / `updated` / `archived` / `restored` / `deleted`・`user_group.exceptions.updated`・`user_group.members.replaced` / `added` / `removed`
 
 ### 管理画面の部品と hook
 

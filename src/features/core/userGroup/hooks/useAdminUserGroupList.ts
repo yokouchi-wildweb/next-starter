@@ -19,8 +19,8 @@ export type UserGroupAction = "create" | "update" | "archive" | "restore" | "mem
 
 /** 1 件の詳しい形から一覧の行の形へ */
 export function userGroupSummaryOf(group: AdminUserGroupDetail): AdminUserGroupSummary {
-  const { id, name, description, kind, kindLabel, status, statusLabel, count, recompute, createdAt, updatedAt } = group;
-  return { id, name, description, kind, kindLabel, status, statusLabel, count, recompute, createdAt, updatedAt };
+  const { id, name, description, kind, kindLabel, status, statusLabel, count, recompute, createdAt, updatedAt, deletable, deleteReasons } = group;
+  return { id, name, description, kind, kindLabel, status, statusLabel, count, recompute, createdAt, updatedAt, deletable, deleteReasons };
 }
 
 /** 一覧の状態の絞り(all = すべて) */

@@ -40,6 +40,7 @@ import {
   type AdminStaticGroupResult,
   type AdminUserGroupCount,
   type AdminUserGroupCriteriaCatalog,
+  type AdminUserGroupDeleted,
   type AdminUserGroupDetail,
   type AdminStaticMembersRemoved,
   type AdminUserGroupEstimate,
@@ -50,6 +51,7 @@ import {
   type AdminUserGroupSummary,
 } from "./dto";
 import { unwrapExceptions, wrapWithExceptions, type ExceptionGroupIds } from "./exceptions";
+import { deleteReasonsOf, referencesOf } from "./references";
 import {
   CreateStaticUserGroupInputSchema,
   CreateUserGroupInputSchema,
@@ -222,6 +224,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
   }
 
   async function summaryOf(group: UserGroup, deadline: number | null): Promise<AdminUserGroupSummary> {
+    const deleteReasons = deleteReasonsOf(await referencesOf(deps.db, group.id));
     return {
       id: group.id,
       name: group.name,
@@ -234,6 +237,8 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       recompute: group.kind === "scheduled" ? await recomputeOf(group) : null,
       createdAt: group.createdAt.toISOString(),
       updatedAt: group.updatedAt.toISOString(),
+      deletable: deleteReasons.length === 0,
+      deleteReasons,
     };
   }
 
@@ -525,6 +530,26 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       const [row] = await deps.db.update(G).set({ status: "active", updatedAt: deps.now() }).where(eq(G.id, group.id)).returning();
       await audit(row!, "user_group.group.restored");
       return detailOf(row!);
+    },
+
+    /**
+     * 削除する(D92。どの状態でも)。使っている所(削除していない送信の宛先・ほかのグループの条件)があれば 409 と理由。
+     * 行を排他で持った 1 つの取引で確かめて消す(定義・版・版の一員・一員・例外の人のグループとその中身は FK cascade で消える)
+     * @throws DomainError(409) 使われている / (404) 無い / (400) id の形
+     */
+    async deleteGroup(id: string): Promise<AdminUserGroupDeleted> {
+      await assertUserGroupAdmin(deps);
+      const group = await deps.db.transaction(async (tx) => {
+        const row = await loadGroup(id, tx, true);
+        const reasons = deleteReasonsOf(await referencesOf(tx, row.id));
+        if (reasons.length > 0) {
+          throw new DomainError(`グループ「${row.name}」は削除できません: ${reasons.join(" / ")}`, { status: 409, code: "group_referenced" });
+        }
+        await tx.delete(G).where(eq(G.id, row.id));
+        return row;
+      });
+      await audit(group, "user_group.group.deleted");
+      return { id: group.id, deleted: true };
     },
 
     /**
