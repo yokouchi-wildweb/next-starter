@@ -4,7 +4,7 @@
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import type { UserGroupCriterion } from "@/features/userGroup/types";
 
-import { andAll, PERIOD_FIELDS, periodArgs, periodWhere } from "../utils/criteriaPeriod";
+import { andAll, PERIOD_FIELDS, PERIOD_INLINE_GROUPS, periodArgs, periodWhere } from "../utils/criteriaPeriod";
 
 const args = periodArgs();
 
@@ -14,6 +14,7 @@ export const criterion: UserGroupCriterion<typeof args> = {
   description: "会員登録した日時がこの期間のユーザー",
   args,
   fields: PERIOD_FIELDS,
+  inlineGroups: PERIOD_INLINE_GROUPS,
   weight: "cheap",
   where: (value, { now }) => andAll(periodWhere(UserTable.createdAt, value, now)),
 };

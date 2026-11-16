@@ -29,6 +29,7 @@ export const criterion: UserGroupCriterion<typeof args> = {
       defaultValue: "any",
     },
   ],
+  inlineGroups: [{ key: "tag", label: "タグ", fields: ["tagIds", "match"] }],
   weight: "cheap",
   where: ({ tagIds, match }) => {
     const tags = [...new Set(tagIds)];
