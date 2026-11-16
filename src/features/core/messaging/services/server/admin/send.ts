@@ -26,6 +26,7 @@ import type { AnyMessageDefinition } from "../sendMessage/definition";
 import { activeChannel } from "../sendMessage/expand";
 import type { MessagePreview, RecipientEstimate } from "../sendMessage/sender";
 import type { MessageTargetSpec, SendAuthoredInput, SendMessageResult, SendMessageToManyInput } from "../sendMessage/types";
+import type { AdminChannelOption } from "../templates/dto";
 import { assertAdminActor, type AdminCheckDeps } from "./assertAdmin";
 import { adminFreeTextCategoryOf, adminFreeTextCategoryOptions, type AdminFreeTextCategoryOption } from "./freeText";
 
@@ -106,7 +107,7 @@ export type AdminSendGroupOption = { id: string; label: string; kindLabel: strin
 
 /** 送る画面の選択肢 */
 export type AdminSendOptions = {
-  channels: { key: string; label: string }[];
+  channels: AdminChannelOption[];
   roles: { id: string; label: string }[];
   /** 使用中のユーザーグループ(名前の順、id は値としてだけ。門 userGroups が閉なら空) */
   groups: AdminSendGroupOption[];
@@ -325,7 +326,7 @@ export async function adminSendTest(deps: AdminSendDeps, rawInput: unknown): Pro
 export function adminChannelOptions(channels: Readonly<Record<string, MessageChannel>>): AdminSendOptions["channels"] {
   return Object.keys(channels).flatMap((key) => {
     const channel = activeChannel(channels, key);
-    return channel ? [{ key, label: channel.label }] : [];
+    return channel ? [{ key, label: channel.label, fieldMeta: channel.fieldMeta, previewComponent: channel.previewComponent ?? null }] : [];
   });
 }
 

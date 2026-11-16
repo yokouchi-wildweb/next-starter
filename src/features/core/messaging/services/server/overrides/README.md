@@ -12,6 +12,7 @@
 
 - `GET /` 一覧: 直せる欄がある（か行が残る）連絡と数（直せる・直した・孤立・コードが変わった）。DTO は連絡の `label`・`categoryLabel`・`channels`
 - `GET /[key]` 1 件: `channels`（種類の経路の順に `{ key, label, previewComponent }`。`previewComponent` = 経路の受け口のプレビューの部品の鍵、無ければ null）と平たい `fields`（経路・欄の順）。欄ごとに `channel`・`field`・`meta`（経路の受け口の `fieldMeta`、約束の無い欄は `{ label: 欄の名前, input: "line" }`）・`codeValue`・`value`・`effective`（送る時の値）・`edited`・`codeChanged`・`orphan` + `problem`、直せなくなった欄（`editable: false`、戻すだけ）、使ってよい鍵 `allowedKeys`
+- `POST /[key]/preview` `{ channel, values: { "<経路.欄>": 値 } }` → `{ channel, html, text }`: 送る時の値に未保存の値を重ね、連絡の描き方（経路の受け口の `preview`）で描く。文字の欄（input line / text、並び・部分の中も）は `data-field="<経路.欄>[.<部分>]"` の `<span>` で包む（プレビューの時だけ。値を目に見えない印の文字で包んで描き、描いた HTML で置き換える `previewMarkers.ts`。タグの中と `<head>` の印は消すだけ）。経路に `preview` が無ければ `html` は null。保存しない
 - `PUT /[key]` `{ fieldPath, value }`（誤りは 400）/ `DELETE /[key]?field=<経路.欄>`（行が無ければ 404）
 - 画像: 値の中の `storage://` の参照（inApp.image など、用途 `notification.image`）は保存の取引で行に結ぶ（record `messaging.override` / 行の id / 欄。自分が上げた未紐付けの物はそのまま、ほかは複製して結ぶ）。差し替えで外れた参照は `replaced`、既定に戻すと `record_removed` で外し、commit の後に実物を消す（`imageBinding.ts`）。cron storage-sweep は `existingOverrideIds` で行の有無を照らす
 - 監査: `messaging.override.updated` / `messaging.override.reset`（対象 `message_override`、`<鍵>:<欄>`、値は残さない）

@@ -12,14 +12,14 @@ import { AdminMessageOverrideList } from "@/features/core/messaging/components/A
 import { loadAdminMessagingOverrideListScreen } from "./loader";
 
 export const metadata = {
-  title: "文言の編集",
+  title: "システム通知",
 };
 
 export async function AdminMessagingOverrideListScreen(props: ScreenProps) {
   await loadAdminMessagingOverrideListScreen(props);
 
   return (
-    <AdminPage title="文言の編集" center={<AdminMessagingSectionTabs variant="header" />}>
+    <AdminPage title="システム通知" center={<AdminMessagingSectionTabs variant="header" />}>
       <Section>
         <AdminMessageOverrideList />
       </Section>

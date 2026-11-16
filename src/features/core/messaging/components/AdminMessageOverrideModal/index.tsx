@@ -1,6 +1,8 @@
 // src/features/core/messaging/components/AdminMessageOverrideModal/index.tsx
 // セクションコンテナ(管理: 1 連絡の文言の上書きを直すモーダル。D87)。開閉は置き場が持つ(open・onOpenChange・messageKey)。
-// 中身 = 連絡の名前・種別 / カテゴリーの表示名(連絡の鍵は見せない、D46)・使える {{鍵}} の案内 + 欄ごとの編集(保存・既定に戻すは欄 1 つずつ。部品 OverrideFieldEditor)。
+// 中身 = 連絡の名前・種類 / カテゴリーの表示名(連絡の鍵は見せない、D46)・使える {{鍵}} の案内 + 2 つの欄(D80、部品 MessageEditorLayout):
+// 左 = 今の経路のプレビュー(ChannelPreview。メールは描いた HTML、入力中の欄を枠で示す)、右 = 経路のタブと欄ごとの編集
+// (保存・既定に戻すは欄 1 つずつ。部品 OverrideFieldEditor、入力は欄の表示の約束から)。
 // 流れは hook useMessageOverrideEditor。部品は公開の部品だけなので、fork は自分の画面にも同じモーダルを置ける。
 // 保存していない欄があるまま閉じる = confirmOnClose、ページの移動 = hook の中の @/lib/unsavedGuard。開き直すたびに下書きを捨てる
 
@@ -16,6 +18,8 @@ import { err } from "@/lib/errors";
 
 import { AllowedKeysHint } from "@/features/core/messaging/components/common/AllowedKeysHint";
 import { dispatchKindLabel } from "@/features/core/messaging/components/common/DispatchRow";
+import { ChannelPreview } from "@/features/core/messaging/components/common/ChannelPreview";
+import { MessageEditorLayout } from "@/features/core/messaging/components/common/MessageEditorLayout";
 import { OverrideFieldEditor } from "@/features/core/messaging/components/common/OverrideFieldEditor";
 import { useMessageOverrideEditor } from "@/features/core/messaging/hooks/useMessageOverrideEditor";
 import { useCopyMessageVariable } from "@/features/core/messaging/hooks/useCopyMessageVariable";
@@ -28,7 +32,7 @@ export type AdminMessageOverrideModalProps = {
   messageKey: string | null;
 };
 
-const MODAL_WIDTH = "800px";
+const MODAL_WIDTH = "1200px";
 
 export function AdminMessageOverrideModal({ open, onOpenChange, messageKey }: AdminMessageOverrideModalProps) {
   const session = useModalSession(open);
@@ -65,7 +69,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
                 {detail.label}
               </Span>
               <Span size="sm" tone="muted">
-                {dispatchKindLabel(detail.kind) ?? "-"} / {detail.categoryLabel ?? "-"}
+                種類: {dispatchKindLabel(detail.kind) ?? "-"} / カテゴリー: {detail.categoryLabel ?? "-"}
               </Span>
             </Flex>
             <Para size="sm" tone="muted" className="my-0">
@@ -74,19 +78,42 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
             <AllowedKeysHint allowedKeys={editor.allowedKeys} onCopyKey={copyKey} />
           </Stack>
 
-          {detail.fields.map((field) => (
-            <OverrideFieldEditor
-              key={field.path}
-              field={field}
-              value={editor.valueOf(field)}
-              onChange={(value) => editor.setDraft(field, value)}
-              dirty={editor.isDirty(field)}
-              unknownKeys={editor.unknownKeys(field)}
-              onSave={() => editor.save(field)}
-              onReset={() => editor.reset(field)}
-              onDiscard={() => editor.discard(field)}
-            />
-          ))}
+          {editor.channels.length > 0 ? (
+            <MessageEditorLayout
+              channels={editor.channels}
+              activeChannel={editor.activeChannel}
+              onChannelChange={editor.setActiveChannel}
+              preview={
+                editor.activeChannelInfo ? (
+                  <ChannelPreview
+                    channel={editor.activeChannelInfo}
+                    values={editor.activeValues}
+                    fieldMeta={editor.activeFieldMeta}
+                    focusedPath={editor.focusedPath}
+                    html={editor.previewHtml}
+                    loading={editor.previewLoading}
+                  />
+                ) : null
+              }
+            >
+              <Stack space={3}>
+                {editor.activeFields.map((field) => (
+                  <OverrideFieldEditor
+                    key={field.path}
+                    field={field}
+                    value={editor.valueOf(field)}
+                    onChange={(value) => editor.setDraft(field, value)}
+                    dirty={editor.isDirty(field)}
+                    unknownKeys={editor.unknownKeys(field)}
+                    onSave={() => editor.save(field)}
+                    onReset={() => editor.reset(field)}
+                    onDiscard={() => editor.discard(field)}
+                    onFocusField={editor.setFocusedPath}
+                  />
+                ))}
+              </Stack>
+            </MessageEditorLayout>
+          ) : null}
         </Stack>
       )}
     </Modal>

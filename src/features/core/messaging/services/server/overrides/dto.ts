@@ -83,3 +83,6 @@ export type AdminOverrideMessageDetail = {
 
 /** 欄 1 つの保存 */
 export type SaveMessageOverrideInput = { fieldPath: string; value: unknown };
+
+/** プレビューの結果(D86)。html = 連絡の描き方で描いた HTML(文字の欄に data-field="<経路.欄>")、経路にプレビューが無ければ null */
+export type MessageOverridePreview = { channel: string; html: string | null; text: string | null };

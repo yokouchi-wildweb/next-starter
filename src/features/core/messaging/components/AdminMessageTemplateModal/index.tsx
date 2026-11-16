@@ -10,6 +10,8 @@
 
 "use client";
 
+import { useState } from "react";
+
 import { Button } from "@/components/Form/Button";
 import { Input, SelectInput, Textarea } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
@@ -25,6 +27,8 @@ import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { err } from "@/lib/errors";
 
 import { AllowedKeysHint } from "@/features/core/messaging/components/common/AllowedKeysHint";
+import { ChannelPreview } from "@/features/core/messaging/components/common/ChannelPreview";
+import { MessageEditorLayout } from "@/features/core/messaging/components/common/MessageEditorLayout";
 import { TemplateChannelFields } from "@/features/core/messaging/components/common/TemplateChannelFields";
 import { TemplateStatusBadge } from "@/features/core/messaging/components/common/TemplateStatusBadge";
 import { TemplateVariablesEditor } from "@/features/core/messaging/components/common/TemplateVariablesEditor";
@@ -47,7 +51,7 @@ export type AdminMessageTemplateModalProps = {
   onChanged?: (template: AdminTemplateDetail, action: MessageTemplateAction) => void;
 };
 
-const MODAL_WIDTH = "880px";
+const MODAL_WIDTH = "1200px";
 
 export function AdminMessageTemplateModal({ open, onOpenChange, templateId = null, onChanged }: AdminMessageTemplateModalProps) {
   const m = useMessageTemplateModal({ open, templateId, onChanged });
@@ -92,13 +96,19 @@ function TemplateModalBody({
   const { execute: save, isExecuting: isSaving } = useAsyncAction(form.save);
   const locked = form.archived;
 
-  const channelLabel = (key: string) => options.channels.find((channel) => channel.key === key)?.label ?? key;
+  const fieldMetaOf = (key: string) => options.channels.find((channel) => channel.key === key)?.fieldMeta ?? {};
   // 経路は選ばない(D85): 使える経路の欄を全部出し、文言を書いた経路がテンプレートの経路になる。
   // 受け口から消えた経路が中身に残っていれば、その経路の欄も見せる(保存の検査で止まる)
   const channelChoices = [
     ...options.channels,
-    ...fields.channels.filter((key) => !options.channels.some((c) => c.key === key)).map((key) => ({ key, label: `${key}(使用できない送信方法)` })),
+    ...fields.channels
+      .filter((key) => !options.channels.some((c) => c.key === key))
+      .map((key) => ({ key, label: `${key}(使用できない送信方法)`, fieldMeta: {}, previewComponent: null })),
   ];
+  // 2 つの欄(D80): 今の経路のタブと入力中の欄(プレビューの枠)。画面の中だけの状態
+  const [channelState, setActiveChannel] = useState<string | null>(null);
+  const activeChannel = channelState ?? channelChoices[0]?.key ?? "";
+  const [focusedPath, setFocusedPath] = useState<string | null>(null);
 
   const footer = (
     <Stack space={1}>
@@ -203,19 +213,30 @@ function TemplateModalBody({
         <AllowedKeysHint allowedKeys={form.allowedKeys} unknownKeys={form.unknownKeys} onCopyKey={copyKey} />
       </Stack>
 
-      {channelChoices.map(({ key: channel }) => (
-        <Stack key={channel} space={3} className="rounded-md border border-border bg-card p-4">
-          <SecTitle as="h3" size="md">
-            {channelLabel(channel)}
-          </SecTitle>
+      {channelChoices.length > 0 ? (
+        <MessageEditorLayout
+          channels={channelChoices}
+          activeChannel={activeChannel}
+          onChannelChange={setActiveChannel}
+          preview={
+            <ChannelPreview
+              channel={channelChoices.find((choice) => choice.key === activeChannel) ?? { key: activeChannel, label: activeChannel }}
+              values={fields.content[activeChannel] ?? emptyChannelContent(activeChannel)}
+              fieldMeta={fieldMetaOf(activeChannel)}
+              focusedPath={focusedPath}
+            />
+          }
+        >
           <TemplateChannelFields
-            channel={channel}
-            value={fields.content[channel] ?? emptyChannelContent(channel)}
-            onChange={(value) => fields.setChannelContent(channel, value)}
+            channel={activeChannel}
+            fieldMeta={fieldMetaOf(activeChannel)}
+            value={fields.content[activeChannel] ?? emptyChannelContent(activeChannel)}
+            onChange={(value) => fields.setChannelContent(activeChannel, value)}
+            onFocusField={setFocusedPath}
             disabled={locked}
           />
-        </Stack>
-      ))}
+        </MessageEditorLayout>
+      ) : null}
     </Stack>
   );
 

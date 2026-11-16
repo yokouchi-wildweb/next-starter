@@ -63,4 +63,13 @@ export const extensionPoints = {
     side: "server",
     key: "key",
   },
+  // 管理画面のプレビューの部品(client、D85): channelPreviews/<名前>.tsx の export const preview({ key, Component })。
+  // 鍵 = 経路の受け口の previewComponent。文言の編集・テンプレートのプレビューが引く(上流の email・inApp・line は部品の中で描く)
+  channelPreviews: {
+    dir: "channelPreviews",
+    export: "preview",
+    type: { from: "@/features/core/messaging/types/channelPreview", name: "ChannelPreviewItem" },
+    side: "client",
+    key: "key",
+  },
 };
