@@ -56,14 +56,19 @@ const service = createOverrideService({
     return item ? { label: item.label, fieldMeta: item.fieldMeta, previewComponent: item.previewComponent } : null;
   },
   images: storageOverrideImageLedger as OverrideImageLedger<unknown>,
+  channelPreview(channel, input) {
+    const item = channels[channel];
+    return item?.preview ? item.preview({ ...input, messageKey: input.messageKey as never }) : null;
+  },
 });
 
 export const listMessageOverrides = service.listMessages;
 export const getMessageOverrides = service.getMessage;
 export const saveMessageOverride = service.saveField;
 export const resetMessageOverride = service.resetField;
+export const previewMessageOverride = service.previewMessage;
 
-export { createOverrideService, SaveMessageOverrideInputSchema } from "./overrideService";
+export { createOverrideService, PreviewMessageOverrideInputSchema, SaveMessageOverrideInputSchema } from "./overrideService";
 export { existingOverrideIds } from "./store";
 export { OVERRIDE_IMAGE_RECORD_TYPE } from "./imageBinding";
 export type { OverrideService, OverrideServiceDeps } from "./overrideService";

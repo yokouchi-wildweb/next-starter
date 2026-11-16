@@ -13,12 +13,13 @@ import type {
   AdminOverrideField,
   AdminOverrideMessageDetail,
   AdminOverrideMessageSummary,
+  MessageOverridePreview,
   SaveMessageOverrideInput,
 } from "@/features/core/messaging/services/server/overrides/dto";
 
 const BASE = "/api/admin/messaging/overrides";
 
-export type { AdminOverrideField, AdminOverrideMessageDetail, AdminOverrideMessageSummary, SaveMessageOverrideInput };
+export type { AdminOverrideField, AdminOverrideMessageDetail, AdminOverrideMessageSummary, MessageOverridePreview, SaveMessageOverrideInput };
 
 /** 編集できる連絡の一覧(adminEditable を宣言した定義だけ。数は小さく固定) */
 export async function listMessageOverrides(): Promise<AdminOverrideMessageSummary[]> {
@@ -59,5 +60,18 @@ export async function resetMessageOverride(key: string, fieldPath: string): Prom
     return res.data;
   } catch (error) {
     throw normalizeHttpError(error, "既定に戻せませんでした");
+  }
+}
+
+/** 経路 1 つのプレビュー(未保存の値 values = { "<経路.欄>": 値 } を重ねる。html の文字の欄に data-field の印、D86) */
+export async function previewMessageOverride(
+  key: string,
+  input: { channel: string; values: Record<string, unknown> },
+): Promise<MessageOverridePreview> {
+  try {
+    const res = await axios.post<MessageOverridePreview>(`${BASE}/${encodeURIComponent(key)}/preview`, input);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "プレビューを表示できませんでした");
   }
 }

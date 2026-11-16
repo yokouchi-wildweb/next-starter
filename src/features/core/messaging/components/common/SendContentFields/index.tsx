@@ -1,7 +1,7 @@
 // src/features/core/messaging/components/common/SendContentFields/index.tsx
 // 部品(props だけ): 送るモーダルの文言の欄(送る経路ごと)。その場で書く時もテンプレートを呼び出した時も経路の欄の部品
-// TemplateChannelFields(メール = 件名・プレヘッダー・見出し・段落・ボタン・フッター / お知らせ = 題・本文・画像(上げる・替える・外す)・行き先 /
-// LINE = 本文 / fork の経路 = 欄の JSON)。テンプレートの時は変数の値も入れる(source が決めるのはそれだけ)。
+// TemplateChannelFields(経路の受け口の欄の表示の約束 fieldMeta から描く、D83。fork の経路も同じ)。
+// テンプレートの時は変数の値も入れる(source が決めるのはそれだけ)。
 // 文言の無い経路は空欄で見せ、「文言がありません」の印(送る前に止まる)
 
 "use client";
@@ -13,12 +13,14 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks/Span";
 
+import type { ChannelFieldMeta } from "@/lib/messaging";
+
 import { TemplateChannelFields } from "../TemplateChannelFields";
 
 export type SendContentFieldsProps = {
   source: "adhoc" | "template";
   /** 送る経路(カテゴリーの経路で、オンの物) */
-  channels: { key: string; label: string; blank: boolean }[];
+  channels: { key: string; label: string; blank: boolean; fieldMeta?: Readonly<Record<string, ChannelFieldMeta>> }[];
   content: Record<string, Record<string, unknown>>;
   onChange: (channel: string, fields: Record<string, unknown>) => void;
   /** テンプレートの回の変数(回に 1 組の物) */
@@ -44,7 +46,7 @@ export function SendContentFields({ source, channels, content, onChange, variabl
                 </SoftBadge>
               ) : null}
             </Flex>
-            <TemplateChannelFields channel={channel.key} value={fields} onChange={(next) => onChange(channel.key, next)} />
+            <TemplateChannelFields channel={channel.key} fieldMeta={channel.fieldMeta} value={fields} onChange={(next) => onChange(channel.key, next)} />
           </Stack>
         );
       })}

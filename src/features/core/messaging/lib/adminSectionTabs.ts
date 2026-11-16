@@ -1,6 +1,6 @@
 // src/features/core/messaging/lib/adminSectionTabs.ts
 //
-// 通知の管理画面(送信一覧・テンプレート・文言の編集)のセクションタブを組み立てる。
+// 通知の管理画面(送信一覧・テンプレート・システム通知)のセクションタブを組み立てる。
 // メニューの項目は「送信一覧」1 つだけで、3 画面はこのタブで行き来する。
 // 門が閉の画面(messagingTemplates / messagingOverrides)のタブは外す。門の読み方は呼び手が渡す(client は useGate)。
 // 通知の管理画面(上流・下流とも)はタブの配列を自分で組まず、必ずこの関数を使う。
@@ -19,7 +19,7 @@ type MessagingSectionTabDefinition = PageTabItem & {
 const MESSAGING_ADMIN_SECTION_TABS: readonly MessagingSectionTabDefinition[] = [
   { value: "dispatches", label: "送信一覧", href: MESSAGING_ADMIN_BASE_PATH },
   { value: "templates", label: "テンプレート", href: `${MESSAGING_ADMIN_BASE_PATH}/templates`, gate: "messagingTemplates" },
-  { value: "overrides", label: "文言の編集", href: `${MESSAGING_ADMIN_BASE_PATH}/overrides`, gate: "messagingOverrides" },
+  { value: "overrides", label: "システム通知", href: `${MESSAGING_ADMIN_BASE_PATH}/overrides`, gate: "messagingOverrides" },
 ];
 
 /**

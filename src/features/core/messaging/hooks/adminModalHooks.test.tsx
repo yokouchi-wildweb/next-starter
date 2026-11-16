@@ -127,6 +127,8 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
 });
 mock.module("@/features/core/messaging/services/client/overrideClient", {
   namedExports: {
+    // J99: the editor hook asks for a preview (D86); D69: no assertion on it until the tests are restored
+    previewMessageOverride: async (_key: string, input: { channel: string }) => ({ channel: input.channel, html: null, text: null }),
     listMessageOverrides: async () => [{ key: "user.welcome", kind: "transactional", category: "x", editableCount: 1, editedCount: 0, codeChangedCount: 0, orphanCount: 0 }],
     getMessageOverride: async (key: string) => ({
       key,

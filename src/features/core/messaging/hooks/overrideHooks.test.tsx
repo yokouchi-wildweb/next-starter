@@ -44,6 +44,8 @@ const saves: { key: string; input: unknown }[] = [];
 const resets: { key: string; path: string }[] = [];
 mock.module("@/features/core/messaging/services/client/overrideClient", {
   namedExports: {
+    // J99: the editor hook asks for a preview (D86); D69: no assertion on it until the tests are restored
+    previewMessageOverride: async (_key: string, input: { channel: string }) => ({ channel: input.channel, html: null, text: null }),
     listMessageOverrides: async () => {
       listCalls += 1;
       return [{ key: "user.registrationComplete", kind: "transactional", category: "account", editableCount: 3, editedCount: 0, orphanCount: 0, codeChangedCount: 0 }];

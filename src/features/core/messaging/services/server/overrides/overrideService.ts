@@ -7,6 +7,8 @@
 // - 保存: 送る口と同じ検査(lib/messaging checkAdminFieldValue)を通った値だけ。直した時のコードの値も残す。
 //   値の画像(storage:// の参照)は保存の台帳で行に結び、差し替え・既定に戻すで外れた物を外す(imageBinding.ts)
 // - 既定に戻す = 行を消す。保存と戻すは監査に残す(messaging.override.updated / .reset、値は残さない)
+// - プレビュー(D86): 経路 1 つを、送る時の値に未保存の値を重ねて連絡の描き方で描く。文字の欄は data-field="<経路.欄>" の印で包む
+//   (プレビューの時だけ、previewMarkers.ts)。経路に preview が無ければ html は null(画面が自分で描く)
 // - service でも管理者を確かめる(D42)
 
 import { isDeepStrictEqual } from "node:util";
@@ -27,11 +29,13 @@ import { DomainError } from "@/lib/errors";
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
 import { assertAdminActor, type AdminCheckDeps } from "../admin/assertAdmin";
 import { bindOverrideImages, releaseOverrideImages, type OverrideImageLedger } from "./imageBinding";
+import { applyPreviewMarkers, wrapPreviewFields } from "./previewMarkers";
 import type {
   AdminOverrideChannel,
   AdminOverrideField,
   AdminOverrideMessageDetail,
   AdminOverrideMessageSummary,
+  MessageOverridePreview,
 } from "./dto";
 import type { MessageOverrideRecord, MessageOverrideStore } from "./types";
 
@@ -50,7 +54,17 @@ export type OverrideServiceDeps = AdminCheckDeps & {
   channelInfo: (channel: string) => { label: string; fieldMeta: Readonly<Record<string, ChannelFieldMeta>>; previewComponent?: string } | null;
   /** 画像を行に結ぶ台帳(無ければ結ばない = テスト) */
   images?: OverrideImageLedger<unknown>;
+  /** 経路のプレビュー(経路の受け口の preview。無い経路は null) */
+  channelPreview?: (
+    channel: string,
+    input: { messageKey: string; content: unknown; category?: string },
+  ) => Promise<{ html?: string; text?: string }> | null;
 };
+
+export const PreviewMessageOverrideInputSchema = z
+  .object({ channel: z.string().min(1).max(100), values: z.record(z.string().max(200), z.unknown()).default({}) })
+  .strict();
+
 
 export const SaveMessageOverrideInputSchema = z
   .object({ fieldPath: z.string().min(1).max(200), value: z.unknown() })
@@ -124,6 +138,39 @@ export function createOverrideService(deps: OverrideServiceDeps) {
   }
 
   return {
+    /**
+     * 経路 1 つのプレビュー(未保存の値 values = { "<経路.欄>": 値 } を送る時の値に重ねる)。
+     * @throws DomainError(400) 入力の誤り・連絡に無い経路 / (403) 管理者でない / (404) 連絡が無い
+     */
+    async previewMessage(messageKey: string, input: unknown): Promise<MessageOverridePreview> {
+      await assertAdminActor(deps);
+      const parsed = PreviewMessageOverrideInputSchema.safeParse(input);
+      if (!parsed.success) throw new DomainError("プレビューの入力が正しくありません", { status: 400 });
+      const { channel, values } = parsed.data;
+      const { resolved, check } = await requireDefinition(messageKey);
+      if (!resolved.channels.includes(channel)) throw new DomainError("この通知に無い送信方法です", { status: 400 });
+      const rows = await deps.store.listByMessage(messageKey);
+      const base = { ...((resolved.content as Record<string, Record<string, unknown> | undefined>)[channel] ?? {}) };
+      for (const field of buildFields(resolved, check, rows, deps)) {
+        if (field.channel === channel && field.editable) base[field.field] = field.effective;
+      }
+      for (const [path, value] of Object.entries(values)) {
+        const [pathChannel, field] = path.split(".");
+        if (pathChannel === channel && field) base[field] = value;
+      }
+      const meta = deps.channelInfo(channel)?.fieldMeta ?? {};
+      const rendered = await deps.channelPreview?.(channel, {
+        messageKey,
+        content: wrapPreviewFields(channel, base, meta),
+        ...(resolved.category ? { category: resolved.category } : {}),
+      });
+      return {
+        channel,
+        html: rendered?.html ? applyPreviewMarkers(rendered.html) : null,
+        text: rendered?.text ?? null,
+      };
+    },
+
     /** 編集できる連絡の一覧 */
     async listMessages(): Promise<AdminOverrideMessageSummary[]> {
       await assertAdminActor(deps);

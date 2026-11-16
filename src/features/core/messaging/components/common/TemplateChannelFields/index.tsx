@@ -1,33 +1,16 @@
 // src/features/core/messaging/components/common/TemplateChannelFields/index.tsx
-// 部品(props だけ): テンプレートの経路 1 つの中身の欄。
-// - email: 件名・プレヘッダー・本文の見出し(任意)・本文(1 つの欄に複数行で書き、空行で段落を分ける)・ボタン(文言・URL)・フッター(D47 の名前)
-// - inApp: 題・本文・画像(アップロード。用途 notification.image、保存の時にサーバーがテンプレートに結ぶ)・行き先
-// - line: 本文
-// - それ以外(fork の経路): 欄の JSON をそのまま書く(サーバーが経路の欄の zod で検査する)
+// 部品(props だけ): テンプレート・送るモーダルの経路 1 つの中身の欄。経路の受け口の欄の表示の約束(fieldMeta、D83)から
+// ChannelFields が描く(上流の email・inApp・line も fork の経路も同じ。手で書いた経路ごとの欄・JSON の欄は無い)。
+// 画像は用途 notification.image(保存の時にサーバーがテンプレートに結ぶ)
 
 "use client";
 
-import { useState } from "react";
+import type { ChannelFieldMeta } from "@/lib/messaging";
 
-import { Input, Textarea } from "@/components/Form/Input/Manual";
-import { ManualMediaUploader } from "@/components/Form/MediaHandler";
-import { Label } from "@/components/Form/Label";
-import { Grid } from "@/components/Layout/Grid";
-import { Stack } from "@/components/Layout/Stack";
-import { Para } from "@/components/TextBlocks/Para";
+import { CHANNEL_IMAGE_PURPOSE, ChannelFields } from "../ChannelFields";
 
 /** 画像の用途(storage の purpose。お知らせの画像と同じ) */
-export const TEMPLATE_IMAGE_PURPOSE = "notification.image";
-
-export type TemplateChannelFieldsProps = {
-  /** 経路の鍵 */
-  channel: string;
-  value: Record<string, unknown>;
-  onChange: (value: Record<string, unknown>) => void;
-  disabled?: boolean;
-};
-
-const str = (value: unknown) => (typeof value === "string" ? value : "");
+export const TEMPLATE_IMAGE_PURPOSE = CHANNEL_IMAGE_PURPOSE;
 
 /** 段落の並び ↔ 空行で区切った文 */
 export const paragraphsToText = (value: unknown) => (Array.isArray(value) ? value.map(String).join("\n\n") : "");
@@ -37,129 +20,27 @@ export const textToParagraphs = (text: string) =>
     .map((paragraph) => paragraph.trim())
     .filter((paragraph) => paragraph !== "");
 
-/** 一行の欄(件名・タイトル・見出し・ボタン・URL)は改行を空白にする(貼り付けた改行も、D78) */
-const oneLine = (value: string) => value.replace(/\r?\n/g, " ");
-
-function TextField({
-  id,
-  label,
-  value,
-  onChange,
-  rows,
-  disabled,
-  placeholder,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  rows?: number;
+export type TemplateChannelFieldsProps = {
+  /** 経路の鍵 */
+  channel: string;
+  /** 経路の欄の表示の約束(選択肢の channels[].fieldMeta。無ければ値の鍵を 1 行で出す) */
+  fieldMeta?: Readonly<Record<string, ChannelFieldMeta>>;
+  value: Record<string, unknown>;
+  onChange: (value: Record<string, unknown>) => void;
+  /** 欄に入った時(プレビューの枠、D80) */
+  onFocusField?: (path: string) => void;
   disabled?: boolean;
-  placeholder?: string;
-}) {
+};
+
+export function TemplateChannelFields({ channel, fieldMeta = {}, value, onChange, onFocusField, disabled }: TemplateChannelFieldsProps) {
   return (
-    <Stack space={1}>
-      <Label htmlFor={id} className="text-sm">
-        {label}
-      </Label>
-      {rows ? (
-        <Textarea id={id} value={value} rows={rows} disabled={disabled} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
-      ) : (
-        <Input id={id} value={value} disabled={disabled} placeholder={placeholder} onChange={(e) => onChange(oneLine(e.target.value))} />
-      )}
-    </Stack>
+    <ChannelFields
+      channel={channel}
+      fieldMeta={fieldMeta}
+      value={value}
+      onChange={onChange}
+      onFocusField={onFocusField}
+      disabled={disabled}
+    />
   );
-}
-
-function JsonFields({ channel, value, onChange, disabled }: TemplateChannelFieldsProps) {
-  const [text, setText] = useState(() => JSON.stringify(value, null, 2));
-  const [invalid, setInvalid] = useState(false);
-  return (
-    <Stack space={1}>
-      <Label htmlFor={`template-${channel}-json`} className="text-sm">
-        内容(JSON)
-      </Label>
-      <Textarea
-        id={`template-${channel}-json`}
-        value={text}
-        rows={6}
-        disabled={disabled}
-        className="font-mono"
-        onChange={(e) => {
-          setText(e.target.value);
-          try {
-            const parsed = JSON.parse(e.target.value) as unknown;
-            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-              setInvalid(false);
-              onChange(parsed as Record<string, unknown>);
-              return;
-            }
-            setInvalid(true);
-          } catch {
-            setInvalid(true);
-          }
-        }}
-      />
-      {invalid ? (
-        <Para size="sm" tone="destructive" className="my-0">
-          JSON の形式が正しくありません
-        </Para>
-      ) : null}
-    </Stack>
-  );
-}
-
-export function TemplateChannelFields(props: TemplateChannelFieldsProps) {
-  const { channel, value, onChange, disabled } = props;
-  const set = (name: string, next: unknown) => onChange({ ...value, [name]: next });
-  const id = (name: string) => `template-${channel}-${name}`;
-
-  if (channel === "email") {
-    const cta = (value.cta as { label?: string; url?: string } | undefined) ?? {};
-    return (
-      <Stack space={3} data-slot="template-channel-fields">
-        <TextField id={id("subject")} label="件名" value={str(value.subject)} onChange={(v) => set("subject", v)} disabled={disabled} />
-        <TextField id={id("preheader")} label="プレヘッダー(任意)" value={str(value.preheader)} onChange={(v) => set("preheader", v)} disabled={disabled} />
-        <TextField id={id("heading")} label="本文の見出し(任意)" value={str(value.heading)} onChange={(v) => set("heading", v)} disabled={disabled} />
-        <TextField
-          id={id("paragraphs")}
-          label="本文(空行で段落を分けます)"
-          value={paragraphsToText(value.paragraphs)}
-          onChange={(v) => set("paragraphs", textToParagraphs(v))}
-          rows={8}
-          disabled={disabled}
-        />
-        <Grid columns="two" gap="sm">
-          <TextField id={id("cta-label")} label="ボタンのテキスト(任意)" value={str(cta.label)} onChange={(v) => set("cta", { ...cta, label: v })} disabled={disabled} />
-          <TextField id={id("cta-url")} label="ボタンの URL(任意)" value={str(cta.url)} onChange={(v) => set("cta", { ...cta, url: v })} disabled={disabled} />
-        </Grid>
-        <TextField id={id("footer")} label="フッター(任意)" value={str(value.footer)} onChange={(v) => set("footer", v)} rows={2} disabled={disabled} />
-      </Stack>
-    );
-  }
-  if (channel === "inApp") {
-    return (
-      <Stack space={3} data-slot="template-channel-fields">
-        <TextField id={id("title")} label="タイトル" value={str(value.title)} onChange={(v) => set("title", v)} disabled={disabled} />
-        <TextField id={id("body")} label="本文" value={str(value.body)} onChange={(v) => set("body", v)} rows={6} disabled={disabled} />
-        <Stack space={1}>
-          <Label className="text-sm">画像(任意)</Label>
-          <ManualMediaUploader
-            purpose={TEMPLATE_IMAGE_PURPOSE}
-            value={str(value.image) || null}
-            onValueChange={(url) => set("image", url ?? "")}
-          />
-        </Stack>
-        <TextField id={id("link")} label="リンク先 URL(任意)" value={str(value.link)} onChange={(v) => set("link", v)} disabled={disabled} />
-      </Stack>
-    );
-  }
-  if (channel === "line") {
-    return (
-      <Stack space={3} data-slot="template-channel-fields">
-        <TextField id={id("text")} label="本文" value={str(value.text)} onChange={(v) => set("text", v)} rows={6} disabled={disabled} />
-      </Stack>
-    );
-  }
-  return <JsonFields {...props} />;
 }
