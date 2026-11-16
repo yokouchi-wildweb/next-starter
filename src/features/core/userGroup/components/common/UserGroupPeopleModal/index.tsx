@@ -1,6 +1,6 @@
 // src/features/core/userGroup/components/common/UserGroupPeopleModal/index.tsx
 // 部品(props だけ、流れは hook useUserGroupPeople): 人の一覧のサブのモーダル(D93)。
-// 名前の検索・無限スクロール(カーソル)・行ごとのチェック(行のどこを押しても選べる、乗ると色、選んだ行は primary の薄い地)・「選んだ N 名を削除」(ConfirmPopover)・「全員を削除(計 N 名)」(Dialog、
+// 名前の検索・無限スクロール(カーソル)・行ごとのチェック(行のどこを押しても選べる、乗ると色、選んだ行は primary の薄い地)・「選んだ N 名を削除」(Dialog)・「全員を削除(計 N 名)」(Dialog、
 // 検索に関係なく全部。検索を入れている間は押せない、D94)。グループのモーダルの上に重ねて開く
 
 "use client";
@@ -13,7 +13,6 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import Modal from "@/components/Overlays/Modal";
 import { Dialog } from "@/components/Overlays/Dialog";
-import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
@@ -33,6 +32,8 @@ export type UserGroupPeopleModalProps = {
 export function UserGroupPeopleModal({ title, people, emptyText, disabled = false, total = null }: UserGroupPeopleModalProps) {
   const { query } = people;
   const [clearOpen, setClearOpen] = useState(false);
+  // 選んだ人の削除も全員の削除と同じ Dialog で確かめる(確かめ方を揃える)
+  const [removeOpen, setRemoveOpen] = useState(false);
   const totalText = total !== null ? `計 ${total.toLocaleString("ja-JP")} 名` : "全員";
   const count = people.selectedIds.length;
   return (
@@ -106,21 +107,27 @@ export function UserGroupPeopleModal({ title, people, emptyText, disabled = fals
             >
               {`全員を削除(${totalText})`}
             </Button>
-            <ConfirmPopover
-              trigger={
-                <Button type="button" size="sm" variant="destructive" disabled={count === 0 || people.busy}>
-                  {`選んだ ${count} 名を削除`}
-                </Button>
-              }
-              title={`${count} 名を削除`}
-              description="選んだユーザーをこの一覧から削除します。"
-              confirmLabel="削除する"
-              confirmVariant="destructive"
-              onConfirm={() => people.removeMany(people.selectedIds)}
-            />
+            <Button type="button" size="sm" variant="destructive" disabled={count === 0 || people.busy} onClick={() => setRemoveOpen(true)}>
+              {`選んだ ${count} 名を削除`}
+            </Button>
           </Flex>
         ) : null}
       </Stack>
+      <Dialog
+        open={removeOpen}
+        onOpenChange={setRemoveOpen}
+        layer="alert"
+        overlayLayer="alert"
+        title={`${count} 名を削除`}
+        description="選んだユーザーをこの一覧から削除します。"
+        confirmLabel="削除する"
+        confirmVariant="destructive"
+        cancelLabel="キャンセル"
+        onConfirm={async () => {
+          await people.removeMany(people.selectedIds);
+          setRemoveOpen(false);
+        }}
+      />
       <Dialog
         open={clearOpen}
         onOpenChange={setClearOpen}
