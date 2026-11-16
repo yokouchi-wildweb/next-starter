@@ -1,5 +1,5 @@
 // src/features/core/userGroup/components/common/UserGroupRow/index.tsx
-// 部品(props だけ): 一覧の 1 行。名前・種類の表示名・人数(数えた / 見込み / 数えていない / まだ無い)・保管・定期計算の様子。
+// 部品(props だけ): 一覧の 1 行。名前・種類の表示名・人数(数えた / 見込み / 数えていない / まだ無い)・保管・定期計算の様子(人数の右に括弧で)。
 // 押すと onOpen(直すモーダル)。内部の鍵・id は出さない(D94)
 
 import { Button } from "@/components/Form/Button";
@@ -45,11 +45,13 @@ export function UserGroupRow({ group, onOpen }: UserGroupRowProps) {
           <Span size="sm" tone="muted">
             {group.kindLabel}
           </Span>
-          <Span size="sm" data-slot="user-group-count">
-            {userGroupCountText(group.count)}
-          </Span>
+          <Flex align="center" gap="xs" wrap="wrap">
+            <Span size="sm" data-slot="user-group-count">
+              {userGroupCountText(group.count)}
+            </Span>
+            {group.recompute ? <UserGroupRecomputeStatus recompute={group.recompute} inline /> : null}
+          </Flex>
         </Flex>
-        {group.recompute ? <UserGroupRecomputeStatus recompute={group.recompute} /> : null}
       </Stack>
     </Button>
   );
