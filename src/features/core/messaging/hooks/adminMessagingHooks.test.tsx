@@ -33,6 +33,10 @@ let continues = 0;
 const operations: unknown[][] = [];
 mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
   namedExports: {
+    // J102(D88): the delete hooks import these; D69: no assertion on them until the tests are restored
+    deleteAdminDispatch: async (id: string) => ({ dispatchId: id, alreadyDeleted: false, canceledDeliveries: 0, removed: [], failedChannels: [] }),
+    bulkDeleteAdminDispatches: async () => ({ results: [] }),
+    adminDispatchDeleteSummary: async () => ({ found: 0, deleted: 0, scheduled: 0, unsent: 0, channels: [], sharedInbox: 0 }),
     listAdminDispatches: async (params: Record<string, unknown>) => {
       listCalls.push(params);
       if (!params.cursor) return { items: [summary("a"), summary("b")], nextCursor: "cur-b" };

@@ -2,16 +2,19 @@
 // セクションコンテナ(管理: 送った回の一覧)。絞り込み(期間・種別 → カテゴリー・経路・状態)+ 無限スクロール(カーソル)。
 // カテゴリーは種別を選んだ後にその種別の物を表示名で(useAdminDispatchCategories)。定義の鍵は打たせず見せない(D46)。
 // 行を押すと /admin/messaging/<id>。上に「新しく送る」(送るモーダル、門 messagingBroadcast が閉なら出さない)。
-// 絞り込みの入力と確定は hook useAdminDispatchFilters。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
+// 行の選択とまとめての削除(D88)は hook useAdminDispatchSelection + 部品 DispatchSelectionBar(削除した回は選べない)。
+// 絞り込みの入力と確定は hook useAdminDispatchFilters(状態の欄に「削除済み」)。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
 
 import { Button } from "@/components/Form/Button";
-import { DateInput, Input, SelectInput } from "@/components/Form/Input/Manual";
+import { BooleanCheckboxInput, DateInput, Input, SelectInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
+import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 
 import { useGate } from "@/featureGate/client";
@@ -21,8 +24,11 @@ import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLab
 import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
 import { DISPATCH_STATUS_DISPLAY } from "@/features/core/messaging/components/common/DispatchStatusBadge";
 import { DispatchRow } from "@/features/core/messaging/components/common/DispatchRow";
+import { DispatchSelectionBar } from "@/features/core/messaging/components/common/DispatchSelectionBar";
 import { useAdminDispatchCategories } from "@/features/core/messaging/hooks/useAdminDispatchCategories";
+import { DISPATCH_FILTER_DELETED } from "@/features/core/messaging/constants/dispatchFilters";
 import { useAdminDispatchFilters } from "@/features/core/messaging/hooks/useAdminDispatchFilters";
+import { DISPATCH_DELETE_MAX, useAdminDispatchSelection } from "@/features/core/messaging/hooks/useAdminDispatchSelection";
 import { useAdminDispatches } from "@/features/core/messaging/hooks/useAdminDispatches";
 import type { AdminDispatchFilters } from "@/features/core/messaging/services/client/adminMessagingClient";
 
@@ -37,7 +43,10 @@ const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 
 
 // 種別は 7 つ(constants/kindLabels.ts の表 = lib の MESSAGE_KINDS の順。lib の入口は client に持ち込まない)
 const KIND_OPTIONS = Object.entries(MESSAGE_KIND_LABELS).map(([value, label]) => ({ value, label }));
-const STATUS_OPTIONS = Object.entries(DISPATCH_STATUS_DISPLAY).map(([value, { label }]) => ({ value, label }));
+const STATUS_OPTIONS = [
+  ...Object.entries(DISPATCH_STATUS_DISPLAY).map(([value, { label }]) => ({ value, label })),
+  { value: DISPATCH_FILTER_DELETED, label: "削除済み" },
+];
 
 const NEW_MODE = { type: "new" } as const;
 
@@ -46,6 +55,7 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
   const { filters, apply, clear, fields } = useAdminDispatchFilters(initialFilters);
   const categories = useAdminDispatchCategories();
   const query = useAdminDispatches({ filters, limit, observerOptions: OBSERVER_OPTIONS });
+  const selection = useAdminDispatchSelection({ items: query.items, removeItems: query.removeItems });
 
   return (
     <Stack space={4}>
@@ -126,6 +136,20 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
         </Flex>
       </Flex>
 
+      <DispatchSelectionBar
+        count={selection.count}
+        overLimit={selection.overLimit}
+        max={DISPATCH_DELETE_MAX}
+        onSelectAll={selection.selectAllLoaded}
+        onClear={selection.clear}
+        confirmOpen={selection.confirmOpen}
+        onConfirmOpenChange={selection.setConfirmOpen}
+        summary={selection.summary}
+        summaryLoading={selection.summaryLoading}
+        summaryError={selection.summaryError}
+        onDelete={selection.remove}
+      />
+
       <InfiniteScrollList
         items={query.items}
         isInitialLoading={query.isInitialLoading}
@@ -144,7 +168,22 @@ export function AdminDispatchList({ initialFilters = {}, limit }: AdminDispatchL
         {(items) => (
           <Stack space={2}>
             {items.map((dispatch) => (
-              <DispatchRow key={dispatch.id} dispatch={dispatch} categoryLabel={categories.labelOf(dispatch.category)} />
+              <Flex key={dispatch.id} align="center" gap="xs">
+                {selection.selectable(dispatch) ? (
+                  <BooleanCheckboxInput
+                    value={selection.isSelected(dispatch.id)}
+                    onChange={(on) => selection.toggle(dispatch.id, on === true)}
+                    aria-label="この送信を選ぶ"
+                  />
+                ) : (
+                  <Span className="size-4 shrink-0" aria-hidden>
+                    {""}
+                  </Span>
+                )}
+                <Block className="min-w-0 flex-1">
+                  <DispatchRow dispatch={dispatch} categoryLabel={categories.labelOf(dispatch.category)} />
+                </Block>
+              </Flex>
             ))}
           </Stack>
         )}

@@ -6,10 +6,12 @@
 // - 入力中の値(期間から・まで・種別・カテゴリー・経路・状態)と、「絞り込む」で確定した filters を分けて持つ
 // - カテゴリーは種別を選んだ後だけ(種別を変えると空に戻す)。定義の鍵では絞らない(D46: 画面は鍵を打たせない)
 // - 期間は日付(YYYY-MM-DD)の入力 → from = その日の 0 時、to = 「まで」の翌日の 0 時(未満)
+// - 状態の欄の DISPATCH_FILTER_DELETED(削除済み)= 削除した回だけ(deleted only、状態では絞らない、D88)
 // - clear = 入力も確定も空に戻す
 
 import { useCallback, useState } from "react";
 
+import { DISPATCH_FILTER_DELETED } from "../constants/dispatchFilters";
 import type { AdminDispatchFilters } from "../services/client/adminMessagingClient";
 
 /** 日付の入力(YYYY-MM-DD)のその日の始まり(ISO)。空・不正は undefined */
@@ -34,7 +36,7 @@ export function useAdminDispatchFilters(initialFilters: AdminDispatchFilters = {
   const [kind, setKindState] = useState<string>(initialFilters.kind ?? "");
   const [category, setCategory] = useState<string>(initialFilters.kind ? (initialFilters.category ?? "") : "");
   const [channel, setChannel] = useState<string>(initialFilters.channel ?? "");
-  const [status, setStatus] = useState<string>(initialFilters.status ?? "");
+  const [status, setStatus] = useState<string>(initialFilters.deleted === "only" ? DISPATCH_FILTER_DELETED : (initialFilters.status ?? ""));
   const [filters, setFilters] = useState<AdminDispatchFilters>(initialFilters);
 
   /** 種別を変える(選んでいたカテゴリーは空に戻す: カテゴリーは種別ごと) */
@@ -51,7 +53,8 @@ export function useAdminDispatchFilters(initialFilters: AdminDispatchFilters = {
         kind: (kind || undefined) as AdminDispatchFilters["kind"],
         category: (kind && category) || undefined,
         channel: channel || undefined,
-        status: status || undefined,
+        status: (status !== DISPATCH_FILTER_DELETED && status) || undefined,
+        ...(status === DISPATCH_FILTER_DELETED ? { deleted: "only" as const } : {}),
       }),
     [fromDate, toDate, kind, category, channel, status],
   );

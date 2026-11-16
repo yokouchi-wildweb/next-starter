@@ -70,6 +70,8 @@ export type AdminDispatchFilters = {
   category?: string;
   channel?: string;
   status?: string;
+  /** 削除した回: exclude = 出さない(既定)/ only = 削除した回だけ / include = 両方(D88) */
+  deleted?: "exclude" | "only" | "include";
 };
 
 /** 配達の絞り込み */
