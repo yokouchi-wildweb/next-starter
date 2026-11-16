@@ -4,6 +4,7 @@
 //
 // GET   /api/admin/user-groups/[id]   1 件(元の定義・heavy・注意・例外の人数)
 // PATCH /api/admin/user-groups/[id]   直す { name?, description?, kind?(動的 ⇄ 定期計算だけ), definition?, recomputeIntervalMinutes? }
+// DELETE /api/admin/user-groups/[id]  削除(D92。削除していない送信の宛先・ほかのグループの条件で使われていれば 409 と理由)→ { id, deleted: true }
 
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";
@@ -33,5 +34,17 @@ export const PATCH = createApiRoute<Params>(
     gate.assert("userGroups");
     const body = await req.json().catch(() => null);
     return userGroupAdmin.updateGroup(params.id, body);
+  },
+);
+
+export const DELETE = createApiRoute<Params>(
+  {
+    operation: "DELETE /api/admin/user-groups/[id]",
+    operationType: "write",
+    access: { roleCategories: ["admin"] },
+  },
+  async (_req, { params }) => {
+    gate.assert("userGroups");
+    return userGroupAdmin.deleteGroup(params.id);
   },
 );

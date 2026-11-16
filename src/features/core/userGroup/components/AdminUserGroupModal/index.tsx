@@ -321,7 +321,8 @@ function UserGroupModalBody({
       title="メンバー"
       description="このグループのメンバーです。ユーザーを選んで追加・削除できます"
       people={members}
-      addLabel="メンバーに追加"
+      total={group.count.state === "counted" ? (group.count.value ?? null) : null}
+      addLabel="追加"
       emptyText="メンバーはいません"
       disabled={locked}
     />

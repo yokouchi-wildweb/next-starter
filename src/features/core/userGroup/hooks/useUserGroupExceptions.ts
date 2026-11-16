@@ -35,20 +35,20 @@ function useSide(side: UserGroupExceptionSide, options: UseUserGroupExceptionsOp
     },
     [groupId, side, onChanged, afterAdd],
   );
-  const removePerson = useCallback(
-    async (userId: string) => {
+  const removePeople = useCallback(
+    async (userIds: string[]) => {
       if (!groupId) return;
-      const fresh = await updateUserGroupExceptions(groupId, { [side]: { remove: [userId] } });
+      const fresh = await updateUserGroupExceptions(groupId, { [side]: { remove: userIds } });
       onChanged?.(fresh);
     },
     [groupId, side, onChanged],
   );
   return useUserGroupPeople({
-    fetchPage: groupId ? (cursor, limit) => listUserGroupExceptions(groupId, { side, cursor, limit }) : null,
+    fetchPage: groupId ? (cursor, limit, q) => listUserGroupExceptions(groupId, { side, cursor, limit, q }) : null,
     deps: [groupId, side],
     enabled,
     addPeople,
-    removePerson,
+    removePeople,
     addedMessage: side === "include" ? "常に含める人に追加しました" : "常に除外する人に追加しました",
     removedMessage: side === "include" ? "常に含める人から削除しました" : "常に除外する人から削除しました",
     observerOptions,
@@ -60,11 +60,23 @@ export function useUserGroupExceptions(options: UseUserGroupExceptionsOptions) {
   const revalidators = useRef<{ include?: () => void; exclude?: () => void }>({});
   const include = useSide("include", options, useCallback(() => revalidators.current.exclude?.(), []));
   const exclude = useSide("exclude", options, useCallback(() => revalidators.current.include?.(), []));
-  const revalidateInclude = include.query.revalidate;
-  const revalidateExclude = exclude.query.revalidate;
+  // 要約(先頭 3 名)と、開いていればサブのモーダルの一覧
+  const { revalidate: includeList } = include.query;
+  const { revalidate: includeSummary } = include.summary;
+  const { revalidate: excludeList } = exclude.query;
+  const { revalidate: excludeSummary } = exclude.summary;
   useEffect(() => {
-    revalidators.current = { include: revalidateInclude, exclude: revalidateExclude };
-  }, [revalidateInclude, revalidateExclude]);
+    revalidators.current = {
+      include: () => {
+        includeSummary();
+        includeList();
+      },
+      exclude: () => {
+        excludeSummary();
+        excludeList();
+      },
+    };
+  }, [includeList, includeSummary, excludeList, excludeSummary]);
   return { include, exclude };
 }
 

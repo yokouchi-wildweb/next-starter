@@ -49,7 +49,14 @@ export type AdminUserGroupSummary = {
   recompute: AdminUserGroupRecompute | null;
   createdAt: string;
   updatedAt: string;
+  /** 削除できるか(D92: 削除していない送信の宛先でも、ほかのグループの条件でもない) */
+  deletable: boolean;
+  /** 削除できない理由の文(画面の行の操作に出す。削除できれば []) */
+  deleteReasons: string[];
 };
+
+/** 削除の結果 */
+export type AdminUserGroupDeleted = { id: string; deleted: true };
 
 export type AdminUserGroupDetail = AdminUserGroupSummary & {
   /** 条件の定義の木(例外の包みを外した元の定義。静的は null) */

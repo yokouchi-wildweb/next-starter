@@ -16,6 +16,7 @@ import type {
   AdminStaticMembersRemoved,
   AdminUserGroupCount,
   AdminUserGroupCriteriaCatalog,
+  AdminUserGroupDeleted,
   AdminUserGroupDetail,
   AdminUserGroupEstimate,
   AdminUserGroupMember,
@@ -52,6 +53,7 @@ export type {
   AdminStaticMembersRemoved,
   AdminUserGroupCount,
   AdminUserGroupCriteriaCatalog,
+  AdminUserGroupDeleted,
   AdminUserGroupDetail,
   AdminUserGroupEstimate,
   AdminUserGroupMember,
@@ -143,6 +145,16 @@ export async function archiveUserGroup(id: string): Promise<AdminUserGroupDetail
   }
 }
 
+/** 削除(D92)。使われている(削除していない送信の宛先・ほかのグループの条件)と 409 で理由の文 */
+export async function deleteUserGroup(id: string): Promise<AdminUserGroupDeleted> {
+  try {
+    const res = await axios.delete<AdminUserGroupDeleted>(one(id));
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "グループを削除できませんでした");
+  }
+}
+
 /** 人数の見込みと試しの一覧(保存しない定義 { definition } か保存したグループ { groupId })。時間の上限は 503 */
 export async function estimateUserGroup(
   input: { definition: UserGroupDefinitionNode } | { groupId: string },
@@ -168,11 +180,11 @@ export async function updateUserGroupExceptions(id: string, input: UpdateUserGro
 /** 例外の人の一覧(側ごと、カーソル) */
 export async function listUserGroupExceptions(
   id: string,
-  params: { side: UserGroupExceptionSide; cursor?: string | null; limit?: number },
+  params: { side: UserGroupExceptionSide; cursor?: string | null; limit?: number; q?: string },
 ): Promise<AdminUserGroupMemberPage> {
   try {
     const res = await axios.get<AdminUserGroupMemberPage>(`${one(id)}/exceptions`, {
-      params: { side: params.side, cursor: params.cursor ?? undefined, limit: params.limit },
+      params: { side: params.side, cursor: params.cursor ?? undefined, limit: params.limit, q: params.q || undefined },
     });
     return res.data;
   } catch (error) {
@@ -204,10 +216,13 @@ export async function updateStaticMembers(
 }
 
 /** 静的グループの一員の一覧(表示名、カーソル) */
-export async function listStaticMembers(id: string, params: { cursor?: string | null; limit?: number } = {}): Promise<AdminUserGroupMemberPage> {
+export async function listStaticMembers(
+  id: string,
+  params: { cursor?: string | null; limit?: number; q?: string } = {},
+): Promise<AdminUserGroupMemberPage> {
   try {
     const res = await axios.get<AdminUserGroupMemberPage>(`${one(id)}/members`, {
-      params: { cursor: params.cursor ?? undefined, limit: params.limit },
+      params: { cursor: params.cursor ?? undefined, limit: params.limit, q: params.q || undefined },
     });
     return res.data;
   } catch (error) {

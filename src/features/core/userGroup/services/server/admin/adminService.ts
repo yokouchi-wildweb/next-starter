@@ -10,7 +10,7 @@
 // - service でも管理者を確かめる。監査 user_group.group.{created, updated, archived, restored}・user_group.exceptions.updated・
 //   user_group.members.{replaced, added, removed}(操作した管理者が actor。利用者 id は監査に入れない)
 
-import { and, asc, desc, eq, gt, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ilike, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import type { z } from "zod";
 
 import { UserTable, UserToUserTagTable } from "@/features/core/user/entities/drizzle";
@@ -40,6 +40,7 @@ import {
   type AdminStaticGroupResult,
   type AdminUserGroupCount,
   type AdminUserGroupCriteriaCatalog,
+  type AdminUserGroupDeleted,
   type AdminUserGroupDetail,
   type AdminStaticMembersRemoved,
   type AdminUserGroupEstimate,
@@ -50,6 +51,7 @@ import {
   type AdminUserGroupSummary,
 } from "./dto";
 import { unwrapExceptions, wrapWithExceptions, type ExceptionGroupIds } from "./exceptions";
+import { deleteReasonsOf, referencesOf } from "./references";
 import {
   CreateStaticUserGroupInputSchema,
   CreateUserGroupInputSchema,
@@ -165,15 +167,26 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
     return Number(row?.value ?? 0);
   }
 
-  /** 静的グループ(例外の持ち主付きも)の今の一員の 1 頁(利用者 id の順、消した利用者は出さない) */
-  async function memberPageOf(groupId: string, cursor: string | undefined, limit: number): Promise<AdminUserGroupMemberPage> {
+  /**
+   * 静的グループ(例外の持ち主付きも)の今の一員の 1 頁(利用者 id の順、消した利用者は出さない)。
+   * q = 名前かメールアドレスの部分一致(D93、% _ \ は文字として探す)
+   */
+  async function memberPageOf(groupId: string, cursor: string | undefined, limit: number, q?: string): Promise<AdminUserGroupMemberPage> {
     const after = decodeMemberCursor(cursor);
     const M = UserGroupMemberTable;
+    const pattern = q ? `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : null;
     const rows = await deps.db
       .select({ id: M.user_id, name: UserTable.name })
       .from(M)
       .innerJoin(UserTable, eq(UserTable.id, M.user_id))
-      .where(and(eq(M.group_id, groupId), isNull(UserTable.deletedAt), after ? gt(M.user_id, after) : undefined))
+      .where(
+        and(
+          eq(M.group_id, groupId),
+          isNull(UserTable.deletedAt),
+          after ? gt(M.user_id, after) : undefined,
+          pattern ? or(ilike(UserTable.name, pattern), ilike(UserTable.email, pattern)) : undefined,
+        ),
+      )
       .orderBy(asc(M.user_id))
       .limit(limit + 1);
     const page = rows.slice(0, limit);
@@ -222,6 +235,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
   }
 
   async function summaryOf(group: UserGroup, deadline: number | null): Promise<AdminUserGroupSummary> {
+    const deleteReasons = deleteReasonsOf(await referencesOf(deps.db, group.id));
     return {
       id: group.id,
       name: group.name,
@@ -234,6 +248,8 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       recompute: group.kind === "scheduled" ? await recomputeOf(group) : null,
       createdAt: group.createdAt.toISOString(),
       updatedAt: group.updatedAt.toISOString(),
+      deletable: deleteReasons.length === 0,
+      deleteReasons,
     };
   }
 
@@ -528,6 +544,26 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
     },
 
     /**
+     * 削除する(D92。どの状態でも)。使っている所(削除していない送信の宛先・ほかのグループの条件)があれば 409 と理由。
+     * 行を排他で持った 1 つの取引で確かめて消す(定義・版・版の一員・一員・例外の人のグループとその中身は FK cascade で消える)
+     * @throws DomainError(409) 使われている / (404) 無い / (400) id の形
+     */
+    async deleteGroup(id: string): Promise<AdminUserGroupDeleted> {
+      await assertUserGroupAdmin(deps);
+      const group = await deps.db.transaction(async (tx) => {
+        const row = await loadGroup(id, tx, true);
+        const reasons = deleteReasonsOf(await referencesOf(tx, row.id));
+        if (reasons.length > 0) {
+          throw new DomainError(`グループ「${row.name}」は削除できません: ${reasons.join(" / ")}`, { status: 409, code: "group_referenced" });
+        }
+        await tx.delete(G).where(eq(G.id, row.id));
+        return row;
+      });
+      await audit(group, "user_group.group.deleted");
+      return { id: group.id, deleted: true };
+    },
+
+    /**
      * 見込みと試しの一覧: その場の定義 { definition } か保存したグループ { groupId }。試しは id と表示名だけ
      * @throws DomainError(400) 定義の誤り / (404) 無い / (409) しまった・版が無い / (503) 時間の上限
      */
@@ -641,10 +677,10 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
      */
     async listStaticMembers(id: string, query: unknown = {}): Promise<AdminUserGroupMemberPage> {
       await assertUserGroupAdmin(deps);
-      const { cursor, limit } = parseOr400(ListStaticMembersQuerySchema, query, "メンバー一覧の条件が正しくありません");
+      const { q, cursor, limit } = parseOr400(ListStaticMembersQuerySchema, query, "メンバー一覧の条件が正しくありません");
       const group = await loadGroup(id);
       assertStatic(group);
-      return memberPageOf(group.id, cursor, limit);
+      return memberPageOf(group.id, cursor, limit, q);
     },
 
     /**
@@ -653,7 +689,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
      */
     async listExceptionMembers(id: string, query: unknown = {}): Promise<AdminUserGroupMemberPage> {
       await assertUserGroupAdmin(deps);
-      const { side, cursor, limit } = parseOr400(ListExceptionMembersQuerySchema, query, "例外の人の一覧の条件が正しくありません");
+      const { side, q, cursor, limit } = parseOr400(ListExceptionMembersQuerySchema, query, "例外の人の一覧の条件が正しくありません");
       const group = await loadGroup(id);
       if (group.kind === "static") {
         throw new DomainError("固定グループには例外を設定できません(メンバーを直接追加・削除してください)", { status: 409 });
@@ -664,7 +700,7 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
         decodeMemberCursor(cursor);
         return { items: [], nextCursor: null };
       }
-      return memberPageOf(side === "include" ? exceptions.includeId : exceptions.excludeId, cursor, limit);
+      return memberPageOf(side === "include" ? exceptions.includeId : exceptions.excludeId, cursor, limit, q);
     },
 
     /** 条件の部品の一覧と選択肢(画面は label を出し、key は定義の木の値としてだけ使う) */

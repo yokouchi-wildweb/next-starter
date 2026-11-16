@@ -74,6 +74,8 @@ export const UpdateStaticMembersInputSchema = z.discriminatedUnion("mode", [
 ]);
 
 const memberPage = {
+  /** 名前かメールアドレスの部分一致(D93。利用者の選択の既定と同じ name / email) */
+  q: z.string().trim().min(1).max(100).optional(),
   cursor: z.string().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 };
