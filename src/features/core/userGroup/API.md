@@ -40,7 +40,7 @@
 
 どの口も管理者カテゴリだけ（`createApiRoute` の access `{ roleCategories: ["admin"] }`）、門 `userGroups` が閉なら 404。service でも管理者か system かを確かめる（403）。返す形は表示名が先（`kindLabel`・`statusLabel`）で、内部の鍵は値としてだけ持つ。例外の持ち主付きのグループは一覧・1 件・選択肢に出さない（404）。
 
-- `GET /api/admin/user-groups?kind&status&cursor&limit` → `{ items, nextCursor }`。`status` 既定 active、`limit` 1〜50 既定 20、新しい順
+- `GET /api/admin/user-groups?kind&status&cursor&limit` → `{ items, nextCursor }`。`status` は省略可(無ければ使用中とアーカイブの両方、D87)、`limit` 1〜50 既定 20、新しい順
   - 1 件の形: `id`・`name`・`description`・`kind` / `kindLabel`・`status` / `statusLabel`・`count`・`recompute`・`createdAt`・`updatedAt`
   - `count: { value, state }`: `counted`（静的 = 一員の数、定期計算 = 今の版の人数）/ `estimated`（動的をその場で数えた）/ `not_computed`（時間の上限・1 ページの予算が尽きた・壊れた条件）/ `none`（定期計算に版がまだ無い）
   - `recompute`（定期計算だけ）: `{ intervalMinutes, defaultIntervalMinutes, lastComputedAt, lastFailure: { at, reason } | null, computing }`

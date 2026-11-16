@@ -14,7 +14,8 @@ const userIds = z.array(uuid).max(1_000_000);
 
 export const ListUserGroupsQuerySchema = z.object({
   kind: z.enum(USER_GROUP_KINDS).optional(),
-  status: z.enum(USER_GROUP_STATUSES).default("active"),
+  /** 無ければ使用中とアーカイブの両方(D87) */
+  status: z.enum(USER_GROUP_STATUSES).optional(),
   cursor: z.string().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
