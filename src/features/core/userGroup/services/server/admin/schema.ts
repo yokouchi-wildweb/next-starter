@@ -51,7 +51,8 @@ export const EstimateUserGroupInputSchema = z.union([
     .refine((value) => value.definition !== undefined, { message: "definition か groupId のどちらかが要ります" }),
 ]);
 
-const exceptionSide = z.object({ add: userIds.optional(), remove: userIds.optional() }).strict();
+/** 例外の人の片側: clear = 全員を外す(D94。足す・外すより先に)/ add / remove */
+const exceptionSide = z.object({ clear: z.literal(true).optional(), add: userIds.optional(), remove: userIds.optional() }).strict();
 export const UpdateUserGroupExceptionsInputSchema = z
   .object({ include: exceptionSide.optional(), exclude: exceptionSide.optional() })
   .strict();
@@ -71,6 +72,8 @@ export const UpdateStaticMembersInputSchema = z.discriminatedUnion("mode", [
   z.object({ mode: z.literal("add"), userIds }).strict(),
   z.object({ mode: z.literal("replace"), from: StaticMemberSourceSchema }).strict(),
   z.object({ mode: z.literal("remove"), userIds }).strict(),
+  /** 全員を外す(D94。空の置き換えと同じ予算つきの書き込み) */
+  z.object({ mode: z.literal("clear") }).strict(),
 ]);
 
 const memberPage = {
