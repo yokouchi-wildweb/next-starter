@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/AdminMessageTemplateModal/index.tsx
 // セクションコンテナ(管理: テンプレートを作る・直すモーダル。D87)。開閉は置き場が持つ(open・onOpenChange・templateId)。
-// タブ: 文言(名前・説明・カテゴリー・使える {{鍵}} の案内・経路ごとの文言)/ 変数 / 版の履歴(直す時だけ)。
+// タブ: 文言(左 = プレビュー、右 = 操作のペイン: 名前・説明・カテゴリー・使える {{鍵}} の案内・経路ごとの文言)/ 変数 / 版の履歴(直す時だけ)。
 // カテゴリーの選択肢は API の options(種別 announcement・direct・marketing の物だけ。保存の検査はサーバー)。
 // 操作の後は onChanged(返った 1 件と操作)を呼ぶ: 一覧が行を足す・置き換える。作った直後・1 件を取る間は読み込み中を出す。
 // 鍵はサーバーが作る(運営する人に打たせない、D46)。
@@ -23,12 +23,13 @@ import { ConfirmPopover } from "@/components/Overlays/Popover";
 import TabbedModal from "@/components/Overlays/TabbedModal";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
+import { Span } from "@/components/TextBlocks/Span";
+import { StateTabs, StateTabsContent } from "@/components/Navigation/StateTabs";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { err } from "@/lib/errors";
 
 import { AllowedKeysHint } from "@/features/core/messaging/components/common/AllowedKeysHint";
 import { ChannelPreview } from "@/features/core/messaging/components/common/ChannelPreview";
-import { MessageEditorLayout } from "@/features/core/messaging/components/common/MessageEditorLayout";
 import { TemplateChannelFields } from "@/features/core/messaging/components/common/TemplateChannelFields";
 import { TemplateStatusBadge } from "@/features/core/messaging/components/common/TemplateStatusBadge";
 import { TemplateVariablesEditor } from "@/features/core/messaging/components/common/TemplateVariablesEditor";
@@ -161,83 +162,102 @@ function TemplateModalBody({
     </Stack>
   );
 
+  // 内容のタブ = 左右 2 つのペイン(D80): 左 = プレビュー(スクロールしても上に留まる)、右 = 操作(状態・名前など・使える変数・送信方法のタブと文言)。
+  // 狭い画面は操作が上、プレビューがその下
+  const preview =
+    channelChoices.length > 0 ? (
+      <ChannelPreview
+        channel={channelChoices.find((choice) => choice.key === activeChannel) ?? { key: activeChannel, label: activeChannel }}
+        values={fields.content[activeChannel] ?? emptyChannelContent(activeChannel)}
+        fieldMeta={fieldMetaOf(activeChannel)}
+        focusedPath={focusedPath}
+      />
+    ) : null;
+
   const textTab = (
-    <Stack space={4}>
-      {template ? (
-        <Flex align="center" gap="xs" wrap="wrap">
-          <TemplateStatusBadge
-            status={template.status}
-            currentVersion={template.currentVersion}
-            hasUnpublishedChanges={template.hasUnpublishedChanges}
-            size="md"
-          />
-          {locked ? (
-            <Para size="sm" tone="muted" className="my-0">
-              アーカイブ済みのテンプレートは編集できません(バージョン履歴は残ります)
-            </Para>
-          ) : null}
-        </Flex>
-      ) : null}
-
-      <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="template-meta">
-        <Stack space={1}>
-          <Label htmlFor="template-name" className="text-sm">
-            テンプレート名
-          </Label>
-          <Input id="template-name" value={fields.name} disabled={locked} onChange={(e) => fields.setName(e.target.value)} />
-        </Stack>
-        <Stack space={1}>
-          <Label htmlFor="template-description" className="text-sm">
-            説明(任意)
-          </Label>
-          <Textarea id="template-description" value={fields.description} rows={2} disabled={locked} onChange={(e) => fields.setDescription(e.target.value)} />
-        </Stack>
-        <Stack space={1}>
-          <Label htmlFor="template-category" className="text-sm">
-            カテゴリー
-          </Label>
-          <SelectInput
-            id="template-category"
-            value={fields.category}
-            disabled={locked}
-            options={options.categories.map((category) => ({ value: category.key, label: category.label }))}
-            onChange={(v) => fields.setCategory(v ? String(v) : "")}
-          />
-        </Stack>
-        <Para size="sm" tone="muted" className="my-0">
-          内容を入力した送信方法が、このテンプレートの送信方法になります(実際の送信方法は送信時のカテゴリーで決まります)
-        </Para>
-      </Stack>
-
-      <Stack space={2} className="rounded-md border border-border bg-muted/30 p-4">
-        <AllowedKeysHint allowedKeys={form.allowedKeys} unknownKeys={form.unknownKeys} onCopyKey={copyKey} />
-      </Stack>
-
-      {channelChoices.length > 0 ? (
-        <MessageEditorLayout
-          channels={channelChoices}
-          activeChannel={activeChannel}
-          onChannelChange={setActiveChannel}
-          preview={
-            <ChannelPreview
-              channel={channelChoices.find((choice) => choice.key === activeChannel) ?? { key: activeChannel, label: activeChannel }}
-              values={fields.content[activeChannel] ?? emptyChannelContent(activeChannel)}
-              fieldMeta={fieldMetaOf(activeChannel)}
-              focusedPath={focusedPath}
+    <Flex direction="column" gap="lg" className="md:flex-row-reverse md:items-start" data-slot="template-editor">
+      <Stack space={4} className="min-w-0 md:w-1/2" data-slot="template-editor-controls">
+        {template ? (
+          <Flex align="center" gap="xs" wrap="wrap">
+            <TemplateStatusBadge
+              status={template.status}
+              currentVersion={template.currentVersion}
+              hasUnpublishedChanges={template.hasUnpublishedChanges}
+              size="md"
             />
-          }
-        >
-          <TemplateChannelFields
-            channel={activeChannel}
-            fieldMeta={fieldMetaOf(activeChannel)}
-            value={fields.content[activeChannel] ?? emptyChannelContent(activeChannel)}
-            onChange={(value) => fields.setChannelContent(activeChannel, value)}
-            onFocusField={setFocusedPath}
-            disabled={locked}
-          />
-        </MessageEditorLayout>
-      ) : null}
-    </Stack>
+            {locked ? (
+              <Para size="sm" tone="muted" className="my-0">
+                アーカイブ済みのテンプレートは編集できません(バージョン履歴は残ります)
+              </Para>
+            ) : null}
+          </Flex>
+        ) : null}
+
+        <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="template-meta">
+          <Stack space={1}>
+            <Label htmlFor="template-name" className="text-sm">
+              テンプレート名
+            </Label>
+            <Input id="template-name" value={fields.name} disabled={locked} onChange={(e) => fields.setName(e.target.value)} />
+          </Stack>
+          <Stack space={1}>
+            <Label htmlFor="template-description" className="text-sm">
+              説明(任意)
+            </Label>
+            <Textarea id="template-description" value={fields.description} rows={2} disabled={locked} onChange={(e) => fields.setDescription(e.target.value)} />
+          </Stack>
+          <Stack space={1}>
+            <Label htmlFor="template-category" className="text-sm">
+              カテゴリー
+            </Label>
+            <SelectInput
+              id="template-category"
+              value={fields.category}
+              disabled={locked}
+              options={options.categories.map((category) => ({ value: category.key, label: category.label }))}
+              onChange={(v) => fields.setCategory(v ? String(v) : "")}
+            />
+          </Stack>
+        </Stack>
+
+        <Stack space={2} className="rounded-md border border-border bg-muted/30 p-4">
+          <AllowedKeysHint allowedKeys={form.allowedKeys} unknownKeys={form.unknownKeys} onCopyKey={copyKey} />
+        </Stack>
+
+        {channelChoices.length > 0 ? (
+          <Stack space={2} data-slot="template-channels">
+            <StateTabs
+              tabs={channelChoices.map((channel) => ({ value: channel.key, label: channel.label }))}
+              value={activeChannel}
+              onValueChange={setActiveChannel}
+              ariaLabel="送信方法"
+              size="sm"
+            >
+              <StateTabsContent value={activeChannel} className="pt-3">
+                <TemplateChannelFields
+                  channel={activeChannel}
+                  fieldMeta={fieldMetaOf(activeChannel)}
+                  value={fields.content[activeChannel] ?? emptyChannelContent(activeChannel)}
+                  onChange={(value) => fields.setChannelContent(activeChannel, value)}
+                  onFocusField={setFocusedPath}
+                  disabled={locked}
+                />
+              </StateTabsContent>
+            </StateTabs>
+            <Para size="sm" tone="muted" className="my-0">
+              内容を入力した送信方法が、このテンプレートの送信方法になります(実際の送信方法は送信時のカテゴリーで決まります)
+            </Para>
+          </Stack>
+        ) : null}
+      </Stack>
+
+      <Stack space={2} className="min-w-0 md:sticky md:top-0 md:w-1/2" data-slot="template-editor-preview">
+        <Span size="sm" weight="semiBold">
+          プレビュー
+        </Span>
+        {preview}
+      </Stack>
+    </Flex>
   );
 
   const tabs = [
