@@ -151,7 +151,7 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
   const enableWalletAdjust = useGate().enabled("wallet") && walletConfig.enableAdminBalanceAdjust;
   const enableUserManagement = userConfig.enableUserManagement;
   const enableUserMemo = userConfig.enableUserMemo;
-  const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = userConfig.userListPage;
+  const { enableSelectionTable, selectionBehavior, selectionMode } = userConfig.userListPage;
   const useSelectionTable = enableSelectionTable.managerial;
   // 一括操作: 受け口 adminBulkActions の項目(上流の既定 + fork の項目。D149)
   const bulkActionItems = useUserAdminBulkActions("managerial");
@@ -201,7 +201,7 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
           getKey={(user) => user.id}
           emptyValueFallback={adminDataTableFallback}
           selectionBehavior={selectionBehavior}
-          bulkActionsAlwaysVisible={bulkActionsAlwaysVisible}
+          selectionMode={selectionMode}
           bulkActions={(selection) => <BulkActionItems items={bulkActionItems} selection={selection} />}
         />
       ) : (

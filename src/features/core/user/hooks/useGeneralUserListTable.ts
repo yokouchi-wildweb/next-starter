@@ -19,6 +19,7 @@ import { walletConfig } from "@/features/wallet/config";
 
 import { useSoftDeleteUser } from "@/features/core/user/hooks/useSoftDeleteUser";
 import { useUserAdminBulkActions } from "@/features/core/user/hooks/useUserAdminBulkActions";
+import type { SelectionMode } from "@/lib/tableSuite";
 
 export type UseGeneralUserListTableOptions = {
   /** 変更(ポイント操作・一括操作・削除)の後、router.refresh() に続けて呼ぶ */
@@ -49,7 +50,7 @@ export type UseGeneralUserListTableReturn = {
   selection: {
     enabled: boolean;
     behavior: SelectionBehavior;
-    bulkActionsAlwaysVisible: boolean;
+    selectionMode: SelectionMode;
   };
   /** 一括操作の項目(受け口 adminBulkActions の "general") */
   bulkActions: UserAdminBulkActionItem[];
@@ -94,7 +95,7 @@ export function useGeneralUserListTable({ onChanged }: UseGeneralUserListTableOp
   const canAdjustWallet = useGate().enabled("wallet") && walletConfig.enableAdminBalanceAdjust;
   const canManage = userConfig.enableUserManagement;
   const canMemo = userConfig.enableUserMemo;
-  const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = userConfig.userListPage;
+  const { enableSelectionTable, selectionBehavior, selectionMode } = userConfig.userListPage;
   // 一括操作: 受け口 adminBulkActions の項目(上流の既定 + fork の項目)
   const bulkActions = useUserAdminBulkActions("general");
 
@@ -143,7 +144,7 @@ export function useGeneralUserListTable({ onChanged }: UseGeneralUserListTableOp
     selection: {
       enabled: enableSelectionTable.general,
       behavior: selectionBehavior,
-      bulkActionsAlwaysVisible,
+      selectionMode,
     },
     bulkActions,
     onBulkDone: refresh,

@@ -64,7 +64,7 @@
 - src/lib/storage — ファイル保存の基盤(storage:// ref と表示解決、inline/attachment 配信規則、StoragePort と GCS 実装、保存先の解決、strip 用途の画像のメタデータ除去(サーバーの描き直し)、クライアントの uploadToStorage)
 - src/lib/storageCors — 別ドメインの Storage バイト読み取りの CORS 未設定を開発時に自己診断・案内
 - src/lib/structuredDocument — 構造化ドキュメント(文書タイプ別の構造定義とレンダラー、利用規約など)
-- src/lib/tableSuite — テーブル系 UI(DataTable / EditableGridTable / RecordSelectionTable)
+- src/lib/tableSuite — テーブル系 UI(DataTable / EditableGridTable / RecordSelectionTable / カードの一覧の RecordSelectionList)
 - src/lib/seed — ドメインのシード(seed.ts)の書き方 defineSeed・ref と入れる順の計画 planSeeds(入れるのは scripts/runner/seed)
 - src/lib/task — ワンショット・任意タスク(pnpm task)の定義の型 OneShotTask
 - src/lib/toast — トースト通知(GlobalToast / useToast)
