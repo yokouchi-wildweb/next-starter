@@ -320,6 +320,7 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
           fieldConfigs={groupFieldConfigs}
           label={group.label}
           fieldWidths={group.fieldWidths}
+          inputConfigs={group.inputConfigs}
           required={group.required}
           description={group.description}
         />

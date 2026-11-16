@@ -70,7 +70,7 @@ export const criterion: UserGroupCriterion<typeof args> = {
     },
     { name: "min", label: "下限(この値以上)", formInput: "numberInput" },
   ],
-  inlineGroups: [...PERIOD_INLINE_GROUPS, { key: "amount", label: "金額", fields: ["basis", "walletType", "min"] }],
+  inlineGroups: [...PERIOD_INLINE_GROUPS, { key: "amount", label: "金額", fields: ["basis", "walletType", "min"], inputConfigs: [{}, {}, { suffix: "以上" }] }],
   weight: "heavy",
   available: () => gate.enabled("payment") && gate.enabled("wallet"),
   where(value, { now }) {

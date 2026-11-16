@@ -85,7 +85,7 @@
 
 ## inlineGroups（横並び表示）
 
-`InlineFieldGroup[]` で複数フィールドを1つのフィールドのように横並び表示する。`key` / `label` / `fields` / `fieldWidths`（Tailwind 幅クラス。省略時は均等）/ `required` / `description` を指定。
+`InlineFieldGroup[]` で複数フィールドを1つのフィールドのように横並び表示する。`key` / `label` / `fields` / `fieldWidths`（Tailwind 幅クラス。省略時は均等）/ `inputConfigs`（各フィールドの前後に添える文字 `{ prefix?, suffix? }`、`fields` と同じ順。例: 期間の終了の前に「〜」、下限の後に「以上」）/ `required` / `description` を指定。
 
 ## custom フィールドのUI実装
 

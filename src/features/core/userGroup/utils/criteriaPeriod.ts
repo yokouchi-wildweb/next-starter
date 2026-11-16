@@ -38,8 +38,8 @@ export const PERIOD_FIELDS: readonly FieldConfig[] = [
 
 /** 期間の欄の並べ方(D90): 開始〜終了を 1 行、直近 N 日を短い別の行 */
 export const PERIOD_INLINE_GROUPS: readonly InlineFieldGroup[] = [
-  { key: "period", label: "期間", fields: ["from", "to"] },
-  { key: "recent", label: "直近 N 日以内", fields: ["withinDays"], fieldWidths: ["w-24"] },
+  { key: "period", label: "期間", fields: ["from", "to"], inputConfigs: [{}, { prefix: "〜" }] },
+  { key: "recent", label: "直近", fields: ["withinDays"], fieldWidths: ["w-32"], inputConfigs: [{ suffix: "日以内" }] },
 ];
 
 /** 列の期間の述語(from 以後・to 以前・now から withinDays 日以内の and) */
