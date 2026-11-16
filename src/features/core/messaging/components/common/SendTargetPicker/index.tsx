@@ -1,6 +1,7 @@
 // src/features/core/messaging/components/common/SendTargetPicker/index.tsx
 // 部品(props だけ): 送るモーダルの宛先。全員・ロール・グループ・選んだ利用者。
-// グループは使用中のグループを名前と種類の表示名で選ぶ(groups が空 = 門 userGroups が閉かグループが無い = 選択肢ごと出さない、D99)。
+// グループは使用中のグループを名前と種類の表示名で選ぶ。門 userGroups が開(groupsEnabled)なら 0 件でも選択肢を出し、
+// 空なら「ユーザーグループを作成」へ案内する(操作の途中で選択肢が消えないように)。門が閉の時だけ出さない。
 // グループの id は値としてだけ持ち、画面には出さない(D94)。
 // 一覧の一括(bulk)の時は選んだ記録の数だけを出す(宛先は変えられない)
 
@@ -8,6 +9,7 @@
 
 import { MultiSelectInput, RadioGroupInput, SelectInput } from "@/components/Form/Input/Manual";
 import { Stack } from "@/components/Layout/Stack";
+import { Link } from "@/components/Navigation/Link";
 import { Para } from "@/components/TextBlocks/Para";
 
 import { UserAsyncMultiSelect } from "@/features/core/user/components/common/UserAsyncMultiSelect";
@@ -23,8 +25,10 @@ export type SendTargetPickerProps =
       value: SendTargetValue;
       onChange: (patch: Partial<SendTargetValue>) => void;
       roles: { id: string; label: string }[];
-      /** 選べるグループ(空 = グループの選択肢を出さない) */
+      /** 選べるグループ */
       groups?: readonly SendTargetGroupOption[];
+      /** 門 userGroups が開か(開 = グループの選択肢を出す。省略時は groups があれば出す) */
+      groupsEnabled?: boolean;
       /** 宛先の知らせ(前の回のグループが今は選べない時など) */
       note?: string | null;
     };
@@ -37,12 +41,12 @@ export function SendTargetPicker(props: SendTargetPickerProps) {
       </Para>
     );
   }
-  const { value, onChange, roles, groups = [], note = null } = props;
+  const { value, onChange, roles, groups = [], groupsEnabled = groups.length > 0, note = null } = props;
   // グループが無くても、今グループの形なら選択肢を残す(前の回のグループが今は選べない時に選び直せるように)
   const typeOptions = [
     { value: "all", label: "全員" },
     { value: "role", label: "ロール" },
-    ...(groups.length > 0 || value.type === "group" ? [{ value: "group", label: "グループ" }] : []),
+    ...(groupsEnabled || groups.length > 0 || value.type === "group" ? [{ value: "group", label: "グループ" }] : []),
     { value: "users", label: "ユーザーを選ぶ" },
   ];
   return (
@@ -76,8 +80,14 @@ export function SendTargetPicker(props: SendTargetPickerProps) {
             onChange={(v) => onChange({ groupId: v ? String(v) : "" })}
           />
         ) : (
-          <Para size="sm" tone="muted" className="my-0">
-            選べるグループがありません
+          <Para size="sm" tone="muted" className="my-0" data-slot="send-target-no-group">
+            送れるグループがありません。
+            {groupsEnabled ? (
+              <>
+                {" "}
+                <Link href="/admin/user-groups">ユーザーグループを作成</Link>
+              </>
+            ) : null}
           </Para>
         )
       ) : null}

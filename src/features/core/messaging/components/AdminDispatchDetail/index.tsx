@@ -1,15 +1,14 @@
 // src/features/core/messaging/components/AdminDispatchDetail/index.tsx
 // セクションコンテナ(管理: 送った回 1 件)。回の中身(状態・件名 / 題・種別とカテゴリーの表示名・送り元の表示名(ある時だけ)・数・送った人・時刻・
 // 本文は記録の段しだい。定義の鍵・送り元の鍵は見せない、D46)と、
-// 配達の一覧(状態・経路で絞る、無限スクロール = カーソル)と「続きを送る」(送信中の回だけ。1 束だけ進める)と
-// 回の操作(予約を取り消す・取り下げる・失敗分を再送。できるかと理由は回の operations、部品 DispatchOperations)と
+// 配達の一覧(状態・経路で絞る、無限スクロール = カーソル)と、
+// 回の操作(状態の 1 行と、今できる操作だけ: 予約を取り消す・公開を停止・失敗分を再送・送信を再開(送信中の回だけ。1 束だけ進める)。
+// できるかは回の operations、部品 DispatchOperations)と
 // 「同じ内容で送る」(送るモーダル。文面・カテゴリー・宛先の形を写す。門 messagingBroadcast が閉なら出さない)。
 // 流れ(配達の絞り・includeUnknown・操作と知らせ)は hook useAdminDispatchDetail。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
 
-import { ConfirmPopover } from "@/components/Overlays/Popover";
-import { Button } from "@/components/Form/Button";
 import { SelectInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
@@ -22,6 +21,7 @@ import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { err } from "@/lib/errors";
 
 import {
+  DELIVERY_REASON_LABELS,
   DELIVERY_STATUS_DISPLAY,
 } from "@/features/core/messaging/components/common/DeliveryStatusBadge";
 import { DeliveryRow } from "@/features/core/messaging/components/common/DeliveryRow";
@@ -38,6 +38,7 @@ import { useAdminDispatchCategories } from "@/features/core/messaging/hooks/useA
 import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
 import { MessagePreview } from "@/features/core/messaging/components/common/MessagePreview";
 import { DispatchOperations } from "@/features/core/messaging/components/common/DispatchOperations";
+import { dispatchStateLine } from "@/features/core/messaging/constants/dispatchOperations";
 import { DispatchStatusBadge } from "@/features/core/messaging/components/common/DispatchStatusBadge";
 import { useAdminDispatchDetail } from "@/features/core/messaging/hooks/useAdminDispatchDetail";
 import type { AdminDispatchDetail as AdminDispatchDetailDto } from "@/features/core/messaging/services/client/adminMessagingClient";
@@ -89,23 +90,10 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
         onCancel={cancel}
         onRetract={retract}
         onResend={resend}
+        stateLine={dispatchStateLine(dispatch)}
+        canContinue={dispatch.status === "processing"}
+        onContinue={continueDispatch}
       />
-
-      {dispatch.status === "processing" ? (
-        <Flex justify="end">
-          <ConfirmPopover
-            trigger={
-              <Button type="button" size="sm" variant="outline">
-                送信を再開
-              </Button>
-            }
-            title="送信を再開"
-            description="止まっている送信を一部進めます(残りは自動の処理でも送信されます)。"
-            confirmLabel="再開する"
-            onConfirm={continueDispatch}
-          />
-        </Flex>
-      ) : null}
 
       <Stack space={3}>
         <SecTitle as="h2" size="lg">
@@ -208,7 +196,7 @@ function DispatchSummary({ dispatch, categoryLabel }: { dispatch: AdminDispatchD
             <Field
               key={channel}
               label={`件数(${messageChannelLabel(channel)})`}
-              value={`対象 ${c.targeted} / 送信 ${c.sent} / 失敗 ${c.failed} / 送信停止 ${c.suppressed} / 宛先なし ${c.skipped_no_address} / 頻度制限 ${c.skipped_throttled}`}
+              value={`対象 ${c.targeted} / ${DELIVERY_STATUS_DISPLAY.sent.label} ${c.sent} / ${DELIVERY_STATUS_DISPLAY.failed.label} ${c.failed} / ${DELIVERY_STATUS_DISPLAY.suppressed.label} ${c.suppressed} / ${DELIVERY_REASON_LABELS.no_address} ${c.skipped_no_address} / ${DELIVERY_REASON_LABELS.throttled} ${c.skipped_throttled}`}
             />
           ))}
         </Stack>

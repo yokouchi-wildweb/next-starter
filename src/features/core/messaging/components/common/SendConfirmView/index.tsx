@@ -11,6 +11,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 
+import { DELIVERY_STATUS_DISPLAY } from "../DeliveryStatusBadge";
 import { DISPATCH_STATUS_DISPLAY } from "../DispatchStatusBadge";
 
 export type SendConfirmViewProps = {
@@ -71,7 +72,7 @@ export function SendResultView({ status, queuedCount, dispatchHref, afterSend, r
     <Stack space={3} data-slot="send-result-view">
       <Para size="sm" className="my-0">
         {status === "scheduled" ? "予約しました" : "送信を受け付けました"}(状態: {DISPATCH_STATUS_DISPLAY[status]?.label ?? "受け付け済み"}
-        {queuedCount > 0 ? ` / 送信待ち ${queuedCount} 件` : ""})
+        {queuedCount > 0 ? ` / ${DELIVERY_STATUS_DISPLAY.queued.label} ${queuedCount} 件` : ""})
       </Para>
       {afterSend ? (
         <Flex align="center" gap="xs">
