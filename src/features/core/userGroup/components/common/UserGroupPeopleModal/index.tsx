@@ -100,8 +100,7 @@ export function UserGroupPeopleModal({ title, people, emptyText, disabled = fals
             <Button
               type="button"
               size="sm"
-              variant="outline"
-              className="border-destructive text-destructive-text"
+              variant="destructiveOutline"
               disabled={people.searching || people.busy || total === 0}
               onClick={() => setClearOpen(true)}
             >

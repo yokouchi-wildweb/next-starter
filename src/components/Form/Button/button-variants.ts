@@ -30,6 +30,13 @@ const BUTTON_VARIANTS = {
     // 低い強調度で背景になじむ枠線付きのボタン。
     outline:
       "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+    // 削除など取り消せない操作を控えめに置く枠線付きボタン(赤い枠と文字。乗ると薄い赤の地)。
+    // outline に赤の className を足すと、乗った時に outline の accent の地が出て色が合わないため、これを使う。
+    destructiveOutline:
+      "border border-destructive/50 bg-background text-destructive-text shadow-xs hover:bg-destructive/10 hover:border-destructive focus-visible:ring-destructive/20 dark:bg-input/30 dark:hover:bg-destructive/20 dark:focus-visible:ring-destructive/40",
+    // 削除など取り消せない操作を行の中などに置く枠なしボタン(赤い文字。乗ると薄い赤の地)。
+    destructiveGhost:
+      "text-destructive-text hover:bg-destructive/10 focus-visible:ring-destructive/20 dark:hover:bg-destructive/20 dark:focus-visible:ring-destructive/40",
     // プライマリと組み合わせる代替のセカンダリボタン。
     secondary: "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
     // ホバー表現は残しつつ主張を抑えた三次的アクション用ボタン。

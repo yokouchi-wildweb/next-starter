@@ -114,7 +114,7 @@ export function UserGroupRow({ group, onOpen, onArchive, onRestore, onDelete }: 
             group.deletable ? (
               <ConfirmPopover
                 trigger={
-                  <Button type="button" size="sm" variant="ghost" className="text-destructive-text">
+                  <Button type="button" size="sm" variant="destructiveGhost">
                     削除
                   </Button>
                 }
