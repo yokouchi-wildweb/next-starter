@@ -5,6 +5,7 @@
 
 import override, { type Extra } from "@/config/features/user.config";
 import { defineConfig, type OverrideOf, type WithExtra } from "@/lib/defineConfig";
+import type { SelectionMode } from "@/lib/tableSuite";
 
 /**
  * サインアップモード
@@ -40,8 +41,8 @@ export type UserConfig = {
   userListPage: {
     /** セレクションテーブルの選択方式 */
     selectionBehavior: SelectionBehavior;
-    /** バルクアクションバーを常に表示する */
-    bulkActionsAlwaysVisible: boolean;
+    /** 選択の出し方(lib/tableSuite の selectionMode: onSelect = 選んだ時だけバー / always = いつも / toggle = 選択モードの切り替え) */
+    selectionMode: SelectionMode;
     /** セレクションテーブルを有効にするユーザー種別 */
     enableSelectionTable: { general: boolean; managerial: boolean };
   };
@@ -127,7 +128,7 @@ const defaults: UserConfig = {
   enableUserMemo: false,
   userListPage: {
     selectionBehavior: "row",
-    bulkActionsAlwaysVisible: true,
+    selectionMode: "always",
     enableSelectionTable: {
       general: true,
       managerial: false,

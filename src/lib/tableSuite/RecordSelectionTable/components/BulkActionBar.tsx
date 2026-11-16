@@ -2,7 +2,11 @@ import React from "react";
 import { X } from "lucide-react";
 
 import { Button } from "@/components/Form/Button";
+import { SwitchInput } from "@/components/Form/Input/Manual";
+import { Checkbox } from "@/components/Primitives/Checkbox";
 import { cn } from "@/lib/cn";
+
+import type { SelectionMode } from "../hooks/useSelectionMode";
 
 export type BulkActionSelection<T> = {
   /** 選択されたレコードのキー配列 */
@@ -40,8 +44,13 @@ type BulkActionBarProps<T> = {
   spacing?: BulkActionBarSpacing;
   /** テーブルの上か下か @default "top" */
   placement?: "top" | "bottom";
-  /** 常に表示するかどうか @default false */
-  alwaysVisible?: boolean;
+  /** 選択の出し方(onSelect = 選んだ時だけ帯 / always = いつも / toggle = いつも + 選択モードの切り替え) @default "onSelect" */
+  mode?: SelectionMode;
+  /** toggle の切り替えの今の値(入 = チェックと操作を出す) */
+  selectionOn?: boolean;
+  onSelectionOnChange?: (on: boolean) => void;
+  /** 帯の左の「すべて選択」(見出しの行の無い一覧で使う) */
+  selectAll?: { checked: boolean; indeterminate: boolean; onToggle: (checked: boolean) => void; label?: string };
   /** 0件選択時のメッセージ @default "行を選択して一括処理を実行" */
   emptyMessage?: string;
   /** スクロールしても見える位置に留めるかどうか @default false */
@@ -53,12 +62,15 @@ export function BulkActionBar<T>({
   bulkActions,
   spacing = "md",
   placement = "top",
-  alwaysVisible = false,
+  mode = "onSelect",
+  selectionOn = true,
+  onSelectionOnChange,
+  selectAll,
   emptyMessage = "行を選択して一括処理を実行",
   sticky = false,
 }: BulkActionBarProps<T>) {
   const hasSelection = selection.count > 0;
-  const isVisible = alwaysVisible || hasSelection;
+  const isVisible = mode !== "onSelect" || hasSelection;
   const spacingClass = placement === "top" ? SPACING_MB[spacing] : SPACING_MT[spacing];
 
   return (
@@ -80,8 +92,21 @@ export function BulkActionBar<T>({
         )}
       >
         {/* 左側: 共通部分 */}
-        <div className="flex flex-1 items-center gap-2">
-          {hasSelection ? (
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          {mode === "toggle" ? (
+            <SwitchInput value={selectionOn} onChange={(on) => onSelectionOnChange?.(on)} label="選択モード" />
+          ) : null}
+          {selectAll && selectionOn ? (
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <Checkbox
+                checked={selectAll.indeterminate ? "indeterminate" : selectAll.checked}
+                onCheckedChange={(checked) => selectAll.onToggle(checked === true)}
+                aria-label={selectAll.label ?? "すべて選択"}
+              />
+              {selectAll.label ?? "すべて選択"}
+            </label>
+          ) : null}
+          {!selectionOn ? null : hasSelection ? (
             <>
               <span className="font-medium text-primary">{selection.count}件選択中</span>
               <Button
@@ -101,7 +126,7 @@ export function BulkActionBar<T>({
         </div>
 
         {/* 右側: カスタムアクション */}
-        <div className="flex gap-2">{bulkActions(selection)}</div>
+        {selectionOn ? <div className="flex gap-2">{bulkActions(selection)}</div> : null}
       </div>
     </div>
   );

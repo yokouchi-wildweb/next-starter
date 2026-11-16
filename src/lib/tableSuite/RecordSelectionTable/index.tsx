@@ -34,8 +34,10 @@ import { BulkActionBar, type BulkActionSelection, type BulkActionBarSpacing, typ
 import { SelectionCell } from "./components/SelectionCell";
 import { SelectionHeaderCell } from "./components/SelectionHeaderCell";
 import { useRecordSelectionState } from "./hooks/useRecordSelectionState";
+import { useSelectionMode, type SelectionMode } from "./hooks/useSelectionMode";
 
 export type { BulkActionSelection, BulkActionBarSpacing, BulkActionBarPosition } from "./components/BulkActionBar";
+export type { SelectionMode } from "./hooks/useSelectionMode";
 
 type SelectionBehavior = "row" | "checkbox";
 
@@ -57,8 +59,12 @@ export type RecordSelectionTableProps<T> = DataTableProps<T> & {
   bulkActionsSpacing?: BulkActionBarSpacing;
   /** 一括操作バーの表示位置 @default "top" */
   bulkActionsPosition?: BulkActionBarPosition;
-  /** 一括操作バーを常に表示するかどうか @default false */
-  bulkActionsAlwaysVisible?: boolean;
+  /**
+   * 選択の出し方(D97 D98): onSelect = チェックはいつも、一括操作バーは選んだ時だけ / always = チェックもバーもいつも /
+   * toggle = バーはいつも出し、その中の「選択モード」が入の間だけチェックと操作(切で選択を空に)。selectionBehavior とは別の軸
+   * @default "onSelect"
+   */
+  selectionMode?: SelectionMode;
   /** 0件選択時のメッセージ @default "行を選択して一括処理を実行" */
   bulkActionsEmptyMessage?: string;
   /**
@@ -93,7 +99,7 @@ export default function RecordSelectionTable<T>({
   bulkActions,
   bulkActionsSpacing,
   bulkActionsPosition = "top",
-  bulkActionsAlwaysVisible,
+  selectionMode = "onSelect",
   bulkActionsEmptyMessage,
   bulkActionsSticky,
   rowHeight = "md",
@@ -131,7 +137,9 @@ export default function RecordSelectionTable<T>({
     onSelectionChange,
   });
 
-  const shouldHandleRowSelection = selectionBehavior === "row";
+  const clearSelection = React.useCallback(() => updateAllSelection(false), [updateAllSelection]);
+  const { selectionOn, setSelectionOn } = useSelectionMode(selectionMode, clearSelection);
+  const shouldHandleRowSelection = selectionBehavior === "row" && selectionOn;
   const isCheckboxSelection = selectionBehavior === "checkbox";
 
   const handleRowClick = (item: T, key: React.Key) => {
@@ -153,7 +161,7 @@ export default function RecordSelectionTable<T>({
 
   const reorder = useTableReorder({ items, getKey, reorderable, sort, guardUnsaved });
   // 選択列（+ ハンドル列）を含めた全カラムを結合して描画する
-  const fullWidthColSpan = columns.length + 1 + (reorder.enabled ? 1 : 0);
+  const fullWidthColSpan = columns.length + (selectionOn ? 1 : 0) + (reorder.enabled ? 1 : 0);
 
   // 一括操作バー用のselectionオブジェクトを作成
   const bulkActionSelection = React.useMemo<BulkActionSelection<T>>(() => {
@@ -179,7 +187,9 @@ export default function RecordSelectionTable<T>({
           bulkActions={bulkActions}
           spacing={bulkActionsSpacing}
           placement="top"
-          alwaysVisible={bulkActionsAlwaysVisible}
+          mode={selectionMode}
+          selectionOn={selectionOn}
+          onSelectionOnChange={setSelectionOn}
           emptyMessage={bulkActionsEmptyMessage}
           sticky={bulkActionsSticky}
         />
@@ -198,14 +208,16 @@ export default function RecordSelectionTable<T>({
           <TableHeader>
             <TableRow disableHover>
               {reorder.enabled && <DragHandleHead />}
-              <SelectionHeaderCell
-                label={resolvedSelectColumnLabel}
-                isCheckboxSelection={isCheckboxSelection}
-                checked={isAllSelected}
-                indeterminate={isPartialSelection}
-                onToggle={(checked) => updateAllSelection(checked)}
-                onRequestToggle={() => updateAllSelection(!isAllSelected)}
-              />
+              {selectionOn ? (
+                <SelectionHeaderCell
+                  label={resolvedSelectColumnLabel}
+                  isCheckboxSelection={isCheckboxSelection}
+                  checked={isAllSelected}
+                  indeterminate={isPartialSelection}
+                  onToggle={(checked) => updateAllSelection(checked)}
+                  onRequestToggle={() => updateAllSelection(!isAllSelected)}
+                />
+              ) : null}
               {columns.map((col, idx) => (
                 <SortableTableHead
                   key={idx}
@@ -248,13 +260,15 @@ export default function RecordSelectionTable<T>({
                   data-selected={isSelected ? "true" : undefined}
                   disableHover={disableRowHover}
                 >
-                  <SelectionCell
-                    label={resolvedSelectColumnLabel}
-                    rowIndex={itemIndex}
-                    isCheckboxSelection={isCheckboxSelection}
-                    isSelected={isSelected}
-                    onToggle={(checked) => updateKeySelection(key, checked)}
-                  />
+                  {selectionOn ? (
+                    <SelectionCell
+                      label={resolvedSelectColumnLabel}
+                      rowIndex={itemIndex}
+                      isCheckboxSelection={isCheckboxSelection}
+                      isSelected={isSelected}
+                      onToggle={(checked) => updateKeySelection(key, checked)}
+                    />
+                  ) : null}
                   {columns.map((col, idx) => (
                     <TableCell
                       key={idx}
@@ -321,7 +335,9 @@ export default function RecordSelectionTable<T>({
           bulkActions={bulkActions}
           spacing={bulkActionsSpacing}
           placement="bottom"
-          alwaysVisible={bulkActionsAlwaysVisible}
+          mode={selectionMode}
+          selectionOn={selectionOn}
+          onSelectionOnChange={setSelectionOn}
           emptyMessage={bulkActionsEmptyMessage}
           sticky={bulkActionsSticky}
         />
