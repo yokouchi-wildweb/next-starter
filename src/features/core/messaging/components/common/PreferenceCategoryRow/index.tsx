@@ -52,9 +52,9 @@ export function preferenceViaReason(via: MessagePreferenceVia | null): string | 
 export function PreferenceCategoryRow({ category, channelLabel, disabled = false, onChange, children }: PreferenceCategoryRowProps) {
   const reason = preferenceViaReason(category.via);
   return (
-    <Stack space={1}>
-      <Flex justify="between" align="center" gap="md">
-        <Stack space={0}>
+    <Stack gap="2xs">
+      <Flex justify="between" align="center" gap="lg">
+        <Stack gap="none">
           <Span>{category.label}</Span>
           {category.description ? (
             <Para size="sm" tone="muted">

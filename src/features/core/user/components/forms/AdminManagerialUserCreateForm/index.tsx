@@ -76,7 +76,7 @@ export default function ManagerialUserCreateForm({
       methods={methods}
       onSubmit={submit}
       pending={pending}
-      fieldSpace={6}
+      fieldSpace="lg"
     >
       <RoleSelector
         control={control}

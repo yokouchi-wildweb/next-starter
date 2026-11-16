@@ -42,7 +42,7 @@ export function AccountInfoDetails({ account }: Props) {
   const hasAccountNumber = account.accountNumber.trim() !== "";
 
   return (
-    <Stack space={2}>
+    <Stack gap="xs">
       {/*
         口座情報をテーブル風のカードに集約。
         - 外枠: 角丸 + ボーダー + ほんのり muted な背景でモーダル本体から浮かせる
@@ -77,7 +77,7 @@ function FieldRow({ label, value, mono = false }: FieldRowProps) {
   // 値は flex-1 + text-center で右側スペース内に中央揃え
   const valueClass = `flex-1 text-center ${mono ? "font-mono tracking-wider" : ""}`.trim();
   return (
-    <Flex gap="sm" align="center" wrap="wrap" className="px-3 py-2">
+    <Flex gap="md" align="center" wrap="wrap" className="px-3 py-2">
       <Span size="xs" tone="muted" className="w-16 shrink-0">
         {label}
       </Span>

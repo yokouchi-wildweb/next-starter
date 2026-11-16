@@ -96,9 +96,9 @@ export function AuditLogSearchPanel() {
 
   return (
     <>
-      <Stack space={4}>
-        <Stack space={3} className="rounded-lg border border-border bg-card p-4">
-          <Flex gap="md" wrap="wrap">
+      <Stack gap="md">
+        <Stack gap="sm" className="rounded-lg border border-border bg-card p-4">
+          <Flex gap="lg" wrap="wrap">
             <FilterField
               label="対象ドメイン (target_type)"
               value={draft.targetType}
@@ -130,7 +130,7 @@ export function AuditLogSearchPanel() {
               placeholder="UUID (recordMany 由来)"
             />
           </Flex>
-          <Flex gap="sm">
+          <Flex gap="md">
             <Button onClick={apply} variant="primary">適用</Button>
             <Button onClick={reset} variant="ghost">リセット</Button>
           </Flex>

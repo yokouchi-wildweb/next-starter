@@ -16,7 +16,7 @@ export async function WalletPurchaseFailedScreen(props: ScreenProps<WalletPurcha
 
   return (
     <UserPage containerType="narrowStack">
-      <Stack space={6}>
+      <Stack gap="lg">
         <UserPageTitle>購入エラー</UserPageTitle>
         <PurchaseFailed slug={data.slug} />
       </Stack>

@@ -18,7 +18,7 @@ export async function ReactivateScreen(props: ScreenProps) {
 
   return (
     <UserPage containerType="narrowStack">
-      <Flex direction="column" justify="center" align="center" gap="md">
+      <Flex direction="column" justify="center" align="center" gap="lg">
         <UserPageTitle>アカウントの復帰</UserPageTitle>
         <Reactivate />
       </Flex>

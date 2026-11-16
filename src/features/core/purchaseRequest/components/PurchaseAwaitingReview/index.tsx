@@ -52,7 +52,7 @@ export function PurchaseAwaitingReview({ slug }: PurchaseAwaitingReviewProps) {
 
   if (loading) {
     return (
-      <Flex justify="center" padding="lg">
+      <Flex justify="center" padding={{ base: "md", sm: "lg" }}>
         <Spinner className="h-8 w-8" />
       </Flex>
     );
@@ -60,7 +60,7 @@ export function PurchaseAwaitingReview({ slug }: PurchaseAwaitingReviewProps) {
 
   if (error) {
     return (
-      <Stack space={8}>
+      <Stack gap="xl">
         <Para tone="destructive" align="center">
           {error}
         </Para>
@@ -74,8 +74,8 @@ export function PurchaseAwaitingReview({ slug }: PurchaseAwaitingReviewProps) {
   }
 
   return (
-    <Stack space={8}>
-      <Flex direction="column" align="center" gap="md">
+    <Stack gap="xl">
+      <Flex direction="column" align="center" gap="lg">
         <Clock className="h-16 w-16 text-warning-text" />
 
         <Para align="center" size="lg" weight="bold">
@@ -83,9 +83,9 @@ export function PurchaseAwaitingReview({ slug }: PurchaseAwaitingReviewProps) {
         </Para>
 
         {purchaseInfo && (
-          <Stack appearance="surface" padding="md" space={4} className="rounded-lg">
+          <Stack appearance="surface" padding={{ base: "sm", sm: "md" }} gap="md" className="rounded-lg">
             <Flex direction="column" gap="xs">
-              <Flex justify="between" gap="md" align="center">
+              <Flex justify="between" gap="lg" align="center">
                 <Para tone="muted" size="sm">購入数量</Para>
                 {currencyConfig && (
                   <CurrencyDisplay
@@ -97,7 +97,7 @@ export function PurchaseAwaitingReview({ slug }: PurchaseAwaitingReviewProps) {
                   />
                 )}
               </Flex>
-              <Flex justify="between" gap="md">
+              <Flex justify="between" gap="lg">
                 <Para tone="muted" size="sm">お支払い金額</Para>
                 <Para size="sm" weight="bold">
                   {purchaseInfo.paymentAmount.toLocaleString()} 円

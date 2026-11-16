@@ -39,7 +39,7 @@ export function BankAccountDetailsModal({ open, onOpenChange, account, identifie
       // gap-4: ヘッダーと本文の縦 gap（タイトル下の余白）。デフォルト gap-4 (16px) を維持
       className="p-4 gap-4"
     >
-      <Stack space={2}>
+      <Stack gap="xs">
         <TransferIdentifierCard identifier={identifier} />
         <AccountInfoDetails account={account} />
       </Stack>

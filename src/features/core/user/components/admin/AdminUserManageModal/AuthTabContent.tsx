@@ -92,7 +92,7 @@ function EmailSection({ user, onSuccess }: SectionProps) {
   return (
     <div>
       <Para size="sm" className="mb-2 font-medium">メールアドレス</Para>
-      <Flex gap="sm" align="center">
+      <Flex gap="md" align="center">
         <div className="flex-1">
           <Input
             value={email}
@@ -147,7 +147,7 @@ function PasswordSection({ user, onSuccess }: SectionProps) {
   return (
     <div>
       <Para size="sm" className="mb-2 font-medium">パスワード変更</Para>
-      <Flex gap="sm" align="center">
+      <Flex gap="md" align="center">
         <div className="flex-1">
           <PasswordInput
             // 対象ユーザーのパスワードを設定する欄。管理者自身の保存済みパスワードを自動入力させない
@@ -211,7 +211,7 @@ function PhoneSection({ user, onSuccess }: SectionProps) {
   return (
     <div>
       <Para size="sm" className="mb-2 font-medium">電話番号</Para>
-      <Flex gap="sm" align="center">
+      <Flex gap="md" align="center">
         <div className="flex-1">
           <Input
             value={phoneNumber}
@@ -272,14 +272,14 @@ export function AuthTabContent({ user, onClose }: Props) {
   const hasAnyField = visibility.email || visibility.password || visibility.phone;
 
   return (
-    <Stack space={4} padding="md">
+    <Stack gap="md" padding={{ base: "sm", sm: "md" }}>
       <UserInfoHeader
         user={user}
         infoLabel="認証方法"
         infoValue={getProviderLabel(user.providerType)}
       />
       {hasAnyField ? (
-        <Stack space={6} className="mt-4">
+        <Stack gap="lg" className="mt-4">
           {visibility.email && <EmailSection user={user} onSuccess={handleSuccess} />}
           {visibility.password && <PasswordSection user={user} onSuccess={handleSuccess} />}
           {visibility.phone && <PhoneSection user={user} onSuccess={handleSuccess} />}

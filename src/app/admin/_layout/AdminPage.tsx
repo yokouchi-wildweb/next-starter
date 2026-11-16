@@ -63,7 +63,7 @@ export default function AdminPage({ title, center, actions, tabs, children, main
         className={HEADER_PLACEMENT}
       />
       {main ? (
-        <Main containerType="plain" padding="lg" paddingBlock="xl">
+        <Main containerType="plain" padding={{ base: "md", sm: "lg" }} paddingBlock={{ base: "lg", sm: "2xl" }}>
           {body}
         </Main>
       ) : (

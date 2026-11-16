@@ -57,8 +57,8 @@ export function ConfirmTransferCTA({
 
   return (
     <>
-      <Block padding="md" className="rounded-lg border border-border bg-card">
-        <Stack space={3}>
+      <Block padding={{ base: "sm", sm: "md" }} className="rounded-lg border border-border bg-card">
+        <Stack gap="sm">
           <Span weight="semiBold" size="md">
             {circledNumber(step)} 振込完了の申告
           </Span>

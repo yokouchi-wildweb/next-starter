@@ -23,7 +23,7 @@ export function PurchaseCallback({ slug }: PurchaseCallbackProps) {
 
   if (error) {
     return (
-      <Stack space={8}>
+      <Stack gap="xl">
         <Para tone="destructive" align="center">
           {error}
         </Para>
@@ -37,8 +37,8 @@ export function PurchaseCallback({ slug }: PurchaseCallbackProps) {
   }
 
   return (
-    <Stack space={8}>
-      <Flex direction="column" align="center" gap="md">
+    <Stack gap="xl">
+      <Flex direction="column" align="center" gap="lg">
         <Spinner className="h-12 w-12 text-info-text" />
         <Para align="center" size="lg">
           決済結果を確認中です...

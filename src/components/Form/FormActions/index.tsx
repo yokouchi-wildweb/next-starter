@@ -35,9 +35,9 @@ export function FormActions({ children, className }: FormActionsProps) {
     errorContext.displayMode !== "toast";
 
   return (
-    <Stack space={4}>
+    <Stack gap="md">
       {showError && <FormErrorMessage />}
-      <Flex justify="center" gap="sm" className={className}>
+      <Flex justify="center" gap="md" className={className}>
         {children}
       </Flex>
     </Stack>

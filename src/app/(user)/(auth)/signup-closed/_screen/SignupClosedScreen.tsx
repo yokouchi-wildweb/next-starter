@@ -20,7 +20,7 @@ export async function SignupClosedScreen(props: ScreenProps) {
     <UserPage containerType="narrowStack" className="text-center items-center">
       <UserPageTitle>会員登録 受付停止中</UserPageTitle>
       <Para align="center">新規会員登録の受付を停止しております。</Para>
-      <Stack space={3} className="mt-6">
+      <Stack gap="sm" className="mt-6">
         <LinkButton href="/login" variant="default">
           ログインはこちら
         </LinkButton>

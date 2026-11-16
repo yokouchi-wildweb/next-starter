@@ -104,7 +104,7 @@ export function ImportTab({
       )}
 
       {/* フッター */}
-      <Flex justify="end" gap="sm" className="pt-4 border-t border-border">
+      <Flex justify="end" gap="md" className="pt-4 border-t border-border">
         <Button variant="outline" onClick={() => onOpenChange(false)} disabled={importHandler.isImporting}>
           {importHandler.result ? "閉じる" : "キャンセル"}
         </Button>

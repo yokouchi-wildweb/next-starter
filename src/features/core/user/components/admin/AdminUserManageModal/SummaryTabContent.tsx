@@ -34,7 +34,7 @@ type InfoRowProps = {
 
 function InfoRow({ label, children }: InfoRowProps) {
   return (
-    <Flex gap="md" align="start" className="py-2 border-b border-border last:border-b-0">
+    <Flex gap="lg" align="start" className="py-2 border-b border-border last:border-b-0">
       <span className="shrink-0 w-32 text-sm font-medium text-muted-foreground">
         {label}
       </span>
@@ -65,9 +65,9 @@ export function SummaryTabContent({ user }: Props) {
   const hasHistory = loginHistory.length > 0;
 
   return (
-    <Stack space={4} padding="md">
+    <Stack gap="md" padding={{ base: "sm", sm: "md" }}>
       {/* 基本情報 */}
-      <Stack space={0} className="rounded-md border border-border bg-card px-4 py-2">
+      <Stack gap="none" className="rounded-md border border-border bg-card px-4 py-2">
         <InfoRow label="名前">
           {user.name ?? <span className="text-muted-foreground italic">{FALLBACK}</span>}
         </InfoRow>
@@ -92,7 +92,7 @@ export function SummaryTabContent({ user }: Props) {
       </Stack>
 
       {/* ログイン履歴 */}
-      <Stack space={2}>
+      <Stack gap="xs">
         <Para size="sm" className="font-medium">
           直近のログイン履歴（最大10件）
         </Para>

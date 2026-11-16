@@ -17,7 +17,7 @@ type HeroProps = {
 export function Hero({ showDemoLink }: HeroProps) {
   return (
     <Section>
-      <Stack space={6} className="items-center text-center">
+      <Stack gap="lg" className="items-center text-center">
         <Span
           size="xs"
           weight="medium"
@@ -27,7 +27,7 @@ export function Hero({ showDemoLink }: HeroProps) {
           Next.js 16 · React 19 · App Router
         </Span>
 
-        <Stack space={3} className="items-center">
+        <Stack gap="sm" className="items-center">
           <PageTitle
             align="center"
             className="text-4xl font-semibold tracking-tighter text-balance sm:text-5xl lg:text-6xl"

@@ -15,7 +15,7 @@ export async function WalletPurchaseCallbackScreen(props: ScreenProps<WalletPurc
 
   return (
     <UserPage containerType="narrowStack">
-      <Stack space={6}>
+      <Stack gap="lg">
         <PurchaseCallback slug={data.slug} />
       </Stack>
     </UserPage>

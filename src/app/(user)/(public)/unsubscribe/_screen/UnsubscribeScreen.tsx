@@ -16,7 +16,7 @@ export async function UnsubscribeScreen(props: ScreenProps<Record<string, never>
 
   return (
     <UserPage containerType="narrowStack">
-      <Stack space={6}>
+      <Stack gap="lg">
         <UserPageTitle>配信停止</UserPageTitle>
         <Unsubscribe {...data} />
       </Stack>

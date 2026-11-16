@@ -17,7 +17,7 @@ export async function ForgotPasswordScreen(props: ScreenProps) {
 
   return (
     <UserPage containerType="narrowStack">
-      <Flex direction="column" justify="center" align="center" gap="md">
+      <Flex direction="column" justify="center" align="center" gap="lg">
         <UserPageTitle>パスワードをリセット</UserPageTitle>
         <ForgotPassword />
       </Flex>

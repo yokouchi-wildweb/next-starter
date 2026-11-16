@@ -48,7 +48,7 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
   if (phase === "initial" || phase === "validating") {
     return (
       <section id="reset-password" className="w-full">
-        <Stack space={6} className="text-center">
+        <Stack gap="lg" className="text-center">
           <div className="flex justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -62,13 +62,13 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
   if (phase === "error" && !email) {
     return (
       <section id="reset-password" className="w-full">
-        <Stack space={6} className="text-center">
+        <Stack gap="lg" className="text-center">
           <div className="flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
               <AlertCircle className="h-8 w-8 text-destructive-text" />
             </div>
           </div>
-          <Stack space={2}>
+          <Stack gap="xs">
             <h2 className="text-xl font-semibold">リンクが無効です</h2>
             <Para align="center" size="sm" className="text-muted-foreground">
               {error || "このリンクは無効か、有効期限が切れています。"}
@@ -88,13 +88,13 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
   if (phase === "completed") {
     return (
       <section id="reset-password" className="w-full">
-        <Stack space={6} className="text-center">
+        <Stack gap="lg" className="text-center">
           <div className="flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
               <CheckCircle className="h-8 w-8 text-success-text" />
             </div>
           </div>
-          <Stack space={2}>
+          <Stack gap="xs">
             <h2 className="text-xl font-semibold">パスワードを変更しました</h2>
             <Para align="center" size="sm" className="text-muted-foreground">
               新しいパスワードでログインできるようになりました。
@@ -113,8 +113,8 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
   // パスワード入力フォーム
   return (
     <section id="reset-password" className="w-full">
-      <Stack space={6}>
-        <Stack space={2}>
+      <Stack gap="lg">
+        <Stack gap="xs">
           <h2 className="text-xl font-semibold">新しいパスワードを設定</h2>
           {email && (
             <Para size="sm" className="text-muted-foreground">
@@ -124,7 +124,7 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
         </Stack>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <Stack space={2}>
+          <Stack gap="xs">
             <Label htmlFor="new-password" className="block text-foreground">
               新しいパスワード
             </Label>
@@ -139,7 +139,7 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
             />
           </Stack>
 
-          <Stack space={2}>
+          <Stack gap="xs">
             <Label htmlFor="confirm-password" className="block text-foreground">
               パスワード（確認）
             </Label>

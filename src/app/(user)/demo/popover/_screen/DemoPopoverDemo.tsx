@@ -122,7 +122,7 @@ export function DemoPopoverDemo() {
 
         {/* Tooltip */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">Tooltip</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               ホバーで短いテキストを表示。アイコンボタンの説明などに使用。
@@ -164,7 +164,7 @@ export function DemoPopoverDemo() {
 
         {/* Popover（基本） */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">Popover（基本）</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               汎用的なポップオーバー。タイトル、説明、コンテンツ、フッターを自由に配置可能。
@@ -224,7 +224,7 @@ export function DemoPopoverDemo() {
 
         {/* ConfirmPopover */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">ConfirmPopover</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               確認用ポップオーバー。モーダルより軽量な確認UIを提供。
@@ -265,7 +265,7 @@ export function DemoPopoverDemo() {
 
         {/* PromptPopover */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">PromptPopover</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               入力用ポップオーバー。単一入力 + 確定ボタンのパターン。
@@ -315,7 +315,7 @@ export function DemoPopoverDemo() {
 
         {/* ActionPopover */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">ActionPopover</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               アクションメニュー用ポップオーバー。複数アクションのリスト表示。
@@ -376,7 +376,7 @@ export function DemoPopoverDemo() {
 
         {/* InfoPopover */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">InfoPopover</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               情報・ヘルプ表示用ポップオーバー。?アイコンやiアイコンで詳細説明を表示。
@@ -417,7 +417,7 @@ export function DemoPopoverDemo() {
 
         {/* ChecklistPopover */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">ChecklistPopover</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               チェックリスト選択用ポップオーバー。タグ選択、カテゴリ割り当てなどに使用。
@@ -483,7 +483,7 @@ export function DemoPopoverDemo() {
 
         {/* SelectPopover */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">SelectPopover</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               単一選択用ポップオーバー。enumフィールドの変更、ステータス変更などに使用。
@@ -532,7 +532,7 @@ export function DemoPopoverDemo() {
 
         {/* EnumFieldButton with DataTable */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">EnumFieldButton + DataTable</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               サンプルドメインのデータを表示。カテゴリ（BelongsTo）とselectフィールド（Enum）を変更可能。
@@ -653,7 +653,7 @@ export function DemoPopoverDemo() {
 
         {/* HoverCard */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">HoverCard</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               ホバープレビュー。リンクやユーザー名にホバーで詳細を表示。
@@ -719,7 +719,7 @@ export function DemoPopoverDemo() {
 
         {/* 実践的なユースケース: 発送テーブル */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">実践例: 発送管理テーブル</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               追跡番号の入力にPromptPopoverを使用した例。

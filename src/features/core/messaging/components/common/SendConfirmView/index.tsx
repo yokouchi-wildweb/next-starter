@@ -33,7 +33,7 @@ export function SendConfirmView({ estimate, bulk, scheduledAt, templateVersion, 
       ? `${estimate.count} 名(送信時に再集計します)`
       : "-";
   return (
-    <Stack space={2} data-slot="send-confirm-view">
+    <Stack gap="xs" data-slot="send-confirm-view">
       <Para size="sm" className="my-0">
         宛先: {who}
       </Para>
@@ -69,7 +69,7 @@ export type SendResultViewProps = {
 
 export function SendResultView({ status, queuedCount, dispatchHref, afterSend, recordNoun }: SendResultViewProps) {
   return (
-    <Stack space={3} data-slot="send-result-view">
+    <Stack gap="sm" data-slot="send-result-view">
       <Para size="sm" className="my-0">
         {status === "scheduled" ? "予約しました" : "送信を受け付けました"}(状態: {DISPATCH_STATUS_DISPLAY[status]?.label ?? "受け付け済み"}
         {queuedCount > 0 ? ` / ${DELIVERY_STATUS_DISPLAY.queued.label} ${queuedCount} 件` : ""})

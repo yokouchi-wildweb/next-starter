@@ -76,7 +76,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
       maxWidth={920}
       maxHeight="88vh"
     >
-      <Stack space={5} className="p-4">
+      <Stack className="gap-5 p-4">
         <Para size="sm" tone="muted">
           銀行明細の CSV を取り込み、振込人名末尾の 8 桁識別番号と振込金額から
           「レビュー待ち」のレビューを自動的に「承認」または「要確認」に振り分けます。
@@ -96,7 +96,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
           </Button>
         </Flex>
 
-        <Stack space={2}>
+        <Stack gap="xs">
           <label className="text-sm font-medium">CSVファイル</label>
           <Manual.FileInput
             accept=".csv,text/csv"
@@ -108,7 +108,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
           />
         </Stack>
 
-        <Stack space={2}>
+        <Stack gap="xs">
           <label className="text-sm font-medium">またはCSVテキストを直接貼り付け</label>
           <Manual.Textarea
             rows={6}
@@ -119,7 +119,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
           />
         </Stack>
 
-        <Flex justify="end" gap="sm">
+        <Flex justify="end" gap="md">
           <Button
             variant="outline"
             size="sm"
@@ -132,7 +132,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
         </Flex>
 
         {preview ? (
-          <Stack space={3}>
+          <Stack gap="sm">
             {preview.fatalError ? (
               <div className="flex items-start gap-2 rounded border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive-text">
                 <AlertCircle className="size-4 mt-0.5 shrink-0" />
@@ -142,7 +142,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
 
             {preview.rows.length > 0 ? (
               <>
-                <Flex gap="sm" align="center" wrap="wrap">
+                <Flex gap="md" align="center" wrap="wrap">
                   <SolidBadge variant="success" size="sm">
                     <CheckCircle2 className="size-3 mr-1" />
                     承認 {preview.confirmedCount}件
@@ -182,7 +182,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
           </Stack>
         ) : null}
 
-        <Flex justify="end" gap="sm">
+        <Flex justify="end" gap="md">
           <Button variant="outline" size="sm" onClick={() => handleOpenChange(false)}>
             キャンセル
           </Button>

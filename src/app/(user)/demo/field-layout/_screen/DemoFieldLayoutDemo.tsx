@@ -82,7 +82,7 @@ export function DemoFieldLayoutDemo() {
         <SecTitle>横並びレイアウト</SecTitle>
         <Form {...form}>
           <form className="mt-4 rounded-lg border bg-background p-6">
-            <Stack space={6}>
+            <Stack gap="lg">
               <ControlledField
                 control={form.control}
                 name="title"
@@ -149,7 +149,7 @@ export function DemoFieldLayoutDemo() {
         <SecTitle>レスポンシブレイアウト</SecTitle>
         <Form {...form}>
           <form className="mt-4 rounded-lg border bg-background p-6">
-            <Stack space={6}>
+            <Stack gap="lg">
               <ControlledField
                 control={form.control}
                 name="title"
@@ -207,7 +207,7 @@ export function DemoFieldLayoutDemo() {
         <SecTitle>ControlledFieldGroup（横並びレイアウト）</SecTitle>
         <Form {...form}>
           <form className="mt-4 rounded-lg border bg-background p-6">
-            <Stack space={6}>
+            <Stack gap="lg">
               {/* 2個パターン（prefix/suffix あり） */}
               <ControlledFieldGroup
                 control={form.control}
@@ -283,7 +283,7 @@ export function DemoFieldLayoutDemo() {
         <SecTitle>ControlledFieldGroup（レスポンシブレイアウト）</SecTitle>
         <Form {...form}>
           <form className="mt-4 rounded-lg border bg-background p-6">
-            <Stack space={6}>
+            <Stack gap="lg">
               {/* layout="responsive" のみ指定（inputLayout は自動で responsive） */}
               <ControlledFieldGroup
                 control={form.control}
@@ -307,7 +307,7 @@ export function DemoFieldLayoutDemo() {
       <Section>
         <SecTitle>ManualField（エラー表示確認）</SecTitle>
         <div className="mt-4 rounded-lg border bg-background p-6">
-          <Stack space={6}>
+          <Stack gap="lg">
             <ManualField
               label="氏名"
               layout="horizontal"

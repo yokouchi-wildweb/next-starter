@@ -42,7 +42,7 @@ export function UserGroupExceptionsEditor({ exceptions, draft, editors, counts, 
     ? { draft: { value: draft.exclude, onChange: draft.setExclude, hint: DRAFT_HINT } }
     : { people: exceptions!.exclude };
   return (
-    <Stack space={3} data-slot="user-group-exceptions">
+    <Stack gap="sm" data-slot="user-group-exceptions">
       <Para size="sm" tone="muted" className="my-0">
         条件に関係なく、特定のユーザーを常に含める・常に除外することができます。一方に追加したユーザーは、もう一方から削除されます
         {scheduled ? "(「定期的に更新」のグループは次の更新で反映されます)" : ""}

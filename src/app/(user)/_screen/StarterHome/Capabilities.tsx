@@ -13,7 +13,7 @@ import { CAPABILITIES } from "./capabilities";
 export function Capabilities() {
   return (
     <Section aria-labelledby="starter-capabilities">
-      <Stack space={3}>
+      <Stack gap="sm">
         <SecTitle
           id="starter-capabilities"
           size="xs"
@@ -25,13 +25,13 @@ export function Capabilities() {
           最初から入っているもの
         </SecTitle>
 
-        <Grid gap="sm" className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <Grid gap="xs" className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {CAPABILITIES.map(({ key, icon: Icon, title, description }) => (
             <Block
               key={key}
               className="rounded-xl border bg-card/70 p-4 backdrop-blur transition-colors duration-200 hover:border-foreground/20"
             >
-              <Stack space={1.5}>
+              <Stack className="gap-1.5">
                 <Flex align="center" gap="xs">
                   <Flex
                     align="center"

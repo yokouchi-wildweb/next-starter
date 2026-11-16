@@ -133,7 +133,7 @@ export function MultiSelectInput({
           )}
         >
           {/* スクロール領域は候補リストだけ: 上限を中身のルートに付け、flex-col + min-h-0 でリストを縮める */}
-          <Stack space={0} padding="none" className={PICKER_POPOVER_BODY_CLASS}>
+          <Stack gap="none" padding="none" className={PICKER_POPOVER_BODY_CLASS}>
             <Command className="min-h-0">
               {enableSearch && <MultiSelectSearchSection placeholder={searchPlaceholder} />}
               <MultiSelectOptionList
@@ -144,7 +144,7 @@ export function MultiSelectInput({
               />
             </Command>
             <Flex
-              padding="sm"
+              padding="xs"
               justify="end"
               className="shrink-0 border-t border-border bg-popover"
             >

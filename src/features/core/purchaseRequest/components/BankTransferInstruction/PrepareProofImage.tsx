@@ -117,8 +117,8 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
   const displayUrl = previewUrl ?? resolveStorageSrc(imageUrl) ?? "";
 
   return (
-    <Block padding="md" className="rounded-lg border border-border bg-card">
-      <Stack space={3}>
+    <Block padding={{ base: "sm", sm: "md" }} className="rounded-lg border border-border bg-card">
+      <Stack gap="sm">
         <Span weight="semiBold" size="md">
           {circledNumber(step)} 振込明細の画像を用意
         </Span>
@@ -139,7 +139,7 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
         ) : null}
 
         {!hasAttached ? (
-          <Stack space={2}>
+          <Stack gap="xs">
             <Para size="sm" tone="muted">
               ATM の場合は振込明細を撮影、ネットバンキングの場合は完了画面のスクリーンショットを保存してください。
             </Para>
@@ -157,7 +157,7 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
             </Flex>
           </Stack>
         ) : (
-          <Stack space={2}>
+          <Stack gap="xs">
             <Block className="relative">
               {/* 選んだ直後のプレビュー(blob: や署名 URL も来る)なので素の img。表示中は常に見えているので lazy にせず、decode だけ非同期にする */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -173,7 +173,7 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
                 </Block>
               )}
             </Block>
-            <Flex justify="center" gap="sm" wrap="wrap">
+            <Flex justify="center" gap="md" wrap="wrap">
               <Button
                 type="button"
                 variant="outline"

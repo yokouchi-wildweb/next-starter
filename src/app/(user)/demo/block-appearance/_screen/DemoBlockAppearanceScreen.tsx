@@ -26,15 +26,15 @@ export async function DemoBlockAppearanceScreen(props: ScreenProps) {
   await loadDemoBlockAppearanceScreen(props);
 
   return (
-    <Main padding="xl" className={styles.pageBackground}>
-      <Stack space={10}>
+    <Main padding={{ base: "lg", sm: "2xl" }} className={styles.pageBackground}>
+      <Stack gap="2xl">
         <PageTitle>Block と Para のスタイルデモ</PageTitle>
         <Para tone="muted">
           Block コンポーネントの appearance と Para コンポーネントの tone を一覧で比較できます。
         </Para>
 
         <Section>
-          <Stack space={6}>
+          <Stack gap="lg">
             <SecTitle>Block appearance 一覧</SecTitle>
             <Para tone="muted" size="sm">
               各 appearance の見た目と付与されるユーティリティクラスを確認できます。
@@ -44,8 +44,8 @@ export async function DemoBlockAppearanceScreen(props: ScreenProps) {
                 <Stack
                   key={appearanceKey}
                   appearance={appearanceKey}
-                  space={4}
-                  padding="xl"
+                  gap="md"
+                  padding={{ base: "lg", sm: "2xl" }}
                   className="min-h-[220px]"
                 >
                   <Span weight="semiBold" className="tracking-wide uppercase">
@@ -69,7 +69,7 @@ export async function DemoBlockAppearanceScreen(props: ScreenProps) {
         </Section>
 
         <Section>
-          <Stack space={6}>
+          <Stack gap="lg">
             <SecTitle>Para tone 一覧</SecTitle>
             <Para tone="muted" size="sm">
               tone ごとの文字色とスタイルを見比べられるように、それぞれの tone 名と適用されるクラスを表示しています。
@@ -79,8 +79,8 @@ export async function DemoBlockAppearanceScreen(props: ScreenProps) {
                 <Stack
                   key={toneKey}
                   appearance="surface"
-                  space={2}
-                  padding="lg"
+                  gap="xs"
+                  padding={{ base: "md", sm: "lg" }}
                   className="h-full shadow-none ring-1 ring-slate-200/60 dark:ring-slate-700/60"
                 >
                   <Span weight="semiBold" className="tracking-wide uppercase">

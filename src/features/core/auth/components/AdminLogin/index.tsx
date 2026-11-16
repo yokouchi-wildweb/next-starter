@@ -28,7 +28,7 @@ export function AdminLogin({ redirectTo }: AdminLoginProps = {}) {
   return (
     <section id="admin-login" className="w-full">
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <Stack space={2}>
+        <Stack gap="xs">
           <Label htmlFor="admin-login-email" className="block text-foreground">
             メールアドレス
           </Label>
@@ -41,7 +41,7 @@ export function AdminLogin({ redirectTo }: AdminLoginProps = {}) {
             onChange={(event) => setEmail(event.target.value)}
           />
         </Stack>
-        <Stack space={2}>
+        <Stack gap="xs">
           <Label htmlFor="admin-login-password" className="block text-foreground">
             パスワード
           </Label>

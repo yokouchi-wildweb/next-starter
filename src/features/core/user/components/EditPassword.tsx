@@ -37,7 +37,7 @@ export function EditPassword({ email }: EditPasswordProps) {
 
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         <AccountPageHeader
           title="パスワードを変更"
           backHref="/mypage/account"
@@ -45,13 +45,13 @@ export function EditPassword({ email }: EditPasswordProps) {
         />
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           {isSuccess ? (
-            <Stack space={4} className="text-center">
+            <Stack gap="md" className="text-center">
               <div className="flex justify-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
                   <CheckCircleIcon className="h-6 w-6 text-success-text" />
                 </div>
               </div>
-              <Stack space={2}>
+              <Stack gap="xs">
                 <p className="font-medium">パスワードを変更しました</p>
                 <p className="text-sm text-muted-foreground">
                   新しいパスワードでログインできるようになりました。
@@ -67,7 +67,7 @@ export function EditPassword({ email }: EditPasswordProps) {
               </Button>
             </Stack>
           ) : (
-            <Stack space={4}>
+            <Stack gap="md">
               <div>
                 <Label htmlFor="current-password" className="mb-2 block">
                   現在のパスワード

@@ -158,7 +158,7 @@ export function AccountAvatarSection({
   );
 
   return (
-    <Stack space={1}>
+    <Stack gap="2xs">
       <div className="flex flex-col items-center gap-2 py-2">
         {/* アバター */}
         <div className="relative">

@@ -43,7 +43,7 @@ export function StrictModeNoticeDialog({ currencyLabel }: Props) {
       onConfirm={() => setOpen(false)}
       footerAlign="center"
     >
-      <Stack space={3}>
+      <Stack gap="sm">
         <Para size="sm" align="center" className="leading-relaxed">
           振込人名・識別番号・金額が誤っている場合や
           <br />

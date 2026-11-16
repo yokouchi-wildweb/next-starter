@@ -41,7 +41,7 @@ export function HistoryListItem({ history, walletType }: HistoryListItemProps) {
 
   return (
     <Block className="border-b border-border py-4 last:border-b-0">
-      <Flex justify="between" align="start" gap="md">
+      <Flex justify="between" align="start" gap="lg">
         {/* 左側: 日時と理由 */}
         <Flex direction="column" gap="xs" className="flex-1 min-w-0">
           <Span size="xs" tone="muted">

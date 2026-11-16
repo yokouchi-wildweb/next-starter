@@ -29,8 +29,8 @@ export function TransferIdentifierCard({ identifier }: Props) {
 
   return (
     // モーダル内表示が前提のため padding は sm（外側パディングと二重に効くのを抑える）
-    <Block padding="sm" className="rounded-lg border-2 border-destructive/40 bg-destructive/5">
-      <Stack space={2}>
+    <Block padding="xs" className="rounded-lg border-2 border-destructive/40 bg-destructive/5">
+      <Stack gap="xs">
         <Flex gap="xs" align="center">
           <AlertTriangle aria-hidden className="h-4 w-4 shrink-0 text-destructive-text" />
           <Span weight="semiBold" size="md" tone="destructive">
@@ -43,8 +43,8 @@ export function TransferIdentifierCard({ identifier }: Props) {
         </Para>
 
         {/* 識別子を大きく等幅で表示 + コピー（ラベル / 数字 / ボタンを縦に中央揃え） */}
-        <Block padding="sm" className="rounded-md border border-destructive/30 bg-card">
-          <Stack space={2} className="items-center">
+        <Block padding="xs" className="rounded-md border border-destructive/30 bg-card">
+          <Stack gap="xs" className="items-center">
             <Span size="xs" tone="muted">
               振込人名末尾の数字
             </Span>

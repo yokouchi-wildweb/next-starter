@@ -5,7 +5,7 @@ import { Para } from "@/components/TextBlocks";
 
 export function AlreadyRegisteredState() {
   return (
-    <Stack space={4}>
+    <Stack gap="md">
       <Para>このメールアドレスはすでに登録済みです。</Para>
       <Para>
         ログインする場合は

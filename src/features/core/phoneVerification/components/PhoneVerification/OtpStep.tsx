@@ -66,8 +66,8 @@ export function OtpStep({
 
   return (
     <section id="phone-verification-otp" className="w-full">
-      <Stack space={6}>
-        <Stack space={2}>
+      <Stack gap="lg">
+        <Stack gap="xs">
           <h2 className="text-xl font-semibold">認証コード入力</h2>
           <Para size="sm" className="text-muted-foreground">
             {displayPhoneNumber} に送信された{PHONE_VERIFICATION_OTP_LENGTH}桁の認証コードを入力してください。
@@ -75,7 +75,7 @@ export function OtpStep({
         </Stack>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <Stack space={2}>
+          <Stack gap="xs">
             <Label htmlFor="otp-code" className="block text-foreground">
               認証コード
             </Label>
@@ -100,7 +100,7 @@ export function OtpStep({
             </Para>
           )}
 
-          <Stack space={3}>
+          <Stack gap="sm">
             <Button
               type="submit"
               disabled={isLoading || otpCode.length !== PHONE_VERIFICATION_OTP_LENGTH}

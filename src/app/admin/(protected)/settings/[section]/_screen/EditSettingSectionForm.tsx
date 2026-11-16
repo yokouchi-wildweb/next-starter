@@ -23,7 +23,7 @@ export default function EditSettingSectionForm({ sectionKey, setting, redirectPa
   const { methods, section, fieldConfigs, submit, isMutating } = useSettingSectionForm({ sectionKey, setting, redirectPath });
 
   return (
-    <AppForm methods={methods} onSubmit={submit} pending={isMutating} fieldSpace={6}>
+    <AppForm methods={methods} onSubmit={submit} pending={isMutating} fieldSpace="lg">
       <FieldRenderer
         control={methods.control}
         methods={methods}

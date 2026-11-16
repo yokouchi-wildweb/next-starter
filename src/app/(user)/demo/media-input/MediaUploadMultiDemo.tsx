@@ -11,7 +11,7 @@ export const MediaUploadMultiDemo = () => {
   const [reorderable, setReorderable] = useState(true);
 
   return (
-    <Stack space={6} padding="xl" className="flex flex-col gap-4">
+    <Stack gap="lg" padding={{ base: "lg", sm: "2xl" }} className="flex flex-col gap-4">
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"

@@ -17,10 +17,10 @@ import { SecTitle, Para } from "@/components/TextBlocks";
  */
 export function CampaignSection() {
   return (
-    <Section id="campaign" paddingBlock="lg" className="text-center">
-      <Stack space={6}>
+    <Section id="campaign" paddingBlock={{ base: "md", sm: "lg" }} className="text-center">
+      <Stack gap="lg">
         {/* メインビジュアル・キャッチコピー */}
-        <Stack space={2}>
+        <Stack gap="xs">
           <SecTitle as="h2" size="xxl" align="center">
             事前登録キャンペーン実施中
           </SecTitle>
@@ -31,7 +31,7 @@ export function CampaignSection() {
         </Stack>
 
         {/* 特典・オファー情報 */}
-        <Stack space={4} className="mx-auto max-w-md rounded-lg border border-border bg-surface p-6">
+        <Stack gap="md" className="mx-auto max-w-md rounded-lg border border-border bg-surface p-6">
           <SecTitle as="h3" size="lg" align="center">
             限定特典
           </SecTitle>

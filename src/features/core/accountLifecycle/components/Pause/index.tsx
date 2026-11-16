@@ -46,14 +46,14 @@ export function Pause() {
 
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         <AccountPageHeader
           title="休会"
           backHref="/mypage/other"
           backDisabled={isLoading}
         />
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <Stack space={4}>
+          <Stack gap="md">
             <PauseDescription />
             <Button
               variant="outline"
@@ -77,7 +77,7 @@ export function Pause() {
         title="休会の確認"
         maxWidth={480}
       >
-        <Flex direction="column" gap="lg">
+        <Flex direction="column" gap="xl">
           <Para tone="muted" size="sm" className="mt-0">
             本当に休会しますか？休会中はサービスを利用できません。
             いつでもログインして復帰することができます。
@@ -98,7 +98,7 @@ export function Pause() {
             </Para>
           )}
 
-          <Flex gap="sm" justify="end">
+          <Flex gap="md" justify="end">
             <Button
               variant="outline"
               onClick={handleCloseModal}

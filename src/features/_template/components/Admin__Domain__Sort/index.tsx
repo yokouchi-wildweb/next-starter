@@ -52,7 +52,7 @@ export default function Admin__Domain__Sort({ initial__Domains__ }: Props) {
 
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         {/* ヘッダー: 完了ボタン */}
         <Flex justify="end">
           <Button asChild>

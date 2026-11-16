@@ -24,7 +24,7 @@ export function MainMenu() {
 
   return (
     <Section>
-      <Stack space={3}>
+      <Stack gap="sm">
         {rows.map((row) =>
           row.kind === "link" ? (
             <RichMenuCard

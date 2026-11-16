@@ -21,7 +21,7 @@ export type UserGroupFreezeProgressProps = {
 export function UserGroupFreezeProgress({ progress, onCancel, onClear }: UserGroupFreezeProgressProps) {
   if (progress.status === "idle") return null;
   return (
-    <Stack space={2} className="rounded-md border border-border bg-muted/30 p-4" data-slot="user-group-freeze">
+    <Stack gap="xs" className="rounded-md border border-border bg-muted/30 p-4" data-slot="user-group-freeze">
       {progress.status === "running" ? (
         <Flex align="center" justify="between" gap="xs" wrap="wrap">
           <Flex align="center" gap="xs">

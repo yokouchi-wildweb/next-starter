@@ -14,9 +14,9 @@ import { RichMenuCard } from "@/features/core/user/components/common/RichMenuCar
 export function OtherActions() {
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         <AccountPageHeader title="その他の操作" backHref="/mypage" />
-        <Stack space={3}>
+        <Stack gap="sm">
           <RichMenuCard
             icon={PauseCircleIcon}
             title="休会する"

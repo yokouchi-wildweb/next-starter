@@ -15,7 +15,7 @@ export async function DebugIndexScreen(props: ScreenProps) {
 
   return (
     <Main>
-      <Stack space={4}>
+      <Stack gap="md">
         <SecTitle>デバッグツール</SecTitle>
         <Para>
           この領域（/debug/**）は管理者カテゴリ + デバッガーロールのみアクセスできます。

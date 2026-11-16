@@ -82,12 +82,12 @@ export function MilestoneNotifications({ results }: MilestoneNotificationsProps)
     <>
       {/* インライン通知リスト */}
       {inlineResults.length > 0 && (
-        <Stack appearance="surface" padding="md" space={4} className="rounded-lg">
-          <Flex align="center" gap="sm">
+        <Stack appearance="surface" padding={{ base: "sm", sm: "md" }} gap="md" className="rounded-lg">
+          <Flex align="center" gap="md">
             <Trophy className="h-5 w-5 text-warning-text" />
             <Para size="sm" weight="bold">達成したマイルストーン</Para>
           </Flex>
-          <Stack space={2}>
+          <Stack gap="xs">
             {inlineResults.map(({ key, props, Component }) => (
               <Component key={key} result={props.seriesResults?.at(-1) ?? props.result} seriesResults={props.seriesResults} />
             ))}

@@ -146,13 +146,13 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
     .join(" / ");
 
   const adjustTabContent = (
-    <Stack space={4} padding="md">
+    <Stack gap="md" padding={{ base: "sm", sm: "md" }}>
       <Stack
         className="rounded-md border border-border bg-card px-4 py-3"
-        space={2}
+        gap="xs"
       >
         <Flex direction="column" gap="xs">
-          <Flex justify="between" align="center" gap="lg" wrap="wrap">
+          <Flex justify="between" align="center" gap="xl" wrap="wrap">
             <div>
               <Para size="xs" tone="muted">
                 対象ユーザー
@@ -173,7 +173,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
           </Flex>
         </Flex>
       </Stack>
-      <AppForm methods={methods} onSubmit={submit} pending={isProcessing} fieldSpace={6}>
+      <AppForm methods={methods} onSubmit={submit} pending={isProcessing} fieldSpace="lg">
         <ControlledField
           control={control}
           name="walletType"
@@ -237,7 +237,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
           )}
         />
         <MetaFieldsSection control={control} walletType={walletType} />
-        <Flex gap="sm" justify="end">
+        <Flex gap="md" justify="end">
           <Button type="button" variant="outline" onClick={handleRequestClose}>
             キャンセル
           </Button>

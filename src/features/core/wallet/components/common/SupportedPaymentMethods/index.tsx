@@ -158,16 +158,16 @@ function PaymentMethodCard({ method, isSelected, blocked, bonuses, onSelect }: C
   const descriptionText = isBlocked ? blocked.message : method.description;
 
   const innerContent = (
-    <Flex align="center" gap="sm">
+    <Flex align="center" gap="md">
       <Flex
         align="center"
         justify="center"
-        padding="sm"
+        padding="xs"
         className={iconContainerClass}
       >
         <Icon aria-hidden className={`h-6 w-6 ${iconColorClass}`} strokeWidth={1.75} />
       </Flex>
-      <Stack space={1} className="min-w-0 flex-1">
+      <Stack gap="2xs" className="min-w-0 flex-1">
         {isInteractive && bonuses.length > 0 ? (
           <Flex align="center" gap="xs" wrap="wrap">
             <Span weight={labelWeight} size="sm" className={labelToneClass}>
@@ -210,7 +210,7 @@ function PaymentMethodCard({ method, isSelected, blocked, bonuses, onSelect }: C
   if (isBlockedClickable) {
     return (
       <Link href={blockedRedirectUrl} className="block">
-        <Block className={`${cardClasses} cursor-pointer`} padding="md">
+        <Block className={`${cardClasses} cursor-pointer`} padding={{ base: "sm", sm: "md" }}>
           {innerContent}
         </Block>
       </Link>
@@ -220,7 +220,7 @@ function PaymentMethodCard({ method, isSelected, blocked, bonuses, onSelect }: C
   // 非インタラクティブ (blocked / coming_soon): 静的 Block で表示
   if (!isInteractive) {
     return (
-      <Block className={`${cardClasses} cursor-not-allowed`} padding="md" aria-disabled>
+      <Block className={`${cardClasses} cursor-not-allowed`} padding={{ base: "sm", sm: "md" }} aria-disabled>
         {innerContent}
       </Block>
     );
@@ -322,12 +322,12 @@ export function SupportedPaymentMethods({
   }
 
   return (
-    <Stack space={3}>
+    <Stack gap="sm">
       <Para size="sm" tone="muted" align="center">
         決済方法を選択してください
       </Para>
       <div role="radiogroup" aria-label="支払い方法">
-        <Stack space={2}>
+        <Stack gap="xs">
           {methods.map((method) => (
             <PaymentMethodCard
               key={method.id}

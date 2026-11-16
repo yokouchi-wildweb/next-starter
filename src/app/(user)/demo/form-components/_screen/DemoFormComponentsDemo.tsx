@@ -371,7 +371,7 @@ export function DemoFormComponentsDemo() {
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
-                <Stack space={4}>
+                <Stack gap="md">
                   <Label className="text-sm font-medium">StepperInput</Label>
                   <Para tone="muted" size="xs">
                     サイズ違いのバリエーションをまとめて確認できます。

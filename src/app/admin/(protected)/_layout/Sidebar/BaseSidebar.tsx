@@ -120,7 +120,7 @@ export function BaseSidebar({
 
   return (
     <aside style={{ width }} className={cn(sidebarContainer(), "flex flex-col")}>
-      <Stack space={2} className="w-full mb-0">
+      <Stack gap="xs" className="w-full mb-0">
         <nav aria-label="管理メニュー" className="w-full">
           <ul className="flex w-full flex-col p-0 list-none m-0">
             <li className="relative w-full">
@@ -205,7 +205,7 @@ export function BaseSidebar({
           </ul>
         </nav>
       </Stack>
-      <Stack space={2} className="w-full mt-0">
+      <Stack gap="xs" className="w-full mt-0">
         <MenuButton asChild>
           <Link href={ADMIN_SITE_LINK.href} onClick={() => onNavigate?.()}>
             {ADMIN_MENU_ICONS_ENABLED && <ADMIN_SITE_LINK.icon className="size-4 shrink-0" />}

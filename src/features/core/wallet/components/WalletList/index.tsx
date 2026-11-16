@@ -27,7 +27,7 @@ export function WalletList({ wallets }: WalletListProps) {
   const entries = wallets ?? listAllWallets();
 
   return (
-    <Stack space={0}>
+    <Stack gap="none">
       {entries.map((entry) => {
         const config = walletConfig.currency[entry.walletType];
         const Icon = getCurrencyIcon(entry.walletType);
@@ -41,10 +41,10 @@ export function WalletList({ wallets }: WalletListProps) {
             <Flex
               justify="between"
               align="center"
-              padding="md"
+              padding={{ base: "sm", sm: "md" }}
               className="transition-colors hover:bg-muted/50"
             >
-              <Flex align="center" gap="sm">
+              <Flex align="center" gap="md">
                 <Icon
                   className="size-6"
                   style={{ color: config.color }}

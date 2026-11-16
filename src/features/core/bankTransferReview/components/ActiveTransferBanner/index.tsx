@@ -62,17 +62,17 @@ export function ActiveTransferBanner() {
   return (
     <Link href={active.redirectUrl} className="block">
       <Block
-        padding="md"
+        padding={{ base: "sm", sm: "md" }}
         className="rounded-lg border-2 border-primary/40 bg-primary/5 transition-colors hover:bg-primary/10"
       >
-        <Flex align="center" gap="sm">
+        <Flex align="center" gap="md">
           {/* アイコン円バッジ */}
           <Block className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15">
             <Clock className="h-4 w-4 text-primary" strokeWidth={2.5} />
           </Block>
 
           {/* メッセージ */}
-          <Stack space={0.5} className="min-w-0 flex-1">
+          <Stack className="gap-0.5 min-w-0 flex-1">
             <Span weight="semiBold" size="sm" tone="primary">
               {messages.heading}
             </Span>

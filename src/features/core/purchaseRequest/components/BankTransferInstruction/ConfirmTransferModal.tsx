@@ -130,9 +130,9 @@ export function ConfirmTransferModal({
       className="p-4 gap-4"
       showCloseButton={!isSubmitting}
     >
-      <Stack space={3}>
+      <Stack gap="sm">
         {/* 添付画像プレビュー */}
-        <Stack space={1}>
+        <Stack gap="2xs">
           <Span size="xs" tone="muted">
             添付した画像
           </Span>
@@ -154,7 +154,7 @@ export function ConfirmTransferModal({
 
         {/* [不承認申告のみ] 入金確認のための振込人名等メモ（必須） */}
         {judgmentFailed && (
-          <Stack space={1}>
+          <Stack gap="2xs">
             <Span size="sm" weight="semiBold">
               ご入金の確認が取れる情報
               <Span size="xs" tone="destructive" weight="semiBold" className="ml-1">
@@ -176,15 +176,15 @@ export function ConfirmTransferModal({
         )}
 
         {/* お手続きに関するご注意 */}
-        <Block padding="sm" className="rounded-lg border-2 border-destructive/40 bg-destructive/5">
-          <Stack space={2}>
+        <Block padding="xs" className="rounded-lg border-2 border-destructive/40 bg-destructive/5">
+          <Stack gap="xs">
             <Flex gap="xs" align="center">
               <AlertTriangle aria-hidden className="h-4 w-4 shrink-0 text-destructive-text" />
               <Span weight="semiBold" size="sm" tone="destructive">
                 お手続きに関するご注意
               </Span>
             </Flex>
-            <Stack space={2}>
+            <Stack gap="xs">
               <Para size="xs" className="leading-snug">
                 実際にお振込みが完了した場合のみ申告してください。
               </Para>
@@ -219,7 +219,7 @@ export function ConfirmTransferModal({
         </Flex>
 
         {/* フッターアクション */}
-        <Flex justify="end" gap="sm" wrap="wrap">
+        <Flex justify="end" gap="md" wrap="wrap">
           <Button
             type="button"
             variant="outline"

@@ -20,7 +20,7 @@ export async function PasswordResetScreen(
 
   return (
     <UserPage containerType="narrowStack">
-      <Flex direction="column" justify="center" align="center" gap="md">
+      <Flex direction="column" justify="center" align="center" gap="lg">
         <UserPageTitle>パスワードを再設定</UserPageTitle>
         <ResetPassword oobCode={oobCode} />
       </Flex>

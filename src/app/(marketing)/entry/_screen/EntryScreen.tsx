@@ -18,7 +18,7 @@ export async function EntryScreen(props: ScreenProps) {
   await loadEntryScreen(props);
 
   return (
-    <Main containerType="contentShell" padding="md">
+    <Main containerType="contentShell" padding={{ base: "sm", sm: "md" }}>
       <PageTitle srOnly>事前登録</PageTitle>
       <CampaignSection />
       <EntrySignupSection />

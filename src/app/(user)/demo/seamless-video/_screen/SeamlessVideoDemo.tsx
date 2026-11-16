@@ -128,10 +128,10 @@ export function SeamlessVideoDemo() {
   }, [playMuxedAudio, videoRef, status]);
 
   return (
-    <Stack space={6}>
+    <Stack gap="lg">
       {/* 環境サポート */}
       <Block className="rounded-lg border bg-muted/40 p-4">
-        <Stack space={2}>
+        <Stack gap="xs">
           <SecTitle size="sm">この環境のサポート状況</SecTitle>
           <Para size="sm" tone="muted">
             MSE: {env.mse ? "対応" : "非対応"}
@@ -152,7 +152,7 @@ export function SeamlessVideoDemo() {
 
       {/* ファイル選択 */}
       <Block className="rounded-lg border p-4">
-        <Stack space={3}>
+        <Stack gap="sm">
           <SecTitle size="sm">1. fmp4 フラグメントを選択</SecTitle>
           <Para size="sm" tone="muted">
             統一プロファイルへ変換済みの fmp4 を複数選択してください(このデモは変換しません)。選択時に自動で検証します。
@@ -207,7 +207,7 @@ export function SeamlessVideoDemo() {
             report.ok ? "border-success/40 bg-success/5" : "border-destructive/40 bg-destructive/5"
           }`}
         >
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle size="sm">検証結果: {report.ok ? "連結成立の見込みあり" : "問題あり"}</SecTitle>
             {report.mimeType && (
               <Para size="sm" tone="muted">
@@ -233,7 +233,7 @@ export function SeamlessVideoDemo() {
       {/* 並べ替え */}
       {items.length > 0 && (
         <Block className="rounded-lg border p-4">
-          <Stack space={3}>
+          <Stack gap="sm">
             <SecTitle size="sm">2. 連結順を並べ替え(順不同連結の検証)</SecTitle>
             <SortableList<FragmentItem>
               items={items}
@@ -244,7 +244,7 @@ export function SeamlessVideoDemo() {
                     const st = itemStatus(item);
                     const style = STATUS_STYLE[st];
                     return (
-                      <Stack space={1} className="min-w-0 flex-1">
+                      <Stack gap="2xs" className="min-w-0 flex-1">
                         <Flex gap="xs" align="center" className="min-w-0">
                           <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${style.className}`}>
                             {style.label}
@@ -280,10 +280,10 @@ export function SeamlessVideoDemo() {
       {/* 再生 */}
       {items.length > 0 && (
         <Block className="rounded-lg border p-4">
-          <Stack space={4}>
+          <Stack gap="md">
             <Flex gap="xs" align="center" wrap="wrap" justify="between">
               <SecTitle size="sm">3. 継ぎ目なし連結再生</SecTitle>
-              <Flex gap="sm" align="center" wrap="wrap">
+              <Flex gap="md" align="center" wrap="wrap">
                 <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <input
                     type="checkbox"
@@ -303,7 +303,7 @@ export function SeamlessVideoDemo() {
             </Block>
 
             {/* 診断 */}
-            <Stack space={1}>
+            <Stack gap="2xs">
               <Para size="sm" tone="muted">
                 状態: {status}
                 {progress.total > 0 && ` / append: ${progress.appended}/${progress.total}`}

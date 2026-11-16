@@ -34,7 +34,7 @@ function RenderSection({
 
   return (
     <Section id={section.id} marginBlock="lg">
-      <Stack space={4}>
+      <Stack gap="md">
         {section.title && (
           <SecTitle as={`h${headingLevel}`} size={depth === 0 ? "lg" : "md"}>
             {replaceVariables(section.title, variables)}

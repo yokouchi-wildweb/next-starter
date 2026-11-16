@@ -167,7 +167,7 @@ export function ExportSettingsModal({
         <Block className="mb-4">
           <Flex justify="between" align="center" className="mb-3">
             <span className="text-sm font-medium">エクスポートするカラム</span>
-            <Flex gap="sm">
+            <Flex gap="md">
               <Button
                 size="xs"
                 variant="outline"
@@ -216,7 +216,7 @@ export function ExportSettingsModal({
         )}
 
         {/* フッター */}
-        <Flex justify="end" gap="sm" className="pt-4 border-t border-border">
+        <Flex justify="end" gap="md" className="pt-4 border-t border-border">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isExporting}>
             キャンセル
           </Button>

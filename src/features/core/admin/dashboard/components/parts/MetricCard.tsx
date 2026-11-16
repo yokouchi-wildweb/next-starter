@@ -75,7 +75,7 @@ export function MetricCard({ title, value, decoration }: MetricCardProps) {
         </Span>
       </Block>
       <Block className="relative z-10 px-6 pt-0 sm:pt-1">
-        <Flex direction="column" gap="sm">
+        <Flex direction="column" gap="md">
           <Span className="text-primary-foreground text-3xl font-semibold tracking-tight drop-shadow-[0_12px_35px_color-mix(in_oklch,_var(--color-overlay)_45%,_transparent)] sm:text-[2.5rem] lg:text-5xl">
             {value}
           </Span>

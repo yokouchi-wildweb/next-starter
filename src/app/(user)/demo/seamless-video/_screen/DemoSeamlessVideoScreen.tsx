@@ -18,9 +18,9 @@ export async function DemoSeamlessVideoScreen(props: ScreenProps) {
   await loadDemoSeamlessVideoScreen(props);
 
   return (
-    <Main padding="xl">
-      <Stack space={6}>
-        <Stack space={2}>
+    <Main padding={{ base: "lg", sm: "2xl" }}>
+      <Stack gap="lg">
+        <Stack gap="xs">
           <PageTitle>Seamless Video(fmp4 連結再生)</PageTitle>
           <Para tone="muted" size="sm">
             統一プロファイルへ変換済みの fragmented MP4 を複数アップロードし、順番を入れ替えて、MSE で

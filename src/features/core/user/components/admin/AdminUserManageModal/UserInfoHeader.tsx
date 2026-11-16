@@ -28,10 +28,10 @@ export function UserInfoHeader({ user, fallback = DEFAULT_FALLBACK, showRole, in
   return (
     <Stack
       className="rounded-md border border-border bg-card px-4 py-3"
-      space={2}
+      gap="xs"
     >
       <Flex direction="column" gap="xs">
-        <Flex justify="between" align="center" gap="lg" wrap="wrap">
+        <Flex justify="between" align="center" gap="xl" wrap="wrap">
           <div>
             <Para size="xs" tone="muted">
               対象ユーザー

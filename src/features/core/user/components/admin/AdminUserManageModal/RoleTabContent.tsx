@@ -86,9 +86,9 @@ export function RoleTabContent({ user, onClose }: Props) {
   };
 
   const confirmContent = (
-    <Flex direction="column" gap="md" className="mt-2">
+    <Flex direction="column" gap="lg" className="mt-2">
       <Block className="rounded-md border border-border bg-muted/50 p-4">
-        <Flex justify="between" align="center" gap="lg">
+        <Flex justify="between" align="center" gap="xl">
           <div className="flex-1">
             <Para size="xs" tone="muted" className="mb-1">変更前</Para>
             <Para size="sm" className="font-medium">
@@ -122,9 +122,9 @@ export function RoleTabContent({ user, onClose }: Props) {
 
   return (
     <>
-      <Stack space={4} padding="md">
+      <Stack gap="md" padding={{ base: "sm", sm: "md" }}>
         <UserInfoHeader user={user} showRole />
-        <Stack space={6} className="mt-4">
+        <Stack gap="lg" className="mt-4">
           <div>
             <Para size="sm" className="mb-2 font-medium">
               変更先ロール
@@ -162,7 +162,7 @@ export function RoleTabContent({ user, onClose }: Props) {
               />
             </Block>
           )}
-          <Flex gap="sm" justify="end" className="mt-4">
+          <Flex gap="md" justify="end" className="mt-4">
             <Button type="button" variant="outline" onClick={handleClose} disabled={isMutating}>
               キャンセル
             </Button>

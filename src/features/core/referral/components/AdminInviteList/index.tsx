@@ -29,7 +29,7 @@ export default function AdminInviteList({
 }: AdminInviteListProps) {
   return (
     <Section>
-      <Stack space={6}>
+      <Stack gap="lg">
         <Header page={page} perPage={perPage} total={total} />
         <Table items={items} />
       </Stack>

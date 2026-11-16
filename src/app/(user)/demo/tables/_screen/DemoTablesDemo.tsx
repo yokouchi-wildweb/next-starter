@@ -350,7 +350,7 @@ export function DemoTablesDemo() {
               side="bottom"
               align="center"
             >
-              <Stack space={2}>
+              <Stack gap="xs">
                 <Para size="sm">
                   <Span weight="medium">担当者:</Span> {record.owner}
                 </Para>
@@ -678,7 +678,7 @@ export function DemoTablesDemo() {
   return (
     <Main containerType="wideShowcase" className="flex flex-col gap-10 py-12">
       <Section>
-        <Stack space={8}>
+        <Stack gap="xl">
           <PageTitle size="xxl" className="font-semibold">
             RecordSelectionTable デモ
           </PageTitle>
@@ -689,7 +689,7 @@ export function DemoTablesDemo() {
       </Section>
 
       <Section>
-        <Flex direction="columnToRowSm" gap="xl" align="start">
+        <Flex direction="columnToRowSm" gap="3xl" align="start">
           <Block className="w-full flex-1 flex flex-col gap-6 rounded-2xl border bg-card p-6 shadow-sm">
             <Block className="flex flex-col gap-2">
               <SecTitle size="lg" className="font-semibold">
@@ -704,8 +704,8 @@ export function DemoTablesDemo() {
               <Span size="sm" tone="muted" className="font-semibold">
                 選択方法
               </Span>
-              <Flex direction="column" gap="sm">
-                <Flex gap="sm" wrap="wrap">
+              <Flex direction="column" gap="md">
+                <Flex gap="md" wrap="wrap">
                   <RadioGroupInput
                     className="flex-1 gap-3 [&>button]:flex-1 [&>button]:justify-center [&>button]:text-center [&>button]:font-medium [&>button]:py-3"
                     value={selectionBehavior}
@@ -790,7 +790,7 @@ export function DemoTablesDemo() {
       </Section>
 
       <Section>
-        <Flex direction="columnToRowSm" gap="xl" align="start">
+        <Flex direction="columnToRowSm" gap="3xl" align="start">
           <Block className="w-full flex-1 flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm">
             <Block className="flex flex-col gap-2">
               <SecTitle size="lg" className="font-semibold">
@@ -870,7 +870,7 @@ export function DemoTablesDemo() {
         </Block>
       </Section>
       <Section>
-        <Stack space={8}>
+        <Stack gap="xl">
           <Block className="flex flex-col gap-2">
             <SecTitle size="xl" className="font-semibold">
               カラムソートデモ
@@ -948,7 +948,7 @@ export function DemoTablesDemo() {
       </Section>
 
       <Section>
-        <Stack space={8}>
+        <Stack gap="xl">
           <Block className="flex flex-col gap-2">
             <SecTitle size="xl" className="font-semibold">
               行並び替えデモ（reorderable）

@@ -73,7 +73,7 @@ export function SampleCategoryForm<TFieldValues extends FieldValues>({
       methods={methods}
       onSubmit={onSubmitAction}
       pending={isMutating}
-      fieldSpace={6}
+      fieldSpace="lg"
       submitErrorDisplay="summary"
       autoSave={autoSave}
     >

@@ -119,7 +119,7 @@ function CurrencyPurchaseBody({
   }, []);
 
   return (
-    <Stack space={6}>
+    <Stack gap="lg">
       <PurchaseSummaryCard
         purchaseAmount={purchaseAmount}
         paymentAmount={actualPaymentAmount}

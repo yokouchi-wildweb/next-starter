@@ -101,7 +101,7 @@ function CouponInputBody({ paymentAmount, purchaseAmount, onApply, onClear }: Co
   if (appliedCode && appliedEffect) {
     return (
       <Section>
-        <Stack space={2}>
+        <Stack gap="xs">
           <Flex justify="between" align="center">
             <Span size="sm" tone="muted">クーポン</Span>
             <Button variant="ghost" size="xxs" onClick={handleClear}>
@@ -129,9 +129,9 @@ function CouponInputBody({ paymentAmount, purchaseAmount, onApply, onClear }: Co
   // 入力状態
   return (
     <Section>
-      <Stack space={2}>
+      <Stack gap="xs">
         <Span size="sm" tone="muted">クーポンコード</Span>
-        <Flex gap="sm">
+        <Flex gap="md">
           <Input
             value={code}
             onChange={(e) => {

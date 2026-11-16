@@ -46,14 +46,14 @@ export function Withdraw() {
 
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         <AccountPageHeader
           title="退会"
           backHref="/mypage/other"
           backDisabled={isLoading}
         />
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <Stack space={4}>
+          <Stack gap="md">
             <WithdrawDescription />
             <Button
               variant="destructive"
@@ -77,7 +77,7 @@ export function Withdraw() {
         title="退会の確認"
         maxWidth={480}
       >
-        <Flex direction="column" gap="lg">
+        <Flex direction="column" gap="xl">
           <Para tone="muted" size="sm" className="mt-0">
             本当に退会しますか？この操作は取り消すことができません。
           </Para>
@@ -97,7 +97,7 @@ export function Withdraw() {
             </Para>
           )}
 
-          <Flex gap="sm" justify="end">
+          <Flex gap="md" justify="end">
             <Button
               variant="outline"
               onClick={handleCloseModal}

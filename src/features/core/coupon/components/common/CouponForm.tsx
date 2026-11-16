@@ -68,7 +68,7 @@ export function CouponForm<TFieldValues extends FieldValues>({
       methods={methods}
       onSubmit={onSubmitAction}
       pending={isMutating}
-      fieldSpace={6}
+      fieldSpace="lg"
     >
       <CouponFields<TFieldValues>
         methods={methods}

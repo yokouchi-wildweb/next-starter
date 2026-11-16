@@ -138,7 +138,7 @@ export function AuditLogListView({ query, showTargetColumn, className }: Props) 
 
   return (
     <>
-      <Stack space={4} className={className}>
+      <Stack gap="md" className={className}>
         <Para size="xs" tone="muted">
           {total ? `合計 ${total} 件` : "履歴 0 件"}
         </Para>

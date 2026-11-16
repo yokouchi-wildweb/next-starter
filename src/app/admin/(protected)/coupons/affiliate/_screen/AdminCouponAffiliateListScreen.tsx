@@ -28,7 +28,7 @@ export async function AdminCouponAffiliateListScreen(props: ScreenProps) {
   return (
     <AdminPage title="クーポン管理" center={<CouponSectionTabs variant="header" />}>
       <Section>
-        <Stack space={6}>
+        <Stack gap="lg">
           <ListTop title="発行済みのアフィリエイトクーポン" />
           <Para tone="muted">
             インフルエンサーにコードを配布し、プロモーションを行うことができます。
@@ -38,8 +38,8 @@ export async function AdminCouponAffiliateListScreen(props: ScreenProps) {
           )}
           <Stack
             appearance="surface"
-            padding="lg"
-            space={4}
+            padding={{ base: "md", sm: "lg" }}
+            gap="md"
             className="items-center justify-center py-12"
           >
             <Construction className="size-12 text-muted-foreground" />

@@ -23,7 +23,7 @@ export async function ReactivateCompleteScreen(props: ScreenProps) {
       <UserPageTitle>復帰が完了しました</UserPageTitle>
       <Para align="center">おかえりなさい。引き続きサービスをお楽しみください。</Para>
 
-      <Flex direction="column" gap="sm">
+      <Flex direction="column" gap="md">
         <Button asChild>
           <Link href="/mypage">マイページへ</Link>
         </Button>

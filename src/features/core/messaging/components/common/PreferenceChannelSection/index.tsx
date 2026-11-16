@@ -41,9 +41,9 @@ export function PreferenceChannelSection({
 }: PreferenceChannelSectionProps) {
   return (
     <Block className="rounded-md border border-border p-4">
-      <Stack space={4}>
-        <Flex justify="between" align="center" gap="md">
-          <Stack space={0}>
+      <Stack gap="md">
+        <Flex justify="between" align="center" gap="lg">
+          <Stack gap="none">
             <SecTitle>{channel.label}</SecTitle>
             {!channel.hasAddress ? (
               <Span size="xs" tone="muted">

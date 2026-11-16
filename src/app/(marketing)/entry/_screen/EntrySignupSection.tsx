@@ -14,13 +14,13 @@ export function EntrySignupSection() {
   const emailSentUrl = "/signup/email-sent";
 
   return (
-    <Section id="entry-signup" paddingBlock="lg">
-      <Stack space={6} className="mx-auto max-w-md">
+    <Section id="entry-signup" paddingBlock={{ base: "md", sm: "lg" }}>
+      <Stack gap="lg" className="mx-auto max-w-md">
         <SecTitle as="h2" size="lg" align="center">
           事前登録はこちら
         </SecTitle>
 
-        <Stack space={6}>
+        <Stack gap="lg">
           <EarlyRegistrationSendForm urlAfterEmailSent={emailSentUrl} />
           <ThirdPartySignupOptions />
 

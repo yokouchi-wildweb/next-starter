@@ -21,7 +21,7 @@ export async function WalletPurchaseAwaitingReviewScreen(
 
   return (
     <UserPage containerType="narrowStack">
-      <Stack space={6}>
+      <Stack gap="lg">
         <UserPageTitle>お振込みの確認待ち</UserPageTitle>
         <PurchaseAwaitingReview slug={data.slug} />
       </Stack>

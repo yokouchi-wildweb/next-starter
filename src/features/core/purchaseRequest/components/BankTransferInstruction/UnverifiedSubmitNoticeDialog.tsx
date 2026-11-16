@@ -46,7 +46,7 @@ export function UnverifiedSubmitNoticeDialog({
       onConfirm={() => onOpenChange(false)}
       footerAlign="center"
     >
-      <Stack space={3}>
+      <Stack gap="sm">
         <Para size="sm" align="center" className="leading-relaxed">
           振込人名・識別数字・金額の確認ができないため<br />
           <Span size="sm" weight="semiBold" tone="destructive">

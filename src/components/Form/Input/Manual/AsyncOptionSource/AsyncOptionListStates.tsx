@@ -46,7 +46,7 @@ export function AsyncOptionInitialState({
 
   if (state.items.length === 0 && state.status === "error") {
     return (
-      <Stack space={2} padding="md" className="items-center">
+      <Stack gap="xs" padding={{ base: "sm", sm: "md" }} className="items-center">
         <Span size="sm" tone="destructive">
           {state.errorMessage ?? "読み込みに失敗しました"}
         </Span>
@@ -84,7 +84,7 @@ export function AsyncOptionListFooter({ state, hasMore, onRetry }: FooterProps) 
 
   if (state.status === "error") {
     return (
-      <Flex align="center" justify="center" gap="xs" padding="xs">
+      <Flex align="center" justify="center" gap="xs" padding="2xs">
         <Span size="xs" tone="destructive">
           {state.errorMessage ?? "追加読み込みに失敗しました"}
         </Span>

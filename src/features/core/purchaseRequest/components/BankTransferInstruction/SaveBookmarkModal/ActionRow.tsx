@@ -45,7 +45,7 @@ export function ActionRow({ icon, iconAccent, label, description, onClick }: Pro
         >
           {icon}
         </span>
-        <Stack space={0.5} className="flex-1 text-left">
+        <Stack className="gap-0.5 flex-1 text-left">
           <Span weight="semiBold" size="sm">
             {label}
           </Span>

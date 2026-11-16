@@ -16,7 +16,7 @@ export type UnsubscribeResultProps = {
 export function UnsubscribeResult({ status, categoryLabel }: UnsubscribeResultProps) {
   if (status === "invalid") {
     return (
-      <Stack space={2}>
+      <Stack gap="xs">
         <Para weight="bold">リンクが正しくありません</Para>
         <Para size="sm" tone="muted">
           メールのリンクをもう一度ご確認ください。
@@ -25,7 +25,7 @@ export function UnsubscribeResult({ status, categoryLabel }: UnsubscribeResultPr
     );
   }
   return (
-    <Stack space={2}>
+    <Stack gap="xs">
       <Para weight="bold">配信を停止しました</Para>
       <Para size="sm" tone="muted">
         {categoryLabel ? `「${categoryLabel}」のお知らせは今後届きません。` : "このお知らせは今後届きません。"}

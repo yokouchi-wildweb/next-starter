@@ -120,7 +120,7 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
 
   return (
     <>
-    <Stack space={6} padding="md">
+    <Stack gap="lg" padding={{ base: "sm", sm: "md" }}>
       <Para size="xs" tone="muted">
         {total ? `合計 ${total} 件` : "履歴 0 件"}
       </Para>

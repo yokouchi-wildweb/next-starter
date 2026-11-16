@@ -27,7 +27,7 @@ export function DemoLoginSection({ redirectTo }: Props) {
   };
 
   return (
-    <Block appearance="surface" padding="xl" className="max-w-md w-full text-center">
+    <Block appearance="surface" padding={{ base: "lg", sm: "2xl" }} className="max-w-md w-full text-center">
       <SecTitle>デモモード</SecTitle>
       <Para align="center" tone="muted" className="mt-4">
         デモユーザーとしてログインし、アプリケーションの機能をお試しいただけます。

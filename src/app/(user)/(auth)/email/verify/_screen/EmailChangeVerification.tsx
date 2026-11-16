@@ -18,18 +18,18 @@ export function EmailChangeVerification() {
   return (
     <Section className="w-full max-w-md">
       {(phase === "initial" || phase === "checking_auth") && (
-        <Stack space={4} className="items-center">
+        <Stack gap="md" className="items-center">
           <LoaderIcon className="h-12 w-12 animate-spin text-muted-foreground" />
           <p className="text-muted-foreground">読み込み中...</p>
         </Stack>
       )}
 
       {phase === "require_login" && (
-        <Stack space={6} className="items-center">
+        <Stack gap="lg" className="items-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <LockIcon className="h-8 w-8 text-primary" />
           </div>
-          <Stack space={2} className="items-center">
+          <Stack gap="xs" className="items-center">
             <p className="text-lg font-medium">ログインが必要です</p>
             <p className="text-sm text-muted-foreground text-center">
               メールアドレスの変更を完了するには、<br />
@@ -43,11 +43,11 @@ export function EmailChangeVerification() {
       )}
 
       {phase === "processing" && (
-        <Stack space={4} className="items-center">
+        <Stack gap="md" className="items-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <MailIcon className="h-8 w-8 text-primary" />
           </div>
-          <Stack space={2} className="items-center">
+          <Stack gap="xs" className="items-center">
             <p className="text-lg font-medium">メールアドレスを変更中...</p>
             {newEmail && (
               <p className="text-sm text-muted-foreground">
@@ -60,11 +60,11 @@ export function EmailChangeVerification() {
       )}
 
       {phase === "completed" && (
-        <Stack space={6} className="items-center">
+        <Stack gap="lg" className="items-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
             <CheckCircleIcon className="h-8 w-8 text-green-600" />
           </div>
-          <Stack space={2} className="items-center">
+          <Stack gap="xs" className="items-center">
             <p className="text-lg font-medium">メールアドレスを変更しました</p>
             {newEmail && (
               <p className="text-sm text-muted-foreground">
@@ -79,11 +79,11 @@ export function EmailChangeVerification() {
       )}
 
       {phase === "error" && (
-        <Stack space={6} className="items-center">
+        <Stack gap="lg" className="items-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
             <XCircleIcon className="h-8 w-8 text-destructive-text" />
           </div>
-          <Stack space={2} className="items-center">
+          <Stack gap="xs" className="items-center">
             <p className="text-lg font-medium">エラーが発生しました</p>
             <p className="text-sm text-muted-foreground">{error}</p>
           </Stack>

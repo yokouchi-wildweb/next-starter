@@ -154,8 +154,8 @@ export function ImageJudgmentSection({
   const is15mExhausted = rateLimit !== null && rateLimit.remainingFailures15m === 0;
 
   return (
-    <Block padding="md" className="rounded-lg border border-border bg-card">
-      <Stack space={3}>
+    <Block padding={{ base: "sm", sm: "md" }} className="rounded-lg border border-border bg-card">
+      <Stack gap="sm">
         <Span weight="semiBold" size="md">
           {circledNumber(step)} 画像の判定
         </Span>
@@ -188,7 +188,7 @@ export function ImageJudgmentSection({
             </Button>
           </Flex>
         ) : (
-          <Stack space={3}>
+          <Stack gap="sm">
             {/* 検証完了（承認候補）後は判定ボタンを非表示。不承認 / 未判定時のみ表示。 */}
             {buttonShouldShow && (
               <Flex justify="center">
@@ -258,7 +258,7 @@ function renderButtonContent({
 function ResultView({ result }: { result: JudgmentResult }) {
   const isPassed = result.passed;
   return (
-    <Stack space={3} className="rounded-md border border-border bg-background p-3">
+    <Stack gap="sm" className="rounded-md border border-border bg-background p-3">
       <Flex justify="center">
         <SoftBadge variant={isPassed ? "success" : "destructive"} size="md">
           {isPassed ? "検証完了" : "不承認"}
@@ -290,7 +290,7 @@ function StrictCheckList({ checks }: { checks: StrictChecks }) {
   ];
 
   return (
-    <Stack space={1}>
+    <Stack gap="2xs">
       {items.map(({ label, confirmed }) => (
         <Flex key={label} gap="xs" align="center">
           {confirmed ? (

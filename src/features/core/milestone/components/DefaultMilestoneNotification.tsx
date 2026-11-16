@@ -13,7 +13,7 @@ import type { MilestoneRendererProps } from "@/features/core/milestone/types/mil
 
 export function DefaultMilestoneNotification({ result }: MilestoneRendererProps) {
   return (
-    <Flex align="center" gap="sm">
+    <Flex align="center" gap="md">
       <Trophy className="h-4 w-4 text-warning-text" />
       <Para size="sm">{result.milestoneKey}</Para>
     </Flex>

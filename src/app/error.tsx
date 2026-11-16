@@ -23,8 +23,8 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
       direction="column"
       align="center"
       justify="center"
-      gap="md"
-      padding="lg"
+      gap="lg"
+      padding={{ base: "md", sm: "lg" }}
       className="min-h-[50vh]"
     >
       <SecTitle as="h1" size="xxl">
@@ -38,7 +38,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
           {error.message}
         </Para>
       )}
-      <Flex gap="sm">
+      <Flex gap="md">
         <Button variant="outline" onClick={() => reset()}>
           再試行
         </Button>

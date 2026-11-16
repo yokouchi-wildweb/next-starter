@@ -186,7 +186,7 @@ export function DemoGooglePopupDemo() {
   }, []);
 
   return (
-    <Stack className="py-8" space={10}>
+    <Stack className="py-8" gap="2xl">
       <Section as="header" className="flex flex-col gap-3">
         <PageTitle size="xxxl" className="font-semibold tracking-tight">
           Google ポップアップ認証デモ

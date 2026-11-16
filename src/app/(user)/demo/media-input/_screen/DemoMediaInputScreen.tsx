@@ -16,15 +16,15 @@ export async function DemoMediaInputScreen(props: ScreenProps) {
   await loadDemoMediaInputScreen(props);
 
   return (
-    <Main padding="xl">
-      <Stack space={6}>
+    <Main padding={{ base: "lg", sm: "2xl" }}>
+      <Stack gap="lg">
         <PageTitle>MediaInputSuite プレビュー</PageTitle>
         <Para tone="muted" size="sm">
           新しい mediaInputSuite コンポーネントのプレビュー切り替え動作を確認するためのデモページです。
         </Para>
 
         <Section>
-          <Stack space={4}>
+          <Stack gap="md">
             <SecTitle>MediaPreview デモ</SecTitle>
             <Para tone="muted" size="sm">
               ファイルを選択するか URL を入力すると、判別結果に応じて画像・動画・その他のプレビューが切り替わります。
@@ -34,7 +34,7 @@ export async function DemoMediaInputScreen(props: ScreenProps) {
         </Section>
 
         <Section>
-          <Stack space={4}>
+          <Stack gap="md">
             <SecTitle>MediaInput デモ</SecTitle>
             <Para tone="muted" size="sm">
               MediaInput コンポーネントでクリック領域／削除ボタン／ドラッグ＆ドロップの挙動を確認できます。
@@ -44,7 +44,7 @@ export async function DemoMediaInputScreen(props: ScreenProps) {
         </Section>
 
         <Section>
-          <Stack space={4}>
+          <Stack gap="md">
             <SecTitle>MediaUpload デモ</SecTitle>
             <Para tone="muted" size="sm">
               用途 demo.media（公開・管理者のみアップロード可）へ実際にアップロードし、進捗バーと完了時の値（storage ref）を確認できます。
@@ -55,7 +55,7 @@ export async function DemoMediaInputScreen(props: ScreenProps) {
         </Section>
 
         <Section>
-          <Stack space={4}>
+          <Stack gap="md">
             <SecTitle>MediaUploaderMulti デモ（複数枚アップロード）</SecTitle>
             <Para tone="muted" size="sm">
               複数枚アップロード版。並列アップロード、正方形クロッププレビュー、ドラッグ並び替え、件数上限の動作を確認できます。

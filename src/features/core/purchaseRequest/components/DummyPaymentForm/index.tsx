@@ -33,7 +33,7 @@ export function DummyPaymentForm() {
         justify="center"
         className="min-h-screen bg-muted"
       >
-        <Block appearance="surface" padding="lg" className="max-w-md rounded-lg">
+        <Block appearance="surface" padding={{ base: "md", sm: "lg" }} className="max-w-md rounded-lg">
           <Para tone="destructive" align="center">
             必要なパラメータが不足しています。
           </Para>
@@ -86,10 +86,10 @@ export function DummyPaymentForm() {
       justify="center"
       className="min-h-screen bg-muted"
     >
-      <Block appearance="surface" padding="lg" className="w-full max-w-md rounded-lg">
-        <Flex direction="column" gap="md">
+      <Block appearance="surface" padding={{ base: "md", sm: "lg" }} className="w-full max-w-md rounded-lg">
+        <Flex direction="column" gap="lg">
           {/* ヘッダー */}
-          <Flex direction="column" align="center" gap="sm">
+          <Flex direction="column" align="center" gap="md">
             <CreditCard className="h-12 w-12 text-info-text" />
             <Para size="lg" weight="bold" align="center">
               ダミー決済ページ
@@ -100,7 +100,7 @@ export function DummyPaymentForm() {
           </Flex>
 
           {/* 決済情報 */}
-          <Block appearance="soft" padding="md" className="rounded-md">
+          <Block appearance="soft" padding={{ base: "sm", sm: "md" }} className="rounded-md">
             <Flex direction="column" gap="xs">
               <Flex justify="between">
                 <Para tone="muted" size="sm">
@@ -141,7 +141,7 @@ export function DummyPaymentForm() {
           )}
 
           {/* ボタン */}
-          <Flex direction="column" gap="sm">
+          <Flex direction="column" gap="md">
             <Button
               onClick={() => handlePayment(true)}
               disabled={loading}

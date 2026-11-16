@@ -18,7 +18,7 @@ export function FormSkeleton({
   return (
     <Block className={className}>
       {placeholders.map((_, i) => (
-        <Stack key={i} space={4}>
+        <Stack key={i} gap="md">
           <BaseSkeleton className="h-4 w-20" />
           <BaseSkeleton className="h-10 w-full" />
         </Stack>

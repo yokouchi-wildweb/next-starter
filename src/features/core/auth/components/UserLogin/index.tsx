@@ -78,10 +78,10 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
 
   return (
     <section id="user-login" className="w-full">
-      <Stack space={8}>
+      <Stack gap="xl">
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <Stack space={2}>
+          <Stack gap="xs">
             <Label htmlFor="user-login-email" className="block text-foreground">
               メールアドレス
             </Label>
@@ -96,7 +96,7 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
               placeholder="例）maile@example.com"
             />
           </Stack>
-          <Stack space={2}>
+          <Stack gap="xs">
             <Label htmlFor="user-login-password" className="block text-foreground">
               パスワード
             </Label>

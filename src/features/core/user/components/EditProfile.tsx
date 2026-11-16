@@ -108,7 +108,7 @@ export function EditProfile({
 
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         {showHeader && (
           <AccountPageHeader
             title="プロフィール編集"
@@ -117,7 +117,7 @@ export function EditProfile({
           />
         )}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <AppForm methods={methods} onSubmit={handleSubmit} pending={loading} fieldSpace={6}>
+          <AppForm methods={methods} onSubmit={handleSubmit} pending={loading} fieldSpace="lg">
             <ControlledField
               control={control}
               name="name"

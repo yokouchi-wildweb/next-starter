@@ -18,9 +18,9 @@ export async function DemoSeamlessAvScreen(props: ScreenProps) {
   await loadDemoSeamlessAvScreen(props);
 
   return (
-    <Main padding="xl">
-      <Stack space={6}>
-        <Stack space={2}>
+    <Main padding={{ base: "lg", sm: "2xl" }}>
+      <Stack gap="lg">
+        <Stack gap="xs">
           <PageTitle>Seamless A/V(音声付きフラグメント連結)</PageTitle>
           <Para tone="muted" size="sm">
             各フラグメントに「映像(fmp4)＋音声」をセットで登録し、抽選のように順番を入れ替えて連続再生するデモです。

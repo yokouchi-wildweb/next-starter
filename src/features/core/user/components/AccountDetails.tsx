@@ -51,7 +51,7 @@ function AccountDetailItem({ href, icon: Icon, label, value }: AccountDetailItem
 export function AccountDetails({ user }: AccountDetailsProps) {
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         <AccountPageHeader title="アカウント基本情報" backHref="/mypage" />
         {userConfig.avatarEnabled && (
           <AccountAvatarSection user={user} />

@@ -26,7 +26,7 @@ export async function AdminSetupScreen(props: ScreenProps) {
         <Main containerType="narrowStack">
           <Section id="admin-setup">
             <Para>最初の管理ユーザーを登録し、管理設定を初期化します。</Para>
-            <Stack marginBlock="lg" space={0} padding="none">
+            <Stack marginBlock="lg" gap="none" padding="none">
               <AdminSetupForm />
             </Stack>
           </Section>

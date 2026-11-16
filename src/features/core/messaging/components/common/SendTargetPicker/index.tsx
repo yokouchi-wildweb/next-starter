@@ -53,7 +53,7 @@ export function SendTargetPicker(props: SendTargetPickerProps) {
     { value: "users", label: "ユーザーを選ぶ" },
   ].filter((option) => !allowedTypes || allowedTypes.includes(option.value as SendTargetValue["type"]));
   return (
-    <Stack space={2} data-slot="send-target-picker">
+    <Stack gap="xs" data-slot="send-target-picker">
       <RadioGroupInput
         aria-label="宛先の種類"
         displayType="segmented"

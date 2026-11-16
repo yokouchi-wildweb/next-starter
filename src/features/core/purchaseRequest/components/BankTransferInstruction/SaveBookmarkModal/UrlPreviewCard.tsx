@@ -40,8 +40,8 @@ export function UrlPreviewCard({ title, url }: Props) {
   };
 
   return (
-    <Block padding="sm" className="rounded-lg border border-border bg-primary/5">
-      <Stack space={2}>
+    <Block padding="xs" className="rounded-lg border border-border bg-primary/5">
+      <Stack gap="xs">
         <Flex align="center" gap="xs">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
             <LinkIcon className="h-4 w-4" aria-hidden />
@@ -51,7 +51,7 @@ export function UrlPreviewCard({ title, url }: Props) {
           </Span>
         </Flex>
 
-        <Block paddingInline="xs" className="rounded-md bg-card border border-border">
+        <Block paddingInline="2xs" className="rounded-md bg-card border border-border">
           <Flex align="center" gap="xs" className="py-2 px-2">
             <Span size="xs" tone="muted" className="flex-1 truncate font-mono">
               {url}

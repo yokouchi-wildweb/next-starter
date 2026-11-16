@@ -38,7 +38,7 @@ export function EditPhone({ phoneNumber, phoneVerifiedAt }: EditPhoneProps) {
   if (!phoneVerificationOpen) {
     return (
       <Section>
-        <Stack space={4}>
+        <Stack gap="md">
           <AccountPageHeader title="電話番号" backHref="/mypage/account" />
           <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <PhoneNumberForm
@@ -59,23 +59,23 @@ export function EditPhone({ phoneNumber, phoneVerifiedAt }: EditPhoneProps) {
 
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         <AccountPageHeader title="電話番号認証" backHref="/mypage/account" />
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           {phoneVerifiedAt && !isChanging ? (
-            <Stack space={4} className="text-center">
+            <Stack gap="md" className="text-center">
               <div className="flex justify-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
                   <CheckCircleIcon className="h-6 w-6 text-success-text" />
                 </div>
               </div>
-              <Stack space={2}>
+              <Stack gap="xs">
                 <p className="font-medium">認証済み</p>
                 <p className="text-sm text-muted-foreground">
                   {formatForDisplay(phoneNumber ?? "")}
                 </p>
               </Stack>
-              <Stack space={2}>
+              <Stack gap="xs">
                 <Button
                   type="button"
                   onClick={() => setIsChanging(true)}

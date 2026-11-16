@@ -63,9 +63,9 @@ export function PackageDiscountsInput() {
 
   return (
     <Block className="rounded-lg border border-border bg-muted/50 p-4">
-      <Stack space={3}>
+      <Stack gap="sm">
         <Span size="sm" weight="bold">パッケージ別割引設定</Span>
-        <Stack space={2}>
+        <Stack gap="xs">
           {allPackages.map((pkg, index) => {
             const entry = packageDiscounts[index];
             if (!entry) return null;
@@ -74,7 +74,7 @@ export function PackageDiscountsInput() {
               <Flex
                 key={pkg.amount}
                 align="center"
-                gap="sm"
+                gap="md"
                 className="rounded-md bg-card px-3 py-2"
               >
                 <Span size="sm" className="min-w-20 shrink-0">

@@ -16,7 +16,7 @@ export async function DemoFingerprintScreen(props: ScreenProps) {
   return (
     <Main containerType="contentShell">
       <Section>
-        <Stack space={4}>
+        <Stack gap="md">
           <PageTitle size="xxl" className="font-semibold">
             Fingerprint デモ
           </PageTitle>

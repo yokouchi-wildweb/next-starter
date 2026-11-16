@@ -23,14 +23,14 @@ export function CompleteStep({ phoneNumber, onComplete, mode = "register" }: Com
 
   return (
     <section id="phone-verification-complete" className="w-full">
-      <Stack space={6} className="text-center">
+      <Stack gap="lg" className="text-center">
         <div className="flex justify-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
             <CheckCircle className="h-8 w-8 text-success-text" />
           </div>
         </div>
 
-        <Stack space={2}>
+        <Stack gap="xs">
           <h2 className="text-xl font-semibold">
             {isChangeMode ? "電話番号の変更が完了しました" : "電話番号認証が完了しました"}
           </h2>

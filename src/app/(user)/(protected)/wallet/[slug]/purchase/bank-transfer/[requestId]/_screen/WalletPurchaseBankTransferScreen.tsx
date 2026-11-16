@@ -21,7 +21,7 @@ export async function WalletPurchaseBankTransferScreen(
 
   return (
     <UserPage containerType="narrowStack">
-      <Stack space={3}>
+      <Stack gap="sm">
         <UserPageTitle>銀行振込のご案内</UserPageTitle>
         <BankTransferInstruction
           requestId={data.requestId}

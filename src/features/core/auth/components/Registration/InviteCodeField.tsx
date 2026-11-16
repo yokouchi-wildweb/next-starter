@@ -39,7 +39,7 @@ export function InviteCodeField<TFieldValues extends FieldValues>({
   // 適用済み状態
   if (appliedCode) {
     return (
-      <Stack space={2}>
+      <Stack gap="xs">
         <Flex justify="between" align="center">
           <Span size="sm" weight="medium">招待コード</Span>
           <Button type="button" variant="ghost" size="xxs" onClick={clear}>
@@ -66,7 +66,7 @@ export function InviteCodeField<TFieldValues extends FieldValues>({
       label="招待コード"
       description={errorMessage ? { text: errorMessage, tone: "destructive", size: "sm" } : undefined}
       renderInput={(field) => (
-        <Flex gap="sm">
+        <Flex gap="md">
           <TextInput
             field={field}
             placeholder="お持ちの場合は入力してください"

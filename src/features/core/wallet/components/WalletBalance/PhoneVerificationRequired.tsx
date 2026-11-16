@@ -40,13 +40,13 @@ export function PhoneVerificationRequired({
   return (
     <>
       <Section>
-        <Stack space={6} className="py-8 text-center">
+        <Stack gap="lg" className="py-8 text-center">
           <div className="flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <ShieldCheck className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2" size="lg" align="center">
               SMS認証
             </SecTitle>

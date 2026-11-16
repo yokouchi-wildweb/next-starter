@@ -46,7 +46,7 @@ function summarizeComponents(payload: FingerprintPayload): string {
 
 export function FingerprintDemo() {
   return (
-    <Stack space={10}>
+    <Stack gap="2xl">
       <DeviceSignalsSection />
       <BehaviorSection />
     </Stack>
@@ -97,7 +97,7 @@ function DeviceSignalsSection() {
 
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         <SecTitle size="lg">1. デバイス信号の収集</SecTitle>
         <Para size="sm" tone="muted">
           Canvas / WebGL / Audio / フォント / 画面 / タイムゾーン / ハードウェアなどの信号を
@@ -127,9 +127,9 @@ function DeviceSignalsSection() {
         )}
 
         {payload && compositeHash && (
-          <Stack space={3}>
-            <Block padding="sm" className="rounded-md border border-border bg-card">
-              <Stack space={1}>
+          <Stack gap="sm">
+            <Block padding="xs" className="rounded-md border border-border bg-card">
+              <Stack gap="2xs">
                 <Para size="sm" weight="medium">
                   合成ハッシュ（composite_hash）
                 </Para>
@@ -197,7 +197,7 @@ function BehaviorSection() {
 
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         <SecTitle size="lg">2. フォーム操作の行動計測</SecTitle>
         <Para size="sm" tone="muted">
           下のフォームに実際に入力してみてください。打鍵のリズム、ペースト、フィールド間の
@@ -209,8 +209,8 @@ function BehaviorSection() {
 
         {/* containerProps を spread した要素の配下が計測対象になる */}
         <form onSubmit={onSubmit} {...behavior.containerProps}>
-          <Stack space={4}>
-            <Stack space={1}>
+          <Stack gap="md">
+            <Stack gap="2xs">
               <Para size="sm" weight="medium">
                 氏名
               </Para>
@@ -222,7 +222,7 @@ function BehaviorSection() {
                 placeholder="山田 太郎"
               />
             </Stack>
-            <Stack space={1}>
+            <Stack gap="2xs">
               <Para size="sm" weight="medium">
                 メールアドレス
               </Para>
@@ -234,7 +234,7 @@ function BehaviorSection() {
                 placeholder="taro@example.com"
               />
             </Stack>
-            <Stack space={1}>
+            <Stack gap="2xs">
               <Para size="sm" weight="medium">
                 メッセージ（ペーストも試してみてください）
               </Para>
@@ -261,7 +261,7 @@ function BehaviorSection() {
         </form>
 
         {snapshot && (
-          <Stack space={2}>
+          <Stack gap="xs">
             <Para size="sm" weight="medium">
               行動計測 payload（BehaviorPayload）
             </Para>

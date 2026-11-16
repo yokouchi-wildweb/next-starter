@@ -17,7 +17,7 @@ export async function LogoutScreen(props: ScreenProps<Record<string, never>, Log
 
   return (
     <UserPage containerType="narrowStack">
-      <Flex direction="column" justify="center" align="center" gap="md">
+      <Flex direction="column" justify="center" align="center" gap="lg">
         <LogoutSection redirectTo={redirectTo} />
       </Flex>
     </UserPage>

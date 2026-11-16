@@ -40,7 +40,7 @@ export function PurchaseSummaryCard({
 
   return (
     <Section className="-mx-4 bg-muted px-4 py-4">
-      <Stack className="rounded-lg bg-card" padding="lg" space={4}>
+      <Stack className="rounded-lg bg-card" padding={{ base: "md", sm: "lg" }} gap="md">
         <Flex justify="between" align="center" className="py-2">
           <Span tone="muted">ご購入{config.label}</Span>
           <CurrencyDisplay
@@ -54,7 +54,7 @@ export function PurchaseSummaryCard({
         <Flex justify="between" align="center" className="border-t border-border py-2">
           <Span tone="muted">お支払い金額</Span>
           {hasDiscount ? (
-            <Stack space={1} className="items-end">
+            <Stack gap="2xs" className="items-end">
               <Span size="sm" tone="muted" className="line-through">
                 ¥{(originalPaymentAmount ?? paymentAmount).toLocaleString()}
               </Span>

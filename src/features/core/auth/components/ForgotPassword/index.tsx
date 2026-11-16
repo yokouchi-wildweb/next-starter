@@ -29,13 +29,13 @@ export function ForgotPassword() {
   if (isSuccess) {
     return (
       <section id="forgot-password" className="w-full">
-        <Stack space={6} className="text-center">
+        <Stack gap="lg" className="text-center">
           <div className="flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
               <CheckCircle className="h-8 w-8 text-success-text" />
             </div>
           </div>
-          <Stack space={2}>
+          <Stack gap="xs">
             <h2 className="text-xl font-semibold">メールを送信しました</h2>
             <Para align="center" size="sm" className="text-muted-foreground">
               {email} 宛にパスワードリセット用のメールを送信しました。
@@ -58,8 +58,8 @@ export function ForgotPassword() {
 
   return (
     <section id="forgot-password" className="w-full">
-      <Stack space={6}>
-        <Stack space={2}>
+      <Stack gap="lg">
+        <Stack gap="xs">
           <h2 className="text-xl font-semibold">パスワードをお忘れですか？</h2>
           <Para size="sm" className="text-muted-foreground">
             ご登録のメールアドレスを入力してください。
@@ -68,7 +68,7 @@ export function ForgotPassword() {
         </Stack>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <Stack space={2}>
+          <Stack gap="xs">
             <Label htmlFor="forgot-password-email" className="block text-foreground">
               メールアドレス
             </Label>

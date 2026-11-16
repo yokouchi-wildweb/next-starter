@@ -38,7 +38,7 @@ export function EditEmail({ currentEmail }: EditEmailProps) {
 
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         <AccountPageHeader
           title="メールアドレスを編集"
           backHref="/mypage/account"
@@ -46,13 +46,13 @@ export function EditEmail({ currentEmail }: EditEmailProps) {
         />
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           {isSuccess ? (
-            <Stack space={4} className="text-center">
+            <Stack gap="md" className="text-center">
               <div className="flex justify-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
                   <MailIcon className="h-6 w-6 text-success-text" />
                 </div>
               </div>
-              <Stack space={2}>
+              <Stack gap="xs">
                 <p className="font-medium">確認メールを送信しました</p>
                 <p className="text-sm text-muted-foreground">
                   {editEmail} 宛に確認メールを送信しました。
@@ -69,19 +69,19 @@ export function EditEmail({ currentEmail }: EditEmailProps) {
               </Button>
             </Stack>
           ) : !isChanging ? (
-            <Stack space={4} className="text-center">
+            <Stack gap="md" className="text-center">
               <div className="flex justify-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                   <MailIcon className="h-6 w-6 text-primary" />
                 </div>
               </div>
-              <Stack space={2}>
+              <Stack gap="xs">
                 <p className="font-medium">現在のメールアドレス</p>
                 <p className="text-sm text-muted-foreground">
                   {currentEmail ?? "未設定"}
                 </p>
               </Stack>
-              <Stack space={2}>
+              <Stack gap="xs">
                 <Button
                   type="button"
                   onClick={() => setIsChanging(true)}
@@ -100,7 +100,7 @@ export function EditEmail({ currentEmail }: EditEmailProps) {
               </Stack>
             </Stack>
           ) : (
-            <Stack space={4}>
+            <Stack gap="md">
               <div>
                 <Label className="mb-2 block text-muted-foreground">
                   現在のメールアドレス
@@ -127,7 +127,7 @@ export function EditEmail({ currentEmail }: EditEmailProps) {
                 新しいメールアドレス宛に確認メールが送信されます。
                 メール内のリンクをクリックすると変更が完了します。
               </p>
-              <Stack space={2}>
+              <Stack gap="xs">
                 <Button
                   type="button"
                   onClick={handleSend}

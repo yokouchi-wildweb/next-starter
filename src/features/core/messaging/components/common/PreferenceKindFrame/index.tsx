@@ -14,7 +14,7 @@ export type PreferenceKindFrameProps = {
 
 export function PreferenceKindFrame({ label, children }: PreferenceKindFrameProps) {
   return (
-    <Stack space={2}>
+    <Stack gap="xs">
       <Para size="sm" weight="bold" tone="muted">
         {label}
       </Para>

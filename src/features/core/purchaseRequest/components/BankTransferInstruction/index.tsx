@@ -146,7 +146,7 @@ export function BankTransferInstruction({
   })();
 
   return (
-    <Stack space={5}>
+    <Stack className="gap-5">
       {/* ストリクトモード時の入場時注意喚起（3点確認できないと即時付与されない旨） */}
       {aiImageJudgmentEnabled && aiImageJudgmentStrictMode && (
         <StrictModeNoticeDialog currencyLabel={currencyLabel} />

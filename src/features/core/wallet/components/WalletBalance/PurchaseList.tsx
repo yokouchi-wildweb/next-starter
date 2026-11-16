@@ -34,11 +34,11 @@ export function PurchaseList({ slug, config, couponEffect, packageBonuses }: Pur
 
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         <SecTitle as="h2" size="lg">
           {config.label}購入
         </SecTitle>
-        <Stack space={0}>
+        <Stack gap="none">
         {config.packages.map((pkg) => {
           const discount = hasDiscount
             ? calculatePackageDiscount(couponEffect, pkg.price, pkg.amount)
@@ -76,7 +76,7 @@ export function PurchaseList({ slug, config, couponEffect, packageBonuses }: Pur
                   </SoftBadge>
                 ))}
               </Flex>
-              <Flex align="center" gap="sm">
+              <Flex align="center" gap="md">
                 {isDiscountValid && discountLabel && (
                   <Span size="sm" tone="accent" weight="bold">
                     {discountLabel}
@@ -90,7 +90,7 @@ export function PurchaseList({ slug, config, couponEffect, packageBonuses }: Pur
 
               >
                 {isDiscountValid ? (
-                  <Stack space={0} className="items-center">
+                  <Stack gap="none" className="items-center">
                     <span className="text-xs line-through opacity-50">
                       ¥{pkg.price.toLocaleString()}
                     </span>

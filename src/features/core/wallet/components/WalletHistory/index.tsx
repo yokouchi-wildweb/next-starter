@@ -49,7 +49,7 @@ export function WalletHistory({ slug }: WalletHistoryProps) {
   // 無効なスラッグ
   if (!config) {
     return (
-      <Block padding="lg">
+      <Block padding={{ base: "md", sm: "lg" }}>
         <Para tone="destructive" align="center">
           無効な通貨タイプです。
         </Para>
@@ -58,7 +58,7 @@ export function WalletHistory({ slug }: WalletHistoryProps) {
   }
 
   return (
-    <Stack space={6}>
+    <Stack gap="lg">
       <Flex justify="end">
         <LinkButton href={`/wallet/${slug}`} variant="outline" size="sm">
           {config.label}管理に戻る
@@ -75,19 +75,19 @@ export function WalletHistory({ slug }: WalletHistoryProps) {
         onRetry={retry}
         completedText="すべて表示しました"
         initialLoadingNode={
-          <Flex justify="center" padding="lg">
+          <Flex justify="center" padding={{ base: "md", sm: "lg" }}>
             <Spinner className="h-8 w-8" />
           </Flex>
         }
         errorNode={
-          <Block padding="lg" className="rounded-lg border border-destructive/30 bg-destructive/10">
+          <Block padding={{ base: "md", sm: "lg" }} className="rounded-lg border border-destructive/30 bg-destructive/10">
             <Para tone="destructive" align="center">
               履歴の取得に失敗しました
             </Para>
           </Block>
         }
         emptyNode={
-          <Block padding="lg" className="rounded-lg border border-dashed border-border">
+          <Block padding={{ base: "md", sm: "lg" }} className="rounded-lg border border-dashed border-border">
             <Para tone="muted" align="center">
               履歴はまだありません
             </Para>
@@ -95,7 +95,7 @@ export function WalletHistory({ slug }: WalletHistoryProps) {
         }
       >
         {(items) => (
-          <Stack space={0}>
+          <Stack gap="none">
             {items.map((history) => (
               <HistoryListItem key={history.batchId} history={history} walletType={config.walletType} />
             ))}

@@ -48,19 +48,19 @@ export function InviteCode({ benefits }: { /** 招待特典の説明(省略 = �
 
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         <AccountPageHeader title="招待コード" backHref="/mypage" />
 
         <Block appearance="outlined" className="divide-y divide-border">
           {/* 招待コード表示エリア */}
           <div className="p-4 sm:p-6">
             {isLoadingCode ? (
-              <Flex direction="column" align="center" gap="sm">
+              <Flex direction="column" align="center" gap="md">
                 <BaseSkeleton className="h-5 w-40" />
                 <BaseSkeleton className="h-10 w-60" />
               </Flex>
             ) : inviteCode ? (
-              <Flex direction="column" align="center" gap="md">
+              <Flex direction="column" align="center" gap="lg">
                 <Para size="sm" tone="muted">あなたの招待コード</Para>
                 <button
                   type="button"
@@ -79,7 +79,7 @@ export function InviteCode({ benefits }: { /** 招待特典の説明(省略 = �
                 </Para>
               </Flex>
             ) : (
-              <Flex direction="column" align="center" gap="md">
+              <Flex direction="column" align="center" gap="lg">
                 <Para size="sm" tone="muted">
                   招待コードを発行してお友だちをサービスに招待しましょう。
                 </Para>
@@ -100,7 +100,7 @@ export function InviteCode({ benefits }: { /** 招待特典の説明(省略 = �
 
           {/* 招待実績 */}
           <div className="p-4 sm:p-6">
-            <Flex align="center" gap="sm">
+            <Flex align="center" gap="md">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                 <UsersIcon className="h-5 w-5 text-primary" />
               </div>

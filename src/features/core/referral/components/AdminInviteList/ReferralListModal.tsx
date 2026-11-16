@@ -99,9 +99,9 @@ export default function ReferralListModal({
       maxWidth={640}
       maxHeight="70vh"
     >
-      <Stack space={4} padding="md">
+      <Stack gap="md" padding={{ base: "sm", sm: "md" }}>
         {isLoading ? (
-          <Stack space={2}>
+          <Stack gap="xs">
             <BaseSkeleton className="h-8 w-full" />
             <BaseSkeleton className="h-8 w-full" />
             <BaseSkeleton className="h-8 w-full" />

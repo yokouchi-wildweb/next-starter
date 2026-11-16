@@ -345,7 +345,7 @@ export function AsyncMultiSelectInput<T>({
           )}
         >
           {/* スクロール領域は候補リストだけ: 上限を中身のルートに付け、flex-col + min-h-0 でリストを縮める */}
-          <Stack space={0} padding="none" className={PICKER_POPOVER_BODY_CLASS}>
+          <Stack gap="none" padding="none" className={PICKER_POPOVER_BODY_CLASS}>
             <Command shouldFilter={false} className="min-h-0">
               {selectedView === "inline" ? (
                 <Stack space={0} className="flex min-h-0 flex-col px-2 pt-2">
@@ -399,7 +399,7 @@ export function AsyncMultiSelectInput<T>({
               )}
             </Command>
             <Flex
-              padding="sm"
+              padding="xs"
               justify="end"
               className="shrink-0 border-t border-border bg-popover"
             >

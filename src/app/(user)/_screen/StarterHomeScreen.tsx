@@ -43,18 +43,18 @@ export async function StarterHomeScreen(props: ScreenProps) {
 
       <UserPage
         containerType="plain"
-        padding="md"
+        padding={{ base: "sm", sm: "md" }}
         className="flex min-h-0 flex-1 flex-col overflow-clip overscroll-none relative content-layer"
       >
         {/* 縦中央寄せは justify-center ではなく my-auto で行う（溢れた時に上端が切れないため） */}
         <Flex direction="column" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <Block className="mx-auto my-auto w-full max-w-[var(--layout-width-content-shell)] py-6">
-            <Stack space={10} className="sm:gap-12">
+            <Stack gap="2xl" className="sm:gap-12">
               <Hero showDemoLink={demoEnabled} />
               <Capabilities />
 
               <Section as="footer">
-                <Flex justify="center" gap="md" wrap="wrap">
+                <Flex justify="center" gap="lg" wrap="wrap">
                   {RESOURCE_LINKS.map((link) => (
                     <Link
                       key={link.href}

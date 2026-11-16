@@ -34,8 +34,8 @@ export function Reactivate() {
   }, [logout]);
 
   return (
-    <Block appearance="outlined" padding="lg">
-      <Flex direction="column" gap="md">
+    <Block appearance="outlined" padding={{ base: "md", sm: "lg" }}>
+      <Flex direction="column" gap="lg">
         <SecTitle as="h2">アカウントの復帰</SecTitle>
         <Para tone="muted" size="sm">
           現在、アカウントは休会中です。
@@ -48,7 +48,7 @@ export function Reactivate() {
           </Para>
         )}
 
-        <Flex direction="column" gap="sm">
+        <Flex direction="column" gap="md">
           <Button
             variant="primary"
             onClick={handleReactivate}

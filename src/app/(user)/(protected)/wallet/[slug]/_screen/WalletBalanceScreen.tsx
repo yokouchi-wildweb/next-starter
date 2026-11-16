@@ -16,7 +16,7 @@ export async function WalletBalanceScreen(props: ScreenProps<WalletBalanceScreen
 
   return (
     <UserPage containerType="narrowStack">
-      <Stack space={6}>
+      <Stack gap="lg">
         <UserPageTitle>{data.label}管理</UserPageTitle>
         <WalletBalance
           slug={data.slug}

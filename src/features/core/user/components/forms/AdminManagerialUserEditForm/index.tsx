@@ -70,7 +70,7 @@ export default function ManagerialUserEditForm({
       methods={methods}
       onSubmit={submit}
       pending={isMutating}
-      fieldSpace={6}
+      fieldSpace="lg"
     >
       <ControlledField
         control={control}

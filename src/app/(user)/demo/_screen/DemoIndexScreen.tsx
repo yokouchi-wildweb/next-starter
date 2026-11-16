@@ -23,9 +23,9 @@ export async function DemoIndexScreen(props: ScreenProps) {
 
   return (
     <Main containerType="contentShell">
-      <Stack space={12} className="py-6 sm:py-10">
+      <Stack gap="3xl" className="py-6 sm:py-10">
         <Section>
-          <Stack space={3}>
+          <Stack gap="sm">
             <Span size="xs" weight="medium" tone="muted" className="uppercase tracking-[0.2em]">
               Demo · {pages.length} pages
             </Span>
@@ -41,7 +41,7 @@ export async function DemoIndexScreen(props: ScreenProps) {
 
         {groups.map((group) => (
           <Section key={group.key} aria-labelledby={`demo-category-${group.key}`}>
-            <Stack space={4}>
+            <Stack gap="md">
               <Flex align="center" gap="xs">
                 <SecTitle id={`demo-category-${group.key}`} size="lg" weight="semiBold">
                   {group.label}

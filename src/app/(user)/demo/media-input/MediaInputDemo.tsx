@@ -11,7 +11,7 @@ export const MediaInputDemo = () => {
   const [metadata, setMetadata] = useState<SelectedMediaMetadata>({ image: null, video: null });
 
   return (
-    <Stack space={6} padding="xl" className="flex flex-col gap-4">
+    <Stack gap="lg" padding={{ base: "lg", sm: "2xl" }} className="flex flex-col gap-4">
       <MediaInput
         onFileChange={(file) => setFileName(file?.name ?? null)}
         onMetadataChange={(info) => setMetadata(info)}

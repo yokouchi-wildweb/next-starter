@@ -16,7 +16,7 @@ export async function WalletHistoryScreen(props: ScreenProps<WalletHistoryScreen
 
   return (
     <UserPage containerType="narrowStack">
-      <Stack space={6}>
+      <Stack gap="lg">
         <UserPageTitle>{data.label}履歴</UserPageTitle>
         <WalletHistory slug={data.slug} />
       </Stack>

@@ -82,7 +82,7 @@ export function CancelTransferButton({ requestId }: Props) {
         confirmVariant="destructive"
         onConfirm={handleConfirm}
       >
-        <Stack space={2}>
+        <Stack gap="xs">
           <Para size="sm">
             進行中の振込手続きが無効になり、決済方法を選び直す画面に戻ります。
           </Para>

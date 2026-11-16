@@ -28,7 +28,7 @@ export default function AdminCouponList({
 }: AdminCouponListProps) {
   return (
     <Section>
-      <Stack space={6}>
+      <Stack gap="lg">
         <Header page={page} perPage={perPage} total={total} />
         <Table coupons={coupons} />
       </Stack>

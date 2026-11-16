@@ -47,8 +47,8 @@ export function SamplePickerDemo() {
   );
 
   return (
-    <Stack space={8}>
-      <Stack space={3}>
+    <Stack gap="xl">
+      <Stack gap="sm">
         <SecTitle>複数選択（追加済みは選択不可）</SecTitle>
         <Flex gap="xs" align="center">
           <Button type="button" onClick={() => setMultiOpen(true)}>
@@ -61,7 +61,7 @@ export function SamplePickerDemo() {
         {added.length === 0 ? (
           <Para size="sm" tone="muted">まだ追加されていません</Para>
         ) : (
-          <Stack space={1}>
+          <Stack gap="2xs">
             {added.map((s) => (
               <Span key={s.id} size="sm">
                 {s.name}
@@ -82,7 +82,7 @@ export function SamplePickerDemo() {
           searchFields={["name", "description"]}
           disabledValues={addedIds}
           renderOption={(option, item) => (
-            <Stack space={0}>
+            <Stack gap="none">
               <Span size="sm" className="truncate">{option.label}</Span>
               {item?.description ? (
                 <Span size="xs" tone="muted" className="truncate">{item.description}</Span>
@@ -93,7 +93,7 @@ export function SamplePickerDemo() {
         />
       </Stack>
 
-      <Stack space={3}>
+      <Stack gap="sm">
         <SecTitle>単一選択（行クリックで即確定）</SecTitle>
         <Flex gap="xs" align="center">
           <Button type="button" variant="outline" onClick={() => setSingleOpen(true)}>

@@ -34,7 +34,7 @@ export function DeliveryRow({ delivery }: DeliveryRowProps) {
   // 宛先: メール・LINE などの宛先だけ。お知らせの宛先は利用者の id なので出さない(利用者は名前で出す)。受信者の鍵にも落とさない
   const shownAddress = delivery.address && delivery.address !== delivery.userId ? delivery.address : null;
   return (
-    <Stack space={1} className="border-b border-border px-1 py-2" data-slot="delivery-row">
+    <Stack gap="2xs" className="border-b border-border px-1 py-2" data-slot="delivery-row">
       <Flex align="center" gap="xs" wrap="wrap">
         <DeliveryStatusBadge status={delivery.status} />
         <Span size="sm">{messageChannelLabel(delivery.channel)}</Span>
@@ -44,7 +44,7 @@ export function DeliveryRow({ delivery }: DeliveryRowProps) {
           </Span>
         ) : null}
       </Flex>
-      <Flex align="center" gap="sm" wrap="wrap">
+      <Flex align="center" gap="md" wrap="wrap">
         {delivery.userId ? (
           <Span size="xs" tone="muted">
             宛先 {delivery.userName ?? "(名前未設定のユーザー)"}

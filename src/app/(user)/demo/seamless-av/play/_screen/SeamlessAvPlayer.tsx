@@ -42,7 +42,7 @@ export function SeamlessAvPlayer({ manifest }: Props) {
 
   return (
     <Flex className="min-h-[80vh] p-4" align="center" justify="center">
-      <Stack space={3} className="w-full max-w-[420px]">
+      <Stack gap="sm" className="w-full max-w-[420px]">
         <Block className="relative w-full overflow-clip rounded-lg bg-black">
           <video ref={videoRef} className="aspect-[9/16] w-full" controls playsInline />
 

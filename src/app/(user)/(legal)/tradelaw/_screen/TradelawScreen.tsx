@@ -20,7 +20,7 @@ export async function TradelawScreen(props: ScreenProps) {
 
   return (
     <UserPage containerType="narrowStack">
-      <Stack space={6}>
+      <Stack gap="lg">
         <UserPageTitle>{document.title}</UserPageTitle>
         <LegalDocumentRenderer
           document={document}

@@ -18,9 +18,9 @@ type Props = {
  */
 export function HistoryTabContent({ user }: Props) {
   return (
-    <Stack space={4} padding="md">
+    <Stack gap="md" padding={{ base: "sm", sm: "md" }}>
       <UserInfoHeader user={user} />
-      <Stack space={6} className="mt-4">
+      <Stack gap="lg" className="mt-4">
         <AuditTimeline targetType="user" targetId={user.id} />
       </Stack>
     </Stack>

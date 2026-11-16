@@ -16,14 +16,14 @@ const PLACEHOLDER_BENEFITS = [
 export function InviteBenefitsSection() {
   return (
     <div className="rounded-lg bg-gradient-to-br from-primary/5 to-transparent px-4 py-6">
-      <Flex direction="column" align="center" gap="md">
+      <Flex direction="column" align="center" gap="lg">
         {/* アイコン */}
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/10">
           <GiftIcon className="h-7 w-7 text-primary" />
         </div>
 
         {/* タイトル・説明文 */}
-        <Stack space={1}>
+        <Stack gap="2xs">
           <Para size="sm" weight="medium" className="!mb-0 text-center">
             招待特典
           </Para>
@@ -33,7 +33,7 @@ export function InviteBenefitsSection() {
         </Stack>
 
         {/* 特典リスト */}
-        <Stack space={2} className="items-center">
+        <Stack gap="xs" className="items-center">
           {PLACEHOLDER_BENEFITS.map((benefit) => (
             <Flex key={benefit} align="center" gap="xs">
               <CheckCircleIcon className="h-4 w-4 shrink-0 text-primary/70" />

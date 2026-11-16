@@ -29,7 +29,7 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
 
         {/* SoftBadge */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">SoftBadge</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               薄い背景 + ボーダー + 色付きテキスト。柔らかい印象。
@@ -52,7 +52,7 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
 
         {/* SolidBadge */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">SolidBadge</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               不透明背景 + foregroundテキスト。ソリッドな印象。
@@ -73,7 +73,7 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
 
         {/* サイズ */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">サイズ</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               sm / md / lg の3サイズ。
@@ -98,7 +98,7 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
 
         {/* アイコン付き */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">アイコン付き</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               icon プロパティでアイコンを渡せます。
@@ -129,7 +129,7 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
 
         {/* 実用例 */}
         <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle as="h2">実用例</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               管理画面でのステータス表示例。

@@ -25,7 +25,7 @@ export type UserGroupEstimateViewProps = {
 
 export function UserGroupEstimateView({ result, reason, isLoading, stale, canRun, onRun }: UserGroupEstimateViewProps) {
   return (
-    <Stack space={2} className="rounded-md border border-border bg-muted/30 p-4" data-slot="user-group-estimate">
+    <Stack gap="xs" className="rounded-md border border-border bg-muted/30 p-4" data-slot="user-group-estimate">
       <Flex align="center" justify="between" gap="xs" wrap="wrap">
         <Span weight="semiBold">対象人数の見積もり</Span>
         <Button type="button" size="sm" variant="outline" disabled={!canRun} onClick={onRun}>
@@ -39,7 +39,7 @@ export function UserGroupEstimateView({ result, reason, isLoading, stale, canRun
         </Para>
       ) : null}
       {result ? (
-        <Stack space={1}>
+        <Stack gap="2xs">
           <Span data-slot="estimate-count">{`約 ${result.count.toLocaleString("ja-JP")} 人`}</Span>
           {result.overLimit ? (
             <Para size="sm" tone="warning" className="my-0">

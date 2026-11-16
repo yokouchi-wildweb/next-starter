@@ -267,10 +267,10 @@ export function SeamlessAvDemo() {
   };
 
   return (
-    <Stack space={6}>
+    <Stack gap="lg">
       {/* 環境サポート */}
       <Block className="rounded-lg border bg-muted/40 p-4">
-        <Stack space={1}>
+        <Stack gap="2xs">
           <SecTitle size="sm">この環境のサポート状況</SecTitle>
           <Para size="sm" tone="muted">
             映像(MSE): {env.mse ? "対応" : "非対応"} / 音声(Web Audio): {env.webAudio ? "対応" : "非対応"}
@@ -302,7 +302,7 @@ export function SeamlessAvDemo() {
 
       {/* フラグメント登録＋並べ替え */}
       <Block className="rounded-lg border p-4">
-        <Stack space={3}>
+        <Stack gap="sm">
           <Flex justify="between" align="center" wrap="wrap" gap="xs">
             <SecTitle size="sm">フラグメント(映像+音声)を登録して並べ替え</SecTitle>
             <Button variant="outline" size="sm" onClick={addSlot} disabled={slots.length >= MAX_SLOTS}>
@@ -316,14 +316,14 @@ export function SeamlessAvDemo() {
             </Para>
           )}
 
-          <Stack space={2}>
+          <Stack gap="xs">
             {slots.map((slot, index) => {
               const v = valBySlot[slot.id];
               const st = slotStatus(v);
               const style = STATUS_STYLE[st];
               return (
                 <Block key={slot.id} className="rounded-md border p-3">
-                  <Stack space={2}>
+                  <Stack gap="xs">
                     <Flex gap="xs" align="center" wrap="wrap">
                       <span className="shrink-0 text-xs font-medium text-muted-foreground">#{index + 1}</span>
                       <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${style.className}`}>
@@ -410,7 +410,7 @@ export function SeamlessAvDemo() {
             report.ok ? "border-success/40 bg-success/5" : "border-destructive/40 bg-destructive/5"
           }`}
         >
-          <Stack space={2}>
+          <Stack gap="xs">
             <SecTitle size="sm">検証結果: {report.ok ? "連結成立の見込みあり" : "問題あり"}</SecTitle>
             <Para size="sm" tone="muted">
               音声連結: {report.hasAudioAll ? "全フラグメントに音声あり(有効)" : "無効(映像のみ)"}
@@ -432,11 +432,11 @@ export function SeamlessAvDemo() {
 
       {/* 再生・拡張ポイントのデモ */}
       <Block className="rounded-lg border p-4">
-        <Stack space={4}>
+        <Stack gap="md">
           <SecTitle size="sm">プリロード → 再生（拡張ポイント込み）</SecTitle>
 
           {/* 読み込みモード */}
-          <Flex gap="sm" align="center" wrap="wrap">
+          <Flex gap="md" align="center" wrap="wrap">
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <input type="checkbox" checked={progressive} onChange={(e) => setProgressive(e.target.checked)} />
               progressive 読み込み（先頭準備で即再生可）
@@ -497,8 +497,8 @@ export function SeamlessAvDemo() {
           </Block>
 
           {/* 再生中コントロール(音量/フェード/章ジャンプ) */}
-          <Stack space={2}>
-            <Flex gap="sm" align="center" wrap="wrap">
+          <Stack gap="xs">
+            <Flex gap="md" align="center" wrap="wrap">
               <span className="text-xs text-muted-foreground">音量 {volume.toFixed(2)}</span>
               <input
                 type="range"
@@ -517,7 +517,7 @@ export function SeamlessAvDemo() {
             </Flex>
 
             {bgmFile && (
-              <Flex gap="sm" align="center" wrap="wrap">
+              <Flex gap="md" align="center" wrap="wrap">
                 <span className="text-xs text-muted-foreground">BGM音量 {bgmVolume.toFixed(2)}</span>
                 <input
                   type="range"
@@ -581,7 +581,7 @@ export function SeamlessAvDemo() {
           </Stack>
 
           {/* 診断 */}
-          <Stack space={1}>
+          <Stack gap="2xs">
             <Para size="sm" tone="muted">
               状態: {status} / playable: {playable ? "○" : "—"} / complete: {complete ? "○" : "—"}
               {progress.total > 0 && ` / 映像append: ${progress.appended}/${progress.total}`}
@@ -614,7 +614,7 @@ export function SeamlessAvDemo() {
 
       {/* 保存して共有(実機テスト用) */}
       <Block className="rounded-lg border p-4">
-        <Stack space={3}>
+        <Stack gap="sm">
           <Flex gap="xs" align="center" wrap="wrap" justify="between">
             <SecTitle size="sm">ストレージに保存して共有URLを発行</SecTitle>
             <Button onClick={() => void handleSave()} disabled={!canSave}>
@@ -634,7 +634,7 @@ export function SeamlessAvDemo() {
 
           {shareUrl && (
             <Block className="rounded-md border border-success/40 bg-success/5 p-3">
-              <Stack space={2}>
+              <Stack gap="xs">
                 <Para size="sm" weight="medium">
                   共有URL
                 </Para>

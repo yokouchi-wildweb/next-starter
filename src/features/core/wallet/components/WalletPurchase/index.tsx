@@ -47,7 +47,7 @@ export function WalletPurchase({ slug }: WalletPurchaseProps) {
   // 無効なスラッグ
   if (!config) {
     return (
-      <Block padding="lg">
+      <Block padding={{ base: "md", sm: "lg" }}>
         <Para tone="destructive" align="center">
           無効な通貨タイプです。
         </Para>
@@ -60,7 +60,7 @@ export function WalletPurchase({ slug }: WalletPurchaseProps) {
   // パラメータ不足チェック
   if (!amountParam || !priceParam) {
     return (
-      <Stack space={8}>
+      <Stack gap="xl">
         <Para tone="destructive" align="center">
           購入情報が指定されていません。
         </Para>
@@ -79,7 +79,7 @@ export function WalletPurchase({ slug }: WalletPurchaseProps) {
   // 数値バリデーション
   if (isNaN(purchaseAmount) || isNaN(paymentAmount) || purchaseAmount <= 0 || paymentAmount <= 0) {
     return (
-      <Stack space={8}>
+      <Stack gap="xl">
         <Para tone="destructive" align="center">
           無効な購入情報です。
         </Para>
@@ -95,7 +95,7 @@ export function WalletPurchase({ slug }: WalletPurchaseProps) {
   // ローディング中
   if (isLoading) {
     return (
-      <Flex justify="center" padding="lg">
+      <Flex justify="center" padding={{ base: "md", sm: "lg" }}>
         <Spinner className="h-8 w-8" />
       </Flex>
     );
@@ -104,7 +104,7 @@ export function WalletPurchase({ slug }: WalletPurchaseProps) {
   // エラー
   if (error) {
     return (
-      <Block padding="lg">
+      <Block padding={{ base: "md", sm: "lg" }}>
         <Para tone="destructive" align="center">
           残高情報の取得に失敗しました。
         </Para>
@@ -115,7 +115,7 @@ export function WalletPurchase({ slug }: WalletPurchaseProps) {
   // 購入一時停止チェック
   if (isPurchaseSuspended()) {
     return (
-      <Stack space={6}>
+      <Stack gap="lg">
         <Flex justify="end">
           <LinkButton href={backUrl} variant="outline" size="sm">
             {config.label}管理に戻る
@@ -133,7 +133,7 @@ export function WalletPurchase({ slug }: WalletPurchaseProps) {
   const currentBalance = wallet?.balance ?? 0;
 
   return (
-    <Stack space={6}>
+    <Stack gap="lg">
       <Flex justify="end">
         <LinkButton href={backUrl} variant="outline" size="sm">
           {config.label}管理に戻る

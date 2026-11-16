@@ -62,19 +62,19 @@ export type InfiniteScrollListProps<TItem> = {
 };
 
 const DefaultInitialLoading = () => (
-  <Flex justify="center" padding="xl">
+  <Flex justify="center" padding={{ base: "lg", sm: "2xl" }}>
     <Spinner className="size-8 text-muted-foreground" />
   </Flex>
 );
 
 const DefaultError = () => (
-  <Flex justify="center" padding="xl">
+  <Flex justify="center" padding={{ base: "lg", sm: "2xl" }}>
     <Para tone="destructive">データの取得に失敗しました</Para>
   </Flex>
 );
 
 const DefaultEmpty = () => (
-  <Flex justify="center" padding="xl">
+  <Flex justify="center" padding={{ base: "lg", sm: "2xl" }}>
     <Para tone="muted">アイテムがありません</Para>
   </Flex>
 );
@@ -103,7 +103,7 @@ export function InfiniteScrollList<TItem>({
       <>
         {errorNode ?? <DefaultError />}
         {onRetry ? (
-          <Flex justify="center" paddingBlock="md">
+          <Flex justify="center" paddingBlock={{ base: "sm", sm: "md" }}>
             <Button type="button" variant="outline" size="sm" onClick={onRetry}>
               再試行
             </Button>
@@ -122,7 +122,7 @@ export function InfiniteScrollList<TItem>({
       {error ? (
         // 追加ロードの失敗: 読み込み済みの一覧は残し、末尾でエラーと再試行を出す
         // (フックは失敗時に hasMore=false にするので、センチネルも終端メッセージも出さない)
-        <Flex justify="center" align="center" gap="sm" paddingBlock="lg">
+        <Flex justify="center" align="center" gap="md" paddingBlock={{ base: "md", sm: "lg" }}>
           <Para tone="destructive" size="sm">
             続きの読み込みに失敗しました
           </Para>
@@ -147,7 +147,7 @@ export function InfiniteScrollList<TItem>({
           )}
         </Flex>
       ) : !hideCompletedNotice ? (
-        <Flex justify="center" align="center" gap="xs" paddingBlock="lg">
+        <Flex justify="center" align="center" gap="xs" paddingBlock={{ base: "md", sm: "lg" }}>
           <Block className="h-px w-12 bg-border" />
           <Para tone="muted" size="xs">
             {completedText}

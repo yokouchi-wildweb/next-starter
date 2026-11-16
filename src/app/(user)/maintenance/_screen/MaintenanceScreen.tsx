@@ -22,7 +22,7 @@ export async function MaintenanceScreen(props: ScreenProps) {
     <>
       <MaintenanceAutoRedirect endTime={endTime} redirectTo={redirectTo} />
       <UserPage>
-        <Stack space={8} className="text-center py-12">
+        <Stack gap="xl" className="text-center py-12">
           <UserPageTitle>ただいま準備中です</UserPageTitle>
           <Para align="center" tone="muted">現在サイトを準備しております。</Para>
           <Para align="center" tone="muted">サービス開始までしばらくお待ちください。</Para>

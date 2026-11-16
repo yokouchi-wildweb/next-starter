@@ -86,7 +86,7 @@ export function WalletBalance({
   // 無効なスラッグ
   if (!config) {
     return (
-      <Block padding="lg">
+      <Block padding={{ base: "md", sm: "lg" }}>
         <Para tone="destructive" align="center">
           無効な通貨タイプです。
         </Para>
@@ -97,7 +97,7 @@ export function WalletBalance({
   // ローディング中
   if (isLoading) {
     return (
-      <Flex justify="center" padding="lg">
+      <Flex justify="center" padding={{ base: "md", sm: "lg" }}>
         <Spinner className="h-8 w-8" />
       </Flex>
     );
@@ -106,7 +106,7 @@ export function WalletBalance({
   // エラー
   if (error) {
     return (
-      <Block padding="lg">
+      <Block padding={{ base: "md", sm: "lg" }}>
         <Para tone="destructive" align="center">
           残高情報の取得に失敗しました。
         </Para>
@@ -150,7 +150,7 @@ export function WalletBalance({
   };
 
   return (
-    <Stack space={6}>
+    <Stack gap="lg">
       {/* 進行中の自社銀行振込バナー（active が null なら自動的に非描画） */}
       {showTransferBanner && <ActiveTransferBanner />}
       <Flex justify="end">

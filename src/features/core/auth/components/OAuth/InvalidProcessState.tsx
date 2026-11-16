@@ -9,7 +9,7 @@ import { Para } from "@/components/TextBlocks";
 
 export function InvalidProcessState() {
   return (
-    <Stack space={4}>
+    <Stack gap="md">
       <Para>認証に失敗しました。</Para>
       <Block>
           <Para>

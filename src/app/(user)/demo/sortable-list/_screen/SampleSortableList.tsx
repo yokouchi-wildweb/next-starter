@@ -59,7 +59,7 @@ export function SampleSortableList({ initialSamples }: Props) {
   const columns: SortableListColumn<Sample>[] = [
     {
       render: (item) => (
-        <Flex gap="sm" align="center" className="min-w-0 flex-1">
+        <Flex gap="md" align="center" className="min-w-0 flex-1">
           {item.main_image ? (
             <AppImage
               src={item.main_image}
@@ -86,7 +86,7 @@ export function SampleSortableList({ initialSamples }: Props) {
     },
     {
       render: (item) => (
-        <Flex gap="sm" align="center" justify="end" className="text-xs text-muted-foreground">
+        <Flex gap="md" align="center" justify="end" className="text-xs text-muted-foreground">
           <span>ID: {item.id.slice(0, 8)}...</span>
           {item.sort_order && (
             <span className="rounded bg-muted px-1.5 py-0.5 font-mono">
@@ -101,7 +101,7 @@ export function SampleSortableList({ initialSamples }: Props) {
   ];
 
   return (
-    <Stack space={6}>
+    <Stack gap="lg">
       {/* エラー表示 */}
       {error && (
         <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive-text">
@@ -123,14 +123,14 @@ export function SampleSortableList({ initialSamples }: Props) {
       />
 
       {/* scroll="parent": リストはスクロールしない。外側の Block が唯一のスクロール領域 */}
-      <Stack space={2}>
+      <Stack gap="xs">
         <SecTitle>scroll=&quot;parent&quot;（親スクロールに追従）</SecTitle>
         <Para className="text-sm text-muted-foreground">
           リスト自身は overflow / maxHeight を持たず全行を通常フローで描画する。
           スクロールバーは外側の枠（Modal 本体の代替）に 1 本だけ現れる。
         </Para>
-        <Block appearance="outlined" padding="md" className="max-h-64 overflow-y-auto">
-          <Stack space={4}>
+        <Block appearance="outlined" padding={{ base: "sm", sm: "md" }} className="max-h-64 overflow-y-auto">
+          <Stack gap="md">
             <Para className="text-sm">↓ 他セクション相当のコンテンツ</Para>
             <SortableList<Sample>
               items={samples}

@@ -67,7 +67,7 @@ export function RecaptchaV2Challenge({
       showConfirmButton={false}
       showCloseButton
     >
-      <Flex direction="column" align="center" gap="sm" className="py-4">
+      <Flex direction="column" align="center" gap="md" className="py-4">
         {error && (
           <Para size="sm" tone="destructive">{error}</Para>
         )}

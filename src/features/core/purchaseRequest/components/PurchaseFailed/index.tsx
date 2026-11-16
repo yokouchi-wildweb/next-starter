@@ -57,8 +57,8 @@ export function PurchaseFailed({ slug }: PurchaseFailedProps) {
   const errorMessage = getErrorMessage(reason, errorCode);
 
   return (
-    <Stack space={8}>
-      <Flex direction="column" align="center" gap="md">
+    <Stack gap="xl">
+      <Flex direction="column" align="center" gap="lg">
         <XCircle className="h-16 w-16 text-destructive-text" />
 
         <Para align="center" size="lg" weight="bold">

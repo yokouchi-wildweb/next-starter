@@ -11,7 +11,7 @@ export const MediaUploadDemo = () => {
   const [url, setUrl] = useState<string | null>(null);
 
   return (
-    <Stack space={6} padding="xl" className="flex flex-col gap-4">
+    <Stack gap="lg" padding={{ base: "lg", sm: "2xl" }} className="flex flex-col gap-4">
       <MediaUploader
         onMetadataChange={(info) => setMetadata(info)}
         onUrlChange={(url) => {

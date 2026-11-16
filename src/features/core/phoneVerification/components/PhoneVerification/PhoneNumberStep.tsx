@@ -56,8 +56,8 @@ export function PhoneNumberStep({
 
   return (
     <section id="phone-verification-input" className="w-full">
-      <Stack space={6}>
-        <Stack space={2}>
+      <Stack gap="lg">
+        <Stack gap="xs">
           <h2 className="text-xl font-semibold">
             {isChangeMode ? "電話番号の変更" : "電話番号認証"}
           </h2>
@@ -69,7 +69,7 @@ export function PhoneNumberStep({
         </Stack>
 
         {isChangeMode && currentPhoneNumber && (
-          <Stack space={1}>
+          <Stack gap="2xs">
             <Para size="sm" className="font-medium text-foreground">
               現在の電話番号
             </Para>
@@ -80,7 +80,7 @@ export function PhoneNumberStep({
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <Stack space={2}>
+          <Stack gap="xs">
             <Label htmlFor="phone-number" className="block text-foreground">
               {isChangeMode ? "新しい電話番号" : "電話番号"}
             </Label>
@@ -106,7 +106,7 @@ export function PhoneNumberStep({
             </Para>
           )}
 
-          <Stack space={3}>
+          <Stack gap="sm">
             <Button
               type="submit"
               disabled={isLoading || !phoneNumber.trim()}

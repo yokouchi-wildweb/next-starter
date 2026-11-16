@@ -76,7 +76,7 @@ export function DiffView({ before, after }: Props) {
       {diffs.map((diff) => (
         <Flex
           key={diff.key}
-          gap="sm"
+          gap="md"
           align="center"
           className="px-2 py-1.5 bg-card text-xs"
         >

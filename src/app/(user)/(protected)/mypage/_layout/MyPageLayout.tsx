@@ -12,7 +12,7 @@ export function MyPageLayout({
 }: Readonly<{ children: ReactNode }>) {
   return (
     <UserPage containerType="narrowStack">
-      <Stack space={6}>
+      <Stack gap="lg">
         <PageTransition>{children}</PageTransition>
       </Stack>
     </UserPage>

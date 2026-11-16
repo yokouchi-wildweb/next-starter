@@ -18,7 +18,7 @@ export async function LoginScreen(props: ScreenProps<Record<string, never>, Logi
 
   return (
     <UserPage containerType="narrowStack">
-      <Flex direction="column" justify="center" align="center" gap="md">
+      <Flex direction="column" justify="center" align="center" gap="lg">
         <UserPageTitle>ログイン</UserPageTitle>
         <UserLogin redirectTo={redirectTo} />
       </Flex>

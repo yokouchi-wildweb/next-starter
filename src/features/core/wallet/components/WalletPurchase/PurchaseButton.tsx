@@ -32,7 +32,7 @@ export function PurchaseButton({
 
   return (
     <Section>
-      <Stack space={4}>
+      <Stack gap="md">
         {error && (
           <Para tone="destructive" size="sm" align="center">
             {error}

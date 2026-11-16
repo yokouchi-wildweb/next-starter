@@ -16,7 +16,7 @@ export async function AdminHomeScreen(props: ScreenProps) {
 
   return (
     <AdminPage title="管理ダッシュボード">
-      <Stack space={8}>
+      <Stack gap="xl">
         <AdminDashboard data={sections} />
       </Stack>
     </AdminPage>

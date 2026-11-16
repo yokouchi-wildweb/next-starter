@@ -90,7 +90,7 @@ export const BankTransferVisionDemo = () => {
   };
 
   return (
-    <Stack space={6}>
+    <Stack gap="lg">
       <MediaInput
         accept={ACCEPTED_MIME_TYPES.join(",")}
         validationRule={{
@@ -106,7 +106,7 @@ export const BankTransferVisionDemo = () => {
         resetSignal={resetSignal}
       />
 
-      <Stack space={3}>
+      <Stack gap="sm">
         <SwitchInput
           value={strictMode}
           label="ストリクトモード"
@@ -120,9 +120,9 @@ export const BankTransferVisionDemo = () => {
         />
 
         {strictMode && (
-          <Block padding="md" className="rounded-lg border border-border bg-card">
-            <Stack space={3}>
-              <Stack space={1}>
+          <Block padding={{ base: "sm", sm: "md" }} className="rounded-lg border border-border bg-card">
+            <Stack gap="sm">
+              <Stack gap="2xs">
                 <Span size="sm" weight="medium">
                   識別数字（振込人名の前後に付与されている想定の数字）
                 </Span>
@@ -136,7 +136,7 @@ export const BankTransferVisionDemo = () => {
                   }}
                 />
               </Stack>
-              <Stack space={1}>
+              <Stack gap="2xs">
                 <Span size="sm" weight="medium">
                   振込金額（円）
                 </Span>
@@ -183,7 +183,7 @@ export const BankTransferVisionDemo = () => {
 
 const ResultView = ({ result }: { result: JudgmentResult }) => {
   return (
-    <Stack space={4} className="rounded-lg border bg-card p-4">
+    <Stack gap="md" className="rounded-lg border bg-card p-4">
       <div className="flex items-center gap-3">
         <SoftBadge variant={result.isLikelyBankTransfer ? "success" : "destructive"}>
           {result.isLikelyBankTransfer ? "通過候補" : "却下候補"}
@@ -230,7 +230,7 @@ const StrictCheckList = ({ checks }: { checks: StrictChecks }) => {
   ];
 
   return (
-    <Stack space={1}>
+    <Stack gap="2xs">
       {items.map(({ label, confirmed }) => (
         <Flex key={label} gap="xs" align="center">
           {confirmed ? (

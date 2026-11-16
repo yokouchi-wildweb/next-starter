@@ -97,7 +97,7 @@ export function BankTransferReviewDetailModal({ reviewId, onClose, onActionDone 
           <Para tone="muted">読込中...</Para>
         </Flex>
       ) : (
-        <Stack space={5}>
+        <Stack className="gap-5">
           <ProofImageSection proofImageUrl={review?.proof_image_url} />
 
           <PurchaseRequestSection
@@ -190,7 +190,7 @@ function PurchaseRequestSection({
       <DefinitionRow label="ユーザー名">{user?.name ?? "(未設定)"}</DefinitionRow>
       <DefinitionRow label="メール">{user?.email ?? "(未設定)"}</DefinitionRow>
       <DefinitionRow label="ステータス">
-        <Flex gap="sm" align="center" wrap="wrap">
+        <Flex gap="md" align="center" wrap="wrap">
           {pr.status ? (
             <SoftBadge
               variant={purchaseRequestStatusBadgeVariant(pr.status)}
@@ -222,7 +222,7 @@ function PurchaseRequestSection({
         {pr.provider_order_id ?? "-"}
       </DefinitionRow>
       <DefinitionRow label="申請/完了日時">
-        <Flex gap="sm" align="center" wrap="wrap">
+        <Flex gap="md" align="center" wrap="wrap">
           <span>{formatBankTransferDate(review?.submitted_at ?? null)}</span>
           <span className="text-muted-foreground">/</span>
           <span>{formatBankTransferDate(pr.completed_at ?? null)}</span>
@@ -254,7 +254,7 @@ function AmountInline({
   const hasPaymentAmount = typeof paymentAmount === "number";
 
   return (
-    <Flex gap="sm" align="center" wrap="wrap">
+    <Flex gap="md" align="center" wrap="wrap">
       {hasAmount && !walletOpen ? (
         <span>{amount.toLocaleString()}</span>
       ) : hasAmount && isKnownWalletType ? (
@@ -290,7 +290,7 @@ function ProofImageSection({ proofImageUrl }: { proofImageUrl: string | undefine
     );
   }
   return (
-    <Stack space={1}>
+    <Stack gap="2xs">
       {/* proofImageUrl は storage ref（非公開）。固定 URL に解決し、302 → 短期署名で表示する */}
       <ZoomableImage
         src={resolveStorageSrc(proofImageUrl) ?? ""}
@@ -326,7 +326,7 @@ function ReviewedSection({
   approvalSource: BankTransferReviewApprovalSource | null;
 }) {
   return (
-    <Stack space={2}>
+    <Stack gap="xs">
       <SecTitle>レビュー実施情報</SecTitle>
       <DefinitionList>
         <DefinitionRow label="実施日時">
@@ -414,7 +414,7 @@ function ActionSection({
 
   return (
     <>
-      <Flex gap="sm" justify="end" wrap="wrap">
+      <Flex gap="md" justify="end" wrap="wrap">
         {canEscalateToInvestigating ? (
           <Button
             type="button"
@@ -467,7 +467,7 @@ function ActionSection({
         title="レビューを拒否しますか？"
         maxWidth={560}
       >
-        <Stack space={4}>
+        <Stack gap="md">
           <Para size="sm" tone="warning">
             {rejectWarning}
           </Para>
@@ -489,7 +489,7 @@ function ActionSection({
               <span className="text-xs text-destructive-text">{rejectError}</span>
             ) : null}
           </label>
-          <Flex gap="sm" justify="end">
+          <Flex gap="md" justify="end">
             <Button
               type="button"
               variant="outline"
@@ -519,7 +519,7 @@ function ActionSection({
         title="検証中に移行しますか？"
         maxWidth={560}
       >
-        <Stack space={4}>
+        <Stack gap="md">
           <Para size="sm" tone="warning">
             通貨残高や購入リクエストの状態は変更されません。レビューを
             「検証中」に切り替え、ユーザーへの停止措置など追加対応が必要な
@@ -544,7 +544,7 @@ function ActionSection({
               <span className="text-xs text-destructive-text">{investigateError}</span>
             ) : null}
           </label>
-          <Flex gap="sm" justify="end">
+          <Flex gap="md" justify="end">
             <Button
               type="button"
               variant="outline"
@@ -582,9 +582,9 @@ function NeedsCheckReasonSection({ review }: { review: BankTransferReviewDto }) 
   const summary = formatNeedsCheckContextSummary(review.needs_check_context);
 
   return (
-    <Stack space={2}>
+    <Stack gap="xs">
       <SecTitle>要確認の理由</SecTitle>
-      <Flex gap="sm" align="center" wrap="wrap">
+      <Flex gap="md" align="center" wrap="wrap">
         <SoftBadge variant="warning" size="sm">
           {reasonLabel}
         </SoftBadge>
@@ -640,7 +640,7 @@ function AdminMemoSection({
   };
 
   return (
-    <Stack space={2}>
+    <Stack gap="xs">
       <SecTitle>管理者メモ</SecTitle>
       <Manual.Textarea
         value={draft}
@@ -649,7 +649,7 @@ function AdminMemoSection({
         onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDraft(e.target.value)}
         aria-invalid={overflow}
       />
-      <Flex justify="between" align="center" wrap="wrap" gap="sm">
+      <Flex justify="between" align="center" wrap="wrap" gap="md">
         <Para size="xs" tone={overflow ? "destructive" : "muted"}>
           {draft.length} / {ADMIN_MEMO_MAX}
         </Para>

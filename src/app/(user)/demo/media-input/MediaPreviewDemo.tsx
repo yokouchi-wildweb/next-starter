@@ -75,7 +75,7 @@ export const MediaPreviewDemo = () => {
   const previewAvailable = Boolean(file || resolvedUrl);
 
   return (
-    <Stack space={6} padding="xl" className="flex flex-col gap-4">
+    <Stack gap="lg" padding={{ base: "lg", sm: "2xl" }} className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={handleOpenFileDialog}>ファイルを選択</Button>
         <Button variant="ghost" size="sm" onClick={handleClear}>
@@ -124,7 +124,7 @@ export const MediaPreviewDemo = () => {
       </Para>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Stack appearance="surface" padding="lg" space={2} className="h-full shadow-none">
+        <Stack appearance="surface" padding={{ base: "md", sm: "lg" }} gap="xs" className="h-full shadow-none">
           <Span weight="semiBold">画像メタ情報</Span>
           {imageMetadata ? (
             <MetadataList
@@ -142,7 +142,7 @@ export const MediaPreviewDemo = () => {
             </Para>
           )}
         </Stack>
-        <Stack appearance="surface" padding="lg" space={2} className="h-full shadow-none">
+        <Stack appearance="surface" padding={{ base: "md", sm: "lg" }} gap="xs" className="h-full shadow-none">
           <Span weight="semiBold">動画メタ情報</Span>
           {videoMetadata ? (
             <MetadataList

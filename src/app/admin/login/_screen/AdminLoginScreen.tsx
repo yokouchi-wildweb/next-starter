@@ -27,7 +27,7 @@ export async function AdminLoginScreen(props: ScreenProps<Record<string, never>,
         {/* 管理の枠は固定高さ(AdminLayout の overflow-clip)で body が伸びないため、この画面は自分でスクロールする。
           狭い画面やソフトウェアキーボードで高さが縮んでもフォームの下まで届く */}
         <Main containerType="narrowStack">
-          <Flex direction="column" justify="center" align="center" gap="xl">
+          <Flex direction="column" justify="center" align="center" gap="3xl">
             <AdminLogin redirectTo={redirectTo} />
             <Link href="/">サービストップへ戻る</Link>
           </Flex>

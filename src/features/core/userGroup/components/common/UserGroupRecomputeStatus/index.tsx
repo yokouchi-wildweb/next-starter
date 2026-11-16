@@ -46,7 +46,7 @@ export function UserGroupRecomputeStatus({ recompute, showReason = false, inline
     );
   }
   return (
-    <Flex gap="sm" wrap="wrap" data-slot="user-group-recompute">
+    <Flex gap="md" wrap="wrap" data-slot="user-group-recompute">
       <Span size="sm" tone="muted">
         {interval}
       </Span>

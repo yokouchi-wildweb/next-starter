@@ -30,9 +30,9 @@ export function AdditionalMetricsSection() {
     <Section id="additional-metrics">
       <SecTitle>追加の指標</SecTitle>
 
-      <Flex wrap="wrap" gap="lg" justify="center" className="lg:justify-start">
+      <Flex wrap="wrap" gap="xl" justify="center" className="lg:justify-start">
         <Stack
-          space={6}
+          gap="lg"
           className="w-full rounded-xl border border-border bg-gradient-to-br from-muted via-muted-foreground/40 to-muted-foreground/70 py-6 text-foreground shadow-lg max-sm:gap-0 max-sm:p-4 lg:w-1/2"
         >
           <Block className="px-6">

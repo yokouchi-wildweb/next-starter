@@ -16,7 +16,7 @@ export async function WalletIndexScreen(props: ScreenProps) {
 
   return (
     <UserPage containerType="narrowStack">
-      <Stack space={6}>
+      <Stack gap="lg">
         <UserPageTitle>ウォレット</UserPageTitle>
         <WalletList wallets={data.wallets} />
       </Stack>

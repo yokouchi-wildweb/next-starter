@@ -80,18 +80,18 @@ export function SaveBookmarkModal({ open, onOpenChange, title, url }: Props) {
       maxWidth={520}
       className="p-4 gap-4"
     >
-      <Stack space={4}>
+      <Stack gap="md">
         <Para size="sm" tone="muted" className="my-0">
           この画面を保存しておけばブラウザを閉じてもいつでも確認することができます。ブックマーク登録もおすすめします。
         </Para>
 
         <UrlPreviewCard title={title} url={url} />
 
-        <Stack space={2}>
+        <Stack gap="xs">
           <Span size="xs" weight="semiBold" tone="muted">
             共有して保存
           </Span>
-          <Stack space={2}>
+          <Stack gap="xs">
             <ActionRow
               icon={<Mail className="h-5 w-5" />}
               iconAccent="bg-info/10 text-info-text"

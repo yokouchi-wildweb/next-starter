@@ -83,17 +83,17 @@ function CreateFromSelection({ selection, onDone, label }: BulkActionProps<unkno
           </Flex>
         }
       >
-        <Stack space={3}>
+        <Stack gap="sm">
           <Para size="sm" tone="muted" className="my-0">
             {`選択した ${count(ids.length)}で固定グループを作成します`}
           </Para>
-          <Stack space={1}>
+          <Stack gap="2xs">
             <Label htmlFor="bulk-user-group-name" className="text-sm">
               グループ名
             </Label>
             <Input id="bulk-user-group-name" value={name} disabled={freeze.running} onChange={(e) => setName(e.target.value)} />
           </Stack>
-          <Stack space={1}>
+          <Stack gap="2xs">
             <Label htmlFor="bulk-user-group-description" className="text-sm">
               説明(任意)
             </Label>
@@ -151,7 +151,7 @@ function AddSelection({ selection, onDone, label }: BulkActionProps<unknown> & {
           </Flex>
         }
       >
-        <Stack space={3}>
+        <Stack gap="sm">
           <Para size="sm" tone="muted" className="my-0">
             {`選択した ${count(ids.length)}を固定グループに追加します(登録済みのユーザーはそのままです)`}
           </Para>
@@ -168,7 +168,7 @@ function AddSelection({ selection, onDone, label }: BulkActionProps<unknown> & {
               追加できる固定グループがありません(「選択したユーザーでグループを作成」で作れます)
             </Para>
           ) : (
-            <Stack space={1}>
+            <Stack gap="2xs">
               <Label htmlFor="bulk-user-group-target" className="text-sm">
                 追加先のグループ
               </Label>

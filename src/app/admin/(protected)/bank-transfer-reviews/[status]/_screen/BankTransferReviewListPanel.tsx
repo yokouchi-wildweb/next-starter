@@ -88,13 +88,13 @@ export function BankTransferReviewListPanel({ status }: Props) {
 
   return (
     <>
-      <Stack space={4}>
+      <Stack gap="md">
         {/* タブをヘッダーへ移設して空いた最上段に、件数・検索・CSV・ページャを 1 段で収める */}
-        <Flex justify="between" align="center" wrap="wrap" gap="sm">
+        <Flex justify="between" align="center" wrap="wrap" gap="md">
           <Para size="xs" tone="muted">
             {total > 0 ? `${start} - ${end} (全 ${total} 件)` : "該当なし"}
           </Para>
-          <Flex gap="sm" align="center" wrap="wrap">
+          <Flex gap="md" align="center" wrap="wrap">
             <SearchBox
               makeHref={makeSearchHref}
               placeholder="ユーザー / 承認番号 / 電話 / メール"

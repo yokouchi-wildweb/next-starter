@@ -74,7 +74,7 @@ export function DemoFadeSliderDemo() {
 
   return (
     <Main>
-      <Stack space={8} className="py-8">
+      <Stack gap="xl" className="py-8">
         <SecTitle>FadeSlider デモ</SecTitle>
 
         <div className="rounded-lg border bg-muted/50 p-4 mb-8">

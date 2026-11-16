@@ -35,10 +35,10 @@ export function AdminUserGroupList() {
   const { kind, setKind, status, setStatus, query, modal, rowActions } = useAdminUserGroupList({ observerOptions: OBSERVER_OPTIONS });
 
   return (
-    <Stack space={4}>
-      <Flex align="end" justify="between" gap="sm" wrap="wrap">
-        <Flex align="end" gap="sm" wrap="wrap">
-          <Stack space={1}>
+    <Stack gap="md">
+      <Flex align="end" justify="between" gap="md" wrap="wrap">
+        <Flex align="end" gap="md" wrap="wrap">
+          <Stack gap="2xs">
             <Label htmlFor="user-group-filter-kind" className="text-xs">
               種類
             </Label>
@@ -52,7 +52,7 @@ export function AdminUserGroupList() {
               nullOptionLabel="すべて"
             />
           </Stack>
-          <Stack space={1}>
+          <Stack gap="2xs">
             <Label htmlFor="user-group-filter-status" className="text-xs">
               状態
             </Label>
@@ -77,7 +77,7 @@ export function AdminUserGroupList() {
         completedText="すべて表示しました"
       >
         {(items) => (
-          <Stack space={2}>
+          <Stack gap="xs">
             {items.map((group) => (
               <UserGroupRow
                 key={group.id}

@@ -23,7 +23,7 @@ export type UnsubscribeConfirmProps = {
 
 export function UnsubscribeConfirm({ categoryLabel, channelLabel, onConfirm, pending = false, errorText = null }: UnsubscribeConfirmProps) {
   return (
-    <Stack space={4}>
+    <Stack gap="md">
       <Para>
         「{categoryLabel}」の{channelLabel}の配信を停止します。
       </Para>

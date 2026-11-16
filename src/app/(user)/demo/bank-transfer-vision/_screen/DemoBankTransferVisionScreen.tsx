@@ -16,7 +16,7 @@ export async function DemoBankTransferVisionScreen(props: ScreenProps) {
   return (
     <Main containerType="contentShell">
       <Section>
-        <Stack space={4}>
+        <Stack gap="md">
           <PageTitle size="xxl" className="font-semibold">
             Bank Transfer Vision
           </PageTitle>

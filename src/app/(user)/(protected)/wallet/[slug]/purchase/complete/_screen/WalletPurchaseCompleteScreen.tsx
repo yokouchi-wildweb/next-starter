@@ -16,7 +16,7 @@ export async function WalletPurchaseCompleteScreen(props: ScreenProps<WalletPurc
 
   return (
     <UserPage containerType="narrowStack">
-      <Stack space={6}>
+      <Stack gap="lg">
         <UserPageTitle>購入完了</UserPageTitle>
         <PurchaseComplete slug={data.slug} />
       </Stack>

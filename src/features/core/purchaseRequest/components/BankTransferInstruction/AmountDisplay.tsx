@@ -13,8 +13,8 @@ type Props = {
 
 export function AmountDisplay({ amount }: Props) {
   return (
-    <Block padding="sm" className="rounded-lg border border-border bg-card">
-      <Stack space={1} className="items-center">
+    <Block padding="xs" className="rounded-lg border border-border bg-card">
+      <Stack gap="2xs" className="items-center">
         <Para size="sm" tone="muted">
           お振込み金額
         </Para>

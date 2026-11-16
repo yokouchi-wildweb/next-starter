@@ -77,7 +77,7 @@ export default function GeneralUserEditForm({
       methods={methods}
       onSubmit={submit}
       pending={isMutating}
-      fieldSpace={6}
+      fieldSpace="lg"
     >
       {tagOptions.length > 0 && (
         <ControlledField

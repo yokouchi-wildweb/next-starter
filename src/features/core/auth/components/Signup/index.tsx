@@ -23,7 +23,7 @@ export type SignupProps = {
 export function Signup({ urlAfterEmailSent }: SignupProps) {
   return (
     <Section id="signup">
-      <Stack space={6}>
+      <Stack gap="lg">
         <VerificationEmailSendForm urlAfterEmailSent={urlAfterEmailSent} />
         <ThirdPartySignupOptions />
 

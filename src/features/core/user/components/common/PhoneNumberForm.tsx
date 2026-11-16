@@ -43,8 +43,8 @@ export function PhoneNumberForm({
   };
 
   return (
-    <Stack space={6}>
-      <Stack space={1}>
+    <Stack gap="lg">
+      <Stack gap="2xs">
         <Para size="sm" className="font-medium text-foreground">
           現在の電話番号
         </Para>
@@ -54,7 +54,7 @@ export function PhoneNumberForm({
       </Stack>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <Stack space={2}>
+        <Stack gap="xs">
           <Label htmlFor="phone-number-plain" className="block text-foreground">
             {currentPhoneNumber ? "新しい電話番号" : "電話番号"}
           </Label>
@@ -80,7 +80,7 @@ export function PhoneNumberForm({
           </Para>
         )}
 
-        <Stack space={3}>
+        <Stack gap="sm">
           <Button type="submit" disabled={isSaving || !value.trim()} className="w-full">
             {isSaving ? "保存中..." : "保存する"}
           </Button>
