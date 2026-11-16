@@ -226,7 +226,14 @@ function UserGroupModalBody({
             {group && group.kind !== "static" && !locked ? (
               <PromptPopover
                 trigger={
-                  <Button type="button" size="sm" variant="outline" disabled={freeze.running || form.dirty} data-slot="user-group-freeze-current">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-auto self-stretch"
+                    disabled={freeze.running || form.dirty}
+                    data-slot="user-group-freeze-current"
+                  >
                     固定グループとして保存
                   </Button>
                 }
