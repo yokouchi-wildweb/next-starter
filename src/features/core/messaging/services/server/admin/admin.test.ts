@@ -1,7 +1,7 @@
 // 管理の送信と読む口の検査(DB・送る口・監査は偽物)
 // - 管理者の再検査(service): admin の利用者と system は通る、他は 403
 // - 一括送信: userIds / target + recordIds、重複を除く、中身は送る画面と同じ { content, template?, vars? }(D92)を送る口 sendAuthored へ、
-//   カテゴリー(必須、bulk で送れる種別 direct・marketing だけ)、送り元、afterSend(送った文面と出どころ、失敗しても送信は戻さない)、監査 1 行、選択肢
+//   カテゴリー(必須、bulk で送れる種別 direct・promotion だけ)、送り元、afterSend(送った文面と出どころ、失敗しても送信は戻さない)、監査 1 行、選択肢
 // - 読む口: 絞り込みの検査、keyset の印、DTO(本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の回)
 // - グループ宛ての回: 一覧・1 件に宛先のグループ { id(値だけ), name }、名前は 1 ページに 1 回引く、引けなければ null、detail.target は形だけ
 // - 続きを送る: 監査 1 行
@@ -47,7 +47,7 @@ test("管理者の再検査: admin の利用者と system は通り、利用者�
 const bulkCategories: Record<string, MessageCategory> = {
   announcement: { key: "announcement", label: "運営からのお知らせ", kind: "announcement", channels: ["email", "inApp"] },
   operatorDirect: { key: "operatorDirect", label: "運営からのご連絡", kind: "direct", channels: ["email", "inApp"] },
-  marketing: { key: "promotion", label: "キャンペーン情報", kind: "promotion", channels: ["email", "inApp"] },
+  promotion: { key: "promotion", label: "キャンペーン情報", kind: "promotion", channels: ["email", "inApp"] },
   promoPush: { key: "promoPush", label: "プッシュ", kind: "promotion", channels: ["email", "push"] },
 };
 
@@ -73,8 +73,8 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
     ...check(options.context === undefined ? ctx("admin1") : options.context),
     targets: { review: target, off: { ...target, key: "off", enabled: () => false } },
     channels: {
-      email: { key: "email", label: "メール" } as unknown as MessageChannel,
-      inApp: { key: "inApp", label: "お知らせ" } as unknown as MessageChannel,
+      email: { key: "email", label: "メール", fieldMeta: {} } as unknown as MessageChannel,
+      inApp: { key: "inApp", label: "お知らせ", fieldMeta: {} } as unknown as MessageChannel,
       line: { key: "line", label: "LINE", enabled: false } as unknown as MessageChannel,
     },
     categories: bulkCategories,
@@ -98,8 +98,7 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
 const MAIL = { email: { subject: "件名", paragraphs: ["本文"] } };
 const mail = { category: "promotion", channels: ["email"], content: MAIL };
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("一括送信(userIds): 重複を除き送る口に文面とカテゴリー、監査 1 行", async () => {
+test("一括送信(userIds): 重複を除き送る口に文面とカテゴリー、監査 1 行", async () => {
   const { deps, sent, audits } = bulkSetup();
   const result = await adminBulkSend(deps, { userIds: ["a", "b", "a"], ...mail });
   assert.equal(sent.length, 1);
@@ -128,8 +127,7 @@ test("一括送信(target): 記録 → 利用者、運営からのご連絡(dire
   assert.equal((audits[0].metadata as Record<string, unknown>).bulkSendTarget, "review");
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("afterSend が投げても送信は戻さず結果と監査に失敗を残す", async () => {
+test("afterSend が投げても送信は戻さず結果と監査に失敗を残す", async () => {
   const { deps, audits } = bulkSetup({ afterSendFails: true });
   const result = await adminBulkSend(deps, { target: "review", recordIds: ["x1"], ...mail });
   assert.deepEqual(result.afterSend, { ok: false, error: "memo failed" });
@@ -159,8 +157,7 @@ test("一括送信の入力の誤り・知らない / 使えない target・管�
   await rejects403(adminBulkSend(bulkSetup({ context: ctx("user1", "user") }).deps, { userIds: ["a"], ...mail }));
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("一括送信(テンプレート): 送る画面と同じ形で送る口へ、afterSend に送った文面と出どころ", async () => {
+test("一括送信(テンプレート): 送る画面と同じ形で送る口へ、afterSend に送った文面と出どころ", async () => {
   const { deps, after, audits, sent } = bulkSetup();
   const result = await adminBulkSend(deps, {
     target: "review",
@@ -182,8 +179,7 @@ test.skip("一括送信(テンプレート): 送る画面と同じ形で送る�
   assert.deepEqual([audits[0].metadata?.source, audits[0].metadata?.templateVersion], ["template", 2]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("一括送信のプレビュー・テスト送信: bulk で送れるカテゴリー、テストは操作した管理者へ is_test", async () => {
+test("一括送信のプレビュー・テスト送信: bulk で送れるカテゴリー、テストは操作した管理者へ is_test", async () => {
   const { deps, calls, sent, audits } = bulkSetup();
   await adminBulkSendPreview(deps, { content: MAIL, category: "promotion", channels: ["email"] });
   assert.equal(calls[0].fn, "preview");
@@ -203,14 +199,13 @@ test.skip("一括送信のプレビュー・テスト送信: bulk で送れる�
   await rejects403(adminBulkSendPreview(bulkSetup({ context: ctx("user1", "user") }).deps, { content: MAIL, category: "promotion" }));
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("一括送信の選択肢: bulk で送れるカテゴリー、テンプレートは門 messagingTemplates が開の時だけ、管理者でなければ 403", async () => {
+test("一括送信の選択肢: bulk で送れるカテゴリー、テンプレートは門 messagingTemplates が開の時だけ、管理者でなければ 403", async () => {
   const { deps } = bulkSetup();
   const options = await adminBulkSendOptions(deps);
-  // 経路は送るモーダルと同じ形(受け口の label、閉じた経路は出さない)
+  // 経路は送るモーダルと同じ形(受け口の label・欄の約束 fieldMeta・プレビューの部品、閉じた経路は出さない。D83)
   assert.deepEqual(options.channels, [
-    { key: "email", label: "メール" },
-    { key: "inApp", label: "お知らせ" },
+    { key: "email", label: "メール", fieldMeta: {}, previewComponent: null },
+    { key: "inApp", label: "お知らせ", fieldMeta: {}, previewComponent: null },
   ]);
   assert.deepEqual(options.categories.map((o) => o.key), ["operatorDirect", "promotion", "promoPush"]);
   assert.deepEqual(options.templates, [tplRow]);
@@ -329,8 +324,7 @@ test("keyset の印は往復し、壊れた印は 400", () => {
   assert.throws(() => decodeCursor("zzz"), (e: unknown) => e instanceof DomainError && e.status === 400);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("読む口: 1 件多く引いて次の印を作る、絞り込みを store へ、配達は回の記録の段で絞る、管理者だけ", async () => {
+test("読む口: 1 件多く引いて次の印を作る、絞り込みを store へ、配達は回の記録の段で絞る、管理者だけ", async () => {
   const seen: unknown[] = [];
   const rows = [dispatchRow({ id: "d3" }), dispatchRow({ id: "d2" }), dispatchRow({ id: "d1" })];
   const store: AdminDispatchStore = {
@@ -351,7 +345,7 @@ test.skip("読む口: 1 件多く引いて次の印を作る、絞り込みを s
   const first = await listDispatches(deps, { limit: "2", kind: "promotion", category: "campaign", channel: "email", messageKey: "messaging.x" } as never);
   assert.deepEqual(first.items.map((item) => item.id), ["d3", "d2"]);
   assert.ok(first.nextCursor);
-  assert.deepEqual(seen[0], { filter: { kind: "promotion", category: "campaign", channel: "email" }, after: null, limit: 3 }, "定義の鍵では絞らない(落とす)");
+  assert.deepEqual(seen[0], { filter: { kind: "promotion", category: "campaign", channel: "email", deleted: "exclude" }, after: null, limit: 3 }, "定義の鍵では絞らない(落とす)。削除した回は既定で出さない(D88)");
   await listDispatches(deps, { cursor: first.nextCursor! });
   assert.deepEqual((seen[1] as { after: unknown }).after, { createdAt: rows[1].createdAt, id: "d2" });
   await assert.rejects(listDispatches(deps, { status: "nope" } as never), (e: unknown) => e instanceof DomainError && e.status === 400);

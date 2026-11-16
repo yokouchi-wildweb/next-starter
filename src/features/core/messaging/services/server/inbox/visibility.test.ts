@@ -10,7 +10,7 @@ const NOW = new Date("2026-11-11T12:00:00Z");
 const base = (): VisibilityFacts => ({
   viewer: { userId: "u1", role: "user", createdAt: new Date("2026-11-01T00:00:00Z"), optOuts: [] },
   item: { userId: null, targetRoles: null, publishedAt: new Date("2026-11-10T00:00:00Z") },
-  dispatch: { showToLaterSignups: false, kind: "marketing", category: "news" },
+  dispatch: { showToLaterSignups: false, kind: "promotion", category: "news" },
   now: NOW,
 });
 const visible = (patch: (f: VisibilityFacts) => void) => {
@@ -43,8 +43,7 @@ test("show_to_later_signups: false なら登録より前の共有の行は見え
   assert.equal(visible((f) => (f.viewer.createdAt = null)), false);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("共有の行は見る人の inApp の好みで隠す('*' を含む)。取引の回と自分宛ての行は隠さない", () => {
+test("共有の行は見る人の inApp の好みで隠す('*' を含む)。取引の回と自分宛ての行は隠さない", () => {
   const stop = (category: string, channel: string) => (f: VisibilityFacts) => (f.viewer.optOuts = [{ category, channel }]);
   assert.equal(visible(stop("news", "inApp")), false);
   assert.equal(visible(stop("*", "inApp")), false);
@@ -55,12 +54,11 @@ test.skip("共有の行は見る人の inApp の好みで隠す('*' を含む)�
   assert.equal(visible((f) => { stop("news", "inApp")(f); f.item.userId = "u1"; }), true);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("種別まるごとの行(kind、'*' '*')は同じ種別の共有の行だけを隠す。kind の無い前の回には当たらない", () => {
+test("種別まるごとの行(kind、'*' '*')は同じ種別の共有の行だけを隠す。kind の無い前の回には当たらない", () => {
   const kindStop = (kind: string) => (f: VisibilityFacts) => (f.viewer.optOuts = [{ category: "*", channel: "*", kind }]);
-  assert.equal(visible(kindStop("marketing")), false);
+  assert.equal(visible(kindStop("promotion")), false);
   assert.equal(visible(kindStop("activity")), true);
-  assert.equal(visible((f) => { kindStop("marketing")(f); f.dispatch.kind = null; }), true);
+  assert.equal(visible((f) => { kindStop("promotion")(f); f.dispatch.kind = null; }), true);
   // kind の無い(null・表の '*')'*' '*' は今までどおり全部を隠す
   assert.equal(visible((f) => { f.viewer.optOuts = [{ category: "*", channel: "*", kind: null }]; f.dispatch.kind = "activity"; }), false);
   assert.equal(visible((f) => { f.viewer.optOuts = [{ category: "*", channel: "*", kind: "*" }]; f.dispatch.kind = null; }), false);

@@ -1,5 +1,6 @@
 // 管理画面の文言の上書きの service の検査(DB・監査は偽物)
-// - 一覧: adminEditable のある連絡(と行の残る連絡)、数(直した・孤立・コードが変わった)
+// - 一覧: 直せる欄(adminEditablePaths、既定は種類の経路の欄の全部・adminEditableOnly で絞る。D83)のある連絡(と行の残る連絡)、数
+// - 直せない連絡(required・functional・authored)は一覧に出ず 1 件は 404
 // - 1 件: 欄ごとのコードの値・管理画面の値・送る時の値・印、使ってよい {{鍵}}(秘密を除く)
 // - 保存: 送る口と同じ検査(誤りは 400)、直した時のコードの値と操作者を残し、監査に残す / 戻す = 行を消す(無ければ 404)
 // - 管理者でなければ 403
@@ -32,11 +33,13 @@ const editable = resolveMessageDefinition(
   { kind: "transactional", channels: ["email"] },
 ) as unknown as AnyResolvedMessageDefinition;
 
+// 直せない連絡(D83 の後は絞りの無い連絡も全部の欄を直せるので、直せない例は required)
 const plain = resolveMessageDefinition(
   defineMessage({
     key: "shop.plain",
     label: "テストの連絡",
     category: "shop",
+    required: true,
     vars: z.object({}),
     content: { email: { subject: "件名" } },
   }),
@@ -93,18 +96,16 @@ async function rejectsWith(run: Promise<unknown>, status: number) {
   });
 }
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("一覧: adminEditable のある連絡だけ、数を返す", async () => {
+test("一覧: 直せる欄のある連絡だけ、数を返す", async () => {
   const { service } = setup({
     rows: [row("email.subject", "{{nope}}", "{{name}} 様へ"), row("email.paragraphs", ["a", "b"], ["旧", "旧"])],
   });
   assert.deepEqual(await service.listMessages(), [
-    { key: "shop.notice", label: "テストの連絡", kind: "transactional", category: "shop", categoryLabel: null, editableCount: 2, editedCount: 2, orphanCount: 1, codeChangedCount: 1 },
+    { key: "shop.notice", label: "テストの連絡", kind: "transactional", category: "shop", categoryLabel: null, channels: [], editableCount: 2, editedCount: 2, orphanCount: 1, codeChangedCount: 1 },
   ]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("1 件: 欄ごとの値と印、使ってよい鍵(秘密を除く)、直せなくなった欄の行も出す", async () => {
+test("1 件: 欄ごとの値と印、使ってよい鍵(秘密を除く)、直せなくなった欄の行も出す", async () => {
   const { service } = setup({
     rows: [
       row("email.subject", "新しい {{name}}", "{{name}} 様へ"),
@@ -117,7 +118,7 @@ test.skip("1 件: 欄ごとの値と印、使ってよい鍵(秘密を除く)、
   const [subject, paragraphs, heading] = detail.fields;
   assert.deepEqual(
     { ...subject, updatedAt: null },
-    { path: "email.subject", editable: true, codeValue: "{{name}} 様へ", value: "新しい {{name}}", effective: "新しい {{name}}", edited: true, codeChanged: false, orphan: false, problem: null, updatedAt: null },
+    { path: "email.subject", channel: "email", field: "subject", meta: { label: "subject", input: "line" }, editable: true, codeValue: "{{name}} 様へ", value: "新しい {{name}}", effective: "新しい {{name}}", edited: true, codeChanged: false, orphan: false, problem: null, updatedAt: null },
   );
   // 並びの数が違う = 孤立(送る時はコードの値)、直した時のコードの値と違う = コードが変わった
   assert.equal(paragraphs.orphan, true);
@@ -127,8 +128,7 @@ test.skip("1 件: 欄ごとの値と印、使ってよい鍵(秘密を除く)、
   assert.equal(heading.orphan, true);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("保存: 検査を通った値だけ、コードの値と操作者を残し監査に残す。戻すは行を消す", async () => {
+test("保存: 検査を通った値だけ、コードの値と操作者を残し監査に残す。戻すは行を消す", async () => {
   const { service, rows, audits } = setup();
   const detail = await service.saveField("shop.notice", { fieldPath: "email.subject", value: "{{displayName}} 様、{{serviceName}} です" });
   assert.equal(detail.fields[0].effective, "{{displayName}} 様、{{serviceName}} です");
@@ -142,8 +142,7 @@ test.skip("保存: 検査を通った値だけ、コードの値と操作者を�
   await rejectsWith(service.resetField("shop.notice", "email.subject"), 404);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("保存の誤り: 入力・直せない欄・型・並びの数・使えない鍵・秘密の鍵は 400、無い連絡は 404", async () => {
+test("保存の誤り: 入力・直せない欄・型・並びの数・使えない鍵・秘密の鍵は 400、無い連絡は 404", async () => {
   const { service, rows, audits } = setup();
   for (const input of [
     null,

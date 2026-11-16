@@ -43,8 +43,7 @@ function visibleText(html: string): string {
     .trim();
 }
 
-// D69: restore before ship (J98: ADMIN_FREE_TEXT_DEFINITIONS key marketing → promotion)
-test.skip("種別ごとの定義 3 本: その種別の上流のカテゴリー、authored で文面・vars は空、freeText の表と同じ", () => {
+test("種別ごとの定義 3 本: その種別の上流のカテゴリー、authored で文面・vars は空、freeText の表と同じ", () => {
   assert.deepEqual(
     [adminAnnouncement, adminDirect, adminPromotion].map((m) => [m.key, m.category, categories[m.category].kind]),
     [
@@ -53,7 +52,7 @@ test.skip("種別ごとの定義 3 本: その種別の上流のカテゴリー�
       ["messaging.adminPromotion", "promotion", "promotion"],
     ],
   );
-  assert.deepEqual(ADMIN_FREE_TEXT_DEFINITIONS, { announcement: adminAnnouncement, direct: adminDirect, marketing: adminPromotion });
+  assert.deepEqual(ADMIN_FREE_TEXT_DEFINITIONS, { announcement: adminAnnouncement, direct: adminDirect, promotion: adminPromotion });
   for (const m of [adminAnnouncement, adminDirect, adminPromotion]) {
     assert.equal(m.authored, true);
     assert.deepEqual(m.content, {});
@@ -67,7 +66,7 @@ test.skip("種別ごとの定義 3 本: その種別の上流のカテゴリー�
     kind: "announcement",
     channels: ["email", "inApp"],
   });
-  assert.equal(categories.marketing.label, "キャンペーン情報");
+  assert.equal(categories.promotion.label, "キャンペーン情報");
 });
 
 test("メール: 受けた欄をそのまま描く(決まった挨拶・足元の文は無い、段落の改行はそのまま)", async () => {

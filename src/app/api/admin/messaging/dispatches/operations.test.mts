@@ -1,8 +1,9 @@
 // src/app/api/admin/messaging/dispatches/operations.test.mts
-// /api/admin/messaging/dispatches/[id]/{cancel, retract, resend} の検査(Factory・messaging の service は偽物)。
+// 回の操作の口の検査(Factory・messaging の service は偽物): DELETE [id](削除、D88)・bulk-delete・delete-summary・[id]/resend。
+// 取り消し・取り下げの口(cancel / retract)は削除に置き換わって無い。
 // [] のフォルダの中のテストは pnpm test が拾わないので、ここに置く。
-// - 宣言: 3 つの口が access { roleCategories: ["admin"] }(門 messagingDispatches は住所の前方一致で proxy が閉じる)
-// - id と body(resend の includeUnknown、空の body は {})をそのまま service へ渡す、service の 409 をそのまま返す
+// - 宣言: 操作の口が access { roleCategories: ["admin"] }(門 messagingDispatches は住所の前方一致で proxy が閉じる)
+// - id と body(resend の includeUnknown、空の body は {}・bulk-delete / delete-summary の { ids })をそのまま service へ渡す、service の 409 をそのまま返す
 // 実行: pnpm test src/app/api/admin/messaging/dispatches/operations.test.mts
 
 import assert from "node:assert/strict";
@@ -33,21 +34,25 @@ const calls: unknown[][] = [];
 let refuse = false;
 const record = (name: string) => async (...args: unknown[]) => {
   calls.push([name, ...args]);
-  if (refuse) throw new DomainError("取り下げた回です", { status: 409, code: "retracted" });
+  if (refuse) throw new DomainError("送り直す失敗の配達がありません", { status: 409, code: "no_failed" });
   return { ok: name };
 };
 mock.module("@/features/core/messaging/services/server/messagingService", {
   namedExports: {
-    messagingService: Object.fromEntries(["adminCancelScheduled", "adminRetract", "adminResendFailed"].map((name) => [name, record(name)])),
+    messagingService: Object.fromEntries(
+      ["findDispatch", "adminDeleteDispatch", "adminBulkDeleteDispatches", "adminDispatchDeleteSummary", "adminResendFailed"].map(
+        (name) => [name, record(name)],
+      ),
+    ),
   },
 });
 
-// D69: restore before ship (J101: cancel / retract routes removed; test DELETE [id], bulk-delete, delete-summary, resend)
-const cancel = null as unknown as { POST: (req: unknown, ctx: unknown) => Promise<Response> };
-const retract = null as unknown as { POST: (req: unknown, ctx: unknown) => Promise<Response> };
+const one = await import("./[id]/route.ts");
+const bulkDelete = await import("./bulk-delete/route.ts");
+const deleteSummary = await import("./delete-summary/route.ts");
 const resend = await import("./[id]/resend/route.ts");
 
-const BASE = "http://localhost/api/admin/messaging/dispatches/d1";
+const BASE = "http://localhost/api/admin/messaging/dispatches";
 const ctx = { params: Promise.resolve({ id: "d1" }) };
 
 beforeEach(() => {
@@ -55,30 +60,43 @@ beforeEach(() => {
   refuse = false;
 });
 
-// D69: restore before ship (J101: cancel / retract routes removed; test DELETE [id], bulk-delete, delete-summary, resend)
-test.skip("宣言: 3 つの口が管理者だけ", () => {
-  assert.equal(declared.length, 3);
+test("宣言: 1 件の GET・DELETE・bulk-delete・delete-summary・resend の 5 つが管理者だけ", () => {
+  assert.deepEqual(declared.map((entry) => entry.operation).sort(), [
+    "DELETE /api/admin/messaging/dispatches/[id]",
+    "GET /api/admin/messaging/dispatches/[id]",
+    "POST /api/admin/messaging/dispatches/[id]/resend",
+    "POST /api/admin/messaging/dispatches/bulk-delete",
+    "POST /api/admin/messaging/dispatches/delete-summary",
+  ]);
   for (const entry of declared) assert.deepEqual(entry.access, { roleCategories: ["admin"] }, entry.operation);
 });
 
-// D69: restore before ship (J101: cancel / retract routes removed; test DELETE [id], bulk-delete, delete-summary, resend)
-test.skip("id と body を渡す(空の body は {})", async () => {
-  await cancel.POST(new NextRequest(`${BASE}/cancel`, { method: "POST" }), ctx);
-  await retract.POST(new NextRequest(`${BASE}/retract`, { method: "POST" }), ctx);
-  await resend.POST(new NextRequest(`${BASE}/resend`, { method: "POST" }), ctx);
-  await resend.POST(new NextRequest(`${BASE}/resend`, { method: "POST", body: JSON.stringify({ includeUnknown: true }) }), ctx);
+test("id と body を渡す(resend の空の body は {})", async () => {
+  await one.DELETE(new NextRequest(`${BASE}/d1`, { method: "DELETE" }), ctx);
+  await bulkDelete.POST(new NextRequest(`${BASE}/bulk-delete`, { method: "POST", body: JSON.stringify({ ids: ["d1", "d2"] }) }), ctx);
+  await deleteSummary.POST(new NextRequest(`${BASE}/delete-summary`, { method: "POST", body: JSON.stringify({ ids: ["d1"] }) }), ctx);
+  await resend.POST(new NextRequest(`${BASE}/d1/resend`, { method: "POST" }), ctx);
+  await resend.POST(new NextRequest(`${BASE}/d1/resend`, { method: "POST", body: JSON.stringify({ includeUnknown: true }) }), ctx);
   assert.deepEqual(calls, [
-    ["adminCancelScheduled", "d1"],
-    ["adminRetract", "d1"],
+    ["adminDeleteDispatch", "d1"],
+    ["adminBulkDeleteDispatches", { ids: ["d1", "d2"] }],
+    ["adminDispatchDeleteSummary", { ids: ["d1"] }],
     ["adminResendFailed", "d1", {}],
     ["adminResendFailed", "d1", { includeUnknown: true }],
   ]);
 });
 
-// D69: restore before ship (J101: cancel / retract routes removed; test DELETE [id], bulk-delete, delete-summary, resend)
-test.skip("service の 409 と理由の符号をそのまま返す", async () => {
+test("bulk-delete・delete-summary の JSON でない body は 400(service を呼ばない)", async () => {
+  for (const route of [bulkDelete, deleteSummary]) {
+    const res = await route.POST(new NextRequest(`${BASE}/x`, { method: "POST", body: "not json" }), ctx);
+    assert.equal(res.status, 400);
+  }
+  assert.deepEqual(calls, []);
+});
+
+test("service の 409 と理由の符号をそのまま返す", async () => {
   refuse = true;
-  const res = await retract.POST(new NextRequest(`${BASE}/retract`, { method: "POST" }), ctx);
+  const res = await resend.POST(new NextRequest(`${BASE}/d1/resend`, { method: "POST" }), ctx);
   assert.equal(res.status, 409);
-  assert.equal((await res.json()).code, "retracted");
+  assert.equal((await res.json()).code, "no_failed");
 });

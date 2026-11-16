@@ -25,7 +25,7 @@ function channel(key: string, extra: Partial<MessageChannel> = {}): MessageChann
 }
 
 const categories: Record<string, MessageCategory> = {
-  marketing: { key: "promotion", label: "キャンペーン情報", kind: "promotion", channels: ["email", "inApp", "push", "sms", "line"] },
+  promotion: { key: "promotion", label: "キャンペーン情報", kind: "promotion", channels: ["email", "inApp", "push", "sms", "line"] },
   activity: { key: "activity", label: "アクティビティ", description: "反応の通知", kind: "activity", channels: ["email", "inApp"] },
   // 利用者が止められない種別の種類は好みの表に出ない
   registrationComplete: { key: "registrationComplete", label: "会員登録の完了", kind: "transactional", channels: ["email"] },
@@ -85,8 +85,7 @@ function cellsOf(dto: Dto) {
   return out;
 }
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("形: 経路 > 種別の枠 > グループ(無い種類が先)> 種類、宛先の有無と connectHref", async () => {
+test("形: 経路 > 種別の枠 > グループ(無い種類が先)> 種類、宛先の有無と connectHref", async () => {
   const { service } = setup({ email: false, openHrefs: ["/mypage/push?x=1"] });
   const dto = await service.getPreferences(USER);
   assert.equal(dto.allOptedOut, false);
@@ -119,20 +118,19 @@ test.skip("形: 経路 > 種別の枠 > グループ(無い種類が先)> 種類
     optedOut: false,
     via: null,
   });
-  // 列 = 開いている経路 ∩ 種類の経路(push には marketing だけ、取引の種類は出ない)
+  // 列 = 開いている経路 ∩ 種類の経路(push には promotion だけ、取引の種類は出ない)
   assert.deepEqual(dto.channels[2].kinds.map((f) => [f.kind, f.groups.flatMap((g) => g.categories.map((c) => c.key))]), [["promotion", ["promotion"]]]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("1 マスを止めて再開する(source user)、全体の行は allOptedOut と via all", async () => {
+test("1 マスを止めて再開する(source user)、全体の行は allOptedOut と via all", async () => {
   const { service, rows } = setup();
   let dto = await service.setPreference(USER, { category: "promotion", channel: "email", optedOut: true });
   assert.deepEqual(rows, [{ category: "promotion", channel: "email", kind: null, source: "user" }]);
-  assert.deepEqual(cellsOf(dto).email.marketing, [true, "cell"]);
-  assert.deepEqual(cellsOf(dto).inApp.marketing, [false, null]);
+  assert.deepEqual(cellsOf(dto).email.promotion, [true, "cell"]);
+  assert.deepEqual(cellsOf(dto).inApp.promotion, [false, null]);
   dto = await service.setPreference(USER, { category: "promotion", channel: "email", optedOut: false });
   assert.equal(rows.length, 0);
-  assert.deepEqual(cellsOf(dto).email.marketing, [false, null]);
+  assert.deepEqual(cellsOf(dto).email.promotion, [false, null]);
 
   dto = await service.setPreference(USER, { category: "*", channel: "*", optedOut: true });
   assert.equal(dto.allOptedOut, true);
@@ -141,8 +139,7 @@ test.skip("1 マスを止めて再開する(source user)、全体の行は allOp
   assert.equal(dto.allOptedOut, false);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("source は呼び手の値(既定 user)", async () => {
+test("source は呼び手の値(既定 user)", async () => {
   const { service, rows } = setup();
   await service.setPreference(USER, { kind: "promotion", optedOut: true }, { source: "signup" });
   await service.setPreference(USER, { category: "activity", channel: "email", optedOut: true });
@@ -152,8 +149,7 @@ test.skip("source は呼び手の値(既定 user)", async () => {
   ]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("種類まるごと・経路まるごとを止めて再開する(その行だけ)。状態は categories と channels[].optedOut", async () => {
+test("種類まるごと・経路まるごとを止めて再開する(その行だけ)。状態は categories と channels[].optedOut", async () => {
   const { service, rows } = setup();
   let dto = await service.setPreference(USER, { category: "activity", channel: "*", optedOut: true });
   assert.deepEqual(rows, [{ category: "activity", channel: "*", kind: null, source: "user" }]);
@@ -161,7 +157,7 @@ test.skip("種類まるごと・経路まるごとを止めて再開する(そ�
   assert.deepEqual([cellsOf(dto).email.activity, cellsOf(dto).inApp.activity], [[true, "category"], [true, "category"]]);
   dto = await service.setPreference(USER, { category: "*", channel: "push", optedOut: true }, { source: "signup" });
   assert.equal(dto.channels.find((c) => c.key === "push")?.optedOut, true);
-  assert.deepEqual(cellsOf(dto).push.marketing, [true, "channel"]);
+  assert.deepEqual(cellsOf(dto).push.promotion, [true, "channel"]);
   assert.equal(rows[1].source, "signup");
   dto = await service.setPreference(USER, { category: "activity", channel: "*", optedOut: false });
   dto = await service.setPreference(USER, { category: "*", channel: "push", optedOut: false });
@@ -169,8 +165,7 @@ test.skip("種類まるごと・経路まるごとを止めて再開する(そ�
   assert.ok(dto.categories.every((c) => !c.optedOut) && dto.channels.every((c) => !c.optedOut));
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("種類まるごとの下の 1 マスの再開: 種類の行を消し、その種類のほかの経路をマスで止める", async () => {
+test("種類まるごとの下の 1 マスの再開: 種類の行を消し、その種類のほかの経路をマスで止める", async () => {
   const { service, rows, writes } = setup({ rows: [row("activity", "*"), row("activity", "email")] });
   writes.length = 0;
   const dto = await service.setPreference(USER, { category: "activity", channel: "email", optedOut: false });
@@ -181,18 +176,16 @@ test.skip("種類まるごとの下の 1 マスの再開: 種類の行を消し�
   assert.equal(dto.categories.find((c) => c.key === "activity")?.optedOut, false);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("経路まるごとの下の 1 マスの再開: 経路の行を消し、その経路を持つほかの種類をマスで止める", async () => {
+test("経路まるごとの下の 1 マスの再開: 経路の行を消し、その経路を持つほかの種類をマスで止める", async () => {
   const { service, rows } = setup({ rows: [row("*", "inApp")] });
   const dto = await service.setPreference(USER, { category: "promotion", channel: "inApp", optedOut: false });
   assert.deepEqual(rows.map((r) => [r.category, r.channel]).sort(), [["activity", "inApp"], ["campaign", "inApp"]]);
-  assert.deepEqual(cellsOf(dto).inApp.marketing, [false, null]);
+  assert.deepEqual(cellsOf(dto).inApp.promotion, [false, null]);
   assert.deepEqual(cellsOf(dto).inApp.campaign, [true, "cell"]);
   assert.equal(dto.channels.find((c) => c.key === "inApp")?.optedOut, false);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("広い行が重なる時は全部を書き分け(和)、全体の行は書き分けず via all で残る", async () => {
+test("広い行が重なる時は全部を書き分け(和)、全体の行は書き分けず via all で残る", async () => {
   const { service, rows, writes } = setup({ rows: [row("promotion", "*"), row("*", "email"), row("*", "*", "promotion")] });
   writes.length = 0;
   let dto = await service.setPreference(USER, { category: "promotion", channel: "email", optedOut: false });
@@ -209,30 +202,28 @@ test.skip("広い行が重なる時は全部を書き分け(和)、全体の行�
       ["promotion", "sms", null],
     ].sort(),
   );
-  assert.deepEqual(cellsOf(dto).email.marketing, [false, null]);
+  assert.deepEqual(cellsOf(dto).email.promotion, [false, null]);
   const allRows = setup({ rows: [row("*", "*")] });
   dto = await allRows.service.setPreference(USER, { category: "promotion", channel: "email", optedOut: false });
   assert.deepEqual(allRows.rows, [row("*", "*")]);
-  assert.deepEqual(cellsOf(dto).email.marketing, [true, "all"]);
+  assert.deepEqual(cellsOf(dto).email.promotion, [true, "all"]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("種別まるごと: 止めると種別の種類が全部 via kind、ほかの種別と全体は変わらない。再開で行を消す", async () => {
+test("種別まるごと: 止めると種別の種類が全部 via kind、ほかの種別と全体は変わらない。再開で行を消す", async () => {
   const { service, rows } = setup();
   let dto = await service.setPreference(USER, { kind: "promotion", optedOut: true });
   assert.deepEqual(rows, [{ category: "*", channel: "*", kind: "promotion", source: "user" }]);
   assert.deepEqual(dto.kinds, [{ kind: "activity", optedOut: false }, { kind: "promotion", optedOut: true }]);
   assert.equal(dto.allOptedOut, false);
   const cells = cellsOf(dto);
-  assert.deepEqual([cells.email.marketing, cells.inApp.campaign, cells.push.marketing], [[true, "kind"], [true, "kind"], [true, "kind"]]);
+  assert.deepEqual([cells.email.promotion, cells.inApp.campaign, cells.push.promotion], [[true, "kind"], [true, "kind"], [true, "kind"]]);
   assert.deepEqual(cells.email.activity, [false, null]);
   dto = await service.setPreference(USER, { kind: "promotion", optedOut: false });
   assert.equal(rows.length, 0);
   assert.equal(dto.kinds[1].optedOut, false);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("種別まるごとの行がある人が 1 マスを再開すると、1 回の書き込みで種別の行を書き分ける(D71)", async () => {
+test("種別まるごとの行がある人が 1 マスを再開すると、1 回の書き込みで種別の行を書き分ける(D71)", async () => {
   const { service, rows, writes } = setup({ rows: [row("*", "*", "promotion")] });
   writes.length = 0;
   const dto = await service.setPreference(USER, { category: "promotion", channel: "email", optedOut: false });
@@ -248,8 +239,8 @@ test.skip("種別まるごとの行がある人が 1 マスを再開すると、
     ],
   );
   const cells = cellsOf(dto);
-  assert.deepEqual(cells.email.marketing, [false, null]);
-  assert.deepEqual(cells.inApp.marketing, [true, "cell"]);
+  assert.deepEqual(cells.email.promotion, [false, null]);
+  assert.deepEqual(cells.inApp.promotion, [true, "cell"]);
   assert.deepEqual(cells.email.campaign, [true, "category"]);
   assert.equal(dto.kinds[1].optedOut, false);
   // 種別の行が無ければ書き分けない
@@ -258,8 +249,7 @@ test.skip("種別まるごとの行がある人が 1 マスを再開すると、
   assert.deepEqual(writes, [{ remove: 1, add: 0 }]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("入力の誤り・知らない種類・有効でない経路・止められない種別は 400", async () => {
+test("入力の誤り・知らない種類・有効でない経路・止められない種別は 400", async () => {
   const { service } = setup();
   for (const input of [
     null,
@@ -289,8 +279,7 @@ test("種類とグループの受け口の誤り(知らないグループ)は投
   await assert.rejects(service.getPreferences(USER), /group nope/);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("マスの止まり方は送る側(checkStops)の判定と同じ(kind の行を含む)", async () => {
+test("マスの止まり方は送る側(checkStops)の判定と同じ(kind の行を含む)", async () => {
   const rowSets: MessagePreferenceRow[][] = [
     [],
     [row("promotion", "email")],
@@ -301,7 +290,7 @@ test.skip("マスの止まり方は送る側(checkStops)の判定と同じ(kind 
     [row("*", "*", "promotion")],
     [row("*", "*", "activity"), row("promotion", "inApp")],
   ];
-  const kindOf: Record<string, string> = { marketing: "promotion", activity: "activity" };
+  const kindOf: Record<string, string> = { promotion: "promotion", activity: "activity" };
   for (const rows of rowSets) {
     // 送る側の store.findOptOuts と同じ絞り込み(種類 = その種類か '*'、経路 = 送る経路か '*'、kind = null か連絡の種別)
     const deps = {
