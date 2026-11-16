@@ -14,6 +14,11 @@
 //    およびリスト fetch 由来の cache は反映され、行のラベルがリアクティブに更新される。
 //
 // 同じエンジンをモーダル本体として描画する版 = Overlays/AsyncPickerModal。
+//
+// selectedView(D101、足しただけ。既定 "tabs" = 上のとおり):
+//  - "inline": 「選択済み」タブを出さず検索の欄だけ。選んでいる行はチェックのまま、名前の左に「選択中」の印。
+//    optionBadge(value) が文字を返す行はその印も並べる(例 除外中 / 含める中)。印は候補のラベルを包んで出す(一覧の部品は変えない)
+// 取得は searchFn(page / total)か cursorFn(cursor / nextCursor、D102)のどちらか
 
 import {
   type ComponentProps,
@@ -41,6 +46,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { StateTabs, StateTabsContent } from "@/components/Navigation/StateTabs";
 import { Span } from "@/components/TextBlocks/Span";
+import { SoftBadge } from "@/components/Badge";
 import { cn } from "@/lib/cn";
 import { type SearchParams, type PaginatedResult, type SearchRankSpec } from "@/lib/crud/types";
 
@@ -53,6 +59,7 @@ import {
   PendingOptionLabel,
   isAsyncOptionInitialState,
   useAsyncOptionSource,
+  type AsyncOptionCursorFn,
   usePickerPopoverSide,
   useSelectionSnapshot,
 } from "../AsyncOptionSource";
@@ -71,8 +78,10 @@ export type AsyncMultiSelectInputProps<T> = {
   onBlur?: () => void;
 
   // ===== 検索関数 =====
-  /** 検索関数（既存のclient.searchをそのまま渡せる） */
-  searchFn: (params: SearchParams) => Promise<PaginatedResult<T>>;
+  /** 検索関数（既存のclient.searchをそのまま渡せる）。cursorFn とどちらか 1 つ */
+  searchFn?: (params: SearchParams) => Promise<PaginatedResult<T>>;
+  /** カーソルで取る口(D102)。searchFn とどちらか 1 つ */
+  cursorFn?: AsyncOptionCursorFn<T>;
   /** T → Options に変換 */
   getOptionFromResult: (item: T) => Options;
   /** 検索対象フィールド */
@@ -118,6 +127,10 @@ export type AsyncMultiSelectInputProps<T> = {
   open?: boolean;
   /** 開閉状態変更コールバック */
   onOpenChange?: (open: boolean) => void;
+  /** 選んだ物の見せ方(D101): tabs = 「選択済み」タブ(既定)/ inline = 検索の欄だけ、選んでいる行に「選択中」の印 */
+  selectedView?: "tabs" | "inline";
+  /** inline の時、行に添える印の文字(無ければ null)。例 除外中 / 含める中 */
+  optionBadge?: (value: OptionPrimitive) => string | null;
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange">;
 
 type ActiveTab = "selected" | "search";
@@ -128,6 +141,7 @@ export function AsyncMultiSelectInput<T>({
   onChange,
   onBlur,
   searchFn,
+  cursorFn,
   getOptionFromResult,
   searchFields,
   searchRank = true,
@@ -145,6 +159,8 @@ export function AsyncMultiSelectInput<T>({
   popoverContentProps,
   open,
   onOpenChange,
+  selectedView = "tabs",
+  optionBadge,
   id,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
@@ -162,6 +178,7 @@ export function AsyncMultiSelectInput<T>({
   // ---- 取得エンジン ----
   const source = useAsyncOptionSource<T>({
     searchFn,
+    cursorFn,
     getOptionFromResult,
     searchFields,
     searchRank,
@@ -236,6 +253,34 @@ export function AsyncMultiSelectInput<T>({
     handleOpenChange(false);
   }, [handleOpenChange]);
 
+  // ---- inline: 候補のラベルに「選択中」と行ごとの印を添える ----
+  const selectedKeySet = useMemo(() => new Set(selectedValues.map(String)), [selectedValues]);
+  const decorateInline = (option: Options): Options => {
+    const badge = optionBadge?.(option.value) ?? null;
+    const selected = selectedKeySet.has(String(option.value));
+    if (!selected && !badge) return option;
+    return {
+      ...option,
+      label: (
+        <Flex align="center" gap="xs" className="min-w-0">
+          {selected ? (
+            <SoftBadge variant="info" size="sm">
+              選択中
+            </SoftBadge>
+          ) : null}
+          {badge ? (
+            <SoftBadge variant="muted" size="sm">
+              {badge}
+            </SoftBadge>
+          ) : null}
+          <Span size="sm" className="min-w-0 truncate">
+            {option.label}
+          </Span>
+        </Flex>
+      ),
+    };
+  };
+
   // ---- 候補タブの表示内容 ----
   const renderCandidateList = () => {
     const state = source.activeState;
@@ -252,7 +297,7 @@ export function AsyncMultiSelectInput<T>({
 
     return (
       <AsyncOptionList
-        options={state.items}
+        options={selectedView === "inline" ? state.items.map(decorateInline) : state.items}
         selectedValues={selectedValues}
         onToggle={handleToggle}
         emptyMessage={emptyMessage}
@@ -302,33 +347,8 @@ export function AsyncMultiSelectInput<T>({
           {/* スクロール領域は候補リストだけ: 上限を中身のルートに付け、flex-col + min-h-0 でリストを縮める */}
           <Stack space={0} padding="none" className={PICKER_POPOVER_BODY_CLASS}>
             <Command shouldFilter={false} className="min-h-0">
-              <StateTabs
-                size="sm"
-                value={activeTab}
-                onValueChange={(v) => setActiveTab(v as ActiveTab)}
-                tabs={[
-                  { value: "search", label: "検索" },
-                  { value: "selected", label: `選択済み (${selectedCount})` },
-                ]}
-                className="min-h-0 px-2 pt-2"
-                listClassName="w-full"
-              >
-                <StateTabsContent value="selected" className="flex min-h-0 flex-col">
-                  {selectedSnapshotOptions.length === 0 ? (
-                    <Span size="sm" tone="muted" align="center" className="block py-6">
-                      選択された項目はありません
-                    </Span>
-                  ) : (
-                    <AsyncOptionList
-                      options={selectedSnapshotOptions}
-                      selectedValues={selectedValues}
-                      onToggle={handleToggle}
-                      emptyMessage="選択された項目はありません"
-                    />
-                  )}
-                </StateTabsContent>
-
-                <StateTabsContent value="search" className="flex min-h-0 flex-col">
+              {selectedView === "inline" ? (
+                <Stack space={0} className="flex min-h-0 flex-col px-2 pt-2">
                   <CommandInput
                     autoFocus
                     placeholder={searchPlaceholder}
@@ -337,8 +357,46 @@ export function AsyncMultiSelectInput<T>({
                     onKeyDown={source.handleSearchKeyDown}
                   />
                   {renderCandidateList()}
-                </StateTabsContent>
-              </StateTabs>
+                </Stack>
+              ) : (
+                <StateTabs
+                  size="sm"
+                  value={activeTab}
+                  onValueChange={(v) => setActiveTab(v as ActiveTab)}
+                  tabs={[
+                    { value: "search", label: "検索" },
+                    { value: "selected", label: `選択済み (${selectedCount})` },
+                  ]}
+                  className="min-h-0 px-2 pt-2"
+                  listClassName="w-full"
+                >
+                  <StateTabsContent value="selected" className="flex min-h-0 flex-col">
+                    {selectedSnapshotOptions.length === 0 ? (
+                      <Span size="sm" tone="muted" align="center" className="block py-6">
+                        選択された項目はありません
+                      </Span>
+                    ) : (
+                      <AsyncOptionList
+                        options={selectedSnapshotOptions}
+                        selectedValues={selectedValues}
+                        onToggle={handleToggle}
+                        emptyMessage="選択された項目はありません"
+                      />
+                    )}
+                  </StateTabsContent>
+
+                  <StateTabsContent value="search" className="flex min-h-0 flex-col">
+                    <CommandInput
+                      autoFocus
+                      placeholder={searchPlaceholder}
+                      value={source.searchQuery}
+                      onValueChange={source.setSearchQuery}
+                      onKeyDown={source.handleSearchKeyDown}
+                    />
+                    {renderCandidateList()}
+                  </StateTabsContent>
+                </StateTabs>
+              )}
             </Command>
             <Flex
               padding="sm"

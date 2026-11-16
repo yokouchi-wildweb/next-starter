@@ -22,6 +22,9 @@ import type {
   AdminUserGroupMember,
   AdminUserGroupMemberPage,
   AdminUserGroupOption,
+  AdminUserGroupPeopleApplied,
+  AdminUserGroupPeoplePage,
+  AdminUserGroupPerson,
   AdminUserGroupPage,
   AdminUserGroupRecompute,
   AdminUserGroupSampleUser,
@@ -59,6 +62,9 @@ export type {
   AdminUserGroupMember,
   AdminUserGroupMemberPage,
   AdminUserGroupOption,
+  AdminUserGroupPeopleApplied,
+  AdminUserGroupPeoplePage,
+  AdminUserGroupPerson,
   AdminUserGroupPage,
   AdminUserGroupRecompute,
   AdminUserGroupSampleUser,
@@ -142,6 +148,34 @@ export async function archiveUserGroup(id: string): Promise<AdminUserGroupDetail
     return res.data;
   } catch (error) {
     throw normalizeHttpError(error, "保管できませんでした");
+  }
+}
+
+/** 人を探す(D101)。対象(一員 / 入れる人 / 外す人)に入っているか・例外の反対側か の印つき、カーソル */
+export async function searchUserGroupPeople(
+  id: string,
+  params: { target: "members" | "include" | "exclude"; q?: string; cursor?: string | null; limit?: number },
+): Promise<AdminUserGroupPeoplePage> {
+  try {
+    const res = await axios.get<AdminUserGroupPeoplePage>(`${one(id)}/people-search`, {
+      params: { target: params.target, q: params.q || undefined, cursor: params.cursor ?? undefined, limit: params.limit },
+    });
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "ユーザーを検索できませんでした");
+  }
+}
+
+/** 人の足し外しを 1 回で(D101)。例外の片側へ足した人は反対側から外れる */
+export async function applyUserGroupPeople(
+  id: string,
+  input: { target: "members" | "include" | "exclude"; add: string[]; remove: string[] },
+): Promise<AdminUserGroupPeopleApplied> {
+  try {
+    const res = await axios.post<AdminUserGroupPeopleApplied>(`${one(id)}/people-apply`, input);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "変更を適用できませんでした");
   }
 }
 

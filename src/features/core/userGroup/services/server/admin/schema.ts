@@ -90,3 +90,22 @@ export const ListStaticMembersQuerySchema = z.object(memberPage);
 export const ListExceptionMembersQuerySchema = z.object({ side: z.enum(["include", "exclude"]), ...memberPage });
 
 export type StaticMemberSource = z.infer<typeof StaticMemberSourceSchema>;
+
+/** 人を探す・足し外しする対象(D101): 固定グループの一員 / 例外の足す人 / 外す人 */
+export const PeopleTargetSchema = z.enum(["members", "include", "exclude"]);
+
+/** 人を探す(名前かメールアドレスの部分一致、利用者 id の順の keyset) */
+export const PeopleSearchQuerySchema = z.object({ target: PeopleTargetSchema, ...memberPage });
+
+/** 足し外しを 1 回で(1 つの取引)。同じ人を両方に入れると 400 */
+export const PeopleApplyInputSchema = z
+  .object({
+    target: PeopleTargetSchema,
+    add: z.array(uuid).max(10_000).default([]),
+    remove: z.array(uuid).max(10_000).default([]),
+  })
+  .strict()
+  .refine((value) => value.add.length + value.remove.length > 0, { message: "足す人か外す人を選んでください" })
+  .refine((value) => !value.add.some((id) => value.remove.includes(id)), { message: "同じ人を足す・外すの両方に入れられません" });
+
+export type PeopleTarget = z.infer<typeof PeopleTargetSchema>;

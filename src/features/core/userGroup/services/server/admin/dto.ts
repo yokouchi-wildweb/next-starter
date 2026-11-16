@@ -104,3 +104,17 @@ export type AdminUserGroupCriteriaCatalog = {
   };
   kinds: AdminUserGroupOption[];
 };
+
+/** 人を探した 1 件(D101)。inList = 対象の一覧に入っている / otherSide = 例外の反対側に入っている(一員の対象は null) */
+export type AdminUserGroupPerson = { id: string; name: string | null; inList: boolean; otherSide: "include" | "exclude" | null };
+
+export type AdminUserGroupPeoplePage = { items: AdminUserGroupPerson[]; nextCursor: string | null };
+
+/** 足し外しの結果(moved = 例外の反対側から動いた人数)。counts = 新しい人数 */
+export type AdminUserGroupPeopleApplied = {
+  target: "members" | "include" | "exclude";
+  added: number;
+  removed: number;
+  moved: number;
+  counts: { memberCount: number } | { includeCount: number; excludeCount: number };
+};
