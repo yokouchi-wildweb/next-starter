@@ -37,7 +37,7 @@ export function dispatchTargetGroupLabel(dispatch: Pick<AdminDispatchSummary, "t
 /** 一覧の行の宛先(グループ宛て = 「宛先: グループ「名前」 N 名」、ほか = 「宛先 N 名」) */
 export function dispatchTargetText(dispatch: Pick<AdminDispatchSummary, "targetGroup" | "recipientCount">): string {
   const group = dispatchTargetGroupLabel(dispatch);
-  return group ? `宛先: ${group} ${dispatch.recipientCount} 名` : `宛先 ${dispatch.recipientCount} 名`;
+  return group ? `宛先: ${group} ${dispatch.recipientCount} 名` : `宛先数 ${dispatch.recipientCount} 名`;
 }
 
 /** 種別の表示名(知らない値・null は null) */

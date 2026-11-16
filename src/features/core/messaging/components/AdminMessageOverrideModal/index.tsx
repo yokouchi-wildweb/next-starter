@@ -43,7 +43,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title={detail ? `文言を直す: ${detail.label}` : "文言を直す"}
+      title={detail ? `文言を編集: ${detail.label}` : "文言を編集"}
       maxWidth={MODAL_WIDTH}
       confirmOnClose={editor.closeConfirm}
     >
@@ -53,7 +53,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
         </Flex>
       ) : !detail ? (
         <Para tone="muted" align="center">
-          {editor.error ? err(editor.error, "文言を取得できませんでした") : "この連絡は直せません"}
+          {editor.error ? err(editor.error, "文言を取得できませんでした") : "この通知の文言は編集できません"}
         </Para>
       ) : (
         <Stack space={5}>
@@ -67,7 +67,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
               </Span>
             </Flex>
             <Para size="sm" tone="muted" className="my-0">
-              直した欄だけ管理画面の値で送ります。デザインとリンクはコードのままです。
+              編集した項目だけ、ここで設定した文言で送信します。デザインとリンクは変わりません。
             </Para>
             <AllowedKeysHint allowedKeys={editor.allowedKeys} />
           </Stack>

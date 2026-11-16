@@ -101,7 +101,7 @@ const order = (c: HTMLElement, parts: string[]) => {
 
 test("並び: 経路 > 種別の枠 > グループ(無い方が先)> 種類。種別の枠にスイッチは無い", async () => {
   const view = await mount();
-  order(view.container, ["すべての連絡を止める", "メール", "ご利用に伴うお知らせ", "いいね", "つながり", "フォロー", "キャンペーン情報", "キャンペーン", "LINE"]);
+  order(view.container, ["すべての通知を受け取らない", "メール", "ご利用に伴うお知らせ", "いいね", "つながり", "フォロー", "キャンペーン情報", "キャンペーン", "LINE"]);
   assert.equal(byLabel(view.container, "キャンペーン情報"), null, "種別のスイッチは無い");
   await view.unmount();
 });
@@ -111,7 +111,7 @@ test("1 マス: 押すと setCell。種別まるごとで止まった種類は�
   await act(async () => byLabel(view.container, "いいねをメールで受け取る")!.click());
   const campaign = byLabel(view.container, "キャンペーンをメールで受け取る")!;
   assert.equal(campaign.disabled, false);
-  assert.match(text(view.container), /まとめて止める設定で止まっています/);
+  assert.match(text(view.container), /まとめて受け取らない設定になっています/);
   await act(async () => campaign.click());
   assert.deepEqual(calls, [
     ["cell", "likes", "email", false],
@@ -122,10 +122,10 @@ test("1 マス: 押すと setCell。種別まるごとで止まった種類は�
 
 test("種類まるごとは種類が最初に出る経路の行に 1 回だけ。押すと setCategoryWide", async () => {
   const view = await mount();
-  const toggles = view.container.querySelectorAll('[aria-label$="をすべての経路で止める"]');
+  const toggles = view.container.querySelectorAll('[aria-label$="をすべての通知方法で受け取らない"]');
   assert.equal(toggles.length, 2, "campaign と likes に 1 つずつ(LINE の campaign・categories に無い follows には出ない)");
-  assert.match(text(view.container), /このカテゴリーをすべての経路で止める/);
-  await act(async () => byLabel(view.container, "いいねをすべての経路で止める")!.click());
+  assert.match(text(view.container), /このカテゴリーをすべての通知方法で受け取らない/);
+  await act(async () => byLabel(view.container, "いいねをすべての通知方法で受け取らない")!.click());
   assert.deepEqual(calls[0], ["category", "likes", true]);
   await view.unmount();
 });
@@ -141,7 +141,7 @@ test("経路まるごと: 経路の枠の切り替え → setChannelWide。宛�
 
 test("全部: setAll。全部の停止の間は経路・種類まるごと・全部の下のマスは押せない", async () => {
   const view = await mount();
-  await act(async () => byLabel(view.container, "すべての連絡を止める")!.click());
+  await act(async () => byLabel(view.container, "すべての通知を受け取らない")!.click());
   assert.deepEqual(calls, [["all", true]]);
   await view.unmount();
 
@@ -151,12 +151,12 @@ test("全部: setAll。全部の停止の間は経路・種類まるごと・全
   const locked = await mount();
   assert.ok(byLabel(locked.container, "メールで受け取る")!.disabled);
   assert.ok(byLabel(locked.container, "いいねをメールで受け取る")!.disabled);
-  assert.match(text(locked.container), /すべての連絡を止めています/);
+  assert.match(text(locked.container), /すべての通知を受け取らない設定になっています/);
   // C17: 経路の行は止めていないが、全部に従って切で見せる。種類まるごとは入(止まっている)
   assert.equal(byLabel(locked.container, "メールで受け取る")!.checked, false);
   assert.equal(byLabel(locked.container, "LINEで受け取る")!.checked, false);
-  assert.equal(byLabel(locked.container, "いいねをすべての経路で止める")!.checked, true);
-  assert.ok(byLabel(locked.container, "いいねをすべての経路で止める")!.disabled);
+  assert.equal(byLabel(locked.container, "いいねをすべての通知方法で受け取らない")!.checked, true);
+  assert.ok(byLabel(locked.container, "いいねをすべての通知方法で受け取らない")!.disabled);
   await locked.unmount();
 
   // 全部を戻すと経路の行の値に戻る
@@ -165,7 +165,7 @@ test("全部: setAll。全部の停止の間は経路・種類まるごと・全
   const back = await mount();
   assert.equal(byLabel(back.container, "メールで受け取る")!.checked, true);
   assert.equal(byLabel(back.container, "メールで受け取る")!.disabled, false);
-  assert.equal(byLabel(back.container, "いいねをすべての経路で止める")!.checked, false);
+  assert.equal(byLabel(back.container, "いいねをすべての通知方法で受け取らない")!.checked, false);
   await back.unmount();
 });
 

@@ -95,16 +95,16 @@ const button = (container: HTMLElement, text: string) =>
 test("できない操作は押せず理由を出す", async () => {
   const view = await mount();
   assert.equal(button(view.container, "予約を取り消す")!.disabled, true);
-  assert.match(view.container.textContent ?? "", /予約の回ではありません/);
-  assert.equal(button(view.container, "取り下げる")!.disabled, false);
+  assert.match(view.container.textContent ?? "", /予約された送信ではありません/);
+  assert.equal(button(view.container, "公開を停止")!.disabled, false);
   await view.unmount();
 });
 
 test("取り下げ: 確認を開き、確認で呼び手の処理を呼ぶ", async () => {
   const view = await mount();
-  await act(async () => button(view.container, "取り下げる")!.click());
-  assert.match(view.container.querySelector("[data-testid=dialog]")?.textContent ?? "", /送ったメールは取り戻せません/);
-  await act(async () => button(view.container, "confirm:取り下げる")!.click());
+  await act(async () => button(view.container, "公開を停止")!.click());
+  assert.match(view.container.querySelector("[data-testid=dialog]")?.textContent ?? "", /送信済みのメールは取り消せません/);
+  await act(async () => button(view.container, "confirm:公開を停止する")!.click());
   assert.deepEqual(view.calls, ["retract"]);
   await view.unmount();
 });
@@ -113,19 +113,19 @@ test("再送: 数と「不明も含める」、含めると件数が増える。
   const view = await mount();
   await act(async () => button(view.container, "失敗分を再送")!.click());
   const dialog = () => view.container.querySelector("[data-testid=dialog]")?.textContent ?? "";
-  assert.match(dialog(), /失敗 2 件 \/ 送れたか不明 1 件/);
-  assert.match(dialog(), /送れたか不明の宛先も含める/);
-  assert.ok(button(view.container, "confirm:2 件を送り直す"));
+  assert.match(dialog(), /失敗 2 件 \/ 送信結果が不明 1 件/);
+  assert.match(dialog(), /送信結果が不明の宛先も含める/);
+  assert.ok(button(view.container, "confirm:2 件を再送する"));
   await view.render({ includeUnknown: true });
-  assert.ok(button(view.container, "confirm:3 件を送り直す"));
-  await act(async () => button(view.container, "confirm:3 件を送り直す")!.click());
+  assert.ok(button(view.container, "confirm:3 件を再送する"));
+  await act(async () => button(view.container, "confirm:3 件を再送する")!.click());
   assert.deepEqual(view.calls, ["resend"]);
   await view.unmount();
 
   const none = await mount({ operations: flags({ resend: { allowed: true, reason: null, mode: "new_dispatch", failed: 1, unknown: 0 } }) });
   await act(async () => button(none.container, "失敗分を再送")!.click());
   const text = none.container.querySelector("[data-testid=dialog]")?.textContent ?? "";
-  assert.doesNotMatch(text, /送れたか不明の宛先も含める/);
-  assert.match(text, /新しい回として送ります/);
+  assert.doesNotMatch(text, /送信結果が不明の宛先も含める/);
+  assert.match(text, /新しい送信として送ります/);
   await none.unmount();
 });

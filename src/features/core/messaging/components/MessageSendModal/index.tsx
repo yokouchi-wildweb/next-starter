@@ -52,7 +52,7 @@ export type MessageSendModalProps = {
   dispatchBasePath?: string;
 };
 
-const DEFAULT_LABEL: Record<MessageSendMode["type"], string> = { new: "新しく送る", sameAs: "同じ内容で送る", bulk: "一括送信" };
+const DEFAULT_LABEL: Record<MessageSendMode["type"], string> = { new: "新規送信", sameAs: "同じ内容で送る", bulk: "一括送信" };
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -82,7 +82,7 @@ export function MessageSendModal({
     try {
       await m.runPreview();
     } catch (e) {
-      showToast(err(e, "プレビューを作れませんでした"), "error");
+      showToast(err(e, "プレビューを表示できませんでした"), "error");
     }
   });
   const { execute: sendTest } = useAsyncAction(async () => {
@@ -97,7 +97,7 @@ export function MessageSendModal({
     try {
       await m.requestConfirm();
     } catch (e) {
-      showToast(err(e, "宛先の数を見込めませんでした"), "error");
+      showToast(err(e, "宛先数を確認できませんでした"), "error");
     }
   });
   const { execute: send } = useAsyncAction(async () => {
@@ -105,7 +105,7 @@ export function MessageSendModal({
       const sent = await m.confirmSend();
       showToast(sent.kind === "send" && sent.result.status === "scheduled" ? "予約しました" : "送信を受け付けました", "success");
     } catch (e) {
-      showToast(err(e, "送れませんでした"), "error");
+      showToast(err(e, "送信できませんでした"), "error");
     }
   });
 
@@ -174,7 +174,7 @@ export function MessageSendModal({
             ) : null}
           </Stack>
         ) : null}
-        <Block title="カテゴリーと経路">
+        <Block title="カテゴリーと送信方法">
           <SendCategoryChannels
             categories={m.allowedCategories}
             category={m.category}
@@ -184,7 +184,7 @@ export function MessageSendModal({
           />
           <SendLegalNotice emailOn={onChannels.some((channel) => channel.key === "email")} />
         </Block>
-        <Block title="文言">
+        <Block title="内容">
           <SendContentFields
             // 呼び出し・やめるで中身が入れ替わったら欄を作り直す(fork の経路の JSON の欄は書いている文を自分で持つ)
             key={`${m.draft.source}:${m.draft.template?.id ?? ""}`}
@@ -198,7 +198,7 @@ export function MessageSendModal({
           />
         </Block>
         {m.showSchedule ? (
-          <Block title="送る時刻">
+          <Block title="送信日時">
             <SendSchedule
               mode={m.scheduleMode}
               scheduledAt={m.scheduledAt}
@@ -215,7 +215,7 @@ export function MessageSendModal({
           </Para>
         ) : null}
         {m.preview ? (
-          <Block title="プレビュー(見本の宛先 = あなた)">
+          <Block title="プレビュー(あなた宛ての表示例)">
             <MessagePreview channels={m.preview.channels} />
           </Block>
         ) : null}
@@ -242,7 +242,7 @@ export function MessageSendModal({
           </Button>
           <Button type="button" size="sm" variant="primary" disabled={m.isSending || m.estimateOverLimit} onClick={() => void send()}>
             {m.isSending ? <Spinner className="size-4" /> : null}
-            {m.showSchedule && m.scheduleMode === "at" ? "予約する" : "送る"}
+            {m.showSchedule && m.scheduleMode === "at" ? "予約する" : "送信する"}
           </Button>
         </Flex>
       );
@@ -259,7 +259,7 @@ export function MessageSendModal({
         </Button>
         <Button type="button" size="sm" variant="primary" disabled={!m.canSend || isEstimating} onClick={() => void toConfirm()}>
           {isEstimating ? <Spinner className="size-4" /> : null}
-          確認へ
+          確認に進む
         </Button>
       </Flex>
     );
@@ -289,9 +289,9 @@ export function MessageSendModal({
           if (!next) m.cancelLoad();
         }}
         title="テンプレートを読み込みますか"
-        description="今書いている文言は、テンプレートの文言で置き換わります。"
-        confirmLabel="置き換えて読み込む"
-        cancelLabel="やめる"
+        description="入力中の内容は、テンプレートの内容に置き換わります。"
+        confirmLabel="置き換える"
+        cancelLabel="キャンセル"
         onConfirm={m.confirmLoad}
       />
     </>

@@ -203,7 +203,7 @@ export async function adminResendFailed<Tx>(
 ): Promise<AdminResendResult> {
   await assertAdminActor(deps);
   const parsed = AdminResendInputSchema.safeParse(rawInput ?? {});
-  if (!parsed.success) throw new DomainError("再送の入力が正しくありません", { status: 400 });
+  if (!parsed.success) throw new DomainError("再送の指定が正しくありません", { status: 400 });
   const includeUnknown = parsed.data.includeUnknown ?? false;
 
   const planned = await deps.store.withLockedDispatch(dispatchId, async (tx, dispatch) => {

@@ -19,7 +19,7 @@ export function UnsubscribeResult({ status, categoryLabel }: UnsubscribeResultPr
       <Stack space={2}>
         <Para weight="bold">リンクが正しくありません</Para>
         <Para size="sm" tone="muted">
-          メールのリンクをもう一度お確かめください。
+          メールのリンクをもう一度ご確認ください。
         </Para>
       </Stack>
     );
@@ -32,7 +32,7 @@ export function UnsubscribeResult({ status, categoryLabel }: UnsubscribeResultPr
       </Para>
       <Para size="sm">
         <Link href={MESSAGE_PREFERENCES_PAGE_PATH} className="underline">
-          通知の設定を見る
+          通知設定を見る
         </Link>
       </Para>
     </Stack>

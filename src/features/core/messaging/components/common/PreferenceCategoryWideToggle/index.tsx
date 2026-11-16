@@ -26,7 +26,7 @@ export function PreferenceCategoryWideToggle({
   disabled = false,
   stoppedByAll = false,
   onChange,
-  label = "このカテゴリーをすべての経路で止める",
+  label = "このカテゴリーをすべての通知方法で受け取らない",
 }: PreferenceCategoryWideToggleProps) {
   return (
     <SwitchInput
@@ -35,7 +35,7 @@ export function PreferenceCategoryWideToggle({
       disabled={disabled || stoppedByAll}
       size="sm"
       label={label}
-      aria-label={`${categoryLabel}をすべての経路で止める`}
+      aria-label={`${categoryLabel}をすべての通知方法で受け取らない`}
     />
   );
 }

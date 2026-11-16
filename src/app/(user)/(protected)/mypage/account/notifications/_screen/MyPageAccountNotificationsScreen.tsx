@@ -14,7 +14,7 @@ export async function MyPageAccountNotificationsScreen(props: ScreenProps) {
 
   return (
     <>
-      <UserPageTitle>通知の設定</UserPageTitle>
+      <UserPageTitle>通知設定</UserPageTitle>
       <MessagePreferences />
     </>
   );

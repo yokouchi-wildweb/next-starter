@@ -46,14 +46,14 @@ export function adminFreeTextCategoryOf(
   options: { target: MessageAdminTarget | null },
 ): MessageCategory & { kind: AdminFreeTextKind } {
   const category = categories[key];
-  if (!category) throw new DomainError(`カテゴリー ${key} はありません`, { status: 400 });
+  if (!category) throw new DomainError("選んだカテゴリーが見つかりません", { status: 400 });
   if (!isAdminFreeTextKind(category.kind)) {
-    throw new DomainError(`カテゴリー ${key} の種別 ${category.kind} は管理画面から送れません(announcement・direct・marketing)`, {
+    throw new DomainError(`カテゴリー「${category.label}」は管理画面から送信できません`, {
       status: 400,
     });
   }
   if (options.target && !MESSAGE_KIND_TRAITS[category.kind].adminFreeText.includes(options.target)) {
-    throw new DomainError(`カテゴリー ${key}(種別 ${category.kind})はこの宛先(${options.target})に送れません`, { status: 400 });
+    throw new DomainError(`カテゴリー「${category.label}」はこの宛先には送信できません`, { status: 400 });
   }
   return category as MessageCategory & { kind: AdminFreeTextKind };
 }

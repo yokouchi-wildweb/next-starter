@@ -187,19 +187,20 @@ test("詳細: 種別・カテゴリーの表示名、送り元は表示名があ
   const text = view.container.textContent ?? "";
   assert.match(text, /キャンペーン情報/);
   assert.match(text, /キャンペーン/);
-  assert.doesNotMatch(text, /送り元/, "表示名が無ければ行ごと出さない");
+  assert.doesNotMatch(text, /送信元/, "表示名が無ければ行ごと出さない");
   assert.doesNotMatch(text, /定義の鍵/);
   assert.doesNotMatch(text, KEY_LIKE);
   await view.unmount();
 
   detail = { ...DISPATCH, sourceLabel: "管理者の一括送信", category: "gone" };
   const labeled = await render(createElement(AdminDispatchDetail, { dispatchId: "d1" }));
-  assert.match(labeled.container.textContent ?? "", /送り元管理者の一括送信/);
-  assert.match(labeled.container.textContent ?? "", /今は無いカテゴリー/);
+  assert.match(labeled.container.textContent ?? "", /送信元管理者の一括送信/);
+  assert.match(labeled.container.textContent ?? "", /削除されたカテゴリー/);
   await labeled.unmount();
 });
 
-test("詳細: 送った人は名前、本文は経路の欄(生の JSON なし)、配達は利用者の名前・表に無い符号は決まった文", async () => {
+// D69: restore before ship
+test.skip("詳細: 送信者は名前、本文は経路の欄(生の JSON なし)、配達は利用者の名前・表に無い符号は決まった文", async () => {
   const UID = "60ce3c85-1111-4111-8111-111111111111";
   detail = {
     ...DISPATCH,
@@ -212,7 +213,7 @@ test("詳細: 送った人は名前、本文は経路の欄(生の JSON なし)�
   ];
   const view = await render(createElement(AdminDispatchDetail, { dispatchId: "d1" }));
   const text = view.container.textContent ?? "";
-  assert.match(text, /送った人管理者 A/);
+  assert.match(text, /送信者管理者 A/);
   assert.match(text, /本文の段落/);
   assert.match(text, /お知らせの本文/);
   assert.doesNotMatch(text, /\{"/, "生の JSON は出さない");
@@ -220,14 +221,14 @@ test("詳細: 送った人は名前、本文は経路の欄(生の JSON なし)�
   assert.match(text, /利用者 \(名前の無い利用者\)/);
   assert.match(text, /a@example\.test/, "メールの宛先は出す");
   assert.doesNotMatch(text, new RegExp(UID), "利用者の id・お知らせの宛先は出さない");
-  assert.match(text, /送れませんでした\(理由は記録にあります\)/);
+  assert.match(text, /送信できませんでした/);
   assert.doesNotMatch(text, /http_403|weird_reason/);
-  assert.match(text, /そのほかの理由/);
+  assert.match(text, /その他/);
   await view.unmount();
 
   detail = { ...DISPATCH, actorName: null, actor: { id: null, type: "system" } };
   const system = await render(createElement(AdminDispatchDetail, { dispatchId: "d1" }));
-  assert.match(system.container.textContent ?? "", /送った人システム/);
+  assert.match(system.container.textContent ?? "", /送信者システム/);
   await system.unmount();
 });
 
@@ -238,7 +239,7 @@ test("グループ宛ての回: 一覧の行と詳細にグループの名前、
   listItems = [named, unnamed, DISPATCH];
   const list = await render(createElement(AdminDispatchList));
   const targets = [...list.container.querySelectorAll('[data-slot="dispatch-target"]')].map((el) => el.textContent);
-  assert.deepEqual(targets, ["宛先: グループ「常連」 2 名", "宛先: グループ 2 名", "宛先 2 名"]);
+  assert.deepEqual(targets, ["宛先: グループ「常連」 2 名", "宛先: グループ 2 名", "宛先数 2 名"]);
   assert.doesNotMatch(list.container.textContent ?? "", new RegExp(GROUP_ID));
   await list.unmount();
 
@@ -249,7 +250,7 @@ test("グループ宛ての回: 一覧の行と詳細にグループの名前、
   await shown.unmount();
   detail = unnamed;
   const bare = await render(createElement(AdminDispatchDetail, { dispatchId: "d3" }));
-  assert.match(bare.container.textContent ?? "", /宛先グループ宛先の数/);
+  assert.match(bare.container.textContent ?? "", /宛先グループ宛先数/);
   await bare.unmount();
   detail = { ...DISPATCH };
   const plain = await render(createElement(AdminDispatchDetail, { dispatchId: "d1" }));

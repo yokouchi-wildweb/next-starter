@@ -9,7 +9,7 @@ export const item: AdminMenuItemDefinition = {
   key: "messagingDispatches",
   category: "marketing",
   order: 15,
-  label: "送信の履歴",
+  label: "送信一覧",
   href: "/admin/messaging",
   icon: Send,
 };

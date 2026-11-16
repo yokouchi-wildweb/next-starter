@@ -191,14 +191,14 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
     const parsed = SetMessagePreferenceInputSchema.safeParse(input);
     const sourceParsed = MessagePreferenceSourceSchema.safeParse(options.source ?? PREFERENCE_USER_SOURCE);
     if (!parsed.success || !sourceParsed.success) {
-      throw new DomainError("好みの入力が正しくありません", { status: 400 });
+      throw new DomainError("通知設定の入力が正しくありません", { status: 400 });
     }
     const source = sourceParsed.data;
     const value = parsed.data;
 
     if ("kind" in value) {
       if (!kindTraits(value.kind)?.userStoppable) {
-        throw new DomainError(`種別 ${value.kind} は利用者が止められません`, { status: 400 });
+        throw new DomainError("この種類の通知は受け取りを止められません", { status: 400 });
       }
       const row = { category: MESSAGE_ALL, channel: MESSAGE_ALL, kind: value.kind };
       await deps.store.write(userId, value.optedOut ? { add: [{ ...row, source }] } : { remove: [row] });
@@ -208,10 +208,10 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
     const { category, channel, optedOut } = value;
     const target = category === MESSAGE_ALL ? null : listedCategories().find((item) => item.key === category);
     if (category !== MESSAGE_ALL && !target) {
-      throw new DomainError(`種類 ${category} はありません`, { status: 400 });
+      throw new DomainError("選んだ通知のカテゴリーが見つかりません", { status: 400 });
     }
     if (channel !== MESSAGE_ALL && !activeChannel(deps.channels, channel)) {
-      throw new DomainError(`経路 ${channel} はありません`, { status: 400 });
+      throw new DomainError("選んだ通知方法が見つかりません", { status: 400 });
     }
     if (optedOut) {
       await deps.store.write(userId, { add: [{ category, channel, source }] });

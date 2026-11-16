@@ -53,7 +53,7 @@ export function AdminMessageTemplateModal({ open, onOpenChange, templateId = nul
 
   if (m.state !== "ready" || !m.options) {
     return (
-      <Modal open={open} onOpenChange={onOpenChange} title={templateId || m.mode === "edit" ? "テンプレートを直す" : "テンプレートを作る"} maxWidth={MODAL_WIDTH}>
+      <Modal open={open} onOpenChange={onOpenChange} title={templateId || m.mode === "edit" ? "テンプレートを編集" : "テンプレートを作成"} maxWidth={MODAL_WIDTH}>
         {m.state === "loading" ? (
           <Flex justify="center" className="py-8">
             <Spinner className="size-6" />
@@ -95,7 +95,7 @@ function TemplateModalBody({
   // 受け口から消えた経路が中身に残っていれば、その経路の欄も見せる(保存の検査で止まる)
   const channelChoices = [
     ...options.channels,
-    ...fields.channels.filter((key) => !options.channels.some((c) => c.key === key)).map((key) => ({ key, label: `${key}(使えない経路)` })),
+    ...fields.channels.filter((key) => !options.channels.some((c) => c.key === key)).map((key) => ({ key, label: `${key}(使用できない送信方法)` })),
   ];
 
   const footer = (
@@ -105,12 +105,12 @@ function TemplateModalBody({
           <ConfirmPopover
             trigger={
               <Button type="button" size="sm" variant="outline" disabled={form.dirty}>
-                取り下げ
+                アーカイブ
               </Button>
             }
-            title="取り下げ"
-            description="取り下げると、このテンプレートは直せず公開もできなくなります(版の履歴は残ります)。"
-            confirmLabel="取り下げる"
+            title="アーカイブ"
+            description="アーカイブすると、このテンプレートは編集も公開もできなくなります(バージョン履歴は残ります)。"
+            confirmLabel="アーカイブする"
             confirmVariant="destructive"
             onConfirm={form.archive}
           />
@@ -123,7 +123,7 @@ function TemplateModalBody({
               </Button>
             }
             title="公開"
-            description="今の中身を新しい版として公開します。公開した版は書き換えられません。"
+            description="現在の内容を新しいバージョンとして公開します。公開したバージョンは変更できません。"
             confirmLabel="公開する"
             onConfirm={form.publish}
           />
@@ -137,7 +137,7 @@ function TemplateModalBody({
             onClick={() => void save()}
           >
             {isSaving ? <Spinner className="size-4" /> : null}
-            {template ? "保存" : "下書きを作る"}
+            {template ? "保存" : "下書きを作成"}
           </Button>
         ) : null}
       </Flex>
@@ -161,7 +161,7 @@ function TemplateModalBody({
           />
           {locked ? (
             <Para size="sm" tone="muted" className="my-0">
-              取り下げたテンプレートは直せません(版の履歴は残ります)
+              アーカイブ済みのテンプレートは編集できません(バージョン履歴は残ります)
             </Para>
           ) : null}
         </Flex>
@@ -170,7 +170,7 @@ function TemplateModalBody({
       <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="template-meta">
         <Stack space={1}>
           <Label htmlFor="template-name" className="text-sm">
-            名前
+            テンプレート名
           </Label>
           <Input id="template-name" value={fields.name} disabled={locked} onChange={(e) => fields.setName(e.target.value)} />
         </Stack>
@@ -193,7 +193,7 @@ function TemplateModalBody({
           />
         </Stack>
         <Para size="sm" tone="muted" className="my-0">
-          文言を書いた経路がテンプレートの経路になります(送る経路は送る時のカテゴリーで決まります)
+          内容を入力した送信方法が、このテンプレートの送信方法になります(実際の送信方法は送信時のカテゴリーで決まります)
         </Para>
       </Stack>
 
@@ -218,14 +218,14 @@ function TemplateModalBody({
   );
 
   const tabs = [
-    { value: "text", label: "文言", content: textTab },
+    { value: "text", label: "内容", content: textTab },
     {
       value: "variables",
       label: "変数",
       content: (
         <Stack space={3}>
           <Para size="sm" tone="muted" className="my-0">
-            宣言した変数は文言の {"{{鍵}}"} に使えます(送る時に値を入れます)
+            定義した変数は、内容の中で {"{{変数名}}"} として使えます(値は送信時に入力します)
           </Para>
           <TemplateVariablesEditor value={fields.variables} onChange={fields.setVariables} disabled={locked} />
         </Stack>
@@ -235,7 +235,7 @@ function TemplateModalBody({
       ? [
           {
             value: "versions",
-            label: "版の履歴",
+            label: "バージョン履歴",
             content: <TemplateVersionList versions={versions} currentVersion={template.currentVersion} />,
             footer: null,
           },
@@ -247,7 +247,7 @@ function TemplateModalBody({
     <TabbedModal
       open={open}
       onOpenChange={onOpenChange}
-      title={template ? `テンプレートを直す: ${template.name}` : "テンプレートを作る"}
+      title={template ? `テンプレートを編集: ${template.name}` : "テンプレートを作成"}
       maxWidth={MODAL_WIDTH}
       tabs={tabs}
       value={modal.tab}

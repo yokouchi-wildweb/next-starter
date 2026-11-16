@@ -9,7 +9,7 @@ export const item: AdminMenuItemDefinition = {
   key: "messagingOverrides",
   category: "marketing",
   order: 16,
-  label: "文言の上書き",
+  label: "文言の編集",
   href: "/admin/messaging/overrides",
   icon: PencilLine,
 };

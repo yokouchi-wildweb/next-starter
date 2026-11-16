@@ -24,16 +24,16 @@ export type DispatchOperationReason = (typeof DISPATCH_OPERATION_REASONS)[number
 
 /** 理由の文(409 の文と画面の理由の行) */
 export const DISPATCH_OPERATION_REASON_TEXT: Record<DispatchOperationReason, string> = {
-  not_found: "回がありません",
-  not_scheduled: "予約の回ではありません",
-  already_started: "もう送り始めています",
-  scheduled_use_cancel: "まだ送っていない予約の回は取り消しを使ってください",
-  cancelled: "取り消した回です",
-  retracted: "取り下げた回です",
-  scheduled: "まだ送っていない予約の回です",
-  definition_missing: "回の連絡の定義を読めません",
-  required: "止められない連絡(required)は送り直せません",
-  secret: "秘密の値を差し込む連絡は秘密を残さないので送り直せません。送り手の処理からもう一度送ってください",
-  no_failed: "送り直す失敗の宛先がありません",
-  no_input_copy: "本文を残さない連絡で、元の入力の写しがもう無いので送り直せません。新しい回として送ってください",
+  not_found: "送信が見つかりません",
+  not_scheduled: "予約された送信ではありません",
+  already_started: "すでに送信が始まっています",
+  scheduled_use_cancel: "まだ送信していない予約は「予約を取り消す」を使ってください",
+  cancelled: "取り消された送信です",
+  retracted: "公開を停止した送信です",
+  scheduled: "まだ送信していない予約です",
+  definition_missing: "この送信の設定を読み込めません",
+  required: "受け取りを止められない必須の通知は再送できません",
+  secret: "機密情報を含む通知は内容を保存しないため再送できません。元の操作からもう一度送信してください",
+  no_failed: "再送する失敗した宛先がありません",
+  no_input_copy: "本文が保存されていないため再送できません。新しく送信してください",
 };

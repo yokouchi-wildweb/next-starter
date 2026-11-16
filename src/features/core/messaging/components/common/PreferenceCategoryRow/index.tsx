@@ -35,13 +35,13 @@ export type PreferenceCategoryRowProps = {
 export function preferenceViaReason(via: MessagePreferenceVia | null): string | null {
   switch (via) {
     case "all":
-      return "すべての連絡を止めています";
+      return "すべての通知を受け取らない設定になっています";
     case "category":
-      return "このカテゴリーをすべての経路で止めています";
+      return "このカテゴリーはすべての通知方法で受け取らない設定になっています";
     case "channel":
-      return "この経路をまとめて止めています";
+      return "この通知方法はまとめて受け取らない設定になっています";
     case "kind":
-      return "まとめて止める設定で止まっています";
+      return "まとめて受け取らない設定になっています";
     default:
       return null;
   }

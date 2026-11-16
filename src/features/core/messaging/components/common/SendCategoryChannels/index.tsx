@@ -28,7 +28,7 @@ export function SendCategoryChannels({ categories, category, onCategoryChange, c
         </Label>
         {categories.length === 0 ? (
           <Para size="sm" tone="muted" className="my-0">
-            この宛先に送れるカテゴリーがありません
+            この宛先に使えるカテゴリーがありません
           </Para>
         ) : (
           <SelectInput
@@ -40,14 +40,14 @@ export function SendCategoryChannels({ categories, category, onCategoryChange, c
         )}
       </Stack>
       <Stack space={1}>
-        <Label className="text-sm">経路</Label>
+        <Label className="text-sm">送信方法</Label>
         <Flex gap="sm" wrap="wrap">
           {channels.map((channel) => (
             <Flex key={channel.key} align="center" gap="xs">
               <SwitchInput size="sm" value={channel.on} onChange={(on) => onToggleChannel(channel.key, on)} label={channel.label} />
               {channel.on && channel.blank ? (
                 <SoftBadge variant="warning" size="sm">
-                  文言なし
+                  未入力
                 </SoftBadge>
               ) : null}
             </Flex>

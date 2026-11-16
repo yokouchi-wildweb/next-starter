@@ -58,9 +58,9 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
     try {
       const res = await retractTrigger();
       revalidateDeliveries();
-      showToast(`取り下げました(お知らせ ${res.deletedInboxItems} 件を消し、配達 ${res.canceledDeliveries} 件を止めました)`, "success");
+      showToast(`公開を停止しました(お知らせ ${res.deletedInboxItems} 件を削除し、未送信 ${res.canceledDeliveries} 件を止めました)`, "success");
     } catch (e) {
-      showToast(err(e, "取り下げられませんでした"), "error");
+      showToast(err(e, "公開を停止できませんでした"), "error");
     }
   }, [retractTrigger, revalidateDeliveries, showToast]);
 
@@ -72,12 +72,12 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
       setIncludeUnknown(false);
       showToast(
         res.mode === "new_dispatch"
-          ? `新しい回として ${res.failed + res.unknown} 件を送りました(回の一覧から見られます)`
-          : `${res.failed + res.unknown} 件を送り直しました`,
+          ? `新しい送信として ${res.failed + res.unknown} 件を送りました(送信一覧で確認できます)`
+          : `${res.failed + res.unknown} 件を再送しました`,
         "success",
       );
     } catch (e) {
-      showToast(err(e, "送り直せませんでした"), "error");
+      showToast(err(e, "再送できませんでした"), "error");
     }
   }, [resendTrigger, includeUnknown, revalidateDeliveries, showToast]);
 
@@ -86,9 +86,9 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
     try {
       const res = await continueSending();
       revalidateDeliveries();
-      showToast(res.completed ? "送信を終えました" : `続きを送りました(送信 ${res.sent} / 失敗 ${res.failed})`, "success");
+      showToast(res.completed ? "送信が完了しました" : `送信を再開しました(送信 ${res.sent} / 失敗 ${res.failed})`, "success");
     } catch (e) {
-      showToast(err(e, "続きを送れませんでした"), "error");
+      showToast(err(e, "送信を再開できませんでした"), "error");
     }
   }, [continueSending, revalidateDeliveries, showToast]);
 

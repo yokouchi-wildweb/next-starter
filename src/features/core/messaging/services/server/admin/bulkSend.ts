@@ -68,7 +68,7 @@ export const AdminBulkSendInputSchema = z
     const byUsers = value.userIds !== undefined;
     const byTarget = value.target !== undefined || value.recordIds !== undefined;
     if (byUsers === byTarget || (byTarget && (!value.target || !value.recordIds))) {
-      ctx.addIssue({ code: "custom", message: "宛先は userIds か target + recordIds のどちらか 1 つで指定してください" });
+      ctx.addIssue({ code: "custom", message: "宛先の指定が正しくありません" });
     }
     checkAdminContent(value, ctx);
   });
@@ -105,16 +105,16 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
   if (input.target) {
     target = deps.targets[input.target] ?? null;
     if (!target || (target.enabled && !target.enabled())) {
-      throw new DomainError(`一括送信の対象 ${input.target} がありません`, { status: 400 });
+      throw new DomainError("一括送信の対象が見つかりません", { status: 400 });
     }
     userIds = await target.resolveUserIds(input.recordIds ?? []);
   } else {
     userIds = input.userIds ?? [];
   }
   userIds = [...new Set(userIds)];
-  if (userIds.length === 0) throw new DomainError("送る相手が見つかりませんでした", { status: 400 });
+  if (userIds.length === 0) throw new DomainError("送信先のユーザーが見つかりませんでした", { status: 400 });
   if (userIds.length > ADMIN_BULK_SEND_MAX_RECIPIENTS) {
-    throw new DomainError(`一度に送れるのは ${ADMIN_BULK_SEND_MAX_RECIPIENTS} 人までです`, { status: 400 });
+    throw new DomainError(`一度に送信できるのは ${ADMIN_BULK_SEND_MAX_RECIPIENTS} 人までです`, { status: 400 });
   }
 
   const source = input.source ?? (target ? `${target.key}.bulk` : BULK_SOURCE);

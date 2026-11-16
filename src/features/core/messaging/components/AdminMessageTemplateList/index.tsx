@@ -46,7 +46,7 @@ export function AdminMessageTemplateList() {
           />
         </Stack>
         <Button type="button" size="sm" variant="primary" onClick={modal.openNew}>
-          新しく作る
+          新規作成
         </Button>
       </Flex>
       <InfiniteScrollList
@@ -82,7 +82,7 @@ export function AdminMessageTemplateList() {
                   </Flex>
                   <Flex gap="sm" wrap="wrap">
                     <Span size="sm" tone="muted">
-                      {template.categoryLabel ?? "今は無いカテゴリー"}
+                      {template.categoryLabel ?? "削除されたカテゴリー"}
                     </Span>
                     <Span size="sm" tone="muted">
                       {when(template.updatedAt ?? template.createdAt)}

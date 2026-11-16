@@ -5,15 +5,15 @@
 // 知らない符号は符号のまま出す。server を import しない(client の部品からも読むため)
 
 export const DELIVERY_ERROR_TEXT: Readonly<Record<string, string>> = {
-  unsubscribe_key_missing: "配信停止の鍵(MESSAGING_UNSUBSCRIBE_SECRET)が無いので、配信停止の欄の要るメールを送らなかった",
-  send_threw: "経路の送信の処理が例外で止まった",
-  no_result: "経路が結果を返さなかった",
-  delivery_missing: "配達の行が見つからなかった",
-  definition_invalid: "連絡の定義が検査を通らなかった",
-  dispatch_missing: "回が見つからなかった",
-  render_failed: "メールの描き方が描けなかった",
-  render_fallback: "連絡の描き方が描けず、既定の描き方で送った",
-  rate_limited: "送り先の業者の回数の上限に当たった",
-  invalid_address: "宛先の形が正しくない",
-  timeout: "送り先の業者が時間内に応えなかった",
+  unsubscribe_key_missing: "配信停止リンクの設定がないため、配信停止リンクが必要なメールを送信しませんでした",
+  send_threw: "送信処理でエラーが発生しました",
+  no_result: "送信結果を受け取れませんでした",
+  delivery_missing: "送信状況の記録が見つかりませんでした",
+  definition_invalid: "通知の設定に誤りがあります",
+  dispatch_missing: "送信が見つかりませんでした",
+  render_failed: "メールの本文を作成できませんでした",
+  render_fallback: "本文を作成できなかったため、既定の形式で送信しました",
+  rate_limited: "送信サービスの送信数の上限に達しました",
+  invalid_address: "宛先の形式が正しくありません",
+  timeout: "送信サービスから時間内に応答がありませんでした",
 };

@@ -27,9 +27,9 @@ export type SendConfirmViewProps = {
 
 export function SendConfirmView({ estimate, bulk, scheduledAt, templateVersion, channels, categoryLabel }: SendConfirmViewProps) {
   const who = bulk
-    ? `選んだ ${bulk.recordCount} 件の${bulk.recordNoun}に紐づく利用者`
+    ? `選択した ${bulk.recordCount} 件の${bulk.recordNoun}に関連するユーザー`
     : estimate
-      ? `${estimate.count} 名(送る時に数え直します)`
+      ? `${estimate.count} 名(送信時に再集計します)`
       : "-";
   return (
     <Stack space={2} data-slot="send-confirm-view">
@@ -38,18 +38,18 @@ export function SendConfirmView({ estimate, bulk, scheduledAt, templateVersion, 
       </Para>
       {estimate?.overLimit ? (
         <Para size="sm" tone="destructive" className="my-0" data-slot="send-confirm-over-limit">
-          {`宛先の人数 ${estimate.count.toLocaleString("ja-JP")} 人が上限 ${(estimate.memberLimit ?? 0).toLocaleString("ja-JP")} 人を超えているため送れません`}
+          {`宛先数 ${estimate.count.toLocaleString("ja-JP")} 人が上限 ${(estimate.memberLimit ?? 0).toLocaleString("ja-JP")} 人を超えているため送信できません`}
         </Para>
       ) : null}
       <Para size="sm" className="my-0">
-        カテゴリー: {categoryLabel} / 経路: {channels.join("・")}
+        カテゴリー: {categoryLabel} / 送信方法: {channels.join("・")}
       </Para>
       <Para size="sm" className="my-0">
-        {scheduledAt ? `${new Date(scheduledAt).toLocaleString("ja-JP")} に予約します` : "今送ります"}
+        {scheduledAt ? `${new Date(scheduledAt).toLocaleString("ja-JP")} に予約します` : "今すぐ送信します"}
       </Para>
       {templateVersion ? (
         <Para size="sm" tone="muted" className="my-0">
-          テンプレートは v{templateVersion} を元に送ります(直した文面はこの回に残ります)
+          テンプレート v{templateVersion} を元に送信します(編集した内容はこの送信に保存されます)
         </Para>
       ) : null}
     </Stack>
@@ -71,20 +71,20 @@ export function SendResultView({ status, queuedCount, dispatchHref, afterSend, r
     <Stack space={3} data-slot="send-result-view">
       <Para size="sm" className="my-0">
         {status === "scheduled" ? "予約しました" : "送信を受け付けました"}(状態: {DISPATCH_STATUS_DISPLAY[status]?.label ?? "受け付け済み"}
-        {queuedCount > 0 ? ` / 順に送る配達 ${queuedCount} 件` : ""})
+        {queuedCount > 0 ? ` / 送信待ち ${queuedCount} 件` : ""})
       </Para>
       {afterSend ? (
         <Flex align="center" gap="xs">
           {afterSend.ok ? <CheckCircle2 className="size-4 text-success-text" /> : <AlertCircle className="size-4 text-destructive-text" />}
           <Span size="sm">
-            {afterSend.ok ? `${recordNoun ?? "記録"}の送った後の処理を終えました` : `${recordNoun ?? "記録"}の送った後の処理に失敗しました: ${afterSend.error}`}
+            {afterSend.ok ? `${recordNoun ?? "対象"}の送信後の処理が完了しました` : `${recordNoun ?? "対象"}の送信後の処理に失敗しました: ${afterSend.error}`}
           </Span>
         </Flex>
       ) : null}
       {dispatchHref ? (
         <Flex>
           <LinkButton href={dispatchHref} size="sm" variant="outline">
-            送った回を見る
+            送信の詳細を見る
           </LinkButton>
         </Flex>
       ) : null}

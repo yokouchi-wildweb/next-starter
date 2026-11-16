@@ -136,8 +136,8 @@ test("カテゴリー: 無い・3 つの種別でない・宛先の種類が送�
   for (const target of [{ type: "all" }, { type: "role", roles: ["user"] }, { type: "group", groupId: "22222222-2222-4222-8222-222222222222" }]) {
     await rejectsWith(adminSend(deps, { content: ADHOC, category: "operatorDirect", channels: ["email"], target }), 400, /この宛先/);
   }
-  await rejectsWith(adminSend(deps, { content: ADHOC, category: "activity", target: { type: "all" } }), 400, /管理画面から送れません/);
-  await rejectsWith(adminSend(deps, { content: ADHOC, category: "nope", target: { type: "all" } }), 400, /ありません/);
+  await rejectsWith(adminSend(deps, { content: ADHOC, category: "activity", target: { type: "all" } }), 400, /管理画面から送信できません/);
+  await rejectsWith(adminSend(deps, { content: ADHOC, category: "nope", target: { type: "all" } }), 400, /見つかりません/);
   await rejectsWith(adminSend(deps, { content: ADHOC, channels: ["email"], target: { type: "all" } }), 400);
   assert.equal(calls.length, 0);
   // email・inApp の外の経路(push)を持つカテゴリーもその場で書いた文面で送る口へ(文面の検査は送る口)

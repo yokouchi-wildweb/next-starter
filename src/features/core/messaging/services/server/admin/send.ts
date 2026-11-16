@@ -61,7 +61,7 @@ export const adminContentFields = {
 
 export function checkAdminContent(value: { template?: unknown; vars?: Record<string, unknown> }, ctx: z.RefinementCtx): void {
   if (!value.template && value.vars && Object.keys(value.vars).length > 0) {
-    ctx.addIssue({ code: "custom", message: "変数の値(vars)はテンプレートを呼び出した時(template)だけ渡せます" });
+    ctx.addIssue({ code: "custom", message: "変数の値はテンプレートを読み込んだ時だけ指定できます" });
   }
 }
 
@@ -293,7 +293,7 @@ export async function testAdminContent(
   await assertAdminActor(deps);
   const input = parseOr400(AdminSendTestInputSchema, rawInput);
   const actorId = deps.context()?.actorId;
-  if (!actorId) throw new DomainError("テスト送信の宛先(操作した管理者)がありません", { status: 400 });
+  if (!actorId) throw new DomainError("テスト送信の宛先(ログイン中の管理者)が見つかりません", { status: 400 });
   const category = adminContentCategory(deps, input, options.target);
   const result = await dispatchAdminContent(deps, input, category, {
     recipients: [{ userId: actorId }],

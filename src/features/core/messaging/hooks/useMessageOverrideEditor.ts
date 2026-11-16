@@ -116,9 +116,9 @@ export function useMessageOverrideEditor(messageKey: string) {
       try {
         await resetMutation.trigger(field.path);
         dropDraft(field.path);
-        showToast("既定に戻しました", "success");
+        showToast("元の文言に戻しました", "success");
       } catch (e) {
-        showToast(err(e, "既定に戻せませんでした"), "error");
+        showToast(err(e, "元の文言に戻せませんでした"), "error");
       }
     },
     [resetMutation, dropDraft, showToast],
@@ -137,7 +137,7 @@ export function useMessageOverrideEditor(messageKey: string) {
     isDirty,
     hasDrafts,
     /** モーダルを閉じる前の確かめ(Modal の confirmOnClose に渡す) */
-    closeConfirm: { enabled: hasDrafts, message: "保存していない欄があります。閉じてもよろしいですか？" },
+    closeConfirm: { enabled: hasDrafts, message: "保存していない変更があります。閉じてもよろしいですか？" },
     unknownKeys: (field: AdminOverrideField) => unknownKeysOf(valueOf(field), allowedKeys),
     save,
     reset,

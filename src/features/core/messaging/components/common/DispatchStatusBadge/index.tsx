@@ -13,7 +13,7 @@ export const DISPATCH_STATUS_DISPLAY: Record<string, { label: string; variant: V
   processing: { label: "送信中", variant: "warning" },
   completed: { label: "完了", variant: "success" },
   completed_with_failures: { label: "一部失敗", variant: "destructive" },
-  cancelled: { label: "取り消し", variant: "muted" },
+  cancelled: { label: "取り消し済み", variant: "muted" },
 };
 
 export type DispatchStatusBadgeProps = {
@@ -25,7 +25,7 @@ export type DispatchStatusBadgeProps = {
 
 export function DispatchStatusBadge({ status, retractedAt, size = "sm" }: DispatchStatusBadgeProps) {
   // 表に無い状態は鍵を見せず「そのほかの状態」(D46)
-  const display = DISPATCH_STATUS_DISPLAY[status] ?? { label: "そのほかの状態", variant: "muted" as Variant };
+  const display = DISPATCH_STATUS_DISPLAY[status] ?? { label: "その他", variant: "muted" as Variant };
   return (
     <>
       <SoftBadge variant={display.variant} size={size}>
@@ -33,7 +33,7 @@ export function DispatchStatusBadge({ status, retractedAt, size = "sm" }: Dispat
       </SoftBadge>
       {retractedAt ? (
         <SoftBadge variant="muted" size={size}>
-          取り下げ
+          公開停止
         </SoftBadge>
       ) : null}
     </>

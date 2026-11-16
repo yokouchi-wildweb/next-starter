@@ -28,7 +28,7 @@ function lastEventAt(delivery: AdminDeliveryRow): string | null {
 }
 
 /** 表に無い失敗の符号の文(符号は記録に残り、画面には出さない) */
-export const DELIVERY_ERROR_FALLBACK = "送れませんでした(理由は記録にあります)";
+export const DELIVERY_ERROR_FALLBACK = "送信できませんでした";
 
 export function DeliveryRow({ delivery }: DeliveryRowProps) {
   // 宛先: メール・LINE などの宛先だけ。お知らせの宛先は利用者の id なので出さない(利用者は名前で出す)。受信者の鍵にも落とさない
@@ -47,21 +47,21 @@ export function DeliveryRow({ delivery }: DeliveryRowProps) {
       <Flex align="center" gap="sm" wrap="wrap">
         {delivery.userId ? (
           <Span size="xs" tone="muted">
-            利用者 {delivery.userName ?? "(名前の無い利用者)"}
+            宛先 {delivery.userName ?? "(名前未設定のユーザー)"}
           </Span>
         ) : null}
         {delivery.reason ? (
           <Span size="xs" tone="muted">
-            理由: {DELIVERY_REASON_LABELS[delivery.reason] ?? "そのほかの理由"}
+            理由: {DELIVERY_REASON_LABELS[delivery.reason] ?? "その他"}
           </Span>
         ) : null}
         {delivery.errorCode ? (
           <Span size="xs" tone="muted">
-            失敗の理由: {DELIVERY_ERROR_TEXT[delivery.errorCode] ?? DELIVERY_ERROR_FALLBACK}
+            エラー: {DELIVERY_ERROR_TEXT[delivery.errorCode] ?? DELIVERY_ERROR_FALLBACK}
           </Span>
         ) : null}
         <Span size="xs" tone="muted">
-          試行 {delivery.attempts}
+          送信回数 {delivery.attempts}
         </Span>
         {delivery.openedAt ? (
           <Span size="xs" tone="muted">
