@@ -3,6 +3,10 @@
 
 import type { MessageLayoutEmailRenderer } from "@/lib/messaging";
 
-const layoutEmailsList: MessageLayoutEmailRenderer[] = [];
+import { emailRenderer as layoutEmails_notice } from "@/features/core/messaging/layouts/notice/email";
+
+const layoutEmailsList: MessageLayoutEmailRenderer[] = [
+  { ...layoutEmails_notice, folder: "notice" },
+];
 export const layoutEmails: Readonly<Record<string, MessageLayoutEmailRenderer>> = Object.assign(Object.create(null), Object.fromEntries(layoutEmailsList.map((item) => [String(item.layout), item])));
 if (Object.keys(layoutEmails).length !== layoutEmailsList.length) throw new Error("layoutEmails: layout が重複している項目がある");

@@ -130,11 +130,14 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   // (src/app/admin/_layout、指令 17 d2): AdminPage が描く行そのもので、fork の差し替えの口は隣の AdminHeader.replace(1 行スイッチ)。ForkProviders.default は fork の providers の空の素通し(src/app/_providers、指令 31)
   // 連絡の描き方(messages/views/<名前>.tsx → <名前>.default、auth 5・user 2・wallet 2)も 1 行スイッチ
   // MailFrame.default は全メールの枠(src/lib/mail/frame、指令 54 D122: fork は MailFrame.replace で一度に替える)
+  // NoticeEmail.default・NoticeInApp.default は上流のひな形「汎用のお知らせ」の見た目(messaging/layouts/notice、指令 54 d5)
   const targets = plan.switches.map((s: { target: string }) => s.target).sort();
   assert.deepEqual(targets, [
     "AdminHeader.default",
     "ForkProviders.default",
     "MailFrame.default",
+    "NoticeEmail.default",
+    "NoticeInApp.default",
     "RateLimitWarningContent.default",
     "accountLocked.default",
     "earlyRegistration.default",
