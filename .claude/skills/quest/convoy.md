@@ -16,10 +16,11 @@ words: load = put an order's commits on the Convoy's line | depart = ship the li
 5. it cannot be loaded because the order's own work is broken (not a conflict between two orders) → abort; STOP: report it to go back to its worker with the reason
 6. report: the order, the commits now on the Convoy's line (short sha)
 
-## DEPART (`depart`: only on the human's word)
+## DEPART (`depart [notices:<path>,…]`: only on the human's word)
 1. note the orders on the line: the `order: <id>` lines of `git log --format=%B origin/main..HEAD`
 2. `git fetch origin main` → `git rebase origin/main` | a conflict → CONFLICT RULES → `git rebase --continue`
 3. `/ship` (ships the commits already made: `.claude/skills/ship/SKILL.md` step 1 COMMITTED RANGE; the area checks of what the line carries, the worktree push route)
+   - `notices:` given (a council's notice drafts: its plan sheet ships with this departure; quests under its commission wrote none) → this ship's notice is theirs: one notice per draft file carrying every `- ` item, `checkpoint:` = the draft's segment (its `segment:` header), made with /ship step 5 in a commit on the line before the push
 4. a check failed:
    - find the orders behind it: `git log --format='%h %s' origin/main..HEAD -- <files in the failure>` and their `order:` lines
    - where two orders' work meets (a type both changed, an import one removed) → fix it on the line as its own commit (`convoy: <the joint fix>`), back to 3
