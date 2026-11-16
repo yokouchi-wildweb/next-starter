@@ -1,9 +1,9 @@
 // テンプレートの作る・直すモーダルの入れ物と、一覧からの開き方の検査(jsdom の上で描く。hook・Modal・部品は偽物)。
-// - タブ: 作る = 文言・変数 / 直す = 文言・変数・版の履歴(版の履歴は下の帯を出さない)。タブは hook が持つ(value / onValueChange)
+// - タブ: 作る = 文言・変数 / 直す = 文言・変数・バージョン履歴(バージョン履歴は下の帯を出さない)。タブは hook が持つ(value / onValueChange)
 // - confirmOnClose に form の closeConfirm、作った後は form に onCreated を渡す
-// - 下の帯: 作る = 「下書きを作る」だけ / 直す = 取り下げ・公開(ConfirmPopover)・保存 / 取り下げた = 帯の操作なし
+// - 下の帯: 作る = 「下書きを作成」だけ / 直す = 取り下げ・公開(ConfirmPopover)・保存 / 取り下げた = 帯の操作なし
 // - 読み込み中・取れない時は普通の Modal / 欄の名前は「カテゴリー」(送るモーダルと同じ)/ onChanged を form へ
-// - 一覧: 「新しく作る」と行でモーダルの開き先を変える
+// - 一覧: 「新規作成」と行でモーダルの開き先を変える
 // 実行: pnpm test src/features/core/messaging/components/AdminMessageTemplateModal/AdminMessageTemplateModal.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -159,7 +159,7 @@ const texts = (container: HTMLElement) => [...container.querySelectorAll("button
 const tabValues = () => (tabbed!.tabs as { value: string }[]).map((t) => t.value);
 const open = { open: true, onOpenChange: (v: boolean) => events.push(`open:${v}`) };
 
-test("作る: 文言・変数のタブ、帯は「下書きを作る」、confirmOnClose と onCreated を渡す", async () => {
+test("作る: 文言・変数のタブ、帯は「下書きを作成」、confirmOnClose と onCreated を渡す", async () => {
   const view = await render(createElement(AdminMessageTemplateModal, open));
   assert.deepEqual(tabValues(), ["text", "variables"]);
   assert.deepEqual(tabbed!.confirmOnClose, { enabled: true, message: "書きかけ" });
@@ -169,7 +169,7 @@ test("作る: 文言・変数のタブ、帯は「下書きを作る」、confir
   assert.match(view.container.textContent ?? "", /カテゴリー/);
   assert.doesNotMatch(view.container.textContent ?? "", /種類/);
   assert.equal(view.container.querySelector("#template-key"), null, "鍵は打たせない(サーバーが作る)");
-  assert.deepEqual(texts(view.container), ["下書きを作る"]);
+  assert.deepEqual(texts(view.container), ["下書きを作成"]);
   await act(async () => (view.container.querySelector("button") as HTMLButtonElement).click());
   assert.deepEqual(events, ["save"]);
   (tabbed!.onValueChange as (v: string) => void)("variables");
@@ -177,13 +177,13 @@ test("作る: 文言・変数のタブ、帯は「下書きを作る」、confir
   await view.unmount();
 });
 
-test("直す: 版の履歴のタブ(帯なし)、取り下げ・公開は ConfirmPopover", async () => {
+test("直す: バージョン履歴のタブ(帯なし)、取り下げ・公開は ConfirmPopover", async () => {
   modalState = { ...baseModal(), mode: "edit", template: TEMPLATE };
   formState = { ...baseForm(), dirty: false, canPublish: true };
   const view = await render(createElement(AdminMessageTemplateModal, { ...open, templateId: "t1" }));
   assert.deepEqual(tabValues(), ["text", "variables", "versions"]);
   assert.equal((tabbed!.tabs as { value: string; footer?: unknown }[])[2].footer, null);
-  assert.deepEqual(texts(view.container), ["取り下げ", "ok:取り下げる", "公開", "ok:公開する", "保存"]);
+  assert.deepEqual(texts(view.container), ["アーカイブ", "ok:アーカイブする", "公開", "ok:公開する", "保存"]);
   const click = async (label: string) =>
     act(async () => [...view.container.querySelectorAll("button")].find((b) => b.textContent === label)!.click());
   await click("ok:取り下げる");
@@ -211,7 +211,7 @@ test("取り下げた: 帯の操作なし / 読み込み中・見つからない
   await failed.unmount();
 });
 
-test("一覧: 「新しく作る」と行でモーダルの開き先を変える", async () => {
+test("一覧: 「新規作成」と行でモーダルの開き先を変える", async () => {
   const { AdminMessageTemplateList } = await import("../AdminMessageTemplateList");
   listState = {
     status: "",
@@ -221,7 +221,7 @@ test("一覧: 「新しく作る」と行でモーダルの開き先を変える
   };
   const view = await render(createElement(AdminMessageTemplateList));
   const buttons = [...view.container.querySelectorAll("button")];
-  await act(async () => buttons.find((b) => b.textContent === "新しく作る")!.click());
+  await act(async () => buttons.find((b) => b.textContent === "新規作成")!.click());
   await act(async () => buttons.find((b) => (b.textContent ?? "").includes("春"))!.click());
   assert.deepEqual(events, ["new", "edit:t1"]);
   assert.equal(view.container.querySelector("a"), null, "1 件の住所へのリンクは無い");

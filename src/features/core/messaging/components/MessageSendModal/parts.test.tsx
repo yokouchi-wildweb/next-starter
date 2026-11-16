@@ -1,8 +1,8 @@
 // 送るモーダルの部品(props だけ)の検査。jsdom の上で描く(押す操作のある部品)・文字で見る。
-// - SendTemplatePicker: 「テンプレートから読み込む」の小窓で選ぶ / 読み込み中は名前・版・別の読み込み・「テンプレートを外す」
-// - SendContentFields: その場で書く時もテンプレートの時も経路の欄の部品・文言なしの印・変数の欄(テンプレートの時だけ)
+// - SendTemplatePicker: 「テンプレートから読み込む」の小窓で選ぶ / 読み込み中は名前・版・別の読み込み・「テンプレートの読み込みを解除」
+// - SendContentFields: その場で書く時もテンプレートの時も経路の欄の部品・未入力の印・変数の欄(テンプレートの時だけ)
 // - SendTargetPicker: bulk は選んだ記録の数だけ / select は種類の選び、グループは名前(種類)で選び id は出さない、グループが無ければ選択肢に出さない
-// - SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・文言なしの印
+// - SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・未入力の印
 // - SendSchedule: 予約の時だけ時刻・注記・誤り
 // - SendLegalNotice: 法の義務の告知の注意(D83)をいつも出し、メールがオフなら警告の色
 // - SendConfirmView / SendResultView: 見込み・一括の数・予約・版 / 状態・後処理・回へのリンク
@@ -134,12 +134,12 @@ test("SendTemplatePicker: 「テンプレートから読み込む」の小窓で
   );
   assert.match(on.container.textContent ?? "", /春\(v2\)/);
   assert.ok(button(on.container, "別のテンプレートを読み込む"));
-  await act(async () => button(on.container, "テンプレートを外す")!.click());
+  await act(async () => button(on.container, "テンプレートの読み込みを解除")!.click());
   assert.equal(unloaded, 1);
   await on.unmount();
 });
 
-test("SendContentFields: その場で書く欄 / テンプレートの欄 / 文言なしの印 / 変数", async () => {
+test("SendContentFields: その場で書く欄 / テンプレートの欄 / 未入力の印 / 変数", async () => {
   const adhoc = await render(
     createElement(parts.SendContentFields, {
       source: "adhoc",
@@ -159,7 +159,7 @@ test("SendContentFields: その場で書く欄 / テンプレートの欄 / 文�
     [...adhoc.container.querySelectorAll("[data-template-fields]")].map((el) => el.getAttribute("data-template-fields")),
     ["email", "inApp", "line", "fax"],
   );
-  assert.equal(adhoc.container.textContent?.match(/文言がありません/g)?.length, 1);
+  assert.equal(adhoc.container.textContent?.match(/内容が入力されていません/g)?.length, 1);
   assert.equal(adhoc.container.querySelector("#send-var-discount"), null, "変数はテンプレートの時だけ");
   await adhoc.unmount();
 
@@ -182,7 +182,7 @@ test("SendContentFields: その場で書く欄 / テンプレートの欄 / 文�
 
 test("SendTargetPicker: bulk は記録の数、select は種類の選び、グループは名前(種類)で id を出さない", async () => {
   const bulk = await render(createElement(parts.SendTargetPicker, { kind: "bulk", recordCount: 3, recordNoun: "振込レビュー" }));
-  assert.match(bulk.container.textContent ?? "", /選んだ 3 件の振込レビュー/);
+  assert.match(bulk.container.textContent ?? "", /選択した 3 件の振込レビュー/);
   await bulk.unmount();
   const value = { type: "users" as const, roles: [], groupId: "", userIds: [] };
   const noGroups = await render(createElement(parts.SendTargetPicker, { kind: "select", value, onChange: () => {}, roles: [] }));
@@ -211,7 +211,7 @@ test("SendTargetPicker: bulk は記録の数、select は種類の選び、グ�
   await withGroups.unmount();
 });
 
-test("SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・文言なしの印", async () => {
+test("SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・未入力の印", async () => {
   const toggles: [string, boolean][] = [];
   const view = await render(
     createElement(parts.SendCategoryChannels, {
@@ -225,7 +225,7 @@ test("SendCategoryChannels: カテゴリーが無い文言・経路の切り替�
       onToggleChannel: (key: string, on: boolean) => toggles.push([key, on]),
     }),
   );
-  assert.equal(view.container.textContent?.match(/文言なし/g)?.length, 1, "オンの経路だけ印");
+  assert.equal(view.container.textContent?.match(/未入力/g)?.length, 1, "オンの経路だけ印");
   await act(async () => button(view.container, "お知らせ:off")!.click());
   assert.deepEqual(toggles, [["inApp", true]]);
   await view.unmount();
@@ -243,11 +243,11 @@ test("SendSchedule: 予約の時だけ時刻・注記・誤り", async () => {
   assert.equal(now.container.querySelector("[data-datetime]"), null);
   await now.unmount();
   const at = await render(
-    createElement(parts.SendSchedule, { mode: "at", scheduledAt: "", error: "予約の時刻を入れてください", note: "粒度の注記", onModeChange: () => {}, onScheduledAtChange: () => {} }),
+    createElement(parts.SendSchedule, { mode: "at", scheduledAt: "", error: "予約日時を入力してください", note: "粒度の注記", onModeChange: () => {}, onScheduledAtChange: () => {} }),
   );
   assert.ok(at.container.querySelector("[data-datetime]"));
   assert.match(at.container.textContent ?? "", /粒度の注記/);
-  assert.match(at.container.textContent ?? "", /予約の時刻を入れてください/);
+  assert.match(at.container.textContent ?? "", /予約日時を入力してください/);
   await at.unmount();
 });
 
@@ -261,8 +261,8 @@ test("SendConfirmView / SendResultView", async () => {
       categoryLabel: "キャンペーン",
     }),
   );
-  assert.match(confirm.container.textContent ?? "", /12 名\(送る時に数え直します\)/);
-  assert.match(confirm.container.textContent ?? "", /今送ります/);
+  assert.match(confirm.container.textContent ?? "", /12 名\(送信時に再集計します\)/);
+  assert.match(confirm.container.textContent ?? "", /今すぐ送信します/);
   assert.match(confirm.container.textContent ?? "", /v3/);
   assert.equal(confirm.container.querySelector('[data-slot="send-confirm-over-limit"]'), null);
   await confirm.unmount();
@@ -275,7 +275,7 @@ test("SendConfirmView / SendResultView", async () => {
       categoryLabel: "キャンペーン",
     }),
   );
-  assert.match(over.container.textContent ?? "", /宛先の人数 150,000 人が上限 100,000 人を超えているため送れません/);
+  assert.match(over.container.textContent ?? "", /宛先数 150,000 人が上限 100,000 人を超えているため送信できません/);
   await over.unmount();
   const bulk = await render(
     createElement(parts.SendConfirmView, {
@@ -302,12 +302,12 @@ test("SendConfirmView / SendResultView", async () => {
 test("SendLegalNotice: 注意をいつも出し、メールがオフなら警告の色", async () => {
   const on = await render(createElement(parts.SendLegalNotice, { emailOn: true }));
   const onNote = on.container.querySelector("p");
-  assert.ok(onNote?.textContent?.includes("経路にメールを含めてください"));
+  assert.ok(onNote?.textContent?.includes("送信方法にメールを含めてください"));
   assert.ok(onNote?.className.includes("text-muted-foreground"));
   await on.unmount();
   const off = await render(createElement(parts.SendLegalNotice, { emailOn: false }));
   const offNote = off.container.querySelector("p");
-  assert.ok(offNote?.textContent?.includes("経路にメールを含めてください"));
+  assert.ok(offNote?.textContent?.includes("送信方法にメールを含めてください"));
   assert.ok(offNote?.className.includes("text-warning-text"));
   await off.unmount();
 });

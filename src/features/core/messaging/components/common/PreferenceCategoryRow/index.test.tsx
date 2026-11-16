@@ -61,10 +61,10 @@ test("PreferenceCategoryRow: 入 = 受け取る、押すと onChange(!今)。広
   await on.unmount();
 
   for (const [via, reason, locked] of [
-    ["kind", "まとめて止める設定で止まっています", false],
-    ["category", "このカテゴリーをすべての経路で止めています", false],
-    ["channel", "この経路をまとめて止めています", false],
-    ["all", "すべての連絡を止めています", true],
+    ["kind", "まとめて受け取らない設定になっています", false],
+    ["category", "このカテゴリーはすべての通知方法で受け取らない設定になっています", false],
+    ["channel", "この通知方法はまとめて受け取らない設定になっています", false],
+    ["all", "すべての通知を受け取らない設定になっています", true],
   ] as const) {
     const view = await render(createElement(parts.row.PreferenceCategoryRow, { category: cat(true, via), channelLabel: "メール", onChange: () => {} }));
     assert.match(view.container.textContent ?? "", new RegExp(reason));
@@ -95,12 +95,12 @@ test("PreferenceChannelSection: 全部の停止の間(stoppedByAll)は経路の�
   const free = await render(createElement(parts.section.PreferenceChannelSection, { channel, onChannelWideChange: () => {} }));
   assert.equal(input(free.container, "メールで受け取る").checked, true);
   assert.equal(input(free.container, "メールで受け取る").disabled, false);
-  assert.doesNotMatch(free.container.textContent ?? "", /すべての連絡を止めています/);
+  assert.doesNotMatch(free.container.textContent ?? "", /すべての通知を受け取らない設定になっています/);
   await free.unmount();
   const all = await render(createElement(parts.section.PreferenceChannelSection, { channel, stoppedByAll: true, onChannelWideChange: () => {} }));
   assert.equal(input(all.container, "メールで受け取る").checked, false);
   assert.equal(input(all.container, "メールで受け取る").disabled, true);
-  assert.match(all.container.textContent ?? "", /すべての連絡を止めています/);
+  assert.match(all.container.textContent ?? "", /すべての通知を受け取らない設定になっています/);
   await all.unmount();
 });
 
@@ -120,15 +120,15 @@ test("PreferenceKindFrame は見出しだけ(スイッチ無し)、PreferenceGro
 test("PreferenceCategoryWideToggle: 入 = 止めている、押すと onChange(!今)", async () => {
   const stops: boolean[] = [];
   const view = await render(createElement(parts.wide.PreferenceCategoryWideToggle, { categoryLabel: "いいね", stopped: false, onChange: (v: boolean) => stops.push(v) }));
-  assert.match(view.container.textContent ?? "", /このカテゴリーをすべての経路で止める/);
-  await act(async () => input(view.container, "いいねをすべての経路で止める").click());
+  assert.match(view.container.textContent ?? "", /このカテゴリーをすべての通知方法で受け取らない/);
+  await act(async () => input(view.container, "いいねをすべての通知方法で受け取らない").click());
   assert.deepEqual(stops, [true]);
   await view.unmount();
 });
 
 test("PreferenceCategoryWideToggle: 全部の停止の間(stoppedByAll)は種類まるごとの行によらず入(止まっている)・押せない", async () => {
   const view = await render(createElement(parts.wide.PreferenceCategoryWideToggle, { categoryLabel: "いいね", stopped: false, stoppedByAll: true, onChange: () => {} }));
-  assert.equal(input(view.container, "いいねをすべての経路で止める").checked, true);
-  assert.equal(input(view.container, "いいねをすべての経路で止める").disabled, true);
+  assert.equal(input(view.container, "いいねをすべての通知方法で受け取らない").checked, true);
+  assert.equal(input(view.container, "いいねをすべての通知方法で受け取らない").disabled, true);
   await view.unmount();
 });

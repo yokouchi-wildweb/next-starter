@@ -1,11 +1,11 @@
 // 管理のモーダルと一覧・回の画面の流れの hook の検査(jsdom の上で描く。client service・toast・離れる前の確認は偽物)。
 // - useAdminDispatchFilters: 入力と確定を分ける・期間は日付 → ISO(まで = 翌日未満)・種別 → カテゴリー(種別を変えると空)・clear
 // - useAdminDispatchCategories: 種別ごとの選択肢・表示名(鍵は出さない)
-// - useAdminDispatchDetail: 配達の絞り / 取り消す・取り下げる・再送(includeUnknown を渡して戻す)・続きを送る → 知らせ、失敗も知らせ
+// - useAdminDispatchDetail: 配達の絞り / 取り消す・取り下げる・再送(includeUnknown を渡して戻す)・送信を再開 → 知らせ、失敗も知らせ
 // - useAdminMessageTemplateList / useAdminMessageOverrideList: 絞り・モーダルの開き先
 // - useMessageTemplateModal: 閉じている間は取らない / 作る → 同じモーダルで直す形 / 開き直すと作った id とタブが戻る
 // - useMessageTemplateVersion: id と版がそろった時だけ 1 版を取る (useModalSession は src/hooks/useModalSession.test.ts)
-// - closeConfirm: テンプレートの書く欄・文言の上書きの下書き
+// - closeConfirm: テンプレートの書く欄・文言の編集の下書き
 // - C9: モーダルの操作の後の一覧(作った = 取り直す・公開 / 取り下げ = 行を置き換える・絞りから外れた行は外す)、onChanged は form から
 // - 作った直後に 1 件がまだ無い間は読み込み中(空の中身を出さない)
 // 実行: pnpm test src/features/core/messaging/hooks/adminModalHooks.test.tsx
@@ -185,7 +185,7 @@ const mount = async <T, P>(useHook: (props: P) => T, initial: P) => {
 };
 const settle = () => act(async () => new Promise((r) => setTimeout(r, 0)));
 
-test("useAdminDispatchFilters: 入力は「絞り込む」で確定、期間は日付 → ISO、clear で空", async () => {
+test("useAdminDispatchFilters: 入力は「絞り込み」で確定、期間は日付 → ISO、clear で空", async () => {
   const view = await mount(() => hooks.useAdminDispatchFilters({ kind: "marketing" }), {});
   const f = () => view.value();
   assert.deepEqual(f().filters, { kind: "marketing" });
@@ -244,9 +244,9 @@ test("useAdminDispatchDetail: 配達の絞り・操作の知らせ・再送は i
   );
   assert.deepEqual(toasts, [
     "success:予約を取り消しました",
-    "success:取り下げました(お知らせ 2 件を消し、配達 3 件を止めました)",
-    "success:2 件を送り直しました",
-    "success:続きを送りました(送信 4 / 失敗 0)",
+    "success:公開を停止しました(お知らせ 2 件を削除し、未送信 3 件を止めました)",
+    "success:2 件を再送しました",
+    "success:送信を再開しました(送信 4 / 失敗 0)",
   ]);
   failNext = true;
   await act(async () => d().cancel());

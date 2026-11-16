@@ -149,8 +149,8 @@ const SAME_AS = {
 test("純粋な関数", () => {
   const now = Date.UTC(2026, 10, 13);
   assert.equal(hooks.scheduleErrorOf("now", "", 90, now), null);
-  assert.equal(hooks.scheduleErrorOf("at", "", 90, now), "予約の時刻を入れてください");
-  assert.equal(hooks.scheduleErrorOf("at", new Date(now - 1000).toISOString(), 90, now), "予約の時刻は今より後にしてください");
+  assert.equal(hooks.scheduleErrorOf("at", "", 90, now), "予約日時を入力してください");
+  assert.equal(hooks.scheduleErrorOf("at", new Date(now - 1000).toISOString(), 90, now), "予約日時は現在より後にしてください");
   assert.match(hooks.scheduleErrorOf("at", new Date(now + 91 * 86_400_000).toISOString(), 90, now) ?? "", /90 日先まで/);
   assert.deepEqual(hooks.templateVarsForInput(template as never, { discount: "15" }), { discount: 15 });
   const adhoc = hooks.initialDraftOf({ type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録", defaults: { content: { inApp: { title: "題" } } } }, []);
@@ -202,15 +202,15 @@ test("new: 呼び出し → 直す → カテゴリー → 経路の絞り → �
   await act(async () => m().setCategory("campaign"));
   assert.deepEqual(m().sendChannels, ["email", "inApp"], "既定は全部オン");
   // inApp は文言が無い → 止める
-  assert.match(m().contentError ?? "", /変数 割引/);
+  assert.match(m().contentError ?? "", /変数「割引」/);
   await act(async () => m().setVar("discount", "20"));
-  assert.match(m().contentError ?? "", /お知らせ の文言がありません|サービス内のお知らせ/);
+  assert.match(m().contentError ?? "", /お知らせ の内容が入力されていません|サービス内のお知らせ/);
   await act(async () => m().toggleChannel("inApp", false));
   assert.equal(m().contentError, null);
   await act(async () => m().setChannelFields("email", { subject: "{{discount}} 割引!", paragraphs: ["直した"] }));
 
   await act(async () => m().setScheduleMode("at"));
-  assert.equal(m().scheduleError, "予約の時刻を入れてください");
+  assert.equal(m().scheduleError, "予約日時を入力してください");
   const at = new Date(Date.now() + 86_400_000).toISOString();
   await act(async () => m().setScheduledAt(at));
   assert.equal(m().canSend, true);
@@ -261,10 +261,10 @@ test("new: 宛先を選んだ利用者に変えるとカテゴリーが変わり
   assert.equal(m().templatesAvailable, false);
   await act(async () => m().setTarget({ type: "users" }));
   assert.deepEqual(m().allowedCategories.map((c) => c.key), ["operatorDirect", "campaign"]);
-  assert.equal(m().targetError, "利用者を選んでください");
+  assert.equal(m().targetError, "ユーザーを選んでください");
   await act(async () => m().setTarget({ userIds: ["u1"] }));
   assert.equal(m().targetError, null);
-  assert.match(m().contentError ?? "", /文言がありません/, "その場で書く欄が空なら止める");
+  assert.match(m().contentError ?? "", /内容が入力されていません/, "その場で書く欄が空なら止める");
   await view.unmount();
 });
 
@@ -379,7 +379,7 @@ test("その場で書く: 経路の欄の形で全部の経路、空の任意の
   await act(async () => m().setTarget({ type: "role", roles: ["user"] }));
   await act(async () => m().setCategory("lineNotice"));
   assert.deepEqual(m().channels.map((c) => c.key), ["email", "inApp", "line", "fax"], "LINE と fork の経路も出る");
-  assert.match(m().contentError ?? "", /文言がありません/);
+  assert.match(m().contentError ?? "", /内容が入力されていません/);
   await act(async () => {
     m().setChannelFields("email", { subject: "件名", preheader: "", heading: "見出し", paragraphs: ["段1", "段2"], cta: { label: "", url: "" }, footer: "足元" });
     m().setChannelFields("inApp", { title: "題", body: "本文", image: "storage://notification.image/a.png", link: "" });
