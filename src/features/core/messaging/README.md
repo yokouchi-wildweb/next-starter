@@ -45,7 +45,8 @@ await messagingService.sendMessageToMany(campaign, {
 
 1. `pnpm generate message -- <domain> <name> --category <key> --label <名前> [--core]` が送る側のドメインに `messages/<名前>.ts`（鍵 `<ドメインのフォルダ名>.<名前>`）と、種類の経路にメールがあれば `messages/views/<名前>.tsx`（1 行スイッチ）・`.default.tsx` を書き、`src/registry/messageRegistry.ts` と拡張点を作り直す（使い方 scripts/structure/message/README.md）。core のドメインは `--core` = 上流だけ
 2. 種類（category、全部の連絡に必須）= 利用者から見て 1 つの出来事（「〜した時」。例 likeReceived・itemSold・passwordReset）。種別（7 つ）と経路は種類が持ち、連絡は書かない。無ければ先に `categories/<名前>.ts` を足す
-3. 上流の種類: emailVerification・passwordReset・emailChange・earlyRegistration（functional・email）/ accountLocked（security）/ registrationComplete・walletExpired・walletAdjusted（transactional）/ walletExpiring（activity、利用者が止められる）/ marketing / announcement（運営からのお知らせ）/ operatorDirect（direct、管理者からの個別の連絡と一括の既定）。鍵と表示名は仮
+3. 上流の種類: emailVerification・passwordReset・emailChange・earlyRegistration（functional・email）/ accountLocked（security）/ registrationComplete・walletExpired・walletAdjusted（transactional）/ walletExpiring（activity、利用者が止められる）/ promotion（promotion、管理者が書く宣伝の既定）/ announcement（運営からのお知らせ）/ operatorDirect（direct、管理者からの個別の連絡と一括の既定）
+   - 種別の表示名（D81、`constants/kindLabels.ts` の `MESSAGE_KIND_LABELS`）: functional 機能通知 / transactional 手続き通知 / security セキュリティ / announcement 運営告知 / direct 個別連絡 / activity アクティビティ / promotion プロモーション
 4. 実例: auth / user の連絡（`src/features/core/{auth,user}/messages/`）・wallet の失効の知らせ（cron、`runAsSystem` + 冪等の鍵）
 
 ### 運用で間違えやすい線
@@ -64,7 +65,7 @@ export const category: MessageCategory = { key: "itemSoldInApp", label: "出品�
 - **その回は経路を絞るだけ**: コードから送る連絡は経路を選ばない（`channels` を渡さない）。管理者が手で送る時だけ種類の経路の中で絞れる（足せない、外・空は 400）。組ごとに送り分けたいなら組ごとに種類を作る（例 `campaignMail` = email、`campaign` = email + inApp）
 - **種別とカテゴリーは付け替えず、止めて足す**: 種別は止められるか・好み・住所の停止・記録の既定を決め（`MESSAGE_KIND_TRAITS`）、種類は停止の単位と集計の軸。上書きは連絡の `category`・種類の `key`・`kind` を変えられない。別の種類で送りたい = 上流の連絡を `messages/<名前>.override.ts` の `{ enabled: false }` で止め、自分の種類と連絡を足して送り手から呼ぶ
 - **機能の連絡（functional）は上書きで止められない**: 止めると機能が壊れる（確認のリンクが届かない）。`enabled: false`・管理画面の文言の上書き・間引き・email を外すことは検査で止まる。文面 = `messages/views/<名前>.replace.tsx` か fork のファイルの上書きの文言 / 流れごと = 送り手（auth など）の口を替える
-- **種別まるごとの停止はデータだけ**: 種別まるごとの行は後から足す種類にも当たる。上流の画面はスイッチを出さないが、送る口・受け取り箱・好みの見え方は同じ判定で見る。会員登録で宣伝に同意しなかった人 = marketing の種別まるごとの行（source `signup`）。見せたい fork は hook `useMessagePreferences` の `setKind` と `preferences.kinds`、サーバーは `messagingService.setMessagePreference(userId, { kind, optedOut }, { source })`
+- **種別まるごとの停止はデータだけ**: 種別まるごとの行は後から足す種類にも当たる。上流の画面はスイッチを出さないが、送る口・受け取り箱・好みの見え方は同じ判定で見る。会員登録で宣伝に同意しなかった人 = promotion の種別まるごとの行（source `signup`）。見せたい fork は hook `useMessagePreferences` の `setKind` と `preferences.kinds`、サーバーは `messagingService.setMessagePreference(userId, { kind, optedOut }, { source })`
 - **グループは見出しだけ**: 種類のグループ（`categoryGroups/`）は好みのページの見出しで、止める単位ではない（後から足した種類が止まるかが決まらないため）。まとめて止めさせたい物は 1 つの種類にする
 - **法の義務の告知はメールを経路に含める**: 全員・ロール宛てのお知らせは共有の 1 行で配達の行が無く、届かなかった人を数えられない。規約の変更などは email を含む種類で送り（送るモーダルは `SendLegalNotice` で注意を出す）、届かなかった人は `GET /api/admin/messaging/dispatches/[id]/deliveries?status=failed`（`bounced`・`suppressed`・`unknown` も）の `reason`・`errorCode` で見る
 - **会話の既読とお知らせの既読は別物**: 間引き `untilRead` が見るのは受け取り箱の既読だけ。会話を読んだらお知らせも既読にしたい機能は `POST /api/me/messaging/inbox/[id]/read` か messagingService の既読を呼ぶ
@@ -108,7 +109,7 @@ HTTP の口と返す形は口のフォルダの README:
 
 ほかの差し替え:
 
-- 連絡の上書き `messages/<名前>.override.ts`（文言・`enabled`・`throttle`・`adminEditable` など、src/lib/messaging/README.md）/ メールの描き方 `messages/views/<名前>.replace.tsx`
+- 連絡の上書き `messages/<名前>.override.ts`（文言・`enabled`・`throttle`・`adminEditableOnly` など、src/lib/messaging/README.md）/ メールの描き方 `messages/views/<名前>.replace.tsx`
 - 管理一覧の一括操作の項目 `<domain>/adminBulkActions/<名前>.tsx` は `bulkMessageAction`（components/README.md）
 - 画面は fork が `_components/` の Screen で公開の入れ物・部品・hook を組む（CLAUDE.md core_ui）
 - `constants/sources.ts` の `MESSAGING_SOURCES`: 送り元の識別子（wallet の失効の知らせが使う。`USER_HUB_DETAIL_SEND` / `SHIPPING_REQUEST_BULK` は fork の送り元として残す）

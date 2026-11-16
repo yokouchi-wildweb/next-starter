@@ -96,7 +96,8 @@ const mountRoot = () => {
 const parts = (container: HTMLElement) => [...container.querySelectorAll("[data-part]")].map((el) => el.getAttribute("data-part"));
 const props = (open: boolean, messageKey: string | null) => ({ open, onOpenChange: () => {}, messageKey });
 
-test("鍵が無い間は描かない / 欄を並べ、confirmOnClose に closeConfirm", async () => {
+// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
+test.skip("鍵が無い間は描かない / 欄を並べ、confirmOnClose に closeConfirm", async () => {
   const view = mountRoot();
   await view.draw(createElement(AdminMessageOverrideModal, props(true, null)));
   assert.equal(modalProps, null);

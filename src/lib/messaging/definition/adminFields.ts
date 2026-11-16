@@ -2,7 +2,7 @@
 //
 // 管理画面で直した欄の値(D21・D24・D28)の検査と重ね方。保存する口と送る口が同じ検査を使う(どちらも純粋な関数)。
 // 欄の値が通る条件:
-// - その欄が今も adminEditable(上書きを重ねた後の定義)にある
+// - その欄が今も直せる欄(adminEditablePaths: 種類の経路の欄の全部、adminEditableOnly があればその中だけ)にある
 // - 欄の zod(経路の欄の束の shape[欄])を通る
 // - コードの値が配列なら同じ長さ(描き方が段落を位置で読むため)
 // - {{鍵}} は vars(秘密の印 secretVar の鍵を除く)∪ 共通の文脈 ∪ throttle の鍵 ∪ variableKeys(enrichers の provides)だけ
@@ -12,6 +12,7 @@ import { listVariables } from "@/lib/structuredDocument/shared";
 import type { z } from "zod";
 
 import { UPSTREAM_CHANNEL_FIELDS, type ChannelFieldSchemas } from "./channels";
+import { MESSAGE_KIND_TRAITS } from "./kinds";
 import { listSecretVarKeys } from "./secret";
 import type { ResolvedMessageDefinition } from "./types";
 import { COMMON_CONTEXT_KEYS, THROTTLE_CONTEXT_KEYS } from "./validate";
@@ -31,6 +32,26 @@ export type AdminFieldCheckOptions = {
 };
 
 type AnyResolved = ResolvedMessageDefinition<z.AnyZodObject, ChannelFieldSchemas>;
+
+/**
+ * 管理画面で直せる欄(`<経路>.<欄>`、D83)。種類の経路(上書きの後)× 経路の欄の全部を経路・欄の順に並べ、
+ * 定義の adminEditableOnly があればその中だけに絞る。種別の性質 adminTextOverride が false・required・authored の連絡は空
+ */
+export function adminEditablePaths(resolved: AnyResolved, channels: ChannelFieldSchemas = UPSTREAM_CHANNEL_FIELDS): string[] {
+  if (resolved.required || resolved.authored) return [];
+  if (!MESSAGE_KIND_TRAITS[resolved.kind]?.adminTextOverride) return [];
+  const only = resolved.adminEditableOnly ? new Set(resolved.adminEditableOnly.map(String)) : null;
+  const paths: string[] = [];
+  for (const channel of resolved.channels) {
+    const shape = (channels[channel] as { shape?: Record<string, unknown> } | undefined)?.shape;
+    if (!shape || typeof shape !== "object") continue;
+    for (const field of Object.keys(shape)) {
+      const path = `${channel}.${field}`;
+      if (!only || only.has(path)) paths.push(path);
+    }
+  }
+  return paths;
+}
 
 /** 管理画面の値で使ってよい {{鍵}}(秘密の vars は入れない) */
 export function adminFieldAllowedKeys(resolved: AnyResolved, variableKeys: readonly string[] = []): string[] {
@@ -72,7 +93,7 @@ export function checkAdminFieldValue(
 ): AdminFieldProblem | null {
   const channels = options.channels ?? (UPSTREAM_CHANNEL_FIELDS as ChannelFieldSchemas);
   const label = `${resolved.key} ${fieldPath}`;
-  if (!(resolved.adminEditable ?? []).some((path) => String(path) === fieldPath)) {
+  if (!adminEditablePaths(resolved, channels).includes(fieldPath)) {
     return { code: "not_editable", message: `${label}: 管理画面で直せる欄ではありません` };
   }
   const [channel, field] = fieldPath.split(".");

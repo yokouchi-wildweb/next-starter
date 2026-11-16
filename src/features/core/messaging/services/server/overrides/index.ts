@@ -18,6 +18,8 @@ import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
 import { messageDomainOpen } from "../domainGate";
 import { channelFieldSchemas, enricherKeysFor, resolveDefinition } from "../sendMessage/definition";
+import type { OverrideImageLedger } from "./imageBinding";
+import { storageOverrideImageLedger } from "./imageBindingLedger";
 import { createOverrideService } from "./overrideService";
 import { drizzleMessageOverrideStore } from "./store";
 
@@ -49,6 +51,11 @@ const service = createOverrideService({
   },
   recordAudit: (input) => auditLogger.record(input),
   categoryLabel: (category) => categories[category]?.label ?? null,
+  channelInfo(channel) {
+    const item = channels[channel];
+    return item ? { label: item.label, fieldMeta: item.fieldMeta, previewComponent: item.previewComponent } : null;
+  },
+  images: storageOverrideImageLedger as OverrideImageLedger<unknown>,
 });
 
 export const listMessageOverrides = service.listMessages;
@@ -57,6 +64,8 @@ export const saveMessageOverride = service.saveField;
 export const resetMessageOverride = service.resetField;
 
 export { createOverrideService, SaveMessageOverrideInputSchema } from "./overrideService";
+export { existingOverrideIds } from "./store";
+export { OVERRIDE_IMAGE_RECORD_TYPE } from "./imageBinding";
 export type { OverrideService, OverrideServiceDeps } from "./overrideService";
 export type * from "./dto";
 export type { MessageOverrideRecord, MessageOverrideStore } from "./types";

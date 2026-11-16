@@ -4,7 +4,7 @@
 
 配信停止の単位 = 種類 × 経路。連絡の定義の `category` が種類の鍵（受け口 `categories/`）。本人が好みを見て切り替える口（`messagingService.getMessagePreferences` / `setMessagePreference`）と、送る口・受け取り箱が使う停止の判定を持つ。画面は ../../../components/README.md。
 
-- 好みに従う連絡 = 種別の性質 `userStoppable`（activity・marketing）で required でない連絡。ほかの種別と required は好みを見ない
+- 好みに従う連絡 = 種別の性質 `userStoppable`（activity・promotion）で required でない連絡。ほかの種別と required は好みを見ない
 - 門: `messagingPreferences`（住所 ページ `/mypage/account/notifications` と API `/api/me/messaging/preferences`、`dependsOn: ["pageMypage"]`、既定 閉）。閉の間ページと API は 404。表とワンクリックの受け口は門に関わらず開。住所の定数は `constants/preferences.ts`（`MESSAGE_PREFERENCES_PAGE_PATH` / `MESSAGE_PREFERENCES_API_PATH`）
 
 ## API

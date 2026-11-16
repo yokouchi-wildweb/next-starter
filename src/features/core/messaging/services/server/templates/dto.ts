@@ -50,7 +50,7 @@ export type AdminTemplatePage = { items: AdminTemplateSummary[]; nextCursor: str
 export type AdminTemplateOptions = {
   /** 使える経路(受け口にあり enabled: false でない物) */
   channels: { key: string; label: string }[];
-  /** 種類(種別 announcement・direct・marketing の物だけ) */
+  /** 種類(種別 announcement・direct・promotion の物だけ) */
   categories: { key: string; label: string; description: string | null }[];
   /** 変数を宣言する前から使える {{鍵}}(共通の文脈 ∪ 管理の定義 3 本の provides) */
   baseAllowedKeys: string[];

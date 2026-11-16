@@ -14,14 +14,14 @@
 
 ### 管理者が書いて送る連絡（freeText.ts）
 
-- 定義 3 本: `messages/adminAnnouncement.ts`（`messaging.adminAnnouncement`、カテゴリー `announcement`）・`adminDirect.ts`（`messaging.adminDirect`、`operatorDirect`）・`adminMarketing.ts`（`messaging.adminMarketing`、`marketing`）。`authored: true`（文面は送るたびに受け取る。上書きのファイルは置けない）。種別 → 定義の表は `ADMIN_FREE_TEXT_DEFINITIONS`・`adminFreeTextCategoryOf`
-- **カテゴリーの種別と宛先の組は種別の性質 `adminFreeText`**: announcement = 全員・ロール・グループ・選んだ利用者 / direct = 選んだ利用者・一括 / marketing = 全部。誤りは 400
+- 定義 3 本: `messages/adminAnnouncement.ts`（`messaging.adminAnnouncement`、カテゴリー `announcement`）・`adminDirect.ts`（`messaging.adminDirect`、`operatorDirect`）・`adminPromotion.ts`（`messaging.adminPromotion`、`promotion`）。`authored: true`（文面は送るたびに受け取る。上書きのファイルは置けない）。種別 → 定義の表は `ADMIN_FREE_TEXT_DEFINITIONS`・`adminFreeTextCategoryOf`
+- **カテゴリーの種別と宛先の組は種別の性質 `adminFreeText`**: announcement = 全員・ロール・グループ・選んだ利用者 / direct = 選んだ利用者・一括 / promotion = 全部。誤りは 400
 - 文面 = 経路ごとの欄の全部（メール = 件名・preheader・見出し・段落・ボタン・足元 / お知らせ = 題・本文・画像・行き先 / LINE = 文 / fork の経路 = その欄）。決まった挨拶・足元の文は無い（要るなら管理者が書く）。宛名は `{{displayName}}`。描き方はメールの経路の既定（段落は改行のまま）、fork は `messages/views/<名前>.tsx` で替えられる
 - 定義を消した前の回（`messaging.adminMessage`）は当時の鍵・種別・カテゴリーで読める。再送は `definition_missing` で止まる
 
 ### `/api/admin/messaging/send/**`（send.ts、門 `messagingBroadcast`）
 
-- `POST /send`（`AdminSendInputSchema`）: `content`（経路ごとの文面）・`template?` = `{ templateId, version }`・`vars?`（`template` がある時だけ）・`category`（必須、種別 announcement・direct・marketing）・`channels?`（カテゴリーの経路の中の絞り、文面の無い経路・外・空は 400）・`target`・`scheduledAt?`（ISO 8601）・`idempotencyKey?`・`reason?` → `{ dispatchId, status, queuedCount, channelCounts }`。知らない鍵は 400。送り元 `messaging.adminSend`
+- `POST /send`（`AdminSendInputSchema`）: `content`（経路ごとの文面）・`template?` = `{ templateId, version }`・`vars?`（`template` がある時だけ）・`category`（必須、種別 announcement・direct・promotion）・`channels?`（カテゴリーの経路の中の絞り、文面の無い経路・外・空は 400）・`target`・`scheduledAt?`（ISO 8601）・`idempotencyKey?`・`reason?` → `{ dispatchId, status, queuedCount, channelCounts }`。知らない鍵は 400。送り元 `messaging.adminSend`
   - `target` = `{ type: "all" }` / `{ type: "role", roles }` / `{ type: "group", groupId }`（使用中のユーザーグループ。門 `userGroups` が閉・無い = 404、しまった・壊れた・人数の上限 = 409）/ `{ type: "users", userIds }`（10,000 人まで）
 - `POST /send/preview`: 経路ごとの差し込み済みの欄と経路の `preview`（メールは送る時と同じ HTML）。見本の受信者 = 操作した管理者、テンプレートは今の公開版
 - `POST /send/estimate` `{ target }` → `{ count, fixedAtSend: true, memberLimit?, overLimit? }`（全員・ロールは数、グループは一員の数と上限、選んだ利用者は居る人の数。停止・宛先なしを引く前）

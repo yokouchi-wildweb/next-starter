@@ -294,7 +294,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         channels: Object.values(check.channels)
           .filter((channel) => channel.enabled !== false)
           .map((channel) => ({ key: channel.key, label: channel.label })),
-        // テンプレートに使える種類 = 管理者が送れる種別(announcement・direct・marketing)の種類だけ
+        // テンプレートに使える種類 = 管理者が送れる種別(announcement・direct・promotion)の種類だけ
         categories: Object.values(check.categories).filter((category) => isAdminFreeTextKind(category.kind)).map((category) => ({
           key: category.key,
           label: category.label,

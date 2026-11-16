@@ -37,6 +37,8 @@ export { existingDispatchIds } from "./inbox/dispatchRecords";
 export { INBOX_IMAGE_RECORD_TYPE } from "./inbox/imageBinding";
 /** storage の照合へ渡すテンプレートの画像の紐付け先の有無 */
 export { existingTemplateIds, TEMPLATE_IMAGE_RECORD_TYPE } from "./templates";
+/** storage の照合へ渡す文言の上書きの画像の紐付け先の有無 */
+export { existingOverrideIds, OVERRIDE_IMAGE_RECORD_TYPE } from "./overrides";
 export type {
   AdminTemplateDetail,
   AdminTemplatePage,

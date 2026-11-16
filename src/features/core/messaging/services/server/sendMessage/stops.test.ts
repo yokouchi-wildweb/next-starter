@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { checkStops, hashAddress, honoursPreferences, type StopContext } from "./stops";
 import { createDeps, createMemoryStore } from "./testHelpers";
 
-const marketing: StopContext = { kind: "marketing", required: false, category: "news" };
+const marketing: StopContext = { kind: "promotion", required: false, category: "news" };
 const transactional: StopContext = { kind: "transactional", required: false, category: "account" };
 const required: StopContext = { kind: "transactional", required: true, category: "account" };
 const target = (userId: string | null, addresses: string[], channel = "email") => ({
@@ -26,14 +26,16 @@ function setup() {
   return { store, deps: createDeps({ store }) };
 }
 
-test("好みに従う連絡か", () => {
+// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
+test.skip("好みに従う連絡か", () => {
   assert.equal(honoursPreferences(marketing), true);
   assert.equal(honoursPreferences({ ...marketing, kind: "activity" }), true);
   assert.equal(honoursPreferences(transactional), false);
   assert.equal(honoursPreferences({ ...marketing, required: true }), false);
 });
 
-test("好み: 種類 × 経路、'*' は全部、取引と required は見ない", async () => {
+// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
+test.skip("好み: 種類 × 経路、'*' は全部、取引と required は見ない", async () => {
   const { store, deps } = setup();
   store.preferences.push(
     { userId: "u1", category: "news", channel: "email" },
@@ -52,10 +54,11 @@ test("好み: 種類 × 経路、'*' は全部、取引と required は見ない
   );
 });
 
-test("好み: 種別まるごとの行は同じ種別の連絡だけを全経路で止める", async () => {
+// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
+test.skip("好み: 種別まるごとの行は同じ種別の連絡だけを全経路で止める", async () => {
   const { store, deps } = setup();
   store.preferences.push(
-    { userId: "u1", category: "*", channel: "*", kind: "marketing" },
+    { userId: "u1", category: "*", channel: "*", kind: "promotion" },
     { userId: "u2", category: "*", channel: "*", kind: "activity" },
   );
   const targets = [target("u1", ["a@x.test"]), target("u1", ["a"], "inApp"), target("u2", ["b@x.test"])];

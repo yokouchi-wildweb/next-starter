@@ -2,7 +2,7 @@
 //
 // 保存されたテンプレートの保存時の検査(D41)。作る・下書きの更新・公開の前に同じ検査を通す。
 // - 文言: content の鍵は経路の受け口にあり有効(enabled: false でない)な経路の鍵、少なくとも 1 つ、各経路の欄の zod を通る(経路は持たない、D85)
-// - 種類: 種類の受け口(categories)にあり、種別が announcement・direct・marketing(管理者が送れる種別。それ以外は 400)
+// - 種類: 種類の受け口(categories)にあり、種別が announcement・direct・promotion(管理者が送れる種別。それ以外は 400)
 // - 変数: MessageTemplateVariableSchema の並び、鍵は一意で {{鍵}} に使える形。共通の文脈・throttle の鍵・管理の定義 3 本(admin/freeText.ts)に当たる
 //   provides と同じ鍵は不可。型 "secret" は不可(秘密はテンプレートを通さない: コードの定義の secretVar に置く)
 // - 本文の {{鍵}} は 共通の文脈 ∪ 管理の定義 3 本(admin/freeText.ts)に当たる provides ∪ 宣言した変数 の中だけ
@@ -55,7 +55,7 @@ export function checkTemplateFields(
   const category = deps.categories[fields.category];
   if (!category) problems.push(`種類 ${fields.category} はありません`);
   else if (!isAdminFreeTextKind(category.kind)) {
-    problems.push(`種類 ${fields.category}(種別 ${category.kind})はテンプレートに使えません(announcement・direct・marketing の種類)`);
+    problems.push(`種類 ${fields.category}(種別 ${category.kind})はテンプレートに使えません(announcement・direct・promotion の種類)`);
   }
 
   const channels = Object.keys(fields.content).filter((key) => fields.content[key] !== undefined && fields.content[key] !== null);

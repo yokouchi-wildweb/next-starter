@@ -12,7 +12,7 @@ export const MESSAGE_KINDS = [
   "announcement",
   "direct",
   "activity",
-  "marketing",
+  "promotion",
 ] as const;
 
 /**
@@ -23,7 +23,7 @@ export const MESSAGE_KINDS = [
  * - announcement: 運営の告知
  * - direct: 運営から特定の利用者への直接の連絡
  * - activity: 利用者が止められる、サービスの利用に伴う知らせ(いいね・リマインダー・失効の予告など)
- * - marketing: 宣伝
+ * - promotion: 宣伝
  */
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 
@@ -37,7 +37,7 @@ type RecordDefault = "meta" | "vars" | "full";
 export type MessageKindTraits = {
   /** fork が上流のこの種別の連絡を override で止め(enabled:false)・経路を外せるか(functional の上流の物だけ不可、D68) */
   upstreamDisable: boolean;
-  /** 利用者の停止・好み・停止のヘッダと本文の停止リンクに従うか(activity・marketing) */
+  /** 利用者の停止・好み・停止のヘッダと本文の停止リンクに従うか(activity・promotion) */
   userStoppable: boolean;
   /** 住所の停止のどれに従うか: hardBounce = hard bounce だけ(苦情の停止を越えて届ける)/ all = 苦情・ワンクリック・手作業も */
   addressStop: "hardBounce" | "all";
@@ -45,7 +45,7 @@ export type MessageKindTraits = {
   adminFreeText: readonly MessageAdminTarget[];
   /** 本文の残し方の既定(定義の record が無い時) */
   recordDefault: RecordDefault;
-  /** 管理画面で文言を直せるか(adminEditable) */
+  /** 管理画面で文言を直せるか(false = 直せる欄が無い。adminEditablePaths が読む) */
   adminTextOverride: boolean;
   /** 会話の間引き(throttle)を付けられるか */
   throttle: boolean;
@@ -86,7 +86,7 @@ export const MESSAGE_KIND_TRAITS: Readonly<Record<MessageKind, MessageKindTraits
   announcement: { ...BASE, adminFreeText: ["all", "role", "group", "users"], recordDefault: "full" },
   direct: { ...BASE, adminFreeText: ["users", "bulk"], recordDefault: "full" },
   activity: { ...BASE, userStoppable: true },
-  marketing: { ...BASE, userStoppable: true, adminFreeText: ["all", "role", "group", "users", "bulk"] },
+  promotion: { ...BASE, userStoppable: true, adminFreeText: ["all", "role", "group", "users", "bulk"] },
 };
 
 export function isMessageKind(value: unknown): value is MessageKind {

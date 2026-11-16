@@ -87,7 +87,7 @@ export const MessageDispatchTable = pgTable(
      * 定義の文面から送る回は null。予約・cron の組み直し・再送はこの文面（とテンプレートの版の変数の宣言）で組む
      */
     authored_content: jsonb("authored_content").$type<Record<string, unknown>>(),
-    /** 種別（transactional / marketing / activity） */
+    /** 種別（transactional / promotion / activity） */
     kind: text("kind").$type<MessageKind>(),
     /** 種類の鍵（配信停止の単位。messaging/categories の鍵） */
     category: text("category"),

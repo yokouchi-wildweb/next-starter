@@ -91,7 +91,7 @@ export function applyMessageOverride<Vars extends z.AnyZodObject, C extends Chan
   if (override.label !== undefined) resolved.label = override.label;
   if (override.extras) resolved.extras = { ...definition.extras, ...override.extras };
   if (override.enabled !== undefined) resolved.enabled = override.enabled;
-  if (override.adminEditable) resolved.adminEditable = override.adminEditable;
+  if (override.adminEditableOnly) resolved.adminEditableOnly = override.adminEditableOnly;
   if (override.record !== undefined) resolved.record = override.record;
   if (override.throttle === null) {
     delete resolved.throttle;
@@ -169,8 +169,8 @@ export function validateMessageDefinition<
     if (Object.keys(definition.content ?? {}).length > 0) {
       add("authored_content", `${label}: authored の連絡は content を空 {} にする(文面は送る時に受け取る)`);
     }
-    if ((definition.adminEditable?.length ?? 0) > 0 || definition.throttle) {
-      add("authored_field", `${label}: authored の連絡に adminEditable・throttle は付けられない`);
+    if ((definition.adminEditableOnly?.length ?? 0) > 0 || definition.throttle) {
+      add("authored_field", `${label}: authored の連絡に adminEditableOnly・throttle は付けられない`);
     }
     if (options.override) add("authored_override", `${label}: authored の連絡は上書きできない`);
   }
@@ -204,15 +204,15 @@ export function validateMessageDefinition<
     if (!resolved.channels.includes("email" as never)) {
       add("required_without_email", `${label}: required の連絡の種類の経路に email が要る`);
     }
-    if (resolved.adminEditable && resolved.adminEditable.length > 0) {
-      add("required_admin_editable", `${label}: required の連絡に adminEditable は付けられない`);
+    if (resolved.adminEditableOnly && resolved.adminEditableOnly.length > 0) {
+      add("required_admin_editable", `${label}: required の連絡に adminEditableOnly は付けられない`);
     }
     if (resolved.throttle) {
       add("required_throttle", `${label}: required の連絡に throttle は付けられない`);
     }
   }
-  if (!traits.adminTextOverride && resolved.adminEditable && resolved.adminEditable.length > 0) {
-    add("kind_admin_editable", `${label}: 種別 ${resolved.kind} の連絡は管理画面で文言を直せない(adminEditable を付けない)`);
+  if (!traits.adminTextOverride && resolved.adminEditableOnly && resolved.adminEditableOnly.length > 0) {
+    add("kind_admin_editable", `${label}: 種別 ${resolved.kind} の連絡は管理画面で文言を直せない(adminEditableOnly を付けない)`);
   }
   if (!traits.throttle && resolved.throttle) {
     add("kind_throttle", `${label}: 種別 ${resolved.kind} の連絡は間引けない(throttle を付けない)`);
@@ -242,11 +242,11 @@ export function validateMessageDefinition<
     }
   }
 
-  for (const path of resolved.adminEditable ?? []) {
+  for (const path of resolved.adminEditableOnly ?? []) {
     const [channel, field] = String(path).split(".");
     const keys = channels[channel] ? schemaKeys(channels[channel]) : null;
     if (!keys || !field || !keys.includes(field) || content[channel] === undefined) {
-      add("unknown_admin_editable", `${label}: adminEditable の ${String(path)} は定義に無い欄`);
+      add("unknown_admin_editable", `${label}: adminEditableOnly の ${String(path)} は定義に無い欄`);
     }
   }
 

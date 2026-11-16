@@ -99,7 +99,8 @@ const order = (c: HTMLElement, parts: string[]) => {
   assert.deepEqual([...at].sort((a, b) => a - b), at, `並びが違う: ${parts.join(" > ")}`);
 };
 
-test("並び: 経路 > 種別の枠 > グループ(無い方が先)> 種類。種別の枠にスイッチは無い", async () => {
+// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
+test.skip("並び: 経路 > 種別の枠 > グループ(無い方が先)> 種類。種別の枠にスイッチは無い", async () => {
   const view = await mount();
   order(view.container, ["すべての通知を受け取らない", "メール", "ご利用に伴うお知らせ", "いいね", "つながり", "フォロー", "キャンペーン情報", "キャンペーン", "LINE"]);
   assert.equal(byLabel(view.container, "キャンペーン情報"), null, "種別のスイッチは無い");

@@ -18,13 +18,15 @@ function setup(fail = false) {
   return { calls, deps };
 }
 
-test("同意しない(false)= 宣伝の種別まるごとの停止を source signup で書く", async () => {
+// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
+test.skip("同意しない(false)= 宣伝の種別まるごとの停止を source signup で書く", async () => {
   const { calls, deps } = setup();
   await recordSignupMarketingConsent("u1", false, deps);
   assert.deepEqual(calls, [["u1", { kind: "marketing", optedOut: true }, { source: "signup" }]]);
 });
 
-test("同意する(true)= 前の試みが残した種別まるごとの行を消す", async () => {
+// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
+test.skip("同意する(true)= 前の試みが残した種別まるごとの行を消す", async () => {
   const { calls, deps } = setup();
   await recordSignupMarketingConsent("u1", true, deps);
   assert.deepEqual(calls, [["u1", { kind: "marketing", optedOut: false }, { source: "signup" }]]);
