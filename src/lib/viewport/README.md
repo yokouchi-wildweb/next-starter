@@ -24,7 +24,7 @@
 import { useViewportOrientation } from "@/lib/viewport";
 
 const { isShortHeight } = useViewportOrientation();
-return <Stack space={isShortHeight ? 1 : 4}>...</Stack>;
+return <Stack gap={isShortHeight ? "2xs" : "md"}>...</Stack>;
 ```
 
 ## 旧パス

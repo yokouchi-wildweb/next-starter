@@ -84,7 +84,7 @@
 | 角丸(`--radius`) | `rounded-sm/md/lg/xl` | `rounded-[12px]` などの任意値 |
 | appearance の影(`--appearance-shadow-*`) | Layout 部品の `appearance`(raised / outlined / frosted / soft / radiant) | `shadow-sm` 等の Tailwind の影の段(それは `@theme` の `--shadow-*`)・className の `shadow-[...]` |
 | 部品の形(`variants.config.ts`) | その部品の variant / size の全部 | 要素の `className`(上書きより後ろで勝つ) |
-| 余白 | (余白の段のトークンはまだ無い。入ったときに動くのは Layout の余白 prop だけ) | 部品の内側の余白(size のバリアントで変える)・className の数値(`p-4` 等。固定) |
+| 余白の段(`--space-none`〜`--space-4xl`、`core/config.css` の `:root`) | Layout 部品の余白 prop(`gap`・`gapX`・`gapY`・`padding*`・`margin*`、段の表: `src/components/Layout/README.md`「余白」) | 部品の内側の余白(size のバリアントで変える)・className の数値(`p-4` 等。固定)。`@theme` の `--spacing` は使わない |
 
 ## ファイルと所有権
 

@@ -45,7 +45,7 @@ export function OrderList() {
       emptyNode={<EmptyOrders />}
     >
       {(orders) => (
-        <Stack space={2}>
+        <Stack gap="xs">
           {orders.map((order) => (
             <OrderRow key={order.id} order={order} />
           ))}

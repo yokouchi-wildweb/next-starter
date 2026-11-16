@@ -81,8 +81,8 @@
    * AdminPage / Header がこれらを参照することで、フルハイトレイアウトが
    * calc(100dvh - Nrem) のマジックナンバーに依存せず、ヘッダー密度や
    * ページ余白の変更に自動追従する。既定値は従来の見た目を厳密に維持:
-   *   --admin-page-padding-inline: Main padding="lg"  (p-4 → sm:p-6)
-   *   --admin-page-padding-block : Main paddingBlock="xl" (py-6 → sm:py-10)
+   *   --admin-page-padding-inline: Main padding={{ base: "md", sm: "lg" }}  (16px → sm: 24px)
+   *   --admin-page-padding-block : Main paddingBlock={{ base: "lg", sm: "2xl" }} (24px → sm: 40px)
    *   --admin-header-padding-y   : Header py-2 → sm:py-3
    * sm 境界(40rem)での切替は下部の @media で行う。
    * downstream はこれらのトークンを上書きするだけで、共有コンポーネントを

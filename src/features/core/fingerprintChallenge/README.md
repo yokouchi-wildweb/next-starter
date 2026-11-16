@@ -197,7 +197,7 @@ export function ChallengeForm({ token }: { token: string }) {
   return (
     // containerProps を spread した要素の配下が計測対象になる
     <form onSubmit={onSubmit} {...behavior.containerProps}>
-      <Stack space={4}>
+      <Stack gap="md">
         {/* data-behavior-field で計測上のフィールド名を明示できる（name / id でも可） */}
         <Input
           name="fullName"

@@ -47,7 +47,7 @@ export type ViewportOrientationState = {
  *
  * ```tsx
  * const { isShortHeight, orientation } = useViewportOrientation();
- * return <Stack space={isShortHeight ? 1 : 4}>...</Stack>;
+ * return <Stack gap={isShortHeight ? "2xs" : "md"}>...</Stack>;
  * ```
  */
 export function useViewportOrientation(

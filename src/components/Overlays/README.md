@@ -423,7 +423,7 @@ const [open, setOpen] = useState(false);
   searchFields={["name", "name_kana"]}
   disabledValues={stocks.map((s) => s.board_game_id)}   // 追加済みは行を残して選択不可
   renderOption={(option, game) => (                       // name + かな の 2 行表示
-    <Stack space={0}>
+    <Stack gap="none">
       <Span size="sm" className="truncate">{option.label}</Span>
       {game?.name_kana ? <Span size="xs" tone="muted">{game.name_kana}</Span> : null}
     </Stack>

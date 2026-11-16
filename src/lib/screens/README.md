@@ -186,7 +186,7 @@ export async function WalletBalanceScreen(props: ScreenProps<WalletBalanceScreen
   const data = await loadWalletBalanceScreen(props);
   return (
     <UserPage containerType="narrowStack">
-      <Stack space={6}>
+      <Stack gap="lg">
         <UserPageTitle>{data.label}管理</UserPageTitle>
         <WalletBalance slug={data.slug} phoneVerifiedAt={data.phoneVerifiedAt} currentPhoneNumber={data.phoneNumber} />
       </Stack>
@@ -304,7 +304,7 @@ export async function WalletBalanceScreen(props: ScreenProps<WalletBalanceScreen
   const data = await loadWalletBalanceScreen(props); // 404 / 未ログインは loader が処理する
   return (
     <UserPage containerType="wideShowcase">
-      <Stack space={10}>
+      <Stack gap="2xl">
         <UserPageTitle>{data.label}</UserPageTitle>
         <WalletBalance slug={data.slug} phoneVerifiedAt={data.phoneVerifiedAt} currentPhoneNumber={data.phoneNumber} />
       </Stack>

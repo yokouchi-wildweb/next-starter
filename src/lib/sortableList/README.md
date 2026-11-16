@@ -47,7 +47,7 @@ import { SortableList, type ReorderResult } from "@/lib/sortableList";
 
 ```tsx
 <TabbedModal maxHeight="75vh" scrollable ...>
-  <Stack space={6}>
+  <Stack gap="lg">
     <BreakSettingsSection />
     <SortableList items={gauges} columns={...} onReorder={...} scroll="parent" />
     <SortableList items={actions} columns={...} onReorder={...} scroll="parent" />

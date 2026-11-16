@@ -82,7 +82,7 @@ import { Para } from "@/components/TextBlocks/Para";
 <AppForm methods={form} onSubmit={handleSubmit}>
   <ManualFieldController control={control} name="notify">
     {(field) => (
-      <Stack space={2}>
+      <Stack gap="xs">
         <SwitchInput field={field} label="通知設定" />
         <Para tone="muted" size="xs">補足テキスト</Para>
       </Stack>
@@ -101,7 +101,7 @@ import { Para } from "@/components/TextBlocks/Para";
 const [notify, setNotify] = useState(false);
 
 <form onSubmit={handleSubmit}>
-  <Stack space={2}>
+  <Stack gap="xs">
     <SwitchInput value={notify} onChange={setNotify} label="通知設定" />
     <Para tone="muted" size="xs">補足テキスト</Para>
   </Stack>
@@ -347,7 +347,7 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 | 使う | `AppForm` |
 | 使わない | `<form>` |
 
-`AppForm` は `fieldSpace` で縦方向の間隔を統一できる。`fieldSpace` は `StackSpace` 型（Tailwind spacing scale: 0, 0.5, 1, 1.5, 2, ... 96）を受け取り、デフォルトは `6`。
+`AppForm` は `fieldSpace` で縦方向の間隔を統一できる。`fieldSpace` は `SpacingValue` 型(余白の段の名前 `none`〜`4xl` か画面幅ごとのオブジェクト、`src/components/Layout/README.md`「余白」)を受け取り、デフォルトは `"lg"`(24px)。
 
 ---
 

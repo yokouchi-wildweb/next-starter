@@ -272,7 +272,7 @@ export function DevicePairing() {
   if (device || claim.data) return <Para>この端末は登録済みです</Para>;
 
   return (
-    <Stack space={4}>
+    <Stack gap="md">
       {/* 結果は claim.data / claim.errorReason で受け取るので、trigger の reject は握りつぶしてよい */}
       <OneTimeCodeInput
         value={code}
@@ -300,7 +300,7 @@ export function DevicePairingByQr() {
   // QR は好きなライブラリで描く（例: qrcode.react の <QRCodeSVG value={approveUrl} />）
   const approveUrl = `${location.origin}/device-approve?code=${pairing.code}`;
   return (
-    <Stack space={2}>
+    <Stack gap="xs">
       <Para>管理者のスマホで読み取ってください: {pairing.code}</Para>
       {/* QR: approveUrl */}
       {pairing.lastError ? <Para>接続を確認しています…</Para> : null}

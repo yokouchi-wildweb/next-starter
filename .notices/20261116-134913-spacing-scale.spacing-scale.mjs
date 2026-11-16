@@ -281,6 +281,33 @@ export function buildMapping(tables) {
   return mapping;
 }
 
+/** 移行の対応表(src/components/Layout/README.md の「旧名 → 新名」の表)の印 */
+export const README_TABLE_MARKS = ["<!-- spacing-scale:mapping start (codemod の対応表から作る。手で直さない) -->", "<!-- spacing-scale:mapping end -->"];
+
+/** 対応表 → README の markdown の表(全部品で同じ箱の余白 prop は 1 行に、部品ごとの gap は部品ごとに) */
+export function formatMappingTable(mapping) {
+  const cell = ([key, result]) => {
+    if (result.kind === "step") return `${key} → ${result.value}`;
+    if (result.kind === "resp") return `${key} → {base:${result.base}, sm:${result.sm}}`;
+    if (result.kind === "remove") return `${key} → (prop を外す)`;
+    return `${key} → className \`${result.classes}\``;
+  };
+  const rows = [];
+  for (const prop of COMMON) rows.push([`全部品の ${prop}`, mapping.Block[prop]]);
+  for (const component of ["Grid", "Flex", "Stack"]) {
+    for (const prop of COMPONENT_PROPS[component]) {
+      if (COMMON.includes(prop)) continue;
+      const to = RENAMES[component]?.[prop];
+      rows.push([`${component} の ${prop}${to ? ` → ${to}` : ""}`, mapping[component][prop]]);
+    }
+  }
+  return [
+    "| 部品・prop | 旧名 → 新名(同じ px) |",
+    "|---|---|",
+    ...rows.map(([label, table]) => `| ${label} | ${Object.entries(table).map(cell).join(" / ")} |`),
+  ].join("\n");
+}
+
 /** 旧表・既定値・対応表をまとめて読む */
 export function loadSpacingTables(readFile) {
   const tables = loadOldTables(readFile);

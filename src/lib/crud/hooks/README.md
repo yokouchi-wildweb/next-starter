@@ -95,7 +95,7 @@ export function SampleSearchResult({ keyword }: { keyword: string }) {
   if (error) return <Para tone="destructive">{err(error, "検索結果を取得できませんでした")}</Para>;
 
   return (
-    <Stack space={2}>
+    <Stack gap="xs">
       <Para tone="muted">{total} 件</Para>
       {data.map((sample) => (
         <Para key={sample.id}>{sample.name}</Para>
@@ -151,7 +151,7 @@ export function SampleFeed({ keyword }: { keyword: string }) {
       sentinelRef={sentinelRef}
     >
       {(samples) => (
-        <Stack space={2}>
+        <Stack gap="xs">
           {samples.map((sample) => (
             <Para key={sample.id}>{sample.name}</Para>
           ))}

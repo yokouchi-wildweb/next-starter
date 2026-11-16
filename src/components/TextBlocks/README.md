@@ -45,7 +45,7 @@
    eslint `style-tokens/span-in-heading` が、見出し（`*PageTitle` / `*SecTitle` / 生の h1〜h6）の**直下**にある `Span` で `size` / `weight` の無いものを検出する（upstream 所有の UI は error、下流の画面は warn）。
 2. **中央寄せの親の中の `Para`**: 既定の `text-left` が親の `text-center` を打ち消し、`Stack` などの縦並びの中では全幅になって左寄せで表示される
    ```tsx
-   <Stack space={2} className="text-center">
+   <Stack gap="xs" className="text-center">
      <Para align="center">…</Para>   {/* または align="inherit" */}
    </Stack>
    ```

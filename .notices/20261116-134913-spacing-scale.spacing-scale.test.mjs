@@ -14,7 +14,9 @@ import {
   STEPS,
   TABLE_FILES,
   classesToPx,
+  formatMappingTable,
   loadSpacingTables,
+  README_TABLE_MARKS,
   parseArgs,
   resultToPx,
   run,
@@ -443,4 +445,15 @@ test("引数: --apply は --base <ref> を要し、--no-base・--write では書
   assert.deepEqual(parseArgs(["--apply", "--base", "abc"], "/r"), { root: "/r", base: "abc", write: true, json: undefined });
   assert.deepEqual(parseArgs([], "/r"), { root: "/r", base: "HEAD", write: false, json: undefined });
   assert.deepEqual(parseArgs(["--no-base", "--root", "/x"], "/r"), { root: "/x", base: null, write: false, json: undefined });
+});
+
+// ---------------------------------------------------------------- 文書の対応表
+
+test("Layout の README の「旧名 → 新名」の表は codemod の対応表と一致する(手で直さない)", () => {
+  const readme = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../src/components/Layout/README.md"), "utf8");
+  const [start, end] = README_TABLE_MARKS;
+  const from = readme.indexOf(start);
+  const to = readme.indexOf(end);
+  assert.ok(from >= 0 && to > from, "README に対応表の印が無い");
+  assert.equal(readme.slice(from + start.length, to).trim(), formatMappingTable(mapping));
 });
