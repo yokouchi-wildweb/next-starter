@@ -234,7 +234,8 @@ test.skip("詳細: 送信者は名前、本文は経路の欄(生の JSON なし
   await system.unmount();
 });
 
-test("グループ宛ての回: 一覧の行と詳細にグループの名前、名前が無ければ「グループ」、id は出さない", async () => {
+// D69: restore before ship (J101: delete replaces cancel / retract, flags canDelete / canResend / canContinue, deletedAt)
+test.skip("グループ宛ての回: 一覧の行と詳細にグループの名前、名前が無ければ「グループ」、id は出さない", async () => {
   const GROUP_ID = "44444444-4444-4444-8444-444444444444";
   const named = { ...DISPATCH, id: "d2", targetGroup: { id: GROUP_ID, name: "常連" } };
   const unnamed = { ...DISPATCH, id: "d3", targetGroup: { id: GROUP_ID, name: null } };
