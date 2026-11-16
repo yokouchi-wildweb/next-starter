@@ -1,6 +1,6 @@
 // 保存されたテンプレートの service の検査(DB・台帳・監査は偽物)
 // - 作る(draft)・下書きの更新・公開(版を追記、版は不変、current_version を進める)・取り下げ・版の一覧と 1 版・監査
-// - 保存時の検査: 文言の鍵 = 有効な経路の鍵・少なくとも 1 つ・経路の欄・種類(種別 announcement・direct・marketing だけ)・変数の宣言
+// - 保存時の検査: 文言の鍵 = 有効な経路の鍵・少なくとも 1 つ・経路の欄・種類(種別 announcement・direct・promotion だけ)・変数の宣言
 //   (一意・予約の鍵・secret の型)・{{鍵}} は共通の文脈 ∪ provides ∪ 変数だけ。経路の組は持たない(D85)
 // - 画面の選択肢(有効な経路・3 つの種別の種類・基本の鍵)
 // - 変更の無い公開・取り下げ済みの操作は 409、同じ鍵は 409、管理者でなければ 403
@@ -39,7 +39,7 @@ const channels: Record<string, MessageChannel> = {
   line: { key: "line", label: "LINE", addressing: "user", fieldMeta: {}, enabled: false, fields: z.object({ text: z.string() }), send: async () => [] },
 };
 const categories: Record<string, MessageCategory> = {
-  marketing: { key: "promotion", label: "お知らせ", kind: "promotion", channels: ["email", "inApp"] },
+  promotion: { key: "promotion", label: "お知らせ", kind: "promotion", channels: ["email", "inApp"] },
   activity: { key: "activity", label: "反応", kind: "activity", channels: ["email", "inApp"] },
   account: { key: "account", label: "手続き", kind: "transactional", channels: ["email"] },
 };
@@ -121,8 +121,7 @@ async function rejectsWith(run: Promise<unknown>, status: number, message?: RegE
   });
 }
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("作る → 公開 → 直す → 公開: 版は不変で current_version が進み、監査に残る", async () => {
+test("作る → 公開 → 直す → 公開: 版は不変で current_version が進み、監査に残る", async () => {
   const { service, versions, audits } = setup();
   const created = await service.createTemplate(input());
   assert.equal(created.status, "draft");
@@ -159,8 +158,7 @@ test.skip("作る → 公開 → 直す → 公開: 版は不変で current_vers
   assert.deepEqual(audits[1].metadata, { key: created.key, version: 1 });
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("変更の無い公開は 409、取り下げた後は直せない・公開できない(409)", async () => {
+test("変更の無い公開は 409、取り下げた後は直せない・公開できない(409)", async () => {
   const { service, audits } = setup();
   const created = await service.createTemplate(input());
   await service.publishTemplate(created.id);
@@ -174,8 +172,7 @@ test.skip("変更の無い公開は 409、取り下げた後は直せない・�
   assert.equal((await service.listTemplateVersions(created.id)).length, 1);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("保存時の検査(400)、鍵はサーバーが作る(入力の key は 400)", async () => {
+test("保存時の検査(400)、鍵はサーバーが作る(入力の key は 400)", async () => {
   const { service, templates } = setup();
   const cases: Record<string, unknown>[] = [
     // 鍵は受けない(サーバーが作る、D46)
@@ -216,8 +213,7 @@ test.skip("保存時の検査(400)、鍵はサーバーが作る(入力の key �
   assert.deepEqual(Object.keys(one.content), ["inApp"]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("一覧(状態で絞る・cursor)、無い id は 404、版の番号の誤りは 400", async () => {
+test("一覧(状態で絞る・cursor)、無い id は 404、版の番号の誤りは 400", async () => {
   const { service } = setup();
   const a = await service.createTemplate(input({ name: "a" }));
   await service.createTemplate(input({ name: "b" }));
@@ -235,13 +231,12 @@ test.skip("一覧(状態で絞る・cursor)、無い id は 404、版の番号�
   await rejectsWith(service.getTemplateVersion(a.id, 9), 404);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("画面の選択肢: 有効な経路だけ・3 つの種別の種類だけ・変数の前から使える鍵", async () => {
+test("画面の選択肢: 有効な経路だけ・3 つの種別の種類だけ・変数の前から使える鍵", async () => {
   const { service } = setup();
   const options = await service.templateOptions();
   assert.deepEqual(options.channels, [
-    { key: "email", label: "メール" },
-    { key: "inApp", label: "お知らせ" },
+    { key: "email", label: "メール", fieldMeta: {}, previewComponent: null },
+    { key: "inApp", label: "お知らせ", fieldMeta: {}, previewComponent: null },
   ]);
   assert.deepEqual(options.categories, [{ key: "promotion", label: "お知らせ", description: null }]);
   assert.ok(options.baseAllowedKeys.includes("serviceName"));

@@ -1,9 +1,9 @@
 // 管理の送信の service の検査(送る口・監査は偽物)
 // - 中身は 1 つの形 { content, template?, vars? }(その場で書く連絡とテンプレートは template の有無だけ、D92)を送る口 sendAuthored へ、
 //   宛先(全員・ロール・グループ・選んだ利用者)、予約、監査(sent / scheduled / test_sent)
-// - カテゴリー(必須): 種別 announcement・direct・marketing だけ、宛先の種類は性質 adminFreeText。経路の制限は無い(LINE・fork の経路も)
+// - カテゴリー(必須): 種別 announcement・direct・promotion だけ、宛先の種類は性質 adminFreeText。経路の制限は無い(LINE・fork の経路も)
 // - プレビュー・テスト送信の宛先は操作した管理者、見込みは送る時に数え直す印つき、選択肢
-// - グループ宛て(announcement・marketing だけ、direct は 400、見込みは送る口のまま)、選択肢のグループ
+// - グループ宛て(announcement・promotion だけ、direct は 400、見込みは送る口のまま)、選択肢のグループ
 // - 管理者でなければ 403
 // 実行: pnpm test src/features/core/messaging/services/server/admin/send.test.ts
 import { test } from "node:test";
@@ -29,7 +29,7 @@ const TEMPLATE = "11111111-1111-4111-8111-111111111111";
 const categories: Record<string, MessageCategory> = {
   announcement: { key: "announcement", label: "運営からのお知らせ", kind: "announcement", channels: ["email", "inApp"] },
   operatorDirect: { key: "operatorDirect", label: "運営からのご連絡", kind: "direct", channels: ["email", "inApp"] },
-  marketing: { key: "promotion", label: "キャンペーン情報", kind: "promotion", channels: ["email", "inApp"] },
+  promotion: { key: "promotion", label: "キャンペーン情報", kind: "promotion", channels: ["email", "inApp"] },
   promoPush: { key: "promoPush", label: "プッシュの宣伝", kind: "promotion", channels: ["email", "push"] },
   activity: { key: "activity", label: "アクティビティ", kind: "activity", channels: ["email", "inApp"] },
 };
@@ -87,8 +87,7 @@ const TEXT = { email: { subject: "春 {{discount}}" }, inApp: { title: "春", bo
 const TPL = { templateId: TEMPLATE, version: 3 };
 const ADHOC = { email: { subject: "件名", paragraphs: ["{{displayName}} 様", "本文"] }, inApp: { title: "題", body: "本文" } };
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("その場で書いた文面を全員へ今送る: 送る口に文面とカテゴリー、監査 sent", async () => {
+test("その場で書いた文面を全員へ今送る: 送る口に文面とカテゴリー、監査 sent", async () => {
   const { deps, calls, audits } = setup();
   const sent = await adminSend(deps, { content: ADHOC, category: "announcement", channels: ["email", "inApp"], target: { type: "all" } });
   assert.equal(sent.dispatchId, "d1");
@@ -109,8 +108,7 @@ test.skip("その場で書いた文面を全員へ今送る: 送る口に文面�
   assert.equal("channels" in (calls[1].args[0] as Record<string, unknown>), false);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("テンプレートをロール宛てに予約: 送る口に template・文面・vars・カテゴリー、監査 scheduled", async () => {
+test("テンプレートをロール宛てに予約: 送る口に template・文面・vars・カテゴリー、監査 scheduled", async () => {
   const { deps, calls, audits } = setup();
   await adminSend(deps, {
     template: TPL,
@@ -132,8 +130,7 @@ test.skip("テンプレートをロール宛てに予約: 送る口に template�
   assert.deepEqual([audits[0].metadata?.source, audits[0].metadata?.templateId, audits[0].metadata?.templateVersion], ["template", TEMPLATE, 3]);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("カテゴリー: 無い・3 つの種別でない・宛先の種類が送れない は 400。経路の制限は無い", async () => {
+test("カテゴリー: 無い・3 つの種別でない・宛先の種類が送れない は 400。経路の制限は無い", async () => {
   const { deps, calls } = setup();
   // direct は選んだ利用者宛てだけ(全員・ロール・グループは 400)
   for (const target of [{ type: "all" }, { type: "role", roles: ["user"] }, { type: "group", groupId: "22222222-2222-4222-8222-222222222222" }]) {
@@ -168,8 +165,7 @@ test("入力の誤りは 400(形・知らない鍵・テンプレートなしの
   for (const input of cases) await rejectsWith(adminSend(deps, input), 400);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("プレビューとテスト送信は操作した管理者、テストは is_test で監査 test_sent", async () => {
+test("プレビューとテスト送信は操作した管理者、テストは is_test で監査 test_sent", async () => {
   const { deps, calls, audits } = setup();
   await adminSendPreview(deps, { template: TPL, content: TEXT, vars: { a: 1 }, category: "promotion" });
   assert.deepEqual(calls[0].args, [
@@ -195,8 +191,7 @@ test.skip("プレビューとテスト送信は操作した管理者、テスト
   await rejectsWith(adminSendTest(system.deps, { content: ADHOC, category: "promotion", channels: ["email"] }), 400);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("見込みは送る口の数(送る時に数え直す印)、選択肢は有効な経路・ロール・テンプレート", async () => {
+test("見込みは送る口の数(送る時に数え直す印)、選択肢は有効な経路・ロール・テンプレート", async () => {
   const { deps, calls } = setup();
   assert.deepEqual(await adminSendEstimate(deps, { target: { type: "users", userIds: ["u1", "u2"] } }), {
     count: 7,
@@ -207,9 +202,9 @@ test.skip("見込みは送る口の数(送る時に数え直す印)、選択肢�
   assert.deepEqual(calls[1].args, [{ target: { type: "role", roles: ["user"] } }]);
   const options = await adminSendOptions(deps);
   assert.deepEqual(options.channels, [
-    { key: "email", label: "EMAIL" },
-    { key: "inApp", label: "INAPP" },
-    { key: "push", label: "PUSH" },
+    { key: "email", label: "EMAIL", fieldMeta: {}, previewComponent: null },
+    { key: "inApp", label: "INAPP", fieldMeta: {}, previewComponent: null },
+    { key: "push", label: "PUSH", fieldMeta: {}, previewComponent: null },
   ]);
   // 3 つの種別のカテゴリー(受け口の順)と送れる宛先の種類
   assert.deepEqual(
@@ -230,8 +225,7 @@ test("管理者でなければ 403", async () => {
   await rejectsWith(adminSendOptions(deps), 403);
 });
 
-// D69: restore before ship (J98: kind promotion / adminEditableOnly / channel fieldMeta)
-test.skip("グループ宛て: announcement・marketing は送る口へ { type: group, groupId }、direct は 400、見込みは送る口のまま、選択肢のグループ", async () => {
+test("グループ宛て: announcement・promotion は送る口へ { type: group, groupId }、direct は 400、見込みは送る口のまま、選択肢のグループ", async () => {
   const { deps, calls, audits } = setup({ groups: [{ id: GROUP, label: "常連", kindLabel: "固定(選んだ人)" }] });
   await adminSend(deps, { content: ADHOC, category: "announcement", target: { type: "group", groupId: GROUP } });
   assert.deepEqual((calls[0].args[0] as Record<string, unknown>).target, { type: "group", groupId: GROUP });
