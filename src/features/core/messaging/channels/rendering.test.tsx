@@ -17,7 +17,7 @@ import { createLineChannel } from "./line/createLineChannel";
 
 const email = createEmailChannel({
   render: (element) => render(element),
-  send: async () => ({ provider: "fake", providerMessageId: null }),
+  send: async () => ({ provider: "resend", providerMessageId: null }),
   findEmails: async () => [],
   theme: MAIL_THEME_COLORS,
   webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
@@ -86,7 +86,8 @@ test("3 段の解決: ひな形の描き方 > email の汎用 > inApp・line の
   const resolve = (channelKey: string, channel: typeof email, hasLayoutRenderer = false) =>
     resolveRendering({ layout, channelKey, hasLayoutRenderer, channel, values });
   assert.deepEqual(resolve("email", email, true), { from: "layout" });
-  assert.equal("from" in resolve("email", email) && resolve("email", email).from === "channel", true);
+  const emailResult = resolve("email", email);
+  assert.equal("from" in emailResult && emailResult.from, "channel");
   const inAppResult = resolve("inApp", inApp);
   assert.equal("from" in inAppResult && inAppResult.from, "summary");
   const lineResult = resolve("line", line);
