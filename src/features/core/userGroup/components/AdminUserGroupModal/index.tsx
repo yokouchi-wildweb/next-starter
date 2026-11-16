@@ -330,7 +330,19 @@ function UserGroupModalBody({
   const tabs = [
     { value: "basic", label: "基本", content: basicTab },
     ...(!isStatic ? [{ value: "condition", label: "条件", content: conditionTab }] : []),
-    ...(group ? [{ value: "people", label: group.kind === "static" ? "メンバー" : "例外", content: peopleContent }] : []),
+    ...(group
+      ? [{ value: "people", label: group.kind === "static" ? "メンバー" : "例外", content: peopleContent }]
+      : !isStatic
+        ? [
+            {
+              value: "people",
+              label: "例外",
+              content: (
+                <UserGroupExceptionsEditor draft={form.exceptionsDraft} counts={null} scheduled={fields.kind === "scheduled"} />
+              ),
+            },
+          ]
+        : []),
   ];
 
   return (
