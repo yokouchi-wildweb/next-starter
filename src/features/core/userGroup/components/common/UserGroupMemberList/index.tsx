@@ -1,5 +1,5 @@
 // src/features/core/userGroup/components/common/UserGroupMemberList/index.tsx
-// 部品(props だけ): 人の一覧(表示名、無限スクロール)と、利用者を選ぶ部品で選んで足す・1 人ずつ外す。
+// 部品(props だけ): 人の要約(先頭 3 名 + 計 N 名、D93)と、利用者を選ぶ部品で選んで足す。一覧(検索・まとめて外す)はサブのモーダル。
 // 静的グループの一員と例外の人(入れる人・外す人)で使う。流れは hook useUserGroupStaticMembers / useUserGroupExceptions。
 // draft = 作る前の下書き(選ぶ部品だけを出し、選んだ人は作成の時に書く。一覧・追加のボタンは出さない)
 
@@ -11,10 +11,12 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
-import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 
 import { UserAsyncMultiSelect } from "@/features/core/user/components/common/UserAsyncMultiSelect";
 import type { UserGroupPeopleState } from "@/features/core/userGroup/hooks/useUserGroupPeople";
+
+import { UserGroupPeopleModal } from "../UserGroupPeopleModal";
+import { UserGroupPeopleSummary } from "../UserGroupPeopleSummary";
 
 export type UserGroupMemberDraft = { value: string[]; onChange: (values: readonly (string | number | boolean)[]) => void; hint: string };
 
@@ -24,10 +26,12 @@ export type UserGroupMemberListProps = {
   addLabel: string;
   emptyText: string;
   disabled?: boolean;
+  /** 全部の人数(要約の「計 N 名」。null = 分からない) */
+  total?: number | null;
 } & ({ people: UserGroupPeopleState; draft?: never } | { draft: UserGroupMemberDraft; people?: never });
 
 export function UserGroupMemberList(props: UserGroupMemberListProps) {
-  const { title, description, addLabel, emptyText, disabled = false } = props;
+  const { title, description, addLabel, emptyText, disabled = false, total = null } = props;
   if (props.draft) {
     return (
       <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="user-group-people">
@@ -49,7 +53,6 @@ export function UserGroupMemberList(props: UserGroupMemberListProps) {
     );
   }
   const people = props.people;
-  const { query } = people;
   return (
     <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="user-group-people">
       <Stack space={1}>
@@ -72,36 +75,13 @@ export function UserGroupMemberList(props: UserGroupMemberListProps) {
           </Button>
         </Flex>
       ) : null}
-      <InfiniteScrollList
-        items={query.items}
-        isInitialLoading={query.isInitialLoading}
-        isFetchingMore={query.isFetchingMore}
-        hasMore={query.hasMore}
-        error={query.error}
-        sentinelRef={query.sentinelRef}
-        onRetry={query.retry}
-        emptyNode={
-          <Para size="sm" tone="muted" align="center">
-            {emptyText}
-          </Para>
-        }
-        completedText="すべて表示しました"
-      >
-        {(items) => (
-          <Stack space={1}>
-            {items.map((person) => (
-              <Flex key={person.id} align="center" justify="between" gap="xs" className="border-b border-border py-1" data-slot="user-group-person">
-                <Span size="sm">{person.name ?? "名前未設定のユーザー"}</Span>
-                {!disabled ? (
-                  <Button type="button" size="sm" variant="ghost" disabled={people.busy} onClick={() => void people.remove(person.id)}>
-                    削除
-                  </Button>
-                ) : null}
-              </Flex>
-            ))}
-          </Stack>
-        )}
-      </InfiniteScrollList>
+      <UserGroupPeopleSummary
+        names={people.summary.items.map((person) => person.name)}
+        total={total}
+        loading={people.summary.isInitialLoading}
+        onOpenList={() => people.setListOpen(true)}
+      />
+      <UserGroupPeopleModal title={title} people={people} emptyText={emptyText} disabled={disabled} />
     </Stack>
   );
 }

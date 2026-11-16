@@ -48,6 +48,7 @@ export function UserGroupExceptionsEditor({ exceptions, draft, counts, scheduled
         title={`常に含める人${counts ? `(${counts.includeCount.toLocaleString("ja-JP")} 人)` : ""}`}
         description="条件に合わなくても、このグループに含めるユーザー"
         {...includeSource}
+        total={counts?.includeCount ?? null}
         addLabel="追加"
         emptyText="常に含める人はいません"
         disabled={disabled}
@@ -56,6 +57,7 @@ export function UserGroupExceptionsEditor({ exceptions, draft, counts, scheduled
         title={`常に除外する人${counts ? `(${counts.excludeCount.toLocaleString("ja-JP")} 人)` : ""}`}
         description="条件に合っても、このグループから除外するユーザー"
         {...excludeSource}
+        total={counts?.excludeCount ?? null}
         addLabel="追加"
         emptyText="常に除外する人はいません"
         disabled={disabled}
