@@ -1,6 +1,6 @@
 // src/features/core/userGroup/components/common/UserGroupConditionBuilder/index.tsx
 // 部品(props だけ): 条件の組み立て。根の組(すべて満たす / いずれかを満たす)の中に条件と条件グループ(2 階層まで。グループの中は条件だけ)。
-// 見た目: 根の組 = 枠つきのカード(下に追加の操作) / 条件グループ = 左に色の帯 + 「条件グループ」の札 + 薄い地 / 並んだ条件の間に「かつ・または」 / 番号の札(グループの外の条件 = 1・2…、条件グループ = a・b…、その中 = a1・a2…。並びから毎回数える) / 条件・条件グループは右上でたたむ(見出しと 1 行の要約だけ。開閉は画面だけの状態。グループをたたむと中の条件もたたまれ、開き直すと条件はたたんだまま)
+// 見た目: 根の組 = 枠つきのカード(下に追加の操作) / 条件グループ = 左に色の帯 + 「条件グループ」の札 + 薄い地 / 並んだ条件の間に「かつ・または」 / 並びは条件 → 条件グループ(足した順にかかわらず。条件を追加は条件のすぐ下、グループを追加は一番下) / 番号の札(グループの外の条件 = 1・2…、条件グループ = a・b…、その中 = a1・a2…。並びから毎回数える) / 条件・条件グループは右上でたたむ(見出しと 1 行の要約だけ。開閉は画面だけの状態。グループをたたむと中の条件もたたまれ、開き直すと条件はたたんだまま)
 // - どの条件・グループも「含める / 除外する」を選べる(not。両方を見せた 2 択)/ 条件は部品の label で選び、引数は部品の欄から(UserGroupCriterionFields)
 // - 画面で組めない深い定義は読むだけで出し(label と引数の表示)、「作り直す」で空の組から組める
 // 流れ(木の形・足す外す・定義の木への変換)は hook useUserGroupConditionBuilder。部品の鍵は出さない(D94)
@@ -290,6 +290,12 @@ function GroupNode({
   const numbers = node.children.map((child) =>
     child.type === "group" ? groupLetter(groupCount++) : `${letter}${++criterionCount}`,
   );
+  // 見せる順は「条件 → 条件グループ」(組の中の並びは結果を変えないので、足した順にかかわらず分けて出す)
+  const leaves = node.children.filter(
+    (child): child is Extract<ConditionDraftNode, { type: "criterion" }> => child.type === "criterion",
+  );
+  const groups = node.children.filter((child): child is ConditionDraftGroup => child.type === "group");
+  const numberOf = new Map(node.children.map((child, index) => [child.id, numbers[index]]));
   const pickOptions = criteria.map((criterion) => ({
     value: criterion.key,
     label: criterion.weight === "heavy" ? `${criterion.label}(${criterion.weightLabel})` : criterion.label,
@@ -338,68 +344,82 @@ function GroupNode({
             ? "条件はまだありません"
             : `条件 ${node.children.length} 件(${numbers.join("・")})`}
         </Para>
-      ) : node.children.length === 0 ? (
-        <Para
-          size="sm"
-          tone="muted"
-          align="center"
-          className="my-0 rounded-md border border-dashed border-border px-3 py-4"
-        >
-          {isRoot
-            ? "条件はまだありません。下の「条件を追加」から足してください"
-            : "このグループに条件を追加してください"}
-        </Para>
       ) : (
         <Stack space={2}>
-          {node.children.map((child, index) => (
+          {leaves.length === 0 && groups.length === 0 ? (
+            <Para
+              size="sm"
+              tone="muted"
+              align="center"
+              className="my-0 rounded-md border border-dashed border-border px-3 py-4"
+            >
+              {isRoot
+                ? "条件はまだありません。下の「条件を追加」から足してください"
+                : "このグループに条件を追加してください"}
+            </Para>
+          ) : null}
+          {leaves.map((child, index) => (
             <Fragment key={child.id}>
               {index > 0 ? <JoinMark op={node.op} /> : null}
-              {child.type === "group" ? (
-                <GroupNode
-                  node={child}
-                  level={level + 1}
-                  letter={numbers[index]}
-                  criteria={criteria}
-                  actions={actions}
-                  disabled={disabled}
-                />
-              ) : (
-                <CriterionNode
-                  node={child}
-                  number={numbers[index]}
-                  defaultOpen={!closedIds.has(child.id)}
-                  criteria={criteria}
-                  actions={actions}
-                  disabled={disabled}
-                />
-              )}
+              <CriterionNode
+                node={child}
+                number={numberOf.get(child.id) ?? ""}
+                defaultOpen={!closedIds.has(child.id)}
+                criteria={criteria}
+                actions={actions}
+                disabled={disabled}
+              />
             </Fragment>
           ))}
+          <Flex align="center" gap="xs" wrap="wrap" data-slot="condition-add-criterion">
+            <SelectInput
+              value=""
+              options={pickOptions}
+              showPlaceholderOption={false}
+              placeholder={isRoot ? "＋ 条件を追加" : "＋ このグループに条件を追加"}
+              size="sm"
+              className="w-auto border-dashed data-[size=sm]:h-9"
+              disabled={disabled}
+              onChange={(value) => value && actions.addCriterion(node.id, String(value))}
+            />
+          </Flex>
+          {groups.map((child, index) => (
+            <Fragment key={child.id}>
+              {leaves.length > 0 || index > 0 ? <JoinMark op={node.op} /> : null}
+              <GroupNode
+                node={child}
+                level={level + 1}
+                letter={numberOf.get(child.id) ?? ""}
+                criteria={criteria}
+                actions={actions}
+                disabled={disabled}
+              />
+            </Fragment>
+          ))}
+          {isRoot ? (
+            <Flex
+              align="center"
+              gap="xs"
+              wrap="wrap"
+              className="mt-1 border-t border-border pt-3"
+              data-slot="condition-add-group"
+            >
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={disabled}
+                onClick={() => actions.addGroup(node.id)}
+              >
+                ＋ 条件グループを追加
+              </Button>
+              <Span size="xs" tone="muted">
+                複数の条件をまとめて、別の合わせ方(いずれか など)で組みたい時に
+              </Span>
+            </Flex>
+          ) : null}
         </Stack>
       )}
-      {expanded ? (
-        <Flex align="center" gap="xs" wrap="wrap" className={isRoot ? "border-t border-border pt-3" : ""}>
-          <SelectInput
-            value=""
-            options={pickOptions}
-            showPlaceholderOption={false}
-            placeholder={isRoot ? "条件を追加" : "このグループに条件を追加"}
-            disabled={disabled}
-            onChange={(value) => value && actions.addCriterion(node.id, String(value))}
-          />
-          {isRoot ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={disabled}
-              onClick={() => actions.addGroup(node.id)}
-            >
-              条件グループを追加
-            </Button>
-          ) : null}
-        </Flex>
-      ) : null}
     </Stack>
   );
 }
