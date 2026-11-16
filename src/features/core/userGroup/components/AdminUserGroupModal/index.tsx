@@ -39,6 +39,7 @@ import { useUserGroupEstimate } from "@/features/core/userGroup/hooks/useUserGro
 import { useUserGroupExceptions } from "@/features/core/userGroup/hooks/useUserGroupExceptions";
 import { intervalLabel, useUserGroupForm } from "@/features/core/userGroup/hooks/useUserGroupForm";
 import { useUserGroupModal } from "@/features/core/userGroup/hooks/useUserGroupModal";
+import { useUserGroupMembershipEditor } from "@/features/core/userGroup/hooks/useUserGroupMembershipEditor";
 import { useUserGroupStaticMembers } from "@/features/core/userGroup/hooks/useUserGroupStaticMembers";
 import type { AdminUserGroupDetail } from "@/features/core/userGroup/services/client/userGroupAdminClient";
 
@@ -121,6 +122,30 @@ function UserGroupModalBody({
     groupId: group && group.kind !== "static" ? group.id : null,
     enabled: peopleTab,
     onChanged: (fresh) => void modal.refresh(fresh, "exceptions"),
+  });
+  // その場で一員を直す(D101)。適用の後は要約と人数を取り直す(書く欄は作り直さない、D94)
+  const membersEditor = useUserGroupMembershipEditor({
+    groupId: group && group.kind === "static" ? group.id : null,
+    target: "members",
+    onApplied: () => {
+      members.refresh();
+      void modal.refresh(null, "members");
+    },
+  });
+  const afterExceptionsApplied = () => {
+    exceptions.include.refresh();
+    exceptions.exclude.refresh();
+    void modal.refresh(null, "exceptions");
+  };
+  const includeEditor = useUserGroupMembershipEditor({
+    groupId: group && group.kind !== "static" ? group.id : null,
+    target: "include",
+    onApplied: afterExceptionsApplied,
+  });
+  const excludeEditor = useUserGroupMembershipEditor({
+    groupId: group && group.kind !== "static" ? group.id : null,
+    target: "exclude",
+    onApplied: afterExceptionsApplied,
   });
 
   const closeConfirm = freeze.running ? modal.freezeCloseConfirm : form.closeConfirm;
@@ -292,6 +317,7 @@ function UserGroupModalBody({
       title="メンバー"
       description="このグループのメンバーです。ユーザーを選んで追加・削除できます"
       people={members}
+      editor={membersEditor}
       total={group.count.state === "counted" ? (group.count.value ?? null) : null}
       addLabel="追加"
       emptyText="メンバーはいません"
@@ -299,7 +325,7 @@ function UserGroupModalBody({
     />
   ) : (
     <Stack space={4}>
-      <UserGroupExceptionsEditor exceptions={exceptions} counts={group.exceptions} scheduled={group.kind === "scheduled"} disabled={locked} />
+      <UserGroupExceptionsEditor exceptions={exceptions} editors={{ include: includeEditor, exclude: excludeEditor }} counts={group.exceptions} scheduled={group.kind === "scheduled"} disabled={locked} />
       {!locked ? (
         <Stack space={2} className="rounded-md border border-border bg-card p-4" data-slot="user-group-freeze-current">
           <Para size="sm" tone="muted" className="my-0">

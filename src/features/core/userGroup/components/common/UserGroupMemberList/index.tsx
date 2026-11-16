@@ -13,8 +13,10 @@ import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
 
 import { UserAsyncMultiSelect } from "@/features/core/user/components/common/UserAsyncMultiSelect";
+import type { UserGroupMembershipEditorState } from "@/features/core/userGroup/hooks/useUserGroupMembershipEditor";
 import type { UserGroupPeopleState } from "@/features/core/userGroup/hooks/useUserGroupPeople";
 
+import { UserGroupMembershipPicker } from "../UserGroupMembershipPicker";
 import { UserGroupPeopleModal } from "../UserGroupPeopleModal";
 import { UserGroupPeopleSummary } from "../UserGroupPeopleSummary";
 
@@ -28,10 +30,12 @@ export type UserGroupMemberListProps = {
   disabled?: boolean;
   /** 全部の人数(要約の「計 N 名」。null = 分からない) */
   total?: number | null;
+  /** 一員をその場で直す部品の流れ(D101。渡すと選ぶ部品 + 追加の代わりに適用の形) */
+  editor?: UserGroupMembershipEditorState;
 } & ({ people: UserGroupPeopleState; draft?: never } | { draft: UserGroupMemberDraft; people?: never });
 
 export function UserGroupMemberList(props: UserGroupMemberListProps) {
-  const { title, description, addLabel, emptyText, disabled = false, total = null } = props;
+  const { title, description, addLabel, emptyText, disabled = false, total = null, editor } = props;
   if (props.draft) {
     return (
       <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="user-group-people">
@@ -65,7 +69,9 @@ export function UserGroupMemberList(props: UserGroupMemberListProps) {
           </Para>
         ) : null}
       </Stack>
-      {!disabled ? (
+      {!disabled && editor ? (
+        <UserGroupMembershipPicker editor={editor} />
+      ) : !disabled ? (
         <Flex align="start" gap="xs" wrap="wrap">
           <Stack space={1} className="min-w-64 flex-1">
             <UserAsyncMultiSelect value={people.picks} onChange={people.setPicks} />

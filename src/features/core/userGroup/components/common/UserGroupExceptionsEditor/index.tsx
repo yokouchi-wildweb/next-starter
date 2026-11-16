@@ -10,6 +10,7 @@ import { Para } from "@/components/TextBlocks/Para";
 
 import { UserGroupMemberList } from "@/features/core/userGroup/components/common/UserGroupMemberList";
 import type { UserGroupExceptionsState } from "@/features/core/userGroup/hooks/useUserGroupExceptions";
+import type { UserGroupMembershipEditorState } from "@/features/core/userGroup/hooks/useUserGroupMembershipEditor";
 
 export type UserGroupExceptionsDraft = {
   include: string[];
@@ -23,6 +24,8 @@ export type UserGroupExceptionsEditorProps = {
   exceptions?: UserGroupExceptionsState;
   /** 作る前の下書き */
   draft?: UserGroupExceptionsDraft;
+  /** その場で直す部品の流れ(保存済みのグループ、D101) */
+  editors?: { include: UserGroupMembershipEditorState; exclude: UserGroupMembershipEditorState };
   /** 人数(1 件の exceptions) */
   counts: { includeCount: number; excludeCount: number } | null;
   scheduled?: boolean;
@@ -31,7 +34,7 @@ export type UserGroupExceptionsEditorProps = {
 
 const DRAFT_HINT = "作成すると、グループと一緒に追加されます";
 
-export function UserGroupExceptionsEditor({ exceptions, draft, counts, scheduled = false, disabled = false }: UserGroupExceptionsEditorProps) {
+export function UserGroupExceptionsEditor({ exceptions, draft, editors, counts, scheduled = false, disabled = false }: UserGroupExceptionsEditorProps) {
   const includeSource = draft
     ? { draft: { value: draft.include, onChange: draft.setInclude, hint: DRAFT_HINT } }
     : { people: exceptions!.include };
@@ -49,6 +52,7 @@ export function UserGroupExceptionsEditor({ exceptions, draft, counts, scheduled
         description="条件に合わなくても、このグループに含めるユーザー"
         {...includeSource}
         total={counts?.includeCount ?? null}
+        editor={draft ? undefined : editors?.include}
         addLabel="追加"
         emptyText="常に含める人はいません"
         disabled={disabled}
@@ -58,6 +62,7 @@ export function UserGroupExceptionsEditor({ exceptions, draft, counts, scheduled
         description="条件に合っても、このグループから除外するユーザー"
         {...excludeSource}
         total={counts?.excludeCount ?? null}
+        editor={draft ? undefined : editors?.exclude}
         addLabel="追加"
         emptyText="常に除外する人はいません"
         disabled={disabled}

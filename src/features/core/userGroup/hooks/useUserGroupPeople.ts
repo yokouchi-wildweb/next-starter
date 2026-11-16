@@ -170,6 +170,11 @@ export function useUserGroupPeople(options: UseUserGroupPeopleOptions) {
     remove,
     removeMany,
     clearAll,
+    /** 要約と(開いていれば)一覧を取り直す(よそで一員を変えた後、D101) */
+    refresh: () => {
+      revalidateSummary();
+      if (listOpen) revalidate();
+    },
     /** 名前の検索が入っている(全員を削除は検索を消してから) */
     searching: qInput.trim() !== "",
   };
