@@ -10,7 +10,18 @@ import { RadioGroup, RadioGroupItem } from "@/components/Primitives/RadioGroup";
 import { cn } from "@/lib/cn";
 import { type Options } from "@/components/Form/types";
 
-export type RadioGroupDisplayType = "classic" | "standard" | "bookmark" | "rounded";
+export type RadioGroupDisplayType = "classic" | "standard" | "bookmark" | "rounded" | "segmented";
+
+/**
+ * segmented = 選択肢を 1 つの溝に横並びで収め、選んだものだけ白い札が浮く切り替え(2 つ以上いくつでも)。
+ * 高さは h-9(Button の sm と同じ)。buttonSize / buttonVariant 系は使わない
+ */
+const SEGMENTED_TRACK_CLASS = "inline-flex h-9 max-w-full items-center gap-1 rounded-lg bg-muted p-1";
+const SEGMENTED_TRACK_VERTICAL_CLASS = "inline-flex flex-col items-stretch gap-1 rounded-lg bg-muted p-1";
+const SEGMENTED_ITEM_CLASS =
+  "inline-flex h-7 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-md px-3 text-sm font-medium transition-[color,background-color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50";
+const SEGMENTED_SELECTED_CLASS = "bg-background text-foreground shadow-sm";
+const SEGMENTED_UNSELECTED_CLASS = "text-muted-foreground hover:text-foreground";
 export type RadioGroupOrientation = "horizontal" | "vertical";
 
 type OptionPrimitive = Options["value"];
@@ -27,7 +38,7 @@ export type RadioGroupInputProps = {
    * even when options haven't loaded yet.
    */
   options?: Options[];
-  /** 表示タイプ（クラシック / 標準ボタン / ブックマークタグ / 丸形） */
+  /** 表示タイプ（クラシック / 標準ボタン / ブックマークタグ / 丸形 / セグメント） */
   displayType?: RadioGroupDisplayType;
   /** 選択肢の並び方向（デフォルト: classicはvertical、それ以外はhorizontal） */
   orientation?: RadioGroupOrientation;
@@ -77,7 +88,9 @@ export function RadioGroupInput({
   const isVertical = resolvedOrientation === "vertical";
   const classicLayoutClass = isVertical ? "mt-3 flex flex-col gap-4" : "mt-3 flex flex-wrap gap-4";
   const defaultLayoutClass = isVertical ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
-  const layoutClass = displayType === "classic" ? classicLayoutClass : defaultLayoutClass;
+  const segmentedLayoutClass = isVertical ? SEGMENTED_TRACK_VERTICAL_CLASS : SEGMENTED_TRACK_CLASS;
+  const layoutClass =
+    displayType === "classic" ? classicLayoutClass : displayType === "segmented" ? segmentedLayoutClass : defaultLayoutClass;
 
   if (displayType === "classic") {
     return (
@@ -175,6 +188,25 @@ export function RadioGroupInput({
             >
               {op.label}
             </RoundedButton>
+          );
+        }
+
+        if (displayType === "segmented") {
+          return (
+            <Button
+              key={key}
+              type="button"
+              variant="none"
+              size="none"
+              className={cn(SEGMENTED_ITEM_CLASS, selected ? SEGMENTED_SELECTED_CLASS : SEGMENTED_UNSELECTED_CLASS)}
+              onClick={handleSelect}
+              disabled={optionDisabled}
+              role="radio"
+              aria-checked={selected}
+              data-state={selected ? "on" : "off"}
+            >
+              {op.label}
+            </Button>
           );
         }
 

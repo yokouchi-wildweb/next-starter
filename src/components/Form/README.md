@@ -379,7 +379,7 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 | `AsyncMultiSelectInput` | 複数選択（非同期検索） |
 
 `AsyncComboboxInput` / `AsyncMultiSelectInput` / `Overlays/AsyncPickerModal` の取得エンジン（browse ページング・Enter 検索・searchRank・無限スクロール・requestId 競合破棄・ラベル cache）は `Input/Manual/AsyncOptionSource/useAsyncOptionSource` に 1 本化されている。非同期候補を扱う新しいピッカーを作るときは、このフック + `AsyncOptionList` / `AsyncOptionInitialState` / `AsyncOptionListFooter` を消費し、取得ロジックを再実装しない。各コンポーネントが持つのは選択モデル（単一 / 複数 / session snapshot）とクロームだけ。アクションボタン起点で「マスタから N 件取り込む」用途はフォーム項目ではなく `Overlays/AsyncPickerModal` を使う。
-| `RadioGroupInput` | ラジオボタン |
+| `RadioGroupInput` | ラジオボタン（`displayType`: `standard` 既定 / `classic` 丸い印 / `bookmark` / `rounded` / `segmented` = 1 つの溝に横並び、選んだものだけ白い札が浮く切り替え。2 つ以上いくつでも、高さ h-9 = Button sm と同じ） |
 | `CheckGroupInput` | チェックボックスグループ |
 | `BooleanCheckboxInput` | 単一チェックボックス |
 | `BooleanRadioGroupInput` | はい/いいえ ラジオ |

@@ -107,8 +107,7 @@ function NegateChoice({ node, actions, disabled }: Omit<NodeProps, "level" | "cr
       aria-label="含める・除外する"
       value={node.negate ? "exclude" : "include"}
       options={NEGATE_OPTIONS}
-      displayType="standard"
-      buttonSize="sm"
+      displayType="segmented"
       disabled={disabled}
       onChange={(v) => actions.setNegate(node.id, v === "exclude")}
       data-slot="negate"
