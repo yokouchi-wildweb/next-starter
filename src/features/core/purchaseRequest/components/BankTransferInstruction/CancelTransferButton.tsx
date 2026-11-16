@@ -65,9 +65,8 @@ export function CancelTransferButton({ requestId }: Props) {
       <Flex justify="center">
         <Button
           type="button"
-          variant="outline"
+          variant="destructiveOutline"
           size="sm"
-          className="border-destructive/40 text-destructive-text hover:bg-destructive/5"
           onClick={() => setOpen(true)}
         >
           振込による購入をキャンセル

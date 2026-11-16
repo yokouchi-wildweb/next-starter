@@ -342,9 +342,8 @@ export function SeamlessAvDemo() {
                           ↓
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="destructiveGhost"
                           size="xs"
-                          className="text-destructive-text"
                           onClick={() => removeSlot(slot.id)}
                         >
                           削除
