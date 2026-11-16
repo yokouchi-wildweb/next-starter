@@ -615,7 +615,15 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       const ids = await deps.db.transaction((tx) => ensureExceptionGroups(tx, group));
       const includeAdd = parsed.include?.add ?? [];
       const excludeAdd = parsed.exclude?.add ?? [];
-      const counts = { includeAdded: 0, includeRemoved: 0, excludeAdded: 0, excludeRemoved: 0 };
+      const counts = { includeCleared: 0, includeRemoved: 0, includeAdded: 0, excludeCleared: 0, excludeRemoved: 0, excludeAdded: 0 };
+      // 全員を外す(D94): 空の置き換え(同じ予算つきの書き込み)。足す・外すより先に
+      const clear = async (sideGroupId: string) => {
+        const result = await deps.writer.replaceMembers(sideGroupId, [], { deadline: createDeadline(deps.config.admin.freezeBudgetMs) });
+        if (result.status !== "replaced") throw new DomainError("例外の人を外しきれませんでした。もう一度お試しください", { status: 503 });
+        return result.removed;
+      };
+      if (parsed.include?.clear) counts.includeCleared = await clear(ids.includeId);
+      if (parsed.exclude?.clear) counts.excludeCleared = await clear(ids.excludeId);
       const includeRemove = [...(parsed.include?.remove ?? []), ...excludeAdd];
       const excludeRemove = [...(parsed.exclude?.remove ?? []), ...includeAdd];
       if (includeRemove.length > 0) counts.includeRemoved = (await deps.writer.removeMembers(ids.includeId, includeRemove)).removed;
@@ -659,6 +667,14 @@ export function createUserGroupAdminService(deps: UserGroupAdminDeps) {
       const group = await loadGroup(id);
       assertStatic(group);
       if (parsed.mode === "replace") return { group: await detailOf(group), members: await replaceFrom(group, parsed.from) };
+      if (parsed.mode === "clear") {
+        // 全員を外す(D94): 空の置き換え(同じ予算つきの書き込み。下書きの版 → 1 つの取引で入れ替え)
+        const members = await deps.writer.replaceMembers(group.id, [], { deadline: createDeadline(deps.config.admin.freezeBudgetMs) });
+        if (members.status === "replaced") {
+          await audit(group, "user_group.members.cleared", { removed: members.removed, memberCount: members.memberCount });
+        }
+        return { group: await detailOf(group), members };
+      }
       if (parsed.mode === "remove") {
         const removed = await deps.writer.removeMembers(group.id, parsed.userIds);
         if (removed.removed > 0) {

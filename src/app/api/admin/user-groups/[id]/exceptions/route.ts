@@ -4,7 +4,7 @@
 //
 // GET /api/admin/user-groups/[id]/exceptions?side=include|exclude&q&cursor&limit   例外の人(q = 名前かメールの部分一致) { items: [{ id, name }], nextCursor }
 //   例外がまだ無ければ空の一覧。静的グループは 409
-// PUT /api/admin/user-groups/[id]/exceptions   例外の人 { include?: { add?, remove? }, exclude?: { add?, remove? } }(動的・定期計算だけ)
+// PUT /api/admin/user-groups/[id]/exceptions   例外の人 { include?: { clear?, add?, remove? }, exclude?: { clear?, add?, remove? } }(動的・定期計算だけ。clear: true = その側を全員外す)
 
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";

@@ -33,7 +33,7 @@ const userConfig = {
   userListPage: {
     enableSelectionTable: { general: false, managerial: false },
     selectionBehavior: "row",
-    bulkActionsAlwaysVisible: false,
+    selectionMode: "onSelect",
   },
 };
 const walletConfig = { enableAdminBalanceAdjust: true };
@@ -98,7 +98,7 @@ beforeEach(() => {
   userConfig.enableUserMemo = false;
   userConfig.userListPage.enableSelectionTable.general = false;
   userConfig.userListPage.selectionBehavior = "row";
-  userConfig.userListPage.bulkActionsAlwaysVisible = false;
+  userConfig.userListPage.selectionMode = "onSelect";
 });
 
 const alice = { id: "u1", name: "アリス", email: "a@example.com" } as unknown as User;
@@ -191,11 +191,11 @@ test("機能の開閉と選択テーブル: 設定をそのまま返し、一括
   userConfig.enableUserMemo = true;
   userConfig.userListPage.enableSelectionTable.general = true;
   userConfig.userListPage.selectionBehavior = "checkbox";
-  userConfig.userListPage.bulkActionsAlwaysVisible = true;
+  userConfig.userListPage.selectionMode = "always";
   const { hook, unmount } = await mount();
   assert.equal(hook().canManage, true);
   assert.equal(hook().canMemo, true);
-  assert.deepEqual(hook().selection, { enabled: true, behavior: "checkbox", bulkActionsAlwaysVisible: true });
+  assert.deepEqual(hook().selection, { enabled: true, behavior: "checkbox", selectionMode: "always" });
   assert.equal(hook().bulkActions, bulkItems);
   await unmount();
 });

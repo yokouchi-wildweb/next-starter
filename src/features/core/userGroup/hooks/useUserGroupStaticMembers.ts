@@ -16,6 +16,9 @@ import {
 
 import { useUserGroupPeople } from "./useUserGroupPeople";
 
+/** 全員を外す時の送り直しの上限 */
+const CLEAR_MAX_ATTEMPTS = 20;
+
 export type UseUserGroupStaticMembersOptions = {
   groupId: string | null;
   enabled?: boolean;
@@ -40,12 +43,26 @@ export function useUserGroupStaticMembers({ groupId, enabled = true, onChanged, 
     },
     [groupId, onChanged],
   );
+  // 全員を外す(D94)。サーバーは予算つきで書くので incomplete の間は同じ body で送り直す(20 回まで)
+  const clearPeople = useCallback(async () => {
+    if (!groupId) return;
+    for (let attempt = 0; attempt < CLEAR_MAX_ATTEMPTS; attempt += 1) {
+      const result = await updateStaticMembers(groupId, { mode: "clear" });
+      const done = !("members" in result) || result.members.status !== "incomplete";
+      if (done) {
+        onChanged?.("group" in result ? result.group : null);
+        return;
+      }
+    }
+    throw new Error("全員を削除しきれませんでした。もう一度お試しください");
+  }, [groupId, onChanged]);
   return useUserGroupPeople({
     fetchPage: groupId ? (cursor, limit, q) => listStaticMembers(groupId, { cursor, limit, q }) : null,
     deps: [groupId],
     enabled,
     addPeople,
     removePeople,
+    clearPeople,
     addedMessage: "メンバーを追加しました",
     removedMessage: "メンバーから削除しました",
     observerOptions,

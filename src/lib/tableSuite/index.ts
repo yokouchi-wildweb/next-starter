@@ -9,6 +9,7 @@
 // ============================================================
 export { default as DataTable } from "./DataTable";
 export { default as RecordSelectionTable } from "./RecordSelectionTable";
+export { default as RecordSelectionList } from "./RecordSelectionList";
 export { default as EditableGridTable } from "./EditableGridTable";
 
 // 一括操作の受け口の項目(型・絞って並べる関数・描く部品。D149)
@@ -85,7 +86,11 @@ export type {
   BulkActionSelection,
   BulkActionBarSpacing,
   BulkActionBarPosition,
+  SelectionMode,
 } from "./RecordSelectionTable";
+
+// RecordSelectionList 型(カードの一覧の兄弟、D95)
+export type { RecordSelectionListProps } from "./RecordSelectionList";
 
 // EditableGridTable 型
 export type {

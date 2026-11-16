@@ -7,12 +7,13 @@
 // - 一覧はサブのモーダル(listOpen の間だけ取る): 名前の検索 q(少し待ってから取り直す)+ カーソルの無限スクロール + 行ごとの選択
 // - add() = 選んだ人を足して picks を空に、要約と一覧を取り直す
 // - removeMany(ids) = まとめて外し、行を外して選択を空に、要約を取り直す(remove(id) = 1 人)
+// - clearAll() = 全員を外す(検索に関係なく一覧の全部、D94)。足している間は読み込みの知らせ(useLoadingToast)
 
 import { useCallback, useEffect, useState } from "react";
 
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
 import { err } from "@/lib/errors";
-import { useToast } from "@/lib/toast";
+import { useLoadingToast, useToast } from "@/lib/toast";
 
 import type { AdminUserGroupMember, AdminUserGroupMemberPage } from "../services/client/userGroupAdminClient";
 
@@ -29,13 +30,15 @@ export type UseUserGroupPeopleOptions = {
   addPeople: (userIds: string[]) => Promise<void>;
   /** まとめて外す(API は id の並びを受ける) */
   removePeople: (userIds: string[]) => Promise<void>;
+  /** 全員を外す(D94) */
+  clearPeople: () => Promise<void>;
   addedMessage: string;
   removedMessage: string;
   observerOptions?: IntersectionObserverInit;
 };
 
 export function useUserGroupPeople(options: UseUserGroupPeopleOptions) {
-  const { fetchPage, deps, enabled, addPeople, removePeople, addedMessage, removedMessage, observerOptions } = options;
+  const { fetchPage, deps, enabled, addPeople, removePeople, clearPeople, addedMessage, removedMessage, observerOptions } = options;
   const { showToast } = useToast();
   const canFetch = enabled && fetchPage !== null;
 
@@ -66,6 +69,8 @@ export function useUserGroupPeople(options: UseUserGroupPeopleOptions) {
   const [picks, setPicks] = useState<string[]>([]);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [adding, setAdding] = useState(false);
+  useLoadingToast(adding, "追加しています…");
   const { revalidate, removeItems } = query;
   const revalidateSummary = summary.revalidate;
 
@@ -90,6 +95,7 @@ export function useUserGroupPeople(options: UseUserGroupPeopleOptions) {
   const add = useCallback(async () => {
     if (picks.length === 0) return;
     setBusy(true);
+    setAdding(true);
     try {
       await addPeople(picks);
       setPicks([]);
@@ -99,6 +105,7 @@ export function useUserGroupPeople(options: UseUserGroupPeopleOptions) {
     } catch (error) {
       showToast(err(error, "追加できませんでした"), "error");
     } finally {
+      setAdding(false);
       setBusy(false);
     }
   }, [picks, addPeople, revalidateSummary, listOpen, revalidate, showToast, addedMessage]);
@@ -125,6 +132,22 @@ export function useUserGroupPeople(options: UseUserGroupPeopleOptions) {
 
   const remove = useCallback((userId: string) => removeMany([userId]), [removeMany]);
 
+  /** 全員を外す(検索に関係なく全部)。一覧は空にし、要約を取り直す */
+  const clearAll = useCallback(async () => {
+    setBusy(true);
+    try {
+      await clearPeople();
+      removeItems(() => true);
+      setSelected(new Set());
+      revalidateSummary();
+      showToast(`全員を${removedMessage}`, "success");
+    } catch (error) {
+      showToast(err(error, "削除できませんでした"), "error");
+    } finally {
+      setBusy(false);
+    }
+  }, [clearPeople, removeItems, revalidateSummary, showToast, removedMessage]);
+
   return {
     /** タブの中の要約(先頭 3 名) */
     summary,
@@ -146,6 +169,9 @@ export function useUserGroupPeople(options: UseUserGroupPeopleOptions) {
     add,
     remove,
     removeMany,
+    clearAll,
+    /** 名前の検索が入っている(全員を削除は検索を消してから) */
+    searching: qInput.trim() !== "",
   };
 }
 
