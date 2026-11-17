@@ -207,13 +207,15 @@ export type MessageSendStore = {
   ) => Promise<{ userIds: string[]; nextCursor: string | null }>;
   /**
    * 配信停止の好みの行(利用者 × (種類 か '*') × (経路 か '*')、kind は null か連絡の種別)。channel が '*' の行はそのまま '*' で返す
-   * (種別まるごとの行 = kind X・'*'・'*' は種別 X の連絡の全経路に当たる)
+   * (種別まるごとの行 = kind X・'*'・'*' は種別 X の連絡の全経路に当たる)。
+   * groupRow = 種類が入っているグループの行の category('group:<鍵>'、D123。無ければ省略か null)。その行も種類の行と同じに当たる
    */
   findOptOuts: (
     userIds: readonly string[],
     category: string,
     kind: string | null,
     channels: readonly string[],
+    groupRow?: string | null,
   ) => Promise<{ userId: string; channel: string }[]>;
   /** 宛先の停止の行(経路 × address_hash) */
   findSuppressions: (

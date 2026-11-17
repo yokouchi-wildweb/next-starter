@@ -173,15 +173,17 @@ export const drizzleMessageSendStore: MessageSendStore = {
     return { userIds, nextCursor: userIds.length === limit ? userIds[userIds.length - 1]! : null };
   },
 
-  async findOptOuts(userIds, category, kind, channels) {
+  async findOptOuts(userIds, category, kind, channels, groupRow) {
     if (userIds.length === 0) return [];
+    // 当たる category = その種類・全部 '*'・入っているグループの行(D123)
+    const categories = groupRow ? [category, MESSAGE_ALL, groupRow] : [category, MESSAGE_ALL];
     const rows = await db
       .select({ userId: MessagePreferenceTable.user_id, channel: MessagePreferenceTable.channel })
       .from(MessagePreferenceTable)
       .where(
         and(
           inArray(MessagePreferenceTable.user_id, [...userIds]),
-          or(eq(MessagePreferenceTable.category, category), eq(MessagePreferenceTable.category, MESSAGE_ALL)),
+          inArray(MessagePreferenceTable.category, categories),
           inArray(MessagePreferenceTable.channel, [...channels, MESSAGE_ALL]),
           // kind の行(種別まるごと)は連絡の種別が同じ時だけ当たる。kind '*' の行は今までどおり
           kind

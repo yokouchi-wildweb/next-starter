@@ -5,13 +5,16 @@
 //   経路は有効な経路の受け口の全部(種類の無い経路は kinds が空)。種別の枠は利用者が止められる種別(userStoppable)だけ、MESSAGE_KINDS の順
 //   種類が経路に出る = 種類の経路にその経路がある(列 = 種類の経路 ∩ 開いている経路、D86)
 // - optedOut = 送る側(checkStops)が止めるか。via = どの行で止まっているか
-//   (cell = そのマスの行 / category = 種類の全経路 '*' / kind = 種別まるごと / channel = 経路の全種類 '*' / all = 全体 '*' '*' / null = 受け取る)
+//   (cell = そのマスの行 / category = 種類の全経路 '*' / group = グループまるごと(この経路か '*')/ kind = 種別まるごと / channel = 経路の全種類 '*' /
+//   all = 全体 '*' '*' / null = 受け取る)
 // - 広い停止の状態: 種類まるごと = categories(種類ごとに 1 つ)、経路まるごと = channels[].optedOut、全体 = allOptedOut
 // - 種別まるごとの停止の状態は kinds(上流の既定の画面はスイッチを出さない、D62・D71。fork は部品を置ける)
+// - グループまるごとの停止(D123): 全経路('*')の状態は groups、経路ごとの状態は channels[].kinds[].groups[].optedOut。
+//   止めるのはグループの行なので、後からグループに入った種類も止まる
 
 import type { MessageKind } from "@/lib/messaging";
 
-export type MessagePreferenceVia = "cell" | "category" | "kind" | "channel" | "all";
+export type MessagePreferenceVia = "cell" | "category" | "group" | "kind" | "channel" | "all";
 
 /** 1 つの種類の、1 つの経路での止まり方 */
 export type MessagePreferenceCategoryDto = {
@@ -26,6 +29,8 @@ export type MessagePreferenceCategoryDto = {
 export type MessagePreferenceGroupDto = {
   key: string | null;
   label: string | null;
+  /** このグループ × この経路の停止の行がある(key null は false) */
+  optedOut: boolean;
   categories: MessagePreferenceCategoryDto[];
 };
 
@@ -60,11 +65,21 @@ export type MessagePreferenceCategoryStopDto = {
   optedOut: boolean;
 };
 
+/** グループまるごと(全経路 '*')の停止の状態(利用者が止められる種類を持つ見出しのグループごとに 1 つ、D123) */
+export type MessagePreferenceGroupStopDto = {
+  key: string;
+  label: string;
+  kind: MessageKind;
+  /** (グループ, '*') の行がある */
+  optedOut: boolean;
+};
+
 export type MessagePreferencesDto = {
   /** 全体の停止('*' '*' の行)がある */
   allOptedOut: boolean;
   categories: MessagePreferenceCategoryStopDto[];
   kinds: MessagePreferenceKindDto[];
+  groups: MessagePreferenceGroupStopDto[];
   channels: MessagePreferenceChannelDto[];
 };
 
@@ -72,10 +87,12 @@ export type MessagePreferencesDto = {
  * 1 つの変更:
  * - 1 マス(種類・経路)・種類まるごと(channel '*')・経路まるごと(category '*')・全体(どちらも '*')を止める / 再開する
  * - 種別まるごと(kind)を止める / 再開する(利用者が止められる種別だけ)
+ * - グループまるごと(group、channel 省略か '*' = 全経路)を止める / 再開する(利用者が止められる種類を持つグループだけ、D123)
  */
 export type SetMessagePreferenceInput =
   | { category: string; channel: string; optedOut: boolean }
-  | { kind: string; optedOut: boolean };
+  | { kind: string; optedOut: boolean }
+  | { group: string; channel?: string; optedOut: boolean };
 
 /** サーバーの呼び手だけが渡す(HTTP の本文からは受けない) */
 export type SetMessagePreferenceOptions = {

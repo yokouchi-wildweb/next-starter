@@ -3,7 +3,8 @@
 // 配信停止(D35): 好み(message_preferences)と宛先の停止(message_suppressions)で配達の計画を外す。
 // 小さな送信の展開・cron の展開・cron が送る直前に呼ぶ。
 // - 好み: 種別の性質 userStoppable(activity・promotion)で required でない連絡だけ。利用者 × 種類 × 経路、'*' は全部に当たる。
-//   種別まるごとの行(kind = 連絡の種別、'*' '*')も当たる。当たる行が 1 つでもあれば止める(和、許可の行は無い。D71)
+//   種別まるごとの行(kind = 連絡の種別、'*' '*')・種類が入っているグループの行('group:<鍵>'、D123)も当たる。
+//   当たる行が 1 つでもあれば止める(和、許可の行は無い。D71)
 // - 宛先の停止(正規化した宛先の sha256): 種別の性質 addressStop が all の連絡は hard_bounce・complaint・manual にいつも従い、
 //   one_click は範囲(scope)が連絡の種類か '*' の時だけ従う。hardBounce の種別(functional・security)と required は hard_bounce だけ
 // 種別の値で分けない(lib/messaging の MESSAGE_KIND_TRAITS を引く)
@@ -14,6 +15,7 @@ import { createHash } from "node:crypto";
 import { kindTraits, type MessageKind } from "@/lib/messaging";
 
 import { MESSAGE_ALL } from "../../../entities/schema";
+import { groupRowOfCategory } from "../preferences/groupRows";
 import type { MessageSendDeps } from "./types";
 
 /** 停止の確かめに要る連絡の性質 */
@@ -63,7 +65,9 @@ export async function checkStops(
   const optedOut = new Set<string>();
   if (honoursPreferences(context)) {
     const userIds = [...new Set(targets.flatMap((target) => (target.userId ? [target.userId] : [])))];
-    for (const row of await deps.store.findOptOuts(userIds, context.category!, context.kind, channels)) {
+    // 種類が入っているグループの行も当たる(種類の受け口の group を送る時に読む = 後から入った種類も止まる、D123)
+    const groupRow = groupRowOfCategory(deps.categories, context.category!);
+    for (const row of await deps.store.findOptOuts(userIds, context.category!, context.kind, channels, groupRow)) {
       optedOut.add(`${row.userId}|${row.channel}`);
     }
   }
