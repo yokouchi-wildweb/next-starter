@@ -4,7 +4,7 @@
 // 経路 = 連絡の種類の経路(fork の種類の上書きの後)。欄 = 連絡のひな形の欄のうち種類の経路で使う物の全部(既定で全部直せる、D132)を
 // ひな形の宣言の順に平たく並べ、欄ごとに使う経路を持つ(経路のタブは欄の channels で絞る)
 
-import type { MessageFieldSpec } from "@/lib/messaging";
+import type { MessageEmbeddedEntry, MessageFieldSpec, MessageLayoutSummary } from "@/lib/messaging";
 
 /** 連絡の経路 1 つ(種類の経路の順) */
 export type AdminOverrideChannel = {
@@ -78,6 +78,11 @@ export type AdminOverrideMessageDetail = {
   categoryLabel: string | null;
   /** 使ってよい {{鍵}}(vars は秘密を除く・共通の文脈・provides) */
   allowedKeys: string[];
+  /**
+   * 埋め込み情報の一覧(部品 EmbeddedInfoTags が読む): 共通 + 当たる enrichers(日本語の別名つき)+ この連絡の vars(秘密を除く。
+   * source "own"、別名なし = 鍵で書く)
+   */
+  embedded: MessageEmbeddedEntry[];
   /** 種類の経路(届ける経路、欄はこの順) */
   channels: AdminOverrideChannel[];
   fields: AdminOverrideField[];
@@ -86,5 +91,17 @@ export type AdminOverrideMessageDetail = {
 /** 欄 1 つの保存(fieldPath = 今の版の欄の鍵) */
 export type SaveMessageOverrideInput = { fieldPath: string; value: unknown };
 
-/** プレビューの結果(D86)。html = 連絡の描き方で描いた HTML(文字の欄に data-field="<欄の鍵>")、経路にプレビューが無ければ null */
-export type MessageOverridePreview = { channel: string; html: string | null; text: string | null };
+/**
+ * プレビューの結果(D86)。html = 連絡の描き方で描いた HTML(文字の欄に data-field="<欄の鍵>")、経路にプレビューが無ければ null。
+ * layout / values / summary = ひな形の鍵・その経路が使う欄の中身(保存した値と下書きを重ねた物、印なし、{{鍵}} のまま)・要約
+ * (お知らせは client のひな形の描き方 layoutInApps で描く)。要約を作れなければ summary null と cannotRender に理由
+ */
+export type MessageOverridePreview = {
+  channel: string;
+  html: string | null;
+  text: string | null;
+  layout: string;
+  values: Record<string, unknown>;
+  summary: MessageLayoutSummary | null;
+  cannotRender: string | null;
+};

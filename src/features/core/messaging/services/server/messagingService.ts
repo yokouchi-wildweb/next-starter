@@ -11,6 +11,7 @@ import {
   adminContinueSending,
   adminDeleteDispatch,
   adminDispatchDeleteSummary,
+  adminDispatchPreview,
   adminResendFailed,
   adminSend,
   adminSendEstimate,
@@ -84,6 +85,8 @@ export const messagingService = {
   /** 回の読む口(管理。D37 の DTO): 一覧・1 件・配達 */
   listDispatches,
   findDispatch,
+  /** 送った回のプレビュー(回のひな形と欄の中身を回の vars・埋め込み情報の値で描く。GET dispatches/[id]/preview) */
+  adminDispatchPreview,
   listDeliveries,
   /** 回の画面の絞りの選択肢(カテゴリーの鍵・表示名・種別。管理) */
   dispatchCategoryOptions,

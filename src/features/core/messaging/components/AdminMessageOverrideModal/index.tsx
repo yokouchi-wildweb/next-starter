@@ -1,8 +1,10 @@
 // src/features/core/messaging/components/AdminMessageOverrideModal/index.tsx
 // セクションコンテナ(管理: 1 連絡の文言の上書きを直すモーダル。D87)。開閉は置き場が持つ(open・onOpenChange・messageKey)。
-// 中身 = 連絡の名前・種類 / カテゴリーの表示名(連絡の鍵は見せない、D46)・使える {{鍵}} の案内 + 2 つの欄(D80、部品 MessageEditorLayout):
-// 左 = 今の経路のプレビュー(ChannelPreview。メールは描いた HTML、入力中の欄を枠で示す)、右 = 経路のタブと欄ごとの編集
-// (保存・既定に戻すは欄 1 つずつ。部品 OverrideFieldEditor、入力は欄の表示の約束から)。
+// 中身 = 連絡の名前・種類 / カテゴリーの表示名(連絡の鍵は見せない、D46)・直せる欄の案内(既定でひな形の全欄、連絡が絞ればその欄だけ、D132)・
+// 使えない行の数・埋め込み情報のタグ(EmbeddedInfoTags)+ 2 つの欄(D80、部品 MessageEditorLayout):
+// 左 = 今の経路のプレビュー(上書きと下書きを重ねたひな形の描き方。部品 LayoutPreview: 経路のタブは右と同じ値、メールは描いた HTML で
+// 入力中の欄を枠で示す、お知らせはひな形のお知らせの描き方)、右 = 経路のタブと欄ごとの編集
+// (保存・元の文言に戻すは欄 1 つずつ。部品 OverrideFieldEditor、入力はひな形の欄の型から LayoutFieldInput)。
 // 流れは hook useMessageOverrideEditor。部品は公開の部品だけなので、fork は自分の画面にも同じモーダルを置ける。
 // 保存していない欄があるまま閉じる = confirmOnClose、ページの移動 = hook の中の @/lib/unsavedGuard。開き直すたびに下書きを捨てる
 
@@ -16,13 +18,12 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
 
-import { AllowedKeysHint } from "@/features/core/messaging/components/common/AllowedKeysHint";
 import { dispatchKindLabel } from "@/features/core/messaging/components/common/DispatchRow";
-import { ChannelPreview } from "@/features/core/messaging/components/common/ChannelPreview";
+import { EmbeddedInfoTags } from "@/features/core/messaging/components/common/EmbeddedInfoTags";
+import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
 import { MessageEditorLayout } from "@/features/core/messaging/components/common/MessageEditorLayout";
 import { OverrideFieldEditor } from "@/features/core/messaging/components/common/OverrideFieldEditor";
 import { useMessageOverrideEditor } from "@/features/core/messaging/hooks/useMessageOverrideEditor";
-import { useCopyMessageVariable } from "@/features/core/messaging/hooks/useCopyMessageVariable";
 import { useModalSession } from "@/hooks/useModalSession";
 
 export type AdminMessageOverrideModalProps = {
@@ -42,7 +43,6 @@ export function AdminMessageOverrideModal({ open, onOpenChange, messageKey }: Ad
 
 function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; onOpenChange: (open: boolean) => void; messageKey: string }) {
   const editor = useMessageOverrideEditor(messageKey);
-  const copyKey = useCopyMessageVariable();
   const { detail } = editor;
 
   return (
@@ -73,9 +73,14 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
               </Span>
             </Flex>
             <Para size="sm" tone="muted" className="my-0">
-              編集した項目だけ、ここで設定した文言で送信します。デザインとリンクは変わりません。
+              編集した項目だけ、ここで設定した文言で送信します。編集できる項目は通知のひな形の項目すべてです(通知が絞っている時はその項目だけ)。
             </Para>
-            <AllowedKeysHint allowedKeys={editor.allowedKeys} onCopyKey={copyKey} />
+            {editor.unusableCount > 0 ? (
+              <Para size="sm" tone="destructive" className="my-0">
+                使えない編集が {editor.unusableCount} 件あります(元の文言で送信しています)。内容を確認して元の文言に戻すか、編集し直してください。
+              </Para>
+            ) : null}
+            <EmbeddedInfoTags common={editor.embeddedTags.common} own={editor.embeddedTags.own} onCopy={editor.embeddedTags.copy} />
           </Stack>
 
           {editor.channels.length > 0 ? (
@@ -84,16 +89,30 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
               activeChannel={editor.activeChannel}
               onChannelChange={editor.setActiveChannel}
               preview={
-                editor.activeChannelInfo ? (
-                  <ChannelPreview
-                    channel={editor.activeChannelInfo}
-                    values={editor.activeValues}
-                    fieldMeta={editor.activeFieldMeta}
-                    focusedPath={editor.focusedPath}
-                    html={editor.previewHtml}
-                    loading={editor.previewLoading}
-                  />
-                ) : null
+                <Stack space={2} data-slot="override-preview">
+                  {editor.previewLoading && !editor.previewContent ? (
+                    <Flex justify="center" className="py-8">
+                      <Spinner className="size-6" />
+                    </Flex>
+                  ) : editor.previewLayout ? (
+                    <LayoutPreview
+                      layout={editor.previewLayout}
+                      channels={editor.channels.map((channel) => channel.key)}
+                      channel={editor.activeChannel}
+                      onChannelChange={editor.setActiveChannel}
+                      content={editor.previewContent}
+                      loading={editor.previewLoading}
+                      emailHeight={520}
+                    />
+                  ) : (
+                    <Para size="sm" tone="muted" className="my-0">
+                      プレビューを表示できませんでした
+                    </Para>
+                  )}
+                  <Para size="xs" tone="muted" className="my-0">
+                    {"{{名前}}"} は送信時に実際の値に置き換わります
+                  </Para>
+                </Stack>
               }
             >
               <Stack space={3}>

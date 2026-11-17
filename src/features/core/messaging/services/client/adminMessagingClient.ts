@@ -20,6 +20,8 @@ import type { AdminFreeTextCategoryOption } from "@/features/core/messaging/serv
 import type {
   AdminDeliveryRow,
   AdminDispatchDetail,
+  AdminDispatchPreview,
+  AdminDispatchPreviewChannel,
   AdminDispatchSummary,
 } from "@/features/core/messaging/services/server/admin/dispatchDto";
 import type {
@@ -50,6 +52,8 @@ export type {
   AdminDeliveryRow,
   AdminDispatchCategoryOption,
   AdminDispatchDetail,
+  AdminDispatchPreview,
+  AdminDispatchPreviewChannel,
   AdminDispatchSummary,
   AdminResendResult,
   ContinueSendingResult,
@@ -163,6 +167,16 @@ export async function getAdminDispatch(id: string): Promise<AdminDispatchDetail>
     return res.data;
   } catch (error) {
     throw normalizeHttpError(error, "送信の取得に失敗しました");
+  }
+}
+
+/** 送った回のプレビュー(回のひな形と欄の中身を回の値で描く。メールの HTML・お知らせの描き方の材料) */
+export async function getAdminDispatchPreview(id: string): Promise<AdminDispatchPreview> {
+  try {
+    const res = await axios.get<AdminDispatchPreview>(`${BASE}/dispatches/${encodeURIComponent(id)}/preview`);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "送信のプレビューの取得に失敗しました");
   }
 }
 

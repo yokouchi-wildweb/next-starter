@@ -14,7 +14,7 @@
 // - 前の送る口の回(ひな形 layout が null。テンプレートから送った回は message_key が null なので鍵では見ない): 件名・本文は S2 の写しが前の列から headings / rendered へ移した。記録の段(record)を持たないので、
 //   本文は段に依らず rendered を返す(前の列を消す前の管理の見え方を保つ)
 
-import type { MessageRecord } from "@/lib/messaging";
+import type { MessageLayoutSummary, MessageRecord } from "@/lib/messaging";
 
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import type { MessageChannelCounts, MessageChannelTextMap } from "../../../entities/schema";
@@ -226,3 +226,27 @@ export function toDeliveryRow(row: MessageDelivery, record: MessageRecord | null
     body: record === "full" ? row.body : null,
   };
 }
+
+/**
+ * 送った回のプレビューの経路 1 つ(GET dispatches/[id]/preview)。html = メールの送った描き方の HTML(経路に preview が無ければ null)、
+ * layout / values / summary = お知らせを client のひな形の描き方(layoutInApps)で描く材料(差し込み済み)。描けなければ cannotRender に理由
+ */
+export type AdminDispatchPreviewChannel = {
+  key: string;
+  /** 経路の表示名 */
+  label: string;
+  html: string | null;
+  text: string | null;
+  layout: string;
+  values: Record<string, unknown>;
+  summary: MessageLayoutSummary | null;
+  cannotRender: string | null;
+};
+
+/** 送った回のプレビュー(回のひな形と欄の中身を回の vars・埋め込み情報の値で差し込んで描く)。回ごと描けなければ cannotRender に理由、経路は空 */
+export type AdminDispatchPreview = {
+  dispatchId: string;
+  layout: string | null;
+  cannotRender: string | null;
+  channels: AdminDispatchPreviewChannel[];
+};

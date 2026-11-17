@@ -7,10 +7,13 @@
 // - 保存(PUT)・既定に戻す(DELETE)は欄 1 つずつ。成功したらその欄の下書きを捨て、1 連絡と一覧を取り直す
 // - 下書きが 1 つでもあれば、ページを離れる前に確かめる(@/lib/unsavedGuard)。モーダルを閉じる前の確かめは closeConfirm
 // - 下書きの中の知らない {{鍵}}(使ってよい鍵の外)を欄ごとに返す(保存はサーバーが同じ検査で止める)
-// - 欄の道 = ひな形の欄の鍵(D132)。経路のタブは欄の channels(その欄を使う経路)で絞る。使えない行(経路の無い行)はどのタブにも出す
-// - 欄の入力の約束は欄の宣言から(utils/overrideFieldMeta.ts、S5 まで最小の合わせ。入力できない型は読むだけ)
-// - 2 つの欄の編集(D80): 今の経路のタブ(activeChannel)・入力中の欄(focusedPath)・今の経路の値(下書きを重ねた物)、
-//   描いたプレビュー(POST /preview。下書きが変わってから少し待って取り直す、D86)
+// - 欄の道 = ひな形の欄の鍵(D132)。直せる欄は既定でひな形の全欄(連絡が adminEditableOnly で絞ればその欄だけ。server が決める)。
+//   経路のタブは欄の channels(その欄を使う経路)で絞る。使えない行(経路の無い行)はどのタブにも出す
+// - 欄の値はひな形の欄の中身の形のまま(1 行の文・段落・並び・組・項目と値・ブロックの並び …。入力は部品 LayoutFieldInput)
+// - 埋め込み情報のタグ(部品 EmbeddedInfoTags): 1 件の embedded を共通 / 専用に分けて渡す(useEmbeddedInfoTags)
+// - 2 つの欄の編集(D80): 今の経路のタブ(activeChannel)・入力中の欄(focusedPath)・
+//   描いたプレビュー(POST /preview: 保存した値と下書きを重ねたひな形の描き方。メールは HTML、お知らせはひな形の描き方の材料 values + summary。
+//   下書きが変わってから少し待って取り直す、D86)
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -26,22 +29,20 @@ import {
   saveMessageOverride,
   type AdminOverrideField,
   type AdminOverrideMessageDetail,
+  type MessageOverridePreview,
 } from "../services/client/overrideClient";
-
-import { overrideFieldMeta } from "../utils/overrideFieldMeta";
+import type { LayoutPreviewContent } from "../components/common/LayoutPreview";
 
 import { MESSAGE_OVERRIDES_KEY, messageOverrideKey } from "./overrideKeys";
+import { useEmbeddedInfoTags } from "./useEmbeddedInfoTags";
 import { useMessageOverride } from "./useMessageOverride";
 
-/** 欄の値(文字・文字の並び・部分の object(例 メールのボタン { label, url })) */
-export type OverrideFieldValue = string | string[] | Record<string, unknown>;
+/** 欄の値(ひな形の欄の中身の形のまま: 文字・数・並び・組・ブロックの並び …) */
+export type OverrideFieldValue = unknown;
 
-/** 値を編集の形にそろえる(文字・文字の並び・object 以外は文字にする) */
+/** 値を編集の形にそろえる(無い値は空の文字) */
 export function toEditable(value: unknown): OverrideFieldValue {
-  if (Array.isArray(value)) return value.map((v) => (typeof v === "string" ? v : String(v ?? "")));
-  if (typeof value === "string") return value;
-  if (value && typeof value === "object") return { ...(value as Record<string, unknown>) };
-  return value === null || value === undefined ? "" : String(value);
+  return value === null || value === undefined ? "" : value;
 }
 
 function collectTexts(value: unknown, out: string[]): string[] {
@@ -57,6 +58,14 @@ export function unknownKeysOf(value: OverrideFieldValue, allowedKeys: readonly s
   const found = new Set<string>();
   for (const text of texts) for (const key of listVariables(text)) if (!allowedKeys.includes(key)) found.add(key);
   return [...found];
+}
+
+/** 描いた HTML に入力中の欄の枠の style を足す(data-field の印に当てる) */
+export function withFocusStyle(html: string, focusedPath: string | null | undefined): string {
+  if (!focusedPath) return html;
+  const value = focusedPath.replace(/["\\]/g, "");
+  const style = `<style>[data-field="${value}"],[data-field^="${value}."]{outline:2px solid #f59e0b;outline-offset:2px;border-radius:2px}</style>`;
+  return /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${style}</head>`) : `${style}${html}`;
 }
 
 const same = (a: OverrideFieldValue, b: OverrideFieldValue) => JSON.stringify(a) === JSON.stringify(b);
@@ -85,7 +94,7 @@ export function useMessageOverrideEditor(messageKey: string) {
 
   /** 欄の今の値(下書き、無ければ送る時の値) */
   const valueOf = useCallback(
-    (field: AdminOverrideField): OverrideFieldValue => drafts[field.path] ?? toEditable(field.effective),
+    (field: AdminOverrideField): OverrideFieldValue => (field.path in drafts ? drafts[field.path] : toEditable(field.effective)),
     [drafts],
   );
 
@@ -117,17 +126,6 @@ export function useMessageOverrideEditor(messageKey: string) {
     () => (detail?.fields ?? []).filter((field) => field.channels.includes(activeChannel) || field.channels.length === 0),
     [detail, activeChannel],
   );
-  /** 今の経路の欄の表示の約束(入力できる欄だけ) */
-  const activeFieldMeta = useMemo(
-    () =>
-      Object.fromEntries(
-        activeFields.flatMap((field) => {
-          const meta = field.editable ? overrideFieldMeta(field.spec) : null;
-          return meta ? [[field.path, meta]] : [];
-        }),
-      ),
-    [activeFields],
-  );
   /** 今の経路の値(下書き、無ければ送る時の値)。プレビューが読む */
   const activeValues = useMemo(
     () => Object.fromEntries(activeFields.filter((field) => field.editable).map((field) => [field.path, drafts[field.path] ?? field.effective])),
@@ -141,7 +139,7 @@ export function useMessageOverrideEditor(messageKey: string) {
   const detailVersion = detail ? JSON.stringify(detail.fields.map((field) => field.updatedAt)) : "";
   // 今の求め(経路・下書き・保存の版)。結果がこの求めの物でなければ描き直し中
   const previewRequest = `${activeChannel}|${draftSignature}|${detailVersion}`;
-  const [preview, setPreview] = useState<{ request: string; channel: string; html: string | null } | null>(null);
+  const [preview, setPreview] = useState<{ request: string; result: MessageOverridePreview | null } | null>(null);
   const hasDetail = Boolean(detail);
   useEffect(() => {
     if (!hasDetail || !activeChannel) return;
@@ -149,11 +147,11 @@ export function useMessageOverrideEditor(messageKey: string) {
     const timer = setTimeout(() => {
       previewMessageOverride(messageKey, { channel: activeChannel, values: JSON.parse(draftSignature) as Record<string, unknown> })
         .then((result) => {
-          if (!cancelled) setPreview({ request: previewRequest, channel: result.channel, html: result.html });
+          if (!cancelled) setPreview({ request: previewRequest, result });
         })
         .catch(() => {
-          // 描けない時は欄から組んだ形に戻る(画面の操作は止めない)
-          if (!cancelled) setPreview({ request: previewRequest, channel: activeChannel, html: null });
+          // 描けない時はプレビューを出さない(画面の操作は止めない)
+          if (!cancelled) setPreview({ request: previewRequest, result: null });
         });
     }, 400);
     return () => {
@@ -162,6 +160,24 @@ export function useMessageOverrideEditor(messageKey: string) {
     };
   }, [messageKey, activeChannel, draftSignature, previewRequest, hasDetail]);
   const previewLoading = hasDetail && preview?.request !== previewRequest;
+  const previewResult = preview?.result && preview.result.channel === activeChannel ? preview.result : null;
+  const activeChannelInfo = detail?.channels.find((channel) => channel.key === activeChannel) ?? null;
+  /** プレビューの描く物(部品 LayoutPreview の content。メールの HTML には入力中の欄の枠) */
+  const previewContent = useMemo<LayoutPreviewContent | null>(
+    () =>
+      previewResult
+        ? {
+            html: previewResult.html ? withFocusStyle(previewResult.html, focusedPath) : null,
+            text: previewResult.text,
+            title: previewResult.summary?.title ?? null,
+            values: previewResult.values,
+            summary: previewResult.summary,
+            cannotRender: previewResult.cannotRender,
+          }
+        : null,
+    [previewResult, focusedPath],
+  );
+  const embeddedTags = useEmbeddedInfoTags({ catalog: detail?.embedded ?? null });
   const hasDrafts = Object.keys(drafts).length > 0;
   useUnsavedGuard(hasDrafts);
 
@@ -204,15 +220,21 @@ export function useMessageOverrideEditor(messageKey: string) {
     channels: detail?.channels ?? [],
     activeChannel,
     setActiveChannel,
-    activeChannelInfo: detail?.channels.find((channel) => channel.key === activeChannel) ?? null,
+    activeChannelInfo,
     activeFields,
-    activeFieldMeta,
     activeValues,
     focusedPath,
     setFocusedPath,
-    /** 描いたプレビューの HTML(今の経路の物だけ。無ければ null) */
-    previewHtml: preview && preview.channel === activeChannel ? preview.html : null,
+    /** 描いたプレビュー(今の経路の物だけ。メールの HTML・お知らせの描き方の材料。無ければ null) */
+    preview: previewResult,
+    /** プレビューのひな形の鍵と描く物(部品 LayoutPreview に渡す) */
+    previewLayout: preview?.result?.layout ?? null,
+    previewContent,
     previewLoading,
+    /** 埋め込み情報のタグ(共通 / 専用・押すとコピー) */
+    embeddedTags,
+    /** 使えない行の数(送る時はコードの値) */
+    unusableCount: (detail?.fields ?? []).filter((field) => field.unusable).length,
     allowedKeys,
     valueOf,
     setDraft,
