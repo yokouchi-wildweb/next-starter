@@ -67,7 +67,7 @@ export const message = defineMessage({
 ### 種類と種別は付け替えない(止めて足す)
 
 - 設計の意図: 上書きで種類・種別を変えると、止めた行・集計・上流の検査が知らないうちに変わる(D74)
-- どう書くか: 連絡の上書きは `category` を変えられず、種類の上書きは `key`・`kind` を変えられない(`label`・`description`・`channels`・`group` だけ)。別の種類で送りたい = 上流の連絡を `enabled: false` で止め、自分の種類と連絡を足す(例は messaging の README)
+- どう書くか: 連絡の上書きは `category` を変えられず、種類の上書きは `key`・`kind` を変えられない(`label`・`description`・`channels`・`defaultChannels`・`group` だけ)。別の種類で送りたい = 上流の連絡を `enabled: false` で止め、自分の種類と連絡を足す(例は messaging の README)
 
 ### 機能の連絡(functional)は止められない
 
@@ -179,10 +179,10 @@ export const messageOverride = {
 
 - `MessageChannel`(経路): `key`・`label`・`addressing`(`user` = 利用者から引く / `address` = 宛先を直に)・`enabled?`(経路の入切、既定 true。false は項目が無い経路と同じ扱い = 配達の行は `channel_off`。値は項目が自分の設定から読む。門の機能ではない)・`resolveAddresses?`(既定は端末の帳簿)・`endpoint?`(帳簿を読む経路の宛先の形 `{ address: zod }`。端末の登録の口が検査し、変換後の値を残す。無ければ汎用の形)・`preview?`(管理の送信のプレビュー。送る時と同じ組み立ての中身を送る時と同じ描き方で描く。email = HTML。無い経路は中身をそのまま見せる)・`remove?`(届けた物の取り下げ `({ dispatchId }) => { removed }`、D89。管理の削除が呼ぶ。持つ経路 = 消せる経路。何度呼んでも同じ結果に書く)・`connectHref?`(宛先の無い利用者を案内する先 = サイト内のパスか URL。好みの表が宛先の無い経路に出す。連携の画面が無い経路は持たない)・`send(宛先の束)`(宛先 `ChannelSendTarget` = `userId`・`address`・`messageKey`(連絡の鍵)・`idempotencyKey`・`content`(組んだ中身: `MessageLayoutContent` か経路が描いた物)、好みに従う連絡だけ `category`(配信停止の種類)と送る側が付ける `headers`(List-Unsubscribe など))→ 宛先ごとの `ChannelSendResult`(`sent` か `transient` / `permanent` / `unknown`。宛先の失効が確定したときだけ `addressInvalid`)・`webhooks?`(provider → `{ verify, normalize }`。事件の形は lib/mail の webhook と同じ + 送る時にタグで渡した配達の id `deliveryId?`)
 - `MessageEnricher`(値): `key`・`target`(当て先 D127 = `{ messages?: 連絡の鍵[], categories?: 種類の鍵[], kinds?: 種別[], all?: true }`、どれかに当たれば当てる。判定 `enricherTargets(target, { key, category, kind })`。使える鍵の検査と実行の両方がこれで選ぶ)・`provides`(足す変数の zod)・`resolve(文脈)`
-- `MessageCategory`(種類 = 1 つの出来事、配信停止の単位 = 種類 × 経路): `key`・`label`・`description?`・`kind`(7 つ)・`channels`(届ける経路)・`group?`(設定画面の見出し `MessageCategoryGroup` の鍵、同じ種別だけ)。fork は上流の種類の `<名前>.override.ts` で `label`・`description`・`channels`・`group` を変えられる(鍵・種別は不可)
+- `MessageCategory`(種類 = 1 つの出来事、配信停止の単位 = 種類 × 経路): `key`・`label`・`description?`・`kind`(7 つ)・`channels`(届ける経路)・`defaultChannels?`(管理の送る画面で最初に入っている経路 = `channels` の中の 1 つ以上、無い = 全部。停止の単位は変えない、D119)・`group?`(設定画面の見出し `MessageCategoryGroup` の鍵、同じ種別だけ)。fork は上流の種類の `<名前>.override.ts` で `label`・`description`・`channels`・`defaultChannels`・`group` を変えられる(鍵・種別は不可)
 - `MessageCategoryGroup`(種類のグループ、`messaging/categoryGroups/<名前>.ts` の `export const group`): `key`・`label`・`order`。見出しだけで停止の単位ではない(D82)。上流は出荷しない
 - `MessageSource`(送り元): `key`・`label`
-- `MessageSystemTemplate`(システムテンプレート、`messaging/templates/<名前>.ts` の `export const systemTemplate`、D117・D125): `key`・`kind`(管理者がその場で送れる種別 = 性質 `adminFreeText` がある物、種別ごとに 1 つ)・`label`・`layout`・`values`(白紙の欄の中身)。管理の送信の白紙で、管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` だけ変えられる。上流は announcement・direct・promotion の 3 つ(ひな形 notice)
+- `MessageSystemTemplate`(システムテンプレート、`messaging/templates/<名前>.ts` の `export const systemTemplate`、D117・D125): `key`・`kind`(管理者がその場で送れる種別 = 性質 `adminFreeText` がある物。1 つの種別に何本でも、受け口の順の最初がその種別の既定の白紙)・`label`・`layout`・`values`(白紙かできあがった文面)・`embedded?`(専用の埋め込み情報の宣言、DB のテンプレートと同じ形・同じ検査)。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` だけ変えられる。上流は 7 本(種別ごとにシンプル `simple`・リッチ `notice` の白紙 + メンテナンスのお知らせ、D119。templates/README.md)
 - `MessageSubscriber`(送った後の購読): `key`・`on`(事件の種類)・`filter?`(連絡の鍵・経路)・`handle(事件の束)`(事件の id + 購読の鍵で冪等に。投げると次回もう一度渡る)
 
 ## 経路の失敗(ChannelError)

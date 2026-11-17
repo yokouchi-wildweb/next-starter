@@ -1,10 +1,22 @@
 // src/features/core/messaging/services/server/sendMessage/systemTemplates.ts
 //
 // システムテンプレート(受け口 messaging/templates、D117・D125)の読み口と検査。
-// - 管理者がその場で送れる種別(種別の性質 adminFreeText がある物)だけ、種別ごとに 1 つ、ひな形は受け口にある物
+// - 管理者がその場で送れる種別(種別の性質 adminFreeText がある物)だけ、ひな形は受け口にある物。1 つの種別に何本でも置け、
+//   受け口の順でその種別の最初がその種別の既定の白紙(D119)
+// - 専用の埋め込み情報の宣言(任意)は DB のテンプレートと同じ検査(宣言の形・共通の名前との重なり)
 // - 送る口・管理の送信・テンプレートの一覧が読む。検査に通らない受け口は送る口が 500 で止める(黙って送らない)
 
-import { kindTraits, kindsWhere, type MessageKind, type MessageLayout, type MessageSystemTemplate } from "@/lib/messaging";
+import {
+  checkEmbeddedCatalog,
+  embeddedCatalog,
+  kindTraits,
+  kindsWhere,
+  messageEmbeddedDeclarationSchema,
+  type MessageEmbeddedDeclaration,
+  type MessageKind,
+  type MessageLayout,
+  type MessageSystemTemplate,
+} from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 /** 管理者がその場で送れる種別(種別の性質 adminFreeText がある物) */
@@ -23,7 +35,6 @@ export function checkSystemTemplates(
   layouts: Readonly<Record<string, MessageLayout>>,
 ): string[] {
   const problems: string[] = [];
-  const byKind = new Map<string, string>();
   for (const template of Object.values(templates)) {
     const label = `システムテンプレート ${template.key}`;
     if (!/^[a-z][A-Za-z0-9]*$/.test(template.key)) problems.push(`${label}: 鍵は英数字の camelCase で書く`);
@@ -31,9 +42,13 @@ export function checkSystemTemplates(
     if (!isAdminSendableKind(template.kind)) {
       problems.push(`${label}: 種別 ${template.kind} は管理者がその場で送れない(${adminSendableKinds().join(" / ")} のどれか)`);
     }
-    const other = byKind.get(template.kind);
-    if (other) problems.push(`${label}: 種別 ${template.kind} の白紙は ${other} がある(種別ごとに 1 つ)`);
-    else byKind.set(template.kind, template.key);
+    const declarations: MessageEmbeddedDeclaration[] = [];
+    for (const item of template.embedded ?? []) {
+      const parsed = messageEmbeddedDeclarationSchema.safeParse(item);
+      if (parsed.success) declarations.push(parsed.data as MessageEmbeddedDeclaration);
+      else problems.push(`${label}: 専用の埋め込み情報 ${String((item as { key?: unknown }).key)} の宣言が正しくない`);
+    }
+    for (const problem of checkEmbeddedCatalog(embeddedCatalog({ own: declarations }))) problems.push(`${label}: ${problem.message}`);
     if (!layouts[template.layout]) problems.push(`${label}: ひな形 ${template.layout} は layouts の受け口に無い`);
     if (!template.values || typeof template.values !== "object" || Array.isArray(template.values)) {
       problems.push(`${label}: values(白紙の欄の中身)は object で書く`);
@@ -57,7 +72,7 @@ export function requireSystemTemplate(
   return template;
 }
 
-/** 種別の白紙(無ければ null) */
+/** 種別の既定の白紙(受け口の順でその種別の最初。無ければ null) */
 export function systemTemplateOfKind(
   templates: Readonly<Record<string, MessageSystemTemplate>>,
   kind: string,

@@ -266,6 +266,8 @@ edit src/features/core/messaging/layouts/link/LinkEmail.tsx  # 1 行スイッチ
 edit src/features/core/messaging/layouts/link/LinkInApp.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/messaging/layouts/notice/NoticeEmail.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/messaging/layouts/notice/NoticeInApp.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
+edit src/features/core/messaging/layouts/simple/SimpleEmail.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
+edit src/features/core/messaging/layouts/simple/SimpleInApp.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/messaging/layouts/statement/StatementEmail.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/messaging/layouts/statement/StatementInApp.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/messaging/layouts/welcome/WelcomeEmail.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
@@ -283,6 +285,8 @@ add src/features/core/messaging/layouts/link/LinkEmail.replace.{ts,tsx}  # 1 行
 add src/features/core/messaging/layouts/link/LinkInApp.replace.{ts,tsx}  # 1 行スイッチ src/features/core/messaging/layouts/link/LinkInApp.tsx の丸ごと置き換え
 add src/features/core/messaging/layouts/notice/NoticeEmail.replace.{ts,tsx}  # 1 行スイッチ src/features/core/messaging/layouts/notice/NoticeEmail.tsx の丸ごと置き換え
 add src/features/core/messaging/layouts/notice/NoticeInApp.replace.{ts,tsx}  # 1 行スイッチ src/features/core/messaging/layouts/notice/NoticeInApp.tsx の丸ごと置き換え
+add src/features/core/messaging/layouts/simple/SimpleEmail.replace.{ts,tsx}  # 1 行スイッチ src/features/core/messaging/layouts/simple/SimpleEmail.tsx の丸ごと置き換え
+add src/features/core/messaging/layouts/simple/SimpleInApp.replace.{ts,tsx}  # 1 行スイッチ src/features/core/messaging/layouts/simple/SimpleInApp.tsx の丸ごと置き換え
 add src/features/core/messaging/layouts/statement/StatementEmail.replace.{ts,tsx}  # 1 行スイッチ src/features/core/messaging/layouts/statement/StatementEmail.tsx の丸ごと置き換え
 add src/features/core/messaging/layouts/statement/StatementInApp.replace.{ts,tsx}  # 1 行スイッチ src/features/core/messaging/layouts/statement/StatementInApp.tsx の丸ごと置き換え
 add src/features/core/messaging/layouts/welcome/WelcomeEmail.replace.{ts,tsx}  # 1 行スイッチ src/features/core/messaging/layouts/welcome/WelcomeEmail.tsx の丸ごと置き換え

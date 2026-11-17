@@ -119,8 +119,16 @@ test("上流の項目の組: 宣言と受け口がそろい、機能に閉じる
   assertUpstreamItems(names("src/features/core/batchJob", "jobHandlers"), ["walletBulkAdjust"]);
   assertUpstreamItems(names("src/features/core/messaging", "bulkSendTargets"), ["bankTransferReview"]);
   assertUpstreamItems(names("src/features/core/messaging", "enrichers"), ["displayName"]);
-  // システムテンプレート(管理の送信の白紙、種別ごとに 1 つ、指令 56 d4)
-  assertUpstreamItems(names("src/features/core/messaging", "systemTemplates"), ["announcement", "direct", "promotion"]);
+  // システムテンプレート(管理の送信の白紙、種別ごとにシンプル・リッチ + メンテナンスのお知らせ、D119)
+  assertUpstreamItems(names("src/features/core/messaging", "systemTemplates"), [
+    "announcement",
+    "announcementRich",
+    "direct",
+    "directRich",
+    "maintenance",
+    "promotion",
+    "promotionRich",
+  ]);
 });
 
 test("1 行スイッチの既定: 何も足さない状態で今までと同じ(エンリッチャーなし・プログラムなし・フックは何もしない)", tier1Only, async () => {
@@ -134,6 +142,7 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   // MailFrame.default は全メールの枠(src/lib/mail/frame、指令 54 D122: fork は MailFrame.replace で一度に替える)
   // NoticeEmail.default・NoticeInApp.default は上流のひな形「汎用のお知らせ」の見た目(messaging/layouts/notice、指令 54 d5)
   // Link・Welcome・Statement・Alert の Email / InApp.default は上流のひな形「認証のリンク」「ようこそ」「お知らせの明細」「セキュリティの警告」の見た目(指令 55 d4)
+  // SimpleEmail.default・SimpleInApp.default は上流のひな形「シンプルなお知らせ」の見た目(messaging/layouts/simple、D119)
   const targets = plan.switches.map((s: { target: string }) => s.target).sort();
   assert.deepEqual(targets, [
     "AdminHeader.default",
@@ -146,6 +155,8 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
     "NoticeEmail.default",
     "NoticeInApp.default",
     "RateLimitWarningContent.default",
+    "SimpleEmail.default",
+    "SimpleInApp.default",
     "StatementEmail.default",
     "StatementInApp.default",
     "WelcomeEmail.default",

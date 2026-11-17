@@ -9,4 +9,6 @@ export const category: MessageCategory = {
   description: "メンテナンスや規約の改定など運営からのお知らせ",
   kind: "announcement",
   channels: ["email", "inApp"],
+  // 送る画面の送信方法は最初お知らせだけ(メールは送る時に入れる、D119)
+  defaultChannels: ["inApp"],
 };

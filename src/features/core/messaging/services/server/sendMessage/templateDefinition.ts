@@ -5,7 +5,7 @@
 // - 鍵は TEMPLATE_MESSAGE_KEY(コードの連絡の鍵ではない。回の message_key は null で、出どころは system_template か template_id + 版)
 // - 種別と経路は送るカテゴリーから(D86)。カテゴリーの種別は管理者がその場で送れる種別(性質 adminFreeText)だけ、白紙は種別が同じカテゴリーだけ(400)
 // - ひな形 = 白紙のひな形か DB のテンプレートの版のひな形。欄の中身(values)はそのひな形の欄の zod で検査する
-// - 埋め込み情報: 一覧 = 共通 + 当たる enrichers + 版の専用の宣言(白紙は専用を持たない)。文面の {{鍵}} / {{別名}} が一覧に無ければ 400。
+// - 埋め込み情報: 一覧 = 共通 + 当たる enrichers + 出どころの専用の宣言(DB のテンプレートの版・システムテンプレートが宣言した物)。文面の {{鍵}} / {{別名}} が一覧に無ければ 400。
 //   専用の値は版の宣言の型で検査する(必須・既定値、embeddedValuesSchema)。値は定義の vars として差し込み、回には embedded_values に残す(sender.ts)
 // - 専用の別名 {{開始日時}} は {{鍵}} に書き換えてから定義にする(回に残す中身は鍵だけ: cron の組み直しは宣言を引き直さない)。
 //   共通・enrichers の別名は差し込みの表が埋める(content.ts)
@@ -83,9 +83,9 @@ export function canonicalEmbeddedNames(value: unknown, embedded: readonly Messag
 /** 送る中身の出どころ(組み済み): 白紙か DB のテンプレートの版 */
 export type TemplateSource = { system: MessageSystemTemplate } | { version: MessageTemplateVersionSource };
 
-/** 出どころの専用の埋め込み情報の宣言(白紙は持たない) */
+/** 出どころの専用の埋め込み情報の宣言(システムテンプレートは宣言した物だけ、例 メンテナンスの開始日時) */
 export function templateEmbeddedOf(source: TemplateSource): MessageEmbeddedDeclaration[] {
-  return "version" in source ? source.version.embedded : [];
+  return "version" in source ? source.version.embedded : [...(source.system.embedded ?? [])];
 }
 
 /** 中身 → 定義(検査の前)。vars = 専用の値の zod(白紙は空) */

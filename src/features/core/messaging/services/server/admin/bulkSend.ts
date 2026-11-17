@@ -20,7 +20,7 @@ import { DomainError } from "@/lib/errors";
 import type { MessagePreview } from "../sendMessage/sender";
 import type { SendMessageResult } from "../sendMessage/types";
 import { assertAdminActor } from "./assertAdmin";
-import { adminFreeTextCategoryOptions, type AdminFreeTextCategoryOption } from "./freeText";
+import { adminFreeTextCategoryOptions, adminSystemTemplateOptions, type AdminFreeTextCategoryOption } from "./freeText";
 import {
   adminContentFields,
   adminContentCategory,
@@ -185,6 +185,8 @@ export type AdminBulkSendOptions = {
   channels: AdminSendOptions["channels"];
   categories: AdminFreeTextCategoryOption[];
   templates: AdminSendOptions["templates"];
+  /** bulk で送れる種別のシステムテンプレート(D119) */
+  systemTemplates: AdminSendOptions["systemTemplates"];
   /** 白紙と並べたテンプレートが使うひな形の欄の宣言 */
   layouts: AdminSendOptions["layouts"];
 };
@@ -206,10 +208,14 @@ export async function adminBulkSendOptions(
   await assertAdminActor(deps);
   const categories = adminFreeTextCategoryOptions(deps.categories, deps.systemTemplates, (option) => option.targets.includes("bulk"), deps.enrichers);
   const templates = deps.templatesOpen() ? await deps.listPublishedTemplates() : [];
+  const system = adminSystemTemplateOptions(deps.systemTemplates).filter((template) =>
+    categories.some((option) => option.kind === template.kind),
+  );
   return {
     channels: adminChannelOptions(deps.channels),
     categories,
     templates,
-    layouts: adminSendLayoutOptions(deps.layouts, categories, templates),
+    systemTemplates: system,
+    layouts: adminSendLayoutOptions(deps.layouts, categories, templates, system),
   };
 }

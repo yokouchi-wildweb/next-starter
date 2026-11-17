@@ -9,4 +9,6 @@ export const category: MessageCategory = {
   description: "運営からあなたへの個別のご連絡",
   kind: "direct",
   channels: ["email", "inApp"],
+  // 送る画面の送信方法は最初お知らせだけ(メールは送る時に入れる、D119)
+  defaultChannels: ["inApp"],
 };
