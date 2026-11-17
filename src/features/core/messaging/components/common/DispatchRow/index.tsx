@@ -10,6 +10,8 @@ import { SoftBadge } from "@/components/Badge";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Link } from "@/components/Navigation/Link";
+
+import { dispatchDetailHref } from "@/features/core/messaging/hooks/useDispatchDetailParam";
 import { Span } from "@/components/TextBlocks/Span";
 
 import { messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
@@ -51,7 +53,7 @@ export function dispatchKindLabel(kind: string | null | undefined): string | nul
 
 export type DispatchRowProps = {
   dispatch: AdminDispatchSummary;
-  /** 詳細の住所(既定 /admin/messaging/<id>) */
+  /** 詳細の住所(既定 /admin/messaging?dispatch=<id> = 送信一覧の上の詳細のモーダル、D130) */
   href?: string;
   /** カテゴリーの表示名(取れない時は出さない) */
   categoryLabel?: string | null;
@@ -63,7 +65,7 @@ export function DispatchRow({ dispatch, href, categoryLabel = null }: DispatchRo
   // 1 段目 = 状態・件名 … 右に作った日時 / 2 段目 = 種別 › カテゴリー ・ 送信方法(札)・ 宛先と数(どれも印つき)
   return (
     <Link
-      href={href ?? `/admin/messaging/${encodeURIComponent(dispatch.id)}`}
+      href={href ?? dispatchDetailHref("/admin/messaging", dispatch.id)}
       className="block rounded-md border border-border bg-card px-4 py-3 hover:bg-muted/40"
       data-slot="dispatch-row"
     >

@@ -1,18 +1,22 @@
 // src/features/core/messaging/components/AdminDispatchDetail/index.tsx
-// セクションコンテナ(管理: 送った回 1 件)。回の中身(状態・件名 / 題・種別とカテゴリーの表示名・送り元の表示名(ある時だけ)・数・送った人・時刻・
-// 本文は記録の段しだい。定義の鍵・送り元の鍵は見せない、D46)と、
-// 本文のプレビュー(回の中身 = ひな形と欄の中身を残した回: 回の値で差し込んだひな形の描き方を経路のタブで、部品 LayoutPreview。
-// メールは送った HTML、お知らせはひな形のお知らせの描き方。中身の無い前の形の回は残した本文をそのまま)と、
-// 配達の一覧(状態・経路で絞る、無限スクロール = カーソル)と、
-// 回の操作(状態の 1 行と、今できる操作だけ: 予約を取り消す・公開を停止・失敗分を再送・送信を再開(送信中の回だけ。1 束だけ進める)。
-// できるかは回の operations、部品 DispatchOperations)と
-// 「同じ内容で送る」(送るモーダル。文面・カテゴリー・宛先の形を写す。門 messagingBroadcast が閉なら出さない)。
+// セクションコンテナ(管理: 送った回 1 件)と、その中の塊(回の詳細のモーダル AdminDispatchDetailModal も同じ塊で組む、D130)。
+// - DispatchSummaryBlock = 基本情報(状態・件名 / 題・種別とカテゴリーの表示名・送り元の表示名(ある時だけ)・宛先・数・送った人・時刻。
+//   定義の鍵・送り元の鍵は見せない、D46)
+// - DispatchBodyBlock = プレビュー(回の中身 = ひな形と欄の中身を残した回: 回の値で差し込んだひな形の描き方を経路のタブで、部品 LayoutPreview。
+//   メールは送った HTML、お知らせは受け取り箱と同じ見せ方。中身の無い前の形の回は残した本文)
+// - DispatchDeliveriesBlock = 送信状況(配達の一覧、状態・経路で絞る、無限スクロール = カーソル)
+// - DispatchActions = 回の操作(状態の 1 行と今できる操作だけ: 削除・失敗分を再送・送信を再開。部品 DispatchOperations)と
+//   「同じ内容で送る」(送るモーダル。門 messagingBroadcast が閉なら出さない)
+// AdminDispatchDetail(dispatchId)= 塊をタブ(基本情報 / 送信状況 / プレビュー)と操作で並べた入れ物(fork が自分の画面に置ける)。
 // 流れ(配達の絞り・includeUnknown・操作と知らせ)は hook useAdminDispatchDetail。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
 
+import { useState } from "react";
+
 import { SelectInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
+import { StateTabs, StateTabsContent } from "@/components/Navigation/StateTabs";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
@@ -55,37 +59,69 @@ const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 
 
 const DELIVERY_STATUS_OPTIONS = Object.entries(DELIVERY_STATUS_DISPLAY).map(([value, { label }]) => ({ value, label }));
 
-export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
-  const canSend = useGate().enabled("messagingBroadcast");
-  const detail = useAdminDispatchDetail(dispatchId);
-  const { dispatch, error, isLoading, deliveries, deliveryFilters, includeUnknown, setIncludeUnknown, remove, resend, continueDispatch } = detail;
-  const categories = useAdminDispatchCategories();
+/** 回 1 件の状態(hook useAdminDispatchDetail の戻り値)。塊はこれを受けて描く */
+export type AdminDispatchDetailState = ReturnType<typeof useAdminDispatchDetail>;
 
-  if (isLoading && !dispatch) {
-    return (
-      <Flex justify="center" className="py-8">
-        <Spinner className="size-6" />
-      </Flex>
-    );
-  }
-  if (!dispatch) {
-    return (
-      <Para tone="muted" align="center">
-        {error ? err(error, "送信を取得できませんでした") : "送信が見つかりません"}
-      </Para>
-    );
-  }
+/** 詳細のタブ */
+export const DISPATCH_DETAIL_TABS = [
+  { value: "summary", label: "基本情報" },
+  { value: "deliveries", label: "送信状況" },
+  { value: "preview", label: "プレビュー" },
+] as const;
+
+export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
+  const detail = useAdminDispatchDetail(dispatchId, { observerOptions: OBSERVER_OPTIONS });
+  const categories = useAdminDispatchCategories();
+  // 選んだタブ(画面の中だけの状態)
+  const [tab, setTab] = useState<string>("summary");
+  const { dispatch, error, isLoading } = detail;
+
+  if (isLoading && !dispatch) return <DispatchDetailLoading />;
+  if (!dispatch) return <DispatchDetailMissing error={error} />;
 
   return (
-    <Stack space={6}>
-      <DispatchSummary dispatch={dispatch} categoryLabel={categories.labelOf(dispatch.category)} preview={detail.preview} />
+    <Stack space={4}>
+      <StateTabs tabs={[...DISPATCH_DETAIL_TABS]} value={tab} onValueChange={setTab} ariaLabel="送信の詳細" size="sm">
+        <StateTabsContent value={tab} className="pt-3">
+          {tab === "summary" ? (
+            <DispatchSummaryBlock dispatch={dispatch} categoryLabel={categories.labelOf(dispatch.category)} />
+          ) : tab === "deliveries" ? (
+            <DispatchDeliveriesBlock detail={detail} />
+          ) : (
+            <DispatchBodyBlock dispatch={dispatch} preview={detail.preview} />
+          )}
+        </StateTabsContent>
+      </StateTabs>
+      <DispatchActions detail={detail} />
+    </Stack>
+  );
+}
 
-      {canSend ? (
-        <Flex justify="end">
-          <MessageSendModal mode={{ type: "sameAs", dispatch }} />
-        </Flex>
-      ) : null}
+/** 読み込み中 */
+export function DispatchDetailLoading() {
+  return (
+    <Flex justify="center" className="py-8">
+      <Spinner className="size-6" />
+    </Flex>
+  );
+}
 
+/** 取れない・無い */
+export function DispatchDetailMissing({ error }: { error: unknown }) {
+  return (
+    <Para tone="muted" align="center">
+      {error ? err(error, "送信を取得できませんでした") : "送信が見つかりません"}
+    </Para>
+  );
+}
+
+/** 回の操作(削除・失敗分を再送・送信を再開)と「同じ内容で送る」 */
+export function DispatchActions({ detail }: { detail: AdminDispatchDetailState }) {
+  const canSend = useGate().enabled("messagingBroadcast");
+  const { dispatch, includeUnknown, setIncludeUnknown, remove, resend, continueDispatch } = detail;
+  if (!dispatch) return null;
+  return (
+    <Flex align="start" justify="between" gap="sm" wrap="wrap" data-slot="dispatch-actions">
       <DispatchOperations
         operations={dispatch.operations}
         includeUnknown={includeUnknown}
@@ -100,61 +136,65 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
         canContinue={dispatch.operations.canContinue.allowed}
         onContinue={continueDispatch}
       />
+      {canSend ? <MessageSendModal mode={{ type: "sameAs", dispatch }} /> : null}
+    </Flex>
+  );
+}
 
-      <Stack space={3}>
-        <SecTitle as="h2" size="lg">
-          送信状況
-        </SecTitle>
-        <Flex align="end" gap="sm" wrap="wrap">
-          <Stack space={1}>
-            <Label htmlFor="delivery-filter-status" className="text-xs">
-              状態
-            </Label>
-            <SelectInput
-              id="delivery-filter-status"
-              value={deliveryFilters.status}
-              onChange={(v) => deliveryFilters.setStatus(v ? String(v) : "")}
-              options={DELIVERY_STATUS_OPTIONS}
-              placeholder="すべて"
-            />
+/** 送信状況(配達の一覧、状態・経路で絞る、無限スクロール) */
+export function DispatchDeliveriesBlock({ detail }: { detail: AdminDispatchDetailState }) {
+  const { deliveries, deliveryFilters } = detail;
+  return (
+    <Stack space={3} data-slot="dispatch-deliveries">
+      <Flex align="end" gap="sm" wrap="wrap">
+        <Stack space={1}>
+          <Label htmlFor="delivery-filter-status" className="text-xs">
+            状態
+          </Label>
+          <SelectInput
+            id="delivery-filter-status"
+            value={deliveryFilters.status}
+            onChange={(v) => deliveryFilters.setStatus(v ? String(v) : "")}
+            options={DELIVERY_STATUS_OPTIONS}
+            placeholder="すべて"
+          />
+        </Stack>
+        <Stack space={1}>
+          <Label htmlFor="delivery-filter-channel" className="text-xs">
+            送信方法
+          </Label>
+          <SelectInput
+            id="delivery-filter-channel"
+            value={deliveryFilters.channel}
+            onChange={(v) => deliveryFilters.setChannel(v ? String(v) : "")}
+            options={ADMIN_CHANNEL_FILTER_OPTIONS}
+            placeholder="すべて"
+          />
+        </Stack>
+      </Flex>
+      <InfiniteScrollList
+        items={deliveries.items}
+        isInitialLoading={deliveries.isInitialLoading}
+        isFetchingMore={deliveries.isFetchingMore}
+        hasMore={deliveries.hasMore}
+        error={deliveries.error}
+        sentinelRef={deliveries.sentinelRef}
+        onRetry={deliveries.retry}
+        emptyNode={
+          <Para tone="muted" align="center">
+            送信状況はまだありません
+          </Para>
+        }
+        completedText="すべて表示しました"
+      >
+        {(items) => (
+          <Stack space={0}>
+            {items.map((delivery) => (
+              <DeliveryRow key={delivery.id} delivery={delivery} />
+            ))}
           </Stack>
-          <Stack space={1}>
-            <Label htmlFor="delivery-filter-channel" className="text-xs">
-              送信方法
-            </Label>
-            <SelectInput
-              id="delivery-filter-channel"
-              value={deliveryFilters.channel}
-              onChange={(v) => deliveryFilters.setChannel(v ? String(v) : "")}
-              options={ADMIN_CHANNEL_FILTER_OPTIONS}
-              placeholder="すべて"
-            />
-          </Stack>
-        </Flex>
-        <InfiniteScrollList
-          items={deliveries.items}
-          isInitialLoading={deliveries.isInitialLoading}
-          isFetchingMore={deliveries.isFetchingMore}
-          hasMore={deliveries.hasMore}
-          error={deliveries.error}
-          sentinelRef={deliveries.sentinelRef}
-          onRetry={deliveries.retry}
-          emptyNode={
-            <Para tone="muted" align="center">
-              送信状況はまだありません
-            </Para>
-          }
-          completedText="すべて表示しました"
-        >
-          {(items) => (
-            <Stack space={0}>
-              {items.map((delivery) => (
-                <DeliveryRow key={delivery.id} delivery={delivery} />
-              ))}
-            </Stack>
-          )}
-        </InfiniteScrollList>
-      </Stack>
+        )}
+      </InfiniteScrollList>
     </Stack>
   );
 }
@@ -195,18 +235,10 @@ function DispatchContentPreview({ preview }: { preview: NonNullable<DispatchPrev
   );
 }
 
-function DispatchSummary({
-  dispatch,
-  categoryLabel,
-  preview,
-}: {
-  dispatch: AdminDispatchDetailDto;
-  categoryLabel: string | null;
-  preview: DispatchPreviewState;
-}) {
+/** 基本情報 */
+export function DispatchSummaryBlock({ dispatch, categoryLabel }: { dispatch: AdminDispatchDetailDto; categoryLabel: string | null }) {
   const headings = Object.entries(dispatch.headings ?? {});
   const counts = Object.entries(dispatch.channelCounts ?? {});
-  const body = dispatch.body ? Object.entries(dispatch.body) : [];
   return (
     <Stack space={4} className="rounded-md border border-border bg-card p-4" data-slot="dispatch-summary">
       <Flex align="center" gap="xs" wrap="wrap">
@@ -250,7 +282,15 @@ function DispatchSummary({
           ))}
         </Stack>
       ) : null}
+    </Stack>
+  );
+}
 
+/** プレビュー(回の中身を残した回はひな形の描き方、前の形の回は残した本文) */
+export function DispatchBodyBlock({ dispatch, preview }: { dispatch: AdminDispatchDetailDto; preview: DispatchPreviewState }) {
+  const body = dispatch.body ? Object.entries(dispatch.body) : [];
+  return (
+    <Stack space={3} data-slot="dispatch-body">
       {preview ? (
         <DispatchContentPreview preview={preview} />
       ) : body.length > 0 ? (

@@ -34,6 +34,7 @@ import { SoftBadge } from "@/components/Badge";
 import { EmbeddedInfoPopover } from "@/features/core/messaging/components/common/EmbeddedInfoPopover";
 import { LayoutFields } from "@/features/core/messaging/components/common/LayoutFields";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
+import { dispatchDetailHref } from "@/features/core/messaging/hooks/useDispatchDetailParam";
 import { SampleForYouModal } from "@/features/core/messaging/components/common/SampleForYouModal";
 import { SendTargetPicker } from "@/features/core/messaging/components/common/SendTargetPicker";
 import { KindCategoryFields } from "@/features/core/messaging/components/common/KindCategoryFields";
@@ -60,7 +61,7 @@ export type MessageSendModalProps = {
   icon?: ReactNode;
   /** 送った後(結果を出した時) */
   onSent?: (result: MessageSendResult) => void;
-  /** 回の画面の住所の頭(既定 /admin/messaging) */
+  /** 送信一覧の住所(既定 /admin/messaging)。送った後の「送信の詳細」は <住所>?dispatch=<id>(一覧の上のモーダル、D130) */
   dispatchBasePath?: string;
 };
 
@@ -162,7 +163,7 @@ export function MessageSendModal({
         <SendResultView
           status={res.status}
           queuedCount={m.result.kind === "send" ? m.result.result.queuedCount : m.result.result.counts.queuedCount}
-          dispatchHref={res.dispatchId ? `${dispatchBasePath}/${encodeURIComponent(res.dispatchId)}` : null}
+          dispatchHref={res.dispatchId ? dispatchDetailHref(dispatchBasePath, res.dispatchId) : null}
           afterSend={m.result.kind === "bulk" ? m.result.result.afterSend : null}
           recordNoun={bulk?.recordNoun}
         />
