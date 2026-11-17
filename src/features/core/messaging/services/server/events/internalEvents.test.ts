@@ -1,5 +1,3 @@
-// @ts-nocheck
-// D112: restore before ship (指令 59 d6 で経路の欄・経路の束の型引数・createDefineMessage が消えた。出荷の前に書き直して回す)
 // 内部の事件(D47 の outbox)の検査(メモリの store。本物は store の書く口が同じ取引で message_events へ書く)
 // - 小さな送信(要求の中): 止めた行 → delivery.suppressed、送れた → delivery.sent、要求の中で閉じた回 → dispatch.completed
 // - cron: 展開・送信・閉じる で delivery.sent / delivery.failed / dispatch.completed
@@ -11,7 +9,7 @@ import assert from "node:assert/strict";
 
 import { z } from "zod";
 
-import { createDefineMessage, type MessageRegistry } from "@/lib/messaging";
+import { defineMessage, type MessageRegistry } from "@/lib/messaging";
 
 import { createMessageSender } from "../sendMessage/sender";
 import { createTestChannel, testConfig } from "../sendMessage/testHelpers";
@@ -20,13 +18,12 @@ import { sweepMessages } from "../sweep/sweep";
 import { createMemoryWorld, createSweepDeps } from "../sweep/testHelpers";
 import { INTERNAL_EVENT_PROVIDER, INTERNAL_EVENT_TYPES, subscribedEventTypes } from "./internalEvents";
 
-const fields = { test: z.object({ title: z.string(), body: z.string().optional() }).strict() };
-const defineTestMessage = createDefineMessage<typeof fields>();
-const notice = defineTestMessage({
+const notice = defineMessage({
   key: "shop.notice",
   label: "テストの連絡",
   category: "news",
   vars: z.object({ item: z.string() }),
+  varNames: { item: { alias: "品名", description: "テストの品名" } },
   layout: "card", values: { title: "{{item}}" },
 });
 const registry: MessageRegistry = { "shop.notice": { key: "shop.notice", definition: async () => ({ message: notice }) } };
@@ -48,7 +45,7 @@ function setup(types: readonly string[], behave?: Parameters<typeof createTestCh
 const summary = (events: { type?: string; channel?: string | null; delivery_id?: string | null }[]) =>
   events.map((event) => event.type).sort();
 
-test.skip("小さな送信: 止めた行・送れた行・要求の中で閉じた回の事件を書く(provider internal、id は別々)", async () => {
+test("小さな送信: 止めた行・送れた行・要求の中で閉じた回の事件を書く(provider internal、id は別々)", async () => {
   const { world, sender } = setup([...INTERNAL_EVENT_TYPES]);
   await sender.sendMessageToMany(notice, { recipients: [{ userId: "u1" }, { userId: "u3" }], vars: { item: "靴" } });
   const events = world.store.events;
@@ -63,7 +60,7 @@ test.skip("小さな送信: 止めた行・送れた行・要求の中で閉じ�
   assert.equal(events.find((event) => event.type === "dispatch.completed")?.channel, null);
 });
 
-test.skip("cron: 送れた・失敗・閉じる の事件を書く", async () => {
+test("cron: 送れた・失敗・閉じる の事件を書く", async () => {
   const { world, deps, sender } = setup([...INTERNAL_EVENT_TYPES], (target) =>
     target.address === "addr-u2"
       ? { address: target.address, kind: "permanent", reason: "bad" }
@@ -79,7 +76,7 @@ test.skip("cron: 送れた・失敗・閉じる の事件を書く", async () =>
   });
 });
 
-test.skip("購読が聞いている種類だけ書く・購読なしは書かない", async () => {
+test("購読が聞いている種類だけ書く・購読なしは書かない", async () => {
   const failedOnly = setup(["delivery.failed"], (target) => ({ address: target.address, kind: "permanent", reason: "bad" }));
   await failedOnly.sender.sendMessageToMany(notice, { recipients: [{ userId: "u1" }, { userId: "u3" }], vars: { item: "x" } });
   assert.deepEqual(summary(failedOnly.world.store.events), ["delivery.failed"]);
@@ -91,7 +88,7 @@ test.skip("購読が聞いている種類だけ書く・購読なしは書かな
   assert.equal(none.world.store.events.length, 0);
 });
 
-test.skip("保持の掃除: 購読の一番遅い印より新しい事件は日数を過ぎても消さない", async () => {
+test("保持の掃除: 購読の一番遅い印より新しい事件は日数を過ぎても消さない", async () => {
   const world = createMemoryWorld();
   const old = new Date("2026-01-01T00:00:00Z");
   world.events.push({ id: "e1", createdAt: old, seq: 1 }, { id: "e2", createdAt: old, seq: 2 }, { id: "e3", createdAt: old, seq: 3 });

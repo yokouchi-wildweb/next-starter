@@ -1,5 +1,3 @@
-// @ts-nocheck
-// D112: restore before ship (指令 59 d6 で経路の欄・経路の束の型引数・createDefineMessage が消えた。出荷の前に書き直して回す)
 // provider の webhook の事件の当て方の検査(DB は偽物)
 // - 事件は一度だけ(同じ provider × provider_event_id は何もしない)
 // - 配達は provider の message id で引き、無ければタグの配達の id
@@ -106,7 +104,7 @@ function setup(tracking = false) {
   return { apply, d, events, suppressions };
 }
 
-test.skip("事件は一度だけ。配達は provider の id で、無ければタグの配達の id で引く", async () => {
+test("事件は一度だけ。配達は provider の id で、無ければタグの配達の id で引く", async () => {
   const { apply, d, events } = setup();
   const first = await apply([
     { providerEventId: "e1", providerMessageId: "pm-1", type: "delivered" },
@@ -122,7 +120,7 @@ test.skip("事件は一度だけ。配達は provider の id で、無ければ�
   assert.equal(events.length, 3);
 });
 
-test.skip("状態は前にだけ進み、時刻は最初の 1 回だけ。suppressed の行は変えない", async () => {
+test("状態は前にだけ進み、時刻は最初の 1 回だけ。suppressed の行は変えない", async () => {
   const { apply, d } = setup();
   await apply([{ providerEventId: "e1", providerMessageId: "pm-1", type: "delivered", occurredAt: T("2026-11-10T02:00:00Z") }]);
   // 遅れて届いた古い sent は戻さない
@@ -141,7 +139,7 @@ test.skip("状態は前にだけ進み、時刻は最初の 1 回だけ。suppre
   assert.ok(d("d3").delivered_at);
 });
 
-test.skip("hard の bounce と苦情は宛先の停止、soft は停止しない。dropped は failed", async () => {
+test("hard の bounce と苦情は宛先の停止、soft は停止しない。dropped は failed", async () => {
   const { apply, d, suppressions } = setup();
   await apply([
     { providerEventId: "e1", providerMessageId: "pm-1", type: "bounced_soft" },
@@ -158,7 +156,7 @@ test.skip("hard の bounce と苦情は宛先の停止、soft は停止しない
   assert.equal(dropped.d("d2").status, "failed");
 });
 
-test.skip("計測の機能が閉なら開封・クリックは記録も反映もしない、開なら最初の時刻を残す", async () => {
+test("計測の機能が閉なら開封・クリックは記録も反映もしない、開なら最初の時刻を残す", async () => {
   const closed = setup(false);
   const result = await closed.apply([
     { providerEventId: "e1", providerMessageId: "pm-1", type: "opened" },
@@ -173,12 +171,11 @@ test.skip("計測の機能が閉なら開封・クリックは記録も反映も
   assert.equal(open.d("d1").status, "sent");
 });
 
-test.skip("受け口: 知らない経路・provider 404、鍵なし 503、署名の誤り 401、当てる誤りは投げる", async () => {
+test("受け口: 知らない経路・provider 404、鍵なし 503、署名の誤り 401、当てる誤りは投げる", async () => {
   const channel = (verify: () => unknown): MessageChannel => ({
     key: "email",
     label: "メール",
     addressing: "user",
-    fields: z.object({}),
     send: async () => [],
     webhooks: { resend: { verify, normalize: () => [] } },
   });
