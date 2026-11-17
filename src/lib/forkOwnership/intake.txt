@@ -186,8 +186,6 @@ add src/features/core/messaging/categories/*.{ts,tsx}  # 受け口 categories
 add src/features/core/messaging/categories/*/**  # 受け口 categories(フォルダ形)
 add src/features/core/messaging/categoryGroups/*.{ts,tsx}  # 受け口 categoryGroups
 add src/features/core/messaging/categoryGroups/*/**  # 受け口 categoryGroups(フォルダ形)
-add src/features/core/messaging/channelPreviews/*.{ts,tsx}  # 受け口 channelPreviews
-add src/features/core/messaging/channelPreviews/*/**  # 受け口 channelPreviews(フォルダ形)
 add src/features/core/messaging/channels/*.{ts,tsx}  # 受け口 channels
 add src/features/core/messaging/channels/*/**  # 受け口 channels(フォルダ形)
 add src/features/core/messaging/enrichers/*.{ts,tsx}  # 受け口 enrichers

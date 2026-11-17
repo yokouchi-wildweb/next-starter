@@ -42,7 +42,7 @@ const detail = () => ({
   categoryLabel: null,
   allowedKeys: ["displayName", "serviceName"],
   // J126(D132): 経路の一覧と欄(ひな形の欄の鍵・宣言・使う経路)
-  channels: [{ key: "email", label: "メール", previewComponent: null }],
+  channels: [{ key: "email", label: "メール" }],
   fields: [
     field("subject", "ようこそ {{serviceName}}"),
     field("paragraphs", ["a", "b"], { spec: { type: "list", of: { type: "paragraph" }, label: "段落" } }),

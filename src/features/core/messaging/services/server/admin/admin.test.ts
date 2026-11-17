@@ -80,8 +80,8 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
     ...check(options.context === undefined ? ctx("admin1") : options.context),
     targets: { review: target, off: { ...target, key: "off", enabled: () => false } },
     channels: {
-      email: { key: "email", label: "メール", fieldMeta: {} } as unknown as MessageChannel,
-      inApp: { key: "inApp", label: "お知らせ", fieldMeta: {} } as unknown as MessageChannel,
+      email: { key: "email", label: "メール" } as unknown as MessageChannel,
+      inApp: { key: "inApp", label: "お知らせ" } as unknown as MessageChannel,
       line: { key: "line", label: "LINE", enabled: false } as unknown as MessageChannel,
     },
     categories: bulkCategories,
@@ -222,10 +222,10 @@ test.skip("一括送信のプレビュー・テスト送信: bulk で送れる�
 test.skip("一括送信の選択肢: bulk で送れるカテゴリー、テンプレートは門 messagingTemplates が開の時だけ、管理者でなければ 403", async () => {
   const { deps } = bulkSetup();
   const options = await adminBulkSendOptions(deps);
-  // 経路は送るモーダルと同じ形(受け口の label・欄の約束 fieldMeta・プレビューの部品、閉じた経路は出さない。D83)
+  // 経路は送るモーダルと同じ形(受け口の label・閉じた経路は出さない。D83)
   assert.deepEqual(options.channels, [
-    { key: "email", label: "メール", fieldMeta: {}, previewComponent: null },
-    { key: "inApp", label: "お知らせ", fieldMeta: {}, previewComponent: null },
+    { key: "email", label: "メール" },
+    { key: "inApp", label: "お知らせ" },
   ]);
   assert.deepEqual(options.categories.map((o) => o.key), ["operatorDirect", "promotion", "promoPush"]);
   // カテゴリーごとにその種別の白紙(その場で書く送りの出どころ)

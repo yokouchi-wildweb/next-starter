@@ -11,8 +11,6 @@ export type AdminOverrideChannel = {
   key: string;
   /** 経路の表示名(経路の受け口の label) */
   label: string;
-  /** 管理画面のプレビューの部品の鍵(経路の受け口の previewComponent。無ければ null = 欄をそのまま見せる) */
-  previewComponent: string | null;
 };
 
 /** 編集できる連絡の一覧の 1 行 */

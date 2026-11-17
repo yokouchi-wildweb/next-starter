@@ -17,7 +17,6 @@ import type { z } from "zod";
 import { layoutVersionOf, type MessageLayout } from "../layout/types";
 import { fieldBelongsTo, upgradeLayoutValues } from "../layout/values";
 import { fieldValueSchema, requiredValue } from "../layout/vocabulary";
-import type { ChannelFieldSchemas } from "./channels";
 import { MESSAGE_KIND_TRAITS } from "./kinds";
 import { listSecretVarKeys } from "./secret";
 import type { ResolvedMessageDefinition } from "./types";
@@ -36,7 +35,7 @@ export type AdminFieldCheckOptions = {
   variableKeys?: readonly string[];
 };
 
-type AnyResolved = ResolvedMessageDefinition<z.AnyZodObject, ChannelFieldSchemas>;
+type AnyResolved = ResolvedMessageDefinition<z.AnyZodObject>;
 
 /**
  * 管理画面で直せる欄(ひな形の欄の鍵、宣言の順)。ひな形の欄のうち種類の経路で使う物の全部、adminEditableOnly があればその中だけ。

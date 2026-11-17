@@ -159,7 +159,7 @@ mock.module("@/features/core/messaging/services/client/overrideClient", {
       categoryLabel: null,
       allowedKeys: [],
       // J126(D132): 経路の一覧と欄(ひな形の欄の鍵・宣言・使う経路)
-      channels: [{ key: "email", label: "メール", previewComponent: null }],
+      channels: [{ key: "email", label: "メール" }],
       fields: [
         {
           path: "subject",

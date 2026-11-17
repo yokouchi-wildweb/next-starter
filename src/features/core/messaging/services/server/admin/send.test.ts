@@ -48,7 +48,7 @@ function setup(options: { role?: string; actorId?: string | null; groups?: { id:
   const channel = (key: string, extra: Partial<MessageChannel> = {}): MessageChannel => ({
     key,
     label: key.toUpperCase(),
-    addressing: "user", fieldMeta: {},
+    addressing: "user",
     fields: z.object({}),
     send: async () => [],
     ...extra,
@@ -220,9 +220,9 @@ test.skip("見込みは送る口の数(送る時に数え直す印)、選択肢�
   assert.deepEqual(calls[1].args, [{ target: { type: "role", roles: ["user"] } }]);
   const options = await adminSendOptions(deps);
   assert.deepEqual(options.channels, [
-    { key: "email", label: "EMAIL", fieldMeta: {}, previewComponent: null },
-    { key: "inApp", label: "INAPP", fieldMeta: {}, previewComponent: null },
-    { key: "push", label: "PUSH", fieldMeta: {}, previewComponent: null },
+    { key: "email", label: "EMAIL" },
+    { key: "inApp", label: "INAPP" },
+    { key: "push", label: "PUSH" },
   ]);
   // 3 つの種別のカテゴリー(受け口の順)と送れる宛先の種類・その種別の白紙
   assert.deepEqual(

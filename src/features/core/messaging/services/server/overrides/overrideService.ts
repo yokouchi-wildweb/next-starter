@@ -63,7 +63,7 @@ export type OverrideServiceDeps = AdminCheckDeps & {
   /** 種類の表示名(受け口の label。無ければ null) */
   categoryLabel: (category: string) => string | null;
   /** 経路の受け口の項目の表示(無い経路は null) */
-  channelInfo: (channel: string) => { label: string; previewComponent?: string } | null;
+  channelInfo: (channel: string) => { label: string } | null;
   /** 画像を行に結ぶ台帳(無ければ結ばない = テスト) */
   images?: OverrideImageLedger<unknown>;
   /** 送る口と同じ組み立ての経路 1 つの中身(差し込みはしない = {{鍵}} のまま) */
@@ -90,7 +90,7 @@ type Loaded = { resolved: AnyResolvedMessageDefinition; layout: MessageLayout; c
 function channelsOf(resolved: AnyResolvedMessageDefinition, deps: Pick<OverrideServiceDeps, "channelInfo">): AdminOverrideChannel[] {
   return resolved.channels.flatMap((key) => {
     const info = deps.channelInfo(key);
-    return info ? [{ key, label: info.label, previewComponent: info.previewComponent ?? null }] : [];
+    return info ? [{ key, label: info.label }] : [];
   });
 }
 

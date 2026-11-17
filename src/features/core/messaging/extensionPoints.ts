@@ -63,15 +63,6 @@ export const extensionPoints = {
     side: "server",
     key: "key",
   },
-  // 管理画面のプレビューの部品(client、D85): channelPreviews/<名前>.tsx の export const preview({ key, Component })。
-  // 鍵 = 経路の受け口の previewComponent。文言の編集・テンプレートのプレビューが引く(上流の email・inApp・line は部品の中で描く)
-  channelPreviews: {
-    dir: "channelPreviews",
-    export: "preview",
-    type: { from: "@/features/core/messaging/types/channelPreview", name: "ChannelPreviewItem" },
-    side: "client",
-    key: "key",
-  },
   // 送信一覧の一括操作(client、D95): adminBulkActions/<名前>.tsx の export const bulkAction(上流の既定 = 削除)。
   // fork は項目を足す・<名前>.override.ts で enabled・order を変える(user の受け口と同じ形)
   adminBulkActions: {

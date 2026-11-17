@@ -56,7 +56,7 @@ const service = createOverrideService({
   categoryLabel: (category) => categories[category]?.label ?? null,
   channelInfo(channel) {
     const item = channels[channel];
-    return item ? { label: item.label, previewComponent: item.previewComponent } : null;
+    return item ? { label: item.label } : null;
   },
   images: storageOverrideImageLedger as OverrideImageLedger<unknown>,
   async channelContent(resolved, channel) {

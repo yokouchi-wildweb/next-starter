@@ -74,16 +74,6 @@ export const message = defineMessage({
 - 設計の意図: 止めると機能が壊れる(D68)。性質 `upstreamDisable: false`・`adminTextOverride: false`・`throttle: false`・`emailFixed: true`
 - どう書くか: 上書きの `enabled: false`・種類の上書きで email を外すことは `pnpm check extensions`(messageGuards)で、管理画面の文言の欄(`adminEditableOnly`)・間引きは実行時の `validateMessageDefinition`(`kind_admin_editable` / `kind_throttle`)でも止まる。文面は上書きの `values` か、ひな形の描き方の `.replace` で変える
 
-## 経路ごとの欄(MessageContent)
-
-`MessageContent` = 経路の鍵の Record。管理画面の文言の編集・テンプレートの文面・管理者が書いて送る文面が使う(S5 で消す。連絡の定義と送る口は使わない)。上流の経路:
-
-- `email`: `subject`(必須)・`preheader`・`heading`・`paragraphs`(文字列の配列)・`cta`(`{ label, url }`)・`footer`
-- `inApp`: `title`(必須)・`body`・`image`(storage:// か URL)・`link`
-- `line`: `text`(必須)
-
-欄の zod は strict(定義に無い欄の名前は通らない)。fork の経路は経路の受け口で欄の zod を足す。
-
 ## 差し込み({{鍵}})
 
 - 書式は `lib/structuredDocument` の差し込み 1 本(`replaceVariables`・`listVariables`)。名前は文字(日本語も)・数字・_ の並びで、空白・点を含む名前は差し込まれない
@@ -170,7 +160,7 @@ export const messageOverride = {
 
 ## ひな形(layout/、D122〜D124)
 
-連絡の見た目の型。ひな形 = 欄の宣言・仮の文・要約(必須)・管理者が選べる印・改版の対応。種別・カテゴリー・経路を知らない(経路だけの欄は欄の `channels` に経路の鍵を値として持つだけ)。経路ごとの描き方はひな形のフォルダのファイル(server = email、client = inApp)が持ち、型は持たない。連絡の定義はひな形の鍵と欄の中身を持ち、送る口は経路ごとに下の 3 段で描く(経路の `fields` / `fieldMeta` は管理画面だけが読む、S5 で消す)。
+連絡の見た目の型。ひな形 = 欄の宣言・仮の文・要約(必須)・管理者が選べる印・改版の対応。種別・カテゴリー・経路を知らない(経路だけの欄は欄の `channels` に経路の鍵を値として持つだけ)。経路ごとの描き方はひな形のフォルダのファイル(server = email、client = inApp)が持ち、型は持たない。連絡の定義はひな形の鍵と欄の中身を持ち、送る口は経路ごとに下の 3 段で描く(経路は自分の欄を持たない。管理画面の入力とプレビューもひな形の欄の宣言と描き方から、指令 59)。
 
 - `defineMessageLayout({ key, label, description?, fields, summary, adminSelectable?, version?, revisions? })`: 欄の宣言から中身の型(`MessageLayoutValues`)を引く。`version` = 版(既定 1、`layoutVersionOf`)
 - 欄の宣言 `MessageFieldSpec`: `type`(語彙)・`label`・`placeholder?`・`required?`・`channels?`(使う経路の鍵、無い = 全部)。`select` は `options`、`list` は `of`・`min?`・`max?`、`group` は `fields`、`blocks` は `allow?`・`min?`・`max?`
@@ -186,7 +176,7 @@ export const messageOverride = {
 
 ドメイン messaging の受け口(`src/features/core/messaging/extensionPoints.ts`、表は `src/features/core/messaging/README.md`「受け口」)に置く項目の型。
 
-- `MessageChannel`(経路): `key`・`label`・`addressing`(`user` = 利用者から引く / `address` = 宛先を直に)・`enabled?`(経路の入切、既定 true。false は項目が無い経路と同じ扱い = 配達の行は `channel_off`。値は項目が自分の設定から読む。門の機能ではない)・`fields`(経路の欄の zod)・`fieldMeta`(必須、D83: 欄ごとの表示の約束 `ChannelFieldMeta` = `{ label, help?, input: line | text | image | url | select, options?, list?: true(値が並び), parts?(値が object の時の鍵ごとの約束) }`。管理画面の文言の編集が見出し・入力の種類に使う。fork の経路も書く)・`previewComponent?`(管理画面のプレビューの部品の鍵。画面が自分の部品の表から引く。無い・知らない鍵は欄をそのまま見せる)・`contentFrom?`(他の経路の欄から中身を作る宣言。送る口はもう読まない、S5 で消す)・`resolveAddresses?`(既定は端末の帳簿)・`endpoint?`(帳簿を読む経路の宛先の形 `{ address: zod }`。端末の登録の口が検査し、変換後の値を残す。無ければ汎用の形)・`preview?`(管理の送信のプレビュー。送る時と同じ組み立ての中身を送る時と同じ描き方で描く。email = HTML。無い経路は中身をそのまま見せる)・`remove?`(届けた物の取り下げ `({ dispatchId }) => { removed }`、D89。管理の削除が呼ぶ。持つ経路 = 消せる経路。何度呼んでも同じ結果に書く)・`connectHref?`(宛先の無い利用者を案内する先 = サイト内のパスか URL。好みの表が宛先の無い経路に出す。連携の画面が無い経路は持たない)・`send(宛先の束)`(宛先 `ChannelSendTarget` = `userId`・`address`・`messageKey`(連絡の鍵)・`idempotencyKey`・`content`(組んだ中身: `MessageLayoutContent` か経路が描いた物)、好みに従う連絡だけ `category`(配信停止の種類)と送る側が付ける `headers`(List-Unsubscribe など))→ 宛先ごとの `ChannelSendResult`(`sent` か `transient` / `permanent` / `unknown`。宛先の失効が確定したときだけ `addressInvalid`)・`webhooks?`(provider → `{ verify, normalize }`。事件の形は lib/mail の webhook と同じ + 送る時にタグで渡した配達の id `deliveryId?`)
+- `MessageChannel`(経路): `key`・`label`・`addressing`(`user` = 利用者から引く / `address` = 宛先を直に)・`enabled?`(経路の入切、既定 true。false は項目が無い経路と同じ扱い = 配達の行は `channel_off`。値は項目が自分の設定から読む。門の機能ではない)・`resolveAddresses?`(既定は端末の帳簿)・`endpoint?`(帳簿を読む経路の宛先の形 `{ address: zod }`。端末の登録の口が検査し、変換後の値を残す。無ければ汎用の形)・`preview?`(管理の送信のプレビュー。送る時と同じ組み立ての中身を送る時と同じ描き方で描く。email = HTML。無い経路は中身をそのまま見せる)・`remove?`(届けた物の取り下げ `({ dispatchId }) => { removed }`、D89。管理の削除が呼ぶ。持つ経路 = 消せる経路。何度呼んでも同じ結果に書く)・`connectHref?`(宛先の無い利用者を案内する先 = サイト内のパスか URL。好みの表が宛先の無い経路に出す。連携の画面が無い経路は持たない)・`send(宛先の束)`(宛先 `ChannelSendTarget` = `userId`・`address`・`messageKey`(連絡の鍵)・`idempotencyKey`・`content`(組んだ中身: `MessageLayoutContent` か経路が描いた物)、好みに従う連絡だけ `category`(配信停止の種類)と送る側が付ける `headers`(List-Unsubscribe など))→ 宛先ごとの `ChannelSendResult`(`sent` か `transient` / `permanent` / `unknown`。宛先の失効が確定したときだけ `addressInvalid`)・`webhooks?`(provider → `{ verify, normalize }`。事件の形は lib/mail の webhook と同じ + 送る時にタグで渡した配達の id `deliveryId?`)
 - `MessageEnricher`(値): `key`・`target`(当て先 D127 = `{ messages?: 連絡の鍵[], categories?: 種類の鍵[], kinds?: 種別[], all?: true }`、どれかに当たれば当てる。判定 `enricherTargets(target, { key, category, kind })`。使える鍵の検査と実行の両方がこれで選ぶ)・`provides`(足す変数の zod)・`resolve(文脈)`
 - `MessageCategory`(種類 = 1 つの出来事、配信停止の単位 = 種類 × 経路): `key`・`label`・`description?`・`kind`(7 つ)・`channels`(届ける経路)・`group?`(設定画面の見出し `MessageCategoryGroup` の鍵、同じ種別だけ)。fork は上流の種類の `<名前>.override.ts` で `label`・`description`・`channels`・`group` を変えられる(鍵・種別は不可)
 - `MessageCategoryGroup`(種類のグループ、`messaging/categoryGroups/<名前>.ts` の `export const group`): `key`・`label`・`order`。見出しだけで停止の単位ではない(D82)。上流は出荷しない

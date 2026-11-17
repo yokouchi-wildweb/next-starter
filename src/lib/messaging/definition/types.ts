@@ -2,7 +2,6 @@
 
 import type { z } from "zod";
 
-import type { ChannelFieldSchemas, UpstreamChannelFields } from "./channels";
 
 import type { MessageKind } from "./kinds";
 
@@ -47,7 +46,6 @@ export type MessageLayoutValuesSource = Readonly<Record<string, unknown>>;
  */
 export type MessageDefinition<
   Vars extends z.AnyZodObject = z.AnyZodObject,
-  C extends ChannelFieldSchemas = UpstreamChannelFields,
 > = {
   key: MessageKey;
   /**
@@ -84,7 +82,7 @@ export type MessageDefinition<
  * 一部の上書き(messages/<名前>.override.ts、データだけ)。label(表示名)は変えられる。key・vars・required・category・layout は変えられない
  * (種類の付け替えは D74 で無し。経路は種類の override で変える)。values はひな形の欄ごとに重ねる(欄の鍵は変えられない)。throttle: null で外す。
  */
-export type MessageOverride<C extends ChannelFieldSchemas = UpstreamChannelFields> = {
+export type MessageOverride = {
   /** 連絡の名前(管理画面の表示名) */
   label?: string;
   /** ひな形の欄の中身を欄ごとに差し替える */
@@ -101,11 +99,10 @@ export type MessageOverride<C extends ChannelFieldSchemas = UpstreamChannelField
 /** 上書きを重ねた後の定義(enabled と、種類から引いた種別・経路を持つ) */
 export type ResolvedMessageDefinition<
   Vars extends z.AnyZodObject = z.AnyZodObject,
-  C extends ChannelFieldSchemas = UpstreamChannelFields,
-> = MessageDefinition<Vars, C> & {
+> = MessageDefinition<Vars> & {
   enabled: boolean;
   /** 種類の種別 */
   kind: MessageKind;
   /** 種類の経路(fork の種類の override を重ねた後) */
-  channels: readonly (keyof C & string)[];
+  channels: readonly string[];
 };

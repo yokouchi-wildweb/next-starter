@@ -28,18 +28,18 @@ const channels: Record<string, MessageChannel> = {
   email: {
     key: "email",
     label: "メール",
-    addressing: "user", fieldMeta: {},
+    addressing: "user",
     fields: z.object({ subject: z.string().min(1), paragraphs: z.array(z.string()).optional() }).strict(),
     send: async () => [],
   },
   inApp: {
     key: "inApp",
     label: "お知らせ",
-    addressing: "user", fieldMeta: {},
+    addressing: "user",
     fields: z.object({ title: z.string().min(1), body: z.string(), image: z.string().optional() }).strict(),
     send: async () => [],
   },
-  line: { key: "line", label: "LINE", addressing: "user", fieldMeta: {}, enabled: false, fields: z.object({ text: z.string() }), send: async () => [] },
+  line: { key: "line", label: "LINE", addressing: "user", enabled: false, fields: z.object({ text: z.string() }), send: async () => [] },
 };
 const categories: Record<string, MessageCategory> = {
   promotion: { key: "promotion", label: "お知らせ", kind: "promotion", channels: ["email", "inApp"] },
@@ -239,8 +239,8 @@ test.skip("画面の選択肢: 有効な経路だけ・3 つの種別の種類�
   const { service } = setup();
   const options = await service.templateOptions();
   assert.deepEqual(options.channels, [
-    { key: "email", label: "メール", fieldMeta: {}, previewComponent: null },
-    { key: "inApp", label: "お知らせ", fieldMeta: {}, previewComponent: null },
+    { key: "email", label: "メール" },
+    { key: "inApp", label: "お知らせ" },
   ]);
   assert.deepEqual(options.categories, [{ key: "promotion", label: "お知らせ", description: null }]);
   assert.ok(options.baseAllowedKeys.includes("serviceName"));
