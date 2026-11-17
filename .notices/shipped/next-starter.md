@@ -514,3 +514,4 @@
 - id:20261115-152748-user-group-readme-finish | severity:breaking | checkpoint:user-group-readme-finish
 - id:20261117-062227-restore-skipped-tests | severity:info | checkpoint:restore-skipped-tests
 - id:20261117-160752-messaging-layouts | severity:breaking | checkpoint:messaging-layouts
+- id:20261116-134913-spacing-scale | severity:breaking | checkpoint:spacing-scale | uses:.notices/20261116-134913-spacing-scale.spacing-scale.mjs
