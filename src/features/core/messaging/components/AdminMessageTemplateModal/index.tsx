@@ -209,7 +209,7 @@ function TemplateModalBody({
             <Flex align="center" gap="xs" wrap="wrap">
               {form.system ? (
                 <SoftBadge variant="secondary" size="md">
-                  システム(読むだけ)
+                  システム
                 </SoftBadge>
               ) : (
                 <TemplateStatusBadge
