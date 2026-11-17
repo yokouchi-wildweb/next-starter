@@ -746,6 +746,10 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     buildSendInput,
     buildBulkInput,
     runPreview,
+    /** 「あなた宛ての表示例」を閉じる(表示例を消す) */
+    closePreview: () => setPreview(null),
+    /** 表示例のお知らせの汎用の描き方に使う今のひな形の欄の宣言 */
+    previewLayoutFields: text.layout?.fields ?? null,
     sendTest,
     requestConfirm,
     backToEdit,

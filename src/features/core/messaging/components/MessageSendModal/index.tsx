@@ -3,7 +3,7 @@
 // 開き方 mode: new(回の一覧「新しく送る」)/ sameAs(回の詳細「同じ内容で送る」)/ bulk(管理一覧の一括操作、bulkMessageAction)。
 // new / sameAs の口を門 messagingBroadcast で出し分けるのは置き場の入れ物(AdminDispatchList / AdminDispatchDetail)。bulk は門の外。
 // fork は自分の画面(例 発送リクエストの一覧)にもこの入れ物をそのまま置ける(公開の部品と hook)。
-// 画面(D126): 左右 2 つのペイン(左 = プレビューと「あなた宛ての表示例」、右 = 操作。狭い画面は操作が上)。
+// 画面(D126): 左右 2 つのペイン(左 = プレビュー、右 = 操作。狭い画面は操作が上)。「あなた宛ての表示例」は上に重ねるモーダル(SampleForYouModal、D129)。
 // 並び(D110 D115 D118): 種別とカテゴリーの 1 行 → 送信方法 → 宛先(種別が許す物)→ テンプレート(その種別の物、読み込まない = 白紙)
 // → 内容 → 送る時刻。内容(D118 D119 D120): テンプレートを読み込んだ直後は文を固定して見せ、専用の埋め込み情報の入力だけ。
 // 『文面を直す』でひな形の欄の入力(LayoutFields)と埋め込み情報のタグ、『テンプレートを更新』(Dialog で確かめる、送るとは別)。
@@ -34,7 +34,7 @@ import { SoftBadge } from "@/components/Badge";
 import { EmbeddedInfoPopover } from "@/features/core/messaging/components/common/EmbeddedInfoPopover";
 import { LayoutFields } from "@/features/core/messaging/components/common/LayoutFields";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
-import { MessagePreview } from "@/features/core/messaging/components/common/MessagePreview";
+import { SampleForYouModal } from "@/features/core/messaging/components/common/SampleForYouModal";
 import { SendTargetPicker } from "@/features/core/messaging/components/common/SendTargetPicker";
 import { KindCategoryFields } from "@/features/core/messaging/components/common/KindCategoryFields";
 import { SendCategoryChannels } from "@/features/core/messaging/components/common/SendCategoryChannels";
@@ -334,11 +334,6 @@ export function MessageSendModal({
               種別を選ぶとプレビューが出ます
             </Para>
           )}
-          {m.preview ? (
-            <Block title="あなた宛ての表示例">
-              <MessagePreview channels={m.preview.channels} />
-            </Block>
-          ) : null}
         </Stack>
       </Flex>
     );
@@ -436,6 +431,13 @@ export function MessageSendModal({
         confirmLabel="更新する"
         cancelLabel="キャンセル"
         onConfirm={updateTemplate}
+      />
+      <SampleForYouModal
+        open={Boolean(m.preview) && m.open}
+        onOpenChange={(next) => {
+          if (!next) m.closePreview();
+        }}
+        channels={(m.preview?.channels ?? []).map((channel) => ({ ...channel, layoutFields: m.previewLayoutFields }))}
       />
     </>
   );
