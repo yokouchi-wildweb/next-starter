@@ -40,7 +40,7 @@ export type AdminDispatchListProps = {
   initialFilters?: AdminDispatchFilters;
   /** 1 回の件数(既定 50、最大 100) */
   limit?: number;
-  /** 「新規送信」を一覧の上に出すか(既定 true)。ページのヘッダーに置く画面は false にして AdminDispatchSendButton を置く */
+  /** 「新規送信」を絞り込みの枠の右に出すか(既定 true)。ページのヘッダーなど別の所に置く画面は false にして AdminDispatchSendButton を置く */
   showSendButton?: boolean;
 };
 
@@ -76,89 +76,92 @@ export function AdminDispatchList({ initialFilters = {}, limit, showSendButton =
 
   return (
     <Stack space={4}>
-      {showSendButton && canSend ? (
-        <Flex justify="end">
-          <MessageSendModal mode={NEW_MODE} triggerVariant="primary" />
-        </Flex>
-      ) : null}
-      {/* 絞り込みは格子で幅を決める(選んだ値の長さで欄の幅が変わり、後ろの欄が動かないように)。
-          広い画面 = 6 欄 + ボタンを 1 行、中 = 3 列、狭い = 2 列 */}
-      <Grid
-        gap="sm"
-        className="items-end rounded-md border border-border bg-card p-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-[repeat(6,minmax(0,1fr))_auto]"
-        data-slot="dispatch-filters"
-      >
-        <Stack space={1} className="min-w-0">
-          <Label htmlFor="dispatch-filter-from" className="text-xs">
-            期間(開始)
-          </Label>
-          <DateInput id="dispatch-filter-from" className="w-full" value={fields.fromDate} onValueChange={fields.setFromDate} />
-        </Stack>
-        <Stack space={1} className="min-w-0">
-          <Label htmlFor="dispatch-filter-to" className="text-xs">
-            期間(終了)
-          </Label>
-          <DateInput id="dispatch-filter-to" className="w-full" value={fields.toDate} onValueChange={fields.setToDate} />
-        </Stack>
-        <Stack space={1} className="min-w-0">
-          <Label htmlFor="dispatch-filter-kind" className="text-xs">
-            種類
-          </Label>
-          <SelectInput
-            id="dispatch-filter-kind"
-            value={fields.kind}
-            onChange={(v) => fields.setKind(v ? String(v) : "")}
-            options={KIND_OPTIONS}
-            placeholder="すべて"
-          />
-        </Stack>
-        <Stack space={1} className="min-w-0">
-          <Label htmlFor="dispatch-filter-category" className="text-xs">
-            カテゴリー
-          </Label>
-          <SelectInput
-            id="dispatch-filter-category"
-            value={fields.category}
-            onChange={(v) => fields.setCategory(v ? String(v) : "")}
-            options={categories.optionsOf(fields.kind)}
-            disabled={!fields.kind}
-            placeholder={fields.kind ? "すべて" : "種類を選択してください"}
-          />
-        </Stack>
-        <Stack space={1} className="min-w-0">
-          <Label htmlFor="dispatch-filter-channel" className="text-xs">
-            送信方法
-          </Label>
-          <SelectInput
-            id="dispatch-filter-channel"
-            value={fields.channel}
-            onChange={(v) => fields.setChannel(v ? String(v) : "")}
-            options={ADMIN_CHANNEL_FILTER_OPTIONS}
-            placeholder="すべて"
-          />
-        </Stack>
-        <Stack space={1} className="min-w-0">
-          <Label htmlFor="dispatch-filter-status" className="text-xs">
-            状態
-          </Label>
-          <SelectInput
-            id="dispatch-filter-status"
-            value={fields.status}
-            onChange={(v) => fields.setStatus(v ? String(v) : "")}
-            options={STATUS_OPTIONS}
-            placeholder="すべて"
-          />
-        </Stack>
-        {/* ボタンは選択欄(トリガーは h-auto + py-3)と同じ高さに */}
-        <Flex gap="xs" justify="end" className="col-span-full lg:col-span-1">
-          <Button type="button" size="sm" variant="primary" className="h-auto py-3" onClick={apply}>
-            絞り込み
-          </Button>
-          <Button type="button" size="sm" variant="outline" className="h-auto py-3" onClick={clear}>
-            クリア
-          </Button>
-        </Flex>
-      </Grid>
+      {/* 上の段 = 左に絞り込みの枠(広い画面は横幅の 4/5)、右に「新規送信」(枠の下の端に揃える。狭い画面は枠の下で右寄せ) */}
+      <Flex align="end" gap="md" wrap="wrap" data-slot="dispatch-toolbar">
+        {/* 絞り込みは格子で幅を決める(選んだ値の長さで欄の幅が変わり、後ろの欄が動かないように)。
+            広い画面 = 6 欄 + ボタンを 1 行、中 = 3 列、狭い = 2 列 */}
+        <Grid
+          gap="sm"
+          className="w-full items-end rounded-md border border-border bg-card p-3 grid-cols-2 sm:grid-cols-3 lg:w-4/5 lg:grid-cols-[repeat(6,minmax(0,1fr))_auto]"
+          data-slot="dispatch-filters"
+        >
+          <Stack space={1} className="min-w-0">
+            <Label htmlFor="dispatch-filter-from" className="text-xs">
+              期間(開始)
+            </Label>
+            <DateInput id="dispatch-filter-from" className="w-full" value={fields.fromDate} onValueChange={fields.setFromDate} />
+          </Stack>
+          <Stack space={1} className="min-w-0">
+            <Label htmlFor="dispatch-filter-to" className="text-xs">
+              期間(終了)
+            </Label>
+            <DateInput id="dispatch-filter-to" className="w-full" value={fields.toDate} onValueChange={fields.setToDate} />
+          </Stack>
+          <Stack space={1} className="min-w-0">
+            <Label htmlFor="dispatch-filter-kind" className="text-xs">
+              種類
+            </Label>
+            <SelectInput
+              id="dispatch-filter-kind"
+              value={fields.kind}
+              onChange={(v) => fields.setKind(v ? String(v) : "")}
+              options={KIND_OPTIONS}
+              placeholder="すべて"
+            />
+          </Stack>
+          <Stack space={1} className="min-w-0">
+            <Label htmlFor="dispatch-filter-category" className="text-xs">
+              カテゴリー
+            </Label>
+            <SelectInput
+              id="dispatch-filter-category"
+              value={fields.category}
+              onChange={(v) => fields.setCategory(v ? String(v) : "")}
+              options={categories.optionsOf(fields.kind)}
+              disabled={!fields.kind}
+              placeholder={fields.kind ? "すべて" : "種類を選択してください"}
+            />
+          </Stack>
+          <Stack space={1} className="min-w-0">
+            <Label htmlFor="dispatch-filter-channel" className="text-xs">
+              送信方法
+            </Label>
+            <SelectInput
+              id="dispatch-filter-channel"
+              value={fields.channel}
+              onChange={(v) => fields.setChannel(v ? String(v) : "")}
+              options={ADMIN_CHANNEL_FILTER_OPTIONS}
+              placeholder="すべて"
+            />
+          </Stack>
+          <Stack space={1} className="min-w-0">
+            <Label htmlFor="dispatch-filter-status" className="text-xs">
+              状態
+            </Label>
+            <SelectInput
+              id="dispatch-filter-status"
+              value={fields.status}
+              onChange={(v) => fields.setStatus(v ? String(v) : "")}
+              options={STATUS_OPTIONS}
+              placeholder="すべて"
+            />
+          </Stack>
+          {/* ボタンは選択欄(トリガーは h-auto + py-3)と同じ高さに */}
+          <Flex gap="xs" justify="end" className="col-span-full lg:col-span-1">
+            <Button type="button" size="sm" variant="primary" className="h-auto py-3" onClick={apply}>
+              絞り込み
+            </Button>
+            <Button type="button" size="sm" variant="outline" className="h-auto py-3" onClick={clear}>
+              クリア
+            </Button>
+          </Flex>
+        </Grid>
+        {showSendButton && canSend ? (
+          <Flex justify="end" className="min-w-0 flex-1 lg:pb-3" data-slot="dispatch-send">
+            <MessageSendModal mode={NEW_MODE} triggerVariant="primary" />
+          </Flex>
+        ) : null}
+      </Flex>
 
       <InfiniteScrollList
         items={query.items}
