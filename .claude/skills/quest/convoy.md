@@ -1,4 +1,4 @@
-role: **convoy** (load the commits quests made onto one line, the Convoy's line; depart it to main once for many orders: the checks, the push, the answers; never a safe point) | read by a caravan party's Convoy, or a session the user tells to load / depart quest work
+role: **convoy** (load the commits quests made onto one line, the Convoy's line; depart it to main once for many orders: the checks, the push, the answers; a safe point only as /ship's own rules make one) | read by a caravan party's Convoy, or a session the user tells to load / depart quest work
 where: a linked worktree on the Convoy's own branch | never the main checkout, never its local `main` ref (HQ D176; `git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`, else STOP)
 words: load = put an order's commits on the Convoy's line | depart = ship the line to main
 
@@ -16,11 +16,15 @@ words: load = put an order's commits on the Convoy's line | depart = ship the li
 5. it cannot be loaded because the order's own work is broken (not a conflict between two orders) → abort; STOP: report it to go back to its worker with the reason
 6. report: the order, the commits now on the Convoy's line (short sha)
 
-## DEPART (`depart [notices:<path>,…]`: only on the human's word)
+## SEGMENT (`segment <label> notices:<path>`: a council's segment closes on its cue)
+1. every order of the segment is loaded already (the caller sends the cue after the loads)
+2. `/ship no-push notices:<path>` on the Convoy's line: one notice from the council's draft (every `- ` item, `resolves:` items into `resolves:`), `checkpoint:` = <label>, committed with its index line, not pushed
+3. report: the notice id, the draft items it left out (or none) — the caller tells the council
+
+## DEPART (`depart`: only on the human's word)
 1. note the orders on the line: the `order: <id>` lines of `git log --format=%B origin/main..HEAD`
 2. `git fetch origin main` → `git rebase origin/main` | a conflict → CONFLICT RULES → `git rebase --continue`
 3. `/ship` (ships the commits already made: `.claude/skills/ship/SKILL.md` step 1 COMMITTED RANGE; the area checks of what the line carries, the worktree push route)
-   - `notices:` given (a council's notice drafts: its plan sheet ships with this departure; quests under its commission wrote none) → this ship's notice is theirs: one notice per draft file carrying every `- ` item, `checkpoint:` = the draft's segment (its `segment:` header), made with /ship step 5 in a commit on the line before the push
 4. a check failed:
    - find the orders behind it: `git log --format='%h %s' origin/main..HEAD -- <files in the failure>` and their `order:` lines
    - where two orders' work meets (a type both changed, an import one removed) → fix it on the line as its own commit (`convoy: <the joint fix>`), back to 3

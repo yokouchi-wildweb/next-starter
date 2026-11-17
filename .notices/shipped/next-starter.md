@@ -527,3 +527,4 @@
 - id:20261116-114820-agent-terminal-explicit-values | severity:info | checkpoint:agent-terminal-explicit-values
 - id:20261116-132435-quest-convoy-skill | severity:info | checkpoint:quest-convoy-skill | moved:.claude/skills/quest/caravan.md -> .claude/skills/quest/convoy.md
 - id:20261116-222954-quest-council-notice | severity:info | checkpoint:quest-council-notice
+- id:20261117-115220-council-segment-notices | severity:info | checkpoint:council-segment-notices

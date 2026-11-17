@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship this repo's changes (fix the range → checks → judge downstream impact → write a DOWNSTREAM NOTICE when needed → commit → push); the pair of the receiving side's /flux | When the user tells you to commit, push or ship, and on /inbox's completion
-argument-hint: "[order:<指令 id>] [no-push] [notice:council] [hotfix] [--safe] [--quick] [補足メモ(任意)]"
+argument-hint: "[order:<指令 id>] [no-push] [notice:council] [notices:<下書きのパス,…>] [hotfix] [--safe] [--quick] [補足メモ(任意)]"
 ---
 
 role: **ship** (commit and push this repo's changes; when downstream forks need follow-up work, put a DOWNSTREAM NOTICE in the same commit) | the receiving side is downstream's `/flux`; write notices to match how it reads them | spec: `.notices/README.md`
@@ -15,7 +15,8 @@ role: **ship** (commit and push this repo's changes; when downstream forks need 
   - other than `yes` / `none` (declaration missing or wrong) → never guess from the text; STOP: have `tier` declared in `repo.json` (`pnpm workflow repo-json set tier <root|middle|leaf>`; `pnpm workflow ownership check` is unverified too)
 
 args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` = commit only, no push | `hotfix` = ship as an emergency fix (only when the human tells you; never add it on your own judgment, since it cuts into every fork's work) | the rest = extra notes
-- `notice:council` = the notice is the council's (a quest under a council commission: one plan sheet = one ship = one notice): steps 3-4 judge as usual, step 5 writes no notice and no index line, the report gives the material instead
+- `notice:council` = the notice is the council's (a quest under a council commission: the council's segment notice carries it): steps 3-4 judge as usual, step 5 writes no notice and no index line, the report gives the material instead
+- `notices:<path>,…` = a council's segment drafts (a team tool closing a segment: the forks' checkpoints are placed by the council, never coarsened): step 5 writes one notice per draft from its `- ` items, `checkpoint:` = the draft's `segment:` header | with `no-push` | step 1 range empty → the commit holds the notices and their index lines alone (step 2: `pnpm check notices` only)
 - which kind (pick it yourself when the caller gave none):
   - more work follows in this session → `--quick`
   - the last ship of the session → plain (no flag; the human's words, else your own reading of whether work goes on) | its area checks also cover the quick ships not yet checked (step 2) | its report may propose a safe point (step 8)
@@ -82,7 +83,8 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - together with the context (bug report, the order's need), a fix of a bug of an earlier shipment → a `fixes:` candidate | the origin has a notice → its id; none → `commit:<短 sha>`
      - even when this fix needs no fork follow-up, ship a notice to carry `fixes:` (`severity: info`, `required_actions: none`)
 5. **write the notice** (only when needed; write it out without asking first; NOTICE COMPOSITION below)
-   - `notice:council` → write nothing here: list the material for the report instead (one line per item: what changed for forks, required_actions / `[user-run]` steps, `moved:` / deleted paths, `fixes:` origin; `none` when step 3 found no need) and go to step 6
+   - `notice:council` → write nothing here: list the material for the report instead (one line per item: what changed for forks, required_actions / `[user-run]` steps, `moved:` / deleted paths, `fixes:` origin, `resolves: <id>` when step 3 found an order to resolve — never dropped; `none` when step 3 found no need) and go to step 6
+   - `notices:` → one notice per draft: every `- ` item goes in (into change / required_actions / manual_steps / moved: as it reads; `resolves: <id>` items → `resolves:`, `fixes: <id>` items → `fixes:`), plus what steps 3-4 found in this ship's own range; `checkpoint:` = the draft's segment | an item left out → say it in the report (the caller records it)
    - then **add the index line**: `node scripts/workflow/notices/shippedIndex.mjs add .notices/<id>.md` (one line from the body at the end of your index `.notices/shipped/<repo_id>.md`; never by hand, never edit existing lines; `.notices/README.md` section `出荷索引と本文の読み方`)
    - a repo without its own index yet but with its own notices already (a fork that shipped notices before the index existed) → first `node scripts/workflow/notices/shippedIndex.mjs backfill` (skips notices in the parent's index)
    - then pass step 2's `pnpm check notices` (includes the index check)
