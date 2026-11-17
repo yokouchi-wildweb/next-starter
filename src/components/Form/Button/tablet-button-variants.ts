@@ -1,4 +1,7 @@
 // src/components/Form/Button/tablet-button-variants.ts
+//
+// TabletButton の variant 定義。size の高さはタブレット用の高さの段 --tablet-control-h-<名前>
+// (src/styles/core/config.css の :root)から取る。下流は値をそこで、形を variants.config の tabletButton で変える。
 
 import type { VariantProps } from "class-variance-authority";
 
@@ -23,17 +26,17 @@ const TABLET_BUTTON_VARIANTS = {
   },
   size: {
     // 48px - 補助的な操作
-    xxs: "h-12 rounded-lg gap-1.5 px-8 min-w-24 text-sm",
+    xxs: "h-(--tablet-control-h-xxs) rounded-lg gap-1.5 px-8 min-w-24 text-sm",
     // 56px - サブアクション
-    xs: "h-14 rounded-lg gap-2 px-10 min-w-26 text-base",
+    xs: "h-(--tablet-control-h-xs) rounded-lg gap-2 px-10 min-w-26 text-base",
     // 64px - コンパクトな操作
-    sm: "h-16 rounded-lg gap-2 px-12 min-w-28 text-base",
+    sm: "h-(--tablet-control-h-sm) rounded-lg gap-2 px-12 min-w-28 text-base",
     // 72px - 標準
-    md: "h-18 rounded-lg gap-2 px-16 min-w-32 text-lg",
+    md: "h-(--tablet-control-h-md) rounded-lg gap-2 px-16 min-w-32 text-lg",
     // 80px - 主要アクション
-    lg: "h-20 rounded-lg gap-3 px-20 min-w-36 text-lg",
+    lg: "h-(--tablet-control-h-lg) rounded-lg gap-3 px-20 min-w-36 text-lg",
     // 96px - ヒーロー操作
-    xl: "h-24 rounded-xl gap-3 px-24 min-w-40 text-xl",
+    xl: "h-(--tablet-control-h-xl) rounded-xl gap-3 px-24 min-w-40 text-xl",
     // 64px 正方形アイコン
     icon: "size-16 rounded-lg",
     // 80px 正方形アイコン

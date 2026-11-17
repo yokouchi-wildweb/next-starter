@@ -8,6 +8,7 @@
 // 3. core/palette.css は値だけを持つ(@theme や @custom-variant などの構造を含まない)
 // 4. core/index.css が upstream の CSS を読み、global.css はそれを最初に、fork の 4 ファイルを後に読む(後勝ちの上書き契約)
 // 5. 余白の段のトークン --space-<名前> は core/config.css の :root にあり、値は段の一覧(spacingScale.ts)の px と一致。@theme に --spacing-* は置かない
+// 6. 操作部品の高さの段 --control-h-*(9 段、md は 640px 未満 44px・以上 40px)と --tablet-control-h-*(6 段)は core/config.css の :root にあり、@theme には無い
 //
 // 検証対象は src/styles/core/(upstream 所有)。src/styles/ 直下の CSS は下流所有(中身は fork ごとに自由)なので、
 // 入口の形と upstream が出荷する中身(コメントだけ)以外は見ない。
@@ -183,6 +184,29 @@ test("余白の段のトークンは core/config.css の :root にあり、値�
     for (const block of css.matchAll(/@theme[^{]*\{([^}]*)\}/g)) {
       assert.doesNotMatch(block[1], /--spacing(-[a-z0-9-]+)?\s*:/, `${file} の @theme に --spacing が置かれた(数値の class・max-w-2xl 等が動く)`);
       assert.doesNotMatch(block[1], /--space-[a-z0-9-]+\s*:/, `${file} の @theme に --space-* が置かれた(:root に置く)`);
+    }
+  }
+});
+
+test("操作部品の高さの段は core/config.css の :root にあり(md は 640px で 44 → 40px)、@theme には無い", () => {
+  const config = stripComments(read("config.css"));
+  const toPx = (value) => {
+    const rem = /^([\d.]+)rem$/.exec(value.trim());
+    return rem ? Number(rem[1]) * 16 : NaN;
+  };
+  const rootOf = (css) => new Map([...css.matchAll(/--((?:tablet-)?control-h-[a-z]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2]]));
+  const [base] = config.split(/@media/);
+  const root = rootOf(base);
+  const expected = { xxxs: 24, xxs: 28, xs: 32, sm: 36, md: 44, lg: 44, xl: 48, xxl: 56, xxxl: 64 };
+  const tablet = { xxs: 48, xs: 56, sm: 64, md: 72, lg: 80, xl: 96 };
+  for (const [name, px] of Object.entries(expected)) assert.equal(toPx(root.get(`control-h-${name}`)), px, `--control-h-${name}`);
+  for (const [name, px] of Object.entries(tablet)) assert.equal(toPx(root.get(`tablet-control-h-${name}`)), px, `--tablet-control-h-${name}`);
+  const wide = [...config.matchAll(/@media \(min-width: 40rem\)\s*\{([\s\S]*?)\n\}/g)].map((m) => rootOf(m[1]));
+  const switched = wide.map((m) => [...m.entries()]).flat();
+  assert.deepEqual(switched.map(([k, v]) => [k, toPx(v)]), [["control-h-md", 40]], "640px 以上で変わるのは md の 40px だけ");
+  for (const file of readdirSync(stylesDir).filter((f) => f.endsWith(".css"))) {
+    for (const block of stripComments(read(file)).matchAll(/@theme[^{]*\{([^}]*)\}/g)) {
+      assert.doesNotMatch(block[1], /--(?:tablet-)?control-h-[a-z]+\s*:/, `${file} の @theme に --control-h-* が置かれた(:root に置く)`);
     }
   }
 });

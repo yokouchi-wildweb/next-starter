@@ -144,7 +144,13 @@ const BEFORE_HEADER_MARKS = BEFORE_HEADER_DIMS.replace('<header id="header" ', '
   .replace('<div id="header-left" ', '<div id="header-left" data-slot="header-left" ')
   .replace('<div id="header-center" ', '<div id="header-center" data-slot="header-center" ')
   .replace('<div id="header-right" ', '<div id="header-right" data-slot="header-right" ');
-const BEFORE_HEADER_NOW = withoutLegacyMarks(BEFORE_HEADER_MARKS);
+/**
+ * 操作部品の高さの段の区切り(余白の議会 D44・D45)で変わったボタンの高さの class: sm h-9 → h-(--control-h-sm)(同じ 36px)、
+ * md h-10 py-2 → h-(--control-h-md)(640px 未満 44px・以上 40px、py-2 は外れた)。ほかの class・並びは不変
+ */
+const withControlHeight = (html: string) =>
+  html.replaceAll(" h-9 rounded-md gap-1.5 px-3 min-w-16", " h-(--control-h-sm) rounded-md gap-1.5 px-3 min-w-16").replaceAll(" h-10 px-4 py-2 min-w-20", " h-(--control-h-md) px-4 min-w-20");
+const BEFORE_HEADER_NOW = withControlHeight(withoutLegacyMarks(BEFORE_HEADER_MARKS));
 
 test("Header は data-slot の印と banner 分の top を持つ", () => {
   const header = tagOf(render(<UserNavigation />), "header");

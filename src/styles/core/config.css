@@ -77,6 +77,30 @@
   --space-4xl: 4rem;
 
   /*
+   * 操作部品の高さの段(ボタンの size と入力欄系の size が同じ名前で読む。--space-* とは別系統)。
+   * 高さを固定して中身を上下中央に置く(伸びる物だけ最小の高さ)。名前と並びはボタンの size のまま。
+   * md(標準)だけ幅で変わる: 640px 未満 44px(指で押しやすい高さ)・640px 以上 40px(下の @media)。
+   * fork は直下の CSS(overrides.css 等)で値を上書きできる(md を変えるときは @media の側も書く)。
+   * @theme の h-* にはしない(h-10 などの数値の class は動かさない)
+   */
+  --control-h-xxxs: 1.5rem;
+  --control-h-xxs: 1.75rem;
+  --control-h-xs: 2rem;
+  --control-h-sm: 2.25rem;
+  --control-h-md: 2.75rem;
+  --control-h-lg: 2.75rem;
+  --control-h-xl: 3rem;
+  --control-h-xxl: 3.5rem;
+  --control-h-xxxl: 4rem;
+  /* タブレット用ボタン(TabletButton)の高さの段。名前は TabletButton の size のまま */
+  --tablet-control-h-xxs: 3rem;
+  --tablet-control-h-xs: 3.5rem;
+  --tablet-control-h-sm: 4rem;
+  --tablet-control-h-md: 4.5rem;
+  --tablet-control-h-lg: 5rem;
+  --tablet-control-h-xl: 6rem;
+
+  /*
    * Admin レイアウトの縦横スペーシングトークン。
    * AdminPage / Header がこれらを参照することで、フルハイトレイアウトが
    * calc(100dvh - Nrem) のマジックナンバーに依存せず、ヘッダー密度や
@@ -101,6 +125,7 @@
 
 @media (min-width: 40rem) {
   :root {
+    --control-h-md: 2.5rem;
     --admin-page-padding-inline: 1.5rem;
     --admin-page-padding-block: 2.5rem;
     --admin-header-padding-y: 0.75rem;

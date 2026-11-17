@@ -4,6 +4,8 @@
 // 下流は src/config/ui/variants.config.ts の `button` キーで、ここを編集せずに
 // 角丸・影・枠線・寸法などを差し替えられる(結合順: ここ → オーバーライド → 各要素の className)。
 // variant / size の名前は下流の設定が参照する公開契約なので、削除・改名時は .notices で通知する。
+// size の高さは操作部品の高さの段 --control-h-<名前>(src/styles/core/config.css の :root)から取る。
+// 入力欄系も同じ段を読むので、同じ size のボタンと入力欄は同じ高さになる(md はスマホ 44px・640px 以上 40px)。
 
 import type { VariantProps } from "class-variance-authority";
 
@@ -51,23 +53,23 @@ const BUTTON_VARIANTS = {
   },
   size: {
     // インラインUIなど極小サイズ。
-    xxxs: "h-6 rounded gap-0.5 px-1.5 min-w-10 text-xs",
+    xxxs: "h-(--control-h-xxxs) rounded gap-0.5 px-1.5 min-w-10 text-xs",
     // 密集したUI向けの超小サイズ。
-    xxs: "h-7 rounded gap-0.5 px-2 min-w-12 text-xs",
+    xxs: "h-(--control-h-xxs) rounded gap-0.5 px-2 min-w-12 text-xs",
     // 最小のテキストボタン用サイズ。
-    xs: "h-8 rounded-md gap-1 px-2.5 min-w-14",
+    xs: "h-(--control-h-xs) rounded-md gap-1 px-2.5 min-w-14",
     // 少し小さめのコンパクトサイズ。
-    sm: "h-9 rounded-md gap-1.5 px-3 min-w-16",
-    // 標準的に使うミディアムサイズ。
-    md: "h-10 px-4 py-2 min-w-20",
+    sm: "h-(--control-h-sm) rounded-md gap-1.5 px-3 min-w-16",
+    // 標準的に使うミディアムサイズ(640px 未満 44px・以上 40px)。
+    md: "h-(--control-h-md) px-4 min-w-20",
     // 余裕を持たせた大きめサイズ。
-    lg: "h-11 rounded-md px-6 min-w-24",
+    lg: "h-(--control-h-lg) rounded-md px-6 min-w-24",
     // さらに強調する幅広ボタン。
-    xl: "h-12 rounded-md px-8 min-w-28",
+    xl: "h-(--control-h-xl) rounded-md px-8 min-w-28",
     // ヒーローアクションなどで使う特大サイズ。
-    xxl: "h-14 rounded-md px-10 min-w-32",
+    xxl: "h-(--control-h-xxl) rounded-md px-10 min-w-32",
     // 極端に広い横幅を確保したい時の最大サイズ。
-    xxxl: "h-16 rounded-md px-12 min-w-36",
+    xxxl: "h-(--control-h-xxxl) rounded-md px-12 min-w-36",
     // アイコンのみで使う正方形サイズ。
     icon: "size-9",
     // 高さ・padding・min-width を一切付与しないニュートラル。寸法を className で完全に制御したい場合に使う。
