@@ -2,14 +2,19 @@
 "use client";
 
 import NextImage from "next/image";
-import { useState } from "react";
+import { type CSSProperties, useState } from "react";
 
 import { cn } from "@/lib/cn";
 
 import { resolveSizes, type AppImageSizesPreset } from "./sizes";
 import { resolveAppImageSource } from "./source";
 
-type CommonProps = {
+/** 一番外の要素に付ける data-* の属性(data-slot 等。data-component は部品のもの) */
+export type AppImageDataAttributes = {
+  [key: `data-${string}`]: string | number | boolean | undefined;
+};
+
+type CommonProps = AppImageDataAttributes & {
   /**
    * 画像 URL または保存値(storage:// の ref)。空(undefined/null/"")なら fallbackSrc、それも無ければ画像なしで描画。
    * ref は resolveStorageSrc で表示用 URL に解決する(非公開は /api/storage/objects/<id>)。ref 以外の値はそのまま使う
@@ -28,7 +33,18 @@ type CommonProps = {
    * 非公開ファイル(/api/storage/ 宛て)は認可済みの画像を最適化キャッシュに載せないため、指定に関わらず unoptimized
    */
   unoptimized?: boolean;
+  /** 一番外の要素(fill = 箱、intrinsic = img)の style。演出の opacity / transition 等 */
+  style?: CSSProperties;
 };
+
+/** props から data-* を拾う(一番外の要素に広げる) */
+function pickDataAttributes(props: AppImageProps): AppImageDataAttributes {
+  const out: AppImageDataAttributes = {};
+  for (const [key, value] of Object.entries(props)) {
+    if (key.startsWith("data-")) out[key as `data-${string}`] = value as AppImageDataAttributes[`data-${string}`];
+  }
+  return out;
+}
 
 type FillProps = CommonProps & {
   /** fill: 親に実寸不要。このコンポーネント自身が position:relative の箱を描画する(デフォルト) */
@@ -75,7 +91,8 @@ export type AppImageProps = FillProps | IntrinsicProps;
  * - フラグ ON にすると、このコンポーネント経由の画像だけがリサイズ/WebP 配信に切り替わる
  */
 export function AppImage(props: AppImageProps) {
-  const { src, alt, fallbackSrc, priority, unoptimized } = props;
+  const { src, alt, fallbackSrc, priority, unoptimized, style } = props;
+  const dataAttributes = pickDataAttributes(props);
 
   // onError で fallback へ切り替える。失敗した src を覚える方式なので、
   // src プロップが変われば自動的にリトライ状態へ戻る(useEffect でのリセット不要)
@@ -96,7 +113,9 @@ export function AppImage(props: AppImageProps) {
     if (!displaySrc) return null;
     return (
       <NextImage
+        {...dataAttributes}
         data-component="AppImage"
+        style={style}
         src={displaySrc}
         alt={alt}
         width={props.width}
@@ -113,7 +132,7 @@ export function AppImage(props: AppImageProps) {
   // fill: 自前で position:relative の箱を描画するため、親要素側の規約(positioned parent)が不要。
   // overflow-clip は hidden と違い scroll container にならず、focus 駆動の意図しないスクロールを防ぐ
   return (
-    <div data-component="AppImage" className={cn("relative overflow-clip", props.className)}>
+    <div {...dataAttributes} data-component="AppImage" className={cn("relative overflow-clip", props.className)} style={style}>
       {displaySrc ? (
         <NextImage
           src={displaySrc}

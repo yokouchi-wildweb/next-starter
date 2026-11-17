@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { AppImage } from "@/components/Media/AppImage";
 import { Link } from "@/components/Navigation";
 
 import { business } from "@/business";
@@ -17,7 +17,8 @@ export const Brand = () => {
       className="flex items-center gap-2.5 text-base font-semibold sm:gap-3 sm:text-lg"
     >
       {hasLogo ? (
-        <Image
+        <AppImage
+          mode="intrinsic"
           data-slot="header-brand-logo"
           src={logoPath(business.logo)}
           alt={business.serviceNameShort}

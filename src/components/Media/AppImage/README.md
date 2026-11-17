@@ -61,6 +61,14 @@ import { AppImage } from "@/components/Media/AppImage";
 - `src` が空(`undefined` / `null` / `""`)のとき、および読み込みエラー時に `fallbackSrc` へ切り替わります
 - `fallbackSrc` も無い場合、fill モードは箱だけ描画(レイアウト維持)、intrinsic モードは何も描画しません
 
+### style と data-* の属性
+
+`style` と `data-*`(`data-slot` 等)は一番外の要素に付く(fill = 箱の div、intrinsic = img)。演出の `opacity` / `transition` や、fork の CSS が狙う印に使う。`data-component="AppImage"` は部品の印で、渡しても変わらない。他の属性(onClick 等)は受けない。
+
+```tsx
+<AppImage mode="intrinsic" src={logo} alt="ロゴ" width={160} height={40} data-slot="header-brand-logo" priority />
+```
+
 ## 保存値(storage:// の ref)
 
 - `src` / `fallbackSrc` に `storage://` の ref を渡すと、`resolveStorageSrc`(src/lib/storage/README.md「表示」)で表示用 URL に解決します
