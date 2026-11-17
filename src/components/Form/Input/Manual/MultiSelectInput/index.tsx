@@ -25,6 +25,7 @@ import { PICKER_POPOVER_BODY_CLASS, usePickerPopoverSide } from "../AsyncOptionS
 
 import { MultiSelectOptionList } from "./MultiSelectOptionList";
 import { MultiSelectSearchSection } from "./MultiSelectSearchSection";
+import type { InputSize } from "@/lib/variantOverrides";
 import { MultiSelectTrigger } from "./MultiSelectTrigger";
 
 /** 縮めずに出したい中身の高さ（検索欄 + 候補リスト max-h-60 + 確定ボタン行） */
@@ -50,6 +51,8 @@ export type MultiSelectInputProps = {
   onOpenChange?: (open: boolean) => void;
   /** トリガーボタンに適用するクラス名 */
   triggerClassName?: string;
+  /** 引き金の高さの段(入力欄・ボタンの size と同じ名前・同じ高さ)@default "md" */
+  size?: InputSize;
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange">;
 
 export function MultiSelectInput({
@@ -68,6 +71,7 @@ export function MultiSelectInput({
   open,
   onOpenChange,
   triggerClassName,
+  size = "md",
   id,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
@@ -119,6 +123,7 @@ export function MultiSelectInput({
             selectedCount={selectedCount}
             open={resolvedOpen}
             disabled={disabled}
+            size={size}
             className={triggerClassName}
           />
         </PopoverTrigger>

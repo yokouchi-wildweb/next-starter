@@ -27,12 +27,16 @@ import {
 import { type Options } from "@/components/Form/types";
 import { cn } from "@/lib/cn";
 
+import { inputVariants, type InputSize } from "./Input";
+
 import { PICKER_POPOVER_BODY_CLASS, usePickerPopoverSide } from "./AsyncOptionSource";
 
 /** 縮めずに出したい中身の高さ（検索欄 + 候補リスト max-h-60） */
 const PREFERRED_POPOVER_HEIGHT = 280;
 
 export type ComboboxInputProps = {
+  /** 引き金の高さの段(入力欄・ボタンの size と同じ名前・同じ高さ)@default "md" */
+  size?: InputSize;
   /** 現在の値 */
   value?: OptionPrimitive | null;
   /** 値変更コールバック */
@@ -72,6 +76,7 @@ export function ComboboxInput({
   searchPlaceholder = "検索...",
   emptyMessage = "該当する項目がありません",
   disabled,
+  size = "md",
   clearable = false,
   className,
   contentClassName,
@@ -143,10 +148,10 @@ export function ComboboxInput({
             aria-invalid={ariaInvalid}
             aria-expanded={resolvedOpen}
             disabled={disabled}
-            className={cn(
-              "h-auto w-full justify-between border-muted-foreground/50 py-3 font-normal",
-              !hasValue && "text-muted-foreground"
-            )}
+            className={inputVariants({
+              size,
+              className: cn("w-full justify-between font-normal", !hasValue && "text-muted-foreground"),
+            })}
           >
             <span className="truncate">
               {hasValue ? selectedLabel : placeholder}

@@ -40,7 +40,7 @@ export default function SortSelect({
 
   return (
     <SelectInput
-      size="sm"
+      size="xs"
       className="min-w-24"
       options={options}
       value={selected ?? defaultValue}

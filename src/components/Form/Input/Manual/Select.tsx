@@ -11,6 +11,8 @@ import type { FormControlA11yProps } from "@/components/Form/Field/types";
 import { type Options } from "@/components/Form/types";
 import { cn } from "@/lib/cn";
 
+import { inputVariants, type InputSize } from "./Input";
+
 type OptionPrimitive = Options["value"];
 
 export type SelectInputProps = {
@@ -36,11 +38,11 @@ export type SelectInputProps = {
    */
   showPlaceholderOption?: boolean;
   /**
-   * トリガーの高さ。`default` はフォーム用(内容に合わせて高くなる)、`sm` は一覧のフィルタ・並び替えなど
-   * ツールバー向けのコンパクトな高さ(h-8)。
-   * @default "default"
+   * トリガーの高さの段(入力欄・ボタンの size と同じ名前・同じ高さ、--control-h-<size>)。
+   * 一覧のフィルタ・並び替えなどツールバー向けのコンパクトな高さは xs(32px)。
+   * @default "md"
    */
-  size?: "default" | "sm";
+  size?: InputSize;
   /**
    * SelectTrigger に適用するクラス名。
    */
@@ -72,7 +74,7 @@ export function SelectInput({
   includeNullOption = false,
   nullOptionLabel = "未選択（null）",
   showPlaceholderOption = true,
-  size = "default",
+  size = "md",
   id,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
@@ -117,8 +119,8 @@ export function SelectInput({
         id={id}
         aria-describedby={ariaDescribedby}
         aria-invalid={ariaInvalid}
-        size={size}
-        className={cn(size === "default" && "!h-auto border-muted-foreground/50 py-3", className)}
+        size="none"
+        className={inputVariants({ size, className })}
       >
         <SelectValue placeholder={placeholder ?? "選択してください"} />
       </SelectTrigger>

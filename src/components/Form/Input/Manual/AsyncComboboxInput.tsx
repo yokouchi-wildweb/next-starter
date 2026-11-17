@@ -32,6 +32,8 @@ import { serializeOptionValue, type OptionPrimitive } from "@/components/Form/ut
 import { type Options } from "@/components/Form/types";
 import { Span } from "@/components/TextBlocks/Span";
 import { cn } from "@/lib/cn";
+
+import { inputVariants, type InputSize } from "./Input";
 import { type SearchParams, type PaginatedResult, type SearchRankSpec } from "@/lib/crud/types";
 
 import {
@@ -49,6 +51,8 @@ import {
 const PREFERRED_POPOVER_HEIGHT = 280;
 
 export type AsyncComboboxInputProps<T> = {
+  /** 引き金の高さの段(入力欄・ボタンの size と同じ名前・同じ高さ)@default "md" */
+  size?: InputSize;
   /** 現在の値 */
   value?: OptionPrimitive | null;
   /** 値変更コールバック */
@@ -139,6 +143,7 @@ export function AsyncComboboxInput<T>({
   hintMessage = "キーワードを入力してください",
   minCharsMessage,
   disabled,
+  size = "md",
   clearable = true,
   className,
   contentClassName,
@@ -317,10 +322,10 @@ export function AsyncComboboxInput<T>({
             role="combobox"
             aria-expanded={resolvedOpen}
             disabled={disabled}
-            className={cn(
-              "h-auto w-full justify-between border-muted-foreground/50 py-3 font-normal",
-              !hasValue && "text-muted-foreground"
-            )}
+            className={inputVariants({
+              size,
+              className: cn("w-full justify-between font-normal", !hasValue && "text-muted-foreground"),
+            })}
           >
             <span className="truncate">
               {hasValue ? (selectedLabel ?? placeholder) : placeholder}

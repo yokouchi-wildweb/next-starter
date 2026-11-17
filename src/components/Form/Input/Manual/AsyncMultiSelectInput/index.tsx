@@ -50,6 +50,7 @@ import { SoftBadge } from "@/components/Badge";
 import { cn } from "@/lib/cn";
 import { type SearchParams, type PaginatedResult, type SearchRankSpec } from "@/lib/crud/types";
 
+import type { InputSize } from "@/lib/variantOverrides";
 import { MultiSelectTrigger } from "../MultiSelectInput/MultiSelectTrigger";
 import {
   AsyncOptionInitialState,
@@ -119,6 +120,8 @@ export type AsyncMultiSelectInputProps<T> = {
   disabled?: boolean;
   /** トリガーのクラス名 */
   triggerClassName?: string;
+  /** 引き金の高さの段(入力欄・ボタンの size と同じ名前・同じ高さ)@default "md" */
+  size?: InputSize;
   /** PopoverContent のクラス名 */
   contentClassName?: string;
   /** PopoverContent の props */
@@ -155,6 +158,7 @@ export function AsyncMultiSelectInput<T>({
   disabled,
   className,
   triggerClassName,
+  size = "md",
   contentClassName,
   popoverContentProps,
   open,
@@ -326,6 +330,7 @@ export function AsyncMultiSelectInput<T>({
             selectedCount={selectedCount}
             open={resolvedOpen}
             disabled={disabled}
+            size={size}
             className={triggerClassName}
           />
         </PopoverTrigger>

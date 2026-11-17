@@ -41,7 +41,7 @@ export default function SelectFilter({
 
   return (
     <SelectInput
-      size="sm"
+      size="xs"
       className="min-w-32"
       placeholder={placeholder}
       options={[{ label: placeholder, value: ALL_VALUE }, ...options]}

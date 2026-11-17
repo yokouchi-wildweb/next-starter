@@ -7,16 +7,20 @@ import { ChevronsUpDownIcon } from "lucide-react";
 import { Button } from "@/components/Form/Button/Button";
 import { cn } from "@/lib/cn";
 
+import { inputVariants, type InputSize } from "../Input";
+
 type Props = {
+  /** 高さの段(入力欄・ボタンの size と同じ名前・同じ高さ)@default "md" */
+  size?: InputSize;
   placeholder: string;
   selectedCount: number;
   open: boolean;
   disabled?: boolean;
   className?: string;
-} & ComponentPropsWithoutRef<typeof Button>;
+} & Omit<ComponentPropsWithoutRef<typeof Button>, "size">;
 
 export const MultiSelectTrigger = forwardRef<HTMLButtonElement, Props>(
-  ({ placeholder, selectedCount, open, disabled, className, ...props }, ref) => {
+  ({ placeholder, selectedCount, open, disabled, className, size = "md", ...props }, ref) => {
     const label = selectedCount > 0 ? `${selectedCount}件選択中` : placeholder;
 
     return (
@@ -28,11 +32,10 @@ export const MultiSelectTrigger = forwardRef<HTMLButtonElement, Props>(
         aria-haspopup="listbox"
         aria-expanded={open}
         disabled={disabled}
-        className={cn(
-          "h-auto w-full justify-between border-muted-foreground/50 py-3",
-          selectedCount === 0 ? "text-muted-foreground" : "text-foreground",
-          className,
-        )}
+        className={inputVariants({
+          size,
+          className: cn("w-full justify-between", selectedCount === 0 ? "text-muted-foreground" : "text-foreground", className),
+        })}
         {...props}
       >
         <span className="truncate text-left">{label}</span>

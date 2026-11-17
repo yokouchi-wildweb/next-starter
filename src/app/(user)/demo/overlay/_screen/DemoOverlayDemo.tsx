@@ -388,7 +388,7 @@ export function DemoOverlayDemo() {
             <div className="flex flex-col gap-2">
               <Label htmlFor="app-toast-variant">バリアント</Label>
               <SelectInput
-                size="sm"
+                size="xs"
                 id="app-toast-variant"
                 className="w-full justify-between"
                 options={[...APP_TOAST_VARIANTS]}
@@ -401,7 +401,7 @@ export function DemoOverlayDemo() {
             <div className="flex flex-col gap-2">
               <Label htmlFor="app-toast-position">位置</Label>
               <SelectInput
-                size="sm"
+                size="xs"
                 id="app-toast-position"
                 className="w-full justify-between"
                 options={[...APP_TOAST_POSITIONS]}
@@ -414,7 +414,7 @@ export function DemoOverlayDemo() {
             <div className="flex flex-col gap-2">
               <Label htmlFor="app-toast-mode">モード</Label>
               <SelectInput
-                size="sm"
+                size="xs"
                 id="app-toast-mode"
                 className="w-full justify-between"
                 options={[...APP_TOAST_MODES]}
@@ -427,7 +427,7 @@ export function DemoOverlayDemo() {
             <div className="flex flex-col gap-2">
               <Label htmlFor="app-toast-size">サイズ</Label>
               <SelectInput
-                size="sm"
+                size="xs"
                 id="app-toast-size"
                 className="w-full justify-between"
                 options={[...APP_TOAST_SIZES]}
@@ -440,7 +440,7 @@ export function DemoOverlayDemo() {
             <div className="flex flex-col gap-2">
               <Label htmlFor="app-toast-icon">アイコン</Label>
               <SelectInput
-                size="sm"
+                size="xs"
                 id="app-toast-icon"
                 className="w-full justify-between"
                 options={[...APP_TOAST_ICON_PRESETS]}
@@ -595,7 +595,7 @@ export function DemoOverlayDemo() {
               <div className="flex flex-col gap-2">
                 <Label htmlFor="mode">モード</Label>
                 <SelectInput
-                  size="sm"
+                  size="xs"
                   id="mode"
                   className="w-full justify-between"
                   options={[...MODES]}
@@ -620,7 +620,7 @@ export function DemoOverlayDemo() {
               <div className="flex flex-col gap-2">
                 <Label htmlFor="spinner-variant">spinnerVariant</Label>
                 <SelectInput
-                  size="sm"
+                  size="xs"
                   id="spinner-variant"
                   className="w-full justify-between"
                   options={[...SPINNER_VARIANTS]}
