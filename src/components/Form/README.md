@@ -403,6 +403,8 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 `AsyncComboboxInput` / `AsyncMultiSelectInput` / `Overlays/AsyncPickerModal` の取得エンジン（browse ページング・Enter 検索・searchRank・無限スクロール・requestId 競合破棄・ラベル cache）は `Input/Manual/AsyncOptionSource/useAsyncOptionSource` に 1 本化されている。非同期候補を扱う新しいピッカーを作るときは、このフック + `AsyncOptionList` / `AsyncOptionInitialState` / `AsyncOptionListFooter` を消費し、取得ロジックを再実装しない。各コンポーネントが持つのは選択モデル（単一 / 複数 / session snapshot）とクロームだけ。アクションボタン起点で「マスタから N 件取り込む」用途はフォーム項目ではなく `Overlays/AsyncPickerModal` を使う。
 
 **行の描き分け（renderOption）:** `AsyncComboboxInput` / `AsyncMultiSelectInput` / `AsyncPickerModal` は同じ形の `renderOption?: AsyncOptionRenderer<T>` = `(option, item) => ReactNode` を受け、候補の行（単一の上に留める選んだ行・複数の「選択済み」の行も）をその node で描く（状態のバッジ・版を並べる等）。`item` は取得の cache にある元の行（初期表示のラベルだけで未取得なら `undefined`）。トリガーの表示（単一のラベル・複数のチップ）は `label` のまま。`AsyncMultiSelectInput` の `selectedView="inline"` の印（選択中・`optionBadge`）は `label` に添える物なので、`renderOption` を渡すと行は呼び手の node で描かれる（印も呼び手が描く）。
+
+**範囲のタブと「すべて」（AsyncComboboxInput だけ）:** `scopes={[{ value, label, count? }]}` で検索欄の下にタブを出し（`count` は「(n)」）、選んだ範囲は `searchFn(params, { scope })` の第 2 引数で渡る（1 引数の searchFn はそのまま使える）。範囲を替えると今のモード（先読み / 検索）の 1 ページ目を取り直す。既定は `defaultScope` か先頭、制御は `scope` + `onScopeChange`。`allOption={{ value: "__all__", label: "すべて" }}` は候補の一番上に常に出る行で、選ぶと `onChange(allOption.value)`、その値のときトリガーに `label` を出す（値は呼び手が決める。未選択 = `null`・クリアとは別）。
 | `RadioGroupInput` | ラジオボタン（`displayType`: `standard` 既定 / `classic` 丸い印 / `bookmark` / `rounded` / `segmented` = 1 つの溝に横並び、選んだものだけ白い札が浮く切り替え。2 つ以上いくつでも、高さ 36px = Button sm と同じ） |
 | `CheckGroupInput` | チェックボックスグループ |
 | `BooleanCheckboxInput` | 単一チェックボックス |

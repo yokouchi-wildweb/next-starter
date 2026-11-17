@@ -18,10 +18,13 @@ import {
   useState,
   useMemo,
   useCallback,
+  useRef,
+  useEffect,
 } from "react";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 
 import { Command, CommandInput, CommandItem, CommandSeparator } from "@/components/Primitives/Command";
+import { StateTabs } from "@/components/Navigation/StateTabs";
 import {
   PopoverContent,
   PopoverRoot,
@@ -51,6 +54,24 @@ import {
 /** 縮めずに出したい中身の高さ（検索欄 + 候補リスト max-h-60） */
 const PREFERRED_POPOVER_HEIGHT = 280;
 
+/** 候補を切り替える範囲のタブ 1 つ(count があればラベルの後ろに「(n)」) */
+export type AsyncComboboxScope = {
+  value: string;
+  label: ReactNode;
+  count?: number;
+};
+
+/** 候補の一番上に常に出す「すべて」の選択肢。value は呼び手が決める(未選択 = null・クリアと区別する) */
+export type AsyncComboboxAllOption = {
+  value: OptionPrimitive;
+  label: ReactNode;
+};
+
+/** searchFn の第 2 引数。scopes を渡した時は選んでいる範囲 */
+export type AsyncComboboxSearchContext = {
+  scope?: string;
+};
+
 export type AsyncComboboxInputProps<T> = {
   /** 引き金の高さの段(入力欄・ボタンの size と同じ名前・同じ高さ)@default "md" */
   size?: InputSize;
@@ -62,8 +83,8 @@ export type AsyncComboboxInputProps<T> = {
   onBlur?: () => void;
 
   // ===== 検索関数 =====
-  /** 検索関数（既存のclient.searchをそのまま渡せる） */
-  searchFn: (params: SearchParams) => Promise<PaginatedResult<T>>;
+  /** 検索関数（既存のclient.searchをそのまま渡せる）。scopes を渡した時は第 2 引数に { scope } が来る */
+  searchFn: (params: SearchParams, context: AsyncComboboxSearchContext) => Promise<PaginatedResult<T>>;
   /** T → Options に変換 */
   getOptionFromResult: (item: T) => Options;
   /** 検索対象フィールド */
@@ -124,6 +145,18 @@ export type AsyncComboboxInputProps<T> = {
   /** 候補の行と上に留める選んだ行の表示を差し替える（状態のバッジを並べる等）。
    * item は取得済みの元の行（未取得なら undefined）。トリガーの表示は label のまま */
   renderOption?: AsyncOptionRenderer<T>;
+
+  // ===== 範囲のタブ・「すべて」 =====
+  /** 候補を切り替える範囲のタブ（検索欄の下）。替えると選んだ範囲で候補を取り直す（searchFn の第 2 引数 { scope }） */
+  scopes?: AsyncComboboxScope[];
+  /** 選んでいる範囲（制御モード） */
+  scope?: string;
+  /** 非制御時の最初の範囲（省略時は先頭） */
+  defaultScope?: string;
+  /** 範囲の変更通知 */
+  onScopeChange?: (scope: string) => void;
+  /** 候補の一番上に常に出す「すべて」の選択肢。選ぶと onChange(allOption.value)、その値の時はトリガーに allOption.label */
+  allOption?: AsyncComboboxAllOption;
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange">;
 
 const EMPTY_VALUES: OptionPrimitive[] = [];
@@ -155,6 +188,11 @@ export function AsyncComboboxInput<T>({
   open,
   onOpenChange,
   renderOption,
+  scopes,
+  scope,
+  defaultScope,
+  onScopeChange,
+  allOption,
   id,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
@@ -172,8 +210,19 @@ export function AsyncComboboxInput<T>({
     () => (initialOption ? [initialOption] : undefined),
     [initialOption],
   );
+  // ---- 範囲 ----
+  const hasScopes = Boolean(scopes && scopes.length > 0);
+  const [internalScope, setInternalScope] = useState<string | undefined>(defaultScope ?? scopes?.[0]?.value);
+  const currentScope = hasScopes ? (scope ?? internalScope) : undefined;
+  // 取得の関数は範囲を ref で読む（範囲を替えた直後の取り直しが新しい値で走るように）
+  const scopeRef = useRef(currentScope);
+  const scopedSearchFn = useCallback(
+    (params: SearchParams) => searchFn(params, { scope: scopeRef.current }),
+    [searchFn],
+  );
+
   const source = useAsyncOptionSource<T>({
-    searchFn,
+    searchFn: scopedSearchFn,
     getOptionFromResult,
     searchFields,
     searchRank,
@@ -218,6 +267,23 @@ export function AsyncComboboxInput<T>({
     onChange(null);
   }, [onChange]);
 
+  // ---- 範囲の切り替え: 選んだ範囲で今のモード（先読み / 検索）の 1 ページ目を取り直す ----
+  const { mode: sourceMode, reloadFirstPage } = source;
+  useEffect(() => {
+    if (scopeRef.current === currentScope) return;
+    scopeRef.current = currentScope;
+    if (!resolvedOpen) return;
+    if (sourceMode === "search") reloadFirstPage();
+    else reset({ preload: true });
+  }, [currentScope, resolvedOpen, sourceMode, reloadFirstPage, reset]);
+  const handleScopeChange = useCallback(
+    (next: string) => {
+      if (scope === undefined) setInternalScope(next);
+      onScopeChange?.(next);
+    },
+    [scope, onScopeChange],
+  );
+
   const { setSearchQuery } = source;
   const handleClear = useCallback(
     (e: React.MouseEvent) => {
@@ -231,10 +297,17 @@ export function AsyncComboboxInput<T>({
   // ---- 選択中のラベル解決: initialOption → cache（fetch 由来） ----
   const hasValue = value !== null && value !== undefined;
   const { resolveOption, resolveItem } = source;
+  // 「すべて」を選んでいるか（値は呼び手が決める。null = 未選択とは別）
+  const isAllSelected =
+    allOption !== undefined && hasValue && serializeOptionValue(value) === serializeOptionValue(allOption.value);
   const selectedLabel = useMemo(
     () =>
-      value !== null && value !== undefined ? (resolveOption(value)?.label ?? null) : null,
-    [value, resolveOption],
+      isAllSelected
+        ? allOption!.label
+        : value !== null && value !== undefined
+          ? (resolveOption(value)?.label ?? null)
+          : null,
+    [isAllSelected, allOption, value, resolveOption],
   );
 
   // ---- 現在モードの派生 ----
@@ -261,7 +334,7 @@ export function AsyncComboboxInput<T>({
   );
 
   // ---- 選択中のピン留め行 ----
-  const pinnedRow = hasValue ? (
+  const pinnedRow = hasValue && !isAllSelected ? (
     <>
       <CommandItem
         value="__selected__"
@@ -278,6 +351,18 @@ export function AsyncComboboxInput<T>({
       </CommandItem>
       <CommandSeparator className="my-1" />
     </>
+  ) : null;
+
+  // ---- 「すべて」の行（読み込み中・空でも候補の一番上に常に出す） ----
+  const allRow = allOption ? (
+    <CommandItem
+      value="__all__"
+      onSelect={() => handleSelect(allOption.value)}
+      className="cursor-pointer items-center gap-1"
+    >
+      <Check className={cn("mr-2 size-4", isAllSelected ? "opacity-100" : "opacity-0")} />
+      <span className="flex-1 truncate">{allOption.label}</span>
+    </CommandItem>
   ) : null;
 
   // ---- 候補リストの状態表示（初回ロード / 初回エラー / ヒント / 末尾） ----
@@ -384,13 +469,45 @@ export function AsyncComboboxInput<T>({
               onValueChange={source.setSearchQuery}
               onKeyDown={source.handleSearchKeyDown}
             />
+            {hasScopes ? (
+              <StateTabs
+                tabs={scopes!.map((s) => ({
+                  value: s.value,
+                  label:
+                    s.count === undefined ? (
+                      s.label
+                    ) : (
+                      <>
+                        {s.label}
+                        <span className="ml-1 text-xs opacity-70">({s.count})</span>
+                      </>
+                    ),
+                }))}
+                value={currentScope}
+                onValueChange={handleScopeChange}
+                size="xs"
+                ariaLabel="候補の範囲"
+                className="shrink-0 border-b p-1"
+              >
+                {null}
+              </StateTabs>
+            ) : null}
             <AsyncOptionList
               selectionMode="single"
               options={isInitialState || isHintState ? [] : listItems}
               selectedValues={EMPTY_VALUES}
               onToggle={handleSelect}
               emptyMessage={showEmpty ? emptyMessage : null}
-              header={pinnedRow}
+              header={
+                allRow ? (
+                  <>
+                    {allRow}
+                    {pinnedRow}
+                  </>
+                ) : (
+                  pinnedRow
+                )
+              }
               renderOption={renderRow}
               footer={renderStatus()}
               className="gap-0"
