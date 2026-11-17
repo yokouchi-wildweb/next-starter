@@ -25,7 +25,7 @@ export const MESSAGE_BLOCK_KIND_LABELS: Readonly<Record<MessageBlockKind, string
   button: "ボタン",
   image: "画像",
   divider: "区切り",
-  keyValueTable: "項目と値の表",
+  keyValueTable: "ラベルと値",
   bulletList: "箇条書き",
 };
 
