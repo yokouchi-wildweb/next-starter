@@ -26,6 +26,14 @@ export type DialogOverlayLayer = Extract<ZLayerName, "backdrop" | "modal" | "ove
 /** 本体の層 */
 export type DialogContentLayer = Extract<ZLayerName, "modal" | "alert" | "super" | "ultimate" | "apex">;
 
+/** fullscreen の本体の class(中央寄せ・最大幅・角丸・枠・内側の余白を外し、上下に safe-area の余白)。
+ * 呼び手の className はこの後に足す(中身の余白は呼び手が決める) */
+const FULLSCREEN_CLASS =
+  "inset-0 top-0 left-0 translate-x-0 translate-y-0 max-w-none sm:max-w-none max-h-none rounded-none border-0 p-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-none";
+/** fullscreen の閉じるボタン(角から半分はみ出す既定の位置だと画面の外に出るため、内側の右上へ) */
+const FULLSCREEN_CLOSE_BUTTON_CLASS =
+  "top-[calc(env(safe-area-inset-top)+0.75rem)] right-3 translate-x-0 sm:translate-x-0 translate-y-0";
+
 /** 「Dialog（DialogContent）の React ツリー内に居るか」を子孫へ伝える context。
  * Popover 等がポータル可否を決めるのに使う（Radix Dialog の react-remove-scroll は
  * body 直下ポータルの wheel/touch を食うため、入れ子時は非ポータルにする必要がある）。
@@ -56,6 +64,9 @@ type DialogContentProps = Omit<
   showCloseButton?: boolean;
   /** 閉じるボタンに足す class(既定は本体の右上の角に半分はみ出す位置) */
   closeButtonClassName?: string;
+  /** 全画面: 本体が画面いっぱい(角丸・枠・最大幅・内側の余白なし、高さ 100dvh。container があれば h-full)。
+   * 余白は上下の safe-area の分だけ、閉じるボタンは内側の右上。maxWidth は効かない */
+  fullscreen?: boolean;
   layerClassName?: string;
   overlayLayerClassName?: string;
   maxWidth?: number | string;
@@ -84,6 +95,7 @@ export function DialogContent({
   children,
   showCloseButton = true,
   closeButtonClassName,
+  fullscreen = false,
   layer = "modal",
   overlayLayer = "modal",
   layerClassName,
@@ -96,7 +108,7 @@ export function DialogContent({
   ...props
 }: DialogContentProps) {
   const resolvedMaxWidth =
-    maxWidth !== undefined
+    maxWidth !== undefined && !fullscreen
       ? `min(${typeof maxWidth === "number" ? `${maxWidth}px` : maxWidth}, calc(100% - 2rem))`
       : undefined;
   const resolvedMinHeight = typeof minHeight === "number" ? `${minHeight}px` : minHeight;
@@ -115,7 +127,12 @@ export function DialogContent({
 
   return (
     <BaseDialogContent
-      className={cn("[&>*]:min-w-0", className)}
+      className={cn(
+        "[&>*]:min-w-0",
+        fullscreen && FULLSCREEN_CLASS,
+        fullscreen && (props.container ? "h-full" : "h-[100dvh]"),
+        className,
+      )}
       showCloseButton={false}
       layerClassName={cn(zLayerClass(layer), layerClassName)}
       overlayLayerClassName={cn(zLayerClass(overlayLayer), overlayLayerClassName)}
@@ -127,6 +144,7 @@ export function DialogContent({
         <BaseDialogClose
           className={cn(
             "absolute top-0 right-0 translate-x-[calc(50%-6px)] sm:translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground p-2 text-background hover:bg-foreground/80 transition-colors cursor-pointer",
+            fullscreen && FULLSCREEN_CLOSE_BUTTON_CLASS,
             closeButtonClassName,
           )}
         >

@@ -100,12 +100,6 @@ export type ModalProps = {
 const CONTENT_MAX_HEIGHT = "calc(100dvh - 2rem)";
 const CONTENT_MAX_HEIGHT_CLASS = "max-h-[calc(100dvh-2rem)]";
 
-/** fullscreen の本体の class(中央寄せ・最大幅・角丸・枠・内側の余白を外し、上下に safe-area の余白) */
-const FULLSCREEN_CLASS =
-  "inset-0 top-0 left-0 translate-x-0 translate-y-0 max-w-none sm:max-w-none max-h-none rounded-none border-0 p-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-none";
-/** fullscreen の閉じるボタン(角から半分はみ出す既定の位置だと画面の外に出るため、内側の右上へ) */
-const FULLSCREEN_CLOSE_BUTTON_CLASS =
-  "top-[calc(env(safe-area-inset-top)+0.75rem)] right-3 translate-x-0 sm:translate-x-0 translate-y-0";
 
 /** Modal 本体ラッパーの既定 maxHeight。箱の上限と同値。
  * 役割は「既定で本体ラッパーを描画してスクロール領域にする」ことであり、クローム予算ではない
@@ -227,12 +221,10 @@ export default function Modal({
           className={cn(
             "flex flex-col",
             clampEnabled && !fullscreen && CONTENT_MAX_HEIGHT_CLASS,
-            fullscreen && FULLSCREEN_CLASS,
-            fullscreen && (container ? "h-full" : "h-[100dvh]"),
             className,
           )}
-          maxWidth={fullscreen ? undefined : maxWidth}
-          closeButtonClassName={fullscreen ? FULLSCREEN_CLOSE_BUTTON_CLASS : undefined}
+          maxWidth={maxWidth}
+          fullscreen={fullscreen}
           overlayClassName={overlayClassName}
           layer={layer}
           overlayLayer={overlayLayer}

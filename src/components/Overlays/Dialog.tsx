@@ -35,6 +35,17 @@ const TEXT_ALIGN_CLASS: Record<TextAlign, string> = {
   right: "text-right",
 };
 
+/** 取り消しと確定の間に置く 3 つ目のボタン(例: 「留まる / 離れる / 保存して離れる」の「離れる」)。
+ * 押すと onClick だけを呼ぶ(閉じるかは呼び手が onOpenChange で決める)。
+ * Promise を返す間は確定と同じく 3 つのボタンが止まり、このボタンだけ「処理中...」になる */
+export type DialogExtraAction = {
+  label: string;
+  onClick: () => void | Promise<void>;
+  /** @default "outline" */
+  variant?: ButtonStyleProps["variant"];
+  disabled?: boolean;
+};
+
 export type DialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -84,6 +95,16 @@ export type DialogProps = {
    * preventDefault() で抑止する場合は代替フォーカスを推奨（Overlays/README.md のレシピ参照）。 */
   onOpenAutoFocus?: (event: Event) => void;
   onCloseAutoFocus?: (event: Event) => void;
+  /** 本体（箱）に足すクラス */
+  className?: string;
+  /** 背景（覆い）に足すクラス（色・ぼかし等） */
+  overlayClassName?: string;
+  /** 全画面（Modal の fullscreen と同じ: 角丸・枠・最大幅・内側の余白なし、上下は safe-area の分だけ） */
+  fullscreen?: boolean;
+  /** portal の先の要素（省略 = body）。渡すと背景と本体はその要素の中で absolute に重なる */
+  container?: HTMLElement | null;
+  /** 取り消しと確定の間に置く 3 つ目のボタン */
+  extraAction?: DialogExtraAction;
 };
 
 export function Dialog({
@@ -110,27 +131,37 @@ export function Dialog({
   cancelVariant = "outline",
   onOpenAutoFocus,
   onCloseAutoFocus,
+  className,
+  overlayClassName,
+  fullscreen = false,
+  container,
+  extraAction,
 }: DialogProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  // 動いている行動(確定 / 3 つ目)。どちらかの Promise の間は全部のボタンを止め、押した方だけ「処理中...」
+  const [loadingAction, setLoadingAction] = useState<"confirm" | "extra" | null>(null);
+  const isLoading = loadingAction !== null;
   const lockRef = useRef(false);
 
-  const handleConfirm = useCallback(async () => {
-    if (!onConfirm || lockRef.current) return;
+  const runAction = useCallback(
+    async (action: (() => void | Promise<void>) | undefined, which: "confirm" | "extra") => {
+      if (!action || lockRef.current) return;
 
-    const result = onConfirm();
+      const result = action();
 
-    // Promiseの場合はローディング状態を管理
-    if (result instanceof Promise) {
-      lockRef.current = true;
-      setIsLoading(true);
-      try {
-        await result;
-      } finally {
-        lockRef.current = false;
-        setIsLoading(false);
+      // Promiseの場合はローディング状態を管理
+      if (result instanceof Promise) {
+        lockRef.current = true;
+        setLoadingAction(which);
+        try {
+          await result;
+        } finally {
+          lockRef.current = false;
+          setLoadingAction(null);
+        }
       }
-    }
-  }, [onConfirm]);
+    },
+    [],
+  );
 
   const footerAlignClass =
     footerAlign === "left"
@@ -139,7 +170,7 @@ export function Dialog({
         ? "justify-center sm:justify-center"
         : "justify-end sm:justify-end";
 
-  const showFooter = showCancelButton || showConfirmButton;
+  const showFooter = showCancelButton || showConfirmButton || extraAction != null;
 
   return (
     <DialogPrimitives open={open} onOpenChange={onOpenChange}>
@@ -148,9 +179,12 @@ export function Dialog({
           fixed + translate 中央配置なので、上限が無いと上下両方にはみ出してスクロールで到達できない。 */}
       <DialogContent
         showCloseButton={showCloseButton}
-        className="flex flex-col max-h-[calc(100dvh-2rem)]"
+        className={cn("flex flex-col", !fullscreen && "max-h-[calc(100dvh-2rem)]", className)}
         layer={layer}
         overlayLayer={overlayLayer}
+        overlayClassName={overlayClassName}
+        fullscreen={fullscreen}
+        container={container}
         onOpenAutoFocus={onOpenAutoFocus}
         onCloseAutoFocus={onCloseAutoFocus}
         // description 未指定を明示しないと Radix が警告を出す（指定時は Radix が自動で紐付ける）
@@ -200,17 +234,30 @@ export function Dialog({
                 {cancelLabel}
               </Button>
             )}
+            {extraAction && (
+              <Button
+                size="sm"
+                variant={extraAction.variant ?? "outline"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  runAction(extraAction.onClick, "extra");
+                }}
+                disabled={extraAction.disabled || isLoading}
+              >
+                {loadingAction === "extra" ? "処理中..." : extraAction.label}
+              </Button>
+            )}
             {showConfirmButton && (
               <Button
                 size="sm"
                 variant={confirmVariant}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleConfirm();
+                  runAction(onConfirm, "confirm");
                 }}
                 disabled={confirmDisabled || isLoading}
               >
-                {isLoading ? "処理中..." : confirmLabel}
+                {loadingAction === "confirm" ? "処理中..." : confirmLabel}
               </Button>
             )}
           </DialogFooter>

@@ -64,6 +64,17 @@ import { Dialog } from "@/components/Overlays/Dialog";
   confirmVariant="default"
   footerAlign="center"
 />
+
+// 3 つ目の行動（取り消しと確定の間に並ぶ。閉じるかは呼び手が決める）
+<Dialog
+  open={isOpen}
+  onOpenChange={setIsOpen}
+  title="保存されていない変更があります"
+  cancelLabel="留まる"
+  extraAction={{ label: "保存せずに離れる", variant: "destructive", onClick: leave }}
+  confirmLabel="保存して離れる"
+  onConfirm={saveAndLeave}
+/>
 ```
 
 **Props:**
@@ -93,6 +104,11 @@ import { Dialog } from "@/components/Overlays/Dialog";
 | `cancelVariant` | `ButtonStyleProps["variant"]` | `"outline"` | キャンセルボタンのスタイル |
 | `onOpenAutoFocus` | `(event: Event) => void` | - | 開いた直後の自動フォーカス制御（使い方は Modal の「onOpenAutoFocus の使用例」と同じ） |
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
+| `className` | `string` | - | 本体（箱）に足すクラス |
+| `overlayClassName` | `string` | - | 背景（覆い）に足すクラス（色・ぼかし等） |
+| `fullscreen` | `boolean` | `false` | 全画面（Modal の `fullscreen` と同じ: 角丸・枠・最大幅・内側の余白なし、上下は safe-area の分だけ、閉じるボタンは内側） |
+| `container` | `HTMLElement \| null` | - | portal の先の要素（省略 = body）。渡すと背景と本体はその要素の中で `absolute` に重なる |
+| `extraAction` | `DialogExtraAction` | - | 取り消しと確定の間に置く 3 つ目のボタン `{ label, onClick, variant?（既定 "outline"）, disabled? }`。押すと `onClick` だけを呼ぶ（`onOpenChange` は呼ばない）。Promise を返す間は全部のボタンが止まり、押したボタンだけ「処理中...」 |
 
 **型定義:**
 
