@@ -2,7 +2,7 @@
 
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 
 export type ImageViewerOptions = {
   /** 画像の幅（指定時はアスペクト比を維持） */
@@ -17,6 +17,9 @@ export type ImageViewerOptions = {
   showSkeleton?: boolean;
   /** スケルトンのアスペクト比（デフォルト: 16/9） */
   aspectRatio?: number;
+  /** 画像の下に中央寄せで描く説明文（コピーのボタン等の見た目と動きは呼び手の node）。
+   * 渡すと画像の既定の最大の高さが説明文の分だけ詰まる（calc(90dvh - 4rem)、maxHeight を渡せばそれ） */
+  caption?: ReactNode;
 };
 
 export type ImageViewerContextValue = {

@@ -19,6 +19,8 @@ const DEFAULT_MAX_WIDTH = "90vw";
 const DEFAULT_MAX_HEIGHT = "90dvh";
 const DEFAULT_ASPECT_RATIO = 16 / 9;
 const DEFAULT_SKELETON_WIDTH = "min(90vw, 600px)";
+// 説明文がある時の画像の既定の最大の高さ(説明文と隙間の分を空ける)
+const CAPTION_IMAGE_MAX_HEIGHT = "calc(90dvh - 4rem)";
 
 export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -44,11 +46,14 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
     [openImage],
   );
 
+  const hasCaption = options.caption != null;
+  const imageMaxHeight = options.maxHeight ?? (hasCaption ? CAPTION_IMAGE_MAX_HEIGHT : DEFAULT_MAX_HEIGHT);
+
   // width指定時はアスペクト比を維持（height: auto）
   const imageStyle = useMemo<CSSProperties>(() => {
     const style: CSSProperties = {
       maxWidth: options.maxWidth ?? DEFAULT_MAX_WIDTH,
-      maxHeight: options.maxHeight ?? DEFAULT_MAX_HEIGHT,
+      maxHeight: imageMaxHeight,
     };
     if (options.width) {
       style.width = options.width;
@@ -57,7 +62,7 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
       style.height = options.height;
     }
     return style;
-  }, [options]);
+  }, [options, imageMaxHeight]);
 
   // DialogContentのmax-widthはimageのmax-widthに合わせる
   const dialogMaxWidth = options.maxWidth ?? DEFAULT_MAX_WIDTH;
@@ -69,9 +74,9 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
       width: options.width ?? DEFAULT_SKELETON_WIDTH,
       aspectRatio,
       maxWidth: options.maxWidth ?? DEFAULT_MAX_WIDTH,
-      maxHeight: options.maxHeight ?? DEFAULT_MAX_HEIGHT,
+      maxHeight: imageMaxHeight,
     };
-  }, [options]);
+  }, [options, imageMaxHeight]);
 
   const showSkeleton = options.showSkeleton && !isImageLoaded;
   // storage:// の ref は表示用 URL に直す（それ以外の値はそのまま）。state には渡された値を持ち、
@@ -87,6 +92,7 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
           className="bg-transparent border-none shadow-none p-0"
           style={{
             display: "flex",
+            ...(hasCaption ? { flexDirection: "column" } : {}),
             justifyContent: "center",
             alignItems: "center",
             width: "fit-content",
@@ -128,6 +134,11 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
               </DialogClose>
             </div>
           )}
+          {displaySrc && hasCaption ? (
+            <div data-slot="image-viewer-caption" className="flex max-w-full justify-center text-center text-sm text-background">
+              {options.caption}
+            </div>
+          ) : null}
         </DialogContent>
       </DialogPrimitives>
     </ImageViewerContext.Provider>

@@ -648,6 +648,8 @@ function Example() {
 
 `openImage(src)` と `ZoomableImage` の `src` には `storage://` の ref をそのまま渡してよい（`toStorageDisplaySrc` で表示用 URL に直す。ref 以外の値はそのまま）。
 
+**説明文（caption）:** `openImage(src, alt, { caption })` か `<ZoomableImage viewerOptions={{ caption }} />` で、拡大した画像の下に中央寄せで描く（印 `image-viewer-caption`、既定の文字は `text-sm text-background`）。`caption` は `ReactNode` で、押すとコピーするボタン等の見た目と動きは呼び手が作る。渡すと画像の既定の最大の高さが `calc(90dvh - 4rem)` に詰まる（`maxHeight` を渡せばそれ）。他の options: `width` / `height` / `maxWidth` / `maxHeight` / `showSkeleton` / `aspectRatio`（型 `ImageViewerOptions`）。
+
 ---
 
 ### Toast
