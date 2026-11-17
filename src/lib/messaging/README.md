@@ -18,6 +18,7 @@ export const message = defineMessage({
   key: "auth.verification",
   category: "emailVerification", // 種別(functional)と経路(email)は種類から引く
   vars: z.object({ verificationUrl: z.string().url() }),
+  varNames: { verificationUrl: { alias: "確認のURL", description: "メールアドレスを確かめるリンク" } },
   required: true,
   record: "meta",
   layout: "link", // ひな形(messaging の layouts の受け口のフォルダの名前)
@@ -38,6 +39,7 @@ export const message = defineMessage({
 - `category`(必須、D81): 種類 = categories の受け口の鍵。種類は利用者から見て 1 つの出来事(D79)で、種別(kind)と経路(channels)を持つ。連絡は種別も経路も書かず、種類から引く(D86)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `categories`(`unknown_category`)。種類は上書きで付け替えない(D74: 別の種類で送りたいなら上流の連絡を止めて自分の連絡を足す)
 - 種別(種類が持つ、7 つ・fork は増やせない): `functional`(機能に組み込まれた連絡)/ `transactional`(本人の手続きの知らせ)/ `security`(セキュリティの警告)/ `announcement`(運営の告知)/ `direct`(運営から特定の利用者へ)/ `activity`(利用者が止められる、利用に伴う知らせ)/ `promotion`(宣伝)。性質は `MESSAGE_KIND_TRAITS`(`definition/kinds.ts`、D80): 上流の物を止められるか(`upstreamDisable`、functional だけ不可)・利用者の停止と好み(`userStoppable`、activity・promotion)・住所の停止(`addressStop`、functional・security は hard bounce だけ)・管理者がその場で送れる宛先(`adminFreeText`、announcement・direct・promotion)・記録の既定(`recordDefault`)・文言の上書き(`adminTextOverride`、functional は不可)・間引き(`throttle`、functional・security は不可)・種類の経路から email を外せないか(`emailFixed`、functional・security)・送る口の中ですぐ送るか(`sendInEntry`、security: 予約と全員・ロール・グループ宛ては 400、宛先が多くても展開して最初の 1 束を口の中で送る)。種別の値で分ける読み手はこの表を引く(`kindTraits` / `kindsWhere`)
 - `vars`: 呼び手が渡す値の zod
+- `varNames`(必須、D133): vars の鍵ごとの日本語の別名と説明 `{ [鍵]: { alias, description } }`(秘密の値も)。型が vars の鍵で縛る(欠けると型の誤り)。文面に `{{別名}}` と書けば `{{鍵}}` と同じ値で埋まり、管理画面の埋め込み情報の一覧(文言の上書き)に別名と説明で出る(秘密の値は出さない)。別名の形は埋め込み情報の別名と同じ。共通・enrichers と同じ鍵の値(例 `serviceNameShort` = サービスの短い名前・`displayName` = 表示名)はその別名を書き、ほかの別名は見える名前(共通・enrichers・ほかの vars)と重ならない。実行時は `validateMessageDefinition`(`missing_var_name` / `invalid_var_name` / `var_name_clash`)。上書きで変えられない。`pnpm generate message` は `--var <鍵>:<別名>:<説明>` で書く
   - 秘密の値(トークン入りの URL・ワンタイムコード)は `secretVar(z.string())` で印を付ける。印の鍵を持つ連絡は描いた本文をどこにも残さず(`record: "full"` でも)、vars の写しからその鍵を落とす(送る口が守る)。印は `isSecretVar` / `listSecretVarKeys` で読む。vars は上書きできないので印は外せない
 - `required`: 止められない連絡(認証など)。`enabled: false`・email の除外・`adminEditableOnly`・`throttle` を付けられない
 - `adminEditableOnly`: 管理画面で直せる欄の絞り(ひな形の欄の鍵、D132)。無い = ひな形の欄のうち種類の経路で使う物を全部直せる(`adminEditableFields`: 種別の性質 `adminTextOverride` が true で required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない。ひな形に無い鍵は `unknown_admin_editable`
@@ -87,10 +89,10 @@ export const message = defineMessage({
 - 共通の埋め込み情報 `MESSAGE_COMMON_EMBEDDED`(`embedded/common.ts`、鍵・別名・説明の 1 か所。`COMMON_CONTEXT_KEYS`・`THROTTLE_CONTEXT_KEYS` もここから): `recipientName` 受信者名・`recipientEmail` 受信者のメール・`serviceName` サービス名・`serviceNameShort` サービスの短い名前・`appBaseUrl` サイトのURL・`collapsedCount` まとめた件数(間引きのある連絡だけ)
 - enrichers は足す値ごとに別名を宣言する(`MessageEnricher.aliases`、provides の全部の鍵に要る)。上流の `displayName` は「表示名」
 - 専用の埋め込み情報(テンプレートが宣言する)`MessageEmbeddedDeclaration` = `{ key, alias, type, options?, required, default? }`。型 `line`(1行テキスト)・`number`・`date`(YYYY-MM-DD)・`datetime`(ISO 8601、時差つき)・`url`・`select`(`options` の value)。保存の検査 `messageEmbeddedDeclarationSchema`、送る時の値の検査 `embeddedValueSchema` / `embeddedValuesSchema`(空は既定値、必須で既定値も無ければ誤り、差し込む字にする)
-- 一覧 `embeddedCatalog({ own, enrichers, throttle })` = 共通 + 当たる enrichers + 専用。`checkEmbeddedCatalog` が止める: 鍵の形(英字で始まる英数字)・別名の形(空白・記号なし、英数字以外の字を含む)・鍵の重なり・別名の重なり(専用どうしも共通・enrichers の名前とも)・enrichers の別名の欠け
+- 一覧 `embeddedCatalog({ own, vars, enrichers, throttle })` = 共通 + 当たる enrichers + 専用(テンプレートの宣言 `own`、コードの連絡の vars の名前 `vars` = 定義の varNames)。`checkEmbeddedCatalog` が止める: 鍵の形(英字で始まる英数字)・別名の形(空白・記号なし、英数字以外の字を含む)・鍵の重なり・別名の重なり(専用どうしも共通・enrichers の名前とも)・enrichers の別名の欠け
 - 日付・日時の専用の値: 残す値は ISO のまま。`embeddedValuesSchema` が隣に型の印 `<鍵>@type`(`EMBEDDED_TYPE_SUFFIX`、書式 {{名前}} に拾われない)を出し、回の値と一緒に残る。差し込む時に `displayEmbeddedValues` が人が読む字にする(`embeddedDisplayText`: 2026年12月1日 / 2026年12月1日 11:00、日本時間)
 - 差し込み: `findEmbedded(文面, 一覧)` = 書かれた名前を鍵に直した並びと一覧に無い名前(保存・送る前に拒む)。`embeddedVariableMap(鍵 → 値, 一覧)` = 別名の行を足した表(`replaceVariables` に渡す)
-- 定義の検査(`validateMessageDefinition`)と管理画面の値の鍵(`adminFieldAllowedKeys`)は共通の別名を通す(enrichers の鍵と別名は呼び手が `variableKeys` で渡す)。送る口は差し込みの表に別名の行を足し、テンプレートの保存・送る前の検査は一覧で名前を確かめる(features/core/messaging)
+- 定義の検査(`validateMessageDefinition`)と管理画面の値の鍵(`adminFieldAllowedKeys`)は共通の別名と vars の別名(管理画面は秘密を除く)を通す(enrichers の鍵と別名は呼び手が `variableKeys` で、vars の別名と照らす鍵と別名の組は `embeddedNames` で渡す)。送る口は差し込みの表に別名の行を足し、テンプレートの保存・送る前の検査は一覧で名前を確かめる(features/core/messaging)
 
 ## 上書き(MessageOverride)
 

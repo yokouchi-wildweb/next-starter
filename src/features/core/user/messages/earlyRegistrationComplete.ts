@@ -17,6 +17,11 @@ export const message = defineMessage({
     /** サービスの短い名前(business.serviceNameShort) */
     serviceNameShort: z.string(),
   }),
+  // vars の日本語の別名と説明(D133。{{別名}} でも {{鍵}} と同じ値で埋まる)
+  varNames: {
+    displayName: { alias: "表示名", description: "登録した人の表示名(無ければ空)" },
+    serviceNameShort: { alias: "サービスの短い名前", description: "このサービスの短い名前(件名の頭など)" },
+  },
   layout: "welcome",
   values: {
     subject: "【{{serviceNameShort}}】事前登録が完了しました",

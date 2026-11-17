@@ -22,6 +22,7 @@ import {
   embeddedCatalog,
   embeddedValuesSchema,
   findEmbedded,
+  MESSAGE_EMBEDDED_TYPE_LABELS,
   normalizeLayoutValues,
   resolveMessageDefinition,
   upgradeLayoutValues,
@@ -98,7 +99,7 @@ export function templateEmbeddedOf(source: TemplateSource): MessageEmbeddedDecla
   return "version" in source ? source.version.embedded : [...(source.system.embedded ?? [])];
 }
 
-/** 中身 → 定義(検査の前)。vars = 専用の値の zod(白紙は空) */
+/** 中身 → 定義(検査の前)。vars = 専用の値の zod(白紙は空)、varNames = 宣言の別名 */
 export function templateDefinitionOf(
   source: TemplateSource,
   category: string,
@@ -109,7 +110,11 @@ export function templateDefinitionOf(
   const layout = "system" in source ? source.system.layout : source.version.layout;
   const vars = embedded.length > 0 ? embeddedValuesSchema(embedded) : z.object({}).strict();
   const canonical = canonicalEmbeddedNames(values, embedded) as Record<string, unknown>;
-  return { key: TEMPLATE_MESSAGE_KEY, label, category, vars, layout, values: canonical } as unknown as AnyMessageDefinition;
+  // vars の名前(定義に必須、D133)= 専用の宣言の別名と型の表示名
+  const varNames = Object.fromEntries(
+    embedded.map((declaration) => [declaration.key, { alias: declaration.alias, description: MESSAGE_EMBEDDED_TYPE_LABELS[declaration.type] }]),
+  );
+  return { key: TEMPLATE_MESSAGE_KEY, label, category, vars, varNames, layout, values: canonical } as unknown as AnyMessageDefinition;
 }
 
 /**

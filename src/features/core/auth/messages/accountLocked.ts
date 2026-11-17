@@ -19,6 +19,11 @@ export const message = defineMessage({
     /** アクセス元 IP(分からなければ空) */
     ip: z.string(),
   }),
+  // vars の日本語の別名と説明(D133。{{別名}} でも {{鍵}} と同じ値で埋まる)
+  varNames: {
+    occurredAt: { alias: "発生時刻", description: "ロックした時刻(表示用の字)" },
+    ip: { alias: "アクセス元IP", description: "ログインを試みたアクセス元の IP(分からなければ空)" },
+  },
   layout: "alert",
   values: {
     subject: "【重要】アカウントがセキュリティロックされました",

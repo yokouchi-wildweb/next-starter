@@ -70,6 +70,8 @@ export async function resolvedOfDispatch(
     values,
     // 振る舞い(描かない物)だけコードの定義から。テンプレートから送った回(message_key null)はコードの定義が無いので、回の vars はそのまま差し込む
     vars: code ? code.vars : z.object({}).passthrough(),
+    // vars の別名(D133): 組み直しでも {{別名}} を鍵と同じ値で埋める(テンプレートの専用の別名は送る時に鍵へ書き換え済み)
+    varNames: code?.varNames ?? {},
     ...(code?.required ? { required: true as const } : {}),
     ...(code?.throttle ? { throttle: code.throttle } : {}),
     ...(dispatch.record ? { record: dispatch.record } : code?.record ? { record: code.record } : {}),

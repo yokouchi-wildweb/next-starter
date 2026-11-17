@@ -19,6 +19,11 @@ export const message = defineMessage({
     /** 変更の確認のリンク(oobCode 入り) */
     verificationUrl: secretVar(z.string().url()),
   }),
+  // vars の日本語の別名と説明(D133。{{別名}} でも {{鍵}} と同じ値で埋まる)
+  varNames: {
+    newEmail: { alias: "新しいメールアドレス", description: "変更後のメールアドレス" },
+    verificationUrl: { alias: "変更の確認のURL", description: "メールアドレスの変更を確かめるリンク(秘密)" },
+  },
   layout: "link",
   values: {
     subject: "メールアドレス変更の確認",

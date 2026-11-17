@@ -16,6 +16,8 @@ import type { MessageDefinition } from "./types";
  *   label: "メールアドレスの確認",
  *   category: "emailVerification", // 種別と経路は種類(categories/<名前>.ts)から引く
  *   vars: z.object({ verificationUrl: secretVar(z.string().url()) }),
+ *   // vars の鍵ごとの日本語の別名と説明(全部の鍵に必須、D133)。{{確認のURL}} でも {{verificationUrl}} と同じ値で埋まる
+ *   varNames: { verificationUrl: { alias: "確認のURL", description: "メールアドレスを確かめるリンク" } },
  *   required: true,
  *   layout: "link",
  *   values: { subject: "メールアドレスの確認", heading: "確認のお願い", received: "{{受信者名}} 様、…", button: { label: "確認する", url: "{{verificationUrl}}" } },

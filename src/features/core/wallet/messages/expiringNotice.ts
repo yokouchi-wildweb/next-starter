@@ -28,6 +28,15 @@ export const message = defineMessage({
     /** サービスの短い名前(business.serviceNameShort) */
     serviceNameShort: z.string(),
   }),
+  // vars の日本語の別名と説明(D133。{{別名}} でも {{鍵}} と同じ値で埋まる)
+  varNames: {
+    currencyLabel: { alias: "通貨名", description: "失効する残高の通貨の名前" },
+    amount: { alias: "失効する額", description: "失効する額(単位つき)" },
+    expiresOn: { alias: "失効する日", description: "失効する日(いくつもあれば最も早い日)" },
+    daysBefore: { alias: "失効までの日数", description: "失効の何日前の知らせか" },
+    displayName: { alias: "表示名", description: "受け取る人の宛名(名前が無ければ「お客様」)" },
+    serviceNameShort: { alias: "サービスの短い名前", description: "このサービスの短い名前(件名の頭など)" },
+  },
   layout: "statement",
   values: {
     subject: "{{currencyLabel}}の有効期限が近づいています",

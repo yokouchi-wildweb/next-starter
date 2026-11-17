@@ -31,6 +31,8 @@ export type {
   MessageLayoutValuesSource,
   MessageRecord,
   MessageThrottle,
+  MessageVarName,
+  MessageVarNames,
   ResolvedMessageDefinition,
 } from "./definition/types";
 export {

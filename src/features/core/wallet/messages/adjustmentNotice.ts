@@ -25,6 +25,14 @@ export const message = defineMessage({
     /** 理由の行(先頭の改行込み。理由が無ければ空) */
     reasonLine: z.string(),
   }),
+  // vars の日本語の別名と説明(D133。{{別名}} でも {{鍵}} と同じ値で埋まる)
+  varNames: {
+    currencyLabel: { alias: "通貨名", description: "変わった残高の通貨の名前" },
+    methodLabel: { alias: "操作の種類", description: "増加・減少・残高の設定のどれか" },
+    delta: { alias: "変わった額", description: "符号つきの額(例 +1,000 コイン)" },
+    balance: { alias: "変更後の残高", description: "変更の後の残高(単位つき)" },
+    reasonLine: { alias: "理由の行", description: "変更の理由の行(理由が無ければ空)" },
+  },
   layout: "notice",
   values: {
     subject: "{{currencyLabel}}残高が変更されました",

@@ -9,7 +9,7 @@
 // 欄の値が通る条件:
 // - 今の版へ移した欄が直せる欄にある
 // - 欄の宣言の zod(lib の語彙 fieldValueSchema。必須の欄は空にできない)を通る
-// - {{鍵}} は vars(秘密の印 secretVar の鍵を除く)∪ 共通の文脈 ∪ throttle の鍵 ∪ variableKeys(enrichers の provides)だけ
+// - {{鍵}} は vars の鍵と別名(秘密の印 secretVar の鍵を除く)∪ 共通の文脈 ∪ throttle の鍵 ∪ variableKeys(enrichers の provides)だけ
 
 import { listVariables } from "@/lib/structuredDocument/shared";
 import type { z } from "zod";
@@ -51,13 +51,17 @@ export function adminEditableFields(resolved: AnyResolved, layout: MessageLayout
     .map(([key]) => key);
 }
 
-/** 管理画面の値で使ってよい {{鍵}} / {{別名}}(秘密の vars は入れない。variableKeys = 当たる enrichers の鍵と別名) */
+/** 管理画面の値で使ってよい {{鍵}} / {{別名}}(vars は鍵と別名、秘密の vars は入れない。variableKeys = 当たる enrichers の鍵と別名) */
 export function adminFieldAllowedKeys(resolved: AnyResolved, variableKeys: readonly string[] = []): string[] {
   const secret = new Set(listSecretVarKeys(resolved.vars));
   const varKeys = Object.keys(resolved.vars.shape).filter((key) => !secret.has(key));
+  // vars の日本語の別名(D133、秘密の値の別名は入れない)
+  const names = (resolved.varNames ?? {}) as Readonly<Record<string, { alias?: string } | undefined>>;
+  const varAliases = varKeys.flatMap((key) => (names[key]?.alias ? [names[key]!.alias!] : []));
   return [
     ...new Set([
       ...varKeys,
+      ...varAliases,
       ...COMMON_CONTEXT_KEYS,
       ...(resolved.throttle ? THROTTLE_CONTEXT_KEYS : []),
       // 共通の埋め込み情報の日本語の別名(D126。送る口が鍵と同じ値で埋める)
