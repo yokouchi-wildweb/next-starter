@@ -8,8 +8,8 @@
 // required と秘密を差し込む連絡(noBody)はキューに置けないので、要求の中で全部を送り切る(小さな選んだ宛先だけ)
 // 予約(scheduledAt): 回の行だけ(status scheduled、宛先の一覧は回の target に置く)。cron の activateScheduled が時刻に processing にして展開する
 // 会話の間引き(定義の throttle): 経路の send の前に受信者ごとに当てる(throttle.ts。cron の送りも同じ)
-// 管理者が書いた文面(sendAuthored、D92): その場で書く連絡もテンプレートを呼び出して直した文面も同じ組み方。テンプレートを呼び出した時は
-//   template_id + template_version と直した印を残す
+// テンプレート + 欄の中身(sendTemplateMessage、D117・D125): 管理の送信(白紙のシステムテンプレートか DB のテンプレート)は同じ組み方。
+//   回の message_key は null で、出どころは system_template か template_id + template_version と直した印(D128)
 // 回の記録(D128): 出どころ・直した印・カテゴリー・ひな形の鍵と版・欄の中身(values、差し込む前)。予約・cron・失敗の再送はこの回の物と
 //   vars だけで描き直す(dispatchResolved.ts。定義・テンプレートを引き直さない)。values の残し方は vars と同じ(noBody は残さない)
 // 経路(D86): 種類の経路。input.channels はその回だけの絞り(種類の外・空は 400)。自動の送り手は渡さない
@@ -37,7 +37,13 @@ import {
 } from "./definition";
 import { sendDeliveries, type DeliveryJob } from "./deliver";
 import { deliveryEvents, dispatchCompletedEvent } from "../events/internalEvents";
-import { recipientVariablesWithoutDefault, resolveAuthoredDefinition, templateContentEdited } from "./authoredDefinition";
+import { requireSystemTemplate } from "./systemTemplates";
+import {
+  recipientVariablesWithoutDefault,
+  resolveTemplateDefinition,
+  templateValuesEdited,
+  type TemplateSource,
+} from "./templateDefinition";
 import { expandExplicit, recipientKeyOf, type ExpansionCounts, type PlannedDelivery } from "./expand";
 import { omitKeys, recordPolicyOf, type RecordPolicy } from "./record";
 import { honoursPreferences, type StopContext } from "./stops";
@@ -51,8 +57,9 @@ import type {
   SendMessageInput,
   SendMessageResult,
   SendMessageToManyInput,
-  MessageDispatchAuthored,
-  SendAuthoredInput,
+  MessageDispatchTemplateSource,
+  MessageTemplateRef,
+  SendTemplateMessageInput,
   MessageTargetSpec,
   MessageTemplateVersionSource,
 } from "./types";
@@ -125,10 +132,10 @@ function finalDispatchStatus(statuses: readonly string[], queuedCount: number): 
 
 type ManyOptions = {
   single?: boolean;
-  /** 組み済みの定義(書いた文面。生成の一覧の上書きを重ねない) */
+  /** 組み済みの定義(テンプレート + 中身。生成の一覧の上書きを重ねない) */
   resolved?: AnyResolvedMessageDefinition;
-  /** 回に残す書いた文面とテンプレートの出どころ */
-  authored?: MessageDispatchAuthored;
+  /** 回に残すテンプレートの出どころ(ある回は message_key が null) */
+  source?: MessageDispatchTemplateSource;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -216,12 +223,13 @@ export function createMessageSender(deps: MessageSendDeps) {
       queueVars: boolean;
       /** 要求の中で展開を終える(小さな送信) */
       expanded: boolean;
-      authored?: MessageDispatchAuthored;
+      source?: MessageDispatchTemplateSource;
       /** グループ宛ての送り始めに固定した定期計算の版(静的・動的は null) */
       groupVersion?: number | null;
     },
   ): Promise<string> {
-    const { channels, vars, policy, recipientCount, queueVars, expanded, authored } = values;
+    const { channels, vars, policy, recipientCount, queueVars, expanded, source } = values;
+    const template = source && "template" in source ? source.template : null;
     const actor = deps.actor();
     const scheduled = input.scheduledAt !== undefined;
     // 見出しと全員同文の描画は回を書く前に組む(描けない経路はここで止まり、回を作らない)
@@ -239,9 +247,10 @@ export function createMessageSender(deps: MessageSendDeps) {
       const { id } = await deps.store.insertDispatch({
         status: scheduled ? "scheduled" : "processing",
         scheduled_at: input.scheduledAt ?? null,
-        template_id: authored?.template?.id ?? null,
-        template_version: authored?.template?.version ?? null,
-        template_edited: authored?.template?.edited ?? false,
+        system_template: source && "system" in source ? source.system : null,
+        template_id: template?.id ?? null,
+        template_version: template?.version ?? null,
+        template_edited: template?.edited ?? false,
         layout: resolved.layout,
         layout_version: deps.layouts[resolved.layout] ? layoutVersionOf(deps.layouts[resolved.layout]!) : null,
         // 欄の中身: 組み直しに要る間と残す段の間だけ(vars と同じ決まり)。required・秘密の連絡は残さない
@@ -254,7 +263,8 @@ export function createMessageSender(deps: MessageSendDeps) {
         actor_type: actor.actorType,
         reason: input.reason ?? null,
         metadata: input.metadata ?? null,
-        message_key: resolved.key,
+        // テンプレートから送った回はコードの連絡の鍵を持たない(出どころは system_template / template_id、D128)
+        message_key: source ? null : resolved.key,
         kind: resolved.kind,
         category: resolved.category,
         target,
@@ -286,6 +296,8 @@ export function createMessageSender(deps: MessageSendDeps) {
       return { dispatchId: null, status: "disabled", deliveries: [], queuedCount: 0, channelCounts: {} };
     }
     const { resolved, channels, vars, policy } = prepared;
+    /** 回と事件に残す連絡の鍵(テンプレートから送った回は null) */
+    const recordKey = options.source ? null : resolved.key;
     const recipients: readonly MessageRecipient[] = input.recipients ?? [];
     const uniqueCount = new Set(recipients.map(recipientKeyOf)).size;
     const scheduled = input.scheduledAt !== undefined;
@@ -320,7 +332,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         recipientCount: input.target ? 0 : large ? uniqueCount : 0,
         queueVars: true,
         expanded: false,
-        authored: options.authored,
+        source: options.source,
         groupVersion: group?.version ?? null,
       });
       return {
@@ -348,7 +360,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       recipientCount: targetCount,
       queueVars: queueRest,
       expanded: true,
-      authored: options.authored,
+      source: options.source,
     });
 
     const recipientVarsOf = (key: string) => input.recipientVars?.[key];
@@ -385,7 +397,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         };
       }),
       // 止めた行(宛先なし・経路が切・好み・宛先の停止)は delivery.suppressed
-      types.size > 0 ? (created) => deliveryEvents(types, created, resolved.key, deps.now()) : undefined,
+      types.size > 0 ? (created) => deliveryEvents(types, created, recordKey, deps.now()) : undefined,
     );
     const planByKey = new Map<string, PlannedDelivery>(
       expansion.planned.map((plan) => [`${plan.channel}|${plan.recipientKey}`, plan]),
@@ -456,7 +468,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       await deps.store.updateDelivery(
         result.deliveryId,
         patch,
-        deliveryEvents(types, [{ ...row, status: result.status }], resolved.key, deps.now()),
+        deliveryEvents(types, [{ ...row, status: result.status }], recordKey, deps.now()),
       );
       statusById.set(result.deliveryId, result.status);
     }
@@ -474,7 +486,7 @@ export function createMessageSender(deps: MessageSendDeps) {
     const completed =
       status === "processing"
         ? null
-        : dispatchCompletedEvent(types, { id: dispatchId, message_key: resolved.key }, status, deps.now(), {
+        : dispatchCompletedEvent(types, { id: dispatchId, message_key: recordKey }, status, deps.now(), {
             isTest: input.isTest ?? false,
           });
     await deps.store.updateDispatch(
@@ -520,6 +532,15 @@ export function createMessageSender(deps: MessageSendDeps) {
     return version;
   }
 
+  /**
+   * 出どころ → 組み済みの出どころ(白紙の受け口の項目か、DB のテンプレートの今の公開版)。
+   * @throws DomainError(400) 無い白紙 / (404・409・400) DB のテンプレートの状態(currentTemplateVersion)
+   */
+  async function templateSourceOf(ref: MessageTemplateRef): Promise<TemplateSource> {
+    if ("system" in ref) return { system: requireSystemTemplate({ systemTemplates: deps.systemTemplates ?? {}, layouts: deps.layouts }, ref.system) };
+    return { version: await currentTemplateVersion(ref.id, ref.version) };
+  }
+
   return {
     /** 1 通(1 人)を送る */
     async sendMessage(definition: AnyMessageDefinition, input: SendMessageInput): Promise<SendMessageResult> {
@@ -538,23 +559,23 @@ export function createMessageSender(deps: MessageSendDeps) {
     sendMessageToMany: (definition: AnyMessageDefinition, input: SendMessageToManyInput) =>
       sendToMany(definition, input),
     /**
-     * 組み済みの定義で送る(管理の再送が新しい回として送る時。回から組んだ定義で、上書きを重ね直さない。テンプレートの回は同じ版と直した印を残す)
+     * 組み済みの定義で送る(管理の再送が新しい回として送る時。回から組んだ定義で、上書きを重ね直さない。テンプレートの回は同じ出どころを残す)
      */
     sendResolved: (
       resolved: AnyResolvedMessageDefinition,
       input: SendMessageToManyInput,
-      authored?: MessageDispatchAuthored,
-    ) => sendToMany(resolved as AnyMessageDefinition, input, { resolved, authored }),
+      source?: MessageDispatchTemplateSource,
+    ) => sendToMany(resolved as AnyMessageDefinition, input, { resolved, source }),
 
     /**
      * 描いたプレビュー(管理の送信の確認)。見本の受信者 userId の値で差し込み、経路ごとに欄と(経路が描けるなら)HTML を返す。
-     * 書いた文面(authored)は送る時と同じ組み方(テンプレートを呼び出した時は今の公開版の変数の宣言)
-     * @throws DomainError 送る時と同じ検査(vars・経路・文面の無い経路・欄・テンプレートの状態)
+     * テンプレート + 中身は送る時と同じ組み方(DB のテンプレートは今の公開版の変数の宣言)
+     * @throws DomainError 送る時と同じ検査(vars・経路・欄・テンプレートの状態)
      */
     async previewMessage(
       source:
         | { definition: AnyMessageDefinition }
-        | { authored: { content: Record<string, unknown>; category: string; template?: { templateId: string; version: number } } },
+        | { template: { template: MessageTemplateRef; values: Record<string, unknown>; category: string } },
       input: { vars: Record<string, unknown>; channels?: readonly string[]; userId: string | null },
     ): Promise<MessagePreview> {
       let resolved: AnyResolvedMessageDefinition;
@@ -562,12 +583,12 @@ export function createMessageSender(deps: MessageSendDeps) {
       if ("definition" in source) {
         resolved = await resolveDefinition(source.definition, deps);
       } else {
-        const { content, category, template: called } = source.authored;
-        const version = called ? await currentTemplateVersion(called.templateId, called.version) : undefined;
-        resolved = resolveAuthoredDefinition(deps, { category, content, channels: input.channels, version });
-        if (version) template = { id: version.templateId, version: version.version };
+        const { values, category, template: ref } = source.template;
+        const from = await templateSourceOf(ref);
+        resolved = resolveTemplateDefinition(deps, { category, values, channels: input.channels, source: from });
+        if ("version" in from) template = { id: from.version.templateId, version: from.version.version };
       }
-      // 経路 = 種類の経路、input.channels はその中の絞り(テンプレートは組む時に絞り、文言の無い経路は 400)
+      // 経路 = 種類の経路、input.channels はその中の絞り
       const channels = resolveChannels(resolved, input.channels);
       const vars = parseVars(resolved, input.vars);
       const [user] = input.userId ? await deps.store.findUsers([input.userId]) : [];
@@ -608,27 +629,34 @@ export function createMessageSender(deps: MessageSendDeps) {
     },
 
     /**
-     * 管理者が書いた文面で送る(D92)。その場で書く連絡とテンプレートを呼び出して直した文面は template の有無だけが違う。
-     * 経路 = 種類の経路 ∩ 絞り、文面の無い経路は 400。回に欄の中身を残し、テンプレートは今の公開版を固定して版の文面から直したかを残す
+     * テンプレート + 欄の中身で送る(D117・D125)。白紙のシステムテンプレートも DB のテンプレートも同じ組み方。
+     * 経路 = 種類の経路 ∩ 絞り。回に欄の中身を残し、DB のテンプレートは今の公開版を固定して直した印(入力の edited か中身の違い)を残す
      * (cron は回の欄の中身で組み直す)
-     * @throws DomainError(404) テンプレートが無い / (409) 取り下げ済み・未公開・今の公開版でない版 / (400) 値・経路・文面・受信者ごとの変数の既定値
+     * @throws DomainError(404) テンプレートが無い / (409) 取り下げ済み・未公開・今の公開版でない版 / (400) 白紙・カテゴリー・値・経路・中身・受信者ごとの変数の既定値
      */
-    async sendAuthored(input: SendAuthoredInput): Promise<SendMessageResult> {
-      const { content, category, template: called, vars, ...rest } = input;
-      if (!called && vars && Object.keys(vars).length > 0) {
-        throw new DomainError("変数の値はテンプレートを呼び出した時だけ渡せます", { status: 400 });
+    async sendTemplateMessage(input: SendTemplateMessageInput): Promise<SendMessageResult> {
+      const { template: ref, values, edited, category, vars, ...rest } = input;
+      if ("system" in ref && vars && Object.keys(vars).length > 0) {
+        throw new DomainError("変数の値は DB のテンプレートで送る時だけ渡せます", { status: 400 });
       }
-      const version = called ? await currentTemplateVersion(called.templateId, called.version) : undefined;
-      const resolved = resolveAuthoredDefinition(deps, { category, content, channels: rest.channels, version });
-      const template = version
-        ? { id: version.templateId, version: version.version, edited: templateContentEdited(version, content) }
-        : null;
+      const from = await templateSourceOf(ref);
+      const resolved = resolveTemplateDefinition(deps, { category, values, channels: rest.channels, source: from });
+      const source: MessageDispatchTemplateSource =
+        "system" in from
+          ? { system: from.system.key }
+          : {
+              template: {
+                id: from.version.templateId,
+                version: from.version.version,
+                edited: edited === true || templateValuesEdited(from.version, values),
+              },
+            };
       const result = await sendToMany(
         resolved as AnyMessageDefinition,
         { ...rest, vars: vars ?? {} } as SendMessageToManyInput,
-        { resolved, authored: { template } },
+        { resolved, source },
       );
-      return template ? { ...result, template } : result;
+      return "template" in source ? { ...result, template: source.template } : result;
     },
   };
 }

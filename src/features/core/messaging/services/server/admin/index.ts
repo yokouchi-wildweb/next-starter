@@ -24,13 +24,14 @@ import { messageRegistry } from "@/registry/messageRegistry";
 
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
+import { systemTemplates } from "../../../extensions/systemTemplates";
 import { sources } from "../../../extensions/sources";
 import {
   resolvedOfDispatch,
   estimateRecipients,
   previewMessage,
   sendMessageDeps,
-  sendAuthored,
+  sendTemplateMessage,
   sendResolved,
 } from "../sendMessage";
 import { continueSending } from "../sweep";
@@ -197,12 +198,13 @@ const readDeps = {
 /** 管理の送信の部品 */
 const sendDeps: AdminSendDeps = {
   ...adminCheck,
-  sendAuthored,
+  sendTemplateMessage,
   previewMessage,
   estimateRecipients,
   recordAudit,
   channels,
   categories,
+  systemTemplates,
   roles: () => ALL_ROLES.map((role) => ({ id: role.id, label: role.label })),
   groupOptions,
   async listPublishedTemplates() {
@@ -273,13 +275,7 @@ export { ListDeliveriesQuerySchema, ListDispatchesQuerySchema } from "./readDisp
 export type { AdminBulkSendInput, AdminBulkSendOptions, AdminBulkSendResult } from "./bulkSend";
 export type { AdminBulkSendTemplate } from "./types";
 export { ADMIN_SEND_MAX_USERS } from "./send";
-export {
-  ADMIN_FREE_TEXT_DEFINITIONS,
-  ADMIN_FREE_TEXT_KINDS,
-  ADMIN_FREE_TEXT_MESSAGE_KEYS,
-  adminFreeTextMessageKeyOf,
-} from "./freeText";
-export type { AdminFreeTextCategoryOption, AdminFreeTextKind } from "./freeText";
+export type { AdminFreeTextCategoryOption } from "./freeText";
 export { ADMIN_DELETE_MAX_IDS, AdminDispatchIdsInputSchema, AdminResendInputSchema } from "./operations";
 export type {
   AdminBulkDeleteResult,

@@ -28,18 +28,6 @@ export const messageRegistry: MessageRegistry = {
     key: "auth.verification",
     definition: () => import("@/features/core/auth/messages/verification"),
   },
-  "messaging.adminAnnouncement": {
-    key: "messaging.adminAnnouncement",
-    definition: () => import("@/features/core/messaging/messages/adminAnnouncement"),
-  },
-  "messaging.adminDirect": {
-    key: "messaging.adminDirect",
-    definition: () => import("@/features/core/messaging/messages/adminDirect"),
-  },
-  "messaging.adminPromotion": {
-    key: "messaging.adminPromotion",
-    definition: () => import("@/features/core/messaging/messages/adminPromotion"),
-  },
   "user.earlyRegistrationComplete": {
     key: "user.earlyRegistrationComplete",
     definition: () => import("@/features/core/user/messages/earlyRegistrationComplete"),

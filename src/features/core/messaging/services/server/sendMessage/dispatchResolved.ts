@@ -20,6 +20,7 @@ import {
 
 import type { MessageDispatch } from "../../../entities/model";
 import type { AnyMessageDefinition, AnyResolvedMessageDefinition } from "./definition";
+import { TEMPLATE_MESSAGE_KEY } from "./templateDefinition";
 import type { MessageSendDeps } from "./types";
 
 export type DispatchResolveError = "layout_missing" | "layout_unreadable";
@@ -60,15 +61,15 @@ export async function resolvedOfDispatch(
   const kind: MessageKind =
     dispatch.kind && isMessageKind(dispatch.kind) ? dispatch.kind : (deps.categories[category]?.kind ?? "transactional");
   const resolved = {
-    key: (dispatch.message_key ?? "messaging.template") as MessageKey,
+    key: (dispatch.message_key ?? TEMPLATE_MESSAGE_KEY) as MessageKey,
     label: code?.label ?? "",
     category,
     kind,
     channels: [...(dispatch.channels ?? [])],
     layout: layout.key,
     values,
-    // 振る舞い(描かない物)だけコードの定義から。書いた文面の定義(authored)の vars は空なので、回の vars はそのまま差し込む
-    vars: code && !code.authored ? code.vars : z.object({}).passthrough(),
+    // 振る舞い(描かない物)だけコードの定義から。テンプレートから送った回(message_key null)はコードの定義が無いので、回の vars はそのまま差し込む
+    vars: code ? code.vars : z.object({}).passthrough(),
     ...(code?.required ? { required: true as const } : {}),
     ...(code?.throttle ? { throttle: code.throttle } : {}),
     ...(dispatch.record ? { record: dispatch.record } : code?.record ? { record: code.record } : {}),

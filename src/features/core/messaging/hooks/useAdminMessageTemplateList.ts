@@ -19,7 +19,25 @@ import { useMessageTemplates } from "./useMessageTemplates";
 /** 1 件の詳しい形から一覧の行の形へ */
 function summaryOf(template: AdminTemplateDetail): AdminTemplateSummary {
   const { id, key, name, description, category, categoryLabel, status, currentVersion, createdBy, updatedBy, createdAt, updatedAt } = template;
-  return { id, key, name, description, category, categoryLabel, status, currentVersion, createdBy, updatedBy, createdAt, updatedAt };
+  const { system, kind, layout, values } = template;
+  return {
+    id,
+    key,
+    name,
+    description,
+    category,
+    categoryLabel,
+    status,
+    currentVersion,
+    createdBy,
+    updatedBy,
+    createdAt,
+    updatedAt,
+    system,
+    kind,
+    layout,
+    values,
+  };
 }
 
 export type UseAdminMessageTemplateListOptions = {

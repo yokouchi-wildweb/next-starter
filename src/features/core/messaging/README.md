@@ -75,7 +75,7 @@ export const category: MessageCategory = { key: "itemSoldInApp", label: "出品�
 
 HTTP の口と返す形は口のフォルダの README:
 
-- 送る口（`sendMessage` / `sendMessageToMany` / `sendAuthored`・プレビュー・見込み・間引き・本文の残し方・送信の結果）→ services/server/sendMessage/README.md
+- 送る口（`sendMessage` / `sendMessageToMany` / `sendTemplateMessage`・プレビュー・見込み・間引き・本文の残し方・送信の結果）→ services/server/sendMessage/README.md
 - 管理の口 `/api/admin/messaging/**`（送る・一括送信・送った回の読む口・回の操作・続きを送る・利用者ごとの履歴）→ services/server/admin/README.md
 - テンプレート `/api/admin/messaging/templates/**` → services/server/templates/README.md / 文言の上書き `/api/admin/messaging/overrides/**` → services/server/overrides/README.md
 - 本人の受け取り箱 `/api/me/messaging/inbox/**` → services/server/inbox/README.md / 好み `/api/me/messaging/preferences` → services/server/preferences/README.md / 端末の帳簿 `/api/me/messaging/endpoints` → services/server/endpoints/README.md
@@ -108,6 +108,7 @@ HTTP の口と返す形は口のフォルダの README:
 - `bulkSendTargets/`（`bulkSendTarget`: `MessageBulkSendTarget`、型は `services/server/admin/types.ts`）: 管理一覧の一括送信の対象（選んだ記録 → 利用者 id・送った後の処理）。上流は `bankTransferReview`（services/server/admin/README.md）
 - `adminBulkActions/`（`bulkAction`: `MessagingDispatchAdminBulkActionItem`、型は `types/adminBulkAction.ts`、client）: 送信一覧の一括操作（D95）。上流の既定 = `delete.tsx`（削除）。fork は項目を足す・`<名前>.override.ts` で `enabled`・`order`（作り方: src/lib/tableSuite/README.md「一括操作の受け口」）
 - `channelPreviews/`（`preview`: `ChannelPreviewItem`、型は `types/channelPreview.ts`、client）: 管理画面のプレビューの部品（`{ key, Component }`、鍵 = 経路の受け口の `previewComponent`）。fork の経路の見た目を文言の編集・テンプレートのプレビューに出す。上流の email・inApp・line は部品の中で描くので項目は無い
+- `templates/`（`systemTemplate`: `MessageSystemTemplate`）: システムテンプレート = 管理の送信の白紙（種別ごとに 1 つ、D117・D125）。上流は `announcement`・`direct`・`promotion`（ひな形 notice）。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` だけ（templates/README.md）
 - `subscribers/`（`subscriber`: `MessageSubscriber`）: 送った後の事件の購読（少なくとも 1 回）。上流の項目は無い（services/server/subscribers/README.md）
 
 ほかの差し替え:

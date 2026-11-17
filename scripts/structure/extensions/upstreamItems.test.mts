@@ -119,6 +119,8 @@ test("上流の項目の組: 宣言と受け口がそろい、機能に閉じる
   assertUpstreamItems(names("src/features/core/batchJob", "jobHandlers"), ["walletBulkAdjust"]);
   assertUpstreamItems(names("src/features/core/messaging", "bulkSendTargets"), ["bankTransferReview"]);
   assertUpstreamItems(names("src/features/core/messaging", "enrichers"), ["displayName"]);
+  // システムテンプレート(管理の送信の白紙、種別ごとに 1 つ、指令 56 d4)
+  assertUpstreamItems(names("src/features/core/messaging", "systemTemplates"), ["announcement", "direct", "promotion"]);
 });
 
 test("1 行スイッチの既定: 何も足さない状態で今までと同じ(エンリッチャーなし・プログラムなし・フックは何もしない)", tier1Only, async () => {

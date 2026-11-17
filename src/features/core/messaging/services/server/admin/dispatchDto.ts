@@ -11,7 +11,7 @@
 //   (errorCode、文は constants/deliveryErrors.ts)で見る
 // - グループ宛ての回: targetGroup { id, name }(id は「同じ内容で送る」が開き直す値としてだけ、画面に出さない、D94・D60)。
 //   名前は読む時のグループ名(しまったグループも)、門 userGroups が閉・消えたグループは null。detail.target は { type: "group" } だけ
-// - 前の送る口の回(message_key が null): 件名・本文は S2 の写しが前の列から headings / rendered へ移した。記録の段(record)を持たないので、
+// - 前の送る口の回(ひな形 layout が null。テンプレートから送った回は message_key が null なので鍵では見ない): 件名・本文は S2 の写しが前の列から headings / rendered へ移した。記録の段(record)を持たないので、
 //   本文は段に依らず rendered を返す(前の列を消す前の管理の見え方を保つ)
 
 import type { MessageRecord } from "@/lib/messaging";
@@ -58,6 +58,8 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   templateVersion: number | null;
   /** 版の文言を直して送った回か(D85) */
   templateEdited: boolean;
+  /** 白紙のシステムテンプレートから送った回の鍵(D128。ほかの回は null) */
+  systemTemplate: string | null;
   /** 回の中身(ひな形の鍵と送った版・欄の中身、差し込む前の字)。欄の中身を残していない回は null */
   content: AdminDispatchContent | null;
   /** 選んだ利用者に送った回の利用者 id(「同じ内容で送る」の写し)。ほかの宛先の形・多すぎる回は null */
@@ -106,9 +108,9 @@ export type AdminDeliveryRow = {
 
 const iso = (value: Date | null | undefined) => (value ? value.toISOString() : null);
 
-/** 前の送る口の回か(定義の鍵と記録の段を持たない) */
-function isOldSend(row: MessageDispatch): boolean {
-  return row.message_key === null;
+/** 前の送る口の回か(ひな形と記録の段を持たない) */
+function isOldSend(row: Pick<MessageDispatch, "layout">): boolean {
+  return row.layout === null;
 }
 
 /** 経路ごとの件名・題 */
@@ -174,6 +176,7 @@ export function toDispatchDetail(
     templateId: row.template_id,
     templateVersion: row.template_version,
     templateEdited: row.template_edited,
+    systemTemplate: row.system_template,
     content: row.values && row.layout ? { layout: row.layout, layoutVersion: row.layout_version ?? null, values: row.values } : null,
     targetUserIds,
     sourceLabel,

@@ -74,7 +74,7 @@ export const MessageDispatchTable = pgTable(
 
     /**
      * 出どころ（D128。どれか 1 つ）: コードの連絡の鍵（messaging/messages/<名前>.ts の key）/ システムテンプレートの鍵（system_template）/
-     * DB のテンプレート（template_id + template_version）。管理者が書いて送る回は今は種別ごとの管理の定義の鍵も持つ
+     * DB のテンプレート（template_id + template_version）。テンプレートから送った回（管理の送信）は message_key が null
      */
     message_key: text("message_key"),
     /** システムテンプレートの鍵（messaging/templates の受け口、管理の送信の白紙）。それ以外の回は null */

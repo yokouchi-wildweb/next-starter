@@ -12,30 +12,31 @@
 
 ## API
 
-### 管理者が書いて送る連絡（freeText.ts）
+### 管理の送信の形（freeText.ts・../sendMessage/templateDefinition.ts、D117・D125）
 
-- 定義 3 本: `messages/adminAnnouncement.ts`（`messaging.adminAnnouncement`、カテゴリー `announcement`）・`adminDirect.ts`（`messaging.adminDirect`、`operatorDirect`）・`adminPromotion.ts`（`messaging.adminPromotion`、`promotion`）。`authored: true`（文面は送るたびに受け取る。上書きのファイルは置けない）。種別 → 定義の表は `ADMIN_FREE_TEXT_DEFINITIONS`・`adminFreeTextCategoryOf`
-- **カテゴリーの種別と宛先の組は種別の性質 `adminFreeText`**: announcement = 全員・ロール・グループ・選んだ利用者 / direct = 選んだ利用者・一括 / promotion = 全部。誤りは 400
-- 文面 = 経路ごとの欄の全部（メール = 件名・preheader・見出し・段落・ボタン・足元 / お知らせ = 題・本文・画像・行き先 / LINE = 文 / fork の経路 = その欄）。決まった挨拶・足元の文は無い（要るなら管理者が書く）。宛名は `{{displayName}}`。送る時にひな形 notice（汎用のお知らせ）の欄の中身にして描く（email の欄が先、無ければ inApp、無ければ LINE。段落は改行のまま。経路ごとに別に書いた文は S5 まで使わない、`sendMessage/README.md`）。見た目は notice の描き方の `.replace` で替えられる
-- 定義を消した前の回（`messaging.adminMessage`）は当時の鍵・種別・カテゴリーで読める。再送は `definition_missing` で止まる
+- どの送信も『テンプレートを選んで送る』1 つの流れ: 出どころ `template` = 白紙のシステムテンプレート `{ system: 鍵 }`（その場で書く連絡、受け口 `messaging/templates`）か DB のテンプレート `{ id, version }` + 欄の中身 `values`（ひな形の欄、汎用のお知らせ notice = 件名 + ブロックの並び）+ 直した印 `edited?`（DB のテンプレートだけ）。管理用の連絡の定義は無い
+- **カテゴリーの種別と宛先の組は種別の性質 `adminFreeText`**: announcement = 全員・ロール・グループ・選んだ利用者 / direct = 選んだ利用者・一括 / promotion = 全部。誤りは 400。白紙はカテゴリーと同じ種別の物だけ（400）
+- 宛名は `{{displayName}}`（enricher、種別 announcement・direct・promotion に当たる）。決まった挨拶・足元の文は無い（要るなら管理者が書く）。見た目は notice の描き方の `.replace` で替えられる
+- 回は `message_key` null + 出どころ（`system_template` か `template_id`・`template_version`・`template_edited`）。前の管理の定義の鍵で送った回（`messaging.adminMessage` など）も当時の鍵・種別・カテゴリーで読める
+- fork のコードからは `messagingService.sendTemplateMessage`（同じ形、../sendMessage/README.md「fork のコードから管理の送信」）
 
 ### `/api/admin/messaging/send/**`（send.ts、門 `messagingBroadcast`）
 
-- `POST /send`（`AdminSendInputSchema`）: `content`（経路ごとの文面）・`template?` = `{ templateId, version }`・`vars?`（`template` がある時だけ）・`category`（必須、種別 announcement・direct・promotion）・`channels?`（カテゴリーの経路の中の絞り、文面の無い経路・外・空は 400）・`target`・`scheduledAt?`（ISO 8601）・`idempotencyKey?`・`reason?` → `{ dispatchId, status, queuedCount, channelCounts }`。知らない鍵は 400。送り元 `messaging.adminSend`
+- `POST /send`（`AdminSendInputSchema`）: `template`（`{ system }` か `{ id, version }`）・`values`（ひな形の欄の中身）・`edited?`・`vars?`（DB のテンプレートだけ）・`category`（必須、種別 announcement・direct・promotion）・`channels?`（カテゴリーの経路の中の絞り、外・空は 400）・`target`・`scheduledAt?`（ISO 8601）・`idempotencyKey?`・`reason?` → `{ dispatchId, status, queuedCount, channelCounts }`。知らない鍵は 400。送り元 `messaging.adminSend`
   - `target` = `{ type: "all" }` / `{ type: "role", roles }` / `{ type: "group", groupId }`（使用中のユーザーグループ。門 `userGroups` が閉・無い = 404、しまった・壊れた・人数の上限 = 409）/ `{ type: "users", userIds }`（10,000 人まで）
 - `POST /send/preview`: 経路ごとの差し込み済みの欄と経路の `preview`（メールは送る時と同じ HTML）。見本の受信者 = 操作した管理者、テンプレートは今の公開版
 - `POST /send/estimate` `{ target }` → `{ count, fixedAtSend: true, memberLimit?, overLimit? }`（全員・ロールは数、グループは一員の数と上限、選んだ利用者は居る人の数。停止・宛先なしを引く前）
 - `POST /send/test`: 宛先 = 操作した管理者だけ・`is_test`（集計と分母から外す）。予約しない。システムの操作は 400
-- `GET /send/options`: 有効な経路 `{ key, label }`・ロール・`groups`（使用中のグループ `{ id, label, kindLabel }` を名前の順に 200 件、門 `userGroups` が閉なら空。id は値としてだけ使い画面に出さない）・公開したテンプレート（版の番号・種類・文言・変数）・`categories` `{ key, label, kind, channels, targets }`・`maxScheduleDays`
-- 監査: `messaging.dispatch.sent` / `messaging.dispatch.scheduled` / `messaging.dispatch.test_sent`（対象 `message_dispatch`、本文の値は残さない）
+- `GET /send/options`: 有効な経路 `{ key, label }`・ロール・`groups`（使用中のグループ `{ id, label, kindLabel }` を名前の順に 200 件、門 `userGroups` が閉なら空。id は値としてだけ使い画面に出さない）・公開したテンプレート（版の番号・種類・文言・変数）・`categories` `{ key, label, kind, channels, targets, systemTemplate }`（`systemTemplate` = その種別の白紙 `{ key, label }` か null）・`maxScheduleDays`
+- 監査: `messaging.dispatch.sent` / `messaging.dispatch.scheduled` / `messaging.dispatch.test_sent`（対象 `message_dispatch`、出どころ `source` = `system`（`systemTemplate`）か `template`（`templateId`・`templateVersion`・`edited`）、本文の値は残さない）
 
 ### `/api/admin/messaging/bulk-send`（bulkSend.ts、門の外）
 
 - `GET`: `{ channels, categories, templates }`（経路は送る口の選択肢と同じ、カテゴリーは bulk で送れる種別、テンプレートは門 `messagingTemplates` が開の時だけ）
-- `POST`: 宛先 `{ userIds }` か `{ target, recordIds }`（10,000 人まで）、中身は `/send` と同じ `content`・`template?`・`vars?`・`category`・`channels?`、`idempotencyKey?`（8〜128 文字）・`source?`（既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`。予約は無い（`scheduledAt` は 400）。知らない鍵は 400
+- `POST`: 宛先 `{ userIds }` か `{ target, recordIds }`（10,000 人まで）、中身は `/send` と同じ `template`・`values`・`edited?`・`vars?`・`category`・`channels?`、`idempotencyKey?`（8〜128 文字）・`source?`（既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`。予約は無い（`scheduledAt` は 400）。知らない鍵は 400
   - → `{ dispatchId, status, counts: { recipientCount, channelCounts, queuedCount }, afterSend: { ok: true } | { ok: false, error } | null }`
 - `POST /preview`・`POST /test`: `/send` と同じ（テストの送り元 `messaging.adminBulk.test`）
-- 対象の受け口 `bulkSendTargets/<名前>.ts`（`MessageBulkSendTarget`、`types.ts`）: `key`・`label`・`enabled?`・`resolveUserIds(recordIds)`・`afterSend?({ recordIds, dispatchId, counts, content, template })`（受け付けの直後に 1 回。`content` = 差し込む前の経路ごとの欄、`template` = `{ id, version, edited }` か null。投げても送信は戻らず結果と監査に失敗を残す）。上流 `bankTransferReview`（振込審査 → 申告した利用者、メールを送ったら管理メモに「YYYY/MM/DD「件名」メール送付」）
+- 対象の受け口 `bulkSendTargets/<名前>.ts`（`MessageBulkSendTarget`、`types.ts`）: `key`・`label`・`enabled?`・`resolveUserIds(recordIds)`・`afterSend?({ recordIds, dispatchId, counts, values, template })`（受け付けの直後に 1 回。`values` = 差し込む前の欄の中身、`template` = `{ system }` か `{ id, version, edited }`。投げても送信は戻らず結果と監査に失敗を残す）。上流 `bankTransferReview`（振込審査 → 申告した利用者、メールを送ったら管理メモに「YYYY/MM/DD「件名」メール送付」）
 - 監査: `messaging.dispatch.bulk_sent`（送り元・種別・経路・数・状態・対象の鍵・afterSend）
 
 ### 回の読む口（readDispatches.ts・dispatchDto.ts、門 `messagingDispatches`）

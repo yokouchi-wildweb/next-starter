@@ -35,10 +35,10 @@ type AnyResolved = ResolvedMessageDefinition<z.AnyZodObject, ChannelFieldSchemas
 
 /**
  * 管理画面で直せる欄(`<経路>.<欄>`、D83)。種類の経路(上書きの後)× 経路の欄の全部を経路・欄の順に並べ、
- * 定義の adminEditableOnly があればその中だけに絞る。種別の性質 adminTextOverride が false・required・authored の連絡は空
+ * 定義の adminEditableOnly があればその中だけに絞る。種別の性質 adminTextOverride が false・required の連絡は空
  */
 export function adminEditablePaths(resolved: AnyResolved, channels: ChannelFieldSchemas = UPSTREAM_CHANNEL_FIELDS): string[] {
-  if (resolved.required || resolved.authored) return [];
+  if (resolved.required) return [];
   if (!MESSAGE_KIND_TRAITS[resolved.kind]?.adminTextOverride) return [];
   const only = resolved.adminEditableOnly ? new Set(resolved.adminEditableOnly.map(String)) : null;
   const paths: string[] = [];

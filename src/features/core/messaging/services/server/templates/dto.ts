@@ -30,13 +30,20 @@ export type AdminTemplateSummary = {
   updatedBy: string | null;
   createdAt: string;
   updatedAt: string | null;
+  /** システムテンプレート(受け口 messaging/templates の白紙、D117・D125)。直せない・公開・取り下げできない(API が 409) */
+  system: boolean;
+  /** システムテンプレートの種別(DB のテンプレートは null) */
+  kind: string | null;
+  /** システムテンプレートのひな形の鍵と白紙の欄の中身(DB のテンプレートは null。S4 まで経路ごとの content) */
+  layout: string | null;
+  values: Record<string, unknown> | null;
 };
 
 export type AdminTemplateDetail = AdminTemplateSummary & {
   /** 今の中身(下書き。公開した版は versions で読む) */
   content: Record<string, unknown>;
   variables: MessageTemplateVariable[];
-  /** 本文で使ってよい {{鍵}}(共通の文脈 ∪ 管理の定義 3 本の provides ∪ 宣言した変数) */
+  /** 本文で使ってよい {{鍵}}(共通の文脈 ∪ 管理者が送れる種別のどれにも当たる enrichers の provides ∪ 宣言した変数) */
   allowedKeys: string[];
   /** 今の中身が最新の版と違う(公開していない変更がある。版が無ければ true) */
   hasUnpublishedChanges: boolean;
@@ -62,6 +69,6 @@ export type AdminTemplateOptions = {
   channels: AdminChannelOption[];
   /** 種類(種別 announcement・direct・promotion の物だけ) */
   categories: { key: string; label: string; description: string | null }[];
-  /** 変数を宣言する前から使える {{鍵}}(共通の文脈 ∪ 管理の定義 3 本の provides) */
+  /** 変数を宣言する前から使える {{鍵}}(共通の文脈 ∪ 管理者が送れる種別のどれにも当たる enrichers の provides) */
   baseAllowedKeys: string[];
 };

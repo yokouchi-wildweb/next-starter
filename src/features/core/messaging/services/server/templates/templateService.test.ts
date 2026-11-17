@@ -4,6 +4,7 @@
 //   (一意・予約の鍵・secret の型)・{{鍵}} は共通の文脈 ∪ provides ∪ 変数だけ。経路の組は持たない(D85)
 // - 画面の選択肢(有効な経路・3 つの種別の種類・基本の鍵)
 // - 変更の無い公開・取り下げ済みの操作は 409、同じ鍵は 409、管理者でなければ 403
+// - システムテンプレート(白紙、D117): 一覧の最初のページの先頭に印つき、1 件も読める、直す・公開・取り下げは 409、版は持たない
 // 実行: pnpm test src/features/core/messaging/services/server/templates
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -11,7 +12,7 @@ import { randomUUID } from "node:crypto";
 
 import { z } from "zod";
 
-import type { MessageCategory, MessageChannel } from "@/lib/messaging";
+import type { MessageCategory, MessageChannel, MessageSystemTemplate } from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 
@@ -44,7 +45,7 @@ const categories: Record<string, MessageCategory> = {
   account: { key: "account", label: "手続き", kind: "transactional", channels: ["email"] },
 };
 
-function setup(options: { role?: string } = {}) {
+function setup(options: { role?: string; systemTemplates?: Record<string, MessageSystemTemplate> } = {}) {
   const templates: MessageTemplate[] = [];
   const versions: MessageTemplateVersion[] = [];
   const audits: AuditRecordInput[] = [];
@@ -97,6 +98,7 @@ function setup(options: { role?: string } = {}) {
     context: () => ({ actorId: ADMIN, actorType: "user" }) as never,
     roleCategoryOf: async () => options.role ?? "admin",
     recordAudit: async (input) => audits.push(input),
+    ...(options.systemTemplates ? { systemTemplates: () => options.systemTemplates! } : {}),
   });
   return { service, templates, versions, audits };
 }
@@ -249,4 +251,33 @@ test("管理者でなければ 403", async () => {
   await rejectsWith(service.templateOptions(), 403);
   await rejectsWith(service.listTemplates(), 403);
   await rejectsWith(service.createTemplate(input()), 403);
+});
+
+test("システムテンプレート: 最初のページの先頭に印つき、1 件も読め、直す・公開・取り下げは 409、版は持たない", async () => {
+  const blank: MessageSystemTemplate = { key: "promotion", kind: "promotion", label: "宣伝の白紙", layout: "notice", values: { subject: "", blocks: [] } };
+  const { service, audits } = setup({ systemTemplates: { promotion: blank } });
+  const saved = await service.createTemplate(input({ name: "a" }));
+  const first = await service.listTemplates({ limit: "1" });
+  assert.deepEqual(
+    first.items.map((t) => [t.id, t.system, t.kind, t.layout, t.status]),
+    [
+      ["system:promotion", true, "promotion", "notice", "published"],
+      [saved.id, false, null, null, "draft"],
+    ],
+  );
+  assert.deepEqual(first.items[0].values, { subject: "", blocks: [] });
+  assert.equal(first.items[0].name, "宣伝の白紙");
+  // 2 ページ目・取り下げ / 下書きの絞りには出さない、公開中の絞りには出す
+  assert.deepEqual((await service.listTemplates({ status: "draft" })).items.map((t) => t.system), [false]);
+  assert.deepEqual((await service.listTemplates({ status: "published" })).items.map((t) => t.id), ["system:promotion"]);
+  const detail = await service.getTemplate("system:promotion");
+  assert.deepEqual([detail.system, detail.layout, detail.hasUnpublishedChanges], [true, "notice", false]);
+  await rejectsWith(service.getTemplate("system:none"), 404);
+  await rejectsWith(service.updateTemplate("system:promotion", { name: "x" }), 409, /宣伝の白紙/);
+  await rejectsWith(service.publishTemplate("system:promotion"), 409, /公開できません/);
+  await rejectsWith(service.archiveTemplate("system:promotion"), 409, /取り下げできません/);
+  await rejectsWith(service.updateTemplate("system:none", { name: "x" }), 404);
+  assert.deepEqual(await service.listTemplateVersions("system:promotion"), []);
+  await rejectsWith(service.getTemplateVersion("system:promotion", 1), 404);
+  assert.equal(audits.filter((a) => a.targetId?.toString().startsWith("system:")).length, 0);
 });

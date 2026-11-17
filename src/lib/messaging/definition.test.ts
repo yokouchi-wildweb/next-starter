@@ -3,7 +3,6 @@
 // 連絡の定義の型と読み手の検査(validateMessageDefinition・applyMessageOverride)。定義 = ひな形 + 欄の中身(D122)。
 // - 正しい定義が通る / 止める物(required の守り・ひな形・欄の中身・adminEditableOnly・{{鍵}}・throttle・鍵の形)が止まる
 // - 欄の中身は種類の経路で使う欄だけ必須(D125) / 上書きは欄ごとに重ねる / 型の絞りは @ts-expect-error で固定
-// - authored の定義(文面を送るたびに受け取る)の守り
 // 実行: pnpm test src/lib/messaging/definition.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -241,17 +240,6 @@ test("種類の検査: 受け口に無い鍵は誤り、種別の性質で文言
   const resolved = resolveMessageDefinition(reply, undefined, CATEGORIES.chat);
   assert.equal(resolved.kind, "activity");
   assert.deepEqual(resolved.channels, ["inApp", "email"]);
-});
-
-test("authored(文面を送るたびに受け取る): 空の values は通り、中身・adminEditable・throttle・上書きは止める", () => {
-  const authored = defineMessage({ key: "admin.free", label: "テストの連絡", category: "chat", authored: true, vars: z.object({}), layout: "notice", values: {} });
-  assert.deepEqual(validate(authored), [], "欄の中身が無くても通る");
-  assert.deepEqual(codes(validate({ ...authored, values: { subject: "t", blocks: [{ type: "paragraph", text: "b" }] } })), ["authored_values"]);
-  assert.deepEqual(codes(validate({ ...authored, adminEditableOnly: ["inApp.title"] } as typeof authored)), ["authored_field"]);
-  assert.deepEqual(codes(validate(authored, { override: { extras: { x: 1 } } })), ["authored_override"]);
-  // 送る口が受けた文面で埋めた定義(authored を外す)は普通に検査する: 欄の中身が要る
-  const filled = { ...authored, authored: undefined, values: { subject: "{{displayName}}" } };
-  assert.deepEqual(codes(validate(filled, { variableKeys: ["displayName"] })), ["invalid_values"]);
 });
 
 test("種類の受け口の検査: 種別・経路・グループ(同じ種別だけ)", () => {

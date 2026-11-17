@@ -40,13 +40,13 @@ export const message = defineMessage({
 - `vars`: 呼び手が渡す値の zod
   - 秘密の値(トークン入りの URL・ワンタイムコード)は `secretVar(z.string())` で印を付ける。印の鍵を持つ連絡は描いた本文をどこにも残さず(`record: "full"` でも)、vars の写しからその鍵を落とす(送る口が守る)。印は `isSecretVar` / `listSecretVarKeys` で読む。vars は上書きできないので印は外せない
 - `required`: 止められない連絡(認証など)。`enabled: false`・email の除外・`adminEditableOnly`・`throttle` を付けられない
-- `adminEditableOnly`: 管理画面で直せる欄の絞り(`<経路>.<欄>`、D83)。無い = 種類の経路の欄を全部直せる(`adminEditablePaths`: 種別の性質 `adminTextOverride` が true で required でも authored でもない連絡)。書いた時だけその欄に絞る。required の連絡は付けない
+- `adminEditableOnly`: 管理画面で直せる欄の絞り(`<経路>.<欄>`、D83)。無い = 種類の経路の欄を全部直せる(`adminEditablePaths`: 種別の性質 `adminTextOverride` が true で required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない
 - `record`: 本文の残し方 `meta` | `vars`(既定)| `full`
 - `throttle`: 会話の間引き `{ by: [vars の鍵], mode: "untilRead" | "window", seconds }`
 - `layout`(必須、D122): ひな形の鍵(`src/features/core/messaging/layouts/<名前>/`。上流は notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。上書きで変えられない
 - `values`: ひな形の欄の中身(欄の鍵 → 値。文字列に `{{鍵}}` を書ける)。ひな形の欄の zod(`layoutValuesSchema`、種類の経路で使う欄だけ必須 D125)を通る(`invalid_values`)
 - `extras`: fork が足す欄の入れ物
-- `authored: true`(文面を送るたびに受け取る連絡、D92): 管理者が書いて送る連絡(上流は messaging の `messaging.adminAnnouncement`・`adminDirect`・`adminPromotion`、ひな形 notice)。定義は `key`・`category`・`layout` だけを持ち、`values: {}`・`vars: z.object({})` で書く。送る口が受けた文面で埋めてから同じ検査を通す(管理画面・テンプレートの文面は S5 まで経路ごとの欄なので、送る口が経路の zod で検査してから notice の欄の中身に変える。`{{鍵}}` は文面の全部で見る)。`adminEditableOnly`・`throttle` は付けられず(`authored_field`)、欄の中身を空にしないと `authored_values`、上書きのファイルは置けない(`authored_override`、`pnpm check extensions` も止める)
+- 管理者が書いて送る連絡は定義を持たない(D117): 白紙のシステムテンプレート(`MessageSystemTemplate`、受け口の項目の節)か DB のテンプレート + 欄の中身で送る(`messagingService.sendTemplateMessage`)
 
 ## 定義で間違えやすい線(D77)
 
@@ -148,7 +148,7 @@ export const messageOverride = {
 
 管理画面で直した欄の値(D21・D24・D28)を、保存する口と送る口が同じ純粋な関数で検査する。
 
-- `adminEditablePaths(resolved, channels?)` → 直せる欄(`<経路>.<欄>`)。種類の経路 × 経路の欄の全部、`adminEditableOnly` があればその中だけ。種別の性質 `adminTextOverride` が false・required・authored は空
+- `adminEditablePaths(resolved, channels?)` → 直せる欄(`<経路>.<欄>`)。種類の経路 × 経路の欄の全部、`adminEditableOnly` があればその中だけ。種別の性質 `adminTextOverride` が false・required は空
 - 今は『経路.欄』の鍵のまま。定義がひな形 + 欄の中身になったので、送る口は管理画面の値を重ねず、コードの値も無い(TODO 指令 56: 鍵を ひな形の欄の鍵へ替え、重ね方とコードの値を戻す)
 - `checkAdminFieldValue(resolved, fieldPath, value, { channels?, variableKeys? })` → 問題(null = 通る)。`resolved` = 上書きを重ねた後の定義
   - `not_editable`: 今の直せる欄(`adminEditablePaths`)に無い欄 / `invalid_value`: 欄の zod を通らない / `length_mismatch`: コードの値が配列なのに長さが違う(今はコードの値が無いので出ない) / `unknown_variable`: 使えない `{{鍵}}`
@@ -178,6 +178,7 @@ export const messageOverride = {
 - `MessageCategory`(種類 = 1 つの出来事、配信停止の単位 = 種類 × 経路): `key`・`label`・`description?`・`kind`(7 つ)・`channels`(届ける経路)・`group?`(設定画面の見出し `MessageCategoryGroup` の鍵、同じ種別だけ)。fork は上流の種類の `<名前>.override.ts` で `label`・`description`・`channels`・`group` を変えられる(鍵・種別は不可)
 - `MessageCategoryGroup`(種類のグループ、`messaging/categoryGroups/<名前>.ts` の `export const group`): `key`・`label`・`order`。見出しだけで停止の単位ではない(D82)。上流は出荷しない
 - `MessageSource`(送り元): `key`・`label`
+- `MessageSystemTemplate`(システムテンプレート、`messaging/templates/<名前>.ts` の `export const systemTemplate`、D117・D125): `key`・`kind`(管理者がその場で送れる種別 = 性質 `adminFreeText` がある物、種別ごとに 1 つ)・`label`・`layout`・`values`(白紙の欄の中身)。管理の送信の白紙で、管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` だけ変えられる。上流は announcement・direct・promotion の 3 つ(ひな形 notice)
 - `MessageSubscriber`(送った後の購読): `key`・`on`(事件の種類)・`filter?`(連絡の鍵・経路)・`handle(事件の束)`(事件の id + 購読の鍵で冪等に。投げると次回もう一度渡る)
 
 ## 経路の失敗(ChannelError)

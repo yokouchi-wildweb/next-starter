@@ -82,6 +82,16 @@ export const extensionPoints = {
     key: "key",
     overrideOf: ["enabled", "order"],
   },
+  // システムテンプレート(D117・D125): templates/<名前>.ts の export const systemTemplate(鍵・種別・表示名・ひな形・白紙の欄の中身)。
+  // 管理の送信の白紙で種別ごとに 1 つ(上流は announcement・direct・promotion)。管理画面で直せない・消せない。fork は <名前>.override.ts で label だけ変えられる
+  systemTemplates: {
+    dir: "templates",
+    export: "systemTemplate",
+    type: { from: "@/lib/messaging", name: "MessageSystemTemplate" },
+    side: "server",
+    key: "key",
+    overrideOf: ["label"],
+  },
   // ひな形(D122): layouts/<名前>/ のフォルダ 1 つが 1 つのひな形。宣言とメールの描き方は server の一覧、お知らせの描き方は client の一覧(ひな形の鍵で引く)。
   // 描き方の部品は 1 行スイッチ(<部品>.tsx → <部品>.default.tsx)にでき、fork は .replace で見た目だけ替える。書き方: layouts/README.md
   layouts: {
