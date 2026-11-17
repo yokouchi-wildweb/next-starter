@@ -1,5 +1,3 @@
-// @ts-nocheck
-// D112: restore before ship (指令 59 d6 で経路の欄・経路の束の型引数・createDefineMessage が消えた。出荷の前に書き直して回す)
 // 送る口が管理画面の文言の上書き(D21・D132)を重ねる検査(メモリの store・テストの経路とひな形 card)
 // - resolveDefinition が門の開いた時だけ欄ごとに重ねる。行は保存した版から今の版の欄へ移す
 // - 当てられない行(古い形・検査を通らない)はコードの値で送る。重ねた値が回の見出し・values に入る(cron の組み直しは送った時の文言)
@@ -10,13 +8,10 @@ import assert from "node:assert/strict";
 
 import { z } from "zod";
 
-import { createDefineMessage, type AdminFieldValue, type MessageRegistry } from "@/lib/messaging";
+import { type AdminFieldValue, type MessageRegistry } from "@/lib/messaging";
 
 import { createMessageSender } from "./sender";
-import { createDeps, createMemoryStore, createTestChannel } from "./testHelpers";
-
-const fields = { test: z.object({ title: z.string(), body: z.string().optional() }).strict() };
-const defineTestMessage = createDefineMessage<typeof fields>();
+import { createDeps, createMemoryStore, createTestChannel, defineTestMessage } from "./testHelpers";
 
 const notice = defineTestMessage({
   key: "shop.notice",
@@ -49,7 +44,7 @@ function setup(rows: AdminFieldValue[], enabled = true) {
   return { store, channel, loads, sender: createMessageSender(deps) };
 }
 
-test.skip("上書きを欄ごとに重ねて送り、回の見出しにも入る。当てられない行はコードの値", async () => {
+test("上書きを欄ごとに重ねて送り、回の見出しにも入る。当てられない行はコードの値", async () => {
   const { sender, channel, store, loads } = setup([
     { fieldPath: "title", value: "直した題 {{item}}", layoutVersion: 1 },
     { fieldPath: "body", value: "{{nope}}", layoutVersion: 1 },
@@ -63,14 +58,14 @@ test.skip("上書きを欄ごとに重ねて送り、回の見出しにも入る
   assert.deepEqual(store.dispatches[0].headings, { test: "直した題 靴" });
 });
 
-test.skip("門が閉なら読まず重ねない", async () => {
+test("門が閉なら読まず重ねない", async () => {
   const { sender, channel, loads } = setup([{ fieldPath: "title", value: "直した題", layoutVersion: 1 }], false);
   await sender.sendMessage(notice, { recipient: { userId: "u1" }, vars: { item: "靴" } });
   assert.deepEqual(loads, []);
   assert.equal(channel.calls[0][0].content.title, "コードの題 靴");
 });
 
-test.skip("プレビューも上書きを重ねた定義で描く", async () => {
+test("プレビューも上書きを重ねた定義で描く", async () => {
   const { sender } = setup([{ fieldPath: "title", value: "直した題 {{item}}", layoutVersion: 1 }]);
   const preview = await sender.previewMessage({ definition: notice }, { vars: { item: "靴" }, userId: "u1" });
   assert.equal((preview.channels[0].fields as { title?: unknown }).title, "直した題 靴");

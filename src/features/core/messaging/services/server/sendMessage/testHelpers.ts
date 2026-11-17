@@ -9,14 +9,17 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import {
+  defineMessage,
   defineMessageLayout,
   type ChannelSendResult,
   type ChannelSendTarget,
   type MessageCategory,
   type MessageChannel,
+  type MessageDefinition,
   type MessageLayout,
   type MessageLayoutSummary,
   type MessageRegistry,
+  type MessageVarName,
 } from "@/lib/messaging";
 
 import type { MessagingConfig } from "../../../config";
@@ -182,6 +185,20 @@ export function createMemoryStore(): MemoryStore {
     },
   };
   return store;
+}
+
+/**
+ * テストの連絡の定義(defineMessage)。varNames(D133)を書かなければ vars の鍵ごとに「<鍵>の値」の別名と説明を付ける
+ * (別名の形 = 英数字以外の字を含む。書いた鍵はその値)
+ */
+export function defineTestMessage<Vars extends z.AnyZodObject>(
+  definition: Omit<MessageDefinition<Vars>, "varNames"> & { varNames?: Partial<Record<string, MessageVarName>> },
+): MessageDefinition<Vars> {
+  const given = definition.varNames ?? {};
+  const varNames = Object.fromEntries(
+    Object.keys(definition.vars.shape).map((key) => [key, given[key] ?? { alias: `${key}の値`, description: `テストの値 ${key}` }]),
+  );
+  return defineMessage({ ...definition, varNames } as MessageDefinition<Vars>);
 }
 
 /** テストのひな形: card = 題・本文・画像・行き先(要約にそのまま写す)/ notice = 上流の汎用のお知らせ(管理者が書く連絡が使う) */
