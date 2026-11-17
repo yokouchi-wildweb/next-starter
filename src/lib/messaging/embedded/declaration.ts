@@ -1,7 +1,7 @@
 // src/lib/messaging/embedded/declaration.ts
 //
 // 専用の埋め込み情報の宣言(テンプレートが持つ、D111・D126)と値の検査。
-// - 型: line 1 行の文 / number 数 / date 日付 YYYY-MM-DD / datetime 日時(ISO 8601、時差つき)/ url / select 選択肢(options の value)
+// - 型: line 1行テキスト / number 数 / date 日付 YYYY-MM-DD / datetime 日時(ISO 8601、時差つき)/ url / select 選択肢(options の value)
 // - 値は送る人がテンプレートを送る時に入れる。差し込む時は文字にする(数は数字の字、日付・日時は入れた字のまま)
 // - required: 空は既定値(default)、既定値も無ければ誤り。任意で空なら空の字
 
@@ -14,7 +14,7 @@ export type MessageEmbeddedType = (typeof MESSAGE_EMBEDDED_TYPES)[number];
 
 /** 型の表示名(管理画面) */
 export const MESSAGE_EMBEDDED_TYPE_LABELS: Readonly<Record<MessageEmbeddedType, string>> = {
-  line: "1 行の文",
+  line: "1行テキスト",
   number: "数",
   date: "日付",
   datetime: "日時",
@@ -54,7 +54,7 @@ export const messageEmbeddedDeclarationSchema = z
     if (value.type !== "select" && value.options) ctx.addIssue({ code: "custom", path: ["options"], message: "options は選択肢の型だけが持ちます" });
     if (value.default !== undefined && value.default !== "") {
       const parsed = embeddedTextOf(value as MessageEmbeddedDeclaration, value.default);
-      if (parsed === null) ctx.addIssue({ code: "custom", path: ["default"], message: `既定値が型 ${value.type} の形ではありません` });
+      if (parsed === null) ctx.addIssue({ code: "custom", path: ["default"], message: `既定値が型「${MESSAGE_EMBEDDED_TYPE_LABELS[value.type]}」の形ではありません` });
     }
   });
 
@@ -100,7 +100,7 @@ export function embeddedValueSchema(declaration: MessageEmbeddedDeclaration): z.
     }
     const text = embeddedTextOf(declaration, source);
     if (text === null) {
-      ctx.addIssue({ code: "custom", message: `${declaration.alias}(${declaration.key})が型 ${MESSAGE_EMBEDDED_TYPE_LABELS[declaration.type]} の形ではありません` });
+      ctx.addIssue({ code: "custom", message: `${declaration.alias}(${declaration.key})が型「${MESSAGE_EMBEDDED_TYPE_LABELS[declaration.type]}」の形ではありません` });
       return z.NEVER;
     }
     return text;

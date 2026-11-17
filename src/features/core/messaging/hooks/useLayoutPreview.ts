@@ -56,7 +56,7 @@ function placeholderValue(spec: MessageFieldSpec): unknown {
     case "list":
       return spec.of.type === "line" || spec.of.type === "paragraph" || spec.of.type === "longText" ? [text] : undefined;
     default:
-      // 画像・日付・数・選択肢・組・項目と値は仮の値を作らない(形の無い値で描きを崩さない)
+      // 画像・日付・数・選択肢・組・ラベルと値は仮の値を作らない(形の無い値で描きを崩さない)
       return undefined;
   }
 }

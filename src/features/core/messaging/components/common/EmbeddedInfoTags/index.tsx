@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/common/EmbeddedInfoTags/index.tsx
 // 部品(props だけ): 埋め込み情報のタグ(D111 D126)。共通(共通の一覧と enricher)と専用(このテンプレート・連絡の宣言)を分け、専用は色を変える。
-// タグは日本語の別名を出し、押すと {{別名}} をコピー(onCopy、hook useEmbeddedInfoTags)。ツールチップに鍵と説明。
+// タグは日本語の別名を出し、押すと {{別名}} をコピー(onCopy、hook useEmbeddedInfoTags)。ツールチップは出さない(使い方は見出しの 1 行)。
 // unknownNames = 今の文の中の一覧に無い名前(使えない印)。一覧は hook が lib の embeddedCatalog から作る
 
 "use client";
@@ -10,9 +10,11 @@ import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks/Span";
-import { Tooltip } from "@/components/Overlays/Tooltip";
 import { cn } from "@/lib/cn";
-import { MESSAGE_EMBEDDED_TYPE_LABELS, type MessageEmbeddedEntry } from "@/lib/messaging";
+import type { MessageEmbeddedEntry } from "@/lib/messaging";
+
+/** 使い方の 1 行(見出しの下。吹き出しの題の下にも使う) */
+export const EMBEDDED_INFO_USAGE = "クリックでコピー、本文の中にペーストして埋め込み";
 
 export type EmbeddedInfoTagsProps = {
   /** 共通の埋め込み情報(共通の一覧 + enricher) */
@@ -31,9 +33,14 @@ export function EmbeddedInfoTags({ common, own, onCopy, unknownNames = [], showT
   return (
     <Stack space={2} data-slot="embedded-info-tags">
       {showTitle ? (
-        <Span size="sm" tone="muted">
-          埋め込み情報(押すとコピー。本文の中に {"{{名前}}"} と書きます)
-        </Span>
+        <Stack space={0}>
+          <Span size="sm" weight="semiBold">
+            埋め込み情報
+          </Span>
+          <Span size="xs" tone="muted">
+            {EMBEDDED_INFO_USAGE}
+          </Span>
+        </Stack>
       ) : null}
       <TagGroup title="共通" entries={common} onCopy={onCopy} empty="共通の埋め込み情報はありません" />
       <TagGroup title="専用" entries={own} onCopy={onCopy} own empty="専用の埋め込み情報はありません" />
@@ -75,27 +82,22 @@ function TagGroup({ title, entries, onCopy, own, empty }: TagGroupProps) {
         <Flex gap="xs" wrap="wrap">
           {entries.map((entry) => {
             const name = entry.alias || entry.key;
-            const hint = [entry.key, entry.description ?? (entry.declaration ? MESSAGE_EMBEDDED_TYPE_LABELS[entry.declaration.type] : undefined)]
-              .filter(Boolean)
-              .join(" — ");
-            return (
-              <Tooltip key={entry.key} content={onCopy ? `${hint}(クリックでコピー)` : hint}>
-                {onCopy ? (
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant="outline"
-                    className={cn(own && "border-info bg-info/10 text-info-text")}
-                    onClick={() => onCopy(name)}
-                  >
-                    {name}
-                  </Button>
-                ) : (
-                  <SoftBadge variant={own ? "info" : "outline"} size="sm">
-                    {name}
-                  </SoftBadge>
-                )}
-              </Tooltip>
+            // 乗った時の説明(ツールチップ)は出さない(吹き出しの中で邪魔になるため。使い方は見出しの 1 行に書く)
+            return onCopy ? (
+              <Button
+                key={entry.key}
+                type="button"
+                size="xs"
+                variant="outline"
+                className={cn(own && "border-info bg-info/10 text-info-text")}
+                onClick={() => onCopy(name)}
+              >
+                {name}
+              </Button>
+            ) : (
+              <SoftBadge key={entry.key} variant={own ? "info" : "outline"} size="sm">
+                {name}
+              </SoftBadge>
             );
           })}
         </Flex>

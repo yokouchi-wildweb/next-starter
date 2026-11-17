@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/common/SendTemplatePicker/SendEmbeddedInputs.tsx
 // 部品(props だけ): 読み込んだテンプレートの専用の埋め込み情報の値(回に 1 組、D111 D126)。宣言の順に、日本語の別名を見出しにして型ごとの入力を出す
-// (1 行の文・数・URL = 文字、日付、日時 = ISO、選択肢)。値はいつも文字で持ち、数への読み替えは hook。既定値は仮の文に出す
+// (1行テキスト・数・URL = 文字、日付、日時 = ISO、選択肢)。値はいつも文字で持ち、数への読み替えは hook。既定値は仮の文に出す
 
 "use client";
 
@@ -31,7 +31,14 @@ export function SendEmbeddedInputs({ declarations, values, onChange, missing = [
       {declarations.map((declaration) => {
         const id = `send-embedded-${declaration.key}`;
         const value = values[declaration.key] ?? "";
-        const placeholder = declaration.default !== undefined ? `初期値: ${String(declaration.default)}` : undefined;
+        // 初期値は選択肢なら表示名で見せる(値の鍵は見せない)
+        const defaultText =
+          declaration.default === undefined
+            ? undefined
+            : declaration.type === "select"
+              ? ((declaration.options ?? []).find((option) => option.value === String(declaration.default))?.label ?? String(declaration.default))
+              : String(declaration.default);
+        const placeholder = defaultText !== undefined ? `初期値: ${defaultText}` : undefined;
         return (
           <Stack key={declaration.key} space={1}>
             <Label htmlFor={id} className="text-sm">

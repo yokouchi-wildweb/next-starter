@@ -2,9 +2,9 @@
 //
 // ひな形の欄の型の語彙(D123)。lib に 1 か所で固定し、入力・zod・記録・要約・プレビューの 5 か所が読む。
 // fork は型を増やさない(入力の部品は src/wiring/formInputs の受け口に登録する)。
-// - line 1 行の文 / paragraph 段落 / longText 長い文 / image 画像(storage:// の参照か URL)/ button ボタン {label, url} /
+// - line 1行テキスト / paragraph 段落 / longText 複数行テキスト / image 画像(storage:// の参照か URL)/ button ボタン {label, url} /
 //   link リンク {label?, url} / date 日付 YYYY-MM-DD / number 数 / select 選択肢 / list 並び(1 つの型の並び)/
-//   group 組(名前つきの欄)/ keyValue 項目と値 [{key, value}] / blocks ブロックの並び
+//   group 組(名前つきの欄)/ keyValue ラベルと値 [{key, value}] / blocks ブロックの並び
 
 import { z } from "zod";
 
@@ -31,9 +31,9 @@ export type MessageFieldType = (typeof MESSAGE_FIELD_TYPES)[number];
 
 /** 欄の型の表示名(管理画面) */
 export const MESSAGE_FIELD_TYPE_LABELS: Readonly<Record<MessageFieldType, string>> = {
-  line: "1 行の文",
+  line: "1行テキスト",
   paragraph: "段落",
-  longText: "長い文",
+  longText: "複数行テキスト",
   image: "画像",
   button: "ボタン",
   link: "リンク",
@@ -42,7 +42,7 @@ export const MESSAGE_FIELD_TYPE_LABELS: Readonly<Record<MessageFieldType, string
   select: "選択肢",
   list: "並び",
   group: "組",
-  keyValue: "項目と値",
+  keyValue: "ラベルと値",
   blocks: "ブロックの並び",
 };
 

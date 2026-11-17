@@ -13,6 +13,8 @@
 
 "use client";
 
+import { Braces, ChevronUp, History, TriangleAlert } from "lucide-react";
+import { useState } from "react";
 import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
 import { Input, SelectInput, Textarea } from "@/components/Form/Input/Manual";
@@ -22,13 +24,12 @@ import { Stack } from "@/components/Layout/Stack";
 import Dialog from "@/components/Overlays/Dialog";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import Modal from "@/components/Overlays/Modal";
-import { ConfirmPopover } from "@/components/Overlays/Popover";
-import TabbedModal from "@/components/Overlays/TabbedModal";
+import { ConfirmPopover, InfoPopover } from "@/components/Overlays/Popover";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
 
-import { EmbeddedInfoTags } from "@/features/core/messaging/components/common/EmbeddedInfoTags";
+import { EMBEDDED_INFO_USAGE, EmbeddedInfoTags } from "@/features/core/messaging/components/common/EmbeddedInfoTags";
 import { KindCategoryFields } from "@/features/core/messaging/components/common/KindCategoryFields";
 import { LayoutFields } from "@/features/core/messaging/components/common/LayoutFields";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
@@ -101,34 +102,102 @@ function TemplateModalBody({
   });
   const tags = useEmbeddedInfoTags({ catalog: form.catalog });
   const locked = form.readOnly;
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [embeddedOpen, setEmbeddedOpen] = useState(false);
 
-  const footer = locked ? null : (
-    <Flex justify="end" gap="xs" wrap="wrap">
-      {template ? (
-        <ConfirmPopover
-          trigger={
-            <Button type="button" size="sm" variant="outline" disabled={form.dirty}>
-              アーカイブ
-            </Button>
-          }
-          title="アーカイブ"
-          description="アーカイブすると、このテンプレートは編集も送信もできなくなります(バージョン履歴は残ります)。"
-          confirmLabel="アーカイブする"
-          confirmVariant="destructive"
-          onConfirm={form.archive}
-        />
-      ) : null}
-      <ConfirmPopover
+  // 埋め込み情報 = 下の操作の帯の左(モーダルに固定でいつも押せる)。押すと上に吹き出しでタグ(押すとコピー)と
+  // 「専用の埋め込み情報を管理」。文の中の使えない名前はその横に赤で出したまま
+  const embeddedControls = (
+    <Flex align="center" gap="sm" wrap="wrap" className="min-w-0" data-slot="template-embedded">
+      <InfoPopover
+        open={embeddedOpen}
+        onOpenChange={setEmbeddedOpen}
+        side="top"
+        align="start"
+        size="xl"
+        title="埋め込み情報"
         trigger={
-          <Button type="button" size="sm" variant="primary" disabled={!form.dirty}>
-            保存
+          <Button type="button" size="sm" variant="outline" className="gap-1.5" data-slot="template-embedded-open">
+            <Braces className="size-4" />
+            埋め込み情報
+            {/* 数と矢印は文字色を受け継いで薄くする(乗った時は accent の地に合う色のまま薄く) */}
+            <Span size="xs" tone="inherit" className="tabular-nums opacity-70">
+              {`共通 ${tags.common.length}・専用 ${tags.own.length}`}
+            </Span>
+            <ChevronUp className="size-3.5 opacity-70" />
           </Button>
         }
-        title="保存"
-        description="現在の内容をこのテンプレートの新しいバージョンとして保存します。保存したバージョンは変更できません。"
-        confirmLabel="保存する"
-        onConfirm={form.save}
-      />
+      >
+        <Stack space={3}>
+          <Span size="xs" tone="muted">
+            {EMBEDDED_INFO_USAGE}
+          </Span>
+          <EmbeddedInfoTags common={tags.common} own={tags.own} onCopy={tags.copy} showTitle={false} />
+          {!locked ? (
+            <Flex justify="end">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setEmbeddedOpen(false);
+                  embeddedEditor.openEditor();
+                }}
+              >
+                専用の埋め込み情報を管理{embeddedEditor.count > 0 ? `(${embeddedEditor.count})` : ""}
+              </Button>
+            </Flex>
+          ) : null}
+        </Stack>
+      </InfoPopover>
+      {form.unknownNames.length > 0 ? (
+        <Flex align="center" gap="xs" wrap="wrap" data-slot="template-embedded-unknown">
+          <TriangleAlert className="size-4 text-destructive-text" aria-hidden />
+          <Span size="sm" tone="destructive">
+            使えない埋め込み情報:
+          </Span>
+          {form.unknownNames.map((name) => (
+            <SoftBadge key={name} variant="destructive" size="sm">
+              {`{{${name}}}`}
+            </SoftBadge>
+          ))}
+        </Flex>
+      ) : null}
+    </Flex>
+  );
+
+  const footer = (
+    <Flex align="center" justify="between" gap="sm" wrap="wrap">
+      {embeddedControls}
+      {locked ? null : (
+        <Flex justify="end" gap="xs" wrap="wrap">
+          {template ? (
+            <ConfirmPopover
+              trigger={
+                <Button type="button" size="sm" variant="outline" disabled={form.dirty}>
+                  アーカイブ
+                </Button>
+              }
+              title="アーカイブ"
+              description="アーカイブすると、このテンプレートは編集も送信もできなくなります(バージョン履歴は残ります)。"
+              confirmLabel="アーカイブする"
+              confirmVariant="destructive"
+              onConfirm={form.archive}
+            />
+          ) : null}
+          <ConfirmPopover
+            trigger={
+              <Button type="button" size="sm" variant="primary" disabled={!form.dirty}>
+                保存
+              </Button>
+            }
+            title="保存"
+            description="現在の内容をこのテンプレートの新しいバージョンとして保存します。保存したバージョンは変更できません。"
+            confirmLabel="保存する"
+            onConfirm={form.save}
+          />
+        </Flex>
+      )}
     </Flex>
   );
 
@@ -136,27 +205,36 @@ function TemplateModalBody({
     <Flex direction="column" gap="lg" className="md:flex-row-reverse md:items-start" data-slot="template-editor">
       <Stack space={4} className="min-w-0 md:w-1/2" data-slot="template-editor-controls">
         {template ? (
-          <Flex align="center" gap="xs" wrap="wrap">
-            {form.system ? (
-              <SoftBadge variant="secondary" size="md">
-                システム(読むだけ)
-              </SoftBadge>
-            ) : (
-              <TemplateStatusBadge
-                status={template.status}
-                currentVersion={template.currentVersion}
-                hasUnpublishedChanges={template.hasUnpublishedChanges}
-                size="md"
-              />
-            )}
-            {form.system ? (
-              <Para size="sm" tone="muted" className="my-0">
-                システムのテンプレートは編集できません(送る画面で白紙として使います)
-              </Para>
-            ) : form.archived ? (
-              <Para size="sm" tone="muted" className="my-0">
-                アーカイブ済みのテンプレートは編集できません(バージョン履歴は残ります)
-              </Para>
+          <Flex align="center" justify="between" gap="xs" wrap="wrap" data-slot="template-status-row">
+            <Flex align="center" gap="xs" wrap="wrap">
+              {form.system ? (
+                <SoftBadge variant="secondary" size="md">
+                  システム(読むだけ)
+                </SoftBadge>
+              ) : (
+                <TemplateStatusBadge
+                  status={template.status}
+                  currentVersion={template.currentVersion}
+                  hasUnpublishedChanges={template.hasUnpublishedChanges}
+                  size="md"
+                />
+              )}
+              {form.system ? (
+                <Para size="sm" tone="muted" className="my-0">
+                  システムのテンプレートは編集できません(送る画面で白紙として使います)
+                </Para>
+              ) : form.archived ? (
+                <Para size="sm" tone="muted" className="my-0">
+                  アーカイブ済みのテンプレートは編集できません(バージョン履歴は残ります)
+                </Para>
+              ) : null}
+            </Flex>
+            {!form.system ? (
+              // 版の履歴はタブにせず、状態の札の横のボタンから重ねたモーダルで見る(作る時は版が無いので出さない)
+              <Button type="button" size="sm" variant="ghost" onClick={() => setVersionsOpen(true)} data-slot="template-versions-open">
+                <History className="size-4" />
+                バージョン履歴
+              </Button>
             ) : null}
           </Flex>
         ) : null}
@@ -184,15 +262,6 @@ function TemplateModalBody({
             onCategoryChange={fields.setCategory}
             disabled={locked}
           />
-        </Stack>
-
-        <Stack space={3} className="rounded-md border border-border bg-muted/30 p-4" data-slot="template-embedded">
-          <EmbeddedInfoTags common={tags.common} own={tags.own} onCopy={tags.copy} unknownNames={form.unknownNames} />
-          <Flex>
-            <Button type="button" size="sm" variant="outline" onClick={embeddedEditor.openEditor}>
-              専用の埋め込み情報を管理{embeddedEditor.count > 0 ? `(${embeddedEditor.count})` : ""}
-            </Button>
-          </Flex>
         </Stack>
 
         <Stack space={2} className="rounded-md border border-border bg-card p-4" data-slot="template-values">
@@ -248,34 +317,23 @@ function TemplateModalBody({
     </Flex>
   );
 
-  const tabs = [
-    { value: "text", label: "内容", content: textTab },
-    ...(template && !form.system
-      ? [
-          {
-            value: "versions",
-            label: "バージョン履歴",
-            content: <TemplateVersionList versions={versions} currentVersion={template.currentVersion} layouts={options.layouts} />,
-            footer: null,
-          },
-        ]
-      : []),
-  ];
-
   return (
     <>
-      <TabbedModal
+      <Modal
         open={open}
         onOpenChange={onOpenChange}
         title={template ? `テンプレートを編集: ${template.name}` : "テンプレートを作成"}
         maxWidth={MODAL_WIDTH}
-        tabs={tabs}
-        value={modal.tab}
-        onValueChange={modal.setTab}
-        ariaLabel="テンプレートのタブ"
         footer={footer}
         confirmOnClose={form.closeConfirm}
-      />
+      >
+        {textTab}
+      </Modal>
+      {template && !form.system ? (
+        <Modal open={versionsOpen} onOpenChange={setVersionsOpen} title={`バージョン履歴: ${template.name}`} maxWidth="760px">
+          <TemplateVersionList versions={versions} currentVersion={template.currentVersion} layouts={options.layouts} />
+        </Modal>
+      ) : null}
       <Dialog
         open={fields.pendingLayout !== null}
         onOpenChange={(next) => {

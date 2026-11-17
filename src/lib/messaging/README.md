@@ -86,7 +86,7 @@ export const message = defineMessage({
 
 - 共通の埋め込み情報 `MESSAGE_COMMON_EMBEDDED`(`embedded/common.ts`、鍵・別名・説明の 1 か所。`COMMON_CONTEXT_KEYS`・`THROTTLE_CONTEXT_KEYS` もここから): `recipientName` 受信者名・`recipientEmail` 受信者のメール・`serviceName` サービス名・`serviceNameShort` サービスの短い名前・`appBaseUrl` サイトのURL・`collapsedCount` まとめた件数(間引きのある連絡だけ)
 - enrichers は足す値ごとに別名を宣言する(`MessageEnricher.aliases`、provides の全部の鍵に要る)。上流の `displayName` は「表示名」
-- 専用の埋め込み情報(テンプレートが宣言する)`MessageEmbeddedDeclaration` = `{ key, alias, type, options?, required, default? }`。型 `line`(1 行の文)・`number`・`date`(YYYY-MM-DD)・`datetime`(ISO 8601、時差つき)・`url`・`select`(`options` の value)。保存の検査 `messageEmbeddedDeclarationSchema`、送る時の値の検査 `embeddedValueSchema` / `embeddedValuesSchema`(空は既定値、必須で既定値も無ければ誤り、差し込む字にする)
+- 専用の埋め込み情報(テンプレートが宣言する)`MessageEmbeddedDeclaration` = `{ key, alias, type, options?, required, default? }`。型 `line`(1行テキスト)・`number`・`date`(YYYY-MM-DD)・`datetime`(ISO 8601、時差つき)・`url`・`select`(`options` の value)。保存の検査 `messageEmbeddedDeclarationSchema`、送る時の値の検査 `embeddedValueSchema` / `embeddedValuesSchema`(空は既定値、必須で既定値も無ければ誤り、差し込む字にする)
 - 一覧 `embeddedCatalog({ own, enrichers, throttle })` = 共通 + 当たる enrichers + 専用。`checkEmbeddedCatalog` が止める: 鍵の形(英字で始まる英数字)・別名の形(空白・記号なし、英数字以外の字を含む)・鍵の重なり・別名の重なり(専用どうしも共通・enrichers の名前とも)・enrichers の別名の欠け
 - 日付・日時の専用の値: 残す値は ISO のまま。`embeddedValuesSchema` が隣に型の印 `<鍵>@type`(`EMBEDDED_TYPE_SUFFIX`、書式 {{名前}} に拾われない)を出し、回の値と一緒に残る。差し込む時に `displayEmbeddedValues` が人が読む字にする(`embeddedDisplayText`: 2026年12月1日 / 2026年12月1日 11:00、日本時間)
 - 差し込み: `findEmbedded(文面, 一覧)` = 書かれた名前を鍵に直した並びと一覧に無い名前(保存・送る前に拒む)。`embeddedVariableMap(鍵 → 値, 一覧)` = 別名の行を足した表(`replaceVariables` に渡す)
@@ -165,8 +165,8 @@ export const messageOverride = {
 
 - `defineMessageLayout({ key, label, description?, fields, summary, adminSelectable?, version?, revisions? })`: 欄の宣言から中身の型(`MessageLayoutValues`)を引く。`version` = 版(既定 1、`layoutVersionOf`)
 - 欄の宣言 `MessageFieldSpec`: `type`(語彙)・`label`・`placeholder?`・`required?`・`channels?`(使う経路の鍵、無い = 全部)。`select` は `options`、`list` は `of`・`min?`・`max?`、`group` は `fields`、`blocks` は `allow?`・`min?`・`max?`
-- 欄の型の語彙(`layout/vocabulary.ts`、lib で固定。fork は増やさず、入力の部品を src/wiring/formInputs に登録する): `line` 1 行の文・`paragraph` 段落・`longText` 長い文・`image` 画像(storage:// の参照か URL)・`button` ボタン `{ label, url }`・`link` リンク `{ label?, url }`・`date` 日付 YYYY-MM-DD・`number` 数・`select` 選択肢・`list` 並び・`group` 組・`keyValue` 項目と値 `[{ key, value }]`・`blocks` ブロックの並び。型ごとの zod は `fieldValueSchema(shape)`
-- ブロック(`layout/blocks.ts`): `heading` 小見出し・`paragraph` 段落・`button` ボタン・`image` 画像・`divider` 区切り・`keyValueTable` 項目と値の表・`bulletList` 箇条書き。`messageBlocksSchema({ allow?, min?, max? })` が許す種類と数で絞る(知らない種類は通らない)
+- 欄の型の語彙(`layout/vocabulary.ts`、lib で固定。fork は増やさず、入力の部品を src/wiring/formInputs に登録する): `line` 1行テキスト・`paragraph` 段落・`longText` 複数行テキスト・`image` 画像(storage:// の参照か URL)・`button` ボタン `{ label, url }`・`link` リンク `{ label?, url }`・`date` 日付 YYYY-MM-DD・`number` 数・`select` 選択肢・`list` 並び・`group` 組・`keyValue` ラベルと値 `[{ key, value }]`・`blocks` ブロックの並び。型ごとの zod は `fieldValueSchema(shape)`
+- ブロック(`layout/blocks.ts`): `heading` 小見出し・`paragraph` 段落・`button` ボタン・`image` 画像・`divider` 区切り・`keyValueTable` ラベルと値・`bulletList` 箇条書き。`messageBlocksSchema({ allow?, min?, max? })` が許す種類と数で絞る(知らない種類は通らない)
 - 要約 `MessageLayoutSummary` = `{ title, body, image?, link?: { label?, url }, shortBody? }`(プッシュ・LINE は `shortBody ?? body`)
 - 中身の検査 `layoutValuesSchema(layout, { channels? })`: 必須を守る(空文字・空の並びも通さない)。`channels` を渡すと、そのどれにも使われない経路だけの欄は求めない。知らない鍵は通らない。経路の欄だけ = `fieldsForChannel(layout, channel)`
 - 改版(D122・D128): 欄の鍵を変えた・消した時に `version` を 1 上げ、`revisions` にその段の対応を書く(`{ [上げる前の版]: { 前の鍵: 新しい鍵 | null } }`、1 から今の版の 1 つ前まで全部の段。鍵の変わらない段も `{}`)。`applyLayoutRevisions(values, 段)` = 1 段(`null` は捨てる、新しい鍵に値があれば今の値を残す)、`upgradeLayoutValues(layout, values, fromVersion)` = 送った版から今の版まで段ごとに当てる(段が無い・今より新しい版 = `{ cannotRender }`)。回の values・テンプレートの保存値・文言の上書きに当てる

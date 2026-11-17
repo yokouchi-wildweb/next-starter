@@ -1,10 +1,10 @@
 // src/features/core/messaging/components/common/LayoutFields/LayoutFieldControls.tsx
-// 部品(props だけ): 欄の入力とブロックの並びが共に使う小さな入力(並びの行の操作・ボタン / リンク・項目と値の行・1 行の文の並び)。
+// 部品(props だけ): 欄の入力とブロックの並びが共に使う小さな入力(並びの行の操作・ボタン / リンク・ラベルと値の行・1行テキストの並び)。
 // LayoutFieldInput と LayoutBlocksInput の両方がここを読む(2 つの間で値の import の輪を作らない)
 
 "use client";
 
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/Form/Button";
 import { Input } from "@/components/Form/Input/Manual";
@@ -78,7 +78,7 @@ export type LineListInputProps = {
   onFocusField?: (path: string) => void;
 };
 
-/** 1 行の文の並び(箇条書き)。足す・消す・上下 */
+/** 1行テキストの並び(箇条書き)。足す・消す・上下 */
 export function LineListInput({ id, path, value, onChange, min = 0, readOnly, onFocusField }: LineListInputProps) {
   const items = asArray(value).map(asText);
   return (
@@ -100,13 +100,14 @@ export function LineListInput({ id, path, value, onChange, min = 0, readOnly, on
               canRemove={items.length > min}
               onMove={(direction) => onChange(moveItem(items, index, direction))}
               onRemove={() => onChange(removeItem(items, index))}
+              tone="item"
             />
           )}
         </Flex>
       ))}
       {readOnly ? null : (
         <Flex>
-          <Button type="button" size="sm" variant="outline" onClick={() => onChange([...items, ""])}>
+          <Button type="button" size="sm" variant="ghost" className="text-muted-foreground" onClick={() => onChange([...items, ""])}>
             <Plus className="size-4" />
             追加
           </Button>
@@ -122,20 +123,37 @@ type RowControlsProps = {
   canRemove: boolean;
   onMove: (direction: -1 | 1) => void;
   onRemove: () => void;
+  /**
+   * block = ブロックや欄の並びの 1 つ(見出しの帯に置く、ふつうの大きさ、削除はごみ箱)/
+   * item = ブロックの中の行(行の右に置く、小さく薄い、削除は ×)。外と中の操作を見た目で分ける @default "block"
+   */
+  tone?: "block" | "item";
 };
 
 /** 並びの 1 行の操作(上へ・下へ・削除) */
-export function RowControls({ index, count, canRemove, onMove, onRemove }: RowControlsProps) {
+export function RowControls({ index, count, canRemove, onMove, onRemove, tone = "block" }: RowControlsProps) {
+  const item = tone === "item";
+  // 乗った時の色は ghost のまま(hover:bg-accent + text-accent-foreground)。ブロックの操作と同じ組で、地と矢印の色が合う
+  const buttonClass = item ? "size-7 text-muted-foreground" : "size-8";
+  const iconClass = item ? "size-3.5" : "size-4";
   return (
-    <Flex align="center" gap="xs" className="shrink-0">
-      <Button type="button" size="icon" variant="ghost" aria-label="上へ" disabled={index === 0} onClick={() => onMove(-1)}>
-        <ArrowUp className="size-4" />
+    <Flex align="center" gap="none" className="shrink-0" data-slot={item ? "row-controls-item" : "row-controls-block"}>
+      <Button type="button" size="icon" variant="ghost" className={buttonClass} aria-label="上へ" disabled={index === 0} onClick={() => onMove(-1)}>
+        <ArrowUp className={iconClass} />
       </Button>
-      <Button type="button" size="icon" variant="ghost" aria-label="下へ" disabled={index === count - 1} onClick={() => onMove(1)}>
-        <ArrowDown className="size-4" />
+      <Button type="button" size="icon" variant="ghost" className={buttonClass} aria-label="下へ" disabled={index === count - 1} onClick={() => onMove(1)}>
+        <ArrowDown className={iconClass} />
       </Button>
-      <Button type="button" size="icon" variant="ghost" aria-label="削除" disabled={!canRemove} onClick={onRemove}>
-        <Trash2 className="size-4" />
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className={`${buttonClass} hover:bg-destructive/10 hover:text-destructive-text`}
+        aria-label="削除"
+        disabled={!canRemove}
+        onClick={onRemove}
+      >
+        {item ? <X className={iconClass} /> : <Trash2 className={iconClass} />}
       </Button>
     </Flex>
   );
@@ -150,7 +168,7 @@ type KeyValueRowsInputProps = {
   onFocusField?: (path: string) => void;
 };
 
-/** 項目と値の行([{key, value}])。足す・消す・並べ替え */
+/** ラベルと値の行([{key, value}])。足す・消す・並べ替え */
 export function KeyValueRowsInput({ id, path, value, onChange, readOnly, onFocusField }: KeyValueRowsInputProps) {
   const rows = asArray(value).map(asRecord);
   const set = (index: number, key: "key" | "value", next: string) => onChange(replaceItem(rows, index, { ...rows[index], [key]: next }));
@@ -160,8 +178,8 @@ export function KeyValueRowsInput({ id, path, value, onChange, readOnly, onFocus
         <Flex key={index} align="center" gap="xs">
           <Input
             id={index === 0 ? id : `${id}-${index}`}
-            aria-label="項目"
-            placeholder="項目"
+            aria-label="ラベル"
+            placeholder="ラベル"
             className="w-2/5"
             value={asText(row.key)}
             readOnly={readOnly}
@@ -184,6 +202,7 @@ export function KeyValueRowsInput({ id, path, value, onChange, readOnly, onFocus
               canRemove
               onMove={(direction) => onChange(moveItem(rows, index, direction))}
               onRemove={() => onChange(removeItem(rows, index))}
+              tone="item"
             />
           )}
         </Flex>
@@ -195,7 +214,7 @@ export function KeyValueRowsInput({ id, path, value, onChange, readOnly, onFocus
       ) : null}
       {readOnly ? null : (
         <Flex>
-          <Button type="button" size="sm" variant="outline" onClick={() => onChange([...rows, { key: "", value: "" }])}>
+          <Button type="button" size="sm" variant="ghost" className="text-muted-foreground" onClick={() => onChange([...rows, { key: "", value: "" }])}>
             <Plus className="size-4" />
             行を追加
           </Button>
