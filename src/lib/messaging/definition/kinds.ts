@@ -84,7 +84,7 @@ export const MESSAGE_KIND_TRAITS: Readonly<Record<MessageKind, MessageKindTraits
   transactional: { ...BASE },
   security: { ...BASE, addressStop: "hardBounce", recordDefault: "meta", throttle: false, emailFixed: true, sendInEntry: true },
   announcement: { ...BASE, adminFreeText: ["all", "role", "group", "users"], recordDefault: "full" },
-  direct: { ...BASE, adminFreeText: ["users", "bulk"], recordDefault: "full" },
+  direct: { ...BASE, adminFreeText: ["users", "bulk", "group"], recordDefault: "full" },
   activity: { ...BASE, userStoppable: true },
   promotion: { ...BASE, userStoppable: true, adminFreeText: ["all", "role", "group", "users", "bulk"] },
 };
