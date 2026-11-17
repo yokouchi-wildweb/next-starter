@@ -2,7 +2,7 @@
 
 ## Overview
 
-管理者が画面で書く連絡の中身と版の履歴（`messagingService.*MessageTemplate*`。service でも管理者を確かめる）。中身 = カテゴリー + ひな形 + 欄の中身 + 専用の埋め込み情報の宣言（指令 58、D113・D126）。送る時は回が版を固定する（../sendMessage/README.md）。画面は ../../../components/README.md。
+管理者が画面で書く連絡の中身と版の履歴（`messagingService.*MessageTemplate*`。service でも管理者を確かめる）。中身 = カテゴリー + ひな形 + 欄の中身 + 専用の埋め込み情報の宣言（D113・D126）。送る時は回が版を固定する（../sendMessage/README.md）。画面は ../../../components/README.md。
 
 - 門: `messagingTemplates`（`dependsOn: ["messagingDispatches"]`、既定 閉、住所 `/admin/messaging/templates` と `/api/admin/messaging/templates`）。閉の間 画面と API は 404
 - 状態: `draft`（未公開）→ `published`（版がある）→ `archived`（取り下げ。直せない・公開できない、版は残る）
@@ -26,7 +26,7 @@ admin のみ。返す形は `dto.ts`（一覧・版の DTO は `categoryLabel` =
 - 一覧: 最初のページ（`cursor` なし）の先頭に、受け口の順で `system: true`・`id` = `system:<鍵>`・`status: published`・`name` = 白紙の `label`・`kind`・`layout`・`values`（白紙の欄の中身）。`status` で `draft`・`archived` に絞った時は出さない。`category` は空（送る時に選ぶ）
 - `GET /[id]`（`system:<鍵>`）: 同じ形 + `layoutVersion`（今の版）・`embedded: []`（白紙は専用の埋め込み情報を持たない）・`catalog`。無い鍵は 404
 - `PATCH /[id]`・`POST /[id]/publish`・`POST /[id]/archive` は 409（コードで宣言した白紙は管理画面で直せない・消せない）。`GET /[id]/versions` は空、`GET /[id]/versions/[version]` は 404
-- id は uuid でない（`system:` で始まる）。画面は id を uuid と決めつけない（S5）
+- id は uuid でない（`system:` で始まる）。画面は id を uuid と決めつけない
 
 ## Internals
 
