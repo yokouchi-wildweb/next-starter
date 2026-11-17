@@ -243,7 +243,19 @@ const sortedItems = useMemo(() => sortItems(items, sort), [items, sort]);
 ```
 
 `sortItems(items, sort)` は sort 未指定時は元の配列をそのまま返す（コピーしない）。
-null/undefined は末尾、文字列は `localeCompare("ja")` で比較。
+null/undefined は昇順で末尾・降順で先頭（比較を反転するため）、文字列は `localeCompare("ja")` で比較。
+
+3 つ目の引数 `options`（任意）:
+
+- `getValue: (item, field) => unknown`: 並べる値の取り出し（未指定 = `item[field]`）。入れ子の値・派生の値で並べるとき。数字の形の文字列を数として並べるなら `Number(…)` を返す
+- `nulls: "last" | "first"`: null / undefined を向きによらず末尾 / 先頭に置く
+
+```tsx
+const sorted = useMemo(
+  () => sortItems(items, sort, { getValue: (row, field) => (field === "hp" ? row.stats.hp : row[field]), nulls: "last" }),
+  [items, sort],
+);
+```
 
 ### サーバーサイドソート（ページネーション対応）
 
@@ -308,7 +320,7 @@ const columns = buildDomainColumns<Sample>({
 
 | 関数 | 用途 |
 |---|---|
-| `sortItems(items, sort?)` | クライアントサイドソート |
+| `sortItems(items, sort?, options?)` | クライアントサイドソート（options: `getValue`・`nulls`） |
 | `serializeSortState(sort)` | SortState → URL文字列（例: `"name.asc"`） |
 | `parseSortState(value?)` | URL文字列 → SortState |
 | `toOrderBySpec(sort)` | SortState → CRUD の OrderBySpec |
