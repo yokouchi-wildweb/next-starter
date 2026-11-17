@@ -1,8 +1,6 @@
-// @ts-nocheck
-// D112: restore before ship (指令 59 で bulk の defaults が { values } になった。出荷の前に新しい形へ書き直して回す)
 // 作成関数 bulkMessageAction の検査(送るモーダルは偽物)。
 // - meta(key・order・lists・enabled・access)はそのまま項目に載る
-// - 部品は送るモーダルを bulk の開き方(target・選んだ id・名詞・既定)で描き、選択 0 件か options.disabled で押せない
+// - 部品は送るモーダルを bulk の開き方(target・選んだ id・名詞・既定 { values } = 白紙のひな形の欄に重ねる値)で描き、選択 0 件か options.disabled で押せない
 // - 送った後は options.onSent(一括の結果)→ onDone(選択の解除・取り直し)
 // 実行: pnpm test src/features/core/messaging/components/AdminBulkSend/bulkMessageAction.test.tsx
 import { before, mock, test } from "node:test";
@@ -42,7 +40,7 @@ test("meta はそのまま項目に載り、部品の名前に key が入る", (
   assert.equal((item.Component as { displayName?: string }).displayName, "bulkMessageAction(notify)");
 });
 
-test.skip("送るモーダルを bulk で描き、送った後は onSent → onDone", () => {
+test("送るモーダルを bulk で描き、送った後は onSent → onDone", () => {
   const events: string[] = [];
   const item = bulkMessageAction(
     { key: "notify" },
@@ -51,7 +49,7 @@ test.skip("送るモーダルを bulk で描き、送った後は onSent → onD
       recordNoun: "発送リクエスト",
       label: "連絡",
       defaultCategory: "operatorDirect",
-      defaults: { content: { inApp: { title: "題" } } },
+      defaults: { values: { subject: "題", blocks: [{ type: "paragraph", text: "本文" }] } },
       onSent: (result) => events.push(`sent:${result.dispatchId}`),
     },
   );
@@ -62,14 +60,19 @@ test.skip("送るモーダルを bulk で描き、送った後は onSent → onD
     target: "shippingRequest",
     recordIds: ["a", "b"],
     recordNoun: "発送リクエスト",
-    defaults: { content: { inApp: { title: "題" } } },
+    defaults: { values: { subject: "題", blocks: [{ type: "paragraph", text: "本文" }] } },
     defaultCategory: "operatorDirect",
     source: undefined,
   });
   assert.equal(props.label, "連絡");
   assert.equal(props.disabled, false);
   (props.onSent as (sent: unknown) => void)({ kind: "bulk", result: { dispatchId: "b1" } });
-  assert.deepEqual(events, ["sent:b1", "done"]);
+  // 一括でない結果は onSent に渡さず、選択の解除だけ
+  (props.onSent as (sent: unknown) => void)({ kind: "send", result: { dispatchId: "s1" } });
+  assert.deepEqual(events, ["sent:b1", "done", "done"]);
+  events.length = 0;
+  (props.onSent as (sent: unknown) => void)({ kind: "bulk", result: { dispatchId: "b2" } });
+  assert.deepEqual(events, ["sent:b2", "done"]);
 });
 
 test("選択 0 件か options.disabled なら押せない", () => {

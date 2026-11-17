@@ -43,6 +43,8 @@ import { ADMIN_CHANNEL_FILTER_OPTIONS, messageChannelLabel } from "@/features/co
 import { useAdminDispatchCategories } from "@/features/core/messaging/hooks/useAdminDispatchCategories";
 import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
+import { isMessageLayoutContent } from "@/lib/messaging";
+
 import { MessagePreview } from "@/features/core/messaging/components/common/MessagePreview";
 import { DispatchOperations } from "@/features/core/messaging/components/common/DispatchOperations";
 import { dispatchStateLine } from "@/features/core/messaging/constants/dispatchOperations";
@@ -300,6 +302,14 @@ export function DispatchSummaryBlock({ dispatch, categoryLabel }: { dispatch: Ad
   );
 }
 
+/** 前の形の本文の欄 → 読む文(文はそのまま、並び・組の中の文を空行で並べる。欄の鍵は出さない) */
+function storedBodyText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map(storedBodyText).filter(Boolean).join("\n\n");
+  if (value && typeof value === "object") return Object.values(value).map(storedBodyText).filter(Boolean).join("\n\n");
+  return value === null || value === undefined ? "" : String(value);
+}
+
 /** プレビュー(回の中身を残した回はひな形の描き方、前の形の回は残した本文) */
 export function DispatchBodyBlock({ dispatch, preview }: { dispatch: AdminDispatchDetailDto; preview: DispatchPreviewState }) {
   const body = dispatch.body ? Object.entries(dispatch.body) : [];
@@ -312,24 +322,27 @@ export function DispatchBodyBlock({ dispatch, preview }: { dispatch: AdminDispat
           <Span size="sm" tone="muted">
             本文
           </Span>
-          {/* 経路ごとの欄で見せる(生の JSON は出さない、D46)。前の送る口の回の文だけの本文はそのまま */}
+          {/* 経路ごとの欄で見せる(生の JSON・欄の鍵は出さない、D46)。前の送る口の回の本文(文、または題・段落などの欄)は残した文をそのまま並べる。
+              送る口の中身(ひな形の鍵 + 欄の中身)の回だけをプレビューの部品で描く(前の形の欄はひな形の描き方では描けないため) */}
           {body
-            .filter(([, value]) => typeof value === "string")
+            .filter(([, value]) => !isMessageLayoutContent(value))
             .map(([channel, value]) => (
               <Stack key={channel} space={1}>
                 <Span size="sm" tone="muted">
                   {messageChannelLabel(channel)}
                 </Span>
                 <Para size="sm" className="my-0 whitespace-pre-wrap rounded bg-muted/40 p-2">
-                  {value as string}
+                  {storedBodyText(value) || "-"}
                 </Para>
               </Stack>
             ))}
-          <MessagePreview
-            channels={body
-              .filter(([, value]) => typeof value !== "string")
-              .map(([channel, value]) => ({ key: channel, label: messageChannelLabel(channel), fields: value }))}
-          />
+          {body.some(([, value]) => isMessageLayoutContent(value)) ? (
+            <MessagePreview
+              channels={body
+                .filter(([, value]) => isMessageLayoutContent(value))
+                .map(([channel, value]) => ({ key: channel, label: messageChannelLabel(channel), fields: value }))}
+            />
+          ) : null}
         </Stack>
       ) : (
         <Span size="sm" tone="muted">

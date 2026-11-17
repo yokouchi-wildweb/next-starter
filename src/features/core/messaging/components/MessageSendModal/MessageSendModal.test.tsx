@@ -1,14 +1,18 @@
-// @ts-nocheck
-// D112: restore before ship (指令 58 でテンプレートの形が変わった。出荷の前に新しい形へ書き直して回す)
-// 送るモーダルの入れ物と、開く口の検査(jsdom の上で描く。hook・Modal・部品の一部は偽物)。
-// - 入れ物: ボタンで開く / 書く段は部品を並べる(テンプレートは呼び出せる時だけ、予約は bulk で出さない)/
-//   confirmOnClose に hook の closeConfirm を渡す / 確認の段は「送る」で confirmSend、「戻る」で backToEdit / 結果の段
+// 送るモーダルの入れ物と、開く口の検査(jsdom の上で描く。hook・Modal・Dialog・部品は偽物)。
+// - 入れ物: ボタンで開く / 書く段は部品を並べる(左右 2 つのペイン: 操作 = 種別とカテゴリー → 送信方法 → 宛先 → テンプレート → 内容 → 送信日時、
+//   プレビュー = LayoutPreview。種別を選ぶまでは案内だけ)/ テンプレートを読み込んだ直後は専用の埋め込み情報の入力と『文面を直す』だけ /
+//   予約は bulk で出さない / confirmOnClose に hook の closeConfirm を渡す / 下の帯のボタンで hook を呼ぶ
+// - 確認の段は「送信する」(予約なら「予約する」)で confirmSend、「戻る」で backToEdit、上限を超えたら送れない / 結果の段(回へのリンクは dispatchDetailHref)
+// - 手で直した書きかけの上に読み込む時は Dialog で確かめる(置き換える → confirmLoad、閉じる → cancelLoad)
 // - 開く口: 回の一覧の「新規送信」は門 messagingBroadcast が開の時だけ
 // 実行: pnpm test src/features/core/messaging/components/MessageSendModal/MessageSendModal.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
 import { JSDOM } from "jsdom";
+
+import type { MessageSendModalState } from "@/features/core/messaging/hooks/useMessageSendModal";
+import type { SendTemplateTextState } from "@/features/core/messaging/hooks/useSendTemplateText";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", { pretendToBeVisual: true });
 const g = globalThis as Record<string, unknown>;
@@ -24,66 +28,126 @@ g.IntersectionObserver = class {
   disconnect() {}
 };
 
+type Over<T> = Partial<Record<keyof T, unknown>>;
+
 const events: string[] = [];
 let modalConfirm: unknown = null;
+
+/** hook useSendTemplateText の偽物(白紙 = 全文を書ける形) */
+const baseText = () =>
+  ({
+    state: {
+      source: { type: "system", key: "simple", label: "シンプル" },
+      layout: "simple",
+      start: {},
+      versionValues: null,
+      unlocked: true,
+      embeddedDeclarations: [],
+      embedded: {},
+    },
+    source: { type: "system", key: "simple", label: "シンプル" },
+    layout: { key: "simple", label: "シンプル", fields: {} },
+    fields: {},
+    control: {},
+    locked: false,
+    values: {},
+    edited: false,
+    missingEmbedded: [],
+    canUpdateTemplate: false,
+    isUpdatingTemplate: false,
+    unlock: () => events.push("unlock"),
+    setEmbedded: () => {},
+  }) satisfies Over<SendTemplateTextState>;
+
+/** hook useMessageSendModal の偽物 */
+const baseState = () =>
+  ({
+    open: true,
+    setOpen: (v: boolean) => events.push(`open:${v}`),
+    step: "edit",
+    optionsLoaded: true,
+    optionsError: null,
+    sameAsNote: null,
+    closeConfirm: { enabled: true, message: "書きかけ" },
+    kinds: [{ key: "notice", label: "お知らせ" }],
+    kind: "notice",
+    setKind: () => {},
+    categories: [{ key: "notice", label: "お知らせ" }],
+    category: "notice",
+    setCategory: () => {},
+    target: { type: "all", roles: [], groupId: "", userIds: [] },
+    setTarget: () => {},
+    allowedTargetTypes: ["all", "role", "group", "users"],
+    roles: [],
+    groups: [],
+    groupsEnabled: false,
+    targetNote: null,
+    templatesAvailable: true,
+    pickerTemplates: [{ id: "t1", name: "春", currentVersion: 2, system: false }],
+    currentSystem: { label: "シンプル" },
+    blank: { key: "simple", label: "シンプル", layout: "simple", values: {} },
+    loadedTemplate: null,
+    text: baseText(),
+    layoutPreview: {
+      layout: null,
+      channels: ["email"],
+      channel: "email",
+      setChannel: () => {},
+      content: null,
+      loading: false,
+      error: null,
+      incompleteChannels: [],
+    },
+    embeddedCatalog: [],
+    loadTemplate: () => {},
+    unloadTemplate: () => {},
+    pendingLoad: null,
+    confirmLoad: () => events.push("confirmLoad"),
+    cancelLoad: () => events.push("cancelLoad"),
+    updateTemplate: async () => ({ version: 3, unchanged: false }),
+    channels: [
+      { key: "email", label: "メール", on: true },
+      { key: "inApp", label: "お知らせ", on: false },
+    ],
+    sendChannels: ["email"],
+    toggleChannel: () => {},
+    showSchedule: true,
+    scheduleMode: "now",
+    scheduledAt: "",
+    scheduleError: null,
+    scheduleNote: "注記",
+    setScheduleMode: () => {},
+    setScheduledAt: () => {},
+    contentError: null,
+    targetError: null,
+    canSend: true,
+    preview: null,
+    estimate: { count: 5 },
+    estimateOverLimit: false,
+    result: null,
+    isPreviewing: false,
+    isTesting: false,
+    isSending: false,
+    closePreview: () => {},
+    previewLayoutFields: null,
+    runPreview: async () => void events.push("preview"),
+    sendTest: async () => void events.push("test"),
+    requestConfirm: async () => void events.push("confirm"),
+    backToEdit: () => events.push("back"),
+    confirmSend: async () => {
+      events.push("send");
+      return { kind: "send", result: { status: "queued" } };
+    },
+  }) satisfies Over<MessageSendModalState>;
+
 let state: Record<string, unknown> = {};
-const baseState = () => ({
-  open: true,
-  setOpen: (v: boolean) => events.push(`open:${v}`),
-  step: "edit",
-  optionsLoaded: true,
-  optionsError: null,
-  closeConfirm: { enabled: true, message: "書きかけ" },
-  templatesAvailable: true,
-  templates: [{ id: "t1", name: "春", currentVersion: 2 }],
-  loadedTemplate: null,
-  pendingLoad: null as string | null,
-  loadNote: null as string | null,
-  draft: { source: "adhoc", template: null, content: {}, vars: {} },
-  target: { type: "all", roles: [], groupId: "", userIds: [] },
-  groups: [],
-  targetNote: null,
-  estimateOverLimit: false,
-  roles: [],
-  allowedCategories: [{ key: "notice", label: "お知らせ" }],
-  category: "notice",
-  channels: [{ key: "email", label: "メール", on: true, blank: false }],
-  showSchedule: true,
-  scheduleMode: "now",
-  scheduledAt: "",
-  scheduleError: null,
-  scheduleNote: "注記",
-  contentError: null,
-  targetError: null,
-  canSend: true,
-  preview: null,
-  estimate: { count: 5 },
-  result: null,
-  isPreviewing: false,
-  isTesting: false,
-  isSending: false,
-  loadTemplate: () => {},
-  unloadTemplate: () => {},
-  confirmLoad: () => events.push("confirmLoad"),
-  cancelLoad: () => events.push("cancelLoad"),
-  setChannelFields: () => {},
-  setVar: () => {},
-  setTarget: () => {},
-  setCategory: () => {},
-  toggleChannel: () => {},
-  setScheduleMode: () => {},
-  setScheduledAt: () => {},
-  runPreview: async () => events.push("preview"),
-  sendTest: async () => events.push("test"),
-  requestConfirm: async () => events.push("confirm"),
-  backToEdit: () => events.push("back"),
-  confirmSend: async () => {
-    events.push("send");
-    return { kind: "send", result: { status: "queued" } };
-  },
-});
+const make = (over: Over<MessageSendModalState> = {}) => ({ ...baseState(), ...over });
+
 mock.module("@/features/core/messaging/hooks/useMessageSendModal", {
-  namedExports: { useMessageSendModal: () => state },
+  namedExports: { useMessageSendModal: () => state as unknown as MessageSendModalState },
+});
+mock.module("@/features/core/messaging/hooks/useEmbeddedInfoTags", {
+  namedExports: { useEmbeddedInfoTags: () => ({ common: [], own: [], copy: async () => {} }) },
 });
 mock.module("@/components/Overlays/Modal", {
   defaultExport: ({ open, title, children, footer, confirmOnClose }: Record<string, unknown>) => {
@@ -91,13 +155,13 @@ mock.module("@/components/Overlays/Modal", {
     return open ? createElement("section", { "data-testid": "modal" }, title as never, children as never, footer as never) : null;
   },
 });
-let dialogProps: Record<string, unknown> | null = null;
-mock.module("@/components/Overlays/Dialog", {
-  defaultExport: (props: Record<string, unknown>) => {
-    dialogProps = props;
-    return props.open ? createElement("aside", { "data-testid": "dialog" }, props.title as never) : null;
-  },
-});
+// Dialog は 2 つ(読み込みの上書き・テンプレートの更新)。題で分けて props を控える
+const dialogs = new Map<string, Record<string, unknown>>();
+const FakeDialog = (props: Record<string, unknown>) => {
+  dialogs.set(String(props.title), props);
+  return props.open ? createElement("aside", { "data-testid": "dialog" }, props.title as never) : null;
+};
+mock.module("@/components/Overlays/Dialog", { defaultExport: FakeDialog });
 mock.module("@/components/Form/Button", {
   namedExports: {
     Button: (props: { children?: unknown; disabled?: boolean; onClick?: () => void }) =>
@@ -105,21 +169,40 @@ mock.module("@/components/Form/Button", {
     LinkButton: (props: { href: string; children?: unknown }) => createElement("a", { href: props.href }, props.children as never),
   },
 });
+// 「新規送信」の CreateButton(押すと onClick)
+mock.module("@/lib/crud/components", {
+  namedExports: {
+    CreateButton: (props: { label?: string; disabled?: boolean; onClick?: () => void }) =>
+      createElement("button", { type: "button", disabled: props.disabled, onClick: props.onClick }, props.label),
+  },
+});
+
+// 部品は偽物: data-part に名前を出し、最後に受けた props を控える(open を受ける部品は閉じている間は描かない)
+const lastProps = new Map<string, Record<string, unknown>>();
 const stub = (name: string) => {
-  const Stub = (props: Record<string, unknown>) => createElement("div", { "data-part": name, "data-kind": String(props.kind ?? "") });
+  const Stub = (props: Record<string, unknown>) => {
+    lastProps.set(name, props);
+    if ("open" in props && !props.open) return null;
+    return createElement("div", { "data-part": name });
+  };
   Stub.displayName = `Stub(${name})`;
   return Stub;
 };
-mock.module("@/features/core/messaging/components/common/SendTemplatePicker", { namedExports: { SendTemplatePicker: stub("template") } });
-mock.module("@/features/core/messaging/components/common/SendTargetPicker", { namedExports: { SendTargetPicker: stub("target") } });
-mock.module("@/features/core/messaging/components/common/SendCategoryChannels", { namedExports: { SendCategoryChannels: stub("category") } });
-mock.module("@/features/core/messaging/components/common/SendContentFields", { namedExports: { SendContentFields: stub("content") } });
-mock.module("@/features/core/messaging/components/common/SendSchedule", { namedExports: { SendSchedule: stub("schedule") } });
-mock.module("@/features/core/messaging/components/common/SendConfirmView", {
-  namedExports: { SendConfirmView: stub("confirm"), SendResultView: stub("result") },
+const COMMON = "@/features/core/messaging/components/common";
+mock.module(`${COMMON}/KindCategoryFields`, { namedExports: { KindCategoryFields: stub("kindCategory") } });
+mock.module(`${COMMON}/SendCategoryChannels`, { namedExports: { SendCategoryChannels: stub("channels") } });
+mock.module(`${COMMON}/SendTargetPicker`, { namedExports: { SendTargetPicker: stub("target") } });
+mock.module(`${COMMON}/SendTemplatePicker`, {
+  namedExports: { SendTemplatePicker: stub("template"), SendEmbeddedInputs: stub("embedded") },
 });
-mock.module("@/features/core/messaging/components/common/MessagePreview", { namedExports: { MessagePreview: stub("preview") } });
-// 回の一覧の絞り込みの入力は jsdom で動かさない偽物
+mock.module(`${COMMON}/LayoutFields`, { namedExports: { LayoutFields: stub("layoutFields") } });
+mock.module(`${COMMON}/LayoutPreview`, { namedExports: { LayoutPreview: stub("layoutPreview") } });
+mock.module(`${COMMON}/SendSchedule`, { namedExports: { SendSchedule: stub("schedule") } });
+mock.module(`${COMMON}/SendConfirmView`, { namedExports: { SendConfirmView: stub("confirm"), SendResultView: stub("result") } });
+mock.module(`${COMMON}/SampleForYouModal`, { namedExports: { SampleForYouModal: stub("sampleForYou") } });
+mock.module(`${COMMON}/EmbeddedInfoPopover`, { namedExports: { EmbeddedInfoPopover: stub("embeddedInfo") } });
+
+// 回の一覧(開く口)の周り: 絞り込みの入力・SWR・URL・一括操作・詳細のモーダルは jsdom で動かさない偽物
 mock.module("@/components/Form/Input/Manual", {
   namedExports: {
     DateInput: () => createElement("input"),
@@ -130,9 +213,36 @@ mock.module("@/components/Form/Input/Manual", {
 mock.module("@/lib/toast", { namedExports: { useToast: () => ({ showToast: () => {} }) } });
 let broadcastOpen = true;
 mock.module("@/featureGate/client", { namedExports: { useGate: () => ({ enabled: () => broadcastOpen }) } });
+mock.module("next/navigation", {
+  namedExports: { useSearchParams: () => new URLSearchParams(), usePathname: () => "/admin/messaging" },
+});
+mock.module("@/lib/unsavedGuard", {
+  namedExports: { useRouter: () => ({ back: () => {}, replace: () => {}, push: () => {} }), useUnsavedGuard: () => {} },
+});
 mock.module("@/features/core/messaging/hooks/useAdminDispatches", {
   namedExports: {
-    useAdminDispatches: () => ({ items: [], isInitialLoading: false, isFetchingMore: false, hasMore: false, error: null, sentinelRef: () => {}, retry: () => {} }),
+    useAdminDispatches: () => ({
+      items: [],
+      isInitialLoading: false,
+      isFetchingMore: false,
+      hasMore: false,
+      error: null,
+      sentinelRef: () => {},
+      retry: () => {},
+      revalidate: () => {},
+    }),
+  },
+});
+mock.module("@/features/core/messaging/hooks/useAdminDispatchCategories", {
+  namedExports: { useAdminDispatchCategories: () => ({ categories: [], loaded: true, error: null, isLoading: false, optionsOf: () => [], labelOf: () => null }) },
+});
+mock.module("@/features/core/messaging/components/AdminDispatchDetailModal", { namedExports: { AdminDispatchDetailModal: () => null } });
+mock.module("@/features/core/messaging/extensions/adminBulkActions", { namedExports: { adminBulkActions: {} } });
+mock.module("@/lib/tableSuite", {
+  namedExports: {
+    selectBulkActions: (items: unknown[]) => items,
+    BulkActionItems: () => null,
+    RecordSelectionList: () => null,
   },
 });
 
@@ -147,8 +257,11 @@ before(async () => {
 after(() => dom.window.close());
 beforeEach(() => {
   events.length = 0;
-  state = baseState();
+  state = make();
   broadcastOpen = true;
+  lastProps.clear();
+  dialogs.clear();
+  modalConfirm = null;
 });
 
 const render = async (element: ReturnType<typeof createElement>) => {
@@ -160,76 +273,165 @@ const render = async (element: ReturnType<typeof createElement>) => {
 };
 const button = (container: HTMLElement, text: string) =>
   [...container.querySelectorAll("button")].find((b) => (b.textContent ?? "").includes(text)) as HTMLButtonElement | undefined;
-/** 文言がちょうど一致するボタン(「送る」と「新規送信」を分ける) */
+/** 文言がちょうど一致するボタン(「送信する」と「新規送信」を分ける) */
 const exact = (container: HTMLElement, text: string) =>
   [...container.querySelectorAll("button")].find((b) => (b.textContent ?? "").trim() === text) as HTMLButtonElement | undefined;
 const parts = (container: HTMLElement) => [...container.querySelectorAll("[data-part]")].map((el) => el.getAttribute("data-part"));
+const NEW = { type: "new" } as const;
 
-test.skip("書く段: 部品を並べ、confirmOnClose に closeConfirm、ボタンで hook を呼ぶ", async () => {
-  const view = await render(createElement(MessageSendModal, { mode: { type: "new" } }));
-  // 並び(D47): 宛先 → テンプレートから読み込む → カテゴリーと送信方法 → 文言 → 送信日時
-  assert.deepEqual(parts(view.container), ["target", "template", "category", "content", "schedule"]);
-  assert.equal(dialogProps!.open, false, "上書きの確かめは読み込みを待つ時だけ");
+test("書く段: 部品を並べ、confirmOnClose に closeConfirm、ボタンで hook を呼ぶ", async () => {
+  const view = await render(createElement(MessageSendModal, { mode: NEW }));
+  // 並び(D110 D115 D118): 種別とカテゴリー → 送信方法 → 宛先 → テンプレート → 内容(白紙 = ひな形の欄)→ 送信日時、
+  // プレビューのペイン → 下の帯(埋め込み情報の吹き出し)。「あなた宛ての表示例」は表示例が無い間は出さない
+  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "layoutFields", "schedule", "layoutPreview", "embeddedInfo"]);
+  assert.equal(lastProps.get("target")!.kind, "select");
+  assert.deepEqual(lastProps.get("template")!.templates, [{ id: "t1", name: "春", currentVersion: 2, system: false }]);
+  assert.equal(lastProps.get("template")!.loaded, null);
+  assert.deepEqual(lastProps.get("template")!.blank, { label: "シンプル" });
+  assert.equal(dialogs.get("テンプレートを読み込みますか")!.open, false, "上書きの確かめは読み込みを待つ時だけ");
   assert.deepEqual(modalConfirm, { enabled: true, message: "書きかけ" });
   await act(async () => button(view.container, "新規送信")!.click());
-  await act(async () => button(view.container, "プレビュー")!.click());
+  await act(async () => button(view.container, "あなた宛ての表示例")!.click());
   await act(async () => button(view.container, "自分にテスト送信")!.click());
   await act(async () => button(view.container, "確認に進む")!.click());
   assert.deepEqual(events, ["open:true", "preview", "test", "confirm"]);
   await view.unmount();
+
+  // 種別を選ぶまではプレビューは案内だけ
+  state = make({ kind: "" });
+  const noKind = await render(createElement(MessageSendModal, { mode: NEW }));
+  assert.equal(noKind.container.querySelector("[data-part=layoutPreview]"), null);
+  assert.match(noKind.container.textContent ?? "", /種別を選ぶとプレビューが出ます/);
+  await noKind.unmount();
 });
 
-test.skip("テンプレートを呼び出せない時・bulk は予約を出さない", async () => {
-  state = { ...baseState(), templatesAvailable: false, showSchedule: false };
-  const view = await render(
-    createElement(MessageSendModal, { mode: { type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録" } }),
-  );
-  assert.deepEqual(parts(view.container), ["target", "category", "content"]);
-  assert.equal(view.container.querySelector("[data-part=target]")?.getAttribute("data-kind"), "bulk");
+test("テンプレートを読み込んだ直後: 専用の埋め込み情報の入力と『文面を直す』だけ(ひな形の欄・吹き出しは出さない)", async () => {
+  const declarations = [{ key: "discount", alias: "割引", type: "number", required: true }];
+  state = make({
+    loadedTemplate: { type: "template", id: "t1", name: "春", version: 2 },
+    text: {
+      ...baseText(),
+      state: { ...baseText().state, source: { type: "template", id: "t1", name: "春", version: 2 }, unlocked: false, embeddedDeclarations: declarations, embedded: { discount: "10" } },
+      locked: true,
+      missingEmbedded: [{ key: "discount" }],
+    },
+  });
+  const view = await render(createElement(MessageSendModal, { mode: NEW }));
+  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "embedded", "schedule", "layoutPreview"]);
+  assert.deepEqual(lastProps.get("template")!.loaded, { type: "template", id: "t1", name: "春", version: 2, edited: false });
+  assert.deepEqual(lastProps.get("embedded")!.declarations, declarations);
+  assert.deepEqual(lastProps.get("embedded")!.values, { discount: "10" });
+  assert.deepEqual(lastProps.get("embedded")!.missing, ["discount"]);
+  assert.match(view.container.textContent ?? "", /文面はテンプレートのまま/);
+  await act(async () => button(view.container, "文面を直す")!.click());
+  assert.deepEqual(events, ["unlock"]);
   await view.unmount();
 });
 
-test.skip("確認の段: 送る → confirmSend、戻る → backToEdit / 結果の段", async () => {
-  state = { ...baseState(), step: "confirm" };
-  const view = await render(createElement(MessageSendModal, { mode: { type: "new" } }));
+test("bulk は宛先 = 選んだ記録の数、予約を出さない", async () => {
+  state = make({ showSchedule: false });
+  const view = await render(
+    createElement(MessageSendModal, { mode: { type: "bulk", target: "t", recordIds: ["r1", "r2"], recordNoun: "記録" } }),
+  );
+  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "layoutFields", "layoutPreview", "embeddedInfo"]);
+  assert.equal(lastProps.get("target")!.kind, "bulk");
+  assert.equal(lastProps.get("target")!.recordCount, 2);
+  assert.equal(lastProps.get("target")!.recordNoun, "記録");
+  assert.ok(button(view.container, "一括送信"), "開くボタンの既定の文言");
+  await view.unmount();
+});
+
+test("確認の段: 送信する → confirmSend、戻る → backToEdit / 予約 / 上限超え / 結果の段", async () => {
+  state = make({ step: "confirm" });
+  const view = await render(createElement(MessageSendModal, { mode: NEW }));
   assert.deepEqual(parts(view.container), ["confirm"]);
+  assert.ok((view.container.textContent ?? "").includes("新規送信(確認)"), "確認の段の題");
+  const confirm = lastProps.get("confirm")!;
+  assert.deepEqual(confirm.estimate, { count: 5 });
+  assert.equal(confirm.bulk, null);
+  assert.equal(confirm.scheduledAt, null);
+  assert.equal(confirm.templateVersion, null);
+  assert.deepEqual(confirm.channels, ["メール"], "オンの経路だけ");
+  assert.equal(confirm.categoryLabel, "お知らせ");
   await act(async () => button(view.container, "戻る")!.click());
   await act(async () => exact(view.container, "送信する")!.click());
   assert.deepEqual(events, ["back", "send"]);
   await view.unmount();
 
+  // 予約: ボタンは「予約する」、確認の部品に時刻
+  state = make({ step: "confirm", scheduleMode: "at", scheduledAt: "2026-12-01T00:00:00.000Z" });
+  const at = await render(createElement(MessageSendModal, { mode: NEW }));
+  assert.ok(exact(at.container, "予約する"));
+  assert.equal(exact(at.container, "送信する"), undefined);
+  assert.equal(lastProps.get("confirm")!.scheduledAt, "2026-12-01T00:00:00.000Z");
+  await at.unmount();
+
   // 見込みが人数の上限を超えた = 送るを押せない(理由は確認の部品が出す)
-  state = { ...baseState(), step: "confirm", estimateOverLimit: true };
-  const over = await render(createElement(MessageSendModal, { mode: { type: "new" } }));
+  state = make({ step: "confirm", estimateOverLimit: true });
+  const over = await render(createElement(MessageSendModal, { mode: NEW }));
   assert.equal(exact(over.container, "送信する")?.disabled, true);
   await over.unmount();
 
-  state = { ...baseState(), step: "done", result: { kind: "send", result: { status: "queued", queuedCount: 0, dispatchId: "d1" } } };
-  const done = await render(createElement(MessageSendModal, { mode: { type: "new" } }));
+  // 結果の段: 回へのリンクは一覧の上の詳細(?dispatch=<id>)
+  events.length = 0;
+  state = make({ step: "done", result: { kind: "send", result: { status: "queued", queuedCount: 0, dispatchId: "d1" } } });
+  const done = await render(createElement(MessageSendModal, { mode: NEW }));
   assert.deepEqual(parts(done.container), ["result"]);
+  const result = lastProps.get("result")!;
+  assert.equal(result.status, "queued");
+  assert.equal(result.queuedCount, 0);
+  assert.equal(result.dispatchHref, "/admin/messaging?dispatch=d1");
+  assert.equal(result.afterSend, null);
+  await act(async () => exact(done.container, "閉じる")!.click());
+  assert.deepEqual(events, ["open:false"]);
   await done.unmount();
+
+  // bulk の結果: 数は counts、後処理と記録の名詞を渡す。一覧の住所を替えればリンクもそこ
+  state = make({
+    step: "done",
+    result: { kind: "bulk", result: { status: "processing", counts: { queuedCount: 3 }, dispatchId: "d2", afterSend: { ok: true } } },
+  });
+  const bulkDone = await render(
+    createElement(MessageSendModal, {
+      mode: { type: "bulk", target: "t", recordIds: ["r1"], recordNoun: "記録" },
+      dispatchBasePath: "/admin/other",
+    }),
+  );
+  const bulkResult = lastProps.get("result")!;
+  assert.equal(bulkResult.queuedCount, 3);
+  assert.deepEqual(bulkResult.afterSend, { ok: true });
+  assert.equal(bulkResult.recordNoun, "記録");
+  assert.equal(bulkResult.dispatchHref, "/admin/other?dispatch=d2");
+  await bulkDone.unmount();
 });
 
-test.skip("開く口: 回の一覧の「新規送信」は門 messagingBroadcast が開の時だけ", async () => {
-  const { AdminDispatchList } = await import("../AdminDispatchList");
-  state = { ...baseState(), open: false };
+test("開く口: 回の一覧の「新規送信」は門 messagingBroadcast が開の時だけ", async () => {
+  const { AdminDispatchList, AdminDispatchSendButton } = await import("../AdminDispatchList");
+  state = make({ open: false });
   const open = await render(createElement(AdminDispatchList));
   assert.ok(button(open.container, "新規送信"));
   await open.unmount();
+  const openButton = await render(createElement(AdminDispatchSendButton));
+  assert.ok(button(openButton.container, "新規送信"));
+  await openButton.unmount();
   broadcastOpen = false;
   const closed = await render(createElement(AdminDispatchList));
   assert.equal(button(closed.container, "新規送信"), undefined);
   await closed.unmount();
+  const closedButton = await render(createElement(AdminDispatchSendButton));
+  assert.equal(button(closedButton.container, "新規送信"), undefined);
+  await closedButton.unmount();
 });
 
-test.skip("手で直した書きかけの上に読み込む時は Dialog で確かめ、読み込みの知らせを出す", async () => {
-  state = { ...baseState(), pendingLoad: "t1", loadNote: "テンプレートのカテゴリー「春」はこの宛先では選べないため、カテゴリーは変更していません" };
-  const view = await render(createElement(MessageSendModal, { mode: { type: "new" } }));
-  assert.equal(dialogProps!.open, true);
-  assert.equal(dialogProps!.confirmLabel, "置き換える");
-  await act(async () => (dialogProps!.onConfirm as () => void)());
-  await act(async () => (dialogProps!.onOpenChange as (v: boolean) => void)(false));
-  assert.deepEqual(events, ["confirmLoad", "cancelLoad"]);
-  assert.match(view.container.textContent ?? "", /この宛先では選べない/);
+test("手で直した書きかけの上に読み込む時は Dialog で確かめる", async () => {
+  state = make({ pendingLoad: "t1" });
+  const view = await render(createElement(MessageSendModal, { mode: NEW }));
+  const dialog = dialogs.get("テンプレートを読み込みますか")!;
+  assert.equal(dialog.open, true);
+  assert.equal(dialog.confirmLabel, "置き換える");
+  await act(async () => (dialog.onConfirm as () => void)());
+  await act(async () => (dialog.onOpenChange as (v: boolean) => void)(true));
+  await act(async () => (dialog.onOpenChange as (v: boolean) => void)(false));
+  assert.deepEqual(events, ["confirmLoad", "cancelLoad"], "開いたままの知らせでは取り消さない");
   await view.unmount();
 });
