@@ -64,7 +64,7 @@ export function TemplateEmbeddedInfoModal({
       </Button>
       {readOnly ? null : (
         <Button type="button" size="sm" variant="primary" onClick={onApply}>
-          適用
+          保存
         </Button>
       )}
     </Flex>
