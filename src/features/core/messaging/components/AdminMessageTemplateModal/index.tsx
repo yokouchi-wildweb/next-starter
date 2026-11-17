@@ -51,6 +51,9 @@ export type AdminMessageTemplateModalProps = {
   onChanged?: (template: AdminTemplateDetail, action: MessageTemplateAction) => void;
 };
 
+/** システムテンプレートのカテゴリーの表示だけの値(選択肢 1 つ「送信時に選ぶ」) */
+const SYSTEM_CATEGORY_NOTE = "__system-category__";
+
 const MODAL_WIDTH = "1200px";
 
 export function AdminMessageTemplateModal({ open, onOpenChange, templateId = null, onChanged }: AdminMessageTemplateModalProps) {
@@ -166,7 +169,8 @@ function TemplateModalBody({
     </Flex>
   );
 
-  const footer = (
+  // システムテンプレートは名前・種別・カテゴリーだけを見せる(埋め込み情報・説明・欄の入力・下の帯は無し、D125)
+  const footer = form.system ? null : (
     <Flex align="center" justify="between" gap="sm" wrap="wrap">
       {embeddedControls}
       {locked ? null : (
@@ -246,39 +250,57 @@ function TemplateModalBody({
             </Label>
             <Input id="template-name" value={fields.name} disabled={locked} onChange={(e) => fields.setName(e.target.value)} />
           </Stack>
-          <Stack space={1}>
-            <Label htmlFor="template-description" className="text-sm">
-              説明(任意)
-            </Label>
-            <Textarea id="template-description" value={fields.description} rows={2} disabled={locked} onChange={(e) => fields.setDescription(e.target.value)} />
-          </Stack>
-          <KindCategoryFields
-            idPrefix="template"
-            kinds={fields.kindOptions}
-            kind={fields.kind}
-            onKindChange={fields.setKind}
-            categories={fields.categoryChoices}
-            category={fields.category}
-            onCategoryChange={fields.setCategory}
-            disabled={locked}
-          />
-        </Stack>
-
-        <Stack space={2} className="rounded-md border border-border bg-card p-4" data-slot="template-values">
-          {form.layoutFields ? (
-            <LayoutFields
-              control={form.valuesForm.control}
-              fields={form.layoutFields}
-              channels={fields.channels}
-              activeChannel={preview.channel}
-              readOnly={locked}
+          {form.system ? null : (
+            <Stack space={1}>
+              <Label htmlFor="template-description" className="text-sm">
+                説明(任意)
+              </Label>
+              <Textarea id="template-description" value={fields.description} rows={2} disabled={locked} onChange={(e) => fields.setDescription(e.target.value)} />
+            </Stack>
+          )}
+          {form.system ? (
+            // システムテンプレートはカテゴリーを持たない(送る画面で選んだカテゴリーで送る)。最初のカテゴリーを出すとその物に見えるので「送信時に選ぶ」
+            <KindCategoryFields
+              idPrefix="template"
+              kinds={fields.kindOptions}
+              kind={fields.kind}
+              onKindChange={fields.setKind}
+              categories={[{ value: SYSTEM_CATEGORY_NOTE, label: "送信時に選ぶ" }]}
+              category={SYSTEM_CATEGORY_NOTE}
+              onCategoryChange={() => {}}
+              disabled
             />
           ) : (
-            <Span size="sm" tone="muted">
-              ひな形を選ぶと入力欄が出ます
-            </Span>
+            <KindCategoryFields
+              idPrefix="template"
+              kinds={fields.kindOptions}
+              kind={fields.kind}
+              onKindChange={fields.setKind}
+              categories={fields.categoryChoices}
+              category={fields.category}
+              onCategoryChange={fields.setCategory}
+              disabled={locked}
+            />
           )}
         </Stack>
+
+        {form.system ? null : (
+          <Stack space={2} className="rounded-md border border-border bg-card p-4" data-slot="template-values">
+            {form.layoutFields ? (
+              <LayoutFields
+                control={form.valuesForm.control}
+                fields={form.layoutFields}
+                channels={fields.channels}
+                activeChannel={preview.channel}
+                readOnly={locked}
+              />
+            ) : (
+              <Span size="sm" tone="muted">
+                ひな形を選ぶと入力欄が出ます
+              </Span>
+            )}
+          </Stack>
+        )}
       </Stack>
 
       <Stack space={3} className="min-w-0 md:sticky md:top-0 md:w-1/2" data-slot="template-editor-preview">
@@ -311,7 +333,8 @@ function TemplateModalBody({
           content={preview.content}
           loading={preview.loading}
           error={preview.error}
-          incompleteChannels={preview.incompleteChannels}
+          // システムテンプレートは白紙(仮の文で描く)なので未入力の印は出さない(D125)
+          incompleteChannels={form.system ? undefined : preview.incompleteChannels}
         />
       </Stack>
     </Flex>
