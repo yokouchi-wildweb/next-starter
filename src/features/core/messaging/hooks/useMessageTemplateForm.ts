@@ -44,7 +44,7 @@ import {
   type CreateMessageTemplateInput,
 } from "../services/client/templateClient";
 
-import { useLayoutFieldsForm } from "./useLayoutFieldsForm";
+import { layoutFieldsDefaults, useLayoutFieldsForm } from "./useLayoutFieldsForm";
 import { MESSAGE_TEMPLATES_KEY, messageTemplateKey, messageTemplateVersionsKey } from "./templateKeys";
 
 /** テンプレートを作れる種別(管理者が送れる 3 種別、D115) */
@@ -110,6 +110,25 @@ function declarationOf(draft: EmbeddedDeclarationDraft): Record<string, unknown>
     ...(draft.type === "select" ? { options: draft.options.map((option) => ({ value: option.value.trim(), label: option.label.trim() })) } : {}),
     ...(fallback !== "" ? { default: draft.type === "number" && Number.isFinite(Number(fallback)) ? Number(fallback) : fallback } : {}),
   };
+}
+
+/**
+ * 並びに依らない JSON(object の鍵を並べ替えて文字にする)。書きかけの判定に使う:
+ * DB の jsonb は鍵を長さと字の順に並べ直し、フォームは欄の宣言の順に組むので、そのままの JSON.stringify は同じ中身でも違う(J142)
+ */
+export function canonicalJson(value: unknown): string {
+  const sort = (item: unknown): unknown => {
+    if (Array.isArray(item)) return item.map(sort);
+    if (item && typeof item === "object") {
+      return Object.fromEntries(
+        Object.keys(item as Record<string, unknown>)
+          .sort()
+          .map((key) => [key, sort((item as Record<string, unknown>)[key])]),
+      );
+    }
+    return item;
+  };
+  return JSON.stringify(sort(value));
 }
 
 /** 中身の文字を全部集める({{名前}} を探すため) */
@@ -298,21 +317,25 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     [name, description, category, layout, values, embedded],
   );
 
+  // 書きかけの判定の元 = 開いた時の値をフォームと同じ道で組んだ物(欄の宣言に無い鍵は落とし、空の欄の形も同じ)
   const initialJson = useMemo(
     () =>
-      JSON.stringify({
-        name: template?.name ?? "",
-        description: template?.description ?? null,
+      canonicalJson({
+        // 名前・説明も buildInput と同じ整え方(前後の空白・空の説明 = null)
+        name: (template?.name ?? "").trim(),
+        description: (template?.description ?? "").trim() === "" ? null : template?.description,
         category: template?.category ?? autoCategoryOf(categories, initialKind),
         layout: template?.layout ?? (options?.layouts.length === 1 ? options.layouts[0].key : ""),
-        values: compactLayoutValues(template?.values ?? {}),
+        values: compactLayoutValues(
+          layoutFieldsDefaults(options?.layouts.find((item) => item.key === template?.layout)?.fields ?? {}, template?.values ?? null),
+        ),
         embedded: draftsOf(template?.embedded).map(declarationOf),
       }),
     // 開いた時の値(template・options が替わる時はモーダルが formKey で作り直す)
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [template, options],
   );
-  const dirty = !readOnly && createdId === null && JSON.stringify(buildInput()) !== initialJson;
+  const dirty = !readOnly && createdId === null && canonicalJson(buildInput()) !== initialJson;
   useUnsavedGuard(dirty);
 
   /** 保存の前の検査(画面で止める物。中身の深い検査はサーバー) */
