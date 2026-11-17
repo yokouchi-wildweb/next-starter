@@ -165,7 +165,7 @@ export const messageOverride = {
 
 - `defineMessageLayout({ key, label, description?, fields, summary, adminSelectable?, version?, revisions? })`: 欄の宣言から中身の型(`MessageLayoutValues`)を引く。`version` = 版(既定 1、`layoutVersionOf`)
 - 欄の宣言 `MessageFieldSpec`: `type`(語彙)・`label`・`placeholder?`・`required?`・`channels?`(使う経路の鍵、無い = 全部)。`select` は `options`、`list` は `of`・`min?`・`max?`、`group` は `fields`、`blocks` は `allow?`・`min?`・`max?`
-- 欄の型の語彙(`layout/vocabulary.ts`、lib で固定。fork は増やさず、入力の部品を src/wiring/formInputs に登録する): `line` 1 行の文・`paragraph` 段落・`longText` 長い文・`image` 画像(storage:// の参照か URL)・`button` ボタン `{ label, url }`・`link` リンク `{ label?, url }`・`date` 日付 YYYY-MM-DD・`number` 数・`select` 選択肢・`list` 並び・`group` 組・`keyValue` 項目と値 `[{ key, value }]`・`blocks` ブロックの並び。型ごとの zod は `fieldValueSchema(shape)`
+- 欄の型の語彙(`layout/vocabulary.ts`、lib で固定。fork は増やさず、入力の部品を src/wiring/formInputs に登録する): `line` 1 行の文・`paragraph` 段落・`longText` 長い文・`image` 画像(storage:// の参照か URL)・`button` ボタン `{ label, url }`・`link` リンク `{ label?, url }`・`date` 日付 YYYY-MM-DD・`number` 数・`select` 選択肢・`list` 並び・`group` 組・`keyValue` ラベルと値 `[{ key, value }]`・`blocks` ブロックの並び。型ごとの zod は `fieldValueSchema(shape)`
 - ブロック(`layout/blocks.ts`): `heading` 小見出し・`paragraph` 段落・`button` ボタン・`image` 画像・`divider` 区切り・`keyValueTable` ラベルと値・`bulletList` 箇条書き。`messageBlocksSchema({ allow?, min?, max? })` が許す種類と数で絞る(知らない種類は通らない)
 - 要約 `MessageLayoutSummary` = `{ title, body, image?, link?: { label?, url }, shortBody? }`(プッシュ・LINE は `shortBody ?? body`)
 - 中身の検査 `layoutValuesSchema(layout, { channels? })`: 必須を守る(空文字・空の並びも通さない)。`channels` を渡すと、そのどれにも使われない経路だけの欄は求めない。知らない鍵は通らない。経路の欄だけ = `fieldsForChannel(layout, channel)`

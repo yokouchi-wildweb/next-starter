@@ -6,7 +6,7 @@
 
 ## Usage
 
-- 欄: `subject`（件名、必須）・`preheader`（プレビューの文）・`heading`（見出し、必須）・`explanation`（説明、必須）・`details`（項目と値 `[{ key, value }]`。値が空の行は出さない）・`notYou`（心当たりがない場合）・`ifYou`（心当たりがある場合）・`footer`（末尾の注意書き）。心当たりの 2 つは最初の行を太字、残りを次の行に描く
+- 欄: `subject`（件名、必須）・`preheader`（プレビューの文）・`heading`（見出し、必須）・`explanation`（説明、必須）・`details`（ラベルと値 `[{ key, value }]`。値が空の行は出さない）・`notYou`（心当たりがない場合）・`ifYou`（心当たりがある場合）・`footer`（末尾の注意書き）。心当たりの 2 つは最初の行を太字、残りを次の行に描く
 - 要約: 題 = 件名 / 本文 = 説明 / 短い本文 = プレビューの文
 - メール（`email.tsx` → `AlertEmail`）: 前の auth の accountLocked の描き方と同じ並び: 見出し → 説明 → 情報の箱（`details`）→ 心当たりがない場合 → ある場合 → 末尾の注意書き。値の無い欄は描かない。好みに従う連絡は最後に停止のリンク
 - お知らせ（`inApp.tsx` → `AlertInApp`、client）: 説明・ラベルと値・心当たりの段落（件名は受け取り箱の画面の見出し）

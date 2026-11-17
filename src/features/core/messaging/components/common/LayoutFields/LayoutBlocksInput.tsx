@@ -2,7 +2,7 @@
 // 部品(props だけ): ブロックの並び(D123)の入力。許す種類(allow)から選んで足す・中身を直す・消す・上下に動かす。
 // min / max: max に届くと足せず、min を割る削除はできない。種類ごとの中身:
 // heading・paragraph = 文 / button = 文言と URL / image = 画像(notification.image)と代わりの文 / divider = 中身なし /
-// keyValueTable = 項目と値の行 / bulletList = 箇条書きの行
+// keyValueTable = ラベルと値の行 / bulletList = 箇条書きの行
 
 "use client";
 

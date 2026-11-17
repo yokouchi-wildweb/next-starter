@@ -14,7 +14,7 @@
 
 - 1 つのフォルダ = 1 つのひな形。`layout.ts`（`defineMessageLayout`: 欄の宣言・欄ごとの仮の文 `placeholder`・要約 `summary`・管理者が選べる印 `adminSelectable`・版 `version` と改版の対応 `revisions`）+ 経路ごとの描き方（任意: `email.tsx` = server、`inApp.tsx` = client）
 - 1 つのひな形で全経路。経路だけの欄は欄の宣言の `channels` に経路の鍵を持つ（例 statement の `shortBody` はお知らせと LINE だけ）。ひな形は種別・カテゴリー・経路の一覧を知らない
-- 欄の型は lib の語彙で固定（1 行の文・段落・長い文・画像・ボタン・リンク・日付・数・選択肢・並び・組・項目と値・ブロックの並び）。ブロックの並びの欄は `{ allow, min, max }`（小見出し・段落・ボタン・画像・区切り・ラベルと値・箇条書き）
+- 欄の型は lib の語彙で固定（1 行の文・段落・長い文・画像・ボタン・リンク・日付・数・選択肢・並び・組・ラベルと値・ブロックの並び）。ブロックの並びの欄は `{ allow, min, max }`（小見出し・段落・ボタン・画像・区切り・ラベルと値・箇条書き）
 - 見た目の差し替え: 経路ごとの描き方は 1 行スイッチ（`NoticeEmail.tsx` → `.default.tsx`、fork は `.replace.tsx`）。全メールの枠（ロゴ・色・末尾）は lib/mail の `MailFrame` のスイッチで一度に替える
 - 生成の一覧は 3 つ: ひな形（`extensions/layouts.ts`）・メールの描き方（server、`layoutEmails`）・お知らせの描き方（client、`layoutInApps`）
 - 改版: 欄の鍵を変える時は `version` を上げ、`revisions[前の版]` に「前の欄の鍵 → 新しい鍵か null（捨てる）」を書く。保存した中身（テンプレートの版・文言の上書き・回の中身）は読む時に `upgradeLayoutValues` で今の版へ読み替え、読めなければ止める

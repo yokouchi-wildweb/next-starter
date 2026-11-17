@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/LayoutFields/LayoutFieldControls.tsx
-// 部品(props だけ): 欄の入力とブロックの並びが共に使う小さな入力(並びの行の操作・ボタン / リンク・項目と値の行・1 行の文の並び)。
+// 部品(props だけ): 欄の入力とブロックの並びが共に使う小さな入力(並びの行の操作・ボタン / リンク・ラベルと値の行・1 行の文の並び)。
 // LayoutFieldInput と LayoutBlocksInput の両方がここを読む(2 つの間で値の import の輪を作らない)
 
 "use client";
@@ -150,7 +150,7 @@ type KeyValueRowsInputProps = {
   onFocusField?: (path: string) => void;
 };
 
-/** 項目と値の行([{key, value}])。足す・消す・並べ替え */
+/** ラベルと値の行([{key, value}])。足す・消す・並べ替え */
 export function KeyValueRowsInput({ id, path, value, onChange, readOnly, onFocusField }: KeyValueRowsInputProps) {
   const rows = asArray(value).map(asRecord);
   const set = (index: number, key: "key" | "value", next: string) => onChange(replaceItem(rows, index, { ...rows[index], [key]: next }));
@@ -160,8 +160,8 @@ export function KeyValueRowsInput({ id, path, value, onChange, readOnly, onFocus
         <Flex key={index} align="center" gap="xs">
           <Input
             id={index === 0 ? id : `${id}-${index}`}
-            aria-label="項目"
-            placeholder="項目"
+            aria-label="ラベル"
+            placeholder="ラベル"
             className="w-2/5"
             value={asText(row.key)}
             readOnly={readOnly}
