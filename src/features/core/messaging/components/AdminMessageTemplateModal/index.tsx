@@ -13,6 +13,8 @@
 
 "use client";
 
+import { History } from "lucide-react";
+import { useState } from "react";
 import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
 import { Input, SelectInput, Textarea } from "@/components/Form/Input/Manual";
@@ -23,7 +25,6 @@ import Dialog from "@/components/Overlays/Dialog";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import Modal from "@/components/Overlays/Modal";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
-import TabbedModal from "@/components/Overlays/TabbedModal";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
@@ -100,6 +101,7 @@ function TemplateModalBody({
   });
   const tags = useEmbeddedInfoTags({ catalog: form.catalog });
   const locked = form.readOnly;
+  const [versionsOpen, setVersionsOpen] = useState(false);
 
   const footer = locked ? null : (
     <Flex justify="end" gap="xs" wrap="wrap">
@@ -135,27 +137,36 @@ function TemplateModalBody({
     <Flex direction="column" gap="lg" className="md:flex-row-reverse md:items-start" data-slot="template-editor">
       <Stack space={4} className="min-w-0 md:w-1/2" data-slot="template-editor-controls">
         {template ? (
-          <Flex align="center" gap="xs" wrap="wrap">
-            {form.system ? (
-              <SoftBadge variant="secondary" size="md">
-                システム(読むだけ)
-              </SoftBadge>
-            ) : (
-              <TemplateStatusBadge
-                status={template.status}
-                currentVersion={template.currentVersion}
-                hasUnpublishedChanges={template.hasUnpublishedChanges}
-                size="md"
-              />
-            )}
-            {form.system ? (
-              <Para size="sm" tone="muted" className="my-0">
-                システムのテンプレートは編集できません(送る画面で白紙として使います)
-              </Para>
-            ) : form.archived ? (
-              <Para size="sm" tone="muted" className="my-0">
-                アーカイブ済みのテンプレートは編集できません(バージョン履歴は残ります)
-              </Para>
+          <Flex align="center" justify="between" gap="xs" wrap="wrap" data-slot="template-status-row">
+            <Flex align="center" gap="xs" wrap="wrap">
+              {form.system ? (
+                <SoftBadge variant="secondary" size="md">
+                  システム(読むだけ)
+                </SoftBadge>
+              ) : (
+                <TemplateStatusBadge
+                  status={template.status}
+                  currentVersion={template.currentVersion}
+                  hasUnpublishedChanges={template.hasUnpublishedChanges}
+                  size="md"
+                />
+              )}
+              {form.system ? (
+                <Para size="sm" tone="muted" className="my-0">
+                  システムのテンプレートは編集できません(送る画面で白紙として使います)
+                </Para>
+              ) : form.archived ? (
+                <Para size="sm" tone="muted" className="my-0">
+                  アーカイブ済みのテンプレートは編集できません(バージョン履歴は残ります)
+                </Para>
+              ) : null}
+            </Flex>
+            {!form.system ? (
+              // 版の履歴はタブにせず、状態の札の横のボタンから重ねたモーダルで見る(作る時は版が無いので出さない)
+              <Button type="button" size="sm" variant="ghost" onClick={() => setVersionsOpen(true)} data-slot="template-versions-open">
+                <History className="size-4" />
+                バージョン履歴
+              </Button>
             ) : null}
           </Flex>
         ) : null}
@@ -265,34 +276,23 @@ function TemplateModalBody({
     </Flex>
   );
 
-  const tabs = [
-    { value: "text", label: "内容", content: textTab },
-    ...(template && !form.system
-      ? [
-          {
-            value: "versions",
-            label: "バージョン履歴",
-            content: <TemplateVersionList versions={versions} currentVersion={template.currentVersion} layouts={options.layouts} />,
-            footer: null,
-          },
-        ]
-      : []),
-  ];
-
   return (
     <>
-      <TabbedModal
+      <Modal
         open={open}
         onOpenChange={onOpenChange}
         title={template ? `テンプレートを編集: ${template.name}` : "テンプレートを作成"}
         maxWidth={MODAL_WIDTH}
-        tabs={tabs}
-        value={modal.tab}
-        onValueChange={modal.setTab}
-        ariaLabel="テンプレートのタブ"
         footer={footer}
         confirmOnClose={form.closeConfirm}
-      />
+      >
+        {textTab}
+      </Modal>
+      {template && !form.system ? (
+        <Modal open={versionsOpen} onOpenChange={setVersionsOpen} title={`バージョン履歴: ${template.name}`} maxWidth="760px">
+          <TemplateVersionList versions={versions} currentVersion={template.currentVersion} layouts={options.layouts} />
+        </Modal>
+      ) : null}
       <Dialog
         open={fields.pendingLayout !== null}
         onOpenChange={(next) => {
