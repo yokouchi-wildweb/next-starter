@@ -14,7 +14,7 @@ export type MessageEmbeddedType = (typeof MESSAGE_EMBEDDED_TYPES)[number];
 
 /** 型の表示名(管理画面) */
 export const MESSAGE_EMBEDDED_TYPE_LABELS: Readonly<Record<MessageEmbeddedType, string>> = {
-  line: "1 行の文",
+  line: "テキスト",
   number: "数",
   date: "日付",
   datetime: "日時",
