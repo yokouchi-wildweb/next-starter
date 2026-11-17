@@ -140,7 +140,7 @@ export async function checkMessageRegistry(deps: ResolveDefinitionDeps & Message
       }
       if (message.key !== key) problems.push(`${key}: 定義の鍵が ${message.key}`);
       const resolved = await resolveDefinition(message, deps);
-      if (!resolved.authored) await buildContents(deps, resolved, resolved.channels, {});
+      await buildContents(deps, resolved, resolved.channels, {});
     } catch (error) {
       problems.push(`${key}: ${error instanceof Error ? error.message : String(error)}`);
     }

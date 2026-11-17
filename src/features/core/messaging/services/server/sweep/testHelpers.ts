@@ -49,7 +49,7 @@ export function createMemoryWorld(): MemoryWorld {
       const target = dispatches().find(
         (d) =>
           d.status === "processing" &&
-          d.message_key &&
+          d.layout &&
           d.expand_cursor !== MESSAGE_EXPAND_DONE &&
           (!dispatchId || d.id === dispatchId),
       );

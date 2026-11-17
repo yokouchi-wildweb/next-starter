@@ -48,6 +48,7 @@ import {
 } from "../services/client/sendClient";
 
 import { MESSAGE_CHANNEL_LABELS } from "../constants/channelLabels";
+import { noticeValuesFromChannelContent } from "../utils/noticeValues";
 
 import { ADMIN_DISPATCHES_KEY, ADMIN_MESSAGING_KEY } from "./adminMessagingKeys";
 import { ADMIN_SEND_KEY } from "./sendKeys";
@@ -489,19 +490,23 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   // ---- 入力を組む ----
   // 送る中身 = 送る経路の欄(その場で書く時もテンプレートの時も同じ形)。空の任意の欄は落とす(テンプレートの保存と同じ contentForInput)。
   // 送る・プレビュー・テスト送信・見込み・一括送信がこの 1 つを使う
+  // 送る口の入力は テンプレート(白紙 { system } か DB の { id, version })+ ひな形の欄の中身(指令 56)。この画面は S5 まで経路ごとに書くので、
+  // 送る時に汎用のお知らせの欄の中身へ変える(noticeValuesFromChannelContent。直した印はサーバーが版の中身との違いで付ける)
   const buildContent = useCallback((): AdminSendPreviewInput => {
-    const content = contentForInput(draft.content, sendChannels) as AdminSendPreviewInput["content"];
+    const values = noticeValuesFromChannelContent(contentForInput(draft.content, sendChannels));
     if (draft.source === "template" && draft.template) {
       return {
-        content,
-        template: { templateId: draft.template.id, version: draft.template.version },
+        template: { id: draft.template.id, version: draft.template.version },
+        values,
         vars: templateVarsForInput(loadedTemplate, draft.vars),
         category,
         channels: sendChannels,
       };
     }
-    return { content, category, channels: sendChannels };
-  }, [draft, loadedTemplate, category, sendChannels]);
+    // その場で書く連絡 = 選んだカテゴリーの種別の白紙(無い種別はサーバーが 400)
+    const blank = allCategories.find((option) => option.key === category)?.systemTemplate?.key ?? "";
+    return { template: { system: blank }, values, category, channels: sendChannels };
+  }, [draft, loadedTemplate, category, sendChannels, allCategories]);
 
   const buildTarget = useCallback((): AdminSendInput["target"] => {
     if (target.type === "role") return { type: "role", roles: target.roles };

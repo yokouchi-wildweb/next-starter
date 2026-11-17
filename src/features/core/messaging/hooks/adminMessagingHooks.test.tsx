@@ -25,7 +25,7 @@ g.IntersectionObserver = class {
   disconnect() {}
 };
 
-const summary = (id: string) => ({ id, headings: {}, messageKey: "messaging.adminPromotion" });
+const summary = (id: string) => ({ id, headings: {}, messageKey: null });
 const listCalls: Record<string, unknown>[] = [];
 const deliveryCalls: { id: string; params: Record<string, unknown> }[] = [];
 const sends: Record<string, unknown>[] = [];

@@ -8,11 +8,14 @@
 // - 保存の検査は checks.ts(D41)、画像の結び付けは imageBinding.ts
 // - 画面の選択肢 templateOptions(使える経路・種類・変数の前から使える {{鍵}})
 // - service でも管理者を確かめる(D42)。監査 messaging.template.{created, updated, published, archived}
+// - システムテンプレート(受け口 messaging/templates の白紙、D117・D125): 一覧の最初のページの先頭に印つき(system: true、id = system:<鍵>)で並び、
+//   1 件も読める。直す・公開・取り下げは 409(管理画面で直せない・消せない)。版は持たない(版の一覧は空、版 1 つは 404)
 
 import { randomBytes } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 
 import type { AuditRecordInput } from "@/lib/audit";
+import type { MessageSystemTemplate } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import type { MessageTemplate, MessageTemplateVersion } from "../../../entities/model";
@@ -32,14 +35,27 @@ import {
   UpdateMessageTemplateInputSchema,
 } from "./schema";
 import type { MessageTemplateStore } from "./types";
-import { isAdminFreeTextKind } from "../admin/freeText";
+import { isAdminSendableKind } from "../sendMessage/systemTemplates";
 
 export type TemplateServiceDeps<Tx> = AdminCheckDeps & {
   store: MessageTemplateStore<Tx>;
   ledger: TemplateImageLedger<Tx>;
   check: () => TemplateCheckDeps;
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
+  /** システムテンプレートの受け口(無い = 一覧に並べない) */
+  systemTemplates?: () => Readonly<Record<string, MessageSystemTemplate>>;
 };
+
+/** システムテンプレートの id の頭(DB のテンプレートの id は uuid) */
+export const SYSTEM_TEMPLATE_ID_PREFIX = "system:";
+
+/** システムテンプレートの id か */
+export function isSystemTemplateId(id: string): boolean {
+  return id.startsWith(SYSTEM_TEMPLATE_ID_PREFIX);
+}
+
+/** 白紙の時刻の欄(版も保存の時刻も持たないので固定の値) */
+const SYSTEM_TEMPLATE_TIME = new Date(0).toISOString();
 
 /** 種類の表示名(受け口の label。無ければ null) */
 type CategoryLabelOf = (category: string) => string | null;
@@ -64,6 +80,31 @@ function toSummary(row: MessageTemplate, categoryLabel: CategoryLabelOf): AdminT
     updatedBy: row.updated_by ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt ? row.updatedAt.toISOString() : null,
+    system: false,
+    kind: null,
+    layout: null,
+    values: null,
+  };
+}
+
+function toSystemSummary(template: MessageSystemTemplate): AdminTemplateSummary {
+  return {
+    id: `${SYSTEM_TEMPLATE_ID_PREFIX}${template.key}`,
+    key: template.key,
+    name: template.label,
+    description: null,
+    category: "",
+    categoryLabel: null,
+    status: "published",
+    currentVersion: null,
+    createdBy: null,
+    updatedBy: null,
+    createdAt: SYSTEM_TEMPLATE_TIME,
+    updatedAt: null,
+    system: true,
+    kind: template.kind,
+    layout: template.layout,
+    values: { ...template.values },
   };
 }
 
@@ -121,6 +162,20 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     };
   }
 
+  /** 鍵(system:<鍵>)のシステムテンプレート。無ければ 404 */
+  function requireSystem(id: string): MessageSystemTemplate {
+    const template = deps.systemTemplates?.()[id.slice(SYSTEM_TEMPLATE_ID_PREFIX.length)];
+    if (!template) throw new DomainError("テンプレートがありません", { status: 404 });
+    return template;
+  }
+
+  /** システムテンプレートは直せない・公開・取り下げできない(409) */
+  function refuseSystem(id: string, verb: string): void {
+    if (!isSystemTemplateId(id)) return;
+    const template = requireSystem(id);
+    throw new DomainError(`システムテンプレート「${template.label}」は${verb}できません(コードで宣言した白紙です)`, { status: 409 });
+  }
+
   async function requireRow(id: string): Promise<MessageTemplate> {
     const row = await deps.store.find(id);
     if (!row) throw new DomainError("テンプレートがありません", { status: 404 });
@@ -143,11 +198,26 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       const { status, cursor, limit } = parseOr400(ListMessageTemplatesQuerySchema.safeParse(query), "一覧の条件が正しくありません");
       const rows = await deps.store.list({ status: status ?? null, limit, after: decodeCursor(cursor) });
       const page = rows.slice(0, limit);
-      return { items: page.map((row) => toSummary(row, categoryLabel)), nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]) : null };
+      // システムテンプレートは最初のページの先頭(公開中の扱い。取り下げ・下書きで絞った時は出さない)
+      const systems =
+        !cursor && (!status || status === "published") ? Object.values(deps.systemTemplates?.() ?? {}).map(toSystemSummary) : [];
+      return {
+        items: [...systems, ...page.map((row) => toSummary(row, categoryLabel))],
+        nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]) : null,
+      };
     },
 
     async getTemplate(id: string): Promise<AdminTemplateDetail> {
       await assertAdminActor(deps);
+      if (isSystemTemplateId(id)) {
+        return {
+          ...toSystemSummary(requireSystem(id)),
+          content: {},
+          variables: [],
+          allowedKeys: templateAllowedKeys(deps.check(), []),
+          hasUnpublishedChanges: false,
+        };
+      }
       return detailOf(await requireRow(id));
     },
 
@@ -193,6 +263,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
      */
     async updateTemplate(id: string, input: unknown): Promise<AdminTemplateDetail> {
       await assertAdminActor(deps);
+      refuseSystem(id, "直すことは");
       const patch = parseOr400(UpdateMessageTemplateInputSchema.safeParse(input), "テンプレートの入力が正しくありません");
       const actor = actorId();
       const row = await deps.store.transaction(async (tx) => {
@@ -224,6 +295,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
      */
     async publishTemplate(id: string): Promise<AdminTemplateDetail> {
       await assertAdminActor(deps);
+      refuseSystem(id, "公開");
       const actor = actorId();
       const { row, version } = await deps.store.transaction(async (tx) => {
         const current = await deps.store.lockForUpdate(tx, id);
@@ -260,6 +332,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
      */
     async archiveTemplate(id: string): Promise<AdminTemplateDetail> {
       await assertAdminActor(deps);
+      refuseSystem(id, "取り下げ");
       const row = await deps.store.transaction(async (tx) => {
         const current = await deps.store.lockForUpdate(tx, id);
         if (!current) throw new DomainError("テンプレートがありません", { status: 404 });
@@ -273,6 +346,11 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     /** 版の一覧(新しい順) */
     async listTemplateVersions(id: string): Promise<AdminTemplateVersion[]> {
       await assertAdminActor(deps);
+      // システムテンプレートは版を持たない
+      if (isSystemTemplateId(id)) {
+        requireSystem(id);
+        return [];
+      }
       await requireRow(id);
       return (await deps.store.listVersions(id)).map((row) => toVersion(row, categoryLabel));
     },
@@ -281,6 +359,10 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     async getTemplateVersion(id: string, version: number): Promise<AdminTemplateVersion> {
       await assertAdminActor(deps);
       if (!Number.isInteger(version) || version < 1) throw new DomainError("版の番号が正しくありません", { status: 400 });
+      if (isSystemTemplateId(id)) {
+        requireSystem(id);
+        throw new DomainError("システムテンプレートは版を持ちません", { status: 404 });
+      }
       const row = await deps.store.findVersion(id, version);
       if (!row) throw new DomainError("その版はありません", { status: 404 });
       return toVersion(row, categoryLabel);
@@ -295,7 +377,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           .filter((channel) => channel.enabled !== false)
           .map((channel) => ({ key: channel.key, label: channel.label, fieldMeta: channel.fieldMeta, previewComponent: channel.previewComponent ?? null })),
         // テンプレートに使える種類 = 管理者が送れる種別(announcement・direct・promotion)の種類だけ
-        categories: Object.values(check.categories).filter((category) => isAdminFreeTextKind(category.kind)).map((category) => ({
+        categories: Object.values(check.categories).filter((category) => isAdminSendableKind(category.kind)).map((category) => ({
           key: category.key,
           label: category.label,
           description: category.description ?? null,

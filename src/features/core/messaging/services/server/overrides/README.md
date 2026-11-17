@@ -6,7 +6,7 @@
 
 - 門: `messagingOverrides`（`dependsOn: ["messagingDispatches"]`、既定 閉、住所 `/admin/messaging/overrides` と `/api/admin/messaging/overrides`）。閉の間 画面と API は 404。表は残る
 - **今は送る口が上書きを重ねない**（連絡の定義がひな形 + 欄の中身になり、『経路.欄』の鍵が当たらないため）。コードの値（`codeValue`）は null、プレビューは上書きを重ねずに描く。TODO 指令 56: 鍵を ひな形の欄の鍵へ替え、重ね方・コードの値・プレビューの印を戻す
-- 直せない連絡: 種別の性質 `adminTextOverride` が false（functional = 認証の連絡）・required・authored（管理者が書く連絡 3 本）。閉じたドメインの連絡は出さない（D77）
+- 直せない連絡: 種別の性質 `adminTextOverride` が false（functional = 認証の連絡）・required。閉じたドメインの連絡は出さない（D77）
 - 上流の連絡は絞りを持たない（種類の経路の欄を全部直せる）。fork の連絡も同じで、絞りたい時だけ `adminEditableOnly`（required は不可）
 
 ## API

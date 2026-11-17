@@ -63,20 +63,15 @@ export type MessageDefinition<
   required?: boolean;
   /**
    * 管理画面で直せる欄の絞り(`<経路>.<欄>`、D83)。無い = 種類の経路の欄を全部直せる(種別の性質 adminTextOverride が true・
-   * required でも authored でもない連絡)。書いた時だけその欄に絞る。required の連絡は付けない
+   * required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない
    */
   adminEditableOnly?: readonly MessageFieldPath<C>[];
   /** 本文の残し方(既定 = 種別の性質の recordDefault) */
   record?: MessageRecord;
   throttle?: MessageThrottle<VarKeys<Vars>>;
-  /**
-   * 文面を送るたびに受け取る連絡(管理者がその場で書く・テンプレートの文面を送る、D92)。定義は鍵・種類・記録の段・ひな形だけを持ち、
-   * values は空 {}・vars は空の z.object({}) で書く(送る口が受けた文面で埋めてから検査する)。adminEditableOnly・throttle・上書きは付けられない
-   */
-  authored?: true;
   /** ひな形の鍵(layouts の受け口のフォルダの名前。例 notice・link) */
   layout: string;
-  /** ひな形の欄の中身(ひな形の欄の zod を通る。authored の定義は空 {}) */
+  /** ひな形の欄の中身(ひな形の欄の zod を通る) */
   values: MessageLayoutValuesSource;
   /** fork が足す欄の入れ物(描き方の .replace が読む) */
   extras?: Record<string, unknown>;

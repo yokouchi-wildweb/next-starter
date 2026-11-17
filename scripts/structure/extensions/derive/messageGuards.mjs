@@ -8,7 +8,6 @@
 // - layout(全部の定義に必須、D122): リテラルで、ひな形の受け口(messaging の点 layouts)のフォルダの名前のどれか。欄の中身(values)は
 //   ひな形の欄の zod で実行時に検査する(lib/messaging validateMessageDefinition)
 // - required の定義: 種類の経路に "email" がある・adminEditableOnly が空・throttle が無い
-// - authored: true の定義(文面を送るたびに受け取る、D92): 上書きのファイルを置けない
 // - 上流(src/features/core)の functional の種類の連絡: 上書きで enabled: false にしない(D68)
 // - 種類の上書き(categories/<名前>.override.ts): functional・security の種類の channels から "email" を外さない(D86)。
 //   group は categoryGroups の受け口の鍵で、1 つのグループの種類は同じ種別(D82)
@@ -289,11 +288,6 @@ export function checkMessageGuards(repoRoot, points, files) {
     const categoryItem = categories?.get(readLiteralProperty(definition, "category").value);
     const ownOverride = path.replace(/\.[A-Za-z]+$/, ".override.ts");
     const hasOverride = files.includes(ownOverride) && matchesGlob(ownOverride, overrideGlob);
-    const authored = readLiteralProperty(definition, "authored");
-    if (authored.problem) problems.push(`${path}: ${authored.problem}(authored の守りを字面で確かめるため)`);
-    if (authored.value === true && hasOverride) {
-      problems.push(`${ownOverride}: authored の連絡(文面を送るたびに受け取る)は上書きできない(送った文面に重ねる物が無い)`);
-    }
     // 上流の functional の連絡は止められない(fork の自分の連絡は自由、D68)。required の連絡は下の守りが言う
     const isRequired = readLiteralProperty(definition, "required").value === true;
     if (!isRequired && hasOverride && categoryItem && traits.noUpstreamDisable.has(categoryItem.kind) && path.startsWith("src/features/core/")) {

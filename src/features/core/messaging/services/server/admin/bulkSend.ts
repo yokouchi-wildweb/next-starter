@@ -2,8 +2,8 @@
 //
 // 管理の一括送信(D40・D42・D80・D81、指令 40 の AMENDMENT 2)。中身は送る画面(/send)と同じ形で、選んだ利用者へ送る。
 // - 宛先: 利用者 id を直に({ userIds })か、受け口 bulkSendTargets の項目で選んだ記録から({ target, recordIds })
-// - 中身: 送る画面(/send)と同じ { content(経路ごとの文面), template?(呼び出したテンプレート), vars?, category, channels? }(D92)。
-//   検査も組み方も send.ts の部品と同じ(種別、宛先の種類 bulk を種別の性質 adminFreeText で、文面の無い経路 400・古い版 409)。
+// - 中身: 送る画面(/send)と同じ { template(白紙 { system } か DB のテンプレート { id, version }), values, edited?, vars?, category, channels? }(D117)。
+//   検査も組み方も send.ts の部品と同じ(種別、宛先の種類 bulk を種別の性質 adminFreeText で、白紙の種別・古い版 409)。
 //   予約は無い(scheduledAt は 400)
 // - プレビュー・テスト送信: adminBulkSendPreview / adminBulkSendTest(送る画面と同じ。カテゴリーは bulk で送れる物)。門 messagingBroadcast に入れない
 // - 選択肢: adminBulkSendOptions(GET /api/admin/messaging/bulk-send)= bulk で送れるカテゴリーと、門 messagingTemplates が開の時だけ公開中のテンプレート。
@@ -11,7 +11,7 @@
 // - 宛名: enrichers/displayName.ts が受信者ごとに足す(名前が無ければ「お客様」)
 // - 管理者を service でも確かめ(assertAdmin)、監査ログに 1 行(messaging.dispatch.bulk_sent)
 // - afterSend: 項目の送った後の処理を送信の受け付けの直後に 1 回。投げても送信は戻さず結果に失敗として返す。
-//   content = 送った文面(経路ごとの欄、差し込む前の字)、template = テンプレートの出どころ(その場で書いた文面は null)
+//   values = 送った欄の中身(差し込む前の字)、template = 中身の出どころ(白紙の鍵か DB のテンプレートの版と直した印)
 
 import { z } from "zod";
 
@@ -84,7 +84,7 @@ export type AdminBulkSendResult = {
 };
 
 export type AdminBulkSendDeps = AdminContentDeps &
-  Pick<AdminSendDeps, "channels"> & {
+  Pick<AdminSendDeps, "channels" | "systemTemplates"> & {
   targets: Readonly<Record<string, MessageBulkSendTarget>>;
   /** 公開中のテンプレート(選択肢。門 messagingTemplates が開の時だけ読む) */
   listPublishedTemplates: () => Promise<AdminSendOptions["templates"]>;
@@ -132,15 +132,16 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
     channelCounts: result.channelCounts,
     queuedCount: result.queuedCount,
   };
-  const template: AdminBulkSendTemplate | null = input.template
-    ? { id: input.template.templateId, version: input.template.version, edited: result.template?.edited ?? false }
-    : null;
-  const content = input.content;
+  const template: AdminBulkSendTemplate =
+    "system" in input.template
+      ? { system: input.template.system }
+      : { id: input.template.id, version: input.template.version, edited: result.template?.edited ?? input.edited === true };
+  const values = input.values;
 
   let afterSend: AdminBulkSendResult["afterSend"] = null;
   if (target?.afterSend) {
     try {
-      await target.afterSend({ recordIds: input.recordIds ?? [], dispatchId: result.dispatchId, counts, content, template });
+      await target.afterSend({ recordIds: input.recordIds ?? [], dispatchId: result.dispatchId, counts, values, template });
       afterSend = { ok: true };
     } catch (error) {
       afterSend = { ok: false, error: error instanceof Error ? error.message : String(error) };
@@ -153,7 +154,7 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
     action: "messaging.dispatch.bulk_sent",
     metadata: {
       source,
-      ...auditContentOf(input),
+      ...auditContentOf(input, result),
       category: category.key,
       kind: category.kind,
       channels: input.channels ?? null,
@@ -178,7 +179,7 @@ export function adminBulkSendTest(deps: AdminContentDeps, rawInput: unknown): Pr
   return testAdminContent(deps, rawInput, { target: "bulk", source: `${BULK_SOURCE}.test` });
 }
 
-/** 一括送信の選択肢: 経路(表示名は受け口の label、送るモーダルと同じ)・bulk で送れるカテゴリー(adhoc = その場で書く連絡に使える)と、門 messagingTemplates が開の時だけ公開中のテンプレート */
+/** 一括送信の選択肢: 経路(表示名は受け口の label、送るモーダルと同じ)・bulk で送れるカテゴリー(種別の白紙つき = その場で書く連絡に使える)と、門 messagingTemplates が開の時だけ公開中のテンプレート */
 export type AdminBulkSendOptions = {
   channels: AdminSendOptions["channels"];
   categories: AdminFreeTextCategoryOption[];
@@ -186,12 +187,15 @@ export type AdminBulkSendOptions = {
 };
 
 export async function adminBulkSendOptions(
-  deps: Pick<AdminBulkSendDeps, "context" | "roleCategoryOf" | "channels" | "categories" | "listPublishedTemplates" | "templatesOpen">,
+  deps: Pick<
+    AdminBulkSendDeps,
+    "context" | "roleCategoryOf" | "channels" | "categories" | "systemTemplates" | "listPublishedTemplates" | "templatesOpen"
+  >,
 ): Promise<AdminBulkSendOptions> {
   await assertAdminActor(deps);
   return {
     channels: adminChannelOptions(deps.channels),
-    categories: adminFreeTextCategoryOptions(deps.categories, (option) => option.targets.includes("bulk")),
+    categories: adminFreeTextCategoryOptions(deps.categories, deps.systemTemplates, (option) => option.targets.includes("bulk")),
     templates: deps.templatesOpen() ? await deps.listPublishedTemplates() : [],
   };
 }

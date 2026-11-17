@@ -8,6 +8,7 @@ import type {
   MessageEnricher,
   MessageLayout,
   MessageRegistry,
+  MessageSystemTemplate,
 } from "@/lib/messaging";
 
 import type { SQL } from "drizzle-orm";
@@ -92,26 +93,30 @@ export type SendMessageToManyInput = CommonSendInput &
     showToLaterSignups?: boolean;
   };
 
+/** 送る中身の出どころ: システムテンプレート(白紙)の鍵か、DB のテンプレートの今の公開版(読み込んだ版。今の公開版でなければ 409) */
+export type MessageTemplateRef = { system: string } | { id: string; version: number };
+
 /**
- * 管理者が書いた文面で送る(sendAuthored、D92)。その場で書く連絡もテンプレートを呼び出して直した文面も同じ形で、template の有無だけが違う。
+ * テンプレート + 欄の中身で送る(sendTemplateMessage、D117・D125)。管理の送る画面・一括送信も fork のコードからの管理の送信も同じ口。
  * テンプレートは送る時の公開版を回に固定する(予約なら予約の時の版)。受信者ごとの変数は既定値を全員に使う(既定値が無ければ 400)
  */
-export type SendAuthoredInput = Omit<SendMessageToManyInput, "recipientVars" | "vars"> & {
-  /** 送る文面(経路ごとの欄。経路の受け口の zod で検査し、{{鍵}} を差し込む) */
-  content: Record<string, unknown>;
-  /** 送るカテゴリー(種別 announcement・direct・promotion)。種別と経路はこの種類から */
+export type SendTemplateMessageInput = Omit<SendMessageToManyInput, "recipientVars" | "vars"> & {
+  /** 出どころ(白紙か DB のテンプレート) */
+  template: MessageTemplateRef;
+  /** ひな形の欄の中身(白紙のひな形、DB のテンプレートは notice。{{鍵}} のまま) */
+  values: Record<string, unknown>;
+  /** 版の中身から直したか(DB のテンプレートだけ。送る口は中身の違いでも直した印を付ける。false は信じない) */
+  edited?: boolean;
+  /** 送るカテゴリー(種別は管理者がその場で送れる物。白紙は同じ種別のカテゴリー)。経路はこの種類から */
   category: string;
-  /** 呼び出したテンプレート(今の公開版でなければ 409)。版の変数の宣言で vars を検査し、回に版を固定する */
-  template?: { templateId: string; version: number };
-  /** テンプレートの変数の値(回に 1 組。template が無い時は渡さない) */
+  /** テンプレートの変数の値(DB のテンプレートだけ、回に 1 組) */
   vars?: Record<string, unknown>;
 };
 
-/** 回に残す書いた文面と、テンプレートの出どころ(版の固定・版の文面から直したか) */
-export type MessageDispatchAuthored = {
-  /** テンプレートを呼び出した時の固定した版と、版の文面から直したか(直した印)。その場で書いた文面は null */
-  template: { id: string; version: number; edited: boolean } | null;
-};
+/** 回に残すテンプレートの出どころ(システムテンプレートの鍵か、DB のテンプレートの固定した版と直した印) */
+export type MessageDispatchTemplateSource =
+  | { system: string }
+  | { template: { id: string; version: number; edited: boolean } };
 
 /** テンプレートの公開した版(送る口が読む形) */
 export type MessageTemplateVersionSource = {
@@ -155,7 +160,7 @@ export type SendMessageResult = {
   /** queued のまま cron に任せた配達の行の数 */
   queuedCount: number;
   channelCounts: MessageChannelCounts;
-  /** テンプレートを呼び出して送った時の出どころ(sendAuthored だけ。edited = 版の文面から直したか) */
+  /** DB のテンプレートで送った時の出どころ(sendTemplateMessage だけ。edited = 版の中身から直したか) */
   template?: { id: string; version: number; edited: boolean };
 };
 
@@ -291,7 +296,9 @@ export type MessageSendDeps = {
   categories: Readonly<Record<string, MessageCategory>>;
   /** 会話の間引き(throttle のある連絡)。無ければ間引かない(throttle を見ないテスト) */
   throttle?: MessageThrottleStore;
-  /** 保存されたテンプレート(sendAuthored の版の固定と cron の版の引き直し)。無ければテンプレートを呼び出して送れない */
+  /** システムテンプレートの受け口(管理の送信の白紙、D117)。無い = 白紙から送れない(400) */
+  systemTemplates?: Readonly<Record<string, MessageSystemTemplate>>;
+  /** 保存されたテンプレート(sendTemplateMessage の版の固定)。無ければテンプレートを呼び出して送れない */
   templates?: MessageTemplateSource;
   /** ワンクリックの配信停止(鍵の env があるか・停止の URL) */
   unsubscribe: {

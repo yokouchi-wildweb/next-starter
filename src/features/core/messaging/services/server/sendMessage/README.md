@@ -2,13 +2,13 @@
 
 ## Overview
 
-連絡の定義（`defineMessage`）を受けて回と配達を書き、経路の項目で送る口。公開の入口は `messagingService`（`../messagingService.ts`）の `sendMessage` / `sendMessageToMany` / `sendAuthored` / `previewMessage` / `estimateRecipients`。使い方と宛先の線はドメインの README（../../../README.md）。
+連絡の定義（`defineMessage`）を受けて回と配達を書き、経路の項目で送る口。公開の入口は `messagingService`（`../messagingService.ts`）の `sendMessage` / `sendMessageToMany` / `sendTemplateMessage` / `previewMessage` / `estimateRecipients`。使い方と宛先の線はドメインの README（../../../README.md）。
 
 ## API
 
 - `sendMessage(definition, { recipient, vars, idempotencyKey?, scheduledAt?, source?, … })`: 1 人（`{ userId }` か `{ channel, address }`）
 - `sendMessageToMany(definition, { target | recipients, vars, … })`: `target` = `MessageTargetSpec`（`{ type: "all" }` / `{ type: "role", roles }` / `{ type: "group", groupId }`）か `recipients: [{ userId }, …]`
-- `sendAuthored({ content, category, template?: { templateId, version }, vars?, recipients | target, channels?, scheduledAt?, … })`: 管理者が書いた文面で送る（その場で書いた文面もテンプレートを読み込んで直した文面も同じ口、`template` の有無だけが違う）
+- `sendTemplateMessage({ template: { system } | { id, version }, values, edited?, category, vars?, recipients | target, channels?, scheduledAt?, … })`: テンプレート + 欄の中身で送る（管理の送信、D117・D125）。管理の送る画面・一括送信も fork のコードからの管理の送信も同じ口（下の「fork のコードから管理の送信」）
 - `previewMessage`（経路ごとの組んだ中身 `fields` と描いた結果）・`estimateRecipients({ target })` → `{ count, fixedAtSend: true, memberLimit?, overLimit? }`（グループは一員の数と人数の上限、利用できない人を外す前の数。送る時に展開で数え直す）
 - 戻り値は回の id・状態・数。選んだ宛先で宛先の無い受信者・止めた受信者は理由つきで返る
 - 定義の誤りは 500、`enabled: false` は回を作らず `status: "disabled"`、vars の誤り・知らない鍵は 400、冪等の鍵の重複は 409
@@ -38,15 +38,34 @@
   - 送った版から今の版へひな形の改版の対応（`revisions[版]`）で読み替える。段の対応が無い・今より新しい版 = `layout_unreadable`、ひな形が無い = `layout_missing`、欄の中身が無い = `values_missing`（cron は配達を `failed`）
   - 描かない振る舞い（間引き `throttle`・required・vars の zod の秘密の印）だけはコードの定義（`message_key` の生成の一覧の定義 + fork の上書き）から読む。定義が無ければ間引かない
 
-### 管理者が書いた文面（authoredDefinition.ts）
+### テンプレート + 欄の中身（templateDefinition.ts・systemTemplates.ts、D117・D125）
 
-- 定義の鍵 = 送るカテゴリーの種別の authored の定義（`messaging.adminAnnouncement` / `adminDirect` / `adminPromotion`）。種別が announcement・direct・promotion でないカテゴリーは 400（送る時も cron の組み直しも）
-- **経路 = 種類の経路 ∩ その回の絞り（`channels`）。その中に文面の無い経路が 1 つでもあれば 400**（黙って落とさない）。欄は経路の受け口の zod で検査。`{{鍵}}` = 当たる enrichers の鍵 + テンプレートの版の変数（文面の全部で見る）、知らない鍵は 400。authored の定義は上書きと管理画面の文言を重ねない
-- 経路ごとの文面（管理画面・テンプレートの形、S4・S5 まで）は送る時にひな形 notice の欄の中身にする（`authoredNoticeValues`）: email の欄が先（件名 → subject、見出し・段落・ボタン・フッター → ブロック）、無ければ inApp（題・画像・本文・行き先）、無ければ line。経路ごとに別に書いた文（お知らせだけの文など）は S5 まで使わない
-- 回には notice の欄の中身（`values`）を残し、予約・cron の組み直し・再送はその中身で描く（後でテンプレートを直しても送った中身のまま）
-- テンプレートを読み込んだ時: 今の公開版を回の `template_id`・`template_version` に固定（今の公開版でない・取り下げ済み・未公開は 409、無いテンプレートは 404）。版から直したかを `template_edited` に残す
-- 変数の値 `vars`（回に 1 組、`template` がある時だけ。無いのに渡すと 400）は版の変数で検査（必須の欠け・型の違いは 400）。cron は版を引き直さず検査し直さない（回の vars のまま描く）。受信者ごとの変数（`source: recipient`）は既定値を全員に使う（既定値が無いテンプレートは 400）
+- 出どころ = 白紙のシステムテンプレート `{ system: 鍵 }`（受け口 `messaging/templates`、種別ごとに 1 つ）か DB のテンプレート `{ id, version }`。管理用の連絡の定義は持たない
+- 回: `message_key` は null（定義の鍵は `TEMPLATE_MESSAGE_KEY` = `messaging.template`。回にも事件にも書かない）。出どころは `system_template` か `template_id`・`template_version`
+- カテゴリー（必須）の種別は管理者がその場で送れる種別（性質 `adminFreeText` がある announcement・direct・promotion、`adminSendableKinds`）。白紙はカテゴリーと同じ種別の物だけ。誤りは 400
+- **経路 = 種類の経路 ∩ その回の絞り（`channels`）**。種類の外・空の絞りは 400
+- `values` = ひな形の欄の中身（白紙のひな形、DB のテンプレートは notice）。ひな形の欄の zod で検査し、`{{鍵}}` = 当たる enrichers の鍵 + テンプレートの版の変数 + 共通の文脈（知らない鍵は 400）。上書きは重ねない
+- DB のテンプレートの版の中身は S4 まで経路ごとの形なので notice の欄の中身に読み替える（`utils/noticeValues.ts`、送る画面も同じ関数で送る中身を組む）。直した印 `template_edited` = 入力の `edited: true` か、送る中身が読み替えた版の中身と違う（false は信じない。白紙の送りはいつも false）
+- DB のテンプレート: 今の公開版を回に固定（今の公開版でない・取り下げ済み・未公開は 409、無いテンプレートは 404）。変数の値 `vars`（回に 1 組、白紙では 400）は版の変数で検査（必須の欠け・型の違いは 400）。cron は版を引き直さず検査し直さない。受信者ごとの変数（`source: recipient`）は既定値を全員に使う（既定値が無いテンプレートは 400）
+- 白紙の受け口は送る時に `checkSystemTemplates` で確かめる（送れない種別・同じ種別の 2 つ目・無いひな形は 500）。無い鍵は 400
+- 回には欄の中身（`values`）を残し、予約・cron の組み直し・再送はその中身で描く（後でテンプレートを直しても送った中身のまま。再送は同じ出どころを残す）
 - 画像（`storage://`）: お知らせの行を書く時に回へ結ぶ（../inbox/README.md「画像」）。テンプレートの画像も回ごとに複製して回が持つ
+
+### fork のコードから管理の送信
+
+管理者が画面で送るのと同じ形を、fork のサーバーのコード（service・cron・route）から送る。管理者の確かめは呼び手の責任（送る口は管理者を見ない）。
+
+```ts
+import { messagingService } from "@/features/core/messaging/services/server";
+
+await messagingService.sendTemplateMessage({
+  template: { system: "announcement" }, // 白紙(種別ごとに 1 つ)。DB のテンプレートなら { id, version }(今の公開版)
+  values: { subject: "メンテナンスのお知らせ", blocks: [{ type: "paragraph", text: "{{displayName}} 様、…" }] },
+  category: "announcement", // 白紙と同じ種別のカテゴリー
+  target: { type: "all" }, // か recipients: [{ userId }]
+  source: "myFeature.maintenance",
+});
+```
 
 ### 宛先の引き方
 

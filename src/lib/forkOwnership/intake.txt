@@ -199,6 +199,8 @@ add src/features/core/messaging/sources/*.{ts,tsx}  # 受け口 sources
 add src/features/core/messaging/sources/*/**  # 受け口 sources(フォルダ形)
 add src/features/core/messaging/subscribers/*.{ts,tsx}  # 受け口 subscribers
 add src/features/core/messaging/subscribers/*/**  # 受け口 subscribers(フォルダ形)
+add src/features/core/messaging/templates/*.{ts,tsx}  # 受け口 systemTemplates
+add src/features/core/messaging/templates/*/**  # 受け口 systemTemplates(フォルダ形)
 add src/features/core/milestone/components/renderers/*.{ts,tsx}  # 受け口 renderers
 add src/features/core/milestone/components/renderers/*/**  # 受け口 renderers(フォルダ形)
 add src/features/core/milestone/services/server/definitions/*.{ts,tsx}  # 受け口 definitions

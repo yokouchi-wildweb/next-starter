@@ -54,10 +54,7 @@ export type MessageDefinitionProblemCode =
   | "override_forbidden_key"
   | "unknown_category"
   | "kind_admin_editable"
-  | "kind_throttle"
-  | "authored_values"
-  | "authored_field"
-  | "authored_override";
+  | "kind_throttle";
 
 export type MessageDefinitionProblem = {
   code: MessageDefinitionProblemCode;
@@ -160,17 +157,6 @@ export function validateMessageDefinition<
     add("missing_label", `${label}: label(管理画面に出す連絡の名前。例 "パスワードの再設定")を書く`);
   }
 
-  if (definition.authored) {
-    // 文面を送るたびに受け取る定義: 文面・管理画面の欄・間引きを持たず、上書きも当たらない(送った文面に重ねる物が無い)
-    if (Object.keys(definition.values ?? {}).length > 0) {
-      add("authored_values", `${label}: authored の連絡は values を空 {} にする(文面は送る時に受け取る)`);
-    }
-    if ((definition.adminEditableOnly?.length ?? 0) > 0 || definition.throttle) {
-      add("authored_field", `${label}: authored の連絡に adminEditableOnly・throttle は付けられない`);
-    }
-    if (options.override) add("authored_override", `${label}: authored の連絡は上書きできない`);
-  }
-
   if (options.override) {
     for (const key of OVERRIDE_FORBIDDEN_KEYS) {
       if (key in options.override) {
@@ -219,13 +205,13 @@ export function validateMessageDefinition<
       add("unknown_channel", `${label}: 種類 ${definition.category} の経路 ${channel} は登録されていない`);
     }
   }
-  // ひな形と欄の中身(D122・D125): 種類の経路で使う欄だけを検査する。authored の定義は送る口が受けた文面で埋めてから検査する
+  // ひな形と欄の中身(D122・D125): 種類の経路で使う欄だけを検査する
   const values = (resolved.values ?? {}) as Record<string, unknown>;
   const layout = typeof definition.layout === "string" ? options.layouts[definition.layout] : undefined;
   if (!layout) {
     const keys = Object.keys(options.layouts);
     add("unknown_layout", `${label}: layout ${String(definition.layout)} は layouts の受け口に無い(${keys.join(" / ") || "項目なし"})`);
-  } else if (!definition.authored || Object.keys(values).length > 0) {
+  } else {
     const parsed = layoutValuesSchema(layout, { channels: resolved.channels as readonly string[] }).safeParse(values);
     if (!parsed.success) {
       const detail = parsed.error.issues

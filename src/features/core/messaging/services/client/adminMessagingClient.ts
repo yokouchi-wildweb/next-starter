@@ -102,7 +102,7 @@ export async function getAdminBulkSendOptions(): Promise<AdminBulkSendOptions> {
   }
 }
 
-/** 管理の一括送信(選んだカテゴリーの種別の管理の定義。body の category は必須) */
+/** 管理の一括送信(白紙か DB のテンプレート + 欄の中身。body の category は必須) */
 /** 一括送信のプレビュー(送る画面と同じ中身。門 messagingBroadcast の外) */
 export async function previewAdminBulkMessage(input: AdminSendPreviewInput): Promise<MessagePreview> {
   try {

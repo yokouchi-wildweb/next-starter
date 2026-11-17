@@ -16,4 +16,8 @@ export const DELIVERY_ERROR_TEXT: Readonly<Record<string, string>> = {
   rate_limited: "送信サービスの送信数の上限に達しました",
   invalid_address: "宛先の形式が正しくありません",
   timeout: "送信サービスから時間内に応答がありませんでした",
+  // 予約・後回しの送信を回の記録から組み直せなかった(D128)
+  values_missing: "送信の内容が記録に残っていないため、予約・後回しの送信を作成できませんでした",
+  layout_missing: "送信に使うひな形が見つからないため、送信を作成できませんでした",
+  layout_unreadable: "送信に使ったひな形の版が新しい版に読み替えられないため、送信を作成できませんでした",
 };

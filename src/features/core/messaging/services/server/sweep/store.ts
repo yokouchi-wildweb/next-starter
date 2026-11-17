@@ -96,8 +96,8 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
     return db.transaction(async (tx) => {
       const conditions = [
         eq(MessageDispatchTable.status, "processing"),
-        // 古い送る口の行(message_key なし)は展開しない
-        isNotNull(MessageDispatchTable.message_key),
+        // 古い送る口の行(ひな形なし)は展開しない。テンプレートから送った回は message_key が null なので鍵では見ない(D128)
+        isNotNull(MessageDispatchTable.layout),
         // 削除した回は展開しない(削除は展開の位置も終わりにする。念のため)
         isNull(MessageDispatchTable.deleted_at),
         or(isNull(MessageDispatchTable.expand_cursor), ne(MessageDispatchTable.expand_cursor, MESSAGE_EXPAND_DONE)),

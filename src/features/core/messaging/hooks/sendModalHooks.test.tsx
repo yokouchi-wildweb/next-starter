@@ -35,10 +35,10 @@ const template = {
   variables: [{ key: "discount", label: "割引", type: "number", required: true, source: "dispatch" }],
 };
 const categories = [
-  { key: "notice", label: "お知らせ", kind: "announcement", channels: ["email", "inApp"], targets: ["all", "role"] },
-  { key: "lineNotice", label: "LINE のお知らせ", kind: "announcement", channels: ["email", "inApp", "line", "fax"], targets: ["role"] },
-  { key: "operatorDirect", label: "運営から", kind: "direct", channels: ["email", "inApp"], targets: ["users", "bulk"] },
-  { key: "campaign", label: "キャンペーン", kind: "marketing", channels: ["email", "inApp"], targets: ["all", "group", "users", "bulk"] },
+  { key: "notice", label: "お知らせ", kind: "announcement", channels: ["email", "inApp"], targets: ["all", "role"], systemTemplate: { key: "announcement", label: "お知らせの白紙" } },
+  { key: "lineNotice", label: "LINE のお知らせ", kind: "announcement", channels: ["email", "inApp", "line", "fax"], targets: ["role"], systemTemplate: { key: "announcement", label: "お知らせの白紙" } },
+  { key: "operatorDirect", label: "運営から", kind: "direct", channels: ["email", "inApp"], targets: ["users", "bulk"], systemTemplate: { key: "direct", label: "個別の白紙" } },
+  { key: "campaign", label: "キャンペーン", kind: "marketing", channels: ["email", "inApp"], targets: ["all", "group", "users", "bulk"], systemTemplate: { key: "promotion", label: "宣伝の白紙" } },
 ];
 const SEND_OPTIONS = {
   channels: [
@@ -224,9 +224,10 @@ test("new: 呼び出し → 直す → カテゴリー → 経路の絞り → �
     await m().sendTest();
   });
   const content = calls[0][1] as Record<string, unknown>;
+  // 送る口の入力 = テンプレート + 汎用のお知らせの欄の中身(経路ごとの欄から送る時に変える、指令 56)
   assert.deepEqual(content, {
-    content: { email: { subject: "{{discount}} 割引!", paragraphs: ["直した"] } },
-    template: { templateId: TEMPLATE_ID, version: 3 },
+    template: { id: TEMPLATE_ID, version: 3 },
+    values: { subject: "{{discount}} 割引!", blocks: [{ type: "paragraph", text: "直した" }] },
     vars: { discount: 20 },
     category: "campaign",
     channels: ["email"],
@@ -367,16 +368,16 @@ test("bulk: 選んだ記録が宛先、bulk の API、予約は無い、見込�
   assert.equal(calls[2][0], "bulk");
   assert.equal(input.target, "bankTransferReview");
   assert.deepEqual(input.recordIds, ["r1", "r2"]);
-  // その場で書く欄は経路の欄の形で送る(T66 で欄を作り直す)
-  assert.deepEqual(input.content, { inApp: { title: "題", body: "本文" } });
-  assert.equal("template" in input, false);
+  // その場で書く欄はカテゴリーの種別の白紙 + 汎用のお知らせの欄の中身で送る(S5 で欄を作り直す)
+  assert.deepEqual(input.values, { subject: "題", blocks: [{ type: "paragraph", text: "本文" }] });
+  assert.deepEqual(input.template, { system: "direct" });
   assert.equal(input.category, "operatorDirect");
   assert.equal("scheduledAt" in input, false);
   assert.equal(sentResults.length, 1);
   await view.unmount();
 });
 
-test("その場で書く: 経路の欄の形で全部の経路、空の任意の欄は落とし、プレビュー・テスト・送るは同じ中身", async () => {
+test("その場で書く: 経路の欄の形で全部の経路、空の任意の欄は落とし、プレビュー・テスト・送るは同じ中身(白紙 + 汎用のお知らせの欄)", async () => {
   const view = await mount(() => hooks.useMessageSendModal({ mode: NEW }));
   const m = () => view.value();
   await act(async () => m().setOpen(true));
@@ -397,21 +398,25 @@ test("その場で書く: 経路の欄の形で全部の経路、空の任意の
     await m().sendTest();
     await m().requestConfirm();
   });
+  // 送る中身 = 汎用のお知らせの欄の中身(email の欄が先。経路だけの文は S5 まで使わない)
   const expected = {
-    email: { subject: "件名", heading: "見出し", paragraphs: ["段1", "段2"], footer: "足元" },
-    inApp: { title: "題", body: "本文", image: "storage://notification.image/a.png" },
-    line: { text: "LINE の文" },
-    fax: { number: "03" },
+    subject: "件名",
+    blocks: [
+      { type: "heading", text: "見出し" },
+      { type: "paragraph", text: "段1" },
+      { type: "paragraph", text: "段2" },
+      { type: "paragraph", text: "足元" },
+    ],
   };
   const previewInput = calls.find((c) => c[0] === "preview")![1] as Record<string, unknown>;
   const testInput = calls.find((c) => c[0] === "test")![1] as Record<string, unknown>;
-  assert.deepEqual(previewInput.content, expected);
-  assert.deepEqual(testInput.content, expected);
-  assert.equal("template" in previewInput, false);
+  assert.deepEqual(previewInput.values, expected);
+  assert.deepEqual(testInput.values, expected);
+  assert.deepEqual(previewInput.template, { system: "announcement" });
   await act(async () => {
     await m().confirmSend();
   });
-  assert.deepEqual((calls.find((c) => c[0] === "send")![1] as Record<string, unknown>).content, expected);
+  assert.deepEqual((calls.find((c) => c[0] === "send")![1] as Record<string, unknown>).values, expected);
   await view.unmount();
 });
 

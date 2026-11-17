@@ -1,5 +1,5 @@
 // src/features/core/messaging/categories/announcement.ts
-// 上流の種類: 運営からのお知らせ(種別 announcement、表示名は仮)。管理者がその場で書く告知 messaging.adminAnnouncement の既定のカテゴリー
+// 上流の種類: 運営からのお知らせ(種別 announcement、表示名は仮)。管理者がその場で書く告知(白紙のシステムテンプレート templates/announcement.ts)の既定のカテゴリー
 
 import type { MessageCategory } from "@/lib/messaging";
 

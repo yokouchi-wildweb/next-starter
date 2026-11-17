@@ -3,9 +3,9 @@
 export { messagingService } from "./messagingService";
 export type { MessagingService } from "./messagingService";
 
-export { sendMessage, sendMessageToMany, sendAuthored } from "./sendMessage";
-/** 管理の送信の API の入口の守り(取引は選んだ利用者宛てだけ) */
-export { ADMIN_FREE_TEXT_KINDS, ADMIN_FREE_TEXT_MESSAGE_KEYS, adminFreeTextMessageKeyOf } from "./admin";
+export { sendMessage, sendMessageToMany, sendTemplateMessage } from "./sendMessage";
+/** 管理者がその場で送れる種別(白紙のシステムテンプレートの種別)と受け口の検査 */
+export { adminSendableKinds, checkSystemTemplates, isAdminSendableKind, TEMPLATE_MESSAGE_KEY } from "./sendMessage";
 export { continueSending, pruneMessagingRecords, runSendSweep } from "./sweep";
 /** 購読(cron messaging-subscribers と運用の再処理) */
 export { reprocessQuarantinedEvents, runMessageSubscribers } from "./subscribers";
@@ -67,7 +67,7 @@ export type {
   AdminSendResult,
   AdminSendTestInput,
 } from "./admin";
-export type { MessagePreview, RecipientEstimate, SendAuthoredInput } from "./sendMessage";
+export type { MessagePreview, MessageTemplateRef, RecipientEstimate, SendTemplateMessageInput } from "./sendMessage";
 export type {
   AdminBulkDeleteResult,
   AdminDeleteResult,
@@ -84,7 +84,6 @@ export type {
   AdminBulkSendResult,
   AdminBulkSendTemplate,
   AdminFreeTextCategoryOption,
-  AdminFreeTextKind,
   AdminDeliveryRow,
   AdminDispatchDetail,
   AdminDispatchSummary,

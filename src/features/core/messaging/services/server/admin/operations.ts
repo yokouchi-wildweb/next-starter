@@ -24,7 +24,7 @@ import type { MessageDispatch } from "../../../entities/model";
 import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
 import { recordPolicyOf } from "../sendMessage/record";
-import type { MessageDispatchAuthored, MessageRecipient, SendMessageResult, SendMessageToManyInput } from "../sendMessage/types";
+import type { MessageDispatchTemplateSource, MessageRecipient, SendMessageResult, SendMessageToManyInput } from "../sendMessage/types";
 import { assertAdminActor, type AdminCheckDeps } from "./assertAdmin";
 import type { MessageOperationsStore } from "./operationsTypes";
 import {
@@ -109,7 +109,7 @@ export type AdminOperationsDeps<Tx> = AdminCheckDeps & {
   sendResolved: (
     resolved: AnyResolvedMessageDefinition,
     input: SendMessageToManyInput,
-    authored?: MessageDispatchAuthored,
+    source?: MessageDispatchTemplateSource,
   ) => Promise<SendMessageResult>;
   /** 戻した行を 1 束だけ送る(失敗しても再送は成り立つ。残りは cron) */
   continueSending: (dispatchId: string) => Promise<unknown>;
@@ -333,10 +333,12 @@ export async function adminResendFailed<Tx>(
         metadata: { resendOf: dispatchId, ...(includeUnknown ? { possibleDuplicate: true } : {}) },
         isTest: dispatch.is_test ?? false,
       } as SendMessageToManyInput,
-      // 定義は回の欄の中身から組んである(D128)。テンプレートの回の再送は同じ版と直した印を残す
-      dispatch.template_id && dispatch.template_version
-        ? { template: { id: dispatch.template_id, version: dispatch.template_version, edited: dispatch.template_edited } }
-        : undefined,
+      // 定義は回の欄の中身から組んである(D128)。テンプレートの回の再送は同じ出どころ(白紙の鍵か、同じ版と直した印)を残す
+      dispatch.system_template
+        ? { system: dispatch.system_template }
+        : dispatch.template_id && dispatch.template_version
+          ? { template: { id: dispatch.template_id, version: dispatch.template_version, edited: dispatch.template_edited } }
+          : undefined,
     );
     const failed = rows.filter((row) => row.status === "failed").length;
     const unknown = rows.length - failed;

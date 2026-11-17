@@ -1,13 +1,14 @@
 // src/features/core/messaging/services/server/admin/send.ts
 //
-// 管理の送信(D34・D40・D41・D42・D65・D80・D85・D92)。管理者が書いた文面を送る(その場で書く連絡も、テンプレートを呼び出して直した文面も同じ形)。
-// - 中身: content = 経路ごとの文面(経路の受け口の zod で検査、{{鍵}} を差し込む)・template? = 呼び出したテンプレート { templateId, version }
-//   (今の公開版でなければ 409)・vars? = テンプレートの変数の値(template がある時だけ)。組み方は sendMessage/authoredDefinition.ts
+// 管理の送信(D34・D40・D41・D42・D65・D80・D85・D117・D125)。どの送信も『テンプレートを選んで送る』1 つの流れ(その場で書く連絡 = 白紙のシステムテンプレート)。
+// - 中身: template = 出どころ { system: 白紙の鍵 } か { id, version }(DB のテンプレートの読み込んだ版。今の公開版でなければ 409)・
+//   values = ひな形の欄の中身({{鍵}} のまま、ひな形の欄の zod で検査)・edited? = 版の中身から直したか(DB のテンプレートだけ。中身の違いでも付く)・
+//   vars? = DB のテンプレートの変数の値。組み方は sendMessage/templateDefinition.ts(fork のコードからは messagingService.sendTemplateMessage)
 // - 宛先 target: 全員 / ロール / ユーザーグループ(groupId。門 userGroups が閉・しまった・壊れた・人数の上限は送る口が拒む)/
 //   選んだ利用者(userIds)
-// - カテゴリー(必須): 種別 announcement・direct・promotion のカテゴリーの鍵。宛先の種類は種別の性質 adminFreeText で確かめる
-//   (./freeText.ts。誤りは 400)。鍵はその種別の authored の定義(messages/admin<Kind>.ts)
-// - 経路: カテゴリーの経路の中の絞り(省略 = 全部、D86)。使う経路はどれも文面が要る(無ければ 400)。LINE・fork の経路も送れる
+// - カテゴリー(必須): 管理者が送れる種別(announcement・direct・promotion)のカテゴリーの鍵。宛先の種類は種別の性質 adminFreeText で確かめる
+//   (./freeText.ts。誤りは 400)。白紙はカテゴリーと同じ種別の物だけ(400)
+// - 経路: カテゴリーの経路の中の絞り(省略 = 全部、D86)。LINE・fork の経路も送れる
 // - 予約: scheduledAt(ISO 8601)。過ぎた・遠すぎる時刻は送る口が 400。拾うのは cron の周期(Hobby は 1 日 1 回)
 // - プレビュー: 操作した管理者を見本の受信者にして経路ごとに描く(メールは送る時と同じ描き方の HTML)
 // - 見込み: 宛先の数(送る時に展開で数え直す = fixedAtSend)。グループは一員の数と上限(memberLimit・overLimit)。
@@ -18,14 +19,20 @@
 
 import { z } from "zod";
 
-import type { MessageAdminTarget, MessageCategory, MessageChannel } from "@/lib/messaging";
+import type { MessageAdminTarget, MessageCategory, MessageChannel, MessageSystemTemplate } from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 
 import type { AnyMessageDefinition } from "../sendMessage/definition";
 import { activeChannel } from "../sendMessage/expand";
 import type { MessagePreview, RecipientEstimate } from "../sendMessage/sender";
-import type { MessageTargetSpec, SendAuthoredInput, SendMessageResult, SendMessageToManyInput } from "../sendMessage/types";
+import type {
+  MessageTargetSpec,
+  MessageTemplateRef,
+  SendMessageResult,
+  SendMessageToManyInput,
+  SendTemplateMessageInput,
+} from "../sendMessage/types";
 import type { AdminChannelOption } from "../templates/dto";
 import { assertAdminActor, type AdminCheckDeps } from "./assertAdmin";
 import { adminFreeTextCategoryOf, adminFreeTextCategoryOptions, type AdminFreeTextCategoryOption } from "./freeText";
@@ -34,10 +41,11 @@ import { adminFreeTextCategoryOf, adminFreeTextCategoryOptions, type AdminFreeTe
 export const ADMIN_SEND_MAX_USERS = 10_000;
 const SEND_SOURCE = "messaging.adminSend";
 
-/** 呼び出したテンプレート(読み込んだ版。今の公開版でなければ 409) */
-export const AdminMessageTemplateSchema = z
-  .object({ templateId: z.string().uuid(), version: z.number().int().min(1) })
-  .strict();
+/** 送る中身の出どころ: 白紙のシステムテンプレートの鍵か、DB のテンプレートの読み込んだ版(今の公開版でなければ 409) */
+export const AdminMessageTemplateSchema = z.union([
+  z.object({ system: z.string().trim().min(1).max(100) }).strict(),
+  z.object({ id: z.string().uuid(), version: z.number().int().min(1) }).strict(),
+]);
 
 const targetSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("all") }).strict(),
@@ -48,11 +56,13 @@ const targetSchema = z.discriminatedUnion("type", [
 
 /** 送る中身。/send・一括送信 bulk-send とそのプレビュー・テスト送信が同じ形を受ける */
 export const adminContentFields = {
-  /** 経路ごとの文面(鍵 = 経路。中の欄は経路の受け口の zod で検査する) */
-  content: z.record(z.string(), z.unknown()),
-  /** 呼び出したテンプレート(省略 = その場で書いた文面)。版の文面から直したかは回の template_edited */
-  template: AdminMessageTemplateSchema.optional(),
-  /** テンプレートの変数の値(回に 1 組。template がある時だけ) */
+  /** 出どころ(白紙 { system } か DB のテンプレート { id, version }) */
+  template: AdminMessageTemplateSchema,
+  /** ひな形の欄の中身(白紙のひな形、DB のテンプレートは notice。{{鍵}} のまま) */
+  values: z.record(z.string(), z.unknown()),
+  /** 版の中身から直したか(DB のテンプレートだけ。送る口は中身の違いでも直した印を付ける) */
+  edited: z.boolean().optional(),
+  /** DB のテンプレートの変数の値(回に 1 組) */
   vars: z.record(z.string(), z.unknown()).optional(),
   /** 送るカテゴリー(種別 announcement・direct・promotion) */
   category: z.string().trim().min(1).max(100),
@@ -60,9 +70,15 @@ export const adminContentFields = {
   channels: z.array(z.string().min(1)).min(1).max(20).optional(),
 };
 
-export function checkAdminContent(value: { template?: unknown; vars?: Record<string, unknown> }, ctx: z.RefinementCtx): void {
-  if (!value.template && value.vars && Object.keys(value.vars).length > 0) {
+export function checkAdminContent(
+  value: { template: MessageTemplateRef; vars?: Record<string, unknown>; edited?: boolean },
+  ctx: z.RefinementCtx,
+): void {
+  if ("system" in value.template && value.vars && Object.keys(value.vars).length > 0) {
     ctx.addIssue({ code: "custom", message: "変数の値はテンプレートを読み込んだ時だけ指定できます" });
+  }
+  if ("system" in value.template && value.edited) {
+    ctx.addIssue({ code: "custom", message: "直した印はテンプレートを読み込んだ時だけ指定できます" });
   }
 }
 
@@ -121,24 +137,26 @@ export type AdminSendOptions = {
     content: Record<string, unknown>;
     variables: { key: string; label: string; type: string; required: boolean; default?: unknown; source: string }[];
   }[];
-  /** 送れるカテゴリー(種別 announcement・direct・promotion、宛先の種類で絞る) */
+  /** 送れるカテゴリー(種別 announcement・direct・promotion、宛先の種類で絞る。その種別の白紙つき) */
   categories: AdminFreeTextCategoryOption[];
   /** 予約できる日数(config.schedule.maxDaysAhead) */
   maxScheduleDays: number;
 };
 
 export type AdminSendDeps = AdminCheckDeps & {
-  sendAuthored: (input: SendAuthoredInput) => Promise<SendMessageResult>;
+  sendTemplateMessage: (input: SendTemplateMessageInput) => Promise<SendMessageResult>;
   previewMessage: (
     source:
       | { definition: AnyMessageDefinition }
-      | { authored: { content: Record<string, unknown>; category: string; template?: { templateId: string; version: number } } },
+      | { template: { template: MessageTemplateRef; values: Record<string, unknown>; category: string } },
     input: { vars: Record<string, unknown>; channels?: readonly string[]; userId: string | null },
   ) => Promise<MessagePreview>;
   estimateRecipients: (target: { target: MessageTargetSpec } | { userIds: readonly string[] }) => Promise<RecipientEstimate>;
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
   channels: Readonly<Record<string, MessageChannel>>;
   categories: Readonly<Record<string, MessageCategory>>;
+  /** システムテンプレートの受け口(選択肢のカテゴリーに種別の白紙を付ける) */
+  systemTemplates: Readonly<Record<string, MessageSystemTemplate>>;
   roles: () => { id: string; label: string }[];
   /** 使用中のユーザーグループ(門 userGroups が閉なら空) */
   groupOptions: () => Promise<AdminSendGroupOption[]>;
@@ -149,7 +167,7 @@ export type AdminSendDeps = AdminCheckDeps & {
 /** 中身・カテゴリーを組んで送る口へ渡すのに要る部品(/send と一括送信で共通) */
 export type AdminContentDeps = Pick<
   AdminSendDeps,
-  "context" | "roleCategoryOf" | "sendAuthored" | "previewMessage" | "recordAudit" | "categories"
+  "context" | "roleCategoryOf" | "sendTemplateMessage" | "previewMessage" | "recordAudit" | "categories"
 >;
 
 export function parseOr400<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, input: unknown): T {
@@ -158,10 +176,11 @@ export function parseOr400<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, input
   return parsed.data;
 }
 
-/** 送る中身(文面・テンプレート・変数)・カテゴリー・経路の絞り */
+/** 送る中身(出どころ・欄の中身・直した印・変数)・カテゴリー・経路の絞り */
 export type AdminContent = {
-  content: Record<string, unknown>;
-  template?: z.infer<typeof AdminMessageTemplateSchema>;
+  template: MessageTemplateRef;
+  values: Record<string, unknown>;
+  edited?: boolean;
   vars?: Record<string, unknown>;
   channels?: string[];
   category: string;
@@ -169,18 +188,23 @@ export type AdminContent = {
 type Content = AdminContent;
 
 /**
- * 選んだカテゴリーを確かめる(種別・宛先の種類)。文面・経路の検査は送る口(authoredDefinition)
+ * 選んだカテゴリーを確かめる(種別・宛先の種類)。白紙の種別・中身・経路の検査は送る口(templateDefinition)
  * @throws DomainError(400)
  */
 export function adminContentCategory(deps: AdminContentDeps, content: Content, target: MessageAdminTarget | null): MessageCategory {
   return adminFreeTextCategoryOf(deps.categories, content.category, { target });
 }
 
-/** 監査の metadata の中身の部分(その場で書いた / テンプレート) */
-export function auditContentOf(content: Content): Record<string, unknown> {
-  return content.template
-    ? { source: "template", templateId: content.template.templateId, templateVersion: content.template.version }
-    : { source: "adhoc" };
+/** 監査の metadata の中身の部分(白紙 / DB のテンプレート) */
+export function auditContentOf(content: Content, result?: SendMessageResult): Record<string, unknown> {
+  return "system" in content.template
+    ? { source: "system", systemTemplate: content.template.system }
+    : {
+        source: "template",
+        templateId: content.template.id,
+        templateVersion: content.template.version,
+        ...(result?.template ? { edited: result.template.edited } : {}),
+      };
 }
 
 function targetOf(target: z.infer<typeof targetSchema>): { target: MessageTargetSpec } | { recipients: { userId: string }[] } {
@@ -197,11 +221,12 @@ export async function dispatchAdminContent(
   rest: Omit<SendMessageToManyInput, "vars" | "channels" | "recipients" | "target" | "recipientVars"> &
     ({ target: MessageTargetSpec } | { recipients: { userId: string }[] }),
 ): Promise<SendMessageResult> {
-  return deps.sendAuthored({
-    ...(rest as Omit<SendAuthoredInput, "content" | "category">),
-    content: content.content,
+  return deps.sendTemplateMessage({
+    ...(rest as Omit<SendTemplateMessageInput, "template" | "values" | "category">),
+    template: content.template,
+    values: content.values,
     category: category.key,
-    ...(content.template ? { template: { templateId: content.template.templateId, version: content.template.version } } : {}),
+    ...(content.edited !== undefined ? { edited: content.edited } : {}),
     ...(content.vars ? { vars: content.vars } : {}),
     ...(content.channels ? { channels: content.channels } : {}),
   });
@@ -232,7 +257,7 @@ export async function adminSend(deps: AdminSendDeps, rawInput: unknown): Promise
     targetId: result.dispatchId ?? "disabled",
     action: scheduledAt ? "messaging.dispatch.scheduled" : "messaging.dispatch.sent",
     metadata: {
-      ...auditContentOf(input),
+      ...auditContentOf(input, result),
       category: category.key,
       kind: category.kind,
       channels: input.channels ?? null,
@@ -258,13 +283,7 @@ export async function previewAdminContent(
   const userId = deps.context()?.actorId ?? null;
   const category = adminContentCategory(deps, input, target);
   return deps.previewMessage(
-    {
-      authored: {
-        content: input.content,
-        category: category.key,
-        ...(input.template ? { template: { templateId: input.template.templateId, version: input.template.version } } : {}),
-      },
-    },
+    { template: { template: input.template, values: input.values, category: category.key } },
     { vars: input.vars ?? {}, channels: input.channels, userId },
   );
 }
@@ -307,7 +326,7 @@ export async function testAdminContent(
     targetId: result.dispatchId ?? "disabled",
     action: "messaging.dispatch.test_sent",
     metadata: {
-      ...auditContentOf(input),
+      ...auditContentOf(input, result),
       category: category.key,
       kind: category.kind,
       channels: input.channels ?? null,
@@ -339,7 +358,7 @@ export async function adminSendOptions(deps: AdminSendDeps): Promise<AdminSendOp
     groups: await deps.groupOptions(),
     templates: await deps.listPublishedTemplates(),
     // 送る画面の宛先(全員・ロール・グループ・選んだ利用者)のどれかに送れるカテゴリー
-    categories: adminFreeTextCategoryOptions(deps.categories, (option) =>
+    categories: adminFreeTextCategoryOptions(deps.categories, deps.systemTemplates, (option) =>
       option.targets.some((target) => target !== "bulk"),
     ),
     maxScheduleDays: deps.maxScheduleDays(),

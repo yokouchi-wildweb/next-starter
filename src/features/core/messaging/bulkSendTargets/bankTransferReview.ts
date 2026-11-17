@@ -27,10 +27,9 @@ export const bulkSendTarget: MessageBulkSendTarget = {
       .where(inArray(BankTransferReviewTable.id, [...recordIds]));
     return rows.map((row) => row.userId);
   },
-  async afterSend({ recordIds, content }) {
-    // 送った文面のメールの件名(差し込む前の字)
-    const email = content.email as { subject?: unknown } | undefined;
-    const subject = typeof email?.subject === "string" ? email.subject : undefined;
+  async afterSend({ recordIds, values }) {
+    // 送った中身の件名(汎用のお知らせの subject、差し込む前の字)
+    const subject = typeof values.subject === "string" && values.subject !== "" ? values.subject : undefined;
     if (!subject || recordIds.length === 0) return;
     const today = formatDateJa(new Date(), { format: "YYYY/MM/DD" }) ?? "";
     const memoLine = `${today}「${subject}」メール送付`;

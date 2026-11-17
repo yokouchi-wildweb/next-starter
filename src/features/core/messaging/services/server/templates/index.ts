@@ -14,19 +14,21 @@ import { UserTable } from "@/features/core/user/entities/drizzle";
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
-import { ADMIN_FREE_TEXT_KINDS, ADMIN_FREE_TEXT_DEFINITIONS } from "../admin/freeText";
+import { systemTemplates } from "../../../extensions/systemTemplates";
 import { enricherKeysFor } from "../sendMessage/definition";
+import { adminSendableKinds } from "../sendMessage/systemTemplates";
+import { TEMPLATE_MESSAGE_KEY } from "../sendMessage/templateDefinition";
 import { storageTemplateImageLedger } from "./imageBindingLedger";
 import { drizzleMessageTemplateStore } from "./store";
 import { createTemplateService } from "./templateService";
 
 /**
- * テンプレートで使える provides = 送る時の定義(種別ごとの管理の定義 3 本)のどれにも当たる enrichers の鍵。
- * 種類は送る時に選ぶので、鍵・種別の当て先と全部だけで決まる(種類だけを当て先にした enricher はテンプレートでは使えない)
+ * テンプレートで使える provides = 管理者が送れる種別(announcement・direct・promotion)のどれで送っても当たる enrichers の鍵。
+ * 種類は送る時に選ぶので、種別の当て先と全部だけで決まる(種類だけを当て先にした enricher はテンプレートでは使えない)
  */
 function templateProvidedKeys(): string[] {
-  const [first, ...rest] = ADMIN_FREE_TEXT_KINDS.map((kind) =>
-    enricherKeysFor({ key: ADMIN_FREE_TEXT_DEFINITIONS[kind].key, category: "", kind }, enrichers),
+  const [first, ...rest] = adminSendableKinds().map((kind) =>
+    enricherKeysFor({ key: TEMPLATE_MESSAGE_KEY, category: "", kind }, enrichers),
   );
   return (first ?? []).filter((key) => rest.every((keys) => keys.includes(key)));
 }
@@ -41,6 +43,7 @@ const service = createTemplateService({
     return row ? (getRoleCategory(row.role) ?? null) : null;
   },
   recordAudit: (input) => auditLogger.record(input),
+  systemTemplates: () => systemTemplates,
 });
 
 export const listMessageTemplates = service.listTemplates;
@@ -56,7 +59,7 @@ export const getMessageTemplateOptions = service.templateOptions;
 export { existingTemplateIds } from "./templateRecords";
 export { TEMPLATE_IMAGE_RECORD_TYPE } from "./imageBinding";
 export { checkTemplateFields, templateAllowedKeys } from "./checks";
-export { createTemplateService } from "./templateService";
+export { createTemplateService, isSystemTemplateId, SYSTEM_TEMPLATE_ID_PREFIX } from "./templateService";
 export type { TemplateService, TemplateServiceDeps } from "./templateService";
 export type * from "./dto";
 export type { CreateMessageTemplateInput, ListMessageTemplatesQuery, UpdateMessageTemplateInput } from "./schema";

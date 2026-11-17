@@ -5,7 +5,7 @@
 //   pnpm ops mail test-send                                          (対話: 送信先と連絡を選ぶ)
 //   pnpm ops mail test-send -- --to=<アドレス> --message=<連絡の鍵>     (対話なし。--message=simple は接続確認のメール)
 //
-// 連絡のメール: 生成の一覧(src/registry/messageRegistry.ts)のうち種類の経路に email がある連絡(管理者が書く authored は除く)を、
+// 連絡のメール: 生成の一覧(src/registry/messageRegistry.ts)のうち種類の経路に email がある連絡を、
 // 上書き(<名前>.override.ts)を重ね、見本の値を差し込んでひな形のメールの描き方(layouts の受け口 layoutEmails、無ければ要約から)で描いて送る。
 // 見本の値: 定義の vars・共通の文脈・当たる enrichers の鍵ごとに、URL の欄は https://example.com/sample/<鍵>、他は「<鍵>の見本」。
 // 送る口(回・配達の記録)は通さない(見た目の確認だけ)。連絡の書き方: src/lib/messaging/README.md
@@ -76,7 +76,6 @@ async function messageTemplates(): Promise<TemplateConfig[]> {
   const templates: TemplateConfig[] = [];
   for (const entry of Object.values(messageRegistry).sort((a, b) => a.key.localeCompare(b.key))) {
     const { message } = await entry.definition();
-    if (message.authored) continue;
     const category = categories[message.category];
     const layout = layouts[message.layout];
     if (!category?.channels.includes("email") || !layout) continue;
