@@ -10,6 +10,7 @@ import { StatusTabContent } from "./StatusTabContent";
 import { RoleTabContent } from "./RoleTabContent";
 import { DeleteTabContent } from "./DeleteTabContent";
 import { HistoryTabContent } from "./HistoryTabContent";
+import { useAdminManageTabs } from "@/features/core/user/hooks/useAdminManageTabs";
 
 type Props = {
   open: boolean;
@@ -18,6 +19,9 @@ type Props = {
 };
 
 export default function AdminUserManageModal({ open, user, onClose }: Props) {
+  // 受け口 adminManageTabs の項目(上流のタブの後ろに足す)
+  const extraTabs = useAdminManageTabs();
+
   if (!user) {
     return null;
   }
@@ -64,6 +68,11 @@ export default function AdminUserManageModal({ open, user, onClose }: Props) {
           label: "操作履歴",
           content: <HistoryTabContent user={user} />,
         },
+        ...extraTabs.map(({ key, label, Content }) => ({
+          value: key,
+          label,
+          content: <Content user={user} onClose={onClose} />,
+        })),
       ]}
     />
   );

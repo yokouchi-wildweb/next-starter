@@ -62,6 +62,27 @@ export type UserAdminBulkActionItem = import("@/lib/tableSuite").BulkActionItem<
   feature?: import("@/featureGate").FeatureName;
 };
 
+/**
+ * 管理のユーザー管理モーダル(AdminUserManageModal)に足すタブ(受け口 adminManageTabs:
+ * src/features/core/user/adminManageTabs/<名前>.tsx の export const tab)。上流の 6 つのタブの後ろに order → key の順で並ぶ。
+ * key は上流のタブの value(summary / auth / status / role / delete / history)と重ねない(重なる項目は出さない)
+ */
+export type UserAdminManageTabItem = {
+  /** タブの識別子(TabbedModal の value) */
+  key: string;
+  /** タブの見出し */
+  label: import("react").ReactNode;
+  /** 並び(小さいほど前。省略 = 0)。同じなら key の順 */
+  order?: number;
+  /** この機能(門番の規則の名前)が閉なら出さない(useGate) */
+  feature?: import("@/featureGate").FeatureName;
+  /** タブの中身。モーダルが開いている利用者と、モーダルを閉じる関数を受ける */
+  Content: import("react").ComponentType<{
+    user: import("@/features/core/user/entities").User;
+    onClose: () => void;
+  }>;
+};
+
 // マイページのメニューの項目の型(受け口 mypageMenu。書き方: README.md「マイページのメニュー」)
 export type {
   MypageMenuAction,

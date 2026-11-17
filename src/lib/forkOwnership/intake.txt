@@ -220,6 +220,8 @@ add src/features/core/storageObject/purposes/*.{ts,tsx}  # 受け口 purposes
 add src/features/core/storageObject/purposes/*/**  # 受け口 purposes(フォルダ形)
 add src/features/core/user/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkActions
 add src/features/core/user/adminBulkActions/*/**  # 受け口 adminBulkActions(フォルダ形)
+add src/features/core/user/adminManageTabs/*.{ts,tsx}  # 受け口 adminManageTabs
+add src/features/core/user/adminManageTabs/*/**  # 受け口 adminManageTabs(フォルダ形)
 add src/features/core/user/cleanupHandlers/*.{ts,tsx}  # 受け口 cleanupHandlers
 add src/features/core/user/cleanupHandlers/*/**  # 受け口 cleanupHandlers(フォルダ形)
 add src/features/core/user/mypageMenu/items/*.{ts,tsx}  # 受け口 mypageMenu

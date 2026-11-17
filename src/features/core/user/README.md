@@ -497,6 +497,21 @@ const result = await userClient.searchWithProfile("contributor", {
 - プロフィール編集の部品 `EditProfile`（`components/EditProfile`）の値の指定: `showHeader`（既定 true）、`afterSaveHref`（保存の後の行き先。既定 `"/mypage/account"`、`null` = 移らずその場に留まり「プロフィールを保存しました」のトースト。他の設定と同じページに置くとき）、`backHref`（見出しの戻る先。既定 `afterSaveHref`、`null` のときは `"/mypage/account"`）
 - アカウントの画面は門番の機能 `pageMypage` の住所（項目ごとの機能は無い）。マイページごと閉じるなら `pnpm ops features set pageMypage off`。表と API は一覧に関わらず開いたまま
 
+## 管理のユーザー管理モーダルのタブ（受け口 adminManageTabs）
+
+管理のユーザー一覧から開くユーザー管理のモーダル（`components/admin/AdminUserManageModal`）は、上流の 6 つのタブ（概要・認証情報・ステータス変更・ロール変更・削除・操作履歴）の後ろに受け口 `adminManageTabs` の項目を並べる。モーダルは上流の画面から開かれ fork は開く所を変えられないので、タブを足すときはモーダルを写さずにここへ項目を置く。
+
+```
+adminManageTabs/<名前>.tsx          ← 項目（export const tab: UserAdminManageTabItem）。上流の項目は 0
+extensions/adminManageTabs.ts      ← 一覧（生成物、pnpm generate extensions）
+hooks/useAdminManageTabs.ts         ← 絞り込みと並び（selectAdminManageTabs は純関数）
+```
+
+- 項目の型 `UserAdminManageTabItem`（`@/features/core/user/types`）: `key`（タブの value）・`label`・`order?`（小さいほど前、省略 0、同じなら key の順）・`feature?`（門番の規則の名前。閉なら出さない）・`Content`（`{ user, onClose }` を受ける部品）
+- 上流のタブは置き換えない・消さない・並べ替えない。`key` が上流のタブの value（`summary` / `auth` / `status` / `role` / `delete` / `history`）と重なる項目は出さず、`console.warn` で知らせる
+- 置いたら `pnpm generate extensions`（一覧と `src/lib/forkOwnership/intake.txt` の受け口の行は生成）。key の重なる項目が 2 つあると一覧の読み込みで止まる
+- 回帰: `pnpm test src/features/core/user/components/admin/AdminUserManageModal`
+
 ## マイページのメニュー（拡張点 mypageMenu）
 
 マイページのトップのカード（`components/MainMenu`）は受け口 `mypageMenu` の項目から描く。`MainMenu` は props なし。
