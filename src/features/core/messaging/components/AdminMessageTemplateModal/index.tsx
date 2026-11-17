@@ -298,6 +298,9 @@ function TemplateModalBody({
         onOpenChange={onOpenChange}
         title={template ? `テンプレートを編集: ${template.name}` : "テンプレートを作成"}
         maxWidth={MODAL_WIDTH}
+        // 高さは固定(送る・文言の編集のモーダルと同じ 85vh)
+        maxHeight="85vh"
+        height="85vh"
         footer={footer}
         confirmOnClose={form.closeConfirm}
       >
