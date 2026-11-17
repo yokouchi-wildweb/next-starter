@@ -5,7 +5,8 @@
 //   右 = 名前・説明・種別とカテゴリーの 1 行(KindCategoryFields、D118)→ ひな形の欄の入力(プレビューのタブの経路で使う欄だけ、D117)・埋め込み情報のタグと『専用の埋め込み情報を管理』(D115)。
 //   狭い画面は操作が上、プレビューがその下
 // ひな形を替えると、中身があれば確かめてから消す(D113)。保存 = 新しいバージョン(D113)。
-// システムテンプレート(白紙)とアーカイブした物は読むだけ(D117)。
+// システムテンプレート(白紙)は読むだけ(D117)。削除は確かめてから(送った回は残る、D137)、消せたらモーダルを閉じる(一覧は行を外す)。
+// 中身の入力と埋め込み情報は、ひな形・種別・カテゴリーがそろいカテゴリーに経路がある時だけ(D139。それまでは先に選ぶ物の 1 行)。
 // 操作の後は onChanged(返った 1 件と操作)を呼ぶ: 一覧が行を足す・置き換える。作った後は同じモーダルでその 1 件を直す形に変わる。
 // 流れは hook useMessageTemplateModal(取る物・タブ・作った後)・useMessageTemplateForm(書く欄・操作)・useLayoutPreview(プレビュー)・
 // useEmbeddedInfoTags(タグ)。部品は公開の部品だけなので、fork は自分の画面にも同じモーダルを置ける。
@@ -46,7 +47,7 @@ export type AdminMessageTemplateModalProps = {
   onOpenChange: (open: boolean) => void;
   /** 直す 1 件の id(null・省略 = 作る) */
   templateId?: string | null;
-  /** 作る・保存・取り下げの後(返った 1 件と操作。一覧の取り直し・行の置き換えに使う) */
+  /** 作る・保存・削除の後(返った 1 件と操作。一覧の取り直し・行の置き換えに使う) */
   onChanged?: (template: AdminTemplateDetail, action: MessageTemplateAction) => void;
 };
 
@@ -122,9 +123,10 @@ function TemplateModalBody({
 
   const footer = form.system ? null : (
     <Flex align="center" justify="between" gap="sm" wrap="wrap">
-      {embeddedControls}
+      {/* 埋め込み情報は入力欄と同じく、そろうまで出さない(D139)。右の操作は右に寄せたまま */}
+      {form.fieldsReady ? embeddedControls : null}
       {locked ? null : (
-        <Flex justify="end" gap="xs" wrap="wrap">
+        <Flex justify="end" gap="xs" wrap="wrap" className="ml-auto">
           {template ? (
             <ConfirmPopover
               trigger={
@@ -133,10 +135,12 @@ function TemplateModalBody({
                 </Button>
               }
               title="削除"
-              description="このテンプレートとバージョン履歴を削除します。送信済みの記録は残ります。"
+              description="テンプレートを削除します。送信の記録は残ります(どのテンプレートから送ったかは表示されなくなります)"
               confirmLabel="削除する"
               confirmVariant="destructive"
-              onConfirm={form.remove}
+              onConfirm={async () => {
+                if (await form.remove()) onOpenChange(false);
+              }}
             />
           ) : null}
           <ConfirmPopover
@@ -229,7 +233,7 @@ function TemplateModalBody({
 
         {form.system ? null : (
           <Stack space={2} className="rounded-md border border-border bg-card p-4" data-slot="template-values">
-            {form.layoutFields ? (
+            {form.layoutFields && form.fieldsReady ? (
               <LayoutFields
                 control={form.valuesForm.control}
                 fields={form.layoutFields}
@@ -239,7 +243,7 @@ function TemplateModalBody({
               />
             ) : (
               <Span size="sm" tone="muted">
-                ひな形を選ぶと入力欄が出ます
+                {form.fieldsHint ?? "ひな形を選ぶと入力欄が出ます"}
               </Span>
             )}
           </Stack>

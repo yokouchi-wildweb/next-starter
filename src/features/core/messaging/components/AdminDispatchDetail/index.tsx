@@ -236,6 +236,19 @@ function DispatchContentPreview({ preview }: { preview: NonNullable<DispatchPrev
 }
 
 /** 基本情報 */
+/**
+ * 回のテンプレートの表示(テンプレートから送っていない回は null)。消したテンプレートの回は「削除されたテンプレート」(D137)。
+ * DTO にテンプレートの名前は無いので版の番号で見せる
+ */
+export function dispatchTemplateLabel(
+  dispatch: Pick<AdminDispatchDetailDto, "templateVersion" | "templateDeleted" | "templateEdited" | "systemTemplate">,
+): string | null {
+  if (dispatch.systemTemplate) return "システムテンプレート";
+  if (dispatch.templateVersion === null) return null;
+  const edited = dispatch.templateEdited ? "・文言を直して送信" : "";
+  return dispatch.templateDeleted ? `削除されたテンプレート(v${dispatch.templateVersion}${edited})` : `v${dispatch.templateVersion}${edited ? `(${edited.slice(1)})` : ""}`;
+}
+
 export function DispatchSummaryBlock({ dispatch, categoryLabel }: { dispatch: AdminDispatchDetailDto; categoryLabel: string | null }) {
   const headings = Object.entries(dispatch.headings ?? {});
   const counts = Object.entries(dispatch.channelCounts ?? {});
@@ -253,6 +266,7 @@ export function DispatchSummaryBlock({ dispatch, categoryLabel }: { dispatch: Ad
         <Field label="種類" value={dispatchKindLabel(dispatch.kind) ?? "-"} />
         <Field label="カテゴリー" value={categoryLabel ?? (dispatch.category ? "削除されたカテゴリー" : "-")} />
         {dispatch.sourceLabel ? <Field label="送信元" value={dispatch.sourceLabel} /> : null}
+        {dispatchTemplateLabel(dispatch) ? <Field label="テンプレート" value={dispatchTemplateLabel(dispatch)!} /> : null}
         <Field label="送信方法" value={dispatch.channels.map(messageChannelLabel).join(" / ")} />
         {dispatch.targetGroup ? <Field label="宛先" value={dispatchTargetGroupLabel(dispatch) ?? "グループ"} /> : null}
         <Field label="宛先数" value={`${dispatch.recipientCount} 名`} />

@@ -9,7 +9,9 @@
 // - 保存 = 作る(POST)か直す(PATCH)の 1 回で公開(作る = 版 1、直す = 中身が違えば新しい版、D134)。同じ中身なら unchanged →「変更はありません」。名前・説明・種類・ひな形・中身・専用の埋め込み情報
 // - 専用の埋め込み情報 = 『専用の埋め込み情報を管理』のモーダルで足す・直す(embeddedEditor。適用で検査を通った物だけ反映、D126)
 // - 埋め込み情報のタグ = 選択肢の baseCatalog(共通 + enrichers)+ 専用。中身の中の知らない {{名前}} を返す
-// - システムテンプレート(system)・アーカイブした物は読むだけ(保存しない、D117)
+// - システムテンプレート(system)は読むだけ(保存しない、D117)。削除 = remove(版も消え、送った回は残る、D137。成功で true)
+// - 中身の入力と埋め込み情報は fieldsReady(ひな形・種別・カテゴリーがそろい、カテゴリーに経路が 1 つ以上)まで出さない。
+//   それまでは fieldsHint(先に選ぶ物の 1 行、D139)
 // - 書きかけがある間は離れる前に確かめる(@/lib/unsavedGuard。モーダルを閉じる前の確かめは closeConfirm)
 // - 作った後は onCreated(id) を呼ぶ(モーダルがその 1 件を直す形に変わる。ページは移らない)
 
@@ -293,10 +295,11 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     (input) => updateMessageTemplate(id!, input),
     revalidateKeys,
   );
+  // 消した 1 件・版は取り直さない(404 になる。モーダルは閉じる)。一覧だけ
   const deleteMutation = useDomainMutation<{ id: string; deleted: true }, void>(
     `${MESSAGE_TEMPLATES_KEY}/${id ?? "new"}/delete`,
     () => deleteMessageTemplate(id!),
-    revalidateKeys,
+    [MESSAGE_TEMPLATES_KEY],
   );
 
   /** 送る入力(作る・直すで同じ。鍵はサーバーが作る) */
@@ -379,20 +382,35 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     }
   }, [readOnly, validate, id, updateMutation, createMutation, buildInput, showToast, onCreated, onChanged, valuesForm.form, mutate]);
 
-  /** 削除(版も消え、送った回は残る、D137) */
-  const remove = useCallback(async () => {
-    if (!id || system || !template) return;
+  /** 削除(版も消え、送った回は残る、D137)。消せたら true(呼び手がモーダルを閉じる) */
+  const remove = useCallback(async (): Promise<boolean> => {
+    if (!id || system || !template) return false;
     try {
       await deleteMutation.trigger();
       onChanged?.(template, "delete");
       showToast("削除しました", "success");
+      return true;
     } catch (e) {
       showToast(err(e, "削除できませんでした"), "error");
+      return false;
     }
   }, [id, system, template, deleteMutation, showToast, onChanged]);
 
+  // 中身の入力を出せるか(D139): ひな形・種別・カテゴリーがそろい、カテゴリーに経路が 1 つ以上
+  const missing = [!kind ? "種別" : null, !category ? "カテゴリー" : null, !layoutOption ? "ひな形" : null].filter((item): item is string => item !== null);
+  const fieldsReady = missing.length === 0 && channels.length > 0;
+  const fieldsHint = fieldsReady
+    ? null
+    : missing.length > 0
+      ? `${missing.join("・")}を選ぶと入力欄が出ます`
+      : "このカテゴリーには送信方法がありません。別のカテゴリーを選んでください";
+
   return {
     mode: id ? ("edit" as const) : ("create" as const),
+    /** 中身の入力と埋め込み情報を出せるか(D139) */
+    fieldsReady,
+    /** 出せない時の 1 行(先に選ぶ物) */
+    fieldsHint,
     system,
     readOnly,
     dirty,
