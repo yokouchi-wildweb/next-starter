@@ -4,8 +4,7 @@
 
 "use client";
 
-import type { ReactNode } from "react";
-import { ChevronRight, Clock, Send, Tag, Users, type LucideIcon } from "lucide-react";
+import { Users } from "lucide-react";
 
 import { SoftBadge } from "@/components/Badge";
 import { Flex } from "@/components/Layout/Flex";
@@ -18,6 +17,7 @@ import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLab
 import type { AdminDispatchSummary } from "@/features/core/messaging/services/client/adminMessagingClient";
 
 import { DispatchStatusBadge } from "../DispatchStatusBadge";
+import { ChannelsMeta, KindCategoryMeta, RowDateMeta, RowMetaItem } from "../MessageRowMeta";
 
 /** 日時の表示(ja-JP)。null・読めない値は「-」 */
 export function formatAdminDateTime(iso: string | null | undefined): string {
@@ -57,16 +57,6 @@ export type DispatchRowProps = {
   categoryLabel?: string | null;
 };
 
-/** 2 段目の 1 つの項目(印 + 中身。印の意味は aria-label で読み上げる) */
-function MetaItem({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
-  return (
-    <Flex align="center" gap="xs" className="min-w-0" aria-label={label} data-slot="dispatch-meta">
-      <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-      {children}
-    </Flex>
-  );
-}
-
 export function DispatchRow({ dispatch, href, categoryLabel = null }: DispatchRowProps) {
   const kindLabel = dispatchKindLabel(dispatch.kind);
   const group = dispatchTargetGroupLabel(dispatch);
@@ -90,35 +80,12 @@ export function DispatchRow({ dispatch, href, categoryLabel = null }: DispatchRo
               {dispatchHeading(dispatch)}
             </Span>
           </Flex>
-          <Flex align="center" gap="xs" className="shrink-0" aria-label="作成日時">
-            <Clock className="size-3.5 text-muted-foreground" aria-hidden />
-            <Span size="sm" tone="muted" className="tabular-nums">
-              {formatAdminDateTime(dispatch.createdAt)}
-            </Span>
-          </Flex>
+          <RowDateMeta text={formatAdminDateTime(dispatch.createdAt)} label="作成日時" />
         </Flex>
         <Flex align="center" gap="md" wrap="wrap">
-          {kindLabel || categoryLabel ? (
-            <MetaItem icon={Tag} label="種別とカテゴリー">
-              <Span size="sm">{kindLabel ?? "-"}</Span>
-              {categoryLabel ? (
-                <>
-                  <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                  <Span size="sm">{categoryLabel}</Span>
-                </>
-              ) : null}
-            </MetaItem>
-          ) : null}
-          <MetaItem icon={Send} label="送信方法">
-            <Flex align="center" gap="xs" wrap="wrap">
-              {dispatch.channels.map((channel) => (
-                <SoftBadge key={channel} variant="outline" size="sm">
-                  {messageChannelLabel(channel)}
-                </SoftBadge>
-              ))}
-            </Flex>
-          </MetaItem>
-          <MetaItem icon={Users} label="宛先">
+          <KindCategoryMeta kindLabel={kindLabel} categoryLabel={categoryLabel} />
+          <ChannelsMeta labels={dispatch.channels.map(messageChannelLabel)} />
+          <RowMetaItem icon={Users} label="宛先">
             <Span size="sm" data-slot="dispatch-target">
               {group ? `${group}・` : ""}
               <Span size="inherit" weight="semiBold" className="tabular-nums">
@@ -126,7 +93,7 @@ export function DispatchRow({ dispatch, href, categoryLabel = null }: DispatchRo
               </Span>
               {" 名"}
             </Span>
-          </MetaItem>
+          </RowMetaItem>
         </Flex>
       </Stack>
     </Link>

@@ -5,6 +5,8 @@
 
 "use client";
 
+import { AlignLeft } from "lucide-react";
+
 import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
 import { SelectInput } from "@/components/Form/Input/Manual";
@@ -19,6 +21,7 @@ import { CreateButton } from "@/lib/crud/components";
 import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLabels";
 import { TEMPLATE_STATUS_DISPLAY, TemplateStatusBadge } from "@/features/core/messaging/components/common/TemplateStatusBadge";
 import { AdminMessageTemplateModal } from "@/features/core/messaging/components/AdminMessageTemplateModal";
+import { KindCategoryMeta, RowDateMeta, RowMetaItem } from "@/features/core/messaging/components/common/MessageRowMeta";
 import { useAdminMessageTemplateList } from "@/features/core/messaging/hooks/useAdminMessageTemplateList";
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
@@ -76,28 +79,34 @@ export function AdminMessageTemplateList() {
                 className="block h-auto w-full whitespace-normal rounded-md border border-border bg-card px-4 py-3 text-left hover:bg-muted/40"
                 data-slot="template-row"
               >
-                <Stack space={1}>
-                  <Flex align="center" gap="xs" wrap="wrap">
-                    {template.system ? (
-                      <SoftBadge variant="secondary" size="sm">
-                        システム
-                      </SoftBadge>
-                    ) : (
-                      <TemplateStatusBadge status={template.status} currentVersion={template.currentVersion} />
-                    )}
-                    <Span weight="semiBold">{template.name}</Span>
-                  </Flex>
-                  <Flex gap="sm" wrap="wrap">
-                    <Span size="sm" tone="muted">
-                      {template.kind && template.kind in MESSAGE_KIND_LABELS
-                        ? `${MESSAGE_KIND_LABELS[template.kind as keyof typeof MESSAGE_KIND_LABELS]} / `
-                        : ""}
-                      {template.system ? "送信時に選ぶカテゴリー" : (template.categoryLabel ?? "削除されたカテゴリー")}
-                    </Span>
-                    {template.updatedAt ?? template.createdAt ? (
-                      <Span size="sm" tone="muted">
-                        {when(template.updatedAt ?? template.createdAt)}
+                {/* 行の形は送信一覧・文言の編集と同じ: 1 段目 = 状態・名前 … 右に更新日時 / 2 段目 = 種別 › カテゴリー・説明 */}
+                <Stack space={2}>
+                  <Flex align="center" justify="between" gap="sm" wrap="wrap">
+                    <Flex align="center" gap="xs" wrap="wrap" className="min-w-0">
+                      {template.system ? (
+                        <SoftBadge variant="secondary" size="sm">
+                          システム
+                        </SoftBadge>
+                      ) : (
+                        <TemplateStatusBadge status={template.status} currentVersion={template.currentVersion} />
+                      )}
+                      <Span weight="semiBold" className="min-w-0">
+                        {template.name}
                       </Span>
+                    </Flex>
+                    {template.updatedAt ?? template.createdAt ? <RowDateMeta text={when(template.updatedAt ?? template.createdAt)} label="更新日時" /> : null}
+                  </Flex>
+                  <Flex align="center" gap="md" wrap="wrap">
+                    <KindCategoryMeta
+                      kindLabel={template.kind && template.kind in MESSAGE_KIND_LABELS ? MESSAGE_KIND_LABELS[template.kind as keyof typeof MESSAGE_KIND_LABELS] : null}
+                      categoryLabel={template.system ? "送信時に選ぶ" : (template.categoryLabel ?? "削除されたカテゴリー")}
+                    />
+                    {template.description ? (
+                      <RowMetaItem icon={AlignLeft} label="説明">
+                        <Span size="sm" tone="muted" className="min-w-0 truncate">
+                          {template.description}
+                        </Span>
+                      </RowMetaItem>
                     ) : null}
                   </Flex>
                 </Stack>
