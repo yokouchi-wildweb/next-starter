@@ -1,11 +1,15 @@
 // InboxUnreadModal の検査(jsdom の上で描く。流れの hook useInboxUnreadModal と Modal は偽物)。
-// - current が無ければ何も描かない / 中身・n/N を描く / 次へ・スキップ・確認完了が hook の next / skip / close を呼ぶ
+// - current が無ければ何も描かない / 中身(詳しい表示のひな形と欄の中身、D120)・n/N を描く / 次へ・スキップ・確認完了が hook の next / skip / close を呼ぶ
 // 実行: pnpm test src/features/core/messaging/components/InboxUnreadModal/index.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
 import { JSDOM } from "jsdom";
+
+import { fieldsForChannel, type MessageLayout } from "@/lib/messaging";
+
+import { layout as noticeLayout } from "../../layouts/notice/layout";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>");
 const g = globalThis as Record<string, unknown>;
@@ -15,6 +19,15 @@ g.HTMLElement = dom.window.HTMLElement;
 g.Node = dom.window.Node;
 g.MouseEvent = dom.window.MouseEvent;
 g.IS_REACT_ACT_ENVIRONMENT = true;
+
+/** 詳しい表示(GET /api/me/messaging/inbox/[id] と同じ形: 行 + ひな形 notice の鍵・版・欄の中身・お知らせの経路の欄の宣言、D120) */
+const detailOf = <T extends { id: string; title: string | null; body: string }>(row: T) => ({
+  ...row,
+  layout: "notice",
+  layoutVersion: 1,
+  values: { subject: row.title ?? "", blocks: [{ type: "paragraph", text: row.body }] },
+  fields: fieldsForChannel(noticeLayout as MessageLayout, "inApp"),
+});
 
 const calls: string[] = [];
 let state: Record<string, unknown> = {};
@@ -46,7 +59,7 @@ after(() => dom.window.close());
 const current = { id: "a", title: "お知らせ A", body: "本文 A", link: null, image: null, metadata: null, publishedAt: "2026-11-01T00:00:00.000Z", read: false };
 beforeEach(() => {
   calls.length = 0;
-  state = { open: true, current, index: 0, total: 2, isLast: false, isSkipping: false };
+  state = { open: true, current, detail: detailOf(current), isDetailLoading: false, index: 0, total: 2, isLast: false, isSkipping: false };
 });
 
 const mount = async () => {
