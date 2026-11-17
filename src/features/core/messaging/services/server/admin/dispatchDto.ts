@@ -72,6 +72,8 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   body: Record<string, unknown> | null;
   /** 共通の vars の写し(記録の段が vars / full のときだけ) */
   vars: Record<string, unknown> | null;
+  /** DB のテンプレートの専用の埋め込み情報の値(記録の段が vars / full のときだけ。テンプレート以外の回は null) */
+  embeddedValues: Record<string, string> | null;
   /** 管理の操作ができるか(取り消し・取り下げ・再送、できない時は理由の符号)。一覧には無い */
   operations: DispatchOperationFlags;
 };
@@ -184,6 +186,7 @@ export function toDispatchDetail(
     // 前の送る口の回は記録の段を持たない(写しが前の列の本文を rendered へ移した)→ 段に依らず返す
     body: isOldSend(row) || keep ? row.rendered : null,
     vars: keep ? row.vars : null,
+    embeddedValues: keep ? (row.embedded_values ?? null) : null,
     operations,
   };
 }

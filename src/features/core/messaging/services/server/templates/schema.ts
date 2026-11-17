@@ -10,9 +10,12 @@ const templateFields = {
   name: z.string().trim().min(1).max(200),
   description: z.string().max(2000).nullable().optional(),
   category: z.string().min(1).max(100),
-  /** 経路ごとの文言(鍵 = 文言のある経路。経路の組は持たない) */
-  content: z.record(z.string(), z.unknown()),
-  variables: z.array(z.unknown()).max(100).default([]),
+  /** ひな形の鍵(管理者が選べる物) */
+  layout: z.string().min(1).max(100),
+  /** ひな形の欄の中身({{鍵}} / {{別名}} のまま。欄の検査は checks.ts) */
+  values: z.record(z.string(), z.unknown()),
+  /** 専用の埋め込み情報の宣言(形の検査は checks.ts) */
+  embedded: z.array(z.unknown()).max(100).default([]),
 };
 
 /** 作る入力。鍵は受けない(サーバーが作る、D46: 運営する人に鍵を打たせない。strict なので key を送ると 400) */
@@ -23,8 +26,9 @@ export const UpdateMessageTemplateInputSchema = z
     name: templateFields.name.optional(),
     description: templateFields.description,
     category: templateFields.category.optional(),
-    content: templateFields.content.optional(),
-    variables: z.array(z.unknown()).max(100).optional(),
+    layout: templateFields.layout.optional(),
+    values: templateFields.values.optional(),
+    embedded: z.array(z.unknown()).max(100).optional(),
   })
   .strict();
 

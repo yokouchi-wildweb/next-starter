@@ -5,6 +5,7 @@
 import type {
   MessageCategory,
   MessageChannel,
+  MessageEmbeddedDeclaration,
   MessageEnricher,
   MessageLayout,
   MessageRegistry,
@@ -99,19 +100,19 @@ export type MessageTemplateRef = { system: string } | { id: string; version: num
 
 /**
  * テンプレート + 欄の中身で送る(sendTemplateMessage、D117・D125)。管理の送る画面・一括送信も fork のコードからの管理の送信も同じ口。
- * テンプレートは送る時の公開版を回に固定する(予約なら予約の時の版)。受信者ごとの変数は既定値を全員に使う(既定値が無ければ 400)
+ * テンプレートは送る時の公開版を回に固定する(予約なら予約の時の版)。専用の埋め込み情報の値は回に 1 組(受信者ごとの値は無い)
  */
 export type SendTemplateMessageInput = Omit<SendMessageToManyInput, "recipientVars" | "vars"> & {
   /** 出どころ(白紙か DB のテンプレート) */
   template: MessageTemplateRef;
-  /** ひな形の欄の中身(白紙のひな形、DB のテンプレートは notice。{{鍵}} のまま) */
+  /** ひな形の欄の中身(白紙・DB のテンプレートの版のひな形。{{鍵}} / {{別名}} のまま) */
   values: Record<string, unknown>;
   /** 版の中身から直したか(DB のテンプレートだけ。送る口は中身の違いでも直した印を付ける。false は信じない) */
   edited?: boolean;
   /** 送るカテゴリー(種別は管理者がその場で送れる物。白紙は同じ種別のカテゴリー)。経路はこの種類から */
   category: string;
-  /** テンプレートの変数の値(DB のテンプレートだけ、回に 1 組) */
-  vars?: Record<string, unknown>;
+  /** 専用の埋め込み情報の値 { 鍵: 値 }(DB のテンプレートだけ。宣言の型で検査、必須。回の embedded_values に残る) */
+  embedded?: Record<string, unknown>;
 };
 
 /** 回に残すテンプレートの出どころ(システムテンプレートの鍵か、DB のテンプレートの固定した版と直した印) */
@@ -125,9 +126,12 @@ export type MessageTemplateVersionSource = {
   templateKey: string;
   version: number;
   category: string;
-  /** 経路ごとの文言(鍵 = 文言のある経路) */
-  content: Record<string, unknown>;
-  variables: { key: string; label: string; type: string; required: boolean; default?: unknown; source: "dispatch" | "recipient" }[];
+  /** ひな形の鍵・保存した時のひな形の版・欄の中身({{鍵}} / {{別名}} のまま) */
+  layout: string;
+  layoutVersion: number;
+  values: Record<string, unknown>;
+  /** 専用の埋め込み情報の宣言(送る人が値を入れる) */
+  embedded: MessageEmbeddedDeclaration[];
 };
 
 /** テンプレートの読み口(送る口と cron) */

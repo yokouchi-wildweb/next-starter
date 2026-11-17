@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/templates/imageBinding.ts
 //
-// テンプレートの画像(content の中の storage:// の参照。inApp.image など)を保存の台帳でテンプレートの行に結ぶ。
-// 持ち主 = テンプレートの行(record messaging.template / <テンプレートの id> / content)。storage の照合は行の有無で残す・外す。
+// テンプレートの画像(欄の中身 values の中の storage:// の参照。お知らせの画像のブロックなど)を保存の台帳でテンプレートの行に結ぶ。
+// 持ち主 = テンプレートの行(record messaging.template / <テンプレートの id> / values)。storage の照合は行の有無で残す・外す。
 // 結び方(1 つの参照について。テンプレートを作る・直す取引の中):
 // - storage:// の参照でない値(固定の URL など)はそのまま
 // - 既にこのテンプレートに結ばれている → そのまま
@@ -17,7 +17,7 @@ import type { InboxImageObject } from "../inbox/imageBinding";
 /** テンプレートの画像の持ち主の種類(台帳の record_type) */
 export const TEMPLATE_IMAGE_RECORD_TYPE = "messaging.template";
 /** 台帳の record_field */
-export const TEMPLATE_IMAGE_RECORD_FIELD = "content";
+export const TEMPLATE_IMAGE_RECORD_FIELD = "values";
 /** 画像の用途(お知らせの画像と同じ) */
 export const TEMPLATE_IMAGE_PURPOSE = "notification.image";
 
@@ -57,10 +57,10 @@ export function collectRefs(value: unknown, out: Set<string>): Set<string> {
 export async function bindTemplateImages<Tx>(
   ledger: TemplateImageLedger<Tx>,
   tx: Tx,
-  input: { templateId: string; actorUserId: string | null; content: Record<string, unknown> },
+  input: { templateId: string; actorUserId: string | null; values: Record<string, unknown> },
 ): Promise<Record<string, unknown>> {
   const replaced = new Map<string, string>();
-  for (const ref of collectRefs(input.content, new Set())) {
+  for (const ref of collectRefs(input.values, new Set())) {
     const object = await ledger.find(ref);
     if (object && object.recordType === TEMPLATE_IMAGE_RECORD_TYPE && object.recordId === input.templateId) continue;
     const attachable =
@@ -74,6 +74,6 @@ export async function bindTemplateImages<Tx>(
     await ledger.attach(tx, { ref: bound, actorUserId: input.actorUserId, templateId: input.templateId });
     if (bound !== ref) replaced.set(ref, bound);
   }
-  if (replaced.size === 0) return input.content;
-  return mapStrings(input.content, (text) => replaced.get(text) ?? text) as Record<string, unknown>;
+  if (replaced.size === 0) return input.values;
+  return mapStrings(input.values, (text) => replaced.get(text) ?? text) as Record<string, unknown>;
 }

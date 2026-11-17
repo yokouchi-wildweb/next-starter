@@ -3,10 +3,12 @@
 // src/features/core/messaging/hooks/useMessageTemplateForm.ts
 //
 // 管理: テンプレートを作る・直す画面の書く欄と操作(部品はこれを呼んで描くだけ。CLAUDE.md core_ui_guards)。
-// - 欄: 名前・説明・カテゴリー・経路ごとの文言・変数の宣言(鍵はサーバーが作る、D46)。初めの値は今の中身(下書き)。経路は選ばない(D85)
-// - 保存: 作る(POST)か直す(PATCH)。送るのは文言を書いた経路の中身だけ(filledChannels)で、空の任意の欄は落とす
+// - 欄: 名前・説明・カテゴリー・中身・専用の埋め込み情報の宣言(鍵はサーバーが作る、D46)。初めの値は今の中身(下書き)。経路は選ばない(D85)
+// - S5 で作り直すまでの最小の形(指令 58): ひな形は notice に固定。中身はメールの欄の部品(件名・見出し・段落・ボタン)で書き、
+//   保存の時に notice の欄の中身へ読み替える(utils/noticeValues.ts。開く時は逆向き。画像などほかのブロックは落ちる)
+// - 保存: 作る(POST)か直す(PATCH)。空の任意の欄は落とす
 // - 公開・取り下げ: 1 件・版の一覧を取り直す。一覧(無限スクロール)へは onChanged で返った 1 件を渡す
-// - 使える {{鍵}} = 選択肢の baseAllowedKeys ∪ 宣言した変数(サーバーの保存時の検査と同じ組)。知らない鍵を返す
+// - 使える名前 = 選択肢の baseCatalog の鍵と別名 ∪ 宣言した専用の鍵と別名(サーバーの保存時の検査と同じ組)。知らない名前を返す
 // - 書きかけがある間は離れる前に確かめる(@/lib/unsavedGuard。モーダルを閉じる前の確かめは closeConfirm)
 // - 作った後は onCreated(id) を呼び、createdId を返す(モーダルがその 1 件を直す形に変わる。ページは移らない)
 
@@ -18,6 +20,9 @@ import { listVariables } from "@/lib/structuredDocument";
 import { useToast } from "@/lib/toast";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
 
+import type { MessageEmbeddedType } from "@/lib/messaging";
+
+import { emailFieldsFromNoticeValues, noticeValuesFromChannelContent } from "../utils/noticeValues";
 import {
   archiveMessageTemplate,
   createMessageTemplate,
@@ -30,15 +35,19 @@ import {
 
 import { MESSAGE_TEMPLATES_KEY, messageTemplateKey, messageTemplateVersionsKey } from "./templateKeys";
 
-/** 変数の宣言の 1 行(画面の形。default は文字で持つ) */
+/** 専用の埋め込み情報の宣言の 1 行(画面の形。default は文字で持つ) */
 export type TemplateVariableDraft = {
   key: string;
-  label: string;
-  type: string;
+  alias: string;
+  type: MessageEmbeddedType;
   required: boolean;
-  source: "dispatch" | "recipient";
   default: string;
 };
+
+/** 最小の編集画面のひな形(S5 でひな形を選べるようにする) */
+export const TEMPLATE_EDITOR_LAYOUT = "notice";
+/** 中身を書く欄の部品(メールの欄の形) */
+export const TEMPLATE_EDITOR_CHANNEL = "email";
 
 /** 経路ごとの中身(経路の欄の形のまま) */
 export type TemplateContentDraft = Record<string, Record<string, unknown>>;
@@ -99,23 +108,32 @@ export function contentForInput(content: TemplateContentDraft, channels: readonl
 function variablesForInput(variables: readonly TemplateVariableDraft[]) {
   return variables.map((variable) => ({
     key: variable.key.trim(),
-    label: variable.label.trim(),
+    alias: variable.alias.trim(),
     type: variable.type,
     required: variable.required,
-    source: variable.source,
-    ...(variable.default.trim() !== "" ? { default: variable.default } : {}),
+    ...(variable.default.trim() !== "" ? { default: variable.type === "number" ? Number(variable.default) : variable.default } : {}),
   }));
 }
 
 function draftsOf(template: AdminTemplateDetail | null | undefined): TemplateVariableDraft[] {
-  return (template?.variables ?? []).map((variable) => ({
-    key: variable.key,
-    label: variable.label,
-    type: variable.type,
-    required: variable.required,
-    source: variable.source,
-    default: variable.default === undefined || variable.default === null ? "" : String(variable.default),
+  return (template?.embedded ?? []).map((declaration) => ({
+    key: declaration.key,
+    alias: declaration.alias,
+    type: declaration.type,
+    required: declaration.required,
+    default: declaration.default === undefined ? "" : String(declaration.default),
   }));
+}
+
+/** 今の中身(notice の欄の中身)→ 書く欄(メールの欄の形)。notice でないひな形は空(S5 まで直せない) */
+function contentDraftOf(template: AdminTemplateDetail | null | undefined): TemplateContentDraft {
+  if (!template || template.layout !== TEMPLATE_EDITOR_LAYOUT) return {};
+  return { [TEMPLATE_EDITOR_CHANNEL]: emailFieldsFromNoticeValues(template.values) };
+}
+
+/** 書く欄 → notice の欄の中身 */
+function valuesForInput(content: TemplateContentDraft): Record<string, unknown> {
+  return noticeValuesFromChannelContent(contentForInput(content, [TEMPLATE_EDITOR_CHANNEL]));
 }
 
 /** 中身の文字を全部集める({{鍵}} を探すため) */
@@ -134,9 +152,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   const [name, setName] = useState(template?.name ?? "");
   const [description, setDescription] = useState(template?.description ?? "");
   const [category, setCategory] = useState(template?.category ?? options?.categories[0]?.key ?? "");
-  const [content, setContent] = useState<TemplateContentDraft>(
-    (template?.content as TemplateContentDraft | undefined) ?? {},
-  );
+  const [content, setContent] = useState<TemplateContentDraft>(() => contentDraftOf(template));
   const [variables, setVariables] = useState<TemplateVariableDraft[]>(() => draftsOf(template));
   const [createdId, setCreatedId] = useState<string | null>(null);
 
@@ -168,8 +184,9 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
       name: name.trim(),
       description: description.trim() === "" ? null : description,
       category,
-      content: contentForInput(content, filledChannels(content)),
-      variables: variablesForInput(variables),
+      layout: TEMPLATE_EDITOR_LAYOUT,
+      values: valuesForInput(content),
+      embedded: variablesForInput(variables),
     }),
     [name, description, category, content, variables],
   );
@@ -180,11 +197,9 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
         name: template?.name ?? "",
         description: template?.description ?? null,
         category: template?.category ?? options?.categories[0]?.key ?? "",
-        content: contentForInput(
-          (template?.content as TemplateContentDraft | undefined) ?? {},
-          filledChannels((template?.content as TemplateContentDraft | undefined) ?? {}),
-        ),
-        variables: variablesForInput(draftsOf(template)),
+        layout: TEMPLATE_EDITOR_LAYOUT,
+        values: valuesForInput(contentDraftOf(template)),
+        embedded: variablesForInput(draftsOf(template)),
       }),
     [template, options],
   );
@@ -192,7 +207,12 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   useUnsavedGuard(dirty);
 
   const allowedKeys = useMemo(
-    () => [...new Set([...(options?.baseAllowedKeys ?? []), ...variables.map((variable) => variable.key.trim()).filter(Boolean)])],
+    () => [
+      ...new Set([
+        ...(options?.baseCatalog ?? []).flatMap((entry) => [entry.key, entry.alias].filter(Boolean)),
+        ...variables.flatMap((variable) => [variable.key.trim(), variable.alias.trim()]).filter(Boolean),
+      ]),
+    ],
     [options, variables],
   );
   const unknownKeys = useMemo(() => {
@@ -273,8 +293,8 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
       setDescription,
       category,
       setCategory,
-      /** 文言を書いた経路(保存する経路) */
-      channels: filledChannels(content),
+      /** 書く欄の経路(最小の形はメールの欄だけ) */
+      channels: [TEMPLATE_EDITOR_CHANNEL],
       content,
       setChannelContent,
       variables,

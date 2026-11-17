@@ -39,7 +39,6 @@ import { sendDeliveries, type DeliveryJob } from "./deliver";
 import { deliveryEvents, dispatchCompletedEvent } from "../events/internalEvents";
 import { requireSystemTemplate } from "./systemTemplates";
 import {
-  recipientVariablesWithoutDefault,
   resolveTemplateDefinition,
   templateValuesEdited,
   type TemplateSource,
@@ -139,6 +138,11 @@ type ManyOptions = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** 専用の埋め込み情報の値(差し込む字にした物だけ) */
+function embeddedValuesOf(vars: Readonly<Record<string, unknown>>): Record<string, string> {
+  return Object.fromEntries(Object.entries(vars).flatMap(([key, value]) => (typeof value === "string" ? [[key, value]] : [])));
+}
 /** 宛先数の見込み(送る時に展開で数え直す) */
 export type RecipientEstimate = {
   count: number;
@@ -271,8 +275,10 @@ export function createMessageSender(deps: MessageSendDeps) {
         tags: input.tags ? [...input.tags] : null,
         channel_counts: emptyChannelCounts(channels),
         headings,
-        // 回の vars: 残す時は秘密の鍵を落とした写し。cron が送る残り(queueVars)にも要る(record meta なら cron が終わりに消す)
-        vars: policy.keepVars || queueVars ? omitKeys(vars, policy.secretKeys) : null,
+        // 回の vars: 残す時は秘密の鍵を落とした写し。cron が送る残り(queueVars)にも要る(record meta なら cron が終わりに消す)。
+        // テンプレートから送った回: 専用の埋め込み情報の値は embedded_values にだけ残し、vars は {}(残し方・消し方は vars と同じ、指令 58)
+        vars: policy.keepVars || queueVars ? (source ? {} : omitKeys(vars, policy.secretKeys)) : null,
+        embedded_values: source && (policy.keepVars || queueVars) ? embeddedValuesOf(omitKeys(vars, policy.secretKeys)) : null,
         rendered,
         record: policy.record,
         show_to_later_signups: input.showToLaterSignups ?? false,
@@ -497,7 +503,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         completed_at: status === "processing" ? null : deps.now(),
         updatedAt: deps.now(),
         // cron に渡す残りが無ければ、送るためだけに置いた vars を record に従って消す
-        ...(queuedCount === 0 && !policy.keepVars ? { vars: null, values: null } : {}),
+        ...(queuedCount === 0 && !policy.keepVars ? { vars: null, values: null, embedded_values: null } : {}),
       },
       completed ? [completed] : [],
     );
@@ -513,7 +519,7 @@ export function createMessageSender(deps: MessageSendDeps) {
 
   /**
    * テンプレートの今の公開版(送れる版)。
-   * @throws DomainError(404) 無い / (409) 取り下げ済み・未公開 / (400) 受信者ごとの変数に既定値が無い
+   * @throws DomainError(404) 無い / (409) 取り下げ済み・未公開・今の公開版でない版
    */
   async function currentTemplateVersion(templateId: string, pinned?: number): Promise<MessageTemplateVersionSource> {
     if (!deps.templates) throw new DomainError("テンプレートの読み口がありません", { status: 500 });
@@ -524,10 +530,6 @@ export function createMessageSender(deps: MessageSendDeps) {
     if (!version) throw new DomainError("まだ公開していないテンプレートでは送れません", { status: 409 });
     if (pinned !== undefined && pinned !== version.version) {
       throw new DomainError(`テンプレートの版 ${pinned} は今の公開版(版 ${version.version})ではありません。読み直してください`, { status: 409 });
-    }
-    const missing = recipientVariablesWithoutDefault(version);
-    if (missing.length > 0) {
-      throw new DomainError(`受信者ごとの変数 ${missing.join(", ")} に既定値が無いので送れません`, { status: 400 });
     }
     return version;
   }
@@ -635,9 +637,9 @@ export function createMessageSender(deps: MessageSendDeps) {
      * @throws DomainError(404) テンプレートが無い / (409) 取り下げ済み・未公開・今の公開版でない版 / (400) 白紙・カテゴリー・値・経路・中身・受信者ごとの変数の既定値
      */
     async sendTemplateMessage(input: SendTemplateMessageInput): Promise<SendMessageResult> {
-      const { template: ref, values, edited, category, vars, ...rest } = input;
-      if ("system" in ref && vars && Object.keys(vars).length > 0) {
-        throw new DomainError("変数の値は DB のテンプレートで送る時だけ渡せます", { status: 400 });
+      const { template: ref, values, edited, category, embedded, ...rest } = input;
+      if ("system" in ref && embedded && Object.keys(embedded).length > 0) {
+        throw new DomainError("専用の埋め込み情報の値は DB のテンプレートで送る時だけ渡せます", { status: 400 });
       }
       const from = await templateSourceOf(ref);
       const resolved = resolveTemplateDefinition(deps, { category, values, channels: rest.channels, source: from });
@@ -648,12 +650,13 @@ export function createMessageSender(deps: MessageSendDeps) {
               template: {
                 id: from.version.templateId,
                 version: from.version.version,
-                edited: edited === true || templateValuesEdited(from.version, values),
+                edited: edited === true || templateValuesEdited(deps.layouts, from.version, values),
               },
             };
       const result = await sendToMany(
         resolved as AnyMessageDefinition,
-        { ...rest, vars: vars ?? {} } as SendMessageToManyInput,
+        // 専用の値は定義の vars(版の宣言の zod)で検査して差し込む。回には embedded_values に残す
+        { ...rest, vars: embedded ?? {} } as SendMessageToManyInput,
         { resolved, source },
       );
       return "template" in source ? { ...result, template: source.template } : result;

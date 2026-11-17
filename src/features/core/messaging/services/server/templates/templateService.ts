@@ -4,9 +4,10 @@
 // - 状態: draft(まだ公開していない)→ published(版がある)→ archived(取り下げ。直せない)
 // - 行 = 今の中身(下書き)。公開 = 今の中身を message_template_versions に版として追記し current_version を進める。
 //   公開した版は書き換えない(公開済みのテンプレートを直すと行だけが変わり、次の公開で新しい版になる)
-// - 版は 中身・変数・種類・経路 を持つ(回は送る時に版を固定する。送る口は指令 28)
+// - 中身 = カテゴリー + ひな形 + 欄の中身 + 専用の埋め込み情報の宣言(指令 58)。版は保存の時の ひな形・ひな形の版・欄の中身・宣言・種類を持つ
+//   (回は送る時に版を固定する)。ひな形を替える時は入力の欄の中身だけを持つ(前のひな形の中身は残さない、D113)
 // - 保存の検査は checks.ts(D41)、画像の結び付けは imageBinding.ts
-// - 画面の選択肢 templateOptions(使える経路・種類・変数の前から使える {{鍵}})
+// - 画面の選択肢 templateOptions(使える経路・種類・管理者が選べるひな形・専用の宣言の前から書ける埋め込み情報)
 // - service でも管理者を確かめる(D42)。監査 messaging.template.{created, updated, published, archived}
 // - システムテンプレート(受け口 messaging/templates の白紙、D117・D125): 一覧の最初のページの先頭に印つき(system: true、id = system:<鍵>)で並び、
 //   1 件も読める。直す・公開・取り下げは 409(管理画面で直せない・消せない)。版は持たない(版の一覧は空、版 1 つは 404)
@@ -15,13 +16,14 @@ import { randomBytes } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 
 import type { AuditRecordInput } from "@/lib/audit";
-import type { MessageSystemTemplate } from "@/lib/messaging";
+import { layoutVersionOf, upgradeLayoutValues, type MessageEmbeddedDeclaration, type MessageEmbeddedEntry, type MessageSystemTemplate } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import type { MessageTemplate, MessageTemplateVersion } from "../../../entities/model";
 import { assertAdminActor, type AdminCheckDeps } from "../admin/assertAdmin";
-import { checkTemplateFields, templateAllowedKeys, type TemplateCheckDeps } from "./checks";
+import { adminSelectableLayouts, checkTemplateFields, templateEmbeddedCatalog, type TemplateCheckDeps } from "./checks";
 import type {
+  AdminEmbeddedEntry,
   AdminTemplateDetail,
   AdminTemplateOptions,
   AdminTemplatePage,
@@ -66,6 +68,10 @@ export function newTemplateKey(): string {
   return `tpl-${Array.from(bytes, (b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("")}`;
 }
 
+function toEntry(entry: MessageEmbeddedEntry): AdminEmbeddedEntry {
+  return { key: entry.key, alias: entry.alias, source: entry.source, description: entry.description ?? null };
+}
+
 function toSummary(row: MessageTemplate, categoryLabel: CategoryLabelOf): AdminTemplateSummary {
   return {
     id: row.id,
@@ -82,8 +88,8 @@ function toSummary(row: MessageTemplate, categoryLabel: CategoryLabelOf): AdminT
     updatedAt: row.updatedAt ? row.updatedAt.toISOString() : null,
     system: false,
     kind: null,
-    layout: null,
-    values: null,
+    layout: row.layout,
+    values: row.values,
   };
 }
 
@@ -111,8 +117,10 @@ function toSystemSummary(template: MessageSystemTemplate): AdminTemplateSummary 
 function toVersion(row: MessageTemplateVersion, categoryLabel: CategoryLabelOf): AdminTemplateVersion {
   return {
     version: row.version,
-    content: row.content as Record<string, unknown>,
-    variables: row.variables,
+    layout: row.layout,
+    layoutVersion: row.layout_version,
+    values: row.values,
+    embedded: row.embedded,
     category: row.category,
     categoryLabel: categoryLabel(row.category),
     editedBy: row.edited_by ?? null,
@@ -124,8 +132,10 @@ function toVersion(row: MessageTemplateVersion, categoryLabel: CategoryLabelOf):
 function sameAsVersion(row: MessageTemplate, version: MessageTemplateVersion | null): boolean {
   if (!version) return false;
   return (
-    isDeepStrictEqual(row.content, version.content) &&
-    isDeepStrictEqual(row.variables, version.variables) &&
+    row.layout === version.layout &&
+    row.layout_version === version.layout_version &&
+    isDeepStrictEqual(row.values, version.values) &&
+    isDeepStrictEqual(row.embedded, version.embedded) &&
     row.category === version.category
   );
 }
@@ -151,13 +161,15 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
   const categoryLabel: CategoryLabelOf = (category) => deps.check().categories[category]?.label ?? null;
   const actorId = () => deps.context()?.actorId ?? null;
 
+  const catalogOf = (own: readonly MessageEmbeddedDeclaration[]) => templateEmbeddedCatalog(deps.check(), own).map(toEntry);
+
   async function detailOf(row: MessageTemplate): Promise<AdminTemplateDetail> {
     const latest = await deps.store.latestVersion(row.id);
     return {
       ...toSummary(row, categoryLabel),
-      content: row.content as Record<string, unknown>,
-      variables: row.variables,
-      allowedKeys: templateAllowedKeys(deps.check(), row.variables),
+      layoutVersion: row.layout_version,
+      embedded: row.embedded,
+      catalog: catalogOf(row.embedded),
       hasUnpublishedChanges: !sameAsVersion(row, latest),
     };
   }
@@ -174,6 +186,17 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     if (!isSystemTemplateId(id)) return;
     const template = requireSystem(id);
     throw new DomainError(`システムテンプレート「${template.label}」は${verb}できません(コードで宣言した白紙です)`, { status: 409 });
+  }
+
+  /**
+   * 行の欄の中身を今のひな形の版へ読み替える(ひな形が改版していれば revisions を当てる)。読めなければ 409
+   */
+  function currentValues(row: MessageTemplate): Record<string, unknown> {
+    const layout = deps.check().layouts[row.layout];
+    if (!layout) return row.values;
+    const upgraded = upgradeLayoutValues(layout, row.values, row.layout_version);
+    if ("cannotRender" in upgraded) throw new DomainError(upgraded.cannotRender, { status: 409 });
+    return upgraded.values;
   }
 
   async function requireRow(id: string): Promise<MessageTemplate> {
@@ -210,11 +233,13 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     async getTemplate(id: string): Promise<AdminTemplateDetail> {
       await assertAdminActor(deps);
       if (isSystemTemplateId(id)) {
+        const template = requireSystem(id);
+        const layout = deps.check().layouts[template.layout];
         return {
-          ...toSystemSummary(requireSystem(id)),
-          content: {},
-          variables: [],
-          allowedKeys: templateAllowedKeys(deps.check(), []),
+          ...toSystemSummary(template),
+          layoutVersion: layout ? layoutVersionOf(layout) : 1,
+          embedded: [],
+          catalog: catalogOf([]),
           hasUnpublishedChanges: false,
         };
       }
@@ -240,18 +265,20 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           name: parsed.name,
           description: parsed.description ?? null,
           category: parsed.category,
-          content: checked.content,
-          variables: checked.variables,
+          layout: checked.layout,
+          layout_version: checked.layoutVersion,
+          values: checked.values,
+          embedded: checked.embedded,
           status: "draft",
           created_by: actor,
           updated_by: actor,
         });
-        const content = await bindTemplateImages(deps.ledger, tx, {
+        const values = await bindTemplateImages(deps.ledger, tx, {
           templateId: inserted.id,
           actorUserId: actor,
-          content: checked.content,
+          values: checked.values,
         });
-        return content === checked.content ? inserted : deps.store.update(tx, inserted.id, { content });
+        return values === checked.values ? inserted : deps.store.update(tx, inserted.id, { values });
       });
       await audit(row, "messaging.template.created");
       return detailOf(row);
@@ -270,18 +297,26 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         const current = await deps.store.lockForUpdate(tx, id);
         if (!current) throw new DomainError("テンプレートがありません", { status: 404 });
         if (current.status === "archived") throw new DomainError("取り下げたテンプレートは直せません", { status: 409 });
+        // ひな形を替える時は入力の欄の中身だけ(前のひな形の中身は持ち越さない、D113)。同じひな形なら入力が無ければ今の中身
+        const layoutChanged = patch.layout !== undefined && patch.layout !== current.layout;
+        if (layoutChanged && patch.values === undefined) {
+          throw new DomainError("ひな形を替える時は新しいひな形の欄の中身も送ってください", { status: 400 });
+        }
         const checked = checkTemplateFields(deps.check(), {
           category: patch.category ?? current.category,
-          content: patch.content ?? (current.content as Record<string, unknown>),
-          variables: patch.variables ?? current.variables,
+          layout: patch.layout ?? current.layout,
+          values: patch.values ?? currentValues(current),
+          embedded: patch.embedded ?? current.embedded,
         });
-        const content = await bindTemplateImages(deps.ledger, tx, { templateId: id, actorUserId: actor, content: checked.content });
+        const values = await bindTemplateImages(deps.ledger, tx, { templateId: id, actorUserId: actor, values: checked.values });
         return deps.store.update(tx, id, {
           ...(patch.name !== undefined ? { name: patch.name } : {}),
           ...(patch.description !== undefined ? { description: patch.description } : {}),
           category: patch.category ?? current.category,
-          content,
-          variables: checked.variables,
+          layout: checked.layout,
+          layout_version: checked.layoutVersion,
+          values,
+          embedded: checked.embedded,
           updated_by: actor,
         });
       });
@@ -303,8 +338,9 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         if (current.status === "archived") throw new DomainError("取り下げたテンプレートは公開できません", { status: 409 });
         const checked = checkTemplateFields(deps.check(), {
           category: current.category,
-          content: current.content as Record<string, unknown>,
-          variables: current.variables,
+          layout: current.layout,
+          values: currentValues(current),
+          embedded: current.embedded,
         });
         const latest = await deps.store.latestVersion(id, tx);
         if (sameAsVersion(current, latest)) {
@@ -314,12 +350,21 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         await deps.store.insertVersion(tx, {
           template_id: id,
           version: next,
-          content: checked.content,
-          variables: checked.variables,
+          layout: checked.layout,
+          layout_version: checked.layoutVersion,
+          values: checked.values,
+          embedded: checked.embedded,
           category: current.category,
           edited_by: actor,
         });
-        const updated = await deps.store.update(tx, id, { status: "published", current_version: next, updated_by: actor });
+        const updated = await deps.store.update(tx, id, {
+          status: "published",
+          current_version: next,
+          // 版と行を同じにする(改版の読み替え後の中身・ひな形の今の版)
+          layout_version: checked.layoutVersion,
+          values: checked.values,
+          updated_by: actor,
+        });
         return { row: updated, version: next };
       });
       await audit(row, "messaging.template.published", { version });
@@ -368,7 +413,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       return toVersion(row, categoryLabel);
     },
 
-    /** 画面の選択肢: 使える経路・種類・変数の前から使える {{鍵}}(fork の経路・種類も受け口から入る) */
+    /** 画面の選択肢: 使える経路・種類・管理者が選べるひな形・専用の宣言の前から書ける埋め込み情報(fork の物も受け口から入る) */
     async templateOptions(): Promise<AdminTemplateOptions> {
       await assertAdminActor(deps);
       const check = deps.check();
@@ -382,7 +427,14 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           label: category.label,
           description: category.description ?? null,
         })),
-        baseAllowedKeys: templateAllowedKeys(check, []),
+        layouts: adminSelectableLayouts(check).map((layout) => ({
+          key: layout.key,
+          label: layout.label,
+          description: layout.description ?? null,
+          version: layoutVersionOf(layout),
+          fields: layout.fields,
+        })),
+        baseCatalog: catalogOf([]),
       };
     },
   };

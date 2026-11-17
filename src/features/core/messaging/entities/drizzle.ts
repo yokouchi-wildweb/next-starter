@@ -116,6 +116,11 @@ export const MessageDispatchTable = pgTable(
     headings: jsonb("headings").$type<MessageChannelTextMap>(),
     /** 回に 1 組の共通の変数の写し（record が vars / full のとき。secret の印の鍵は落とす） */
     vars: jsonb("vars").$type<Record<string, unknown>>(),
+    /**
+     * DB のテンプレートの専用の埋め込み情報の値 { 鍵: 差し込む字 }（送る人が入れた値、指令 58）。残し方・消し方は vars と同じ。
+     * テンプレートから送った回の vars は {}。組み直しの差し込みの表 = vars ∪ embedded_values
+     */
+    embedded_values: jsonb("embedded_values").$type<Record<string, string>>(),
     /** 全員同文の描画結果 { <channel>: 経路ごとの欄 }（record が vars / full のとき） */
     rendered: jsonb("rendered").$type<Record<string, unknown>>(),
     /** 本文の記録の段（meta / vars / full） */

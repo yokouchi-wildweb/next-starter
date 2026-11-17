@@ -118,7 +118,8 @@ export async function sendClaimed(
       continue;
     }
     const rowsById = new Map(group.map((row) => [row.id, row]));
-    const vars = (dispatch!.vars ?? {}) as Record<string, unknown>;
+    // 差し込みの表 = vars ∪ 専用の埋め込み情報の値(テンプレートから送った回、指令 58)
+    const vars = { ...(dispatch!.vars ?? {}), ...(dispatch!.embedded_values ?? {}) } as Record<string, unknown>;
     const userIds = [...new Set(group.flatMap((row) => (row.user_id ? [row.user_id] : [])))];
     const users = new Map((await deps.store.findUsers(userIds)).map((user) => [user.id, user]));
 

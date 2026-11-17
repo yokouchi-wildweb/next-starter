@@ -1,6 +1,7 @@
 // src/features/core/messaging/components/AdminMessageTemplateModal/index.tsx
 // セクションコンテナ(管理: テンプレートを作る・直すモーダル。D87)。開閉は置き場が持つ(open・onOpenChange・templateId)。
-// タブ: 文言(左 = プレビュー、右 = 操作のペイン: 名前・説明・カテゴリー・使える {{鍵}} の案内・経路ごとの文言)/ 変数 / 版の履歴(直す時だけ)。
+// タブ: 文言(左 = プレビュー、右 = 操作のペイン: 名前・説明・カテゴリー・使える {{鍵}} の案内・中身)/ 専用の埋め込み情報 / 版の履歴(直す時だけ)。
+// S5 で作り直すまでの最小の形(指令 58): ひな形は notice に固定し、中身はメールの欄の部品で書く(保存の時に notice の欄の中身へ読み替える)。
 // カテゴリーの選択肢は API の options(種別 announcement・direct・marketing の物だけ。保存の検査はサーバー)。
 // 操作の後は onChanged(返った 1 件と操作)を呼ぶ: 一覧が行を足す・置き換える。作った直後・1 件を取る間は読み込み中を出す。
 // 鍵はサーバーが作る(運営する人に打たせない、D46)。
@@ -36,6 +37,7 @@ import { TemplateVariablesEditor } from "@/features/core/messaging/components/co
 import { TemplateVersionList } from "@/features/core/messaging/components/common/TemplateVersionList";
 import {
   emptyChannelContent,
+  TEMPLATE_EDITOR_CHANNEL,
   useMessageTemplateForm,
   type MessageTemplateAction,
 } from "@/features/core/messaging/hooks/useMessageTemplateForm";
@@ -98,13 +100,14 @@ function TemplateModalBody({
   const locked = form.archived;
 
   const fieldMetaOf = (key: string) => options.channels.find((channel) => channel.key === key)?.fieldMeta ?? {};
-  // 経路は選ばない(D85): 使える経路の欄を全部出し、文言を書いた経路がテンプレートの経路になる。
-  // 受け口から消えた経路が中身に残っていれば、その経路の欄も見せる(保存の検査で止まる)
+  // 経路は選ばない(D85)。中身はメールの欄の部品で書く(notice の欄の中身に読み替える。S5 でひな形の欄の部品に替える)
   const channelChoices = [
-    ...options.channels,
-    ...fields.channels
-      .filter((key) => !options.channels.some((c) => c.key === key))
-      .map((key) => ({ key, label: `${key}(使用できない送信方法)`, fieldMeta: {}, previewComponent: null })),
+    options.channels.find((channel) => channel.key === TEMPLATE_EDITOR_CHANNEL) ?? {
+      key: TEMPLATE_EDITOR_CHANNEL,
+      label: "メール",
+      fieldMeta: {},
+      previewComponent: null,
+    },
   ];
   // 2 つの欄(D80): 今の経路のタブと入力中の欄(プレビューの枠)。画面の中だけの状態
   const [channelState, setActiveChannel] = useState<string | null>(null);
@@ -245,7 +248,7 @@ function TemplateModalBody({
               </StateTabsContent>
             </StateTabs>
             <Para size="sm" tone="muted" className="my-0">
-              内容を入力した送信方法が、このテンプレートの送信方法になります(実際の送信方法は送信時のカテゴリーで決まります)
+              ここで書いた内容は汎用のお知らせとして全ての送信方法で使われます(実際の送信方法は送信時のカテゴリーで決まります)
             </Para>
           </Stack>
         ) : null}
@@ -264,11 +267,11 @@ function TemplateModalBody({
     { value: "text", label: "内容", content: textTab },
     {
       value: "variables",
-      label: "変数",
+      label: "埋め込み情報",
       content: (
         <Stack space={3}>
           <Para size="sm" tone="muted" className="my-0">
-            定義した変数は、内容の中で {"{{変数名}}"} として使えます(値は送信時に入力します)
+            定義した埋め込み情報は、内容の中で {"{{鍵}}"} か {"{{別名}}"} として使えます(値は送信時に入力します)
           </Para>
           <TemplateVariablesEditor value={fields.variables} onChange={fields.setVariables} disabled={locked} />
         </Stack>

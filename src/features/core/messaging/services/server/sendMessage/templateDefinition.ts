@@ -1,15 +1,16 @@
 // src/features/core/messaging/services/server/sendMessage/templateDefinition.ts
 //
-// 管理の送信(テンプレート + 欄の中身、D117・D125)→ 送る口の定義。システムテンプレート(白紙)も DB のテンプレートも同じ組み方:
+// 管理の送信(テンプレート + 欄の中身、D117・D125、指令 58)→ 送る口の定義。システムテンプレート(白紙)も DB のテンプレートも同じ組み方:
 // - 出どころ: { system: 鍵 }(受け口 messaging/templates の白紙)か { id, version }(DB のテンプレートの今の公開版)
 // - 鍵は TEMPLATE_MESSAGE_KEY(コードの連絡の鍵ではない。回の message_key は null で、出どころは system_template か template_id + 版)
 // - 種別と経路は送るカテゴリーから(D86)。カテゴリーの種別は管理者がその場で送れる種別(性質 adminFreeText)だけ、白紙は種別が同じカテゴリーだけ(400)
-// - 欄の中身(values)= ひな形の欄の中身(白紙の layout、DB のテンプレートは notice)。ひな形の欄の zod で検査し、{{鍵}} = 当たる enrichers の鍵 +
-//   テンプレートの版の変数 + 共通の文脈、知らない鍵は 400
-// - DB のテンプレートの版の中身は S4 まで経路ごとの形なので、notice の欄の中身に読み替えて直した印を決める(utils/noticeValues.ts)
+// - ひな形 = 白紙のひな形か DB のテンプレートの版のひな形。欄の中身(values)はそのひな形の欄の zod で検査する
+// - 埋め込み情報: 一覧 = 共通 + 当たる enrichers + 版の専用の宣言(白紙は専用を持たない)。文面の {{鍵}} / {{別名}} が一覧に無ければ 400。
+//   専用の値は版の宣言の型で検査する(必須・既定値、embeddedValuesSchema)。値は定義の vars として差し込み、回には embedded_values に残す(sender.ts)
+// - 専用の別名 {{開始日時}} は {{鍵}} に書き換えてから定義にする(回に残す中身は鍵だけ: cron の組み直しは宣言を引き直さない)。
+//   共通・enrichers の別名は差し込みの表が埋める(content.ts)
+// - 直した印 = 送る中身(書き換えの前)が版の中身(今のひな形の版へ読み替えた物)と違う
 // - 画像(storage://)は欄の中身に自由に入れられる(送る口がお知らせの行を書く時に回へ結ぶ)
-// - テンプレートの版(version)がある時: 版の変数の全部を vars にする(値は文字列にして差し込む)。型 number / boolean は形を確かめる、
-//   それ以外は文字列。必須で値が無い・型が合わない = vars の検査で 400。受信者ごとの変数(source recipient)は既定値を全員に使う(既定値が無ければ 400)
 // - 生成の一覧の上書きは重ねない
 
 import { isDeepStrictEqual } from "node:util";
@@ -17,123 +18,93 @@ import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 
 import {
-  COMMON_CONTEXT_KEYS,
+  checkEmbeddedCatalog,
+  embeddedCatalog,
+  embeddedValuesSchema,
+  findEmbedded,
   resolveMessageDefinition,
+  upgradeLayoutValues,
   validateMessageDefinition,
   type MessageCategory,
   type MessageChannel,
+  type MessageEmbeddedDeclaration,
   type MessageEnricher,
   type MessageKey,
   type MessageLayout,
   type MessageSystemTemplate,
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
-import { listVariables } from "@/lib/structuredDocument/shared";
+import { replaceVariables } from "@/lib/structuredDocument/shared";
 
-import { noticeValuesFromChannelContent } from "../../../utils/noticeValues";
-import { channelFieldSchemas, enricherKeysFor, type AnyMessageDefinition, type AnyResolvedMessageDefinition } from "./definition";
+import { channelFieldSchemas, enricherKeysFor, enrichersFor, type AnyMessageDefinition, type AnyResolvedMessageDefinition } from "./definition";
 import { adminSendableKinds, isAdminSendableKind } from "./systemTemplates";
 import type { MessageTemplateVersionSource } from "./types";
 
 /** テンプレートから送る回の定義の鍵(コードの連絡の鍵ではない。回の message_key には書かない) */
 export const TEMPLATE_MESSAGE_KEY = "messaging.template" as MessageKey;
 
-/** DB のテンプレートの版のひな形(S4 まで経路ごとの文面を notice に読み替える) */
-export const DB_TEMPLATE_LAYOUT = "notice";
-
-type TemplateVariable = MessageTemplateVersionSource["variables"][number];
-
-const NUMBER_TEXT = /^-?\d+(\.\d+)?$/;
-
-/** 値を差し込む文字列にする(型が合わなければ null) */
-function toText(type: string, value: unknown): string | null {
-  if (type === "number") {
-    if (typeof value === "number" && Number.isFinite(value)) return String(value);
-    if (typeof value === "string" && NUMBER_TEXT.test(value.trim())) return value.trim();
-    return null;
-  }
-  if (type === "boolean") {
-    if (typeof value === "boolean") return String(value);
-    if (value === "true" || value === "false") return value;
-    return null;
-  }
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  return null;
-}
-
-function variableSchema(variable: TemplateVariable): z.ZodTypeAny {
-  return z.unknown().transform((value, ctx) => {
-    const empty = value === undefined || value === null || value === "";
-    if (empty) {
-      if (variable.default !== undefined && variable.default !== null) {
-        const text = toText(variable.type, variable.default);
-        if (text !== null) return text;
-      }
-      if (!variable.required) return "";
-      ctx.addIssue({ code: "custom", message: `${variable.key} は必須です` });
-      return z.NEVER;
-    }
-    const text = toText(variable.type, value);
-    if (text === null) {
-      ctx.addIssue({ code: "custom", message: `${variable.key} の型が ${variable.type} ではありません` });
-      return z.NEVER;
-    }
-    return text;
-  });
-}
-
 /**
- * 受信者ごとの変数で既定値の無い物(送る口からは値を渡せないので送れない)
+ * DB のテンプレートの版の欄の中身(今のひな形の版へ読み替えた物)。
+ * @throws DomainError(409) ひな形が無い・版が読めない
  */
-export function recipientVariablesWithoutDefault(version: MessageTemplateVersionSource): string[] {
-  return version.variables
-    .filter((variable) => variable.source === "recipient" && (variable.default === undefined || variable.default === null))
-    .map((variable) => variable.key);
-}
-
-/** DB のテンプレートの版の欄の中身(経路ごとの文面を notice の欄の中身に読み替える) */
-export function templateVersionValues(version: MessageTemplateVersionSource): Record<string, unknown> {
-  return noticeValuesFromChannelContent(version.content);
+export function templateVersionValues(
+  layouts: Readonly<Record<string, MessageLayout>>,
+  version: MessageTemplateVersionSource,
+): Record<string, unknown> {
+  const layout = layouts[version.layout];
+  if (!layout) throw new DomainError(`テンプレート ${version.templateKey} のひな形 ${version.layout} がありません`, { status: 409 });
+  const upgraded = upgradeLayoutValues(layout, version.values, version.layoutVersion);
+  if ("cannotRender" in upgraded) throw new DomainError(upgraded.cannotRender, { status: 409 });
+  return upgraded.values;
 }
 
 /** 版の中身から直したか(送る中身が版の中身と違う) */
-export function templateValuesEdited(version: MessageTemplateVersionSource, values: Record<string, unknown>): boolean {
-  return !isDeepStrictEqual(values, templateVersionValues(version));
+export function templateValuesEdited(
+  layouts: Readonly<Record<string, MessageLayout>>,
+  version: MessageTemplateVersionSource,
+  values: Record<string, unknown>,
+): boolean {
+  return !isDeepStrictEqual(values, templateVersionValues(layouts, version));
 }
 
-function collectStrings(value: unknown, out: string[]): string[] {
-  if (typeof value === "string") out.push(value);
-  else if (Array.isArray(value)) for (const item of value) collectStrings(item, out);
-  else if (value && typeof value === "object") for (const item of Object.values(value)) collectStrings(item, out);
-  return out;
+/** 欄の中身の文字の中の専用の別名 {{別名}} を {{鍵}} に書き換える(入れ子の object・配列も) */
+export function canonicalEmbeddedNames(value: unknown, embedded: readonly MessageEmbeddedDeclaration[]): unknown {
+  if (embedded.length === 0) return value;
+  const map = Object.fromEntries(embedded.map((declaration) => [declaration.alias, `{{${declaration.key}}}`]));
+  const visit = (item: unknown): unknown => {
+    if (typeof item === "string") return replaceVariables(item, map);
+    if (Array.isArray(item)) return item.map(visit);
+    if (item && typeof item === "object") return Object.fromEntries(Object.entries(item).map(([key, inner]) => [key, visit(inner)]));
+    return item;
+  };
+  return visit(value);
 }
 
 /** 送る中身の出どころ(組み済み): 白紙か DB のテンプレートの版 */
 export type TemplateSource = { system: MessageSystemTemplate } | { version: MessageTemplateVersionSource };
 
-/** 中身 → 定義(検査の前)。version = テンプレートの版(変数の宣言) */
+/** 出どころの専用の埋め込み情報の宣言(白紙は持たない) */
+export function templateEmbeddedOf(source: TemplateSource): MessageEmbeddedDeclaration[] {
+  return "version" in source ? source.version.embedded : [];
+}
+
+/** 中身 → 定義(検査の前)。vars = 専用の値の zod(白紙は空) */
 export function templateDefinitionOf(
   source: TemplateSource,
   category: string,
   values: Record<string, unknown>,
 ): AnyMessageDefinition {
-  const version = "version" in source ? source.version : undefined;
-  const shape = Object.fromEntries(
-    (version?.variables ?? []).map((variable) => {
-      // 受信者ごとの変数は既定値を全員に使う(値は渡させない)
-      const fixed = variable.source === "recipient" ? { ...variable, required: false } : variable;
-      return [variable.key, variableSchema(fixed)];
-    }),
-  );
+  const embedded = templateEmbeddedOf(source);
   const label = "system" in source ? source.system.label : `テンプレート ${source.version.templateKey}`;
-  const layout = "system" in source ? source.system.layout : DB_TEMPLATE_LAYOUT;
-  return { key: TEMPLATE_MESSAGE_KEY, label, category, vars: z.object(shape), layout, values } as unknown as AnyMessageDefinition;
+  const layout = "system" in source ? source.system.layout : source.version.layout;
+  const vars = embedded.length > 0 ? embeddedValuesSchema(embedded) : z.object({}).strict();
+  const canonical = canonicalEmbeddedNames(values, embedded) as Record<string, unknown>;
+  return { key: TEMPLATE_MESSAGE_KEY, label, category, vars, layout, values: canonical } as unknown as AnyMessageDefinition;
 }
 
 /**
  * テンプレート + 中身を送れる定義にする(検査を通す。上書きは重ねない)。
- * @throws DomainError(400) カテゴリーの種別・白紙の種別・絞り・欄・{{鍵}} / (500) 種類が無い
+ * @throws DomainError(400) カテゴリーの種別・白紙の種別・絞り・欄・埋め込みの名前 / (500) 種類が無い
  */
 export function resolveTemplateDefinition(
   deps: {
@@ -173,18 +144,25 @@ export function resolveTemplateDefinition(
   }
   const used = narrowing ? category.channels.filter((channel) => narrowing.includes(channel)) : [...category.channels];
   const narrowed = { ...category, channels: used };
-  const definition = templateDefinitionOf(source, input.category, input.values);
-  const enricherKeys = enricherKeysFor({ key: definition.key, category: input.category, kind: category.kind }, deps.enrichers);
-  const known = new Set<string>([...Object.keys(definition.vars.shape), ...COMMON_CONTEXT_KEYS, ...enricherKeys]);
-  const unknownKeys = [...new Set(collectStrings(input.values, []).flatMap((value) => listVariables(value)))].filter((key) => !known.has(key));
-  if (unknownKeys.length > 0) {
-    throw new DomainError(`${label} を送れません: ${unknownKeys.map((key) => `{{${key}}}`).join(", ")} は変数にも共通の文脈にも無い`, { status: 400 });
+  const message = { key: TEMPLATE_MESSAGE_KEY, category: input.category, kind: category.kind };
+
+  // 埋め込み情報の一覧(共通 + 当たる enrichers + 専用)。名前の重なりと知らない名前は送る前に止める
+  const catalog = embeddedCatalog({ own: templateEmbeddedOf(source), enrichers: enrichersFor(message, deps.enrichers) });
+  const catalogProblems = checkEmbeddedCatalog(catalog);
+  if (catalogProblems.length > 0) {
+    throw new DomainError(`${label} を送れません: ${catalogProblems.map((problem) => problem.message).join(" / ")}`, { status: 400 });
   }
+  const { unknown } = findEmbedded(input.values, catalog);
+  if (unknown.length > 0) {
+    throw new DomainError(`${label} を送れません: ${unknown.map((name) => `{{${name}}}`).join(", ")} は埋め込み情報にありません`, { status: 400 });
+  }
+
+  const definition = templateDefinitionOf(source, input.category, input.values);
   const problems = validateMessageDefinition(definition, {
     categories: { [input.category]: narrowed },
     layouts: deps.layouts,
     channels: channelFieldSchemas(deps.channels),
-    variableKeys: enricherKeys,
+    variableKeys: enricherKeysFor(message, deps.enrichers),
   });
   if (problems.length > 0) {
     throw new DomainError(`${label} を送れません: ${problems.map((problem) => problem.message).join(" / ")}`, { status: 400 });
