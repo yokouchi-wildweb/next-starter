@@ -144,8 +144,8 @@ test("一覧: 直せる欄のある連絡だけ、数(使えない行を含む)�
       category: "shop",
       categoryLabel: null,
       channels: [
-        { key: "email", label: "EMAIL", previewComponent: null },
-        { key: "inApp", label: "INAPP", previewComponent: null },
+        { key: "email", label: "EMAIL" },
+        { key: "inApp", label: "INAPP" },
       ],
       editableCount: 2,
       editedCount: 2,

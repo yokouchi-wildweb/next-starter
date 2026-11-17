@@ -433,38 +433,3 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     },
   };
 }
-
-// ---- 旧い形(経路ごとの中身・変数の行)。作り直し前の送る画面と TemplateVariablesEditor がまだ読む。指令 59 d6 で消す ----
-
-/** @deprecated 専用の埋め込み情報の行(旧い形)。EmbeddedDeclarationDraft を使う */
-export type TemplateVariableDraft = Omit<EmbeddedDeclarationDraft, "options">;
-
-/** @deprecated 経路ごとの中身(旧い形) */
-export type TemplateContentDraft = Record<string, Record<string, unknown>>;
-
-/** @deprecated 経路を足したときの初めの中身(旧い形) */
-export function emptyChannelContent(channel: string): Record<string, unknown> {
-  if (channel === "email") return { subject: "" };
-  if (channel === "inApp") return { title: "", body: "" };
-  if (channel === "line") return { text: "" };
-  return {};
-}
-
-/** @deprecated 送る中身(旧い形): 渡した経路だけ、空の任意の文字の欄・空の cta を落とす */
-export function contentForInput(content: TemplateContentDraft, channels: readonly string[]): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const channel of channels) {
-    const fields = { ...(content[channel] ?? emptyChannelContent(channel)) };
-    for (const [name, value] of Object.entries(fields)) {
-      const required = (channel === "email" && name === "subject") || (channel === "inApp" && (name === "title" || name === "body")) || (channel === "line" && name === "text");
-      if (!required && typeof value === "string" && value.trim() === "") delete fields[name];
-      if (Array.isArray(value) && value.length === 0) delete fields[name];
-      if (name === "cta" && value && typeof value === "object") {
-        const cta = value as { label?: string; url?: string };
-        if (!cta.label?.trim() && !cta.url?.trim()) delete fields[name];
-      }
-    }
-    out[channel] = fields;
-  }
-  return out;
-}

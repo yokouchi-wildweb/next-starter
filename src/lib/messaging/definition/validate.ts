@@ -11,7 +11,6 @@ import type { z } from "zod";
 import type { MessageLayout } from "../layout/types";
 import { layoutValuesSchema } from "../layout/values";
 import type { MessageCategory, MessageCategoryGroup } from "../receptacles/types";
-import { UPSTREAM_CHANNEL_FIELDS, type ChannelFieldSchemas } from "./channels";
 import { MESSAGE_COMMON_EMBEDDED } from "../embedded/common";
 import { MESSAGE_KIND_TRAITS, isMessageKind } from "./kinds";
 import type {
@@ -57,21 +56,24 @@ export type MessageDefinitionProblem = {
   message: string;
 };
 
+/** 経路の受け口を渡さない時の既定(上流の 3 経路) */
+const UPSTREAM_CHANNEL_KEYS: readonly string[] = ["email", "inApp", "line"];
+
 const KEY_PATTERN = /^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$/;
 
 /** 上書きを重ねた定義(種類から引く種別・経路はまだ付けない) */
-export type OverriddenMessageDefinition<Vars extends z.AnyZodObject, C extends ChannelFieldSchemas> = MessageDefinition<Vars, C> & {
+export type OverriddenMessageDefinition<Vars extends z.AnyZodObject> = MessageDefinition<Vars> & {
   enabled: boolean;
 };
 
 /**
  * 定義に上書きを重ねる。values はひな形の欄ごとに差し替え、throttle: null は外す。種別と経路は resolveMessageDefinition が種類から付ける
  */
-export function applyMessageOverride<Vars extends z.AnyZodObject, C extends ChannelFieldSchemas>(
-  definition: MessageDefinition<Vars, C>,
-  override?: MessageOverride<C>,
-): OverriddenMessageDefinition<Vars, C> {
-  const resolved: OverriddenMessageDefinition<Vars, C> = { ...definition, enabled: true };
+export function applyMessageOverride<Vars extends z.AnyZodObject>(
+  definition: MessageDefinition<Vars>,
+  override?: MessageOverride,
+): OverriddenMessageDefinition<Vars> {
+  const resolved: OverriddenMessageDefinition<Vars> = { ...definition, enabled: true };
   if (!override) return resolved;
 
   if (override.values) resolved.values = { ...definition.values, ...override.values };
@@ -83,21 +85,21 @@ export function applyMessageOverride<Vars extends z.AnyZodObject, C extends Chan
   if (override.throttle === null) {
     delete resolved.throttle;
   } else if (override.throttle !== undefined) {
-    resolved.throttle = override.throttle as MessageDefinition<Vars, C>["throttle"];
+    resolved.throttle = override.throttle as MessageDefinition<Vars>["throttle"];
   }
   return resolved;
 }
 
 /** 上書きを重ね、属する種類(category)から種別と経路を付ける(D81・D86) */
-export function resolveMessageDefinition<Vars extends z.AnyZodObject, C extends ChannelFieldSchemas>(
-  definition: MessageDefinition<Vars, C>,
-  override: MessageOverride<C> | undefined,
+export function resolveMessageDefinition<Vars extends z.AnyZodObject>(
+  definition: MessageDefinition<Vars>,
+  override: MessageOverride | undefined,
   category: Pick<MessageCategory, "kind" | "channels">,
-): ResolvedMessageDefinition<Vars, C> {
+): ResolvedMessageDefinition<Vars> {
   return {
     ...applyMessageOverride(definition, override),
     kind: category.kind,
-    channels: [...category.channels] as ResolvedMessageDefinition<Vars, C>["channels"],
+    channels: [...category.channels],
   };
 }
 
@@ -117,23 +119,22 @@ function collectStrings(value: unknown, out: string[]): string[] {
  * 定義(と上書き)を検査し、問題の一覧を返す(空 = 通る)。
  * - categories: categories の受け口(鍵 → 項目、fork の種類の override を重ねた後)。定義の category を照らし、種別と経路を引く
  * - layouts: ひな形の受け口(鍵 → ひな形)。定義の layout を照らし、欄の中身を検査する
- * - channels: 経路の欄の zod の束(既定 = 上流の 3 経路。fork の経路は経路の受け口の項目の欄)。経路の有無だけに使う
+ * - channels: 登録された経路の鍵(既定 = 上流の 3 経路 email・inApp・line。送る口は経路の受け口の鍵を渡す)。経路の有無だけに使う
  * - variableKeys: vars と共通の文脈(鍵・別名)の他に {{名前}} で許す名前(送る口が当たる enrichers の provides の鍵と別名を渡す)
  */
 export function validateMessageDefinition<
   Vars extends z.AnyZodObject,
-  C extends ChannelFieldSchemas,
 >(
-  definition: MessageDefinition<Vars, C>,
+  definition: MessageDefinition<Vars>,
   options: {
     categories: Readonly<Record<string, Pick<MessageCategory, "kind" | "channels">>>;
     layouts: Readonly<Record<string, MessageLayout>>;
-    override?: MessageOverride<C>;
-    channels?: C;
+    override?: MessageOverride;
+    channels?: readonly string[];
     variableKeys?: readonly string[];
   },
 ): MessageDefinitionProblem[] {
-  const channels = (options.channels ?? UPSTREAM_CHANNEL_FIELDS) as ChannelFieldSchemas;
+  const channels = new Set(options.channels ?? UPSTREAM_CHANNEL_KEYS);
   const problems: MessageDefinitionProblem[] = [];
   const add = (code: MessageDefinitionProblemCode, message: string) =>
     problems.push({ code, message });
@@ -174,7 +175,7 @@ export function validateMessageDefinition<
   const traits = MESSAGE_KIND_TRAITS[resolved.kind];
 
   if (definition.required) {
-    if (!resolved.channels.includes("email" as never)) {
+    if (!resolved.channels.includes("email")) {
       add("required_without_email", `${label}: required の連絡の種類の経路に email が要る`);
     }
     if (resolved.adminEditableOnly && resolved.adminEditableOnly.length > 0) {
@@ -192,7 +193,7 @@ export function validateMessageDefinition<
   }
 
   for (const channel of resolved.channels) {
-    if (!channels[channel]) {
+    if (!channels.has(channel)) {
       add("unknown_channel", `${label}: 種類 ${definition.category} の経路 ${channel} は登録されていない`);
     }
   }
@@ -203,7 +204,7 @@ export function validateMessageDefinition<
     const keys = Object.keys(options.layouts);
     add("unknown_layout", `${label}: layout ${String(definition.layout)} は layouts の受け口に無い(${keys.join(" / ") || "項目なし"})`);
   } else {
-    const parsed = layoutValuesSchema(layout, { channels: resolved.channels as readonly string[] }).safeParse(values);
+    const parsed = layoutValuesSchema(layout, { channels: resolved.channels }).safeParse(values);
     if (!parsed.success) {
       const detail = parsed.error.issues
         .map((issue) => `${issue.path.join(".") || "(全体)"}: ${issue.message}`)

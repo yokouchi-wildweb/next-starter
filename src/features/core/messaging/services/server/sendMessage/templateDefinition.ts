@@ -36,7 +36,7 @@ import {
 import { DomainError } from "@/lib/errors";
 import { replaceVariables } from "@/lib/structuredDocument/shared";
 
-import { channelFieldSchemas, enricherKeysFor, enrichersFor, type AnyMessageDefinition, type AnyResolvedMessageDefinition } from "./definition";
+import { enricherKeysFor, enrichersFor, type AnyMessageDefinition, type AnyResolvedMessageDefinition, registeredChannelKeys } from "./definition";
 import { adminSendableKinds, isAdminSendableKind } from "./systemTemplates";
 import type { MessageTemplateVersionSource } from "./types";
 
@@ -161,7 +161,7 @@ export function resolveTemplateDefinition(
   const problems = validateMessageDefinition(definition, {
     categories: { [input.category]: narrowed },
     layouts: deps.layouts,
-    channels: channelFieldSchemas(deps.channels),
+    channels: registeredChannelKeys(deps.channels),
     variableKeys: enricherKeysFor(message, deps.enrichers),
   });
   if (problems.length > 0) {

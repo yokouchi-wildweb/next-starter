@@ -432,7 +432,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       return {
         channels: Object.values(check.channels)
           .filter((channel) => channel.enabled !== false)
-          .map((channel) => ({ key: channel.key, label: channel.label, fieldMeta: channel.fieldMeta, previewComponent: channel.previewComponent ?? null })),
+          .map((channel) => ({ key: channel.key, label: channel.label })),
         // テンプレートに使える種類 = 管理者が送れる種別(announcement・direct・promotion)の種類だけ
         categories: Object.values(check.categories).filter((category) => isAdminSendableKind(category.kind)).map((category) => ({
           key: category.key,

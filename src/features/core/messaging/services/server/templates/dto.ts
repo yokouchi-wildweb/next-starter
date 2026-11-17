@@ -4,7 +4,6 @@
 // 経路は持たない: 送る経路は送る時のカテゴリーの経路
 
 import type {
-  ChannelFieldMeta,
   MessageEmbeddedDeclaration,
   MessageEmbeddedSource,
   MessageLayoutFields,
@@ -13,12 +12,10 @@ import type {
 
 import type { MessageTemplateStatus } from "../../../entities/model";
 
-/** 画面が読む経路 1 つ(鍵・表示名・欄の表示の約束・プレビューの部品の鍵)。送る画面の選択肢も同じ形 */
+/** 画面が読む経路 1 つ(鍵・表示名)。送る画面の選択肢も同じ形。入力とプレビューはひな形の欄と描き方から(指令 59) */
 export type AdminChannelOption = {
   key: string;
   label: string;
-  fieldMeta: Readonly<Record<string, ChannelFieldMeta>>;
-  previewComponent: string | null;
 };
 
 /** 埋め込み情報の一覧の 1 つ(画面の候補: 鍵・日本語の別名・出どころ・説明) */

@@ -5,17 +5,16 @@
 
 import type { z } from "zod";
 
-import type { ChannelFieldSchemas } from "./channels";
 import type { MessageDefinition, MessageKey, MessageOverride } from "./types";
 
 /** 定義のモジュール(messages/<名前>.ts の export const message) */
 export type MessageDefinitionModule = {
-  message: MessageDefinition<z.AnyZodObject, ChannelFieldSchemas>;
+  message: MessageDefinition<z.AnyZodObject>;
 };
 
 /** 上書きのモジュール(messages/<名前>.override.ts の export const messageOverride) */
 export type MessageOverrideModule = {
-  messageOverride: MessageOverride<ChannelFieldSchemas>;
+  messageOverride: MessageOverride;
 };
 
 /** 一覧の 1 項目 */

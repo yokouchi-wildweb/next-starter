@@ -367,7 +367,7 @@ export async function adminSendTest(deps: AdminSendDeps, rawInput: unknown): Pro
 export function adminChannelOptions(channels: Readonly<Record<string, MessageChannel>>): AdminSendOptions["channels"] {
   return Object.keys(channels).flatMap((key) => {
     const channel = activeChannel(channels, key);
-    return channel ? [{ key, label: channel.label, fieldMeta: channel.fieldMeta, previewComponent: channel.previewComponent ?? null }] : [];
+    return channel ? [{ key, label: channel.label }] : [];
   });
 }
 

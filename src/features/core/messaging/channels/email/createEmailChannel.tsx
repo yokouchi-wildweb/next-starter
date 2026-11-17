@@ -20,7 +20,6 @@
 import type { ReactElement } from "react";
 
 import {
-  emailFieldsSchema,
   fieldsForChannel,
   isMessageLayoutContent,
   type ChannelAddress,
@@ -141,19 +140,6 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
     key: "email",
     label: "メール",
     addressing: "user",
-    fields: emailFieldsSchema,
-    fieldMeta: {
-      subject: { label: "件名", input: "line" },
-      preheader: { label: "プレヘッダー", help: "受信一覧で件名の横に見える短い文", input: "line" },
-      heading: { label: "見出し", input: "line" },
-      paragraphs: { label: "本文の段落", input: "text", list: true },
-      cta: {
-        label: "ボタン",
-        input: "url",
-        parts: { label: { label: "ボタンの文言", input: "line" }, url: { label: "ボタンの行き先", input: "url" } },
-      },
-      footer: { label: "フッター", input: "text" },
-    },
     resolveAddresses: (userIds) => deps.findEmails(userIds),
     webhooks: emailWebhooks(deps),
     // ひな形の描き方(D124): 汎用 = 欄の型とブロックを宣言の順に描く(全部の型を描ける)/ 要約 = 題・本文・画像・行き先

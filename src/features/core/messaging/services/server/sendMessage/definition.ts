@@ -9,12 +9,10 @@
 import type { z } from "zod";
 
 import {
-  UPSTREAM_CHANNEL_FIELDS,
   adminEditableFields,
   applyAdminFieldValues,
   resolveMessageDefinition,
   validateMessageDefinition,
-  type ChannelFieldSchemas,
   type AdminFieldValue,
   type MessageCategory,
   type MessageChannel,
@@ -30,15 +28,16 @@ import { DomainError } from "@/lib/errors";
 import { buildContents, type MessageContentDeps } from "./content";
 import { enricherKeysFor } from "./enrichers";
 
-/** 送る口が受ける定義(経路の束は問わない) */
-export type AnyMessageDefinition = MessageDefinition<z.AnyZodObject, ChannelFieldSchemas>;
-export type AnyResolvedMessageDefinition = ResolvedMessageDefinition<z.AnyZodObject, ChannelFieldSchemas>;
+/** 送る口が受ける定義 */
+export type AnyMessageDefinition = MessageDefinition<z.AnyZodObject>;
+export type AnyResolvedMessageDefinition = ResolvedMessageDefinition<z.AnyZodObject>;
 
-/** 上流の経路の欄 + 経路の受け口の項目の欄(項目が同じ鍵なら項目の欄) */
-export function channelFieldSchemas(channels: Readonly<Record<string, MessageChannel>>): ChannelFieldSchemas {
-  const fields: ChannelFieldSchemas = { ...UPSTREAM_CHANNEL_FIELDS };
-  for (const channel of Object.values(channels)) fields[channel.key] = channel.fields;
-  return fields;
+/** 上流の経路の鍵(受け口に項目が無くても登録済みとして扱う。定義の検査の経路の有無) */
+const UPSTREAM_CHANNEL_KEYS = ["email", "inApp", "line"] as const;
+
+/** 登録された経路の鍵(上流の 3 経路 + 経路の受け口の項目) */
+export function registeredChannelKeys(channels: Readonly<Record<string, MessageChannel>>): string[] {
+  return [...new Set<string>([...UPSTREAM_CHANNEL_KEYS, ...Object.values(channels).map((channel) => channel.key)])];
 }
 
 // 当て先で選ぶ enrichers は ./enrichers.ts(context.ts も使う。輪を作らないよう別のファイル)
@@ -76,7 +75,7 @@ export async function resolveDefinition(
 ): Promise<AnyResolvedMessageDefinition> {
   const definition = options.category ? ({ ...source, category: options.category } as AnyMessageDefinition) : source;
   const entry = deps.registry[definition.key];
-  const override: MessageOverride<ChannelFieldSchemas> | undefined = entry?.override
+  const override: MessageOverride | undefined = entry?.override
     ? (await entry.override()).messageOverride
     : undefined;
 
@@ -84,7 +83,7 @@ export async function resolveDefinition(
     categories: deps.categories,
     override,
     layouts: deps.layouts,
-    channels: channelFieldSchemas(deps.channels),
+    channels: registeredChannelKeys(deps.channels),
     variableKeys: enricherKeysFor(
       { key: definition.key, category: definition.category, kind: deps.categories[definition.category]?.kind ?? "transactional" },
       deps.enrichers,

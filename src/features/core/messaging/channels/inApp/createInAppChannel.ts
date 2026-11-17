@@ -10,7 +10,7 @@
 // - 取り下げ(remove): 管理の削除が呼ぶ。回の行を全部消し、画像を台帳から外す(何度呼んでも同じ)
 // - throttle のある連絡の行は、この send ではなく間引きの処理(services/server/sendMessage/throttle.ts)が inAppItemRow の形で書く
 
-import { inAppFieldsSchema, type ChannelSendResult, type MessageChannel } from "@/lib/messaging";
+import { type ChannelSendResult, type MessageChannel } from "@/lib/messaging";
 
 import type { MessageInboxItemInsert } from "../../entities/model";
 
@@ -54,13 +54,6 @@ export function createInAppChannel(deps: InAppChannelDeps): MessageChannel {
     key: "inApp",
     label: "お知らせ",
     addressing: "user",
-    fields: inAppFieldsSchema,
-    fieldMeta: {
-      title: { label: "タイトル", input: "line" },
-      body: { label: "本文", input: "text" },
-      image: { label: "画像", input: "image" },
-      link: { label: "リンク先", help: "押したときに開くページ", input: "url" },
-    },
     remove: async ({ dispatchId }) => ({ removed: await deps.removeDispatch(dispatchId) }),
     // ひな形の描き方(D124): お知らせの行は要約から描く(題・本文・画像・行き先)。ひな形の inApp の描き方は client の一覧(画面が描く)
     summaryRenderable: true,

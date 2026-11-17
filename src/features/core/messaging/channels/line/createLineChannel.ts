@@ -10,7 +10,7 @@
 //   それ以外 → permanent。LineApiError でない例外 → unknown
 
 import { LineApiError, lineRetryKey } from "@/lib/line";
-import { lineFieldsSchema, type ChannelAddress, type ChannelSendResult, type MessageChannel } from "@/lib/messaging";
+import { type ChannelAddress, type ChannelSendResult, type MessageChannel } from "@/lib/messaging";
 
 export type LineChannelDeps = {
   enabled: boolean;
@@ -34,10 +34,6 @@ export function createLineChannel(deps: LineChannelDeps): MessageChannel {
     label: "LINE",
     addressing: "user",
     enabled: deps.enabled,
-    fields: lineFieldsSchema,
-    fieldMeta: {
-      text: { label: "本文", input: "text" },
-    },
     ...(deps.connectHref ? { connectHref: deps.connectHref } : {}),
     resolveAddresses: (userIds) => deps.findLineUserIds(userIds),
     // ひな形の描き方(D124): LINE は要約の短い本文(無ければ本文)の文、行き先があれば次の行に URL

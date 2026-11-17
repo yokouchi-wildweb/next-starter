@@ -27,7 +27,7 @@ const events: string[] = [];
 let editor: Record<string, unknown> = {};
 let editorMounts = 0;
 // 欄は経路ごと(D80 の右の欄 = 今の経路のタブの欄だけ。欄の表示の約束 meta は経路の受け口から、D83)
-const CHANNEL = { key: "email", label: "メール", previewComponent: null };
+const CHANNEL = { key: "email", label: "メール" };
 const emailField = (field: string) => ({ path: `email.${field}`, channel: "email", field, meta: {}, editable: true, effective: "" });
 const FIELDS = [emailField("subject"), emailField("body")];
 const baseEditor = () => ({
@@ -150,7 +150,7 @@ test.skip("読み込み中 / 開き直すと中身を作り直す", async () => 
 test.skip("一覧: 行でモーダルの開き先を変える", async () => {
   const { AdminMessageOverrideList } = await import("../AdminMessageOverrideList");
   listState = {
-    items: [{ key: "user.welcome", label: "会員登録の完了", kind: "transactional", category: "x", categoryLabel: "お手続き", channels: [{ key: "email", label: "メール", previewComponent: null }], editableCount: 1, editedCount: 0, codeChangedCount: 0, orphanCount: 0 }],
+    items: [{ key: "user.welcome", label: "会員登録の完了", kind: "transactional", category: "x", categoryLabel: "お手続き", channels: [{ key: "email", label: "メール" }], editableCount: 1, editedCount: 0, codeChangedCount: 0, orphanCount: 0 }],
     error: null,
     isLoading: false,
     modal: { open: false, setOpen: () => {}, messageKey: null, openMessage: (key: string) => events.push(`open:${key}`) },

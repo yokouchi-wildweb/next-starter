@@ -1,16 +1,6 @@
 // src/lib/messaging/index.ts
 
-export {
-  UPSTREAM_CHANNEL_FIELDS,
-  emailFieldsSchema,
-  inAppFieldsSchema,
-  lineFieldsSchema,
-  type ChannelFieldSchemas,
-  type EmailFields,
-  type MessageContent,
-  type UpstreamChannelFields,
-} from "./definition/channels";
-export { createDefineMessage, defineMessage } from "./definition/defineMessage";
+export { defineMessage } from "./definition/defineMessage";
 export {
   MESSAGE_KINDS,
   MESSAGE_KIND_TRAITS,
@@ -72,8 +62,6 @@ export {
 export type {
   ChannelAddress,
   ChannelRendered,
-  ChannelFieldInput,
-  ChannelFieldMeta,
   ChannelSendResult,
   ChannelSendTarget,
   ChannelWebhook,

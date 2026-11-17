@@ -229,8 +229,7 @@ export function createTestChannel(
   return {
     key,
     label: "テスト",
-    addressing: "user", fieldMeta: {},
-    fields: z.object({ title: z.string(), body: z.string().optional() }).strict(),
+    addressing: "user",
     summaryRenderable: true,
     renderFromSummary: (summary) => ({ content: summaryContent(summary) }),
     calls,
