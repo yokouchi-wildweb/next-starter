@@ -12,11 +12,12 @@ import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
 import { createOverridableVariants, type StepperInputSize } from "@/lib/variantOverrides";
 
 // 見た目の上書き口: src/config/ui/variants.config.ts の stepperInput({ base, size }、外枠)。既定のクラスはここ
+// 高さは操作部品の高さの段(--control-h-*): xs = xxs 28px・s = sm 36px・m = md 44 / 40px・l = xl 48px(両端のボタンも同じ段の正方形)
 const CONTAINER_SIZE = {
-  xs: "h-7 text-xs",
-  s: "h-9 text-sm",
-  m: "h-10 text-base",
-  l: "h-12 text-base",
+  xs: "h-(--control-h-xxs) text-xs",
+  s: "h-(--control-h-sm) text-sm",
+  m: "h-(--control-h-md) text-base",
+  l: "h-(--control-h-xl) text-base",
 } satisfies Record<StepperInputSize, string>;
 
 const containerVariants = createOverridableVariants(
@@ -28,10 +29,10 @@ const containerVariants = createOverridableVariants(
 type Size = VariantProps<typeof containerVariants>["size"];
 
 const iconSize: Record<NonNullable<Size>, string> = {
-  xs: "size-7",
-  s: "size-9",
-  m: "size-10",
-  l: "size-12",
+  xs: "size-(--control-h-xxs)",
+  s: "size-(--control-h-sm)",
+  m: "size-(--control-h-md)",
+  l: "size-(--control-h-xl)",
 };
 
 const centerWidth: Record<NonNullable<Size>, string> = {

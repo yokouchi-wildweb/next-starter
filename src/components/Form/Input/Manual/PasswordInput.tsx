@@ -3,7 +3,7 @@ import { forwardRef, useState, type ComponentProps, type ReactNode } from "react
 
 import { cn } from "@/lib/cn";
 
-import { Input } from "./Input";
+import { Input, INNER_BUTTON_CLASSES, INNER_BUTTON_PADDING } from "./Input";
 import { Button } from "@/components/Form/Button/Button";
 
 type InputProps = ComponentProps<typeof Input>;
@@ -26,6 +26,8 @@ export type PasswordInputProps = Omit<InputProps, "leftIcon" | "autoComplete"> &
 
 export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>((props, ref) => {
   const { className, leftIcon, ...rest } = props;
+  // 中のボタンの大きさと右の余白は欄の段(size、既定 md)から取る
+  const size = rest.size ?? "md";
   const [visible, setVisible] = useState(false);
 
   const toggle = () => setVisible((prev) => !prev);
@@ -43,14 +45,14 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>((p
         {...rest}
         ref={ref}
         type={visible ? "text" : "password"}
-        className={cn("pr-8", leftIcon && "pl-10", className)}
+        className={cn(INNER_BUTTON_PADDING[size], leftIcon && "pl-10", className)}
       />
       <Button
         type="button"
         onClick={toggle}
         variant="mutedIcon"
-        size="icon"
-        className="absolute right-2 top-1/2 -translate-y-1/2"
+        size="none"
+        className={cn("absolute right-1 top-1/2 -translate-y-1/2", INNER_BUTTON_CLASSES[size])}
       >
         {visible ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
         <span className="sr-only">{visible ? "パスワードを非表示" : "パスワードを表示"}</span>

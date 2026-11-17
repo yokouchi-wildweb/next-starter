@@ -45,7 +45,7 @@ import {
   PopoverContent,
 } from "@/components/Primitives/Popover";
 
-import { Input } from "./Input";
+import { Input, INNER_BUTTON_CLASSES, INNER_BUTTON_PADDING } from "./Input";
 import { TimeFields, type TimeFieldsHandle } from "./TimeFields";
 
 type InputProps = ComponentProps<typeof Input>;
@@ -205,7 +205,7 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
           ref={assignRef}
           type="text"
           placeholder={placeholder}
-          className={cn("pr-10", inputClassName)}
+          className={cn(INNER_BUTTON_PADDING[rest.size ?? "md"], inputClassName)}
           value={rawInput}
           aria-invalid={isInvalid || rest["aria-invalid"]}
           onChange={(event) => {
@@ -230,7 +230,7 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
               aria-label="カレンダーを開く"
               tabIndex={-1}
               disabled={rest.disabled || rest.readOnly}
-              className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              className={cn("absolute right-1 top-1/2 flex -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50", INNER_BUTTON_CLASSES[rest.size ?? "md"])}
             >
               <CalendarClock className="size-4" />
             </button>

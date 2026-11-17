@@ -24,6 +24,28 @@ export const INPUT_SIZE_CLASSES = {
   xl: "h-(--control-h-xl) py-0",
 } satisfies Record<InputSize, string>;
 
+/**
+ * 欄の中の小さなボタン(クリア ×・パスワードの表示の切り替え・暦 / 時計を開く)の大きさ:
+ * 欄の段の高さ − 8px の正方形(上下・右に 4px ずつ空く。位置は right-1 top-1/2 -translate-y-1/2)。
+ * 欄 xs 32px → 24px・md 44 / 40px → 36 / 32px
+ */
+export const INNER_BUTTON_CLASSES = {
+  xs: "size-[calc(var(--control-h-xs)-0.5rem)]",
+  sm: "size-[calc(var(--control-h-sm)-0.5rem)]",
+  md: "size-[calc(var(--control-h-md)-0.5rem)]",
+  lg: "size-[calc(var(--control-h-lg)-0.5rem)]",
+  xl: "size-[calc(var(--control-h-xl)-0.5rem)]",
+} satisfies Record<InputSize, string>;
+
+/** 中のボタンを右に置く欄の右の余白(ボタンの幅 + 右 4px + 文字との間 4px = 段の高さ) */
+export const INNER_BUTTON_PADDING = {
+  xs: "pr-(--control-h-xs)",
+  sm: "pr-(--control-h-sm)",
+  md: "pr-(--control-h-md)",
+  lg: "pr-(--control-h-lg)",
+  xl: "pr-(--control-h-xl)",
+} satisfies Record<InputSize, string>;
+
 /** 入力欄系の枠と高さの class(Input・ColorInput の hex 欄・Select などの引き金が共有する) */
 export const inputVariants = createOverridableVariants(
   "border-muted-foreground/50",
@@ -83,7 +105,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>((props, ref) => {
         readOnly={readOnly}
         disabled={disabled}
         size={htmlSize}
-        className={cn(leftIcon && "pl-10", onClear && "pr-10", inactiveStyles, inputVariants({ size, className }))}
+        className={cn(leftIcon && "pl-10", onClear && INNER_BUTTON_PADDING[size ?? "md"], inactiveStyles, inputVariants({ size, className }))}
         {...rest}
       />
       {showClear && (
@@ -91,8 +113,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>((props, ref) => {
           type="button"
           onClick={onClear}
           variant="mutedIcon"
-          size="icon"
-          className="absolute right-1 top-1/2 -translate-y-1/2"
+          size="none"
+          className={cn("absolute right-1 top-1/2 -translate-y-1/2", INNER_BUTTON_CLASSES[size ?? "md"])}
         >
           <XIcon className="size-4" />
           <span className="sr-only">入力をクリア</span>
