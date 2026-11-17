@@ -246,12 +246,6 @@ function TemplateModalBody({
             </Label>
             <Input id="template-name" value={fields.name} disabled={locked} onChange={(e) => fields.setName(e.target.value)} />
           </Stack>
-          <Stack space={1}>
-            <Label htmlFor="template-description" className="text-sm">
-              説明(任意)
-            </Label>
-            <Textarea id="template-description" value={fields.description} rows={2} disabled={locked} onChange={(e) => fields.setDescription(e.target.value)} />
-          </Stack>
           <KindCategoryFields
             idPrefix="template"
             kinds={fields.kindOptions}
@@ -262,6 +256,12 @@ function TemplateModalBody({
             onCategoryChange={fields.setCategory}
             disabled={locked}
           />
+          <Stack space={1}>
+            <Label htmlFor="template-description" className="text-sm">
+              説明(任意)
+            </Label>
+            <Textarea id="template-description" value={fields.description} rows={2} disabled={locked} onChange={(e) => fields.setDescription(e.target.value)} />
+          </Stack>
         </Stack>
 
         <Stack space={2} className="rounded-md border border-border bg-card p-4" data-slot="template-values">
