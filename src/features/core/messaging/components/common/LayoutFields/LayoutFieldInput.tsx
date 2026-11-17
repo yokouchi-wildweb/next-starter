@@ -6,7 +6,7 @@
 
 "use client";
 
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { Button } from "@/components/Form/Button";
 import { DateInput, Input, NumberInput, SelectInput, Textarea } from "@/components/Form/Input/Manual";
@@ -19,10 +19,8 @@ import { Span } from "@/components/TextBlocks/Span";
 import type { MessageFieldShape } from "@/lib/messaging";
 
 import { LayoutBlocksInput } from "./LayoutBlocksInput";
+import { ButtonLinkInput, KeyValueRowsInput, LAYOUT_IMAGE_PURPOSE, RowControls } from "./LayoutFieldControls";
 import { asArray, asRecord, asText, emptyValueOf, moveItem, oneLine, removeItem, replaceItem } from "./fieldValues";
-
-/** 画像の用途(storage の purpose。お知らせ・テンプレート・文言の編集の画像は同じ) */
-export const LAYOUT_IMAGE_PURPOSE = "notification.image";
 
 export type LayoutFieldInputProps = {
   /** 欄の id(label の htmlFor。入れ子は後ろに -<鍵> / -<番号>) */
@@ -102,41 +100,19 @@ export function LayoutFieldInput({ id, path, shape, value, onChange, placeholder
         />
       );
     case "button":
-    case "link": {
-      const record = asRecord(value);
-      const set = (key: string, next: string) => onChange({ ...record, [key]: next });
+    case "link":
       return (
-        <Stack space={2} className="rounded-md border border-border p-3" data-slot="layout-field-button">
-          <Stack space={1}>
-            <Label htmlFor={`${id}-label`} className="text-xs">
-              {shape.type === "button" ? "ボタンの文言" : "リンクの文言(任意)"}
-            </Label>
-            <Input
-              id={`${id}-label`}
-              value={asText(record.label)}
-              placeholder={placeholder}
-              readOnly={readOnly}
-              onFocus={() => onFocusField?.(`${path}.label`)}
-              onChange={(e) => set("label", oneLine(e.target.value))}
-            />
-          </Stack>
-          <Stack space={1}>
-            <Label htmlFor={`${id}-url`} className="text-xs">
-              URL
-            </Label>
-            <Input
-              id={`${id}-url`}
-              type="url"
-              value={asText(record.url)}
-              placeholder="https://"
-              readOnly={readOnly}
-              onFocus={() => onFocusField?.(`${path}.url`)}
-              onChange={(e) => set("url", oneLine(e.target.value).trim())}
-            />
-          </Stack>
-        </Stack>
+        <ButtonLinkInput
+          id={id}
+          path={path}
+          kind={shape.type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          readOnly={readOnly}
+          onFocusField={onFocusField}
+        />
       );
-    }
     case "keyValue":
       return <KeyValueRowsInput id={id} path={path} value={value} onChange={onChange} readOnly={readOnly} onFocusField={onFocusField} />;
     case "blocks":
@@ -228,93 +204,4 @@ export function LayoutFieldInput({ id, path, shape, value, onChange, placeholder
       );
     }
   }
-}
-
-type RowControlsProps = {
-  index: number;
-  count: number;
-  canRemove: boolean;
-  onMove: (direction: -1 | 1) => void;
-  onRemove: () => void;
-};
-
-/** 並びの 1 行の操作(上へ・下へ・削除) */
-export function RowControls({ index, count, canRemove, onMove, onRemove }: RowControlsProps) {
-  return (
-    <Flex align="center" gap="xs" className="shrink-0">
-      <Button type="button" size="icon" variant="ghost" aria-label="上へ" disabled={index === 0} onClick={() => onMove(-1)}>
-        <ArrowUp className="size-4" />
-      </Button>
-      <Button type="button" size="icon" variant="ghost" aria-label="下へ" disabled={index === count - 1} onClick={() => onMove(1)}>
-        <ArrowDown className="size-4" />
-      </Button>
-      <Button type="button" size="icon" variant="ghost" aria-label="削除" disabled={!canRemove} onClick={onRemove}>
-        <Trash2 className="size-4" />
-      </Button>
-    </Flex>
-  );
-}
-
-type KeyValueRowsInputProps = {
-  id: string;
-  path: string;
-  value: unknown;
-  onChange: (value: unknown) => void;
-  readOnly?: boolean;
-  onFocusField?: (path: string) => void;
-};
-
-/** 項目と値の行([{key, value}])。足す・消す・並べ替え */
-export function KeyValueRowsInput({ id, path, value, onChange, readOnly, onFocusField }: KeyValueRowsInputProps) {
-  const rows = asArray(value).map(asRecord);
-  const set = (index: number, key: "key" | "value", next: string) => onChange(replaceItem(rows, index, { ...rows[index], [key]: next }));
-  return (
-    <Stack space={2} data-slot="layout-field-key-value">
-      {rows.map((row, index) => (
-        <Flex key={index} align="center" gap="xs">
-          <Input
-            id={index === 0 ? id : `${id}-${index}`}
-            aria-label="項目"
-            placeholder="項目"
-            className="w-2/5"
-            value={asText(row.key)}
-            readOnly={readOnly}
-            onFocus={() => onFocusField?.(`${path}.${index}.key`)}
-            onChange={(e) => set(index, "key", oneLine(e.target.value))}
-          />
-          <Input
-            aria-label="値"
-            placeholder="値"
-            className="flex-1"
-            value={asText(row.value)}
-            readOnly={readOnly}
-            onFocus={() => onFocusField?.(`${path}.${index}.value`)}
-            onChange={(e) => set(index, "value", oneLine(e.target.value))}
-          />
-          {readOnly ? null : (
-            <RowControls
-              index={index}
-              count={rows.length}
-              canRemove
-              onMove={(direction) => onChange(moveItem(rows, index, direction))}
-              onRemove={() => onChange(removeItem(rows, index))}
-            />
-          )}
-        </Flex>
-      ))}
-      {rows.length === 0 && readOnly ? (
-        <Span size="sm" tone="muted">
-          なし
-        </Span>
-      ) : null}
-      {readOnly ? null : (
-        <Flex>
-          <Button type="button" size="sm" variant="outline" onClick={() => onChange([...rows, { key: "", value: "" }])}>
-            <Plus className="size-4" />
-            行を追加
-          </Button>
-        </Flex>
-      )}
-    </Stack>
-  );
 }

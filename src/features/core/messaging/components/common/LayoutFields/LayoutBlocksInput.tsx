@@ -18,8 +18,8 @@ import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks/Span";
 import { MESSAGE_BLOCK_KIND_LABELS, type MessageBlockKind, type MessageBlocksConstraint } from "@/lib/messaging";
 
-import { KeyValueRowsInput, LAYOUT_IMAGE_PURPOSE, LayoutFieldInput, RowControls } from "./LayoutFieldInput";
-import { allowedBlockKinds, asArray, asRecord, asText, emptyBlockOf, moveItem, oneLine, removeItem, replaceItem } from "./fieldValues";
+import { ButtonLinkInput, KeyValueRowsInput, LAYOUT_IMAGE_PURPOSE, LineListInput, RowControls } from "./LayoutFieldControls";
+import { allowedBlockKinds, asRecord, asText, emptyBlockOf, moveItem, oneLine, removeItem, replaceItem } from "./fieldValues";
 
 export type LayoutBlocksInputProps = {
   id: string;
@@ -148,12 +148,12 @@ function BlockBody({ id, path, block, onChange, readOnly, onFocusField }: BlockB
       );
     case "button":
       return (
-        <LayoutFieldInput
+        <ButtonLinkInput
           id={id}
           path={path}
-          shape={{ type: "button" }}
+          kind="button"
           value={{ label: block.label, url: block.url }}
-          onChange={(next) => onChange({ ...block, ...asRecord(next) })}
+          onChange={(next) => onChange({ ...block, ...next })}
           readOnly={readOnly}
           onFocusField={onFocusField}
         />
@@ -212,11 +212,11 @@ function BlockBody({ id, path, block, onChange, readOnly, onFocusField }: BlockB
       );
     case "bulletList":
       return (
-        <LayoutFieldInput
+        <LineListInput
           id={id}
           path={`${path}.items`}
-          shape={{ type: "list", of: { type: "line" }, min: 1 }}
-          value={asArray(block.items)}
+          min={1}
+          value={block.items}
           onChange={(items) => set("items", items)}
           readOnly={readOnly}
           onFocusField={onFocusField}

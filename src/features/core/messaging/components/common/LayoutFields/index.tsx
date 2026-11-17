@@ -21,7 +21,16 @@ import { messageChannelLabel } from "@/features/core/messaging/constants/channel
 
 import { LayoutFieldInput } from "./LayoutFieldInput";
 
-export { LayoutFieldInput, KeyValueRowsInput, RowControls, LAYOUT_IMAGE_PURPOSE, type LayoutFieldInputProps } from "./LayoutFieldInput";
+export { LayoutFieldInput, type LayoutFieldInputProps } from "./LayoutFieldInput";
+export {
+  ButtonLinkInput,
+  KeyValueRowsInput,
+  LAYOUT_IMAGE_PURPOSE,
+  LineListInput,
+  RowControls,
+  type ButtonLinkInputProps,
+  type LineListInputProps,
+} from "./LayoutFieldControls";
 export { LayoutBlocksInput, type LayoutBlocksInputProps } from "./LayoutBlocksInput";
 export { allowedBlockKinds, emptyBlockOf, emptyValueOf, moveItem, removeItem, replaceItem } from "./fieldValues";
 
