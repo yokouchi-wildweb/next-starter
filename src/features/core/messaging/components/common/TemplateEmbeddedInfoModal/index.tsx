@@ -142,7 +142,21 @@ export function TemplateEmbeddedInfoModal({
                     <Label htmlFor={`${id}-default`} className="text-xs">
                       既定値(任意)
                     </Label>
-                    <Input id={`${id}-default`} value={row.default} readOnly={readOnly} onChange={(e) => onUpdateRow(index, { default: e.target.value })} />
+                    {row.type === "select" ? (
+                      // 選択肢の型 = その行の選択肢から選ぶ(値を手で打たない)。「なし」で既定値を外す
+                      <SelectInput
+                        id={`${id}-default`}
+                        value={row.default}
+                        options={row.options.filter((option) => option.value.trim() !== "").map((option) => ({ value: option.value, label: option.label || option.value }))}
+                        disabled={readOnly}
+                        includeNullOption
+                        nullOptionLabel="なし"
+                        placeholder={row.options.some((option) => option.value.trim() !== "") ? "なし" : "先に選択肢を追加"}
+                        onChange={(v) => onUpdateRow(index, { default: v ? String(v) : "" })}
+                      />
+                    ) : (
+                      <Input id={`${id}-default`} value={row.default} readOnly={readOnly} onChange={(e) => onUpdateRow(index, { default: e.target.value })} />
+                    )}
                   </Stack>
                 </Grid>
                 {row.type === "select" ? (
