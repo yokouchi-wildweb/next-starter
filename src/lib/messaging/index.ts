@@ -131,3 +131,5 @@ export {
   type MessageChannelContentResult,
   type MessageLayoutContent,
 } from "./layout/content";
+// 埋め込み情報(共通の一覧・専用の宣言・一覧の検査・{{鍵}} と {{別名}} の差し込み、D111・D126)
+export * from "./embedded";

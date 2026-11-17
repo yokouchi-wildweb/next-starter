@@ -208,6 +208,11 @@ export type MessageEnricher = {
   target: MessageEnricherTarget;
   /** 足す変数の名前と型(管理画面の変数の候補と保存時の検査が読む) */
   provides: z.AnyZodObject;
+  /**
+   * 足す値ごとの日本語の別名(provides の鍵 → 別名、全部の鍵に要る、D126)。文面に {{鍵}} でも {{別名}} でも書ける。
+   * 別名は共通の埋め込み情報・テンプレートの専用の名前と重ならない(embedded/catalog.ts の checkEmbeddedCatalog)
+   */
+  aliases: Readonly<Record<string, string>>;
   resolve: (context: MessageEnricherContext) => Promise<Record<string, unknown>> | Record<string, unknown>;
 };
 
