@@ -94,6 +94,7 @@ export {
 } from "./layout/blocks";
 export {
   fieldValueSchema,
+  normalizeFieldValue,
   MESSAGE_FIELD_TYPE_LABELS,
   MESSAGE_FIELD_TYPES,
   requiredValue,
@@ -111,7 +112,7 @@ export {
   type MessageLayoutSummary,
   type MessageLayoutValues,
 } from "./layout/types";
-export { applyLayoutRevisions, fieldBelongsTo, fieldsForChannel, layoutValuesSchema, upgradeLayoutValues } from "./layout/values";
+export { applyLayoutRevisions, fieldBelongsTo, fieldsForChannel, layoutValuesSchema, normalizeLayoutValues, upgradeLayoutValues } from "./layout/values";
 export { resolveRendering, type MessageChannelRendering, type MessageRenderingResolution } from "./layout/rendering";
 export {
   buildChannelContent,

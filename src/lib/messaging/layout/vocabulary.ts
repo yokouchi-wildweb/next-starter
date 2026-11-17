@@ -5,6 +5,8 @@
 // - line 1行テキスト / paragraph 段落 / longText 複数行テキスト / image 画像(storage:// の参照か URL)/ button ボタン {label, url} /
 //   link リンク {label?, url} / date 日付 YYYY-MM-DD / number 数 / select 選択肢 / list 並び(1 つの型の並び)/
 //   group 組(名前つきの欄)/ keyValue ラベルと値 [{key, value}] / blocks ブロックの並び
+// - 空の値(D128): 任意の欄の空は「無い」。画像の空文字・ボタン / リンクの全部が空・空の並びは検査の前に外す(normalizeFieldValue、
+//   layoutValuesSchema とサーバーの送る口・フォームが通る)。ボタンの片方だけ空・ラベルだけのリンクは空の側の誤り
 
 import { z } from "zod";
 
@@ -89,6 +91,47 @@ export type MessageFieldValue<S extends MessageFieldShape> = S extends { type: "
 
 const text = z.string();
 
+const isBlank = (value: unknown) => value === undefined || value === null || (typeof value === "string" && value.trim() === "");
+
+/**
+ * 欄の値の空を「無い」(undefined)にする(D128)。検査の前に通す(layoutValuesSchema・送る口・フォーム)。
+ * - 画像の空文字 / ボタン・リンクの全部の部分が空 / 空の並び(list・keyValue・blocks)→ undefined
+ * - 並びは中の空を外す、組は中の欄ごとに整えて無い欄の鍵を外す。ほかの型・形の違う値はそのまま(検査が言う)
+ */
+export function normalizeFieldValue(shape: MessageFieldShape, value: unknown): unknown {
+  switch (shape.type) {
+    case "image":
+      return isBlank(value) ? undefined : value;
+    case "button":
+    case "link": {
+      if (isBlank(value)) return undefined;
+      if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+      const parts = value as Record<string, unknown>;
+      return isBlank(parts.label) && isBlank(parts.url) ? undefined : value;
+    }
+    case "keyValue":
+    case "blocks":
+      return Array.isArray(value) && value.length === 0 ? undefined : value;
+    case "list": {
+      if (!Array.isArray(value)) return value;
+      const items = value.map((item) => normalizeFieldValue(shape.of, item)).filter((item) => item !== undefined);
+      return items.length === 0 ? undefined : items;
+    }
+    case "group": {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+      const out: Record<string, unknown> = {};
+      for (const [key, inner] of Object.entries(value as Record<string, unknown>)) {
+        const field = shape.fields[key];
+        const next = field ? normalizeFieldValue(field, inner) : inner;
+        if (next !== undefined) out[key] = next;
+      }
+      return out;
+    }
+    default:
+      return value;
+  }
+}
+
 /**
  * 欄の値の zod(必須かは呼び手が決める: ここは「値があるならこの形」)。
  * 文字の型は空文字も通す(必須の空の確かめは layoutValuesSchema)
@@ -103,9 +146,18 @@ export function fieldValueSchema(shape: MessageFieldShape): z.ZodTypeAny {
     case "image":
       return text.min(1);
     case "button":
-      return z.object({ label: z.string().min(1), url: z.string().min(1) }).strict();
+      // 片方だけ入っている時は空の側の誤り(全部が空は normalizeFieldValue が「無い」にする)
+      return z
+        .object({ label: z.string(), url: z.string() })
+        .strict()
+        .superRefine((button, ctx) => {
+          if (button.label.trim() === "") ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["label"], message: "ボタンの文言を入れてください" });
+          if (button.url.trim() === "") ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["url"], message: "ボタンの URL を入れてください" });
+        });
     case "link":
-      return z.object({ label: z.string().optional(), url: z.string().min(1) }).strict();
+      return z
+        .object({ label: z.string().optional(), url: z.string().trim().min(1, "リンクの URL を入れてください") })
+        .strict();
     case "date":
       return z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "日付は YYYY-MM-DD で入力してください");
     case "number":
