@@ -2,7 +2,7 @@
 
 ## Overview
 
-ひな形（D122）を置く受け口。`layouts/<名前>/` のフォルダ 1 つが 1 つのひな形で、欄の宣言・要約・経路ごとの描き方をまとめる。ひな形の型と欄の語彙・ブロック・描き方の 3 段は lib/messaging（`src/lib/messaging/README.md`「ひな形」）。連絡の定義は `layout`（ひな形の鍵）と `values`（欄の中身）を持ち、送る口が経路ごとに下の 3 段で描く（`services/server/sendMessage/content.ts`。管理画面の入力とプレビューも欄の宣言と描き方から。経路は自分の欄を持たない）。お知らせ（inApp）の描き方は client の一覧で、送る口は S6 まで要約から行を書く。
+ひな形（D122）を置く受け口。`layouts/<名前>/` のフォルダ 1 つが 1 つのひな形で、欄の宣言・要約・経路ごとの描き方をまとめる。ひな形の型と欄の語彙・ブロック・描き方の 3 段は lib/messaging（`src/lib/messaging/README.md`「ひな形」）。連絡の定義は `layout`（ひな形の鍵）と `values`（欄の中身）を持ち、送る口が経路ごとに下の 3 段で描く（`services/server/sendMessage/content.ts`。管理画面の入力とプレビューも欄の宣言と描き方から。経路は自分の欄を持たない）。お知らせ（inApp）の描き方は client の一覧（`layoutInApps`）で、受け取り箱の詳細と管理画面のお知らせのプレビューが同じ部品で描く。受け取り箱の行は要約の列とひな形・欄の中身を残す（`../services/server/inbox/README.md`）。なぜこの形か = `../Internals.md`。
 
 上流のひな形（どれもメールとお知らせの描き方を持つ。中身は各フォルダの README）:
 

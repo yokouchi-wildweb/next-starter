@@ -124,7 +124,7 @@ export const messageOverride = {
 `pnpm generate registry` が全ドメインの `messages/<名前>.ts`(直下。`.override`・`.test` を除く)を字面で読み、鍵 → 項目の一覧を書く(`scripts/structure/registry/alpha/messageRegistry.mjs`)。送る口・管理画面・プレビューはこれを読む(server-only)。
 
 - 鍵 = `<ドメインのフォルダ名>.<ファイル名>`(例 `src/features/core/auth/messages/verification.ts` → `auth.verification`)。定義の `key` はこの値の文字列リテラルで書く(ずれ・重なりは生成が止める)
-- 項目 `MessageRegistryEntry` = `{ key, definition, override? }`。どれも遅延 import(`definition` → `{ message }`、`override` → `{ messageOverride }`)。描き方はひな形が持つ(連絡ごとの描き方 `messages/views/` は無い。残っていれば生成が止まる)
+- 項目 `MessageRegistryEntry` = `{ key, definition, override? }`。どれも遅延 import(`definition` → `{ message }`、`override` → `{ messageOverride }`)。描き方はひな形が持つ(連絡ごとの描き方のフォルダは持たない。前の形の view のフォルダが残っていれば生成が止まる)
 - ファイル名は英小文字始まりの camelCase(点や印は付けない)
 - 全件の検査(L2.2): `src/features/core/messaging/services/server/sendMessage/messageRegistry.test.ts` が一覧の全件に上書きを重ねて `validateMessageDefinition` をかけ、鍵の一致と種類の経路の全部で描けることを確かめる(`checkMessageRegistry`)
 - 生成は字面だけを読み、定義を実行しない。欄・`{{鍵}}` などの値は送る口が `validateMessageDefinition` で見る
@@ -160,7 +160,7 @@ export const messageOverride = {
 
 ## ひな形(layout/、D122〜D124)
 
-連絡の見た目の型。ひな形 = 欄の宣言・仮の文・要約(必須)・管理者が選べる印・改版の対応。種別・カテゴリー・経路を知らない(経路だけの欄は欄の `channels` に経路の鍵を値として持つだけ)。経路ごとの描き方はひな形のフォルダのファイル(server = email、client = inApp)が持ち、型は持たない。連絡の定義はひな形の鍵と欄の中身を持ち、送る口は経路ごとに下の 3 段で描く(経路は自分の欄を持たない。管理画面の入力とプレビューもひな形の欄の宣言と描き方から、指令 59)。
+連絡の見た目の型。ひな形 = 欄の宣言・仮の文・要約(必須)・管理者が選べる印・改版の対応。種別・カテゴリー・経路を知らない(経路だけの欄は欄の `channels` に経路の鍵を値として持つだけ)。経路ごとの描き方はひな形のフォルダのファイル(server = email、client = inApp)が持ち、型は持たない。連絡の定義はひな形の鍵と欄の中身を持ち、送る口は経路ごとに下の 3 段で描く(経路は自分の欄を持たない。管理画面の入力とプレビューもひな形の欄の宣言と描き方から。なぜこの形か = src/features/core/messaging/Internals.md)。
 
 - `defineMessageLayout({ key, label, description?, fields, summary, adminSelectable?, version?, revisions? })`: 欄の宣言から中身の型(`MessageLayoutValues`)を引く。`version` = 版(既定 1、`layoutVersionOf`)
 - 欄の宣言 `MessageFieldSpec`: `type`(語彙)・`label`・`placeholder?`・`required?`・`channels?`(使う経路の鍵、無い = 全部)。`select` は `options`、`list` は `of`・`min?`・`max?`、`group` は `fields`、`blocks` は `allow?`・`min?`・`max?`

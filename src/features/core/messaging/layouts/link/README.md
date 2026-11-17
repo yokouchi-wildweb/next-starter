@@ -2,7 +2,7 @@
 
 ## Overview
 
-リンクを押してもらう認証のメール（確認・事前登録・パスワードの再設定・メールアドレスの変更）のひな形（D122・D123）。コードの連絡だけが使い、管理者はテンプレートで選べない（`adminSelectable: false`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「ひな形」。今の連絡はまだ自分の view で描く（付け替えは後の区切り）。
+リンクを押してもらう認証のメール（確認・事前登録・パスワードの再設定・メールアドレスの変更）のひな形（D122・D123）。コードの連絡だけが使い、管理者はテンプレートで選べない（`adminSelectable: false`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「ひな形」。auth の連絡 4 本(`verification`・`earlyRegistration`・`passwordReset`・`emailChange`)が使う。
 
 ## Usage
 

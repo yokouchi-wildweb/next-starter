@@ -22,7 +22,7 @@
 
 ### `/api/admin/messaging/send/**`（send.ts、門 `messagingBroadcast`）
 
-- `POST /send`（`AdminSendInputSchema`）: `template`（`{ system }` か `{ id, version }`）・`values`（ひな形の欄の中身）・`edited?`・`vars?`（DB のテンプレートだけ）・`category`（必須、種別 announcement・direct・promotion）・`channels?`（カテゴリーの経路の中の絞り、外・空は 400）・`target`・`scheduledAt?`（ISO 8601）・`idempotencyKey?`・`reason?` → `{ dispatchId, status, queuedCount, channelCounts }`。知らない鍵は 400。送り元 `messaging.adminSend`
+- `POST /send`（`AdminSendInputSchema`）: `template`（`{ system }` か `{ id, version }`）・`values`（ひな形の欄の中身）・`edited?`・`embedded?`（専用の埋め込み情報の値 `{ 鍵: 値 }`、DB のテンプレートだけ。版の宣言の型で検査）・`category`（必須、種別 announcement・direct・promotion）・`channels?`（カテゴリーの経路の中の絞り、外・空は 400）・`target`・`scheduledAt?`（ISO 8601）・`idempotencyKey?`・`reason?` → `{ dispatchId, status, queuedCount, channelCounts }`。知らない鍵は 400。送り元 `messaging.adminSend`
   - `target` = `{ type: "all" }` / `{ type: "role", roles }` / `{ type: "group", groupId }`（使用中のユーザーグループ。門 `userGroups` が閉・無い = 404、しまった・壊れた・人数の上限 = 409）/ `{ type: "users", userIds }`（10,000 人まで）
 - `POST /send/preview`: 経路ごとの差し込み済みの欄と経路の `preview`（メールは送る時と同じ HTML）。見本の受信者 = 操作した管理者、テンプレートは今の公開版
 - `POST /send/estimate` `{ target }` → `{ count, fixedAtSend: true, memberLimit?, overLimit? }`（全員・ロールは数、グループは一員の数と上限、選んだ利用者は居る人の数。停止・宛先なしを引く前）
@@ -33,7 +33,7 @@
 ### `/api/admin/messaging/bulk-send`（bulkSend.ts、門の外）
 
 - `GET`: `{ channels, categories, templates, layouts }`（経路は送る口の選択肢と同じ、カテゴリーは bulk で送れる種別で `/send/options` と同じ形（白紙・`catalog`）、テンプレートは門 `messagingTemplates` が開の時だけ、`layouts` = 白紙と並べたテンプレートのひな形の欄の宣言）
-- `POST`: 宛先 `{ userIds }` か `{ target, recordIds }`（10,000 人まで）、中身は `/send` と同じ `template`・`values`・`edited?`・`vars?`・`category`・`channels?`、`idempotencyKey?`（8〜128 文字）・`source?`（既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`。予約は無い（`scheduledAt` は 400）。知らない鍵は 400
+- `POST`: 宛先 `{ userIds }` か `{ target, recordIds }`（10,000 人まで）、中身は `/send` と同じ `template`・`values`・`edited?`・`embedded?`・`category`・`channels?`、`idempotencyKey?`（8〜128 文字）・`source?`（既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`。予約は無い（`scheduledAt` は 400）。知らない鍵は 400
   - → `{ dispatchId, status, counts: { recipientCount, channelCounts, queuedCount }, afterSend: { ok: true } | { ok: false, error } | null }`
 - `POST /preview`・`POST /test`: `/send` と同じ（テストの送り元 `messaging.adminBulk.test`）
 - 対象の受け口 `bulkSendTargets/<名前>.ts`（`MessageBulkSendTarget`、`types.ts`）: `key`・`label`・`enabled?`・`resolveUserIds(recordIds)`・`afterSend?({ recordIds, dispatchId, counts, values, template })`（受け付けの直後に 1 回。`values` = 差し込む前の欄の中身、`template` = `{ system }` か `{ id, version, edited }`。投げても送信は戻らず結果と監査に失敗を残す）。上流 `bankTransferReview`（振込審査 → 申告した利用者、メールを送ったら管理メモに「YYYY/MM/DD「件名」メール送付」）

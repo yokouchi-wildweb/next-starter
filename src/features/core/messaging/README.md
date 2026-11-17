@@ -4,6 +4,8 @@
 
 利用者への連絡（メール・お知らせ = 受け取り箱・LINE・fork の経路）の基盤。連絡の定義（`messages/<名前>.ts`、書き方は src/lib/messaging/README.md）を送る口が回（`message_dispatches`）と配達（`message_deliveries`、受信者 × 経路の 1 行）に記録し、経路の受け口の項目で送る。
 
+連絡の形 = **カテゴリー + ひな形 + 欄の中身**。コードの連絡（自動）も管理者のテンプレート（手動）も同じ形で、経路はカテゴリーだけが持ち、見た目はひな形（`layouts/`）が全経路の分を持つ（描けない経路は経路の汎用の描き方か要約で描く）。文面の `{{名前}}` は埋め込み情報（共通 = 受信者ごとに埋まる / 専用 = テンプレートごとに送る人が入れる、英語の鍵と日本語の別名）。部品ごとの形と「なぜそうなっているか」（採らなかった案と理由）は [Internals.md](Internals.md)。
+
 - **利用者への連絡は必ず連絡の定義 + `messagingService.sendMessage` / `sendMessageToMany`（`@/features/messaging/services/server`）を通す**。`lib/mail` の `send()` を直に呼ぶのはメールの経路の項目だけ（回・配達の記録・配信停止・本文の残し方を 1 か所で守る）
 - このドメインが持つ口: 本人の口（受け取り箱・好み・端末の帳簿）・配信停止の受け口と確認のページ・管理の口（送る・一括送信・送った回・テンプレート・文言の上書き）・provider の webhook・cron 3 本。業務の送信 API は持たない: 送り手（各ドメインの service・cron・fork の route）がサーバーから送る口を呼ぶ
 - 機能の門（`src/featureGate/rules/`）: `messagingDispatches`（送った回の管理、既定 開）・`messagingBroadcast`（管理の送信、既定 閉）・`messagingTemplates`・`messagingOverrides`（既定 閉）・`messagingPreferences`（好みのページと API、既定 閉）・`messagingInbox`（受け取り箱のページと未読のモーダル、既定 閉）・`messagingTracking`（開封・クリックの記録、既定 閉）。送る口・cron・配信停止の受け口・webhook・本人の受け取り箱 API は門の外で常に開
@@ -100,8 +102,9 @@ HTTP の口と返す形は口のフォルダの README:
 
 項目は `<受け口>/<名前>.ts` に `export const <単数> = { … }` で置き、`pnpm generate extensions` が `extensions/<受け口>.ts` にする（置くだけで載る）。項目の型は `@/lib/messaging`（src/lib/messaging/README.md「受け口の項目」）。fork は自分のドメインの同じ名前のフォルダに置く。
 
-- `channels/`（`channel`: `MessageChannel`）: 経路（プッシュ・SMS など。宛先の決め方・欄の zod・送る関数・webhook・端末の帳簿の宛先の形）。上流は email・inApp・line（channels/README.md）
-- `enrichers/`（`enricher`: `MessageEnricher`）: 連絡に足す値（当てる連絡・変数の zod・値を返す関数）。上流は `displayName`（管理者の連絡の宛名、名前が無ければ「お客様」）
+- `channels/`（`channel`: `MessageChannel`）: 経路（プッシュ・SMS など。宛先の決め方・描き方の 3 段の宣言・送る関数・webhook・端末の帳簿の宛先の形。経路は自分の欄を持たない）。上流は email・inApp・line（channels/README.md）
+- `layouts/`（`layout`: `MessageLayoutItem`、フォルダ 1 つ = ひな形 1 つ。メールの描き方 `email.tsx` と お知らせの描き方 `inApp.tsx` は別の生成の一覧 `layoutEmails`（server）・`layoutInApps`（client））: 見た目。上流は notice・link・welcome・statement・alert（layouts/README.md）
+- `enrichers/`（`enricher`: `MessageEnricher`）: 連絡に足す値（当て先 = 連絡の鍵・カテゴリー・種別・全部、provides の zod と日本語の別名、値を返す関数）。上流は `displayName`（管理者の連絡の宛名、名前が無ければ「お客様」）
 - `categories/`（`category`: `MessageCategory`）: 種類（種別・経路・グループ・表示名・説明）。上流の種類は隣の `<名前>.override.ts` で `label`・`description`・`channels`・`group` を変えられる（`key`・`kind` は不可、functional・security の email は外せない = `pnpm check extensions`）
 - `categoryGroups/`（`group`: `MessageCategoryGroup`）: 種類のグループ（好みのページの見出し、同じ種別の種類だけ、`order` の順）。上流は出荷しない
 - `sources/`（`source`: `MessageSource`）: 送り元の表示名。上流は管理の送り元 4 つ（`adminSend`・`adminSendTest`・`adminBulk`・`adminBulkTest`）。回の詳細の送り元は `sources/` → 同じ鍵の連絡の `label` → 一括の対象 `<対象>.bulk(.test)` の順に引く（`services/server/admin/sourceLabels.ts`）
@@ -119,7 +122,7 @@ HTTP の口と返す形は口のフォルダの README:
 
 ## Internals
 
-仕組みの詳細は各フォルダの README:
+部品ごとの形と背景（ひな形・描き方の 3 段・定義・テンプレート・埋め込み情報・文言の上書き・回の記録・秘密・受け取り箱・enrichers）は [Internals.md](Internals.md)。仕組みの詳細は各フォルダの README:
 
 - 送る口の流れ（定義 → 回 → 展開 → 配達 → 経路の send → 記録）・間引き・配信停止の確かめ・宛先の引き方 → services/server/sendMessage/README.md
 - 経路の項目（メールの描き方・お知らせの共有の行・LINE の再送の鍵）→ channels/README.md
