@@ -12,6 +12,7 @@ import type { MessageLayout } from "../layout/types";
 import { layoutValuesSchema } from "../layout/values";
 import type { MessageCategory, MessageCategoryGroup } from "../receptacles/types";
 import { UPSTREAM_CHANNEL_FIELDS, type ChannelFieldSchemas } from "./channels";
+import { MESSAGE_COMMON_EMBEDDED } from "../embedded/common";
 import { MESSAGE_KIND_TRAITS, isMessageKind } from "./kinds";
 import type {
   MessageDefinition,
@@ -20,20 +21,15 @@ import type {
 } from "./types";
 
 /**
- * どの連絡でも差し込める共通の文脈の鍵(送る口が埋める)
+ * どの連絡でも差し込める共通の文脈の鍵(送る口が埋める)。一覧(鍵・日本語の別名・説明)は embedded/common.ts の 1 か所
  * - recipientName / recipientEmail: 受信者
  * - serviceName: サービスの名前(@/business)
  * - appBaseUrl: アプリの起点の URL(getAppBaseUrl)
  */
-export const COMMON_CONTEXT_KEYS = [
-  "recipientName",
-  "recipientEmail",
-  "serviceName",
-  "appBaseUrl",
-] as const;
+export const COMMON_CONTEXT_KEYS: readonly string[] = MESSAGE_COMMON_EMBEDDED.filter((item) => !item.throttleOnly).map((item) => item.key);
 
 /** throttle のある連絡だけで差し込める鍵(まとめた回数) */
-export const THROTTLE_CONTEXT_KEYS = ["collapsedCount"] as const;
+export const THROTTLE_CONTEXT_KEYS: readonly string[] = MESSAGE_COMMON_EMBEDDED.filter((item) => item.throttleOnly).map((item) => item.key);
 
 /** 上書きで変えられない項目(category は付け替えない D74、kind・defaultChannels は定義に無い) */
 const OVERRIDE_FORBIDDEN_KEYS = ["key", "kind", "vars", "required", "category", "defaultChannels"] as const;

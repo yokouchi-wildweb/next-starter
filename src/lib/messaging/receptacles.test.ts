@@ -76,6 +76,7 @@ test("値・種類・送り元・購読", async () => {
     key: "rank",
     target: { messages: ["auth.verification"], kinds: ["promotion"] },
     provides: z.object({ rankName: z.string() }),
+    aliases: { rankName: "ランク名" },
     resolve: () => ({ rankName: "ゴールド" }),
   };
   assert.deepEqual(

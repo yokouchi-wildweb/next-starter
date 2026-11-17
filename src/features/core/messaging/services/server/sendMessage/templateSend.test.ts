@@ -36,6 +36,7 @@ const enrichers: Record<string, MessageEnricher> = {
     key: "displayName",
     target: { kinds: ["announcement", "direct", "promotion"] },
     provides: z.object({ displayName: z.string() }),
+    aliases: { displayName: "表示名" },
     resolve: ({ recipient }) => ({ displayName: recipient.name ?? "お客様" }),
   },
 };

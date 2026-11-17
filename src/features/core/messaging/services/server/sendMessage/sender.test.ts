@@ -449,6 +449,7 @@ test("enrichers の provides を差し込み、返値は zod で検査する", a
         key: "points",
         target: { messages: ["shop.notice"] },
         provides: z.object({ extra: z.string() }),
+        aliases: { extra: "おまけ" },
         resolve: ({ recipient }) => ({ extra: `pt-${recipient.userId}` }),
       },
     },
@@ -465,7 +466,7 @@ test("enrichers の provides を差し込み、返値は zod で検査する", a
   const badDeps = createDeps({
     store,
     channels: { test: channel },
-    enrichers: { points: { key: "points", target: { all: true }, provides: z.object({ extra: z.string() }), resolve: () => ({ extra: 1 }) } },
+    enrichers: { points: { key: "points", target: { all: true }, provides: z.object({ extra: z.string() }), aliases: { extra: "おまけ" }, resolve: () => ({ extra: 1 }) } },
   });
   await assertDomainError(
     createMessageSender(badDeps).sendMessage(withPoints, { recipient: { userId: "u2" }, vars: { item: "x" } }),
@@ -475,7 +476,7 @@ test("enrichers の provides を差し込み、返値は zod で検査する", a
 
 test("enrichers の当て先(D127): 種類・種別・全部で当て、当たらない連絡には値も鍵も無い", async () => {
   const enricher = (target: Record<string, unknown>) => ({
-    points: { key: "points", target, provides: z.object({ extra: z.string() }), resolve: () => ({ extra: "当たった" }) },
+    points: { key: "points", target, provides: z.object({ extra: z.string() }), aliases: { extra: "おまけ" }, resolve: () => ({ extra: "当たった" }) },
   });
   const withPoints = defineTestMessage({ ...notice, layout: "card", values: { title: "t", body: "{{extra}}" } });
   // notice の種類 news = 種別 promotion

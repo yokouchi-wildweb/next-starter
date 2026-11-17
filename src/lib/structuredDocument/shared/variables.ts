@@ -6,9 +6,9 @@ export type VariableMap = Record<string, string>;
 
 /**
  * プレースホルダー {{VARIABLE_NAME}} の形(差し込みの書式はこの 1 本だけ)
- * - 鍵は \w+(英数字と _)。点などを含む鍵は差し込まれずに残る
+ * - 名前は文字(どの文字体系も。日本語の別名 {{受信者名}} も)・数字・_ の並び。空白・点などを含む名前は差し込まれずに残る
  */
-const VARIABLE_PATTERN = /\{\{(\w+)\}\}/g;
+const VARIABLE_PATTERN = /\{\{([\p{L}\p{N}_]+)\}\}/gu;
 
 /**
  * テキスト内のプレースホルダーを変数マップで置換する
