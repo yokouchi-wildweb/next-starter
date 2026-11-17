@@ -1,19 +1,23 @@
 // src/features/core/messaging/components/common/MessagePreview/index.tsx
-// 部品(props だけ): 連絡の経路ごとのプレビュー。
-// - email: 描いた HTML があればそれを sandbox の iframe に出す。無ければ欄(件名・見出し・段落・ボタン・フッター)から組む
-// - inApp: お知らせのカード(画像・題・本文・行き先)
+// 部品(props だけ): 連絡の経路ごとのプレビュー(送る口が描いた物を見せる)。
+// - email: 描いた HTML を sandbox の iframe に出す。HTML が無ければ文(text)、それも無ければ「プレビューはありません」
+// - inApp: 受け取り箱の詳細と同じ部品 InboxLayoutView(D120: お知らせの見せ方は 1 つ)。fields が送る口の中身
+//   (MessageLayoutContent = ひな形の鍵・差し込み済みの欄の中身・要約)ならひな形の描き方で、それ以前の行(題・本文・画像・行き先)は要約で
 // - それ以外の経路: text があればそれ、無ければ欄の値の一覧(欄の名前は見せない、D46)
-// 経路の見出しは label(呼び手が経路の表示名を渡す。無ければ経路の鍵)
-// 使い手: 送る画面(POST /send/preview の結果)とテンプレートの版の表示(版の欄だけ。HTML は無い)
+// 経路の見出しは label(呼び手が経路の表示名を渡す。無ければ経路の鍵)。showLabels false で見出しを出さない(タブで分ける呼び手)
+// 使い手: 送る画面の「あなた宛ての表示例」(SampleForYouModal)・回の詳細・ひな形のプレビュー(メールの iframe)
 
 "use client";
 
-import { AppImage } from "@/components/Media/AppImage";
+import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
+import { isMessageLayoutContent, type MessageLayoutFields } from "@/lib/messaging";
 
 import { messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
+
+import { InboxLayoutView, inboxSummaryOf } from "../InboxLayoutView";
 
 /** プレビューの経路 1 つ(POST /send/preview の channels の要素と同じ形) */
 export type MessagePreviewChannel = {
@@ -22,72 +26,40 @@ export type MessagePreviewChannel = {
   fields: unknown;
   html?: string;
   text?: string;
+  /** お知らせの汎用の描き方に使うひな形の欄の宣言(無ければその段を飛ばす) */
+  layoutFields?: MessageLayoutFields | null;
 };
 
 export type MessagePreviewProps = {
   channels: MessagePreviewChannel[];
   /** メールの iframe の高さ(px、既定 480) */
   emailHeight?: number;
+  /** 経路の見出しを出すか(既定 true) */
+  showLabels?: boolean;
 };
 
 const str = (value: unknown) => (typeof value === "string" ? value : "");
 const record = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 
-function EmailFields({ fields }: { fields: Record<string, unknown> }) {
-  const paragraphs = Array.isArray(fields.paragraphs) ? fields.paragraphs.map(String) : [];
-  const cta = record(fields.cta);
+/** お知らせ: 受け取り箱と同じ部品で(送る口の中身ならひな形で、前の行の形なら要約で) */
+function InAppView({ channel }: { channel: MessagePreviewChannel }) {
+  const fields = channel.fields;
+  if (isMessageLayoutContent(fields)) {
+    return (
+      <Block className="rounded-md border border-border bg-card p-4" data-slot="message-preview-in-app">
+        <InboxLayoutView layout={fields.layout} values={fields.values} fields={channel.layoutFields ?? null} summary={fields.summary} showTitle />
+      </Block>
+    );
+  }
+  const old = record(fields);
   return (
-    <Stack space={2} className="rounded-md border border-border bg-background p-4">
-      <Span size="sm" tone="muted">
-        件名: {str(fields.subject)}
-      </Span>
-      {str(fields.heading) ? (
-        <Span size="lg" weight="semiBold">
-          {str(fields.heading)}
-        </Span>
-      ) : null}
-      {paragraphs.map((paragraph, index) => (
-        <Para key={index} size="sm" className="my-0 whitespace-pre-wrap">
-          {paragraph}
-        </Para>
-      ))}
-      {str(cta.label) ? (
-        <Span size="sm" className="font-medium">
-          [{str(cta.label)}] → {str(cta.url)}
-        </Span>
-      ) : null}
-      {str(fields.footer) ? (
-        <Para size="xs" tone="muted" className="my-0 whitespace-pre-wrap">
-          {str(fields.footer)}
-        </Para>
-      ) : null}
-    </Stack>
-  );
-}
-
-function InAppCard({ fields }: { fields: Record<string, unknown> }) {
-  return (
-    <Stack space={2} className="max-w-md rounded-md border border-border bg-card p-4">
-      {str(fields.image) ? (
-        <AppImage
-          src={str(fields.image)}
-          alt={str(fields.title) || "お知らせの画像"}
-          sizes="card"
-          objectFit="contain"
-          className="aspect-video w-full rounded-md bg-muted"
-        />
-      ) : null}
-      <Span weight="semiBold">{str(fields.title)}</Span>
-      <Para size="sm" className="my-0 whitespace-pre-wrap break-words">
-        {str(fields.body)}
-      </Para>
-      {str(fields.link) ? (
-        <Span size="xs" tone="muted">
-          リンク先: {str(fields.link)}
-        </Span>
-      ) : null}
-    </Stack>
+    <Block className="rounded-md border border-border bg-card p-4" data-slot="message-preview-in-app">
+      <InboxLayoutView
+        summary={inboxSummaryOf({ title: str(old.title) || null, body: str(old.body), image: str(old.image) || null, link: str(old.link) || null })}
+        showTitle
+      />
+    </Block>
   );
 }
 
@@ -115,7 +87,7 @@ function OtherFields({ channel }: { channel: MessagePreviewChannel }) {
   );
 }
 
-export function MessagePreview({ channels, emailHeight = 480 }: MessagePreviewProps) {
+export function MessagePreview({ channels, emailHeight = 480, showLabels = true }: MessagePreviewProps) {
   if (channels.length === 0) {
     return (
       <Para size="sm" tone="muted" className="my-0">
@@ -127,9 +99,11 @@ export function MessagePreview({ channels, emailHeight = 480 }: MessagePreviewPr
     <Stack space={4} data-slot="message-preview">
       {channels.map((channel) => (
         <Stack key={channel.key} space={2}>
-          <Span size="sm" weight="semiBold">
-            {channel.label ?? messageChannelLabel(channel.key)}
-          </Span>
+          {showLabels ? (
+            <Span size="sm" weight="semiBold">
+              {channel.label ?? messageChannelLabel(channel.key)}
+            </Span>
+          ) : null}
           {channel.key === "email" ? (
             channel.html ? (
               // 生の HTML の要素の決まりの例外(.claude/rules/core/components.md「wrappers (raw HTML NG)」): ここだけ生の <iframe> を使う。
@@ -144,11 +118,17 @@ export function MessagePreview({ channels, emailHeight = 480 }: MessagePreviewPr
                 className="w-full rounded-md border border-border bg-card"
                 style={{ height: emailHeight }}
               />
+            ) : channel.text ? (
+              <Para size="sm" className="my-0 whitespace-pre-wrap rounded-md border border-border p-3">
+                {channel.text}
+              </Para>
             ) : (
-              <EmailFields fields={record(channel.fields)} />
+              <Para size="sm" tone="muted" className="my-0">
+                このメールのプレビューはありません
+              </Para>
             )
           ) : channel.key === "inApp" ? (
-            <InAppCard fields={record(channel.fields)} />
+            <InAppView channel={channel} />
           ) : (
             <OtherFields channel={channel} />
           )}
