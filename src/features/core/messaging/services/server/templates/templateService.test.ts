@@ -1,63 +1,71 @@
-// @ts-nocheck
-// D112: restore before ship (指令 58 でテンプレートの形が変わった。出荷の前に新しい形へ書き直して回す)
 // 保存されたテンプレートの service の検査(DB・台帳・監査は偽物)
-// - 作る(draft)・下書きの更新・公開(版を追記、版は不変、current_version を進める)・取り下げ・版の一覧と 1 版・監査
-// - 保存時の検査: 文言の鍵 = 有効な経路の鍵・少なくとも 1 つ・経路の欄・種類(種別 announcement・direct・promotion だけ)・変数の宣言
-//   (一意・予約の鍵・secret の型)・{{鍵}} は共通の文脈 ∪ provides ∪ 変数だけ。経路の組は持たない(D85)
-// - 画面の選択肢(有効な経路・3 つの種別の種類・基本の鍵)
-// - 変更の無い公開・取り下げ済みの操作は 409、同じ鍵は 409、管理者でなければ 403
-// - システムテンプレート(白紙、D117): 一覧の最初のページの先頭に印つき、1 件も読める、直す・公開・取り下げは 409、版は持たない
+// - 保存 = 公開(D134): 作る = 行と版 1、直す = 中身が最新の版と違えば新しい版、同じなら版を作らず unchanged(名前・説明だけも)。版は不変
+// - 中身 = カテゴリー + ひな形 + 欄の中身 + 専用の埋め込み情報の宣言(指令 58)。ひな形を替える時は新しいひな形の欄の中身も要る(D113)
+// - 保存時の検査(400): 種類(種別 announcement・direct・promotion だけ)・ひな形(受け口にあり管理者が選べる)・欄の中身(その種類の経路で使う欄の zod)・
+//   専用の宣言の形・名前の重なり(共通・enrichers・専用、D126)・文面の {{名前}} は一覧の中だけ。鍵はサーバーが作る
+// - 消す(D137): 行が消え(版は cascade)、欄の中身を残している回が使う画像はその回に結び直す。監査 deleted(名前・最後の版)
+// - 一覧(新しい順・cursor・種別で絞る D135)、画面の選択肢(使える経路・3 つの種別の種類・選べるひな形・基本の埋め込み情報)
+// - システムテンプレート(白紙、D117): 一覧の最初のページの先頭に印つき、1 件も読める、直す・消すは 409、版は持たない
+// - 管理者でなければ 403
 // 実行: pnpm test src/features/core/messaging/services/server/templates
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
-import { z } from "zod";
-
-import type { MessageCategory, MessageChannel, MessageSystemTemplate } from "@/lib/messaging";
+import type { MessageCategory, MessageChannel, MessageEnricher, MessageSystemTemplate } from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
+import { z } from "zod";
 
 import type { MessageTemplate, MessageTemplateVersion } from "../../../entities/model";
+import { TEST_LAYOUTS } from "../sendMessage/testHelpers";
 import { createTemplateService } from "./templateService";
-import type { MessageTemplateStore } from "./types";
+import type { MessageTemplateStore, TemplateKeptDispatch } from "./types";
 
 const ADMIN = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
+const channel = (key: string, label: string, extra: Partial<MessageChannel> = {}): MessageChannel =>
+  ({ key, label, addressing: "user", send: async () => [], ...extra }) as MessageChannel;
 const channels: Record<string, MessageChannel> = {
-  email: {
-    key: "email",
-    label: "メール",
-    addressing: "user",
-    fields: z.object({ subject: z.string().min(1), paragraphs: z.array(z.string()).optional() }).strict(),
-    send: async () => [],
-  },
-  inApp: {
-    key: "inApp",
-    label: "お知らせ",
-    addressing: "user",
-    fields: z.object({ title: z.string().min(1), body: z.string(), image: z.string().optional() }).strict(),
-    send: async () => [],
-  },
-  line: { key: "line", label: "LINE", addressing: "user", enabled: false, fields: z.object({ text: z.string() }), send: async () => [] },
+  email: channel("email", "メール"),
+  inApp: channel("inApp", "お知らせ"),
+  line: channel("line", "LINE", { enabled: false }),
 };
 const categories: Record<string, MessageCategory> = {
   promotion: { key: "promotion", label: "お知らせ", kind: "promotion", channels: ["email", "inApp"] },
+  operatorDirect: { key: "operatorDirect", label: "運営からのご連絡", kind: "direct", channels: ["email", "line"] },
   activity: { key: "activity", label: "反応", kind: "activity", channels: ["email", "inApp"] },
   account: { key: "account", label: "手続き", kind: "transactional", channels: ["email"] },
 };
+const enrichers: MessageEnricher[] = [
+  {
+    key: "displayName",
+    target: { kinds: ["announcement", "direct", "promotion"] },
+    provides: z.object({ displayName: z.string() }),
+    aliases: { displayName: "表示名" },
+    resolve: () => ({ displayName: "" }),
+  },
+];
+/** notice = 管理者が選べるひな形(上流の汎用のお知らせ)、card = テストのカード(選べない) */
+const layouts = { ...TEST_LAYOUTS, notice: { ...TEST_LAYOUTS.notice!, adminSelectable: true } };
 
-function setup(options: { role?: string; systemTemplates?: Record<string, MessageSystemTemplate> } = {}) {
+const IMAGE = "storage://pub/notification.image/00000000-0000-4000-8000-000000000001.png";
+
+function setup(options: { role?: string; systemTemplates?: Record<string, MessageSystemTemplate>; kept?: TemplateKeptDispatch[] } = {}) {
   const templates: MessageTemplate[] = [];
   const versions: MessageTemplateVersion[] = [];
   const audits: AuditRecordInput[] = [];
+  const kept = options.kept ?? [];
+  const dispatchWrites: { id: string; values: Record<string, unknown>; metadata: Record<string, unknown> }[] = [];
+  const dispatchAttached: { ref: string; dispatchId: string }[] = [];
   let clock = 0;
   const store: MessageTemplateStore<null> = {
     transaction: (run) => run(null),
-    list: async ({ status, limit }) =>
+    list: async ({ categories: only, limit, after }) =>
       templates
-        .filter((row) => !status || row.status === status)
+        .filter((row) => !only || only.includes(row.category))
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .filter((row) => !after || row.createdAt.getTime() < after.createdAt.getTime())
         .slice(0, limit + 1),
     find: async (id) => templates.find((row) => row.id === id) ?? null,
     findByKey: async (key) => templates.find((row) => row.key === key) ?? null,
@@ -69,10 +77,10 @@ function setup(options: { role?: string; systemTemplates?: Record<string, Messag
         current_version: null,
         created_by: null,
         updated_by: null,
+        layout_version: 1,
+        embedded: [],
         createdAt: new Date(Date.UTC(2026, 10, 12, 0, 0, clock++)),
         updatedAt: null,
-        status: "draft",
-        variables: [],
         ...values,
       } as MessageTemplate;
       templates.push(row);
@@ -83,10 +91,21 @@ function setup(options: { role?: string; systemTemplates?: Record<string, Messag
       Object.assign(row, patch, { updatedAt: new Date() });
       return row;
     },
-    latestVersion: async (id) =>
-      versions.filter((row) => row.template_id === id).sort((a, b) => b.version - a.version)[0] ?? null,
+    remove: async (_tx, id) => {
+      templates.splice(
+        templates.findIndex((row) => row.id === id),
+        1,
+      );
+      // 版は FK の cascade で消える
+      for (let i = versions.length - 1; i >= 0; i -= 1) if (versions[i]!.template_id === id) versions.splice(i, 1);
+    },
+    lockKeptDispatches: async () => kept,
+    updateDispatchImages: async (_tx, id, patch) => {
+      dispatchWrites.push({ id, ...patch });
+    },
+    latestVersion: async (id) => versions.filter((row) => row.template_id === id).sort((a, b) => b.version - a.version)[0] ?? null,
     insertVersion: async (_tx, values) => {
-      const row = { id: randomUUID(), variables: [], edited_by: null, createdAt: new Date(), ...values } as MessageTemplateVersion;
+      const row = { id: randomUUID(), edited_by: null, createdAt: new Date(), ...values } as MessageTemplateVersion;
       versions.push(row);
       return row;
     },
@@ -96,23 +115,31 @@ function setup(options: { role?: string; systemTemplates?: Record<string, Messag
   const service = createTemplateService({
     store,
     ledger: { find: async () => null, attach: async () => {}, copy: async (ref) => ref },
-    check: () => ({ channels, categories, providedKeys: ["displayName"] }),
+    // 回の画像の台帳: テンプレートの画像(持ち主 = テンプレート)は回へ複製する
+    dispatchLedger: {
+      find: async () => ({ status: "ready", purpose: "notification.image", ownerUserId: ADMIN, recordType: "messaging.template", recordId: "t" }),
+      attach: async (_tx, input) => {
+        dispatchAttached.push({ ref: input.ref, dispatchId: input.dispatchId });
+      },
+      copy: async (ref) => `${ref}#copy`,
+    },
+    check: () => ({ channels, categories, layouts, enrichers }),
     context: () => ({ actorId: ADMIN, actorType: "user" }) as never,
     roleCategoryOf: async () => options.role ?? "admin",
     recordAudit: async (input) => audits.push(input),
     ...(options.systemTemplates ? { systemTemplates: () => options.systemTemplates! } : {}),
   });
-  return { service, templates, versions, audits };
+  return { service, templates, versions, audits, dispatchWrites, dispatchAttached };
 }
 
+const VALUES = { subject: "{{表示名}} 様へ {{discount}} 割引", blocks: [{ type: "paragraph", text: "{{serviceName}} より" }] };
+const DISCOUNT = { key: "discount", alias: "割引率", type: "number", required: true };
 const input = (extra: Record<string, unknown> = {}) => ({
   name: "春のセール",
   category: "promotion",
-  content: {
-    email: { subject: "{{displayName}} 様へ {{discount}} 割引", paragraphs: ["{{serviceName}} より"] },
-    inApp: { title: "セール", body: "{{discount}} 割引" },
-  },
-  variables: [{ key: "discount", label: "割引", type: "string", required: true, source: "dispatch" }],
+  layout: "notice",
+  values: VALUES,
+  embedded: [DISCOUNT],
   ...extra,
 });
 
@@ -125,85 +152,85 @@ async function rejectsWith(run: Promise<unknown>, status: number, message?: RegE
   });
 }
 
-test.skip("作る → 公開 → 直す → 公開: 版は不変で current_version が進み、監査に残る", async () => {
+test("作る = 版 1 まで(保存 = 公開)、直す = 中身が違えば新しい版、版は不変で current_version が進み、監査に残る", async () => {
   const { service, versions, audits } = setup();
   const created = await service.createTemplate(input());
-  assert.equal(created.status, "draft");
-  assert.equal(created.currentVersion, null);
-  assert.equal(created.hasUnpublishedChanges, true);
-  assert.deepEqual(created.allowedKeys, ["recipientName", "recipientEmail", "serviceName", "appBaseUrl", "displayName", "discount"]);
+  assert.equal(created.currentVersion, 1);
   assert.equal(created.createdBy, ADMIN);
+  assert.equal("status" in created, false);
+  assert.equal(versions.length, 1);
+  assert.deepEqual([versions[0]!.layout, versions[0]!.category, versions[0]!.values, versions[0]!.embedded], ["notice", "promotion", VALUES, [DISCOUNT]]);
+  assert.equal("channels" in versions[0]!, false);
+  // 一覧(共通 + テンプレートに当たる enrichers + 専用)
+  assert.ok(created.catalog.some((entry) => entry.key === "displayName" && entry.alias === "表示名" && entry.source === "enricher"));
+  assert.ok(created.catalog.some((entry) => entry.key === "discount" && entry.alias === "割引率" && entry.source === "own"));
 
-  const published = await service.publishTemplate(created.id);
-  assert.equal(published.status, "published");
-  assert.equal(published.currentVersion, 1);
-  assert.equal(published.hasUnpublishedChanges, false);
-  assert.deepEqual(Object.keys(versions[0].content), ["email", "inApp"]);
-  assert.equal("channels" in versions[0], false);
-  assert.equal(versions[0].category, "promotion");
-  assert.equal(versions[0].variables[0].key, "discount");
-
-  const edited = await service.updateTemplate(created.id, { content: { email: { subject: "新しい件名" }, inApp: { title: "t", body: "b" } } });
-  assert.equal(edited.hasUnpublishedChanges, true);
-  assert.equal(edited.currentVersion, 1);
-  // 公開した版は書き換わらない
+  const edited = await service.updateTemplate(created.id, { values: { subject: "新しい件名", blocks: [] } });
+  assert.equal(edited.unchanged, false);
+  assert.equal(edited.currentVersion, 2);
+  // 行と新しい版は欄の zod を通した中身(空の任意の欄は落ちる)で同じ
+  assert.deepEqual(edited.values, { subject: "新しい件名" });
+  assert.deepEqual(versions.at(-1)!.values, edited.values);
+  // 前の版は書き換わらない
   const v1 = await service.getTemplateVersion(created.id, 1);
-  assert.equal((v1.content.email as { subject: string }).subject, "{{displayName}} 様へ {{discount}} 割引");
-
-  const second = await service.publishTemplate(created.id);
-  assert.equal(second.currentVersion, 2);
+  assert.deepEqual(v1.values, VALUES);
   assert.deepEqual((await service.listTemplateVersions(created.id)).map((v) => v.version), [2, 1]);
-  assert.deepEqual(audits.map((a) => a.action), [
-    "messaging.template.created",
-    "messaging.template.published",
-    "messaging.template.updated",
-    "messaging.template.published",
-  ]);
-  assert.deepEqual(audits[1].metadata, { key: created.key, version: 1 });
+  assert.deepEqual(audits.map((a) => a.action), ["messaging.template.created", "messaging.template.updated"]);
+  assert.deepEqual(audits[0]!.metadata, { key: created.key, version: 1 });
+  assert.deepEqual(audits[1]!.metadata, { key: created.key, version: 2, newVersion: true });
 });
 
-test.skip("変更の無い公開は 409、取り下げた後は直せない・公開できない(409)", async () => {
-  const { service, audits } = setup();
+test("直す: 中身が最新の版と同じなら版を作らず unchanged(409 にしない)。名前・説明だけの変更も保存して unchanged", async () => {
+  const { service, versions, audits } = setup();
   const created = await service.createTemplate(input());
-  await service.publishTemplate(created.id);
-  await rejectsWith(service.publishTemplate(created.id), 409, /変更が無い/);
-  const archived = await service.archiveTemplate(created.id);
-  assert.equal(archived.status, "archived");
-  await rejectsWith(service.updateTemplate(created.id, { name: "x" }), 409);
-  await rejectsWith(service.publishTemplate(created.id), 409);
-  await rejectsWith(service.archiveTemplate(created.id), 409);
-  assert.equal(audits.at(-1)?.action, "messaging.template.archived");
-  assert.equal((await service.listTemplateVersions(created.id)).length, 1);
+  const same = await service.updateTemplate(created.id, { values: VALUES });
+  assert.equal(same.unchanged, true);
+  assert.equal(same.currentVersion, 1);
+  const renamed = await service.updateTemplate(created.id, { name: "夏のセール", description: "説明" });
+  assert.equal(renamed.unchanged, true);
+  assert.deepEqual([renamed.name, renamed.description, renamed.currentVersion], ["夏のセール", "説明", 1]);
+  assert.equal(versions.length, 1);
+  assert.deepEqual(audits.at(-1)!.metadata, { key: created.key, version: 1, newVersion: false });
+  // 種類・専用の宣言を替えるのは中身の変更 = 新しい版
+  const recategorized = await service.updateTemplate(created.id, { category: "operatorDirect" });
+  assert.deepEqual([recategorized.unchanged, recategorized.currentVersion, versions.at(-1)!.category], [false, 2, "operatorDirect"]);
 });
 
-test.skip("保存時の検査(400)、鍵はサーバーが作る(入力の key は 400)", async () => {
+test("ひな形を替える時は新しいひな形の欄の中身も要る(D113、前の中身を持ち越さない)", async () => {
+  const { service } = setup();
+  const created = await service.createTemplate(input());
+  await rejectsWith(service.updateTemplate(created.id, { layout: "card" }), 400, /欄の中身も/);
+});
+
+test("保存時の検査(400)、鍵はサーバーが作る(入力の key は 400)", async () => {
   const { service, templates } = setup();
   const cases: Record<string, unknown>[] = [
     // 鍵は受けない(サーバーが作る、D46)
     { key: "spring-sale" },
+    // 前の形(経路ごとの content・variables)は黙って捨てない
+    { content: { email: { subject: "s" } } },
+    { variables: [] },
     { category: "nope" },
     // 3 つの種別でない種類はテンプレートに使えない
     { category: "activity" },
     { category: "account" },
-    // 経路の組は受けない(文言の鍵で決まる)
+    // 経路の組は受けない(経路は送る時のカテゴリーの経路)
     { channels: ["email"] },
-    // 文言の鍵は有効な経路の鍵(line は enabled: false)、少なくとも 1 つ
-    { content: { email: { subject: "s" }, line: { text: "x" } } },
-    { content: { push: { title: "x" } } },
-    { content: {} },
-    { content: { email: { subject: "" }, inApp: { title: "t", body: "b" } } },
-    { content: { email: { subject: "{{unknown}}" }, inApp: { title: "t", body: "b" } } },
-    { variables: [{ key: "serviceName", label: "x", type: "string", required: true, source: "dispatch" }] },
-    { variables: [{ key: "displayName", label: "x", type: "string", required: true, source: "dispatch" }] },
-    { variables: [{ key: "token", label: "x", type: "secret", required: true, source: "dispatch" }] },
-    {
-      variables: [
-        { key: "discount", label: "x", type: "string", required: true, source: "dispatch" },
-        { key: "discount", label: "y", type: "string", required: false, source: "recipient" },
-      ],
-    },
-    { variables: [{ key: "bad-key", label: "x", type: "string", required: true, source: "dispatch" }] },
-    { variables: [{ key: "discount" }] },
+    // ひな形: 無い・管理者が選べない
+    { layout: "none" },
+    { layout: "card", values: { title: "t" } },
+    // 欄の中身: 件名は必須・知らない欄
+    { values: { subject: "", blocks: [] } },
+    { values: { subject: "s", nope: 1 } },
+    // 文面の名前は一覧の中だけ
+    { values: { subject: "{{unknown}}", blocks: [] } },
+    // 専用の宣言: 形・共通の名前と重なる鍵 / 別名・専用どうしの重なり・秘密の型は無い
+    { embedded: [{ key: "discount" }] },
+    { embedded: [{ ...DISCOUNT, key: "bad-key" }] },
+    { embedded: [{ ...DISCOUNT, key: "serviceName" }] },
+    { embedded: [{ ...DISCOUNT, alias: "表示名" }] },
+    { embedded: [DISCOUNT, { ...DISCOUNT, key: "discount2" }] },
+    { embedded: [{ ...DISCOUNT, type: "secret" }] },
   ];
   for (const extra of cases) await rejectsWith(service.createTemplate(input(extra)), 400);
   assert.equal(templates.length, 0);
@@ -211,73 +238,120 @@ test.skip("保存時の検査(400)、鍵はサーバーが作る(入力の key �
   const second = await service.createTemplate(input());
   assert.match(first.key, /^tpl-[a-z0-9]{10}$/);
   assert.notEqual(first.key, second.key, "同じ名前でも別の鍵");
-  await rejectsWith(service.updateTemplate(templates[0].id, { content: { email: { subject: "{{nope}}" }, inApp: { title: "t", body: "b" } } }), 400);
-  // 文言は 1 経路だけでもよい(経路 = 文言のある経路)
-  const one = await service.createTemplate(input({ content: { inApp: { title: "t", body: "b" } } }));
-  assert.deepEqual(Object.keys(one.content), ["inApp"]);
+  await rejectsWith(service.updateTemplate(first.id, { values: { subject: "{{nope}}", blocks: [] } }), 400);
+  // 専用の値は別名でも鍵でも書ける
+  const byKey = await service.createTemplate(input({ values: { subject: "{{displayName}} {{割引率}}", blocks: [] } }));
+  assert.equal(byKey.currentVersion, 1);
 });
 
-test.skip("一覧(状態で絞る・cursor)、無い id は 404、版の番号の誤りは 400", async () => {
+test("消す(D137): 行と版が消え、欄の中身を残す回の画像は回に結び直す。監査 deleted、消した後は 404", async () => {
+  const kept: TemplateKeptDispatch[] = [
+    { id: "d1", actor_id: ADMIN, metadata: null, values: { subject: "s", blocks: [{ type: "image", src: IMAGE }] } },
+    { id: "d2", actor_id: ADMIN, metadata: { inboxImages: { [IMAGE]: `${IMAGE}#bound` } }, values: { subject: "s", blocks: [{ type: "image", src: IMAGE }] } },
+    { id: "d3", actor_id: ADMIN, metadata: null, values: { subject: "画像なし", blocks: [] } },
+  ];
+  const { service, templates, versions, audits, dispatchWrites, dispatchAttached } = setup({ kept });
+  const created = await service.createTemplate(input());
+  await service.updateTemplate(created.id, { values: { subject: "二版", blocks: [] } });
+  const result = await service.deleteTemplate(created.id);
+  assert.deepEqual(result, { id: created.id, deleted: true });
+  assert.equal(templates.length, 0);
+  assert.equal(versions.length, 0);
+  // d1: テンプレートの画像を複製して回へ attach し、中身の参照と metadata.inboxImages を書き換える
+  assert.deepEqual(dispatchAttached, [{ ref: `${IMAGE}#copy`, dispatchId: "d1" }]);
+  assert.deepEqual(dispatchWrites[0], {
+    id: "d1",
+    values: { subject: "s", blocks: [{ type: "image", src: `${IMAGE}#copy` }] },
+    metadata: { inboxImages: { [IMAGE]: `${IMAGE}#copy` } },
+  });
+  // d2: 既に結んだ対応があれば使い回す(複製しない)、d3: 画像の無い回は書かない
+  assert.deepEqual(dispatchWrites[1], {
+    id: "d2",
+    values: { subject: "s", blocks: [{ type: "image", src: `${IMAGE}#bound` }] },
+    metadata: { inboxImages: { [IMAGE]: `${IMAGE}#bound` } },
+  });
+  assert.equal(dispatchWrites.length, 2);
+  assert.equal(audits.at(-1)!.action, "messaging.template.deleted");
+  assert.deepEqual(audits.at(-1)!.metadata, { key: created.key, name: "春のセール", lastVersion: 2 });
+  await rejectsWith(service.deleteTemplate(created.id), 404);
+  await rejectsWith(service.getTemplate(created.id), 404);
+});
+
+test("一覧(新しい順・cursor・種別で絞る D135)、無い id は 404、版の番号の誤りは 400", async () => {
   const { service } = setup();
   const a = await service.createTemplate(input({ name: "a" }));
-  await service.createTemplate(input({ name: "b" }));
-  await service.publishTemplate(a.id);
+  await service.createTemplate(input({ name: "b", category: "operatorDirect" }));
   const page = await service.listTemplates({ limit: "1" });
   assert.equal(page.items.length, 1);
-  assert.equal(page.items[0].name, "b");
-  assert.equal(page.items[0].categoryLabel, "お知らせ", "カテゴリーの表示名(受け口の label)");
+  assert.equal(page.items[0]!.name, "b");
+  assert.equal(page.items[0]!.categoryLabel, "運営からのご連絡", "カテゴリーの表示名(受け口の label)");
   assert.ok(page.nextCursor);
-  assert.deepEqual((await service.listTemplates({ status: "published" })).items.map((t) => t.name), ["a"]);
-  await rejectsWith(service.listTemplates({ status: "nope" }), 400);
+  assert.deepEqual((await service.listTemplates({ cursor: page.nextCursor })).items.map((t) => t.name), ["a"]);
+  assert.deepEqual((await service.listTemplates({ kind: "promotion" })).items.map((t) => t.name), ["a"]);
+  assert.deepEqual((await service.listTemplates({ kind: "announcement" })).items, []);
+  await rejectsWith(service.listTemplates({ kind: "nope" }), 400);
+  // 読めない cursor は 400
+  await rejectsWith(service.listTemplates({ cursor: "!!" }), 400);
   await rejectsWith(service.getTemplate(randomUUID()), 404);
   await rejectsWith(service.listTemplateVersions(randomUUID()), 404);
   await rejectsWith(service.getTemplateVersion(a.id, 0), 400);
   await rejectsWith(service.getTemplateVersion(a.id, 9), 404);
 });
 
-test.skip("画面の選択肢: 有効な経路だけ・3 つの種別の種類だけ・変数の前から使える鍵", async () => {
+test("画面の選択肢: 使える経路・3 つの種別の種類(使える経路つき)・選べるひな形・基本の埋め込み情報", async () => {
   const { service } = setup();
   const options = await service.templateOptions();
   assert.deepEqual(options.channels, [
     { key: "email", label: "メール" },
     { key: "inApp", label: "お知らせ" },
   ]);
-  assert.deepEqual(options.categories, [{ key: "promotion", label: "お知らせ", description: null }]);
-  assert.ok(options.baseAllowedKeys.includes("serviceName"));
-  assert.ok(options.baseAllowedKeys.includes("displayName"));
-  assert.ok(!options.baseAllowedKeys.includes("discount"));
+  assert.deepEqual(options.categories, [
+    { key: "promotion", label: "お知らせ", description: null, kind: "promotion", channels: ["email", "inApp"] },
+    { key: "operatorDirect", label: "運営からのご連絡", description: null, kind: "direct", channels: ["email"] },
+  ]);
+  assert.deepEqual(options.layouts.map((layout) => layout.key), ["notice"]);
+  const names = options.baseCatalog.map((entry) => entry.key);
+  assert.ok(names.includes("serviceName"));
+  assert.ok(names.includes("displayName"));
+  assert.ok(!names.includes("discount"));
 });
 
-test.skip("管理者でなければ 403", async () => {
+test("管理者でなければ 403", async () => {
   const { service } = setup({ role: "user" });
   await rejectsWith(service.templateOptions(), 403);
   await rejectsWith(service.listTemplates(), 403);
   await rejectsWith(service.createTemplate(input()), 403);
+  await rejectsWith(service.deleteTemplate(randomUUID()), 403);
 });
 
-test.skip("システムテンプレート: 最初のページの先頭に印つき、1 件も読め、直す・公開・取り下げは 409、版は持たない", async () => {
+test("システムテンプレート: 最初のページの先頭に印つき(種別で絞れる)、1 件も読め、直す・消すは 409、版は持たない", async () => {
   const blank: MessageSystemTemplate = { key: "promotion", kind: "promotion", label: "宣伝の白紙", layout: "notice", values: { subject: "", blocks: [] } };
-  const { service, audits } = setup({ systemTemplates: { promotion: blank } });
-  const saved = await service.createTemplate(input({ name: "a" }));
+  const direct: MessageSystemTemplate = { key: "direct", kind: "direct", label: "個別の白紙", layout: "notice", values: { subject: "", blocks: [] } };
+  const off: MessageSystemTemplate = { ...blank, key: "off", label: "切った白紙", enabled: false };
+  const { service, audits } = setup({ systemTemplates: { promotion: blank, direct, off } });
+  await service.createTemplate(input({ name: "a" }));
+  const saved = await service.createTemplate(input({ name: "b" }));
   const first = await service.listTemplates({ limit: "1" });
   assert.deepEqual(
-    first.items.map((t) => [t.id, t.system, t.kind, t.layout, t.status]),
+    first.items.map((t) => [t.id, t.system, t.kind, t.layout]),
     [
-      ["system:promotion", true, "promotion", "notice", "published"],
-      [saved.id, false, null, null, "draft"],
+      ["system:promotion", true, "promotion", "notice"],
+      ["system:direct", true, "direct", "notice"],
+      [saved.id, false, null, "notice"],
     ],
   );
-  assert.deepEqual(first.items[0].values, { subject: "", blocks: [] });
-  assert.equal(first.items[0].name, "宣伝の白紙");
-  // 2 ページ目・取り下げ / 下書きの絞りには出さない、公開中の絞りには出す
-  assert.deepEqual((await service.listTemplates({ status: "draft" })).items.map((t) => t.system), [false]);
-  assert.deepEqual((await service.listTemplates({ status: "published" })).items.map((t) => t.id), ["system:promotion"]);
+  assert.deepEqual(first.items[0]!.values, { subject: "", blocks: [] });
+  assert.equal(first.items[0]!.name, "宣伝の白紙");
+  // 種別で絞るとその種別の白紙だけ。2 ページ目には出さない
+  assert.deepEqual((await service.listTemplates({ kind: "direct" })).items.map((t) => t.id), ["system:direct"]);
+  assert.ok(first.nextCursor);
+  assert.deepEqual((await service.listTemplates({ cursor: first.nextCursor })).items.map((t) => [t.name, t.system]), [["a", false]]);
   const detail = await service.getTemplate("system:promotion");
-  assert.deepEqual([detail.system, detail.layout, detail.hasUnpublishedChanges], [true, "notice", false]);
+  assert.deepEqual([detail.system, detail.layout], [true, "notice"]);
   await rejectsWith(service.getTemplate("system:none"), 404);
+  await rejectsWith(service.getTemplate("system:off"), 404);
   await rejectsWith(service.updateTemplate("system:promotion", { name: "x" }), 409, /宣伝の白紙/);
-  await rejectsWith(service.publishTemplate("system:promotion"), 409, /公開できません/);
-  await rejectsWith(service.archiveTemplate("system:promotion"), 409, /取り下げできません/);
+  await rejectsWith(service.deleteTemplate("system:promotion"), 409, /消すことはできません/);
   await rejectsWith(service.updateTemplate("system:none", { name: "x" }), 404);
   assert.deepEqual(await service.listTemplateVersions("system:promotion"), []);
   await rejectsWith(service.getTemplateVersion("system:promotion", 1), 404);

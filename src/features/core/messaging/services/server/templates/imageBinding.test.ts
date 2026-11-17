@@ -1,5 +1,3 @@
-// @ts-nocheck
-// D112: restore before ship (指令 58 でテンプレートの形が変わった。出荷の前に新しい形へ書き直して回す)
 // テンプレートの画像の結び付け(bindTemplateImages)の検査(台帳は偽物)
 // - 既にこのテンプレートに結ばれている = そのまま / ready・未紐付け・用途 notification.image・自分が上げた = attach
 // - 他の業務行に結ばれている・別の人が上げた・用途が違う = 複製して attach し参照を書き換える / storage:// でない値はそのまま
@@ -22,7 +20,7 @@ const LEDGER: Record<string, string> = {
 };
 const ref = (name: string) => formatStorageRef({ store: "pub", purposeId: "notification.image", ledgerId: LEDGER[name], ext: "png" });
 
-test.skip("結び方: そのまま・attach・複製、参照の書き換え", async () => {
+test("結び方: そのまま・attach・複製、参照の書き換え", async () => {
   const objects: Record<string, InboxImageObject> = {
     [ref("own")]: { status: "ready", purpose: "notification.image", ownerUserId: ADMIN, recordType: null, recordId: null },
     [ref("bound")]: { status: "ready", purpose: "notification.image", ownerUserId: ADMIN, recordType: TEMPLATE_IMAGE_RECORD_TYPE, recordId: TEMPLATE },
@@ -42,18 +40,27 @@ test.skip("結び方: そのまま・attach・複製、参照の書き換え", a
       return `${r}-copy`;
     },
   };
-  const content = {
-    inApp: { title: "t", body: "b", image: ref("own") },
-    email: { subject: "s", paragraphs: [ref("bound"), ref("other"), ref("someone"), "https://example.test/x.png"] },
+  // 欄の中身(ひな形 notice: 件名 + ブロック。画像のブロックと段落の中の参照)
+  const values = {
+    subject: "s",
+    blocks: [
+      { type: "image", src: ref("own") },
+      { type: "paragraph", text: "b" },
+      { type: "bulletList", items: [ref("bound"), ref("other"), ref("someone"), "https://example.test/x.png"] },
+    ],
   };
-  const result = await bindTemplateImages(ledger, null, { templateId: TEMPLATE, actorUserId: ADMIN, content });
+  const result = await bindTemplateImages(ledger, null, { templateId: TEMPLATE, actorUserId: ADMIN, values });
   assert.deepEqual(attached, [ref("own"), `${ref("other")}-copy`, `${ref("someone")}-copy`]);
   assert.deepEqual(copied, [ref("other"), ref("someone")]);
   assert.deepEqual(result, {
-    inApp: { title: "t", body: "b", image: ref("own") },
-    email: { subject: "s", paragraphs: [ref("bound"), `${ref("other")}-copy`, `${ref("someone")}-copy`, "https://example.test/x.png"] },
+    subject: "s",
+    blocks: [
+      { type: "image", src: ref("own") },
+      { type: "paragraph", text: "b" },
+      { type: "bulletList", items: [ref("bound"), `${ref("other")}-copy`, `${ref("someone")}-copy`, "https://example.test/x.png"] },
+    ],
   });
   // storage:// が無ければ同じ物を返す
-  const plain = { inApp: { title: "t", body: "b" } };
-  assert.equal(await bindTemplateImages(ledger, null, { templateId: TEMPLATE, actorUserId: ADMIN, content: plain }), plain);
+  const plain = { subject: "t", blocks: [{ type: "paragraph", text: "b" }] };
+  assert.equal(await bindTemplateImages(ledger, null, { templateId: TEMPLATE, actorUserId: ADMIN, values: plain }), plain);
 });

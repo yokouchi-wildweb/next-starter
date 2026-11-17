@@ -1,7 +1,5 @@
-// @ts-nocheck
-// D112: restore before ship (D134 で公開の口、D137 で取り下げの口が無くなり DELETE /[id] が足された。口の数と引数を直して回す)
 // src/app/api/admin/messaging/templates/route.test.mts
-// /api/admin/messaging/templates 以下の 6 ファイルの検査(Factory・門・messaging の service は偽物)。
+// /api/admin/messaging/templates 以下の 4 ファイル(一覧と作る・1 件の読む / 直す / 消す・版の一覧・版 1 つ)の検査。公開の口(D134)・取り下げの口(D137)は無い(Factory・門・messaging の service は偽物)。
 // - 宣言: 全部の口が access { roleCategories: ["admin"] }
 // - 門 messagingTemplates が閉なら 404 で service を呼ばない
 // - 一覧の条件・body・id・版の番号をそのまま service へ渡す
@@ -56,8 +54,7 @@ mock.module("@/features/core/messaging/services/server/messagingService", {
         "createMessageTemplate",
         "getMessageTemplate",
         "updateMessageTemplate",
-        "publishMessageTemplate",
-        "archiveMessageTemplate",
+        "deleteMessageTemplate",
         "listMessageTemplateVersions",
         "getMessageTemplateVersion",
       ].map((name) => [name, record(name)]),
@@ -67,8 +64,6 @@ mock.module("@/features/core/messaging/services/server/messagingService", {
 
 const root = await import("./route.ts");
 const one = await import("./[id]/route.ts");
-const publish = {} as never; // D112: 公開の口は無い(D134)
-const archive = {} as never; // D112: 取り下げの口は無い(D137)
 const versions = await import("./[id]/versions/route.ts");
 const version = await import("./[id]/versions/[version]/route.ts");
 
@@ -81,43 +76,41 @@ beforeEach(() => {
   calls.length = 0;
 });
 
-test.skip("宣言: 8 つの口が全部管理者だけ", () => {
-  assert.equal(declared.length, 8);
+test("宣言: 7 つの口(GET・POST / GET・PATCH・DELETE [id] / 版の一覧 / 版 1 つ)が全部管理者だけ", () => {
+  assert.equal(declared.length, 7);
+  assert.ok(declared.some((entry) => entry.operation === "DELETE /api/admin/messaging/templates/[id]"));
   for (const entry of declared) assert.deepEqual(entry.access, { roleCategories: ["admin"] }, entry.operation);
 });
 
-test.skip("引数をそのまま渡す", async () => {
+test("引数をそのまま渡す", async () => {
   const body = { key: "k", name: "n" };
-  await root.GET(new NextRequest(`${BASE}?status=draft&limit=5`), ctx());
+  await root.GET(new NextRequest(`${BASE}?kind=promotion&limit=5`), ctx());
   await root.POST(new NextRequest(BASE, { method: "POST", body: JSON.stringify(body) }), ctx());
   await one.GET(new NextRequest(`${BASE}/${ID}`), ctx({ id: ID }));
   await one.PATCH(new NextRequest(`${BASE}/${ID}`, { method: "PATCH", body: JSON.stringify({ name: "x" }) }), ctx({ id: ID }));
-  await publish.POST(new NextRequest(`${BASE}/${ID}/publish`, { method: "POST" }), ctx({ id: ID }));
-  await archive.POST(new NextRequest(`${BASE}/${ID}/archive`, { method: "POST" }), ctx({ id: ID }));
+  await one.DELETE(new NextRequest(`${BASE}/${ID}`, { method: "DELETE" }), ctx({ id: ID }));
   const list = await versions.GET(new NextRequest(`${BASE}/${ID}/versions`), ctx({ id: ID }));
   assert.deepEqual(await list.json(), { items: [] });
   await version.GET(new NextRequest(`${BASE}/${ID}/versions/2`), ctx({ id: ID, version: "2" }));
   assert.deepEqual(calls, [
-    ["listMessageTemplates", { status: "draft", limit: "5" }],
+    ["listMessageTemplates", { kind: "promotion", limit: "5" }],
     ["createMessageTemplate", body],
     ["getMessageTemplate", ID],
     ["updateMessageTemplate", ID, { name: "x" }],
-    ["publishMessageTemplate", ID],
-    ["archiveMessageTemplate", ID],
+    ["deleteMessageTemplate", ID],
     ["listMessageTemplateVersions", ID],
     ["getMessageTemplateVersion", ID, 2],
   ]);
 });
 
-test.skip("門が閉なら 404 で service を呼ばない", async () => {
+test("門が閉なら 404 で service を呼ばない", async () => {
   gateOpen = false;
   const responses = [
     await root.GET(new NextRequest(BASE), ctx()),
     await root.POST(new NextRequest(BASE, { method: "POST", body: "{}" }), ctx()),
     await one.GET(new NextRequest(`${BASE}/${ID}`), ctx({ id: ID })),
     await one.PATCH(new NextRequest(`${BASE}/${ID}`, { method: "PATCH", body: "{}" }), ctx({ id: ID })),
-    await publish.POST(new NextRequest(`${BASE}/${ID}/publish`, { method: "POST" }), ctx({ id: ID })),
-    await archive.POST(new NextRequest(`${BASE}/${ID}/archive`, { method: "POST" }), ctx({ id: ID })),
+    await one.DELETE(new NextRequest(`${BASE}/${ID}`, { method: "DELETE" }), ctx({ id: ID })),
     await versions.GET(new NextRequest(`${BASE}/${ID}/versions`), ctx({ id: ID })),
     await version.GET(new NextRequest(`${BASE}/${ID}/versions/1`), ctx({ id: ID, version: "1" })),
   ];

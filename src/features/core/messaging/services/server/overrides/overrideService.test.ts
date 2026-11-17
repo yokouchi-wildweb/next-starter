@@ -1,13 +1,13 @@
-// @ts-nocheck
-// D112: restore before ship (指令 61 で保存が saveFields { fields } のまとめての保存になった(saveField を外した)。指令 59 で文言の編集のプレビューがひな形の材料(layout・values・summary)を返し、1 件が embedded を返す形になった。出荷の前に書き直して回す)
 // 管理画面の文言の上書きの service の検査(DB・監査は偽物)
 // - 欄の道 = ひな形の欄の鍵(D132)。直せる欄 = ひな形の欄のうち種類の経路で使う物の全部、adminEditableOnly で絞る
 // - 一覧: 直せる欄のある連絡(と行の残る連絡)、数(使えない行 unusableCount)。直せない連絡(required)は一覧に出ず 1 件は 404
-// - 1 件: 欄ごとの宣言・使う経路・コードの値(定義の values)・管理画面の値・送る時の値・印、使ってよい {{鍵}}(秘密を除く)。
+// - 1 件: 欄ごとの宣言・使う経路・コードの値(定義の values)・管理画面の値・送る時の値・印、使ってよい {{鍵}} / {{別名}}(秘密を除く)、
+//   埋め込み情報の一覧(vars は定義の varNames の別名と説明、秘密は出さない D133)。
 //   版を移せない行・古い形の行(経路.欄、版なし)・検査を通らない行は使えない(unusable、行は残る)
 // - 行は保存した版から今の版の欄へ移して読む。保存は今の版で書き、同じ欄へ移る前の版の行を消す
 // - プレビュー: 保存した値と未保存の値を重ね、文字に印を付けて送る口と同じ組み立てで描く(印は data-field に)
-// - 保存: 送る口と同じ検査(誤りは 400)、ひな形の版・直した時のコードの値と操作者を残し、監査に残す / 戻す = 行を消す(無ければ 404)
+// - 保存(saveFields、D132): 欄をまとめて 1 回で書く(1 つでも誤りがあれば何も書かず 400、欄ごとの理由)。送る口と同じ検査、
+//   ひな形の版・直した時のコードの値と操作者を残し、監査に残す。reset の欄は行を消す / 戻す(resetField)= 行を消す(無ければ 404)
 // - 管理者でなければ 403
 // 実行: pnpm test src/features/core/messaging/services/server/overrides
 import { test } from "node:test";
@@ -17,7 +17,6 @@ import { z } from "zod";
 
 import {
   MESSAGE_BLOCK_KINDS,
-  defineMessage,
   defineMessageLayout,
   resolveMessageDefinition,
   secretVar,
@@ -27,7 +26,9 @@ import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
-import { createOverrideService } from "./overrideService";
+import { messageEmbeddedCatalog } from "../sendMessage/enrichers";
+import { defineTestMessage } from "../sendMessage/testHelpers";
+import { createOverrideService, OVERRIDE_FIELDS_INVALID } from "./overrideService";
 import type { MessageOverrideRecord } from "./types";
 
 const ADMIN = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -47,11 +48,12 @@ const LAYOUT = defineMessageLayout({
 }) as MessageLayout;
 
 const editable = resolveMessageDefinition(
-  defineMessage({
+  defineTestMessage({
     key: "shop.notice",
     label: "テストの連絡",
     category: "shop",
     vars: z.object({ name: z.string(), token: secretVar(z.string()) }),
+    varNames: { name: { alias: "お名前", description: "受け取る人の名前" }, token: { alias: "合言葉", description: "秘密の値" } },
     adminEditableOnly: ["subject", "blocks"],
     layout: "notice",
     values: { subject: "{{name}} 様へ", blocks: [{ type: "paragraph", text: "一" }] },
@@ -61,7 +63,7 @@ const editable = resolveMessageDefinition(
 ) as unknown as AnyResolvedMessageDefinition;
 
 const plain = resolveMessageDefinition(
-  defineMessage({
+  defineTestMessage({
     key: "shop.plain",
     label: "テストの連絡",
     category: "shop",
@@ -78,6 +80,7 @@ function setup(options: { actorId?: string | null; role?: string; rows?: Message
   const rows: MessageOverrideRecord[] = [...(options.rows ?? [])];
   const previews: { channel: string; content: unknown }[] = [];
   const audits: AuditRecordInput[] = [];
+  const applied: { removals: string[]; upserts: string[] }[] = [];
   const definitions: Record<string, AnyResolvedMessageDefinition> = { "shop.notice": editable, "shop.plain": plain };
   const service = createOverrideService({
     context: () => ({ actorId: options.actorId === undefined ? ADMIN : options.actorId, actorType: "user" }) as never,
@@ -102,8 +105,24 @@ function setup(options: { actorId?: string | null; role?: string; rows?: Message
         rows.splice(index, 1);
         return true;
       },
+      // まとめての保存(1 つの取引): 消すのが先、次に入れる・差し替える
+      apply: async (messageKey, { removals, upserts }) => {
+        applied.push({ removals: [...removals], upserts: upserts.map((item) => item.fieldPath) });
+        for (const path of removals) {
+          const index = rows.findIndex((row) => row.messageKey === messageKey && row.fieldPath === path);
+          if (index >= 0) rows.splice(index, 1);
+        }
+        for (const { fieldPath, layoutVersion, value, codeValue, updatedBy } of upserts) {
+          const index = rows.findIndex((row) => row.messageKey === messageKey && row.fieldPath === fieldPath);
+          const next = { messageKey, fieldPath, layoutVersion, value, codeValue, updatedBy, updatedAt: new Date("2026-11-12T00:00:00Z") };
+          if (index >= 0) rows[index] = next;
+          else rows.push(next);
+        }
+      },
     },
     recordAudit: async (input) => audits.push(input),
+    // 埋め込み情報の一覧は送る口と同じ組み方(共通 + enrichers + vars の名前)
+    embeddedCatalog: (resolved) => messageEmbeddedCatalog(resolved, {}),
     channelContent: async (resolved, channel) => ({ channel, values: resolved.values }),
     channelPreview: async (channel, input) => {
       previews.push({ channel, content: input.content });
@@ -111,7 +130,7 @@ function setup(options: { actorId?: string | null; role?: string; rows?: Message
       return { html: `<p>${values.subject}</p>`, text: values.subject };
     },
   });
-  return { service, rows, audits, previews };
+  return { service, rows, audits, previews, applied };
 }
 
 const row = (fieldPath: string, value: unknown, codeValue: unknown, layoutVersion: number | null = 2): MessageOverrideRecord => ({
@@ -164,7 +183,22 @@ test("1 件: 欄ごとの宣言・経路・コードの値・印、前の版の�
     ],
   });
   const detail = await service.getMessage("shop.notice");
-  assert.deepEqual(detail.allowedKeys, ["name", "recipientName", "recipientEmail", "serviceName", "appBaseUrl", "displayName"]);
+  // vars は鍵と別名(秘密の token・合言葉は入れない、D133)、共通の文脈の鍵と別名(D126)、当たる enrichers
+  assert.deepEqual(detail.allowedKeys, [
+    "name",
+    "お名前",
+    "recipientName",
+    "recipientEmail",
+    "serviceName",
+    "serviceNameShort",
+    "appBaseUrl",
+    "受信者名",
+    "受信者のメール",
+    "サービス名",
+    "サービスの短い名前",
+    "サイトのURL",
+    "displayName",
+  ]);
   const [subject, blocks, old] = detail.fields;
   assert.deepEqual(
     { ...subject, updatedAt: null },
@@ -191,10 +225,11 @@ test("1 件: 欄ごとの宣言・経路・コードの値・印、前の版の�
   assert.equal(detail.fields.length, 3, "adminEditableOnly の外の preheader は出さない");
 });
 
-test.skip("保存: 今の版で書き、同じ欄へ移る前の版の行を消す。コードの値と操作者を残し監査に残す。戻すは行を消す", async () => {
-  const { service, rows, audits } = setup({ rows: [row("heading", "前の版", "x", 1)] });
-  const detail = await service.saveField("shop.notice", { fieldPath: "subject", value: "{{displayName}} 様、{{serviceName}} です" });
-  assert.equal(detail.fields[0].effective, "{{displayName}} 様、{{serviceName}} です");
+test("保存(saveFields): 今の版で書き、同じ欄へ移る前の版の行を消す。{{別名}} も通る。コードの値と操作者を残し監査に残す。戻すは行を消す", async () => {
+  const { service, rows, audits, applied } = setup({ rows: [row("heading", "前の版", "x", 1)] });
+  const detail = await service.saveFields("shop.notice", { fields: [{ fieldPath: "subject", value: "{{お名前}} 様、{{serviceName}} です" }] });
+  assert.equal(detail.fields[0].effective, "{{お名前}} 様、{{serviceName}} です");
+  assert.deepEqual(applied, [{ removals: ["heading"], upserts: ["subject"] }]);
   assert.deepEqual(rows.map((r) => [r.fieldPath, r.layoutVersion, r.codeValue, r.updatedBy]), [["subject", 2, "{{name}} 様へ", ADMIN]]);
   assert.deepEqual(audits.map((a) => [a.action, a.targetId]), [["messaging.override.updated", "shop.notice:subject"]]);
 
@@ -205,36 +240,89 @@ test.skip("保存: 今の版で書き、同じ欄へ移る前の版の行を消�
   await rejectsWith(service.resetField("shop.notice", "subject"), 404);
 });
 
+test("保存(saveFields): 欄をまとめて 1 回で書き、reset の欄は行を消す。行の無い欄の reset と変更の無い保存は何も書かない", async () => {
+  const { service, rows, audits, applied } = setup({ rows: [row("blocks", [{ type: "paragraph", text: "前" }], [{ type: "paragraph", text: "一" }])] });
+  await service.saveFields("shop.notice", {
+    fields: [
+      { fieldPath: "subject", value: "まとめて {{name}}" },
+      { fieldPath: "blocks", reset: true },
+    ],
+  });
+  assert.deepEqual(applied, [{ removals: ["blocks"], upserts: ["subject"] }]);
+  assert.deepEqual(rows.map((r) => [r.fieldPath, r.value]), [["subject", "まとめて {{name}}"]]);
+  assert.deepEqual(audits.map((a) => [a.action, a.targetId]), [
+    ["messaging.override.updated", "shop.notice:subject"],
+    ["messaging.override.reset", "shop.notice:blocks"],
+  ]);
+  await service.saveFields("shop.notice", { fields: [{ fieldPath: "blocks", reset: true }] });
+  assert.equal(applied.length, 1);
+});
+
 test("戻す: 使えない古い形の行は保存した時の鍵で消せる", async () => {
   const { service, rows } = setup({ rows: [row("email.subject", "古い形", null, null)] });
   await service.resetField("shop.notice", "email.subject");
   assert.equal(rows.length, 0);
 });
 
-test.skip("保存の誤り: 入力・直せない欄・型・使えない鍵・秘密の鍵は 400、無い連絡は 404", async () => {
-  const { service, rows, audits } = setup();
+test("保存の誤り: 入力・直せない欄・型・使えない鍵・秘密の鍵(別名も)は 400、1 つでも誤りがあれば何も書かない、無い連絡は 404", async () => {
+  const { service, rows, audits, applied } = setup();
   for (const input of [
     null,
-    { fieldPath: "subject", value: "x", extra: 1 },
+    { fields: [] },
+    { fieldPath: "subject", value: "x" },
+    { fields: [{ fieldPath: "subject", value: "x", extra: 1 }] },
+    { fields: [{ fieldPath: "subject", value: "x" }, { fieldPath: "subject", value: "y" }] },
+  ]) {
+    await rejectsWith(service.saveFields("shop.notice", input), 400);
+  }
+  for (const field of [
     { fieldPath: "preheader", value: "x" },
     { fieldPath: "email.subject", value: "x" },
     { fieldPath: "subject", value: "" },
     { fieldPath: "subject", value: "{{nope}}" },
     { fieldPath: "subject", value: "{{token}}" },
+    { fieldPath: "subject", value: "{{合言葉}}" },
     { fieldPath: "blocks", value: [{ type: "nope" }] },
   ]) {
-    await rejectsWith(service.saveField("shop.notice", input), 400);
+    await rejectsWith(service.saveFields("shop.notice", { fields: [field] }), 400);
   }
-  await rejectsWith(service.saveField("shop.none", { fieldPath: "subject", value: "x" }), 404);
+  // 正しい欄と誤った欄を一緒に送ると、何も書かず欄ごとの理由を返す
+  await assert.rejects(
+    service.saveFields("shop.notice", {
+      fields: [
+        { fieldPath: "subject", value: "正しい" },
+        { fieldPath: "blocks", value: [{ type: "nope" }] },
+      ],
+    }),
+    (error: unknown) => {
+      assert.ok(error instanceof DomainError);
+      assert.equal(error.status, 400);
+      assert.equal(error.code, OVERRIDE_FIELDS_INVALID);
+      assert.deepEqual(Object.keys((error.details as { fields: Record<string, string> }).fields), ["blocks"]);
+      return true;
+    },
+  );
+  await rejectsWith(service.saveFields("shop.none", { fields: [{ fieldPath: "subject", value: "x" }] }), 404);
   await rejectsWith(service.getMessage("shop.plain"), 404);
   assert.equal(rows.length, 0);
+  assert.equal(applied.length, 0);
   assert.equal(audits.length, 0);
 });
 
-test.skip("プレビュー: 保存した値と未保存の値(検査を通る物)を重ね、文字の欄に印を付けて描く", async () => {
+test("埋め込み情報の一覧: vars は定義の varNames の別名と説明(D133)、秘密の vars は出さない", async () => {
+  const { service } = setup();
+  const detail = await service.getMessage("shop.notice");
+  const own = detail.embedded.filter((entry) => entry.source === "own");
+  assert.deepEqual(own, [{ key: "name", alias: "お名前", source: "own", description: "受け取る人の名前" }]);
+});
+
+test("プレビュー: 保存した値と未保存の値(検査を通る物)を重ね、文字の欄に印を付けて描く", async () => {
   const { service, previews } = setup({ rows: [row("subject", "保存した件名", null)] });
   const saved = await service.previewMessage("shop.notice", { channel: "email", values: {} });
-  assert.deepEqual(saved, { channel: "email", html: '<p><span data-field="subject">保存した件名</span></p>', text: "保存した件名" });
+  assert.deepEqual([saved.channel, saved.html, saved.text], ["email", '<p><span data-field="subject">保存した件名</span></p>', "保存した件名"]);
+  // お知らせを client のひな形の描き方で描く材料(印なしの値・要約)
+  assert.equal(saved.layout, "notice");
+  assert.equal((saved.values as { subject?: unknown }).subject, "保存した件名");
   const draft = await service.previewMessage("shop.notice", { channel: "email", values: { subject: "未保存", blocks: [{ type: "nope" }] } });
   assert.equal(draft.html, '<p><span data-field="subject">未保存</span></p>');
   // 通らない未保存の値(blocks)は重ねない
@@ -243,10 +331,10 @@ test.skip("プレビュー: 保存した値と未保存の値(検査を通る物
   await rejectsWith(service.previewMessage("shop.notice", { channel: "line" }), 400);
 });
 
-test.skip("管理者でなければ 403", async () => {
+test("管理者でなければ 403", async () => {
   const { service } = setup({ role: "user" });
   await rejectsWith(service.listMessages(), 403);
-  await rejectsWith(service.saveField("shop.notice", { fieldPath: "subject", value: "x" }), 403);
+  await rejectsWith(service.saveFields("shop.notice", { fields: [{ fieldPath: "subject", value: "x" }] }), 403);
   const anonymous = setup({ actorId: null });
   await rejectsWith(anonymous.service.getMessage("shop.notice"), 403);
 });

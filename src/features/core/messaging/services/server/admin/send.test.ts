@@ -1,18 +1,14 @@
-// @ts-nocheck
-// D112: restore before ship (指令 58 でテンプレートの形が変わった。出荷の前に新しい形へ書き直して回す)
 // 管理の送信の service の検査(送る口・監査は偽物)
-// - 中身は 1 つの形 { template(白紙 { system } か DB の { id, version }), values, edited?, vars? }(D117・D125)を送る口 sendTemplateMessage へ、
+// - 中身は 1 つの形 { template(白紙 { system } か DB の { id, version }), values, edited?, embedded? }(D117・D125、専用の値は embedded 指令 58)を送る口 sendTemplateMessage へ、
 //   宛先(全員・ロール・グループ・選んだ利用者)、予約、監査(sent / scheduled / test_sent)
 // - カテゴリー(必須): 種別 announcement・direct・promotion だけ、宛先の種類は性質 adminFreeText。経路の制限は無い(LINE・fork の経路も)。
 //   白紙の種別とカテゴリーの種別の照合は送る口(templateSend.test.ts)
 // - プレビュー・テスト送信の宛先は操作した管理者、見込みは送る時に数え直す印つき、選択肢
-// - グループ宛て(announcement・promotion だけ、direct は 400、見込みは送る口のまま)、選択肢のグループ
+// - グループ宛て(announcement・promotion・direct、D109 の漏れの直しで direct も。見込みは送る口のまま)、選択肢のグループ
 // - 管理者でなければ 403
 // 実行: pnpm test src/features/core/messaging/services/server/admin/send.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-
-import { z } from "zod";
 
 import type { MessageCategory, MessageChannel, MessageSystemTemplate } from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
@@ -26,6 +22,7 @@ import {
   adminSendTest,
   type AdminSendDeps,
 } from "./send";
+import { TEST_LAYOUTS } from "../sendMessage/testHelpers";
 
 const ADMIN = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const TEMPLATE = "11111111-1111-4111-8111-111111111111";
@@ -49,7 +46,6 @@ function setup(options: { role?: string; actorId?: string | null; groups?: { id:
     key,
     label: key.toUpperCase(),
     addressing: "user",
-    fields: z.object({}),
     send: async () => [],
     ...extra,
   });
@@ -72,6 +68,8 @@ function setup(options: { role?: string; actorId?: string | null; groups?: { id:
     channels: { email: channel("email"), inApp: channel("inApp"), line: channel("line", { enabled: false }), push: channel("push") },
     categories,
     systemTemplates,
+    layouts: TEST_LAYOUTS,
+    enrichers: {},
     roles: () => [{ id: "user", label: "ユーザー" }],
     groupOptions: async () => options.groups ?? [],
     listPublishedTemplates: async () => [],
@@ -96,7 +94,7 @@ const VALUES = { subject: "件名", blocks: [{ type: "paragraph", text: "{{displ
 /** その場で書く中身(白紙 + 欄の中身) */
 const ADHOC = { template: BLANK, values: VALUES };
 
-test.skip("その場で書いた中身(白紙)を全員へ今送る: 送る口に白紙・欄の中身・カテゴリー、監査 sent", async () => {
+test("その場で書いた中身(白紙)を全員へ今送る: 送る口に白紙・欄の中身・カテゴリー、監査 sent", async () => {
   const { deps, calls, audits } = setup();
   const sent = await adminSend(deps, { ...ADHOC, category: "announcement", channels: ["email", "inApp"], target: { type: "all" } });
   assert.equal(sent.dispatchId, "d1");
@@ -106,7 +104,7 @@ test.skip("その場で書いた中身(白紙)を全員へ今送る: 送る口�
   assert.deepEqual(input.values, VALUES);
   assert.equal(input.category, "announcement");
   assert.deepEqual(input.channels, ["email", "inApp"]);
-  assert.equal("vars" in input, false);
+  assert.equal("embedded" in input, false);
   assert.equal("edited" in input, false);
   assert.deepEqual(input.target, { type: "all" });
   assert.equal(input.source, "messaging.adminSend");
@@ -118,13 +116,13 @@ test.skip("その場で書いた中身(白紙)を全員へ今送る: 送る口�
   assert.equal("channels" in (calls[1].args[0] as Record<string, unknown>), false);
 });
 
-test.skip("DB のテンプレートをロール宛てに予約: 送る口に template・欄の中身・直した印・vars・カテゴリー、監査 scheduled", async () => {
+test("DB のテンプレートをロール宛てに予約: 送る口に template・欄の中身・直した印・専用の値 embedded・カテゴリー、監査 scheduled", async () => {
   const { deps, calls, audits } = setup();
   await adminSend(deps, {
     template: TPL,
     values: TEXT,
     edited: true,
-    vars: { discount: 10 },
+    embedded: { discount: 10 },
     category: "promotion",
     target: { type: "role", roles: ["user"] },
     scheduledAt: "2026-12-01T09:00:00+09:00",
@@ -133,7 +131,7 @@ test.skip("DB のテンプレートをロール宛てに予約: 送る口に tem
   assert.deepEqual(input.template, TPL);
   assert.deepEqual(input.values, TEXT);
   assert.equal(input.edited, true);
-  assert.deepEqual(input.vars, { discount: 10 });
+  assert.deepEqual(input.embedded, { discount: 10 });
   assert.equal(input.category, "promotion");
   assert.deepEqual(input.target, { type: "role", roles: ["user"] });
   assert.deepEqual(input.scheduledAt, new Date("2026-12-01T00:00:00Z"));
@@ -142,10 +140,10 @@ test.skip("DB のテンプレートをロール宛てに予約: 送る口に tem
   assert.deepEqual([audits[0].metadata?.source, audits[0].metadata?.templateId, audits[0].metadata?.templateVersion], ["template", TEMPLATE, 3]);
 });
 
-test.skip("カテゴリー: 無い・3 つの種別でない・宛先の種類が送れない は 400。経路の制限は無い", async () => {
+test("カテゴリー: 無い・3 つの種別でない・宛先の種類が送れない は 400。経路の制限は無い", async () => {
   const { deps, calls } = setup();
-  // direct は選んだ利用者宛てだけ(全員・ロール・グループは 400)
-  for (const target of [{ type: "all" }, { type: "role", roles: ["user"] }, { type: "group", groupId: "22222222-2222-4222-8222-222222222222" }]) {
+  // direct は選んだ利用者・グループ宛てだけ(全員・ロールは 400)
+  for (const target of [{ type: "all" }, { type: "role", roles: ["user"] }]) {
     await rejectsWith(adminSend(deps, { ...ADHOC, category: "operatorDirect", channels: ["email"], target }), 400, /この宛先/);
   }
   await rejectsWith(adminSend(deps, { ...ADHOC, category: "activity", target: { type: "all" } }), 400, /管理画面から送信できません/);
@@ -159,7 +157,7 @@ test.skip("カテゴリー: 無い・3 つの種別でない・宛先の種類�
   assert.deepEqual((calls[1].args[0] as Record<string, unknown>).recipients, [{ userId: "u1" }, { userId: "u2" }]);
 });
 
-test.skip("入力の誤りは 400(形・知らない鍵・白紙での vars と直した印・予約の形)", async () => {
+test("入力の誤りは 400(形・知らない鍵・前の形の vars・白紙での直した印・予約の形)", async () => {
   const { deps } = setup();
   const c = { category: "promotion", target: { type: "all" } };
   const cases = [
@@ -169,6 +167,7 @@ test.skip("入力の誤りは 400(形・知らない鍵・白紙での vars と�
     { ...c, values: VALUES },
     // 前の形(経路ごとの content)は黙って捨てない
     { ...c, ...ADHOC, content: { email: { subject: "s" } } },
+    // 前の形(vars)は黙って捨てない(専用の値は embedded)
     { ...c, ...ADHOC, vars: { a: 1 } },
     { ...c, ...ADHOC, edited: true },
     { ...c, ...ADHOC, template: { id: "not-uuid", version: 3 } },
@@ -183,9 +182,9 @@ test.skip("入力の誤りは 400(形・知らない鍵・白紙での vars と�
   for (const input of cases) await rejectsWith(adminSend(deps, input), 400);
 });
 
-test.skip("プレビューとテスト送信は操作した管理者、テストは is_test で監査 test_sent", async () => {
+test("プレビューとテスト送信は操作した管理者、テストは is_test で監査 test_sent", async () => {
   const { deps, calls, audits } = setup();
-  await adminSendPreview(deps, { template: TPL, values: TEXT, vars: { a: 1 }, category: "promotion" });
+  await adminSendPreview(deps, { template: TPL, values: TEXT, embedded: { a: 1 }, category: "promotion" });
   assert.deepEqual(calls[0].args, [
     { template: { template: TPL, values: TEXT, category: "promotion" } },
     { vars: { a: 1 }, channels: undefined, userId: ADMIN },
@@ -209,7 +208,7 @@ test.skip("プレビューとテスト送信は操作した管理者、テスト
   await rejectsWith(adminSendTest(system.deps, { ...ADHOC, category: "promotion", channels: ["email"] }), 400);
 });
 
-test.skip("見込みは送る口の数(送る時に数え直す印)、選択肢は有効な経路・ロール・テンプレート", async () => {
+test("見込みは送る口の数(送る時に数え直す印)、選択肢は有効な経路・ロール・テンプレート", async () => {
   const { deps, calls } = setup();
   assert.deepEqual(await adminSendEstimate(deps, { target: { type: "users", userIds: ["u1", "u2"] } }), {
     count: 7,
@@ -229,7 +228,7 @@ test.skip("見込みは送る口の数(送る時に数え直す印)、選択肢�
     options.categories.map((o) => [o.key, o.kind, o.targets.join(",")]),
     [
       ["announcement", "announcement", "all,role,group,users"],
-      ["operatorDirect", "direct", "users,bulk"],
+      ["operatorDirect", "direct", "users,bulk,group"],
       ["promotion", "promotion", "all,role,group,users,bulk"],
       ["promoPush", "promotion", "all,role,group,users,bulk"],
     ],
@@ -238,30 +237,31 @@ test.skip("見込みは送る口の数(送る時に数え直す印)、選択肢�
   assert.equal(options.maxScheduleDays, 90);
 });
 
-test.skip("管理者でなければ 403", async () => {
+test("管理者でなければ 403", async () => {
   const { deps } = setup({ role: "user" });
   await rejectsWith(adminSend(deps, { ...ADHOC, category: "promotion", channels: ["email"], target: { type: "all" } }), 403);
   await rejectsWith(adminSendOptions(deps), 403);
 });
 
-test.skip("グループ宛て: announcement・promotion は送る口へ { type: group, groupId }、direct は 400、見込みは送る口のまま、選択肢のグループ", async () => {
+test("グループ宛て: announcement・promotion・direct は送る口へ { type: group, groupId }、形の誤りは 400、見込みは送る口のまま、選択肢のグループ", async () => {
   const { deps, calls, audits } = setup({ groups: [{ id: GROUP, label: "常連", kindLabel: "固定(選んだ人)" }] });
   await adminSend(deps, { ...ADHOC, category: "announcement", target: { type: "group", groupId: GROUP } });
   assert.deepEqual((calls[0].args[0] as Record<string, unknown>).target, { type: "group", groupId: GROUP });
   assert.deepEqual(audits[0].metadata?.target, { type: "group", groupId: GROUP });
   await adminSend(deps, { ...ADHOC, category: "promotion", target: { type: "group", groupId: GROUP } });
-  assert.equal(calls.length, 2);
-  await rejectsWith(adminSend(deps, { ...ADHOC, category: "operatorDirect", target: { type: "group", groupId: GROUP } }), 400);
+  await adminSend(deps, { ...ADHOC, category: "operatorDirect", target: { type: "group", groupId: GROUP } });
+  assert.equal(calls.length, 3);
+  assert.deepEqual((calls[2].args[0] as Record<string, unknown>).target, { type: "group", groupId: GROUP });
   await rejectsWith(adminSend(deps, { ...ADHOC, category: "announcement", target: { type: "group", groupId: "x" } }), 400);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
 
   await adminSendEstimate(deps, { target: { type: "group", groupId: GROUP } });
-  assert.deepEqual(calls[2], { fn: "estimate", args: [{ target: { type: "group", groupId: GROUP } }] });
+  assert.deepEqual(calls[3], { fn: "estimate", args: [{ target: { type: "group", groupId: GROUP } }] });
 
   const options = await adminSendOptions(deps);
   assert.deepEqual(options.groups, [{ id: GROUP, label: "常連", kindLabel: "固定(選んだ人)" }]);
   assert.ok(options.categories.find((category) => category.key === "announcement")!.targets.includes("group"));
-  assert.equal(options.categories.find((category) => category.key === "operatorDirect")!.targets.includes("group"), false);
+  assert.ok(options.categories.find((category) => category.key === "operatorDirect")!.targets.includes("group"));
   // 門 userGroups が閉なら部品が空を返す(結びは index.ts)
   assert.deepEqual((await adminSendOptions(setup().deps)).groups, []);
 });
