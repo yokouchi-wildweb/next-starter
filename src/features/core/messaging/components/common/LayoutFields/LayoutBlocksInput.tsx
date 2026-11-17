@@ -12,7 +12,7 @@ import { useState } from "react";
 import { ChevronDown, Heading, ImageIcon, List, Minus, MousePointerClick, Pilcrow, Plus, Rows3, type LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button";
-import { Input, SelectInput, Textarea } from "@/components/Form/Input/Manual";
+import { Input, Textarea } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { ManualMediaUploader } from "@/components/Form/MediaHandler";
 import { Flex } from "@/components/Layout/Flex";
@@ -69,8 +69,6 @@ function blockSummary(block: Record<string, unknown>): string {
 
 export function LayoutBlocksInput({ id, path, constraint, value, onChange, readOnly, onFocusField }: LayoutBlocksInputProps) {
   const kinds = allowedBlockKinds(constraint);
-  // 足すブロックの種類の選択(画面の中だけの状態)
-  const [nextKind, setNextKind] = useState<MessageBlockKind | "">(kinds[0]?.value ?? "");
   const blocks = value.map(asRecord);
   const canAdd = !readOnly && kinds.length > 0 && (constraint.max === undefined || blocks.length < constraint.max);
   const canRemove = !readOnly && blocks.length > (constraint.min ?? 0);
@@ -81,6 +79,10 @@ export function LayoutBlocksInput({ id, path, constraint, value, onChange, readO
   const move = (index: number, direction: -1 | 1) => {
     onChange(moveItem(blocks, index, direction));
     setCollapsed((prev) => moveItem(padTo(prev, blocks.length), index, direction));
+  };
+  const addBlock = (kind: MessageBlockKind) => {
+    onChange([...blocks, emptyBlockOf(kind)]);
+    setCollapsed((prev) => [...padTo(prev, blocks.length), false]);
   };
   const remove = (index: number) => {
     onChange(removeItem(blocks, index));
@@ -157,33 +159,43 @@ export function LayoutBlocksInput({ id, path, constraint, value, onChange, readO
         </Span>
       ) : null}
       {readOnly ? null : (
-        <Flex align="center" gap="xs" wrap="wrap">
-          {kinds.length > 1 ? (
-            <SelectInput
-              id={`${id}-kind`}
-              aria-label="足すブロックの種類"
-              value={nextKind}
-              options={kinds}
-              showPlaceholderOption={false}
-              onChange={(next) => setNextKind((next ? String(next) : "") as MessageBlockKind | "")}
-            />
-          ) : null}
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={!canAdd || !nextKind}
-            onClick={() => {
-              if (!nextKind) return;
-              onChange([...blocks, emptyBlockOf(nextKind)]);
-              setCollapsed((prev) => [...padTo(prev, blocks.length), false]);
-            }}
-          >
-            <Plus className="size-4" />
-            {kinds.length === 1 ? `${kinds[0].label}を追加` : "ブロックを追加"}
-          </Button>
+        // 足す所 = 点線の枠の 1 行: 「＋ 追加」の見出しの横に、種類ごとの札(印 + 名前)を並べ、押した種類をそのまま足す
+        // (セレクトで選んでから押す 2 手を 1 手に。種類が多ければ折り返す)。数の決まりは右端に
+        <Flex
+          align="center"
+          gap="sm"
+          wrap="wrap"
+          className="rounded-lg border border-dashed border-border bg-muted/20 px-3 py-2"
+          data-slot="layout-field-blocks-add"
+        >
+          <Flex align="center" gap="xs" className="shrink-0">
+            <Plus className="size-4 text-muted-foreground" aria-hidden />
+            <Span size="sm" weight="medium" tone="muted">
+              ブロックを追加
+            </Span>
+          </Flex>
+          <Flex align="center" gap="xs" wrap="wrap" className="min-w-0 flex-1" role="group" aria-label="追加するブロックの種類">
+            {kinds.map((option) => {
+              const Icon = BLOCK_ICONS[option.value];
+              return (
+                <Button
+                  key={option.value}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1.5 rounded-full px-3 font-normal"
+                  disabled={!canAdd}
+                  onClick={() => addBlock(option.value)}
+                  data-slot="layout-field-blocks-add-kind"
+                >
+                  {Icon ? <Icon className="size-3.5" aria-hidden /> : null}
+                  {option.label}
+                </Button>
+              );
+            })}
+          </Flex>
           {constraint.max !== undefined || constraint.min !== undefined ? (
-            <Span size="xs" tone="muted">
+            <Span size="xs" tone="muted" className="shrink-0 tabular-nums">
               {blocks.length} 個{constraint.min !== undefined ? ` / ${constraint.min} 個以上` : ""}
               {constraint.max !== undefined ? ` / ${constraint.max} 個まで` : ""}
             </Span>
