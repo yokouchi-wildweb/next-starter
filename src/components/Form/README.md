@@ -365,6 +365,28 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 
 ---
 
+## 操作部品の高さ(size)
+
+ボタン・入力欄・選ぶ欄の引き金は、同じ名前の `size` で同じ高さになる。高さは段のトークン `--control-h-<size>`(`src/styles/core/config.css` の `:root`)から取り、数値の `h-*` は持たない。fork は CSS の変数を上書きすれば全部品の高さが揃って動く(`src/styles/README.md`「トークンで動く範囲」)。
+
+| size | xxxs | xxs | xs | sm | md(既定) | lg | xl | xxl | xxxl |
+|---|---|---|---|---|---|---|---|---|---|
+| 高さ | 24px | 28px | 32px | 36px | 44px(640px 以上 40px) | 44px | 48px | 56px | 64px |
+
+- md だけ画面の幅で変わる(スマホで押しやすい 44px、640px 以上 = `@media (min-width: 40rem)` で 40px)
+- `Button` / `LinkButton` / `PseudoButton`: 9 段すべて。`icon`(36px の正方形)と `none` は段の外
+- `TabletButton`: 別の段 `--tablet-control-h-xxs`〜`xl`(48 / 56 / 64 / 72 / 80 / 96px)。`icon` / `icon-lg` は段の外
+- 入力欄系(`Input` / `TextInput` / `EmailInput` / `NumberInput` / `PasswordInput` / `OneTimeCodeInput` / `DateInput` / `TimeInput` / `DatetimeInput` / `ColorInput`、Controlled も同じ): `size` は xs〜xl(既定 md)、高さ固定 + `py-0` で中身を上下中央に置く。表 `INPUT_SIZE_CLASSES` / `inputVariants`(`Input/Manual/Input.tsx`)
+- 選ぶ欄の引き金(`SelectInput` / `ComboboxInput` / `AsyncComboboxInput` / `MultiSelectInput` / `AsyncMultiSelectInput`): 入力欄と同じ xs〜xl。引き金は 1 行(選んだ物が多いときは省略)。素の層 `Primitives/Select` の `SelectTrigger` は `default` 36px / `sm` 32px / `none`(高さを付けない)
+- 欄の中の小さなボタン(クリア ×・パスワードの表示の切り替え・暦 / 時計): 欄の段 − 8px の正方形(上下・右に 4px)、欄の右の余白は段の高さ。表 `INNER_BUTTON_CLASSES` / `INNER_BUTTON_PADDING`(`Input.tsx`)。fork が自分の欄に中のボタンを置くときもこの表を使う
+- `StepperInput`: 名前は xs / s / m / l のまま(既定 s)、外枠と両端のボタンが段 xxs 28px / sm 36px / md 44・40px / xl 48px
+- HTML の `size` 属性(表示する文字数の目安)は `htmlSize` で渡す(`size` は高さの段)
+- 隣に並べるボタンと欄は同じ `size` を渡せば揃う。高さを合わせるための `h-auto py-3` や `data-[size=sm]:h-*` の上書きは書かない
+- 上書きの順: 部品の表 → `src/config/ui/variants.config.ts`(入力欄系と引き金は `input` を共有、ボタンは `button`、Stepper は `stepperInput`)→ 要素の `className`(後ろが勝つ。高さを個別に変えるときだけ使う)
+- 対象外(段に乗らない): `Textarea`(`min-h-16` で内容に合わせて伸びる)・`SwitchInput`・チェックボックス・ラジオ・カード型チェック(それぞれ自分の size)
+
+---
+
 ## Input コンポーネント一覧
 
 | コンポーネント | 用途 |
@@ -379,7 +401,7 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 | `AsyncMultiSelectInput` | 複数選択（非同期検索） |
 
 `AsyncComboboxInput` / `AsyncMultiSelectInput` / `Overlays/AsyncPickerModal` の取得エンジン（browse ページング・Enter 検索・searchRank・無限スクロール・requestId 競合破棄・ラベル cache）は `Input/Manual/AsyncOptionSource/useAsyncOptionSource` に 1 本化されている。非同期候補を扱う新しいピッカーを作るときは、このフック + `AsyncOptionList` / `AsyncOptionInitialState` / `AsyncOptionListFooter` を消費し、取得ロジックを再実装しない。各コンポーネントが持つのは選択モデル（単一 / 複数 / session snapshot）とクロームだけ。アクションボタン起点で「マスタから N 件取り込む」用途はフォーム項目ではなく `Overlays/AsyncPickerModal` を使う。
-| `RadioGroupInput` | ラジオボタン（`displayType`: `standard` 既定 / `classic` 丸い印 / `bookmark` / `rounded` / `segmented` = 1 つの溝に横並び、選んだものだけ白い札が浮く切り替え。2 つ以上いくつでも、高さ h-9 = Button sm と同じ） |
+| `RadioGroupInput` | ラジオボタン（`displayType`: `standard` 既定 / `classic` 丸い印 / `bookmark` / `rounded` / `segmented` = 1 つの溝に横並び、選んだものだけ白い札が浮く切り替え。2 つ以上いくつでも、高さ 36px = Button sm と同じ） |
 | `CheckGroupInput` | チェックボックスグループ |
 | `BooleanCheckboxInput` | 単一チェックボックス |
 | `BooleanRadioGroupInput` | はい/いいえ ラジオ |
