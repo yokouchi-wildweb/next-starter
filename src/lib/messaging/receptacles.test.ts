@@ -1,5 +1,3 @@
-// @ts-nocheck
-// D112: restore before ship (指令 59 d6 で経路の欄・経路の束の型引数・createDefineMessage が消えた。出荷の前に書き直して回す)
 // src/lib/messaging/receptacles.test.ts
 //
 // messaging の受け口の項目の型(receptacles/types.ts)の検査。正しい項目が通り、欠けた欄・誤った種別は型検査で止まる(@ts-expect-error)。
@@ -18,16 +16,16 @@ import type {
   MessageSource,
   MessageSubscriber,
 } from "./index";
-import { enricherTargets } from "./index";
+import { categoryAdminLabel, enricherTargets } from "./index";
 
-test.skip("経路: 宛先ごとの結果を返す", async () => {
+test("経路: 宛先ごとの結果を返す(経路は自分の欄を持たない。中身はひな形、D122)", async () => {
   const channel: MessageChannel = {
     key: "push",
     label: "プッシュ通知",
     addressing: "user",
-   
-    fields: z.object({ title: z.string(), body: z.string() }).strict(),
-    contentFrom: { channel: "inApp", map: { title: "title", body: "body" } },
+    // 要約から描ける(描き方の 3 段の 3 段目、D124)
+    summaryRenderable: true,
+    renderFromSummary: (summary) => ({ content: { title: summary.title, body: summary.shortBody ?? summary.body } }),
     send: async (targets) =>
       targets.map((t): ChannelSendResult =>
         t.address === "bad"
@@ -69,11 +67,14 @@ test.skip("経路: 宛先ごとの結果を返す", async () => {
   const wrongEnabled: MessageChannel = { ...channel, enabled: "off" };
   assert.ok(off && wrongEnabled);
   // @ts-expect-error send は必須
-  const noSend: MessageChannel = { key: "x", label: "x", addressing: "user", fields: z.object({}) };
+  const noSend: MessageChannel = { key: "x", label: "x", addressing: "user" };
+  // @ts-expect-error 経路は自分の欄を持たない(fields は無い)
+  const withFields: MessageChannel = { ...channel, fields: z.object({}) };
+  assert.ok(withFields);
   assert.ok(wrongAddressing && wrongKind && noSend);
 });
 
-test.skip("値・種類・送り元・購読", async () => {
+test("値・種類・送り元・購読", async () => {
   const enricher: MessageEnricher = {
     key: "rank",
     target: { messages: ["auth.verification"], kinds: ["promotion"] },
@@ -95,6 +96,10 @@ test.skip("値・種類・送り元・購読", async () => {
   assert.equal(enricherTargets({}, { key: "x.y", category: "b", kind: "activity" }), false);
 
   const category: MessageCategory = { key: "campaign", label: "キャンペーン", kind: "promotion", channels: ["email"] };
+  // 管理画面の名前は任意(無い = label、D124)
+  const withAdminLabel: MessageCategory = { ...category, adminLabel: "一般的なキャンペーン" };
+  assert.equal(categoryAdminLabel(withAdminLabel), "一般的なキャンペーン");
+  assert.equal(categoryAdminLabel(category), "キャンペーン");
   // 種類は 7 つの種別のどれでも持てる(取引の種類もある、D81)。経路は必須
   const transactional: MessageCategory = { key: "x", label: "x", kind: "transactional", channels: ["email"] };
   // @ts-expect-error 経路の無い種類は書けない
@@ -117,7 +122,7 @@ test.skip("値・種類・送り元・購読", async () => {
   ]);
   assert.deepEqual(seen, ["delivery.sent:e1"]);
 
-  // @ts-expect-error 当てる連絡は "*" か鍵(<domain>.<name>)の配列
-  const badEnricher: MessageEnricher = { ...enricher, messages: ["noDot"] };
+  // @ts-expect-error 当てる連絡の鍵は <domain>.<name>
+  const badEnricher: MessageEnricher = { ...enricher, target: { messages: ["noDot"] } };
   assert.ok(category && transactional && source && badEnricher);
 });

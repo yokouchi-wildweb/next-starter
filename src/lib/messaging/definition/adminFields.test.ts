@@ -1,5 +1,3 @@
-// @ts-nocheck
-// D112: restore before ship (共通の埋め込み情報に別名と serviceNameShort が足され、使ってよい鍵の並びが変わった。出荷の前に書き直して回す)
 // 管理画面の欄の値(文言の上書き、D132)の直せる欄・検査・重ね方・改版での移し方
 // - 直せる欄: 既定 = ひな形の欄のうち種類の経路で使う物の全部、adminEditableOnly で絞る、functional・required の連絡は無い
 // - 検査: 直せる欄の外・欄の型(必須は空にできない)・知らない {{鍵}}・秘密の vars を落とす。並び・ブロックは欄ごと丸ごと
@@ -55,13 +53,14 @@ const definition = defineMessage({
   label: "テストの連絡",
   category: "shop",
   vars: z.object({ name: z.string(), token: secretVar(z.string()) }),
+  varNames: { name: { alias: "お名前", description: "宛名" }, token: { alias: "合言葉", description: "秘密の値" } },
   layout: "notice",
   values: { subject: "{{name}} 様へ", blocks: [{ type: "paragraph", text: "一" }] },
 });
 const resolve = (over: Record<string, unknown> = {}, category = { kind: "transactional" as const, channels: ["email", "inApp"] }) =>
   resolveMessageDefinition({ ...definition, ...over } as typeof definition, undefined, category);
 
-test.skip("直せる欄: 既定は種類の経路で使う欄の全部、adminEditableOnly で絞る、functional・required は無い", () => {
+test("直せる欄: 既定は種類の経路で使う欄の全部、adminEditableOnly で絞る、functional・required は無い", () => {
   assert.deepEqual(adminEditableFields(resolve(), LAYOUT), ["subject", "blocks", "preheader"]);
   // メールだけの欄は種類の経路に email が無ければ直せない
   assert.deepEqual(adminEditableFields(resolve({}, { kind: "transactional", channels: ["inApp"] }), LAYOUT), ["subject", "blocks"]);
@@ -70,21 +69,32 @@ test.skip("直せる欄: 既定は種類の経路で使う欄の全部、adminEd
   assert.deepEqual(adminEditableFields(resolve({ required: true }), LAYOUT), []);
 });
 
-test.skip("使ってよい鍵とコードの値", () => {
+test("使ってよい鍵とコードの値", () => {
   const resolved = resolve();
+  // vars(秘密を除く)とその別名(D133)・共通の文脈の鍵・共通の埋め込み情報の日本語の別名(D126)・渡した鍵
   assert.deepEqual(adminFieldAllowedKeys(resolved, ["displayName"]), [
     "name",
+    "お名前",
     "recipientName",
     "recipientEmail",
     "serviceName",
+    "serviceNameShort",
     "appBaseUrl",
+    "受信者名",
+    "受信者のメール",
+    "サービス名",
+    "サービスの短い名前",
+    "サイトのURL",
     "displayName",
   ]);
+  // 秘密の値とその別名は入れない
+  assert.ok(!adminFieldAllowedKeys(resolved).includes("token"));
+  assert.ok(!adminFieldAllowedKeys(resolved).includes("合言葉"));
   assert.equal(adminFieldCodeValue(resolved, "subject"), "{{name}} 様へ");
   assert.equal(adminFieldCodeValue(resolved, "preheader"), undefined);
 });
 
-test.skip("通る値と落ちる値(ブロックは欄ごと丸ごと、長さは問わない)", () => {
+test("通る値と落ちる値(ブロックは欄ごと丸ごと、長さは問わない)", () => {
   const resolved = resolve({ adminEditableOnly: ["subject", "blocks"] });
   assert.equal(checkAdminFieldValue(resolved, LAYOUT, "subject", "{{recipientName}} {{name}} 様"), null);
   assert.equal(
@@ -108,7 +118,7 @@ test.skip("通る値と落ちる値(ブロックは欄ごと丸ごと、長さ�
   assert.equal(checkAdminFieldValue(resolved, LAYOUT, "subject", "{{displayName}}", { variableKeys: ["displayName"] }), null);
 });
 
-test.skip("改版: 保存した版から今の版へ欄の道を移す。捨てた欄・段の無い版・版の無い古い形の行は移せない", () => {
+test("改版: 保存した版から今の版へ欄の道を移す。捨てた欄・段の無い版・版の無い古い形の行は移せない", () => {
   assert.deepEqual(moveAdminFieldPath(LAYOUT_V3, "subject", 1), { fieldPath: "title" });
   assert.deepEqual(moveAdminFieldPath(LAYOUT_V3, "title", 3), { fieldPath: "title" });
   assert.deepEqual(moveAdminFieldPath(LAYOUT_V3, "blocks", 2), { fieldPath: "blocks" });
@@ -120,7 +130,7 @@ test.skip("改版: 保存した版から今の版へ欄の道を移す。捨て�
   assert.ok("unusable" in moveAdminFieldPath(broken, "blocks", 1), "段の対応が無い");
 });
 
-test.skip("重ね方: 当てられる行だけ values に重ね(版を移して)、使えない・通らない行はコードの値のまま", () => {
+test("重ね方: 当てられる行だけ values に重ね(版を移して)、使えない・通らない行はコードの値のまま", () => {
   const resolved = resolveMessageDefinition(
     { ...definition, values: { title: "{{name}} 様へ", blocks: [{ type: "paragraph", text: "一" }] } } as typeof definition,
     undefined,
