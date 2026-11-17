@@ -10,7 +10,7 @@
 import { Plus, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/Form/Button";
-import { Input, SelectInput, SwitchInput } from "@/components/Form/Input/Manual";
+import { DateInput, DatetimeInput, Input, SelectInput, SwitchInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
@@ -154,8 +154,27 @@ export function TemplateEmbeddedInfoModal({
                         placeholder={row.options.some((option) => option.value.trim() !== "") ? "なし" : "先に選択肢を追加"}
                         onChange={(v) => onUpdateRow(index, { default: v ? String(v) : "" })}
                       />
+                    ) : row.type === "date" ? (
+                      <DateInput id={`${id}-default`} className="w-full" value={row.default || null} disabled={readOnly} onValueChange={(v) => onUpdateRow(index, { default: v ?? "" })} />
+                    ) : row.type === "datetime" ? (
+                      <DatetimeInput
+                        id={`${id}-default`}
+                        className="w-full"
+                        value={row.default || null}
+                        outputFormat="iso"
+                        disabled={readOnly}
+                        onValueChange={(v) => onUpdateRow(index, { default: v ?? "" })}
+                      />
                     ) : (
-                      <Input id={`${id}-default`} value={row.default} readOnly={readOnly} onChange={(e) => onUpdateRow(index, { default: e.target.value })} />
+                      // 1行テキスト・数・URL = 型に合う入力の種類(数は数字の欄、URL は https:// の案内)
+                      <Input
+                        id={`${id}-default`}
+                        type={row.type === "number" ? "number" : row.type === "url" ? "url" : "text"}
+                        placeholder={row.type === "url" ? "https://" : undefined}
+                        value={row.default}
+                        readOnly={readOnly}
+                        onChange={(e) => onUpdateRow(index, { default: e.target.value })}
+                      />
                     )}
                   </Stack>
                 </Grid>

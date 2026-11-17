@@ -31,7 +31,14 @@ export function SendEmbeddedInputs({ declarations, values, onChange, missing = [
       {declarations.map((declaration) => {
         const id = `send-embedded-${declaration.key}`;
         const value = values[declaration.key] ?? "";
-        const placeholder = declaration.default !== undefined ? `初期値: ${String(declaration.default)}` : undefined;
+        // 初期値は選択肢なら表示名で見せる(値の鍵は見せない)
+        const defaultText =
+          declaration.default === undefined
+            ? undefined
+            : declaration.type === "select"
+              ? ((declaration.options ?? []).find((option) => option.value === String(declaration.default))?.label ?? String(declaration.default))
+              : String(declaration.default);
+        const placeholder = defaultText !== undefined ? `初期値: ${defaultText}` : undefined;
         return (
           <Stack key={declaration.key} space={1}>
             <Label htmlFor={id} className="text-sm">

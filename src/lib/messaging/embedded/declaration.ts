@@ -54,7 +54,7 @@ export const messageEmbeddedDeclarationSchema = z
     if (value.type !== "select" && value.options) ctx.addIssue({ code: "custom", path: ["options"], message: "options は選択肢の型だけが持ちます" });
     if (value.default !== undefined && value.default !== "") {
       const parsed = embeddedTextOf(value as MessageEmbeddedDeclaration, value.default);
-      if (parsed === null) ctx.addIssue({ code: "custom", path: ["default"], message: `既定値が型 ${value.type} の形ではありません` });
+      if (parsed === null) ctx.addIssue({ code: "custom", path: ["default"], message: `既定値が型「${MESSAGE_EMBEDDED_TYPE_LABELS[value.type]}」の形ではありません` });
     }
   });
 
@@ -100,7 +100,7 @@ export function embeddedValueSchema(declaration: MessageEmbeddedDeclaration): z.
     }
     const text = embeddedTextOf(declaration, source);
     if (text === null) {
-      ctx.addIssue({ code: "custom", message: `${declaration.alias}(${declaration.key})が型 ${MESSAGE_EMBEDDED_TYPE_LABELS[declaration.type]} の形ではありません` });
+      ctx.addIssue({ code: "custom", message: `${declaration.alias}(${declaration.key})が型「${MESSAGE_EMBEDDED_TYPE_LABELS[declaration.type]}」の形ではありません` });
       return z.NEVER;
     }
     return text;
