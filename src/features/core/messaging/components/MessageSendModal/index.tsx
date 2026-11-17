@@ -38,7 +38,6 @@ import { SendTargetPicker } from "@/features/core/messaging/components/common/Se
 import { KindCategoryFields } from "@/features/core/messaging/components/common/KindCategoryFields";
 import { SendCategoryChannels } from "@/features/core/messaging/components/common/SendCategoryChannels";
 import { SendConfirmView, SendResultView } from "@/features/core/messaging/components/common/SendConfirmView";
-import { SendLegalNotice } from "@/features/core/messaging/components/common/SendLegalNotice";
 import { SendSchedule } from "@/features/core/messaging/components/common/SendSchedule";
 import { SendEmbeddedInputs, SendTemplatePicker } from "@/features/core/messaging/components/common/SendTemplatePicker";
 import { useEmbeddedInfoTags } from "@/features/core/messaging/hooks/useEmbeddedInfoTags";
@@ -198,7 +197,6 @@ export function MessageSendModal({
             channels={m.channels}
             onToggleChannel={m.toggleChannel}
           />
-          <SendLegalNotice emailOn={onChannels.some((channel) => channel.key === "email")} />
         </Block>
         <Block title="宛先">
           {bulk ? (

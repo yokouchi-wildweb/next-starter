@@ -70,7 +70,7 @@ export const category: MessageCategory = { key: "itemSoldInApp", label: "出品�
 - **機能の連絡（functional）は上書きで止められない**: 止めると機能が壊れる（確認のリンクが届かない）。`enabled: false`・管理画面の文言の上書き・間引き・email を外すことは検査で止まる。文面 = ひな形の描き方の `.replace`（見た目）か fork のファイルの上書きの `values`（文言） / 流れごと = 送り手（auth など）の口を替える
 - **種別まるごとの停止はデータだけ**: 種別まるごとの行は後から足す種類にも当たる。上流の画面はスイッチを出さないが、送る口・受け取り箱・好みの見え方は同じ判定で見る。会員登録で宣伝に同意しなかった人 = promotion の種別まるごとの行（source `signup`）。見せたい fork は hook `useMessagePreferences` の `setKind` と `preferences.kinds`、サーバーは `messagingService.setMessagePreference(userId, { kind, optedOut }, { source })`
 - **グループは見出しだけ**: 種類のグループ（`categoryGroups/`）は好みのページの見出しで、止める単位ではない（後から足した種類が止まるかが決まらないため）。まとめて止めさせたい物は 1 つの種類にする
-- **法の義務の告知はメールを経路に含める**: 全員・ロール宛てのお知らせは共有の 1 行で配達の行が無く、届かなかった人を数えられない。規約の変更などは email を含む種類で送り（送るモーダルは `SendLegalNotice` で注意を出す）、届かなかった人は `GET /api/admin/messaging/dispatches/[id]/deliveries?status=failed`（`bounced`・`suppressed`・`unknown` も）の `reason`・`errorCode` で見る
+- **法の義務の告知はメールを経路に含める**: 全員・ロール宛てのお知らせは共有の 1 行で配達の行が無く、届かなかった人を数えられない。規約の変更などは email を含む種類で送り、届かなかった人は `GET /api/admin/messaging/dispatches/[id]/deliveries?status=failed`（`bounced`・`suppressed`・`unknown` も）の `reason`・`errorCode` で見る
 - **会話の既読とお知らせの既読は別物**: 間引き `untilRead` が見るのは受け取り箱の既読だけ。会話を読んだらお知らせも既読にしたい機能は `POST /api/me/messaging/inbox/[id]/read` か messagingService の既読を呼ぶ
 
 ## API
