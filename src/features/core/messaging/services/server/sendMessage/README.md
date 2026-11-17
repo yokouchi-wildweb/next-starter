@@ -30,14 +30,22 @@
 5. 大きな送信と `target`（全員・ロール・グループ）: 回だけを書き（`processing`）、展開と送信は cron が束ごとに行う（`expand.ts` の `expandBroadcastChunk`・`resolveTargetChunk`、グループの固定は ../sweep/README.md）
 6. 予約（`scheduledAt`）: 回だけを `scheduled` + `scheduled_at` で書く（選んだ宛先の一覧も回の `target` に）。cron が時刻に `processing` にして 5 と同じく送る。粒度は cron の周期
 
-### 管理者が書いた文面（authoredDefinition.ts・dispatchDefinition.ts）
+### 回の記録と組み直し（dispatchResolved.ts、D128）
+
+- 回に残す物: 出どころ（コードの連絡の鍵 `message_key` / システムテンプレートの鍵 `system_template` / DB のテンプレートの `template_id`・`template_version`）・直した印（`template_edited`）・カテゴリー・種別・経路・ひな形の鍵と送った版（`layout`・`layout_version`）・欄の中身（`values`、差し込む前の字）
+- `values` の残し方は `vars` と同じ: record `vars` / `full` は残す、`meta` は送り残しの間だけ（回を閉じる時に消す）、required と秘密を差し込む連絡は残さない
+- 組み直し（cron の送る行・全員宛ての共有のお知らせの行・失敗の再送・回の詳細の「同じ内容で送る」）は回の物と `vars` だけで描く（`resolvedOfDispatch`）。定義・テンプレート・上書きは引き直さないので、送った後に直しても予約・後回しの中身は変わらない
+  - 送った版から今の版へひな形の改版の対応（`revisions[版]`）で読み替える。段の対応が無い・今より新しい版 = `layout_unreadable`、ひな形が無い = `layout_missing`、欄の中身が無い = `values_missing`（cron は配達を `failed`）
+  - 描かない振る舞い（間引き `throttle`・required・vars の zod の秘密の印）だけはコードの定義（`message_key` の生成の一覧の定義 + fork の上書き）から読む。定義が無ければ間引かない
+
+### 管理者が書いた文面（authoredDefinition.ts）
 
 - 定義の鍵 = 送るカテゴリーの種別の authored の定義（`messaging.adminAnnouncement` / `adminDirect` / `adminPromotion`）。種別が announcement・direct・promotion でないカテゴリーは 400（送る時も cron の組み直しも）
 - **経路 = 種類の経路 ∩ その回の絞り（`channels`）。その中に文面の無い経路が 1 つでもあれば 400**（黙って落とさない）。欄は経路の受け口の zod で検査。`{{鍵}}` = 当たる enrichers の鍵 + テンプレートの版の変数（文面の全部で見る）、知らない鍵は 400。authored の定義は上書きと管理画面の文言を重ねない
 - 経路ごとの文面（管理画面・テンプレートの形、S4・S5 まで）は送る時にひな形 notice の欄の中身にする（`authoredNoticeValues`）: email の欄が先（件名 → subject、見出し・段落・ボタン・フッター → ブロック）、無ければ inApp（題・画像・本文・行き先）、無ければ line。経路ごとに別に書いた文（お知らせだけの文など）は S5 まで使わない
-- 文面は回の `authored_content` に残し、予約・cron の組み直し・再送はその文面で組む（後でテンプレートを直しても送った文面のまま）
+- 回には notice の欄の中身（`values`）を残し、予約・cron の組み直し・再送はその中身で描く（後でテンプレートを直しても送った中身のまま）
 - テンプレートを読み込んだ時: 今の公開版を回の `template_id`・`template_version` に固定（今の公開版でない・取り下げ済み・未公開は 409、無いテンプレートは 404）。版から直したかを `template_edited` に残す
-- 変数の値 `vars`（回に 1 組、`template` がある時だけ。無いのに渡すと 400）は版の変数で検査（必須の欠け・型の違いは 400）。cron は送る時にもう一度検査し、合わなければ配達を `failed`（`template_vars_invalid`、版が消えた = `template_missing`、文面の無い前の回 = `authored_missing`）。受信者ごとの変数（`source: recipient`）は既定値を全員に使う（既定値が無いテンプレートは 400）
+- 変数の値 `vars`（回に 1 組、`template` がある時だけ。無いのに渡すと 400）は版の変数で検査（必須の欠け・型の違いは 400）。cron は版を引き直さず検査し直さない（回の vars のまま描く）。受信者ごとの変数（`source: recipient`）は既定値を全員に使う（既定値が無いテンプレートは 400）
 - 画像（`storage://`）: お知らせの行を書く時に回へ結ぶ（../inbox/README.md「画像」）。テンプレートの画像も回ごとに複製して回が持つ
 
 ### 宛先の引き方

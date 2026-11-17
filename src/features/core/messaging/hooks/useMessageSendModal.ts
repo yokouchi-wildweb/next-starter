@@ -187,6 +187,12 @@ function adhocFromContent(content: Record<string, unknown>): MessageSendDraft {
   return { source: "adhoc", template: null, content: clone(content), vars: {} };
 }
 
+/** 回の中身が経路ごとの欄の形ならそれ(ひな形 + 欄の中身 { layout, values } の形は null) */
+function perChannelContentOf(content: unknown): Record<string, unknown> | null {
+  if (!content || typeof content !== "object" || "layout" in content || "values" in content) return null;
+  return content as Record<string, unknown>;
+}
+
 /**
  * mode から導く初めの中身(sameAs の写し・bulk の既定)。sameAs:
  * - テンプレートの回で、そのテンプレートが今も公開中: 呼び出しの形。直して送った回(templateEdited)は直した文言、ほかは今の版の文言
@@ -198,8 +204,10 @@ export function initialDraftOf(mode: MessageSendMode, templates: readonly Messag
   if (mode.type === "bulk") return emptyAdhoc(mode.defaults);
   if (mode.type === "new") return emptyAdhoc();
   const { dispatch } = mode;
-  // 書いて送った文面(テンプレートの回は版から直した時だけ写す。ほかは今の版の文面)
-  const edited = dispatch.content && (!dispatch.templateId || dispatch.templateEdited) ? dispatch.content : null;
+  // 書いて送った文面(テンプレートの回は版から直した時だけ写す。ほかは今の版の文面)。
+  // 回の中身はひな形 + 欄の中身(D128)で経路ごとの欄の形ではないので、経路ごとの形の時だけ写す(S5 で画面を作り直すまで写さない)
+  const perChannel = perChannelContentOf(dispatch.content);
+  const edited = perChannel && (!dispatch.templateId || dispatch.templateEdited) ? perChannel : null;
   if (!dispatch.templateId && edited) return adhocFromContent(edited);
   if (dispatch.templateId) {
     const template = templates.find((item) => item.id === dispatch.templateId);

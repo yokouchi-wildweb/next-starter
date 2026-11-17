@@ -55,7 +55,7 @@ export type MessageDefinitionProblemCode =
   | "unknown_category"
   | "kind_admin_editable"
   | "kind_throttle"
-  | "authored_content"
+  | "authored_values"
   | "authored_field"
   | "authored_override";
 
@@ -163,7 +163,7 @@ export function validateMessageDefinition<
   if (definition.authored) {
     // 文面を送るたびに受け取る定義: 文面・管理画面の欄・間引きを持たず、上書きも当たらない(送った文面に重ねる物が無い)
     if (Object.keys(definition.values ?? {}).length > 0) {
-      add("authored_content", `${label}: authored の連絡は values を空 {} にする(文面は送る時に受け取る)`);
+      add("authored_values", `${label}: authored の連絡は values を空 {} にする(文面は送る時に受け取る)`);
     }
     if ((definition.adminEditableOnly?.length ?? 0) > 0 || definition.throttle) {
       add("authored_field", `${label}: authored の連絡に adminEditableOnly・throttle は付けられない`);

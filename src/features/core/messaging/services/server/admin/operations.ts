@@ -59,7 +59,7 @@ const no = (reason: DispatchOperationReason): DispatchOperationFlag => ({ allowe
 
 /** 3 つの操作ができるか(画面のボタンと service の両方が使う同じ判定) */
 export function operationFlags(
-  dispatch: Pick<MessageDispatch, "status" | "deleted_at" | "record" | "vars">,
+  dispatch: Pick<MessageDispatch, "status" | "deleted_at" | "record" | "vars" | "values">,
   policy: DispatchPolicy,
   counts: { failed: number; unknown: number },
   options: { includeUnknown?: boolean } = {},
@@ -80,8 +80,10 @@ export function operationFlags(
   else if (policy.secret) resendFlag = no("secret");
   else if (targets === 0) resendFlag = no("no_failed");
   else if (policy.record === "meta") {
-    resendFlag = dispatch.vars ? ok : no("no_input_copy");
-    mode = dispatch.vars ? "new_dispatch" : null;
+    // 新しい回は回の vars と欄の中身から描く(閉じた回は両方消えている)
+    const copied = Boolean(dispatch.vars && dispatch.values);
+    resendFlag = copied ? ok : no("no_input_copy");
+    mode = copied ? "new_dispatch" : null;
   } else {
     resendFlag = ok;
     mode = "requeue";
@@ -331,15 +333,9 @@ export async function adminResendFailed<Tx>(
         metadata: { resendOf: dispatchId, ...(includeUnknown ? { possibleDuplicate: true } : {}) },
         isTest: dispatch.is_test ?? false,
       } as SendMessageToManyInput,
-      // 書いた文面の回の再送は同じ文面と版を残す(定義も回の文面から組んである)
-      dispatch.authored_content
-        ? {
-            content: dispatch.authored_content,
-            template:
-              dispatch.template_id && dispatch.template_version
-                ? { id: dispatch.template_id, version: dispatch.template_version, edited: dispatch.template_edited }
-                : null,
-          }
+      // 定義は回の欄の中身から組んである(D128)。テンプレートの回の再送は同じ版と直した印を残す
+      dispatch.template_id && dispatch.template_version
+        ? { template: { id: dispatch.template_id, version: dispatch.template_version, edited: dispatch.template_edited } }
         : undefined,
     );
     const failed = rows.filter((row) => row.status === "failed").length;

@@ -39,9 +39,22 @@ export type MessageLayout<F extends MessageLayoutFields = MessageLayoutFields> =
   summary: (values: MessageLayoutValues<F>) => MessageLayoutSummary;
   /** 管理者がテンプレートで選べるか(既定 false = コードの連絡だけが使う) */
   adminSelectable?: boolean;
-  /** 改版の対応: 前の版の欄の鍵 → 新しい版の欄の鍵(null = 捨てる)。保存した値と文言の上書きの両方に効く */
-  revisions?: Readonly<Record<string, string | null>>;
+  /** 版(既定 1)。欄の鍵を変えた・消した時に 1 上げ、revisions にその段の対応を書く。回は送った時の版を残す(D128) */
+  version?: number;
+  /**
+   * 改版の対応(版ごと): { [上げる前の版]: { 前の欄の鍵: 新しい欄の鍵 | null(捨てる) } }。1 から今の版の 1 つ前まで、全部の段を書く
+   * (欄の鍵が変わらない段も空の {})。保存した値(回の values・テンプレート)と文言の上書きを今の版へ読み替える(upgradeLayoutValues)
+   */
+  revisions?: Readonly<Record<number, Readonly<Record<string, string | null>>>>;
 };
+
+/** 型の版の既定 */
+export const DEFAULT_LAYOUT_VERSION = 1;
+
+/** ひな形の今の版 */
+export function layoutVersionOf(layout: Pick<MessageLayout, "version">): number {
+  return layout.version ?? DEFAULT_LAYOUT_VERSION;
+}
 
 /** ひな形を宣言する(欄の宣言から中身の型を引く) */
 export function defineMessageLayout<const F extends MessageLayoutFields>(layout: MessageLayout<F>): MessageLayout<F> {

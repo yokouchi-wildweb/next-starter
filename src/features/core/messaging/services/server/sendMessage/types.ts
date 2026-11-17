@@ -109,7 +109,7 @@ export type SendAuthoredInput = Omit<SendMessageToManyInput, "recipientVars" | "
 
 /** 回に残す書いた文面と、テンプレートの出どころ(版の固定・版の文面から直したか) */
 export type MessageDispatchAuthored = {
-  content: Record<string, unknown>;
+  /** テンプレートを呼び出した時の固定した版と、版の文面から直したか(直した印)。その場で書いた文面は null */
   template: { id: string; version: number; edited: boolean } | null;
 };
 

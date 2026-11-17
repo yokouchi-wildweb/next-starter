@@ -72,8 +72,13 @@ export const MessageDispatchTable = pgTable(
 
     // ---- 新しい連絡の基盤の列（S2 で追加。既存行のため null 可か既定値つき）----
 
-    /** 連絡の定義の鍵（messaging/messages/<名前>.ts の key） */
+    /**
+     * 出どころ（D128。どれか 1 つ）: コードの連絡の鍵（messaging/messages/<名前>.ts の key）/ システムテンプレートの鍵（system_template）/
+     * DB のテンプレート（template_id + template_version）。管理者が書いて送る回は今は種別ごとの管理の定義の鍵も持つ
+     */
     message_key: text("message_key"),
+    /** システムテンプレートの鍵（messaging/templates の受け口、管理の送信の白紙）。それ以外の回は null */
+    system_template: text("system_template"),
     /** 保存されたテンプレートから送った回のテンプレート（消されても回は残す） */
     template_id: uuid("template_id").references(() => MessageTemplateTable.id, {
       onDelete: "set null",
@@ -82,11 +87,16 @@ export const MessageDispatchTable = pgTable(
     template_version: integer("template_version"),
     /** テンプレートを呼び出して送った回で、版の文面から直したか（D85。テンプレートを呼び出していない回は false） */
     template_edited: boolean("template_edited").notNull().default(false),
+    /** ひな形の鍵（messaging/layouts の受け口、D122）。送った時の定義・テンプレートのひな形 */
+    layout: text("layout"),
+    /** 送った時のひな形の版（D128）。組み直しはひな形の改版の対応で今の版へ読み替え、読めなければ止める */
+    layout_version: integer("layout_version"),
     /**
-     * 管理者が書いて送った文面（D92。その場で書く連絡もテンプレートを呼び出した文面も。経路ごとの欄、差し込む前の字）。
-     * 定義の文面から送る回は null。予約・cron の組み直し・再送はこの文面（とテンプレートの版の変数の宣言）で組む
+     * ひな形の欄の中身（差し込む前の字、{{鍵}} のまま）。予約・cron の組み直し・失敗の再送・同じ内容で送るは
+     * この中身と回の vars だけで描く（定義・テンプレートを引き直さない、D128）。残し方は vars と同じ: record vars / full は残す、
+     * meta は送り残しの間だけ残して回を閉じる時に消す、required と秘密を差し込む連絡は残さない
      */
-    authored_content: jsonb("authored_content").$type<Record<string, unknown>>(),
+    values: jsonb("values").$type<Record<string, unknown>>(),
     /** 種別（transactional / promotion / activity） */
     kind: text("kind").$type<MessageKind>(),
     /** 種類の鍵（配信停止の単位。messaging/categories の鍵） */

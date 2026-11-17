@@ -44,7 +44,7 @@
 
 - `GET /dispatches/categories` → `{ items: { key, label, kind }[] }`（カテゴリーの受け口の全部）
 - `GET /dispatches`: `from`・`to`（作った時刻）・`kind`・`category`・`channel`・`status`・`deleted`（`exclude` 既定 = 削除した回を出さない / `only` / `include`）・`cursor`・`limit`（既定 50、最大 100）→ `{ items: AdminDispatchSummary[], nextCursor }`（新しい順、keyset）。定義の鍵では絞らない
-- `GET /dispatches/[id]` → `AdminDispatchDetail`: 回の中身・`operations`（下）・`targetGroup` `{ id, name }`（グループ宛ての回、id は値だけ。門 `userGroups` が閉なら名前は取れない）・「同じ内容で送る」が写す `templateEdited`・`templateContent`（直して送った回の文言）・`targetUserIds`（選んだ利用者の回の利用者 id。10,000 人を超える・ほかの宛先は null）
+- `GET /dispatches/[id]` → `AdminDispatchDetail`: 回の中身・`operations`（下）・`targetGroup` `{ id, name }`（グループ宛ての回、id は値だけ。門 `userGroups` が閉なら名前は取れない）・「同じ内容で送る」が写す `templateEdited`・`content`（回の中身 `{ layout, layoutVersion, values }`、欄の中身を残した回だけ。送るモーダルは経路ごとの形でないので S5 まで写さない）・`targetUserIds`（選んだ利用者の回の利用者 id。10,000 人を超える・ほかの宛先は null）
 - `GET /dispatches/[id]/deliveries`: `status`・`channel`・`cursor`・`limit` → `{ items: AdminDeliveryRow[], nextCursor }`（古い順）
 - 返す項目は `dispatchDto.ts` 1 か所: 鍵・種別・種類・送り元（`sourceLabel`）・状態・経路・件名 / 題・数・送った人（`actorName`、system は「システム」）・時刻・テストかは常に / 回の本文（rendered）と vars は記録の段が vars・full の時 / 配達の本文は full の時だけ / 宛先は出す（`userName`）/ provider の生の値と `last_error` の文は出さない（符号 `errorCode`、文は `constants/deliveryErrors.ts`）。`message_key` が null の前の回は件名・題・本文を `rendered` から
 

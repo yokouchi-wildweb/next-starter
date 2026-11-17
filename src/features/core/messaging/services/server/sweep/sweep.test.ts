@@ -14,12 +14,12 @@ import assert from "node:assert/strict";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 
-import { createDefineMessage, type ChannelSendResult, type MessageRegistry } from "@/lib/messaging";
+import { createDefineMessage, type ChannelSendResult, type MessageLayout, type MessageRegistry } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
 import { createMessageSender } from "../sendMessage/sender";
-import { createTestChannel, testConfig } from "../sendMessage/testHelpers";
+import { TEST_LAYOUTS, createTestChannel, testConfig } from "../sendMessage/testHelpers";
 import { pruneMessaging } from "./retention";
 import { continueDispatch, sweepMessages } from "./sweep";
 import { createMemoryWorld, createSweepDeps } from "./testHelpers";
@@ -173,12 +173,49 @@ test("d2: 複数の宛先は一時の失敗の宛先だけ送り直し、行は 
   assert.equal(world.store.dispatches[0].status, "completed");
 });
 
-test("d2: 定義が一覧に無い回の行は failed(definition_missing)", async () => {
-  const { world, deps, sender } = setup({ users: 3 });
+test("組み直し(D128): 送った後に定義を直しても・一覧から消えても、回のひな形と欄の中身で描く", async () => {
+  const { world, deps, sender, channel } = setup({ users: 3 });
   await sender.sendMessageToMany(notice, { recipients: ["u1", "u2", "u3"].map((userId) => ({ userId })), vars: { item: "x" } });
-  const swept = await sweepMessages({ ...deps, registry: {} }, { deadline: farFuture() });
-  assert.equal(swept.failed, 1);
-  assert.equal(world.store.deliveries.find((row) => row.last_error === "definition_missing")?.status, "failed");
+  const dispatch = world.store.dispatches[0];
+  assert.deepEqual([dispatch.layout, dispatch.layout_version, dispatch.values], ["card", 1, notice.values]);
+  // 定義を直した(上書き)・一覧から消えた: cron は回の物だけで描く
+  const changed: MessageRegistry = {
+    "shop.notice": { key: "shop.notice", definition: async () => ({ message: { ...notice, values: { title: "直した定義" } } }) },
+  };
+  await sweepMessages({ ...deps, registry: changed }, { deadline: farFuture() });
+  await sweepMessages({ ...deps, registry: {} }, { deadline: farFuture() });
+  assert.deepEqual(
+    channel.calls.flat().map((target) => target.content.title),
+    ["x", "x", "x"],
+  );
+  assert.ok(world.store.deliveries.every((row) => row.status === "sent"));
+});
+
+test("組み直し(D128): 送った版から今の版へ改版の対応で読み替え、読めない版・欄の中身の無い回は止める", async () => {
+  const card = TEST_LAYOUTS.card!;
+  const v2 = {
+    ...card,
+    version: 2,
+    fields: { headline: { type: "line" as const, label: "題", required: true }, body: card.fields.body! },
+    revisions: { 1: { title: "headline" } },
+    summary: (values: Record<string, unknown>) => ({ title: String(values.headline ?? ""), body: String(values.body ?? "") }),
+  } as unknown as MessageLayout;
+  const run = async (layouts: Record<string, MessageLayout>, drop?: "values") => {
+    const { world, deps, sender, channel } = setup({ users: 3 });
+    await sender.sendMessageToMany(notice, { recipients: ["u1", "u2", "u3"].map((userId) => ({ userId })), vars: { item: "x" } });
+    if (drop) world.store.dispatches[0].values = null;
+    const before = channel.calls.flat().length;
+    await sweepMessages({ ...deps, layouts }, { deadline: farFuture() });
+    return { world, sent: channel.calls.flat().slice(before) };
+  };
+  const upgraded = await run({ ...TEST_LAYOUTS, card: v2 });
+  assert.deepEqual(upgraded.sent.map((target) => target.content.title), ["x"]);
+  const unreadable = await run({ ...TEST_LAYOUTS, card: { ...v2, revisions: undefined } });
+  assert.equal(unreadable.sent.length, 0);
+  assert.equal(unreadable.world.store.deliveries.find((row) => row.status === "failed")?.last_error, "layout_unreadable");
+  const missing = await run(TEST_LAYOUTS, "values");
+  assert.equal(missing.sent.length, 0);
+  assert.equal(missing.world.store.deliveries.find((row) => row.status === "failed")?.last_error, "values_missing");
 });
 
 test("d3: target を再開の位置から束ごとに展開し、終えたら数と状態を確定する", async () => {

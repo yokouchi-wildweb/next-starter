@@ -46,7 +46,7 @@ export const message = defineMessage({
 - `layout`(必須、D122): ひな形の鍵(`src/features/core/messaging/layouts/<名前>/`。上流は notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。上書きで変えられない
 - `values`: ひな形の欄の中身(欄の鍵 → 値。文字列に `{{鍵}}` を書ける)。ひな形の欄の zod(`layoutValuesSchema`、種類の経路で使う欄だけ必須 D125)を通る(`invalid_values`)
 - `extras`: fork が足す欄の入れ物
-- `authored: true`(文面を送るたびに受け取る連絡、D92): 管理者が書いて送る連絡(上流は messaging の `messaging.adminAnnouncement`・`adminDirect`・`adminPromotion`、ひな形 notice)。定義は `key`・`category`・`layout` だけを持ち、`values: {}`・`vars: z.object({})` で書く。送る口が受けた文面で埋めてから同じ検査を通す(管理画面・テンプレートの文面は S5 まで経路ごとの欄なので、送る口が経路の zod で検査してから notice の欄の中身に変える。`{{鍵}}` は文面の全部で見る)。`adminEditableOnly`・`throttle` は付けられず(`authored_field`)、文面を空にしないと `authored_content`、上書きのファイルは置けない(`authored_override`、`pnpm check extensions` も止める)
+- `authored: true`(文面を送るたびに受け取る連絡、D92): 管理者が書いて送る連絡(上流は messaging の `messaging.adminAnnouncement`・`adminDirect`・`adminPromotion`、ひな形 notice)。定義は `key`・`category`・`layout` だけを持ち、`values: {}`・`vars: z.object({})` で書く。送る口が受けた文面で埋めてから同じ検査を通す(管理画面・テンプレートの文面は S5 まで経路ごとの欄なので、送る口が経路の zod で検査してから notice の欄の中身に変える。`{{鍵}}` は文面の全部で見る)。`adminEditableOnly`・`throttle` は付けられず(`authored_field`)、欄の中身を空にしないと `authored_values`、上書きのファイルは置けない(`authored_override`、`pnpm check extensions` も止める)
 
 ## 定義で間違えやすい線(D77)
 
@@ -159,13 +159,13 @@ export const messageOverride = {
 
 連絡の見た目の型。ひな形 = 欄の宣言・仮の文・要約(必須)・管理者が選べる印・改版の対応。種別・カテゴリー・経路を知らない(経路だけの欄は欄の `channels` に経路の鍵を値として持つだけ)。経路ごとの描き方はひな形のフォルダのファイル(server = email、client = inApp)が持ち、型は持たない。連絡の定義はひな形の鍵と欄の中身を持ち、送る口は経路ごとに下の 3 段で描く(経路の `fields` / `fieldMeta` は管理画面だけが読む、S5 で消す)。
 
-- `defineMessageLayout({ key, label, description?, fields, summary, adminSelectable?, revisions? })`: 欄の宣言から中身の型(`MessageLayoutValues`)を引く
+- `defineMessageLayout({ key, label, description?, fields, summary, adminSelectable?, version?, revisions? })`: 欄の宣言から中身の型(`MessageLayoutValues`)を引く。`version` = 版(既定 1、`layoutVersionOf`)
 - 欄の宣言 `MessageFieldSpec`: `type`(語彙)・`label`・`placeholder?`・`required?`・`channels?`(使う経路の鍵、無い = 全部)。`select` は `options`、`list` は `of`・`min?`・`max?`、`group` は `fields`、`blocks` は `allow?`・`min?`・`max?`
 - 欄の型の語彙(`layout/vocabulary.ts`、lib で固定。fork は増やさず、入力の部品を src/wiring/formInputs に登録する): `line` 1 行の文・`paragraph` 段落・`longText` 長い文・`image` 画像(storage:// の参照か URL)・`button` ボタン `{ label, url }`・`link` リンク `{ label?, url }`・`date` 日付 YYYY-MM-DD・`number` 数・`select` 選択肢・`list` 並び・`group` 組・`keyValue` 項目と値 `[{ key, value }]`・`blocks` ブロックの並び。型ごとの zod は `fieldValueSchema(shape)`
 - ブロック(`layout/blocks.ts`): `heading` 小見出し・`paragraph` 段落・`button` ボタン・`image` 画像・`divider` 区切り・`keyValueTable` 項目と値の表・`bulletList` 箇条書き。`messageBlocksSchema({ allow?, min?, max? })` が許す種類と数で絞る(知らない種類は通らない)
 - 要約 `MessageLayoutSummary` = `{ title, body, image?, link?: { label?, url }, shortBody? }`(プッシュ・LINE は `shortBody ?? body`)
 - 中身の検査 `layoutValuesSchema(layout, { channels? })`: 必須を守る(空文字・空の並びも通さない)。`channels` を渡すと、そのどれにも使われない経路だけの欄は求めない。知らない鍵は通らない。経路の欄だけ = `fieldsForChannel(layout, channel)`
-- 改版の対応 `applyLayoutRevisions(values, layout.revisions)`: 前の版の鍵 → 新しい版の鍵、`null` は捨てる。新しい鍵に値があれば今の値を残す。テンプレートの保存値と文言の上書きの両方に当てる
+- 改版(D122・D128): 欄の鍵を変えた・消した時に `version` を 1 上げ、`revisions` にその段の対応を書く(`{ [上げる前の版]: { 前の鍵: 新しい鍵 | null } }`、1 から今の版の 1 つ前まで全部の段。鍵の変わらない段も `{}`)。`applyLayoutRevisions(values, 段)` = 1 段(`null` は捨てる、新しい鍵に値があれば今の値を残す)、`upgradeLayoutValues(layout, values, fromVersion)` = 送った版から今の版まで段ごとに当てる(段が無い・今より新しい版 = `{ cannotRender }`)。回の values・テンプレートの保存値・文言の上書きに当てる
 - 描き方の 3 段 `resolveRendering({ layout, channelKey, hasLayoutRenderer, channel, values })`: ひな形のその経路の描き方(`{ from: "layout" }`)> 経路の汎用の描き方(`renderGeneric`、`genericFieldTypes` が経路の欄の型を全部含む時、`{ from: "channel", fields }`)> 要約(経路が `summaryRenderable: true` と `renderFromSummary` を持つ時、`{ from: "summary", summary }`)。どれでも描けない・要約が投げる = `{ cannotRender: 理由 }`。テンプレートの保存・プレビュー・送る前の検査がこれで止める。経路の宣言の型は `MessageChannelRendering`(`rendersAtSend?: true` = 送る時に宛先ごとに描く経路、例 email の停止のリンク)
 - 経路 1 つの組み立て `buildChannelContent({ layout, channelKey, channel, hasLayoutRenderer, values })`(`layout/content.ts`): その経路が使う欄だけ → 要約 → 3 段 → 中身 `{ content, title }`(title = 要約の題)か `{ cannotRender }`。ひな形の描き方の段と `rendersAtSend` の経路は `MessageLayoutContent`(`{ title, layout, from, values, summary }`、経路が送る時に段に従って描く。判定 `isMessageLayoutContent`)、ほかは経路が描いた物(`content` があればそれ、無ければ `html` / `text`)。送る口の組み立て(messaging の `sendMessage/content.ts`)が経路ごとに呼ぶ
 

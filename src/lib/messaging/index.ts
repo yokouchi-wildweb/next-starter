@@ -111,13 +111,15 @@ export {
   type MessageFieldValue,
 } from "./layout/vocabulary";
 export {
+  DEFAULT_LAYOUT_VERSION,
   defineMessageLayout,
+  layoutVersionOf,
   type MessageLayout,
   type MessageLayoutFields,
   type MessageLayoutSummary,
   type MessageLayoutValues,
 } from "./layout/types";
-export { applyLayoutRevisions, fieldBelongsTo, fieldsForChannel, layoutValuesSchema } from "./layout/values";
+export { applyLayoutRevisions, fieldBelongsTo, fieldsForChannel, layoutValuesSchema, upgradeLayoutValues } from "./layout/values";
 export { resolveRendering, type MessageChannelRendering, type MessageRenderingResolution } from "./layout/rendering";
 export {
   buildChannelContent,
