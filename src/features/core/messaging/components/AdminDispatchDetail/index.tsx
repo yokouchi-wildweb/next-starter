@@ -1,6 +1,8 @@
 // src/features/core/messaging/components/AdminDispatchDetail/index.tsx
 // セクションコンテナ(管理: 送った回 1 件)。回の中身(状態・件名 / 題・種別とカテゴリーの表示名・送り元の表示名(ある時だけ)・数・送った人・時刻・
 // 本文は記録の段しだい。定義の鍵・送り元の鍵は見せない、D46)と、
+// 本文のプレビュー(回の中身 = ひな形と欄の中身を残した回: 回の値で差し込んだひな形の描き方を経路のタブで、部品 LayoutPreview。
+// メールは送った HTML、お知らせはひな形のお知らせの描き方。中身の無い前の形の回は残した本文をそのまま)と、
 // 配達の一覧(状態・経路で絞る、無限スクロール = カーソル)と、
 // 回の操作(状態の 1 行と、今できる操作だけ: 予約を取り消す・公開を停止・失敗分を再送・送信を再開(送信中の回だけ。1 束だけ進める)。
 // できるかは回の operations、部品 DispatchOperations)と
@@ -36,6 +38,7 @@ import { useGate } from "@/featureGate/client";
 import { ADMIN_CHANNEL_FILTER_OPTIONS, messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
 import { useAdminDispatchCategories } from "@/features/core/messaging/hooks/useAdminDispatchCategories";
 import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
+import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
 import { MessagePreview } from "@/features/core/messaging/components/common/MessagePreview";
 import { DispatchOperations } from "@/features/core/messaging/components/common/DispatchOperations";
 import { dispatchStateLine } from "@/features/core/messaging/constants/dispatchOperations";
@@ -75,7 +78,7 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
 
   return (
     <Stack space={6}>
-      <DispatchSummary dispatch={dispatch} categoryLabel={categories.labelOf(dispatch.category)} />
+      <DispatchSummary dispatch={dispatch} categoryLabel={categories.labelOf(dispatch.category)} preview={detail.preview} />
 
       {canSend ? (
         <Flex justify="end">
@@ -157,7 +160,50 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
 }
 
 /** 回の中身(数・時刻・本文) */
-function DispatchSummary({ dispatch, categoryLabel }: { dispatch: AdminDispatchDetailDto; categoryLabel: string | null }) {
+type DispatchPreviewState = ReturnType<typeof useAdminDispatchDetail>["preview"];
+
+/** 回の本文のプレビュー(回の中身を残した回) */
+function DispatchContentPreview({ preview }: { preview: NonNullable<DispatchPreviewState> }) {
+  return (
+    <Stack space={2} data-slot="dispatch-content-preview">
+      <Span size="sm" tone="muted">
+        本文
+      </Span>
+      {preview.isLoading && preview.channels.length === 0 ? (
+        <Flex justify="center" className="py-6">
+          <Spinner className="size-6" />
+        </Flex>
+      ) : preview.error ? (
+        <Para size="sm" tone="destructive" className="my-0">
+          {err(preview.error, "本文を表示できませんでした")}
+        </Para>
+      ) : preview.cannotRender ? (
+        <Para size="sm" tone="muted" className="my-0">
+          {preview.cannotRender}
+        </Para>
+      ) : (
+        <LayoutPreview
+          layout={preview.layout}
+          channels={preview.channels}
+          channel={preview.channel}
+          onChannelChange={preview.setChannel}
+          content={preview.content}
+          loading={preview.isLoading}
+        />
+      )}
+    </Stack>
+  );
+}
+
+function DispatchSummary({
+  dispatch,
+  categoryLabel,
+  preview,
+}: {
+  dispatch: AdminDispatchDetailDto;
+  categoryLabel: string | null;
+  preview: DispatchPreviewState;
+}) {
   const headings = Object.entries(dispatch.headings ?? {});
   const counts = Object.entries(dispatch.channelCounts ?? {});
   const body = dispatch.body ? Object.entries(dispatch.body) : [];
@@ -205,7 +251,9 @@ function DispatchSummary({ dispatch, categoryLabel }: { dispatch: AdminDispatchD
         </Stack>
       ) : null}
 
-      {body.length > 0 ? (
+      {preview ? (
+        <DispatchContentPreview preview={preview} />
+      ) : body.length > 0 ? (
         <Stack space={2}>
           <Span size="sm" tone="muted">
             本文

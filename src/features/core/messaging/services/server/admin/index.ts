@@ -35,6 +35,11 @@ import {
   sendResolved,
 } from "../sendMessage";
 import { continueSending } from "../sweep";
+import { buildContent } from "../sendMessage/content";
+import { renderValue, toVariableMap } from "../sendMessage/context";
+import { messageEmbeddedCatalog } from "../sendMessage/enrichers";
+import { stopContextOf } from "../sendMessage/sender";
+import { honoursPreferences } from "../sendMessage/stops";
 import type { AdminCheckDeps } from "./assertAdmin";
 import {
   adminBulkSend as adminBulkSendWith,
@@ -45,6 +50,7 @@ import {
   type AdminBulkSendInput,
 } from "./bulkSend";
 import { adminContinueSending as adminContinueSendingWith } from "./continueSending";
+import { adminDispatchPreview as adminDispatchPreviewWith, type AdminDispatchPreviewDeps } from "./dispatchPreview";
 import {
   adminBulkDeleteDispatches as adminBulkDeleteDispatchesWith,
   adminDeleteDispatch as adminDeleteDispatchWith,
@@ -255,6 +261,30 @@ export function listDispatches(query?: ListDispatchesQuery) {
 /** 回 1 件 */
 export function findDispatch(id: string) {
   return findDispatchWith(readDeps, id);
+}
+
+/** 送った回のプレビューの部品(回だけから描く。送る口と同じ組み立て) */
+const previewDeps: AdminDispatchPreviewDeps = {
+  ...adminCheck,
+  findDispatch: (id) => drizzleAdminDispatchStore.findDispatch(id),
+  resolve: (row) => resolvedOfDispatch(sendMessageDeps, row),
+  layouts: sendMessageDeps.layouts,
+  buildContent: (resolved, channel, map) => buildContent(sendMessageDeps, resolved, channel, map),
+  renderValue,
+  toVariableMap: (values) => toVariableMap(values),
+  embeddedCatalog: (resolved) => messageEmbeddedCatalog(resolved, sendMessageDeps.enrichers ?? {}),
+  commonValues: () => sendMessageDeps.context(),
+  honoursPreferences: (resolved) => honoursPreferences(stopContextOf(resolved)),
+  channelLabel: (channel) => channels[channel]?.label ?? null,
+  channelPreview(channel, input) {
+    const item = channels[channel];
+    return item?.preview ? item.preview({ ...input, messageKey: input.messageKey as never }) : null;
+  },
+};
+
+/** 送った回のプレビュー(GET /api/admin/messaging/dispatches/[id]/preview) */
+export function adminDispatchPreview(id: string) {
+  return adminDispatchPreviewWith(previewDeps, id);
 }
 
 /** 回の画面の絞りの選択肢(カテゴリーの鍵・表示名・種別) */
