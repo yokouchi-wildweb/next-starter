@@ -1,7 +1,7 @@
 // src/features/core/messaging/components/InboxList/index.tsx
 // セクションコンテナ(本人の受け取り箱の一覧)。流れは hook useInboxList(取得・開いたら既読・一覧の印・全部既読と知らせ)、
-// ここは部品(InfiniteScrollList + InboxItemRow、詳細は Modal + InboxItemDetail)を並べるだけ。行は要約、詳細は描き方の 3 段
-// (ひな形のお知らせの描き方 > 汎用 > 要約のカード、詳しい表示が取れるまでは一覧の要約で描く)。
+// ここは部品(InfiniteScrollList + InboxItemRow、詳細は InboxDetailModal = 未読のモーダルと同じ表示、D120)を並べるだけ。
+// 行は題と本文の頭、詳細はひな形の描き方(詳しい表示 useInboxItemDetail が取れるまでは読み込み中)。
 // 下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
@@ -10,11 +10,10 @@ import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
-import Modal from "@/components/Overlays/Modal";
 import { Para } from "@/components/TextBlocks/Para";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 
-import { InboxItemDetail } from "@/features/core/messaging/components/common/InboxItemDetail";
+import { InboxDetailModal } from "@/features/core/messaging/components/common/InboxDetailModal";
 import { InboxItemRow } from "@/features/core/messaging/components/common/InboxItemRow";
 import { useInboxList } from "@/features/core/messaging/hooks/useInboxList";
 
@@ -75,17 +74,17 @@ export function InboxList({ unreadOnly = false, limit, emptyText = "お知らせ
           </Stack>
         )}
       </InfiniteScrollList>
-      <Modal
-        open={opened !== null}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) close();
-        }}
-        title={opened?.title ?? "お知らせ"}
-        maxWidth={480}
-        maxHeight="70vh"
-      >
-        {opened ? <InboxItemDetail item={detail?.id === opened.id ? detail : opened} loading={isDetailLoading} /> : null}
-      </Modal>
+      {opened ? (
+        <InboxDetailModal
+          open
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) close();
+          }}
+          item={opened}
+          detail={detail}
+          loading={isDetailLoading}
+        />
+      ) : null}
     </Stack>
   );
 }
