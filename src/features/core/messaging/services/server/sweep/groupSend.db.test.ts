@@ -1,5 +1,3 @@
-// @ts-nocheck
-// D112: restore before ship (指令 59 d6 で経路の欄・経路の束の型引数・createDefineMessage が消えた。出荷の前に書き直して回す)
 // src/features/core/messaging/services/server/sweep/groupSend.db.test.ts
 // グループ宛ての送信の固定(D58)の実 DB テスト。本物の送る口・掃き出しの store・userGroup の評価の口(門は開に差し替え)で、
 // 回は「続きを送る」(continueDispatch = その回だけ)で進める(開発 DB の他の回には触れない)。
@@ -23,7 +21,7 @@ if (existsSync(envFile)) loadEnv({ path: envFile, quiet: true });
 
 const skip = (process.env.DATABASE_URL ?? "").trim().length === 0;
 
-describe.skip("グループ宛ての送信の固定(実 DB、書いた行は消す)", { skip }, () => {
+describe("グループ宛ての送信の固定(実 DB、書いた行は消す)", { skip }, () => {
   const cleanup: (() => Promise<unknown>)[] = [];
 
   after(async () => {
@@ -32,11 +30,11 @@ describe.skip("グループ宛ての送信の固定(実 DB、書いた行は消�
     await (db as unknown as { $client?: { end: () => Promise<void> } }).$client?.end();
   });
 
-  test.skip("一覧へ 1 文で書き、一覧だけから送る・門が閉と上限は止める・全員の線", async () => {
+  test("一覧へ 1 文で書き、一覧だけから送る・門が閉と上限は止める・全員の線", async () => {
     const { db } = await import("@/lib/drizzle");
     const { eq, inArray } = await import("drizzle-orm");
     const { z } = await import("zod");
-    const { createDefineMessage } = await import("@/lib/messaging");
+    const { defineMessage } = await import("@/lib/messaging");
     const { DomainError } = await import("@/lib/errors");
     const { UserTable } = await import("@/features/core/user/entities/drizzle");
     const G = await import("@/features/core/userGroup/entities/drizzle");
@@ -50,7 +48,7 @@ describe.skip("グループ宛ての送信の固定(実 DB、書いた行は消�
     const { sendMessageDeps } = await import("../sendMessage");
     const { drizzleMessageSendStore } = await import("../sendMessage/store");
     const { createMessageSender } = await import("../sendMessage/sender");
-    const { TEST_CATEGORIES, createTestChannel } = await import("../sendMessage/testHelpers");
+    const { TEST_CATEGORIES, TEST_LAYOUTS, createTestChannel } = await import("../sendMessage/testHelpers");
     const { drizzleMessageSweepStore } = await import("./store");
     const { continueDispatch } = await import("./sweep");
     const { randomUUID } = await import("node:crypto");
@@ -80,12 +78,12 @@ describe.skip("グループ宛ての送信の固定(実 DB、書いた行は消�
     await db.insert(G.UserGroupMemberTable).values([a, b, inactive, later].map((user_id) => ({ group_id: group!.id, user_id })));
 
     // 連絡の部品: 本物の store、テストの経路(宛先 = 利用者 id)、門は開に差し替えた評価の口
-    const fields = { test: z.object({ title: z.string() }).strict() };
-    const notice = createDefineMessage<typeof fields>()({
+    const notice = defineMessage({
       key: `test.groupSend`,
       label: "グループ宛てのテスト",
       category: "news",
       vars: z.object({ item: z.string() }),
+      varNames: { item: { alias: "品名", description: "テストの品名" } },
       layout: "card", values: { title: "{{item}}" },
     });
     const channel = createTestChannel("test");
@@ -104,6 +102,8 @@ describe.skip("グループ宛ての送信の固定(実 DB、書いた行は消�
       ...sendMessageDeps,
       channels: { test: channel },
       categories: TEST_CATEGORIES,
+      // テストのひな形(card)も並べる(本物の受け口に重ねる)
+      layouts: { ...sendMessageDeps.layouts, ...TEST_LAYOUTS },
       registry: { [notice.key]: { key: notice.key, definition: async () => ({ message: notice }) } },
       adminOverrides: undefined,
       templates: undefined,
