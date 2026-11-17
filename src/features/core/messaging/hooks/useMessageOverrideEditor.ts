@@ -14,6 +14,9 @@
 //   経路のタブは欄の channels(その欄を使う経路)で絞る。使えない行(経路の無い行)はどのタブにも出す
 // - 欄の値はひな形の欄の中身の形のまま(1行テキスト・段落・並び・組・ラベルと値・ブロックの並び …。入力は部品 LayoutFieldInput)
 // - 埋め込み情報のタグ(部品 EmbeddedInfoTags): 1 件の embedded を共通 / 専用に分けて渡す(useEmbeddedInfoTags)
+// - 別名で見せる(D133): 画面に出す値(入力・元の文言・使えない名前・プレビュー)の {{鍵}} は一覧の別名があれば {{別名}} で見せる。
+//   直していない欄の比べる元も別名にした値なので、開いただけでは下書きにならない。打った値は {{別名}} のまま保存する(サーバーは別名も通す)
+// - 「すべてデフォルトに戻す」(D136): resetAll = 下書きを捨て、保存してある欄(使えない行も)の全部に戻す印。保存で当たる
 // - 2 つの欄の編集(D80): 今の経路のタブ(activeChannel)・入力中の欄(focusedPath)・
 //   描いたプレビュー(POST /preview: 保存した値と下書きを重ねたひな形の描き方。メールは HTML、お知らせはひな形の描き方の材料 values + summary。
 //   下書きが変わってから少し待って取り直す、D86)
@@ -37,7 +40,7 @@ import {
 import type { LayoutPreviewContent } from "../components/common/LayoutPreview";
 
 import { MESSAGE_OVERRIDES_KEY, messageOverrideKey } from "./overrideKeys";
-import { useEmbeddedInfoTags } from "./useEmbeddedInfoTags";
+import { replaceKeysWithAliases, useEmbeddedInfoTags, valueWithAliases } from "./useEmbeddedInfoTags";
 import { useMessageOverride } from "./useMessageOverride";
 
 /** 欄の値(ひな形の欄の中身の形のまま: 文字・数・並び・組・ブロックの並び …) */
@@ -71,6 +74,9 @@ export function withFocusStyle(html: string, focusedPath: string | null | undefi
   return /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${style}</head>`) : `${style}${html}`;
 }
 
+/** HTML に入れる別名(属性の中にも入るので " も) */
+const escapeHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 const same = (a: OverrideFieldValue, b: OverrideFieldValue) => JSON.stringify(a) === JSON.stringify(b);
 
 /** まとめての保存で欄に誤りがある時の 400 の code(server overrides/overrideService.ts OVERRIDE_FIELDS_INVALID と同じ字) */
@@ -101,15 +107,21 @@ export function useMessageOverrideEditor(messageKey: string) {
   );
 
   const allowedKeys = useMemo(() => detail?.allowedKeys ?? [], [detail]);
+  const embeddedTags = useEmbeddedInfoTags({ catalog: detail?.embedded ?? null });
+  const { aliases } = embeddedTags;
+  /** 欄の送る時の値(別名で見せる形。下書きの比べる元) */
+  const effectiveOf = useCallback((field: AdminOverrideField) => valueWithAliases(toEditable(field.effective), aliases), [aliases]);
+  /** 欄のコードの値(元の文言。別名で見せる形) */
+  const codeValueOf = useCallback((field: AdminOverrideField) => valueWithAliases(toEditable(field.codeValue), aliases), [aliases]);
   const [channelState, setActiveChannel] = useState<string | null>(null);
   const activeChannel = channelState ?? detail?.channels[0]?.key ?? "";
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
 
-  /** 欄の今の値(下書き、戻す印ならコードの値、無ければ送る時の値) */
+  /** 欄の今の値(下書き、戻す印ならコードの値、無ければ送る時の値。{{鍵}} は別名で見せる) */
   const valueOf = useCallback(
     (field: AdminOverrideField): OverrideFieldValue =>
-      field.path in drafts ? drafts[field.path] : resets.includes(field.path) ? toEditable(field.codeValue) : toEditable(field.effective),
-    [drafts, resets],
+      field.path in drafts ? drafts[field.path] : resets.includes(field.path) ? codeValueOf(field) : effectiveOf(field),
+    [drafts, resets, codeValueOf, effectiveOf],
   );
 
   const clearError = useCallback(
@@ -141,12 +153,12 @@ export function useMessageOverrideEditor(messageKey: string) {
       clearError(field.path);
       setDrafts((prev) => {
         const next = { ...prev };
-        if (same(value, toEditable(field.effective))) delete next[field.path];
+        if (same(value, effectiveOf(field))) delete next[field.path];
         else next[field.path] = value;
         return next;
       });
     },
-    [clearError],
+    [clearError, effectiveOf],
   );
 
   /** 下書きか戻す印がある(保存していない) */
@@ -202,21 +214,21 @@ export function useMessageOverrideEditor(messageKey: string) {
   const previewResult = preview?.result && preview.result.channel === activeChannel ? preview.result : null;
   const activeChannelInfo = detail?.channels.find((channel) => channel.key === activeChannel) ?? null;
   /** プレビューの描く物(部品 LayoutPreview の content。メールの HTML には入力中の欄の枠) */
+  // コードの値に残る {{鍵}} も別名で見せる(HTML に入れる別名は escape)
   const previewContent = useMemo<LayoutPreviewContent | null>(
     () =>
       previewResult
         ? {
-            html: previewResult.html ? withFocusStyle(previewResult.html, focusedPath) : null,
-            text: previewResult.text,
-            title: previewResult.summary?.title ?? null,
-            values: previewResult.values,
-            summary: previewResult.summary,
+            html: previewResult.html ? withFocusStyle(replaceKeysWithAliases(previewResult.html, aliases, escapeHtml), focusedPath) : null,
+            text: previewResult.text ? replaceKeysWithAliases(previewResult.text, aliases) : previewResult.text,
+            title: previewResult.summary?.title ? replaceKeysWithAliases(previewResult.summary.title, aliases) : null,
+            values: valueWithAliases(previewResult.values, aliases),
+            summary: valueWithAliases(previewResult.summary, aliases),
             cannotRender: previewResult.cannotRender,
           }
         : null,
-    [previewResult, focusedPath],
+    [previewResult, focusedPath, aliases],
   );
-  const embeddedTags = useEmbeddedInfoTags({ catalog: detail?.embedded ?? null });
   const hasDrafts = Object.keys(drafts).length > 0 || resets.length > 0;
   useUnsavedGuard(hasDrafts);
 
@@ -241,6 +253,15 @@ export function useMessageOverrideEditor(messageKey: string) {
       showToast(err(e, "保存できませんでした"), "error");
     }
   }, [drafts, resets, saveMutation, showToast]);
+
+  /** 「すべてデフォルトに戻す」(D136): 下書き・誤りを捨て、保存してある欄(使えない行も)の全部に戻す印。保存で当たる */
+  const resetAll = useCallback(() => {
+    setDrafts({});
+    setFieldErrors({});
+    setResets((detail?.fields ?? []).filter((field) => field.edited).map((field) => field.path));
+  }, [detail]);
+  /** すべて戻すことで変わる物がある(下書きか、戻す印の無い保存してある欄) */
+  const canResetAll = Object.keys(drafts).length > 0 || (detail?.fields ?? []).some((field) => field.edited && !resets.includes(field.path));
 
   /** 「元の文言に戻す」: 保存してある欄は戻す印(保存で行を消す)、下書きだけの欄は下書きを捨てる */
   const reset = useCallback(
@@ -288,8 +309,13 @@ export function useMessageOverrideEditor(messageKey: string) {
     isSaving: saveMutation.isMutating,
     /** モーダルを閉じる前の確かめ(Modal の confirmOnClose に渡す) */
     closeConfirm: { enabled: hasDrafts, message: "保存していない変更があります。閉じてもよろしいですか？" },
-    unknownKeys: (field: AdminOverrideField) => unknownKeysOf(valueOf(field), allowedKeys),
+    /** 下書きの中の知らない名前(別名のある名前は別名で) */
+    unknownKeys: (field: AdminOverrideField) => unknownKeysOf(valueOf(field), allowedKeys).map(embeddedTags.aliasOf),
+    /** 欄のコードの値(元の文言、別名で見せる形) */
+    codeValueOf,
     saveAll,
     reset,
+    resetAll,
+    canResetAll,
   };
 }
