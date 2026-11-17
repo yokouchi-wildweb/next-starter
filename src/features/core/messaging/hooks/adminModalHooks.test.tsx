@@ -148,7 +148,7 @@ mock.module("@/features/core/messaging/services/client/overrideClient", {
   namedExports: {
     // J99(D86): 編集の hook がプレビューを取る(この file では検査しない。overrideHooks.test.tsx が見る)
     previewMessageOverride: async (_key: string, input: { channel: string }) => ({ channel: input.channel, html: null, text: null }),
-    listMessageOverrides: async () => [{ key: "user.welcome", kind: "transactional", category: "x", editableCount: 1, editedCount: 0, codeChangedCount: 0, orphanCount: 0 }],
+    listMessageOverrides: async () => [{ key: "user.welcome", kind: "transactional", category: "x", editableCount: 1, editedCount: 0, codeChangedCount: 0, unusableCount: 0 }],
     getMessageOverride: async (key: string) => ({
       key,
       label: "ようこそ",
@@ -156,21 +156,20 @@ mock.module("@/features/core/messaging/services/client/overrideClient", {
       category: "x",
       categoryLabel: null,
       allowedKeys: [],
-      // J99(D83): 経路の一覧と欄の表示の約束
+      // J126(D132): 経路の一覧と欄(ひな形の欄の鍵・宣言・使う経路)
       channels: [{ key: "email", label: "メール", previewComponent: null }],
       fields: [
         {
-          path: "email.subject",
-          channel: "email",
-          field: "subject",
-          meta: { label: "件名", input: "line" },
+          path: "subject",
+          spec: { type: "line", label: "件名" },
+          channels: ["email"],
           editable: true,
           codeValue: "件名",
           value: null,
           effective: "件名",
           edited: false,
           codeChanged: false,
-          orphan: false,
+          unusable: false,
           problem: null,
           updatedAt: null,
         },

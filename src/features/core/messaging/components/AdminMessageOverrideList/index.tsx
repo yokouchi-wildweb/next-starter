@@ -67,9 +67,9 @@ export function AdminMessageOverrideList() {
                   元の文言が更新 {item.codeChangedCount}
                 </SoftBadge>
               ) : null}
-              {item.orphanCount > 0 ? (
+              {item.unusableCount > 0 ? (
                 <SoftBadge variant="destructive" size="sm">
-                  使われていない {item.orphanCount}
+                  使えない {item.unusableCount}
                 </SoftBadge>
               ) : null}
             </Flex>

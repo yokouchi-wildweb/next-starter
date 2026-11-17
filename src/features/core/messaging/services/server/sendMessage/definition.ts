@@ -2,16 +2,20 @@
 //
 // 定義を送れる形にする: 生成の一覧の上書きを重ね、属する種類(category)から種別と経路を付け(resolveMessageDefinition)、検査を通す
 // (ひな形が受け口にある・欄の中身がひな形の欄の zod を通る・{{鍵}} が宣言済み)。
-// 管理画面の文言(message_overrides)は今は重ねない: 上書きの鍵が『経路.欄』のままで、定義はひな形 + 欄の中身になったため。
-// TODO(指令 56): 上書きの鍵を ひな形の欄の鍵へ替え、送る時に重ね直す(D21: 管理画面 > fork の override > 上流)
+// 管理画面の文言(message_overrides、欄の道 = ひな形の欄の鍵)は門 messagingOverrides が開の時に最後に欄ごとに重ねる
+// (D21: 管理画面 > fork の override > 上流)。行は保存した版から今の版へ移し、移せない・検査を通らない行は当てずコードの値(警告 1 行)。
+// 重ねた値は回の values に残るので、予約・後回しの組み直しは送った時の文言のまま(D128。後で上書きを直しても変わらない)
 
 import type { z } from "zod";
 
 import {
   UPSTREAM_CHANNEL_FIELDS,
+  adminEditableFields,
+  applyAdminFieldValues,
   resolveMessageDefinition,
   validateMessageDefinition,
   type ChannelFieldSchemas,
+  type AdminFieldValue,
   type MessageCategory,
   type MessageChannel,
   type MessageDefinition,
@@ -49,11 +53,19 @@ export type ResolveDefinitionDeps = {
   categories: Readonly<Record<string, MessageCategory>>;
   /** ひな形の受け口(server の一覧 layouts) */
   layouts: Readonly<Record<string, MessageLayout>>;
+  /** 管理画面の文言(無い・enabled() が false = 重ねない。管理の上書きの service はコードの値を見るので渡さない) */
+  adminOverrides?: MessageAdminOverrideSource;
+};
+
+/** 管理画面の文言の読み口(門 messagingOverrides が開か・連絡の行) */
+export type MessageAdminOverrideSource = {
+  enabled: () => boolean;
+  load: (messageKey: string) => Promise<AdminFieldValue[]>;
 };
 
 /**
  * 上書きを重ね、種類から種別と経路を付けて検査した定義を返す。上書きは生成の一覧(messageRegistry)の項目から読む。
- * 管理画面の文言は重ねない(TODO 指令 56、上の説明)。
+ * adminOverrides があり門が開なら、管理画面の文言を 1 回読んで欄ごとに重ねる(当てられない行はコードの値のまま、警告だけ)。
  * options.category = 送る時に決めた種類(回に残した種類で cron が組み直す・管理の送信の仮の種類)。省略 = 定義の種類
  * @throws DomainError(500) 定義か上書きに誤りがある(呼び手の入力ではなくコードの誤り)
  */
@@ -84,7 +96,20 @@ export async function resolveDefinition(
       { status: 500 },
     );
   }
-  return resolveMessageDefinition(definition, override, deps.categories[definition.category]!);
+  const resolved = resolveMessageDefinition(definition, override, deps.categories[definition.category]!);
+  const adminOverrides = deps.adminOverrides;
+  const layout = deps.layouts[resolved.layout];
+  if (!adminOverrides || !layout || !adminOverrides.enabled()) return resolved;
+  if (adminEditableFields(resolved, layout).length === 0) return resolved;
+  const rows = await adminOverrides.load(definition.key);
+  if (rows.length === 0) return resolved;
+  const merged = applyAdminFieldValues(resolved, layout, rows, {
+    variableKeys: enricherKeysFor({ key: resolved.key, category: resolved.category, kind: resolved.kind }, deps.enrichers),
+  });
+  for (const { fieldPath, problem } of merged.rejected) {
+    console.warn(`[messaging] 管理画面の文言を使わずコードの値で送ります(${definition.key} ${fieldPath}): ${problem.message}`);
+  }
+  return merged.resolved;
 }
 
 /**

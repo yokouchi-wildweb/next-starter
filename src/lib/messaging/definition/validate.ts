@@ -117,16 +117,11 @@ function collectStrings(value: unknown, out: string[]): string[] {
   return out;
 }
 
-function schemaKeys(schema: z.ZodTypeAny): string[] | null {
-  const shape = (schema as { shape?: Record<string, unknown> }).shape;
-  return shape && typeof shape === "object" ? Object.keys(shape) : null;
-}
-
 /**
  * 定義(と上書き)を検査し、問題の一覧を返す(空 = 通る)。
  * - categories: categories の受け口(鍵 → 項目、fork の種類の override を重ねた後)。定義の category を照らし、種別と経路を引く
  * - layouts: ひな形の受け口(鍵 → ひな形)。定義の layout を照らし、欄の中身を検査する
- * - channels: 経路の欄の zod の束(既定 = 上流の 3 経路。fork の経路は経路の受け口の項目の欄)。経路の有無と adminEditableOnly だけに使う
+ * - channels: 経路の欄の zod の束(既定 = 上流の 3 経路。fork の経路は経路の受け口の項目の欄)。経路の有無だけに使う
  * - variableKeys: vars と共通の文脈の他に {{鍵}} で許す鍵(送る口が当たる enrichers の provides の鍵を渡す)
  */
 export function validateMessageDefinition<
@@ -221,12 +216,12 @@ export function validateMessageDefinition<
     }
   }
 
-  // adminEditableOnly は今の『経路.欄』の鍵のまま(ひな形の欄の鍵への付け替えは指令 56)
-  for (const path of resolved.adminEditableOnly ?? []) {
-    const [channel, field] = String(path).split(".");
-    const keys = channels[channel] ? schemaKeys(channels[channel]) : null;
-    if (!keys || !field || !keys.includes(field) || !resolved.channels.includes(channel as never)) {
-      add("unknown_admin_editable", `${label}: adminEditableOnly の ${String(path)} は定義に無い欄`);
+  // adminEditableOnly = ひな形の欄の鍵(D132)。ひな形に無い欄は誤り(ひな形が無い時は上の unknown_layout が言う)
+  if (layout) {
+    for (const key of resolved.adminEditableOnly ?? []) {
+      if (!(String(key) in layout.fields)) {
+        add("unknown_admin_editable", `${label}: adminEditableOnly の ${String(key)} はひな形「${layout.label}」の欄に無い`);
+      }
     }
   }
 

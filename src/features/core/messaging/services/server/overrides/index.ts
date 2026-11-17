@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/overrides/index.ts
 //
 // 管理画面の文言の上書きの service の結び(本物の部品)。管理 API /api/admin/messaging/overrides が呼ぶ。
-// 送る口は今は上書きを重ねない(TODO 指令 56: ひな形の欄の鍵へ替えて重ね直す)
+// 送る口は sendMessage/definition.ts の resolveDefinition が同じ行を重ねる(門 messagingOverrides が開の時)
 
 import { eq } from "drizzle-orm";
 
@@ -20,7 +20,7 @@ import { layoutEmails } from "../../../extensions/layoutEmails";
 import { layouts } from "../../../extensions/layouts";
 import { buildContent } from "../sendMessage/content";
 import { messageDomainOpen } from "../domainGate";
-import { channelFieldSchemas, enricherKeysFor, resolveDefinition } from "../sendMessage/definition";
+import { enricherKeysFor, resolveDefinition } from "../sendMessage/definition";
 import type { OverrideImageLedger } from "./imageBinding";
 import { storageOverrideImageLedger } from "./imageBindingLedger";
 import { createOverrideService } from "./overrideService";
@@ -43,10 +43,9 @@ const service = createOverrideService({
       if (!message) return null;
       // 管理画面の値は重ねない(コードの値 = 上流 + fork の override)
       const resolved = await resolveDefinition(message, { registry: messageRegistry, channels, enrichers, categories, layouts });
-      return {
-        resolved,
-        check: { channels: channelFieldSchemas(channels), variableKeys: enricherKeysFor(resolved, enrichers) },
-      };
+      const layout = layouts[resolved.layout];
+      if (!layout) return null;
+      return { resolved, layout, check: { variableKeys: enricherKeysFor(resolved, enrichers) } };
     } catch (error) {
       console.warn(`[messaging] 連絡 ${messageKey} の定義を読めません: ${error instanceof Error ? error.message : String(error)}`);
       return null;
@@ -56,7 +55,7 @@ const service = createOverrideService({
   categoryLabel: (category) => categories[category]?.label ?? null,
   channelInfo(channel) {
     const item = channels[channel];
-    return item ? { label: item.label, fieldMeta: item.fieldMeta, previewComponent: item.previewComponent } : null;
+    return item ? { label: item.label, previewComponent: item.previewComponent } : null;
   },
   images: storageOverrideImageLedger as OverrideImageLedger<unknown>,
   async channelContent(resolved, channel) {

@@ -17,7 +17,7 @@
 - `message_suppressions`（`preference.ts`）: 宛先の停止（`address_hash`）。`UNIQUE(channel, address_hash, scope)`、`scope` `"*"` = 全種類
 - `message_endpoints`（`endpoint.ts`）: 端末の帳簿。`UNIQUE(channel, address)`
 - `message_idempotency_keys`（`idempotencyKey.ts`）: 保持の掃除が回を消す時に冪等の鍵を移す先（FK なし）
-- `message_overrides`（`override.ts`）: 管理画面の文言の上書き。`UNIQUE(message_key, field_path)`
+- `message_overrides`（`override.ts`）: 管理画面の文言の上書き（`field_path` = ひな形の欄の鍵、`layout_version` = 保存した時のひな形の版）。`UNIQUE(message_key, field_path)`
 
 ## Internals
 

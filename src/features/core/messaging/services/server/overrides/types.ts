@@ -3,7 +3,10 @@
 /** 管理画面の文言の 1 行(直した欄だけある) */
 export type MessageOverrideRecord = {
   messageKey: string;
+  /** ひな形の欄の鍵(保存した時の版の鍵) */
   fieldPath: string;
+  /** 保存した時のひな形の版(null = 版の無い古い形の行) */
+  layoutVersion: number | null;
   value: unknown;
   codeValue: unknown;
   updatedBy: string | null;
@@ -21,7 +24,7 @@ export type MessageOverrideStore = {
    * rowId = 今の行の id か新しい行の id、previousValue = 今の値か null)
    */
   upsert: (
-    values: { messageKey: string; fieldPath: string; value: unknown; codeValue: unknown; updatedBy: string | null },
+    values: { messageKey: string; fieldPath: string; layoutVersion: number; value: unknown; codeValue: unknown; updatedBy: string | null },
     bind?: (tx: unknown, row: { rowId: string; previousValue: unknown }) => Promise<unknown>,
   ) => Promise<void>;
   /** 欄の行を消す(消した行が無ければ false。1 つの取引)。release = 消した行の値で取引の中で呼ぶ(画像を外す) */
