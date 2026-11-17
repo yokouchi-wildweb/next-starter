@@ -266,7 +266,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     [allCategories],
   );
   const preferredCategory = preferredCategoryOf(mode);
-  const initialKind = allCategories.find((option) => option.key === preferredCategory)?.kind ?? kinds[0]?.key ?? "";
+  // 新しく送る時は種別を選ばせる(先に選んでおかない、D110 D118)。同じ内容で送る・一括送信は回 / 既定のカテゴリーの種別
+  const initialKind = allCategories.find((option) => option.key === preferredCategory)?.kind ?? "";
   const kind = kindState !== null && kinds.some((item) => item.key === kindState) ? kindState : initialKind;
   const kindCategories = useMemo(() => allCategories.filter((option) => option.kind === kind), [allCategories, kind]);
   const categoryPick = chosenCategory ?? preferredCategory;
@@ -361,7 +362,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     (next: string) => {
       if (next === kind) return;
       setKindState(next);
-      setChosenCategory(null);
+      // 種別を替えたらその種別の最初のカテゴリーを選び直す(D118)
+      setChosenCategory(allCategories.find((option) => option.kind === next)?.key ?? null);
       setChannelsOff([]);
       setPreview(null);
       // テンプレートは種別ごと → 白紙へ(ひな形が同じなら今の文を残す)
@@ -492,7 +494,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   }, [text.state, text.layout, text.missingEmbedded, sendChannels]);
 
   const targetError = useMemo(() => {
-    if (!kind) return "送れる種別がありません";
+    if (!kind) return kinds.length === 0 ? "送れる種別がありません" : "種別を選んでください";
     if (!category) return "この種別に使えるカテゴリーがありません";
     if (!isBulk) {
       if (target.type === "role" && target.roles.length === 0) return "ロールを選んでください";
@@ -502,7 +504,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       return "対象を選んでください";
     }
     return null;
-  }, [kind, category, isBulk, target, mode]);
+  }, [kind, kinds.length, category, isBulk, target, mode]);
 
   const canSend = optionsLoaded && !contentError && !targetError && !scheduleError;
   const dirty =

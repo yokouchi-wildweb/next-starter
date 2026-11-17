@@ -34,7 +34,8 @@ import { LayoutFields } from "@/features/core/messaging/components/common/Layout
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
 import { MessagePreview } from "@/features/core/messaging/components/common/MessagePreview";
 import { SendTargetPicker } from "@/features/core/messaging/components/common/SendTargetPicker";
-import { SendCategoryChannels, SendKindPicker } from "@/features/core/messaging/components/common/SendCategoryChannels";
+import { KindCategoryFields } from "@/features/core/messaging/components/common/KindCategoryFields";
+import { SendCategoryChannels } from "@/features/core/messaging/components/common/SendCategoryChannels";
 import { SendConfirmView, SendResultView } from "@/features/core/messaging/components/common/SendConfirmView";
 import { SendLegalNotice } from "@/features/core/messaging/components/common/SendLegalNotice";
 import { SendSchedule } from "@/features/core/messaging/components/common/SendSchedule";
@@ -176,11 +177,20 @@ export function MessageSendModal({
             {m.sameAsNote}
           </Para>
         ) : null}
-        <Block title="種別">
-          <SendKindPicker kinds={m.kinds} value={m.kind} onChange={m.setKind} />
+        <Block title="種別とカテゴリー">
+          <KindCategoryFields
+            idPrefix="send"
+            kinds={m.kinds.map((item) => ({ value: item.key, label: item.label }))}
+            kind={m.kind}
+            onKindChange={m.setKind}
+            categories={m.categories.map((item) => ({ value: item.key, label: item.label }))}
+            category={m.category}
+            onCategoryChange={m.setCategory}
+          />
         </Block>
-        <Block title={m.categories.length > 1 ? "カテゴリーと送信方法" : "送信方法"}>
+        <Block title="送信方法">
           <SendCategoryChannels
+            showCategory={false}
             categories={m.categories}
             category={m.category}
             onCategoryChange={m.setCategory}
