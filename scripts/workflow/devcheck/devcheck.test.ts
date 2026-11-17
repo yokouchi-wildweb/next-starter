@@ -135,11 +135,14 @@ test("文脈: 変数が無い = 単体。版つき key=value を読み、無い�
   const dir = temp("devcheck-ctx-");
   const file = path.join(dir, "ctx");
   writeFileSync(file, "# 文脈\nv=1\napproval=auto\nserver=background\ndev_max=3\nworkdir=/w/a\nworkdir=/w/b\n");
-  assert.deepEqual(loadContext({ DEVCHECK_CONTEXT: file }), { file, approval: "auto", server: "background", devMax: 3, workdirs: ["/w/a", "/w/b"] });
+  assert.deepEqual(loadContext({ DEVCHECK_CONTEXT: file }), { file, approval: "auto", server: "background", devMax: 3, workdirs: ["/w/a", "/w/b"], auto: [] });
   assert.throws(() => loadContext({ DEVCHECK_CONTEXT: path.join(dir, "missing") }), /ファイルが読めない/);
   assert.throws(() => loadContext({ DEVCHECK_CONTEXT: "relative/ctx" }), /絶対パス/);
   assert.throws(() => parseContext("approval=auto\n", file), /版 v がない/);
-  assert.throws(() => parseContext("v=2\n", file), /知らない版 v=2/);
+  assert.throws(() => parseContext("v=3\n", file), /知らない版 v=3/);
+  assert.deepEqual(parseContext("v=2\nauto=server,login\nauto=login\n", file).auto, ["server", "login"]);
+  assert.throws(() => parseContext("v=1\nauto=server\n", file), /auto は v=2 から/);
+  assert.throws(() => parseContext("v=2\nauto=db_push\n", file), /auto に書けるのは/);
   assert.throws(() => parseContext("v=1\nteam=council\n", file), /知らない鍵 team/);
   assert.throws(() => parseContext("v=1\napproval=yes\n", file), /approval は each \/ auto/);
   assert.throws(() => parseContext("v=1\ndev_max=0\n", file), /dev_max は 1 以上/);

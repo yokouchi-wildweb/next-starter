@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { clearPermit } from "./lib.allow.mjs";
 import { adaptClaude, decide, needsPolicy, realDeps, toClaudeOutput } from "./lib.grant.mjs";
-import { readAgentPolicy } from "./lib.kinds.mjs";
+import { applyAuto, contextAutoKinds, readAgentPolicy } from "./lib.kinds.mjs";
 
 const readStdin = async () => {
   if (process.stdin.isTTY) return null;
@@ -38,6 +38,7 @@ try {
       let entries = null;
       try {
         ({ policy, entries } = await readAgentPolicy(projectDir));
+        policy = applyAuto(policy, contextAutoKinds(process.env));   // 文脈の上書き(v=2 の auto=): 計画・実行と同じ効いている方針
       } catch {
         policy = null;
       }

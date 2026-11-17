@@ -44,6 +44,7 @@ const fake = (over: Partial<Deps> = {}, answers: (argv: string[]) => RunResult =
     },
     readStdin: () => "s3cret-value\n",
     countLiveServers: () => 0,
+    withServerLock: <T,>(fn: () => T) => fn(),
     sleep: async (ms: number) => {
       f.slept += ms;
     },
@@ -126,6 +127,20 @@ test("server の上限: dev_max 以上なら 5 秒ごとに数え直し、空け
   assert.equal(outside.record, null);
   assert.deepEqual(full.typed, []);
   assert.equal(await waitForSlot(null, () => 99, async () => {}, 0), true);
+});
+
+test("server の競合: 待って空いた後、ロックの中で数え直して埋まっていたら立てずに待ち直す(取れなければ exit 5)", async () => {
+  const ctx: Context = { ...STANDALONE, file: "/ctx", devMax: 1 };
+  // 外の数え(waitForSlot)は空き、ロックの中の数え直しで別の作業場所が先に立てていた → 立てない、次の回で空いて立てる
+  const seen = [0, 1, 0, 0];
+  const raced = fake({ context: ctx, countLiveServers: () => seen.shift() ?? 0 }, () => ({ code: 0, stdout: "開発サーバーを立てました: …", stderr: "" }));
+  assert.equal((await execRun(["server"], raced)).code, 0);
+  assert.equal(raced.typed.length, 1);
+  assert.equal(raced.slept, 5000);
+  // ロックが取れない(null)まま待ち切る → 立てない
+  const locked = fake({ context: ctx, withServerLock: () => null, waitSec: 10 });
+  assert.equal((await execRun(["server"], locked)).code, 5);
+  assert.deepEqual(locked.typed, []);
 });
 
 test("env-add: .env.development に足し、値は出さない。もうある鍵・形の違う鍵は断る", async () => {

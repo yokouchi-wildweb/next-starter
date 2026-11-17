@@ -38,6 +38,8 @@ export type Deps = {
   writeEnvFile: (text: string) => void;
   readStdin: () => string;
   countLiveServers: () => number;
+  /** 数える → 立てるをリポの全部の作業場所で 1 つずつにするロック(取れなければ null。dev_max の競合を塞ぐ) */
+  withServerLock: <T>(fn: () => T) => T | null;
   sleep: (ms: number) => Promise<void>;
   waitSec: number;
   out: (line: string) => void;
@@ -72,14 +74,28 @@ export const execRun = async (args: string[], deps: Deps): Promise<ExecResult> =
 
   switch (target.kind) {
     case "server": {
-      const ok = await waitForSlot(deps.context.devMax, deps.countLiveServers, deps.sleep, deps.waitSec);
-      if (!ok) {
-        deps.out(`server: 動いている開発サーバーが上限 ${deps.context.devMax} のまま ${deps.waitSec} 秒たった(立てていない、exit ${EXIT_WAIT})`);
-        return { code: EXIT_WAIT };
+      // 数えて空いていても、立てるまでの間に別の作業場所が立てうる: 数え直しと立てるをロックの中で 1 つにし、
+      // 埋まっていたら外で待ち直す(待つ間はロックを持たない)。待つ時間は全体で waitSec
+      for (let left = deps.waitSec; ; ) {
+        const ok = await waitForSlot(deps.context.devMax, deps.countLiveServers, deps.sleep, left);
+        if (!ok) {
+          deps.out(`server: 動いている開発サーバーが上限 ${deps.context.devMax} のまま ${deps.waitSec} 秒たった(立てていない、exit ${EXIT_WAIT})`);
+          return { code: EXIT_WAIT };
+        }
+        const result = deps.withServerLock(() =>
+          deps.context.devMax !== null && deps.countLiveServers() >= deps.context.devMax ? null : deps.runner(serverArgv(deps.context)),
+        );
+        if (result) {
+          if (devTabStarted(result)) deps.writeRecord({ ...record, startedServer: true });
+          return passThrough(deps, result);
+        }
+        if (left <= 0) {
+          deps.out(`server: 上限 ${deps.context.devMax} の空きを取れないまま ${deps.waitSec} 秒たった(立てていない、exit ${EXIT_WAIT})`);
+          return { code: EXIT_WAIT };
+        }
+        await deps.sleep(5000);
+        left -= 5;
       }
-      const result = deps.runner(serverArgv(deps.context));
-      if (devTabStarted(result)) deps.writeRecord({ ...record, startedServer: true });
-      return passThrough(deps, result);
     }
     case "login":
       return passThrough(deps, deps.runner(["pnpm", "-s", "workflow", "dev-admin", "run"]));

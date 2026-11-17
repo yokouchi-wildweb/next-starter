@@ -4,8 +4,8 @@
 // 事実を集める側は読むだけ(記録を消さない・何も書かない。管理者は dev-admin run --check の読む入口)
 // 規則と使い方: scripts/workflow/devcheck/README.md
 
-import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { checkoutRoot, describeState, invocationDir, isPortAnswering, readState, sleep } from "../dev-tab/lib";
@@ -15,6 +15,7 @@ import {
   isRecordAlive,
   loadContext,
   loadPolicy,
+  applyAuto,
   parseAdminCheck,
   scanItems,
   worktreePaths,
@@ -35,10 +36,44 @@ export type Setup = { root: string; context: Context; policy: Policy; items: Ite
 export const loadSetup = async (): Promise<Setup> => {
   const root = checkoutRoot(invocationDir());
   const context = loadContext(process.env);
-  const policy = await loadPolicy(root);
+  const policy = applyAuto(await loadPolicy(root), context.auto);   // 文脈の上書き(v=2)を掛けた効いている方針
   const scripts: Record<string, string> = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).scripts ?? {};
   const { items, rejected } = scanItems(path.join(HERE, "items"), root, scripts);
   return { root, context, policy, items, rejected };
+};
+
+/**
+ * リポの全部の作業場所で共有のロック(git の共有ディレクトリに mkdir)の中で fn を 1 回。取れなければ 10 秒まで待ち、
+ * 取れなければ null。120 秒より古いロックは持ち主が落ちた物として外す
+ */
+export const withRepoLock = <T>(root: string, name: string, fn: () => T): T | null => {
+  let common: string;
+  try {
+    common = path.resolve(root, execFileSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" }).trim());
+  } catch {
+    return fn();   // git の外: 数えるだけ(作業場所は 1 つ)
+  }
+  const lock = path.join(common, name);
+  const wait = new Int32Array(new SharedArrayBuffer(4));
+  for (let i = 0; ; i++) {
+    try {
+      mkdirSync(lock);
+      break;
+    } catch {
+      try {
+        if (Date.now() - statSync(lock).mtimeMs > 120_000) rmSync(lock, { recursive: true, force: true });
+      } catch {
+        // 消えた: もう一度取りに行く
+      }
+      if (i >= 100) return null;
+      Atomics.wait(wait, 0, 0, 100);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    rmSync(lock, { recursive: true, force: true });
+  }
 };
 
 /** シェルを通さずに打つ(作業場所で。INIT_CWD は外す: pnpm の入口が作業場所を取り違えないように) */
@@ -91,6 +126,7 @@ export const realDeps = (setup: Setup): Deps => ({
     }
   },
   countLiveServers: () => countLiveServers(worktreePaths(setup.root)),
+  withServerLock: (fn) => withRepoLock(setup.root, "devcheck-server.lock", fn),
   sleep: async (ms) => {
     await sleep(ms);
   },

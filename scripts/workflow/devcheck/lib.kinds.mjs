@@ -154,6 +154,58 @@ export const readAgentPolicy = async (root) => {
  */
 export const loadPolicy = async (root) => (await readAgentPolicy(root)).policy;
 
+// ---- 文脈の上書き(DEVCHECK_CONTEXT v=2 の auto=)-------------------------------------------------
+// ほかの道具(エージェントを束ねる道具)が、人の言葉で manual の通常の種類を、その文脈の中だけ auto にする口。
+// 計画・実行(lib.ts)と許可のフック(hook.mjs)が同じ関数で効いている方針を出す。off・agent.enabled: false・危険な 3 つ・
+// 固定の止めは緩めない(上書きは manual → auto だけ)
+
+/** 上書きできる種類(通常の種類とフックだけの種類) */
+export const OVERRIDABLE = [...KIND_NAMES, ...HOOK_KINDS];
+
+/**
+ * auto= の値(種類の名前をカンマで)を読む。知らない名前・上書きできない種類は DevcheckError
+ * @param {string} value
+ * @param {string} where
+ * @returns {string[]}
+ */
+export const parseAutoKinds = (value, where) => {
+  const kinds = value.split(",").map((v) => v.trim()).filter(Boolean);
+  for (const k of kinds) {
+    if (!OVERRIDABLE.includes(k)) throw new DevcheckError(`${where}: auto に書けるのは ${OVERRIDABLE.join(" / ")}(${k} は書けない)`);
+  }
+  return [...new Set(kinds)];
+};
+
+/**
+ * 上書きを掛けた方針: 方針が manual の上書きできる種類だけ auto に(off・危険な 3 つはそのまま)
+ * @param {Record<string, string>} policy
+ * @param {string[]} kinds
+ * @returns {Record<string, string>}
+ */
+export const applyAuto = (policy, kinds) => {
+  if (!kinds || kinds.length === 0) return policy;
+  const out = { ...policy };
+  for (const k of kinds) if (OVERRIDABLE.includes(k) && out[k] === "manual") out[k] = "auto";
+  return out;
+};
+
+/**
+ * 環境の文脈ファイルの上書き(フック用: 読めない・版 1・形の誤り = 上書きなし。止めるのは命令の側の仕事)
+ * @param {Record<string, string | undefined>} env
+ * @returns {string[]}
+ */
+export const contextAutoKinds = (env) => {
+  const file = (env.DEVCHECK_CONTEXT ?? "").trim();
+  if (file === "" || !path.isAbsolute(file)) return [];
+  try {
+    const lines = readFileSync(file, "utf8").split("\n").map((l) => l.replace(/#.*/, "").trim()).filter(Boolean);
+    if (!lines.includes("v=2")) return [];
+    return lines.filter((l) => l.startsWith("auto=")).flatMap((l) => parseAutoKinds(l.slice(5), file));
+  } catch {
+    return [];
+  }
+};
+
 /** 種類の人が打つ命令(off の 1 行に出す)。危険な 3 つは入口、ほかは KINDS の形 */
 export const humanCommandOf = (kind, entries) => {
   if (DANGER_NAMES.includes(kind)) {

@@ -501,3 +501,41 @@ test("hook.mjs: 方針はプロジェクトの repo.json の agent.*。壊れた
   }
 });
 
+
+test("文脈の上書き(v=2 の auto=): manual の通常の種類だけ auto に。off・危険な 3 つは変えない。フックは読めない文脈を上書きなしと読む", async () => {
+  const { applyAuto, contextAutoKinds } = await import("./lib.kinds.mjs");
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const p = { server: "manual", login: "off", test: "manual", db_push: "manual" };
+  assert.deepEqual(applyAuto(p, ["server", "login"]), { server: "auto", login: "off", test: "manual", db_push: "manual" });
+  assert.deepEqual(applyAuto(p, []), p);
+  const dir = mkdtempSync(path.join(tmpdir(), "dc-ctx-"));
+  const f = path.join(dir, "ctx");
+  writeFileSync(f, "v=2\nauto=server,test\n");
+  assert.deepEqual(contextAutoKinds({ DEVCHECK_CONTEXT: f }), ["server", "test"]);
+  writeFileSync(f, "v=1\nauto=server\n");
+  assert.deepEqual(contextAutoKinds({ DEVCHECK_CONTEXT: f }), []);
+  writeFileSync(f, "v=2\nauto=db_push\n");
+  assert.deepEqual(contextAutoKinds({ DEVCHECK_CONTEXT: f }), []);
+  assert.deepEqual(contextAutoKinds({ DEVCHECK_CONTEXT: path.join(dir, "none") }), []);
+  assert.deepEqual(contextAutoKinds({}), []);
+});
+
+test("hook.mjs: 文脈の上書き(v=2 の auto=)で manual の peer が印の道で通る。上書きが無い・v=1 なら通らない。固定の止めは上書きに依らない", () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "devcheck-ctx-"));
+  try {
+    writeFileSync(path.join(dir, "repo.json"), JSON.stringify({ "agent.peer": "manual" }));
+    const ctx = path.join(dir, "ctx");
+    const env = { CLAUDE_PROJECT_DIR: dir, DEVCHECK_GRANT: "on", DEVCHECK_CONTEXT: ctx };
+    const input = (tool_name, tool_input) => JSON.stringify({ tool_name, tool_input, cwd: dir });
+    const out = (r) => (r.stdout ? JSON.parse(r.stdout).hookSpecificOutput.permissionDecision : "none");
+    const peer = input("Bash", { command: "pnpm workflow peer who" });
+    writeFileSync(ctx, "v=1\napproval=auto\n");
+    assert.equal(out(runHook(peer, env)), "none");
+    writeFileSync(ctx, "v=2\napproval=auto\nauto=peer\n");
+    assert.equal(out(runHook(peer, env)), "allow");
+    assert.equal(out(runHook(input("Bash", { command: "pnpm db:push" }), env)), "deny");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

@@ -19,7 +19,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 
 | 種類 | run の形 | 打つコマンド |
 |---|---|---|
-| server | `run server` | `pnpm workflow dev-tab run`(文脈が server=background なら `--background`)。立てる前に動いている dev-tab の数を数え、上限(dev_max)以上なら 5 秒ごとに数え直して待つ(`DEVCHECK_WAIT` 秒、既定 300) |
+| server | `run server` | `pnpm workflow dev-tab run`(文脈が server=background なら `--background`)。立てる前に動いている dev-tab の数を数え、上限(dev_max)以上なら 5 秒ごとに数え直して待つ(`DEVCHECK_WAIT` 秒、既定 300)。数え直しと立てるはリポで共有のロック(git の共有ディレクトリの `devcheck-server.lock`)の中で 1 つ(同時に立てて上限を越えない) |
 | browser | (run しない) | エージェントが Playwright MCP で行う。データは画面からだけ作る |
 | login | `run login` | `pnpm workflow dev-admin run`(確認用の管理者。JSON をそのまま出す) |
 | db-write | `run db-write "INSERT INTO <表> … RETURNING <列>"` | `pnpm ops db inspect query "<SQL>" --json`。返った id を記録し、cleanup で消す |
@@ -116,12 +116,15 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 - 中身 = 版つきの key=value(1 行 1 つ、`#` から後は注釈):
 
 ```
-v=1                     # 版(必須。今は 1)
+v=2                     # 版(必須。読めるのは 1 と 2。auto= は 2 から)
 approval=each|auto      # each = 毎回 go を取る / auto = go を取らずに進める(スキルが読む)
 server=tab|background   # 開発サーバーの置き方(background = dev-tab --background)
 dev_max=<n>             # 同時に動かしてよい dev-tab の数(このリポのワークツリー全部)
 workdir=<絶対パス>      # 作業場所(繰り返してよい)
+auto=<種類>[,<種類>…]   # v=2: 方針が manual の通常の種類を、この文脈の中だけ auto に(繰り返してよい)
 ```
+
+- `auto=` = 人が言った時だけ、束ねる道具が書く上書き(種類の名前: server・browser・login・db-write・db-delete・env-add・test・check・peer)。効くのは方針が `manual` の種類だけ: `off`・`agent.enabled: false`・危険な 3 つ・固定の止めは変えない。計画・実行(`lib.facts.ts` loadSetup)と許可のフック(`hook.mjs`)が同じ `lib.kinds.mjs` の `applyAuto` を通す(フックは読めない文脈を上書きなしと読む)
 
 - 変数が無い・空 = 単体(approval=each、server はタブ = dev-tab の決め方、dev_max なし)
 - 変数があるのにファイルが読めない・版が無い / 違う・知らない鍵・悪い値 = 止める(exit 2、ファイルと鍵を名指す 1 行)。新しい鍵は版を上げる

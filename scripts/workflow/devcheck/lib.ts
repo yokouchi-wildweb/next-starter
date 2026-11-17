@@ -22,6 +22,8 @@ import {
   DANGER_NAMES as DANGER_NAMES_DATA,
   agentPolicyOf as agentPolicyOfData,
   loadPolicy as loadPolicyData,
+  parseAutoKinds,
+  applyAuto as applyAutoData,
 } from "./lib.kinds.mjs";
 import { isBackground, isBackgroundAlive, isTabAlive, readState, type DevTabState } from "../dev-tab/lib";
 
@@ -72,6 +74,8 @@ export const policyOfValues = (values: Record<string, string | boolean>): Policy
 
 /** チェックアウトの repo.json から方針を読む(無い = 全部既定) */
 export const loadPolicy = async (root: string): Promise<Policy> => (await loadPolicyData(root)) as Policy;
+/** 文脈の上書き(v=2 の auto=)を掛けた方針: manual の通常の種類だけ auto に(off・危険な 3 つはそのまま) */
+export const applyAuto = (policy: Policy, kinds: string[]): Policy => applyAutoData(policy, kinds) as Policy;
 
 // ---- fork の項目 --------------------------------------------------------------------------
 
@@ -123,7 +127,9 @@ export const scanItems = (itemsDir: string, repoRoot: string, scripts: Record<st
 // ---- 文脈(DEVCHECK_CONTEXT) -------------------------------------------------------------
 
 export const CONTEXT_ENV = "DEVCHECK_CONTEXT";
-export const CONTEXT_VERSION = "1";
+export const CONTEXT_VERSION = "2";
+/** 読める版(1 = 上書きなし、2 = auto= の上書きを足した版) */
+export const CONTEXT_VERSIONS = ["1", "2"];
 export type ContextServer = "tab" | "background";
 export type Context = {
   /** 文脈ファイルのパス(null = 単体) */
@@ -134,13 +140,16 @@ export type Context = {
   /** 同時に動かしてよい dev-tab の数(null = 数えない) */
   devMax: number | null;
   workdirs: string[];
+  /** v=2 の auto=: この文脈の中だけ manual → auto にする通常の種類(人の言葉で、束ねる道具が書く) */
+  auto: string[];
 };
 
-export const STANDALONE: Context = { file: null, approval: "each", server: "tab", devMax: null, workdirs: [] };
+export const STANDALONE: Context = { file: null, approval: "each", server: "tab", devMax: null, workdirs: [], auto: [] };
 
 /** 文脈ファイルの中身を読む(版つき key=value、# から後は注釈)。知らない版・鍵・値は DevcheckError */
 export const parseContext = (text: string, file: string): Context => {
-  const ctx: Context = { ...STANDALONE, file, workdirs: [] };
+  const ctx: Context = { ...STANDALONE, file, workdirs: [], auto: [] };
+  let autoSeen = false;
   let version: string | null = null;
   for (const [n, raw] of text.split("\n").entries()) {
     const line = raw.replace(/#.*/, "").trim();
@@ -158,13 +167,17 @@ export const parseContext = (text: string, file: string): Context => {
     } else if (key === "dev_max") {
       if (!/^[1-9]\d*$/.test(value)) throw new DevcheckError(`${CONTEXT_ENV}=${file}: dev_max は 1 以上の整数`);
       ctx.devMax = Number(value);
+    } else if (key === "auto") {
+      autoSeen = true;
+      ctx.auto = [...new Set([...ctx.auto, ...parseAutoKinds(value, `${CONTEXT_ENV}=${file}`)])];
     } else if (key === "workdir") {
       if (!path.isAbsolute(value)) throw new DevcheckError(`${CONTEXT_ENV}=${file}: workdir は絶対パス`);
       ctx.workdirs.push(value);
     } else throw new DevcheckError(`${CONTEXT_ENV}=${file}: 知らない鍵 ${key}`);
   }
   if (version === null) throw new DevcheckError(`${CONTEXT_ENV}=${file}: 版 v がない`);
-  if (version !== CONTEXT_VERSION) throw new DevcheckError(`${CONTEXT_ENV}=${file}: 知らない版 v=${version}(読めるのは v=${CONTEXT_VERSION})`);
+  if (!CONTEXT_VERSIONS.includes(version)) throw new DevcheckError(`${CONTEXT_ENV}=${file}: 知らない版 v=${version}(読めるのは v=${CONTEXT_VERSIONS.join(" / v=")})`);
+  if (autoSeen && version === "1") throw new DevcheckError(`${CONTEXT_ENV}=${file}: auto は v=2 から`);
   return ctx;
 };
 
@@ -278,7 +291,7 @@ export const formatPlan = (plan: Plan): string => {
   const ctx = plan.context;
   const lines = [
     `devcheck plan — ${plan.checkout}`,
-    `文脈: ${ctx.file ? `${ctx.file}(approval=${ctx.approval}、server=${ctx.server}、dev_max=${ctx.devMax ?? "-"}、作業場所 ${ctx.workdirs.length})` : "単体(毎回 go を取る・サーバーは自分で立てる)"}`,
+    `文脈: ${ctx.file ? `${ctx.file}(approval=${ctx.approval}、server=${ctx.server}、dev_max=${ctx.devMax ?? "-"}、作業場所 ${ctx.workdirs.length}${ctx.auto.length ? `、上書き auto=${ctx.auto.join(",")}` : ""})` : "単体(毎回 go を取る・サーバーは自分で立てる)"}`,
     ...formatState(plan.state, ctx).map((l) => l),
     `方針: ${KIND_NAMES.map((k) => `${k}=${plan.policy[k]}`).join(" ")} | 危険: ${DANGER_NAMES.map((k) => `${k}=${plan.policy[k]}`).join(" ")}`,
   ];
