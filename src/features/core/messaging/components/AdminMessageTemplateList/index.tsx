@@ -1,10 +1,11 @@
 // src/features/core/messaging/components/AdminMessageTemplateList/index.tsx
 // セクションコンテナ(管理: 保存されたテンプレートの一覧)。状態で絞る + 無限スクロール(カーソル)。
-// 行 = 名前・状態(版)・カテゴリーの表示名・更新(鍵は見せない、D46)。行を押すと直すモーダル、上の「新しく作る」で作るモーダル(AdminMessageTemplateModal。D87)。
+// 行 = 名前・状態(版)・種別とカテゴリーの表示名・更新(鍵は見せない、D46)。システムテンプレート(白紙)は「システム(読むだけ)」の印(D117)。行を押すと直すモーダル、上の「新しく作る」で作るモーダル(AdminMessageTemplateModal。D87)。
 // 流れ(絞り・モーダルの開き先)は hook useAdminMessageTemplateList。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
 
+import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
 import { SelectInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
@@ -15,6 +16,7 @@ import { Span } from "@/components/TextBlocks/Span";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { CreateButton } from "@/lib/crud/components";
 
+import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLabels";
 import { TEMPLATE_STATUS_DISPLAY, TemplateStatusBadge } from "@/features/core/messaging/components/common/TemplateStatusBadge";
 import { AdminMessageTemplateModal } from "@/features/core/messaging/components/AdminMessageTemplateModal";
 import { useAdminMessageTemplateList } from "@/features/core/messaging/hooks/useAdminMessageTemplateList";
@@ -76,12 +78,21 @@ export function AdminMessageTemplateList() {
               >
                 <Stack space={1}>
                   <Flex align="center" gap="xs" wrap="wrap">
-                    <TemplateStatusBadge status={template.status} currentVersion={template.currentVersion} />
+                    {template.system ? (
+                      <SoftBadge variant="secondary" size="sm">
+                        システム(読むだけ)
+                      </SoftBadge>
+                    ) : (
+                      <TemplateStatusBadge status={template.status} currentVersion={template.currentVersion} />
+                    )}
                     <Span weight="semiBold">{template.name}</Span>
                   </Flex>
                   <Flex gap="sm" wrap="wrap">
                     <Span size="sm" tone="muted">
-                      {template.categoryLabel ?? "削除されたカテゴリー"}
+                      {template.kind && template.kind in MESSAGE_KIND_LABELS
+                        ? `${MESSAGE_KIND_LABELS[template.kind as keyof typeof MESSAGE_KIND_LABELS]} / `
+                        : ""}
+                      {template.system ? "送信時に選ぶカテゴリー" : (template.categoryLabel ?? "削除されたカテゴリー")}
                     </Span>
                     <Span size="sm" tone="muted">
                       {when(template.updatedAt ?? template.createdAt)}

@@ -38,6 +38,18 @@ export const ListMessageTemplatesQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
+/** ひな形のプレビューの入力(保存しない中身。{{名前}} はそのまま) */
+export const PreviewMessageLayoutInputSchema = z
+  .object({
+    layout: z.string().min(1).max(100),
+    channel: z.string().min(1).max(100),
+    /** 送る種類(あれば停止のリンクの見本) */
+    category: z.string().min(1).max(100).optional(),
+    values: z.record(z.string(), z.unknown()),
+  })
+  .strict();
+
 export type CreateMessageTemplateInput = z.input<typeof CreateMessageTemplateInputSchema>;
 export type UpdateMessageTemplateInput = z.input<typeof UpdateMessageTemplateInputSchema>;
 export type ListMessageTemplatesQuery = z.input<typeof ListMessageTemplatesQuerySchema>;
+export type PreviewMessageLayoutInput = z.input<typeof PreviewMessageLayoutInputSchema>;

@@ -18,7 +18,7 @@ import { useMessageTemplateVersions } from "./useMessageTemplateVersions";
 import { useModalSession } from "@/hooks/useModalSession";
 
 /** モーダルのタブ */
-export type MessageTemplateModalTab = "text" | "variables" | "versions";
+export type MessageTemplateModalTab = "text" | "versions";
 
 export type UseMessageTemplateModalOptions = {
   open: boolean;

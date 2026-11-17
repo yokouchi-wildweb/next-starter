@@ -3,7 +3,13 @@
 // 保存されたテンプレートの管理へ返す形(型だけ。client の service も型で読む)。中身 = カテゴリー + ひな形 + 欄の中身 + 専用の埋め込み情報(指令 58)。
 // 経路は持たない: 送る経路は送る時のカテゴリーの経路
 
-import type { ChannelFieldMeta, MessageEmbeddedDeclaration, MessageEmbeddedSource, MessageLayoutFields } from "@/lib/messaging";
+import type {
+  ChannelFieldMeta,
+  MessageEmbeddedDeclaration,
+  MessageEmbeddedSource,
+  MessageLayoutFields,
+  MessageLayoutSummary,
+} from "@/lib/messaging";
 
 import type { MessageTemplateStatus } from "../../../entities/model";
 
@@ -88,9 +94,31 @@ export type AdminTemplateOptions = {
   /** 使える経路(受け口にあり enabled: false でない物)。欄の表示の約束とプレビューの部品の鍵も(D83 D85) */
   channels: AdminChannelOption[];
   /** 種類(種別 announcement・direct・promotion の物だけ) */
-  categories: { key: string; label: string; description: string | null }[];
+  categories: {
+    key: string;
+    label: string;
+    description: string | null;
+    /** 種別(画面は種別 →(種類)の順に選ぶ、D115) */
+    kind: string;
+    /** その種類で送る経路の鍵(使える物だけ。プレビューのタブと経路だけの欄はこの分) */
+    channels: string[];
+  }[];
   /** 管理者が選べるひな形 */
   layouts: AdminTemplateLayoutOption[];
   /** 専用の宣言の前から書ける埋め込み情報(共通 + テンプレートに当たる enrichers) */
   baseCatalog: AdminEmbeddedEntry[];
+};
+
+/** ひな形のプレビュー(経路 1 つ。保存しない中身を送る口と同じ 3 段で描く、D114) */
+export type AdminLayoutPreview = {
+  channel: string;
+  /** 経路の preview が描いた HTML(メール。preview の無い経路は null) */
+  html: string | null;
+  text: string | null;
+  /** 件名・題(要約の題) */
+  title: string | null;
+  /** 要約(お知らせのカードの拠り所。作れなければ null) */
+  summary: MessageLayoutSummary | null;
+  /** 描けない理由(描ければ null) */
+  cannotRender: string | null;
 };
