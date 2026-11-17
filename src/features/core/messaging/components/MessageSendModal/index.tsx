@@ -117,6 +117,8 @@ export function MessageSendModal({
   const updateTemplate = async () => {
     try {
       const updated = await m.updateTemplate();
+      // Dialog は自分では閉じない。閉じるのは成功した時だけ(失敗は開いたままで知らせ、やり直すか取り消す)
+      setConfirmingUpdate(false);
       showToast(updated.unchanged ? "変更はありません" : `テンプレートを更新しました(v${updated.version})`, updated.unchanged ? "info" : "success");
     } catch (e) {
       showToast(err(e, "テンプレートを更新できませんでした"), "error");
