@@ -41,3 +41,4 @@ export { MessagePreferenceSourceSchema, SetMessagePreferenceInputSchema } from "
 export { MESSAGE_PREFERENCE_CONFLICT_TARGET } from "./store";
 export type * from "./dto";
 export type { MessagePreferenceAdd, MessagePreferenceKey, MessagePreferenceRow, MessagePreferenceStore } from "./types";
+export { GROUP_ROW_PREFIX, groupRowCategory, groupRowOfCategory, isGroupRowCategory, preferenceCategoryKeys } from "./groupRows";

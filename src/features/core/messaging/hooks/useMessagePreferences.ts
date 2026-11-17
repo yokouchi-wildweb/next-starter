@@ -31,6 +31,9 @@ export const preferenceCellKey = (category: string, channel: string) => `${categ
 /** 種別まるごとの変更の pendingKey */
 export const preferenceKindKey = (kind: string) => `kind:${kind}`;
 
+/** グループまるごとの変更の pendingKey(channel 省略 = '*'、D123) */
+export const preferenceGroupKey = (group: string, channel: string = MESSAGE_PREFERENCE_ALL) => `group:${group}:${channel}`;
+
 export function useMessagePreferences(options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;
   const query = useSWR<MessagePreferencesDto>(enabled ? MESSAGE_PREFERENCES_KEY : null, () => getMessagePreferences());
@@ -44,7 +47,13 @@ export function useMessagePreferences(options: { enabled?: boolean } = {}) {
 
   const set = useCallback(
     async (input: SetMessagePreferenceInput) => {
-      setPendingKey("kind" in input ? preferenceKindKey(input.kind) : preferenceCellKey(input.category, input.channel));
+      setPendingKey(
+        "kind" in input
+          ? preferenceKindKey(input.kind)
+          : "group" in input
+            ? preferenceGroupKey(input.group, input.channel)
+            : preferenceCellKey(input.category, input.channel),
+      );
       try {
         const next = await trigger(input);
         await mutate(next, { revalidate: false });
