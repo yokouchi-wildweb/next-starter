@@ -1,6 +1,6 @@
 // src/lib/tableSuite/RecordSelectionList/index.tsx
 //
-// RecordSelectionTable のカードの一覧の兄弟(D95)。選択の状態(useRecordSelectionState)・一括操作のバー(BulkActionBar)・
+// RecordSelectionTable のカードの一覧の兄弟(D95)。選択の状態(useRecordSelection)・一括操作のバー(BulkActionBar)・
 // 選択の出し方(selectionMode、D97 D98)・無限スクロールの番兵は表と同じ物を使う。
 // - 1 件 = 左のチェックの列 + カードの本体(renderItem)。チェックの列は全高・押しやすい幅で、列のどこを押しても選択が切り替わる(D99)。
 //   キーボードと aria はチェックボックスのまま(列はマウスの当たりを広げるだけ)
@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/Primitives/Checkbox";
 import { cn } from "@/lib/cn";
 
 import { BulkActionBar, type BulkActionBarPosition, type BulkActionBarSpacing, type BulkActionSelection } from "../RecordSelectionTable/components/BulkActionBar";
-import { useRecordSelectionState } from "../RecordSelectionTable/hooks/useRecordSelectionState";
+import { useRecordSelection } from "../RecordSelectionTable/hooks/useRecordSelection";
 import { useSelectionMode, type SelectionMode } from "../RecordSelectionTable/hooks/useSelectionMode";
 import { isCheckboxEvent } from "../RecordSelectionTable/utils/checkboxEvent";
 
@@ -68,7 +68,7 @@ export default function RecordSelectionList<T>({
   emptyNode = null,
   className,
 }: RecordSelectionListProps<T>) {
-  const { keyedItems, selectedKeySet, updateKeySelection, replaceSelection } = useRecordSelectionState({
+  const { keyedItems, selectedKeySet, updateKeySelection, replaceSelection } = useRecordSelection({
     items,
     getKey,
     selectedKeys,

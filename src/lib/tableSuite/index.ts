@@ -40,6 +40,14 @@ export {
 export { TableFooter, TableCaption } from "./DataTable/components";
 export { InfiniteTableFooter, type InfiniteTableFooterProps } from "./shared/InfiniteTableFooter";
 
+// 行の選択の状態(見た目を持たない)と一括操作のバー: RecordSelectionTable と同じ物を表の外でも使う
+export {
+  useRecordSelection,
+  type UseRecordSelectionOptions,
+  type RecordSelectionToggleOptions,
+} from "./RecordSelectionTable/hooks/useRecordSelection";
+export { BulkActionBar, type BulkActionBarProps } from "./RecordSelectionTable/components/BulkActionBar";
+
 // ============================================================
 // 型定義
 // ============================================================

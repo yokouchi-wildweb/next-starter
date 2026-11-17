@@ -16,7 +16,9 @@ type SelectionCellProps = {
   rowIndex: number;
   isCheckboxSelection: boolean;
   isSelected: boolean;
-  onToggle: (checked?: boolean) => void;
+  /** 選べない行(チェックを押せない)。未指定 = 押せる */
+  disabled?: boolean;
+  onToggle: (checked?: boolean, shiftKey?: boolean) => void;
 };
 
 export function SelectionCell({
@@ -25,17 +27,20 @@ export function SelectionCell({
   rowIndex,
   isCheckboxSelection,
   isSelected,
+  disabled,
   onToggle,
 }: SelectionCellProps) {
+  // チェックのクリックの shift を onCheckedChange へ渡す(onCheckedChange はイベントを持たない)
+  const shiftKeyRef = React.useRef(false);
   const handleCellClick = (event: React.MouseEvent<HTMLElement>) => {
     if (!isCheckboxSelection || !visible) {
       return;
     }
     event.stopPropagation();
-    if (isCheckboxEvent(event)) {
+    if (isCheckboxEvent(event) || disabled) {
       return;
     }
-    onToggle();
+    onToggle(undefined, event.shiftKey);
   };
 
   return (
@@ -59,8 +64,12 @@ export function SelectionCell({
           data-table-checkbox-root="true"
           aria-label={`${label}${rowIndex + 1}行`}
           checked={isSelected}
-          onCheckedChange={(checked) => onToggle(checked === true)}
-          onClick={(event) => event.stopPropagation()}
+          disabled={disabled}
+          onCheckedChange={(checked) => onToggle(checked === true, shiftKeyRef.current)}
+          onClick={(event) => {
+            shiftKeyRef.current = event.shiftKey;
+            event.stopPropagation();
+          }}
         />
       </div>
     </TableCell>

@@ -45,6 +45,9 @@ import { RecordSelectionTable } from "@/lib/tableSuite";
 />
 ```
 
+- `canSelectRow?: (item, index) => boolean`: 選べない行はチェックが押せず(disabled)、ヘッダーの全部の選択にも入らない(未指定 = 全部選べる)
+- `rangeSelect?: boolean`: shift を押した行 / チェックのクリックで、前に切り替えた行から今の行までを同じ値にする(既定 false)
+
 #### 選択の出し方（selectionMode）
 
 `selectionMode`（既定 `"onSelect"`）はチェックと一括操作バーをいつ出すか。RecordSelectionTable と RecordSelectionList で同じ。
@@ -80,6 +83,41 @@ import { BulkActionItems, RecordSelectionList, selectBulkActions } from "@/lib/t
   )}
 </InfiniteScrollList>
 ```
+
+### 選択のフックと一括操作のバー（表の外で使う）
+
+カードの一覧など表でない所の選択は、RecordSelectionTable と同じ状態のフック `useRecordSelection` と一括操作のバー `BulkActionBar` を入口から使う(見た目は呼び手が持つ)。選択の状態を自前の `Set` で組まない。
+
+```tsx
+import { BulkActionBar, useRecordSelection } from "@/lib/tableSuite";
+
+const selection = useRecordSelection({
+  items,
+  getKey: (item) => item.id,
+  canSelect: (item) => item.status !== "locked", // 任意
+  rangeSelect: true, // 任意: shift で範囲
+});
+
+<BulkActionBar selection={selection.bulkSelection} bulkActions={(s) => <Button onClick={() => move(s.selectedIds)}>移す</Button>} />
+{items.map((item) => (
+  <Card
+    key={item.id}
+    selected={selection.selectedKeySet.has(item.id)}
+    disabled={!selection.isSelectable(item.id)}
+    onClick={(e) => selection.toggle(item.id, { shiftKey: e.shiftKey })}
+  />
+))}
+```
+
+| 戻り値 | 説明 |
+|---|---|
+| `selectedKeySet` / `selectedKeys` / `selectedRows` | 今の選択 |
+| `isAllSelected` / `isPartialSelection` | 選べる行を全部選んだか / 一部か |
+| `toggle(key, { checked?, shiftKey? })` / `toggleAll(checked)` / `clear()` | 切り替え(`checked` 未指定 = 今の逆) |
+| `isSelectable(key)` | `canSelect` で選べる行か |
+| `bulkSelection` | `BulkActionBar` の `selection` にそのまま渡す形 |
+
+制御するときは `selectedKeys` と `onSelectionChange`、非制御の初期値は `defaultSelectedKeys`(RecordSelectionTable と同じ)。
 
 ### 一括操作の受け口（管理一覧）
 

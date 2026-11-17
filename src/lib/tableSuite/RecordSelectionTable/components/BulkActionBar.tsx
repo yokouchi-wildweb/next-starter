@@ -37,7 +37,7 @@ const SPACING_MT: Record<BulkActionBarSpacing, string> = {
   lg: "mt-3",
 };
 
-type BulkActionBarProps<T> = {
+export type BulkActionBarProps<T> = {
   selection: BulkActionSelection<T>;
   bulkActions: (selection: BulkActionSelection<T>) => React.ReactNode;
   /** テーブルとの余白 @default "md" */
