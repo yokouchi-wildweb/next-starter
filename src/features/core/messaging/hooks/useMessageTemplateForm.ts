@@ -3,7 +3,7 @@
 // src/features/core/messaging/hooks/useMessageTemplateForm.ts
 //
 // 管理: テンプレートを作る・直す画面の書く欄と操作(部品はこれを呼んで描くだけ。CLAUDE.md core_ui_guards)。
-// - 順 = 種別 →(種類: その種別に 2 つ以上ある時だけ選ぶ、1 つなら自動)→ ひな形(管理者が選べる物)→ 中身(D115)
+// - 順 = 種別 → カテゴリー(種別を選ぶと最初の物を自動で選ぶ。1 つでも出す、D118)→ ひな形(管理者が選べる物)→ 中身(D115)。新しく作る時は種別を先に選ばない(D110)
 // - 中身 = ひな形の欄(useLayoutFieldsForm)。経路は種類が決め、経路だけの欄とプレビューのタブはその分(D115)
 // - ひな形を替える: 中身があれば確かめてから消す(pendingLayout → confirmLayoutChange、D113)。中身の付け替えはしない
 // - 保存 = 作る(POST)か直す(PATCH)の後に公開(新しい版、D113)。変更が無ければ「変更はありません」。名前・説明・種類・ひな形・中身・専用の埋め込み情報
@@ -139,10 +139,9 @@ function stringsOf(value: unknown, out: string[] = []): string[] {
   return out;
 }
 
-/** 種別に種類が 1 つだけならその鍵(画面に出さず自動で決める、D115)。2 つ以上なら空 = 選ばせる */
-function autoCategoryOf(categories: readonly { key: string; kind: string }[], kind: string): string {
-  const list = categories.filter((category) => category.kind === kind);
-  return list.length === 1 ? list[0].key : "";
+/** 種別の最初のカテゴリー(種別を選んだ時に自動で選ぶ、D118)。種別が空・カテゴリーが無ければ空 */
+function firstCategoryOf(categories: readonly { key: string; kind: string }[], kind: string): string {
+  return categories.find((category) => category.kind === kind)?.key ?? "";
 }
 
 /** 新しい宣言の行 */
@@ -167,12 +166,13 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
       ),
     [categories],
   );
-  const initialKind = categories.find((category) => category.key === template?.category)?.kind ?? template?.kind ?? kindOptions[0]?.value ?? "";
+  // 新しく作る時は種別を選ばせる(先に選んでおかない、D110 D118)。直す時は保存した種別
+  const initialKind = categories.find((category) => category.key === template?.category)?.kind ?? template?.kind ?? "";
 
   const [name, setName] = useState(template?.name ?? "");
   const [description, setDescription] = useState(template?.description ?? "");
   const [kind, setKindState] = useState(initialKind);
-  const [category, setCategory] = useState(template?.category ?? autoCategoryOf(categories, initialKind));
+  const [category, setCategory] = useState(template?.category || firstCategoryOf(categories, initialKind));
   const [layout, setLayout] = useState(template?.layout ?? (options?.layouts.length === 1 ? options.layouts[0].key : ""));
   const [pendingLayout, setPendingLayout] = useState<string | null>(null);
   const [embedded, setEmbedded] = useState<EmbeddedDeclarationDraft[]>(() => draftsOf(template?.embedded));
@@ -194,7 +194,8 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   const setKind = useCallback(
     (next: string) => {
       setKindState(next);
-      setCategory((current) => (categories.some((item) => item.key === current && item.kind === next) ? current : autoCategoryOf(categories, next)));
+      // 種別を替えたらその種別の最初のカテゴリーを選び直す(D118)
+      setCategory(firstCategoryOf(categories, next));
     },
     [categories],
   );
@@ -324,7 +325,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
         // 名前・説明も buildInput と同じ整え方(前後の空白・空の説明 = null)
         name: (template?.name ?? "").trim(),
         description: (template?.description ?? "").trim() === "" ? null : template?.description,
-        category: template?.category ?? autoCategoryOf(categories, initialKind),
+        category: template?.category || firstCategoryOf(categories, initialKind),
         layout: template?.layout ?? (options?.layouts.length === 1 ? options.layouts[0].key : ""),
         values: compactLayoutValues(
           layoutFieldsDefaults(options?.layouts.find((item) => item.key === template?.layout)?.fields ?? {}, template?.values ?? null),
@@ -341,6 +342,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   /** 保存の前の検査(画面で止める物。中身の深い検査はサーバー) */
   const validate = useCallback((): string | null => {
     if (!name.trim()) return "名前を入力してください";
+    if (!kind) return "種別を選んでください";
     if (!category) return "カテゴリーを選んでください";
     if (!layoutOption) return "ひな形を選んでください";
     const parsed = layoutValuesSchema({ fields: layoutOption.fields } as MessageLayout, { channels }).safeParse(values);
@@ -353,7 +355,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     }
     if (unknownNames.length > 0) return `使えない埋め込み情報があります: ${unknownNames.join("、")}`;
     return null;
-  }, [name, category, layoutOption, channels, values, valuesForm.form, unknownNames]);
+  }, [name, kind, category, layoutOption, channels, values, valuesForm.form, unknownNames]);
 
   /** 保存 = 作る or 直す → 公開(新しい版、D113)。ボタンが Promise の間 loading */
   const save = useCallback(async () => {
@@ -430,9 +432,8 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
       kindOptions,
       category,
       setCategory,
-      /** 種類の選択肢(その種別に 2 つ以上ある時だけ画面に出す) */
+      /** カテゴリーの選択肢(選んだ種別の物。種別を選ぶまで空、D118) */
       categoryChoices,
-      showCategory: categoryChoices.length > 1,
       layout,
       layoutOptions: (options?.layouts ?? []).map((item) => ({ value: item.key, label: item.label, description: item.description })),
       layoutLabel: layoutOption?.label ?? null,

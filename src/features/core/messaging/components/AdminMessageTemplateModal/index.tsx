@@ -2,7 +2,7 @@
 // セクションコンテナ(管理: テンプレートを作る・直すモーダル。D87)。開閉は置き場が持つ(open・onOpenChange・templateId)。
 // タブ: 内容 / バージョン履歴(直す時だけ)。変数のタブは無い(専用の埋め込み情報はボタンのモーダル、D111)。
 // 内容 = 左右 2 つのペイン(D114): 左 = 一番上でひな形を選び、その下に実際の描き方のプレビュー(経路のタブ、未入力は仮の文)。
-//   右 = 名前・説明・種別 →(カテゴリー: 2 つ以上の時だけ)→ ひな形の欄の入力(プレビューのタブの経路で使う欄だけ、D117)・埋め込み情報のタグと『専用の埋め込み情報を管理』(D115)。
+//   右 = 名前・説明・種別とカテゴリーの 1 行(KindCategoryFields、D118)→ ひな形の欄の入力(プレビューのタブの経路で使う欄だけ、D117)・埋め込み情報のタグと『専用の埋め込み情報を管理』(D115)。
 //   狭い画面は操作が上、プレビューがその下
 // ひな形を替えると、中身があれば確かめてから消す(D113)。保存 = 新しいバージョン(D113)。
 // システムテンプレート(白紙)とアーカイブした物は読むだけ(D117)。
@@ -30,6 +30,7 @@ import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
 
 import { EmbeddedInfoTags } from "@/features/core/messaging/components/common/EmbeddedInfoTags";
+import { KindCategoryFields } from "@/features/core/messaging/components/common/KindCategoryFields";
 import { LayoutFields } from "@/features/core/messaging/components/common/LayoutFields";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
 import { TemplateEmbeddedInfoModal } from "@/features/core/messaging/components/common/TemplateEmbeddedInfoModal";
@@ -184,34 +185,16 @@ function TemplateModalBody({
             </Label>
             <Textarea id="template-description" value={fields.description} rows={2} disabled={locked} onChange={(e) => fields.setDescription(e.target.value)} />
           </Stack>
-          <Stack space={1}>
-            <Label htmlFor="template-kind" className="text-sm">
-              種別
-            </Label>
-            <SelectInput
-              id="template-kind"
-              value={fields.kind}
-              disabled={locked}
-              options={fields.kindOptions}
-              showPlaceholderOption={false}
-              onChange={(v) => fields.setKind(v ? String(v) : "")}
-            />
-          </Stack>
-          {fields.showCategory ? (
-            <Stack space={1}>
-              <Label htmlFor="template-category" className="text-sm">
-                カテゴリー
-              </Label>
-              <SelectInput
-                id="template-category"
-                value={fields.category}
-                disabled={locked}
-                options={fields.categoryChoices}
-                placeholder="カテゴリーを選択"
-                onChange={(v) => fields.setCategory(v ? String(v) : "")}
-              />
-            </Stack>
-          ) : null}
+          <KindCategoryFields
+            idPrefix="template"
+            kinds={fields.kindOptions}
+            kind={fields.kind}
+            onKindChange={fields.setKind}
+            categories={fields.categoryChoices}
+            category={fields.category}
+            onCategoryChange={fields.setCategory}
+            disabled={locked}
+          />
         </Stack>
 
         <Stack space={3} className="rounded-md border border-border bg-muted/30 p-4" data-slot="template-embedded">
