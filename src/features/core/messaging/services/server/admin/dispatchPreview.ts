@@ -7,7 +7,7 @@
 // - 記録の段で中身を残していない回(values が無い: record meta・秘密の連絡)・ひな形が無い・版を読めない回は cannotRender に理由(経路は空)
 // - どのひな形でも描く(テンプレートの adminSelectable の絞りは使わない)。service でも管理者を確かめる(D42)
 
-import { embeddedVariableMap, type MessageEmbeddedEntry, type MessageLayout } from "@/lib/messaging";
+import { displayEmbeddedValues, embeddedVariableMap, type MessageEmbeddedEntry, type MessageLayout } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 import type { VariableMap } from "@/lib/structuredDocument/shared";
 
@@ -68,7 +68,8 @@ export async function adminDispatchPreview(deps: AdminDispatchPreviewDeps, id: s
   const layout = deps.layouts[resolved.layout];
   if (!layout) return empty(RESOLVE_ERRORS.layout_missing);
 
-  const map = deps.toVariableMap({ ...deps.commonValues(), ...(row.vars ?? {}), ...(row.embedded_values ?? {}) });
+  // 専用の日付・日時は人が読む字に(型の印 <鍵>@type、送る口の content.ts と同じ)
+  const map = displayEmbeddedValues(deps.toVariableMap({ ...deps.commonValues(), ...(row.vars ?? {}), ...(row.embedded_values ?? {}) }));
   const named = embeddedVariableMap(map, deps.embeddedCatalog(resolved));
   const values = deps.renderValue(resolved.values ?? {}, named) as Record<string, unknown>;
   const category = resolved.category && deps.honoursPreferences(resolved) ? resolved.category : undefined;

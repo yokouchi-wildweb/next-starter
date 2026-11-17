@@ -293,7 +293,7 @@ export function createDeps(overrides: Partial<MessageSendDeps> & { store: Memory
     sleep: async (ms) => {
       slept.push(ms);
     },
-    context: () => ({ serviceName: "テストサービス", appBaseUrl: "https://example.test" }),
+    context: () => ({ serviceName: "テストサービス", serviceNameShort: "テスト", appBaseUrl: "https://example.test" }),
     actor: () => ({ actorId: "admin-1", actorType: "admin" }),
     unsubscribe: {
       configured: () => true,

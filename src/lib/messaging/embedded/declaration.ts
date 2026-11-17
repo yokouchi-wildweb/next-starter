@@ -109,5 +109,72 @@ export function embeddedValueSchema(declaration: MessageEmbeddedDeclaration): z.
 
 /** 宣言の並びの値の zod(鍵 → 差し込む字。知らない鍵は通らない) */
 export function embeddedValuesSchema(declarations: readonly MessageEmbeddedDeclaration[]) {
-  return z.object(Object.fromEntries(declarations.map((declaration) => [declaration.key, embeddedValueSchema(declaration)]))).strict();
+  return z
+    .object({
+      ...Object.fromEntries(declarations.map((declaration) => [declaration.key, embeddedValueSchema(declaration)])),
+      // 日付・日時は型の印も出す(回に値と一緒に残り、差し込む時に人が読む字にする: displayEmbeddedValues)
+      ...embeddedTypeShape(declarations),
+    })
+    .strict();
+}
+
+/**
+ * 型の印の鍵の後ろ(回に残す専用の値の隣に `<鍵>@type` = 型 を置く、D128: 組み直しは回だけから描く)。
+ * `@` は差し込みの書式 {{名前}} に拾われないので、印が文面に出ることは無い
+ */
+export const EMBEDDED_TYPE_SUFFIX = "@type";
+
+/** 人が読む字にする型(日付・日時)。ほかの型は値の字のまま */
+const DISPLAY_TIME_ZONE = "Asia/Tokyo";
+
+/**
+ * 値の字(ISO)→ 人が読む字。date = 2026年12月1日 / datetime = 2026年12月1日 11:00(日本時間)。読めない字・ほかの型はそのまま
+ */
+export function embeddedDisplayText(type: string, text: string): string {
+  if (type === "date") {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+    return match ? `${Number(match[1])}年${Number(match[2])}月${Number(match[3])}日` : text;
+  }
+  if (type === "datetime") {
+    const date = new Date(text);
+    if (Number.isNaN(date.getTime())) return text;
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("ja-JP", {
+        timeZone: DISPLAY_TIME_ZONE,
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      })
+        .formatToParts(date)
+        .map((part) => [part.type, part.value]),
+    );
+    return `${parts.year}年${parts.month}月${parts.day}日 ${parts.hour}:${parts.minute}`;
+  }
+  return text;
+}
+
+/**
+ * 差し込みの表の専用の値を人が読む字にする(隣の `<鍵>@type` の型で。印の行は表から外す)。
+ * 送る時(版の宣言の vars が印を足す)も組み直し(回の embedded_values が印を持つ)も同じこの 1 か所
+ */
+export function displayEmbeddedValues(map: Readonly<Record<string, string>>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(map)) {
+    if (key.endsWith(EMBEDDED_TYPE_SUFFIX)) continue;
+    const type = map[`${key}${EMBEDDED_TYPE_SUFFIX}`];
+    out[key] = type ? embeddedDisplayText(type, value) : value;
+  }
+  return out;
+}
+
+/** 宣言の型の印の zod の形(日付・日時の宣言だけ。値に関わらず `<鍵>@type` = 型 を出す) */
+export function embeddedTypeShape(declarations: readonly MessageEmbeddedDeclaration[]): Record<string, z.ZodType<string, z.ZodTypeDef, unknown>> {
+  return Object.fromEntries(
+    declarations
+      .filter((declaration) => declaration.type === "date" || declaration.type === "datetime")
+      .map((declaration) => [`${declaration.key}${EMBEDDED_TYPE_SUFFIX}`, z.unknown().transform(() => declaration.type)]),
+  );
 }

@@ -293,7 +293,8 @@ export type MessageSendDeps = {
   now: () => Date;
   sleep: (ms: number) => Promise<void>;
   /** 共通の文脈の受信者に依らない値 */
-  context: () => { serviceName: string; appBaseUrl: string };
+  /** 共通の埋め込み情報のうち受信者に依らない値(サービス名・短い名前・起点の URL) */
+  context: () => { serviceName: string; serviceNameShort: string; appBaseUrl: string };
   actor: () => { actorId: string | null; actorType: string | null };
   /** 登録した購読が聞いている事件の種類(内部の事件はこれだけ書く。無い・空 = 書かない) */
   eventTypes?: ReadonlySet<string>;

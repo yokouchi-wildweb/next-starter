@@ -14,6 +14,7 @@
 
 import {
   buildChannelContent,
+  displayEmbeddedValues,
   embeddedVariableMap,
   isMessageLayoutContent,
   layoutVersionOf,
@@ -72,7 +73,8 @@ export async function buildContent(
   const layout = layoutOf(deps, resolved);
   const channel = deps.channels[channelKey];
   if (!channel) throw new DomainError(`経路 ${channelKey} は登録されていません(${resolved.key})`, { status: 500 });
-  const named = embeddedVariableMap(map, messageEmbeddedCatalog(resolved, deps.enrichers ?? {}));
+  // 専用の日付・日時は人が読む字にし(型の印 <鍵>@type、残す値は ISO のまま)、共通・enrichers の別名の行を足す
+  const named = embeddedVariableMap(displayEmbeddedValues(map), messageEmbeddedCatalog(resolved, deps.enrichers ?? {}));
   const values = renderValue(resolved.values ?? {}, named) as Record<string, unknown>;
   const result = await buildChannelContent({
     layout,
