@@ -12,6 +12,7 @@ import { normalizeHttpError } from "@/lib/errors";
 import type {
   AdminSendEstimateInput,
   AdminSendInput,
+  AdminSendLayoutOption,
   AdminSendOptions,
   AdminSendPreviewInput,
   AdminSendResult,
@@ -24,6 +25,7 @@ const BASE = "/api/admin/messaging/send";
 export type {
   AdminSendEstimateInput,
   AdminSendInput,
+  AdminSendLayoutOption,
   AdminSendOptions,
   AdminSendPreviewInput,
   AdminSendResult,
@@ -72,7 +74,7 @@ export async function sendAdminTestMessage(input: AdminSendTestInput): Promise<A
   }
 }
 
-/** 送る画面の選択肢(経路・ロール・宛先の集め方・公開中のテンプレート・予約できる日数) */
+/** 送る画面の選択肢(経路・ロール・グループ・公開中のテンプレート・カテゴリーと白紙・ひな形の欄の宣言・予約できる日数) */
 export async function getAdminSendOptions(): Promise<AdminSendOptions> {
   try {
     const res = await axios.get<AdminSendOptions>(`${BASE}/options`);

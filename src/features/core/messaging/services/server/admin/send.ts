@@ -19,7 +19,17 @@
 
 import { z } from "zod";
 
-import type { MessageAdminTarget, MessageCategory, MessageChannel, MessageEmbeddedDeclaration, MessageSystemTemplate } from "@/lib/messaging";
+import {
+  layoutVersionOf,
+  type MessageAdminTarget,
+  type MessageCategory,
+  type MessageChannel,
+  type MessageEmbeddedDeclaration,
+  type MessageEnricher,
+  type MessageLayout,
+  type MessageLayoutFields,
+  type MessageSystemTemplate,
+} from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 
@@ -121,6 +131,9 @@ export type AdminSendResult = {
 /** 送る画面のグループの選択肢(label = グループ名、kindLabel = 種類の表示名) */
 export type AdminSendGroupOption = { id: string; label: string; kindLabel: string };
 
+/** 送る画面が欄を描くひな形 1 つ(鍵・表示名・版・欄の宣言) */
+export type AdminSendLayoutOption = { key: string; label: string; version: number; fields: MessageLayoutFields };
+
 /** 送る画面の選択肢 */
 export type AdminSendOptions = {
   channels: AdminChannelOption[];
@@ -140,8 +153,10 @@ export type AdminSendOptions = {
     /** 今の公開版の専用の埋め込み情報の宣言(送る画面が値を入れる) */
     embedded: MessageEmbeddedDeclaration[];
   }[];
-  /** 送れるカテゴリー(種別 announcement・direct・promotion、宛先の種類で絞る。その種別の白紙つき) */
+  /** 送れるカテゴリー(種別 announcement・direct・promotion、宛先の種類で絞る。その種別の白紙と埋め込み情報の一覧つき) */
   categories: AdminFreeTextCategoryOption[];
+  /** 白紙と並べたテンプレートが使うひな形の欄の宣言(門 messagingTemplates の外。送る画面はこれで欄を描く) */
+  layouts: AdminSendLayoutOption[];
   /** 予約できる日数(config.schedule.maxDaysAhead) */
   maxScheduleDays: number;
 };
@@ -160,6 +175,10 @@ export type AdminSendDeps = AdminCheckDeps & {
   categories: Readonly<Record<string, MessageCategory>>;
   /** システムテンプレートの受け口(選択肢のカテゴリーに種別の白紙を付ける) */
   systemTemplates: Readonly<Record<string, MessageSystemTemplate>>;
+  /** ひな形の受け口(選択肢の欄の宣言) */
+  layouts: Readonly<Record<string, MessageLayout>>;
+  /** enrichers の受け口(選択肢の埋め込み情報の一覧) */
+  enrichers: Readonly<Record<string, MessageEnricher>>;
   roles: () => { id: string; label: string }[];
   /** 使用中のユーザーグループ(門 userGroups が閉なら空) */
   groupOptions: () => Promise<AdminSendGroupOption[]>;
@@ -353,17 +372,39 @@ export function adminChannelOptions(channels: Readonly<Record<string, MessageCha
 }
 
 /** 送る画面の選択肢 */
+/** 選択肢の白紙とテンプレートが使うひな形(受け口に無いひな形は落とす。送る口がその時に断る) */
+export function adminSendLayoutOptions(
+  layouts: Readonly<Record<string, MessageLayout>>,
+  categories: readonly AdminFreeTextCategoryOption[],
+  templates: readonly { layout: string }[],
+): AdminSendLayoutOption[] {
+  const keys = new Set<string>([
+    ...categories.flatMap((option) => (option.systemTemplate ? [option.systemTemplate.layout] : [])),
+    ...templates.map((template) => template.layout),
+  ]);
+  return [...keys].flatMap((key) => {
+    const layout = layouts[key];
+    return layout ? [{ key: layout.key, label: layout.label, version: layoutVersionOf(layout), fields: layout.fields }] : [];
+  });
+}
+
 export async function adminSendOptions(deps: AdminSendDeps): Promise<AdminSendOptions> {
   await assertAdminActor(deps);
+  const templates = await deps.listPublishedTemplates();
+  // 送る画面の宛先(全員・ロール・グループ・選んだ利用者)のどれかに送れるカテゴリー
+  const categories = adminFreeTextCategoryOptions(
+    deps.categories,
+    deps.systemTemplates,
+    (option) => option.targets.some((target) => target !== "bulk"),
+    deps.enrichers,
+  );
   return {
     channels: adminChannelOptions(deps.channels),
     roles: deps.roles(),
     groups: await deps.groupOptions(),
-    templates: await deps.listPublishedTemplates(),
-    // 送る画面の宛先(全員・ロール・グループ・選んだ利用者)のどれかに送れるカテゴリー
-    categories: adminFreeTextCategoryOptions(deps.categories, deps.systemTemplates, (option) =>
-      option.targets.some((target) => target !== "bulk"),
-    ),
+    templates,
+    categories,
+    layouts: adminSendLayoutOptions(deps.layouts, categories, templates),
     maxScheduleDays: deps.maxScheduleDays(),
   };
 }

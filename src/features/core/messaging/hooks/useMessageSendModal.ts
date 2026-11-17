@@ -4,27 +4,30 @@
 //
 // 管理: 送るモーダルの流れ(1 つの hook。入れ物 MessageSendModal はこれを呼んで部品を並べるだけ、CLAUDE.md core_ui)。
 // 開き方(mode):
-// - new: 回の一覧の「新しく送る」。POST /api/admin/messaging/send(門 messagingBroadcast の内側)
-// - sameAs: 回の詳細の「同じ内容で送る」。その回の文面・カテゴリー・経路・宛先の形を写す(本文を残さない回は件名・題だけ。
-//   グループ宛ての回は同じグループ(今は選べなければ選び直し、全員に広げない)・選んだ利用者に送った回は同じ利用者を選んだ形)。テンプレートの回はそのテンプレートを今の公開版で呼び出す(送るのは今の公開版だけ、
-//   古い版は 409)。直して送った回は直した文言を写す。公開中でないテンプレートはその場で書く形にして sameAsNote で知らせる
+// - new: 回の一覧の「新規送信」。POST /api/admin/messaging/send(門 messagingBroadcast の内側)
+// - sameAs: 回の詳細の「同じ内容で送る」。回のカテゴリー(→ 種別)・経路・宛先の形と、回の中身(ひな形 + values、D128)を写す。
+//   テンプレートの回でそのテンプレートが今も公開中 = 今の版を読み込んだ形(直して送った回は直した文で、文面を直す状態から。専用の埋め込み情報の値も写す)。
+//   公開中でない・その場で書いた回 = 種別の白紙に回の values を入れた形(ひな形が白紙と違えば写せない = sameAsNote)
 // - bulk: 管理一覧の一括操作。宛先 = 選んだ記録(target + recordIds)、POST /api/admin/messaging/bulk-send(門の外)。予約は無い
-// 宛先 = 全員・ロール・グループ(門 userGroups が開の時。0 件なら作成へ案内)・選んだ利用者。見込みが上限を超えたら確認の段で送れない(D64)
-// 流れ(D47): 宛先 → テンプレートから読み込む(任意、門 messagingTemplates が開の時だけ。カテゴリー・経路・欄・画像が写り、全部直せる)→ カテゴリー(宛先で選べる物、D80)
-// → 経路の絞り(カテゴリーの経路の中、既定は全部オン)→ 文言の無い経路は空欄で見せ、送る前に止める(D85、サーバーの 400 と同じ線)
-// → 予約(bulk 以外)→ プレビュー・自分へのテスト送信 → 見込み → 確認 → 送る → 結果。
+// 流れ(D110 D115): 種別 → カテゴリー(種別に 2 つ以上ある時だけ選ぶ)→ 宛先(種別が許す種類だけ。direct はグループも、D109)
+// → テンプレート(その種別の公開中の物。読み込まない = 種別の白紙、D117)→ 文面(useSendTemplateText: 読み込んだ直後は固定、
+// 『文面を直す』で全文、『テンプレートの読み込みを解除』で白紙へ、『テンプレートを更新』で新しい版、D118 D119 D120)
+// → 経路の絞り(カテゴリーの経路の中、既定は全部オン)→ 予約(bulk 以外)→ プレビュー(ひな形の描き方 useLayoutPreview がいつも、
+// 「プレビュー」= あなた宛ての表示例を送る口で描く)・自分へのテスト送信 → 見込み → 確認 → 送る → 結果。
+// - 送る口の入力 = { category, channels?, template: { system } | { id, version }, values, edited?, embedded? }(services/server/admin/send.ts)
 // - 見込み → 確認の段・予約の検査・二重送信を防ぐ鍵(開くたびに 1 つ、送った後に作り直す)はこの hook の中
 // - 書きかけ(dirty)の間: ページを離れる前に確かめる(@/lib/unsavedGuard)。閉じる前の確かめは closeConfirm を Modal の confirmOnClose に渡す
-// - 初めの値(sameAs の写し・bulk の既定)は state に入れず、まだ触っていない欄は mode と選択肢から導く(effect で写さない)
+// - 初めの値(sameAs の写し・bulk の既定)は state に入れず、まだ触っていない物は mode と選択肢から導く(effect で写さない)
 
 import { useCallback, useMemo, useState } from "react";
 
 import { useGate } from "@/featureGate/client";
 import { useDomainMutation } from "@/lib/crud/hooks";
-import type { ChannelFieldMeta } from "@/lib/messaging";
-
+import type { MessageEmbeddedEntry } from "@/lib/messaging";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
 
+import { MESSAGE_CHANNEL_LABELS } from "../constants/channelLabels";
+import { MESSAGE_KIND_LABELS } from "../constants/kindLabels";
 import {
   adminBulkSend,
   previewAdminBulkMessage,
@@ -40,6 +43,7 @@ import {
   previewAdminMessage,
   sendAdminTestMessage,
   type AdminSendInput,
+  type AdminSendLayoutOption,
   type AdminSendOptions,
   type AdminSendPreviewInput,
   type AdminSendResult,
@@ -47,21 +51,19 @@ import {
   type RecipientEstimate,
 } from "../services/client/sendClient";
 
-import { MESSAGE_CHANNEL_LABELS } from "../constants/channelLabels";
-import { emailFieldsFromNoticeValues, noticeValuesFromChannelContent } from "../utils/noticeValues";
-
 import { ADMIN_DISPATCHES_KEY, ADMIN_MESSAGING_KEY } from "./adminMessagingKeys";
 import { ADMIN_SEND_KEY } from "./sendKeys";
 import { useAdminBulkSendOptions } from "./useAdminBulkSend";
 import { useAdminSendOptions } from "./useAdminSendOptions";
-import { contentForInput } from "./useMessageTemplateForm";
+import { useLayoutPreview } from "./useLayoutPreview";
+import { blankTextState, templateTextState, useSendTemplateText, type SendTextState } from "./useSendTemplateText";
 
 /** 一覧の一括操作の既定のカテゴリー(種別 direct、D81) */
 export const ADMIN_BULK_SEND_DEFAULT_CATEGORY = "operatorDirect";
 
-/** 書く欄の初期値(bulk)。content = 送る中身と同じ形(経路の鍵 → 経路の欄。例 { inApp: { title, body } }) */
+/** 書く欄の初期値(bulk)。values = 種別の白紙のひな形の欄の中身に重ねる値(例 汎用のお知らせ { title, body }) */
 export type MessageSendDefaults = {
-  content?: Record<string, Record<string, unknown>>;
+  values?: Record<string, unknown>;
 };
 
 export type MessageSendMode =
@@ -76,7 +78,7 @@ export type MessageSendMode =
       /** 記録の名詞(例: "振込レビュー") */
       recordNoun: string;
       defaults?: MessageSendDefaults;
-      /** 既定のカテゴリー(既定 operatorDirect、選べなければ最初) */
+      /** 既定のカテゴリー(既定 operatorDirect、選べなければ最初。種別もこのカテゴリーの物から) */
       defaultCategory?: string;
       /** 送り元(省略 = サーバーが "<target>.bulk") */
       source?: string;
@@ -86,17 +88,6 @@ export type MessageSendTargetType = "all" | "role" | "group" | "users";
 export type MessageSendStep = "edit" | "confirm" | "done";
 export type MessageSendTemplate = AdminSendOptions["templates"][number];
 
-/** 書く中身: その場で書く(email・inApp の件名 / 題と本文)か、呼び出したテンプレートの文言(経路ごとの欄) */
-export type MessageSendDraft = {
-  source: "adhoc" | "template";
-  /** 呼び出したテンプレート(source template の時) */
-  template: { id: string; version: number } | null;
-  /** 経路ごとの欄(経路の欄の形。その場で書く時もテンプレートの時も同じ。例 email { subject, preheader?, heading?, paragraphs, cta?, footer? }) */
-  content: Record<string, Record<string, unknown>>;
-  /** テンプレートの変数の値(回に 1 組、入力は文字) */
-  vars: Record<string, string>;
-};
-
 /** 宛先(group = ユーザーグループ。groupId は値としてだけ持ち、画面には名前を出す、D94) */
 export type MessageSendTarget = { type: MessageSendTargetType; roles: string[]; groupId: string; userIds: string[] };
 
@@ -104,20 +95,10 @@ export type MessageSendResult =
   | { kind: "send"; result: AdminSendResult }
   | { kind: "bulk"; result: AdminBulkSendResult };
 
-/** 送り先の経路 1 つ(カテゴリーの経路) */
-export type MessageSendChannel = {
-  key: string;
-  label: string;
-  on: boolean;
-  blank: boolean;
-  /** 経路の欄の表示の約束(選択肢の経路、D83。取れる前は空 = 値の鍵を 1 行で出す) */
-  fieldMeta: Readonly<Record<string, ChannelFieldMeta>>;
-};
+const TARGET_TYPES: readonly MessageSendTargetType[] = ["all", "role", "group", "users"];
 
-/** その場で書く欄の今の部品が書ける経路(欄の作り直しは画面の指令。サーバーは全部の経路の文面を受ける) */
 const newKey = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
-const str = (value: unknown) => (typeof value === "string" ? value : "");
 const record = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 
@@ -132,137 +113,82 @@ export function scheduleErrorOf(mode: "now" | "at", scheduledAt: string, maxDays
   return null;
 }
 
-/** 専用の埋め込み情報の値(入力は文字。数の型だけ数にする。空は送らない = 既定値か、必須ならサーバーが 400) */
-export function templateVarsForInput(template: MessageSendTemplate | null, values: Record<string, string>): Record<string, unknown> {
-  if (!template) return {};
-  const out: Record<string, unknown> = {};
-  for (const declaration of template.embedded) {
-    const raw = values[declaration.key];
-    if (raw === undefined || raw.trim() === "") continue;
-    out[declaration.key] = declaration.type === "number" && !Number.isNaN(Number(raw)) ? Number(raw) : raw;
-  }
-  return out;
+/** 選択肢のカテゴリーに出る種別(受け口の順、重なりなし) */
+export function kindsOf(categories: readonly AdminFreeTextCategoryOption[]): string[] {
+  return [...new Set(categories.map((option) => option.kind))];
+}
+
+/** mode から導く初めのカテゴリー(sameAs = 回のカテゴリー、bulk = 既定のカテゴリー) */
+function preferredCategoryOf(mode: MessageSendMode): string | null {
+  if (mode.type === "sameAs") return mode.dispatch.category;
+  if (mode.type === "bulk") return mode.defaultCategory ?? ADMIN_BULK_SEND_DEFAULT_CATEGORY;
+  return null;
+}
+
+/** 種別の白紙(選択肢のその種別のカテゴリーのどれかが持つ物) */
+export function blankOfKind(categories: readonly AdminFreeTextCategoryOption[], kind: string) {
+  return categories.find((option) => option.kind === kind && option.systemTemplate)?.systemTemplate ?? null;
+}
+
+/** 回の専用の埋め込み情報の値(テンプレートの今の版が宣言する鍵だけ) */
+function embeddedOfDispatch(dispatch: AdminDispatchDetail, template: MessageSendTemplate): Record<string, string> {
+  const values = dispatch.embeddedValues ?? {};
+  return Object.fromEntries(template.embedded.filter((item) => values[item.key] !== undefined).map((item) => [item.key, String(values[item.key])]));
 }
 
 /**
- * テンプレートの版の中身(notice の欄の中身)→ この画面の経路ごとの欄(S5 で作り直すまでの最小の読み替え、指令 58)。
- * notice でないひな形は空(この画面では直せない。直さずに送れば版の中身をそのまま送る)
+ * mode と選択肢から導く初めの文面(まだ触っていない時)。sameAs:
+ * - テンプレートの回で、そのテンプレートが今も公開中: 今の版を読み込んだ形。直して送った回は回の values で文面を直す状態から(ひな形が今の版と同じ時)
+ * - それ以外: 種別の白紙。回のひな形が白紙と同じなら回の values を入れる
  */
-function channelDraftOfTemplate(template: MessageSendTemplate): MessageSendDraft["content"] {
-  if (template.layout !== "notice") return {};
-  const email = emailFieldsFromNoticeValues(template.values);
-  const subject = str(email.subject);
-  const body = (Array.isArray(email.paragraphs) ? (email.paragraphs as string[]) : []).join("\n\n");
-  return { email, inApp: { title: subject, body }, line: { text: body ? `${subject}\n\n${body}` : subject } };
-}
-
-/** 経路の欄が空か(送れない。要る欄 = email 件名・inApp 題・line 本文、fork の経路は欄が 1 つでもあるか。その場で書く時もテンプレートの時も同じ) */
-export function isBlankChannel(draft: MessageSendDraft, channel: string): boolean {
-  const fields = draft.content[channel];
-  if (!fields) return true;
-  if (channel === "email") return !str(fields.subject).trim();
-  if (channel === "inApp") return !str(fields.title).trim();
-  if (channel === "line") return !str(fields.text).trim();
-  return Object.keys(fields).length === 0;
-}
-
-const clone = (content: Record<string, unknown>) => JSON.parse(JSON.stringify(content)) as MessageSendDraft["content"];
-
-/** その場で書く中身の初め(欄は経路ごとに書いた時にできる。bulk は既定の中身の写し) */
-function emptyAdhoc(defaults: MessageSendDefaults = {}): MessageSendDraft {
-  return { source: "adhoc", template: null, content: clone(defaults.content ?? {}), vars: {} };
-}
-
-/** 回の本文の欄から文を取る(段落は空行で結ぶ) */
-function textOf(fields: Record<string, unknown>, ...names: string[]): string {
-  for (const name of names) {
-    const value = fields[name];
-    if (typeof value === "string" && value.trim()) return value;
-    if (Array.isArray(value) && value.length > 0) return value.map(String).join("\n\n");
+export function initialTextOf(
+  mode: MessageSendMode,
+  kind: string,
+  categories: readonly AdminFreeTextCategoryOption[],
+  templates: readonly MessageSendTemplate[],
+): SendTextState | null {
+  const blank = blankOfKind(categories, kind);
+  const blankState = blank ? blankTextState(blank) : null;
+  if (mode.type === "bulk") {
+    return blankState ? { ...blankState, start: { ...blankState.start, ...(mode.defaults?.values ?? {}) } } : null;
   }
-  return "";
-}
-
-/** テンプレートを呼び出した中身(版の欄の写し) */
-export function draftFromTemplate(template: MessageSendTemplate): MessageSendDraft {
-  return {
-    source: "template",
-    template: { id: template.id, version: template.currentVersion },
-    // 版の中身を経路ごとの欄へ読み替えて写す(直さずに送れば版の中身をそのまま送る: buildContent)
-    content: channelDraftOfTemplate(template),
-    vars: {},
-  };
-}
-
-/** 写す文面(経路ごとの欄)をその場で書く中身へ(欄の形はそのまま) */
-function adhocFromContent(content: Record<string, unknown>): MessageSendDraft {
-  return { source: "adhoc", template: null, content: clone(content), vars: {} };
-}
-
-/** 回の中身が経路ごとの欄の形ならそれ(ひな形 + 欄の中身 { layout, values } の形は null) */
-function perChannelContentOf(content: unknown): Record<string, unknown> | null {
-  if (!content || typeof content !== "object" || "layout" in content || "values" in content) return null;
-  return content as Record<string, unknown>;
-}
-
-/**
- * mode から導く初めの中身(sameAs の写し・bulk の既定)。sameAs:
- * - テンプレートの回で、そのテンプレートが今も公開中: 呼び出しの形。直して送った回(templateEdited)は直した文言、ほかは今の版の文言
- *   (送る口は今の公開中の版だけを受けるので、版はいつも今の版。直した文言はサーバーがその版に対する template_edited として残す)
- * - 公開中でない(取り下げ・門 messagingTemplates が閉): その場で書く形。直した文言があればそれを、無ければ回の本文を欄へ写す
- * - その場で書いた回: 回が持つ書いた文面(content、欄の形のまま)。無い回(前の送る口)は件名・題と記録の段の本文だけ
- */
-export function initialDraftOf(mode: MessageSendMode, templates: readonly MessageSendTemplate[]): MessageSendDraft {
-  if (mode.type === "bulk") return emptyAdhoc(mode.defaults);
-  if (mode.type === "new") return emptyAdhoc();
+  if (mode.type === "new") return blankState;
   const { dispatch } = mode;
-  // 書いて送った文面(テンプレートの回は版から直した時だけ写す。ほかは今の版の文面)。
-  // 回の中身はひな形 + 欄の中身(D128)で経路ごとの欄の形ではないので、経路ごとの形の時だけ写す(S5 で画面を作り直すまで写さない)
-  const perChannel = perChannelContentOf(dispatch.content);
-  const edited = perChannel && (!dispatch.templateId || dispatch.templateEdited) ? perChannel : null;
-  if (!dispatch.templateId && edited) return adhocFromContent(edited);
+  const content = dispatch.content;
   if (dispatch.templateId) {
-    const template = templates.find((item) => item.id === dispatch.templateId);
+    // 今の種別のテンプレートだけ(種別を選び直した後は白紙から)
+    const template = templates.find(
+      (item) => item.id === dispatch.templateId && categories.find((option) => option.key === item.category)?.kind === kind,
+    );
     if (template) {
-      const called = draftFromTemplate(template);
-      return edited ? { ...called, content: JSON.parse(JSON.stringify(edited)) as MessageSendDraft["content"] } : called;
+      const copyEdited = dispatch.templateEdited && content !== null && content.layout === template.layout;
+      return templateTextState(template, {
+        ...(copyEdited ? { start: content.values, unlocked: true } : {}),
+        embedded: embeddedOfDispatch(dispatch, template),
+      });
     }
-    if (edited) return adhocFromContent(edited);
   }
-  // 書いた文面を持たない回: 件名・題(headings)と、記録の段が vars / full の時だけ載る本文
-  const body = record(dispatch.body);
-  const email = record(body.email);
-  const inApp = record(body.inApp);
-  const emailText = textOf(email, "paragraphs", "body");
-  const content: MessageSendDraft["content"] = {};
-  const subject = dispatch.headings.email ?? textOf(email, "subject");
-  if (subject || emailText) content.email = { subject, paragraphs: splitParagraphs(emailText) };
-  const title = dispatch.headings.inApp ?? textOf(inApp, "title");
-  if (title || textOf(inApp, "body")) content.inApp = { title, body: textOf(inApp, "body") };
-  return { source: "adhoc", template: null, content, vars: {} };
+  if (blankState && content && content.layout === blankState.layout) return { ...blankState, start: content.values };
+  return blankState;
 }
 
-/** 空行で区切った文 → 段落の並び */
-function splitParagraphs(text: string): string[] {
-  return text
-    .split(/\n\s*\n/)
-    .map((paragraph) => paragraph.trim())
-    .filter((paragraph) => paragraph !== "");
-}
-
-/**
- * sameAs でテンプレートを呼び出しの形にできない時の知らせ(テンプレートの回で、そのテンプレートが公開中の選択肢に無い)。
- * 写した文言が書く欄に入らなかった時(メール・お知らせの欄が空)はそれも言う。ほかは null
- */
-export function sameAsNoteOf(mode: MessageSendMode, templates: readonly MessageSendTemplate[], draft: MessageSendDraft): string | null {
-  if (mode.type !== "sameAs" || !mode.dispatch.templateId) return null;
-  if (templates.some((item) => item.id === mode.dispatch.templateId)) return null;
-  const hasText = (value: unknown): boolean =>
-    typeof value === "string" ? value.trim() !== "" : Array.isArray(value) ? value.some(hasText) : value && typeof value === "object" ? Object.values(value).some(hasText) : false;
-  const copied = Object.values(draft.content).some(hasText);
-  return copied
-    ? "元の送信のテンプレートは現在公開されていないため、内容を直接入力の欄にコピーしました"
-    : "元の送信のテンプレートは現在公開されていないため、内容を入力し直してください(コピーできる内容がありませんでした)";
+/** sameAs で回の文面をそのまま写せなかった時の知らせ(ほかは null) */
+export function sameAsNoteOf(
+  mode: MessageSendMode,
+  text: SendTextState | null,
+  templates: readonly MessageSendTemplate[],
+): string | null {
+  if (mode.type !== "sameAs") return null;
+  const { dispatch } = mode;
+  const templateGone = dispatch.templateId !== null && !templates.some((item) => item.id === dispatch.templateId);
+  const copied = text !== null && dispatch.content !== null && dispatch.content.layout === text.layout;
+  if (templateGone) {
+    return copied
+      ? "元の送信のテンプレートは現在公開されていないため、内容を白紙のテンプレートにコピーしました"
+      : "元の送信のテンプレートは現在公開されていないため、内容を入力し直してください(コピーできる内容がありませんでした)";
+  }
+  if (dispatch.templateId === null && !copied) return "元の送信の内容はこの画面の形と違うためコピーできませんでした。内容を入力し直してください";
+  return null;
 }
 
 /** mode から導く初めの宛先(sameAs = 回の宛先の形。グループ宛ての回は同じグループ、選んだ利用者に送った回は同じ利用者を選んだ形) */
@@ -285,6 +211,8 @@ export function overLimitText(estimate: Pick<RecipientEstimate, "count" | "membe
 /** 前の回のグループが今は選べない時の知らせ(全員に広げない、D64) */
 export const TARGET_GROUP_GONE_NOTE = "元の送信のグループは現在選べません(アーカイブされたか、ユーザーグループ機能が無効です)。宛先を選び直してください";
 
+const NO_LAYOUTS: AdminSendLayoutOption[] = [];
+
 export type UseMessageSendModalOptions = {
   mode: MessageSendMode;
   /** 送った後(結果を出した時)に呼ぶ。一括操作なら選択の解除と一覧の取り直し */
@@ -296,15 +224,13 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const isBulk = mode.type === "bulk";
   const [open, setOpenState] = useState(false);
   const [step, setStep] = useState<MessageSendStep>("edit");
-  const [draftState, setDraftState] = useState<MessageSendDraft | null>(null);
-  /** 開いた後・直前の読み込みの後に手で直したか(読み込みの上書きを確かめるのはこの時だけ) */
-  const [handEdited, setHandEdited] = useState(false);
+  const [kindState, setKindState] = useState<string | null>(null);
+  const [chosenCategory, setChosenCategory] = useState<string | null>(null);
+  const [targetState, setTargetState] = useState<MessageSendTarget | null>(null);
+  /** 文面を手で触ったか(書きかけの印と、読み込みの上書きの確かめ) */
+  const [textTouched, setTextTouched] = useState(false);
   /** 上書きを確かめている読み込み(テンプレートの id) */
   const [pendingLoad, setPendingLoad] = useState<string | null>(null);
-  /** 読み込みの知らせ(テンプレートのカテゴリーがこの宛先で使えない時) */
-  const [loadNote, setLoadNote] = useState<string | null>(null);
-  const [targetState, setTargetState] = useState<MessageSendTarget | null>(null);
-  const [chosenCategory, setChosenCategory] = useState<string | null>(null);
   /** 外した経路(null = まだ触っていない = mode から導く。sameAs は元の回が使わなかった経路を外した形) */
   const [channelsOffState, setChannelsOff] = useState<string[] | null>(null);
   const [scheduleMode, setScheduleModeState] = useState<"now" | "at">("now");
@@ -318,37 +244,39 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   // 選択肢: bulk = GET bulk-send(門の外)、それ以外 = GET send/options(門 messagingBroadcast)。開いている間だけ取る
   const sendOptions = useAdminSendOptions(open && !isBulk);
   const bulkOptions = useAdminBulkSendOptions(open && isBulk);
-  const optionsLoaded = isBulk ? bulkOptions.options !== null : sendOptions.options !== null;
+  const options = isBulk ? bulkOptions.options : sendOptions.options;
+  const optionsLoaded = options !== null;
   const optionsError = isBulk ? bulkOptions.error : sendOptions.error;
 
   const templatesOpen = gate.enabled("messagingTemplates");
-  const templates: MessageSendTemplate[] = useMemo(() => {
-    if (!templatesOpen) return [];
-    return (isBulk ? bulkOptions.options?.templates : sendOptions.options?.templates) ?? [];
-  }, [templatesOpen, isBulk, bulkOptions.options, sendOptions.options]);
-  const allCategories: AdminFreeTextCategoryOption[] = useMemo(
-    () => (isBulk ? bulkOptions.options?.categories : sendOptions.options?.categories) ?? [],
-    [isBulk, bulkOptions.options, sendOptions.options],
-  );
-  // 経路の表示名 = 選択肢の経路(受け口の label、送る・一括送信で同じ)。取れる前は constants の控え
+  const allTemplates: MessageSendTemplate[] = useMemo(() => (templatesOpen ? (options?.templates ?? []) : []), [templatesOpen, options]);
+  const allCategories: AdminFreeTextCategoryOption[] = useMemo(() => options?.categories ?? [], [options]);
+  const layouts = options?.layouts ?? NO_LAYOUTS;
+  // 経路の表示名 = 選択肢の経路(受け口の label)。取れる前は constants の控え
   const channelLabels = useMemo(() => {
     const labels: Record<string, string> = { ...MESSAGE_CHANNEL_LABELS };
-    for (const channel of (isBulk ? bulkOptions.options?.channels : sendOptions.options?.channels) ?? []) labels[channel.key] = channel.label;
+    for (const channel of options?.channels ?? []) labels[channel.key] = channel.label;
     return labels;
-  }, [isBulk, bulkOptions.options, sendOptions.options]);
-  // 経路の欄の表示の約束(D83)。送る・一括送信の選択肢の経路から
-  const channelMeta = useMemo(() => {
-    const meta: Record<string, Readonly<Record<string, ChannelFieldMeta>>> = {};
-    for (const channel of (isBulk ? bulkOptions.options?.channels : sendOptions.options?.channels) ?? []) meta[channel.key] = channel.fieldMeta ?? {};
-    return meta;
-  }, [isBulk, bulkOptions.options, sendOptions.options]);
+  }, [options]);
   const maxDays = sendOptions.options?.maxScheduleDays ?? 90;
 
-  const initialDraft = useMemo(() => initialDraftOf(mode, templates), [mode, templates]);
-  const draft = draftState ?? initialDraft;
-  const sameAsNote = useMemo(
-    () => (optionsLoaded ? sameAsNoteOf(mode, templates, initialDraft) : null),
-    [optionsLoaded, mode, templates, initialDraft],
+  // ---- 種別 → カテゴリー ----
+  const kinds = useMemo(
+    () => kindsOf(allCategories).map((key) => ({ key, label: MESSAGE_KIND_LABELS[key as keyof typeof MESSAGE_KIND_LABELS] ?? key })),
+    [allCategories],
+  );
+  const preferredCategory = preferredCategoryOf(mode);
+  const initialKind = allCategories.find((option) => option.key === preferredCategory)?.kind ?? kinds[0]?.key ?? "";
+  const kind = kindState !== null && kinds.some((item) => item.key === kindState) ? kindState : initialKind;
+  const kindCategories = useMemo(() => allCategories.filter((option) => option.kind === kind), [allCategories, kind]);
+  const categoryPick = chosenCategory ?? preferredCategory;
+  const category = kindCategories.some((option) => option.key === categoryPick) ? (categoryPick as string) : (kindCategories[0]?.key ?? "");
+  const categoryOption = kindCategories.find((option) => option.key === category) ?? null;
+
+  // ---- 宛先(種別が許す種類だけ。許さない形は最初の許す種類に読み替える) ----
+  const allowedTargetTypes = useMemo(
+    () => TARGET_TYPES.filter((type) => categoryOption?.targets.includes(type) ?? false),
+    [categoryOption],
   );
   const groups = useMemo(() => sendOptions.options?.groups ?? [], [sendOptions.options]);
   // sameAs のグループが今の選択肢に無い(保管・門が閉)= グループは選ばれていない形にして知らせる(全員に広げない)
@@ -359,120 +287,125 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   }, [mode, sendOptions.options, groups]);
   const targetGroupGone =
     targetState === null && mode.type === "sameAs" && mode.dispatch.targetGroup !== null && initialTarget.type === "group" && initialTarget.groupId === "";
-  const target = targetState ?? initialTarget;
-  const loadedTemplate = useMemo(
-    () => (draft.template ? (templates.find((item) => item.id === draft.template!.id) ?? null) : null),
-    [draft.template, templates],
+  const rawTarget = targetState ?? initialTarget;
+  const target: MessageSendTarget = useMemo(
+    () => (allowedTargetTypes.length === 0 || allowedTargetTypes.includes(rawTarget.type) ? rawTarget : { ...rawTarget, type: allowedTargetTypes[0]! }),
+    [allowedTargetTypes, rawTarget],
   );
 
-  /** 宛先の種類と中身で選べるカテゴリー(D80) */
-  const allowedCategories = useMemo(
-    () =>
-      allCategories.filter(
-        (option) =>
-          option.targets.includes(isBulk ? "bulk" : target.type),
-      ),
-    [allCategories, isBulk, target.type],
-  );
-  const preferredCategory =
-    chosenCategory ??
-    (mode.type === "sameAs" ? mode.dispatch.category : mode.type === "bulk" ? (mode.defaultCategory ?? ADMIN_BULK_SEND_DEFAULT_CATEGORY) : null);
-  const category = allowedCategories.some((option) => option.key === preferredCategory)
-    ? (preferredCategory as string)
-    : (allowedCategories[0]?.key ?? "");
-  const categoryOption = allowedCategories.find((option) => option.key === category) ?? null;
-  /** 選んだカテゴリーの経路(その場で書く時もテンプレートの時も全部。LINE・fork の経路も文面があれば送れる) */
+  // ---- テンプレート(選んだ種別の物) ----
+  const kindOfCategory = useCallback((key: string) => allCategories.find((option) => option.key === key)?.kind ?? null, [allCategories]);
+  const templates = useMemo(() => allTemplates.filter((item) => kindOfCategory(item.category) === kind), [allTemplates, kindOfCategory, kind]);
+  const blank = categoryOption?.systemTemplate ?? blankOfKind(allCategories, kind);
+
+  // ---- 経路 ----
+  /** 選んだカテゴリーの経路 */
   const categoryChannels = useMemo(() => categoryOption?.channels ?? [], [categoryOption]);
-  // sameAs で経路をまだ触っていない = 元の回の経路だけオン(今のカテゴリーの経路の中で。全部外れてしまう時は全部オン)。
-  // カテゴリーを選び直した後は全部オンから(setCategory)
+  // sameAs で経路をまだ触っていない = 元の回の経路だけオン(今のカテゴリーの経路の中で。全部外れてしまう時は全部オン)
   const initialChannelsOff = useMemo(() => {
-    if (mode.type !== "sameAs" || chosenCategory !== null) return [];
+    if (mode.type !== "sameAs" || chosenCategory !== null || kindState !== null) return [];
     const used = mode.dispatch.channels ?? [];
     const off = categoryChannels.filter((key) => !used.includes(key));
     return off.length === categoryChannels.length ? [] : off;
-  }, [mode, chosenCategory, categoryChannels]);
+  }, [mode, chosenCategory, kindState, categoryChannels]);
   const channelsOff = channelsOffState ?? initialChannelsOff;
-  /** 送る経路 = カテゴリーの経路 − 外した経路(既定は全部オン、sameAs は元の回の経路) */
+  /** 送る経路 = カテゴリーの経路 − 外した経路 */
   const sendChannels = useMemo(() => categoryChannels.filter((key) => !channelsOff.includes(key)), [categoryChannels, channelsOff]);
-  const channels: MessageSendChannel[] = useMemo(
-    () =>
-      categoryChannels.map((key) => ({
-        key,
-        label: channelLabels[key] ?? key,
-        on: !channelsOff.includes(key),
-        blank: isBlankChannel(draft, key),
-        fieldMeta: channelMeta[key] ?? {},
-      })),
-    [categoryChannels, channelLabels, channelMeta, channelsOff, draft],
+  const channels = useMemo(
+    () => categoryChannels.map((key) => ({ key, label: channelLabels[key] ?? key, on: !channelsOff.includes(key) })),
+    [categoryChannels, channelLabels, channelsOff],
   );
 
-  // ---- 欄の操作 ----
-  const editDraft = useCallback((next: (current: MessageSendDraft) => MessageSendDraft) => {
-    setDraftState((prev) => next(prev ?? initialDraft));
-    setHandEdited(true);
+  // ---- 文面 ----
+  const initialText = useMemo(
+    () => (optionsLoaded ? initialTextOf(mode, kind, allCategories, allTemplates) : null),
+    [optionsLoaded, mode, kind, allCategories, allTemplates],
+  );
+  const touchText = useCallback(() => {
+    setTextTouched(true);
     setPreview(null);
-  }, [initialDraft]);
-  const setChannelFields = useCallback(
-    (channel: string, fields: Record<string, unknown>) => editDraft((current) => ({ ...current, content: { ...current.content, [channel]: fields } })),
-    [editDraft],
+  }, []);
+  const text = useSendTemplateText({ layouts, initial: initialText, channels: sendChannels, templatesOpen, onChange: touchText });
+  const sameAsNote = useMemo(() => (optionsLoaded ? sameAsNoteOf(mode, initialText, allTemplates) : null), [optionsLoaded, mode, initialText, allTemplates]);
+  /** 埋め込み情報のタグ(共通 + カテゴリーに当たる enrichers + 読み込んだテンプレートの専用) */
+  const embeddedCatalog = useMemo<MessageEmbeddedEntry[]>(
+    () => [
+      ...(categoryOption?.catalog ?? []).map((entry) => ({
+        key: entry.key,
+        alias: entry.alias,
+        source: entry.source,
+        ...(entry.description ? { description: entry.description } : {}),
+      })),
+      ...(text.state?.embeddedDeclarations ?? []).map((item) => ({ key: item.key, alias: item.alias, source: "own" as const, declaration: item })),
+    ],
+    [categoryOption, text.state],
   );
-  const setVar = useCallback(
-    (key: string, value: string) => editDraft((current) => ({ ...current, vars: { ...current.vars, [key]: value } })),
-    [editDraft],
-  );
-  /**
-   * テンプレートを読み込む(D47)。版の欄と画像を全部書く欄に写し、カテゴリーをテンプレートの物に(この宛先で使えなければ今のまま + loadNote)、
-   * 経路はカテゴリーの経路のうちテンプレートに文がある物だけをオン(ほかはオフ、オンにすれば空欄で出る)。読み込んだ後も全部直せる
-   */
-  const applyLoad = useCallback(
-    (templateId: string) => {
-      const template = templates.find((item) => item.id === templateId);
-      setPendingLoad(null);
-      if (!template) return;
-      const next = draftFromTemplate(template);
-      const allowed = allowedCategories.find((option) => option.key === template.category) ?? null;
-      const nextCategory = allowed ?? categoryOption;
-      if (allowed) {
-        setChosenCategory(allowed.key);
-        setLoadNote(null);
-      } else {
-        const label = allCategories.find((option) => option.key === template.category)?.label ?? "(削除されたカテゴリー)";
-        setLoadNote(`テンプレートのカテゴリー「${label}」はこの宛先では選べないため、カテゴリーは変更していません`);
-      }
-      setDraftState(next);
-      setChannelsOff((nextCategory?.channels ?? []).filter((key) => isBlankChannel(next, key)));
-      setHandEdited(false);
+  const textDirty = textTouched || text.form.formState.isDirty;
+  /** ひな形の実際の描き方のプレビュー(経路のタブ、未入力は仮の文、D114。書く段の間だけ) */
+  const layoutPreview = useLayoutPreview({
+    layout: text.layout?.key ?? null,
+    fields: text.layout?.fields ?? null,
+    values: text.values,
+    channels: sendChannels,
+    category: category || null,
+    enabled: open && step === "edit",
+  });
+
+  // ---- 操作 ----
+  const setKind = useCallback(
+    (next: string) => {
+      if (next === kind) return;
+      setKindState(next);
+      setChosenCategory(null);
+      setChannelsOff([]);
       setPreview(null);
+      // テンプレートは種別ごと → 白紙へ(ひな形が同じなら今の文を残す)
+      const nextBlank = blankOfKind(allCategories, next);
+      text.reset(nextBlank ? text.toBlank(nextBlank) : null);
     },
-    [templates, allowedCategories, categoryOption, allCategories],
-  );
-  /** 読み込む。手で直した書きかけがあれば上書きを確かめる(pendingLoad → confirmLoad / cancelLoad) */
-  const loadTemplate = useCallback(
-    (templateId: string) => {
-      if (handEdited) setPendingLoad(templateId);
-      else applyLoad(templateId);
-    },
-    [handEdited, applyLoad],
-  );
-  const confirmLoad = useCallback(() => {
-    if (pendingLoad) applyLoad(pendingLoad);
-  }, [pendingLoad, applyLoad]);
-  const cancelLoad = useCallback(() => setPendingLoad(null), []);
-  /** テンプレートを外す: 今の文はその場で書いた文として残す(変数の値は捨てる) */
-  const unloadTemplate = useCallback(() => {
-    setDraftState({ source: "adhoc", template: null, content: draft.content, vars: {} });
-    setLoadNote(null);
-    setPreview(null);
-  }, [draft.content]);
-  const setTarget = useCallback(
-    (patch: Partial<MessageSendTarget>) => setTargetState((prev) => ({ ...(prev ?? initialTarget), ...patch })),
-    [initialTarget],
+    [kind, allCategories, text],
   );
   const setCategory = useCallback((key: string) => {
     setChosenCategory(key);
     setChannelsOff([]);
     setPreview(null);
   }, []);
+  const setTarget = useCallback(
+    (patch: Partial<MessageSendTarget>) => setTargetState((prev) => ({ ...(prev ?? target), ...patch })),
+    [target],
+  );
+
+  /** テンプレートを読み込む(その版の文は固定から、D119) */
+  const applyLoad = useCallback(
+    (templateId: string) => {
+      setPendingLoad(null);
+      const template = templates.find((item) => item.id === templateId);
+      if (!template) return;
+      text.reset(templateTextState(template));
+      setTextTouched(false);
+      setPreview(null);
+    },
+    [templates, text],
+  );
+  /** 読み込む。手で直した書きかけがあれば上書きを確かめる(pendingLoad → confirmLoad / cancelLoad) */
+  const loadTemplate = useCallback(
+    (templateId: string) => {
+      if (textDirty && text.state?.unlocked) setPendingLoad(templateId);
+      else applyLoad(templateId);
+    },
+    [textDirty, text.state, applyLoad],
+  );
+  const confirmLoad = useCallback(() => {
+    if (pendingLoad) applyLoad(pendingLoad);
+  }, [pendingLoad, applyLoad]);
+  const cancelLoad = useCallback(() => setPendingLoad(null), []);
+  /** 『テンプレートの読み込みを解除』: 種別の白紙へ(ひな形が同じなら今の文を白紙の文として残す、D118) */
+  const unloadTemplate = useCallback(() => {
+    text.reset(blank ? text.toBlank(blank) : null);
+    setTextTouched(true);
+    setPreview(null);
+  }, [text, blank]);
+
   const toggleChannel = useCallback(
     (channel: string, on: boolean) => {
       setChannelsOff((prev) => {
@@ -498,29 +431,23 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     [scheduleMode, maxDays],
   );
 
-  // ---- 入力を組む ----
-  // 送る中身 = 送る経路の欄(その場で書く時もテンプレートの時も同じ形)。空の任意の欄は落とす(テンプレートの保存と同じ contentForInput)。
-  // 送る・プレビュー・テスト送信・見込み・一括送信がこの 1 つを使う
-  // 送る口の入力は テンプレート(白紙 { system } か DB の { id, version })+ ひな形の欄の中身(指令 56)。この画面は S5 まで経路ごとに書くので、
-  // 送る時に汎用のお知らせの欄の中身へ変える(noticeValuesFromChannelContent。直した印はサーバーが版の中身との違いで付ける)
+  // ---- 入力を組む(送る・プレビュー・テスト送信・一括送信がこの 1 つを使う) ----
   const buildContent = useCallback((): AdminSendPreviewInput => {
-    const values = noticeValuesFromChannelContent(contentForInput(draft.content, sendChannels));
-    if (draft.source === "template" && draft.template) {
-      // 直していなければ版の中身をそのまま送る(読み替えで落ちるブロックを落とさない)
-      const untouched =
-        loadedTemplate !== null && JSON.stringify(draft.content) === JSON.stringify(channelDraftOfTemplate(loadedTemplate));
+    const source = text.source;
+    if (!source) throw new Error("この種別には白紙のテンプレートが無いため、テンプレートを読み込んでください");
+    const values = text.values;
+    if (source.type === "template") {
       return {
-        template: { id: draft.template.id, version: draft.template.version },
-        values: untouched ? loadedTemplate.values : values,
-        embedded: templateVarsForInput(loadedTemplate, draft.vars),
+        template: { id: source.id, version: source.version },
+        values,
+        edited: text.edited,
+        embedded: text.embeddedForInput ?? {},
         category,
         channels: sendChannels,
       };
     }
-    // その場で書く連絡 = 選んだカテゴリーの種別の白紙(無い種別はサーバーが 400)
-    const blank = allCategories.find((option) => option.key === category)?.systemTemplate?.key ?? "";
-    return { template: { system: blank }, values, category, channels: sendChannels };
-  }, [draft, loadedTemplate, category, sendChannels, allCategories]);
+    return { template: { system: source.key }, values, category, channels: sendChannels };
+  }, [text, category, sendChannels]);
 
   const buildTarget = useCallback((): AdminSendInput["target"] => {
     if (target.type === "role") return { type: "role", roles: target.roles };
@@ -552,19 +479,16 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
 
   // ---- 誤り ----
   const contentError = useMemo(() => {
-    if (draft.source === "template") {
-      const missing = (loadedTemplate?.embedded ?? []).filter(
-        (declaration) => declaration.required && declaration.default === undefined && !draft.vars[declaration.key]?.trim(),
-      );
-      if (missing.length > 0) return `埋め込み情報「${missing.map((item) => item.alias || item.key).join("・")}」を入力してください`;
-    }
+    if (!text.state) return "この種別には白紙のテンプレートが無いため、テンプレートを読み込んでください";
+    if (!text.layout) return "テンプレートのひな形を読み込めません(ひな形が無くなった可能性があります)";
+    if (text.missingEmbedded.length > 0) return `埋め込み情報「${text.missingEmbedded.map((item) => item.alias || item.key).join("・")}」を入力してください`;
     if (sendChannels.length === 0) return "送信方法を 1 つ以上選んでください";
-    const blank = sendChannels.filter((key) => isBlankChannel(draft, key));
-    if (blank.length > 0) return `${blank.map((key) => channelLabels[key] ?? key).join("・")} の内容が入力されていません(入力するか、送信方法から外してください)`;
     return null;
-  }, [draft, loadedTemplate, sendChannels, channelLabels]);
+  }, [text.state, text.layout, text.missingEmbedded, sendChannels]);
 
   const targetError = useMemo(() => {
+    if (!kind) return "送れる種別がありません";
+    if (!category) return "この種別に使えるカテゴリーがありません";
     if (!isBulk) {
       if (target.type === "role" && target.roles.length === 0) return "ロールを選んでください";
       if (target.type === "group" && target.groupId === "") return "グループを選んでください";
@@ -572,16 +496,22 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     } else if (mode.recordIds.length === 0) {
       return "対象を選んでください";
     }
-    if (!category) return "この宛先に使えるカテゴリーがありません";
     return null;
-  }, [isBulk, target, mode, category]);
+  }, [kind, category, isBulk, target, mode]);
 
   const canSend = optionsLoaded && !contentError && !targetError && !scheduleError;
   const dirty =
-    open && step !== "done" && (draftState !== null || targetState !== null || chosenCategory !== null || (channelsOffState !== null && [...channelsOffState].sort().join() !== [...initialChannelsOff].sort().join()) || scheduledAt !== "");
+    open &&
+    step !== "done" &&
+    (kindState !== null ||
+      targetState !== null ||
+      chosenCategory !== null ||
+      textDirty ||
+      (channelsOffState !== null && [...channelsOffState].sort().join() !== [...initialChannelsOff].sort().join()) ||
+      scheduledAt !== "");
   useUnsavedGuard(dirty);
 
-  // ---- 操作 ----
+  // ---- 送る口 ----
   const revalidateKeys = [ADMIN_DISPATCHES_KEY];
   const previewMutation = useDomainMutation<MessagePreview, AdminSendPreviewInput>(`${ADMIN_SEND_KEY}/modal/preview`, (input) =>
     isBulk ? previewAdminBulkMessage(input) : previewAdminMessage(input),
@@ -602,18 +532,28 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     revalidateKeys,
   );
 
+  /** 直している文の検査(誤りは欄に出し、投げる) */
+  const assertText = useCallback(async () => {
+    if (!(await text.validate())) throw new Error("内容の入力に誤りがあります");
+  }, [text]);
+
   /** プレビュー(投げた誤りは呼び手が出す) */
   const runPreview = useCallback(async () => {
+    await assertText();
     const next = await previewMutation.trigger(buildContent());
     setPreview(next);
     return next;
-  }, [previewMutation, buildContent]);
+  }, [assertText, previewMutation, buildContent]);
 
   /** 自分へのテスト送信(毎回新しい鍵) */
-  const sendTest = useCallback(() => testMutation.trigger({ ...buildContent(), idempotencyKey: newKey() }), [testMutation, buildContent]);
+  const sendTest = useCallback(async () => {
+    await assertText();
+    return testMutation.trigger({ ...buildContent(), idempotencyKey: newKey() });
+  }, [assertText, testMutation, buildContent]);
 
-  /** 確認へ進む: 予約を確かめ直し、見込みを取る(bulk は選んだ記録の数) */
+  /** 確認へ進む: 文と予約を確かめ直し、見込みを取る(bulk は選んだ記録の数) */
   const requestConfirm = useCallback(async () => {
+    await assertText();
     if (!isBulk) {
       const late = scheduleErrorOf(scheduleMode, scheduledAt, maxDays, Date.now());
       setScheduleError(late);
@@ -621,7 +561,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       setEstimate(await estimateMutation.trigger({ target: buildTarget() }));
     }
     setStep("confirm");
-  }, [isBulk, scheduleMode, scheduledAt, maxDays, estimateMutation, buildTarget]);
+  }, [assertText, isBulk, scheduleMode, scheduledAt, maxDays, estimateMutation, buildTarget]);
 
   /** 確認から書く欄へ戻る */
   const backToEdit = useCallback(() => setStep("edit"), []);
@@ -648,14 +588,22 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     return sent;
   }, [isBulk, bulkMutation, buildBulkInput, scheduleMode, scheduledAt, maxDays, sendMutation, buildSendInput, onSent, estimate]);
 
+  /** 『テンプレートを更新』(送るとは別、D120)。投げた誤りは呼び手が出す。unchanged = 版と同じ */
+  const updateTemplate = useCallback(async () => {
+    const updated = await text.updateTemplate();
+    setPreview(null);
+    return updated;
+  }, [text]);
+
+  const { reset: resetText } = text;
   const reset = useCallback(() => {
     setStep("edit");
-    setDraftState(null);
-    setHandEdited(false);
-    setPendingLoad(null);
-    setLoadNote(null);
-    setTargetState(null);
+    setKindState(null);
     setChosenCategory(null);
+    setTargetState(null);
+    resetText(null);
+    setTextTouched(false);
+    setPendingLoad(null);
     setChannelsOff(null);
     setScheduleModeState("now");
     setScheduledAtState("");
@@ -663,7 +611,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     setPreview(null);
     setEstimate(null);
     setResult(null);
-  }, []);
+  }, [resetText]);
 
   /** 開く・閉じる(閉じたら全部を初めに戻す。書きかけの確かめは Modal の confirmOnClose) */
   const setOpen = useCallback(
@@ -675,25 +623,33 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     [reset],
   );
 
+  const loadedTemplate = text.source?.type === "template" ? text.source : null;
+
   return {
     mode,
     open,
     setOpen,
     step,
     optionsLoaded,
-    /** sameAs でテンプレートを呼び出しの形にできなかった時の知らせ(書く段の上に出す) */
-    sameAsNote,
     optionsError,
+    /** sameAs で回の文面をそのまま写せなかった時の知らせ(書く段の上に出す) */
+    sameAsNote,
     /** 書きかけ(閉じる・離れる前に確かめる) */
     dirty,
     /** Modal の confirmOnClose に渡す */
     closeConfirm: { enabled: dirty, message: "入力中の内容は送信されていません。閉じてもよろしいですか？" },
-    /** テンプレートを呼び出せるか(門 messagingTemplates が開で公開中のテンプレートがある) */
-    templatesAvailable: templates.length > 0,
-    templates,
-    loadedTemplate,
-    draft,
+    // 種別・カテゴリー
+    kinds,
+    kind,
+    setKind,
+    /** 選んだ種別のカテゴリー(1 つなら画面に出さない) */
+    categories: kindCategories,
+    category,
+    setCategory,
+    // 宛先
     target,
+    setTarget,
+    allowedTargetTypes,
     roles: sendOptions.options?.roles ?? [],
     /** 選べるグループ(使用中・名前と種類の表示名。門 userGroups が閉なら空 = グループを選ばせない) */
     groups,
@@ -701,15 +657,36 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     groupsEnabled: gate.enabled("userGroups"),
     /** 宛先の知らせ(sameAs の前の回のグループが今は選べない時) */
     targetNote: targetGroupGone ? TARGET_GROUP_GONE_NOTE : null,
-    allowedCategories,
-    category,
+    // テンプレートと文面
+    /** テンプレートを読み込めるか(門 messagingTemplates が開) */
+    templatesAvailable: templatesOpen,
+    templates,
+    /** 種別の白紙(無ければ null) */
+    blank,
+    loadedTemplate,
+    text,
+    layoutPreview,
+    /** 埋め込み情報のタグの一覧(共通 + enrichers + 専用) */
+    embeddedCatalog,
+    loadTemplate,
+    unloadTemplate,
+    /** 上書きを確かめている読み込み(入れ物が確かめの Dialog を出す) */
+    pendingLoad,
+    confirmLoad,
+    cancelLoad,
+    updateTemplate,
+    // 経路・予約
     channels,
     sendChannels,
+    toggleChannel,
     showSchedule: !isBulk,
     scheduleMode,
     scheduledAt,
     scheduleError,
     scheduleNote: `予約は定期処理のタイミングで送信されます(Vercel Hobby では 1 日 1 回のため、指定時刻より遅れることがあります)。${maxDays} 日先まで予約できます。`,
+    setScheduleMode,
+    setScheduledAt,
+    // 誤り・送る
     contentError,
     targetError,
     canSend,
@@ -724,21 +701,6 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     buildContent,
     buildSendInput,
     buildBulkInput,
-    loadTemplate,
-    unloadTemplate,
-    /** 上書きを確かめている読み込み(入れ物が確かめの Dialog を出す) */
-    pendingLoad,
-    confirmLoad,
-    cancelLoad,
-    /** 読み込みの知らせ(カテゴリーをそのままにした理由) */
-    loadNote,
-    setChannelFields,
-    setVar,
-    setTarget,
-    setCategory,
-    toggleChannel,
-    setScheduleMode,
-    setScheduledAt,
     runPreview,
     sendTest,
     requestConfirm,

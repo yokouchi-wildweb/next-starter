@@ -3,7 +3,8 @@
 // グループは使用中のグループを名前と種類の表示名で選ぶ。門 userGroups が開(groupsEnabled)なら 0 件でも選択肢を出し、
 // 空なら「ユーザーグループを作成」へ案内する(操作の途中で選択肢が消えないように)。門が閉の時だけ出さない。
 // グループの id は値としてだけ持ち、画面には出さない(D94)。
-// 一覧の一括(bulk)の時は選んだ記録の数だけを出す(宛先は変えられない)
+// 一覧の一括(bulk)の時は選んだ記録の数だけを出す(宛先は変えられない)。
+// allowedTypes = 選んだ種別が許す宛先の種類(D109 D110。省略 = 全部)。許さない種類は出さない
 
 "use client";
 
@@ -31,6 +32,8 @@ export type SendTargetPickerProps =
       groupsEnabled?: boolean;
       /** 宛先の知らせ(前の回のグループが今は選べない時など) */
       note?: string | null;
+      /** 選べる宛先の種類(種別が許す物。省略 = 全部) */
+      allowedTypes?: readonly SendTargetValue["type"][];
     };
 
 export function SendTargetPicker(props: SendTargetPickerProps) {
@@ -41,14 +44,14 @@ export function SendTargetPicker(props: SendTargetPickerProps) {
       </Para>
     );
   }
-  const { value, onChange, roles, groups = [], groupsEnabled = groups.length > 0, note = null } = props;
+  const { value, onChange, roles, groups = [], groupsEnabled = groups.length > 0, note = null, allowedTypes } = props;
   // グループが無くても、今グループの形なら選択肢を残す(前の回のグループが今は選べない時に選び直せるように)
   const typeOptions = [
     { value: "all", label: "全員" },
     { value: "role", label: "ロール" },
     ...(groupsEnabled || groups.length > 0 || value.type === "group" ? [{ value: "group", label: "グループ" }] : []),
     { value: "users", label: "ユーザーを選ぶ" },
-  ];
+  ].filter((option) => !allowedTypes || allowedTypes.includes(option.value as SendTargetValue["type"]));
   return (
     <Stack space={2} data-slot="send-target-picker">
       <RadioGroupInput
