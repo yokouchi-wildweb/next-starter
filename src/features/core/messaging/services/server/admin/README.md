@@ -15,7 +15,7 @@
 ### 管理の送信の形（freeText.ts・../sendMessage/templateDefinition.ts、D117・D125）
 
 - どの送信も『テンプレートを選んで送る』1 つの流れ: 出どころ `template` = 白紙のシステムテンプレート `{ system: 鍵 }`（その場で書く連絡、受け口 `messaging/templates`）か DB のテンプレート `{ id, version }` + 欄の中身 `values`（ひな形の欄、汎用のお知らせ notice = 件名 + ブロックの並び）+ 直した印 `edited?`（DB のテンプレートだけ）。管理用の連絡の定義は無い
-- **カテゴリーの種別と宛先の組は種別の性質 `adminFreeText`**: announcement = 全員・ロール・グループ・選んだ利用者 / direct = 選んだ利用者・一括 / promotion = 全部。誤りは 400。白紙はカテゴリーと同じ種別の物だけ（400）
+- **カテゴリーの種別と宛先の組は種別の性質 `adminFreeText`**: announcement = 全員・ロール・グループ・選んだ利用者 / direct = 選んだ利用者・グループ・一括（D109）/ promotion = 全部。誤りは 400。白紙はカテゴリーと同じ種別の物だけ（400）
 - 宛名は `{{displayName}}`（enricher、種別 announcement・direct・promotion に当たる）。決まった挨拶・足元の文は無い（要るなら管理者が書く）。見た目は notice の描き方の `.replace` で替えられる
 - 回は `message_key` null + 出どころ（`system_template` か `template_id`・`template_version`・`template_edited`）。前の管理の定義の鍵で送った回（`messaging.adminMessage` など）も当時の鍵・種別・カテゴリーで読める
 - fork のコードからは `messagingService.sendTemplateMessage`（同じ形、../sendMessage/README.md「fork のコードから管理の送信」）
