@@ -11,6 +11,7 @@ import { messageRegistry } from "@/registry/messageRegistry";
 import { userGroupEvaluator } from "@/features/core/userGroup/services/server";
 
 import { messageDomainOpen } from "../domainGate";
+import { drizzleMessageOverrideStore } from "../overrides/store";
 import { drizzleMessageTemplateSource } from "../templates/source";
 import { buildUnsubscribeUrl, isUnsubscribeConfigured } from "../unsubscribe/token";
 
@@ -55,7 +56,7 @@ export const sendMessageDeps: MessageSendDeps = {
     return { actorId: ctx?.actorId ?? null, actorType: ctx?.actorType ?? null };
   },
   unsubscribe: { configured: isUnsubscribeConfigured, url: buildUnsubscribeUrl },
-  // 管理画面の文言(門 messagingOverrides が開の時だけ、定義ごとに 1 回読む)
+  // 保存されたテンプレート(DB のテンプレートで送る時の版の固定)
   templates: drizzleMessageTemplateSource,
   // 種類(fork の override を重ねた後): 定義の category を照らし、種別と経路を引く
   categories,
@@ -63,7 +64,14 @@ export const sendMessageDeps: MessageSendDeps = {
   throttle: drizzleMessageThrottleStore,
   // 内部の事件は登録した購読が聞いている種類だけ書く
   eventTypes: subscribedEventTypes(Object.values(subscribers)),
-  // 管理画面の文言の上書きは今は重ねない(TODO 指令 56: ひな形の欄の鍵へ替えて重ね直す)
+  // 管理画面の文言の上書き(門 messagingOverrides が開の時だけ、定義ごとに 1 回読む。欄の道 = ひな形の欄の鍵、版つき)
+  adminOverrides: {
+    enabled: () => gate.enabled("messagingOverrides"),
+    async load(messageKey) {
+      const rows = await drizzleMessageOverrideStore.listByMessage(messageKey);
+      return rows.map((row) => ({ fieldPath: row.fieldPath, value: row.value, layoutVersion: row.layoutVersion }));
+    },
+  },
 };
 
 const sender = createMessageSender(sendMessageDeps);

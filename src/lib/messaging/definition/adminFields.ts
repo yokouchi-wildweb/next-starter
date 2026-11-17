@@ -1,32 +1,36 @@
 // src/lib/messaging/definition/adminFields.ts
 //
-// 管理画面で直した欄の値(D21・D24・D28)の検査と重ね方。保存する口と送る口が同じ検査を使う(どちらも純粋な関数)。
+// 管理画面で直した欄の値(文言の上書き、D21・D24・D28・D132)の検査と重ね方。保存する口・送る口・プレビューが同じ関数を使う(どれも純粋な関数)。
+// - 欄の道(fieldPath)= ひな形の欄の鍵。組・並び・ブロックの並びの欄は欄ごと丸ごと差し替える(中の 1 つだけは持たない)
+// - 直せる欄 = ひな形の欄のうち種類の経路(上書きの後)で使う物の全部(経路だけの欄は、その経路が種類にある時だけ)。
+//   定義の adminEditableOnly(欄の鍵の並び)があればその中だけ。種別の性質 adminTextOverride が false・required の連絡は無い
+// - 行はひな形の版(layoutVersion)を持ち、読む時に改版の対応(revisions)で今の版の欄へ移す。移せない行(欄が消えた・段の対応が無い・
+//   版の無い古い形の行)は当てない = unusable(行は消さない)
 // 欄の値が通る条件:
-// - その欄が今も直せる欄(adminEditablePaths: 種類の経路の欄の全部、adminEditableOnly があればその中だけ)にある
-// - 欄の zod(経路の欄の束の shape[欄])を通る
-// - コードの値が配列なら同じ長さ(描き方が段落を位置で読むため)
+// - 今の版へ移した欄が直せる欄にある
+// - 欄の宣言の zod(lib の語彙 fieldValueSchema。必須の欄は空にできない)を通る
 // - {{鍵}} は vars(秘密の印 secretVar の鍵を除く)∪ 共通の文脈 ∪ throttle の鍵 ∪ variableKeys(enrichers の provides)だけ
-// 送る口は今この値を重ねない(定義がひな形 + 欄の中身になり『経路.欄』の鍵が当たらないため。TODO(指令 56): ひな形の欄の鍵へ替えて重ね直す)。
 
 import { listVariables } from "@/lib/structuredDocument/shared";
 import type { z } from "zod";
 
-import { UPSTREAM_CHANNEL_FIELDS, type ChannelFieldSchemas } from "./channels";
+import { layoutVersionOf, type MessageLayout } from "../layout/types";
+import { fieldBelongsTo, upgradeLayoutValues } from "../layout/values";
+import { fieldValueSchema, requiredValue } from "../layout/vocabulary";
+import type { ChannelFieldSchemas } from "./channels";
 import { MESSAGE_KIND_TRAITS } from "./kinds";
 import { listSecretVarKeys } from "./secret";
 import type { ResolvedMessageDefinition } from "./types";
 import { COMMON_CONTEXT_KEYS, THROTTLE_CONTEXT_KEYS } from "./validate";
 
-/** 管理画面の欄の値 1 つ(field_path = "<経路>.<欄>") */
-export type AdminFieldValue = { fieldPath: string; value: unknown };
+/** 管理画面の欄の値 1 つ(fieldPath = ひな形の欄の鍵、layoutVersion = 保存した時のひな形の版。null = 版の無い古い形の行) */
+export type AdminFieldValue = { fieldPath: string; value: unknown; layoutVersion: number | null };
 
-export type AdminFieldProblemCode = "not_editable" | "invalid_value" | "length_mismatch" | "unknown_variable";
+export type AdminFieldProblemCode = "not_editable" | "invalid_value" | "unknown_variable" | "unusable";
 
 export type AdminFieldProblem = { code: AdminFieldProblemCode; message: string };
 
 export type AdminFieldCheckOptions = {
-  /** 経路の欄の zod の束(既定 = 上流の 3 経路) */
-  channels?: ChannelFieldSchemas;
   /** vars と共通の文脈の他に {{鍵}} で許す鍵(当たる enrichers の provides) */
   variableKeys?: readonly string[];
 };
@@ -34,23 +38,17 @@ export type AdminFieldCheckOptions = {
 type AnyResolved = ResolvedMessageDefinition<z.AnyZodObject, ChannelFieldSchemas>;
 
 /**
- * 管理画面で直せる欄(`<経路>.<欄>`、D83)。種類の経路(上書きの後)× 経路の欄の全部を経路・欄の順に並べ、
- * 定義の adminEditableOnly があればその中だけに絞る。種別の性質 adminTextOverride が false・required の連絡は空
+ * 管理画面で直せる欄(ひな形の欄の鍵、宣言の順)。ひな形の欄のうち種類の経路で使う物の全部、adminEditableOnly があればその中だけ。
+ * 種別の性質 adminTextOverride が false・required の連絡は空
  */
-export function adminEditablePaths(resolved: AnyResolved, channels: ChannelFieldSchemas = UPSTREAM_CHANNEL_FIELDS): string[] {
+export function adminEditableFields(resolved: AnyResolved, layout: MessageLayout): string[] {
   if (resolved.required) return [];
   if (!MESSAGE_KIND_TRAITS[resolved.kind]?.adminTextOverride) return [];
   const only = resolved.adminEditableOnly ? new Set(resolved.adminEditableOnly.map(String)) : null;
-  const paths: string[] = [];
-  for (const channel of resolved.channels) {
-    const shape = (channels[channel] as { shape?: Record<string, unknown> } | undefined)?.shape;
-    if (!shape || typeof shape !== "object") continue;
-    for (const field of Object.keys(shape)) {
-      const path = `${channel}.${field}`;
-      if (!only || only.has(path)) paths.push(path);
-    }
-  }
-  return paths;
+  const channels = resolved.channels as readonly string[];
+  return Object.entries(layout.fields)
+    .filter(([key, spec]) => channels.some((channel) => fieldBelongsTo(spec, channel)) && (!only || only.has(key)))
+    .map(([key]) => key);
 }
 
 /** 管理画面の値で使ってよい {{鍵}}(秘密の vars は入れない) */
@@ -67,12 +65,27 @@ export function adminFieldAllowedKeys(resolved: AnyResolved, variableKeys: reado
   ];
 }
 
+/** 欄のコードの値(定義の values の欄、fork の override を重ねた後。無ければ undefined) */
+export function adminFieldCodeValue(resolved: AnyResolved, fieldPath: string): unknown {
+  return (resolved.values as Record<string, unknown> | undefined)?.[fieldPath];
+}
+
 /**
- * 欄のコードの値。定義が経路ごとの中身を持たなくなった(ひな形 + 欄の中身、D122)ので今は無い(undefined)。
- * TODO(指令 56): 上書きの鍵を ひな形の欄の鍵へ替え、コードの値 = 定義の values.<欄> に戻す
+ * 保存した行の欄の道を今の版へ移す(改版の対応 revisions を段ごとに当てる)。
+ * @returns 今の版の欄の鍵 / 移せない理由(版の無い古い形の行・段の対応が無い・欄が捨てられた・今の版に無い欄)
  */
-export function adminFieldCodeValue(_resolved: AnyResolved, _fieldPath: string): unknown {
-  return undefined;
+export function moveAdminFieldPath(
+  layout: MessageLayout,
+  fieldPath: string,
+  layoutVersion: number | null,
+): { fieldPath: string } | { unusable: string } {
+  if (layoutVersion === null) return { unusable: `${fieldPath} はひな形の版を持たない古い形の行です(使えません)` };
+  const moved = upgradeLayoutValues(layout, { [fieldPath]: true }, layoutVersion);
+  if ("cannotRender" in moved) return { unusable: moved.cannotRender };
+  const [next] = Object.keys(moved.values);
+  if (!next) return { unusable: `${fieldPath} はひな形「${layout.label}」の今の版(${layoutVersionOf(layout)})で捨てられた欄です` };
+  if (!(next in layout.fields)) return { unusable: `${next} はひな形「${layout.label}」の欄にありません` };
+  return { fieldPath: next };
 }
 
 function collectStrings(value: unknown, out: string[]): string[] {
@@ -83,34 +96,26 @@ function collectStrings(value: unknown, out: string[]): string[] {
 }
 
 /**
- * 欄の値を検査する。
+ * 欄の値を検査する(fieldPath = 今の版の欄の鍵)。
  * @returns 問題(null = 通る)
  */
 export function checkAdminFieldValue(
   resolved: AnyResolved,
+  layout: MessageLayout,
   fieldPath: string,
   value: unknown,
   options: AdminFieldCheckOptions = {},
 ): AdminFieldProblem | null {
-  const channels = options.channels ?? (UPSTREAM_CHANNEL_FIELDS as ChannelFieldSchemas);
   const label = `${resolved.key} ${fieldPath}`;
-  if (!adminEditablePaths(resolved, channels).includes(fieldPath)) {
+  if (!adminEditableFields(resolved, layout).includes(fieldPath)) {
     return { code: "not_editable", message: `${label}: 管理画面で直せる欄ではありません` };
   }
-  const [channel, field] = fieldPath.split(".");
-  const shape = (channels[channel] as { shape?: Record<string, z.ZodTypeAny> } | undefined)?.shape;
-  const schema = shape?.[field];
-  if (!schema) {
-    return { code: "not_editable", message: `${label}: 経路の欄にありません` };
-  }
+  const spec = layout.fields[fieldPath]!;
+  const schema = spec.required ? requiredValue(fieldValueSchema(spec)) : fieldValueSchema(spec);
   const parsed = schema.safeParse(value);
   if (!parsed.success || value === undefined) {
     const detail = parsed.success ? "値がありません" : parsed.error.issues.map((issue) => issue.message).join(" / ");
     return { code: "invalid_value", message: `${label}: 値の形が正しくありません(${detail})` };
-  }
-  const code = adminFieldCodeValue(resolved, fieldPath);
-  if (Array.isArray(code) && (!Array.isArray(value) || value.length !== code.length)) {
-    return { code: "length_mismatch", message: `${label}: 並びの数はコードと同じ ${code.length} にします` };
   }
   const allowed = new Set(adminFieldAllowedKeys(resolved, options.variableKeys));
   const unknown = [...new Set(collectStrings(value, []).flatMap((text) => listVariables(text)))].filter(
@@ -123,4 +128,45 @@ export function checkAdminFieldValue(
     };
   }
   return null;
+}
+
+/** 行 1 つを読んだ結果: 今の版の欄の道と、当てられない理由(null = 当てる) */
+export type AdminFieldReading = { row: AdminFieldValue; fieldPath: string | null; problem: AdminFieldProblem | null };
+
+/** 行 1 つを今の版へ移して検査する(移せない = unusable、検査の誤り = その符号) */
+export function readAdminFieldValue(
+  resolved: AnyResolved,
+  layout: MessageLayout,
+  row: AdminFieldValue,
+  options: AdminFieldCheckOptions = {},
+): AdminFieldReading {
+  const moved = moveAdminFieldPath(layout, row.fieldPath, row.layoutVersion);
+  if ("unusable" in moved) {
+    return { row, fieldPath: null, problem: { code: "unusable", message: `${resolved.key} ${row.fieldPath}: ${moved.unusable}` } };
+  }
+  return { row, fieldPath: moved.fieldPath, problem: checkAdminFieldValue(resolved, layout, moved.fieldPath, row.value, options) };
+}
+
+/**
+ * 管理画面の値を定義の values に欄ごとに重ねる(送る口・プレビュー)。移せない・検査を通らない行は当てずコードの値のまま(rejected で返す)
+ */
+export function applyAdminFieldValues<R extends AnyResolved>(
+  resolved: R,
+  layout: MessageLayout,
+  rows: readonly AdminFieldValue[],
+  options: AdminFieldCheckOptions = {},
+): { resolved: R; applied: string[]; rejected: { fieldPath: string; problem: AdminFieldProblem }[] } {
+  const values: Record<string, unknown> = { ...((resolved.values as Record<string, unknown> | undefined) ?? {}) };
+  const applied: string[] = [];
+  const rejected: { fieldPath: string; problem: AdminFieldProblem }[] = [];
+  for (const row of rows) {
+    const reading = readAdminFieldValue(resolved, layout, row, options);
+    if (reading.problem || !reading.fieldPath) {
+      rejected.push({ fieldPath: row.fieldPath, problem: reading.problem! });
+      continue;
+    }
+    values[reading.fieldPath] = row.value;
+    applied.push(reading.fieldPath);
+  }
+  return { resolved: applied.length > 0 ? ({ ...resolved, values } as R) : resolved, applied, rejected };
 }

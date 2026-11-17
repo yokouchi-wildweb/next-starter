@@ -12,6 +12,7 @@ import type { MessageOverrideRecord, MessageOverrideStore } from "./types";
 const columns = {
   messageKey: MessageOverrideTable.message_key,
   fieldPath: MessageOverrideTable.field_path,
+  layoutVersion: MessageOverrideTable.layout_version,
   value: MessageOverrideTable.value,
   codeValue: MessageOverrideTable.code_value,
   updatedBy: MessageOverrideTable.updated_by,
@@ -28,7 +29,7 @@ export const drizzleMessageOverrideStore: MessageOverrideStore = {
   async listAll() {
     return (await db.select(columns).from(MessageOverrideTable)) as MessageOverrideRecord[];
   },
-  async upsert({ messageKey, fieldPath, value, codeValue, updatedBy }, bind) {
+  async upsert({ messageKey, fieldPath, layoutVersion, value, codeValue, updatedBy }, bind) {
     await db.transaction(async (tx) => {
       const now = new Date();
       const [current] = await tx
@@ -41,10 +42,18 @@ export const drizzleMessageOverrideStore: MessageOverrideStore = {
       const written = bind ? await bind(tx, { rowId, previousValue: current?.value ?? null }) : value;
       await tx
         .insert(MessageOverrideTable)
-        .values({ id: rowId, message_key: messageKey, field_path: fieldPath, value: written, code_value: codeValue ?? null, updated_by: updatedBy })
+        .values({
+          id: rowId,
+          message_key: messageKey,
+          field_path: fieldPath,
+          layout_version: layoutVersion,
+          value: written,
+          code_value: codeValue ?? null,
+          updated_by: updatedBy,
+        })
         .onConflictDoUpdate({
           target: [MessageOverrideTable.message_key, MessageOverrideTable.field_path],
-          set: { value: written, code_value: codeValue ?? null, updated_by: updatedBy, updatedAt: now },
+          set: { value: written, layout_version: layoutVersion, code_value: codeValue ?? null, updated_by: updatedBy, updatedAt: now },
         });
     });
   },

@@ -2,7 +2,7 @@
 
 import type { z } from "zod";
 
-import type { ChannelFieldSchemas, MessageFieldPath, UpstreamChannelFields } from "./channels";
+import type { ChannelFieldSchemas, UpstreamChannelFields } from "./channels";
 
 import type { MessageKind } from "./kinds";
 
@@ -30,7 +30,10 @@ export type MessageThrottle<VarKey extends string = string> = {
   seconds: number;
 };
 
-type VarKeys<Vars extends z.AnyZodObject> = keyof z.infer<Vars> & string;
+/**
+ * vars の鍵。条件型で引く(keyof を直に書くと型引数 Vars が反変と測られ、具体的な定義を MessageDefinition<AnyZodObject> へ渡せなくなる)
+ */
+type VarKeys<Vars extends z.AnyZodObject> = Vars extends z.ZodObject<infer Shape> ? keyof Shape & string : string;
 
 /**
  * ひな形の欄の中身(欄の鍵 → 値、D122)。文字列の中に {{鍵}} を書ける(送る時に vars・共通の文脈・enrichers の値を差し込む)
@@ -62,10 +65,10 @@ export type MessageDefinition<
   /** 止められない連絡(認証など)。enabled:false・email の除外・adminEditableOnly・throttle を付けられない */
   required?: boolean;
   /**
-   * 管理画面で直せる欄の絞り(`<経路>.<欄>`、D83)。無い = 種類の経路の欄を全部直せる(種別の性質 adminTextOverride が true・
-   * required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない
+   * 管理画面で直せる欄の絞り(ひな形の欄の鍵、D132)。無い = ひな形の欄のうち種類の経路で使う物を全部直せる(種別の性質
+   * adminTextOverride が true・required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない
    */
-  adminEditableOnly?: readonly MessageFieldPath<C>[];
+  adminEditableOnly?: readonly string[];
   /** 本文の残し方(既定 = 種別の性質の recordDefault) */
   record?: MessageRecord;
   throttle?: MessageThrottle<VarKeys<Vars>>;
@@ -89,7 +92,8 @@ export type MessageOverride<C extends ChannelFieldSchemas = UpstreamChannelField
   extras?: Record<string, unknown>;
   /** 連絡 1 本の入切(既定 true)。上流の functional の連絡は止められない(D68) */
   enabled?: boolean;
-  adminEditableOnly?: readonly MessageFieldPath<C>[];
+  /** 管理画面で直せる欄の絞り(ひな形の欄の鍵) */
+  adminEditableOnly?: readonly string[];
   record?: MessageRecord;
   throttle?: MessageThrottle | null;
 };

@@ -25,6 +25,7 @@ import type {
   MessageInboxItemInsert,
 } from "../../../entities/model";
 import type { MessageChannelCounts } from "../../../entities/schema";
+import type { MessageAdminOverrideSource } from "./definition";
 
 /** 宛先 1 つ: 利用者(経路ごとに宛先を引く)か、経路の宛先を直に渡す */
 export type MessageRecipient =
@@ -296,6 +297,8 @@ export type MessageSendDeps = {
   categories: Readonly<Record<string, MessageCategory>>;
   /** 会話の間引き(throttle のある連絡)。無ければ間引かない(throttle を見ないテスト) */
   throttle?: MessageThrottleStore;
+  /** 管理画面の文言の上書き(無い = 重ねない。resolveDefinition が門の開閉を見て定義ごとに 1 回読む) */
+  adminOverrides?: MessageAdminOverrideSource;
   /** システムテンプレートの受け口(管理の送信の白紙、D117)。無い = 白紙から送れない(400) */
   systemTemplates?: Readonly<Record<string, MessageSystemTemplate>>;
   /** 保存されたテンプレート(sendTemplateMessage の版の固定)。無ければテンプレートを呼び出して送れない */

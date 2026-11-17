@@ -8,7 +8,6 @@ export {
   type ChannelFieldSchemas,
   type EmailFields,
   type MessageContent,
-  type MessageFieldPath,
   type UpstreamChannelFields,
 } from "./definition/channels";
 export { createDefineMessage, defineMessage } from "./definition/defineMessage";
@@ -57,11 +56,15 @@ export {
   type MessageDefinitionProblemCode,
 } from "./definition/validate";
 export {
-  adminEditablePaths,
+  adminEditableFields,
   adminFieldAllowedKeys,
   adminFieldCodeValue,
+  applyAdminFieldValues,
   checkAdminFieldValue,
+  moveAdminFieldPath,
+  readAdminFieldValue,
   type AdminFieldCheckOptions,
+  type AdminFieldReading,
   type AdminFieldProblem,
   type AdminFieldProblemCode,
   type AdminFieldValue,

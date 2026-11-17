@@ -7,6 +7,8 @@
 // - 保存(PUT)・既定に戻す(DELETE)は欄 1 つずつ。成功したらその欄の下書きを捨て、1 連絡と一覧を取り直す
 // - 下書きが 1 つでもあれば、ページを離れる前に確かめる(@/lib/unsavedGuard)。モーダルを閉じる前の確かめは closeConfirm
 // - 下書きの中の知らない {{鍵}}(使ってよい鍵の外)を欄ごとに返す(保存はサーバーが同じ検査で止める)
+// - 欄の道 = ひな形の欄の鍵(D132)。経路のタブは欄の channels(その欄を使う経路)で絞る。使えない行(経路の無い行)はどのタブにも出す
+// - 欄の入力の約束は欄の宣言から(utils/overrideFieldMeta.ts、S5 まで最小の合わせ。入力できない型は読むだけ)
 // - 2 つの欄の編集(D80): 今の経路のタブ(activeChannel)・入力中の欄(focusedPath)・今の経路の値(下書きを重ねた物)、
 //   描いたプレビュー(POST /preview。下書きが変わってから少し待って取り直す、D86)
 
@@ -25,6 +27,8 @@ import {
   type AdminOverrideField,
   type AdminOverrideMessageDetail,
 } from "../services/client/overrideClient";
+
+import { overrideFieldMeta } from "../utils/overrideFieldMeta";
 
 import { MESSAGE_OVERRIDES_KEY, messageOverrideKey } from "./overrideKeys";
 import { useMessageOverride } from "./useMessageOverride";
@@ -108,21 +112,30 @@ export function useMessageOverrideEditor(messageKey: string) {
 
   const isDirty = useCallback((field: AdminOverrideField) => field.path in drafts, [drafts]);
 
-  /** 今の経路の欄(直せる欄と直せなくなった欄の行) */
-  const activeFields = useMemo(() => (detail?.fields ?? []).filter((field) => field.channel === activeChannel), [detail, activeChannel]);
-  /** 今の経路の欄の表示の約束 */
+  /** 今の経路の欄(その経路が使う欄と、使えない・直せなくなった行) */
+  const activeFields = useMemo(
+    () => (detail?.fields ?? []).filter((field) => field.channels.includes(activeChannel) || field.channels.length === 0),
+    [detail, activeChannel],
+  );
+  /** 今の経路の欄の表示の約束(入力できる欄だけ) */
   const activeFieldMeta = useMemo(
-    () => Object.fromEntries(activeFields.filter((field) => field.editable).map((field) => [field.field, field.meta])),
+    () =>
+      Object.fromEntries(
+        activeFields.flatMap((field) => {
+          const meta = field.editable ? overrideFieldMeta(field.spec) : null;
+          return meta ? [[field.path, meta]] : [];
+        }),
+      ),
     [activeFields],
   );
   /** 今の経路の値(下書き、無ければ送る時の値)。プレビューが読む */
   const activeValues = useMemo(
-    () => Object.fromEntries(activeFields.filter((field) => field.editable).map((field) => [field.field, drafts[field.path] ?? field.effective])),
+    () => Object.fromEntries(activeFields.filter((field) => field.editable).map((field) => [field.path, drafts[field.path] ?? field.effective])),
     [activeFields, drafts],
   );
   const activeDrafts = useMemo(
-    () => Object.fromEntries(Object.entries(drafts).filter(([path]) => path.startsWith(`${activeChannel}.`))),
-    [drafts, activeChannel],
+    () => Object.fromEntries(Object.entries(drafts).filter(([path]) => activeFields.some((field) => field.path === path))),
+    [drafts, activeFields],
   );
   const draftSignature = JSON.stringify(activeDrafts);
   const detailVersion = detail ? JSON.stringify(detail.fields.map((field) => field.updatedAt)) : "";

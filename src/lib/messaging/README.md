@@ -40,7 +40,7 @@ export const message = defineMessage({
 - `vars`: 呼び手が渡す値の zod
   - 秘密の値(トークン入りの URL・ワンタイムコード)は `secretVar(z.string())` で印を付ける。印の鍵を持つ連絡は描いた本文をどこにも残さず(`record: "full"` でも)、vars の写しからその鍵を落とす(送る口が守る)。印は `isSecretVar` / `listSecretVarKeys` で読む。vars は上書きできないので印は外せない
 - `required`: 止められない連絡(認証など)。`enabled: false`・email の除外・`adminEditableOnly`・`throttle` を付けられない
-- `adminEditableOnly`: 管理画面で直せる欄の絞り(`<経路>.<欄>`、D83)。無い = 種類の経路の欄を全部直せる(`adminEditablePaths`: 種別の性質 `adminTextOverride` が true で required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない
+- `adminEditableOnly`: 管理画面で直せる欄の絞り(ひな形の欄の鍵、D132)。無い = ひな形の欄のうち種類の経路で使う物を全部直せる(`adminEditableFields`: 種別の性質 `adminTextOverride` が true で required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない。ひな形に無い鍵は `unknown_admin_editable`
 - `record`: 本文の残し方 `meta` | `vars`(既定)| `full`
 - `throttle`: 会話の間引き `{ by: [vars の鍵], mode: "untilRead" | "window", seconds }`
 - `layout`(必須、D122): ひな形の鍵(`src/features/core/messaging/layouts/<名前>/`。上流は notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。上書きで変えられない
@@ -139,21 +139,23 @@ export const messageOverride = {
 - `kind_admin_editable` / `kind_throttle`: 種別の性質で文言の上書き・間引きが無い種別(functional・security)
 - `unknown_channel`: 種類の経路が経路の受け口に無い
 - `unknown_layout` / `invalid_values`: ひな形が受け口に無い / 欄の中身がひな形の欄の zod(種類の経路で使う欄)を通らない
-- `unknown_admin_editable`: adminEditableOnly が種類の経路の欄に無い
+- `unknown_admin_editable`: adminEditableOnly の鍵がひな形の欄に無い
 - `unknown_variable`: 欄の中身の `{{鍵}}` が vars ∪ 共通の文脈に無い
 - `invalid_throttle`: throttle.by が vars に無い・seconds が正でない
 - `override_forbidden_key`: 上書きが key・kind・vars・required・category・defaultChannels を持つ
 
 ## 管理画面の欄の値(adminFields.ts)
 
-管理画面で直した欄の値(D21・D24・D28)を、保存する口と送る口が同じ純粋な関数で検査する。
+管理画面で直した欄の値(文言の上書き、D21・D24・D28・D132)を、保存する口・送る口・プレビューが同じ純粋な関数で検査し重ねる。欄の道 = ひな形の欄の鍵(組・並び・ブロックの並びは欄ごと丸ごと)。
 
-- `adminEditablePaths(resolved, channels?)` → 直せる欄(`<経路>.<欄>`)。種類の経路 × 経路の欄の全部、`adminEditableOnly` があればその中だけ。種別の性質 `adminTextOverride` が false・required は空
-- 今は『経路.欄』の鍵のまま。定義がひな形 + 欄の中身になったので、送る口は管理画面の値を重ねず、コードの値も無い(TODO 指令 56: 鍵を ひな形の欄の鍵へ替え、重ね方とコードの値を戻す)
-- `checkAdminFieldValue(resolved, fieldPath, value, { channels?, variableKeys? })` → 問題(null = 通る)。`resolved` = 上書きを重ねた後の定義
-  - `not_editable`: 今の直せる欄(`adminEditablePaths`)に無い欄 / `invalid_value`: 欄の zod を通らない / `length_mismatch`: コードの値が配列なのに長さが違う(今はコードの値が無いので出ない) / `unknown_variable`: 使えない `{{鍵}}`
+- `adminEditableFields(resolved, layout)` → 直せる欄(欄の鍵、宣言の順)。ひな形の欄のうち種類の経路で使う物の全部(経路だけの欄はその経路が種類にある時だけ)、`adminEditableOnly`(欄の鍵の並び)があればその中だけ。種別の性質 `adminTextOverride` が false・required は空
+- `checkAdminFieldValue(resolved, layout, fieldPath, value, { variableKeys? })` → 問題(null = 通る)。`resolved` = 上書きを重ねた後の定義
+  - `not_editable`: 今の直せる欄に無い / `invalid_value`: 欄の宣言の zod を通らない(必須は空にできない) / `unknown_variable`: 使えない `{{鍵}}`
+- `moveAdminFieldPath(layout, fieldPath, layoutVersion)` → 今の版の欄の鍵か `{ unusable: 理由 }`(改版の対応 `revisions` を段ごとに当てる。捨てた欄・段の対応が無い・今より新しい版・版の無い古い形の行 = 使えない)
+- `readAdminFieldValue(resolved, layout, row, options)` → 今の版へ移して検査した結果(移せない = `unusable`)
+- `applyAdminFieldValues(resolved, layout, rows, options)` → `{ resolved, applied, rejected }`: 当てられる行だけ `values` に欄ごとに重ねる(送る口の `resolveDefinition` が門の開いた時に呼ぶ)
 - `adminFieldAllowedKeys(resolved, variableKeys)`: 使ってよい鍵 = vars(`secretVar` の鍵を除く)・共通の文脈・throttle の鍵・`variableKeys`(当たる enrichers の provides)
-- `adminFieldCodeValue(resolved, fieldPath)`: 欄のコードの値(今は常に undefined)
+- `adminFieldCodeValue(resolved, fieldPath)`: 欄のコードの値(定義の `values` の欄、fork の override を重ねた後)
 
 ## ひな形(layout/、D122〜D124)
 

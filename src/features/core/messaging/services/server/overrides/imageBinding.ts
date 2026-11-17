@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/overrides/imageBinding.ts
 //
-// 文言の上書きの画像(値の中の storage:// の参照。inApp.image など)を保存の台帳で上書きの行に結ぶ(D83)。
-// 持ち主 = 上書きの行(record messaging.override / <行の id> / <欄 "<経路>.<欄>">)。storage の照合は行の有無で残す・外す。
+// 文言の上書きの画像(値の中の storage:// の参照。画像の欄・ブロックの並びの画像など)を保存の台帳で上書きの行に結ぶ(D83)。
+// 持ち主 = 上書きの行(record messaging.override / <行の id> / <欄の道 = ひな形の欄の鍵>)。storage の照合は行の有無で残す・外す。
 // 結び方(保存の取引の中。テンプレートの templates/imageBinding.ts と同じ):
 // - storage:// の参照でない値(固定の URL など)はそのまま
 // - 既にこの行に結ばれている → そのまま

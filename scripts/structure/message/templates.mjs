@@ -26,7 +26,7 @@ export function definitionTemplate({ path, key, label, category, kind, channels 
     "    summary: z.string(),",
     "  }),",
     "  // 秘密の値(リンクのトークンなど)は secretVar(z.string()) で印を付ける(本文を記録に残さない。@/lib/messaging)",
-    '  // 管理画面で直せる欄の絞り(門 messagingOverrides。無ければ種類の経路の欄を全部直せる): adminEditableOnly: ["email.subject", "inApp.title"],',
+    '  // 管理画面で直せる欄の絞り(ひな形の欄の鍵。門 messagingOverrides。無ければ種類の経路で使う欄を全部直せる): adminEditableOnly: ["subject"],',
     '  // 会話の間引き(同じ受信者 × by の値で続けて送らない): throttle: { by: ["summary"], mode: "untilRead", seconds: 600 },',
     '  // 本文の残し方(既定 "vars"): record: "meta",',
     '  layout: "notice",',

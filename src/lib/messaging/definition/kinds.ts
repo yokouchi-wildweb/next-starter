@@ -45,7 +45,7 @@ export type MessageKindTraits = {
   adminFreeText: readonly MessageAdminTarget[];
   /** 本文の残し方の既定(定義の record が無い時) */
   recordDefault: RecordDefault;
-  /** 管理画面で文言を直せるか(false = 直せる欄が無い。adminEditablePaths が読む) */
+  /** 管理画面で文言を直せるか(false = 直せる欄が無い。adminEditableFields が読む) */
   adminTextOverride: boolean;
   /** 会話の間引き(throttle)を付けられるか */
   throttle: boolean;

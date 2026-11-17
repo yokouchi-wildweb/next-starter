@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/OverrideFieldMarks/index.tsx
-// 部品(props だけ): 文言の欄の印(直した・コードが変わった・孤立 = 送る時はコードの値・直せなくなった)
+// 部品(props だけ): 文言の欄の印(直した・コードが変わった・使えない = 送る時はコードの値・直せなくなった)
 
 "use client";
 
@@ -9,7 +9,7 @@ import { Flex } from "@/components/Layout/Flex";
 import type { AdminOverrideField } from "@/features/core/messaging/services/client/overrideClient";
 
 export type OverrideFieldMarksProps = {
-  field: Pick<AdminOverrideField, "edited" | "codeChanged" | "orphan" | "editable">;
+  field: Pick<AdminOverrideField, "edited" | "codeChanged" | "unusable" | "editable">;
   /** 保存していない下書きがある */
   dirty?: boolean;
 };
@@ -27,9 +27,9 @@ export function OverrideFieldMarks({ field, dirty = false }: OverrideFieldMarksP
           元の文言が更新されました
         </SoftBadge>
       ) : null}
-      {field.orphan ? (
+      {field.unusable ? (
         <SoftBadge variant="destructive" size="sm">
-          使われていない(元の文言で送信)
+          使えない(元の文言で送信)
         </SoftBadge>
       ) : null}
       {!field.editable ? (
