@@ -111,7 +111,7 @@ export type SendTemplateMessageInput = Omit<SendMessageToManyInput, "recipientVa
   edited?: boolean;
   /** 送るカテゴリー(種別は管理者がその場で送れる物。白紙は同じ種別のカテゴリー)。経路はこの種類から */
   category: string;
-  /** 専用の埋め込み情報の値 { 鍵: 値 }(DB のテンプレートだけ。宣言の型で検査、必須。回の embedded_values に残る) */
+  /** 専用の埋め込み情報の値 { 鍵: 値 }(DB のテンプレートと、宣言を持つシステムテンプレート。宣言の型で検査、必須。回の embedded_values に残る) */
   embedded?: Record<string, unknown>;
 };
 

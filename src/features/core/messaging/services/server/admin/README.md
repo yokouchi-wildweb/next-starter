@@ -27,7 +27,7 @@
 - `POST /send/preview`: 経路ごとの差し込み済みの欄と経路の `preview`（メールは送る時と同じ HTML）。見本の受信者 = 操作した管理者、テンプレートは今の公開版
 - `POST /send/estimate` `{ target }` → `{ count, fixedAtSend: true, memberLimit?, overLimit? }`（全員・ロールは数、グループは一員の数と上限、選んだ利用者は居る人の数。停止・宛先なしを引く前）
 - `POST /send/test`: 宛先 = 操作した管理者だけ・`is_test`（集計と分母から外す）。予約しない。システムの操作は 400
-- `GET /send/options`: 有効な経路 `{ key, label }`・ロール・`groups`（使用中のグループ `{ id, label, kindLabel }` を名前の順に 200 件、門 `userGroups` が閉なら空。id は値としてだけ使い画面に出さない）・公開したテンプレート（版の番号・種類・文言・変数）・`categories` `{ key, label, kind, channels, targets, systemTemplate, catalog }`（`systemTemplate` = その種別の白紙 `{ key, label, layout, values }` か null、`catalog` = そのカテゴリーで書ける埋め込み情報 = 共通 + 当たる enrichers）・`layouts`（白紙と並べたテンプレートが使うひな形の欄の宣言 `{ key, label, version, fields }`、門 `messagingTemplates` の外）・`maxScheduleDays`
+- `GET /send/options`: 有効な経路 `{ key, label }`・ロール・`groups`（使用中のグループ `{ id, label, kindLabel }` を名前の順に 200 件、門 `userGroups` が閉なら空。id は値としてだけ使い画面に出さない）・公開したテンプレート（版の番号・種類・文言・変数）・`categories` `{ key, label, kind, channels, defaultChannels, targets, systemTemplate, catalog }`（`defaultChannels` = 送信方法の最初の入（カテゴリーの `defaultChannels`、無ければ `channels`）、`systemTemplate` = その種別の既定の白紙 `{ key, label, layout, values }` か null、`catalog` = そのカテゴリーで書ける埋め込み情報 = 共通 + 当たる enrichers）・`systemTemplates`（送れる種別のシステムテンプレート全部 `{ key, kind, label, layout, values, embedded }`、D119）・`layouts`（白紙・システムテンプレートと並べたテンプレートが使うひな形の欄の宣言 `{ key, label, version, fields }`、門 `messagingTemplates` の外）・`maxScheduleDays`
 - 監査: `messaging.dispatch.sent` / `messaging.dispatch.scheduled` / `messaging.dispatch.test_sent`（対象 `message_dispatch`、出どころ `source` = `system`（`systemTemplate`）か `template`（`templateId`・`templateVersion`・`edited`）、本文の値は残さない）
 
 ### `/api/admin/messaging/bulk-send`（bulkSend.ts、門の外）

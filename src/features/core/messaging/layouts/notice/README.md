@@ -2,7 +2,7 @@
 
 ## Overview
 
-件名とブロックの並び（小見出し・段落・ボタン・画像・区切り・項目と値の表・箇条書き）で書くお知らせのひな形（D122・D123）。管理者がテンプレートで選べる（`adminSelectable: true`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「ひな形」。システムテンプレート 3 本(`announcement`・`direct`・`promotion`)・管理者のテンプレート・wallet の `adjustmentNotice` が使う。
+件名とブロックの並び（小見出し・段落・ボタン・画像・区切り・項目と値の表・箇条書き）で書くお知らせのひな形（D122・D123）。管理者がテンプレートで選べる（`adminSelectable: true`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「ひな形」。リッチな白紙のシステムテンプレート 3 本(`announcementRich`・`directRich`・`promotionRich`)・管理者のテンプレート・wallet の `adjustmentNotice` が使う。短い形は `simple`。
 
 ## Usage
 

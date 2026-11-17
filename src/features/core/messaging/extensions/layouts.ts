@@ -6,6 +6,7 @@ import type { MessageLayoutItem } from "@/lib/messaging";
 import { layout as layouts_alert } from "@/features/core/messaging/layouts/alert/layout";
 import { layout as layouts_link } from "@/features/core/messaging/layouts/link/layout";
 import { layout as layouts_notice } from "@/features/core/messaging/layouts/notice/layout";
+import { layout as layouts_simple } from "@/features/core/messaging/layouts/simple/layout";
 import { layout as layouts_statement } from "@/features/core/messaging/layouts/statement/layout";
 import { layout as layouts_welcome } from "@/features/core/messaging/layouts/welcome/layout";
 
@@ -13,6 +14,7 @@ const layoutsList: MessageLayoutItem[] = [
   { ...layouts_alert, folder: "alert" },
   { ...layouts_link, folder: "link" },
   { ...layouts_notice, folder: "notice" },
+  { ...layouts_simple, folder: "simple" },
   { ...layouts_statement, folder: "statement" },
   { ...layouts_welcome, folder: "welcome" },
 ];

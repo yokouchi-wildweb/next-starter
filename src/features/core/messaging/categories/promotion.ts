@@ -9,4 +9,6 @@ export const category: MessageCategory = {
   description: "新しい機能やキャンペーンなどのお知らせ",
   kind: "promotion",
   channels: ["email", "inApp"],
+  // 送る画面の送信方法は最初お知らせだけ(メールは送る時に入れる、D119)
+  defaultChannels: ["inApp"],
 };

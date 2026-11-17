@@ -10,6 +10,7 @@ import type { ChannelErrorKind } from "../definition/errors";
 import type { MessageChannelRendering } from "../layout/rendering";
 import type { MessageLayout, MessageLayoutSummary, MessageLayoutValues } from "../layout/types";
 import type { MessageKey, MessageKind } from "../definition/types";
+import type { MessageEmbeddedDeclaration } from "../embedded/declaration";
 
 // ---------------------------------------------------------------------------
 // channels: 経路(上流の email・inApp・line も fork の経路も同じ形)
@@ -201,6 +202,11 @@ export type MessageCategory = {
   kind: MessageKind;
   /** 届ける経路(経路の受け口の鍵) */
   channels: readonly string[];
+  /**
+   * 管理の送る画面で最初に入っている経路(channels の中、1 つ以上。無い = channels の全部)。送る時の絞りの初めの値だけで、
+   * 停止の単位・届けられる経路は channels のまま(D119)
+   */
+  defaultChannels?: readonly string[];
   /** 設定画面の見出しのグループ(categoryGroups の鍵。同じ種別の種類だけ、D82) */
   group?: string;
 };
@@ -278,14 +284,16 @@ export type MessageSubscriber = {
 export type MessageSystemTemplate = {
   /** 鍵(回の system_template に残す。英数字の camelCase) */
   key: string;
-  /** 種別(管理者がその場で送れる種別 = 種別の性質 adminFreeText がある物。種別ごとに 1 つ) */
+  /** 種別(管理者がその場で送れる種別 = 種別の性質 adminFreeText がある物。1 つの種別に何本でも、受け口の順の最初がその種別の既定の白紙) */
   kind: MessageKind;
   /** 管理画面に出す名前 */
   label: string;
   /** ひな形の鍵(layouts の受け口) */
   layout: string;
-  /** 白紙の欄の中身(ひな形の欄の zod を通る形。送る時は管理者が書いた中身に替わる) */
+  /** 白紙の欄の中身(ひな形の欄の zod を通る形。送る時は管理者が書いた中身に替わる。できあがった文面も書ける) */
   values: Record<string, unknown>;
+  /** 専用の埋め込み情報の宣言(DB のテンプレートと同じ形。送る人が送る時に値を入れる、例 メンテナンスの開始日時) */
+  embedded?: readonly MessageEmbeddedDeclaration[];
 };
 
 // ---------------------------------------------------------------------------
