@@ -72,8 +72,9 @@ export function LayoutBlocksInput({ id, path, constraint, value, onChange, readO
   const blocks = value.map(asRecord);
   const canAdd = !readOnly && kinds.length > 0 && (constraint.max === undefined || blocks.length < constraint.max);
   const canRemove = !readOnly && blocks.length > (constraint.min ?? 0);
-  // たたんだブロック(並びの位置ごと。動かす・消す・足すと一緒に動かす。画面の中だけの状態)
-  const [collapsed, setCollapsed] = useState<boolean[]>([]);
+  // たたんだブロック(並びの位置ごと。動かす・消す・足すと一緒に動かす。画面の中だけの状態)。
+  // 開いた時にあるブロックは全部たたんだ状態で始める(後から足したブロックは開いて出る)
+  const [collapsed, setCollapsed] = useState<boolean[]>(() => value.map(() => true));
   const isCollapsed = (index: number) => collapsed[index] === true;
   const toggle = (index: number) => setCollapsed((prev) => replaceItem(padTo(prev, blocks.length), index, !prev[index]));
   const move = (index: number, direction: -1 | 1) => {
