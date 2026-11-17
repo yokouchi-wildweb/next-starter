@@ -12,28 +12,33 @@ import { MessageDeliveryTable, MessageEventTable } from "../../../entities/deliv
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageInboxItemTable } from "../../../entities/inbox";
 import type { MessageInboxItemInsert } from "../../../entities/model";
-import { bindInboxImages } from "../inbox/imageBinding";
+import { bindInboxImages, inboxItemImageRefs, withBoundInboxImages } from "../inbox/imageBinding";
 import { storageInboxImageLedger } from "../inbox/imageBindingLedger";
 import { inboxReadSql } from "../inbox/readState";
 import type { MessageThrottleStore, MessageThrottleTx } from "./types";
 
-/** 画像を回に結んだ参照に替える(storage:// でない値はそのまま) */
-async function bindImage(tx: TransactionClient, dispatchId: string, image: string | null | undefined): Promise<string | null> {
-  if (!image) return image ?? null;
+/** 行の画像(image と欄の中身の中の参照)を回に結んだ参照に替える(storage:// でない値はそのまま) */
+async function bindImages<T extends { image?: string | null; values?: Record<string, unknown> | null }>(
+  tx: TransactionClient,
+  dispatchId: string,
+  item: T,
+): Promise<T> {
+  const refs = inboxItemImageRefs(item);
+  if (refs.length === 0) return item;
   const [dispatch] = await tx
     .select({ id: MessageDispatchTable.id, actor_id: MessageDispatchTable.actor_id, metadata: MessageDispatchTable.metadata })
     .from(MessageDispatchTable)
     .where(eq(MessageDispatchTable.id, dispatchId))
     .for("update");
-  if (!dispatch) return image;
+  if (!dispatch) return item;
   const { map, metadata } = await bindInboxImages(
     storageInboxImageLedger,
     tx,
     { ...dispatch, metadata: dispatch.metadata ?? null },
-    [image],
+    refs,
   );
   if (metadata) await tx.update(MessageDispatchTable).set({ metadata }).where(eq(MessageDispatchTable.id, dispatchId));
-  return map.get(image) ?? image;
+  return withBoundInboxImages(item, map);
 }
 
 function throttleTx(tx: TransactionClient): MessageThrottleTx {
@@ -89,12 +94,11 @@ function throttleTx(tx: TransactionClient): MessageThrottleTx {
       return Boolean(row);
     },
     async insertItem(row: MessageInboxItemInsert) {
-      const image = await bindImage(tx, row.dispatch_id, row.image);
-      await tx.insert(I).values({ ...row, image });
+      await tx.insert(I).values(await bindImages(tx, row.dispatch_id, row));
     },
     async replaceItem(id, patch) {
-      const image = patch.dispatch_id ? await bindImage(tx, patch.dispatch_id, patch.image) : patch.image;
-      await tx.update(I).set({ ...patch, image }).where(eq(I.id, id));
+      const bound = patch.dispatch_id ? await bindImages(tx, patch.dispatch_id, patch) : patch;
+      await tx.update(I).set(bound).where(eq(I.id, id));
     },
     async updateDelivery(id, patch, events) {
       await tx.update(D).set(patch).where(eq(D.id, id));

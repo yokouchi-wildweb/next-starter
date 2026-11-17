@@ -14,6 +14,13 @@ export type InboxRow = {
   read: boolean;
 };
 
+/** 詳細の 1 行(要約の列 + ひな形・書いた時の版・欄の中身。前の行・記録の段が meta の行は null) */
+export type InboxDetailRow = InboxRow & {
+  layout: string | null;
+  layoutVersion: number | null;
+  values: Record<string, unknown> | null;
+};
+
 /** 受け取り箱の DB の読み書き(見える行の規則は実装が visibility の規則で守る。テストはメモリの偽物) */
 export type InboxStore = {
   /** 見える行を公開の時刻・id の降順で(before より後ろ、limit 件まで。unreadOnly は静かな行 metadata.silent を除く) */
@@ -24,6 +31,8 @@ export type InboxStore = {
   /** 未読の数(静かな行 metadata.silent は数えない) */
   countUnread: (viewer: InboxViewer) => Promise<number>;
   isVisible: (viewer: InboxViewer, itemId: string) => Promise<boolean>;
+  /** 見える 1 行(詳細。見えなければ null) */
+  findVisible: (viewer: InboxViewer, itemId: string) => Promise<InboxDetailRow | null>;
   /** 個別の既読の行を足す(既にあれば何もしない) */
   addRead: (userId: string, itemId: string) => Promise<void>;
   /** watermark を今に進め、公開の時刻 ≤ 今の自分の既読の行を掃く(1 つの取引) */

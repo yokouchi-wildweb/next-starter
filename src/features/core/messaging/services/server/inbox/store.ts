@@ -61,6 +61,28 @@ export const drizzleInboxStore: InboxStore = {
     return Boolean(row);
   },
 
+  async findVisible(viewer, itemId) {
+    const [row] = await db
+      .select({
+        id: I.id,
+        title: I.title,
+        body: I.body,
+        link: I.link,
+        image: I.image,
+        metadata: I.metadata,
+        publishedAt: I.published_at,
+        read: inboxReadSql(viewer.userId),
+        layout: I.layout,
+        layoutVersion: I.layout_version,
+        values: I.values,
+      })
+      .from(I)
+      .innerJoin(D, eq(D.id, I.dispatch_id))
+      .where(and(eq(I.id, itemId), inboxVisibilitySql(viewer)))
+      .limit(1);
+    return row ? { ...row, read: Boolean(row.read) } : null;
+  },
+
   async addRead(userId, itemId) {
     await db
       .insert(MessageInboxReadTable)

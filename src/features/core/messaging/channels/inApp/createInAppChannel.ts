@@ -9,10 +9,14 @@
 //   台帳の持ち主は回(宛先ごとの行は同じ 1 つのファイルを指す)
 // - 取り下げ(remove): 管理の削除が呼ぶ。回の行を全部消し、画像を台帳から外す(何度呼んでも同じ)
 // - throttle のある連絡の行は、この send ではなく間引きの処理(services/server/sendMessage/throttle.ts)が inAppItemRow の形で書く
+// - 中身(指令 60、D121): 送る口は描かずに MessageLayoutContent(題・ひな形・段・お知らせの経路の欄の中身・要約)を渡す(rendersAtSend)。
+//   行 = 要約の列(title = 題、body = 短い本文 ?? 本文、image、link = 行き先の URL)+ ひな形の鍵・版・欄の中身(詳細がひな形の描き方で描く)。
+//   記録の段が meta・秘密の連絡は呼び手が inboxContentWithoutValues で欄の中身を外す(行の layout・values は null = 要約のカード)
 
-import { type ChannelSendResult, type MessageChannel } from "@/lib/messaging";
+import { isMessageLayoutContent, type ChannelSendResult, type MessageChannel } from "@/lib/messaging";
 
 import type { MessageInboxItemInsert } from "../../entities/model";
+import { inboxItemImageRefs, withBoundInboxImages } from "../../services/server/inbox/imageBinding";
 
 export type InAppChannelDeps = {
   /** 配達の id → 回の id */
@@ -27,25 +31,53 @@ export type InAppChannelDeps = {
   now: () => Date;
 };
 
-type InAppContent = { title?: string; body?: string; image?: string; link?: string };
+/** 送る口が中身に足すひな形の版(services/server/sendMessage/content.ts) */
+type InAppLayoutContent = { layoutVersion?: unknown };
+
+/** 欄の中身を外した中身(記録の段が meta・秘密の連絡の行。要約だけを残す) */
+export function inboxContentWithoutValues(content: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return { ...content, values: null };
+}
+
+const str = (value: unknown): string | null => (typeof value === "string" ? value : null);
 
 /**
  * 描いた中身から受信者ごとのお知らせの行を作る(この経路の send と、間引きの処理が鍵の lock の取引の中で書く行の共通の形)。
- * image は結ぶ前の参照(呼び手が bindImages で結んだ参照に替える)
+ * 中身は MessageLayoutContent(前の形 { title, body, image?, link? } も読む)。image は結ぶ前の参照(呼び手が bindImages で結んだ参照に替える)
  */
 export function inAppItemRow(
   content: Readonly<Record<string, unknown>>,
-  params: { dispatchId: string; userId: string; now: Date },
+  params: { dispatchId: string; userId: string | null; now: Date },
 ): MessageInboxItemInsert {
-  const fields = content as InAppContent;
+  return { ...inboxColumnsOf(content), dispatch_id: params.dispatchId, user_id: params.userId, published_at: params.now };
+}
+
+/** 中身 → 行の要約の列とひな形の列 */
+export function inboxColumnsOf(
+  content: Readonly<Record<string, unknown>>,
+): Pick<MessageInboxItemInsert, "title" | "body" | "link" | "image" | "layout" | "layout_version" | "values"> {
+  if (isMessageLayoutContent(content)) {
+    const { summary } = content;
+    const values = content.values && typeof content.values === "object" ? (content.values as Record<string, unknown>) : null;
+    const version = (content as InAppLayoutContent).layoutVersion;
+    return {
+      title: summary.title,
+      body: summary.shortBody ?? summary.body,
+      link: summary.link?.url ?? null,
+      image: summary.image ?? null,
+      layout: values ? content.layout : null,
+      layout_version: values && typeof version === "number" ? version : null,
+      values,
+    };
+  }
   return {
-    dispatch_id: params.dispatchId,
-    user_id: params.userId,
-    title: typeof fields.title === "string" ? fields.title : null,
-    body: typeof fields.body === "string" ? fields.body : "",
-    link: typeof fields.link === "string" ? fields.link : null,
-    image: typeof fields.image === "string" ? fields.image : null,
-    published_at: params.now,
+    title: str(content.title),
+    body: str(content.body) ?? "",
+    link: str(content.link),
+    image: str(content.image),
+    layout: null,
+    layout_version: null,
+    values: null,
   };
 }
 
@@ -55,7 +87,9 @@ export function createInAppChannel(deps: InAppChannelDeps): MessageChannel {
     label: "お知らせ",
     addressing: "user",
     remove: async ({ dispatchId }) => ({ removed: await deps.removeDispatch(dispatchId) }),
-    // ひな形の描き方(D124): お知らせの行は要約から描く(題・本文・画像・行き先)。ひな形の inApp の描き方は client の一覧(画面が描く)
+    // ひな形の描き方(D124): お知らせの行は要約の列 + ひな形と欄の中身。ひな形の inApp の描き方は client の一覧(画面が詳細で描く)。
+    // 送る時に行を書く(rendersAtSend)ので中身は MessageLayoutContent。要約からの描き方は段の宣言(描けるか)とプレビューに使う
+    rendersAtSend: true,
     summaryRenderable: true,
     renderFromSummary: (summary) => ({
       content: {
@@ -95,18 +129,19 @@ export function createInAppChannel(deps: InAppChannelDeps): MessageChannel {
       if (rows.length > 0) {
         const imagesByDispatch = new Map<string, Set<string>>();
         for (const row of rows) {
-          if (!row.image) continue;
+          const refs = inboxItemImageRefs(row);
+          if (refs.length === 0) continue;
           const set = imagesByDispatch.get(row.dispatch_id) ?? new Set<string>();
-          set.add(row.image);
+          for (const ref of refs) set.add(ref);
           imagesByDispatch.set(row.dispatch_id, set);
         }
-        for (const [dispatchId, refs] of imagesByDispatch) {
-          const bound = await deps.bindImages(dispatchId, [...refs]);
-          for (const row of rows) {
-            if (row.dispatch_id === dispatchId && row.image) row.image = bound.get(row.image) ?? row.image;
-          }
-        }
-        await deps.insertItems(rows);
+        const bound = new Map<string, Map<string, string>>();
+        for (const [dispatchId, refs] of imagesByDispatch) bound.set(dispatchId, await deps.bindImages(dispatchId, [...refs]));
+        const written = rows.map((row) => {
+          const map = bound.get(row.dispatch_id);
+          return map ? withBoundInboxImages(row, map) : row;
+        });
+        await deps.insertItems(written);
       }
       return results;
     },

@@ -19,7 +19,7 @@ import { createHash } from "node:crypto";
 import type { MessageDeliveryInsert, MessageDeliveryReason, MessageDeliveryStatus } from "../../../entities/model";
 import { inAppItemRow } from "../../../channels/inApp/createInAppChannel";
 import { deliveryEvents } from "../events/internalEvents";
-import { buildContent } from "./content";
+import { buildContent, buildRowContent } from "./content";
 import { toVariableMap } from "./context";
 import type { AnyResolvedMessageDefinition } from "./definition";
 import type { DeliveryJob } from "./deliver";
@@ -157,7 +157,7 @@ async function decideRecipient(
     const count = replace ? item.collapsed_count + 1 : 1;
     const values = group[0]!.values;
     // まとめた回数で描き直す(送る口と同じ組み立て)
-    const { content } = await buildContent(deps, resolved, IN_APP, toVariableMap({ ...values, collapsedCount: count }));
+    const { content } = await buildRowContent(deps, resolved, IN_APP, { ...values, collapsedCount: count }, policy);
     const row = { ...inAppItemRow(content, { dispatchId, userId, now }), throttle_key: key, collapsed_count: count };
     if (replace) {
       const earlier = item.collapsed_dispatch_ids ?? [];
@@ -167,6 +167,9 @@ async function decideRecipient(
         body: row.body,
         link: row.link,
         image: row.image,
+        layout: row.layout,
+        layout_version: row.layout_version,
+        values: row.values,
         published_at: now,
         collapsed_count: count,
         collapsed_dispatch_ids: item.dispatch_id === dispatchId || earlier.includes(item.dispatch_id) ? earlier : [...earlier, item.dispatch_id],

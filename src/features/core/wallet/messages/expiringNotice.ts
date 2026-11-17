@@ -4,7 +4,7 @@
 // 送る段(何日前)と経路は wallet の config(expiration[<通貨>].notice.preExpiry[].channels)、文面はここ。
 // 段ごとに文面を変えたいときは override で {{daysBefore}} を使う(段ごとの文面の設定は無い)。
 // 種類 walletExpiring(種別 activity = 利用者が止められる失効の予告、D67。経路は種類から)。二重送信の鍵: wallet-expiring:<通貨>:<日数>:<利用者>:<失効日>
-// ひな形: statement(お知らせの明細、messaging/layouts/statement。お知らせは要約 = 件名と本文)
+// ひな形: statement(お知らせの明細、messaging/layouts/statement。お知らせの一覧は要約 = 件名と短い本文、詳細はひな形の描き方)
 
 import { z } from "zod";
 
@@ -36,5 +36,6 @@ export const message = defineMessage({
     addressee: "{{displayName}} 様",
     body: "{{amount}} が {{expiresOn}} に有効期限を迎えます。\n期限を過ぎた分は失効しますので、お早めにご利用ください。",
     footer: "ご不明な点がございましたら、\nお気軽にお問い合わせください。",
+    shortBody: "{{amount}} が {{expiresOn}} に失効します。",
   },
 });

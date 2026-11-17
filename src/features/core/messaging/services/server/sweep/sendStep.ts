@@ -15,7 +15,7 @@ import { DomainError } from "@/lib/errors";
 
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import type { MessageDeliveryTarget } from "../../../entities/schema";
-import { buildContent } from "../sendMessage/content";
+import { buildContent, buildRowContent } from "../sendMessage/content";
 import { buildRecipientValues, toVariableMap } from "../sendMessage/context";
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
 import { resolvedOfDispatch } from "../sendMessage/dispatchResolved";
@@ -193,7 +193,8 @@ export async function sendClaimed(
         recipientVars: (row.vars ?? undefined) as Record<string, unknown> | undefined,
         user: row.user_id ? (users.get(row.user_id) ?? null) : null,
       });
-      const { content } = await buildContent(deps, resolved, row.channel, toVariableMap(values));
+      // お知らせの行は記録の段の決まりで欄の中身を残す・外す(buildRowContent、指令 60)
+      const { content } = await buildRowContent(deps, resolved, row.channel, values, policy);
       bodies.set(row.id, content);
       prepared.push({
         values,
