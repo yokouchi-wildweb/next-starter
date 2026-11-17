@@ -5,7 +5,8 @@
 // 印(OverrideFieldMarks: 直した・コードが変わった・使えない・直せなくなった・未保存)・使えない理由・知らない {{鍵}}・
 // コードの値(元の文言。同じ入力の部品で読むだけに描く。直した欄は開いておき、直していない欄は開け閉め)・保存の誤り(error)・元の文言に戻す。
 // 保存はモーダルの下の帯の 1 回だけ(D132)。欄の操作は「元の文言に戻す」だけ: 保存してある欄は確かめて戻す印(onReset、保存で消える。印 resetPending)、
-// 下書きだけの欄は下書きを捨てる。直せなくなった欄も元の文言に戻すだけ。ひな形に無い欄の行(宣言が無い)は保存した値を文字で見せる
+// 下書きだけの欄は下書きを捨てる。直せなくなった欄も元の文言に戻すだけ。ひな形に無い欄の行(宣言が無い)は保存した値を文字で見せる。
+// 見せる値の {{鍵}} → {{別名}}(D133)は呼び手が直した値で渡す(value・codeValue・unknownKeys)
 
 "use client";
 
@@ -68,6 +69,8 @@ export type OverrideFieldEditorProps = {
    * 呼び手が連絡の経路の全部と field.channels を比べて決める
    */
   commonToAll?: boolean;
+  /** 元の文言として見せる値(呼び手が {{鍵}} を別名にした物)。省略 = field.codeValue */
+  codeValue?: OverrideFieldValue;
 };
 
 export function OverrideFieldEditor({
@@ -81,6 +84,7 @@ export function OverrideFieldEditor({
   error = null,
   onFocusField,
   commonToAll,
+  codeValue,
 }: OverrideFieldEditorProps) {
   const id = `override-${field.path.replace(/[^a-zA-Z0-9]/g, "-")}`;
   // 欄の宣言は型の和(MessageFieldShape)に見出しなどを足した物。経路の印を除いた型なので入力の形として読む
@@ -155,7 +159,7 @@ export function OverrideFieldEditor({
           </Flex>
           {showCode ? (
             <Stack space={1} className="rounded bg-muted/40 p-2">
-              <LayoutFieldInput id={`${id}-code`} path={field.path} shape={shape} value={field.codeValue ?? ""} onChange={NOOP} readOnly />
+              <LayoutFieldInput id={`${id}-code`} path={field.path} shape={shape} value={(codeValue === undefined ? field.codeValue : codeValue) ?? ""} onChange={NOOP} readOnly />
             </Stack>
           ) : null}
         </Stack>

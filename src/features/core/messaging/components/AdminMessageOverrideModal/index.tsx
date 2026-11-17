@@ -4,7 +4,9 @@
 // 使えない行の数 + 2 つのペイン(テンプレート・送るモーダルと同じ形):
 // 左 = 今の経路のプレビュー(上書きと下書きを重ねたひな形の描き方。部品 LayoutPreview: 経路のタブはここだけ、メールは描いた HTML で
 // 入力中の欄を枠で示す、お知らせはひな形のお知らせの描き方)、右 = 名前・種別とカテゴリー(読むだけ)・欄ごとの編集。
-// 埋め込み情報は下の帯の左の吹き出し(EmbeddedInfoPopover)。高さは固定
+// 埋め込み情報は下の帯の左の吹き出し(EmbeddedInfoPopover)。高さは固定。
+// 変数の名前は別名で見せる(D133: 入力・元の文言・使えない名前・プレビューの {{鍵}} → {{別名}}、hook が変える)。
+// 下の帯の左に「すべてデフォルトに戻す」(D136: 確かめて、保存してある欄の全部に戻す印・下書きを捨てる。保存で当たる)
 // 保存は 1 回(D132、テンプレートのモーダルと同じ): 下の帯の右の「保存」が直した欄の全部をまとめて保存する(確かめ・保存の間 loading、
 // 1 つの取引、通らない欄は欄に理由)。欄ごとの操作は「元の文言に戻す」だけ(保存で当たる。部品 OverrideFieldEditor、入力はひな形の欄の型から LayoutFieldInput)。
 // 流れは hook useMessageOverrideEditor。部品は公開の部品だけなので、fork は自分の画面にも同じモーダルを置ける。
@@ -61,7 +63,20 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
       footer={
         detail ? (
           <Flex align="center" justify="between" gap="sm" wrap="wrap">
-            <EmbeddedInfoPopover common={editor.embeddedTags.common} own={editor.embeddedTags.own} onCopy={editor.embeddedTags.copy} />
+            <Flex align="center" gap="sm" wrap="wrap" className="min-w-0">
+              <EmbeddedInfoPopover common={editor.embeddedTags.common} own={editor.embeddedTags.own} onCopy={editor.embeddedTags.copy} />
+              <ConfirmPopover
+                trigger={
+                  <Button type="button" size="sm" variant="outline" disabled={!editor.canResetAll || editor.isSaving} data-slot="override-reset-all">
+                    すべてデフォルトに戻す
+                  </Button>
+                }
+                title="すべてデフォルトに戻す"
+                description="編集したすべての項目を元の文言に戻す印を付け、未保存の編集を破棄します。「保存」で確定します。"
+                confirmLabel="戻す"
+                onConfirm={editor.resetAll}
+              />
+            </Flex>
             <Flex align="center" gap="sm">
               {editor.hasDrafts ? (
                 <Span size="sm" tone="muted" data-slot="override-pending-count">
@@ -132,7 +147,8 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
                 {editor.activeFields.map((field) => (
                   <OverrideFieldEditor
                     key={field.path}
-                    field={field}
+                    // 宣言の無い行が文字で見せる保存した値も別名で
+                    field={{ ...field, value: editor.embeddedTags.toAliases(field.value) }}
                     value={editor.valueOf(field)}
                     onChange={(value) => editor.setDraft(field, value)}
                     dirty={editor.isDirty(field)}
@@ -142,6 +158,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
                     error={editor.fieldErrors[field.path] ?? null}
                     onFocusField={editor.setFocusedPath}
                     commonToAll={editor.channels.every((channel) => field.channels.includes(channel.key))}
+                    codeValue={editor.codeValueOf(field)}
                   />
                 ))}
               </Stack>
