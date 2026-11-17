@@ -112,7 +112,9 @@ const BEFORE_TITLE_HEADER = `<h1 class="tracking-tight text-2xl font-normal text
  */
 const withoutLegacyMarks = (html: string) =>
   html.replace(/ id="(?:header|footer|main)"/g, "").replace(/ data-component="Main"/g, "").replace(/ data-admin-main-wrapper="true"/g, "");
-const PROTECTED = withoutLegacyMarks(BEFORE_PROTECTED);
+/** SP のドロワーの殻(閉じた形)。Overlays/Sheet になって閉じている間は描かない(legate 指令 17)。開いた形は Sidebar/SpSidebar.render.test.tsx */
+const SP_DRAWER_CLOSED = `<div data-slot="admin-sidebar" style="width:192px" class="fixed inset-y-0 right-0 navigation-layer transition-transform md:hidden translate-x-full"><x-basesidebar data-nav=""></x-basesidebar></div>`;
+const PROTECTED = withoutLegacyMarks(BEFORE_PROTECTED).replace(SP_DRAWER_CLOSED, "");
 /**
  * 余白の段の区切り(余白の議会 N3)で変わった管理のページの Main の余白の class(同じ px、並びも不変):
  * padding="lg" → { base: "md", sm: "lg" }、paddingBlock="xl" → { base: "lg", sm: "2xl" }
@@ -169,13 +171,14 @@ test("className は外枠に足される(slot 化の前と同じ)", () => {
 
 test("props なしの AdminProtectedLayout は slot 化の前と同じ DOM を描く", () => {
   assert.notEqual(PROTECTED, BEFORE_PROTECTED);
+  assert.ok(BEFORE_PROTECTED.includes(SP_DRAWER_CLOSED));
   assert.equal(render(<AdminProtectedLayout>CHILD</AdminProtectedLayout>), PROTECTED);
 });
 
-test("sidebar slot に要素を渡すと PC の列と SP のドロワーの両方の殻の中に既定の代わりに描く", () => {
+test("sidebar slot に要素を渡すと PC の列の殻の中に既定の代わりに描く(SP のドロワーは開いた時: SpSidebar.render.test.tsx)", () => {
   assert.equal(
     render(<AdminProtectedLayout sidebar={<nav id="s" />}>CHILD</AdminProtectedLayout>),
-    PROTECTED.replace('<x-basesidebar data-nav=""></x-basesidebar>', '<nav id="s"></nav>').replace("<x-basesidebar></x-basesidebar>", '<nav id="s"></nav>'),
+    PROTECTED.replace("<x-basesidebar></x-basesidebar>", '<nav id="s"></nav>'),
   );
 });
 
@@ -188,13 +191,12 @@ test("sidebar = null はサイドバーの殻・リサイズのつまみ・SP �
   }
 });
 
-test("sidebar の中身は useAdminSidebarFrame() で殻の placement / width を読める", () => {
+test("sidebar の中身は useAdminSidebarFrame() で殻の placement / width を読める(SP の殻は SpSidebar.render.test.tsx)", () => {
   const Probe = () => {
     const frame = useAdminSidebarFrame();
     return createElement("x-probe", { "data-placement": frame.placement, "data-width": String(frame.width) });
   };
   const html = render(<AdminProtectedLayout sidebar={<Probe />}>CHILD</AdminProtectedLayout>);
-  assert.ok(html.includes('<x-probe data-placement="sp" data-width="192"></x-probe>'));
   assert.ok(html.includes('<x-probe data-placement="pc" data-width="192"></x-probe>'));
   assert.throws(() => render(<Probe />), /サイドバーの殻/);
 });

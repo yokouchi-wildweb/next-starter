@@ -1,8 +1,10 @@
 // src/app/admin/(protected)/_layout/Sidebar/SpSidebar.tsx
 
-import { Fragment, type ReactNode } from "react";
+"use client";
 
-import { cn } from "@/lib/cn";
+import { type ReactNode } from "react";
+
+import { Sheet } from "@/components/Overlays/Sheet";
 import { AdminSidebarFrameProvider } from "@/app/admin/_layout/Sidebar/AdminSidebarFrame";
 
 import { BaseSidebar } from "./BaseSidebar";
@@ -17,28 +19,35 @@ type SpSidebarProps = {
 
 const noop = () => {};
 
+/** SP のサイドバー: 右から出る板(Sheet)。印 admin-sidebar は板と背景の 2 つ(frame.css が隠す部位) */
 export function SpSidebar({ width, isOpen, onClose, content }: SpSidebarProps) {
   return (
-    <Fragment>
-      <div
-        data-slot="admin-sidebar"
-        style={{ width }}
-        className={cn(
-          "fixed inset-y-0 right-0 navigation-layer transition-transform md:hidden",
-          isOpen ? "translate-x-0" : "translate-x-full",
+    <Sheet
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose?.();
+      }}
+      side="right"
+      size={width}
+      title="メニュー"
+      titleSrOnly
+      showCloseButton={false}
+      // 子メニューは板の左へはみ出して開く(submenuPlacement left)ので、板の本体で切らない(スクロールは BaseSidebar が持つ)
+      scrollable={false}
+      layer="navigation"
+      overlayLayer="backdrop"
+      className="md:hidden border-l-0"
+      overlayClassName="md:hidden"
+      slot="admin-sidebar"
+      overlaySlot="admin-sidebar"
+    >
+      <AdminSidebarFrameProvider value={{ placement: "sp", width, close: onClose ?? noop }}>
+        {content === undefined ? (
+          <BaseSidebar width={width} onNavigate={onClose} submenuPlacement="left" submenuVariant="compact" />
+        ) : (
+          content
         )}
-      >
-        <AdminSidebarFrameProvider value={{ placement: "sp", width, close: onClose ?? noop }}>
-          {content === undefined ? (
-            <BaseSidebar width={width} onNavigate={onClose} submenuPlacement="left" submenuVariant="compact" />
-          ) : (
-            content
-          )}
-        </AdminSidebarFrameProvider>
-      </div>
-      {isOpen ? (
-        <div data-slot="admin-sidebar" className="fixed inset-0 backdrop-layer bg-overlay/50 md:hidden" onClick={onClose} />
-      ) : null}
-    </Fragment>
+      </AdminSidebarFrameProvider>
+    </Sheet>
   );
 }

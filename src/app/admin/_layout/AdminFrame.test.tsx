@@ -95,16 +95,18 @@ test("README の data-slot の一覧 = 管理の枠の部品の要素の data-sl
   for (const { slot } of parts.hideableParts("admin")) assert.ok(found.has(slot), `隠せる部位 ${slot} の要素が無い`);
 });
 
-test("サイドバーの data-slot は PC の列・SP のドロワーと背景・リサイズのつまみ・SP の開閉ボタンの包みに付く(Button の data-slot は上書きしない)", () => {
+test("サイドバーの data-slot は PC の列・SP のドロワーと背景(Sheet の slot / overlaySlot)・リサイズのつまみ・SP の開閉ボタンの包みに付く(Button の data-slot は上書きしない)", () => {
   const count = (file: string) => read(file).split('data-slot="admin-sidebar"').length - 1;
   for (const [file, n] of [
     ["src/app/admin/(protected)/_layout/Sidebar/PcSidebar.tsx", 1],
-    ["src/app/admin/(protected)/_layout/Sidebar/SpSidebar.tsx", 2],
     ["src/app/admin/(protected)/_layout/ResizableArea.tsx", 1],
     ["src/app/admin/(protected)/_layout/AdminProtectedLayout.tsx", 1],
   ] as const) {
     assert.equal(count(file), n, `${file} の admin-sidebar`);
   }
+  // SP のドロワーは Overlays/Sheet: 板と背景の印を型つきの値 slot / overlaySlot で渡す(2 つ)
+  const sp = read("src/app/admin/(protected)/_layout/Sidebar/SpSidebar.tsx");
+  assert.ok(sp.includes('slot="admin-sidebar"') && sp.includes('overlaySlot="admin-sidebar"'), "SpSidebar の板と背景の admin-sidebar");
   // shadcn の部品の data-slot は上書きしない: 開閉ボタンは display: contents の包みが印を持ち、Button 自身は data-slot を持たない
   for (const file of ["src/app/admin/(protected)/_layout/AdminProtectedLayout.tsx"]) {
     const toggle = /<div data-slot="admin-sidebar" className="contents">\s*<Button\s([^>]*)>[\s\S]*?<\/Button>\s*<\/div>/.exec(read(file));
