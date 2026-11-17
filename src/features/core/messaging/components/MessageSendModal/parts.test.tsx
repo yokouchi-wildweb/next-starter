@@ -1,13 +1,13 @@
-// @ts-nocheck
-// D112: restore before ship (指令 58 でテンプレートの形が変わった。出荷の前に新しい形へ書き直して回す)
 // 送るモーダルの部品(props だけ)の検査。jsdom の上で描く(押す操作のある部品)・文字で見る。
-// - SendTemplatePicker: 「テンプレートから読み込む」の小窓で選ぶ / 読み込み中は名前・版・別の読み込み・「テンプレートの読み込みを解除」
-// - SendContentFields: その場で書く時もテンプレートの時も経路の欄の部品・未入力の印・変数の欄(テンプレートの時だけ)
-// - SendTargetPicker: bulk は選んだ記録の数だけ / select は種類の選び、グループは名前(種類)で選び id は出さない、グループが無ければ選択肢に出さない
-// - SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・未入力の印
+// - SendTemplatePicker: 「テンプレートを読み込む」の小窓で選ぶ(システムは印、公開中は版)/ 読み込んだ後は名前・版・直した印・別の読み込み・
+//   「テンプレートの読み込みを解除」/ 白紙が無い種別は読み込みを促す
+// - SendEmbeddedInputs: 読み込んだテンプレートの専用の埋め込み情報の入力(別名・必須の印・{{別名}}・型ごとの入力・既定値は仮の文・未入力の印・値の受け渡し)
+// - SendTargetPicker: bulk は選んだ記録の数だけ / select は種類の選び、グループは名前(種類)で選び id は出さない、
+//   グループが無く門 userGroups も閉なら選択肢に出さない(門が開なら 0 件でも出す)
+// - SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・未入力の印(オンの経路だけ)
 // - SendSchedule: 予約の時だけ時刻・注記・誤り
 // - SendLegalNotice: 法の義務の告知の注意(D83)をいつも出し、メールがオフなら警告の色
-// - SendConfirmView / SendResultView: 見込み・一括の数・予約・版 / 状態・後処理・回へのリンク
+// - SendConfirmView / SendResultView: 見込み・上限超え・一括の数・予約・版 / 状態・後処理・回へのリンク(一覧の上の詳細 ?dispatch=<id>)
 // 実行: pnpm test src/features/core/messaging/components/MessageSendModal/parts.test.tsx
 import { after, before, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -23,38 +23,61 @@ g.Node = dom.window.Node;
 g.MouseEvent = dom.window.MouseEvent;
 g.IS_REACT_ACT_ENVIRONMENT = true;
 
-// 入力の部品は Radix を jsdom で動かさない偽物(値と押すだけ)
+// 入力の部品は Radix を jsdom で動かさない偽物(値と押すだけ)。受けた props は id / aria-label ごとに控える
 const selects: { label?: string; onChange: (v: string) => void }[] = [];
+const inputs = new Map<string, Record<string, unknown>>();
+const keep = (props: Record<string, unknown>) => {
+  const name = (props.id ?? props["aria-label"]) as string | undefined;
+  if (name) inputs.set(name, props);
+};
 mock.module("@/components/Form/Input/Manual", {
   namedExports: {
     SelectInput: (props: { "aria-label"?: string; id?: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) => {
+      keep(props);
       selects.push({ label: props["aria-label"] ?? props.id, onChange: props.onChange });
       return createElement("span", { "data-select": props["aria-label"] ?? props.id }, props.options.map((o) => o.label).join("|"));
     },
-    SwitchInput: (props: { label: string; value: boolean; onChange: (v: boolean) => void }) =>
-      createElement("button", { type: "button", "data-switch": props.label, onClick: () => props.onChange(!props.value) }, `${props.label}:${props.value ? "on" : "off"}`),
     RadioGroupInput: (props: { value: string; options?: { value: string; label: string }[] }) =>
       createElement("span", { "data-radio": props.value, "data-options": (props.options ?? []).map((o) => o.value).join("|") }),
     MultiSelectInput: () => createElement("span", { "data-multi": "1" }),
-    DatetimeInput: () => createElement("input", { "data-datetime": "1" }),
-    Input: (props: Record<string, unknown>) => createElement("input", { id: props.id as string, defaultValue: props.value as string }),
-    Textarea: (props: Record<string, unknown>) => createElement("textarea", { id: props.id as string, defaultValue: props.value as string }),
+    DatetimeInput: (props: Record<string, unknown>) => {
+      keep(props);
+      return createElement("input", { "data-datetime": "1", id: props.id as string | undefined });
+    },
+    DateInput: (props: Record<string, unknown>) => {
+      keep(props);
+      return createElement("input", { "data-date": "1", id: props.id as string | undefined });
+    },
+    Input: (props: Record<string, unknown>) => {
+      keep(props);
+      return createElement("input", { id: props.id as string, type: props.type as string, defaultValue: props.value as string, placeholder: props.placeholder as string });
+    },
   },
 });
 // next/link は jsdom で動かない(requestIdleCallback)ので、ボタンの部品も偽物
 mock.module("@/components/Form/Button", {
   namedExports: {
-    Button: (props: { children?: unknown; disabled?: boolean; onClick?: () => void }) =>
-      createElement("button", { type: "button", disabled: props.disabled, onClick: props.onClick }, props.children as never),
+    Button: (props: { children?: unknown; disabled?: boolean; onClick?: () => void; "aria-pressed"?: boolean }) =>
+      createElement(
+        "button",
+        { type: "button", disabled: props.disabled, onClick: props.onClick, "aria-pressed": props["aria-pressed"] },
+        props.children as never,
+      ),
     LinkButton: (props: { href: string; children?: unknown }) => createElement("a", { href: props.href }, props.children as never),
   },
 });
 // テンプレートを選ぶ小窓は偽物: 引き金と、選択肢ごとに「読む:<名前>」のボタン(押すと onConfirm)
-let popoverProps: Record<string, unknown> | null = null;
+type FakePopoverProps = {
+  trigger: unknown;
+  options: { value: string; label: string; description?: string }[];
+  confirmLabel?: string;
+  onConfirm: (v: string) => void;
+};
+let popoverProps: FakePopoverProps | null = null;
 mock.module("@/components/Overlays/Popover", {
   namedExports: {
-    SelectPopover: (props: { trigger: unknown; options: { value: string; label: string }[]; onConfirm: (v: string) => void }) => {
-      popoverProps = props as never;
+    SelectPopover: (props: FakePopoverProps) => {
+      popoverProps = props;
       return createElement(
         "div",
         null,
@@ -67,15 +90,12 @@ mock.module("@/components/Overlays/Popover", {
 mock.module("@/features/core/user/components/common/UserAsyncMultiSelect", {
   namedExports: { UserAsyncMultiSelect: () => createElement("span", { "data-users": "1" }) },
 });
-mock.module("@/features/core/messaging/components/common/TemplateChannelFields", {
-  namedExports: { TemplateChannelFields: (props: { channel: string }) => createElement("div", { "data-template-fields": props.channel }) },
-});
 
 let act: typeof import("react").act;
 let createRoot: typeof import("react-dom/client").createRoot;
 let parts: {
   SendTemplatePicker: typeof import("../common/SendTemplatePicker").SendTemplatePicker;
-  SendContentFields: typeof import("../common/SendContentFields").SendContentFields;
+  SendEmbeddedInputs: typeof import("../common/SendTemplatePicker").SendEmbeddedInputs;
   SendTargetPicker: typeof import("../common/SendTargetPicker").SendTargetPicker;
   SendCategoryChannels: typeof import("../common/SendCategoryChannels").SendCategoryChannels;
   SendSchedule: typeof import("../common/SendSchedule").SendSchedule;
@@ -88,7 +108,6 @@ before(async () => {
   ({ createRoot } = await import("react-dom/client"));
   parts = {
     ...(await import("../common/SendTemplatePicker")),
-    ...(await import("../common/SendContentFields")),
     ...(await import("../common/SendTargetPicker")),
     ...(await import("../common/SendCategoryChannels")),
     ...(await import("../common/SendSchedule")),
@@ -108,81 +127,96 @@ const render = async (element: ReturnType<typeof createElement>) => {
 const button = (container: HTMLElement, text: string) =>
   [...container.querySelectorAll("button")].find((b) => (b.textContent ?? "").includes(text)) as HTMLButtonElement | undefined;
 
-test.skip("SendTemplatePicker: 「テンプレートから読み込む」の小窓で選ぶ / 読み込み中は名前と版・別の読み込み・外す", async () => {
+test("SendTemplatePicker: 「テンプレートを読み込む」の小窓で選ぶ / 読み込んだ後は名前と版・別の読み込み・解除", async () => {
   const loaded: string[] = [];
   let unloaded = 0;
+  const templates = [
+    { id: "system:rich", name: "リッチ", currentVersion: 0, system: true },
+    { id: "t1", name: "春", currentVersion: 2, system: false },
+  ];
   const view = await render(
     createElement(parts.SendTemplatePicker, {
-      templates: [{ id: "t1", name: "春", currentVersion: 2 }],
+      templates,
+      blank: { label: "シンプル" },
       loaded: null,
-      onLoad: (id: string) => loaded.push(id),
-      onUnload: () => (unloaded += 1),
+      onLoad: (id: string) => void loaded.push(id),
+      onUnload: () => void (unloaded += 1),
     }),
   );
-  assert.ok(button(view.container, "テンプレートから読み込む"));
+  // 読み込んでいない = 今のシステムテンプレートで書く形
+  assert.match(view.container.textContent ?? "", /システム/);
+  assert.match(view.container.textContent ?? "", /シンプル/);
+  assert.ok(button(view.container, "テンプレートを読み込む"));
   assert.equal(button(view.container, "呼び出す"), undefined, "呼び出すの段は無い");
-  assert.equal((popoverProps as { confirmLabel?: string }).confirmLabel, "読み込む");
+  assert.equal(popoverProps!.confirmLabel, "読み込む");
+  assert.deepEqual(
+    popoverProps!.options.map((o) => o.description),
+    ["システム", "v2"],
+    "システムは印、公開中は版",
+  );
   await act(async () => button(view.container, "読む:春")!.click());
   assert.deepEqual(loaded, ["t1"]);
   await view.unmount();
 
+  // 白紙が無い種別は読み込みを促す
+  const noBlank = await render(
+    createElement(parts.SendTemplatePicker, { templates, blank: null, loaded: null, onLoad: () => {}, onUnload: () => {} }),
+  );
+  assert.match(noBlank.container.textContent ?? "", /白紙のテンプレートが無いため、テンプレートを読み込んでください/);
+  await noBlank.unmount();
+
   const on = await render(
     createElement(parts.SendTemplatePicker, {
-      templates: [{ id: "t1", name: "春", currentVersion: 2 }],
-      loaded: { id: "t1", name: "春", version: 2 },
+      templates,
+      blank: { label: "シンプル" },
+      loaded: { id: "t1", name: "春", version: 2, edited: true },
       onLoad: () => {},
-      onUnload: () => (unloaded += 1),
+      onUnload: () => void (unloaded += 1),
     }),
   );
   assert.match(on.container.textContent ?? "", /春\(v2\)/);
+  assert.match(on.container.textContent ?? "", /直した文面/);
   assert.ok(button(on.container, "別のテンプレートを読み込む"));
   await act(async () => button(on.container, "テンプレートの読み込みを解除")!.click());
   assert.equal(unloaded, 1);
   await on.unmount();
 });
 
-test.skip("SendContentFields: その場で書く欄 / テンプレートの欄 / 未入力の印 / 変数", async () => {
-  const adhoc = await render(
-    createElement(parts.SendContentFields, {
-      source: "adhoc",
-      channels: [
-        { key: "email", label: "メール", blank: false },
-        { key: "inApp", label: "お知らせ", blank: true },
-        { key: "line", label: "LINE", blank: false },
-        { key: "fax", label: "fax", blank: false },
+test("SendEmbeddedInputs: 専用の埋め込み情報の欄 / 必須と未入力の印 / 既定値は仮の文 / 値の受け渡し", async () => {
+  const changes: [string, string][] = [];
+  inputs.clear();
+  const view = await render(
+    createElement(parts.SendEmbeddedInputs, {
+      declarations: [
+        { key: "discount", alias: "割引", type: "number", required: true },
+        { key: "plan", alias: "プラン", type: "select", required: false, options: [{ value: "gold", label: "ゴールド" }], default: "gold" },
+        { key: "until", alias: "期限", type: "date", required: false },
       ],
-      content: { email: { subject: "件", paragraphs: ["本"] }, inApp: { title: "", body: "" }, line: { text: "文" }, fax: { number: "03" } },
-      onChange: () => {},
-      variables: [{ key: "discount", label: "割引", type: "number", required: true }],
+      values: { discount: "10" },
+      onChange: (key: string, value: string) => void changes.push([key, value]),
+      missing: ["discount"],
     }),
   );
-  // その場で書く時も経路ごとに経路の欄の部品(メールの全部の欄・お知らせの画像・LINE・fork の JSON はその部品が描く)
-  assert.deepEqual(
-    [...adhoc.container.querySelectorAll("[data-template-fields]")].map((el) => el.getAttribute("data-template-fields")),
-    ["email", "inApp", "line", "fax"],
-  );
-  assert.equal(adhoc.container.textContent?.match(/内容が入力されていません/g)?.length, 1);
-  assert.equal(adhoc.container.querySelector("#send-var-discount"), null, "変数はテンプレートの時だけ");
-  await adhoc.unmount();
+  const text = view.container.textContent ?? "";
+  assert.match(text, /割引 \*/, "必須の印");
+  assert.match(text, /\{\{割引\}\}/, "書ける名前は {{別名}}");
+  assert.doesNotMatch(text, /プラン \*/, "任意は印なし");
+  assert.equal(text.match(/入力してください/g)?.length, 1, "未入力の印は missing の鍵だけ");
+  const discount = inputs.get("send-embedded-discount")!;
+  assert.equal(discount.type, "number");
+  assert.equal(discount.value, "10");
+  assert.equal(inputs.get("send-embedded-plan")!.placeholder, "初期値: ゴールド", "選択肢の既定値は表示名で");
+  assert.ok(inputs.get("send-embedded-until"), "日付の型は日付の入力");
+  (discount.onChange as (e: { target: { value: string } }) => void)({ target: { value: "20" } });
+  assert.deepEqual(changes, [["discount", "20"]]);
+  await view.unmount();
 
-  const tpl = await render(
-    createElement(parts.SendContentFields, {
-      source: "template",
-      channels: [{ key: "email", label: "メール", blank: false }],
-      content: { email: { subject: "s" } },
-      onChange: () => {},
-      variables: [{ key: "discount", label: "割引", type: "number", required: true }],
-      vars: { discount: "10" },
-      onVarChange: () => {},
-    }),
-  );
-  assert.ok(tpl.container.querySelector("[data-template-fields=email]"));
-  assert.match(tpl.container.textContent ?? "", /割引\(必須\)/);
-  assert.ok(tpl.container.querySelector("#send-var-discount"));
-  await tpl.unmount();
+  const none = await render(createElement(parts.SendEmbeddedInputs, { declarations: [], values: {}, onChange: () => {} }));
+  assert.match(none.container.textContent ?? "", /このテンプレートに専用の埋め込み情報はありません/);
+  await none.unmount();
 });
 
-test.skip("SendTargetPicker: bulk は記録の数、select は種類の選び、グループは名前(種類)で id を出さない", async () => {
+test("SendTargetPicker: bulk は記録の数、select は種類の選び、グループは名前(種類)で id を出さない", async () => {
   const bulk = await render(createElement(parts.SendTargetPicker, { kind: "bulk", recordCount: 3, recordNoun: "振込レビュー" }));
   assert.match(bulk.container.textContent ?? "", /選択した 3 件の振込レビュー/);
   await bulk.unmount();
@@ -191,6 +225,10 @@ test.skip("SendTargetPicker: bulk は記録の数、select は種類の選び、
   assert.ok(noGroups.container.querySelector("[data-users]"));
   assert.equal(noGroups.container.querySelector("[data-radio]")?.getAttribute("data-options"), "all|role|users", "グループが無ければ選択肢に出さない");
   await noGroups.unmount();
+  // 門 userGroups が開なら 0 件でも選択肢を出す(操作の途中で消えないように)
+  const gateOpen = await render(createElement(parts.SendTargetPicker, { kind: "select", value, onChange: () => {}, roles: [], groupsEnabled: true }));
+  assert.equal(gateOpen.container.querySelector("[data-radio]")?.getAttribute("data-options"), "all|role|group|users");
+  await gateOpen.unmount();
   const GROUP_ID = "33333333-3333-4333-8333-333333333333";
   const picked: unknown[] = [];
   selects.length = 0;
@@ -213,7 +251,7 @@ test.skip("SendTargetPicker: bulk は記録の数、select は種類の選び、
   await withGroups.unmount();
 });
 
-test.skip("SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・未入力の印", async () => {
+test("SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・未入力の印", async () => {
   const toggles: [string, boolean][] = [];
   const view = await render(
     createElement(parts.SendCategoryChannels, {
@@ -224,28 +262,39 @@ test.skip("SendCategoryChannels: カテゴリーが無い文言・経路の切�
         { key: "email", label: "メール", on: true, blank: true },
         { key: "inApp", label: "お知らせ", on: false, blank: true },
       ],
-      onToggleChannel: (key: string, on: boolean) => toggles.push([key, on]),
+      onToggleChannel: (key: string, on: boolean) => void toggles.push([key, on]),
     }),
   );
   assert.equal(view.container.textContent?.match(/未入力/g)?.length, 1, "オンの経路だけ印");
-  await act(async () => button(view.container, "お知らせ:off")!.click());
+  assert.equal(button(view.container, "メール")!.getAttribute("aria-pressed"), "true");
+  const inApp = button(view.container, "お知らせ")!;
+  assert.equal(inApp.getAttribute("aria-pressed"), "false");
+  await act(async () => inApp.click());
   assert.deepEqual(toggles, [["inApp", true]]);
   await view.unmount();
   const none = await render(
     createElement(parts.SendCategoryChannels, { categories: [], category: "", onCategoryChange: () => {}, channels: [], onToggleChannel: () => {} }),
   );
-  assert.match(none.container.textContent ?? "", /この宛先に使えるカテゴリーがありません/);
+  assert.match(none.container.textContent ?? "", /この種別に使えるカテゴリーがありません/);
   await none.unmount();
 });
 
-test.skip("SendSchedule: 予約の時だけ時刻・注記・誤り", async () => {
+test("SendSchedule: 予約の時だけ時刻・注記・誤り", async () => {
   const now = await render(
     createElement(parts.SendSchedule, { mode: "now", scheduledAt: "", error: null, note: "注記", onModeChange: () => {}, onScheduledAtChange: () => {} }),
   );
   assert.equal(now.container.querySelector("[data-datetime]"), null);
+  assert.doesNotMatch(now.container.textContent ?? "", /注記/);
   await now.unmount();
   const at = await render(
-    createElement(parts.SendSchedule, { mode: "at", scheduledAt: "", error: "予約日時を入力してください", note: "粒度の注記", onModeChange: () => {}, onScheduledAtChange: () => {} }),
+    createElement(parts.SendSchedule, {
+      mode: "at",
+      scheduledAt: "",
+      error: "予約日時を入力してください",
+      note: "粒度の注記",
+      onModeChange: () => {},
+      onScheduledAtChange: () => {},
+    }),
   );
   assert.ok(at.container.querySelector("[data-datetime]"));
   assert.match(at.container.textContent ?? "", /粒度の注記/);
@@ -253,7 +302,7 @@ test.skip("SendSchedule: 予約の時だけ時刻・注記・誤り", async () =
   await at.unmount();
 });
 
-test.skip("SendConfirmView / SendResultView", async () => {
+test("SendConfirmView / SendResultView", async () => {
   const confirm = await render(
     createElement(parts.SendConfirmView, {
       estimate: { count: 12 },
@@ -268,6 +317,19 @@ test.skip("SendConfirmView / SendResultView", async () => {
   assert.match(confirm.container.textContent ?? "", /v3/);
   assert.equal(confirm.container.querySelector('[data-slot="send-confirm-over-limit"]'), null);
   await confirm.unmount();
+  const scheduledAt = "2026-12-01T03:00:00.000Z";
+  const scheduled = await render(
+    createElement(parts.SendConfirmView, {
+      estimate: { count: 1 },
+      scheduledAt,
+      templateVersion: null,
+      channels: ["メール"],
+      categoryLabel: "キャンペーン",
+    }),
+  );
+  assert.ok((scheduled.container.textContent ?? "").includes(`${new Date(scheduledAt).toLocaleString("ja-JP")} に予約します`));
+  assert.doesNotMatch(scheduled.container.textContent ?? "", /今すぐ送信します/);
+  await scheduled.unmount();
   const over = await render(
     createElement(parts.SendConfirmView, {
       estimate: { count: 150_000, overLimit: true, memberLimit: 100_000 },
@@ -292,16 +354,26 @@ test.skip("SendConfirmView / SendResultView", async () => {
   assert.match(bulk.container.textContent ?? "", /選択した 2 件の振込レビューに関連するユーザー/);
   await bulk.unmount();
   const result = await render(
-    createElement(parts.SendResultView, { status: "processing", queuedCount: 0, dispatchHref: "/admin/messaging/d1", afterSend: { ok: false, error: "x" }, recordNoun: "振込レビュー" }),
+    createElement(parts.SendResultView, {
+      status: "processing",
+      queuedCount: 0,
+      dispatchHref: "/admin/messaging?dispatch=d1",
+      afterSend: { ok: false, error: "x" },
+      recordNoun: "振込レビュー",
+    }),
   );
   assert.match(result.container.textContent ?? "", /送信を受け付けました/);
   assert.doesNotMatch(result.container.textContent ?? "", /queued/, "状態は表示名(鍵は出さない)");
   assert.match(result.container.textContent ?? "", /振込レビューの送信後の処理に失敗しました: x/);
-  assert.ok(result.container.querySelector("a[href='/admin/messaging/d1']"));
+  assert.ok(result.container.querySelector("a[href='/admin/messaging?dispatch=d1']"));
   await result.unmount();
+  const noLink = await render(createElement(parts.SendResultView, { status: "scheduled", queuedCount: 0, dispatchHref: null }));
+  assert.match(noLink.container.textContent ?? "", /予約しました/);
+  assert.equal(noLink.container.querySelector("a"), null);
+  await noLink.unmount();
 });
 
-test.skip("SendLegalNotice: 注意をいつも出し、メールがオフなら警告の色", async () => {
+test("SendLegalNotice: 注意をいつも出し、メールがオフなら警告の色", async () => {
   const on = await render(createElement(parts.SendLegalNotice, { emailOn: true }));
   const onNote = on.container.querySelector("p");
   assert.ok(onNote?.textContent?.includes("送信方法にメールを含めてください"));

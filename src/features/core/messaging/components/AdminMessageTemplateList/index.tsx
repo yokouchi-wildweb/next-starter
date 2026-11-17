@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/AdminMessageTemplateList/index.tsx
-// セクションコンテナ(管理: 保存されたテンプレートの一覧)。状態で絞る + 無限スクロール(カーソル)。
-// 行 = 名前・状態(版)・種別とカテゴリーの表示名・更新(鍵は見せない、D46)。システムテンプレート(白紙)は「システム(読むだけ)」の印(D117)。行を押すと直すモーダル、上の「新しく作る」で作るモーダル(AdminMessageTemplateModal。D87)。
+// セクションコンテナ(管理: 保存されたテンプレートの一覧)。種別で絞る(D135)+ 無限スクロール(カーソル)。
+// 行 = 名前・版・種別とカテゴリーの表示名・更新(鍵は見せない、D46)。システムテンプレート(白紙)は「システム(読むだけ)」の印(D117)。行を押すと直すモーダル、上の「新規作成」で作るモーダル(AdminMessageTemplateModal。D87)。
 // 流れ(絞り・モーダルの開き先)は hook useAdminMessageTemplateList。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
