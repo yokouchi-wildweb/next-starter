@@ -6,7 +6,7 @@
 // - 開いている間だけ選択肢・1 件・版の一覧を取る(閉じている一覧の画面では取らない)
 // - 作る → 保存で公開した 1 件ができたら、同じモーダルのままその 1 件を直す形に変わる(onCreated。ページは移らない)
 // - 開き直すたびに作った id とタブを戻す(session。書く欄は formKey で key して作り直す)
-// - formKey = 開いた回 + 1 件の版と更新(保存・アーカイブの後は書く欄をサーバーの値で作り直す)
+// - formKey = 開いた回 + 1 件の版と更新(保存の後は書く欄をサーバーの値で作り直す)
 
 import { useCallback, useState } from "react";
 
@@ -24,7 +24,7 @@ export type UseMessageTemplateModalOptions = {
   open: boolean;
   /** 直す 1 件(null・省略 = 作る) */
   templateId?: string | null;
-  /** 作る・保存・アーカイブの後(一覧が行を足す・置き換える。useMessageTemplateForm へそのまま渡す) */
+  /** 作る・保存・削除の後(一覧が行を足す・置き換える。useMessageTemplateForm へそのまま渡す) */
   onChanged?: (template: AdminTemplateDetail, action: MessageTemplateAction) => void;
 };
 
