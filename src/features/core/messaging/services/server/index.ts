@@ -48,7 +48,7 @@ export type {
   ListMessageTemplatesQuery,
   UpdateMessageTemplateInput,
 } from "./templates";
-export type { InboxItemDto, InboxPage, InboxViewer } from "./inbox";
+export type { InboxItemDetailDto, InboxItemDto, InboxPage, InboxViewer } from "./inbox";
 export type { UserMessageHistoryItem, UserMessageHistoryPage, UserMessageHistoryQuery } from "./history";
 export type { ContinueSendingResult, RetentionResult, SendSweepResult } from "./sweep";
 export type {

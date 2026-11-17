@@ -25,7 +25,7 @@ import {
 } from "./admin";
 import { listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
 import { listUserMessageHistory } from "./history";
-import { inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";
+import { getInboxItem, inboxUnreadCount, listInbox, markAllInboxRead, markInboxRead } from "./inbox";
 import { getMessageOverrides, listMessageOverrides, previewMessageOverride, resetMessageOverride, saveMessageOverride } from "./overrides";
 import { getMessagePreferences, setMessagePreference } from "./preferences";
 import {
@@ -96,8 +96,9 @@ export const messagingService = {
   registerEndpoint,
   removeEndpoint,
   listEndpoints,
-  /** 受け取り箱: 本人の見える行の一覧・未読数・既読(/api/me/messaging/inbox が呼ぶ) */
+  /** 受け取り箱: 本人の見える行の一覧・詳細・未読数・既読(/api/me/messaging/inbox が呼ぶ) */
   listInbox,
+  getInboxItem,
   inboxUnreadCount,
   markInboxRead,
   markAllInboxRead,

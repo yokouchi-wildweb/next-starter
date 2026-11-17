@@ -18,6 +18,7 @@ import { listVariables } from "@/lib/structuredDocument/shared";
 
 import type { MessageDispatch, MessageDispatchInsert, MessageInboxItemInsert } from "../../../entities/model";
 import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
+import { inAppItemRow, inboxContentWithoutValues } from "../../../channels/inApp/createInAppChannel";
 import { buildContent } from "../sendMessage/content";
 import { toVariableMap } from "../sendMessage/context";
 import { resolvedOfDispatch } from "../sendMessage/dispatchResolved";
@@ -214,15 +215,11 @@ export async function expandDispatchChunk(deps: MessageSendDeps, dispatch: Messa
       counts[IN_APP] = { targeted: userCount, skippedNoAddress: 0, suppressed: 0 };
       sharedSent = userCount;
       if (dispatch.expand_cursor === null) {
+        // 共有の行も要約の列 + ひな形・欄の中身(記録の段が meta なら欄の中身を残さない、指令 60)
+        const content = dispatch.record === "meta" ? inboxContentWithoutValues(shared) : shared;
         inboxItem = {
-          dispatch_id: dispatch.id,
-          user_id: null,
+          ...inAppItemRow(content, { dispatchId: dispatch.id, userId: null, now }),
           target_roles: target.type === "role" ? [...target.roles] : null,
-          title: typeof shared.title === "string" ? shared.title : null,
-          body: typeof shared.body === "string" ? shared.body : "",
-          link: typeof shared.link === "string" ? shared.link : null,
-          image: typeof shared.image === "string" ? shared.image : null,
-          published_at: now,
         };
       }
     }

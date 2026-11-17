@@ -2,10 +2,11 @@
 //
 // 受け取り箱の利用者の service(D18・D32)。見える行の規則は visibility.ts、既読の判定は readState.ts。
 
+import { fieldsForChannel, layoutVersionOf, upgradeLayoutValues, type MessageLayout, type MessageLayoutFields } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
-import { decodeInboxCursor, encodeInboxCursor, type InboxItemDto, type InboxPage } from "./dto";
-import type { InboxRow, InboxStore } from "./types";
+import { decodeInboxCursor, encodeInboxCursor, type InboxItemDetailDto, type InboxItemDto, type InboxPage } from "./dto";
+import type { InboxDetailRow, InboxRow, InboxStore } from "./types";
 import type { InboxViewer } from "./visibility";
 
 export const INBOX_DEFAULT_LIMIT = 20;
@@ -24,7 +25,20 @@ function toDto(row: InboxRow): InboxItemDto {
   };
 }
 
-export function createInboxService(store: InboxStore) {
+/** 詳細のひな形の部分(今の版へ読み替えた欄の中身とお知らせの欄の宣言。描けなければ無し = 要約のカード) */
+function layoutPartOf(
+  layouts: Readonly<Record<string, MessageLayout>>,
+  row: InboxDetailRow,
+): Pick<InboxItemDetailDto, "layout" | "layoutVersion" | "values" | "fields"> {
+  if (!row.layout || !row.values) return {};
+  const layout = layouts[row.layout];
+  if (!layout) return {};
+  const upgraded = upgradeLayoutValues(layout, row.values, row.layoutVersion ?? 1);
+  if ("cannotRender" in upgraded) return {};
+  return { layout: layout.key, layoutVersion: layoutVersionOf(layout), values: upgraded.values, fields: fieldsForChannel(layout, "inApp") as MessageLayoutFields };
+}
+
+export function createInboxService(store: InboxStore, options: { layouts?: () => Readonly<Record<string, MessageLayout>> } = {}) {
   return {
     /**
      * 一覧(公開の時刻・id の降順の keyset)。
@@ -44,6 +58,16 @@ export function createInboxService(store: InboxStore) {
         items: page.map(toDto),
         nextCursor: rows.length > limit && last ? encodeInboxCursor(last.publishedAt, last.id) : null,
       };
+    },
+
+    /**
+     * 1 件の詳細(見える行だけ。ひな形と欄の中身つき)。
+     * @throws DomainError(404) 見えない行(他人の行・まだ公開していない行・無い行)
+     */
+    async getInboxItem(viewer: InboxViewer, itemId: string): Promise<InboxItemDetailDto> {
+      const row = await store.findVisible(viewer, itemId);
+      if (!row) throw new DomainError("お知らせが見つかりません", { status: 404 });
+      return { ...toDto(row), ...layoutPartOf(options.layouts?.() ?? {}, row) };
     },
 
     /** 未読の数 */

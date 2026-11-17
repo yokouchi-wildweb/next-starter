@@ -3,6 +3,7 @@
 // サービス内のお知らせ（受け取り箱）。
 // - message_inbox_items: 中身が受信者に依らない全員・ロール宛ては 1 行を皆で読む（user_id null）、
 //   差し込み・個人宛ては受信者ごとの行（同じ表）。回（dispatch）を消すと一緒に消える。
+//   行は要約の列と、ひな形・版・欄の中身を持つ（指令 60、D121）。
 //   間引き（throttle）の行は未読の間、新しい回の中身に置き換わる（dispatch_id = 最新の回、前の回は collapsed_dispatch_ids）
 // - message_inbox_reads: 個別の既読
 // - message_inbox_read_states: 全既読のウォーターマーク（この時刻以前に公開された行は既読）
@@ -35,11 +36,18 @@ export const MessageInboxItemTable = pgTable(
     }),
     /** 共有の行を見せるロール（null = 全員）。user_id がある行では使わない */
     target_roles: text("target_roles").array(),
+    // 要約の列(一覧・未読のモーダル・前の行の詳細が読む。title = 要約の題、body = 短い本文か本文、link = 行き先、image = 画像)
     title: text("title"),
     body: text("body").notNull(),
     link: text("link"),
     /** 画像（storage:// の参照） */
     image: text("image"),
+    /** ひな形の鍵(詳細がひな形のお知らせの描き方で描く、D121。記録の段が meta・秘密の連絡・前の行は null = 要約のカード) */
+    layout: text("layout"),
+    /** 書いた時のひな形の版(読む時に改版の対応で今の版へ読み替える) */
+    layout_version: integer("layout_version"),
+    /** ひな形の欄の中身(差し込み済み、お知らせの経路で使う欄だけ。秘密の値は空の字) */
+    values: jsonb("values").$type<Record<string, unknown>>(),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     published_at: timestamp("published_at", { withTimezone: true }).notNull(),
     /** 間引きの鍵(throttle のある連絡の受信者ごとの行だけ。共有の行は null) */

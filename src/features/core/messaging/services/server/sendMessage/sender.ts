@@ -27,7 +27,7 @@ import type {
   MessageDispatchStatus,
 } from "../../../entities/model";
 import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
-import { buildContent, buildContents } from "./content";
+import { buildContent, buildContents, buildRowContent } from "./content";
 import { buildRecipientValues, checkRecipientVars, parseVars, toVariableMap } from "./context";
 import {
   resolveChannels,
@@ -424,7 +424,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         recipientVars: recipientVarsOf(row.recipient_key),
         user,
       });
-      const { content } = await buildContent(deps, resolved, row.channel, toVariableMap(values));
+      const { content } = await buildRowContent(deps, resolved, row.channel, values, policy);
       bodies.set(row.id, content);
       throttleJobs.push({
         values,

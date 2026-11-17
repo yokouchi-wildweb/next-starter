@@ -3,7 +3,7 @@
 // 失効の本通知(有効期限切れで残高を没収した後)。送り手: services/server/notification/sendExpiredNotices.ts(cron wallet-expiration-notice)
 // 経路は wallet の config(expiration[<通貨>].notice.expired.channels)、文面はここ。
 // 種類 walletExpired(種別 transactional)。二重送信の鍵: wallet-expired:<履歴の id>
-// ひな形: statement(お知らせの明細、messaging/layouts/statement。お知らせは要約 = 件名と本文)
+// ひな形: statement(お知らせの明細、messaging/layouts/statement。お知らせの一覧は要約 = 件名と短い本文、詳細はひな形の描き方)
 
 import { z } from "zod";
 
@@ -35,5 +35,6 @@ export const message = defineMessage({
     addressee: "{{displayName}} 様",
     body: "有効期限切れにより {{amount}} が失効しました。\n失効後の残高: {{balanceAfter}}",
     footer: "ご不明な点がございましたら、\nお気軽にお問い合わせください。",
+    shortBody: "有効期限切れにより {{amount}} が失効しました。（残高: {{balanceAfter}}）",
   },
 });

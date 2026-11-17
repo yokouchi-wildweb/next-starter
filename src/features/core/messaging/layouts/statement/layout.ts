@@ -1,6 +1,6 @@
 // src/features/core/messaging/layouts/statement/layout.ts
 // 上流のひな形「お知らせの明細」(D122・D123): 札・宛名・本文の知らせ(財布の失効の予告・本通知など)。コードの連絡だけが使う(adminSelectable false)。
-// 要約: 題 = 件名 / 本文 = 本文 / 短い本文 = プレビューの文
+// 要約: 題 = 件名 / 本文 = 本文 / 短い本文 = 短い本文(無ければプレビューの文)。短い本文はお知らせの一覧の本文と LINE の文になる(指令 60)
 
 import { defineMessageLayout } from "@/lib/messaging";
 
@@ -16,11 +16,12 @@ export const layout = defineMessageLayout({
     addressee: { type: "line", label: "宛名" },
     body: { type: "longText", label: "本文", required: true },
     footer: { type: "paragraph", label: "末尾の注意書き" },
+    shortBody: { type: "line", label: "短い本文", placeholder: "お知らせの一覧に出す 1 行(無ければプレビューの文)", channels: ["inApp", "line"] },
   },
   summary: (values) => ({
     title: values.subject ?? "",
     body: values.body ?? "",
-    ...(values.preheader ? { shortBody: values.preheader } : {}),
+    ...(values.shortBody || values.preheader ? { shortBody: values.shortBody || values.preheader } : {}),
   }),
 });
 

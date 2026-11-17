@@ -7,10 +7,11 @@
 ## API
 
 - `GET /api/me/messaging/inbox?cursor=&limit=&unreadOnly=` → `{ items: InboxItemDto[], nextCursor }`（公開の時刻・id の降順の keyset。`limit` 既定 20・最大 50。`unreadOnly=true|1`。形の誤った `cursor` は 400）
+- `GET /api/me/messaging/inbox/[id]` → `InboxItemDetailDto`（見える行だけ、見えない・無い行は 404。指令 60、D121・D115）= 一覧の形 + `layout`・`layoutVersion`（今の版）・`values`（書いた時の版から今の版へ読み替え済み）・`fields`（`fieldsForChannel(layout, "inApp")` = お知らせの欄の宣言、汎用の描き方が型を知る）。前の行・記録の段が meta の行・ひな形が無い / 版が読めない行は 4 つとも無い = 要約のカード
 - `GET /api/me/messaging/inbox/unread-count` → `{ count }`
 - `POST /api/me/messaging/inbox/[id]/read` → `{ ok: true }`（見える行だけ、見えない・無い行は 404）
 - `POST /api/me/messaging/inbox/read-all` → `{ ok: true }`
-- `InboxItemDto` = `{ id, title, body, link, image, metadata, publishedAt (ISO), read }`。回の中身（宛先・数・記録）と他人の情報は返さない。`image` は保存した値のまま（`storage://` の ref か URL）で、表示の部品（`AppImage`）が解決する
+- `InboxItemDto` = `{ id, title, body, link, image, metadata, publishedAt (ISO), read }`（一覧は要約の列だけ: body = 短い本文か本文）。回の中身（宛先・数・記録）と他人の情報は返さない。`image` は保存した値のまま（`storage://` の ref か URL）で、表示の部品（`AppImage`）が解決する
 
 ## Internals
 
@@ -30,6 +31,7 @@
 
 ### 画像（imageBinding.ts・imageBindingLedger.ts）
 
+- 行の画像 = 要約の列 `image` と欄の中身 `values` の中の `storage://`（画像のブロックなど）。どちらも同じ対応で書き換える（`inboxItemImageRefs` / `withBoundInboxImages`）
 - 持ち主は回: 台帳の紐付け = `messaging.dispatch` / 回の id / `inApp.image`（用途 `notification.image`）。台帳の 1 ファイルは 1 業務行にしか結べず、受信者ごとの行は同じ画像を指すため。お知らせの行は回より長生きしない（FK cascade）
 - 結ぶ: お知らせの行を書く前、回の行を排他で持った取引の中で（共有の行 = 展開、受信者ごとの行 = inApp の経路の `bindImages`）。`storage://` でない値は結ばない
   - 回の actor が上げた未紐付けの `notification.image` → そのまま attach

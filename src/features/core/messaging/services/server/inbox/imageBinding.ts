@@ -14,6 +14,7 @@
 // - それ以外(別の人が上げた・他の業務行に結ばれている・用途が違う)→ 回ごとに 1 回だけ複製(持ち主なし)して複製を attach
 //   (coupon の issueCodeForOwner と同じ。元の行と ref を共有しない)。複製の失敗は投げる(黙って画像なしにしない)
 // 結んだ参照は metadata.inboxImages { <元の参照>: <結んだ参照> } に残す。保持の掃除はこの値を detach してから回を消す。
+// 行の画像 = 要約の列 image と、欄の中身 values の中の storage:// の参照(画像のブロックなど、指令 60)。どちらも同じ対応で書き換える
 
 import { isStorageRef, parseStorageRef } from "@/lib/storage";
 
@@ -110,4 +111,37 @@ async function bindOne<Tx>(ledger: InboxImageLedger<Tx>, tx: Tx, dispatch: Inbox
   const copied = await ledger.copy(ref);
   await ledger.attach(tx, { ref: copied, actorUserId: null, dispatchId: dispatch.id });
   return copied;
+}
+
+/** お知らせの行の画像の参照(要約の列 image + 欄の中身の中の storage:// の参照) */
+export function inboxItemImageRefs(item: { image?: string | null; values?: unknown }): string[] {
+  const refs = new Set<string>();
+  if (item.image) refs.add(item.image);
+  const visit = (value: unknown) => {
+    if (typeof value === "string") {
+      if (isStorageRef(value)) refs.add(value);
+    } else if (Array.isArray(value)) value.forEach(visit);
+    else if (value && typeof value === "object") Object.values(value).forEach(visit);
+  };
+  visit(item.values);
+  return [...refs];
+}
+
+/** 結んだ参照に書き換えた行(image と values の中の参照) */
+export function withBoundInboxImages<T extends { image?: string | null; values?: Record<string, unknown> | null }>(
+  item: T,
+  map: ReadonlyMap<string, string>,
+): T {
+  if (map.size === 0) return item;
+  const swap = (value: unknown): unknown => {
+    if (typeof value === "string") return map.get(value) ?? value;
+    if (Array.isArray(value)) return value.map(swap);
+    if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, inner]) => [key, swap(inner)]));
+    return value;
+  };
+  return {
+    ...item,
+    ...(item.image ? { image: map.get(item.image) ?? item.image } : {}),
+    ...(item.values ? { values: swap(item.values) as Record<string, unknown> } : {}),
+  };
 }
