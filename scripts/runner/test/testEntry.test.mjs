@@ -29,8 +29,12 @@ test("// test-flags: 先頭行だけ読む、許可の一覧に無いフラグ�
 });
 
 test("引数: 群・--db・--changed・--list・パス、知らない引数と群は止める", () => {
-  assert.deepEqual(parseArgs(["--db", "--list", "src/a"]), { groups: null, db: true, changed: false, list: true, patterns: ["src/a"] });
+  assert.deepEqual(parseArgs(["--db", "--list", "src/a"]), { groups: null, db: true, changed: false, list: true, fileTimeout: null, patterns: ["src/a"] });
   assert.deepEqual(parseArgs(["--group=db,fork"]).groups, ["db", "fork"]);
+  assert.equal(parseArgs(["--file-timeout=300"]).fileTimeout, "300");
+  assert.equal(parseArgs(["--file-timeout=0"]).fileTimeout, "0");
+  assert.match(parseArgs(["--file-timeout=abc"]).problem, /--file-timeout は 0 以上の秒数/);
+  assert.match(parseArgs(["--file-timeout=-1"]).problem, /--file-timeout は 0 以上の秒数/);
   assert.match(parseArgs(["--watch"]).problem, /知らない引数 --watch/);
   assert.match(parseArgs(["--group=e2e"]).problem, /知らない群 e2e/);
 });
@@ -105,7 +109,15 @@ test("起動: 下駄と module mocks を常に付け、群(db は ENV_FILE)と�
     [["--test", "src/a/b.db.test.ts"], true],
     [["--a", "--test", "scripts/x/x.test.mts"], process.env.ENV_FILE === ".env.development"],
   ]);
-  for (const c of calls) assert.deepEqual(c.args.slice(0, BASE_ARGS.length), ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", "--experimental-test-module-mocks"]);
+  for (const c of calls)
+    assert.deepEqual(c.args.slice(0, BASE_ARGS.length), [
+      "tsx",
+      "--import",
+      "./scripts/runner/preload/serverOnly.mjs",
+      "--import",
+      "./scripts/runner/preload/fileTimeout.mjs",
+      "--experimental-test-module-mocks",
+    ]);
   let spawned = 0;
   const bad = await run([], { ...deps, readFlags: () => ({ flags: ["--inspect"], problem: "許可されていないフラグ --inspect" }), spawn: () => (spawned++, 0) });
   assert.equal(bad, 2);
@@ -135,4 +147,39 @@ test("[param] の下: パスの絞り込みで選び、--test には glob にな
   const r = spawnSync(process.execPath, ["--test", globLiteral("[id]/a.test.mjs")], { cwd: dir, encoding: "utf8", env });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /tests 1\b/);
+});
+
+test("時間の上限: --file-timeout は子の env TEST_FILE_TIMEOUT に渡り(env より勝つ)、無ければ env のまま", async () => {
+  const seen = [];
+  const deps = { repo: "/r", files: ["src/a/a.test.ts"], changed: noRange, log: () => {}, readFlags: () => ({ flags: [] }), spawn: (_a, env) => (seen.push(env.TEST_FILE_TIMEOUT), 0) };
+  const saved = process.env.TEST_FILE_TIMEOUT;
+  process.env.TEST_FILE_TIMEOUT = "50";
+  try {
+    await run(["--file-timeout=300"], deps);
+    await run([], deps);
+  } finally {
+    if (saved === undefined) delete process.env.TEST_FILE_TIMEOUT;
+    else process.env.TEST_FILE_TIMEOUT = saved;
+  }
+  assert.deepEqual(seen, ["300", "50"]);
+});
+
+test("時間の上限(実物): 終わらないファイルは上限で落ちてまとめに名前が出る、ほかのファイルは回り続ける、0 は上限なし", () => {
+  const dir = mkdtempSync(join(tmpdir(), "runner-timeout-"));
+  writeFileSync(join(dir, "hang.test.mjs"), 'import { test } from "node:test";\ntest("passes but leaves a handle", () => { setInterval(() => {}, 1000); });\n');
+  writeFileSync(join(dir, "ok.test.mjs"), 'import { test } from "node:test";\ntest("ok", () => {});\n');
+  const preload = join(import.meta.dirname, "../preload/fileTimeout.mjs");
+  const env = { ...process.env, TEST_FILE_TIMEOUT: "1" };
+  delete env.NODE_TEST_CONTEXT;   // 外側の node --test の子として報告を親に回さず、自分で数を出させる
+  const started = Date.now();
+  const r = spawnSync(process.execPath, ["--import", preload, "--test", "--test-concurrency=0", "hang.test.mjs", "ok.test.mjs"], { cwd: dir, encoding: "utf8", env, timeout: 30_000 });
+  const out = r.stdout + r.stderr;
+  assert.equal(r.status, 1, out);
+  assert.ok(Date.now() - started < 20_000, "上限で止まる");
+  assert.match(out, /時間切れ 1 秒: hang\.test\.mjs/);
+  assert.match(out, /✖ hang\.test\.mjs/);
+  assert.match(out, /pass 2\b/);
+  // 0 = 上限なし: 普通に終わるファイルはそのまま通る(見張りのタイマーが引き止めない)
+  const ok = spawnSync(process.execPath, ["--import", preload, "--test", "ok.test.mjs"], { cwd: dir, encoding: "utf8", env: { ...env, TEST_FILE_TIMEOUT: "120" }, timeout: 30_000 });
+  assert.equal(ok.status, 0, ok.stdout + ok.stderr);
 });

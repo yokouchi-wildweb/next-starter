@@ -7,16 +7,22 @@ pnpm test --group=db            # その群だけ(unit / fork / db、カンマ�
 pnpm test src/lib/crud          # パス(前方一致)か glob(src/**/x.test.ts)で絞る
 pnpm test --changed             # 範囲の変更に関係するテストだけ(/ship が使う)
 pnpm test --list                # 選んだファイルを出すだけ
+pnpm test --file-timeout=300    # 1 ファイルの時間の上限を延ばす(秒、0 = なし。env TEST_FILE_TIMEOUT=300 でも同じ)
 ```
 
 - 走査: 毎回、git の追跡 + 未追跡(無視されない物)の `*.test.{ts,tsx,mts,mjs,js,cjs}`。一覧ファイルは無い。除く物: `tests/e2e/`(動いているアプリを外から見る物、playwright = `pnpm e2e`)・`*.types.test.*`(型のテスト = `pnpm typecheck` が見る)。`servers/`(別のプログラム)は引数のパス・glob がそこを名指しした時(`pnpm test servers/room`)と、`--changed` の範囲に `servers/` の下の変更がある時だけ(/ship が変えた時に回す)
 - 群(ファイル名で決まる): `db` = `*.db.test.*` / `fork` = `tests/` の下(fork が足すテスト)/ `unit` = それ以外
-- 起動: `node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --experimental-test-module-mocks --test <files>`(1 ファイル 1 プロセス)。下駄と module mocks は入口が常に付けるのでテストに書かない
+- 起動: `node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --import ./scripts/runner/preload/fileTimeout.mjs --experimental-test-module-mocks --test <files>`(1 ファイル 1 プロセス)。下駄・時間の上限・module mocks は入口が常に付けるのでテストに書かない
   - `--test` の後のファイルを node は glob として読む → 入口はパスの `[ ] { } * ?` を `[x]` の形にして渡す(`[id]/` の下は `[[]id[]]/`)。そのまま渡すと `src/app/**/[id]/` の下のテストが 0 本になり、黙って通る
   - `npx` は通さない: コマンドを shell に渡すので、shell の glob が `[[]id[]]` を `[id]` に戻してしまう(tsx の cli を node で直に起動する)
 - ほかの node のフラグ: ファイルの先頭行に `// test-flags: <flags>`。入口の許可の一覧(`scan.mjs` の `ALLOWED_FLAGS`、今は空)の物だけ渡し、ほかは止める(exit 2)。足すのは上流
 - `--changed`: 範囲(門の watch と同じ: 比べる枝との分岐点..HEAD + 作業ツリー + 未追跡、`scripts/runner/gates/changed.mjs`)の変更したファイルについて、テストのファイルから import を辿って(dpdm、`@/` は tsconfig)届くテストと、変更したファイルと同じフォルダのテストを選ぶ。辿れなかったテストは同じフォルダの規則だけで選び「依存を辿れなかった」と出す。範囲が決まらなければ全部回す
-- exit 0 = 全部通る(0 本も)/ 1 = 落ちた / 2 = 引数・フラグの誤り
+- 時間の上限(1 ファイルごと): 既定 **120 秒**。過ぎたファイルは `test: 時間切れ <秒> 秒: <ファイル>` を出して落ち、まとめの failing tests に名前が出る。ほかのファイルは回り続ける
+  - 延ばす: `pnpm test --file-timeout=<秒>` か env `TEST_FILE_TIMEOUT=<秒>`(フラグが勝つ)。`0` = 上限なし(調べる時だけ)
+  - 仕組み: `scripts/runner/preload/fileTimeout.mjs` が node --test の子(env `NODE_TEST_CONTEXT` の付いたプロセス)の中で unref したタイマーを置き、過ぎたら exit 1。node の `--test-timeout` は `test()` 1 つごとで、テストの後に接続・タイマーが残って終わらないファイルを止められない
+  - 効かない物: 同期の無限ループ(タイマーが動けない)
+  - 時間切れが出たら: 落ちたアサーションの後片付け(`after` で閉じる・`clearInterval`・接続の close)を確かめる。遅いだけのファイルは分けるか、上限を延ばす
+- exit 0 = 全部通る(0 本も)/ 1 = 落ちた(時間切れも)/ 2 = 引数・フラグの誤り
 - build はテストを回さない
 - テストの中で子の `node --test` / `tsx --test` を起動する時は、環境変数から `NODE_TEST_CONTEXT` を外す(親の node --test の印。残ると子は結果を親向けに流し、子が落ちても exit 0 になる。例 `src/utils/date.test.ts`)
 - 門番の全開スイッチ `FEATURE_GATE_OPEN` は子に渡さない(上流の開発の env の `all` をシェルで export していても、テストの答えは規則の値と `overrideSwitches` で決まる)。スイッチそのものを試すテストは自分で env を置く

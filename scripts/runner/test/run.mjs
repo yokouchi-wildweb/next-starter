@@ -1,11 +1,12 @@
 // scripts/runner/test/run.mjs — テストの入口(pnpm test)
-// 実行: pnpm test [<パス | glob>...] [--group=unit|fork|db] [--db] [--changed] [--list]
+// 実行: pnpm test [<パス | glob>...] [--group=unit|fork|db] [--db] [--changed] [--list] [--file-timeout=<秒>]
 //   走査: git の追跡 + 未追跡のテストのファイル(scan.mjs、tests/e2e/・*.types.test.* は除く。servers/ は名指しの時だけ)を毎回。
 //   群: 既定 = unit + fork、--db で db も、--group=<群>[,<群>] でその群だけ。引数のパス・glob(リポジトリ直下から)で絞る。
 //   --changed: 範囲(門の watch と同じ比べ方)の変更から選ぶ(changed.mjs)。辿れなかったテストは名前を出す。
 //   servers/ の下のテストは名指しの時と、--changed の範囲に servers/ の下の変更がある時だけ候補にする。
 //   --list: 選んだファイルを出すだけ(起動しない)。
-//   起動: node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --experimental-test-module-mocks [// test-flags:] --test <files>
+//   時間の上限: 1 ファイルごと、既定 120 秒(preload/fileTimeout.mjs が子の中で見張る)。--file-timeout=<秒> か env TEST_FILE_TIMEOUT で変える、0 = なし。
+//   起動: node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --import ./scripts/runner/preload/fileTimeout.mjs --experimental-test-module-mocks [// test-flags:] --test <files>
 //   (node --test と同じく 1 ファイル 1 プロセス)。--test の後のファイルは node が glob として読むので、[ ] { } * ? は 1 文字の組 [x] で
 //   そのものに戻して渡す(globLiteral。src/app/**/[id]/ の下のテストが 0 本になって黙って通るのを防ぐ)。npx は通さない: npx は
 //   コマンドを shell に渡し、shell の glob が [[]id[]] を [id] に戻してしまう(tsx の cli を node で直に起動する)。db の群は env ENV_FILE=.env.development(未設定なら)。門番の全開スイッチ FEATURE_GATE_OPEN は子に渡さない。
@@ -19,16 +20,28 @@ import { scanTree, selectChanged } from "./changed.mjs";
 import { GROUPS, NAMED_ONLY, groupOf, listTestFiles, readFlags } from "./scan.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-export const BASE_ARGS = ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", "--experimental-test-module-mocks"];
+export const BASE_ARGS = [
+  "tsx",
+  "--import",
+  "./scripts/runner/preload/serverOnly.mjs",
+  "--import",
+  "./scripts/runner/preload/fileTimeout.mjs",
+  "--experimental-test-module-mocks",
+];
+const USAGE = "pnpm test [<パス | glob>...] [--group=unit|fork|db] [--db] [--changed] [--list] [--file-timeout=<秒>]";
 
 export function parseArgs(argv) {
-  const opts = { groups: null, db: false, changed: false, list: false, patterns: [] };
+  const opts = { groups: null, db: false, changed: false, list: false, fileTimeout: null, patterns: [] };
   for (const a of argv.filter((x) => x !== "--")) {
     if (a === "--db") opts.db = true;
     else if (a === "--changed") opts.changed = true;
     else if (a === "--list") opts.list = true;
     else if (a.startsWith("--group=")) opts.groups = a.slice(8).split(",").filter(Boolean);
-    else if (a.startsWith("--")) return { problem: `知らない引数 ${a}(pnpm test [<パス | glob>...] [--group=unit|fork|db] [--db] [--changed] [--list])` };
+    else if (a.startsWith("--file-timeout=")) {
+      const v = a.slice(15);
+      if (!/^\d+(\.\d+)?$/.test(v)) return { problem: `--file-timeout は 0 以上の秒数(0 = 上限なし): ${a}` };
+      opts.fileTimeout = v;
+    } else if (a.startsWith("--")) return { problem: `知らない引数 ${a}(${USAGE})` };
     else opts.patterns.push(a);
   }
   const bad = (opts.groups ?? []).filter((g) => !GROUPS.includes(g));
@@ -106,6 +119,8 @@ export async function run(argv, { repo = join(HERE, "../../.."), log = console.l
     // 門番の全開スイッチは子に渡さない: テストは規則の値か overrideSwitches で開閉を作る(上流の開発の env の FEATURE_GATE_OPEN=all を
     // シェルで export していても答えが揺れない)。スイッチそのものを試すテストは自分で env を置く(scripts/structure/proxies/openSwitch.test.ts の withEnv)
     delete env.FEATURE_GATE_OPEN;
+    // ファイルごとの時間の上限(preload/fileTimeout.mjs が読む)。フラグが env より勝つ
+    if (opts.fileTimeout !== null) env.TEST_FILE_TIMEOUT = opts.fileTimeout;
     if (b.db && !env.ENV_FILE) env.ENV_FILE = ".env.development";
     log(`test: ${b.files.length} 本${b.db ? "(db)" : ""}${b.flags.length ? ` ${b.flags.join(" ")}` : ""}`);
     if (spawn([...BASE_ARGS, ...b.flags, "--test", ...b.files.map(globLiteral)], env, repo) !== 0) code = 1;
