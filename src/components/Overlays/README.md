@@ -14,6 +14,7 @@ DialogPrimitives (低レベル部品、@/components/Primitives/Dialog)
          ├── DetailModal (詳細表示)
          └── AsyncPickerModal (大量マスタからの選択)
 Sheet (辺から出る板: 下のシート・横の引き出し。Radix Dialog の土台)
+useConfirm (関数の中で答えを待つ確認。Dialog を描く)
 ```
 
 ---
@@ -564,6 +565,32 @@ import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, Command
 ---
 
 ## その他のオーバーレイ
+
+### useConfirm（`@/components/Overlays/Confirm`）
+
+関数の中で答えを待つ確認（`Promise<boolean>`）。テーブルの `onToggleRequest` のように「呼ばれた所で yes / no を返す」口や、処理の途中で確かめたい時に使う。ボタンから開く確認・画面に置く確認は `Dialog` / `ConfirmPopover` を使う。
+
+```tsx
+import { useConfirm } from "@/components/Overlays/Confirm";
+
+const { confirm, confirmDialog } = useConfirm();
+
+const onToggleRequest = ({ row }) =>
+  confirm({ title: `${row.name} をオフにしますか？`, confirmLabel: "オフにする", confirmVariant: "destructive" });
+
+return (
+  <>
+    {/* … */}
+    {confirmDialog}
+  </>
+);
+```
+
+- `confirm(options?)` = 確定で `true`、取り消し / ✕ / ESC / 背景で `false`。options は Dialog の `title` / `description` / `confirmLabel`（既定 "OK"）/ `cancelLabel`（既定 "キャンセル"）/ `confirmVariant` / `layer` / `overlayLayer`（型 `ConfirmOptions`）
+- `confirmDialog` を画面に 1 度置く（画面ごとに置く形。アプリ全体の Provider は無い）
+- 開いている間に次の `confirm` が来たら前は `false` で解けて次が出る。画面が外れたら待っている物は `false` で解ける
+- お知らせだけ（`window.alert` の代わり）はトースト（`@/lib/toast` の `useToast`）
+
 
 ### Sheet
 

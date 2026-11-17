@@ -25,6 +25,8 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Main, PageTitle, Para, SecTitle, Span } from "@/components/TextBlocks";
 import { InfoPopover } from "@/components/Overlays/Popover/InfoPopover";
+import { useConfirm } from "@/components/Overlays/Confirm";
+import { useToast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
 import type { Sample } from "@/features/sample/entities";
 import { useSampleList } from "@/features/sample/hooks/useSampleList";
@@ -161,6 +163,9 @@ export function DemoTablesDemo() {
   const [reorderEditRows, setReorderEditRows] = useState<ReorderEditableRecord[]>(REORDER_DEMO_EDITABLE_ROWS);
   const [reorderLog, setReorderLog] = useState("行をドラッグすると ReorderResult がここに表示されます");
   const { data: sampleList = [], isLoading: isSampleLoading } = useSampleList();
+  // 切り替えの確認(関数の中で答えを待つ)と、セルの押下のお知らせ
+  const { confirm, confirmDialog } = useConfirm();
+  const { showToast } = useToast();
 
   const normalizedSampleList = useMemo(
     () =>
@@ -274,7 +279,11 @@ export function DemoTablesDemo() {
           if (nextValue) {
             return true;
           }
-          return window.confirm(`${row.name} をオフにしますか？`);
+          return confirm({
+            title: `${row.name} をオフにしますか？`,
+            confirmLabel: "オフにする",
+            confirmVariant: "destructive",
+          });
         },
       },
       {
@@ -314,7 +323,7 @@ export function DemoTablesDemo() {
         ),
       },
     ],
-    [],
+    [confirm],
   );
 
   const dataTableColumns = useMemo<DataTableColumn<DataTableRecord>[]>(
@@ -393,7 +402,7 @@ export function DemoTablesDemo() {
         // シンプルな cellAction のデモ: カスタムインジケーター（アイコン + テキスト）
         cellAction: {
           onClick: (record) => {
-            window.alert(`${record.project} の進捗率: ${record.progress}%`);
+            showToast(`${record.project} の進捗率: ${record.progress}%`, "info");
           },
           indicator: (
             <Flex align="center" gap="xs" className="text-muted-foreground">
@@ -403,7 +412,7 @@ export function DemoTablesDemo() {
         },
       },
     ],
-    [],
+    [showToast],
   );
 
   const sortedDataTableRows = useMemo(() => sortItems(DATA_TABLE_DEMO_ROWS, dataTableSort), [dataTableSort]);
@@ -1037,6 +1046,7 @@ export function DemoTablesDemo() {
           </Block>
         </Stack>
       </Section>
+      {confirmDialog}
     </Main>
   );
 }
