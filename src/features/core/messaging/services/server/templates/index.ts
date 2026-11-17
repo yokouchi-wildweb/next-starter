@@ -55,7 +55,6 @@ export const listMessageTemplates = service.listTemplates;
 export const getMessageTemplate = service.getTemplate;
 export const createMessageTemplate = service.createTemplate;
 export const updateMessageTemplate = service.updateTemplate;
-export const publishMessageTemplate = service.publishTemplate;
 export const archiveMessageTemplate = service.archiveTemplate;
 export const listMessageTemplateVersions = service.listTemplateVersions;
 export const getMessageTemplateVersion = service.getTemplateVersion;

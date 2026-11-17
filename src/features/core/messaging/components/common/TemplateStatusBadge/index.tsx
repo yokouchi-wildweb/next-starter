@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/TemplateStatusBadge/index.tsx
-// 部品(props だけ): テンプレートの状態(下書き・公開中・取り下げ)と、公開していない変更の印
+// 部品(props だけ): テンプレートの状態(公開中・取り下げ)と、公開していない変更の印
 
 "use client";
 
@@ -9,7 +9,6 @@ type Variant = NonNullable<SoftBadgeProps["variant"]>;
 
 /** 状態 → 表示名・色(知らない値はそのまま灰色) */
 export const TEMPLATE_STATUS_DISPLAY: Record<string, { label: string; variant: Variant }> = {
-  draft: { label: "下書き", variant: "muted" },
   published: { label: "公開中", variant: "success" },
   archived: { label: "アーカイブ", variant: "outline" },
 };

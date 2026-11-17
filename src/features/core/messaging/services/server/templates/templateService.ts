@@ -1,16 +1,17 @@
 // src/features/core/messaging/services/server/templates/templateService.ts
 //
 // 保存されたテンプレート(管理者が画面で書く連絡の中身、D40・D41)の管理の service。/api/admin/messaging/templates が呼ぶ。
-// - 状態: draft(まだ公開していない)→ published(版がある)→ archived(取り下げ。直せない)
-// - 行 = 今の中身(下書き)。公開 = 今の中身を message_template_versions に版として追記し current_version を進める。
-//   公開した版は書き換えない(公開済みのテンプレートを直すと行だけが変わり、次の公開で新しい版になる)
+// - 状態: published(版がある)→ archived(取り下げ。直せない)。下書きは無い(D134: 保存 = 公開)
+// - 作る = 行と版 1 を 1 つの取引で書く。直す = 行を書き、中身が最新の版と違えば同じ取引で版を追記して current_version を進める
+//   (同じ中身なら版を作らず unchanged。名前・説明だけの変更も版を作らない)。版は書き換えない
 // - 中身 = カテゴリー + ひな形 + 欄の中身 + 専用の埋め込み情報の宣言(指令 58)。版は保存の時の ひな形・ひな形の版・欄の中身・宣言・種類を持つ
 //   (回は送る時に版を固定する)。ひな形を替える時は入力の欄の中身だけを持つ(前のひな形の中身は残さない、D113)
 // - 保存の検査は checks.ts(D41)、画像の結び付けは imageBinding.ts
 // - 画面の選択肢 templateOptions(使える経路・種類・管理者が選べるひな形・専用の宣言の前から書ける埋め込み情報)
-// - service でも管理者を確かめる(D42)。監査 messaging.template.{created, updated, published, archived}
+// - service でも管理者を確かめる(D42)。監査 messaging.template.{created, updated, archived}(created・updated は版の番号つき)
+// - 一覧は種別(kind)で絞れる: その種別のカテゴリーのテンプレートと、その種別のシステムテンプレート(D135)
 // - システムテンプレート(受け口 messaging/templates の白紙、D117・D125): 一覧の最初のページの先頭に印つき(system: true、id = system:<鍵>)で並び、
-//   1 件も読める。直す・公開・取り下げは 409(管理画面で直せない・消せない)。版は持たない(版の一覧は空、版 1 つは 404)
+//   1 件も読める。直す・取り下げは 409(管理画面で直せない・消せない)。版は持たない(版の一覧は空、版 1 つは 404)
 
 import { randomBytes } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
@@ -28,6 +29,7 @@ import type {
   AdminTemplateDetail,
   AdminTemplateOptions,
   AdminTemplatePage,
+  AdminTemplateSaveResult,
   AdminTemplateSummary,
   AdminTemplateVersion,
 } from "./dto";
@@ -67,8 +69,6 @@ export const SYSTEM_TEMPLATE_ID_PREFIX = "system:";
 export function isSystemTemplateId(id: string): boolean {
   return id.startsWith(SYSTEM_TEMPLATE_ID_PREFIX);
 }
-
-/** 白紙の時刻の欄(版も保存の時刻も持たないので固定の値) */
 
 /** 種類の表示名(受け口の label。無ければ null) */
 type CategoryLabelOf = (category: string) => string | null;
@@ -139,15 +139,18 @@ function toVersion(row: MessageTemplateVersion, categoryLabel: CategoryLabelOf):
   };
 }
 
-/** 行の中身が版と同じか(公開していない変更が無いか) */
-function sameAsVersion(row: MessageTemplate, version: MessageTemplateVersion | null): boolean {
+/** 版にする中身 */
+type TemplateContent = Pick<MessageTemplate, "category" | "layout" | "layout_version" | "values" | "embedded">;
+
+/** 中身が版と同じか(同じなら新しい版を作らない) */
+function sameAsVersion(content: TemplateContent, version: MessageTemplateVersion | null): boolean {
   if (!version) return false;
   return (
-    row.layout === version.layout &&
-    row.layout_version === version.layout_version &&
-    isDeepStrictEqual(row.values, version.values) &&
-    isDeepStrictEqual(row.embedded, version.embedded) &&
-    row.category === version.category
+    content.layout === version.layout &&
+    content.layout_version === version.layout_version &&
+    isDeepStrictEqual(content.values, version.values) &&
+    isDeepStrictEqual(content.embedded, version.embedded) &&
+    content.category === version.category
   );
 }
 
@@ -174,15 +177,27 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
 
   const catalogOf = (own: readonly MessageEmbeddedDeclaration[]) => templateEmbeddedCatalog(deps.check(), own).map(toEntry);
 
-  async function detailOf(row: MessageTemplate): Promise<AdminTemplateDetail> {
-    const latest = await deps.store.latestVersion(row.id);
+  function detailOf(row: MessageTemplate): AdminTemplateDetail {
     return {
       ...toSummary(row, categoryLabel),
       layoutVersion: row.layout_version,
       embedded: row.embedded,
       catalog: catalogOf(row.embedded),
-      hasUnpublishedChanges: !sameAsVersion(row, latest),
     };
+  }
+
+  /** 中身を版として追記する(取引の中。版の番号を返す) */
+  async function appendVersion(tx: Tx, templateId: string, content: TemplateContent, version: number, actor: string | null) {
+    await deps.store.insertVersion(tx, {
+      template_id: templateId,
+      version,
+      layout: content.layout,
+      layout_version: content.layout_version,
+      values: content.values,
+      embedded: content.embedded,
+      category: content.category,
+      edited_by: actor,
+    });
   }
 
   /** 鍵(system:<鍵>)のシステムテンプレート。無い・切った(enabled: false)物は 404 */
@@ -192,7 +207,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     return template;
   }
 
-  /** システムテンプレートは直せない・公開・取り下げできない(409) */
+  /** システムテンプレートは直せない・取り下げできない(409) */
   function refuseSystem(id: string, verb: string): void {
     if (!isSystemTemplateId(id)) return;
     const template = requireSystem(id);
@@ -226,15 +241,24 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
   }
 
   return {
-    /** 一覧(新しい順、状態で絞れる) */
+    /** 一覧(新しい順、状態・種別で絞れる。種別 = その種別のカテゴリーのテンプレート、D135) */
     async listTemplates(query: unknown = {}): Promise<AdminTemplatePage> {
       await assertAdminActor(deps);
-      const { status, cursor, limit } = parseOr400(ListMessageTemplatesQuerySchema.safeParse(query), "一覧の条件が正しくありません");
-      const rows = await deps.store.list({ status: status ?? null, limit, after: decodeCursor(cursor) });
+      const { status, kind, cursor, limit } = parseOr400(ListMessageTemplatesQuerySchema.safeParse(query), "一覧の条件が正しくありません");
+      const categories = kind
+        ? Object.values(deps.check().categories)
+            .filter((category) => category.kind === kind)
+            .map((category) => category.key)
+        : null;
+      const rows = await deps.store.list({ status: status ?? null, categories, limit, after: decodeCursor(cursor) });
       const page = rows.slice(0, limit);
-      // システムテンプレートは最初のページの先頭(公開中の扱い。取り下げ・下書きで絞った時・切った物は出さない)
+      // システムテンプレートは最初のページの先頭(公開中の扱い。取り下げで絞った時・切った物・ほかの種別は出さない)
       const systems =
-        !cursor && (!status || status === "published") ? enabledSystemTemplates(deps.systemTemplates?.() ?? {}).map(toSystemSummary) : [];
+        !cursor && (!status || status === "published")
+          ? enabledSystemTemplates(deps.systemTemplates?.() ?? {})
+              .filter((template) => !kind || template.kind === kind)
+              .map(toSystemSummary)
+          : [];
       return {
         items: [...systems, ...page.map((row) => toSummary(row, categoryLabel))],
         nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]) : null,
@@ -251,14 +275,13 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           layoutVersion: layout ? layoutVersionOf(layout) : 1,
           embedded: [...(template.embedded ?? [])],
           catalog: catalogOf(template.embedded ?? []),
-          hasUnpublishedChanges: false,
         };
       }
       return detailOf(await requireRow(id));
     },
 
     /**
-     * 下書きを作る。
+     * 作る = 行と版 1 を 1 つの取引で書く(保存 = 公開、D134)。
      * 鍵はサーバーが作る(入力に key は無い。送ると 400)。
      * @throws DomainError(400) 入力・中身の検査
      */
@@ -280,7 +303,8 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           layout_version: checked.layoutVersion,
           values: checked.values,
           embedded: checked.embedded,
-          status: "draft",
+          status: "published",
+          current_version: 1,
           created_by: actor,
           updated_by: actor,
         });
@@ -289,22 +313,25 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           actorUserId: actor,
           values: checked.values,
         });
-        return values === checked.values ? inserted : deps.store.update(tx, inserted.id, { values });
+        const saved = values === checked.values ? inserted : await deps.store.update(tx, inserted.id, { values });
+        await appendVersion(tx, saved.id, saved, 1, actor);
+        return saved;
       });
-      await audit(row, "messaging.template.created");
+      await audit(row, "messaging.template.created", { version: 1 });
       return detailOf(row);
     },
 
     /**
-     * 今の中身(下書き)を直す。公開した版は変わらない。
-     * @throws DomainError(400) 入力・中身の検査 / (404) 無い / (409) 取り下げ済み
+     * 直す = 行を書き、中身が最新の版と違えば同じ取引で新しい版にする(保存 = 公開、D134)。
+     * 名前・説明はいつも保存する。中身が版と同じなら版を作らず unchanged: true(409 にしない)
+     * @throws DomainError(400) 入力・中身の検査 / (404) 無い / (409) 取り下げ済み・システムテンプレート
      */
-    async updateTemplate(id: string, input: unknown): Promise<AdminTemplateDetail> {
+    async updateTemplate(id: string, input: unknown): Promise<AdminTemplateSaveResult> {
       await assertAdminActor(deps);
       refuseSystem(id, "直すことは");
       const patch = parseOr400(UpdateMessageTemplateInputSchema.safeParse(input), "テンプレートの入力が正しくありません");
       const actor = actorId();
-      const row = await deps.store.transaction(async (tx) => {
+      const { row, version } = await deps.store.transaction(async (tx) => {
         const current = await deps.store.lockForUpdate(tx, id);
         if (!current) throw new DomainError("テンプレートがありません", { status: 404 });
         if (current.status === "archived") throw new DomainError("取り下げたテンプレートは直せません", { status: 409 });
@@ -313,73 +340,35 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         if (layoutChanged && patch.values === undefined) {
           throw new DomainError("ひな形を替える時は新しいひな形の欄の中身も送ってください", { status: 400 });
         }
+        const category = patch.category ?? current.category;
         const checked = checkTemplateFields(deps.check(), {
-          category: patch.category ?? current.category,
+          category,
           layout: patch.layout ?? current.layout,
           values: patch.values ?? currentValues(current),
           embedded: patch.embedded ?? current.embedded,
         });
         const values = await bindTemplateImages(deps.ledger, tx, { templateId: id, actorUserId: actor, values: checked.values });
-        return deps.store.update(tx, id, {
-          ...(patch.name !== undefined ? { name: patch.name } : {}),
-          ...(patch.description !== undefined ? { description: patch.description } : {}),
-          category: patch.category ?? current.category,
+        const content: TemplateContent = {
+          category,
           layout: checked.layout,
           layout_version: checked.layoutVersion,
           values,
           embedded: checked.embedded,
-          updated_by: actor,
-        });
-      });
-      await audit(row, "messaging.template.updated");
-      return detailOf(row);
-    },
-
-    /**
-     * 今の中身を版として公開する(版は不変、current_version を進める)。
-     * @throws DomainError(400) 中身の検査 / (404) 無い / (409) 取り下げ済み・前の版から変更が無い
-     */
-    async publishTemplate(id: string): Promise<AdminTemplateDetail> {
-      await assertAdminActor(deps);
-      refuseSystem(id, "公開");
-      const actor = actorId();
-      const { row, version } = await deps.store.transaction(async (tx) => {
-        const current = await deps.store.lockForUpdate(tx, id);
-        if (!current) throw new DomainError("テンプレートがありません", { status: 404 });
-        if (current.status === "archived") throw new DomainError("取り下げたテンプレートは公開できません", { status: 409 });
-        const checked = checkTemplateFields(deps.check(), {
-          category: current.category,
-          layout: current.layout,
-          values: currentValues(current),
-          embedded: current.embedded,
-        });
+        };
         const latest = await deps.store.latestVersion(id, tx);
-        if (sameAsVersion(current, latest)) {
-          throw new DomainError(`版 ${latest!.version} から変更が無いので公開する版がありません`, { status: 409 });
-        }
-        const next = (latest?.version ?? 0) + 1;
-        await deps.store.insertVersion(tx, {
-          template_id: id,
-          version: next,
-          layout: checked.layout,
-          layout_version: checked.layoutVersion,
-          values: checked.values,
-          embedded: checked.embedded,
-          category: current.category,
-          edited_by: actor,
-        });
+        const next = sameAsVersion(content, latest) ? null : (latest?.version ?? 0) + 1;
+        if (next !== null) await appendVersion(tx, id, content, next, actor);
         const updated = await deps.store.update(tx, id, {
-          status: "published",
-          current_version: next,
-          // 版と行を同じにする(改版の読み替え後の中身・ひな形の今の版)
-          layout_version: checked.layoutVersion,
-          values: checked.values,
+          ...(patch.name !== undefined ? { name: patch.name } : {}),
+          ...(patch.description !== undefined ? { description: patch.description } : {}),
+          ...content,
+          ...(next !== null ? { current_version: next } : {}),
           updated_by: actor,
         });
         return { row: updated, version: next };
       });
-      await audit(row, "messaging.template.published", { version });
-      return detailOf(row);
+      await audit(row, "messaging.template.updated", { version: version ?? row.current_version ?? null, newVersion: version !== null });
+      return { ...detailOf(row), unchanged: version === null };
     },
 
     /**

@@ -45,7 +45,7 @@ export const MessageTemplateTable = pgTable(
     status: text("status")
       .$type<(typeof MESSAGE_TEMPLATE_STATUSES)[number]>()
       .notNull()
-      .default("draft"),
+      .default("published"),
     /** 最新の版の番号（null = まだ版がない） */
     current_version: integer("current_version"),
     /** 作った人・直した人の actor_id */

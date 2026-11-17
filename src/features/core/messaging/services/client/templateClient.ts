@@ -14,6 +14,7 @@ import type {
   AdminTemplateDetail,
   AdminTemplateOptions,
   AdminTemplatePage,
+  AdminTemplateSaveResult,
   AdminTemplateSummary,
   AdminTemplateVersion,
 } from "@/features/core/messaging/services/server/templates/dto";
@@ -30,6 +31,7 @@ export type {
   AdminTemplateDetail,
   AdminTemplateOptions,
   AdminTemplatePage,
+  AdminTemplateSaveResult,
   AdminTemplateSummary,
   AdminTemplateVersion,
   CreateMessageTemplateInput,
@@ -39,13 +41,13 @@ export type {
 
 const one = (id: string) => `${BASE}/${encodeURIComponent(id)}`;
 
-/** 一覧(新しい順、状態で絞れる) */
+/** 一覧(新しい順、状態・種別で絞れる。種別 = その種別のカテゴリーとシステムテンプレート、D135) */
 export async function listMessageTemplates(
-  params: { status?: string; cursor?: string | null; limit?: number } = {},
+  params: { status?: string; kind?: string; cursor?: string | null; limit?: number } = {},
 ): Promise<AdminTemplatePage> {
   try {
     const res = await axios.get<AdminTemplatePage>(BASE, {
-      params: { status: params.status || undefined, cursor: params.cursor ?? undefined, limit: params.limit },
+      params: { status: params.status || undefined, kind: params.kind || undefined, cursor: params.cursor ?? undefined, limit: params.limit },
     });
     return res.data;
   } catch (error) {
@@ -63,7 +65,7 @@ export async function getMessageTemplateOptions(): Promise<AdminTemplateOptions>
   }
 }
 
-/** 1 件(今の中身 = 下書き) */
+/** 1 件(中身 = 最新の版と同じ) */
 export async function getMessageTemplate(id: string): Promise<AdminTemplateDetail> {
   try {
     const res = await axios.get<AdminTemplateDetail>(one(id));
@@ -73,7 +75,7 @@ export async function getMessageTemplate(id: string): Promise<AdminTemplateDetai
   }
 }
 
-/** 下書きを作る */
+/** 作って公開する(版 1、D134)。公開した 1 件を返す */
 export async function createMessageTemplate(input: CreateMessageTemplateInput): Promise<AdminTemplateDetail> {
   try {
     const res = await axios.post<AdminTemplateDetail>(BASE, input);
@@ -83,27 +85,17 @@ export async function createMessageTemplate(input: CreateMessageTemplateInput): 
   }
 }
 
-/** 下書きを直す */
-export async function updateMessageTemplate(id: string, input: UpdateMessageTemplateInput): Promise<AdminTemplateDetail> {
+/** 直して公開する(中身が最新の版と違えば新しい版、同じなら unchanged: true、D134) */
+export async function updateMessageTemplate(id: string, input: UpdateMessageTemplateInput): Promise<AdminTemplateSaveResult> {
   try {
-    const res = await axios.patch<AdminTemplateDetail>(one(id), input);
+    const res = await axios.patch<AdminTemplateSaveResult>(one(id), input);
     return res.data;
   } catch (error) {
     throw normalizeHttpError(error, "テンプレートを保存できませんでした");
   }
 }
 
-/** 公開(今の中身を新しい版にする。変更が無ければ 409) */
-export async function publishMessageTemplate(id: string): Promise<AdminTemplateDetail> {
-  try {
-    const res = await axios.post<AdminTemplateDetail>(`${one(id)}/publish`);
-    return res.data;
-  } catch (error) {
-    throw normalizeHttpError(error, "公開できませんでした");
-  }
-}
-
-/** 取り下げ(直せない・公開できない。版は残る) */
+/** 取り下げ(直せない。版は残る) */
 export async function archiveMessageTemplate(id: string): Promise<AdminTemplateDetail> {
   try {
     const res = await axios.post<AdminTemplateDetail>(`${one(id)}/archive`);
