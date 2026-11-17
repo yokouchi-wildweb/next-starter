@@ -255,10 +255,14 @@ export function validateMessageDefinition<
   return problems;
 }
 
-export type MessageCategoryProblem = { code: "unknown_kind" | "empty_channels" | "unknown_group" | "group_kind_mismatch"; message: string };
+export type MessageCategoryProblem = {
+  code: "unknown_kind" | "empty_channels" | "invalid_default_channels" | "unknown_group" | "group_kind_mismatch";
+  message: string;
+};
 
 /**
- * 種類の受け口の検査(種類の override を重ねた後): 種別は 7 つのどれか・経路が 1 つ以上・group はグループの受け口の鍵で、
+ * 種類の受け口の検査(種類の override を重ねた後): 種別は 7 つのどれか・経路が 1 つ以上・defaultChannels は経路の中の 1 つ以上・
+ * group はグループの受け口の鍵で、
  * 1 つのグループの種類は同じ種別(D82)
  */
 export function validateMessageCategories(
@@ -271,6 +275,15 @@ export function validateMessageCategories(
     if (!isMessageKind(category.kind)) problems.push({ code: "unknown_kind", message: `種類 ${key}: 種別 ${String(category.kind)} は無い` });
     if (!Array.isArray(category.channels) || category.channels.length === 0) {
       problems.push({ code: "empty_channels", message: `種類 ${key}: 経路が無い(channels に 1 つ以上)` });
+    }
+    if (category.defaultChannels !== undefined) {
+      const outside = category.defaultChannels.filter((channel) => !category.channels.includes(channel));
+      if (category.defaultChannels.length === 0 || outside.length > 0) {
+        problems.push({
+          code: "invalid_default_channels",
+          message: `種類 ${key}: defaultChannels は channels(${category.channels.join(" / ")})の中の 1 つ以上(${outside.join(", ") || "空"})`,
+        });
+      }
     }
     if (category.group === undefined) continue;
     if (!groups[category.group]) {

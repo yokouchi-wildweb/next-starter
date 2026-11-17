@@ -105,12 +105,12 @@ HTTP の口と返す形は口のフォルダの README:
 - `channels/`（`channel`: `MessageChannel`）: 経路（プッシュ・SMS など。宛先の決め方・描き方の 3 段の宣言・送る関数・webhook・端末の帳簿の宛先の形。経路は自分の欄を持たない）。上流は email・inApp・line（channels/README.md）
 - `layouts/`（`layout`: `MessageLayoutItem`、フォルダ 1 つ = ひな形 1 つ。メールの描き方 `email.tsx` と お知らせの描き方 `inApp.tsx` は別の生成の一覧 `layoutEmails`（server）・`layoutInApps`（client））: 見た目。上流は notice・link・welcome・statement・alert（layouts/README.md）
 - `enrichers/`（`enricher`: `MessageEnricher`）: 連絡に足す値（当て先 = 連絡の鍵・カテゴリー・種別・全部、provides の zod と日本語の別名、値を返す関数）。上流は `displayName`（管理者の連絡の宛名、名前が無ければ「お客様」）
-- `categories/`（`category`: `MessageCategory`）: 種類（種別・経路・グループ・表示名・説明）。上流の種類は隣の `<名前>.override.ts` で `label`・`description`・`channels`・`group` を変えられる（`key`・`kind` は不可、functional・security の email は外せない = `pnpm check extensions`）
+- `categories/`（`category`: `MessageCategory`）: 種類（種別・経路・グループ・表示名・説明）。上流の種類は隣の `<名前>.override.ts` で `label`・`description`・`channels`・`defaultChannels`（送る画面で最初に入っている経路）・`group` を変えられる（`key`・`kind` は不可、functional・security の email は外せない = `pnpm check extensions`）
 - `categoryGroups/`（`group`: `MessageCategoryGroup`）: 種類のグループ（好みのページの見出し、同じ種別の種類だけ、`order` の順）。上流は出荷しない
 - `sources/`（`source`: `MessageSource`）: 送り元の表示名。上流は管理の送り元 4 つ（`adminSend`・`adminSendTest`・`adminBulk`・`adminBulkTest`）。回の詳細の送り元は `sources/` → 同じ鍵の連絡の `label` → 一括の対象 `<対象>.bulk(.test)` の順に引く（`services/server/admin/sourceLabels.ts`）
 - `bulkSendTargets/`（`bulkSendTarget`: `MessageBulkSendTarget`、型は `services/server/admin/types.ts`）: 管理一覧の一括送信の対象（選んだ記録 → 利用者 id・送った後の処理）。上流は `bankTransferReview`（services/server/admin/README.md）
 - `adminBulkActions/`（`bulkAction`: `MessagingDispatchAdminBulkActionItem`、型は `types/adminBulkAction.ts`、client）: 送信一覧の一括操作（D95）。上流の既定 = `delete.tsx`（削除）。fork は項目を足す・`<名前>.override.ts` で `enabled`・`order`（作り方: src/lib/tableSuite/README.md「一括操作の受け口」）
-- `templates/`（`systemTemplate`: `MessageSystemTemplate`）: システムテンプレート = 管理の送信の白紙（種別ごとに 1 つ、D117・D125）。上流は `announcement`・`direct`・`promotion`（ひな形 notice）。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` だけ（templates/README.md）
+- `templates/`（`systemTemplate`: `MessageSystemTemplate`）: システムテンプレート = 管理の送信の白紙とできあがった文面（D117・D119・D125）。上流は 7 本: 種別ごとにシンプル（`announcement`・`direct`・`promotion`、ひな形 simple = 種別の既定の白紙）とリッチ（`…Rich`、ひな形 notice）+ メンテナンスのお知らせ（`maintenance`、専用の埋め込み情報 開始日時・終了日時）。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` だけ（templates/README.md）
 - `subscribers/`（`subscriber`: `MessageSubscriber`）: 送った後の事件の購読（少なくとも 1 回）。上流の項目は無い（services/server/subscribers/README.md）
 
 ほかの差し替え:

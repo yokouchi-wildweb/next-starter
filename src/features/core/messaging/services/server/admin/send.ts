@@ -3,7 +3,7 @@
 // 管理の送信(D34・D40・D41・D42・D65・D80・D85・D117・D125)。どの送信も『テンプレートを選んで送る』1 つの流れ(その場で書く連絡 = 白紙のシステムテンプレート)。
 // - 中身: template = 出どころ { system: 白紙の鍵 } か { id, version }(DB のテンプレートの読み込んだ版。今の公開版でなければ 409)・
 //   values = ひな形の欄の中身({{鍵}} のまま、ひな形の欄の zod で検査)・edited? = 版の中身から直したか(DB のテンプレートだけ。中身の違いでも付く)・
-//   embedded? = DB のテンプレートの専用の埋め込み情報の値 { 鍵: 値 }(版の宣言の型で検査、回の embedded_values に残る)。組み方は sendMessage/templateDefinition.ts(fork のコードからは messagingService.sendTemplateMessage)
+//   embedded? = 専用の埋め込み情報の値 { 鍵: 値 }(DB のテンプレートの版かシステムテンプレートの宣言の型で検査、回の embedded_values に残る)。組み方は sendMessage/templateDefinition.ts(fork のコードからは messagingService.sendTemplateMessage)
 // - 宛先 target: 全員 / ロール / ユーザーグループ(groupId。門 userGroups が閉・しまった・壊れた・人数の上限は送る口が拒む)/
 //   選んだ利用者(userIds)
 // - カテゴリー(必須): 管理者が送れる種別(announcement・direct・promotion)のカテゴリーの鍵。宛先の種類は種別の性質 adminFreeText で確かめる
@@ -45,7 +45,13 @@ import type {
 } from "../sendMessage/types";
 import type { AdminChannelOption } from "../templates/dto";
 import { assertAdminActor, type AdminCheckDeps } from "./assertAdmin";
-import { adminFreeTextCategoryOf, adminFreeTextCategoryOptions, type AdminFreeTextCategoryOption } from "./freeText";
+import {
+  adminFreeTextCategoryOf,
+  adminFreeTextCategoryOptions,
+  adminSystemTemplateOptions,
+  type AdminFreeTextCategoryOption,
+  type AdminSystemTemplateOption,
+} from "./freeText";
 
 /** 選んだ利用者の上限 */
 export const ADMIN_SEND_MAX_USERS = 10_000;
@@ -84,9 +90,6 @@ export function checkAdminContent(
   value: { template: MessageTemplateRef; embedded?: Record<string, unknown>; edited?: boolean },
   ctx: z.RefinementCtx,
 ): void {
-  if ("system" in value.template && value.embedded && Object.keys(value.embedded).length > 0) {
-    ctx.addIssue({ code: "custom", message: "専用の埋め込み情報の値はテンプレートを読み込んだ時だけ指定できます" });
-  }
   if ("system" in value.template && value.edited) {
     ctx.addIssue({ code: "custom", message: "直した印はテンプレートを読み込んだ時だけ指定できます" });
   }
@@ -153,8 +156,10 @@ export type AdminSendOptions = {
     /** 今の公開版の専用の埋め込み情報の宣言(送る画面が値を入れる) */
     embedded: MessageEmbeddedDeclaration[];
   }[];
-  /** 送れるカテゴリー(種別 announcement・direct・promotion、宛先の種類で絞る。その種別の白紙と埋め込み情報の一覧つき) */
+  /** 送れるカテゴリー(種別 announcement・direct・promotion、宛先の種類で絞る。その種別の既定の白紙・最初の送信方法・埋め込み情報の一覧つき) */
   categories: AdminFreeTextCategoryOption[];
+  /** システムテンプレート全部(送る画面がテンプレートとして並べる。種別ごとにシンプル・リッチ + メンテナンス、D119) */
+  systemTemplates: AdminSystemTemplateOption[];
   /** 白紙と並べたテンプレートが使うひな形の欄の宣言(門 messagingTemplates の外。送る画面はこれで欄を描く) */
   layouts: AdminSendLayoutOption[];
   /** 予約できる日数(config.schedule.maxDaysAhead) */
@@ -377,9 +382,11 @@ export function adminSendLayoutOptions(
   layouts: Readonly<Record<string, MessageLayout>>,
   categories: readonly AdminFreeTextCategoryOption[],
   templates: readonly { layout: string }[],
+  systemTemplates: readonly { layout: string }[] = [],
 ): AdminSendLayoutOption[] {
   const keys = new Set<string>([
     ...categories.flatMap((option) => (option.systemTemplate ? [option.systemTemplate.layout] : [])),
+    ...systemTemplates.map((template) => template.layout),
     ...templates.map((template) => template.layout),
   ]);
   return [...keys].flatMap((key) => {
@@ -398,13 +405,17 @@ export async function adminSendOptions(deps: AdminSendDeps): Promise<AdminSendOp
     (option) => option.targets.some((target) => target !== "bulk"),
     deps.enrichers,
   );
+  const system = adminSystemTemplateOptions(deps.systemTemplates).filter((template) =>
+    categories.some((option) => option.kind === template.kind),
+  );
   return {
     channels: adminChannelOptions(deps.channels),
     roles: deps.roles(),
     groups: await deps.groupOptions(),
     templates,
     categories,
-    layouts: adminSendLayoutOptions(deps.layouts, categories, templates),
+    systemTemplates: system,
+    layouts: adminSendLayoutOptions(deps.layouts, categories, templates, system),
     maxScheduleDays: deps.maxScheduleDays(),
   };
 }

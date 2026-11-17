@@ -249,8 +249,8 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         return {
           ...toSystemSummary(template),
           layoutVersion: layout ? layoutVersionOf(layout) : 1,
-          embedded: [],
-          catalog: catalogOf([]),
+          embedded: [...(template.embedded ?? [])],
+          catalog: catalogOf(template.embedded ?? []),
           hasUnpublishedChanges: false,
         };
       }

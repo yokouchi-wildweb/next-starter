@@ -11,6 +11,7 @@ import {
   MESSAGE_KIND_TRAITS,
   type MessageAdminTarget,
   type MessageCategory,
+  type MessageEmbeddedDeclaration,
   type MessageEnricher,
   type MessageKind,
   type MessageSystemTemplate,
@@ -50,8 +51,10 @@ export type AdminFreeTextCategoryOption = {
   label: string;
   kind: MessageKind;
   channels: string[];
+  /** 送る画面の送信方法が最初に入っている経路(カテゴリーの defaultChannels、無ければ channels の全部、D119) */
+  defaultChannels: string[];
   targets: MessageAdminTarget[];
-  /** その種別の白紙(テンプレートを読み込まずに送る時の出どころ { system: 鍵 }、ひな形の鍵と白紙の欄の中身)。受け口に無ければ null */
+  /** その種別の既定の白紙(受け口の順で種別の最初 = シンプル)(テンプレートを読み込まずに送る時の出どころ { system: 鍵 }、ひな形の鍵と白紙の欄の中身)。受け口に無ければ null */
   systemTemplate: { key: string; label: string; layout: string; values: Record<string, unknown> } | null;
   /** このカテゴリーで送る時に書ける埋め込み情報(共通 + 当たる enrichers。専用はテンプレートの宣言から呼び手が足す) */
   catalog: AdminEmbeddedEntry[];
@@ -72,6 +75,7 @@ export function adminFreeTextCategoryOptions(
         label: category.label,
         kind: category.kind,
         channels: [...category.channels],
+        defaultChannels: [...(category.defaultChannels ?? category.channels)],
         targets: [...MESSAGE_KIND_TRAITS[category.kind].adminFreeText],
         systemTemplate: blank ? { key: blank.key, label: blank.label, layout: blank.layout, values: blank.values } : null,
         catalog: messageEmbeddedCatalog({ key: TEMPLATE_MESSAGE_KEY, category: category.key, kind: category.kind }, enrichers).map((entry) => ({
@@ -83,4 +87,28 @@ export function adminFreeTextCategoryOptions(
       };
     })
     .filter(filter);
+}
+
+/** 選択肢のシステムテンプレート 1 つ(送る画面がテンプレートとして並べる。専用の埋め込み情報の宣言つき) */
+export type AdminSystemTemplateOption = {
+  key: string;
+  kind: MessageKind;
+  label: string;
+  layout: string;
+  values: Record<string, unknown>;
+  embedded: MessageEmbeddedDeclaration[];
+};
+
+/** 管理者が送れる種別のシステムテンプレート全部(受け口の順。D119: 種別ごとにシンプル・リッチ + メンテナンス) */
+export function adminSystemTemplateOptions(systemTemplates: Readonly<Record<string, MessageSystemTemplate>>): AdminSystemTemplateOption[] {
+  return Object.values(systemTemplates)
+    .filter((template) => isAdminSendableKind(template.kind))
+    .map((template) => ({
+      key: template.key,
+      kind: template.kind,
+      label: template.label,
+      layout: template.layout,
+      values: { ...template.values },
+      embedded: [...(template.embedded ?? [])],
+    }));
 }

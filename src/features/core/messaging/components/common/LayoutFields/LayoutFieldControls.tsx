@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/LayoutFields/LayoutFieldControls.tsx
-// 部品(props だけ): 欄の入力とブロックの並びが共に使う小さな入力(並びの行の操作・ボタン / リンク・ラベルと値の行・1 行の文の並び)。
+// 部品(props だけ): 欄の入力とブロックの並びが共に使う小さな入力(並びの行の操作・ボタン / リンク・ラベルと値の行・1行テキストの並び)。
 // LayoutFieldInput と LayoutBlocksInput の両方がここを読む(2 つの間で値の import の輪を作らない)
 
 "use client";
@@ -78,7 +78,7 @@ export type LineListInputProps = {
   onFocusField?: (path: string) => void;
 };
 
-/** 1 行の文の並び(箇条書き)。足す・消す・上下 */
+/** 1行テキストの並び(箇条書き)。足す・消す・上下 */
 export function LineListInput({ id, path, value, onChange, min = 0, readOnly, onFocusField }: LineListInputProps) {
   const items = asArray(value).map(asText);
   return (

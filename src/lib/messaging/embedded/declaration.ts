@@ -1,7 +1,7 @@
 // src/lib/messaging/embedded/declaration.ts
 //
 // 専用の埋め込み情報の宣言(テンプレートが持つ、D111・D126)と値の検査。
-// - 型: line 1 行の文 / number 数 / date 日付 YYYY-MM-DD / datetime 日時(ISO 8601、時差つき)/ url / select 選択肢(options の value)
+// - 型: line 1行テキスト / number 数 / date 日付 YYYY-MM-DD / datetime 日時(ISO 8601、時差つき)/ url / select 選択肢(options の value)
 // - 値は送る人がテンプレートを送る時に入れる。差し込む時は文字にする(数は数字の字、日付・日時は入れた字のまま)
 // - required: 空は既定値(default)、既定値も無ければ誤り。任意で空なら空の字
 

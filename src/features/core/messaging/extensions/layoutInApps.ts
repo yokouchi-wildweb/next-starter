@@ -6,6 +6,7 @@ import type { MessageLayoutInAppRenderer } from "@/lib/messaging";
 import { inAppRenderer as layoutInApps_alert } from "@/features/core/messaging/layouts/alert/inApp";
 import { inAppRenderer as layoutInApps_link } from "@/features/core/messaging/layouts/link/inApp";
 import { inAppRenderer as layoutInApps_notice } from "@/features/core/messaging/layouts/notice/inApp";
+import { inAppRenderer as layoutInApps_simple } from "@/features/core/messaging/layouts/simple/inApp";
 import { inAppRenderer as layoutInApps_statement } from "@/features/core/messaging/layouts/statement/inApp";
 import { inAppRenderer as layoutInApps_welcome } from "@/features/core/messaging/layouts/welcome/inApp";
 
@@ -13,6 +14,7 @@ const layoutInAppsList: MessageLayoutInAppRenderer[] = [
   { ...layoutInApps_alert, folder: "alert" },
   { ...layoutInApps_link, folder: "link" },
   { ...layoutInApps_notice, folder: "notice" },
+  { ...layoutInApps_simple, folder: "simple" },
   { ...layoutInApps_statement, folder: "statement" },
   { ...layoutInApps_welcome, folder: "welcome" },
 ];

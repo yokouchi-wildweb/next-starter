@@ -638,9 +638,7 @@ export function createMessageSender(deps: MessageSendDeps) {
      */
     async sendTemplateMessage(input: SendTemplateMessageInput): Promise<SendMessageResult> {
       const { template: ref, values, edited, category, embedded, ...rest } = input;
-      if ("system" in ref && embedded && Object.keys(embedded).length > 0) {
-        throw new DomainError("専用の埋め込み情報の値は DB のテンプレートで送る時だけ渡せます", { status: 400 });
-      }
+      // 専用の値は出どころの宣言(DB のテンプレートの版・システムテンプレート)の zod で検査する。宣言の無い白紙に値を渡すと 400(知らない鍵)
       const from = await templateSourceOf(ref);
       const resolved = resolveTemplateDefinition(deps, { category, values, channels: rest.channels, source: from });
       const source: MessageDispatchTemplateSource =
