@@ -40,9 +40,9 @@ export function SendCategoryChannels({
   hideChannelLabel = false,
 }: SendCategoryChannelsProps) {
   return (
-    <Stack space={3} data-slot="send-category-channels">
+    <Stack gap="sm" data-slot="send-category-channels">
       {!showCategory || categories.length === 1 ? null : (
-      <Stack space={1}>
+      <Stack gap="2xs">
         <Label htmlFor="send-category" className="text-sm">
           カテゴリー
         </Label>
@@ -60,7 +60,7 @@ export function SendCategoryChannels({
         )}
       </Stack>
       )}
-      <Stack space={1}>
+      <Stack gap="2xs">
         <Span size="sm" weight="medium" className={hideChannelLabel ? "sr-only" : undefined} id="send-channels-label">
           送信方法
         </Span>

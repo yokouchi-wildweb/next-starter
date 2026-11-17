@@ -35,8 +35,8 @@ export function ButtonLinkInput({ id, path, kind, value, onChange, placeholder, 
   const record = asRecord(value);
   const set = (key: string, next: string) => onChange({ ...record, [key]: next });
   return (
-    <Stack space={2} className="rounded-md border border-border p-3" data-slot="layout-field-button">
-      <Stack space={1}>
+    <Stack gap="xs" className="rounded-md border border-border p-3" data-slot="layout-field-button">
+      <Stack gap="2xs">
         <Label htmlFor={`${id}-label`} className="text-xs">
           {kind === "button" ? "ボタンの文言" : "リンクの文言(任意)"}
         </Label>
@@ -49,7 +49,7 @@ export function ButtonLinkInput({ id, path, kind, value, onChange, placeholder, 
           onChange={(e) => set("label", oneLine(e.target.value))}
         />
       </Stack>
-      <Stack space={1}>
+      <Stack gap="2xs">
         <Label htmlFor={`${id}-url`} className="text-xs">
           URL
         </Label>
@@ -82,7 +82,7 @@ export type LineListInputProps = {
 export function LineListInput({ id, path, value, onChange, min = 0, readOnly, onFocusField }: LineListInputProps) {
   const items = asArray(value).map(asText);
   return (
-    <Stack space={2} data-slot="layout-field-line-list">
+    <Stack gap="xs" data-slot="layout-field-line-list">
       {items.map((item, index) => (
         <Flex key={index} align="center" gap="xs">
           <Input
@@ -173,7 +173,7 @@ export function KeyValueRowsInput({ id, path, value, onChange, readOnly, onFocus
   const rows = asArray(value).map(asRecord);
   const set = (index: number, key: "key" | "value", next: string) => onChange(replaceItem(rows, index, { ...rows[index], [key]: next }));
   return (
-    <Stack space={2} data-slot="layout-field-key-value">
+    <Stack gap="xs" data-slot="layout-field-key-value">
       {rows.map((row, index) => (
         <Flex key={index} align="center" gap="xs">
           <Input

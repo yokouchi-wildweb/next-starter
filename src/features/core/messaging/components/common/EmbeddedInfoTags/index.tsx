@@ -31,9 +31,9 @@ export type EmbeddedInfoTagsProps = {
 
 export function EmbeddedInfoTags({ common, own, onCopy, unknownNames = [], showTitle = true }: EmbeddedInfoTagsProps) {
   return (
-    <Stack space={2} data-slot="embedded-info-tags">
+    <Stack gap="xs" data-slot="embedded-info-tags">
       {showTitle ? (
-        <Stack space={0}>
+        <Stack gap="none">
           <Span size="sm" weight="semiBold">
             埋め込み情報
           </Span>
@@ -70,7 +70,7 @@ type TagGroupProps = {
 
 function TagGroup({ title, entries, onCopy, own, empty }: TagGroupProps) {
   return (
-    <Stack space={1} data-slot={own ? "embedded-info-own" : "embedded-info-common"}>
+    <Stack gap="2xs" data-slot={own ? "embedded-info-own" : "embedded-info-common"}>
       <Span size="xs" weight="semiBold" tone={own ? undefined : "muted"} className={cn(own && "text-info-text")}>
         {title}
       </Span>

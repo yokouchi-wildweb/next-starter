@@ -37,7 +37,7 @@ export function SampleForYouModal({ open, onOpenChange, channels, emailHeight = 
           プレビューできる送信方法がありません
         </Para>
       ) : (
-        <Stack space={3} data-slot="sample-for-you">
+        <Stack gap="sm" data-slot="sample-for-you">
           <Para size="sm" tone="muted" className="my-0">
             あなたに届く時の表示です(埋め込み情報はあなたの値で差し込んでいます)
           </Para>

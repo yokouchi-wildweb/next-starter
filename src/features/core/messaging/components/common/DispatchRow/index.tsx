@@ -69,8 +69,8 @@ export function DispatchRow({ dispatch, href, categoryLabel = null }: DispatchRo
       className="block rounded-md border border-border bg-card px-4 py-3 hover:bg-muted/40"
       data-slot="dispatch-row"
     >
-      <Stack space={2}>
-        <Flex align="center" justify="between" gap="sm" wrap="wrap">
+      <Stack gap="xs">
+        <Flex align="center" justify="between" gap="md" wrap="wrap">
           <Flex align="center" gap="xs" wrap="wrap" className="min-w-0">
             <DispatchStatusBadge status={dispatch.status} deletedAt={dispatch.deletedAt} />
             {dispatch.isTest ? (
@@ -84,7 +84,7 @@ export function DispatchRow({ dispatch, href, categoryLabel = null }: DispatchRo
           </Flex>
           <RowDateMeta text={formatAdminDateTime(dispatch.createdAt)} label="作成日時" />
         </Flex>
-        <Flex align="center" gap="md" wrap="wrap">
+        <Flex align="center" gap="lg" wrap="wrap">
           <KindCategoryMeta kindLabel={kindLabel} categoryLabel={categoryLabel} />
           <ChannelsMeta labels={dispatch.channels.map(messageChannelLabel)} />
           <RowMetaItem icon={Users} label="宛先">

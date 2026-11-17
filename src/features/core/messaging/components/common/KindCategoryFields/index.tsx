@@ -49,8 +49,8 @@ export function KindCategoryFields({
     );
   }
   return (
-    <Flex align="start" gap="sm" wrap="wrap" data-slot="kind-category-fields">
-      <Stack space={1} className="min-w-40 flex-1">
+    <Flex align="start" gap="md" wrap="wrap" data-slot="kind-category-fields">
+      <Stack gap="2xs" className="min-w-40 flex-1">
         <Label htmlFor={`${idPrefix}-kind`} className={labelClass}>
           種別
         </Label>
@@ -64,7 +64,7 @@ export function KindCategoryFields({
           onChange={(v) => onKindChange(v ? String(v) : "")}
         />
       </Stack>
-      <Stack space={1} className="min-w-40 flex-1">
+      <Stack gap="2xs" className="min-w-40 flex-1">
         <Label htmlFor={`${idPrefix}-category`} className={labelClass}>
           カテゴリー
         </Label>

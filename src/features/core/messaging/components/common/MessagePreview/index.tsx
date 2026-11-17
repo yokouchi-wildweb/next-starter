@@ -74,7 +74,7 @@ function OtherFields({ channel }: { channel: MessagePreviewChannel }) {
   // fork の経路の欄: 欄の名前(鍵)は見せず、値だけを「そのほかの欄」として並べる(D46)
   const fields = record(channel.fields);
   return (
-    <Stack space={1} className="rounded-md border border-border p-3">
+    <Stack gap="2xs" className="rounded-md border border-border p-3">
       <Span size="xs" tone="muted">
         その他の項目
       </Span>
@@ -96,9 +96,9 @@ export function MessagePreview({ channels, emailHeight = 480, showLabels = true 
     );
   }
   return (
-    <Stack space={4} data-slot="message-preview">
+    <Stack gap="md" data-slot="message-preview">
       {channels.map((channel) => (
-        <Stack key={channel.key} space={2}>
+        <Stack key={channel.key} gap="xs">
           {showLabels ? (
             <Span size="sm" weight="semiBold">
               {channel.label ?? messageChannelLabel(channel.key)}

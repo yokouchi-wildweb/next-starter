@@ -77,7 +77,7 @@ export function TemplateEmbeddedInfoModal({
   );
   return (
     <Modal open={open} onOpenChange={onOpenChange} title="専用の埋め込み情報" maxWidth="960px" footer={footer}>
-      <Stack space={4} data-slot="template-embedded-info">
+      <Stack gap="md" data-slot="template-embedded-info">
         <Para size="sm" tone="muted" className="my-0">
           このテンプレートだけで使う埋め込み情報です。本文の中に {"{{別名}}"} と書くと、送信時に入力した値が入ります。別名は共通の埋め込み情報と重ねられません。
         </Para>
@@ -91,9 +91,9 @@ export function TemplateEmbeddedInfoModal({
           const name = row.alias.trim() || row.key.trim();
           // 1 行 = 枠つきのカード: 上の帯(番号・書き方 {{別名}}・必須のスイッチ・削除)+ 下に 別名 | 鍵 | 型 | 既定値 を 1 行
           return (
-            <Stack key={index} space={0} className="overflow-hidden rounded-lg border border-border bg-card shadow-xs" data-slot="template-embedded-info-row">
-              <Flex align="center" justify="between" gap="sm" className="border-b border-border bg-muted/50 py-1 pl-3 pr-1">
-                <Flex align="center" gap="sm" className="min-w-0">
+            <Stack key={index} gap="none" className="overflow-hidden rounded-lg border border-border bg-card shadow-xs" data-slot="template-embedded-info-row">
+              <Flex align="center" justify="between" gap="md" className="border-b border-border bg-muted/50 py-1 pl-3 pr-1">
+                <Flex align="center" gap="md" className="min-w-0">
                   <Span size="xs" weight="semiBold" tone="muted" className="min-w-6 rounded-md border border-border bg-background px-1.5 py-0.5 text-center tabular-nums">
                     {String(index + 1)}
                   </Span>
@@ -101,7 +101,7 @@ export function TemplateEmbeddedInfoModal({
                     {name ? `{{${name}}}` : "新しい埋め込み情報"}
                   </Span>
                 </Flex>
-                <Flex align="center" gap="sm" className="shrink-0">
+                <Flex align="center" gap="md" className="shrink-0">
                   <SwitchInput
                     id={`${id}-required`}
                     label="必須"
@@ -117,21 +117,21 @@ export function TemplateEmbeddedInfoModal({
                   )}
                 </Flex>
               </Flex>
-              <Stack space={3} className="p-3">
+              <Stack gap="sm" className="p-3">
                 <Grid className="grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,11rem)_minmax(0,1fr)]">
-                  <Stack space={1} className="min-w-0">
+                  <Stack gap="2xs" className="min-w-0">
                     <Label htmlFor={`${id}-alias`} className="text-xs">
                       別名(日本語)
                     </Label>
                     <Input id={`${id}-alias`} value={row.alias} readOnly={readOnly} placeholder="例: 締め切り日" onChange={(e) => onUpdateRow(index, { alias: e.target.value })} />
                   </Stack>
-                  <Stack space={1} className="min-w-0">
+                  <Stack gap="2xs" className="min-w-0">
                     <Label htmlFor={`${id}-key`} className="text-xs">
                       鍵(英数字)
                     </Label>
                     <Input id={`${id}-key`} value={row.key} readOnly={readOnly} placeholder="例: deadline" className="font-mono" onChange={(e) => onUpdateRow(index, { key: e.target.value })} />
                   </Stack>
-                  <Stack space={1} className="min-w-0">
+                  <Stack gap="2xs" className="min-w-0">
                     <Label htmlFor={`${id}-type`} className="text-xs">
                       型
                     </Label>
@@ -144,7 +144,7 @@ export function TemplateEmbeddedInfoModal({
                       onChange={(v) => onUpdateRow(index, { type: (v ? String(v) : "line") as MessageEmbeddedType })}
                     />
                   </Stack>
-                  <Stack space={1} className="min-w-0">
+                  <Stack gap="2xs" className="min-w-0">
                     <Label htmlFor={`${id}-default`} className="text-xs">
                       既定値(任意)
                     </Label>
@@ -185,7 +185,7 @@ export function TemplateEmbeddedInfoModal({
                   </Stack>
                 </Grid>
                 {row.type === "select" ? (
-                  <Stack space={2} className="rounded-md border border-border bg-muted/20 p-3" data-slot="template-embedded-info-options">
+                  <Stack gap="xs" className="rounded-md border border-border bg-muted/20 p-3" data-slot="template-embedded-info-options">
                     <Span size="xs" weight="semiBold" tone="muted">
                       選択肢
                     </Span>
@@ -258,7 +258,7 @@ export function TemplateEmbeddedInfoModal({
           </Button>
         )}
         {errors.length > 0 ? (
-          <Stack space={1} data-slot="template-embedded-info-errors">
+          <Stack gap="2xs" data-slot="template-embedded-info-errors">
             {errors.map((message) => (
               <Span key={message} size="sm" tone="destructive">
                 {message}

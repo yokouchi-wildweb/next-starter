@@ -122,7 +122,7 @@ function TemplateModalBody({
   );
 
   const footer = form.system ? null : (
-    <Flex align="center" justify="between" gap="sm" wrap="wrap">
+    <Flex align="center" justify="between" gap="md" wrap="wrap">
       {/* 埋め込み情報は入力欄と同じく、そろうまで出さない(D139)。右の操作は右に寄せたまま */}
       {form.fieldsReady ? embeddedControls : null}
       {locked ? null : (
@@ -160,8 +160,8 @@ function TemplateModalBody({
   );
 
   const textTab = (
-    <Flex direction="column" gap="lg" className="md:flex-row-reverse md:items-start" data-slot="template-editor">
-      <Stack space={4} className="min-w-0 md:w-1/2" data-slot="template-editor-controls">
+    <Flex direction="column" gap="xl" className="md:flex-row-reverse md:items-start" data-slot="template-editor">
+      <Stack gap="md" className="min-w-0 md:w-1/2" data-slot="template-editor-controls">
         {template ? (
           <Flex align="center" justify="between" gap="xs" wrap="wrap" data-slot="template-status-row">
             <Flex align="center" gap="xs" wrap="wrap">
@@ -190,8 +190,8 @@ function TemplateModalBody({
           </Flex>
         ) : null}
 
-        <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="template-meta">
-          <Stack space={1}>
+        <Stack gap="sm" className="rounded-md border border-border bg-card p-4" data-slot="template-meta">
+          <Stack gap="2xs">
             <Label htmlFor="template-name" className="text-sm">
               テンプレート名
             </Label>
@@ -222,7 +222,7 @@ function TemplateModalBody({
             />
           )}
           {form.system ? null : (
-            <Stack space={1}>
+            <Stack gap="2xs">
               <Label htmlFor="template-description" className="text-sm">
                 説明(任意)
               </Label>
@@ -232,7 +232,7 @@ function TemplateModalBody({
         </Stack>
 
         {form.system ? null : (
-          <Stack space={2} className="rounded-md border border-border bg-card p-4" data-slot="template-values">
+          <Stack gap="xs" className="rounded-md border border-border bg-card p-4" data-slot="template-values">
             {form.layoutFields && form.fieldsReady ? (
               <LayoutFields
                 control={form.valuesForm.control}
@@ -250,8 +250,8 @@ function TemplateModalBody({
         )}
       </Stack>
 
-      <Stack space={3} className="min-w-0 md:sticky md:top-0 md:w-1/2" data-slot="template-editor-preview">
-        <Stack space={1}>
+      <Stack gap="sm" className="min-w-0 md:sticky md:top-0 md:w-1/2" data-slot="template-editor-preview">
+        <Stack gap="2xs">
           <Label htmlFor="template-layout" className="text-sm">
             ひな形
           </Label>

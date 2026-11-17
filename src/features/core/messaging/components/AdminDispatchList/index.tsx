@@ -75,29 +75,29 @@ export function AdminDispatchList({ initialFilters = {}, limit, showSendButton =
   const detailParam = useDispatchDetailParam();
 
   return (
-    <Stack space={4}>
+    <Stack gap="md">
       {/* 上の段 = 左に絞り込みの枠(広い画面は横幅の 4/5)、右に「新規送信」(枠の下の端に揃える。狭い画面は枠の下で右寄せ) */}
-      <Flex align="end" gap="md" wrap="wrap" data-slot="dispatch-toolbar">
+      <Flex align="end" gap="lg" wrap="wrap" data-slot="dispatch-toolbar">
         {/* 絞り込みは格子で幅を決める(選んだ値の長さで欄の幅が変わり、後ろの欄が動かないように)。
             広い画面 = 6 欄 + ボタンを 1 行、中 = 3 列、狭い = 2 列 */}
         <Grid
-          gap="sm"
+          gap="xs"
           className="w-full items-end rounded-md border border-border bg-card p-3 grid-cols-2 sm:grid-cols-3 lg:w-4/5 lg:grid-cols-[repeat(6,minmax(0,1fr))_auto]"
           data-slot="dispatch-filters"
         >
-          <Stack space={1} className="min-w-0">
+          <Stack gap="2xs" className="min-w-0">
             <Label htmlFor="dispatch-filter-from" className="text-xs">
               期間(開始)
             </Label>
             <DateInput id="dispatch-filter-from" className="w-full" value={fields.fromDate} onValueChange={fields.setFromDate} />
           </Stack>
-          <Stack space={1} className="min-w-0">
+          <Stack gap="2xs" className="min-w-0">
             <Label htmlFor="dispatch-filter-to" className="text-xs">
               期間(終了)
             </Label>
             <DateInput id="dispatch-filter-to" className="w-full" value={fields.toDate} onValueChange={fields.setToDate} />
           </Stack>
-          <Stack space={1} className="min-w-0">
+          <Stack gap="2xs" className="min-w-0">
             <Label htmlFor="dispatch-filter-kind" className="text-xs">
               種類
             </Label>
@@ -109,7 +109,7 @@ export function AdminDispatchList({ initialFilters = {}, limit, showSendButton =
               placeholder="すべて"
             />
           </Stack>
-          <Stack space={1} className="min-w-0">
+          <Stack gap="2xs" className="min-w-0">
             <Label htmlFor="dispatch-filter-category" className="text-xs">
               カテゴリー
             </Label>
@@ -122,7 +122,7 @@ export function AdminDispatchList({ initialFilters = {}, limit, showSendButton =
               placeholder={fields.kind ? "すべて" : "種類を選択してください"}
             />
           </Stack>
-          <Stack space={1} className="min-w-0">
+          <Stack gap="2xs" className="min-w-0">
             <Label htmlFor="dispatch-filter-channel" className="text-xs">
               送信方法
             </Label>
@@ -134,7 +134,7 @@ export function AdminDispatchList({ initialFilters = {}, limit, showSendButton =
               placeholder="すべて"
             />
           </Stack>
-          <Stack space={1} className="min-w-0">
+          <Stack gap="2xs" className="min-w-0">
             <Label htmlFor="dispatch-filter-status" className="text-xs">
               状態
             </Label>

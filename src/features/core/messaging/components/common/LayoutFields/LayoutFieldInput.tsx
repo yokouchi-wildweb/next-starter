@@ -132,10 +132,10 @@ export function LayoutFieldInput({ id, path, shape, value, onChange, placeholder
       const canAdd = !readOnly && (shape.max === undefined || items.length < shape.max);
       const canRemove = !readOnly && items.length > (shape.min ?? 0);
       return (
-        <Stack space={2} data-slot="layout-field-list">
+        <Stack gap="xs" data-slot="layout-field-list">
           {items.map((item, index) => (
             <Flex key={index} align="start" gap="xs">
-              <Stack space={1} className="min-w-0 flex-1">
+              <Stack gap="2xs" className="min-w-0 flex-1">
                 <LayoutFieldInput
                   id={index === 0 ? id : `${id}-${index}`}
                   path={`${path}.${index}`}
@@ -164,7 +164,7 @@ export function LayoutFieldInput({ id, path, shape, value, onChange, placeholder
             </Span>
           ) : null}
           {readOnly ? null : (
-            <Flex align="center" gap="sm">
+            <Flex align="center" gap="md">
               <Button type="button" size="sm" variant="outline" disabled={!canAdd} onClick={() => onChange([...items, emptyValueOf(shape.of)])}>
                 <Plus className="size-4" />
                 追加
@@ -182,9 +182,9 @@ export function LayoutFieldInput({ id, path, shape, value, onChange, placeholder
     case "group": {
       const record = asRecord(value);
       return (
-        <Stack space={3} className="rounded-md border border-border p-3" data-slot="layout-field-group">
+        <Stack gap="sm" className="rounded-md border border-border p-3" data-slot="layout-field-group">
           {Object.entries(shape.fields).map(([key, field]) => (
-            <Stack key={key} space={1}>
+            <Stack key={key} gap="2xs">
               <Label htmlFor={`${id}-${key}`} className="text-xs">
                 {field.label ?? key}
                 {field.required ? <Span tone="destructive"> *</Span> : null}

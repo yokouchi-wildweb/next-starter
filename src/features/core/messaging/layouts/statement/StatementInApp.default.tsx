@@ -16,7 +16,7 @@ export type StatementInAppProps = {
 export function StatementInApp({ values }: StatementInAppProps) {
   const { addressee, body } = values;
   return (
-    <Stack space={3} data-slot="statement-in-app">
+    <Stack gap="sm" data-slot="statement-in-app">
       {addressee ? <Para size="sm">{addressee}</Para> : null}
       {body ? <Para className="whitespace-pre-wrap break-words">{body}</Para> : null}
     </Stack>

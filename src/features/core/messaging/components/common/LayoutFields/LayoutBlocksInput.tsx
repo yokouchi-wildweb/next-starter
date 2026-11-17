@@ -91,7 +91,7 @@ export function LayoutBlocksInput({ id, path, constraint, value, onChange, readO
   };
 
   return (
-    <Stack space={3} data-slot="layout-field-blocks">
+    <Stack gap="sm" data-slot="layout-field-blocks">
       {blocks.map((block, index) => {
         const kind = asText(block.type) as MessageBlockKind;
         const Icon = BLOCK_ICONS[kind];
@@ -99,7 +99,7 @@ export function LayoutBlocksInput({ id, path, constraint, value, onChange, readO
         const summary = closed ? blockSummary(block) : "";
         // 1 ブロック = 枠つきのカード: 上の帯(番号・種類・ブロックの操作・たたむ)+ 中身。中の行の操作は小さく薄く(RowControls tone item)
         return (
-          <Stack key={index} space={0} className="overflow-hidden rounded-lg border border-border bg-card shadow-xs" data-slot="layout-field-block">
+          <Stack key={index} gap="none" className="overflow-hidden rounded-lg border border-border bg-card shadow-xs" data-slot="layout-field-block">
             <Flex
               align="center"
               justify="between"
@@ -107,7 +107,7 @@ export function LayoutBlocksInput({ id, path, constraint, value, onChange, readO
               className={`bg-muted/50 py-1 pl-3 pr-1 ${closed ? "" : "border-b border-border"}`}
               data-slot="layout-field-block-header"
             >
-              <Flex align="center" gap="sm" className="min-w-0">
+              <Flex align="center" gap="md" className="min-w-0">
                 <Span size="xs" weight="semiBold" tone="muted" className="min-w-6 rounded-md border border-border bg-background px-1.5 py-0.5 text-center tabular-nums">
                   {String(index + 1)}
                 </Span>
@@ -140,7 +140,7 @@ export function LayoutBlocksInput({ id, path, constraint, value, onChange, readO
               </Flex>
             </Flex>
             {closed ? null : (
-              <Stack space={2} className="p-3" data-slot="layout-field-block-body">
+              <Stack gap="xs" className="p-3" data-slot="layout-field-block-body">
                 <BlockBody
                   id={`${id}-${index}`}
                   path={`${path}.${index}`}
@@ -164,7 +164,7 @@ export function LayoutBlocksInput({ id, path, constraint, value, onChange, readO
         // (セレクトで選んでから押す 2 手を 1 手に。種類が多ければ折り返す)。数の決まりは右端に
         <Flex
           align="center"
-          gap="sm"
+          gap="md"
           wrap="wrap"
           className="rounded-lg border border-dashed border-border bg-muted/20 px-3 py-2"
           data-slot="layout-field-blocks-add"
@@ -263,7 +263,7 @@ function BlockBody({ id, path, block, onChange, readOnly, onFocusField }: BlockB
       );
     case "image":
       return (
-        <Stack space={2}>
+        <Stack gap="xs">
           {readOnly ? (
             <Span size="sm" tone="muted" className="break-all">
               {asText(block.src) || "画像なし"}
@@ -278,7 +278,7 @@ function BlockBody({ id, path, block, onChange, readOnly, onFocusField }: BlockB
               }}
             />
           )}
-          <Stack space={1}>
+          <Stack gap="2xs">
             <Label htmlFor={`${id}-alt`} className="text-xs">
               代わりの文(任意)
             </Label>

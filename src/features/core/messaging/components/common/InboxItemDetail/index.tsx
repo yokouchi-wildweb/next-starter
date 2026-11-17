@@ -23,7 +23,7 @@ export type InboxItemDetailProps = {
 
 export function InboxItemDetail({ item, loading = false }: InboxItemDetailProps) {
   return (
-    <Stack space={3}>
+    <Stack gap="sm">
       <Flex align="center" gap="xs">
         <Para size="xs" tone="muted" className="my-0">
           {formatInboxDate(item.publishedAt)}

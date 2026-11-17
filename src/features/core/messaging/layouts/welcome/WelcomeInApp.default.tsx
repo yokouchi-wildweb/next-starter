@@ -18,7 +18,7 @@ export type WelcomeInAppProps = {
 export function WelcomeInApp({ values }: WelcomeInAppProps) {
   const { badge, heading, thanks, guide, button } = values;
   return (
-    <Stack space={3} data-slot="welcome-in-app">
+    <Stack gap="sm" data-slot="welcome-in-app">
       {badge ? (
         <Para size="sm" tone="muted" align="center">
           {badge}

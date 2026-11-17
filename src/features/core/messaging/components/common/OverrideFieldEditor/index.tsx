@@ -92,8 +92,8 @@ export function OverrideFieldEditor({
   const [codeOpen, setCodeOpen] = useState(false);
   const showCode = field.edited || codeOpen;
   return (
-    <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="override-field-editor">
-      <Flex align="center" justify="between" gap="sm" wrap="wrap">
+    <Stack gap="sm" className="rounded-md border border-border bg-card p-4" data-slot="override-field-editor">
+      <Flex align="center" justify="between" gap="md" wrap="wrap">
         <Flex align="center" gap="xs" wrap="wrap">
           <Label htmlFor={id} className="text-sm font-medium">
             {overrideFieldLabel(field)}
@@ -146,7 +146,7 @@ export function OverrideFieldEditor({
       {unknownKeys.length > 0 ? <EmbeddedInfoTags common={[]} own={[]} unknownNames={unknownKeys} showTitle={false} /> : null}
 
       {shape ? (
-        <Stack space={1} data-slot="override-field-code">
+        <Stack gap="2xs" data-slot="override-field-code">
           <Flex align="center" gap="xs">
             <Span size="xs" tone="muted">
               元の文言
@@ -158,7 +158,7 @@ export function OverrideFieldEditor({
             ) : null}
           </Flex>
           {showCode ? (
-            <Stack space={1} className="rounded bg-muted/40 p-2">
+            <Stack gap="2xs" className="rounded bg-muted/40 p-2">
               <LayoutFieldInput id={`${id}-code`} path={field.path} shape={shape} value={(codeValue === undefined ? field.codeValue : codeValue) ?? ""} onChange={NOOP} readOnly />
             </Stack>
           ) : null}

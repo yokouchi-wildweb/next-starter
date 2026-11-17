@@ -18,7 +18,7 @@ export type LinkInAppProps = {
 export function LinkInApp({ values }: LinkInAppProps) {
   const { received, buttonGuide, button } = values;
   return (
-    <Stack space={3} data-slot="link-in-app">
+    <Stack gap="sm" data-slot="link-in-app">
       {received ? <Para className="whitespace-pre-wrap break-words">{received}</Para> : null}
       {buttonGuide ? <Para className="whitespace-pre-wrap break-words">{buttonGuide}</Para> : null}
       {button ? (

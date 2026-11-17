@@ -17,7 +17,7 @@ export type AlertInAppProps = {
 function Notice({ text }: { text: string }) {
   const { first, rest } = splitFirstLine(text);
   return (
-    <Stack space={1}>
+    <Stack gap="2xs">
       <Para weight="bold" className="break-words">
         {first}
       </Para>
@@ -30,7 +30,7 @@ export function AlertInApp({ values }: AlertInAppProps) {
   const { explanation, notYou, ifYou } = values;
   const rows = visibleDetails(values);
   return (
-    <Stack space={3} data-slot="alert-in-app">
+    <Stack gap="sm" data-slot="alert-in-app">
       {explanation ? <Para className="whitespace-pre-wrap break-words">{explanation}</Para> : null}
       {rows.length > 0 ? (
         <Grid className="grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-md bg-muted p-3" data-slot="alert-details">

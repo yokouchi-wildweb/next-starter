@@ -53,7 +53,7 @@ function KeyValueRows({ rows }: { rows: readonly { key: string; value: string }[
 
 function Bullets({ items }: { items: readonly string[] }) {
   return (
-    <Stack space={1} data-slot="inbox-bullets">
+    <Stack gap="2xs" data-slot="inbox-bullets">
       {items.map((item, index) => (
         <Para key={index} className="break-words">
           ・{item}
@@ -133,7 +133,7 @@ function Field({ shape, value }: { shape: MessageFieldShape; value: unknown }): 
       return <KeyValueRows rows={value as { key: string; value: string }[]} />;
     case "blocks":
       return (
-        <Stack space={3}>
+        <Stack gap="sm">
           {(value as MessageBlock[]).map((block, index) => (
             <InboxBlock key={index} block={block} />
           ))}
@@ -146,7 +146,7 @@ function Field({ shape, value }: { shape: MessageFieldShape; value: unknown }): 
         return <Bullets items={items.map(String)} />;
       }
       return (
-        <Stack space={2}>
+        <Stack gap="xs">
           {items.map((item, index) => (
             <Field key={index} shape={shape.of} value={item} />
           ))}
@@ -155,7 +155,7 @@ function Field({ shape, value }: { shape: MessageFieldShape; value: unknown }): 
     }
     case "group":
       return (
-        <Stack space={2}>
+        <Stack gap="xs">
           {Object.entries(shape.fields).map(([key, child]) => (
             <Field key={key} shape={child} value={(value as Record<string, unknown>)[key]} />
           ))}
@@ -166,7 +166,7 @@ function Field({ shape, value }: { shape: MessageFieldShape; value: unknown }): 
 
 export function GenericInAppView({ fields, values }: GenericInAppViewProps) {
   return (
-    <Stack space={3} data-slot="inbox-generic">
+    <Stack gap="sm" data-slot="inbox-generic">
       {Object.entries(fields).map(([key, spec]) => (
         <Field key={key} shape={spec} value={(values as Record<string, unknown>)[key]} />
       ))}

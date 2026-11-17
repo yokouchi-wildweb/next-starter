@@ -27,7 +27,7 @@ export function SendEmbeddedInputs({ declarations, values, onChange, missing = [
     );
   }
   return (
-    <Stack space={3} data-slot="send-embedded-inputs">
+    <Stack gap="sm" data-slot="send-embedded-inputs">
       {declarations.map((declaration) => {
         const id = `send-embedded-${declaration.key}`;
         const value = values[declaration.key] ?? "";
@@ -40,7 +40,7 @@ export function SendEmbeddedInputs({ declarations, values, onChange, missing = [
               : String(declaration.default);
         const placeholder = defaultText !== undefined ? `初期値: ${defaultText}` : undefined;
         return (
-          <Stack key={declaration.key} space={1}>
+          <Stack key={declaration.key} gap="2xs">
             <Label htmlFor={id} className="text-sm">
               {declaration.alias || declaration.key}
               {declaration.required ? <Span tone="destructive"> *</Span> : null}

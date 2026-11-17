@@ -91,7 +91,7 @@ export function LayoutPreview({ layout, channels, channel, onChannelChange, cont
       size="sm"
     >
       <StateTabsContent value={channel} className="pt-3">
-        <Stack space={2} data-slot="layout-preview">
+        <Stack gap="xs" data-slot="layout-preview">
           {loading ? (
             <Flex align="center" gap="xs">
               <Spinner className="size-4" />
@@ -189,7 +189,7 @@ function MarkedCopy({ marked, children }: { marked: boolean; children: ReactNode
 /** 要約の文(お知らせ以外で描き方の無い経路: LINE など文を送る経路はこれがそのまま送る文) */
 function SummaryText({ summary }: { summary: MessageLayoutSummary }) {
   return (
-    <Stack space={1}>
+    <Stack gap="2xs">
       <Span weight="semiBold">{markerText(summary.title)}</Span>
       <Para size="sm" className="my-0 whitespace-pre-wrap">
         {markerText(summary.shortBody ?? summary.body)}

@@ -30,7 +30,7 @@ export function InboxUnreadModal() {
       loading={isDetailLoading}
       showCloseButton={false}
     >
-      <Flex gap="sm" justify="center">
+      <Flex gap="md" justify="center">
         {isLast ? (
           <Button type="button" onClick={close}>
             確認完了

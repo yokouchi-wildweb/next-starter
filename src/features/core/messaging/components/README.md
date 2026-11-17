@@ -22,7 +22,7 @@ core_ui の形: 流れとデータは hook（`hooks/index.ts` から）、部品
 ```tsx
 {channel.kinds.map((frame) =>
   frame.groups.map((group) => (
-    <Stack key={group.key ?? "-"} space={2}>
+    <Stack key={group.key ?? "-"} gap="xs">
       {group.key ? (
         <Flex justify="between" align="center">
           <PreferenceGroupHeading label={group.label} />

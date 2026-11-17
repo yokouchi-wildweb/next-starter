@@ -51,10 +51,10 @@ export function AdminMessageTemplateList() {
   const items = showSystem ? query.items : query.items.filter((template) => !template.system);
 
   return (
-    <Stack space={4}>
-      <Flex align="end" justify="between" gap="sm" wrap="wrap">
-        <Flex align="end" gap="md" wrap="wrap">
-          <Stack space={1}>
+    <Stack gap="md">
+      <Flex align="end" justify="between" gap="md" wrap="wrap">
+        <Flex align="end" gap="lg" wrap="wrap">
+          <Stack gap="2xs">
             <Label htmlFor="template-filter-kind" className="text-xs">
               種別
             </Label>
@@ -93,7 +93,7 @@ export function AdminMessageTemplateList() {
         completedText="すべて表示しました"
       >
         {(items) => (
-          <Stack space={2}>
+          <Stack gap="xs">
             {items.map((template) => (
               <Button
                 key={template.id}
@@ -104,8 +104,8 @@ export function AdminMessageTemplateList() {
                 data-slot="template-row"
               >
                 {/* 行の形は送信一覧・文言の編集と同じ: 1 段目 = 状態・名前 … 右に更新日時 / 2 段目 = 種別 › カテゴリー・説明 */}
-                <Stack space={2}>
-                  <Flex align="center" justify="between" gap="sm" wrap="wrap">
+                <Stack gap="xs">
+                  <Flex align="center" justify="between" gap="md" wrap="wrap">
                     <Flex align="center" gap="xs" wrap="wrap" className="min-w-0">
                       {template.system ? (
                         <SoftBadge variant="secondary" size="sm">
@@ -122,7 +122,7 @@ export function AdminMessageTemplateList() {
                     </Flex>
                     {template.updatedAt ?? template.createdAt ? <RowDateMeta text={when(template.updatedAt ?? template.createdAt)} label="更新日時" /> : null}
                   </Flex>
-                  <Flex align="center" gap="md" wrap="wrap">
+                  <Flex align="center" gap="lg" wrap="wrap">
                     <KindCategoryMeta
                       kindLabel={kindLabelOf(template)}
                       categoryLabel={template.system ? "送信時に選ぶ" : (template.categoryLabel ?? "削除されたカテゴリー")}

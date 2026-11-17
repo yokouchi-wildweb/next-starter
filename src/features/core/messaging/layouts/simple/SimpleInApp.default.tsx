@@ -19,7 +19,7 @@ type SimpleFields = { image?: string; body?: string; link?: { label: string; url
 export function SimpleInApp({ values }: SimpleInAppProps) {
   const { image, body, link } = values as SimpleFields;
   return (
-    <Stack space={3} data-slot="simple-in-app">
+    <Stack gap="sm" data-slot="simple-in-app">
       {image ? (
         <AppImage src={image} alt="" sizes="card" objectFit="contain" className="aspect-video w-full rounded-md bg-muted" />
       ) : null}

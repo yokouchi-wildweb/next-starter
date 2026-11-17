@@ -39,7 +39,7 @@ export function EmbeddedInfoPopover({ common, own, onCopy, unknownNames = [], on
   const [open, setOpen] = useState(false);
   const Chevron = side === "top" ? ChevronUp : ChevronDown;
   return (
-    <Flex align="center" gap="sm" wrap="wrap" className="min-w-0" data-slot="embedded-info-popover">
+    <Flex align="center" gap="md" wrap="wrap" className="min-w-0" data-slot="embedded-info-popover">
       <InfoPopover
         open={open}
         onOpenChange={setOpen}
@@ -59,7 +59,7 @@ export function EmbeddedInfoPopover({ common, own, onCopy, unknownNames = [], on
           </Button>
         }
       >
-        <Stack space={3}>
+        <Stack gap="sm">
           <Span size="xs" tone="muted">
             {EMBEDDED_INFO_USAGE}
           </Span>

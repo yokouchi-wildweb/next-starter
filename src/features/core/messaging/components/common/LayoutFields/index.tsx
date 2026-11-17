@@ -78,7 +78,7 @@ export function LayoutFields<T extends FieldValues>({ control, name, fields, cha
     );
   }
   return (
-    <Stack space={4} data-slot="layout-fields">
+    <Stack gap="md" data-slot="layout-fields">
       {entries.map(([key, spec]) => {
         const fieldPath = (name ? `${name}.${key}` : key) as Path<T>;
         const id = `layout-field-${(name ? `${name}-${key}` : key).replace(/[^a-zA-Z0-9]/g, "-")}`;
@@ -89,7 +89,7 @@ export function LayoutFields<T extends FieldValues>({ control, name, fields, cha
             control={control}
             name={fieldPath}
             render={({ field, fieldState }) => (
-              <Stack space={1} className={cn(unused && "opacity-60")} data-slot="layout-field">
+              <Stack gap="2xs" className={cn(unused && "opacity-60")} data-slot="layout-field">
                 <Flex align="center" gap="xs" wrap="wrap">
                   <Label htmlFor={id} className="text-sm font-medium">
                     {spec.label}

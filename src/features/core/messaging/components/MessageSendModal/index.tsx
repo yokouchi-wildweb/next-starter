@@ -78,7 +78,7 @@ function SettingLabel({ children }: { children: ReactNode }) {
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Stack space={2} className="rounded-md border border-border p-3">
+    <Stack gap="xs" className="rounded-md border border-border p-3">
       <SecTitle as="h3" size="md">
         {title}
       </SecTitle>
@@ -182,7 +182,7 @@ export function MessageSendModal({
       );
     }
     const controls = (
-      <Stack space={4}>
+      <Stack gap="md">
         {m.sameAsNote ? (
           <Para size="sm" tone="muted" className="my-0" data-slot="send-same-as-note">
             {m.sameAsNote}
@@ -239,9 +239,9 @@ export function MessageSendModal({
         </Block>
         <Block title="内容">
           {text.state && text.layout ? (
-            <Stack space={4} data-slot="send-content">
+            <Stack gap="md" data-slot="send-content">
               {m.loadedTemplate ? (
-                <Stack space={2}>
+                <Stack gap="xs">
                   <SecTitle as="h4" size="sm">
                     専用の埋め込み情報
                   </SecTitle>
@@ -311,11 +311,11 @@ export function MessageSendModal({
     );
     // 左右 2 つのペイン(D126、テンプレートのモーダルと同じ形): 左 = プレビュー(md 以上は上に留まる)、右 = 操作。狭い画面は操作が上
     return (
-      <Flex direction="column" gap="lg" className="md:flex-row-reverse md:items-start" data-slot="send-editor">
-        <Stack space={4} className="min-w-0 md:w-1/2" data-slot="send-editor-controls">
+      <Flex direction="column" gap="xl" className="md:flex-row-reverse md:items-start" data-slot="send-editor">
+        <Stack gap="md" className="min-w-0 md:w-1/2" data-slot="send-editor-controls">
           {controls}
         </Stack>
-        <Stack space={3} className="min-w-0 md:sticky md:top-0 md:w-1/2" data-slot="send-editor-preview">
+        <Stack gap="sm" className="min-w-0 md:sticky md:top-0 md:w-1/2" data-slot="send-editor-preview">
           <SecTitle as="h4" size="sm">
             プレビュー
           </SecTitle>
@@ -366,7 +366,7 @@ export function MessageSendModal({
     }
     // 書く段の下の帯: 左 = 埋め込み情報の吹き出し(上に開く。文面を直せる時だけ)、右 = 表示例・テスト送信・確認に進む
     return (
-      <Flex align="center" justify="between" gap="sm" wrap="wrap">
+      <Flex align="center" justify="between" gap="md" wrap="wrap">
         {text.state && !text.locked ? (
           <EmbeddedInfoPopover common={tags.common} own={tags.own} onCopy={(alias) => void tags.copy(alias)} />
         ) : (

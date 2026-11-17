@@ -57,7 +57,7 @@ function NoticeBlock({ block }: { block: MessageBlock }) {
       );
     case "bulletList":
       return (
-        <Stack space={1} data-slot="notice-bullets">
+        <Stack gap="2xs" data-slot="notice-bullets">
           {block.items.map((item, index) => (
             <Para key={index} className="break-words">
               ・{item}
@@ -71,7 +71,7 @@ function NoticeBlock({ block }: { block: MessageBlock }) {
 export function NoticeInApp({ values }: NoticeInAppProps) {
   const blocks = ((values as { blocks?: MessageBlock[] }).blocks ?? []) as MessageBlock[];
   return (
-    <Stack space={3} data-slot="notice-in-app">
+    <Stack gap="sm" data-slot="notice-in-app">
       {blocks.map((block, index) => (
         <NoticeBlock key={index} block={block} />
       ))}

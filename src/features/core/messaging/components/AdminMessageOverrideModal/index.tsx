@@ -62,8 +62,8 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
       height="85vh"
       footer={
         detail ? (
-          <Flex align="center" justify="between" gap="sm" wrap="wrap">
-            <Flex align="center" gap="sm" wrap="wrap" className="min-w-0">
+          <Flex align="center" justify="between" gap="md" wrap="wrap">
+            <Flex align="center" gap="md" wrap="wrap" className="min-w-0">
               <EmbeddedInfoPopover common={editor.embeddedTags.common} own={editor.embeddedTags.own} onCopy={editor.embeddedTags.copy} />
               <ConfirmPopover
                 trigger={
@@ -77,7 +77,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
                 onConfirm={editor.resetAll}
               />
             </Flex>
-            <Flex align="center" gap="sm">
+            <Flex align="center" gap="md">
               {editor.hasDrafts ? (
                 <Span size="sm" tone="muted" data-slot="override-pending-count">
                   未保存の項目 {editor.pendingCount} 件
@@ -112,10 +112,10 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
       ) : (
         // 左右 2 つのペイン(テンプレート・送るモーダルと同じ形): 左 = プレビュー(経路のタブはここだけ、md 以上は上に留まる)、
         // 右 = 通知の名前・種別とカテゴリー(読むだけ)→ 注意 → 欄ごとの編集。狭い画面は右が上
-        <Flex direction="column" gap="lg" className="md:flex-row-reverse md:items-start" data-slot="override-editor">
-          <Stack space={4} className="min-w-0 md:w-1/2" data-slot="override-editor-controls">
-            <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="override-meta">
-              <Stack space={1}>
+        <Flex direction="column" gap="xl" className="md:flex-row-reverse md:items-start" data-slot="override-editor">
+          <Stack gap="md" className="min-w-0 md:w-1/2" data-slot="override-editor-controls">
+            <Stack gap="sm" className="rounded-md border border-border bg-card p-4" data-slot="override-meta">
+              <Stack gap="2xs">
                 <Span size="sm" weight="medium" tone="muted">
                   通知
                 </Span>
@@ -132,7 +132,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
                 disabled
               />
             </Stack>
-            <Stack space={1}>
+            <Stack gap="2xs">
               <Para size="sm" tone="muted" className="my-0">
                 編集した項目だけ、ここで設定した文言で送信します。編集は下の「保存」でまとめて保存します。編集できる項目は通知のひな形の項目すべてです(通知が絞っている時はその項目だけ)。
               </Para>
@@ -143,7 +143,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
               ) : null}
             </Stack>
             {editor.channels.length > 0 ? (
-              <Stack space={3} data-slot="override-fields">
+              <Stack gap="sm" data-slot="override-fields">
                 {editor.activeFields.map((field) => (
                   <OverrideFieldEditor
                     key={field.path}
@@ -165,7 +165,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
             ) : null}
           </Stack>
 
-          <Stack space={3} className="min-w-0 md:sticky md:top-0 md:w-1/2" data-slot="override-preview">
+          <Stack gap="sm" className="min-w-0 md:sticky md:top-0 md:w-1/2" data-slot="override-preview">
             <Span size="sm" weight="semiBold">
               プレビュー
             </Span>

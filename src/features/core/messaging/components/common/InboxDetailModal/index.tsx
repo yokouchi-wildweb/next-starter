@@ -50,7 +50,7 @@ export function InboxDetailModal({
       maxWidth={480}
       maxHeight="70vh"
     >
-      <Stack space={3} data-slot="inbox-detail-modal">
+      <Stack gap="sm" data-slot="inbox-detail-modal">
         <InboxItemDetail item={shown} loading={loading} />
         {children}
       </Stack>

@@ -82,7 +82,7 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
   if (!dispatch) return <DispatchDetailMissing error={error} />;
 
   return (
-    <Stack space={4}>
+    <Stack gap="md">
       <StateTabs tabs={[...DISPATCH_DETAIL_TABS]} value={tab} onValueChange={setTab} ariaLabel="送信の詳細" size="sm">
         <StateTabsContent value={tab} className="pt-3">
           {tab === "summary" ? (
@@ -123,7 +123,7 @@ export function DispatchActions({ detail }: { detail: AdminDispatchDetailState }
   const { dispatch, includeUnknown, setIncludeUnknown, remove, resend, continueDispatch } = detail;
   if (!dispatch) return null;
   return (
-    <Flex align="start" justify="between" gap="sm" wrap="wrap" data-slot="dispatch-actions">
+    <Flex align="start" justify="between" gap="md" wrap="wrap" data-slot="dispatch-actions">
       <DispatchOperations
         operations={dispatch.operations}
         includeUnknown={includeUnknown}
@@ -147,9 +147,9 @@ export function DispatchActions({ detail }: { detail: AdminDispatchDetailState }
 export function DispatchDeliveriesBlock({ detail }: { detail: AdminDispatchDetailState }) {
   const { deliveries, deliveryFilters } = detail;
   return (
-    <Stack space={3} data-slot="dispatch-deliveries">
-      <Flex align="end" gap="sm" wrap="wrap">
-        <Stack space={1}>
+    <Stack gap="sm" data-slot="dispatch-deliveries">
+      <Flex align="end" gap="md" wrap="wrap">
+        <Stack gap="2xs">
           <Label htmlFor="delivery-filter-status" className="text-xs">
             状態
           </Label>
@@ -161,7 +161,7 @@ export function DispatchDeliveriesBlock({ detail }: { detail: AdminDispatchDetai
             placeholder="すべて"
           />
         </Stack>
-        <Stack space={1}>
+        <Stack gap="2xs">
           <Label htmlFor="delivery-filter-channel" className="text-xs">
             送信方法
           </Label>
@@ -190,7 +190,7 @@ export function DispatchDeliveriesBlock({ detail }: { detail: AdminDispatchDetai
         completedText="すべて表示しました"
       >
         {(items) => (
-          <Stack space={0}>
+          <Stack gap="none">
             {items.map((delivery) => (
               <DeliveryRow key={delivery.id} delivery={delivery} />
             ))}
@@ -207,7 +207,7 @@ type DispatchPreviewState = ReturnType<typeof useAdminDispatchDetail>["preview"]
 /** 回の本文のプレビュー(回の中身を残した回) */
 function DispatchContentPreview({ preview }: { preview: NonNullable<DispatchPreviewState> }) {
   return (
-    <Stack space={2} data-slot="dispatch-content-preview">
+    <Stack gap="xs" data-slot="dispatch-content-preview">
       <Span size="sm" tone="muted">
         本文
       </Span>
@@ -255,7 +255,7 @@ export function DispatchSummaryBlock({ dispatch, categoryLabel }: { dispatch: Ad
   const headings = Object.entries(dispatch.headings ?? {});
   const counts = Object.entries(dispatch.channelCounts ?? {});
   return (
-    <Stack space={4} className="rounded-md border border-border bg-card p-4" data-slot="dispatch-summary">
+    <Stack gap="md" className="rounded-md border border-border bg-card p-4" data-slot="dispatch-summary">
       <Flex align="center" gap="xs" wrap="wrap">
         <DispatchStatusBadge status={dispatch.status} deletedAt={dispatch.deletedAt} size="md" />
         {dispatch.isTest ? <Span size="sm" tone="muted">テスト</Span> : null}
@@ -264,7 +264,7 @@ export function DispatchSummaryBlock({ dispatch, categoryLabel }: { dispatch: Ad
         </Span>
       </Flex>
 
-      <Stack space={1}>
+      <Stack gap="2xs">
         <Field label="種類" value={dispatchKindLabel(dispatch.kind) ?? "-"} />
         <Field label="カテゴリー" value={categoryLabel ?? (dispatch.category ? "削除されたカテゴリー" : "-")} />
         {dispatch.sourceLabel ? <Field label="送信元" value={dispatch.sourceLabel} /> : null}
@@ -280,7 +280,7 @@ export function DispatchSummaryBlock({ dispatch, categoryLabel }: { dispatch: Ad
       </Stack>
 
       {headings.length > 0 ? (
-        <Stack space={1}>
+        <Stack gap="2xs">
           {headings.map(([channel, text]) => (
             <Field key={channel} label={`件名・タイトル(${messageChannelLabel(channel)})`} value={text} />
           ))}
@@ -288,7 +288,7 @@ export function DispatchSummaryBlock({ dispatch, categoryLabel }: { dispatch: Ad
       ) : null}
 
       {counts.length > 0 ? (
-        <Stack space={1}>
+        <Stack gap="2xs">
           {counts.map(([channel, c]) => (
             <Field
               key={channel}
@@ -314,11 +314,11 @@ function storedBodyText(value: unknown): string {
 export function DispatchBodyBlock({ dispatch, preview }: { dispatch: AdminDispatchDetailDto; preview: DispatchPreviewState }) {
   const body = dispatch.body ? Object.entries(dispatch.body) : [];
   return (
-    <Stack space={3} data-slot="dispatch-body">
+    <Stack gap="sm" data-slot="dispatch-body">
       {preview ? (
         <DispatchContentPreview preview={preview} />
       ) : body.length > 0 ? (
-        <Stack space={2}>
+        <Stack gap="xs">
           <Span size="sm" tone="muted">
             本文
           </Span>
@@ -327,7 +327,7 @@ export function DispatchBodyBlock({ dispatch, preview }: { dispatch: AdminDispat
           {body
             .filter(([, value]) => !isMessageLayoutContent(value))
             .map(([channel, value]) => (
-              <Stack key={channel} space={1}>
+              <Stack key={channel} gap="2xs">
                 <Span size="sm" tone="muted">
                   {messageChannelLabel(channel)}
                 </Span>
@@ -355,7 +355,7 @@ export function DispatchBodyBlock({ dispatch, preview }: { dispatch: AdminDispat
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <Flex gap="sm" wrap="wrap">
+    <Flex gap="md" wrap="wrap">
       <Span size="sm" tone="muted" className="min-w-28">
         {label}
       </Span>

@@ -52,7 +52,7 @@ export function InboxLayoutView({ showTitle = false, ...props }: InboxLayoutView
   const body = <InboxLayoutBody {...props} />;
   if (!showTitle || !props.summary.title) return body;
   return (
-    <Stack space={3} data-slot="inbox-layout-titled">
+    <Stack gap="sm" data-slot="inbox-layout-titled">
       <SecTitle as="h3" size="lg" data-slot="inbox-layout-title">
         {props.summary.title}
       </SecTitle>
@@ -67,7 +67,7 @@ function InboxLayoutBody({ layout, values, fields, summary, unavailableText = "ã
     if (renderer) {
       const Component = renderer.Component as (props: { values: MessageLayoutValues; summary: MessageLayoutSummary }) => ReactNode;
       return (
-        <Stack space={3} data-slot="inbox-layout">
+        <Stack gap="sm" data-slot="inbox-layout">
           <Component values={values as MessageLayoutValues} summary={summary} />
         </Stack>
       );

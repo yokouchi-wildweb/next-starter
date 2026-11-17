@@ -47,7 +47,7 @@ export function AdminMessageOverrideList() {
   }
 
   return (
-    <Stack space={2}>
+    <Stack gap="xs">
       {items.map((item) => (
         <Button
           key={item.key}
@@ -58,7 +58,7 @@ export function AdminMessageOverrideList() {
           data-slot="override-message-row"
         >
           {/* 行の形は送信一覧・テンプレートと同じ: 1 段目 = 名前・印の札 / 2 段目 = 種別 › カテゴリー・送信方法・編集できる項目 */}
-          <Stack space={2}>
+          <Stack gap="xs">
             <Flex align="center" gap="xs" wrap="wrap">
               <Span weight="semiBold">{item.label}</Span>
               {item.editedCount > 0 ? (
@@ -77,7 +77,7 @@ export function AdminMessageOverrideList() {
                 </SoftBadge>
               ) : null}
             </Flex>
-            <Flex align="center" gap="md" wrap="wrap">
+            <Flex align="center" gap="lg" wrap="wrap">
               <KindCategoryMeta kindLabel={dispatchKindLabel(item.kind)} categoryLabel={item.categoryLabel} />
               <ChannelsMeta labels={item.channels.map((channel) => channel.label)} />
               <RowMetaItem icon={PenLine} label="編集できる項目">

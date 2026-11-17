@@ -50,10 +50,10 @@ export function TemplateVersionList({ versions, currentVersion, layouts = [] }: 
   const shown = versions.find((version) => version.version === opened) ?? null;
   const shownFields = shown ? (layouts.find((item) => item.key === shown.layout)?.fields ?? {}) : {};
   return (
-    <Stack space={2} data-slot="template-version-list">
+    <Stack gap="xs" data-slot="template-version-list">
       {versions.map((version) => (
-        <Flex key={version.version} align="center" justify="between" gap="sm" wrap="wrap" className="border-b border-border py-1">
-          <Flex align="center" gap="sm" wrap="wrap">
+        <Flex key={version.version} align="center" justify="between" gap="md" wrap="wrap" className="border-b border-border py-1">
+          <Flex align="center" gap="md" wrap="wrap">
             <Span size="sm" weight="semiBold">
               v{version.version}
               {version.version === currentVersion ? "(公開中)" : ""}
@@ -76,13 +76,13 @@ export function TemplateVersionList({ versions, currentVersion, layouts = [] }: 
         </Flex>
       ))}
       {shown ? (
-        <Stack space={3} className="rounded bg-muted/40 p-3">
+        <Stack gap="sm" className="rounded bg-muted/40 p-3">
           <Span size="sm" tone="muted">
             v{shown.version} の内容
           </Span>
-          <Stack space={1} data-slot="template-version-values">
+          <Stack gap="2xs" data-slot="template-version-values">
             {Object.entries(shown.values).map(([key, value]) => (
-              <Stack key={key} space={0}>
+              <Stack key={key} gap="none">
                 <Span size="xs" tone="muted">
                   {shownFields[key]?.label ?? key}
                 </Span>
@@ -93,7 +93,7 @@ export function TemplateVersionList({ versions, currentVersion, layouts = [] }: 
             ))}
           </Stack>
           {shown.embedded.length > 0 ? (
-            <Stack space={1}>
+            <Stack gap="2xs">
               <Span size="sm" tone="muted">
                 埋め込み情報
               </Span>
