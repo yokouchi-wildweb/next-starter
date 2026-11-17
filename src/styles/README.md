@@ -103,7 +103,7 @@ src/styles/
     ├── palette.css         upstream  :root / .dark の色と appearance の影の既定値(値だけ)
     ├── typography.css      upstream  書体スタックの既定値(--font-geist-sans/mono、loaded 変数へフォールバック参照)
     ├── config.css          upstream  レイアウト系トークン(幅・管理画面余白・枠の寸法)
-    ├── z-layer.css         upstream  z-index トークン
+    ├── z-layer.css         upstream  z-index トークン(層の名の TS の側 = src/lib/zLayer。名を足す・消すときは両方。zLayer.test.ts が突き合わせる)
     ├── gradient.css        upstream  pnpm generate styles で生成(上流の既定 src/lib/gradient/tokens.base.ts と角度ユーティリティ。fork でも上流と同じ中身)
     ├── frame.css           upstream  枠の部位を隠す・fill の規則(手書き。外枠の属性 data-frame-hide / data-frame-fill を読む)
     ├── animations.css / base.css / components.css / utilities.css / admin.css   upstream

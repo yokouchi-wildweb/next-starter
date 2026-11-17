@@ -76,3 +76,4 @@
 - src/lib/viewport — ビューポートの実寸(useViewportSize)・向きと高さ不足(useViewportOrientation)・メディアクエリ(useMediaQuery)、実寸と --viewport-height を書く唯一の ViewportHeightWatcher(root layout)
 - src/lib/webAudio — Web Audio の共有エンジン(効果音・ループ SE・BGM・デコードキャッシュ)
 - src/lib/x — X(Twitter)API(認証・投稿・メディア・Webhook 検証)
+- src/lib/zLayer — 重なりの層の名(Z_LAYER_NAMES・型 ZLayerName・class を引く zLayerClass)。値と class は src/styles/core/z-layer.css、部品の layer の指定と fork の演出は名をここから選ぶ

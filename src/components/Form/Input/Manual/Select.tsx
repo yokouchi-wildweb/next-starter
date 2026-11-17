@@ -10,6 +10,7 @@ import {
 import type { FormControlA11yProps } from "@/components/Form/Field/types";
 import { type Options } from "@/components/Form/types";
 import { cn } from "@/lib/cn";
+import { zLayerClass } from "@/lib/zLayer";
 
 import { inputVariants, type InputSize } from "./Input";
 
@@ -49,7 +50,7 @@ export type SelectInputProps = {
   className?: string;
   /**
    * SelectContent に適用するクラス名（z-index調整などに使用）。
-   * モーダル内で使用する場合は "surface-ui-layer" などを指定。
+   * モーダル内で使用する場合は zLayerClass("surface-ui")(@/lib/zLayer)などを指定。
    */
   contentClassName?: string;
   /** 無効化 */
@@ -124,7 +125,7 @@ export function SelectInput({
       >
         <SelectValue placeholder={placeholder ?? "選択してください"} />
       </SelectTrigger>
-      <SelectContent className={cn("surface-ui-layer", contentClassName)}>
+      <SelectContent className={cn(zLayerClass("surface-ui"), contentClassName)}>
         {includeNullOption ? (
           <SelectItem value={CLEAR_VALUE}>{nullOptionLabel}</SelectItem>
         ) : showPlaceholderOption ? (

@@ -2,5 +2,9 @@
   "exports": {
     ".": "./index.ts"
   },
-  "libs": ["cn", "isClient"]
+  "libs": [
+    "cn",
+    "isClient",
+    "zLayer"
+  ]
 }

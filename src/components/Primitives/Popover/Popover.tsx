@@ -9,24 +9,11 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useIsNestedInDialog } from "@/components/Primitives/Dialog";
 import { isDialogFocusRestoration } from "./isDialogFocusRestoration";
+import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
 
 // レイヤータイプ
-export type PopoverLayer =
-  | "overlay"
-  | "surface-ui"
-  | "alert"
-  | "super"
-  | "ultimate"
-  | "apex";
-
-const LAYER_CLASS: Record<PopoverLayer, string> = {
-  overlay: "overlay-layer",
-  "surface-ui": "surface-ui-layer",
-  alert: "alert-layer",
-  super: "super-layer",
-  ultimate: "ultimate-layer",
-  apex: "apex-layer",
-};
+/** 層(層の名 @/lib/zLayer のうち受ける範囲) */
+export type PopoverLayer = Extract<ZLayerName, "overlay" | "surface-ui" | "alert" | "super" | "ultimate" | "apex">;
 
 // サイズプリセット
 export type PopoverSize = "sm" | "md" | "lg" | "xl" | "auto";
@@ -290,7 +277,7 @@ function PopoverContent({
         "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         // サイズとレイヤー
         SIZE_CLASS[size],
-        LAYER_CLASS[layer],
+        zLayerClass(layer),
         className
       )}
       {...props}

@@ -6,17 +6,11 @@ import * as React from "react";
 import { HoverCardArrow, HoverCardContent, HoverCardPortal, HoverCardRoot, HoverCardTrigger } from "@/components/Primitives/HoverCard";
 
 import { cn } from "@/lib/cn";
+import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
 
 // レイヤータイプ
-export type HoverCardLayer = "overlay" | "alert" | "super" | "ultimate" | "apex";
-
-const LAYER_CLASS: Record<HoverCardLayer, string> = {
-  overlay: "overlay-layer",
-  alert: "alert-layer",
-  super: "super-layer",
-  ultimate: "ultimate-layer",
-  apex: "apex-layer",
-};
+/** 層(層の名 @/lib/zLayer のうち受ける範囲) */
+export type HoverCardLayer = Extract<ZLayerName, "overlay" | "alert" | "super" | "ultimate" | "apex">;
 
 // サイズプリセット
 export type HoverCardSize = "sm" | "md" | "lg" | "xl" | "auto";
@@ -133,7 +127,7 @@ export function HoverCard({
             "data-[side=right]:slide-in-from-left-2",
             "data-[side=top]:slide-in-from-bottom-2",
             SIZE_CLASS[size],
-            LAYER_CLASS[layer],
+            zLayerClass(layer),
             className
           )}
         >

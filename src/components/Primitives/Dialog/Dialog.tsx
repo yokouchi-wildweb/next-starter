@@ -18,27 +18,13 @@ import {
   DialogDescription,
 } from "./DialogBase";
 import { cn } from "@/lib/cn";
+import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
 
-export type DialogOverlayLayer =
-  | "backdrop"
-  | "modal"
-  | "overlay"
-  | "alert"
-  | "super"
-  | "ultimate"
-  | "apex";
+/** 背景(覆い)の層(層の名 @/lib/zLayer のうち受ける範囲) */
+export type DialogOverlayLayer = Extract<ZLayerName, "backdrop" | "modal" | "overlay" | "alert" | "super" | "ultimate" | "apex">;
 
-export type DialogContentLayer = "modal" | "alert" | "super" | "ultimate" | "apex";
-
-const OVERLAY_LAYER_CLASS: Record<DialogOverlayLayer, string> = {
-  backdrop: "backdrop-layer",
-  modal: "modal-layer",
-  overlay: "overlay-layer",
-  alert: "alert-layer",
-  super: "super-layer",
-  ultimate: "ultimate-layer",
-  apex: "apex-layer",
-};
+/** 本体の層 */
+export type DialogContentLayer = Extract<ZLayerName, "modal" | "alert" | "super" | "ultimate" | "apex">;
 
 /** 「Dialog（DialogContent）の React ツリー内に居るか」を子孫へ伝える context。
  * Popover 等がポータル可否を決めるのに使う（Radix Dialog の react-remove-scroll は
@@ -55,14 +41,6 @@ export function useIsNestedInDialog(): boolean {
 /** title 省略時に Dialog / Modal が sr-only で描画する既定のアクセシブルネーム。
  * Radix Dialog は DialogTitle 必須（無いとコンソールエラー + role="dialog" が無名になる）。 */
 export const FALLBACK_DIALOG_TITLE = "ダイアログ";
-
-const CONTENT_LAYER_CLASS: Record<DialogContentLayer, string> = {
-  modal: "modal-layer",
-  alert: "alert-layer",
-  super: "super-layer",
-  ultimate: "ultimate-layer",
-  apex: "apex-layer",
-};
 
 type DialogOverlayProps = Omit<ComponentProps<typeof BaseDialogOverlay>, "layerClassName"> & {
   layer?: DialogOverlayLayer;
@@ -93,7 +71,7 @@ export function DialogOverlay({
   return (
     <BaseDialogOverlay
       className={className}
-      layerClassName={cn(OVERLAY_LAYER_CLASS[layer], layerClassName)}
+      layerClassName={cn(zLayerClass(layer), layerClassName)}
       {...props}
     />
   );
@@ -136,8 +114,8 @@ export function DialogContent({
     <BaseDialogContent
       className={cn("[&>*]:min-w-0", className)}
       showCloseButton={false}
-      layerClassName={cn(CONTENT_LAYER_CLASS[layer], layerClassName)}
-      overlayLayerClassName={cn(OVERLAY_LAYER_CLASS[overlayLayer], overlayLayerClassName)}
+      layerClassName={cn(zLayerClass(layer), layerClassName)}
+      overlayLayerClassName={cn(zLayerClass(overlayLayer), overlayLayerClassName)}
       style={contentStyle}
       {...props}
     >

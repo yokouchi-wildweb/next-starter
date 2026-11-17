@@ -2,6 +2,8 @@
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
     "paths": {
+      "@/lib/zLayer": ["../zLayer"],
+      "@/lib/zLayer/*": ["../zLayer/*"],
       "@/lib/appEnv": ["../appEnv"],
       "@/lib/appEnv/*": ["../appEnv/*"],
       "@/lib/cn": ["../cn"],

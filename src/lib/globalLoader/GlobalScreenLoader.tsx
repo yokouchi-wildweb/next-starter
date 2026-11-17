@@ -5,6 +5,7 @@
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
+import { zLayerClass } from "@/lib/zLayer";
 import { useIsClient } from "@/lib/isClient";
 
 import { LOADER_SPINNER_ICONS } from "./spinner";
@@ -42,7 +43,7 @@ export function GlobalScreenLoader() {
     <div
       className={cn(
         "flex items-center justify-center bg-background/80 backdrop-blur-sm",
-        "fixed inset-0 overlay-layer",
+        `fixed inset-0 ${zLayerClass("overlay")}`,
         className,
       )}
       style={zIndex ? { zIndex } : undefined}

@@ -5,27 +5,29 @@
 import { useEffect } from "react";
 import { useDisableScroll } from "@/hooks/useDisableScroll";
 import { cn } from "@/lib/cn";
+import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
 
-const LAYER_CLASS_MAP = {
-  background: "background-layer",
-  base: "base-layer",
-  content: "content-layer",
-  belowHeader: "below-header-layer",
-  header: "header-layer",
-  aboveHeader: "above-header-layer",
-  forefrontLow: "forefront-low-layer",
-  forefront: "forefront-layer",
-  forefrontTop: "forefront-top-layer",
-  backdrop: "backdrop-layer",
-  modal: "modal-layer",
-  overlay: "overlay-layer",
-  alert: "alert-layer",
-  super: "super-layer",
-  ultimate: "ultimate-layer",
-  apex: "apex-layer",
-} as const;
+// 受ける名は camelCase のまま(公開の props)。層の名(@/lib/zLayer)へ写して class を引く
+const LAYER_NAME_MAP = {
+  background: "background",
+  base: "base",
+  content: "content",
+  belowHeader: "below-header",
+  header: "header",
+  aboveHeader: "above-header",
+  forefrontLow: "forefront-low",
+  forefront: "forefront",
+  forefrontTop: "forefront-top",
+  backdrop: "backdrop",
+  modal: "modal",
+  overlay: "overlay",
+  alert: "alert",
+  super: "super",
+  ultimate: "ultimate",
+  apex: "apex",
+} as const satisfies Record<string, ZLayerName>;
 
-export type FullScreenLayer = keyof typeof LAYER_CLASS_MAP;
+export type FullScreenLayer = keyof typeof LAYER_NAME_MAP;
 
 type Props = {
   className?: string;
@@ -73,7 +75,7 @@ export default function FullScreen({
       data-component="FullScreen"
       className={cn(
         "fixed inset-0",
-        LAYER_CLASS_MAP[layer],
+        zLayerClass(LAYER_NAME_MAP[layer]),
         className,
       )}
       style={{

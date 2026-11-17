@@ -19,6 +19,7 @@ import type { UserRoleType } from "@/features/core/user/constants/role";
 import { getAllRoleOptions, formatUserRoleLabel, hasRoleProfile } from "@/features/core/user/utils/roleHelpers";
 import { useChangeUserRole } from "@/features/core/user/hooks/useChangeUserRole";
 import { UserInfoHeader } from "./UserInfoHeader";
+import { zLayerClass } from "@/lib/zLayer";
 
 type Props = {
   user: User;
@@ -134,7 +135,7 @@ export function RoleTabContent({ user, onClose }: Props) {
               onChange={(value) => setSelectedRole(String(value ?? ""))}
               options={roleOptions}
               placeholder="ロールを選択"
-              contentClassName="surface-ui-layer"
+              contentClassName={zLayerClass("surface-ui")}
             />
           </div>
           <div>

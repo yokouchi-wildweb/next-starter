@@ -2,5 +2,12 @@
   "exports": {
     ".": "./index.ts"
   },
-  "libs": ["appEnv", "cn", "defineConfig", "frameDims", "isClient"]
+  "libs": [
+    "appEnv",
+    "cn",
+    "defineConfig",
+    "frameDims",
+    "isClient",
+    "zLayer"
+  ]
 }

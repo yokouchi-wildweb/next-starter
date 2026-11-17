@@ -13,6 +13,7 @@ import { toastConfig } from "../config";
 import { TOAST_EXIT_ANIMATION_DURATION } from "../constants";
 import type { ToastPosition, ToastLayer, Toast } from "../types";
 import { ToastItem } from "./ToastItem";
+import { zLayerClass } from "@/lib/zLayer";
 
 const POSITION_CLASSES: Record<ToastPosition, string> = {
   center: "inset-0 flex items-center justify-center",
@@ -42,13 +43,6 @@ const EXIT_ANIMATION_CLASSES: Record<ToastPosition, string> = {
   "bottom-left": "animate-out slide-out-to-left fade-out duration-150 fill-forwards",
   "bottom-center": "animate-out slide-out-to-bottom fade-out duration-150 fill-forwards",
   "bottom-right": "animate-out slide-out-to-right fade-out duration-150 fill-forwards",
-};
-
-const LAYER_CLASSES: Record<ToastLayer, string> = {
-  alert: "alert-layer",
-  super: "super-layer",
-  ultimate: "ultimate-layer",
-  apex: "apex-layer",
 };
 
 /**
@@ -130,7 +124,7 @@ export function GlobalToast() {
   const animationClass = isExiting
     ? EXIT_ANIMATION_CLASSES[displayedToast.position]
     : ENTER_ANIMATION_CLASSES[displayedToast.position];
-  const layerClass = LAYER_CLASSES[displayedToast.layer];
+  const layerClass = zLayerClass(displayedToast.layer);
 
   const content = isCenter ? (
     <div

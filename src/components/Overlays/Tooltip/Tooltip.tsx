@@ -6,19 +6,13 @@ import * as React from "react";
 import { TooltipArrow, TooltipContent, TooltipPortal, TooltipProvider, TooltipRoot, TooltipTrigger } from "@/components/Primitives/Tooltip";
 
 import { cn } from "@/lib/cn";
+import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
 
 import { useIsInsideTooltipProvider } from "./Provider";
 
 // レイヤータイプ
-export type TooltipLayer = "overlay" | "alert" | "super" | "ultimate" | "apex";
-
-const LAYER_CLASS: Record<TooltipLayer, string> = {
-  overlay: "overlay-layer",
-  alert: "alert-layer",
-  super: "super-layer",
-  ultimate: "ultimate-layer",
-  apex: "apex-layer",
-};
+/** 層(層の名 @/lib/zLayer のうち受ける範囲) */
+export type TooltipLayer = Extract<ZLayerName, "overlay" | "alert" | "super" | "ultimate" | "apex">;
 
 export type TooltipProps = {
   /** ツールチップの内容 */
@@ -123,7 +117,7 @@ export function Tooltip({
               "data-[side=left]:slide-in-from-right-2",
               "data-[side=right]:slide-in-from-left-2",
               "data-[side=top]:slide-in-from-bottom-2",
-              LAYER_CLASS[layer],
+              zLayerClass(layer),
               className
             )}
           >
