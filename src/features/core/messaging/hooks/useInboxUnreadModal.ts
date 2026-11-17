@@ -9,6 +9,7 @@
 //   モーダルを出す住所どうしを移ったら取り直す(最初の 1 回は useInboxItems の初回の取得)
 // - このタブで確かめていない未読があれば古い順に並べて開く。確かめた id は sessionStorage(タブの間だけ)
 // - 見せた行はその場で確かめた印を付けて既読にする(既読の失敗は飛ばす: 未読のまま残り、次の取り直しで出る)
+// - detail = 今の行の詳しい表示(useInboxItemDetail。モーダルは一覧の詳細と同じ InboxDetailModal で描く)
 // - next = 次の行 / skip = 全部既読にして全部に確かめた印を付けて閉じる(既読の失敗でも閉じる。印は付けない)/ close = 閉じる
 
 import { usePathname } from "next/navigation";
@@ -20,6 +21,7 @@ import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { messagingConfig } from "../config";
 import type { InboxItemDto } from "../services/client/inboxClient";
 
+import { useInboxItemDetail } from "./useInboxItemDetail";
 import { useInboxItems } from "./useInboxItems";
 import { useMarkAllInboxRead } from "./useMarkAllInboxRead";
 import { useMarkInboxItemRead } from "./useMarkInboxItemRead";
@@ -107,6 +109,8 @@ export function useInboxUnreadModal(options: UseInboxUnreadModalOptions = {}) {
   }, [active, isLoading, items]);
 
   const current = queue[index] ?? null;
+  // 今の行の詳しい表示(ひな形・欄の中身。一覧の詳細と同じ表示にする、D120)
+  const { detail, isLoading: isDetailLoading } = useInboxItemDetail(open && current ? current.id : null);
 
   useEffect(() => {
     if (!open || !current) return;
@@ -134,6 +138,9 @@ export function useInboxUnreadModal(options: UseInboxUnreadModalOptions = {}) {
     /** 開いているか(current があって open) */
     open: open && current !== null,
     current,
+    /** 今の行の詳しい表示(取れるまで null) */
+    detail,
+    isDetailLoading,
     index,
     total: queue.length,
     isLast: index >= queue.length - 1,

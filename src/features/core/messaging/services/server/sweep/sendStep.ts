@@ -193,7 +193,7 @@ export async function sendClaimed(
         recipientVars: (row.vars ?? undefined) as Record<string, unknown> | undefined,
         user: row.user_id ? (users.get(row.user_id) ?? null) : null,
       });
-      // お知らせの行は記録の段の決まりで欄の中身を残す・外す(buildRowContent、指令 60)
+      // お知らせの行は記録の段に依らず欄の中身を残し、秘密の欄は空にする(buildRowContent、D120)
       const { content } = await buildRowContent(deps, resolved, row.channel, values, policy);
       bodies.set(row.id, content);
       prepared.push({

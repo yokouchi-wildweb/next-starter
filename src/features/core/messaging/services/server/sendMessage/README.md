@@ -36,6 +36,7 @@
 
 - 回に残す物: 出どころ（コードの連絡の鍵 `message_key` / システムテンプレートの鍵 `system_template` / DB のテンプレートの `template_id`・`template_version`）・直した印（`template_edited`）・カテゴリー・種別・経路・ひな形の鍵と送った版（`layout`・`layout_version`）・欄の中身（`values`、差し込む前の字）
 - `values` の残し方は `vars` と同じ: record `vars` / `full` は残す、`meta` は送り残しの間だけ（回を閉じる時に消す）、required と秘密を差し込む連絡は残さない
+- お知らせの行（`message_inbox_items`）は記録ではなく届けた中身: 記録の段・required に依らずひな形の鍵・版・欄の中身を残す（秘密の欄は空の字で差し込む、D120・D130）。書き手 = その場の行・cron の送る行・間引き（どれも `buildRowContent`）と cron の共有の行
 - 組み直し（cron の送る行・全員宛ての共有のお知らせの行・失敗の再送・回の詳細の「同じ内容で送る」）は回の物と `vars` だけで描く（`resolvedOfDispatch`）。定義・テンプレート・上書きは引き直さないので、送った後に直しても予約・後回しの中身は変わらない
   - 送った版から今の版へひな形の改版の対応（`revisions[版]`）で読み替える。段の対応が無い・今より新しい版 = `layout_unreadable`、ひな形が無い = `layout_missing`、欄の中身が無い = `values_missing`（cron は配達を `failed`）
   - 描かない振る舞い（間引き `throttle`・required・vars の zod の秘密の印）だけはコードの定義（`message_key` の生成の一覧の定義 + fork の上書き）から読む。定義が無ければ間引かない
