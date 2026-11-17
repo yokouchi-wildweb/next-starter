@@ -4,7 +4,7 @@
 
 "use client";
 
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/Form/Button";
 import { Input } from "@/components/Form/Input/Manual";
@@ -100,13 +100,14 @@ export function LineListInput({ id, path, value, onChange, min = 0, readOnly, on
               canRemove={items.length > min}
               onMove={(direction) => onChange(moveItem(items, index, direction))}
               onRemove={() => onChange(removeItem(items, index))}
+              tone="item"
             />
           )}
         </Flex>
       ))}
       {readOnly ? null : (
         <Flex>
-          <Button type="button" size="sm" variant="outline" onClick={() => onChange([...items, ""])}>
+          <Button type="button" size="sm" variant="ghost" className="text-muted-foreground" onClick={() => onChange([...items, ""])}>
             <Plus className="size-4" />
             追加
           </Button>
@@ -122,20 +123,36 @@ type RowControlsProps = {
   canRemove: boolean;
   onMove: (direction: -1 | 1) => void;
   onRemove: () => void;
+  /**
+   * block = ブロックや欄の並びの 1 つ(見出しの帯に置く、ふつうの大きさ、削除はごみ箱)/
+   * item = ブロックの中の行(行の右に置く、小さく薄い、削除は ×)。外と中の操作を見た目で分ける @default "block"
+   */
+  tone?: "block" | "item";
 };
 
 /** 並びの 1 行の操作(上へ・下へ・削除) */
-export function RowControls({ index, count, canRemove, onMove, onRemove }: RowControlsProps) {
+export function RowControls({ index, count, canRemove, onMove, onRemove, tone = "block" }: RowControlsProps) {
+  const item = tone === "item";
+  const buttonClass = item ? "size-7 text-muted-foreground hover:text-foreground" : "size-8";
+  const iconClass = item ? "size-3.5" : "size-4";
   return (
-    <Flex align="center" gap="xs" className="shrink-0">
-      <Button type="button" size="icon" variant="ghost" aria-label="上へ" disabled={index === 0} onClick={() => onMove(-1)}>
-        <ArrowUp className="size-4" />
+    <Flex align="center" gap="none" className="shrink-0" data-slot={item ? "row-controls-item" : "row-controls-block"}>
+      <Button type="button" size="icon" variant="ghost" className={buttonClass} aria-label="上へ" disabled={index === 0} onClick={() => onMove(-1)}>
+        <ArrowUp className={iconClass} />
       </Button>
-      <Button type="button" size="icon" variant="ghost" aria-label="下へ" disabled={index === count - 1} onClick={() => onMove(1)}>
-        <ArrowDown className="size-4" />
+      <Button type="button" size="icon" variant="ghost" className={buttonClass} aria-label="下へ" disabled={index === count - 1} onClick={() => onMove(1)}>
+        <ArrowDown className={iconClass} />
       </Button>
-      <Button type="button" size="icon" variant="ghost" aria-label="削除" disabled={!canRemove} onClick={onRemove}>
-        <Trash2 className="size-4" />
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className={`${buttonClass} hover:bg-destructive/10 hover:text-destructive-text`}
+        aria-label="削除"
+        disabled={!canRemove}
+        onClick={onRemove}
+      >
+        {item ? <X className={iconClass} /> : <Trash2 className={iconClass} />}
       </Button>
     </Flex>
   );
@@ -184,6 +201,7 @@ export function KeyValueRowsInput({ id, path, value, onChange, readOnly, onFocus
               canRemove
               onMove={(direction) => onChange(moveItem(rows, index, direction))}
               onRemove={() => onChange(removeItem(rows, index))}
+              tone="item"
             />
           )}
         </Flex>
@@ -195,7 +213,7 @@ export function KeyValueRowsInput({ id, path, value, onChange, readOnly, onFocus
       ) : null}
       {readOnly ? null : (
         <Flex>
-          <Button type="button" size="sm" variant="outline" onClick={() => onChange([...rows, { key: "", value: "" }])}>
+          <Button type="button" size="sm" variant="ghost" className="text-muted-foreground" onClick={() => onChange([...rows, { key: "", value: "" }])}>
             <Plus className="size-4" />
             行を追加
           </Button>
