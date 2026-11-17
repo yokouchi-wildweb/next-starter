@@ -4,14 +4,22 @@
 //
 // 管理: 送った回 1 件の画面の流れ(AdminDispatchDetail はこれを呼んで部品を並べるだけ。CLAUDE.md core_ui)。
 // - 回 1 件(useAdminDispatch)と配達の一覧(状態・経路で絞る、useAdminDispatchDeliveries)
+// - 回のプレビュー(回の中身 content がある回だけ。GET dispatches/[id]/preview: 回のひな形と欄の中身を回の値で差し込み、
+//   メールは送った描き方の HTML、お知らせはひな形の描き方の材料)。経路のタブの値と選んだ経路の描く物を部品 LayoutPreview の形で返す
 // - 回の操作: 削除(D88)・失敗分を再送(includeUnknown = 届いたか分からない分も)・続きを送る
 //   どれも成功したら配達を取り直して知らせ(toast)を出し、失敗は知らせだけ(Promise は ConfirmPopover の loading 用に返す)
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import useSWR from "swr";
 
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 
+import { getAdminDispatchPreview, type AdminDispatchPreview } from "../services/client/adminMessagingClient";
+
+import type { LayoutPreviewContent } from "../components/common/LayoutPreview";
+
+import { adminDispatchKey } from "./adminMessagingKeys";
 import { useAdminDispatch } from "./useAdminDispatch";
 import { useAdminDispatchDeliveries } from "./useAdminDispatchDeliveries";
 import { useContinueDispatch } from "./useContinueDispatch";
@@ -28,6 +36,29 @@ export type UseAdminDispatchDetailOptions = {
 export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDispatchDetailOptions = {}) {
   const { showToast } = useToast();
   const { dispatch, error, isLoading } = useAdminDispatch(dispatchId);
+  // 回の中身(ひな形と欄の中身)を残した回だけプレビューを取る
+  const hasContent = Boolean(dispatch?.content);
+  const previewQuery = useSWR<AdminDispatchPreview>(hasContent ? `${adminDispatchKey(dispatchId)}/preview` : null, () =>
+    getAdminDispatchPreview(dispatchId),
+  );
+  const previewData = previewQuery.data;
+  const [previewChannelState, setPreviewChannel] = useState<string | null>(null);
+  const previewChannels = useMemo(() => (previewData?.channels ?? []).map((channel) => channel.key), [previewData]);
+  const previewChannel =
+    previewChannelState && previewChannels.includes(previewChannelState) ? previewChannelState : (previewChannels[0] ?? null);
+  /** 選んだ経路の描く物(部品 LayoutPreview の content) */
+  const previewContent = useMemo<LayoutPreviewContent | null>(() => {
+    const found = previewData?.channels.find((channel) => channel.key === previewChannel);
+    if (!found) return null;
+    return {
+      html: found.html,
+      text: found.text,
+      title: found.summary?.title ?? null,
+      values: found.values,
+      summary: found.summary,
+      cannotRender: found.cannotRender,
+    };
+  }, [previewData, previewChannel]);
   const [deliveryStatus, setDeliveryStatus] = useState("");
   const [deliveryChannel, setDeliveryChannel] = useState("");
   const [includeUnknown, setIncludeUnknown] = useState(false);
@@ -88,6 +119,21 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
     dispatch,
     error,
     isLoading,
+    /** 回のプレビュー(回の中身がある回だけ。中身の無い回は null = 前の本文の見せ方) */
+    preview: hasContent
+      ? {
+          /** ひな形の鍵(回ごと描けなければ null) */
+          layout: previewData?.layout ?? null,
+          channels: previewChannels,
+          channel: previewChannel,
+          setChannel: setPreviewChannel,
+          content: previewContent,
+          /** 回ごと描けない理由(中身を残していない回など) */
+          cannotRender: previewData?.cannotRender ?? null,
+          error: previewQuery.error ?? null,
+          isLoading: previewQuery.isLoading,
+        }
+      : null,
     deliveries,
     deliveryFilters: {
       status: deliveryStatus,
