@@ -5,11 +5,12 @@
 
 "use client";
 
+import { useState } from "react";
 import { AlignLeft } from "lucide-react";
 
 import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
-import { SelectInput } from "@/components/Form/Input/Manual";
+import { SelectInput, SwitchInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
@@ -35,26 +36,40 @@ const when = (iso: string | null) => {
 
 export function AdminMessageTemplateList() {
   const { status, setStatus, query, modal } = useAdminMessageTemplateList({ observerOptions: OBSERVER_OPTIONS });
+  // システムテンプレートを見せるか(画面の中だけの見せ方。既定は隠す)。システムテンプレートはサーバーが 1 ページ目の頭にだけ付けるので、
+  // 行を隠しても次のページの取り方は変わらない
+  const [showSystem, setShowSystem] = useState(false);
+  const items = showSystem ? query.items : query.items.filter((template) => !template.system);
 
   return (
     <Stack space={4}>
       <Flex align="end" justify="between" gap="sm" wrap="wrap">
-        <Stack space={1}>
-          <Label htmlFor="template-filter-status" className="text-xs">
-            状態
-          </Label>
-          <SelectInput
-            id="template-filter-status"
-            value={status}
-            onChange={(v) => setStatus(v ? String(v) : "")}
-            options={STATUS_OPTIONS}
-            placeholder="すべて"
+        <Flex align="end" gap="md" wrap="wrap">
+          <Stack space={1}>
+            <Label htmlFor="template-filter-status" className="text-xs">
+              状態
+            </Label>
+            <SelectInput
+              id="template-filter-status"
+              value={status}
+              onChange={(v) => setStatus(v ? String(v) : "")}
+              options={STATUS_OPTIONS}
+              placeholder="すべて"
+            />
+          </Stack>
+          <SwitchInput
+            id="template-filter-system"
+            size="sm"
+            label="システムテンプレートを表示"
+            value={showSystem}
+            onChange={(on) => setShowSystem(Boolean(on))}
+            className="pb-3"
           />
-        </Stack>
+        </Flex>
         <CreateButton onClick={modal.openNew} />
       </Flex>
       <InfiniteScrollList
-        items={query.items}
+        items={items}
         isInitialLoading={query.isInitialLoading}
         isFetchingMore={query.isFetchingMore}
         hasMore={query.hasMore}
