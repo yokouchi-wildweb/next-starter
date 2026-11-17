@@ -51,7 +51,7 @@ export function InfiniteTableFooter({
   if (hasMore) return null;
   if (completedNode !== undefined) return <>{completedNode}</>;
   return (
-    <Flex justify="center" align="center" gap="xs" paddingBlock="lg" data-slot="table-infinite-footer">
+    <Flex justify="center" align="center" gap="xs" paddingBlock={{ base: "md", sm: "lg" }} data-slot="table-infinite-footer">
       <Block className="h-px w-12 bg-border" />
       <Para tone="muted" size="xs">
         {typeof total === "number" ? `全 ${total.toLocaleString("ja-JP")} 件を表示しました` : completedText}

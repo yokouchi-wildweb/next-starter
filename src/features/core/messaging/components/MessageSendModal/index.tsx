@@ -20,6 +20,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
 import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import Dialog from "@/components/Overlays/Dialog";
 import Modal from "@/components/Overlays/Modal";
 import { Para } from "@/components/TextBlocks/Para";

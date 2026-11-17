@@ -166,7 +166,7 @@ export function StateTabs({
         {listEnd == null ? (
           tabList
         ) : (
-          <Flex align="center" gap="sm" className="w-full">
+          <Flex align="center" gap="md" className="w-full">
             <div className="min-w-0 flex-1">{tabList}</div>
             <div className="shrink-0">{listEnd}</div>
           </Flex>

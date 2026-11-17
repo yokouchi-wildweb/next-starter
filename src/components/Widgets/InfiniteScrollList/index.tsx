@@ -166,7 +166,7 @@ export function InfiniteScrollList<TItem>(props: InfiniteScrollListProps<TItem>)
   const footer = error ? (
     // 追加ロードの失敗: 読み込み済みの一覧は残し、末尾でエラーと再試行を出す
     // (フックは失敗時に hasMore=false にするので、センチネルも終端メッセージも出さない)
-    <Flex justify="center" align="center" gap="sm" paddingBlock="lg">
+    <Flex justify="center" align="center" gap="md" paddingBlock={{ base: "md", sm: "lg" }}>
       <Para tone="destructive" size="sm">
         続きの読み込みに失敗しました
       </Para>
@@ -179,7 +179,7 @@ export function InfiniteScrollList<TItem>(props: InfiniteScrollListProps<TItem>)
   ) : hasMore ? (
     loadMode === "button" ? (
       // 手で押して読む: sentinel を付けず、読み込み中はボタンの loading で示す
-      <Flex justify="center" paddingBlock="md">
+      <Flex justify="center" paddingBlock={{ base: "sm", sm: "md" }}>
         <Button type="button" variant="outline" size="sm" onClick={onLoadMore} loading={isFetchingMore}>
           {loadMoreLabel ?? "もっと見る"}
         </Button>
@@ -195,7 +195,7 @@ export function InfiniteScrollList<TItem>(props: InfiniteScrollListProps<TItem>)
   ) : hideCompletedNotice ? null : completedNode !== undefined ? (
     completedNode
   ) : (
-    <Flex justify="center" align="center" gap="xs" paddingBlock="lg">
+    <Flex justify="center" align="center" gap="xs" paddingBlock={{ base: "md", sm: "lg" }}>
       <Block className="h-px w-12 bg-border" />
       <Para tone="muted" size="xs">
         {completedText}
