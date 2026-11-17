@@ -113,16 +113,11 @@ function channelsOf(resolved: AnyResolvedMessageDefinition, deps: Pick<OverrideS
 
 /**
  * 埋め込み情報の一覧(テンプレートの画面と同じ分け): 共通 = 共通の埋め込み情報 + 当たる enrichers + enricher と同じ鍵の vars(例 wallet の displayName = 表示名)、
- * 専用 = 残りの vars(秘密を除く、鍵で書く)。共通と同じ鍵の vars(例 serviceNameShort)は共通にだけ出す
+ * 専用 = 残りの vars(定義の varNames の別名と説明、D133)。秘密の vars は出さない。共通と同じ鍵の vars(例 serviceNameShort)は共通にだけ出す
  */
 function embeddedOf(resolved: AnyResolvedMessageDefinition, deps: Pick<OverrideServiceDeps, "embeddedCatalog">): MessageEmbeddedEntry[] {
-  const base = deps.embeddedCatalog?.(resolved) ?? [];
-  const taken = new Set(base.map((entry) => entry.key));
   const secret = new Set(listSecretVarKeys(resolved.vars));
-  const vars = Object.keys((resolved.vars as { shape?: Record<string, unknown> }).shape ?? {})
-    .filter((key) => !secret.has(key) && !taken.has(key))
-    .map((key): MessageEmbeddedEntry => ({ key, alias: "", source: "own", description: "この通知の値" }));
-  return [...base, ...vars];
+  return (deps.embeddedCatalog?.(resolved) ?? []).filter((entry) => entry.source !== "own" || !secret.has(entry.key));
 }
 
 function specOf(layout: MessageLayout, key: string): AdminOverrideFieldSpec | null {

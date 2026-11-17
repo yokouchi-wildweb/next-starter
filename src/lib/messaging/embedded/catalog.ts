@@ -1,18 +1,18 @@
 // src/lib/messaging/embedded/catalog.ts
 //
-// 埋め込み情報の一覧(1 つの連絡・テンプレートで書ける名前の全部): 共通 + 当たる enrichers の provides + 専用の宣言。
+// 埋め込み情報の一覧(1 つの連絡・テンプレートで書ける名前の全部): 共通 + 当たる enrichers の provides + 専用(テンプレートの宣言・コードの連絡の vars)。
 // - 鍵と日本語の別名のどちらでも書ける。名前(鍵・別名)は一覧の中で重ならない(D126: 別名は専用どうしも共通・enrichers とも重ならない)
 // - enrichers は足す値ごとに別名を宣言する(aliases、無い鍵は誤り)
 // - collapsedCount は間引きのある連絡だけ(throttle: true)
 
 import type { MessageEnricher } from "../receptacles/types";
-import { MESSAGE_COMMON_EMBEDDED } from "./common";
+import { MESSAGE_COMMON_EMBEDDED, type MessageEmbeddedName } from "./common";
 import type { MessageEmbeddedDeclaration } from "./declaration";
 import { EMBEDDED_ALIAS_PATTERN, EMBEDDED_KEY_PATTERN } from "./names";
 
 export type MessageEmbeddedSource = "common" | "enricher" | "own";
 
-/** 一覧の 1 つ(source = 共通 / enricher(鍵 = enricher の鍵)/ 専用) */
+/** 一覧の 1 つ(source = 共通 / enricher(鍵 = enricher の鍵)/ 専用 = テンプレートの宣言かコードの連絡の vars) */
 export type MessageEmbeddedEntry = {
   key: string;
   alias: string;
@@ -36,10 +36,12 @@ export type MessageEmbeddedProblemCode =
 export type MessageEmbeddedProblem = { code: MessageEmbeddedProblemCode; message: string };
 
 /**
- * 一覧を組む。enrichers = その連絡・テンプレートに当たる enrichers(当て先で選んだ後)。own = 専用の宣言
+ * 一覧を組む。enrichers = その連絡・テンプレートに当たる enrichers(当て先で選んだ後)。own = 専用の宣言。
+ * vars = コードの連絡の vars の名前(定義の varNames、D133。専用として並べる)
  */
 export function embeddedCatalog(input: {
   own?: readonly MessageEmbeddedDeclaration[];
+  vars?: readonly MessageEmbeddedName[];
   enrichers?: readonly Pick<MessageEnricher, "key" | "provides" | "aliases">[];
   throttle?: boolean;
 }): MessageEmbeddedEntry[] {
@@ -53,6 +55,9 @@ export function embeddedCatalog(input: {
   }
   for (const declaration of input.own ?? []) {
     entries.push({ key: declaration.key, alias: declaration.alias, source: "own", declaration });
+  }
+  for (const name of input.vars ?? []) {
+    entries.push({ key: name.key, alias: name.alias, source: "own", description: name.description });
   }
   return entries;
 }

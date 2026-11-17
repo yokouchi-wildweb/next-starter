@@ -35,6 +35,17 @@ export type MessageThrottle<VarKey extends string = string> = {
 type VarKeys<Vars extends z.AnyZodObject> = Vars extends z.ZodObject<infer Shape> ? keyof Shape & string : string;
 
 /**
+ * vars の値 1 つの名前(D133): 日本語の別名(埋め込み情報の別名と同じ形。{{別名}} でも {{鍵}} と同じ値で埋まる)+ 管理画面の短い説明
+ */
+export type MessageVarName = {
+  alias: string;
+  description: string;
+};
+
+/** vars の全部の鍵の名前(鍵が欠けると型の誤り) */
+export type MessageVarNames<Vars extends z.AnyZodObject> = { readonly [K in VarKeys<Vars>]: MessageVarName };
+
+/**
  * ひな形の欄の中身(欄の鍵 → 値、D122)。文字列の中に {{鍵}} を書ける(送る時に vars・共通の文脈・enrichers の値を差し込む)
  */
 export type MessageLayoutValuesSource = Readonly<Record<string, unknown>>;
@@ -60,6 +71,11 @@ export type MessageDefinition<
   category: string;
   /** 呼び手が渡す値 */
   vars: Vars;
+  /**
+   * vars の鍵ごとの日本語の別名と説明(全部の鍵に必須、秘密の値も。D133)。別名は共通・enrichers・ほかの vars の名前と重ならない。
+   * 共通・enrichers と同じ鍵の値(例 serviceNameShort・displayName)はその別名を書く。上書きで変えられない
+   */
+  varNames: MessageVarNames<Vars>;
   /** 止められない連絡(認証など)。enabled:false・email の除外・adminEditableOnly・throttle を付けられない */
   required?: boolean;
   /**
@@ -79,7 +95,7 @@ export type MessageDefinition<
 };
 
 /**
- * 一部の上書き(messages/<名前>.override.ts、データだけ)。label(表示名)は変えられる。key・vars・required・category・layout は変えられない
+ * 一部の上書き(messages/<名前>.override.ts、データだけ)。label(表示名)は変えられる。key・vars・varNames・required・category・layout は変えられない
  * (種類の付け替えは D74 で無し。経路は種類の override で変える)。values はひな形の欄ごとに重ねる(欄の鍵は変えられない)。throttle: null で外す。
  */
 export type MessageOverride = {

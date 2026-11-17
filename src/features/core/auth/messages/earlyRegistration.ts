@@ -19,6 +19,12 @@ export const message = defineMessage({
     /** サービスの短い名前(business.serviceNameShort) */
     serviceNameShort: z.string(),
   }),
+  // vars の日本語の別名と説明(D133。{{別名}} でも {{鍵}} と同じ値で埋まる)
+  varNames: {
+    email: { alias: "登録するメールアドレス", description: "事前登録で入力したメールアドレス" },
+    verificationUrl: { alias: "確認のURL", description: "メールアドレスを確かめるリンク(秘密)" },
+    serviceNameShort: { alias: "サービスの短い名前", description: "このサービスの短い名前(件名の頭など)" },
+  },
   layout: "link",
   values: {
     subject: "【{{serviceNameShort}}】事前登録のメールアドレス確認",

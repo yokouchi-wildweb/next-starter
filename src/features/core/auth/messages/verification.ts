@@ -20,6 +20,11 @@ export const message = defineMessage({
     /** サインインのリンク(oobCode 入り) */
     verificationUrl: secretVar(z.string().url()),
   }),
+  // vars の日本語の別名と説明(D133。{{別名}} でも {{鍵}} と同じ値で埋まる)
+  varNames: {
+    email: { alias: "登録するメールアドレス", description: "会員登録で入力したメールアドレス" },
+    verificationUrl: { alias: "確認のURL", description: "メールアドレスを確かめるリンク(秘密)" },
+  },
   layout: "link",
   values: {
     subject: "メールアドレスの確認",

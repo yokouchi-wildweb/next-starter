@@ -26,7 +26,7 @@ import {
 import { DomainError } from "@/lib/errors";
 
 import { buildContents, type MessageContentDeps } from "./content";
-import { enricherKeysFor } from "./enrichers";
+import { enricherKeysFor, messageSharedEmbedded } from "./enrichers";
 
 /** 送る口が受ける定義 */
 export type AnyMessageDefinition = MessageDefinition<z.AnyZodObject>;
@@ -79,15 +79,20 @@ export async function resolveDefinition(
     ? (await entry.override()).messageOverride
     : undefined;
 
+  const message = {
+    key: definition.key,
+    category: definition.category,
+    kind: deps.categories[definition.category]?.kind ?? "transactional",
+    vars: definition.vars,
+  };
   const problems = validateMessageDefinition(definition, {
     categories: deps.categories,
     override,
     layouts: deps.layouts,
     channels: registeredChannelKeys(deps.channels),
-    variableKeys: enricherKeysFor(
-      { key: definition.key, category: definition.category, kind: deps.categories[definition.category]?.kind ?? "transactional", vars: definition.vars },
-      deps.enrichers,
-    ),
+    variableKeys: enricherKeysFor(message, deps.enrichers),
+    // vars の別名(D133)が重ならないか照らす相手: 共通 + 当たる enrichers + enricher と同じ鍵の vars
+    embeddedNames: messageSharedEmbedded(message, deps.enrichers),
   });
   if (problems.length > 0) {
     throw new DomainError(
