@@ -35,7 +35,6 @@ import {
   getMessageTemplateVersion,
   listMessageTemplates,
   listMessageTemplateVersions,
-  publishMessageTemplate,
   updateMessageTemplate,
 } from "./templates";
 import { sendMessage, sendMessageToMany, sendTemplateMessage } from "./sendMessage";
@@ -120,7 +119,6 @@ export const messagingService = {
   getMessageTemplate,
   createMessageTemplate,
   updateMessageTemplate,
-  publishMessageTemplate,
   archiveMessageTemplate,
   listMessageTemplateVersions,
   getMessageTemplateVersion,

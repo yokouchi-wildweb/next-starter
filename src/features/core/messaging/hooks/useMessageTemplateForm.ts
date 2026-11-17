@@ -37,9 +37,9 @@ import { MESSAGE_KIND_LABELS } from "../constants/kindLabels";
 import {
   archiveMessageTemplate,
   createMessageTemplate,
-  publishMessageTemplate,
   updateMessageTemplate,
   type AdminTemplateDetail,
+  type AdminTemplateSaveResult,
   type AdminTemplateOptions,
   type CreateMessageTemplateInput,
 } from "../services/client/templateClient";
@@ -289,15 +289,10 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     (input) => createMessageTemplate(input),
     MESSAGE_TEMPLATES_KEY,
   );
-  const updateMutation = useDomainMutation<AdminTemplateDetail, CreateMessageTemplateInput>(
+  const updateMutation = useDomainMutation<AdminTemplateSaveResult, CreateMessageTemplateInput>(
     `${MESSAGE_TEMPLATES_KEY}/${id ?? "new"}/update`,
     (input) => updateMessageTemplate(id!, input),
     revalidateKeys,
-  );
-  const publishMutation = useDomainMutation<AdminTemplateDetail, string>(
-    `${MESSAGE_TEMPLATES_KEY}/${id ?? "new"}/publish`,
-    (targetId) => publishMessageTemplate(targetId),
-    [MESSAGE_TEMPLATES_KEY],
   );
   const archiveMutation = useDomainMutation<AdminTemplateDetail, void>(
     `${MESSAGE_TEMPLATES_KEY}/${id ?? "new"}/archive`,
@@ -367,37 +362,23 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
       return;
     }
     try {
+      // 保存 = 公開(作る = 版 1、直す = 中身が違えば新しい版。同じなら unchanged、D134)
       const saved = id ? await updateMutation.trigger(buildInput()) : await createMutation.trigger(buildInput());
       if (!id) setCreatedId(saved.id);
       // 1 件の SWR のキーは文字の完全一致なので、一覧のキーの取り直しでは届かない。返った 1 件をキャッシュに書き、版の一覧を取り直す
-      // (1 件の更新時刻・版が変わる → モーダルが formKey で書く欄を作り直す = 保存の後は書きかけ無し、印は公開の版、F4 F5)
-      const settle = async (detail: AdminTemplateDetail) => {
-        await mutate(messageTemplateKey(detail.id), detail, { revalidate: false });
-        await mutate(messageTemplateVersionsKey(detail.id));
-        // 作った時はキャッシュを書いた後にモーダルを直す形へ(下書きの 1 件を取りに行かない)
-        if (!id) onCreated?.(detail.id);
-      };
-      try {
-        const published = await publishMutation.trigger(saved.id);
-        await settle(published);
-        onChanged?.(published, id ? "publish" : "create");
-        showToast("保存しました(新しいバージョン)", "success");
-      } catch (e) {
-        // 前の版と同じ中身(409)= 新しい版は要らない
-        if ((e as { status?: number }).status === 409) {
-          await settle(saved);
-          onChanged?.(saved, id ? "update" : "create");
-          showToast("変更はありません", "info");
-          return;
-        }
-        // 公開に失敗しても作った下書きは残る(モーダルはその 1 件を直す形へ)
-        if (!id) await settle(saved);
-        throw e;
-      }
+      // (1 件の更新時刻・版が変わる → モーダルが formKey で書く欄を作り直す = 保存の後は書きかけ無し、F4 F5)
+      const unchanged = id ? (saved as AdminTemplateSaveResult).unchanged : false;
+      const detail: AdminTemplateDetail = saved;
+      await mutate(messageTemplateKey(detail.id), detail, { revalidate: false });
+      await mutate(messageTemplateVersionsKey(detail.id));
+      // 作った時はキャッシュを書いた後にモーダルを直す形へ
+      if (!id) onCreated?.(detail.id);
+      onChanged?.(detail, id ? (unchanged ? "update" : "publish") : "create");
+      showToast(unchanged ? "変更はありません" : "保存しました(新しいバージョン)", unchanged ? "info" : "success");
     } catch (e) {
       showToast(err(e, "保存できませんでした"), "error");
     }
-  }, [readOnly, validate, id, updateMutation, createMutation, publishMutation, buildInput, showToast, onCreated, onChanged, valuesForm.form, mutate]);
+  }, [readOnly, validate, id, updateMutation, createMutation, buildInput, showToast, onCreated, onChanged, valuesForm.form, mutate]);
 
   /** アーカイブ */
   const archive = useCallback(async () => {

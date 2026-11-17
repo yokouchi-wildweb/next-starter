@@ -62,9 +62,8 @@ export const MESSAGE_SUPPRESSION_REASONS = [
   "manual",
 ] as const;
 
-/** 保存されたテンプレートの状態（message_templates.status） */
+/** 保存されたテンプレートの状態（message_templates.status）。保存 = 公開なので下書きは無い（D134） */
 export const MESSAGE_TEMPLATE_STATUSES = [
-  "draft",
   "published",
   "archived",
 ] as const;

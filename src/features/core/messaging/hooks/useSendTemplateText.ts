@@ -15,12 +15,11 @@ import { useCallback, useMemo, useState } from "react";
 import { useWatch } from "react-hook-form";
 
 import { useDomainMutation } from "@/lib/crud/hooks";
-import { HttpError } from "@/lib/errors";
 import { embeddedVariableMap, type MessageEmbeddedDeclaration, type MessageLayoutFields } from "@/lib/messaging";
 import { replaceVariables } from "@/lib/structuredDocument";
 
 import type { AdminSendLayoutOption } from "../services/client/sendClient";
-import { publishMessageTemplate, updateMessageTemplate } from "../services/client/templateClient";
+import { updateMessageTemplate } from "../services/client/templateClient";
 
 import { ADMIN_MESSAGING_KEY } from "./adminMessagingKeys";
 import { ADMIN_SEND_OPTIONS_KEY } from "./sendKeys";
@@ -215,14 +214,9 @@ export function useSendTemplateText({ layouts, initial, channels, templatesOpen,
   const updateMutation = useDomainMutation<{ version: number | null; unchanged: boolean }, { id: string; values: Record<string, unknown> }>(
     `${MESSAGE_TEMPLATES_KEY}/send-update`,
     async ({ id, values: nextValues }) => {
-      await updateMessageTemplate(id, { values: nextValues });
-      try {
-        const published = await publishMessageTemplate(id);
-        return { version: published.currentVersion, unchanged: false };
-      } catch (error) {
-        if (error instanceof HttpError && error.status === 409) return { version: null, unchanged: true };
-        throw error;
-      }
+      // 直す = 公開(中身が版と同じなら新しい版を作らず unchanged、D134)
+      const saved = await updateMessageTemplate(id, { values: nextValues });
+      return saved.unchanged ? { version: null, unchanged: true } : { version: saved.currentVersion, unchanged: false };
     },
     [MESSAGE_TEMPLATES_KEY, ADMIN_SEND_OPTIONS_KEY, `${ADMIN_MESSAGING_KEY}/bulk-send/options`],
   );

@@ -14,12 +14,14 @@ export type MessageTemplateStore<Tx> = {
   /** 新しい順(作った時刻・id の keyset)。limit + 1 件まで返してよい */
   list: (query: {
     status: MessageTemplateStatus | null;
+    /** カテゴリーの鍵で絞る(null = 絞らない。空の並び = 当たる物なし) */
+    categories: readonly string[] | null;
     limit: number;
     after: { createdAt: Date; id: string } | null;
   }) => Promise<MessageTemplate[]>;
   find: (id: string) => Promise<MessageTemplate | null>;
   findByKey: (key: string) => Promise<MessageTemplate | null>;
-  /** 行を排他で読む(公開・更新の取引の中) */
+  /** 行を排他で読む(更新・取り下げの取引の中) */
   lockForUpdate: (tx: Tx, id: string) => Promise<MessageTemplate | null>;
   insert: (tx: Tx, values: MessageTemplateInsert) => Promise<MessageTemplate>;
   update: (tx: Tx, id: string, patch: Partial<MessageTemplateInsert>) => Promise<MessageTemplate>;

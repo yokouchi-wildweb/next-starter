@@ -44,18 +44,18 @@ export type AdminTemplateSummary = {
   /** 種類の表示名(受け口の label。受け口に無ければ null。画面は鍵でなくこれを出す、D46) */
   categoryLabel: string | null;
   status: MessageTemplateStatus;
-  /** 最新の公開の版(null = まだ公開していない) */
+  /** 最新の版(保存 = 公開なので DB のテンプレートは 1 以上。システムテンプレートは null) */
   currentVersion: number | null;
   createdBy: string | null;
   updatedBy: string | null;
   /** 作った時刻(システムテンプレートは null: コードの物で DB の時刻が無い) */
   createdAt: string | null;
   updatedAt: string | null;
-  /** システムテンプレート(受け口 messaging/templates の白紙、D117・D125)。直せない・公開・取り下げできない(API が 409) */
+  /** システムテンプレート(受け口 messaging/templates の白紙、D117・D125)。直せない・取り下げできない(API が 409) */
   system: boolean;
   /** システムテンプレートの種別(DB のテンプレートは null) */
   kind: string | null;
-  /** ひな形の鍵と欄の中身(DB のテンプレートは今の下書き、システムテンプレートは白紙) */
+  /** ひな形の鍵と欄の中身(DB のテンプレートは最新の版と同じ中身、システムテンプレートは白紙) */
   layout: string;
   values: Record<string, unknown>;
 };
@@ -67,8 +67,11 @@ export type AdminTemplateDetail = AdminTemplateSummary & {
   embedded: MessageEmbeddedDeclaration[];
   /** 文面に書ける埋め込み情報の一覧(共通 + テンプレートに当たる enrichers + 専用) */
   catalog: AdminEmbeddedEntry[];
-  /** 今の中身が最新の版と違う(公開していない変更がある。版が無ければ true) */
-  hasUnpublishedChanges: boolean;
+};
+
+/** 直した結果(D134): 保存した 1 件と、新しい版を作らなかったか(中身が最新の版と同じ。名前・説明だけの変更も) */
+export type AdminTemplateSaveResult = AdminTemplateDetail & {
+  unchanged: boolean;
 };
 
 /** 公開した版(不変) */

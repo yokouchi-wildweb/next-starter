@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/templates/store.ts
 
-import { and, desc, eq, lt, or } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
 
 import { db, type TransactionClient } from "@/lib/drizzle";
 
@@ -9,8 +9,10 @@ import type { MessageTemplateStore } from "./types";
 
 export const drizzleMessageTemplateStore: MessageTemplateStore<TransactionClient> = {
   transaction: (run) => db.transaction((tx) => run(tx)),
-  async list({ status, limit, after }) {
+  async list({ status, categories, limit, after }) {
+    if (categories && categories.length === 0) return [];
     const conditions = [
+      categories ? inArray(MessageTemplateTable.category, [...categories]) : undefined,
       status ? eq(MessageTemplateTable.status, status) : undefined,
       after
         ? or(

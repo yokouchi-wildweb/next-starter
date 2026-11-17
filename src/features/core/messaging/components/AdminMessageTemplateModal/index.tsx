@@ -170,7 +170,6 @@ function TemplateModalBody({
                 <TemplateStatusBadge
                   status={template.status}
                   currentVersion={template.currentVersion}
-                  hasUnpublishedChanges={template.hasUnpublishedChanges}
                   size="md"
                 />
               )}

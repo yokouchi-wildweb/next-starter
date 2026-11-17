@@ -1,9 +1,10 @@
 // src/app/api/admin/messaging/templates/[id]/route.ts
 //
-// 管理者向け: テンプレート 1 件(今の中身 = 下書き)。門 messagingTemplates が閉なら 404
+// 管理者向け: テンプレート 1 件(中身 = 最新の版と同じ)。門 messagingTemplates が閉なら 404
 //
 // GET   /api/admin/messaging/templates/[id]   AdminTemplateDetail
-// PATCH /api/admin/messaging/templates/[id]   下書きを直す { name?, description?, category?, layout?, values?, embedded? }(ひな形を替える時は values も。公開した版は変わらない)
+// PATCH /api/admin/messaging/templates/[id]   直して公開する { name?, description?, category?, layout?, values?, embedded? }(ひな形を替える時は values も)
+//   → AdminTemplateSaveResult(中身が最新の版と違えば新しい版、同じなら unchanged: true。D134)
 
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";

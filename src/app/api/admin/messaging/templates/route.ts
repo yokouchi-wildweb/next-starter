@@ -2,8 +2,8 @@
 //
 // 管理者向け: 保存されたテンプレート。門 messagingTemplates が閉なら 404
 //
-// GET  /api/admin/messaging/templates   一覧(status・cursor・limit、新しい順)→ { items, nextCursor }
-// POST /api/admin/messaging/templates   下書きを作る { name, description?, category, layout, values, embedded? }(鍵はサーバーが作る)
+// GET  /api/admin/messaging/templates   一覧(status・kind・cursor・limit、新しい順。kind = その種別のカテゴリーとシステムテンプレート D135)→ { items, nextCursor }
+// POST /api/admin/messaging/templates   作って公開する(版 1、D134){ name, description?, category, layout, values, embedded? }(鍵はサーバーが作る)
 
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";
