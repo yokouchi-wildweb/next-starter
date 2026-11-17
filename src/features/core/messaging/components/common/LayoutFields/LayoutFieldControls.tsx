@@ -133,7 +133,8 @@ type RowControlsProps = {
 /** 並びの 1 行の操作(上へ・下へ・削除) */
 export function RowControls({ index, count, canRemove, onMove, onRemove, tone = "block" }: RowControlsProps) {
   const item = tone === "item";
-  const buttonClass = item ? "size-7 text-muted-foreground hover:text-foreground" : "size-8";
+  // 乗った時の色は ghost のまま(hover:bg-accent + text-accent-foreground)。ブロックの操作と同じ組で、地と矢印の色が合う
+  const buttonClass = item ? "size-7 text-muted-foreground" : "size-8";
   const iconClass = item ? "size-3.5" : "size-4";
   return (
     <Flex align="center" gap="none" className="shrink-0" data-slot={item ? "row-controls-item" : "row-controls-block"}>
