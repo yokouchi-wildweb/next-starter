@@ -20,7 +20,6 @@ import { StateTabs, StateTabsContent } from "@/components/Navigation/StateTabs";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
@@ -211,9 +210,7 @@ function DispatchContentPreview({ preview }: { preview: NonNullable<DispatchPrev
         本文
       </Span>
       {preview.isLoading && preview.channels.length === 0 ? (
-        <Flex justify="center" className="py-6">
-          <Spinner className="size-6" />
-        </Flex>
+        <InlineLoader />
       ) : preview.error ? (
         <Para size="sm" tone="destructive" className="my-0">
           {err(preview.error, "本文を表示できませんでした")}

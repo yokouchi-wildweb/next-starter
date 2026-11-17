@@ -13,10 +13,9 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { Block } from "@/components/Layout/Block";
-import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { StateTabs, StateTabsContent } from "@/components/Navigation/StateTabs";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
@@ -93,12 +92,7 @@ export function LayoutPreview({ layout, channels, channel, onChannelChange, cont
       <StateTabsContent value={channel} className="pt-3">
         <Stack gap="xs" data-slot="layout-preview">
           {loading ? (
-            <Flex align="center" gap="xs">
-              <Spinner className="size-4" />
-              <Span size="xs" tone="muted">
-                プレビューを更新しています
-              </Span>
-            </Flex>
+            <InlineLoader size="sm" message="プレビューを更新しています" className="justify-start py-0" />
           ) : null}
           {error ? (
             <Para size="sm" tone="destructive" className="my-0">

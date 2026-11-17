@@ -92,11 +92,12 @@ mock.module("@/components/Overlays/Modal", {
     return props.open ? createElement("section", { "data-testid": "modal" }, props.children as ReactNode, props.footer as ReactNode) : null;
   },
 });
-type ButtonProps = { children?: ReactNode; onClick?: () => void; disabled?: boolean; "data-slot"?: string };
+type ButtonProps = { children?: ReactNode; onClick?: () => void; disabled?: boolean; loading?: boolean; "data-slot"?: string };
+// loading は本物の Button と同じく押せなくする(disabled)
 mock.module("@/components/Form/Button", {
   namedExports: {
     Button: (props: ButtonProps) =>
-      createElement("button", { type: "button", onClick: props.onClick, disabled: props.disabled, "data-slot": props["data-slot"] }, props.children),
+      createElement("button", { type: "button", onClick: props.onClick, disabled: props.disabled || props.loading, "data-slot": props["data-slot"] }, props.children),
   },
 });
 // 確かめの吹き出し: 引き金と「ok:<確かめの字>」のボタン(押すと onConfirm)

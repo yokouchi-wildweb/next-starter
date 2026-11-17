@@ -115,6 +115,7 @@ const selection = useRecordSelection({
 | `isAllSelected` / `isPartialSelection` | 選べる行を全部選んだか / 一部か |
 | `toggle(key, { checked?, shiftKey? })` / `toggleAll(checked)` / `clear()` | 切り替え(`checked` 未指定 = 今の逆) |
 | `isSelectable(key)` | `canSelect` で選べる行か |
+| `replaceSelection(keys)` | 選択をこの鍵の並びに置き換える(一部の行だけのすべて選択など) |
 | `bulkSelection` | `BulkActionBar` の `selection` にそのまま渡す形 |
 
 制御するときは `selectedKeys` と `onSelectionChange`、非制御の初期値は `defaultSelectedKeys`(RecordSelectionTable と同じ)。

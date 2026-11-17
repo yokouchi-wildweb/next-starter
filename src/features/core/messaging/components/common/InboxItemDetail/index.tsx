@@ -5,7 +5,7 @@
 
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { Para } from "@/components/TextBlocks/Para";
 
 import type { InboxItemDetailDto } from "@/features/core/messaging/services/client/inboxClient";
@@ -28,7 +28,7 @@ export function InboxItemDetail({ item, loading = false }: InboxItemDetailProps)
         <Para size="xs" tone="muted" className="my-0">
           {formatInboxDate(item.publishedAt)}
         </Para>
-        {loading ? <Spinner className="size-3" /> : null}
+        {loading ? <InlineLoader size="sm" className="py-0" spinnerClassName="size-3" /> : null}
       </Flex>
       {loading && !item.layout ? null : (
         <InboxLayoutView layout={item.layout} values={item.values} fields={item.fields} summary={inboxSummaryOf(item)} />

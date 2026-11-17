@@ -20,7 +20,6 @@ import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
 import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import Dialog from "@/components/Overlays/Dialog";
 import Modal from "@/components/Overlays/Modal";
 import { Para } from "@/components/TextBlocks/Para";
@@ -274,10 +273,10 @@ export function MessageSendModal({
                     type="button"
                     size="sm"
                     variant="outline"
-                    disabled={!text.edited || text.isUpdatingTemplate}
+                    disabled={!text.edited}
+                    loading={text.isUpdatingTemplate}
                     onClick={() => setConfirmingUpdate(true)}
                   >
-                    {text.isUpdatingTemplate ? <Spinner className="size-4" /> : null}
                     テンプレートを更新
                   </Button>
                 </Flex>

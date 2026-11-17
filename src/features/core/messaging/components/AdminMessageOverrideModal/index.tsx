@@ -18,7 +18,6 @@ import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import Modal from "@/components/Overlays/Modal";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { Para } from "@/components/TextBlocks/Para";
@@ -86,8 +85,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
               ) : null}
               <ConfirmPopover
                 trigger={
-                  <Button type="button" size="sm" variant="primary" disabled={!editor.hasDrafts || editor.isSaving}>
-                    {editor.isSaving ? <Spinner className="size-4" /> : null}
+                  <Button type="button" size="sm" variant="primary" disabled={!editor.hasDrafts} loading={editor.isSaving}>
                     保存
                   </Button>
                 }
@@ -169,9 +167,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
               プレビュー
             </Span>
             {editor.previewLoading && !editor.previewContent ? (
-              <Flex justify="center" className="py-8">
-                <Spinner className="size-6" />
-              </Flex>
+              <InlineLoader />
             ) : editor.previewLayout && editor.channels.length > 0 ? (
               <LayoutPreview
                 layout={editor.previewLayout}

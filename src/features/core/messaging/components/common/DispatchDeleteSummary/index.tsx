@@ -5,9 +5,8 @@
 
 "use client";
 
-import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { Para } from "@/components/TextBlocks/Para";
 import { err } from "@/lib/errors";
 
@@ -38,9 +37,7 @@ export function DispatchDeleteSummary({ summary, isLoading = false, error = null
   return (
     <Stack gap="xs" data-slot="dispatch-delete-summary">
       {isLoading && !summary ? (
-        <Flex justify="center" className="py-4">
-          <Spinner className="size-5" />
-        </Flex>
+        <InlineLoader size="sm" />
       ) : error && !summary ? (
         <Para size="sm" tone="destructive" className="my-0">
           {err(error, "削除の見込みを読み込めませんでした")}
