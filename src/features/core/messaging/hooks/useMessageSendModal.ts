@@ -48,7 +48,7 @@ import {
 } from "../services/client/sendClient";
 
 import { MESSAGE_CHANNEL_LABELS } from "../constants/channelLabels";
-import { noticeValuesFromChannelContent } from "../utils/noticeValues";
+import { emailFieldsFromNoticeValues, noticeValuesFromChannelContent } from "../utils/noticeValues";
 
 import { ADMIN_DISPATCHES_KEY, ADMIN_MESSAGING_KEY } from "./adminMessagingKeys";
 import { ADMIN_SEND_KEY } from "./sendKeys";
@@ -132,17 +132,28 @@ export function scheduleErrorOf(mode: "now" | "at", scheduledAt: string, maxDays
   return null;
 }
 
-/** 変数の値(入力は文字。数の型だけ数にする。空は送らない) */
+/** 専用の埋め込み情報の値(入力は文字。数の型だけ数にする。空は送らない = 既定値か、必須ならサーバーが 400) */
 export function templateVarsForInput(template: MessageSendTemplate | null, values: Record<string, string>): Record<string, unknown> {
   if (!template) return {};
   const out: Record<string, unknown> = {};
-  for (const variable of template.variables) {
-    if (variable.source !== "dispatch") continue;
-    const raw = values[variable.key];
+  for (const declaration of template.embedded) {
+    const raw = values[declaration.key];
     if (raw === undefined || raw.trim() === "") continue;
-    out[variable.key] = variable.type === "number" && !Number.isNaN(Number(raw)) ? Number(raw) : raw;
+    out[declaration.key] = declaration.type === "number" && !Number.isNaN(Number(raw)) ? Number(raw) : raw;
   }
   return out;
+}
+
+/**
+ * テンプレートの版の中身(notice の欄の中身)→ この画面の経路ごとの欄(S5 で作り直すまでの最小の読み替え、指令 58)。
+ * notice でないひな形は空(この画面では直せない。直さずに送れば版の中身をそのまま送る)
+ */
+function channelDraftOfTemplate(template: MessageSendTemplate): MessageSendDraft["content"] {
+  if (template.layout !== "notice") return {};
+  const email = emailFieldsFromNoticeValues(template.values);
+  const subject = str(email.subject);
+  const body = (Array.isArray(email.paragraphs) ? (email.paragraphs as string[]) : []).join("\n\n");
+  return { email, inApp: { title: subject, body }, line: { text: body ? `${subject}\n\n${body}` : subject } };
 }
 
 /** 経路の欄が空か(送れない。要る欄 = email 件名・inApp 題・line 本文、fork の経路は欄が 1 つでもあるか。その場で書く時もテンプレートの時も同じ) */
@@ -177,8 +188,8 @@ export function draftFromTemplate(template: MessageSendTemplate): MessageSendDra
   return {
     source: "template",
     template: { id: template.id, version: template.currentVersion },
-    // 版の欄をそのまま写す(画像の storage:// の参照も。欄で替える・外せる)
-    content: clone(template.content ?? {}),
+    // 版の中身を経路ごとの欄へ読み替えて写す(直さずに送れば版の中身をそのまま送る: buildContent)
+    content: channelDraftOfTemplate(template),
     vars: {},
   };
 }
@@ -495,10 +506,13 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const buildContent = useCallback((): AdminSendPreviewInput => {
     const values = noticeValuesFromChannelContent(contentForInput(draft.content, sendChannels));
     if (draft.source === "template" && draft.template) {
+      // 直していなければ版の中身をそのまま送る(読み替えで落ちるブロックを落とさない)
+      const untouched =
+        loadedTemplate !== null && JSON.stringify(draft.content) === JSON.stringify(channelDraftOfTemplate(loadedTemplate));
       return {
         template: { id: draft.template.id, version: draft.template.version },
-        values,
-        vars: templateVarsForInput(loadedTemplate, draft.vars),
+        values: untouched ? loadedTemplate.values : values,
+        embedded: templateVarsForInput(loadedTemplate, draft.vars),
         category,
         channels: sendChannels,
       };
@@ -539,10 +553,10 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   // ---- 誤り ----
   const contentError = useMemo(() => {
     if (draft.source === "template") {
-      const missing = (loadedTemplate?.variables ?? []).filter(
-        (variable) => variable.source === "dispatch" && variable.required && variable.default === undefined && !draft.vars[variable.key]?.trim(),
+      const missing = (loadedTemplate?.embedded ?? []).filter(
+        (declaration) => declaration.required && declaration.default === undefined && !draft.vars[declaration.key]?.trim(),
       );
-      if (missing.length > 0) return `変数「${missing.map((v) => v.label || v.key).join("・")}」を入力してください`;
+      if (missing.length > 0) return `埋め込み情報「${missing.map((item) => item.alias || item.key).join("・")}」を入力してください`;
     }
     if (sendChannels.length === 0) return "送信方法を 1 つ以上選んでください";
     const blank = sendChannels.filter((key) => isBlankChannel(draft, key));

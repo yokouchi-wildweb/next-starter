@@ -194,7 +194,8 @@ export function MessageSendModal({
             channels={onChannels}
             content={m.draft.content}
             onChange={m.setChannelFields}
-            variables={(m.loadedTemplate?.variables ?? []).filter((variable) => variable.source === "dispatch")}
+            // 専用の埋め込み情報(S5 で作り直すまで変数の欄の部品で入れる。表示名 = 日本語の別名)
+            variables={(m.loadedTemplate?.embedded ?? []).map((declaration) => ({ ...declaration, label: declaration.alias }))}
             vars={m.draft.vars}
             onVarChange={m.setVar}
           />

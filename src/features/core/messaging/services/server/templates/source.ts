@@ -16,8 +16,10 @@ function toSource(key: string, row: MessageTemplateVersion): MessageTemplateVers
     templateKey: key,
     version: row.version,
     category: row.category,
-    content: row.content as Record<string, unknown>,
-    variables: row.variables,
+    layout: row.layout,
+    layoutVersion: row.layout_version,
+    values: row.values,
+    embedded: row.embedded,
   };
 }
 

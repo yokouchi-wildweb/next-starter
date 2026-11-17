@@ -118,7 +118,7 @@ function collectStrings(value: unknown, out: string[]): string[] {
  * - categories: categories の受け口(鍵 → 項目、fork の種類の override を重ねた後)。定義の category を照らし、種別と経路を引く
  * - layouts: ひな形の受け口(鍵 → ひな形)。定義の layout を照らし、欄の中身を検査する
  * - channels: 経路の欄の zod の束(既定 = 上流の 3 経路。fork の経路は経路の受け口の項目の欄)。経路の有無だけに使う
- * - variableKeys: vars と共通の文脈の他に {{鍵}} で許す鍵(送る口が当たる enrichers の provides の鍵を渡す)
+ * - variableKeys: vars と共通の文脈(鍵・別名)の他に {{名前}} で許す名前(送る口が当たる enrichers の provides の鍵と別名を渡す)
  */
 export function validateMessageDefinition<
   Vars extends z.AnyZodObject,
@@ -237,6 +237,8 @@ export function validateMessageDefinition<
     ...varKeys,
     ...COMMON_CONTEXT_KEYS,
     ...(resolved.throttle ? THROTTLE_CONTEXT_KEYS : []),
+    // 共通の埋め込み情報の日本語の別名({{受信者名}} など、D126。送る口が同じ値で埋める)
+    ...MESSAGE_COMMON_EMBEDDED.filter((item) => !item.throttleOnly || resolved.throttle).map((item) => item.alias),
     ...(options.variableKeys ?? []),
   ]);
   const unknownVariables = new Set<string>();

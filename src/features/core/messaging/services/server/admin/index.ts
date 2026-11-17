@@ -215,8 +215,10 @@ const sendDeps: AdminSendDeps = {
         name: MessageTemplateTable.name,
         currentVersion: MessageTemplateTable.current_version,
         category: MessageTemplateVersionTable.category,
-        content: MessageTemplateVersionTable.content,
-        variables: MessageTemplateVersionTable.variables,
+        layout: MessageTemplateVersionTable.layout,
+        layoutVersion: MessageTemplateVersionTable.layout_version,
+        values: MessageTemplateVersionTable.values,
+        embedded: MessageTemplateVersionTable.embedded,
       })
       .from(MessageTemplateTable)
       .innerJoin(
@@ -229,7 +231,7 @@ const sendDeps: AdminSendDeps = {
       .where(and(eq(MessageTemplateTable.status, "published"), isNotNull(MessageTemplateTable.current_version)))
       .orderBy(desc(MessageTemplateTable.updatedAt))
       .limit(200);
-    return rows.map((row) => ({ ...row, currentVersion: row.currentVersion ?? 0, content: row.content as Record<string, unknown> }));
+    return rows.map((row) => ({ ...row, currentVersion: row.currentVersion ?? 0 }));
   },
   maxScheduleDays: () => messagingConfig.schedule.maxDaysAhead,
 };

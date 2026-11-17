@@ -21,6 +21,7 @@ import type { ChannelFieldSchemas } from "./channels";
 import { MESSAGE_KIND_TRAITS } from "./kinds";
 import { listSecretVarKeys } from "./secret";
 import type { ResolvedMessageDefinition } from "./types";
+import { MESSAGE_COMMON_EMBEDDED } from "../embedded/common";
 import { COMMON_CONTEXT_KEYS, THROTTLE_CONTEXT_KEYS } from "./validate";
 
 /** 管理画面の欄の値 1 つ(fieldPath = ひな形の欄の鍵、layoutVersion = 保存した時のひな形の版。null = 版の無い古い形の行) */
@@ -51,7 +52,7 @@ export function adminEditableFields(resolved: AnyResolved, layout: MessageLayout
     .map(([key]) => key);
 }
 
-/** 管理画面の値で使ってよい {{鍵}}(秘密の vars は入れない) */
+/** 管理画面の値で使ってよい {{鍵}} / {{別名}}(秘密の vars は入れない。variableKeys = 当たる enrichers の鍵と別名) */
 export function adminFieldAllowedKeys(resolved: AnyResolved, variableKeys: readonly string[] = []): string[] {
   const secret = new Set(listSecretVarKeys(resolved.vars));
   const varKeys = Object.keys(resolved.vars.shape).filter((key) => !secret.has(key));
@@ -60,6 +61,8 @@ export function adminFieldAllowedKeys(resolved: AnyResolved, variableKeys: reado
       ...varKeys,
       ...COMMON_CONTEXT_KEYS,
       ...(resolved.throttle ? THROTTLE_CONTEXT_KEYS : []),
+      // 共通の埋め込み情報の日本語の別名(D126。送る口が鍵と同じ値で埋める)
+      ...MESSAGE_COMMON_EMBEDDED.filter((item) => !item.throttleOnly || resolved.throttle).map((item) => item.alias),
       ...variableKeys,
     ]),
   ];

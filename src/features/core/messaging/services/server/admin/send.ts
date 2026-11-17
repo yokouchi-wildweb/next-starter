@@ -3,7 +3,7 @@
 // 管理の送信(D34・D40・D41・D42・D65・D80・D85・D117・D125)。どの送信も『テンプレートを選んで送る』1 つの流れ(その場で書く連絡 = 白紙のシステムテンプレート)。
 // - 中身: template = 出どころ { system: 白紙の鍵 } か { id, version }(DB のテンプレートの読み込んだ版。今の公開版でなければ 409)・
 //   values = ひな形の欄の中身({{鍵}} のまま、ひな形の欄の zod で検査)・edited? = 版の中身から直したか(DB のテンプレートだけ。中身の違いでも付く)・
-//   vars? = DB のテンプレートの変数の値。組み方は sendMessage/templateDefinition.ts(fork のコードからは messagingService.sendTemplateMessage)
+//   embedded? = DB のテンプレートの専用の埋め込み情報の値 { 鍵: 値 }(版の宣言の型で検査、回の embedded_values に残る)。組み方は sendMessage/templateDefinition.ts(fork のコードからは messagingService.sendTemplateMessage)
 // - 宛先 target: 全員 / ロール / ユーザーグループ(groupId。門 userGroups が閉・しまった・壊れた・人数の上限は送る口が拒む)/
 //   選んだ利用者(userIds)
 // - カテゴリー(必須): 管理者が送れる種別(announcement・direct・promotion)のカテゴリーの鍵。宛先の種類は種別の性質 adminFreeText で確かめる
@@ -19,7 +19,7 @@
 
 import { z } from "zod";
 
-import type { MessageAdminTarget, MessageCategory, MessageChannel, MessageSystemTemplate } from "@/lib/messaging";
+import type { MessageAdminTarget, MessageCategory, MessageChannel, MessageEmbeddedDeclaration, MessageSystemTemplate } from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 
@@ -58,12 +58,12 @@ const targetSchema = z.discriminatedUnion("type", [
 export const adminContentFields = {
   /** 出どころ(白紙 { system } か DB のテンプレート { id, version }) */
   template: AdminMessageTemplateSchema,
-  /** ひな形の欄の中身(白紙のひな形、DB のテンプレートは notice。{{鍵}} のまま) */
+  /** ひな形の欄の中身(白紙・DB のテンプレートの版のひな形。{{鍵}} / {{別名}} のまま) */
   values: z.record(z.string(), z.unknown()),
   /** 版の中身から直したか(DB のテンプレートだけ。送る口は中身の違いでも直した印を付ける) */
   edited: z.boolean().optional(),
-  /** DB のテンプレートの変数の値(回に 1 組) */
-  vars: z.record(z.string(), z.unknown()).optional(),
+  /** DB のテンプレートの専用の埋め込み情報の値(回に 1 組) */
+  embedded: z.record(z.string(), z.unknown()).optional(),
   /** 送るカテゴリー(種別 announcement・direct・promotion) */
   category: z.string().trim().min(1).max(100),
   /** 送る経路(カテゴリーの経路の中の絞り。省略 = 全部。その中に文言の無い経路があれば 400) */
@@ -71,11 +71,11 @@ export const adminContentFields = {
 };
 
 export function checkAdminContent(
-  value: { template: MessageTemplateRef; vars?: Record<string, unknown>; edited?: boolean },
+  value: { template: MessageTemplateRef; embedded?: Record<string, unknown>; edited?: boolean },
   ctx: z.RefinementCtx,
 ): void {
-  if ("system" in value.template && value.vars && Object.keys(value.vars).length > 0) {
-    ctx.addIssue({ code: "custom", message: "変数の値はテンプレートを読み込んだ時だけ指定できます" });
+  if ("system" in value.template && value.embedded && Object.keys(value.embedded).length > 0) {
+    ctx.addIssue({ code: "custom", message: "専用の埋め込み情報の値はテンプレートを読み込んだ時だけ指定できます" });
   }
   if ("system" in value.template && value.edited) {
     ctx.addIssue({ code: "custom", message: "直した印はテンプレートを読み込んだ時だけ指定できます" });
@@ -133,9 +133,12 @@ export type AdminSendOptions = {
     name: string;
     category: string;
     currentVersion: number;
-    /** 今の公開版の文言(鍵 = 文言のある経路。送る画面が読み込んで送る) */
-    content: Record<string, unknown>;
-    variables: { key: string; label: string; type: string; required: boolean; default?: unknown; source: string }[];
+    /** 今の公開版のひな形・ひな形の版・欄の中身(送る画面が読み込んで送る) */
+    layout: string;
+    layoutVersion: number;
+    values: Record<string, unknown>;
+    /** 今の公開版の専用の埋め込み情報の宣言(送る画面が値を入れる) */
+    embedded: MessageEmbeddedDeclaration[];
   }[];
   /** 送れるカテゴリー(種別 announcement・direct・promotion、宛先の種類で絞る。その種別の白紙つき) */
   categories: AdminFreeTextCategoryOption[];
@@ -176,12 +179,12 @@ export function parseOr400<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, input
   return parsed.data;
 }
 
-/** 送る中身(出どころ・欄の中身・直した印・変数)・カテゴリー・経路の絞り */
+/** 送る中身(出どころ・欄の中身・直した印・専用の値)・カテゴリー・経路の絞り */
 export type AdminContent = {
   template: MessageTemplateRef;
   values: Record<string, unknown>;
   edited?: boolean;
-  vars?: Record<string, unknown>;
+  embedded?: Record<string, unknown>;
   channels?: string[];
   category: string;
 };
@@ -227,7 +230,7 @@ export async function dispatchAdminContent(
     values: content.values,
     category: category.key,
     ...(content.edited !== undefined ? { edited: content.edited } : {}),
-    ...(content.vars ? { vars: content.vars } : {}),
+    ...(content.embedded ? { embedded: content.embedded } : {}),
     ...(content.channels ? { channels: content.channels } : {}),
   });
 }
@@ -284,7 +287,7 @@ export async function previewAdminContent(
   const category = adminContentCategory(deps, input, target);
   return deps.previewMessage(
     { template: { template: input.template, values: input.values, category: category.key } },
-    { vars: input.vars ?? {}, channels: input.channels, userId },
+    { vars: input.embedded ?? {}, channels: input.channels, userId },
   );
 }
 

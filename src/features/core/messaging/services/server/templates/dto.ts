@@ -1,11 +1,11 @@
 // src/features/core/messaging/services/server/templates/dto.ts
 //
-// 保存されたテンプレートの管理へ返す形(型だけ。client の service も型で読む)。経路は持たない: content の鍵 = 文言のある経路
+// 保存されたテンプレートの管理へ返す形(型だけ。client の service も型で読む)。中身 = カテゴリー + ひな形 + 欄の中身 + 専用の埋め込み情報(指令 58)。
+// 経路は持たない: 送る経路は送る時のカテゴリーの経路
 
-import type { ChannelFieldMeta } from "@/lib/messaging";
+import type { ChannelFieldMeta, MessageEmbeddedDeclaration, MessageEmbeddedSource, MessageLayoutFields } from "@/lib/messaging";
 
 import type { MessageTemplateStatus } from "../../../entities/model";
-import type { MessageTemplateVariable } from "../../../entities/schema";
 
 /** 画面が読む経路 1 つ(鍵・表示名・欄の表示の約束・プレビューの部品の鍵)。送る画面の選択肢も同じ形 */
 export type AdminChannelOption = {
@@ -13,6 +13,23 @@ export type AdminChannelOption = {
   label: string;
   fieldMeta: Readonly<Record<string, ChannelFieldMeta>>;
   previewComponent: string | null;
+};
+
+/** 埋め込み情報の一覧の 1 つ(画面の候補: 鍵・日本語の別名・出どころ・説明) */
+export type AdminEmbeddedEntry = {
+  key: string;
+  alias: string;
+  source: MessageEmbeddedSource;
+  description: string | null;
+};
+
+/** 管理者が選べるひな形 1 つ(鍵・表示名・説明・欄の宣言) */
+export type AdminTemplateLayoutOption = {
+  key: string;
+  label: string;
+  description: string | null;
+  version: number;
+  fields: MessageLayoutFields;
 };
 
 export type AdminTemplateSummary = {
@@ -34,17 +51,18 @@ export type AdminTemplateSummary = {
   system: boolean;
   /** システムテンプレートの種別(DB のテンプレートは null) */
   kind: string | null;
-  /** システムテンプレートのひな形の鍵と白紙の欄の中身(DB のテンプレートは null。S4 まで経路ごとの content) */
-  layout: string | null;
-  values: Record<string, unknown> | null;
+  /** ひな形の鍵と欄の中身(DB のテンプレートは今の下書き、システムテンプレートは白紙) */
+  layout: string;
+  values: Record<string, unknown>;
 };
 
 export type AdminTemplateDetail = AdminTemplateSummary & {
-  /** 今の中身(下書き。公開した版は versions で読む) */
-  content: Record<string, unknown>;
-  variables: MessageTemplateVariable[];
-  /** 本文で使ってよい {{鍵}}(共通の文脈 ∪ 管理者が送れる種別のどれにも当たる enrichers の provides ∪ 宣言した変数) */
-  allowedKeys: string[];
+  /** 保存した時のひな形の版 */
+  layoutVersion: number;
+  /** 専用の埋め込み情報の宣言(システムテンプレートは空) */
+  embedded: MessageEmbeddedDeclaration[];
+  /** 文面に書ける埋め込み情報の一覧(共通 + テンプレートに当たる enrichers + 専用) */
+  catalog: AdminEmbeddedEntry[];
   /** 今の中身が最新の版と違う(公開していない変更がある。版が無ければ true) */
   hasUnpublishedChanges: boolean;
 };
@@ -52,8 +70,10 @@ export type AdminTemplateDetail = AdminTemplateSummary & {
 /** 公開した版(不変) */
 export type AdminTemplateVersion = {
   version: number;
-  content: Record<string, unknown>;
-  variables: MessageTemplateVariable[];
+  layout: string;
+  layoutVersion: number;
+  values: Record<string, unknown>;
+  embedded: MessageEmbeddedDeclaration[];
   category: string;
   /** 種類の表示名(受け口の label。無ければ null) */
   categoryLabel: string | null;
@@ -69,6 +89,8 @@ export type AdminTemplateOptions = {
   channels: AdminChannelOption[];
   /** 種類(種別 announcement・direct・promotion の物だけ) */
   categories: { key: string; label: string; description: string | null }[];
-  /** 変数を宣言する前から使える {{鍵}}(共通の文脈 ∪ 管理者が送れる種別のどれにも当たる enrichers の provides) */
-  baseAllowedKeys: string[];
+  /** 管理者が選べるひな形 */
+  layouts: AdminTemplateLayoutOption[];
+  /** 専用の宣言の前から書ける埋め込み情報(共通 + テンプレートに当たる enrichers) */
+  baseCatalog: AdminEmbeddedEntry[];
 };

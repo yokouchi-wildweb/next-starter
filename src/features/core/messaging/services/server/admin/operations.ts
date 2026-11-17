@@ -326,7 +326,8 @@ export async function adminResendFailed<Tx>(
       resolved!,
       {
         recipients,
-        vars: dispatch.vars as Record<string, unknown>,
+        // 回の vars ∪ 専用の埋め込み情報の値(テンプレートの回。新しい回でも embedded_values に分けて残す)
+        vars: { ...(dispatch.vars ?? {}), ...(dispatch.embedded_values ?? {}) } as Record<string, unknown>,
         channels,
         source: dispatch.source,
         reason: dispatch.reason ?? undefined,

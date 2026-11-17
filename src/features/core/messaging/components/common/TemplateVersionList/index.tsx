@@ -14,6 +14,7 @@ import { Span } from "@/components/TextBlocks/Span";
 
 import { messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
 import type { AdminTemplateVersion } from "@/features/core/messaging/services/client/templateClient";
+import { emailFieldsFromNoticeValues } from "@/features/core/messaging/utils/noticeValues";
 
 import { MessagePreview } from "../MessagePreview";
 
@@ -51,7 +52,7 @@ export function TemplateVersionList({ versions, currentVersion }: TemplateVersio
               {when(version.createdAt)}
             </Span>
             <Span size="sm" tone="muted">
-              {version.categoryLabel ?? "削除されたカテゴリー"} / {Object.keys(version.content).map(messageChannelLabel).join(" / ")}
+              {version.categoryLabel ?? "削除されたカテゴリー"} / ひな形 {version.layout}
             </Span>
           </Flex>
           <Button
@@ -69,18 +70,23 @@ export function TemplateVersionList({ versions, currentVersion }: TemplateVersio
           <Span size="sm" tone="muted">
             v{shown.version} の内容
           </Span>
+          {/* S5 で作り直すまでの最小の形: notice の中身をメールの欄の形で見せる(指令 58) */}
           <MessagePreview
-            channels={Object.keys(shown.content).map((key) => ({ key, label: messageChannelLabel(key), fields: shown.content[key] ?? {} }))}
+            channels={
+              shown.layout === "notice"
+                ? [{ key: "email", label: messageChannelLabel("email"), fields: emailFieldsFromNoticeValues(shown.values) }]
+                : []
+            }
           />
-          {shown.variables.length > 0 ? (
+          {shown.embedded.length > 0 ? (
             <Stack space={1}>
               <Span size="sm" tone="muted">
-                変数
+                埋め込み情報
               </Span>
-              {shown.variables.map((variable) => (
-                <Span key={variable.key} size="sm">
-                  <Span size="inherit" className="font-mono">{`{{${variable.key}}}`}</Span> {variable.label}({variable.type}
-                  {variable.required ? "・必須" : ""})
+              {shown.embedded.map((declaration) => (
+                <Span key={declaration.key} size="sm">
+                  <Span size="inherit" className="font-mono">{`{{${declaration.key}}}`}</Span> {declaration.alias}({declaration.type}
+                  {declaration.required ? "・必須" : ""})
                 </Span>
               ))}
             </Stack>

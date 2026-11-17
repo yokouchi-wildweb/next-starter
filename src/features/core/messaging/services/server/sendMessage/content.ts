@@ -7,11 +7,15 @@
 // - email: ひな形にメールの描き方(layouts の受け口 layoutEmails)があればそれ、無ければ経路の汎用、無ければ要約。経路が送る時に描く
 //   (rendersAtSend: 宛先ごとの停止のリンクを入れる)ので、中身は MessageLayoutContent
 // - inApp・line: 要約から(inApp の行は S6 まで今の title・body・image・link に要約を入れる)
+// - 差し込み: 表(鍵 → 値)に共通の埋め込み情報と当たる enrichers の日本語の別名の行を足す({{受信者名}} = {{recipientName}}、D126)。
+//   テンプレートの専用の別名は送る口が回に残す前に {{鍵}} へ書き換える(templateDefinition.ts)ので、ここでは要らない
 // - 秘密の鍵(secretVar)は呼び手が差し込みの表から外す(見出し・全員同文の描画)。その場で送る行だけが秘密を差し込む
 
 import {
   buildChannelContent,
+  embeddedVariableMap,
   type MessageChannel,
+  type MessageEnricher,
   type MessageLayout,
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
@@ -19,6 +23,7 @@ import type { VariableMap } from "@/lib/structuredDocument/shared";
 
 import { renderValue } from "./context";
 import type { AnyResolvedMessageDefinition } from "./definition";
+import { messageEmbeddedCatalog } from "./enrichers";
 
 /** 組み立ての部品(送る口の deps の一部) */
 export type MessageContentDeps = {
@@ -27,6 +32,8 @@ export type MessageContentDeps = {
   layouts: Readonly<Record<string, MessageLayout>>;
   /** 経路の鍵 → ひな形の描き方を持つひな形の鍵の表(email = layoutEmails。inApp の描き方は client の一覧なので S6 まで渡さない) */
   layoutRenderers: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  /** enrichers の受け口(別名の表に使う。無ければ共通の別名だけ) */
+  enrichers?: Readonly<Record<string, MessageEnricher>>;
 };
 
 /** 経路 1 つの組んだ中身 */
@@ -59,7 +66,8 @@ export async function buildContent(
   const layout = layoutOf(deps, resolved);
   const channel = deps.channels[channelKey];
   if (!channel) throw new DomainError(`経路 ${channelKey} は登録されていません(${resolved.key})`, { status: 500 });
-  const values = renderValue(resolved.values ?? {}, map) as Record<string, unknown>;
+  const named = embeddedVariableMap(map, messageEmbeddedCatalog(resolved, deps.enrichers ?? {}));
+  const values = renderValue(resolved.values ?? {}, named) as Record<string, unknown>;
   const result = await buildChannelContent({
     layout,
     channelKey,

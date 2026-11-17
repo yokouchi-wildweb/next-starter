@@ -52,7 +52,7 @@ export async function completeDispatches(
         completed_at: now,
         updatedAt: now,
         // record meta は送り残しのために持った vars と欄の中身を閉じる時に消す
-        ...(dispatch.record === "meta" ? { vars: null, values: null } : {}),
+        ...(dispatch.record === "meta" ? { vars: null, values: null, embedded_values: null } : {}),
       },
       event ? [event] : [],
     );

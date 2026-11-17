@@ -100,25 +100,7 @@ export const MessageDeliveryTargetSchema = z.object({
 
 export const MessageDeliveryTargetsSchema = z.array(MessageDeliveryTargetSchema);
 
-/** テンプレートの変数の宣言（message_templates.variables の要素） */
-export const MessageTemplateVariableSchema = z.object({
-  key: z.string().min(1),
-  label: z.string(),
-  type: z.string().min(1),
-  required: z.boolean(),
-  default: z.unknown().optional(),
-  /** 由来（回に 1 組 = dispatch / 受信者ごと = recipient） */
-  source: z.enum(["dispatch", "recipient"]),
-});
-
-export const MessageTemplateVariablesSchema = z.array(
-  MessageTemplateVariableSchema,
-);
-
 export type MessageChannelCount = z.infer<typeof MessageChannelCountSchema>;
 export type MessageChannelCounts = z.infer<typeof MessageChannelCountsSchema>;
 export type MessageChannelTextMap = z.infer<typeof MessageChannelTextMapSchema>;
 export type MessageDeliveryTarget = z.infer<typeof MessageDeliveryTargetSchema>;
-export type MessageTemplateVariable = z.infer<
-  typeof MessageTemplateVariableSchema
->;
