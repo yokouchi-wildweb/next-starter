@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { reachable, selectChanged } from "./changed.mjs";
-import { BASE_ARGS, globLiteral, parseArgs, run, select } from "./run.mjs";
+import { BASE_ARGS, DEFAULT_TEST_TIMEOUT, globLiteral, parseArgs, run, select, testTimeoutArgs } from "./run.mjs";
 import { EXCLUDED, flagsOf, groupOf, NAMED_ONLY, TEST_FILE } from "./scan.mjs";
 
 const FILES = ["src/a/a.test.ts", "src/a/b.db.test.ts", "src/c/c.test.mjs", "tests/mine/m.test.ts", "scripts/x/x.test.mts"];
@@ -29,12 +29,14 @@ test("// test-flags: 先頭行だけ読む、許可の一覧に無いフラグ�
 });
 
 test("引数: 群・--db・--changed・--list・パス、知らない引数と群は止める", () => {
-  assert.deepEqual(parseArgs(["--db", "--list", "src/a"]), { groups: null, db: true, changed: false, list: true, fileTimeout: null, patterns: ["src/a"] });
+  assert.deepEqual(parseArgs(["--db", "--list", "src/a"]), { groups: null, db: true, changed: false, list: true, fileTimeout: null, testTimeout: null, patterns: ["src/a"] });
   assert.deepEqual(parseArgs(["--group=db,fork"]).groups, ["db", "fork"]);
   assert.equal(parseArgs(["--file-timeout=300"]).fileTimeout, "300");
   assert.equal(parseArgs(["--file-timeout=0"]).fileTimeout, "0");
   assert.match(parseArgs(["--file-timeout=abc"]).problem, /--file-timeout は 0 以上の秒数/);
   assert.match(parseArgs(["--file-timeout=-1"]).problem, /--file-timeout は 0 以上の秒数/);
+  assert.equal(parseArgs(["--test-timeout=90"]).testTimeout, "90");
+  assert.match(parseArgs(["--test-timeout=x"]).problem, /--test-timeout は 0 以上の秒数/);
   assert.match(parseArgs(["--watch"]).problem, /知らない引数 --watch/);
   assert.match(parseArgs(["--group=e2e"]).problem, /知らない群 e2e/);
 });
@@ -104,10 +106,11 @@ test("起動: 下駄と module mocks を常に付け、群(db は ENV_FILE)と�
   }
   assert.equal(code, 1);
   assert.ok(calls.every((c) => c.open === undefined), "門番の全開スイッチ FEATURE_GATE_OPEN は子に渡さない");
+  const t = testTimeoutArgs(null).args;
   assert.deepEqual(calls.map((c) => [c.args.slice(BASE_ARGS.length), c.app === ".env.development"]), [
-    [["--test", "src/a/a.test.ts", "src/c/c.test.mjs", "tests/mine/m.test.ts"], process.env.ENV_FILE === ".env.development"],
-    [["--test", "src/a/b.db.test.ts"], true],
-    [["--a", "--test", "scripts/x/x.test.mts"], process.env.ENV_FILE === ".env.development"],
+    [[...t, "--test", "src/a/a.test.ts", "src/c/c.test.mjs", "tests/mine/m.test.ts"], process.env.ENV_FILE === ".env.development"],
+    [[...t, "--test", "src/a/b.db.test.ts"], true],
+    [[...t, "--a", "--test", "scripts/x/x.test.mts"], process.env.ENV_FILE === ".env.development"],
   ]);
   for (const c of calls)
     assert.deepEqual(c.args.slice(0, BASE_ARGS.length), [
@@ -117,6 +120,7 @@ test("起動: 下駄と module mocks を常に付け、群(db は ENV_FILE)と�
       "--import",
       "./scripts/runner/preload/fileTimeout.mjs",
       "--experimental-test-module-mocks",
+      "--test-force-exit",
     ]);
   let spawned = 0;
   const bad = await run([], { ...deps, readFlags: () => ({ flags: ["--inspect"], problem: "許可されていないフラグ --inspect" }), spawn: () => (spawned++, 0) });
@@ -137,7 +141,7 @@ test("[param] の下: パスの絞り込みで選び、--test には glob にな
   assert.equal(globLiteral("src/app/(user)/a.test.ts"), "src/app/(user)/a.test.ts");
   const calls = [];
   await run([file], { repo: "/r", files, changed: noRange, log: () => {}, readFlags: () => ({ flags: [] }), spawn: (args) => (calls.push(args), 0) });
-  assert.deepEqual(calls.map((a) => a.slice(BASE_ARGS.length)), [["--test", globLiteral(file)]]);
+  assert.deepEqual(calls.map((a) => a.slice(BASE_ARGS.length)), [[...testTimeoutArgs(null).args, "--test", globLiteral(file)]]);
   // 実物: [id] の下の置き物を node --test に渡すと 1 本回る(そのままのパスだと node は [id] を i か d の 1 文字と読み 0 本)
   const dir = mkdtempSync(join(tmpdir(), "runner-bracket-"));
   mkdirSync(join(dir, "[id]"));
@@ -182,4 +186,40 @@ test("時間の上限(実物): 終わらないファイルは上限で落ちて�
   // 0 = 上限なし: 普通に終わるファイルはそのまま通る(見張りのタイマーが引き止めない)
   const ok = spawnSync(process.execPath, ["--import", preload, "--test", "ok.test.mjs"], { cwd: dir, encoding: "utf8", env: { ...env, TEST_FILE_TIMEOUT: "120" }, timeout: 30_000 });
   assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+});
+
+test("test() 1 つの上限: 既定 60 秒、env TEST_TIMEOUT・フラグで変える(フラグが勝つ)、0 は付けない、数でなければ止める", async () => {
+  assert.equal(DEFAULT_TEST_TIMEOUT, 60);
+  assert.deepEqual(testTimeoutArgs(null, {}), { args: ["--test-timeout=60000"] });
+  assert.deepEqual(testTimeoutArgs(null, { TEST_TIMEOUT: "5" }), { args: ["--test-timeout=5000"] });
+  assert.deepEqual(testTimeoutArgs("90", { TEST_TIMEOUT: "5" }), { args: ["--test-timeout=90000"] });
+  assert.deepEqual(testTimeoutArgs("0", {}), { args: [] });
+  assert.match(testTimeoutArgs(null, { TEST_TIMEOUT: "abc" }).problem, /TEST_TIMEOUT は 0 以上の秒数/);
+  let spawned = 0;
+  const saved = process.env.TEST_TIMEOUT;
+  process.env.TEST_TIMEOUT = "abc";
+  try {
+    const code = await run([], { repo: "/r", files: ["src/a/a.test.ts"], changed: noRange, log: () => {}, readFlags: () => ({ flags: [] }), spawn: () => (spawned++, 0) });
+    assert.equal(code, 2);
+  } finally {
+    if (saved === undefined) delete process.env.TEST_TIMEOUT;
+    else process.env.TEST_TIMEOUT = saved;
+  }
+  assert.equal(spawned, 0);
+});
+
+test("終わり方(実物): --test-force-exit で、通った後に接続・タイマーが残るファイルもすぐ終わる。終わらない test() は --test-timeout で名前付きで落ちる", () => {
+  const dir = mkdtempSync(join(tmpdir(), "runner-force-exit-"));
+  writeFileSync(join(dir, "leak.test.mjs"), 'import { test } from "node:test";\ntest("passes but leaves a handle", () => { setInterval(() => {}, 1000); });\n');
+  writeFileSync(join(dir, "wait.test.mjs"), 'import { test } from "node:test";\ntest("never resolves", async () => { await new Promise(() => { setInterval(() => {}, 1000); }); });\n');
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;
+  const args = ["--test-force-exit", ...testTimeoutArgs("1", {}).args, "--test", "--test-concurrency=0"];
+  const started = Date.now();
+  const leak = spawnSync(process.execPath, [...args, "leak.test.mjs"], { cwd: dir, encoding: "utf8", env, timeout: 30_000 });
+  assert.equal(leak.status, 0, leak.stdout + leak.stderr);
+  const wait = spawnSync(process.execPath, [...args, "wait.test.mjs"], { cwd: dir, encoding: "utf8", env, timeout: 30_000 });
+  assert.equal(wait.status, 1, wait.stdout + wait.stderr);
+  assert.match(wait.stdout, /✖ never resolves/);
+  assert.ok(Date.now() - started < 20_000, "どちらもすぐ終わる");
 });

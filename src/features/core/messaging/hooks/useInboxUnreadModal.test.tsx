@@ -2,6 +2,8 @@
 // - 門 messagingInbox 閉(enabled を渡しても)/ config 切 / 住所の外 / 未ログインは取らず開かない。既定(config 既定 入)は開く
 // - 確かめていない未読を古い順に開き、見せた行に確かめた印(sessionStorage)を付けて既読にする
 // - 確かめた行は次に開かない / next / skip(全部既読 + 全部に印 + 閉じる)/ isInboxModalPath
+// - 詳しい表示の hook(useInboxItemDetail)は偽物(本物は SWR + axios で本当に取りに行き、node のプロセスが終わらない)。
+//   今の行の id で求めたかを確かめる
 // 実行: pnpm test src/features/core/messaging/hooks/useInboxUnreadModal.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -27,6 +29,7 @@ let user: unknown = { userId: "u1" };
 let items: Item[] = [];
 const fetchEnabled: boolean[] = [];
 const reads: string[] = [];
+const detailRequests: (string | null)[] = [];
 let readAlls = 0;
 let inboxOpen = true;
 const gateReads: string[] = [];
@@ -41,6 +44,15 @@ mock.module("@/features/core/messaging/hooks/useInboxItems", {
       fetchEnabled.push(Boolean(options.enabled));
       return { items: options.enabled ? items : [], isLoading: false, revalidate: () => {} };
     },
+  },
+});
+mock.module("@/features/core/messaging/hooks/useInboxItemDetail", {
+  namedExports: {
+    useInboxItemDetail: (id: string | null) => {
+      detailRequests.push(id);
+      return { detail: null, error: null, isLoading: false };
+    },
+    inboxItemDetailKey: (id: string) => `messaging/inbox/item/${id}`,
   },
 });
 mock.module("@/features/core/messaging/hooks/useMarkInboxItemRead", {
@@ -65,6 +77,7 @@ beforeEach(() => {
   items = [item("new", "2026-11-02T00:00:00Z"), item("old", "2026-11-01T00:00:00Z")];
   fetchEnabled.length = 0;
   reads.length = 0;
+  detailRequests.length = 0;
   readAlls = 0;
   inboxOpen = true;
   gateReads.length = 0;
@@ -129,8 +142,10 @@ test("古い順に開き、見せた行に印を付けて既読。next で次へ
   assert.equal(view.hook().total, 2);
   assert.deepEqual(reads, ["old"]);
   assert.deepEqual(confirmed(), ["old"]);
+  assert.equal(detailRequests.at(-1), "old", "詳しい表示は今の行の id で求める");
   await act(async () => view.hook().next());
   assert.equal(view.hook().current?.id, "new");
+  assert.equal(detailRequests.at(-1), "new");
   assert.equal(view.hook().isLast, true);
   assert.deepEqual(reads, ["old", "new"]);
   await act(async () => view.hook().close());

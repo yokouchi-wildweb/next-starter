@@ -518,3 +518,4 @@
 - id:20261117-100120-control-height | severity:breaking | checkpoint:control-height
 - id:20261117-163825-form-text-color | severity:info | checkpoint:form-text-color
 - id:20261117-173914-test-file-time-limit | severity:info | checkpoint:test-file-time-limit
+- id:20261117-181158-test-force-exit | severity:info | checkpoint:test-force-exit | fixes:20261117-173914-test-file-time-limit | pick:clean

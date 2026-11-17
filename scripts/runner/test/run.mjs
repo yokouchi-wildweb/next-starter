@@ -1,12 +1,15 @@
 // scripts/runner/test/run.mjs — テストの入口(pnpm test)
-// 実行: pnpm test [<パス | glob>...] [--group=unit|fork|db] [--db] [--changed] [--list] [--file-timeout=<秒>]
+// 実行: pnpm test [<パス | glob>...] [--group=unit|fork|db] [--db] [--changed] [--list] [--file-timeout=<秒>] [--test-timeout=<秒>]
 //   走査: git の追跡 + 未追跡のテストのファイル(scan.mjs、tests/e2e/・*.types.test.* は除く。servers/ は名指しの時だけ)を毎回。
 //   群: 既定 = unit + fork、--db で db も、--group=<群>[,<群>] でその群だけ。引数のパス・glob(リポジトリ直下から)で絞る。
 //   --changed: 範囲(門の watch と同じ比べ方)の変更から選ぶ(changed.mjs)。辿れなかったテストは名前を出す。
 //   servers/ の下のテストは名指しの時と、--changed の範囲に servers/ の下の変更がある時だけ候補にする。
 //   --list: 選んだファイルを出すだけ(起動しない)。
-//   時間の上限: 1 ファイルごと、既定 120 秒(preload/fileTimeout.mjs が子の中で見張る)。--file-timeout=<秒> か env TEST_FILE_TIMEOUT で変える、0 = なし。
-//   起動: node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --import ./scripts/runner/preload/fileTimeout.mjs --experimental-test-module-mocks [// test-flags:] --test <files>
+//   終わり方: --test-force-exit = テストが全部終わったら、接続・タイマーが残っていてもファイルのプロセスを終える(残り物で止まらない)。
+//   時間の上限: test() 1 つごと 既定 60 秒(node の --test-timeout。--test-timeout=<秒> か env TEST_TIMEOUT、0 = なし)と、
+//   1 ファイルごと 既定 120 秒(preload/fileTimeout.mjs が子の中で見張る。--file-timeout=<秒> か env TEST_FILE_TIMEOUT、0 = なし)。
+//   起動: node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --import ./scripts/runner/preload/fileTimeout.mjs --experimental-test-module-mocks
+//         --test-force-exit [--test-timeout=<ms>] [// test-flags:] --test <files>
 //   (node --test と同じく 1 ファイル 1 プロセス)。--test の後のファイルは node が glob として読むので、[ ] { } * ? は 1 文字の組 [x] で
 //   そのものに戻して渡す(globLiteral。src/app/**/[id]/ の下のテストが 0 本になって黙って通るのを防ぐ)。npx は通さない: npx は
 //   コマンドを shell に渡し、shell の glob が [[]id[]] を [id] に戻してしまう(tsx の cli を node で直に起動する)。db の群は env ENV_FILE=.env.development(未設定なら)。門番の全開スイッチ FEATURE_GATE_OPEN は子に渡さない。
@@ -27,11 +30,23 @@ export const BASE_ARGS = [
   "--import",
   "./scripts/runner/preload/fileTimeout.mjs",
   "--experimental-test-module-mocks",
+  "--test-force-exit",
 ];
-const USAGE = "pnpm test [<パス | glob>...] [--group=unit|fork|db] [--db] [--changed] [--list] [--file-timeout=<秒>]";
+const USAGE = "pnpm test [<パス | glob>...] [--group=unit|fork|db] [--db] [--changed] [--list] [--file-timeout=<秒>] [--test-timeout=<秒>]";
+/** test() 1 つの時間の上限の既定(秒) */
+export const DEFAULT_TEST_TIMEOUT = 60;
+const SECONDS = /^\d+(\.\d+)?$/;
+
+/** test() 1 つの上限 → node の引数(フラグ > env TEST_TIMEOUT > 既定、0 = 付けない)。{ args } か { problem } */
+export function testTimeoutArgs(flag, env = process.env) {
+  const v = flag ?? (env.TEST_TIMEOUT === undefined || env.TEST_TIMEOUT === "" ? String(DEFAULT_TEST_TIMEOUT) : env.TEST_TIMEOUT);
+  if (!SECONDS.test(v)) return { problem: `TEST_TIMEOUT は 0 以上の秒数(0 = 上限なし): ${v}` };
+  const ms = Math.round(Number(v) * 1000);
+  return { args: ms > 0 ? [`--test-timeout=${ms}`] : [] };
+}
 
 export function parseArgs(argv) {
-  const opts = { groups: null, db: false, changed: false, list: false, fileTimeout: null, patterns: [] };
+  const opts = { groups: null, db: false, changed: false, list: false, fileTimeout: null, testTimeout: null, patterns: [] };
   for (const a of argv.filter((x) => x !== "--")) {
     if (a === "--db") opts.db = true;
     else if (a === "--changed") opts.changed = true;
@@ -39,8 +54,12 @@ export function parseArgs(argv) {
     else if (a.startsWith("--group=")) opts.groups = a.slice(8).split(",").filter(Boolean);
     else if (a.startsWith("--file-timeout=")) {
       const v = a.slice(15);
-      if (!/^\d+(\.\d+)?$/.test(v)) return { problem: `--file-timeout は 0 以上の秒数(0 = 上限なし): ${a}` };
+      if (!SECONDS.test(v)) return { problem: `--file-timeout は 0 以上の秒数(0 = 上限なし): ${a}` };
       opts.fileTimeout = v;
+    } else if (a.startsWith("--test-timeout=")) {
+      const v = a.slice(15);
+      if (!SECONDS.test(v)) return { problem: `--test-timeout は 0 以上の秒数(0 = 上限なし): ${a}` };
+      opts.testTimeout = v;
     } else if (a.startsWith("--")) return { problem: `知らない引数 ${a}(${USAGE})` };
     else opts.patterns.push(a);
   }
@@ -101,6 +120,11 @@ export async function run(argv, { repo = join(HERE, "../../.."), log = console.l
     log("test: 選んだテストは 0 本");
     return 0;
   }
+  const timeout = testTimeoutArgs(opts.testTimeout);
+  if (timeout.problem) {
+    log(`test: ${timeout.problem}`);
+    return 2;
+  }
   // 同じ群・同じフラグごとに 1 回起動する
   const batches = new Map();
   for (const f of files) {
@@ -123,7 +147,7 @@ export async function run(argv, { repo = join(HERE, "../../.."), log = console.l
     if (opts.fileTimeout !== null) env.TEST_FILE_TIMEOUT = opts.fileTimeout;
     if (b.db && !env.ENV_FILE) env.ENV_FILE = ".env.development";
     log(`test: ${b.files.length} 本${b.db ? "(db)" : ""}${b.flags.length ? ` ${b.flags.join(" ")}` : ""}`);
-    if (spawn([...BASE_ARGS, ...b.flags, "--test", ...b.files.map(globLiteral)], env, repo) !== 0) code = 1;
+    if (spawn([...BASE_ARGS, ...timeout.args, ...b.flags, "--test", ...b.files.map(globLiteral)], env, repo) !== 0) code = 1;
   }
   return code;
 }
