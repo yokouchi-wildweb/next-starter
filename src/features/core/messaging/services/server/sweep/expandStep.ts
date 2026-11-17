@@ -18,7 +18,7 @@ import { listVariables } from "@/lib/structuredDocument/shared";
 
 import type { MessageDispatch, MessageDispatchInsert, MessageInboxItemInsert } from "../../../entities/model";
 import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
-import { inAppItemRow, inboxContentWithoutValues } from "../../../channels/inApp/createInAppChannel";
+import { inAppItemRow } from "../../../channels/inApp/createInAppChannel";
 import { buildContent } from "../sendMessage/content";
 import { toVariableMap } from "../sendMessage/context";
 import { resolvedOfDispatch } from "../sendMessage/dispatchResolved";
@@ -215,10 +215,9 @@ export async function expandDispatchChunk(deps: MessageSendDeps, dispatch: Messa
       counts[IN_APP] = { targeted: userCount, skippedNoAddress: 0, suppressed: 0 };
       sharedSent = userCount;
       if (dispatch.expand_cursor === null) {
-        // 共有の行も要約の列 + ひな形・欄の中身(記録の段が meta なら欄の中身を残さない、指令 60)
-        const content = dispatch.record === "meta" ? inboxContentWithoutValues(shared) : shared;
+        // 共有の行も要約の列 + ひな形・欄の中身(記録の段に依らず残す、D120。秘密の鍵は回の vars に無いので差し込まれない)
         inboxItem = {
-          ...inAppItemRow(content, { dispatchId: dispatch.id, userId: null, now }),
+          ...inAppItemRow(shared, { dispatchId: dispatch.id, userId: null, now }),
           target_roles: target.type === "role" ? [...target.roles] : null,
         };
       }

@@ -11,7 +11,8 @@
 // - throttle のある連絡の行は、この send ではなく間引きの処理(services/server/sendMessage/throttle.ts)が inAppItemRow の形で書く
 // - 中身(指令 60、D121): 送る口は描かずに MessageLayoutContent(題・ひな形・段・お知らせの経路の欄の中身・要約)を渡す(rendersAtSend)。
 //   行 = 要約の列(title = 題、body = 短い本文 ?? 本文、image、link = 行き先の URL)+ ひな形の鍵・版・欄の中身(詳細がひな形の描き方で描く)。
-//   記録の段が meta・秘密の連絡は呼び手が inboxContentWithoutValues で欄の中身を外す(行の layout・values は null = 要約のカード)
+//   行は届けた中身で記録ではないので、記録の段・required に依らず欄の中身を残す(D120)。秘密の欄は呼び手が空の字で差し込む(D130)。
+//   前の形の中身(MessageLayoutContent でない)だけ layout・values が null = 要約のカード
 
 import { isMessageLayoutContent, type ChannelSendResult, type MessageChannel } from "@/lib/messaging";
 
@@ -33,11 +34,6 @@ export type InAppChannelDeps = {
 
 /** 送る口が中身に足すひな形の版(services/server/sendMessage/content.ts) */
 type InAppLayoutContent = { layoutVersion?: unknown };
-
-/** 欄の中身を外した中身(記録の段が meta・秘密の連絡の行。要約だけを残す) */
-export function inboxContentWithoutValues(content: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  return { ...content, values: null };
-}
 
 const str = (value: unknown): string | null => (typeof value === "string" ? value : null);
 
