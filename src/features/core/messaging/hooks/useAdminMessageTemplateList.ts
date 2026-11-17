@@ -18,7 +18,7 @@ import { useMessageTemplates } from "./useMessageTemplates";
 
 /** 1 件の詳しい形から一覧の行の形へ */
 function summaryOf(template: AdminTemplateDetail): AdminTemplateSummary {
-  const { id, key, name, description, category, categoryLabel, status, currentVersion, createdBy, updatedBy, createdAt, updatedAt } = template;
+  const { id, key, name, description, category, categoryLabel, currentVersion, createdBy, updatedBy, createdAt, updatedAt } = template;
   const { system, kind, layout, values } = template;
   return {
     id,
@@ -27,7 +27,6 @@ function summaryOf(template: AdminTemplateDetail): AdminTemplateSummary {
     description,
     category,
     categoryLabel,
-    status,
     currentVersion,
     createdBy,
     updatedBy,
@@ -45,9 +44,8 @@ export type UseAdminMessageTemplateListOptions = {
 };
 
 export function useAdminMessageTemplateList(options: UseAdminMessageTemplateListOptions = {}) {
-  const [status, setStatus] = useState("");
   const [kind, setKind] = useState("");
-  const query = useMessageTemplates({ status: status || undefined, kind: kind || undefined, observerOptions: options.observerOptions });
+  const query = useMessageTemplates({ kind: kind || undefined, observerOptions: options.observerOptions });
   const [modalOpen, setModalOpen] = useState(false);
   const [templateId, setTemplateId] = useState<string | null>(null);
 
@@ -64,18 +62,16 @@ export function useAdminMessageTemplateList(options: UseAdminMessageTemplateList
   const onChanged = useCallback(
     (template: AdminTemplateDetail, action: MessageTemplateAction) => {
       if (action === "create") return revalidate();
-      if ((status && template.status !== status) || (kind && template.kind !== kind)) return removeItems((item) => item.id === template.id);
+      if (action === "delete" || (kind && template.kind !== kind)) return removeItems((item) => item.id === template.id);
       updateItems(
         (item) => item.id === template.id,
         () => summaryOf(template),
       );
     },
-    [status, kind, revalidate, updateItems, removeItems],
+    [kind, revalidate, updateItems, removeItems],
   );
 
   return {
-    status,
-    setStatus,
     /** 種別の絞り(空 = すべて、D135) */
     kind,
     setKind,

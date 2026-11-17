@@ -234,6 +234,7 @@ export function createMessageSender(deps: MessageSendDeps) {
   ): Promise<string> {
     const { channels, vars, policy, recipientCount, queueVars, expanded, source } = values;
     const template = source && "template" in source ? source.template : null;
+    const deletedTemplate = source && "deletedTemplate" in source ? source.deletedTemplate : null;
     const actor = deps.actor();
     const scheduled = input.scheduledAt !== undefined;
     // 見出しと全員同文の描画は回を書く前に組む(描けない経路はここで止まり、回を作らない)
@@ -253,8 +254,8 @@ export function createMessageSender(deps: MessageSendDeps) {
         scheduled_at: input.scheduledAt ?? null,
         system_template: source && "system" in source ? source.system : null,
         template_id: template?.id ?? null,
-        template_version: template?.version ?? null,
-        template_edited: template?.edited ?? false,
+        template_version: template?.version ?? deletedTemplate?.version ?? null,
+        template_edited: template?.edited ?? deletedTemplate?.edited ?? false,
         layout: resolved.layout,
         layout_version: deps.layouts[resolved.layout] ? layoutVersionOf(deps.layouts[resolved.layout]!) : null,
         // 欄の中身: 組み直しに要る間と残す段の間だけ(vars と同じ決まり)。required・秘密の連絡は残さない
@@ -518,14 +519,13 @@ export function createMessageSender(deps: MessageSendDeps) {
   }
 
   /**
-   * テンプレートの今の公開版(送れる版)。
-   * @throws DomainError(404) 無い / (409) 取り下げ済み・未公開・今の公開版でない版
+   * テンプレートの今の版(送れる版)。
+   * @throws DomainError(404) 無い / (409) 版が無い・今の版でない版
    */
   async function currentTemplateVersion(templateId: string, pinned?: number): Promise<MessageTemplateVersionSource> {
     if (!deps.templates) throw new DomainError("テンプレートの読み口がありません", { status: 500 });
     const current = await deps.templates.loadCurrent(templateId);
     if (!current) throw new DomainError("テンプレートがありません", { status: 404 });
-    if (current.status === "archived") throw new DomainError("取り下げたテンプレートでは送れません", { status: 409 });
     const version = current.version;
     if (!version) throw new DomainError("まだ公開していないテンプレートでは送れません", { status: 409 });
     if (pinned !== undefined && pinned !== version.version) {
@@ -634,7 +634,7 @@ export function createMessageSender(deps: MessageSendDeps) {
      * テンプレート + 欄の中身で送る(D117・D125)。白紙のシステムテンプレートも DB のテンプレートも同じ組み方。
      * 経路 = 種類の経路 ∩ 絞り。回に欄の中身を残し、DB のテンプレートは今の公開版を固定して直した印(入力の edited か中身の違い)を残す
      * (cron は回の欄の中身で組み直す)
-     * @throws DomainError(404) テンプレートが無い / (409) 取り下げ済み・未公開・今の公開版でない版 / (400) 白紙・カテゴリー・値・経路・中身・受信者ごとの変数の既定値
+     * @throws DomainError(404) テンプレートが無い / (409) 版が無い・今の版でない版 / (400) 白紙・カテゴリー・値・経路・中身・受信者ごとの変数の既定値
      */
     async sendTemplateMessage(input: SendTemplateMessageInput): Promise<SendMessageResult> {
       const { template: ref, values, edited, category, embedded, ...rest } = input;

@@ -238,7 +238,7 @@ const sendDeps: AdminSendDeps = {
           eq(MessageTemplateVersionTable.version, MessageTemplateTable.current_version),
         ),
       )
-      .where(and(eq(MessageTemplateTable.status, "published"), isNotNull(MessageTemplateTable.current_version)))
+      .where(isNotNull(MessageTemplateTable.current_version))
       .orderBy(desc(MessageTemplateTable.updatedAt))
       .limit(200);
     return rows.map((row) => ({ ...row, currentVersion: row.currentVersion ?? 0 }));

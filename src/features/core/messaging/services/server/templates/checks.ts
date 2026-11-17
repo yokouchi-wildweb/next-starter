@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/templates/checks.ts
 //
-// 保存されたテンプレートの保存時の検査(D41、指令 58)。作る・下書きの更新・公開の前に同じ検査を通す。
+// 保存されたテンプレートの保存時の検査(D41、指令 58)。作る・直すの前に同じ検査を通す。
 // - 種類: 種類の受け口(categories)にあり、種別が announcement・direct・promotion(管理者が送れる種別。それ以外は 400)
 // - ひな形: ひな形の受け口(layouts)にあり、管理者が選べる物(adminSelectable)
 // - 欄の中身: そのカテゴリーの経路で使う欄の zod(layoutValuesSchema)を通る

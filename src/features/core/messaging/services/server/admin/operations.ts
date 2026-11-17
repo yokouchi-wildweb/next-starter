@@ -334,12 +334,15 @@ export async function adminResendFailed<Tx>(
         metadata: { resendOf: dispatchId, ...(includeUnknown ? { possibleDuplicate: true } : {}) },
         isTest: dispatch.is_test ?? false,
       } as SendMessageToManyInput,
-      // 定義は回の欄の中身から組んである(D128)。テンプレートの回の再送は同じ出どころ(白紙の鍵か、同じ版と直した印)を残す
+      // 定義は回の欄の中身から組んである(D128)。テンプレートの回の再送は同じ出どころ(白紙の鍵か、同じ版と直した印)を残す。
+      // テンプレートを消した回(template_id null・版の番号あり、D137)は消したテンプレートの出どころのまま(コードの連絡の鍵を持たない)
       dispatch.system_template
         ? { system: dispatch.system_template }
         : dispatch.template_id && dispatch.template_version
           ? { template: { id: dispatch.template_id, version: dispatch.template_version, edited: dispatch.template_edited } }
-          : undefined,
+          : dispatch.template_version && dispatch.message_key === null
+            ? { deletedTemplate: { version: dispatch.template_version, edited: dispatch.template_edited } }
+            : undefined,
     );
     const failed = rows.filter((row) => row.status === "failed").length;
     const unknown = rows.length - failed;

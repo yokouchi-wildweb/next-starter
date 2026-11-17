@@ -1,17 +1,18 @@
 // src/features/core/messaging/services/server/templates/templateService.ts
 //
 // 保存されたテンプレート(管理者が画面で書く連絡の中身、D40・D41)の管理の service。/api/admin/messaging/templates が呼ぶ。
-// - 状態: published(版がある)→ archived(取り下げ。直せない)。下書きは無い(D134: 保存 = 公開)
+// - 状態は持たない: 下書きは無く(D134: 保存 = 公開)、要らなくなれば消す(D137: 版も消え、送った回は残り template_id が null)
 // - 作る = 行と版 1 を 1 つの取引で書く。直す = 行を書き、中身が最新の版と違えば同じ取引で版を追記して current_version を進める
 //   (同じ中身なら版を作らず unchanged。名前・説明だけの変更も版を作らない)。版は書き換えない
 // - 中身 = カテゴリー + ひな形 + 欄の中身 + 専用の埋め込み情報の宣言(指令 58)。版は保存の時の ひな形・ひな形の版・欄の中身・宣言・種類を持つ
 //   (回は送る時に版を固定する)。ひな形を替える時は入力の欄の中身だけを持つ(前のひな形の中身は残さない、D113)
 // - 保存の検査は checks.ts(D41)、画像の結び付けは imageBinding.ts
 // - 画面の選択肢 templateOptions(使える経路・種類・管理者が選べるひな形・専用の宣言の前から書ける埋め込み情報)
-// - service でも管理者を確かめる(D42)。監査 messaging.template.{created, updated, archived}(created・updated は版の番号つき)
+// - 消す時: 欄の中身を残している回が使う画像を、同じ取引で回に結び直す(テンプレートの行が消えると storage の照合が外すため)
+// - service でも管理者を確かめる(D42)。監査 messaging.template.{created, updated, deleted}(created・updated は版の番号、deleted は名前と最後の版)
 // - 一覧は種別(kind)で絞れる: その種別のカテゴリーのテンプレートと、その種別のシステムテンプレート(D135)
 // - システムテンプレート(受け口 messaging/templates の白紙、D117・D125): 一覧の最初のページの先頭に印つき(system: true、id = system:<鍵>)で並び、
-//   1 件も読める。直す・取り下げは 409(管理画面で直せない・消せない)。版は持たない(版の一覧は空、版 1 つは 404)
+//   1 件も読める。直す・消すは 409(管理画面で直せない・消せない)。版は持たない(版の一覧は空、版 1 つは 404)
 
 import { randomBytes } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
@@ -33,6 +34,7 @@ import type {
   AdminTemplateSummary,
   AdminTemplateVersion,
 } from "./dto";
+import { bindInboxImages, inboxItemImageRefs, withBoundInboxImages, type InboxImageLedger } from "../inbox/imageBinding";
 import { bindTemplateImages, type TemplateImageLedger } from "./imageBinding";
 import {
   CreateMessageTemplateInputSchema,
@@ -46,6 +48,8 @@ import { enabledSystemTemplates, isAdminSendableKind, isSystemTemplateEnabled } 
 export type TemplateServiceDeps<Tx> = AdminCheckDeps & {
   store: MessageTemplateStore<Tx>;
   ledger: TemplateImageLedger<Tx>;
+  /** 回の画像の台帳(消す時に、残す回の画像を回へ結び直す。受け取り箱と同じ持ち主 messaging.dispatch) */
+  dispatchLedger: InboxImageLedger<Tx>;
   check: () => TemplateCheckDeps;
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
   /** システムテンプレートの受け口(無い = 一覧に並べない) */
@@ -91,7 +95,6 @@ function toSummary(row: MessageTemplate, categoryLabel: CategoryLabelOf): AdminT
     description: row.description ?? null,
     category: row.category,
     categoryLabel: categoryLabel(row.category),
-    status: row.status,
     currentVersion: row.current_version ?? null,
     createdBy: row.created_by ?? null,
     updatedBy: row.updated_by ?? null,
@@ -112,7 +115,6 @@ function toSystemSummary(template: MessageSystemTemplate): AdminTemplateSummary 
     description: null,
     category: "",
     categoryLabel: null,
-    status: "published",
     currentVersion: null,
     createdBy: null,
     updatedBy: null,
@@ -207,7 +209,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     return template;
   }
 
-  /** システムテンプレートは直せない・取り下げできない(409) */
+  /** システムテンプレートは直せない・消せない(409) */
   function refuseSystem(id: string, verb: string): void {
     if (!isSystemTemplateId(id)) return;
     const template = requireSystem(id);
@@ -241,20 +243,20 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
   }
 
   return {
-    /** 一覧(新しい順、状態・種別で絞れる。種別 = その種別のカテゴリーのテンプレート、D135) */
+    /** 一覧(新しい順、種別で絞れる。種別 = その種別のカテゴリーのテンプレート、D135) */
     async listTemplates(query: unknown = {}): Promise<AdminTemplatePage> {
       await assertAdminActor(deps);
-      const { status, kind, cursor, limit } = parseOr400(ListMessageTemplatesQuerySchema.safeParse(query), "一覧の条件が正しくありません");
+      const { kind, cursor, limit } = parseOr400(ListMessageTemplatesQuerySchema.safeParse(query), "一覧の条件が正しくありません");
       const categories = kind
         ? Object.values(deps.check().categories)
             .filter((category) => category.kind === kind)
             .map((category) => category.key)
         : null;
-      const rows = await deps.store.list({ status: status ?? null, categories, limit, after: decodeCursor(cursor) });
+      const rows = await deps.store.list({ categories, limit, after: decodeCursor(cursor) });
       const page = rows.slice(0, limit);
-      // システムテンプレートは最初のページの先頭(公開中の扱い。取り下げで絞った時・切った物・ほかの種別は出さない)
+      // システムテンプレートは最初のページの先頭(切った物・ほかの種別は出さない)
       const systems =
-        !cursor && (!status || status === "published")
+        !cursor
           ? enabledSystemTemplates(deps.systemTemplates?.() ?? {})
               .filter((template) => !kind || template.kind === kind)
               .map(toSystemSummary)
@@ -303,7 +305,6 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           layout_version: checked.layoutVersion,
           values: checked.values,
           embedded: checked.embedded,
-          status: "published",
           current_version: 1,
           created_by: actor,
           updated_by: actor,
@@ -324,7 +325,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     /**
      * 直す = 行を書き、中身が最新の版と違えば同じ取引で新しい版にする(保存 = 公開、D134)。
      * 名前・説明はいつも保存する。中身が版と同じなら版を作らず unchanged: true(409 にしない)
-     * @throws DomainError(400) 入力・中身の検査 / (404) 無い / (409) 取り下げ済み・システムテンプレート
+     * @throws DomainError(400) 入力・中身の検査 / (404) 無い / (409) システムテンプレート
      */
     async updateTemplate(id: string, input: unknown): Promise<AdminTemplateSaveResult> {
       await assertAdminActor(deps);
@@ -334,7 +335,6 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       const { row, version } = await deps.store.transaction(async (tx) => {
         const current = await deps.store.lockForUpdate(tx, id);
         if (!current) throw new DomainError("テンプレートがありません", { status: 404 });
-        if (current.status === "archived") throw new DomainError("取り下げたテンプレートは直せません", { status: 409 });
         // ひな形を替える時は入力の欄の中身だけ(前のひな形の中身は持ち越さない、D113)。同じひな形なら入力が無ければ今の中身
         const layoutChanged = patch.layout !== undefined && patch.layout !== current.layout;
         if (layoutChanged && patch.values === undefined) {
@@ -372,20 +372,30 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     },
 
     /**
-     * 取り下げる(archived。版は残る)。
-     * @throws DomainError(404) 無い / (409) 取り下げ済み
+     * 消す(D137): 版は消え(FK cascade)、送った回は残る(template_id は FK で null、版の番号・中身は回に残る)。
+     * 欄の中身を残している回(予約・送り直し・同じ内容で送る)が使う画像は、同じ取引で回に結び直す(複製を回の持ち物にし、中身の参照を書き換える)。
+     * @throws DomainError(404) 無い / (409) システムテンプレート
      */
-    async archiveTemplate(id: string): Promise<AdminTemplateDetail> {
+    async deleteTemplate(id: string): Promise<{ id: string; deleted: true }> {
       await assertAdminActor(deps);
-      refuseSystem(id, "取り下げ");
+      refuseSystem(id, "消すことは");
       const row = await deps.store.transaction(async (tx) => {
         const current = await deps.store.lockForUpdate(tx, id);
         if (!current) throw new DomainError("テンプレートがありません", { status: 404 });
-        if (current.status === "archived") throw new DomainError("既に取り下げています", { status: 409 });
-        return deps.store.update(tx, id, { status: "archived", updated_by: actorId() });
+        for (const dispatch of await deps.store.lockKeptDispatches(tx, id)) {
+          const refs = inboxItemImageRefs({ values: dispatch.values });
+          if (refs.length === 0) continue;
+          const { map, metadata } = await bindInboxImages(deps.dispatchLedger, tx, dispatch, refs);
+          const rewritten = withBoundInboxImages({ values: dispatch.values }, map).values ?? dispatch.values;
+          if (metadata || !isDeepStrictEqual(rewritten, dispatch.values)) {
+            await deps.store.updateDispatchImages(tx, dispatch.id, { values: rewritten, metadata: metadata ?? dispatch.metadata ?? {} });
+          }
+        }
+        await deps.store.remove(tx, id);
+        return current;
       });
-      await audit(row, "messaging.template.archived");
-      return detailOf(row);
+      await audit(row, "messaging.template.deleted", { name: row.name, lastVersion: row.current_version ?? null });
+      return { id: row.id, deleted: true };
     },
 
     /** 版の一覧(新しい順) */

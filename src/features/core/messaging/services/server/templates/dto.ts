@@ -10,7 +10,6 @@ import type {
   MessageLayoutSummary,
 } from "@/lib/messaging";
 
-import type { MessageTemplateStatus } from "../../../entities/model";
 
 /** 画面が読む経路 1 つ(鍵・表示名)。送る画面の選択肢も同じ形。入力とプレビューはひな形の欄と描き方から(指令 59) */
 export type AdminChannelOption = {
@@ -43,7 +42,6 @@ export type AdminTemplateSummary = {
   category: string;
   /** 種類の表示名(受け口の label。受け口に無ければ null。画面は鍵でなくこれを出す、D46) */
   categoryLabel: string | null;
-  status: MessageTemplateStatus;
   /** 最新の版(保存 = 公開なので DB のテンプレートは 1 以上。システムテンプレートは null) */
   currentVersion: number | null;
   createdBy: string | null;

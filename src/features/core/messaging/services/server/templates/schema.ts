@@ -6,8 +6,6 @@ import { z } from "zod";
 
 import { MESSAGE_KINDS } from "@/lib/messaging";
 
-import { MESSAGE_TEMPLATE_STATUSES } from "../../../entities/schema";
-
 const templateFields = {
   name: z.string().trim().min(1).max(200),
   description: z.string().max(2000).nullable().optional(),
@@ -35,7 +33,6 @@ export const UpdateMessageTemplateInputSchema = z
   .strict();
 
 export const ListMessageTemplatesQuerySchema = z.object({
-  status: z.enum(MESSAGE_TEMPLATE_STATUSES).optional(),
   /** 種別で絞る(その種別のカテゴリーのテンプレートと、その種別のシステムテンプレート、D135) */
   kind: z.enum(MESSAGE_KINDS).optional(),
   cursor: z.string().optional(),

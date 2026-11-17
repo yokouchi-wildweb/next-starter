@@ -35,13 +35,13 @@ async function findVersion(templateId: string, version: number): Promise<Message
 export const drizzleMessageTemplateSource: MessageTemplateSource = {
   async loadCurrent(templateId) {
     const [template] = await db
-      .select({ key: MessageTemplateTable.key, status: MessageTemplateTable.status, current: MessageTemplateTable.current_version })
+      .select({ key: MessageTemplateTable.key, current: MessageTemplateTable.current_version })
       .from(MessageTemplateTable)
       .where(eq(MessageTemplateTable.id, templateId))
       .limit(1);
     if (!template) return null;
     const row = template.current === null ? null : await findVersion(templateId, template.current);
-    return { status: template.status, version: row ? toSource(template.key, row) : null };
+    return { version: row ? toSource(template.key, row) : null };
   },
   async loadVersion(templateId, version) {
     const [template] = await db

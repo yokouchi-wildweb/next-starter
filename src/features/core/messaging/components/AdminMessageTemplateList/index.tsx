@@ -10,8 +10,7 @@ import { AlignLeft } from "lucide-react";
 
 import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
-import { SelectInput, SwitchInput } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import { SwitchInput } from "@/components/Form/Input/Manual";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
@@ -20,14 +19,12 @@ import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { CreateButton } from "@/lib/crud/components";
 
 import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLabels";
-import { TEMPLATE_STATUS_DISPLAY, TemplateStatusBadge } from "@/features/core/messaging/components/common/TemplateStatusBadge";
 import { AdminMessageTemplateModal } from "@/features/core/messaging/components/AdminMessageTemplateModal";
 import { KindCategoryMeta, RowDateMeta, RowMetaItem } from "@/features/core/messaging/components/common/MessageRowMeta";
 import { useAdminDispatchCategories } from "@/features/core/messaging/hooks/useAdminDispatchCategories";
 import { useAdminMessageTemplateList } from "@/features/core/messaging/hooks/useAdminMessageTemplateList";
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
-const STATUS_OPTIONS = Object.entries(TEMPLATE_STATUS_DISPLAY).map(([value, { label }]) => ({ value, label }));
 
 const when = (iso: string | null) => {
   if (!iso) return "-";
@@ -36,7 +33,7 @@ const when = (iso: string | null) => {
 };
 
 export function AdminMessageTemplateList() {
-  const { status, setStatus, query, modal } = useAdminMessageTemplateList({ observerOptions: OBSERVER_OPTIONS });
+  const { query, modal } = useAdminMessageTemplateList({ observerOptions: OBSERVER_OPTIONS });
   // システムテンプレートを見せるか(画面の中だけの見せ方。既定は隠す)。システムテンプレートはサーバーが 1 ページ目の頭にだけ付けるので、
   // 行を隠しても次のページの取り方は変わらない
   const [showSystem, setShowSystem] = useState(false);
@@ -52,18 +49,6 @@ export function AdminMessageTemplateList() {
     <Stack space={4}>
       <Flex align="end" justify="between" gap="sm" wrap="wrap">
         <Flex align="end" gap="md" wrap="wrap">
-          <Stack space={1}>
-            <Label htmlFor="template-filter-status" className="text-xs">
-              状態
-            </Label>
-            <SelectInput
-              id="template-filter-status"
-              value={status}
-              onChange={(v) => setStatus(v ? String(v) : "")}
-              options={STATUS_OPTIONS}
-              placeholder="すべて"
-            />
-          </Stack>
           <SwitchInput
             id="template-filter-system"
             size="sm"
@@ -109,9 +94,11 @@ export function AdminMessageTemplateList() {
                         <SoftBadge variant="secondary" size="sm">
                           システム
                         </SoftBadge>
-                      ) : (
-                        <TemplateStatusBadge status={template.status} currentVersion={template.currentVersion} />
-                      )}
+                      ) : template.currentVersion ? (
+                        <SoftBadge variant="success" size="sm">
+                          v{template.currentVersion}
+                        </SoftBadge>
+                      ) : null}
                       <Span weight="semiBold" className="min-w-0">
                         {template.name}
                       </Span>

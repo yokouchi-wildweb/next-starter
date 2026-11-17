@@ -68,7 +68,7 @@ export function useMessageTemplateModal({ open, templateId = null, onChanged }: 
     onCreated,
     onChanged,
     formKey: template && currentId
-      ? `${session}:${template.id}:${template.updatedAt ?? ""}:${template.currentVersion ?? ""}:${template.status}`
+      ? `${session}:${template.id}:${template.updatedAt ?? ""}:${template.currentVersion ?? ""}`
       : `${session}:new`,
   };
 }
