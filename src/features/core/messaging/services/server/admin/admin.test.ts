@@ -231,7 +231,10 @@ const dispatchRow = (over: Partial<MessageDispatch> = {}): MessageDispatch =>
     template_id: null,
     template_version: null,
     template_edited: false,
-    authored_content: null,
+    system_template: null,
+    layout: null,
+    layout_version: null,
+    values: null,
     category: "promotion",
     target: null,
     tags: null,
@@ -280,7 +283,7 @@ const deliveryRow = (over: Partial<MessageDelivery> = {}): MessageDelivery =>
     ...over,
   }) as MessageDelivery;
 
-const FLAGS = operationFlags({ status: "completed", deleted_at: null, record: "meta", vars: null }, null, {
+const FLAGS = operationFlags({ status: "completed", deleted_at: null, record: "meta", vars: null, values: null }, null, {
   failed: 0,
   unknown: 0,
 });
@@ -360,12 +363,12 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
   await rejects403(listDispatches({ ...check(ctx("user1", "user")), dispatchStore: store, operationInputs, sourceLabel: async () => null }));
 });
 
-test("回 1 件: 書いて送った文面と、選んだ利用者に送った回の利用者 id(回の一覧 → 配達の行、多すぎ・ほかの形は null)", async () => {
+test("回 1 件: 回の中身(ひな形・版・欄の中身)と、選んだ利用者に送った回の利用者 id(回の一覧 → 配達の行、多すぎ・ほかの形は null)", async () => {
   const userIdCalls: unknown[] = [];
   let fromDeliveries: string[] = ["u1", "u2"];
   const rows: Record<string, MessageDispatch> = {
-    edited: dispatchRow({ id: "edited", template_id: "t1", template_version: 2, template_edited: true, authored_content: { email: { subject: "直した" } } } as never),
-    plain: dispatchRow({ id: "plain", template_id: "t1", template_version: 2, template_edited: false, authored_content: null } as never),
+    edited: dispatchRow({ id: "edited", template_id: "t1", template_version: 2, template_edited: true, layout: "notice", layout_version: 1, values: { subject: "直した" } } as never),
+    plain: dispatchRow({ id: "plain", template_id: "t1", template_version: 2, template_edited: false, layout: "notice", values: null } as never),
     listed: dispatchRow({ id: "listed", target: { type: "recipients", recipients: [{ userId: "a" }, { userId: "b" }, { userId: "a" }] } as never }),
     counted: dispatchRow({ id: "counted", target: { type: "recipients", count: 2 } as never }),
     role: dispatchRow({ id: "role", target: { type: "role", roles: ["user"] } as never }),
@@ -387,7 +390,7 @@ test("回 1 件: 書いて送った文面と、選んだ利用者に送った回
     sourceLabel: async (source: string) => (source === "messaging.adminBulk" ? "管理者の一括送信" : null),
   };
   const edited = await findDispatch(deps, "edited");
-  assert.deepEqual([edited.templateEdited, edited.content], [true, { email: { subject: "直した" } }]);
+  assert.deepEqual([edited.templateEdited, edited.content], [true, { layout: "notice", layoutVersion: 1, values: { subject: "直した" } }]);
   const plain = await findDispatch(deps, "plain");
   assert.deepEqual([plain.templateEdited, plain.content, plain.targetUserIds], [false, null, null]);
   assert.deepEqual((await findDispatch(deps, "listed")).targetUserIds, ["a", "b"]);

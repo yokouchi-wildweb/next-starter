@@ -61,6 +61,9 @@ function setup(
     deleted_at: null,
     record: "vars",
     vars: { item: "靴" },
+    layout: "card",
+    layout_version: 1,
+    values: { title: "{{item}}" },
     metadata: { inboxImages: { [REF_A]: REF_B } },
     source: "shop.notice",
     reason: null,
@@ -277,7 +280,8 @@ test("d3 再送(record meta): 回の vars で新しい回として送り、同�
   assert.deepEqual(world.continued, []);
   await rejectsWith(adminResendFailed(world.deps, "d1"), 409, "no_failed");
 
-  const noCopy = setup({ record: "meta", vars: null }, { definition: definitionOf({ record: "meta" }) });
+  // 閉じた meta の回は vars も欄の中身も消えている
+  const noCopy = setup({ record: "meta", vars: null, values: null }, { definition: definitionOf({ record: "meta" }) });
   await rejectsWith(adminResendFailed(noCopy.deps, "d1"), 409, "no_input_copy");
 });
 
@@ -293,7 +297,7 @@ test("d3 再送できない: 秘密・required・定義なし・予約・失敗�
 });
 
 test("判定の印: 画面のボタンと service は同じ判定", () => {
-  const base = { status: "completed", deleted_at: null, record: "vars", vars: {} } as const;
+  const base = { status: "completed", deleted_at: null, record: "vars", vars: {}, values: {} } as const;
   const policy = { required: false, secret: false, record: "vars" };
   const flags = operationFlags(base, policy, { failed: 2, unknown: 1 });
   assert.deepEqual(flags.canDelete, { allowed: true, reason: null });
@@ -301,7 +305,9 @@ test("判定の印: 画面のボタンと service は同じ判定", () => {
   assert.deepEqual(flags.canResend, { allowed: true, reason: null, mode: "requeue", failed: 2, unknown: 1 });
   assert.deepEqual(operationFlags({ ...base, status: "processing" }, policy, { failed: 0, unknown: 0 }).canContinue, { allowed: true, reason: null });
   assert.equal(operationFlags(base, policy, { failed: 0, unknown: 0 }).canResend.reason, "no_failed");
-  assert.equal(operationFlags({ ...base, record: "meta", vars: null }, { ...policy, record: "meta" }, { failed: 1, unknown: 0 }).canResend.reason, "no_input_copy");
+  assert.equal(operationFlags({ ...base, record: "meta", vars: null, values: null }, { ...policy, record: "meta" }, { failed: 1, unknown: 0 }).canResend.reason, "no_input_copy");
+  // vars だけ残って欄の中身の無い回も新しい回を描けない
+  assert.equal(operationFlags({ ...base, record: "meta", values: null }, { ...policy, record: "meta" }, { failed: 1, unknown: 0 }).canResend.reason, "no_input_copy");
   const deleted = operationFlags({ ...base, deleted_at: NOW }, policy, { failed: 1, unknown: 0 });
   assert.deepEqual([deleted.canDelete.reason, deleted.canResend.reason, deleted.canContinue.reason], ["deleted", "deleted", "deleted"]);
   assert.equal(operationFlags({ ...base, status: "cancelled" }, policy, { failed: 1, unknown: 0 }).canResend.reason, "cancelled");

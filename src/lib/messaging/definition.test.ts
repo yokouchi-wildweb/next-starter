@@ -246,7 +246,7 @@ test("種類の検査: 受け口に無い鍵は誤り、種別の性質で文言
 test("authored(文面を送るたびに受け取る): 空の values は通り、中身・adminEditable・throttle・上書きは止める", () => {
   const authored = defineMessage({ key: "admin.free", label: "テストの連絡", category: "chat", authored: true, vars: z.object({}), layout: "notice", values: {} });
   assert.deepEqual(validate(authored), [], "欄の中身が無くても通る");
-  assert.deepEqual(codes(validate({ ...authored, values: { subject: "t", blocks: [{ type: "paragraph", text: "b" }] } })), ["authored_content"]);
+  assert.deepEqual(codes(validate({ ...authored, values: { subject: "t", blocks: [{ type: "paragraph", text: "b" }] } })), ["authored_values"]);
   assert.deepEqual(codes(validate({ ...authored, adminEditableOnly: ["inApp.title"] } as typeof authored)), ["authored_field"]);
   assert.deepEqual(codes(validate(authored, { override: { extras: { x: 1 } } })), ["authored_override"]);
   // 送る口が受けた文面で埋めた定義(authored を外す)は普通に検査する: 欄の中身が要る

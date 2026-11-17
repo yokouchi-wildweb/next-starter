@@ -72,7 +72,7 @@ export const sendAuthored = sender.sendAuthored;
 export const previewMessage = sender.previewMessage;
 export const estimateRecipients = sender.estimateRecipients;
 export const sendResolved = sender.sendResolved;
-export { definitionOfDispatch } from "./dispatchDefinition";
+export { resolvedOfDispatch, type DispatchResolveError } from "./dispatchResolved";
 
 export { createMessageSender, type MessagePreview, type MessageSender, type RecipientEstimate } from "./sender";
 export { MessageIdempotencyConflict } from "./errors";

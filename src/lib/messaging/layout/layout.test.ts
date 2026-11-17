@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { messageBlocksSchema } from "./blocks";
 import { resolveRendering, type MessageChannelRendering } from "./rendering";
 import { defineMessageLayout } from "./types";
-import { applyLayoutRevisions, fieldsForChannel, layoutValuesSchema } from "./values";
+import { applyLayoutRevisions, fieldsForChannel, layoutValuesSchema, upgradeLayoutValues } from "./values";
 import { fieldValueSchema, MESSAGE_FIELD_TYPES } from "./vocabulary";
 
 const ok = (schema: { safeParse: (v: unknown) => { success: boolean } }, value: unknown) => schema.safeParse(value).success;
@@ -73,7 +73,9 @@ const layout = defineMessageLayout({
     body: { type: "blocks", label: "本文", required: true, allow: ["heading", "paragraph", "button"] },
   },
   summary: (values) => ({ title: values.subject ?? "", body: (values.body ?? []).map((b) => ("text" in b ? b.text : "")).join("\n") }),
-  revisions: { title: "subject", footer: null },
+  version: 3,
+  // 1 → 2: title を subject へ、footer を捨てる / 2 → 3: 欄の鍵は変わらない
+  revisions: { 1: { title: "subject", footer: null }, 2: {} },
 });
 
 test("中身の検査: 必須を守り、送らない経路だけの欄は求めず、知らない鍵は通らない", () => {
@@ -88,10 +90,25 @@ test("中身の検査: 必須を守り、送らない経路だけの欄は求め
   assert.deepEqual(Object.keys(fieldsForChannel(layout, "email")), ["subject", "preheader", "body"]);
 });
 
-test("改版の対応: 前の鍵を新しい鍵へ移し、null は捨て、新しい鍵に値があれば残す", () => {
-  assert.deepEqual(applyLayoutRevisions({ title: "前", footer: "x", body: [] }, layout.revisions), { body: [], subject: "前" });
-  assert.deepEqual(applyLayoutRevisions({ title: "前", subject: "今" }, layout.revisions), { subject: "今" });
+test("改版の対応の 1 段: 前の鍵を新しい鍵へ移し、null は捨て、新しい鍵に値があれば残す", () => {
+  assert.deepEqual(applyLayoutRevisions({ title: "前", footer: "x", body: [] }, layout.revisions![1]), { body: [], subject: "前" });
+  assert.deepEqual(applyLayoutRevisions({ title: "前", subject: "今" }, layout.revisions![1]), { subject: "今" });
   assert.deepEqual(applyLayoutRevisions({ a: 1 }, undefined), { a: 1 });
+});
+
+test("版の読み替え(D128): 送った版から今の版まで段ごとに当て、段が無い・今より新しい版は読めない", () => {
+  assert.deepEqual(upgradeLayoutValues(layout, { title: "前", footer: "x", body: [] }, 1), { values: { body: [], subject: "前" } });
+  assert.deepEqual(upgradeLayoutValues(layout, { subject: "今", body: [] }, 2), { values: { subject: "今", body: [] } });
+  assert.deepEqual(upgradeLayoutValues(layout, { subject: "今" }, 3), { values: { subject: "今" } });
+  const gap = { ...layout, revisions: { 1: { title: "subject" } } };
+  const missing = upgradeLayoutValues(gap, { title: "前" }, 1);
+  assert.ok("cannotRender" in missing && missing.cannotRender.includes("revisions[2]"));
+  for (const version of [4, 0, 1.5]) {
+    const result = upgradeLayoutValues(layout, {}, version);
+    assert.ok("cannotRender" in result, String(version));
+  }
+  // 版の無いひな形 = 1
+  assert.deepEqual(upgradeLayoutValues({ ...layout, version: undefined, revisions: undefined }, { a: 1 }, 1), { values: { a: 1 } });
 });
 
 const values = { subject: "件名", body: [{ type: "paragraph" as const, text: "本文" }] };

@@ -26,7 +26,7 @@ import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { sources } from "../../../extensions/sources";
 import {
-  definitionOfDispatch,
+  resolvedOfDispatch,
   estimateRecipients,
   previewMessage,
   sendMessageDeps,
@@ -110,10 +110,10 @@ export function adminBulkSendOptions() {
   return adminBulkSendOptionsWith(bulkDeps());
 }
 
-/** 回の定義(読めない・誤りなら null。テンプレートの回は固定した版) */
-async function definitionOf(row: Parameters<typeof definitionOfDispatch>[1]) {
+/** 回から描く定義(回に残した物だけ。ひな形が無い・版を読めない・誤りなら null) */
+async function definitionOf(row: Parameters<typeof resolvedOfDispatch>[1]) {
   try {
-    const loaded = await definitionOfDispatch(sendMessageDeps, row);
+    const loaded = await resolvedOfDispatch(sendMessageDeps, row);
     return "error" in loaded ? null : loaded.resolved;
   } catch {
     return null;

@@ -13,7 +13,7 @@
 1. `sending` のまま lease（`locked_until`）が切れた配達を `unknown` にする（落ちた処理の痕跡。自動で送り直さない）
 2. 予約の時刻が来た `scheduled` の回を `processing` にする（削除した回 = `deleted_at` ありは拾わない、D88）
 3. 大きな送信・全員・ロール・グループ宛ての回を `expand_cursor` から 1 束ずつ展開（削除した回は展開しない。`expandStep.ts`、`sweep.expandChunksPerRun` 束まで）。`expand_cursor` = null（まだ）/ keyset の印か `i:<番号>`（途中）/ `MESSAGE_EXPAND_DONE`（`"~done"`）
-4. `next_attempt_at <= now` の配達を lease で取り（`FOR UPDATE SKIP LOCKED` で `sending` + `locked_until` + `lock_token`）、回の定義から描き直して経路の send へ（`sendStep.ts`）。書き込みは `lock_token` が合う時だけ。`transient` は `transientRetry` の間で送り直し、尽きたら `failed`。複数の宛先は一時の失敗の宛先だけを送り直す
+4. `next_attempt_at <= now` の配達を lease で取り（`FOR UPDATE SKIP LOCKED` で `sending` + `locked_until` + `lock_token`）、回に残したひな形と版・欄の中身・vars だけで描き直して経路の send へ（`sendStep.ts`・`../sendMessage/dispatchResolved.ts`。定義・テンプレートは引き直さない、D128）。書き込みは `lock_token` が合う時だけ。`transient` は `transientRetry` の間で送り直し、尽きたら `failed`。複数の宛先は一時の失敗の宛先だけを送り直す
 5. 展開を終え `queued` / `sending` / 送り直し待ちの無い回を閉じる（`complete.ts`）: `channel_counts` を数え直し `completed` / `completed_with_failures`、`record: "meta"` なら送るために置いた `vars` を消す
 
 - 定義が生成の一覧に無い・検査に落ちる回の配達は `failed`（`definition_missing` / `definition_invalid`）。経路の項目が無ければ `suppressed` + `channel_off`

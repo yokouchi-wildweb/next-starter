@@ -20,7 +20,7 @@ import type { MessageDispatch, MessageDispatchInsert, MessageInboxItemInsert } f
 import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
 import { buildContent } from "../sendMessage/content";
 import { toVariableMap } from "../sendMessage/context";
-import { definitionOfDispatch } from "../sendMessage/dispatchDefinition";
+import { resolvedOfDispatch } from "../sendMessage/dispatchResolved";
 import { deliveryEvents } from "../events/internalEvents";
 import type { StopContext } from "../sendMessage/stops";
 import {
@@ -112,8 +112,9 @@ async function sharedInAppContent(
   dispatch: MessageDispatch,
 ): Promise<Record<string, unknown> | null> {
   try {
-    // テンプレートの回は固定した版から(読めなければ受信者ごとの行にする。送る時に止まる)
-    const loaded = await definitionOfDispatch(deps, dispatch);
+    // 回に残した物だけで描く(欄の中身が無い・読めなければ受信者ごとの行にする。送る時に止まる)
+    if (!dispatch.values) return null;
+    const loaded = await resolvedOfDispatch(deps, dispatch);
     if ("error" in loaded) return null;
     const { resolved } = loaded;
     const vars = (dispatch.vars ?? {}) as Record<string, unknown>;

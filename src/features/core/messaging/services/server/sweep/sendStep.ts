@@ -1,8 +1,9 @@
 // src/features/core/messaging/services/server/sweep/sendStep.ts
 //
-// cron が lease で取った配達の行を送る。中身は回の定義(生成の一覧の message_key)から描き直す:
-// 回の vars + 行の受信者ごとの値 + enrichers + 共通の文脈。
-// - 定義が一覧に無い・検査に落ちる → failed(reason の符号だけ)
+// cron が lease で取った配達の行を送る。中身は回に残した物だけで描き直す(D128、dispatchResolved.ts):
+// 回のひな形と版・欄の中身(values)+ 回の vars + 行の受信者ごとの値 + enrichers + 共通の文脈。定義・テンプレートは引き直さない
+// - 回の欄の中身が無い(values_missing)・ひな形が無い(layout_missing)・送った版を今の版へ読み替えられない(layout_unreadable)
+//   ・描けない(definition_invalid)→ failed(reason の符号だけ)
 // - 経路の項目が無い・enabled: false → suppressed + channel_off
 // - 連絡のドメインが門で閉じている → 送らずに lease を外し、状態を戻して DOMAIN_CLOSED_RETRY_MS 先送り(開けば送る、D77)
 // - 送る直前に配信停止を確かめ直す(好み・宛先の停止 → suppressed + reason。宛先の 1 つにもう送れた行は sent のまま)
@@ -17,7 +18,7 @@ import type { MessageDeliveryTarget } from "../../../entities/schema";
 import { buildContent } from "../sendMessage/content";
 import { buildRecipientValues, toVariableMap } from "../sendMessage/context";
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
-import { definitionOfDispatch } from "../sendMessage/dispatchDefinition";
+import { resolvedOfDispatch } from "../sendMessage/dispatchResolved";
 import { sendDeliveries, type DeliveryJob } from "../sendMessage/deliver";
 import { activeChannel } from "../sendMessage/expand";
 import { recordPolicyOf, type RecordPolicy } from "../sendMessage/record";
@@ -43,8 +44,9 @@ async function loadDefinition(
   dispatch: MessageDispatch,
 ): Promise<{ resolved: AnyResolvedMessageDefinition; policy: RecordPolicy } | { error: string }> {
   try {
-    // テンプレートの回は固定した版から(値の再検査で合わなければ送らずに止める)、それ以外は生成の一覧の定義から
-    const loaded = await definitionOfDispatch(deps, dispatch);
+    // 回の欄の中身が無ければ描けない(record meta で閉じた回。送り残しのある回は持っている)
+    if (!dispatch.values) return { error: "values_missing" };
+    const loaded = await resolvedOfDispatch(deps, dispatch);
     if ("error" in loaded) return loaded;
     const { resolved } = loaded;
     // 本文の残し方は送った時の回に固定した値(後の上書きで変えない)

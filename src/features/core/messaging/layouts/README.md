@@ -13,7 +13,7 @@
 
 フォルダの中のファイル（どれも `pnpm generate extensions` が一覧にする。並びはフォルダ名の順、鍵 = ひな形の鍵）:
 
-- `layout.ts`（必須）: `export const layout = defineMessageLayout({ key, label, fields, summary, adminSelectable?, revisions? })` → server の一覧 `extensions/layouts.ts`
+- `layout.ts`（必須）: `export const layout = defineMessageLayout({ key, label, fields, summary, adminSelectable?, version?, revisions? })`（欄の鍵を変えたら `version` を上げ、`revisions[前の版]` に対応を書く。回は送った版を残し、組み直しは読み替える） → server の一覧 `extensions/layouts.ts`
 - `email.tsx`（任意）: `export const emailRenderer = { layout: "<鍵>", Component }` → server の一覧 `extensions/layoutEmails.ts`。`Component` は `{ values, summary, theme, unsubscribeUrl? }` を受けるメールの部品
 - `inApp.tsx`（任意）: `export const inAppRenderer = { layout: "<鍵>", Component }` → client の一覧 `extensions/layoutInApps.ts`。`Component` は `{ values, summary }` を受けるお知らせの部品
 

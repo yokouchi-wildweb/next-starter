@@ -5,7 +5,8 @@
 // - 本文: 回の記録の段が vars / full のときだけ(回の描いた結果 rendered と共通の vars)。配達の本文は full のときだけ、配達の vars は vars / full
 //   (秘密の連絡は送る口が本文を残さないので、ここにも出ない)
 // - 宛先(address): 管理 API だけが使うので出す
-// - 管理者が書いて送った文面(authored_content)と選んだ利用者の id: 「同じ内容で送る」が写すので出す(管理者だけ)
+// - 回の中身(ひな形の鍵と版・欄の中身 values、差し込む前の字、D128)と選んだ利用者の id: 「同じ内容で送る」が写すので出す(管理者だけ)。
+//   欄の中身は記録の段に従って回に残る物だけ(meta で閉じた回・秘密の連絡は null)
 // - 出さない: provider の生の値(provider_message_id・事件の payload)と last_error の文。失敗は状態・reason と、last_error の符号の部分
 //   (errorCode、文は constants/deliveryErrors.ts)で見る
 // - グループ宛ての回: targetGroup { id, name }(id は「同じ内容で送る」が開き直す値としてだけ、画面に出さない、D94・D60)。
@@ -18,6 +19,9 @@ import type { MessageRecord } from "@/lib/messaging";
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import type { MessageChannelCounts, MessageChannelTextMap } from "../../../entities/schema";
 import type { DispatchOperationFlags } from "./operations";
+
+/** 回の中身(D128): ひな形の鍵・送った版・欄の中身 */
+export type AdminDispatchContent = { layout: string; layoutVersion: number | null; values: Record<string, unknown> };
 
 export type AdminDispatchSummary = {
   id: string;
@@ -54,8 +58,8 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   templateVersion: number | null;
   /** 版の文言を直して送った回か(D85) */
   templateEdited: boolean;
-  /** 管理者が書いて送った文面(書いた文面の回だけ、ほかは null。経路ごとの欄、差し込む前の字) */
-  content: Record<string, unknown> | null;
+  /** 回の中身(ひな形の鍵と送った版・欄の中身、差し込む前の字)。欄の中身を残していない回は null */
+  content: AdminDispatchContent | null;
   /** 選んだ利用者に送った回の利用者 id(「同じ内容で送る」の写し)。ほかの宛先の形・多すぎる回は null */
   targetUserIds: string[] | null;
   /** 送り元の表示名(受け口 sources に表示名がある時だけ。画面は送り元の鍵を見せない、D46) */
@@ -170,7 +174,7 @@ export function toDispatchDetail(
     templateId: row.template_id,
     templateVersion: row.template_version,
     templateEdited: row.template_edited,
-    content: (row.authored_content as Record<string, unknown> | null) ?? null,
+    content: row.values && row.layout ? { layout: row.layout, layoutVersion: row.layout_version ?? null, values: row.values } : null,
     targetUserIds,
     sourceLabel,
     actorName,

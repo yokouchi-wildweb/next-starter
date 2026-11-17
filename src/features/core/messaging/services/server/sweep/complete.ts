@@ -51,7 +51,8 @@ export async function completeDispatches(
         channel_counts: counts,
         completed_at: now,
         updatedAt: now,
-        ...(dispatch.record === "meta" ? { vars: null } : {}),
+        // record meta は送り残しのために持った vars と欄の中身を閉じる時に消す
+        ...(dispatch.record === "meta" ? { vars: null, values: null } : {}),
       },
       event ? [event] : [],
     );

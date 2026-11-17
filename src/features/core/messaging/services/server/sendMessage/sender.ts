@@ -8,14 +8,16 @@
 // required と秘密を差し込む連絡(noBody)はキューに置けないので、要求の中で全部を送り切る(小さな選んだ宛先だけ)
 // 予約(scheduledAt): 回の行だけ(status scheduled、宛先の一覧は回の target に置く)。cron の activateScheduled が時刻に processing にして展開する
 // 会話の間引き(定義の throttle): 経路の send の前に受信者ごとに当てる(throttle.ts。cron の送りも同じ)
-// 管理者が書いた文面(sendAuthored、D92): その場で書く連絡もテンプレートを呼び出して直した文面も同じ組み方。回に書いた文面(authored_content)を
-//   残し、テンプレートを呼び出した時は template_id + template_version を固定する(cron はその文面と版の変数の宣言で組み直す)
+// 管理者が書いた文面(sendAuthored、D92): その場で書く連絡もテンプレートを呼び出して直した文面も同じ組み方。テンプレートを呼び出した時は
+//   template_id + template_version と直した印を残す
+// 回の記録(D128): 出どころ・直した印・カテゴリー・ひな形の鍵と版・欄の中身(values、差し込む前)。予約・cron・失敗の再送はこの回の物と
+//   vars だけで描き直す(dispatchResolved.ts。定義・テンプレートを引き直さない)。values の残し方は vars と同じ(noBody は残さない)
 // 経路(D86): 種類の経路。input.channels はその回だけの絞り(種類の外・空は 400)。自動の送り手は渡さない
 // 口の中ですぐ送る種別(性質 sendInEntry = security、D72・D80): 予約と全員・ロール・グループ宛ては 400、宛先が多くても後回しにせず展開して最初の束を口の中で送る
 // グループ宛て(D58): 送り始めに門・しまった・壊れた・人数の上限を確かめ(DomainError、回を作らない)、定期計算は今の版を回に固定する。
 //   一員は cron が送り始めの後に 1 文で回の受信者の一覧へ書く(sweep/expandStep.ts)
 
-import { kindTraits } from "@/lib/messaging";
+import { kindTraits, layoutVersionOf } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import type {
@@ -240,7 +242,10 @@ export function createMessageSender(deps: MessageSendDeps) {
         template_id: authored?.template?.id ?? null,
         template_version: authored?.template?.version ?? null,
         template_edited: authored?.template?.edited ?? false,
-        authored_content: authored?.content ?? null,
+        layout: resolved.layout,
+        layout_version: deps.layouts[resolved.layout] ? layoutVersionOf(deps.layouts[resolved.layout]!) : null,
+        // 欄の中身: 組み直しに要る間と残す段の間だけ(vars と同じ決まり)。required・秘密の連絡は残さない
+        values: !policy.noBody && (policy.keepVars || queueVars) ? { ...resolved.values } : null,
         idempotency_key: input.idempotencyKey ?? null,
         channels,
         recipient_count: recipientCount,
@@ -480,7 +485,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         completed_at: status === "processing" ? null : deps.now(),
         updatedAt: deps.now(),
         // cron に渡す残りが無ければ、送るためだけに置いた vars を record に従って消す
-        ...(queuedCount === 0 && !policy.keepVars ? { vars: null } : {}),
+        ...(queuedCount === 0 && !policy.keepVars ? { vars: null, values: null } : {}),
       },
       completed ? [completed] : [],
     );
@@ -533,7 +538,7 @@ export function createMessageSender(deps: MessageSendDeps) {
     sendMessageToMany: (definition: AnyMessageDefinition, input: SendMessageToManyInput) =>
       sendToMany(definition, input),
     /**
-     * 組み済みの定義で送る(管理の再送が新しい回として送る時。上書きを重ね直さない。書いた文面の回は同じ文面と版を残す)
+     * 組み済みの定義で送る(管理の再送が新しい回として送る時。回から組んだ定義で、上書きを重ね直さない。テンプレートの回は同じ版と直した印を残す)
      */
     sendResolved: (
       resolved: AnyResolvedMessageDefinition,
@@ -604,8 +609,8 @@ export function createMessageSender(deps: MessageSendDeps) {
 
     /**
      * 管理者が書いた文面で送る(D92)。その場で書く連絡とテンプレートを呼び出して直した文面は template の有無だけが違う。
-     * 経路 = 種類の経路 ∩ 絞り、文面の無い経路は 400。回に書いた文面を残し、テンプレートは今の公開版を固定して版の文面から直したかを残す
-     * (cron はその文面と版で組み直す)
+     * 経路 = 種類の経路 ∩ 絞り、文面の無い経路は 400。回に欄の中身を残し、テンプレートは今の公開版を固定して版の文面から直したかを残す
+     * (cron は回の欄の中身で組み直す)
      * @throws DomainError(404) テンプレートが無い / (409) 取り下げ済み・未公開・今の公開版でない版 / (400) 値・経路・文面・受信者ごとの変数の既定値
      */
     async sendAuthored(input: SendAuthoredInput): Promise<SendMessageResult> {
@@ -621,7 +626,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       const result = await sendToMany(
         resolved as AnyMessageDefinition,
         { ...rest, vars: vars ?? {} } as SendMessageToManyInput,
-        { resolved, authored: { content, template } },
+        { resolved, authored: { template } },
       );
       return template ? { ...result, template } : result;
     },
