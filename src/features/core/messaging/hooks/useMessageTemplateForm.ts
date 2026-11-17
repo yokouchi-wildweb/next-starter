@@ -6,7 +6,7 @@
 // - 順 = 種別 → カテゴリー(種別を選ぶと最初の物を自動で選ぶ。1 つでも出す、D118)→ ひな形(管理者が選べる物)→ 中身(D115)。新しく作る時は種別を先に選ばない(D110)
 // - 中身 = ひな形の欄(useLayoutFieldsForm)。経路は種類が決め、経路だけの欄とプレビューのタブはその分(D115)
 // - ひな形を替える: 中身があれば確かめてから消す(pendingLayout → confirmLayoutChange、D113)。中身の付け替えはしない
-// - 保存 = 作る(POST)か直す(PATCH)の後に公開(新しい版、D113)。変更が無ければ「変更はありません」。名前・説明・種類・ひな形・中身・専用の埋め込み情報
+// - 保存 = 作る(POST)か直す(PATCH)の 1 回で公開(作る = 版 1、直す = 中身が違えば新しい版、D134)。同じ中身なら unchanged →「変更はありません」。名前・説明・種類・ひな形・中身・専用の埋め込み情報
 // - 専用の埋め込み情報 = 『専用の埋め込み情報を管理』のモーダルで足す・直す(embeddedEditor。適用で検査を通った物だけ反映、D126)
 // - 埋め込み情報のタグ = 選択肢の baseCatalog(共通 + enrichers)+ 専用。中身の中の知らない {{名前}} を返す
 // - システムテンプレート(system)・アーカイブした物は読むだけ(保存しない、D117)
@@ -352,7 +352,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     return null;
   }, [name, kind, category, layoutOption, channels, values, valuesForm.form, unknownNames]);
 
-  /** 保存 = 作る or 直す → 公開(新しい版、D113)。ボタンが Promise の間 loading */
+  /** 保存 = 作る or 直す の 1 回で公開(D134)。ボタンが Promise の間 loading */
   const save = useCallback(async () => {
     if (readOnly) return;
     valuesForm.form.clearErrors();

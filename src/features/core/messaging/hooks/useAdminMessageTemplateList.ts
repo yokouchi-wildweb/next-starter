@@ -3,11 +3,11 @@
 // src/features/core/messaging/hooks/useAdminMessageTemplateList.ts
 //
 // 管理: テンプレートの一覧の流れ(AdminMessageTemplateList はこれを呼んで部品を並べるだけ。CLAUDE.md core_ui)。
-// - 状態で絞る(空 = すべて)+ 無限スクロール(useMessageTemplates、カーソル)
+// - 状態・種別で絞る(空 = すべて。種別 = その種別のカテゴリーとシステムテンプレート、D135)+ 無限スクロール(useMessageTemplates、カーソル)
 // - 作る・直すモーダル(AdminMessageTemplateModal)の開き先: openNew = 作る、openTemplate(id) = その 1 件を直す。
 //   閉じても開き先は残す(閉じる動きの間、同じ中身を見せる)
-// - モーダルの操作の後(onChanged): 作った = 先頭から取り直す(並びはサーバーが決める)/ 保存・公開・取り下げ = 返った 1 件で行を置き換える
-//   (状態で絞っていて、その状態から外れた行は外す)。無限スクロールの一覧には SWR のキーの再検証が届かないため
+// - モーダルの操作の後(onChanged): 作った = 先頭から取り直す(並びはサーバーが決める)/ 保存(= 公開、D134)・アーカイブ = 返った 1 件で行を置き換える
+//   (状態・種別で絞っていて、そこから外れた行は外す)。無限スクロールの一覧には SWR のキーの再検証が届かないため
 
 import { useCallback, useState } from "react";
 
@@ -46,7 +46,8 @@ export type UseAdminMessageTemplateListOptions = {
 
 export function useAdminMessageTemplateList(options: UseAdminMessageTemplateListOptions = {}) {
   const [status, setStatus] = useState("");
-  const query = useMessageTemplates({ status: status || undefined, observerOptions: options.observerOptions });
+  const [kind, setKind] = useState("");
+  const query = useMessageTemplates({ status: status || undefined, kind: kind || undefined, observerOptions: options.observerOptions });
   const [modalOpen, setModalOpen] = useState(false);
   const [templateId, setTemplateId] = useState<string | null>(null);
 
@@ -63,18 +64,21 @@ export function useAdminMessageTemplateList(options: UseAdminMessageTemplateList
   const onChanged = useCallback(
     (template: AdminTemplateDetail, action: MessageTemplateAction) => {
       if (action === "create") return revalidate();
-      if (status && template.status !== status) return removeItems((item) => item.id === template.id);
+      if ((status && template.status !== status) || (kind && template.kind !== kind)) return removeItems((item) => item.id === template.id);
       updateItems(
         (item) => item.id === template.id,
         () => summaryOf(template),
       );
     },
-    [status, revalidate, updateItems, removeItems],
+    [status, kind, revalidate, updateItems, removeItems],
   );
 
   return {
     status,
     setStatus,
+    /** 種別の絞り(空 = すべて、D135) */
+    kind,
+    setKind,
     query,
     modal: {
       open: modalOpen,

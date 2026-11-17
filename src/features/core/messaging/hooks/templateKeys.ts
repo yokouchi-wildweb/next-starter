@@ -1,6 +1,6 @@
 // src/features/core/messaging/hooks/templateKeys.ts
 //
-// 保存されたテンプレートの SWR のキー。保存・公開・取り下げは 1 件・版・一覧(画面が revalidate)を取り直す
+// 保存されたテンプレートの SWR のキー。保存(= 公開、D134)・アーカイブは 1 件・版・一覧(画面が revalidate)を取り直す
 
 export const MESSAGE_TEMPLATES_KEY = "messaging/admin/templates";
 export const MESSAGE_TEMPLATE_OPTIONS_KEY = `${MESSAGE_TEMPLATES_KEY}/options`;

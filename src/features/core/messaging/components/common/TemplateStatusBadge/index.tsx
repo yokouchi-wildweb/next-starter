@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/TemplateStatusBadge/index.tsx
-// 部品(props だけ): テンプレートの状態(公開中・取り下げ)と、公開していない変更の印
+// 部品(props だけ): テンプレートの状態(公開中・アーカイブ)と最新の版。下書きは無い(保存 = 公開、D134)
 
 "use client";
 
@@ -17,24 +17,15 @@ export type TemplateStatusBadgeProps = {
   status: string;
   /** 最新の公開の版(あれば v<n>) */
   currentVersion?: number | null;
-  /** 公開していない変更がある */
-  hasUnpublishedChanges?: boolean;
   size?: SoftBadgeProps["size"];
 };
 
-export function TemplateStatusBadge({ status, currentVersion, hasUnpublishedChanges, size = "sm" }: TemplateStatusBadgeProps) {
+export function TemplateStatusBadge({ status, currentVersion, size = "sm" }: TemplateStatusBadgeProps) {
   const display = TEMPLATE_STATUS_DISPLAY[status] ?? { label: "その他", variant: "muted" as Variant };
   return (
-    <>
-      <SoftBadge variant={display.variant} size={size}>
-        {display.label}
-        {currentVersion ? ` v${currentVersion}` : ""}
-      </SoftBadge>
-      {hasUnpublishedChanges && status === "published" ? (
-        <SoftBadge variant="warning" size={size}>
-          未公開の変更
-        </SoftBadge>
-      ) : null}
-    </>
+    <SoftBadge variant={display.variant} size={size}>
+      {display.label}
+      {currentVersion ? ` v${currentVersion}` : ""}
+    </SoftBadge>
   );
 }
