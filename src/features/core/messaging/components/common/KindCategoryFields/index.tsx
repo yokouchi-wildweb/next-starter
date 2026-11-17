@@ -25,6 +25,8 @@ export type KindCategoryFieldsProps = {
   disabled?: boolean;
   /** 欄の id の頭(1 画面に 2 つ置く時に分ける) */
   idPrefix?: string;
+  /** 「種別」「カテゴリー」の見出しを見た目から隠す(読み上げには残す)。呼び手が行の見出しを持つ時(送るモーダル) */
+  hideLabels?: boolean;
 };
 
 export function KindCategoryFields({
@@ -36,7 +38,9 @@ export function KindCategoryFields({
   onCategoryChange,
   disabled,
   idPrefix = "message",
+  hideLabels = false,
 }: KindCategoryFieldsProps) {
+  const labelClass = hideLabels ? "sr-only" : "text-sm";
   if (kinds.length === 0) {
     return (
       <Span size="sm" tone="muted" data-slot="kind-category-fields">
@@ -47,7 +51,7 @@ export function KindCategoryFields({
   return (
     <Flex align="start" gap="sm" wrap="wrap" data-slot="kind-category-fields">
       <Stack space={1} className="min-w-40 flex-1">
-        <Label htmlFor={`${idPrefix}-kind`} className="text-sm">
+        <Label htmlFor={`${idPrefix}-kind`} className={labelClass}>
           種別
         </Label>
         <SelectInput
@@ -61,7 +65,7 @@ export function KindCategoryFields({
         />
       </Stack>
       <Stack space={1} className="min-w-40 flex-1">
-        <Label htmlFor={`${idPrefix}-category`} className="text-sm">
+        <Label htmlFor={`${idPrefix}-category`} className={labelClass}>
           カテゴリー
         </Label>
         <SelectInput

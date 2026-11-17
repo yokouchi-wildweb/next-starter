@@ -17,6 +17,7 @@ import { Send } from "lucide-react";
 
 import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
+import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import Dialog from "@/components/Overlays/Dialog";
@@ -64,6 +65,15 @@ export type MessageSendModalProps = {
 };
 
 const DEFAULT_LABEL: Record<MessageSendMode["type"], string> = { new: "新規送信", sameAs: "同じ内容で送る", bulk: "一括送信" };
+
+/** 送信設定の行の見出し(左の列。操作の 1 行目と高さを合わせる) */
+function SettingLabel({ children }: { children: ReactNode }) {
+  return (
+    <Span size="sm" weight="medium" tone="muted" className="sm:pt-2.5">
+      {children}
+    </Span>
+  );
+}
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -177,51 +187,54 @@ export function MessageSendModal({
             {m.sameAsNote}
           </Para>
         ) : null}
-        <Block title="種別とカテゴリー">
-          <KindCategoryFields
-            idPrefix="send"
-            kinds={m.kinds.map((item) => ({ value: item.key, label: item.label }))}
-            kind={m.kind}
-            onKindChange={m.setKind}
-            categories={m.categories.map((item) => ({ value: item.key, label: item.label }))}
-            category={m.category}
-            onCategoryChange={m.setCategory}
-          />
-        </Block>
-        <Block title="送信方法">
-          <SendCategoryChannels
-            showCategory={false}
-            categories={m.categories}
-            category={m.category}
-            onCategoryChange={m.setCategory}
-            channels={m.channels}
-            onToggleChannel={m.toggleChannel}
-          />
-        </Block>
-        <Block title="宛先">
-          {bulk ? (
-            <SendTargetPicker kind="bulk" recordCount={bulk.recordIds.length} recordNoun={bulk.recordNoun} />
-          ) : (
-            <SendTargetPicker
-              kind="select"
-              value={m.target}
-              onChange={m.setTarget}
-              roles={m.roles}
-              groups={m.groups}
-              groupsEnabled={m.groupsEnabled}
-              note={m.targetNote}
-              allowedTypes={m.allowedTargetTypes}
+        {/* 送信設定 = 枠 1 つに「左の見出し | 右の操作」の行(見出しは 1 回だけ。狭い画面は見出しが上) */}
+        <Block title="送信設定">
+          <Grid className="grid-cols-1 items-start gap-x-4 gap-y-3 sm:grid-cols-[6.5rem_minmax(0,1fr)]" data-slot="send-settings">
+            <SettingLabel>種別</SettingLabel>
+            <KindCategoryFields
+              idPrefix="send"
+              hideLabels
+              kinds={m.kinds.map((item) => ({ value: item.key, label: item.label }))}
+              kind={m.kind}
+              onKindChange={m.setKind}
+              categories={m.categories.map((item) => ({ value: item.key, label: item.label }))}
+              category={m.category}
+              onCategoryChange={m.setCategory}
             />
-          )}
-        </Block>
-        <Block title="テンプレート">
-          <SendTemplatePicker
-            templates={m.pickerTemplates}
-            blank={m.currentSystem ?? m.blank}
-            loaded={m.loadedTemplate ? { ...m.loadedTemplate, edited: text.edited } : null}
-            onLoad={m.loadTemplate}
-            onUnload={m.unloadTemplate}
-          />
+            <SettingLabel>送信方法</SettingLabel>
+            <SendCategoryChannels
+              showCategory={false}
+              hideChannelLabel
+              categories={m.categories}
+              category={m.category}
+              onCategoryChange={m.setCategory}
+              channels={m.channels}
+              onToggleChannel={m.toggleChannel}
+            />
+            <SettingLabel>宛先</SettingLabel>
+            {bulk ? (
+              <SendTargetPicker kind="bulk" recordCount={bulk.recordIds.length} recordNoun={bulk.recordNoun} />
+            ) : (
+              <SendTargetPicker
+                kind="select"
+                value={m.target}
+                onChange={m.setTarget}
+                roles={m.roles}
+                groups={m.groups}
+                groupsEnabled={m.groupsEnabled}
+                note={m.targetNote}
+                allowedTypes={m.allowedTargetTypes}
+              />
+            )}
+            <SettingLabel>テンプレート</SettingLabel>
+            <SendTemplatePicker
+              templates={m.pickerTemplates}
+              blank={m.currentSystem ?? m.blank}
+              loaded={m.loadedTemplate ? { ...m.loadedTemplate, edited: text.edited } : null}
+              onLoad={m.loadTemplate}
+              onUnload={m.unloadTemplate}
+            />
+          </Grid>
         </Block>
         <Block title="内容">
           {text.state && text.layout ? (
