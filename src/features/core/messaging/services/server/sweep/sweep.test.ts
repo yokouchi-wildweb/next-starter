@@ -31,7 +31,7 @@ const notice = defineTestMessage({
   label: "テストの連絡",
   category: "news",
   vars: z.object({ item: z.string() }),
-  content: { test: { title: "{{item}}", body: "{{recipientName}} {{item}}" } },
+  layout: "card", values: { title: "{{item}}", body: "{{recipientName}} {{item}}" },
 });
 const registry: MessageRegistry = {
   "shop.notice": { key: "shop.notice", definition: async () => ({ message: notice }) },
@@ -328,10 +328,9 @@ function setupInApp(inAppBody: string) {
     label: "テストの連絡",
     category: "newsInApp",
     vars: z.object({ item: z.string() }),
-    content: {
-      test: { title: "{{item}}", body: "{{recipientName}} {{item}}" },
-      inApp: { title: "{{serviceName}} {{item}}", body: inAppBody, link: "/news" },
-    },
+    // 経路ごとの中身は持たない: 両方の経路が同じひな形の要約から描く
+    layout: "card",
+    values: { title: "{{serviceName}} {{item}}", body: inAppBody, link: "/news" },
   });
   const world = createMemoryWorld();
   for (let i = 1; i <= 3; i += 1) {

@@ -1,9 +1,9 @@
 // scripts/structure/message/scaffold.test.ts
 // 連絡の書き出し(pnpm generate message の中身 ./scaffold.mjs)の検査。一時の木(地区の地図・種類と経路の受け口の項目)で回す。
-// - 引数なし = 何もしない / 書く 3 本(メールが無ければ定義だけ)/ 2 回目は何もしない(既にあるファイルは触らない)
+// - 引数なし = 何もしない / 定義 1 本を書く(ひな形 notice)/ 2 回目は何もしない(既にあるファイルは触らない)
 // - exit 2: 知らない引数(--kind・--channels は無くなった)・地図に無いドメイン・camelCase でない名前・core に --core なし・
 //   --category なし・受け口に無い category(名前の付け方を案内する)。経路は種類から(fork の経路の項目は通る)
-// - 書いた定義は validateMessageDefinition(category の照らしも)と messageGuards の字面の検査を通る
+// - 書いた定義は validateMessageDefinition(category・ひな形の照らしも)と messageGuards の字面の検査を通る
 // 実行: pnpm test scripts/structure/message/scaffold.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -12,7 +12,15 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { validateMessageDefinition, UPSTREAM_CHANNEL_FIELDS, type MessageCategory, type MessageDefinition } from "@/lib/messaging";
+import {
+  defineMessageLayout,
+  validateMessageDefinition,
+  MESSAGE_BLOCK_KINDS,
+  UPSTREAM_CHANNEL_FIELDS,
+  type MessageCategory,
+  type MessageDefinition,
+  type MessageLayout,
+} from "@/lib/messaging";
 import { z } from "zod";
 
 import { checkMessageGuards } from "../extensions/derive/messageGuards.mjs";
@@ -26,6 +34,20 @@ const CATEGORIES: Record<string, MessageCategory> = {
   weeklyPromo: { key: "weeklyPromo", label: "週の宣伝", kind: "promotion", channels: ["inApp", "line"] },
   pushNotice: { key: "pushNotice", label: "プッシュ", kind: "activity", channels: ["push"] },
 };
+
+/** 書いた定義のひな形(本物の notice と同じ欄の形) */
+const LAYOUTS: Record<string, MessageLayout> = {
+  notice: defineMessageLayout({
+    key: "notice",
+    label: "汎用のお知らせ",
+    fields: {
+      subject: { type: "line", label: "件名", required: true },
+      blocks: { type: "blocks", label: "本文", required: true, allow: MESSAGE_BLOCK_KINDS },
+    },
+    summary: (values) => ({ title: values.subject ?? "", body: "" }),
+  }) as MessageLayout,
+};
+const LAYOUT_FILE = "src/features/core/messaging/layouts/notice/layout.ts";
 
 function tree() {
   const root = mkdtempSync(join(tmpdir(), "message-scaffold-"));
@@ -41,6 +63,7 @@ function tree() {
   for (const item of Object.values(CATEGORIES)) {
     put(`src/features/core/messaging/categories/${item.key}.ts`, `export const category = ${JSON.stringify(item)};\n`);
   }
+  put(LAYOUT_FILE, 'export const layout = { key: "notice" };\n');
   for (const channel of ["email/index.tsx", "inApp/index.ts", "line/index.ts", "push.ts"]) {
     put(`src/features/core/messaging/channels/${channel}`, "export const channel = {};\n");
   }
@@ -53,7 +76,7 @@ const run = (root: string, ...args: string[]) => runMessageScaffold(root, args.l
 /** 書いた定義を読み込んで検査する(@/lib/messaging は本物) */
 async function problemsOf(root: string, path: string, channels: Record<string, z.ZodTypeAny> = UPSTREAM_CHANNEL_FIELDS) {
   const { message } = (await import(join(root, path))) as { message: MessageDefinition };
-  return validateMessageDefinition(message, { categories: CATEGORIES, channels: channels as never }).map((p) => p.message);
+  return validateMessageDefinition(message, { categories: CATEGORIES, layouts: LAYOUTS, channels: channels as never }).map((p) => p.message);
 }
 
 /** 本物の宣言の messages の点で、書いた木に字面の守り(category も)を当てる */
@@ -61,7 +84,7 @@ function guardsOf(root: string, files: string[]) {
   type Point = Parameters<typeof checkMessageGuards>[1][number];
   const points = (planExtensions(repoRoot) as { points: Point[] }).points;
   const categoryFiles = Object.keys(CATEGORIES).map((key) => `src/features/core/messaging/categories/${key}.ts`);
-  return checkMessageGuards(root, points, [...files, ...categoryFiles]);
+  return checkMessageGuards(root, points, [...files, ...categoryFiles, LAYOUT_FILE]);
 }
 
 test("引数なしは何もしない(exit 0)", () => {
@@ -72,15 +95,11 @@ test("引数なしは何もしない(exit 0)", () => {
   assert.equal(runMessageScaffold(root, ["--"]).code, 0);
 });
 
-test("種類の経路(email + inApp)で 3 本を書き、2 回目は触らない", async () => {
+test("定義 1 本(ひな形 notice)を書き、2 回目は触らない", async () => {
   const root = tree();
   const result = run(root, "shop", "orderShipped", "--category", "orderShipped");
   assert.equal(result.code, 0, result.lines.join("\n"));
-  assert.deepEqual(result.written, [
-    "src/features/shop/messages/orderShipped.ts",
-    "src/features/shop/messages/views/orderShipped.tsx",
-    "src/features/shop/messages/views/orderShipped.default.tsx",
-  ]);
+  assert.deepEqual(result.written, ["src/features/shop/messages/orderShipped.ts"]);
   const definition = readFileSync(join(root, result.written[0]), "utf8");
   assert.match(definition, /key: "shop\.orderShipped"/);
   assert.match(definition, /category: "orderShipped"/);
@@ -91,8 +110,8 @@ test("種類の経路(email + inApp)で 3 本を書き、2 回目は触らない
   assert.match(definition, /\/\/ 管理画面で直せる欄/);
   assert.match(definition, /\/\/ 会話の間引き/);
   assert.doesNotMatch(definition, /^\s*(adminEditable|throttle):/m);
-  assert.equal(readFileSync(join(root, result.written[1]), "utf8").trim().split("\n").at(-1), 'export { EmailView } from "./orderShipped.default";');
-  assert.match(readFileSync(join(root, result.written[2]), "utf8"), /export function EmailView/);
+  assert.match(definition, /layout: "notice"/);
+  assert.ok(!existsSync(join(root, "src/features/shop/messages/views")));
   assert.deepEqual(await problemsOf(root, result.written[0]), []);
   assert.deepEqual(guardsOf(root, result.written), []);
 
@@ -104,7 +123,7 @@ test("種類の経路(email + inApp)で 3 本を書き、2 回目は触らない
   assert.match(readFileSync(join(root, result.written[0]), "utf8"), /^\/\/ 手で直した/);
 });
 
-test("メールの無い種類は定義だけ、fork の経路は空の欄 + 注記", async () => {
+test("メールの無い種類・fork の経路の種類も同じ定義 1 本(経路の欄は書かない)", async () => {
   const root = tree();
   const promo = run(root, "shop", "weeklyPromo", "--category", "weeklyPromo");
   assert.equal(promo.code, 0, promo.lines.join("\n"));
@@ -116,8 +135,8 @@ test("メールの無い種類は定義だけ、fork の経路は空の欄 + 注
   const push = run(root, "shop", "pushOnly", "--category", "pushNotice");
   assert.equal(push.code, 0, push.lines.join("\n"));
   const text = readFileSync(join(root, push.written[0]), "utf8");
-  assert.match(text, /push: \{\},/);
-  assert.match(text, /経路 push の欄/);
+  assert.match(text, /経路 push/);
+  assert.doesNotMatch(text, /content:/);
   assert.deepEqual(await problemsOf(root, push.written[0], { ...UPSTREAM_CHANNEL_FIELDS, push: z.object({}).strict() }), []);
 });
 

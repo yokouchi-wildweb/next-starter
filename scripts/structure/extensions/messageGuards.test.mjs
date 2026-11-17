@@ -2,7 +2,7 @@
 // 連絡の字面の守り(./derive/messageGuards.mjs)と、連絡の上書きの点(lib/messaging の extensionPoints.ts の messages)。
 // 一時ディレクトリの fork(acme、祖先 parent)の木で planExtensions を回す。種類の点(messaging の categories)・種別の性質の表は本物を写す。
 // - 定義だけ・正しい上書き・項目 0 は通る
-// - category: 全部の定義に必須・受け口の鍵・文面は種類の経路の分だけ(上書きでは変えられない)
+// - category: 全部の定義に必須・受け口の鍵(上書きでは変えられない) / layout: 全部の定義に必須・ひな形の受け口のフォルダの名前
 // - required の定義: 種類の経路に email・adminEditable が空・throttle が無い / required への上書き: enabled:false・adminEditable・throttle を止める
 // - 上流の functional の連絡は上書きで止められない(fork の木の core の定義)
 // - 種類の上書き: functional・security の email は外せない、group は受け口の鍵で同じ種別だけ
@@ -44,6 +44,7 @@ function fixture(files) {
   put(`${C}notice.ts`, categoryItem("notice", "transactional", ["email", "inApp"]));
   put(`${C}alert.ts`, categoryItem("alert", "security", ["email"]));
   put(`${C}inAppOnly.ts`, categoryItem("inAppOnly", "transactional", ["inApp"]));
+  put("src/features/core/messaging/layouts/notice/layout.ts", "export const layout = { key: \"notice\" };\n");
   for (const [path, text] of Object.entries(files)) put(path, text);
   return root;
 }
@@ -58,7 +59,8 @@ export const message = defineMessage({
   category: ${category.startsWith("@") ? category.slice(1) : `"${category}"`},
   vars: z.object({ verificationUrl: z.string() }),
   ${props}
-  content: { email: { subject: "確認" }, inApp: { title: "確認", body: "" } },
+  layout: "notice",
+  values: { subject: "確認", blocks: [{ type: "paragraph", text: "確認" }] },
 });
 `;
 const REQUIRED = definition("required: true,");
@@ -81,7 +83,7 @@ test("項目 0・定義だけ・正しい上書きは通る", () => {
   assert.deepEqual(
     problemsOf({
       [`${M}verification.ts`]: REQUIRED,
-      [`${M}verification.override.ts`]: override('content: { email: { subject: "新しい件名" } }, enabled: true, adminEditableOnly: [], throttle: null'),
+      [`${M}verification.override.ts`]: override('values: { subject: "新しい件名" }, enabled: true, adminEditableOnly: [], throttle: null'),
       [`${M}welcome.ts`]: OPTIONAL,
       [`${M}welcome.override.ts`]: override('enabled: false, adminEditableOnly: ["inApp.title"]'),
     }),
@@ -96,26 +98,29 @@ test("label: 全部の定義に必須(管理画面の連絡の名前、D46)・�
   assert.deepEqual(problemsOf({ [`${M}welcome.ts`]: OPTIONAL, [`${M}welcome.override.ts`]: override('label: "ようこそ"') }), []);
 });
 
-test("category: 全部の定義に必須・受け口の鍵・文面は種類の経路の分だけ。上書きでは変えられない", () => {
+test("category: 全部の定義に必須・受け口の鍵。上書きでは変えられない", () => {
   expectOne({ [`${M}a.ts`]: definition("", "nope") }, `${M}a.ts`, /category "nope" は categories の受け口に無い\(account \/ alert \/ inAppOnly \/ notice\)/);
   expectOne({ [`${M}a.ts`]: definition("").replace('  category: "account",\n', "") }, `${M}a.ts`, /category\(.*\)を書く/);
   expectOne({ [`${M}a.ts`]: definition("", "@CATEGORY") }, `${M}a.ts`, /category はリテラル/);
-  // 種類 notice の経路は email・inApp → inApp の文面が無いと止まる
-  expectOne(
-    { [`${M}a.ts`]: definition("", "notice").replace(', inApp: { title: "確認", body: "" }', "") },
-    `${M}a.ts`,
-    /種類 notice の経路 inApp の文面/,
-  );
   const problems = problemsOf({ [`${M}a.ts`]: OPTIONAL, [`${M}a.override.ts`]: override('category: "account"') });
   assert.equal(problems.length, 1, problems.join(" / "));
   assert.match(problems[0], /category は上書きできない/);
 });
 
-test("authored の定義: 文面の経路を見ない・上書きのファイルは止める", () => {
+test("layout: 全部の定義に必須・ひな形の受け口のフォルダの名前。上書きでは変えられない", () => {
+  expectOne({ [`${M}a.ts`]: definition("").replace('  layout: "notice",\n', "") }, `${M}a.ts`, /layout\(ひな形の鍵: notice\)を書く/);
+  expectOne({ [`${M}a.ts`]: definition("").replace('layout: "notice"', 'layout: "nope"') }, `${M}a.ts`, /layout "nope" はひな形の受け口に無い\(notice\)/);
+  expectOne({ [`${M}a.ts`]: definition("").replace('layout: "notice"', "layout: LAYOUT") }, `${M}a.ts`, /layout はリテラル|リテラル/);
+  const problems = problemsOf({ [`${M}a.ts`]: OPTIONAL, [`${M}a.override.ts`]: override('layout: "notice"') });
+  assert.equal(problems.length, 1, problems.join(" / "));
+  assert.match(problems[0], /layout は上書きできない/);
+});
+
+test("authored の定義: 上書きのファイルは止める", () => {
   const authored = `import { z } from "zod";
 import { defineMessage } from "@/lib/messaging";
 
-export const message = defineMessage({ key: "messaging.adminNotice", label: "テストの連絡", category: "notice", authored: true, vars: z.object({}), content: {} });
+export const message = defineMessage({ key: "messaging.adminNotice", label: "テストの連絡", category: "notice", authored: true, vars: z.object({}), layout: "notice", values: {} });
 `;
   const A = "src/features/core/messaging/messages/";
   assert.deepEqual(problemsOf({ [`${A}adminNotice.ts`]: authored }), []);

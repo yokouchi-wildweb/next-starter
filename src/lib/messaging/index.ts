@@ -6,6 +6,7 @@ export {
   inAppFieldsSchema,
   lineFieldsSchema,
   type ChannelFieldSchemas,
+  type EmailFields,
   type MessageContent,
   type MessageFieldPath,
   type UpstreamChannelFields,
@@ -20,7 +21,6 @@ export {
   type MessageAdminTarget,
   type MessageKindTraits,
 } from "./definition/kinds";
-export type { EmailFields, MessageEmailViewModule, MessageEmailViewProps } from "./definition/emailView";
 export { isSecretVar, listSecretVarKeys, secretVar } from "./definition/secret";
 export { extensionPoints } from "./extensionPoints";
 export {
@@ -39,6 +39,7 @@ export type {
   MessageKey,
   MessageKind,
   MessageOverride,
+  MessageLayoutValuesSource,
   MessageRecord,
   MessageThrottle,
   ResolvedMessageDefinition,
@@ -59,7 +60,6 @@ export {
   adminEditablePaths,
   adminFieldAllowedKeys,
   adminFieldCodeValue,
-  applyAdminFieldValues,
   checkAdminFieldValue,
   type AdminFieldCheckOptions,
   type AdminFieldProblem,
@@ -80,6 +80,7 @@ export type {
   MessageChannel,
   MessageEnricher,
   MessageEnricherContext,
+  MessageEnricherTarget,
   MessageLayoutEmailRenderer,
   MessageLayoutInAppRenderer,
   MessageLayoutItem,
@@ -88,6 +89,7 @@ export type {
   MessageSource,
   MessageSubscriber,
 } from "./receptacles/types";
+export { enricherTargets } from "./receptacles/types";
 export {
   MESSAGE_BLOCK_KIND_LABELS,
   MESSAGE_BLOCK_KINDS,
@@ -117,3 +119,9 @@ export {
 } from "./layout/types";
 export { applyLayoutRevisions, fieldBelongsTo, fieldsForChannel, layoutValuesSchema } from "./layout/values";
 export { resolveRendering, type MessageChannelRendering, type MessageRenderingResolution } from "./layout/rendering";
+export {
+  buildChannelContent,
+  isMessageLayoutContent,
+  type MessageChannelContentResult,
+  type MessageLayoutContent,
+} from "./layout/content";

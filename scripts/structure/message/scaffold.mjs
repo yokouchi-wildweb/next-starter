@@ -1,5 +1,5 @@
 // scripts/structure/message/scaffold.mjs
-// 新しい連絡の 3 本(定義 messages/<名前>.ts・描き方 views/<名前>.tsx と views/<名前>.default.tsx)を無い時だけ書く(pnpm generate message の中身)。
+// 新しい連絡の定義 messages/<名前>.ts を無い時だけ書く(pnpm generate message の中身)。描き方はひな形(messaging/layouts)が持つ。
 // 引数: <domain> <name> --category <key> --label <名前> [--core](名前 = 管理画面に出す連絡の名前、必須 D46)
 //(種別と経路は種類から引く D81・D86。種類 = 利用者から見て 1 つの出来事 D79)
 // - 引数なし = 何もしない(pnpm generate の一括でも回る)。質問はしない
@@ -13,7 +13,7 @@ import { dirname, join } from "node:path";
 
 import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
 import { CATEGORY_POINT, readCategories } from "../extensions/derive/messageGuards.mjs";
-import { definitionTemplate, viewDefaultTemplate, viewSwitchTemplate } from "./templates.mjs";
+import { definitionTemplate } from "./templates.mjs";
 
 const NAME = /^[a-z][A-Za-z0-9]*$/;
 const MESSAGING_DIR = "src/features/core/messaging";
@@ -106,12 +106,6 @@ export function runMessageScaffold(repoRoot, argv) {
   const key = `${domain}.${name}`;
   const dir = `${district.dir}/messages`;
   const files = [{ path: `${dir}/${name}.ts`, content: (path) => definitionTemplate({ path, key, label, category, kind: item.kind, channels }) }];
-  if (channels.includes("email")) {
-    files.push(
-      { path: `${dir}/views/${name}.tsx`, content: () => viewSwitchTemplate({ key, name }) },
-      { path: `${dir}/views/${name}.default.tsx`, content: (path) => viewDefaultTemplate({ path, key }) },
-    );
-  }
   const lines = [];
   const written = [];
   for (const file of files) {

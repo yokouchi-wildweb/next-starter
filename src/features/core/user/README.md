@@ -805,8 +805,8 @@ export async function cleanupOnWithdraw(userId: string, tx: DbTransaction): Prom
 | `user.registrationComplete` | `signupMode` が `earlyRegistration` 以外 | `displayName`・`serviceNameShort`・`siteUrl`（`business.url`、ボタンの行き先） |
 | `user.earlyRegistrationComplete` | `signupMode` が `earlyRegistration` | `displayName`・`serviceNameShort`（ボタンなし） |
 
-- 取引の連絡（好みを見ない）。定義 `messages/<名前>.ts`、描き方 `messages/views/<名前>.tsx`（1 行スイッチ → `<名前>.default.tsx`、fork の丸ごとの差し替えは `.replace`）、共通の部品 `messages/parts/WelcomeMailView.tsx`
-- 段落の位置の約束（文言を override で直すときもこの並びを保つ。段落が欠けても描き方は落ちない）: ロゴ（事業の設定）と `paragraphs[0]` 見出しの札 → `heading` お祝いの行 → [1] お礼 → 区切り → [2] 案内 → ボタン（`cta` があれば）→ 区切り → `footer`。段落の改行はそのまま出す
+- 取引の連絡（好みを見ない）。定義 `messages/<名前>.ts`、見た目はひな形 `welcome`（ようこそ、`src/features/core/messaging/layouts/welcome/`。見た目を替える fork はその描き方の `.replace`、文言は上書きの `values`）
+- 欄: ロゴ（事業の設定）と `badge` 札 → `heading` お祝いの行 → `thanks` お礼 → 区切り → `guide` 案内 → `button`（あれば）→ 区切り → `footer`。改行はそのまま出す
 - 件名と見える文面は前のテンプレートと同じ（`pnpm test src/features/core/user/messages`）
 
 ## 外部の認証の身元から作る口（createFromProvider）

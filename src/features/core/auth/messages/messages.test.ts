@@ -1,7 +1,7 @@
-// auth のシステムの連絡(messages/<名前>.ts + views)の検査:
+// auth のシステムの連絡(messages/<名前>.ts、ひな形 link・alert)の検査:
 // - 件名と見える文面が前のテンプレート(createMailTemplate の auth/mail/*Email.tsx)と同じ(文面は前のテンプレートを描いて写した値)
 // - トークン入りのリンクは秘密の印(secretVar)、認証の流れが依る 4 本は required
-// - 描き方は段落が欠けても落ちない(override が段落を減らしても描ける)
+// - 送る口と同じくひな形のメールの描き方(layoutEmails)で描く
 // 実行: pnpm test src/features/core/auth/messages
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -10,21 +10,16 @@ import { createElement } from "react";
 import { render } from "@react-email/render";
 
 import { MAIL_THEME_COLORS } from "@/lib/mail";
-import { listSecretVarKeys, type EmailFields } from "@/lib/messaging";
+import { listSecretVarKeys } from "@/lib/messaging";
 
 import { message as accountLocked } from "./accountLocked";
 import { message as earlyRegistration } from "./earlyRegistration";
 import { message as emailChange } from "./emailChange";
 import { message as passwordReset } from "./passwordReset";
 import { message as verification } from "./verification";
-import { EmailView as AccountLockedView } from "./views/accountLocked";
-import { EmailView as EarlyRegistrationView } from "./views/earlyRegistration";
-import { EmailView as EmailChangeView } from "./views/emailChange";
-import { EmailView as PasswordResetView } from "./views/passwordReset";
-import { EmailView as VerificationView } from "./views/verification";
 import { categories } from "@/features/core/messaging/extensions/categories";
-
-type View = (props: { content: EmailFields; theme: typeof MAIL_THEME_COLORS }) => unknown;
+import { layoutEmails } from "@/features/core/messaging/extensions/layoutEmails";
+import { layouts } from "@/features/core/messaging/extensions/layouts";
 
 /** {{鍵}} を差し込む(送る口と同じく、文字列の値だけ) */
 function fill(value: unknown, vars: Record<string, string>): unknown {
@@ -49,17 +44,20 @@ function visibleText(html: string): string {
     .trim();
 }
 
-async function draw(definition: { vars: { parse: (v: unknown) => unknown }; content: { email?: unknown } }, view: View, vars: Record<string, string>) {
+async function draw(definition: { vars: { parse: (v: unknown) => unknown }; layout: string; values: Readonly<Record<string, unknown>> }, vars: Record<string, string>) {
   definition.vars.parse(vars);
-  const content = fill(definition.content.email, vars) as EmailFields;
-  const html = await render(createElement(view as never, { content, theme: MAIL_THEME_COLORS }));
-  return { subject: content.subject, text: visibleText(html) };
+  // 送る口と同じく、ひな形のメールの描き方で描く(件名 = 要約の題)
+  const layout = layouts[definition.layout]!;
+  const values = fill(definition.values, vars) as Record<string, unknown>;
+  const summary = layout.summary(values);
+  const html = await render(createElement(layoutEmails[layout.key]!.Component as never, { values, summary, theme: MAIL_THEME_COLORS }));
+  return { subject: summary.title, text: visibleText(html) };
 }
 
 const LINK_TAIL = "ボタンがクリックできない場合は、以下のURLをブラウザに貼り付けてください。";
 
 test("verification: 件名と文面が前のテンプレートと同じ", async () => {
-  const drawn = await draw(verification, VerificationView, { email: "a@x.test", verificationUrl: "https://x.test/v?oob=1" });
+  const drawn = await draw(verification, { email: "a@x.test", verificationUrl: "https://x.test/v?oob=1" });
   assert.equal(drawn.subject, "メールアドレスの確認");
   assert.equal(
     drawn.text,
@@ -68,7 +66,7 @@ test("verification: 件名と文面が前のテンプレートと同じ", async 
 });
 
 test("earlyRegistration: 件名と文面が前のテンプレートと同じ", async () => {
-  const drawn = await draw(earlyRegistration, EarlyRegistrationView, {
+  const drawn = await draw(earlyRegistration, {
     email: "a@x.test",
     verificationUrl: "https://x.test/v?oob=1",
     serviceNameShort: "next-starter",
@@ -81,7 +79,7 @@ test("earlyRegistration: 件名と文面が前のテンプレートと同じ", a
 });
 
 test("passwordReset: 件名と文面が前のテンプレートと同じ", async () => {
-  const drawn = await draw(passwordReset, PasswordResetView, { resetUrl: "https://x.test/r?oob=1" });
+  const drawn = await draw(passwordReset, { resetUrl: "https://x.test/r?oob=1" });
   assert.equal(drawn.subject, "パスワードのリセット");
   assert.equal(
     drawn.text,
@@ -90,7 +88,7 @@ test("passwordReset: 件名と文面が前のテンプレートと同じ", async
 });
 
 test("emailChange: 件名と文面が前のテンプレートと同じ", async () => {
-  const drawn = await draw(emailChange, EmailChangeView, { newEmail: "n@x.test", verificationUrl: "https://x.test/e?oob=1" });
+  const drawn = await draw(emailChange, { newEmail: "n@x.test", verificationUrl: "https://x.test/e?oob=1" });
   assert.equal(drawn.subject, "メールアドレス変更の確認");
   assert.equal(
     drawn.text,
@@ -104,10 +102,10 @@ const LOCKED_TAIL =
   "お心当たりがない場合: 第三者によるログイン試行の可能性があります。サポートまでご連絡のうえ、パスワード変更をご検討ください。 お心当たりがある場合: ロックを解除するには管理者またはサポートまでご連絡ください。 このメールは自動送信されています。返信は受け付けておりません。";
 
 test("accountLocked: 件名と文面が前のテンプレートと同じ(IP が空なら IP の行を出さない)", async () => {
-  const withIp = await draw(accountLocked, AccountLockedView, { occurredAt: "2026/11/11 9:00:00", ip: "203.0.113.1" });
+  const withIp = await draw(accountLocked, { occurredAt: "2026/11/11 9:00:00", ip: "203.0.113.1" });
   assert.equal(withIp.subject, "【重要】アカウントがセキュリティロックされました");
   assert.equal(withIp.text, `${LOCKED_HEAD} 発生時刻 2026/11/11 9:00:00 アクセス元 IP 203.0.113.1 ${LOCKED_TAIL}`);
-  const noIp = await draw(accountLocked, AccountLockedView, { occurredAt: "2026/11/11 9:00:00", ip: "" });
+  const noIp = await draw(accountLocked, { occurredAt: "2026/11/11 9:00:00", ip: "" });
   assert.equal(noIp.text, `${LOCKED_HEAD} 発生時刻 2026/11/11 9:00:00 ${LOCKED_TAIL}`);
 });
 
@@ -134,12 +132,7 @@ test("秘密の印・required・記録・種類: リンクの 4 本は required 
   );
 });
 
-test("描き方は段落が欠けても落ちない(override が段落を減らした場合)", async () => {
-  const content: EmailFields = { subject: "s", heading: "h", paragraphs: ["一つだけ"] };
-  for (const view of [VerificationView, EarlyRegistrationView, PasswordResetView, EmailChangeView, AccountLockedView] as View[]) {
-    const html = await render(createElement(view as never, { content, theme: MAIL_THEME_COLORS }));
-    assert.ok(visibleText(html).includes("一つだけ"));
-    const empty = await render(createElement(view as never, { content: { subject: "s" }, theme: MAIL_THEME_COLORS }));
-    assert.ok(empty.length > 0);
-  }
+test("ひな形: リンクの 4 本は link(認証のリンク)、ロックの知らせは alert(セキュリティの警告)", () => {
+  for (const definition of [verification, earlyRegistration, passwordReset, emailChange]) assert.equal(definition.layout, "link", definition.key);
+  assert.equal(accountLocked.layout, "alert");
 });

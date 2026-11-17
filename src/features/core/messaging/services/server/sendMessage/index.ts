@@ -11,7 +11,6 @@ import { messageRegistry } from "@/registry/messageRegistry";
 import { userGroupEvaluator } from "@/features/core/userGroup/services/server";
 
 import { messageDomainOpen } from "../domainGate";
-import { drizzleMessageOverrideStore } from "../overrides/store";
 import { drizzleMessageTemplateSource } from "../templates/source";
 import { buildUnsubscribeUrl, isUnsubscribeConfigured } from "../unsubscribe/token";
 
@@ -19,6 +18,8 @@ import { messagingConfig } from "../../../config";
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
+import { layoutEmails } from "../../../extensions/layoutEmails";
+import { layouts } from "../../../extensions/layouts";
 import { subscribers } from "../../../extensions/subscribers";
 import { subscribedEventTypes } from "../events/internalEvents";
 import { createMessageSender } from "./sender";
@@ -33,6 +34,9 @@ export const sendMessageDeps: MessageSendDeps = {
   domainOpen: messageDomainOpen,
   channels,
   enrichers,
+  // ひな形(D122)と、経路ごとのひな形の描き方の表(email = layoutEmails。inApp の描き方は client の一覧なので S6 まで渡さない)
+  layouts,
+  layoutRenderers: { email: layoutEmails },
   // グループ宛て(門 userGroups が閉なら拒む。評価の口も閉なら 404)
   groups: {
     enabled: () => gate.enabled("userGroups"),
@@ -57,13 +61,7 @@ export const sendMessageDeps: MessageSendDeps = {
   throttle: drizzleMessageThrottleStore,
   // 内部の事件は登録した購読が聞いている種類だけ書く
   eventTypes: subscribedEventTypes(Object.values(subscribers)),
-  adminOverrides: {
-    enabled: () => gate.enabled("messagingOverrides"),
-    async load(messageKey) {
-      const rows = await drizzleMessageOverrideStore.listByMessage(messageKey);
-      return rows.map((row) => ({ fieldPath: row.fieldPath, value: row.value }));
-    },
-  },
+  // 管理画面の文言の上書きは今は重ねない(TODO 指令 56: ひな形の欄の鍵へ替えて重ね直す)
 };
 
 const sender = createMessageSender(sendMessageDeps);

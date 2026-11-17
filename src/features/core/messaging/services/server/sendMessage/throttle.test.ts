@@ -26,10 +26,9 @@ const chat = define({
   category: "chat",
   vars: z.object({ roomId: z.string(), text: z.string() }),
   throttle: { by: ["roomId"], mode: "untilRead", seconds: 600 },
-  content: {
-    inApp: { title: "新着 {{collapsedCount}} 件", body: "{{text}}" },
-    mail: { title: "新着", body: "{{text}} ({{collapsedCount}})" },
-  },
+  // 両方の経路が同じひな形の要約から描く(まとめた回数は題に出す)
+  layout: "card",
+  values: { title: "新着 {{collapsedCount}} 件", body: "{{text}}" },
 });
 const mailOnly = { ...chat, key: "chat.mailOnly" as const, category: "chatMail" };
 const windowed = { ...chat, key: "chat.windowed" as const, throttle: { by: ["roomId"] as const, mode: "window" as const, seconds: 60 } };
@@ -72,7 +71,8 @@ test("untilRead: 最初の 1 通はふつうに送り、鍵つきのお知らせ
   // お知らせは間引きが書く(inApp の経路の send は通らない)。メールの {{collapsedCount}} は 1
   assert.equal(ctx.inApp.calls.length, 0);
   assert.equal(mailSent(ctx), 1);
-  assert.equal(ctx.mail.calls[0][0].content.body, "こんにちは (1)");
+  assert.equal(ctx.mail.calls[0][0].content.body, "こんにちは");
+  assert.equal(ctx.mail.calls[0][0].content.title, "新着 1 件");
   const inAppRow = ctx.world.store.deliveries.find((row) => row.channel === "inApp")!;
   assert.equal(inAppRow.status, "sent");
   assert.equal(inAppRow.reason, null);

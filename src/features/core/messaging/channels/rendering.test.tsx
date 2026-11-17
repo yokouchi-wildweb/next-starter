@@ -21,7 +21,8 @@ const email = createEmailChannel({
   findEmails: async () => [],
   theme: MAIL_THEME_COLORS,
   webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
-  loadView: async () => null,
+  layouts: {},
+  layoutEmails: {},
 });
 const inApp = createInAppChannel({
   now: () => new Date(),

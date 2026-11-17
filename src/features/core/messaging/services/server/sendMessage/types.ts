@@ -6,6 +6,7 @@ import type {
   MessageCategory,
   MessageChannel,
   MessageEnricher,
+  MessageLayout,
   MessageRegistry,
 } from "@/lib/messaging";
 
@@ -270,6 +271,10 @@ export type MessageSendDeps = {
   domainOpen?: (messageKey: string) => boolean;
   store: MessageSendStore;
   channels: Readonly<Record<string, MessageChannel>>;
+  /** ひな形の受け口(server の一覧 layouts、D122)。定義の layout を照らし、欄の中身を検査して描く */
+  layouts: Readonly<Record<string, MessageLayout>>;
+  /** 経路の鍵 → ひな形の描き方を持つひな形の表(email = layoutEmails)。描き方の 3 段の 1 段目(sendMessage/content.ts) */
+  layoutRenderers: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   enrichers: Readonly<Record<string, MessageEnricher>>;
   /** ユーザーグループ(無い = グループ宛てを 404 で拒む) */
   groups?: MessageGroupSource;
@@ -280,11 +285,6 @@ export type MessageSendDeps = {
   /** 共通の文脈の受信者に依らない値 */
   context: () => { serviceName: string; appBaseUrl: string };
   actor: () => { actorId: string | null; actorType: string | null };
-  /**
-   * 管理画面の文言の上書き(message_overrides)。enabled() = 門 messagingOverrides が開か、load = その連絡の直した欄。
-   * 無ければ(テスト・cron の補い)コードの値だけで送る
-   */
-  adminOverrides?: MessageAdminOverrideSource;
   /** 登録した購読が聞いている事件の種類(内部の事件はこれだけ書く。無い・空 = 書かない) */
   eventTypes?: ReadonlySet<string>;
   /** categories の受け口(fork の種類の override を重ねた後)。定義の種類を照らし、種別と経路を引く */
@@ -308,8 +308,3 @@ export type MessageSendDeps = {
   };
 };
 
-/** 管理画面の文言の上書きの読み口(resolveDefinition が定義ごとに 1 回読む) */
-export type MessageAdminOverrideSource = {
-  enabled: () => boolean;
-  load: (messageKey: string) => Promise<{ fieldPath: string; value: unknown }[]>;
-};

@@ -864,10 +864,10 @@ expiration: {
 - 経路は連絡の種類が決める(D86): 予告 = 種類 `walletExpiring`(種別 activity = 利用者が好みで止められる、D67。email・inApp)、本通知 = 種類 `walletExpired`(取引、email・inApp)。全部の通貨・段で変えるなら種類の上書き `src/features/core/messaging/categories/<種類>.override.ts` の `channels`
 - `messageKey`(段・本通知ごとに任意): 送る連絡の鍵(省略 = 上流の `wallet.expiringNotice` / `wallet.expiredNotice`)。通貨・段ごとに経路を変えたい fork は、その経路の種類と、同じ vars を受ける連絡を自分のドメインに足して向ける(生成の一覧に無い鍵は cron が止まる)。前の設定の `channels` は無くなった(残っていると cron が止まって知らせる)
 - メールの無い利用者: メールの行が宛先なし(no_address)になり、ほかの経路で届く
-- **文言**: 連絡の定義 `messages/expiringNotice.ts`（予告、鍵 `wallet.expiringNotice`）・`messages/expiredNotice.ts`（本通知、`wallet.expiredNotice`）。メールの件名・本文とお知らせの題・本文を持つ。変える fork は隣に `<名前>.override.ts` を置く（段ごと・通貨ごとの文面の設定は無い。段で変えたいときは `{{daysBefore}}` を使う）
+- **文言**: 連絡の定義 `messages/expiringNotice.ts`（予告、鍵 `wallet.expiringNotice`）・`messages/expiredNotice.ts`（本通知、`wallet.expiredNotice`）。ひな形の欄の中身（件名・札・宛名・本文・足元）を持つ。変える fork は隣に `<名前>.override.ts` を置く（段ごと・通貨ごとの文面の設定は無い。段で変えたいときは `{{daysBefore}}` を使う）
   - 差し込む名前: 共通 `{{currencyLabel}}`・`{{amount}}`・`{{displayName}}`（宛名、名前が無ければ「お客様」）・`{{serviceNameShort}}` / 予告 `{{expiresOn}}`・`{{daysBefore}}` / 本通知 `{{expiredOn}}`・`{{balanceAfter}}`
-  - メールの見た目: `messages/views/<名前>.tsx`（1 行スイッチ → `.default.tsx`、共通の部品 `messages/parts/NoticeMailView.tsx`）。段落の位置の約束: `paragraphs` [0] 見出しの札（「… からのお知らせ」、ロゴの下）→ [1] 宛名（「… 様」）→ 区切り → [2] 本文（改行はそのまま）→ 区切り → `footer`。override で文言を直すときもこの並びを保つ（段落が欠けても描き方は落ちない）
-  - お知らせ（inApp）は受け取り箱（`message_inbox_items`）に入る
+  - 見た目: ひな形 `statement`（お知らせの明細、`src/features/core/messaging/layouts/statement/`）。欄: `badge` 見出しの札（「… からのお知らせ」、ロゴの下）→ `addressee` 宛名（「… 様」）→ 区切り → `body` 本文（改行はそのまま）→ 区切り → `footer`。見た目を替える fork はその描き方の `.replace`、文言は上書きの `values`
+  - お知らせ（inApp）は受け取り箱（`message_inbox_items`）に入る。題と本文はひな形の要約（題 = 件名、本文 = メールと同じ本文）
 - 送り方: 送る口 `messagingService.sendMessage`(経路を渡さない。予告は種別 activity なので受信者の好みで止まる、本通知は取引で止まらない)。二重送信の鍵は `wallet-expiring:<通貨>:<日数>:<利用者>:<失効日>` / `wallet-expired:<履歴の id>`。ページごとの送信済みの除外は `messagingService.existingIdempotencyKeys`（回の表と鍵の移し先の表の両方）
 - 全体設定 `walletConfig.expirationNoticeSettings`: `targetStatuses`（送信対象のユーザーステータス。既定 active / inactive）、
   `sendConcurrency`（同時送信数。既定 5）、`dateTimeZone`（文面の日付と予告の日境界。既定 Asia/Tokyo）
@@ -1115,7 +1115,7 @@ src/features/core/wallet/
 │   ├── form.ts               # フォーム型
 │   └── drizzle.ts            # Drizzleテーブル定義
 │
-├── messages/             # 連絡の定義(expiringNotice・expiredNotice・adjustmentNotice)、views/ = メールの描き方の 1 行スイッチ、parts/ = 描き方の部品
+├── messages/             # 連絡の定義(expiringNotice・expiredNotice = ひな形 statement、adjustmentNotice = notice)
 ├── services/
 │   ├── types.ts              # パラメータ・オプション型
 │   ├── client/               # クライアントサービス

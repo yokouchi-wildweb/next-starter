@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/overrides/index.ts
 //
 // 管理画面の文言の上書きの service の結び(本物の部品)。管理 API /api/admin/messaging/overrides が呼ぶ。
-// 送る口は sendMessage/index.ts の adminOverrides(同じ store)で読む
+// 送る口は今は上書きを重ねない(TODO 指令 56: ひな形の欄の鍵へ替えて重ね直す)
 
 import { eq } from "drizzle-orm";
 
@@ -16,6 +16,9 @@ import { UserTable } from "@/features/core/user/entities/drizzle";
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
+import { layoutEmails } from "../../../extensions/layoutEmails";
+import { layouts } from "../../../extensions/layouts";
+import { buildContent } from "../sendMessage/content";
 import { messageDomainOpen } from "../domainGate";
 import { channelFieldSchemas, enricherKeysFor, resolveDefinition } from "../sendMessage/definition";
 import type { OverrideImageLedger } from "./imageBinding";
@@ -39,10 +42,10 @@ const service = createOverrideService({
       const { message } = await entry.definition();
       if (!message) return null;
       // 管理画面の値は重ねない(コードの値 = 上流 + fork の override)
-      const resolved = await resolveDefinition(message, { registry: messageRegistry, channels, enrichers, categories });
+      const resolved = await resolveDefinition(message, { registry: messageRegistry, channels, enrichers, categories, layouts });
       return {
         resolved,
-        check: { channels: channelFieldSchemas(channels), variableKeys: enricherKeysFor(messageKey, enrichers) },
+        check: { channels: channelFieldSchemas(channels), variableKeys: enricherKeysFor(resolved, enrichers) },
       };
     } catch (error) {
       console.warn(`[messaging] 連絡 ${messageKey} の定義を読めません: ${error instanceof Error ? error.message : String(error)}`);
@@ -56,6 +59,10 @@ const service = createOverrideService({
     return item ? { label: item.label, fieldMeta: item.fieldMeta, previewComponent: item.previewComponent } : null;
   },
   images: storageOverrideImageLedger as OverrideImageLedger<unknown>,
+  async channelContent(resolved, channel) {
+    const built = await buildContent({ channels, layouts, layoutRenderers: { email: layoutEmails } }, resolved, channel, {});
+    return built.content;
+  },
   channelPreview(channel, input) {
     const item = channels[channel];
     return item?.preview ? item.preview({ ...input, messageKey: input.messageKey as never }) : null;

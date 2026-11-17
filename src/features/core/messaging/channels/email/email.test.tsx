@@ -4,7 +4,7 @@
 // - MailSendError の 3 分類をそのまま写す。それ以外の例外は unknown
 // - 描画結果に React のフォールバックの印があれば送らず permanent(L2.1)
 // - 本文の停止のリンク: 好みのページが開(preferencesPageUrl が値)ならそこ、閉ならワンクリックの URL。ヘッダは同じ
-// - 宛先の連絡の鍵で生成の一覧の描き方(messages/views の EmailView)を使う。無ければ既定、読めなければ permanent
+// - 送る口が組んだ中身(MessageLayoutContent)を段に従って描く: ひな形のメールの描き方 > 汎用 > 要約。件名 = 題。形が違う・描き方が無い = permanent render_failed
 // 実行: pnpm test src/features/core/messaging/channels/email
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -15,15 +15,31 @@ import { render } from "@react-email/render";
 
 import { MAIL_THEME_COLORS, MailSendError, type SendMailOptions } from "@/lib/mail";
 
-import type { MessageKey, MessageRegistry } from "@/lib/messaging";
+import type { MessageKey, MessageLayoutContent } from "@/lib/messaging";
+
+import { layoutEmails } from "../../extensions/layoutEmails";
+import { layouts } from "../../extensions/layouts";
 
 import { WebhookNotConfiguredError } from "../../services/server/webhooks/errors";
 import { createEmailChannel, toChannelWebhookEvent } from "./createEmailChannel";
 import { hasRenderFallbackMarker } from "./fallback";
-import { loadRegistryView } from "./loadView";
-import type { EmailViewProps } from "./view";
-
-const content = { subject: "件名", heading: "見出し", paragraphs: ["本文"], cta: { label: "開く", url: "https://x.test" } };
+/** 送る口が組む中身(ひな形 notice、ひな形のメールの描き方の段) */
+const values = {
+  subject: "件名",
+  blocks: [
+    { type: "heading" as const, text: "見出し" },
+    { type: "paragraph" as const, text: "本文" },
+    { type: "button" as const, label: "開く", url: "https://x.test" },
+  ],
+};
+const content: MessageLayoutContent = {
+  title: "件名",
+  layout: "notice",
+  from: "layout",
+  values,
+  summary: layouts.notice!.summary(values),
+};
+const LAYOUT_DEPS = { layouts, layoutEmails };
 const target = (address: string, key = `d-${address}`, messageKey: MessageKey = "shop.notice") => ({
   userId: "u1",
   address,
@@ -31,7 +47,6 @@ const target = (address: string, key = `d-${address}`, messageKey: MessageKey = 
   idempotencyKey: key,
   content,
 });
-const noView = async () => null;
 
 function setup(options: { html?: string; fail?: (to: string) => unknown } = {}) {
   const sent: SendMailOptions[] = [];
@@ -46,7 +61,7 @@ function setup(options: { html?: string; fail?: (to: string) => unknown } = {}) 
     findEmails: async (userIds) => userIds.map((userId) => ({ userId, address: `${userId}@example.test` })),
     theme: MAIL_THEME_COLORS,
     webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
-    loadView: noView,
+    ...LAYOUT_DEPS,
   });
   return { channel, sent };
 }
@@ -79,7 +94,7 @@ test("描くのは宛先ごとに 1 回で、描いた html をそのまま send
     findEmails: async () => [],
     theme: MAIL_THEME_COLORS,
     webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
-    loadView: noView,
+    ...LAYOUT_DEPS,
   });
   await channel.send([target("a@example.test"), target("b@example.test")]);
   assert.equal(renders, 2);
@@ -87,7 +102,7 @@ test("描くのは宛先ごとに 1 回で、描いた html をそのまま send
   assert.ok(sent.every((mail) => mail.react === undefined));
 });
 
-test("既定の描き方は欄を描く(見出し・本文・ボタン)", async () => {
+test("ひな形のメールの描き方で欄を描く(見出し・本文・ボタン)", async () => {
   const { channel } = setup();
   let html = "";
   const spy = createEmailChannel({
@@ -96,7 +111,7 @@ test("既定の描き方は欄を描く(見出し・本文・ボタン)", async 
     findEmails: async () => [],
     theme: MAIL_THEME_COLORS,
     webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
-    loadView: noView,
+    ...LAYOUT_DEPS,
   });
   await spy.send([target("a@example.test")]);
   assert.ok(html.includes("見出し") && html.includes("本文") && html.includes("https://x.test"));
@@ -156,7 +171,7 @@ test("好みに従う連絡: List-Unsubscribe のヘッダを渡し、本文に�
     findEmails: async () => [],
     theme: MAIL_THEME_COLORS,
     webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
-    loadView: noView,
+    ...LAYOUT_DEPS,
   });
   const headers = {
     "List-Unsubscribe": "<https://app.example.test/api/messaging/unsubscribe?token=abc>",
@@ -185,7 +200,7 @@ test("好みのページが開: 本文のリンクは好みのページ、ヘッ
       findEmails: async () => [],
       theme: MAIL_THEME_COLORS,
       webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
-      loadView: noView,
+      ...LAYOUT_DEPS,
       preferencesPageUrl: () => page,
     });
     const [result] = await channel.send([{ ...target("a@example.test"), category: "marketing", headers }]);
@@ -209,7 +224,7 @@ test("取引の連絡(ヘッダなし)は好みのページが開でも本文に
     findEmails: async () => [],
     theme: MAIL_THEME_COLORS,
     webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
-    loadView: noView,
+    ...LAYOUT_DEPS,
     preferencesPageUrl: () => "https://app.example.test/mypage/account/notifications",
   });
   await channel.send([target("t@example.test")]);
@@ -243,7 +258,7 @@ test("webhook: Resend の署名を確かめ、経路の事件(bounced_hard / bou
     findEmails: async () => [],
     theme: MAIL_THEME_COLORS,
     webhookKeys: { resendSecret: () => `whsec_${secretBytes.toString("base64")}`, sendgridPublicKey: () => null },
-    loadView: noView,
+    ...LAYOUT_DEPS,
   });
   const body = JSON.stringify({
     type: "email.bounced",
@@ -273,77 +288,41 @@ test("webhook: 鍵(env)が無ければ WebhookNotConfiguredError(受け口は 50
   assert.throws(() => channel.webhooks!.sendgrid.verify({ rawBody: "[]", headers: new Headers() }), WebhookNotConfiguredError);
 });
 
-function OwnView({ content: fields }: EmailViewProps) {
-  return <p>独自の描き方 {fields.heading}</p>;
-}
-
-test("連絡の鍵で生成の一覧の描き方を使い、無い連絡は既定の描き方。読むのは束で 1 回", async () => {
-  const registry: MessageRegistry = {
-    "shop.notice": {
-      key: "shop.notice",
-      definition: async () => ({ message: {} as never }),
-      view: async () => ({ EmailView: OwnView }),
-    },
-    "shop.plain": { key: "shop.plain", definition: async () => ({ message: {} as never }) },
-  };
+test("描き方の 3 段: ひな形の描き方・汎用(ひな形の email の欄を宣言の順に)・要約から。件名は題", async () => {
   const htmls: string[] = [];
-  const loaded: string[] = [];
+  const sent: SendMailOptions[] = [];
   const channel = createEmailChannel({
     render: async (element) => {
       const html = await render(element);
       htmls.push(html);
       return html;
     },
-    send: async () => ({ provider: "resend", providerMessageId: null }),
+    send: async (mail) => (sent.push(mail), { provider: "resend", providerMessageId: null }),
     findEmails: async () => [],
     theme: MAIL_THEME_COLORS,
     webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
-    loadView: (messageKey) => {
-      loaded.push(messageKey);
-      return loadRegistryView(registry, messageKey);
-    },
+    ...LAYOUT_DEPS,
   });
+  const generic = { ...content, from: "channel" as const };
+  const summary = { ...content, title: "要約の題", from: "summary" as const, summary: { title: "要約の題", body: "要約の本文", link: { url: "https://x.test/s" } } };
   const results = await channel.send([
-    target("a@x", "d1", "shop.notice"),
-    target("b@x", "d2", "shop.notice"),
-    target("c@x", "d3", "shop.plain"),
-    target("d@x", "d4", "shop.unknown"),
+    { ...target("a@x", "d1"), content },
+    { ...target("b@x", "d2"), content: generic },
+    { ...target("c@x", "d3"), content: summary },
   ]);
-  assert.deepEqual(results.map((r) => r.kind), ["sent", "sent", "sent", "sent"]);
-  assert.ok(htmls[0].includes("独自の描き方") && htmls[1].includes("独自の描き方"));
-  assert.ok(!htmls[2].includes("独自の描き方") && htmls[2].includes("本文"));
-  assert.ok(htmls[3].includes("本文"));
-  assert.deepEqual(loaded, ["shop.notice", "shop.plain", "shop.unknown"]);
+  assert.deepEqual(results.map((r) => r.kind), ["sent", "sent", "sent"]);
+  assert.ok(htmls[0].includes("見出し") && htmls[0].includes("https://x.test"));
+  assert.ok(htmls[1].includes("件名") && htmls[1].includes("本文") && htmls[1].includes("https://x.test"));
+  assert.ok(htmls[2].includes("要約の本文") && htmls[2].includes("https://x.test/s"));
+  assert.deepEqual(sent.map((mail) => mail.subject), ["件名", "件名", "要約の題"]);
 });
 
-test("描き方が読めない・EmailView が無い → 送らず permanent render_failed", async () => {
-  const registry: MessageRegistry = {
-    "shop.broken": {
-      key: "shop.broken",
-      definition: async () => ({ message: {} as never }),
-      view: async () => ({}) as never,
-    },
-    "shop.throws": {
-      key: "shop.throws",
-      definition: async () => ({ message: {} as never }),
-      view: async () => {
-        throw new Error("import failed");
-      },
-    },
-  };
-  const sent: SendMailOptions[] = [];
-  const channel = createEmailChannel({
-    render: (element) => render(element),
-    send: async (mail) => {
-      sent.push(mail);
-      return { provider: "resend", providerMessageId: null };
-    },
-    findEmails: async () => [],
-    theme: MAIL_THEME_COLORS,
-    webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
-    loadView: (messageKey) => loadRegistryView(registry, messageKey),
-  });
-  const results = await channel.send([target("a@x", "d1", "shop.broken"), target("b@x", "d2", "shop.throws")]);
+test("中身の形が違う・ひな形の描き方が無い → 送らず permanent render_failed", async () => {
+  const { channel, sent } = setup();
+  const results = await channel.send([
+    { ...target("a@x", "d1"), content: { subject: "前の経路の欄" } },
+    { ...target("b@x", "d2"), content: { ...content, layout: "nope" } },
+  ]);
   assert.deepEqual(
     results.map((r) => r.kind !== "sent" && r.reason),
     ["render_failed", "render_failed"],

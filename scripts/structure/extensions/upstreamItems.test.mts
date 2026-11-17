@@ -40,6 +40,7 @@ import { buildRewardHandlerMap } from "@/features/core/referralReward/services/s
 import { ROOT_LAYOUT_CONFIG } from "@/app/_layout/config";
 import { EXAMPLE_BUSINESS } from "@/lib/business";
 import { messageRegistry } from "@/registry/messageRegistry";
+import { layouts } from "@/features/core/messaging/extensions/layouts";
 import { configEnabled } from "@/featureGate/node";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { listOneShotTasks, loadOneShotTask } from "../../runner/task/discover";
@@ -128,7 +129,6 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   const plan = planExtensions(ROOT);
   // 上流のスイッチは全部 .default を指す(今と同じ振る舞い)。AdminHeader.default は管理のヘッダーの行の既定の部品
   // (src/app/admin/_layout、指令 17 d2): AdminPage が描く行そのもので、fork の差し替えの口は隣の AdminHeader.replace(1 行スイッチ)。ForkProviders.default は fork の providers の空の素通し(src/app/_providers、指令 31)
-  // 連絡の描き方(messages/views/<名前>.tsx → <名前>.default、auth 5・user 2・wallet 2)も 1 行スイッチ
   // MailFrame.default は全メールの枠(src/lib/mail/frame、指令 54 D122: fork は MailFrame.replace で一度に替える)
   // NoticeEmail.default・NoticeInApp.default は上流のひな形「汎用のお知らせ」の見た目(messaging/layouts/notice、指令 54 d5)
   // Link・Welcome・Statement・Alert の Email / InApp.default は上流のひな形「認証のリンク」「ようこそ」「お知らせの明細」「セキュリティの警告」の見た目(指令 55 d4)
@@ -148,18 +148,9 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
     "StatementInApp.default",
     "WelcomeEmail.default",
     "WelcomeInApp.default",
-    "accountLocked.default",
-    "earlyRegistration.default",
-    "earlyRegistrationComplete.default",
-    "emailChange.default",
-    "expiredNotice.default",
-    "expiringNotice.default",
     "onDemoUserCreated.default",
-    "passwordReset.default",
     "programConfig.default",
-    "registrationComplete.default",
     "sessionEnricher.default",
-    "verification.default",
   ]);
 });
 
@@ -234,7 +225,7 @@ test("タスクの走査: 上流のドメインのタスク・移行 12 本、�
   for (const file of tasks) assert.equal((await loadOneShotTask(ROOT, file)).name, file.name);
 });
 
-test("システムの連絡: 上流の auth・user の連絡は生成の一覧にあり、描き方を持つ", () => {
+test("システムの連絡: 上流の auth・user の連絡は生成の一覧にあり、ひな形を持つ", async () => {
   const keys = Object.keys(messageRegistry).filter((key) => key.startsWith("auth.") || key.startsWith("user."));
   assertUpstreamItems(keys, [
     "auth.accountLocked",
@@ -245,7 +236,10 @@ test("システムの連絡: 上流の auth・user の連絡は生成の一覧�
     "user.earlyRegistrationComplete",
     "user.registrationComplete",
   ]);
-  for (const key of keys) assert.ok(messageRegistry[key].view, key);
+  for (const key of keys) {
+    const { message } = await messageRegistry[key].definition();
+    assert.ok(layouts[message.layout], key);
+  }
 });
 
 test("管理者コマンド: 非管理者は読み込まない、管理者は上流の 3 カテゴリを今の順で、プラグイン 0", async () => {

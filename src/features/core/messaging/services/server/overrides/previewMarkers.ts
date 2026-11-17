@@ -1,8 +1,9 @@
 // src/features/core/messaging/services/server/overrides/previewMarkers.ts
 //
 // 文言の編集のプレビュー(D86)で、描いた HTML の中の欄の場所に印 data-field="<経路.欄>" を付ける。
-// 連絡ごとの描き方(messages/views/<名前>.tsx)を変えずに済むよう、描く前に文字の欄の値を目に見えない印の文字で包み、
-// 描いた後の HTML で印を <span data-field> に置き換える。プレビューの時だけ(送る時は包まない)。
+// 描き方を変えずに済むよう、描く前に文字の欄の値を目に見えない印の文字で包み、描いた後の HTML で印を <span data-field> に置き換える。
+// プレビューの時だけ(送る時は包まない)。TODO(指令 56): 今はプレビューが上書きを重ねないので使っていない(applyPreviewMarkers だけ)。
+// 上書きの鍵を ひな形の欄の鍵へ替える時に、ひな形の欄で包み直す
 // - 包むのは文字の欄(input line / text、並びは 1 つずつ、parts は中の文字の欄)。url・image・select は属性に入るので包まない
 // - タグの中(属性)と <head>(<title> など)に入った印は消すだけ(HTML を壊さない)
 

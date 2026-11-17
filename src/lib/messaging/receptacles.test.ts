@@ -16,6 +16,7 @@ import type {
   MessageSource,
   MessageSubscriber,
 } from "./index";
+import { enricherTargets } from "./index";
 
 test("経路: 宛先ごとの結果を返す", async () => {
   const channel: MessageChannel = {
@@ -73,7 +74,7 @@ test("経路: 宛先ごとの結果を返す", async () => {
 test("値・種類・送り元・購読", async () => {
   const enricher: MessageEnricher = {
     key: "rank",
-    messages: ["auth.verification"],
+    target: { messages: ["auth.verification"], kinds: ["promotion"] },
     provides: z.object({ rankName: z.string() }),
     resolve: () => ({ rankName: "ゴールド" }),
   };
@@ -81,6 +82,14 @@ test("値・種類・送り元・購読", async () => {
     await enricher.resolve({ messageKey: "auth.verification", recipient: { userId: "u1", name: null, email: null }, vars: {} }),
     { rankName: "ゴールド" },
   );
+
+  // 当て先: 鍵・種類・種別のどれか(OR)、all = 全部(D127)
+  assert.equal(enricherTargets(enricher.target, { key: "auth.verification", category: "a", kind: "functional" }), true);
+  assert.equal(enricherTargets(enricher.target, { key: "x.y", category: "a", kind: "promotion" }), true);
+  assert.equal(enricherTargets(enricher.target, { key: "x.y", category: "a", kind: "activity" }), false);
+  assert.equal(enricherTargets({ categories: ["a"] }, { key: "x.y", category: "a", kind: "activity" }), true);
+  assert.equal(enricherTargets({ all: true }, { key: "x.y", category: "b", kind: "activity" }), true);
+  assert.equal(enricherTargets({}, { key: "x.y", category: "b", kind: "activity" }), false);
 
   const category: MessageCategory = { key: "campaign", label: "キャンペーン", kind: "promotion", channels: ["email"] };
   // 種類は 7 つの種別のどれでも持てる(取引の種類もある、D81)。経路は必須

@@ -1,12 +1,12 @@
 // src/lib/messaging/definition/channels.ts
 //
-// 経路ごとの名前付きの欄(連絡の定義の content)。欄の値は文字列で、{{鍵}} を差し込める。
+// 経路ごとの名前付きの欄(管理画面の文言の編集・テンプレートの文面・管理の送信の文面が使う。連絡の定義はひな形 + 欄の中身で、これを持たない)。
 // 上流の経路は email・inApp・line。fork の経路は経路の受け口(S6 の生成の一覧)で欄の zod を足し、
 // 型の引数 Channels に渡す。
 
 import { z } from "zod";
 
-/** メールの欄(描き方は messages/views の部品。欄の文言は管理画面と override で直せる) */
+/** メールの欄(管理画面の文言の編集とテンプレートが読む。送る口は読まない: 描き方はひな形、S5 で消す) */
 export const emailFieldsSchema = z
   .object({
     subject: z.string().min(1),
@@ -17,6 +17,9 @@ export const emailFieldsSchema = z
     footer: z.string().optional(),
   })
   .strict();
+
+/** メールの欄の値 */
+export type EmailFields = z.infer<typeof emailFieldsSchema>;
 
 /** お知らせ(受け取り箱)の欄。見た目は受け取り箱の画面の部品が決める */
 export const inAppFieldsSchema = z

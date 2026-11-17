@@ -23,14 +23,14 @@ const notice = defineTestMessage({
   label: "テストの連絡",
   category: "news",
   vars: z.object({ item: z.string() }),
-  content: { test: { title: "{{item}}" } },
+  layout: "card", values: { title: "{{item}}" },
 });
 const secret = defineTestMessage({
   key: "shop.secret",
   label: "テストの連絡",
   category: "account",
   vars: z.object({ link: secretVar(z.string()) }),
-  content: { test: { title: "{{link}}" } },
+  layout: "card", values: { title: "{{link}}" },
 });
 const registry: MessageRegistry = {
   "shop.notice": { key: "shop.notice", definition: async () => ({ message: notice }) },

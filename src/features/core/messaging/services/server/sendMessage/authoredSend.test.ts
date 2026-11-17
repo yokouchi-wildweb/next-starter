@@ -33,7 +33,7 @@ const deadline = () => ({ deadline: new Date(Date.now() + 60_000) });
 const enrichers: Record<string, MessageEnricher> = {
   displayName: {
     key: "displayName",
-    messages: ["messaging.adminAnnouncement", "messaging.adminDirect", "messaging.adminPromotion"],
+    target: { kinds: ["announcement", "direct", "promotion"] },
     provides: z.object({ displayName: z.string() }),
     resolve: ({ recipient }) => ({ displayName: recipient.name ?? "お客様" }),
   },

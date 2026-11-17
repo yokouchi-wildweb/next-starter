@@ -1,7 +1,8 @@
 // wallet の連絡 3 本(失効の予告・失効の本通知・残高の変更)の検査:
 // - メール: 件名と見える文面が前の送り方(config の copy を管理者のお知らせのメールに入れたもの)と同じ
-// - お知らせ(inApp): 題と本文が前の copy / 残高の変更の組み立て(buildTitle・buildBody)と同じ
-// - 描き方は段落が欠けても落ちない
+// - お知らせ(inApp): ひな形の要約(題 = 件名、本文 = 本文)。失効の 2 本は前の短い本文ではなくメールと同じ本文になる(指令 55、S6 まで)。
+//   残高の変更は題と本文が前の組み立て(buildTitle・buildBody)と同じ
+// - 送る口と同じくひな形(statement・notice)の描き方で描く
 // 実行: pnpm test src/features/core/wallet/messages
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -10,7 +11,6 @@ import { createElement } from "react";
 import { render } from "@react-email/render";
 
 import { MAIL_THEME_COLORS } from "@/lib/mail";
-import type { EmailFields } from "@/lib/messaging";
 
 import { walletConfig, type WalletType } from "@/features/wallet/config";
 
@@ -18,11 +18,9 @@ import { adjustmentNoticeVars } from "../services/server/notification/sendAdjust
 import { message as adjustmentNotice } from "./adjustmentNotice";
 import { message as expiredNotice } from "./expiredNotice";
 import { message as expiringNotice } from "./expiringNotice";
-import { EmailView as ExpiredNoticeView } from "./views/expiredNotice";
-import { EmailView as ExpiringNoticeView } from "./views/expiringNotice";
 import { categories } from "@/features/core/messaging/extensions/categories";
-
-type View = (props: { content: EmailFields; theme: typeof MAIL_THEME_COLORS }) => unknown;
+import { layoutEmails } from "@/features/core/messaging/extensions/layoutEmails";
+import { layouts } from "@/features/core/messaging/extensions/layouts";
 
 /** {{鍵}} を差し込む(送る口と同じく、文字列の値だけ) */
 function fill(value: unknown, vars: Record<string, string>): unknown {
@@ -47,11 +45,20 @@ function visibleText(html: string): string {
     .trim();
 }
 
-async function draw(definition: { vars: { parse: (v: unknown) => unknown }; content: { email?: unknown } }, view: View, vars: Record<string, string>) {
+async function draw(definition: { vars: { parse: (v: unknown) => unknown }; layout: string; values: Readonly<Record<string, unknown>> }, vars: Record<string, string>) {
   definition.vars.parse(vars);
-  const content = fill(definition.content.email, vars) as EmailFields;
-  const html = await render(createElement(view as never, { content, theme: MAIL_THEME_COLORS }));
-  return { subject: content.subject, text: visibleText(html) };
+  // 送る口と同じく、ひな形のメールの描き方で描く(件名 = 要約の題)
+  const layout = layouts[definition.layout]!;
+  const values = fill(definition.values, vars) as Record<string, unknown>;
+  const summary = layout.summary(values);
+  const html = await render(createElement(layoutEmails[layout.key]!.Component as never, { values, summary, theme: MAIL_THEME_COLORS }));
+  return { subject: summary.title, text: visibleText(html) };
+}
+
+/** お知らせ(inApp)の行の題と本文 = ひな形の要約(送る口の inApp は要約から描く) */
+function inAppOf(definition: { layout: string; values: Readonly<Record<string, unknown>> }, vars: Record<string, string>) {
+  const summary = layouts[definition.layout]!.summary(fill(definition.values, vars) as Record<string, unknown>);
+  return { title: summary.title, body: summary.body };
 }
 
 const FOOTER = "ご不明な点がございましたら、 お気軽にお問い合わせください。";
@@ -65,15 +72,15 @@ test("失効の予告: メールと お知らせ の文面が前と同じ", asyn
     displayName: "山田",
     serviceNameShort: "next-starter",
   };
-  const drawn = await draw(expiringNotice, ExpiringNoticeView, vars);
+  const drawn = await draw(expiringNotice, vars);
   assert.equal(drawn.subject, "コインの有効期限が近づいています");
   assert.equal(
     drawn.text,
     `【next-starter】コインの有効期限が近づいています next-starter からのお知らせ 山田 様 1,000 コイン が 2026年12月1日 に有効期限を迎えます。 期限を過ぎた分は失効しますので、お早めにご利用ください。 ${FOOTER}`,
   );
-  assert.deepEqual(fill(expiringNotice.content.inApp, vars), {
+  assert.deepEqual(inAppOf(expiringNotice, vars), {
     title: "コインの有効期限が近づいています",
-    body: "1,000 コイン が 2026年12月1日 に失効します。",
+    body: "1,000 コイン が 2026年12月1日 に有効期限を迎えます。\n期限を過ぎた分は失効しますので、お早めにご利用ください。",
   });
 });
 
@@ -86,15 +93,15 @@ test("失効の本通知: メールと お知らせ の文面が前と同じ", a
     displayName: "お客様",
     serviceNameShort: "next-starter",
   };
-  const drawn = await draw(expiredNotice, ExpiredNoticeView, vars);
+  const drawn = await draw(expiredNotice, vars);
   assert.equal(drawn.subject, "コインが失効しました");
   assert.equal(
     drawn.text,
     `【next-starter】コインが失効しました next-starter からのお知らせ お客様 様 有効期限切れにより 500 コイン が失効しました。 失効後の残高: 300 コイン ${FOOTER}`,
   );
-  assert.deepEqual(fill(expiredNotice.content.inApp, vars), {
+  assert.deepEqual(inAppOf(expiredNotice, vars), {
     title: "コインが失効しました",
-    body: "有効期限切れにより 500 コイン が失効しました。（残高: 300 コイン）",
+    body: "有効期限切れにより 500 コイン が失効しました。\n失効後の残高: 300 コイン",
   });
 });
 
@@ -105,7 +112,7 @@ test("残高の変更: 題と本文が前の組み立てと同じ(理由のあ�
   const render = (input: Parameters<typeof adjustmentNoticeVars>[0]) => {
     const vars = adjustmentNoticeVars(input);
     adjustmentNotice.vars.parse(vars);
-    return fill(adjustmentNotice.content.inApp, vars) as { title: string; body: string };
+    return inAppOf(adjustmentNotice, vars);
   };
   const increment = render({ ...base, changeMethod: "INCREMENT", reason: "キャンペーン" });
   assert.equal(increment.title, `${label}残高が変更されました`);
@@ -130,9 +137,8 @@ test("種類: 失効の予告は止められる activity(D67)、失効と残高�
   );
 });
 
-test("描き方は段落が欠けても落ちない(override が段落を減らした場合)", async () => {
-  for (const view of [ExpiringNoticeView, ExpiredNoticeView] as View[]) {
-    const html = await render(createElement(view as never, { content: { subject: "s", paragraphs: ["一つだけ"] }, theme: MAIL_THEME_COLORS }));
-    assert.ok(visibleText(html).includes("一つだけ"));
-  }
+test("ひな形: 失効の 2 本は statement(お知らせの明細)、残高の変更は notice(汎用のお知らせ)", () => {
+  assert.equal(expiringNotice.layout, "statement");
+  assert.equal(expiredNotice.layout, "statement");
+  assert.equal(adjustmentNotice.layout, "notice");
 });

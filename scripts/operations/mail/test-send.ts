@@ -5,8 +5,8 @@
 //   pnpm ops mail test-send                                          (対話: 送信先と連絡を選ぶ)
 //   pnpm ops mail test-send -- --to=<アドレス> --message=<連絡の鍵>     (対話なし。--message=simple は接続確認のメール)
 //
-// 連絡のメール: 生成の一覧(src/registry/messageRegistry.ts)のうちメールの欄を持つ連絡を、上書き(<名前>.override.ts)を重ね、
-// 見本の値を差し込んで描き方(messages/views/<名前>.tsx、無ければメールの経路の既定の描き方)で描いて送る。
+// 連絡のメール: 生成の一覧(src/registry/messageRegistry.ts)のうち種類の経路に email がある連絡(管理者が書く authored は除く)を、
+// 上書き(<名前>.override.ts)を重ね、見本の値を差し込んでひな形のメールの描き方(layouts の受け口 layoutEmails、無ければ要約から)で描いて送る。
 // 見本の値: 定義の vars・共通の文脈・当たる enrichers の鍵ごとに、URL の欄は https://example.com/sample/<鍵>、他は「<鍵>の見本」。
 // 送る口(回・配達の記録)は通さない(見た目の確認だけ)。連絡の書き方: src/lib/messaging/README.md
 
@@ -62,41 +62,52 @@ function fillValue(value: unknown, values: Record<string, string>): unknown {
   return value;
 }
 
-/** 生成の一覧のメールの欄を持つ連絡(鍵の順) */
+/** 生成の一覧の email で送る連絡(鍵の順) */
 async function messageTemplates(): Promise<TemplateConfig[]> {
   const { messageRegistry } = await import("@/registry/messageRegistry");
-  const { applyMessageOverride, COMMON_CONTEXT_KEYS } = await import("@/lib/messaging");
+  const { applyMessageOverride, COMMON_CONTEXT_KEYS, enricherTargets, fieldsForChannel } = await import("@/lib/messaging");
   const { MAIL_THEME_COLORS } = await import("@/lib/mail");
   const { enrichers } = await import("@/features/core/messaging/extensions/enrichers");
-  const { EmailView: DefaultView } = await import("@/features/core/messaging/channels/email/view");
+  const { categories } = await import("@/features/core/messaging/extensions/categories");
+  const { layouts } = await import("@/features/core/messaging/extensions/layouts");
+  const { layoutEmails } = await import("@/features/core/messaging/extensions/layoutEmails");
+  const { SummaryEmailView } = await import("@/features/core/messaging/channels/email/genericView");
 
   const templates: TemplateConfig[] = [];
   for (const entry of Object.values(messageRegistry).sort((a, b) => a.key.localeCompare(b.key))) {
     const { message } = await entry.definition();
+    if (message.authored) continue;
+    const category = categories[message.category];
+    const layout = layouts[message.layout];
+    if (!category?.channels.includes("email") || !layout) continue;
     const override = entry.override ? (await entry.override()).messageOverride : undefined;
     const resolved = applyMessageOverride(message, override);
-    const email = (resolved.content as Record<string, unknown>).email;
-    if (!email) continue;
+    const renderer = layoutEmails[layout.key];
     templates.push({
       key: entry.key,
       name: entry.key,
-      description: `連絡のメール(${entry.view ? "描き方 views" : "既定の描き方"})`,
+      description: `連絡のメール(ひな形「${layout.label}」${renderer ? "" : "、要約から"})`,
       render: async () => {
         const shape = resolved.vars.shape as Record<string, ZodLike>;
         const enricherShape = Object.assign(
           {},
           ...Object.values(enrichers)
-            .filter((enricher) => enricher.messages === "*" || enricher.messages.some((key) => key === entry.key))
+            .filter((enricher) => enricherTargets(enricher.target, { key: entry.key, category: message.category, kind: category.kind }))
             .map((enricher) => enricher.provides.shape as Record<string, ZodLike>),
         ) as Record<string, ZodLike>;
         const values = sampleValues(
           new Set([...Object.keys(shape), ...Object.keys(enricherShape), ...COMMON_CONTEXT_KEYS]),
           { ...enricherShape, ...shape },
         );
-        const content = fillValue(email, values) as { subject: string };
-        const View = entry.view ? (await entry.view()).EmailView : DefaultView;
-        const html = await render(createElement(View as never, { content, theme: MAIL_THEME_COLORS }));
-        return { html, subject: content.subject };
+        const filled = fillValue(resolved.values, values) as Record<string, unknown>;
+        // メールが使う欄だけ(送る口の組み立てと同じ)
+        const emailValues = Object.fromEntries(Object.keys(fieldsForChannel(layout, "email")).map((key) => [key, filled[key]]));
+        const summary = layout.summary(emailValues);
+        const element = renderer
+          ? createElement(renderer.Component as never, { values: emailValues, summary, theme: MAIL_THEME_COLORS })
+          : createElement(SummaryEmailView, { summary, theme: MAIL_THEME_COLORS });
+        const html = await render(element);
+        return { html, subject: summary.title };
       },
     });
   }

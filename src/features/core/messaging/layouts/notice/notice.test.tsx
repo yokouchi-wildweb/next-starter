@@ -31,11 +31,12 @@ const values = {
   ],
 };
 
-test("宣言: 汎用のお知らせ、管理者が選べ、件名とブロックの並び(7 種類)が必須", () => {
+test("宣言: 汎用のお知らせ、管理者が選べ、件名が必須でブロックの並び(7 種類)は任意", () => {
   assert.equal(layout.key, "notice");
   assert.equal(layout.adminSelectable, true);
   assert.equal(layoutValuesSchema(layout).safeParse(values).success, true);
-  assert.equal(layoutValuesSchema(layout).safeParse({ subject: "x", blocks: [] }).success, false);
+  assert.equal(layoutValuesSchema(layout).safeParse({ subject: "x", blocks: [] }).success, true);
+  assert.equal(layoutValuesSchema(layout).safeParse({ subject: "x" }).success, true);
   assert.equal(layoutValuesSchema(layout).safeParse({ blocks: values.blocks }).success, false);
 });
 

@@ -15,8 +15,8 @@
 ### email（channels/email/）
 
 - 宛先 = `users.email`（削除済みを除く）。描いた html を `lib/mail` の `send()` へ渡す（描くのは宛先ごとに 1 回、冪等の鍵 = 配達の id）。`MailSendError` の分類（transient / permanent / unknown）をそのまま結果にし、ほかの例外は unknown
-- 描き方: 送る口は宛先に連絡の鍵（`messageKey`）を載せ、メールの項目はその鍵で生成の一覧の `view`（`messages/views/<名前>.tsx`）を引く（`loadView.ts`、束の中では連絡ごとに 1 回）。無ければ既定の `view.tsx`（欄 subject・preheader・heading・paragraphs・cta・footer を lib/mail の枠と部品で）。読めない・`EmailView` が無い = 送らず permanent（`render_failed`）
-- `messages/views/<名前>.tsx` = 1 行スイッチ（`export { EmailView } from "./<名前>.default"`、fork の差し替えは `.replace`）。`EmailView` は既定と同じ props（型 `EmailViewProps`: `content` = 差し込んだ後の欄・`theme` = `MailTheme`・`unsubscribeUrl?`）。vars は渡さない（秘密を経路に出さない）
+- 描き方（D124）: 送る口は描かずに組んだ中身 `MessageLayoutContent`（題・ひな形・段・メールの欄だけの中身・要約）を渡す（`rendersAtSend: true`: 宛先ごとの停止のリンクを入れて描くため）。メールの項目が段に従って宛先ごとに描く: `layout` = ひな形のメールの描き方（受け口の一覧 `layoutEmails`、`{ values, summary, theme, unsubscribeUrl? }`）/ `channel` = 汎用（`genericView.tsx` の `GenericEmailView`、ひな形の email の欄を宣言の順に）/ `summary` = 要約から（`SummaryEmailView`）。件名 = 中身の題。中身の形が違う・ひな形や描き方が無い = 送らず permanent（`render_failed`）
+- 連絡ごとの描き方（前の `messages/views/`）は無い。見た目を替えるのはひな形の描き方の 1 行スイッチの `.replace`（`../layouts/README.md`）。vars は渡さない（差し込み済みの欄の中身だけ）
 - 描画結果に React の「クライアントで描き直す」印（`<!--$!-->`・`$RX`）があれば送らず permanent（`render_fallback`、`fallback.ts`。部品が描画中に投げても `@react-email/render` はほぼ空のメールを返すため）
 - 配信停止: ヘッダ（`List-Unsubscribe`・`List-Unsubscribe-Post`）はワンクリックの URL、本文の最後のリンクは門 `messagingPreferences` が開なら好みのページ（`preferencesPageUrl`）、閉なら確認のページ（`unsubscribePageUrlOf`、../services/server/unsubscribe/README.md）
 - 色は `@/lib/mail` の `MAIL_THEME_COLORS`（生成物 `src/lib/mail/generated/themeColors.ts`）

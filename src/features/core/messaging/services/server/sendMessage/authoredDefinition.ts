@@ -4,7 +4,9 @@
 // - 鍵は送るカテゴリーの種別の管理の定義(authored)の鍵(messaging.adminAnnouncement・adminDirect・adminPromotion、admin/freeText.ts。宛名の
 //   enricher displayName もこの鍵に当たる)。種別が announcement・direct・promotion でないカテゴリーは 400(送る時も cron の組み直しも)
 // - 種別と経路は種類から(D86)。経路 = 種類の経路 ∩ その回の絞り、その中に文面の無い経路が 1 つでもあれば 400(黙って落とさない)
-// - 経路ごとの欄は経路の受け口の zod で検査する(fork の経路も)。{{鍵}} = 当たる enrichers の鍵 + テンプレートの版の変数、知らない鍵は 400
+// - 経路ごとの欄は経路の受け口の zod で検査し(fork の経路も)、ひな形「汎用のお知らせ」(notice)の欄の中身へ変える(authoredNoticeValues)。
+//   管理画面・テンプレートの文面は S4・S5 まで経路ごとの形のままなので、送る口がここで 1 つの中身にする(email の欄が先、無ければ inApp、
+//   無ければ line)。経路ごとに別に書いた文(例 お知らせだけの文)は S5 まで使わない。{{鍵}} = 当たる enrichers の鍵 + テンプレートの版の変数、知らない鍵は 400
 // - 画像(storage://)は文面に自由に入れられる(送る口がお知らせの行を書く時に回へ結ぶ: 自分の上げた画像は attach、ほかは複製)
 // - テンプレートの版(version)がある時: 版の変数の全部を vars にする(値は文字列にして差し込む)。型 number / boolean は形を確かめる、
 //   それ以外は文字列。必須で値が無い・型が合わない = vars の検査で 400(cron が回の vars をもう一度この zod に通す = 送る時の再検査)。
@@ -16,13 +18,17 @@ import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 
 import {
+  COMMON_CONTEXT_KEYS,
   resolveMessageDefinition,
   validateMessageDefinition,
+  type MessageBlock,
   type MessageCategory,
   type MessageChannel,
   type MessageEnricher,
+  type MessageLayout,
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
+import { listVariables } from "@/lib/structuredDocument/shared";
 
 import { ADMIN_FREE_TEXT_DEFINITIONS, isAdminFreeTextKind } from "../admin/freeText";
 import { channelFieldSchemas, enricherKeysFor, type AnyMessageDefinition, type AnyResolvedMessageDefinition } from "./definition";
@@ -84,6 +90,59 @@ export function templateContentEdited(version: MessageTemplateVersionSource, con
   return !isDeepStrictEqual(content, version.content);
 }
 
+function collectStrings(value: unknown, out: string[]): string[] {
+  if (typeof value === "string") out.push(value);
+  else if (Array.isArray(value)) for (const item of value) collectStrings(item, out);
+  else if (value && typeof value === "object") for (const item of Object.values(value)) collectStrings(item, out);
+  return out;
+}
+
+const text = (value: unknown): string | undefined => (typeof value === "string" && value !== "" ? value : undefined);
+
+/**
+ * 経路ごとの書いた文面 → ひな形「汎用のお知らせ」の欄の中身(件名 + ブロックの並び)。
+ * - email の欄があればそれ: 件名 → subject、見出し → 小見出し、段落 → 段落、ボタン → ボタン、フッター → 段落
+ * - 無ければ inApp(と fork の経路の同じ形の欄): 題(title・subject)→ subject、画像 → 画像、本文 → 段落、行き先 → ボタン(「詳しく見る」)
+ * - 無ければ line(と text だけの経路): 本文 → subject と段落
+ * 経路ごとの欄の検査は呼び手(経路の zod)。変えた中身はひな形の欄の zod で検査する
+ */
+export function authoredNoticeValues(content: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const objects = Object.entries(content).filter(
+    (entry): entry is [string, Record<string, unknown>] => Boolean(entry[1]) && typeof entry[1] === "object",
+  );
+  const email = content.email as Record<string, unknown> | undefined;
+  const inApp =
+    (content.inApp as Record<string, unknown> | undefined) ??
+    objects.find(([key, fields]) => key !== "email" && (text(fields.title) ?? text(fields.subject)))?.[1];
+  const line =
+    (content.line as Record<string, unknown> | undefined) ?? objects.find(([key, fields]) => key !== "email" && text(fields.text))?.[1];
+  const blocks: MessageBlock[] = [];
+  if (email) {
+    const heading = text(email.heading);
+    if (heading) blocks.push({ type: "heading", text: heading });
+    for (const paragraph of Array.isArray(email.paragraphs) ? email.paragraphs : []) {
+      const value = text(paragraph);
+      if (value) blocks.push({ type: "paragraph", text: value });
+    }
+    const cta = email.cta as { label?: unknown; url?: unknown } | undefined;
+    if (cta && text(cta.label) && text(cta.url)) blocks.push({ type: "button", label: text(cta.label)!, url: text(cta.url)! });
+    const footer = text(email.footer);
+    if (footer) blocks.push({ type: "paragraph", text: footer });
+    return { subject: text(email.subject) ?? "", blocks };
+  }
+  if (inApp) {
+    const image = text(inApp.image);
+    if (image) blocks.push({ type: "image", src: image });
+    const body = text(inApp.body);
+    if (body) blocks.push({ type: "paragraph", text: body });
+    const link = text(inApp.link);
+    if (link) blocks.push({ type: "button", label: "詳しく見る", url: link });
+    return { subject: text(inApp.title) ?? text(inApp.subject) ?? "", blocks };
+  }
+  const lineText = text(line?.text) ?? "";
+  return { subject: lineText, blocks: lineText ? [{ type: "paragraph", text: lineText }] : [] };
+}
+
 /** 書いた文面 → 定義(検査の前)。base = カテゴリーの種別の authored の定義、version = テンプレートの版(変数の宣言) */
 export function authoredDefinitionOf(
   base: AnyMessageDefinition,
@@ -99,7 +158,7 @@ export function authoredDefinitionOf(
     }),
   );
   const { authored: _authored, ...rest } = base as AnyMessageDefinition & { authored?: true };
-  return { ...rest, category, vars: z.object(shape), content } as unknown as AnyMessageDefinition;
+  return { ...rest, category, vars: z.object(shape), values: authoredNoticeValues(content) } as unknown as AnyMessageDefinition;
 }
 
 /**
@@ -111,6 +170,7 @@ export function resolveAuthoredDefinition(
     channels: Readonly<Record<string, MessageChannel>>;
     enrichers: Readonly<Record<string, MessageEnricher>>;
     categories: Readonly<Record<string, MessageCategory>>;
+    layouts: Readonly<Record<string, MessageLayout>>;
   },
   input: { category: string; content: Record<string, unknown>; channels?: readonly string[]; version?: MessageTemplateVersionSource },
 ): AnyResolvedMessageDefinition {
@@ -142,11 +202,27 @@ export function resolveAuthoredDefinition(
   const content = Object.fromEntries(used.map((channel) => [channel, input.content[channel]]));
   const narrowed = { ...category, channels: used };
   const base = ADMIN_FREE_TEXT_DEFINITIONS[category.kind] as unknown as AnyMessageDefinition;
+  // 経路ごとの欄は経路の zod で検査する(管理画面・テンプレートの形、S5 まで)
+  const channelSchemas = channelFieldSchemas(deps.channels);
+  const invalid = used.flatMap((channel) => {
+    const parsed = channelSchemas[channel]?.safeParse(content[channel]);
+    if (!parsed || parsed.success) return [];
+    return [`${channel} の欄が正しくない(${parsed.error.issues.map((issue) => `${issue.path.join(".") || "(全体)"}: ${issue.message}`).join(" / ")})`];
+  });
+  if (invalid.length > 0) throw new DomainError(`${label} を送れません: ${invalid.join(" / ")}`, { status: 400 });
   const definition = authoredDefinitionOf(base, input.category, content, version);
+  const enricherKeys = enricherKeysFor({ key: definition.key, category: input.category, kind: category.kind }, deps.enrichers);
+  // {{鍵}} は書いた文面の全部(経路ごとの欄)で検査する(お知らせの中身に入らない欄の誤りも見落とさない)
+  const known = new Set<string>([...Object.keys(definition.vars.shape), ...COMMON_CONTEXT_KEYS, ...enricherKeys]);
+  const unknownKeys = [...new Set(collectStrings(content, []).flatMap((value) => listVariables(value)))].filter((key) => !known.has(key));
+  if (unknownKeys.length > 0) {
+    throw new DomainError(`${label} を送れません: ${unknownKeys.map((key) => `{{${key}}}`).join(", ")} は変数にも共通の文脈にも無い`, { status: 400 });
+  }
   const problems = validateMessageDefinition(definition, {
     categories: { [input.category]: narrowed },
-    channels: channelFieldSchemas(deps.channels),
-    variableKeys: enricherKeysFor(definition.key, deps.enrichers),
+    layouts: deps.layouts,
+    channels: channelSchemas,
+    variableKeys: enricherKeys,
   });
   if (problems.length > 0) {
     throw new DomainError(`${label} を送れません: ${problems.map((problem) => problem.message).join(" / ")}`, { status: 400 });

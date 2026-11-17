@@ -18,7 +18,8 @@ import { listVariables } from "@/lib/structuredDocument/shared";
 
 import type { MessageDispatch, MessageDispatchInsert, MessageInboxItemInsert } from "../../../entities/model";
 import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
-import { channelContent, renderValue, toVariableMap } from "../sendMessage/context";
+import { buildContent } from "../sendMessage/content";
+import { toVariableMap } from "../sendMessage/context";
 import { definitionOfDispatch } from "../sendMessage/dispatchDefinition";
 import { deliveryEvents } from "../events/internalEvents";
 import type { StopContext } from "../sendMessage/stops";
@@ -104,7 +105,7 @@ function collectStrings(value: unknown, out: string[] = []): string[] {
 
 /**
  * 全員・ロール宛てのお知らせの共有の行の中身(共有にできない時は null)。
- * 定義が読めない・お知らせの中身が受信者に依る鍵を使う → null(受信者ごとの行にする)
+ * 定義が読めない・ひな形の欄の中身が受信者に依る鍵を使う・組めない → null(受信者ごとの行にする)
  */
 async function sharedInAppContent(
   deps: MessageSendDeps,
@@ -115,14 +116,15 @@ async function sharedInAppContent(
     const loaded = await definitionOfDispatch(deps, dispatch);
     if ("error" in loaded) return null;
     const { resolved } = loaded;
-    const content = channelContent(resolved, IN_APP, deps.channels[IN_APP]);
     const vars = (dispatch.vars ?? {}) as Record<string, unknown>;
     // throttle のある連絡の {{collapsedCount}} は共有の行では 1(全員・ロール宛ては間引かない)
     const throttleValues = resolved.throttle ? { collapsedCount: 1 } : {};
     const allowed = new Set([...Object.keys(vars), ...RECIPIENT_INDEPENDENT_CONTEXT, ...Object.keys(throttleValues)]);
-    const keys = collectStrings(content).flatMap((text) => listVariables(text));
+    const keys = collectStrings(resolved.values).flatMap((text) => listVariables(text));
     if (keys.some((key) => !allowed.has(key))) return null;
-    return renderValue(content, toVariableMap({ ...vars, ...deps.context(), ...throttleValues })) as Record<string, unknown>;
+    // 送る口と同じ組み立て(お知らせは要約から)
+    const { content } = await buildContent(deps, resolved, IN_APP, toVariableMap({ ...vars, ...deps.context(), ...throttleValues }));
+    return content;
   } catch {
     return null;
   }

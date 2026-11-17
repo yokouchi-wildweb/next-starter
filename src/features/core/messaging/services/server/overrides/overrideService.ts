@@ -7,8 +7,9 @@
 // - 保存: 送る口と同じ検査(lib/messaging checkAdminFieldValue)を通った値だけ。直した時のコードの値も残す。
 //   値の画像(storage:// の参照)は保存の台帳で行に結び、差し替え・既定に戻すで外れた物を外す(imageBinding.ts)
 // - 既定に戻す = 行を消す。保存と戻すは監査に残す(messaging.override.updated / .reset、値は残さない)
-// - プレビュー(D86): 経路 1 つを、送る時の値に未保存の値を重ねて連絡の描き方で描く。文字の欄は data-field="<経路.欄>" の印で包む
-//   (プレビューの時だけ、previewMarkers.ts)。経路に preview が無ければ html は null(画面が自分で描く)
+// - プレビュー(D86): 経路 1 つを送る口と同じ組み立て(ひな形 + 欄の中身、sendMessage/content.ts)で描く。経路に preview が無ければ html は null。
+//   TODO(指令 56): 今は上書き(保存した値・未保存の値)を重ねず、欄の印(previewMarkers.ts)も付けない。コードの値も無い(adminFieldCodeValue)。
+//   上書きの鍵を ひな形の欄の鍵へ替える時に、重ねて描くプレビューと欄の印・コードの値を戻す
 // - service でも管理者を確かめる(D42)
 
 import { isDeepStrictEqual } from "node:util";
@@ -29,7 +30,7 @@ import { DomainError } from "@/lib/errors";
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
 import { assertAdminActor, type AdminCheckDeps } from "../admin/assertAdmin";
 import { bindOverrideImages, releaseOverrideImages, type OverrideImageLedger } from "./imageBinding";
-import { applyPreviewMarkers, wrapPreviewFields } from "./previewMarkers";
+import { applyPreviewMarkers } from "./previewMarkers";
 import type {
   AdminOverrideChannel,
   AdminOverrideField,
@@ -54,6 +55,8 @@ export type OverrideServiceDeps = AdminCheckDeps & {
   channelInfo: (channel: string) => { label: string; fieldMeta: Readonly<Record<string, ChannelFieldMeta>>; previewComponent?: string } | null;
   /** 画像を行に結ぶ台帳(無ければ結ばない = テスト) */
   images?: OverrideImageLedger<unknown>;
+  /** 送る口と同じ組み立ての経路 1 つの中身(差し込みはしない = {{鍵}} のまま) */
+  channelContent: (resolved: AnyResolvedMessageDefinition, channel: string) => Promise<Record<string, unknown>>;
   /** 経路のプレビュー(経路の受け口の preview。無い経路は null) */
   channelPreview?: (
     channel: string,
@@ -146,22 +149,14 @@ export function createOverrideService(deps: OverrideServiceDeps) {
       await assertAdminActor(deps);
       const parsed = PreviewMessageOverrideInputSchema.safeParse(input);
       if (!parsed.success) throw new DomainError("プレビューの入力が正しくありません", { status: 400 });
-      const { channel, values } = parsed.data;
-      const { resolved, check } = await requireDefinition(messageKey);
+      const { channel } = parsed.data;
+      const { resolved } = await requireDefinition(messageKey);
       if (!resolved.channels.includes(channel)) throw new DomainError("この通知に無い送信方法です", { status: 400 });
-      const rows = await deps.store.listByMessage(messageKey);
-      const base = { ...((resolved.content as Record<string, Record<string, unknown> | undefined>)[channel] ?? {}) };
-      for (const field of buildFields(resolved, check, rows, deps)) {
-        if (field.channel === channel && field.editable) base[field.field] = field.effective;
-      }
-      for (const [path, value] of Object.entries(values)) {
-        const [pathChannel, field] = path.split(".");
-        if (pathChannel === channel && field) base[field] = value;
-      }
-      const meta = deps.channelInfo(channel)?.fieldMeta ?? {};
+      // TODO(指令 56): 保存した値と未保存の値(parsed.data.values)を ひな形の欄の鍵で重ねる
+      const content = await deps.channelContent(resolved, channel);
       const rendered = await deps.channelPreview?.(channel, {
         messageKey,
-        content: wrapPreviewFields(channel, base, meta),
+        content,
         ...(resolved.category ? { category: resolved.category } : {}),
       });
       return {

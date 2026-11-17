@@ -14,7 +14,8 @@ import { DomainError } from "@/lib/errors";
 
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import type { MessageDeliveryTarget } from "../../../entities/schema";
-import { buildRecipientValues, channelContent, renderValue, toVariableMap } from "../sendMessage/context";
+import { buildContent } from "../sendMessage/content";
+import { buildRecipientValues, toVariableMap } from "../sendMessage/context";
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
 import { definitionOfDispatch } from "../sendMessage/dispatchDefinition";
 import { sendDeliveries, type DeliveryJob } from "../sendMessage/deliver";
@@ -189,10 +190,7 @@ export async function sendClaimed(
         recipientVars: (row.vars ?? undefined) as Record<string, unknown> | undefined,
         user: row.user_id ? (users.get(row.user_id) ?? null) : null,
       });
-      const content = renderValue(channelContent(resolved, row.channel, channel), toVariableMap(values)) as Record<
-        string,
-        unknown
-      >;
+      const { content } = await buildContent(deps, resolved, row.channel, toVariableMap(values));
       bodies.set(row.id, content);
       prepared.push({
         values,

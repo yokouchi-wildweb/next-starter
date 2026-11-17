@@ -16,6 +16,11 @@ export type MessageChannelRendering<R = unknown> = {
   /** 要約から描ける(D124 の宣言)。true なら renderFromSummary が要る */
   summaryRenderable?: boolean;
   renderFromSummary?: (summary: MessageLayoutSummary) => R | Promise<R>;
+  /**
+   * 送る時に宛先ごとに描く(例 email = 宛先ごとの停止のリンクを本文に入れる)。true なら送る口は描かずに MessageLayoutContent
+   * (題・ひな形・段・欄の中身・要約)を中身として渡し、経路が段に従って描く(./content.ts)
+   */
+  rendersAtSend?: boolean;
 };
 
 export type MessageRenderingResolution =

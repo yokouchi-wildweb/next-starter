@@ -21,7 +21,7 @@ auth/
 │   │   ├── sendSignInLink.ts / sendEarlyRegistrationLink.ts / sendPasswordResetLink.ts / sendEmailChangeLink.ts
 │   │   └── sendMailMessage.ts   # 認証のメール(messages/)を 1 アドレスへ送り、送れなければ投げる
 │   └── client/          # 各 /api/auth/* を呼ぶ ClientService (axios + normalizeHttpError)
-├── messages/            # システムの連絡(下の「システムの連絡(メール)」)。<名前>.ts = 定義、views/ = 描き方(1 行スイッチ → .default)、parts/ = 描き方の共通の部品
+├── messages/            # システムの連絡(下の「システムの連絡(メール)」)。<名前>.ts = 定義(ひな形 link・alert + 欄の中身)
 ├── hooks/               # useAuthSession, useLogout, usePreRegistration, useRegistration, useEmailRegistrationForm / useOAuthRegistrationForm / useVerificationEmailSendForm / useEarlyRegistrationSendForm / useOAuthSignupFlow / useEmailChangeVerification / useAutoLogout / useSignupComplete (公開 hook の契約表), oauth/* (内部の部品), registration/・signup/ (内部) など
 ├── components/          # AuthSessionProvider 系, Signup / Verification / Registration / OAuth / UserLogin / AdminLogin 等(SMS 認証の部品は core/phoneVerification)
 └── utils/               # password.ts (hash/verify), createOAuthProvider.ts など
@@ -181,9 +181,9 @@ API ルート側の認可はファクトリーが構造的に強制する（`cre
 | `auth.accountLocked` | `localLogin`（永続ロックの時。送りっぱなし、失敗は warn だけ） | 利用者（`users.email`） | 取引の連絡・`record: "meta"`（IP を残さない） |
 
 - required の 4 本は要求の中で短く送り直し、メールの配達が `sent` でなければ（失敗・不明・宛先の停止）今までどおり DomainError(500)「…の送信に失敗しました: <理由>」（`sendMailMessage.ts`）
-- 描き方は `messages/views/<名前>.tsx`（1 行スイッチ → `<名前>.default.tsx`、fork の丸ごとの差し替えは `.replace`）。受け取るのは差し込んだ後のメールの欄だけなので、欄の外の並びは段落の位置で決まる。文言を override で直すときはこの位置を保つ（段落が欠けても描き方は落ちない）
-  - リンクの 4 本（`parts/LinkMailView.tsx`）: `paragraphs` [0] 受付の文 [1] ボタンの案内 → ボタン（`cta`）→ [2] URL の案内 → `cta.url` をそのまま出す
-  - `accountLocked`: [0] 説明 → 情報の箱 [1] 発生時刻の値・[2] アクセス元 IP の値（空なら行を出さない。ラベルは描き方が持つ）→ [3] 心当たりがない場合・[4] 心当たりがある場合（最初の行を太字）
+- 見た目はひな形（`src/features/core/messaging/layouts/`、欄は意味で名づけ。見た目を替える fork はひな形の描き方の `.replace`、文言は上書きの `values`）
+  - リンクの 4 本 = ひな形 `link`（認証のリンク）: `heading` → `received` 受付の文 → `buttonGuide` → ボタン（`button`）→ `urlGuide` → ボタンの URL をそのまま出す → `footer`
+  - `accountLocked` = ひな形 `alert`（セキュリティの警告）: `heading` → `explanation` → 情報の箱（`details` = 発生時刻・アクセス元 IP。値が空の行は出さない）→ `notYou`・`ifYou`（最初の行を太字）→ `footer`
 - 件名と見える文面は前のテンプレートと同じ（`pnpm test src/features/core/auth/messages`）
 
 ## クライアント側
