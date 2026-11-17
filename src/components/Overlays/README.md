@@ -354,6 +354,7 @@ import TabbedModal from "@/components/Overlays/TabbedModal";
 | `tabListClassName` | `string` | - | TabsList に付与するクラス |
 | `tabTriggerClassName` | `string` | - | 各 TabsTrigger に共通で付与するクラス |
 | `tabContentClassName` | `string` | - | TabsContent に共通で付与するクラス |
+| `headerContent` | `ReactNode` | - | 題の下・タブの列の上に描く中身（利用者の名前・残高・操作のボタン等）。本文のスクロールの外に置かれ、タブを替えても残る |
 | `minHeight` | `number \| string` | `360` | コンテンツ部の最小高さ（Modal 経由で適用）。タブ切替で高さが揺れないための床で、箱の上限に当たる低いビューポートでは床より優先して本体が縮む。不要なら `minHeight={0}` |
 
 各タブの `forceMount` を `true` にすると非表示時も DOM を保持し、内部状態がリセットされない（モーダルが開いている間。閉じるとポータルごと unmount される）。

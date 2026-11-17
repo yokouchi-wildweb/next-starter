@@ -50,6 +50,11 @@ export type TabbedModalProps = Omit<ModalProps, "children" | "headerContent" | "
   TabsPresentationProps & {
     tabs: TabbedModalTab[];
     /**
+     * 題の下・タブの列の上に描く中身(利用者の名前・残高・操作のボタン等)。
+     * 本文のスクロールの外に置かれ、タブを替えても残る。省略時は今のまま(題の下にタブの列)。
+     */
+    headerContent?: ReactNode;
+    /**
      * タブリストを囲う nav の aria-label。
      */
     ariaLabel?: string;
@@ -93,6 +98,7 @@ export default function TabbedModal({
   minHeight = 360,
   open,
   footer,
+  headerContent,
   ...modalProps
 }: TabbedModalProps) {
   const resolvedDefaultValue = defaultValue ?? tabs[0]?.value ?? "";
@@ -164,7 +170,16 @@ export default function TabbedModal({
         {...modalProps}
         open={open}
         minHeight={minHeight}
-        headerContent={tabList}
+        headerContent={
+          headerContent == null ? (
+            tabList
+          ) : (
+            <>
+              {headerContent}
+              {tabList}
+            </>
+          )
+        }
         footer={resolvedFooter}
         bodyRef={bodyRef}
       >
