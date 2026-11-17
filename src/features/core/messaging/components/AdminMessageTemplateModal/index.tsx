@@ -120,10 +120,11 @@ function TemplateModalBody({
           <Button type="button" size="sm" variant="outline" className="gap-1.5" data-slot="template-embedded-open">
             <Braces className="size-4" />
             埋め込み情報
-            <Span size="xs" tone="muted" className="tabular-nums">
+            {/* 数と矢印は文字色を受け継いで薄くする(乗った時は accent の地に合う色のまま薄く) */}
+            <Span size="xs" tone="inherit" className="tabular-nums opacity-70">
               {`共通 ${tags.common.length}・専用 ${tags.own.length}`}
             </Span>
-            <ChevronUp className="size-3.5 text-muted-foreground" />
+            <ChevronUp className="size-3.5 opacity-70" />
           </Button>
         }
       >
