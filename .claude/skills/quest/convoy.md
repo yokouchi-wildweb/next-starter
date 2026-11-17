@@ -1,6 +1,6 @@
 role: **convoy** (load the commits quests made onto one line, the Convoy's line; depart it to main once for many orders: the checks, the push, the answers; a safe point only as /ship's own rules make one) | read by a caravan party's Convoy, or a session the user tells to load / depart quest work
 where: a linked worktree on the Convoy's own branch | never the main checkout, never its local `main` ref (HQ D176; `git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`, else STOP)
-words: load = put an order's commits on the Convoy's line | depart = ship the line to main
+words: load = put an order's commits on the Convoy's line | depart = ship the line to main | answer = answer the orders a team tool shipped
 
 ## CONFLICT RULES (load and depart alike)
 - `.notices/shipped/<repo_id>.md` (append-only index) → keep both sides' lines, the line already on the Convoy's line first | never edit a line's text
@@ -40,3 +40,9 @@ words: load = put an order's commits on the Convoy's line | depart = ship the li
      - the rest of the draft as `--body`, `--status=<s>`, `--force="<departed order id> の依頼の指示: <why>"` (it is someone else's order)
      - its file already in done/ → leave it | `also_of:` names an order that did not depart → leave it for that order's departure
 7. report (Japanese): the departed orders with their sha, the dropped orders with the reason (to go back to their workers), the orders left unanswered and why
+
+## ANSWER (`shipped [nocommit:<id>,…]`: a team tool shipped the line for you, inside one branch with others' work)
+1. no /ship, no push, no rebase: the orders are on main already, rebased (new shas, their `order:` lines kept)
+2. `git fetch origin main`
+3. DEPART 6 for each order the caller names, its commit from main: `git log -1 --format=%h --grep='^order: <id>$' origin/main`
+4. DEPART 7's report

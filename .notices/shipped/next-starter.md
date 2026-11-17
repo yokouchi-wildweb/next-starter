@@ -529,3 +529,4 @@
 - id:20261116-222954-quest-council-notice | severity:info | checkpoint:quest-council-notice
 - id:20261117-115220-council-segment-notices | severity:info | checkpoint:council-segment-notices
 - id:20261117-170134-devcheck-context-v2 | severity:info | checkpoint:devcheck-context-v2
+- id:20261117-094624-convoy-answer | severity:info | checkpoint:convoy-answer
