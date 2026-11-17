@@ -76,12 +76,11 @@ export function UserGroupMemberList(props: UserGroupMemberListProps) {
           <Stack gap="2xs" className="min-w-64 flex-1">
             <UserAsyncMultiSelect value={people.picks} onChange={people.setPicks} />
           </Stack>
-          {/* 選ぶ欄(トリガーは py-3 の h-auto)の 1 行の高さに合わせる。選んだ人が増えて欄が伸びてもボタンは上の 1 行ぶんのまま */}
+          {/* 選ぶ欄と同じ段(md、--control-h-md)で 1 行の高さが揃う。選んだ人が増えて欄が伸びてもボタンは上の 1 行ぶんのまま */}
           <Button
             type="button"
-            size="sm"
+            size="md"
             variant="outline"
-            className="h-auto py-3"
             disabled={people.busy || people.picks.length === 0}
             onClick={() => void people.add()}
           >

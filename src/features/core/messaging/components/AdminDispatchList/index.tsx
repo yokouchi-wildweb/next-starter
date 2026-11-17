@@ -146,12 +146,12 @@ export function AdminDispatchList({ initialFilters = {}, limit, showSendButton =
               placeholder="すべて"
             />
           </Stack>
-          {/* ボタンは選択欄(トリガーは h-auto + py-3)と同じ高さに */}
+          {/* ボタンは選択欄と同じ段(md、--control-h-md)で高さが揃う */}
           <Flex gap="xs" justify="end" className="col-span-full lg:col-span-1">
-            <Button type="button" size="sm" variant="primary" className="h-auto py-3" onClick={apply}>
+            <Button type="button" size="md" variant="primary" onClick={apply}>
               絞り込み
             </Button>
-            <Button type="button" size="sm" variant="outline" className="h-auto py-3" onClick={clear}>
+            <Button type="button" size="md" variant="outline" onClick={clear}>
               クリア
             </Button>
           </Flex>

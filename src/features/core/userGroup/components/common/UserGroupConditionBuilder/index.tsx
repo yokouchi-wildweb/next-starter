@@ -323,7 +323,7 @@ function GroupNode({
             options={OP_OPTIONS}
             showPlaceholderOption={false}
             size="sm"
-            className="w-auto data-[size=sm]:h-9"
+            className="w-auto"
             disabled={disabled}
             onChange={(value) => value && actions.setOp(node.id, String(value) as ConditionGroupOp)}
           />
@@ -380,7 +380,7 @@ function GroupNode({
               size="sm"
               // 「＋ 条件を追加」はいちばん使う操作なので primary のボタンの見た目(地・文字・矢印の色、太さ)で出す。
               // 中身は選ぶ前の案内の文字(placeholder)のセレクト
-              className="w-auto border-primary bg-primary font-medium text-primary-foreground shadow-xs hover:bg-primary/90 data-[size=sm]:h-9 data-[placeholder]:text-primary-foreground dark:bg-primary dark:hover:bg-primary/90 [&_svg:not([class*='text-'])]:text-primary-foreground"
+              className="w-auto border-primary bg-primary font-medium text-primary-foreground shadow-xs hover:bg-primary/90 data-[placeholder]:text-primary-foreground dark:bg-primary dark:hover:bg-primary/90 [&_svg:not([class*='text-'])]:text-primary-foreground"
               disabled={disabled}
               onChange={(value) => value && actions.addCriterion(node.id, String(value))}
             />

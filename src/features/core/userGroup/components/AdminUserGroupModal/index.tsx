@@ -253,9 +253,8 @@ function UserGroupModalBody({
                 trigger={
                   <Button
                     type="button"
-                    size="sm"
+                    size="md"
                     variant="outline"
-                    className="h-auto self-stretch"
                     disabled={freeze.running || form.dirty}
                     data-slot="user-group-freeze-current"
                   >

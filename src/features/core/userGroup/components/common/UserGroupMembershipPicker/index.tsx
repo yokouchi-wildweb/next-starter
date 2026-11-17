@@ -34,12 +34,11 @@ export function UserGroupMembershipPicker({ editor, disabled = false }: UserGrou
           disabled={disabled}
         />
       </Stack>
-      {/* 選ぶ欄(トリガーは h-auto + py-3)の 1 行の高さに合わせる */}
+      {/* 選ぶ欄と同じ段(md、--control-h-md)で 1 行の高さが揃う */}
       <Button
         type="button"
-        size="sm"
+        size="md"
         variant="primary"
-        className="h-auto py-3"
         disabled={disabled || pending === 0 || editor.applying}
         onClick={() => void editor.apply()}
       >

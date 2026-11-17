@@ -83,7 +83,7 @@ export function PackageDiscountsInput() {
                 <select
                   value={entry.discountType}
                   onChange={(e) => handleTypeChange(index, e.target.value as "fixed" | "percentage")}
-                  className="h-9 rounded-md border border-input bg-card px-2 text-sm"
+                  className="h-(--control-h-md) rounded-md border border-input bg-card px-2 text-sm"
                 >
                   <option value="percentage">%割引</option>
                   <option value="fixed">円割引</option>
