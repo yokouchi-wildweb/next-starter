@@ -5,6 +5,8 @@
 
 "use client";
 
+import { PenLine } from "lucide-react";
+
 import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
@@ -15,6 +17,7 @@ import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
 
 import { dispatchKindLabel } from "@/features/core/messaging/components/common/DispatchRow";
+import { ChannelsMeta, KindCategoryMeta, RowMetaItem } from "@/features/core/messaging/components/common/MessageRowMeta";
 import { AdminMessageOverrideModal } from "@/features/core/messaging/components/AdminMessageOverrideModal";
 import { useAdminMessageOverrideList } from "@/features/core/messaging/hooks/useAdminMessageOverrideList";
 
@@ -54,7 +57,8 @@ export function AdminMessageOverrideList() {
           className="block h-auto w-full whitespace-normal rounded-md border border-border bg-card px-4 py-3 text-left hover:bg-muted/40"
           data-slot="override-message-row"
         >
-          <Stack space={1}>
+          {/* 行の形は送信一覧・テンプレートと同じ: 1 段目 = 名前・印の札 / 2 段目 = 種別 › カテゴリー・送信方法・編集できる項目 */}
+          <Stack space={2}>
             <Flex align="center" gap="xs" wrap="wrap">
               <Span weight="semiBold">{item.label}</Span>
               {item.editedCount > 0 ? (
@@ -73,20 +77,17 @@ export function AdminMessageOverrideList() {
                 </SoftBadge>
               ) : null}
             </Flex>
-            <Flex align="center" gap="xs" wrap="wrap" data-slot="override-message-channels">
-              {item.channels.map((channel) => (
-                <SoftBadge key={channel.key} variant="outline" size="sm">
-                  {channel.label}
-                </SoftBadge>
-              ))}
-            </Flex>
-            <Flex gap="sm" wrap="wrap">
-              <Span size="sm" tone="muted">
-                種類: {dispatchKindLabel(item.kind) ?? "-"} / カテゴリー: {item.categoryLabel ?? "-"}
-              </Span>
-              <Span size="sm" tone="muted">
-                編集できる項目 {item.editableCount}
-              </Span>
+            <Flex align="center" gap="md" wrap="wrap">
+              <KindCategoryMeta kindLabel={dispatchKindLabel(item.kind)} categoryLabel={item.categoryLabel} />
+              <ChannelsMeta labels={item.channels.map((channel) => channel.label)} />
+              <RowMetaItem icon={PenLine} label="編集できる項目">
+                <Span size="sm">
+                  編集できる項目{" "}
+                  <Span size="inherit" weight="semiBold" className="tabular-nums">
+                    {item.editableCount}
+                  </Span>
+                </Span>
+              </RowMetaItem>
             </Flex>
           </Stack>
         </Button>

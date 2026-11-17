@@ -406,7 +406,9 @@ export function MessageSendModal({
         onOpenChange={m.setOpen}
         title={m.step === "confirm" ? `${title}(確認)` : title}
         maxWidth={1200}
+        // 高さは固定(書く・確認・送った後で揺れない。中身は本文の中でスクロール、低い画面では Modal が縮める)
         maxHeight="85vh"
+        height="85vh"
         confirmOnClose={m.closeConfirm}
         footer={footer()}
       >
