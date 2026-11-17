@@ -31,9 +31,12 @@ export type UseAdminDispatchDetailOptions = {
   /** 配達の 1 回の件数(既定 50、最大 100) */
   limit?: number;
   observerOptions?: IntersectionObserverInit;
+  /** 削除が通った後(回の詳細のモーダルは閉じて一覧を取り直す) */
+  onDeleted?: () => void;
 };
 
 export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDispatchDetailOptions = {}) {
+  const { onDeleted } = options;
   const { showToast } = useToast();
   const { dispatch, error, isLoading } = useAdminDispatch(dispatchId);
   // 回の中身(ひな形と欄の中身)を残した回だけプレビューを取る
@@ -82,10 +85,11 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
       revalidateDeliveries();
       const removed = res.removed.reduce((sum, item) => sum + item.removed, 0);
       showToast(`送信を削除しました(お知らせ ${removed} 件を削除し、未送信 ${res.canceledDeliveries} 件を止めました)`, "success");
+      onDeleted?.();
     } catch (e) {
       showToast(err(e, "送信を削除できませんでした"), "error");
     }
-  }, [deleteTrigger, revalidateDeliveries, showToast]);
+  }, [deleteTrigger, revalidateDeliveries, showToast, onDeleted]);
 
   /** 失敗分を再送(送ったら includeUnknown を戻す) */
   const resend = useCallback(async () => {
