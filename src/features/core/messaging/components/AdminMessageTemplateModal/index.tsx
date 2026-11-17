@@ -29,7 +29,7 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
 
-import { EmbeddedInfoTags } from "@/features/core/messaging/components/common/EmbeddedInfoTags";
+import { EMBEDDED_INFO_USAGE, EmbeddedInfoTags } from "@/features/core/messaging/components/common/EmbeddedInfoTags";
 import { KindCategoryFields } from "@/features/core/messaging/components/common/KindCategoryFields";
 import { LayoutFields } from "@/features/core/messaging/components/common/LayoutFields";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
@@ -128,7 +128,10 @@ function TemplateModalBody({
         }
       >
         <Stack space={3}>
-          <EmbeddedInfoTags common={tags.common} own={tags.own} onCopy={tags.copy} />
+          <Span size="xs" tone="muted">
+            {EMBEDDED_INFO_USAGE}
+          </Span>
+          <EmbeddedInfoTags common={tags.common} own={tags.own} onCopy={tags.copy} showTitle={false} />
           {!locked ? (
             <Flex justify="end">
               <Button
