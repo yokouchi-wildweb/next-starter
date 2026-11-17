@@ -97,6 +97,9 @@ export type MessageSendResult =
 
 const TARGET_TYPES: readonly MessageSendTargetType[] = ["all", "role", "group", "users"];
 
+/** 選ぶ小窓でシステムテンプレートを表す id の頭(DB のテンプレートの id は uuid) */
+const SYSTEM_PICK_PREFIX = "system:";
+
 const newKey = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 const record = (value: unknown): Record<string, unknown> =>
@@ -298,17 +301,28 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const kindOfCategory = useCallback((key: string) => allCategories.find((option) => option.key === key)?.kind ?? null, [allCategories]);
   const templates = useMemo(() => allTemplates.filter((item) => kindOfCategory(item.category) === kind), [allTemplates, kindOfCategory, kind]);
   const blank = categoryOption?.systemTemplate ?? blankOfKind(allCategories, kind);
+  // 選んだ種別のシステムテンプレート(シンプル・リッチ・メンテナンスなど、D119)。門 messagingTemplates の外でいつも並べる
+  const systemTemplates = useMemo(() => (options?.systemTemplates ?? []).filter((item) => item.kind === kind), [options, kind]);
+  /** 選ぶ小窓の並び = システムテンプレート(印つき)→ 公開中のテンプレート。システムの id は "system:<鍵>" */
+  const pickerTemplates = useMemo(
+    () => [
+      ...systemTemplates.map((item) => ({ id: `${SYSTEM_PICK_PREFIX}${item.key}`, name: item.label, currentVersion: 0, system: true })),
+      ...(templatesOpen ? templates.map((item) => ({ id: item.id, name: item.name, currentVersion: item.currentVersion, system: false })) : []),
+    ],
+    [systemTemplates, templates, templatesOpen],
+  );
 
   // ---- 経路 ----
   /** 選んだカテゴリーの経路 */
   const categoryChannels = useMemo(() => categoryOption?.channels ?? [], [categoryOption]);
-  // sameAs で経路をまだ触っていない = 元の回の経路だけオン(今のカテゴリーの経路の中で。全部外れてしまう時は全部オン)
+  // 経路をまだ触っていない時のオン: カテゴリーの最初の経路(defaultChannels、無ければ全部、D119)。
+  // sameAs で種別・カテゴリーをまだ触っていない = 元の回の経路だけオン(今のカテゴリーの経路の中で。全部外れてしまう時は全部オン)
+  const categoryDefaults = useMemo(() => categoryOption?.defaultChannels ?? categoryChannels, [categoryOption, categoryChannels]);
   const initialChannelsOff = useMemo(() => {
-    if (mode.type !== "sameAs" || chosenCategory !== null || kindState !== null) return [];
-    const used = mode.dispatch.channels ?? [];
+    const used = mode.type === "sameAs" && chosenCategory === null && kindState === null ? (mode.dispatch.channels ?? []) : categoryDefaults;
     const off = categoryChannels.filter((key) => !used.includes(key));
     return off.length === categoryChannels.length ? [] : off;
-  }, [mode, chosenCategory, kindState, categoryChannels]);
+  }, [mode, chosenCategory, kindState, categoryChannels, categoryDefaults]);
   const channelsOff = channelsOffState ?? initialChannelsOff;
   /** 送る経路 = カテゴリーの経路 − 外した経路 */
   const sendChannels = useMemo(() => categoryChannels.filter((key) => !channelsOff.includes(key)), [categoryChannels, channelsOff]);
@@ -364,7 +378,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       setKindState(next);
       // 種別を替えたらその種別の最初のカテゴリーを選び直す(D118)
       setChosenCategory(allCategories.find((option) => option.kind === next)?.key ?? null);
-      setChannelsOff([]);
+      // 送信方法は新しいカテゴリーの最初の経路に戻す(D119)
+      setChannelsOff(null);
       setPreview(null);
       // テンプレートは種別ごと → 白紙へ(ひな形が同じなら今の文を残す)
       const nextBlank = blankOfKind(allCategories, next);
@@ -374,7 +389,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   );
   const setCategory = useCallback((key: string) => {
     setChosenCategory(key);
-    setChannelsOff([]);
+    setChannelsOff(null);
     setPreview(null);
   }, []);
   const setTarget = useCallback(
@@ -386,13 +401,22 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const applyLoad = useCallback(
     (templateId: string) => {
       setPendingLoad(null);
+      if (templateId.startsWith(SYSTEM_PICK_PREFIX)) {
+        // システムテンプレート: その中身と専用の埋め込み情報(メンテナンスの開始日時・終了日時など)で書く形
+        const system = systemTemplates.find((item) => `${SYSTEM_PICK_PREFIX}${item.key}` === templateId);
+        if (!system) return;
+        text.reset(blankTextState(system));
+        setTextTouched(false);
+        setPreview(null);
+        return;
+      }
       const template = templates.find((item) => item.id === templateId);
       if (!template) return;
       text.reset(templateTextState(template));
       setTextTouched(false);
       setPreview(null);
     },
-    [templates, text],
+    [templates, systemTemplates, text],
   );
   /** 読み込む。手で直した書きかけがあれば上書きを確かめる(pendingLoad → confirmLoad / cancelLoad) */
   const loadTemplate = useCallback(
@@ -453,7 +477,14 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
         channels: sendChannels,
       };
     }
-    return { template: { system: source.key }, values, category, channels: sendChannels };
+    return {
+      template: { system: source.key },
+      values,
+      // 専用を宣言したシステムテンプレート(メンテナンスなど)はその値も送る
+      ...(text.embeddedForInput ? { embedded: text.embeddedForInput } : {}),
+      category,
+      channels: sendChannels,
+    };
   }, [text, category, sendChannels]);
 
   const buildTarget = useCallback((): AdminSendInput["target"] => {
@@ -667,6 +698,10 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     // テンプレートと文面
     /** テンプレートを読み込めるか(門 messagingTemplates が開) */
     templatesAvailable: templatesOpen,
+    /** テンプレートの選ぶ小窓の並び(選んだ種別のシステムテンプレート → 公開中のテンプレート) */
+    pickerTemplates,
+    /** 今のシステムテンプレート(読み込んでいない時の出どころの表示名。DB のテンプレートを読み込んだ時は null) */
+    currentSystem: text.source?.type === "system" ? { label: text.source.label } : null,
     templates,
     /** 種別の白紙(無ければ null) */
     blank,

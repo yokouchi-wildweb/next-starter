@@ -43,7 +43,7 @@ export type SendTextState = {
   versionValues: Record<string, unknown> | null;
   /** 全文を直せるか(白紙はいつも true) */
   unlocked: boolean;
-  /** 専用の埋め込み情報の宣言(テンプレートの版。白紙は空) */
+  /** 専用の埋め込み情報の宣言(テンプレートの版・システムテンプレートの宣言。無ければ空) */
   embeddedDeclarations: MessageEmbeddedDeclaration[];
   /** 専用の埋め込み情報の値(入力は文字) */
   embedded: Record<string, string>;
@@ -64,15 +64,21 @@ export type UseSendTemplateTextOptions = {
 
 const NO_FIELDS: MessageLayoutFields = {};
 
-/** 白紙から作る状態 */
-export function blankTextState(blank: { key: string; label: string; layout: string; values: Record<string, unknown> }): SendTextState {
+/** システムテンプレート(白紙・リッチ・メンテナンスなど)から作る状態。専用の埋め込み情報を宣言していればその入力も出す(D119) */
+export function blankTextState(blank: {
+  key: string;
+  label: string;
+  layout: string;
+  values: Record<string, unknown>;
+  embedded?: readonly MessageEmbeddedDeclaration[];
+}): SendTextState {
   return {
     source: { type: "system", key: blank.key, label: blank.label },
     layout: blank.layout,
     start: blank.values,
     versionValues: null,
     unlocked: true,
-    embeddedDeclarations: [],
+    embeddedDeclarations: [...(blank.embedded ?? [])],
     embedded: {},
   };
 }
@@ -196,7 +202,7 @@ export function useSendTemplateText({ layouts, initial, channels, templatesOpen,
 
   /** 白紙へ移る時の状態(ひな形が同じなら今の文を白紙の文として残す。違えば白紙のまま) */
   const toBlank = useCallback(
-    (blank: { key: string; label: string; layout: string; values: Record<string, unknown> }): SendTextState => {
+    (blank: { key: string; label: string; layout: string; values: Record<string, unknown>; embedded?: readonly MessageEmbeddedDeclaration[] }): SendTextState => {
       const next = blankTextState(blank);
       return state && state.layout === blank.layout ? { ...next, start: values } : next;
     },
@@ -257,8 +263,8 @@ export function useSendTemplateText({ layouts, initial, channels, templatesOpen,
     edited,
     /** 入っていない必須の専用の埋め込み情報 */
     missingEmbedded: missing,
-    /** 送る口の embedded(テンプレートの時だけ) */
-    embeddedForInput: state && state.source.type === "template" ? embeddedValuesForInput(state.embeddedDeclarations, state.embedded) : undefined,
+    /** 送る口の embedded(宣言のある時だけ: テンプレートの版・専用を宣言したシステムテンプレート) */
+    embeddedForInput: state && state.embeddedDeclarations.length > 0 ? embeddedValuesForInput(state.embeddedDeclarations, state.embedded) : undefined,
     /** 『テンプレートを更新』を出すか(テンプレートを読み込み、直していて、門 messagingTemplates が開) */
     canUpdateTemplate: Boolean(templatesOpen && state?.source.type === "template" && state.unlocked),
     isUpdatingTemplate: updateMutation.isMutating,
