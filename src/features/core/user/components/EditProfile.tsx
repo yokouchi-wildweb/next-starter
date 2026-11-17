@@ -4,6 +4,7 @@
 
 import { useCallback } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
+import { useToast } from "@/lib/toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -58,20 +59,23 @@ type EditProfileProps = {
   profileData?: Record<string, unknown>;
   /** 見出し(タイトル + 戻るボタン)を出すか。モーダル内や独自の見出しがある画面では false(既定: true) */
   showHeader?: boolean;
-  /** 保存後の遷移先(既定: "/mypage/account") */
-  afterSaveHref?: string;
-  /** 見出しの戻るボタンの遷移先(既定: afterSaveHref) */
+  /** 保存後の遷移先(既定: "/mypage/account")。null = 遷移せずその場に留まり、保存完了のトーストを出す(他の設定と同居するページ用) */
+  afterSaveHref?: string | null;
+  /** 見出しの戻るボタンの遷移先(既定: afterSaveHref、null のときは "/mypage/account") */
   backHref?: string;
 };
+
+const DEFAULT_AFTER_SAVE_HREF = "/mypage/account";
 
 export function EditProfile({
   user,
   profileData,
   showHeader = true,
-  afterSaveHref = "/mypage/account",
-  backHref = afterSaveHref,
+  afterSaveHref = DEFAULT_AFTER_SAVE_HREF,
+  backHref = afterSaveHref ?? DEFAULT_AFTER_SAVE_HREF,
 }: EditProfileProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const { updateProfile, isLoading, error } = useUpdateMyProfile();
 
   const methods = useForm<FormValues>({
@@ -98,11 +102,15 @@ export function EditProfile({
         profileData: values.profileData,
       });
       if (result) {
-        router.push(afterSaveHref);
+        if (afterSaveHref === null) {
+          showToast("プロフィールを保存しました", "success");
+        } else {
+          router.push(afterSaveHref);
+        }
         router.refresh();
       }
     },
-    [updateProfile, router, afterSaveHref]
+    [updateProfile, router, afterSaveHref, showToast]
   );
 
   return (

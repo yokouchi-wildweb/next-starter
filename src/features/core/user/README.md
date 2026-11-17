@@ -494,6 +494,7 @@ const result = await userClient.searchWithProfile("contributor", {
   - 口: `PATCH /api/me/phone`（body `{ phoneNumber: E.164 | null }`、null で消す）→ `updateOwnPhoneNumber`（`services/server/phoneNumber`、重複は 409、同じ番号は書かない、`base.update` で監査を通す）。受け付けるのは `isPhoneNumberInputOpen`（一覧に phone があり、かつ phoneVerification が閉）のときだけ、それ以外は 404
   - client: `updateMyPhoneNumber`（`services/client/phoneNumberClient.ts`）・`useUpdateMyPhoneNumber`（入力の値・保存・消去）・表示の部品 `components/common/PhoneNumberForm`
   - 管理者が番号を変えると `phoneVerifiedAt` が今の時刻になる（`wrappers/update.ts`。既存の挙動）
+- プロフィール編集の部品 `EditProfile`（`components/EditProfile`）の値の指定: `showHeader`（既定 true）、`afterSaveHref`（保存の後の行き先。既定 `"/mypage/account"`、`null` = 移らずその場に留まり「プロフィールを保存しました」のトースト。他の設定と同じページに置くとき）、`backHref`（見出しの戻る先。既定 `afterSaveHref`、`null` のときは `"/mypage/account"`）
 - アカウントの画面は門番の機能 `pageMypage` の住所（項目ごとの機能は無い）。マイページごと閉じるなら `pnpm ops features set pageMypage off`。表と API は一覧に関わらず開いたまま
 
 ## マイページのメニュー（拡張点 mypageMenu）
