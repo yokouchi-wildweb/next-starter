@@ -31,6 +31,7 @@ import {
   previewAdminContent,
   testAdminContent,
   adminChannelOptions,
+  adminSendLayoutOptions,
   type AdminContentDeps,
   type AdminSendDeps,
   type AdminSendOptions,
@@ -84,7 +85,7 @@ export type AdminBulkSendResult = {
 };
 
 export type AdminBulkSendDeps = AdminContentDeps &
-  Pick<AdminSendDeps, "channels" | "systemTemplates"> & {
+  Pick<AdminSendDeps, "channels" | "systemTemplates" | "layouts" | "enrichers"> & {
   targets: Readonly<Record<string, MessageBulkSendTarget>>;
   /** 公開中のテンプレート(選択肢。門 messagingTemplates が開の時だけ読む) */
   listPublishedTemplates: () => Promise<AdminSendOptions["templates"]>;
@@ -184,18 +185,31 @@ export type AdminBulkSendOptions = {
   channels: AdminSendOptions["channels"];
   categories: AdminFreeTextCategoryOption[];
   templates: AdminSendOptions["templates"];
+  /** 白紙と並べたテンプレートが使うひな形の欄の宣言 */
+  layouts: AdminSendOptions["layouts"];
 };
 
 export async function adminBulkSendOptions(
   deps: Pick<
     AdminBulkSendDeps,
-    "context" | "roleCategoryOf" | "channels" | "categories" | "systemTemplates" | "listPublishedTemplates" | "templatesOpen"
+    | "context"
+    | "roleCategoryOf"
+    | "channels"
+    | "categories"
+    | "systemTemplates"
+    | "layouts"
+    | "enrichers"
+    | "listPublishedTemplates"
+    | "templatesOpen"
   >,
 ): Promise<AdminBulkSendOptions> {
   await assertAdminActor(deps);
+  const categories = adminFreeTextCategoryOptions(deps.categories, deps.systemTemplates, (option) => option.targets.includes("bulk"), deps.enrichers);
+  const templates = deps.templatesOpen() ? await deps.listPublishedTemplates() : [];
   return {
     channels: adminChannelOptions(deps.channels),
-    categories: adminFreeTextCategoryOptions(deps.categories, deps.systemTemplates, (option) => option.targets.includes("bulk")),
-    templates: deps.templatesOpen() ? await deps.listPublishedTemplates() : [],
+    categories,
+    templates,
+    layouts: adminSendLayoutOptions(deps.layouts, categories, templates),
   };
 }

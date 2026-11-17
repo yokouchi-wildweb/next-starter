@@ -27,12 +27,12 @@
 - `POST /send/preview`: 経路ごとの差し込み済みの欄と経路の `preview`（メールは送る時と同じ HTML）。見本の受信者 = 操作した管理者、テンプレートは今の公開版
 - `POST /send/estimate` `{ target }` → `{ count, fixedAtSend: true, memberLimit?, overLimit? }`（全員・ロールは数、グループは一員の数と上限、選んだ利用者は居る人の数。停止・宛先なしを引く前）
 - `POST /send/test`: 宛先 = 操作した管理者だけ・`is_test`（集計と分母から外す）。予約しない。システムの操作は 400
-- `GET /send/options`: 有効な経路 `{ key, label }`・ロール・`groups`（使用中のグループ `{ id, label, kindLabel }` を名前の順に 200 件、門 `userGroups` が閉なら空。id は値としてだけ使い画面に出さない）・公開したテンプレート（版の番号・種類・文言・変数）・`categories` `{ key, label, kind, channels, targets, systemTemplate }`（`systemTemplate` = その種別の白紙 `{ key, label }` か null）・`maxScheduleDays`
+- `GET /send/options`: 有効な経路 `{ key, label }`・ロール・`groups`（使用中のグループ `{ id, label, kindLabel }` を名前の順に 200 件、門 `userGroups` が閉なら空。id は値としてだけ使い画面に出さない）・公開したテンプレート（版の番号・種類・文言・変数）・`categories` `{ key, label, kind, channels, targets, systemTemplate, catalog }`（`systemTemplate` = その種別の白紙 `{ key, label, layout, values }` か null、`catalog` = そのカテゴリーで書ける埋め込み情報 = 共通 + 当たる enrichers）・`layouts`（白紙と並べたテンプレートが使うひな形の欄の宣言 `{ key, label, version, fields }`、門 `messagingTemplates` の外）・`maxScheduleDays`
 - 監査: `messaging.dispatch.sent` / `messaging.dispatch.scheduled` / `messaging.dispatch.test_sent`（対象 `message_dispatch`、出どころ `source` = `system`（`systemTemplate`）か `template`（`templateId`・`templateVersion`・`edited`）、本文の値は残さない）
 
 ### `/api/admin/messaging/bulk-send`（bulkSend.ts、門の外）
 
-- `GET`: `{ channels, categories, templates }`（経路は送る口の選択肢と同じ、カテゴリーは bulk で送れる種別、テンプレートは門 `messagingTemplates` が開の時だけ）
+- `GET`: `{ channels, categories, templates, layouts }`（経路は送る口の選択肢と同じ、カテゴリーは bulk で送れる種別で `/send/options` と同じ形（白紙・`catalog`）、テンプレートは門 `messagingTemplates` が開の時だけ、`layouts` = 白紙と並べたテンプレートのひな形の欄の宣言）
 - `POST`: 宛先 `{ userIds }` か `{ target, recordIds }`（10,000 人まで）、中身は `/send` と同じ `template`・`values`・`edited?`・`vars?`・`category`・`channels?`、`idempotencyKey?`（8〜128 文字）・`source?`（既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`。予約は無い（`scheduledAt` は 400）。知らない鍵は 400
   - → `{ dispatchId, status, counts: { recipientCount, channelCounts, queuedCount }, afterSend: { ok: true } | { ok: false, error } | null }`
 - `POST /preview`・`POST /test`: `/send` と同じ（テストの送り元 `messaging.adminBulk.test`）
@@ -45,7 +45,7 @@
 
 - `GET /dispatches/categories` → `{ items: { key, label, kind }[] }`（カテゴリーの受け口の全部）
 - `GET /dispatches`: `from`・`to`（作った時刻）・`kind`・`category`・`channel`・`status`・`deleted`（`exclude` 既定 = 削除した回を出さない / `only` / `include`）・`cursor`・`limit`（既定 50、最大 100）→ `{ items: AdminDispatchSummary[], nextCursor }`（新しい順、keyset）。定義の鍵では絞らない
-- `GET /dispatches/[id]` → `AdminDispatchDetail`: 回の中身・`operations`（下）・`targetGroup` `{ id, name }`（グループ宛ての回、id は値だけ。門 `userGroups` が閉なら名前は取れない）・「同じ内容で送る」が写す `templateEdited`・`content`（回の中身 `{ layout, layoutVersion, values }`、欄の中身を残した回だけ。送るモーダルは経路ごとの形でないので S5 まで写さない）・`targetUserIds`（選んだ利用者の回の利用者 id。10,000 人を超える・ほかの宛先は null）
+- `GET /dispatches/[id]` → `AdminDispatchDetail`: 回の中身・`operations`（下）・`targetGroup` `{ id, name }`（グループ宛ての回、id は値だけ。門 `userGroups` が閉なら名前は取れない）・「同じ内容で送る」が写す `templateEdited`・`content`（回の中身 `{ layout, layoutVersion, values }`、欄の中身を残した回だけ。送るモーダルが写す: テンプレートの回は今の版を読み込み直して送った回なら直した文、ほかは種別の白紙のひな形と同じ時に values）・`embeddedValues`（専用の埋め込み情報の値、送るモーダルが写す）・`targetUserIds`（選んだ利用者の回の利用者 id。10,000 人を超える・ほかの宛先は null）
 - `GET /dispatches/[id]/deliveries`: `status`・`channel`・`cursor`・`limit` → `{ items: AdminDeliveryRow[], nextCursor }`（古い順）
 - 返す項目は `dispatchDto.ts` 1 か所: 鍵・種別・種類・送り元（`sourceLabel`）・状態・経路・件名 / 題・数・送った人（`actorName`、system は「システム」）・時刻・テストかは常に / 回の本文（rendered）と vars は記録の段が vars・full の時 / 配達の本文は full の時だけ / 宛先は出す（`userName`）/ provider の生の値と `last_error` の文は出さない（符号 `errorCode`、文は `constants/deliveryErrors.ts`）。`message_key` が null の前の回は件名・題・本文を `rendered` から
 

@@ -24,6 +24,8 @@ import { messageRegistry } from "@/registry/messageRegistry";
 
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
+import { enrichers } from "../../../extensions/enrichers";
+import { layouts } from "../../../extensions/layouts";
 import { systemTemplates } from "../../../extensions/systemTemplates";
 import { sources } from "../../../extensions/sources";
 import {
@@ -205,6 +207,8 @@ const sendDeps: AdminSendDeps = {
   channels,
   categories,
   systemTemplates,
+  layouts,
+  enrichers,
   roles: () => ALL_ROLES.map((role) => ({ id: role.id, label: role.label })),
   groupOptions,
   async listPublishedTemplates() {

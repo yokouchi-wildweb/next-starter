@@ -40,12 +40,15 @@ core_ui の形: 流れとデータは hook（`hooks/index.ts` から）、部品
 ### 送るモーダル（MessageSendModal）
 
 - 入れ物 `MessageSendModal`（`mode`・`label?`・`triggerVariant?`・`disabled?`・`icon?`・`onSent?(result)`・`dispatchBasePath?`）: 開くボタン + モーダル。fork は自分の画面にもそのまま置ける
-  - `mode`: `{ type: "new" }` / `{ type: "sameAs", dispatch }`（文面・カテゴリー・宛先の形を写す）/ `{ type: "bulk", target, recordIds, recordNoun, defaults?, defaultCategory?, source? }`（管理一覧の一括操作）。new・sameAs の口は門 `messagingBroadcast` が開の時だけ、bulk は門の外
-- 流れ: 宛先 → 「テンプレートから読み込む」（任意、門 `messagingTemplates` が開で公開中の物がある時）→ カテゴリーと経路の絞り → 文言 → 予約（bulk 以外）→ プレビュー・自分へのテスト送信 → 見込み → 確認 → 送る。読み込むと今の公開版の欄と画像を写し（書きかけの上なら確かめる `pendingLoad`）、「テンプレートを外す」は今の文をその場で書いた文として残す
-- 宛先 `SendTargetPicker`: 全員・ロール・グループ（`groups` = 使用中のグループを名前と種類で。空 = 門 `userGroups` が閉かグループが無い = 選択肢ごと出さない）・選んだ利用者 / bulk は選んだ記録の数。見込みが人数の上限を超えたら理由を出して送れない（`estimateOverLimit`）
-- sameAs の写し: 宛先は回の形（選んだ利用者は `targetUserIds`、グループは同じグループ。今は選べないグループは選んでいない形 + 知らせ `targetNote`、全員に広げない）/ 文言はテンプレートの回なら今の公開版、直して送った回は直した文言。テンプレートが公開中でなければその場で書く形 + `sameAsNote`
-- 部品: `SendTemplatePicker`・`SendContentFields`・`SendTargetPicker`・`SendCategoryChannels`・`SendLegalNotice`（法の義務の告知はメールを含める注意、いつも出しメールがオフなら警告の色）・`SendSchedule`・`SendConfirmView` / `SendResultView`・`MessagePreview`
-- hook `useMessageSendModal({ mode, onSent? })`: 段（edit → confirm → done）・`draft`・`target` / `setTarget` / `targetError` / `groups` / `targetNote`・カテゴリー・経路・予約・プレビュー・テスト・見込み・送る（new / sameAs = `/send`、bulk = `/bulk-send`）・二重送信を防ぐ鍵（開くたびに 1 つ）・`dirty` / `closeConfirm`。選択肢は開いている間だけ（`useAdminSendOptions` / `useAdminBulkSendOptions`）。純粋な関数 `scheduleErrorOf` / `templateVarsForInput` / `isBlankChannel` / `draftFromTemplate` / `initialDraftOf` / `initialTargetOf` / `overLimitText` / `sameAsNoteOf`
+  - `mode`: `{ type: "new" }` / `{ type: "sameAs", dispatch }`（回のカテゴリー・経路・宛先の形と中身を写す）/ `{ type: "bulk", target, recordIds, recordNoun, defaults?, defaultCategory?, source? }`（管理一覧の一括操作、`defaults = { values }` は種別の白紙の欄の中身に重ねる値）。new・sameAs の口は門 `messagingBroadcast` が開の時だけ、bulk は門の外
+- 流れ（D110 D115）: 種別 → カテゴリー（その種別に 2 つ以上ある時だけ選ぶ）と経路の絞り → 宛先（種別が許す種類だけ、direct はグループも）→ テンプレート（その種別の公開中の物、門 `messagingTemplates` が開の時。読み込まない = 種別の白紙のシステムテンプレート）→ 内容 → 予約（bulk 以外）→ プレビュー・自分へのテスト送信 → 見込み → 確認 → 送る
+- 内容（D118 D119 D120）: 白紙はひな形の欄（`LayoutFields`）で全文を書く。テンプレートを読み込んだ直後は文を固定し、専用の埋め込み情報の入力（`SendEmbeddedInputs`）だけ。『文面を直す』で全文を直せる（つながりは残り、版と違えば直した印 = 送る口の `edited`）。『テンプレートの読み込みを解除』は白紙へ（ひな形が同じなら今の文は残る）。『テンプレートを更新』は今の文をそのテンプレートの新しい版にする（保存 + 公開、送るとは別、門 `messagingTemplates` が開の時だけ）。直している間は埋め込み情報のタグ（共通 + カテゴリーに当たる enrichers + 専用）。内容の中にひな形の実際の描き方のプレビュー（`LayoutPreview` + `useLayoutPreview`、送る経路のタブ、未入力は仮の文）。ボタン「あなた宛ての表示例」は送る口のプレビュー（埋め込み情報を差し込んだ形）
+- 送る口の入力: `{ category, channels?, template: { system } | { id, version }, values, edited?, embedded? }`。選択肢（send / bulk-send の options）はカテゴリーごとの白紙（`systemTemplate.layout` / `values`）と埋め込み情報の一覧 `catalog`、ひな形の欄の宣言 `layouts` を持つ（門 `messagingTemplates` の外）
+- 宛先 `SendTargetPicker`: 全員・ロール・グループ（`groups` = 使用中のグループを名前と種類で。空 = 門 `userGroups` が閉かグループが無い = 選択肢ごと出さない）・選んだ利用者 / bulk は選んだ記録の数。`allowedTypes` = 種別が許す種類。見込みが人数の上限を超えたら理由を出して送れない（`estimateOverLimit`）
+- sameAs の写し: 宛先は回の形（選んだ利用者は `targetUserIds`、グループは同じグループ。今は選べないグループは選んでいない形 + 知らせ `targetNote`、全員に広げない）/ 中身は回のひな形 + values。テンプレートの回でそのテンプレートが公開中なら今の版を読み込んだ形（直して送った回は直した文で文面を直す状態から、専用の埋め込み情報の値も写す）。公開中でない・その場で書いた回は白紙に回の values（ひな形が違えば写せない = `sameAsNote`）
+- 部品: `SendKindPicker`（`SendCategoryChannels` の入口から）・`SendCategoryChannels`・`SendTargetPicker`・`SendTemplatePicker` / `SendEmbeddedInputs`・`LayoutFields`・`EmbeddedInfoTags`・`SendLegalNotice`（法の義務の告知はメールを含める注意、いつも出しメールがオフなら警告の色）・`SendSchedule`・`SendConfirmView` / `SendResultView`・`MessagePreview`
+- hook `useMessageSendModal({ mode, onSent? })`: 段（edit → confirm → done）・`kind` / `setKind`・`categories` / `category`・`target` / `setTarget` / `allowedTargetTypes` / `targetError` / `groups` / `targetNote`・`templates` / `blank` / `loadedTemplate` / `text`・経路・予約・プレビュー・テスト・見込み・送る（new / sameAs = `/send`、bulk = `/bulk-send`）・`updateTemplate`・二重送信を防ぐ鍵（開くたびに 1 つ）・`dirty` / `closeConfirm`。選択肢は開いている間だけ（`useAdminSendOptions` / `useAdminBulkSendOptions`）。純粋な関数 `scheduleErrorOf` / `kindsOf` / `blankOfKind` / `initialTextOf` / `initialTargetOf` / `overLimitText` / `sameAsNoteOf`
+- hook `useSendTemplateText`（`useMessageSendModal` が持つ文面）: 出どころ（白紙 / テンプレートの版）・固定 / 直す（`locked` / `unlock`）・`edited`・欄のフォーム（`useLayoutFieldsForm`）・専用の埋め込み情報の値・`toBlank` / `reset`・`updateTemplate`
 
 ### 管理一覧の一括送信（AdminBulkSend）
 
@@ -61,7 +64,7 @@ export const bulkAction = bulkMessageAction(
 );
 ```
 
-- options（`BulkMessageActionOptions`）: `target`・`recordNoun`・`label?`（既定「一括送信」）・`defaults?`（`{ content }` = 書く欄の初期値）・`defaultCategory?`（既定 `operatorDirect`）・`source?`・`disabled?`・`onSent?(result)`
+- options（`BulkMessageActionOptions`）: `target`・`recordNoun`・`label?`（既定「一括送信」）・`defaults?`（`{ values }` = 種別の白紙のひな形の欄の中身に重ねる初期値。例 汎用のお知らせ `{ subject, blocks }`）・`defaultCategory?`（既定 `operatorDirect`）・`source?`・`disabled?`・`onSent?(result)`
 - 上流の使い手: `bankTransferReview/adminBulkActions/sendEmail.tsx`
 
 ## Verification

@@ -5,11 +5,22 @@
 // - 中身はテンプレート(白紙のシステムテンプレートか DB のテンプレート)+ 欄の中身(sendMessage/templateDefinition.ts)。定義は持たない
 // - 宛先の種類(all・role・group・users・bulk)は種別の性質 adminFreeText で確かめる
 // - 経路はカテゴリーの経路(LINE・fork の経路も)
+// - 選択肢は送る画面が欄を描くのに要る物を持つ: 白紙のひな形と欄の中身、そのカテゴリーで書ける埋め込み情報の一覧(共通 + 当たる enrichers、D112)
 
-import { MESSAGE_KIND_TRAITS, type MessageAdminTarget, type MessageCategory, type MessageKind, type MessageSystemTemplate } from "@/lib/messaging";
+import {
+  MESSAGE_KIND_TRAITS,
+  type MessageAdminTarget,
+  type MessageCategory,
+  type MessageEnricher,
+  type MessageKind,
+  type MessageSystemTemplate,
+} from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
+import { messageEmbeddedCatalog } from "../sendMessage/enrichers";
 import { isAdminSendableKind, systemTemplateOfKind } from "../sendMessage/systemTemplates";
+import { TEMPLATE_MESSAGE_KEY } from "../sendMessage/templateDefinition";
+import type { AdminEmbeddedEntry } from "../templates/dto";
 
 /**
  * 管理の送信で選んだカテゴリーを確かめて返す。
@@ -40,14 +51,17 @@ export type AdminFreeTextCategoryOption = {
   kind: MessageKind;
   channels: string[];
   targets: MessageAdminTarget[];
-  /** その種別の白紙(テンプレートを読み込まずに送る時の出どころ { system: 鍵 })。受け口に無ければ null */
-  systemTemplate: { key: string; label: string } | null;
+  /** その種別の白紙(テンプレートを読み込まずに送る時の出どころ { system: 鍵 }、ひな形の鍵と白紙の欄の中身)。受け口に無ければ null */
+  systemTemplate: { key: string; label: string; layout: string; values: Record<string, unknown> } | null;
+  /** このカテゴリーで送る時に書ける埋め込み情報(共通 + 当たる enrichers。専用はテンプレートの宣言から呼び手が足す) */
+  catalog: AdminEmbeddedEntry[];
 };
 
 export function adminFreeTextCategoryOptions(
   categories: Readonly<Record<string, MessageCategory>>,
   systemTemplates: Readonly<Record<string, MessageSystemTemplate>>,
   filter: (option: AdminFreeTextCategoryOption) => boolean = () => true,
+  enrichers: Readonly<Record<string, MessageEnricher>> = {},
 ): AdminFreeTextCategoryOption[] {
   return Object.values(categories)
     .filter((category) => isAdminSendableKind(category.kind))
@@ -59,7 +73,13 @@ export function adminFreeTextCategoryOptions(
         kind: category.kind,
         channels: [...category.channels],
         targets: [...MESSAGE_KIND_TRAITS[category.kind].adminFreeText],
-        systemTemplate: blank ? { key: blank.key, label: blank.label } : null,
+        systemTemplate: blank ? { key: blank.key, label: blank.label, layout: blank.layout, values: blank.values } : null,
+        catalog: messageEmbeddedCatalog({ key: TEMPLATE_MESSAGE_KEY, category: category.key, kind: category.kind }, enrichers).map((entry) => ({
+          key: entry.key,
+          alias: entry.alias,
+          source: entry.source,
+          description: entry.description ?? null,
+        })),
       };
     })
     .filter(filter);

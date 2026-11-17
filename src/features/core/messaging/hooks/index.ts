@@ -66,26 +66,35 @@ export { useAdminSendOptions } from "./useAdminSendOptions";
 export {
   ADMIN_BULK_SEND_DEFAULT_CATEGORY,
   useMessageSendModal,
-  templateVarsForInput,
   scheduleErrorOf,
-  isBlankChannel,
-  draftFromTemplate,
-  initialDraftOf,
+  kindsOf,
+  blankOfKind,
+  initialTextOf,
   initialTargetOf,
+  sameAsNoteOf,
   overLimitText,
   TARGET_GROUP_GONE_NOTE,
   type MessageSendMode,
   type MessageSendDefaults,
-  type MessageSendDraft,
   type MessageSendTarget,
   type MessageSendTargetType,
-  type MessageSendChannel,
   type MessageSendResult,
   type MessageSendStep,
   type MessageSendTemplate,
   type MessageSendModalState,
   type UseMessageSendModalOptions,
 } from "./useMessageSendModal";
+export {
+  useSendTemplateText,
+  blankTextState,
+  templateTextState,
+  embeddedValuesForInput,
+  missingEmbedded,
+  type SendTextSource,
+  type SendTextState,
+  type SendTemplateTextState,
+  type UseSendTemplateTextOptions,
+} from "./useSendTemplateText";
 export { useDeleteDispatch } from "./useDeleteDispatch";
 export { useResendDispatch } from "./useResendDispatch";
 export { useInboxList, type UseInboxListOptions } from "./useInboxList";
