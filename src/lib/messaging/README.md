@@ -182,7 +182,7 @@ export const messageOverride = {
 - `MessageCategory`(種類 = 1 つの出来事、配信停止の単位 = 種類 × 経路): `key`・`label`・`description?`・`kind`(7 つ)・`channels`(届ける経路)・`defaultChannels?`(管理の送る画面で最初に入っている経路 = `channels` の中の 1 つ以上、無い = 全部。停止の単位は変えない、D119)・`group?`(設定画面の見出し `MessageCategoryGroup` の鍵、同じ種別だけ)。fork は上流の種類の `<名前>.override.ts` で `label`・`description`・`channels`・`defaultChannels`・`group` を変えられる(鍵・種別は不可)
 - `MessageCategoryGroup`(種類のグループ、`messaging/categoryGroups/<名前>.ts` の `export const group`): `key`・`label`・`order`。見出しだけで停止の単位ではない(D82)。上流は出荷しない
 - `MessageSource`(送り元): `key`・`label`
-- `MessageSystemTemplate`(システムテンプレート、`messaging/templates/<名前>.ts` の `export const systemTemplate`、D117・D125): `key`・`kind`(管理者がその場で送れる種別 = 性質 `adminFreeText` がある物。1 つの種別に何本でも、受け口の順の最初がその種別の既定の白紙)・`label`・`layout`・`values`(白紙かできあがった文面)・`embedded?`(専用の埋め込み情報の宣言、DB のテンプレートと同じ形・同じ検査)。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` だけ変えられる。上流は 7 本(種別ごとにシンプル `simple`・リッチ `notice` の白紙 + メンテナンスのお知らせ、D119。templates/README.md)
+- `MessageSystemTemplate`(システムテンプレート、`messaging/templates/<名前>.ts` の `export const systemTemplate`、D117・D125): `key`・`kind`(管理者がその場で送れる種別 = 性質 `adminFreeText` がある物。1 つの種別に何本でも、受け口の順で使う物の最初がその種別の既定の白紙)・`label`・`layout`・`values`(白紙かできあがった文面)・`embedded?`(専用の埋め込み情報の宣言、DB のテンプレートと同じ形・同じ検査)。`enabled?`(false = 使わない: 一覧・送る画面の選択肢・既定の白紙から外れ、その鍵では送れない。送れる種別ごとに使う物が 1 本は要る、D122)。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` と `enabled` だけ変えられる。上流は 6 本(種別ごとにシンプル `simple`・リッチ `notice` の白紙、D119。templates/README.md)
 - `MessageSubscriber`(送った後の購読): `key`・`on`(事件の種類)・`filter?`(連絡の鍵・経路)・`handle(事件の束)`(事件の id + 購読の鍵で冪等に。投げると次回もう一度渡る)
 
 ## 経路の失敗(ChannelError)

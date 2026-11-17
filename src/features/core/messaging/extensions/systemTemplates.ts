@@ -7,7 +7,6 @@ import { systemTemplate as systemTemplates_announcement } from "@/features/core/
 import { systemTemplate as systemTemplates_announcementRich } from "@/features/core/messaging/templates/announcementRich";
 import { systemTemplate as systemTemplates_direct } from "@/features/core/messaging/templates/direct";
 import { systemTemplate as systemTemplates_directRich } from "@/features/core/messaging/templates/directRich";
-import { systemTemplate as systemTemplates_maintenance } from "@/features/core/messaging/templates/maintenance";
 import { systemTemplate as systemTemplates_promotion } from "@/features/core/messaging/templates/promotion";
 import { systemTemplate as systemTemplates_promotionRich } from "@/features/core/messaging/templates/promotionRich";
 
@@ -16,7 +15,6 @@ const systemTemplatesList: MessageSystemTemplate[] = [
   systemTemplates_announcementRich,
   systemTemplates_direct,
   systemTemplates_directRich,
-  systemTemplates_maintenance,
   systemTemplates_promotion,
   systemTemplates_promotionRich,
 ];

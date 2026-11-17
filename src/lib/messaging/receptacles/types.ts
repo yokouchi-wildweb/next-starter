@@ -284,7 +284,7 @@ export type MessageSubscriber = {
 export type MessageSystemTemplate = {
   /** 鍵(回の system_template に残す。英数字の camelCase) */
   key: string;
-  /** 種別(管理者がその場で送れる種別 = 種別の性質 adminFreeText がある物。1 つの種別に何本でも、受け口の順の最初がその種別の既定の白紙) */
+  /** 種別(管理者がその場で送れる種別 = 種別の性質 adminFreeText がある物。1 つの種別に何本でも、受け口の順で使う物の最初がその種別の既定の白紙) */
   kind: MessageKind;
   /** 管理画面に出す名前 */
   label: string;
@@ -294,6 +294,8 @@ export type MessageSystemTemplate = {
   values: Record<string, unknown>;
   /** 専用の埋め込み情報の宣言(DB のテンプレートと同じ形。送る人が送る時に値を入れる、例 メンテナンスの開始日時) */
   embedded?: readonly MessageEmbeddedDeclaration[];
+  /** false = 使わない(テンプレートの一覧・送る画面の選択肢・種別の既定の白紙から外れ、その鍵では送れない。D122)。既定 true。fork は <名前>.override.ts で切る */
+  enabled?: boolean;
 };
 
 // ---------------------------------------------------------------------------

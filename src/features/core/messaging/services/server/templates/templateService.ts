@@ -39,7 +39,7 @@ import {
   UpdateMessageTemplateInputSchema,
 } from "./schema";
 import type { MessageTemplateStore } from "./types";
-import { isAdminSendableKind } from "../sendMessage/systemTemplates";
+import { enabledSystemTemplates, isAdminSendableKind, isSystemTemplateEnabled } from "../sendMessage/systemTemplates";
 
 export type TemplateServiceDeps<Tx> = AdminCheckDeps & {
   store: MessageTemplateStore<Tx>;
@@ -185,10 +185,10 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     };
   }
 
-  /** 鍵(system:<鍵>)のシステムテンプレート。無ければ 404 */
+  /** 鍵(system:<鍵>)のシステムテンプレート。無い・切った(enabled: false)物は 404 */
   function requireSystem(id: string): MessageSystemTemplate {
     const template = deps.systemTemplates?.()[id.slice(SYSTEM_TEMPLATE_ID_PREFIX.length)];
-    if (!template) throw new DomainError("テンプレートがありません", { status: 404 });
+    if (!template || !isSystemTemplateEnabled(template)) throw new DomainError("テンプレートがありません", { status: 404 });
     return template;
   }
 
@@ -232,9 +232,9 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       const { status, cursor, limit } = parseOr400(ListMessageTemplatesQuerySchema.safeParse(query), "一覧の条件が正しくありません");
       const rows = await deps.store.list({ status: status ?? null, limit, after: decodeCursor(cursor) });
       const page = rows.slice(0, limit);
-      // システムテンプレートは最初のページの先頭(公開中の扱い。取り下げ・下書きで絞った時は出さない)
+      // システムテンプレートは最初のページの先頭(公開中の扱い。取り下げ・下書きで絞った時・切った物は出さない)
       const systems =
-        !cursor && (!status || status === "published") ? Object.values(deps.systemTemplates?.() ?? {}).map(toSystemSummary) : [];
+        !cursor && (!status || status === "published") ? enabledSystemTemplates(deps.systemTemplates?.() ?? {}).map(toSystemSummary) : [];
       return {
         items: [...systems, ...page.map((row) => toSummary(row, categoryLabel))],
         nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]) : null,

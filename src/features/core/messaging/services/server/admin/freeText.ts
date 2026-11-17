@@ -19,7 +19,7 @@ import {
 import { DomainError } from "@/lib/errors";
 
 import { messageEmbeddedCatalog } from "../sendMessage/enrichers";
-import { isAdminSendableKind, systemTemplateOfKind } from "../sendMessage/systemTemplates";
+import { enabledSystemTemplates, isAdminSendableKind, systemTemplateOfKind } from "../sendMessage/systemTemplates";
 import { TEMPLATE_MESSAGE_KEY } from "../sendMessage/templateDefinition";
 import type { AdminEmbeddedEntry } from "../templates/dto";
 
@@ -99,9 +99,9 @@ export type AdminSystemTemplateOption = {
   embedded: MessageEmbeddedDeclaration[];
 };
 
-/** 管理者が送れる種別のシステムテンプレート全部(受け口の順。D119: 種別ごとにシンプル・リッチ + メンテナンス) */
+/** 管理者が送れる種別の使うシステムテンプレート全部(受け口の順、切った物 enabled: false は出さない。D119・D122) */
 export function adminSystemTemplateOptions(systemTemplates: Readonly<Record<string, MessageSystemTemplate>>): AdminSystemTemplateOption[] {
-  return Object.values(systemTemplates)
+  return enabledSystemTemplates(systemTemplates)
     .filter((template) => isAdminSendableKind(template.kind))
     .map((template) => ({
       key: template.key,
