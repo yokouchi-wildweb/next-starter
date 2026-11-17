@@ -1,16 +1,17 @@
 // src/features/coupon/components/AdminCouponList/Table.tsx
+// 処理は useAdminCouponListTable、列は createAdminCouponListColumns。ここは並べるだけ
 
 "use client";
 
+import { useMemo } from "react";
+
 import type { Coupon } from "@/features/core/coupon/entities";
-import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { EditButton, DeleteButton, DuplicateButton } from "@/lib/crud/components/Buttons";
-import presenters from "@/features/core/coupon/presenters";
-import { useState } from "react";
-import CouponDetailModal from "../common/CouponDetailModal";
-import { buildDomainColumns } from "@/lib/crud";
+import { DataTable } from "@/lib/tableSuite";
 import { adminConfig } from "@/features/admin/config";
-import { domainDisplay as couponDisplay } from "@/features/core/coupon/entities/display";
+import { useAdminCouponListTable } from "@/features/core/coupon/hooks/useAdminCouponListTable";
+
+import CouponDetailModal from "../common/CouponDetailModal";
+import { createAdminCouponListColumns } from "./columns";
 
 export type AdminCouponListTableProps = {
   /**
@@ -23,23 +24,9 @@ export type AdminCouponListTableProps = {
 const { dataTable } = adminConfig;
 const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
-const columns: DataTableColumn<Coupon>[] = buildDomainColumns<Coupon>({
-  config: couponDisplay,
-  presenters,
-  actionColumn: {
-    header: "操作",
-    render: (d: Coupon) => (
-      <TableCellAction>
-        <EditButton domain={couponDisplay} id={d.id} />
-        <DuplicateButton domain={couponDisplay} id={d.id} currentName={d.name} />
-        <DeleteButton domain={couponDisplay} id={d.id} />
-      </TableCellAction>
-    ),
-  },
-});
-
 export default function AdminCouponListTable({ coupons }: AdminCouponListTableProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const table = useAdminCouponListTable();
+  const columns = useMemo(() => createAdminCouponListColumns(), []);
 
   return (
     <>
@@ -47,19 +34,10 @@ export default function AdminCouponListTable({ coupons }: AdminCouponListTablePr
         items={coupons ?? []}
         columns={columns}
         getKey={(d) => d.id}
-        rowClassName="cursor-pointer"
-        onRowClick={(d) => setSelectedId(String(d.id))}
+        {...table.rowProps}
         emptyValueFallback={adminDataTableFallback}
       />
-      <CouponDetailModal
-        couponId={selectedId}
-        open={selectedId !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedId(null);
-          }
-        }}
-      />
+      <CouponDetailModal {...table.modal} />
     </>
   );
 }

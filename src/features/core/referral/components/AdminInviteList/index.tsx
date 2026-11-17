@@ -13,6 +13,7 @@ import type { InviteCodeWithCount } from "../../services/server/wrappers/getInvi
 export { default as AdminInviteListHeader } from "./Header";
 export { default as ReferralListModal } from "./ReferralListModal";
 export { default as AdminInviteListTable } from "./Table";
+export { createAdminInviteListColumns } from "./columns";
 
 export type AdminInviteListProps = {
   items: InviteCodeWithCount[];

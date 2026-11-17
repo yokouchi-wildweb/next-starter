@@ -423,6 +423,23 @@ downstream 所有の official / affiliate ページを差し替えている場�
 CouponSectionTabs（内部で `buildCouponAdminSectionTabs()`）に寄せると core と downstream のタブ一覧が常に一致する。
 本文に置きたい場合は `center` ではなく本文に `<CouponSectionTabs />`(variant 省略)を置く。
 
+## 管理画面のクーポン一覧（useAdminCouponListTable / createAdminCouponListColumns）
+
+列を足すために一覧の Table を写さない。処理と列は公開の関数とフックで、fork の Table は並べるだけにする（一般ユーザー一覧と同じ形: `src/features/core/user/README.md`「管理画面の一般ユーザー一覧」）。
+
+- `createAdminCouponListColumns()`（`components/AdminCouponList` の入口）: 上流の列（domainDisplay の列 + 操作の列）の配列を返す。呼ぶたびに新しい配列
+- `useAdminCouponListTable()`（`hooks/useAdminCouponListTable.ts`）: 行のクリックで開く詳細のモーダルの対象。`rowProps`（DataTable に広げる）・`modal`（`CouponDetailModal` に広げる）・`selectedId` / `open` / `close`
+
+```tsx
+// src/app/admin/(protected)/coupons/.../_components/CouponTable.tsx(fork)
+const table = useAdminCouponListTable();
+const columns = useMemo(() => [...createAdminCouponListColumns(), { header: "利用率", render: (c: Coupon) => rate(c) }], []);
+<>
+  <DataTable items={coupons} columns={columns} getKey={(c) => c.id} {...table.rowProps} />
+  <CouponDetailModal {...table.modal} />
+</>
+```
+
 ## 設定(`config.ts`)
 
 持ち主 `src/features/core/coupon/config.ts`(既定・型 `CouponOverride`・合成 `couponConfig`)、上書き `src/config/features/coupon.config.ts`(値はリテラル。置き方: `src/config/README.md`)。

@@ -12,6 +12,7 @@ import { Stack } from "@/components/Layout/Stack";
 
 export { default as AdminCouponListHeader } from "./Header";
 export { default as AdminCouponListTable } from "./Table";
+export { createAdminCouponListColumns } from "./columns";
 
 export type AdminCouponListProps = {
   coupons: Coupon[];

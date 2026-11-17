@@ -74,8 +74,25 @@
 - `components/AdminInviteList/`: `/admin/coupons/invite` で使用
   - `index.tsx`: ヘッダー + テーブル（セクションタブは描画しない。Screen が `app/admin/(protected)/coupons/_screen/CouponSectionTabs` を置く。downstream の追加セクションは `coupon/adminSectionTabs/` に項目を置く）
   - `Header.tsx`: 検索ボックス + ページネーション
-  - `Table.tsx`: 招待コード / 発行者ID / 紹介人数 / ステータス / 発行日
+  - `Table.tsx`: 招待コード / 発行者ID / 紹介人数 / ステータス / 発行日（並べるだけ。列は `columns.tsx`、処理はフック）
   - `ReferralListModal.tsx`: 行クリックで紹介済みユーザー一覧をモーダル表示（API都度取得）
+
+#### 管理画面の招待コード一覧（useAdminInviteListTable / createAdminInviteListColumns）
+
+列を足すために一覧の Table を写さない（一般ユーザー一覧・クーポン一覧と同じ形）。
+
+- `createAdminInviteListColumns()`（`components/AdminInviteList` の入口）: 上流の列の配列を返す。呼ぶたびに新しい配列
+- `useAdminInviteListTable()`（`hooks/useAdminInviteListTable.ts`）: 行のクリックで開く紹介の一覧の対象。`rowProps`（DataTable に広げる）・`modal`（`ReferralListModal` に広げる）・`selected` / `open` / `close`
+
+```tsx
+// fork の _components/InviteTable.tsx
+const table = useAdminInviteListTable();
+const columns = useMemo(() => [...createAdminInviteListColumns(), { header: "報酬合計", render: (i) => i.totalRewardAmount }], []);
+<>
+  <DataTable items={items} columns={columns} getKey={(i) => i.coupon.id} {...table.rowProps} />
+  <ReferralListModal {...table.modal} />
+</>
+```
 
 ---
 
