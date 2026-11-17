@@ -288,7 +288,7 @@ a notice is the minimum line of follow-up, and upstream may forget one | from th
 3. search the fork's uses (fork-side files importing them; grep old names, old paths, old props) | files that came from upstream are not targets (merge aligns them)
 4. put `変更点 / fork 側の使用箇所 / 揃え方` in the work memo's script | none → `なし` | overlaps with the notice's required_actions are merged into the notice side | in chat, put them together under `fork の追従` (what, how much, what kind of work, where it may affect)
 5. the merge changes the fork-side tree too (conflict resolution, porting), so after that segment's merge do 3 again and close the gap with the plan in step 6 (newly found ones are aligned in the same segment too)
-6. changes of copy sources: match the paths of `git grep -n "^// copied-from: "` against the segment's upstream diff, list the hits in the work memo | only the count in chat | never stop
+6. changes of copy sources and own marks: match the paths of `git grep -n "^// copied-from: "` and the entries of `git grep -n "^// instead-of: "` (own_mark, .claude/rules/core/extensions.md) against the segment's upstream diff, list the hits in the work memo | only the count in chat | never stop
 
 ## REVIEW OF FORK EDITS IN UPSTREAM-OWNED PATHS (when planning the next segment)
 merge and porting carry the fork's edits as they are | when the destination is upstream-owned, review "may it be placed there" before carrying (never end by just resolving the conflict)

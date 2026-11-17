@@ -36,6 +36,7 @@ change_types (the only 4 ways to change an upstream thing | marks = .default / .
 order: an extension request carries `tried: <means checked — why not enough>`
 copy_mark: line 1 `// copied-from: <upstream path>` | no sha, no ledger | unmarked copies are undetectable and accepted | /flux lists changed origins per segment, never stops
 - backfill: when a fork takes in this policy, it marks once the existing copies it knows it made | no check, /flux never stops on it | copies it does not know of stay unmarked (undetectable)
+own_mark (optional): a file a fork built instead of an upstream part → line 1 `// instead-of: <upstream entry> ; why: lacks <what>|looks|business ; order: <order id>|-` | no check, upstream never reads fork marks | /flux lists the marks whose entry changed per segment, never stops | an order shipped as resolves: → marks with that order id are replacement candidates
 - kept_behavior_copy: an existing copy holding behavior (judge 3) stays, marked, while its split order is open | replace it with the public hook when that ships
 
 receptacle limits (upstream):

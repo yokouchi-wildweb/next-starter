@@ -13,6 +13,10 @@ ui_layers (page / section_container / part, defined by role; ref: docs/!must-rea
 - page = page.tsx switch + Screen (see SCREENS): no hooks, no state, h1 only here
 - section_container = what a Screen places directly: features/\<domain\>/components/\<Name\> (no *Page/*Screen/*Section suffix) | calls hooks, HTTP only via hooks | top-level props = contract | a Screen imports the container, never its inside
 - part = 1 visual unit or 1 data shape: display part = props only | data / flow = hooks | hooks in a part only when fully self-contained | call hooks at the upper layer, pass handlers via props
+- slots (what a part may take besides values, by owner): optional, default output = today's | the part keeps the behavior
+  - src/components and libs: look props (className, overlayClassName, variant) and content slots (renderX functions, xNode) are allowed
+  - core domain parts: value props and children only (no render function, no named ReactNode / component prop)
+  - core default containers and screens: no named slot | a fork recomposes from exported parts and hooks | what upstream screens mount and a fork cannot move → a receptacle
 - core parts (core_ui): every part is public, no private / public split | entry only: nobody imports a file inside components/\<Name\>/ or common/\<Part\>/ from outside that folder (lint core-ui-entry, all tiers; type-only imports exempt) | a part others need → export it from the entry | a fork copying a container points its imports at the entries
 - core_ui_guards: a core part never holds form state, guards (useForm, reCAPTCHA, getIdToken, useAuthSession refreshSession, useGuardedNavigation) or data calls (useSWR*, client functions) → the owner domain's public hook in features/\<domain\>/hooks returns form + handlers, the part only renders (contract table = the domain README)
   - lint core-ui-guards: upstream only (error), off in forks | allowlist eslint-rules/core-ui-guards.allow.mjs only shrinks: hook a part → delete its line (any legate / any work) | test: pnpm test eslint-rules/core-ui-guards.test.mjs

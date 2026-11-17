@@ -10,6 +10,7 @@
 - 特定ドメイン専用 UI → `src/features/<domain>/components/common/`
 - core ドメインの UI(`src/features/core/<domain>/components/`)= 細かい部品(データ・流れ = フック、表示 = props だけの部品)とそれを組んだ既定のコンテナ。部品は全部公開で、読むのは入口(`components/<Name>`・`common/<Part>`)だけ。中のファイルを外から読むと lint(`core-ui-entry`)が止める
 - fork は core の下に足さない・書き換えない。文言・アイコン・色 → config、組み替え → route の `_components/` の Screen で core の部品とフックから組む(コンテナの複製は CLAUDE.md FORK_EXTENSION が認めるときだけ)。足りない値の prop → `/order`。`children` は可、差し替え用の名前付き ReactNode・部品 prop は置かない
+- 差し込み口(値の外に受ける物)は持ち主で分ける。どれも省略でき、省略時は今の出力: `src/components` と lib の部品 = 見た目の口(`className`・`overlayClassName`・`variant`)と中身の差し込み(`renderX` の関数・`xNode`)を認める / core のドメインの部品 = 値の指定と `children` だけ / core の既定のコンテナと画面 = 名前付きの差し込みは置かない(fork は公開の部品とフックで組み直す。上流の画面が開き fork が置き場所を変えられない物は受け口)。動きは部品が持つ(`.claude/rules/core/components.md` の slots)
 - 特定ページ専用 UI → ルートの既定 Screen の部品なら `app/<route>/_screen/`(ルートを作った側)、fork が足す部品や差し替え Screen なら `app/<route>/_components/`(CLAUDE.md SCREENS)
 
 ## カテゴリ一覧
