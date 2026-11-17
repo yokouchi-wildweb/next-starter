@@ -19,12 +19,14 @@ export type SendCategoryChannelsProps = {
   onCategoryChange: (key: string) => void;
   channels: { key: string; label: string; on: boolean; blank?: boolean }[];
   onToggleChannel: (key: string, on: boolean) => void;
+  /** カテゴリーの選択を出すか(既定 true。種別と 1 行の KindCategoryFields で選ぶ画面は false、D118) */
+  showCategory?: boolean;
 };
 
-export function SendCategoryChannels({ categories, category, onCategoryChange, channels, onToggleChannel }: SendCategoryChannelsProps) {
+export function SendCategoryChannels({ categories, category, onCategoryChange, channels, onToggleChannel, showCategory = true }: SendCategoryChannelsProps) {
   return (
     <Stack space={3} data-slot="send-category-channels">
-      {categories.length === 1 ? null : (
+      {!showCategory || categories.length === 1 ? null : (
       <Stack space={1}>
         <Label htmlFor="send-category" className="text-sm">
           カテゴリー
