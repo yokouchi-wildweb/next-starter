@@ -13,7 +13,7 @@
 
 "use client";
 
-import { Braces, ChevronDown, History, TriangleAlert } from "lucide-react";
+import { Braces, ChevronUp, History, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
@@ -105,100 +105,101 @@ function TemplateModalBody({
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [embeddedOpen, setEmbeddedOpen] = useState(false);
 
-  const footer = locked ? null : (
-    <Flex justify="end" gap="xs" wrap="wrap">
-      {template ? (
-        <ConfirmPopover
-          trigger={
-            <Button type="button" size="sm" variant="outline" disabled={form.dirty}>
-              アーカイブ
-            </Button>
-          }
-          title="アーカイブ"
-          description="アーカイブすると、このテンプレートは編集も送信もできなくなります(バージョン履歴は残ります)。"
-          confirmLabel="アーカイブする"
-          confirmVariant="destructive"
-          onConfirm={form.archive}
-        />
-      ) : null}
-      <ConfirmPopover
+  // 埋め込み情報 = 下の操作の帯の左(モーダルに固定でいつも押せる)。押すと上に吹き出しでタグ(押すとコピー)と
+  // 「専用の埋め込み情報を管理」。文の中の使えない名前はその横に赤で出したまま
+  const embeddedControls = (
+    <Flex align="center" gap="sm" wrap="wrap" className="min-w-0" data-slot="template-embedded">
+      <InfoPopover
+        open={embeddedOpen}
+        onOpenChange={setEmbeddedOpen}
+        side="top"
+        align="start"
+        size="xl"
+        title="埋め込み情報"
         trigger={
-          <Button type="button" size="sm" variant="primary" disabled={!form.dirty}>
-            保存
+          <Button type="button" size="sm" variant="outline" className="gap-1.5" data-slot="template-embedded-open">
+            <Braces className="size-4" />
+            埋め込み情報
+            <Span size="xs" tone="muted" className="tabular-nums">
+              {`共通 ${tags.common.length}・専用 ${tags.own.length}`}
+            </Span>
+            <ChevronUp className="size-3.5 text-muted-foreground" />
           </Button>
         }
-        title="保存"
-        description="現在の内容をこのテンプレートの新しいバージョンとして保存します。保存したバージョンは変更できません。"
-        confirmLabel="保存する"
-        onConfirm={form.save}
-      />
+      >
+        <Stack space={3}>
+          <EmbeddedInfoTags common={tags.common} own={tags.own} onCopy={tags.copy} />
+          {!locked ? (
+            <Flex justify="end">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setEmbeddedOpen(false);
+                  embeddedEditor.openEditor();
+                }}
+              >
+                専用の埋め込み情報を管理{embeddedEditor.count > 0 ? `(${embeddedEditor.count})` : ""}
+              </Button>
+            </Flex>
+          ) : null}
+        </Stack>
+      </InfoPopover>
+      {form.unknownNames.length > 0 ? (
+        <Flex align="center" gap="xs" wrap="wrap" data-slot="template-embedded-unknown">
+          <TriangleAlert className="size-4 text-destructive-text" aria-hidden />
+          <Span size="sm" tone="destructive">
+            使えない埋め込み情報:
+          </Span>
+          {form.unknownNames.map((name) => (
+            <SoftBadge key={name} variant="destructive" size="sm">
+              {`{{${name}}}`}
+            </SoftBadge>
+          ))}
+        </Flex>
+      ) : null}
+    </Flex>
+  );
+
+  const footer = (
+    <Flex align="center" justify="between" gap="sm" wrap="wrap">
+      {embeddedControls}
+      {locked ? null : (
+        <Flex justify="end" gap="xs" wrap="wrap">
+          {template ? (
+            <ConfirmPopover
+              trigger={
+                <Button type="button" size="sm" variant="outline" disabled={form.dirty}>
+                  アーカイブ
+                </Button>
+              }
+              title="アーカイブ"
+              description="アーカイブすると、このテンプレートは編集も送信もできなくなります(バージョン履歴は残ります)。"
+              confirmLabel="アーカイブする"
+              confirmVariant="destructive"
+              onConfirm={form.archive}
+            />
+          ) : null}
+          <ConfirmPopover
+            trigger={
+              <Button type="button" size="sm" variant="primary" disabled={!form.dirty}>
+                保存
+              </Button>
+            }
+            title="保存"
+            description="現在の内容をこのテンプレートの新しいバージョンとして保存します。保存したバージョンは変更できません。"
+            confirmLabel="保存する"
+            onConfirm={form.save}
+          />
+        </Flex>
+      )}
     </Flex>
   );
 
   const textTab = (
     <Flex direction="column" gap="lg" className="md:flex-row-reverse md:items-start" data-slot="template-editor">
       <Stack space={4} className="min-w-0 md:w-1/2" data-slot="template-editor-controls">
-        {/* 埋め込み情報 = 右ペインの上の細い帯(スクロールしても上に留まる)。押すと吹き出しでタグ(押すとコピー)と
-            「専用の埋め込み情報を管理」。文の中の使えない名前は帯の右に出したまま(吹き出しを閉じていても気づける) */}
-        <Flex
-          align="center"
-          justify="between"
-          gap="xs"
-          wrap="wrap"
-          className="content-layer sticky top-0 border-b border-border bg-background/95 py-2 backdrop-blur"
-          data-slot="template-embedded"
-        >
-          <InfoPopover
-            open={embeddedOpen}
-            onOpenChange={setEmbeddedOpen}
-            side="bottom"
-            align="start"
-            size="xl"
-            title="埋め込み情報"
-            trigger={
-              <Button type="button" size="sm" variant="outline" className="gap-1.5" data-slot="template-embedded-open">
-                <Braces className="size-4" />
-                埋め込み情報
-                <Span size="xs" tone="muted" className="tabular-nums">
-                  {`共通 ${tags.common.length}・専用 ${tags.own.length}`}
-                </Span>
-                <ChevronDown className="size-3.5 text-muted-foreground" />
-              </Button>
-            }
-          >
-            <Stack space={3}>
-              <EmbeddedInfoTags common={tags.common} own={tags.own} onCopy={tags.copy} />
-              {!locked ? (
-                <Flex justify="end">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setEmbeddedOpen(false);
-                      embeddedEditor.openEditor();
-                    }}
-                  >
-                    専用の埋め込み情報を管理{embeddedEditor.count > 0 ? `(${embeddedEditor.count})` : ""}
-                  </Button>
-                </Flex>
-              ) : null}
-            </Stack>
-          </InfoPopover>
-          {form.unknownNames.length > 0 ? (
-            <Flex align="center" gap="xs" wrap="wrap" data-slot="template-embedded-unknown">
-              <TriangleAlert className="size-4 text-destructive-text" aria-hidden />
-              <Span size="sm" tone="destructive">
-                使えない埋め込み情報:
-              </Span>
-              {form.unknownNames.map((name) => (
-                <SoftBadge key={name} variant="destructive" size="sm">
-                  {`{{${name}}}`}
-                </SoftBadge>
-              ))}
-            </Flex>
-          ) : null}
-        </Flex>
         {template ? (
           <Flex align="center" justify="between" gap="xs" wrap="wrap" data-slot="template-status-row">
             <Flex align="center" gap="xs" wrap="wrap">
