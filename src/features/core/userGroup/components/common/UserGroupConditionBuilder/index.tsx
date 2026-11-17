@@ -378,8 +378,9 @@ function GroupNode({
               showPlaceholderOption={false}
               placeholder={isRoot ? "＋ 条件を追加" : "＋ グループに条件を追加"}
               size="sm"
-              // 「＋ 条件を追加」は選ぶ前の案内の文字(placeholder)だが、隣の「＋ 条件グループを追加」(outline のボタン)と同じ濃さ・太さ・枠の色で出す
-              className="w-auto border-border font-medium data-[size=sm]:h-9 data-[placeholder]:text-foreground"
+              // 「＋ 条件を追加」はいちばん使う操作なので primary のボタンの見た目(地・文字・矢印の色、太さ)で出す。
+              // 中身は選ぶ前の案内の文字(placeholder)のセレクト
+              className="w-auto border-primary bg-primary font-medium text-primary-foreground shadow-xs hover:bg-primary/90 data-[size=sm]:h-9 data-[placeholder]:text-primary-foreground dark:bg-primary dark:hover:bg-primary/90 [&_svg:not([class*='text-'])]:text-primary-foreground"
               disabled={disabled}
               onChange={(value) => value && actions.addCriterion(node.id, String(value))}
             />
