@@ -1,6 +1,7 @@
 // src/features/core/messaging/components/common/SendTemplatePicker/index.tsx
 // 部品(props だけ): 送るモーダルのテンプレート(D110 D117 D118)。選んだ種別のテンプレートだけを並べる(呼び手が絞る)。
-// - 読み込んでいない = 種別の白紙(システムテンプレート、印つき)で書く形。「テンプレートを読み込む」で公開中のテンプレートを名前で選ぶ小窓
+// - 読み込んでいない = システムテンプレート(既定は種別の白紙、印つき)で書く形。「テンプレートを読み込む」で選ぶ小窓:
+//   選んだ種別のシステムテンプレート(シンプル・リッチ・メンテナンスなど、説明「システム」)→ 公開中のテンプレート(説明は版、D119)
 //   (SelectPopover、多ければ検索)、選ぶと onLoad(id)
 // - 読み込んだ後: 名前と版、直した印(edited)、「別のテンプレートを読み込む」「テンプレートの読み込みを解除」(解除 = 白紙に戻す。今の文はひな形が同じなら残る = hook)
 // 専用の埋め込み情報の入力は SendEmbeddedInputs(このフォルダ)
@@ -16,9 +17,9 @@ import { Span } from "@/components/TextBlocks/Span";
 export { SendEmbeddedInputs, type SendEmbeddedInputsProps } from "./SendEmbeddedInputs";
 
 export type SendTemplatePickerProps = {
-  /** 選べるテンプレート(選んだ種別の公開中の物) */
-  templates: { id: string; name: string; currentVersion: number }[];
-  /** 種別の白紙(読み込んでいない時の出どころ。無ければ null = テンプレートを読み込まないと送れない) */
+  /** 選べるテンプレート(選んだ種別のシステムテンプレート(system)と公開中の物) */
+  templates: { id: string; name: string; currentVersion: number; system?: boolean }[];
+  /** 今のシステムテンプレート(読み込んでいない時の出どころ。無ければ null = テンプレートを読み込まないと送れない) */
   blank: { label: string } | null;
   /** 読み込んでいるテンプレート(無ければ null) */
   loaded: { id: string; name: string; version: number; edited: boolean } | null;
@@ -38,13 +39,13 @@ export function SendTemplatePicker({ templates, blank, loaded, onLoad, onUnload 
         </Button>
       }
       title="テンプレートを選ぶ"
-      options={templates.map((item) => ({ value: item.id, label: item.name, description: `v${item.currentVersion}` }))}
+      options={templates.map((item) => ({ value: item.id, label: item.name, description: item.system ? "システム" : `v${item.currentVersion}` }))}
       // 初めから値を渡す(undefined だと小窓の RadioGroup が非制御から制御に替わって警告が出る)。"" = まだ選んでいない
       value={loaded?.id ?? ""}
       confirmLabel="読み込む"
       searchable={templates.length > SEARCH_FROM}
       searchPlaceholder="名前で検索"
-      emptyMessage="この種別の公開中のテンプレートはありません"
+      emptyMessage="この種別のテンプレートはありません"
       onConfirm={(value) => {
         if (value) onLoad(value);
       }}
