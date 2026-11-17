@@ -1,6 +1,7 @@
 // InboxList と流れの hook useInboxList の検査(jsdom の上で描く。useInboxList の下の hook と toast は偽物 = 入れ物 + useInboxList を本物で通す)。
 // - 行・未読の印・0 件の文言
-// - 未読の行を押すと既読にして一覧の印を変える(updateItems)。既読の行は呼ばない
+// - 未読の行を押すと既読にして一覧の印を変え、詳細のモーダル(D120: 詳しい表示のひな形と欄の中身)で開く。既読の行は呼ばない
+// - 詳しい表示の hook(useInboxItemDetail)は偽物(本物は SWR + axios で本当に取りに行き、node のプロセスが終わらない)
 // - 「すべて既読にする」は全部既読にして未読の行の印を変え、知らせる
 // 実行: pnpm test src/features/core/messaging/components/InboxList/index.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
@@ -8,6 +9,10 @@ import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
 import { JSDOM } from "jsdom";
+
+import { fieldsForChannel, type MessageLayout } from "@/lib/messaging";
+
+import { layout as noticeLayout } from "../../layouts/notice/layout";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", { pretendToBeVisual: true });
 const g = globalThis as Record<string, unknown>;
@@ -26,7 +31,17 @@ g.IntersectionObserver = class {
 type Item = { id: string; title: string | null; body: string; link: null; image: null; metadata: null; publishedAt: string; read: boolean };
 const item = (id: string, read: boolean): Item => ({ id, title: `題 ${id}`, body: `本文 ${id}`, link: null, image: null, metadata: null, publishedAt: "2026-11-01T00:00:00.000Z", read });
 
+/** 詳しい表示(GET /api/me/messaging/inbox/[id] と同じ形: 行 + ひな形 notice の鍵・版・欄の中身・お知らせの経路の欄の宣言、D120) */
+const detailOf = <T extends { id: string; title: string | null; body: string }>(row: T) => ({
+  ...row,
+  layout: "notice",
+  layoutVersion: 1,
+  values: { subject: row.title ?? "", blocks: [{ type: "paragraph", text: row.body }] },
+  fields: fieldsForChannel(noticeLayout as MessageLayout, "inApp"),
+});
+
 let items: Item[] = [];
+const detailRequests: (string | null)[] = [];
 const updates: { matched: string[] }[] = [];
 const reads: string[] = [];
 let readAlls = 0;
@@ -45,6 +60,16 @@ mock.module("@/features/core/messaging/hooks/useInboxItems", {
         updates.push({ matched: items.filter(predicate).map((row) => row.id) });
       },
     }),
+  },
+});
+mock.module("@/features/core/messaging/hooks/useInboxItemDetail", {
+  namedExports: {
+    useInboxItemDetail: (id: string | null) => {
+      detailRequests.push(id);
+      const row = id ? items.find((entry) => entry.id === id) : undefined;
+      return { detail: row ? detailOf(row) : null, error: null, isLoading: false };
+    },
+    inboxItemDetailKey: (id: string) => `messaging/inbox/item/${id}`,
   },
 });
 mock.module("@/features/core/messaging/hooks/useInboxUnreadCount", {
@@ -88,6 +113,7 @@ after(() => dom.window.close());
 beforeEach(() => {
   updates.length = 0;
   reads.length = 0;
+  detailRequests.length = 0;
   readAlls = 0;
 });
 
@@ -123,7 +149,8 @@ test("未読の行を押すと既読にして印を変える。既読の行は A
   await act(async () => button(view.container, "題 a")!.click());
   assert.deepEqual(reads, ["a"]);
   assert.deepEqual(updates, [{ matched: ["a"] }]);
-  assert.match(view.container.querySelector("[data-testid=modal]")?.textContent ?? "", /本文 a/, "詳細を開く");
+  assert.match(view.container.querySelector("[data-testid=modal]")?.textContent ?? "", /本文 a/, "詳細を開く(ひな形の欄の中身で描く)");
+  assert.ok(detailRequests.includes("a"), "開いた行の詳しい表示を取る");
 
   await act(async () => button(view.container, "題 b")!.click());
   assert.deepEqual(reads, ["a"], "既読の行は呼ばない");
