@@ -1,8 +1,8 @@
 // src/features/core/messaging/components/common/LayoutPreview/index.tsx
 // 部品(props だけ): ひな形の実際の描き方のプレビュー(D114)。経路のタブ(種類の経路)で切り替える。
 // - メール = 送る HTML(server のプレビュー API が送る口と同じ 3 段で描いた物。iframe は MessagePreview)
-// - お知らせ(inApp)= カード: 受け取り箱と同じ部品 InboxLayoutView(ひな形のお知らせの描き方 > 汎用(fields があれば)> 要約のカード)
-// - ほかの経路 = API の文(text)か要約
+// - お知らせ(inApp)= カード: 受け取り箱の詳細と同じ部品 InboxLayoutView(ひな形のお知らせの描き方 > 汎用(fields があれば)、要約は描かない D120)
+// - ほかの経路 = API の文(text)か要約の文(LINE など文を送る経路は要約がそのまま送る文)
 // - 描けない(3 段のどれでも描けない)時は理由
 // 取得はしない: 中身は呼び手の hook が渡す(テンプレート・送る画面 = useLayoutPreview、文言の編集・回の詳細 = それぞれの取得元)
 
@@ -19,7 +19,7 @@ import { err } from "@/lib/errors";
 import type { MessageLayoutFields, MessageLayoutSummary } from "@/lib/messaging";
 
 import { messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
-import { InboxLayoutView, InboxSummaryCard } from "../InboxLayoutView";
+import { InboxLayoutView } from "../InboxLayoutView";
 import { MessagePreview } from "../MessagePreview";
 
 /** 経路 1 つの描く物(取得元を問わない形): 送る HTML / 文、またはひな形の欄の中身と要約(お知らせのカード)、または描けない理由 */
@@ -119,7 +119,7 @@ type ChannelBodyProps = {
 
 function ChannelBody({ layout, channel, content, emailHeight }: ChannelBodyProps) {
   if (channel === "inApp") {
-    // 利用者の受け取り箱の詳しい表示と同じ部品(ひな形のお知らせの描き方 > 汎用 > 要約のカード)
+    // 利用者の受け取り箱の詳細と同じ部品(ひな形のお知らせの描き方 > 汎用)
     const summary = content.summary;
     if (!summary) return <NoPreview />;
     return (
@@ -146,10 +146,27 @@ function ChannelBody({ layout, channel, content, emailHeight }: ChannelBodyProps
   }
   return content.summary ? (
     <Block className="rounded-md border border-border bg-card p-4" data-slot="layout-preview-summary">
-      <InboxSummaryCard summary={content.summary} />
+      <SummaryText summary={content.summary} />
     </Block>
   ) : (
     <NoPreview />
+  );
+}
+
+/** 要約の文(お知らせ以外で描き方の無い経路: LINE など文を送る経路はこれがそのまま送る文) */
+function SummaryText({ summary }: { summary: MessageLayoutSummary }) {
+  return (
+    <Stack space={1}>
+      <Span weight="semiBold">{summary.title}</Span>
+      <Para size="sm" className="my-0 whitespace-pre-wrap">
+        {summary.shortBody ?? summary.body}
+      </Para>
+      {summary.link ? (
+        <Span size="sm" tone="muted">
+          {summary.link.label ?? summary.link.url}
+        </Span>
+      ) : null}
+    </Stack>
   );
 }
 
