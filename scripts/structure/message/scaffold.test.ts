@@ -1,5 +1,3 @@
-// @ts-nocheck
-// D112: restore before ship (指令 59 d6 で経路の欄・経路の束の型引数・createDefineMessage が消えた。出荷の前に書き直して回す)
 // scripts/structure/message/scaffold.test.ts
 // 連絡の書き出し(pnpm generate message の中身 ./scaffold.mjs)の検査。一時の木(地区の地図・種類と経路の受け口の項目)で回す。
 // - 引数なし = 何もしない / 定義 1 本を書く(ひな形 notice)/ 2 回目は何もしない(既にあるファイルは触らない)
@@ -22,7 +20,6 @@ import {
   type MessageDefinition,
   type MessageLayout,
 } from "@/lib/messaging";
-import { z } from "zod";
 
 import { checkMessageGuards } from "../extensions/derive/messageGuards.mjs";
 import { planExtensions } from "../extensions/extensions.mjs";
@@ -75,9 +72,9 @@ function tree() {
 const run = (root: string, ...args: string[]) => runMessageScaffold(root, args.length > 1 ? [...args, "--label", "連絡の名前"] : args);
 
 /** 書いた定義を読み込んで検査する(@/lib/messaging は本物) */
-async function problemsOf(root: string, path: string, channels: Record<string, z.ZodTypeAny> = {}) {
+async function problemsOf(root: string, path: string, channels: readonly string[] = ["email", "inApp", "line"]) {
   const { message } = (await import(join(root, path))) as { message: MessageDefinition };
-  return validateMessageDefinition(message, { categories: CATEGORIES, layouts: LAYOUTS, channels: channels as never }).map((p) => p.message);
+  return validateMessageDefinition(message, { categories: CATEGORIES, layouts: LAYOUTS, channels }).map((p) => p.message);
 }
 
 /** 本物の宣言の messages の点で、書いた木に字面の守り(category も)を当てる */
@@ -88,7 +85,7 @@ function guardsOf(root: string, files: string[]) {
   return checkMessageGuards(root, points, [...files, ...categoryFiles, LAYOUT_FILE]);
 }
 
-test.skip("引数なしは何もしない(exit 0)", () => {
+test("引数なしは何もしない(exit 0)", () => {
   const root = tree();
   const result = run(root);
   assert.equal(result.code, 0);
@@ -96,7 +93,7 @@ test.skip("引数なしは何もしない(exit 0)", () => {
   assert.equal(runMessageScaffold(root, ["--"]).code, 0);
 });
 
-test.skip("定義 1 本(ひな形 notice)を書き、2 回目は触らない", async () => {
+test("定義 1 本(ひな形 notice)を書き、2 回目は触らない", async () => {
   const root = tree();
   const result = run(root, "shop", "orderShipped", "--category", "orderShipped");
   assert.equal(result.code, 0, result.lines.join("\n"));
@@ -109,7 +106,9 @@ test.skip("定義 1 本(ひな形 notice)を書き、2 回目は触らない", a
   assert.match(definition, /種別 transactional・経路 email \/ inApp/);
   assert.match(definition, /secretVar/);
   assert.match(definition, /\/\/ 管理画面で直せる欄/);
-  assert.match(definition, /\/\/ 会話の間引き/);
+  // 会話の間引きの案内は by に使う vars の鍵がある時だけ(書き出しの vars は空なので出ない)
+  assert.doesNotMatch(definition, /\/\/ 会話の間引き/);
+  assert.match(definition, /varNames: \{\}/);
   assert.doesNotMatch(definition, /^\s*(adminEditable|throttle):/m);
   assert.match(definition, /layout: "notice"/);
   assert.ok(!existsSync(join(root, "src/features/shop/messages/views")));
@@ -124,7 +123,7 @@ test.skip("定義 1 本(ひな形 notice)を書き、2 回目は触らない", a
   assert.match(readFileSync(join(root, result.written[0]), "utf8"), /^\/\/ 手で直した/);
 });
 
-test.skip("メールの無い種類・fork の経路の種類も同じ定義 1 本(経路の欄は書かない)", async () => {
+test("メールの無い種類・fork の経路の種類も同じ定義 1 本(経路の欄は書かない)", async () => {
   const root = tree();
   const promo = run(root, "shop", "weeklyPromo", "--category", "weeklyPromo");
   assert.equal(promo.code, 0, promo.lines.join("\n"));
@@ -138,10 +137,10 @@ test.skip("メールの無い種類・fork の経路の種類も同じ定義 1 �
   const text = readFileSync(join(root, push.written[0]), "utf8");
   assert.match(text, /経路 push/);
   assert.doesNotMatch(text, /content:/);
-  assert.deepEqual(await problemsOf(root, push.written[0], { push: z.object({}).strict() }), []);
+  assert.deepEqual(await problemsOf(root, push.written[0], ["email", "inApp", "line", "push"]), []);
 });
 
-test.skip("core のドメインは --core の時だけ書く", () => {
+test("core のドメインは --core の時だけ書く", () => {
   const root = tree();
   const refused = run(root, "wallet", "bonusNotice", "--category", "orderShipped");
   assert.equal(refused.code, 2);
@@ -152,7 +151,7 @@ test.skip("core のドメインは --core の時だけ書く", () => {
   assert.ok(existsSync(join(root, "src/features/core/wallet/messages/bonusNotice.ts")));
 });
 
-test.skip("exit 2: --label が無い・値が無い(管理画面の連絡の名前は必須)", () => {
+test("exit 2: --label が無い・値が無い(管理画面の連絡の名前は必須)", () => {
   const root = tree();
   const missing = runMessageScaffold(root, ["shop", "hello", "--category", "orderShipped"]);
   assert.equal(missing.code, 2);
@@ -164,7 +163,7 @@ test.skip("exit 2: --label が無い・値が無い(管理画面の連絡の名�
   assert.match(noCategoryValue.lines[0], /--category に値/);
 });
 
-test.skip("exit 2 と理由(何も書かない)", () => {
+test("exit 2 と理由(何も書かない)", () => {
   const root = tree();
   const cases: [string[], RegExp][] = [
     [["shop", "x", "--category", "orderShipped", "--dry"], /知らない引数/],

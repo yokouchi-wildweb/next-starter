@@ -154,12 +154,12 @@ export type MessageEnricherTarget = {
   all?: true;
 };
 
-/** 当て先がその連絡に当たるか */
 /** 管理画面に出すカテゴリーの名前(adminLabel、無ければ label。D124) */
 export function categoryAdminLabel(category: Pick<MessageCategory, "label" | "adminLabel">): string {
   return category.adminLabel ?? category.label;
 }
 
+/** 当て先がその連絡に当たるか */
 export function enricherTargets(
   target: MessageEnricherTarget,
   message: { key: string; category: string; kind: MessageKind },

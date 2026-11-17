@@ -1,5 +1,3 @@
-// @ts-nocheck
-// D112: restore before ship (指令 59 d6 で経路の欄・経路の束の型引数・createDefineMessage が消えた。出荷の前に書き直して回す)
 // src/lib/messaging/definition.test.ts
 //
 // 連絡の定義の型と読み手の検査(validateMessageDefinition・applyMessageOverride)。定義 = ひな形 + 欄の中身(D122)。
@@ -17,7 +15,6 @@ import {
   MESSAGE_KINDS,
   MESSAGE_KIND_TRAITS,
   applyMessageOverride,
-  createDefineMessage,
   defineMessage,
   defineMessageLayout,
   extensionPoints,
@@ -27,7 +24,6 @@ import {
   validateMessageCategories,
   validateMessageDefinition,
   type MessageCategory,
-  type MessageContent,
   type MessageLayout,
   type MessageOverride,
 } from "./index";
@@ -59,6 +55,7 @@ const verification = defineMessage({
   label: "テストの連絡",
   category: "account",
   vars: z.object({ verificationUrl: z.string().url() }),
+  varNames: { verificationUrl: { alias: "確認のURL", description: "メールアドレスを確かめるリンク" } },
   required: true,
   record: "meta",
   layout: "notice",
@@ -76,6 +73,7 @@ const reply = defineMessage({
   label: "テストの連絡",
   category: "chat",
   vars: z.object({ roomId: z.string(), senderName: z.string() }),
+  varNames: { roomId: { alias: "部屋の番号", description: "会話の部屋" }, senderName: { alias: "送った人", description: "返信した人の名前" } },
   adminEditableOnly: ["subject"],
   throttle: { by: ["roomId"], mode: "untilRead", seconds: 600 },
   layout: "notice",
@@ -103,12 +101,12 @@ const CATEGORIES: Record<string, MessageCategory> = {
 const validate = (definition: Parameters<typeof validateMessageDefinition>[0], options: Partial<Parameters<typeof validateMessageDefinition>[1]> = {}) =>
   validateMessageDefinition(definition, { categories: CATEGORIES, layouts: LAYOUTS, ...options });
 
-test.skip("正しい定義は問題なし", () => {
+test("正しい定義は問題なし", () => {
   assert.deepEqual(validate(verification), []);
   assert.deepEqual(validate(reply), []);
 });
 
-test.skip("label(管理画面の連絡の名前)は必須で空にできない、上書きで変えられる(表示だけ)", () => {
+test("label(管理画面の連絡の名前)は必須で空にできない、上書きで変えられる(表示だけ)", () => {
   const codes = (problems: { code: string }[]) => problems.map((p) => p.code);
   assert.ok(codes(validate({ ...verification, label: "" })).includes("missing_label"));
   assert.ok(codes(validate({ ...verification, label: undefined } as never)).includes("missing_label"));
@@ -117,7 +115,7 @@ test.skip("label(管理画面の連絡の名前)は必須で空にできない�
   assert.equal(applyMessageOverride(verification, { label: "別の名前" }).label, "別の名前");
 });
 
-test.skip("required の守り: email の除外・adminEditable・throttle を止める", () => {
+test("required の守り: email の除外・adminEditable・throttle を止める", () => {
   const def = defineMessage({
     ...verification,
     category: "accountInApp",
@@ -131,7 +129,7 @@ test.skip("required の守り: email の除外・adminEditable・throttle を止
   ]);
 });
 
-test.skip("上書きを重ねた結果を検査: required への enabled:false・email の除外・adminEditable の付与を止める", () => {
+test("上書きを重ねた結果を検査: required への enabled:false・email の除外・adminEditable の付与を止める", () => {
   const override: MessageOverride = {
     enabled: false,
     adminEditableOnly: ["subject"],
@@ -145,7 +143,7 @@ test.skip("上書きを重ねた結果を検査: required への enabled:false�
   ]);
 });
 
-test.skip("上書きで key・kind・vars・required・category・defaultChannels は変えられない", () => {
+test("上書きで key・kind・vars・required・category・defaultChannels は変えられない", () => {
   const override = { required: false, key: "auth.other", label: "テストの連絡", category: "chat", defaultChannels: ["email"] } as never;
   assert.deepEqual(codes(validate(verification, { override })), [
     "override_forbidden_key",
@@ -155,7 +153,7 @@ test.skip("上書きで key・kind・vars・required・category・defaultChannel
   ]);
 });
 
-test.skip("上書きの重ね方: 欄の中身は欄ごとに差し替え、throttle: null で外す", () => {
+test("上書きの重ね方: 欄の中身は欄ごとに差し替え、throttle: null で外す", () => {
   const resolved = applyMessageOverride(reply, {
     values: { subject: "新しい件名 {{senderName}}" },
     extras: { badge: "NEW" },
@@ -175,7 +173,7 @@ test.skip("上書きの重ね方: 欄の中身は欄ごとに差し替え、thro
   ]);
 });
 
-test.skip("欄の中身の {{鍵}} は vars ∪ 共通の文脈(∪ throttle の collapsedCount)に在ること", () => {
+test("欄の中身の {{鍵}} は vars ∪ 共通の文脈(∪ throttle の collapsedCount)に在ること", () => {
   const def = defineMessage({
     ...verification,
     values: {
@@ -189,7 +187,7 @@ test.skip("欄の中身の {{鍵}} は vars ∪ 共通の文脈(∪ throttle の
   assert.ok(problems.some((p) => p.message.includes("{{collapsedCount}}")));
 });
 
-test.skip("variableKeys で足した鍵(enrichers の provides)は {{鍵}} で許す", () => {
+test("variableKeys で足した鍵(enrichers の provides)は {{鍵}} で許す", () => {
   const def = defineMessage({ ...verification, values: { ...verification.values, subject: "{{points}} {{unknownKey}}" } });
   assert.deepEqual(codes(validate(def)), ["unknown_variable", "unknown_variable"]);
   const problems = validate(def, { variableKeys: ["points"] });
@@ -197,7 +195,7 @@ test.skip("variableKeys で足した鍵(enrichers の provides)は {{鍵}} で�
   assert.ok(problems[0].message.includes("{{unknownKey}}"));
 });
 
-test.skip("ひな形と欄の中身: 受け口に無いひな形・欄の zod に合わない・知らない欄・知らない経路・定義に無い adminEditable", () => {
+test("ひな形と欄の中身: 受け口に無いひな形・欄の zod に合わない・知らない欄・知らない経路・定義に無い adminEditable", () => {
   assert.deepEqual(codes(validate({ ...reply, layout: "nope" })), ["unknown_layout"]);
   assert.deepEqual(codes(validate({ ...reply, values: { subject: "", blocks: reply.values.blocks } })), ["invalid_values"]);
   assert.deepEqual(codes(validate({ ...reply, values: { ...reply.values, title: "欄の名前は変えられない" } })), ["invalid_values"]);
@@ -213,7 +211,7 @@ test.skip("ひな形と欄の中身: 受け口に無いひな形・欄の zod �
   ]);
 });
 
-test.skip("経路だけの欄は種類の経路で使う時だけ必須(D125)", () => {
+test("経路だけの欄は種類の経路で使う時だけ必須(D125)", () => {
   const def = defineMessage({ ...reply, adminEditableOnly: undefined, category: "accountInApp", layout: "split", values: { title: "題" } });
   // inApp だけの種類: メールだけの欄は要らない
   assert.deepEqual(validate(def), []);
@@ -222,7 +220,7 @@ test.skip("経路だけの欄は種類の経路で使う時だけ必須(D125)", 
   assert.deepEqual(validate({ ...def, category: "chat", values: { title: "題", mailOnly: "本文" } }), []);
 });
 
-test.skip("throttle の検査と鍵の形", () => {
+test("throttle の検査と鍵の形", () => {
   const def = { ...reply, key: "ChatReply", throttle: { by: ["nope"], mode: "window", seconds: 0 } } as never;
   assert.deepEqual(codes(validate(def)), [
     "invalid_key",
@@ -231,7 +229,7 @@ test.skip("throttle の検査と鍵の形", () => {
   ]);
 });
 
-test.skip("種類の検査: 受け口に無い鍵は誤り、種別の性質で文言の上書き・間引きを止める", () => {
+test("種類の検査: 受け口に無い鍵は誤り、種別の性質で文言の上書き・間引きを止める", () => {
   assert.deepEqual(codes(validate({ ...verification, category: "nope" })), ["unknown_category"]);
   // security は間引けない、functional は文言を直せない(required でなくても)
   const alert = defineMessage({ ...verification, category: "alert", required: false, throttle: { by: ["verificationUrl"], mode: "window", seconds: 60 } });
@@ -244,7 +242,7 @@ test.skip("種類の検査: 受け口に無い鍵は誤り、種別の性質で�
   assert.deepEqual(resolved.channels, ["inApp", "email"]);
 });
 
-test.skip("種類の受け口の検査: 種別・経路・グループ(同じ種別だけ)", () => {
+test("種類の受け口の検査: 種別・経路・グループ(同じ種別だけ)", () => {
   const groups = { social: { key: "social", label: "交流", order: 1 } };
   assert.deepEqual(
     validateMessageCategories(
@@ -268,7 +266,7 @@ test.skip("種類の受け口の検査: 種別・経路・グループ(同じ種
   assert.deepEqual(problems.map((p) => p.code).sort(), ["empty_channels", "group_kind_mismatch", "unknown_group", "unknown_kind"]);
 });
 
-test.skip("種別の性質の表(D80)", () => {
+test("種別の性質の表(D80)", () => {
   assert.deepEqual([...MESSAGE_KINDS], ["functional", "transactional", "security", "announcement", "direct", "activity", "promotion"]);
   assert.deepEqual(kindsWhere((t) => t.userStoppable), ["activity", "promotion"]);
   assert.deepEqual(kindsWhere((t) => !t.upstreamDisable), ["functional"]);
@@ -284,27 +282,30 @@ test.skip("種別の性質の表(D80)", () => {
   assert.equal(kindTraits("nope"), null);
 });
 
-test.skip("fork の経路を足した束(createDefineMessage と channels): 経路の有無を見る(adminEditableOnly はひな形の欄の鍵)", () => {
-  const channels = {
-    email: z.object({ subject: z.string() }).strict(),
-    push: z.object({ title: z.string(), body: z.string() }).strict(),
-  };
-  const define = createDefineMessage<typeof channels>();
-  const def = define({
+test("fork の経路: 登録された経路の鍵(channels)で種類の経路の有無を見る(経路は欄を持たない、D122)", () => {
+  const def = defineMessage({
     key: "shop.orderShipped",
     label: "テストの連絡",
     category: "order",
     vars: z.object({ orderId: z.string() }),
+    varNames: { orderId: { alias: "注文番号", description: "注文の番号" } },
     adminEditableOnly: ["subject"],
     layout: "notice",
     values: { subject: "発送しました", blocks: [{ type: "paragraph", text: "注文 {{orderId}}" }] },
   });
-  assert.deepEqual(validate(def, { channels }), []);
-  // 上流の束で読むと push は知らない経路
-  assert.ok(codes(validate(def as never)).includes("unknown_channel"));
+  assert.deepEqual(validate(def, { channels: ["email", "inApp", "line", "push"] }), []);
+  // 既定(上流の 3 経路)で読むと push は知らない経路
+  assert.ok(codes(validate(def)).includes("unknown_channel"));
 });
 
-test.skip("ChannelError は lib/mail と同じ 3 分類を持つ Error", () => {
+test("vars の名前(varNames、D133): 全部の鍵に別名と説明、vars に無い鍵の名前は誤り", () => {
+  assert.ok(codes(validate({ ...reply, varNames: { roomId: reply.varNames.roomId } } as never)).includes("missing_var_name"));
+  assert.ok(codes(validate({ ...reply, varNames: { ...reply.varNames, nope: { alias: "無い", description: "x" } } } as never)).includes("invalid_var_name"));
+  // 上書きで変えられない
+  assert.ok(codes(validate(reply, { override: { varNames: {} } as never })).includes("override_forbidden_key"));
+});
+
+test("ChannelError は lib/mail と同じ 3 分類を持つ Error", () => {
   assert.deepEqual([...CHANNEL_ERROR_KINDS], ["transient", "permanent", "unknown"]);
   const error = new ChannelError({ message: "届かない", kind: "permanent", channel: "line", reason: "invalid_address" });
   assert.ok(error instanceof Error);
@@ -313,14 +314,16 @@ test.skip("ChannelError は lib/mail と同じ 3 分類を持つ Error", () => {
   assert.equal(error.reason, "invalid_address");
 });
 
-test.skip("型の絞り(型検査で固定。実行は何もしない)", () => {
+test("型の絞り(型検査で固定。実行は何もしない)", () => {
   const vars = z.object({ a: z.string() });
+  const varNames = { a: { alias: "エー", description: "a" } };
   defineMessage({
     // @ts-expect-error 鍵は <domain>.<name>
     key: "noDot",
     label: "テストの連絡",
     category: "x",
     vars,
+    varNames,
     layout: "notice",
     values: {},
   });
@@ -329,15 +332,16 @@ test.skip("型の絞り(型検査で固定。実行は何もしない)", () => {
     label: "テストの連絡",
     category: "x",
     vars,
+    varNames,
     // @ts-expect-error throttle.by は vars の鍵
     throttle: { by: ["b"], mode: "window", seconds: 1 },
     layout: "notice",
     values: {},
   });
   // @ts-expect-error ひな形(layout)は必須
-  defineMessage({ key: "x.y", label: "テストの連絡", category: "x", vars, values: {} });
-  const content: MessageContent = { line: { text: "t" } };
-  assert.ok(content);
+  defineMessage({ key: "x.y", label: "テストの連絡", category: "x", vars, varNames, values: {} });
+  // @ts-expect-error vars の名前(varNames)は全部の鍵に要る
+  defineMessage({ key: "x.y", label: "テストの連絡", category: "x", vars, varNames: {}, layout: "notice", values: {} });
 });
 
 // 上書きの型の鍵 = 宣言の overrideOf(どちらかに足すと型検査で落ちる)
@@ -345,7 +349,7 @@ type DeclaredKeys = (typeof extensionPoints.messages.overrideOf)[number];
 type Equal<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 const overrideKeysMatch: Equal<keyof MessageOverride, DeclaredKeys> = true;
 
-test.skip("上書きの型の鍵と宣言の overrideOf は同じ", () => {
+test("上書きの型の鍵と宣言の overrideOf は同じ", () => {
   assert.equal(overrideKeysMatch, true);
   assert.deepEqual([...extensionPoints.messages.overrideOf].sort(), [
     "adminEditableOnly",
