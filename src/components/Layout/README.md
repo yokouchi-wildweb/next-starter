@@ -66,26 +66,6 @@ Layout 部品の余白 prop は 1 つの段の名前で受ける。同じ名前�
 - 段に無い大きさ・部品の内側の余白は `className` に数値の class で書く(`gap-5`・`p-1` 等。`className` は prop の class より勝つ)。部品の内側の余白は size のバリアントで変え、段では動かさない
 - 型: `SpacingValue`・`SpacingName`・`BoxSpacingProps`(`@/components/Layout`)。中継する部品の prop も `SpacingValue` で受ける(例: AppForm の `fieldSpace`)
 
-#### 旧名 → 新名(移行中)
-
-旧い名前は部品ごとに大きさが違い、新しい名前と重なる(`sm`・`md` など)。手で書き換えず codemod `.notices/20261116-134913-spacing-scale.spacing-scale.mjs` を `--base <書き換え前のコミット>` で走らせる。対応(画面幅ごとの px は旧と同じ):
-
-<!-- spacing-scale:mapping start (codemod の対応表から作る。手で直さない) -->
-| 部品・prop | 旧名 → 新名(同じ px) |
-|---|---|
-| 全部品の padding | none → none / xs → 2xs / sm → xs / md → {base:sm, sm:md} / lg → {base:md, sm:lg} / xl → {base:lg, sm:2xl} / xxl → {base:2xl, sm:4xl} / xxxl → className `p-16 sm:p-24` |
-| 全部品の paddingBlock | none → none / xs → 2xs / sm → xs / md → {base:sm, sm:md} / lg → {base:md, sm:lg} / xl → {base:lg, sm:2xl} / xxl → {base:2xl, sm:4xl} / xxxl → className `py-16 sm:py-24` |
-| 全部品の paddingInline | none → none / xs → 2xs / sm → xs / md → {base:sm, sm:md} / lg → {base:md, sm:lg} / xl → {base:lg, sm:2xl} / xxl → {base:2xl, sm:4xl} / xxxl → className `px-16 sm:px-24` |
-| 全部品の margin | none → none / xs → 2xs / sm → xs / md → md / lg → lg / xl → 2xl / xxl → 4xl / xxxl → className `m-24` |
-| 全部品の marginBlock | none → none / xs → 2xs / sm → xs / md → md / lg → lg / xl → 2xl / xxl → 4xl / xxxl → className `my-24` |
-| 全部品の marginInline | none → none / xs → 2xs / sm → xs / md → md / lg → lg / xl → 2xl / xxl → 4xl / xxxl → className `mx-24` |
-| Grid の gap | none → none / xs → 2xs / sm → xs / md → md / lg → lg / xl → xl / xxl → 3xl |
-| Grid の columnGap → gapX | none → (prop を外す) / xs → 2xs / sm → xs / md → md / lg → lg / xl → xl / xxl → 3xl |
-| Grid の rowGap → gapY | none → (prop を外す) / xs → 2xs / sm → xs / md → md / lg → lg / xl → xl / xxl → 3xl |
-| Flex の gap | none → none / xs → xs / sm → md / md → lg / lg → xl / xl → 3xl / xxl → 4xl |
-| Stack の space → gap | 0 → none / 1 → 2xs / 2 → xs / 3 → sm / 4 → md / 5 → className `gap-5` / 6 → lg / 7 → className `gap-7` / 8 → xl / 9 → className `gap-9` / 10 → 2xl / 11 → className `gap-11` / 12 → 3xl / 14 → className `gap-14` / 16 → 4xl / 20 → className `gap-20` / 24 → className `gap-24` / 28 → className `gap-28` / 32 → className `gap-32` / 36 → className `gap-36` / 40 → className `gap-40` / 44 → className `gap-44` / 48 → className `gap-48` / 52 → className `gap-52` / 56 → className `gap-56` / 60 → className `gap-60` / 64 → className `gap-64` / 72 → className `gap-72` / 80 → className `gap-80` / 96 → className `gap-96` / 0.5 → className `gap-0.5` / 1.5 → className `gap-1.5` / 2.5 → className `gap-2.5` / 3.5 → className `gap-3.5` |
-<!-- spacing-scale:mapping end -->
-
 ### 詳細
 
 #### Section
