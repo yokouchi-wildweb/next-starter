@@ -516,3 +516,4 @@
 - id:20261117-160752-messaging-layouts | severity:breaking | checkpoint:messaging-layouts
 - id:20261116-134913-spacing-scale | severity:breaking | checkpoint:spacing-scale | uses:.notices/20261116-134913-spacing-scale.spacing-scale.mjs
 - id:20261117-100120-control-height | severity:breaking | checkpoint:control-height
+- id:20261117-163825-form-text-color | severity:info | checkpoint:form-text-color
