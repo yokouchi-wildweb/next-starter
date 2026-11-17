@@ -1,14 +1,14 @@
-// @ts-nocheck
-// D112: restore before ship (指令 58 でテンプレートの形が変わった。出荷の前に新しい形へ書き直して回す)
 // 管理のモーダルと一覧・回の画面の流れの hook の検査(jsdom の上で描く。client service・toast・離れる前の確認は偽物)。
 // - useAdminDispatchFilters: 入力と確定を分ける・期間は日付 → ISO(まで = 翌日未満)・種別 → カテゴリー(種別を変えると空)・clear
 // - useAdminDispatchCategories: 種別ごとの選択肢・表示名(鍵は出さない)
-// - useAdminDispatchDetail: 配達の絞り / 削除の見込み(確認を開いている間だけ)・削除する・再送(includeUnknown を渡して戻す)・送信を再開 → 知らせ、失敗も知らせ
-// - useAdminMessageTemplateList / useAdminMessageOverrideList: 絞り・モーダルの開き先
+// - useAdminDispatchDetail: 配達の絞り / 削除の見込み(確認を開いている間だけ)・削除する(onDeleted)・再送(includeUnknown を渡して戻す)・送信を再開 → 知らせ、失敗も知らせ。
+//   中身を残していない回はプレビューを取らない
+// - useAdminMessageTemplateList / useAdminMessageOverrideList: 種別で絞る・モーダルの開き先
 // - useMessageTemplateModal: 閉じている間は取らない / 作る → 同じモーダルで直す形 / 開き直すと作った id とタブが戻る
 // - useMessageTemplateVersion: id と版がそろった時だけ 1 版を取る (useModalSession は src/hooks/useModalSession.test.ts)
-// - closeConfirm: テンプレートの書く欄・文言の編集の下書き
-// - C9: モーダルの操作の後の一覧(作った = 取り直す・公開 / 取り下げ = 行を置き換える・絞りから外れた行は外す)、onChanged は form から
+// - closeConfirm: テンプレートの書く欄(作った後は消える)・文言の編集の下書き(元の文言に戻すと消える)
+// - C9: モーダルの操作の後の一覧(作った = 取り直す・保存 = 行を置き換える・削除 = 行を外す・種別で絞っている時の保存は取り直す)、
+//   onChanged は form から(作る = create、新しい版 = publish、変わらない = update、削除 = delete、D134 D137)
 // - 作った直後に 1 件がまだ無い間は読み込み中(空の中身を出さない)
 // 実行: pnpm test src/features/core/messaging/hooks/adminModalHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -36,26 +36,35 @@ const detail = (extra: Record<string, unknown> = {}) => ({
   name: "春",
   description: null,
   category: "promotion",
-  status: "draft",
-  currentVersion: null,
+  categoryLabel: "お知らせ",
+  currentVersion: 1,
+  createdBy: null,
+  updatedBy: null,
   createdAt: "2026-11-12T00:00:00.000Z",
-  updatedAt: null,
-  content: { email: { subject: "件名" } },
-  variables: [],
-  allowedKeys: ["serviceName"],
-  hasUnpublishedChanges: true,
+  updatedAt: "2026-11-12T00:00:00.000Z",
+  system: false,
+  kind: null,
+  layout: "notice",
+  values: { subject: "件名" },
+  layoutVersion: 1,
+  embedded: [],
+  catalog: [],
   ...extra,
 });
+// 選択肢: 種別 → カテゴリー(経路つき)→ ひな形(欄の宣言)・埋め込み情報の一覧(D115)
 const OPTIONS = {
   channels: [{ key: "email", label: "メール" }],
-  categories: [{ key: "promotion", label: "お知らせ", description: null }],
-  baseAllowedKeys: ["serviceName"],
+  categories: [{ key: "promotion", label: "お知らせ", description: null, kind: "promotion", channels: ["email"] }],
+  layouts: [{ key: "notice", label: "汎用のお知らせ", description: null, version: 1, fields: { subject: { type: "line", label: "件名", required: true } } }],
+  baseCatalog: [{ key: "serviceName", alias: "サービス名", source: "common", description: null }],
 };
 
 const calls: unknown[][] = [];
 /** 作った直後の 1 件の取り出しを止めておく(読み込み中の検査) */
 let slowTemplate = Promise.withResolvers<void>();
 let failNext = false;
+/** 次の直すが中身の同じ保存か(D134 unchanged) */
+let nextUnchanged = false;
 const maybeFail = () => {
   if (failNext) {
     failNext = false;
@@ -65,7 +74,7 @@ const maybeFail = () => {
 mock.module("@/features/core/messaging/services/client/templateClient", {
   namedExports: {
     listMessageTemplates: async (params: Record<string, unknown>) => {
-      calls.push(["listTemplates", params.status ?? null]);
+      calls.push(["listTemplates", params.kind ?? null]);
       return { items: [detail()], nextCursor: null };
     },
     getMessageTemplateOptions: async () => {
@@ -83,15 +92,26 @@ mock.module("@/features/core/messaging/services/client/templateClient", {
     },
     getMessageTemplateVersion: async (id: string, version: number) => {
       calls.push(["version", id, version]);
-      return { version, content: {}, variables: [], publishedAt: "2026-11-12T00:00:00.000Z" };
+      return { version, layout: "notice", layoutVersion: 1, values: {}, embedded: [], category: "promotion", categoryLabel: null, editedBy: null, createdAt: "2026-11-12T00:00:00.000Z" };
     },
-    createMessageTemplate: async (input: { key: string }) => {
-      calls.push(["create", input.key]);
-      return detail({ id: "new-id", key: input.key });
+    // D134: 作る = 1 回で版 1 を公開
+    createMessageTemplate: async (input: Record<string, unknown>) => {
+      calls.push(["create", input]);
+      return detail({ id: "new-id", name: input.name });
     },
-    updateMessageTemplate: async () => detail(),
-    publishMessageTemplate: async () => detail(),
-    archiveMessageTemplate: async () => detail({ status: "archived" }),
+    // D134: 直す = 1 回で公開(中身が同じなら unchanged)
+    updateMessageTemplate: async (id: string, input: Record<string, unknown>) => {
+      calls.push(["update", id, input.name]);
+      const unchanged = nextUnchanged;
+      nextUnchanged = false;
+      return { ...detail({ name: input.name, currentVersion: unchanged ? 1 : 2 }), unchanged };
+    },
+    // D137: 削除
+    deleteMessageTemplate: async (id: string) => {
+      calls.push(["deleteTemplate", id]);
+      return { id, deleted: true };
+    },
+    previewMessageLayout: async (input: { channel: string }) => ({ channel: input.channel, html: null, text: null, title: null, summary: null, cannotRender: null }),
   },
 });
 const DISPATCH = {
@@ -144,6 +164,14 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
       calls.push(["continue"]);
       return { completed: false, sent: 4, failed: 0 };
     },
+    getAdminDispatchPreview: async () => {
+      calls.push(["dispatchPreview"]);
+      return { dispatchId: "d1", layout: null, cannotRender: null, channels: [] };
+    },
+    getAdminBulkSendOptions: async () => ({ channels: [], categories: [], templates: [], layouts: [] }),
+    previewAdminBulkMessage: async () => ({ channels: [] }),
+    sendAdminBulkTestMessage: async () => ({}),
+    adminBulkSend: async () => ({}),
   },
 });
 mock.module("@/features/core/messaging/services/client/overrideClient", {
@@ -158,6 +186,7 @@ mock.module("@/features/core/messaging/services/client/overrideClient", {
       category: "x",
       categoryLabel: null,
       allowedKeys: [],
+      embedded: [],
       // J126(D132): 経路の一覧と欄(ひな形の欄の鍵・宣言・使う経路)
       channels: [{ key: "email", label: "メール" }],
       fields: [
@@ -177,6 +206,7 @@ mock.module("@/features/core/messaging/services/client/overrideClient", {
         },
       ],
     }),
+    // D132: 保存はまとめて 1 回(この file では呼ばない。overrideHooks.test.tsx が見る)
     saveMessageOverride: async () => ({}),
     resetMessageOverride: async () => ({}),
   },
@@ -200,6 +230,7 @@ beforeEach(() => {
   calls.length = 0;
   toasts.length = 0;
   failNext = false;
+  nextUnchanged = false;
 });
 
 /** hook を描き、props を変えて描き直せる */
@@ -227,7 +258,7 @@ const mount = async <T, P>(useHook: (props: P) => T, initial: P) => {
 };
 const settle = () => act(async () => new Promise((r) => setTimeout(r, 0)));
 
-test.skip("useAdminDispatchFilters: 入力は「絞り込み」で確定、期間は日付 → ISO、clear で空", async () => {
+test("useAdminDispatchFilters: 入力は「絞り込み」で確定、期間は日付 → ISO、clear で空", async () => {
   const view = await mount(() => hooks.useAdminDispatchFilters({ kind: "promotion" }), {});
   const f = () => view.value();
   assert.deepEqual(f().filters, { kind: "promotion" });
@@ -265,11 +296,14 @@ test.skip("useAdminDispatchFilters: 入力は「絞り込み」で確定、期�
   await view.unmount();
 });
 
-test.skip("useAdminDispatchDetail: 配達の絞り・操作の知らせ・再送は includeUnknown を渡して戻す", async () => {
-  const view = await mount(() => hooks.useAdminDispatchDetail("d1"), {});
+test("useAdminDispatchDetail: 配達の絞り・操作の知らせ・削除の後に onDeleted・再送は includeUnknown を渡して戻す", async () => {
+  let deleted = 0;
+  const view = await mount(() => hooks.useAdminDispatchDetail("d1", { onDeleted: () => void (deleted += 1) }), {});
   const d = () => view.value();
   await settle();
   assert.equal(d().dispatch?.id, "d1");
+  assert.equal(d().preview, null, "中身を残していない回はプレビューを出さない");
+  assert.equal(calls.some((c) => c[0] === "dispatchPreview"), false, "中身が無ければプレビューを取らない");
   await act(async () => d().deliveryFilters.setStatus("failed"));
   await settle();
   assert.deepEqual(calls.filter((c) => c[0] === "deliveries").at(-1), ["deliveries", "failed", null]);
@@ -284,6 +318,7 @@ test.skip("useAdminDispatchDetail: 配達の絞り・操作の知らせ・再送
   assert.equal(d().deleteSummaryError, null);
 
   await act(async () => d().remove());
+  assert.equal(deleted, 1, "削除が通ったら onDeleted");
   await act(async () => d().setIncludeUnknown(true));
   await act(async () => d().resend());
   assert.equal(d().includeUnknown, false, "送った後は戻す");
@@ -300,16 +335,19 @@ test.skip("useAdminDispatchDetail: 配達の絞り・操作の知らせ・再送
   failNext = true;
   await act(async () => d().remove());
   assert.equal(toasts.at(-1), "error:だめ");
+  assert.equal(deleted, 1, "失敗は onDeleted を呼ばない");
   await view.unmount();
 });
 
-test.skip("useAdminMessageTemplateList: 状態で絞る・作る / 直すの開き先", async () => {
+test("useAdminMessageTemplateList: 種別で絞る・作る / 直すの開き先", async () => {
   const view = await mount(() => hooks.useAdminMessageTemplateList(), {});
   const l = () => view.value();
   await settle();
-  await act(async () => l().setStatus("draft"));
+  assert.deepEqual(calls.filter((c) => c[0] === "listTemplates").at(-1), ["listTemplates", null], "既定はすべて");
+  await act(async () => l().setKind("promotion"));
   await settle();
-  assert.deepEqual(calls.filter((c) => c[0] === "listTemplates").at(-1), ["listTemplates", "draft"]);
+  assert.equal(l().kind, "promotion");
+  assert.deepEqual(calls.filter((c) => c[0] === "listTemplates").at(-1), ["listTemplates", "promotion"]);
   assert.equal(l().modal.open, false);
   await act(async () => l().modal.openTemplate(ID));
   assert.equal(l().modal.open, true);
@@ -321,7 +359,7 @@ test.skip("useAdminMessageTemplateList: 状態で絞る・作る / 直すの開�
   await view.unmount();
 });
 
-test.skip("useAdminMessageOverrideList: 一覧と開き先", async () => {
+test("useAdminMessageOverrideList: 一覧と開き先", async () => {
   const view = await mount(() => hooks.useAdminMessageOverrideList(), {});
   await settle();
   assert.equal(view.value().items.length, 1);
@@ -330,7 +368,7 @@ test.skip("useAdminMessageOverrideList: 一覧と開き先", async () => {
   await view.unmount();
 });
 
-test.skip("useMessageTemplateModal: 閉じている間は取らない・作る → 同じモーダルで直す・開き直すと戻る", async () => {
+test("useMessageTemplateModal: 閉じている間は取らない・作る → 同じモーダルで直す・開き直すと戻る", async () => {
   const view = await mount((p: { open: boolean }) => hooks.useMessageTemplateModal({ open: p.open, templateId: null }), { open: false });
   const m = () => view.value();
   await settle();
@@ -340,8 +378,8 @@ test.skip("useMessageTemplateModal: 閉じている間は取らない・作る �
   assert.equal(m().state, "ready");
   assert.equal(m().mode, "create");
   assert.equal(m().template, null);
-  await act(async () => m().setTab("variables"));
-  assert.equal(m().tab, "variables");
+  await act(async () => m().setTab("versions"));
+  assert.equal(m().tab, "versions");
 
   await act(async () => m().onCreated("new-id"));
   await settle();
@@ -358,7 +396,7 @@ test.skip("useMessageTemplateModal: 閉じている間は取らない・作る �
   await view.unmount();
 });
 
-test.skip("useMessageTemplateForm: onCreated に作った id、closeConfirm は書きかけの間だけ", async () => {
+test("useMessageTemplateForm: onCreated に作った id、closeConfirm は書きかけの間だけ", async () => {
   const created: string[] = [];
   const view = await mount(
     () => hooks.useMessageTemplateForm({ template: null, options: OPTIONS as never, onCreated: (id) => void created.push(id) }),
@@ -366,28 +404,44 @@ test.skip("useMessageTemplateForm: onCreated に作った id、closeConfirm は�
   );
   const f = () => view.value();
   assert.equal(f().closeConfirm.enabled, false);
+  assert.equal(f().fields.layout, "notice", "選べるひな形が 1 つなら選んだ形");
   await act(async () => {
     f().fields.setName("秋");
-    f().fields.setChannelContent("email", { subject: "件名" });
+    f().fields.setKind("promotion");
   });
+  assert.equal(f().fields.category, "promotion", "種別を選ぶと最初のカテゴリー");
+  await act(async () => f().valuesForm.form.setValue("subject" as never, "件名" as never));
   assert.equal(f().closeConfirm.enabled, true);
   await act(async () => f().save());
   assert.deepEqual(created, ["new-id"]);
+  // 作る = 1 回(鍵はサーバーが作る)、名前・カテゴリー・ひな形・中身・専用の埋め込み情報
+  assert.deepEqual(calls.find((c) => c[0] === "create")?.[1], {
+    name: "秋",
+    description: null,
+    category: "promotion",
+    layout: "notice",
+    values: { subject: "件名" },
+    embedded: [],
+  });
   assert.equal(f().closeConfirm.enabled, false);
+  assert.equal(toasts.at(-1), "success:保存しました(新しいバージョン)");
   await view.unmount();
 });
 
-test.skip("useMessageOverrideEditor: closeConfirm は下書きのある間だけ", async () => {
+test("useMessageOverrideEditor: closeConfirm は下書きのある間だけ", async () => {
   const view = await mount(() => hooks.useMessageOverrideEditor("user.welcome"), {});
   await settle();
   const e = () => view.value();
   assert.equal(e().closeConfirm.enabled, false);
   await act(async () => e().setDraft(e().detail!.fields[0] as never, "直した件名"));
   assert.equal(e().closeConfirm.enabled, true);
+  // 保存していない欄の「元の文言に戻す」は下書きを捨てる(D132)
+  await act(async () => e().reset(e().detail!.fields[0] as never));
+  assert.equal(e().closeConfirm.enabled, false);
   await view.unmount();
 });
 
-test.skip("useMessageTemplateVersion: id と版がそろった時だけ取る", async () => {
+test("useMessageTemplateVersion: id と版がそろった時だけ取る", async () => {
   const view = await mount((p: { version: number | null }) => hooks.useMessageTemplateVersion(ID, p.version), { version: null as number | null });
   await settle();
   assert.equal(view.value().version, null);
@@ -399,7 +453,7 @@ test.skip("useMessageTemplateVersion: id と版がそろった時だけ取る", 
   await view.unmount();
 });
 
-test.skip("useAdminMessageTemplateList.onChanged: 作った = 取り直す、公開 = 行を置き換える、絞りから外れた行は外す", async () => {
+test("useAdminMessageTemplateList.onChanged: 作った = 取り直す、保存 = 行を置き換える、削除 = 行を外す、種別で絞っている時の保存は取り直す", async () => {
   const view = await mount(() => hooks.useAdminMessageTemplateList(), {});
   const l = () => view.value();
   await settle();
@@ -408,36 +462,59 @@ test.skip("useAdminMessageTemplateList.onChanged: 作った = 取り直す、公
   await act(async () => l().modal.onChanged(detail({ id: "other" }) as never, "create"));
   await settle();
   assert.equal(listCalls(), before + 1, "作った → 先頭から取り直す");
-  await act(async () => l().modal.onChanged(detail({ status: "published", currentVersion: 1, name: "春(公開)" }) as never, "publish"));
-  assert.deepEqual([l().query.items[0].status, l().query.items[0].name, l().query.items[0].currentVersion], ["published", "春(公開)", 1]);
+  await act(async () => l().modal.onChanged(detail({ currentVersion: 2, name: "春(新しい版)" }) as never, "publish"));
+  assert.deepEqual([l().query.items[0].name, l().query.items[0].currentVersion], ["春(新しい版)", 2]);
   assert.equal(listCalls(), before + 1, "置き換えは取り直さない");
-  await act(async () => l().setStatus("published"));
+  await act(async () => l().modal.onChanged(detail() as never, "delete"));
+  assert.equal(l().query.items.length, 0, "削除した行は外す(取り直さない)");
+  assert.equal(listCalls(), before + 1);
+  // 種別で絞っている時: DB のテンプレートの kind は null(種別はカテゴリーから)なので、保存の後は取り直す(行を消さない)
+  await act(async () => l().setKind("promotion"));
   await settle();
-  await act(async () => l().modal.onChanged(detail({ status: "archived" }) as never, "archive"));
-  assert.equal(l().query.items.length, 0, "公開中で絞っている時に取り下げた行は外す");
+  const filtered = listCalls();
+  assert.equal(l().query.items.length, 1);
+  await act(async () => l().modal.onChanged(detail({ name: "春2" }) as never, "update"));
+  await settle();
+  assert.equal(listCalls(), filtered + 1, "絞りの中の保存 → 取り直す");
+  assert.equal(l().query.items.length, 1, "kind の無い DB のテンプレートの行を外さない");
   await view.unmount();
 });
 
-test.skip("useMessageTemplateForm: 作る・保存・公開・取り下げの後に onChanged(返った 1 件と操作)", async () => {
+test("useMessageTemplateForm: 作る・新しい版・変わらない保存・削除の後に onChanged(返った 1 件と操作)", async () => {
   const changed: string[] = [];
   const onChanged = (template: { id: string }, action: string) => void changed.push(`${action}:${template.id}`);
   const create = await mount(() => hooks.useMessageTemplateForm({ template: null, options: OPTIONS as never, onChanged }), {});
   await act(async () => {
     create.value().fields.setName("秋");
-    create.value().fields.setChannelContent("email", { subject: "件名" });
+    create.value().fields.setKind("promotion");
   });
+  await act(async () => create.value().valuesForm.form.setValue("subject" as never, "件名" as never));
   await act(async () => create.value().save());
   await create.unmount();
-  const edit = await mount(() => hooks.useMessageTemplateForm({ template: detail() as never, options: OPTIONS as never, onChanged }), {});
+  // 1 件は描くたびに同じ物(画面では SWR の値。描くたびに新しい物を渡すと書く欄が作り直され続ける)
+  const saved = detail();
+  const edit = await mount(() => hooks.useMessageTemplateForm({ template: saved as never, options: OPTIONS as never, onChanged }), {});
+  assert.equal(edit.value().fields.kind, "promotion", "直す時はカテゴリーの種別");
   await act(async () => edit.value().fields.setName("春2"));
   await act(async () => edit.value().save());
-  await act(async () => edit.value().publish());
-  await act(async () => edit.value().archive());
-  assert.deepEqual(changed, ["create:new-id", `update:${ID}`, `publish:${ID}`, `archive:${ID}`]);
+  nextUnchanged = true;
+  await act(async () => edit.value().save());
+  assert.equal(toasts.at(-1), "info:変更はありません");
+  let removed: boolean | null = null;
+  await act(async () => {
+    removed = await edit.value().remove();
+  });
+  assert.equal(removed, true);
+  assert.deepEqual(changed, ["create:new-id", `publish:${ID}`, `update:${ID}`, `delete:${ID}`]);
+  assert.deepEqual(
+    calls.filter((c) => c[0] === "update" || c[0] === "deleteTemplate"),
+    [["update", ID, "春2"], ["update", ID, "春2"], ["deleteTemplate", ID]],
+  );
+  assert.equal(toasts.at(-1), "success:削除しました");
   await edit.unmount();
 });
 
-test.skip("useMessageTemplateModal: 作った直後に 1 件がまだ無い間は読み込み中", async () => {
+test("useMessageTemplateModal: 作った直後に 1 件がまだ無い間は読み込み中", async () => {
   slowTemplate = Promise.withResolvers<void>();
   const view = await mount((p: { open: boolean }) => hooks.useMessageTemplateModal({ open: p.open }), { open: true });
   await settle();
@@ -452,7 +529,7 @@ test.skip("useMessageTemplateModal: 作った直後に 1 件がまだ無い間�
   await view.unmount();
 });
 
-test.skip("useAdminDispatchCategories: 種別ごとの選択肢(表示名)と表示名の引き、種別が無ければ空", async () => {
+test("useAdminDispatchCategories: 種別ごとの選択肢(表示名)と表示名の引き、種別が無ければ空", async () => {
   const view = await mount(() => hooks.useAdminDispatchCategories(), {});
   await settle();
   const c = () => view.value();
