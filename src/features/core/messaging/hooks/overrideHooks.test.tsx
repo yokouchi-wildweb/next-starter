@@ -19,16 +19,15 @@ g.IS_REACT_ACT_ENVIRONMENT = true;
 
 const field = (path: string, effective: unknown, extra: Record<string, unknown> = {}) => ({
   path,
-  channel: path.split(".")[0],
-  field: path.split(".")[1],
-  meta: { label: path, input: "line" },
+  spec: { type: "line", label: path },
+  channels: ["email"],
   editable: true,
   codeValue: effective,
   value: null,
   effective,
   edited: false,
   codeChanged: false,
-  orphan: false,
+  unusable: false,
   problem: null,
   updatedAt: null,
   ...extra,
@@ -40,11 +39,11 @@ const detail = () => ({
   category: "account",
   categoryLabel: null,
   allowedKeys: ["displayName", "serviceName"],
-  // J99(D83): 経路の一覧と欄の表示の約束(fieldMeta)
+  // J126(D132): 経路の一覧と欄(ひな形の欄の鍵・宣言・使う経路)
   channels: [{ key: "email", label: "メール", previewComponent: null }],
   fields: [
-    field("email.subject", "ようこそ {{serviceName}}"),
-    field("email.paragraphs", ["a", "b"], { meta: { label: "段落", input: "text", list: true } }),
+    field("subject", "ようこそ {{serviceName}}"),
+    field("paragraphs", ["a", "b"], { spec: { type: "list", of: { type: "paragraph" }, label: "段落" } }),
   ],
 });
 
@@ -62,7 +61,7 @@ mock.module("@/features/core/messaging/services/client/overrideClient", {
     },
     listMessageOverrides: async () => {
       listCalls += 1;
-      return [{ key: "user.registrationComplete", kind: "transactional", category: "account", editableCount: 3, editedCount: 0, orphanCount: 0, codeChangedCount: 0 }];
+      return [{ key: "user.registrationComplete", kind: "transactional", category: "account", editableCount: 3, editedCount: 0, unusableCount: 0, codeChangedCount: 0 }];
     },
     getMessageOverride: async () => {
       detailCalls += 1;
@@ -155,14 +154,14 @@ test("useMessageOverrideEditor: 下書き・知らない鍵・保存・元の文
   assert.equal(guarded.at(-1), false);
   // 2 つの欄の編集(D80 / D86): 初めは最初の経路、少し待ってプレビューを取る
   assert.equal(editor().activeChannel, "email");
-  assert.deepEqual(editor().activeFields.map((f) => f.path), ["email.subject", "email.paragraphs"]);
+  assert.deepEqual(editor().activeFields.map((f) => f.path), ["subject", "paragraphs"]);
   assert.deepEqual(editor().activeFieldMeta.paragraphs, { label: "段落", input: "text", list: true });
   await waitPreview();
   assert.deepEqual(previews, [{ key: "user.registrationComplete", input: { channel: "email", values: {} } }]);
   assert.equal(editor().previewHtml, "<p>email</p>");
   assert.equal(editor().previewLoading, false);
-  await act(async () => editor().setFocusedPath("email.subject"));
-  assert.equal(editor().focusedPath, "email.subject");
+  await act(async () => editor().setFocusedPath("subject"));
+  assert.equal(editor().focusedPath, "subject");
 
   await act(async () => editor().setDraft(subject, "やあ {{nickname}}"));
   assert.equal(editor().isDirty(subject), true);
@@ -176,20 +175,20 @@ test("useMessageOverrideEditor: 下書き・知らない鍵・保存・元の文
   await act(async () => editor().setDraft(paragraphs, ["a2", "b"]));
   assert.equal(editor().previewLoading, true, "下書きが変われば描き直し中");
   await waitPreview();
-  assert.deepEqual(previews.at(-1), { key: "user.registrationComplete", input: { channel: "email", values: { "email.paragraphs": ["a2", "b"] } } });
+  assert.deepEqual(previews.at(-1), { key: "user.registrationComplete", input: { channel: "email", values: { paragraphs: ["a2", "b"] } } });
   assert.equal(editor().previewLoading, false);
   const beforeDetail = detailCalls;
   const beforeList = listCalls;
   await act(async () => {
     await editor().save(paragraphs);
   });
-  assert.deepEqual(saves, [{ key: "user.registrationComplete", input: { fieldPath: "email.paragraphs", value: ["a2", "b"] } }]);
+  assert.deepEqual(saves, [{ key: "user.registrationComplete", input: { fieldPath: "paragraphs", value: ["a2", "b"] } }]);
   assert.equal(editor().isDirty(paragraphs), false);
   assert.ok(detailCalls > beforeDetail && listCalls > beforeList, "保存の後に 1 連絡と一覧を取り直す");
 
   await act(async () => {
     await editor().reset(subject);
   });
-  assert.deepEqual(resets, [{ key: "user.registrationComplete", path: "email.subject" }]);
+  assert.deepEqual(resets, [{ key: "user.registrationComplete", path: "subject" }]);
   await view.unmount();
 });
