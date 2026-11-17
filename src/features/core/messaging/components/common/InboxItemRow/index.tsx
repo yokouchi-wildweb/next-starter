@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/common/InboxItemRow/index.tsx
 // 部品(props だけ): 受け取り箱の 1 行(未読の印・題・本文の頭・公開の日時)。押すと onOpen(item)。
-// 題が無い行は「お知らせ」。本文は 2 行で切る(全文は InboxItemDetail)
+// 要約だけ(題・本文)。題が無い行は「お知らせ」。本文は 2 行で切る(全文は InboxItemDetail)
 
 "use client";
 

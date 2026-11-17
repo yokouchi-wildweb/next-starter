@@ -1,6 +1,7 @@
 // src/features/core/messaging/components/InboxUnreadModal/index.tsx
 // セクションコンテナ(未読のお知らせを 1 件ずつ見せるモーダル)。流れは hook useInboxUnreadModal(出すかの config・住所・確かめた印・
 // 古い順・見せたら既読・次へ / スキップ / 確認完了)、ここは部品を並べるだけ。
+// 中身は要約だけ(InboxItemDetail の mode summary。ひな形の詳しい表示は一覧の詳細が持つ)。
 // 上流の利用者の枠(src/app/(user)/_layout/UserLayout.tsx)が置く。出すかは hook が決める: 門 messagingInbox が閉、
 // または messagingConfig.inbox.showUnreadModal が false なら何もしない(取りに行かない)
 
@@ -33,7 +34,7 @@ export function InboxUnreadModal() {
       maxHeight="70vh"
     >
       <Stack space={3}>
-        <InboxItemDetail item={current} />
+        <InboxItemDetail item={current} mode="summary" />
         <Flex gap="sm" justify="center">
           {isLast ? (
             <Button type="button" onClick={close}>

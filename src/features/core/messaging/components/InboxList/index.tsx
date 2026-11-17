@@ -1,6 +1,7 @@
 // src/features/core/messaging/components/InboxList/index.tsx
 // セクションコンテナ(本人の受け取り箱の一覧)。流れは hook useInboxList(取得・開いたら既読・一覧の印・全部既読と知らせ)、
-// ここは部品(InfiniteScrollList + InboxItemRow、詳細は Modal + InboxItemDetail)を並べるだけ。
+// ここは部品(InfiniteScrollList + InboxItemRow、詳細は Modal + InboxItemDetail)を並べるだけ。行は要約、詳細は描き方の 3 段
+// (ひな形のお知らせの描き方 > 汎用 > 要約のカード、詳しい表示が取れるまでは一覧の要約で描く)。
 // 下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
@@ -30,7 +31,7 @@ export type InboxListProps = {
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
 
 export function InboxList({ unreadOnly = false, limit, emptyText = "お知らせはありません" }: InboxListProps) {
-  const { query, unreadCount, opened, open, close, markAll, isMarkingAll } = useInboxList({
+  const { query, unreadCount, opened, detail, isDetailLoading, open, close, markAll, isMarkingAll } = useInboxList({
     unreadOnly,
     limit,
     revalidateOnFocus: true,
@@ -83,7 +84,7 @@ export function InboxList({ unreadOnly = false, limit, emptyText = "お知らせ
         maxWidth={480}
         maxHeight="70vh"
       >
-        {opened ? <InboxItemDetail item={opened} /> : null}
+        {opened ? <InboxItemDetail item={detail?.id === opened.id ? detail : opened} loading={isDetailLoading} /> : null}
       </Modal>
     </Stack>
   );

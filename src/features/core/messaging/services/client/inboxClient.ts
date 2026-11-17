@@ -8,12 +8,24 @@
 import axios from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
+import type { MessageLayoutFields } from "@/lib/messaging";
 
 import type { InboxItemDto, InboxPage } from "@/features/core/messaging/services/server/inbox/dto";
 
 const BASE = "/api/me/messaging/inbox";
 
 export type { InboxItemDto, InboxPage };
+
+/**
+ * 1 件の詳しい表示(GET /api/me/messaging/inbox/[id]): 一覧の要約の欄 + ひな形の鍵・版・欄の中身・お知らせの欄の宣言(fields、汎用の描き方に使う)。
+ * 記録の段が meta・前の行は layout / values が無い(要約だけで描く)
+ */
+export type InboxItemDetailDto = InboxItemDto & {
+  layout?: string | null;
+  layoutVersion?: number | null;
+  values?: Record<string, unknown> | null;
+  fields?: MessageLayoutFields | null;
+};
 
 export type ListInboxParams = {
   /** 続きの位置(前の応答の nextCursor)。null / 省略 = 先頭から */
@@ -65,5 +77,15 @@ export async function markAllInboxRead(): Promise<void> {
     await axios.post(`${BASE}/read-all`);
   } catch (error) {
     throw normalizeHttpError(error, "すべて既読にできませんでした");
+  }
+}
+
+/** 1 件の詳しい表示(見えない行・知らない id は 404) */
+export async function getInboxItem(id: string): Promise<InboxItemDetailDto> {
+  try {
+    const res = await axios.get<InboxItemDetailDto>(`${BASE}/${encodeURIComponent(id)}`);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "お知らせの取得に失敗しました");
   }
 }
