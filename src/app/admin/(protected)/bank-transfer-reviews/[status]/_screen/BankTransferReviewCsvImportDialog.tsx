@@ -25,6 +25,7 @@ import { Button } from "@/components/Form/Button";
 import { Manual } from "@/components/Form/Input";
 import { Para } from "@/components/TextBlocks/Para";
 import { SolidBadge } from "@/components/Badge";
+import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import type { BankTransferReviewImportRowDto } from "@/features/core/bankTransferReview";
 import { useAdminBankTransferReviewCsvImport } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewCsvImport";
 
@@ -210,47 +211,37 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
 // プレビュー表
 // ----------------------------------------------------------------------------
 
-function PreviewTable({ rows }: { rows: BankTransferReviewImportRowDto[] }) {
+const PREVIEW_COLUMNS: DataTableColumn<BankTransferReviewImportRowDto>[] = [
+  { header: "行", width: "2.5rem", render: (row) => <span className="text-muted-foreground">{String(row.rowIndex)}</span> },
+  { header: "判定", width: "6rem", render: (row) => <DecisionBadge row={row} /> },
+  { header: "振込人名", render: (row) => <span className="break-all">{row.rawTransferName || "-"}</span> },
+  { header: "識別番号", width: "7rem", render: (row) => <span className="font-mono">{row.parsedIdentifier ?? "-"}</span> },
+  {
+    header: "CSV金額",
+    width: "8rem",
+    align: "right",
+    render: (row) => (row.parsedAmount !== null ? formatJpyAmount(row.parsedAmount) : "-"),
+  },
+  {
+    header: "期待金額",
+    width: "8rem",
+    align: "right",
+    render: (row) => (row.expectedAmount !== null ? formatJpyAmount(row.expectedAmount) : "-"),
+  },
+  { header: "メッセージ", render: (row) => <span className="text-muted-foreground">{row.message ?? ""}</span> },
+];
+
+/** 取り込みの下見の表(行ごとの判定)。エラーの行は色を付ける */
+export function PreviewTable({ rows }: { rows: BankTransferReviewImportRowDto[] }) {
   return (
-    <table className="w-full border-collapse text-xs">
-      <thead className="bg-muted/50">
-        <tr>
-          <th className="w-10 px-2 py-1.5 text-left">行</th>
-          <th className="w-24 px-2 py-1.5 text-left">判定</th>
-          <th className="px-2 py-1.5 text-left">振込人名</th>
-          <th className="w-28 px-2 py-1.5 text-left">識別番号</th>
-          <th className="w-32 px-2 py-1.5 text-right">CSV金額</th>
-          <th className="w-32 px-2 py-1.5 text-right">期待金額</th>
-          <th className="px-2 py-1.5 text-left">メッセージ</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => (
-          <tr
-            key={row.rowIndex}
-            className={
-              row.status === "error"
-                ? "border-t border-destructive/20 bg-destructive/5"
-                : "border-t"
-            }
-          >
-            <td className="px-2 py-1.5 text-muted-foreground">{row.rowIndex}</td>
-            <td className="px-2 py-1.5">
-              <DecisionBadge row={row} />
-            </td>
-            <td className="px-2 py-1.5 break-all">{row.rawTransferName || "-"}</td>
-            <td className="px-2 py-1.5 font-mono">{row.parsedIdentifier ?? "-"}</td>
-            <td className="px-2 py-1.5 text-right">
-              {row.parsedAmount !== null ? formatJpyAmount(row.parsedAmount) : "-"}
-            </td>
-            <td className="px-2 py-1.5 text-right">
-              {row.expectedAmount !== null ? formatJpyAmount(row.expectedAmount) : "-"}
-            </td>
-            <td className="px-2 py-1.5 text-muted-foreground">{row.message ?? ""}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <DataTable
+      items={rows}
+      columns={PREVIEW_COLUMNS}
+      getKey={(row) => row.rowIndex}
+      rowClassName={(row) => (row.status === "error" ? "bg-destructive/5" : "")}
+      maxHeight="none"
+      emptyValueFallback=""
+    />
   );
 }
 

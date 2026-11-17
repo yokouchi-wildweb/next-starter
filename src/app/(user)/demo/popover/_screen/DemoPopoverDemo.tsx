@@ -22,7 +22,7 @@ import {
   ChecklistPopover,
   SelectPopover,
 } from "@/components/Overlays/Popover";
-import { RecordSelectionTable } from "@/lib/tableSuite";
+import { DataTable, RecordSelectionTable } from "@/lib/tableSuite";
 import { EnumFieldButton, BelongsToFieldButton, BelongsToManyFieldButton, BulkDeleteButton, BulkEnumFieldButton, BulkBelongsToFieldButton, BulkBelongsToManyFieldButton } from "@/lib/crud/components/Buttons";
 import useSWR from "swr";
 import { sampleClient } from "@/features/sample/services/client/sampleClient";
@@ -727,89 +727,84 @@ export function DemoPopoverDemo() {
             </Para>
           </Stack>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-2 text-left font-medium">注文ID</th>
-                  <th className="px-4 py-2 text-left font-medium">ステータス</th>
-                  <th className="px-4 py-2 text-left font-medium">追跡番号</th>
-                  <th className="px-4 py-2 text-left font-medium">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shipments.map((shipment) => (
-                  <tr key={shipment.id} className="border-b">
-                    <td className="px-4 py-3">{shipment.orderId}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded px-2 py-0.5 text-xs ${
-                          shipment.status === "shipped"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {shipment.status === "shipped" ? "出荷済み" : "準備中"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {shipment.trackingNumber || (
-                        <span className="text-muted-foreground">未登録</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        {shipment.status === "shipped" && (
-                          <PromptPopover
-                            trigger={
-                              <Button size="sm" variant="outline">
-                                追跡番号
-                              </Button>
-                            }
-                            title="追跡番号を入力"
-                            description="配送業者から通知された追跡番号を入力してください"
-                            placeholder="例: 1234-5678-9012"
-                            defaultValue={shipment.trackingNumber}
-                            validation={(v) =>
-                              v.length > 0 ? null : "追跡番号を入力してください"
-                            }
-                            onConfirm={(value) =>
-                              handleUpdateTracking(shipment.id, value)
-                            }
-                          />
-                        )}
-                        <ActionPopover
-                          trigger={
-                            <Button size="sm" variant="ghost">
-                              <MoreVertical className="size-4" />
-                            </Button>
-                          }
-                          actions={[
-                            {
-                              label: "詳細を見る",
-                              onClick: () => handleAction("詳細表示"),
-                            },
-                            {
-                              label: "編集",
-                              icon: Edit,
-                              onClick: () => handleAction("編集"),
-                            },
-                            { type: "separator" },
-                            {
-                              label: "キャンセル",
-                              icon: Trash,
-                              onClick: () => handleAction("キャンセル"),
-                              variant: "destructive",
-                            },
-                          ]}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            items={shipments}
+            getKey={(shipment) => shipment.id}
+            maxHeight="none"
+            columns={[
+              { header: "注文ID", render: (shipment) => shipment.orderId },
+              {
+                header: "ステータス",
+                render: (shipment) => (
+                  <span
+                    className={`rounded px-2 py-0.5 text-xs ${
+                      shipment.status === "shipped"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {shipment.status === "shipped" ? "出荷済み" : "準備中"}
+                  </span>
+                ),
+              },
+              {
+                header: "追跡番号",
+                render: (shipment) =>
+                  shipment.trackingNumber || <span className="text-muted-foreground">未登録</span>,
+              },
+              {
+                header: "操作",
+                render: (shipment) => (
+                  <div className="flex gap-2">
+                    {shipment.status === "shipped" && (
+                      <PromptPopover
+                        trigger={
+                          <Button size="sm" variant="outline">
+                            追跡番号
+                          </Button>
+                        }
+                        title="追跡番号を入力"
+                        description="配送業者から通知された追跡番号を入力してください"
+                        placeholder="例: 1234-5678-9012"
+                        defaultValue={shipment.trackingNumber}
+                        validation={(v) =>
+                          v.length > 0 ? null : "追跡番号を入力してください"
+                        }
+                        onConfirm={(value) =>
+                          handleUpdateTracking(shipment.id, value)
+                        }
+                      />
+                    )}
+                    <ActionPopover
+                      trigger={
+                        <Button size="sm" variant="ghost">
+                          <MoreVertical className="size-4" />
+                        </Button>
+                      }
+                      actions={[
+                        {
+                          label: "詳細を見る",
+                          onClick: () => handleAction("詳細表示"),
+                        },
+                        {
+                          label: "編集",
+                          icon: Edit,
+                          onClick: () => handleAction("編集"),
+                        },
+                        { type: "separator" },
+                        {
+                          label: "キャンセル",
+                          icon: Trash,
+                          onClick: () => handleAction("キャンセル"),
+                          variant: "destructive",
+                        },
+                      ]}
+                    />
+                  </div>
+                ),
+              },
+            ]}
+          />
         </Section>
       </div>
     </div>
