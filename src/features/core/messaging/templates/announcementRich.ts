@@ -8,7 +8,7 @@ import type { MessageSystemTemplate } from "@/lib/messaging";
 export const systemTemplate: MessageSystemTemplate = {
   key: "announcementRich",
   kind: "announcement",
-  label: "運営からのお知らせ(リッチ)",
+  label: "一般的なお知らせ_リッチ",
   layout: "notice",
   values: { subject: "", blocks: [] },
 };

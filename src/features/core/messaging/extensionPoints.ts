@@ -29,7 +29,7 @@ export const extensionPoints = {
     type: { from: "@/lib/messaging", name: "MessageCategory" },
     side: "server",
     key: "key",
-    overrideOf: ["label", "description", "channels", "defaultChannels", "group"],
+    overrideOf: ["label", "adminLabel", "description", "channels", "defaultChannels", "group"],
   },
   // 種類のグループ(設定画面の見出しだけ、同じ種別の種類だけ D82): categoryGroups/<名前>.ts の export const group(鍵・表示名・並び順)。上流は出荷しない
   categoryGroups: {

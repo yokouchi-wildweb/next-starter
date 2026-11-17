@@ -155,6 +155,11 @@ export type MessageEnricherTarget = {
 };
 
 /** 当て先がその連絡に当たるか */
+/** 管理画面に出すカテゴリーの名前(adminLabel、無ければ label。D124) */
+export function categoryAdminLabel(category: Pick<MessageCategory, "label" | "adminLabel">): string {
+  return category.adminLabel ?? category.label;
+}
+
 export function enricherTargets(
   target: MessageEnricherTarget,
   message: { key: string; category: string; kind: MessageKind },
@@ -196,7 +201,10 @@ export type MessageEnricher = {
  */
 export type MessageCategory = {
   key: string;
+  /** 利用者に見せる名前(好みの設定・配信停止・受け取り箱) */
   label: string;
+  /** 管理画面の名前(送る・テンプレート・文言の上書き・送った回の画面、D124)。無い = label */
+  adminLabel?: string;
   description?: string;
   /** 種別(7 つ。性質は MESSAGE_KIND_TRAITS) */
   kind: MessageKind;
