@@ -378,8 +378,8 @@ function GroupNode({
               showPlaceholderOption={false}
               placeholder={isRoot ? "＋ 条件を追加" : "＋ グループに条件を追加"}
               size="sm"
-              // 「＋ 条件を追加」は選ぶ前の案内の文字(placeholder)だが、ボタンとして読めるよう普通の濃さで出す
-              className="w-auto data-[size=sm]:h-9 data-[placeholder]:text-foreground"
+              // 「＋ 条件を追加」は選ぶ前の案内の文字(placeholder)だが、隣の「＋ 条件グループを追加」(outline のボタン)と同じ濃さ・太さ・枠の色で出す
+              className="w-auto border-border font-medium data-[size=sm]:h-9 data-[placeholder]:text-foreground"
               disabled={disabled}
               onChange={(value) => value && actions.addCriterion(node.id, String(value))}
             />
