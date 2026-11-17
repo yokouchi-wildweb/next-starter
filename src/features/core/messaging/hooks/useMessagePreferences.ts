@@ -2,11 +2,12 @@
 
 // src/features/core/messaging/hooks/useMessagePreferences.ts
 //
-// 本人の連絡の好み(経路 > 種別の枠 > グループ > 種類、応答のまま)を読み、止め方 5 つを切り替える:
-// 1 マス(setCell)・種類まるごと(setCategoryWide)・経路まるごと(setChannelWide)・全部(setAll)・種別まるごと(setKind、上流の既定の画面は出さない)。
+// 本人の連絡の好み(経路 > 種別の枠 > グループ > 種類、応答のまま)を読み、止め方 6 つを切り替える:
+// 1 マス(setCell)・種類まるごと(setCategoryWide)・経路まるごと(setChannelWide)・全部(setAll)・種別まるごと(setKind)・
+// グループまるごと(setGroup、D123。種別とグループは上流の既定の画面に出さない: fork が部品を置く)。
 // 広い行の下の 1 マスの再開はサーバーが書き分ける(全部の行は書き分けない)。
 // 変更の応答(変えた後の表)を SWR のキャッシュにそのまま書く(取り直さない)。
-// pendingKey = 変えている最中の行(`<種類>:<経路>`。種類まるごと `<種類>:*`・経路まるごと `*:<経路>`・全体 `*:*`・種別まるごと `kind:<種別>`)。部品はこれで押せなくする
+// pendingKey = 変えている最中の行(`<種類>:<経路>`。種類まるごと `<種類>:*`・経路まるごと `*:<経路>`・全体 `*:*`・種別まるごと `kind:<種別>`・グループまるごと `group:<グループ>:<経路か *>`)。部品はこれで押せなくする
 
 import { useCallback, useState } from "react";
 import useSWR from "swr";
@@ -31,6 +32,9 @@ export const preferenceCellKey = (category: string, channel: string) => `${categ
 /** 種別まるごとの変更の pendingKey */
 export const preferenceKindKey = (kind: string) => `kind:${kind}`;
 
+/** グループまるごとの変更の pendingKey(channel 省略 = '*'、D123) */
+export const preferenceGroupKey = (group: string, channel: string = MESSAGE_PREFERENCE_ALL) => `group:${group}:${channel}`;
+
 export function useMessagePreferences(options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;
   const query = useSWR<MessagePreferencesDto>(enabled ? MESSAGE_PREFERENCES_KEY : null, () => getMessagePreferences());
@@ -44,7 +48,13 @@ export function useMessagePreferences(options: { enabled?: boolean } = {}) {
 
   const set = useCallback(
     async (input: SetMessagePreferenceInput) => {
-      setPendingKey("kind" in input ? preferenceKindKey(input.kind) : preferenceCellKey(input.category, input.channel));
+      setPendingKey(
+        "kind" in input
+          ? preferenceKindKey(input.kind)
+          : "group" in input
+            ? preferenceGroupKey(input.group, input.channel)
+            : preferenceCellKey(input.category, input.channel),
+      );
       try {
         const next = await trigger(input);
         await mutate(next, { revalidate: false });
@@ -83,6 +93,15 @@ export function useMessagePreferences(options: { enabled?: boolean } = {}) {
   /** 種別まるごとを止める(stop = true)/ 再開する(上流の既定の画面は出さない。fork の部品が呼ぶ) */
   const setKind = useCallback((kind: string, stop: boolean) => set({ kind, optedOut: stop }), [set]);
 
+  /**
+   * グループまるごとを止める(stop = true)/ 再開する(D123。後からグループに入った種類も止まる)。
+   * channel 省略 = すべての経路('*')。上流の既定の画面は出さない(fork の部品 PreferenceGroupToggle が呼ぶ)
+   */
+  const setGroup = useCallback(
+    (group: string, stop: boolean, channel?: string) => set({ group, channel: channel ?? MESSAGE_PREFERENCE_ALL, optedOut: stop }),
+    [set],
+  );
+
   return {
     preferences: query.data ?? null,
     isLoading: query.isLoading,
@@ -93,6 +112,7 @@ export function useMessagePreferences(options: { enabled?: boolean } = {}) {
     setChannelWide,
     setAll,
     setKind,
+    setGroup,
     pendingKey,
   };
 }

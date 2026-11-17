@@ -7,7 +7,8 @@
 //   (利用者の行が無い時は見せない = fail-closed)
 // - 共有の行: 好みに従う回(種別の性質 userStoppable、kind の無い前の回も)で、見る人が inApp か '*' の経路で回の種類か '*' を止めていれば見せない
 //   (共有の行は書く時に好みを当てないので、読む時に当てる)。種別まるごとの行(kind = 回の種別、'*' '*')も当たる(和、D71)。
-//   kind '*' の行 = 種別まるごとではない(isVisible の写しは null も同じ)。kind のある行は kind の無い前の回には当たらない
+//   kind '*' の行 = 種別まるごとではない(isVisible の写しは null も同じ)。kind のある行は kind の無い前の回には当たらない。
+//   回の種類が入っているグループの行('group:<鍵>'、D123)も当たる。種類 → グループは読む時の種類の受け口で決める(後から入った種類も止まる)
 // 取り下げた回の行は消えているので、ここで外す物は無い
 
 import { sql, type SQL } from "drizzle-orm";
@@ -20,6 +21,8 @@ import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageInboxItemTable } from "../../../entities/inbox";
 import { MessagePreferenceTable } from "../../../entities/preference";
 import { MESSAGE_ALL } from "../../../entities/schema";
+import { categories } from "../../../extensions/categories";
+import { groupRowOfCategory } from "../preferences/groupRows";
 
 /** 見る人(createMeRoute の ctx.user) */
 export type InboxViewer = { userId: string; role: string };
@@ -28,11 +31,21 @@ const IN_APP = "inApp";
 /** 共有の行で利用者の好み(お知らせの停止)に従う種別 = 性質 userStoppable。kind の無い前の回も従う(今までどおり) */
 const STOPPABLE_KINDS = kindsWhere((traits) => traits.userStoppable);
 
+/** 回の種類 → その種類が入っているグループの行の category(種類の受け口から。グループに入った種類が無ければ null) */
+function groupRowSql(category: SQL | typeof MessageDispatchTable.category): SQL | null {
+  const pairs = Object.keys(categories).flatMap((key) => {
+    const row = groupRowOfCategory(categories, key);
+    return row ? [sql`WHEN ${key} THEN ${row}`] : [];
+  });
+  return pairs.length > 0 ? sql`(CASE ${category} ${sql.join(pairs, sql` `)} END)` : null;
+}
+
 /** 見える行の WHERE(message_inbox_items と message_dispatches を JOIN した問い合わせで使う) */
 export function inboxVisibilitySql(viewer: InboxViewer): SQL {
   const I = MessageInboxItemTable;
   const D = MessageDispatchTable;
   const P = MessagePreferenceTable;
+  const groupRow = groupRowSql(D.category);
   return sql`(
     ${I.published_at} <= now()
     AND (
@@ -50,7 +63,7 @@ export function inboxVisibilitySql(viewer: InboxViewer): SQL {
             SELECT 1 FROM ${P}
             WHERE ${P.user_id} = ${viewer.userId}
               AND ${P.channel} IN (${IN_APP}, ${MESSAGE_ALL})
-              AND (${P.category} = ${MESSAGE_ALL} OR ${P.category} = ${D.category})
+              AND (${P.category} = ${MESSAGE_ALL} OR ${P.category} = ${D.category}${groupRow ? sql` OR ${P.category} = ${groupRow}` : sql``})
               AND (${P.kind} = ${MESSAGE_ALL} OR ${P.kind} = ${D.kind})
           )
         )
@@ -63,7 +76,8 @@ export function inboxVisibilitySql(viewer: InboxViewer): SQL {
 export type VisibilityFacts = {
   viewer: InboxViewer & { createdAt: Date | null; optOuts: readonly { category: string; channel: string; kind?: string | null }[] };
   item: { userId: string | null; targetRoles: readonly string[] | null; publishedAt: Date };
-  dispatch: { showToLaterSignups: boolean; kind: string | null; category: string | null };
+  /** groupRow = 回の種類が入っているグループの行の category(省略 = 種類の受け口から引く) */
+  dispatch: { showToLaterSignups: boolean; kind: string | null; category: string | null; groupRow?: string | null };
   now: Date;
 };
 
@@ -75,10 +89,12 @@ export function isVisible({ viewer, item, dispatch, now }: VisibilityFacts): boo
     if (!viewer.createdAt || item.publishedAt < viewer.createdAt) return false;
   }
   if (dispatch.kind === null || kindTraits(dispatch.kind)?.userStoppable) {
+    const groupRow =
+      dispatch.groupRow !== undefined ? dispatch.groupRow : dispatch.category ? groupRowOfCategory(categories, dispatch.category) : null;
     const stopped = viewer.optOuts.some(
       (row) =>
         (row.channel === IN_APP || row.channel === MESSAGE_ALL) &&
-        (row.category === MESSAGE_ALL || row.category === dispatch.category) &&
+        (row.category === MESSAGE_ALL || row.category === dispatch.category || (groupRow !== null && row.category === groupRow)) &&
         ((row.kind ?? MESSAGE_ALL) === MESSAGE_ALL || row.kind === dispatch.kind),
     );
     if (stopped) return false;

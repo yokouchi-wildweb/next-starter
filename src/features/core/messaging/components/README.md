@@ -13,9 +13,36 @@ core_ui の形: 流れとデータは hook（`hooks/index.ts` から）、部品
   - 部品: `InboxItemRow`（`onOpen(item)`、題と本文の頭）・`InboxDetailModal`（受け取り箱の表示はこれ 1 つ: 一覧で押した時も未読のモーダルも。`open`・`onOpenChange`・`item`・`detail?`・`loading?`・`showCloseButton?`・children = 中身の下の操作）・`InboxItemDetail`（`item`・`loading?` = 日時 + `InboxLayoutView`、題は包む Modal が持つ）・`InboxUnreadMark`・`InboxLayoutView`（ひな形のお知らせの描き方 `layoutInApps` > 汎用 `GenericInAppView`（`fields` の宣言の順に欄の型とブロックの種類ごとに描く）。描けない行は「このお知らせは表示できません」、要約は描かない（D120）。管理画面のお知らせのプレビュー `LayoutPreview` も同じ部品）
 - 未読のモーダル: 入れ物 `InboxUnreadModal`、流れ `useInboxUnreadModal({ enabled?, paths? })`（住所 `isInboxModalPath`・ログイン・確かめた印 sessionStorage・古い順・見せたら既読・`next` / `skip`（全部既読）/ `close`）。上流の利用者の枠（`src/app/(user)/_layout/UserLayout.tsx`）が外枠の末尾に置く。**門 `messagingInbox` が閉なら hook は取りに行かず開かない**（`enabled` を渡しても）。開の間は `inbox.showUnreadModal`（既定 true）と `inbox.unreadModalPaths`（既定 `["/"]`）。表示は一覧の詳細と同じ `InboxDetailModal`（1 件ずつ詳しい表示を取ってひな形で描く、下にスキップ・次へ・確認完了と n/N。hook が `detail` / `isDetailLoading` を返す）
 - 通知の設定 `/mypage/account/notifications`（門 `messagingPreferences`、mypage のカード `src/features/core/user/mypageMenu/items/notifications.ts`）: 入れ物 `MessagePreferences`（`emptyText?`）= 上に「すべての連絡を止める」→ 経路の枠（経路まるごと・宛先の無い経路は連携の案内）→ 種別の枠（見出しだけ、種別のスイッチは出さない）→ グループの見出し → 種類の行（その経路の 1 マス）。種類まるごとの切り替えは種類が最初に出る経路の行に 1 回だけ
-  - hook `useMessagePreferences({ enabled? })` → `{ preferences, isLoading, error, retry, setCell, setCategoryWide, setChannelWide, setAll, setKind, pendingKey }`（変更の応答を SWR に書く。`pendingKey` = `<種類>:<経路>` / `<種類>:*` / `*:<経路>` / `*:*` / `kind:<種別>`）
+  - hook `useMessagePreferences({ enabled? })` → `{ preferences, isLoading, error, retry, setCell, setCategoryWide, setChannelWide, setAll, setKind, setGroup, pendingKey }`（変更の応答を SWR に書く。`setGroup(group, stop, channel?)` = グループまるごと、channel 省略 = すべての経路。`pendingKey` = `<種類>:<経路>` / `<種類>:*` / `*:<経路>` / `*:*` / `kind:<種別>` / `group:<グループ>:<経路か *>`）
   - 広い行で止まる種類は切で理由を出す（`preferenceViaReason`）。種類・種別・経路まるごとの下は押せてサーバーが書き分ける。全部の停止の間は全部の下のマスと広い切り替えを押せない（経路の枠と種類まるごとは `stoppedByAll?` に `allOptedOut` を渡すと止まった状態で見せる）
-  - 部品: `PreferenceChannelSection`・`PreferenceKindFrame`・`PreferenceGroupHeading`・`PreferenceCategoryRow`・`PreferenceCategoryWideToggle`。種別の枠の表示名は `constants/kindLabels.ts` の `MESSAGE_KIND_LABELS`（仮）
+  - 部品: `PreferenceChannelSection`・`PreferenceKindFrame`・`PreferenceGroupHeading`・`PreferenceCategoryRow`・`PreferenceCategoryWideToggle`・`PreferenceGroupToggle`（グループまるごと、上流の画面には置かない）。種別の枠の表示名は `constants/kindLabels.ts` の `MESSAGE_KIND_LABELS`（仮）
+  - グループまるごとの停止（D123）: グループの行で止めるので、後からグループに入った種類も止まる。状態は 経路ごと = `channels[].kinds[].groups[].optedOut`、すべての経路 = `preferences.groups[]`（`{ key, label, kind, optedOut }`）。部品 `PreferenceGroupToggle`（`groupLabel`・`stopped`・`channelLabel?`・`disabled?`・`stoppedByAll?`・`onChange(stop)`・`label?`・`size?`）の向きはほかの部品と同じ: `channelLabel` あり = 入 = その経路で受け取る / なし = 入 = すべての経路で止めている
+  - fork の組み方（上流の `MessagePreferences` は種類ごとのまま。fork は `_components/` の Screen で hook と部品を組む）: グループだけ = グループの見出しの行に `PreferenceGroupToggle` を置き種類の行を出さない / 種類だけ = 上流の画面のまま / 両方 = 見出しの行にグループのスイッチ、下に種類の行（グループで止めた種類の行は via `group` の理由で切）。経路ごとの例:
+
+```tsx
+{channel.kinds.map((frame) =>
+  frame.groups.map((group) => (
+    <Stack key={group.key ?? "-"} space={2}>
+      {group.key ? (
+        <Flex justify="between" align="center">
+          <PreferenceGroupHeading label={group.label} />
+          <PreferenceGroupToggle
+            groupLabel={group.label ?? group.key}
+            channelLabel={channel.label}
+            stopped={group.optedOut}
+            stoppedByAll={preferences.allOptedOut}
+            disabled={pendingKey !== null}
+            onChange={(stop) => void setGroup(group.key!, stop, channel.key)}
+          />
+        </Flex>
+      ) : null}
+      {/* 両方にする時だけ: group.categories.map((category) => <PreferenceCategoryRow … />) */}
+    </Stack>
+  )),
+)}
+```
+
+  - すべての経路で 1 つにするなら `preferences.groups.map((group) => <PreferenceGroupToggle groupLabel={group.label} stopped={group.optedOut} onChange={(stop) => void setGroup(group.key, stop)} />)`（`channelLabel` を渡さない = 入 = 止めている）
 - 配信停止の確認 `/unsubscribe`: 入れ物 `Unsubscribe`（確認 `UnsubscribeConfirm` → `useUnsubscribe(token)` の `submit` → 結果 `UnsubscribeResult`: 止めた + 通知の設定への案内 / リンクが正しくない）
 
 ### 管理の画面（ページは 4 つ、作る・直す・送るはモーダル）

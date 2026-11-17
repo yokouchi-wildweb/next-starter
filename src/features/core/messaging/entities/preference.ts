@@ -2,7 +2,9 @@
 //
 // 配信停止の表 2 つ（users に列を足さない）。
 // - message_preferences: 利用者が止めた 種類 × 経路（止めた時だけ行。全体は MESSAGE_ALL '*'）。
-//   kind が '*' でない行 = 種別まるごとの停止(kind X、category '*'、channel '*'。D71)。kind '*' の行は種類 × 経路の行(今までどおり)
+//   kind が '*' でない行 = 種別まるごとの停止(kind X、category '*'、channel '*'。D71)。kind '*' の行は種類 × 経路の行(今までどおり)。
+//   category が 'group:<鍵>' の行 = グループまるごとの停止(channel = 経路か '*'、kind '*'。D123、列は足さない。
+//   当たる種類は読む時の種類の受け口の group で決める: services/server/preferences/groupRows.ts)
 //   一意は (user_id, category, channel, kind) の素の列の uniqueIndex(kind は NOT NULL の '*' の印。NULL と NULLS NOT DISTINCT は
 //   drizzle-kit の push が往復しないので使わない)
 // - message_suppressions: 宛先の停止（hard_bounce / complaint / one_click / manual）

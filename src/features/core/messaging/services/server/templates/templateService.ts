@@ -16,7 +16,7 @@ import { randomBytes } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 
 import type { AuditRecordInput } from "@/lib/audit";
-import { buildChannelContent, layoutVersionOf, upgradeLayoutValues, type MessageEmbeddedDeclaration, type MessageEmbeddedEntry, type MessageSystemTemplate } from "@/lib/messaging";
+import { buildChannelContent, categoryAdminLabel, layoutVersionOf, upgradeLayoutValues, type MessageEmbeddedDeclaration, type MessageEmbeddedEntry, type MessageSystemTemplate } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import type { MessageTemplate, MessageTemplateVersion } from "../../../entities/model";
@@ -39,7 +39,7 @@ import {
   UpdateMessageTemplateInputSchema,
 } from "./schema";
 import type { MessageTemplateStore } from "./types";
-import { isAdminSendableKind } from "../sendMessage/systemTemplates";
+import { enabledSystemTemplates, isAdminSendableKind, isSystemTemplateEnabled } from "../sendMessage/systemTemplates";
 
 export type TemplateServiceDeps<Tx> = AdminCheckDeps & {
   store: MessageTemplateStore<Tx>;
@@ -169,7 +169,7 @@ function parseOr400<T>(result: { success: true; data: T } | { success: false }, 
 }
 
 export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
-  const categoryLabel: CategoryLabelOf = (category) => deps.check().categories[category]?.label ?? null;
+  const categoryLabel: CategoryLabelOf = (category) => { const found = deps.check().categories[category]; return found ? categoryAdminLabel(found) : null; };
   const actorId = () => deps.context()?.actorId ?? null;
 
   const catalogOf = (own: readonly MessageEmbeddedDeclaration[]) => templateEmbeddedCatalog(deps.check(), own).map(toEntry);
@@ -185,10 +185,10 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     };
   }
 
-  /** 鍵(system:<鍵>)のシステムテンプレート。無ければ 404 */
+  /** 鍵(system:<鍵>)のシステムテンプレート。無い・切った(enabled: false)物は 404 */
   function requireSystem(id: string): MessageSystemTemplate {
     const template = deps.systemTemplates?.()[id.slice(SYSTEM_TEMPLATE_ID_PREFIX.length)];
-    if (!template) throw new DomainError("テンプレートがありません", { status: 404 });
+    if (!template || !isSystemTemplateEnabled(template)) throw new DomainError("テンプレートがありません", { status: 404 });
     return template;
   }
 
@@ -232,9 +232,9 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       const { status, cursor, limit } = parseOr400(ListMessageTemplatesQuerySchema.safeParse(query), "一覧の条件が正しくありません");
       const rows = await deps.store.list({ status: status ?? null, limit, after: decodeCursor(cursor) });
       const page = rows.slice(0, limit);
-      // システムテンプレートは最初のページの先頭(公開中の扱い。取り下げ・下書きで絞った時は出さない)
+      // システムテンプレートは最初のページの先頭(公開中の扱い。取り下げ・下書きで絞った時・切った物は出さない)
       const systems =
-        !cursor && (!status || status === "published") ? Object.values(deps.systemTemplates?.() ?? {}).map(toSystemSummary) : [];
+        !cursor && (!status || status === "published") ? enabledSystemTemplates(deps.systemTemplates?.() ?? {}).map(toSystemSummary) : [];
       return {
         items: [...systems, ...page.map((row) => toSummary(row, categoryLabel))],
         nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]) : null,
@@ -435,7 +435,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         // テンプレートに使える種類 = 管理者が送れる種別(announcement・direct・promotion)の種類だけ
         categories: Object.values(check.categories).filter((category) => isAdminSendableKind(category.kind)).map((category) => ({
           key: category.key,
-          label: category.label,
+          label: categoryAdminLabel(category),
           description: category.description ?? null,
           kind: category.kind,
           // その種類で送る経路(受け口にあり使える物だけ。プレビューのタブと経路だけの欄はこの分、D115)

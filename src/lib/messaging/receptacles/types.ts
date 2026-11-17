@@ -155,6 +155,11 @@ export type MessageEnricherTarget = {
 };
 
 /** 当て先がその連絡に当たるか */
+/** 管理画面に出すカテゴリーの名前(adminLabel、無ければ label。D124) */
+export function categoryAdminLabel(category: Pick<MessageCategory, "label" | "adminLabel">): string {
+  return category.adminLabel ?? category.label;
+}
+
 export function enricherTargets(
   target: MessageEnricherTarget,
   message: { key: string; category: string; kind: MessageKind },
@@ -196,7 +201,10 @@ export type MessageEnricher = {
  */
 export type MessageCategory = {
   key: string;
+  /** 利用者に見せる名前(好みの設定・配信停止・受け取り箱) */
   label: string;
+  /** 管理画面の名前(送る・テンプレート・文言の上書き・送った回の画面、D124)。無い = label */
+  adminLabel?: string;
   description?: string;
   /** 種別(7 つ。性質は MESSAGE_KIND_TRAITS) */
   kind: MessageKind;
@@ -284,7 +292,7 @@ export type MessageSubscriber = {
 export type MessageSystemTemplate = {
   /** 鍵(回の system_template に残す。英数字の camelCase) */
   key: string;
-  /** 種別(管理者がその場で送れる種別 = 種別の性質 adminFreeText がある物。1 つの種別に何本でも、受け口の順の最初がその種別の既定の白紙) */
+  /** 種別(管理者がその場で送れる種別 = 種別の性質 adminFreeText がある物。1 つの種別に何本でも、受け口の順で使う物の最初がその種別の既定の白紙) */
   kind: MessageKind;
   /** 管理画面に出す名前 */
   label: string;
@@ -294,6 +302,8 @@ export type MessageSystemTemplate = {
   values: Record<string, unknown>;
   /** 専用の埋め込み情報の宣言(DB のテンプレートと同じ形。送る人が送る時に値を入れる、例 メンテナンスの開始日時) */
   embedded?: readonly MessageEmbeddedDeclaration[];
+  /** false = 使わない(テンプレートの一覧・送る画面の選択肢・種別の既定の白紙から外れ、その鍵では送れない。D122)。既定 true。fork は <名前>.override.ts で切る */
+  enabled?: boolean;
 };
 
 // ---------------------------------------------------------------------------

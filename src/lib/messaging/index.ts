@@ -81,7 +81,7 @@ export type {
   MessageSubscriber,
   MessageSystemTemplate,
 } from "./receptacles/types";
-export { enricherTargets } from "./receptacles/types";
+export { categoryAdminLabel, enricherTargets } from "./receptacles/types";
 export {
   MESSAGE_BLOCK_KIND_LABELS,
   MESSAGE_BLOCK_KINDS,

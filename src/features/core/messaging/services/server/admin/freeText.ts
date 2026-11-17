@@ -8,6 +8,7 @@
 // - 選択肢は送る画面が欄を描くのに要る物を持つ: 白紙のひな形と欄の中身、そのカテゴリーで書ける埋め込み情報の一覧(共通 + 当たる enrichers、D112)
 
 import {
+  categoryAdminLabel,
   MESSAGE_KIND_TRAITS,
   type MessageAdminTarget,
   type MessageCategory,
@@ -19,7 +20,7 @@ import {
 import { DomainError } from "@/lib/errors";
 
 import { messageEmbeddedCatalog } from "../sendMessage/enrichers";
-import { isAdminSendableKind, systemTemplateOfKind } from "../sendMessage/systemTemplates";
+import { enabledSystemTemplates, isAdminSendableKind, systemTemplateOfKind } from "../sendMessage/systemTemplates";
 import { TEMPLATE_MESSAGE_KEY } from "../sendMessage/templateDefinition";
 import type { AdminEmbeddedEntry } from "../templates/dto";
 
@@ -35,12 +36,12 @@ export function adminFreeTextCategoryOf(
   const category = categories[key];
   if (!category) throw new DomainError("選んだカテゴリーが見つかりません", { status: 400 });
   if (!isAdminSendableKind(category.kind)) {
-    throw new DomainError(`カテゴリー「${category.label}」は管理画面から送信できません`, {
+    throw new DomainError(`カテゴリー「${categoryAdminLabel(category)}」は管理画面から送信できません`, {
       status: 400,
     });
   }
   if (options.target && !MESSAGE_KIND_TRAITS[category.kind].adminFreeText.includes(options.target)) {
-    throw new DomainError(`カテゴリー「${category.label}」はこの宛先には送信できません`, { status: 400 });
+    throw new DomainError(`カテゴリー「${categoryAdminLabel(category)}」はこの宛先には送信できません`, { status: 400 });
   }
   return category;
 }
@@ -72,7 +73,7 @@ export function adminFreeTextCategoryOptions(
       const blank = systemTemplateOfKind(systemTemplates, category.kind);
       return {
         key: category.key,
-        label: category.label,
+        label: categoryAdminLabel(category),
         kind: category.kind,
         channels: [...category.channels],
         defaultChannels: [...(category.defaultChannels ?? category.channels)],
@@ -99,9 +100,9 @@ export type AdminSystemTemplateOption = {
   embedded: MessageEmbeddedDeclaration[];
 };
 
-/** 管理者が送れる種別のシステムテンプレート全部(受け口の順。D119: 種別ごとにシンプル・リッチ + メンテナンス) */
+/** 管理者が送れる種別の使うシステムテンプレート全部(受け口の順、切った物 enabled: false は出さない。D119・D122) */
 export function adminSystemTemplateOptions(systemTemplates: Readonly<Record<string, MessageSystemTemplate>>): AdminSystemTemplateOption[] {
-  return Object.values(systemTemplates)
+  return enabledSystemTemplates(systemTemplates)
     .filter((template) => isAdminSendableKind(template.kind))
     .map((template) => ({
       key: template.key,

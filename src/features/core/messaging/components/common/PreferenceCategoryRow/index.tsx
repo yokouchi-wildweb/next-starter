@@ -38,6 +38,8 @@ export function preferenceViaReason(via: MessagePreferenceVia | null): string | 
       return "すべての通知を受け取らない設定になっています";
     case "category":
       return "このカテゴリーはすべての通知方法で受け取らない設定になっています";
+    case "group":
+      return "このグループはまとめて受け取らない設定になっています";
     case "channel":
       return "この通知方法はまとめて受け取らない設定になっています";
     case "kind":
