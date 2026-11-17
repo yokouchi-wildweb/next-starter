@@ -94,9 +94,11 @@ export function AdminMessageTemplateList() {
                         : ""}
                       {template.system ? "送信時に選ぶカテゴリー" : (template.categoryLabel ?? "削除されたカテゴリー")}
                     </Span>
-                    <Span size="sm" tone="muted">
-                      {when(template.updatedAt ?? template.createdAt)}
-                    </Span>
+                    {template.updatedAt ?? template.createdAt ? (
+                      <Span size="sm" tone="muted">
+                        {when(template.updatedAt ?? template.createdAt)}
+                      </Span>
+                    ) : null}
                   </Flex>
                 </Stack>
               </Button>

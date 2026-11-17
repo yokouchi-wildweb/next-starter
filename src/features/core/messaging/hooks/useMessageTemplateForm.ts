@@ -15,6 +15,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useWatch } from "react-hook-form";
+import { useSWRConfig } from "swr";
 
 import { useDomainMutation } from "@/lib/crud/hooks";
 import { err } from "@/lib/errors";
@@ -132,6 +133,7 @@ export function emptyEmbeddedDraft(): EmbeddedDeclarationDraft {
 
 export function useMessageTemplateForm({ template, options, onCreated, onChanged }: UseMessageTemplateFormOptions) {
   const { showToast } = useToast();
+  const { mutate } = useSWRConfig();
   const id = template?.id ?? null;
   const archived = template?.status === "archived";
   const system = Boolean(template?.system);
@@ -341,27 +343,36 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     }
     try {
       const saved = id ? await updateMutation.trigger(buildInput()) : await createMutation.trigger(buildInput());
-      if (!id) {
-        setCreatedId(saved.id);
-        onCreated?.(saved.id);
-      }
+      if (!id) setCreatedId(saved.id);
+      // 1 件の SWR のキーは文字の完全一致なので、一覧のキーの取り直しでは届かない。返った 1 件をキャッシュに書き、版の一覧を取り直す
+      // (1 件の更新時刻・版が変わる → モーダルが formKey で書く欄を作り直す = 保存の後は書きかけ無し、印は公開の版、F4 F5)
+      const settle = async (detail: AdminTemplateDetail) => {
+        await mutate(messageTemplateKey(detail.id), detail, { revalidate: false });
+        await mutate(messageTemplateVersionsKey(detail.id));
+        // 作った時はキャッシュを書いた後にモーダルを直す形へ(下書きの 1 件を取りに行かない)
+        if (!id) onCreated?.(detail.id);
+      };
       try {
         const published = await publishMutation.trigger(saved.id);
+        await settle(published);
         onChanged?.(published, id ? "publish" : "create");
         showToast("保存しました(新しいバージョン)", "success");
       } catch (e) {
         // 前の版と同じ中身(409)= 新しい版は要らない
         if ((e as { status?: number }).status === 409) {
+          await settle(saved);
           onChanged?.(saved, id ? "update" : "create");
           showToast("変更はありません", "info");
           return;
         }
+        // 公開に失敗しても作った下書きは残る(モーダルはその 1 件を直す形へ)
+        if (!id) await settle(saved);
         throw e;
       }
     } catch (e) {
       showToast(err(e, "保存できませんでした"), "error");
     }
-  }, [readOnly, validate, id, updateMutation, createMutation, publishMutation, buildInput, showToast, onCreated, onChanged, valuesForm.form]);
+  }, [readOnly, validate, id, updateMutation, createMutation, publishMutation, buildInput, showToast, onCreated, onChanged, valuesForm.form, mutate]);
 
   /** アーカイブ */
   const archive = useCallback(async () => {

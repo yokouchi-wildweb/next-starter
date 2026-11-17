@@ -119,7 +119,7 @@ function ChannelBody({ layout, channel, content, emailHeight }: ChannelBodyProps
     if (!summary) return <NoPreview />;
     return (
       <Block className="rounded-md border border-border bg-card p-4" data-slot="layout-preview-in-app">
-        <InboxLayoutView layout={layout} values={content.values ?? null} fields={content.fields ?? null} summary={summary} />
+        <InboxLayoutView layout={layout} values={content.values ?? null} fields={content.fields ?? null} summary={summary} showTitle />
       </Block>
     );
   }
