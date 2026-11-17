@@ -13,7 +13,7 @@
 
 "use client";
 
-import { Braces, ChevronUp, History, TriangleAlert } from "lucide-react";
+import { History } from "lucide-react";
 import { useState } from "react";
 import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
@@ -24,12 +24,12 @@ import { Stack } from "@/components/Layout/Stack";
 import Dialog from "@/components/Overlays/Dialog";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import Modal from "@/components/Overlays/Modal";
-import { ConfirmPopover, InfoPopover } from "@/components/Overlays/Popover";
+import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
 
-import { EMBEDDED_INFO_USAGE, EmbeddedInfoTags } from "@/features/core/messaging/components/common/EmbeddedInfoTags";
+import { EmbeddedInfoPopover } from "@/features/core/messaging/components/common/EmbeddedInfoPopover";
 import { KindCategoryFields } from "@/features/core/messaging/components/common/KindCategoryFields";
 import { LayoutFields } from "@/features/core/messaging/components/common/LayoutFields";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
@@ -106,70 +106,19 @@ function TemplateModalBody({
   const tags = useEmbeddedInfoTags({ catalog: form.catalog });
   const locked = form.readOnly;
   const [versionsOpen, setVersionsOpen] = useState(false);
-  const [embeddedOpen, setEmbeddedOpen] = useState(false);
 
-  // 埋め込み情報 = 下の操作の帯の左(モーダルに固定でいつも押せる)。押すと上に吹き出しでタグ(押すとコピー)と
-  // 「専用の埋め込み情報を管理」。文の中の使えない名前はその横に赤で出したまま
+  // 埋め込み情報 = 下の操作の帯の左(モーダルに固定でいつも押せる)。吹き出しは上に開く(EmbeddedInfoPopover)
   const embeddedControls = (
-    <Flex align="center" gap="sm" wrap="wrap" className="min-w-0" data-slot="template-embedded">
-      <InfoPopover
-        open={embeddedOpen}
-        onOpenChange={setEmbeddedOpen}
-        side="top"
-        align="start"
-        size="xl"
-        title="埋め込み情報"
-        trigger={
-          <Button type="button" size="sm" variant="outline" className="gap-1.5" data-slot="template-embedded-open">
-            <Braces className="size-4" />
-            埋め込み情報
-            {/* 数と矢印は文字色を受け継いで薄くする(乗った時は accent の地に合う色のまま薄く) */}
-            <Span size="xs" tone="inherit" className="tabular-nums opacity-70">
-              {`共通 ${tags.common.length}・専用 ${tags.own.length}`}
-            </Span>
-            <ChevronUp className="size-3.5 opacity-70" />
-          </Button>
-        }
-      >
-        <Stack space={3}>
-          <Span size="xs" tone="muted">
-            {EMBEDDED_INFO_USAGE}
-          </Span>
-          <EmbeddedInfoTags common={tags.common} own={tags.own} onCopy={tags.copy} showTitle={false} />
-          {!locked ? (
-            <Flex justify="end">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setEmbeddedOpen(false);
-                  embeddedEditor.openEditor();
-                }}
-              >
-                専用の埋め込み情報を管理{embeddedEditor.count > 0 ? `(${embeddedEditor.count})` : ""}
-              </Button>
-            </Flex>
-          ) : null}
-        </Stack>
-      </InfoPopover>
-      {form.unknownNames.length > 0 ? (
-        <Flex align="center" gap="xs" wrap="wrap" data-slot="template-embedded-unknown">
-          <TriangleAlert className="size-4 text-destructive-text" aria-hidden />
-          <Span size="sm" tone="destructive">
-            使えない埋め込み情報:
-          </Span>
-          {form.unknownNames.map((name) => (
-            <SoftBadge key={name} variant="destructive" size="sm">
-              {`{{${name}}}`}
-            </SoftBadge>
-          ))}
-        </Flex>
-      ) : null}
-    </Flex>
+    <EmbeddedInfoPopover
+      common={tags.common}
+      own={tags.own}
+      onCopy={tags.copy}
+      unknownNames={form.unknownNames}
+      onManage={locked ? undefined : embeddedEditor.openEditor}
+      manageCount={embeddedEditor.count}
+    />
   );
 
-  // システムテンプレートは名前・種別・カテゴリーだけを見せる(埋め込み情報・説明・欄の入力・下の帯は無し、D125)
   const footer = form.system ? null : (
     <Flex align="center" justify="between" gap="sm" wrap="wrap">
       {embeddedControls}

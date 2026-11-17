@@ -31,7 +31,7 @@ import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 
 import { SoftBadge } from "@/components/Badge";
-import { EmbeddedInfoTags } from "@/features/core/messaging/components/common/EmbeddedInfoTags";
+import { EmbeddedInfoPopover } from "@/features/core/messaging/components/common/EmbeddedInfoPopover";
 import { LayoutFields } from "@/features/core/messaging/components/common/LayoutFields";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
 import { MessagePreview } from "@/features/core/messaging/components/common/MessagePreview";
@@ -261,9 +261,7 @@ export function MessageSendModal({
                     文面を直す
                   </Button>
                 </Flex>
-              ) : (
-                <EmbeddedInfoTags common={tags.common} own={tags.own} onCopy={(alias) => void tags.copy(alias)} />
-              )}
+              ) : null}
               {text.locked ? null : (
                 <LayoutFields control={text.control} fields={text.fields} channels={m.sendChannels} activeChannel={m.layoutPreview.channel} />
               )}
@@ -370,20 +368,28 @@ export function MessageSendModal({
         </Flex>
       );
     }
+    // 書く段の下の帯: 左 = 埋め込み情報の吹き出し(上に開く。文面を直せる時だけ)、右 = 表示例・テスト送信・確認に進む
     return (
-      <Flex justify="end" gap="xs" wrap="wrap">
-        <Button type="button" size="sm" variant="outline" disabled={Boolean(m.contentError) || m.isPreviewing} onClick={() => void preview()}>
-          {m.isPreviewing ? <Spinner className="size-4" /> : null}
-          あなた宛ての表示例
-        </Button>
-        <Button type="button" size="sm" variant="outline" disabled={Boolean(m.contentError) || m.isTesting} onClick={() => void sendTest()}>
-          {m.isTesting ? <Spinner className="size-4" /> : null}
-          自分にテスト送信
-        </Button>
-        <Button type="button" size="sm" variant="primary" disabled={!m.canSend || isEstimating} onClick={() => void toConfirm()}>
-          {isEstimating ? <Spinner className="size-4" /> : null}
-          確認に進む
-        </Button>
+      <Flex align="center" justify="between" gap="sm" wrap="wrap">
+        {text.state && !text.locked ? (
+          <EmbeddedInfoPopover common={tags.common} own={tags.own} onCopy={(alias) => void tags.copy(alias)} />
+        ) : (
+          <Span size="xs">{null}</Span>
+        )}
+        <Flex justify="end" gap="xs" wrap="wrap">
+          <Button type="button" size="sm" variant="outline" disabled={Boolean(m.contentError) || m.isPreviewing} onClick={() => void preview()}>
+            {m.isPreviewing ? <Spinner className="size-4" /> : null}
+            あなた宛ての表示例
+          </Button>
+          <Button type="button" size="sm" variant="outline" disabled={Boolean(m.contentError) || m.isTesting} onClick={() => void sendTest()}>
+            {m.isTesting ? <Spinner className="size-4" /> : null}
+            自分にテスト送信
+          </Button>
+          <Button type="button" size="sm" variant="primary" disabled={!m.canSend || isEstimating} onClick={() => void toConfirm()}>
+            {isEstimating ? <Spinner className="size-4" /> : null}
+            確認に進む
+          </Button>
+        </Flex>
       </Flex>
     );
   };

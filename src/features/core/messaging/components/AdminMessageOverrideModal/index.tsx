@@ -19,7 +19,7 @@ import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
 
 import { dispatchKindLabel } from "@/features/core/messaging/components/common/DispatchRow";
-import { EmbeddedInfoTags } from "@/features/core/messaging/components/common/EmbeddedInfoTags";
+import { EmbeddedInfoPopover } from "@/features/core/messaging/components/common/EmbeddedInfoPopover";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
 import { MessageEditorLayout } from "@/features/core/messaging/components/common/MessageEditorLayout";
 import { OverrideFieldEditor } from "@/features/core/messaging/components/common/OverrideFieldEditor";
@@ -80,7 +80,9 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
                 使えない編集が {editor.unusableCount} 件あります(元の文言で送信しています)。内容を確認して元の文言に戻すか、編集し直してください。
               </Para>
             ) : null}
-            <EmbeddedInfoTags common={editor.embeddedTags.common} own={editor.embeddedTags.own} onCopy={editor.embeddedTags.copy} />
+            <Flex>
+              <EmbeddedInfoPopover side="bottom" common={editor.embeddedTags.common} own={editor.embeddedTags.own} onCopy={editor.embeddedTags.copy} />
+            </Flex>
           </Stack>
 
           {editor.channels.length > 0 ? (
