@@ -369,6 +369,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     channels: sendChannels,
     category: category || null,
     enabled: open && step === "edit",
+    // 送る画面のプレビューは送る形: 空の欄は描かない(D127)
+    mode: "send",
   });
 
   // ---- 操作 ----

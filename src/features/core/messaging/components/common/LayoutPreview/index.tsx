@@ -4,9 +4,13 @@
 // - お知らせ(inApp)= カード: 受け取り箱の詳細と同じ部品 InboxLayoutView(ひな形のお知らせの描き方 > 汎用(fields があれば)、要約は描かない D120)
 // - ほかの経路 = API の文(text)か要約の文(LINE など文を送る経路は要約がそのまま送る文)
 // - 描けない(3 段のどれでも描けない)時は理由
+// - 空の欄の目印(テンプレートのプレビュー、D127): 描いた物の目印を仮の枠に置き換える(previewMarkers.ts)。メール = iframe に入れる前の HTML、
+//   お知らせのカード = React が隠れた所に描いた物の写しを置き換えて見せる(React の持つ要素は書き換えない)。目印が無ければそのまま
 // 取得はしない: 中身は呼び手の hook が渡す(テンプレート・送る画面 = useLayoutPreview、文言の編集・回の詳細 = それぞれの取得元)
 
 "use client";
+
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
@@ -21,6 +25,10 @@ import type { MessageLayoutFields, MessageLayoutSummary } from "@/lib/messaging"
 import { messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
 import { InboxLayoutView } from "../InboxLayoutView";
 import { MessagePreview } from "../MessagePreview";
+
+import { hasPreviewMarker, markerText, replacePreviewMarkers } from "./previewMarkers";
+
+export { PREVIEW_MARKER_CLOSE, PREVIEW_MARKER_OPEN, hasPreviewMarker, markerText, previewMarker, replacePreviewMarkers } from "./previewMarkers";
 
 /** 経路 1 つの描く物(取得元を問わない形): 送る HTML / 文、またはひな形の欄の中身と要約(お知らせのカード)、または描けない理由 */
 export type LayoutPreviewContent = {
@@ -122,9 +130,12 @@ function ChannelBody({ layout, channel, content, emailHeight }: ChannelBodyProps
     // 利用者の受け取り箱の詳細と同じ部品(ひな形のお知らせの描き方 > 汎用)
     const summary = content.summary;
     if (!summary) return <NoPreview />;
+    const marked = hasPreviewMarker(JSON.stringify([content.values ?? null, summary]));
     return (
       <Block className="rounded-md border border-border bg-card p-4" data-slot="layout-preview-in-app">
-        <InboxLayoutView layout={layout} values={content.values ?? null} fields={content.fields ?? null} summary={summary} showTitle />
+        <MarkedCopy marked={marked}>
+          <InboxLayoutView layout={layout} values={content.values ?? null} fields={content.fields ?? null} summary={summary} showTitle />
+        </MarkedCopy>
       </Block>
     );
   }
@@ -136,9 +147,9 @@ function ChannelBody({ layout, channel, content, emailHeight }: ChannelBodyProps
           {
             key: channel,
             label: messageChannelLabel(channel),
-            fields: { subject: content.title ?? "" },
-            ...(content.html ? { html: content.html } : {}),
-            ...(content.text ? { text: content.text } : {}),
+            fields: { subject: markerText(content.title ?? "") },
+            ...(content.html ? { html: replacePreviewMarkers(content.html) } : {}),
+            ...(content.text ? { text: markerText(content.text) } : {}),
           },
         ]}
       />
@@ -153,17 +164,39 @@ function ChannelBody({ layout, channel, content, emailHeight }: ChannelBodyProps
   );
 }
 
+/**
+ * 目印のある中身の写し: children を隠れた所に描き、その HTML の目印を仮の枠に置き換えた写しを見せる(描くたびに写し直す)。
+ * React の持つ要素は書き換えない(書き換えると次の描き直しで React と食い違う)。目印が無ければ children をそのまま描く(リンクも押せる)
+ */
+function MarkedCopy({ marked, children }: { marked: boolean; children: ReactNode }) {
+  const sourceRef = useRef<HTMLDivElement>(null);
+  const copyRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!marked || !sourceRef.current || !copyRef.current) return;
+    copyRef.current.innerHTML = replacePreviewMarkers(sourceRef.current.innerHTML);
+  });
+  if (!marked) return <>{children}</>;
+  return (
+    <>
+      <Block ref={sourceRef} hidden aria-hidden data-slot="layout-preview-source">
+        {children}
+      </Block>
+      <Block ref={copyRef} data-slot="layout-preview-copy" />
+    </>
+  );
+}
+
 /** 要約の文(お知らせ以外で描き方の無い経路: LINE など文を送る経路はこれがそのまま送る文) */
 function SummaryText({ summary }: { summary: MessageLayoutSummary }) {
   return (
     <Stack space={1}>
-      <Span weight="semiBold">{summary.title}</Span>
+      <Span weight="semiBold">{markerText(summary.title)}</Span>
       <Para size="sm" className="my-0 whitespace-pre-wrap">
-        {summary.shortBody ?? summary.body}
+        {markerText(summary.shortBody ?? summary.body)}
       </Para>
       {summary.link ? (
         <Span size="sm" tone="muted">
-          {summary.link.label ?? summary.link.url}
+          {markerText(summary.link.label ?? summary.link.url)}
         </Span>
       ) : null}
     </Stack>
