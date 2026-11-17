@@ -16,7 +16,8 @@ import { useWatch } from "react-hook-form";
 
 import { useDomainMutation } from "@/lib/crud/hooks";
 import { HttpError } from "@/lib/errors";
-import type { MessageEmbeddedDeclaration, MessageLayoutFields } from "@/lib/messaging";
+import { embeddedVariableMap, type MessageEmbeddedDeclaration, type MessageLayoutFields } from "@/lib/messaging";
+import { replaceVariables } from "@/lib/structuredDocument";
 
 import type { AdminSendLayoutOption } from "../services/client/sendClient";
 import { publishMessageTemplate, updateMessageTemplate } from "../services/client/templateClient";
@@ -104,6 +105,35 @@ export function embeddedValuesForInput(
     out[declaration.key] = declaration.type === "number" && !Number.isNaN(Number(raw)) ? Number(raw) : raw;
   }
   return out;
+}
+
+/**
+ * プレビューに渡す中身: 専用の埋め込み情報の {{鍵}} / {{別名}} を入れた値(空なら既定値)で埋める(文字・並び・object の中の文字の全部)。
+ * 値も既定値も無い名前と、共通・enricher の名前(受信者ごとの値)は書いたまま残す
+ */
+export function embeddedPreviewValues(
+  values: Readonly<Record<string, unknown>>,
+  declarations: readonly MessageEmbeddedDeclaration[],
+  entered: Readonly<Record<string, string>>,
+): Record<string, unknown> {
+  const filled: Record<string, string> = {};
+  for (const declaration of declarations) {
+    const raw = entered[declaration.key];
+    const value = raw !== undefined && raw.trim() !== "" ? raw : declaration.default !== undefined ? String(declaration.default) : null;
+    if (value !== null) filled[declaration.key] = value;
+  }
+  if (Object.keys(filled).length === 0) return values as Record<string, unknown>;
+  const map = embeddedVariableMap(
+    filled,
+    declarations.map((declaration) => ({ key: declaration.key, alias: declaration.alias, source: "own" as const })),
+  );
+  const visit = (item: unknown): unknown => {
+    if (typeof item === "string") return replaceVariables(item, map);
+    if (Array.isArray(item)) return item.map(visit);
+    if (item && typeof item === "object") return Object.fromEntries(Object.entries(item).map(([key, value]) => [key, visit(value)]));
+    return item;
+  };
+  return visit(values) as Record<string, unknown>;
 }
 
 /** 入っていない必須の専用の埋め込み情報(既定値のある物は除く) */

@@ -56,7 +56,7 @@ import { ADMIN_SEND_KEY } from "./sendKeys";
 import { useAdminBulkSendOptions } from "./useAdminBulkSend";
 import { useAdminSendOptions } from "./useAdminSendOptions";
 import { useLayoutPreview } from "./useLayoutPreview";
-import { blankTextState, templateTextState, useSendTemplateText, type SendTextState } from "./useSendTemplateText";
+import { blankTextState, embeddedPreviewValues, templateTextState, useSendTemplateText, type SendTextState } from "./useSendTemplateText";
 
 /** 一覧の一括操作の既定のカテゴリー(種別 direct、D81) */
 export const ADMIN_BULK_SEND_DEFAULT_CATEGORY = "operatorDirect";
@@ -342,10 +342,15 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   );
   const textDirty = textTouched || text.form.formState.isDirty;
   /** ひな形の実際の描き方のプレビュー(経路のタブ、未入力は仮の文、D114。書く段の間だけ) */
+  // 専用の埋め込み情報は入れた値(空なら既定値)で埋めて描く(「あなた宛ての表示例」と同じ。共通・enricher は受信者ごとなので {{名前}} のまま)
+  const previewValues = useMemo(
+    () => embeddedPreviewValues(text.values, text.state?.embeddedDeclarations ?? [], text.state?.embedded ?? {}),
+    [text.values, text.state?.embeddedDeclarations, text.state?.embedded],
+  );
   const layoutPreview = useLayoutPreview({
     layout: text.layout?.key ?? null,
     fields: text.layout?.fields ?? null,
-    values: text.values,
+    values: previewValues,
     channels: sendChannels,
     category: category || null,
     enabled: open && step === "edit",

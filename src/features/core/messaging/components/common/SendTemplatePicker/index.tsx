@@ -39,12 +39,15 @@ export function SendTemplatePicker({ templates, blank, loaded, onLoad, onUnload 
       }
       title="テンプレートを選ぶ"
       options={templates.map((item) => ({ value: item.id, label: item.name, description: `v${item.currentVersion}` }))}
-      value={loaded?.id}
+      // 初めから値を渡す(undefined だと小窓の RadioGroup が非制御から制御に替わって警告が出る)。"" = まだ選んでいない
+      value={loaded?.id ?? ""}
       confirmLabel="読み込む"
       searchable={templates.length > SEARCH_FROM}
       searchPlaceholder="名前で検索"
       emptyMessage="この種別の公開中のテンプレートはありません"
-      onConfirm={(value) => onLoad(value)}
+      onConfirm={(value) => {
+        if (value) onLoad(value);
+      }}
     />
   );
   if (loaded) {
