@@ -22,6 +22,21 @@ import { messageChannelLabel } from "@/features/core/messaging/constants/channel
 
 import { LayoutFieldInput } from "./LayoutFieldInput";
 
+/** 欄の中の誤りの最初の文(ボタンの label / url、組・並びの中)。無ければ null */
+function firstNestedMessage(error: unknown): string | null {
+  if (!error || typeof error !== "object") return null;
+  for (const [key, inner] of Object.entries(error as Record<string, unknown>)) {
+    if (key === "ref" || key === "type" || key === "types") continue;
+    if (key === "message") {
+      if (typeof inner === "string" && inner) return inner;
+      continue;
+    }
+    const found = firstNestedMessage(inner);
+    if (found) return found;
+  }
+  return null;
+}
+
 export { LayoutFieldInput, type LayoutFieldInputProps } from "./LayoutFieldInput";
 export {
   ButtonLinkInput,
@@ -108,8 +123,8 @@ export function LayoutFields<T extends FieldValues>({ control, name, fields, cha
                 />
                 {fieldState.error ? (
                   <Span size="xs" tone="destructive">
-                    {/* 並び・組・ブロックの中の誤りは欄の上に message が無い → まとめた文 */}
-                    {fieldState.error.message || "中の入力を確かめてください"}
+                    {/* 並び・組・ボタンの中の誤りは欄の上に message が無い → 中の最初の文(ボタンの文言 / URL)、無ければまとめた文 */}
+                    {fieldState.error.message || firstNestedMessage(fieldState.error) || "中の入力を確かめてください"}
                   </Span>
                 ) : null}
               </Stack>

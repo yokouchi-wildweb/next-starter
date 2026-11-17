@@ -44,7 +44,7 @@ export const message = defineMessage({
 - `record`: 本文の残し方 `meta` | `vars`(既定)| `full`
 - `throttle`: 会話の間引き `{ by: [vars の鍵], mode: "untilRead" | "window", seconds }`
 - `layout`(必須、D122): ひな形の鍵(`src/features/core/messaging/layouts/<名前>/`。上流は notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。上書きで変えられない
-- `values`: ひな形の欄の中身(欄の鍵 → 値。文字列に `{{鍵}}` を書ける)。ひな形の欄の zod(`layoutValuesSchema`、種類の経路で使う欄だけ必須 D125)を通る(`invalid_values`)
+- `values`: ひな形の欄の中身(欄の鍵 → 値。文字列に `{{鍵}}` を書ける)。ひな形の欄の zod(`layoutValuesSchema`、種類の経路で使う欄だけ必須 D125)を通る(`invalid_values`)。検査の前に空を「無い」にする(`normalizeLayoutValues` / `normalizeFieldValue`、D128: 画像の空文字・ボタン / リンクの全部が空・空の並び。ボタンの片方だけ空・URL の無いリンクは空の側の誤り)
 - `extras`: fork が足す欄の入れ物
 - 管理者が書いて送る連絡は定義を持たない(D117): 白紙のシステムテンプレート(`MessageSystemTemplate`、受け口の項目の節)か DB のテンプレート + 欄の中身で送る(`messagingService.sendTemplateMessage`)
 

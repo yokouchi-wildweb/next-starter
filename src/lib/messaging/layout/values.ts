@@ -5,7 +5,7 @@
 import { z } from "zod";
 
 import { layoutVersionOf, type MessageLayout, type MessageLayoutFields } from "./types";
-import { fieldValueSchema, requiredValue, type MessageFieldSpec } from "./vocabulary";
+import { fieldValueSchema, normalizeFieldValue, requiredValue, type MessageFieldSpec } from "./vocabulary";
 
 /** 欄がその経路のものか(channels が無い = 全部の経路) */
 export function fieldBelongsTo(spec: MessageFieldSpec, channel: string): boolean {
@@ -18,13 +18,28 @@ export function fieldsForChannel<F extends MessageLayoutFields>(layout: MessageL
 }
 
 /**
- * 欄の中身の zod(知らない鍵は通らない)。
+ * 欄の中身の空を「無い」にする(D128): 欄ごとに normalizeFieldValue を通し、無い欄の鍵を外す。宣言に無い鍵はそのまま(検査が言う)。
+ * object でない値はそのまま返す
+ */
+export function normalizeLayoutValues(fields: MessageLayoutFields, values: unknown): unknown {
+  if (!values || typeof values !== "object" || Array.isArray(values)) return values;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(values as Record<string, unknown>)) {
+    const spec = fields[key];
+    const next = spec ? normalizeFieldValue(spec, value) : value;
+    if (next !== undefined) out[key] = next;
+  }
+  return out;
+}
+
+/**
+ * 欄の中身の zod(知らない鍵は通らない)。検査の前に空を「無い」にする(normalizeLayoutValues。parsed.data は整えた値)。
  * - channels を渡すと、その経路のどれにも使われない経路だけの欄は必須でなくなる(送らない経路の欄を求めない)
  * - 渡さなければ宣言の required のまま
  */
 export function layoutValuesSchema(layout: MessageLayout, options: { channels?: readonly string[] } = {}) {
   const active = options.channels;
-  return z
+  const schema = z
     .object(
       Object.fromEntries(
         Object.entries(layout.fields).map(([key, spec]) => {
@@ -35,6 +50,12 @@ export function layoutValuesSchema(layout: MessageLayout, options: { channels?: 
       ),
     )
     .strict();
+  // 入力の型は欄の中身の object(フォームの resolver が FieldValues として読む)。整える前の値も同じ形
+  return z.preprocess((values) => normalizeLayoutValues(layout.fields, values), schema) as unknown as z.ZodEffects<
+    typeof schema,
+    z.output<typeof schema>,
+    Record<string, unknown>
+  >;
 }
 
 /**

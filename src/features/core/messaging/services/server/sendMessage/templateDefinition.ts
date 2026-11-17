@@ -22,6 +22,7 @@ import {
   embeddedCatalog,
   embeddedValuesSchema,
   findEmbedded,
+  normalizeLayoutValues,
   resolveMessageDefinition,
   upgradeLayoutValues,
   validateMessageDefinition,
@@ -58,13 +59,22 @@ export function templateVersionValues(
   return upgraded.values;
 }
 
-/** 版の中身から直したか(送る中身が版の中身と違う) */
+/** 欄の中身の空を「無い」にする(D128、ひな形が無ければそのまま。送る口の入口とくらべる前に通す) */
+function normalizedValues(layouts: Readonly<Record<string, MessageLayout>>, layoutKey: string, values: Record<string, unknown>): Record<string, unknown> {
+  const layout = layouts[layoutKey];
+  return layout ? (normalizeLayoutValues(layout.fields, values) as Record<string, unknown>) : values;
+}
+
+/** 版の中身から直したか(送る中身が版の中身と違う。どちらも空を「無い」にしてくらべる) */
 export function templateValuesEdited(
   layouts: Readonly<Record<string, MessageLayout>>,
   version: MessageTemplateVersionSource,
   values: Record<string, unknown>,
 ): boolean {
-  return !isDeepStrictEqual(values, templateVersionValues(layouts, version));
+  return !isDeepStrictEqual(
+    normalizedValues(layouts, version.layout, values),
+    normalizedValues(layouts, version.layout, templateVersionValues(layouts, version)),
+  );
 }
 
 /** 欄の中身の文字の中の専用の別名 {{別名}} を {{鍵}} に書き換える(入れ子の object・配列も) */
@@ -152,12 +162,14 @@ export function resolveTemplateDefinition(
   if (catalogProblems.length > 0) {
     throw new DomainError(`${label} を送れません: ${catalogProblems.map((problem) => problem.message).join(" / ")}`, { status: 400 });
   }
-  const { unknown } = findEmbedded(input.values, catalog);
+  // 空の任意の欄(画像の空文字・全部が空のボタン・空の並び)は「無い」(D128)。フォームは空の値のまま送ってくる
+  const values = normalizedValues(deps.layouts, "system" in source ? source.system.layout : source.version.layout, input.values);
+  const { unknown } = findEmbedded(values, catalog);
   if (unknown.length > 0) {
     throw new DomainError(`${label} を送れません: ${unknown.map((name) => `{{${name}}}`).join(", ")} は埋め込み情報にありません`, { status: 400 });
   }
 
-  const definition = templateDefinitionOf(source, input.category, input.values);
+  const definition = templateDefinitionOf(source, input.category, values);
   const problems = validateMessageDefinition(definition, {
     categories: { [input.category]: narrowed },
     layouts: deps.layouts,
