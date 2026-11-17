@@ -225,7 +225,7 @@ function TemplateModalBody({
               )}
               {form.system ? (
                 <Para size="sm" tone="muted" className="my-0">
-                  システムのテンプレートは編集できません(送る画面で白紙として使います)
+                  システムテンプレートは編集できません(送信画面で使う白紙のひな形です)
                 </Para>
               ) : form.archived ? (
                 <Para size="sm" tone="muted" className="my-0">
