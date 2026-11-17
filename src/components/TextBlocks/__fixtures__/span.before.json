@@ -1,0 +1,8 @@
+{
+  "plain": "<span class=\"inline-block text-inherit text-base font-normal\">t</span>",
+  "sizedBold": "<span class=\"inline-block text-inherit text-sm font-bold\">t</span>",
+  "tone": "<span class=\"inline-block text-muted-foreground text-base font-normal text-center\">t</span>",
+  "srOnly": "<span class=\"inline-block text-inherit text-base font-normal sr-only\">t</span>",
+  "inherit": "<span class=\"inline-block text-inherit leading-[inherit]\">t</span>",
+  "className": "<span class=\"inline-block text-inherit text-base font-normal truncate\" data-x=\"1\">t</span>"
+}

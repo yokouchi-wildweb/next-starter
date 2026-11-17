@@ -29,6 +29,10 @@
 - `weight`: `thin`〜`black`、`inherit`
 - `align`: `left` / `center` / `right` / `justify` / `centerToStartSm`、`inherit`
 
+### `Span` の `inline`（文中の一続きの文字）
+
+`<Span inline>` は `display: inline` で、`size` / `weight` の既定が `inherit`、行間も親に合わせる（`leading-[inherit]`）。文の途中の色を変えた語・区切りの字など、親の文字と同じ大きさで改行も文と一緒に流したい所に使う。`size` / `weight` / `tone` を渡せばそれが出る。既定（`inline` なし）は `inline-block`・`md`・`normal` のまま。
+
 ### `inherit`（親の値をそのまま使う）
 
 `size` / `weight` / `align` の `inherit` はクラスを何も出さない。`Span` / `Para` で `size="inherit"` を指定すると、行間も親に合わせる（`leading-[inherit]`）。

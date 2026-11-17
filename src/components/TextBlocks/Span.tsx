@@ -10,13 +10,19 @@ import { createTextVariants } from "./textVariants";
 const spanVariants = createTextVariants("inline-block leading-relaxed", VARIANT_OVERRIDES.span);
 
 export type SpanProps = ComponentPropsWithoutRef<"span"> &
-  VariantProps<typeof spanVariants> & { children: ReactNode };
+  VariantProps<typeof spanVariants> & {
+    children: ReactNode;
+    /** 文中の一続きの文字: display inline、size / weight の既定を inherit にし行間も親に合わせる
+     * (渡した size / weight はそれが勝つ)。既定 false = inline-block・md・normal */
+    inline?: boolean;
+  };
 
 export function Span({
+  inline = false,
   tone = "inherit",
-  size = "md",
+  size = inline ? "inherit" : "md",
   align,
-  weight = "normal",
+  weight = inline ? "inherit" : "normal",
   srOnly = false,
   className,
   children,
@@ -28,6 +34,8 @@ export function Span({
         spanVariants({ tone, size, align, weight, srOnly }),
         // size="inherit" では行間も親に合わせる(base の leading-relaxed を打ち消す)
         size === "inherit" && "leading-[inherit]",
+        // 文中: inline-block を inline に替え、行間は親に合わせる
+        inline && "inline leading-[inherit]",
         className,
       )}
       {...props}
