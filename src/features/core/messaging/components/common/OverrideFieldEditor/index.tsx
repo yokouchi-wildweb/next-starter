@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 
+import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
@@ -19,6 +20,7 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import type { MessageFieldShape } from "@/lib/messaging";
 
+import { messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
 import type { OverrideFieldValue } from "@/features/core/messaging/hooks/useMessageOverrideEditor";
 import type { AdminOverrideField } from "@/features/core/messaging/services/client/overrideClient";
 
@@ -57,6 +59,11 @@ export type OverrideFieldEditorProps = {
   onDiscard: () => void;
   /** 欄に入った時("<欄>[.<部分>|.<番号>]") */
   onFocusField?: (path: string) => void;
+  /**
+   * 経路の印(D117): true = 「全経路で共通」、false = 「<経路>だけ」(field.channels)、省略 = 印なし。
+   * 呼び手が連絡の経路の全部と field.channels を比べて決める
+   */
+  commonToAll?: boolean;
 };
 
 export function OverrideFieldEditor({
@@ -69,6 +76,7 @@ export function OverrideFieldEditor({
   onReset,
   onDiscard,
   onFocusField,
+  commonToAll,
 }: OverrideFieldEditorProps) {
   const id = `override-${field.path.replace(/[^a-zA-Z0-9]/g, "-")}`;
   // 欄の宣言は型の和(MessageFieldShape)に見出しなどを足した物。経路の印を除いた型なので入力の形として読む
@@ -78,9 +86,20 @@ export function OverrideFieldEditor({
   return (
     <Stack space={3} className="rounded-md border border-border bg-card p-4" data-slot="override-field-editor">
       <Flex align="center" justify="between" gap="sm" wrap="wrap">
-        <Label htmlFor={id} className="text-sm font-medium">
-          {overrideFieldLabel(field)}
-        </Label>
+        <Flex align="center" gap="xs" wrap="wrap">
+          <Label htmlFor={id} className="text-sm font-medium">
+            {overrideFieldLabel(field)}
+          </Label>
+          {commonToAll === true ? (
+            <SoftBadge variant="outline" size="sm" data-slot="override-field-common-mark">
+              全経路で共通
+            </SoftBadge>
+          ) : commonToAll === false && field.channels.length > 0 ? (
+            <SoftBadge variant="secondary" size="sm" data-slot="override-field-channel-mark">
+              {field.channels.map(messageChannelLabel).join("・")}だけ
+            </SoftBadge>
+          ) : null}
+        </Flex>
         <OverrideFieldMarks field={field} dirty={dirty} />
       </Flex>
 

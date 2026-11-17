@@ -1,6 +1,7 @@
 // src/features/core/messaging/components/common/LayoutFields/index.tsx
 // 部品(props だけ): ひな形の欄の宣言(D123)から入力を並べる。react-hook-form の control と欄の場所(name)に結ぶ
 // (フォームと検査は hook useLayoutFieldsForm、この部品は描くだけ)。宣言の順 = 画面の順。
+// - activeChannel を渡すと、その経路で使う欄だけ(共通 + その経路だけ、D117)。共通の欄は「全経路で共通」の印。描かない欄の値はフォームに残る
 // - 見出し・必須の印・仮の文(宣言の placeholder)。経路だけの欄は「<経路>だけ」の印、channels(送る経路)に無い経路だけの欄は「使われない」の印で薄く
 // - 欄の型ごとの入力は LayoutFieldInput(ブロックの並びは LayoutBlocksInput)。readOnly = 読むだけ(システムのテンプレート・固定の文)
 // - 欄に入ると onFocusField("<欄>[.<部分>]")(プレビューがその場所を示す)
@@ -42,13 +43,18 @@ export type LayoutFieldsProps<T extends FieldValues> = {
   fields: MessageLayoutFields;
   /** 送る経路の鍵(渡すと、どれにも使われない経路だけの欄に「使われない」の印) */
   channels?: readonly string[];
+  /**
+   * 今の経路(プレビューのタブ、D117)。渡すと、その経路で使う欄(全経路で共通 + その経路だけ)だけを描き、共通の欄に「全経路で共通」の印。
+   * 描かない欄の値はフォームに残る(タブを替えても消えない)
+   */
+  activeChannel?: string | null;
   /** 読むだけ */
   readOnly?: boolean;
   onFocusField?: (path: string) => void;
 };
 
-export function LayoutFields<T extends FieldValues>({ control, name, fields, channels, readOnly, onFocusField }: LayoutFieldsProps<T>) {
-  const entries = Object.entries(fields);
+export function LayoutFields<T extends FieldValues>({ control, name, fields, channels, activeChannel, readOnly, onFocusField }: LayoutFieldsProps<T>) {
+  const entries = Object.entries(fields).filter(([, spec]) => !activeChannel || fieldBelongsTo(spec, activeChannel));
   if (entries.length === 0) {
     return (
       <Span size="sm" tone="muted">
@@ -74,6 +80,11 @@ export function LayoutFields<T extends FieldValues>({ control, name, fields, cha
                     {spec.label}
                     {spec.required ? <Span tone="destructive"> *</Span> : null}
                   </Label>
+                  {activeChannel && !spec.channels?.length ? (
+                    <SoftBadge variant="outline" size="sm" data-slot="layout-field-common-mark">
+                      全経路で共通
+                    </SoftBadge>
+                  ) : null}
                   {spec.channels?.length ? (
                     <SoftBadge variant="secondary" size="sm" data-slot="layout-field-channel-mark">
                       {spec.channels.map(messageChannelLabel).join("・")}だけ
