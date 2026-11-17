@@ -18,7 +18,7 @@ export type {
 } from "./useAsyncOptionSource";
 export { useSelectionSnapshot } from "./useSelectionSnapshot";
 export { AsyncOptionList } from "./AsyncOptionList";
-export type { AsyncOptionListProps, AsyncOptionListSelectionMode } from "./AsyncOptionList";
+export type { AsyncOptionListProps, AsyncOptionListSelectionMode, AsyncOptionRenderer } from "./AsyncOptionList";
 export {
   AsyncOptionInitialState,
   AsyncOptionListFooter,

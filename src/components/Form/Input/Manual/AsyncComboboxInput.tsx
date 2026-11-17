@@ -43,6 +43,7 @@ import {
   PICKER_POPOVER_BODY_CLASS,
   PendingOptionLabel,
   isAsyncOptionInitialState,
+  type AsyncOptionRenderer,
   useAsyncOptionSource,
   usePickerPopoverSide,
 } from "./AsyncOptionSource";
@@ -120,6 +121,9 @@ export type AsyncComboboxInputProps<T> = {
   open?: boolean;
   /** 開閉状態変更コールバック */
   onOpenChange?: (open: boolean) => void;
+  /** 候補の行と上に留める選んだ行の表示を差し替える（状態のバッジを並べる等）。
+   * item は取得済みの元の行（未取得なら undefined）。トリガーの表示は label のまま */
+  renderOption?: AsyncOptionRenderer<T>;
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange">;
 
 const EMPTY_VALUES: OptionPrimitive[] = [];
@@ -150,6 +154,7 @@ export function AsyncComboboxInput<T>({
   popoverContentProps,
   open,
   onOpenChange,
+  renderOption,
   id,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
@@ -225,7 +230,7 @@ export function AsyncComboboxInput<T>({
 
   // ---- 選択中のラベル解決: initialOption → cache（fetch 由来） ----
   const hasValue = value !== null && value !== undefined;
-  const { resolveOption } = source;
+  const { resolveOption, resolveItem } = source;
   const selectedLabel = useMemo(
     () =>
       value !== null && value !== undefined ? (resolveOption(value)?.label ?? null) : null,
@@ -245,6 +250,16 @@ export function AsyncComboboxInput<T>({
     [activeState.items, serializedValue],
   );
 
+  // ---- 行の描き分け（呼び手の renderOption に取得済みの元の行を添える） ----
+  const selectedOption = useMemo(
+    () => (renderOption && value !== null && value !== undefined ? resolveOption(value) : undefined),
+    [renderOption, value, resolveOption],
+  );
+  const renderRow = useMemo(
+    () => (renderOption ? (option: Options) => renderOption(option, resolveItem(option.value)) : undefined),
+    [renderOption, resolveItem],
+  );
+
   // ---- 選択中のピン留め行 ----
   const pinnedRow = hasValue ? (
     <>
@@ -254,7 +269,11 @@ export function AsyncComboboxInput<T>({
         className="cursor-pointer items-center gap-1"
       >
         <Check className="mr-2 size-4 opacity-100" />
-        <span className="flex-1 truncate">{selectedLabel ?? <PendingOptionLabel />}</span>
+        {renderOption && selectedOption ? (
+          <span className="min-w-0 flex-1">{renderOption(selectedOption, resolveItem(selectedOption.value))}</span>
+        ) : (
+          <span className="flex-1 truncate">{selectedLabel ?? <PendingOptionLabel />}</span>
+        )}
         <X className="size-4 shrink-0 opacity-50 hover:opacity-100" />
       </CommandItem>
       <CommandSeparator className="my-1" />
@@ -372,6 +391,7 @@ export function AsyncComboboxInput<T>({
               onToggle={handleSelect}
               emptyMessage={showEmpty ? emptyMessage : null}
               header={pinnedRow}
+              renderOption={renderRow}
               footer={renderStatus()}
               className="gap-0"
               onScroll={source.handleScroll}

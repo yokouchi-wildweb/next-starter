@@ -55,6 +55,7 @@ import { MultiSelectTrigger } from "../MultiSelectInput/MultiSelectTrigger";
 import {
   AsyncOptionInitialState,
   AsyncOptionList,
+  type AsyncOptionRenderer,
   AsyncOptionListFooter,
   PICKER_POPOVER_BODY_CLASS,
   PendingOptionLabel,
@@ -134,6 +135,9 @@ export type AsyncMultiSelectInputProps<T> = {
   selectedView?: "tabs" | "inline";
   /** inline の時、行に添える印の文字(無ければ null)。例 除外中 / 含める中 */
   optionBadge?: (value: OptionPrimitive) => string | null;
+  /** 候補の行と「選択済み」の行の表示を差し替える（状態のバッジを並べる等）。
+   * item は取得済みの元の行（未取得なら undefined）。トリガーのチップは label のまま */
+  renderOption?: AsyncOptionRenderer<T>;
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange">;
 
 type ActiveTab = "selected" | "search";
@@ -165,6 +169,7 @@ export function AsyncMultiSelectInput<T>({
   onOpenChange,
   selectedView = "tabs",
   optionBadge,
+  renderOption,
   id,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
@@ -190,6 +195,13 @@ export function AsyncMultiSelectInput<T>({
     limit,
     initialOptions,
   });
+
+  // ---- 行の描き分け（呼び手の renderOption に取得済みの元の行を添える） ----
+  const { resolveItem } = source;
+  const renderRow = useMemo(
+    () => (renderOption ? (option: Options) => renderOption(option, resolveItem(option.value)) : undefined),
+    [renderOption, resolveItem],
+  );
 
   // ---- 選択済み snapshot（session スコープ） ----
   const selection = useSelectionSnapshot();
@@ -305,6 +317,7 @@ export function AsyncMultiSelectInput<T>({
         selectedValues={selectedValues}
         onToggle={handleToggle}
         emptyMessage={emptyMessage}
+        renderOption={renderRow}
         onScroll={source.handleScroll}
         footer={
           <AsyncOptionListFooter
@@ -386,6 +399,7 @@ export function AsyncMultiSelectInput<T>({
                         selectedValues={selectedValues}
                         onToggle={handleToggle}
                         emptyMessage="選択された項目はありません"
+                        renderOption={renderRow}
                       />
                     )}
                   </StateTabsContent>

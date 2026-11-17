@@ -24,6 +24,7 @@ import {
   AsyncOptionInitialState,
   AsyncOptionList,
   AsyncOptionListFooter,
+  type AsyncOptionRenderer,
   PendingOptionLabel,
   isAsyncOptionInitialState,
   useAsyncOptionSource,
@@ -98,7 +99,7 @@ export type AsyncPickerModalProps<T> = {
   /** 読み込み中のメッセージ */
   loadingMessage?: string;
   /** 行の表示を差し替える（name + かな の 2 行表示など）。item は fetch 済みのときだけ渡る */
-  renderOption?: (option: Options, item: T | undefined) => ReactNode;
+  renderOption?: AsyncOptionRenderer<T>;
   /** 最大幅（Modal へ透過。デフォルト: 560） */
   maxWidth?: number | string;
   /** 箱の高さ（Modal の固定高モード。デフォルト: 600。ビューポート上限でクランプされる） */

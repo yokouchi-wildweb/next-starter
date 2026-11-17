@@ -22,6 +22,12 @@ import { type Options } from "@/components/Form/types";
 import { Span } from "@/components/TextBlocks/Span";
 import { cn } from "@/lib/cn";
 
+/**
+ * 呼び手が渡す行の描き分け(AsyncComboboxInput / AsyncMultiSelectInput / AsyncPickerModal 共通)。
+ * item は取得の cache にある元の行(初期表示のラベルだけで未取得のときは undefined)
+ */
+export type AsyncOptionRenderer<T> = (option: Options, item: T | undefined) => ReactNode;
+
 export type AsyncOptionListSelectionMode = "multiple" | "single";
 
 export type AsyncOptionListProps = {
