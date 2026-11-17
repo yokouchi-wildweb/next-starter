@@ -110,7 +110,7 @@ HTTP の口と返す形は口のフォルダの README:
 - `sources/`（`source`: `MessageSource`）: 送り元の表示名。上流は管理の送り元 4 つ（`adminSend`・`adminSendTest`・`adminBulk`・`adminBulkTest`）。回の詳細の送り元は `sources/` → 同じ鍵の連絡の `label` → 一括の対象 `<対象>.bulk(.test)` の順に引く（`services/server/admin/sourceLabels.ts`）
 - `bulkSendTargets/`（`bulkSendTarget`: `MessageBulkSendTarget`、型は `services/server/admin/types.ts`）: 管理一覧の一括送信の対象（選んだ記録 → 利用者 id・送った後の処理）。上流は `bankTransferReview`（services/server/admin/README.md）
 - `adminBulkActions/`（`bulkAction`: `MessagingDispatchAdminBulkActionItem`、型は `types/adminBulkAction.ts`、client）: 送信一覧の一括操作（D95）。上流の既定 = `delete.tsx`（削除）。fork は項目を足す・`<名前>.override.ts` で `enabled`・`order`（作り方: src/lib/tableSuite/README.md「一括操作の受け口」）
-- `templates/`（`systemTemplate`: `MessageSystemTemplate`）: システムテンプレート = 管理の送信の白紙とできあがった文面（D117・D119・D125）。上流は 7 本: 種別ごとにシンプル（`announcement`・`direct`・`promotion`、ひな形 simple = 種別の既定の白紙）とリッチ（`…Rich`、ひな形 notice）+ メンテナンスのお知らせ（`maintenance`、専用の埋め込み情報 開始日時・終了日時）。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` だけ（templates/README.md）
+- `templates/`（`systemTemplate`: `MessageSystemTemplate`）: システムテンプレート = 管理の送信の白紙とできあがった文面（D117・D119・D125）。上流は 6 本: 種別ごとにシンプル（`announcement`・`direct`・`promotion`、ひな形 simple = 種別の既定の白紙）とリッチ（`…Rich`、ひな形 notice）。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` と `enabled`（false = 一覧・送る画面・既定の白紙から外す、D122）だけ（templates/README.md）
 - `subscribers/`（`subscriber`: `MessageSubscriber`）: 送った後の事件の購読（少なくとも 1 回）。上流の項目は無い（services/server/subscribers/README.md）
 
 ほかの差し替え:

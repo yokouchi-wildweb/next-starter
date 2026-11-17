@@ -158,7 +158,7 @@ export type AdminSendOptions = {
   }[];
   /** 送れるカテゴリー(種別 announcement・direct・promotion、宛先の種類で絞る。その種別の既定の白紙・最初の送信方法・埋め込み情報の一覧つき) */
   categories: AdminFreeTextCategoryOption[];
-  /** システムテンプレート全部(送る画面がテンプレートとして並べる。種別ごとにシンプル・リッチ + メンテナンス、D119) */
+  /** 使うシステムテンプレート全部(送る画面がテンプレートとして並べる。種別ごとにシンプル・リッチ、切った物は出さない、D119・D122) */
   systemTemplates: AdminSystemTemplateOption[];
   /** 白紙と並べたテンプレートが使うひな形の欄の宣言(門 messagingTemplates の外。送る画面はこれで欄を描く) */
   layouts: AdminSendLayoutOption[];
