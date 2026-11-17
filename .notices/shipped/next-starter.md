@@ -521,3 +521,4 @@
 - id:20261117-181158-test-force-exit | severity:info | checkpoint:test-force-exit | fixes:20261117-173914-test-file-time-limit | pick:clean
 - id:20261117-060703-loading-parts | severity:info | checkpoint:loading-parts
 - id:20261117-094059-list-parts | severity:info | checkpoint:list-parts
+- id:20261117-104950-overlay-parts | severity:info | checkpoint:overlay-parts
