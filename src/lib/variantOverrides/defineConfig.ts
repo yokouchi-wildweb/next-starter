@@ -26,6 +26,7 @@ export function defineVariantOverrides(input: VariantOverridesInput = {}): Varia
     booleanRadioGroup: { ...input.booleanRadioGroup },
     singleCardCheckbox: { ...input.singleCardCheckbox },
     stepperInput: { ...input.stepperInput },
+    input: { ...input.input },
     switchInput: { track: { ...input.switchInput?.track }, indicator: { ...input.switchInput?.indicator } },
     pageTitle: { ...input.pageTitle },
     para: { ...input.para },

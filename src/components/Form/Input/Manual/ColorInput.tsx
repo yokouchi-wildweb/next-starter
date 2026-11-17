@@ -5,10 +5,14 @@ import * as React from "react";
 import { cn } from "@/lib/cn";
 import { Input as ShadcnInput } from "@/components/Primitives/Input";
 
+import { inputVariants, type InputSize } from "./Input";
+
 export type ColorInputProps = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
-  "type" | "value" | "onChange"
+  "type" | "value" | "onChange" | "size"
 > & {
+  /** 高さの段(hex 欄と色の見本の高さ。ボタンの size と同じ名前)@default "md" */
+  size?: InputSize;
   /** カラー値（#rrggbb 形式） */
   value?: string;
   /** 値変更時のコールバック */
@@ -18,6 +22,15 @@ export type ColorInputProps = Omit<
   /** コンパクト表示（スウォッチを縮小し、hexテキスト欄を省いたchip表示） */
   compact?: boolean;
 };
+
+/** 色の見本(hex 欄の左の正方形)は hex 欄と同じ高さの段 */
+const SWATCH_SIZE_CLASSES = {
+  xs: "size-(--control-h-xs)",
+  sm: "size-(--control-h-sm)",
+  md: "size-(--control-h-md)",
+  lg: "size-(--control-h-lg)",
+  xl: "size-(--control-h-xl)",
+} satisfies Record<InputSize, string>;
 
 /**
  * カラー入力コンポーネント
@@ -34,6 +47,7 @@ const ColorInput = React.forwardRef<HTMLInputElement, ColorInputProps>(
       readOnly,
       disabled,
       compact = false,
+      size = "md",
       ...rest
     } = props;
 
@@ -60,7 +74,7 @@ const ColorInput = React.forwardRef<HTMLInputElement, ColorInputProps>(
         disabled={disabled || readOnly}
         className={cn(
           "shrink-0 cursor-pointer rounded-md border border-muted-foreground/50 p-0.5",
-          compact ? "h-8 w-8" : "h-10 w-10",
+          compact ? "h-8 w-8" : SWATCH_SIZE_CLASSES[size],
           (readOnly || disabled) && "cursor-not-allowed opacity-50",
         )}
         {...rest}
@@ -84,7 +98,7 @@ const ColorInput = React.forwardRef<HTMLInputElement, ColorInputProps>(
           disabled={disabled}
           placeholder="#000000"
           maxLength={7}
-          className={cn("h-auto py-3 border-muted-foreground/50 font-mono", inactiveStyles)}
+          className={cn(inactiveStyles, inputVariants({ size, className: "font-mono" }))}
         />
       </div>
     );

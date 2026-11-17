@@ -265,7 +265,8 @@ function GradientDropdown(props: {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="検索..."
               leftIcon={<Search className="size-4" />}
-              className="h-8 text-sm"
+              size="xs"
+              className="text-sm"
             />
           </div>
         )}

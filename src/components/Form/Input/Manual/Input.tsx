@@ -4,10 +4,38 @@ import * as React from "react";
 import { XIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
+import { createOverridableVariants, type InputSize } from "@/lib/variantOverrides";
+import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
 import { Input as ShadcnInput } from "@/components/Primitives/Input";
 import { Button } from "@/components/Form/Button/Button";
 
-export type InputProps = React.ComponentProps<typeof ShadcnInput> & {
+export type { InputSize } from "@/lib/variantOverrides";
+
+/**
+ * 入力欄系の高さ: 操作部品の高さの段 --control-h-<size>(src/styles/core/config.css の :root、ボタンの size と同じ名前)。
+ * 高さを固定して中身を上下中央に置く(py-0)。md は 640px 未満 44px・以上 40px。
+ * 上書きの口 = src/config/ui/variants.config.ts の input(入力欄系で 1 つを共有)。className はさらに後ろで勝つ
+ */
+export const INPUT_SIZE_CLASSES = {
+  xs: "h-(--control-h-xs) py-0",
+  sm: "h-(--control-h-sm) py-0",
+  md: "h-(--control-h-md) py-0",
+  lg: "h-(--control-h-lg) py-0",
+  xl: "h-(--control-h-xl) py-0",
+} satisfies Record<InputSize, string>;
+
+/** 入力欄系の枠と高さの class(Input・ColorInput の hex 欄・Select などの引き金が共有する) */
+export const inputVariants = createOverridableVariants(
+  "border-muted-foreground/50",
+  { variants: { size: INPUT_SIZE_CLASSES }, defaultVariants: { size: "md" } },
+  VARIANT_OVERRIDES.input,
+);
+
+export type InputProps = Omit<React.ComponentProps<typeof ShadcnInput>, "size"> & {
+  /** 高さの段(ボタンの size と同じ名前・同じ高さ)@default "md" */
+  size?: InputSize;
+  /** HTML の size 属性(表示する文字数の目安)。高さの size と分けてここで渡す */
+  htmlSize?: number;
   /** 左側に表示するアイコン */
   leftIcon?: React.ReactNode;
   /** 指定すると値が入力されているとき右端にクリア（×）ボタンを表示する。controlled 入力（value 指定）でのみ動作 */
@@ -15,10 +43,7 @@ export type InputProps = React.ComponentProps<typeof ShadcnInput> & {
 };
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>((props, ref) => {
-  const { className, readOnly, disabled, leftIcon, onClear, ...rest } = props;
-
-  // 共通の基本スタイル
-  const baseStyles = "h-auto py-3 border-muted-foreground/50";
+  const { className, readOnly, disabled, leftIcon, onClear, size, htmlSize, ...rest } = props;
 
   // readOnly または disabled 時のスタイル
   const inactiveStyles =
@@ -32,7 +57,16 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>((props, ref) => {
 
   // アイコンもクリアボタンもない場合はシンプルにinputを返す
   if (!leftIcon && !onClear) {
-    return <ShadcnInput ref={ref} readOnly={readOnly} disabled={disabled} className={cn(baseStyles, inactiveStyles, className)} {...rest} />;
+    return (
+      <ShadcnInput
+        ref={ref}
+        readOnly={readOnly}
+        disabled={disabled}
+        size={htmlSize}
+        className={cn(inactiveStyles, inputVariants({ size, className }))}
+        {...rest}
+      />
+    );
   }
 
   // アイコンやクリアボタンがある場合はラッパーで囲む
@@ -48,7 +82,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>((props, ref) => {
         ref={ref}
         readOnly={readOnly}
         disabled={disabled}
-        className={cn(leftIcon && "pl-10", onClear && "pr-10", baseStyles, inactiveStyles, className)}
+        size={htmlSize}
+        className={cn(leftIcon && "pl-10", onClear && "pr-10", inactiveStyles, inputVariants({ size, className }))}
         {...rest}
       />
       {showClear && (

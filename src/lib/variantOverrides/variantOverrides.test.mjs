@@ -33,6 +33,7 @@ test("defineVariantOverrides は未指定キーを空オブジェクトで埋め
     booleanRadioGroup: {},
     singleCardCheckbox: {},
     stepperInput: {},
+    input: {},
     switchInput: { track: {}, indicator: {} },
     pageTitle: {},
     para: {},

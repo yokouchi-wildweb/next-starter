@@ -1,5 +1,6 @@
 // src/components/Form/types.ts
 
+import type { InputSize } from "@/lib/variantOverrides";
 import {
   type FieldValues,
   type ControllerRenderProps,
@@ -63,7 +64,12 @@ export type ControlledInputProps<
   TName extends FieldPath<TFieldValues>,
 > = {
   field: ControllerRenderProps<TFieldValues, TName>;
-} & InputHTMLAttributes<HTMLInputElement>;
+} & Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
+  /** 高さの段(ボタンの size と同じ名前・同じ高さ、Manual の Input へ渡す)@default "md" */
+  size?: InputSize;
+  /** HTML の size 属性(表示する文字数の目安) */
+  htmlSize?: number;
+};
 
 /**
  * Controlled な textarea コンポーネント用の field 型。

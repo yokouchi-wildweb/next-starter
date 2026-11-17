@@ -39,6 +39,8 @@ export type AxisOverride<Axes extends Record<string, string>> = { base?: string 
 export type CheckControlSize = "sm" | "md" | "lg";
 /** SingleCardCheckbox の色(checkedVariant / uncheckedVariant) */
 export type SingleCardCheckboxColor = "success" | "primary" | "secondary" | "accent" | "destructive" | "muted" | "outline";
+/** 入力欄系(Input とその上の部品・Select などの引き金)の大きさ。名前はボタンの size と共有し、高さは同じ段 --control-h-<名前> */
+export type InputSize = "xs" | "sm" | "md" | "lg" | "xl";
 /** StepperInput の大きさ */
 export type StepperInputSize = "xs" | "s" | "m" | "l";
 /** SwitchInput の色(activeColor / inactiveColor) */
@@ -88,6 +90,8 @@ export type TextAlign = "inherit" | "left" | "center" | "right" | "justify" | "c
 export type CheckControlOverride = AxisOverride<{ size: CheckControlSize }>;
 export type SingleCardCheckboxOverride = AxisOverride<{ size: CheckControlSize; color: SingleCardCheckboxColor }>;
 export type StepperInputOverride = AxisOverride<{ size: StepperInputSize }>;
+/** 入力欄系で共有する 1 つの口(Input・Password・Number・Date・Time・Select の引き金 …) */
+export type InputOverride = AxisOverride<{ size: InputSize }>;
 /** activeColor はオンの間だけ、inactiveColor はオフの間だけ足す(部品の既定の色と同じ効き方) */
 export type SwitchInputTrackOverride = AxisOverride<{
   size: CheckControlSize;
@@ -118,6 +122,7 @@ export type VariantOverridesInput = {
   booleanRadioGroup?: CheckControlOverride;
   singleCardCheckbox?: SingleCardCheckboxOverride;
   stepperInput?: StepperInputOverride;
+  input?: InputOverride;
   switchInput?: { track?: SwitchInputTrackOverride; indicator?: SwitchInputIndicatorOverride };
   pageTitle?: TextBlockOverride;
   para?: TextBlockOverride;
@@ -139,6 +144,7 @@ export type VariantOverrides = {
   booleanRadioGroup: CheckControlOverride;
   singleCardCheckbox: SingleCardCheckboxOverride;
   stepperInput: StepperInputOverride;
+  input: InputOverride;
   switchInput: { track: SwitchInputTrackOverride; indicator: SwitchInputIndicatorOverride };
   pageTitle: TextBlockOverride;
   para: TextBlockOverride;

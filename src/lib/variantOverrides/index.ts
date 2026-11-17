@@ -11,6 +11,8 @@ export type {
   BadgeKindOverride,
   CheckControlOverride,
   CheckControlSize,
+  InputOverride,
+  InputSize,
   SingleCardCheckboxColor,
   SingleCardCheckboxOverride,
   StepperInputOverride,
