@@ -9,7 +9,6 @@ import type { z } from "zod";
 
 import {
   UPSTREAM_CHANNEL_FIELDS,
-  enricherTargets,
   resolveMessageDefinition,
   validateMessageDefinition,
   type ChannelFieldSchemas,
@@ -17,7 +16,6 @@ import {
   type MessageChannel,
   type MessageDefinition,
   type MessageEnricher,
-  type MessageKind,
   type MessageLayout,
   type MessageOverride,
   type MessageRegistry,
@@ -26,6 +24,7 @@ import {
 import { DomainError } from "@/lib/errors";
 
 import { buildContents, type MessageContentDeps } from "./content";
+import { enricherKeysFor } from "./enrichers";
 
 /** 送る口が受ける定義(経路の束は問わない) */
 export type AnyMessageDefinition = MessageDefinition<z.AnyZodObject, ChannelFieldSchemas>;
@@ -38,21 +37,8 @@ export function channelFieldSchemas(channels: Readonly<Record<string, MessageCha
   return fields;
 }
 
-/** その連絡(鍵・種類・種別)に当たる enrichers(当て先 D127) */
-export function enrichersFor(
-  message: { key: string; category: string; kind: MessageKind },
-  enrichers: Readonly<Record<string, MessageEnricher>>,
-): MessageEnricher[] {
-  return Object.values(enrichers).filter((enricher) => enricherTargets(enricher.target, message));
-}
-
-/** その連絡に当たる enrichers の provides の鍵({{鍵}} で使える) */
-export function enricherKeysFor(
-  message: { key: string; category: string; kind: MessageKind },
-  enrichers: Readonly<Record<string, MessageEnricher>>,
-): string[] {
-  return enrichersFor(message, enrichers).flatMap((enricher) => Object.keys(enricher.provides.shape as Record<string, unknown>));
-}
+// 当て先で選ぶ enrichers は ./enrichers.ts(context.ts も使う。輪を作らないよう別のファイル)
+export { enrichersFor, enricherKeysFor } from "./enrichers";
 
 /** 定義を送れる形にする部品(送る口の deps の一部) */
 export type ResolveDefinitionDeps = {

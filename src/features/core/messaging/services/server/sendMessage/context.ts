@@ -11,7 +11,8 @@ import {
 import { DomainError } from "@/lib/errors";
 import { replaceVariables, type VariableMap } from "@/lib/structuredDocument/shared";
 
-import { enrichersFor, type AnyResolvedMessageDefinition } from "./definition";
+import type { AnyResolvedMessageDefinition } from "./definition";
+import { enrichersFor } from "./enrichers";
 import type { MessageSendDeps, MessageUserRow } from "./types";
 
 /** 受信者ごとの値で上書きできない鍵(共通の文脈・まとめた回数) */
