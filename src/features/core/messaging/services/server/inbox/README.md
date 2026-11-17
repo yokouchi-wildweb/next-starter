@@ -7,7 +7,7 @@
 ## API
 
 - `GET /api/me/messaging/inbox?cursor=&limit=&unreadOnly=` → `{ items: InboxItemDto[], nextCursor }`（公開の時刻・id の降順の keyset。`limit` 既定 20・最大 50。`unreadOnly=true|1`。形の誤った `cursor` は 400）
-- `GET /api/me/messaging/inbox/[id]` → `InboxItemDetailDto`（見える行だけ、見えない・無い行は 404。D121・D115）= 一覧の形 + `layout`・`layoutVersion`（今の版）・`values`（書いた時の版から今の版へ読み替え済み）・`fields`（`fieldsForChannel(layout, "inApp")` = お知らせの欄の宣言、汎用の描き方が型を知る）。前の行・記録の段が meta の行・ひな形が無い / 版が読めない行は 4 つとも無い = 要約のカード
+- `GET /api/me/messaging/inbox/[id]` → `InboxItemDetailDto`（見える行だけ、見えない・無い行は 404。D121・D115）= 一覧の形 + `layout`・`layoutVersion`（今の版）・`values`（書いた時の版から今の版へ読み替え済み）・`fields`（`fieldsForChannel(layout, "inApp")` = お知らせの欄の宣言、汎用の描き方が型を知る）。前の行・ひな形が無い / 版が読めない行は 4 つとも無い = 要約のカード（行は記録の段に依らず欄の中身を持つ、D120）
 - `GET /api/me/messaging/inbox/unread-count` → `{ count }`
 - `POST /api/me/messaging/inbox/[id]/read` → `{ ok: true }`（見える行だけ、見えない・無い行は 404）
 - `POST /api/me/messaging/inbox/read-all` → `{ ok: true }`

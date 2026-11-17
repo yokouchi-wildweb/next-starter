@@ -25,8 +25,6 @@ import {
 import { DomainError } from "@/lib/errors";
 import type { VariableMap } from "@/lib/structuredDocument/shared";
 
-import { inboxContentWithoutValues } from "../../../channels/inApp/createInAppChannel";
-
 import { renderValue, toVariableMap } from "./context";
 import type { AnyResolvedMessageDefinition } from "./definition";
 import { messageEmbeddedCatalog } from "./enrichers";
@@ -104,20 +102,19 @@ export async function buildContents(
 }
 
 /**
- * 配達の行 1 つの中身。お知らせ(利用者が後から読む行)は秘密の値を空の字で差し込み(D130)、記録の段が meta・秘密の連絡は欄の中身を残さない
- * (行は要約だけ、指令 60)。ほかの経路は秘密も差し込む(その場で送る)
+ * 配達の行 1 つの中身。お知らせ(利用者が後から読む行)は秘密の値を空の字で差し込む(D130)。行は届けた中身で記録ではないので、
+ * 記録の段・required に依らずひな形・版・欄の中身を残す(D120)。ほかの経路は秘密も差し込む(その場で送る)
  */
 export async function buildRowContent(
   deps: MessageContentDeps,
   resolved: AnyResolvedMessageDefinition,
   channel: string,
   values: Readonly<Record<string, unknown>>,
-  policy: Pick<RecordPolicy, "secretKeys" | "keepRendered">,
+  policy: Pick<RecordPolicy, "secretKeys">,
 ) {
   if (channel !== IN_APP_CHANNEL) return buildContent(deps, resolved, channel, toVariableMap(values));
   const map = { ...toVariableMap(values), ...Object.fromEntries(policy.secretKeys.map((key) => [key, ""])) };
-  const built = await buildContent(deps, resolved, channel, map);
-  return policy.keepRendered ? built : { ...built, content: inboxContentWithoutValues(built.content) };
+  return buildContent(deps, resolved, channel, map);
 }
 
 const IN_APP_CHANNEL = "inApp";
