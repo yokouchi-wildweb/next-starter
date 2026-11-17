@@ -14,6 +14,7 @@ import { UserTable } from "@/features/core/user/entities/drizzle";
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
+import { layoutEmails } from "../../../extensions/layoutEmails";
 import { layouts } from "../../../extensions/layouts";
 import { systemTemplates } from "../../../extensions/systemTemplates";
 import { enrichersFor } from "../sendMessage/definition";
@@ -43,6 +44,11 @@ const service = createTemplateService({
   },
   recordAudit: (input) => auditLogger.record(input),
   systemTemplates: () => systemTemplates,
+  layoutRenderers: () => ({ email: layoutEmails }),
+  channelPreview(channel, input) {
+    const item = channels[channel];
+    return item?.preview ? item.preview({ ...input, messageKey: input.messageKey as never }) : null;
+  },
 });
 
 export const listMessageTemplates = service.listTemplates;
@@ -54,6 +60,7 @@ export const archiveMessageTemplate = service.archiveTemplate;
 export const listMessageTemplateVersions = service.listTemplateVersions;
 export const getMessageTemplateVersion = service.getTemplateVersion;
 export const getMessageTemplateOptions = service.templateOptions;
+export const previewMessageLayout = service.previewLayout;
 
 export { existingTemplateIds } from "./templateRecords";
 export { TEMPLATE_IMAGE_RECORD_TYPE } from "./imageBinding";
@@ -61,4 +68,4 @@ export { adminSelectableLayouts, checkTemplateFields, templateEmbeddedCatalog } 
 export { createTemplateService, isSystemTemplateId, SYSTEM_TEMPLATE_ID_PREFIX } from "./templateService";
 export type { TemplateService, TemplateServiceDeps } from "./templateService";
 export type * from "./dto";
-export type { CreateMessageTemplateInput, ListMessageTemplatesQuery, UpdateMessageTemplateInput } from "./schema";
+export type { CreateMessageTemplateInput, ListMessageTemplatesQuery, PreviewMessageLayoutInput, UpdateMessageTemplateInput } from "./schema";

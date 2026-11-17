@@ -16,13 +16,14 @@ import { randomBytes } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 
 import type { AuditRecordInput } from "@/lib/audit";
-import { layoutVersionOf, upgradeLayoutValues, type MessageEmbeddedDeclaration, type MessageEmbeddedEntry, type MessageSystemTemplate } from "@/lib/messaging";
+import { buildChannelContent, layoutVersionOf, upgradeLayoutValues, type MessageEmbeddedDeclaration, type MessageEmbeddedEntry, type MessageSystemTemplate } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import type { MessageTemplate, MessageTemplateVersion } from "../../../entities/model";
 import { assertAdminActor, type AdminCheckDeps } from "../admin/assertAdmin";
 import { adminSelectableLayouts, checkTemplateFields, templateEmbeddedCatalog, type TemplateCheckDeps } from "./checks";
 import type {
+  AdminLayoutPreview,
   AdminEmbeddedEntry,
   AdminTemplateDetail,
   AdminTemplateOptions,
@@ -34,6 +35,7 @@ import { bindTemplateImages, type TemplateImageLedger } from "./imageBinding";
 import {
   CreateMessageTemplateInputSchema,
   ListMessageTemplatesQuerySchema,
+  PreviewMessageLayoutInputSchema,
   UpdateMessageTemplateInputSchema,
 } from "./schema";
 import type { MessageTemplateStore } from "./types";
@@ -46,7 +48,17 @@ export type TemplateServiceDeps<Tx> = AdminCheckDeps & {
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
   /** システムテンプレートの受け口(無い = 一覧に並べない) */
   systemTemplates?: () => Readonly<Record<string, MessageSystemTemplate>>;
+  /** 経路の鍵 → ひな形の描き方を持つひな形の鍵の表(email = layoutEmails。プレビューが 3 段の 1 段目を選ぶのに使う) */
+  layoutRenderers?: () => Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  /** 経路のプレビュー(経路の受け口の preview。無い経路は html なし) */
+  channelPreview?: (
+    channel: string,
+    input: { messageKey: string; content: unknown; category?: string },
+  ) => Promise<{ html?: string; text?: string }> | null;
 };
+
+/** プレビューで経路へ渡す連絡の鍵(テンプレートの回と同じ。停止のリンクの見本に使うだけ) */
+const PREVIEW_MESSAGE_KEY = "messaging.template";
 
 /** システムテンプレートの id の頭(DB のテンプレートの id は uuid) */
 export const SYSTEM_TEMPLATE_ID_PREFIX = "system:";
@@ -426,6 +438,9 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           key: category.key,
           label: category.label,
           description: category.description ?? null,
+          kind: category.kind,
+          // その種類で送る経路(受け口にあり使える物だけ。プレビューのタブと経路だけの欄はこの分、D115)
+          channels: category.channels.filter((key) => check.channels[key] && check.channels[key].enabled !== false),
         })),
         layouts: adminSelectableLayouts(check).map((layout) => ({
           key: layout.key,
@@ -435,6 +450,53 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           fields: layout.fields,
         })),
         baseCatalog: catalogOf([]),
+      };
+    },
+
+    /**
+     * ひな形のプレビュー(作る・直す・送る画面、D114): 管理者が選べるひな形と欄の中身(保存しない)を経路 1 つで描く。
+     * 描き方は送る口と同じ 3 段(buildChannelContent)、メールは経路の preview が送る HTML を返す。{{名前}} は差し込まずそのまま見せる。
+     * 描けない(3 段のどれでも描けない)時は cannotRender に理由。保存しない・回を作らない
+     */
+    async previewLayout(input: unknown): Promise<AdminLayoutPreview> {
+      await assertAdminActor(deps);
+      const parsed = PreviewMessageLayoutInputSchema.safeParse(input);
+      if (!parsed.success) throw new DomainError("プレビューの入力が正しくありません", { status: 400 });
+      const { layout: layoutKey, channel: channelKey, values, category } = parsed.data;
+      const check = deps.check();
+      const layout = check.layouts[layoutKey];
+      if (!layout || layout.adminSelectable !== true) throw new DomainError("選べないひな形です", { status: 400 });
+      const channel = check.channels[channelKey];
+      if (!channel || channel.enabled === false) throw new DomainError("使えない送信方法です", { status: 400 });
+      if (category && !check.categories[category]) throw new DomainError("知らない種類です", { status: 400 });
+      const built = await buildChannelContent({
+        layout,
+        channelKey,
+        channel,
+        hasLayoutRenderer: Boolean(deps.layoutRenderers?.()[channelKey]?.[layout.key]),
+        values,
+      });
+      if ("cannotRender" in built) {
+        return { channel: channelKey, html: null, text: null, title: null, summary: null, cannotRender: built.cannotRender };
+      }
+      let summary: AdminLayoutPreview["summary"] = null;
+      try {
+        summary = layout.summary(values);
+      } catch {
+        summary = null;
+      }
+      const rendered = await deps.channelPreview?.(channelKey, {
+        messageKey: PREVIEW_MESSAGE_KEY,
+        content: built.content,
+        ...(category ? { category } : {}),
+      });
+      return {
+        channel: channelKey,
+        html: rendered?.html ?? null,
+        text: rendered?.text ?? null,
+        title: built.title,
+        summary,
+        cannotRender: null,
       };
     },
   };

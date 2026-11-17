@@ -10,6 +10,7 @@ import axios from "axios";
 import { normalizeHttpError } from "@/lib/errors";
 
 import type {
+  AdminLayoutPreview,
   AdminTemplateDetail,
   AdminTemplateOptions,
   AdminTemplatePage,
@@ -18,18 +19,21 @@ import type {
 } from "@/features/core/messaging/services/server/templates/dto";
 import type {
   CreateMessageTemplateInput,
+  PreviewMessageLayoutInput,
   UpdateMessageTemplateInput,
 } from "@/features/core/messaging/services/server/templates/schema";
 
 const BASE = "/api/admin/messaging/templates";
 
 export type {
+  AdminLayoutPreview,
   AdminTemplateDetail,
   AdminTemplateOptions,
   AdminTemplatePage,
   AdminTemplateSummary,
   AdminTemplateVersion,
   CreateMessageTemplateInput,
+  PreviewMessageLayoutInput,
   UpdateMessageTemplateInput,
 };
 
@@ -126,5 +130,15 @@ export async function getMessageTemplateVersion(id: string, version: number): Pr
     return res.data;
   } catch (error) {
     throw normalizeHttpError(error, "版の取得に失敗しました");
+  }
+}
+
+/** ひな形のプレビュー(保存しない中身を経路 1 つで描く。テンプレートと送る画面が使う、D114) */
+export async function previewMessageLayout(input: PreviewMessageLayoutInput): Promise<AdminLayoutPreview> {
+  try {
+    const res = await axios.post<AdminLayoutPreview>("/api/admin/messaging/layouts/preview", input);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "プレビューを作れませんでした");
   }
 }

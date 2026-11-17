@@ -1,48 +1,43 @@
 // src/features/core/messaging/components/AdminMessageTemplateModal/index.tsx
 // セクションコンテナ(管理: テンプレートを作る・直すモーダル。D87)。開閉は置き場が持つ(open・onOpenChange・templateId)。
-// タブ: 文言(左 = プレビュー、右 = 操作のペイン: 名前・説明・カテゴリー・使える {{鍵}} の案内・中身)/ 専用の埋め込み情報 / 版の履歴(直す時だけ)。
-// S5 で作り直すまでの最小の形(指令 58): ひな形は notice に固定し、中身はメールの欄の部品で書く(保存の時に notice の欄の中身へ読み替える)。
-// カテゴリーの選択肢は API の options(種別 announcement・direct・marketing の物だけ。保存の検査はサーバー)。
-// 操作の後は onChanged(返った 1 件と操作)を呼ぶ: 一覧が行を足す・置き換える。作った直後・1 件を取る間は読み込み中を出す。
-// 鍵はサーバーが作る(運営する人に打たせない、D46)。
-// 操作(下の帯): 取り下げ・公開(ConfirmPopover)・保存。作った後は同じモーダルでその 1 件を直す形に変わる(ページは移らない)。
-// 流れは hook useMessageTemplateModal(取る物・タブ・作った後)と useMessageTemplateForm(書く欄・操作)。部品は公開の部品だけなので、
-// fork は自分の画面にも同じモーダルを置ける。書きかけのまま閉じる = confirmOnClose、ページの移動 = hook の中の @/lib/unsavedGuard
+// タブ: 内容 / バージョン履歴(直す時だけ)。変数のタブは無い(専用の埋め込み情報はボタンのモーダル、D111)。
+// 内容 = 左右 2 つのペイン(D114): 左 = 一番上でひな形を選び、その下に実際の描き方のプレビュー(経路のタブ、未入力は仮の文)。
+//   右 = 名前・説明・種別 →(カテゴリー: 2 つ以上の時だけ)→ ひな形の欄の入力・埋め込み情報のタグと『専用の埋め込み情報を管理』(D115)。
+//   狭い画面は操作が上、プレビューがその下
+// ひな形を替えると、中身があれば確かめてから消す(D113)。保存 = 新しいバージョン(D113)。
+// システムテンプレート(白紙)とアーカイブした物は読むだけ(D117)。
+// 操作の後は onChanged(返った 1 件と操作)を呼ぶ: 一覧が行を足す・置き換える。作った後は同じモーダルでその 1 件を直す形に変わる。
+// 流れは hook useMessageTemplateModal(取る物・タブ・作った後)・useMessageTemplateForm(書く欄・操作)・useLayoutPreview(プレビュー)・
+// useEmbeddedInfoTags(タグ)。部品は公開の部品だけなので、fork は自分の画面にも同じモーダルを置ける。
+// 書きかけのまま閉じる = confirmOnClose、ページの移動 = hook の中の @/lib/unsavedGuard
 
 "use client";
 
-import { useState } from "react";
-
+import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
 import { Input, SelectInput, Textarea } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
+import Dialog from "@/components/Overlays/Dialog";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import Modal from "@/components/Overlays/Modal";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import TabbedModal from "@/components/Overlays/TabbedModal";
 import { Para } from "@/components/TextBlocks/Para";
-import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
-import { StateTabs, StateTabsContent } from "@/components/Navigation/StateTabs";
-import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { err } from "@/lib/errors";
 
-import { AllowedKeysHint } from "@/features/core/messaging/components/common/AllowedKeysHint";
-import { ChannelPreview } from "@/features/core/messaging/components/common/ChannelPreview";
-import { TemplateChannelFields } from "@/features/core/messaging/components/common/TemplateChannelFields";
+import { EmbeddedInfoTags } from "@/features/core/messaging/components/common/EmbeddedInfoTags";
+import { LayoutFields } from "@/features/core/messaging/components/common/LayoutFields";
+import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
+import { TemplateEmbeddedInfoModal } from "@/features/core/messaging/components/common/TemplateEmbeddedInfoModal";
 import { TemplateStatusBadge } from "@/features/core/messaging/components/common/TemplateStatusBadge";
-import { TemplateVariablesEditor } from "@/features/core/messaging/components/common/TemplateVariablesEditor";
 import { TemplateVersionList } from "@/features/core/messaging/components/common/TemplateVersionList";
-import {
-  emptyChannelContent,
-  TEMPLATE_EDITOR_CHANNEL,
-  useMessageTemplateForm,
-  type MessageTemplateAction,
-} from "@/features/core/messaging/hooks/useMessageTemplateForm";
+import { useEmbeddedInfoTags } from "@/features/core/messaging/hooks/useEmbeddedInfoTags";
+import { useLayoutPreview } from "@/features/core/messaging/hooks/useLayoutPreview";
+import { useMessageTemplateForm, type MessageTemplateAction } from "@/features/core/messaging/hooks/useMessageTemplateForm";
 import { useMessageTemplateModal } from "@/features/core/messaging/hooks/useMessageTemplateModal";
-import { useCopyMessageVariable } from "@/features/core/messaging/hooks/useCopyMessageVariable";
 import type { AdminTemplateDetail } from "@/features/core/messaging/services/client/templateClient";
 
 export type AdminMessageTemplateModalProps = {
@@ -50,7 +45,7 @@ export type AdminMessageTemplateModalProps = {
   onOpenChange: (open: boolean) => void;
   /** 直す 1 件の id(null・省略 = 作る) */
   templateId?: string | null;
-  /** 作る・保存・公開・取り下げの後(返った 1 件と操作。一覧の取り直し・行の置き換えに使う) */
+  /** 作る・保存・取り下げの後(返った 1 件と操作。一覧の取り直し・行の置き換えに使う) */
   onChanged?: (template: AdminTemplateDetail, action: MessageTemplateAction) => void;
 };
 
@@ -75,7 +70,7 @@ export function AdminMessageTemplateModal({ open, onOpenChange, templateId = nul
     );
   }
 
-  // 書く欄は開いた回・1 件の版ごとに作り直す(保存・公開の後はサーバーの値になる)
+  // 書く欄は開いた回・1 件の版ごとに作り直す(保存の後はサーバーの値になる)
   return <TemplateModalBody key={m.formKey} modal={m} options={m.options} open={open} onOpenChange={onOpenChange} />;
 }
 
@@ -94,101 +89,70 @@ function TemplateModalBody({
 }) {
   const { template, versions } = modal;
   const form = useMessageTemplateForm({ template, options, onCreated: modal.onCreated, onChanged: modal.onChanged });
-  const copyKey = useCopyMessageVariable();
-  const { fields } = form;
-  const { execute: save, isExecuting: isSaving } = useAsyncAction(form.save);
-  const locked = form.archived;
+  const { fields, embeddedEditor } = form;
+  const preview = useLayoutPreview({
+    layout: fields.layout || null,
+    fields: form.layoutFields,
+    values: form.values,
+    channels: fields.channels,
+    category: fields.category || null,
+    enabled: open,
+  });
+  const tags = useEmbeddedInfoTags({ catalog: form.catalog });
+  const locked = form.readOnly;
 
-  const fieldMetaOf = (key: string) => options.channels.find((channel) => channel.key === key)?.fieldMeta ?? {};
-  // 経路は選ばない(D85)。中身はメールの欄の部品で書く(notice の欄の中身に読み替える。S5 でひな形の欄の部品に替える)
-  const channelChoices = [
-    options.channels.find((channel) => channel.key === TEMPLATE_EDITOR_CHANNEL) ?? {
-      key: TEMPLATE_EDITOR_CHANNEL,
-      label: "メール",
-      fieldMeta: {},
-      previewComponent: null,
-    },
-  ];
-  // 2 つの欄(D80): 今の経路のタブと入力中の欄(プレビューの枠)。画面の中だけの状態
-  const [channelState, setActiveChannel] = useState<string | null>(null);
-  const activeChannel = channelState ?? channelChoices[0]?.key ?? "";
-  const [focusedPath, setFocusedPath] = useState<string | null>(null);
-
-  const footer = (
-    <Stack space={1}>
-      <Flex justify="end" gap="xs" wrap="wrap">
-        {template && !locked ? (
-          <ConfirmPopover
-            trigger={
-              <Button type="button" size="sm" variant="outline" disabled={form.dirty}>
-                アーカイブ
-              </Button>
-            }
-            title="アーカイブ"
-            description="アーカイブすると、このテンプレートは編集も公開もできなくなります(バージョン履歴は残ります)。"
-            confirmLabel="アーカイブする"
-            confirmVariant="destructive"
-            onConfirm={form.archive}
-          />
-        ) : null}
-        {template && !locked ? (
-          <ConfirmPopover
-            trigger={
-              <Button type="button" size="sm" variant="outline" disabled={!form.canPublish}>
-                公開
-              </Button>
-            }
-            title="公開"
-            description="現在の内容を新しいバージョンとして公開します。公開したバージョンは変更できません。"
-            confirmLabel="公開する"
-            onConfirm={form.publish}
-          />
-        ) : null}
-        {!locked ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="primary"
-            disabled={isSaving || !form.dirty || form.unknownKeys.length > 0}
-            onClick={() => void save()}
-          >
-            {isSaving ? <Spinner className="size-4" /> : null}
-            {template ? "保存" : "下書きを作成"}
-          </Button>
-        ) : null}
-      </Flex>
-      {form.dirty && template ? (
-        <Para size="sm" tone="muted" align="right" className="my-0">
-          公開する前に保存してください
-        </Para>
+  const footer = locked ? null : (
+    <Flex justify="end" gap="xs" wrap="wrap">
+      {template ? (
+        <ConfirmPopover
+          trigger={
+            <Button type="button" size="sm" variant="outline" disabled={form.dirty}>
+              アーカイブ
+            </Button>
+          }
+          title="アーカイブ"
+          description="アーカイブすると、このテンプレートは編集も送信もできなくなります(バージョン履歴は残ります)。"
+          confirmLabel="アーカイブする"
+          confirmVariant="destructive"
+          onConfirm={form.archive}
+        />
       ) : null}
-    </Stack>
-  );
-
-  // 内容のタブ = 左右 2 つのペイン(D80): 左 = プレビュー(スクロールしても上に留まる)、右 = 操作(状態・名前など・使える変数・送信方法のタブと文言)。
-  // 狭い画面は操作が上、プレビューがその下
-  const preview =
-    channelChoices.length > 0 ? (
-      <ChannelPreview
-        channel={channelChoices.find((choice) => choice.key === activeChannel) ?? { key: activeChannel, label: activeChannel }}
-        values={fields.content[activeChannel] ?? emptyChannelContent(activeChannel)}
-        fieldMeta={fieldMetaOf(activeChannel)}
-        focusedPath={focusedPath}
+      <ConfirmPopover
+        trigger={
+          <Button type="button" size="sm" variant="primary" disabled={!form.dirty}>
+            保存
+          </Button>
+        }
+        title="保存"
+        description="現在の内容をこのテンプレートの新しいバージョンとして保存します。保存したバージョンは変更できません。"
+        confirmLabel="保存する"
+        onConfirm={form.save}
       />
-    ) : null;
+    </Flex>
+  );
 
   const textTab = (
     <Flex direction="column" gap="lg" className="md:flex-row-reverse md:items-start" data-slot="template-editor">
       <Stack space={4} className="min-w-0 md:w-1/2" data-slot="template-editor-controls">
         {template ? (
           <Flex align="center" gap="xs" wrap="wrap">
-            <TemplateStatusBadge
-              status={template.status}
-              currentVersion={template.currentVersion}
-              hasUnpublishedChanges={template.hasUnpublishedChanges}
-              size="md"
-            />
-            {locked ? (
+            {form.system ? (
+              <SoftBadge variant="secondary" size="md">
+                システム(読むだけ)
+              </SoftBadge>
+            ) : (
+              <TemplateStatusBadge
+                status={template.status}
+                currentVersion={template.currentVersion}
+                hasUnpublishedChanges={template.hasUnpublishedChanges}
+                size="md"
+              />
+            )}
+            {form.system ? (
+              <Para size="sm" tone="muted" className="my-0">
+                システムのテンプレートは編集できません(送る画面で白紙として使います)
+              </Para>
+            ) : form.archived ? (
               <Para size="sm" tone="muted" className="my-0">
                 アーカイブ済みのテンプレートは編集できません(バージョン履歴は残ります)
               </Para>
@@ -210,79 +174,98 @@ function TemplateModalBody({
             <Textarea id="template-description" value={fields.description} rows={2} disabled={locked} onChange={(e) => fields.setDescription(e.target.value)} />
           </Stack>
           <Stack space={1}>
-            <Label htmlFor="template-category" className="text-sm">
-              カテゴリー
+            <Label htmlFor="template-kind" className="text-sm">
+              種別
             </Label>
             <SelectInput
-              id="template-category"
-              value={fields.category}
+              id="template-kind"
+              value={fields.kind}
               disabled={locked}
-              options={options.categories.map((category) => ({ value: category.key, label: category.label }))}
-              onChange={(v) => fields.setCategory(v ? String(v) : "")}
+              options={fields.kindOptions}
+              showPlaceholderOption={false}
+              onChange={(v) => fields.setKind(v ? String(v) : "")}
             />
           </Stack>
+          {fields.showCategory ? (
+            <Stack space={1}>
+              <Label htmlFor="template-category" className="text-sm">
+                カテゴリー
+              </Label>
+              <SelectInput
+                id="template-category"
+                value={fields.category}
+                disabled={locked}
+                options={fields.categoryChoices}
+                placeholder="カテゴリーを選択"
+                onChange={(v) => fields.setCategory(v ? String(v) : "")}
+              />
+            </Stack>
+          ) : null}
         </Stack>
 
-        <Stack space={2} className="rounded-md border border-border bg-muted/30 p-4">
-          <AllowedKeysHint allowedKeys={form.allowedKeys} unknownKeys={form.unknownKeys} onCopyKey={copyKey} />
+        <Stack space={3} className="rounded-md border border-border bg-muted/30 p-4" data-slot="template-embedded">
+          <EmbeddedInfoTags common={tags.common} own={tags.own} onCopy={tags.copy} unknownNames={form.unknownNames} />
+          <Flex>
+            <Button type="button" size="sm" variant="outline" onClick={embeddedEditor.openEditor}>
+              専用の埋め込み情報を管理{embeddedEditor.count > 0 ? `(${embeddedEditor.count})` : ""}
+            </Button>
+          </Flex>
         </Stack>
 
-        {channelChoices.length > 0 ? (
-          <Stack space={2} data-slot="template-channels">
-            <StateTabs
-              tabs={channelChoices.map((channel) => ({ value: channel.key, label: channel.label }))}
-              value={activeChannel}
-              onValueChange={setActiveChannel}
-              ariaLabel="送信方法"
-              size="sm"
-            >
-              <StateTabsContent value={activeChannel} className="pt-3">
-                <TemplateChannelFields
-                  channel={activeChannel}
-                  fieldMeta={fieldMetaOf(activeChannel)}
-                  value={fields.content[activeChannel] ?? emptyChannelContent(activeChannel)}
-                  onChange={(value) => fields.setChannelContent(activeChannel, value)}
-                  onFocusField={setFocusedPath}
-                  disabled={locked}
-                />
-              </StateTabsContent>
-            </StateTabs>
-            <Para size="sm" tone="muted" className="my-0">
-              ここで書いた内容は汎用のお知らせとして全ての送信方法で使われます(実際の送信方法は送信時のカテゴリーで決まります)
-            </Para>
-          </Stack>
-        ) : null}
+        <Stack space={2} className="rounded-md border border-border bg-card p-4" data-slot="template-values">
+          {form.layoutFields ? (
+            <LayoutFields control={form.valuesForm.control} fields={form.layoutFields} channels={fields.channels} readOnly={locked} />
+          ) : (
+            <Span size="sm" tone="muted">
+              ひな形を選ぶと入力欄が出ます
+            </Span>
+          )}
+        </Stack>
       </Stack>
 
-      <Stack space={2} className="min-w-0 md:sticky md:top-0 md:w-1/2" data-slot="template-editor-preview">
+      <Stack space={3} className="min-w-0 md:sticky md:top-0 md:w-1/2" data-slot="template-editor-preview">
+        <Stack space={1}>
+          <Label htmlFor="template-layout" className="text-sm">
+            ひな形
+          </Label>
+          <SelectInput
+            id="template-layout"
+            value={fields.layout}
+            disabled={locked}
+            options={fields.layoutOptions.map((item) => ({ value: item.value, label: item.label }))}
+            placeholder="ひな形を選択"
+            onChange={(v) => fields.requestLayoutChange(v ? String(v) : "")}
+          />
+          {fields.layoutOptions.find((item) => item.value === fields.layout)?.description ? (
+            <Span size="xs" tone="muted">
+              {fields.layoutOptions.find((item) => item.value === fields.layout)?.description}
+            </Span>
+          ) : null}
+        </Stack>
         <Span size="sm" weight="semiBold">
           プレビュー
         </Span>
-        {preview}
+        <LayoutPreview
+          layout={preview.layout}
+          channels={preview.channels}
+          channel={preview.channel}
+          onChannelChange={preview.setChannel}
+          content={preview.content}
+          loading={preview.loading}
+          error={preview.error}
+        />
       </Stack>
     </Flex>
   );
 
   const tabs = [
     { value: "text", label: "内容", content: textTab },
-    {
-      value: "variables",
-      label: "埋め込み情報",
-      content: (
-        <Stack space={3}>
-          <Para size="sm" tone="muted" className="my-0">
-            定義した埋め込み情報は、内容の中で {"{{鍵}}"} か {"{{別名}}"} として使えます(値は送信時に入力します)
-          </Para>
-          <TemplateVariablesEditor value={fields.variables} onChange={fields.setVariables} disabled={locked} />
-        </Stack>
-      ),
-    },
-    ...(template
+    ...(template && !form.system
       ? [
           {
             value: "versions",
             label: "バージョン履歴",
-            content: <TemplateVersionList versions={versions} currentVersion={template.currentVersion} />,
+            content: <TemplateVersionList versions={versions} currentVersion={template.currentVersion} layouts={options.layouts} />,
             footer: null,
           },
         ]
@@ -290,17 +273,45 @@ function TemplateModalBody({
   ];
 
   return (
-    <TabbedModal
-      open={open}
-      onOpenChange={onOpenChange}
-      title={template ? `テンプレートを編集: ${template.name}` : "テンプレートを作成"}
-      maxWidth={MODAL_WIDTH}
-      tabs={tabs}
-      value={modal.tab}
-      onValueChange={modal.setTab}
-      ariaLabel="テンプレートのタブ"
-      footer={footer}
-      confirmOnClose={form.closeConfirm}
-    />
+    <>
+      <TabbedModal
+        open={open}
+        onOpenChange={onOpenChange}
+        title={template ? `テンプレートを編集: ${template.name}` : "テンプレートを作成"}
+        maxWidth={MODAL_WIDTH}
+        tabs={tabs}
+        value={modal.tab}
+        onValueChange={modal.setTab}
+        ariaLabel="テンプレートのタブ"
+        footer={footer}
+        confirmOnClose={form.closeConfirm}
+      />
+      <Dialog
+        open={fields.pendingLayout !== null}
+        onOpenChange={(next) => {
+          if (!next) fields.cancelLayoutChange();
+        }}
+        title="ひな形を変更"
+        description="ひな形を変えると、入力中の内容はすべて消えます。よろしいですか？"
+        showCancelButton
+        showConfirmButton
+        confirmLabel="変更する"
+        confirmVariant="destructive"
+        onConfirm={fields.confirmLayoutChange}
+      />
+      <TemplateEmbeddedInfoModal
+        open={embeddedEditor.open}
+        onOpenChange={embeddedEditor.setOpen}
+        rows={embeddedEditor.rows}
+        onUpdateRow={embeddedEditor.updateRow}
+        onAddRow={embeddedEditor.addRow}
+        onRemoveRow={embeddedEditor.removeRow}
+        onApply={() => {
+          embeddedEditor.apply();
+        }}
+        errors={embeddedEditor.errors}
+        readOnly={locked}
+      />
+    </>
   );
 }

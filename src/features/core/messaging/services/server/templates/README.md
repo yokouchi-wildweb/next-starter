@@ -17,7 +17,8 @@ admin のみ。返す形は `dto.ts`（一覧・版の DTO は `categoryLabel` =
 - 版: `{ version, layout, layoutVersion, values, embedded, category, categoryLabel, editedBy, createdAt }`
 
 - `GET /`（`status`・`cursor`・`limit`）/ `POST /` 作る / `GET・PATCH /[id]` / `POST /[id]/publish` / `POST /[id]/archive` / `GET /[id]/versions`（新しい順）/ `GET /[id]/versions/[version]`
-- `GET /options`: 有効な経路・種類 `{ key, label, description }`（種別 announcement・direct・promotion の種類だけ）・`layouts`（管理者が選べるひな形 `{ key, label, description, version, fields }`）・`baseCatalog`（専用の宣言の前から書ける埋め込み情報）。どれも受け口なので fork の物も入る
+- `GET /options`: 有効な経路・種類 `{ key, label, description, kind, channels }`（`kind` = 種別、画面は種別 →（種類）の順に選ぶ。`channels` = その種類で送る使える経路、プレビューのタブと経路だけの欄はこの分、D115）（種別 announcement・direct・promotion の種類だけ）・`layouts`（管理者が選べるひな形 `{ key, label, description, version, fields }`）・`baseCatalog`（専用の宣言の前から書ける埋め込み情報）。どれも受け口なので fork の物も入る
+- `POST /api/admin/messaging/layouts/preview`（`previewMessageLayout`、門 `messagingTemplates` か `messagingBroadcast` が開）: `{ layout, channel, category?, values }` を保存せずに描く。管理者が選べるひな形だけ、描き方は送る口と同じ 3 段（`buildChannelContent`、メールはひな形の描き方 `layoutEmails` があればそれ）、経路の `preview` が送る HTML を返す。`{{名前}}` は差し込まずそのまま。返す形 `{ channel, html, text, title, summary, cannotRender }`（描けなければ `cannotRender` に理由、D114・D124）
 - 監査: `messaging.template.created` / `updated` / `published`（版の番号）/ `archived`（対象 `message_template`）
 
 ### システムテンプレート
