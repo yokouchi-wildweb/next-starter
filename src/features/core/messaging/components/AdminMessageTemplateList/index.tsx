@@ -10,7 +10,8 @@ import { AlignLeft } from "lucide-react";
 
 import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
-import { SwitchInput } from "@/components/Form/Input/Manual";
+import { SelectInput, SwitchInput } from "@/components/Form/Input/Manual";
+import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
@@ -33,12 +34,16 @@ const when = (iso: string | null) => {
 };
 
 export function AdminMessageTemplateList() {
-  const { query, modal } = useAdminMessageTemplateList({ observerOptions: OBSERVER_OPTIONS });
+  const { kind, setKind, query, modal } = useAdminMessageTemplateList({ observerOptions: OBSERVER_OPTIONS });
   // システムテンプレートを見せるか(画面の中だけの見せ方。既定は隠す)。システムテンプレートはサーバーが 1 ページ目の頭にだけ付けるので、
   // 行を隠しても次のページの取り方は変わらない
   const [showSystem, setShowSystem] = useState(false);
   // 種別の表示名: システムテンプレートは自分の種別、ほかはカテゴリーの受け口の種別から(送信一覧と同じ「種別 › カテゴリー」)
   const categories = useAdminDispatchCategories();
+  // 種別の絞り込みの選択肢 = 管理画面から送れるカテゴリーの種別(重ねない、表の並び)
+  const kindOptions = (Object.keys(MESSAGE_KIND_LABELS) as (keyof typeof MESSAGE_KIND_LABELS)[])
+    .filter((key) => categories.categories.some((category) => category.kind === key))
+    .map((key) => ({ value: key, label: MESSAGE_KIND_LABELS[key] }));
   const kindLabelOf = (template: { kind: string | null; category: string }) => {
     const kind = template.kind ?? categories.categories.find((category) => category.key === template.category)?.kind ?? null;
     return kind && kind in MESSAGE_KIND_LABELS ? MESSAGE_KIND_LABELS[kind as keyof typeof MESSAGE_KIND_LABELS] : null;
@@ -49,6 +54,18 @@ export function AdminMessageTemplateList() {
     <Stack space={4}>
       <Flex align="end" justify="between" gap="sm" wrap="wrap">
         <Flex align="end" gap="md" wrap="wrap">
+          <Stack space={1}>
+            <Label htmlFor="template-filter-kind" className="text-xs">
+              種別
+            </Label>
+            <SelectInput
+              id="template-filter-kind"
+              value={kind}
+              onChange={(v) => setKind(v ? String(v) : "")}
+              options={kindOptions}
+              placeholder="すべて"
+            />
+          </Stack>
           <SwitchInput
             id="template-filter-system"
             size="sm"
