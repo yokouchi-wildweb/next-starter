@@ -56,6 +56,8 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   metadata: Record<string, unknown> | null;
   templateId: string | null;
   templateVersion: number | null;
+  /** テンプレートから送った回で、そのテンプレートが消された(版の番号はあり template_id が null、D137)。画面は「削除されたテンプレート」と出す */
+  templateDeleted: boolean;
   /** 版の文言を直して送った回か(D85) */
   templateEdited: boolean;
   /** 白紙のシステムテンプレートから送った回の鍵(D128。ほかの回は null) */
@@ -177,6 +179,7 @@ export function toDispatchDetail(
     metadata: row.metadata,
     templateId: row.template_id,
     templateVersion: row.template_version,
+    templateDeleted: row.template_id === null && row.template_version !== null,
     templateEdited: row.template_edited,
     systemTemplate: row.system_template,
     content: row.values && row.layout ? { layout: row.layout, layoutVersion: row.layout_version ?? null, values: row.values } : null,

@@ -29,8 +29,8 @@ import { getInboxItem, inboxUnreadCount, listInbox, markAllInboxRead, markInboxR
 import { getMessageOverrides, listMessageOverrides, previewMessageOverride, resetMessageOverride, saveMessageOverride } from "./overrides";
 import { getMessagePreferences, setMessagePreference } from "./preferences";
 import {
-  archiveMessageTemplate,
   createMessageTemplate,
+  deleteMessageTemplate,
   getMessageTemplate,
   getMessageTemplateVersion,
   listMessageTemplates,
@@ -119,7 +119,7 @@ export const messagingService = {
   getMessageTemplate,
   createMessageTemplate,
   updateMessageTemplate,
-  archiveMessageTemplate,
+  deleteMessageTemplate,
   listMessageTemplateVersions,
   getMessageTemplateVersion,
 } as const;

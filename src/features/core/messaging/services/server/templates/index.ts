@@ -20,6 +20,7 @@ import { systemTemplates } from "../../../extensions/systemTemplates";
 import { enrichersFor } from "../sendMessage/definition";
 import { adminSendableKinds } from "../sendMessage/systemTemplates";
 import { TEMPLATE_MESSAGE_KEY } from "../sendMessage/templateDefinition";
+import { storageInboxImageLedger } from "../inbox/imageBindingLedger";
 import { storageTemplateImageLedger } from "./imageBindingLedger";
 import { drizzleMessageTemplateStore } from "./store";
 import { createTemplateService } from "./templateService";
@@ -36,6 +37,7 @@ function templateEnrichers() {
 const service = createTemplateService({
   store: drizzleMessageTemplateStore,
   ledger: storageTemplateImageLedger,
+  dispatchLedger: storageInboxImageLedger,
   check: () => ({ channels, categories, layouts, enrichers: templateEnrichers() }),
   context: () => getAuditContext(),
   async roleCategoryOf(userId) {
@@ -55,7 +57,7 @@ export const listMessageTemplates = service.listTemplates;
 export const getMessageTemplate = service.getTemplate;
 export const createMessageTemplate = service.createTemplate;
 export const updateMessageTemplate = service.updateTemplate;
-export const archiveMessageTemplate = service.archiveTemplate;
+export const deleteMessageTemplate = service.deleteTemplate;
 export const listMessageTemplateVersions = service.listTemplateVersions;
 export const getMessageTemplateVersion = service.getTemplateVersion;
 export const getMessageTemplateOptions = service.templateOptions;

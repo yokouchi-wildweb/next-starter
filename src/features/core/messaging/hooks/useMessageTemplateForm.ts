@@ -35,7 +35,7 @@ import { useUnsavedGuard } from "@/lib/unsavedGuard";
 
 import { MESSAGE_KIND_LABELS } from "../constants/kindLabels";
 import {
-  archiveMessageTemplate,
+  deleteMessageTemplate,
   createMessageTemplate,
   updateMessageTemplate,
   type AdminTemplateDetail,
@@ -72,7 +72,7 @@ export type UseMessageTemplateFormOptions = {
 };
 
 /** テンプレートの操作 */
-export type MessageTemplateAction = "create" | "update" | "publish" | "archive";
+export type MessageTemplateAction = "create" | "update" | "publish" | "delete";
 
 /** 空か(文字は空白だけ・並びは 0 個・object は中が全部空) */
 function isEmptyValue(value: unknown): boolean {
@@ -153,9 +153,8 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   const { showToast } = useToast();
   const { mutate } = useSWRConfig();
   const id = template?.id ?? null;
-  const archived = template?.status === "archived";
   const system = Boolean(template?.system);
-  const readOnly = system || archived;
+  const readOnly = system;
 
   const categories = useMemo(() => options?.categories ?? [], [options]);
   /** 種別の選択肢(種類のある物だけ、lib の並び) */
@@ -294,9 +293,9 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     (input) => updateMessageTemplate(id!, input),
     revalidateKeys,
   );
-  const archiveMutation = useDomainMutation<AdminTemplateDetail, void>(
-    `${MESSAGE_TEMPLATES_KEY}/${id ?? "new"}/archive`,
-    () => archiveMessageTemplate(id!),
+  const deleteMutation = useDomainMutation<{ id: string; deleted: true }, void>(
+    `${MESSAGE_TEMPLATES_KEY}/${id ?? "new"}/delete`,
+    () => deleteMessageTemplate(id!),
     revalidateKeys,
   );
 
@@ -380,27 +379,26 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     }
   }, [readOnly, validate, id, updateMutation, createMutation, buildInput, showToast, onCreated, onChanged, valuesForm.form, mutate]);
 
-  /** アーカイブ */
-  const archive = useCallback(async () => {
-    if (!id || system) return;
+  /** 削除(版も消え、送った回は残る、D137) */
+  const remove = useCallback(async () => {
+    if (!id || system || !template) return;
     try {
-      const result = await archiveMutation.trigger();
-      onChanged?.(result, "archive");
-      showToast("アーカイブしました", "success");
+      await deleteMutation.trigger();
+      onChanged?.(template, "delete");
+      showToast("削除しました", "success");
     } catch (e) {
-      showToast(err(e, "アーカイブできませんでした"), "error");
+      showToast(err(e, "削除できませんでした"), "error");
     }
-  }, [id, system, archiveMutation, showToast, onChanged]);
+  }, [id, system, template, deleteMutation, showToast, onChanged]);
 
   return {
     mode: id ? ("edit" as const) : ("create" as const),
-    archived,
     system,
     readOnly,
     dirty,
     createdId,
     save,
-    archive,
+    remove,
     /** モーダルを閉じる前の確かめ(Modal の confirmOnClose に渡す) */
     closeConfirm: { enabled: dirty, message: "保存していない変更があります。閉じてもよろしいですか？" },
     fields: {

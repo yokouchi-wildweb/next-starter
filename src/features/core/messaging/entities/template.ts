@@ -1,13 +1,12 @@
 // src/features/core/messaging/entities/template.ts
 //
 // 保存されたテンプレート（管理者が画面で書く連絡の中身）と、その版の履歴。
-// - message_templates: 今の中身（下書き・公開・保管）
-// - message_template_versions: 追記だけ。公開した版は不変。回は template_id + template_version で版を固定する
+// - message_templates: 今の中身（= 最新の版。状態は持たない: 保存 = 公開 D134、要らなくなれば消す D137）
+// - message_template_versions: 追記だけ。版は不変。回は template_id + template_version で版を固定する（テンプレートを消すと版も消え、回の template_id は null、版の番号は残る）
 // 中身 = カテゴリー + ひな形 + 欄の中身 + 専用の埋め込み情報の宣言(指令 58、D113・D126)。経路は持たない: 送る経路は送る時のカテゴリーの経路の中の絞り。
 // 版は保存の時の ひな形・ひな形の版・欄の中身・宣言 を持つ(ひな形を替えると中身は新しいひな形の物だけ、D113)
 
 import {
-  index,
   integer,
   jsonb,
   pgTable,
@@ -18,8 +17,6 @@ import {
 } from "drizzle-orm/pg-core";
 
 import type { MessageEmbeddedDeclaration } from "@/lib/messaging";
-
-import { MESSAGE_TEMPLATE_STATUSES } from "./schema";
 
 export const MessageTemplateTable = pgTable(
   "message_templates",
@@ -42,10 +39,6 @@ export const MessageTemplateTable = pgTable(
       .$type<MessageEmbeddedDeclaration[]>()
       .notNull()
       .default([]),
-    status: text("status")
-      .$type<(typeof MESSAGE_TEMPLATE_STATUSES)[number]>()
-      .notNull()
-      .default("published"),
     /** 最新の版の番号（null = まだ版がない） */
     current_version: integer("current_version"),
     /** 作った人・直した人の actor_id */
@@ -58,7 +51,6 @@ export const MessageTemplateTable = pgTable(
   },
   (table) => [
     uniqueIndex("uq_message_templates_key").on(table.key),
-    index("idx_message_templates_status").on(table.status),
   ],
 );
 

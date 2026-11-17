@@ -21,7 +21,6 @@ import type {
   MESSAGE_DELIVERY_STATUSES,
   MESSAGE_DISPATCH_STATUSES,
   MESSAGE_SUPPRESSION_REASONS,
-  MESSAGE_TEMPLATE_STATUSES,
 } from "./schema";
 import type {
   MessageTemplateTable,
@@ -41,7 +40,6 @@ export type MessageDeliveryStatus = (typeof MESSAGE_DELIVERY_STATUSES)[number];
 export type MessageDeliveryReason = (typeof MESSAGE_DELIVERY_REASONS)[number];
 export type MessageSuppressionReason =
   (typeof MESSAGE_SUPPRESSION_REASONS)[number];
-export type MessageTemplateStatus = (typeof MESSAGE_TEMPLATE_STATUSES)[number];
 
 export type MessageDelivery = typeof MessageDeliveryTable.$inferSelect;
 export type MessageDeliveryInsert = typeof MessageDeliveryTable.$inferInsert;

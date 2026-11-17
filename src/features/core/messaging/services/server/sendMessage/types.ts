@@ -118,7 +118,9 @@ export type SendTemplateMessageInput = Omit<SendMessageToManyInput, "recipientVa
 /** 回に残すテンプレートの出どころ(システムテンプレートの鍵か、DB のテンプレートの固定した版と直した印) */
 export type MessageDispatchTemplateSource =
   | { system: string }
-  | { template: { id: string; version: number; edited: boolean } };
+  | { template: { id: string; version: number; edited: boolean } }
+  /** 消したテンプレートの回の送り直し(D137): template_id は null、版の番号と直した印は回のまま */
+  | { deletedTemplate: { version: number; edited: boolean } };
 
 /** テンプレートの公開した版(送る口が読む形) */
 export type MessageTemplateVersionSource = {
@@ -136,10 +138,8 @@ export type MessageTemplateVersionSource = {
 
 /** テンプレートの読み口(送る口と cron) */
 export type MessageTemplateSource = {
-  /** 今の公開版(無い = null、取り下げ済み・未公開は status で返す) */
-  loadCurrent: (
-    templateId: string,
-  ) => Promise<{ status: string; version: MessageTemplateVersionSource | null } | null>;
+  /** 今の版(テンプレートが無い = null。版が無ければ version null) */
+  loadCurrent: (templateId: string) => Promise<{ version: MessageTemplateVersionSource | null } | null>;
   /** 固定した版(cron が回から引き直す) */
   loadVersion: (templateId: string, version: number) => Promise<MessageTemplateVersionSource | null>;
 };

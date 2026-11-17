@@ -20,14 +20,12 @@ import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { CreateButton } from "@/lib/crud/components";
 
 import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLabels";
-import { TEMPLATE_STATUS_DISPLAY, TemplateStatusBadge } from "@/features/core/messaging/components/common/TemplateStatusBadge";
 import { AdminMessageTemplateModal } from "@/features/core/messaging/components/AdminMessageTemplateModal";
 import { KindCategoryMeta, RowDateMeta, RowMetaItem } from "@/features/core/messaging/components/common/MessageRowMeta";
 import { useAdminDispatchCategories } from "@/features/core/messaging/hooks/useAdminDispatchCategories";
 import { useAdminMessageTemplateList } from "@/features/core/messaging/hooks/useAdminMessageTemplateList";
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
-const STATUS_OPTIONS = Object.entries(TEMPLATE_STATUS_DISPLAY).map(([value, { label }]) => ({ value, label }));
 
 const when = (iso: string | null) => {
   if (!iso) return "-";
@@ -36,7 +34,7 @@ const when = (iso: string | null) => {
 };
 
 export function AdminMessageTemplateList() {
-  const { kind, setKind, status, setStatus, query, modal } = useAdminMessageTemplateList({ observerOptions: OBSERVER_OPTIONS });
+  const { kind, setKind, query, modal } = useAdminMessageTemplateList({ observerOptions: OBSERVER_OPTIONS });
   // システムテンプレートを見せるか(画面の中だけの見せ方。既定は隠す)。システムテンプレートはサーバーが 1 ページ目の頭にだけ付けるので、
   // 行を隠しても次のページの取り方は変わらない
   const [showSystem, setShowSystem] = useState(false);
@@ -65,18 +63,6 @@ export function AdminMessageTemplateList() {
               value={kind}
               onChange={(v) => setKind(v ? String(v) : "")}
               options={kindOptions}
-              placeholder="すべて"
-            />
-          </Stack>
-          <Stack space={1}>
-            <Label htmlFor="template-filter-status" className="text-xs">
-              状態
-            </Label>
-            <SelectInput
-              id="template-filter-status"
-              value={status}
-              onChange={(v) => setStatus(v ? String(v) : "")}
-              options={STATUS_OPTIONS}
               placeholder="すべて"
             />
           </Stack>
@@ -125,9 +111,11 @@ export function AdminMessageTemplateList() {
                         <SoftBadge variant="secondary" size="sm">
                           システム
                         </SoftBadge>
-                      ) : (
-                        <TemplateStatusBadge status={template.status} currentVersion={template.currentVersion} />
-                      )}
+                      ) : template.currentVersion ? (
+                        <SoftBadge variant="success" size="sm">
+                          v{template.currentVersion}
+                        </SoftBadge>
+                      ) : null}
                       <Span weight="semiBold" className="min-w-0">
                         {template.name}
                       </Span>

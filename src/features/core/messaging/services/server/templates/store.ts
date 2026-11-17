@@ -1,19 +1,19 @@
 // src/features/core/messaging/services/server/templates/store.ts
 
-import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, lt, or } from "drizzle-orm";
 
 import { db, type TransactionClient } from "@/lib/drizzle";
 
+import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../entities/template";
 import type { MessageTemplateStore } from "./types";
 
 export const drizzleMessageTemplateStore: MessageTemplateStore<TransactionClient> = {
   transaction: (run) => db.transaction((tx) => run(tx)),
-  async list({ status, categories, limit, after }) {
+  async list({ categories, limit, after }) {
     if (categories && categories.length === 0) return [];
     const conditions = [
       categories ? inArray(MessageTemplateTable.category, [...categories]) : undefined,
-      status ? eq(MessageTemplateTable.status, status) : undefined,
       after
         ? or(
             lt(MessageTemplateTable.createdAt, after.createdAt),
@@ -43,6 +43,39 @@ export const drizzleMessageTemplateStore: MessageTemplateStore<TransactionClient
   async insert(tx, values) {
     const [row] = await tx.insert(MessageTemplateTable).values(values).returning();
     return row;
+  },
+  async remove(tx, id) {
+    await tx.delete(MessageTemplateTable).where(eq(MessageTemplateTable.id, id));
+  },
+  async lockKeptDispatches(tx, templateId) {
+    const rows = await tx
+      .select({
+        id: MessageDispatchTable.id,
+        actor_id: MessageDispatchTable.actor_id,
+        metadata: MessageDispatchTable.metadata,
+        values: MessageDispatchTable.values,
+      })
+      .from(MessageDispatchTable)
+      .where(
+        and(
+          eq(MessageDispatchTable.template_id, templateId),
+          isNotNull(MessageDispatchTable.values),
+          isNull(MessageDispatchTable.deleted_at),
+        ),
+      )
+      .for("update");
+    return rows.map((row) => ({
+      id: row.id,
+      actor_id: row.actor_id ?? null,
+      metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+      values: row.values as Record<string, unknown>,
+    }));
+  },
+  async updateDispatchImages(tx, dispatchId, patch) {
+    await tx
+      .update(MessageDispatchTable)
+      .set({ values: patch.values, metadata: patch.metadata, updatedAt: new Date() })
+      .where(eq(MessageDispatchTable.id, dispatchId));
   },
   async update(tx, id, patch) {
     const [row] = await tx

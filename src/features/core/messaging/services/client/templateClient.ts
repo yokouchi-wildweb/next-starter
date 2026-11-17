@@ -41,13 +41,13 @@ export type {
 
 const one = (id: string) => `${BASE}/${encodeURIComponent(id)}`;
 
-/** 一覧(新しい順、状態・種別で絞れる。種別 = その種別のカテゴリーとシステムテンプレート、D135) */
+/** 一覧(新しい順、種別で絞れる。種別 = その種別のカテゴリーとシステムテンプレート、D135) */
 export async function listMessageTemplates(
-  params: { status?: string; kind?: string; cursor?: string | null; limit?: number } = {},
+  params: { kind?: string; cursor?: string | null; limit?: number } = {},
 ): Promise<AdminTemplatePage> {
   try {
     const res = await axios.get<AdminTemplatePage>(BASE, {
-      params: { status: params.status || undefined, kind: params.kind || undefined, cursor: params.cursor ?? undefined, limit: params.limit },
+      params: { kind: params.kind || undefined, cursor: params.cursor ?? undefined, limit: params.limit },
     });
     return res.data;
   } catch (error) {
@@ -95,13 +95,13 @@ export async function updateMessageTemplate(id: string, input: UpdateMessageTemp
   }
 }
 
-/** 取り下げ(直せない。版は残る) */
-export async function archiveMessageTemplate(id: string): Promise<AdminTemplateDetail> {
+/** 消す(版も消え、送った回は残る。D137) */
+export async function deleteMessageTemplate(id: string): Promise<{ id: string; deleted: true }> {
   try {
-    const res = await axios.post<AdminTemplateDetail>(`${one(id)}/archive`);
+    const res = await axios.delete<{ id: string; deleted: true }>(one(id));
     return res.data;
   } catch (error) {
-    throw normalizeHttpError(error, "取り下げられませんでした");
+    throw normalizeHttpError(error, "削除できませんでした");
   }
 }
 

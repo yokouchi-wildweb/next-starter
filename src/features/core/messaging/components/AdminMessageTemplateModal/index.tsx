@@ -34,7 +34,6 @@ import { KindCategoryFields } from "@/features/core/messaging/components/common/
 import { LayoutFields } from "@/features/core/messaging/components/common/LayoutFields";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
 import { TemplateEmbeddedInfoModal } from "@/features/core/messaging/components/common/TemplateEmbeddedInfoModal";
-import { TemplateStatusBadge } from "@/features/core/messaging/components/common/TemplateStatusBadge";
 import { TemplateVersionList } from "@/features/core/messaging/components/common/TemplateVersionList";
 import { useEmbeddedInfoTags } from "@/features/core/messaging/hooks/useEmbeddedInfoTags";
 import { useLayoutPreview } from "@/features/core/messaging/hooks/useLayoutPreview";
@@ -130,14 +129,14 @@ function TemplateModalBody({
             <ConfirmPopover
               trigger={
                 <Button type="button" size="sm" variant="outline" disabled={form.dirty}>
-                  アーカイブ
+                  削除
                 </Button>
               }
-              title="アーカイブ"
-              description="アーカイブすると、このテンプレートは編集も送信もできなくなります(バージョン履歴は残ります)。"
-              confirmLabel="アーカイブする"
+              title="削除"
+              description="このテンプレートとバージョン履歴を削除します。送信済みの記録は残ります。"
+              confirmLabel="削除する"
               confirmVariant="destructive"
-              onConfirm={form.archive}
+              onConfirm={form.remove}
             />
           ) : null}
           <ConfirmPopover
@@ -167,19 +166,13 @@ function TemplateModalBody({
                   システム
                 </SoftBadge>
               ) : (
-                <TemplateStatusBadge
-                  status={template.status}
-                  currentVersion={template.currentVersion}
-                  size="md"
-                />
+                <SoftBadge variant="success" size="md">
+                  {template.currentVersion ? `v${template.currentVersion}` : "バージョンなし"}
+                </SoftBadge>
               )}
               {form.system ? (
                 <Para size="sm" tone="muted" className="my-0">
                   システムテンプレートは編集できません(送信画面で使う白紙のひな形です)
-                </Para>
-              ) : form.archived ? (
-                <Para size="sm" tone="muted" className="my-0">
-                  アーカイブ済みのテンプレートは編集できません(バージョン履歴は残ります)
                 </Para>
               ) : null}
             </Flex>
