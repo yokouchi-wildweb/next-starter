@@ -26,6 +26,7 @@ import type { OverrideImageLedger } from "./imageBinding";
 import { storageOverrideImageLedger } from "./imageBindingLedger";
 import { createOverrideService } from "./overrideService";
 import { drizzleMessageOverrideStore } from "./store";
+import { categoryAdminLabel } from "@/lib/messaging";
 
 const service = createOverrideService({
   store: drizzleMessageOverrideStore,
@@ -53,7 +54,7 @@ const service = createOverrideService({
     }
   },
   recordAudit: (input) => auditLogger.record(input),
-  categoryLabel: (category) => categories[category]?.label ?? null,
+  categoryLabel: (category) => (categories[category] ? categoryAdminLabel(categories[category]) : null),
   channelInfo(channel) {
     const item = channels[channel];
     return item ? { label: item.label } : null;

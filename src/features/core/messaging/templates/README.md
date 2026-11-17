@@ -29,8 +29,8 @@ export const systemTemplate: MessageSystemTemplate = {
 
 ## 上流のシステムテンプレート(6 本、D119・D122)
 
-- シンプルな白紙(ひな形 `simple` = 件名・サムネイル・本文・リンクのボタン、種別の既定): `announcement`・`direct`・`promotion`
-- リッチな白紙(ひな形 `notice` = 件名 + ブロックの並び): `announcementRich`・`directRich`・`promotionRich`
+- シンプルな白紙(ひな形 `simple` = 件名・サムネイル・本文・リンクのボタン、種別の既定): `announcement`「一般的なお知らせ_シンプル」・`direct`「一般的な個別連絡_シンプル」・`promotion`「一般的なプロモーション_シンプル」
+- リッチな白紙(ひな形 `notice` = 件名 + ブロックの並び): `announcementRich`「一般的なお知らせ_リッチ」・`directRich`「一般的な個別連絡_リッチ」・`promotionRich`「一般的なプロモーション_リッチ」(表示名は D124)
 - 経路の既定: 上流の 3 種別のカテゴリーは `defaultChannels: ["inApp"]`(送る画面の送信方法は最初お知らせだけ。メールで送る時は送る時に入れる。メールつきのテンプレートは置かない)
 
 ## 管理画面での扱い

@@ -6,7 +6,7 @@
 import { z } from "zod";
 
 import { DomainError } from "@/lib/errors";
-import { MESSAGE_KINDS, type MessageCategory, type MessageKind } from "@/lib/messaging";
+import { categoryAdminLabel, MESSAGE_KINDS, type MessageCategory, type MessageKind } from "@/lib/messaging";
 
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import { MESSAGE_DELIVERY_STATUSES, MESSAGE_DISPATCH_STATUSES } from "../../../entities/schema";
@@ -142,7 +142,7 @@ export async function dispatchCategoryOptions(
   deps: AdminCheckDeps & { categories: Readonly<Record<string, MessageCategory>> },
 ): Promise<AdminDispatchCategoryOption[]> {
   await assertAdminActor(deps);
-  return Object.values(deps.categories).map((category) => ({ key: category.key, label: category.label, kind: category.kind }));
+  return Object.values(deps.categories).map((category) => ({ key: category.key, label: categoryAdminLabel(category), kind: category.kind }));
 }
 
 /**

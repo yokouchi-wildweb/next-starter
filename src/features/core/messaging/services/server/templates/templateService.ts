@@ -16,7 +16,7 @@ import { randomBytes } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 
 import type { AuditRecordInput } from "@/lib/audit";
-import { buildChannelContent, layoutVersionOf, upgradeLayoutValues, type MessageEmbeddedDeclaration, type MessageEmbeddedEntry, type MessageSystemTemplate } from "@/lib/messaging";
+import { buildChannelContent, categoryAdminLabel, layoutVersionOf, upgradeLayoutValues, type MessageEmbeddedDeclaration, type MessageEmbeddedEntry, type MessageSystemTemplate } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import type { MessageTemplate, MessageTemplateVersion } from "../../../entities/model";
@@ -169,7 +169,7 @@ function parseOr400<T>(result: { success: true; data: T } | { success: false }, 
 }
 
 export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
-  const categoryLabel: CategoryLabelOf = (category) => deps.check().categories[category]?.label ?? null;
+  const categoryLabel: CategoryLabelOf = (category) => { const found = deps.check().categories[category]; return found ? categoryAdminLabel(found) : null; };
   const actorId = () => deps.context()?.actorId ?? null;
 
   const catalogOf = (own: readonly MessageEmbeddedDeclaration[]) => templateEmbeddedCatalog(deps.check(), own).map(toEntry);
@@ -435,7 +435,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         // テンプレートに使える種類 = 管理者が送れる種別(announcement・direct・promotion)の種類だけ
         categories: Object.values(check.categories).filter((category) => isAdminSendableKind(category.kind)).map((category) => ({
           key: category.key,
-          label: category.label,
+          label: categoryAdminLabel(category),
           description: category.description ?? null,
           kind: category.kind,
           // その種類で送る経路(受け口にあり使える物だけ。プレビューのタブと経路だけの欄はこの分、D115)

@@ -1,11 +1,12 @@
 // src/features/core/messaging/categories/promotion.ts
-// 上流の種類: 宣伝(D35・D69 の表示名)。管理者がその場で書く宣伝(白紙のシステムテンプレート templates/promotion.ts)の既定のカテゴリー
+// 上流の種類: 管理画面「一般的なプロモーション」/ 利用者「キャンペーン情報」(種別 promotion、D124)。管理者がその場で書く宣伝(白紙のシステムテンプレート templates/promotion.ts)の既定のカテゴリー
 
 import type { MessageCategory } from "@/lib/messaging";
 
 export const category: MessageCategory = {
   key: "promotion",
   label: "キャンペーン情報",
+  adminLabel: "一般的なプロモーション",
   description: "新しい機能やキャンペーンなどのお知らせ",
   kind: "promotion",
   channels: ["email", "inApp"],
