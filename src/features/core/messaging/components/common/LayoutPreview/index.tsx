@@ -1,14 +1,12 @@
 // src/features/core/messaging/components/common/LayoutPreview/index.tsx
 // 部品(props だけ): ひな形の実際の描き方のプレビュー(D114)。経路のタブ(種類の経路)で切り替える。
 // - メール = 送る HTML(server のプレビュー API が送る口と同じ 3 段で描いた物。iframe は MessagePreview)
-// - お知らせ(inApp)= カード: ひな形のお知らせの描き方(client の一覧 layoutInApps)に中身と要約を渡す。描き方が無ければ要約のカード
+// - お知らせ(inApp)= カード: 受け取り箱と同じ部品 InboxLayoutView(ひな形のお知らせの描き方 > 汎用(fields があれば)> 要約のカード)
 // - ほかの経路 = API の文(text)か要約
 // - 描けない(3 段のどれでも描けない)時は理由
 // 取得はしない: 中身は呼び手の hook が渡す(テンプレート・送る画面 = useLayoutPreview、文言の編集・回の詳細 = それぞれの取得元)
 
 "use client";
-
-import type { ReactNode } from "react";
 
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
@@ -18,10 +16,10 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
-import type { MessageLayoutSummary, MessageLayoutValues } from "@/lib/messaging";
+import type { MessageLayoutFields, MessageLayoutSummary } from "@/lib/messaging";
 
 import { messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
-import { layoutInApps } from "@/features/core/messaging/extensions/layoutInApps";
+import { InboxLayoutView, InboxSummaryCard } from "../InboxLayoutView";
 import { MessagePreview } from "../MessagePreview";
 
 /** 経路 1 つの描く物(取得元を問わない形): 送る HTML / 文、またはひな形の欄の中身と要約(お知らせのカード)、または描けない理由 */
@@ -34,6 +32,8 @@ export type LayoutPreviewContent = {
   /** その経路の欄の中身(お知らせのカードに渡す) */
   values?: Readonly<Record<string, unknown>> | null;
   summary?: MessageLayoutSummary | null;
+  /** お知らせの欄の宣言(汎用の描き方に使う。無ければ汎用の段を飛ばす) */
+  fields?: MessageLayoutFields | null;
   /** 描けない理由(あれば他を描かない) */
   cannotRender?: string | null;
 };
@@ -114,17 +114,14 @@ type ChannelBodyProps = {
 
 function ChannelBody({ layout, channel, content, emailHeight }: ChannelBodyProps) {
   if (channel === "inApp") {
-    const renderer = layoutInApps[layout];
+    // 利用者の受け取り箱の詳しい表示と同じ部品(ひな形のお知らせの描き方 > 汎用 > 要約のカード)
     const summary = content.summary;
-    if (renderer && summary) {
-      const Component = renderer.Component as (props: { values: MessageLayoutValues; summary: MessageLayoutSummary }) => ReactNode;
-      return (
-        <Block className="rounded-md border border-border bg-card p-4" data-slot="layout-preview-in-app">
-          <Component values={(content.values ?? {}) as MessageLayoutValues} summary={summary} />
-        </Block>
-      );
-    }
-    return summary ? <SummaryCard summary={summary} /> : <NoPreview />;
+    if (!summary) return <NoPreview />;
+    return (
+      <Block className="rounded-md border border-border bg-card p-4" data-slot="layout-preview-in-app">
+        <InboxLayoutView layout={layout} values={content.values ?? null} fields={content.fields ?? null} summary={summary} />
+      </Block>
+    );
   }
   if (content.html || content.text) {
     return (
@@ -142,23 +139,12 @@ function ChannelBody({ layout, channel, content, emailHeight }: ChannelBodyProps
       />
     );
   }
-  return content.summary ? <SummaryCard summary={content.summary} /> : <NoPreview />;
-}
-
-/** 要約のカード(描き方の無い経路の最後の拠り所) */
-function SummaryCard({ summary }: { summary: MessageLayoutSummary }) {
-  return (
-    <Stack space={1} className="rounded-md border border-border bg-card p-4" data-slot="layout-preview-summary">
-      <Span weight="semiBold">{summary.title}</Span>
-      <Para size="sm" className="my-0 whitespace-pre-wrap">
-        {summary.shortBody ?? summary.body}
-      </Para>
-      {summary.link ? (
-        <Span size="sm" tone="muted">
-          {summary.link.label ?? summary.link.url}
-        </Span>
-      ) : null}
-    </Stack>
+  return content.summary ? (
+    <Block className="rounded-md border border-border bg-card p-4" data-slot="layout-preview-summary">
+      <InboxSummaryCard summary={content.summary} />
+    </Block>
+  ) : (
+    <NoPreview />
   );
 }
 
