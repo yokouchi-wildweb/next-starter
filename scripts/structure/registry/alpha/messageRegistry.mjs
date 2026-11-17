@@ -2,7 +2,7 @@
 // 連絡の一覧 src/registry/messageRegistry.ts を走査から組み立てる(pnpm generate registry)。字面で読むだけ(定義は import しない)。
 // - 定義 = features の地区の messages/<名前>.ts(直下。.override・.test・点つきの名前は除く)の export const message = defineMessage({ key: "…", … })
 // - 鍵 = 定義の key の文字列リテラルで、<ドメインのフォルダ名>.<ファイル名> と一致すること(場所から一意に決まる。ずれ・重なりは止める)
-// - 上書き = 隣の <名前>.override.ts、描き方 = messages/views/<名前>.tsx(1 行スイッチ。.default / .replace は一覧に出さない)。定義の無い描き方は止める
+// - 上書き = 隣の <名前>.override.ts。描き方はひな形(messaging の layouts の受け口)が持つので、messages/views/ が残っていれば止める
 // 値の検査(欄・{{鍵}}・required の守り)は lib/messaging の validateMessageDefinition(実行時)と pnpm check extensions(字面の守り)
 // 書式と読み手: src/lib/messaging/README.md「生成の一覧」
 
@@ -14,6 +14,7 @@ import { MESSAGE_EXPORT, exportedObject, readLiteralProperty } from "../../exten
 
 export const MESSAGE_REGISTRY_FILE = "src/registry/messageRegistry.ts";
 const MESSAGES_DIR = "messages";
+/** 前の連絡ごとの描き方のフォルダ(もう使わない。残っていれば止める) */
 const VIEWS_DIR = "views";
 const PLAIN_NAME = /^[a-z][A-Za-z0-9]*$/;
 
@@ -28,7 +29,7 @@ const listFiles = (repoRoot, dir) =>
 
 /**
  * @param {string} repoRoot
- * @returns {{ entries: { key: string, definition: string, override: string | null, view: string | null }[], problems: string[] }}
+ * @returns {{ entries: { key: string, definition: string, override: string | null }[], problems: string[] }}
  */
 export function scanMessages(repoRoot) {
   const problems = [];
@@ -38,7 +39,6 @@ export function scanMessages(repoRoot) {
     const dir = `${district.dir}/${MESSAGES_DIR}`;
     const domain = district.dir.split("/").at(-1);
     const files = listFiles(repoRoot, dir);
-    const names = [];
     for (const file of files) {
       const match = /^(.+)\.ts$/.exec(file);
       if (!match || file.endsWith(".override.ts") || /\.test\.ts$/.test(file)) continue;
@@ -63,19 +63,17 @@ export function scanMessages(repoRoot) {
         problems.push(`${path}: key "${key.value}" は場所から決まる "${expected}"(<ドメインのフォルダ名>.<ファイル名>)にする`);
         continue;
       }
-      names.push(name);
       const override = `${dir}/${name}.override.ts`;
-      const view = `${dir}/${VIEWS_DIR}/${name}.tsx`;
       entries.push({
         key: key.value,
         definition: path,
         override: existsSync(join(repoRoot, override)) ? override : null,
-        view: existsSync(join(repoRoot, view)) ? view : null,
       });
     }
     for (const file of listFiles(repoRoot, `${dir}/${VIEWS_DIR}`)) {
-      const name = /^([^.]+)\.tsx$/.exec(file)?.[1];
-      if (name && !names.includes(name)) problems.push(`${dir}/${VIEWS_DIR}/${file}: 描き方に対応する連絡の定義 ${dir}/${name}.ts が無い`);
+      problems.push(
+        `${dir}/${VIEWS_DIR}/${file}: 連絡ごとの描き方(messages/views/)は使わない。描き方はひな形(messaging/layouts/<名前>/)に置き、定義の layout で選ぶ`,
+      );
     }
   }
   const seen = new Map();
@@ -99,14 +97,13 @@ export function renderMessageRegistry(repoRoot) {
     `    key: ${JSON.stringify(e.key)},`,
     `    definition: () => import(${JSON.stringify(specifierOf(e.definition))}),`,
     ...(e.override ? [`    override: () => import(${JSON.stringify(specifierOf(e.override))}),`] : []),
-    ...(e.view ? [`    view: () => import(${JSON.stringify(specifierOf(e.view))}),`] : []),
     "  },",
   ]);
   const text = [
-    "// 生成物・編集不可: pnpm generate registry が src/features/**/messages/*.ts・*.override.ts・views/<名前>.tsx から生成する",
+    "// 生成物・編集不可: pnpm generate registry が src/features/**/messages/*.ts・*.override.ts から生成する",
     `// ${MESSAGE_REGISTRY_FILE}`,
     "//",
-    "// 連絡の一覧(鍵 = <ドメインのフォルダ名>.<ファイル名> → 定義・上書き・描き方の遅延 import)。送る口・管理画面・プレビューが読む。型と決まり: src/lib/messaging/README.md",
+    "// 連絡の一覧(鍵 = <ドメインのフォルダ名>.<ファイル名> → 定義・上書きの遅延 import)。送る口・管理画面・プレビューが読む。型と決まり: src/lib/messaging/README.md",
     "",
     'import "server-only";',
     "",

@@ -25,10 +25,9 @@ export const message = defineMessage({
     /** 理由の行(先頭の改行込み。理由が無ければ空) */
     reasonLine: z.string(),
   }),
-  content: {
-    inApp: {
-      title: "{{currencyLabel}}残高が変更されました",
-      body: "操作: {{methodLabel}}\n金額: {{delta}}\n残高: {{balance}}{{reasonLine}}",
-    },
+  layout: "notice",
+  values: {
+    subject: "{{currencyLabel}}残高が変更されました",
+    blocks: [{ type: "paragraph", text: "操作: {{methodLabel}}\n金額: {{delta}}\n残高: {{balance}}{{reasonLine}}" }],
   },
 });

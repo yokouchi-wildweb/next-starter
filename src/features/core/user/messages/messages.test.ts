@@ -1,6 +1,6 @@
 // user のシステムの連絡(登録の完了の知らせ 2 本)の検査:
 // - 件名と見える文面が前のテンプレート(createMailTemplate の user/mail/*Email.tsx)と同じ(文面は前のテンプレートを描いて写した値)
-// - 描き方は段落が欠けても落ちない(override が段落を減らしても描ける)
+// - 送る口と同じくひな形 welcome(ようこそ)のメールの描き方で描く
 // 実行: pnpm test src/features/core/user/messages
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -9,15 +9,12 @@ import { createElement } from "react";
 import { render } from "@react-email/render";
 
 import { MAIL_THEME_COLORS } from "@/lib/mail";
-import type { EmailFields } from "@/lib/messaging";
 
 import { message as earlyRegistrationComplete } from "./earlyRegistrationComplete";
 import { message as registrationComplete } from "./registrationComplete";
-import { EmailView as EarlyRegistrationCompleteView } from "./views/earlyRegistrationComplete";
-import { EmailView as RegistrationCompleteView } from "./views/registrationComplete";
 import { categories } from "@/features/core/messaging/extensions/categories";
-
-type View = (props: { content: EmailFields; theme: typeof MAIL_THEME_COLORS }) => unknown;
+import { layoutEmails } from "@/features/core/messaging/extensions/layoutEmails";
+import { layouts } from "@/features/core/messaging/extensions/layouts";
 
 /** {{鍵}} を差し込む(送る口と同じく、文字列の値だけ) */
 function fill(value: unknown, vars: Record<string, string>): unknown {
@@ -42,17 +39,20 @@ function visibleText(html: string): string {
     .trim();
 }
 
-async function draw(definition: { vars: { parse: (v: unknown) => unknown }; content: { email?: unknown } }, view: View, vars: Record<string, string>) {
+async function draw(definition: { vars: { parse: (v: unknown) => unknown }; layout: string; values: Readonly<Record<string, unknown>> }, vars: Record<string, string>) {
   definition.vars.parse(vars);
-  const content = fill(definition.content.email, vars) as EmailFields;
-  const html = await render(createElement(view as never, { content, theme: MAIL_THEME_COLORS }));
-  return { subject: content.subject, text: visibleText(html) };
+  // 送る口と同じく、ひな形のメールの描き方で描く(件名 = 要約の題)
+  const layout = layouts[definition.layout]!;
+  const values = fill(definition.values, vars) as Record<string, unknown>;
+  const summary = layout.summary(values);
+  const html = await render(createElement(layoutEmails[layout.key]!.Component as never, { values, summary, theme: MAIL_THEME_COLORS }));
+  return { subject: summary.title, text: visibleText(html) };
 }
 
 const TAIL = "ご不明な点がございましたら、 お気軽にお問い合わせください。";
 
 test("registrationComplete: 件名と文面が前のテンプレートと同じ", async () => {
-  const drawn = await draw(registrationComplete, RegistrationCompleteView, {
+  const drawn = await draw(registrationComplete, {
     displayName: "山田",
     serviceNameShort: "next-starter",
     siteUrl: "https://x.test",
@@ -65,7 +65,7 @@ test("registrationComplete: 件名と文面が前のテンプレートと同じ"
 });
 
 test("earlyRegistrationComplete: 件名と文面が前のテンプレートと同じ(ボタンなし)", async () => {
-  const drawn = await draw(earlyRegistrationComplete, EarlyRegistrationCompleteView, {
+  const drawn = await draw(earlyRegistrationComplete, {
     displayName: "山田",
     serviceNameShort: "next-starter",
   });
@@ -85,9 +85,7 @@ test("種類 registrationComplete(取引、好みを見ない、メール)、秘
   assert.deepEqual(categories.registrationComplete.channels, ["email"]);
 });
 
-test("描き方は段落が欠けても落ちない(override が段落を減らした場合)", async () => {
-  for (const view of [RegistrationCompleteView, EarlyRegistrationCompleteView] as View[]) {
-    const html = await render(createElement(view as never, { content: { subject: "s", paragraphs: ["一つだけ"] }, theme: MAIL_THEME_COLORS }));
-    assert.ok(visibleText(html).includes("一つだけ"));
-  }
+test("ひな形: 2 本とも welcome(ようこそ)", () => {
+  assert.equal(registrationComplete.layout, "welcome");
+  assert.equal(earlyRegistrationComplete.layout, "welcome");
 });

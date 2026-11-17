@@ -16,7 +16,7 @@
 
 - 定義 3 本: `messages/adminAnnouncement.ts`（`messaging.adminAnnouncement`、カテゴリー `announcement`）・`adminDirect.ts`（`messaging.adminDirect`、`operatorDirect`）・`adminPromotion.ts`（`messaging.adminPromotion`、`promotion`）。`authored: true`（文面は送るたびに受け取る。上書きのファイルは置けない）。種別 → 定義の表は `ADMIN_FREE_TEXT_DEFINITIONS`・`adminFreeTextCategoryOf`
 - **カテゴリーの種別と宛先の組は種別の性質 `adminFreeText`**: announcement = 全員・ロール・グループ・選んだ利用者 / direct = 選んだ利用者・一括 / promotion = 全部。誤りは 400
-- 文面 = 経路ごとの欄の全部（メール = 件名・preheader・見出し・段落・ボタン・足元 / お知らせ = 題・本文・画像・行き先 / LINE = 文 / fork の経路 = その欄）。決まった挨拶・足元の文は無い（要るなら管理者が書く）。宛名は `{{displayName}}`。描き方はメールの経路の既定（段落は改行のまま）、fork は `messages/views/<名前>.tsx` で替えられる
+- 文面 = 経路ごとの欄の全部（メール = 件名・preheader・見出し・段落・ボタン・足元 / お知らせ = 題・本文・画像・行き先 / LINE = 文 / fork の経路 = その欄）。決まった挨拶・足元の文は無い（要るなら管理者が書く）。宛名は `{{displayName}}`。送る時にひな形 notice（汎用のお知らせ）の欄の中身にして描く（email の欄が先、無ければ inApp、無ければ LINE。段落は改行のまま。経路ごとに別に書いた文は S5 まで使わない、`sendMessage/README.md`）。見た目は notice の描き方の `.replace` で替えられる
 - 定義を消した前の回（`messaging.adminMessage`）は当時の鍵・種別・カテゴリーで読める。再送は `definition_missing` で止まる
 
 ### `/api/admin/messaging/send/**`（send.ts、門 `messagingBroadcast`）

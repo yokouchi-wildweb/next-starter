@@ -1,9 +1,8 @@
 // src/lib/messaging/definition.test.ts
 //
-// 連絡の定義の型と読み手の検査(validateMessageDefinition・applyMessageOverride)。
-// - 正しい定義が通る / 止める物(required の守り・欄・adminEditable・{{鍵}}・throttle・鍵の形)が止まる
-// - 上書きを重ねた結果も同じ関数で検査する / 型の絞りは @ts-expect-error で固定
-// - category は categories を渡した時だけ受け口と照らす(取引は省ける)
+// 連絡の定義の型と読み手の検査(validateMessageDefinition・applyMessageOverride)。定義 = ひな形 + 欄の中身(D122)。
+// - 正しい定義が通る / 止める物(required の守り・ひな形・欄の中身・adminEditableOnly・{{鍵}}・throttle・鍵の形)が止まる
+// - 欄の中身は種類の経路で使う欄だけ必須(D125) / 上書きは欄ごとに重ねる / 型の絞りは @ts-expect-error で固定
 // - authored の定義(文面を送るたびに受け取る)の守り
 // 実行: pnpm test src/lib/messaging/definition.test.ts
 import { test } from "node:test";
@@ -13,11 +12,13 @@ import { z } from "zod";
 import {
   CHANNEL_ERROR_KINDS,
   ChannelError,
+  MESSAGE_BLOCK_KINDS,
   MESSAGE_KINDS,
   MESSAGE_KIND_TRAITS,
   applyMessageOverride,
   createDefineMessage,
   defineMessage,
+  defineMessageLayout,
   extensionPoints,
   kindTraits,
   kindsWhere,
@@ -26,8 +27,31 @@ import {
   validateMessageDefinition,
   type MessageCategory,
   type MessageContent,
+  type MessageLayout,
   type MessageOverride,
 } from "./index";
+
+/** テストのひな形: 件名 + ブロック / メールだけの欄を持つひな形 */
+const LAYOUTS: Record<string, MessageLayout> = {
+  notice: defineMessageLayout({
+    key: "notice",
+    label: "汎用のお知らせ",
+    fields: {
+      subject: { type: "line", label: "件名", required: true },
+      blocks: { type: "blocks", label: "本文", required: true, allow: MESSAGE_BLOCK_KINDS },
+    },
+    summary: (values) => ({ title: values.subject ?? "", body: "" }),
+  }) as MessageLayout,
+  split: defineMessageLayout({
+    key: "split",
+    label: "経路だけの欄",
+    fields: {
+      title: { type: "line", label: "題", required: true },
+      mailOnly: { type: "paragraph", label: "メールだけ", required: true, channels: ["email"] },
+    },
+    summary: (values) => ({ title: values.title ?? "", body: "" }),
+  }) as MessageLayout,
+};
 
 const verification = defineMessage({
   key: "auth.verification",
@@ -36,14 +60,13 @@ const verification = defineMessage({
   vars: z.object({ verificationUrl: z.string().url() }),
   required: true,
   record: "meta",
-  content: {
-    email: {
-      subject: "メールアドレスの確認",
-      heading: "メールアドレスの確認",
-      paragraphs: ["{{recipientName}} 様、{{serviceName}} への登録を受け付けました。"],
-      cta: { label: "確認する", url: "{{verificationUrl}}" },
-      footer: "心当たりがない場合は無視してください。",
-    },
+  layout: "notice",
+  values: {
+    subject: "メールアドレスの確認",
+    blocks: [
+      { type: "paragraph", text: "{{recipientName}} 様、{{serviceName}} への登録を受け付けました。" },
+      { type: "button", label: "確認する", url: "{{verificationUrl}}" },
+    ],
   },
 });
 
@@ -54,10 +77,13 @@ const reply = defineMessage({
   vars: z.object({ roomId: z.string(), senderName: z.string() }),
   adminEditableOnly: ["inApp.title", "email.subject"],
   throttle: { by: ["roomId"], mode: "untilRead", seconds: 600 },
-  content: {
-    inApp: { title: "{{senderName}} さんから返信", body: "ほか {{collapsedCount}} 件", link: "{{appBaseUrl}}/rooms/{{roomId}}" },
-    email: { subject: "{{senderName}} さんから返信がありました" },
-    line: { text: "{{senderName}} さんから返信" },
+  layout: "notice",
+  values: {
+    subject: "{{senderName}} さんから返信",
+    blocks: [
+      { type: "paragraph", text: "ほか {{collapsedCount}} 件" },
+      { type: "button", label: "開く", url: "{{appBaseUrl}}/rooms/{{roomId}}" },
+    ],
   },
 });
 
@@ -74,7 +100,7 @@ const CATEGORIES: Record<string, MessageCategory> = {
   alert: { key: "alert", label: "警告", kind: "security", channels: ["email"] },
 };
 const validate = (definition: Parameters<typeof validateMessageDefinition>[0], options: Partial<Parameters<typeof validateMessageDefinition>[1]> = {}) =>
-  validateMessageDefinition(definition, { categories: CATEGORIES, ...options });
+  validateMessageDefinition(definition, { categories: CATEGORIES, layouts: LAYOUTS, ...options });
 
 test("正しい定義は問題なし", () => {
   assert.deepEqual(validate(verification), []);
@@ -96,7 +122,6 @@ test("required の守り: email の除外・adminEditable・throttle を止め�
     category: "accountInApp",
     adminEditableOnly: ["inApp.title"],
     throttle: { by: ["verificationUrl"], mode: "window", seconds: 60 },
-    content: { ...verification.content, inApp: { title: "確認", body: "" } },
   });
   assert.deepEqual(codes(validate(def)), [
     "required_admin_editable",
@@ -109,7 +134,7 @@ test("上書きを重ねた結果を検査: required への enabled:false・emai
   const override: MessageOverride = {
     enabled: false,
     adminEditableOnly: ["email.subject"],
-    content: { inApp: { title: "確認", body: "" } },
+    values: { subject: "確認" },
   };
   // 経路は種類が決めるので上書きで email を外せない(required_without_email は種類の経路で見る)。functional の種類は文言の上書きも不可
   assert.deepEqual(codes(validate(verification, { override })), [
@@ -129,19 +154,19 @@ test("上書きで key・kind・vars・required・category・defaultChannels は
   ]);
 });
 
-test("上書きの重ね方: 欄は経路ごとに重ね、throttle: null で外す", () => {
+test("上書きの重ね方: 欄の中身は欄ごとに差し替え、throttle: null で外す", () => {
   const resolved = applyMessageOverride(reply, {
-    content: { email: { subject: "新しい件名 {{senderName}}" } },
+    values: { subject: "新しい件名 {{senderName}}" },
     extras: { badge: "NEW" },
     throttle: null,
   });
   assert.equal(resolved.enabled, true);
-  assert.equal(resolved.content.email?.subject, "新しい件名 {{senderName}}");
-  assert.equal(resolved.content.inApp?.title, "{{senderName}} さんから返信");
+  assert.equal(resolved.values.subject, "新しい件名 {{senderName}}");
+  assert.deepEqual(resolved.values.blocks, reply.values.blocks);
   assert.deepEqual(resolved.extras, { badge: "NEW" });
   assert.equal(resolved.throttle, undefined);
   // 元の定義は変えない
-  assert.equal(reply.content.email?.subject, "{{senderName}} さんから返信がありました");
+  assert.equal(reply.values.subject, "{{senderName}} さんから返信");
   assert.ok(reply.throttle);
   // throttle を外すと {{collapsedCount}} は差し込めない
   assert.deepEqual(codes(validate(reply, { override: { throttle: null } })), [
@@ -149,14 +174,12 @@ test("上書きの重ね方: 欄は経路ごとに重ね、throttle: null で外
   ]);
 });
 
-test("欄の {{鍵}} は vars ∪ 共通の文脈(∪ throttle の collapsedCount)に在ること", () => {
+test("欄の中身の {{鍵}} は vars ∪ 共通の文脈(∪ throttle の collapsedCount)に在ること", () => {
   const def = defineMessage({
     ...verification,
-    content: {
-      email: {
-        subject: "{{recipient.name}} {{unknownKey}} {{recipientEmail}} {{appBaseUrl}}",
-        paragraphs: ["{{collapsedCount}}"],
-      },
+    values: {
+      subject: "{{recipient.name}} {{unknownKey}} {{recipientEmail}} {{appBaseUrl}}",
+      blocks: [{ type: "paragraph", text: "{{collapsedCount}}" }],
     },
   });
   const problems = validate(def);
@@ -166,39 +189,36 @@ test("欄の {{鍵}} は vars ∪ 共通の文脈(∪ throttle の collapsedCoun
 });
 
 test("variableKeys で足した鍵(enrichers の provides)は {{鍵}} で許す", () => {
-  const def = defineMessage({
-    ...verification,
-    content: { email: { subject: "{{points}} {{unknownKey}}" } },
-  });
+  const def = defineMessage({ ...verification, values: { ...verification.values, subject: "{{points}} {{unknownKey}}" } });
   assert.deepEqual(codes(validate(def)), ["unknown_variable", "unknown_variable"]);
   const problems = validate(def, { variableKeys: ["points"] });
   assert.deepEqual(codes(problems), ["unknown_variable"]);
   assert.ok(problems[0].message.includes("{{unknownKey}}"));
 });
 
-test("欄の検査: 欄の zod に合わない・種類の経路に欄が無い・知らない経路・定義に無い adminEditable", () => {
-  const def = defineMessage({
-    ...reply,
-    category: "chatLine",
-    adminEditableOnly: ["inApp.title", "email.subject"],
-    content: {
-      inApp: { title: "", body: "本文" },
-      email: { subject: "件名" },
-    },
-  });
-  assert.deepEqual(codes(validate(def)), ["invalid_content", "missing_content"]);
+test("ひな形と欄の中身: 受け口に無いひな形・欄の zod に合わない・知らない欄・知らない経路・定義に無い adminEditable", () => {
+  assert.deepEqual(codes(validate({ ...reply, layout: "nope" })), ["unknown_layout"]);
+  assert.deepEqual(codes(validate({ ...reply, values: { subject: "", blocks: reply.values.blocks } })), ["invalid_values"]);
+  assert.deepEqual(codes(validate({ ...reply, values: { ...reply.values, title: "欄の名前は変えられない" } })), ["invalid_values"]);
+  assert.deepEqual(codes(validate({ ...reply, values: { subject: "s" } })), ["invalid_values"]);
 
-  const unknownChannel = { ...reply, category: "push", adminEditableOnly: [], content: { push: { text: "x" } } } as never;
-  assert.deepEqual(codes(validate(unknownChannel)), ["unknown_channel", "unknown_channel"]);
+  const unknownChannel = { ...reply, category: "push", adminEditableOnly: [] } as never;
+  assert.deepEqual(codes(validate(unknownChannel)), ["unknown_channel"]);
 
-  const unknownField = { ...reply, adminEditableOnly: ["email.subjectLine", "line.text"], content: { inApp: reply.content.inApp, email: reply.content.email } } as never;
+  const unknownField = { ...reply, adminEditableOnly: ["email.subjectLine", "line.text"] } as never;
   assert.deepEqual(codes(validate(unknownField)), [
     "unknown_admin_editable",
     "unknown_admin_editable",
   ]);
+});
 
-  const extraField = { ...reply, content: { ...reply.content, email: { subject: "件名", title: "欄の名前は変えられない" } } } as never;
-  assert.deepEqual(codes(validate(extraField)), ["invalid_content"]);
+test("経路だけの欄は種類の経路で使う時だけ必須(D125)", () => {
+  const def = defineMessage({ ...reply, adminEditableOnly: undefined, category: "accountInApp", layout: "split", values: { title: "題" } });
+  // inApp だけの種類: メールだけの欄は要らない
+  assert.deepEqual(validate(def), []);
+  // email のある種類: メールだけの欄が要る
+  assert.deepEqual(codes(validate({ ...def, category: "chat" })), ["invalid_values"]);
+  assert.deepEqual(validate({ ...def, category: "chat", values: { title: "題", mailOnly: "本文" } }), []);
 });
 
 test("throttle の検査と鍵の形", () => {
@@ -223,15 +243,15 @@ test("種類の検査: 受け口に無い鍵は誤り、種別の性質で文言
   assert.deepEqual(resolved.channels, ["inApp", "email"]);
 });
 
-test("authored(文面を送るたびに受け取る): 空の content は通り、文面・adminEditable・throttle・上書きは止める", () => {
-  const authored = defineMessage({ key: "admin.free", label: "テストの連絡", category: "chat", authored: true, vars: z.object({}), content: {} });
-  assert.deepEqual(validate(authored), [], "種類の経路の文面が無くても通る");
-  assert.deepEqual(codes(validate({ ...authored, content: { inApp: { title: "t", body: "b" } } })), ["authored_content"]);
-  assert.deepEqual(codes(validate({ ...authored, adminEditableOnly: ["inApp.title"] } as typeof authored)), ["authored_field", "unknown_admin_editable"]);
+test("authored(文面を送るたびに受け取る): 空の values は通り、中身・adminEditable・throttle・上書きは止める", () => {
+  const authored = defineMessage({ key: "admin.free", label: "テストの連絡", category: "chat", authored: true, vars: z.object({}), layout: "notice", values: {} });
+  assert.deepEqual(validate(authored), [], "欄の中身が無くても通る");
+  assert.deepEqual(codes(validate({ ...authored, values: { subject: "t", blocks: [{ type: "paragraph", text: "b" }] } })), ["authored_content"]);
+  assert.deepEqual(codes(validate({ ...authored, adminEditableOnly: ["inApp.title"] } as typeof authored)), ["authored_field"]);
   assert.deepEqual(codes(validate(authored, { override: { extras: { x: 1 } } })), ["authored_override"]);
-  // 送る口が受けた文面で埋めた定義(authored を外す)は普通に検査する: 種類の経路の文面が要る
-  const filled = { ...authored, authored: undefined, content: { inApp: { title: "{{displayName}}", body: "b" } } };
-  assert.deepEqual(codes(validate(filled, { variableKeys: ["displayName"] })), ["missing_content"]);
+  // 送る口が受けた文面で埋めた定義(authored を外す)は普通に検査する: 欄の中身が要る
+  const filled = { ...authored, authored: undefined, values: { subject: "{{displayName}}" } };
+  assert.deepEqual(codes(validate(filled, { variableKeys: ["displayName"] })), ["invalid_values"]);
 });
 
 test("種類の受け口の検査: 種別・経路・グループ(同じ種別だけ)", () => {
@@ -274,7 +294,7 @@ test("種別の性質の表(D80)", () => {
   assert.equal(kindTraits("nope"), null);
 });
 
-test("fork の経路を足した束(createDefineMessage と channels)", () => {
+test("fork の経路を足した束(createDefineMessage と channels): 経路の有無と adminEditableOnly の欄を見る", () => {
   const channels = {
     email: z.object({ subject: z.string() }).strict(),
     push: z.object({ title: z.string(), body: z.string() }).strict(),
@@ -286,7 +306,8 @@ test("fork の経路を足した束(createDefineMessage と channels)", () => {
     category: "order",
     vars: z.object({ orderId: z.string() }),
     adminEditableOnly: ["push.title"],
-    content: { push: { title: "発送しました", body: "注文 {{orderId}}" } },
+    layout: "notice",
+    values: { subject: "発送しました", blocks: [{ type: "paragraph", text: "注文 {{orderId}}" }] },
   });
   assert.deepEqual(validate(def, { channels }), []);
   // 上流の束で読むと push は知らない経路
@@ -307,9 +328,11 @@ test("型の絞り(型検査で固定。実行は何もしない)", () => {
   defineMessage({
     // @ts-expect-error 鍵は <domain>.<name>
     key: "noDot",
+    label: "テストの連絡",
     category: "x",
     vars,
-    content: { email: { subject: "s" } },
+    layout: "notice",
+    values: {},
   });
   defineMessage({
     key: "x.y",
@@ -318,7 +341,8 @@ test("型の絞り(型検査で固定。実行は何もしない)", () => {
     vars,
     // @ts-expect-error 欄の名前は <経路>.<欄>
     adminEditableOnly: ["email.title"],
-    content: { email: { subject: "s" } },
+    layout: "notice",
+    values: {},
   });
   defineMessage({
     key: "x.y",
@@ -327,16 +351,11 @@ test("型の絞り(型検査で固定。実行は何もしない)", () => {
     vars,
     // @ts-expect-error throttle.by は vars の鍵
     throttle: { by: ["b"], mode: "window", seconds: 1 },
-    content: { email: { subject: "s" } },
+    layout: "notice",
+    values: {},
   });
-  defineMessage({
-    key: "x.y",
-    label: "テストの連絡",
-    category: "x",
-    vars,
-    // @ts-expect-error 登録されていない経路
-    content: { push: { text: "s" } },
-  });
+  // @ts-expect-error ひな形(layout)は必須
+  defineMessage({ key: "x.y", label: "テストの連絡", category: "x", vars, values: {} });
   const content: MessageContent = { line: { text: "t" } };
   assert.ok(content);
 });
@@ -350,11 +369,11 @@ test("上書きの型の鍵と宣言の overrideOf は同じ", () => {
   assert.equal(overrideKeysMatch, true);
   assert.deepEqual([...extensionPoints.messages.overrideOf].sort(), [
     "adminEditableOnly",
-    "content",
     "enabled",
     "extras",
     "label",
     "record",
     "throttle",
+    "values",
   ]);
 });

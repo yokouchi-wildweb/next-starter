@@ -1,17 +1,22 @@
 // src/features/core/messaging/services/server/sendMessage/testHelpers.ts
 //
-// 送る口の単体テストの部品: メモリの store とテスト用の経路の項目(上流の経路の項目はまだ 0 本)。テストだけが読む。
+// 送る口の単体テストの部品: メモリの store とテスト用の経路の項目・ひな形(card)。テストだけが読む。
+// テストの経路は要約から描ける(要約 → { title, body?, image?, link? } を中身にする)。テストの定義は layout: "card" で、
+// values = { title, body?, image?, link? }(要約の題・本文・画像・行き先がそのまま経路の中身になる)
 
 import { randomUUID } from "node:crypto";
 
 import { z } from "zod";
 
-import type {
-  ChannelSendResult,
-  ChannelSendTarget,
-  MessageCategory,
-  MessageChannel,
-  MessageRegistry,
+import {
+  defineMessageLayout,
+  type ChannelSendResult,
+  type ChannelSendTarget,
+  type MessageCategory,
+  type MessageChannel,
+  type MessageLayout,
+  type MessageLayoutSummary,
+  type MessageRegistry,
 } from "@/lib/messaging";
 
 import type { MessagingConfig } from "../../../config";
@@ -22,6 +27,7 @@ import type {
   MessageEventRowInsert,
   MessageInboxItemInsert,
 } from "../../../entities/model";
+import { layout as noticeLayout } from "../../../layouts/notice/layout";
 import { MessageIdempotencyConflict } from "./errors";
 import type {
   MessageSendDeps,
@@ -178,7 +184,38 @@ export function createMemoryStore(): MemoryStore {
   return store;
 }
 
-/** テスト用の経路: 宛先ごとに返す結果を behave で決め、受けた束を calls に残す */
+/** テストのひな形: card = 題・本文・画像・行き先(要約にそのまま写す)/ notice = 上流の汎用のお知らせ(管理者が書く連絡が使う) */
+export const TEST_LAYOUTS: Readonly<Record<string, MessageLayout>> = {
+  notice: noticeLayout as MessageLayout,
+  card: defineMessageLayout({
+    key: "card",
+    label: "テストのカード",
+    fields: {
+      title: { type: "line", label: "題", required: true },
+      body: { type: "paragraph", label: "本文" },
+      image: { type: "image", label: "画像" },
+      link: { type: "line", label: "行き先" },
+    },
+    summary: (values) => ({
+      title: values.title ?? "",
+      body: values.body ?? "",
+      ...(values.image ? { image: values.image } : {}),
+      ...(values.link ? { link: { url: values.link } } : {}),
+    }),
+  }) as MessageLayout,
+};
+
+/** 要約 → テストの経路の中身(空の本文は出さない) */
+export function summaryContent(summary: MessageLayoutSummary): Record<string, unknown> {
+  return {
+    title: summary.title,
+    ...(summary.body ? { body: summary.body } : {}),
+    ...(summary.image ? { image: summary.image } : {}),
+    ...(summary.link ? { link: summary.link.url } : {}),
+  };
+}
+
+/** テスト用の経路: 宛先ごとに返す結果を behave で決め、受けた束を calls に残す。要約から描ける */
 export function createTestChannel(
   key = "test",
   behave: (target: ChannelSendTarget, call: number) => ChannelSendResult | "throw" = (target) => ({
@@ -194,6 +231,8 @@ export function createTestChannel(
     label: "テスト",
     addressing: "user", fieldMeta: {},
     fields: z.object({ title: z.string(), body: z.string().optional() }).strict(),
+    summaryRenderable: true,
+    renderFromSummary: (summary) => ({ content: summaryContent(summary) }),
     calls,
     async send(targets) {
       calls.push([...targets]);
@@ -246,6 +285,8 @@ export function createDeps(overrides: Partial<MessageSendDeps> & { store: Memory
   return {
     channels: {},
     enrichers: {},
+    layouts: TEST_LAYOUTS,
+    layoutRenderers: {},
     registry: {} satisfies MessageRegistry,
     categories: TEST_CATEGORIES,
     config: testConfig,

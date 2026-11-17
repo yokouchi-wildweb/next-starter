@@ -1,18 +1,17 @@
 // src/features/core/messaging/services/server/sendMessage/context.ts
 //
-// 差し込む値(vars ∪ 受信者ごとの値 ∪ enrichers の provides ∪ 共通の文脈)と、経路の中身の描画。
+// 差し込む値(vars ∪ 受信者ごとの値 ∪ enrichers の provides ∪ 共通の文脈)と差し込み。経路の中身の組み立ては ./content.ts
 
 import {
   COMMON_CONTEXT_KEYS,
   THROTTLE_CONTEXT_KEYS,
   listSecretVarKeys,
-  type MessageChannel,
   type MessageEnricher,
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 import { replaceVariables, type VariableMap } from "@/lib/structuredDocument/shared";
 
-import type { AnyResolvedMessageDefinition } from "./definition";
+import { enrichersFor, type AnyResolvedMessageDefinition } from "./definition";
 import type { MessageSendDeps, MessageUserRow } from "./types";
 
 /** 受信者ごとの値で上書きできない鍵(共通の文脈・まとめた回数) */
@@ -57,7 +56,7 @@ export function secretKeysOf(resolved: AnyResolvedMessageDefinition): string[] {
   return listSecretVarKeys(resolved.vars);
 }
 
-/** 当たる enrichers の値を集める(返値は provides の zod で検査する) */
+/** 当たる enrichers(当て先 = 連絡の鍵・種類・種別・全部、D127)の値を集める(返値は provides の zod で検査する) */
 async function enrich(
   enrichers: Readonly<Record<string, MessageEnricher>>,
   resolved: AnyResolvedMessageDefinition,
@@ -65,8 +64,7 @@ async function enrich(
   user: MessageUserRow | null,
 ): Promise<Record<string, unknown>> {
   const values: Record<string, unknown> = {};
-  for (const enricher of Object.values(enrichers)) {
-    if (enricher.messages !== "*" && !enricher.messages.includes(resolved.key)) continue;
+  for (const enricher of enrichersFor(resolved, enrichers)) {
     const raw = await enricher.resolve({
       messageKey: resolved.key,
       recipient: { userId: user?.id ?? null, name: user?.name ?? null, email: user?.email ?? null },
@@ -128,28 +126,4 @@ export function renderValue(value: unknown, map: VariableMap): unknown {
     return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, renderValue(item, map)]));
   }
   return value;
-}
-
-/** 経路の中身(定義の content.<経路>、無ければ経路の contentFrom で他の経路の欄から作る) */
-export function channelContent(
-  resolved: AnyResolvedMessageDefinition,
-  channelKey: string,
-  channel: MessageChannel | undefined,
-): Record<string, unknown> {
-  const content = resolved.content as Record<string, Record<string, unknown> | undefined>;
-  const own = content[channelKey];
-  if (own) return own;
-  const from = channel?.contentFrom;
-  const source = from ? content[from.channel] : undefined;
-  if (!from || !source) return {};
-  return Object.fromEntries(Object.entries(from.map).map(([target, field]) => [target, source[field]]));
-}
-
-/** 経路の件名・題(subject → title の順で最初の文字列の欄) */
-export function headingOf(content: Readonly<Record<string, unknown>>): string | null {
-  for (const field of ["subject", "title"]) {
-    const value = content[field];
-    if (typeof value === "string") return value;
-  }
-  return null;
 }

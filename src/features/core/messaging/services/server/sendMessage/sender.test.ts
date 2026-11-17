@@ -29,7 +29,7 @@ const notice = defineTestMessage({
   label: "テストの連絡",
   category: "news",
   vars: z.object({ item: z.string() }),
-  content: { test: { title: "{{serviceName}}: {{item}}", body: "{{recipientName}} 様 {{item}}" } },
+  layout: "card", values: { title: "{{serviceName}}: {{item}}", body: "{{recipientName}} 様 {{item}}" },
 });
 
 function setup(options: { channel?: ReturnType<typeof createTestChannel>; registry?: MessageRegistry; users?: number } = {}) {
@@ -52,7 +52,7 @@ test("d1: 上書きを重ねて送る(生成の一覧の override)", async () =>
     "shop.notice": {
       key: "shop.notice",
       definition: async () => ({ message: notice }),
-      override: async () => ({ messageOverride: { content: { test: { title: "上書き {{item}}" } } } }),
+      override: async () => ({ messageOverride: { values: { title: "上書き {{item}}" } } }),
     },
   };
   const { sender, channel, store } = setup({ registry });
@@ -161,10 +161,10 @@ test("d2: 経路の項目が無い経路は channel_off の行", async () => {
   const { sender } = setup();
   const twoChannels = defineTestMessage({ ...notice });
   const result = await sender.sendMessageToMany(
-    { ...twoChannels, content: { ...twoChannels.content, ghost: { title: "x" } } } as unknown as typeof notice,
+    twoChannels,
     { recipients: [{ userId: "u2" }], vars: { item: "x" }, channels: ["test", "ghost"] },
   ).catch((error) => error);
-  // ghost は欄の zod が無いので定義の検査で止まる(経路の項目が無い経路の中身は書けない)
+  // ghost は種類の経路の外なので止まる(経路は絞ることだけができる)
   assert.ok(result instanceof DomainError);
 });
 
@@ -221,7 +221,7 @@ test("d4: 秘密を差し込む連絡は record full でも描いた本文を残
     category: "account",
     record: "full",
     vars: z.object({ resetUrl: secretVar(z.string()), item: z.string() }),
-    content: { test: { title: "再設定 {{item}} {{resetUrl}}", body: "{{resetUrl}}" } },
+    layout: "card", values: { title: "再設定 {{item}} {{resetUrl}}", body: "{{resetUrl}}" },
   });
   const failing = createTestChannel("test", (target) => ({
     address: target.address,
@@ -250,7 +250,7 @@ test("d4: required は vars の写しも本文も残さない", async () => {
   const deps = createDeps({ store, channels: { email: { ...email, fields: z.object({ subject: z.string(), paragraphs: z.array(z.string()).optional() }).strict() } } });
   const requiredEmail = {
     ...required,
-    content: { email: { subject: "確認 {{item}}", paragraphs: ["{{item}} です"] } },
+    layout: "card", values: { title: "確認 {{item}}", body: "{{item}} です" },
   } as unknown as typeof notice;
   await createMessageSender(deps).sendMessage(requiredEmail, { recipient: { userId: "u2" }, vars: { item: "靴" } });
   assert.equal(store.dispatches[0].vars, null);
@@ -447,13 +447,13 @@ test("enrichers の provides を差し込み、返値は zod で検査する", a
     enrichers: {
       points: {
         key: "points",
-        messages: ["shop.notice"],
+        target: { messages: ["shop.notice"] },
         provides: z.object({ extra: z.string() }),
         resolve: ({ recipient }) => ({ extra: `pt-${recipient.userId}` }),
       },
     },
   });
-  const withPoints = defineTestMessage({ ...notice, content: { test: { title: "t", body: "{{recipientName}} 様 {{item}} {{extra}}" } } });
+  const withPoints = defineTestMessage({ ...notice, layout: "card", values: { title: "t", body: "{{recipientName}} 様 {{item}} {{extra}}" } });
   await createMessageSender(deps).sendMessage(withPoints, { recipient: { userId: "u2" }, vars: { item: "x" } });
   assert.equal(channel.calls[0][0].content.body, "利用者2 様 x pt-u2");
   // 当たる enricher が無ければ {{extra}} は定義の検査で落ちる
@@ -465,12 +465,32 @@ test("enrichers の provides を差し込み、返値は zod で検査する", a
   const badDeps = createDeps({
     store,
     channels: { test: channel },
-    enrichers: { points: { key: "points", messages: "*", provides: z.object({ extra: z.string() }), resolve: () => ({ extra: 1 }) } },
+    enrichers: { points: { key: "points", target: { all: true }, provides: z.object({ extra: z.string() }), resolve: () => ({ extra: 1 }) } },
   });
   await assertDomainError(
     createMessageSender(badDeps).sendMessage(withPoints, { recipient: { userId: "u2" }, vars: { item: "x" } }),
     500,
   );
+});
+
+test("enrichers の当て先(D127): 種類・種別・全部で当て、当たらない連絡には値も鍵も無い", async () => {
+  const enricher = (target: Record<string, unknown>) => ({
+    points: { key: "points", target, provides: z.object({ extra: z.string() }), resolve: () => ({ extra: "当たった" }) },
+  });
+  const withPoints = defineTestMessage({ ...notice, layout: "card", values: { title: "t", body: "{{extra}}" } });
+  // notice の種類 news = 種別 promotion
+  for (const target of [{ categories: ["news"] }, { kinds: ["promotion"] }, { all: true }, { messages: ["x.y"], kinds: ["promotion"] }]) {
+    const { store, channel } = setup();
+    const deps = createDeps({ store, channels: { test: channel }, enrichers: enricher(target) as never });
+    await createMessageSender(deps).sendMessage(withPoints, { recipient: { userId: "u2" }, vars: { item: "x" } });
+    assert.equal(channel.calls[0][0].content.body, "当たった", JSON.stringify(target));
+  }
+  for (const target of [{ categories: ["account"] }, { kinds: ["direct"] }, {}]) {
+    const { store, channel } = setup();
+    const deps = createDeps({ store, channels: { test: channel }, enrichers: enricher(target) as never });
+    // 当たらなければ {{extra}} は定義の検査で落ちる(使える鍵も当て先で選ぶ)
+    await assertDomainError(createMessageSender(deps).sendMessage(withPoints, { recipient: { userId: "u2" }, vars: { item: "x" } }), 500);
+  }
 });
 
 test("複数の宛先は 1 行の targets にまとめ、1 つでも sent なら sent", async () => {
@@ -621,7 +641,8 @@ test("経路は種類から(D86): channels はその回の絞りだけ、種類�
     label: "テストの連絡",
     category: "newsInApp",
     vars: z.object({ item: z.string() }),
-    content: { test: { title: "{{item}}" }, inApp: { title: "{{item}}", body: "{{item}}" } },
+    layout: "card",
+    values: { title: "{{item}}", body: "{{item}}" },
   });
   const store = createMemoryStore();
   store.users.push({ id: "u2", name: "利用者2", email: null });
@@ -649,7 +670,7 @@ test("種別の性質(D80): 記録の既定は種別から、security は苦情�
   // 種類 accountEmail は functional → 記録の既定 meta(vars を残さない)
   const fields3 = { email: z.object({ subject: z.string() }).strict() };
   const define3 = createDefineMessage<typeof fields3>();
-  const alert = define3({ key: "auth.alert", label: "テストの連絡", category: "accountEmail", vars: z.object({ item: z.string() }), content: { email: { subject: "{{item}}" } } });
+  const alert = define3({ key: "auth.alert", label: "テストの連絡", category: "accountEmail", vars: z.object({ item: z.string() }), layout: "card", values: { title: "{{item}}" } });
   const email = createTestChannel("email");
   const deps = createDeps({ store, channels: { email: { ...email, fields: fields3.email } } });
   store.endpoints.push({ userId: "u2", channel: "email", address: "u2@example.test" });
@@ -668,7 +689,7 @@ const securityAlert = defineTestMessage({
   label: "テストの連絡",
   category: "alert",
   vars: z.object({ item: z.string() }),
-  content: { test: { title: "警告 {{item}}" } },
+  layout: "card", values: { title: "警告 {{item}}" },
 });
 
 test("security(性質 sendInEntry): 予約と target は 400、宛先が多くても口の中で展開して最初の束を送る", async () => {

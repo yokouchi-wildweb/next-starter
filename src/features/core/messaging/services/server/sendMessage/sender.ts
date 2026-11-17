@@ -25,15 +25,8 @@ import type {
   MessageDispatchStatus,
 } from "../../../entities/model";
 import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
-import {
-  buildRecipientValues,
-  channelContent,
-  checkRecipientVars,
-  headingOf,
-  parseVars,
-  renderValue,
-  toVariableMap,
-} from "./context";
+import { buildContent, buildContents } from "./content";
+import { buildRecipientValues, checkRecipientVars, parseVars, toVariableMap } from "./context";
 import {
   resolveChannels,
   resolveDefinition,
@@ -95,34 +88,30 @@ function toChannelCounts(
   return counts;
 }
 
-/** 回の件名・題(回の vars と受信者に依らない文脈だけで差し込む。秘密の鍵は差し込まない) */
-function buildHeadings(
+/**
+ * 回の件名・題(経路ごとの要約の題。回の vars と受信者に依らない文脈だけで差し込む。秘密の鍵は差し込まない = 見出しに秘密が入らない)。
+ * 組み立てを通るので、描けない経路はここで止まる(回を書く前)
+ */
+async function buildHeadings(
   deps: MessageSendDeps,
   resolved: AnyResolvedMessageDefinition,
   channels: readonly string[],
   vars: Record<string, unknown>,
   policy: RecordPolicy,
-): Record<string, string> {
-  const map = toVariableMap({ ...vars, ...deps.context() }, policy.secretKeys);
-  const headings: Record<string, string> = {};
-  for (const key of channels) {
-    const heading = headingOf(channelContent(resolved, key, deps.channels[key]));
-    if (heading !== null) headings[key] = renderValue(heading, map) as string;
-  }
-  return headings;
+): Promise<Record<string, string>> {
+  const built = await buildContents(deps, resolved, channels, toVariableMap({ ...vars, ...deps.context() }, policy.secretKeys));
+  return Object.fromEntries(Object.entries(built).map(([key, { heading }]) => [key, heading]));
 }
 
-/** 全員同文の描画結果(受信者に依る鍵は {{鍵}} のまま) */
-function buildRendered(
+/** 全員同文の描画結果(経路ごとの中身。受信者に依る鍵は {{鍵}} のまま) */
+async function buildRendered(
   deps: MessageSendDeps,
   resolved: AnyResolvedMessageDefinition,
   channels: readonly string[],
   vars: Record<string, unknown>,
-): Record<string, unknown> {
-  const map = toVariableMap({ ...vars, ...deps.context() });
-  return Object.fromEntries(
-    channels.map((key) => [key, renderValue(channelContent(resolved, key, deps.channels[key]), map)]),
-  );
+): Promise<Record<string, unknown>> {
+  const built = await buildContents(deps, resolved, channels, toVariableMap({ ...vars, ...deps.context() }));
+  return Object.fromEntries(Object.entries(built).map(([key, { content }]) => [key, content]));
 }
 
 function finalDispatchStatus(statuses: readonly string[], queuedCount: number): MessageDispatchStatus {
@@ -203,7 +192,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       console.warn(`[messaging] 連絡 ${resolved.key} はドメインが閉じているので送りません(disabled)`);
       return null;
     }
-    const channels = resolveChannels(resolved, input.channels, deps.channels);
+    const channels = resolveChannels(resolved, input.channels);
     const vars = parseVars(resolved, input.vars);
     for (const values of Object.values(input.recipientVars ?? {})) checkRecipientVars(resolved, values);
     const policy = recordPolicyOf(resolved);
@@ -233,6 +222,9 @@ export function createMessageSender(deps: MessageSendDeps) {
     const { channels, vars, policy, recipientCount, queueVars, expanded, authored } = values;
     const actor = deps.actor();
     const scheduled = input.scheduledAt !== undefined;
+    // 見出しと全員同文の描画は回を書く前に組む(描けない経路はここで止まり、回を作らない)
+    const headings = await buildHeadings(deps, resolved, channels, vars, policy);
+    const rendered = policy.keepRendered ? await buildRendered(deps, resolved, channels, vars) : null;
     // cron が展開する回(大きな送信・予約)は宛先の一覧を回に置く
     const target = input.target
       ? input.target.type === "group"
@@ -263,10 +255,10 @@ export function createMessageSender(deps: MessageSendDeps) {
         target,
         tags: input.tags ? [...input.tags] : null,
         channel_counts: emptyChannelCounts(channels),
-        headings: buildHeadings(deps, resolved, channels, vars, policy),
+        headings,
         // 回の vars: 残す時は秘密の鍵を落とした写し。cron が送る残り(queueVars)にも要る(record meta なら cron が終わりに消す)
         vars: policy.keepVars || queueVars ? omitKeys(vars, policy.secretKeys) : null,
-        rendered: policy.keepRendered ? buildRendered(deps, resolved, channels, vars) : null,
+        rendered,
         record: policy.record,
         show_to_later_signups: input.showToLaterSignups ?? false,
         is_test: input.isTest ?? false,
@@ -409,10 +401,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         recipientVars: recipientVarsOf(row.recipient_key),
         user,
       });
-      const content = renderValue(
-        channelContent(resolved, row.channel, deps.channels[row.channel]),
-        toVariableMap(values),
-      ) as Record<string, unknown>;
+      const { content } = await buildContent(deps, resolved, row.channel, toVariableMap(values));
       bodies.set(row.id, content);
       throttleJobs.push({
         values,
@@ -574,7 +563,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         if (version) template = { id: version.templateId, version: version.version };
       }
       // 経路 = 種類の経路、input.channels はその中の絞り(テンプレートは組む時に絞り、文言の無い経路は 400)
-      const channels = resolveChannels(resolved, input.channels, deps.channels);
+      const channels = resolveChannels(resolved, input.channels);
       const vars = parseVars(resolved, input.vars);
       const [user] = input.userId ? await deps.store.findUsers([input.userId]) : [];
       const values = await buildRecipientValues({ deps, resolved, vars, recipientVars: undefined, user: user ?? null });
@@ -583,7 +572,8 @@ export function createMessageSender(deps: MessageSendDeps) {
       const items: MessagePreview["channels"] = [];
       for (const key of channels) {
         const channel = deps.channels[key];
-        const fields = renderValue(channelContent(resolved, key, channel), map);
+        // 送る時と同じ組み立て(fields = 経路へ渡す中身)
+        const { content: fields } = await buildContent(deps, resolved, key, map);
         const drawn = channel?.preview ? await channel.preview({ messageKey: resolved.key, content: fields, category }) : {};
         items.push({ key, label: channel?.label ?? key, fields, ...drawn });
       }

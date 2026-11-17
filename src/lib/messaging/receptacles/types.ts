@@ -25,11 +25,14 @@ export type ChannelAddress = {
 
 /** 経路へ渡す 1 宛先分の送信 */
 export type ChannelSendTarget = ChannelAddress & {
-  /** 連絡の鍵(<ドメイン>.<名前>)。メールの経路はこれで生成の一覧の描き方(messages/views)を引く */
+  /** 連絡の鍵(<ドメイン>.<名前>) */
   messageKey: MessageKey;
   /** 宛先まで含む冪等の鍵(provider の冪等の鍵に渡す) */
   idempotencyKey: string;
-  /** その宛先へ描いた中身(経路の欄の値。{{鍵}} は差し込み済み) */
+  /**
+   * その宛先へ組んだ中身({{鍵}} は差し込み済み)。送る時に描く経路(rendersAtSend)とひな形の描き方で描く経路は MessageLayoutContent、
+   * ほかは経路の汎用の描き方か要約から描いた物(inApp = お知らせの行の title・body・image・link、line = text)
+   */
   content: Record<string, unknown>;
   /**
    * 配信停止の種類の鍵。好みに従う連絡(種別が transactional でなく required でもない)の時だけ入る。
@@ -111,7 +114,7 @@ export type MessageChannel = MessageChannelRendering<ChannelRendered> & {
    * 値は項目が自分の設定から読む(例 line = messaging の config。fork は src/config の上書きで開ける)。門の機能ではない
    */
   enabled?: boolean;
-  /** 経路の欄の zod(定義の content.<鍵> の形。生成の一覧で MessageContent に合成される) */
+  /** 経路の欄の zod(管理画面の文言の編集・テンプレートの文面の形。送る口は読まない、S5 で消す) */
   fields: z.ZodTypeAny;
   /**
    * 欄ごとの表示の約束(D83、必須)。鍵 = fields の欄の名前。管理画面の文言の編集は経路の欄を全部この順で出す
@@ -123,7 +126,7 @@ export type MessageChannel = MessageChannelRendering<ChannelRendered> & {
    * 無い・画面が知らない鍵 = 欄をそのまま見せる
    */
   previewComponent?: string;
-  /** 他の経路の欄から中身を作る宣言(例 push = inApp の title・body・link)。連絡ごとは定義の extras.<経路> */
+  /** 他の経路の欄から中身を作る宣言(例 push = inApp の title・body・link)。送る口はもう読まない(中身はひな形の 3 段で組む)。S5 で消す */
   contentFrom?: { channel: string; map: Record<string, string> };
   /** 宛先の解決(既定は端末の帳簿 message_endpoints。email・line は自前の帳簿) */
   resolveAddresses?: (userIds: readonly string[]) => Promise<ChannelAddress[]>;
@@ -139,7 +142,7 @@ export type MessageChannel = MessageChannelRendering<ChannelRendered> & {
    */
   connectHref?: string;
   /**
-   * 描いたプレビュー(管理の送信の確認)。content = 差し込みを済ませた経路の欄。送る時と同じ描き方で描く(例 email = HTML)。
+   * 描いたプレビュー(管理の送信の確認)。content = 送る時と同じ組み立ての中身(ChannelSendTarget.content と同じ)。送る時と同じ描き方で描く(例 email = HTML)。
    * 無い経路はプレビューで欄をそのまま見せる
    */
   preview?: (input: {
@@ -173,12 +176,36 @@ export type MessageEnricherContext = {
 };
 
 /**
+ * enricher の当て先(D127)。どれかに当たる連絡に当てる(OR)。all: true = 全部の連絡
+ * - messages: 連絡の鍵 / categories: 種類の鍵 / kinds: 種別(管理者が書いて送る連絡は種別 announcement・direct・promotion で当てる)
+ */
+export type MessageEnricherTarget = {
+  messages?: readonly MessageKey[];
+  categories?: readonly string[];
+  kinds?: readonly MessageKind[];
+  all?: true;
+};
+
+/** 当て先がその連絡に当たるか */
+export function enricherTargets(
+  target: MessageEnricherTarget,
+  message: { key: string; category: string; kind: MessageKind },
+): boolean {
+  if (target.all) return true;
+  return Boolean(
+    target.messages?.some((key) => key === message.key) ||
+      target.categories?.includes(message.category) ||
+      target.kinds?.includes(message.kind),
+  );
+}
+
+/**
  * 値の項目(messaging/enrichers/<名前>.ts の export const enricher)。provides の鍵が {{鍵}} で使える(実行時に zod で検査)
  */
 export type MessageEnricher = {
   key: string;
-  /** 当てる連絡の鍵("*" = 全部) */
-  messages: "*" | readonly MessageKey[];
+  /** 当て先(連絡の鍵・種類・種別・全部、D127)。使える鍵の検査と実行がこの当て先で選ぶ */
+  target: MessageEnricherTarget;
   /** 足す変数の名前と型(管理画面の変数の候補と保存時の検査が読む) */
   provides: z.AnyZodObject;
   resolve: (context: MessageEnricherContext) => Promise<Record<string, unknown>> | Record<string, unknown>;

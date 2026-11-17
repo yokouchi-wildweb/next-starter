@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/notice/layout.ts
-// 上流のひな形「汎用のお知らせ」(D122・D123): 件名 + ブロックの並び。管理者がテンプレートで選べる。
+// 上流のひな形「汎用のお知らせ」(D122・D123): 件名 + ブロックの並び(任意。件名だけのお知らせも書ける、D109)。管理者がテンプレートで選べる。
 // 要約: 題 = 件名 / 本文 = 段落のブロックをつないだ文 / 画像 = 最初の画像のブロック / 行き先 = 最初のボタンのブロック
 
 import { defineMessageLayout, MESSAGE_BLOCK_KINDS, type MessageBlock } from "@/lib/messaging";
@@ -23,7 +23,7 @@ export const layout = defineMessageLayout({
   adminSelectable: true,
   fields: {
     subject: { type: "line", label: "件名", placeholder: "例: メンテナンスのお知らせ", required: true },
-    blocks: { type: "blocks", label: "本文", required: true, allow: MESSAGE_BLOCK_KINDS },
+    blocks: { type: "blocks", label: "本文", allow: MESSAGE_BLOCK_KINDS },
   },
   summary: (values) => ({ title: values.subject ?? "", ...summarizeBlocks(values.blocks ?? []) }),
 });

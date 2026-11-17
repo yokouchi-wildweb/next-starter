@@ -41,7 +41,7 @@ const definitionOf = (extra: Record<string, unknown> = {}) =>
       vars: z.object({ item: z.string(), ...(extra.secret ? { token: secretVar(z.string()) } : {}) }),
       ...(extra.required ? { required: true } : {}),
       record: (extra.record as "meta" | "vars" | undefined) ?? "vars",
-      content: { email: { subject: "{{item}}" } },
+      layout: "card", values: { title: "{{item}}" },
     }),
   ) as unknown as AnyResolvedMessageDefinition;
 

@@ -9,7 +9,7 @@
 - `sendMessage(definition, { recipient, vars, idempotencyKey?, scheduledAt?, source?, … })`: 1 人（`{ userId }` か `{ channel, address }`）
 - `sendMessageToMany(definition, { target | recipients, vars, … })`: `target` = `MessageTargetSpec`（`{ type: "all" }` / `{ type: "role", roles }` / `{ type: "group", groupId }`）か `recipients: [{ userId }, …]`
 - `sendAuthored({ content, category, template?: { templateId, version }, vars?, recipients | target, channels?, scheduledAt?, … })`: 管理者が書いた文面で送る（その場で書いた文面もテンプレートを読み込んで直した文面も同じ口、`template` の有無だけが違う）
-- `previewMessage`（経路ごとの差し込み済みの欄と描いた結果）・`estimateRecipients({ target })` → `{ count, fixedAtSend: true, memberLimit?, overLimit? }`（グループは一員の数と人数の上限、利用できない人を外す前の数。送る時に展開で数え直す）
+- `previewMessage`（経路ごとの組んだ中身 `fields` と描いた結果）・`estimateRecipients({ target })` → `{ count, fixedAtSend: true, memberLimit?, overLimit? }`（グループは一員の数と人数の上限、利用できない人を外す前の数。送る時に展開で数え直す）
 - 戻り値は回の id・状態・数。選んだ宛先で宛先の無い受信者・止めた受信者は理由つきで返る
 - 定義の誤りは 500、`enabled: false` は回を作らず `status: "disabled"`、vars の誤り・知らない鍵は 400、冪等の鍵の重複は 409
 - 連絡はその定義のフォルダのドメインに属する（生成の一覧の鍵 `<ドメインのフォルダ名>.<ファイル名>`）。ドメインが門で閉じていれば（そのフォルダを載せた機能が全部閉、`gate.domainOpen`）、送る口は回も配達も作らず `status: "disabled"` を返す（投げない = 呼び手の業務は止めない、警告を 1 行）。上流のドメインも fork のドメインも同じで、fork は自分の規則の入切で自分の連絡を止められる（`domainGate.ts`、D77）
@@ -20,7 +20,10 @@
 
 ### 流れ
 
-1. 生成の一覧（`messageRegistry`）の定義に上書きを `applyMessageOverride` で重ね、`validateMessageDefinition` で検査。管理画面の文言（門 `messagingOverrides` が開）は `resolveDefinition` の 1 か所で重ねる（定義ごとに 1 回、宛先ごとには読まない）
+1. 生成の一覧（`messageRegistry`）の定義に上書きを `applyMessageOverride` で重ね、`validateMessageDefinition` で検査（ひな形・欄の中身・`{{鍵}}`）。管理画面の文言は今は重ねない（『経路.欄』の鍵が ひな形の欄に当たらないため。TODO 指令 56: ひな形の欄の鍵へ替えて `resolveDefinition` の 1 か所で重ね直す）
+   - 中身の組み立ては `content.ts` の 1 つ（`buildContent` / `buildContents`）: 定義の欄の中身に差し込む → 経路ごとに描き方の 3 段（lib/messaging `buildChannelContent`: ひな形の描き方 > 経路の汎用 > 要約）→ 中身と見出し（要約の題）。email = `MessageLayoutContent`（経路が宛先ごとに描く）、inApp = 要約から（お知らせの行の title・body・image・link、S6 まで）、line = 要約から。どの段でも描けない経路は回を書く前に 500（経路と理由）
+   - 組み立てを通る所: 回の見出し（秘密の鍵は差し込まない）・全員同文の描画（`rendered`）・その場の行・プレビュー・まとめ送りの描き直し・cron の共有のお知らせの行・cron の送る行・上書きのプレビュー
+   - enrichers は当て先（連絡の鍵・種類・種別・全部、D127）で選ぶ。使える鍵の検査（`enricherKeysFor`）と実行（`context.ts`）が同じ `enrichersFor`
 2. 冪等の鍵を `message_dispatches` と `message_idempotency_keys` の両方で確かめる（重複・INSERT の UNIQUE 違反は 409）
 3. 回を 1 行書く（`message_key`・`kind`・`category`・`target`・`record`・`headings`・`channel_counts` など）
 4. 小さな送信（選んだ宛先が `smallSendMaxRecipients` 人以下）: 受信者 × 経路に展開して配達の行を作り、最初の束（`inRequestBatchSize`）を経路の `send(targets)` へ。残りは `queued` + `next_attempt_at` で cron が送る
@@ -30,7 +33,8 @@
 ### 管理者が書いた文面（authoredDefinition.ts・dispatchDefinition.ts）
 
 - 定義の鍵 = 送るカテゴリーの種別の authored の定義（`messaging.adminAnnouncement` / `adminDirect` / `adminPromotion`）。種別が announcement・direct・promotion でないカテゴリーは 400（送る時も cron の組み直しも）
-- **経路 = 種類の経路 ∩ その回の絞り（`channels`）。その中に文面の無い経路が 1 つでもあれば 400**（黙って落とさない）。欄は経路の受け口の zod で検査。`{{鍵}}` = 当たる enrichers の鍵 + テンプレートの版の変数、知らない鍵は 400。authored の定義は上書きと管理画面の文言を重ねない
+- **経路 = 種類の経路 ∩ その回の絞り（`channels`）。その中に文面の無い経路が 1 つでもあれば 400**（黙って落とさない）。欄は経路の受け口の zod で検査。`{{鍵}}` = 当たる enrichers の鍵 + テンプレートの版の変数（文面の全部で見る）、知らない鍵は 400。authored の定義は上書きと管理画面の文言を重ねない
+- 経路ごとの文面（管理画面・テンプレートの形、S4・S5 まで）は送る時にひな形 notice の欄の中身にする（`authoredNoticeValues`）: email の欄が先（件名 → subject、見出し・段落・ボタン・フッター → ブロック）、無ければ inApp（題・画像・本文・行き先）、無ければ line。経路ごとに別に書いた文（お知らせだけの文など）は S5 まで使わない
 - 文面は回の `authored_content` に残し、予約・cron の組み直し・再送はその文面で組む（後でテンプレートを直しても送った文面のまま）
 - テンプレートを読み込んだ時: 今の公開版を回の `template_id`・`template_version` に固定（今の公開版でない・取り下げ済み・未公開は 409、無いテンプレートは 404）。版から直したかを `template_edited` に残す
 - 変数の値 `vars`（回に 1 組、`template` がある時だけ。無いのに渡すと 400）は版の変数で検査（必須の欠け・型の違いは 400）。cron は送る時にもう一度検査し、合わなければ配達を `failed`（`template_vars_invalid`、版が消えた = `template_missing`、文面の無い前の回 = `authored_missing`）。受信者ごとの変数（`source: recipient`）は既定値を全員に使う（既定値が無いテンプレートは 400）
@@ -77,6 +81,6 @@
 
 ## Verification
 
-- `pnpm test src/features/core/messaging/services/server/sendMessage`（`sender` / `stops` / `throttle` / `authoredSend` / `schedule` / `adminOverrides`）
-- `messageRegistry.test.ts`: 生成の一覧の全件を上書きを重ねた後に検査（`checkMessageRegistry`、鍵の一致・`EmailView`）。出荷の前に通す
+- `pnpm test src/features/core/messaging/services/server/sendMessage`（`sender` / `content` / `stops` / `throttle` / `authoredSend` / `schedule`）
+- `messageRegistry.test.ts`: 生成の一覧の全件を上書きを重ねた後に検査（`checkMessageRegistry`、鍵の一致・種類の経路の全部で描けるか）。出荷の前に通す
 - `store.db.test.ts` は `DATABASE_URL` がある時だけ

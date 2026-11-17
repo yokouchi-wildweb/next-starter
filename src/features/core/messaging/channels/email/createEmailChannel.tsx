@@ -2,9 +2,10 @@
 //
 // メールの経路の項目を部品から作る(本物の部品は index.tsx、テストは偽物を渡す)。
 // - 宛先: users.email(自前の帳簿。端末の帳簿は使わない)
-// - 描き方: 宛先の連絡の鍵で生成の一覧の messages/views/<名前>.tsx を引き、あればその EmailView、無ければ既定の描き方(view.tsx)。
-//   描き方が読めない・EmailView が無い = コードの誤り → 送らず permanent(reason render_failed)
-// - 送信: 宛先ごとに描き、React のフォールバックの印があれば送らず permanent(L2.1)、
+// - 描き方(D124): 送る口が組んだ中身(MessageLayoutContent: 題・ひな形・段・欄の中身・要約)を、段に従って宛先ごとに描く(rendersAtSend:
+//   宛先ごとの停止のリンクを本文に入れるため)。layout = ひな形のメールの描き方(layouts の受け口 layoutEmails)/ channel = 汎用(genericView.tsx、
+//   ひな形の email の欄を宣言の順に)/ summary = 要約から。中身の形が違う・ひな形や描き方が無い・描けない = コードの誤り → 送らず permanent(reason render_failed)
+// - 送信: 宛先ごとに描き(件名 = 中身の題)、React のフォールバックの印があれば送らず permanent(L2.1)、
 //   無ければ描いた html を lib/mail send() に渡す(描くのは 1 回。冪等の鍵 = 配達の id、宛先が複数なら <id>:<番号>)
 // - MailSendError の分類(transient / permanent / unknown)をそのまま結果に写す。それ以外の例外は unknown
 // - preview: 管理の送信のプレビュー。送る時と同じ描き方で HTML を返す(停止のリンクは好みのページか見本の URL)
@@ -20,12 +21,17 @@ import type { ReactElement } from "react";
 
 import {
   emailFieldsSchema,
+  fieldsForChannel,
+  isMessageLayoutContent,
   type ChannelAddress,
   type ChannelSendResult,
   type ChannelWebhook,
   type ChannelWebhookEvent,
   type MessageChannel,
-  type MessageKey,
+  type MessageLayout,
+  type MessageLayoutContent,
+  type MessageLayoutEmailRenderer,
+  type MessageLayoutFields,
 } from "@/lib/messaging";
 import {
   MailSendError,
@@ -46,11 +52,12 @@ import { WebhookNotConfiguredError } from "../../services/server/webhooks/errors
 
 import { GenericEmailView, SummaryEmailView } from "./genericView";
 import { hasRenderFallbackMarker } from "./fallback";
-import { EmailView, type EmailViewComponent, type EmailViewContent } from "./view";
 
 export type EmailChannelDeps = {
-  /** 連絡の鍵 → その連絡の描き方(無ければ null = 既定の描き方)。読めない・形が違えば投げる */
-  loadView: (messageKey: MessageKey) => Promise<EmailViewComponent | null>;
+  /** ひな形の受け口(server の一覧 layouts。汎用の描き方がひな形の email の欄を引く) */
+  layouts: Readonly<Record<string, MessageLayout>>;
+  /** ひな形のメールの描き方(server の一覧 layoutEmails、鍵 = ひな形の鍵) */
+  layoutEmails: Readonly<Record<string, MessageLayoutEmailRenderer>>;
   render: (element: ReactElement) => Promise<string>;
   send: (options: SendMailOptions) => Promise<SendMailResult>;
   findEmails: (userIds: readonly string[]) => Promise<ChannelAddress[]>;
@@ -105,6 +112,30 @@ function emailWebhooks(deps: EmailChannelDeps): Record<string, ChannelWebhook> {
   };
 }
 
+/**
+ * 組んだ中身を段に従って描く要素にする(描けない = 投げる。呼び手が render_failed にする)
+ */
+function emailElement(deps: EmailChannelDeps, content: MessageLayoutContent, unsubscribeUrl: string | undefined): ReactElement {
+  if (content.from === "layout") {
+    const renderer = deps.layoutEmails[content.layout];
+    if (!renderer) throw new Error(`ひな形 ${content.layout} のメールの描き方がありません`);
+    const Component = renderer.Component as unknown as (props: Record<string, unknown>) => ReactElement;
+    return <Component values={content.values} summary={content.summary} theme={deps.theme} unsubscribeUrl={unsubscribeUrl} />;
+  }
+  if (content.from === "channel") {
+    const layout = deps.layouts[content.layout];
+    if (!layout) throw new Error(`ひな形 ${content.layout} がありません`);
+    const fields = fieldsForChannel(layout, "email") as MessageLayoutFields;
+    return <GenericEmailView fields={fields} values={content.values} theme={deps.theme} unsubscribeUrl={unsubscribeUrl} />;
+  }
+  return <SummaryEmailView summary={content.summary} theme={deps.theme} unsubscribeUrl={unsubscribeUrl} />;
+}
+
+function layoutContentOf(content: unknown): MessageLayoutContent {
+  if (!isMessageLayoutContent(content)) throw new Error("メールの中身がひな形の中身の形ではありません");
+  return content;
+}
+
 export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
   return {
     key: "email",
@@ -133,28 +164,17 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
     async renderFromSummary(summary) {
       return { html: await deps.render(<SummaryEmailView summary={summary} theme={deps.theme} />) };
     },
-    // プレビュー: 送る時と同じ描き方(連絡の鍵の view、無ければ既定)で HTML を描く。停止のリンクは見本の URL
-    async preview({ messageKey, content, category }) {
-      const View = (await deps.loadView(messageKey)) ?? EmailView;
-      const html = await deps.render(
-        <View
-          content={content as EmailViewContent}
-          theme={deps.theme}
-          unsubscribeUrl={category ? (deps.preferencesPageUrl?.() ?? PREVIEW_UNSUBSCRIBE_URL) : undefined}
-        />,
-      );
+    // 送る時に宛先ごとに描く(停止のリンク)。送る口は描かずに MessageLayoutContent を渡す
+    rendersAtSend: true,
+    // プレビュー: 送る時と同じ描き方で HTML を描く。停止のリンクは見本の URL
+    async preview({ content, category }) {
+      const unsubscribeUrl = category ? (deps.preferencesPageUrl?.() ?? PREVIEW_UNSUBSCRIBE_URL) : undefined;
+      const html = await deps.render(emailElement(deps, layoutContentOf(content), unsubscribeUrl));
       return { html };
     },
     async send(targets) {
       const results: ChannelSendResult[] = [];
-      // 束の中では連絡ごとに 1 回だけ読む
-      const views = new Map<MessageKey, Promise<EmailViewComponent | null>>();
-      const viewOf = (messageKey: MessageKey) => {
-        if (!views.has(messageKey)) views.set(messageKey, deps.loadView(messageKey));
-        return views.get(messageKey)!;
-      };
       for (const target of targets) {
-        const content = target.content as EmailViewContent;
         const listUnsubscribe = target.headers?.["List-Unsubscribe"];
         if (target.category && !listUnsubscribe) {
           // 停止のヘッダを付けられない promotion・activity のメールは送らない(D57)
@@ -166,9 +186,11 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
           ? (deps.preferencesPageUrl?.() ?? unsubscribePageUrlOf(listUnsubscribe) ?? listUnsubscribe.replace(/^<|>$/g, ""))
           : undefined;
         let html: string;
+        let subject: string;
         try {
-          const View = (await viewOf(target.messageKey)) ?? EmailView;
-          html = await deps.render(<View content={content} theme={deps.theme} unsubscribeUrl={unsubscribeUrl} />);
+          const content = layoutContentOf(target.content);
+          subject = content.title;
+          html = await deps.render(emailElement(deps, content, unsubscribeUrl));
         } catch (error) {
           results.push({
             address: target.address,
@@ -186,7 +208,7 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
         try {
           const sent = await deps.send({
             to: target.address,
-            subject: content.subject,
+            subject,
             // 描いた html をそのまま渡す(lib/mail の側でもう一度描かない)
             html,
             idempotencyKey: target.idempotencyKey,

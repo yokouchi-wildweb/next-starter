@@ -2,12 +2,7 @@
 
 import type { z } from "zod";
 
-import type {
-  ChannelFieldSchemas,
-  MessageContent,
-  MessageFieldPath,
-  UpstreamChannelFields,
-} from "./channels";
+import type { ChannelFieldSchemas, MessageFieldPath, UpstreamChannelFields } from "./channels";
 
 import type { MessageKind } from "./kinds";
 
@@ -38,7 +33,14 @@ export type MessageThrottle<VarKey extends string = string> = {
 type VarKeys<Vars extends z.AnyZodObject> = keyof z.infer<Vars> & string;
 
 /**
+ * ひな形の欄の中身(欄の鍵 → 値、D122)。文字列の中に {{鍵}} を書ける(送る時に vars・共通の文脈・enrichers の値を差し込む)
+ */
+export type MessageLayoutValuesSource = Readonly<Record<string, unknown>>;
+
+/**
  * 連絡の定義(messages/<名前>.ts に 1 本)。データだけで、送る処理は持たない。
+ * 中身 = ひな形(layouts の受け口の鍵)+ ひな形の欄の中身。経路ごとの中身は持たず、送る口が経路ごとに 3 段(ひな形の描き方 >
+ * 経路の汎用 > 要約、D124)で描く
  */
 export type MessageDefinition<
   Vars extends z.AnyZodObject = z.AnyZodObject,
@@ -68,24 +70,27 @@ export type MessageDefinition<
   record?: MessageRecord;
   throttle?: MessageThrottle<VarKeys<Vars>>;
   /**
-   * 文面を送るたびに受け取る連絡(管理者がその場で書く・テンプレートの文面を送る、D92)。定義は鍵・種類・記録の段だけを持ち、
-   * content は空 {}・vars は空の z.object({}) で書く(送る口が受けた文面で埋めてから検査する)。adminEditableOnly・throttle・上書きは付けられない
+   * 文面を送るたびに受け取る連絡(管理者がその場で書く・テンプレートの文面を送る、D92)。定義は鍵・種類・記録の段・ひな形だけを持ち、
+   * values は空 {}・vars は空の z.object({}) で書く(送る口が受けた文面で埋めてから検査する)。adminEditableOnly・throttle・上書きは付けられない
    */
   authored?: true;
-  /** 経路ごとの欄(種類の経路の分だけ必須。authored の定義は空 {}) */
-  content: MessageContent<C>;
+  /** ひな形の鍵(layouts の受け口のフォルダの名前。例 notice・link) */
+  layout: string;
+  /** ひな形の欄の中身(ひな形の欄の zod を通る。authored の定義は空 {}) */
+  values: MessageLayoutValuesSource;
   /** fork が足す欄の入れ物(描き方の .replace が読む) */
   extras?: Record<string, unknown>;
 };
 
 /**
- * 一部の上書き(messages/<名前>.override.ts、データだけ)。label(表示名)は変えられる。key・vars・required・category は変えられない(種類の付け替えは D74 で無し。
- * 経路は種類の override で変える)。content は経路ごとに欄を重ねる(欄の名前は変えられない)。throttle: null で外す。
+ * 一部の上書き(messages/<名前>.override.ts、データだけ)。label(表示名)は変えられる。key・vars・required・category・layout は変えられない
+ * (種類の付け替えは D74 で無し。経路は種類の override で変える)。values はひな形の欄ごとに重ねる(欄の鍵は変えられない)。throttle: null で外す。
  */
 export type MessageOverride<C extends ChannelFieldSchemas = UpstreamChannelFields> = {
   /** 連絡の名前(管理画面の表示名) */
   label?: string;
-  content?: { [K in keyof MessageContent<C>]?: Partial<NonNullable<MessageContent<C>[K]>> };
+  /** ひな形の欄の中身を欄ごとに差し替える */
+  values?: MessageLayoutValuesSource;
   extras?: Record<string, unknown>;
   /** 連絡 1 本の入切(既定 true)。上流の functional の連絡は止められない(D68) */
   enabled?: boolean;

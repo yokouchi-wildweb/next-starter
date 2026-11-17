@@ -4,9 +4,11 @@
 // - 守りに関わる値(定義の required・category・adminEditableOnly、上書きの enabled・adminEditableOnly、種類の kind・channels・group)はリテラルで書く
 // - label(全部の定義に必須、D46): 管理画面に出す連絡の名前。字面の空でない文字列(上書きで変えられる = 表示だけ)
 // - category(全部の定義に必須、D81): リテラルで、categories の受け口(messaging の点 categories)の項目の鍵のどれか。
-//   文面(content)は種類の経路の分だけ要る(D86)。上書きでは category を変えられない(宣言の overrideOf に無い = ../overrideKeys.mjs)
+//   上書きでは category を変えられない(宣言の overrideOf に無い = ../overrideKeys.mjs)
+// - layout(全部の定義に必須、D122): リテラルで、ひな形の受け口(messaging の点 layouts)のフォルダの名前のどれか。欄の中身(values)は
+//   ひな形の欄の zod で実行時に検査する(lib/messaging validateMessageDefinition)
 // - required の定義: 種類の経路に "email" がある・adminEditableOnly が空・throttle が無い
-// - authored: true の定義(文面を送るたびに受け取る、D92): 文面(content)の経路を見ない・上書きのファイルを置けない
+// - authored: true の定義(文面を送るたびに受け取る、D92): 上書きのファイルを置けない
 // - 上流(src/features/core)の functional の種類の連絡: 上書きで enabled: false にしない(D68)
 // - 種類の上書き(categories/<名前>.override.ts): functional・security の種類の channels から "email" を外さない(D86)。
 //   group は categoryGroups の受け口の鍵で、1 つのグループの種類は同じ種別(D82)
@@ -28,6 +30,8 @@ export const MESSAGE_POINT = { owner: "src/lib/messaging", name: "messages" };
 /** 配信停止の種類の点(項目の鍵 = category に書ける値)とグループの点 */
 export const CATEGORY_POINT = { owner: "src/features/core/messaging", name: "categories" };
 export const CATEGORY_GROUP_POINT = { owner: "src/features/core/messaging", name: "categoryGroups" };
+/** ひな形の点(layouts/<名前>/layout.ts のフォルダの名前 = layout に書ける値) */
+export const LAYOUT_POINT = { owner: "src/features/core/messaging", name: "layouts" };
 /** 種別の性質の表 */
 const KIND_TRAITS_FILE = "src/lib/messaging/definition/kinds.ts";
 /** 定義の export の名前(export const message = defineMessage({ … })) */
@@ -159,13 +163,30 @@ export function readKindTraits(repoRoot) {
   return traits;
 }
 
-/** content の経路の名前(字面) */
-function contentKeys(object) {
-  for (const p of object.properties) {
-    if (!ts.isPropertyAssignment(p) || !(ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) || p.name.text !== "content") continue;
-    const node = unwrap(p.initializer);
-    if (!ts.isObjectLiteralExpression(node)) return null;
-    return node.properties.flatMap((q) => (q.name && (ts.isIdentifier(q.name) || ts.isStringLiteral(q.name)) ? [q.name.text] : []));
+/** ひな形の受け口のフォルダの名前(点が宣言されていない木は null) */
+export function readLayoutKeys(points, files) {
+  const point = points.find((p) => p.owner === LAYOUT_POINT.owner && p.name === LAYOUT_POINT.name);
+  if (!point?.spec?.dir) return null;
+  const prefix = `${point.owner}/${point.spec.dir}/`;
+  return new Set(
+    files.flatMap((file) => {
+      if (!file.startsWith(prefix)) return [];
+      const match = /^([^/]+)\/layout\.ts$/.exec(file.slice(prefix.length));
+      return match ? [match[1]] : [];
+    }),
+  );
+}
+
+/** 定義の layout の問題(全部の連絡に必須・ひな形の受け口のフォルダの名前) */
+function layoutProblems(path, object, layoutKeys) {
+  const layout = readLiteralProperty(object, "layout");
+  if (layout.problem) return [`${path}: ${layout.problem}(layout をひな形の受け口と字面で照らすため)`];
+  const list = layoutKeys ? [...layoutKeys].sort().join(" / ") || "項目なし" : "";
+  if (!layout.present || typeof layout.value !== "string") {
+    return [`${path}: layout(ひな形の鍵${list ? `: ${list}` : ""})を書く(全部の連絡に必須。中身は values にひな形の欄の鍵で書く)`];
+  }
+  if (layoutKeys && !layoutKeys.has(layout.value)) {
+    return [`${path}: layout ${JSON.stringify(layout.value)} はひな形の受け口に無い(${list})。先に messaging/layouts/<名前>/layout.ts を足す`];
   }
   return [];
 }
@@ -180,7 +201,7 @@ function labelProblems(path, object) {
   return [];
 }
 
-/** 定義の category の問題(全部の連絡に必須・受け口の鍵・文面は種類の経路の分だけ) */
+/** 定義の category の問題(全部の連絡に必須・受け口の鍵) */
 function categoryProblems(path, object, categories) {
   const category = readLiteralProperty(object, "category");
   if (category.problem) return [`${path}: ${category.problem}(category を categories の受け口と字面で照らすため)`];
@@ -188,12 +209,7 @@ function categoryProblems(path, object, categories) {
   if (!category.present) return [`${path}: category(${list})を書く(全部の連絡に必須。種別と経路は種類から引く)`];
   const item = typeof category.value === "string" ? categories.get(category.value) : undefined;
   if (!item) return [`${path}: category ${JSON.stringify(category.value)} は categories の受け口に無い(${list})。先に categories/<名前>.ts を足す`];
-  // 文面を送るたびに受け取る定義は content を空で書く(送る口が受けた文面で検査する)
-  if (readLiteralProperty(object, "authored").value === true) return [];
-  const keys = contentKeys(object);
-  if (keys === null || !item.channels) return [];
-  const missing = item.channels.filter((channel) => !keys.includes(channel));
-  return missing.length > 0 ? [`${path}: 種類 ${category.value} の経路 ${missing.join(", ")} の文面(content.<経路>)が無い`] : [];
+  return [];
 }
 
 /** 種類の上書きの問題(email を外さない・グループ) */
@@ -259,6 +275,7 @@ export function checkMessageGuards(repoRoot, points, files) {
     categories = checked.effective;
   }
 
+  const layoutKeys = readLayoutKeys(points, files);
   for (const path of definitions) {
     const text = readFileSync(join(repoRoot, path), "utf8");
     const definition = exportedObject(path, text, MESSAGE_EXPORT);
@@ -268,6 +285,7 @@ export function checkMessageGuards(repoRoot, points, files) {
     }
     if (categories) problems.push(...categoryProblems(path, definition, categories));
     problems.push(...labelProblems(path, definition));
+    problems.push(...layoutProblems(path, definition, layoutKeys));
     const categoryItem = categories?.get(readLiteralProperty(definition, "category").value);
     const ownOverride = path.replace(/\.[A-Za-z]+$/, ".override.ts");
     const hasOverride = files.includes(ownOverride) && matchesGlob(ownOverride, overrideGlob);

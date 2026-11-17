@@ -84,7 +84,7 @@ describe("グループ宛ての送信の固定(実 DB、書いた行は消す)",
       label: "グループ宛てのテスト",
       category: "news",
       vars: z.object({ item: z.string() }),
-      content: { test: { title: "{{item}}" } },
+      layout: "card", values: { title: "{{item}}" },
     });
     const channel = createTestChannel("test");
     channel.resolveAddresses = async (ids) => ids.map((userId) => ({ userId, address: userId }));

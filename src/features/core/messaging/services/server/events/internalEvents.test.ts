@@ -25,7 +25,7 @@ const notice = defineTestMessage({
   label: "テストの連絡",
   category: "news",
   vars: z.object({ item: z.string() }),
-  content: { test: { title: "{{item}}" } },
+  layout: "card", values: { title: "{{item}}" },
 });
 const registry: MessageRegistry = { "shop.notice": { key: "shop.notice", definition: async () => ({ message: notice }) } };
 const deadline = () => ({ deadline: new Date(Date.now() + 60_000) });

@@ -1,7 +1,8 @@
 // 管理画面の文言の上書きの service の検査(DB・監査は偽物)
 // - 一覧: 直せる欄(adminEditablePaths、既定は種類の経路の欄の全部・adminEditableOnly で絞る。D83)のある連絡(と行の残る連絡)、数
 // - 直せない連絡(required・functional・authored)は一覧に出ず 1 件は 404
-// - 1 件: 欄ごとのコードの値・管理画面の値・送る時の値・印、使ってよい {{鍵}}(秘密を除く)
+// - 1 件: 欄ごとの管理画面の値・送る時の値・印、使ってよい {{鍵}}(秘密を除く)。コードの値は今は無い(null、TODO 指令 56)
+// - プレビュー: 送る口と同じ組み立ての中身を経路の preview で描く(上書きは重ねない、TODO 指令 56)
 // - 保存: 送る口と同じ検査(誤りは 400)、直した時のコードの値と操作者を残し、監査に残す / 戻す = 行を消す(無ければ 404)
 // - 管理者でなければ 403
 // 実行: pnpm test src/features/core/messaging/services/server/overrides
@@ -27,7 +28,8 @@ const editable = resolveMessageDefinition(
     category: "shop",
     vars: z.object({ name: z.string(), token: secretVar(z.string()) }),
     adminEditableOnly: ["email.subject", "email.paragraphs"],
-    content: { email: { subject: "{{name}} 様へ", paragraphs: ["一", "二"], cta: { label: "開く", url: "{{token}}" } } },
+    layout: "notice",
+    values: { subject: "{{name}} 様へ", blocks: [{ type: "paragraph", text: "一" }] },
   }),
   undefined,
   { kind: "transactional", channels: ["email"] },
@@ -41,7 +43,8 @@ const plain = resolveMessageDefinition(
     category: "shop",
     required: true,
     vars: z.object({}),
-    content: { email: { subject: "件名" } },
+    layout: "notice",
+    values: { subject: "件名", blocks: [{ type: "paragraph", text: "本文" }] },
   }),
   undefined,
   { kind: "transactional", channels: ["email"] },
@@ -49,6 +52,7 @@ const plain = resolveMessageDefinition(
 
 function setup(options: { actorId?: string | null; role?: string; rows?: MessageOverrideRecord[] } = {}) {
   const rows: MessageOverrideRecord[] = [...(options.rows ?? [])];
+  const previews: { channel: string; content: unknown }[] = [];
   const audits: AuditRecordInput[] = [];
   const definitions: Record<string, AnyResolvedMessageDefinition> = { "shop.notice": editable, "shop.plain": plain };
   const service = createOverrideService({
@@ -75,8 +79,10 @@ function setup(options: { actorId?: string | null; role?: string; rows?: Message
       },
     },
     recordAudit: async (input) => audits.push(input),
+    channelContent: async (resolved, channel) => ({ title: `${resolved.key} ${channel}` }),
+    channelPreview: async (channel, input) => (previews.push({ channel, content: input.content }), { html: "<p>描いた</p>" }),
   });
-  return { service, rows, audits };
+  return { service, rows, audits, previews };
 }
 
 const row = (fieldPath: string, value: unknown, codeValue: unknown): MessageOverrideRecord => ({
@@ -101,11 +107,11 @@ test("一覧: 直せる欄のある連絡だけ、数を返す", async () => {
     rows: [row("email.subject", "{{nope}}", "{{name}} 様へ"), row("email.paragraphs", ["a", "b"], ["旧", "旧"])],
   });
   assert.deepEqual(await service.listMessages(), [
-    { key: "shop.notice", label: "テストの連絡", kind: "transactional", category: "shop", categoryLabel: null, channels: [], editableCount: 2, editedCount: 2, orphanCount: 1, codeChangedCount: 1 },
+    { key: "shop.notice", label: "テストの連絡", kind: "transactional", category: "shop", categoryLabel: null, channels: [], editableCount: 2, editedCount: 2, orphanCount: 1, codeChangedCount: 2 },
   ]);
 });
 
-test("1 件: 欄ごとの値と印、使ってよい鍵(秘密を除く)、直せなくなった欄の行も出す", async () => {
+test("1 件: 欄ごとの値と印、使ってよい鍵(秘密を除く)、直せなくなった欄の行も出す。コードの値は今は無い", async () => {
   const { service } = setup({
     rows: [
       row("email.subject", "新しい {{name}}", "{{name}} 様へ"),
@@ -118,11 +124,11 @@ test("1 件: 欄ごとの値と印、使ってよい鍵(秘密を除く)、直�
   const [subject, paragraphs, heading] = detail.fields;
   assert.deepEqual(
     { ...subject, updatedAt: null },
-    { path: "email.subject", channel: "email", field: "subject", meta: { label: "subject", input: "line" }, editable: true, codeValue: "{{name}} 様へ", value: "新しい {{name}}", effective: "新しい {{name}}", edited: true, codeChanged: false, orphan: false, problem: null, updatedAt: null },
+    { path: "email.subject", channel: "email", field: "subject", meta: { label: "subject", input: "line" }, editable: true, codeValue: null, value: "新しい {{name}}", effective: "新しい {{name}}", edited: true, codeChanged: true, orphan: false, problem: null, updatedAt: null },
   );
-  // 並びの数が違う = 孤立(送る時はコードの値)、直した時のコードの値と違う = コードが変わった
-  assert.equal(paragraphs.orphan, true);
-  assert.deepEqual(paragraphs.effective, ["一", "二"]);
+  // コードの値が無いので並びの数は見ない。直した時のコードの値と違う = コードが変わった
+  assert.equal(paragraphs.orphan, false);
+  assert.deepEqual(paragraphs.effective, ["a"]);
   assert.equal(paragraphs.codeChanged, true);
   assert.equal(heading.editable, false);
   assert.equal(heading.orphan, true);
@@ -132,7 +138,7 @@ test("保存: 検査を通った値だけ、コードの値と操作者を残し
   const { service, rows, audits } = setup();
   const detail = await service.saveField("shop.notice", { fieldPath: "email.subject", value: "{{displayName}} 様、{{serviceName}} です" });
   assert.equal(detail.fields[0].effective, "{{displayName}} 様、{{serviceName}} です");
-  assert.deepEqual(rows.map((r) => [r.fieldPath, r.codeValue, r.updatedBy]), [["email.subject", "{{name}} 様へ", ADMIN]]);
+  assert.deepEqual(rows.map((r) => [r.fieldPath, r.codeValue, r.updatedBy]), [["email.subject", null, ADMIN]]);
   assert.deepEqual(audits.map((a) => [a.action, a.targetId]), [["messaging.override.updated", "shop.notice:email.subject"]]);
 
   const reset = await service.resetField("shop.notice", "email.subject");
@@ -142,14 +148,13 @@ test("保存: 検査を通った値だけ、コードの値と操作者を残し
   await rejectsWith(service.resetField("shop.notice", "email.subject"), 404);
 });
 
-test("保存の誤り: 入力・直せない欄・型・並びの数・使えない鍵・秘密の鍵は 400、無い連絡は 404", async () => {
+test("保存の誤り: 入力・直せない欄・型・使えない鍵・秘密の鍵は 400、無い連絡は 404", async () => {
   const { service, rows, audits } = setup();
   for (const input of [
     null,
     { fieldPath: "email.subject" , value: "x", extra: 1 },
     { fieldPath: "email.cta", value: { label: "a", url: "b" } },
     { fieldPath: "email.subject", value: "" },
-    { fieldPath: "email.paragraphs", value: ["a"] },
     { fieldPath: "email.subject", value: "{{nope}}" },
     { fieldPath: "email.subject", value: "{{token}}" },
   ]) {
@@ -159,6 +164,14 @@ test("保存の誤り: 入力・直せない欄・型・並びの数・使えな
   await rejectsWith(service.getMessage("shop.plain"), 404);
   assert.equal(rows.length, 0);
   assert.equal(audits.length, 0);
+});
+
+test("プレビュー: 送る口と同じ組み立ての中身を経路の preview で描き、上書きは重ねない(指令 56 まで)", async () => {
+  const { service, previews } = setup({ rows: [row("email.subject", "直した件名", null)] });
+  const preview = await service.previewMessage("shop.notice", { channel: "email", values: { "email.subject": "未保存" } });
+  assert.deepEqual(preview, { channel: "email", html: "<p>描いた</p>", text: null });
+  assert.deepEqual(previews, [{ channel: "email", content: { title: "shop.notice email" } }]);
+  await rejectsWith(service.previewMessage("shop.notice", { channel: "inApp" }), 400);
 });
 
 test("管理者でなければ 403", async () => {

@@ -6,7 +6,7 @@
 // - 欄の zod(経路の欄の束の shape[欄])を通る
 // - コードの値が配列なら同じ長さ(描き方が段落を位置で読むため)
 // - {{鍵}} は vars(秘密の印 secretVar の鍵を除く)∪ 共通の文脈 ∪ throttle の鍵 ∪ variableKeys(enrichers の provides)だけ
-// 通らない欄(孤立)は重ねず、その欄だけコードの値のまま(空で送らない)。
+// 送る口は今この値を重ねない(定義がひな形 + 欄の中身になり『経路.欄』の鍵が当たらないため。TODO(指令 56): ひな形の欄の鍵へ替えて重ね直す)。
 
 import { listVariables } from "@/lib/structuredDocument/shared";
 import type { z } from "zod";
@@ -67,11 +67,12 @@ export function adminFieldAllowedKeys(resolved: AnyResolved, variableKeys: reado
   ];
 }
 
-/** 欄のコードの値(上書きを重ねた後の定義の content.<経路>.<欄>) */
-export function adminFieldCodeValue(resolved: AnyResolved, fieldPath: string): unknown {
-  const [channel, field] = fieldPath.split(".");
-  const fields = (resolved.content as Record<string, Record<string, unknown> | undefined>)[channel];
-  return fields?.[field];
+/**
+ * 欄のコードの値。定義が経路ごとの中身を持たなくなった(ひな形 + 欄の中身、D122)ので今は無い(undefined)。
+ * TODO(指令 56): 上書きの鍵を ひな形の欄の鍵へ替え、コードの値 = 定義の values.<欄> に戻す
+ */
+export function adminFieldCodeValue(_resolved: AnyResolved, _fieldPath: string): unknown {
+  return undefined;
 }
 
 function collectStrings(value: unknown, out: string[]): string[] {
@@ -122,28 +123,4 @@ export function checkAdminFieldValue(
     };
   }
   return null;
-}
-
-/**
- * 通る欄の値だけを定義に重ねる(経路ごとに欄を差し替える)。通らない欄はコードの値のまま rejected に返す。
- */
-export function applyAdminFieldValues<R extends AnyResolved>(
-  resolved: R,
-  values: readonly AdminFieldValue[],
-  options: AdminFieldCheckOptions = {},
-): { resolved: R; rejected: (AdminFieldValue & { problem: AdminFieldProblem })[] } {
-  const rejected: (AdminFieldValue & { problem: AdminFieldProblem })[] = [];
-  const content: Record<string, Record<string, unknown>> = { ...(resolved.content as Record<string, Record<string, unknown>>) };
-  let changed = false;
-  for (const entry of values) {
-    const problem = checkAdminFieldValue(resolved, entry.fieldPath, entry.value, options);
-    if (problem) {
-      rejected.push({ ...entry, problem });
-      continue;
-    }
-    const [channel, field] = entry.fieldPath.split(".");
-    content[channel] = { ...content[channel], [field]: entry.value };
-    changed = true;
-  }
-  return { resolved: changed ? ({ ...resolved, content } as R) : resolved, rejected };
 }

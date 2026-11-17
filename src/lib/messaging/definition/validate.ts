@@ -2,12 +2,14 @@
 //
 // 連絡の定義の読み手の検査。定義(と上書きを重ねた結果)の誤りを問題の一覧で返す。
 // 送る口が実行時に、registry の生成が生成時に呼ぶ(呼ぶ側は S2 / S6)。
-// 種別と経路は定義に無く、属する種類(category)から引く(D81・D86): 文面は種類の経路の分だけ必須、種別の性質(MESSAGE_KIND_TRAITS)で
-// 管理画面の文言の上書き・間引きを止める。
+// 種別と経路は定義に無く、属する種類(category)から引く(D81・D86)。種別の性質(MESSAGE_KIND_TRAITS)で管理画面の文言の上書き・間引きを止める。
+// 中身はひな形 + 欄の中身(D122): ひな形が受け口にあり、欄の中身が種類の経路で使う欄の zod(layoutValuesSchema)を通り、{{鍵}} が宣言済み。
 
 import { listVariables } from "@/lib/structuredDocument/shared";
 import type { z } from "zod";
 
+import type { MessageLayout } from "../layout/types";
+import { layoutValuesSchema } from "../layout/values";
 import type { MessageCategory, MessageCategoryGroup } from "../receptacles/types";
 import { UPSTREAM_CHANNEL_FIELDS, type ChannelFieldSchemas } from "./channels";
 import { MESSAGE_KIND_TRAITS, isMessageKind } from "./kinds";
@@ -44,8 +46,8 @@ export type MessageDefinitionProblemCode =
   | "required_admin_editable"
   | "required_throttle"
   | "unknown_channel"
-  | "missing_content"
-  | "invalid_content"
+  | "unknown_layout"
+  | "invalid_values"
   | "unknown_admin_editable"
   | "unknown_variable"
   | "invalid_throttle"
@@ -70,7 +72,7 @@ export type OverriddenMessageDefinition<Vars extends z.AnyZodObject, C extends C
 };
 
 /**
- * 定義に上書きを重ねる。content は経路ごとに欄を重ね、throttle: null は外す。種別と経路は resolveMessageDefinition が種類から付ける
+ * 定義に上書きを重ねる。values はひな形の欄ごとに差し替え、throttle: null は外す。種別と経路は resolveMessageDefinition が種類から付ける
  */
 export function applyMessageOverride<Vars extends z.AnyZodObject, C extends ChannelFieldSchemas>(
   definition: MessageDefinition<Vars, C>,
@@ -79,15 +81,7 @@ export function applyMessageOverride<Vars extends z.AnyZodObject, C extends Chan
   const resolved: OverriddenMessageDefinition<Vars, C> = { ...definition, enabled: true };
   if (!override) return resolved;
 
-  if (override.content) {
-    const content: Record<string, unknown> = { ...definition.content };
-    for (const [channel, fields] of Object.entries(override.content)) {
-      if (!fields) continue;
-      const base = (content[channel] ?? {}) as Record<string, unknown>;
-      content[channel] = { ...base, ...(fields as Record<string, unknown>) };
-    }
-    resolved.content = content as MessageDefinition<Vars, C>["content"];
-  }
+  if (override.values) resolved.values = { ...definition.values, ...override.values };
   if (override.label !== undefined) resolved.label = override.label;
   if (override.extras) resolved.extras = { ...definition.extras, ...override.extras };
   if (override.enabled !== undefined) resolved.enabled = override.enabled;
@@ -134,7 +128,8 @@ function schemaKeys(schema: z.ZodTypeAny): string[] | null {
 /**
  * 定義(と上書き)を検査し、問題の一覧を返す(空 = 通る)。
  * - categories: categories の受け口(鍵 → 項目、fork の種類の override を重ねた後)。定義の category を照らし、種別と経路を引く
- * - channels: 経路の欄の zod の束(既定 = 上流の 3 経路。fork の経路は経路の受け口の項目の欄)
+ * - layouts: ひな形の受け口(鍵 → ひな形)。定義の layout を照らし、欄の中身を検査する
+ * - channels: 経路の欄の zod の束(既定 = 上流の 3 経路。fork の経路は経路の受け口の項目の欄)。経路の有無と adminEditableOnly だけに使う
  * - variableKeys: vars と共通の文脈の他に {{鍵}} で許す鍵(送る口が当たる enrichers の provides の鍵を渡す)
  */
 export function validateMessageDefinition<
@@ -144,6 +139,7 @@ export function validateMessageDefinition<
   definition: MessageDefinition<Vars, C>,
   options: {
     categories: Readonly<Record<string, Pick<MessageCategory, "kind" | "channels">>>;
+    layouts: Readonly<Record<string, MessageLayout>>;
     override?: MessageOverride<C>;
     channels?: C;
     variableKeys?: readonly string[];
@@ -166,8 +162,8 @@ export function validateMessageDefinition<
 
   if (definition.authored) {
     // 文面を送るたびに受け取る定義: 文面・管理画面の欄・間引きを持たず、上書きも当たらない(送った文面に重ねる物が無い)
-    if (Object.keys(definition.content ?? {}).length > 0) {
-      add("authored_content", `${label}: authored の連絡は content を空 {} にする(文面は送る時に受け取る)`);
+    if (Object.keys(definition.values ?? {}).length > 0) {
+      add("authored_content", `${label}: authored の連絡は values を空 {} にする(文面は送る時に受け取る)`);
     }
     if ((definition.adminEditableOnly?.length ?? 0) > 0 || definition.throttle) {
       add("authored_field", `${label}: authored の連絡に adminEditableOnly・throttle は付けられない`);
@@ -218,34 +214,32 @@ export function validateMessageDefinition<
     add("kind_throttle", `${label}: 種別 ${resolved.kind} の連絡は間引けない(throttle を付けない)`);
   }
 
-  const content = resolved.content as Record<string, unknown>;
-  for (const channel of Object.keys(content)) {
-    const schema = channels[channel];
-    if (!schema) {
-      add("unknown_channel", `${label}: 経路 ${channel} は登録されていない`);
-      continue;
+  for (const channel of resolved.channels) {
+    if (!channels[channel]) {
+      add("unknown_channel", `${label}: 種類 ${definition.category} の経路 ${channel} は登録されていない`);
     }
-    const parsed = schema.safeParse(content[channel]);
+  }
+  // ひな形と欄の中身(D122・D125): 種類の経路で使う欄だけを検査する。authored の定義は送る口が受けた文面で埋めてから検査する
+  const values = (resolved.values ?? {}) as Record<string, unknown>;
+  const layout = typeof definition.layout === "string" ? options.layouts[definition.layout] : undefined;
+  if (!layout) {
+    const keys = Object.keys(options.layouts);
+    add("unknown_layout", `${label}: layout ${String(definition.layout)} は layouts の受け口に無い(${keys.join(" / ") || "項目なし"})`);
+  } else if (!definition.authored || Object.keys(values).length > 0) {
+    const parsed = layoutValuesSchema(layout, { channels: resolved.channels as readonly string[] }).safeParse(values);
     if (!parsed.success) {
       const detail = parsed.error.issues
         .map((issue) => `${issue.path.join(".") || "(全体)"}: ${issue.message}`)
         .join(" / ");
-      add("invalid_content", `${label}: ${channel} の欄が正しくない(${detail})`);
-    }
-  }
-  // 文面は種類の経路の分だけ必須(D86)。authored の定義は送る口が受けた文面で埋めてから検査する
-  for (const channel of resolved.channels) {
-    if (!channels[channel]) {
-      add("unknown_channel", `${label}: 種類 ${definition.category} の経路 ${channel} は登録されていない`);
-    } else if (!definition.authored && content[channel] === undefined) {
-      add("missing_content", `${label}: 種類 ${definition.category} の経路 ${channel} に欄が無い`);
+      add("invalid_values", `${label}: ひな形「${layout.label}」の欄の中身が正しくない(${detail})`);
     }
   }
 
+  // adminEditableOnly は今の『経路.欄』の鍵のまま(ひな形の欄の鍵への付け替えは指令 56)
   for (const path of resolved.adminEditableOnly ?? []) {
     const [channel, field] = String(path).split(".");
     const keys = channels[channel] ? schemaKeys(channels[channel]) : null;
-    if (!keys || !field || !keys.includes(field) || content[channel] === undefined) {
+    if (!keys || !field || !keys.includes(field) || !resolved.channels.includes(channel as never)) {
       add("unknown_admin_editable", `${label}: adminEditableOnly の ${String(path)} は定義に無い欄`);
     }
   }
@@ -269,7 +263,7 @@ export function validateMessageDefinition<
     ...(options.variableKeys ?? []),
   ]);
   const unknownVariables = new Set<string>();
-  for (const text of collectStrings(content, [])) {
+  for (const text of collectStrings(values, [])) {
     for (const key of listVariables(text)) {
       if (!known.has(key)) unknownVariables.add(key);
     }

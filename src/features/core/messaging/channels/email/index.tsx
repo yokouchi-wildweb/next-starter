@@ -1,6 +1,6 @@
 // src/features/core/messaging/channels/email/index.tsx
 //
-// 上流の経路 email(経路の受け口の項目)。宛先は users.email、送信は lib/mail、連絡ごとの描き方は生成の一覧(messageRegistry)の view。
+// 上流の経路 email(経路の受け口の項目)。宛先は users.email、送信は lib/mail、描き方はひな形(layouts の受け口の layoutEmails > 汎用 > 要約)。
 // 中身: ./createEmailChannel.tsx
 
 import { render } from "@react-email/render";
@@ -12,17 +12,18 @@ import { MAIL_THEME_COLORS, send } from "@/lib/mail";
 import { getAppBaseUrl } from "@/lib/url";
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { messageRegistry } from "@/registry/messageRegistry";
 
 import { MESSAGE_PREFERENCES_PAGE_PATH } from "../../constants/preferences";
+import { layoutEmails } from "../../extensions/layoutEmails";
+import { layouts } from "../../extensions/layouts";
 import { createEmailChannel } from "./createEmailChannel";
-import { loadRegistryView } from "./loadView";
 
 export const channel = createEmailChannel({
   render: (element) => render(element),
   send,
   theme: MAIL_THEME_COLORS,
-  loadView: (messageKey) => loadRegistryView(messageRegistry, messageKey),
+  layouts,
+  layoutEmails,
   // 門 messagingPreferences が開なら本文の停止のリンクを好みのページへ(閉 = ワンクリックの URL のまま)
   preferencesPageUrl: () =>
     gate.enabled("messagingPreferences") ? `${getAppBaseUrl()}${MESSAGE_PREFERENCES_PAGE_PATH}` : null,

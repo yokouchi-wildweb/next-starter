@@ -14,15 +14,20 @@ import { UserTable } from "@/features/core/user/entities/drizzle";
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
-import { ADMIN_FREE_TEXT_MESSAGE_KEYS } from "../admin/freeText";
+import { ADMIN_FREE_TEXT_KINDS, ADMIN_FREE_TEXT_DEFINITIONS } from "../admin/freeText";
 import { enricherKeysFor } from "../sendMessage/definition";
 import { storageTemplateImageLedger } from "./imageBindingLedger";
 import { drizzleMessageTemplateStore } from "./store";
 import { createTemplateService } from "./templateService";
 
-/** テンプレートで使える provides = 送る時の鍵(種別ごとの管理の定義 3 本)のどれにも当たる enrichers の鍵 */
+/**
+ * テンプレートで使える provides = 送る時の定義(種別ごとの管理の定義 3 本)のどれにも当たる enrichers の鍵。
+ * 種類は送る時に選ぶので、鍵・種別の当て先と全部だけで決まる(種類だけを当て先にした enricher はテンプレートでは使えない)
+ */
 function templateProvidedKeys(): string[] {
-  const [first, ...rest] = ADMIN_FREE_TEXT_MESSAGE_KEYS.map((key) => enricherKeysFor(key, enrichers));
+  const [first, ...rest] = ADMIN_FREE_TEXT_KINDS.map((kind) =>
+    enricherKeysFor({ key: ADMIN_FREE_TEXT_DEFINITIONS[kind].key, category: "", kind }, enrichers),
+  );
   return (first ?? []).filter((key) => rest.every((keys) => keys.includes(key)));
 }
 

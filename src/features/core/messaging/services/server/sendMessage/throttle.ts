@@ -19,7 +19,8 @@ import { createHash } from "node:crypto";
 import type { MessageDeliveryInsert, MessageDeliveryReason, MessageDeliveryStatus } from "../../../entities/model";
 import { inAppItemRow } from "../../../channels/inApp/createInAppChannel";
 import { deliveryEvents } from "../events/internalEvents";
-import { channelContent, renderValue, toVariableMap } from "./context";
+import { buildContent } from "./content";
+import { toVariableMap } from "./context";
 import type { AnyResolvedMessageDefinition } from "./definition";
 import type { DeliveryJob } from "./deliver";
 import { activeChannel } from "./expand";
@@ -155,10 +156,8 @@ async function decideRecipient(
     const replace = throttled && item !== null;
     const count = replace ? item.collapsed_count + 1 : 1;
     const values = group[0]!.values;
-    const content = renderValue(
-      channelContent(resolved, IN_APP, deps.channels[IN_APP]),
-      toVariableMap({ ...values, collapsedCount: count }),
-    ) as Record<string, unknown>;
+    // まとめた回数で描き直す(送る口と同じ組み立て)
+    const { content } = await buildContent(deps, resolved, IN_APP, toVariableMap({ ...values, collapsedCount: count }));
     const row = { ...inAppItemRow(content, { dispatchId, userId, now }), throttle_key: key, collapsed_count: count };
     if (replace) {
       const earlier = item.collapsed_dispatch_ids ?? [];
