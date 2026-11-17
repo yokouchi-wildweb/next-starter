@@ -26,7 +26,7 @@
 - お知らせ = `message_inbox_items`。宛先 = 利用者の id。選んだ宛先・グループ宛て・中身が受信者に依る送信は受信者ごとの行（同じ回 × 利用者の行があれば書かない）
 - 全員・ロール宛てで中身が受信者に依る鍵（`recipientName`・`recipientEmail`・enrichers の鍵など）を使わない送信は、cron の展開が回に 1 行の共有の行を書く（../services/server/sweep/README.md）
 - 行 = 要約の列（`title` = 題・`body` = 短い本文か本文・`image`・`link` = 行き先の URL）+ ひな形の鍵・版・お知らせの欄の中身（`layout`・`layout_version`・`values`、D121）。送る口は描かずに `MessageLayoutContent` + `layoutVersion` を渡す（`rendersAtSend: true`）。詳細の画面がひな形のお知らせの描き方で描く
-- 記録の段が meta・秘密を差し込む連絡の行は欄の中身を残さない（`layout`・`values` は null = 要約のカード、`inboxContentWithoutValues`）。秘密の値は空の字で差し込む（D130、送る口の `buildRowContent`）
+- 行は記録ではなく届けた中身: 記録の段・required に依らずひな形・欄の中身を残す（D120）。秘密の値は空の字で差し込む（D130、送る口の `buildRowContent`）
 - 画像（要約の列と欄の中身の中の `storage://`）は書く前に回へ結ぶ（`bindImages`、../services/server/inbox/README.md）。間引きのある連絡の行は送る口の取引の中で書く（形 `inAppItemRow`）
 
 ### line（channels/line/）
