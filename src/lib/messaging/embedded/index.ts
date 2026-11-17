@@ -4,7 +4,11 @@ export { MESSAGE_COMMON_EMBEDDED, type MessageCommonEmbedded, type MessageEmbedd
 export {
   MESSAGE_EMBEDDED_TYPES,
   MESSAGE_EMBEDDED_TYPE_LABELS,
+  EMBEDDED_TYPE_SUFFIX,
+  displayEmbeddedValues,
+  embeddedDisplayText,
   embeddedTextOf,
+  embeddedTypeShape,
   embeddedValueSchema,
   embeddedValuesSchema,
   messageEmbeddedDeclarationSchema,

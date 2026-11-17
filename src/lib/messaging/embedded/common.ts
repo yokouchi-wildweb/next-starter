@@ -18,6 +18,7 @@ export const MESSAGE_COMMON_EMBEDDED: readonly MessageCommonEmbedded[] = [
   { key: "recipientName", alias: "受信者名", description: "受け取る人の名前(名前が無ければ空)" },
   { key: "recipientEmail", alias: "受信者のメール", description: "受け取る人のメールアドレス" },
   { key: "serviceName", alias: "サービス名", description: "このサービスの名前" },
+  { key: "serviceNameShort", alias: "サービスの短い名前", description: "このサービスの短い名前(件名の頭など)" },
   { key: "appBaseUrl", alias: "サイトのURL", description: "このサイトの起点の URL(例 https://example.com)" },
   { key: "collapsedCount", alias: "まとめた件数", description: "間引きでまとめた件数(間引きのある連絡だけ)", throttleOnly: true },
 ];

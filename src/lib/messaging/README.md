@@ -84,10 +84,11 @@ export const message = defineMessage({
 
 文面に `{{名前}}` で書く値を「埋め込み情報」と呼ぶ。名前は英語の鍵と日本語の別名の 2 つで、どちらで書いても同じ値で埋まる(`{{displayName}}` = `{{表示名}}`)。
 
-- 共通の埋め込み情報 `MESSAGE_COMMON_EMBEDDED`(`embedded/common.ts`、鍵・別名・説明の 1 か所。`COMMON_CONTEXT_KEYS`・`THROTTLE_CONTEXT_KEYS` もここから): `recipientName` 受信者名・`recipientEmail` 受信者のメール・`serviceName` サービス名・`appBaseUrl` サイトのURL・`collapsedCount` まとめた件数(間引きのある連絡だけ)
+- 共通の埋め込み情報 `MESSAGE_COMMON_EMBEDDED`(`embedded/common.ts`、鍵・別名・説明の 1 か所。`COMMON_CONTEXT_KEYS`・`THROTTLE_CONTEXT_KEYS` もここから): `recipientName` 受信者名・`recipientEmail` 受信者のメール・`serviceName` サービス名・`serviceNameShort` サービスの短い名前・`appBaseUrl` サイトのURL・`collapsedCount` まとめた件数(間引きのある連絡だけ)
 - enrichers は足す値ごとに別名を宣言する(`MessageEnricher.aliases`、provides の全部の鍵に要る)。上流の `displayName` は「表示名」
 - 専用の埋め込み情報(テンプレートが宣言する)`MessageEmbeddedDeclaration` = `{ key, alias, type, options?, required, default? }`。型 `line`(1 行の文)・`number`・`date`(YYYY-MM-DD)・`datetime`(ISO 8601、時差つき)・`url`・`select`(`options` の value)。保存の検査 `messageEmbeddedDeclarationSchema`、送る時の値の検査 `embeddedValueSchema` / `embeddedValuesSchema`(空は既定値、必須で既定値も無ければ誤り、差し込む字にする)
 - 一覧 `embeddedCatalog({ own, enrichers, throttle })` = 共通 + 当たる enrichers + 専用。`checkEmbeddedCatalog` が止める: 鍵の形(英字で始まる英数字)・別名の形(空白・記号なし、英数字以外の字を含む)・鍵の重なり・別名の重なり(専用どうしも共通・enrichers の名前とも)・enrichers の別名の欠け
+- 日付・日時の専用の値: 残す値は ISO のまま。`embeddedValuesSchema` が隣に型の印 `<鍵>@type`(`EMBEDDED_TYPE_SUFFIX`、書式 {{名前}} に拾われない)を出し、回の値と一緒に残る。差し込む時に `displayEmbeddedValues` が人が読む字にする(`embeddedDisplayText`: 2026年12月1日 / 2026年12月1日 11:00、日本時間)
 - 差し込み: `findEmbedded(文面, 一覧)` = 書かれた名前を鍵に直した並びと一覧に無い名前(保存・送る前に拒む)。`embeddedVariableMap(鍵 → 値, 一覧)` = 別名の行を足した表(`replaceVariables` に渡す)
 - 定義の検査(`validateMessageDefinition`)と管理画面の値の鍵(`adminFieldAllowedKeys`)は共通の別名を通す(enrichers の鍵と別名は呼び手が `variableKeys` で渡す)。送る口は差し込みの表に別名の行を足し、テンプレートの保存・送る前の検査は一覧で名前を確かめる(features/core/messaging)
 

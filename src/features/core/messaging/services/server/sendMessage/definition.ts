@@ -85,7 +85,7 @@ export async function resolveDefinition(
     layouts: deps.layouts,
     channels: registeredChannelKeys(deps.channels),
     variableKeys: enricherKeysFor(
-      { key: definition.key, category: definition.category, kind: deps.categories[definition.category]?.kind ?? "transactional" },
+      { key: definition.key, category: definition.category, kind: deps.categories[definition.category]?.kind ?? "transactional", vars: definition.vars },
       deps.enrichers,
     ),
   });
@@ -103,7 +103,7 @@ export async function resolveDefinition(
   const rows = await adminOverrides.load(definition.key);
   if (rows.length === 0) return resolved;
   const merged = applyAdminFieldValues(resolved, layout, rows, {
-    variableKeys: enricherKeysFor({ key: resolved.key, category: resolved.category, kind: resolved.kind }, deps.enrichers),
+    variableKeys: enricherKeysFor(resolved, deps.enrichers),
   });
   for (const { fieldPath, problem } of merged.rejected) {
     console.warn(`[messaging] 管理画面の文言を使わずコードの値で送ります(${definition.key} ${fieldPath}): ${problem.message}`);

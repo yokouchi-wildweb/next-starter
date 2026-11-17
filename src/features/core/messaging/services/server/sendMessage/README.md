@@ -21,7 +21,8 @@
 ### 流れ
 
 1. 生成の一覧（`messageRegistry`）の定義に上書きを `applyMessageOverride` で重ね、`validateMessageDefinition` で検査（ひな形・欄の中身・`{{鍵}}`）。最後に管理画面の文言（門 `messagingOverrides` が開の時、欄の道 = ひな形の欄の鍵、../overrides/README.md）を欄ごとに重ねる（`resolveDefinition` の 1 か所。版を移せない・検査を通らない行はコードの値、警告 1 行）。重ねた値は回の `values` に入るので、組み直しは送った時の文言のまま
-   - 差し込みの表には共通の埋め込み情報と当たる enrichers の日本語の別名の行も入る（`{{受信者名}}` = `{{recipientName}}`、D126。`content.ts` が `embeddedVariableMap` で足す）。定義の検査も別名を通す
+   - 専用の日付・日時の値は差し込む時に人が読む字にする（型の印 `<鍵>@type` から、lib `displayEmbeddedValues`。回に残す値は ISO）。共通の値 `serviceName`・`serviceNameShort`・`appBaseUrl` は `deps.context()`
+   - 差し込みの表には共通の埋め込み情報と当たる enrichers の日本語の別名の行も入る（vars のうち enricher と同じ鍵の値もその別名で書ける。例 wallet の `displayName` = `{{表示名}}`）（`{{受信者名}}` = `{{recipientName}}`、D126。`content.ts` が `embeddedVariableMap` で足す）。定義の検査も別名を通す
    - 中身の組み立ては `content.ts` の 1 つ（`buildContent` / `buildContents`）: 定義の欄の中身に差し込む → 経路ごとに描き方の 3 段（lib/messaging `buildChannelContent`: ひな形の描き方 > 経路の汎用 > 要約）→ 中身と見出し（要約の題）。email = `MessageLayoutContent`（経路が宛先ごとに描く）、inApp = `MessageLayoutContent` + ひな形の版（経路が受け取り箱の行に要約の列とひな形・欄の中身を書く、`buildRowContent` が記録の段と秘密の決まりを当てる）、line = 要約から。どの段でも描けない経路は回を書く前に 500（経路と理由）
    - 組み立てを通る所: 回の見出し（秘密の鍵は差し込まない）・全員同文の描画（`rendered`）・その場の行・プレビュー・まとめ送りの描き直し・cron の共有のお知らせの行・cron の送る行・上書きのプレビュー
    - enrichers は当て先（連絡の鍵・種類・種別・全部、D127）で選ぶ。使える鍵の検査（`enricherKeysFor`）と実行（`context.ts`）が同じ `enrichersFor`

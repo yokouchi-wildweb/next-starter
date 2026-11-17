@@ -91,7 +91,7 @@ export async function buildRecipientValues(params: {
 }): Promise<Record<string, unknown>> {
   const { deps, resolved, vars, recipientVars, user } = params;
   const enriched = await enrich(deps.enrichers, resolved, vars, user);
-  const { serviceName, appBaseUrl } = deps.context();
+  const { serviceName, serviceNameShort, appBaseUrl } = deps.context();
   return {
     ...vars,
     ...(recipientVars ?? {}),
@@ -99,6 +99,7 @@ export async function buildRecipientValues(params: {
     recipientName: user?.name ?? "",
     recipientEmail: user?.email ?? "",
     serviceName,
+    serviceNameShort,
     appBaseUrl,
     // まとめた回数(throttle のある連絡だけ。普通の送りは 1、間引きがお知らせを置き換える時はその回数で描き直す)
     ...(resolved.throttle ? { collapsedCount: 1 } : {}),

@@ -50,7 +50,7 @@ export const sendMessageDeps: MessageSendDeps = {
   config: messagingConfig,
   now: () => new Date(),
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-  context: () => ({ serviceName: business.serviceName, appBaseUrl: getAppBaseUrl() }),
+  context: () => ({ serviceName: business.serviceName, serviceNameShort: business.serviceNameShort, appBaseUrl: getAppBaseUrl() }),
   actor: () => {
     const ctx = getAuditContext();
     return { actorId: ctx?.actorId ?? null, actorType: ctx?.actorType ?? null };
