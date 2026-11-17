@@ -3,8 +3,9 @@
 // (1行テキスト・段落・複数行テキスト・画像・ボタン・リンク・日付・数・選択肢・並び・組・ラベルと値・ブロックの並び)。
 // 欄に入ると onFocusField(プレビューの枠、D80)。
 // 印(OverrideFieldMarks: 直した・コードが変わった・使えない・直せなくなった・未保存)・使えない理由・知らない {{鍵}}・
-// コードの値(元の文言。同じ入力の部品で読むだけに描く。直した欄は開いておき、直していない欄は開け閉め)・保存 / 入力を破棄 / 元の文言に戻す。
-// 直せなくなった欄は元の文言に戻すだけ。ひな形に無い欄の行(宣言が無い)は保存した値を文字で見せる
+// コードの値(元の文言。同じ入力の部品で読むだけに描く。直した欄は開いておき、直していない欄は開け閉め)・保存の誤り(error)・元の文言に戻す。
+// 保存はモーダルの下の帯の 1 回だけ(D132)。欄の操作は「元の文言に戻す」だけ: 保存してある欄は確かめて戻す印(onReset、保存で消える。印 resetPending)、
+// 下書きだけの欄は下書きを捨てる。直せなくなった欄も元の文言に戻すだけ。ひな形に無い欄の行(宣言が無い)は保存した値を文字で見せる
 
 "use client";
 
@@ -54,9 +55,12 @@ export type OverrideFieldEditorProps = {
   dirty: boolean;
   /** 下書きの中の知らない {{鍵}} */
   unknownKeys: readonly string[];
-  onSave: () => Promise<void>;
-  onReset: () => Promise<void>;
-  onDiscard: () => void;
+  /** 元の文言に戻す(保存してある欄は戻す印、下書きだけの欄は下書きを捨てる。保存はモーダルの 1 回) */
+  onReset: () => void;
+  /** 戻す印がある(保存すると元の文言に戻る) */
+  resetPending?: boolean;
+  /** 保存の誤り(まとめての保存で、この欄が通らなかった理由) */
+  error?: string | null;
   /** 欄に入った時("<欄>[.<部分>|.<番号>]") */
   onFocusField?: (path: string) => void;
   /**
@@ -72,9 +76,9 @@ export function OverrideFieldEditor({
   onChange,
   dirty,
   unknownKeys,
-  onSave,
   onReset,
-  onDiscard,
+  resetPending = false,
+  error = null,
   onFocusField,
   commonToAll,
 }: OverrideFieldEditorProps) {
@@ -125,6 +129,16 @@ export function OverrideFieldEditor({
         </Para>
       )}
 
+      {resetPending ? (
+        <SoftBadge variant="warning" size="sm" data-slot="override-field-reset-pending">
+          保存すると元の文言に戻ります
+        </SoftBadge>
+      ) : null}
+      {error ? (
+        <Para size="sm" tone="destructive" className="my-0" data-slot="override-field-error">
+          {error}
+        </Para>
+      ) : null}
       {unknownKeys.length > 0 ? <EmbeddedInfoTags common={[]} own={[]} unknownNames={unknownKeys} showTitle={false} /> : null}
 
       {shape ? (
@@ -148,12 +162,7 @@ export function OverrideFieldEditor({
       ) : null}
 
       <Flex justify="end" gap="xs" wrap="wrap">
-        {dirty ? (
-          <Button type="button" size="sm" variant="ghost" onClick={onDiscard}>
-            入力を破棄
-          </Button>
-        ) : null}
-        {field.edited ? (
+        {field.edited && !resetPending ? (
           <ConfirmPopover
             trigger={
               <Button type="button" size="sm" variant="outline">
@@ -161,23 +170,14 @@ export function OverrideFieldEditor({
               </Button>
             }
             title="元の文言に戻す"
-            description="この項目で編集した文言を削除し、元の文言で送信します。"
+            description="保存すると、この項目で編集した文言を削除し、元の文言で送信します。"
             confirmLabel="元に戻す"
             onConfirm={onReset}
           />
-        ) : null}
-        {shape && field.editable ? (
-          <ConfirmPopover
-            trigger={
-              <Button type="button" size="sm" variant="primary" disabled={!dirty || unknownKeys.length > 0}>
-                保存
-              </Button>
-            }
-            title="保存"
-            description="次に送信する通知から、この文言で送信します。"
-            confirmLabel="保存する"
-            onConfirm={onSave}
-          />
+        ) : dirty && !resetPending ? (
+          <Button type="button" size="sm" variant="outline" onClick={onReset}>
+            元の文言に戻す
+          </Button>
         ) : null}
       </Flex>
     </Stack>

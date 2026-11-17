@@ -3,8 +3,11 @@
 // src/features/core/messaging/hooks/useMessageOverrideEditor.ts
 //
 // 管理: 1 連絡の文言の編集(入れ物 AdminMessageOverrideModal はこれを呼んで部品を並べるだけ。CLAUDE.md core_ui_guards)。
-// - 欄ごとの下書き(文字 = string、段落 = string[]。長さはコードの値のまま)。初めは送る時の値(effective)
-// - 保存(PUT)・既定に戻す(DELETE)は欄 1 つずつ。成功したらその欄の下書きを捨て、1 連絡と一覧を取り直す
+// - 欄ごとの下書き(ひな形の欄の中身の形)。初めは送る時の値(effective)
+// - 保存は 1 回(D132): 下の帯の「保存」が直した欄の全部と「元の文言に戻す」の印の欄を PUT { fields } でまとめて送る(1 つの取引、
+//   どれかが誤りなら何も書かない)。欄の誤りは fieldErrors(400 code override_fields_invalid の details.fields)で欄に出す。
+//   成功したら下書き・印を捨て、1 連絡と一覧を取り直す
+// - 欄ごとの操作は「元の文言に戻す」だけ(resetField): 保存してある欄は戻す印を付けて保存で消す(画面はコードの値を見せる)、下書きだけの欄は下書きを捨てる
 // - 下書きが 1 つでもあれば、ページを離れる前に確かめる(@/lib/unsavedGuard)。モーダルを閉じる前の確かめは closeConfirm
 // - 下書きの中の知らない {{鍵}}(使ってよい鍵の外)を欄ごとに返す(保存はサーバーが同じ検査で止める)
 // - 欄の道 = ひな形の欄の鍵(D132)。直せる欄は既定でひな形の全欄(連絡が adminEditableOnly で絞ればその欄だけ。server が決める)。
@@ -18,18 +21,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useDomainMutation } from "@/lib/crud/hooks";
-import { err } from "@/lib/errors";
+import { err, getErrorCode, getErrorDetails } from "@/lib/errors";
 import { listVariables } from "@/lib/structuredDocument";
 import { useToast } from "@/lib/toast";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
 
 import {
   previewMessageOverride,
-  resetMessageOverride,
   saveMessageOverride,
   type AdminOverrideField,
   type AdminOverrideMessageDetail,
   type MessageOverridePreview,
+  type SaveMessageOverrideInput,
 } from "../services/client/overrideClient";
 import type { LayoutPreviewContent } from "../components/common/LayoutPreview";
 
@@ -70,20 +73,30 @@ export function withFocusStyle(html: string, focusedPath: string | null | undefi
 
 const same = (a: OverrideFieldValue, b: OverrideFieldValue) => JSON.stringify(a) === JSON.stringify(b);
 
+/** まとめての保存で欄に誤りがある時の 400 の code(server overrides/overrideService.ts OVERRIDE_FIELDS_INVALID と同じ字) */
+const OVERRIDE_FIELDS_INVALID = "override_fields_invalid";
+
+/** 400 の details から欄ごとの誤り(形が違えば空) */
+function fieldErrorsOf(error: unknown): Record<string, string> {
+  if (getErrorCode(error) !== OVERRIDE_FIELDS_INVALID) return {};
+  const fields = (getErrorDetails(error) as { fields?: unknown } | null)?.fields;
+  if (!fields || typeof fields !== "object") return {};
+  return Object.fromEntries(Object.entries(fields as Record<string, unknown>).map(([path, message]) => [path, String(message)]));
+}
+
 export function useMessageOverrideEditor(messageKey: string) {
   const { showToast } = useToast();
   const { detail, error, isLoading } = useMessageOverride(messageKey);
   const [drafts, setDrafts] = useState<Record<string, OverrideFieldValue>>({});
+  /** 「元の文言に戻す」の印の欄(保存してある欄。保存で行を消す) */
+  const [resets, setResets] = useState<string[]>([]);
+  /** 欄ごとの保存の誤り(まとめての保存の 400) */
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const revalidateKeys = [messageOverrideKey(messageKey), MESSAGE_OVERRIDES_KEY];
 
-  const saveMutation = useDomainMutation<AdminOverrideMessageDetail, { fieldPath: string; value: OverrideFieldValue }>(
+  const saveMutation = useDomainMutation<AdminOverrideMessageDetail, SaveMessageOverrideInput>(
     `${messageOverrideKey(messageKey)}/save`,
     (input) => saveMessageOverride(messageKey, input),
-    revalidateKeys,
-  );
-  const resetMutation = useDomainMutation<AdminOverrideMessageDetail, string>(
-    `${messageOverrideKey(messageKey)}/reset`,
-    (fieldPath) => resetMessageOverride(messageKey, fieldPath),
     revalidateKeys,
   );
 
@@ -92,18 +105,19 @@ export function useMessageOverrideEditor(messageKey: string) {
   const activeChannel = channelState ?? detail?.channels[0]?.key ?? "";
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
 
-  /** 欄の今の値(下書き、無ければ送る時の値) */
+  /** 欄の今の値(下書き、戻す印ならコードの値、無ければ送る時の値) */
   const valueOf = useCallback(
-    (field: AdminOverrideField): OverrideFieldValue => (field.path in drafts ? drafts[field.path] : toEditable(field.effective)),
-    [drafts],
+    (field: AdminOverrideField): OverrideFieldValue =>
+      field.path in drafts ? drafts[field.path] : resets.includes(field.path) ? toEditable(field.codeValue) : toEditable(field.effective),
+    [drafts, resets],
   );
 
-  const setDraft = useCallback(
-    (field: AdminOverrideField, value: OverrideFieldValue) =>
-      setDrafts((prev) => {
+  const clearError = useCallback(
+    (path: string) =>
+      setFieldErrors((prev) => {
+        if (!(path in prev)) return prev;
         const next = { ...prev };
-        if (same(value, toEditable(field.effective))) delete next[field.path];
-        else next[field.path] = value;
+        delete next[path];
         return next;
       }),
     [],
@@ -112,6 +126,7 @@ export function useMessageOverrideEditor(messageKey: string) {
   const dropDraft = useCallback(
     (path: string) =>
       setDrafts((prev) => {
+        if (!(path in prev)) return prev;
         const next = { ...prev };
         delete next[path];
         return next;
@@ -119,21 +134,45 @@ export function useMessageOverrideEditor(messageKey: string) {
     [],
   );
 
-  const isDirty = useCallback((field: AdminOverrideField) => field.path in drafts, [drafts]);
+  /** 欄を直す(送る時の値と同じなら下書きを捨てる。戻す印は外す) */
+  const setDraft = useCallback(
+    (field: AdminOverrideField, value: OverrideFieldValue) => {
+      setResets((prev) => (prev.includes(field.path) ? prev.filter((path) => path !== field.path) : prev));
+      clearError(field.path);
+      setDrafts((prev) => {
+        const next = { ...prev };
+        if (same(value, toEditable(field.effective))) delete next[field.path];
+        else next[field.path] = value;
+        return next;
+      });
+    },
+    [clearError],
+  );
+
+  /** 下書きか戻す印がある(保存していない) */
+  const isDirty = useCallback((field: AdminOverrideField) => field.path in drafts || resets.includes(field.path), [drafts, resets]);
+  /** 戻す印がある(保存すると行を消す) */
+  const isResetPending = useCallback((field: AdminOverrideField) => resets.includes(field.path), [resets]);
 
   /** 今の経路の欄(その経路が使う欄と、使えない・直せなくなった行) */
   const activeFields = useMemo(
     () => (detail?.fields ?? []).filter((field) => field.channels.includes(activeChannel) || field.channels.length === 0),
     [detail, activeChannel],
   );
-  /** 今の経路の値(下書き、無ければ送る時の値)。プレビューが読む */
+  /** 今の経路の値(下書き、戻す印ならコードの値、無ければ送る時の値)。プレビューが読む */
   const activeValues = useMemo(
-    () => Object.fromEntries(activeFields.filter((field) => field.editable).map((field) => [field.path, drafts[field.path] ?? field.effective])),
-    [activeFields, drafts],
+    () => Object.fromEntries(activeFields.filter((field) => field.editable).map((field) => [field.path, valueOf(field)])),
+    [activeFields, valueOf],
   );
+  /** プレビューに重ねる未保存の値(下書きと、戻す印の欄のコードの値) */
   const activeDrafts = useMemo(
-    () => Object.fromEntries(Object.entries(drafts).filter(([path]) => activeFields.some((field) => field.path === path))),
-    [drafts, activeFields],
+    () =>
+      Object.fromEntries(
+        activeFields
+          .filter((field) => field.editable && (field.path in drafts || resets.includes(field.path)))
+          .map((field) => [field.path, valueOf(field)]),
+      ),
+    [drafts, resets, activeFields, valueOf],
   );
   const draftSignature = JSON.stringify(activeDrafts);
   const detailVersion = detail ? JSON.stringify(detail.fields.map((field) => field.updatedAt)) : "";
@@ -178,39 +217,40 @@ export function useMessageOverrideEditor(messageKey: string) {
     [previewResult, focusedPath],
   );
   const embeddedTags = useEmbeddedInfoTags({ catalog: detail?.embedded ?? null });
-  const hasDrafts = Object.keys(drafts).length > 0;
+  const hasDrafts = Object.keys(drafts).length > 0 || resets.length > 0;
   useUnsavedGuard(hasDrafts);
 
-  /** 欄 1 つを保存(ConfirmPopover・ボタンが Promise の間 loading) */
-  const save = useCallback(
-    async (field: AdminOverrideField) => {
-      try {
-        await saveMutation.trigger({ fieldPath: field.path, value: valueOf(field) });
-        dropDraft(field.path);
-        showToast("保存しました", "success");
-      } catch (e) {
-        showToast(err(e, "保存できませんでした"), "error");
-      }
-    },
-    [saveMutation, valueOf, dropDraft, showToast],
-  );
+  /**
+   * 1 回の保存(D132): 直した欄の全部と戻す印の欄をまとめて保存する(1 つの取引)。下の帯の「保存」(ConfirmPopover・Promise の間 loading)。
+   * 欄の誤りは fieldErrors に入れて欄に出す(何も保存されない)。誤りは知らせに出し、投げない
+   */
+  const saveAll = useCallback(async () => {
+    const fields: SaveMessageOverrideInput["fields"] = [
+      ...Object.entries(drafts).map(([fieldPath, value]) => ({ fieldPath, value })),
+      ...resets.filter((path) => !(path in drafts)).map((fieldPath) => ({ fieldPath, reset: true as const })),
+    ];
+    if (fields.length === 0) return;
+    try {
+      await saveMutation.trigger({ fields });
+      setDrafts({});
+      setResets([]);
+      setFieldErrors({});
+      showToast("保存しました", "success");
+    } catch (e) {
+      setFieldErrors(fieldErrorsOf(e));
+      showToast(err(e, "保存できませんでした"), "error");
+    }
+  }, [drafts, resets, saveMutation, showToast]);
 
-  /** 欄 1 つを既定に戻す(行を消す) */
+  /** 「元の文言に戻す」: 保存してある欄は戻す印(保存で行を消す)、下書きだけの欄は下書きを捨てる */
   const reset = useCallback(
-    async (field: AdminOverrideField) => {
-      try {
-        await resetMutation.trigger(field.path);
-        dropDraft(field.path);
-        showToast("元の文言に戻しました", "success");
-      } catch (e) {
-        showToast(err(e, "元の文言に戻せませんでした"), "error");
-      }
+    (field: AdminOverrideField) => {
+      dropDraft(field.path);
+      clearError(field.path);
+      if (field.edited) setResets((prev) => (prev.includes(field.path) ? prev : [...prev, field.path]));
     },
-    [resetMutation, dropDraft, showToast],
+    [dropDraft, clearError],
   );
-
-  /** 下書きを捨てる */
-  const discard = useCallback((field: AdminOverrideField) => dropDraft(field.path), [dropDraft]);
 
   return {
     detail,
@@ -239,12 +279,17 @@ export function useMessageOverrideEditor(messageKey: string) {
     valueOf,
     setDraft,
     isDirty,
+    isResetPending,
     hasDrafts,
+    /** 保存していない欄の数(下書き + 戻す印) */
+    pendingCount: new Set([...Object.keys(drafts), ...resets]).size,
+    /** 欄ごとの保存の誤り(欄の鍵 → 理由) */
+    fieldErrors,
+    isSaving: saveMutation.isMutating,
     /** モーダルを閉じる前の確かめ(Modal の confirmOnClose に渡す) */
     closeConfirm: { enabled: hasDrafts, message: "保存していない変更があります。閉じてもよろしいですか？" },
     unknownKeys: (field: AdminOverrideField) => unknownKeysOf(valueOf(field), allowedKeys),
-    save,
+    saveAll,
     reset,
-    discard,
   };
 }

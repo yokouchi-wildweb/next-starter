@@ -68,6 +68,43 @@ export const drizzleMessageOverrideStore: MessageOverrideStore = {
       return true;
     });
   },
+  async apply(messageKey, { removals, upserts }, hooks = {}) {
+    await db.transaction(async (tx) => {
+      for (const fieldPath of removals) {
+        const deleted = await tx
+          .delete(MessageOverrideTable)
+          .where(and(eq(MessageOverrideTable.message_key, messageKey), eq(MessageOverrideTable.field_path, fieldPath)))
+          .returning({ id: MessageOverrideTable.id, value: MessageOverrideTable.value });
+        if (hooks.release) for (const row of deleted) await hooks.release(tx, { rowId: row.id, value: row.value });
+      }
+      const now = new Date();
+      for (const { fieldPath, layoutVersion, value, codeValue, updatedBy } of upserts) {
+        const [current] = await tx
+          .select({ id: MessageOverrideTable.id, value: MessageOverrideTable.value })
+          .from(MessageOverrideTable)
+          .where(and(eq(MessageOverrideTable.message_key, messageKey), eq(MessageOverrideTable.field_path, fieldPath)))
+          .for("update")
+          .limit(1);
+        const rowId = current?.id ?? randomUUID();
+        const written = hooks.bind ? await hooks.bind(tx, { fieldPath, rowId, previousValue: current?.value ?? null, value }) : value;
+        await tx
+          .insert(MessageOverrideTable)
+          .values({
+            id: rowId,
+            message_key: messageKey,
+            field_path: fieldPath,
+            layout_version: layoutVersion,
+            value: written,
+            code_value: codeValue ?? null,
+            updated_by: updatedBy,
+          })
+          .onConflictDoUpdate({
+            target: [MessageOverrideTable.message_key, MessageOverrideTable.field_path],
+            set: { value: written, layout_version: layoutVersion, code_value: codeValue ?? null, updated_by: updatedBy, updatedAt: now },
+          });
+      }
+    });
+  },
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

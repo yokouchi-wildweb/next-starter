@@ -3,8 +3,9 @@
 // 管理者向け: 1 連絡の文言の上書き(AdminOverrideMessageDetail)。門 messagingOverrides が閉なら 404
 //
 // GET    /api/admin/messaging/overrides/[key]                  全欄(コードの値・管理画面の値・印・使ってよい {{鍵}})
-// PUT    /api/admin/messaging/overrides/[key]                  body { fieldPath, value } 欄 1 つを保存(送る口と同じ検査、誤りは 400)
-// DELETE /api/admin/messaging/overrides/[key]?field=<経路.欄>   欄 1 つを既定に戻す(行を消す)
+// PUT    /api/admin/messaging/overrides/[key]                  body { fields: [{ fieldPath, value } | { fieldPath, reset: true }] } 直した欄をまとめて保存
+//        (D132 の 1 回の保存。1 つの取引で、どれかが誤りなら何も書かない。欄の誤りは 400 code override_fields_invalid・details.fields { 欄の鍵: 理由 })
+// DELETE /api/admin/messaging/overrides/[key]?field=<欄の鍵>   欄 1 つを既定に戻す(行を消す。管理画面は PUT の reset を使う)
 
 import { gate } from "@/featureGate";
 import { DomainError } from "@/lib/errors";

@@ -6,9 +6,12 @@
 // - 1 件: 種類の経路(fork の種類の上書きの後)と、直せる欄の全部(宣言の順)+ 使えない・直せなくなった行。
 //   欄ごとに 欄の宣言(型・見出し・仮の文)・使う経路・コードの値(定義の values)・管理画面の値・送る時の値・印(直した / コードが変わった / 使えない)
 // - 行は保存した時のひな形の版を持ち、読む時に改版の対応で今の版の欄へ移す。移せない行・今の検査を通らない行は当てない(unusable、行は消さない)
-// - 保存: 送る口と同じ検査(lib/messaging checkAdminFieldValue)を通った値だけ。今のひな形の版と直した時のコードの値も残す。
-//   同じ欄へ移る前の版の行は消す(1 つの欄に 1 行)。値の画像(storage:// の参照)は保存の台帳で行に結び、外れた物を外す(imageBinding.ts)
-// - 既定に戻す = その欄へ移る行を全部消す(使えない行は保存した時の鍵で消す)。保存と戻すは監査に残す(messaging.override.updated / .reset、値は残さない)
+// - 保存(D132 の 1 回の保存): 直した欄の値と「元の文言に戻す」欄をまとめて 1 つの取引で書く(saveFields。どれかが誤りなら何も書かない)。
+//   値は送る口と同じ検査(lib/messaging checkAdminFieldValue)を通った物だけ。誤りは欄ごとに 400 の details.fields { 欄の鍵: 理由 }(code override_fields_invalid)。
+//   今のひな形の版と直した時のコードの値も残す。同じ欄へ移る前の版の行は消す(1 つの欄に 1 行)。
+//   値の画像(storage:// の参照)は保存の台帳で行に結び、外れた物を外す(imageBinding.ts)
+// - 既定に戻す = その欄へ移る行を全部消す(使えない行は保存した時の鍵で消す)。まとめての保存の reset と、欄 1 つの resetField(DELETE、管理画面は使わない)。
+//   保存と戻すは欄ごとに監査に残す(messaging.override.updated / .reset、値は残さない)
 // - プレビュー(D86): 保存した値と未保存の値(values = { 欄の鍵: 値 }、検査を通る物だけ)をコードの値に重ね、文字の欄を印で包んで(previewMarkers.ts)
 //   送る口と同じ組み立て(sendMessage/content.ts)で経路 1 つを描く。経路に preview が無ければ html は null。
 //   ひな形の鍵・その経路の欄の中身(印なし)・要約も返す(お知らせは client のひな形の描き方 layoutInApps が描く)
@@ -81,9 +84,23 @@ export const PreviewMessageOverrideInputSchema = z
   .object({ channel: z.string().min(1).max(100), values: z.record(z.string().max(200), z.unknown()).default({}) })
   .strict();
 
+/** まとめての保存の 1 欄: 値を入れる { fieldPath, value } か、元の文言に戻す { fieldPath, reset: true } */
+const saveFieldChangeSchema = z.union([
+  z.object({ fieldPath: z.string().min(1).max(200), value: z.unknown() }).strict(),
+  z.object({ fieldPath: z.string().min(1).max(200), reset: z.literal(true) }).strict(),
+]);
+
+/** まとめての保存の入力(欄の鍵は重ならない) */
 export const SaveMessageOverrideInputSchema = z
-  .object({ fieldPath: z.string().min(1).max(200), value: z.unknown() })
-  .strict();
+  .object({ fields: z.array(saveFieldChangeSchema).min(1).max(200) })
+  .strict()
+  .superRefine((value, ctx) => {
+    const paths = value.fields.map((field) => field.fieldPath);
+    if (new Set(paths).size !== paths.length) ctx.addIssue({ code: "custom", message: "同じ項目が 2 回あります" });
+  });
+
+/** まとめての保存で誤りのある欄の 400 の code(details.fields = { 欄の鍵: 理由 }) */
+export const OVERRIDE_FIELDS_INVALID = "override_fields_invalid";
 
 type Loaded = { resolved: AnyResolvedMessageDefinition; layout: MessageLayout; check: AdminFieldCheckOptions };
 
@@ -281,50 +298,94 @@ export function createOverrideService(deps: OverrideServiceDeps) {
     },
 
     /**
-     * 欄 1 つを保存する(fieldPath = 今の版の欄の鍵。送る口と同じ検査)。
-     * @throws DomainError(400) 入力・検査の誤り / (403) 管理者でない / (404) 連絡が無い
+     * 直した欄をまとめて保存する(D132 の 1 回の保存)。値の欄は入れ・差し替え、reset の欄は行を消す。1 つの取引で、どれかが誤りなら何も書かない。
+     * @throws DomainError(400) 入力の誤り・欄の検査の誤り(code override_fields_invalid、details.fields { 欄の鍵: 理由 })/ (403) 管理者でない / (404) 連絡が無い
      */
-    async saveField(messageKey: string, input: unknown): Promise<AdminOverrideMessageDetail> {
+    async saveFields(messageKey: string, input: unknown): Promise<AdminOverrideMessageDetail> {
       await assertAdminActor(deps);
       const parsed = SaveMessageOverrideInputSchema.safeParse(input);
-      if (!parsed.success) throw new DomainError("文言の入力が正しくありません", { status: 400 });
-      const { fieldPath, value } = parsed.data;
+      if (!parsed.success) throw new DomainError(parsed.error.issues[0]?.message ?? "文言の入力が正しくありません", { status: 400 });
       const loaded = await requireDefinition(messageKey);
       const { resolved, layout, check } = loaded;
-      const problem = checkAdminFieldValue(resolved, layout, fieldPath, value, check);
-      if (problem) throw new DomainError(problem.message, { status: 400 });
+      const rows = await deps.store.listByMessage(messageKey);
+      const problems: Record<string, string> = {};
+      const removals = new Set<string>();
+      const upserts: { fieldPath: string; layoutVersion: number; value: unknown; codeValue: unknown; updatedBy: string | null }[] = [];
+      const resets: string[] = [];
       const actorId = deps.context()?.actorId ?? null;
-      // 同じ欄へ移る前の版の行(保存した時の鍵が違う)は消す: 1 つの欄に 1 行
-      const older = rowsOfField(loaded, await deps.store.listByMessage(messageKey), fieldPath)
-        .map((row) => row.fieldPath)
-        .filter((path) => path !== fieldPath);
-      if (older.length > 0) await removeRows(messageKey, older);
-      const images = deps.images;
-      const cleanupIds: string[] = [];
-      await deps.store.upsert(
-        {
-          messageKey,
+      for (const change of parsed.data.fields) {
+        const { fieldPath } = change;
+        const ownRows = rowsOfField(loaded, rows, fieldPath).map((row) => row.fieldPath);
+        if ("reset" in change) {
+          // 行の無い欄を戻すのは何もしない(画面が下書きだけを捨てた欄)
+          if (ownRows.length > 0) {
+            for (const path of ownRows) removals.add(path);
+            resets.push(fieldPath);
+          }
+          continue;
+        }
+        const problem = checkAdminFieldValue(resolved, layout, fieldPath, change.value, check);
+        if (problem) {
+          problems[fieldPath] = problem.message;
+          continue;
+        }
+        // 同じ欄へ移る前の版の行(保存した時の鍵が違う)は消す: 1 つの欄に 1 行
+        for (const path of ownRows) if (path !== fieldPath) removals.add(path);
+        upserts.push({
           fieldPath,
           layoutVersion: layoutVersionOf(layout),
-          value,
+          value: change.value,
           codeValue: adminFieldCodeValue(resolved, fieldPath) ?? null,
           updatedBy: actorId,
-        },
+        });
+      }
+      if (Object.keys(problems).length > 0) {
+        throw new DomainError(`保存できない項目があります(${Object.keys(problems).length} 件)`, {
+          status: 400,
+          code: OVERRIDE_FIELDS_INVALID,
+          details: { fields: problems },
+        });
+      }
+      if (removals.size === 0 && upserts.length === 0) return detail(messageKey);
+      const images = deps.images;
+      const cleanupIds: string[] = [];
+      await deps.store.apply(
+        messageKey,
+        { removals: [...removals], upserts },
         images
-          ? async (tx, row) => {
-              const bound = await bindOverrideImages(images, tx, { ...row, fieldPath, actorUserId: actorId, value });
-              cleanupIds.push(...bound.cleanupIds);
-              return bound.value;
+          ? {
+              bind: async (tx, row) => {
+                const bound = await bindOverrideImages(images, tx, {
+                  rowId: row.rowId,
+                  fieldPath: row.fieldPath,
+                  actorUserId: actorId,
+                  value: row.value,
+                  previousValue: row.previousValue,
+                });
+                cleanupIds.push(...bound.cleanupIds);
+                return bound.value;
+              },
+              release: async (tx, row) => void cleanupIds.push(...(await releaseOverrideImages(images, tx, row))),
             }
-          : undefined,
+          : {},
       );
       if (images && cleanupIds.length > 0) await images.cleanup(cleanupIds);
-      await deps.recordAudit({
-        targetType: "message_override",
-        targetId: `${messageKey}:${fieldPath}`,
-        action: "messaging.override.updated",
-        metadata: { messageKey, fieldPath },
-      });
+      for (const { fieldPath } of upserts) {
+        await deps.recordAudit({
+          targetType: "message_override",
+          targetId: `${messageKey}:${fieldPath}`,
+          action: "messaging.override.updated",
+          metadata: { messageKey, fieldPath },
+        });
+      }
+      for (const fieldPath of resets) {
+        await deps.recordAudit({
+          targetType: "message_override",
+          targetId: `${messageKey}:${fieldPath}`,
+          action: "messaging.override.reset",
+          metadata: { messageKey, fieldPath },
+        });
+      }
       return detail(messageKey);
     },
 

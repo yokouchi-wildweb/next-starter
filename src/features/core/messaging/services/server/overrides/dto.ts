@@ -86,8 +86,14 @@ export type AdminOverrideMessageDetail = {
   fields: AdminOverrideField[];
 };
 
-/** 欄 1 つの保存(fieldPath = 今の版の欄の鍵) */
-export type SaveMessageOverrideInput = { fieldPath: string; value: unknown };
+/** まとめての保存の 1 欄(fieldPath = 今の版の欄の鍵): 値を入れるか、元の文言に戻す(reset) */
+export type SaveMessageOverrideFieldChange = { fieldPath: string; value: unknown } | { fieldPath: string; reset: true };
+
+/** まとめての保存(D132 の 1 回の保存。1 つの取引で、どれかが誤りなら何も書かない) */
+export type SaveMessageOverrideInput = { fields: SaveMessageOverrideFieldChange[] };
+
+/** まとめての保存の 400 の details(code override_fields_invalid): 欄の鍵 → 理由 */
+export type SaveMessageOverrideErrorDetails = { fields: Record<string, string> };
 
 /**
  * プレビューの結果(D86)。html = 連絡の描き方で描いた HTML(文字の欄に data-field="<欄の鍵>")、経路にプレビューが無ければ null。
