@@ -23,6 +23,7 @@ import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLab
 import { TEMPLATE_STATUS_DISPLAY, TemplateStatusBadge } from "@/features/core/messaging/components/common/TemplateStatusBadge";
 import { AdminMessageTemplateModal } from "@/features/core/messaging/components/AdminMessageTemplateModal";
 import { KindCategoryMeta, RowDateMeta, RowMetaItem } from "@/features/core/messaging/components/common/MessageRowMeta";
+import { useAdminDispatchCategories } from "@/features/core/messaging/hooks/useAdminDispatchCategories";
 import { useAdminMessageTemplateList } from "@/features/core/messaging/hooks/useAdminMessageTemplateList";
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
@@ -39,6 +40,12 @@ export function AdminMessageTemplateList() {
   // システムテンプレートを見せるか(画面の中だけの見せ方。既定は隠す)。システムテンプレートはサーバーが 1 ページ目の頭にだけ付けるので、
   // 行を隠しても次のページの取り方は変わらない
   const [showSystem, setShowSystem] = useState(false);
+  // 種別の表示名: システムテンプレートは自分の種別、ほかはカテゴリーの受け口の種別から(送信一覧と同じ「種別 › カテゴリー」)
+  const categories = useAdminDispatchCategories();
+  const kindLabelOf = (template: { kind: string | null; category: string }) => {
+    const kind = template.kind ?? categories.categories.find((category) => category.key === template.category)?.kind ?? null;
+    return kind && kind in MESSAGE_KIND_LABELS ? MESSAGE_KIND_LABELS[kind as keyof typeof MESSAGE_KIND_LABELS] : null;
+  };
   const items = showSystem ? query.items : query.items.filter((template) => !template.system);
 
   return (
@@ -113,7 +120,7 @@ export function AdminMessageTemplateList() {
                   </Flex>
                   <Flex align="center" gap="md" wrap="wrap">
                     <KindCategoryMeta
-                      kindLabel={template.kind && template.kind in MESSAGE_KIND_LABELS ? MESSAGE_KIND_LABELS[template.kind as keyof typeof MESSAGE_KIND_LABELS] : null}
+                      kindLabel={kindLabelOf(template)}
                       categoryLabel={template.system ? "送信時に選ぶ" : (template.categoryLabel ?? "削除されたカテゴリー")}
                     />
                     {template.description ? (
