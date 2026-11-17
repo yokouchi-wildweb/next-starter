@@ -566,6 +566,8 @@ export const override: MypageMenuItemOverride = { order: 90, title: "サイン�
 
 自分のアバターの変更・削除の流れを持つ公開の hook（`hooks/useAvatarChange.ts`）。見た目を持たない。マイページのアカウントの部品 `components/common/AccountAvatarSection` はこれを呼んで描いており、fork が自前の見た目（カード・別の配置）でアバターを変えるときも、流れをコピーせずにこれを呼ぶ。
 
+`AccountAvatarSection` の値の指定は `size`・`acceptTypes`・`maxFileSize`・`onAvatarUpdated`。アバター未設定のときに丸の中に出す物（頭文字・別の絵など）は `children` で渡す（省略時は既定の人の形。丸の箱は部品が持つ）。描き分けの関数（旧 `renderFallback`）は持たない（core のドメインの部品は値の指定と children だけ）。
+
 流れ: 検査（型・サイズ）→ `useAvatarUpload().upload`（用途 `user.avatar`）→ `useUpdateMyProfile().updateProfile({ name, avatarUrl: ref })`（サーバーの storage binding が保存と同じ TX で台帳に紐付ける）→ 保存が失敗（null）なら `discard(objectId)` でアップロードしたファイルを取り消す。削除は `avatarUrl: null` で保存する。
 
 | 引数 | 既定 | 中身 |

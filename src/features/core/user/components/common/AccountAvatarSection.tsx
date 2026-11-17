@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { CameraIcon, ImageIcon, Trash2Icon, UserIcon } from "lucide-react";
 
 import { Stack } from "@/components/Layout/Stack";
@@ -28,24 +28,27 @@ type AccountAvatarSectionProps = {
   maxFileSize?: number;
   /** アップロード完了後のコールバック */
   onAvatarUpdated?: (user: User) => void;
-  /** カスタムフォールバック（アバター未設定時の表示） */
-  renderFallback?: (user: User, size: number) => React.ReactNode;
+  /** アバター未設定時に丸の中に出す物（頭文字・別の絵など）。省略時は既定の人の形。
+   * 丸の箱（size × size）は部品が持つ */
+  children?: ReactNode;
 };
 
 // --- デフォルトフォールバック ---
 
-function DefaultFallback({ size }: { size: number }) {
+function DefaultFallback({ size, children }: { size: number; children?: ReactNode }) {
   const iconSize = size * 0.45;
   return (
     <span
       className="flex items-center justify-center rounded-full bg-primary/10"
       style={{ width: size, height: size }}
     >
-      <UserIcon
-        className="text-primary"
-        style={{ width: iconSize, height: iconSize }}
-        strokeWidth={1.5}
-      />
+      {children ?? (
+        <UserIcon
+          className="text-primary"
+          style={{ width: iconSize, height: iconSize }}
+          strokeWidth={1.5}
+        />
+      )}
     </span>
   );
 }
@@ -112,7 +115,7 @@ export function AccountAvatarSection({
   acceptTypes = DEFAULT_AVATAR_ACCEPT_TYPES,
   maxFileSize = DEFAULT_AVATAR_MAX_FILE_SIZE,
   onAvatarUpdated,
-  renderFallback,
+  children,
 }: AccountAvatarSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -179,10 +182,8 @@ export function AccountAvatarSection({
                   className="h-full w-full"
                 />
               </span>
-            ) : renderFallback ? (
-              renderFallback(user, size)
             ) : (
-              <DefaultFallback size={size} />
+              <DefaultFallback size={size}>{children}</DefaultFallback>
             )}
 
             {/* オーバーレイ */}
