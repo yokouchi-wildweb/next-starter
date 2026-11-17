@@ -102,6 +102,8 @@ function TemplateModalBody({
     channels: fields.channels,
     category: fields.category || null,
     enabled: open,
+    // 空の欄は見出しの仮の枠で見せる(D127)
+    mode: "template",
   });
   const tags = useEmbeddedInfoTags({ catalog: form.catalog });
   const locked = form.readOnly;
