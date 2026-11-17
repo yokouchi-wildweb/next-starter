@@ -893,6 +893,8 @@ type ActionItem = {
 type SeparatorItem = { type: "separator" };
 ```
 
+**読み込み中:** `onClick` が Promise を返すと、終わるまでその項目だけが押せなくなり、項目のアイコンが回り（`animate-spin`）、文字が「処理中...」になる（アイコンの無い項目は文字だけ）。他の項目は押せるまま。成功すると `closeOnAction` に従って閉じ、失敗（reject）したときは開いたまま読み込み中だけが解ける。この見た目は共通の部品の既定として変えない（Button の `loading` の Spinner には揃えない）。
+
 ---
 
 ### ChecklistPopover
