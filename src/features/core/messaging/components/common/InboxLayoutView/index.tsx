@@ -3,7 +3,8 @@
 // 1. ひな形のお知らせの描き方(client の一覧 layoutInApps、ひな形の鍵で引く)
 // 2. 汎用の描き方(ひな形の欄の宣言 fields があれば、欄の型ごとに GenericInAppView)
 // 3. 要約のカード(画像・本文・行き先のボタン)
-// mode "summary" は 1・2 を飛ばして要約だけ(一覧の行・未読のモーダル)。題は描かない(包む Modal・行が持つ)
+// mode "summary" は 1・2 を飛ばして要約だけ(一覧の行・未読のモーダル)。
+// 題(要約の題 = メールの件名)は既定で描かない(受け取り箱は包む Modal・行が持つ)。showTitle = 中身の上に見出しで描く(管理画面のお知らせのプレビュー、F8)
 
 import type { ReactNode } from "react";
 
@@ -12,6 +13,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { AppImage } from "@/components/Media/AppImage";
 import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import type { MessageLayoutFields, MessageLayoutSummary, MessageLayoutValues } from "@/lib/messaging";
 
 import { layoutInApps } from "@/features/core/messaging/extensions/layoutInApps";
@@ -32,6 +34,8 @@ export type InboxLayoutViewProps = {
   mode?: "detail" | "summary";
   /** 要約のカードの行き先のボタンの文言(既定「詳しく見る」) */
   linkLabel?: string;
+  /** 題(要約の題)を中身の上に見出しで描く(既定 false: 包む Modal・行が題を持つ受け取り箱の画面) */
+  showTitle?: boolean;
 };
 
 /** 受け取り箱の 1 件(要約の欄)→ 要約(題が無い行は空の題) */
@@ -74,7 +78,20 @@ export function InboxSummaryCard({ summary, linkLabel = "詳しく見る" }: { s
   );
 }
 
-export function InboxLayoutView({ layout, values, fields, summary, mode = "detail", linkLabel }: InboxLayoutViewProps) {
+export function InboxLayoutView({ showTitle = false, ...props }: InboxLayoutViewProps) {
+  const body = <InboxLayoutBody {...props} />;
+  if (!showTitle || !props.summary.title) return body;
+  return (
+    <Stack space={3} data-slot="inbox-layout-titled">
+      <SecTitle as="h3" size="lg" data-slot="inbox-layout-title">
+        {props.summary.title}
+      </SecTitle>
+      {body}
+    </Stack>
+  );
+}
+
+function InboxLayoutBody({ layout, values, fields, summary, mode = "detail", linkLabel }: Omit<InboxLayoutViewProps, "showTitle">) {
   if (mode === "detail" && layout && values) {
     const renderer = layoutInApps[layout];
     if (renderer) {

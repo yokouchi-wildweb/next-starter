@@ -69,7 +69,6 @@ export function isSystemTemplateId(id: string): boolean {
 }
 
 /** 白紙の時刻の欄(版も保存の時刻も持たないので固定の値) */
-const SYSTEM_TEMPLATE_TIME = new Date(0).toISOString();
 
 /** 種類の表示名(受け口の label。無ければ null) */
 type CategoryLabelOf = (category: string) => string | null;
@@ -117,7 +116,7 @@ function toSystemSummary(template: MessageSystemTemplate): AdminTemplateSummary 
     currentVersion: null,
     createdBy: null,
     updatedBy: null,
-    createdAt: SYSTEM_TEMPLATE_TIME,
+    createdAt: null,
     updatedAt: null,
     system: true,
     kind: template.kind,

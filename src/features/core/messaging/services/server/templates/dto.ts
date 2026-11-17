@@ -48,7 +48,8 @@ export type AdminTemplateSummary = {
   currentVersion: number | null;
   createdBy: string | null;
   updatedBy: string | null;
-  createdAt: string;
+  /** 作った時刻(システムテンプレートは null: コードの物で DB の時刻が無い) */
+  createdAt: string | null;
   updatedAt: string | null;
   /** システムテンプレート(受け口 messaging/templates の白紙、D117・D125)。直せない・公開・取り下げできない(API が 409) */
   system: boolean;
