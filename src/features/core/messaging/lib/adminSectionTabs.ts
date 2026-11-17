@@ -24,7 +24,7 @@ const MESSAGING_ADMIN_SECTION_TABS: readonly MessagingSectionTabDefinition[] = [
 
 /**
  * 通知の管理画面のセクションタブ(門が閉の画面のタブは外す)。
- * 今の画面のタブは href の完全一致で決まる(送信の詳細 /admin/messaging/[id] はどのタブにも当たらない)。
+ * 今の画面のタブは href の完全一致で決まる(送信の詳細は送信一覧の上のモーダル AdminDispatchDetailModal で、別の住所を持たない)。
  */
 export function buildMessagingAdminSectionTabs(enabled: (gate: FeatureName) => boolean): PageTabItem[] {
   return MESSAGING_ADMIN_SECTION_TABS.filter((tab) => !tab.gate || enabled(tab.gate)).map(({ gate: _gate, ...tab }) => tab);

@@ -73,11 +73,12 @@ const service = createOverrideService({
 
 export const listMessageOverrides = service.listMessages;
 export const getMessageOverrides = service.getMessage;
-export const saveMessageOverride = service.saveField;
+/** 直した欄をまとめて保存(D132 の 1 回の保存、1 つの取引) */
+export const saveMessageOverride = service.saveFields;
 export const resetMessageOverride = service.resetField;
 export const previewMessageOverride = service.previewMessage;
 
-export { createOverrideService, PreviewMessageOverrideInputSchema, SaveMessageOverrideInputSchema } from "./overrideService";
+export { createOverrideService, OVERRIDE_FIELDS_INVALID, PreviewMessageOverrideInputSchema, SaveMessageOverrideInputSchema } from "./overrideService";
 export { existingOverrideIds } from "./store";
 export { OVERRIDE_IMAGE_RECORD_TYPE } from "./imageBinding";
 export type { OverrideService, OverrideServiceDeps } from "./overrideService";

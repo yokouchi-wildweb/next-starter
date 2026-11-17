@@ -33,4 +33,19 @@ export type MessageOverrideStore = {
     fieldPath: string,
     release?: (tx: unknown, row: { rowId: string; value: unknown }) => Promise<void>,
   ) => Promise<boolean>;
+  /**
+   * 1 連絡の欄をまとめて書く(1 つの取引。どれかが失敗すれば全部が戻る、D132 の 1 回の保存)。removals = 消す行の欄の鍵、upserts = 入れる・差し替える値。
+   * 消すのが先(同じ欄の前の版の行を消してから入れる)。bind / release は upsert / remove と同じ(取引の中で画像を結ぶ・外す)
+   */
+  apply: (
+    messageKey: string,
+    changes: {
+      removals: readonly string[];
+      upserts: readonly { fieldPath: string; layoutVersion: number; value: unknown; codeValue: unknown; updatedBy: string | null }[];
+    },
+    hooks?: {
+      bind?: (tx: unknown, row: { fieldPath: string; rowId: string; previousValue: unknown; value: unknown }) => Promise<unknown>;
+      release?: (tx: unknown, row: { rowId: string; value: unknown }) => Promise<void>;
+    },
+  ) => Promise<void>;
 };

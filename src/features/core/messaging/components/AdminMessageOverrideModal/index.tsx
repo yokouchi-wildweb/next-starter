@@ -5,16 +5,19 @@
 // 左 = 今の経路のプレビュー(上書きと下書きを重ねたひな形の描き方。部品 LayoutPreview: 経路のタブはここだけ、メールは描いた HTML で
 // 入力中の欄を枠で示す、お知らせはひな形のお知らせの描き方)、右 = 名前・種別とカテゴリー(読むだけ)・欄ごとの編集。
 // 埋め込み情報は下の帯の左の吹き出し(EmbeddedInfoPopover)。高さは固定
-// (保存・元の文言に戻すは欄 1 つずつ。部品 OverrideFieldEditor、入力はひな形の欄の型から LayoutFieldInput)。
+// 保存は 1 回(D132、テンプレートのモーダルと同じ): 下の帯の右の「保存」が直した欄の全部をまとめて保存する(確かめ・保存の間 loading、
+// 1 つの取引、通らない欄は欄に理由)。欄ごとの操作は「元の文言に戻す」だけ(保存で当たる。部品 OverrideFieldEditor、入力はひな形の欄の型から LayoutFieldInput)。
 // 流れは hook useMessageOverrideEditor。部品は公開の部品だけなので、fork は自分の画面にも同じモーダルを置ける。
 // 保存していない欄があるまま閉じる = confirmOnClose、ページの移動 = hook の中の @/lib/unsavedGuard。開き直すたびに下書きを捨てる
 
 "use client";
 
+import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import Modal from "@/components/Overlays/Modal";
+import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
@@ -57,8 +60,27 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
       height="85vh"
       footer={
         detail ? (
-          <Flex align="center" gap="sm">
+          <Flex align="center" justify="between" gap="sm" wrap="wrap">
             <EmbeddedInfoPopover common={editor.embeddedTags.common} own={editor.embeddedTags.own} onCopy={editor.embeddedTags.copy} />
+            <Flex align="center" gap="sm">
+              {editor.hasDrafts ? (
+                <Span size="sm" tone="muted" data-slot="override-pending-count">
+                  未保存の項目 {editor.pendingCount} 件
+                </Span>
+              ) : null}
+              <ConfirmPopover
+                trigger={
+                  <Button type="button" size="sm" variant="primary" disabled={!editor.hasDrafts || editor.isSaving}>
+                    {editor.isSaving ? <Spinner className="size-4" /> : null}
+                    保存
+                  </Button>
+                }
+                title="保存"
+                description="編集した項目をまとめて保存します。次に送信する通知から、この文言で送信します(元の文言に戻す項目は元の文言になります)。"
+                confirmLabel="保存する"
+                onConfirm={editor.saveAll}
+              />
+            </Flex>
           </Flex>
         ) : null
       }
@@ -97,7 +119,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
             </Stack>
             <Stack space={1}>
               <Para size="sm" tone="muted" className="my-0">
-                編集した項目だけ、ここで設定した文言で送信します。編集できる項目は通知のひな形の項目すべてです(通知が絞っている時はその項目だけ)。
+                編集した項目だけ、ここで設定した文言で送信します。編集は下の「保存」でまとめて保存します。編集できる項目は通知のひな形の項目すべてです(通知が絞っている時はその項目だけ)。
               </Para>
               {editor.unusableCount > 0 ? (
                 <Para size="sm" tone="destructive" className="my-0">
@@ -115,9 +137,9 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
                     onChange={(value) => editor.setDraft(field, value)}
                     dirty={editor.isDirty(field)}
                     unknownKeys={editor.unknownKeys(field)}
-                    onSave={() => editor.save(field)}
                     onReset={() => editor.reset(field)}
-                    onDiscard={() => editor.discard(field)}
+                    resetPending={editor.isResetPending(field)}
+                    error={editor.fieldErrors[field.path] ?? null}
                     onFocusField={editor.setFocusedPath}
                     commonToAll={editor.channels.every((channel) => field.channels.includes(channel.key))}
                   />
