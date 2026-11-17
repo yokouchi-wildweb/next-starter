@@ -7,11 +7,16 @@
 export { SendKindPicker, type SendKindPickerProps } from "./SendKindPicker";
 
 import { SoftBadge } from "@/components/Badge";
-import { SelectInput, SwitchInput } from "@/components/Form/Input/Manual";
+import { Check } from "lucide-react";
+
+import { Button } from "@/components/Form/Button";
+import { SelectInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
+import { cn } from "@/lib/cn";
 
 export type SendCategoryChannelsProps = {
   categories: { key: string; label: string }[];
@@ -21,9 +26,19 @@ export type SendCategoryChannelsProps = {
   onToggleChannel: (key: string, on: boolean) => void;
   /** カテゴリーの選択を出すか(既定 true。種別と 1 行の KindCategoryFields で選ぶ画面は false、D118) */
   showCategory?: boolean;
+  /** 「送信方法」の見出しを見た目から隠す(読み上げには残す)。呼び手が行の見出しを持つ時 */
+  hideChannelLabel?: boolean;
 };
 
-export function SendCategoryChannels({ categories, category, onCategoryChange, channels, onToggleChannel, showCategory = true }: SendCategoryChannelsProps) {
+export function SendCategoryChannels({
+  categories,
+  category,
+  onCategoryChange,
+  channels,
+  onToggleChannel,
+  showCategory = true,
+  hideChannelLabel = false,
+}: SendCategoryChannelsProps) {
   return (
     <Stack space={3} data-slot="send-category-channels">
       {!showCategory || categories.length === 1 ? null : (
@@ -46,17 +61,33 @@ export function SendCategoryChannels({ categories, category, onCategoryChange, c
       </Stack>
       )}
       <Stack space={1}>
-        <Label className="text-sm">送信方法</Label>
-        <Flex gap="sm" wrap="wrap">
+        <Span size="sm" weight="medium" className={hideChannelLabel ? "sr-only" : undefined} id="send-channels-label">
+          送信方法
+        </Span>
+        {/* 経路 = 押すと入り切りする丸い札(入 = primary の薄い地 + ✓)。文言の無い経路は札の中に「未入力」 */}
+        <Flex gap="xs" wrap="wrap" role="group" aria-labelledby="send-channels-label">
           {channels.map((channel) => (
-            <Flex key={channel.key} align="center" gap="xs">
-              <SwitchInput size="sm" value={channel.on} onChange={(on) => onToggleChannel(channel.key, on)} label={channel.label} />
+            <Button
+              key={channel.key}
+              type="button"
+              size="sm"
+              variant="outline"
+              aria-pressed={channel.on}
+              className={cn(
+                "h-8 gap-1.5 rounded-full px-3 font-normal",
+                channel.on ? "border-primary/60 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary" : "text-muted-foreground",
+              )}
+              onClick={() => onToggleChannel(channel.key, !channel.on)}
+              data-slot="send-channel"
+            >
+              {channel.on ? <Check className="size-3.5" aria-hidden /> : null}
+              {channel.label}
               {channel.on && channel.blank ? (
-                <SoftBadge variant="warning" size="sm">
+                <SoftBadge variant="warning" size="sm" className="ml-0.5">
                   未入力
                 </SoftBadge>
               ) : null}
-            </Flex>
+            </Button>
           ))}
         </Flex>
       </Stack>

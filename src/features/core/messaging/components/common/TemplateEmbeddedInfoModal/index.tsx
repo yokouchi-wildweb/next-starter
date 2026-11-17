@@ -57,14 +57,20 @@ export function TemplateEmbeddedInfoModal({
   errors = [],
   readOnly,
 }: TemplateEmbeddedInfoModalProps) {
+  // このモーダルでは保存しない(D121): 「適用」はテンプレートの書きかけに入れるだけ。確定はテンプレートの保存
   const footer = (
-    <Flex justify="end" gap="xs">
+    <Flex align="center" justify="end" gap="xs" wrap="wrap">
+      {readOnly ? null : (
+        <Span size="xs" tone="muted" className="mr-auto">
+          テンプレートの保存で確定します
+        </Span>
+      )}
       <Button type="button" size="sm" variant="outline" onClick={() => onOpenChange(false)}>
         {readOnly ? "閉じる" : "キャンセル"}
       </Button>
       {readOnly ? null : (
         <Button type="button" size="sm" variant="primary" onClick={onApply}>
-          保存
+          適用
         </Button>
       )}
     </Flex>

@@ -55,6 +55,8 @@ export function SendTargetPicker(props: SendTargetPickerProps) {
   return (
     <Stack space={2} data-slot="send-target-picker">
       <RadioGroupInput
+        aria-label="宛先の種類"
+        displayType="segmented"
         value={value.type}
         options={typeOptions}
         onChange={(v) => onChange({ type: (v as SendTargetValue["type"]) ?? "all" })}

@@ -80,7 +80,7 @@ export function AdminMessageTemplateList() {
                   <Flex align="center" gap="xs" wrap="wrap">
                     {template.system ? (
                       <SoftBadge variant="secondary" size="sm">
-                        システム(読むだけ)
+                        システム
                       </SoftBadge>
                     ) : (
                       <TemplateStatusBadge status={template.status} currentVersion={template.currentVersion} />

@@ -17,6 +17,7 @@ import { Send } from "lucide-react";
 
 import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
+import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import Dialog from "@/components/Overlays/Dialog";
@@ -30,7 +31,7 @@ import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 
 import { SoftBadge } from "@/components/Badge";
-import { EmbeddedInfoTags } from "@/features/core/messaging/components/common/EmbeddedInfoTags";
+import { EmbeddedInfoPopover } from "@/features/core/messaging/components/common/EmbeddedInfoPopover";
 import { LayoutFields } from "@/features/core/messaging/components/common/LayoutFields";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
 import { MessagePreview } from "@/features/core/messaging/components/common/MessagePreview";
@@ -38,7 +39,6 @@ import { SendTargetPicker } from "@/features/core/messaging/components/common/Se
 import { KindCategoryFields } from "@/features/core/messaging/components/common/KindCategoryFields";
 import { SendCategoryChannels } from "@/features/core/messaging/components/common/SendCategoryChannels";
 import { SendConfirmView, SendResultView } from "@/features/core/messaging/components/common/SendConfirmView";
-import { SendLegalNotice } from "@/features/core/messaging/components/common/SendLegalNotice";
 import { SendSchedule } from "@/features/core/messaging/components/common/SendSchedule";
 import { SendEmbeddedInputs, SendTemplatePicker } from "@/features/core/messaging/components/common/SendTemplatePicker";
 import { useEmbeddedInfoTags } from "@/features/core/messaging/hooks/useEmbeddedInfoTags";
@@ -65,6 +65,15 @@ export type MessageSendModalProps = {
 };
 
 const DEFAULT_LABEL: Record<MessageSendMode["type"], string> = { new: "新規送信", sameAs: "同じ内容で送る", bulk: "一括送信" };
+
+/** 送信設定の行の見出し(左の列。操作の 1 行目と高さを合わせる) */
+function SettingLabel({ children }: { children: ReactNode }) {
+  return (
+    <Span size="sm" weight="medium" tone="muted" className="sm:pt-2.5">
+      {children}
+    </Span>
+  );
+}
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -178,52 +187,54 @@ export function MessageSendModal({
             {m.sameAsNote}
           </Para>
         ) : null}
-        <Block title="種別とカテゴリー">
-          <KindCategoryFields
-            idPrefix="send"
-            kinds={m.kinds.map((item) => ({ value: item.key, label: item.label }))}
-            kind={m.kind}
-            onKindChange={m.setKind}
-            categories={m.categories.map((item) => ({ value: item.key, label: item.label }))}
-            category={m.category}
-            onCategoryChange={m.setCategory}
-          />
-        </Block>
-        <Block title="送信方法">
-          <SendCategoryChannels
-            showCategory={false}
-            categories={m.categories}
-            category={m.category}
-            onCategoryChange={m.setCategory}
-            channels={m.channels}
-            onToggleChannel={m.toggleChannel}
-          />
-          <SendLegalNotice emailOn={onChannels.some((channel) => channel.key === "email")} />
-        </Block>
-        <Block title="宛先">
-          {bulk ? (
-            <SendTargetPicker kind="bulk" recordCount={bulk.recordIds.length} recordNoun={bulk.recordNoun} />
-          ) : (
-            <SendTargetPicker
-              kind="select"
-              value={m.target}
-              onChange={m.setTarget}
-              roles={m.roles}
-              groups={m.groups}
-              groupsEnabled={m.groupsEnabled}
-              note={m.targetNote}
-              allowedTypes={m.allowedTargetTypes}
+        {/* 送信設定 = 枠 1 つに「左の見出し | 右の操作」の行(見出しは 1 回だけ。狭い画面は見出しが上) */}
+        <Block title="送信設定">
+          <Grid className="grid-cols-1 items-start gap-x-4 gap-y-3 sm:grid-cols-[6.5rem_minmax(0,1fr)]" data-slot="send-settings">
+            <SettingLabel>種別</SettingLabel>
+            <KindCategoryFields
+              idPrefix="send"
+              hideLabels
+              kinds={m.kinds.map((item) => ({ value: item.key, label: item.label }))}
+              kind={m.kind}
+              onKindChange={m.setKind}
+              categories={m.categories.map((item) => ({ value: item.key, label: item.label }))}
+              category={m.category}
+              onCategoryChange={m.setCategory}
             />
-          )}
-        </Block>
-        <Block title="テンプレート">
-          <SendTemplatePicker
-            templates={m.pickerTemplates}
-            blank={m.currentSystem ?? m.blank}
-            loaded={m.loadedTemplate ? { ...m.loadedTemplate, edited: text.edited } : null}
-            onLoad={m.loadTemplate}
-            onUnload={m.unloadTemplate}
-          />
+            <SettingLabel>送信方法</SettingLabel>
+            <SendCategoryChannels
+              showCategory={false}
+              hideChannelLabel
+              categories={m.categories}
+              category={m.category}
+              onCategoryChange={m.setCategory}
+              channels={m.channels}
+              onToggleChannel={m.toggleChannel}
+            />
+            <SettingLabel>宛先</SettingLabel>
+            {bulk ? (
+              <SendTargetPicker kind="bulk" recordCount={bulk.recordIds.length} recordNoun={bulk.recordNoun} />
+            ) : (
+              <SendTargetPicker
+                kind="select"
+                value={m.target}
+                onChange={m.setTarget}
+                roles={m.roles}
+                groups={m.groups}
+                groupsEnabled={m.groupsEnabled}
+                note={m.targetNote}
+                allowedTypes={m.allowedTargetTypes}
+              />
+            )}
+            <SettingLabel>テンプレート</SettingLabel>
+            <SendTemplatePicker
+              templates={m.pickerTemplates}
+              blank={m.currentSystem ?? m.blank}
+              loaded={m.loadedTemplate ? { ...m.loadedTemplate, edited: text.edited } : null}
+              onLoad={m.loadTemplate}
+              onUnload={m.unloadTemplate}
+            />
+          </Grid>
         </Block>
         <Block title="内容">
           {text.state && text.layout ? (
@@ -250,9 +261,7 @@ export function MessageSendModal({
                     文面を直す
                   </Button>
                 </Flex>
-              ) : (
-                <EmbeddedInfoTags common={tags.common} own={tags.own} onCopy={(alias) => void tags.copy(alias)} />
-              )}
+              ) : null}
               {text.locked ? null : (
                 <LayoutFields control={text.control} fields={text.fields} channels={m.sendChannels} activeChannel={m.layoutPreview.channel} />
               )}
@@ -359,20 +368,28 @@ export function MessageSendModal({
         </Flex>
       );
     }
+    // 書く段の下の帯: 左 = 埋め込み情報の吹き出し(上に開く。文面を直せる時だけ)、右 = 表示例・テスト送信・確認に進む
     return (
-      <Flex justify="end" gap="xs" wrap="wrap">
-        <Button type="button" size="sm" variant="outline" disabled={Boolean(m.contentError) || m.isPreviewing} onClick={() => void preview()}>
-          {m.isPreviewing ? <Spinner className="size-4" /> : null}
-          あなた宛ての表示例
-        </Button>
-        <Button type="button" size="sm" variant="outline" disabled={Boolean(m.contentError) || m.isTesting} onClick={() => void sendTest()}>
-          {m.isTesting ? <Spinner className="size-4" /> : null}
-          自分にテスト送信
-        </Button>
-        <Button type="button" size="sm" variant="primary" disabled={!m.canSend || isEstimating} onClick={() => void toConfirm()}>
-          {isEstimating ? <Spinner className="size-4" /> : null}
-          確認に進む
-        </Button>
+      <Flex align="center" justify="between" gap="sm" wrap="wrap">
+        {text.state && !text.locked ? (
+          <EmbeddedInfoPopover common={tags.common} own={tags.own} onCopy={(alias) => void tags.copy(alias)} />
+        ) : (
+          <Span size="xs">{null}</Span>
+        )}
+        <Flex justify="end" gap="xs" wrap="wrap">
+          <Button type="button" size="sm" variant="outline" disabled={Boolean(m.contentError) || m.isPreviewing} onClick={() => void preview()}>
+            {m.isPreviewing ? <Spinner className="size-4" /> : null}
+            あなた宛ての表示例
+          </Button>
+          <Button type="button" size="sm" variant="outline" disabled={Boolean(m.contentError) || m.isTesting} onClick={() => void sendTest()}>
+            {m.isTesting ? <Spinner className="size-4" /> : null}
+            自分にテスト送信
+          </Button>
+          <Button type="button" size="sm" variant="primary" disabled={!m.canSend || isEstimating} onClick={() => void toConfirm()}>
+            {isEstimating ? <Spinner className="size-4" /> : null}
+            確認に進む
+          </Button>
+        </Flex>
       </Flex>
     );
   };
