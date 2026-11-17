@@ -1,6 +1,6 @@
 // src/features/core/userGroup/components/common/UserGroupConditionBuilder/index.tsx
 // 部品(props だけ): 条件の組み立て。根の組(すべて満たす / いずれかを満たす)の中に条件と条件グループ(2 階層まで。グループの中は条件だけ)。
-// 見た目: 根の組 = 枠つきのカード(下に追加の操作) / 条件グループ = 左に色の帯 + 「条件グループ」の札 + 薄い地 / 並んだ条件の間に「かつ・または」 / 並びは条件 → 条件グループ(足した順にかかわらず。条件を追加は条件のすぐ下、グループを追加は一番下) / 番号の札(グループの外の条件 = 1・2…、条件グループ = a・b…、その中 = a1・a2…。並びから毎回数える) / 条件・条件グループは右上でたたむ(見出しと 1 行の要約だけ。開閉は画面だけの状態。グループをたたむと中の条件もたたまれ、開き直すと条件はたたんだまま)
+// 見た目: 根の組 = 枠つきのカード(中の条件のすぐ下に「＋ 条件を追加」) / 条件グループ = 左に色の帯 + 「条件グループ」の札 + 薄い地 / 並んだ条件の間に「かつ・または」 / 並びは条件 → 条件グループ(足した順にかかわらず。条件を追加は条件のすぐ下、グループを追加は根の枠の外の下) / 番号の札(グループの外の条件 = 1・2…、条件グループ = a・b…、その中 = a1・a2…。並びから毎回数える) / 条件・条件グループは右上でたたむ(見出しと 1 行の要約だけ。開閉は画面だけの状態。グループをたたむと中の条件もたたまれ、開き直すと条件はたたんだまま)
 // - どの条件・グループも「含める / 除外する」を選べる(not。両方を見せた 2 択)/ 条件は部品の label で選び、引数は部品の欄から(UserGroupCriterionFields)
 // - 画面で組めない深い定義は読むだけで出し(label と引数の表示)、「作り直す」で空の組から組める
 // 流れ(木の形・足す外す・定義の木への変換)は hook useUserGroupConditionBuilder。部品の鍵は出さない(D94)
@@ -378,7 +378,9 @@ function GroupNode({
               showPlaceholderOption={false}
               placeholder={isRoot ? "＋ 条件を追加" : "＋ グループに条件を追加"}
               size="sm"
-              className="w-auto border-dashed data-[size=sm]:h-9"
+              // 「＋ 条件を追加」はいちばん使う操作なので primary のボタンの見た目(地・文字・矢印の色、太さ)で出す。
+              // 中身は選ぶ前の案内の文字(placeholder)のセレクト
+              className="w-auto border-primary bg-primary font-medium text-primary-foreground shadow-xs hover:bg-primary/90 data-[size=sm]:h-9 data-[placeholder]:text-primary-foreground dark:bg-primary dark:hover:bg-primary/90 [&_svg:not([class*='text-'])]:text-primary-foreground"
               disabled={disabled}
               onChange={(value) => value && actions.addCriterion(node.id, String(value))}
             />
@@ -396,28 +398,6 @@ function GroupNode({
               />
             </Fragment>
           ))}
-          {isRoot ? (
-            <Flex
-              align="center"
-              gap="xs"
-              wrap="wrap"
-              className="mt-1 border-t border-border pt-3"
-              data-slot="condition-add-group"
-            >
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={disabled}
-                onClick={() => actions.addGroup(node.id)}
-              >
-                ＋ 条件グループを追加
-              </Button>
-              <Span size="xs" tone="muted">
-                複数の条件をまとめて判定できます
-              </Span>
-            </Flex>
-          ) : null}
         </Stack>
       )}
     </Stack>
@@ -455,6 +435,15 @@ export function UserGroupConditionBuilder({
   return (
     <Stack space={3} data-slot="condition-builder">
       <GroupNode node={root} level={1} criteria={criteria} actions={actions} disabled={disabled} />
+      {/* 条件グループを足す所は根の枠の外の下(枠の中の「＋ 条件を追加」と離して違いを分ける) */}
+      <Flex align="center" gap="xs" wrap="wrap" className="pt-1" data-slot="condition-add-group">
+        <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={() => actions.addGroup(root.id)}>
+          ＋ 条件グループを追加
+        </Button>
+        <Span size="xs" tone="muted">
+          複数の条件をまとめて判定できます
+        </Span>
+      </Flex>
       {problems.map((problem) => (
         <Para key={problem} size="sm" tone="destructive" className="my-0">
           {problem}

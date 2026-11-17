@@ -5,11 +5,12 @@
 
 "use client";
 
+import { useState } from "react";
 import { AlignLeft } from "lucide-react";
 
 import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button";
-import { SelectInput } from "@/components/Form/Input/Manual";
+import { SelectInput, SwitchInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
@@ -22,6 +23,7 @@ import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLab
 import { TEMPLATE_STATUS_DISPLAY, TemplateStatusBadge } from "@/features/core/messaging/components/common/TemplateStatusBadge";
 import { AdminMessageTemplateModal } from "@/features/core/messaging/components/AdminMessageTemplateModal";
 import { KindCategoryMeta, RowDateMeta, RowMetaItem } from "@/features/core/messaging/components/common/MessageRowMeta";
+import { useAdminDispatchCategories } from "@/features/core/messaging/hooks/useAdminDispatchCategories";
 import { useAdminMessageTemplateList } from "@/features/core/messaging/hooks/useAdminMessageTemplateList";
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
@@ -35,26 +37,46 @@ const when = (iso: string | null) => {
 
 export function AdminMessageTemplateList() {
   const { status, setStatus, query, modal } = useAdminMessageTemplateList({ observerOptions: OBSERVER_OPTIONS });
+  // システムテンプレートを見せるか(画面の中だけの見せ方。既定は隠す)。システムテンプレートはサーバーが 1 ページ目の頭にだけ付けるので、
+  // 行を隠しても次のページの取り方は変わらない
+  const [showSystem, setShowSystem] = useState(false);
+  // 種別の表示名: システムテンプレートは自分の種別、ほかはカテゴリーの受け口の種別から(送信一覧と同じ「種別 › カテゴリー」)
+  const categories = useAdminDispatchCategories();
+  const kindLabelOf = (template: { kind: string | null; category: string }) => {
+    const kind = template.kind ?? categories.categories.find((category) => category.key === template.category)?.kind ?? null;
+    return kind && kind in MESSAGE_KIND_LABELS ? MESSAGE_KIND_LABELS[kind as keyof typeof MESSAGE_KIND_LABELS] : null;
+  };
+  const items = showSystem ? query.items : query.items.filter((template) => !template.system);
 
   return (
     <Stack space={4}>
       <Flex align="end" justify="between" gap="sm" wrap="wrap">
-        <Stack space={1}>
-          <Label htmlFor="template-filter-status" className="text-xs">
-            状態
-          </Label>
-          <SelectInput
-            id="template-filter-status"
-            value={status}
-            onChange={(v) => setStatus(v ? String(v) : "")}
-            options={STATUS_OPTIONS}
-            placeholder="すべて"
+        <Flex align="end" gap="md" wrap="wrap">
+          <Stack space={1}>
+            <Label htmlFor="template-filter-status" className="text-xs">
+              状態
+            </Label>
+            <SelectInput
+              id="template-filter-status"
+              value={status}
+              onChange={(v) => setStatus(v ? String(v) : "")}
+              options={STATUS_OPTIONS}
+              placeholder="すべて"
+            />
+          </Stack>
+          <SwitchInput
+            id="template-filter-system"
+            size="sm"
+            label="システムテンプレートを表示"
+            value={showSystem}
+            onChange={(on) => setShowSystem(Boolean(on))}
+            className="pb-3"
           />
-        </Stack>
+        </Flex>
         <CreateButton onClick={modal.openNew} />
       </Flex>
       <InfiniteScrollList
-        items={query.items}
+        items={items}
         isInitialLoading={query.isInitialLoading}
         isFetchingMore={query.isFetchingMore}
         hasMore={query.hasMore}
@@ -98,7 +120,7 @@ export function AdminMessageTemplateList() {
                   </Flex>
                   <Flex align="center" gap="md" wrap="wrap">
                     <KindCategoryMeta
-                      kindLabel={template.kind && template.kind in MESSAGE_KIND_LABELS ? MESSAGE_KIND_LABELS[template.kind as keyof typeof MESSAGE_KIND_LABELS] : null}
+                      kindLabel={kindLabelOf(template)}
                       categoryLabel={template.system ? "送信時に選ぶ" : (template.categoryLabel ?? "削除されたカテゴリー")}
                     />
                     {template.description ? (
