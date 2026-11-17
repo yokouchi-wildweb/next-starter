@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
   FALLBACK_DIALOG_TITLE,
+  type DialogContentLayer,
+  type DialogOverlayLayer,
 } from "@/components/Primitives/Dialog";
 import Dialog from "@/components/Overlays/Dialog";
 import { cn } from "@/lib/cn";
@@ -75,6 +77,18 @@ export type ModalProps = {
    * 箱自体へ移す等の代替フォーカスを推奨（Overlays/README.md のレシピ参照）。 */
   onOpenAutoFocus?: (event: Event) => void;
   onCloseAutoFocus?: (event: Event) => void;
+  /** 背景(覆い)に足す class(色・ぼかし等)。省略時は今の bg-overlay/50 */
+  overlayClassName?: string;
+  /** 本体の層(@/lib/zLayer の名)。既定 "modal"。他のモーダルや固定の UI より上に出したい時に上げる */
+  layer?: DialogContentLayer;
+  /** 背景の層。既定 "modal" */
+  overlayLayer?: DialogOverlayLayer;
+  /** 全画面: 本体が画面いっぱい(角丸・枠・最大幅なし、高さ 100dvh)。余白は上下の safe-area の分だけで、
+   * 中身の余白は呼び手が className / 中身で決める。閉じるボタンは画面の内の右上に置く */
+  fullscreen?: boolean;
+  /** portal の先の要素(省略 = body)。渡すと背景と本体はその要素の中で absolute に重なる
+   * (要素は relative 等の position を持つこと)。fullscreen と併せると容器いっぱい */
+  container?: HTMLElement | null;
 };
 
 /** DialogContent（モーダルの箱全体）の最大高さ。高さ制御の唯一の真のソース。
@@ -85,6 +99,13 @@ export type ModalProps = {
  * 持たせていた。予算は実クロームと一致せず TabbedModal + footer ではみ出していた） */
 const CONTENT_MAX_HEIGHT = "calc(100dvh - 2rem)";
 const CONTENT_MAX_HEIGHT_CLASS = "max-h-[calc(100dvh-2rem)]";
+
+/** fullscreen の本体の class(中央寄せ・最大幅・角丸・枠・内側の余白を外し、上下に safe-area の余白) */
+const FULLSCREEN_CLASS =
+  "inset-0 top-0 left-0 translate-x-0 translate-y-0 max-w-none sm:max-w-none max-h-none rounded-none border-0 p-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-none";
+/** fullscreen の閉じるボタン(角から半分はみ出す既定の位置だと画面の外に出るため、内側の右上へ) */
+const FULLSCREEN_CLOSE_BUTTON_CLASS =
+  "top-[calc(env(safe-area-inset-top)+0.75rem)] right-3 translate-x-0 sm:translate-x-0 translate-y-0";
 
 /** Modal 本体ラッパーの既定 maxHeight。箱の上限と同値。
  * 役割は「既定で本体ラッパーを描画してスクロール領域にする」ことであり、クローム予算ではない
@@ -117,6 +138,11 @@ export default function Modal({
   bodyRef,
   onOpenAutoFocus,
   onCloseAutoFocus,
+  overlayClassName,
+  layer,
+  overlayLayer,
+  fullscreen = false,
+  container,
 }: ModalProps) {
   // 閉じ確認ダイアログの表示状態（confirmOnClose 用）
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
@@ -138,8 +164,10 @@ export default function Modal({
     onOpenChange(next);
   };
 
+  // fullscreen で maxHeight が既定のままなら、本体ラッパーは箱の残りいっぱい(flex-1)に任せ、高さの上限は付けない
+  const fullscreenFill = fullscreen && maxHeight === DEFAULT_MAX_HEIGHT;
   // null が明示的に渡された場合は制限とクランプを解除（後方互換用）
-  const effectiveMaxHeight = maxHeight ?? undefined;
+  const effectiveMaxHeight = fullscreenFill ? undefined : (maxHeight ?? undefined);
   const clampEnabled = maxHeight !== null;
   const toCssSize = (value: number | string) =>
     typeof value === "number" ? `${value}px` : value;
@@ -164,7 +192,10 @@ export default function Modal({
       : fixedModeBaseHeight
     : clampedHeight;
   const shouldWrapScrollable = Boolean(
-    resolvedScrollableMinHeight || resolvedScrollableMaxHeight || resolvedScrollableHeight,
+    fullscreenFill ||
+      resolvedScrollableMinHeight ||
+      resolvedScrollableMaxHeight ||
+      resolvedScrollableHeight,
   );
   // minHeight の置き場（scrollable モード）: ラッパーではなく内側の div に付ける。
   // ラッパー自身に min-height を付けると flex 縮小がそこで止まり、箱の上限を超えて本体が
@@ -193,8 +224,19 @@ export default function Modal({
         <DialogContent
           showCloseButton={showCloseButton}
           // grid → flex-col: 箱の max-h に対して本体ラッパー（min-h-0）だけが縮む構造にする
-          className={cn("flex flex-col", clampEnabled && CONTENT_MAX_HEIGHT_CLASS, className)}
-          maxWidth={maxWidth}
+          className={cn(
+            "flex flex-col",
+            clampEnabled && !fullscreen && CONTENT_MAX_HEIGHT_CLASS,
+            fullscreen && FULLSCREEN_CLASS,
+            fullscreen && (container ? "h-full" : "h-[100dvh]"),
+            className,
+          )}
+          maxWidth={fullscreen ? undefined : maxWidth}
+          closeButtonClassName={fullscreen ? FULLSCREEN_CLOSE_BUTTON_CLASS : undefined}
+          overlayClassName={overlayClassName}
+          layer={layer}
+          overlayLayer={overlayLayer}
+          container={container}
           onOpenAutoFocus={onOpenAutoFocus}
           onCloseAutoFocus={onCloseAutoFocus}
           // Modal は description を持たない。未指定を明示しないと Radix が警告を出す
@@ -211,7 +253,11 @@ export default function Modal({
           {shouldWrapScrollable ? (
             <div
               ref={bodyRef}
-              className={cn("min-h-0", scrollable ? "overflow-y-auto" : "overflow-clip")}
+              className={cn(
+                "min-h-0",
+                fullscreenFill && "flex-1",
+                scrollable ? "overflow-y-auto" : "overflow-clip",
+              )}
               style={scrollableStyle}
             >
               {minHeightOnInner ? (

@@ -52,19 +52,30 @@ function DialogContent({
   showCloseButton = true,
   layerClassName = "z-50",
   overlayLayerClassName = "z-50",
+  overlayClassName,
+  container,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
   layerClassName?: string;
   overlayLayerClassName?: string;
+  /** 背景(覆い)に足す class */
+  overlayClassName?: string;
+  /** portal の先の要素(省略 = body)。渡すと背景と本体は fixed でなく absolute になり、
+   * その要素(position を持つ容器)の中で重なる */
+  container?: HTMLElement | null;
 }) {
   return (
-    <DialogPortal data-slot="dialog-portal">
-      <DialogOverlay layerClassName={overlayLayerClassName} />
+    <DialogPortal data-slot="dialog-portal" container={container}>
+      <DialogOverlay
+        layerClassName={overlayLayerClassName}
+        className={cn(container && "absolute", overlayClassName)}
+      />
       <DialogPrimitive.Content
         className={cn(
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
           layerClassName,
+          container && "absolute",
           className,
         )}
         {...props}

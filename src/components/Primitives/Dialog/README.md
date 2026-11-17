@@ -4,6 +4,7 @@
 
 - 読むのは入口 `@/components/Primitives/Dialog` だけ（`src/components/Primitives/index.ts` は無い）。Radix は統合版の `radix-ui` から読む
 - 画面からは通常、完成品を使う。この部品を直接組むのは完成品で足りないときだけ
+- `DialogContent` の省略できる指定: `layer` / `overlayLayer`（層の名）、`overlayClassName`（背景に足すクラス）、`container`（portal の先の要素。渡すと背景と本体は `absolute`）、`closeButtonClassName`（右上の閉じるボタンに足すクラス）。どれも省略時の出力は変わらない
 
 ## data-slot の一覧
 

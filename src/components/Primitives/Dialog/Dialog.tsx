@@ -54,6 +54,8 @@ type DialogContentProps = Omit<
   layer?: DialogContentLayer;
   overlayLayer?: DialogOverlayLayer;
   showCloseButton?: boolean;
+  /** 閉じるボタンに足す class(既定は本体の右上の角に半分はみ出す位置) */
+  closeButtonClassName?: string;
   layerClassName?: string;
   overlayLayerClassName?: string;
   maxWidth?: number | string;
@@ -81,6 +83,7 @@ export function DialogContent({
   className,
   children,
   showCloseButton = true,
+  closeButtonClassName,
   layer = "modal",
   overlayLayer = "modal",
   layerClassName,
@@ -121,7 +124,12 @@ export function DialogContent({
     >
       <DialogNestingContext.Provider value={true}>{children}</DialogNestingContext.Provider>
       {showCloseButton && (
-        <BaseDialogClose className="absolute top-0 right-0 translate-x-[calc(50%-6px)] sm:translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground p-2 text-background hover:bg-foreground/80 transition-colors cursor-pointer">
+        <BaseDialogClose
+          className={cn(
+            "absolute top-0 right-0 translate-x-[calc(50%-6px)] sm:translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground p-2 text-background hover:bg-foreground/80 transition-colors cursor-pointer",
+            closeButtonClassName,
+          )}
+        >
           <XIcon className="size-6" />
           <span className="sr-only">閉じる</span>
         </BaseDialogClose>

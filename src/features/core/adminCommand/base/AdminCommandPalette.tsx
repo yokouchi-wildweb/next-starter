@@ -13,7 +13,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/Primitives/Command";
-import { DialogPrimitives, DialogContent, DialogTitle } from "@/components/Primitives/Dialog";
+import Modal from "@/components/Overlays/Modal";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { filterSearchInput } from "../utils";
@@ -77,14 +77,19 @@ export function AdminCommandPalette({ categories, open, onOpenChange }: AdminCom
   }
 
   return (
-    <DialogPrimitives open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="overflow-hidden p-0"
-        showCloseButton={false}
-        layer="super"
-        overlayLayer="super"
-      >
-        <DialogTitle srOnly>管理者コマンド</DialogTitle>
+    // 層を super に上げる(管理のどの画面の重なりより上)。幅は旧 sm:max-w-lg(32rem)、高さは中身の Command に任せる
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="管理者コマンド"
+      titleSrOnly
+      showCloseButton={false}
+      layer="super"
+      overlayLayer="super"
+      className="overflow-hidden p-0"
+      maxWidth="32rem"
+      maxHeight={null}
+    >
 
         {/* ルート: カテゴリ一覧 */}
         {view.type === "root" && (
@@ -135,7 +140,6 @@ export function AdminCommandPalette({ categories, open, onOpenChange }: AdminCom
             user={user}
           />
         )}
-      </DialogContent>
-    </DialogPrimitives>
+    </Modal>
   );
 }

@@ -143,6 +143,11 @@ import Modal from "@/components/Overlays/Modal";
 | `bodyRef` | `Ref<HTMLDivElement>` | - | 本体ラッパー（スクロール領域）の DOM 参照。スクロール位置を操作したい場合に使う（TabbedModal はタブ切替時の先頭戻しに使用） |
 | `onOpenAutoFocus` | `(event: Event) => void` | - | 開いた直後の自動フォーカス制御。未指定時は Radix 既定（最初のフォーカス可能要素へフォーカス） |
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
+| `overlayClassName` | `string` | - | 背景（覆い）に足すクラス（色・ぼかし等）。省略時は今の `bg-overlay/50` |
+| `layer` | `DialogContentLayer` | `"modal"` | 本体の層（`@/lib/zLayer` の名）。他のモーダルや固定の UI より上に出したい時に上げる（例: 管理者コマンドは `"super"`） |
+| `overlayLayer` | `DialogOverlayLayer` | `"modal"` | 背景の層 |
+| `fullscreen` | `boolean` | `false` | 全画面: 角丸・枠・最大幅・中央寄せを外し、高さ `100dvh`。余白は上下の safe-area の分だけで、中身の余白は `className` / 中身で決める。閉じるボタンは画面の内側の右上、本体は箱の残りいっぱいでスクロールする（`maxHeight` 既定のとき） |
+| `container` | `HTMLElement \| null` | - | portal の先の要素（省略 = body）。渡すと背景と本体はその要素の中で `absolute` に重なる（要素に `relative` 等の position が要る）。`fullscreen` と併せると容器いっぱい（`h-full`） |
 
 デフォルトで `maxHeight` が設定されているため、長いコンテンツは常にビューポート内に収まり内部スクロールされる。タイトル部 (DialogHeader) は固定で、本体だけがスクロールする。デフォルトを無効化したい場合は `maxHeight={null}` を渡す。
 
