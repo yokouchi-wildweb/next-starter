@@ -393,6 +393,14 @@ import DetailModal from "@/components/Overlays/DetailModal";
 | `footer` | `ReactNode` | - | テーブル下に任意のフッターを配置 |
 | `className` | `string` | - | 追加クラス |
 | `onOpenAutoFocus` | `(event: Event) => void` | - | 開いた直後の自動フォーカス制御（Modal へ透過） |
+
+**DetailTable（鍵と値の表を単独で）:** モーダルの外（画面の中・カード・印刷）で同じ「項目名: 値」の表を使うときは、入口から `DetailTable` を使う。`rows` は DetailModal と同じ（`{ label, value }` のセルの配列、または `ReactNode[]` の行。行ごとにセルの数が違ってよく、最後のセルが残りの列にまたがる）。
+
+```tsx
+import { DetailTable } from "@/components/Overlays/DetailModal";
+
+<DetailTable rows={[[{ label: "ID", value: user.id }, { label: "状態", value: statusLabel }], [{ label: "メモ", value: memo }]]} />
+```
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御（Modal へ透過） |
 
 `rows` へ `ReactNode[]` を渡すと、列幅を柔軟に変えたカスタム行を作成できる。

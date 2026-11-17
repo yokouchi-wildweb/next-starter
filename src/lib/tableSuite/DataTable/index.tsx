@@ -102,6 +102,12 @@ export type DataTableProps<T> = TableStylingProps<T> &
      * afterIndex 指定でデータ行の間に挿入する。選択・行クリック・ソートの対象外。
      */
     fullWidthRows?: FullWidthRow[];
+    /**
+     * 表の形。"print" = 印刷の表(スクロールの箱なし・maxHeight / scrollContainerRef は効かない・小さな文字・
+     * 素の罫線・行の hover と縞なし)。印刷の場所と window.print() は呼び手が持つ
+     * @default "list"
+     */
+    variant?: "list" | "print";
   };
 
 const ROW_CURSOR_CLASS: Record<RowCursor, string> = {
@@ -128,6 +134,7 @@ export default function DataTable<T>({
   cellPaddingX = "sm",
   cellPaddingY = "none",
   disableRowHover = false,
+  variant = "list",
   fullWidthRows,
   sort,
   onSortChange,
@@ -145,6 +152,7 @@ export default function DataTable<T>({
   };
 
   const resolvedMaxHeight = maxHeight ?? "70vh";
+  const isPrint = variant === "print";
   const rowHeightClass = ROW_HEIGHT_CLASS[rowHeight];
 
   const fullWidthRowsByIndex = React.useMemo(
@@ -157,16 +165,16 @@ export default function DataTable<T>({
 
   return (
     <div
-      className={cn("w-full max-w-full overflow-x-auto overflow-y-auto", className)}
-      style={{ maxHeight: resolvedMaxHeight }}
-      ref={scrollContainerRef}
+      className={cn(isPrint ? "w-full" : "w-full max-w-full overflow-x-auto overflow-y-auto", className)}
+      style={isPrint ? undefined : { maxHeight: resolvedMaxHeight }}
+      ref={isPrint ? undefined : scrollContainerRef}
     >
       <TableReorderProvider
         active={reorder.active}
         sortableIds={reorder.sortableIds}
         onDragEnd={reorder.handleDragEnd}
       >
-      <Table variant="list">
+      <Table variant={variant}>
         <TableHeader>
           <TableRow disableHover>
             {reorder.enabled && <DragHandleHead />}
@@ -199,7 +207,7 @@ export default function DataTable<T>({
                 resolveRowClassName(rowClassName, item, { index }),
               )}
               onClick={onRowClick ? () => onRowClick(item) : undefined}
-              disableHover={disableRowHover}
+              disableHover={disableRowHover || isPrint}
             >
               {columns.map((col, idx) => (
                 <TableCell

@@ -10,6 +10,8 @@ export const tableVariants = cva("w-full caption-bottom text-sm", {
     variant: {
       default: "",
       list: "min-w-full border border-border",
+      // 印刷の表: 小さな文字・素の罫線(色はトークン。白黒の印刷で潰れない濃さ)
+      print: "text-xs border-collapse border border-border",
     },
   },
   defaultVariants: { variant: "default" },
@@ -20,6 +22,7 @@ export const headerVariants = cva("[&_tr]:border-b", {
     variant: {
       default: "",
       list: "bg-muted",
+      print: "",
     },
   },
   defaultVariants: { variant: "default" },
@@ -30,6 +33,7 @@ export const rowVariants = cva("border-b transition-colors data-[state=selected]
     variant: {
       default: "",
       list: "even:bg-muted/50",
+      print: "",
     },
     hoverEffect: {
       enabled: "hover:bg-accent/20",
@@ -46,6 +50,7 @@ export const headVariants = cva(
       variant: {
         default: "h-10 px-2 text-center",
         list: "px-2 py- border-b text-center",
+        print: "h-auto border border-border px-2 py-1 text-left font-semibold",
       },
     },
     defaultVariants: { variant: "default" },
@@ -59,6 +64,7 @@ export const cellVariants = cva(
       variant: {
         default: "",
         list: "border-b",
+        print: "border border-border",
       },
     },
     defaultVariants: { variant: "default" },

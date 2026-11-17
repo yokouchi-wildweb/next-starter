@@ -494,6 +494,16 @@ const fullWidthRows: FullWidthRow[] = [
 - セルは `p-0` で描画されるため、パディングは `render` 内で自分で付ける
 - **`afterIndex` は現在の items に対する位置**。ソート・ページ変更などで items が変わる際は使用側が再計算する責任を持つ（ページネーション環境ではサーバー側で位置を算出して渡すことを推奨）
 
+### 印刷の表（variant="print"）
+
+DataTable に `variant="print"` を渡すと印刷の表になる: スクロールの箱を付けない（`maxHeight` / `scrollContainerRef` は効かない）、小さな文字（text-xs）、セルに素の罫線、行の hover と縞なし。印刷の場所（portal・印刷用の CSS）と `window.print()` は呼び手が持つ。選択・編集の表には無い。
+
+```tsx
+<DataTable items={rows} columns={columns} variant="print" className="print-area" />
+```
+
+鍵と値の表（行ごとにセルの数が違う「項目名: 値」）は DataTable でなく `DetailTable`（`@/components/Overlays/DetailModal`、src/components/Overlays/README.md「DetailModal」）。
+
 ### 無限スクロールの足元（infiniteFooter）
 
 表のスクロール領域の中で続きを読むとき(`maxHeight` で表が自分でスクロールする)、フックの `sentinelRef` を `bottomSentinelRef` に、`isFetchingMore` / `hasMore` / `total` を `infiniteFooter` に渡す。スクロール領域の中・表の下・sentinel の直前に、読み込み中(Spinner +「読み込み中...」)と、続きが無くなったときの終端(`total` があれば「全 N 件を表示しました」、無ければ `completedText`)が出る。待機中は何も出さない。DataTable・RecordSelectionTable・EditableGridTable で同じ。表をページ全体のスクロールで読む(`maxHeight="none"`)なら、表を `InfiniteScrollList` で包む方(`src/components/Widgets/InfiniteScrollList/README.md`)。
