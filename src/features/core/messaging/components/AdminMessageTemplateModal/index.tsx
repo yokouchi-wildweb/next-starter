@@ -2,7 +2,7 @@
 // セクションコンテナ(管理: テンプレートを作る・直すモーダル。D87)。開閉は置き場が持つ(open・onOpenChange・templateId)。
 // タブ: 内容 / バージョン履歴(直す時だけ)。変数のタブは無い(専用の埋め込み情報はボタンのモーダル、D111)。
 // 内容 = 左右 2 つのペイン(D114): 左 = 一番上でひな形を選び、その下に実際の描き方のプレビュー(経路のタブ、未入力は仮の文)。
-//   右 = 名前・説明・種別 →(カテゴリー: 2 つ以上の時だけ)→ ひな形の欄の入力・埋め込み情報のタグと『専用の埋め込み情報を管理』(D115)。
+//   右 = 名前・説明・種別 →(カテゴリー: 2 つ以上の時だけ)→ ひな形の欄の入力(プレビューのタブの経路で使う欄だけ、D117)・埋め込み情報のタグと『専用の埋め込み情報を管理』(D115)。
 //   狭い画面は操作が上、プレビューがその下
 // ひな形を替えると、中身があれば確かめてから消す(D113)。保存 = 新しいバージョン(D113)。
 // システムテンプレート(白紙)とアーカイブした物は読むだけ(D117)。
@@ -214,7 +214,13 @@ function TemplateModalBody({
 
         <Stack space={2} className="rounded-md border border-border bg-card p-4" data-slot="template-values">
           {form.layoutFields ? (
-            <LayoutFields control={form.valuesForm.control} fields={form.layoutFields} channels={fields.channels} readOnly={locked} />
+            <LayoutFields
+              control={form.valuesForm.control}
+              fields={form.layoutFields}
+              channels={fields.channels}
+              activeChannel={preview.channel}
+              readOnly={locked}
+            />
           ) : (
             <Span size="sm" tone="muted">
               ひな形を選ぶと入力欄が出ます
@@ -253,6 +259,7 @@ function TemplateModalBody({
           content={preview.content}
           loading={preview.loading}
           error={preview.error}
+          incompleteChannels={preview.incompleteChannels}
         />
       </Stack>
     </Flex>

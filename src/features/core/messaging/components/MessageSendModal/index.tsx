@@ -254,9 +254,12 @@ export function MessageSendModal({
                   content={m.layoutPreview.content}
                   loading={m.layoutPreview.loading}
                   error={m.layoutPreview.error}
+                  incompleteChannels={m.layoutPreview.incompleteChannels}
                 />
               </Stack>
-              {text.locked ? null : <LayoutFields control={text.control} fields={text.fields} channels={m.sendChannels} />}
+              {text.locked ? null : (
+                <LayoutFields control={text.control} fields={text.fields} channels={m.sendChannels} activeChannel={m.layoutPreview.channel} />
+              )}
               {m.text.canUpdateTemplate ? (
                 <Flex justify="end" gap="xs" align="center">
                   <Span size="xs" tone="muted">

@@ -6,6 +6,7 @@
 // - 経路のタブ = 渡した channels(種類の経路)。選んだ経路 1 つを描く
 // - 未入力の欄はひな形が宣言した仮の文(placeholder)で埋めて描く(D114)。ブロックの並びが空なら仮の文の段落 1 つ
 // - 入力が止まって 400ms 後に POST /api/admin/messaging/layouts/preview(保存しない)。結果がいまの求めの物でなければ描き直し中
+// - 必須の欄が空の経路を incompleteChannels で返す(タブの印、D117)
 // - お知らせ(inApp)はカードを client の描き方(layoutInApps)で描くので、経路だけの欄を除いた中身(inAppValues)も返す
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -116,6 +117,15 @@ export function useLayoutPreview({ layout, fields, values, channels, category, e
 
   const setChannel = useCallback((next: string) => setChannelState(next), []);
 
+  /** 必須の欄(その経路で使う物)が空の経路(仮の文で埋める前の値で見る、D117) */
+  const incompleteChannels = useMemo(() => {
+    if (!fields) return [];
+    const raw = values ?? {};
+    return channels.filter((key) =>
+      Object.entries(fields).some(([name, spec]) => spec.required && fieldBelongsTo(spec, key) && isEmptyValue(raw[name])),
+    );
+  }, [fields, values, channels]);
+
   // 前の結果は描き直しの間も残す(同じ経路の物だけ)
   const preview = current?.preview ?? (result?.preview && result.preview.channel === channel ? result.preview : null);
   /** 部品 LayoutPreview の content(送る HTML・題・要約 + お知らせのカードの中身・描けない理由) */
@@ -127,6 +137,7 @@ export function useLayoutPreview({ layout, fields, values, channels, category, e
     channels,
     layout: layout ?? null,
     content,
+    incompleteChannels,
     loading: Boolean(enabled && request) && !current,
     error: current?.error ?? null,
   };

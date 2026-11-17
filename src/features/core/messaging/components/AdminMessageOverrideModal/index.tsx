@@ -128,6 +128,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
                     onReset={() => editor.reset(field)}
                     onDiscard={() => editor.discard(field)}
                     onFocusField={editor.setFocusedPath}
+                    commonToAll={editor.channels.every((channel) => field.channels.includes(channel.key))}
                   />
                 ))}
               </Stack>

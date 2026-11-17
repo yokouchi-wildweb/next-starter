@@ -50,11 +50,13 @@ export type LayoutPreviewProps = {
   content: LayoutPreviewContent | null;
   loading?: boolean;
   error?: unknown;
+  /** 必須の欄が空の経路(タブに「未入力あり」の印、D117) */
+  incompleteChannels?: readonly string[];
   /** メールの iframe の高さ(px) */
   emailHeight?: number;
 };
 
-export function LayoutPreview({ layout, channels, channel, onChannelChange, content, loading, error, emailHeight }: LayoutPreviewProps) {
+export function LayoutPreview({ layout, channels, channel, onChannelChange, content, loading, error, emailHeight, incompleteChannels = [] }: LayoutPreviewProps) {
   if (!layout) {
     return (
       <Para size="sm" tone="muted" className="my-0">
@@ -71,7 +73,10 @@ export function LayoutPreview({ layout, channels, channel, onChannelChange, cont
   }
   return (
     <StateTabs
-      tabs={channels.map((key) => ({ value: key, label: messageChannelLabel(key) }))}
+      tabs={channels.map((key) => ({
+        value: key,
+        label: incompleteChannels.includes(key) ? `${messageChannelLabel(key)}・未入力あり` : messageChannelLabel(key),
+      }))}
       value={channel}
       onValueChange={onChannelChange}
       ariaLabel="プレビューの送信方法"
