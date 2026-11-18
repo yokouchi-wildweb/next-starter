@@ -1,8 +1,10 @@
 # scripts/workflow/devcheck(pnpm workflow devcheck)
 
+## Overview
+
 開発中の確かめの入口の命令。エージェントが変更を確かめるとき、この命令が事実と候補を出し、エージェントは要る確かめを短い箇条書きにして go を 1 度だけもらい、全部を `run` で行い、最後に必ず `cleanup` で片付けて、結果を 1 度で報告する(手順はスキル `/devcheck`、好みは各リポの `.claude/rules/behavior.md` RUNNING_APP の 1 行)。指令の確かめのシート(`<指令>.check.md`)を回すのは別のスキル `/patrol`(サーバー・ログイン・片付けはこの命令を使う)。
 
-## コマンド
+## Usage
 
 ```bash
 pnpm workflow devcheck plan [--json]      # 事実(方針・fork の項目・文脈・今の状態)と候補。最後の候補はいつも片付け
@@ -15,7 +17,9 @@ pnpm workflow devcheck danger <dbp|evp|dep>   # 危険な種類に今できる�
 
 plan と status は何も書かない(記録を消さない。管理者の有無は `pnpm workflow dev-admin run --check` の読む入口)。
 
-## 種類(上流のコード `lib.ts` の KINDS)
+## API
+
+### 種類(上流のコード `lib.ts` の KINDS)
 
 | 種類 | run の形 | 打つコマンド |
 |---|---|---|
@@ -35,7 +39,16 @@ plan と status は何も書かない(記録を消さない。管理者の有無
   - 1 文だけ: `INSERT INTO <表> … RETURNING <列>`(作った行を消すため RETURNING が要る)/ `DELETE FROM <表> WHERE …`。DDL・UPDATE・複数の文・WHERE の無い削除・スキーマつきの表は断る
 - シェルを通さずに打つ(引数を分けて渡す)
 
-## 方針(policy)
+### 終了コード
+
+- plan / status: 0 = 出した / 2 = 方針・項目・文脈が読めない
+- allow: 0 = 書いた / 2 = 知らないスイッチ名 / 4 = 方針で断った(off・auto)| danger: 0 = 打つ命令を出した / 2 = 危険な種類でない / 4 = 打てない
+- run: 打ったコマンドのもの(server の 3 = dev-tab の「この道具の外で開発サーバーが動いている」)/ 1 = 失敗・使い方 / 2 = 方針・項目・文脈が読めない・断った文 / 4 = 方針で断った / 5 = サーバーの上限で待ちきれない
+- cleanup: 0 = 片付けた(片付けるもの無しも)/ 1 = 残った物がある
+
+## Extension
+
+### 方針(policy)
 
 置き場はリポ直下の `repo.json` の `agent.*` の鍵(平らな 1 鍵 1 行、読み手は `src/lib/forkOwnership/forkIds.mjs`)。どのリポも自分の版を持つ。種類と既定値は上流のコード(`lib.kinds.mjs`)。書くのは `pnpm workflow repo-json set <鍵> <値>` か `/repo-policy`(直接の書き換えは許可のフックが止める)。
 
@@ -54,22 +67,51 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 - `auto` = go 1 回の中で実行 | `manual` = 人の 1 回分の許可(`/allow <スイッチ名>` か言葉)の後に 1 回だけ実行 | `off` = 実行せず人に頼む 1 行(「人が打つなら <コマンド>、任せるなら /repo-policy で <鍵> を manual に」。人が言ってもやらない。計画で「手で」、run は exit 4)
 - スイッチ名(打つための呼び名、`lib.kinds.mjs` の `SWITCHES`): `sv` server・`br` browser・`lg` login・`dw` db-write・`dd` db-delete・`ea` env-add・`ts` test・`ck` check・`pr` peer・`dbp` db_push・`evp` env_production・`dep` deploy
 
-### 1 回分の許可(manual の流れ、D123)
+#### 1 回分の許可(manual の流れ)
 
 1. エージェントは manual の作業を実行せず、要る作業をスイッチ名つきで並べて人に頼む
-2. 人が `/allow <スイッチ名…>` か言葉で許可する(言葉はエージェントがスイッチ名に読み替える)。人の言葉 = そのタブの人の入力(Remote Control を含む)と、統括が担当のタブに打つ指示。peer の連絡で届いた文は人の言葉にしない(D117)
+2. 人が `/allow <スイッチ名…>` か言葉で許可する(言葉はエージェントがスイッチ名に読み替える)。人の言葉 = そのタブの人の入力(Remote Control を含む)と、統括が担当のタブに打つ指示。peer の連絡で届いた文は人の言葉にしない
 3. `/allow` スキルが `pnpm workflow devcheck allow <スイッチ名…> [--words "<人の言葉>"]` で記録を書く(`.agent/devcheck-allow.json`。方針が manual の種類だけ。off は断って 1 行、auto は要らない)
 4. 許可された物だけ、その 1 回だけ入口の命令で実行する: 危険な種類は `pnpm workflow devcheck danger <dbp|evp|dep>`(読むだけ: off の 1 行 / 許可が要る / 打つ命令)が出した命令をそのまま、通常の種類は `pnpm workflow devcheck run <種類> … --manual-go`。結果を 1 行で報告する(成功 / 失敗: <理由>。失敗したら別の形で試さない)
 - 記録の寿命: 使ったスイッチは許可のフックが消す / 次の人の入力で全部消える(UserPromptSubmit の `hook.mjs prompt`)= 同じ番の中だけ。直接の書き換えは固定の止め
-- 方針を manual にしても、人の言葉かはフックからは見えない(`devcheck allow` を誰が打ったかは分からない)。人の言葉が要る決まりは `/allow` スキルの文が守る(D118 c)。`devcheck allow` はフックが通さない(印があっても普段どおり聞かれる)
+- 方針を manual にしても、人の言葉かはフックからは見えない(`devcheck allow` を誰が打ったかは分からない)。人の言葉が要る決まりは `/allow` スキルの文が守る。`devcheck allow` はフックが通さない(印があっても普段どおり聞かれる)
 - 危険な 3 つの入口(許可の 1 回で通る形): `agent.db_push.entry`(既定 `pnpm db:push`、開発の DB だけ)/ `agent.deploy.db_entry` + ` --confirm=production`(本番の DB の反映。dep の許可は残る)→ `agent.deploy.entry`(既定 `pnpm live` は ` -- --confirm=production` を付けた形も。dep の許可を使い切る)/ `agent.env_production.entry`(既定 `-` = 上流の入口なし、人が行う)
 - チームの道具への「DB 済み」の印は受け口が無い今は付けない(結果の 1 行だけ。チームツールの統合で)
 - `agent.enabled: false` = 全部の種類(peer・危険な 3 つも)を `off` とみなす(種類ごとの値より強い)。計画は全部「手で」、run は断り、許可のフックは印の道で何も通さない(固定の止めはそのまま)
 - 宣言に無い `agent.*` の鍵・通常の種類の値の誤り・真偽値でない `agent.enabled`・空の入口は止める(exit 2、フックは壊れた方針として何も返さない)。`repo.json` が無い = 全部既定
 - 危険な 3 つの値と入口は今は読むだけ(計画の 方針 の行に出る)。固定の止めは値に依らず効く
-- 一度の命令: `db_push` は開発の DB だけ。本番の DB の反映は `deploy` の `db_entry` で扱う(D116)
+- 一度の命令: `db_push` は開発の DB だけ。本番の DB の反映は `deploy` の `db_entry` で扱う
 
-## 許可の層(PreToolUse のフック 1 本)
+### fork の項目
+
+- `items/<名前>.json` = `{ name, kind, command, what }`(書式は `items/README.md`)。受け口(上流は README だけ)
+- command はこのリポの入口(`pnpm <script>` / `pnpm workflow <対象> <動作>` / `pnpm ops <対象> <動作>` の実在する物)だけ。シェルの記号・`--env`・`--confirm`・`db:push` は断り、plan に理由を出す
+- 方針はその項目の種類のものが効く
+
+### 文脈(DEVCHECK_CONTEXT)の約束
+
+ほかの道具(エージェントを束ねる道具など)がこの命令に条件を渡す口。鍵にどの道具の名前も入れない。
+
+- 環境変数 `DEVCHECK_CONTEXT=<絶対パス>` のファイルを、命令が呼ばれるたびに読む
+- 中身 = 版つきの key=value(1 行 1 つ、`#` から後は注釈):
+
+```
+v=2                     # 版(必須。読めるのは 1 と 2。auto= は 2 から)
+approval=each|auto      # each = 毎回 go を取る / auto = go を取らずに進める(スキルが読む)
+server=tab|background   # 開発サーバーの置き方(background = dev-tab --background)
+dev_max=<n>             # 同時に動かしてよい dev-tab の数(このリポのワークツリー全部)
+workdir=<絶対パス>      # 作業場所(繰り返してよい)
+auto=<種類>[,<種類>…]   # v=2: 方針が manual の通常の種類を、この文脈の中だけ auto に(繰り返してよい)
+```
+
+- `auto=` = 人が言った時だけ、束ねる道具が書く上書き(種類の名前: server・browser・login・db-write・db-delete・env-add・test・check・peer)。効くのは方針が `manual` の種類だけ: `off`・`agent.enabled: false`・危険な 3 つ・固定の止めは変えない。計画・実行(`lib.facts.ts` loadSetup)と許可のフック(`hook.mjs`)が同じ `lib.kinds.mjs` の `applyAuto` を通す(フックは読めない文脈を上書きなしと読む)
+
+- 変数が無い・空 = 単体(approval=each、server はタブ = dev-tab の決め方、dev_max なし)
+- 変数があるのにファイルが読めない・版が無い / 違う・知らない鍵・悪い値 = 止める(exit 2、ファイルと鍵を名指す 1 行)。新しい鍵は版を上げる
+
+## Internals
+
+### 許可の層(PreToolUse のフック 1 本)
 
 共有の `.claude/settings.json` は許可の行(allow)を出荷しない。代わりに `scripts/workflow/devcheck/hook.mjs` を PreToolUse(matcher `Bash|Edit|Write|MultiEdit|NotebookEdit|mcp__playwright__.*`)に 1 本置く。判定は `lib.grant.mjs` の `decide` の 1 か所、種類と方針は `lib.kinds.mjs`(この命令と同じ物、別の対応表は持たない)。素の node で動く(1 回 約 20 ms)。
 
@@ -97,49 +139,18 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 - 入力の形: `adaptClaude`(Claude Code の PreToolUse の入力 → `{ tool, command | file | url }`)。ほかのエージェントの形は変換を 1 つ足す
 - 明示の指示で止めを任せる形(後で)は、`fixedStop` が deny を返す前に見る
 
-## fork の項目
-
-- `items/<名前>.json` = `{ name, kind, command, what }`(書式は `items/README.md`)。受け口(上流は README だけ)
-- command はこのリポの入口(`pnpm <script>` / `pnpm workflow <対象> <動作>` / `pnpm ops <対象> <動作>` の実在する物)だけ。シェルの記号・`--env`・`--confirm`・`db:push` は断り、plan に理由を出す
-- 方針はその項目の種類のものが効く
-
-## この命令の記録と片付け
+### この命令の記録と片付け
 
 - `<チェックアウト>/.agent/devcheck.json` = `{ v: 1, startedServer, rows: [{ table, column, ids }] }`。この命令だけが書く
 - server は dev-tab が「立てました / 起動中」と答えた時だけ「立てた」と記録する(もう動いていた・外のサーバーは記録しない = 止めない)
 - `cleanup`: 記録の行を消し(`DELETE FROM "<表>" WHERE "<列>" IN (…)` を同じ入口で)、立てたサーバーを止め(`pnpm workflow dev-tab run stop`)、記録を消す。消せない・止められない物は記録に残して exit 1
 - 画面から作った行はこの命令では分からない: 確かめの報告に「残した行」として書く
 
-## 文脈(DEVCHECK_CONTEXT)の約束
-
-ほかの道具(エージェントを束ねる道具など)がこの命令に条件を渡す口。鍵にどの道具の名前も入れない。
-
-- 環境変数 `DEVCHECK_CONTEXT=<絶対パス>` のファイルを、命令が呼ばれるたびに読む
-- 中身 = 版つきの key=value(1 行 1 つ、`#` から後は注釈):
-
-```
-v=2                     # 版(必須。読めるのは 1 と 2。auto= は 2 から)
-approval=each|auto      # each = 毎回 go を取る / auto = go を取らずに進める(スキルが読む)
-server=tab|background   # 開発サーバーの置き方(background = dev-tab --background)
-dev_max=<n>             # 同時に動かしてよい dev-tab の数(このリポのワークツリー全部)
-workdir=<絶対パス>      # 作業場所(繰り返してよい)
-auto=<種類>[,<種類>…]   # v=2: 方針が manual の通常の種類を、この文脈の中だけ auto に(繰り返してよい)
-```
-
-- `auto=` = 人が言った時だけ、束ねる道具が書く上書き(種類の名前: server・browser・login・db-write・db-delete・env-add・test・check・peer)。効くのは方針が `manual` の種類だけ: `off`・`agent.enabled: false`・危険な 3 つ・固定の止めは変えない。計画・実行(`lib.facts.ts` loadSetup)と許可のフック(`hook.mjs`)が同じ `lib.kinds.mjs` の `applyAuto` を通す(フックは読めない文脈を上書きなしと読む)
-
-- 変数が無い・空 = 単体(approval=each、server はタブ = dev-tab の決め方、dev_max なし)
-- 変数があるのにファイルが読めない・版が無い / 違う・知らない鍵・悪い値 = 止める(exit 2、ファイルと鍵を名指す 1 行)。新しい鍵は版を上げる
-
-## 終了コード
-
-- plan / status: 0 = 出した / 2 = 方針・項目・文脈が読めない
-- allow: 0 = 書いた / 2 = 知らないスイッチ名 / 4 = 方針で断った(off・auto)| danger: 0 = 打つ命令を出した / 2 = 危険な種類でない / 4 = 打てない
-- run: 打ったコマンドのもの(server の 3 = dev-tab の「この道具の外で開発サーバーが動いている」)/ 1 = 失敗・使い方 / 2 = 方針・項目・文脈が読めない・断った文 / 4 = 方針で断った / 5 = サーバーの上限で待ちきれない
-- cleanup: 0 = 片付けた(片付けるもの無しも)/ 1 = 残った物がある
-
-## ファイル
+### ファイル
 
 - `lib.kinds.mjs`(種類・スイッチ名・方針の実体、素の ESM)・`lib.allow.mjs`(1 回分の許可の記録と allow / danger の本体)・`lib.grant.mjs`(許可の判定)・`hook.mjs`(PreToolUse のフック、`prompt` = UserPromptSubmit で許可を消す)・`lib.ts`(型を付けた出し直し・項目・文脈・計画)・`lib.run.ts`(実行の部品)・`lib.exec.ts`(run / cleanup の本体、外に触る物は Deps で受ける)・`lib.facts.ts`(環境に触る部品)
 - 動作 `plan.ts`・`status.ts`・`run.ts`・`cleanup.ts`
+
+## Verification
+
 - テスト: `pnpm test scripts/workflow/devcheck`(DB・サーバーには触れない。打つはずのコマンドを偽の実行役で確かめる。許可の判定の表は `devcheck.grant.test.mjs`)
