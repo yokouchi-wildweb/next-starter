@@ -4,6 +4,9 @@ import { useCallback, useId, useMemo, useRef, useState, type ChangeEvent } from 
 
 import { Button } from "@/components/Form/Button/Button";
 import { Input } from "@/components/Form/Input/Manual/Input";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, Span } from "@/components/TextBlocks";
 import { MediaPreview, detectMediaType } from "@/lib/mediaInputSuite";
@@ -76,7 +79,7 @@ export const MediaPreviewDemo = () => {
 
   return (
     <Stack gap="lg" padding={{ base: "lg", sm: "2xl" }} className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
+      <Flex wrap="wrap" align="center" gap="sm">
         <Button onClick={handleOpenFileDialog}>ファイルを選択</Button>
         <Button variant="ghost" size="sm" onClick={handleClear}>
           クリア
@@ -90,9 +93,9 @@ export const MediaPreviewDemo = () => {
             ファイルまたは URL を指定してください
           </Span>
         )}
-      </div>
+      </Flex>
 
-      <div className="flex flex-col gap-2">
+      <Stack gap="xs">
         <Para tone="muted" size="sm">
           直接 URL を入力するとリモートファイルのプレビューを確認できます。
         </Para>
@@ -101,9 +104,9 @@ export const MediaPreviewDemo = () => {
           onChange={handleUrlChange}
           placeholder="https://example.com/sample.jpg"
         />
-      </div>
+      </Stack>
 
-      <div className="rounded-lg border border-dashed border-border bg-muted/50 p-4">
+      <Block className="rounded-lg border border-dashed border-border bg-muted/50 p-4">
         {previewAvailable ? (
           <MediaPreview
             file={source.file ?? undefined}
@@ -117,13 +120,13 @@ export const MediaPreviewDemo = () => {
             プレビュー可能なメディアが選択されていません。
           </Para>
         )}
-      </div>
+      </Block>
 
       <Para tone="muted" size="sm">
         判定結果: <Span tone="default">{mediaType}</Span>
       </Para>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <Grid gap="md" className="md:grid-cols-2">
         <Stack appearance="surface" padding={{ base: "md", sm: "lg" }} gap="xs" className="h-full shadow-none">
           <Span weight="semiBold">画像メタ情報</Span>
           {imageMetadata ? (
@@ -161,9 +164,9 @@ export const MediaPreviewDemo = () => {
             </Para>
           )}
         </Stack>
-      </div>
+      </Grid>
 
-      <input
+      <Input
         ref={fileInputRef}
         id={inputId}
         type="file"
@@ -183,10 +186,10 @@ const MetadataList = ({ items }: { items: MetadataItem[] }) => {
   return (
     <dl className="mt-3 flex flex-col gap-2 text-sm text-muted-foreground">
       {items.map((item) => (
-        <div key={item.label} className="flex items-center justify-between gap-2">
+        <Flex key={item.label} align="center" justify="between" gap="xs">
           <dt>{item.label}</dt>
           <dd className="text-right text-foreground">{item.value}</dd>
-        </div>
+        </Flex>
       ))}
     </dl>
   );

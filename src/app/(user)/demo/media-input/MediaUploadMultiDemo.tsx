@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 
+import { Label } from "@/components/Form/Label";
 import { Stack } from "@/components/Layout/Stack";
+import { Link } from "@/components/Navigation";
 import { Para, Span } from "@/components/TextBlocks";
 import { MediaUploaderMulti } from "@/lib/mediaInputSuite";
 
@@ -12,14 +14,14 @@ export const MediaUploadMultiDemo = () => {
 
   return (
     <Stack gap="lg" padding={{ base: "lg", sm: "2xl" }} className="flex flex-col gap-4">
-      <label className="flex items-center gap-2 text-sm">
+      <Label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"
           checked={reorderable}
           onChange={(event) => setReorderable(event.target.checked)}
         />
         <Span>並び替えを有効にする</Span>
-      </label>
+      </Label>
 
       <MediaUploaderMulti
         purpose="demo.media"
@@ -33,15 +35,15 @@ export const MediaUploadMultiDemo = () => {
         onUrlsChange={(next) => setUrls(next)}
       />
 
-      <div className="flex flex-col gap-2 text-sm">
+      <Stack gap="xs" className="text-sm">
         <Span tone="muted">確定済み URL: {urls.length} 件</Span>
         {urls.length > 0 ? (
           <ul className="list-disc pl-5">
             {urls.map((url) => (
               <li key={url}>
-                <a className="text-primary underline" href={url} target="_blank" rel="noreferrer">
+                <Link className="text-primary underline" href={url} target="_blank" rel="noreferrer">
                   {url}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
@@ -50,7 +52,7 @@ export const MediaUploadMultiDemo = () => {
             まだアップロードされていません。
           </Para>
         )}
-      </div>
+      </Stack>
     </Stack>
   );
 };

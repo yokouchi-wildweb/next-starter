@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, Span } from "@/components/TextBlocks";
 import { MediaInput, type SelectedMediaMetadata } from "@/lib/mediaInputSuite";
@@ -18,10 +19,10 @@ export const MediaInputDemo = () => {
         accept="image/*,video/*"
         helperText="クリックまたはファイルをドラッグ＆ドロップしてください"
       />
-      <div className="flex flex-col gap-2 text-sm">
+      <Stack gap="xs" className="text-sm">
         <Span tone="muted">選択中: {fileName ?? "未選択"}</Span>
         <MetadataDisplay metadata={metadata} />
-      </div>
+      </Stack>
     </Stack>
   );
 };
@@ -30,7 +31,7 @@ const MetadataDisplay = ({ metadata }: { metadata: SelectedMediaMetadata }) => {
   if (metadata.image) {
     const image = metadata.image;
     return (
-      <div className="text-sm text-muted-foreground">
+      <Block className="text-sm text-muted-foreground">
         <Para tone="muted" size="sm">
           画像メタデータ
         </Para>
@@ -41,13 +42,13 @@ const MetadataDisplay = ({ metadata }: { metadata: SelectedMediaMetadata }) => {
           <li>向き: {orientationLabel(image.orientation)}</li>
           <li>MIME: {image.mimeType ?? "不明"}</li>
         </ul>
-      </div>
+      </Block>
     );
   }
   if (metadata.video) {
     const video = metadata.video;
     return (
-      <div className="text-sm text-muted-foreground">
+      <Block className="text-sm text-muted-foreground">
         <Para tone="muted" size="sm">
           動画メタデータ
         </Para>
@@ -58,7 +59,7 @@ const MetadataDisplay = ({ metadata }: { metadata: SelectedMediaMetadata }) => {
           <li>再生時間: {video.durationFormatted}</li>
           <li>MIME: {video.mimeType ?? "不明"}</li>
         </ul>
-      </div>
+      </Block>
     );
   }
   return (
