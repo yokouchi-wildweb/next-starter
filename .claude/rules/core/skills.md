@@ -2,7 +2,8 @@
 paths:
   - ".claude/skills/**"
 ---
-# SKILLS (agent skills)
+# skills
+> **ROLE**: loaded when writing .claude/skills/** | holds the skill format
 > part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies to skill files too | this file holds only what differs for skills
 
 scope: .claude/skills/\<name\>/SKILL.md + attached instruction .md beside it | out: scripts (*.mjs) and their output text, agents/*.yaml, README.md (a doc, behavior.md language)

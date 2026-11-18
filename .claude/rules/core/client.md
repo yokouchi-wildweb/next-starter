@@ -1,9 +1,15 @@
 ---
 paths:
+  - "src/**/hooks/**"
+  - "src/features/**/services/client/**"
   - "**/stores/**"
 ---
-# STORES (zustand)
+# client
+> **ROLE**: loaded when writing hooks, client services or stores | holds the client layer rules (hooks, stores)
 > part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
 
+hooks: one use\<Op\>\<Domain\> per operation | custom mutation hooks MUST build on useDomainMutation (@/lib/crud/hooks); useSWRMutation PROHIBITED | test: pnpm test src/lib/crud/hooks/internal/*.test.mjs
+
+## stores (zustand)
 placement: app-wide mechanism → closed lib src/lib/\<name\>/ (state inside, via its entry; no src/stores) | domain-specific → features/\<domain\>/stores/ | one-frame-only → app/\<route\>/_layout/stores/ | structure: stores/\<name\>/{index.ts, internalStore.ts, useStore.ts}, internalStore → useStore → hooks/useXxx (optional)
 rules: state only (logic in services) | UI side effects in useStore's useEffect | internalStore accessed only from useStore.ts | ref: src/lib/toast/stores (a lib-internal store)

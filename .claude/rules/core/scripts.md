@@ -5,7 +5,8 @@ paths:
   - "**/seed.ts"
   - ".notices/*.mjs"
 ---
-# SCRIPTS (tooling layer)
+# scripts
+> **ROLE**: loaded when writing scripts, domain scripts, seeds | holds the scripts placement and rules
 > part of the CLAUDE.md contract (see CORE_RULES, CODE_PLACEMENT tool_deps): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
 
 definition: scripts/ = tools that build, check and run this framework from outside the app | 4 categories: structure (generators + checkers, every one on a gate) | workflow (development-flow tools) | runner (entries, tests, tasks, seeds, guard) | operations (hand-run operations / inspection) | domain-owned tools (ops commands, migrations, seeds) live in the domain | nothing the app reads at runtime | ref: scripts/README.md

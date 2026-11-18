@@ -4,8 +4,10 @@ paths:
   - "src/proxies/**"
   - "scripts/structure/proxies/**"
   - "src/featureGate/**"
+  - "src/config/featureGate/**"
 ---
-# PROXY
+# proxy
+> **ROLE**: loaded when writing the proxy, its items or the feature gate | holds PROXY detail
 > part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
 
 entry: src/proxy.ts builds one ctx per request and runs src/proxies/index.ts | handler returns Response (intercept) or void (pass) → fallback NextResponse.next() + decorators (skipped when a handler intercepts) | x-pathname: proxy.ts sets it on request headers → server components read headers().get("x-pathname")

@@ -4,8 +4,14 @@ paths:
   - "src/registry/**"
   - "scripts/structure/domain/**"
   - "src/app/admin/**"
+  - "src/features/**/domain.json"
+  - "src/**/extensions/**"
+  - "src/app/route-map.jsonl"
+  - "src/styles/gradient.css"
+  - "src/styles/core/gradient.css"
 ---
-# DIRECTORY_STRUCTURE / code_generation
+# generated
+> **ROLE**: loaded when touching generated files or their sources | holds DIRECTORY_STRUCTURE code_generation (generated / write-once / hand-owned)
 > part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
 
 code_generation:

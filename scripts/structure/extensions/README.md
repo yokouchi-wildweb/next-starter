@@ -12,7 +12,7 @@ src/registry の α(serviceRegistry など)は `pnpm generate registry` / `pnpm 
 
 ## fork が上流の物を変える 4 つの型
 
-fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印は `.default`・`.replace`・`.override` の 3 つで、上流が置く物は印なし(素の名前)。表はここだけに置き、ほかの README と `.claude/rules/core/extensions.md` はここを指す。
+fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印は `.default`・`.replace`・`.override` の 3 つで、上流が置く物は印なし(素の名前)。表はここだけに置き、ほかの README と `.claude/rules/core/change.md` はここを指す。
 
 | 型 | 上流が置く物 | fork が書く物 | 見分け | who の type |
 |---|---|---|---|---|

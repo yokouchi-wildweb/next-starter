@@ -7,7 +7,8 @@ paths:
   - "src/config/features/auditLog.config.ts"
   - "scripts/**"
 ---
-# AUDIT
+# audit
+> **ROLE**: loaded when writing server services, API routes or scripts | holds AUDIT detail
 > part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
 
 action_naming: \<domain\>.\<entity\>.\<verb_past\> (e.g. user.email.changed, ESLint audit/action-naming: auditLogger calls and any object literal with action + targetType, i.e. injected recorders too)

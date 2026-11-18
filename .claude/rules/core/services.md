@@ -2,17 +2,17 @@
 paths:
   - "src/features/**"
   - "src/lib/**"
-  - "src/hooks/**"
   - "src/app/api/**"
+  - "src/app/**/_screen/loader.ts"
   - "scripts/**"
 ---
-# CRUD_SERVICE (createCrudService)
+# services
+> **ROLE**: loaded when writing server services, loaders or CRUD calls | holds CRUD_SERVICE (createCrudService) service-side rules
 > part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
 
 operations: create, list, get, update, remove, search, count, query, upsert, duplicate, restore, hardDelete, bulk* (DeleteByIds, DeleteByQuery, Upsert, Update, UpdateByIds) | Drizzle-only: belongsToMany, reorder, searchForSorting, replaceByQuery | conditional on domain flags: duplicate, restore/hardDelete, reorder/searchForSorting
 search: list = simple full fetch only → relations / filters / pagination use search | options: relationWhere, extraWhere (SQL), extraOrderBy (SQL[], before orderBy, server-only), searchRank, withRelations (depth ≤ 3), hasManyLimit | wrappers that order search results reuse buildSearchWhere / buildSearchRankOrderBy and close ORDER BY with withIdTiebreak (else ties reorder across pages)
 extension: 1.base methods → 2.relationWhere → 3.extraWhere → 4.base.query() + wrappers → 5.custom service | files: \<domain\>Service.ts (import only), wrappers/ (CRUD overrides), \<other\>/ (domain-specific)
-hooks: one use\<Op\>\<Domain\> per operation | custom mutation hooks MUST build on useDomainMutation (@/lib/crud/hooks); useSWRMutation PROHIBITED | test: pnpm test src/lib/crud/hooks/internal/*.test.mjs
 system_write: systemUpdate / systemBulkUpdateByQuery bypass Zod for allowlisted systemColumns → service layer ONLY, never wire to HTTP routes
 raw_sql (MANDATORY): never embed a JS Date in a raw sql`` template (Postgres cannot parse it → 500) → pass .toISOString(), Drizzle operators (eq / gt / between …) take Date as is | lint raw-sql-date/no-date-param (all tiers error; members like opts.at need types → not seen) | a raw SQL write to a requestMemo-enabled table (user, setting) → call base.invalidateRequestMemo() right after
 media_columns (MANDATORY): media (storage:// ref) columns are written only through the createCrudService storage binding or storageObjectService.attach | raw SQL, systemUpdate and copying a ref into another table are prohibited (share = copy) | before uploading / reading / deleting files → read src/lib/storage/README.md

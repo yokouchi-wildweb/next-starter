@@ -1,6 +1,6 @@
 // eslint-rules/raw-sql-date.mjs
 //
-// drizzle の生の sql`` テンプレートに JS の Date を埋め込まない(CLAUDE.md CRUD_SERVICE・.claude/rules/core/crud-service.md raw_sql)。
+// drizzle の生の sql`` テンプレートに JS の Date を埋め込まない(CLAUDE.md CRUD_SERVICE・.claude/rules/core/services.md raw_sql)。
 // sql`` の値は Date.toString() 相当("Sun Mar 01 2026 … GMT+0900 (…)")で渡り、::timestamptz を付けても Postgres が読めず
 // クエリの時に落ちる('Failed query … WHERE created_at < $1')。→ .toISOString() で渡す。Drizzle の演算子(eq / gt / lt / between …)は
 // Date をそのまま受けるので変換は要らない。詳細: src/lib/crud/README.md「落とし穴: sql テンプレートに Date を直接渡さない」

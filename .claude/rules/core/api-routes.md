@@ -8,7 +8,8 @@ paths:
   - "src/lib/domain/accessPresets.ts"
   - "src/features/**/domain.json"
 ---
-# API_ROUTES
+# api-routes
+> **ROLE**: loaded when writing API routes or the route factory | holds API_ROUTES detail
 > part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
 
 generic: /api/[domain]/** exposes the CRUD operations (list: src/app/api/[domain]/) | access = the domain's services/server/domainEntry.ts entry { service: () => import(...), access } (TYPE-REQUIRED; business: domain.json apiAccess → pnpm generate domain; core: hand-written; fork override = domainEntry.override.ts) | serviceRegistry.ts = generated from them (pnpm generate registry), the runtime source

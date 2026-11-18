@@ -16,6 +16,8 @@ const MAX_CLAUDE_MD_LINES = 200;
 const MAX_CLAUDE_MD_LINE_CHARS = 400;
 
 const claudeMd = readFileSync(join(repoRoot, "CLAUDE.md"), "utf8");
+const designPath = join(repoRoot, coreDir, "design.md");
+const designMd = existsSync(designPath) ? readFileSync(designPath, "utf8") : "";
 const ruleFiles = readdirSync(join(repoRoot, coreDir)).filter((f) => f.endsWith(".md")).sort();
 const tracked = execFileSync("git", ["ls-files"], { cwd: repoRoot, encoding: "utf8" }).split("\n").filter(Boolean);
 
@@ -57,13 +59,15 @@ for (const file of ruleFiles) {
     );
   });
 
-  test(`${coreDir}/${file}: CLAUDE.md から参照されている`, () => {
-    assert.ok(claudeMd.includes(`${coreDir}/${file}`), `CLAUDE.md に ${coreDir}/${file} への案内行がありません`);
+  test(`${coreDir}/${file}: CLAUDE.md か ${coreDir}/design.md の地図から参照されている`, () => {
+    // core のファイルの地図の持ち手は design.md(CLAUDE.md は設計の時に要る物だけを指す)
+    const ref = `${coreDir}/${file}`;
+    assert.ok(claudeMd.includes(ref) || designMd.includes(ref), `CLAUDE.md にも ${coreDir}/design.md の地図にも ${ref} がありません`);
   });
 }
 
-test(`CLAUDE.md が参照する ${coreDir}/*.md が実在する`, () => {
-  const refs = [...claudeMd.matchAll(/\.claude\/rules\/core\/([\w-]+\.md)/g)].map((m) => m[1]);
+test(`CLAUDE.md と ${coreDir}/design.md の地図が参照する ${coreDir}/*.md が実在する`, () => {
+  const refs = [...`${claudeMd}\n${designMd}`.matchAll(/\.claude\/rules\/core\/([\w-]+\.md)/g)].map((m) => m[1]);
   const missing = [...new Set(refs)].filter((f) => !ruleFiles.includes(f));
   assert.deepEqual(missing, []);
 });
