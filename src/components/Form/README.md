@@ -374,7 +374,7 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 | 高さ | 24px | 28px | 32px | 36px | 44px(640px 以上 40px) | 44px | 48px | 56px | 64px |
 
 - md だけ画面の幅で変わる(スマホで押しやすい 44px、640px 以上 = `@media (min-width: 40rem)` で 40px)
-- `Button` / `LinkButton` / `PseudoButton`: 9 段すべて。`icon`(36px の正方形)と `none` は段の外
+- `Button` / `LinkButton` / `PseudoButton` / `FilePickButton`: 9 段すべて。`icon`(36px の正方形)と `none` は段の外
 - `TabletButton`: 別の段 `--tablet-control-h-xxs`〜`xl`(48 / 56 / 64 / 72 / 80 / 96px)。`icon` / `icon-lg` は段の外
 - 入力欄系(`Input` / `TextInput` / `EmailInput` / `NumberInput` / `PasswordInput` / `OneTimeCodeInput` / `DateInput` / `TimeInput` / `DatetimeInput` / `ColorInput`、Controlled も同じ): `size` は xs〜xl(既定 md)、高さ固定 + `py-0` で中身を上下中央に置く。表 `INPUT_SIZE_CLASSES` / `inputVariants`(`Input/Manual/Input.tsx`)
 - 選ぶ欄の引き金(`SelectInput` / `ComboboxInput` / `AsyncComboboxInput` / `MultiSelectInput` / `AsyncMultiSelectInput`): 入力欄と同じ xs〜xl。引き金は 1 行(選んだ物が多いときは省略)。素の層 `Primitives/Select` の `SelectTrigger` は `default` 36px / `sm` 32px / `none`(高さを付けない)
@@ -448,6 +448,20 @@ const tableOptions: Options[] = tables.map((t) => ({
 
 ---
 
+## ファイル選択のボタン（FilePickButton）
+
+ボタンの形をしたファイル選択は `FilePickButton`(`@/components/Form`)。`label` の中に隠した file の `Input` を持ち、見た目は同じ `variant` / `size` の `Button` と同じ。生の `label` に `buttonVariants` を付けて組まない。
+
+- `onFiles(files: File[])` で選んだファイルを受け、その後 input を空に戻す(同じファイルを続けて選んでも毎回呼ばれる)
+- キーボード: Tab で止まり Enter / Space で開く。`disabled` では止まらず開かない
+- ボタンを押した後に別の処理を挟んでから開く形は `Button` + `Input`(`type="file" hidden`、ref で `click()`)で組む
+
+```tsx
+<FilePickButton variant="outline" size="xs" accept="video/mp4" onFiles={([file]) => setVideo(file)}>
+  映像を選択
+</FilePickButton>
+```
+
 ## Button の読み込み中（loading / loadingLabel）
 
 `Button`（`@/components/Form/Button`）と `TabletButton` は、実行中の表示を `loading` で持つ。ボタンの中に Spinner を手で組まない。
@@ -496,6 +510,7 @@ src/components/Form/
 │   └── Manual/
 ├── FieldRenderer/                   # 動的フォーム描画（→ FieldRenderer/README.md）
 ├── Button/
+├── FilePickButton/                  # ボタンの形をしたファイル選択
 ├── MediaHandler/
 └── Label.tsx
 ```

@@ -16,6 +16,8 @@ export * from "./utils";
 
 // サブディレクトリ
 export * from "./Button";
+export { FilePickButton } from "./FilePickButton";
+export type { FilePickButtonProps } from "./FilePickButton";
 // FieldRenderer（FieldType/FieldGroup と衝突するため、直接インポートを推奨）
 export { FieldRenderer } from "./FieldRenderer";
 export type { FieldRendererProps, MediaState } from "./FieldRenderer";
