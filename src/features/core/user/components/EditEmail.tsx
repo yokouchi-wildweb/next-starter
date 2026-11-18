@@ -10,7 +10,10 @@ import { Button } from "@/components/Form/Button/Button";
 import { Input } from "@/components/Form/Input/Manual/Input";
 import { Label } from "@/components/Form/Label";
 import { Section } from "@/components/Layout/Section";
+import { Flex } from "@/components/Layout/Flex";
+import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
+import { Para } from "@/components/TextBlocks/Para";
 import { useEmailChange } from "@/features/core/auth/hooks/useEmailChange";
 
 import { AccountPageHeader } from "@/features/core/user/components/common/AccountPageHeader";
@@ -44,20 +47,20 @@ export function EditEmail({ currentEmail }: EditEmailProps) {
           backHref="/mypage/account"
           backDisabled={isLoading}
         />
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <Block className="rounded-xl border border-border bg-card p-5 shadow-sm">
           {isSuccess ? (
             <Stack gap="md" className="text-center">
-              <div className="flex justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
+              <Flex justify="center">
+                <Flex align="center" justify="center" className="h-12 w-12 rounded-full bg-success/15">
                   <MailIcon className="h-6 w-6 text-success-text" />
-                </div>
-              </div>
+                </Flex>
+              </Flex>
               <Stack gap="xs">
-                <p className="font-medium">確認メールを送信しました</p>
-                <p className="text-sm text-muted-foreground">
+                <Para size="inherit" weight="medium" align="inherit" className="my-0">確認メールを送信しました</Para>
+                <Para size="sm" tone="muted" weight="inherit" align="inherit" className="my-0">
                   {editEmail} 宛に確認メールを送信しました。
                   メール内のリンクをクリックして変更を完了してください。
-                </p>
+                </Para>
               </Stack>
               <Button
                 type="button"
@@ -70,16 +73,16 @@ export function EditEmail({ currentEmail }: EditEmailProps) {
             </Stack>
           ) : !isChanging ? (
             <Stack gap="md" className="text-center">
-              <div className="flex justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Flex justify="center">
+                <Flex align="center" justify="center" className="h-12 w-12 rounded-full bg-primary/10">
                   <MailIcon className="h-6 w-6 text-primary" />
-                </div>
-              </div>
+                </Flex>
+              </Flex>
               <Stack gap="xs">
-                <p className="font-medium">現在のメールアドレス</p>
-                <p className="text-sm text-muted-foreground">
+                <Para size="inherit" weight="medium" align="inherit" className="my-0">現在のメールアドレス</Para>
+                <Para size="sm" tone="muted" weight="inherit" align="inherit" className="my-0">
                   {currentEmail ?? "未設定"}
-                </p>
+                </Para>
               </Stack>
               <Stack gap="xs">
                 <Button
@@ -101,13 +104,13 @@ export function EditEmail({ currentEmail }: EditEmailProps) {
             </Stack>
           ) : (
             <Stack gap="md">
-              <div>
+              <Block>
                 <Label className="mb-2 block text-muted-foreground">
                   現在のメールアドレス
                 </Label>
-                <p className="text-sm">{currentEmail ?? "未設定"}</p>
-              </div>
-              <div>
+                <Para size="sm" weight="inherit" align="inherit" className="my-0">{currentEmail ?? "未設定"}</Para>
+              </Block>
+              <Block>
                 <Label htmlFor="new-email" className="mb-2 block">
                   新しいメールアドレス
                 </Label>
@@ -119,14 +122,14 @@ export function EditEmail({ currentEmail }: EditEmailProps) {
                   placeholder="新しいメールアドレスを入力"
                   disabled={isLoading}
                 />
-              </div>
+              </Block>
               {error && (
-                <p className="text-sm text-destructive-text">{error}</p>
+                <Para size="sm" tone="destructive" weight="inherit" align="inherit" className="my-0">{error}</Para>
               )}
-              <p className="text-xs text-muted-foreground">
+              <Para size="xs" tone="muted" weight="inherit" align="inherit" className="my-0">
                 新しいメールアドレス宛に確認メールが送信されます。
                 メール内のリンクをクリックすると変更が完了します。
-              </p>
+              </Para>
               <Stack gap="xs">
                 <Button
                   type="button"
@@ -149,7 +152,7 @@ export function EditEmail({ currentEmail }: EditEmailProps) {
               </Stack>
             </Stack>
           )}
-        </div>
+        </Block>
       </Stack>
     </Section>
   );

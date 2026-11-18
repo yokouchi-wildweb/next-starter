@@ -5,7 +5,11 @@ import { Link } from "@/components/Navigation";
 import { UserPenIcon, MailIcon, LockIcon, CheckCircleIcon, PhoneIcon, ChevronRightIcon } from "lucide-react";
 
 import { Section } from "@/components/Layout/Section";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
+import { Para } from "@/components/TextBlocks/Para";
 import { gate } from "@/featureGate";
 import { userConfig } from "@/features/user/config";
 import type { User } from "@/features/core/user/entities";
@@ -32,17 +36,17 @@ function AccountDetailItem({ href, icon: Icon, label, value }: AccountDetailItem
       href={href}
       className="flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4 text-left shadow-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+      <Flex align="center" className="gap-3">
+        <Flex align="center" justify="center" className="h-10 w-10 rounded-full bg-primary/10">
           <Icon className="h-5 w-5 text-primary" />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-foreground">{label}</p>
-          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        </Flex>
+        <Block>
+          <Para size="sm" weight="medium" tone="default" align="inherit" className="my-0">{label}</Para>
+          <Para size="xs" tone="muted" weight="inherit" align="inherit" className="my-0 flex items-center gap-1.5">
             {value}
-          </p>
-        </div>
-      </div>
+          </Para>
+        </Block>
+      </Flex>
       <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
     </Link>
   );
@@ -56,7 +60,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
         {userConfig.avatarEnabled && (
           <AccountAvatarSection user={user} />
         )}
-        <div className="grid grid-cols-1 gap-3">
+        <Grid columns="one" className="gap-3">
           {isAccountItemEditable("profile") && (
             <AccountDetailItem
               href="/mypage/account/profile"
@@ -111,7 +115,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
               value="パスワードを変更"
             />
           )}
-        </div>
+        </Grid>
       </Stack>
     </Section>
   );

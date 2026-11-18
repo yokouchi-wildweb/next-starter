@@ -8,6 +8,7 @@ import { useRouter } from "@/lib/unsavedGuard";
 import { useToast } from "@/lib/toast";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
+import { Flex } from "@/components/Layout/Flex";
 import { ControlledField } from "@/components/Form";
 import { PasswordInput, TextInput } from "@/components/Form/Input/Controlled";
 import { err } from "@/lib/errors";
@@ -103,14 +104,14 @@ export default function ManagerialUserCreateForm({
         renderInput={(field) => <PasswordInput field={field} autoComplete="new-password" />}
       />
       <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("admin")} />
-      <div className="flex justify-center gap-3">
+      <Flex justify="center" className="gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "登録中..." : "登録"}
         </Button>
         <Button type="button" variant="outline" onClick={() => router.push(redirectPath)}>
           キャンセル
         </Button>
-      </div>
+      </Flex>
     </AppForm>
   );
 }

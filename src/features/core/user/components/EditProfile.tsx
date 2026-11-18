@@ -13,7 +13,9 @@ import { ControlledField } from "@/components/Form";
 import { TextInput } from "@/components/Form/Input/Controlled";
 import { Button } from "@/components/Form/Button/Button";
 import { Section } from "@/components/Layout/Section";
+import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
+import { Para } from "@/components/TextBlocks/Para";
 import { useUpdateMyProfile } from "@/features/core/user/hooks/useUpdateMyProfile";
 import type { User } from "@/features/core/user/entities";
 import { UserNameFormSchema } from "@/features/core/user/entities/userName";
@@ -123,7 +125,7 @@ export function EditProfile({
             backDisabled={loading}
           />
         )}
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <Block className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <AppForm methods={methods} onSubmit={handleSubmit} pending={loading} fieldSpace="lg">
             <ControlledField
               control={control}
@@ -138,7 +140,7 @@ export function EditProfile({
               tag="selfEdit"
             />
             {error && (
-              <p className="text-sm text-destructive-text">{error}</p>
+              <Para size="sm" tone="destructive" weight="inherit" align="inherit" className="my-0">{error}</Para>
             )}
             <Button
               type="submit"
@@ -149,7 +151,7 @@ export function EditProfile({
               保存
             </Button>
           </AppForm>
-        </div>
+        </Block>
       </Stack>
     </Section>
   );

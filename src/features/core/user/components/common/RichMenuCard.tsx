@@ -6,6 +6,10 @@ import { Link } from "@/components/Navigation";
 import type { LucideIcon } from "lucide-react";
 import { ChevronRightIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { Button } from "@/components/Form/Button/Button";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Para } from "@/components/TextBlocks/Para";
 
 type RichMenuCardBaseProps = {
   icon: LucideIcon;
@@ -74,18 +78,19 @@ export function RichMenuCard({
     isDisabled && "opacity-50 cursor-not-allowed"
   );
 
+  // アイコンは size-5(= h-5 w-5)。Form/Button は size- の無い svg を size-4 にするので、ボタンの時も同じ大きさにする
   const content = (
     <>
-      <div className="flex items-center gap-3">
-        <div className={cn("flex h-10 w-10 items-center justify-center rounded-full", styles.iconBg)}>
-          <Icon className={cn("h-5 w-5", styles.iconColor)} />
-        </div>
-        <div>
-          <p className={cn("text-sm font-medium", styles.title)}>{title}</p>
-          <p className={cn("text-xs", styles.description)}>{description}</p>
-        </div>
-      </div>
-      {showChevron && <ChevronRightIcon className={cn("h-5 w-5", styles.chevron)} />}
+      <Flex align="center" className="gap-3">
+        <Flex align="center" justify="center" className={cn("h-10 w-10 rounded-full", styles.iconBg)}>
+          <Icon className={cn("size-5", styles.iconColor)} />
+        </Flex>
+        <Block>
+          <Para size="sm" weight="medium" align="inherit" className={cn("my-0", styles.title)}>{title}</Para>
+          <Para size="xs" weight="normal" align="inherit" className={cn("my-0", styles.description)}>{description}</Para>
+        </Block>
+      </Flex>
+      {showChevron && <ChevronRightIcon className={cn("size-5", styles.chevron)} />}
     </>
   );
 
@@ -98,13 +103,17 @@ export function RichMenuCard({
   }
 
   return (
-    <button
+    // Form/Button の既定(中央寄せ・折り返しなし)は元の button に無いので打ち消す。クリックは元どおり親へ伝える
+    <Button
       type="button"
+      variant="none"
+      size="none"
+      propagateClick
       onClick={props.onClick}
       disabled={props.disabled}
-      className={baseClassName}
+      className={cn(baseClassName, !showChevron && "justify-start", "whitespace-normal")}
     >
       {content}
-    </button>
+    </Button>
   );
 }

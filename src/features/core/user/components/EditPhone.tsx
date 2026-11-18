@@ -9,7 +9,10 @@ import { CheckCircleIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Section } from "@/components/Layout/Section";
+import { Flex } from "@/components/Layout/Flex";
+import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
+import { Para } from "@/components/TextBlocks/Para";
 import { PhoneVerification } from "@/features/core/phoneVerification/components/PhoneVerification";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
 import { useUpdateMyPhoneNumber } from "@/features/core/user/hooks/useUpdateMyPhoneNumber";
@@ -40,7 +43,7 @@ export function EditPhone({ phoneNumber, phoneVerifiedAt }: EditPhoneProps) {
       <Section>
         <Stack gap="md">
           <AccountPageHeader title="電話番号" backHref="/mypage/account" />
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <Block className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <PhoneNumberForm
               currentPhoneNumber={phoneNumber}
               value={plainInput.value}
@@ -51,7 +54,7 @@ export function EditPhone({ phoneNumber, phoneVerifiedAt }: EditPhoneProps) {
               isSaving={plainInput.isSaving}
               error={plainInput.error}
             />
-          </div>
+          </Block>
         </Stack>
       </Section>
     );
@@ -61,19 +64,19 @@ export function EditPhone({ phoneNumber, phoneVerifiedAt }: EditPhoneProps) {
     <Section>
       <Stack gap="md">
         <AccountPageHeader title="電話番号認証" backHref="/mypage/account" />
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <Block className="rounded-xl border border-border bg-card p-5 shadow-sm">
           {phoneVerifiedAt && !isChanging ? (
             <Stack gap="md" className="text-center">
-              <div className="flex justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
+              <Flex justify="center">
+                <Flex align="center" justify="center" className="h-12 w-12 rounded-full bg-success/15">
                   <CheckCircleIcon className="h-6 w-6 text-success-text" />
-                </div>
-              </div>
+                </Flex>
+              </Flex>
               <Stack gap="xs">
-                <p className="font-medium">認証済み</p>
-                <p className="text-sm text-muted-foreground">
+                <Para size="inherit" weight="medium" align="inherit" className="my-0">認証済み</Para>
+                <Para size="sm" tone="muted" weight="inherit" align="inherit" className="my-0">
                   {formatForDisplay(phoneNumber ?? "")}
-                </p>
+                </Para>
               </Stack>
               <Stack gap="xs">
                 <Button
@@ -110,7 +113,7 @@ export function EditPhone({ phoneNumber, phoneVerifiedAt }: EditPhoneProps) {
               }}
             />
           )}
-        </div>
+        </Block>
       </Stack>
     </Section>
   );

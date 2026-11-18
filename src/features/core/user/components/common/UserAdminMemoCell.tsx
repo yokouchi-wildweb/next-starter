@@ -6,6 +6,8 @@ import { useCallback, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 
 import { PromptPopover } from "@/components/Overlays/Popover/PromptPopover";
+import { Button } from "@/components/Form/Button/Button";
+import { Span } from "@/components/TextBlocks/Span";
 import { useUpdateUser } from "@/features/core/user/hooks/useUpdateUser";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
@@ -67,16 +69,20 @@ export function UserAdminMemoCell({
   return (
     <PromptPopover
       trigger={
-        <button
+        // Form/Button の既定の font-medium は元の button に無いので font-normal で打ち消す。クリックは元どおり親へ伝える
+        <Button
           type="button"
+          variant="none"
+          size="none"
+          propagateClick
           disabled={isMutating}
           title={currentMemo ?? emptyLabel}
-          className="block max-w-[16rem] truncate text-left text-sm hover:underline disabled:opacity-50"
+          className="block max-w-[16rem] truncate text-left text-sm font-normal hover:underline disabled:opacity-50"
         >
-          <span className={currentMemo ? "text-foreground" : "text-muted-foreground"}>
+          <Span inline tone={currentMemo ? "default" : "muted"}>
             {preview}
-          </span>
-        </button>
+          </Span>
+        </Button>
       }
       title="管理者メモ"
       description="このユーザーに紐づく管理者向けの自由記述メモ。空にするとメモが削除されます。"

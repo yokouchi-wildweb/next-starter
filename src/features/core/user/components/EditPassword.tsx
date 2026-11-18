@@ -10,7 +10,10 @@ import { Button } from "@/components/Form/Button/Button";
 import { PasswordInput } from "@/components/Form/Input/Manual/PasswordInput";
 import { Label } from "@/components/Form/Label";
 import { Section } from "@/components/Layout/Section";
+import { Flex } from "@/components/Layout/Flex";
+import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
+import { Para } from "@/components/TextBlocks/Para";
 import { useChangePassword } from "@/features/core/auth/hooks/useChangePassword";
 
 import { AccountPageHeader } from "@/features/core/user/components/common/AccountPageHeader";
@@ -43,19 +46,19 @@ export function EditPassword({ email }: EditPasswordProps) {
           backHref="/mypage/account"
           backDisabled={isLoading}
         />
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <Block className="rounded-xl border border-border bg-card p-5 shadow-sm">
           {isSuccess ? (
             <Stack gap="md" className="text-center">
-              <div className="flex justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
+              <Flex justify="center">
+                <Flex align="center" justify="center" className="h-12 w-12 rounded-full bg-success/15">
                   <CheckCircleIcon className="h-6 w-6 text-success-text" />
-                </div>
-              </div>
+                </Flex>
+              </Flex>
               <Stack gap="xs">
-                <p className="font-medium">パスワードを変更しました</p>
-                <p className="text-sm text-muted-foreground">
+                <Para size="inherit" weight="medium" align="inherit" className="my-0">パスワードを変更しました</Para>
+                <Para size="sm" tone="muted" weight="inherit" align="inherit" className="my-0">
                   新しいパスワードでログインできるようになりました。
-                </p>
+                </Para>
               </Stack>
               <Button
                 type="button"
@@ -68,7 +71,7 @@ export function EditPassword({ email }: EditPasswordProps) {
             </Stack>
           ) : (
             <Stack gap="md">
-              <div>
+              <Block>
                 <Label htmlFor="current-password" className="mb-2 block">
                   現在のパスワード
                 </Label>
@@ -80,8 +83,8 @@ export function EditPassword({ email }: EditPasswordProps) {
                   placeholder="現在のパスワードを入力"
                   disabled={isLoading}
                 />
-              </div>
-              <div>
+              </Block>
+              <Block>
                 <Label htmlFor="new-password" className="mb-2 block">
                   新しいパスワード
                 </Label>
@@ -93,13 +96,13 @@ export function EditPassword({ email }: EditPasswordProps) {
                   placeholder="新しいパスワードを入力"
                   disabled={isLoading}
                 />
-              </div>
+              </Block>
               {error && (
-                <p className="text-sm text-destructive-text">{error}</p>
+                <Para size="sm" tone="destructive" weight="inherit" align="inherit" className="my-0">{error}</Para>
               )}
-              <p className="text-xs text-muted-foreground">
+              <Para size="xs" tone="muted" weight="inherit" align="inherit" className="my-0">
                 パスワードは6文字以上で設定してください。
-              </p>
+              </Para>
               <Button
                 type="button"
                 onClick={handleChange}
@@ -112,7 +115,7 @@ export function EditPassword({ email }: EditPasswordProps) {
               </Button>
             </Stack>
           )}
-        </div>
+        </Block>
       </Stack>
     </Section>
   );

@@ -1,6 +1,7 @@
 // src/features/core/user/components/common/AccountPageHeader.tsx
 
 import { SecTitle } from "@/components/TextBlocks";
+import { Flex } from "@/components/Layout/Flex";
 
 import { AccountBackButton } from "./AccountBackButton";
 
@@ -12,9 +13,9 @@ type AccountPageHeaderProps = {
 
 export function AccountPageHeader({ title, backHref, backDisabled }: AccountPageHeaderProps) {
   return (
-    <div className="flex items-center gap-3">
+    <Flex align="center" className="gap-3">
       <AccountBackButton href={backHref} disabled={backDisabled} />
       <SecTitle as="h2" className="!mt-0">{title}</SecTitle>
-    </div>
+    </Flex>
   );
 }
