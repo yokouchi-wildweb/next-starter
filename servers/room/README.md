@@ -1,13 +1,13 @@
 # servers/room — ルーム権威サーバー
 
+## Overview
+
 Cloudflare Durable Objects 上で動く「1 ルーム = 1 直列化権威 + WebSocket 配信」の汎用基盤。
 Next.js アプリの**外側**にデプロイされる独立プログラムであり、`servers/` 区画の最初の住人。
 
 **オプトイン (既定: 無効)**。使わないフォークには依存インストール・課金・ランタイム影響が一切無い。
 
----
-
-## いつ使うか (Firestore 配信との棲み分け)
+### いつ使うか (Firestore 配信との棲み分け)
 
 | 条件 | 使うもの |
 |------|---------|
@@ -18,7 +18,7 @@ Next.js アプリの**外側**にデプロイされる独立プログラムで�
 
 背景と判断基準の原本: `docs/!must-read/バックエンド構成ドクトリン.md`
 
-## 何が保証されるか
+### 何が保証されるか
 
 - **直列化**: 1 ルームのアクションは必ず 1 インスタンスで順番に処理される (Durable Objects の性質)。
   「ゲージ >= max でブレイク発動を正確に 1 回」のような閾値ロジックが sharding なしで書ける
@@ -26,51 +26,9 @@ Next.js アプリの**外側**にデプロイされる独立プログラムで�
 - **永続性**: 状態は Durable Object storage に毎変更で保存され、hibernation / eviction を跨いで生きる
 - **権威の分離**: 経済 (抽選・ウォレット・アイテム) は従来通り PG が権威。ルームは表示・調整状態のみを持つ
 
-## アーキテクチャ
+## Usage
 
-```
-ブラウザ (N人)
-  │ WebSocket (room_client トークン、状態が即時 push される)
-  ▼
-Cloudflare Worker (servers/room)
-  └─ RoomDurableObject (ns/roomId ごとに1個)
-       ・reducer (純粋関数) で状態遷移 ─── 実装は src/features/<domain>/room/
-       ・effects: event (一過性配信) / callback (アプリAPIへ署名付きPOST) / schedule (DO alarm で指定時刻に自己dispatch)
-  ▲                                    │
-  │ HTTP dispatch/getState             │ callback (room_callback トークン)
-  │ (room_server トークン)             ▼
-Next.js アプリ (Vercel) ── ServerService → createRoomClient / verifyRoomCallback
-```
-
-- 共有プロトコル (型・バージョン・トークン語彙) は `src/lib/realtimeRoom/protocol/` が唯一の接点
-- トークンは全て専用鍵 `REALTIME_ROOM_AUTH_SECRET` (HS256) で署名 (認証セッション鍵とは分離)
-- プロトコルバージョン不一致はハンドシェイク/HTTP 応答で明示エラー (スキュー検知)
-
-## 認可モデル (fail-closed)
-
-| 経路 | トークン | 制約 |
-|------|---------|------|
-| WebSocket 購読 | `room_client` (短命、`GET /api/realtime-room/token` が発行、要ログイン) | 対象 ns/roomId のみ |
-| WebSocket 直接 dispatch | 同上 | `RoomDefinition.clientActions` 許可リストの action のみ (既定: 全拒否) |
-| HTTP dispatch/getState | `room_server` (短命、Next サーバーが署名) | サーバーのみが持てる |
-| callback (Worker→アプリ) | `room_callback` (短命、Worker が署名) | `verifyRoomCallback` で検証必須 |
-
-**WebSocket の寿命 = 接続トークンの期限** (取り消しが購読者に届くまでの上限。既定 60 秒 = realtimeRoom の設定 `clientTokenTtlSeconds`(`src/lib/realtimeRoom/config.ts`)):
-
-- 接続時にトークンの `exp` を attachment に保存する (hibernation を跨いで残る)。`exp` の無いトークンは 401
-- 期限後は**状態もイベントも 1 通も届かず、操作も通らない**: ルームは受信と配信のたびに期限を見て、期限切れのソケットには送らずに
-  終了コード `ROOM_CLOSE_CODES.tokenExpired` (4001) で閉じる。クライアントの協力には頼らない (`src/core/socketExpiry.ts`)
-- 静かなルーム (配信も操作も無い) では、期限後のソケットは次の配信か操作まで開いたまま残る (何も届かない)。
-  alarm で閉じないのは、alarm がルームにつき 1 スロットで schedule effect が使っているため
-- `useRoomState` は 4001 で閉じたら待たずに `GET /api/realtime-room/token` で取り直して再接続する (状態は接続時に丸ごと届くので追いつく。
-  繋ぎ直しの間に流れた event effect は届かない)。退会・無効化された利用者はトークンを取れないので、期限で切れたまま戻らない
-- 有効期間を伸ばすと上限も伸びる (10 分以内に収める)
-
-**権威性の必要なアクション (経済・当選・確定処理) は clientActions に載せず、必ず
-Next サーバー経由 (`createRoomClient`) にすること。** クライアント直接 dispatch は
-「参加タップ」「エモート」のような高頻度・低権威アクション専用。
-
-## 新しいルーム (namespace) の追加手順
+### 新しいルーム (namespace) の追加手順
 
 1. **ルームロジックを書く**: `src/features/<domain>/room/definition.ts` に `RoomDefinition` を実装
    - reducer は純粋関数 (I/O・乱数・現在時刻の直接参照禁止。時刻は action payload で渡す)
@@ -82,7 +40,7 @@ Next サーバー経由 (`createRoomClient`) にすること。** クライア�
 
 SDK の使用例: `src/lib/realtimeRoom/README.md`
 
-## セットアップ (downstream 有効化手順)
+### セットアップ (downstream 有効化手順)
 
 ```bash
 pnpm ops room init   # wrangler.toml 生成 + 依存インストール + チェックリスト表示
@@ -93,8 +51,7 @@ pnpm ops room init   # wrangler.toml 生成 + 依存インストール + チェ�
 1. Cloudflare アカウント登録 (無料で開始可。本番規模の WebSocket 接続数は Workers Paid ~$5/月)
 2. **Worker 名の確認**: pnpm ops room init は `room-server-<package名>` を wrangler.toml に書き込む。
    既定名 `room-server` のままのデプロイは pnpm ops room deploy が拒否する (同一アカウント同居時、
-   wrangler deploy は同名 Worker を**無言で置換**するため。過去に他プロジェクトの検証 Worker を
-   上書きしかけた実事例あり)
+   wrangler deploy は同名 Worker を**無言で置換**するため)
 3. **workers.dev サブドメインを先に登録する** (ダッシュボード → Workers & Pages → 右カラム。アカウントごとに1回だけ)。
    この時点で Worker URL は `https://<Worker名>.<サブドメイン>.workers.dev` と機械的に確定する。
    初回デプロイの対話プロンプトに任せないこと (CI では対話できず失敗する / env を先に揃えられる)
@@ -121,7 +78,7 @@ pnpm ops room init   # wrangler.toml 生成 + 依存インストール + チェ�
 **有効/無効の判定は config enabled + env の 1 点に集約されている。** 揃っていなければ
 useRoomState は `status:"disabled"`、API は 503、deploy は skip — どのフォークで何を実行しても安全 (冪等)。
 
-## デプロイ運用
+### デプロイ運用
 
 | 経路 | コマンド | 用途 |
 |------|---------|------|
@@ -137,31 +94,9 @@ Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 serv
 テンプレート **「Edit Cloudflare Workers」** で作成し、対象を自アカウントに限定する。
 デプロイ権限を持つトークンなので、登録先 (GitHub Secrets / CI env) 以外への放置・共有はしないこと。
 
-## 所有権と統治
+## API
 
-- `src/core/` + `src/index.ts`: **上流所有 (CORE_FILES)**。変更は上流への提案経由
-- `src/registry.ts` + `wrangler.toml`: **下流編集点**
-- **wrangler.toml は有効化したフォークがコミットする** (vercel.json と同じ方式。secret は含まれず、
-  Worker 名や vars のみなのでコミットして安全)。アップストリームは `.example` のみを出荷する
-- ルームロジック本体: `src/features/<domain>/room/` (ドメインに帰属、純度制約付き)
-- 境界: `servers/room → src` の import は `lib/realtimeRoom/protocol` と `features/*/room` のみ。
-  `src → servers` の import は全面禁止
-- プロトコル互換性を壊す変更は `ROOM_PROTOCOL_VERSION` をインクリメントすること
-
-### 中間層フォークが有効化する場合 (自分がさらに下流フォーク群の上流であるとき)
-
-有効化コミット (`enabled: true` + wrangler.toml) は**下流フォークにもそのまま伝播する**。下流側では:
-
-- wrangler.toml ごと引いたフォークは、**中間層の Worker 名のまま自アカウントへデプロイ**してしまう
-  (pnpm ops room deploy の既定名ガードは固有名に変更済みの名前を検知できない)
-- `enabled: true` だけ引いて wrangler.toml が無いフォークは、`pnpm live:all` が明示エラーで止まる
-  (fail-closed としては正しいが、下流にとっては突然の変化)
-
-対処: 中間層で有効化をコミットしたら、**ロールアウト時に下流へ DOWNSTREAM NOTICE を出す**(`/ship` で出荷すると判定と起票まで行う)こと。
-内容は「wrangler.toml の name を自プロジェクト固有名へ変更 + 自アカウントでセットアップ (pnpm ops room init 手順) or
-使わないなら `enabled: false` へ戻す」の二択を明示する。
-
-## 高頻度ルーム向けオプション
+### 高頻度ルーム向けオプション
 
 - **状態pushの合流** (`RoomDefinition.broadcastThrottleMs`): 既定 0 = dispatch 毎に全購読者へ即時 push。
   高頻度ルーム (毎秒数十 dispatch × 大人数購読) では「N ms に最大1回」に間引ける (目安 100〜250)。
@@ -175,7 +110,79 @@ Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 serv
   atMs は純度維持のため action payload から計算する (reducer 内で Date.now() 禁止は従来通り)
 - 両方の実装例: `src/registry.ts` の sample-counter (broadcastThrottleMs + scheduleReset)
 
-## 制約・非対象
+## Extension
+
+### 所有権と統治
+
+- `src/core/` + `src/index.ts`: **上流所有 (CORE_FILES)**。変更は上流への提案経由
+- `src/registry.ts` + `wrangler.toml`: **下流編集点**
+- **wrangler.toml は有効化したフォークがコミットする** (vercel.json と同じ方式。secret は含まれず、
+  Worker 名や vars のみなのでコミットして安全)。アップストリームは `.example` のみを出荷する
+- ルームロジック本体: `src/features/<domain>/room/` (ドメインに帰属、純度制約付き)
+- 境界: `servers/room → src` の import は `lib/realtimeRoom/protocol` と `features/*/room` のみ。
+  `src → servers` の import は全面禁止
+- プロトコル互換性を壊す変更は `ROOM_PROTOCOL_VERSION` をインクリメントすること
+
+#### 中間層フォークが有効化する場合 (自分がさらに下流フォーク群の上流であるとき)
+
+有効化コミット (`enabled: true` + wrangler.toml) は**下流フォークにもそのまま伝播する**。下流側では:
+
+- wrangler.toml ごと引いたフォークは、**中間層の Worker 名のまま自アカウントへデプロイ**してしまう
+  (pnpm ops room deploy の既定名ガードは固有名に変更済みの名前を検知できない)
+- `enabled: true` だけ引いて wrangler.toml が無いフォークは、`pnpm live:all` が明示エラーで止まる
+  (fail-closed としては正しいが、下流にとっては突然の変化)
+
+対処: 中間層で有効化をコミットしたら、**ロールアウト時に下流へ DOWNSTREAM NOTICE を出す**(`/ship` で出荷すると判定と起票まで行う)こと。
+内容は「wrangler.toml の name を自プロジェクト固有名へ変更 + 自アカウントでセットアップ (pnpm ops room init 手順) or
+使わないなら `enabled: false` へ戻す」の二択を明示する。
+
+## Internals
+
+### アーキテクチャ
+
+```
+ブラウザ (N人)
+  │ WebSocket (room_client トークン、状態が即時 push される)
+  ▼
+Cloudflare Worker (servers/room)
+  └─ RoomDurableObject (ns/roomId ごとに1個)
+       ・reducer (純粋関数) で状態遷移 ─── 実装は src/features/<domain>/room/
+       ・effects: event (一過性配信) / callback (アプリAPIへ署名付きPOST) / schedule (DO alarm で指定時刻に自己dispatch)
+  ▲                                    │
+  │ HTTP dispatch/getState             │ callback (room_callback トークン)
+  │ (room_server トークン)             ▼
+Next.js アプリ (Vercel) ── ServerService → createRoomClient / verifyRoomCallback
+```
+
+- 共有プロトコル (型・バージョン・トークン語彙) は `src/lib/realtimeRoom/protocol/` が唯一の接点
+- トークンは全て専用鍵 `REALTIME_ROOM_AUTH_SECRET` (HS256) で署名 (認証セッション鍵とは分離)
+- プロトコルバージョン不一致はハンドシェイク/HTTP 応答で明示エラー (スキュー検知)
+
+### 認可モデル (fail-closed)
+
+| 経路 | トークン | 制約 |
+|------|---------|------|
+| WebSocket 購読 | `room_client` (短命、`GET /api/realtime-room/token` が発行、要ログイン) | 対象 ns/roomId のみ |
+| WebSocket 直接 dispatch | 同上 | `RoomDefinition.clientActions` 許可リストの action のみ (既定: 全拒否) |
+| HTTP dispatch/getState | `room_server` (短命、Next サーバーが署名) | サーバーのみが持てる |
+| callback (Worker→アプリ) | `room_callback` (短命、Worker が署名) | `verifyRoomCallback` で検証必須 |
+
+**WebSocket の寿命 = 接続トークンの期限** (取り消しが購読者に届くまでの上限。既定 60 秒 = realtimeRoom の設定 `clientTokenTtlSeconds`(`src/lib/realtimeRoom/config.ts`)):
+
+- 接続時にトークンの `exp` を attachment に保存する (hibernation を跨いで残る)。`exp` の無いトークンは 401
+- 期限後は**状態もイベントも 1 通も届かず、操作も通らない**: ルームは受信と配信のたびに期限を見て、期限切れのソケットには送らずに
+  終了コード `ROOM_CLOSE_CODES.tokenExpired` (4001) で閉じる。クライアントの協力には頼らない (`src/core/socketExpiry.ts`)
+- 静かなルーム (配信も操作も無い) では、期限後のソケットは次の配信か操作まで開いたまま残る (何も届かない)。
+  alarm で閉じないのは、alarm がルームにつき 1 スロットで schedule effect が使っているため
+- `useRoomState` は 4001 で閉じたら待たずに `GET /api/realtime-room/token` で取り直して再接続する (状態は接続時に丸ごと届くので追いつく。
+  繋ぎ直しの間に流れた event effect は届かない)。退会・無効化された利用者はトークンを取れないので、期限で切れたまま戻らない
+- 有効期間を伸ばすと上限も伸びる (10 分以内に収める)
+
+**権威性の必要なアクション (経済・当選・確定処理) は clientActions に載せず、必ず
+Next サーバー経由 (`createRoomClient`) にすること。** クライアント直接 dispatch は
+「参加タップ」「エモート」のような高頻度・低権威アクション専用。
+
+### 制約・非対象
 
 - ルーム状態は「小さな JSON」(HP・ゲージ・カウンタ等) を想定。大きなリストや履歴はここに持たない
   (ライブフィードは event effect で流し、永続化は callback → PG へ)
