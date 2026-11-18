@@ -84,12 +84,12 @@ access: { read: "public", write: "none" },
 ### トラブルシューティング
 
 - **管理画面の一覧が 403**: 対象ドメインの registry `access` が admin 限定で、ログイン中ユーザーのロールカテゴリが admin でない
-- **公開ページの一覧取得が 401**: registry の `read` が `"public"` でない。公開してよいデータか（上記判断基準）を確認してから宣言する
+- **公開ページの一覧取得が 401**: registry の `read` が `"public"` でない。公開してよいデータか（全レコードが公開情報で、search / count / リレーション展開も全件見えてよいか）を確認してから宣言する
 - **休会中・処分保留中の人が 403**: 既定は active だけを通す。その手続きに限って `allowStatuses` を列挙する
 - **DB が落ちている間 API が 503 `route_user_unavailable`**: 想定通り（未ログインの 401 と区別している）。DB の復旧を待つ。利用者を使わない公開ルートなら `user: "skip"` で影響を受けない
-- **`ctx.user` が `null` 可の型になる**: 型引数を書いていて 3 つ目（access）を省いている（上の「主体の決まり」）
+- **`ctx.user` が `null` 可の型になる**: 型引数を書いていて 3 つ目（access）を省いている（API の「主体（`ctx.user`）」）
 - **wallet 等で本人のデータが取れない**: 汎用 `/api/[domain]` ではなく `/api/me/**`（createMeRoute）を使う
-- **静的サブルートを持つドメインの汎用パスが 404 / 401**: シャドーイングではない。上記「注意（よくある誤解）」の curl で判定する
+- **静的サブルートを持つドメインの汎用パスが 404 / 401**: シャドーイングではない。API の「`createDomainRoute` / `createDomainIdRoute` - 汎用CRUDファクトリー」の「注意（よくある誤解）」の curl で判定する
 
 ## API
 
@@ -199,7 +199,7 @@ export const domainEntries = {
 ```
 
 - 編集元: 自動生成ドメインは domain.json の `apiAccess` / `useImportExport`（domain.json に手で書き、`pnpm generate domain` / forge が domainEntry.ts に展開）。
-  コアドメインは domainEntry.ts を手書き、fork が core の access を変えるときは隣に `domainEntry.override.ts`。ルール値・スキーマは `src/features/README.md`「ApiAccess」、仕組みは `src/lib/domain/README.md`
+  コアドメインは domainEntry.ts を手書き、fork が core の access を変えるときは隣に `domainEntry.override.ts`。ルール値・スキーマは `src/features/Extension.md`「ApiAccess（汎用 API アクセス制御）」、仕組みは `src/lib/domain/README.md`
 - 管理データ操作 `truncateAll` / `export` / `import` は `operations` に明示したときだけ開く（未指定 = `"none"`）。
   全件削除・データ移行のルートは自分の門（`{ roleCategories: ["admin"] }`）に加えて、ドメインごとの access を `enforceAccessRule(rule, ctx.user)` で評価する（AND）
 - 解決順: `operations[操作名]` → `read` / `write` → `DEFAULT_ACCESS_RULE`(`src/lib/domain/accessPresets.ts`)（`resolveAccessRule`、`src/lib/domain/definition/apiAccess.ts`）。
@@ -207,7 +207,7 @@ export const domainEntries = {
 - 拒否の body には `{ domain, operation }` が載る（どの操作が拒否されたかをクライアントで観測できる。規則の中身は出さない）
 - プリセット（`src/lib/domain/accessPresets.ts`）: `ADMIN_ONLY` / `PUBLIC_READ`（公開読み取り + 管理者書き込み）/ `ADMIN_OR_DEBUGGER` / `INTERNAL_ONLY`（汎用 API・管理データ操作とも閉じる。登録表には載せる）。
   単一ルール版 `ADMIN_RULE` / `ADMIN_OR_DEBUGGER_RULE` は `operations` の上書きや `createApiRoute` の `access` にも使える。`ADMIN_DATA_OPERATIONS` = 管理データ操作 3 つを管理者に開く断片
-- `authenticated` は where の `user_id` がクライアント任せなので他人のレコードも読める(CLAUDE.md ownership_routes)
+- `authenticated` は where の `user_id` がクライアント任せなので他人のレコードも読める。本人向けは下の createMeRoute
 - **sample ドメインの例外**: `/demo` ページ（`sortable-list` の reorder、`tables` のインライン update）が使うため、`src/features/sample/domain.json` の `apiAccess.operations` で `update` / `reorder` のみ `authenticated` に緩和している。フォーク先で demo ページを削除する場合はこの緩和も削除する
 
 > **注意（よくある誤解）**: `/api/<domain>/` に独自の静的サブルート（例 `/api/coupon/redeem`）があっても、汎用 `/api/[domain]/**` は**そのまま動く**（Next.js はフルパスでマッチし、静的は完全一致パスだけを占有する）。
@@ -305,7 +305,8 @@ export const POST = createApiRoute(
 - `DomainError` → `{ message, code?, details? }` + その status。`code`（機械可読な分類）・`details` は指定したときだけ載る（`src/lib/errors/README.md`）
 - それ以外の例外 → `{ message: "サーバーでエラーが発生しました" }` + 500（元の message はサーバーログだけ）
 - 認可の拒否 → 401 / 403 の JSON（`code`、汎用 CRUD は `domain` / `operation` も）、404 は `text/plain`
-- 利用者を確かめられない（DB 障害）→ 503 の JSON（`code: "route_user_unavailable"`、上の「主体の決まり」）。クライアントは再試行
+- 利用者を確かめられない（DB 障害）→ 503 の JSON（`code: "route_user_unavailable"`、上の「主体（`ctx.user`）」）。クライアントは再試行
+- レート制限で止めた → 429 + `Retry-After`(サブネット単位は `silent: true`)/ reCAPTCHA の中間スコア → 428(v2 チャレンジを求める)
 
 ## Extension
 
@@ -321,6 +322,7 @@ export const POST = createApiRoute(
   - 主体の型(利用者・status・端末の種類ごとの型・認証済みの端末)は型引数で受け、lib は features を import しない(lint `import-boundaries/lib-no-features`)。
   - 具体の型を結ぶのは `src/wiring/apiRoute.ts`（全項目必須、型は `deps.ts`）。
 - 束の持ち主: 利用者 = `features/core/auth` の `apiRouteUserDeps`、端末 = `features/core/pairedDevice` の `apiRouteDeviceDeps`。結ぶのは `src/wiring/apiRoute.ts`
+- `runRoute` はハンドラを `runWithAuditContext`(どの深さからでも `getAuditContext()` で actor / IP / UA を取れる)と `runWithUserDirtyTracking`(`markUserDirty` した対象をハンドラの後に反映)で包む
 - `makeRouteCore`（共通の前後処理）→ `makeCreateApiRoute` / `makeDomainRoutes` / `makeCreateMeRoute` / `makeCreateDeviceRoute` / `makeEnforceAccessRule`
 
 ## Verification
@@ -337,6 +339,6 @@ export const POST = createApiRoute(
 ## Related
 
 - `src/wiring/README.md` - 設定済み版の置き場・fork の wiring
-- `src/features/README.md`「ApiAccess」 - domain.json の `apiAccess` スキーマ（generator が registry へ展開）
+- `src/features/Extension.md`「ApiAccess（汎用 API アクセス制御）」 - domain.json の `apiAccess` スキーマ（generator が registry へ展開）
 - `src/lib/errors/README.md` - `DomainError` の `code` / `details`
 - `docs/!must-read/アプリ構築における構成層.md` - 全体アーキテクチャ

@@ -38,12 +38,13 @@ v3 と v2 は別々のサイトキー(同じキーは使えない)。
 ```tsx
 "use client";
 
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
-import { getRecaptchaToken, RecaptchaBadge } from "@/lib/recaptcha";
+import { Button } from "@/components/Form/Button";
+import { getRecaptchaToken, RecaptchaBadge, useRecaptcha } from "@/lib/recaptcha";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 
 function MyForm() {
-  const { executeRecaptcha } = useGoogleReCaptcha();
+  // reCAPTCHA が無効(env 未設定)でも Provider が無くても落ちない(executeRecaptcha は undefined)
+  const { executeRecaptcha } = useRecaptcha();
 
   const handleSubmit = async () => {
     // トークンを取得（未設定時はundefinedが返る）
@@ -52,12 +53,8 @@ function MyForm() {
       RECAPTCHA_ACTIONS.REGISTER, // または独自のアクション名
     );
 
-    // APIに送信
-    await fetch("/api/endpoint", {
-      headers: {
-        "X-Recaptcha-Token": recaptchaToken ?? "",
-      },
-    });
+    // ClientService 経由で送る(ヘッダー X-Recaptcha-Token。例: features/core/auth/services/client/registration.ts)
+    await submitClient.submit(data, { recaptchaToken });
   };
 
   return (
@@ -67,7 +64,7 @@ function MyForm() {
       {/* 規約テキスト（バッジ非表示時は必須） */}
       <RecaptchaBadge />
 
-      <button type="submit">送信</button>
+      <Button type="submit">送信</Button>
     </form>
   );
 }
@@ -187,6 +184,8 @@ export const RECAPTCHA_ACTIONS = {
 | 名前 | 説明 |
 |------|------|
 | `getRecaptchaToken` | reCAPTCHA v3トークンを取得 |
+| `useRecaptcha` | `{ executeRecaptcha }` を返すフック(無効時・Provider 外は undefined) |
+| `RecaptchaProvider` | v3 の Provider(`src/wiring/AppProviders.tsx` が設置済み) |
 | `RecaptchaBadge` | バッジ表示コンポーネント（設置したページで右下にバッジ表示） |
 | `RecaptchaV2Challenge` | v2チャレンジモーダルコンポーネント |
 | `useRecaptchaV2Challenge` | v2チャレンジ状態管理フック |
@@ -219,7 +218,7 @@ v2 を有効にすると、v3 で中間スコアの場合に v2 チャレンジ�
 
 ```ts
 signup: {
-  recaptchaThreshold: 0.5,    // v3通過閾値
+  recaptchaThreshold: 0.7,    // v3通過閾値
   recaptchaV2Threshold: 0.3,  // v2チャレンジ閾値
 }
 ```
@@ -227,8 +226,8 @@ signup: {
 #### 判定フロー
 
 ```
-スコア >= 0.5  → 通過
-スコア 0.3〜0.5 → v2チャレンジ表示（HTTP 428）
+スコア >= 0.7  → 通過
+スコア 0.3〜0.7 → v2チャレンジ表示（HTTP 428）
 スコア < 0.3   → ブロック（HTTP 403）
 ```
 
@@ -240,7 +239,6 @@ signup: {
 
 ### そのほか
 
-- バッジを隠すときの規約の文は `RecaptchaBadge`(Google の規約)
 - 無料枠: 100,000リクエスト/月
 - 環境変数が空または短すぎる（20文字未満）場合は自動で無効化
 - 依存パッケージ: `react-google-recaptcha-v3` - v3用Reactラッパー / `react-google-recaptcha` - v2用Reactラッパー

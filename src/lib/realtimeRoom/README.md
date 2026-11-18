@@ -27,7 +27,7 @@ export const attack = async (machineId: string, userId: string, damage: number) 
 ```
 
 - `dispatch` はルーム上で直列実行され、適用後の状態が返る (閾値判定は reducer 内で行う)
-- 無効時は `DomainError(503)`。プロトコル不一致は `DomainError(502)` で明示
+- 無効時は `DomainError(503)`。ルームサーバーに届かない・エラーを返した・プロトコル不一致は `DomainError(502)`
 
 ### クライアントから購読する
 
