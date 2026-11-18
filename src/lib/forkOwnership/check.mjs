@@ -12,6 +12,7 @@ import { judge } from "./judge.mjs";
 import { checkLineageStructure, checkOverrides, LINEAGE_FILE, parseLineage } from "./lineage.mjs";
 import { unitIndex, unitPlaces } from "./unitNames.mjs";
 import { checkPermits, fingerprint, parsePermits, permitsPath } from "./permits.mjs";
+import { SELF_CHECK_DEFAULT, SELF_FILES, SELF_OVERVIEW_FILE, selfProblems } from "./self.mjs";
 
 export const INTAKE_PATH = "src/lib/forkOwnership/intake.txt";
 export const PARENT_ENV = "FORK_OWNERSHIP_PARENT";
@@ -439,11 +440,39 @@ export function judgeFork(repoRoot, context) {
 }
 
 /**
+ * 型 5 self の検査の入力を git から集めて判定する(self.mjs)。Tier1 は自分の受け口の一覧とファイルの有無だけ
+ * 「取り込みで親の版が入った」の merge = 基準 base を 2 番目以降の親に持つ、HEAD から見て最新の merge
+ * @returns {{ enabled: true, problems: { kind: string, path: string, message: string }[], unverified: string[] }}
+ */
+export function collectSelf(repoRoot, { isTier1, base = null, parentRef = null }) {
+  const head = Object.fromEntries(SELF_FILES.map((path) => [path, show(repoRoot, "HEAD", path)]));
+  const intakeText = show(repoRoot, isTier1 ? "HEAD" : base, INTAKE_PATH);
+  const selfRows = intakeText === null ? null : parseIntake(intakeText).rules.filter((rule) => rule.kind === "self").map((rule) => rule.glob);
+  if (isTier1) return { enabled: true, ...selfProblems({ isTier1, selfRows, head, merge: null, parentNow: null }) };
+
+  const lines = (tryGit(repoRoot, ["rev-list", "--merges", "--parents", "--ancestry-path", `${base}..HEAD`]) ?? "").split("\n").filter(Boolean);
+  const mergeLine = lines.map((line) => line.split(" ")).find(([, , ...others]) => others.includes(base));
+  let merge = { found: false, before: {}, base: {} };
+  if (mergeLine) {
+    const [, firstParent] = mergeLine;
+    merge = {
+      found: true,
+      before: Object.fromEntries(SELF_FILES.map((path) => [path, show(repoRoot, firstParent, path)])),
+      base: Object.fromEntries(SELF_FILES.map((path) => [path, show(repoRoot, base, path)])),
+    };
+  }
+  const parentNow = show(repoRoot, parentRef, SELF_OVERVIEW_FILE);
+  return { enabled: true, ...selfProblems({ isTier1, selfRows, head, merge, parentNow }) };
+}
+
+/**
  * @param {string} repoRoot
- * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options] fetch: false はテスト用(取得済みの ref で判定する)
+ * @param {{ parent?: string, branch?: string, fetch?: boolean, self?: boolean }} [options] fetch: false はテスト用(取得済みの ref で判定する)。
+ *   self: 型 5 self の検査を走らせるか(省略 = SELF_CHECK_DEFAULT、今は切)
  * @returns {object} status: tier1 | unverified | pass | fail
  */
 export function runCheck(repoRoot, options = {}) {
+  const selfEnabled = options.self ?? SELF_CHECK_DEFAULT;
   const context = resolveForkContext(repoRoot, options);
   if (context.status === "unverified") return context;
   // 下流の有無の誤りで止めるのは pnpm workflow ownership check(と lineage の検査)だけ。pnpm workflow ownership who とビルドは止めない(L1.2)
@@ -452,7 +481,8 @@ export function runCheck(repoRoot, options = {}) {
   if (context.status === "tier1") {
     // Tier1 は検査の対象外。upstream の負債の行の数だけ返す(D29: 件数を Tier1 のコマンドと /inbox に出す)
     const own = parseIntake(show(repoRoot, "HEAD", INTAKE_PATH) ?? "");
-    return { status: "tier1", ownerId: context.ownerId, debt: own.rules.filter((rule) => rule.kind === "debt").map((rule) => rule.glob) };
+    const self = selfEnabled ? collectSelf(repoRoot, { isTier1: true }) : { enabled: false };
+    return { status: "tier1", ownerId: context.ownerId, debt: own.rules.filter((rule) => rule.kind === "debt").map((rule) => rule.glob), self };
   }
   const { ownerId, remote, branch, base, tier1, downstream } = context;
 
@@ -479,8 +509,11 @@ export function runCheck(repoRoot, options = {}) {
   }
   if (lineage.failures.length > 0) counts.lineage = lineage.failures.length;
 
+  const self = selfEnabled ? collectSelf(repoRoot, { isTier1: false, base, parentRef: context.parentRef }) : { enabled: false };
+  if (self.enabled && self.problems.length > 0) counts.self = self.problems.length;
+
   const violations = entries.filter((entry) => entry.verdict === "violation");
-  const failed = violations.length > 0 || leftovers.length > 0 || permitErrors.length > 0 || lineage.failures.length > 0;
+  const failed = violations.length > 0 || leftovers.length > 0 || permitErrors.length > 0 || lineage.failures.length > 0 || (self.enabled && self.problems.length > 0);
   return {
     status: failed ? "fail" : "pass",
     ownerId,
@@ -495,6 +528,7 @@ export function runCheck(repoRoot, options = {}) {
     entries,
     leftovers,
     lineage,
+    self,
   };
 }
 

@@ -1,5 +1,5 @@
 // pnpm workflow ownership check — fork の所有の検査。終了コード: 0 = 合格(Tier1 は対象外)/ 1 = 違反あり / 2 = 未検証・設定の不足
-// 引数: --parent=<remote> --branch=<branch> --json --verbose。仕様: ./README.md「使い方」
+// 引数: --parent=<remote> --branch=<branch> --json --verbose --self(型 5 self の検査も走らせる。既定は切)。仕様: ./README.md「使い方」
 
 import { runCheck } from "./check.mjs";
 
@@ -35,6 +35,7 @@ const LABELS = {
   "permit-same-as-base": "一時許可の残骸: 基準と同じに戻った",
   "permit-unused": "一時許可の残骸: 違反の無いファイル",
   lineage: ".claude/rules/lineage.md の並び・鍵・打ち消しの誤り",
+  self: "型 5 self の問題(project.md・behavior.md・repo.json)",
 };
 
 const PERMIT_STATES = {
@@ -49,6 +50,7 @@ function parseArgs(argv) {
   for (const arg of argv) {
     if (arg === "--json") options.json = true;
     else if (arg === "--verbose") options.verbose = true;
+    else if (arg === "--self") options.self = true;
     else if (arg.startsWith("--parent=")) options.parent = arg.slice("--parent=".length);
     else if (arg.startsWith("--branch=")) options.branch = arg.slice("--branch=".length);
     else throw new Error(`不明な引数: ${arg}`);
@@ -56,10 +58,29 @@ function parseArgs(argv) {
   return options;
 }
 
+/** 型 5 self の検査の行(切 = 1 行、走った = 結果と問題・未検証の項) */
+function selfLines(self) {
+  if (!self) return [];
+  if (!self.enabled) return ["self の検査: 切(既定。--self で走る、既定で入るのは文脈の書き直しの最後の切り替え)"];
+  const lines = [`self の検査: ${self.problems.length === 0 ? "問題なし" : `問題 ${self.problems.length} 件`}${self.unverified.length ? `・未検証 ${self.unverified.length} 項` : ""}`];
+  for (const problem of self.problems) lines.push(`  [${problem.kind}] ${problem.message}`);
+  for (const reason of self.unverified) lines.push(`  [未検証] ${reason}`);
+  return lines;
+}
+
+/** 終了コード: 状態の表 + self の検査(Tier1 の問題 = 1、未検証の項だけ = 2、違反の方が強い) */
+export function exitCode(result) {
+  const code = EXIT[result.status];
+  if (code !== 0 || !result.self?.enabled) return code;
+  if (result.self.problems.length > 0) return 1;
+  return result.self.unverified.length > 0 ? 2 : 0;
+}
+
 function print(result, { verbose }) {
   const lines = [];
   if (result.status === "tier1") {
     lines.push(`親なし(Tier1: ${result.ownerId}): 対象外 — upstream の負債の行 ${result.debt.length}(src/lib/forkOwnership/intake.txt の debt)`);
+    lines.push(...selfLines(result.self));
     if (verbose) for (const path of result.debt) lines.push(`  debt ${path}`);
     return lines;
   }
@@ -80,6 +101,7 @@ function print(result, { verbose }) {
     const via = result.tier1.chain.map((step) => `${step.name}@${step.sha.slice(0, 10)}`).join(" → ");
     lines.push(`Tier1 の版: ${result.tier1.sha.slice(0, 10)}(自分の台帳の upstream:${via ? ` → ${via}` : ""} からたどった .notices/applied/ の無い版)`);
   }
+  lines.push(...selfLines(result.self));
   lines.push("");
   lines.push("件数:");
   for (const [key, count] of Object.entries(result.counts).sort(([a], [b]) => a.localeCompare(b))) {
@@ -139,7 +161,7 @@ function main() {
   } else {
     console.log(print(result, options).join("\n"));
   }
-  process.exitCode = EXIT[result.status];
+  process.exitCode = exitCode(result);
 }
 
 main();

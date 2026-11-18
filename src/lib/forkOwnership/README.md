@@ -54,7 +54,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   | append | 基準の中身が先頭にそのまま残る → `append` | `not-append` |
   | generated | 生成物 → `generated` | — |
   | debt | — | `debt`(upstream の負債の箇所。一時許可で通す) |
-  | self | 書き換え → `self`(型 5: 各リポが自分の版を持つ。`.claude/rules/project.md`・`.claude/rules/behavior.md`・`repo.json` の 3 行だけ、1 ファイル 1 行・ぴったりのパス。行を足すのは Tier1 だけ。`pnpm workflow ownership who` は型 5 と答える) | — |
+  | self | 書き換え → `self`(型 5: 各リポが自分の版を持つ。`.claude/rules/project.md`・`.claude/rules/behavior.md`・`repo.json` の 3 行だけ、1 ファイル 1 行・ぴったりのパス。行を足すのは Tier1 だけ。`pnpm workflow ownership who` は型 5 と答える。中身は見ず、`pnpm workflow ownership check --self` が 4 つだけ見る: ファイルが無い・self の行が 3 行ちょうどでない・取り込みの merge で親の版が入ったまま・Tier1 でないリポの project.md が直接の親の版と同じまま。既定は切で、文脈の書き直しの最後の切り替えで入る) | — |
 
 - 載せている物(手書き = src の外だけ): リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)と README.md・`eslint.config.fork.mjs`(下)・firebase.json / ロゴ(public/)/ room の登録点(region)と wrangler.toml / `.claude/rules` の PER_PROJECT と marker・lineage.md(append)/ 負債(debt)。src の下の行は全部生成区画(下)
 - 受け口の行(生成区画 `# === AUTO-GENERATED intake START ===` 〜 `END`): `pnpm generate extensions` が書き、ずれは `pnpm check extensions` が止める(手で編集しない、`scripts/structure/extensions/README.md`「受け口の一覧の生成区画」)。src の下の行は全部ここで、出どころは 4 つの型(本部 D189):
