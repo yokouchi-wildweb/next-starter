@@ -1,50 +1,32 @@
 # 決済プロバイダ（payment/）
 
+## Overview
+
 `PaymentProvider` 契約の実装群と、新しいプロバイダの追加手順・ローカルでの動作確認方法。購入フロー全体（状態遷移・Webhook / ポーリング / 二重購入防止）は [purchaseRequest README](../../../README.md) を参照。
 
 プロバイダ個別ガイド: [square/](square/README.md) | [paidy/](paidy/README.md)（client_sdk）| [paypal/](paypal/README.md)（client_sdk）。自社銀行振込 `inhouse` は [bankTransferReview README](../../../../bankTransferReview/README.md)。
 
----
+### 設計方針
 
-## 1. 設計方針
-
-- **契約で抽象化**: プロバイダ差分は `PaymentProvider`（`types/payment.ts`）の中に閉じる。購入フロー側にプロバイダ名の分岐を書かない（照合キーは `correlationKey`、order ID は `deriveProviderOrderId`、再起動方法は `launchType` で宣言する）
+- **契約で抽象化**: プロバイダ差分は `PaymentProvider`（`types/payment.ts`）の中に閉じ、購入フローはプロバイダ名で分かれない（照合キーは `correlationKey`、order ID は `deriveProviderOrderId`、再起動方法は `launchType` で宣言する）
 - **1 支払い方法 = 1 プロバイダ**: `purchaseRequest/config.ts` の `payment` の `paymentMethods[i].provider` が唯一の真実。`resolveProviderForMethod()` で解決し、担当の切替は config 書き換えだけで済む（選択用の環境変数は無い）
 - **起動方式は値で多態化**: `createSession` は `LaunchInstruction`（`redirect` | `client_sdk`）を返し、クライアントの `executePaymentLaunch`（`services/client/launchers/`）が type で分岐する。新しい起動方式は union に variant + handler を足す
 - **Webhook は 3 分岐**: `PaymentResult.status` = `completed` / `failed` / `pending`。成功でも確定失敗でもないものは全部 `pending`（無視して 200）
 - **金額照合**: `verifyWebhook` は実課金額を `paidAmount` で返し、`completePurchase` が `payment_amount` と照合する
 
-### 起動方式の 2 系統
+#### 起動方式の 2 系統
 
 最初にどちらかを判定する。追加ファイル数と動線が違う。
 
 - **redirect 型**（stripe / fincode / square / inhouse / dummy）: `{ type: "redirect", url }` を返し、プロバイダのホスト型ページ（inhouse は自社の案内ページ）へ遷移。確定 = Webhook（+ ポーリング）。再 initiate 時は保存済み `redirect_url` を再利用
 - **client_sdk 型**（paidy / paypal）: `{ type: "client_sdk", sdkName, config }` を返し、同一ページで JS SDK のモーダル / ボタンを起動。確定 = クライアントからの確定 API（+ Webhook がフォールバック）。外部 URL を持たないため、再 initiate 時は `createSession` を再実行してモーダルを再展開する
 
----
+## Usage
 
-## 2. PaymentProvider 契約（要点）
-
-正は `src/features/core/purchaseRequest/types/payment.ts`。
-
-- `providerName`
-- `launchType: "redirect" | "client_sdk"`（必須）
-- `correlationKey: "session_id" | "order_id"`（必須）: Webhook / ステータス照会で行を引くキー。`session_id` = `payment_session_id`（既定）、`order_id` = `provider_order_id`（Fincode）
-- `deriveProviderOrderId?(purchaseRequestId)`: 独自の order 識別子を持つ場合に実装。`initiatePurchase` が `provider_order_id` に自動保存する
-- `createSession(params)`: **同一 `purchaseRequestId` に対して冪等であること**（client_sdk の resume が再実行するため。外部副作用があるなら idempotency key で同じ Order を再利用。例: PayPal `PayPal-Request-Id=order_${id}`）
-- `verifyWebhook(request)` → `PaymentResult`（`status`, `sessionId`, `transactionId`, `paymentMethod`, `paidAt`, `paidAmount`, `errorCode`, `errorMessage`）。`status` 未指定時は `success` で判定（後方互換）
-- `verifyWebhookSignature?(request, signature)`: 本文解析前の署名検証。`timingSafeEqual` で比較する
-- `getPaymentStatus?(id, paymentMethod?)`: ポーリング用照会。`id` は `correlationKey` で選ばれた値。未実装ならポーリングでは確定しない（Webhook 待ち）
-- `validateInitiation?(ctx)`: 新規作成直前のプロバイダ固有チェック。`{ kind: "redirect", existing }` を返すと新規作成せず既存へ誘導（inhouse の「未完了振込があれば案内ページへ戻す」）。外部プロバイダは通常不要
-
-`CreatePaymentSessionParams` の主な値: `purchaseRequestId`, `amount`（割引後）, `paymentMethod`（`paymentMethods[i].id`）, `successUrl` / `cancelUrl`, `buyerEmail` / `buyerPhoneNumber`（E.164）, `providerOptions`, `purchaseType`, `walletType`, `baseUrl`。下流は `エンリッチャー（1 行スイッチ sessionEnricher.ts）()`（`sessionEnricher.ts`、`enrichers/` に副作用 import で登録、1 つだけ）で `buyerAddress` 等を足せる。
-
----
-
-## 3. redirect 型の追加手順
+### redirect 型の追加手順
 
 1. **実装**: `payment/<name>/<name>Provider.ts` に `PaymentProvider` を実装し、`payment/<name>/index.ts` から `export`（任意で `errorMapping.ts` に プロバイダのエラー → `PAYMENT_ERROR_CODES` の変換）
-   - `createSession`: `getProviderApiMethodId("<name>", params.paymentMethod)` で API 固有 ID に変換。`getProviderApiMethodId` は mapping が無いと元の ID をそのまま返すので、**`purchaseRequestConfig.payment.providers.<name>.methodMapping?.[params.paymentMethod]` が無ければ自分で throw する**（誤ルートの fail-fast）
+   - `createSession`: `getProviderApiMethodId("<name>", params.paymentMethod)` で API 固有 ID に変換。`getProviderApiMethodId` は mapping が無いと元の ID をそのまま返すので、上流のプロバイダは `purchaseRequestConfig.payment.providers.<name>.methodMapping?.[params.paymentMethod]` が無ければ throw する（誤ルートの fail-fast）
    - `verifyWebhook`: 成功 → `{ success: true, status: "completed", paidAmount, ... }` / 確定失敗 → `{ success: false, status: "failed", errorCode }` / それ以外（AUTHORIZED, PROCESSING 等）→ `{ success: false, status: "pending" }`
 2. **ファクトリ登録**（`payment/index.ts`）: `PaymentProviderName` union に追加 + `getPaymentProvider` の switch に case を追加
 3. **config**（`src/features/core/purchaseRequest/config.ts` の `payment`(上書き `src/config/features/purchaseRequest.config.ts`)）
@@ -56,7 +38,7 @@
 5. **環境変数**: API キー・Webhook シークレット等を `.env.development` / `.env.production` に追加
 6. **Webhook エンドポイント**: 新設不要。プロバイダのダッシュボードに `https://<origin>/api/webhook/payment?provider=<name>` を登録（route が `?provider` 検証 → 署名検証 → `handleWebhook`）
 
-### チェックリスト
+#### チェックリスト
 
 - [ ] `launchType` / `correlationKey` を宣言、独自 order ID なら `deriveProviderOrderId`
 - [ ] `createSession` が同一 purchaseRequestId に冪等
@@ -68,13 +50,11 @@
 - [ ] `providers` / `webhook.signatureHeaders` / `paymentMethods` を設定
 - [ ] Webhook を実際に受けて確認、Replay で冪等性確認（5 章）
 
----
-
-## 4. client_sdk 型の追加差分
+### client_sdk 型の追加差分
 
 redirect 型の 1〜6 に加えて以下を行う。
 
-**A. createSession** は外部 URL ではなく起動指示を返す。`sessionId` は外部 payment がまだ無いなら `purchaseRequestId` を流用してよい。`config` はそのままクライアントに渡るので **サーバー秘密（`sk_*`、Webhook secret 等）を入れない**（`publicKey`, `purchaseRequestId`, `amount`, 購入者情報など）。
+**A. createSession** は外部 URL ではなく起動指示を返す。`sessionId` は外部 payment がまだ無いなら `purchaseRequestId` を流用してよい。`config` はそのままクライアントに渡る（中身は `publicKey`, `purchaseRequestId`, `amount`, 購入者情報など。サーバーの秘密は含まない）。
 
 **B. SDK ローダー**: `services/client/sdkLaunchers/<name>.ts` に `SdkLauncher` を実装し、`sdkLaunchers/index.ts` のレジストリに `<sdkName>: <name>SdkLauncher` を追加。
 
@@ -107,11 +87,29 @@ redirect 型の 1〜6 に加えて以下を行う。
 
 放置対策はコア側で済んでいる: 新規 initiate の直前に `expireStaleClientSdkSessions` が同一ユーザーの client_sdk processing を expired にし、後から confirm で capture される窓を閉じる。
 
----
+## API
 
-## 5. ローカルで動かす
+### PaymentProvider 契約（要点）
 
-### コールバック URL のオリジン
+正は `src/features/core/purchaseRequest/types/payment.ts`。
+
+- `providerName`
+- `launchType: "redirect" | "client_sdk"`（必須）
+- `correlationKey: "session_id" | "order_id"`（必須）: Webhook / ステータス照会で行を引くキー。`session_id` = `payment_session_id`（既定）、`order_id` = `provider_order_id`（Fincode）
+- `deriveProviderOrderId?(purchaseRequestId)`: 独自の order 識別子を持つ場合に実装。`initiatePurchase` が `provider_order_id` に自動保存する
+- `createSession(params)`: 同一 `purchaseRequestId` に対して冪等（client_sdk の resume が再実行するため。外部副作用があるなら idempotency key で同じ Order を再利用。例: PayPal `PayPal-Request-Id=order_${id}`）
+- `verifyWebhook(request)` → `PaymentResult`（`status`, `sessionId`, `transactionId`, `paymentMethod`, `paidAt`, `paidAmount`, `errorCode`, `errorMessage`）。`status` 未指定時は `success` で判定（後方互換）
+- `verifyWebhookSignature?(request, signature)`: 本文解析前の署名検証（`timingSafeEqual` で比較）
+- `getPaymentStatus?(id, paymentMethod?)`: ポーリング用照会。`id` は `correlationKey` で選ばれた値。未実装ならポーリングでは確定しない（Webhook 待ち）
+- `validateInitiation?(ctx)`: 新規作成直前のプロバイダ固有チェック。`{ kind: "redirect", existing }` を返すと新規作成せず既存へ誘導（inhouse の「未完了振込があれば案内ページへ戻す」）。外部プロバイダは通常不要
+
+`CreatePaymentSessionParams` の主な値: `purchaseRequestId`, `amount`（割引後）, `paymentMethod`（`paymentMethods[i].id`）, `successUrl` / `cancelUrl`, `buyerEmail` / `buyerPhoneNumber`（E.164）, `providerOptions`, `purchaseType`, `walletType`, `baseUrl`。下流は `エンリッチャー（1 行スイッチ sessionEnricher.ts）()`（`sessionEnricher.ts`、`enrichers/` に副作用 import で登録、1 つだけ）で `buyerAddress` 等を足せる。
+
+## Verification
+
+### ローカルで動かす
+
+#### コールバック URL のオリジン
 
 `successUrl` / `cancelUrl` はブラウザで開いているドメインではなく `getAppBaseUrl()`（`src/lib/url/getAppBaseUrl.ts`）で組み立てる（Host Header Injection 対策）。優先順位:
 
@@ -121,7 +119,7 @@ redirect 型の 1〜6 に加えて以下を行う。
 
 ローカルは 1 を使う。`pnpm ops setup env` が `.env.development` に `APP_BASE_URL=http://localhost:3000` を入れる（ポートは実際の dev サーバーに合わせる）。これでプロバイダからの戻り（success / cancel）はローカルに着地する。
 
-### Webhook まで通す（ngrok 等）
+#### Webhook まで通す（ngrok 等）
 
 Webhook はインターネット経由なので `localhost` には届かない。Webhook → 完了画面まで通すにはトンネルを使う。
 
@@ -134,17 +132,17 @@ Webhook はインターネット経由なので `localhost` には届かない�
 
 無料プランは再起動ごとに URL が変わるので、`.env.development` とダッシュボードの両方を更新する。
 
-### dummy プロバイダ
+#### dummy プロバイダ
 
 UI フローと完了画面の確認だけなら、`paymentMethods` の対象メソッドの `provider` を一時的に `"dummy"` にする。`/demo/dummy-payment` の擬似決済ページに遷移し、外部通信も Webhook 登録も不要（`signatureHeaders.dummy = null`）。段階が development(`@/lib/appEnv`)以外では `getPaymentProvider` が throw する。確認後は `provider` を戻す（コミット前に確認）。
 
-### 使い分け
+#### 使い分け
 
 - 通常の開発: dummy
 - プロバイダ結合確認: ngrok + `APP_BASE_URL` + ダッシュボードの Webhook 登録
 - 本番同等の実決済テスト: カスタムドメイン付き staging（ngrok URL の同期が要らない）
 
-### よくある失敗
+#### よくある失敗
 
 - Webhook が届かない: トンネル起動・ダッシュボードの URL（`?provider=` 含む）・購読イベントを確認
 - 401: 署名シークレットの環境変数、`signatureHeaders` のヘッダー名
@@ -153,9 +151,7 @@ UI フローと完了画面の確認だけなら、`paymentMethods` の対象メ
 - PENDING で失敗扱いになる: 未確定ステータスを `status: "pending"` で返していない
 - 金額不一致で failed: `paidAmount` がプロバイダの実課金額（割引後の `payment_amount`）を返しているか
 
----
-
-## 6. 本番前の確認
+### 本番前の確認
 
 - `purchaseRequestConfig.payment.debugLog = false`（true だと PII を含むペイロード全量をログ出力）
 - dummy を担当にしたメソッドが残っていない

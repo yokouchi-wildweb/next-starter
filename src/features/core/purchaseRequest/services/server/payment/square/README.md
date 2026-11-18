@@ -1,29 +1,14 @@
 # Square 決済プロバイダ
 
+## Overview
+
 Square Checkout API（Payment Links）を使用した決済プロバイダ実装。
 
-## ファイル構成
+## API
 
-```
-square/
-├── README.md           # このファイル
-├── squareProvider.ts   # メインのプロバイダ実装
-└── errorMapping.ts     # エラーコード・ステータスマッピング
-```
+### プロバイダメソッド
 
-## 環境変数
-
-| 変数名 | 説明 |
-|--------|------|
-| `SQUARE_ACCESS_TOKEN` | API アクセストークン |
-| `SQUARE_LOCATION_ID` | ロケーションID |
-| `SQUARE_SIGNATURE_KEY` | Webhook 署名検証キー |
-| `SQUARE_NOTIFICATION_URL` | Webhook 通知URL |
-| `SQUARE_ENVIRONMENT` | 環境（`sandbox` / `production`） |
-
-## プロバイダメソッド
-
-### createSession
+#### createSession
 
 Square Checkout API の Payment Links を使用してワンステップ決済リンクを作成する。
 
@@ -34,7 +19,7 @@ Square Checkout API の Payment Links を使用してワンステップ決済リ
   - `sessionId` = `data.payment_link.id`（Payment Link ID）
   - `redirectUrl` = `data.payment_link.url`
 
-#### 購入者情報の事前入力
+##### 購入者情報の事前入力
 
 `pre_populated_data` で購入者情報を事前入力できる:
 
@@ -44,7 +29,7 @@ Square Checkout API の Payment Links を使用してワンステップ決済リ
 
 下流プロジェクトでは `sessionEnricher` を使って設定する。
 
-### verifyWebhook
+#### verifyWebhook
 
 Webhook ペイロードを検証し、決済結果を返す。3分岐のステータス判定:
 
@@ -57,14 +42,14 @@ Webhook ペイロードを検証し、決済結果を返す。3分岐のステ�
 
 `sessionId` は `payment.note || payment.order_id || ""` で解決される。
 
-### verifyWebhookSignature
+#### verifyWebhookSignature
 
 HMAC-SHA256 による Webhook 署名検証。
 
 - `notificationUrl + body` を `signatureKey` で署名
 - `crypto.timingSafeEqual` で定数時間比較（タイミング攻撃防止）
 
-### getPaymentStatus（ポーリング用）
+#### getPaymentStatus（ポーリング用）
 
 Payment Link → Order → Payment の3段階で決済ステータスを取得する。
 
@@ -77,9 +62,9 @@ Payment Link → Order → Payment の3段階で決済ステータスを取得�
 - `CANCELED` / `FAILED` → `"failed"`
 - それ以外 → `"pending"`
 
-## errorMapping.ts
+### errorMapping.ts
 
-### 定数・ユーティリティ
+#### 定数・ユーティリティ
 
 - `SQUARE_PAYMENT_STATUS`: `APPROVED`, `PENDING`, `COMPLETED`, `CANCELED`, `FAILED`
 - `isSuccessPaymentStatus`: `COMPLETED` または `APPROVED` を判定
@@ -87,9 +72,23 @@ Payment Link → Order → Payment の3段階で決済ステータスを取得�
 - `SQUARE_ERROR_MAP`: カード詳細ステータス → アプリ内エラーコードのマッピング
 - `extractPaymentMethod`: `source_type` → 支払い方法名の変換
 
-## Webhook フロー
+## Extension
 
-### イベント順序
+### 環境変数
+
+| 変数名 | 説明 |
+|--------|------|
+| `SQUARE_ACCESS_TOKEN` | API アクセストークン |
+| `SQUARE_LOCATION_ID` | ロケーションID |
+| `SQUARE_SIGNATURE_KEY` | Webhook 署名検証キー |
+| `SQUARE_NOTIFICATION_URL` | Webhook 通知URL |
+| `SQUARE_ENVIRONMENT` | 環境（`sandbox` / `production`） |
+
+## Internals
+
+### Webhook フロー
+
+#### イベント順序
 
 Square は決済フローで複数の Webhook イベントを送信する:
 
@@ -98,14 +97,14 @@ Square は決済フローで複数の Webhook イベントを送信する:
 
 `PENDING` は `verifyWebhook` で `status: "pending"` として返され、`handleWebhook` でスキップされる。
 
-### セッションID の照合
+#### セッションID の照合
 
 - `createSession` が返す `sessionId` = Payment Link ID
 - `payment.note` に purchaseRequestId（UUID）を保存
 - `verifyWebhook` は `payment.note` を `sessionId` として返す
 - `findByWebhookIdentifier` は UUID フォールバックで `purchaseRequest.id` と照合
 
-## PII ログ制御
+### PII ログ制御
 
 - `purchaseRequestConfig.payment.debugLog` が `true` の場合のみペイロード全体を出力
 - `false` の場合は `purchaseRequestId`, `amount`, `type`, `paymentId` 等の最小限のみ
