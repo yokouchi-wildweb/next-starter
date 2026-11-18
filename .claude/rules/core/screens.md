@@ -8,9 +8,10 @@ paths:
 ---
 # screens
 > **ROLE**: loaded when writing pages, Screens, loaders or layouts | holds SCREENS detail
-> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
+> Tier1-owned: forks never edit (gap → /order <direct parent>)
 
-route: page.tsx = downstream-owned 1-line switch `export { XScreen as default } from "./_screen/XScreen"` (metadata / dynamic OK) | _screen/\<Name\>Screen.tsx = default Screen, owned by the route creator (downstream never edits/deletes upstream ones) | _screen/ may hold the default Screen's private parts | _components/ = downstream Screens and parts only, never upstream | 1 route = 1 Screen
+route: page.tsx = downstream-owned 1-line switch `export { XScreen as default } from "./_screen/XScreen"` (metadata / dynamic OK) | _screen/\<Name\>Screen.tsx = default Screen, owned by the route creator (downstream never edits/deletes upstream ones) | _screen/ may hold the default Screen's private parts
+- _components/ = Screens and parts of the repo that replaces the route; the route's creator never writes it, except a generated admin route's hand-owned _components/ (the domain owner's, generated.md) | 1 route = 1 Screen
 screen: server component, named export, no default export, NO "use client", never try/catch | awaits the same route's loader at the top level of its body before the first return (D21, pnpm test src/lib/screens/screens.test.mjs + route map) | hook-bound bits → a "use client" part in _screen/ or a section container
 loader: src/app/\<route\>/_screen/loader.ts, never in features/\<domain\> | `load<Name>Screen = createLoader({ access, key?, load })` from the NEAREST guard.ts + `import "server-only"` | access required (public / authenticated / {roles, roleCategories} / none) | key(props) → primitives (cache key, return type `Promise<[...]>`)
 - does redirect / notFound itself, returns an explicit minimal DTO whose types it defines | never imports from _components/ or a Screen | every page has one (access-only when no data)

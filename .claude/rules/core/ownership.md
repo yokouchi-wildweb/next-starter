@@ -8,7 +8,7 @@ paths:
 ---
 # ownership
 > **ROLE**: loaded when writing ownership data (repo.json, permits, ledger, CATALOG.md, lineage.md, the ownership lib) | holds who owns what (CORE_FILES, fork_ownership)
-> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
+> Tier1-owned: forks never edit (gap → /order <direct parent>)
 
 core (= CORE, approval required): CLAUDE.md, core/ (.claude/rules/core/), src/features/core/ (core domains, core roles), src/styles/core/**, src/styles/README.md, src/components/, src/proxy.ts, src/proxies/ + src/featureGate/ (files a fork added = fork-owned, extensions/ = generated), scripts/structure/domain/ | per path → pnpm workflow ownership who
 - servers and wiring: servers/room/src/core/, servers/room/src/index.ts, src/wiring/ (files a fork added = fork-owned)
@@ -20,8 +20,8 @@ fork_ownership (check: pnpm workflow ownership check, run by /flux after each se
 - base = merge-base with the direct parent | files the fork added = fork-owned | files in the base = parent-owned: write only inside intake points, never delete / move / rename them (a `_` prefix rename too) | adding a file inside an ancestor's lib, or under src/features/core/, src/featureGate/ or core/ outside a receptacle = violation
 - multi-tier: strict only for files in the Tier1 version (walked from the ledger's upstream:\<sha\> to the version without .notices/applied) | files a middle tier added may be edited / deleted / renamed below it, except an ancestor's .default and .claude/rules/service/
 - names: each repo's name = `repo_id` in repo.json at the repo root (with `tier`; ledger, permits, CATALOG heading use it; written only by pnpm workflow repo-json)
-- unused upstream page → close its feature (pnpm ops features set \<name\> off → src/config/featureGate/switches.config.ts) | unused role → enabled:false | replacement allowed by FORK_EXTENSION → _components/ under a new name, 1-line switch in page.tsx
+- unused upstream page → close its feature (pnpm ops features set \<name\> off → src/config/featureGate/switches.config.ts) | unused added role → enabled:false (core roles stay on) | replacement allowed by FORK_EXTENSION → a Screen in _components/ (screens.md route), 1-line switch in page.tsx
 - edit outside the intake: an intake point exists → move there | none (incl. upstream bug / perf / security fixes) → /order <direct parent> + temporary permit in .fork-ownership/\<repo_id\>.permits.txt (≥1 order id; expires when all its orders ship as resolves: or the parent touches the file) | debt rows of intake.txt → permit with that row's order id
-fork_core_edit_compat (while a permit lets a fork edit a parent-owned file; a parent's own breaking change → notice is a separate rule, see core_ui):
+fork_core_edit_compat (while a permit lets a fork edit a parent-owned file; a parent's own breaking change → notice: screens.md contracts, notices.md):
 - stay backward compatible with the parent's callers: props/args the fork adds = optional with an empty default | never delete parent code the fork does not use | signature change = add a new name, keep the old
 - why: the parent's `_screen/*` Screens stay in the fork's tsc scope even when its page.tsx points to `_components/` → an incompatible edit fails tsc at the next merge | fix the fork's edit, never the parent's Screen | ref: src/lib/screens/README.md §7

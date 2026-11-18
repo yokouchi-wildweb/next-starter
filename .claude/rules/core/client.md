@@ -6,7 +6,7 @@ paths:
 ---
 # client
 > **ROLE**: loaded when writing hooks, client services or stores | holds the client layer rules (hooks, stores)
-> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
+> Tier1-owned: forks never edit (gap → /order <direct parent>)
 
 hooks: one use\<Op\>\<Domain\> per operation | custom mutation hooks MUST build on useDomainMutation (@/lib/crud/hooks); useSWRMutation PROHIBITED | test: pnpm test src/lib/crud/hooks/internal/*.test.mjs
 

@@ -6,7 +6,7 @@ paths:
 ---
 # components
 > **ROLE**: loaded when writing any .tsx or shared hook | holds COMPONENTS detail
-> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
+> Tier1-owned: forks never edit (gap → /order <direct parent>)
 
 wrappers (lint raw-elements): div → Layout/{Block,Flex,Grid,Stack} | main → Layout/Main or UserPage | section → Layout/Section | button → Form/Button | input → Form/Input | p → TextBlocks/Para | h2 → TextBlocks/SecTitle | skeleton → Skeleton/BaseSkeleton | img → Media/AppImage (never next/image directly)
 - never import _shadcn directly (lint import-boundaries/no-shadcn-direct, all tiers; wrapper table: src/components/_shadcn/README.md; no wrapper → propose one)

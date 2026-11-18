@@ -6,9 +6,9 @@ paths:
 ---
 # skills
 > **ROLE**: loaded when writing .claude/skills/** | holds the skill format
-> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies to skill files too | this file holds only what differs for skills
+> Tier1-owned: forks never edit (gap → /order <direct parent>) | FORMAT_RULE applies to skill files too | this file holds only what differs for skills
 
-scope: .claude/skills/\<name\>/SKILL.md + attached instruction .md beside it | out: scripts (*.mjs) and their output text, agents/*.yaml, README.md (a doc, behavior.md language)
+scope: .claude/skills/\<name\>/SKILL.md + attached instruction .md beside it | out: a skill's scripts (*.mjs) and their output text, its agents/*.yaml, README.md (a doc, behavior.md language) | also loads for .claude/agents/** and .claude/scripts/**: the same nature below applies, FRONTMATTER and CHECK are for skills only
 nature: skill files are agent context, not docs → English, compressed, the same form as CLAUDE.md (behavior.md language_for_comments_and_docs does not apply) | applies to every skill, disable-model-invocation ones included
 environment: context files (CLAUDE.md, rules, hook text) never branch on the environment | a skill that needs one states it in its description `requires:` (below)
 
