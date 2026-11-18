@@ -1,27 +1,10 @@
-# chatRoom ドメイン
+# chatRoom
 
-Firestore ベースのリアルタイムチャット機能を提供するコアドメイン。
-ダウンストリームプロジェクトはこのベースレイヤーの上に、プロジェクト固有の UI や拡張機能を構築する。
+## Overview
 
----
-
-## 目次
-
-1. [アーキテクチャ概要](#アーキテクチャ概要)
-2. [セットアップ](#セットアップ)
-3. [データモデル](#データモデル)
-4. [クイックスタート](#クイックスタート)
-5. [Hook リファレンス](#hook-リファレンス)
-6. [Service リファレンス](#service-リファレンス)
-7. [拡張パターン](#拡張パターン)
-8. [設計上の注意点](#設計上の注意点)
-
----
-
-## アーキテクチャ概要
-
-チャット機能は **リアルタイム性** が求められるため、通常のドメインと異なり REST API を経由せず
-Firestore SDK を直接操作する。管理画面向けには自動生成の CRUD（API 経由）も並行して存在する。
+- Firestore ベースのリアルタイムチャット機能を提供するコアドメイン。fork はこの上に、プロジェクト固有の UI や拡張機能を作る
+- リアルタイム性が要るので、通常のドメインと違い REST API を経由せず Firestore SDK を直接操作する。管理画面向けには自動生成の CRUD（API 経由）も並行して存在する
+- 使う時・直す時の決まりは札 .claude/rules/items/features/chatRoom.md にある
 
 ```
 ┌─ 統合 Hook ──────────────────────────────────────────────────┐
@@ -49,34 +32,9 @@ Firestore SDK を直接操作する。管理画面向けには自動生成の CR
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### データフロー
+## Usage
 
-```
-【チャット画面】
-  useChatScreen
-    ├── useChatMessages ──── fetchPastMessages (初回) + subscribeNewMessages (リアルタイム)
-    ├── useChatMessageSender ── sendTextMessage / sendFileMessage (writeBatch)
-    ├── useMergedMessages ──── 実メッセージ + pending を時系列統合
-    └── useReadAt ──────────── 入室時・新着受信時・退出時に readAt 更新
-
-【ルーム一覧画面】
-  useChatRooms ────────── subscribeRooms (リアルタイム)
-  useResolvedParticipants ── 参加者の名前・アバター解決
-  useUnreadCount ──────── useChatRooms + countUnreadRooms
-
-【メッセージ送信の楽観的UIフロー】
-  sendText/sendFile
-    → pending 追加 (status: "sending" / "uploading") → 即座にUI表示
-    → writeBatch 成功 → status: "sent"
-    → onSnapshot で実メッセージ到着 → ID一致で pending 除去
-    → 失敗時: status: "failed" → retry / dismiss
-```
-
----
-
-## セットアップ
-
-### Firestore 複合インデックス（必須）
+### Firestore 複合インデックス
 
 チャット機能の動作には以下の複合インデックスが必要。未作成の場合 `subscribeRooms` でエラーになる。
 
@@ -118,14 +76,14 @@ Firestore SDK を直接操作する。管理画面向けには自動生成の CR
 | | `updatedAt` | Descending |
 | | `name` | Descending |
 
-- upstream ではこの index を作っておらず、作成後に名前検索が通るかは未確認。使う fork は作ってから検索を 1 回試す
+- 上流はこの index を作っておらず、作成後に名前検索が通るかは確かめていない。使う fork は作ってから検索を 1 回試す
 - 作らない場合、検索ボックスで名前を入れた一覧はエラーページになる（検索なしの一覧は動く）
 - Firestore の名前検索は前方一致・大文字小文字を区別する
 
 **index の入れ方**（どれか 1 つ）
 
 - コンソールで上の表どおりに作る、またはエラーの直リンクを開く（リンクはプロジェクトごと）
-- firebase CLI: fork の手元の `firestore.indexes.json` に足し、fork の `firebase.json` に `"firestore": { "indexes": "firestore.indexes.json" }` を足して `firebase deploy --only firestore:indexes --project <project-id>`。どちらのファイルも fork ごとのもの（upstream は `firestore.indexes.json` を同梱せず、`.gitignore` 対象）。既に持つ fork は自分のファイルに足す（upstream の作業では deploy は未実行）
+- firebase CLI: fork の手元の `firestore.indexes.json` に足し、fork の `firebase.json` に `"firestore": { "indexes": "firestore.indexes.json" }` を足して `firebase deploy --only firestore:indexes --project <project-id>`。どちらのファイルも fork ごとのもの（上流は `firestore.indexes.json` を同梱せず、`.gitignore` 対象）。既に持つ fork は自分のファイルに足す
 
 ```json
 {
@@ -143,56 +101,9 @@ Firestore SDK を直接操作する。管理画面向けには自動生成の CR
 }
 ```
 
----
-
-## データモデル
-
-### ChatRoom（`chat_rooms` コレクション）
-
-| フィールド | 型 | 説明 |
-|---|---|---|
-| `type` | `"direct" \| "group"` | ルーム種別。ダウンストリームで拡張可能 |
-| `name` | `string \| null` | グループ名（direct は null） |
-| `participants` | `string[]` | 参加者の userId 配列 |
-| `participantPair` | `string \| null` | `sort([uid1, uid2]).join("_")`。direct ルームの重複防止キー |
-| `readAt` | `Record<string, Date>` | `{ [userId]: 最終既読日時 }` |
-| `lastMessageSnapshot` | `object` | 最新メッセージのスナップショット（一覧表示用） |
-| `createdAt` / `updatedAt` | `Date` | タイムスタンプ |
-
-#### LastMessageSnapshot
-
-ルーム一覧画面で最新メッセージを表示するための冗長データ。
-メッセージ送信時に writeBatch でアトミック更新される。
-
-```ts
-{ type: MessageType, content: string, senderId: string, createdAt: Date }
-```
-
-### ChatMessage（`chat_rooms/{roomId}/messages` サブコレクション）
-
-| フィールド | 型 | 説明 |
-|---|---|---|
-| `type` | `"text" \| "image" \| "video" \| "file" \| "system"` | メッセージ種別 |
-| `content` | `string` | テキスト本文 / ファイルの ref（`storage://priv/chatRoom.<image\|video\|file>/…`。旧メッセージは旧 URL のまま） |
-| `senderId` | `string` | 送信者の userId |
-| `metadata` | `MessageMetadata \| null` | ファイル情報（下記参照） |
-| `createdAt` | `Date` | 作成日時 |
-| `editedAt` | `Date \| null` | 編集日時（未編集は null） |
-| `deletedAt` | `Date \| null` | 論理削除日時（未削除は null） |
-
-#### MessageMetadata
-
-```ts
-{ fileName: string, fileSize: number, mimeType?: string, thumbnailUrl?: string }
-```
-
----
-
-## クイックスタート
-
 ### チャット画面（最小構成）
 
-`useChatScreen` を使えば、メッセージ取得・送信・楽観的 UI・既読更新を一行で接続できる。
+- `useChatScreen` を使えば、メッセージ取得・送信・楽観的 UI・既読更新を一行で接続できる
 
 ```tsx
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
@@ -241,8 +152,7 @@ function ChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 }
 ```
 
-> `useChatScreen` の内部構成: `useChatMessages` + `useChatMessageSender` + `useMergedMessages` + `useReadAt`。
-> カスタムな接続が必要な場合は個別フックを直接使用する。
+- `useChatScreen` の内部構成: `useChatMessages` + `useChatMessageSender` + `useMergedMessages` + `useReadAt`。カスタムな接続が必要な場合は個別フックを直接使う(下の「useChatScreen を使わないカスタム構成」)
 
 ### ルーム一覧 + 未読バッジ
 
@@ -290,7 +200,7 @@ const unreadCount = useUnreadCount(uid);
 
 ### 一斉メッセージ送信
 
-複数ユーザーに同一のダイレクトメッセージを一斉送信する。
+- 複数ユーザーに同一のダイレクトメッセージを一斉送信する
 
 ```tsx
 import { useBulkMessageSender } from "@/features/chatRoom/hooks/firestore/useBulkMessageSender";
@@ -322,363 +232,9 @@ function BulkMessageForm({ uid }: { uid: string }) {
 }
 ```
 
----
-
-## Hook リファレンス
-
-### 統合 Hook
-
-通常はこれらを使えば十分。個別 Hook は細かい制御が必要な場合に使用する。
-
-#### `useChatScreen(roomId, uid)`
-
-チャット画面に必要な全機能をまとめて提供する。
-
-| パラメータ | 型 | 説明 |
-|---|---|---|
-| `roomId` | `string \| null` | ルーム ID |
-| `uid` | `string \| null` | ログインユーザーの ID |
-
-| 戻り値 | 型 | 説明 |
-|---|---|---|
-| `displayMessages` | `DisplayMessage[]` | 時系列順の統合メッセージ一覧（実 + pending） |
-| `isLoading` | `boolean` | 初回読み込み中 |
-| `isLoadingMore` | `boolean` | 過去メッセージ読み込み中 |
-| `hasMore` | `boolean` | さらに過去のメッセージがあるか |
-| `error` | `Error \| null` | エラー |
-| `loadMore` | `() => Promise<void>` | 過去メッセージを追加取得 |
-| `sendText` | `(content: string) => Promise<ValidationResult>` | テキストメッセージ送信 |
-| `sendFile` | `(file: File, type: "image" \| "video" \| "file") => ValidationResult` | ファイル/画像/動画送信 |
-| `retry` | `(pendingId: string) => Promise<void>` | 失敗メッセージの再送 |
-| `dismiss` | `(pendingId: string) => void` | 失敗メッセージの破棄 |
-| `cancelUpload` | `(pendingId: string) => void` | アップロードキャンセル |
-
-#### `useUnreadCount(uid, options?)`
-
-未読ルーム数をリアルタイムで返す。
-
-| パラメータ | 型 | 説明 |
-|---|---|---|
-| `uid` | `string \| null` | ログインユーザーの ID |
-| `options?.type` | `ChatRoomType` | ルームタイプで絞り込み（省略時は全タイプ） |
-
-| 戻り値 | 型 |
-|---|---|
-| `number` | 未読ルーム数 |
-
-#### `useBulkMessageSender(senderId)`
-
-複数ユーザーに同一のダイレクトメッセージを一斉送信する。
-
-| パラメータ | 型 | 説明 |
-|---|---|---|
-| `senderId` | `string` | 送信者の userId |
-
-| 戻り値 | 型 | 説明 |
-|---|---|---|
-| `send` | `(params: BulkSendParams) => Promise<BulkSendResult>` | 一斉送信を実行 |
-| `status` | `"idle" \| "sending" \| "done"` | 送信状態 |
-| `progress` | `BulkSendProgress \| null` | 進捗情報（`{ completed, total, latest }`） |
-| `result` | `BulkSendResult \| null` | 最終結果（`{ results, successCount, failedCount }`） |
-| `reset` | `() => void` | 状態をリセット |
-
-```ts
-type BulkSendParams = {
-  targetUserIds: string[];
-  content: string;
-  metadata?: MessageMetadata;
-  concurrency?: number; // デフォルト: 5
-};
-```
-
-> 内部では同時実行数を制限して Firestore のレート制限に配慮する。各宛先の成功/失敗は独立しており、一部が失敗しても他の送信には影響しない。
-
-### 個別 Hook
-
-#### `useChatRooms(uid, options?)`
-
-ユーザーが参加しているルーム一覧をリアルタイム購読する。
-
-| パラメータ | 型 | 説明 |
-|---|---|---|
-| `uid` | `string \| null` | ログインユーザーの ID |
-| `options?.type` | `ChatRoomType` | ルームタイプで絞り込み |
-
-| 戻り値 | 型 | 説明 |
-|---|---|---|
-| `rooms` | `ChatRoom[]` | ルーム一覧（`lastMessageSnapshot.createdAt` 降順） |
-| `isLoading` | `boolean` | 初回読み込み中 |
-| `error` | `Error \| null` | エラー |
-
-#### `useChatRoomSubscription(roomId)`
-
-単一ルームのドキュメントをリアルタイム購読する。チャット画面でルーム情報（参加者・readAt 等）を表示する際に使用。
-
-| パラメータ | 型 | 説明 |
-|---|---|---|
-| `roomId` | `string \| null` | ルーム ID |
-
-| 戻り値 | 型 | 説明 |
-|---|---|---|
-| `room` | `ChatRoom \| null` | ルーム情報 |
-| `isLoading` | `boolean` | 初回読み込み中 |
-| `error` | `Error \| null` | エラー |
-
-#### `useChatMessages(roomId)`
-
-過去メッセージの取得（ページネーション）+ 新着メッセージのリアルタイム購読を行う。
-
-| パラメータ | 型 | 説明 |
-|---|---|---|
-| `roomId` | `string \| null` | ルーム ID |
-
-| 戻り値 | 型 | 説明 |
-|---|---|---|
-| `messages` | `ChatMessage[]` | メッセージ一覧（古い → 新しい順） |
-| `isLoading` | `boolean` | 初回読み込み中 |
-| `isLoadingMore` | `boolean` | 過去メッセージ読み込み中 |
-| `hasMore` | `boolean` | さらに過去のメッセージがあるか |
-| `error` | `Error \| null` | エラー |
-| `loadMore` | `() => Promise<void>` | 過去メッセージを追加取得 |
-
-動作: マウント時に最新30件を取得 → 以降の新着をリアルタイム購読。`loadMore` で過去方向にカーソルベースでページネーション。
-
-#### `useChatMessageSender(roomId, uid)`
-
-メッセージ送信と楽観的 UI を管理する。
-
-| パラメータ | 型 | 説明 |
-|---|---|---|
-| `roomId` | `string \| null` | ルーム ID |
-| `uid` | `string \| null` | 送信者の ID |
-
-| 戻り値 | 型 | 説明 |
-|---|---|---|
-| `pendingMessages` | `PendingMessage[]` | 送信中/失敗のメッセージ一覧 |
-| `sendText` | `(content: string) => Promise<ValidationResult>` | テキスト送信 |
-| `sendFile` | `(file: File, type: "image" \| "video" \| "file") => ValidationResult` | ファイル/画像/動画送信 |
-| `retry` | `(pendingId: string) => Promise<void>` | 再送 |
-| `dismiss` | `(pendingId: string) => void` | 破棄 |
-| `cancelUpload` | `(pendingId: string) => void` | アップロードキャンセル |
-
-#### `useMergedMessages(roomId, messages)`
-
-実メッセージと pending メッセージを統合して、UI 表示用のリストを生成する。
-
-| パラメータ | 型 | 説明 |
-|---|---|---|
-| `roomId` | `string \| null` | ルーム ID |
-| `messages` | `ChatMessage[]` | 実メッセージ一覧 |
-
-| 戻り値 | 型 | 説明 |
-|---|---|---|
-| `displayMessages` | `DisplayMessage[]` | 統合メッセージ一覧 |
-
-```ts
-type DisplayMessage = {
-  message: ChatMessage;
-  sendingStatus?: MessageSendingStatus; // 実メッセージは undefined
-  uploadProgress?: UploadProgress;
-  isPending: boolean;
-};
-```
-
-#### `useReadAt(roomId, uid, options?)`
-
-既読時刻を自動更新する。画面に配置するだけで動作する。
-
-| パラメータ | 型 | 説明 |
-|---|---|---|
-| `roomId` | `string \| null` | ルーム ID |
-| `uid` | `string \| null` | ログインユーザーの ID |
-| `options?.latestMessageAt` | `Date \| null` | 最新メッセージの日時（滞在中の更新トリガー） |
-
-動作:
-- **入室時**: 初回マウント時に `readAt` を更新
-- **滞在中**: `latestMessageAt` が変化するたびに 1 秒デバウンスで更新
-- **退出時**: アンマウント時に `readAt` を更新
-
-#### `useResolvedParticipants(rooms, currentUid, resolver)`
-
-ルーム一覧の参加者プロフィールをバッチ取得する。
-
-| パラメータ | 型 | 説明 |
-|---|---|---|
-| `rooms` | `ChatRoom[]` | ルーム一覧 |
-| `currentUid` | `string \| null` | 自分の UID（除外される） |
-| `resolver` | `ParticipantResolver` | UID → プロフィール変換関数 |
-
-| 戻り値 | 型 | 説明 |
-|---|---|---|
-| `profileMap` | `Map<string, ParticipantProfile>` | UID → プロフィールのマップ |
-| `isLoading` | `boolean` | 取得中 |
-
-```ts
-type ParticipantProfile = { name: string; avatarUrl?: string };
-type ParticipantResolver = (uids: string[]) => Promise<Map<string, ParticipantProfile>>;
-```
-
-> resolver はダウンストリームで実装する。全ルームの UID を一意に収集し、resolver を1回だけ呼ぶ。
-> rooms が更新された際は未取得の UID のみ差分取得する。
-
----
-
-## Service リファレンス
-
-### ルーム操作（firestoreClient.ts）
-
-#### ルーム作成
-
-```ts
-// ダイレクトルーム（既存ルームがあればそれを返す）
-const { roomId, alreadyExists } = await createDirectRoom({
-  myUid: currentUser.uid,
-  otherUid: targetUser.uid,
-});
-
-// グループルーム
-const { roomId } = await createGroupRoom({
-  myUid: currentUser.uid,
-  participants: [currentUser.uid, user2.uid, user3.uid],
-  name: "プロジェクトA",
-});
-```
-
-#### カスタムルーム作成
-
-ダウンストリームで独自の `type` を持つルームを作成する場合:
-
-```ts
-import {
-  createRoomWithSystemMessage,
-  buildParticipantPair,
-} from "@/features/chatRoom/services/client/firestoreClient";
-
-const { roomId } = await createRoomWithSystemMessage({
-  roomId: doc(collection(fstore, "chat_rooms")).id,
-  type: "scout" as any,
-  name: null,
-  participants: [recruiterUid, targetUid],
-  participantPair: buildParticipantPair(recruiterUid, targetUid),
-  senderId: recruiterUid,
-});
-```
-
-#### 参加者管理
-
-```ts
-import { addParticipant, removeParticipant } from "@/features/chatRoom/services/client/firestoreClient";
-
-// 追加（システムメッセージ「{name}が参加しました」を自動作成）
-await addParticipant({ roomId, uid: newUser.uid, operatorUid: currentUser.uid, displayName: newUser.name });
-
-// 退出（readAt 削除 + システムメッセージ）
-await removeParticipant({ roomId, uid: leavingUser.uid, operatorUid: currentUser.uid, displayName: leavingUser.name });
-```
-
-#### 既読更新
-
-```ts
-import { updateReadAt } from "@/features/chatRoom/services/client/firestoreClient";
-
-// 手動で既読更新（通常は useReadAt が自動で行う）
-await updateReadAt(roomId, uid);
-```
-
-### メッセージ操作（messageClient.ts）
-
-#### 送信
-
-通常は `useChatMessageSender` 経由で呼ばれるが、直接使用も可能。
-
-```ts
-import { sendTextMessage, sendFileMessage, generateMessageId } from "@/features/chatRoom/services/client/messageClient";
-
-// テキスト
-const messageId = await sendTextMessage({ roomId, content: "Hello", senderId: uid });
-
-// ファイル（uploadToStorage で上げた ref を渡す。通常は useChatMessageSender.sendFile を使う）
-const messageId = await sendFileMessage({
-  roomId, content: ref, type: "image", senderId: uid,
-  metadata: { fileName: "photo.jpg", fileSize: 1024 },
-});
-```
-
-> 送信時は writeBatch で `messages` 作成 + `lastMessageSnapshot` 更新 + `readAt` 更新をアトミック実行する。
-
-#### 編集
-
-```ts
-import { editMessage } from "@/features/chatRoom/services/client/messageClient";
-
-await editMessage({
-  roomId,
-  messageId,
-  content: "修正後のテキスト",
-  senderId: uid,
-  isLatestMessage: true, // 最新メッセージなら lastMessageSnapshot も同時更新
-});
-```
-
-#### 削除（論理削除）
-
-```ts
-import { deleteMessage } from "@/features/chatRoom/services/client/messageClient";
-
-await deleteMessage({ roomId, messageId });
-// → deletedAt が設定される。lastMessageSnapshot は変更しない
-```
-
-#### 過去メッセージ取得
-
-```ts
-import { fetchPastMessages } from "@/features/chatRoom/services/client/messageClient";
-
-const { messages, nextCursor, hasMore } = await fetchPastMessages(roomId);
-// 次ページ: await fetchPastMessages(roomId, nextCursor);
-```
-
-### 一斉メッセージ送信（bulkMessageClient.ts）
-
-複数ユーザーに同一のダイレクトメッセージを一斉送信する。各宛先に対してルームの確保（find or create）→ メッセージ送信を並行実行する。
-
-```ts
-import { sendBulkDirectMessage } from "@/features/chatRoom/services/client/bulkMessageClient";
-
-const result = await sendBulkDirectMessage({
-  senderId: currentUser.uid,
-  targetUserIds: ["user1", "user2", "user3"],
-  content: "お知らせ：明日の会議は15時に変更になりました",
-  concurrency: 5, // 同時実行数（デフォルト: 5）
-  onProgress: ({ completed, total }) => {
-    console.log(`${completed} / ${total} 件完了`);
-  },
-});
-
-console.log(`成功: ${result.successCount}, 失敗: ${result.failedCount}`);
-
-// 失敗した宛先の確認
-const failed = result.results.filter((r) => r.status === "failed");
-```
-
-> 同時実行数を制限（デフォルト5）して Firestore のレート制限に配慮する。各宛先の処理は独立しており、一部の失敗が他に影響しない。
-
-### 未読ユーティリティ（utils/unread.ts）
-
-```ts
-import { isRoomUnread, countUnreadRooms } from "@/features/chatRoom/utils/unread";
-
-isRoomUnread(room, uid);      // 最新メッセージが自分の送信なら false
-countUnreadRooms(rooms, uid); // 未読ルーム数
-```
-
----
-
-## 拡張パターン
-
 ### カスタムルームタイプ
 
-`type` フィールドを拡張してプロジェクト固有のチャット種別を追加できる。
+- `type` フィールドを拡張してプロジェクト固有のチャット種別を追加できる。タイプフィルタを使う場合は、対応する複合インデックスが要る（「Firestore 複合インデックス」）
 
 ```tsx
 // ルームタイプ別のフィルタリング
@@ -688,13 +244,11 @@ const { rooms } = useChatRooms(uid, { type: "scout" as any });
 const scoutUnread = useUnreadCount(uid, { type: "scout" as any });
 ```
 
-> タイプフィルタを使用する場合は、対応する複合インデックスが必要（[セットアップ](#セットアップ)参照）。
-
 ### ルームへの独自フィールド追加
 
 Firestore はスキーマレスのため、コアファイルの変更なしに独自フィールドを追加できる。
 
-> 注意: ルール例（`firestore.rules.example`）はこの独自フィールドを通さない。使うならルールに足す。既定の `fstore` で書くと、メール+パスワード・OAuth のユーザーは `request.auth.uid` が `users.id` にならない（「セキュリティルールの方針」の chatRoom 専用の Firebase アプリ）。
+- ルール例（`firestore.rules.example`）はこの独自フィールドを通さない。既定の `fstore` で書くと、メール+パスワード・OAuth のユーザーは `request.auth.uid` が `users.id` にならない（Internals「chatRoom 専用の Firebase アプリ」）
 
 ```ts
 // 書き込み
@@ -709,7 +263,7 @@ type ExtendedChatRoom = ChatRoom & { iconUrl?: string; description?: string };
 
 ### メッセージメタデータの拡張
 
-`MessageMetadata` は `BaseMessageMetadata & Record<string, unknown>` として定義されており、コアファイルを変更せずに任意のフィールドを追加できる。
+- `MessageMetadata` は `BaseMessageMetadata & Record<string, unknown>` として定義されており、コアファイルを変更せずに任意のフィールドを追加できる
 
 **書き込み（コア変更不要）**
 
@@ -801,19 +355,106 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 }
 ```
 
----
+## API
 
-## 設計上の注意点
+### ChatRoom（`chat_rooms` コレクション）
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `type` | `"direct" \| "group"` | ルーム種別。ダウンストリームで拡張可能 |
+| `name` | `string \| null` | グループ名（direct は null） |
+| `participants` | `string[]` | 参加者の userId 配列 |
+| `participantPair` | `string \| null` | `sort([uid1, uid2]).join("_")`。direct ルームの重複防止キー |
+| `readAt` | `Record<string, Date>` | `{ [userId]: 最終既読日時 }` |
+| `lastMessageSnapshot` | `object` | 最新メッセージのスナップショット（一覧表示用） |
+| `createdAt` / `updatedAt` | `Date` | タイムスタンプ |
+
+#### LastMessageSnapshot
+
+ルーム一覧画面で最新メッセージを表示するための冗長データ。
+メッセージ送信時に writeBatch でアトミック更新される。
+
+```ts
+{ type: MessageType, content: string, senderId: string, createdAt: Date }
+```
+
+### ChatMessage（`chat_rooms/{roomId}/messages` サブコレクション）
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `type` | `"text" \| "image" \| "video" \| "file" \| "system"` | メッセージ種別 |
+| `content` | `string` | テキスト本文 / ファイルの ref（`storage://priv/chatRoom.<image\|video\|file>/…`。旧メッセージは旧 URL のまま） |
+| `senderId` | `string` | 送信者の userId |
+| `metadata` | `MessageMetadata \| null` | ファイル情報（下記参照） |
+| `createdAt` | `Date` | 作成日時 |
+| `editedAt` | `Date \| null` | 編集日時（未編集は null） |
+| `deletedAt` | `Date \| null` | 論理削除日時（未削除は null） |
+
+#### MessageMetadata
+
+```ts
+{ fileName: string, fileSize: number, mimeType?: string, thumbnailUrl?: string }
+```
+
+### バリデーション
+
+- `utils/validation.ts` がサイズと、添付の許可種別(`config.ts` の `attachmentContentTypes`、上書き `src/config/features/chatRoom.config.ts`)を見る
+
+| 項目 | 制限 |
+|---|---|
+| テキスト最大長 | 5,000 文字 |
+| 画像最大サイズ | 10 MB |
+| ファイル最大サイズ | 20 MB |
+
+### 定数（constants/chat.ts）
+
+| 定数 | デフォルト値 | 説明 |
+|---|---|---|
+| `MESSAGE_MAX_LENGTH` | 5000 | テキストメッセージの最大文字数 |
+| `MESSAGES_PER_PAGE` | 30 | 1回のページネーションで取得する件数 |
+| `MAX_PARTICIPANTS` | 30 | グループルームの最大参加者数 |
+| `IMAGE_MAX_SIZE` | 10MB | 画像ファイルの最大サイズ |
+| `VIDEO_MAX_SIZE` | 200MB | 動画ファイルの最大サイズ |
+| `FILE_MAX_SIZE` | 20MB | 一般ファイルの最大サイズ |
+
+## Extension
+
+- `src/config/features/chatRoom.config.ts`: `attachmentContentTypes`(添付の種別ごとの許可 Content-Type。送信前の検査と用途 `storageObject/purposes/chatRoom.ts` が読む)
+
+## Internals
+
+### データフロー
+
+```
+【チャット画面】
+  useChatScreen
+    ├── useChatMessages ──── fetchPastMessages (初回) + subscribeNewMessages (リアルタイム)
+    ├── useChatMessageSender ── sendTextMessage / sendFileMessage (writeBatch)
+    ├── useMergedMessages ──── 実メッセージ + pending を時系列統合
+    └── useReadAt ──────────── 入室時・新着受信時・退出時に readAt 更新
+
+【ルーム一覧画面】
+  useChatRooms ────────── subscribeRooms (リアルタイム)
+  useResolvedParticipants ── 参加者の名前・アバター解決
+  useUnreadCount ──────── useChatRooms + countUnreadRooms
+
+【メッセージ送信の楽観的UIフロー】
+  sendText/sendFile
+    → pending 追加 (status: "sending" / "uploading") → 即座にUI表示
+    → writeBatch 成功 → status: "sent"
+    → onSnapshot で実メッセージ到着 → ID一致で pending 除去
+    → 失敗時: status: "failed" → retry / dismiss
+```
 
 ### Firestore の制約
 
-- **複合インデックス**: `where` + `orderBy` の組み合わせには必須（[セットアップ](#セットアップ)参照）
+- 複合インデックス: `where` + `orderBy` の組み合わせには必須（Usage「Firestore 複合インデックス」）
 - **単一 orderBy**: Firestore は 1 クエリにつき 1 フィールドの orderBy のみ。メッセージは `createdAt` でソート
 - **OR クエリなし**: 複数タイプでのフィルタが必要な場合は、クライアント側でフィルタするか購読を複数立てる
 
 ### serverTimestamp と null 安全性
 
-`serverTimestamp()` で書き込んだフィールドは、ローカルの `onSnapshot` で先にスナップショットが発火する際に `null` になりうる。ベースの subscribe ライブラリ（`src/lib/firestore/client/subscribe.ts`）では `.data({ serverTimestamps: "estimate" })` を適用済みで、通常は `null` にならないが、日時表示では防御的にハンドリングすることを推奨。
+`serverTimestamp()` で書き込んだフィールドは、ローカルの `onSnapshot` で先にスナップショットが発火する際に `null` になりうる。ベースの subscribe ライブラリ（`src/lib/firestore/client/subscribe.ts`）では `.data({ serverTimestamps: "estimate" })` を適用済みで、通常は `null` にならないが、日時表示は null を受けても壊れない形にする:
 
 ```tsx
 <span>{room.lastMessageSnapshot?.createdAt?.toLocaleString() ?? ""}</span>
@@ -828,39 +469,42 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 
 これにより、ルーム一覧で最新メッセージが常に正しく表示され、送信者自身に未読バッジが付くことを防ぐ。
 
-### 設計判断の理由
+### 設計判断
 
-**lastMessageSnapshot をクライアント writeBatch で更新する（Cloud Functions トリガーを使わない）**
+#### lastMessageSnapshot をクライアント writeBatch で更新する（Cloud Functions トリガーを使わない）
 
 - メッセージ作成と snapshot 更新が同一バッチでアトミックに確定し、送信直後に一覧へ反映される（Functions トリガーは非同期で遅延が出る）
 - 整合性はセキュリティルールのフィールド検証で強制できる
 - BACKEND_DOCTRINE の「Firebase Functions にロジックを置かない」とも一致する
 
-**未読管理を chatRoom 内の `readAt` map に統合する**
+#### 未読管理を chatRoom 内の `readAt` map に統合する
 
 - 一覧購読だけで未読判定が完結し、ルームごとの追加読取が発生しない
 - `readAt` の更新はチャット画面側（`useReadAt` の入室・滞在中の新着・退出時）と自分の送信時のみ。一覧のリアルタイムリスナーでは更新しない（書き込みコスト抑制）
 - 代償: 参加者が多いと同一ドキュメントへの同時書き込み競合が起きうる。`MAX_PARTICIPANTS`（30）程度では実害はない
-- **100 人超のグループが必要になったら** `chat_rooms/{roomId}/members/{userId}` サブコレクションへ readAt を分離する。一覧での未読判定が追加読取になるトレードオフと引き換えに書き込み競合を回避する
+- 100 人超のグループでは `chat_rooms/{roomId}/members/{userId}` サブコレクションへ readAt を分けると書き込み競合を避けられる（一覧での未読判定が追加読取になる）
 
-**タイピング表示（未実装）は Firestore ではなく Realtime Database を使う**
+#### タイピング表示（未実装）は Realtime Database の物
 
 - Firestore は書き込み回数課金で、数秒おきに発生する typing 状態更新には不向き。RTDB は高頻度な小さい値の更新に向き、`onDisconnect` で切断時の自動クリアもできる
 - 構造案: `chatTyping/{roomId}/{userId}: { isTyping, updatedAt }`。クライアント側で `updatedAt` が数秒以上古ければ表示しないフェイルセーフを入れる
-- RTDB は必要になった時点で導入する（上流は未導入）
+- 上流は RTDB を入れていない
 
-**セキュリティルールの方針（例を `src/features/core/chatRoom/firestore.rules.example` に同梱。ダウンストリームが自分の `firestore.rules` に足してデプロイする）**
+#### セキュリティルールの方針
 
+- 例を `src/features/core/chatRoom/firestore.rules.example` に同梱。fork が自分の `firestore.rules` に足してデプロイする
 - ブラウザが `chat_rooms` と `messages` を直接読み書きするので、ルールが唯一の守り。手順は docs/setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md §6.2
-- 例は `request.auth.uid` == `users.id`（participants・senderId・readAt のキー）を前提にする。chatRoom のクライアントはどのログイン方法でもこれを満たす（下の「chatRoom 専用の Firebase アプリ」）
+- 例は `request.auth.uid` == `users.id`（participants・senderId・readAt のキー）を前提にする。chatRoom のクライアントはどのログイン方法でもこれを満たす（「chatRoom 専用の Firebase アプリ」）
 - 例は chatRoom のクライアントが書くフィールドと type（direct / group）だけを通す。独自フィールド・独自の type を使う fork は、自分の `firestore.rules` に足す
 
-**chatRoom 専用の Firebase アプリ（つなぎの修正。ブラウザからの配信の形はバックエンド評議会の決定 R4 待ち）**
+#### chatRoom 専用の Firebase アプリ
 
 - chatRoom のクライアント（`services/client/firestoreClient.ts` / `messageClient.ts`）は、既定のアプリではなく chatRoom 専用のアプリ（名前 `"chatRoom"`、`services/client/chatFirebase.ts`）の Firestore を使う
 - 専用のアプリはカスタムトークン（`/api/auth/firebase-token`。uid = `users.id`）でサインインし、読み書き・購読の前にそれを待つ。認証の状態はメモリにだけ持つ（ページの読み込みごとにトークンを 1 回取る）
-- 理由: メール+パスワード・OAuth でログインすると、既定のアプリの uid はプロバイダーの uid のまま（`users.id` と違う）で、ルールで chatRoom の読み書きがすべて拒否される（2026-11-05 に実機で確認）。既定のアプリ（ログイン・電話番号の紐づけ・パスワード変更）は入れ替えない
-- 専用のアプリは chatRoom の内側だけの部品で、公開の入口にはしない。fork が既定の `fstore`（`@/lib/firebase/client/app`）で chat_rooms に直接書くと、メール+パスワード・OAuth のユーザーでは `request.auth.uid` が `users.id` にならない
+- 理由: メール+パスワード・OAuth でログインすると、既定のアプリの uid はプロバイダーの uid のまま（`users.id` と違う）で、ルールで chatRoom の読み書きがすべて拒否される。既定のアプリ（ログイン・電話番号の紐づけ・パスワード変更）は入れ替えない
+- 専用のアプリは chatRoom の内側だけの部品で、公開の入口ではない
+
+セキュリティルールの書き方:
 
 - ルールはドキュメント単位で評価されるため、各ドキュメントのフィールド値検証で制約を担保する
 - `chat_rooms` の update は 1 つの allow 式で「どのフィールドが変わったか」を分岐判定する。少なくとも次の経路を区別する:
@@ -869,7 +513,7 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
   - 編集（最新メッセージ時）: `lastMessageSnapshot.content` / `updatedAt` のみ変更
   - 参加者管理・ルーム名変更等: 用途に応じた権限条件
 - `messages` は親ルームの `participants` に含まれることを read/create の条件にし、create は `senderId == request.auth.uid`。編集・論理削除を使う場合は送信者本人のみに update を許可する
-- チャット添付は Firebase Storage を使わない（下の「ファイル添付」。発行と読み取りはアプリのサーバーが participants で判定する）
+- チャット添付は Firebase Storage を使わない（「ファイル添付」。発行と読み取りはアプリのサーバーが participants で判定する）
 
 ### ファイル添付
 
@@ -896,83 +540,8 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 - pending 状態は Zustand ストア（`stores/messageSending/`）でルームごとに管理
 - `useMergedMessages` が実メッセージ到着時に ID 一致で pending を自動除去
 
-### バリデーション
+## Related
 
-`utils/validation.ts` でサイズのみをチェック。ファイルタイプの制限はアップストリームでは行わない（ダウンストリームで必要に応じて追加する）。
-
-| 項目 | 制限 |
-|---|---|
-| テキスト最大長 | 5,000 文字 |
-| 画像最大サイズ | 10 MB |
-| ファイル最大サイズ | 20 MB |
-
-### 定数（constants/chat.ts）
-
-| 定数 | デフォルト値 | 説明 |
-|---|---|---|
-| `MESSAGE_MAX_LENGTH` | 5000 | テキストメッセージの最大文字数 |
-| `MESSAGES_PER_PAGE` | 30 | 1回のページネーションで取得する件数 |
-| `MAX_PARTICIPANTS` | 30 | グループルームの最大参加者数 |
-| `IMAGE_MAX_SIZE` | 10MB | 画像ファイルの最大サイズ |
-| `VIDEO_MAX_SIZE` | 200MB | 動画ファイルの最大サイズ |
-| `FILE_MAX_SIZE` | 20MB | 一般ファイルの最大サイズ |
-
-### ファイル構成
-
-```
-chatRoom/
-├── entities/
-│   ├── message.ts          # ChatMessage, ChatRoomType, MessageMetadata 等（手動）
-│   ├── firestore.ts        # collectionPath（自動生成）
-│   ├── model.ts            # ChatRoom 型（自動生成）
-│   └── schema.ts / form.ts # Zod スキーマ / フォーム型（自動生成）
-│
-├── constants/
-│   └── chat.ts             # メッセージ上限、ファイルサイズ、システムメッセージ等（手動）
-│
-├── services/client/
-│   ├── firestoreClient.ts  # ルーム作成・購読・参加者管理（手動）
-│   ├── messageClient.ts    # メッセージ送信・編集・削除・取得・購読（手動）
-│   ├── bulkMessageClient.ts # 複数ユーザーへの一斉メッセージ送信（手動）
-│   └── chatRoomClient.ts   # REST API クライアント（自動生成・管理画面用）
-│
-├── hooks/firestore/        # Firestore リアルタイム用フック（手動）
-│   ├── useChatScreen.ts         ← 統合Hook: チャット画面の全機能
-│   ├── useUnreadCount.ts        ← 統合Hook: 未読ルーム数
-│   ├── useChatRooms.ts
-│   ├── useChatRoomSubscription.ts
-│   ├── useChatMessages.ts
-│   ├── useChatMessageSender.ts
-│   ├── useMergedMessages.ts
-│   ├── useReadAt.ts
-│   ├── useResolvedParticipants.ts
-│   └── useBulkMessageSender.ts    ← 一斉送信フック
-│
-├── hooks/                  # CRUD フック（自動生成・管理画面用）
-│
-├── stores/messageSending/  # 送信状態管理 Zustand ストア（手動）
-│   ├── types.ts            # PendingMessage, MessageSendingStatus
-│   ├── internalStore.ts
-│   ├── useStore.ts
-│   └── index.ts
-│
-├── utils/
-│   ├── concurrency.ts      # pMap（同時実行数制限付き並行処理）
-│   ├── metadata.ts         # getTypedMetadata（メタデータの型安全な読み取り）
-│   ├── unread.ts           # isRoomUnread, countUnreadRooms
-│   └── validation.ts       # メッセージ/ファイルのバリデーション
-│
-└── components/             # 管理画面コンポーネント（自動生成）
-```
-
-> **手動** = ダウンストリームでカスタマイズ可能 | **自動生成** = `pnpm generate domain` で生成、直接編集しない
-
-### 将来の拡張
-
-以下は現在未実装だが、既存構造を破壊せずに追加可能:
-
-- **リプライ**: `ChatMessage` に `replyTo: { messageId, content, senderId }` を追加
-- **メンション**: `ChatMessage` に `mentions: string[]` を追加
-- **リアクション**: サブコレクション `messages/{messageId}/reactions` を新設
-- **タイピング表示**: Realtime Database を使用（[設計判断の理由](#設計判断の理由)参照）
-- **既読レシート**: 既存の `readAt` マップを活用
+- `hooks/firestore/README.md`: Firestore のフック(統合 Hook・個別 Hook)のリファレンス
+- `services/client/README.md`: ルーム・メッセージ・一斉送信のクライアント関数
+- ルール例: `firestore.rules.example`、手順: docs/setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md §6.2
