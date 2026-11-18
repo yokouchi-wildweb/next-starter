@@ -24,6 +24,8 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Button } from "@/components/Form/Button/Button";
+import { Input } from "@/components/Form/Input/Manual";
+import { PreviewImage } from "@/components/Media/PreviewImage";
 import { Para, Span } from "@/components/TextBlocks";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { resolveStorageSrc } from "@/lib/storage";
@@ -124,11 +126,11 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
         </Span>
 
         {/* 隠しファイル input。ボタンクリックで OS のネイティブシート（カメラ / ライブラリ）が開く */}
-        <input
+        <Input
           ref={inputRef}
           type="file"
           accept="image/*"
-          className="hidden"
+          hidden
           onChange={handleFileChange}
         />
 
@@ -159,12 +161,10 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
         ) : (
           <Stack gap="xs">
             <Block className="relative">
-              {/* 選んだ直後のプレビュー(blob: や署名 URL も来る)なので素の img。表示中は常に見えているので lazy にせず、decode だけ非同期にする */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              {/* 選んだ直後のプレビュー(blob: や署名 URL も来る)。表示中は常に見えているので lazy にせず、decode だけ非同期(PreviewImage の既定) */}
+              <PreviewImage
                 src={displayUrl}
                 alt="振込明細プレビュー"
-                decoding="async"
                 className="w-full max-h-80 rounded-md bg-muted object-contain"
               />
               {isUploading && (

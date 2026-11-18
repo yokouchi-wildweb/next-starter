@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { Check, Copy, Link as LinkIcon } from "lucide-react";
 
+import { Button } from "@/components/Form/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { InBlock } from "@/components/Layout/InBlock";
@@ -57,8 +58,12 @@ export function UrlPreviewCard({ title, url }: Props) {
             <Span size="xs" tone="muted" className="flex-1 truncate font-mono">
               {url}
             </Span>
-            <button
+            <Button
               type="button"
+              variant="none"
+              size="none"
+              iconSizing="none"
+              propagateClick
               onClick={handleCopy}
               aria-label="URL をコピー"
               className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent/30 active:bg-accent/50"
@@ -74,7 +79,7 @@ export function UrlPreviewCard({ title, url }: Props) {
                   コピー
                 </>
               )}
-            </button>
+            </Button>
           </Flex>
         </Block>
       </Stack>

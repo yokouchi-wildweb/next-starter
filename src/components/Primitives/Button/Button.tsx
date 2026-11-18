@@ -9,6 +9,12 @@ import type { CarouselButtonSlot } from "@/components/Primitives/Carousel/Carous
 const baseButtonClassName =
   "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive";
 
+/** 中の svg に大きさの class(size-*)が無いとき 16px に揃える token。iconSizing="none" で外す */
+const iconSizeClassName = "[&_svg:not([class*='size-'])]:size-4";
+
+/** 中のアイコンの大きさ: auto(既定) = size-* の無い svg を 16px に揃える / none = 呼び手が付けた大きさ(h-* w-* や style)のまま */
+export type ButtonIconSizing = "auto" | "none";
+
 /**
  * 枠に貸す印の名前(下のナビのメニュー項目 BottomNavMenuEntry が渡す)。印の持ち主は枠(src/app/(user)/_layout/README.md の一覧)で、
  * Primitives の一覧には載せない(export しないので slots.mjs の型つきの値の読み手も数えない)。Primitives は src/app を読まないので字面で書く
@@ -16,10 +22,16 @@ const baseButtonClassName =
 type FrameButtonSlot = "bottom-nav-item";
 
 /**
+ * 表の部品 tableSuite に貸す印の名前(セルのクリックの押し口 cell-click-overlay)。印の持ち主は tableSuite で、Primitives の一覧には載せない。
+ * Primitives は lib を読まないので字面で書く
+ */
+type TableSuiteButtonSlot = "cell-click-overlay";
+
+/**
  * 印(data-slot)。button 以外は同じ要素を描く上流の部品が渡す: Carousel の前後のボタン・下のナビのメニュー項目(枠の印 bottom-nav-item)。
  * fork は名前を変えずに印を狙う
  */
-export type ButtonSlot = "button" | CarouselButtonSlot | FrameButtonSlot;
+export type ButtonSlot = "button" | CarouselButtonSlot | FrameButtonSlot | TableSuiteButtonSlot;
 
 const Button = React.forwardRef<
   HTMLButtonElement,
@@ -27,8 +39,10 @@ const Button = React.forwardRef<
     asChild?: boolean;
     /** 印の名前(上流の包む部品だけが使う。既定 button)。props の data-slot はこれに負ける */
     slot?: ButtonSlot;
+    /** 中のアイコンの大きさを揃えるか @default "auto" */
+    iconSizing?: ButtonIconSizing;
   }
->(({ className, asChild = false, slot = "button", ...props }, ref) => {
+>(({ className, asChild = false, slot = "button", iconSizing = "auto", ...props }, ref) => {
   const Comp = asChild ? Slot.Root : "button";
 
   return (
@@ -37,7 +51,10 @@ const Button = React.forwardRef<
       {...props}
       data-slot={slot}
       // className は分割代入で props から外してあるので、広げの後ろでも呼び手の値を落とさない(属性の並びを前と同じ data-slot → class に保つ)
-      className={cn(baseButtonClassName, className)}
+      className={cn(
+        iconSizing === "none" ? baseButtonClassName.replace(` ${iconSizeClassName}`, "") : baseButtonClassName,
+        className,
+      )}
     />
   );
 });

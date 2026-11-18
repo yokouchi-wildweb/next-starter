@@ -1,5 +1,5 @@
 // AccountAvatarSection のアバター未設定の時の中身(children)の検査(jsdom。アップロード・保存のフックと AppImage は偽物)。
-// - children を渡さない時: アバターあり / なし / size の出力が変更の前に記録した出力(__fixtures__/accountAvatarSection.before.json)と同じ
+// - children を渡さない時: アバターあり / なし / size の出力が記録した出力(__fixtures__/accountAvatarSection.before.json。包みの部品に替えた時に取り直した)と同じ
 // - children を渡すと未設定の時に丸の箱(size × size)の中に既定の人の形の代わりに出て、アバターがある時は出ない
 // 実行: pnpm test src/features/core/user/components/common/AccountAvatarSection.render.test.tsx
 import { readFileSync } from "node:fs";
@@ -106,7 +106,7 @@ test("children は未設定の時だけ丸の箱の中に出て、既定の人�
   const html = await snap({ user: userWithout, size: 48, children: initial });
   assert.match(
     html,
-    /<span class="flex items-center justify-center rounded-full bg-primary\/10" style="width: 48px; height: 48px;"><b id="initial">太<\/b><\/span>/,
+    /<span data-component="InBlock" style="width: 48px; height: 48px;" class="flex items-center justify-center rounded-full bg-primary\/10"><b id="initial">太<\/b><\/span>/,
   );
   assert.doesNotMatch(html, /lucide-user/);
   const withAvatar = await snap({ user: userWith, children: initial });

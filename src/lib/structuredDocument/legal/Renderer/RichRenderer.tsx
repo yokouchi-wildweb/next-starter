@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
+import { Link } from "@/components/Navigation";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, SecTitle } from "@/components/TextBlocks";
 
@@ -50,19 +51,21 @@ function RenderSection({
               components={{
                 // p タグは Para 内で不要なので中身だけ返す
                 p: ({ children }) => <>{children}</>,
-                // リンクは新しいタブで開く（外部リンクの場合）
+                // リンクは棚の Link(文書の中のリンクは閉じた機能でも隠さない = gate always)。外部リンクは新しいタブで開く。href の無い物は文字だけ
                 a: ({ href, children }) => {
-                  const isExternal = href?.startsWith("http");
+                  if (!href) return <>{children}</>;
+                  const isExternal = href.startsWith("http");
                   return (
-                    <a
+                    <Link
                       href={href}
+                      gate="always"
                       {...(isExternal && {
                         target: "_blank",
                         rel: "noopener noreferrer",
                       })}
                     >
                       {children}
-                    </a>
+                    </Link>
                   );
                 },
               }}

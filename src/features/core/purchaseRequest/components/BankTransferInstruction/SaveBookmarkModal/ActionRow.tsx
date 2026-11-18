@@ -3,14 +3,15 @@
 // 共有アクション 1 行ぶんのカード型ボタン。
 // アイコン（カラーアクセント付き）+ ラベル + 補足説明 + 右矢印で構成し、
 // 「メールで送る」「LINE で送る」「その他で共有」等の共有導線を統一フォーマットで並べる。
-// button 要素をそのまま装飾する形にしているのは、リスト行にフィットする
-// 大型タッチ領域 (56px+) を Form/Button では表現しきれないため。
+// Form/Button の variant / size none に行の形を className で付ける(56px+ の大きな押し口。
+// Button の土台の inline-flex・折り返さない・文字の大きさと太さは block / whitespace-normal / 継ぐ値で戻す)。
 
 "use client";
 
 import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { InBlock } from "@/components/Layout/InBlock";
 import { Stack } from "@/components/Layout/Stack";
@@ -31,10 +32,14 @@ type Props = {
 
 export function ActionRow({ icon, iconAccent, label, description, onClick }: Props) {
   return (
-    <button
+    <Button
       type="button"
+      variant="none"
+      size="none"
+      iconSizing="none"
+      propagateClick
       onClick={onClick}
-      className="group w-full rounded-lg border border-border bg-card transition-colors hover:bg-accent/30 active:bg-accent/50"
+      className="group block w-full whitespace-normal rounded-lg border border-border bg-card text-[length:inherit] font-normal transition-colors hover:bg-accent/30 active:bg-accent/50"
     >
       <Flex align="center" gap="xs" className="px-3 py-3">
         <InBlock
@@ -61,6 +66,6 @@ export function ActionRow({ icon, iconAccent, label, description, onClick }: Pro
           aria-hidden
         />
       </Flex>
-    </button>
+    </Button>
   );
 }

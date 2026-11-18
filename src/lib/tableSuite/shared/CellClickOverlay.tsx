@@ -4,6 +4,7 @@
 
 import * as React from "react";
 import { Eye } from "lucide-react";
+import { Button } from "@/components/Form/Button";
 import { InBlock } from "@/components/Layout/InBlock";
 import { getCellClickOverlayClassName } from "./cellClickOverlayStyles";
 
@@ -31,9 +32,14 @@ export function CellClickOverlay({
   fullWidth = false,
 }: CellClickOverlayProps) {
   return (
-    <button
+    <Button
       type="button"
-      data-slot="cell-click-overlay"
+      variant="none"
+      size="none"
+      iconSizing="none"
+      slot="cell-click-overlay"
+      // クリックの伝播は下の onClick が止める(Button の既定の止め方には頼らない = 生の button と同じ)
+      propagateClick
       onClick={(e) => {
         e.stopPropagation();
         onClick();
@@ -44,6 +50,6 @@ export function CellClickOverlay({
       <InBlock data-slot="cell-click-indicator" className="pointer-events-none">
         {indicator}
       </InBlock>
-    </button>
+    </Button>
   );
 }

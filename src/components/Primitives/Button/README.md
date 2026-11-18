@@ -4,9 +4,10 @@
 
 - 読むのは入口 `@/components/Primitives/Button` だけ（`src/components/Primitives/index.ts` は無い）。Radix は統合版の `radix-ui` から読む
 - 画面からは通常、完成品を使う。この部品を直接組むのは完成品で足りないときだけ
+- `iconSizing`: 既定 `"auto"` = 大きさの class(`size-*`)の無い中の svg を 16px に揃える。`"none"` = 揃えず、呼び手の付けた大きさ(`h-* w-*`・style)のまま(アイコンの大きさを自分で決める押し口: 表のセルの押し口・アバターの押し口など)。`Form/Button` も同じ名前で受ける
 
 ## data-slot の一覧
 
 fork の CSS が狙ってよい印（`[data-slot="<名前>"]`。id・class 名・DOM の形は約束ではない）。印を消す・名前を変えるのは notice。印は部品のもの。呼び手が props で `data-slot` を渡しても置き換わらない（名前を変えるのは包む上流の部品が型つきの値 `slot` で渡すときだけ。見出しと同じ）。一覧と部品のファイルの印の照合: `pnpm test src/components/Primitives/slots.test.mjs`
 
-- `button` — `Button` の `<button>`（asChild のときは子の要素）。同じ要素を描く Carousel の前後のボタンは型つきの値 `slot` で自分の名前（`carousel-previous` / `carousel-next`、一覧は Carousel の README）を渡す。下のナビのメニュー項目も `slot` で枠の印 `bottom-nav-item` を渡す（持ち主は枠。一覧は `src/app/(user)/_layout/README.md`、ここには載せない）
+- `button` — `Button` の `<button>`（asChild のときは子の要素）。同じ要素を描く Carousel の前後のボタンは型つきの値 `slot` で自分の名前（`carousel-previous` / `carousel-next`、一覧は Carousel の README）を渡す。下のナビのメニュー項目も `slot` で枠の印 `bottom-nav-item` を渡す（持ち主は枠。一覧は `src/app/(user)/_layout/README.md`、ここには載せない）。表の部品 tableSuite のセルの押し口も `slot` で `cell-click-overlay` を渡す（持ち主は tableSuite、ここには載せない）

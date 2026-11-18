@@ -3,7 +3,7 @@
 import { cn } from "@/lib/cn";
 
 /**
- * CellClickOverlay のスタイルを生成する
+ * CellClickOverlay のスタイルを生成する(Form/Button variant / size none に渡す)
  * ポップオーバーモードとコールバックモードで共通利用
  */
 export const getCellClickOverlayClassName = (
@@ -20,5 +20,7 @@ export const getCellClickOverlayClassName = (
       : "inset-y-0 right-0 bg-gradient-to-r from-transparent via-transparent to-muted/50",
     "text-muted-foreground hover:text-primary",
     "focus-visible:opacity-100 focus-visible:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+    // 押し口は Form/Button(variant / size none)で描く。Button の土台の角丸・文字の大きさと太さを生の button と同じに戻す(折り返さない whitespace-nowrap はセルの値と同じなので残す)
+    "rounded-none text-[length:inherit] font-normal",
     className,
   );

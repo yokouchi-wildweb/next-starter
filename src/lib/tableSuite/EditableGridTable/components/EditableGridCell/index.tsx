@@ -7,6 +7,7 @@ import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
+import { Button } from "@/components/Form/Button";
 import { InBlock } from "@/components/Layout/InBlock";
 
 import { TableCell, CellClickOverlay, getCellClickOverlayClassName } from "../../../shared";
@@ -267,9 +268,13 @@ export function EditableGridCell<T>({
           if (column.cellAction!.popover) {
             const fullWidth = column.cellAction!.fullWidth ?? false;
             const triggerButton = (
-              <button
+              <Button
                 type="button"
-                data-slot="cell-click-overlay"
+                variant="none"
+                size="none"
+                iconSizing="none"
+                slot="cell-click-overlay"
+                propagateClick
                 onClick={(e) => e.stopPropagation()}
                 className={getCellClickOverlayClassName(fullWidth)}
                 aria-label="詳細を表示"
@@ -277,7 +282,7 @@ export function EditableGridCell<T>({
                 <InBlock data-slot="cell-click-indicator" className="pointer-events-none">
                   {indicator}
                 </InBlock>
-              </button>
+              </Button>
             );
 
             return column.cellAction!.popover(row, triggerButton);

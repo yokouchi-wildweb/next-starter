@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import type { CSSProperties, SyntheticEvent } from "react";
 import { Block } from "@/components/Layout/Block";
+import { PreviewImage } from "@/components/Media/PreviewImage";
 import { Span } from "@/components/TextBlocks";
 
 export type ImagePreviewProps = {
@@ -48,13 +49,11 @@ export const ImagePreview = ({
       className={className}
       style={{ ...style, display: "flex", alignItems: "center", justifyContent: "center" }}
     >
-      {/* 選択直後のローカルファイル(blob: URL)のプレビューも表示するため素の img を使う。
-          onLoad で読み込み中の表示を外すので lazy にしない(見えない所に置かれると読み込まれず止まる)。decode だけ非同期にする */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      {/* 選択直後のローカルファイル(blob: URL)のプレビューも表示するので PreviewImage(素の img)。
+          onLoad で読み込み中の表示を外すので lazy にしない(PreviewImage の既定 = eager)。decode だけ非同期 */}
+      <PreviewImage
         src={src}
         alt={alt}
-        decoding="async"
         style={{
           width: "100%",
           height: "100%",

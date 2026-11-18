@@ -15,6 +15,7 @@ import { useState } from "react";
 import { CalendarClock, Check, ChevronRight, CreditCard, Gauge, Landmark, ShoppingCart, Smartphone, Store, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { Button } from "@/components/Form/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { InBlock } from "@/components/Layout/InBlock";
@@ -229,15 +230,20 @@ function PaymentMethodCard({ method, isSelected, blocked, bonuses, onSelect }: C
 
   // 選択可能: 全面クリック可能なボタン
   return (
-    <button
+    <Button
       type="button"
+      variant="none"
+      size="none"
+      iconSizing="none"
+      propagateClick
       role="radio"
       aria-checked={isSelected}
       onClick={onSelect}
-      className={`block w-full p-3 text-left sm:p-4 ${cardClasses} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
+      // Button の土台の inline-flex・折り返さない・文字の大きさと太さは block / whitespace-normal / 継ぐ値で戻す
+      className={`block w-full whitespace-normal p-3 text-left text-[length:inherit] font-normal sm:p-4 ${cardClasses} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
     >
       {innerContent}
-    </button>
+    </Button>
   );
 }
 

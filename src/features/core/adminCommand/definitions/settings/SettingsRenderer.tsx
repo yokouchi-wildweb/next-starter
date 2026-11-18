@@ -7,6 +7,7 @@ import { ArrowLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useToast } from "@/lib/toast";
 
 import { Button } from "@/components/Form/Button";
+import { Input } from "@/components/Form/Input/Manual";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para, Span } from "@/components/TextBlocks";
@@ -177,13 +178,14 @@ export function SettingsRenderer({ onClose, onBack }: CategoryRendererProps) {
           <Span size="sm" tone="muted">{view.field.label}</Span>
         </Flex>
         <Block className="p-4">
-          <input
+          <Input
             type={view.field.type === "number" ? "number" : "text"}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleInputKeyDown}
             placeholder={view.field.placeholder}
-            className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            // 棚の Input の高さ・影・地・枠の色・focus の輪をこの欄の元の見た目に戻す(コマンドパレットの中の小さな欄)
+            className="h-auto w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm shadow-none transition-none md:text-sm dark:bg-transparent focus:outline-none focus:ring-2 focus:ring-primary focus-visible:border-border focus-visible:ring-2 focus-visible:ring-primary"
             autoFocus
             disabled={isMutating}
           />

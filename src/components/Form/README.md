@@ -462,6 +462,14 @@ const tableOptions: Options[] = tables.map((t) => ({
 </FilePickButton>
 ```
 
+## 形を自分で付ける押し口（variant / size none・iconSizing）
+
+カードの行・表のセルの押し口のように形を全部 className で付けるボタンは、生の `button` でなく `Button variant="none" size="none"` で描く(cursor・focus の輪・a11y は Button 共通)。
+
+- 中のアイコンの大きさを呼び手が決めるときは `iconSizing="none"`(既定 `"auto"` は `size-*` の無い svg を 16px に揃える)
+- 生の button と同じに戻す値: 行やカードは `block`(土台は inline-flex)・`whitespace-normal`・`text-[length:inherit] font-normal`、押しを親へ通すなら `propagateClick`
+- 例: tableSuite のセルの押し口、purchaseRequest の共有の行、wallet の支払い方法のカード、AccountAvatarSection のアバター
+
 ## Button の読み込み中（loading / loadingLabel）
 
 `Button`（`@/components/Form/Button`）と `TabletButton` は、実行中の表示を `loading` で持つ。ボタンの中に Spinner を手で組まない。

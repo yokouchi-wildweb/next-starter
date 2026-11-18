@@ -6,6 +6,7 @@ import React from "react";
 
 import { cn } from "@/lib/cn";
 import { Block } from "@/components/Layout/Block";
+import { Button } from "@/components/Form/Button";
 import { InBlock } from "@/components/Layout/InBlock";
 import { Span } from "@/components/TextBlocks/Span";
 
@@ -291,9 +292,13 @@ export default function RecordSelectionTable<T>({
                           if (col.cellAction!.popover) {
                             const fullWidth = col.cellAction!.fullWidth ?? false;
                             const triggerButton = (
-                              <button
+                              <Button
                                 type="button"
-                                data-slot="cell-click-overlay"
+                                variant="none"
+                                size="none"
+                                iconSizing="none"
+                                slot="cell-click-overlay"
+                                propagateClick
                                 onClick={(e) => e.stopPropagation()}
                                 className={getCellClickOverlayClassName(fullWidth)}
                                 aria-label="詳細を表示"
@@ -301,7 +306,7 @@ export default function RecordSelectionTable<T>({
                                 <InBlock data-slot="cell-click-indicator" className="pointer-events-none">
                                   {indicator}
                                 </InBlock>
-                              </button>
+                              </Button>
                             );
 
                             return col.cellAction!.popover(item, triggerButton);

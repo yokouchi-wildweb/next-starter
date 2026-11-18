@@ -6,7 +6,12 @@
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { CameraIcon, ImageIcon, Trash2Icon, UserIcon } from "lucide-react";
 
+import { Button } from "@/components/Form/Button";
+import { Input } from "@/components/Form/Input/Manual";
+import { Flex } from "@/components/Layout/Flex";
+import { InBlock } from "@/components/Layout/InBlock";
 import { Stack } from "@/components/Layout/Stack";
+import { Para } from "@/components/TextBlocks";
 import { ActionPopover } from "@/components/Overlays/Popover";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { AppImage } from "@/components/Media/AppImage";
@@ -39,11 +44,11 @@ type AccountAvatarSectionProps = {
 function DefaultFallback({ size, children }: { size: number; children?: ReactNode }) {
   const iconSize = size * 0.45;
   return (
-    <span className="flex items-center justify-center rounded-full bg-primary/10" style={{ width: size, height: size }}>
+    <InBlock className="flex items-center justify-center rounded-full bg-primary/10" style={{ width: size, height: size }}>
       {children ?? (
         <UserIcon className="text-primary" style={{ width: iconSize, height: iconSize }} strokeWidth={1.5} />
       )}
-    </span>
+    </InBlock>
   );
 }
 
@@ -107,7 +112,7 @@ export function AccountAvatarSection({
 
   return (
     <Stack gap="2xs">
-      <div className="flex flex-col items-center gap-2 py-2">
+      <Flex direction="column" align="center" className="gap-2 py-2">
         {/* アバター */}
         <ActionPopover
           open={menuOpen}
@@ -119,46 +124,51 @@ export function AccountAvatarSection({
             { label: "画像を削除", icon: Trash2Icon, onClick: handleRemoveImage, variant: "destructive" },
           ]}
           trigger={
-            <button
+            <Button
               type="button"
-              className="group relative cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              variant="none"
+              size="none"
+              iconSizing="none"
+              propagateClick
+              // Button の土台の transition・disabled の薄さと止めた矢印を生の button と同じに戻す(処理中も乗るとスピナーが出る)
+              className="group relative cursor-pointer rounded-full transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-pointer disabled:opacity-100"
               disabled={isBusy}
               aria-label="アバター画像を変更"
             >
               {currentAvatarUrl ? (
-                <span className="block overflow-hidden rounded-full" style={{ width: size, height: size }}>
+                <InBlock className="block overflow-hidden rounded-full" style={{ width: size, height: size }}>
                   <AppImage
                     src={currentAvatarUrl}
                     alt={user.name ?? "アバター"}
                     sizes={`${size}px`}
                     className="h-full w-full"
                   />
-                </span>
+                </InBlock>
               ) : (
                 <DefaultFallback size={size}>{children}</DefaultFallback>
               )}
 
               {/* オーバーレイ */}
-              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-overlay/0 transition-colors group-hover:bg-overlay/40">
+              <InBlock className="absolute inset-0 flex items-center justify-center rounded-full bg-overlay/0 transition-colors group-hover:bg-overlay/40">
                 {isBusy ? (
                   <Spinner className="h-6 w-6 text-overlay-foreground opacity-0 group-hover:opacity-100" />
                 ) : (
                   <CameraIcon className="h-6 w-6 text-overlay-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                 )}
-              </span>
-            </button>
+              </InBlock>
+            </Button>
           }
         />
 
         {/* ユーザー名 */}
-        <p className="text-base font-medium text-foreground">{user.name ?? "未設定"}</p>
+        <Para className="my-0 text-base font-medium text-foreground">{user.name ?? "未設定"}</Para>
 
         {/* エラー表示 */}
-        {error && <p className="text-xs text-destructive-text">{error}</p>}
-      </div>
+        {error && <Para className="my-0 text-xs text-destructive-text">{error}</Para>}
+      </Flex>
 
       {/* 非表示ファイル入力 */}
-      <input ref={fileInputRef} type="file" accept={acceptTypes} className="hidden" onChange={handleFileChange} />
+      <Input ref={fileInputRef} type="file" accept={acceptTypes} hidden onChange={handleFileChange} />
     </Stack>
   );
 }

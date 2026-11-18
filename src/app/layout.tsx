@@ -15,6 +15,7 @@ import { GlobalScreenLoader } from "@/lib/globalLoader";
 import { GlobalToast, RedirectToastProvider } from "@/lib/toast";
 import { ViewportHeightWatcher } from "@/lib/viewport";
 import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
+import { Block } from "@/components/Layout/Block";
 import { MicrosoftClarity } from "@/lib/clarity";
 import { GoogleTag } from "@/wiring/GoogleTag";
 import { business } from "@/business";
@@ -112,7 +113,7 @@ export default async function RootLayout({
         </AppProviders>
         <RedirectToastProvider />
         {/* Firebase Phone Auth用reCAPTCHAコンテナ（モーダル外に配置が必要） */}
-        <div id="phone-verification-recaptcha" />
+        <Block id="phone-verification-recaptcha" />
       </body>
     </html>
   );
