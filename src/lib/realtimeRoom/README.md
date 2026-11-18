@@ -1,33 +1,15 @@
 # lib/realtimeRoom — ルーム基盤 SDK (Next 側)
 
-`servers/room` (ルーム権威サーバー) に接続するための SDK。
-基盤の全体像・セットアップ・棲み分け基準は **`servers/room/README.md`** (一次ドキュメント) を参照。
+## Overview
 
-**オプトイン (既定: 無効)**。設定の `enabled`(上書き `src/config/lib/realtimeRoom.config.ts`) + env が揃うまで全経路 fail-closed。
+- `servers/room` (ルーム権威サーバー) に接続するための SDK
+- 基盤の全体像・セットアップ・棲み分け基準は `servers/room/README.md` (一次ドキュメント)
+- オプトイン (既定: 無効)。設定の `enabled` + env が揃うまで全経路 fail-closed
+- 使う時の決まりは札 .claude/rules/items/lib/realtimeRoom.md、層の決まり(servers との import・reducer の純度・権威の経路・プロトコルの版)は .claude/rules/core/backends.md にある。この README は使い方と仕組み
 
-## 構成
+## Usage
 
-```
-protocol/   共有プロトコル (型・バージョン・トークン語彙)。servers/room と両方から参照される唯一の接点
-server/     ServerService 用: createRoomClient / verifyRoomCallback / トークン署名
-client/     ブラウザ用: useRoomState フック + roomSessionClient (ClientService)
-config.ts   設定 (既定 + 上書き @lib-config/realtimeRoom)。入口 index.ts から出す
-```
-
-入口は package.json の exports の 4 つ(閉じた lib。中のファイルは読まない)。機能は**必ずサブパスで import する** ("use client" とサーバー専用コードの混在防止)。ルートの入口 `@/lib/realtimeRoom` は設定(`realtimeRoomConfig`・`RealtimeRoomOverride`)だけ:
-
-```ts
-import { createRoomClient, verifyRoomCallback } from "@/lib/realtimeRoom/server";
-import { useRoomState } from "@/lib/realtimeRoom/client";
-import type { RoomDefinition } from "@/lib/realtimeRoom/protocol";
-import { realtimeRoomConfig } from "@/lib/realtimeRoom";
-```
-
-## 設定
-
-`enabled`(既定 false)・`clientTokenTtlSeconds`・`serviceTokenTtlSeconds`(既定 60 秒)・`reconnectBaseDelayMs`(1 秒)・`reconnectMaxDelayMs`(15 秒)は `config.ts` が既定を持ち、fork は上書き `src/config/lib/realtimeRoom.config.ts`(`@lib-config/realtimeRoom`)に書く。読み手(server・client・`pnpm ops room deploy`)は合成済みの `realtimeRoomConfig` を読む。
-
-## サーバーから dispatch する (権威アクションの正規経路)
+### サーバーから dispatch する (権威アクションの正規経路)
 
 ```ts
 // src/features/<domain>/services/server/ 内 (ServerService)
@@ -37,7 +19,6 @@ import type { RaidAction, RaidState } from "@/features/<domain>/room/definition"
 const raidRooms = createRoomClient<RaidState, RaidAction>("raid");
 
 export const attack = async (machineId: string, userId: string, damage: number) => {
-  // 経済・確定処理は先に PG (権威) へ。ルームには表示・調整状態だけを流す
   const { state, stateVersion } = await raidRooms
     .room(machineId)
     .dispatch({ type: "attack", payload: { damage } }, { userId });
@@ -48,7 +29,7 @@ export const attack = async (machineId: string, userId: string, damage: number) 
 - `dispatch` はルーム上で直列実行され、適用後の状態が返る (閾値判定は reducer 内で行う)
 - 無効時は `DomainError(503)`。プロトコル不一致は `DomainError(502)` で明示
 
-## クライアントから購読する
+### クライアントから購読する
 
 ```ts
 "use client";
@@ -70,7 +51,7 @@ const RaidScreen = ({ machineId }: { machineId: string }) => {
 - 接続はトークンの期限 (既定 60 秒) で Worker が閉じる (終了コード 4001)。フックは待たずに取り直して再接続する。上限の詳細: servers/room/README.md「認可モデル」
 - 接続トークンは `GET /api/realtime-room/token` (要ログイン) が発行する
 
-## callback (PG 永続化エスケープハッチ) を受ける
+### callback (PG 永続化エスケープハッチ) を受ける
 
 reducer の `{ type: "callback", path, payload }` effect はアプリ API に署名付き POST される。
 受け口は `access: "public"`（呼び手は利用者でなくルームサーバー）+ ハンドラで `verifyRoomCallback` で作る:
@@ -90,9 +71,31 @@ export const POST = createApiRoute(
 );
 ```
 
-callback は fire-and-forget であり、**最終的な永続化の責任はアプリ側の設計に置く** (詳細: servers/room/README.md)。
+callback は fire-and-forget(詳細: servers/room/README.md)。
 
-## ルームロジックの置き場
+## API
+
+```
+protocol/   共有プロトコル (型・バージョン・トークン語彙)。servers/room と両方から参照される唯一の接点
+server/     ServerService 用: createRoomClient / verifyRoomCallback / トークン署名
+client/     ブラウザ用: useRoomState フック + roomSessionClient (ClientService)
+config.ts   設定 (既定 + 上書き @lib-config/realtimeRoom)。入口 index.ts から出す
+```
+
+入口は package.json の exports の 4 つ(閉じた lib)。機能はサブパスにある("use client" とサーバー専用コードを分けるため)。ルートの入口 `@/lib/realtimeRoom` は設定(`realtimeRoomConfig`・`RealtimeRoomOverride`)だけ:
+
+```ts
+import { createRoomClient, verifyRoomCallback } from "@/lib/realtimeRoom/server";
+import { useRoomState } from "@/lib/realtimeRoom/client";
+import type { RoomDefinition } from "@/lib/realtimeRoom/protocol";
+import { realtimeRoomConfig } from "@/lib/realtimeRoom";
+```
+
+## Extension
+
+`enabled`(既定 false)・`clientTokenTtlSeconds`・`serviceTokenTtlSeconds`(既定 60 秒)・`reconnectBaseDelayMs`(1 秒)・`reconnectMaxDelayMs`(15 秒)は `config.ts` が既定を持ち、fork は上書き `src/config/lib/realtimeRoom.config.ts`(`@lib-config/realtimeRoom`)に書く。読み手(server・client・`pnpm ops room deploy`)は合成済みの `realtimeRoomConfig` を読む。
+
+## Related
 
 reducer (`RoomDefinition`) は `src/features/<domain>/room/` に置く (純度制約 ESLint 付き)。
 登録は `servers/room/src/registry.ts`。手順: `servers/room/README.md` の「新しいルームの追加手順」。
