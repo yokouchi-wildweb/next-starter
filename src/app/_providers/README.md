@@ -32,5 +32,5 @@ export function ForkProviders({ children }: ForkProvidersProps) {
 
 ## Verification
 
-- 検査: `pnpm check extensions`(`scripts/structure/extensions/switches.mjs`。Tier1 のスイッチは `.default` を指す、孤立した `.replace` は失敗)。受け口の行(スイッチ = edit、`.replace` = add)は `pnpm generate extensions` が書く
+- 検査: `pnpm check extensions`(`scripts/structure/extensions/switches.mjs`(Tier1 のスイッチは `.default` を指す)・`orphans.mjs`(孤立した `.replace` は失敗))。取り込み口の一覧 `src/lib/forkOwnership/intake.txt` の行(スイッチ = edit、`.replace` = add)は `pnpm generate extensions` が書く
 - テスト: `pnpm test src/app/_providers/ForkProviders.test.tsx`(スイッチが既定を指す 1 行であること、既定が children を素通しすること)

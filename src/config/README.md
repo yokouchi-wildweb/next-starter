@@ -24,16 +24,16 @@
 
 ### 1 対 1
 
-- 上書きと持ち主はちょうど 1 本ずつ揃える。持ち主の無い上書き(余り)と、`config.ts` があるのに上書きが無い(欠落)は `pnpm check config-overrides` が落とす(門 build・ship)。中身: [scripts/structure/config-overrides/README.md](../../scripts/structure/config-overrides/README.md)
+- 上書きと持ち主はちょうど 1 本ずつ揃える。持ち主の無い上書き(余り)と、`config.ts` があるのに上書きが無い(欠落)は `pnpm check config-overrides` が落とす(gate の build・ship・forge:post)。中身: [scripts/structure/config-overrides/README.md](../../scripts/structure/config-overrides/README.md)
 - 上流は持ち主の `config.ts` と空の上書きを同じ commit で作る。持ち主を消す・改名するときは上書きも同じ commit で消す・改名する
 
 ### 上書きの中身(lint `config-overrides/literal-only`、全 Tier error)
 
 - ファイルに書けるのは import・`export default`(値 1 つ)・型の宣言だけ。空の上書きは `export default {} satisfies <持ち主の上書きの型>;`
-- 値はリテラル: object・配列・文字列・数・真偽・null・式の無い template・`as const`・`satisfies`。関数・メソッド・呼び出し・`new`・spread・変数(`const`)・`export const` は書けない
+- 値はリテラル: object・配列・文字列・数・真偽・null・undefined・単項の `-` `+` `!`・式の無い template・`as const`・`satisfies`。関数・メソッド・呼び出し・`new`・spread・変数(`const`)・`export const` は書けない
 - リテラル以外に読んでよいもの:
   - 型(`import type`、どこからでも)
-  - `process.env.<名前>` と、それを比べる・切り替える式(`===`・`!==`・`??`・`||`・`&&`・`? :`)。client から読まれる設定に env を使うなら `NEXT_PUBLIC_` の付く名前でないと client では読めない
+  - `process.env.<名前>` と、それを比べる・切り替える式(`===`・`!==`・`==`・`!=`・`??`・`||`・`&&`・`? :`)。client から読まれる設定に env を使うなら `NEXT_PUBLIC_` の付く名前でないと client では読めない
   - `@/business`(事業の素性)の値
   - 段階の判定 `isProduction()`・`isStaging()`・`isDevelopment()`・`getAppEnv()`(`@/lib/appEnv` から、引数なしの呼び出しだけ。`process.env.APP_ENV` を直に読まない)
   - 持ち主が宣言した指定子の値(下)
@@ -61,7 +61,7 @@
 | `app/storage.config.ts` | `lib/storage`、`storageObject` |
 | `ui/fonts.config.ts` | `lib/fonts`、`src/app/layout.tsx` |
 | `ui/unsaved-guard.config.ts` | 枠の `src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx` |
-| `ui/variants.config.ts` | `lib/variantOverrides`、Badge・Button の variants |
+| `ui/variants.config.ts` | `lib/variantOverrides`、Badge・Button・TextBlocks などの variants |
 
 fork が `app/`・`ui/` に足したファイルと鍵の行き先(どれか 1 つ、値の意味で決める):
 
@@ -78,14 +78,14 @@ fork が `app/`・`ui/` に足したファイルと鍵の行き先(どれか 1 �
 
 ```ts
 // src/features/core/wallet/config.ui.ts(持ち主の描画用)
-export const overrideImports = ["react-icons/fa", "@/components/Icons"] as const;
+export const overrideImports = ["lucide-react"] as const;
 ```
 
 - 宣言は上流(持ち主)の物で、上書きの中に書いても広がらない。処理(features の関数など)は宣言できず、上書きに書けない
 
 ### 持ち主の宣言 `featureRequirements`(機能を要する値)
 
-設定の値が別の機能を前提にする(例 購入に SMS 認証を必須にする)なら、持ち主の config.ts にリテラルで宣言します。合成した値(既定 + この上書き)が `off` でないのに機能が閉なら、門 build の `pnpm check proxies` が失敗し、直し方 2 つ(機能を開ける / 上書きに `off` を書く)を出します。
+設定の値が別の機能を前提にする(例 購入に SMS 認証を必須にする)なら、持ち主の config.ts にリテラルで宣言します。合成した値(既定 + この上書き)が `off` でないのに機能が閉なら、build のゲートで走る `pnpm check proxies` が失敗し、直し方 2 つ(機能を開ける / 上書きに `off` を書く)を出します。
 
 ```ts
 import type { FeatureRequirement } from "@/featureGate";

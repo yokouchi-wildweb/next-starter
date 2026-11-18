@@ -3,7 +3,7 @@
 ## Overview
 
 - `src/components/` にはアプリ全体で共有する汎用 UI コンポーネントをカテゴリごとに配置します
-- 本ファイルは**カテゴリの索引**です。詳細な仕様・使い分けは各サブディレクトリの README（コロケーション）に置き、複雑な仕組みを持つカテゴリには必ず README を併設します
+- 本ファイルは**カテゴリの索引**です。使う時の決まりはカテゴリの札 `.claude/rules/items/components/<カテゴリ>.md`、使い方・仕組みは各サブディレクトリの README（コロケーション）に置き、複雑な仕組みを持つカテゴリには必ず README を併設します
 
 ### カテゴリ一覧
 
@@ -11,7 +11,7 @@
 - `AppFrames/`: 解体中の旧フォルダ。枠の部品は `src/app/(user)/_layout/`・`src/app/admin/**/_layout/` へ移動済み | 詳細: [AppFrames/User/README.md](./AppFrames/User/README.md)・[src/app/(user)/_layout/README.md](../app/(user)/_layout/README.md)・[AppFrames/Kiosk/README.md](./AppFrames/Kiosk/README.md)
   - 管理画面の共有部品 `Admin/Elements`: ListTop・SearchBox・ItemNavigator 等。管理ヘッダーの中身はページが AdminPage の props で渡す
   - ItemNavigator = 前後の項目へ移るだけの選択欄で props だけ。データは `src/lib/crud` の `useDomainItemNavigation`、管理の編集画面は `src/app/admin/_layout/AdminEditItemNavigator` を `<AdminPage actions>` に置く
-  - ページ単位で枠の部位を隠す `User/controls`（Hide*）・キオスク用のビューポート固定枠・要素 ID の `constants.ts`
+  - キオスク用のビューポート固定枠 `Kiosk/`（`KioskFrame`）。`User/` に部品は無い（枠の部位を隠すのはルートの `frame.ts` / `frame.override.ts`）
 - `AppStatusGuard/`: メンテナンス・デプロイを検知してリダイレクト / リロードするガード。長時間滞在する画面に配置
 - `Badge/`: バッジ（`SolidBadge`、`SoftBadge` など）
 - `Fanctional/`: 動作をカプセル化した部品（`DarkModeSwitch`（サイトテーマの切替。同期の `SiteThemeSync` は `@/lib/siteTheme`、詳細: [styles/README.md](../styles/README.md)）、`BodyPortal` / `HeadPortal`、`FirebaseAnalytics` など）
@@ -20,7 +20,7 @@
 - `Layout/`: レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）。raw HTML の代替 | 詳細: [Layout/README.md](./Layout/README.md)
 - `Media/`: 画像・メディア表示（`AppImage`: next/image ラッパー。raw `<img>` / next/image 直接使用の代替。`PreviewImage`: blob: など選んだ直後の画像の下見） | 詳細: [Media/AppImage/README.md](./Media/AppImage/README.md)・[Media/PreviewImage/README.md](./Media/PreviewImage/README.md)
 - `Navigation/`: ナビゲーション | 詳細: [Navigation/Link/README.md](./Navigation/Link/README.md)
-  - `Link`: next/link の包み。リンクは全部これを使い next/link を直接 import しない（lint `link-via-shelf`）。口 `LinkVisibilityProvider` は既定で何も隠さず、アプリでは `src/wiring/AppProviders.tsx` の門番の `GateProvider` が閉じた機能の住所を隠す判定を差し込む
+  - `Link`: next/link の包み。リンクは全部これを使い next/link を直接 import しない（lint `link-via-shelf`）。口 `LinkVisibilityProvider` は既定で何も隠さず、アプリでは `src/wiring/AppProviders.tsx` の門番の `GateProvider` が閉じた機能のパスを隠す判定を差し込む
   - `PageTab`
   - `StateTabs`: 状態で切り替えるタブ。`variant="underline"` = PageTab の UnderlineTabs と同じ下線の形、`listEnd` = タブの列と同じ行の右端に置く物
   - `Pagination`: 送り方は `makeHref` = リンク か `onPageChange` = ボタン のどちらか一方、`compact` = 前 / p / N / 次 だけ
@@ -39,17 +39,13 @@
 
 ### 配置判断
 
-- 複数ドメインで使う汎用 UI → ここ（`src/components/`）
-- 特定ドメイン専用 UI → `src/features/<domain>/components/common/`
-- core ドメインの UI(`src/features/core/<domain>/components/`)= 細かい部品(データ・流れ = フック、表示 = props だけの部品)とそれを組んだ既定のコンテナ。部品は全部公開で、読むのは入口(`components/<Name>`・`common/<Part>`)だけ。中のファイルを外から読むと lint(`core-ui-entry`)が止める
-- fork は core の下に足さない・書き換えない。文言・アイコン・色 → config、組み替え → route の `_components/` の Screen で core の部品とフックから組む(コンテナの複製は CLAUDE.md FORK_EXTENSION が認めるときだけ)。足りない値の prop → `/order`。`children` は可、差し替え用の名前付き ReactNode・部品 prop は置かない
-- 差し込み口(値の外に受ける物)は持ち主で分ける。どれも省略でき、省略時は今の出力: `src/components` と lib の部品 = 見た目の口(`className`・`overlayClassName`・`variant`)と中身の差し込み(`renderX` の関数・`xNode`)を認める / core のドメインの部品 = 値の指定と `children` だけ / core の既定のコンテナと画面 = 名前付きの差し込みは置かない(fork は公開の部品とフックで組み直す。上流の画面が開き fork が置き場所を変えられない物は受け口)。動きは部品が持つ(`.claude/rules/core/components.md` の slots)
-- 特定ページ専用 UI → ルートの既定 Screen の部品なら `app/<route>/_screen/`(ルートを作った側)、fork が足す部品や差し替え Screen なら `app/<route>/_components/`(CLAUDE.md SCREENS)
+- 配置の決まりは CLAUDE.md の CODE_PLACEMENT・COMPONENTS と `.claude/rules/core/components.md`（slots・core parts）
+- 複数ドメインで使う汎用 UI → ここ、特定ドメイン専用 UI → `src/features/<domain>/components/common/`、特定ページ専用 UI → `app/<route>/_screen/`（ルートを作った側）か `app/<route>/_components/`（fork）
 
-### 共通ルール
+### 包み
 
-- **raw HTML よりラッパー優先**: `div` → `Layout/Block・Flex・Grid・Stack`、`main` → `Layout/Main`、`section` → `Layout/Section`、`button` → `Form/Button`、`p` → `TextBlocks/Para`、`h2` → `TextBlocks/SecTitle`、`img` → `Media/AppImage`（`next/image` 直接使用も不可。選んだ直後の blob: の下見は `Media/PreviewImage`）、ボタンの形のファイル選択 → `Form/FilePickButton` など（一覧: CLAUDE.md「COMPONENTS」）
-- **`_shadcn` 直接使用禁止**: 必ず対応するラッパー（`Form/Button`、`Form/Input`、`Skeleton/BaseSkeleton` など）を使用する。ラッパーが無い場合は新規ラッパーの作成を提案する
+- 生の HTML の代わりの部品（包み）の対応表は `.claude/rules/core/components.md` の wrappers。そこに無い対応（`img` の選んだ直後の blob: の下見 → `Media/PreviewImage`、ボタンの形のファイル選択 → `Form/FilePickButton`、`span` → `TextBlocks/Span`）は `eslint-rules/raw-elements.mjs` の `WRAPPERS`
+- `_shadcn` は直接使わず、対応する包み（`Form/Button`、`Form/Input`、`Skeleton/BaseSkeleton` など）を使う。包みが無ければ新しい包みの作成を提案する
 
 ## Extension
 

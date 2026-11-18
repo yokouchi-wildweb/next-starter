@@ -10,14 +10,14 @@
 
 ### 名前の対
 
-- `frame.ts`(`export const frame`)= ルートを作ったリポの宣言(上流の 4 本、中間 Tier・fork が自分で作ったルートの物)
+- `frame.ts`(`export const frame`)= ルートを作ったリポの宣言(上流、中間 Tier・fork が自分で作ったルートの物)
 - `frame.override.ts`(`export const override`)= その下のリポ(fork・中間 Tier)の宣言。相手はそのルート。ルートを作ったリポの `frame.ts` の上に重なる(それが無ければ空の上)。`layout:` / `page:` は隣にある範囲だけ
 - `frame.default.ts` はどの Tier でも失敗(旧い名前)。ほかの名前(`frame.<何か>.ts`・`frame.tsx`)も失敗。上流(Tier1)が `frame.override.ts` を持つのも失敗(`pnpm check extensions`)
-- 親のルート(基準の page / layout / 枠の宣言のあるフォルダ)の隣に fork が印なしの `frame.ts` を足す = `pnpm workflow ownership check` の `frame-plain`(git の分岐点で決める。生成器は git を使わない)。fork は隣の `frame.override.ts` に書く。ルートの無いフォルダの `frame.override.ts` は `override-own`
-- 移し替え: `pnpm check extensions -- frames-move`(既定 dry-run、`--apply` で git mv・export の名前の書き換え・git add、`--json`、基準 = 台帳の upstream の版、`--base <rev>` で上書き)
+- 親のルート(基準の page / layout / 枠の宣言のあるフォルダ)の隣に fork が素の名前の(`.override` の付かない)`frame.ts` を足す = `pnpm workflow ownership check` の `frame-plain`(git の分岐点で決める。生成器は git を使わない)。fork は隣の `frame.override.ts` に書く。ルートの無いフォルダの `frame.override.ts` は `override-own`
+- 移し替え: `pnpm check extensions -- frames-move`(既定 dry-run、`--apply` で git mv・export の名前の書き換え・git add、`--json`、基準 = 台帳 `.notices/applied/<fork名>.md` の upstream:<sha> の版、`--base <rev>` で上書き)
   - 親のルートの隣の fork の `frame.ts` → `frame.override.ts`、fork 自身の `frame.default.ts` → `frame.ts`
   - 上流の木(基準の版・親の remote のブランチ・親との分岐点、取り込み中の MERGE_HEAD は親のブランチの祖先のときだけ)にあるファイルは動かさず挙げない(台帳の行を書く前に回しても上流の改名を取り違えず、fork のコミットを取り込んでいる間もその木の fork 自身のルートを上流と数えない)
-  - 行き先が既にある・export が 1 つのリテラルで無い物は止めて挙げる(notice shared-shelf-frame-override-1 / shared-shelf-frame-override)
+  - 行き先が既にある・export が 1 つのリテラルで無い物は止めて挙げる
 - 空(空白とコメントだけ)のファイルは不在と同じ
 
 ### 書き方
@@ -45,7 +45,7 @@ export const frame = {
 
 ### 読み手
 
-- 入口 `@/app/_layout/frame`(`index.ts`、re-export だけ)。型 `FrameDeclaration` / `FrameValue`(利用者の枠)・`AdminFrameDeclaration` / `AdminFrameValue`(管理の枠)・表の行の型
+- 入口 `@/app/_layout/frame`(`index.ts`、re-export だけ)。型 `FrameDeclaration` / `FrameValue`(利用者の枠)・`AdminFrameDeclaration` / `AdminFrameValue`(管理の枠)・表の行の型、部位の一覧 `FRAME_SLOTS` / `FRAME_ROOTS` / `FRAME_DEVICES` / `hideableParts`、照合 `matchFrame`
 - `useFrameAttributes(table)`("use client" の hook)= `matchFrame(useSelectedLayoutSegments(), table)` → 外枠の属性(型 `FrameAttributes`)。client なので `index.ts` から re-export せず、`@/app/_layout/frame/useFrameAttributes` から直に import する
 - `resolve.mjs`(純関数): 宣言の形の検査・重ね(親の鎖)・表の照合 `matchFrame`。生成器と実行時の読み手が共有する
 

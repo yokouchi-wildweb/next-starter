@@ -2,8 +2,8 @@
 
 ## Overview
 
-- このディレクトリ配下のすべてのAPIルートは、**routeFactory を経由して作成する必要があります**
-- 直接ハンドラをエクスポートすることは禁止されています
+- このフォルダの route.ts は HTTP の export(GET など)を Factory の呼び出しで作る: `@/wiring/apiRoute` の createApiRoute / createDomainRoute / createMeRoute / createDeviceRoute、cron は `@/wiring/cronRoute` の createCronTaskRoute
+- ハンドラを直に export する形は lint `route-http-export/http-export` が止める(下の ❌ の例)
 
 ## Usage
 
