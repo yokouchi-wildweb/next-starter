@@ -92,7 +92,7 @@ test("方針の入口: 危険な 3 つの入口の既定(db_push = pnpm db:push�
   await assert.rejects(loadPolicy(dir), /repo\.json: JSON として読めない/);
   // このリポの repo.json = 自分の方針(自動にできる種類は全部 auto、危険な 3 つは manual、D265)
   const own = await loadPolicy(path.join(import.meta.dirname, "../../.."));
-  for (const k of [...KIND_NAMES, "peer"]) assert.equal(own[k], "auto", k);
+  for (const k of [...KIND_NAMES, "peer"] as (keyof Policy)[]) assert.equal(own[k], "auto", k);
   for (const d of DANGER_NAMES) assert.equal(own[d], "manual", d);
   assert.ok(declaredAgentKeys().includes("agent.deploy.db_entry"));
   assert.equal(policyKeyOf("db-write"), "agent.db_write");
