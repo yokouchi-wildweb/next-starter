@@ -10,6 +10,7 @@ import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import fieldTypeGuardPlugin from "./eslint-rules/field-type-guard.mjs";
 import intersectionObserverPlugin from "./eslint-rules/intersection-observer.mjs";
 import appEnvPlugin from "./eslint-rules/app-env.mjs";
+import assetPathsPlugin from "./eslint-rules/asset-paths.mjs";
 import configOverridesPlugin from "./eslint-rules/config-overrides.mjs";
 import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
 import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
@@ -228,24 +229,34 @@ const config = [
         },
       ]
     : []),
-  // _shadcn の直接 import 禁止(CLAUDE.md COMPONENTS wrappers)。ラッパーは src/components に置く。
-  // 許可: src/components(ラッパー本体) / src/lib/tableSuite(table の指定ラッパー。セルエディタも primitive 層)。
+  // 当議会 D133 の検査(詳細: eslint-rules/import-boundaries.mjs の各節、eslint-rules/asset-paths.mjs):
+  // - axios-in-client-layer: axios は src/lib/** と **/services/client/** だけ。上流 error / fork warn(テストは対象外)
+  // - asset-paths/no-literal-asset-path: 資産のパスは src/utils/assets.ts の関数で組む。上流 error / fork warn(組み立て役とテストは対象外)
+  // - mail-send-via-messaging: lib/mail の send は messaging の送り口だけ。全 Tier error(必須の規則の一覧)
+  // - no-shadcn-direct: _shadcn はラッパーの置き場(src/components/**・src/lib/tableSuite/**)だけ。全 Tier error(必須の規則の一覧。
+  //   旧 no-restricted-imports の patterns は fork の同じ規則の設定で置き換わって消えるので、専用の規則にした)
   {
     files: ["src/**/*.{ts,tsx}"],
-    ignores: ["src/components/**", "src/lib/tableSuite/**"],
+    ignores: ["src/**/*.test.{ts,tsx}"],
+    plugins: { "import-boundaries": importBoundariesPlugin },
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["@/components/_shadcn/*"],
-              message:
-                "_shadcn を直接 import しない。ラッパーを使う(対応表: src/components/_shadcn/README.md。無ければ src/components にラッパーを作る)",
-            },
-          ],
-        },
-      ],
+      "import-boundaries/axios-in-client-layer": libOwnership.isRoot ? "error" : "warn",
+    },
+  },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/**/*.test.{ts,tsx}", "src/utils/assets.ts"],
+    plugins: { "asset-paths": assetPathsPlugin },
+    rules: {
+      "asset-paths/no-literal-asset-path": libOwnership.isRoot ? "error" : "warn",
+    },
+  },
+  {
+    files: ["src/**/*.{ts,tsx,mts,mjs}", "scripts/**/*.{ts,mts,mjs}"],
+    plugins: { "import-boundaries": importBoundariesPlugin },
+    rules: {
+      "import-boundaries/mail-send-via-messaging": "error",
+      "import-boundaries/no-shadcn-direct": "error",
     },
   },
   // 改名・移動済み module の旧パス import を警告する(詳細: eslint-rules/deprecated-imports.mjs)。

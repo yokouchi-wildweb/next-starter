@@ -55,7 +55,6 @@ scope: cross-cutting bans only | area bans sit with their rule: ARCHITECTURE bou
 - re-implement what base CRUD already provides | manual m2m when belongsToMany is available
 - edit generated files (use wrappers; see DIRECTORY_STRUCTURE code_generation)
 - form schemas in entities/schema.ts (→ formEntities.ts next to the form)
-- direct asset paths (use utils/assets: assetPath, imgPath, videoPath, logoPath)
 - space-y/space-x classes (use Layout/Stack `gap` = spacing scale none..4xl, src/components/Layout/README.md)
 - unpaginated full-fetch of user-scale data (base.search without limit; the default limit 100 silently drops rows) → page/limit + infinite scroll | list() only for small fixed master data
 - businessConfig.url as runtime origin (it is the official business URL for mail/SEO) → getAppBaseUrl() from @/lib/url | never build an origin from Host / X-Forwarded-Host (host header injection)

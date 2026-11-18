@@ -11,7 +11,10 @@ import plugin, {
   classifyFeatureGateImport,
   classifyFeaturesIndexReexport,
   classifyLibRegistryImport,
+  classifyAxiosImport,
   classifyCronFactoryImport,
+  classifyMailSendImport,
+  classifyShadcnImport,
   classifyPageGuardImport,
   classifyRouteFactoryImport,
   closablePatternOf,
@@ -519,4 +522,71 @@ export const y = x;
   assert.deepEqual(await lintAt("scripts/operations/x/a.ts", `import { db } from "@/lib/drizzle";
 export const y = db;
 `), ["import-boundaries/tools-no-db-write:2"]);
+});
+
+test("classify: axios の値 import は src/lib と services/client だけ、型は誰でも", () => {
+  assert.equal(classifyAxiosImport("src/lib/http/client.ts", "axios", false), null);
+  assert.equal(classifyAxiosImport("src/features/core/auth/services/client/session.ts", "axios", false), null);
+  assert.equal(classifyAxiosImport("src/features/core/auth/hooks/useX.ts", "axios", true), null);
+  assert.equal(classifyAxiosImport("src/features/core/auth/hooks/useX.ts", "lodash", false), null);
+  assert.equal(classifyAxiosImport("src/features/core/auth/hooks/useX.ts", "axios", false), "axiosOutsideClient");
+  assert.equal(classifyAxiosImport("src/app/(user)/demo/x/Demo.tsx", "axios/unsafe/core/AxiosError.js", false), "axiosOutsideClient");
+});
+
+test("classify: lib/mail の send は送り口と lib/mail 自身だけ、部品・型・名前を問わない形", () => {
+  const mail = "src/lib/mail";
+  const named = (...names) => names.map((name) => ({ name, typeOnly: false }));
+  assert.equal(classifyMailSendImport("src/features/core/messaging/channels/email/index.tsx", mail, false, named("send")), null);
+  assert.equal(classifyMailSendImport("src/lib/mail/resend.ts", "src/lib/mail/send", false, named("send")), null);
+  assert.equal(classifyMailSendImport("src/features/core/user/messages/messages.test.ts", mail, false, named("MAIL_THEME_COLORS")), null);
+  assert.equal(classifyMailSendImport("src/features/foo/x.ts", mail, false, [{ name: "send", typeOnly: true }]), null);
+  assert.equal(classifyMailSendImport("src/features/foo/x.ts", mail, true, null), null);
+  assert.equal(classifyMailSendImport("src/features/foo/x.ts", mail, false, named("MailFrame", "send")), "send");
+  assert.equal(classifyMailSendImport("src/features/foo/x.ts", mail, false, null), "*");
+  assert.equal(classifyMailSendImport("src/features/foo/x.ts", "src/lib/other", false, null), null);
+});
+
+test("classify: _shadcn はラッパーの置き場だけ(値も型も)", () => {
+  assert.equal(classifyShadcnImport("src/components/Form/Field/FieldControl.tsx", "src/components/_shadcn/form"), null);
+  assert.equal(classifyShadcnImport("src/lib/tableSuite/shared/Table.tsx", "src/components/_shadcn/table"), null);
+  assert.equal(classifyShadcnImport("src/features/foo/components/X.tsx", "src/components/_shadcn/card"), "shadcnDirect");
+  assert.equal(classifyShadcnImport("src/lib/other/x.tsx", "src/components/_shadcn/card"), "shadcnDirect");
+  assert.equal(classifyShadcnImport("src/features/foo/components/X.tsx", "src/components/Layout/Block"), null);
+});
+
+test("rule axios-in-client-layer / mail-send-via-messaging / no-shadcn-direct: 実際の書き方で止め、許す形は通す", () => {
+  const ruleTester = new RuleTester({ languageOptions: { parser: tsParser, ecmaVersion: "latest", sourceType: "module" } });
+  const hook = at("src/features/core/auth/hooks/useX.ts");
+  const client = at("src/features/core/auth/services/client/x.ts");
+  ruleTester.run("axios-in-client-layer", plugin.rules["axios-in-client-layer"], {
+    valid: [
+      { code: `import axios from "axios";`, filename: client },
+      { code: `import type { AxiosError } from "axios";`, filename: hook },
+    ],
+    invalid: [
+      { code: `import axios from "axios";`, filename: hook, errors: [{ messageId: "axiosOutsideClient" }] },
+      { code: `const a = await import("axios");`, filename: hook, errors: [{ messageId: "axiosOutsideClient" }] },
+    ],
+  });
+  const other = at("src/features/foo/services/server/notify.ts");
+  ruleTester.run("mail-send-via-messaging", plugin.rules["mail-send-via-messaging"], {
+    valid: [
+      { code: `import { send } from "@/lib/mail";`, filename: at("src/features/core/messaging/channels/email/index.tsx") },
+      { code: `import { MailFrame, type MailTheme } from "@/lib/mail";`, filename: other },
+      { code: `async function f() { const { MAIL_THEME_COLORS } = await import("@/lib/mail"); }`, filename: other },
+    ],
+    invalid: [
+      { code: `import { send } from "@/lib/mail";`, filename: other, errors: [{ messageId: "mailSend" }] },
+      { code: `import * as mail from "@/lib/mail";`, filename: other, errors: [{ messageId: "mailSend" }] },
+      { code: `async function f() { const { send } = await import("@/lib/mail"); }`, filename: other, errors: [{ messageId: "mailSend" }] },
+      { code: `async function f() { const mail = await import("@/lib/mail"); }`, filename: other, errors: [{ messageId: "mailSend" }] },
+    ],
+  });
+  ruleTester.run("no-shadcn-direct", plugin.rules["no-shadcn-direct"], {
+    valid: [{ code: `import { FormField } from "@/components/_shadcn/form";`, filename: at("src/components/Form/Field/FieldControl.tsx") }],
+    invalid: [
+      { code: `import { Card } from "@/components/_shadcn/card";`, filename: at("src/features/foo/components/X.tsx"), errors: [{ messageId: "shadcnDirect" }] },
+      { code: `import type { Card } from "../../../components/_shadcn/card";`, filename: at("src/features/foo/components/X.tsx"), errors: [{ messageId: "shadcnDirect" }] },
+    ],
+  });
 });

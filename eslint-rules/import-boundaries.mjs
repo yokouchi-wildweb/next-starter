@@ -82,6 +82,22 @@
 // Radix は統合版の "radix-ui" から読む(import { Dialog as DialogPrimitive } from "radix-ui")。個別の @radix-ui/* パッケージ
 // (@radix-ui/react-dialog など)は値も型も読まない(依存から外した。radix-ui が入れる版と食い違わないように)。部品は src/components/Primitives
 //
+// ── axios-in-client-layer(当議会 D133) ──
+// axios を値で読めるのは HTTP の層だけ: src/lib/**(汎用の通信の lib)と **/services/client/**(ドメインの ClientService)。
+// 画面・部品・hook は ClientService の関数を hook から呼ぶ(normalizeHttpError を通す 1 か所)。型だけの import は誰でも可。
+// 強さは Tier で切り替える: 上流(目録の先頭の節)= error、fork = warn(eslint.config.mjs)。
+//
+// ── mail-send-via-messaging(当議会 D133) ──
+// @/lib/mail の send(値)を読めるのは src/lib/mail 自身と messaging の送り口 src/features/core/messaging/channels/email/** だけ。
+// 利用者への連絡は messagingService.sendMessage / sendMessageToMany(記録と配信停止を通す)。
+// テンプレートの部品(Mail*)・型・MAIL_THEME_COLORS・MailSendError・webhook の関数は誰でも可。名前を問わない形(namespace・
+// 動的 import・export *)は send を含みうるので止める(動的 import を `const { 名前 } = await import(…)` で受ける形は名前で見る)。強さ: 全 Tier error(必須の規則の一覧)。
+//
+// ── no-shadcn-direct(当議会 D133、旧 no-restricted-imports のブロックを置き換え) ──
+// src/components/_shadcn/** を読めるのはラッパーの置き場 src/components/** と表のラッパー src/lib/tableSuite/** だけ(値も型も)。
+// ほかは src/components のラッパーを使う(対応表: src/components/_shadcn/README.md)。強さ: 全 Tier error(必須の規則の一覧。
+// 専用の規則にしたのは、fork が core の no-restricted-imports を自分の patterns で書くと上流の patterns が置き換わって消えるため)。
+//
 // ── lib-entry(D80・D81・D83・D84、L1.21) ──
 // package.json を持つ lib(宣言済みの lib)だけに効く。宣言の読み手は src/lib/libPackage(形: src/lib/README.md)。
 // - 外から宣言済みの lib を読む import は、その exports の先(入口)に当たること(値も型も。中のファイルを読むと error)
@@ -145,6 +161,38 @@ export function classifyCronFactoryImport(importerRel, resolved, typeOnly, speci
   if (!Array.isArray(specifiers)) return "*";
   const hit = specifiers.find((s) => !s.typeOnly && CRON_FACTORY_NAMES.includes(s.name));
   return hit ? hit.name : null;
+}
+
+const MAIL_LIB = "src/lib/mail";
+const MAIL_SEND_POINT = "src/features/core/messaging/channels/email";
+const MAIL_SEND_NAMES = ["send"];
+const SHADCN = "src/components/_shadcn";
+const SHADCN_WRAPPERS = ["src/components", "src/lib/tableSuite"];
+const CLIENT_SERVICE_DIR = /(^|\/)services\/client(\/|$)/;
+
+/** axios の値 import を HTTP の層の外で行うか(source = 書かれた指定子) */
+export function classifyAxiosImport(importerRel, source, typeOnly) {
+  if (typeOnly || !(source === "axios" || source.startsWith("axios/"))) return null;
+  if (isUnder(importerRel, LIB) || CLIENT_SERVICE_DIR.test(importerRel)) return null;
+  return "axiosOutsideClient";
+}
+
+/**
+ * lib/mail の send を送り口の外で値 import するか。違反なら名前(名前を問わない形は "*")、無ければ null
+ * @param {{ name: string, typeOnly: boolean }[] | null} specifiers null = 名前を問わない形
+ */
+export function classifyMailSendImport(importerRel, resolved, typeOnly, specifiers) {
+  if (typeOnly || !isUnder(resolved, MAIL_LIB)) return null;
+  if (isUnder(importerRel, MAIL_LIB) || isUnder(importerRel, MAIL_SEND_POINT)) return null;
+  if (!Array.isArray(specifiers)) return "*";
+  const hit = specifiers.find((sp) => !sp.typeOnly && MAIL_SEND_NAMES.includes(sp.name));
+  return hit ? hit.name : null;
+}
+
+/** _shadcn をラッパーの置き場の外から読むか(値も型も) */
+export function classifyShadcnImport(importerRel, resolved) {
+  if (!isUnder(resolved, SHADCN)) return null;
+  return SHADCN_WRAPPERS.some((dir) => isUnder(importerRel, dir)) ? null : "shadcnDirect";
 }
 
 /** features の barrel(services/server の外の index.ts)が services/server を値で再 export するか */
@@ -637,6 +685,85 @@ const radixUnified = {
   },
 };
 
+/**
+ * `const { a, b: c } = await import("x")` の形なら読む名前の一覧({ name, typeOnly: false }[])、名前が分からない形は null。
+ * node = import() の指定子のリテラル
+ */
+export function destructuredNamesOfDynamicImport(sourceNode) {
+  const call = sourceNode?.parent;
+  if (call?.type !== "ImportExpression") return null;
+  const awaited = call.parent?.type === "AwaitExpression" ? call.parent : null;
+  const decl = awaited?.parent;
+  if (decl?.type !== "VariableDeclarator" || decl.id.type !== "ObjectPattern") return null;
+  const names = [];
+  for (const prop of decl.id.properties) {
+    if (prop.type !== "Property" || prop.computed || prop.key.type !== "Identifier") return null;
+    names.push({ name: prop.key.name, typeOnly: false });
+  }
+  return names;
+}
+
+const axiosInClientLayer = {
+  meta: {
+    type: "problem",
+    docs: { description: "axios を値で読めるのは src/lib/** と **/services/client/** だけ(画面・部品・hook は ClientService を hook から呼ぶ)" },
+    messages: {
+      axiosOutsideClient:
+        '"{{source}}" を読めるのは HTTP の層(src/lib/**・**/services/client/**)だけです。通信はドメインの services/client に関数を置き(normalizeHttpError を通す)、画面・部品は hook から呼びます(詳細: src/lib/errors/README.md、CLAUDE.md ARCHITECTURE)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const importerRel = repoRelative(context.filename, repoRootOf(context));
+    return moduleVisitors(({ node, source, typeOnly }) => {
+      const id = classifyAxiosImport(importerRel, source, typeOnly);
+      if (id) context.report({ node, messageId: id, data: { source } });
+    });
+  },
+};
+
+const mailSendViaMessaging = {
+  meta: {
+    type: "problem",
+    docs: { description: "lib/mail の send を読めるのは messaging の送り口(channels/email)と lib/mail 自身だけ" },
+    messages: {
+      mailSend:
+        '"{{source}}" の {{name}} は送信の本体です。利用者への連絡は messagingService.sendMessage / sendMessageToMany(@/features/messaging/services/server、messages/<名前>.ts の定義)を使います。send を読めるのは messaging の送り口 src/features/core/messaging/channels/email/** だけ(テンプレートの部品・型・MAIL_THEME_COLORS は可。詳細: src/features/core/messaging/README.md)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    const importerRel = repoRelative(context.filename, repoRoot);
+    return moduleVisitors(({ node, source, typeOnly, specifiers, dynamic }) => {
+      const resolved = resolveImport(source, context.filename, repoRoot);
+      const names = dynamic ? destructuredNamesOfDynamicImport(node) : specifiers;
+      const name = classifyMailSendImport(importerRel, resolved, typeOnly, names);
+      if (name) context.report({ node, messageId: "mailSend", data: { source, name: name === "*" ? "名前を問わない import" : name } });
+    });
+  },
+};
+
+const noShadcnDirect = {
+  meta: {
+    type: "problem",
+    docs: { description: "_shadcn を読めるのはラッパーの置き場(src/components/**・src/lib/tableSuite/**)だけ" },
+    messages: {
+      shadcnDirect:
+        '"{{source}}" は _shadcn を直接読みます。ラッパーを使います(対応表: src/components/_shadcn/README.md。無ければ src/components にラッパーを作る)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    const importerRel = repoRelative(context.filename, repoRoot);
+    return moduleVisitors(({ node, source }) => {
+      const resolved = resolveImport(source, context.filename, repoRoot);
+      if (classifyShadcnImport(importerRel, resolved)) context.report({ node, messageId: "shadcnDirect", data: { source } });
+    });
+  },
+};
+
 const clientNoDomainJson = {
   meta: {
     type: "problem",
@@ -756,6 +883,9 @@ const plugin = {
     "link-via-shelf": linkViaShelf,
     "router-via-guard": routerViaGuard,
     "radix-unified": radixUnified,
+    "axios-in-client-layer": axiosInClientLayer,
+    "mail-send-via-messaging": mailSendViaMessaging,
+    "no-shadcn-direct": noShadcnDirect,
     "src-no-scripts": srcNoScripts,
     "src-no-district-map": srcNoDistrictMap,
     "seed-reader": seedReader,

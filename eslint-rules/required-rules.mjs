@@ -6,7 +6,7 @@
 // 各規則が代表のファイルに error のまま掛かっているかを確かめ、外れていれば止める。
 //
 // - 載せるのは tier で強さが変わらない error の規則だけ(守り・境界の規則)。tier で強さが変わる規則
-//   (field-type-guard・core-ui-guards・style-tokens・client-service-boundary)と warn の規則は載せない
+//   (field-type-guard・core-ui-guards・style-tokens・client-service-boundary・axios-in-client-layer・asset-paths)と warn の規則は載せない
 // - fork が規則を足す・一覧の外の規則を緩めるのは自由。行ごとの理由付き eslint-disable も今まで通り使える
 // - lib の入口の lint(棚の議会 D82)= lib-entry・lib-self-relative(package.json を持つ lib にだけ効くが、設定は全ファイルに掛かる)
 // - files = その規則が掛かる代表のファイル(repo 相対)。example: true の行は、upstream にまだ該当ファイルが無い置き場の例
@@ -45,5 +45,8 @@ export const REQUIRED_ESLINT_RULES = [
   { rule: "core-ui-entry/no-inner-import", files: ["src/app/(user)/layout.tsx", "src/features/core/auth/components/OAuth/index.tsx"] },
   { rule: "realtime-room/purity", files: ["src/features/example/room/reducer.ts"], example: true },
   { rule: "hidden-columns/no-raw-select", files: ["src/features/core/auth/services/server/registration.ts"] },
+  // 当議会 D133: メールの送り口・_shadcn の直の import(全 Tier error)
+  { rule: "import-boundaries/mail-send-via-messaging", files: ["src/features/core/messaging/channels/email/index.tsx", "src/features/core/user/services/server/userService.ts"] },
+  { rule: "import-boundaries/no-shadcn-direct", files: ["src/components/Form/Field/FieldControl.tsx", "src/features/core/auth/components/OAuth/index.tsx"] },
   { rule: "raw-sql-date/no-date-param", files: ["src/features/core/messaging/services/server/sweep/retentionSql.ts", "scripts/runner/task/run.ts"] },
 ];

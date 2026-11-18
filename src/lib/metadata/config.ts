@@ -26,6 +26,7 @@ const defaults: MetadataConfig = {
   siteName: "next-starter",
   siteUrl: "https://example.com",
   locale: "ja_JP",
+  // eslint-disable-next-line asset-paths/no-literal-asset-path -- 既定値(fork が src/config で上書きする設定の値)。lib は src/utils/assets を読めない
   defaultOgImage: "/og-default.png",
   ogImageSize: { width: 1200, height: 630 },
   twitterHandle: "",

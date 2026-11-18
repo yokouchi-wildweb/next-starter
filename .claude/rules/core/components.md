@@ -7,7 +7,7 @@ paths:
 > part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
 
 wrappers (raw HTML NG): div → Layout/{Block,Flex,Grid,Stack} | main → Layout/Main or UserPage | section → Layout/Section | button → Form/Button | input → Form/Input | p → TextBlocks/Para | h2 → TextBlocks/SecTitle | skeleton → Skeleton/BaseSkeleton | img → Media/AppImage (never next/image directly)
-- never import _shadcn directly (wrapper table: src/components/_shadcn/README.md; no wrapper → propose one)
+- never import _shadcn directly (lint import-boundaries/no-shadcn-direct, all tiers; wrapper table: src/components/_shadcn/README.md; no wrapper → propose one)
 text_blocks_inherit: TextBlocks do not inherit like raw tags → Span directly inside a heading = `size="inherit" weight="inherit"` | Para in a centered parent = `align="center"` | ref: src/components/TextBlocks/README.md
 ui_layers (page / section_container / part, defined by role; ref: docs/!must-read/UIレイヤーの概念とコンポーネント分割方法.md):
 - page = page.tsx switch + Screen (see SCREENS): no hooks, no state, h1 only here
