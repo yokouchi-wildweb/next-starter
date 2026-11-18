@@ -1,6 +1,8 @@
 # storageObject（ファイル台帳）
 
-アップロードされたファイルを 1 行ずつ記録する core ドメインです。この台帳が受け持つのは次の 5 つです。
+## Overview
+
+アップロードされたファイルを 1 行ずつ記録する core ドメイン。この台帳が受け持つのは次の 5 つ。
 
 - アップロード権の発行
 - commit（照合。strip の用途の画像は、受け取り領域からの描き直しと本来の位置への書き込み）
@@ -8,13 +10,13 @@
 - 非公開ファイルの読み取り（都度認可）
 - 業務行への紐付けと解除
 
-ファイル本体はブラウザから GCS へ直接送ります。誰が何をしてよいかは、アプリのサーバーだけが判定します。部品（ref・ポート・配信規則・保存先）は [`src/lib/storage`](../../../lib/storage/README.md) にあり、このドメインはそれを使って判定と記録を行います。
+ファイル本体はブラウザから GCS へ直接送る。誰が何をしてよいかは、アプリのサーバーだけが判定する。部品（ref・ポート・配信規則・保存先）は [`src/lib/storage`](../../../lib/storage/README.md) にあり、このドメインはそれを使って判定と記録を行う。
 
-> 用途は拡張点 `purposes`（`purposes/<名前>.ts`）とドメインの `services/server/storagePurposes.ts` の一覧 `src/registry/storagePurposeRegistry.ts` の合成（`getStoragePurposes()` が返す。ID の重複は例外。`user.avatar` は strip に固定して返す）、業務行との連動は createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/README.md](../../../lib/crud/README.md)「storage オプション」）、掃除は cron `storage-sweep`。クライアントは `uploadToStorage`（[src/lib/storage/README.md](../../../lib/storage/README.md)）。
+- 用途 = 拡張点 `purposes`（`purposes/<名前>.ts`）とドメインの `services/server/storagePurposes.ts` の一覧 `src/registry/storagePurposeRegistry.ts` の合成（`getStoragePurposes()` が返す。ID の重複は例外。`user.avatar` は strip に固定して返す）
+- 業務行との連動 = createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/README.md](../../../lib/crud/README.md)「storage オプション」）、掃除 = cron `storage-sweep`、クライアント = `uploadToStorage`（[src/lib/storage/README.md](../../../lib/storage/README.md)）
+- 閉じられる機能の表を読む用途の例: `purposes/purchaseRequest.ts` の upload は `gate.enabled("payment")` が false なら受け付けない。read は保存済みの原本を見られるようそのまま
 
-> 閉じられる機能の表を読む用途の規則は、相手の入切を門番で確かめてから読む（例: `purposes/purchaseRequest.ts` の upload は `gate.enabled("payment")` が false なら受け付けない。read は保存済みの原本を見られるようそのまま）。
-
-## 流れ
+### 流れ
 
 ```
 issue（pending）→ ブラウザが GCS へ直接送る → commit（ready）→ 業務保存と同じ TX で attach
@@ -33,7 +35,30 @@ issue: 行は store=priv・key=incoming/<本来の store>/<purposeId>/<id>.<ext>
 - 受け取り領域は priv バケットの `incoming/` 接頭辞。別バケット・GCS のライフサイクル規則は使わない（受け取り中の物は必ず pending / deleted の行が追い、掃除 cron が消す）
 - 用途 ID は必ず「.」を含むので、`incoming/` のキーと通常のキーは衝突しない
 - 受け取り中かどうかは行のキーで判断する（キーから本来の位置を導く）。発行と commit の間に用途の metadata を変えても、発行時の判定に従う
-- ref が指す物が確定するのは commit の完了時。発行の応答の ref は今までどおり返すが（wire 互換）、業務行に保存するのは commit の応答の ref
+- ref が指す物が確定するのは commit の完了時。発行の応答の ref は今までどおり返す（wire 互換）
+
+## Usage
+
+### 業務行の DB の cascade
+
+- メディア列を持つ表の行を DB の cascade で消すと、その場では detach されない。cascade は許す。残った紐付けは掃除 cron の照合（下記「掃除」の orphanedAttached）が後の実行で外し、実物を消す。すぐ片付けたい表は restrict にし、子のサービスで消す（任意。[lib/crud README「storage オプション」](../../../lib/crud/README.md)）
+
+### お知らせの画像（messaging の受け取り箱）
+
+- 持ち主の業務行は受け取り箱の行ではなく回（`record_type` `messaging.dispatch` / `record_id` = 回の id / `record_field` `inApp.image`、用途 `notification.image`）
+- 理由: 台帳の 1 つのファイルは 1 つの業務行にしか結べず、宛先ごとの行は同じ画像を指すため（行ごとに持たせると宛先の数だけ複製と描き直しが要る）。宛先ごとの行は利用者の削除の cascade でも消える。受け取り箱の行は回より長生きしない
+- 結ぶ: お知らせの行を書く前に messaging が回に attach する（回の actor が上げた未紐付けの画像はそのまま、別の人の・他の行に結ばれた画像は回ごとに 1 回 copy して attach）。外す: 保持の掃除が回を消す取引の中で detach する。保持の掃除を通らずに回が消えた（手作業の DELETE など）画像は、照合が有無の関数（messaging の `existingDispatchIds`、回の行がある = 残す・無い = 外す）で外す。詳細 [messaging の受け取り箱の README](../messaging/services/server/inbox/README.md)「画像」
+
+### ユーザーの削除
+
+- 物理削除（user の `wrappers/hardDelete.ts`）
+  - アバター: users の binding が物理削除と同じ TX で detach（`record_removed`）し、commit 後に実物を消す
+  - その人がアップロードし、まだどこにも紐付いていない pending / ready: 物理削除の後に `discardAllOwnedBy(userId)` が取り消して（`discarded`）実物を消す。失敗しても throw しない（掃除 cron が期限・猶予の後に消す）
+  - 残すもの: 他の業務行に紐付いたファイル（その行の削除・照合で片付く）、`attach: false` の用途の ready（チャットの添付など、他の人のデータが参照しうる）
+  - users に cascade の FK を持つ表（振込明細など）の行は DB が消し、そのファイルは照合が後で消す
+- 退会（論理削除）: 何もしない。行が残る間はアバターも残す（復元できるように）
+
+## API
 
 | 操作 | 入口 | 内容 |
 |---|---|---|
@@ -48,7 +73,31 @@ issue: 行は store=priv・key=incoming/<本来の store>/<purposeId>/<id>.<ext>
 
 keep の用途と画像以外の型では、commit は**ファイルの中身を検査しません**。照合するのは size・申告 MIME・generation の 3 つだけです。strip の画像は描き直しの時に、実際の形式が申告と同じかを sharp で確かめます。ブラウザに inline 表示させるかどうかは、lib/storage の配信規則が決めます（画像・動画・音声の固定表に載っている型だけが inline）。
 
-## 規則（fail-closed）
+### 台帳 `storage_objects`
+
+- **列**
+  - 識別: id（uuidv7）/ purpose / status / store / key
+  - 所有・範囲: owner_user_id（FK なし）/ scope_id
+  - ファイルの情報: declared_size / size / content_type / generation
+  - アップロード権: transfer_kind（put | session）/ session_uri
+  - 紐付け: record_type / record_id / record_field
+  - 時刻: expires_at / created_at / ready_at / deleted_at / object_removed_at
+  - reason（expired / size_mismatch / type_mismatch / process_failed / discarded / replaced / record_removed / unreferenced / http_deleted。text 列）
+- **受け取り中の行**: strip の画像は pending の間 store = priv・key = `incoming/…`。ready になるときに `markReady` が store / key を本来の位置へ書き換える（以後は ref と一致する）
+- **session_uri は hiddenColumns**: 生の select では取り出さず、`services/server/finders/findStorageObjectById.ts` だけが読む
+- **index はすべて素の列**（push の往復を守る）: unique(store, key) / (status, expires_at) / (owner_user_id, status) / (record_type, record_id) / (status, ready_at)
+- **schemaRegistry**: 走査で登録される。feature-gate の対象外
+- **監査**: 初版は記録しない
+
+## Extension
+
+- 用途: 自分のドメインの `purposes/<名前>.ts`（拡張点 `purposes`）
+- 設定: 持ち主 `config.ts`、上書き `src/config/features/storageObject.config.ts`（掃除の `sweep`・照合の `sweep.reconcile`）。`defaultMaxPending` は `storage.config`
+- サービスの差し替え: `createStorageObjectService(deps)` で台帳・ポート・用途表・時刻・ID・画像の描き直し（`stripImage`。省略 = `stripImageMetadata`）を差し替えられる
+
+## Internals
+
+### 規則（fail-closed）
 
 - **用途**
   - 未登録の用途は 400
@@ -102,25 +151,15 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 - **rebind**: 業務行に紐付いた ready の紐付け先を、同じ種類の別の業務行へ移す（replaceByQuery で新しい行に残る ref）
   - 行が ready で、ref の purpose が一致し、いまの紐付け先が移す元の行のときだけ成功する（scopeId を指定した場合はそれも一致）
   - 満たさなければ DomainError 400 を投げ、業務の TX ごと巻き戻す
-- **FK cascade**: メディア列を持つ表の行を DB の cascade で消すと、その場では detach されない。cascade は許す。残った紐付けは掃除 cron の照合（下記「掃除」の orphanedAttached）が後の実行で外し、実物を消す。すぐ片付けたい表は restrict にし、子のサービスで消す（任意。[lib/crud README「storage オプション」](../../../lib/crud/README.md)）
-- **お知らせの画像（messaging の受け取り箱）**: 持ち主の業務行は受け取り箱の行ではなく回（`record_type` `messaging.dispatch` / `record_id` = 回の id / `record_field` `inApp.image`、用途 `notification.image`）
-  - 理由: 台帳の 1 つのファイルは 1 つの業務行にしか結べず、宛先ごとの行は同じ画像を指すため（行ごとに持たせると宛先の数だけ複製と描き直しが要る）。宛先ごとの行は利用者の削除の cascade でも消える。受け取り箱の行は回より長生きしない
-  - 結ぶ: お知らせの行を書く前に messaging が回に attach する（回の actor が上げた未紐付けの画像はそのまま、別の人の・他の行に結ばれた画像は回ごとに 1 回 copy して attach）。外す: 保持の掃除が回を消す取引の中で detach する。保持の掃除を通らずに回が消えた（手作業の DELETE など）画像は、照合が有無の関数（messaging の `existingDispatchIds`、回の行がある = 残す・無い = 外す）で外す。詳細 [messaging の受け取り箱の README](../messaging/services/server/inbox/README.md)「画像」
 - **サーバー内の書き込み**: putFromServer / copy の所有者は呼び出し側が渡す
   - cron・system の書き込みは `null`
   - 利用者・管理者が起点なら、実際の利用者
   - copy は、複製元が無い・外部 URL なら throw する（黙って null にしない）
   - 宛先が strip の用途の画像なら、毎回描き直す（複製元が strip の用途でも。導入前に上がった画像は処理されていないため）。copy は GCS 内の複製ではなく、元を read（宛先の maxBytes まで）→ 描き直し → put になる。描き直せなければ DomainError 422
-  - 呼び出し側の注意: 描き直しは画素数に比例して時間とメモリを使う。DB の TX や lock の中で putFromServer / copy を呼ぶと、その間ずっと持ち続ける。発行者プログラム（couponIssuerGrant/issuance.ts）は TX と利用者ごとの advisory lock の中で `issueCodeForOwner` を呼び、画像付きクーポンなら copy（= 描き直し）が lock の中で走る。duplicate（`crudBinding` の duplicateValues）もメディア列ごとに同じ負荷。新しく呼ぶ場所は、なるべく TX の外で先に複製する
-- **ユーザーの物理削除**（user の `wrappers/hardDelete.ts`）
-  - アバター: users の binding が物理削除と同じ TX で detach（`record_removed`）し、commit 後に実物を消す
-  - その人がアップロードし、まだどこにも紐付いていない pending / ready: 物理削除の後に `discardAllOwnedBy(userId)` が取り消して（`discarded`）実物を消す。失敗しても throw しない（掃除 cron が期限・猶予の後に消す）
-  - 残すもの: 他の業務行に紐付いたファイル（その行の削除・照合で片付く）、`attach: false` の用途の ready（チャットの添付など、他の人のデータが参照しうる）
-  - users に cascade の FK を持つ表（振込明細など）の行は DB が消し、そのファイルは照合が後で消す
-- **退会（論理削除）**: 何もしない。行が残る間はアバターも残す（復元できるように）
-- **公開の用途の実物とキャッシュ**: 公開の用途は `public, max-age=31536000, immutable` で配信する。台帳と GCS から消しても、利用者のブラウザや中間の CDN のキャッシュには残りうる（URL を知っている人には見えうる）。消すことを約束する文書（プライバシーポリシー等）では、非公開の用途を使うか、この限界を書く
+  - 描き直しは画素数に比例して時間とメモリを使う。DB の TX や lock の中で putFromServer / copy を呼ぶと、その間ずっと持ち続ける。発行者プログラム（couponIssuerGrant/issuance.ts）は TX と利用者ごとの advisory lock の中で `issueCodeForOwner` を呼び、画像付きクーポンなら copy（= 描き直し）が lock の中で走る。duplicate（`crudBinding` の duplicateValues）もメディア列ごとに同じ負荷
+- 公開の用途の実物とキャッシュ: 公開の用途は `public, max-age=31536000, immutable` で配信する。台帳と GCS から消しても、利用者のブラウザや中間の CDN のキャッシュには残りうる（URL を知っている人には見えうる）
 
-## 実物の削除（`cleanupDeletedObject`）
+### 実物の削除（`cleanupDeletedObject`）
 
 - 再開可能セッションの行は、先に session URI を DELETE してアップロード権を殺す（`StoragePort.cancelSession`）。そのうえで実物を消し、`object_removed_at` を埋める
 - 受け取り中の行（strip）は、受け取り領域の物と、キーから導いた本来の位置の物の両方を消す（commit の途中で止まった処理済みの物も残さない）
@@ -129,9 +168,13 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
   - そのため、期限内は `object_removed_at` を埋めずに枠も保持する。期限後にもう一度消して完了にする（掃除 cron の役目）
 - 失敗はログだけ残して握りつぶす。`deleted` で `object_removed_at` が null の行は、掃除 cron が拾う
 
-## 掃除（cron `storage-sweep`）
+### 掃除（cron `storage-sweep`）
 
-`src/app/api/cron/storage-sweep/` → `services/server/sweep.ts`（`runStorageSweep({ lookupService })`）。`runBudgetedBatches` + `createDeadline(storageObjectConfig.sweep.budgetMs)` で、次の 4 種類を id 順に片付ける。`lookupService`（task.ts が `src/wiring/domainRegistry.ts` の `lookupDomainService` を渡す）は台帳の `record_type`（= 登録表のキー）から業務行のサービスを引く口で、照合（orphanedAttached）が使う。登録表に無い `record_type` は、task.ts が渡す有無の関数 `recordResolvers`（`record_type` → `(ids) => まだ業務行がある id の Set`。今は `messaging.dispatch` だけ）で引く: 行を返さないので値の照合はしない、関数が投げたらその種類を `load_failed` で飛ばす。上限・大量一致の決まりは同じ。fork が登録表に無い種類を足すときは上流へ依頼する（task.override.ts は時刻と入切だけで、この表は持たない）
+`src/app/api/cron/storage-sweep/` → `services/server/sweep.ts`（`runStorageSweep({ lookupService })`）。`runBudgetedBatches` + `createDeadline(storageObjectConfig.sweep.budgetMs)` で、次の 4 種類を id 順に片付ける。
+
+- `lookupService`（task.ts が `src/wiring/domainRegistry.ts` の `lookupDomainService` を渡す）は台帳の `record_type`（= 登録表のキー）から業務行のサービスを引く口で、照合（orphanedAttached）が使う
+- 登録表に無い `record_type` は、task.ts が渡す有無の関数 `recordResolvers`（`record_type` → `(ids) => まだ業務行がある id の Set`。今は `messaging.dispatch` だけ）で引く: 行を返さないので値の照合はしない、関数が投げたらその種類を `load_failed` で飛ばす。上限・大量一致の決まりは同じ
+- task.override.ts は時刻と入切だけで、この表は持たない
 
 | 種類 | 対象 | 処理 |
 |---|---|---|
@@ -140,7 +183,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 | pendingRemoval | deleted で `object_removed_at` が null の行 | 実物の削除を再試行する。put は期限後だけ（期限内の署名 URL で再送されうるため）、session はいつでも |
 | orphanedAttached（照合） | 紐付いた ready のうち、紐付け先の業務行が無くなったもの（DB の cascade・手作業の DELETE などアプリを通らない削除） | record_type ごとに `lookupService(recordType, { require: ["searchWithDeleted"] })` → `searchWithDeleted({ where: { field: CRUD_ID_FIELD, op: "in", value }, limit: 束の ID 数 })` で行の有無を調べ、無い行の紐付けを detach（`record_removed`）して実物を消す。論理削除済みの行は「ある」と数える（restore できるように残す）。行がある紐付けは、続けて値を照合する（下の「値の照合」） |
 
-照合（orphanedAttached）の決まり:
+照合（orphanedAttached）:
 
 - 時間予算は上の 3 種と共有し、その後に回す（既存の片付けを飢えさせない。3 種が予算を使い切った回は照合しない）
 - 進み具合は台帳に列を持たず、`cron_checkpoints` の行 `storage-sweep.reconcile` に持つ（台帳 id = uuidv7 の時刻部分。同じミリ秒の行は次回もう一度見るが、照合は何度見ても安全）。最後まで行ったら行を消して先頭に戻る（一巡）。上限で止まった束では進めない
@@ -158,13 +201,12 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 | 列はあるが、値（ref 1 つか ref の配列）にその ref が無い | `value_missing` |
 
 - `valueCheck`: `"off"` = 見ない | `"report"`（既定）= `unreferenced` に表・列・reason ごとの件数を出すだけで消さない（action `reported`）| `"detach"` = 外して（台帳の reason `unreferenced`）実物を消す（action `detached`）
-- **報告を確かめてから `"detach"` にする**: コードを先にデプロイして db:push が後の間は、DB に残る列も「無い」と見える（その間に detach すると、DB にはまだある値のファイルを消す）。移行の途中（台帳の付け替えが済んでいない）も同じ
+- コードを先にデプロイして db:push が後の間は、DB に残る列も「無い」と見える（その間に `"detach"` だと、DB にはまだある値のファイルを消す）。移行の途中（台帳の付け替えが済んでいない）も同じ
 - 大量一致: 列はあるのに、1 つの束でその列の値が `massMissingMin` 以上 1 件も入っていなければ、読み出しの取り違えを疑って消さない（action `held`）。列そのものが無い `column_missing` には使わない（列を消したときは全件が外れるのが正しい形なので、報告で確かめてから detach する）
 - 1 回の上限 `maxDetachPerRun` は、行が消えた紐付けと合わせて数える
 - detach は ready・紐付け（行と列）一致の条件付き更新。並行して置換・別の行や列へ付け替えた紐付けは外れない
 - `record_field` が null の古い紐付けは値を見ない
-- メディア列は hiddenColumns にできない（サービスの戻り値で null になり、値の照合が誤るため。createCrudService が組み立て時に throw する）
-- 確かめ方: `pnpm task storage-sweep` の戻り値の `reconcile.unreferenced`（本実行なので、`"detach"` のときは消える）。台帳側は `pnpm ops db inspect query "select record_type, record_field, count(*) from storage_objects where status = 'ready' group by 1, 2"`
+- メディア列を hiddenColumns にすると createCrudService が組み立て時に throw する（サービスの戻り値で null になり、値の照合が誤るため）
 
 ### 照合が止まったとき（skipped）
 
@@ -178,6 +220,8 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 | `mass_missing` | 1 つの束で、同じ record_type の ID が `massMissingMin` 以上あって 1 件も見つからない | 表の取り違え・誤った全消去・truncate を疑う。`pnpm ops db inspect query` で台帳（`select record_id from storage_objects where status = 'ready' and record_type = '<type>'`）と業務表を突き合わせる。正当（大きな親の削除で子が一度に消えた）と確かめたら、その間だけ `storageObjectConfig.sweep.reconcile.massMissingMin` を上げて通す。解除の作業コマンドは無い |
 | `detach_limit` | 1 回の上限 `maxDetachPerRun` に達した | 次の実行で続きから片付く。続くなら原因（大量削除）を確かめる |
 
+### 掃除の性質
+
 - 紐付いた行と旧 URL（台帳に無い）は対象にならない
 - 物理削除の前に条件付き UPDATE で採用できない状態にする。掃除の取得と削除の間に attach が成功しても、採用された物は消えない
 - GCS の 404 は成功扱い。重ねて・並行に実行しても、時間予算で途中終了しても安全（次回に続きを拾う）
@@ -185,37 +229,19 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 - **アップロード権はアプリの期限後も cloud 側でしばらく生きうる**
   - session URI は約 1 週間
   - 単発 PUT の署名 URL は期限まで、削除後の同じ key への再送も通る（実機で確認）
-  - 「期限直後に必ず消える」とは説明しない。Hobby の掃除は 1 日 1 回
+  - Hobby の掃除は 1 日 1 回
 
-## 台帳 `storage_objects`
+### 部品
 
-- **列**
-  - 識別: id（uuidv7）/ purpose / status / store / key
-  - 所有・範囲: owner_user_id（FK なし）/ scope_id
-  - ファイルの情報: declared_size / size / content_type / generation
-  - アップロード権: transfer_kind（put | session）/ session_uri
-  - 紐付け: record_type / record_id / record_field
-  - 時刻: expires_at / created_at / ready_at / deleted_at / object_removed_at
-  - reason（expired / size_mismatch / type_mismatch / process_failed / discarded / replaced / record_removed / unreferenced / http_deleted。text 列）
-- **受け取り中の行**: strip の画像は pending の間 store = priv・key = `incoming/…`。ready になるときに `markReady` が store / key を本来の位置へ書き換える（以後は ref と一致する）
-- **session_uri は hiddenColumns**: 生の select では取り出さず、`services/server/finders/findStorageObjectById.ts` だけが読む
-- **index はすべて素の列**（push の往復を守る）: unique(store, key) / (status, expires_at) / (owner_user_id, status) / (record_type, record_id) / (status, ready_at)
-- **schemaRegistry**: 走査で登録される。feature-gate の対象外
-- **監査**: 初版は記録しない
+- `entities/drizzle.ts` / `entities/model.ts`: テーブルと型
+- `services/server/storageObjectService.ts`: サービス本体。`createStorageObjectService(deps)` で、台帳・ポート・用途表・時刻・ID・画像の描き直し（`stripImage`。省略 = `stripImageMetadata`）を差し替えられる
+- `services/server/policy.ts`: 用途の規則の判定（`evaluateApiAccessRule` + check）と、SessionUser → StorageActor の変換
+- `services/server/purposeSource.ts`: 用途表の取得口 `getStoragePurposes()`（登録表に `withFixedStripPurposes` をかける。`FIXED_STRIP_PURPOSES` = `user.avatar` は常に strip）
+- `services/server/http.ts`: ルートの入力の検証と、読み取りの応答
+- `services/server/ledger/`: 台帳の読み書きの境界（`drizzleLedger` / テスト用 `memoryLedger`）
+- `services/server/sweep.ts` / `reconcileCursor.ts`: 掃除 cron の本体と、照合の進み具合（cron_checkpoints）
 
-## 構成
-
-| ファイル | 役割 |
-|---|---|
-| `entities/drizzle.ts` / `entities/model.ts` | テーブルと型 |
-| `services/server/storageObjectService.ts` | サービス本体。`createStorageObjectService(deps)` で、台帳・ポート・用途表・時刻・ID・画像の描き直し（`stripImage`。省略 = `stripImageMetadata`）を差し替えられる |
-| `services/server/policy.ts` | 用途の規則の判定（`evaluateApiAccessRule` + check）と、SessionUser → StorageActor の変換 |
-| `services/server/purposeSource.ts` | 用途表の取得口 `getStoragePurposes()`（登録表に `withFixedStripPurposes` をかける。`FIXED_STRIP_PURPOSES` = `user.avatar` は常に strip） |
-| `services/server/http.ts` | ルートの入力の検証と、読み取りの応答 |
-| `services/server/ledger/` | 台帳の読み書きの境界（`drizzleLedger` / テスト用 `memoryLedger`） |
-| `services/server/sweep.ts` / `reconcileCursor.ts` | 掃除 cron の本体と、照合の進み具合（cron_checkpoints） |
-
-## テスト
+## Verification
 
 - `pnpm test src/features/core/storageObject`: memoryLedger と fake ポートを使った単体テスト。読み取りルートのヘッダーのテストも含む
   - 往復: issue → commit → attach → detach → 掃除対象化
@@ -227,3 +253,10 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
   - 開発 DB に `test.*` の行を作り、終了時に消す
   - DATABASE_URL が無ければ skip する
   - 先に `pnpm db:push` が必要
+- 確かめ方: `pnpm task storage-sweep` の戻り値の `reconcile.unreferenced`（本実行なので、`"detach"` のときは消える）。台帳側は `pnpm ops db inspect query "select record_type, record_field, count(*) from storage_objects where status = 'ready' group by 1, 2"`
+
+## Related
+
+- 部品（ref・ポート・配信規則・保存先・位置情報の約束）: [src/lib/storage/README.md](../../../lib/storage/README.md)
+- 業務行との連動（storage オプション）: [src/lib/crud/README.md](../../../lib/crud/README.md)
+- お知らせの画像: [messaging の受け取り箱の README](../messaging/services/server/inbox/README.md)
