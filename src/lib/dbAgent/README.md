@@ -3,7 +3,7 @@
 ## Overview
 
 - 管理者が管理画面から自然言語で PostgreSQL を調査できるエージェントのデータレイヤ(`@/lib/dbAgent`)。汎用AI基盤 (`@/lib/ai`) の最初の搭載例で、UI (チャット画面・ブロックレンダラー) は fork が作る(Usage「UI レシピ」)
-- 使う時・直す時の決まりは札 .claude/rules/items/lib/dbAgent.md にある
+- 使う時・直す時の決まりは札(カード).claude/rules/items/lib/dbAgent.md にある
 
 ```
 UI (downstream)
@@ -157,10 +157,9 @@ export function useDbAgentChat() {
 - **ブロックレンダラー**: `AgentBlock` の discriminated union で分岐。
   `table` → 既存のテーブル部品、`chart` → 既存のチャート部品、`sql` → コードブロック、
   `entity_link` → `/admin/<domain>/<id>` へのリンク等にマップする
-- **ローディング表示必須** (CLAUDE.md async_feedback): ツールタイムラインが実質の
+- **ローディング表示必須** (.claude/rules/core/components.md async_feedback): ツールタイムラインが実質の
   プログレス表示になる。ストリーム開始前の接続待ちはスピナー
-- **フローティングランチャー**: `features/userOpinion/components/common/OpinionBoxLauncher`
-  (downstream 実装) が先行例
+- **フローティングランチャー**: fork の実装例 `features/userOpinion/components/common/OpinionBoxLauncher`(この repo には無い)
 - 会話履歴はクライアント保持 (サーバーはステートレス)。ページリロードで消えてよい
   想定(永続化は基盤の拡張になるので上流への注文)
 
@@ -199,7 +198,7 @@ export function useDbAgentChat() {
    (テーブルの意味・集計の定石。スキーマ全文は不要 — エージェントが自力で引ける)
 2. **ドメインツール** — `src/wiring/dbAgent/extraTools/<名前>.ts` に `export const tool: AgentToolDefinition` を置き `pnpm generate extensions`
    (読取専用の操作だけ)
-3. **実行時の運営追加指示** — `dbAgentSystemSuffixProviders` にプロバイダを登録 (次節)
+3. **実行時の運営追加指示** — `src/wiring/dbAgent/suffixProviders/<名前>.ts` に `export const provider` を置き `pnpm generate extensions`(Internals「実行時指示の注入 (運営追加指示)」)
 
 ## Internals
 
@@ -231,9 +230,8 @@ fork がツールを足すときもこの境界は同じ (札 dbagent_tools_read
 
 - **経路**: `src/wiring/dbAgent/suffixProviders/<名前>.ts` の `export const provider` に
   `() => Promise<string | null>` を登録する。リクエストごとに解決され、
-  システムプロンプトの**最後** (基本プロンプト + レジストリ断片の後ろ) に
-  `## 運営からの追加指示` として結合される。setting ドメインから読む実装例は
-  レジストリファイルのコメント参照
+  システムプロンプトの**最後** (基本プロンプト + promptFragments の後ろ) に
+  `## 運営からの追加指示` として結合される
 - **キャッシュ特性**: 動的テキストを末尾に限定しているため、安定プレフィックスの
   プロンプトキャッシュは維持される。サフィックス変更 (= 管理者が設定を編集した時)
   のみキャッシュが無効化される(毎リクエスト変わる値を返すと毎回無効になる)

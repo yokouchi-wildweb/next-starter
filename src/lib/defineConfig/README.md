@@ -48,6 +48,8 @@ export const toastConfig = toastConfigDef.compose(override);
 
 ## Extension
 
+### Extra
+
 Extra(fork が足す型): 上書きの型 `XxxOverride<Extra>` と `compose<Extra>` は、Extra を既定の型と深く合成する(交差型 `D & Extra` にはしない)。
 
 - 既定に無いキー = Extra の型のまま足す(`{ myKey: number }`)

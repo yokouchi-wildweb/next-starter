@@ -47,7 +47,6 @@
 
 - `POST /api/data-migration/export`
 - `POST /api/data-migration/import-chunk`
-- `POST /api/data-migration/import`（サーバー ZIP 経路、UI 未使用）
 - `POST /api/data-migration/import`(サーバーで ZIP を丸ごと受け取る経路、v1.0 のみ)もチャンクごとに同じ中核(`importChunk`)を使う。同梱ファイルはサーバーから `putFromServer` で書く
 
 ### manifest
@@ -76,7 +75,7 @@
 
 ### 注入するもの
 
-lib は登録表を import しない。API ルートが `src/wiring/domainRegistry.ts`・`src/wiring/domainConfig.ts` の結んだ版を渡す。DataMigrationButton は写し（`entities/display.ts` の `domainDisplay`）を受ける。
+lib は登録表を import しない。API ルートが `src/wiring/domainRegistry.ts`・`src/wiring/domainConfig.ts` の登録表を引く関数を渡す。DataMigrationButton は表示用の写し（`entities/display.ts` の `domainDisplay`）を受ける。
 
 - `services`: ドメイン名からサービスを引く(`getService`)
 - `junctionTables`: 中間表の名前から表を引く(`getJunctionTable`)
@@ -93,7 +92,7 @@ lib は登録表を import しない。API ルートが `src/wiring/domainRegist
 - 結果画面は「インポート失敗（途中で停止）」として、DB に入ったもの（チャンク数・件数）と入っていないもの（失敗したチャンク + 流さなかったチャンク）を分けて出す（`ImportResultData` の `stoppedAt` / `notRunChunks`）
 - `onImportSuccess`（一覧の再取得）は DB が変わったとき（途中で止まった場合も、入ったチャンクがあれば）に呼ぶ。成否の表示は結果画面が持つ
 
-### 関連ドメイン(related)は無い行だけ足す
+### 関連ドメイン（related）は無い行だけ足す
 
 - v1.1 の関連ドメイン（belongsTo の相手を一緒に書き出したもの）は、既にある行（同じ id）に触らず、無い行だけ足す（`importChunk` の `existingRowsFor` → `bulkUpsert` の `skipDuplicates`）
 - 取り込みの目的はメインのドメインで、関連は参照先を揃えるため。全行を upsert すると、変わっていない関連の行の `updatedAt` まで毎回書き換わる
@@ -102,7 +101,7 @@ lib は登録表を import しない。API ルートが `src/wiring/domainRegist
 
 ### メディア列(storage オプションの列)
 
-どの列がメディア列か（用途・Multi・scope）は、サービスの `storageFields`（createCrudService の storage オプション、`src/lib/crud/README.md`）が正本。クライアントが送る `imageFields` は使わない。ファイル台帳の操作（putFromServer / copy / 非公開ファイルの読み取り判定）は `DataMigrationMediaResolver`（`media.ts`）として API ルートが注入する（`src/app/api/data-migration/_shared/mediaResolver.ts`。lib は features を import しない）。所有者・判定の主体は実行者（DB と同期した管理者）。
+どの列がメディア列か（用途・Multi・scope）は、サービスの `storageFields`（createCrudService の storage オプション、`src/lib/crud/README.md`）が正本。クライアントが送る `imageFields` は使わない。ファイル台帳 storageObject の操作（putFromServer / copy / 非公開ファイルの読み取り判定）は `DataMigrationMediaResolver`（`media.ts`）として API ルートが注入する（`src/app/api/data-migration/_shared/mediaResolver.ts`。lib は features を import しない）。所有者・判定の主体は実行者（DB と同期した管理者）。
 
 #### import
 
@@ -131,11 +130,6 @@ lib は登録表を import しない。API ルートが `src/wiring/domainRegist
 ### 依存(読む lib)
 
 守りの lib は入口 `@/lib/unsavedGuard` だけを読む(中のファイルを読まない)。
-
-- `src/lib/unsavedGuard`(取り込み中の守り)
-- `src/lib/storage`(同梱ファイルのアップロード・取り消し)
-- `src/lib/crud`・`src/lib/domain`・`src/lib/drizzle`(サーバー側の取り込み・設定の読み方)
-- `src/lib/errors`・`src/lib/toast`(失敗の形・通知)
 
 ## Verification
 
