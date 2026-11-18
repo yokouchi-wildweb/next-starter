@@ -1,34 +1,31 @@
 # rateLimit - レート制限
 
-IPアドレスベースのリクエスト制限機能。スパム登録や過剰アクセスを防止する。
+## Overview
 
----
+- IP アドレスなどの識別子ごとのリクエスト制限。スパム登録や過剰アクセスを防ぐ
+- 制限はカテゴリ(窓の秒数と上限回数)ごと。上流のカテゴリと既定値は `config.ts`
+- 入切の機能を持たない(門番の規則なし、常に開)
 
-## 基本構成
+## Usage
 
+### API ルートに当てる
+
+`createApiRoute` の `rateLimit` オプションにカテゴリ名を書く。同じ IP からのリクエストが制限される:
+
+```ts
+export const POST = createApiRoute(
+  {
+    operation: "POST /api/example",
+    operationType: "write",
+    rateLimit: "apiGeneral",  // ← カテゴリ名を指定
+  },
+  async (req) => { ... }
+);
 ```
-src/features/core/rateLimit/
-├── config.ts                  # カテゴリと制限の既定・型 RateLimitRule / RateLimitCategory・合成(上書きと Extra)
-├── constants/
-│   └── index.ts              # 型定義、キー生成関数
-├── entities/                  # Drizzleスキーマ（自動生成）
-├── services/
-│   └── server/
-│       └── wrappers/
-│           └── rateLimitHelper.ts  # 汎用ヘルパー
-└── README.md
 
-src/config/features/
-└── rateLimit.config.ts        # 上書き(fork が値を変える・カテゴリを足す。config.ts だけが読む)
-```
+### 値を変える・カテゴリを足す
 
----
-
-## 使い方
-
-### 1. ルール追加・値の変更
-
-上流のカテゴリは `config.ts` の既定(上流が足す)。fork は上書き `src/config/features/rateLimit.config.ts` で値を変え、自分のカテゴリを足す(足す名前は `Extra` 型で宣言する。値はリテラル):
+上書き `src/config/features/rateLimit.config.ts` で値を変え、自分のカテゴリを足す(足す名前は `Extra` 型で宣言する。値はリテラル):
 
 ```ts
 // src/config/features/rateLimit.config.ts
@@ -42,76 +39,45 @@ export default {
 } satisfies RateLimitOverride<Extra>;
 ```
 
-`RateLimitCategory`(上流 + `Extra` の名前)は `src/wiring/apiRoute.ts` が `lib/routeFactory` に型引数で渡す(lib は features の型を読まない、設定の議会 L1.25)。route の `rateLimit: "<名前>"` に知らない名前を書くと型で落ちる。
-
-### 2. APIルートに適用
-
-`createApiRoute` の `rateLimit` オプションで指定:
+### 識別子を変える(ルートの外から直接数える)
 
 ```ts
-export const POST = createApiRoute(
-  {
-    operation: "POST /api/example",
-    operationType: "write",
-    rateLimit: "apiGeneral",  // ← カテゴリ名を指定
-  },
-  async (req) => { ... }
-);
+// ユーザー単位: ルートの ctx.user の userId を識別子にする
+const result = await checkRateLimit("apiGeneral", user.userId);
+
+// IP とエンドポイントの組み合わせ
+const result = await checkRateLimit("apiGeneral", `${ip}:/api/specific`);
 ```
 
-これだけで、同一IPからのリクエストが制限される。
+## API
 
----
-
-## 設定オプション
+### カテゴリの値(`RateLimitRule`)
 
 | プロパティ | 型 | 説明 |
 |-----------|-----|------|
 | `windowSeconds` | number | 制限ウィンドウの秒数 |
 | `maxRequests` | number | ウィンドウ内の最大リクエスト数 |
 
----
+- `RateLimitCategory` = 上流のカテゴリ + 上書きの `Extra` の名前。route の `rateLimit: "<名前>"` に知らない名前を書くと型で落ちる
 
-## 現在のルール
+### ヘルパー関数(`services/server/wrappers/rateLimitHelper.ts`)
 
-| カテゴリ | ウィンドウ | 上限 | 用途 |
-|----------|-----------|------|------|
-| `signupEmail` | 1時間 | 7回 | メール送信系（send-email-link等） |
-| `signupRegister` | 1時間 | 3回 | 本登録（register） |
-| `login` | 15分 | 5回 | ログイン試行 |
-| `passwordReset` | 1時間 | 3回 | パスワードリセット |
-| `apiGeneral` | 1分 | 60回 | 汎用API |
-
----
-
-## ヘルパー関数
-
-`src/features/core/rateLimit/services/server/wrappers/rateLimitHelper.ts`
-
-### checkRateLimit(category, identifier)
-
-レート制限をチェックし、カウントを増加させる。
+- `checkRateLimit(category, identifier)`: 制限を確かめてカウントを増やす → `{ allowed: boolean, remaining: number, resetAt: Date, count: number }`
+- `getRateLimitStatus(category, identifier)`: 今の状態を返す(カウントは増やさない)
+- `cleanupExpiredRateLimits()`: 期限切れの行を消す(cron などで定期に呼ぶ用)
 
 ```ts
 import { checkRateLimit } from "@/features/core/rateLimit/services/server/wrappers/rateLimitHelper";
 
-const result = await checkRateLimit("signup", "192.168.1.1");
-// result: { allowed: boolean, remaining: number, resetAt: Date, count: number }
+const result = await checkRateLimit("signupEmail", "192.168.1.1");
 ```
 
-### getRateLimitStatus(category, identifier)
+### 制限を超えたときの応答
 
-現在の状態を取得（カウントは増やさない）。
+- `429 Too Many Requests`、本文 `{ message: "リクエスト回数の上限に達しました。...", resetAt: Date }`
+- UI ではフォームの下部に赤字の誤りとして出る
 
-### cleanupExpiredRateLimits()
-
-期限切れレコードを削除。Cron Jobなどで定期実行用。
-
----
-
-## DBテーブル
-
-`rate_limits` テーブル:
+### DB テーブル `rate_limits`
 
 | カラム | 型 | 説明 |
 |--------|-----|------|
@@ -120,30 +86,11 @@ const result = await checkRateLimit("signup", "192.168.1.1");
 | `window_start` | timestamp | ウィンドウ開始時刻 |
 | `expires_at` | timestamp | 有効期限 |
 
----
+## Extension
 
-## 制限超過時の挙動
+- 上書き: `src/config/features/rateLimit.config.ts`(fork が値を変える・カテゴリを足す。読むのは `config.ts` だけ)
+- 合成: `config.ts` が上流の既定に上書きと `Extra` を合わせる
 
-- APIは `429 Too Many Requests` を返す
-- レスポンス: `{ message: "リクエスト回数の上限に達しました。...", resetAt: Date }`
-- UIではフォーム下部に赤字でエラーメッセージが表示される
+## Internals
 
----
-
-## 拡張例
-
-### ユーザーIDベースの制限
-
-IPではなくユーザーIDで制限したい場合:
-
-```ts
-// session.userIdを識別子として使用
-const result = await checkRateLimit("apiGeneral", session.userId);
-```
-
-### 複合キーでの制限
-
-```ts
-// IPとエンドポイントの組み合わせ
-const result = await checkRateLimit("apiGeneral", `${ip}:/api/specific`);
-```
+- カテゴリの型の渡し方: `RateLimitCategory` は `src/wiring/apiRoute.ts` が `lib/routeFactory` に型引数で渡す(lib は features の型を読まない)
