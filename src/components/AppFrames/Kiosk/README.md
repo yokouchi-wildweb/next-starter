@@ -1,20 +1,22 @@
-# AppFrames/Kiosk - キオスク（非スクロール端末画面）の土台
+# AppFrames/Kiosk
 
-UserLayout / AdminLayout の外側に置く独立ルート群で、「どの解像度・比率でも 1 画面に収まり、**絶対にスクロールしない**」画面を作るための部品群と、その書き方の規約です。
+## Overview
 
-想定用途: 卓上タブレット端末（未ログイン・全画面固定）、店舗スタッフ用タブレット、店内サイネージ、チェックイン端末。
+- UserLayout / AdminLayout の外側に置く独立ルート群で、どの解像度・比率でも 1 画面に収まり、スクロールしない画面を作るための部品群
+- 想定用途: 卓上タブレット端末(未ログイン・全画面固定)、店舗スタッフ用タブレット、店内サイネージ、チェックイン端末
+- 使う時の決まり(子の高さ・スクロール・文字・方式の選び方)は札 .claude/rules/items/components/AppFrames.md にある。この README は使い方と仕組み
 
 | 部品 | 置き場 | 役割 |
 |------|--------|------|
-| `KioskFrame` | `@/components/AppFrames/Kiosk` | ビューポート固定・overflow-clip のページ枠（本ディレクトリ） |
-| `ScaledStage` | `@/components/Layout` | 固定の論理 W×H を transform:scale でコンテナにフィット（レターボックス） |
+| `KioskFrame` | `@/components/AppFrames/Kiosk` | ビューポート固定・overflow-clip のページ枠(本ディレクトリ) |
+| `ScaledStage` | `@/components/Layout` | 固定の論理 W×H を transform:scale でコンテナにフィット(レターボックス) |
 | `useFitScale` | `@/hooks/useFitScale` | ScaledStage の倍率計算部分。Canvas / Konva など DOM 以外にも使える |
 | `text-fluid-*` | `src/styles/core/theme.css` | clamp(vmin) ベースの流体フォントスケール |
 | `portrait:` / `landscape:` / `short:` | Tailwind 組み込み / theme.css | 向き・高さ不足の分岐 |
 
----
+## Usage
 
-## KioskFrame - ページ枠
+### KioskFrame でページ枠を張る
 
 ```tsx
 // src/app/terminal/layout.tsx
@@ -30,21 +32,10 @@ export default function TerminalLayout({ children }: Readonly<{ children: ReactN
 }
 ```
 
-| prop | 既定 | 説明 |
-|------|------|------|
-| `safeArea` | `false` | 端末の切り欠き `var(--app-safe-area-*)` ぶんのパディングを付与 |
-| `wakeLock` | `false` | 表示中 Screen Wake Lock で画面スリープを抑止（`useWakeLock`、非対応は no-op） |
-| `className` 他 | - | `div` の属性をそのまま受ける。`bg-background text-foreground` が既定 |
-
-### 仕組みと子の契約
-
-- 高さは `h-[var(--viewport-height,100dvh)]` に**固定**（`min-h` ではない）。`--viewport-height` は root layout の `ViewportHeightWatcher`（`@/lib/viewport`、書き手はこれだけ）が更新する実寸で、モバイルブラウザのアドレスバーを考慮済み。この変数が高さの単一ソースであり、KioskFrame 自身は計測しない
-- `overflow-clip`（scroll container にならないので focus 駆動の勝手なスクロールが起きない）+ `overscroll-none`（引っ張り更新・バウンス抑止）
-- `flex flex-col`。**子は `flex-1 min-h-0` だけで残り高さを得る**。`calc(100dvh - Nrem)` やマジックナンバーは書かない
-- スクロールさせたい領域は子側で `overflow-y-auto` を付ける（枠はスクロールしない。内部ペインだけが独自スクロール）
+- ページ側は `flex-1 min-h-0` で残り高さを受け、スクロールさせたい領域だけに `overflow-y-auto` を付ける
 
 ```tsx
-// ページ側（例）
+// ページ側(例)
 <Flex className="min-h-0 flex-1 flex-col">
   <Block className="shrink-0">ヘッダー相当</Block>
   <Block className="min-h-0 flex-1 overflow-y-auto">内部スクロール領域</Block>
@@ -56,16 +47,15 @@ export default function TerminalLayout({ children }: Readonly<{ children: ReactN
 
 | 欲しいもの | 使うもの |
 |-----------|---------|
-| UserLayout 内で、ヘッダー等と共存する非スクロールのページ土台 | ページの隣の枠の宣言(`frame.ts` / `frame.override.ts`)の `page: { fill: true }`(枠も隠すなら `hide`)+ `UserPage`（[src/app/(user)/_layout/README.md](../../../app/(user)/_layout/README.md)「fill のページ」） |
-| AdminLayout 内で、サイドバー等と共存する非スクロールのページ土台 | ページの隣の枠の宣言(`frame.ts` / `frame.override.ts`)の `page: { fill: true }` + `AdminPage`（[src/app/admin/_layout/README.md](../../../app/admin/_layout/README.md)「AdminPage と PageTitle」） |
-| **レイアウトを持たない独立ルート群**のビューポート固定ページ枠 | `<KioskFrame>` |
-| 画面全体を覆う一時的なオーバーレイ（スプラッシュ・背景演出） | `<Main containerType="fullscreen">`（fixed オーバーレイ、z 層、body スクロールロック） |
+| UserLayout 内で、ヘッダー等と共存する非スクロールのページ土台 | ページの隣の枠の宣言(`frame.ts` / `frame.override.ts`)の `page: { fill: true }`(枠も隠すなら `hide`)+ `UserPage`([src/app/(user)/_layout/README.md](../../../app/(user)/_layout/README.md)「fill のページ」) |
+| AdminLayout 内で、サイドバー等と共存する非スクロールのページ土台 | ページの隣の枠の宣言(`frame.ts` / `frame.override.ts`)の `page: { fill: true }` + `AdminPage`([src/app/admin/_layout/README.md](../../../app/admin/_layout/README.md)「AdminPage と PageTitle」) |
+| レイアウトを持たない独立ルート群のビューポート固定ページ枠 | `<KioskFrame>` |
+| 画面全体を覆う一時的なオーバーレイ(スプラッシュ・背景演出) | `<Main containerType="fullscreen">`(fixed オーバーレイ、z 層、body スクロールロック) |
 
-枠の宣言の fill は「外枠が属性 `data-frame-fill` で確定高さに切り替わり、ページがヘッダー下の残り高さを占有する」フロー内の形、KioskFrame は「自身がビューポート根」。意味が異なるので実装は共有していない。
+### 全画面化ボタン(レシピ)
 
-### 全画面化ボタン（レシピ）
-
-ボタンは画面デザインの一部なので KioskFrame には内蔵していない。`useFullscreen` でページ側に置く。Fullscreen API はユーザー操作イベント内でしか許可されないため、自動で全画面にはできない（端末側のキオスクモード / ホーム画面追加を併用する）。
+- `useFullscreen` でページ側に置く(ボタンは画面デザインの一部なので KioskFrame には無い)
+- Fullscreen API はユーザー操作イベント内でしか許可されないため、自動で全画面にはできない。端末側のキオスクモード / ホーム画面追加を併用する
 
 ```tsx
 "use client";
@@ -83,26 +73,22 @@ export function FullscreenToggle() {
 }
 ```
 
----
+### 1 画面に収める 2 つの方式
 
-## 1 画面に収める 2 つの方式
-
-画面ごとに A / B のどちらかを選ぶ（混在も可）。
+画面ごとに A / B のどちらかを選ぶ(混在も可)。
 
 | 方式 | 向く画面 | 使うもの |
 |------|---------|---------|
-| **A. 流体（fluid）** | テキスト主体、縦横比が変わっても再配置で吸収したい、DOM の操作性（フォーム・スクロール領域）を保ちたい | `flex-1 min-h-0` の比率レイアウト + `text-fluid-*` + `portrait:` / `landscape:` / `short:` + `clamp()` 余白 |
-| **B. スケール（fit-scale）** | デザインカンプ忠実、固定比率の盤面・サイネージ、座標データを持つキャンバス | `<ScaledStage logicalWidth logicalHeight>`（または `useFitScale`） |
+| A. 流体(fluid) | テキスト主体、縦横比が変わっても再配置で吸収したい、DOM の操作性(フォーム・スクロール領域)を保ちたい | `flex-1 min-h-0` の比率レイアウト + `text-fluid-*` + `portrait:` / `landscape:` / `short:` + `clamp()` 余白 |
+| B. スケール(fit-scale) | デザインカンプ忠実、固定比率の盤面・サイネージ、座標データを持つキャンバス | `<ScaledStage logicalWidth logicalHeight>`(または `useFitScale`) |
 
-### A. 流体レイアウトの規約
+### A. 流体レイアウトの書き方
 
-- **文字**: 固定 px（`text-5xl` 等）ではなく `text-fluid-xs` 〜 `text-fluid-5xl`。`clamp(下限, N vmin, 上限)` なので短辺に比例して縮み、縦横どちらでも破綻しない（`src/styles/core/theme.css`）。TextBlocks（Span / Para / SecTitle / PageTitle）は `size="fluidMd"` 等の variant でも指定できる（`fluidXs` 〜 `fluidXxxl`、4xl / 5xl は className）
-  - `text-fluid-*` は `src/lib/cn` で tailwind-merge の font-size グループに登録済み。`cn("text-primary-foreground text-fluid-base")` のように文字色と並べても両方残り、`text-base` 等の固定サイズとは後勝ちで置き換わる。**theme.css に新しい `--text-*` トークンを足す時は `src/lib/cn` の `FLUID_TEXT_SIZES` にも登録する**（未登録の `text-*` は文字色扱いになり、同じ要素の文字色を消してしまう。`pnpm test src/lib/cn/cn.test.mjs` がドリフトを検出）
-- **向き**: Tailwind 組み込みの `portrait:` / `landscape:`（カスタムバリアント不要）。`landscape:grid-cols-2 portrait:grid-cols-1` のように書く。JS 側で同じ判定が必要なら `@/lib/viewport` の `useViewportOrientation()`（matchMedia 由来なので CSS と一致する）
-- **高さ不足**: `short:`（max-height 500px、theme.css）で余白・文字を圧縮
-- **余白**: 共通スケールは固定していない。任意値で `p-[clamp(1rem,3vmin,2rem)]` / `gap-[clamp(0.5rem,2vmin,1.5rem)]` と書く
-- **固定サイズが必要な要素**（QR コード等）: `size-[clamp(120px,25vmin,240px)]` のように clamp で範囲を持たせる
-- **縦の配分**: 行ごとに `flex-1 min-h-0` / `shrink-0` で比率を決め、`h-[Npx]` を並べて合計がビューポートを超える書き方をしない
+- 文字: `text-fluid-xs` 〜 `text-fluid-5xl`。`clamp(下限, N vmin, 上限)` なので短辺に比例して縮み、縦横どちらでも破綻しない。TextBlocks(Span / Para / SecTitle / PageTitle)は `size="fluidMd"` 等の variant でも指定できる(`fluidXs` 〜 `fluidXxxl`、4xl / 5xl は className)
+- 向き: Tailwind 組み込みの `portrait:` / `landscape:`(カスタムバリアント不要)。`landscape:grid-cols-2 portrait:grid-cols-1` のように書く。JS 側で同じ判定が要るなら `@/lib/viewport` の `useViewportOrientation()`(matchMedia 由来なので CSS と一致する)
+- 高さ不足: `short:`(max-height 500px、theme.css)で余白・文字を圧縮
+- 余白: 共通スケールは無い。任意値で `p-[clamp(1rem,3vmin,2rem)]` / `gap-[clamp(0.5rem,2vmin,1.5rem)]` と書く
+- 固定サイズが必要な要素(QR コード等): `size-[clamp(120px,25vmin,240px)]` のように clamp で範囲を持たせる
 
 ```tsx
 <Flex className="min-h-0 flex-1 flex-col gap-[clamp(0.5rem,2vmin,1.5rem)] p-[clamp(1rem,3vmin,2rem)]">
@@ -114,9 +100,10 @@ export function FullscreenToggle() {
 </Flex>
 ```
 
-### B. ScaledStage（スケール方式）
+### B. ScaledStage(スケール方式)
 
-子を「1280×800 のカンプ通りの px 値」で書き、解像度差は倍率だけで吸収する。
+- 子を「1280×800 のカンプ通りの px 値」で書き、解像度差は倍率だけで吸収する
+- 計測コンテナは `flex-1 min-h-0 w-full`。親が flex-col の fill 系土台(KioskFrame / 枠の宣言の fill のページ(利用者・管理))ならそのまま残り領域を占有する。親が確定高さの通常ブロックなら `className="h-full"` を渡す
 
 ```tsx
 <KioskFrame>
@@ -128,23 +115,9 @@ export function FullscreenToggle() {
 </KioskFrame>
 ```
 
-| prop | 既定 | 説明 |
-|------|------|------|
-| `logicalWidth` / `logicalHeight` | 必須 | 論理キャンバスの px |
-| `fit` | `contain` | `contain`（幅高さ両方収める = レターボックス）/ `width`（幅だけ、高さは倍率に従う）/ `height` |
-| `minScale` / `maxScale` | `0` / `Infinity` | 倍率の下限・上限。純粋フィットが既定。「スマホ幅で潰れるので 0.6 以下にしない」のような判断は呼び出し側が渡す |
-| `align` | `center` | 余白が出た時の配置。`center` は `m-auto` の安全な中央寄せ（はみ出しても先頭が切れない） |
-| `overflow` | `clip` | `minScale` で収まらない時。キオスクは `clip`、ページ内キャンバスで横スクロールに逃がすなら `auto` |
-| `hideUntilMeasured` | `true` | 初回計測まで非表示にして倍率 1 → 実倍率の跳びを隠す |
-| `className` / `stageClassName` | - | 計測コンテナ / 論理ステージのクラス |
+### useFitScale(DOM 以外・独自描画)
 
-- 計測コンテナは `flex-1 min-h-0 w-full`。親が flex-col の fill 系土台（KioskFrame / 枠の宣言の fill のページ(利用者・管理)）ならそのまま残り領域を占有する。親が確定高さの通常ブロックなら `className="h-full"` を渡す
-- transform は layout box を変えないため、内部で「拡縮後サイズの枠」を挟んで実占有面積を作っている。子の `position: fixed` / ポータルは transform の影響を受けるので、モーダル等は ScaledStage の外（Overlays は BodyPortal 経由なので問題ない）
-- テキスト入力やスクロール領域をステージ内に置くと拡縮倍率ぶん操作感が変わる。操作主体の画面は A 方式を選ぶ
-
-### useFitScale（DOM 以外・独自描画）
-
-Konva / Canvas など自前で倍率を適用する場合はフックだけ使う。
+- Konva / Canvas など自前で倍率を適用する場合はフックだけ使う
 
 ```tsx
 const containerRef = useRef<HTMLDivElement>(null);
@@ -156,13 +129,66 @@ const { scale, width, height, isMeasured } = useFitScale(containerRef, {
   maxScale: 1.5,
 });
 return (
-  // Layout ラッパー（Block 等）は ref を転送しないため、計測コンテナだけは素の div を使う
+  // Layout ラッパー(Block 等)は ref を転送しないため、計測コンテナだけは素の div を使う
   <div ref={containerRef} className="w-full">
     <Stage width={width} height={height} scaleX={scale} scaleY={scale}>...</Stage>
   </div>
 );
 ```
 
-- ResizeObserver は useEffect 内のみ（SSR 安全）。計測前は `scale: 1, isMeasured: false`
-- フィットに必要な寸法が 0 の間（`display:none` 等）は `isMeasured: false` のまま
-- 返値: `{ scale, width, height, containerWidth, containerHeight, isMeasured }`
+## API
+
+### KioskFrame の props
+
+| prop | 既定 | 説明 |
+|------|------|------|
+| `safeArea` | `false` | 端末の切り欠き `var(--app-safe-area-*)` ぶんのパディングを付与 |
+| `wakeLock` | `false` | 表示中 Screen Wake Lock で画面スリープを抑止(`useWakeLock`、非対応は no-op) |
+| `className` 他 | - | `div` の属性をそのまま受ける。`bg-background text-foreground` が既定 |
+
+### ScaledStage の props
+
+| prop | 既定 | 説明 |
+|------|------|------|
+| `logicalWidth` / `logicalHeight` | 必須 | 論理キャンバスの px |
+| `fit` | `contain` | `contain`(幅高さ両方収める = レターボックス)/ `width`(幅だけ、高さは倍率に従う)/ `height` |
+| `minScale` / `maxScale` | `0` / `Infinity` | 倍率の下限・上限。純粋フィットが既定。「スマホ幅で潰れるので 0.6 以下にしない」のような判断は呼び出し側が渡す |
+| `align` | `center` | 余白が出た時の配置。`center` は `m-auto` の安全な中央寄せ(はみ出しても先頭が切れない) |
+| `overflow` | `clip` | `minScale` で収まらない時。キオスクは `clip`、ページ内キャンバスで横スクロールに逃がすなら `auto` |
+| `hideUntilMeasured` | `true` | 初回計測まで非表示にして倍率 1 → 実倍率の跳びを隠す |
+| `className` / `stageClassName` | - | 計測コンテナ / 論理ステージのクラス |
+
+### useFitScale の返値
+
+- `{ scale, width, height, containerWidth, containerHeight, isMeasured }`
+- 計測前は `scale: 1, isMeasured: false`
+- フィットに必要な寸法が 0 の間(`display:none` 等)は `isMeasured: false` のまま
+
+## Internals
+
+### KioskFrame の高さと非スクロール
+
+- 高さは `h-[var(--viewport-height,100dvh)]` に固定(`min-h` ではない)。`--viewport-height` は root layout の `ViewportHeightWatcher`(`@/lib/viewport`)が更新する実寸で、モバイルブラウザのアドレスバーを考慮済み
+- `overflow-clip`(scroll container にならないので focus 駆動の勝手なスクロールが起きない)+ `overscroll-none`(引っ張り更新・バウンス抑止)
+- `flex flex-col` なので、子は `flex-1 min-h-0` で残り高さを得る
+- 枠の宣言の fill は「外枠が属性 `data-frame-fill` で確定高さに切り替わり、ページがヘッダー下の残り高さを占有する」フロー内の形、KioskFrame は「自身がビューポート根」。意味が異なるので実装は共有していない
+
+### text-fluid-* と cn
+
+- `text-fluid-*` は `src/lib/cn` で tailwind-merge の font-size グループに登録済み。`cn("text-primary-foreground text-fluid-base")` のように文字色と並べても両方残り、`text-base` 等の固定サイズとは後勝ちで置き換わる
+- theme.css に新しい `--text-*` トークンを足す時は `src/lib/cn` の `FLUID_TEXT_SIZES` にも登録する。未登録の `text-*` は文字色扱いになり、同じ要素の文字色を消してしまう(`pnpm test src/lib/cn/cn.test.mjs` がドリフトを検出)
+
+### ScaledStage の拡縮
+
+- transform は layout box を変えないため、内部で「拡縮後サイズの枠」を挟んで実占有面積を作っている
+- 子の `position: fixed` / ポータルは transform の影響を受ける。Overlays は BodyPortal 経由なのでステージの外に出る
+- テキスト入力やスクロール領域をステージ内に置くと、拡縮倍率ぶん操作感が変わる
+
+### useFitScale の計測
+
+- ResizeObserver は useEffect 内のみ(SSR 安全)
+
+## Related
+
+- ページ単位の枠の宣言(fill / hide): [src/app/(user)/_layout/README.md](../../../app/(user)/_layout/README.md)
+- 管理画面のページ土台: [src/app/admin/_layout/README.md](../../../app/admin/_layout/README.md)
