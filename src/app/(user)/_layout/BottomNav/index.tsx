@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/cn";
+import { zLayerClass } from "@/lib/zLayer";
 
 import { BottomNavItem } from "./BottomNavItem";
 import { useBottomNavItems } from "./useBottomNavItems";
@@ -14,9 +15,11 @@ export const UserBottomNav = () => {
       aria-label="メインメニュー"
       data-slot="bottom-nav"
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 items-center justify-around border-t border-border bg-background shadow-[0_-2px_10px_rgba(0,0,0,0.05)]",
+        "fixed inset-x-0 bottom-0 items-center justify-around border-t border-border bg-background shadow-[0_-2px_10px_rgba(0,0,0,0.05)]",
         "[&>*:not(:last-child)]:border-r-2 [&>*:not(:last-child)]:border-border/30",
         "flex",
+        // ページの中の固定の帯 = backside-ui(当議会 D189: ページに対する順は zLayer の名)
+        zLayerClass("backside-ui"),
       )}
       // 高さ = config の px + 下の safe-area。padding の safe-area ぶんだけ伸ばし、項目の領域は config の px のまま
       // (外枠の --app-bottom-nav-height と同じ計算)

@@ -353,7 +353,7 @@ export function ScrollSlider<T>({
       {isResponsiveSlideSize && (
         <style dangerouslySetInnerHTML={{ __html: buildResponsiveSlideSizeStyle(sliderId, slideSize) }} />
       )}
-      <div className="relative">
+      <div className="relative isolate">
         {arrowsVisible && renderArrowElement("prev")}
 
         <div

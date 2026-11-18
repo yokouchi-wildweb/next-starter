@@ -296,7 +296,7 @@ export default function SortableList<T extends SortableItemType>({
   // ドラッグ中の端寄せスクロールも祖先側で機能する。
   if (!isSelfScroll) {
     return withHeader(
-      <div className={cn("w-full max-w-full flex flex-col gap-2", className)}>
+      <div className={cn("isolate w-full max-w-full flex flex-col gap-2", className)}>
         {dndBody(
           items.map((item, index) => (
             <div key={item.id}>{renderRow(item, index)}</div>
@@ -309,7 +309,7 @@ export default function SortableList<T extends SortableItemType>({
   return withHeader(
     <div
       ref={scrollContainerRef}
-      className={cn("w-full max-w-full overflow-y-auto", className)}
+      className={cn("isolate w-full max-w-full overflow-y-auto", className)}
       style={{ maxHeight: resolvedMaxHeight }}
     >
       {dndBody(

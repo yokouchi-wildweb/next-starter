@@ -148,7 +148,8 @@ function buildOverlay(params: {
   backdrop.style.cssText = [
     "position:fixed",
     "inset:0",
-    "z-index:2147483000",
+    // 決済の覆いは何よりも上 = cover(当議会 D189: 数で持ち上げず zLayer の名の変数)
+    "z-index:var(--z-layer-cover)",
     "display:flex",
     "align-items:center",
     "justify-content:center",

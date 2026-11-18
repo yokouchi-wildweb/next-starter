@@ -12,7 +12,6 @@ export type LoaderOptions = {
   spinnerClassName?: string;
   messageClassName?: string;
   className?: string;
-  zIndex?: number;
 };
 
 type GlobalLoaderState = {

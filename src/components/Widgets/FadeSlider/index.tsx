@@ -299,7 +299,7 @@ export function FadeSlider<T>({
       {...getLiveRegionA11yProps(!!autoplay)}
     >
       <style dangerouslySetInnerHTML={{ __html: styleTag }} />
-      <div className="relative">
+      <div className="relative isolate">
         {arrowsVisible && renderArrowElement("prev")}
 
         <div

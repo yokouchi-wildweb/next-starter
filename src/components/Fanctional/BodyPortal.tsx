@@ -13,7 +13,7 @@ import { useIsClient } from "@/lib/isClient";
  * export function FullScreenOverlay() {
  *   return (
  *     <BodyPortal>
- *       <div className="fixed inset-0 z-50 bg-overlay/50" />
+ *       <div className={`fixed inset-0 bg-overlay/50 ${zLayerClass("floating")}`} />  // 層は zLayer の名(@/lib/zLayer)
  *     </BodyPortal>
  *   );
  * }

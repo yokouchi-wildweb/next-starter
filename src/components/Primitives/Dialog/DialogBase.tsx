@@ -30,7 +30,7 @@ type DialogOverlayProps = React.ComponentProps<typeof DialogPrimitive.Overlay> &
 
 function DialogOverlay({
   className,
-  layerClassName = "z-50",
+  layerClassName,
   ...props
 }: DialogOverlayProps) {
   return (
@@ -50,8 +50,8 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
-  layerClassName = "z-50",
-  overlayLayerClassName = "z-50",
+  layerClassName,
+  overlayLayerClassName,
   overlayClassName,
   container,
   ...props

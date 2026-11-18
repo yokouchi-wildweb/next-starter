@@ -44,7 +44,7 @@ export function MetricCard({ title, value, decoration }: MetricCardProps) {
   return (
     <Block
       className={cn(
-        "relative flex flex-col gap-6 overflow-hidden rounded-xl bg-primary py-6 text-primary-foreground max-sm:gap-1",
+        "relative isolate flex flex-col gap-6 overflow-hidden rounded-xl bg-primary py-6 text-primary-foreground max-sm:gap-1",
         decoration.shadow,
       )}
     >

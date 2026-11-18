@@ -17,7 +17,7 @@ export function Table({
   VariantProps<typeof tableVariants> & { tableLayout?: "auto" | "fixed" }) {
   return (
     <TableContext.Provider value={{ variant }}>
-      <div data-slot="table-container" className="relative w-full overflow-x-auto">
+      <div data-slot="table-container" className="relative isolate w-full overflow-x-auto">
         <BaseTable
           data-slot="table"
           className={cn(tableVariants({ variant, className }), tableLayout && "w-full")}

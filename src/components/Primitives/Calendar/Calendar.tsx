@@ -26,7 +26,7 @@ function Calendar({
       showOutsideDays={showOutsideDays}
       // relative: v9 では Nav ボタンがキャプションの外に描画されるため、
       // absolute 配置の基準をカレンダー自身に固定する
-      className={cn("relative p-3", className)}
+      className={cn("relative isolate p-3", className)}
       classNames={{
         months: "flex flex-col sm:flex-row gap-2",
         month: "flex flex-col gap-4",

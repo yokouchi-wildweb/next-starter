@@ -8,7 +8,7 @@
 - `useGlobalLoader()` — `{ showLoader, hideLoader }`
   - `showLoader(message?: string | LoaderOptions)` — 文字列は `{ message }` と同じ。呼ぶたびに前の options を置き換える
   - `hideLoader()` — 消して options を空に戻す
-- 型: `LoaderOptions`(`message`・`spinnerVariant`・`spinnerClassName`・`messageClassName`・`className`・`zIndex`)・`LoaderSpinnerVariant`(`"default"` | `"ring"` | `"circle"`)
+- 型: `LoaderOptions`(`message`・`spinnerVariant`・`spinnerClassName`・`messageClassName`・`className`)・`LoaderSpinnerVariant`(`"default"` | `"ring"` | `"circle"`)
 
 store(`stores/`)は入口から出さない。動かすのは `showLoader` / `hideLoader` だけ。
 
@@ -16,7 +16,7 @@ store(`stores/`)は入口から出さない。動かすのは `showLoader` / `hi
 import { useGlobalLoader } from "@/lib/globalLoader";
 
 const { showLoader, hideLoader } = useGlobalLoader();
-showLoader({ message: "データ処理中…", spinnerVariant: "ring", zIndex: 100 });
+showLoader({ message: "データ処理中…", spinnerVariant: "ring" });
 try {
   await run();
 } finally {
@@ -26,7 +26,7 @@ try {
 
 ## 描画
 
-棚の `ScreenLoader`(mode="fullscreen")+ `Spinner` と同じ形を自分で持つ(`GlobalScreenLoader.tsx`・種類 → アイコンの対応 `spinner.ts`)。`zIndex` は style、`className` は外側の要素に足す(重ねる層の既定は `cover-layer`)。
+棚の `ScreenLoader`(mode="fullscreen")+ `Spinner` と同じ形を自分で持つ(`GlobalScreenLoader.tsx`・種類 → アイコンの対応 `spinner.ts`)。`className` は外側の要素に足す(重ねる層はいつも `cover-layer`。数で持ち上げる指定は無い、当議会 D189)。
 
 同じ出力になることは棚の側のテスト `src/components/Overlays/Loading/globalLoaderParity.test.tsx` が既定とすべての種類で確かめる。`ScreenLoader` / `Spinner` の見た目を変えるときはこの lib も同じに直す(片方だけだと落ちる)。
 

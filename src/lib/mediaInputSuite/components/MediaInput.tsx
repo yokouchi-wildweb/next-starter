@@ -193,7 +193,7 @@ export const MediaInput = ({
   const hasContainerOverlay = Boolean(overlay);
 
   return (
-    <div className="relative">
+    <div className="relative isolate">
       {hasContainerOverlay ? (
         <div className="absolute inset-0 z-40 flex items-center justify-center rounded border-2 border-dashed border-border bg-background/80">
           {overlay}

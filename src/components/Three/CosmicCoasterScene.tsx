@@ -323,6 +323,7 @@ type CosmicCoasterSceneProps = {
 
 export function CosmicCoasterScene({ className }: CosmicCoasterSceneProps) {
   return (
+    // -z-10 = 置いた所の内容の後ろに敷く。置く側の要素に isolate(と relative)を付けて、負の z を部品の中に閉じる(当議会 D189)
     <div className={cn("pointer-events-none absolute inset-0 -z-10", className)}>
       <Canvas camera={{ position: [0, 1.2, 6], fov: 58 }} gl={{ alpha: true, antialias: true }}>
         <color attach="background" args={["#f7f8fb"]} />

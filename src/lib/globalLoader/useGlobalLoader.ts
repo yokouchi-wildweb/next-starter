@@ -19,7 +19,6 @@ import { useGlobalLoaderStore, type LoaderOptions } from "./stores";
  * showLoader({
  *   message: "データ処理中…",
  *   spinnerVariant: "ring",
- *   zIndex: 100,
  * });
  */
 export function useGlobalLoader() {

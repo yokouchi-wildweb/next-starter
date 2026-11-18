@@ -53,15 +53,15 @@ async function renderLib(options: Options): Promise<string> {
   return html;
 }
 
-/** 棚の側: 今までの GlobalScreenLoader と同じ渡し方(zIndex → style、className はそのまま) */
+/** 棚の側: 今までの GlobalScreenLoader と同じ渡し方(className はそのまま) */
 async function renderShelf(options: Options): Promise<string> {
   document.body.innerHTML = "";
-  const { zIndex, className, ...rest } = options;
+  const { className, ...rest } = options;
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () =>
-    root.render(h(Shelf.ScreenLoader, { mode: "fullscreen", className, style: zIndex ? { zIndex } : undefined, ...rest })),
+    root.render(h(Shelf.ScreenLoader, { mode: "fullscreen", className, ...rest })),
   );
   const html = container.firstElementChild?.outerHTML ?? "";
   await act(async () => root.unmount());
@@ -74,7 +74,7 @@ const CASES: [string, Options][] = [
   ["種類 ring", { spinnerVariant: "ring" }],
   ["種類 circle", { spinnerVariant: "circle" }],
   ["文言", { message: "ガチャ準備中…" }],
-  ["全部の欄", { message: "処理中", spinnerVariant: "ring", spinnerClassName: "h-6 w-6", messageClassName: "text-xs", className: "bg-overlay/40", zIndex: 100 }],
+  ["全部の欄", { message: "処理中", spinnerVariant: "ring", spinnerClassName: "h-6 w-6", messageClassName: "text-xs", className: "bg-overlay/40" }],
 ];
 
 for (const [label, options] of CASES) {

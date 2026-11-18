@@ -10,7 +10,6 @@ import {
 import type { FormControlA11yProps } from "@/components/Form/Field/types";
 import { type Options } from "@/components/Form/types";
 import { cn } from "@/lib/cn";
-import { zLayerClass } from "@/lib/zLayer";
 
 import { inputVariants, type InputSize } from "./Input";
 
@@ -124,7 +123,7 @@ export function SelectInput({
       >
         <SelectValue placeholder={placeholder ?? "選択してください"} />
       </SelectTrigger>
-      <SelectContent className={cn(zLayerClass("floating"), contentClassName)}>
+      <SelectContent className={contentClassName}>
         {includeNullOption ? (
           <SelectItem value={CLEAR_VALUE}>{nullOptionLabel}</SelectItem>
         ) : showPlaceholderOption ? (

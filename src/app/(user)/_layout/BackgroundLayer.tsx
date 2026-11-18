@@ -42,6 +42,8 @@ export const BackgroundLayer = ({
     left: 0,
     width: "100vw",
     height: "100lvh",
+    // 負の z のまま(当議会 04 注文 14): body の直下の固定の背景を、層を付けていない普通の要素(z auto)より下に敷くため。
+    // zLayer の background(10)にすると content-layer の無い要素を覆う
     zIndex: -1,
     pointerEvents: "none",
     overflow: "hidden",

@@ -74,6 +74,7 @@ function StarTunnel() {
 
 export default function StarTunnelCanvas() {
   return (
+    // -z-10 = 置いた所の内容の後ろに敷く。置く側の要素に isolate(と relative)を付けて、負の z を部品の中に閉じる(当議会 D189)
     <Canvas className="absolute inset-0 -z-10">
       <StarTunnel />
     </Canvas>

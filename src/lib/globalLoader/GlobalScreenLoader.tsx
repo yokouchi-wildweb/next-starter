@@ -36,7 +36,7 @@ export function GlobalScreenLoader() {
     return null;
   }
 
-  const { zIndex, className, spinnerClassName, spinnerVariant = "default", message, messageClassName } = options;
+  const { className, spinnerClassName, spinnerVariant = "default", message, messageClassName } = options;
   const Icon = LOADER_SPINNER_ICONS[spinnerVariant];
 
   const content = (
@@ -46,7 +46,6 @@ export function GlobalScreenLoader() {
         `fixed inset-0 ${zLayerClass("cover")}`,
         className,
       )}
-      style={zIndex ? { zIndex } : undefined}
       role="status"
       aria-live="polite"
       aria-busy
