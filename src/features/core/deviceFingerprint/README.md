@@ -1,61 +1,16 @@
 # deviceFingerprint — ブラウザフィンガープリント蓄積 / デバイス軸照合
 
-不正が疑われるユーザーを **デバイス軸** で突き合わせるための一次データ基盤。
-`userLoginEvent`（IP = ネットワーク軸）の兄弟で、両者を組み合わせて調査する。
+## Overview
 
-閉じられる機能(門番の規則 `src/featureGate/rules/deviceFingerprint.ts`、既定は閉 = opt-in)。使うかどうかは規則の入切だけで決める(このドメインの `config.ts` に enabled は無く、残るのは保持期間などの処理の値)。閉じると `/api/admin/device-fingerprint`・`/api/me/fingerprint`・掃除の cron・`/demo/fingerprint`・導出の `/api/deviceFingerprint` が 404 で、表も push から外れる。
+不正が疑われるユーザーをデバイス軸で突き合わせるための一次データの基盤(`@/features/core/deviceFingerprint`)。`userLoginEvent`(IP = ネットワーク軸)の兄弟で、両者を組み合わせて調べる。
 
-収集ロジック本体はドメイン非依存の `src/lib/fingerprint/` にあり、本ドメインは
-その **蓄積（device_fingerprints）と照合（成分別スコアリング）** を担う。
+- 収集のロジック本体はドメインに依らない `src/lib/fingerprint/`(`collect.ts`・`hash.ts`・`useBehavioralCapture.ts`・`types.ts`)。本ドメインはその蓄積(`device_fingerprints`)と照合(成分別のスコアリング)を担う
+- 脅威モデル: フィンガープリントはクライアントの申告値で偽装できる。Canvas 等に意図的なノイズを入れるブラウザ(Safari / Brave / Firefox RFP)や、ハードが均質でユーザー間のエントロピーが低い端末(iPhone)では、一致・不一致ともノイズが乗る
+- 閉じられる機能: 門番の規則 `src/featureGate/rules/deviceFingerprint.ts`(既定は閉 = opt-in)。閉じると `/api/admin/device-fingerprint`・`/api/me/fingerprint`・掃除の cron・`/demo/fingerprint`・導出の `/api/deviceFingerprint` が 404 で、表も push から外れる
+- 開けた時点以降のアクセスから蓄積する(遡れない)
+- チャレンジは別の機能 `fingerprintChallenge`(この機能に依存する)
 
-> **重要（脅威モデル）**: フィンガープリントは **クライアント申告値であり偽装可能**。
-> Canvas 等に意図的ノイズを入れるブラウザ（Safari / Brave / Firefox RFP）や、
-> ハードが均質でユーザー間エントロピーが低い端末（iPhone）では一致・不一致とも
-> ノイズが乗る。結果は **「参考証拠」であって断定材料ではない**。処分判断は
-> IP 照合・行動計測・監査ログなど複数の証拠と合わせて人間が行うこと。
-
----
-
-## オプトイン（デフォルト無効）
-
-門番の規則 `deviceFingerprint` の入切が全ページ収集のゲート。**既定は閉**。開けた時点以降のアクセスから蓄積される（遡及不可）。
-fork は `src/config/featureGate/switches.config.ts` で開ける（`pnpm ops features set deviceFingerprint on`）。
-チャレンジは別の機能 `fingerprintChallenge`（この機能に依存する）。処理の値の上書きは `src/config/features/deviceFingerprint.config.ts`。
-
-```ts
-// src/config/featureGate/switches.config.ts
-export default { deviceFingerprint: true } satisfies FeatureSwitches;
-// 処理の値の既定: collection: { retentionDays: 365, maxRawSignalsBytes: 32768 }
-```
-
----
-
-## 基本構成
-
-```
-src/lib/fingerprint/                       # 収集ライブラリ（ドメイン非依存）
-├── collect.ts                             # collectDeviceSignals / collectFingerprintPayload
-├── hash.ts                                # SHA-256（+ 非 secure context 用 FNV フォールバック）
-├── useBehavioralCapture.ts                # 行動計測フック（フォーム用・ヘッドレス）
-└── types.ts                               # DeviceSignals / FingerprintPayload / BehaviorPayload
-
-src/features/core/deviceFingerprint/
-├── constants/                             # source / 成分キー・重み / retention
-├── entities/                              # drizzle（成分別カラム + composite_hash）/ model / schema
-├── services/
-│   ├── server/
-│   │   ├── recordFingerprint.ts           # upsert ingest（(user_id, composite_hash) 単位）
-│   │   ├── similarity.ts                  # 成分別スコアリングのクロスユーザー照合
-│   │   ├── pruning.ts                     # 期限切れ削除（cron）
-│   │   └── drizzleBase.ts
-│   └── client/fingerprintClient.ts        # POST /api/me/fingerprint
-├── hooks/useFingerprintReport.ts          # 全ページ設置型の収集フック（1 日 1 回）
-└── index.ts                               # client-safe バレル
-```
-
----
-
-## 収集する信号
+### 収集する信号
 
 `collectDeviceSignals()`（ブラウザ専用・各成分 fail-soft = 取れない成分は null）:
 
@@ -71,17 +26,22 @@ src/features/core/deviceFingerprint/
 | platform | navigator.platform | 1 |
 | hardware | concurrency / deviceMemory / maxTouchPoints | 1 |
 
-強成分（canvas/audio/webgl/fonts）は個別カラムに index を張り、`similarity` の
-JOIN 必須条件にしている。**弱成分だけの一致（同一 OS が大量に存在する）では
-候補に上がらない。**
+- 弱成分だけの一致(同じ OS は大量にある)では候補に上がらない(Internals)
 
----
+## Usage
 
-## 記録経路
+### 開ける
 
-### A. 全ページ設置型（薄く広く）
+```ts
+// src/config/featureGate/switches.config.ts
+export default { deviceFingerprint: true } satisfies FeatureSwitches;
+```
 
-ログイン後レイアウト等に 1 行置く。fire-and-forget で 1 日 1 回だけ収集・送信する。
+- `pnpm ops features set deviceFingerprint on` でも書ける
+
+### 記録の経路 A: 全ページに置く(薄く広く)
+
+ログイン後のレイアウト等に 1 行置く。fire-and-forget で 1 日 1 回だけ収集・送信する。
 
 ```tsx
 "use client";
@@ -93,52 +53,15 @@ export function FingerprintReporter({ user }: { user: SessionUser | null }) {
 }
 ```
 
-規則 `deviceFingerprint` が閉じている間はサーバー側が 404 を返すだけなので、
-**フック設置自体は機能の入切と独立して常置できる**（有効化は規則の入切のみ）。
+- 機能が閉の間はサーバーが 404 を返すだけ(フックは静かに無視する)
 
-### B. チャレンジ提出時（濃く狭く）
+### 記録の経路 B: チャレンジの提出(濃く狭く)
 
-`fingerprintChallenge` の回答提出時に `source: "challenge"` で自動記録される。
-行動計測（`useBehavioralCapture`）はこちらでのみ取得する。→ `fingerprintChallenge/README.md`
+`fingerprintChallenge` の回答の提出で `source: "challenge"` として自動で記録する。行動計測(`useBehavioralCapture`)はこちらでだけ取る → `fingerprintChallenge/README.md`
 
-いずれも `(user_id, composite_hash)` UNIQUE で **upsert**。同一端末の再訪は
-`seen_count++ / last_seen_at` 更新に畳まれ、行は無限に増えない。
+### 調べる(IP × デバイスの複合)
 
----
-
-## 照合 API（server-only）
-
-```ts
-import {
-  findUsersBySimilarFingerprint,
-  findUsersByExactFingerprint,
-  compareUsersFingerprints,
-} from "@/features/core/deviceFingerprint/services/server";
-```
-
-### findUsersBySimilarFingerprint(userId, options?)
-
-指定ユーザーのフィンガープリント群と **成分一致スコア**（重み付き、満点 15）で
-近い他ユーザーを返す。既定 `minScore = 5`（強成分 1 + 弱成分 2 相当）。
-
-```ts
-const rows = await findUsersBySimilarFingerprint(suspectUserId, { minScore: 6, limit: 50 });
-// => [{ userId, bestScore, matchedFingerprints, lastSeenAt }, ...]
-```
-
-### findUsersByExactFingerprint(compositeHash, options?)
-
-合成ハッシュ完全一致（最も強い一致。ノイズ注入ブラウザでは出にくい）。
-
-### compareUsersFingerprints(userIdA, userIdB, options?)
-
-2 ユーザー間を総当たり比較し、上位ペアの **成分別一致内訳** を返す（ドリルダウン）。
-
----
-
-## admin 調査レシピ（IP × デバイスの複合）
-
-画面は downstream 所有（core は UI を持たない）。以下は調査サービスの組み立て例:
+画面は downstream が持つ。調査のサービスの組み立て例:
 
 ```ts
 // features/<yourAdminDomain>/services/server/fraudInvestigation.ts
@@ -156,38 +79,50 @@ export async function investigate(userId: string, recentIp: string) {
 }
 ```
 
-admin 用 HTTP は `POST /api/admin/device-fingerprint/similar`（userId or compositeHash）
-と `/compare`（2 ユーザー比較）を同梱済み。一覧・検索は汎用 `/api/device-fingerprint`
-（serviceRegistry `ADMIN_ONLY`）。
+- admin 用の HTTP は `POST /api/admin/device-fingerprint/similar`(userId か compositeHash)と `/compare`(2 ユーザーの比較)を同梱済み。一覧・検索は汎用 `/api/device-fingerprint`(serviceRegistry `ADMIN_ONLY`)
 
----
+## API
 
-## DB テーブル
+照合の口(server-only):
 
-`device_fingerprints`（Neon）: 成分別カラム（canvas_hash / audio_hash / … / hardware_key）
-+ `composite_hash` + `component_hashes`(jsonb) + `raw_signals`(jsonb, サイズ上限超過で null)
-+ `ip`(inet) + `seen_count` + `last_seen_at` + `retention_days`。
+```ts
+import {
+  findUsersBySimilarFingerprint,
+  findUsersByExactFingerprint,
+  compareUsersFingerprints,
+} from "@/features/core/deviceFingerprint/services/server";
+```
 
-index: `(user_id, composite_hash)` UNIQUE / `composite_hash` / 強成分別 / `(user_id, last_seen_at)` / `created_at`。
+- `findUsersBySimilarFingerprint(userId, options?)`: 指定ユーザーのフィンガープリント群と成分一致スコア(重み付き、満点 15)で近い他ユーザーを返す。既定 `minScore = 5`(強成分 1 + 弱成分 2 相当)
 
----
+```ts
+const rows = await findUsersBySimilarFingerprint(suspectUserId, { minScore: 6, limit: 50 });
+// => [{ userId, bestScore, matchedFingerprints, lastSeenAt }, ...]
+```
 
-## retention と cron
+- `findUsersByExactFingerprint(compositeHash, options?)`: 合成ハッシュの完全一致(最も強い一致。ノイズを入れるブラウザでは出にくい)
+- `compareUsersFingerprints(userIdA, userIdB, options?)`: 2 ユーザー間を総当たりで比べ、上位のペアの成分別の一致の内訳を返す(ドリルダウン)
+- 収集の口: `POST /api/me/fingerprint`(`services/client/fingerprintClient.ts`)
 
-IP 同様に個人へ紐づく識別情報のため無期限保持にせず、行単位 `retention_days` +
-日次 cron `device-fingerprint-prune`（1 日 1 回）で自動削除する
-（`userLoginEvent` / `audit_logs` と同じバッチ + SKIP LOCKED パターン）。
+### 表
 
----
+- `device_fingerprints`(Neon): 成分別のカラム(canvas_hash / audio_hash / … / hardware_key)+ `composite_hash` + `component_hashes`(jsonb)+ `raw_signals`(jsonb、サイズ上限超過で null)+ `ip`(inet)+ `seen_count` + `last_seen_at` + `retention_days`
+- index: `(user_id, composite_hash)` UNIQUE / `composite_hash` / 強成分別 / `(user_id, last_seen_at)` / `created_at`
 
-## プライバシー / 法務メモ
+## Extension
 
-- 日本では改正電気通信事業法の外部送信規律の整理対象になり得る。不正検知目的は
-  比較的通しやすい類型だが、収集する信号はプライバシーポリシーに記載すること。
-- 収集は認証済み文脈のみ（匿名収集はしない）。デモユーザーは記録しない。
+- 処理の値の上書き: `src/config/features/deviceFingerprint.config.ts`(持ち主 `config.ts`)。既定 `collection: { retentionDays: 365, maxRawSignalsBytes: 32768 }`
+- `config.ts` に enabled は無い(使うかどうかは門番の規則の入切だけ)
 
-## 関連
+## Internals
 
-- 収集ライブラリ: `src/lib/fingerprint/`（型と収集関数の一次ドキュメントはコード内 JSDoc）
+- 記録はどちらの経路も `(user_id, composite_hash)` UNIQUE で upsert。同じ端末の再訪は `seen_count++` / `last_seen_at` の更新に畳まれ、行は増え続けない
+- 強成分(canvas / audio / webgl / fonts)は個別のカラムに index を張り、`similarity` の JOIN の必須条件にしている
+- 保持: 行単位の `retention_days` + 日次の cron `device-fingerprint-prune`(1 日 1 回)で消す(`userLoginEvent` / `audit_logs` と同じバッチ + SKIP LOCKED の形)
+- 法務: 日本では改正電気通信事業法の外部送信規律の整理対象になり得る。不正検知の目的は比較的通しやすい類型
+
+## Related
+
+- 収集ライブラリ: `src/lib/fingerprint/`(型と収集関数の一次の説明はコード内の JSDoc)
 - IP 軸の兄弟: [`userLoginEvent/README.md`](../userLoginEvent/README.md)
 - チャレンジ: [`fingerprintChallenge/README.md`](../fingerprintChallenge/README.md)
