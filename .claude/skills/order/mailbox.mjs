@@ -283,12 +283,12 @@ function envActor(env) {
 }
 
 // 指令の発行元（from: の値）を読む。先頭が発行元
-//   actor = ORDER_ACTOR の名前（repo: 欄あり）| repo = リポのセッション
-// 戻り値 { kind, label（一覧に出す名前）, repo（発行元のリポ）}
+//   actor = ORDER_ACTOR の名前（repo: 欄か role: 欄あり。--from で手書きした `<名前> | role:<役>` も名前）| repo = リポのセッション
+// 戻り値 { kind, label（一覧に出す名前 = 名前 + 役）, repo（発行元のリポ。名前で repo: 欄が無ければ null）}
 export function requester(from) {
   const [head = "", ...rest] = from.split(" | ").map((x) => x.trim());
   const kv = Object.fromEntries(rest.map((x) => [x.slice(0, x.indexOf(":")), x.slice(x.indexOf(":") + 1)]).filter(([k]) => k));
-  if (kv.repo) return { kind: "actor", label: kv.role ? `${head} ${kv.role}` : head, repo: kv.repo };
+  if (kv.repo || kv.role) return { kind: "actor", label: kv.role ? `${head} ${kv.role}` : head, repo: kv.repo || null };
   return { kind: "repo", label: head, repo: head };
 }
 

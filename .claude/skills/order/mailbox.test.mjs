@@ -1,5 +1,8 @@
 // mailbox.mjs の resolve（指令に答える共通の書き手）と from（発行元の書き方・読み方）の契約テスト。
 // 実行: pnpm test .claude/skills/order/mailbox.test.mjs （node:test。一時ディレクトリに受信箱と git リポジトリを作って確かめる。追加依存なし）
+// 本物の受け箱（~/.team/orders・~/.local/state/next-starter/orders）には決して触らない: HOME・XDG_STATE_HOME・ORDER_STATE_DIR を
+// 一時の置き場に向けてから mailbox.mjs を読み込む（読み込み時に根を決めるため）。CLI の子プロセスもこの env を受け継ぐ
+// （ORDER_ を除いた env でも HOME・XDG_STATE_HOME は一時のまま）
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -9,7 +12,14 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { addItem, parseSheet, readSheet, renderSheet, setResult, shotsDirOf, startRun, summarize } from "./checkSheet.mjs";
-import { actorOf, attachSheet, fileCheckOrder, fileOrder, forkIdOf, fromLine, kindOf, nameProblems, orderStatus, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, settleBox, slugOf, takeOrder, unrouteOrder } from "./mailbox.mjs";
+
+const SANDBOX = mkdtempSync(join(tmpdir(), "mailbox-home-"));
+process.env.HOME = join(SANDBOX, "home");
+process.env.XDG_STATE_HOME = join(SANDBOX, "state");
+process.env.ORDER_STATE_DIR = join(SANDBOX, "orders");
+mkdirSync(process.env.HOME, { recursive: true });
+
+const { actorOf, attachSheet, fileCheckOrder, fileOrder, forkIdOf, fromLine, kindOf, nameProblems, orderStatus, ordersRoot, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, settleBox, settleRoot, slugOf, takeOrder, unrouteOrder } = await import("./mailbox.mjs");
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "mailbox.mjs");
 const BY = { repoId: "acme--app", origin: "git@x:Acme/App.git", branch: "main", commit: "abc1234", pushed: "yes" };
@@ -123,6 +133,8 @@ test("requester: 先頭が発行元。名前（repo: 欄あり）/ repo を見�
   assert.deepEqual(requester("git@x:Acme/App.git | branch:main | cwd:/w/app"), { kind: "repo", label: "git@x:Acme/App.git", repo: "git@x:Acme/App.git" });
   assert.deepEqual(requester("lead l1 | role:Lead | repo:git@x:Acme/App.git | branch:main | cwd:/w/app"), { kind: "actor", label: "lead l1 Lead", repo: "git@x:Acme/App.git" });
   assert.deepEqual(requester("tool t1 | repo:git@x:Acme/App.git"), { kind: "actor", label: "tool t1", repo: "git@x:Acme/App.git" });
+  // --from で手書きした名前（role: 欄だけ、repo: 欄なし）も名前。リポは分からない
+  assert.deepEqual(requester("lead c1 | role:Lead"), { kind: "actor", label: "lead c1 Lead", repo: null });
 });
 
 test("CLI: from は ORDER_ACTOR を読み、inbox の一覧は発行元の名前を出す", () => {
@@ -358,6 +370,32 @@ test("forkIdOf: 宣言があればそれ、未宣言（行なし・旧い -）�
   assert.deepEqual(forkIdOf(checkout("some-app"), url, { ORDER_REPO_ID_STRICT: "1" }), { id: "some-app", declared: true });
 });
 
+test("ordersRoot / settleRoot: 根の並び。古い実のフォルダは移してリンクを残す、既にリンクならその先、何も無ければ根（一時の置き場だけ）", () => {
+  const t = mkdtempSync(join(tmpdir(), "mailbox-root-"));
+  assert.deepEqual(ordersRoot({ ORDER_STATE_DIR: join(t, "x"), HOME: join(t, "h") }), { root: join(t, "x"), explicit: true });
+  assert.deepEqual(ordersRoot({ XDG_STATE_HOME: join(t, "s"), HOME: join(t, "h") }), { root: join(t, "s", "next-starter", "orders"), explicit: false });
+  assert.deepEqual(ordersRoot({ HOME: join(t, "h") }), { root: join(t, "h", ".local", "state", "next-starter", "orders"), explicit: false });
+  // 古い実のフォルダ → 根へ移し、古い場所は根へのリンク
+  const old = join(t, "team", "orders");
+  mkdirSync(join(old, "app"), { recursive: true });
+  writeFileSync(join(old, "app", "o1.md"), "o");
+  const root = join(t, "state", "next-starter", "orders");
+  assert.deepEqual(settleRoot(root, old), { root, moved: old });
+  assert.equal(readFileSync(join(root, "app", "o1.md"), "utf8"), "o");
+  assert.ok(lstatSync(old).isSymbolicLink());
+  assert.equal(readlinkSync(old), root);
+  // 根が既にある → そのまま
+  assert.deepEqual(settleRoot(root, old), { root });
+  // 根が無く古い場所が既にリンク → その先
+  const root2 = join(t, "other", "orders");
+  assert.deepEqual(settleRoot(root2, old), { root });
+  assert.ok(!existsSync(root2));
+  // どちらも無い → 根（何も作らない）
+  const root3 = join(t, "none", "orders");
+  assert.deepEqual(settleRoot(root3, join(t, "missing", "orders")), { root: root3 });
+  assert.ok(!existsSync(root3));
+});
+
 test("settleBox: 旧い箱を fork-id の名前へ移し、旧い名前は新しい箱へのリンクに（分裂のマージ・同名は上書きしない・どちらもない）", () => {
   const root = mkdtempSync(join(tmpdir(), "mailbox-settle-"));
   mkdirSync(join(root, "acme--app", "done"), { recursive: true });
@@ -471,7 +509,7 @@ test("fileOrder: /order の形で 1 件書く（省いた欄は -、kind / tried
   assert.equal(again, join(dir, "20260102-030405-fix-the-login-button-2.md"));
   assert.doesNotMatch(readFileSync(again, "utf8"), /\nkind:|\ntried:/);
   assert.deepEqual(readdirSync(dir).filter((f) => !f.endsWith(".md")), []);
-  assert.throws(() => fileOrder({ box: dir, to: "-", from: "-", title: "題", need: "x", kind: "other" }), /--kind/);
+  assert.throws(() => fileOrder({ box: dir, to: "-", from: "-", title: "題", need: "x", kind: "Bad Kind" }), /--kind/);
   assert.throws(() => fileOrder({ box: dir, to: "-", from: "-", need: "x" }), /--title/);
   assert.throws(() => fileOrder({ box: dir, to: "-", from: "-", title: "題" }), /--need/);
   assert.throws(() => fileOrder({ box: dir, to: "-", from: "-", title: "題", need: "x", slug: "../x" }), /--slug/);
