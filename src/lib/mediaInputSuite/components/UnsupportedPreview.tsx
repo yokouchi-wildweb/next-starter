@@ -2,6 +2,9 @@
 
 import type { CSSProperties } from "react";
 
+import { Block } from "@/components/Layout/Block";
+import { Span } from "@/components/TextBlocks";
+
 export type UnsupportedPreviewProps = {
   message?: string;
   className?: string;
@@ -14,8 +17,8 @@ export const UnsupportedPreview = ({
   style,
 }: UnsupportedPreviewProps) => {
   return (
-    <div className={className} style={style}>
-      <span>{message}</span>
-    </div>
+    <Block className={className} style={style}>
+      <Span inline>{message}</Span>
+    </Block>
   );
 };

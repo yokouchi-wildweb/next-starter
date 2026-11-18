@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from "react";
 import type { CSSProperties, SyntheticEvent } from "react";
+import { Block } from "@/components/Layout/Block";
+import { Span } from "@/components/TextBlocks";
 
 export type ImagePreviewProps = {
   src: string;
@@ -42,7 +44,7 @@ export const ImagePreview = ({
   );
 
   return (
-    <div
+    <Block
       className={className}
       style={{ ...style, display: "flex", alignItems: "center", justifyContent: "center" }}
     >
@@ -64,7 +66,7 @@ export const ImagePreview = ({
         onLoad={handleLoad}
         onError={handleError}
       />
-      {loading ? <span>読み込み中...</span> : null}
-    </div>
+      {loading ? <Span inline>読み込み中...</Span> : null}
+    </Block>
   );
 };

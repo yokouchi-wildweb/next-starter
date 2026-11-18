@@ -15,7 +15,11 @@ import { GripVerticalIcon, ImagePlusIcon, XIcon } from "lucide-react";
 import { uuidv7 } from "uuidv7";
 
 import { Button } from "@/components/Form/Button/Button";
-import { Para } from "@/components/TextBlocks";
+import { Input } from "@/components/Form/Input/Manual";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Stack } from "@/components/Layout/Stack";
+import { Para, Span } from "@/components/TextBlocks";
 import { PseudoButton } from "@/components/Form/Button/PseudoButton";
 import { cn } from "@/lib/cn";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
@@ -444,7 +448,11 @@ export const MediaUploaderMulti = ({
 
   const trailingSlot =
     !reachedMax && !disabled ? (
-      <div
+      <Flex
+        direction="column"
+        align="center"
+        justify="center"
+        gap="2xs"
         role="button"
         tabIndex={0}
         aria-label={dropLabel}
@@ -454,18 +462,18 @@ export const MediaUploaderMulti = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         className={cn(
-          "flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed p-2 text-xs transition-colors",
+          "h-full w-full cursor-pointer rounded border-2 border-dashed p-2 text-xs transition-colors",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           isDraggingFile ? "border-primary bg-primary/5" : "border-border bg-background hover:border-primary/70 hover:bg-muted/40",
         )}
       >
         <ImagePlusIcon className="size-6 text-muted-foreground" aria-hidden />
-        <span className="text-center text-muted-foreground">{dropLabel}</span>
-      </div>
+        <Span size="inherit" weight="inherit" tone="muted" align="center">{dropLabel}</Span>
+      </Flex>
     ) : null;
 
   return (
-    <div className="flex flex-col gap-2">
+    <Stack gap="xs">
       <MediaThumbGrid
         items={slots}
         reorderable={reorderable}
@@ -484,14 +492,14 @@ export const MediaUploaderMulti = ({
           />
         )}
       />
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>
+      <Flex align="center" justify="between" className="text-xs text-muted-foreground">
+        <Span inline>
           {slots.length} / {maxItems}
-          {preparingCount > 0 ? <span role="status"> 画像を準備中…</span> : null}
-        </span>
-        {helperText ? <span className="text-right">{helperText}</span> : null}
-      </div>
-      <input
+          {preparingCount > 0 ? <Span inline role="status"> 画像を準備中…</Span> : null}
+        </Span>
+        {helperText ? <Span inline align="right">{helperText}</Span> : null}
+      </Flex>
+      <Input
         ref={inputRef}
         id={inputId}
         type="file"
@@ -501,7 +509,7 @@ export const MediaUploaderMulti = ({
         disabled={disabled}
         onChange={handleInputChange}
       />
-    </div>
+    </Stack>
   );
 };
 
@@ -529,9 +537,11 @@ const ThumbCell = ({
   const previewFile = slot.kind === "uploaded" ? null : slot.file;
 
   return (
-    <div
+    <Flex
+      align="center"
+      justify="center"
       className={cn(
-        "relative flex h-full w-full items-center justify-center overflow-hidden rounded border bg-muted",
+        "relative h-full w-full overflow-hidden rounded border bg-muted",
         isDragging && "ring-2 ring-primary",
       )}
     >
@@ -544,16 +554,16 @@ const ThumbCell = ({
       />
       {/* アップロード進捗オーバーレイ */}
       {slot.kind === "uploading" ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-background/70 px-2 text-center">
+        <Flex direction="column" align="center" justify="center" gap="2xs" className="absolute inset-0 bg-background/70 px-2 text-center">
           <Para tone="muted" size="xs">
             {slot.progress?.percent ?? 0}%
           </Para>
-          <div className="h-1 w-full overflow-hidden rounded bg-muted">
-            <div
+          <Block className="h-1 w-full overflow-hidden rounded bg-muted">
+            <Block
               className="h-full bg-primary"
               style={{ width: `${slot.progress?.percent ?? 0}%`, transition: "width 120ms linear" }}
             />
-          </div>
+          </Block>
           <PseudoButton
             type="button"
             variant="ghost"
@@ -567,18 +577,21 @@ const ThumbCell = ({
           >
             キャンセル
           </PseudoButton>
-        </div>
+        </Flex>
       ) : null}
       {/* エラー表示 */}
       {slot.kind === "error" ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-destructive/80 px-2 text-center text-[10px] text-destructive-foreground">
-          <span className="line-clamp-3">{slot.message}</span>
-        </div>
+        <Flex direction="column" align="center" justify="center" gap="2xs" className="absolute inset-0 bg-destructive/80 px-2 text-center text-[10px] text-destructive-foreground">
+          <Span size="inherit" weight="inherit" className="line-clamp-3">{slot.message}</Span>
+        </Flex>
       ) : null}
       {/* 並び替えハンドル */}
       {reorderable && !disabled && slot.kind !== "uploading" ? (
-        <button
+        <Button
           type="button"
+          variant="none"
+          size="none"
+          propagateClick
           aria-label="並び替え"
           {...dragHandleListeners}
           className="absolute left-1 top-1 z-10 flex size-6 cursor-grab items-center justify-center rounded bg-background/80 text-muted-foreground hover:text-foreground active:cursor-grabbing"
@@ -589,7 +602,7 @@ const ThumbCell = ({
           }}
         >
           <GripVerticalIcon className="size-4" aria-hidden />
-        </button>
+        </Button>
       ) : null}
       {/* 削除ボタン */}
       {!disabled ? (
@@ -605,10 +618,10 @@ const ThumbCell = ({
           }}
         >
           <XIcon className="size-3" />
-          <span className="sr-only">{clearButtonLabel}</span>
+          <Span srOnly>{clearButtonLabel}</Span>
         </Button>
       ) : null}
-    </div>
+    </Flex>
   );
 };
 

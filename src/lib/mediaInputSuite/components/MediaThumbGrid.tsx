@@ -26,6 +26,8 @@ import { CSS } from "@dnd-kit/utilities";
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 
 import { useIsClient } from "@/lib/isClient";
+import { Block } from "@/components/Layout/Block";
+import { Grid } from "@/components/Layout/Grid";
 import { cn } from "@/lib/cn";
 
 /**
@@ -78,11 +80,10 @@ export function MediaThumbGrid<T extends MediaThumbItem>({
   const itemIds = useMemo(() => items.map((it) => it.id), [items]);
 
   return (
-    <div
-      className={cn(
-        "isolate grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
-        className,
-      )}
+    <Grid
+      columns="two"
+      gap="xs"
+      className={cn("isolate sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5", className)}
     >
       {reorderable ? (
         <SortableArea
@@ -101,13 +102,13 @@ export function MediaThumbGrid<T extends MediaThumbItem>({
         </SortableArea>
       ) : (
         items.map((item) => (
-          <div key={item.id} className="aspect-square">
+          <Block key={item.id} className="aspect-square">
             {renderItem(item, { isDragging: false })}
-          </div>
+          </Block>
         ))
       )}
-      {trailing ? <div className="aspect-square">{trailing}</div> : null}
-    </div>
+      {trailing ? <Block className="aspect-square">{trailing}</Block> : null}
+    </Grid>
   );
 }
 
@@ -177,8 +178,8 @@ function SortableThumbCell<T extends MediaThumbItem>({ item, disabled, renderIte
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} className="aspect-square">
+    <Block ref={setNodeRef} style={style} {...attributes} className="aspect-square">
       {renderItem(item, { dragHandleListeners: listeners, isDragging })}
-    </div>
+    </Block>
   );
 }

@@ -5,7 +5,9 @@ import { useState, useCallback, useRef } from "react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import { usePrivateMediaRecovery } from "@/lib/storage/client/usePrivateMediaRecovery";
+import { Block } from "@/components/Layout/Block";
 
 export type VideoPreviewProps = {
   src: string;
@@ -57,7 +59,7 @@ export const VideoPreview = ({
   );
 
   return (
-    <div
+    <Block
       className={className}
       style={{ ...style, display: "flex", alignItems: "center", justifyContent: "center" }}
     >
@@ -76,7 +78,7 @@ export const VideoPreview = ({
         onPlay={recovery.handlePlaybackIntent}
         onSeeking={recovery.handlePlaybackIntent}
       />
-      {loading ? <span>読み込み中...</span> : null}
+      {loading ? <Span inline>読み込み中...</Span> : null}
       {recovery.status === "failed" ? (
         <>
           <Para tone="destructive" size="sm">
@@ -87,6 +89,6 @@ export const VideoPreview = ({
           </Button>
         </>
       ) : null}
-    </div>
+    </Block>
   );
 };

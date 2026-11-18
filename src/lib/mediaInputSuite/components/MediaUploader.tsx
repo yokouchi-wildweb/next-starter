@@ -14,6 +14,9 @@ import {
   type UploadProgress,
 } from "@/lib/storage/client";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks";
 import { PseudoButton } from "@/components/Form/Button/PseudoButton";
 
@@ -226,13 +229,13 @@ export const MediaUploader = ({
   const overlay = useMemo(() => {
     if (!progress) return null;
     return (
-      <div className="flex w-full max-w-xs flex-col items-center justify-center gap-2 rounded border border-border bg-background px-4 py-3 text-center shadow-sm">
+      <Flex direction="column" align="center" justify="center" gap="xs" className="w-full max-w-xs rounded border border-border bg-background px-4 py-3 text-center shadow-sm">
         <Para tone="muted" size="sm">
           アップロード中... {progress.percent}%
         </Para>
-        <div className="h-1.5 w-full overflow-hidden rounded bg-muted">
-          <div className="h-full bg-primary" style={{ width: `${progress.percent}%`, transition: "width 120ms linear" }} />
-        </div>
+        <Block className="h-1.5 w-full overflow-hidden rounded bg-muted">
+          <Block className="h-full bg-primary" style={{ width: `${progress.percent}%`, transition: "width 120ms linear" }} />
+        </Block>
         <PseudoButton
           type="button"
           variant="ghost"
@@ -245,12 +248,12 @@ export const MediaUploader = ({
         >
           キャンセル
         </PseudoButton>
-      </div>
+      </Flex>
     );
   }, [progress, cancelUpload]);
 
   return (
-    <div className="flex flex-col gap-2">
+    <Stack gap="xs">
       <MediaInput
         {...inputProps}
         accept={pickerAcceptFor(accept, metadata ?? "keep")}
@@ -265,7 +268,11 @@ export const MediaUploader = ({
         containerOverlay={overlay}
         clearButtonDisabled={Boolean(progress)}
       />
-      {error ? <p className="text-xs text-destructive-text">{error}</p> : null}
-    </div>
+      {error ? (
+        <Para size="xs" weight="inherit" tone="destructive" align="inherit" className="my-0">
+          {error}
+        </Para>
+      ) : null}
+    </Stack>
   );
 };

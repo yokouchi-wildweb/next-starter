@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { Flex } from "@/components/Layout/Flex";
 import { cn } from "@/lib/cn";
 import { ImagePreview, type ImagePreviewProps } from "./ImagePreview";
 import { VideoPreview, type VideoPreviewProps } from "./VideoPreview";
@@ -82,23 +83,23 @@ export const MediaPreview = ({
 
   if (mediaType === "image") {
     return (
-      <div className={cn("flex h-full w-full items-center justify-center", className)} style={style}>
+      <Flex align="center" justify="center" className={cn("h-full w-full", className)} style={style}>
         <ImagePreview src={resolvedSrc} className="h-full w-full" {...imageProps} />
-      </div>
+      </Flex>
     );
   }
 
   if (mediaType === "video") {
     return (
-      <div className={cn("flex h-full w-full items-center justify-center", className)} style={style}>
+      <Flex align="center" justify="center" className={cn("h-full w-full", className)} style={style}>
         <VideoPreview src={resolvedSrc} className="h-full w-full" {...videoProps} />
-      </div>
+      </Flex>
     );
   }
 
   return (
-    <div className={cn("flex h-full w-full items-center justify-center", className)} style={style}>
+    <Flex align="center" justify="center" className={cn("h-full w-full", className)} style={style}>
       <UnsupportedPreview {...unsupportedProps} />
-    </div>
+    </Flex>
   );
 };

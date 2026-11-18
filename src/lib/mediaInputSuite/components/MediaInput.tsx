@@ -13,6 +13,11 @@ import {
 import { XIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
+import { Input } from "@/components/Form/Input/Manual";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Stack } from "@/components/Layout/Stack";
+import { Para, Span } from "@/components/TextBlocks";
 import { MediaPreview, type MediaPreviewProps } from "./MediaPreview";
 import { useDragAndDrop, useImageMetadata, useVideoMetadata } from "../hooks";
 import type { FileValidationError, FileValidationRule, SelectedMediaMetadata } from "../types";
@@ -186,28 +191,32 @@ export const MediaInput = ({
   const overlay =
     containerOverlay ??
     (preparing ? (
-      <p role="status" className="text-sm text-muted-foreground">
+      <Para role="status" size="sm" weight="inherit" tone="muted" align="inherit" className="my-0">
         画像を準備中…
-      </p>
+      </Para>
     ) : null);
   const hasContainerOverlay = Boolean(overlay);
 
   return (
-    <div className="relative isolate">
+    <Block className="relative isolate">
       {hasContainerOverlay ? (
-        <div className="absolute inset-0 z-40 flex items-center justify-center rounded border-2 border-dashed border-border bg-background/80">
+        <Flex align="center" justify="center" className="absolute inset-0 z-40 rounded border-2 border-dashed border-border bg-background/80">
           {overlay}
-        </div>
+        </Flex>
       ) : null}
-      <div className={cn("flex flex-col gap-2", hasContainerOverlay && "pointer-events-none opacity-70")} aria-busy={hasContainerOverlay}>
-        <div
+      <Stack gap="xs" className={cn(hasContainerOverlay && "pointer-events-none opacity-70")} aria-busy={hasContainerOverlay}>
+        <Flex
+          direction="column"
+          align="center"
+          justify="center"
+          gap="xs"
           role="button"
           tabIndex={0}
           aria-disabled={disabled}
           onKeyDown={handleKeyDown}
           onClick={() => inputRef.current?.click()}
           className={cn(
-            "relative flex min-h-24 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded border-2 border-dashed px-3 py-3 text-sm transition-colors",
+            "relative min-h-24 w-full cursor-pointer rounded border-2 border-dashed px-3 py-3 text-sm transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             disabled ? "cursor-not-allowed opacity-60" : "hover:border-primary/70 hover:bg-muted/40",
             isDragging ? "border-primary bg-primary/5" : "border-border bg-background",
@@ -216,8 +225,8 @@ export const MediaInput = ({
           {...eventHandlers}
         >
           {selectedFile || previewUrl ? (
-            <div className="flex w-full flex-col items-center gap-2">
-              <div className="relative flex h-40 w-full max-w-[320px] items-center justify-center overflow-hidden rounded p-2">
+            <Flex direction="column" align="center" gap="xs" className="w-full">
+              <Flex align="center" justify="center" className="relative h-40 w-full max-w-[320px] overflow-hidden rounded p-2">
                 <MediaPreview
                   file={selectedFile ?? undefined}
                   src={!selectedFile ? previewUrl ?? undefined : undefined}
@@ -246,24 +255,26 @@ export const MediaInput = ({
                   }}
                 >
                   <XIcon className="size-5" />
-                  <span className="sr-only">{clearButtonLabel}</span>
+                  <Span srOnly>{clearButtonLabel}</Span>
                 </Button>
-              </div>
-              <span className="break-all text-center font-medium text-foreground">
+              </Flex>
+              <Span size="inherit" weight="medium" tone="default" align="center" className="break-all">
                 {selectedFile ? `選択中: ${selectedFile.name}` : previewUrl ? "アップロード済み" : ""}
-              </span>
-            </div>
+              </Span>
+            </Flex>
           ) : (
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-center font-medium text-muted-foreground">{dropLabel}</span>
-              {helperText ? <p className="text-center text-xs text-muted-foreground">{helperText}</p> : null}
-            </div>
+            <Flex direction="column" align="center" gap="2xs">
+              <Span size="inherit" weight="medium" tone="muted" align="center">{dropLabel}</Span>
+              {helperText ? (
+                <Para size="xs" weight="inherit" tone="muted" align="center" className="my-0">{helperText}</Para>
+              ) : null}
+            </Flex>
           )}
-        </div>
+        </Flex>
         {validationError ? (
-          <p className="text-xs text-destructive-text">{formatValidationError(validationError)}</p>
+          <Para size="xs" weight="inherit" tone="destructive" align="inherit" className="my-0">{formatValidationError(validationError)}</Para>
         ) : null}
-        <input
+        <Input
           ref={inputRef}
           id={inputId}
           type="file"
@@ -272,7 +283,7 @@ export const MediaInput = ({
           accept={accept}
           onChange={handleFileChange}
         />
-      </div>
-    </div>
+      </Stack>
+    </Block>
   );
 };
