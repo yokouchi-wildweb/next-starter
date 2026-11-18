@@ -3,6 +3,7 @@ paths:
   - "CLAUDE.md"
   - "AGENTS.md"
   - ".claude/rules/**"
+  - ".claude/README.md"
 ---
 # design
 > **ROLE**: loaded when writing CLAUDE.md, AGENTS.md or anything under .claude/rules/ | holds the map of all core files, the authoring ladder, the card / service / context-file formats, the size lines and who to consult
@@ -41,6 +42,7 @@ map (every core file, loaded by its paths):
 - 1 find its place with places above | 2 write it in that file in this file's formats | 3 pnpm check rules | 4 /ship (the why goes in the commit body)
 - usual path, no order needed: write a card, a README or a service file | add a rule for a place to an existing core file | fix an existing CLAUDE.md item together with its source item
 - window (order first, even for the Tier1 session: /order next-starter; a fork: /order <direct parent>, relayed up): a CLAUDE.md item or section added, or a key removed or renamed | a core file added, removed, renamed or its paths widened | a new scene kind or card category | a check or MANDATORY rule binding forks | a clash between rules of different owners
+- coverage: every upstream file and every intake.txt place must hit the paths of an upstream core file or card (pnpm check rules; a fork's own files are not counted) | a gap → widen the core file that holds that place's rules (a window item) | only a place that truly needs no rule → .claude/rules/core/uncovered.txt with its reason
 - the window decides: the Tier1 session handling next-starter's inbox + the user's approval (/inbox)
 - a missing or wrong rule you do not own → /order <direct parent> | until it ships, a provisional rule in your own rules (outside core/) ending with `(order: <id>)`, followed while the order is open, removed when it ships as resolves: (/flux asks)
 

@@ -4,6 +4,8 @@ paths:
   - "src/features/**/scripts/**"
   - "**/seed.ts"
   - ".notices/*.mjs"
+  - "eslint-rules/**"
+  - "tests/**"
 ---
 # scripts
 > **ROLE**: loaded when writing scripts, domain scripts, seeds | holds the scripts placement and rules

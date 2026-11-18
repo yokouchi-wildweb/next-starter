@@ -8,6 +8,8 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, matchesGlob } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parsePaths, staticPrefix } from "./lib.rulePaths.mjs";
+import { isForkPlace, parseIntakeRows } from "./lib.ruleCoverage.mjs";
+import { INTAKE_PATH } from "../../../src/lib/forkOwnership/check.mjs";
 import { formatProblems, LINEAGE_FILE, parseLineage } from "../../../src/lib/forkOwnership/lineage.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -17,6 +19,7 @@ const claudeMd = readFileSync(join(repoRoot, "CLAUDE.md"), "utf8");
 const designPath = join(repoRoot, coreDir, "design.md");
 const designMd = existsSync(designPath) ? readFileSync(designPath, "utf8") : "";
 const ruleFiles = readdirSync(join(repoRoot, coreDir)).filter((f) => f.endsWith(".md")).sort();
+const intake = parseIntakeRows(readFileSync(join(repoRoot, INTAKE_PATH), "utf8"));
 const tracked = execFileSync("git", ["ls-files"], { cwd: repoRoot, encoding: "utf8" }).split("\n").filter(Boolean);
 
 // 大きさ(字数の線)と 1 行 400 字は size.mjs(lib.ruleSize.mjs)が見る
@@ -33,8 +36,9 @@ for (const file of ruleFiles) {
     for (const p of paths) {
       const prefix = staticPrefix(p);
       if (prefix === null) {
-        if (!tracked.includes(p)) problems.push(`${p}: ファイルが存在しません`);
-      } else if (prefix !== "" && !existsSync(join(repoRoot, prefix))) {
+        if (!tracked.includes(p) && !isForkPlace(p, intake)) problems.push(`${p}: ファイルが存在しません`);
+      } else if (prefix !== "" && !existsSync(join(repoRoot, prefix)) && !isForkPlace(p, intake)) {
+        // fork にだけある場所(.fork-ownership/ 等)と書き場所の一覧の場所は、上流の木に無くてよい
         problems.push(`${p}: ${prefix} が存在しません(移動・改名?)`);
       }
     }

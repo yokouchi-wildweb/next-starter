@@ -3,6 +3,7 @@ paths:
   - "src/lib/**"
   - "src/wiring/**"
   - "src/config/lib/**"
+  - "src/utils/**"
 ---
 # lib
 > **ROLE**: loaded when writing a library, the wiring or a lib config | holds the library rules (CODE_PLACEMENT library)

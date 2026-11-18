@@ -9,6 +9,8 @@ paths:
   - "src/app/route-map.jsonl"
   - "src/styles/gradient.css"
   - "src/styles/core/gradient.css"
+  - "src/components/Layout/spacingClasses.generated.ts"
+  - "vercel.json"
 ---
 # generated
 > **ROLE**: loaded when touching generated files or their sources | holds DIRECTORY_STRUCTURE code_generation (generated / write-once / hand-owned)

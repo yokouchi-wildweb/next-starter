@@ -4,6 +4,7 @@ paths:
   - "src/lib/forkOwnership/**"
   - "src/lib/CATALOG.md"
   - ".claude/rules/lineage.md"
+  - ".fork-ownership/**"
 ---
 # ownership
 > **ROLE**: loaded when writing ownership data (repo.json, permits, ledger, CATALOG.md, lineage.md, the ownership lib) | holds who owns what (CORE_FILES, fork_ownership)

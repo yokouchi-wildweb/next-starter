@@ -2,6 +2,7 @@
 paths:
   - "src/**/*.tsx"
   - "src/hooks/**"
+  - "src/components/**"
 ---
 # components
 > **ROLE**: loaded when writing any .tsx or shared hook | holds COMPONENTS detail

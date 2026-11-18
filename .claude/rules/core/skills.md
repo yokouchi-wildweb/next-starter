@@ -1,6 +1,8 @@
 ---
 paths:
   - ".claude/skills/**"
+  - ".claude/agents/**"
+  - ".claude/scripts/**"
 ---
 # skills
 > **ROLE**: loaded when writing .claude/skills/** | holds the skill format

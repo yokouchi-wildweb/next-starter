@@ -1,0 +1,31 @@
+# 決まりの要らない場所: pnpm check rules の paths の覆いの検査が外す場所(scripts/workflow/rules/coverage.mjs)
+# 1 行 = <glob>  # <理由>。ここに無い書く場所は、どれかの上流の core のファイルか札の paths に当たること
+# 足すのは決まりを書く物が本当に無い場所だけ(決まりがあるなら core のファイルの paths を広げる)
+public/**  # 配る画像・静的ファイル。資産のパスの直書きは lint が見る
+**/.gitkeep  # 空のフォルダを残すだけの印
+package.json  # 依存とスクリプトの宣言。足す手順は各道具の README
+pnpm-lock.yaml  # package.json に従う生成物
+pnpm-workspace.yaml  # ワークスペースの宣言
+.gitignore  # git の除外
+servers/*/.gitignore  # git の除外(servers の各プログラム)
+servers/*/.npmrc  # npm の設定(servers の各プログラム)
+.env.example  # 環境変数の見本。値の決まりは appEnv と各 lib の README
+.prettierrc  # 整形の設定
+.mcp.json  # MCP の接続の設定
+components.json  # shadcn の生成の設定
+next.config.ts  # Next.js のビルドの設定
+postcss.config.mjs  # PostCSS の設定
+tsconfig.json  # 型の検査の設定
+tsconfig.typecheck.json  # 型の検査の設定
+eslint.config.mjs  # lint の設定(規則の中身は eslint-rules/ で scripts の決まりが当たる)
+eslint.config.fork.mjs  # fork の lint の設定
+drizzle.config.ts  # drizzle-kit の接続の設定
+firebase.json  # Firebase の配置の設定
+firestore.rules.example  # Firestore の規則の見本
+storage.rules  # Firebase Storage の規則(拒否だけ)
+patches/**  # 依存への当て布(pnpm patch の出力)
+.github/**  # CI の見本
+.agents/**  # Codex 向けの skills への案内(.claude/skills へのリンク)
+.codex/**  # Codex の設定と案内
+.claude/settings.json  # Claude Code の設定
+.claude/tmux-launch  # 端末の起動の道具
