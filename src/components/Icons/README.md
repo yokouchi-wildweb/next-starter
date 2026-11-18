@@ -1,18 +1,27 @@
-Icons README
-- overview: Lucideと同じAPIで、プロジェクト固有アイコンを一元管理する仕組み
-- why: 画像/SVGを同じ使い方に揃え、UI実装を迷わず進めるため
-- entry: `@/components/Icons` | exports: `createImageIcon`, `createSvgIcon`, `definitions`
-- define_in: `src/components/Icons/definitions.ts` | export: `@/components/Icons`
-- assets: `public/assets/icons/` | path: `iconPath()` (`src/utils/assets.ts`)
+# Icons
 
-- quick usage:
+## Overview
+
+- Lucide と同じ API で、プロジェクト固有アイコンを一元管理する仕組み。画像 / SVG を同じ使い方に揃える
+- 入口: `@/components/Icons` | 出す物: `createImageIcon`, `createSvgIcon`, `definitions.ts` のアイコン, 型 `CustomIcon` / `CustomIconProps` / `IconComponent`
+- アイコンの定義: `src/components/Icons/definitions.ts`
+- 画像: `public/assets/icons/` に置き、パスは `iconPath()`(`src/utils/assets.ts`)で作る
+- 使う時・足す時の決まりは札 .claude/rules/items/components/Icons.md にある
+
+## Usage
+
 ```tsx
 import { FileIcon } from "@/components/Icons";
 
 <FileIcon size={20} className="text-foreground" />
 ```
 
-- add image icon: 1) `public/assets/icons/` に配置 | 2) `definitions.ts` に定義 | 3) `@/components/Icons` から使う
+- Lucide のアイコンと同じ型なので、`{ key: "brand", icon: BrandIcon }` のようにアイコンの配列に混ぜられる
+
+### 画像アイコンを足す
+
+- 1) `public/assets/icons/` に置く | 2) `definitions.ts` に定義 | 3) `@/components/Icons` から使う
+
 ```tsx
 import { iconPath } from "@/utils/assets";
 import { createImageIcon } from "@/components/Icons";
@@ -20,7 +29,10 @@ import { createImageIcon } from "@/components/Icons";
 export const BrandIcon = createImageIcon(iconPath("brand.svg"), "BrandIcon");
 ```
 
-- add svg icon: 1) 子要素を `createSvgIcon` で定義 | 2) `definitions.ts` に追加 | 3) `@/components/Icons` から使う
+### SVG アイコンを足す
+
+- 1) 子要素を `createSvgIcon` で定義 | 2) `definitions.ts` に足す | 3) `@/components/Icons` から使う
+
 ```tsx
 import { createSvgIcon } from "@/components/Icons";
 
@@ -30,6 +42,8 @@ export const StarIcon = createSvgIcon(
 );
 ```
 
-- behavior image: `size`/`className` のみ有効 | `color`/`strokeWidth` は無効
-- behavior svg: Lucide props 対応 | `size`, `color`, `strokeWidth`, `absoluteStrokeWidth`
-- rule: 直パス禁止 → `iconPath()` を使用
+## API
+
+- 型: `CustomIconProps` = `LucideProps`、`CustomIcon` / `IconComponent` = `LucideIcon`
+- 画像アイコン(`createImageIcon(src, displayName)`): `size` / `className` だけが効く。`color` / `strokeWidth` は効かない
+- SVG アイコン(`createSvgIcon(render, displayName)`): Lucide の props に対応(`size`, `color`, `strokeWidth`, `absoluteStrokeWidth`)
