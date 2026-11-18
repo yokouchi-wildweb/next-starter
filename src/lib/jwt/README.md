@@ -1,8 +1,14 @@
-# JWT ユーティリティの使い方
+# JWT ユーティリティ
 
-`src/lib/jwt` では、JWT の署名・検証・Cookie 抽出を行うための薄いラッパーを提供しています。ドメイン固有のスキーマを注入できるように汎用 API として実装されているため、利用側でクレームの正規化を行ってください。
+## Overview
 
-## 1. 署名（signUserToken）
+- JWT の署名・検証・Cookie 抽出の薄いラッパー。入口 `@/lib/jwt`
+- ドメイン固有のスキーマを注入する汎用 API なので、クレームの正規化は呼び手が行う
+- 呼び手は auth のセッションの層(`src/features/core/auth/services/server/session/` など)。API ルートの主体は Factory の `ctx.user`(CLAUDE.md API_ROUTES principal)
+
+## Usage
+
+### 署名
 
 ```ts
 import { signUserToken } from "@/lib/jwt";
@@ -29,9 +35,7 @@ const { token, expiresAt } = await signUserToken({
 });
 ```
 
-`signUserToken` は `subject` と任意の `claims` を受け取り、署名済み JWT と `expiresAt`（`Date`）を返します。`claims` はそのままペイロードに含まれるので、ドメイン固有の情報を自由に追加できます。
-
-## 2. 検証（verifyUserToken）
+### 検証
 
 ```ts
 import { verifyUserToken } from "@/lib/jwt";
@@ -67,12 +71,17 @@ if (result) {
 }
 ```
 
-`verifyUserToken` は署名検証と有効期限チェックを行い、`claimsParser` を通じてドメイン固有の型へ正規化した結果を返します。`claimsParser` が `null` を返すとトークンは無効扱いになるため、検証エラーやスキーマ不一致時には `null` を返してください。
+## API
 
-## 3. Cookie からの取得（parseSessionCookie）
+- `signUserToken({ subject, claims })` → `{ token, expiresAt }`(`expiresAt` は `Date`)。`claims` はそのままペイロードに入るので、ドメイン固有の情報を足せる
+- `verifyUserToken(token, { claimsParser })` → `{ subject, claims } | null`。署名と有効期限を確かめ、`claimsParser` でドメイン固有の型へ正規化した結果を返す。`claimsParser` が `null` を返すとトークンは無効
+- `parseSessionCookie(cookies)` → `RequestCookies` / `ResponseCookies` からセッショントークン値を取り出す
+- 定数: `SESSION_COOKIE_NAME`・`SESSION_DEFAULT_MAX_AGE_SECONDS`(設定の値)
 
-`parseSessionCookie` は `RequestCookies` / `ResponseCookies` からセッショントークン値を取得するためのヘルパーです。Next.js の API ルートやミドルウェアからトークンを読み出す際に利用できます。
+## Extension
 
-## 設定
+- 上書き `src/config/lib/jwt.config.ts`(`@lib-config/jwt`): `cookieName`(既定 `"__session"`)・`defaultMaxAgeSeconds`(既定 7 日)。キーと既定は `config.ts`
 
-Cookie 名(`cookieName`、既定 `"__session"`)とセッションの既定の有効期限(`defaultMaxAgeSeconds`、既定 7 日)は `config.ts` が既定を持ち、fork は上書き `src/config/lib/jwt.config.ts`(`@lib-config/jwt`)に書く。公開の定数 `SESSION_COOKIE_NAME`・`SESSION_DEFAULT_MAX_AGE_SECONDS` はその値。
+## Related
+
+- セッションの読み方: `src/features/core/auth/README.md`
