@@ -4,7 +4,7 @@
 
 - `@dnd-kit` + `@tanstack/react-virtual` による縦一列のドラッグ&ドロップ並び替えリスト。管理画面の専用ソート画面(`AdminXxxSort`、pnpm generate domain が生成)や、モーダル内の編集リストの並び替えに使う
 - 既存の一覧テーブルに並び替えを足すのは tableSuite の `reorderable`(`src/lib/tableSuite/README.md`)。このライブラリは「並び替えが主目的の専用リスト」向け
-- 使う時・直す時の決まりは札 .claude/rules/items/lib/sortableList.md にある
+- 使う時・直す時の決まりは札 .claude/rules/items/lib/sortableList.md にある。この README は使い方と仕組み
 
 ## Usage
 
@@ -51,16 +51,18 @@ import { SortableList, type ReorderResult } from "@/lib/sortableList";
 
 ## API
 
+- `items`(`{ id: string }` を含む配列、表示順)・`columns`(`SortableListColumn`: `render(item)`・`header?`・`width?`・`align?`・`paddingX?`・`paddingY?`)・`onReorder(result)`(void か Promise)・`className?`
 - `showHeader` / `headerClassName`: カラムヘッダー行をスクロール領域の外・上に常時表示
 - `showDragHandle`(既定 true): ハンドル列の表示
 - `disabled`: 全体のドラッグ無効化。`isItemDisabled(item)`: 行単位の無効化(SortableContext から除外され StaticItem で描画)
-- `rowClassName`: 文字列または `(item, { index }) => string`
+- `rowClassName`: 文字列または `(item, { index }) => string`。`draggingClassName` / `dragOverClassName`: ドラッグ中の行・重ねた先の行
 - `itemHeight`(xs〜xl、既定 md)/ `itemPaddingX`(既定 sm)/ `itemPaddingY`(既定 none): 行の高さとパディング。ヘッダー行とも共有される
 - `maxHeight`(既定 70vh): リスト自身のスクロールコンテナの最大高さ。`scroll="parent"` では無視
 - `emptyMessage` / `isLoading`: 空表示・スケルトン表示
 - `scroll`(`"self" | "parent"`、既定 `"self"`): スクロール領域の持ち方(Usage)
 - `guardUnsaved`(既定 true): 並びの保存待ちの守り(Internals)
-- 型: `ReorderResult` / `SortableListScrollMode`
+- 入口の他の出す物: 行の部品 `SortableItem` / `StaticItem` / `DragHandle`・`computeReorderResult(ids, activeId, overId)`(Internals)
+- 型: `ReorderResult` / `SortableListScrollMode` / `SortableListProps` / `SortableListColumn` / `SortableItemType`(`{ id: string }`)
 
 ## Internals
 
@@ -68,10 +70,10 @@ import { SortableList, type ReorderResult } from "@/lib/sortableList";
 
 - `onReorder` が Promise を返すと、終わるまで(並びの保存待ち)ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 未保存 `unsaved`。確認の文は `src/config/ui/unsaved-guard.config.ts`)。void を返す使い手は守らない。外すのは `guardUnsaved={false}`
 - リストは未保存の並びを持たない(落とすたびに使い手が保存する)
-- 判定は `reorderGuard.ts`(テスト `pnpm test src/lib/`)
+- 判定は `reorderGuard.ts`(テスト `pnpm test src/lib/sortableList`)
 
 ### 中の部品
 
-- 本体 `SortableList.tsx`(DndContext / 仮想化 / scroll モード分岐)、行の部品 `SortableItem`(useSortable 行)/ `StaticItem`(無効行)/ `HeaderRow` / `DragHandle`
-- `computeReorderResult`(`utils.ts`): active / over ID から after / before を算出。tableSuite の reorderable も共用
+- 本体が DndContext・仮想化・scroll のモードの分岐を持つ。行は `SortableItem`(useSortable の行)/ 無効の行は `StaticItem`
+- `computeReorderResult`: active / over の ID から after / before を出す。tableSuite の reorderable(`computeGroupedReorder`)も同じ関数を使う
 - 読む lib: `@/lib/unsavedGuard`(入口だけ)・`@/lib/cn`

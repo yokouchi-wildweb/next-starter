@@ -4,7 +4,7 @@
 
 - 事前に統一プロファイルへ変換された **fragmented MP4(fmp4)** フラグメントを、ブラウザの **MSE(MediaSource Extensions)** で 1 本の映像として **継ぎ目なく連結再生** する汎用ライブラリ。
 - 複数の演出動画を「順不同で繋いで 1 本に見せる」ユースケース(抽選で順序が実行時に決まる等)を想定。
-- 使う時・直す時の決まりは札 .claude/rules/items/lib/seamlessVideo.md にある
+- 使う時・直す時の決まりは札 .claude/rules/items/lib/seamlessVideo.md にある。この README は使い方と仕組み
 
 ### スコープ
 
@@ -95,9 +95,9 @@ await play();                                // gesture 外でも音が鳴る
 ```
 
 - `unlock()` は load より前に呼べ、冪等(複数回呼んでも安全)。
-- context は `load()` ごとに作り直さず生存(映像側 MSE/SourceBuffer は従来どおり毎 load 再生成)。
+- context は `load()` ごとに作り直さず生存(映像側 MSE/SourceBuffer は load ごとに作り直す)。
 - `reset()` / コンポーネント unmount で context を `close`(リークなし)。
-- 既存利用(load → ▶ タップで play)は load 内 unlock が gesture 内で resume するため**従来どおり**動作。
+- `unlock()` を呼ばない使い方(load → ▶ タップで play)でも、load の中の unlock がタップの中で resume するので音が出る。
 
 ## API
 
@@ -170,6 +170,14 @@ await load(fragments, { progressive: true }); // 先頭準備で ready(=playable
 - **章ジャンプ**: `seekToFragment(index)`(音声尺ベース)。
 - **ワンショットSE**: `playSe(url, { atFragment?, volume? })`。tier リビール等の瞬間にフラグメント境界同期で効果音を 1 回再生(BGM とは別経路、デコードキャッシュあり)。
 - **先読み**: `prefetchFragments(urls, fetcher?)` / `prefetchManifest(manifest, fetcher?)` で再生前にキャッシュを温める。**取得バッファは保持せずブラウザ HTTP キャッシュ依存**(容量は LRU でブラウザ管理＝本ライブラリ側で肥大しない)。
+
+### その他の出す物(入口 `@/lib/seamlessVideo`)
+
+- 環境の判定: `isMseSupported()`・`isTypeSupported(mime)`・`getMediaSourceCtor()`・`isManagedMediaSource()`
+- 箱の読み取り: `parseFragment` / `parseFragmentSafe`(fmp4 の box を読む。検証の下の層)
+- マニフェスト: `parseReelManifest`(保存した物を読む。Extension)
+- 音声の層: `AudioReel`・`clampPlaybackRate`・`MIN_PLAYBACK_RATE`(0.25)/ `MAX_PLAYBACK_RATE`(4)
+- 型: `SeamlessFragmentSource`・`ReelFragment`・`FragmentFetcher`・各フック / 部品 / 検証の Options・Result・Report の型
 
 ### 読み込み失敗時の回復契約(progressive)
 

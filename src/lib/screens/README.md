@@ -67,10 +67,10 @@ src/app/(user)/
 ### 既存の UI レイヤーとの対応
 
 - page / ページ — 実体: `page.tsx`（1 行スイッチ）+ `_screen/<Name>Screen.tsx`（本体）; 補足: 「SSR の入口、最小限のタグ、hook なし」は不変。ServerService 呼び出しは loader 経由。hook が要る部分は `_screen/` の `"use client"` 部品へ
-- section_container / セクションコンテナ — 実体: **Screen が直接配置するコンポーネント**。`features/<domain>/components/<Name>`（部品を持つなら `<Name>/index.tsx`、無ければ `<Name>.tsx`）; 補足: 役割で定義（タグやフォルダでは決めない）。名前は接尾辞なし（旧 `*Page` 名は checkpoint ui-layers-rename で改名済み。旧パスの shim は ui-layers-shim-removal で削除済み）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格）
+- section_container / セクションコンテナ — 実体: **Screen が直接配置するコンポーネント**。`features/<domain>/components/<Name>`（部品を持つなら `<Name>/index.tsx`、無ければ `<Name>.tsx`）; 補足: 役割で定義（タグやフォルダでは決めない）。名前は接尾辞なし（`*Page` は付けない）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格）
   - Screen はコンテナ自体を import し、内側は読まない（`pnpm test src/lib/screens/screens.test.mjs` が検査。API.md「セクションコンテナの条件（契約 D）」）
 - part / 部品 — 実体: コンテナの内側の要素（例: `BalanceCard`、`CouponInput`）。ドメイン共有なら `common/`; 補足: 契約外。表示専用でも自己完結した操作付きでもよい。hook を呼ぶのは自己完結するときだけ
-- （新規）loader — 実体: `src/app/<route>/_screen/loader.ts`; 補足: page 層が呼ぶサーバー側ロジック。レイヤーではなく page 層の付属物（業務ロジックは ServerService に置き、loader はそれを呼んで組み立てる）。初回描画に見えるデータは loader が取り `initial<Name>` props で渡す（must-read API.md「契約（公開 API）と変更規則」）
+- （新規）loader — 実体: `src/app/<route>/_screen/loader.ts`; 補足: page 層が呼ぶサーバー側ロジック。レイヤーではなく page 層の付属物（業務ロジックは ServerService に置き、loader はそれを呼んで組み立てる）。初回描画に見えるデータは loader が取り `initial<Name>` props で渡す（API.md「契約（公開 API）と変更規則」）
 
 ## Usage
 
@@ -185,7 +185,7 @@ import { BalanceCard } from "@/features/core/wallet/components/WalletBalance/Bal
 import { BalanceCard } from "./BalanceCard";
 ```
 
-8.1 の Screen で `WalletBalance` の import 先を `./WalletBalance` に変える。
+上の「Screen だけ差し替える」の Screen で、`WalletBalance` の import 先を `./WalletBalance` に変える。
 
 ---
 

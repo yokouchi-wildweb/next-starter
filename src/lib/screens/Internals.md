@@ -44,7 +44,7 @@ export const FORK_SCAN_EXCLUDES: string[] = ["src/app/lab"];
 
 ### 未移行ルートの扱い（例外リストは無い）
 
-スイッチ形でない page.tsx は `pnpm test src/lib/screens/screens.test.mjs` が失敗にし、ルート地図（「ルート地図（`src/app/route-map.jsonl`）」）も鎖を辿れないページで生成失敗になる。未移行のページを理由付きで残す例外リスト（upstream の `UPSTREAM_LEGACY_ROUTES`・fork の `FORK_LEGACY_ROUTES`）は仕組みごと廃止した。新しいページは最初からスイッチ形で作る。fork が merge の後に `FORK_LEGACY_ROUTES` の行を持っていたら消す。
+スイッチ形でない page.tsx は `pnpm test src/lib/screens/screens.test.mjs` が失敗にし、ルート地図（「ルート地図（`src/app/route-map.jsonl`）」）も鎖を辿れないページで生成失敗になる。未移行のページを理由付きで残す例外リストは無い（upstream の `UPSTREAM_LEGACY_ROUTES`・fork の `FORK_LEGACY_ROUTES` という表は読まれない）。新しいページは最初からスイッチ形で作る。fork が merge の後に `FORK_LEGACY_ROUTES` の行を持っていたら消す。
 
 ### 生成される管理画面ルート（pnpm generate domain）
 

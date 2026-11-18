@@ -3,7 +3,7 @@
 ## Overview
 
 - 開発・試作のための初期データ(デモの利用者・サンプル)を、持ち主のドメインの `seed.ts` にデータだけで書くための型と関数
-- 入れるのはシードのランナー `scripts/runner/seed`(`pnpm ops db seed`)で、各ドメインのサービスを通す
+- 入れるのはシードのランナー `scripts/runner/seed`(`pnpm ops db seed`。既定は対話でドメインを選び、`--all` で全部)で、各ドメインのサービスを通す
 - 依存なし。使う側は各ドメインの `seed.ts` とランナー `scripts/runner/seed/`
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/seed.md、seed.ts の層の決まり(データだけ・サービスを通す・lint)は .claude/rules/core/scripts.md にある。この README は使い方と仕組み
 
@@ -39,7 +39,7 @@ export const seed = defineSeed({
 
 ## API
 
-- `defineSeed`・`ref`・`planSeeds`(入れる順と止める理由)・`resolveRow`(ref の置き換え)
+- `defineSeed`・`ref`・`isSeedRef`(値が ref か)・`planSeeds(entries, selected?)`(入れる順と止める理由)・`resolveRow(row, ids)`(ref の置き換え)
 - 型 `SeedDefinition` / `SeedRow` / `SeedRef` / `SeedEntry` / `SeedPlan`
 
 ## Internals

@@ -4,6 +4,8 @@
 
 サイトテーマ(ライト / ダーク)をパスのエリアごとに決める閉じた lib。判定の純関数・<head> の bootstrap script・クライアントの store と同期(SiteThemeSync)・設定を持つ。読む lib = `appEnv`(開発時の警告)・`defineConfig`(設定の合成)。棚の部品は読まない(切替ボタン `DarkModeSwitch` は棚 `src/components/Fanctional` にあり、この lib の入口を読む)。仕組みの全体: [src/styles/README.md](../../styles/README.md)「サイトテーマ」。
 
+- 使う時・直す時の決まりは札 .claude/rules/items/lib/siteTheme.md にある。この README は使い方と仕組み
+
 ## Usage
 
 - `SiteThemeSync` を root layout に 1 つ置く(描画なし)
@@ -15,7 +17,7 @@
 入口 `@/lib/siteTheme`:
 
 - `siteThemeConfig` — 合成済みの設定(既定 + 上書き)。root layout・DarkModeSwitch が読む
-- `SiteThemeSync` — root layout に 1 つだけ置く常駐部品(描画なし)。クライアント遷移・切替・OS 設定の変化で再解決し、`<html>` の `dark` クラスと `data-area` を書く唯一の書き手
+- `SiteThemeSync` — root layout に置く常駐部品(描画なし)。クライアント遷移・切替・OS 設定の変化で再解決し、`<html>` の `dark` クラスと `data-area` を書く(Internals)
 - `useSiteThemeStore()` — `{ isDark, areaKey, switchable, toggle, setDark }`。保存(localStorage)は `setDark` / `toggle` のときだけ。switchable でないエリアでは何もしない
 - 判定の純関数: `resolveSiteTheme`・`resolveSiteThemeArea`・`resolveIsDark`・`getSiteThemeAreaByKey`・`matchesAreaPrefix`・`normalizeStoredPreference`・`normalizeAreaPrefix`
 - `buildSiteThemeBootstrapScript(config)`・`SITE_THEME_AREA_ATTRIBUTE`(`data-area`)・`SITE_THEME_DEFAULTS`・`SITE_THEME_STORAGE_KEY`
@@ -42,7 +44,7 @@ export default {
 
 ## Internals
 
-- `SiteThemeSync` は `<html>` の `dark` クラスと `data-area` を書く唯一の書き手
+- `SiteThemeSync` は `<html>` の `dark` クラスと `data-area` を書く唯一の書き手(書くのは lib の中の `dom.ts`)。<head> の bootstrap script(`buildSiteThemeBootstrapScript`)が最初の描画の前に同じ判定で書き、以後は `SiteThemeSync` が引き継ぐ
 - `package.json` に `sideEffects` は書かない(読み込み時に zustand の store を作る)
 
 ## Verification

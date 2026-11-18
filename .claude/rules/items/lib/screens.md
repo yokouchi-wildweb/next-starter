@@ -6,7 +6,7 @@ paths:
 # lib/screens
 what: the page-layer structure (page.tsx 1-line switch → _screen/<Name>Screen.tsx + _screen/loader.ts, fork replacements in _components/), its checks (checks.mjs, screens.test.mjs) and the route map src/app/route-map.jsonl (pnpm generate routes) | ScreenProps (@/lib/screens types.ts)
 use: always
-change: placement = src/config/app/screens.config.ts (FORK_SCAN_EXCLUDES)
+change: placement = src/config/app/screens.config.ts (FORK_SCAN_EXCLUDES) | add = src/app/**/_components/** (forkScreenParts, extensionPoints.ts)
 rules:
 using:
 - route_map: route-map.jsonl is generated → never hand-edit it | a merge conflict → regenerate with pnpm generate routes and commit
