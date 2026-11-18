@@ -4,6 +4,7 @@
 
 import Modal from "@/components/Overlays/Modal";
 import { Button } from "@/components/Form/Button/Button";
+import { Block } from "@/components/Layout/Block";
 import { authConfig } from "@/features/auth/config";
 import { RateLimitWarningContent } from "./RateLimitWarningContent";
 
@@ -27,7 +28,7 @@ export function RateLimitWarningModal({
       title={authConfig.rateLimitWarning.title}
       maxWidth={480}
     >
-      <div className="px-6 pb-6">
+      <Block className="px-6 pb-6">
         <RateLimitWarningContent />
         <Button
           variant="outline"
@@ -36,7 +37,7 @@ export function RateLimitWarningModal({
         >
           閉じる
         </Button>
-      </div>
+      </Block>
     </Modal>
   );
 }

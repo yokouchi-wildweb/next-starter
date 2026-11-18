@@ -10,8 +10,11 @@ import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
 import { PasswordInput } from "@/components/Form/Input/Manual";
+import { Flex } from "@/components/Layout/Flex";
+import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 
 import { useResetPassword } from "@/features/core/auth/hooks/useResetPassword";
 
@@ -48,24 +51,24 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
   // 検証中
   if (phase === "initial" || phase === "validating") {
     return (
-      <section id="reset-password" className="w-full">
+      <Section id="reset-password" className="w-full">
         <InlineLoader size="lg" message="リンクを確認しています..." />
-      </section>
+      </Section>
     );
   }
 
   // エラー（無効なリンク）
   if (phase === "error" && !email) {
     return (
-      <section id="reset-password" className="w-full">
+      <Section id="reset-password" className="w-full">
         <Stack gap="lg" className="text-center">
-          <div className="flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+          <Flex justify="center">
+            <Flex align="center" justify="center" className="h-16 w-16 rounded-full bg-destructive/10">
               <AlertCircle className="h-8 w-8 text-destructive-text" />
-            </div>
-          </div>
+            </Flex>
+          </Flex>
           <Stack gap="xs">
-            <h2 className="text-xl font-semibold">リンクが無効です</h2>
+            <SecTitle size="xl" weight="semiBold" align="inherit">リンクが無効です</SecTitle>
             <Para align="center" size="sm" className="text-muted-foreground">
               {error || "このリンクは無効か、有効期限が切れています。"}
             </Para>
@@ -76,22 +79,22 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
             </Link>
           </Button>
         </Stack>
-      </section>
+      </Section>
     );
   }
 
   // 完了
   if (phase === "completed") {
     return (
-      <section id="reset-password" className="w-full">
+      <Section id="reset-password" className="w-full">
         <Stack gap="lg" className="text-center">
-          <div className="flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
+          <Flex justify="center">
+            <Flex align="center" justify="center" className="h-16 w-16 rounded-full bg-success/15">
               <CheckCircle className="h-8 w-8 text-success-text" />
-            </div>
-          </div>
+            </Flex>
+          </Flex>
           <Stack gap="xs">
-            <h2 className="text-xl font-semibold">パスワードを変更しました</h2>
+            <SecTitle size="xl" weight="semiBold" align="inherit">パスワードを変更しました</SecTitle>
             <Para align="center" size="sm" className="text-muted-foreground">
               新しいパスワードでログインできるようになりました。
             </Para>
@@ -102,16 +105,16 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
             </Link>
           </Button>
         </Stack>
-      </section>
+      </Section>
     );
   }
 
   // パスワード入力フォーム
   return (
-    <section id="reset-password" className="w-full">
+    <Section id="reset-password" className="w-full">
       <Stack gap="lg">
         <Stack gap="xs">
-          <h2 className="text-xl font-semibold">新しいパスワードを設定</h2>
+          <SecTitle size="xl" weight="semiBold" align="inherit">新しいパスワードを設定</SecTitle>
           {email && (
             <Para size="sm" className="text-muted-foreground">
               {email} のパスワードを再設定します。
@@ -169,6 +172,6 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
           </Button>
         </form>
       </Stack>
-    </section>
+    </Section>
   );
 }

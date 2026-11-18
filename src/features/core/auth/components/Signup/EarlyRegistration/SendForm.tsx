@@ -12,7 +12,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { ControlledField } from "@/components/Form";
 import { TextInput } from "@/components/Form/Input/Controlled";
 import { Block } from "@/components/Layout/Block";
-import { Para } from "@/components/TextBlocks";
+import { Para, Span } from "@/components/TextBlocks";
 import { useEarlyRegistrationSendForm } from "@/features/core/auth/hooks/useEarlyRegistrationSendForm";
 
 export type EarlyRegistrationSendFormProps = {
@@ -38,7 +38,7 @@ export function EarlyRegistrationSendForm({
           <ControlledField
             control={form.control}
             name="email"
-            label={<span className="text-sm font-medium">メールアドレス</span>}
+            label={<Span size="sm" weight="medium">メールアドレス</Span>}
             renderInput={(field) => (
               <TextInput
                 field={field}

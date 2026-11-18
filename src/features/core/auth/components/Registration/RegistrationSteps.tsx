@@ -1,6 +1,9 @@
 // src/features/core/auth/components/Registration/RegistrationSteps.tsx
 
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
+import { Para, Span } from "@/components/TextBlocks";
 
 import type { RegistrationMethod } from "./index";
 
@@ -35,9 +38,9 @@ export function RegistrationSteps({
 
   return (
     <Section as="nav" aria-label="登録の進捗" className="flex flex-col gap-4">
-      <p className="text-center text-sm text-muted-foreground">
+      <Para size="sm" tone="muted" align="center" className="my-0">
         完了まで 残り{remainingSteps}ステップ
-      </p>
+      </Para>
       <ol className="flex items-center justify-center gap-0">
         {steps.map((step, index) => {
           const stepNumber = index + 1;
@@ -47,11 +50,13 @@ export function RegistrationSteps({
           return (
             <li key={step.label} className="flex items-center">
               {/* ステップ */}
-              <div className="flex flex-col items-center">
+              <Flex direction="column" align="center">
                 {/* ナンバーボックス */}
-                <div
+                <Flex
+                  align="center"
+                  justify="center"
                   className={`
-                    flex h-10 w-10 items-center justify-center rounded-lg
+                    h-10 w-10 rounded-lg
                     text-sm font-semibold transition-all duration-300
                     ${
                       isCompleted
@@ -80,25 +85,21 @@ export function RegistrationSteps({
                   ) : (
                     stepNumber
                   )}
-                </div>
+                </Flex>
                 {/* ラベル */}
-                <span
-                  className={`
-                    mt-2 text-xs font-medium whitespace-nowrap
-                    ${
-                      isCompleted || isCurrent
-                        ? "text-foreground"
-                        : "text-muted-foreground"
-                    }
-                  `}
+                <Span
+                  size="xs"
+                  weight="medium"
+                  tone={isCompleted || isCurrent ? "default" : "muted"}
+                  className="mt-2 whitespace-nowrap"
                 >
                   {step.label}
-                </span>
-              </div>
+                </Span>
+              </Flex>
 
               {/* コネクターライン */}
               {index < steps.length - 1 && (
-                <div
+                <Block
                   className={`
                     mx-2 mt-[-1.5rem] h-0.5 w-12 sm:w-16
                     transition-colors duration-300

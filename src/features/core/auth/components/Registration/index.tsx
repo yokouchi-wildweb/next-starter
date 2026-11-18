@@ -4,6 +4,7 @@
 
 import type { ComponentType } from "react";
 
+import { Stack } from "@/components/Layout/Stack";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { authConfig } from "@/features/auth/config";
 import { useTransitionGuard } from "@/lib/transitionGuard";
@@ -49,9 +50,9 @@ export function Registration({ method = "email" }: RegistrationFormProps) {
   }
 
   return (
-    <div className="flex flex-col gap-8 pb-8">
+    <Stack gap="xl" className="pb-8">
       {showSteps && <RegistrationSteps method={method} currentStep={currentStep} />}
       <Component />
-    </div>
+    </Stack>
   );
 }

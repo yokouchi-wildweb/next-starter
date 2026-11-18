@@ -7,6 +7,9 @@ import { FaGoogle, FaYahoo, FaFacebook, FaXTwitter } from "react-icons/fa6";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Stack } from "@/components/Layout/Stack";
+import { Span } from "@/components/TextBlocks";
 import { OAUTH_PROVIDER_IDS } from "@/features/core/user/constants";
 import { authConfig } from "@/features/auth/config";
 
@@ -59,12 +62,12 @@ export function ThirdPartySignupOptions({ redirectTo }: ThirdPartySignupOptionsP
 
   return (
     <Block>
-      <div className="flex items-center gap-4">
-        <div className="flex-1 border-t border-muted-foreground" />
-        <span className="text-sm text-muted-foreground">または</span>
-        <div className="flex-1 border-t border-muted-foreground" />
-      </div>
-      <div className="flex flex-col gap-3">
+      <Flex align="center" gap="md">
+        <Block className="flex-1 border-t border-muted-foreground" />
+        <Span size="sm" tone="muted">または</Span>
+        <Block className="flex-1 border-t border-muted-foreground" />
+      </Flex>
+      <Stack gap="sm">
         {options.map((option) => (
           <Button
             key={option.key}
@@ -77,10 +80,10 @@ export function ThirdPartySignupOptions({ redirectTo }: ThirdPartySignupOptionsP
             }}
           >
             <option.icon className={`size-5 ${option.iconColor} group-hover:text-accent-foreground`} />
-            <span className="font-normal text-muted-foreground group-hover:text-accent-foreground">{option.label}</span>
+            <Span inline weight="normal" tone="muted" className="group-hover:text-accent-foreground">{option.label}</Span>
           </Button>
         ))}
-      </div>
+      </Stack>
     </Block>
   );
 }

@@ -6,7 +6,7 @@ import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { ControlledField } from "@/components/Form";
 import { SingleCardCheckbox, TextInput } from "@/components/Form/Input/Controlled";
-import { Para } from "@/components/TextBlocks";
+import { Para, Span } from "@/components/TextBlocks";
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
 import { useOAuthRegistrationForm } from "@/features/core/auth/hooks/useOAuthRegistrationForm";
 import { RecaptchaBadge, RecaptchaV2Challenge } from "@/lib/recaptcha";
@@ -106,9 +106,9 @@ export function OAuthRegistrationForm() {
               field={field}
               label={
                 <>
-                  <span className="text-primary">利用規約</span>
+                  <Span inline tone="primary">利用規約</Span>
                   と
-                  <span className="text-primary">プライバシーポリシー</span>
+                  <Span inline tone="primary">プライバシーポリシー</Span>
                   に同意する
                 </>
               }

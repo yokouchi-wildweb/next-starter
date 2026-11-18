@@ -9,8 +9,10 @@ import { VerificationEmailSendForm } from "./EmailVarification/sendForm";
 import { ThirdPartySignupOptions } from "./ThirdPartySignupOptions";
 
 import { Button } from "@/components/Form/Button/Button";
+import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
+import { Para, Span } from "@/components/TextBlocks";
 
 export { EarlyRegistrationSendForm } from "./EarlyRegistration/SendForm";
 export { ThirdPartySignupOptions } from "./ThirdPartySignupOptions";
@@ -27,22 +29,22 @@ export function Signup({ urlAfterEmailSent }: SignupProps) {
         <VerificationEmailSendForm urlAfterEmailSent={urlAfterEmailSent} />
         <ThirdPartySignupOptions />
 
-        <p className="text-center text-xs text-muted-foreground">
+        <Para size="xs" tone="muted" align="center" className="my-0">
           <Link href="/terms" className="text-primary hover:underline">利用規約</Link>
           、
           <Link href="/privacy-policy" className="text-primary hover:underline">プライバシーポリシー</Link>
           に
           <br />
           同意の上、ご登録ください。
-        </p>
+        </Para>
 
-        <div className="mt-6 border-t border-muted-foreground pt-6">
+        <Block className="mt-6 border-t border-muted-foreground pt-6">
           <Button variant="outline" asChild className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground">
             <Link href="/login">
-              ログインはこちら <span className="ml-1 text-xs">▶</span>
+              ログインはこちら <Span size="xs" weight="inherit" className="ml-1">▶</Span>
             </Link>
           </Button>
-        </div>
+        </Block>
       </Stack>
     </Section>
   );

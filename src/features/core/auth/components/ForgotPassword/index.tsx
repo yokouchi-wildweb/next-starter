@@ -9,8 +9,12 @@ import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
 import { Input } from "@/components/Form/Input/Manual";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 
 import { useForgotPassword } from "@/features/core/auth/hooks/useForgotPassword";
 
@@ -28,15 +32,15 @@ export function ForgotPassword() {
 
   if (isSuccess) {
     return (
-      <section id="forgot-password" className="w-full">
+      <Section id="forgot-password" className="w-full">
         <Stack gap="lg" className="text-center">
-          <div className="flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
+          <Flex justify="center">
+            <Flex align="center" justify="center" className="h-16 w-16 rounded-full bg-success/15">
               <CheckCircle className="h-8 w-8 text-success-text" />
-            </div>
-          </div>
+            </Flex>
+          </Flex>
           <Stack gap="xs">
-            <h2 className="text-xl font-semibold">メールを送信しました</h2>
+            <SecTitle size="xl" weight="semiBold" align="inherit">メールを送信しました</SecTitle>
             <Para align="center" size="sm" className="text-muted-foreground">
               {email} 宛にパスワードリセット用のメールを送信しました。
               メール内のリンクをクリックして、新しいパスワードを設定してください。
@@ -52,15 +56,15 @@ export function ForgotPassword() {
             </Link>
           </Button>
         </Stack>
-      </section>
+      </Section>
     );
   }
 
   return (
-    <section id="forgot-password" className="w-full">
+    <Section id="forgot-password" className="w-full">
       <Stack gap="lg">
         <Stack gap="xs">
-          <h2 className="text-xl font-semibold">パスワードをお忘れですか？</h2>
+          <SecTitle size="xl" weight="semiBold" align="inherit">パスワードをお忘れですか？</SecTitle>
           <Para size="sm" className="text-muted-foreground">
             ご登録のメールアドレスを入力してください。
             パスワードリセット用のリンクをお送りします。
@@ -96,13 +100,13 @@ export function ForgotPassword() {
           </Button>
         </form>
 
-        <div className="text-center">
+        <Block className="text-center">
           <Link href="/login" className="text-sm text-primary hover:underline">
             <ArrowLeft className="mr-1 inline h-4 w-4" />
             ログイン画面に戻る
           </Link>
-        </div>
+        </Block>
       </Stack>
-    </section>
+    </Section>
   );
 }

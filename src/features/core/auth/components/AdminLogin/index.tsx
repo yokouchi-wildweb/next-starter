@@ -7,7 +7,9 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
 import { Input, PasswordInput } from "@/components/Form/Input/Manual";
+import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
+import { Para } from "@/components/TextBlocks";
 import { useAdminLogin } from "@/features/core/auth/hooks/useAdminLogin";
 
 export type AdminLoginProps = {
@@ -26,7 +28,7 @@ export function AdminLogin({ redirectTo }: AdminLoginProps = {}) {
   };
 
   return (
-    <section id="admin-login" className="w-full">
+    <Section id="admin-login" className="w-full">
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         <Stack gap="xs">
           <Label htmlFor="admin-login-email" className="block text-foreground">
@@ -53,11 +55,15 @@ export function AdminLogin({ redirectTo }: AdminLoginProps = {}) {
             onChange={(event) => setPassword(event.target.value)}
           />
         </Stack>
-        {errorMessage && <p className="text-sm text-destructive-text">{errorMessage}</p>}
+        {errorMessage && (
+          <Para tone="destructive" size="sm" align="inherit" className="my-0">
+            {errorMessage}
+          </Para>
+        )}
         <Button type="submit" disabled={isLoading} className="w-full mt-4">
           {isLoading ? "ログイン中..." : "ログイン"}
         </Button>
       </form>
-    </section>
+    </Section>
   );
 }

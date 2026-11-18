@@ -7,7 +7,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { ControlledField } from "@/components/Form";
 import { PasswordInput, SingleCardCheckbox, TextInput } from "@/components/Form/Input/Controlled";
 import { Input } from "@/components/Form/Input/Manual";
-import { Para } from "@/components/TextBlocks";
+import { Para, Span } from "@/components/TextBlocks";
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
 import { useEmailRegistrationForm } from "@/features/core/auth/hooks/useEmailRegistrationForm";
 import { RecaptchaBadge, RecaptchaV2Challenge } from "@/lib/recaptcha";
@@ -60,7 +60,7 @@ export function EmailRegistrationForm() {
         <ControlledField
           control={form.control}
           name="email"
-          label={<span className="text-sm font-medium">メールアドレス</span>}
+          label={<Span size="sm" weight="medium">メールアドレス</Span>}
           renderInput={(field) => (
             <Input
               {...field}
@@ -138,9 +138,9 @@ export function EmailRegistrationForm() {
               field={field}
               label={
                 <>
-                  <span className="text-primary">利用規約</span>
+                  <Span inline tone="primary">利用規約</Span>
                   と
-                  <span className="text-primary">プライバシーポリシー</span>
+                  <Span inline tone="primary">プライバシーポリシー</Span>
                   に同意する
                 </>
               }
