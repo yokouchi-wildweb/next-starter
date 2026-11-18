@@ -6,13 +6,14 @@
 「運営」「admin」等の予約語を実ユーザーに取らせたくない場合は、
 `src/features/core/user/reservedNames/<名前>.ts` に `export const provider` を置き `pnpm generate extensions`（上流は項目 0 = 挙動変化なし）。
 
+## Usage
+
 ```ts
 // 例: 静的な予約語リスト
 export const provider: ReservedUserNameProvider = {
-    key: "static-reserved-words",
-    filterReserved: async (names) => names.filter((n) => ["運営", "admin", "公式"].includes(n)),
-  },
-];
+  key: "static-reserved-words",
+  filterReserved: async (names) => names.filter((n) => ["運営", "admin", "公式"].includes(n)),
+};
 ```
 
 - `filterReserved(normalizedNames, ctx)` は「渡された正規化済み名前のうち予約済みのもの」を返す。

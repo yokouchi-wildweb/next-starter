@@ -40,7 +40,7 @@
 
 どの口も管理者カテゴリだけ（`createApiRoute` の access `{ roleCategories: ["admin"] }`）、門 `userGroups` が閉なら 404。service でも管理者か system かを確かめる（403）。返す形は表示名が先（`kindLabel`・`statusLabel`）で、内部の鍵は値としてだけ持つ。例外の持ち主付きのグループは一覧・1 件・選択肢に出さない（404）。
 
-- `GET /api/admin/user-groups?kind&status&cursor&limit` → `{ items, nextCursor }`。`status` は省略可(無ければ使用中とアーカイブの両方、D87)、`limit` 1〜50 既定 20、新しい順
+- `GET /api/admin/user-groups?kind&status&cursor&limit` → `{ items, nextCursor }`。`status` は省略可(無ければ使用中とアーカイブの両方)、`limit` 1〜50 既定 20、新しい順
   - 1 件の形: `id`・`name`・`description`・`kind` / `kindLabel`・`status` / `statusLabel`・`count`・`recompute`・`createdAt`・`updatedAt`
   - `count: { value, state }`: `counted`（静的 = 一員の数、定期計算 = 今の版の人数）/ `estimated`（動的をその場で数えた）/ `not_computed`（時間の上限・1 ページの予算が尽きた・壊れた条件）/ `none`（定期計算に版がまだ無い）
   - `recompute`（定期計算だけ）: `{ intervalMinutes, defaultIntervalMinutes, lastComputedAt, lastFailure: { at, reason } | null, computing }`
@@ -48,24 +48,24 @@
   - 動的・定期計算は `exceptions?: { include?: userIds, exclude?: userIds }`（例外の人）も渡せる。グループ・例外の人のグループ・一員を 1 つの取引で書き、誤り（静的に渡した・同じ人が両方 400、人数の上限 409）は作成ごと取り消す
 - `GET /api/admin/user-groups/[id]` → 一覧の形 + `definition`（例外の包みを外した元の定義。静的は null）・`heavy`・`notices`（画面に出す注意）・`exceptions: { includeCount, excludeCount } | null`
 - `PATCH /api/admin/user-groups/[id]` 直す（名前・説明・種類・定義・間隔）。種類の付け替えは動的 ⇄ 定期計算だけ（静的との間は 409）。保管したグループは 409
-- `DELETE /api/admin/user-groups/[id]` 削除（D92、どの状態でも）→ `{ id, deleted: true }`。削除していない送信の宛先・ほかのグループの条件（固定グループの一員）で使われていれば 409（code `group_referenced`、文に理由）。消すと定義・版・一員・例外の人のグループも消える。一覧・1 件の形に `deletable`・`deleteReasons`（行の操作に出す理由の文）。監査 `user_group.group.deleted`
+- `DELETE /api/admin/user-groups/[id]` 削除（どの状態でも）→ `{ id, deleted: true }`。削除していない送信の宛先・ほかのグループの条件（固定グループの一員）で使われていれば 409（code `group_referenced`、文に理由）。消すと定義・版・一員・例外の人のグループも消える。一覧・1 件の形に `deletable`・`deleteReasons`（行の操作に出す理由の文）。監査 `user_group.group.deleted`
 - `POST /api/admin/user-groups/[id]/archive` 保管（画面「アーカイブする」）
 - `POST /api/admin/user-groups/[id]/restore` 使用中に戻す（画面「アクティブに戻す」。アーカイブ中でなければ 409。定期計算は次の cron で期限が来れば計算し直す）
 - `POST /api/admin/user-groups/estimate` `{ definition }` か `{ groupId }` → `{ count, memberLimit, overLimit, heavy, sample: [{ id, name }] }`（メールは返さない。時間の上限で 503）
-- `PUT /api/admin/user-groups/[id]/exceptions` `{ include?: { clear?, add?, remove? }, exclude?: { clear?, add?, remove? } }`（`clear: true` = その側を全員外す、D94。足す・外すより先に）（動的・定期計算だけ、静的は 409）→ 1 件の詳しい形。足す人に入れた人は外す人から外れる（逆も）
+- `PUT /api/admin/user-groups/[id]/exceptions` `{ include?: { clear?, add?, remove? }, exclude?: { clear?, add?, remove? } }`（`clear: true` = その側を全員外す。足す・外すより先に）（動的・定期計算だけ、静的は 409）→ 1 件の詳しい形。足す人に入れた人は外す人から外れる（逆も）
 - `GET /api/admin/user-groups/[id]/exceptions?side=include|exclude&q&cursor&limit` → `{ items: [{ id, name }], nextCursor }`（`limit` 1〜100 既定 50、例外がまだ無ければ空、静的は 409）
 - `POST /api/admin/user-groups/static` 静的グループを作る `{ name, description?, from }` → `{ group, members }`
 - `POST /api/admin/user-groups/[id]/members`（静的だけ、ほかは 409）
   - `{ mode: "add", userIds }` → `{ group, members: { status: "added", added, skipped, memberCount } }`
   - `{ mode: "replace", from }` → `{ group, members }`（`members` は書く口の置き換えの結果）
   - `{ mode: "remove", userIds }` → `{ memberCount }`
-  - `{ mode: "clear" }` → `{ group, members }`（全員を外す、D94。空の置き換えと同じ予算つきの書き込み、`members` は置き換えの結果。監査 `user_group.members.cleared`）
+  - `{ mode: "clear" }` → `{ group, members }`（全員を外す。空の置き換えと同じ予算つきの書き込み、`members` は置き換えの結果。監査 `user_group.members.cleared`）
   - `from` = `{ type: "users", userIds }` / `{ type: "group", groupId }`（別のグループの今の一員）/ `{ type: "tag", tagId }`（タグの今の持ち主）
   - 1 回の要求の予算は `admin.freezeBudgetMs`。`members.status` が `incomplete` なら、画面が同じ `from` で `{ mode: "replace" }` を送り直すと続きから書く（サーバーは元を覚えない）
-- `GET /api/admin/user-groups/[id]/members?q&cursor&limit` → `{ items: [{ id, name }], nextCursor }`（`q` = 名前かメールアドレスの部分一致 1〜100 文字、D93。例外の人の一覧も同じ。静的だけ、`limit` 1〜100 既定 50、削除した利用者は出さない）
-- `GET /api/admin/user-groups/[id]/people-search?target=members|include|exclude&q&cursor&limit` → `{ items: [{ id, name, inList, otherSide }], nextCursor }`（D101。利用者を名前かメールアドレスの部分一致で探し、利用者 id の順の keyset。`inList` = 対象の一覧に入っている・`otherSide` = 例外の反対側に入っている（一員は null）。id の一覧を丸ごとは返さない。members は固定グループだけ、include / exclude は動的・定期計算だけ、ほかは 409）
-- `POST /api/admin/user-groups/[id]/people-apply` `{ target, add, remove }`（各 10,000 件まで、同じ人を両方は 400）→ `{ target, added, removed, moved, counts }`（D101。1 つの取引で外す → 足す。例外の片側へ足した人は反対側から外れ `moved` に数える。`counts` = 新しい人数 `{ memberCount }` か `{ includeCount, excludeCount }`。人数の上限を超えれば 409 で何も変えない。監査 `user_group.members.applied` / `user_group.exceptions.updated`）
-- `GET /api/admin/user-groups/criteria` → `{ criteria: [{ key, label, description, weight, weightLabel, fields, inlineGroups }], options: { tags, staticGroups }, kinds }`（`inlineGroups` = 欄を横に 1 行で並べる組、FieldRenderer の `InlineFieldGroup` の形 `{ key, label, fields, fieldWidths? }`、無ければ []、D90。上流: 期間の部品 = 期間 from〜to と直近 withinDays の 2 行・購入金額の合計 = 基準・通貨・下限・タグ = タグと一致条件）（使える部品だけ: `enabled: false`・読む機能が閉の部品は出ない）。タグ・静的グループの選択肢は `fields` にも入れて返す（`admin.optionsLimit` 件まで）
+- `GET /api/admin/user-groups/[id]/members?q&cursor&limit` → `{ items: [{ id, name }], nextCursor }`（`q` = 名前かメールアドレスの部分一致 1〜100 文字。例外の人の一覧も同じ。静的だけ、`limit` 1〜100 既定 50、削除した利用者は出さない）
+- `GET /api/admin/user-groups/[id]/people-search?target=members|include|exclude&q&cursor&limit` → `{ items: [{ id, name, inList, otherSide }], nextCursor }`（利用者を名前かメールアドレスの部分一致で探し、利用者 id の順の keyset。`inList` = 対象の一覧に入っている・`otherSide` = 例外の反対側に入っている（一員は null）。id の一覧を丸ごとは返さない。members は固定グループだけ、include / exclude は動的・定期計算だけ、ほかは 409）
+- `POST /api/admin/user-groups/[id]/people-apply` `{ target, add, remove }`（各 10,000 件まで、同じ人を両方は 400）→ `{ target, added, removed, moved, counts }`（1 つの取引で外す → 足す。例外の片側へ足した人は反対側から外れ `moved` に数える。`counts` = 新しい人数 `{ memberCount }` か `{ includeCount, excludeCount }`。人数の上限を超えれば 409 で何も変えない。監査 `user_group.members.applied` / `user_group.exceptions.updated`）
+- `GET /api/admin/user-groups/criteria` → `{ criteria: [{ key, label, description, weight, weightLabel, fields, inlineGroups }], options: { tags, staticGroups }, kinds }`（`inlineGroups` = 欄を横に 1 行で並べる組、FieldRenderer の `InlineFieldGroup` の形 `{ key, label, fields, fieldWidths? }`、無ければ []。上流: 期間の部品 = 期間 from〜to と直近 withinDays の 2 行・購入金額の合計 = 基準・通貨・下限・タグ = タグと一致条件）（使える部品だけ: `enabled: false`・読む機能が閉の部品は出ない）。タグ・静的グループの選択肢は `fields` にも入れて返す（`admin.optionsLimit` 件まで）
 - 監査（`targetType` `user_group`、操作した管理者が actor、metadata は名前・種類・数だけで利用者 id は入れない）: `user_group.group.created` / `updated` / `archived` / `restored` / `deleted`・`user_group.exceptions.updated`・`user_group.members.replaced` / `added` / `removed` / `cleared` / `applied`
 
 ### 管理画面の部品と hook

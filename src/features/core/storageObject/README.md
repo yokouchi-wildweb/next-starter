@@ -12,7 +12,7 @@
 
 ファイル本体はブラウザから GCS へ直接送る。誰が何をしてよいかは、アプリのサーバーだけが判定する。部品（ref・ポート・配信規則・保存先）は [`src/lib/storage`](../../../lib/storage/README.md) にあり、このドメインはそれを使って判定と記録を行う。
 
-- 用途 = 拡張点 `purposes`（`purposes/<名前>.ts`）とドメインの `services/server/storagePurposes.ts` の一覧 `src/registry/storagePurposeRegistry.ts` の合成（`getStoragePurposes()` が返す。ID の重複は例外。`user.avatar` は strip に固定して返す）
+- 用途 = 拡張点 `purposes`（`purposes/<名前>.ts`）と各業務ドメインの `services/server/storagePurposes.ts`（生成物）の一覧 `src/registry/storagePurposeRegistry.ts` の合成（`getStoragePurposes()` が返す。ID の重複は例外。`user.avatar` は strip に固定して返す（`FIXED_STRIP_PURPOSES`））
 - 業務行との連動 = createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/README.md](../../../lib/crud/README.md)「storage オプション」）、掃除 = cron `storage-sweep`、クライアント = `uploadToStorage`（[src/lib/storage/README.md](../../../lib/storage/README.md)）
 - 閉じられる機能の表を読む用途の例: `purposes/purchaseRequest.ts` の upload は `gate.enabled("payment")` が false なら受け付けない。read は保存済みの原本を見られるようそのまま
 
@@ -35,7 +35,7 @@ issue: 行は store=priv・key=incoming/<本来の store>/<purposeId>/<id>.<ext>
 - 受け取り領域は priv バケットの `incoming/` 接頭辞。別バケット・GCS のライフサイクル規則は使わない（受け取り中の物は必ず pending / deleted の行が追い、掃除 cron が消す）
 - 用途 ID は必ず「.」を含むので、`incoming/` のキーと通常のキーは衝突しない
 - 受け取り中かどうかは行のキーで判断する（キーから本来の位置を導く）。発行と commit の間に用途の metadata を変えても、発行時の判定に従う
-- ref が指す物が確定するのは commit の完了時。発行の応答の ref は今までどおり返す（wire 互換）
+- ref が指す物が確定するのは commit の完了時。発行の応答にも ref を含める（予定の最終 ref）
 
 ## Usage
 
@@ -67,9 +67,9 @@ issue: 行は store=priv・key=incoming/<本来の store>/<purposeId>/<id>.<ext>
 | discard | `DELETE /api/me/storage/uploads/[id]` | 本人の未採用ファイル（pending、または紐付いていない ready）を取り消す |
 | read | `GET /api/storage/objects/[id]`（createApiRoute `"public"`） | 用途の read 規則を都度判定し、照合済みの世代の短期署名 URL へ 302 する |
 | remove | `DELETE /api/storage/objects/[id]`（createApiRoute `"authenticated"`） | 用途に delete 規則がある、紐付いていないファイルだけを削除する |
-| policy | `GET /api/storage/purposes/[purpose]`（createApiRoute `"authenticated"`） | 用途の方針 `{ metadata }` を返す（`describePurpose`）。端末が HEIC などの変換と accept を決める |
+| policy | `GET /api/storage/purposes/[purpose]`（createApiRoute `"authenticated"`） | 用途の方針 `{ metadata, image }` を返す（`describePurpose`。`private, max-age=300`）。端末が HEIC などの変換・accept・送る前の縮小を決める |
 | putFromServer / copy | サーバー内（`storageObjectService`） | サーバーから書き込む・複製する。いきなり ready の行を作る。宛先が strip の画像なら描き直す |
-| attach / detach | サーバー内（業務保存の TX の中） | 業務行に紐付ける・紐付けを外す。HTTP には出さない |
+| attach / detach | サーバー内（業務保存の TX の中） | 業務行に紐付ける・紐付けを外す |
 
 keep の用途と画像以外の型では、commit は**ファイルの中身を検査しません**。照合するのは size・申告 MIME・generation の 3 つだけです。strip の画像は描き直しの時に、実際の形式が申告と同じかを sharp で確かめます。ブラウザに inline 表示させるかどうかは、lib/storage の配信規則が決めます（画像・動画・音声の固定表に載っている型だけが inline）。
 
@@ -85,14 +85,14 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
   - reason（expired / size_mismatch / type_mismatch / process_failed / discarded / replaced / record_removed / unreferenced / http_deleted。text 列）
 - **受け取り中の行**: strip の画像は pending の間 store = priv・key = `incoming/…`。ready になるときに `markReady` が store / key を本来の位置へ書き換える（以後は ref と一致する）
 - **session_uri は hiddenColumns**: 生の select では取り出さず、`services/server/finders/findStorageObjectById.ts` だけが読む
-- **index はすべて素の列**（push の往復を守る）: unique(store, key) / (status, expires_at) / (owner_user_id, status) / (record_type, record_id) / (status, ready_at)
+- **index はすべて素の列**: unique(store, key) / (status, expires_at) / (owner_user_id, status) / (record_type, record_id) / (status, ready_at) / (status, object_removed_at)
 - **schemaRegistry**: 走査で登録される。feature-gate の対象外
-- **監査**: 初版は記録しない
+- **監査**: 記録しない
 
 ## Extension
 
-- 用途: 自分のドメインの `purposes/<名前>.ts`（拡張点 `purposes`）
-- 設定: 持ち主 `config.ts`、上書き `src/config/features/storageObject.config.ts`（掃除の `sweep`・照合の `sweep.reconcile`）。`defaultMaxPending` は `storage.config`
+- 用途: 項目は `src/features/core/storageObject/purposes/<名前>.ts`（拡張点 `purposes`）。業務ドメインの用途は domain.json のメディア項目から `pnpm generate domain` が `services/server/storagePurposes.ts` に書く
+- 設定: 持ち主 `config.ts`、上書き `src/config/features/storageObject.config.ts`（掃除の `sweep`・照合の `sweep.reconcile`）
 - サービスの差し替え: `createStorageObjectService(deps)` で台帳・ポート・用途表・時刻・ID・画像の描き直し（`stripImage`。省略 = `stripImageMetadata`）を差し替えられる
 
 ## Internals
@@ -109,7 +109,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
     - サイズが 1 未満、または用途の maxBytes を超える（ちょうど maxBytes は通る）
     - 入力に未知のキーがある（保存先のキー・所有者は利用者が指定できない）
   - 判定で拒否したら 403。行もアップロード権も作らない
-  - 未完了数が `maxPending`（用途の値、無ければ `storage.config` の `defaultMaxPending`）に達していたら 429
+  - 未完了数が `maxPending`（用途の値、無ければ storageObject の `config.ts` の `defaultMaxPending`）に達していたら 429
     - 数える対象は、同じ利用者・同じ用途の次の 2 つ
       - pending の行
       - deleted だが実物の削除が済んでおらず、期限内の行
@@ -156,7 +156,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
   - 利用者・管理者が起点なら、実際の利用者
   - copy は、複製元が無い・外部 URL なら throw する（黙って null にしない）
   - 宛先が strip の用途の画像なら、毎回描き直す（複製元が strip の用途でも。導入前に上がった画像は処理されていないため）。copy は GCS 内の複製ではなく、元を read（宛先の maxBytes まで）→ 描き直し → put になる。描き直せなければ DomainError 422
-  - 描き直しは画素数に比例して時間とメモリを使う。DB の TX や lock の中で putFromServer / copy を呼ぶと、その間ずっと持ち続ける。発行者プログラム（couponIssuerGrant/issuance.ts）は TX と利用者ごとの advisory lock の中で `issueCodeForOwner` を呼び、画像付きクーポンなら copy（= 描き直し）が lock の中で走る。duplicate（`crudBinding` の duplicateValues）もメディア列ごとに同じ負荷
+  - 描き直しは画素数に比例して時間とメモリを使う。DB の TX や lock の中で putFromServer / copy を呼ぶと、その間ずっと持ち続ける。クーポンの発行者付与（couponIssuerGrant/issuance.ts）は TX と利用者ごとの advisory lock の中で `issueCodeForOwner` を呼び、画像付きクーポンなら copy（= 描き直し）が lock の中で走る。duplicate（`crudBinding` の duplicateValues）もメディア列ごとに同じ負荷
 - 公開の用途の実物とキャッシュ: 公開の用途は `public, max-age=31536000, immutable` で配信する。台帳と GCS から消しても、利用者のブラウザや中間の CDN のキャッシュには残りうる（URL を知っている人には見えうる）
 
 ### 実物の削除（`cleanupDeletedObject`）
@@ -173,7 +173,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 `src/app/api/cron/storage-sweep/` → `services/server/sweep.ts`（`runStorageSweep({ lookupService })`）。`runBudgetedBatches` + `createDeadline(storageObjectConfig.sweep.budgetMs)` で、次の 4 種類を id 順に片付ける。
 
 - `lookupService`（task.ts が `src/wiring/domainRegistry.ts` の `lookupDomainService` を渡す）は台帳の `record_type`（= 登録表のキー）から業務行のサービスを引く口で、照合（orphanedAttached）が使う
-- 登録表に無い `record_type` は、task.ts が渡す有無の関数 `recordResolvers`（`record_type` → `(ids) => まだ業務行がある id の Set`。今は `messaging.dispatch` だけ）で引く: 行を返さないので値の照合はしない、関数が投げたらその種類を `load_failed` で飛ばす。上限・大量一致の決まりは同じ
+- 登録表に無い `record_type` は、task.ts が渡す有無の関数 `recordResolvers`（`record_type` → `(ids) => まだ業務行がある id の Set`。今は messaging の `messaging.dispatch`・`messaging.template`・`messaging.override`）で引く: 行を返さないので値の照合はしない、関数が投げたらその種類を `load_failed` で飛ばす。上限・大量一致の決まりは同じ
 - task.override.ts は時刻と入切だけで、この表は持たない
 
 | 種類 | 対象 | 処理 |
@@ -214,7 +214,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 | reason | 意味 | 確かめ方・直し方 |
 |---|---|---|
-| `unregistered` | record_type が serviceRegistry に無い | storageBindingFor の第 1 引数と domainEntry.ts のキーを揃える（`pnpm check registry` が検出する）。ドメインを消した後なら、台帳の行の扱いを決める。`messaging.dispatch`（お知らせの画像）は意図して登録表に無い（messaging が回を消す時に自分で外す） |
+| `unregistered` | record_type が serviceRegistry に無い | storageBindingFor の第 1 引数と domainEntry.ts のキーを揃える（`pnpm check registry` が検出する）。ドメインを消した後なら、台帳の行の扱いを決める。messaging の 3 種（`messaging.dispatch` / `messaging.template` / `messaging.override`）は意図して登録表に無い（messaging が行を消す時に自分で外す） |
 | `load_failed` | サービスの読み込みが失敗した | detail（例外のメッセージ）とサーバーのログ |
 | `unsupported` | サービスが searchWithDeleted を持たない（Firestore 版など） | 照合の対象外。必要ならそのドメインの削除の流れで detach する |
 | `mass_missing` | 1 つの束で、同じ record_type の ID が `massMissingMin` 以上あって 1 件も見つからない | 表の取り違え・誤った全消去・truncate を疑う。`pnpm ops db inspect query` で台帳（`select record_id from storage_objects where status = 'ready' and record_type = '<type>'`）と業務表を突き合わせる。正当（大きな親の削除で子が一度に消えた）と確かめたら、その間だけ `storageObjectConfig.sweep.reconcile.massMissingMin` を上げて通す。解除の作業コマンドは無い |
@@ -228,18 +228,8 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 - schedule は毎時。`pnpm generate cron -- --plan hobby` では 1 日 1 回になる
 - **アップロード権はアプリの期限後も cloud 側でしばらく生きうる**
   - session URI は約 1 週間
-  - 単発 PUT の署名 URL は期限まで、削除後の同じ key への再送も通る（実機で確認）
+  - 単発 PUT の署名 URL は期限まで、削除後の同じ key への再送も通る
   - Hobby の掃除は 1 日 1 回
-
-### 部品
-
-- `entities/drizzle.ts` / `entities/model.ts`: テーブルと型
-- `services/server/storageObjectService.ts`: サービス本体。`createStorageObjectService(deps)` で、台帳・ポート・用途表・時刻・ID・画像の描き直し（`stripImage`。省略 = `stripImageMetadata`）を差し替えられる
-- `services/server/policy.ts`: 用途の規則の判定（`evaluateApiAccessRule` + check）と、SessionUser → StorageActor の変換
-- `services/server/purposeSource.ts`: 用途表の取得口 `getStoragePurposes()`（登録表に `withFixedStripPurposes` をかける。`FIXED_STRIP_PURPOSES` = `user.avatar` は常に strip）
-- `services/server/http.ts`: ルートの入力の検証と、読み取りの応答
-- `services/server/ledger/`: 台帳の読み書きの境界（`drizzleLedger` / テスト用 `memoryLedger`）
-- `services/server/sweep.ts` / `reconcileCursor.ts`: 掃除 cron の本体と、照合の進み具合（cron_checkpoints）
 
 ## Verification
 

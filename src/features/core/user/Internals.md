@@ -2,18 +2,18 @@
 
 ## Overview
 
-user の README の Internals を分けた文書(README が 20,000 字を超えるため)。ロールの流れ・利用できる利用者・表示名の一意性・退会と削除・状態の履歴の仕組み。
+user の README の Internals を分けた文書。ロールの流れ・利用できる利用者・表示名の一意性・退会と削除・状態の履歴の仕組み。
 
 ## Internals
 
 ### ロール定義からデータベースへの流れ
 
 ```
-roles/*.role.json
+roles/*.role.json + coreRoles/*.role.json
+       ↓ pnpm generate role
+extensions/roles.ts (roles)
        ↓ import
-roles/index.ts (ALL_ROLES)
-       ↓ import
-constants/role.ts (USER_ROLES)
+constants/role.ts (ALL_ROLES → USER_ROLES)
        ↓ import
 entities/drizzle.ts (UserRoleEnum)
        ↓ pnpm db:push
@@ -28,15 +28,15 @@ PostgreSQL (user_role enum)
 
 ```typescript
 // constants/role.ts
-import { ALL_ROLES } from "../roles";
+import { roles as ALL_ROLES } from "@/features/core/user/extensions/roles";
 
 // DB スキーマ・バリデーション用の配列
 export const USER_ROLES = ALL_ROLES.map((r) => r.id);
-// → ["admin", "user", "editor", "contributor"]
+// → ["admin", "user", "editor", "debugger", "contributor"]
 
 // 型定義
 export type UserRoleType = (typeof USER_ROLES)[number];
-// → "admin" | "user" | "editor" | "contributor"
+// → "admin" | "user" | "editor" | "debugger" | "contributor"
 ```
 
 `entities/drizzle.ts` で PostgreSQL Enum とテーブルを定義。
@@ -130,30 +130,23 @@ export const UserTable = pgTable("users", {
 
 ### クリーンアップハンドラの仕組み
 
-退会・ソフトデリート時に、他ドメインのリソース後始末を実行する仕組み。
-
-```
-cleanupHandlers/<名前>.ts      ← 項目（export const handler: UserCleanupItem）
-extensions/cleanupHandlers.ts                 ← 一覧（生成物、pnpm generate extensions）
-services/server/cleanup.ts                    ← 項目の型と実行（必須 → 任意）
-services/server/executeCleanup.ts             ← 呼び手の入口
-```
+退会・ソフトデリート時に、他ドメインのリソース後始末を実行する仕組み。項目は `cleanupHandlers/<名前>.ts`（`export const handler: UserCleanupItem`）、実行は `services/server/cleanup.ts` の `runCleanupItems`、呼び手の入口は `services/server/executeCleanup.ts`。
 
 - accountLifecycle の `withdraw.ts` / `wrappers/softDelete.ts` の両方がトランザクション内で `executeCleanup(userId, tx)` を呼ぶ
 - ステータス変更（`withdrawn` への更新）は項目の責務外。呼び出し元が自前で行う（softDelete は `setStatusWithdrawn`）
 
 | 種類 | 失敗時の挙動 | 上流の登録 |
 |------|-------------|-----------|
-| `requiredHandlers` | 例外をそのまま投げ、トランザクション全体（ステータス変更・監査ログ含む）をロールバック | `clearWalletBalance`（全ウォレットの balance / locked_balance を 0 にクリア + 履歴記録）・`messagingEndpoints`（端末の帳簿の本人の行を消す）・`messagingPreferences`（連絡の好みの本人の行を消す） |
-| `optionalHandlers` | `console.error` に記録して続行 | `cancelPendingPurchaseRequests`（pending / processing の購入リクエストを expired に。onExpire を持つ purchase_type は per-row でフック呼び出し） |
+| `required: true` | 例外をそのまま投げ、トランザクション全体（ステータス変更・監査ログ含む）をロールバック | `wallet`（全ウォレットの balance / locked_balance を 0 にクリア + 履歴記録）・`messagingEndpoints`（端末の帳簿の本人の行を消す）・`messagingPreferences`（連絡の好みの本人の行を消す） |
+| `required: false` | `console.error` に記録して続行 | `purchaseRequest`（pending / processing の購入リクエストを expired に。onExpire を持つ purchase_type は per-row でフック呼び出し） |
 
-`required: true` → `false` の順に、それぞれファイル名の順で逐次実行する。`enabled` が false の項目は走らない（機能が無効ならテーブルが無い場合があるため。閉じられる機能を import する項目は必須、`pnpm test src/featureGate scripts/structure/proxies`）。
+`required: true` → `false` の順に、それぞれファイル名の順で逐次実行する。`enabled` が false の項目は走らない（機能が無効ならテーブルが無い場合があるため。閉じられる機能を import する項目は `enabled` を書く、`pnpm test src/featureGate scripts/structure/proxies`）。
 
 ### ステータス遷移履歴(user_status_histories)
 
 退会・休会・復帰・BAN 等のステータス遷移を恒久保存するサテライトテーブル。**常時オン**（設定フラグなし）。
 
-- users テーブルに分析用カラム（withdrawnAt 等）を追加しない方針の実装。関心事ごとのサテライトテーブル（USER_ACQUISITION と同じ前例）
+- users テーブルに分析用カラム（withdrawnAt 等）を追加しない方針の実装。関心事ごとのサテライトテーブル
 - audit_logs とは責務が別: 監査ログはコンプライアンス用途で保持期限つき（既定365日で prune）、本テーブルは集計用途で恒久保存
 - 記録は `recordStatusTransition()`（`services/server/statusHistory.ts`）に集約。`fromStatus === toStatus` は no-op
 
@@ -176,11 +169,9 @@ const rows = await db
 ```
 
 - デモユーザー除外は users への JOIN で `is_demo = false` を条件に加える
-- ダッシュボードで重くなったら ANALYTICS_PERF（`withAnalyticsCache` → rollup）に載せる。単純 GROUP BY のうちは cache のみで十分
+- ダッシュボードで重くなったら analytics の `withAnalyticsCache` → rollup（`src/features/core/analytics/README.md`）に載せる。単純 GROUP BY のうちは cache のみで十分
 
-過去分のバックフィル(導入時に 1 回だけ、冪等・再実行安全):
-
-導入時に1回だけ実行（冪等・再実行安全）:
+過去分のバックフィル（導入時に 1 回だけ、冪等・再実行安全）:
 
 ```bash
 pnpm task user:status-history-backfill

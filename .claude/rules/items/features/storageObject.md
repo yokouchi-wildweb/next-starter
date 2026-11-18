@@ -4,9 +4,9 @@ paths:
   - "src/config/features/storageObject.config.ts"
 ---
 # features/storageObject
-what: the file ledger storage_objects: upload grants, commit (check, strip images re-rendered), discard, private reads, binding to business rows | storageObjectService, routes /api/me/storage/uploads, /api/storage/objects | parts in @/lib/storage
+what: the file ledger storage_objects: upload grants, commit (check, strip images re-rendered), discard, private reads, binding to business rows | storageObjectService, routes /api/me/storage/uploads, /api/storage/objects, /api/storage/purposes | parts in @/lib/storage
 use: always (in no rule's domains)
-change: add = purposes/<name>.ts (receptacle purposes) | overlay = src/config/features/storageObject.config.ts
+change: add = purposes/<name>.ts (receptacle purposes) | placement = src/config/features/storageObject.config.ts
 rules:
 using:
 - purpose_gate: a purpose reading a closable feature's table checks gate.enabled on upload (read stays open)
@@ -16,7 +16,7 @@ using:
 - detach_after_report: switch valueCheck to "detach" only after checking the "report" output
 - public_cache: a document promising deletion → a private purpose, or state that public files may stay in caches
 - grant_lifetime: never promise uploads die right at the deadline (session URI ~1 week, PUT URL until expiry)
-- new_record_type: a record_type outside the registry → /order upstream (task.override.ts cannot add one)
+- new_record_type: a record_type outside the registry → /order <direct parent> (task.override.ts cannot add one)
 - media_not_hidden: media columns are never hiddenColumns
 editing:
 - fail_closed: unknown purpose 400 | allow AND check | no implicit admin / system pass

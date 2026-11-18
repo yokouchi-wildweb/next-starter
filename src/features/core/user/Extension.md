@@ -2,7 +2,7 @@
 
 ## Overview
 
-user の README の Extension を分けた文書(README が 20,000 字を超えるため)。設定の項目・受け口・連絡の差し替え。
+user の README の Extension を分けた文書。設定の項目・受け口・連絡の差し替え。
 
 ## Extension
 
@@ -16,27 +16,19 @@ user の README の Extension を分けた文書(README が 20,000 字を超え�
   - client: `updateMyPhoneNumber`（`services/client/phoneNumberClient.ts`）・`useUpdateMyPhoneNumber`（入力の値・保存・消去）・表示の部品 `components/common/PhoneNumberForm`
   - 管理者が番号を変えると `phoneVerifiedAt` が今の時刻になる（`wrappers/update.ts`。既存の挙動）
 - プロフィール編集の部品 `EditProfile`（`components/EditProfile`）の値の指定: `showHeader`（既定 true）、`afterSaveHref`（保存の後の行き先。既定 `"/mypage/account"`、`null` = 移らずその場に留まり「プロフィールを保存しました」のトースト。他の設定と同じページに置くとき）、`backHref`（見出しの戻る先。既定 `afterSaveHref`、`null` のときは `"/mypage/account"`）
-- アカウントの画面は門番の機能 `pageMypage` の住所（項目ごとの機能は無い）。マイページごと閉じるなら `pnpm ops features set pageMypage off`。表と API は一覧に関わらず開いたまま
+- アカウントの画面は門番の機能 `pageMypage` のパス（項目ごとの機能は無い）。マイページごと閉じるなら `pnpm ops features set pageMypage off`。表と API は一覧に関わらず開いたまま
 
 ### マイページのメニュー(拡張点 mypageMenu)
 
-マイページのトップのカード（`components/MainMenu`）は受け口 `mypageMenu` の項目から描く。`MainMenu` は props なし。
+マイページのトップのカード（`components/MainMenu`）は受け口 `mypageMenu` の項目から描く。`MainMenu` は props なし。項目は `mypageMenu/items/<key>.ts`（`export const item: MypageMenuItem`）、上の Tier の項目の一部の上書きは `<key>.override.ts`、組み立ては `mypageMenu/buildMypageMenu.ts`（hidden を除く → 操作を結ぶ → order・key 順）。
 
-```
-mypageMenu/items/<key>.ts           ← 項目（export const item: MypageMenuItem）
-mypageMenu/items/<key>.override.ts  ← 上の Tier の項目の一部の上書き（fork が置く）
-extensions/mypageMenu.ts            ← 一覧（生成物、pnpm generate extensions）
-mypageMenu/buildMypageMenu.ts       ← 組み立て器（純関数: hidden を除く → 操作を結ぶ → order・key 順）
-types/mypageMenu.ts                 ← 項目・上書き・組み立ての型
-```
-
-- 上流の項目: `invite`（10）・`account`（20）・`logout`（30）・`other`（40）。order は 10 刻み、同じ値は key 順
+- 上流の項目: `invite`（10）・`account`（20）・`notifications`（25）・`logout`（30）・`other`（40）。order は 10 刻み、同じ値は key 順
 - 項目は 2 形
   - リンク: `{ key, order, icon, title, description, href, showChevron?, variant? }`
   - 操作: `{ key, order, icon, title, description, action: "logout", pendingTitle?, variant? }`。`MainMenu` が `action` を `useLogout` に結び、処理中は `pendingTitle`（無ければ `title`）を出して押せなくする。結び先の無い操作の項目は描かない
 - `icon` は lucide のアイコン（`RichMenuCard` と同じ型）。`variant` は `default`・`muted`・`destructive`
-- 閉じた機能の住所（招待 = 規則 `referral`、その他の操作 = 規則 `mypageOther`）のカードは、`RichMenuCard` の棚の Link（`gate="auto"`）が描かない。項目に門番の判定は書かない
-  - 棚の Link が隠すのは門番の規則が掛かった住所だけ。規則の無い住所（外部リンク・fork の設定で出し分けるだけの画面）の fork 項目は、項目のファイルで静的な設定を読み `hidden: !<設定>` と書く（モジュールの読み込み時に決まる値に限る。フックの結果では隠せない）
+- 閉じた機能のパス（招待 = 規則 `mypageInvite`、通知の設定 = 規則 `messagingPreferences`、その他の操作 = 規則 `mypageOther`）のカードは、`RichMenuCard` の棚の Link（`gate="auto"`）が描かない
+  - 棚の Link が隠すのは門番の規則が掛かったパスだけ。規則の無いパス（外部リンク・fork の設定で出し分けるだけの画面）の fork 項目は、項目のファイルで静的な設定を読み `hidden: !<設定>` と書く（モジュールの読み込み時に決まる値に限る。フックの結果では隠せない）
 - 見え方は認可ではない（各画面と API の守りは別）
 
 **fork が項目を足す**
@@ -51,7 +43,7 @@ import type { MypageMenuItem } from "@/features/core/user/types";
 
 export const item: MypageMenuItem = {
   key: "coins",
-  order: 25,
+  order: 15,
   icon: CoinsIcon,
   title: "コイン履歴",
   description: "コインの購入と利用の履歴",
@@ -116,4 +108,4 @@ required / optional の目安:
 
 - 取引の連絡（好みを見ない）。定義 `messages/<名前>.ts`、見た目はひな形 `welcome`（ようこそ、`src/features/core/messaging/layouts/welcome/`。見た目を替える fork はその描き方の `.replace`、文言は上書きの `values`）
 - 欄: ロゴ（事業の設定）と `badge` 札 → `heading` お祝いの行 → `thanks` お礼 → 区切り → `guide` 案内 → `button`（あれば）→ 区切り → `footer`。改行はそのまま出す
-- 件名と見える文面は前のテンプレートと同じ（`pnpm test src/features/core/user/messages`）
+- 件名と文面の回帰: `pnpm test src/features/core/user/messages`

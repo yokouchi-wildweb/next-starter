@@ -36,10 +36,6 @@ const ok = await userGroupEvaluator.isMember(groupId, userId); // 限定ペー�
 const page = await userGroupEvaluator.listMemberIds(groupId, { cursor, limit: 500 }); // 利用者 id の昇順の keyset
 ```
 
-- 門 `userGroups` が閉なら評価の口は 404 を投げる（false や全員に置き換えない）
-- 重い部品を含む動的グループに 1 人の確かめ（`isMember`）は 409
-- 保存しない定義の評価は `evaluate(definition)`
-
 連絡の宛先として使う（messaging）:
 
 - `sendMessageToMany` / 管理の送信の宛先 `target: { type: "group", groupId }`。送り始めに門・保管・壊れた条件・人数の上限を確かめ、だめなら回を作らずに理由を返す
@@ -59,7 +55,7 @@ if (result.status === "incomplete") return { ok: true, pending: true }; // 次�
 ```
 
 - 書いた静的グループは、動的・定期計算の条件から部品「固定グループのメンバー」（`inStaticGroup`）で使える
-- 管理画面（`/admin/user-groups`）は一覧・作成 / 編集・対象人数の見積もりと該当ユーザーの例・例外（常に含める人 / 常に除外する人）・固定グループのメンバー・アーカイブができる。条件は「次の条件をすべて満たす / いずれかを満たす」と、条件・条件グループごとの「含める / 除外する」で組む。利用者一覧の一括操作から「選択したユーザーでグループを作成」「固定グループに追加」もできる（門が閉なら出ない）。画面の言葉はよくある管理画面の言い方
+- 管理画面（`/admin/user-groups`）は一覧・作成 / 編集・対象人数の見積もりと該当ユーザーの例・例外（常に含める人 / 常に除外する人）・固定グループのメンバー・アーカイブができる。条件は「次の条件をすべて満たす / いずれかを満たす」と、条件・条件グループごとの「含める / 除外する」で組む。利用者一覧の一括操作から「選択したユーザーでグループを作成」「固定グループに追加」もできる（門が閉なら出ない）
 
 ## API
 

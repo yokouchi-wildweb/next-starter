@@ -5,7 +5,6 @@
 ユーザー管理の core ドメイン。ユーザーテーブル `users`・ロールの定義・状態とその遷移の記録・表示名の規則・退会と削除の後始末を持つ。
 
 - 文書の分け方: 一覧と型・口の契約は `API.md`、仕組み(ロールの流れ・利用できる利用者・表示名の一意性・削除・状態の履歴)は `Internals.md`
-- 置き場: `entities/`(drizzle・Zod・型)| `coreRoles/`(core ロール admin・user・debugger の JSON、消せない・無効にできない)| `roles/`(追加ロールの JSON)| `extensions/roles.ts`(ロールの一覧、`pnpm generate role` が書く)| `constants/`(ロール・状態・プロバイダの定数)| `services/server/`(`userService` ほか)
 
 ### ユーザーステータス
 
@@ -58,7 +57,7 @@
    pnpm db:push
    ```
 
-fork が上流のロールの `label`・`hasProfile`・`enabled` を変える上書きは、JSON の隣の `<JSON の名前>.override.ts`（`src/features/core/userProfile/README.md`「fork の上書き」）。
+fork がロールを変える上書き（core ロールは `label`・`hasProfile`、足したロールは `label`・`hasProfile`・`enabled`）は、JSON の隣の `<JSON の名前>.override.ts`（`src/features/core/userProfile/README.md`「fork の上書き」）。
 
 ### 状態をまとめて変える
 
@@ -90,7 +89,7 @@ DB 制約を使わないため、既存データに重複があっても有効�
 
 - リネームされたユーザーへの通知は組み込まれていない。 dedup は audit_logs に記録を残すが、
   本人向けの通知（「表示名が変更されました」等）は行わない。必要なら dry-run の結果
-  （`renamed` の userId 一覧）をもとに `messagingService.send / bulkSend` で通知するのは
+  （`renamed` の userId 一覧）をもとに `messages/<名前>.ts` の定義 + `messagingService.sendMessage` / `sendMessageToMany` で通知するのは
   ダウンストリームの責務
 - セッション JWT の name クレームは古いまま残る。 リネーム後、DB 参照
   （loader の ctx.user・`requireUserRecord` 経由）の画面は即反映されるが、JWT クレームの name を表示に
@@ -184,7 +183,6 @@ const result = await userClient.searchWithProfile("contributor", {
 - 上限: 1 回 1000 ユーザー（超えたら 400）。タグの追加・削除はタグ 50 件まで。超える分はクライアントで分割して送る
 - タグの追加・削除の結果: `{ count, affectedIds, unknownIds, unknownTargetIds }`（`unknownTargetIds` = 存在しないタグ）。存在しない id（追加では論理削除済みも）はエラーにせず飛ばして返す
 - 監査: タグの追加・削除は変わったユーザーごとに `user.relation.added` / `user.relation.removed`（metadata に `field` と `targetIds`）。変化が無ければ記録しない
-- `enableUserTag` を切った fork ではタグの表が無いので、タグの経路を呼ばない
 
 画面: 管理一覧の一括操作は受け口 `adminBulkActions/` の項目で出す（`src/lib/tableSuite/README.md`「一括操作の受け口」）。上流の既定は一般ユーザーの一覧のタグの一括設定（`adminBulkActions/userTags.tsx`、置き換え）。追加だけの操作が要る fork は自分の項目を足す:
 
@@ -200,16 +198,11 @@ export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
 
 自前の UI なら `useBulkAddUserTags` の `trigger` を `ChecklistPopover` の `onConfirm` から呼ぶ。
 
-テスト: `pnpm test src/features/core/user/services/server/helpers/nameAvailability.test.ts`（DB 不要な判定ロジックのみ。同時実行の直列化と SQL の判定スコープは対象外）
-
-一括判定が必要な場合（候補名リストのフィルタリング等）は `isUserNamesTaken(names[]) => Set<使用中の入力文字列>`
-を使う（単一クエリ + 同一の判定条件。`isUserNameTaken` はこの単発版）。
-
 ### アバターを自前の見た目で変える
 
-自分のアバターの変更・削除の流れを持つ公開の hook（`hooks/useAvatarChange.ts`）。見た目を持たない。マイページのアカウントの部品 `components/common/AccountAvatarSection` はこれを呼んで描いており、
+自分のアバターの変更・削除の流れを持つ公開の hook（`hooks/useAvatarChange.ts`）。見た目を持たない。マイページのアカウントの部品 `components/common/AccountAvatarSection` はこれを呼んで描いている。
 
-`AccountAvatarSection` の値の指定は `size`・`acceptTypes`・`maxFileSize`・`onAvatarUpdated`。アバター未設定のときに丸の中に出す物（頭文字・別の絵など）は `children` で渡す（省略時は既定の人の形。丸の箱は部品が持つ）。描き分けの関数（旧 `renderFallback`）は持たない（core のドメインの部品は値の指定と children だけ）。
+`AccountAvatarSection` の値の指定は `size`・`acceptTypes`・`maxFileSize`・`onAvatarUpdated`。アバター未設定のときに丸の中に出す物（頭文字・別の絵など）は `children` で渡す（省略時は既定の人の形。丸の箱は部品が持つ）。
 
 流れ: 検査（型・サイズ）→ `useAvatarUpload().upload`（用途 `user.avatar`）→ `useUpdateMyProfile().updateProfile({ name, avatarUrl: ref })`（サーバーの storage binding が保存と同じ TX で台帳に紐付ける）→ 保存が失敗（null）なら `discard(objectId)` でアップロードしたファイルを取り消す。削除は `avatarUrl: null` で保存する。
 
@@ -231,7 +224,7 @@ export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
 - `acceptTypes` / `maxFileSize`: 実際に使っている値（input の `accept` と案内の表示用）
 - 変更と削除は 1 つの鍵を共有する。処理中の `change` / `remove` は何もせず false（ボタンを `isBusy` で無効にするのとは別に、二重の呼び出しを止める）
 
-画像のメタデータ: 用途 `user.avatar` は常に strip（サーバーが再エンコードして GPS / EXIF などを消す。CLAUDE.md FEATURES storage_metadata）。受け付ける型は strip できる型 `STRIP_IMAGE_TYPES`（具体型の列挙なので iOS は HEIC を JPEG にして渡す）。`acceptTypes` を広げても strip できない型はサーバーが拒む。用途は変えない。
+画像のメタデータ: 用途 `user.avatar` は常に strip（サーバーが再エンコードして GPS / EXIF などを消す）。受け付ける型は strip できる型 `STRIP_IMAGE_TYPES`（具体型の列挙なので iOS は HEIC を JPEG にして渡す）。`acceptTypes` を広げても strip できない型はサーバーが拒む。
 
 fork が自前の見た目で使う（例: `src/app/(user)/(protected)/mypage/_components/ProfileCard.tsx`）:
 
@@ -257,7 +250,7 @@ export function ProfileCard({ user }: { user: User }) {
 
 ### 管理画面の一般ユーザー一覧を作り替える
 
-`/admin/users/general` の一覧（`components/admin/GeneralUserList` = `UserListHeader` + `Table`）は、処理と見た目を分けて公開している。fork は `_components/` に自前の Table を置いてこの 2 つを呼ぶ。
+`/admin/users/general` の一覧（`components/admin/GeneralUserList` = `UserListHeader` + `Table`）は、処理と見た目を分けて公開している。fork が列・並び替え・行の押下を変えるときは、`_components/` に自前の Table を置き、下の hook と列の関数を呼ぶ。
 
 - `useGeneralUserListTable({ onChanged? })`（`hooks/useGeneralUserListTable.ts`）: 一覧の処理。見た目を持たない
 - `createGeneralUserListColumns(options)`（入口 `components/admin` から）: 上流の列（並び・セルの中身）を `DataTableColumn<User>[]` で返す。fork は戻り値に自分の列を差し込む

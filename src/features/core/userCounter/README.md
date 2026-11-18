@@ -3,7 +3,7 @@
 ## Overview
 
 - イベント発生ごとに per-user で原子加算する汎用プリミティブ（汎用 per-user カウンタ）。ゲーミフィケーション・進捗・利用回数表示・コレクション解放などに横断的に使う。このカウンタが count の source of truth
-- 閉じられる機能(門番の規則 `src/featureGate/rules/userCounter.ts`、今は常に開)。閉じると導出の `/api/userCounter` と日次の掃除の cron が 404 で、表も push から外れる。他のドメインから数えるときは `gate.enabled("userCounter")` を確かめる(依存の検査が求める)。
+- 閉じられる機能(門番の規則 `src/featureGate/rules/userCounter.ts`、既定は閉。開けるのは `pnpm ops features set userCounter on`)。閉じると汎用 API `/api/userCounter` と日次の掃除の cron が 404 で、表も db:push から外れる
 - 使う時・直す時の決まりは札 .claude/rules/items/features/userCounter.md にある
 
 ### カウント要求の決定ガイド（どのプリミティブを使うか）
@@ -20,7 +20,6 @@
 - 「**このコンテンツが**（匿名含む全員から）何回」→ interactionTracking。公開 ingest あり
 - 「**この人がその日来たか / 何日来たか** / DAU・アクティブユーザー数・アクティブ日数ランキング」→ **core/analytics の DAU 基盤**（`user_daily_activities`）。ingest は実装済み（`useDauTracker` → `POST /api/activity/dau`）、読み取りは `dauAnalytics`（getDauDaily / getDauSummary / getDauRanking、`userId` でユーザー単位ドリルダウン）。（詳細: `src/features/core/analytics/README.md`、CLAUDE.md COUNTING）
 - いずれも人間の操作速度で増えるイベント向け。機械生成の高頻度イベント（テレメトリ等）は守備範囲外（interactionTracking README 参照）
-
 - 「ユーザー × 日」の訪問記録は一見「ユーザー × キー の日別セル」（bumpDaily）に見えるが、一次データは DAU 基盤が持っている
 
 ## Usage
@@ -28,7 +27,7 @@
 ### イベント発生時に bump する
 
 ```ts
-// tier2 のサーバサービス内（例: 店主に話しかけた / セリフを表示した）
+// 業務ドメインのサーバサービス内（例: 店主に話しかけた / セリフを表示した）
 import { counterService } from "@/features/userCounter/services/server/counterService";
 
 // サーバ側で正当性を検証した後に加算
@@ -62,7 +61,7 @@ await counterService.bumpDaily(userId, `npc.talk.${npcId}`);
 // src/app/api/me/secret-shop/dialogs/route.ts
 import { createMeRoute } from "@/wiring/apiRoute";
 import { counterService } from "@/features/userCounter/services/server/counterService";
-import { SECRET_SHOP_DIALOGS } from "@/features/secretShop/constants"; // tier2 のカタログ
+import { SECRET_SHOP_DIALOGS } from "@/features/secretShop/constants"; // 業務ドメインのカタログ
 
 // GET /api/me/secret-shop/dialogs — 自分の既読セリフ一覧（未読は ??? 表示）
 export const GET = createMeRoute(
@@ -90,7 +89,7 @@ export const GET = createMeRoute(
 
 ### 進捗バー付きトロフィー（M/N）
 
-本カウンタが source of truth なので、進捗は**読み取り時に導出**できる（`current = counter.count`, `target = 定義値`）。milestone のスキーマ変更は不要。カウンタに紐づかない milestone にも進捗を永続化したくなった時点で、milestone 側に列追加を検討する。
+本カウンタが source of truth なので、進捗は**読み取り時に導出**できる（`current = counter.count`, `target = 定義値`）。milestone のスキーマ変更は不要。
 
 ### cron と DB 反映
 
@@ -98,7 +97,7 @@ export const GET = createMeRoute(
 - HTTP: `GET /api/cron/user-daily-counter-prune`（Bearer `CRON_SECRET`）
 - スケジュール: 日次（`vercel.json` のエントリは `pnpm generate cron` が生成）
 - 削除対象は**日次行のみ**。累計（user_counters）は消えない
-- `schemaRegistry` に登録済み。テーブル作成は `pnpm db:push` を手動で実行する
+- `schemaRegistry` に登録済み。機能を開けてから `pnpm db:push` で表を作る（誰が打つかは repo.json の agent.db_push）
 
 ## API
 
@@ -118,7 +117,7 @@ import: `import { counterService } from "@/features/userCounter/services/server/
 ### アクセス
 
 - `bump` / `bumpDaily` はサーバ内部用（クライアントへ出すと水増しされる）。発生イベントの正当性は呼び出し側がサーバで確かめる
-- 汎用 API（`/api/userCounter/**`）は ADMIN_ONLY（運用閲覧・手動補正のみ、fail-closed）
+- 汎用 API（`/api/userCounter/**`）は ADMIN_ONLY（運用閲覧・手動補正と truncateAll / export / import、fail-closed）
 - ユーザ向けの read エンドポイントは上流に無い。各ドメインが Usage「ユーザ向け read エンドポイントを生やす」の形で生やす
 
 ### データモデル
@@ -141,9 +140,7 @@ table: `user_daily_counters`（日次・retention 付き）
 
 ### 他基盤との関係
 
-- `milestone`: `milestone.evaluate()` が本カウンタを読んで達成判定（達成記録は milestone 側）
-- `userSegment`: 新ハンドラ経由で本カウンタを参照（ハンドラ実装は消費側）
-- `userMetrics`（再集計モデル）とは別物。取り込み要否は消費側の判断
+- `milestone`: 定義の `evaluate` の中で counterService を読めば回数で達成を判定できる（core の milestone は本カウンタを読まない。達成記録は milestone 側）
 
 ## Related
 

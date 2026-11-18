@@ -3,16 +3,16 @@
 ## Overview
 
 - ユーザーがサインアップ完了するまでの流入タッチ（UTM パラメータ / 広告クリック ID / 外部リファラー）をサービス側 DB に保存する core ドメイン。GA に依存せず first-touch / last-touch / パス分析を自前データで行える
-- 閉じられる機能（門番の規則 `src/featureGate/rules/userAcquisition.ts`、上流の既定は閉）。記録するかは規則の入切だけで決まる: 流入経路の proxy・本登録の route・本登録の保存は `gate.enabled("userAcquisition")` が開のときだけ動く。閉じると表も push から外れ、GA4 へ判別表も渡さない
+- 閉じられる機能（門番の規則 `src/featureGate/rules/userAcquisition.ts`、上流の既定は閉）。記録するかは規則の入切だけで決まる: 流入経路の proxy・本登録の route・本登録の保存は `gate.enabled("userAcquisition")` が開のときだけ動く。閉じると DB の表（user_acquisitions / user_acquisition_touches）も db:push から外れ、GA4 へ判別表も渡さない
 - 有効化した時点以降のサインアップから蓄積される（過去のサインアップには遡及できない）
 - 集計 UI は core に同梱しない（データレイヤーのみ）
-- 決まり（設定の読み手・項目の enabled・招待の medium・UI の置き場・edge-safe・best effort）は札 `.claude/rules/items/features/userAcquisition.md`
+- 使う時・直す時の決まりは札 `.claude/rules/items/features/userAcquisition.md`
 
 ## Usage
 
 - 有効化: `pnpm ops features set userAcquisition on`（→ `src/config/featureGate/switches.config.ts`）
 - 無効化: `pnpm ops features set userAcquisition off`（cookie 蓄積・保存とも停止。既存データはそのまま）
-- 管理画面のユーザー詳細に出す: `getUserAcquisition` / `getUserAcquisitionTouches` を SSR ページまたは管理 API から呼び、downstream 側で描画する
+- 管理画面のユーザー詳細に出す: `getUserAcquisition` / `getUserAcquisitionTouches` をページの loader（SSR）または管理 API から呼び、downstream 側で描画する
 
 ### 招待リンクの生成レシピ（downstream 実装用）
 
@@ -65,7 +65,7 @@ LIMIT 50;
 
 #### ダッシュボード常設化する場合
 
-単発クエリなら上記で十分。管理画面に常設するなら（ANALYTICS_PERF 参照）:
+単発クエリなら上記で十分。管理画面に常設するなら（analytics の README「レスポンスキャッシュ（withAnalyticsCache）」）:
 
 1. まず `withAnalyticsCache` でクエリ結果をキャッシュ
 2. 日次系列が必要になったら analytics の拡張点 `rollupMetrics` に flow メトリクス（例: `signup_by_source`、dimensions=first_utm_source）を登録して事前集計に載せる
@@ -123,7 +123,7 @@ cookie の読み書き（`parseAttributionCookie` ほか）は `lib/attributionC
 - **ロングテール（utm_term / utm_content / gclid / gaClientId 等）は extras(jsonb)** — 集計軸に昇格したくなった値だけ将来カラム化
 - 行が無いユーザー = 計測可能な流入シグナル無し（オーガニック直訪のみ）
 - 再入会（withdrawn → active）時は新しい獲得ジャーニーとして上書き
-- users テーブル本体には解析用カラムを足さない（CLAUDE.md FEATURES users_table）。本ドメインはサテライトテーブルの先例
+- 解析用の値は users テーブル本体ではなく、このサテライトテーブルに持つ
 
 ## Extension
 
@@ -156,7 +156,7 @@ httpOnly cookie (acq_touches) に            → register() → recordSignupAcqu
 - source/medium 補完の優先順位: **UTM > クリック ID（clickId の行）> 招待リンクなど（link の行）> 外部リファラー**。UTM 無し+クリック ID → その行の channel、UTM 無し+招待リンク → `source=invite, medium=invite`、UTM 無し+外部リファラーのみ → `source=リファラーホスト, medium=referral`
 - 招待リンクの medium は `invite`: GA が外部サイトからの自然リンク流入を `referral` に自動分類するため、混ざらない別語彙にしている（config で変更可）
 - 重複抑止: 直前タッチと同一チャンネル（source/medium/campaign/referrer_host）は追記しない
-- 上限: `maxTouches`（既定 15）超過・4KB 逼迫時は **first-touch を必ず保持**して古い中間タッチから間引く
+- 上限: `maxTouches`（既定 15）超過・cookie が 3000 バイト（`ACQUISITION_COOKIE_MAX_BYTES`）を超えたときは **first-touch を必ず保持**して古い中間タッチから間引く
 - 有効期限: 追記のたびにリフレッシュ = 最終タッチから `cookieMaxAgeDays`（既定 30 日）
 
 ### 招待リンク連携（referral / referralReward）
