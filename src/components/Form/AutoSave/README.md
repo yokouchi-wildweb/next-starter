@@ -1,22 +1,16 @@
 # AutoSave（自動保存）
 
-## 概要
+## Overview
 
-フォームの入力内容をフィールド操作ごとに自動保存する機能。
-編集フォームで明示的な「保存」ボタンを押さずに変更を即座に反映できる。
+フォームの入力内容を欄の操作ごとに自動保存する(`@/components/Form/AutoSave`)。編集フォームで「保存」ボタンを押さずに変更を反映する。
 
----
+- 明示的な送信ボタンと併用できる(送信ボタンで最終確定も可)
 
-## 従来型フォーム → オートセーブへの移行
+## Usage
 
-**3箇所の変更だけ**で従来型フォームをオートセーブに移行できる。
+### 従来型フォームを自動保存にする
 
-### 前提条件
-
-- `SampleForm.tsx`（テンプレート）に `autoSave` props が定義されていること
-- `AppForm` に `autoSave` が渡されていること
-
-### 変更手順（EditSampleForm.tsx の例）
+前提: フォームのテンプレート(`SampleForm.tsx` など)に `autoSave` props があり、`AppForm` に `autoSave` が渡っていること。変える所は 3 つ(import・hook の呼び出し・props)。
 
 ```diff
 + import { useAutoSaveConfig } from "@/components/Form/AutoSave";
@@ -34,60 +28,30 @@
   />
 ```
 
-### 変更のポイント
+- `onCancel` を渡さなければキャンセルボタンは出ない
 
-1. **import追加** - `useAutoSaveConfig` をインポート
-2. **hook呼び出し** - `useAutoSaveConfig(trigger, itemId)` で設定を作成
-3. **props変更** - `onCancel` を削除し、`autoSave` を渡す
-
-`onCancel` を渡さないことで、キャンセルボタンも自動的に非表示になる。
-
----
-
-## インプットタイプごとの保存タイミング
-
-| カテゴリ | タイプ | 動作 |
-|---------|--------|------|
-| **immediate** | textInput, numberInput, textarea, select, radio, multiSelect, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput | blur時に即座に保存 |
-| **debounce** | checkbox, stepperInput | blur時にデバウンス（1秒）して保存 |
-| **none** | hidden, none, mediaUploader | blur経由の保存なし（独自処理） |
-
-### メディアアップローダーの挙動
-
-メディアアップローダーはblur経由ではなく、**独自のオートセーブ処理**を持つ:
-
-- **アップロード完了時**: 即座にコミット → 保存
-- **画像削除時**: 即座にコミット → 保存
-
-従来のペンディング→コミット/ロールバックの仕組みは、オートセーブ時は使用されない。
-
----
-
-## 設定オプション
+## API
 
 ```typescript
 useAutoSaveConfig(trigger, itemId, options?)
 ```
 
-| オプション | 型 | デフォルト | 説明 |
-|-----------|-----|----------|------|
-| `debounceMs` | `number` | `1000` | デバウンス時間（ms） |
-
-### 使用例
+- `options.debounceMs`(`number`、既定 `1000`): デバウンスの時間(ms)
 
 ```typescript
-// デフォルト（1秒デバウンス）
 const autoSave = useAutoSaveConfig(trigger, sample.id);
-
-// カスタムデバウンス（2秒）
 const autoSave = useAutoSaveConfig(trigger, sample.id, { debounceMs: 2000 });
 ```
 
----
+### 入力の種類ごとの保存のとき
 
-## UI の変化
+| カテゴリ | タイプ | 動作 |
+|---------|--------|------|
+| **immediate** | textInput, numberInput, textarea, select, radio, multiSelect, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput | blur時に即座に保存 |
+| **debounce** | checkbox, stepperInput | blur時にデバウンス（既定 1秒）して保存 |
+| **none** | hidden, none, mediaUploader | blur経由の保存なし（独自処理） |
 
-オートセーブ有効時、以下のUI変化が自動的に適用される:
+### 有効なときの画面の変化
 
 | 項目 | 動作 |
 |------|------|
@@ -96,12 +60,15 @@ const autoSave = useAutoSaveConfig(trigger, sample.id, { debounceMs: 2000 });
 | フォーム無効化 | 保存中も編集可能（無効化されない） |
 | トースト | 「保存中…」→「保存しました」を表示 |
 
----
+## Internals
 
-## 注意事項
+- メディアアップローダーは blur でなく自前の保存を持つ: アップロード完了時・画像削除時に、すぐコミット → 保存。保留 → コミット / ロールバックの仕組みは自動保存では使わない
+- バリデーションエラーのときは保存しない
+- 同じ `trigger` を使うので、`isMutating` は自動保存の間も `true`
+- `ConfiguredFieldGroup`(`inlineGroups` の横並び)の中の入力は blur で自動保存しない(組み込みの入力も登録の部品も)。送信ボタンか、横並びの外の欄の保存で一緒に送られる
+- `onSave` が受けるのは Zod を通す前のフォームの値(`getValues`。数値の欄が文字列のままのことがある)。`useAutoSave` はその欄の検証だけを通し、変換した値は使わない。生成のドメインの `update` はサーバー側の `parseUpdate` が変換と検証をする
 
-- オートセーブと明示的な送信ボタンは併用可能（送信ボタンで最終確定も可）
-- バリデーションエラー時は保存されない
-- 同じ `trigger` を使うため、`isMutating` はオートセーブ中も `true` になる
-- `ConfiguredFieldGroup`（`inlineGroups` の横並び）の中の入力は blur で自動保存しない（組み込みの入力も登録の部品も）。送信ボタンか、横並びの外の欄の保存で一緒に送られる
-- `onSave` が受けるのは Zod を通す前のフォームの値（`getValues`。数値の欄が文字列のままのことがある）。`useAutoSave` はその欄の検証だけを通し、変換した値は使わない。生成のドメインの `update` はサーバー側の `parseUpdate` が変換と検証をする。`parseUpdate` の無いサービスや手書きの `onSave` は、自分で変換する
+## Related
+
+- フォームの部品一式: `../README.md`
+- 欄ごとの自動保存の指定(登録の部品の `blurMode`): `../FieldRenderer/README.md` Usage「登録された入力部品」

@@ -1,64 +1,20 @@
 # FieldRenderer
 
-フィールド定義（`FieldConfig`）の配列からフォームフィールドを動的に描画するレンダラー。react-hook-form と連携し、`AppForm` 配下で使用する。domain.json ベースの管理画面フォームの中核。
+## Overview
 
-## 利用経路
+フィールド定義(`FieldConfig`)の配列からフォームの欄を描くレンダラー(`@/components/Form/FieldRenderer`)。react-hook-form と連携し、`AppForm` の中で使う。domain.json を元にした管理画面フォームの中核。
 
-- **生成コンポーネント経由（推奨）**: `pnpm generate domain` が生成する `XxxFields` / `XxxForm` は本コンポーネントの props をそのままパススルーする。ドメインのフォームをカスタマイズする場合はこちらに props を渡す
-- **直接利用**: `import { FieldRenderer } from "@/components/Form/FieldRenderer"`。domain.json に依らないフォーム（プロフィール等）で使用
+- 生成のコンポーネント経由(推奨): `pnpm generate domain` が生成する `XxxFields` / `XxxForm` は本コンポーネントの props をそのまま渡す。ドメインのフォームを変えるときはこちらに props を渡す
+- 直接使う: `import { FieldRenderer } from "@/components/Form/FieldRenderer"`。domain.json に依らないフォーム(プロフィール等)
+- 変える手段は 2 系統。スキーマに効くのはフィールド定義系だけ
+  - フィールド定義系(`FieldConfig` を増減・変更): `fieldPatches`, `insertBefore`, `insertAfter`
+  - UI 差し込み系(任意の `ReactNode` を挟む。スキーマ・値には効かない): `beforeAll` / `afterAll`, `beforeField` / `afterField`, `beforeGroup` / `afterGroup`
 
-## Props 一覧
+## Usage
 
-| props | 型 | 役割 |
-|---|---|---|
-| `control` / `methods` | react-hook-form | フォーム連携（必須） |
-| `baseFields` | `FieldConfig[]` | ベースのフィールド定義 |
-| `fieldPatches` | `Partial<FieldConfig>[]` | フィールドの部分上書き・追加 |
-| `insertBefore` / `insertAfter` | `InsertFieldsMap` | フィールド定義の挿入 |
-| `fieldGroups` | `FieldGroup[]` | セクション分け（後述） |
-| `inlineGroups` | `InlineFieldGroup[]` | 横並び表示（後述） |
-| `beforeAll` / `afterAll` | `ReactNode` | 全フィールドの前後にUI差し込み |
-| `beforeField` / `afterField` | `Partial<Record<フィールド名, ReactNode>>` | 特定フィールドの前後にUI差し込み |
-| `beforeGroup` / `afterGroup` | `GroupContentMap`（キー: `FieldGroup.key`） | 特定グループの先頭・末尾にUI差し込み（後述） |
-| `onMediaStateChange` | `(state: MediaState \| null) => void` | メディアアップロード状態の通知（`AppForm` 配下では省略可） |
+### グループ単位の差し込み(beforeGroup / afterGroup)
 
-カスタマイズ手段は大きく2系統ある。**スキーマに影響するのはフィールド定義系のみ**。
-
-- **フィールド定義系**（`FieldConfig` を増減・変更する）: `fieldPatches`, `insertBefore`, `insertAfter`
-- **UI差し込み系**（任意の `ReactNode` を描画に挟む。スキーマ・値には影響しない）: `beforeAll` / `afterAll`, `beforeField` / `afterField`, `beforeGroup` / `afterGroup`
-
-## フィールド定義のカスタマイズ
-
-### fieldPatches
-
-- 同名フィールド: 位置を維持したままベース定義にマージ（上書き）
-- 新規フィールド: 末尾に追加（完全な `FieldConfig` 定義が必要）
-
-### insertBefore / insertAfter
-
-`InsertFieldsMap`（キー: 挿入先フィールド名 または `"__first__"` / `"__last__"`）でフィールド定義を挿入する。挿入されたフィールドに対しても `insertBefore` / `insertAfter` が再帰的に適用される。
-
-処理順序: `insertBefore.__first__` → `baseFields`（パッチ適用 + 前後挿入）→ `fieldPatches` の新規分 → `insertAfter.__last__`
-
-## fieldGroups（セクション分け）
-
-`FieldGroup[]` を渡すと、フィールドが `<fieldset>` ベースのセクション（`FieldGroupSection`）に分かれて描画される。domain.json のトップレベル `fieldGroups` でも宣言でき、生成された `XxxFields` が自動で読み込む（スキーマ定義: `src/features/README.md`「FieldGroup（フィールドグループ）」）。
-
-| プロパティ | 型 | 説明 |
-|---|---|---|
-| `key` | string | グループキー（一意識別子。`beforeGroup` / `afterGroup` のキーにもなる） |
-| `label` | string | セクションの表示ラベル（legend） |
-| `fields` | string[] | グループに含むフィールド名 |
-| `collapsible` | boolean | 折りたたみ可能か（既定: false） |
-| `defaultCollapsed` | boolean | 初期状態で折りたたむか（既定: false） |
-| `bgColor` | string | 背景色（CSSカラーコード） |
-
-- どのグループにも属さないフィールドは、全グループの後ろに「グループ外枠」としてまとめて描画される
-- グループの `fields` に解決できるフィールドが1つも無い場合、そのセクションは描画されない（ただしスロット指定がある場合は描画される。後述）
-
-## beforeGroup / afterGroup（グループ単位のUI差し込み）
-
-`FieldGroup.key` をキーに、セクション内の先頭（legend 直下・フィールド一覧の上）/ 末尾（フィールド一覧の下）へ任意の `ReactNode` を差し込む。セクションの背景・枠線の内側に描画されるため、通知がそのグループに属していることが視覚的に伝わる。
+`FieldGroup.key` をキーに、セクションの先頭(legend 直下・欄の一覧の上)/ 末尾(欄の一覧の下)へ `ReactNode` を差し込む。セクションの背景・枠線の内側に描くので、通知がそのグループに属すると見て分かる。
 
 ```tsx
 <SampleFields
@@ -72,51 +28,107 @@
 />
 ```
 
-挙動の要点:
+- 典型: 親 / 全体の設定による上書きの警告、セクション単位の非推奨の案内、セクションの補足の説明
 
-- `fieldGroups` 指定時のみ有効。フラット表示では無視される
-- 折りたたみ時はフィールドと同様に非表示になる
-- グループ外枠には予約キー `UNGROUPED_GROUP_KEY`（`"__ungrouped__"`）で差し込める
-- グループの全フィールドが解決不能（パッチアウト等）でも、スロット指定があればセクションは描画される（「このセクションは無効です」等の通知が出せる）
+### custom の欄
 
-典型用途: 親/グローバル設定によるオーバーライド警告、セクション単位の非推奨案内、セクション用の補足説明ブロック。
+`formInput: "custom"` の欄は自動で描かない(スキーマには含まれる)。`beforeField` / `afterField` で独自の部品を入れる(例: `src/features/README.md`「custom の使い方」)。
 
-**使い分け**: セクションに紐づく通知は `beforeGroup` / `afterGroup` を使う。`beforeField` を「グループ先頭のフィールド」に付ける方法は、フィールドの並び替え・パッチアウトで壊れるため使わない。
+### 登録された入力部品
 
-## inlineGroups（横並び表示）
+`formInput` に `src/wiring/formInputs/inputs/` の登録名を書くと、登録の部品を描く(本体は遅延読み込み。書き方: `src/wiring/formInputs/inputs/README.md`)。
 
-`InlineFieldGroup[]` で複数フィールドを1つのフィールドのように横並び表示する。`key` / `label` / `fields` / `fieldWidths`（Tailwind 幅クラス。省略時は均等）/ `inputConfigs`（各フィールドの前後に添える文字 `{ prefix?, suffix? }`、`fields` と同じ順。例: 期間の終了の前に「〜」、下限の後に「以上」）/ `required` / `description` を指定。
-
-## custom フィールドのUI実装
-
-`formInput: "custom"` のフィールドは自動描画されない（スキーマには含まれる）。`beforeField` / `afterField` で独自コンポーネントを注入する（例: `src/features/README.md`「custom の使い方」）。
-
-## 登録された入力部品
-
-`formInput` に `src/wiring/formInputs/inputs/` の登録名を書くと、登録の部品を描く（本体は遅延読み込み。書き方: `src/wiring/formInputs/inputs/README.md`）。
-
-- 枠（ラベル・必須印・説明・エラー）は共通で描く。部品が自分で枠や複数の欄を描くなら項目に `frame: false`（エラーの表示は残る）
-- 自動保存は項目の `blurMode`（省略 = blur で保存しない）。単一値の部品で自動保存を効かせるなら書く
+- 枠(ラベル・必須印・説明・エラー)は共通で描く。部品が自分で枠や複数の欄を描くなら項目に `frame: false`(エラーの表示は残る)
+- 自動保存は項目の `blurMode`(省略 = blur で保存しない)。単一値の部品で自動保存を効かせるなら書く
 - 部品は `AppForm` の中で描くので `useFormContext` が使える
 - `custom` との使い分け: 何度も使う部品・setting の欄は登録、1 画面だけの差し込みは `custom` + `beforeField` / `afterField`
 
-## メディアアップロード
+### メディアの欄
 
-`mediaUploader` / `mediaUploaderMulti` フィールドのアップロード状態は集約され、`onMediaStateChange` で通知される。`AppForm` 配下では context 経由で自動連携するため通常は指定不要。
+- 保存先は `FieldConfig.purpose`(ファイルの用途 ID `<domain>.<field>`、`src/registry/storagePurposeRegistry.ts` の登録名)で決まる。生成の `<Domain>Fields` が domain.json のメディア項目に付ける
+- フォームの値は storage ref(`storage://…`)。保存時の採用・差し替え・削除はサーバーの CRUD 連動が行う(`src/lib/mediaInputSuite/README.md`)
 
-- 保存先は `FieldConfig.purpose`（ファイルの用途 ID `<domain>.<field>`、`src/registry/storagePurposeRegistry.ts` の登録名）で決まる。生成の `<Domain>Fields` が domain.json のメディア項目に付ける
-- 手書きのフォームでメディア項目を足すときは、用途を登録し、`fieldPatches` などで `purpose` を渡す
-- `purpose` の無いメディア項目は入力を出さず、未設定のメッセージを出す（アップロード先が決まらないため）
-- フォームの値は storage ref（`storage://…`）。保存時の採用・差し替え・削除はサーバーの CRUD 連動が行う（詳細: src/lib/mediaInputSuite/README.md）
+## API
 
-## フォームの既定値（buildFormDefaultValues）
+### Props
 
-`buildFormDefaultValues(domainConfig, entity?)` が domain.json から `useForm` の `defaultValues` を作る。生成の Create / Edit フォームが使う（実行時に domain.json を読むので、既定値の変更に再生成は要らない）。
+| props | 型 | 役割 |
+|---|---|---|
+| `control` / `methods` | react-hook-form | フォーム連携（必須） |
+| `baseFields` | `FieldConfig[]` | ベースのフィールド定義 |
+| `fieldPatches` | `Partial<FieldConfig>[]` | フィールドの部分上書き・追加 |
+| `insertBefore` / `insertAfter` | `InsertFieldsMap` | フィールド定義の挿入 |
+| `fieldGroups` | `FieldGroup[]` | セクション分け |
+| `inlineGroups` | `InlineFieldGroup[]` | 横並び表示 |
+| `beforeAll` / `afterAll` | `ReactNode` | 全フィールドの前後にUI差し込み |
+| `beforeField` / `afterField` | `Partial<Record<フィールド名, ReactNode>>` | 特定フィールドの前後にUI差し込み |
+| `beforeGroup` / `afterGroup` | `GroupContentMap`（キー: `FieldGroup.key`） | 特定グループの先頭・末尾にUI差し込み |
+| `onMediaStateChange` | `(state: MediaState \| null) => void` | メディアアップロード状態の通知（`AppForm` 配下では省略可） |
 
-- 優先順: 編集時は `entity` の値（null / undefined なら下の既定値）→ フィールドの `defaultValue`（object / array も可）→ fieldType ごとの既定値
-- fieldType ごとの既定値（型の表 `src/lib/domain/fields/fieldTypes.mjs` の `formDefault`、表に無い型は `""`）: `array` / `stringArray` / `mediaUploaderMulti` / `mediaCollection` = `[]` | `jsonb` / `map` = `undefined`（値なし。schema の `.default()` や DB の既定値に任せる）| `boolean` = `false`（radio または options ありは `undefined`）| 数値・`enum`・timestamp = `undefined` | それ以外（文字列系・`mediaUploader`）= `""`
-- `formInput: "checkbox"` は、値が文字列の配列の型（`array` / `stringArray`）なら複数選択（CheckGroupInput）、それ以外は 1 つのチェックボックス（型の表の `array` 属性。`Field/Configured/checkGroupFieldTypes.ts` は再 export）。編集時に値を `Date` にするのは表の `datetime` の型
-- 型ごとの答えは型の表から引き、ここに型名を書かない。手書きで残るのは型の名前の union（`Field/types.ts`）だけで、表のキー・`formInputs.mjs` と揃っているかを `pnpm test src/components/Form/FieldRenderer/defaultValueBuilder.test.ts`（と typecheck）が突き合わせる。表に型を足したら union にも足す
-- 既定値は schema の型に合わせる。zod の `.default()` は `undefined` のときだけ効くので、配列や object の schema に `""` を渡すと送信が落ちる
-- 必須の jsonb を画面に出さない（formInput `none`）作成フォームでは、既定値が `undefined` なので必須チェックで落ちる → domain.json の `defaultValue` か、フォーム側で値を入れる
-- テスト: `pnpm test src/components/Form/FieldRenderer/defaultValueBuilder.test.ts`
+### fieldPatches
+
+- 同名の欄: 位置を保ったままベースの定義にマージ(上書き)
+- 新しい欄: 末尾に追加(完全な `FieldConfig` が要る)
+
+### insertBefore / insertAfter
+
+- `InsertFieldsMap`(キー: 挿入先の欄名、または `"__first__"` / `"__last__"`)で定義を挿入する。挿入した欄にも `insertBefore` / `insertAfter` が再帰的に効く
+- 処理の順: `insertBefore.__first__` → `baseFields`(パッチ適用 + 前後の挿入)→ `fieldPatches` の新規分 → `insertAfter.__last__`
+
+### fieldGroups(セクション分け)
+
+`FieldGroup[]` を渡すと、欄が `<fieldset>` のセクション(`FieldGroupSection`)に分かれて描かれる。domain.json のトップレベル `fieldGroups` でも宣言でき、生成の `XxxFields` が自動で読む(スキーマ定義: `src/features/README.md`「FieldGroup（フィールドグループ）」)。
+
+| プロパティ | 型 | 説明 |
+|---|---|---|
+| `key` | string | グループキー（一意識別子。`beforeGroup` / `afterGroup` のキーにもなる） |
+| `label` | string | セクションの表示ラベル（legend） |
+| `fields` | string[] | グループに含むフィールド名 |
+| `collapsible` | boolean | 折りたたみ可能か（既定: false） |
+| `defaultCollapsed` | boolean | 初期状態で折りたたむか（既定: false） |
+| `bgColor` | string | 背景色（CSSカラーコード） |
+
+- どのグループにも属さない欄は、全グループの後ろに「グループ外枠」としてまとめて描く
+- `fields` に解決できる欄が 1 つも無いセクションは描かない(差し込みの指定があれば描く)
+
+### beforeGroup / afterGroup
+
+- `fieldGroups` を指定したときだけ効く。フラット表示では無視
+- 折りたたむと欄と同じく隠れる
+- グループ外枠には予約キー `UNGROUPED_GROUP_KEY`(`"__ungrouped__"`)で差し込む
+- グループの欄が全部解決できなくても(パッチで外した等)、差し込みの指定があればセクションは描く(「このセクションは無効です」等の通知が出せる)
+
+### inlineGroups(横並び)
+
+`InlineFieldGroup[]` で複数の欄を 1 つの欄のように横に並べる。
+
+- `key` / `label` / `fields` / `required` / `description`
+- `fieldWidths`: Tailwind の幅クラス(省略 = 均等)
+- `inputConfigs`: 各欄の前後に添える文字 `{ prefix?, suffix? }`、`fields` と同じ順(例: 期間の終了の前に「〜」、下限の後に「以上」)
+
+### フォームの既定値(buildFormDefaultValues)
+
+`buildFormDefaultValues(domainConfig, entity?)` が domain.json から `useForm` の `defaultValues` を作る。生成の Create / Edit フォームが使う(実行時に domain.json を読むので、既定値の変更に再生成は要らない)。
+
+- 優先の順: 編集時は `entity` の値(null / undefined なら下の既定値)→ 欄の `defaultValue`(object / array も可)→ fieldType ごとの既定値
+- fieldType ごとの既定値(型の表 `src/lib/domain/fields/fieldTypes.mjs` の `formDefault`、表に無い型は `""`): `array` / `stringArray` / `mediaUploaderMulti` / `mediaCollection` = `[]` | `jsonb` / `map` = `undefined`(値なし。schema の `.default()` や DB の既定値に任せる)| `boolean` = `false`(radio または options ありは `undefined`)| 数値・`enum`・timestamp = `undefined` | それ以外(文字列系・`mediaUploader`)= `""`
+- `formInput: "checkbox"` は、値が文字列の配列の型(`array` / `stringArray`)なら複数選択(CheckGroupInput)、それ以外は 1 つのチェックボックス(型の表の `array` 属性。`Field/Configured/checkGroupFieldTypes.ts` は再 export)。編集時に値を `Date` にするのは表の `datetime` の型
+
+## Internals
+
+- メディアの欄(`mediaUploader` / `mediaUploaderMulti`)のアップロード状態は集めて `onMediaStateChange` で知らせる。`AppForm` の中では context で自動でつながる
+- `purpose` の無いメディアの欄は入力を出さず、未設定のメッセージを出す(アップロード先が決まらないため)
+- 既定値: 型ごとの答えは型の表から引く。手書きで残るのは型の名前の union(`Field/types.ts`)だけ
+- zod の `.default()` は `undefined` のときだけ効く: 配列や object の schema に `""` を渡すと送信が落ちる
+- 必須の jsonb を画面に出さない(formInput `none`)作成フォームは、既定値が `undefined` なので必須チェックで落ちる
+
+## Verification
+
+- 既定値と型の表・`formInputs.mjs`・union の突き合わせ: `pnpm test src/components/Form/FieldRenderer/defaultValueBuilder.test.ts`(と typecheck)
+
+## Related
+
+- フォームの部品一式: `../README.md`
+- domain.json の欄・fieldGroups・custom: `src/features/README.md`
+- 登録する入力部品: `src/wiring/formInputs/inputs/README.md`
+- メディアの入力: `src/lib/mediaInputSuite/README.md`
