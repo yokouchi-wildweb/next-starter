@@ -1,11 +1,22 @@
 # taskRun(pnpm task の実行の記録)
 
-`pnpm task` の名指しの 1 回(ドメインのタスク・移行・人が名前を打った定期タスク)を 1 行ずつ残す表と、その読み書きの関数。止める鍵(二度流すと困る物を自動で二度走らせない)と結果不明の土台。HTTP ルート・管理画面は持たない(登録表の access は `INTERNAL_ONLY`)。常に開いている(機能の門で閉じない)。
+## Overview
 
-- 書き手: タスクのランナー `scripts/runner/task` だけ(流れ: `scripts/runner/task/execute.ts`、使い方: `src/lib/task/README.md`「実行の記録」)
+- `pnpm task` の名指しの 1 回(ドメインのタスク・移行・人が名前を打った定期タスク)を 1 行ずつ残す表と、その読み書きの関数
+- 止める鍵(二度流すと困る物を自動で二度走らせない)と結果不明の土台
+- HTTP ルート・管理画面は持たない(登録表の access は `INTERNAL_ONLY`)。常に開いている(機能の門で閉じない)
+- 書き手: タスクのランナー `scripts/runner/task`(流れ: `scripts/runner/task/execute.ts`)
 - 記録しない物: `pnpm task --due`(毎分の自動の回し)・Vercel Cron の HTTP 呼び出し・機能が閉じて飛ばした定期タスク
 
-## データモデル
+## Usage
+
+- 立ち上げ: 表は `pnpm db:push` で作る(その最初の db:push と DB の無い初期化は記録なしの例外)。表が無いと `pnpm task` は走らず `pnpm db:push` を案内する
+- 結果不明の行を人が確かめたら `pnpm task --resolve` で書き直す(`resolveRun`)
+- 実行の記録の使い方: `src/lib/task/README.md`「実行の記録」
+
+## API
+
+### データモデル
 
 table: `task_runs`(1 実行 = 1 行)
 
@@ -23,7 +34,7 @@ table: `task_runs`(1 実行 = 1 行)
 - `source` … git に入れない移行(`.local.ts`)の中身の全文(dry-run も本実行も。ほかの実行は null)
 - `started_at` / `finished_at` / `resolved_at`(人が `pnpm task --resolve` で書き直した時)
 
-## 関数(`@/features/taskRun/services/server`)
+### 関数(`@/features/taskRun/services/server`)
 
 - `startRun(input)` … `running` の行を書く(書けなければランナーは走らせない)
 - `finishRun(id, { status, result, error })` … `running` の行にだけ結果を書く
@@ -31,8 +42,12 @@ table: `task_runs`(1 実行 = 1 行)
 - `findDryRunOf(name, fileHash)` … 同じ名前・同じ中身の成功した dry-run の行(git に入れない移行の本実行の条件)
 - `resolveRun(id, "succeeded" | "failed", note)` … `running` / `unknown` の行を人が確かめた結果に書き直す(`succeeded` = 鍵を持ち続ける / `failed` = 鍵を放して打ち直せる)
 
-## 立ち上げ
+## Verification
 
-表は `pnpm db:push` で作る(その最初の db:push と DB の無い初期化は記録なしの例外)。表が無いと `pnpm task` は走らず `pnpm db:push` を案内する。
+- `pnpm test --db src/features/core/taskRun`(開発 DB に `test:` の行を作って消す)
+- `pnpm test scripts/runner/task`(DB なし)
 
-テスト: `pnpm test --db src/features/core/taskRun`(開発 DB に `test:` の行を作って消す)・`pnpm test scripts/runner/task`(DB なし)
+## Related
+
+- タスクの書き方と実行の記録: `src/lib/task/README.md`
+- ランナー: `scripts/runner/task`
