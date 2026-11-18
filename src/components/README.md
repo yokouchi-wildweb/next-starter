@@ -1,10 +1,43 @@
 # components ディレクトリ概要
 
-`src/components/` にはアプリ全体で共有する汎用 UI コンポーネントをカテゴリごとに配置します。
+## Overview
 
-本ファイルは**カテゴリの索引**です。詳細な仕様・使い分けは各サブディレクトリの README（コロケーション）に置き、複雑な仕組みを持つカテゴリには必ず README を併設します。
+- `src/components/` にはアプリ全体で共有する汎用 UI コンポーネントをカテゴリごとに配置します
+- 本ファイルは**カテゴリの索引**です。詳細な仕様・使い分けは各サブディレクトリの README（コロケーション）に置き、複雑な仕組みを持つカテゴリには必ず README を併設します
 
-## 配置判断
+### カテゴリ一覧
+
+- `Animation/`: アニメーション演出（`CountUp`、`PageTransition` など）
+- `AppFrames/`: 解体中の旧フォルダ。枠の部品は `src/app/(user)/_layout/`・`src/app/admin/**/_layout/` へ移動済み | 詳細: [AppFrames/User/README.md](./AppFrames/User/README.md)・[src/app/(user)/_layout/README.md](../app/(user)/_layout/README.md)・[AppFrames/Kiosk/README.md](./AppFrames/Kiosk/README.md)
+  - 管理画面の共有部品 `Admin/Elements`: ListTop・SearchBox・ItemNavigator 等。管理ヘッダーの中身はページが AdminPage の props で渡す
+  - ItemNavigator = 前後の項目へ移るだけの選択欄で props だけ。データは `src/lib/crud` の `useDomainItemNavigation`、管理の編集画面は `src/app/admin/_layout/AdminEditItemNavigator` を `<AdminPage actions>` に置く
+  - ページ単位で枠の部位を隠す `User/controls`（Hide*）・キオスク用のビューポート固定枠・要素 ID の `constants.ts`
+- `AppStatusGuard/`: メンテナンス・デプロイを検知してリダイレクト / リロードするガード。長時間滞在する画面に配置
+- `Badge/`: バッジ（`SolidBadge`、`SoftBadge` など）
+- `Fanctional/`: 動作をカプセル化した部品（`DarkModeSwitch`（サイトテーマの切替。同期の `SiteThemeSync` は `@/lib/siteTheme`、詳細: [styles/README.md](../styles/README.md)）、`BodyPortal` / `HeadPortal`、`FirebaseAnalytics` など）
+- `Form/`: フォーム構築の全部品（Input / Field / `FieldRenderer` / `AppForm` / AutoSave） | 詳細: [Form/README.md](./Form/README.md)・[Form/FieldRenderer/README.md](./Form/FieldRenderer/README.md)・[Form/AutoSave/README.md](./Form/AutoSave/README.md)
+- `Icons/`: プロジェクト固有アイコンを Lucide 互換 API で一元管理 | 詳細: [Icons/README.md](./Icons/README.md)
+- `Layout/`: レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）。raw HTML の代替 | 詳細: [Layout/README.md](./Layout/README.md)
+- `Media/`: 画像・メディア表示（`AppImage`: next/image ラッパー。raw `<img>` / next/image 直接使用の代替。`PreviewImage`: blob: など選んだ直後の画像の下見） | 詳細: [Media/AppImage/README.md](./Media/AppImage/README.md)・[Media/PreviewImage/README.md](./Media/PreviewImage/README.md)
+- `Navigation/`: ナビゲーション | 詳細: [Navigation/Link/README.md](./Navigation/Link/README.md)
+  - `Link`: next/link の包み。リンクは全部これを使い next/link を直接 import しない（lint `link-via-shelf`）。口 `LinkVisibilityProvider` は既定で何も隠さず、アプリでは `src/wiring/AppProviders.tsx` の門番の `GateProvider` が閉じた機能の住所を隠す判定を差し込む
+  - `PageTab`
+  - `StateTabs`: 状態で切り替えるタブ。`variant="underline"` = PageTab の UnderlineTabs と同じ下線の形、`listEnd` = タブの列と同じ行の右端に置く物
+  - `Pagination`: 送り方は `makeHref` = リンク か `onPageChange` = ボタン のどちらか一方、`compact` = 前 / p / N / 次 だけ
+- `Overlays/`: 画面に重ねて表示する UI（モーダル / ダイアログ / ポップオーバー / ツールチップなど）の完成品。低レベル部品は `Primitives/`（`Dialog` / `Command` / `Popover` / `Tooltip` / `HoverCard`）。**自作前に必ず一覧を確認** | 詳細: [Overlays/README.md](./Overlays/README.md)
+- `Primitives/`: 部品の棚の低レベル部品（shadcn・Radix 由来の生の部品）。画面からは通常、完成品（`Form/`・`Overlays/`・`Badge/` など）を使う
+  - 1 部品 = 1 フォルダ、読むのは入口 `@/components/Primitives/<部品>`（`Primitives/index.ts` は無い）
+  - 部品: `Badge`（`BadgeCore`）・`Button`・`Calendar`・`Carousel`・`Checkbox`・`Command`・`Dialog`・`HoverCard`・`Input`（`Input` / `Textarea`）・`Label`・`Popover`・`RadioGroup`・`Select`・`Skeleton`・`Slot`・`Tabs`・`Tooltip`
+  - Radix は統合版の `radix-ui` からだけ読む（`@radix-ui/*` の個別パッケージは lint `radix-unified` が止める）
+- `Skeleton/`: `BaseSkeleton` を基盤としたローディングプレースホルダー | 詳細: [Skeleton/README.md](./Skeleton/README.md)
+- `TextBlocks/`: 文章構造コンポーネント（`PageTitle` / `SecTitle` / `Para` / `Span`）。見出し・段落の raw HTML の代替
+- `Three/`: three.js を利用した 3D 表現
+- `Widgets/`: 完成品ウィジェット（`FadeSlider`、`ScrollSlider`、`InfiniteScrollList` など） | 詳細: [Widgets/FadeSlider/README.md](./Widgets/FadeSlider/README.md)・[Widgets/ScrollSlider/README.md](./Widgets/ScrollSlider/README.md)・[Widgets/InfiniteScrollList/README.md](./Widgets/InfiniteScrollList/README.md)
+- `_shadcn/`: shadcn/ui からインストールした原本のうち、まだ `Primitives/` へ移していない物（accordion・card・form・scroll-area・table）。**直接インポート禁止**（ラッパー経由で使用） | 詳細: [_shadcn/README.md](./_shadcn/README.md)
+
+## Usage
+
+### 配置判断
 
 - 複数ドメインで使う汎用 UI → ここ（`src/components/`）
 - 特定ドメイン専用 UI → `src/features/<domain>/components/common/`
@@ -13,32 +46,19 @@
 - 差し込み口(値の外に受ける物)は持ち主で分ける。どれも省略でき、省略時は今の出力: `src/components` と lib の部品 = 見た目の口(`className`・`overlayClassName`・`variant`)と中身の差し込み(`renderX` の関数・`xNode`)を認める / core のドメインの部品 = 値の指定と `children` だけ / core の既定のコンテナと画面 = 名前付きの差し込みは置かない(fork は公開の部品とフックで組み直す。上流の画面が開き fork が置き場所を変えられない物は受け口)。動きは部品が持つ(`.claude/rules/core/components.md` の slots)
 - 特定ページ専用 UI → ルートの既定 Screen の部品なら `app/<route>/_screen/`(ルートを作った側)、fork が足す部品や差し替え Screen なら `app/<route>/_components/`(CLAUDE.md SCREENS)
 
-## カテゴリ一覧
+### 共通ルール
 
-| ディレクトリ | 役割 | 詳細ドキュメント |
-|---|---|---|
-| `Animation/` | アニメーション演出（`CountUp`、`PageTransition` など） | - |
-| `AppFrames/` | 解体中の旧フォルダ。残りは管理画面の共有部品（`Admin/Elements`: ListTop・SearchBox・ItemNavigator 等。ItemNavigator = 前後の項目へ移るだけの選択欄で props だけ、データは `src/lib/crud` の `useDomainItemNavigation`、管理の編集画面は `src/app/admin/_layout/AdminEditItemNavigator` を `<AdminPage actions>` に置く。管理ヘッダーの中身はページが AdminPage の props で渡す）、ページ単位で枠の部位を隠す `User/controls`（Hide*）、キオスク用のビューポート固定枠、要素 ID の `constants.ts`（行き先の棚は後の議題で決める）。枠の部品は `src/app/(user)/_layout/`・`src/app/admin/**/_layout/` へ移動済み | [AppFrames/User/README.md](./AppFrames/User/README.md)・[src/app/(user)/_layout/README.md](../app/(user)/_layout/README.md)・[AppFrames/Kiosk/README.md](./AppFrames/Kiosk/README.md) |
-| `AppStatusGuard/` | メンテナンス・デプロイを検知してリダイレクト / リロードするガード。長時間滞在する画面に配置 | - |
-| `Badge/` | バッジ（`SolidBadge`、`SoftBadge` など） | - |
-| `Fanctional/` | 動作をカプセル化した部品（`DarkModeSwitch`（サイトテーマの切替。同期の `SiteThemeSync` は `@/lib/siteTheme`、詳細: [styles/README.md](../styles/README.md)）、`BodyPortal` / `HeadPortal`、`FirebaseAnalytics` など） | - |
-| `Form/` | フォーム構築の全部品（Input / Field / `FieldRenderer` / `AppForm` / AutoSave） | [Form/README.md](./Form/README.md)・[Form/FieldRenderer/README.md](./Form/FieldRenderer/README.md)・[Form/AutoSave/README.md](./Form/AutoSave/README.md) |
-| `Icons/` | プロジェクト固有アイコンを Lucide 互換 API で一元管理 | [Icons/README.md](./Icons/README.md) |
-| `Layout/` | レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）。raw HTML の代替 | [Layout/README.md](./Layout/README.md) |
-| `Media/` | 画像・メディア表示（`AppImage`: next/image ラッパー。raw `<img>` / next/image 直接使用の代替。`PreviewImage`: blob: など選んだ直後の画像の下見） | [Media/AppImage/README.md](./Media/AppImage/README.md)・[Media/PreviewImage/README.md](./Media/PreviewImage/README.md) |
-| `Navigation/` | ナビゲーション（`Link`（next/link の包み。リンクは全部これを使い next/link を直接 import しない: lint `link-via-shelf`。口 `LinkVisibilityProvider` は既定で何も隠さず、アプリでは `src/wiring/AppProviders.tsx` の門番の `GateProvider` が閉じた機能の住所を隠す判定を差し込む）、`PageTab`、`StateTabs`（状態で切り替えるタブ。`variant="underline"` = PageTab の UnderlineTabs と同じ下線の形、`listEnd` = タブの列と同じ行の右端に置く物）、`Pagination`（送り方は `makeHref` = リンク か `onPageChange` = ボタン のどちらか一方、`compact` = 前 / p / N / 次 だけ）） | [Navigation/Link/README.md](./Navigation/Link/README.md) |
-| `Overlays/` | 画面に重ねて表示する UI（モーダル / ダイアログ / ポップオーバー / ツールチップなど）の完成品。低レベル部品は `Primitives/`（`Dialog` / `Command` / `Popover` / `Tooltip` / `HoverCard`）。**自作前に必ず一覧を確認** | [Overlays/README.md](./Overlays/README.md) |
-| `Primitives/` | 部品の棚の低レベル部品（shadcn・Radix 由来の生の部品）。1 部品 = 1 フォルダ、読むのは入口 `@/components/Primitives/<部品>`（`Primitives/index.ts` は無い）。部品: `Badge`（`BadgeCore`）・`Button`・`Calendar`・`Carousel`・`Checkbox`・`Command`・`Dialog`・`HoverCard`・`Input`（`Input` / `Textarea`）・`Label`・`Popover`・`RadioGroup`・`Select`・`Skeleton`・`Slot`・`Tabs`・`Tooltip`。Radix は統合版の `radix-ui` からだけ読む（`@radix-ui/*` の個別パッケージは lint `radix-unified` が止める）。画面からは通常、完成品（`Form/`・`Overlays/`・`Badge/` など）を使う | - |
-| `Skeleton/` | `BaseSkeleton` を基盤としたローディングプレースホルダー | [Skeleton/README.md](./Skeleton/README.md) |
-| `TextBlocks/` | 文章構造コンポーネント（`PageTitle` / `SecTitle` / `Para` / `Span`）。見出し・段落の raw HTML の代替 | - |
-| `Three/` | three.js を利用した 3D 表現 | - |
-| `Widgets/` | 完成品ウィジェット（`FadeSlider`、`ScrollSlider`、`InfiniteScrollList` など） | [Widgets/FadeSlider/README.md](./Widgets/FadeSlider/README.md)・[Widgets/ScrollSlider/README.md](./Widgets/ScrollSlider/README.md)・[Widgets/InfiniteScrollList/README.md](./Widgets/InfiniteScrollList/README.md) |
-| `_shadcn/` | shadcn/ui からインストールした原本のうち、まだ `Primitives/` へ移していない物（accordion・card・form・scroll-area・table）。**直接インポート禁止**（ラッパー経由で使用） | [_shadcn/README.md](./_shadcn/README.md) |
-
-## 共通ルール
-
-- **生の要素の lint**: `raw-elements/no-raw-element`(`eslint-rules/raw-elements.mjs`)が、包みのある要素(div・span・p・見出し・section 系・main・button・input・textarea・label・img・a)を生で書くと止める。上流リポだけ error、fork は off(fork の既存の生の要素は直させない)。対象外 = `src/components/**`(包みそのもの)とテスト。包みの無い要素(ul・li・dl・select・option・form・pre・code・br・strong・iframe 等)と飾り(svg・video・canvas・motion.*)は止めない。包みで同じ形にできない 1 か所だけの物は理由つきの行ごとの `eslint-disable-next-line raw-elements/no-raw-element -- <理由>`(例: toast = components から読まれる土台)
 - **raw HTML よりラッパー優先**: `div` → `Layout/Block・Flex・Grid・Stack`、`main` → `Layout/Main`、`section` → `Layout/Section`、`button` → `Form/Button`、`p` → `TextBlocks/Para`、`h2` → `TextBlocks/SecTitle`、`img` → `Media/AppImage`（`next/image` 直接使用も不可。選んだ直後の blob: の下見は `Media/PreviewImage`）、ボタンの形のファイル選択 → `Form/FilePickButton` など（一覧: CLAUDE.md「COMPONENTS」）
 - **`_shadcn` 直接使用禁止**: 必ず対応するラッパー（`Form/Button`、`Form/Input`、`Skeleton/BaseSkeleton` など）を使用する。ラッパーが無い場合は新規ラッパーの作成を提案する
+
+## Extension
+
 - **shadcn/ui の更新**: `_shadcn/` 内のファイルを更新し、差分はラッパー側で吸収する
 - **カテゴリの追加・仕様の複雑化時**: サブディレクトリに README を追加し、本ファイルの索引にも1行追加する
+
+## Internals
+
+- **生の要素の lint**: `raw-elements/no-raw-element`(`eslint-rules/raw-elements.mjs`)が、包みのある要素(div・span・p・見出し・section 系・main・button・input・textarea・label・img・a)を生で書くと止める
+  - 上流リポだけ error、fork は off(fork の既存の生の要素は直させない)。対象外 = `src/components/**`(包みそのもの)とテスト
+  - 包みの無い要素(ul・li・dl・select・option・form・pre・code・br・strong・iframe 等)と飾り(svg・video・canvas・motion.*)は止めない
+  - 包みで同じ形にできない 1 か所だけの物は理由つきの行ごとの `eslint-disable-next-line raw-elements/no-raw-element -- <理由>`(例: toast = components から読まれる土台)
