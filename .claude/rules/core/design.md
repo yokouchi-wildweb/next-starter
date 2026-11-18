@@ -53,8 +53,8 @@ map (every core file, loaded by its paths):
   - use: the feature-gate name that carries the item (always = always open) | never copy default values
   - change: the type (replace / overlay / add / placement) + its declaring file | none → /order <direct parent>
   - rules: split into using: and editing: | one rule per line `- <key>: <text>`, keys unique within the card | never clash with CLAUDE.md
-  - read: work scene → README h2
-- never: a hand-written dependency list | size ≤ 2,000 chars
+  - read: work scene → README h2 (`→ <h2>` = the item's README, `→ <path>.md <h2>` = another file)
+- never: a hand-written dependency list | size ≤ 2,000 chars | pnpm check rules checks the format (a Tier1 card fails, a fork's own card notifies)
 
 ## service (.claude/rules/service/<business>.md)
 - written only by a tier that defines a business (a middle tier or leaf), never by Tier1 | no paths: always loaded | one or more files per tier, named by the business concept, never the repo name

@@ -1,36 +1,20 @@
 // scripts/workflow/rules/size.mjs — pnpm check rules の大きさの検査(字数の線と場面の合計)
 // 線と数え方の正本: .claude/rules/core/design.md の size の節。場面のデータ: .claude/rules/core/scenes.jsonl
 // 知らせる線を超えた物は通して知らせる(出荷したセッションが窓口へまとめ直しの依頼を 1 本)。失敗の線で exit 1。
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
-import { readBaseFiles } from "../../../src/lib/forkOwnership/baseFiles.mjs";
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { CORE_DIR, ITEMS_DIR, mdUnder as mdUnderRoot, SERVICE_DIR, upstreamReader } from "./lib.ruleRepo.mjs";
 import { charCount, judgeSize, longLines, MAX_LINE_CHARS, parseScenes, sceneTotals, SIZE_LINES } from "./lib.ruleSize.mjs";
 
 const root = join(import.meta.dirname, "../../..");
-const CORE_DIR = ".claude/rules/core";
 const SCENES_FILE = `${CORE_DIR}/scenes.jsonl`;
 
 const read = (p) => readFileSync(join(root, p), "utf8");
-const mdUnder = (dir) => {
-  const abs = join(root, dir);
-  if (!existsSync(abs)) return [];
-  return readdirSync(abs, { recursive: true })
-    .map(String)
-    .filter((f) => f.endsWith(".md"))
-    .map((f) => relative(root, join(abs, f)))
-    .sort();
-};
+const mdUnder = (dir) => mdUnderRoot(root, dir);
 
 // 上流の物 = Tier1 では全部、fork では基準の版(台帳の最後の upstream:<sha>)にある物
-const identity = readForkIdentity(root);
-let upstreamOf = () => true;
-const notes = [];
-if (!identity.isTier1) {
-  const base = readBaseFiles(root);
-  if ("problem" in base) notes.push(`上流の札の見分けが付かない(${base.problem})→ 札は全部を上流として数えた`);
-  else upstreamOf = (path) => base.files.includes(path);
-}
+const { upstreamOf, note } = upstreamReader(root);
+const notes = note ? [note] : [];
 
 const fails = [];
 const notifies = [];
@@ -65,12 +49,12 @@ for (const f of coreFiles) {
 }
 
 // 札と service(自分の札の 1 行の長さは知らせるだけ、ほかは止める)
-const cards = mdUnder(".claude/rules/items");
+const cards = mdUnder(ITEMS_DIR);
 for (const f of cards) {
   sizeOf(f, SIZE_LINES.card, "札 1 枚 ");
   linesOf(f, upstreamOf(f) ? "fail" : "notify");
 }
-for (const f of mdUnder(".claude/rules/service")) {
+for (const f of mdUnder(SERVICE_DIR)) {
   sizeOf(f, SIZE_LINES.service, "service 1 枚 ");
   linesOf(f, "fail");
 }
