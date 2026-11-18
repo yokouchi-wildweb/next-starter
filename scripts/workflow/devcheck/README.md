@@ -19,7 +19,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 
 ## API
 
-### 種類(上流のコード `lib.ts` の KINDS)
+### 種類(上流のコード `lib.kinds.mjs` の KINDS)
 
 | 種類 | run の形 | 打つコマンド |
 |---|---|---|
@@ -76,7 +76,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 - 記録の寿命: 使ったスイッチは許可のフックが消す / 次の人の入力で全部消える(UserPromptSubmit の `hook.mjs prompt`)= 同じ番の中だけ。直接の書き換えは固定の止め
 - 方針を manual にしても、人の言葉かはフックからは見えない(`devcheck allow` を誰が打ったかは分からない)。人の言葉が要る決まりは `/allow` スキルの文が守る。`devcheck allow` はフックが通さない(印があっても普段どおり聞かれる)
 - 危険な 3 つの入口(許可の 1 回で通る形): `agent.db_push.entry`(既定 `pnpm db:push`、開発の DB だけ)/ `agent.deploy.db_entry` + ` --confirm=production`(本番の DB の反映。dep の許可は残る)→ `agent.deploy.entry`(既定 `pnpm live` は ` -- --confirm=production` を付けた形も。dep の許可を使い切る)/ `agent.env_production.entry`(既定 `-` = 上流の入口なし、人が行う)
-- チームの道具への「DB 済み」の印は受け口が無い今は付けない(結果の 1 行だけ。チームツールの統合で)
+- 結果は 1 行だけ返す(チームの道具への「DB 済み」の印は無い)
 - `agent.enabled: false` = 全部の種類(peer・危険な 3 つも)を `off` とみなす(種類ごとの値より強い)。計画は全部「手で」、run は断り、許可のフックは印の道で何も通さない(固定の止めはそのまま)
 - 宣言に無い `agent.*` の鍵・通常の種類の値の誤り・真偽値でない `agent.enabled`・空の入口は止める(exit 2、フックは壊れた方針として何も返さない)。`repo.json` が無い = 全部既定
 - 危険な 3 つの値と入口は今は読むだけ(計画の 方針 の行に出る)。固定の止めは値に依らず効く
@@ -137,7 +137,6 @@ auto=<種類>[,<種類>…]   # v=2: 方針が manual の通常の種類を、�
 
 - 効き方(実測、Claude Code v2.1.322): allow は default / acceptEdits のどのモードでも確認を省き、サブエージェントにも効く。`permissions.deny` はフックの allow に勝つ。フックの deny は allow の行と bypassPermissions に勝つ。手元の env は書き換えた次の呼び出しから効く
 - 入力の形: `adaptClaude`(Claude Code の PreToolUse の入力 → `{ tool, command | file | url }`)。ほかのエージェントの形は変換を 1 つ足す
-- 明示の指示で止めを任せる形(後で)は、`fixedStop` が deny を返す前に見る
 
 ### この命令の記録と片付け
 
@@ -145,11 +144,6 @@ auto=<種類>[,<種類>…]   # v=2: 方針が manual の通常の種類を、�
 - server は dev-tab が「立てました / 起動中」と答えた時だけ「立てた」と記録する(もう動いていた・外のサーバーは記録しない = 止めない)
 - `cleanup`: 記録の行を消し(`DELETE FROM "<表>" WHERE "<列>" IN (…)` を同じ入口で)、立てたサーバーを止め(`pnpm workflow dev-tab run stop`)、記録を消す。消せない・止められない物は記録に残して exit 1
 - 画面から作った行はこの命令では分からない: 確かめの報告に「残した行」として書く
-
-### ファイル
-
-- `lib.kinds.mjs`(種類・スイッチ名・方針の実体、素の ESM)・`lib.allow.mjs`(1 回分の許可の記録と allow / danger の本体)・`lib.grant.mjs`(許可の判定)・`hook.mjs`(PreToolUse のフック、`prompt` = UserPromptSubmit で許可を消す)・`lib.ts`(型を付けた出し直し・項目・文脈・計画)・`lib.run.ts`(実行の部品)・`lib.exec.ts`(run / cleanup の本体、外に触る物は Deps で受ける)・`lib.facts.ts`(環境に触る部品)
-- 動作 `plan.ts`・`status.ts`・`run.ts`・`cleanup.ts`
 
 ## Verification
 

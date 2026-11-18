@@ -9,7 +9,7 @@
 - `pnpm db:push`: schemaRegistry(スキーマゲート適用後)を実 DB に反映する(`scripts/operations/db/push.ts`)。DB 接続が要る・書き込む
 - `pnpm test scripts/structure/registry/`: 走査の表の集合 = schemaRegistry の全 pgTable、α 4 本の生成の回帰(`alpha/alpha.test.mjs`)。DB 不要
 - `pnpm db:push:check`: schemaRegistry(スキーマゲート適用後)と実 DB を drizzle-kit の push モードで比較し、提案される SQL を表示する。1 文でもあれば exit 1。DB 接続が要る・読み取り専用
-- `pnpm generate registry` / `pnpm check registry`: `src/registry` の α 6 本を丸ごと生成・検査する(build の冒頭)。DB 不要。手書きの区画は無い。生成の部品は `alpha/`
+- `pnpm generate registry` / `pnpm check registry`: `src/registry` の α 6 本(α = `alpha/` などの生成器が手書きの区画なしで丸ごと書く一覧)を丸ごと生成・検査する(build の冒頭)。DB 不要。手書きの区画は無い。生成の部品は `alpha/`
   - `serviceRegistry`: 各ドメインの `domainEntry.ts` から(`serviceRegistry/`、仕組みは `src/lib/domain/README.md`)。`domainEntry.ts` の静的 import は型はどこからでも・値は値だけのファイルからだけ(中身で推移的に判定、`serviceRegistry/discover.mjs` の `checkEntryStaticImports`)
   - `schemaRegistry`: `src/features/**` の pgTable を持つ全ファイル(プロフィールの `entities/profiles/<名前>/drizzle.ts` も)
   - `domainConfigRegistry`: 全 `domain.json`(キーはフォルダ名の snake_case)
@@ -76,7 +76,7 @@ drizzle-kit push の index 比較キーは `名前; 列ごとに (式なら "" /
 | `sql\`col DESC\`` で作られた既存の物理 index（`DESC` = NULLS FIRST）を無停止で引き取る | `table.col.desc().nullsFirst()` | 物理 index と同じ nulls 順にする。新規作成なら `.desc()` だけでよい |
 | 式 index | `index("x").on(sql\`lower(btrim(${table.name}))\`)` | 純粋な式のみなら round-trip する（precedent: users_name_norm_idx） |
 | 通常列と式の混在 | **全列を `sql\`${table.col}\`` で書く**か、混在をやめる | DB 側は index 単位で全列が式扱いになるため、通常列が 1 つでもあると一致しない |
-| 並びの鍵の `COLLATE "C"`（単一・複合） | `sortKeyIndexColumn(table.sort_order)`（`src/lib/crud/README.md`「並びの鍵の照合順序」） | PostgreSQL は普通の列の `COLLATE` を式として持たないので、`sql` で書くと全列 `sql` でも単一列でも一致せず毎回再構築される。上の行の「全列を sql で」はこの場合に当てはまらない |
+| 並びの鍵の `COLLATE "C"`（単一・複合） | `sortKeyIndexColumn(table.sort_order)`（`src/lib/crud/drizzle/fractionalSort/README.md`「並びの鍵の照合順序」） | PostgreSQL は普通の列の `COLLATE` を式として持たないので、`sql` で書くと全列 `sql` でも単一列でも一致せず毎回再構築される。上の行の「全列を sql で」はこの場合に当てはまらない |
 | 部分 index の `where` | 書いてよいが、**`where` だけを変えても push は差分を検出しない**（既知のギャップ） | 変更時は手動で DROP / CREATE する |
 | 空配列 default | `text("x").array().default([]).notNull()` のまま | drizzle-kit の誤正規化（`'{}'` → `'{""}'`）はパッチで修正済み |
 | jsonb default | `jsonb("x").default({...})` のまま | キー順の不一致（PostgreSQL は jsonb のキーを長さ→バイト順で保存）はパッチで修正済み |
@@ -85,7 +85,7 @@ drizzle-kit push の index 比較キーは `名前; 列ごとに (式なら "" /
 
 ### 差分が残る index がなぜ問題か
 
-drizzle-kit 0.31.x は、特定の書き方の index と一部の列 default を DB から正しく読み戻せず、**DB が既にスキーマどおりでも毎回「差分あり」と判定して DROP INDEX + CREATE INDEX / SET DEFAULT を実行する**。drizzle-kit CLI の push は `--verbose` を付けない限り実行した SQL を表示しないため、これは気づかれないまま続いていた（現在の `pnpm db:push` は毎回全文を表示する）。
+drizzle-kit 0.31.x は、特定の書き方の index と一部の列 default を DB から正しく読み戻せず、**DB が既にスキーマどおりでも毎回「差分あり」と判定して DROP INDEX + CREATE INDEX / SET DEFAULT を実行する**。drizzle-kit CLI の push は `--verbose` を付けない限り実行した SQL を表示しないので、CLI では気づきにくい（`pnpm db:push` は毎回全文を表示する）。
 
 - SET DEFAULT の再実行は無害。
 - index の再構築は、本番の大規模テーブル（数十万〜数百万行）では **CREATE INDEX 中そのテーブルへの書き込みがロックされ、DROP から CREATE の間は index が存在しない**。
