@@ -1,15 +1,18 @@
 # src/styles — デザインの層と書く場所
 
-この README は、見た目を変えたい人(upstream の開発者・fork の作業者)が「どこに何を書けば、どこまで変わるか」を引くための文書。upstream が構造(`core/`・部品・枠)を持ち、fork が値(直下の CSS・`src/config/ui/`)を持つ。fork は `core/` も core の部品も編集せずにデザインを変えられる。
+## Overview
 
-## デザインの 2 原則
+- この README は、見た目を変えたい人(upstream の開発者・fork の作業者)が「どこに何を書けば、どこまで変わるか」を引くための文書。upstream が構造(`core/`・部品・枠)を持ち、fork が値(直下の CSS・`src/config/ui/`)を持つ。fork は `core/` も core の部品も編集せずにデザインを変えられる。
+- 層ごとの書き方(色・影・書体・角丸・overrides.css・バリアントの上書き・lint・config.css・Tier の重ね合わせ・サイトテーマの設定)は [Extension.md](./Extension.md)
+
+### デザインの 2 原則
 
 1. **アプリ全体でデザインを統一しやすい**: 色・角丸・影・書体は 1 か所(トークン)で変えれば全画面に効く。部品の形は型ごとに 1 か所(バリアントの上書き)で変わる
 2. **個別の 1 ページが効率的かつ自由に構築できる**: 部品と余白の段は名前で選ぶだけで揃い(効率)、そのページだけの見た目は className で何でも書ける(自由)
 
 2 つは引っ張り合う。全体を揃える仕組みが強すぎると 1 ページの自由が消え、自由に書きすぎると全体の統一が崩れる。下の地図は、変えたいことを「効く範囲」で並べ、届く層で変えることで両方を保つためのもの。
 
-## 層の地図
+### 層の地図
 
 効く範囲の広い順の 1 列。変えたいことは**それが届く層**で変え、下の層は上の層の値を使う(下の層で上の層の値を書き直さない)。
 
@@ -23,7 +26,9 @@
 | 6. className | その要素 1 つ | `className`(Tailwind の数値・任意値) | 原則 2(自由) |
 | (すき間) data-slot | 上流の枠・部品の内側で、className もバリアントも届かない所 | 直下の `overrides.css` の `[data-slot="<名前>"]` | 原則 1 のすき間埋め |
 
-## 早見表(変えたいこと → 書くファイル)
+## Usage
+
+### 早見表(変えたいこと → 書くファイル)
 
 まず 2 つを決める。
 
@@ -53,7 +58,7 @@
 
 書かなければ upstream の既定値で動く。upstream がトークンや設定キーを足しても、fork は何も追記しなくてよい。
 
-## 勝ち順
+### 勝ち順
 
 同じ要素の同じプロパティを 2 か所で書いたときにどちらが効くか。筋は 2 本ある。
 
@@ -66,15 +71,62 @@
 - id・class 名・`data-component`・DOM の形(子の順番・入れ子)は約束ではない。upstream は notice なしに変えることがある
 - 約束の外を狙う CSS は禁止ではないが、**保証しない・notice も出ない**(壊れたら fork が直す)
 
+## Extension
+
+- 層ごとの書き方とサイトテーマの設定: [Extension.md](./Extension.md)
+
+## Internals
+
+### ファイルと所有権
+
+直下(下流の物):
+
+- `global.css`: 入口。最初に `./core/index.css`、その後に下の 5 ファイル(fork のファイルはこの後に足す)
+- `palette.css`: 変えたい色だけ書く(出荷時はこの README を指す 1 行のコメントだけ)
+- `typography.css`: 変えたい書体・サイズだけ書く(同上)
+- `overrides.css`: 要素の既定・@keyframes・data-slot の規則(同上)
+- `gradient.css`: このリポのグラデーション。`pnpm generate styles` が `src/config/app/gradients.config.ts` から生成(手で書かない。出荷時は空)
+- `z-layer.css`: このリポが足した重なりの層。`pnpm generate styles` が `src/config/lib/zLayer.config.ts` の layers から生成(手で書かない。出荷時は空。global.css が読む)
+- `README.md` は upstream の物(所有はファイル単位)
+
+`core/`(upstream の物。fork は編集しない。値の変更は直下のファイルで上書き):
+
+- `index.css`: @layer の順序・tailwindcss・tw-animate-css と upstream の CSS の import だけ
+- `theme.css`: @theme inline のトークン構造、@custom-variant、color-scheme。値は書かない
+- `palette.css`: :root / .dark の色と appearance の影の既定値(値だけ)
+- `typography.css`: 書体スタックの既定値(--font-geist-sans/mono、loaded 変数へフォールバック参照)
+- `config.css`: レイアウト系トークン(幅・管理画面余白・枠の寸法)
+- `z-layer.css`: z-index トークン(層の名の TS の側 = src/lib/zLayer。名を足す・消すときは両方。zLayer.test.ts が突き合わせる)
+- `gradient.css`: `pnpm generate styles` で生成(上流の既定 src/lib/gradient/tokens.base.ts と角度ユーティリティ。fork でも上流と同じ中身)
+- `frame.css`: 枠の部位を隠す・fill の規則(手書き。外枠の属性 data-frame-hide / data-frame-fill を読む)
+- `animations.css` / `base.css` / `components.css` / `utilities.css` / `admin.css`: 下の「upstream 側のファイルの役割」
+- `styleTokens.test.mjs`: `pnpm test src/styles/core/`
+
+- upstream は直下の `global.css` / `palette.css` / `typography.css` / `overrides.css` / `gradient.css` を初回作成後に編集しない。例外は入口の `@import` の行を足すときだけ: 上流の `global.css` を直し、notice で fork に同じ 1 行を足させる(直下の生成物 `gradient.css`・`z-layer.css` の読み込み)。説明は fork 所有のファイルに書かず、この README か `.claude/rules/core/style.md` に書く。fork が直下に足した CSS も fork の物
+- グラデーションは既定と実効の対: `pnpm generate styles` が上流の既定を `core/gradient.css` に、そのリポの分(`src/config/app/gradients.config.ts`)を直下の `gradient.css` に書く。fork が自分の分を足して再生成するのは正しい使い方(手で編集しない)。`core/` の下に fork の差分は出ない。同じ key を書けば直下の分が後から読まれて上書きする
+- 名前の印: `core/` = upstream の物(`src/features/core/` と同じ印)。既定と上書きは置き場で分ける: `core/<名前>.css` = 上流の既定、直下の同じ名前 `<名前>.css` = そのリポの上書き(`core/palette.css` と直下の `palette.css` など)
+
+upstream 側のファイルの役割(upstream でスタイルを足すときの置き場所):
+
+- `@import "tailwindcss"` は `core/index.css` の 1 か所だけ。upstream の CSS は `core/index.css` 経由で読まれるので個別に import しない(プラグインも `core/index.css` にまとめる)。upstream が CSS を足すときも `core/index.css` に import を足す(fork 所有の `global.css` は触らない)
+- `animations.css`: `--animate-*` の宣言と、対応する `@keyframes` を同じファイルに書く
+- `base.css`: リセットと HTML 要素の基本スタイルだけ。ページ固有のスタイルは書かない
+- `components.css` / `admin.css`: 再利用する UI パターンを `@layer components` に(`admin.css` は管理画面専用)。先にコンポーネントの variant で表現できないかを検討する
+- `utilities.css`: Tailwind のユーティリティで表現しづらい 1 プロパティ完結のクラス
+
 ### data-slot の付け方(upstream が部品を作るとき)
 
 - 原則: **className を渡せない所**(枠の部位・部品の内側)にだけ付ける。className を渡せる所は className とバリアントで足りる
 - 便宜上、className も data-slot も持つ要素がある。そこでは**常に data-slot(fork の CSS)が勝つ**(無レイヤーだから)。上流の画面がその要素に className で書いた値も、fork の data-slot の規則が上書きする
-- 両方を持つ要素の一覧(今): `main`(Layout/Main の `<main>`。`surfaceDisplay` だけは className が外側の `main-layout` に付き、`<main>` は `innerClassName` を受ける)・`page-title`(TextBlocks/PageTitle の h1)・`sec-title`(TextBlocks/SecTitle)・`admin-page-title`(管理のページの題の h1、`src/app/admin/_layout/AdminPageTitle.tsx`)・`admin-sec-title`(管理画面の SecTitle)。`user-page-title`(UserPageTitle の外側の header)は呼び手の className を受けない(className は中の h1 へ)ので入らない
+- 両方を持つ要素の一覧(今):
+  - `main`(Layout/Main の `<main>`。`surfaceDisplay` だけは className が外側の `main-layout` に付き、`<main>` は `innerClassName` を受ける)
+  - `page-title`(TextBlocks/PageTitle の h1)・`sec-title`(TextBlocks/SecTitle)
+  - `admin-page-title`(管理のページの題の h1、`src/app/admin/_layout/AdminPageTitle.tsx`)・`admin-sec-title`(管理画面の SecTitle)
+  - 入らない物: `user-page-title`(UserPageTitle の外側の header)は呼び手の className を受けない(className は中の h1 へ)
 - この一覧に足す条件(3 つすべて): className を渡せる要素である / fork がサイト全体で揃えたい実例がある / バリアントの上書きの口では受けられない
 - 印の名前 = その要素を描く部品(または部位)の名前の kebab(`popover-content`・`header-shell`)。印の一覧は各部品・枠の README(枠 = `src/app/(user)/_layout/README.md` と `src/app/admin/_layout/README.md`)。一覧とコードの一致は印の一覧の検査で確かめる。印を消す・名前を変えるのは notice
 
-## トークンで動く範囲
+### トークンで動く範囲
 
 トークン(と `variants.config.ts`)を変えたときに動く所と動かない所。
 
@@ -87,225 +139,7 @@
 | 余白の段(`--space-none`〜`--space-4xl`、`core/config.css` の `:root`) | Layout 部品の余白 prop(`gap`・`gapX`・`gapY`・`padding*`・`margin*`、段の表: `src/components/Layout/README.md`「余白」) | 部品の内側の余白(size のバリアントで変える)・className の数値(`p-4` 等。固定)。`@theme` の `--spacing` は使わない |
 | 操作部品の高さの段(`--control-h-xxxs`〜`--control-h-xxxl`・`--tablet-control-h-xxs`〜`xl`、`core/config.css` の `:root`。md は `@media (min-width: 40rem)` の側も) | ボタン・TabletButton の size、入力欄系と選ぶ欄の引き金の size、欄の中の小さなボタン、StepperInput(段の表: `src/components/Form/README.md`「操作部品の高さ(size)」) | 要素の className の高さ(`h-*`・`py-*`)・ボタンの `icon` 系・Textarea・スイッチやチェックボックスの size |
 
-## ファイルと所有権
-
-```
-src/styles/
-├── global.css              下流      入口。最初に ./core/index.css、その後に下の 5 ファイル(fork のファイルはこの後に足す)
-├── palette.css             下流      変えたい色だけ書く(出荷時はこの README を指す 1 行のコメントだけ)
-├── typography.css          下流      変えたい書体・サイズだけ書く(同上)
-├── overrides.css           下流      要素の既定・@keyframes・data-slot の規則(同上)
-├── gradient.css            下流      このリポのグラデーション。pnpm generate styles が src/config/app/gradients.config.ts から生成(手で書かない。出荷時は空)
-├── z-layer.css             下流      このリポが足した重なりの層。pnpm generate styles が src/config/lib/zLayer.config.ts の layers から生成(手で書かない。出荷時は空。global.css が読む)
-├── README.md               upstream  このファイル(所有はファイル単位)
-└── core/                   upstream  ★ fork は編集しない(値の変更は直下のファイルで上書き)
-    ├── index.css           upstream  @layer の順序・tailwindcss・tw-animate-css と upstream の CSS の import だけ
-    ├── theme.css           upstream  @theme inline のトークン構造、@custom-variant、color-scheme。値は書かない
-    ├── palette.css         upstream  :root / .dark の色と appearance の影の既定値(値だけ)
-    ├── typography.css      upstream  書体スタックの既定値(--font-geist-sans/mono、loaded 変数へフォールバック参照)
-    ├── config.css          upstream  レイアウト系トークン(幅・管理画面余白・枠の寸法)
-    ├── z-layer.css         upstream  z-index トークン(層の名の TS の側 = src/lib/zLayer。名を足す・消すときは両方。zLayer.test.ts が突き合わせる)
-    ├── gradient.css        upstream  pnpm generate styles で生成(上流の既定 src/lib/gradient/tokens.base.ts と角度ユーティリティ。fork でも上流と同じ中身)
-    ├── frame.css           upstream  枠の部位を隠す・fill の規則(手書き。外枠の属性 data-frame-hide / data-frame-fill を読む)
-    ├── animations.css / base.css / components.css / utilities.css / admin.css   upstream
-    └── styleTokens.test.mjs      upstream  pnpm test src/styles/core/
-```
-
-- upstream は直下の `global.css` / `palette.css` / `typography.css` / `overrides.css` / `gradient.css` を初回作成後に編集しない。例外は入口の `@import` の行を足すときだけ: 上流の `global.css` を直し、notice で fork に同じ 1 行を足させる(直下の生成物 `gradient.css`・`z-layer.css` の読み込み)。説明は fork 所有のファイルに書かず、この README か `.claude/rules/core/style.md` に書く。fork が直下に足した CSS も fork の物
-- グラデーションは既定と実効の対: `pnpm generate styles` が上流の既定を `core/gradient.css` に、そのリポの分(`src/config/app/gradients.config.ts`)を直下の `gradient.css` に書く。fork が自分の分を足して再生成するのは正しい使い方(手で編集しない)。`core/` の下に fork の差分は出ない。同じ key を書けば直下の分が後から読まれて上書きする
-- 名前の印: `core/` = upstream の物(`src/features/core/` と同じ印)。既定と上書きは置き場で分ける: `core/<名前>.css` = 上流の既定、直下の同じ名前 `<名前>.css` = そのリポの上書き(`core/palette.css` と直下の `palette.css` など)
-- 置き場の経緯: docs/journal/2026-11-04--next-starter--styles-readme-history.md
-
-upstream 側のファイルの役割(upstream でスタイルを足すときの置き場所):
-
-- `@import "tailwindcss"` は `core/index.css` の 1 か所だけ。upstream の CSS は `core/index.css` 経由で読まれるので個別に import しない(プラグインも `core/index.css` にまとめる)。upstream が CSS を足すときも `core/index.css` に import を足す(fork 所有の `global.css` は触らない)
-- `animations.css`: `--animate-*` の宣言と、対応する `@keyframes` を同じファイルに書く
-- `base.css`: リセットと HTML 要素の基本スタイルだけ。ページ固有のスタイルは書かない
-- `components.css` / `admin.css`: 再利用する UI パターンを `@layer components` に(`admin.css` は管理画面専用)。先にコンポーネントの variant で表現できないかを検討する
-- `utilities.css`: Tailwind のユーティリティで表現しづらい 1 プロパティ完結のクラス
-
-## 層ごとの書き方
-
-### 色の正は CSS
-
-色の唯一の正は `core/palette.css`(既定)と直下の `palette.css`(上書き)。派生物はそこから生成する:
-
-- メール用 hex 定数: `pnpm generate styles`(両ファイルの `:root` を合成して `src/lib/mail/generated/themeColors.ts`(`@/lib/mail` の `MAIL_THEME_COLORS`)を生成。欠落があれば失敗する)。色を変えたら必ず実行してコミットする。メールはダークモードもエリアも持たないので `.dark` と `[data-area]` は読まない。ブランド色を `[data-area="user"]` にだけ書くとメールは汎用色のままになる。メールにも反映したい色は `:root` にも書くこと
-- gradient トークン: `pnpm generate styles`(`tokens.base.ts` → `core/gradient.css`、`src/config/app/gradients.config.ts` → 直下の `gradient.css`。palette には依存しない)
-
-枠の部位を隠す規則: `core/frame.css`(手書きの静的な規則。各ルートの枠の宣言(ルートを作ったリポの `frame.ts` / 下のリポの `frame.override.ts`)を UserLayout が外枠の属性にし、その属性で部位を隠す)。色・値は持たない(規則だけ)ので fork のファイルからの上書きは想定しない。部位の一覧との一致は `pnpm test 'src/app/(user)/_layout/'`。仕組みは src/app/(user)/_layout/README.md「枠の部位を隠す・fill(枠の宣言)」
-
-shadcn / tweakcn 等のジェネレータが出力する `:root { ... } .dark { ... }` は、そのまま直下の `palette.css` に貼れば効く。
-
-### 色(palette.css)
-
-```css
-:root {
-  --primary: oklch(0.6 0.2 255);
-  --primary-foreground: oklch(0.985 0 0);
-}
-.dark {
-  --primary: oklch(0.7 0.18 255);
-}
-
-/* ユーザー側だけブランド色にし、管理画面は汎用色のまま */
-[data-area="user"] {
-  --background: oklch(0.12 0.02 260);
-  --foreground: oklch(0.97 0 0);
-}
-.dark[data-area="user"] {
-  --card: oklch(0.18 0.02 260);
-}
-```
-
-- 変数名と既定値の一覧は `core/palette.css`
-- `data-area` は `<html>` に付く(root layout が SSR 付与)。値は `src/config/lib/siteTheme.config.ts` で決まるエリア key(既定: `user` / `admin`)
-- Dialog / Toast / Popover は body 直下にポータル描画されるが、`<html>` 属性なので自動で継承される
-
-#### 意味色は 3 変数で 1 組(塗り / 塗りの上の文字 / 素の背景の文字)
-
-`success` / `info` / `warning` / `destructive` の 4 色は、用途の違う 3 変数を持つ。core の部品はこの区別で書かれているので、fork は役割ごとに値を決めるだけでよい。
-
-| 変数 | 用途 | Tailwind | 例 |
-|---|---|---|---|
-| `--success` | 塗り(背景・枠線・アイコンの台・スイッチ) | `bg-success` / `border-success` / `ring-success` | ボタン・ソリッドバッジの背景 |
-| `--success-foreground` | 塗りの上に載せる文字・アイコン | `text-success-foreground` | ボタンのラベル |
-| `--success-text` | 素の背景(ページ・カード)に置く文字・アイコン | `text-success-text` | 完了メッセージ、ソフトバッジの文字、`<Para tone="success">` |
-
-塗りを淡いパステルにしたいなら `--success` だけ変える。`--success-text` を変えなければ本文は読めるまま。塗り用トークンを文字色に使う(`text-success`)のは禁止(fork が塗りを淡くすると読めなくなる)。既定値はライトが amber-600 / red-600 / emerald-600 / sky-600 相当、ダークがその 400 系(ダーク背景で読める明るさ)。`.dark { --success-text: ... }` で上書きできる。
-
-`--overlay` は画面を覆う幕(モーダル背景・SP ナビの背景)。`bg-overlay/50` のように透過率付きで使う(既定は黒)。
-
-### appearance の影(palette.css)
-
-Layout 部品(Block / Section / Stack / Flex / Grid / Main)の `appearance` の影は、見た目の種類ごとのトークン `--appearance-shadow-<name>`(`raised` / `outlined` / `frosted` / `soft` / `radiant`)が持つ。値は `box-shadow` の全体で、ライト / ダークで別の値を持てる。色と同じ所(`palette.css` の `:root` / `.dark`)で変える。
-
-```css
-:root {
-  --appearance-shadow-raised: 0 8px 24px -12px rgb(0 0 0 / 0.25);
-}
-.dark {
-  --appearance-shadow-raised: 0 8px 24px -12px rgb(0 0 0 / 0.6);
-}
-```
-
-- 汎用の影の段(`shadow-sm` 等)は Tailwind の `--shadow-*` で、これとは別(次節)
-- `appearance.ts` に影の値を直書きしない。影をブランド色に追従させたいときは値に `color-mix(in oklch, var(--primary) 20%, transparent)` を書く(既定の radiant がこの形)
-- トークンの値は `<html>`(`:root` / `.dark` / `[data-area]` の付く要素)で計算される。`--primary` を `<html>` より下の要素で変えても、影の中の `var(--primary)` は追従しない
-
-### 書体(fonts.config.ts と typography.css)
-
-書体は 2 段構え。既定では Web フォントを読み込まず system スタックで表示する。
-
-| やりたいこと | 書く場所 |
-|---|---|
-| Web フォントを読み込む(Google Fonts / ローカルファイル) | `src/config/ui/fonts.config.ts`(next/font) |
-| Web フォントは使わず system フォントの並びを変える | `typography.css` の `--font-geist-sans` |
-| 文字サイズ(流体サイズ等)を変える | `typography.css` の `@theme` |
-
-仕組み: next/font のローダーを `variable: "--font-sans-loaded"`(mono は `"--font-mono-loaded"`)で呼び `defineFontsConfig({ sans })` に渡すと、root layout が `<html>` にクラスを当ててその変数を定義する。`core/typography.css` のスタックは `--font-geist-sans: var(--font-sans-loaded, "Inter", system-ui, ...)` と書かれているので、読み込まれていればそれを、無ければ system スタックを使う。theme.css と Tailwind の `font-sans` / `font-mono` は一切変えない。
-
-```ts
-// src/config/ui/fonts.config.ts
-import { Noto_Sans_JP } from "next/font/google";
-import { defineFontsConfig } from "@/lib/fonts";
-const sans = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-sans-loaded", display: "swap" });
-export const FONTS_CONFIG = defineFontsConfig({ sans });
-```
-
-next/font の制約: ローダーはモジュールのトップレベルで、引数はリテラル(変数や import 定数は不可)。`variable` 名は上の固定文字列をそのまま書く。別名を書いても型や実行時では検知できず黙って効かなくなるため、`pnpm test src/lib/fonts/fonts.test.mjs` が `fonts.config.ts` のソースを静的に検査する。Google Fonts はビルド時に取得されセルフホスト化される(実行時に Google への通信は発生しない)。next/font は Next のコンパイラ外(scripts/ や node --test)では動かないので、ローダーを追加した後は `fonts.config.ts` を Next 外から import しない。
-
-```css
-/* src/styles/typography.css */
-:root {
-  --font-geist-sans: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;  /* system フォントの並びだけ変える */
-}
-@theme {
-  --text-fluid-5xl: clamp(2.5rem, 6vmin, 4rem);   /* theme.css の流体サイズを同名で上書き */
-}
-```
-
-注意: `typography.css` で `--font-geist-sans` を上書きすると、その値が `fonts.config.ts` で読み込んだ Web フォントより優先される(loaded 変数への参照を自分で消すことになる)。両方使う場合は `var(--font-sans-loaded, ...)` を含めて書く。
-
-メールテンプレートの書体は別系統(各テンプレートの inline `fontFamily`、メールクライアント向けの system スタック)で、この設定の影響を受けない。
-
-### 角丸・Tailwind の影の段・イージング
-
-```css
-/* 角丸: --radius は core/palette.css が無レイヤーの :root で定義しているので、同じ :root で上書きする
-   (@theme { --radius } は @layer theme に入り、無レイヤーの :root に負けて効かない) */
-:root {
-  --radius: 1rem;            /* theme.css の --radius-sm/md/lg/xl が連動する */
-}
-/* 影の段・イージングは Tailwind の名前空間トークン(上流に無レイヤー定義が無い)なので @theme で効く */
-@theme {
-  --shadow-xs: none;
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.1);
-  --ease-out: cubic-bezier(0.2, 0, 0, 1);
-}
-```
-
-判断基準: `core/palette.css` / `config.css` / `z-layer.css` に `:root { --x }` として定義済みの変数(`--appearance-shadow-*` を含む)は `:root` で、それ以外の Tailwind 名前空間(`--shadow-*` / `--ease-*` / `--text-*` / `--animate-*` 等)は `@theme` で上書きする。
-
-### overrides.css(要素の既定・data-slot)
-
-- 書くもの: 要素の既定(`body`、`a`、`::selection`、scrollbar)、`@keyframes`、`[data-area="admin"] body { ... }` のようなエリア単位の全体調整、上流の枠・部品の内側への `[data-slot="<名前>"]` の規則
-- 無レイヤーなので、同じプロパティの className より常に勝つ(勝ち順)。ボタンやバッジの形は data-slot ではなく `variants.config.ts` で変える(variant / size ごとに変えられ、className の個別指定も残る)
-
-### バリアントの上書き(variants.config.ts)
-
-Button / Badge・入力欄系(Input・選ぶ欄の引き金)・入力部品(真偽のチェック・ラジオ・カード型チェック・ステッパー・スイッチ)・TextBlocks(PageTitle / Para / SecTitle / Span)の形(角丸・影・枠線・寸法・文字)は、core を編集せずに `src/config/ui/variants.config.ts` で差し替える。書いたクラスが cva の出力の後ろに結合され、同じプロパティは tailwind-merge で後勝ちする。各要素の `className` はさらにその後ろなので、個別指定は勝つ。
-
-```ts
-// src/config/ui/variants.config.ts
-import { defineVariantOverrides } from "@/lib/variantOverrides";
-export const VARIANT_OVERRIDES = defineVariantOverrides({
-  button: {
-    base: "rounded-full shadow-none",      // 全 variant / size 共通
-    variant: { outline: "border-2" },      // variant 単位
-    size: { md: "h-11 px-5" },             // size 単位
-  },
-  badge: { size: { md: "px-2 py-0.5" }, solid: { base: "rounded-md" } },
-});
-```
-
-| キー | 対象 | variant / size 名の定義 |
-|---|---|---|
-| `button` | `Button` / `LinkButton` / `PseudoButton`(`buttonVariants` を使う全部品) | `src/components/Form/Button/button-variants.ts` |
-| `tabletButton` | `TabletButton` | `src/components/Form/Button/tablet-button-variants.ts` |
-| `badge.size` | `SolidBadge` / `SoftBadge` / `BookmarkTagBadge` 共通のサイズ | `src/components/Badge/badge-variants.ts` |
-| `badge.solid` / `badge.soft` / `badge.bookmarkTag` | 各バッジの `base` / `variant` | 同上 |
-| `booleanCheckbox` | `BooleanCheckboxInput` のチェックボックス(`base` / `size`) | 値の名前 = `@/lib/variantOverrides` の型(`CheckControlSize`)、既定のクラス = `src/components/Form/Input/Manual/BooleanCheckboxInput.tsx` |
-| `booleanRadioGroup` | `BooleanRadioGroupInput` の各ラジオ(`base` / `size`) | `CheckControlSize`、`BooleanRadioGroupInput.tsx` |
-| `singleCardCheckbox` | `SingleCardCheckbox` のカード(`base` / `size` / `color`。`color` は今の色 = チェック時 `checkedVariant`・未チェック時 `uncheckedVariant` のときだけ) | `CheckControlSize`・`SingleCardCheckboxColor`、`SingleCardCheckbox.tsx` |
-| `input` | 入力欄系(`Input` とその上の部品)と選ぶ欄の引き金(`SelectInput` / `ComboboxInput` / `MultiSelectInput` 系)で 1 つを共有(`base` / `size`) | `InputSize`、`src/components/Form/Input/Manual/Input.tsx` の `INPUT_SIZE_CLASSES` |
-| `stepperInput` | `StepperInput` の外枠(`base` / `size`。既定の高さは操作部品の高さの段) | `StepperInputSize`、`StepperInput.tsx` |
-| `switchInput.track` / `switchInput.indicator` | `SwitchInput` の台(`base` / `size` / `activeColor` はオンの間・`inactiveColor` はオフの間)と丸(`base` / `size`) | `CheckControlSize`・`SwitchInputColor`、`SwitchInput.tsx` |
-| `pageTitle` / `para` / `secTitle` / `span` | 各 TextBlocks(`base` / `tone` / `size` / `weight` / `align`。`srOnly` は上書きしない) | `TextTone`・`TextSize`・`TextWeight`・`TextAlign`、`src/components/TextBlocks/textVariants.ts` |
-
-- 結合順: cva 出力 → `base` → 軸ごと(`variant[v]` → `size[s]`、入力部品・TextBlocks は表の軸の順)→ 要素の `className`
-- 置き換えたいクラスと同じ修飾子を付ける(`hover:bg-primary/90` を変えるなら `hover:bg-primary/80`。`dark:` / `focus-visible:` も同様)
-- 色はここではなく `palette.css` のトークンで変える(トークンなら全部品に効く)。ここは形の差し替え用
-- キーと軸の値の名前は upstream が維持する契約(入力部品・TextBlocks の値の名前は `@/lib/variantOverrides` の型が持ち、部品の既定のクラスの表はそれに `satisfies` で揃える)。削除・改名時は `.notices` で通知する。upstream がキーを増やしても fork の設定は追記不要
-- 仕組み: `@/lib/variantOverrides` の `createOverridableVariants(base, cvaConfig, override)`(cva と同じ引数・同じ返り値型。cva の variants の全ての軸を解決する)。状態で効き方が変わる軸(スイッチの色・カードの色)は部品が `variantOverrideClasses(override, { 軸: 値 })` で足す。cva を持つ棚の部品は全部この口を通す(D112)
-
-### 生パレット色の禁止(ESLint)
-
-upstream 所有の UI(`src/components` / `src/lib` / `src/features/core` / `src/features/_template`)では `bg-slate-900` / `text-red-600` / `bg-white` / `text-[#fff]` のような生パレット色クラスを ESLint(`style-tokens/no-raw-palette`)が error にする(fork 固有の UI は対象外。同じ規律を敷きたい fork は `eslint.config.mjs` の `files` にパスを足す)。あわせて `src/components` 外からの `_shadcn` 直接 import も error(`no-restricted-imports`、対応表は `src/components/_shadcn/README.md`)。生パレット色はブランド色に追従せず `dark:` 併記が要り、fork が core を直す動機になるため。白黒は `bg-background` / `text-foreground` / `bg-card`、幕は `bg-overlay/50`、意味色は上の 3 変数で書く。ブランドロゴ色など正当な例外は理由付き `// eslint-disable-next-line style-tokens/no-raw-palette -- 理由` で明示する。同じ範囲で意味色の素の文字 `text-success` / `text-info` / `text-warning` / `text-destructive`(修飾子・透過率付きも)を `style-tokens/no-bare-semantic-text` が error にする(素の背景の文字は `text-x-text`、塗りの上の文字は `text-x-foreground`。fork が足した lib では warn)。クラス名ではない文字列(入力欄の例など)は理由付き eslint-disable で明示する。
-
-### config.css の値を変えたいとき
-
-`core/config.css` の管理画面余白トークン等は直下の fork のどのファイルからでも `:root { --admin-page-padding-inline: 2rem; }` で上書きできる。`config.css` 側が `@media (min-width: 40rem)` で値を切り替えているトークンは、同じメディアクエリも書くこと(無レイヤーの `:root` は全幅で勝つため)。
-
-枠の寸法変数(`--app-header-height` / `--app-banner-height` / `--app-bottom-nav-height` / `--app-safe-area-*`)の既定値も `config.css` の `:root` にある。`--app-*-height` は UserLayout・AdminLayout が外枠の inline style で実値(実測か config の値)を書くので、fork のファイルから上書きしても効かない(値を変えるのは config の TS か部品の高さそのもの)。`--app-header-height` の初期値(今の行の高さ、外枠ごと・端末ごと)は `core/frame.css` にあり、測る前の最初の表示とページを移る間に効く。利用者の枠は測った値が inline で上書きする(行のクラスとの一致は `core/frameHeaderHeight.test.mjs`)。管理の枠は測らない: 行の高さは `config.css` の `--admin-header-row-height`(SP 3.25rem / PC 5.5rem)1 か所で決まり、行(AdminHeader)と外枠の初期値の両方がそれを読む。ヘッダーを別の高さの部品に差し替えた fork は `overrides.css` でこの値を上書きする。`--app-safe-area-*`(端末の切り欠き = CSS の env() の safe-area-inset-*、無ければ 0px)は fork のファイルから上書きできる。viewport-fit=cover が既定(`src/app/_layout/config.ts の root の枠の viewport`)で、枠の部品はこの変数で端を避ける。env() を直接書くのは `config.css` の定義の 4 行だけ(部品・ページはこの変数を使う)。`config.css` に置いたのは、枠の外(Admin など)でも 0 の既定で参照できるようにするため。layout ごとに書くと枠の外では未定義になる。一覧: `src/app/(user)/_layout/README.md` の「寸法の CSS 変数」
-
-### Tier2 → Tier3 の重ね合わせ
-
-`global.css` の `@import` 順がそのまま優先順位(`./core/index.css` は必ず最初)。Tier2 が `brand.css` を足して import し、Tier3 がさらに自分のファイルを後ろに足せば、Tier3 が勝つ。
-
-## サイトテーマ(ライト / ダーク)
-
-### 仕組み
+### サイトテーマの仕組み
 
 | 段階 | 場所 | 役割 |
 |---|---|---|
@@ -315,42 +149,11 @@ upstream 所有の UI(`src/components` / `src/lib` / `src/features/core` / `src/
 | 判定ロジック | `@/lib/siteTheme`(純関数) | 上の 3 箇所が同じ判定を共有する。bootstrap script は手書き JS だが `pnpm test src/lib/siteTheme/siteTheme.test.mjs` が同一ケース集で一致を検証 |
 | 設定 | `src/config/lib/siteTheme.config.ts`(`@lib-config/siteTheme`、下流所有) | `export default { ...差分 } satisfies SiteThemeOverride`(リテラルだけ)。既定値は `@/lib/siteTheme/defaults.ts`、合成は `@/lib/defineConfig`。合成済みの値は入口の `siteThemeConfig` |
 
-### 設定の意味
-
-```ts
-export default {
-  storageKey: "theme",                                    // 保存キー(全エリア共通、既定 "theme")
-  areas: [                                                // 先頭一致順。key 一致は部分更新、新規 key は末尾追加
-    { key: "admin", match: ["/admin", "/debug"], mode: "light", switchable: true },
-  ],
-  fallback: { key: "user", mode: "light", switchable: false },   // どのエリアにも一致しないパス
-} satisfies SiteThemeOverride;
-```
-
-- `mode`: `light` | `dark` | `system`(OS 設定に追従)
-- `switchable: true` のエリアだけ保存値を参照し、`DarkModeSwitch` が描画される
-- `switchable: false` のエリアは保存値を一切見ない。管理画面でダークを選んでもユーザー側に漏れない
-- 一致判定はセグメント境界(`/admin` は `/administer` に一致しない)
-- 追加したエリアの書かなかった欄は `match: []`・`mode: "light"`・`switchable: false`。`{ key: "admin", $delete: true }` で既定のエリアを消せる(`@/lib/defineConfig` の配列の規則)
-
-よくある設定:
-
-```ts
-{ fallback: { mode: "dark" } }                      // ユーザー側ダーク固定
-{ fallback: { mode: "system", switchable: true } }  // OS 追従 + 利用者が切替可
-{ areas: [{ key: "admin", switchable: false }] }    // 管理画面のスイッチを消す
-{ areas: [{ key: "kiosk", match: ["/kiosk"], mode: "dark" }] }  // エリア追加
-```
-
 ### 表示と保存の分離
 
 lib の中の `src/lib/siteTheme/dom.ts`(入口から出さない)は DOM 適用(`applyThemeToDom`)と保存(`persistThemePreference`)を分けている。保存は利用者が `DarkModeSwitch` を押したときだけ。固定エリアの適用や OS 追従で保存値を汚さない。
 
-### 独自の切替 UI を作るとき
-
-`useSiteThemeStore()`(`@/lib/siteTheme`)の `isDark` / `switchable` / `toggle` / `setDark` を使う。表示可否は `resolveSiteThemeArea(siteThemeConfig, usePathname()).switchable`(どちらも `@/lib/siteTheme`) で判定する(`DarkModeSwitch` の実装がそのまま手本。SSR とクライアントで一致させるため usePathname ベース)。ロックされたエリアでは `setDark` / `toggle` は何もしない(開発時は console.warn)。`<html>` を直接触らない。
-
-## デプロイ後の確認(Vercel ビルドキャッシュ)
+### デプロイ後の確認(Vercel ビルドキャッシュ)
 
 Vercel が前回デプロイのビルドキャッシュを復元すると、キャッシュ作成後に `global.css` / `core/index.css` へ足された `@import` 先が、出力 CSS から黙って抜けることがある。ローカル dev とローカル `next build` は正常で、本番だけ崩れる。
 
@@ -362,7 +165,7 @@ Vercel が前回デプロイのビルドキャッシュを復元すると、キ�
 - **目印の変数**: `@theme` の外に変数を持たない upstream のファイル(`core/` の theme / animations / base / components / admin)は、固有の目印 `--styles-marker-<名前>: 1`(枠の規則 frame.css は `--styles-marker-frame`)を宣言して検査対象にしている。`core/` に CSS を足すときも、固有の変数が無ければ目印を 1 つ置く
 - **ガードの限界**: 他のファイルが宣言している名前だけを上書きするファイル(`palette.css` で `--primary` だけ変える等)は、抜けても名前が残るので検出できない(警告のみ)。fork 独自の変数(例 `--brand-accent`)を 1 つ宣言すれば検査対象になる。`@theme` 内の変数と `@utility` の中身は出力に残る保証が無いため検査しない
 
-## テスト
+## Verification
 
 | コマンド | 内容 |
 |---|---|
