@@ -2,7 +2,7 @@
 
 ## Overview
 
-- lib ごとの「閉じたか」を確かめます。`package.json` を持つ lib(= 宣言した lib)は下の 1〜5 の不備で落ち、宣言の無い lib は数えて一覧に出すだけで落としません(error にするのは移行の最後の段)。package.json の形そのもの(exports・libs・peers・sideEffects の書き方)は `src/lib/libPackage`(読み手と形の検査)と lint が見ます。形に問題がある lib はここでは飛ばして名前を出します(state skipped)。
+- lib ごとの「閉じたか」を確かめます。`package.json` を持つ lib(= 宣言した lib)は下の 1〜5 の不備で落ち、宣言の無い lib は数えて一覧に出すだけで落としません。package.json の形そのもの(exports・libs・peers・sideEffects の書き方)は `src/lib/libPackage`(読み手と形の検査)と lint が見ます。形に問題がある lib はここでは飛ばして名前を出します(state skipped)。
 
 ## Usage
 
@@ -86,7 +86,7 @@ pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]
 - `@/lib/<dep>` と `@/lib/<dep>/*` = package.json の `libs` を辿った閉包(依存の package.json の libs・peers も足す)。package.json に書くのは直接の依存だけで、tsconfig.json には閉包を書く。依存が依存を増やすと、こちらの検査が足す行を出す
 - `@/<peer>/*` = `peers` の棚(今は `components` → `src/components`)。閉包の peers も含む
 - `@lib-config/<自分>` = 設定 `config.ts`(か `config.tsx`)を持つ lib だけが書く(無い lib に、無いファイルへの行を残さない。残っていれば検査が消す行を名指しする)。先(`src/config/lib/<自分>.config.ts`)が無い時は、読んだ時だけ型検査で落ちる(既定値で黙って通さない)。config.ts の無い lib が `@lib-config` を読むと行が無いので TS2307 で落ちる。置き場の決まり: src/lib/README.md「設定の届け方」
-- 依存も設定も無い lib は paths を書かず、compilerOptions も書かない(JS を持つ lib は下の 3 つだけ)
+- 依存も設定も無い lib は paths を書かず、compilerOptions も書かない(JS を持つ lib は上の 3 つだけ)
 - 外部のパッケージはルートの node_modules から今までどおり解決する
 
 #### @lib-config(設定の届け方の行)
@@ -129,10 +129,10 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 
 - 自前の合成 = `@/lib/defineConfig` を読まない lib が、`define<名前>Config` を export する(defineFontsConfig)か、合成器と同じ名前のファイル `defineConfig.<ext>` で `define<名前>` を export する(defineVariantOverrides)
 - defineConfig を読んで作る薄い包み(`define<名前>Config = () => defineConfig(…)`)は自前の合成ではない
-- 合成器そのもの(契約 api.defineconfig が名指す lib `defineConfig` = `COMPOSER_LIB`)には掛けない
+- 合成器そのもの(`src/lib/defineConfig` = `COMPOSER_LIB`)には掛けない
 - 設定の合成でない define(crud の defineHiddenColumns など)は当たらない。別の名前の自前の合成は見えない(名前と置き場で見るため)
 
-- 入口 `check.mjs`(gate.json の check)が `checkLibs(root)`・`libReport(root)` を呼ぶ。部品: `closed.mjs`(状態・中を読む import・設定・合成)・`standalone.mjs`(閉包・tsconfig.json の期待と比べ・型検査)・`sideEffects.mjs`・動きの `moved.mjs` / `codemod.mjs`
+- 入口 `check.mjs`(gate.json の check)が `checkLibs(root)`(→ `{ checked, skipped, undeclared, problems }`)・`libReport(root)`(→ `{ rows, summary }`)を呼ぶ。部品: `closed.mjs`(状態・中を読む import・設定・合成)・`standalone.mjs`(閉包・tsconfig.json の期待と比べ・型検査)・`sideEffects.mjs`・動きの `moved.mjs` / `codemod.mjs`
 
 ## Verification
 
@@ -140,4 +140,5 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 - `libPackage.test.mjs` 一時フォルダの小さな repo でのテスト
 - `closed.test.mjs` 閉じたかの検査のテスト
 - `moved.test.mjs` moved の動き(一時フォルダの git repo)
+- `codemod.test.mjs` codemod の動き
 - `delivery.test.mjs` @lib-config の 1 行と、上書きが無い時に tsc・tsx・pnpm test が止まること

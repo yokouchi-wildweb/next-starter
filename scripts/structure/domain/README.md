@@ -25,9 +25,9 @@
 1. `src/features/<camelCase>/domain.json` を手で書く・直す（スキーマと例: [src/features/README.md](../../../src/features/README.md)。`src/features/sample/domain.json` が全機能の例）
 2. `pnpm forge`（検査で止まったら文のとおりに直してもう一度）
 3. `git status` / `git diff` で生成物を確認
-4. 表が変わったら forge の最後の案内どおり `pnpm db:push`（人が実行）→ `pnpm db:push:check` で差分ゼロ（CLAUDE.md DOMAINS push_roundtrip）
+4. 表が変わったら forge の最後の案内どおり `pnpm db:push`（人が実行）→ `pnpm db:push:check` で差分ゼロ
 
-テンプレート（`_template/`）や生成器を変えたとき: `pnpm generate domain` で全ドメインへ反映し、差分を確認してサンプルの再生成結果も一緒にコミットする（`pnpm test scripts/structure/domain/tests <ref>` で前後比較）。
+テンプレート（`_template/`）や生成器を変えたとき: `pnpm generate domain` で全ドメインへ反映し、差分を確認してサンプルの再生成結果も一緒にコミットする（`pnpm check domain -- --parity <ref>` で前後比較）。
 
 ### コマンド
 
@@ -36,7 +36,7 @@
 | `pnpm generate domain -- <Domain>` | `index.mjs --generate` | 1 ドメイン（と主・従属の組の全員）を生成・再生成する |
 | `pnpm generate domain` | `index.mjs --generate --all` | 全ドメインを一括で再生成する |
 | `pnpm generate domain -- --delete <Domain> --confirm <snake_name>` | `index.mjs --delete` | 生成物とレジストリ登録を削除する |
-| `pnpm test scripts/structure/domain/tests <git-ref>` | `tests/parity.mjs` | 生成器の前後比較（下の「前後比較」） |
+| `pnpm check domain -- --parity <git-ref>` | `tests/parity.mjs` | 生成器の前後比較（Internals.md「前後比較」） |
 | `pnpm check domain -- --compare [<Domain>...] [--base <ref>] [--detail] [--json <file>]` | `compare.mjs` | fork が generate を true / false に決めるための比較（下の「generate の旗を決める」）。読むだけ |
 
 オプション:
@@ -55,11 +55,11 @@
 
 `pnpm generate domain -- <Domain> --only registry` / `pnpm generate domain -- --only registry,hooks` のように、今回はこのカテゴリだけ生成する（保存しない）。
 
-- `generate: true` のドメインは全カテゴリのうち名指しのものだけ。`generate: false` のドメインは名指ししても何も書かない（上の「generate の旗」）。集まりの従属は従属のカテゴリの内だけ
+- `generate: true` のドメインは全カテゴリのうち名指しのものだけ。`generate: false` のドメインは名指ししても何も書かない（下の Extension「generate の旗」）。集まりの従属は従属のカテゴリの内だけ
 - 作成済みの write-once（`<domain>Service.ts`・管理画面の `page.tsx`）をわざと作り直すときは、そのファイルを消してから生成する
 - 不明なカテゴリ名は終了コード 1
 - `--only registry` が書くのは `services/server/` の `domainEntry.ts`・`collections.ts`・`storagePurposes.ts`（ドメイン内）。最後に `serviceRegistry.ts` を丸ごと作り直す（`:all` は全ドメインの domainEntry.ts を書いた後に 1 回だけ）。他の `src/registry/` の一覧は `pnpm generate registry`（forge の段）
-  - storagePurposes.ts には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。`storage.image`（画像の縮小の指定）は書いたときだけ入る（形・keep の項目への指定は生成エラー）。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/features/README.md](../../../src/features/README.md)「ファイルの保存（storage）」）
+  - storagePurposes.ts には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。`storage.image`（画像の縮小の指定）は書いたときだけ入る（形・keep の項目への指定は生成エラー）。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/features/Extension.md](../../../src/features/Extension.md)「ファイルの保存（storage）」）
   - private の用途の `read.allow` は `storage.read`（`"public"` も可）、無ければ apiAccess の get の規則。visibility を省いた項目の公開・非公開の導出も同じ規則を使う
 - `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm generate domain -- --only registry`）。`[user-run]` は付けない
 
@@ -96,11 +96,11 @@
 
 ### よくある失敗
 
-- 生成が `[<domain>] ...` の文を並べて止まる → domain.json の決まり（必須キー・項目名と従属名の snake_case・外部キーの型・enum の選択肢・既定値・メディアの accept・一覧の設定の名前・廃止した `generateFiles`）に反している。文のとおりに直す（規則の一覧: [src/features/README.md](../../../src/features/README.md)「domain.json スキーマ定義」）
+- 生成が `[<domain>] ...` の文を並べて止まる → domain.json の決まり（必須キー・項目名と従属名の snake_case・外部キーの型・enum の選択肢・既定値・メディアの accept・一覧の設定の名前・廃止した `generateFiles`）に反している。文のとおりに直す（規則の一覧: [src/features/API.md](../../../src/features/API.md)「domain.json スキーマ定義」）
 - `[domain.json] <domain>: ...` の警告が出る → 綴り違いのキー、古いキー（`version` → `domainConfigVersion`、`onDeleteCascade` → `onDelete`）、その DB に無い `fieldType`、知らない `formInput`、表に無い型と入力欄の組、選択肢の要る入力欄に options が無い、など（`checks/vocabulary.mjs` と各検査の `*Warnings`）
   - 生成は止まらないが、未知の `fieldType` は列名としてそのまま出力され、未知の `formInput` はフォームに出ないので直す
   - 知らないキーは同じキーをドメインごとに 1 行（件数と最初の 3 か所）にまとめ、他の警告の後ろに並べる
-  - 開発者のメモは `"$comment"`（どの階層でも通り、生成物にも写しにも出ない。`src/features/README.md`「開発者のメモ（$comment）」）
+  - 開発者のメモは `"$comment"`（どの階層でも通り、生成物にも写しにも出ない。`src/features/API.md`「開発者のメモ（$comment）」）
 - `domain.json` が壊れている（JSON として読めない） → 直してから再実行
 - `テンプレートのトークンが置換されていません` → 管理画面テンプレートに未対応のトークンが残っている。テンプレートを直す
 - `src/registry/district-map.jsonl` が `pnpm check district-map` で落ちる → `pnpm generate district-map`（または forge）で作り直してコミット
@@ -115,7 +115,7 @@
 
 `domain.json` の `generate`（省略 = true）が、そのドメインを生成器が持つか手で持つかを決める。区分ごとの `generateFiles` は廃止（残っていると生成前に止まる）。
 
-- `true`: 下の「生成されるもの」の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ。生成器が決める）。手の実装は生成物の外（`wrappers/`、write-once の `<domain>Service.ts`、`formEntities.ts`、`_components/`）に置き、再生成のたびに載せ替わる前提
+- `true`: API.md「生成されるもの」の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ。生成器が決める）。手の実装は生成物の外（`wrappers/`、write-once の `<domain>Service.ts`、`formEntities.ts`、`_components/`）に置き、再生成のたびに載せ替わる前提
 - `false`: 手で管理。生成器は何も書かない（`domainEntry.ts` の書き直し・従属の domain.json も無し。`serviceRegistry.ts` は `domainEntry.ts` から作るので載り続ける）。載せ替えが手間になったドメインをこちらにする
 - `domainEntry.ts` を持たないまま `false` にしたドメイン（旧 `generateFiles.registry: false` から移ったものなど）は登録表に載らず `pnpm check registry` が止まる → `domainEntry.ts` を手書きする（写せる形: [src/lib/domain/README.md](../../../src/lib/domain/README.md)「generate: false の業務ドメイン」）
 - `false` のドメインはどんな実行でも生成器を通さない: `pnpm generate domain`・forge・1 ドメインの名指し・`--only`・`-i` のどれでも何も書かず、生成前の検査もしない（`[<domain>] generate: false（手で管理）のため何も書きません` の 1 行だけ）。一度だけ作り直すときは `generate` を true に戻して生成し、要る手書きを戻してから false に戻す
@@ -129,7 +129,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 - 欄: 未改変（base の出力と同じ。今の出力と違えば「上流の改良で変わる」）/ 手の変更の見込み（base の出力に行を挿した）/ 古い生成物の見込み（消した・置き換えただけ = base より前の生成器の出力のまま）/ 新しく作られる（管理画面の page.tsx・`_screen/`・`domainEntry.ts` は「新しい入口」）/ 残る（write-once）/ fork のファイル（生成器が作らない。wrappers/ は別に数える）/ 表の定義の書き直し（entities/drizzle.ts が変わる → `db:push:check` 0 を確かめる）
 - 見込み: `true にできる`（全部未改変）/ `確かめて true`（新しい入口・表の書き直し・古い生成物の見込みがある）/ `wrappers へ移すか false`（手の変更の見込みがある）/ `直してから`（今の生成器で止まる。理由を出す）
 - 手の変更と古い生成物は中身だけでは区別できない（挿した行 = 手の変更、と見なす）。`--detail` のファイルごとの行数と「最後の commit」の題で確かめてから決める
-- 決め方の手順は notice 20261030-150956-generate-decision-compare。決めた理由は domain.json ではなく移行の commit の本文に書く（記録は generate の旗だけ）
+- 決め方: 上の欄と見込みを `--detail` で確かめて決める。決めた理由は domain.json ではなく移行の commit の本文に書く（記録は generate の旗だけ）
 
 ### 生成物を変えたいとき（生成ファイルは編集しない）
 

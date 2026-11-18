@@ -24,7 +24,7 @@
 
 `serverServices` の配線:
 
-- メディア列（mediaUploader）があれば drizzleBase に `storage: storageBindingFor(...)`（[src/lib/crud/README.md](../../../src/lib/crud/README.md)「storage オプション」）。Firestore ドメインのメディア列は生成エラー
+- メディア列（mediaUploader）があれば drizzleBase に `storage: storageBindingFor(...)`（[src/lib/crud/storageIntegration/README.md](../../../src/lib/crud/storageIntegration/README.md)）。Firestore ドメインのメディア列は生成エラー
 - 主の集まりの項目があれば drizzleBase が `collections` を import して options に渡す（`generate: false` の主は自分で足す。渡し忘れは `pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs` が見つける）
 
 生成される client の部品（`components` カテゴリ）は domain.json を import せず、写し `entities/display.ts` の `domainDisplay` を読む（`pnpm generate registry` が書く。写す項目: [`src/lib/domain/README.md`](../../../src/lib/domain/README.md)）。
@@ -40,7 +40,7 @@
 | 作らない（`pnpm generate registry`） | `src/registry/` の schemaRegistry / domainConfigRegistry / storagePurposeRegistry / adminDomains（走査で丸ごと） |
 | 毎回上書き（生成物） | `services/server/domainEntry.ts`（`apiAccess` が無ければ fail-closed = `...ADMIN_ONLY`、`useImportExport: true` のときだけ export / import を開く。`table` = `domain/names.mjs` の `domainTableName`、`idColumn` = `"id"`、Firestore は両方 `null`）。`src/registry/serviceRegistry.ts`（全 domainEntry.ts から `pnpm generate registry` が丸ごと生成。仕組みは `src/lib/domain/README.md`） |
 
-管理画面ルートの構造（`page.tsx` / `_screen/` の Screen と loader.ts）は [`src/lib/screens/README.md`](../../../src/lib/screens/README.md) §12。
+管理画面ルートの構造（`page.tsx` / `_screen/` の Screen と loader.ts）は [`src/lib/screens/Internals.md`](../../../src/lib/screens/Internals.md)「生成される管理画面ルート（pnpm generate domain）」。
 
 #### 出力の種類のデータ（`gate.json` の `outputs`）
 
@@ -48,7 +48,7 @@
   - `glob` はリポジトリ直下からの glob。`{dir}` = ドメインのフォルダ・`{camel}` = フォルダ名・`{Pascal}` = その PascalCase・`{route}` = 管理画面のルートのフォルダ（複数形の kebab-case、決まりの元は `src/lib/districtMap/domainNames.mjs`）。`[id]` の `[` `]` は字そのもの
   - `source` = その生成物を変えたいときに直す物（`{dir}/domain.json`・`{dir}/services/server/wrappers/`・`{dir}/adminBulkActions/`）
 - 受け口の一覧の generated の行にはならない（行になるのは `every-run` でドメインの置き換えを持たない glob だけ。`src/lib/districtMap/domainOutputs.mjs` の `intakeOutputGlobs`）
-- 読み手: `pnpm workflow ownership who`（`every-run` = 型 generated で直す元を案内、`write-once` と `"generate": false` のドメインは持ち主で own か none。`src/lib/forkOwnership/README.md`「型」）。当て方は `src/lib/districtMap/domainOutputs.mjs`
+- 読み手: `pnpm workflow ownership who`（`every-run` = 型 generated で直す元を案内、`write-once` と `"generate": false` のドメインは持ち主で own か none。`src/lib/forkOwnership/Internals.md`「型の答え(`explain.mjs`)」）。当て方は `src/lib/districtMap/domainOutputs.mjs`
 - 照合: `pnpm test scripts/structure/domain/tests/outputs.test.mjs` が、このリポの全ドメイン（`generate: false` を除く）を全カテゴリで組み立て（何も書かない）、`file` の Output は `every-run` の行に、`writeOnce` は `write-once` の行に当たり、どの行もどれかの出力に当たることを見る。生成器が書くファイルを足したら、この行も同じコミットで足す
 
 - 印: 毎回上書きの出力（`file` の Output）で注釈を持てる形式（.ts .tsx .mts .mjs .js .css）は、先頭の `// <パス>` の行の次（無ければ先頭）に生成物の印の 1 行が入る（`render/output.mjs` の `file()` = 1 か所）。`pnpm check rules`（`scripts/workflow/rules/generated.mjs`）が先頭 5 行に印があるかを見る。雛形を変えるのは `src/features/_template/`（生成物は直さない）

@@ -9,7 +9,7 @@
 ### 生成の流れ（`pipeline/generate.mjs`）
 
 - 読む → 検査（`checks/`、全件を並べて止める）→ 全カテゴリの生成物を組み立てる → 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す → 地区の地図 `district-map.jsonl` を書き直す
-- 組み立てでは、主の集まりの項目 `mediaCollection` があれば、従属の domain.json を無いときだけ書き出す Output も足す（`render/collections/`。雛形の形と権限の写し: [src/features/README.md](../../../src/features/README.md)「主の集まりの項目（mediaCollection）」）
+- 組み立てでは、主の集まりの項目 `mediaCollection` があれば、従属の domain.json を無いときだけ書き出す Output も足す（`render/collections/`。雛形の形と権限の写し: [src/features/Extension.md](../../../src/features/Extension.md)「主の集まりの項目（mediaCollection）」）
 - 登録表が作れない状態（手書きの行が残っている、他のドメインに `domainEntry.ts` が無い）なら何も書かずに止まる
 
 `pnpm generate domain` は全ドメインの生成物を先に組み立て、登録表が作れることを確かめてから書き始めるので、途中のドメインで止まって半端に残ることはない。テンプレートを変えたあとの一括反映に使う。
@@ -89,7 +89,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - `pnpm test scripts/structure/domain/tests/parentOutputs.test.mjs`
 - `pnpm test scripts/structure/domain/tests/plural.test.mjs`
 
-#### 前後比較（`pnpm test scripts/structure/domain/tests <git-ref>`）
+#### 前後比較（`pnpm check domain -- --parity <git-ref>`）
 
 生成器を変えたら、変える前のコミットの生成器と作業ツリーの生成器を**同じ fixture に流して**、生成物・終了コード・出力行が同じかを見る（`tests/parity.mjs`）。「生成物を変えないつもりの変更」はこれが空になるまで直す。生成物を変える変更では、差分が意図したものだけかを目で確かめる。
 
@@ -103,4 +103,4 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 
 サンプルの陳腐化検査: `pnpm test scripts/structure/domain/tests/sampleDrift.test.mjs` は `sample` / `sampleCategory` / `sampleTag` / `sampleImage` を一時ディレクトリへ複製したうえで再生成し、コミット済みの生成物と 1 バイトでも違えば落ちる（作業ツリーは書き換えない）。`sample.images` = 主の集まりの項目（mediaCollection）の例で、従属 `sampleImage` を持つ。存在しないサンプルドメインは対象から外し、全部無ければスキップする。
 
-- domain.json の `closable`(閉じられる形の印)は受けない(`checks/closable.mjs`): 書けば true でも false でも生成の前に止めて、機能の規則の書き方を案内する(テスト `pnpm test scripts/structure/domain/tests/closableRetired.test.mjs`)。機能として閉じるには `src/featureGate/rules/<名前>.ts` に規則を書く(`src/featureGate/README.md`「規則の書き方」)
+- domain.json の `closable`(閉じられる形の印)は受けない(`checks/closable.mjs`): 書けば true でも false でも生成の前に止めて、機能の規則の書き方を案内する(テスト `pnpm test scripts/structure/domain/tests/closableRetired.test.mjs`)。機能として閉じるには `src/featureGate/rules/<名前>.ts` に規則を書く(`src/featureGate/API.md`「規則の書き方」)
