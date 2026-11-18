@@ -18,6 +18,7 @@ import { useState } from "react";
 
 import { Stack } from "@/components/Layout/Stack";
 import type { BankTransferConfig } from "@/features/purchaseRequest/config";
+import type { JudgmentResult } from "@/features/core/purchaseRequest/types/bankTransferJudgment";
 
 import { AccountInfoCard } from "@/features/core/purchaseRequest/components/BankTransferInstruction/AccountInfoCard";
 import { AmountDisplay } from "@/features/core/purchaseRequest/components/BankTransferInstruction/AmountDisplay";
@@ -26,7 +27,6 @@ import { ConfirmTransferCTA } from "@/features/core/purchaseRequest/components/B
 import {
   ImageJudgmentSection,
   isJudgmentPassed,
-  type JudgmentResult,
 } from "@/features/core/purchaseRequest/components/BankTransferInstruction/ImageJudgmentSection";
 import { PrepareProofImage } from "@/features/core/purchaseRequest/components/BankTransferInstruction/PrepareProofImage";
 import { SaveBookmarkButton } from "@/features/core/purchaseRequest/components/BankTransferInstruction/SaveBookmarkButton";

@@ -22,7 +22,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios, { AxiosError } from "axios";
 import { Brain, CircleCheck, CircleX, RefreshCw } from "lucide-react";
 
 import { SoftBadge } from "@/components/Badge";
@@ -32,6 +31,9 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, Span } from "@/components/TextBlocks";
 
+import { useBankTransferImageJudge } from "@/features/core/purchaseRequest/hooks/useBankTransferImageJudge";
+import type { JudgmentResult, StrictChecks } from "@/features/core/purchaseRequest/types/bankTransferJudgment";
+
 import { circledNumber } from "./stepNumber";
 
 /**
@@ -39,45 +41,6 @@ import { circledNumber } from "./stepNumber";
  * 表示用にのみ使用。実際のゲートはサーバー側で行われる。
  */
 const LIMIT_15M_FAILURES = 3;
-
-export type RateLimitInfo = {
-  /** 直近15分の残り失敗許容回数 */
-  remainingFailures15m: number;
-  /** 直近24時間の残り試行可能回数（UI には出さないが 429 判断に使う） */
-  remainingAttempts24h: number;
-  resetAt15m: string | null;
-  resetAt24h: string | null;
-};
-
-/**
- * ストリクトモード時の必須 3 点チェックの個別結果。
- * サーバー側 (lib/aiVision) の BankTransferStrictChecks と同期。
- */
-export type StrictChecks = {
-  /** 振込人名が明細内で読み取れたか */
-  senderNameConfirmed: boolean;
-  /** 振込人名の前後どちらかに識別数字があるか */
-  identifierConfirmed: boolean;
-  /** 振込金額が一致したか */
-  amountConfirmed: boolean;
-  /** 読み取れた振込人名（読み取れなかった場合は null） */
-  detectedSenderName: string | null;
-};
-
-export type JudgmentResult = {
-  /**
-   * サーバー側で確定した合否（isLikelyBankTransfer && confidence >= 閾値）。
-   * 閾値の定義は purchaseRequest/constants/bankTransferJudgment.ts に集約されている。
-   */
-  passed: boolean;
-  isLikelyBankTransfer: boolean;
-  confidence: number;
-  imageType: "photo" | "screenshot" | "other";
-  reason: string;
-  /** ストリクトモード時のみ付与される */
-  strictChecks?: StrictChecks;
-  rateLimit: RateLimitInfo;
-};
 
 /** 親側で判定通過の参照に使うヘルパー。合否はサーバーが返した passed をそのまま使う。 */
 export function isJudgmentPassed(result: JudgmentResult | null): boolean {
@@ -107,38 +70,18 @@ export function ImageJudgmentSection({
   onResultChange,
   strictMode,
 }: Props) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // 直近の rate limit 情報。429 を受けた時 / 判定が完了した時の両方で更新される。
+  // 直近の rate limit 情報は判定のフックが持つ。429 を受けた時 / 判定が完了した時の両方で更新され、
   // result が null になっても保持して残量表示に使う（画像差し替え後でも見せる）。
-  const [rateLimit, setRateLimit] = useState<RateLimitInfo | null>(null);
+  const { judge, loading, error, rateLimit } = useBankTransferImageJudge(requestId);
 
   // 15分ウィンドウのリセットまでの相対時刻表示用（30秒ごとに更新）
   const resetText15m = useRelativeTimeFromNow(rateLimit?.resetAt15m ?? null);
 
   const handleJudge = async () => {
     if (!file || loading) return;
-    setLoading(true);
-    setError(null);
     onResultChange(null);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await axios.post<JudgmentResult>(
-        `/api/wallet/purchase/${requestId}/bank-transfer/judge-image`,
-        formData,
-      );
-      onResultChange(res.data);
-      setRateLimit(res.data.rateLimit);
-    } catch (e) {
-      const { message, rateLimit: limitFromError } = extractError(e);
-      setError(message);
-      if (limitFromError) {
-        setRateLimit(limitFromError);
-      }
-    } finally {
-      setLoading(false);
-    }
+    const judged = await judge(file);
+    if (judged) onResultChange(judged);
   };
 
   const isRateLimited =
@@ -377,25 +320,4 @@ function useRelativeTimeFromNow(iso: string | null): string | null {
   if (minutes < 60) return `約${minutes}分`;
   const hours = Math.ceil(minutes / 60);
   return `約${hours}時間`;
-}
-
-type ExtractedError = {
-  message: string;
-  rateLimit: RateLimitInfo | null;
-};
-
-function extractError(e: unknown): ExtractedError {
-  if (e instanceof AxiosError) {
-    const data = e.response?.data as
-      | { message?: string; rateLimit?: RateLimitInfo }
-      | undefined;
-    return {
-      message: data?.message ?? e.message,
-      rateLimit: data?.rateLimit ?? null,
-    };
-  }
-  if (e instanceof Error) {
-    return { message: e.message, rateLimit: null };
-  }
-  return { message: "判定に失敗しました", rateLimit: null };
 }

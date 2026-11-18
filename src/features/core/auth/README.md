@@ -191,6 +191,7 @@ API ルート側の認可はファクトリーが構造的に強制する（`cre
 - root layout (`src/app/layout.tsx`) の `AuthSessionProvider`（server）が Cookie を `resolveSessionUser` で解決し、`AuthSessionClientProvider` に初期値として渡す
 - クライアントは `useAuthSession()` → `{ user, isAuthenticated, refreshSession }`。`refreshSession` は `GET /api/auth/session` を叩いて Context を更新（失敗時は user=null）。UI の表示切替（ログインボタン・ユーザー名）は Context だけを見る
 - ログアウト: `useLogout` → `services/client/logout.ts` → `POST /api/auth/logout`（Cookie 削除）
+- パスワード再設定メール: `useForgotPassword` → `services/client/forgotPassword.ts`（`sendPasswordResetEmail`）→ `POST /api/auth/forgot-password`
 - `AuthSessionClientProvider` は `useFirebaseAuthSync`（JWT はあるのに Firebase Auth が未サインインのとき `/api/auth/firebase-token` のカスタムトークンで再サインイン）と DAU 記録も担う
 - 管理者ログイン: `AdminLogin` + `useAdminLogin` → `POST /api/auth/local/login`（admin カテゴリのみ、失敗は `loginAudit` で記録・ロックアウト判定）
 

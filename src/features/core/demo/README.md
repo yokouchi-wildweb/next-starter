@@ -29,8 +29,11 @@ demo/
 │   ├── server/demoLogin.ts        # demoLogin: 覚えた ID のデモ利用者か新しいデモ利用者でセッションを発行する
 │   ├── server/onDemoUserCreated.ts          # 1 行スイッチ(fork の実装は隣の onDemoUserCreated.replace.ts に向ける)
 │   ├── server/onDemoUserCreated.default.ts  # 既定 = 何もしない(新しいデモ利用者に関連の行を足す受け口)
-│   └── client/demoLogin.ts        # POST /api/demo-login を呼ぶ ClientService
+│   ├── client/demoLogin.ts        # POST /api/demo-login を呼ぶ ClientService
+│   └── client/bankTransferVision.ts  # POST /api/demo/bank-transfer-vision(振込明細画像の判定デモ)を呼ぶ ClientService
 ├── hooks/useDemoLogin.ts          # /demo-login の画面が呼ぶ hook
+├── hooks/useBankTransferVisionDemo.ts  # /demo/bank-transfer-vision の画面が呼ぶ hook(結果・読み込み中・エラーの文言)
+├── types/bankTransferVision.ts    # 判定デモの入力と応答の型
 └── components/DemoUserList/       # /admin/users/demo の一覧(入口 components/index.ts)
 ```
 

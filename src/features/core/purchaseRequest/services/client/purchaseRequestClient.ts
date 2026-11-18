@@ -11,6 +11,7 @@ import type {
 import { normalizeHttpError } from "@/lib/errors";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 import type { LaunchInstruction } from "@/features/core/purchaseRequest/types/payment";
+import type { JudgmentResult } from "@/features/core/purchaseRequest/types/bankTransferJudgment";
 
 // 基本CRUDクライアント
 export const purchaseRequestClient: ApiClient<
@@ -153,3 +154,43 @@ export async function cancelPurchase(
   }
 }
 
+/**
+ * 振込明細画像を AI の事前判定に送る(合否はサーバーが確定して返す)。
+ * 失敗は HttpError で投げる。429(判定の回数制限)は responseData.rateLimit に残量が載る。
+ */
+export async function judgeBankTransferImage(
+  requestId: string,
+  file: File,
+): Promise<JudgmentResult> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await axios.post<JudgmentResult>(
+      `/api/wallet/purchase/${requestId}/bank-transfer/judge-image`,
+      formData,
+    );
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "判定に失敗しました");
+  }
+}
+
+/**
+ * ダミー決済の結果をダミーの webhook に知らせる(開発・デモ用の決済プロバイダ)。
+ * payment_method は利用者が選んだ方法をそのまま伝える(未指定ならサーバー側で credit_card)。
+ */
+export async function notifyDummyPayment(input: {
+  success: boolean;
+  sessionId: string;
+  paymentMethod?: string | null;
+}): Promise<void> {
+  try {
+    await axios.post("/api/webhook/payment?provider=dummy", {
+      event_type: input.success ? "payment.completed" : "payment.failed",
+      session_id: input.sessionId,
+      payment_method: input.paymentMethod ?? undefined,
+    });
+  } catch (error) {
+    throw normalizeHttpError(error, "決済処理中にエラーが発生しました。");
+  }
+}

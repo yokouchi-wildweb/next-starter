@@ -1,6 +1,5 @@
 "use client";
 
-import axios, { AxiosError } from "axios";
 import { useState } from "react";
 import { CircleCheck, CircleX } from "lucide-react";
 
@@ -12,34 +11,15 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, Span } from "@/components/TextBlocks";
 import { MediaInput } from "@/lib/mediaInputSuite";
-
-/** ストリクトモード時の必須 3 点チェックの個別結果（lib/aiVision の BankTransferStrictChecks と同期） */
-type StrictChecks = {
-  senderNameConfirmed: boolean;
-  identifierConfirmed: boolean;
-  amountConfirmed: boolean;
-  detectedSenderName: string | null;
-};
-
-type JudgmentResult = {
-  isLikelyBankTransfer: boolean;
-  confidence: number;
-  imageType: "photo" | "screenshot" | "other";
-  reason: string;
-  /** ストリクトモード時のみ付与される */
-  strictChecks?: StrictChecks;
-};
-
-type ApiError = { message?: string };
+import { useBankTransferVisionDemo } from "@/features/core/demo/hooks/useBankTransferVisionDemo";
+import type { DemoJudgmentResult, DemoStrictChecks } from "@/features/core/demo/types/bankTransferVision";
 
 const ACCEPTED_MIME_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 export const BankTransferVisionDemo = () => {
   const [file, setFile] = useState<File | null>(null);
   const [resetSignal, setResetSignal] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<JudgmentResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { judge, clear, clearResult, result, loading, error } = useBankTransferVisionDemo();
   // ストリクトモード（振込人名・識別数字・金額の 3 点確認）の切り替えと期待値
   const [strictMode, setStrictMode] = useState(false);
   const [expectedIdentifier, setExpectedIdentifier] = useState("");
@@ -52,40 +32,17 @@ export const BankTransferVisionDemo = () => {
 
   const handleJudge = async () => {
     if (!file || !canJudge) return;
-    setLoading(true);
-    setError(null);
-    setResult(null);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      if (strictMode) {
-        formData.append("expectedIdentifier", expectedIdentifier.trim());
-        formData.append("expectedAmount", String(expectedAmount));
-      }
-      const res = await axios.post<JudgmentResult>(
-        "/api/demo/bank-transfer-vision",
-        formData,
-      );
-      setResult(res.data);
-    } catch (e) {
-      if (e instanceof AxiosError) {
-        const data = e.response?.data as ApiError | undefined;
-        setError(data?.message ?? e.message);
-      } else if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError("判定に失敗しました");
-      }
-    } finally {
-      setLoading(false);
-    }
+    await judge({
+      file,
+      strict: strictMode
+        ? { expectedIdentifier: expectedIdentifier.trim(), expectedAmount: expectedAmount ?? 0 }
+        : undefined,
+    });
   };
 
   const handleReset = () => {
     setFile(null);
-    setResult(null);
-    setError(null);
+    clear();
     setResetSignal((n) => n + 1);
   };
 
@@ -100,8 +57,7 @@ export const BankTransferVisionDemo = () => {
         helperText="jpeg / png / gif / webp、最大5MB"
         onFileChange={(next) => {
           setFile(next);
-          setResult(null);
-          setError(null);
+          clear();
         }}
         resetSignal={resetSignal}
       />
@@ -114,8 +70,7 @@ export const BankTransferVisionDemo = () => {
           onChange={(next) => {
             setStrictMode(next);
             // モード切替後の結果は前提が異なるためクリアする
-            setResult(null);
-            setError(null);
+            clear();
           }}
         />
 
@@ -132,7 +87,7 @@ export const BankTransferVisionDemo = () => {
                   inputMode="numeric"
                   onChange={(e) => {
                     setExpectedIdentifier(e.target.value);
-                    setResult(null);
+                    clearResult();
                   }}
                 />
               </Stack>
@@ -147,7 +102,7 @@ export const BankTransferVisionDemo = () => {
                   placeholder="例: 10000"
                   onChange={(next) => {
                     setExpectedAmount(next);
-                    setResult(null);
+                    clearResult();
                   }}
                 />
               </Stack>
@@ -181,7 +136,7 @@ export const BankTransferVisionDemo = () => {
   );
 };
 
-const ResultView = ({ result }: { result: JudgmentResult }) => {
+const ResultView = ({ result }: { result: DemoJudgmentResult }) => {
   return (
     <Stack gap="md" className="rounded-lg border bg-card p-4">
       <div className="flex items-center gap-3">
@@ -222,7 +177,7 @@ const ResultView = ({ result }: { result: JudgmentResult }) => {
  * ストリクトモードの必須 3 点チェック結果の一覧表示。
  * 読み取れた振込人名も補足表示してプロンプト調整の手がかりにする。
  */
-const StrictCheckList = ({ checks }: { checks: StrictChecks }) => {
+const StrictCheckList = ({ checks }: { checks: DemoStrictChecks }) => {
   const items: { label: string; confirmed: boolean }[] = [
     { label: "振込人名の確認", confirmed: checks.senderNameConfirmed },
     { label: "識別数字の確認（名前の前後）", confirmed: checks.identifierConfirmed },
@@ -270,7 +225,7 @@ const ConfidenceBar = ({ value }: { value: number }) => {
   );
 };
 
-const imageTypeLabel = (type: JudgmentResult["imageType"]): string => {
+const imageTypeLabel = (type: DemoJudgmentResult["imageType"]): string => {
   switch (type) {
     case "photo":
       return "写真";

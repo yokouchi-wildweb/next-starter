@@ -2,14 +2,14 @@
 
 "use client";
 
-import { useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import axios from "axios";
 import { CreditCard } from "lucide-react";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button/Button";
+
+import { useDummyPayment } from "@/features/core/purchaseRequest/hooks/useDummyPayment";
 
 export function DummyPaymentForm() {
   const searchParams = useSearchParams();
@@ -19,9 +19,7 @@ export function DummyPaymentForm() {
   const amount = searchParams.get("amount");
   const paymentMethod = searchParams.get("payment_method");
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const lockRef = useRef(false);
+  const { pay, loading, error } = useDummyPayment({ sessionId, successUrl, cancelUrl, paymentMethod });
 
   // パラメータ不足チェック
   if (!sessionId || !successUrl || !cancelUrl) {
@@ -44,34 +42,8 @@ export function DummyPaymentForm() {
     );
   }
 
-  const handlePayment = async (success: boolean) => {
-    if (lockRef.current) return;
-    lockRef.current = true;
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Webhookを呼び出して決済結果を通知
-      // payment_method はユーザーが選択したメソッドをそのまま伝搬する
-      // （未指定時は dummy 側で credit_card にフォールバックされる）
-      await axios.post("/api/webhook/payment?provider=dummy", {
-        event_type: success ? "payment.completed" : "payment.failed",
-        session_id: sessionId,
-        payment_method: paymentMethod ?? undefined,
-      });
-
-      // 成功または失敗のURLへリダイレクト
-      if (success) {
-        window.location.assign(successUrl);
-      } else {
-        window.location.assign(`${cancelUrl}&error_code=PAYMENT_FAILED`);
-      }
-    } catch (err) {
-      console.error("Payment webhook call failed:", err);
-      setError("決済処理中にエラーが発生しました。");
-      lockRef.current = false;
-      setLoading(false);
-    }
+  const handlePayment = (success: boolean) => {
+    void pay(success);
   };
 
   const handleCancel = () => {

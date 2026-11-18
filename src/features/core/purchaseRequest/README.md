@@ -110,6 +110,7 @@ wrappers/
   - `completePath`: 完了時の移り先のパス（省略 = `/wallet/<slug>/purchase/complete`）。`?request_id=<id>` を付けて移る
   - `failedPath`: 失敗・期限切れ・タイムアウト時の移り先のパス（省略 = `/wallet/<slug>/purchase/failed`）。`request_id` に続けて `error_code`（failed、無ければ `UNKNOWN`）か `reason`（`expired` / `timeout`）を付ける
   - パスに `?` があれば `&` で続ける（組み立ては純関数 `buildPurchaseResultUrl`）。戻り値 `{ error, isPolling }` は同じ。core の `PurchaseCallback` は省略して呼ぶ（wallet の既定のまま）
+- 画面の部品は通信を直に持たない: 振込明細画像の事前判定 = `useBankTransferImageJudge(requestId)`（`hooks/`、`judge(file)`・`loading`・`error`・`rateLimit`。429 の残量は応答の `rateLimit` から）→ `judgeBankTransferImage`（`services/client/purchaseRequestClient.ts`）→ `POST /api/wallet/purchase/[id]/bank-transfer/judge-image`。応答の型は `types/bankTransferJudgment.ts` | ダミー決済の画面 = `useDummyPayment({ sessionId, successUrl, cancelUrl, paymentMethod })` → `notifyDummyPayment` → `POST /api/webhook/payment?provider=dummy`
   - fork が自前の購入の流れ（例: 直販 `/direct-sale/purchase/...`）を持つとき、自分の callback 画面（`_components/`）からパスを渡して呼ぶ。待ち表示は自前で描く:
 
 ```tsx

@@ -3,9 +3,9 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import axios from "axios";
-
 import { normalizeHttpError } from "@/lib/errors";
+
+import { sendPasswordResetEmail } from "@/features/core/auth/services/client/forgotPassword";
 
 type UseForgotPasswordReturn = {
   sendResetEmail: (email: string) => Promise<boolean>;
@@ -37,7 +37,7 @@ export function useForgotPassword(): UseForgotPasswordReturn {
     setIsSuccess(false);
 
     try {
-      await axios.post("/api/auth/forgot-password", { email });
+      await sendPasswordResetEmail(email);
       setIsSuccess(true);
       return true;
     } catch (err) {
