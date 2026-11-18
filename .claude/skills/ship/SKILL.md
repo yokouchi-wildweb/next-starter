@@ -66,6 +66,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - behavior or permissions change silently
    - the rules / README of the changed area ask for a notice (conditions in CLAUDE.md, `.claude/rules/core/` or a colocated README saying `→ notice` / `ship .notices`; read those of the changed area to confirm)
    - a fix to something shipped earlier (step 4)
+   - renaming / moving / removing a rule key (a `key:` at the head of a line of CLAUDE.md, a core file `.claude/rules/core/*.md`, an item card `.claude/rules/items/**` or `.claude/rules/lineage.md`): forks name upstream rules by key (provisional rules, overrides, their own rule files) → always a notice with the key table (NOTICE COMPOSITION)
    - you changed your own section of `.claude/rules/lineage.md` (`## <own repo_id>`): a change of rules that act downstream → always a notice
      - wording-only change = `severity: info` + `required_actions: none`
      - deleting / renaming a `(default)` key, dropping `(default)`, or a contract change that needs downstream work → in `required_actions`, write how downstream repos that wrote an override (`overrides: <own repo_id>.<key> = …`) fix it (rewrite to the key's new name, delete the override, etc.; downstream `/flux` stops at a segment that touches an overridden key)
@@ -219,6 +220,9 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - (c) the steps to align each remaining file to the new form | verify holds `pnpm typecheck` and "the rest of (b) is 0 files, or all aligned"
    - **a notice that has forks add config keys also writes the steps for when the fork already has the same key**: the steps to drop the fork's part and align to upstream's line, and the `git grep` to find it | when fork and upstream add at different spots, git takes both without conflict, so "on conflict" / "add if missing" is not enough (`.notices/README.md`)
    - never write "keep" for fork edits without behavior (comments only etc.) | write that they may be returned to upstream's text (`.notices/README.md`)
+   - **a rule key renamed / moved / removed (step 3) → the key table in required_actions**, one line per key: `<old file> <old key> -> <new file> <new key>` (`-> removed` when it is gone, then where its content went)
+     - the next step finds the fork's own references: `git grep -n -E '<old key>' -- .claude/rules ':!.claude/rules/core' ':!.claude/rules/items'` (provisional rules ending `(order: <id>)`, `overrides:` lines of project.md, its own rule files) → rewrite each to the new place or drop it
+     - the final switch's table (rule keys, README headings, old core file names → new places) uses this same form
    - **moved or renamed → always write `moved:`** (paths from the repo root, directories allowed, `;`-separated)
      - list them without gaps with `git diff --name-status -M <before> <after>` (uncommitted → `git diff --cached -M --name-status`)
      - write `moved:` only when the move-source path is gone (`pnpm check notices` stops a remaining source)

@@ -269,6 +269,10 @@ a notice (a line of the upstream tip's index; for upstream without an index, the
    - as a result, normally 1 notice = 1 segment | several notices shipped in the same commit give consecutive segments with the same merge target (the merge completes on the first; later ones just say "already up to date"; normal)
 6. what each segment holds (overview): number / merge target (short sha, and checkpoint label or `HEAD`) / notice ids contained / commit count up to there / whether `moved:` exists / fix relations (the marks of FIXES above) / the numbers in `resolves:` that hit your own temporary permits (`upreq:` of `.fork-ownership/<名前>.permits.txt`)
    - hit lines expire after that segment's merge (lines whose numbers are all resolved) → show `受け口へ移す・元に戻す` (move to the intake point / revert) in the plan (`.notices/README.md` section `解決(resolves)`; `pnpm workflow ownership check` shows expired-resolved)
+   - the same `resolves:` ids against your provisional rules (a rule you wrote while your order to the parent was open, line ending `(order: <id>)`): `git grep -n -E '\(order: (<id>|<id>…)\)' -- .claude/rules ':!.claude/rules/core' ':!.claude/rules/items'`
+     - list each hit in the plan and ask `消す / 残す(理由)` (remove / keep with a reason) | removals go in their own commit after that segment's merge (never inside the merge commit) | none → `仮の決まり: なし`
+   - reasoned eslint-disable lines per folder (forks decide whether to ask the parent for a receptacle or a fix; the parent never counts inside forks): `git grep -c -E 'eslint-disable(-next)?-line [^ ]+ -- ' -- src`
+     - sum per folder two levels deep (e.g. `src/features/<domain>`, `src/app/<group>`), show the top 5 with their rule names in the plan once per run (on the last segment) | information only, never a blocker
    - conflict forecast, move-source edits and upstream changes are **only for the next segment** (the 2 sections below)
 
 ## CONFLICT FORECAST (when planning the next segment, read-only)
