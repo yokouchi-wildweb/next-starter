@@ -1,8 +1,10 @@
 # FadeSlider
 
-クロスフェード型のスライダー。CSS Grid で全スライドを同一セルに重ね、`opacity` トランジションで切り替える。`ScrollSlider` と共通の状態契約（controlled/uncontrolled + imperative API）を実装する。
+## Overview
 
-## 基本的な使い方
+- クロスフェード型のスライダー。`ScrollSlider` と共通の状態契約(controlled/uncontrolled + imperative API)を実装する。入口は `@/components/Widgets`
+
+## Usage
 
 ```tsx
 <FadeSlider
@@ -13,7 +15,45 @@
 />
 ```
 
-## Props
+### 自動再生ヒーローバナー
+
+```tsx
+<FadeSlider
+  items={heroSlides}
+  renderItem={(s) => <HeroBanner slide={s} />}
+  autoplay={{ delay: 6000 }}
+  loop
+  transition="fadeThrough"
+/>
+```
+
+### 外部制御 + imperative API
+
+```tsx
+const ref = useRef<SliderImperativeApi>(null)
+
+<FadeSlider ref={ref} items={items} renderItem={renderItem} />
+
+<button onClick={() => ref.current?.next()}>次へ</button>
+```
+
+### ドット外部表示
+
+```tsx
+const [index, setIndex] = useState(0)
+
+<FadeSlider
+  items={items}
+  renderItem={renderItem}
+  index={index}
+  onIndexChange={setIndex}
+  showDots={false}
+/>
+
+<CustomDots count={items.length} current={index} onClick={setIndex} />
+```
+
+## API
 
 ### 必須
 
@@ -76,53 +116,14 @@ ScrollSlider と同じ。`showArrows` / `arrowVariant` / `arrowSize` / `arrowPos
 | `ariaLabel` | `string` | カルーセル全体の aria-label |
 | `ariaRoleDescription` | `string` | aria-roledescription の上書き |
 
-## 高さの扱い
+## Internals
 
-全スライドを同じ CSS Grid セルに重ねるため、コンテナの高さは **最大スライドの中身の高さに追従**する。各スライドに明示的な `aspect-ratio` や固定高を付与すれば、`ScrollSlider` と同じ自由度で高さ制御が可能。
+- CSS Grid で全スライドを同一セルに重ね、`opacity` トランジションで切り替える
+- 全スライドを同じ CSS Grid セルに重ねるため、コンテナの高さは **最大スライドの中身の高さに追従**する。各スライドに明示的な `aspect-ratio` や固定高を付与すれば、`ScrollSlider` と同じ自由度で高さ制御が可能。
 
 ```tsx
 <FadeSlider
   items={slides}
   renderItem={(s) => <div className="aspect-video">...</div>}
 />
-```
-
-## 使用例
-
-### 自動再生ヒーローバナー
-
-```tsx
-<FadeSlider
-  items={heroSlides}
-  renderItem={(s) => <HeroBanner slide={s} />}
-  autoplay={{ delay: 6000 }}
-  loop
-  transition="fadeThrough"
-/>
-```
-
-### 外部制御 + imperative API
-
-```tsx
-const ref = useRef<SliderImperativeApi>(null)
-
-<FadeSlider ref={ref} items={items} renderItem={renderItem} />
-
-<button onClick={() => ref.current?.next()}>次へ</button>
-```
-
-### ドット外部表示
-
-```tsx
-const [index, setIndex] = useState(0)
-
-<FadeSlider
-  items={items}
-  renderItem={renderItem}
-  index={index}
-  onIndexChange={setIndex}
-  showDots={false}
-/>
-
-<CustomDots count={items.length} current={index} onClick={setIndex} />
 ```

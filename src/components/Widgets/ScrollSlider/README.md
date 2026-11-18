@@ -1,8 +1,11 @@
 # ScrollSlider
 
-Embla Carousel ベースの「横スクロール型」スライダー。`FadeSlider` と共通の状態契約 (controlled/uncontrolled + imperative API) を実装する。
+## Overview
 
-## 基本的な使い方
+- Embla Carousel ベースの「横スクロール型」スライダー。`FadeSlider` と共通の状態契約(controlled/uncontrolled + imperative API)を実装する。入口は `@/components/Widgets`
+- 矢印・ドットの部品 `SliderArrow` / `SliderDots` と共有型も同じ入口から出す(独自のスライダーを組むときに再利用できる)
+
+## Usage
 
 ```tsx
 <ScrollSlider
@@ -11,7 +14,28 @@ Embla Carousel ベースの「横スクロール型」スライダー。`FadeSli
 />
 ```
 
-## Props
+### 命令型 API(`ref`)
+
+```tsx
+const sliderRef = useRef<SliderImperativeApi>(null)
+
+<ScrollSlider ref={sliderRef} ... />
+
+sliderRef.current?.next()
+sliderRef.current?.goTo(3)
+sliderRef.current?.pause()
+```
+
+### 旧 `Slider` からの置き換え
+
+| 旧 | 新 |
+|---|---|
+| `import { Slider } from "@/components/Widgets"` | `import { ScrollSlider } from "@/components/Widgets"` |
+| `onSlideChange` | `onIndexChange` |
+
+その他の props はそのまま互換。
+
+## API
 
 ### 必須
 
@@ -76,24 +100,3 @@ Embla Carousel ベースの「横スクロール型」スライダー。`FadeSli
 |------|------|------|
 | `ariaLabel` | `string` | カルーセル全体の aria-label |
 | `ariaRoleDescription` | `string` | aria-roledescription の上書き（デフォルト `"carousel"`） |
-
-## 命令型 API（`ref`）
-
-```tsx
-const sliderRef = useRef<SliderImperativeApi>(null)
-
-<ScrollSlider ref={sliderRef} ... />
-
-sliderRef.current?.next()
-sliderRef.current?.goTo(3)
-sliderRef.current?.pause()
-```
-
-## v1 → v2 移行（旧 `Slider` から）
-
-| 旧 | 新 |
-|---|---|
-| `import { Slider } from "@/components/Widgets"` | `import { ScrollSlider } from "@/components/Widgets"` |
-| `onSlideChange` | `onIndexChange` |
-
-その他の props はそのまま互換。
