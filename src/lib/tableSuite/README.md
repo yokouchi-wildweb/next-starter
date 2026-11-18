@@ -1,17 +1,15 @@
 # tableSuite
 
-テーブル系UIコンポーネントのライブラリ。すべて `@/lib/tableSuite` からインポートする。
+## Overview
 
-## コンポーネント一覧
+- テーブル系 UI コンポーネントのライブラリ。すべて `@/lib/tableSuite` からインポートする
+- DataTable: 読み取り専用の一覧表示
+- RecordSelectionTable: 行選択 + 一括操作
+- RecordSelectionList: カードの一覧の行選択 + 一括操作(RecordSelectionTable の兄弟)
+- EditableGridTable: インライン編集(内部構造とエディターの追加は `EditableGridTable/README.md`)
+- 決まり(選択のフック・ソートの責任・並び替えの鍵と範囲・未保存の守り・全幅行・無限スクロール・エディターの作り)は札 `.claude/rules/items/lib/tableSuite.md`。管理一覧の一括操作の受け口は CLAUDE.md COMPONENTS admin_bulk_actions
 
-| コンポーネント | 用途 |
-|---|---|
-| DataTable | 読み取り専用の一覧表示 |
-| RecordSelectionTable | 行選択 + 一括操作 |
-| RecordSelectionList | カードの一覧の行選択 + 一括操作（RecordSelectionTable の兄弟） |
-| EditableGridTable | インライン編集 |
-
-## 基本的な使い方
+## Usage
 
 ### DataTable
 
@@ -86,7 +84,7 @@ import { BulkActionItems, RecordSelectionList, selectBulkActions } from "@/lib/t
 
 ### 選択のフックと一括操作のバー（表の外で使う）
 
-カードの一覧など表でない所の選択は、RecordSelectionTable と同じ状態のフック `useRecordSelection` と一括操作のバー `BulkActionBar` を入口から使う(見た目は呼び手が持つ)。選択の状態を自前の `Set` で組まない。
+カードの一覧など表でない所の選択は、RecordSelectionTable と同じ状態のフック `useRecordSelection` と一括操作のバー `BulkActionBar` を入口から使う(見た目は呼び手が持つ)。(札 selection_hook)
 
 ```tsx
 import { BulkActionBar, useRecordSelection } from "@/lib/tableSuite";
@@ -119,34 +117,6 @@ const selection = useRecordSelection({
 | `bulkSelection` | `BulkActionBar` の `selection` にそのまま渡す形 |
 
 制御するときは `selectedKeys` と `onSelectionChange`、非制御の初期値は `defaultSelectedKeys`(RecordSelectionTable と同じ)。
-
-### 一括操作の受け口（管理一覧）
-
-管理一覧の一括操作は、`bulkActions` の中に手で書かず、持ち主のドメインの受け口 `adminBulkActions` に **1 項目 1 ファイル**で置く（棚の評議会 D149）。上流の既定の操作も同じ受け口の項目で、fork は項目を足すか、上流の項目を `<名前>.override.ts` で外す・並べ替える。
-
-- 項目の型 `BulkActionItem<Row, Access>` = `{ key, Component, lists?, enabled?, order?, access? }`。`Component` は `{ selection, onDone }` を受ける部品
-  - `key`: 受け口の中で一意。override の宛先
-  - `lists`: 出す一覧の名前（省略 = 全部の一覧。user は `"general"` / `"managerial"` / `"demo"`）
-  - `enabled`: `false` か `() => boolean`（機能の設定に従うときは関数）
-  - `order`: 小さい順（省略 = 100、同じなら key の順）
-  - `access`: 表示の出し分け（管理一覧は `{ roles: [...] }` = `AdminBulkActionAccess`）。**権限の守りは API**で、ここは見せ方だけ
-- `selectBulkActions(items, { list, can })` が絞って並べ、`<BulkActionItems items selection onDone? />` が描く。項目の `onDone` は選択を外してから容器の `onDone` を呼ぶ。容器はドメインのフック（`useUserAdminBulkActions(list)` など）でこの 2 つを呼ぶ
-- よくある一括変更は `@/lib/crud/components` の作成関数で数行: `bulkFieldAction`（列挙型の列）・`bulkBelongsToAction`・`bulkRelationAction`（多対多。`mode: "replace" | "add"`）・`bulkDeleteAction`。ボタン（`Bulk*Button`）は成功で `router.refresh()` する
-- 汎用の一括ボタンは**副作用の無い列だけ**。記録が必須の操作（状態の一括変更など）は上流が専用のサービス・API と作成関数で出す
-
-```tsx
-// src/features/core/user/adminBulkActions/userTags.tsx（上流の既定の項目）
-export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
-  { key: "userTags", lists: ["general"], order: 10 },
-  { domain: userDisplay, relation: "userTag", mode: "replace", icon: Tags, label: "タグ設定" },
-);
-
-// fork: src/features/core/user/adminBulkActions/userTags.override.ts（上流の項目を外す・並べ替える。書けるのは enabled・order）
-export const override = { enabled: false };
-```
-
-- 受け口のある一覧: user の 3 一覧（`src/features/core/user/adminBulkActions/`）・お知らせ（`src/features/core/notification/adminBulkActions/`、既定 = 一括削除）・振込審査（`src/features/core/bankTransferReview/adminBulkActions/`、既定 = メール一斉送信）・送信一覧（`src/features/core/messaging/adminBulkActions/`、既定 = 削除、RecordSelectionList）・pnpm generate domain で作るドメインの一覧（`src/features/<domain>/adminBulkActions/`。受け口の宣言 `extensionPoints.ts` と型は生成器が書く。項目が無ければ選択の無い素の表）
-- 項目を置いた・消したら `pnpm generate extensions`（一覧 `extensions/adminBulkActions.ts` を作り直す）。書式: `scripts/structure/extensions/README.md`
 
 `bulkActionsSticky`（既定 false）を付けると、一括操作バーがスクロールコンテナの端（`bulkActionsPosition` が top なら上端、bottom なら下端）に留まる。スクロールする Modal の本体など、テーブルの外の祖先がスクロールするときに `maxHeight="none"` と組み合わせて使う。バーはそのスクロールコンテナの最上端に留まるので、固定ヘッダーの下に潜るページ全体のスクロールには向かない。
 
@@ -181,7 +151,7 @@ editorType: `text` | `number` | `select` | `multi-select` | `date` | `time` | `d
 
 - 外す: `guardUnsaved={false}`(既定 true)
 - セルの外を押すと書きかけは確定する(→ `onCellChange`)。同期に保存する使い手(void を返す)は確定の時点で守りが外れる
-- 表は確定した値の未保存の状態を持たない。手元に変更をためて後でまとめて保存する画面は、その画面が `useUnsavedGuard` を呼ぶ
+- 表は確定した値の未保存の状態を持たない(手元にためて後で保存する画面の守りは札 batch_save_guard)
 - 確定は編集 1 回につき 1 回(Enter・Tab・フォーカスが外れる、のどれで閉じても。Enter の後の blur でもう一度 `onCellChange` を呼ばない。`EditableGridTable/utils/commitOnce.ts`)
 - 行の並び替えの保存待ちは下の「行の並び替えの未保存の守り」(同じ `guardUnsaved` で外れる)
 - 判定: `EditableGridTable/utils/editGuard.ts`(テスト `pnpm test src/lib/`)
@@ -192,26 +162,18 @@ editorType: `text` | `number` | `select` | `multi-select` | `date` | `time` | `d
 
 - 外す: `guardUnsaved={false}`(既定 true。EditableGridTable は編集の守りと同じ prop)
 - `void` を返す `onReorder` は守らない(保存待ちが無い)
-- 並びを手元にためて後でまとめて保存する画面は、その画面が `useUnsavedGuard` を呼ぶ(表は未保存の並びを持たない)
+- 表は未保存の並びを持たない(札 batch_save_guard)
 
-## 依存(読む lib)
-
-守りの lib は入口 `@/lib/unsavedGuard` だけを読む(中のファイルを読まない)。
-
-- `src/lib/unsavedGuard`(EditableGridTable の編集の守り・3 つの表の並び替えの守り)
-- `src/lib/sortableList`(行の並び替えの計算 `computeReorderResult`)
-- `src/lib/cn`・`src/lib/crud`・`src/lib/date`(クラスの結合・ソートの型 `crud/types`・日時の解釈 `date/parseFlexible`)
-
-## カラムソート
+### カラムソート
 
 3つのテーブル（DataTable / RecordSelectionTable / EditableGridTable）で共通のヘッダークリックソートを提供する。
 
-### 設計方針
+#### 設計方針
 
 - テーブルは**ソート状態の表示とイベント通知のみ**を担当する
 - 実際のデータソート（クライアント/サーバー）は**使用側が行う**
 
-### カラムにソートキーを設定する
+#### カラムにソートキーを設定する
 
 ```tsx
 // DataTable / RecordSelectionTable: sortKey を指定
@@ -227,7 +189,7 @@ const columns: EditableGridColumn<Item>[] = [
 ];
 ```
 
-### クライアントサイドソート
+#### クライアントサイドソート
 
 ```tsx
 import { DataTable, sortItems, type SortState } from "@/lib/tableSuite";
@@ -258,7 +220,7 @@ const sorted = useMemo(
 );
 ```
 
-### サーバーサイドソート（ページネーション対応）
+#### サーバーサイドソート（ページネーション対応）
 
 ページネーション済みデータにクライアントソートを適用すると、現在のページ内だけのソートになり不適切。`onSortChange` で URL パラメータを更新し、サーバー再フェッチする。
 
@@ -295,7 +257,7 @@ const handleSortChange = (nextSort: SortState) => {
 <DataTable items={items} columns={columns} sort={sort} onSortChange={handleSortChange} />
 ```
 
-### buildDomainColumns との連携
+#### buildDomainColumns との連携
 
 `presenters` を渡していない列は、生成の presenters.ts と同じ答え（`presenterFor`、src/lib/domain/README.md「何で表示するか」）で描く（boolean は「はい / いいえ」、数値の型は桁区切り、配列は「, 」区切り、enum は選択肢のラベル、画像はサムネイル、主の集まりは先頭 1 件と +N）。一覧特有の扱いは 2 つ: 空・null は空欄（presenters の「―」ではない）、textarea の文字列は `truncateLength` で切り詰める。リレーション・id・createdAt / updatedAt の列は今までどおり。
 
@@ -317,7 +279,7 @@ const columns = buildDomainColumns<Sample>({
 });
 ```
 
-### ソートユーティリティまとめ
+#### ソートユーティリティまとめ
 
 | 関数 | 用途 |
 |---|---|
@@ -327,11 +289,11 @@ const columns = buildDomainColumns<Sample>({
 | `toOrderBySpec(sort)` | SortState → CRUD の OrderBySpec |
 | `resolveNextSort(current?, field)` | ヘッダークリック時の次のソート状態を算出 |
 
-## 行の並び替え（reorderable）
+### 行の並び替え（reorderable）
 
 3つのテーブル共通で、行のドラッグ並び替えを提供する。指定すると先頭にドラッグハンドル列が追加される（ハンドル限定ドラッグ。行クリック選択・onRowClick・セル編集と衝突しない）。
 
-### 基本的な使い方
+#### 基本的な使い方
 
 ```tsx
 import { DataTable, type ReorderResult } from "@/lib/tableSuite";
@@ -368,7 +330,7 @@ const handleReorder = async (result: ReorderResult) => {
 };
 ```
 
-### グループ内の並び替え（getGroup）
+#### グループ内の並び替え（getGroup）
 
 「グループ → sort_order」順で表示しているテーブルで、グループ内に限定した並び替えができる。
 
@@ -384,7 +346,7 @@ reorderable={{
 - CRUD の reorder は Fractional Indexing のため、この正規化された値をそのまま渡せばグループ内順序が正しく保存される（sort_order キーはグループ内でしか比較されないため、グローバル先頭挿入 = グループ先頭挿入として成立する）
 - グループの区切り表示には `fullWidthRows` が使える（もともと並び替え対象外）
 
-### オプション
+#### オプション
 
 | キー | 説明 |
 |---|---|
@@ -393,55 +355,12 @@ reorderable={{
 | `disabled` | ドラッグ全体を無効化（ハンドル列は薄表示で残る） |
 | `isItemDisabled(item)` | 行単位でドラッグを無効化 |
 
-### 制約・注意
+#### 制約・注意
 
-- **getKey 必須**: reorderable 使用時は安定したレコードIDを返す `getKey` を必ず指定する（index フォールバックは並び替えに使えない）
+- **getKey**: 安定したレコードIDを返す `getKey` が要る(札 reorder_key。index フォールバックは並び替えに使えない)
 - **カラムソートと排他**: `sort` 適用中は表示順と保存順が一致しないため、ハンドルが自動で無効化される（title で理由を表示）
-- **ページネーション**: afterItemId 方式なのでページ内のドラッグは正しく保存されるが、ページ境界を越える移動はできない。本格的な並び替え運用は searchForSorting + 専用ソート画面を推奨
+- **ページネーション**: afterItemId 方式なのでページ内のドラッグは正しく保存されるが、ページ境界を越える移動はできない(使い分けは札 reorder_scope)
 - **SortableList との使い分け**: 大量件数の専用ソート画面 → `@/lib/sortableList`（仮想スクロールあり）／スクロールする Modal 内の数十行の編集リスト → `@/lib/sortableList` の `scroll="parent"`（仮想化なし・親スクロールに追従）／既存の一覧テーブルに並び替えを足したい → tableSuite `reorderable`
-
-## 共通Props
-
-### スタイリング
-
-全テーブル共通で以下の Props を受け付ける。
-
-| Prop | 型 | デフォルト | 説明 |
-|---|---|---|---|
-| `className` | `string` | - | ラッパー div のクラス |
-| `maxHeight` | `string` | `"70vh"` | スクロール領域の最大高さ |
-| `rowClassName` | `string \| (item, context) => string` | - | 行単位のクラス |
-| `rowHeight` | `"xs" \| "sm" \| "md" \| "lg" \| "xl"` | `"md"` | 行の高さ |
-| `cellPaddingX` | `PaddingSize` | `"sm"` | セルの水平パディング |
-| `cellPaddingY` | `PaddingSize` | `"none"` | セルの垂直パディング |
-| `disableRowHover` | `boolean` | `false` | 行ホバー時の背景色変更を無効化 |
-| `scrollContainerRef` / `bottomSentinelRef` | `Ref<HTMLDivElement>` | - | スクロール領域の div / 最下部の sentinel(無限スクロールの IntersectionObserver の root / target) |
-| `infiniteFooter` | `InfiniteTableFooterProps` | - | 表の中の無限スクロールの足元(下の「無限スクロールの足元」) |
-
-### カラム幅
-
-全テーブル共通で、カラム定義に `width?: string` を指定できる。CSS の width 値（`"200px"`, `"30%"`, `"auto"` など）をヘッダー（th）の `style` に適用する。
-
-```tsx
-{ header: "名前", render: (item) => item.name, width: "40%" }
-{ header: "操作", render: (item) => <Button />, width: "80px" }
-```
-
-### headerHelp（ヘッダーのホバー説明）
-
-全テーブル共通で、カラム定義に `headerHelp?: ReactNode` を指定できる。指定するとヘッダーが「ラベル + ?アイコン + ホバー説明」（`HelpTip`）に合成される。インプレッションや CTR など、名前だけでは意味が伝わらない集計・派生カラムに使用する。
-
-```tsx
-{
-  header: "詳細CTR",
-  headerHelp: "詳細クリック ÷ インプレッション。バナーが表示されたうち詳細が開かれた割合",
-  render: (item) => formatRate(item),
-}
-```
-
-- `header` にカスタムノードを渡している場合も、そのノードがラベルとして HelpTip に合成される
-- デスクトップはホバー、タッチデバイスはタップで説明が開閉する
-- 注意: ソート可能列（`sortKey` / `sortable`）では、タッチ端末でヘルプをタップするとソートも同時に発火する（クリック伝播は止めない仕様）
 
 ### CellAction（セルクリックオーバーレイ）
 
@@ -493,7 +412,7 @@ const fullWidthRows: FullWidthRow[] = [
 - 挿入行は**選択・行クリック・ソート・一括操作の対象外**（RecordSelectionTable の選択状態・select-all・一括バーに影響しない）
 - `afterIndex` が items の範囲を超える場合は末尾に丸められる。items が空のときはすべて先頭に描画される
 - セルは `p-0` で描画されるため、パディングは `render` 内で自分で付ける
-- **`afterIndex` は現在の items に対する位置**。ソート・ページ変更などで items が変わる際は使用側が再計算する責任を持つ（ページネーション環境ではサーバー側で位置を算出して渡すことを推奨）
+- **`afterIndex` は現在の items に対する位置**(再計算は札 full_width_index。ページネーション環境ではサーバー側で位置を算出して渡すとよい)
 
 ### 印刷の表（variant="print"）
 
@@ -507,7 +426,9 @@ DataTable に `variant="print"` を渡すと印刷の表になる: スクロー�
 
 ### 無限スクロールの足元（infiniteFooter）
 
-表のスクロール領域の中で続きを読むとき(`maxHeight` で表が自分でスクロールする)、フックの `sentinelRef` を `bottomSentinelRef` に、`isFetchingMore` / `hasMore` / `total` を `infiniteFooter` に渡す。スクロール領域の中・表の下・sentinel の直前に、読み込み中(Spinner +「読み込み中...」)と、続きが無くなったときの終端(`total` があれば「全 N 件を表示しました」、無ければ `completedText`)が出る。待機中は何も出さない。DataTable・RecordSelectionTable・EditableGridTable で同じ。表をページ全体のスクロールで読む(`maxHeight="none"`)なら、表を `InfiniteScrollList` で包む方(`src/components/Widgets/InfiniteScrollList/README.md`)。
+- 表のスクロール領域の中で続きを読むとき(`maxHeight` で表が自分でスクロールする)、フックの `sentinelRef` を `bottomSentinelRef` に、`isFetchingMore` / `hasMore` / `total` を `infiniteFooter` に渡す
+- スクロール領域の中・表の下・sentinel の直前に、読み込み中(Spinner +「読み込み中...」)と、続きが無くなったときの終端(`total` があれば「全 N 件を表示しました」、無ければ `completedText`)が出る。待機中は何も出さない。DataTable・RecordSelectionTable・EditableGridTable で同じ
+- 表をページ全体のスクロールで読む(`maxHeight="none"`)なら、表を `InfiniteScrollList` で包む(`src/components/Widgets/InfiniteScrollList/README.md`)
 
 ```tsx
 const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
@@ -529,21 +450,95 @@ const { items, total, isFetchingMore, hasMore, sentinelRef } = useMyRows({ obser
 | `completedText` | `ReactNode` | `total` が無いときの終端の文(既定「すべて表示しました」) |
 | `fetchingMoreNode` / `completedNode` | `ReactNode` | 読み込み中 / 終端の差し替え(`completedNode={null}` で終端を出さない) |
 
-## ディレクトリ構造
+## API
 
+### 共通 Props: スタイリング
+
+全テーブル共通で以下の Props を受け付ける。
+
+| Prop | 型 | デフォルト | 説明 |
+|---|---|---|---|
+| `className` | `string` | - | ラッパー div のクラス |
+| `maxHeight` | `string` | `"70vh"` | スクロール領域の最大高さ |
+| `rowClassName` | `string \| (item, context) => string` | - | 行単位のクラス |
+| `rowHeight` | `"xs" \| "sm" \| "md" \| "lg" \| "xl"` | `"md"` | 行の高さ |
+| `cellPaddingX` | `PaddingSize` | `"sm"` | セルの水平パディング |
+| `cellPaddingY` | `PaddingSize` | `"none"` | セルの垂直パディング |
+| `disableRowHover` | `boolean` | `false` | 行ホバー時の背景色変更を無効化 |
+| `scrollContainerRef` / `bottomSentinelRef` | `Ref<HTMLDivElement>` | - | スクロール領域の div / 最下部の sentinel(無限スクロールの IntersectionObserver の root / target) |
+| `infiniteFooter` | `InfiniteTableFooterProps` | - | 表の中の無限スクロールの足元(下の「無限スクロールの足元」) |
+
+### カラム幅
+
+全テーブル共通で、カラム定義に `width?: string` を指定できる。CSS の width 値（`"200px"`, `"30%"`, `"auto"` など）をヘッダー（th）の `style` に適用する。
+
+```tsx
+{ header: "名前", render: (item) => item.name, width: "40%" }
+{ header: "操作", render: (item) => <Button />, width: "80px" }
 ```
-tableSuite/
-  index.ts              # エントリーポイント（すべてここからインポート）
-  types.ts              # 共通型定義
-  table-variants.ts     # スタイルバリアント定義
-  shared/               # 共通コンポーネント（Table, TableRow, SortableTableHead 等）
-  utils/                # ユーティリティ（sortItems, sortState）
-  DataTable/            # 読み取り専用テーブル
-  RecordSelectionTable/ # 行選択テーブル（選択の状態・一括操作バー・selectionMode もここ）
-  RecordSelectionList/  # カードの一覧の行選択（RecordSelectionTable の部品を使う）
-  EditableGridTable/    # インライン編集テーブル
+
+### headerHelp（ヘッダーのホバー説明）
+
+全テーブル共通で、カラム定義に `headerHelp?: ReactNode` を指定できる。指定するとヘッダーが「ラベル + ?アイコン + ホバー説明」（`HelpTip`）に合成される。インプレッションや CTR など、名前だけでは意味が伝わらない集計・派生カラムに使用する。
+
+```tsx
+{
+  header: "詳細CTR",
+  headerHelp: "詳細クリック ÷ インプレッション。バナーが表示されたうち詳細が開かれた割合",
+  render: (item) => formatRate(item),
+}
 ```
 
-## デモ
+- `header` にカスタムノードを渡している場合も、そのノードがラベルとして HelpTip に合成される
+- デスクトップはホバー、タッチデバイスはタップで説明が開閉する
+- 注意: ソート可能列（`sortKey` / `sortable`）では、タッチ端末でヘルプをタップするとソートも同時に発火する（クリック伝播は止めない仕様）
 
-`/demo/tables` で全テーブルの動作を確認できる。
+## Extension
+
+### 一括操作の受け口(管理一覧)
+
+管理一覧の一括操作は、`bulkActions` の中に手で書かず、持ち主のドメインの受け口 `adminBulkActions` に **1 項目 1 ファイル**で置く（棚の評議会 D149）。上流の既定の操作も同じ受け口の項目で、fork は項目を足すか、上流の項目を `<名前>.override.ts` で外す・並べ替える。
+
+- 項目の型 `BulkActionItem<Row, Access>` = `{ key, Component, lists?, enabled?, order?, access? }`。`Component` は `{ selection, onDone }` を受ける部品
+  - `key`: 受け口の中で一意。override の宛先
+  - `lists`: 出す一覧の名前（省略 = 全部の一覧。user は `"general"` / `"managerial"` / `"demo"`）
+  - `enabled`: `false` か `() => boolean`（機能の設定に従うときは関数）
+  - `order`: 小さい順（省略 = 100、同じなら key の順）
+  - `access`: 表示の出し分け（管理一覧は `{ roles: [...] }` = `AdminBulkActionAccess`）。**権限の守りは API**で、ここは見せ方だけ
+- `selectBulkActions(items, { list, can })` が絞って並べ、`<BulkActionItems items selection onDone? />` が描く。項目の `onDone` は選択を外してから容器の `onDone` を呼ぶ。容器はドメインのフック（`useUserAdminBulkActions(list)` など）でこの 2 つを呼ぶ
+- よくある一括変更は `@/lib/crud/components` の作成関数で数行: `bulkFieldAction`（列挙型の列）・`bulkBelongsToAction`・`bulkRelationAction`（多対多。`mode: "replace" | "add"`）・`bulkDeleteAction`。ボタン（`Bulk*Button`）は成功で `router.refresh()` する
+- 汎用の一括ボタンは**副作用の無い列だけ**。記録が必須の操作（状態の一括変更など）は上流が専用のサービス・API と作成関数で出す
+
+```tsx
+// src/features/core/user/adminBulkActions/userTags.tsx（上流の既定の項目）
+export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
+  { key: "userTags", lists: ["general"], order: 10 },
+  { domain: userDisplay, relation: "userTag", mode: "replace", icon: Tags, label: "タグ設定" },
+);
+
+// fork: src/features/core/user/adminBulkActions/userTags.override.ts（上流の項目を外す・並べ替える。書けるのは enabled・order）
+export const override = { enabled: false };
+```
+
+- 受け口のある一覧:
+  - user の 3 一覧(`src/features/core/user/adminBulkActions/`)
+  - お知らせ(`src/features/core/notification/adminBulkActions/`、既定 = 一括削除)
+  - 振込審査(`src/features/core/bankTransferReview/adminBulkActions/`、既定 = メール一斉送信)
+  - 送信一覧(`src/features/core/messaging/adminBulkActions/`、既定 = 削除、RecordSelectionList)
+  - pnpm generate domain で作るドメインの一覧(`src/features/<domain>/adminBulkActions/`。受け口の宣言 `extensionPoints.ts` と型は生成器が書く。項目が無ければ選択の無い素の表)
+- 項目を置いた・消したら `pnpm generate extensions`（一覧 `extensions/adminBulkActions.ts` を作り直す）。書式: `scripts/structure/extensions/README.md`
+
+## Internals
+
+### 依存(読む lib)
+
+守りの lib は入口 `@/lib/unsavedGuard` だけを読む(中のファイルを読まない)。
+
+- `src/lib/unsavedGuard`(EditableGridTable の編集の守り・3 つの表の並び替えの守り)
+- `src/lib/sortableList`(行の並び替えの計算 `computeReorderResult`)
+- `src/lib/cn`・`src/lib/crud`・`src/lib/date`(クラスの結合・ソートの型 `crud/types`・日時の解釈 `date/parseFlexible`)
+
+## Verification
+
+- `/demo/tables` で全テーブルの動作を確認できる
+- 未保存の守り・並び替えの守りの判定: `pnpm test src/lib/`
