@@ -1,13 +1,11 @@
 # fingerprint - ブラウザフィンガープリント収集ライブラリ
 
-デバイス信号の収集・正規化・ハッシュ化と、フォーム操作の行動計測を提供する **ドメイン非依存** ライブラリ。DB・HTTP は一切持たない。
+## Overview
 
-- 蓄積・照合: [`features/core/deviceFingerprint`](../../features/core/deviceFingerprint/README.md)
-- 回答チャレンジ: [`features/core/fingerprintChallenge`](../../features/core/fingerprintChallenge/README.md)
+- デバイス信号の収集・正規化・ハッシュ化と、フォーム操作の行動計測を提供するドメイン非依存のライブラリ
+- 使う時・直す時の決まりは札 .claude/rules/items/lib/fingerprint.md にある。この README は使い方と仕組み
 
----
-
-## 提供 API
+## API
 
 ### `collectFingerprintPayload()` — 収集の一括実行
 
@@ -18,9 +16,9 @@ const payload = await collectFingerprintPayload();
 // => { version, componentHashes, webglRenderer, rawSignals }
 ```
 
-内部で `collectDeviceSignals()`（信号収集）→ `buildComponentHashes()`（検索軸の成分別ハッシュ導出）を実行する。ingest API へはこの payload をそのまま送る。
+内部で `collectDeviceSignals()`（信号収集）→ `buildComponentHashes()`（検索軸の成分別ハッシュ導出）を実行する。
 
-収集する信号（各成分は個別 try-catch の fail-soft。取れない環境では null）:
+収集する信号（取れない環境では null）:
 
 | 成分 | 内容 |
 |---|---|
@@ -41,7 +39,7 @@ import { useBehavioralCapture } from "@/lib/fingerprint";
 
 const behavior = useBehavioralCapture();
 
-// フォームのラッパー要素に spread するだけ（capture フェーズで配下全 input を計測）
+// フォームのラッパー要素に spread する（capture フェーズで配下全 input を計測）
 <div {...behavior.containerProps}>
   {/* ...フォーム... */}
 </div>
@@ -50,4 +48,7 @@ const behavior = useBehavioralCapture();
 const payload = behavior.getPayload();
 ```
 
-計測
+## Related
+
+- 蓄積・照合: [`features/core/deviceFingerprint`](../../features/core/deviceFingerprint/README.md)
+- 回答チャレンジ: [`features/core/fingerprintChallenge`](../../features/core/fingerprintChallenge/README.md)
