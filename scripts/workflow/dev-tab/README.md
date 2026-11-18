@@ -1,8 +1,12 @@
 # scripts/workflow/dev-tab(pnpm workflow dev-tab run)
 
-開発サーバーを tmux のタブか裏のプロセスで立てる・止める・様子を見る道具。エージェントが動いているアプリで確かめるときに、自分で立てて自分で止めるためのもの(人に立ち上げを頼まない)。人が使ってもよい。
+## Overview
 
-## コマンド
+- 開発サーバーを tmux のタブか裏のプロセスで立てる・止める・様子を見る道具
+- エージェントが動いているアプリで確かめるときに、自分で立てて自分で止めるためのもの(人に立ち上げを頼まない)。人が使ってもよい
+- Linux / WSL / macOS。タブは tmux が要る(無ければ裏のプロセス)。外のサーバーの検出と開始時刻の印は Linux が `/proc`、それ以外が `ps`(+ `lsof`)
+
+## Usage
 
 ```bash
 pnpm workflow dev-tab run            # 立てる(= start)。もう動いていれば URL を出すだけ
@@ -12,14 +16,28 @@ pnpm workflow dev-tab run stop       # 止めてタブを閉じる
 pnpm workflow dev-tab run status     # どこで動いているか・応答するか
 ```
 
+### エージェントの使い方
+
+- 動いているアプリでの確かめは確かめの入口 `/devcheck` から(`pnpm workflow devcheck run server` がこの道具を呼び、この命令が立てた物だけを `cleanup` で止める。`scripts/workflow/devcheck/README.md`)
+- 直接使ってもよい: `pnpm workflow dev-tab run` → 出た URL を Playwright で開く → 済んだら `pnpm workflow dev-tab run stop`
+- 決まりそのもの(いつ確かめるか・承認の取り方)は各リポの `.claude/rules/behavior.md`(fork が変えてよい)
+
+## API
+
+### 出力
+
 出力は 1 行:
 
 - タブ: `http://localhost:<port> — <本体のチェックアウト or ワークツリー>(ブランチ)、タブ <番号>(セッション <名前>)`
 - 裏: `http://localhost:<port> — <本体のチェックアウト or ワークツリー>(ブランチ)、裏のプロセス <pid>(ログ .agent/dev-tab.log)`
 
-終了コード: 0 = できた(既に動いていた場合も)/ 1 = 失敗(使い方の誤り・起動の途中で終わった等)/ 3 = 立てなかった(この道具の外で開発サーバーが動いている)
+### 終了コード
 
-## どこに立つか
+- 終了コード: 0 = できた(既に動いていた場合も)/ 1 = 失敗(使い方の誤り・起動の途中で終わった等)/ 3 = 立てなかった(この道具の外で開発サーバーが動いている)
+
+## Internals
+
+### どこに立つか
 
 上から順に決まる(`lib.ts` の `decideMode`):
 
@@ -32,7 +50,7 @@ pnpm workflow dev-tab run status     # どこで動いているか・応答す�
 
 **裏のプロセス**: 切り離したプロセスグループ(この道具が終わっても動き続ける)で dev スクリプトを動かし、出力は `<チェックアウト>/.agent/dev-tab.log`(立てるたびに書き直す)。記録・URL の 1 行・status / stop・二重起動の判定・外のサーバーの検出・ポートの選び方はタブと同じ
 
-## 決まりごと
+### 決まりごと
 
 - **1 チェックアウトに 1 つ**。記録は `<チェックアウト>/.agent/dev-tab.json`(gitignore)。ワークツリーごとに別なので、本体とワークツリーで同時に立てられる
   - 記録の `mode`: `tab`(socket・session・window。`mode` の無い古い記録もタブ)/ `background`(pid・pgid・procStart = 開始時刻の印・log)
@@ -46,16 +64,6 @@ pnpm workflow dev-tab run status     # どこで動いているか・応答す�
   - どちらもプロセスの無い `.next/dev/lock` は消す
 - タブが手で閉じられていたら・裏のプロセスが終わっていたら(pid が別のプロセスに使い回されていても開始時刻の印で見分ける)、記録は次に読んだときに消える
 
-## エージェントの使い方
+## Verification
 
-- 動いているアプリでの確かめは確かめの入口 `/devcheck` から(`pnpm workflow devcheck run server` がこの道具を呼び、この命令が立てた物だけを `cleanup` で止める。`scripts/workflow/devcheck/README.md`)
-- 直接使ってもよい: `pnpm workflow dev-tab run` → 出た URL を Playwright で開く → 済んだら `pnpm workflow dev-tab run stop`
-- 決まりそのもの(いつ確かめるか・承認の取り方)は各リポの `.claude/rules/behavior.md`(fork が変えてよい)
-
-## 対応環境
-
-- Linux / WSL / macOS。タブは tmux が要る(無ければ裏のプロセス)。外のサーバーの検出と開始時刻の印は Linux が `/proc`、それ以外が `ps`(+ `lsof`)
-
-## テスト
-
-`pnpm test scripts/workflow/dev-tab/dev-tab.test.ts`(純粋な部品・どこに立つかの表・記録の生死、小さな HTTP サーバーを立てて止める通し: 裏はいつも、タブは tmux があるときだけ専用の tmux サーバーで)
+- `pnpm test scripts/workflow/dev-tab/dev-tab.test.ts`(純粋な部品・どこに立つかの表・記録の生死、小さな HTTP サーバーを立てて止める通し: 裏はいつも、タブは tmux があるときだけ専用の tmux サーバーで)
