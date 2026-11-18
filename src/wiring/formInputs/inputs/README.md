@@ -31,3 +31,10 @@ export const formInput = {
 - `load`: 部品の本体を `import()` で返す（default export。使う画面で初めて読み込む）
 - `frame`（既定 true）: true はラベル・必須印・説明(欄の `helperText`)・エラーの枠を共通で描く。部品が自分で枠や複数の欄を描くなら false（エラーの表示だけ残る）
 - `blurMode`（既定 `"none"` = blur で自動保存しない）: 単一値の部品で自動保存を効かせるなら `"immediate"` か `"debounce"`
+
+## Internals
+
+- 一覧 `src/wiring/formInputs/extensions/inputs.ts`(生成物)は `FormInputsRoot`(`src/wiring/formInputs/FormInputsRoot.tsx`、client)が Form の `FormInputsProvider` に渡す。置くのは `src/wiring/AppProviders.tsx`(`load` は関数でサーバーから渡せないので client に置く)
+- 登録名は型 `RegisteredFormInputs` に載り、欄の `formInput` に書ける。一覧に無い名前は型で落ちる
+- 受け口の宣言は `src/wiring/formInputs/extensionPoints.ts` の `inputs`(項目のキー = `name`、字面で書く)
+
