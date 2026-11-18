@@ -7,6 +7,9 @@ import React from "react";
 import { Lock, PencilLine } from "lucide-react";
 
 import { cn } from "@/lib/cn";
+import { Block } from "@/components/Layout/Block";
+import { InBlock } from "@/components/Layout/InBlock";
+import { Span } from "@/components/TextBlocks/Span";
 import { useUnsavedGuard, useUnsavedTasks } from "@/lib/unsavedGuard";
 
 import {
@@ -89,25 +92,25 @@ export default function EditableGridTable<T>({
 
       if (shouldShowReadonlyIcon && column.editorType === "readonly") {
         return (
-          <span
+          <InBlock
             aria-label="閲覧のみ"
             className="text-muted-foreground text-[10px] leading-none flex items-center"
             title="この列は閲覧のみです"
           >
             <Lock aria-hidden="true" className="h-3 w-3" strokeWidth={2} />
-          </span>
+          </InBlock>
         );
       }
 
       if (shouldShowEditableIcon && column.editorType !== "readonly") {
         return (
-          <span
+          <InBlock
             aria-label="編集可能"
             className="text-info-text text-[10px] leading-none flex items-center"
             title="この列は編集可能です"
           >
             <PencilLine aria-hidden="true" className="h-3 w-3" strokeWidth={2} />
-          </span>
+          </InBlock>
         );
       }
 
@@ -122,7 +125,7 @@ export default function EditableGridTable<T>({
   const reorder = useTableReorder({ items, getKey, reorderable, sort, guardUnsaved });
 
   return (
-    <div
+    <Block
       className={cn("w-full max-w-full overflow-x-auto overflow-y-auto", className)}
       style={{ maxHeight: resolvedMaxHeight }}
       ref={scrollContainerRef}
@@ -145,7 +148,7 @@ export default function EditableGridTable<T>({
                 style={column.width ? { width: column.width } : undefined}
                 className={resolveColumnTextAlignClass(column.align)}
               >
-                <span>{renderColumnHeader(column.header, column.headerHelp)}</span>
+                <Span inline>{renderColumnHeader(column.header, column.headerHelp)}</Span>
                 {renderHeaderIcon(column)}
               </SortableTableHead>
             ))}
@@ -195,9 +198,9 @@ export default function EditableGridTable<T>({
       </TableReorderProvider>
       {infiniteFooter ? <InfiniteTableFooter {...infiniteFooter} /> : null}
       {bottomSentinelRef ? (
-        <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
+        <Block ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
       ) : null}
-    </div>
+    </Block>
   );
 }
 

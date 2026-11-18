@@ -8,6 +8,7 @@ import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { GripVertical } from "lucide-react";
 
 import { cn } from "@/lib/cn";
+import { Span } from "@/components/TextBlocks/Span";
 
 import { TableCell } from "../TableCell";
 import { TableHead } from "../TableHead";
@@ -22,7 +23,7 @@ const HANDLE_COLUMN_CLASS = "w-9 px-1";
 export function DragHandleHead() {
   return (
     <TableHead className={HANDLE_COLUMN_CLASS}>
-      <span className="sr-only">並び替え</span>
+      <Span inline srOnly>並び替え</Span>
     </TableHead>
   );
 }
@@ -75,7 +76,7 @@ export function DragHandleCell({
         {...listeners}
       >
         <GripVertical className="h-4 w-4" />
-        <span className="sr-only">ドラッグして並び替え</span>
+        <Span inline srOnly>ドラッグして並び替え</Span>
       </button>
     </TableCell>
   );

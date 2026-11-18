@@ -2,6 +2,7 @@ import React from "react";
 
 import { Checkbox, type CheckedState } from "@/components/Primitives/Checkbox";
 import { cn } from "@/lib/cn";
+import { Flex } from "@/components/Layout/Flex";
 
 // visible = 選択の on / off。列はいつも置き、off は幅 0・透明・inert(押せない・フォーカスしない・読み上げない)。
 // 出入りは幅と濃さを 200ms の linear で動かす(RecordSelectionList のチェックの列と同じ)
@@ -58,9 +59,11 @@ export function SelectionHeaderCell({
       inert={!visible}
       aria-hidden={visible ? undefined : true}
     >
-      <div
+      <Flex
+        align="center"
+        justify="center"
         className={cn(
-          "flex h-full items-center justify-center overflow-hidden transition-[width,opacity] duration-200 ease-linear",
+          "h-full overflow-hidden transition-[width,opacity] duration-200 ease-linear",
           visible ? "w-10 opacity-100" : "w-0 opacity-0",
         )}
       >
@@ -71,7 +74,7 @@ export function SelectionHeaderCell({
           onCheckedChange={(next) => onToggle(next === true)}
           onClick={(event) => event.stopPropagation()}
         />
-      </div>
+      </Flex>
     </TableHead>
   );
 }

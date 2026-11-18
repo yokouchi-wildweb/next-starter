@@ -3,6 +3,7 @@
 import React from "react";
 import { TableCellAction } from "../../../../shared";
 import { cn } from "@/lib/cn";
+import { Flex } from "@/components/Layout/Flex";
 import type { ActionEditorProps } from "../types";
 
 export function ActionEditor<T>({
@@ -14,17 +15,18 @@ export function ActionEditor<T>({
 }: ActionEditorProps<T>) {
   if (!column.renderAction) {
     return (
-      <div
+      <Flex
         data-cell-editor
         data-editor-type="action"
+        align="center"
         className={cn(
-          "w-full h-full text-sm flex items-center text-foreground truncate text-muted-foreground",
+          "w-full h-full text-sm text-foreground truncate text-muted-foreground",
           flexAlignClass,
           paddingClass,
         )}
       >
         {fallbackPlaceholder}
-      </div>
+      </Flex>
     );
   }
 

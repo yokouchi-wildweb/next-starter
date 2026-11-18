@@ -35,7 +35,7 @@ test("infiniteFooter を渡さない 3 つの表の出力は前と同じ", () =>
 for (const [name, render] of Object.entries(tables)) {
   test(`${name}: 読み込み中は表の下・sentinel の直前に Spinner +「読み込み中...」`, () => {
     const out = renderToStaticMarkup(render({ isFetchingMore: true, hasMore: true }));
-    assert.match(out, /<\/table><\/div>(?:<\/div>)*<div[^>]*data-slot="table-infinite-footer"[^>]*><svg[^>]*animate-spin[^>]*>.*<\/svg><p[^>]*>読み込み中\.\.\.<\/p><\/div><div aria-hidden="true" class="h-px w-full"><\/div>/);
+    assert.match(out, /<\/table><\/div>(?:<\/div>)*<div[^>]*data-slot="table-infinite-footer"[^>]*><svg[^>]*animate-spin[^>]*>.*<\/svg><p[^>]*>読み込み中\.\.\.<\/p><\/div><div data-component="Block" aria-hidden="true" class="block h-px w-full"><\/div>/);
   });
   test(`${name}: 待機中(続きあり・読み込みなし)は何も出さない`, () => {
     assert.doesNotMatch(renderToStaticMarkup(render({ isFetchingMore: false, hasMore: true })), /table-infinite-footer/);
@@ -49,6 +49,6 @@ for (const [name, render] of Object.entries(tables)) {
 
 test("差し替え: fetchingMoreNode / completedNode(null = 出さない)", () => {
   assert.match(renderToStaticMarkup(tables.DataTable({ isFetchingMore: true, hasMore: true, fetchingMoreNode: createElement("i", null, "ロード") })), /table-infinite-footer"[^>]*><i>ロード<\/i>/);
-  assert.match(renderToStaticMarkup(tables.DataTable({ isFetchingMore: false, hasMore: false, completedNode: createElement("b", null, "完") })), /<b>完<\/b><div aria-hidden/);
+  assert.match(renderToStaticMarkup(tables.DataTable({ isFetchingMore: false, hasMore: false, completedNode: createElement("b", null, "完") })), /<b>完<\/b><div data-component="Block" aria-hidden/);
   assert.doesNotMatch(renderToStaticMarkup(tables.DataTable({ isFetchingMore: false, hasMore: false, completedNode: null })), /table-infinite-footer|表示しました/);
 });

@@ -5,6 +5,7 @@
 import * as React from "react";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { InBlock } from "@/components/Layout/InBlock";
 import { TableHead } from "./TableHead";
 import type { SortState } from "../types";
 import { resolveNextSort } from "../types";
@@ -53,10 +54,10 @@ export function SortableTableHead({
       onClick={handleClick}
       aria-sort={isActive ? (sort!.direction === "asc" ? "ascending" : "descending") : "none"}
     >
-      <span className="inline-flex items-center gap-1">
+      <InBlock className="inline-flex items-center gap-1">
         {children}
         <SortIndicator isActive={isActive} direction={sort?.direction} />
-      </span>
+      </InBlock>
     </TableHead>
   );
 }

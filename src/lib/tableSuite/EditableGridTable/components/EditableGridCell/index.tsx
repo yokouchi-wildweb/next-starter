@@ -5,6 +5,9 @@ import React from "react";
 import { normalizeOptionValues, type OptionPrimitive } from "@/components/Form/utils";
 import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { InBlock } from "@/components/Layout/InBlock";
 
 import { TableCell, CellClickOverlay, getCellClickOverlayClassName } from "../../../shared";
 import {
@@ -195,7 +198,7 @@ export function EditableGridCell<T>({
       ref={cellRef}
     >
       {/* アクティブ/編集中の枠線 */}
-      <div
+      <Block
         data-cell-border
         className={cn(
           "pointer-events-none absolute inset-0 z-10 rounded border-2 border-transparent",
@@ -205,10 +208,11 @@ export function EditableGridCell<T>({
       />
 
       {/* コンテンツ */}
-      <div
+      <Flex
         data-cell-content
+        align="center"
         className={cn(
-          "group flex items-center",
+          "group",
           !flags.isReadOnly && "absolute inset-0",
           flexAlignClass,
           !flexAlignClass && flags.isSwitchEditor && "justify-center",
@@ -244,11 +248,11 @@ export function EditableGridCell<T>({
 
         {/* セレクトインジケーター */}
         {shouldShowSelectIndicator ? (
-          <div data-select-indicator className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-primary">
+          <Flex data-select-indicator align="center" className="pointer-events-none absolute inset-y-0 right-2 text-primary">
             <ChevronDownIcon className="size-4" aria-hidden />
-          </div>
+          </Flex>
         ) : null}
-      </div>
+      </Flex>
 
       {/* セルアクションオーバーレイ（readonly のみ） */}
       {flags.isReadOnly &&
@@ -270,9 +274,9 @@ export function EditableGridCell<T>({
                 className={getCellClickOverlayClassName(fullWidth)}
                 aria-label="詳細を表示"
               >
-                <span data-slot="cell-click-indicator" className="pointer-events-none">
+                <InBlock data-slot="cell-click-indicator" className="pointer-events-none">
                   {indicator}
-                </span>
+                </InBlock>
               </button>
             );
 

@@ -3,6 +3,7 @@
 import React from "react";
 import { serializeOptionValue, type OptionPrimitive } from "@/components/Form/utils";
 import { cn } from "@/lib/cn";
+import { Flex } from "@/components/Layout/Flex";
 import type { EditableGridColumn } from "../../../types";
 
 type CellDisplayProps<T> = {
@@ -78,11 +79,12 @@ export function CellDisplay<T>({
   }, [baseValue, column, fallbackPlaceholder, rawValue, row]);
 
   return (
-    <div
+    <Flex
       data-cell-display
       data-readonly={isReadOnly || undefined}
+      align="center"
       className={cn(
-        "w-full h-full text-sm flex items-center text-foreground truncate",
+        "w-full h-full text-sm text-foreground truncate",
         highlightReadonly && isReadOnly && "text-muted-foreground",
         flexAlignClass,
         paddingClass,
@@ -90,6 +92,6 @@ export function CellDisplay<T>({
       )}
     >
       {displayValue}
-    </div>
+    </Flex>
   );
 }

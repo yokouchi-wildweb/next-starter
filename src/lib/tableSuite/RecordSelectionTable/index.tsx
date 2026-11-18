@@ -5,6 +5,9 @@
 import React from "react";
 
 import { cn } from "@/lib/cn";
+import { Block } from "@/components/Layout/Block";
+import { InBlock } from "@/components/Layout/InBlock";
+import { Span } from "@/components/TextBlocks/Span";
 
 import {
   Table,
@@ -126,7 +129,7 @@ export default function RecordSelectionTable<T>({
       return content;
     }
     return (
-      <span className="text-muted-foreground text-xs font-medium">{resolvedFallback}</span>
+      <Span inline tone="muted" className="text-xs font-medium">{resolvedFallback}</Span>
     );
   };
 
@@ -191,7 +194,7 @@ export default function RecordSelectionTable<T>({
           sticky={bulkActionsSticky}
         />
       )}
-      <div
+      <Block
         className={cn("w-full max-w-full overflow-x-auto overflow-y-auto", className)}
         style={{ maxHeight: resolvedMaxHeight }}
         ref={scrollContainerRef}
@@ -295,9 +298,9 @@ export default function RecordSelectionTable<T>({
                                 className={getCellClickOverlayClassName(fullWidth)}
                                 aria-label="詳細を表示"
                               >
-                                <span data-slot="cell-click-indicator" className="pointer-events-none">
+                                <InBlock data-slot="cell-click-indicator" className="pointer-events-none">
                                   {indicator}
-                                </span>
+                                </InBlock>
                               </button>
                             );
 
@@ -325,9 +328,9 @@ export default function RecordSelectionTable<T>({
         </TableReorderProvider>
         {infiniteFooter ? <InfiniteTableFooter {...infiniteFooter} /> : null}
         {bottomSentinelRef ? (
-          <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
+          <Block ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
         ) : null}
-      </div>
+      </Block>
       {bulkActions && (bulkActionsPosition === "bottom" || bulkActionsPosition === "both") && (
         <BulkActionBar
           selection={bulkActionSelection}

@@ -4,6 +4,7 @@
 
 import * as React from "react";
 import { Eye } from "lucide-react";
+import { InBlock } from "@/components/Layout/InBlock";
 import { getCellClickOverlayClassName } from "./cellClickOverlayStyles";
 
 export type CellClickOverlayProps = {
@@ -40,9 +41,9 @@ export function CellClickOverlay({
       className={getCellClickOverlayClassName(fullWidth, className)}
       aria-label="詳細を表示"
     >
-      <span data-slot="cell-click-indicator" className="pointer-events-none">
+      <InBlock data-slot="cell-click-indicator" className="pointer-events-none">
         {indicator}
-      </span>
+      </InBlock>
     </button>
   );
 }

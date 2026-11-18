@@ -5,6 +5,10 @@ import { Button } from "@/components/Form/Button";
 import { SwitchInput } from "@/components/Form/Input/Manual";
 import { Checkbox } from "@/components/Primitives/Checkbox";
 import { cn } from "@/lib/cn";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Label } from "@/components/Form/Label";
+import { Span } from "@/components/TextBlocks/Span";
 
 import type { SelectionMode } from "../hooks/useSelectionMode";
 
@@ -74,7 +78,7 @@ export function BulkActionBar<T>({
   const spacingClass = placement === "top" ? SPACING_MB[spacing] : SPACING_MT[spacing];
 
   return (
-    <div
+    <Block
       className={cn(
         "overflow-hidden transition-all duration-[600ms] ease-out",
         isVisible ? `${spacingClass} max-h-20 opacity-100` : "mb-0 max-h-0 opacity-0",
@@ -85,32 +89,34 @@ export function BulkActionBar<T>({
     >
       {/* 中の行の高さの下限 = sm のボタン(h-9)+ 上下の余白(py-3)+ 枠(1px × 2)。選択の on / off でボタンや「選択解除」が出入りしても
           バーの高さが変わってがたつかないように */}
-      <div
+      <Flex
+        align="center"
         className={cn(
-          "flex min-h-[3.875rem] items-center gap-4 rounded-lg border px-4 py-3 transition-colors",
+          "min-h-[3.875rem] gap-4 rounded-lg border px-4 py-3 transition-colors",
           hasSelection
             ? "border-primary/20 bg-primary/5"
             : "border-muted-foreground/20 bg-muted/50"
         )}
       >
         {/* 左側: 共通部分 */}
-        <div className="flex flex-1 flex-wrap items-center gap-2">
+        <Flex wrap="wrap" align="center" className="flex-1 gap-2">
           {mode === "toggle" ? (
             <SwitchInput value={selectionOn} onChange={(on) => onSelectionOnChange?.(on)} label="選択モード" />
           ) : null}
           {selectAll && selectionOn ? (
-            <label className="flex cursor-pointer items-center gap-2 text-sm">
+            // Form/Label の既定の leading-none は後ろの text-sm が、font-medium は font-normal が打ち消す
+            <Label className="cursor-pointer gap-2 text-sm font-normal">
               <Checkbox
                 checked={selectAll.indeterminate ? "indeterminate" : selectAll.checked}
                 onCheckedChange={(checked) => selectAll.onToggle(checked === true)}
                 aria-label={selectAll.label ?? "すべて選択"}
               />
               {selectAll.label ?? "すべて選択"}
-            </label>
+            </Label>
           ) : null}
           {!selectionOn ? null : hasSelection ? (
             <>
-              <span className="font-medium text-primary">{selection.count}件選択中</span>
+              <Span inline tone="primary" weight="medium">{selection.count}件選択中</Span>
               <Button
                 type="button"
                 variant="ghost"
@@ -123,13 +129,13 @@ export function BulkActionBar<T>({
               </Button>
             </>
           ) : (
-            <span className="text-muted-foreground">{emptyMessage}</span>
+            <Span inline tone="muted">{emptyMessage}</Span>
           )}
-        </div>
+        </Flex>
 
         {/* 右側: カスタムアクション */}
-        {selectionOn ? <div className="flex gap-2">{bulkActions(selection)}</div> : null}
-      </div>
-    </div>
+        {selectionOn ? <Flex className="gap-2">{bulkActions(selection)}</Flex> : null}
+      </Flex>
+    </Block>
   );
 }

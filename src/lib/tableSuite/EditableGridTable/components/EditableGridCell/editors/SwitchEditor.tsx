@@ -3,6 +3,7 @@
 import React from "react";
 import { SwitchInput as ManualSwitchInput } from "@/components/Form/Input/Manual/SwitchInput";
 import { cn } from "@/lib/cn";
+import { Flex } from "@/components/Layout/Flex";
 import type { SwitchEditorProps } from "../types";
 
 export function SwitchEditor<T>({
@@ -13,7 +14,7 @@ export function SwitchEditor<T>({
   onToggle,
 }: SwitchEditorProps<T>) {
   return (
-    <div data-cell-editor data-editor-type="switch" className={cn("h-full flex items-center justify-center", paddingClass)}>
+    <Flex data-cell-editor data-editor-type="switch" align="center" justify="center" className={cn("h-full", paddingClass)}>
       <ManualSwitchInput
         value={switchValue}
         name={`${String(rowKey)}-${column.field}`}
@@ -21,6 +22,6 @@ export function SwitchEditor<T>({
         aria-label={`${column.header}の切り替え`}
         activeColor="primary"
       />
-    </div>
+    </Flex>
   );
 }

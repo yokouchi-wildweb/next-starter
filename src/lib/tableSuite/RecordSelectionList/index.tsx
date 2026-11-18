@@ -14,6 +14,9 @@ import React from "react";
 
 import { Checkbox } from "@/components/Primitives/Checkbox";
 import { cn } from "@/lib/cn";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Stack } from "@/components/Layout/Stack";
 
 import { BulkActionBar, type BulkActionBarPosition, type BulkActionBarSpacing, type BulkActionSelection } from "../RecordSelectionTable/components/BulkActionBar";
 import { useRecordSelection } from "../RecordSelectionTable/hooks/useRecordSelection";
@@ -119,16 +122,16 @@ export default function RecordSelectionList<T>({
   return (
     <>
       {bulkActionsPosition === "top" || bulkActionsPosition === "both" ? bar("top") : null}
-      <div className={cn("flex w-full flex-col gap-2", className)} data-slot="record-selection-list">
+      <Stack className={cn("w-full gap-2", className)} data-slot="record-selection-list">
         {keyedItems.length === 0 ? emptyNode : null}
         {keyedItems.map(({ item, key, index }) => {
           const selectable = !isSelectable || isSelectable(item);
           const selected = selectedKeySet.has(key);
           return (
-            <div key={key} className="flex items-stretch" data-selected={selected ? "true" : undefined}>
+            <Flex key={key} data-selected={selected ? "true" : undefined}>
               {/* チェックの列はいつも置き、選択の on / off で幅と濃さを動かす(200ms の linear、表のチェックの列と同じ)。
                   off の間は inert(押せない・フォーカスしない・読み上げない) */}
-              <div
+              <Block
                 className={cn(
                   "shrink-0 overflow-hidden transition-[width,margin,opacity] duration-200 ease-linear",
                   selectionOn ? "mr-1 w-11 opacity-100" : "mr-0 w-0 opacity-0",
@@ -138,8 +141,10 @@ export default function RecordSelectionList<T>({
               >
                 {selectable ? (
                   // 列全体を押すと切り替わる(チェックそのものを押した時は二重にしない)
-                  <div
-                    className="flex h-full w-11 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-muted/60"
+                  <Flex
+                    align="center"
+                    justify="center"
+                    className="h-full w-11 cursor-pointer rounded-md transition-colors hover:bg-muted/60"
                     onClick={(event) => {
                       if (!selectionOn || isCheckboxEvent(event)) return;
                       updateKeySelection(key);
@@ -152,15 +157,15 @@ export default function RecordSelectionList<T>({
                       checked={selected}
                       onCheckedChange={(checked) => updateKeySelection(key, checked === true)}
                     />
-                  </div>
+                  </Flex>
                 ) : null}
-              </div>
-              <div className="min-w-0 flex-1">{renderItem(item, { selected, index })}</div>
-            </div>
+              </Block>
+              <Block className="min-w-0 flex-1">{renderItem(item, { selected, index })}</Block>
+            </Flex>
           );
         })}
-        {bottomSentinelRef ? <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" /> : null}
-      </div>
+        {bottomSentinelRef ? <Block ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" /> : null}
+      </Stack>
       {bulkActionsPosition === "bottom" || bulkActionsPosition === "both" ? bar("bottom") : null}
     </>
   );
