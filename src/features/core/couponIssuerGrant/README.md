@@ -1,39 +1,18 @@
 # couponIssuerGrant — クーポン発行者プログラム
 
-ユーザーが **クーポン発行権を申請** し、管理者が **per-user パラメータ付きで承認** し、承認されたユーザーが **周期ポリシーの下で自分の帰属クーポン（type=affiliate）を発行** するための汎用基盤。アフィリエイト / アンバサダー / フレンドクーポンの「申請 → 承認 → 月 1 枚発行」を支える。
+## Overview
 
-- Tier1 が持つのは **権利の台帳と状態遷移・周期発行の骨組み** のみ。「何を発行するか」（カテゴリ・周期・settings の意味）は下流が 1 行スイッチ `services/server/programConfig.ts` に 1 つ登録する
+- ユーザーが **クーポン発行権を申請** し、管理者が **per-user パラメータ付きで承認** し、承認されたユーザーが **周期ポリシーの下で自分の帰属クーポン（type=affiliate）を発行** するための汎用基盤。アフィリエイト / アンバサダー / フレンドクーポンの「申請 → 承認 → 月 1 枚発行」を支える
+- Tier1 が持つのは権利の台帳と状態遷移・周期発行の骨組みだけ。「何を発行するか」（カテゴリ・周期・settings の意味）は下流がプログラム設定で決める
 - 上流は registry を `null` で出荷 = 発行 API は 503（fail-closed）。申請・審査は registry 未設定でも動く
-- 今は UI の部品を持たない。画面は下流が本 README のレシピで組む（core の UI の決まりは CLAUDE.md `core_ui`。部品を足すなら上流が足す）
+- 今は UI の部品を持たない。画面は下流が Usage のレシピで組む（core の UI の決まりは CLAUDE.md `core_ui`）
+- 門番: 機能 `coupon` の domains に入る（既定 off）
 
----
+## Usage
 
-## データモデル
+### プログラム設定（下流が 1 つ登録）
 
-テーブル `coupon_issuer_grants`（ユーザーにつき 1 行）
-
-| 列 | 型 | 説明 |
-|---|---|---|
-| `user_id` | uuid **unique** → users (cascade) | 申請者 |
-| `status` | pending / approved / rejected / suspended | 発行権の状態 |
-| `settings` | jsonb | per-user パラメータ（下流定義。Tier1 は不透明扱い） |
-| `application` | jsonb | 申請フォームの内容（下流定義、任意） |
-| `requested_at` | timestamptz | 申請（再申請）日時 |
-| `reviewed_at` / `reviewed_by` | timestamptz / uuid → users (set null) | 最終審査 |
-| `admin_note` | text | 管理者メモ（本人には返さない） |
-
-状態遷移:
-
-```
-(なし) --apply--> pending --approve--> approved --suspend--> suspended --reinstate--> approved
-                 pending --reject---> rejected --apply--> pending（再申請）
-```
-
-監査: 全遷移は `base.update` 経由のため CRUD 自動監査 `coupon_issuer_grant.updated`（before/after 差分）が残る。
-
----
-
-## プログラム設定（下流が登録）
+1 行スイッチ `services/server/programConfig.ts` を下流の `programConfig.replace.ts` へ向ける:
 
 ```typescript
 // services/server/programConfig.replace.ts(スイッチ programConfig.ts をここへ向ける)
@@ -59,7 +38,63 @@ export const couponIssuerProgram: CouponIssuerProgramConfig | null = {
 };
 ```
 
-周期ポリシー `PeriodPolicy`:
+- `period` の種類は API「周期ポリシー」
+
+### マイページ（申請 → 発行）
+
+```typescript
+import {
+  useMyCouponIssuer, useApplyCouponIssuerGrant, useIssueMyCoupon, useMyIssuedCoupons,
+} from "@/features/core/couponIssuerGrant/hooks/useMyCouponIssuer";
+
+const { status, isLoading } = useMyCouponIssuer();
+const { apply, isApplying } = useApplyCouponIssuerGrant();
+const { issue, isIssuing } = useIssueMyCoupon();
+
+// status.grant == null            → 申請ボタン（apply({ ...申請フォーム })）
+// status.grant.status === "pending"   → 審査中表示
+// status.grant.status === "rejected"  → 却下表示 + 再申請ボタン
+// status.grant.status === "approved"  → status.currentCoupon ? コード表示 : 発行ボタン（issue()）
+// status.grant.status === "suspended" → 停止中表示
+// status.programEnabled === false     → 発行ボタンを出さない（申請のみ受け付ける運用も可）
+```
+
+- ボタンは `isApplying` / `isIssuing` でローディングを見せる（CLAUDE.md COMPONENTS: background request shows loading）
+
+### 管理画面（申請管理）
+
+- 一覧: `useCouponIssuerGrantListWithStats({ status, searchQuery, page, sort })`（上記リードモデル。ユーザー名 / 当期クーポン / 統計込み）
+- 審査: `PATCH /api/admin/coupon-issuer-grants/[id]` に `{ action: "approve", settings: { monthlyMaxUses, discountRate, rewardRate }, adminNote }`
+- 設定変更: `{ action: "update_settings", settings }` → 当期クーポンへ即時反映（`buildCouponPatch` 定義時）
+- `/admin/coupons/affiliate` の「準備中」プレースホルダは、この基盤を使った一覧に下流で差し替える
+- SSR で直接 `getGrantListWithStats` を呼んで初期表示に使う構成も可（invite 一覧ページと同じ）
+
+### 報酬との組み合わせ
+
+- 発行されたクーポンが使われたときの発行者への報酬は `couponAttributionReward`（`grant()` を `onRedeemed` から呼ぶ）で付与する
+- 報酬率などは `coupon.settings`（`buildIssueParams` で埋める）から読むのが単純。→ `src/features/core/couponAttributionReward/README.md`
+
+### 通知（内蔵しない）
+
+- 承認 / 却下 / 停止の本人通知は、下流が管理ルートの呼び出し後に `notificationService.sendToUserSafe` で送る（テンプレートや文言は下流の物）
+
+## API
+
+### データモデル
+
+テーブル `coupon_issuer_grants`（ユーザーにつき 1 行）
+
+| 列 | 型 | 説明 |
+|---|---|---|
+| `user_id` | uuid **unique** → users (cascade) | 申請者 |
+| `status` | pending / approved / rejected / suspended | 発行権の状態 |
+| `settings` | jsonb | per-user パラメータ（下流定義。Tier1 は不透明扱い） |
+| `application` | jsonb | 申請フォームの内容（下流定義、任意） |
+| `requested_at` | timestamptz | 申請（再申請）日時 |
+| `reviewed_at` / `reviewed_by` | timestamptz / uuid → users (set null) | 最終審査 |
+| `admin_note` | text | 管理者メモ（本人には返さない） |
+
+### 周期ポリシー `PeriodPolicy`
 
 | kind | 意味 |
 |---|---|
@@ -69,9 +104,7 @@ export const couponIssuerProgram: CouponIssuerProgramConfig | null = {
 
 周期の解決は `resolveIssuancePeriod(policy, now?)`（`@/features/core/couponIssuerGrant`）で単体利用も可。
 
----
-
-## サービス API（server）
+### サービス API（server）
 
 ```typescript
 import { couponIssuerGrantService } from "@/features/core/couponIssuerGrant/services/server";
@@ -88,14 +121,7 @@ import { couponIssuerGrantService } from "@/features/core/couponIssuerGrant/serv
 | `issueForGrant({ userId, now? })` | 発行（本人） | program 未設定 503 / approved 以外 403 / 期間外 409。当期発行済みなら `created:false` で既存を返す |
 | `getCurrentPeriodCoupon(userId)` | 当期クーポン参照 | `{ coupon, period }` |
 
-発行の保証:
-- ユーザー単位の `pg_advisory_xact_lock` + 周期内既存チェック（inactive 含む）で **1 周期 1 枚**。停止で inactive になったクーポンがある周期に再発行しても二重発行しない
-- 発行されるクーポン: `type=affiliate` / `category=program.category` / `attribution_user_id=本人` / code 自動生成（`issueCodeForOwner`）/ `admin_label=issuer-program:<periodKey>`
-- 自己消込は coupon 基底の `self_redeem_forbidden` で拒否される（発行者が自分のクーポンを使えない）
-
----
-
-## API ルート
+### API ルート
 
 | メソッド | パス | 用途 |
 |---|---|---|
@@ -106,11 +132,9 @@ import { couponIssuerGrantService } from "@/features/core/couponIssuerGrant/serv
 | `PATCH` | `/api/admin/coupon-issuer-grants/[id]` | `{ action: approve\|reject\|suspend\|reinstate\|update_settings, settings?, adminNote? }` |
 | 汎用 | `/api/coupon-issuer-grant/**` | admin の一覧・検索（serviceRegistry `couponIssuerGrant`, ADMIN_ONLY） |
 
----
+### 管理用リードモデル（一覧統計・ドリルダウン）
 
-## 管理用リードモデル（一覧統計・ドリルダウン）
-
-`/admin/coupons/affiliate` の実画面を下流が組むための集計 API。集計元（grants × coupons × coupon_histories × coupon_attribution_rewards × purchase_requests）はすべて Tier1 所有なので、下流で SQL を書かずここを使う（invite 側 `getInviteCodeListWithCounts` と対称）。
+- `/admin/coupons/affiliate` の実画面を下流が組むための集計 API。集計元（grants × coupons × coupon_histories × coupon_attribution_rewards × purchase_requests）はすべて Tier1 の物（invite 側 `getInviteCodeListWithCounts` と対称）
 
 ```typescript
 const { items, total, grandTotals, period } = await couponIssuerGrantService.getGrantListWithStats({
@@ -132,6 +156,7 @@ const { items, total, grandTotals, period } = await couponIssuerGrantService.get
 ソートキー: `requested_at`（既定）/ `lifetimeUses` / `currentPeriodUses` / `rewardPaidTotal` / `rewardPaidCurrentPeriod` / `discountTotal`。集計は主表に LEFT JOIN されるため、クーポン未発行の grant も 0 埋めで並ぶ。
 
 ドリルダウン:
+
 - `getIssuerStatsByGrantId(grantId)` → 一覧 1 行と同じ形（詳細ヘッダ用）
 - `getIssuerUsageHistory({ userId, page, limit })` → 発行者の全クーポン横断の利用履歴（coupon code / redeemer {id,name} / metadata）
 - `getIssuerRewardHistory({ userId, page, limit })` → 帰属報酬履歴（全 status、coupon code 同梱）
@@ -143,55 +168,27 @@ const { items, total, grandTotals, period } = await couponIssuerGrantService.get
 | `GET` | `/api/admin/coupon-issuer-grants/[id]/usage-history?page&limit` | 利用履歴 |
 | `GET` | `/api/admin/coupon-issuer-grants/[id]/reward-history?page&limit` | 報酬履歴 |
 
-フック（`@/features/core/couponIssuerGrant/hooks/useCouponIssuerGrantAdmin`）: `useCouponIssuerGrantListWithStats(query)` / `useCouponIssuerStats(grantId)` / `useCouponIssuerUsageHistory(grantId, {page,limit})` / `useCouponIssuerRewardHistory(grantId, {page,limit})`。SSR で直接 `getGrantListWithStats` を呼んで初期表示に使う構成も可（invite 一覧ページと同じ）。
+- フック（`@/features/core/couponIssuerGrant/hooks/useCouponIssuerGrantAdmin`）: `useCouponIssuerGrantListWithStats(query)` / `useCouponIssuerStats(grantId)` / `useCouponIssuerUsageHistory(grantId, {page,limit})` / `useCouponIssuerRewardHistory(grantId, {page,limit})`
+- 日次系列（チャート用）は含まない（一覧は発行者数規模で有界なので、キャッシュ / ロールアップも持たない）
 
-日次系列（チャート用）は含めない。一覧は発行者数規模で有界なのでキャッシュ / ロールアップ不要と判断している。必要になれば ANALYTICS_PERF の規約で別途追加する。
+## Internals
 
----
+### 状態遷移
 
-## 下流の画面レシピ
-
-### マイページ（申請 → 発行）
-
-```typescript
-import {
-  useMyCouponIssuer, useApplyCouponIssuerGrant, useIssueMyCoupon, useMyIssuedCoupons,
-} from "@/features/core/couponIssuerGrant/hooks/useMyCouponIssuer";
-
-const { status, isLoading } = useMyCouponIssuer();
-const { apply, isApplying } = useApplyCouponIssuerGrant();
-const { issue, isIssuing } = useIssueMyCoupon();
-
-// status.grant == null            → 申請ボタン（apply({ ...申請フォーム })）
-// status.grant.status === "pending"   → 審査中表示
-// status.grant.status === "rejected"  → 却下表示 + 再申請ボタン
-// status.grant.status === "approved"  → status.currentCoupon ? コード表示 : 発行ボタン（issue()）
-// status.grant.status === "suspended" → 停止中表示
-// status.programEnabled === false     → 発行ボタンを出さない（申請のみ受け付ける運用も可）
+```
+(なし) --apply--> pending --approve--> approved --suspend--> suspended --reinstate--> approved
+                 pending --reject---> rejected --apply--> pending（再申請）
 ```
 
-ボタンは `isApplying` / `isIssuing` でローディングを可視化する（async_feedback 必須ルール）。
+監査: 全遷移は `base.update` 経由のため CRUD 自動監査 `coupon_issuer_grant.updated`（before/after 差分）が残る。
 
-### 管理画面（申請管理）
+### 発行の保証
 
-- 一覧: `useCouponIssuerGrantListWithStats({ status, searchQuery, page, sort })`（上記リードモデル。ユーザー名 / 当期クーポン / 統計込み）
-- 審査: `PATCH /api/admin/coupon-issuer-grants/[id]` に `{ action: "approve", settings: { monthlyMaxUses, discountRate, rewardRate }, adminNote }`
-- 設定変更: `{ action: "update_settings", settings }` → 当期クーポンへ即時反映（`buildCouponPatch` 定義時）
-- `/admin/coupons/affiliate` の「準備中」プレースホルダは、この基盤を使った一覧に下流で差し替える
+- ユーザー単位の `pg_advisory_xact_lock` + 周期内既存チェック（inactive 含む）で **1 周期 1 枚**。停止で inactive になったクーポンがある周期に再発行しても二重発行しない
+- 発行されるクーポン: `type=affiliate` / `category=program.category` / `attribution_user_id=本人` / code 自動生成（`issueCodeForOwner`）/ `admin_label=issuer-program:<periodKey>`
+- 自己消込は coupon 基底の `self_redeem_forbidden` で拒否される（発行者が自分のクーポンを使えない）
 
-### 報酬との組み合わせ
-
-発行されたクーポンが使われたときの発行者への報酬は `couponAttributionReward`（`grant()` を `onRedeemed` から呼ぶ）で付与する。報酬率などは `coupon.settings`（`buildIssueParams` で埋める）から読むのが単純。→ `src/features/core/couponAttributionReward/README.md`
-
----
-
-## 通知（内蔵しない）
-
-承認 / 却下 / 停止の本人通知は下流が管理ルートの呼び出し後に `notificationService.sendToUserSafe` で送る（テンプレートや文言は下流所有）。
-
----
-
-## 関連
+## Related
 
 - `coupon`: `issueCodeForOwner`（settings 対応）、`getCodesByOwner`（limit / order 対応）、自己消込ガード
 - `couponAttributionReward`: 消込時の発行者報酬
