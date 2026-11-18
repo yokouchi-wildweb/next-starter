@@ -1,12 +1,14 @@
 # Coupon ドメイン
 
-クーポンコードの発行・管理・使用を担う汎用フレームワーク。
+## Overview
 
-**設計思想**: クーポンドメインは「コード・使用制限・有効期限の管理」に徹する。具体的な特典効果（割引、機能解放など）はクーポンドメイン側に定義せず、消費側ドメインがハンドラーとして自由に実装する。
+- クーポンコードの発行・管理・使用を担う汎用フレームワーク
+- クーポンドメインは「コード・使用制限・有効期限の管理」に徹する。具体的な特典効果（割引、機能解放など）はクーポンドメイン側に定義せず、消費側ドメインがハンドラーとして実装する
+- 入口: サーバー `couponService`（`@/features/core/coupon/services/server/couponService`）、クライアントは `hooks/` のフック
+- 機能の入切は門番の規則 `coupon`（`src/featureGate/rules/coupon.ts`）
+- 決まり（入口スコープの定数・ハンドラーの書き方・管理画面のタブと一覧）は札 `.claude/rules/items/features/coupon.md`。入口スコープ・自己消込・理由の文言の必須の決まりは CLAUDE.md FEATURES の coupon 行
 
----
-
-## クイックスタート
+## Usage
 
 ### クーポンを検証する（サーバー）
 
@@ -64,28 +66,21 @@ const result = await couponService.redeemWithEffect(
 );
 ```
 
-### 入口スコープ（scope）— 種別 / カテゴリの取り違え防止
+### 入口スコープ（scope）
 
-クーポンコードを受け付ける「入口」（登録フォームの招待コード欄、購入画面のクーポン欄、汎用消込 API 等）は、
-その入口で受理する種別 / カテゴリを `scope` で必ず宣言する。基底検証（`validateCouponStatically`）が
-`scope.types` / `scope.categories` との一致を status の直後に判定し、不一致は消込せず `type_mismatch` / `category_mismatch` を返す。
+クーポンコードを受け付ける「入口」（登録フォームの招待コード欄、購入画面のクーポン欄、汎用消込 API 等）は、その入口で受理する種別 / カテゴリを `scope` で宣言する。基底検証（`validateCouponStatically`）が `scope.types` / `scope.categories` との一致を status の直後に判定し、不一致は消込せず `type_mismatch` / `category_mismatch` を返す。
 
-**scope 無しで消し込むと何が起きるか（下流で実際に発生した事故）**: 招待コード欄にアフィリエイトコードを入力
-→ 使用回数だけ消費され履歴も残るが、カテゴリ違いなので招待ハンドラーは走らず紹介関係も報酬も作られない。
-発行者側の月次枠は幻の使用で減る。フォームは無反応なので利用者も気づけない。
+scope 無しで消し込むと: 招待コード欄にアフィリエイトコードを入力 → 使用回数だけ消費され履歴も残るが、カテゴリ違いなので招待ハンドラーは走らず紹介関係も報酬も作られない。発行者側の月次枠は幻の使用で減る。フォームは無反応なので利用者も気づけない。
 
-| 入口 | scope | 備考 |
-|------|-------|------|
-| 本登録の招待コード欄（auth `register()`） | `INVITE_CODE_REDEEM_SCOPE` = `{ types: ["invite"] }` | referral/constants/inviteCodeScope.ts が単一定義 |
-| 購入完了（purchaseRequest `completePurchase`） | `{ categories: ["purchase_discount"] }` | validate-for-category と同じカテゴリ |
-| `POST /api/coupon/redeem`（汎用・ゲスト可） | `{ types: ["official"] }` | 帰属付き種別（invite / affiliate）は専用入口のみ |
-| `validateForCategory(code, category, ...)` | `{ categories: [category] }` を内部で付与 | 従来の category 一致判定は基底に統合済み |
+上流の入口:
+
+- 本登録の招待コード欄（auth `register()`）: `INVITE_CODE_REDEEM_SCOPE` = `{ types: ["invite"] }`（referral/constants/inviteCodeScope.ts が単一定義）
+- 購入完了（purchaseRequest `completePurchase`）: `{ categories: ["purchase_discount"] }`（validate-for-category と同じカテゴリ）
+- `POST /api/coupon/redeem`（汎用・ゲスト可）: `{ types: ["official"] }`（帰属付き種別 invite / affiliate は専用入口のみ）
+- `validateForCategory(code, category, ...)`: `{ categories: [category] }` を内部で付与
 
 - `types` / `categories` は省略した軸を制限しない。両方指定すれば AND
-- 下流で新しい入口（issuer プログラムの申込欄など）を作るときは、その入口専用の scope 定数を消費側ドメインの constants に置き、
-  redeem / isUsable の両方に同じ定数を渡す（受理条件がズレる事故を構造的に防ぐ）
-- `skipRedeemerChecks: true` はログイン前プレビュー（`isUsable`）専用。`redeem` / `redeemWithEffect` の `RedeemOptions` は型でこれを受け付けない
-  （最終消込は必ず使用者付きで全判定を再実行する）
+- 最終消込は必ず使用者付きで全判定を再実行する（`redeem` / `redeemWithEffect` の `RedeemOptions` は `skipRedeemerChecks` を型で受け付けない）
 
 ### クーポンを検証する（クライアント）
 
@@ -98,51 +93,42 @@ await check("CODE123");
 const { usability, isLoading } = useCheckCouponUsabilityAuto(code, 500);
 ```
 
----
+## API
 
-## データモデル
+### データモデル: Coupon
 
-### Coupon
+- `id` `string`: UUID
+- `category` `string | null`: 用途カテゴリ（ハンドラーと紐付く）
+- `code` `string`: クーポンコード（ソフトデリート込みユニーク）
+- `type` `enum`: `official` / `affiliate` / `invite`（発行元の種類）
+- `status` `enum`: `active` / `inactive`
+- `name` `string`: クーポン名
+- `description` `string | null`: 説明文
+- `image_url` `string | null`: イメージ画像URL
+- `admin_label` `string | null`: 管理者用ラベル
+- `admin_note` `string | null`: 管理者用メモ
+- `valid_from` `Date | null`: 有効開始日
+- `valid_until` `Date | null`: 有効終了日
+- `max_total_uses` `number | null`: 総使用回数上限（null=無制限）
+- `max_uses_per_redeemer` `number | null`: 使用者毎の上限（null=無制限）
+- `current_total_uses` `number`: 現在の総使用回数
+- `attribution_user_id` `string | null`: 帰属ユーザーID（招待/アフィリエイト用）
+- `settings` `Record<string, unknown>`: カテゴリ固有のパラメータ（ハンドラーが定義・参照）
 
-| フィールド | 型 | 説明 |
-|-----------|-----|------|
-| `id` | `string` | UUID |
-| `category` | `string \| null` | 用途カテゴリ（ハンドラーと紐付く） |
-| `code` | `string` | クーポンコード（ソフトデリート込みユニーク） |
-| `type` | `enum` | `official` / `affiliate` / `invite`（発行元の種類） |
-| `status` | `enum` | `active` / `inactive` |
-| `name` | `string` | クーポン名 |
-| `description` | `string \| null` | 説明文 |
-| `image_url` | `string \| null` | イメージ画像URL |
-| `admin_label` | `string \| null` | 管理者用ラベル |
-| `admin_note` | `string \| null` | 管理者用メモ |
-| `valid_from` | `Date \| null` | 有効開始日 |
-| `valid_until` | `Date \| null` | 有効終了日 |
-| `max_total_uses` | `number \| null` | 総使用回数上限（null=無制限） |
-| `max_uses_per_redeemer` | `number \| null` | 使用者毎の上限（null=無制限） |
-| `current_total_uses` | `number` | 現在の総使用回数 |
-| `attribution_user_id` | `string \| null` | 帰属ユーザーID（招待/アフィリエイト用） |
-| `settings` | `Record<string, unknown>` | カテゴリ固有のパラメータ（ハンドラーが定義・参照） |
+`type` と `category` の違い:
 
-**`type` と `category` の違い**:
 - `type`: 発行元の種類。official=公式、affiliate=アフィリエイト、invite=ユーザー招待
 - `category`: 用途・効果の分類。ハンドラーレジストリのキーと一致させる。消費側ドメインが自由に定義
 
-### CouponHistory
+### データモデル: CouponHistory
 
-| フィールド | 型 | 説明 |
-|-----------|-----|------|
-| `id` | `string` | UUID |
-| `coupon_id` | `string` | クーポンID |
-| `redeemer_user_id` | `string \| null` | 使用者のユーザーID |
-| `metadata` | `jsonb` | クーポンスナップショット + 追加メタデータ |
-| `createdAt` | `Date` | 使用日時 |
+- `id` `string`: UUID
+- `coupon_id` `string`: クーポンID
+- `redeemer_user_id` `string | null`: 使用者のユーザーID
+- `metadata` `jsonb`: クーポンスナップショット + 追加メタデータ
+- `createdAt` `Date`: 使用日時
 
 `metadata` には使用時点のクーポン情報（code, type, name 等）のスナップショットと、`redeem()` 呼び出し時に渡された `additionalMetadata` がマージされる。
-
----
-
-## サービスAPI
 
 ### couponService
 
@@ -222,26 +208,6 @@ const coupons = await couponService.getCodesByOwner({
 
 標準の CRUD 操作（`create`, `get`, `list`, `search`, `update`, `remove`, `restore`, `hardDelete`, `duplicate`, `upsert`）も利用可能。
 
----
-
-## ハンドラーシステム
-
-### 概念
-
-```
-クーポンドメイン                    消費側ドメイン
-┌──────────────────┐              ┌──────────────────────────┐
-│ handlers/        │              │ referral/                │
-│   types.ts       │ ← 実装 ←── │   coupon/referralHandler  │
-│   registry.ts    │              │   (category: "referral") │
-│   init.ts        │ ← import ── │                          │
-│                  │              ├──────────────────────────┤
-│ couponService    │              │ purchaseRequest/ (例)    │
-│   validateFor... │ ── 呼出 ──→ │   handler.validateForUse │
-│   redeemWith...  │ ── 呼出 ──→ │   handler.onRedeemed     │
-└──────────────────┘              └──────────────────────────┘
-```
-
 ### CouponHandler インターフェース
 
 ```typescript
@@ -257,48 +223,64 @@ interface CouponHandler {
 }
 ```
 
-| プロパティ | タイミング | 副作用 | 用途例 |
-|---|---|---|---|
-| `settingsFields` | 管理画面フォーム描画時 | なし | 割引タイプ・割引値の入力欄定義 |
-| `validateForUse` | `validateForCategory` 時 | なし | 最低購入金額チェック |
-| `resolveEffect` | `validateForCategory` 時 | なし | 割引額の計算（`coupon.settings` を参照） |
-| `onRedeemed` | `redeemWithEffect` 時 | あり | referral 作成、分析イベント送信、帰属報酬付与 |
-| `describeEffect` | 管理画面表示時 | なし | 「500円割引」の説明生成 |
+- `settingsFields`: 管理画面フォーム描画時。副作用 なし。例: 割引タイプ・割引値の入力欄定義
+- `validateForUse`: `validateForCategory` 時。副作用 なし。例: 最低購入金額チェック
+- `resolveEffect`: `validateForCategory` 時。副作用 なし。例: 割引額の計算（`coupon.settings` を参照）
+- `onRedeemed`: `redeemWithEffect` 時。副作用 あり。例: referral 作成、分析イベント送信、帰属報酬付与
+- `describeEffect`: 管理画面表示時。副作用 なし。例: 「500円割引」の説明生成
 
-`onRedeemed` の context には `redeemWithEffect(code, userId, metadata, tx)` に渡された `tx` がそのまま `context.tx` として伝搬する（省略時は `undefined`）。購入完了 tx 内で呼ばれる場合、ハンドラーはこの `tx` を使って同一トランザクションに副作用（帰属報酬付与など）を乗せられる。tx が無い場合の独立実行との両対応が必要なら、`runWithTransaction(context.tx, ...)` で受けること。
+### 使用可否判定の理由
 
-### settings フィールドと settingsFields の関係
+- `not_found`: クーポンが見つからない
+- `inactive`: 無効状態
+- `not_started`: 有効開始前
+- `expired`: 有効期限切れ
+- `max_total_reached`: 総使用回数上限に到達
+- `max_per_user_reached`: ユーザー毎の使用上限に到達
+- `user_id_required`: ユーザーIDが必要（`max_uses_per_redeemer` 設定時）
+- `self_redeem_forbidden`: 帰属ユーザー（発行者）本人による使用（自己消込禁止）
+- `type_mismatch`: 入口スコープ（`scope.types`）と種別が一致しない
+- `category_mismatch`: 入口スコープ（`scope.categories` / `validateForCategory` の category）とカテゴリが一致しない
+- `handler_rejected`: ハンドラーの追加検証で拒否
 
-`settingsFields` はハンドラーが「このカテゴリではどんなパラメータが必要か」を FieldConfig 形式で宣言するもの。管理画面でカテゴリを選択すると、対応する settingsFields が動的にフォームに表示され、入力値は `coupon.settings` (jsonb) に格納される。ハンドラーの `resolveEffect` 等が `coupon.settings` からパラメータを読み取って効果を計算する。
+- reason → ユーザー向け文言は `constants/redeemReasonMessages.ts` の `getCouponRedeemReasonMessage()` に一本化されている。API ルート（check-usability / redeem / validate-for-category）はすべてこれを使う（網羅は型で強制）
 
-```
-管理画面: カテゴリ選択 → settingsFields 表示 → 入力値を settings に保存
-実行時:   coupon.settings を参照 → resolveEffect で効果計算
-```
-
-### 実装済みハンドラー: referral（招待リファラル）
-
-招待コード使用時の referral 作成 + 報酬トリガーを担当する。
+### クライアントフック
 
 ```typescript
-// src/features/core/referral/services/server/coupon/referralHandler.ts
+// 使用可否チェック（手動トリガー）
+import { useCheckCouponUsability } from "@/features/core/coupon/hooks/useCheckCouponUsability";
 
-registerCouponHandler("referral", {
-  label: "招待リファラル",
-  async onRedeemed({ coupon, userId }) {
-    const referral = await createReferralFromRedemption(coupon, userId);
-    if (referral) {
-      await referralRewardService.triggerRewards("signup_completed", referral);
-    }
-  },
-});
+// 使用可否チェック（自動トリガー、デバウンス付き）
+import { useCheckCouponUsabilityAuto } from "@/features/core/coupon/hooks/useCheckCouponUsability";
+
+// クーポン使用
+import { useRedeemCoupon } from "@/features/core/coupon/hooks/useRedeemCoupon";
+
+// 招待コード取得
+import { useMyInviteCode } from "@/features/core/coupon/hooks/useMyInviteCode";
+
+// 招待コード発行
+import { useIssueMyInviteCode } from "@/features/core/coupon/hooks/useIssueMyInviteCode";
+
+// 登録済みカテゴリ一覧（管理画面フォーム用）
+import { useCouponCategories } from "@/features/core/coupon/hooks/useCouponCategories";
 ```
 
-registration.ts からは `couponService.redeemWithEffect(inviteCode, user.id)` の1行で呼ばれ、ハンドラーが referral 作成と報酬処理を自動実行する。
+### API ルート
 
-### 新しいクーポン用途の追加手順
+- `POST` `/api/coupon/check-usability`: 使用可否チェック
+- `POST` `/api/coupon/redeem`: クーポン使用（汎用・ゲスト可。受理は `official` のみ、帰属付き種別は専用入口）
+- `POST` `/api/referral/validate-invite-code`: 招待コードのログイン前検証（referral ドメイン。valid と文言のみ返す）
+- `GET` `/api/coupon/my-invite`: 自分の招待コード取得
+- `POST` `/api/coupon/my-invite`: 自分の招待コード発行
+- `GET` `/api/coupon/categories`: 登録済みカテゴリ一覧（settingsFields 含む）
 
-#### 1. 消費側ドメインにハンドラーを作成
+## Extension
+
+### 新しいクーポン用途（ハンドラー）の追加
+
+1. 消費側ドメインにハンドラーを作る
 
 ```typescript
 // src/features/core/purchaseRequest/services/server/coupon/registerHandler.ts（例）
@@ -347,7 +329,7 @@ registerCouponHandler("purchase_discount", {
 });
 ```
 
-#### 2. init.ts にインポートを追加
+2. `handlers/init.ts` にインポートを足す
 
 ```typescript
 // src/features/core/coupon/handlers/init.ts
@@ -355,15 +337,15 @@ registerCouponHandler("purchase_discount", {
 import "@/features/core/purchaseRequest/services/server/coupon/registerHandler";
 ```
 
-- 消費側が閉じられる機能（門番の規則がある機能）なら、登録を関数にして init.ts で相手の入切を確かめてから呼ぶ（付け足しの連携）。上流の購入割引は `if (gate.enabled("payment")) registerPurchaseDiscountHandler();` で、決済が閉じていればカテゴリが一覧に出ない（関数の中でもクーポンの入切を確かめる）。招待リファラルも同じ形(`if (gate.enabled("referral")) registerReferralCouponHandler();`)
+- 消費側が閉じられる機能なら、登録を関数にして init.ts で相手の入切を確かめてから呼ぶ。上流の購入割引は `if (gate.enabled("payment")) registerPurchaseDiscountHandler();` で、決済が閉じていればカテゴリが一覧に出ない（関数の中でもクーポンの入切を確かめる）。招待リファラルも同じ形（`if (gate.enabled("referral")) registerReferralCouponHandler();`）
 
-#### 3. 管理画面で確認
+3. 管理画面で確かめる
 
 - クーポン作成/編集フォームの「カテゴリ」ドロップダウンに「購入割引」が表示される
 - カテゴリ選択後、settingsFields で定義したフィールド（割引タイプ、割引値等）が「カテゴリ設定」セクションに動的表示される
 - 入力値は `coupon.settings` に JSON として格納される
 
-#### 4. 消費側ドメインで利用
+4. 消費側ドメインで使う
 
 ```typescript
 // 購入フローでのクーポン検証
@@ -383,23 +365,18 @@ if (result.valid) {
 }
 ```
 
----
+### 管理画面セクションタブ
 
-## 管理画面セクションタブの拡張
-
-`/admin/coupons/*` の上部タブ（公式プロモーション / アフィリエイト / ユーザー招待）は
-`CouponTypeOptions`（クーポン種別 enum）から生成される。ただし **種別 enum と画面セクションは別物**。
-downstream が種別に属さない派生クーポンの専用画面（例: フレンドクーポン、type は `affiliate` のまま）を
-`/admin/coupons/<slug>` に置く場合、受け口に項目を置けば core の全クーポン管理画面のタブに末尾追加される。
-
-- 受け口: `adminSectionTabs/<名前>.ts` の `export const tab: CouponSectionTabItem`（`@/features/core/coupon/types/sectionTab` = `PageTabItem` + `enabled?`。一覧 `extensions/sectionTabs`、upstream は空 = 従来どおり 3 タブ）
+- `/admin/coupons/*` の上部タブ（公式プロモーション / アフィリエイト / ユーザー招待）は `CouponTypeOptions`（クーポン種別 enum）から生成される。ただし種別 enum と画面セクションは別物
+- downstream が種別に属さない派生クーポンの専用画面（例: フレンドクーポン、type は `affiliate` のまま）を `/admin/coupons/<slug>` に置く場合、受け口に項目を置けば core の全クーポン管理画面のタブに末尾追加される
+- 受け口: `adminSectionTabs/<名前>.ts` の `export const tab: CouponSectionTabItem`（`@/features/core/coupon/types/sectionTab` = `PageTabItem` + `enabled?`。一覧 `extensions/sectionTabs`、upstream は空 = 3 タブ）
 - 組み立て: `buildCouponAdminSectionTabs()`（`@/features/core/coupon/lib/adminSectionTabs`）= core 3 タブ + 有効な項目（`PageTabItem[]`、`enabled` は残さない）。value の重複は例外（無効の項目も含めて判定）
-- 閉じる: 項目に `enabled: () => boolean` を足すと、false の間はタブの一覧から外れる（省略 = 常に出す）。`className: "hidden"` で隠さない（タブの一覧と DOM に残る）。組み立ては client（CouponSectionTabs）で走るので、enabled は client で読める値（config の値など）だけを見る。hook は呼べない
-- 描画: `src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx`（`variant?: "body" | "header"`、既定 body）。header はヘッダーの行の中央向けの size="sm"。置き場はページが決める: core ページ（official / invite / affiliate）は `<AdminPage center={<CouponSectionTabs variant="header" />}>`
-- **一覧コンポーネント（`AdminCouponList` / referral `AdminInviteList`）はタブを描画しない**。配置（本文 or ヘッダー）はページの関心事なので Screen が CouponSectionTabs を置く。これらを使う downstream の Screen も自分でタブを置くこと（置かなければタブなし）
+- 閉じる: 項目の `enabled: () => boolean` が false の間はタブの一覧から外れる（省略 = 常に出す）。組み立ては client（CouponSectionTabs）で走る
+- 描画: `src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx`（`variant?: "body" | "header"`、既定 body）。header はヘッダーの行の中央向けの size="sm"。core ページ（official / invite / affiliate）は `<AdminPage center={<CouponSectionTabs variant="header" />}>`。本文に置くなら本文に `<CouponSectionTabs />`
 - DB / enum 変更なし。派生クーポンの画面（一覧・絞り込みクエリ）自体は downstream 所有
+- downstream 所有の official / affiliate ページを差し替えている場合も、ローカルのタブ定義を捨てて CouponSectionTabs に寄せると core と downstream のタブ一覧が常に一致する
 
-### downstream レシピ
+downstream レシピ:
 
 ```typescript
 // 1. src/features/core/coupon/adminSectionTabs/friendCoupon.ts → pnpm generate extensions
@@ -419,13 +396,9 @@ import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";
 </AdminPage>
 ```
 
-downstream 所有の official / affiliate ページを差し替えている場合も、ローカルのタブ定義を捨てて
-CouponSectionTabs（内部で `buildCouponAdminSectionTabs()`）に寄せると core と downstream のタブ一覧が常に一致する。
-本文に置きたい場合は `center` ではなく本文に `<CouponSectionTabs />`(variant 省略)を置く。
+### 管理画面のクーポン一覧（useAdminCouponListTable / createAdminCouponListColumns）
 
-## 管理画面のクーポン一覧（useAdminCouponListTable / createAdminCouponListColumns）
-
-列を足すために一覧の Table を写さない。処理と列は公開の関数とフックで、fork の Table は並べるだけにする（一般ユーザー一覧と同じ形: `src/features/core/user/README.md`「管理画面の一般ユーザー一覧」）。
+処理と列は公開の関数とフックで、fork の Table は並べるだけにする（一般ユーザー一覧と同じ形: `src/features/core/user/README.md`「管理画面の一般ユーザー一覧」）。
 
 - `createAdminCouponListColumns()`（`components/AdminCouponList` の入口）: 上流の列（domainDisplay の列 + 操作の列）の配列を返す。呼ぶたびに新しい配列
 - `useAdminCouponListTable()`（`hooks/useAdminCouponListTable.ts`）: 行のクリックで開く詳細のモーダルの対象。`rowProps`（DataTable に広げる）・`modal`（`CouponDetailModal` に広げる）・`selectedId` / `open` / `close`
@@ -440,165 +413,72 @@ const columns = useMemo(() => [...createAdminCouponListColumns(), { header: "利
 </>
 ```
 
-## 設定(`config.ts`)
+### 設定（`config.ts`）
 
-持ち主 `src/features/core/coupon/config.ts`(既定・型 `CouponOverride`・合成 `couponConfig`)、上書き `src/config/features/coupon.config.ts`(値はリテラル。置き方: `src/config/README.md`)。
+- 持ち主 `src/features/core/coupon/config.ts`（既定・型 `CouponOverride`・合成 `couponConfig`）、上書き `src/config/features/coupon.config.ts`（値はリテラル。置き方: `src/config/README.md`）
+- `affiliateDescription: string | null`: アフィリエイトクーポンの管理画面（`/admin/coupons/affiliate`）の説明文の下に、同じ見た目で 1 文足す。画面を `_components/` に写さずに文だけ変える受け口
+- 機能の入切（`marketing.coupon.enabled`）は門番の規則 `src/featureGate/rules/coupon.ts` が読むスイッチ
 
-- `affiliateDescription: string | null`(既定 null): アフィリエイトクーポンの管理画面(`/admin/coupons/affiliate`)の説明文の下に、同じ見た目で 1 文足す。画面を `_components/` に写さずに文だけ変える受け口
-- 機能の入切(`marketing.coupon.enabled`)はここに置かない(門番の規則 `src/featureGate/rules/coupon.ts` が読むスイッチ)
+## Internals
 
----
+### ハンドラーシステム
 
-## 使用可否判定の理由一覧
+```
+クーポンドメイン                    消費側ドメイン
+┌──────────────────┐              ┌──────────────────────────┐
+│ handlers/        │              │ referral/                │
+│   types.ts       │ ← 実装 ←── │   coupon/referralHandler  │
+│   registry.ts    │              │   (category: "referral") │
+│   init.ts        │ ← import ── │                          │
+│                  │              ├──────────────────────────┤
+│ couponService    │              │ purchaseRequest/ (例)    │
+│   validateFor... │ ── 呼出 ──→ │   handler.validateForUse │
+│   redeemWith...  │ ── 呼出 ──→ │   handler.onRedeemed     │
+└──────────────────┘              └──────────────────────────┘
+```
 
-| reason | 説明 |
-|--------|------|
-| `not_found` | クーポンが見つからない |
-| `inactive` | 無効状態 |
-| `not_started` | 有効開始前 |
-| `expired` | 有効期限切れ |
-| `max_total_reached` | 総使用回数上限に到達 |
-| `max_per_user_reached` | ユーザー毎の使用上限に到達 |
-| `user_id_required` | ユーザーIDが必要（`max_uses_per_redeemer` 設定時） |
-| `self_redeem_forbidden` | 帰属ユーザー（発行者）本人による使用（自己消込禁止） |
-| `type_mismatch` | 入口スコープ（`scope.types`）と種別が一致しない |
-| `category_mismatch` | 入口スコープ（`scope.categories` / `validateForCategory` の category）とカテゴリが一致しない |
-| `handler_rejected` | ハンドラーの追加検証で拒否 |
+- `onRedeemed` の context には `redeemWithEffect(code, userId, metadata, tx)` に渡された `tx` がそのまま `context.tx` として伝搬する（省略時は `undefined`）。購入完了 tx 内で呼ばれる場合、ハンドラーはこの `tx` を使って同一トランザクションに副作用（帰属報酬付与など）を乗せられる。tx が無い場合の独立実行との両対応は `runWithTransaction(context.tx, ...)` で受ける。
+- `settingsFields` はハンドラーが「このカテゴリではどんなパラメータが必要か」を FieldConfig 形式で宣言するもの。管理画面でカテゴリを選択すると、対応する settingsFields が動的にフォームに表示され、入力値は `coupon.settings` (jsonb) に格納される。ハンドラーの `resolveEffect` 等が `coupon.settings` からパラメータを読み取って効果を計算する。
+```
+管理画面: カテゴリ選択 → settingsFields 表示 → 入力値を settings に保存
+実行時:   coupon.settings を参照 → resolveEffect で効果計算
+```
 
-reason → ユーザー向け文言は `constants/redeemReasonMessages.ts` の `getCouponRedeemReasonMessage()` に一本化されている。API ルート（check-usability / redeem / validate-for-category）はすべてこれを使う。reason を追加したら `UsabilityReason` と `COUPON_REDEEM_REASON_MESSAGES` の両方を更新する（型で網羅を強制）。
+- 実装済みハンドラー referral（招待リファラル）: 招待コード使用時の referral 作成 + 報酬トリガー
+
+```typescript
+// src/features/core/referral/services/server/coupon/referralHandler.ts
+
+registerCouponHandler("referral", {
+  label: "招待リファラル",
+  async onRedeemed({ coupon, userId }) {
+    const referral = await createReferralFromRedemption(coupon, userId);
+    if (referral) {
+      await referralRewardService.triggerRewards("signup_completed", referral);
+    }
+  },
+});
+```
+
+registration.ts からは `couponService.redeemWithEffect(inviteCode, user.id)` の1行で呼ばれ、ハンドラーが referral 作成と報酬処理を自動実行する。
 
 ### 自己消込ガード（self_redeem_forbidden）
 
-`attribution_user_id` が設定されたクーポン（invite / affiliate）を、その帰属ユーザー本人が使うことは常に拒否する。発行者が自分のコードで「割引 + 帰属報酬」を自己ループする不正を、コア基底検証（`validateCouponStatically`）で閉じるためで、`isUsable` / `redeem` / `validateForCategory` の全経路に効く。
-
-- `attribution_user_id = null`（official）は対象外。挙動は従来どおり
+- `attribution_user_id` が設定されたクーポン（invite / affiliate）を、その帰属ユーザー本人が使うことは常に拒否する
+- 発行者が自分のコードで「割引 + 帰属報酬」を自己ループする不正を、コア基底検証（`validateCouponStatically`）で閉じる。`isUsable` / `redeem` / `validateForCategory` の全経路に効く
+- `attribution_user_id = null`（official）は対象外
 - 招待フロー（被招待者が招待者のコードを使う）は別ユーザーなので影響なし
-- オプトアウトは設けない。自己消込を許容する業務が出た場合は settings キーでの opt-out を Tier1 に提案すること（per-consumer での再実装は禁止）
+- オプトアウトは無い
 
----
+### その他
 
-## クライアントフック
+- `redeem` はトランザクション内で SELECT FOR UPDATE → 検証 → カウント更新 → 履歴記録
+- コード自動生成は `utils/generateCode.ts`（8 文字、紛らわしい文字除外）
 
-```typescript
-// 使用可否チェック（手動トリガー）
-import { useCheckCouponUsability } from "@/features/core/coupon/hooks/useCheckCouponUsability";
+## Related
 
-// 使用可否チェック（自動トリガー、デバウンス付き）
-import { useCheckCouponUsabilityAuto } from "@/features/core/coupon/hooks/useCheckCouponUsability";
-
-// クーポン使用
-import { useRedeemCoupon } from "@/features/core/coupon/hooks/useRedeemCoupon";
-
-// 招待コード取得
-import { useMyInviteCode } from "@/features/core/coupon/hooks/useMyInviteCode";
-
-// 招待コード発行
-import { useIssueMyInviteCode } from "@/features/core/coupon/hooks/useIssueMyInviteCode";
-
-// 登録済みカテゴリ一覧（管理画面フォーム用）
-import { useCouponCategories } from "@/features/core/coupon/hooks/useCouponCategories";
-```
-
----
-
-## API ルート
-
-| メソッド | パス | 用途 |
-|---------|------|------|
-| `POST` | `/api/coupon/check-usability` | 使用可否チェック |
-| `POST` | `/api/coupon/redeem` | クーポン使用（汎用・ゲスト可。受理は `official` のみ、帰属付き種別は専用入口） |
-| `POST` | `/api/referral/validate-invite-code` | 招待コードのログイン前検証（referral ドメイン。valid と文言のみ返す） |
-| `GET` | `/api/coupon/my-invite` | 自分の招待コード取得 |
-| `POST` | `/api/coupon/my-invite` | 自分の招待コード発行 |
-| `GET` | `/api/coupon/categories` | 登録済みカテゴリ一覧（settingsFields 含む） |
-
----
-
-## ディレクトリ構造
-
-```
-src/features/core/coupon/
-├── README.md
-├── domain.json                  # ドメイン設定（pnpm generate domain の入力）
-├── presenters.ts                # フィールド表示フォーマッター
-│
-├── entities/                    # 生成ファイル
-│   ├── drizzle.ts               # テーブル定義
-│   ├── model.ts                 # TypeScript 型
-│   ├── schema.ts                # Zod スキーマ
-│   ├── form.ts                  # フォーム型
-│   └── index.ts
-│
-├── handlers/                    # ハンドラーシステム（手動管理）
-│   ├── types.ts                 # CouponHandler インターフェース
-│   ├── registry.ts              # 登録・取得関数
-│   ├── init.ts                  # 全ハンドラーの import 集約
-│   └── index.ts
-│
-├── lib/
-│   └── adminSectionTabs.ts      # 管理画面セクションタブ組み立て（core 3 タブ + registry 登録分。描画は app/admin/(protected)/coupons/_screen/CouponSectionTabs）
-│
-├── services/
-│   ├── client/
-│   │   ├── couponClient.ts      # 基本 CRUD クライアント
-│   │   ├── redemption.ts        # 使用・チェック・カテゴリ取得
-│   │   └── inviteCode.ts        # 招待コード
-│   └── server/
-│       ├── couponService.ts     # メインサービス（全機能の集約）
-│       ├── drizzleBase.ts       # ベース CRUD（生成）
-│       ├── redemption/          # 使用処理
-│       │   ├── redeem.ts        # トランザクション付き使用
-│       │   ├── isUsable.ts      # 使用可否判定
-│       │   ├── getUsageCount.ts # ユーザー毎の使用回数
-│       │   └── utils.ts         # 共通ユーティリティ
-│       ├── ownership/           # コード発行・所有権
-│       │   ├── issueCodeForOwner.ts
-│       │   ├── getCodesByOwner.ts
-│       │   └── inviteCode.ts
-│       └── wrappers/            # カスタマイズ可能なラッパー
-│           ├── remove.ts        # ストレージ対応削除
-│           ├── duplicate.ts     # コード再生成付き複製
-│           ├── validateForCategory.ts  # カテゴリ付き検証
-│           └── redeemWithEffect.ts     # ハンドラー付き使用
-│
-├── hooks/                       # React フック
-│   ├── useCoupon.ts             # 単体取得（生成）
-│   ├── useCouponList.ts         # 一覧取得（生成）
-│   ├── useSearchCoupon.ts       # 検索（生成）
-│   ├── useCheckCouponUsability.ts  # 使用可否チェック
-│   ├── useRedeemCoupon.ts       # クーポン使用
-│   ├── useMyInviteCode.ts       # 招待コード取得
-│   ├── useIssueMyInviteCode.ts  # 招待コード発行
-│   ├── useCouponCategories.ts   # カテゴリ一覧
-│   └── useCouponViewModal.ts    # 管理画面詳細モーダル
-│
-├── components/                  # UI コンポーネント
-│   ├── AdminCouponList/         # 管理画面一覧（生成）
-│   ├── AdminCouponCreate/       # 管理画面作成（生成）
-│   ├── AdminCouponEdit/         # 管理画面編集（生成）
-│   └── common/
-│       ├── CouponForm.tsx       # 汎用フォーム
-│       ├── CouponFields.tsx     # フィールドレンダラー
-│       ├── CreateCouponForm.tsx  # 作成フォーム
-│       ├── EditCouponForm.tsx    # 編集フォーム
-│       └── CouponDetailModal.tsx # 詳細モーダル
-│
-├── types/
-│   ├── redeem.ts                # 使用処理の型
-│   └── field.ts                 # フィールド型（生成）
-│
-├── constants/
-│   └── field.ts                 # 定数（生成）
-│
-└── utils/
-    └── generateCode.ts          # コード自動生成（8文字、紛らわしい文字除外）
-```
-
----
-
-## 関連ドメイン
-
-- **couponHistory**: 使用履歴の記録・参照（`redeem()` から自動記録）
-- **referral**: 招待リファラルハンドラー（`category=referral`）を提供。`onRedeemed` で referral 作成 + 報酬トリガーを実行
-- **auth**: 登録時の招待コード適用（`registration.ts` → `couponService.redeemWithEffect()`）
-- **purchaseRequest**: コイン購入時のクーポン割引（ハンドラーで実装予定）
+- couponHistory: 使用履歴の記録・参照（`redeem()` から自動記録）
+- referral: 招待リファラルハンドラー（`category=referral`）を提供。`onRedeemed` で referral 作成 + 報酬トリガーを実行
+- auth: 登録時の招待コード適用（`registration.ts` → `couponService.redeemWithEffect()`）
+- purchaseRequest: コイン購入時のクーポン割引のハンドラー
+- couponIssuerGrant: 承認制の発行者プログラム（申請 → 承認 → 周期発行）。`src/features/core/couponIssuerGrant/README.md`
