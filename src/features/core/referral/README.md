@@ -4,18 +4,11 @@
 
 - 既存ユーザーが招待コードを発行し、新規ユーザーがサインアップ時に入力すると紹介関係が成立する。報酬の中身は上流では定義せず fork が実装する(referralReward)
 - 招待コードの発行・使用は coupon ドメイン(type=invite)を使い、本ドメインは紹介「関係」の管理に特化する
-- 閉じられる機能(門番の規則 `src/featureGate/rules/referral.ts`、上流の既定は閉。fork が開けるのは `pnpm ops features set referral on`)。表 `referrals`・`referral_rewards` も閉じる(features)。前提 `requires: ["coupon"]`。閉じたときの呼び手: 招待コードのカテゴリをクーポンに登録しない(`registerReferralCouponHandler`)・登録画面の招待コードの欄を描かない・紹介の集計(analytics)は 0・招待クーポンの管理画面 `/admin/coupons/invite` は 404。
-- 使う時・直す時の決まりは札 .claude/rules/items/features/referral.md にある
-
-### 機能の入切で変わる物
-
-門番の規則 `referral`（上流の既定: 閉、依存先 `coupon`）。fork の値は `src/config/featureGate/switches.config.ts`
-
-制御対象:
-- 登録フォームの招待コード入力欄表示
-- マイページメニューの「招待コードを取得」表示
-- `/mypage/invite` ページのアクセス制御（無効時は `/mypage` にリダイレクト）
-- サーバー側の招待コード処理実行
+- 閉じられる機能: 門番の規則 `src/featureGate/rules/referral.ts`(上流の既定は閉、依存先 `coupon` = 前提 `requires: ["coupon"]`)。fork の値は `src/config/featureGate/switches.config.ts`(`pnpm ops features set referral on`)
+  - 閉じると: 表 `referrals`・`referral_rewards` と `/api/referral/**`・`/api/admin/referral`・招待クーポンの管理画面 `/admin/coupons/invite` が閉じる(404)
+  - 閉じたときの呼び手: 招待コードのカテゴリをクーポンに登録しない(`registerReferralCouponHandler`)・登録画面の招待コードの欄とマイページのメニュー「招待コードを取得」を描かない・サーバーの招待コードの処理をしない・紹介の集計(analytics)は 0
+  - `/mypage/invite` の住所は規則 `mypageInvite`(`pageMypage` と `referral` に依存)が持つ。loader も `referral` が閉なら `/mypage` へ redirect する
+- 使う時・直す時の決まりは札 .claude/rules/items/features/referral.md にある。この README は使い方と仕組み
 
 ## Usage
 
@@ -84,6 +77,7 @@ const columns = useMemo(() => [...createAdminInviteListColumns(), { header: "報
 **ベース CRUD**: `base`（list, get, search, create, update, remove 等）
 
 **カスタムメソッド**:
+- `validateInviteCode(code)`: 招待コードのログイン前検証(Internals「coupon ドメインとの関係」)。`{ valid: true } | { valid: false, reason }`(型 `InviteCodeValidationResult`)。`reason` はサーバーの中の診断用で、route は返さない
 - `createReferralFromRedemption(coupon, inviteeUserId, tx?)`: クーポン使用 → referral 作成。冪等（同一 invitee は無視）、自己招待ガード付き
 - `getByInvitee(inviteeUserId, tx?)`: 被招待者の紹介元を取得（active のみ）
 - `getByInviter(inviterUserId, options?, tx?)`: 招待者の紹介一覧。`{ activeOnly?: boolean }` オプション
@@ -119,7 +113,7 @@ const columns = useMemo(() => [...createAdminInviteListColumns(), { header: "報
 
 ### サインアップフロー
 
-- `RegistrationSchema` に `inviteCode`（optional）を追加
+- `RegistrationSchema` は `inviteCode`（optional）を持つ
 - Email / OAuth 両登録フォームに招待コード入力欄（機能 `referral` の入切で表示制御）。
   実体は auth `components/Registration/InviteCodeField.tsx`（共用部品）
 - **「適用」ボタンによる明示的検証**（購入ページのクーポン欄 wallet `CouponInput` と同じ操作モデル。入力中の自動通信はしない）:

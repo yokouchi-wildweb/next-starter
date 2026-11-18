@@ -15,7 +15,7 @@ pnpm task purchaseQuota:cleanup
 ```
 
 - 推奨: 1 日 1 回（深夜帯）
-- 90 日より古い ledger 行を物理削除
+- 保持期間(`ledgerRetentionDays`、既定 90 日)より古い ledger 行を物理削除
 - CLI 専用タスク（`/api/cron/*` には無い = 定期実行されない）。定期実行の足し方は [cron 基盤 README](../../../lib/cron/README.md#新しい定期タスクを追加する)
 
 導入時は新規テーブル `purchase_quota_ledger` を `pnpm db:push` で作る。既存テーブルへの変更は無いため、稼働中プロジェクトもダウンタイム無しで導入できる。
@@ -73,7 +73,7 @@ getQuotaUsage(userId): Promise<QuotaUsage[]>
 ### cleanupOldLedger
 
 ```ts
-cleanupOldLedger(retentionDays = 90): Promise<number>
+cleanupOldLedger(retentionDays = purchaseQuotaConfig.ledgerRetentionDays): Promise<number>
 ```
 
 - 古い ledger 行を物理削除 (cron 用)
@@ -88,23 +88,31 @@ cleanupOldLedger(retentionDays = 90): Promise<number>
 
 設定は `config.ts`、上書きは `src/config/features/purchaseQuota.config.ts`。`rules` 配列にルールを並べるだけで有効化される。配列が空 (既定) のときは完全に無効。
 
+- `rules`: クォータのルール(既定 空)
+- `ledgerRetentionDays`: 掃除で残す日数(既定 90)。ルールの `windowSeconds` の最大より長くする
+
 ```ts
-export const rules: readonly QuotaRule[] = [
-  {
-    key: "bank_transfer_hourly",
-    label: "銀行振込: 1時間30万円",
-    scope: { type: "paymentMethod", value: "bank_transfer" },
-    windowSeconds: 3600,
-    maxAmount: 300_000,
-  },
-  {
-    key: "all_daily",
-    label: "全決済: 1日100万円",
-    scope: { type: "all" },
-    windowSeconds: 86400,
-    maxAmount: 1_000_000,
-  },
-];
+// src/config/features/purchaseQuota.config.ts
+import type { PurchaseQuotaOverride } from "@/features/purchaseQuota/config";
+
+export default {
+  rules: [
+    {
+      key: "bank_transfer_hourly",
+      label: "銀行振込: 1時間30万円",
+      scope: { type: "paymentMethod", value: "bank_transfer" },
+      windowSeconds: 3600,
+      maxAmount: 300_000,
+    },
+    {
+      key: "all_daily",
+      label: "全決済: 1日100万円",
+      scope: { type: "all" },
+      windowSeconds: 86400,
+      maxAmount: 1_000_000,
+    },
+  ],
+} satisfies PurchaseQuotaOverride;
 ```
 
 複数ルールを並列で評価し、いずれか 1 つでも超過すれば購入が拒否される。
@@ -148,6 +156,7 @@ ledger の status:
 | `failPurchase` (onFail あり/なし両方) | `releaseQuota` |
 | `cancelPurchase` (ユーザーキャンセル) | `releaseQuota` |
 | `expirePendingRequests` (bulk + per-row 両方) | `releaseQuota` |
+| `expireStaleClientSdkSessions` (client_sdk の古いセッション) | `releaseQuota` |
 
 `bankTransferReview` の `submitReview` / `confirmReview` / `rejectReview` は内部で `completePurchase` / `failPurchase` を呼ぶため自動で連動する。
 

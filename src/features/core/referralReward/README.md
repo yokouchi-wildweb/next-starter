@@ -5,7 +5,7 @@
 - 紹介成立時の報酬配布を管理する。テーブルは「配布済み/未配布」の状態追跡のみを担い、報酬の具体的な中身（ポイント付与、クーポン発行等）はハンドラーに委ねる
 - ベースリポジトリは拡張基盤のみ提供（報酬グループ・ハンドラーの項目は 0）。下流プロジェクトが報酬グループとハンドラーを受け口に足して使う
 - 機能の入切は門番の規則 `referral`（`src/featureGate/rules/referral.ts`）
-- 決まり（足し方・amount の規約・トリガーの呼び方・テーブルの役目）は札 `.claude/rules/items/features/referralReward.md`
+- 決まり（足し方・amount の規約・トリガーの呼び方・テーブルの役目）は札 `.claude/rules/items/features/referralReward.md`。この README は使い方と仕組み
 
 ## API
 
@@ -21,9 +21,9 @@
 
 - `REFERRAL_REWARD_DEFINITIONS`: 一覧 `extensions/rewardGroups` そのもの（key = グループキー）
 - 2 階層: グループ（表示単位） > 個別報酬（`reward_key` → `{ label, trigger, recipientRole }`）。管理画面ではグループ単位でバッジ表示し、同一シナリオの inviter / invitee 報酬をまとめる
-- `getRewardDefinition(rewardKey)`: reward_key からフラットな定義を取得
-- `getRewardGroupKey(rewardKey)`: reward_key が属するグループキーを取得
-- `getRewardKeysByTrigger(trigger)`: トリガー名から該当 reward_key の一覧を取得
+- `getRewardDefinition(rewardKey)`: reward_key からフラットな定義を取得(`utils/rewardDefinitionLookup.ts`)
+- `getRewardGroupKey(rewardKey)`: reward_key が属するグループキーを取得(`utils/rewardDefinitionLookup.ts`)
+- `getRewardKeysByTrigger(trigger)`: トリガー名から該当 reward_key の一覧を取得(`services/server/wrappers/getRewardKeysByTrigger.ts`)
 
 ハンドラーの読み手（`services/server/rewardHandlerRegistry.ts`）:
 

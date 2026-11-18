@@ -6,12 +6,12 @@ paths:
 # features/purchaseRequest
 what: external-payment purchases (purchase_requests): sessions, transitions, double-purchase guards | fulfilment = a strategy per purchase_type (built-in wallet_topup)
 use: payment
-change: overlay = src/config/features/purchaseRequest.config.ts (payment, purchaseType) | add = completionStrategies, completeHooks | sessionEnricher.ts = 1-line switch
+change: overlay = src/config/features/purchaseRequest.config.ts (payment, purchaseType) | add = completionStrategies, completeHooks | replace = payment/sessionEnricher.ts
 rules:
 using:
 - new_type: purchase_type = config purchaseType + a strategy item + pnpm generate extensions + db:push
 - null_wallet_urls: a type with wallet_type null implements buildCallbackUrls
-- strategy_hooks: onFail / onExpire are idempotent and never let onFail throw
+- strategy_hooks: onFail / onExpire are idempotent, onFail never throws
 - metadata: validate it yourself (core does not) | not the bankTransferImageJudgment key | FK / search / aggregate axes → a side table
 - wallet_hook: a wallet-only post hook returns early unless purchase_type is wallet_topup
 - polling_values: usePurchaseStatusPolling takes paths, never functions or parts
