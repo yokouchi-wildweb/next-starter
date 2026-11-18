@@ -4,6 +4,9 @@ import { Link } from "@/components/Navigation";
 import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/Form/Button/Button";
+import { Block } from "@/components/Layout/Block";
+import { InBlock } from "@/components/Layout/InBlock";
+import { Span } from "@/components/TextBlocks/Span";
 import { userLayoutConfig } from "../config";
 import { cn } from "@/lib/cn";
 
@@ -49,15 +52,15 @@ const ItemContent = ({ item }: BottomNavItemProps) => {
 
   return (
     <>
-      <div className="relative">
+      <Block className="relative">
         <Icon className="size-6" />
         {item.badge && (
-          <span className="absolute -top-1 -right-1">
+          <InBlock className="absolute -top-1 -right-1">
             {item.badge}
-          </span>
+          </InBlock>
         )}
-      </div>
-      <span className="text-[10px] font-medium leading-tight">{item.label}</span>
+      </Block>
+      <Span inline weight="medium" className="text-[10px] leading-tight">{item.label}</Span>
     </>
   );
 };

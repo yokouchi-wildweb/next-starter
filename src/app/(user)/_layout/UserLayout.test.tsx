@@ -73,6 +73,12 @@ const tier1Only = { skip: isUpstreamRoot ? false : "fork(Tier1 以外)は upstre
 const BEFORE_BACKGROUND =
   '<div style="position:fixed;top:0;left:0;width:100vw;height:100lvh;z-index:-1;pointer-events:none;overflow:hidden" aria-hidden="true">' +
   '<div style="position:absolute;inset:0;background-color:var(--background)"></div></div>';
+/**
+ * 生の要素を包みの部品へ替えた区切り(計画書 06): 背景の 2 つの div → Block(data-component と Block の既定の class="block" が付く。見た目は不変)
+ */
+const BACKGROUND_NOW = BEFORE_BACKGROUND.replaceAll("<div style=", '<div data-component="Block" style=')
+  .replace('" aria-hidden="true">', '" aria-hidden="true" class="block">')
+  .replace('"></div></div>', '" class="block"></div></div>');
 const BEFORE_SWITCH =
   '<div data-component="Flex" class="flex gap-0 flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
   'id="user-app-container" data-user-app-container="" style="--app-header-height:0px">' +
@@ -127,8 +133,16 @@ const withoutLegacyMarks = (html: string) =>
  */
 const withSpacingScale = (html: string) =>
   html.replace('<div data-component="Flex" class="flex gap-0 flex-col', '<div data-component="Flex" class="flex gap-(--space-none) flex-col');
+/**
+ * 生の要素を包みの部品へ替えた区切り(計画書 06): 本文の包みの div → Flex direction="column"
+ * (data-component と Flex の既定の class が前に付く。flex-col は Flex の direction の位置へ。見た目は不変)
+ */
+const BODY_WRAPPER_CLASS = "flex-1 min-h-0 pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]";
+const BODY_WRAPPER_TAG = `<div data-component="Flex" class="flex gap-(--space-none) flex-col items-stretch justify-start flex-nowrap ${BODY_WRAPPER_CLASS}">`;
+const withWrappers = (html: string) =>
+  html.replace('<div class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">', BODY_WRAPPER_TAG);
 const frameDims = () =>
-  withSpacingScale(withoutLegacyMarks(withoutHeaderVar(withSlotsAndSafeArea(withFrameRoot(withBottomNavVar(BEFORE_SWITCH))))));
+  withWrappers(withSpacingScale(withoutLegacyMarks(withoutHeaderVar(withSlotsAndSafeArea(withFrameRoot(withBottomNavVar(BEFORE_SWITCH)))))));
 
 const render = (node: ReactNode) => renderToStaticMarkup(node);
 
@@ -147,7 +161,7 @@ const defaultLayout = () => configBackground() + frameDims();
 /** data-slot の要素の開始タグ(属性の並びに依らず印・属性を見る) */
 const tagOf = (html: string, slot: string) => html.match(new RegExp(`<[a-z][^>]*\\sdata-slot="${slot}"[^>]*>`))?.[0] ?? "";
 /** 本文の包み(印なし。class で探す) */
-const BODY_WRAPPER = 'class="flex flex-1 min-h-0 flex-col';
+const BODY_WRAPPER = "flex-1 min-h-0 pt-[var(--app-header-height,0px)]";
 
 test("props なしの UserLayout は外枠の属性・高さ変数・部品の並びを持つ(ボトムナビの値は config から、隠す印は枠の表から)", () => {
   const html = render(<UserLayout>CHILD</UserLayout>);
@@ -169,7 +183,7 @@ test("props なしの UserLayout は 1 行スイッチ化の前と同じ DOM を
 });
 
 test("既定の BackgroundLayer は 1 行スイッチ化の前と同じ HTML を描く(upstream の部品の固定の HTML、Tier1 のみ)", tier1Only, () => {
-  assert.equal(render(<BackgroundLayer overlayColor="#000" overlayOpacity={0} />), BEFORE_BACKGROUND);
+  assert.equal(render(<BackgroundLayer overlayColor="#000" overlayOpacity={0} />), BACKGROUND_NOW);
 });
 
 test("header / footer の slot 省略時は既定の Header(UserNavigation)/ Footer(UserFooter)を描く", () => {
@@ -222,7 +236,7 @@ test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, 
     render(allNull()),
     '<div data-component="Flex" class="flex gap-(--space-none) flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
       'data-slot="app-container" data-frame-root=""' + rootHideAttr() + ">" +
-      '<div class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">CHILD</div><x-modal></x-modal></div>',
+      BODY_WRAPPER_TAG + "CHILD</div><x-modal></x-modal></div>",
   );
 });
 
@@ -239,8 +253,8 @@ test("banner の省略と null は同じ(既定なし): 帯・スペーサー・
 
 // banner の殻: data-slot="app-banner" と、上と左右の切り欠きの padding(切り欠きの無い画面では 0)
 const BANNER_TAG =
-  '<div data-slot="app-banner" class="fixed inset-x-0 top-0 header-layer pt-[var(--app-safe-area-top)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"><p id="promo">PROMO</p></div>';
-const BANNER_SPACER_TAG = '<div aria-hidden="true" class="shrink-0 h-[var(--app-banner-height,0px)]"></div>';
+  '<div data-component="Block" data-slot="app-banner" class="block fixed inset-x-0 top-0 header-layer pt-[var(--app-safe-area-top)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"><p id="promo">PROMO</p></div>';
+const BANNER_SPACER_TAG = '<div data-component="Block" aria-hidden="true" class="block shrink-0 h-[var(--app-banner-height,0px)]"></div>';
 
 test("banner に要素を渡すとヘッダーより前の固定の帯に描き、本文の前にその高さのスペーサーを置く", () => {
   const html = render(<UserLayout banner={<p id="promo">PROMO</p>}>CHILD</UserLayout>);

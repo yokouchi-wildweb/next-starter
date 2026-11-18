@@ -7,6 +7,8 @@
 
 import type { ReactNode } from "react";
 
+import { Flex } from "@/components/Layout/Flex";
+
 export type HeaderShellProps = {
   /** 左側スロット（通常: Brand） */
   readonly left?: ReactNode;
@@ -17,14 +19,14 @@ export type HeaderShellProps = {
 };
 
 export const HeaderShell = ({ left, center, right }: HeaderShellProps) => (
-  <div data-slot="header-shell" className="mx-auto flex w-full max-w-6xl items-stretch justify-between px-4 py-2 sm:py-4">
+  <Flex data-slot="header-shell" justify="between" className="mx-auto w-full max-w-6xl px-4 py-2 sm:py-4">
     {/* 左側: Brand など */}
-    {left && <div data-slot="header-left" className="flex items-center">{left}</div>}
+    {left && <Flex data-slot="header-left" align="center">{left}</Flex>}
 
     {/* 中央: PCナビゲーションなど */}
-    {center && <div data-slot="header-center" className="flex items-stretch">{center}</div>}
+    {center && <Flex data-slot="header-center">{center}</Flex>}
 
     {/* 右側: SPメニュートグル、CTA、通知など */}
-    {right && <div data-slot="header-right" className="flex items-center gap-2">{right}</div>}
-  </div>
+    {right && <Flex data-slot="header-right" align="center" className="gap-2">{right}</Flex>}
+  </Flex>
 );

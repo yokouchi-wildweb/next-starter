@@ -1,10 +1,11 @@
 /**
  * メニューアイテムのリンク/非リンク切り替えコンポーネント
  *
- * href があれば Next.js Link、なければ span を返す
+ * href があれば Next.js Link、なければ InBlock(span)を返す
  * PC/SP共通で使用
  */
 
+import { InBlock } from "@/components/Layout/InBlock";
 import { Link } from "@/components/Navigation";
 
 export type MenuItemLinkProps = {
@@ -28,8 +29,8 @@ export const MenuItemLink = ({ href, className, onClick, children, id }: MenuIte
   }
 
   return (
-    <span id={id} className={className} onClick={onClick}>
+    <InBlock id={id} className={className} onClick={onClick}>
       {children}
-    </span>
+    </InBlock>
   );
 };

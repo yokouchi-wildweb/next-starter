@@ -2,6 +2,7 @@
 
 import { AppImage } from "@/components/Media/AppImage";
 import { Link } from "@/components/Navigation";
+import { Span } from "@/components/TextBlocks/Span";
 
 import { business } from "@/business";
 import { userLayoutConfig } from "../config";
@@ -28,9 +29,9 @@ export const Brand = () => {
           priority
         />
       ) : (
-        <span data-slot="header-brand-text" className="text-base font-semibold sm:text-lg">
+        <Span inline data-slot="header-brand-text" size="md" weight="semiBold" className="sm:text-lg">
           {business.serviceNameShort}
-        </span>
+        </Span>
       )}
     </Link>
   );

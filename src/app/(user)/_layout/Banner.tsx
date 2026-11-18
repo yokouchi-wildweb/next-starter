@@ -2,6 +2,7 @@
 
 import { type ReactNode, useEffect } from "react";
 
+import { Block } from "@/components/Layout/Block";
 import { useElementSize } from "@/hooks/useElementSize";
 
 type BannerProps = {
@@ -23,8 +24,8 @@ export function Banner({ children, onHeightChange }: BannerProps) {
   }, [height, onHeightChange]);
 
   return (
-    <div data-slot="app-banner" ref={ref} className="fixed inset-x-0 top-0 header-layer pt-[var(--app-safe-area-top)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">
+    <Block data-slot="app-banner" ref={ref} className="fixed inset-x-0 top-0 header-layer pt-[var(--app-safe-area-top)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">
       {children}
-    </div>
+    </Block>
   );
 }

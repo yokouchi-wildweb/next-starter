@@ -9,6 +9,8 @@ import type { ReactNode } from "react";
 
 import { AnimatePresence, motion } from "framer-motion";
 
+import { Block } from "@/components/Layout/Block";
+
 import { SpNavOverlay } from "./SpNavOverlay";
 import { SpNavPanel } from "./SpNavPanel";
 import type { NavigationMenuItem } from "../types";
@@ -36,10 +38,10 @@ export const SpNavigation = ({
     <AnimatePresence>
       {isOpen ? (
         <motion.div data-slot="header-nav" key="mobile-navigation" className="sm:hidden">
-          <div className="fixed inset-x-0 bottom-0" style={{ top: `calc(var(--app-banner-height, 0px) + ${headerOffset}px)` }}>
+          <Block className="fixed inset-x-0 bottom-0" style={{ top: `calc(var(--app-banner-height, 0px) + ${headerOffset}px)` }}>
             <SpNavOverlay onClose={onClose} />
             <SpNavPanel items={items} showIcons={showIcons} onNavigate={onClose} footer={footer} />
-          </div>
+          </Block>
         </motion.div>
       ) : null}
     </AnimatePresence>

@@ -1,6 +1,10 @@
 "use client";
 
+import { Flex } from "@/components/Layout/Flex";
+import { Section } from "@/components/Layout/Section";
 import { Link } from "@/components/Navigation";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 
 import { cn } from "@/lib/cn";
 import { useFooterData } from "../hooks";
@@ -24,7 +28,8 @@ export function UserFooter() {
   }
 
   return (
-    <footer
+    <Section
+      as="footer"
       data-slot="footer"
       className={cn(
         "flex-col items-center justify-center gap-4 bg-footer pl-[calc(var(--spacing)*6_+_var(--app-safe-area-left))] pr-[calc(var(--spacing)*6_+_var(--app-safe-area-right))] py-6 text-footer-foreground shadow-inner",
@@ -33,7 +38,7 @@ export function UserFooter() {
     >
       {/* SNSリンク */}
       {snsEnabled && socialLinks.length > 0 && (
-        <div className="flex items-center justify-center gap-4">
+        <Flex align="center" justify="center" className="gap-4">
           {socialLinks.map((item) => (
             <Link
               key={item.key}
@@ -46,14 +51,14 @@ export function UserFooter() {
               <item.icon className="size-5" />
             </Link>
           ))}
-        </div>
+        </Flex>
       )}
 
       {/* フッターリンク */}
       {linksEnabled && footerLinks.length > 0 && (
-        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm">
+        <Flex wrap="wrap" align="center" justify="center" className="gap-x-2 gap-y-1 text-sm">
           {footerLinks.map((item, index) => (
-            <span key={item.key} className="flex items-center gap-2">
+            <Flex key={item.key} align="center" className="gap-2">
               <Link
                 href={item.href}
                 className="text-muted-foreground transition-colors hover:text-foreground hover:underline"
@@ -61,19 +66,19 @@ export function UserFooter() {
                 {item.label}
               </Link>
               {index < footerLinks.length - 1 && (
-                <span className="text-muted-foreground/50">{linkSeparator}</span>
+                <Span inline className="text-muted-foreground/50">{linkSeparator}</Span>
               )}
-            </span>
+            </Flex>
           ))}
-        </div>
+        </Flex>
       )}
 
       {/* コピーライト */}
       {copyrightEnabled && (
-        <p className="text-center text-xs text-muted-foreground">
+        <Para tone="muted" size="xs" align="center" className="my-0">
           {copyrightText}
-        </p>
+        </Para>
       )}
-    </footer>
+    </Section>
   );
 }

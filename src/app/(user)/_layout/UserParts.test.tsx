@@ -150,7 +150,22 @@ const BEFORE_HEADER_MARKS = BEFORE_HEADER_DIMS.replace('<header id="header" ', '
  */
 const withControlHeight = (html: string) =>
   html.replaceAll(" h-9 rounded-md gap-1.5 px-3 min-w-16", " h-(--control-h-sm) rounded-md gap-1.5 px-3 min-w-16").replaceAll(" h-10 px-4 py-2 min-w-20", " h-(--control-h-md) px-4 min-w-20");
-const BEFORE_HEADER_NOW = withControlHeight(withoutLegacyMarks(BEFORE_HEADER_MARKS));
+/**
+ * 生の要素を包みの部品へ替えた区切り(計画書 06): header → Section as="header"(data-component と既定の block)、
+ * header-shell / header-left / header-center / header-right の div → Flex(data-component と Flex の既定の class。属性は class が data-slot の前)。
+ * 見た目は不変(並びの既定は CSS の初期値と同じ、gap-2 は Flex の gap 既定 none を tailwind-merge が置き換える)
+ */
+const withWrappers = (html: string) =>
+  html
+    .replace('<header data-slot="header" class="fixed ', '<header data-component="Section:header" data-slot="header" class="block fixed ')
+    .replace(
+      '<div data-slot="header-shell" class="mx-auto flex w-full max-w-6xl items-stretch justify-between px-4 py-2 sm:py-4">',
+      '<div data-component="Flex" class="flex gap-(--space-none) flex-row items-stretch justify-between flex-nowrap mx-auto w-full max-w-6xl px-4 py-2 sm:py-4" data-slot="header-shell">',
+    )
+    .replace('<div data-slot="header-left" class="flex items-center">', '<div data-component="Flex" class="flex gap-(--space-none) flex-row items-center justify-start flex-nowrap" data-slot="header-left">')
+    .replace('<div data-slot="header-center" class="flex items-stretch">', '<div data-component="Flex" class="flex gap-(--space-none) flex-row items-stretch justify-start flex-nowrap" data-slot="header-center">')
+    .replace('<div data-slot="header-right" class="flex items-center gap-2">', '<div data-component="Flex" class="flex flex-row items-center justify-start flex-nowrap gap-2" data-slot="header-right">');
+const BEFORE_HEADER_NOW = withWrappers(withControlHeight(withoutLegacyMarks(BEFORE_HEADER_MARKS)));
 
 test("Header は data-slot の印と banner 分の top を持つ", () => {
   const header = tagOf(render(<UserNavigation />), "header");
@@ -161,7 +176,8 @@ test("Header は data-slot の印と banner 分の top を持つ", () => {
 test("props なしの UserNavigation は slot 化の前と同じ DOM を描く(差分は banner 分の top・data-slot・切り欠きの padding だけ。固定の HTML、Tier1 のみ)", tier1Only, () => {
   assert.notEqual(BEFORE_HEADER_DIMS, BEFORE.header);
   assert.notEqual(BEFORE_HEADER_MARKS, BEFORE_HEADER_DIMS);
-  assert.notEqual(BEFORE_HEADER_NOW, BEFORE_HEADER_MARKS);
+  assert.notEqual(BEFORE_HEADER_NOW, withControlHeight(withoutLegacyMarks(BEFORE_HEADER_MARKS)));
+  assert.equal(count(BEFORE_HEADER_NOW, 'data-component="Flex"'), 4, "包みの置き換えが 4 つの div 全部に当たる");
   assert.equal(render(<UserNavigation />), BEFORE_HEADER_NOW);
 });
 

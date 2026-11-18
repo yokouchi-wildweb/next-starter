@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 
+import { Block } from "@/components/Layout/Block";
 import { AppImage } from "@/components/Media/AppImage";
 
 type BackgroundLayerProps = {
@@ -64,16 +65,16 @@ export const BackgroundLayer = ({
   };
 
   return (
-    <div style={containerStyle} aria-hidden="true">
+    <Block style={containerStyle} aria-hidden="true">
       {imageUrl ? (
         <>
           {/* ページ全面の背景画像(cover・中央は AppImage の既定)。ファーストビューなので priority で先読みし lazy にしない */}
           <AppImage src={imageUrl} alt="" sizes="full" priority className="absolute inset-0" />
-          {overlayOpacity > 0 && <div style={overlayStyle} />}
+          {overlayOpacity > 0 && <Block style={overlayStyle} />}
         </>
       ) : (
-        <div style={baseStyle} />
+        <Block style={baseStyle} />
       )}
-    </div>
+    </Block>
   );
 };

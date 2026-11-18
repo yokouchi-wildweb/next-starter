@@ -13,6 +13,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { InBlock } from "@/components/Layout/InBlock";
 
 import { ACCORDION_TRANSITION, accordionVariants } from "../animations";
 import { MenuItemLabel } from "../MenuItemLabel";
@@ -30,8 +33,8 @@ const styles = {
   action:
     "h-auto w-full justify-start px-3 py-2 text-left transition-colors hover:bg-muted hover:text-primary disabled:opacity-60",
   link: "block rounded-md px-3 py-2 transition-colors hover:bg-muted hover:text-primary",
-  trigger:
-    "flex w-full items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-muted hover:text-primary cursor-pointer",
+  // 並び(flex・items-center・justify-between)は Flex の props
+  trigger: "w-full rounded-md px-3 py-2 transition-colors hover:bg-muted hover:text-primary cursor-pointer",
   childLink:
     "block rounded-md py-3 pl-8 pr-3 text-sm transition-colors hover:bg-muted hover:text-primary",
 } as const;
@@ -46,8 +49,8 @@ export const SpMenuItem = ({ item, showIcon = true, onNavigate }: SpMenuItemProp
     };
 
     return (
-      <div>
-        <div className={styles.trigger} onClick={handleToggle}>
+      <Block>
+        <Flex align="center" justify="between" className={styles.trigger} onClick={handleToggle}>
           {hasValidHref(item.href) ? (
             <Link
               href={item.href}
@@ -60,14 +63,14 @@ export const SpMenuItem = ({ item, showIcon = true, onNavigate }: SpMenuItemProp
               <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} badge={item.badge} />
             </Link>
           ) : (
-            <span className="flex-1">
+            <InBlock className="flex-1">
               <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} badge={item.badge} />
-            </span>
+            </InBlock>
           )}
           <ChevronDown
             className={`size-4 transition-transform ${isExpanded ? "rotate-180" : ""}`}
           />
-        </div>
+        </Flex>
 
         <AnimatePresence>
           {isExpanded && (
@@ -87,7 +90,7 @@ export const SpMenuItem = ({ item, showIcon = true, onNavigate }: SpMenuItemProp
             </motion.ul>
           )}
         </AnimatePresence>
-      </div>
+      </Block>
     );
   }
 

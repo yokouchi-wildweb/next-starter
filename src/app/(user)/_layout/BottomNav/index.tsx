@@ -1,5 +1,6 @@
 "use client";
 
+import { Section } from "@/components/Layout/Section";
 import { cn } from "@/lib/cn";
 import { zLayerClass } from "@/lib/zLayer";
 
@@ -11,7 +12,8 @@ export const UserBottomNav = () => {
 
   // 隠す端末・ページ(各ルートの枠の宣言 frame.ts / frame.override.ts)では styles/core/frame.css が display: none にする
   return (
-    <nav
+    <Section
+      as="nav"
       aria-label="メインメニュー"
       data-slot="bottom-nav"
       className={cn(
@@ -33,6 +35,6 @@ export const UserBottomNav = () => {
       {items.map((item) => (
         <BottomNavItem key={item.key} item={item} />
       ))}
-    </nav>
+    </Section>
   );
 };

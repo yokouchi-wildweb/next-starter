@@ -2,6 +2,7 @@
 
 import { type CSSProperties, type ReactNode, useState } from "react";
 
+import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import { InboxUnreadModal } from "@/features/core/messaging/components/InboxUnreadModal";
@@ -95,12 +96,13 @@ export function UserLayout({
         {hasBanner && <Banner onHeightChange={setBannerHeight}>{banner}</Banner>}
         {header === undefined ? <UserNavigation /> : header}
         {/* banner の高さ分だけ本文を押し下げる(ヘッダーの分は下の本文の包みの padding-top) */}
-        {hasBanner && <div aria-hidden="true" className="shrink-0 h-[var(--app-banner-height,0px)]" />}
-        <div
-          className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"
+        {hasBanner && <Block aria-hidden="true" className="shrink-0 h-[var(--app-banner-height,0px)]" />}
+        <Flex
+          direction="column"
+          className="flex-1 min-h-0 pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"
         >
           {children}
-        </div>
+        </Flex>
         {footer === undefined ? <UserFooter /> : footer}
         {bottomNav === undefined ? (
           <>

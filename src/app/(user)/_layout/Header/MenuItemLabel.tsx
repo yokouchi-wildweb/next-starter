@@ -7,6 +7,7 @@
 import type { ReactNode } from "react";
 
 import type { IconComponent } from "@/components/Icons";
+import { InBlock } from "@/components/Layout/InBlock";
 
 export type MenuItemLabelProps = {
   readonly label: string;
@@ -18,9 +19,9 @@ export type MenuItemLabelProps = {
 };
 
 export const MenuItemLabel = ({ label, icon: Icon, showIcon = true, id, badge }: MenuItemLabelProps) => (
-  <span id={id} className="inline-flex items-center gap-1.5">
+  <InBlock id={id} className="inline-flex items-center gap-1.5">
     {showIcon && Icon && <Icon className="size-4" />}
     {label}
     {badge}
-  </span>
+  </InBlock>
 );

@@ -6,6 +6,10 @@
 
 import { ChevronDown } from "lucide-react";
 
+import { Button } from "@/components/Form/Button/Button";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+
 import { MenuItemLabel } from "../MenuItemLabel";
 import { MenuItemLink } from "../MenuItemLink";
 import { hasChildren, isActionItem } from "../types";
@@ -33,7 +37,7 @@ export const PcMenuItem = ({
   // 子メニューありの場合はドロップダウン
   if (hasChildren(item)) {
     return (
-      <div className="group relative flex items-stretch">
+      <Flex className="group relative">
         <PcMenuItemContent
           item={item}
           className={styles.trigger}
@@ -41,7 +45,7 @@ export const PcMenuItem = ({
           showChevron
           onNavigate={onNavigate}
         />
-        <div className="invisible absolute left-0 top-full z-50 min-w-40 pt-2 opacity-0 transition-all group-hover:visible group-hover:opacity-100">
+        <Block className="invisible absolute left-0 top-full z-50 min-w-40 pt-2 opacity-0 transition-all group-hover:visible group-hover:opacity-100">
           <ul className="rounded-md border border-border bg-popover py-1 shadow-lg">
             {item.children?.map((child) => (
               <li key={child.key}>
@@ -54,8 +58,8 @@ export const PcMenuItem = ({
               </li>
             ))}
           </ul>
-        </div>
-      </div>
+        </Block>
+      </Flex>
     );
   }
 
@@ -67,14 +71,17 @@ export const PcMenuItem = ({
     };
 
     return (
-      <button
+      <Button
         type="button"
+        variant="none"
+        size="none"
+        propagateClick
         onClick={handleClick}
         disabled={item.disabled}
         className={styles.link}
       >
         <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} badge={item.badge} />
-      </button>
+      </Button>
     );
   }
 

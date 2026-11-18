@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/Form/Button/Button";
+import { Section } from "@/components/Layout/Section";
 
 import { useHeaderData } from "../hooks";
 import { Brand } from "./Brand";
@@ -40,7 +41,8 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
 
   // ヘッダーとナビを隠す端末・ページ(各ルートの枠の宣言 frame.ts / frame.override.ts)では styles/core/frame.css が display: none にする
   return (
-    <header
+    <Section
+      as="header"
       data-slot="header"
       ref={headerRef}
       className="fixed shadow inset-x-0 top-[var(--app-banner-height,0px)] header-layer border-b border-border bg-header text-header-foreground pt-[max(0px,calc(var(--app-safe-area-top)_-_var(--app-banner-height,0px)))] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]"
@@ -85,6 +87,6 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
           )
         }
       />
-    </header>
+    </Section>
   );
 };

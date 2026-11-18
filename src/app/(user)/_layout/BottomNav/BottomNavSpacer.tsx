@@ -1,5 +1,7 @@
 "use client";
 
+import { Block } from "@/components/Layout/Block";
+
 /**
  * BottomNavの高さ分のスペースを確保するスペーサーコンポーネント
  * 高さは外枠の --app-bottom-nav-height(UserLayout が config の値 + 下の safe-area を書き、
@@ -7,7 +9,7 @@
  */
 export const BottomNavSpacer = () => {
   return (
-    <div
+    <Block
       data-slot="bottom-nav"
       className="shrink-0 h-[var(--app-bottom-nav-height,0px)]"
       aria-hidden="true"

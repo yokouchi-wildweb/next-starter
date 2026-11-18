@@ -6,6 +6,8 @@ import type { ReactNode } from "react";
 
 import { motion } from "framer-motion";
 
+import { Block } from "@/components/Layout/Block";
+
 import { SLIDE_TRANSITION, slideFromRightVariants } from "../animations";
 import { SpMenuItem } from "./SpMenuItem";
 import type { NavigationMenuItem } from "../types";
@@ -38,9 +40,9 @@ export const SpNavPanel = ({ items, showIcons = true, onNavigate, footer }: SpNa
 
     {/* フッター領域（CTAボタンなど） */}
     {footer && (
-      <div className="border-t border-border px-4 py-4">
+      <Block className="border-t border-border px-4 py-4">
         {footer}
-      </div>
+      </Block>
     )}
   </motion.nav>
 );
