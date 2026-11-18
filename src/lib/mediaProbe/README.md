@@ -8,7 +8,7 @@
 
 ### 責務の境界
 
-- **この層（tier1）は「事実」だけを返す**: `hasAudioTrack` / `hasVideoTrack` / コンテナ / 尺 / コーデック等。
+- **この lib は「事実」だけを返す**: `hasAudioTrack` / `hasVideoTrack` / コンテナ / 尺 / コーデック等。
 - **用途別ルールは消費側（ドメイン）の責務**: 「背景動画は音声なし」「BGM は音声あり」等の
   ポリシー判定・拒否（409 等）・孤児削除は呼び出し側で行う。
 
@@ -41,7 +41,7 @@ if (!result.ok) {
 ### ドメインの create ラッパーでの消費イメージ
 
 ```ts
-const probe = await probeMedia({ downloadUrl });
+const probe = await probeMedia({ authorizedUrl }); // 用途の read で認可した短期 URL
 if (!probe.ok) throw new DomainError(probe.error.message, { status: 422 });
 // 背景動画: 無音動画のみ許可
 if (!isSilentVideo(probe)) throw new DomainError("音声トラックを含む動画は使用できません。", { status: 409 });

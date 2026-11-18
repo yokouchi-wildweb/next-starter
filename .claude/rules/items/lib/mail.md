@@ -6,10 +6,10 @@ paths:
 # lib/mail
 what: email sending (Resend / SendGrid) via send(), MailSendError, provider webhook verify + normalize, React Email frame parts and generated colors (@/lib/mail)
 use: always (provider = env MAIL_PROVIDER)
-change: overlay = src/config/lib/mail.config.ts (defaultFrom, defaultFromName)
+change: placement = src/config/lib/mail.config.ts (defaultFrom, defaultFromName) | replace = frame/MailFrame.replace.tsx (switch frame/MailFrame.tsx)
 rules:
 using:
-- via_messaging: mail to users goes through messagingService; send() is called only by the email channel item (CLAUDE.md PROHIBITED)
+- via_messaging: mail to users goes through messagingService; send() is called only by the email channel item and system mail outside messaging (CLAUDE.md PROHIBITED)
 - retry_by_kind: MailSendError kind transient → retry later | permanent → never retry | unknown → retry only with idempotencyKey
 - sendgrid_dedupe: SendGrid drops idempotencyKey → the resender prevents duplicates itself
 - raw_body: verify webhook signatures on the raw body, never on re-serialized JSON

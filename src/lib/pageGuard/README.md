@@ -3,7 +3,7 @@
 ## Overview
 
 - ページの認可を「範囲」(layout の隣の `guard.ts`)と「ページ」(loader の `access`)の 2 か所に置き、両方を同じ評価器で判定する仕組み。API の Factory(`src/lib/routeFactory`)のページ版
-- ページの書き方・地図・検査は `src/lib/screens/README.md`
+- 範囲 = 方針の段(root → 子の guard.ts)の並び | 束 = auth が渡す利用者の解き方・access の評価・既定の status・今のパス
 
 ## Usage
 
@@ -19,7 +19,6 @@ src/app/<範囲>/guard.ts(子)= 最寄りの親の extend({ ... }) → { guard, 
 src/app/<範囲>/layout.tsx = await guard() の 1 行
 ```
 
-- root の guard.ts は `@/wiring/pageGuard` から、子は最寄りの親の `extend` から作る
 - guard.ts が export するのは `guard` / `createLoader` / `extend` の 3 つ
 
 ## API
@@ -40,7 +39,7 @@ src/app/<範囲>/layout.tsx = await guard() の 1 行
 
 - `guard()`: layout が 1 行で呼ぶ。範囲の全段を評価し、利用者は返さない(表示用の利用者は root の AuthSessionProvider → client の useAuthSession)
 - `createLoader({ access, allowStatuses?, key?, load })`: 範囲の全段 → ページの `access` を単独で評価し、拒否なら `load` を呼ばない(layout と並列に描かれても取得は守られる)
-  - ページの `access` の拒否: `none` → notFound、未認証 → 最寄りの段の `redirectTo`、権限不足 → 最寄りの段の `forbiddenRedirectTo`(無ければ notFound)
+  - ページの `access` の拒否: `none` → notFound、未認証 → 最寄りの段の `redirectTo`(無ければ notFound)、権限不足 → 最寄りの段の `forbiddenRedirectTo`(無ければ notFound)
   - `load({ user, allows }, ...key)`: `allows(rule)` は別の access を同じ利用者・status で評価する(取得前の追加の判定。例: 管理画面の関連先ごとの list の access)。`user` は DB 同期の利用者(リクエスト内 1 回)。`access: "public"` では Cookie があり利用可能な status(ページか最寄りの段の `allowStatuses`、無ければ既定)のときだけ非 null
   - `key(props)` は params / searchParams から cache のキーのプリミティブを取り出す(データは取らない)。Factory がそのプリミティブで React `cache()` を張る(Next は page と generateMetadata に別の props を渡すため)
 

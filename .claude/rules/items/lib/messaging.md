@@ -10,7 +10,7 @@ rules:
 using:
 - definition_data_only: one message = `export const message = defineMessage({…})` in the raising domain's messages/<name>.ts, data only | key = `<domain folder>.<file>` as a literal
 - category_not_kind: a definition writes `category` only (kind and channels come from it) | a category = one event as the user sees it, never a domain or feature
-- no_recategorize: an override never changes category, kind, key, vars, required or layout | another category → disable the upstream message and add your own
+- no_recategorize: an override never changes category, kind, key, vars, varNames, required or layout | another category → disable the upstream message and add your own
 - functional_unstoppable: functional messages are never disabled, lose email, get admin text or throttle
 - secret_vars: token URLs and one-time codes use secretVar
 - guard_literals: required, category, adminEditableOnly, enabled, kind, channels, group are literals

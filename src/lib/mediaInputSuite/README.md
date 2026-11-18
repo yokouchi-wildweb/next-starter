@@ -25,6 +25,7 @@
 
 - `src/components/Form/MediaHandler`
   - `ControlledMediaUploader` / `ControlledMediaInput`（RHF 連携）
+  - `useMediaUploaderField` / `useMediaUploaderMultiField`（RHF ブリッジ。`render` / `isUploading` / `hasFailed` / `commit` / `reset`）
   - `ManualMediaUploader` / `ManualMediaInput`（手動 state 連携）
 - `src/components/Form/FieldRenderer`
   - `FieldRenderer` が `mediaUploader` タイプのフィールドを自動処理
@@ -67,7 +68,7 @@ export function FooFields({ methods, onMediaStateChange }) {
 
 ### アップロードと保存の手順
 
-- 業務保存が成功したら `useMediaUploaderField` の `commit()`(最終値の確定 + 残りの未採用分の取り消し)、やめるなら `reset()`(未採用分を取り消し元の値に戻す)
+- 業務保存が成功したら `useMediaUploaderField`（MediaHandler）の `commit()`(最終値の確定 + 残りの未採用分の取り消し)、やめるなら `reset()`(未採用分を取り消し元の値に戻す)
 - 大きさ・縮小の案内文は欄の `helperText` に書く(フィールドの枠が描く)。例: 「大きな写真は長い辺 2048px まで自動で縮小してから送ります」。数値は用途の宣言(`image.maxDimension`)と揃える
 - 長寿命フォームでは `usePendingMediaUploads` の `cleanupOnUnmount: false` を検討する(既定は unmount で未採用分を discard)
 - 送信中の守りを外す: `guardUnsaved={false}`(既定 true)
@@ -129,7 +130,6 @@ export function FooFields({ methods, onMediaStateChange }) {
 | `useDragAndDrop` | ドラッグ＆ドロップのイベント補助 | `eventHandlers` と `isDragging` を返す |
 | `useMediaMetadataBinding` | メタデータを RHF フィールドへ自動反映 | `SelectedMediaMetadata` を受け取り `setValue` |
 | `useMediaMetadataActions` | メタデータ値ごとの任意アクション | 取得失敗時は `null` を通知 |
-| `useMediaUploaderField` | RHF と `ControlledMediaUploader` のブリッジ | `render` / `isUploading` / `hasFailed` / `commit` / `reset` を返す |
 | `usePendingMediaUploads` | 編集中にアップロードした未採用分の登録/確定/取り消し | `cleanupOnUnmount` 既定 `true`。中身は `pendingUploadTracker` |
 | `usePendingMediaDeletion` | 互換のために残した空の実装 | 何もしない（下記） |
 

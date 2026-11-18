@@ -4,7 +4,7 @@
 
 メールの送信(Resend / SendGrid)と、メールの見た目の部品(React Email)の入口 `@/lib/mail`(`send`・`MailSendError`・webhook・枠と部品・色の生成物 `MAIL_THEME_COLORS` と型)。
 
-- 利用者へのメールは連絡の定義を送る口 `messagingService.sendMessage` / `sendMessageToMany` が送る(回・配達の記録・配信停止)。`send()` を呼ぶのはメールの経路の項目(src/features/core/messaging/channels/email)。書き方: src/lib/messaging/README.md
+- 利用者へのメールは連絡の定義を messaging の送信の入口 `messagingService.sendMessage` / `sendMessageToMany` が送る(送信の記録 dispatch・配達の記録 delivery・配信停止)。`send()` を呼ぶのはメールの経路の項目(src/features/core/messaging/channels/email)。書き方: src/lib/messaging/README.md
 
 ## Usage
 
@@ -12,7 +12,7 @@
 
 1. [Resend](https://resend.com) でアカウントを作り、API キーを発行する（`RESEND_API_KEY`、.env.development / .env.production）
 2. Resend のコンソールで送信元のドメインを足し、表示される DNS レコード（DKIM・SPF など）をドメインの DNS に足して「Verify」で認証する
-3. 送信元のアドレスと名前は `src/config/lib/mail.config.ts` の `defaultFrom` / `defaultFromName`（上流は `@/business` の `mail` を写す。環境変数は API キーだけ）
+3. 送信元のアドレスと名前は `src/config/lib/mail.config.ts` の `defaultFrom` / `defaultFromName`（上流は `@/business` の `mail` を写す。環境変数は API キーと `MAIL_PROVIDER`）
 
 届かないとき: コンソールでドメインが Verified か・迷惑メールのフォルダ・コンソールの Emails の誤りを見る。DNS の伝播は 24〜48 時間かかることがあり、直後は Verified と Pending を行き来する。
 
@@ -20,7 +20,7 @@
 
 ### webhook を受ける
 
-provider から届く事件（届いた・開かれた・跳ね返った…）を検証し、共通の形 `MailWebhookEvent` に直す。受け口（route）・秘密の置き場（環境変数）・事件の保存は使う側が持つ。lib は環境変数を読まず、秘密 / 公開鍵は引数で受ける。
+provider から届く事件（届いた・開かれた・跳ね返った…）を検証し、共通の形 `MailWebhookEvent` に直す。受け口（route）・秘密の置き場（環境変数）・事件の保存は使う側が持つ。秘密 / 公開鍵は引数で渡す。
 
 ```ts
 import {
@@ -158,7 +158,7 @@ await send({ to, subject, html, text }); // 描き終えた html を渡す
 - 部品
   - `MailFrame`: Html・Head・Preview・Body・Container。`theme`（色）・`preview`（受信一覧の下見の文）・`lang`（既定 ja）
   - `MailHeading`（見出し）・`MailParagraph`（段落。`align`・`preWrap`）・`MailButton`（中央寄せのボタン。`tone` = primary | accent）・`MailUrl`（URL のリンク。children を省くと URL を出す）・`MailNote`（注記）・`MailFooter`（最後の注意書き）
-  - `MailDivider`（区切り線）・`MailHeader`（ロゴ + 文。ロゴは絶対 URL）・`MailInfoBox`（ラベルと値の箱）
+  - `MailDivider`（区切り線）・`MailHeader`（ロゴ + 文。ロゴは絶対 URL）・`MailInfoBox`（ラベルと値の箱）・`MailImage`・`MailList`
 - style の既定値は上流のテンプレート（auth のメール）の値。細かい違いは各部品の `style`（既定に重ねる）で合わせる
 - 色: 枠と各部品の `theme`（`MailTheme`、src/styles の palette と同じ鍵）で渡す。部品ごとに渡す手間は `createMailParts(theme)` で省ける（下）。色の値は下の「色の生成物」の `MAIL_THEME_COLORS` を呼び手が渡す
 - React の context を持たない理由: メールはサーバーで描き、`@/lib/mail` はサーバーの module（送る口 → メールの経路 → 描き方）から読まれる。lib に `createContext` を置くと Next の build が落ちる（frame.test.tsx が固定）
@@ -182,6 +182,10 @@ await send({ to, subject, html, text }); // 描き終えた html を渡す
 - `sendgrid`: `SENDGRID_API_KEY` が要る
 
 送信元は `from` / `fromName` で渡す。省略時は設定の `defaultFrom` / `defaultFromName`（既定 `config.ts`、上書き `src/config/lib/mail.config.ts` = `@lib-config/mail`。上流の上書きは `@/business` の `mail` を写す）。
+
+### 枠の差し替え
+
+- fork は全メールの枠を `frame/MailFrame.replace.tsx` で丸ごと替え、1 行スイッチ `frame/MailFrame.tsx` の向け先を替える(同じ export: `MAIL_FONT_FAMILY`・`MailFrame`・`MailFrameProps`)
 
 ## Verification
 

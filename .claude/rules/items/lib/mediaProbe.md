@@ -5,7 +5,7 @@ paths:
 # lib/mediaProbe
 what: server-side probe of stored media (video / audio) returning facts about its streams (hasAudioTrack, container, duration, codecs), engine swappable; entry @/lib/mediaProbe (probeMedia, isSilentVideo, registerProbeEngine), admin API POST /api/media/probe
 use: always
-change: add → registerProbeEngine / setDefaultProbeEngine (own engine)
+change: none → /order <direct parent> | own engine = public registerProbeEngine / setDefaultProbeEngine from own server code (→ Extension)
 rules:
 using:
 - mp_facts_only: policy (allow / reject, 409, orphan deletion, duration limits) is the calling domain's; the lib returns facts only

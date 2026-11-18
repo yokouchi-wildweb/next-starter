@@ -12,7 +12,7 @@
 
 ### 連絡を定義する(defineMessage)
 
-連絡 1 本 = 起こすドメインの `messages/<名前>.ts` に定義 1 つ(データだけ。送る処理は持たない)。`pnpm check extensions` が字面で読む(default export・別名は止まる)。中身 = ひな形(`layout`、下の「ひな形」)+ ひな形の欄の中身(`values`、D122)。経路ごとの中身は持たず、送る口が経路ごとに描き方の 3 段(ひな形の描き方 > 経路の汎用 > 要約、D124)で描く。
+連絡 1 本 = 起こすドメインの `messages/<名前>.ts` に定義 1 つ(データだけ。送る処理は持たない)。`pnpm check extensions` が字面で読む(default export・別名は止まる)。中身 = ひな形(`layout`、下の「ひな形」)+ ひな形の欄の中身(`values`)。経路ごとの中身は持たず、送る口が経路ごとに描き方の 3 段(ひな形の描き方 > 経路の汎用 > 要約)で描く。
 
 ```ts
 import { z } from "zod";
@@ -38,7 +38,7 @@ export const message = defineMessage({
 
 ### 上書き(MessageOverride)
 
-`messages/<名前>.override.ts`(データだけ)。変えられるのは名前 `label`(管理画面の表示名)・ひな形の欄の中身 `values`(欄ごとに差し替え)・`extras`・`enabled`・`adminEditableOnly`・`record`・`throttle`(`null` で外す)。`key`・`vars`・`required`・`category`・`layout` は変えられない(経路は種類の上書き `categories/<名前>.override.ts` の `channels` で変える。上流の functional の連絡は止められない、D68)。
+`messages/<名前>.override.ts`(データだけ)。変えられるのは名前 `label`(管理画面の表示名)・ひな形の欄の中身 `values`(欄ごとに差し替え)・`extras`・`enabled`・`adminEditableOnly`・`record`・`throttle`(`null` で外す)。`key`・`vars`・`required`・`category`・`layout` は変えられない(経路は種類の上書き `categories/<名前>.override.ts` の `channels` で変える。上流の functional の連絡は止められない)。
 
 ```ts
 // src/features/core/auth/messages/verification.override.ts(fork)
@@ -60,13 +60,13 @@ export const messageOverride = {
 項目:
 
 - `key`: `<domain>.<name>`(英数字の camelCase)
-- `label`(必須、D46): 管理画面に出す連絡の名前(日本語。例 `"パスワードの再設定"`)。運営する人は鍵を読まないので、管理画面(文言の上書き・回の送り元)は鍵でなくこれを出す。表示だけなので上書きで変えられる(種類の label と同じ)。無い・空は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition`(`missing_label`)。`pnpm generate message` は `--label` で書く
-- `category`(必須、D81): 種類 = categories の受け口の鍵。種類は利用者から見て 1 つの出来事(D79)で、種別(kind)と経路(channels)を持つ。連絡は種別も経路も書かず、種類から引く(D86)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `categories`(`unknown_category`)。
+- `label`(必須): 管理画面に出す連絡の名前(日本語。例 `"パスワードの再設定"`)。運営する人は鍵を読まないので、管理画面(文言の上書き・回の送り元)は鍵でなくこれを出す。表示だけなので上書きで変えられる(種類の label と同じ)。無い・空は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition`(`missing_label`)。`pnpm generate message` は `--label` で書く
+- `category`(必須): 種類 = categories の受け口の鍵。種類は利用者から見て 1 つの出来事で、種別(kind)と経路(channels)を持つ。連絡は種別も経路も書かず、種類から引く。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `categories`(`unknown_category`)。
 - 種別(種類が持つ、7 つ・fork は増やせない): `functional`(機能に組み込まれた連絡)/ `transactional`(本人の手続きの知らせ)/ `security`(セキュリティの警告)/ `announcement`(運営の告知)/ `direct`(運営から特定の利用者へ)/ `activity`(利用者が止められる、利用に伴う知らせ)/ `promotion`(宣伝)。
-  - 性質は `MESSAGE_KIND_TRAITS`(`definition/kinds.ts`、D80):
+  - 性質は `MESSAGE_KIND_TRAITS`(`definition/kinds.ts`):
     - 上流の物を止められるか(`upstreamDisable`、functional だけ不可)
     - 利用者の停止と好み(`userStoppable`、activity・promotion)
-    - 住所の停止(`addressStop`、functional・security は hard bounce だけ)
+    - 宛先(アドレス)の停止(`addressStop`、functional・security は hard bounce だけ)
     - 管理者がその場で送れる宛先(`adminFreeText`、announcement・direct・promotion)
     - 記録の既定(`recordDefault`)
     - 文言の上書き(`adminTextOverride`、functional は不可)
@@ -75,15 +75,15 @@ export const messageOverride = {
     - 送る口の中ですぐ送るか(`sendInEntry`、security: 予約と全員・ロール・グループ宛ては 400、宛先が多くても展開して最初の 1 束を口の中で送る)。
   - 種別の値で分ける読み手はこの表を引く(`kindTraits` / `kindsWhere`)
 - `vars`: 呼び手が渡す値の zod
-- `varNames`(必須、D133): vars の鍵ごとの日本語の別名と説明 `{ [鍵]: { alias, description } }`(秘密の値も)。型が vars の鍵で縛る(欠けると型の誤り)。文面に `{{別名}}` と書けば `{{鍵}}` と同じ値で埋まり、管理画面の埋め込み情報の一覧(文言の上書き)に別名と説明で出る(秘密の値は出さない)。別名の形は埋め込み情報の別名と同じ。共通・enrichers と同じ鍵の値(例 `serviceNameShort` = サービスの短い名前・`displayName` = 表示名)はその別名を書き、ほかの別名は見える名前(共通・enrichers・ほかの vars)と重ならない。
+- `varNames`(必須): vars の鍵ごとの日本語の別名と説明 `{ [鍵]: { alias, description } }`(秘密の値も)。型が vars の鍵で縛る(欠けると型の誤り)。文面に `{{別名}}` と書けば `{{鍵}}` と同じ値で埋まり、管理画面の埋め込み情報の一覧(文言の上書き)に別名と説明で出る(秘密の値は出さない)。別名の形は埋め込み情報の別名と同じ。共通・enrichers と同じ鍵の値(例 `serviceNameShort` = サービスの短い名前・`displayName` = 表示名)はその別名を書き、ほかの別名は見える名前(共通・enrichers・ほかの vars)と重ならない。
   - 実行時は `validateMessageDefinition`(`missing_var_name` / `invalid_var_name` / `var_name_clash`)。上書きで変えられない。`pnpm generate message` は `--var <鍵>:<別名>:<説明>` で書く
   - 秘密の値(トークン入りの URL・ワンタイムコード)は `secretVar(z.string())` で印を付ける。印の鍵を持つ連絡は描いた本文をどこにも残さず(`record: "full"` でも)、vars の写しからその鍵を落とす(送る口が守る)。印は `isSecretVar` / `listSecretVarKeys` で読む。vars は上書きできないので印は外せない
 - `required`: 止められない連絡(認証など)。`enabled: false`・email の除外・`adminEditableOnly`・`throttle` を付けられない
-- `adminEditableOnly`: 管理画面で直せる欄の絞り(ひな形の欄の鍵、D132)。無い = ひな形の欄のうち種類の経路で使う物を全部直せる(`adminEditableFields`: 種別の性質 `adminTextOverride` が true で required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない。ひな形に無い鍵は `unknown_admin_editable`
+- `adminEditableOnly`: 管理画面で直せる欄の絞り(ひな形の欄の鍵)。無い = ひな形の欄のうち種類の経路で使う物を全部直せる(`adminEditableFields`: 種別の性質 `adminTextOverride` が true で required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない。ひな形に無い鍵は `unknown_admin_editable`
 - `record`: 本文の残し方 `meta` | `vars`(既定)| `full`
 - `throttle`: 会話の間引き `{ by: [vars の鍵], mode: "untilRead" | "window", seconds }`
-- `layout`(必須、D122): ひな形の鍵(`src/features/core/messaging/layouts/<名前>/`。上流は notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。上書きで変えられない
-- `values`: ひな形の欄の中身(欄の鍵 → 値。文字列に `{{鍵}}` を書ける)。ひな形の欄の zod(`layoutValuesSchema`、種類の経路で使う欄だけ必須 D125)を通る(`invalid_values`)。検査の前に空を「無い」にする(`normalizeLayoutValues` / `normalizeFieldValue`、D128: 画像の空文字・ボタン / リンクの全部が空・空の並び。ボタンの片方だけ空・URL の無いリンクは空の側の誤り)
+- `layout`(必須): ひな形の鍵(`src/features/core/messaging/layouts/<名前>/`。上流は notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。上書きで変えられない
+- `values`: ひな形の欄の中身(欄の鍵 → 値。文字列に `{{鍵}}` を書ける)。ひな形の欄の zod(`layoutValuesSchema`、種類の経路で使う欄だけ必須)を通る(`invalid_values`)。検査の前に空を「無い」にする(`normalizeLayoutValues` / `normalizeFieldValue`: 画像の空文字・ボタン / リンクの全部が空・空の並び。ボタンの片方だけ空・URL の無いリンクは空の側の誤り)
 - `extras`: fork が足す欄の入れ物
 - 管理者が書いて送る連絡: `messagingService.sendTemplateMessage`(システムテンプレート `MessageSystemTemplate` か DB のテンプレート + 欄の中身)
 
@@ -123,14 +123,14 @@ export const messageOverride = {
 
 ### 管理画面の欄の値(adminFields.ts)
 
-管理画面で直した欄の値(文言の上書き、D21・D24・D28・D132)を、保存する口・送る口・プレビューが同じ純粋な関数で検査し重ねる。欄の道 = ひな形の欄の鍵(組・並び・ブロックの並びは欄ごと丸ごと)。
+管理画面で直した欄の値(文言の上書き)を、保存する口・送る口・プレビューが同じ純粋な関数で検査し重ねる。欄の道 = ひな形の欄の鍵(組・並び・ブロックの並びは欄ごと丸ごと)。
 
 - `adminEditableFields(resolved, layout)` → 直せる欄(欄の鍵、宣言の順)。ひな形の欄のうち種類の経路で使う物の全部(経路だけの欄はその経路が種類にある時だけ)、`adminEditableOnly`(欄の鍵の並び)があればその中だけ。種別の性質 `adminTextOverride` が false・required は空
 - `checkAdminFieldValue(resolved, layout, fieldPath, value, { variableKeys? })` → 問題(null = 通る)。`resolved` = 上書きを重ねた後の定義
   - `not_editable`: 今の直せる欄に無い / `invalid_value`: 欄の宣言の zod を通らない(必須は空にできない) / `unknown_variable`: 使えない `{{鍵}}`
 - `moveAdminFieldPath(layout, fieldPath, layoutVersion)` → 今の版の欄の鍵か `{ unusable: 理由 }`(改版の対応 `revisions` を段ごとに当てる。捨てた欄・段の対応が無い・今より新しい版・版の無い古い形の行 = 使えない)
 - `readAdminFieldValue(resolved, layout, row, options)` → 今の版へ移して検査した結果(移せない = `unusable`)
-- `applyAdminFieldValues(resolved, layout, rows, options)` → `{ resolved, applied, rejected }`: 当てられる行だけ `values` に欄ごとに重ねる(送る口の `resolveDefinition` が門の開いた時に呼ぶ)
+- `applyAdminFieldValues(resolved, layout, rows, options)` → `{ resolved, applied, rejected }`: 当てられる行だけ `values` に欄ごとに重ねる(送る口の `resolveDefinition` が機能の入切(featureGate)の開いた時に呼ぶ)
 - `adminFieldAllowedKeys(resolved, variableKeys)`: 使ってよい鍵 = vars(`secretVar` の鍵を除く)・共通の文脈・throttle の鍵・`variableKeys`(当たる enrichers の provides)
 - `adminFieldCodeValue(resolved, fieldPath)`: 欄のコードの値(定義の `values` の欄、fork の override を重ねた後)
 
@@ -144,7 +144,7 @@ export const messageOverride = {
 - ブロック(`layout/blocks.ts`): `heading` 小見出し・`paragraph` 段落・`button` ボタン・`image` 画像・`divider` 区切り・`keyValueTable` ラベルと値・`bulletList` 箇条書き。`messageBlocksSchema({ allow?, min?, max? })` が許す種類と数で絞る(知らない種類は通らない)
 - 要約 `MessageLayoutSummary` = `{ title, body, image?, link?: { label?, url }, shortBody? }`(プッシュ・LINE は `shortBody ?? body`)
 - 中身の検査 `layoutValuesSchema(layout, { channels? })`: 必須を守る(空文字・空の並びも通さない)。`channels` を渡すと、そのどれにも使われない経路だけの欄は求めない。知らない鍵は通らない。経路の欄だけ = `fieldsForChannel(layout, channel)`
-- 改版(D122・D128): 欄の鍵を変えた・消した時に `version` を 1 上げ、`revisions` にその段の対応を書く(`{ [上げる前の版]: { 前の鍵: 新しい鍵 | null } }`、1 から今の版の 1 つ前まで全部の段。鍵の変わらない段も `{}`)。`applyLayoutRevisions(values, 段)` = 1 段(`null` は捨てる、新しい鍵に値があれば今の値を残す)、`upgradeLayoutValues(layout, values, fromVersion)` = 送った版から今の版まで段ごとに当てる(段が無い・今より新しい版 = `{ cannotRender }`)。回の values・テンプレートの保存値・文言の上書きに当てる
+- 改版: 欄の鍵を変えた・消した時に `version` を 1 上げ、`revisions` にその段の対応を書く(`{ [上げる前の版]: { 前の鍵: 新しい鍵 | null } }`、1 から今の版の 1 つ前まで全部の段。鍵の変わらない段も `{}`)。`applyLayoutRevisions(values, 段)` = 1 段(`null` は捨てる、新しい鍵に値があれば今の値を残す)、`upgradeLayoutValues(layout, values, fromVersion)` = 送った版から今の版まで段ごとに当てる(段が無い・今より新しい版 = `{ cannotRender }`)。回の values・テンプレートの保存値・文言の上書きに当てる
 - 描き方の 3 段 `resolveRendering({ layout, channelKey, hasLayoutRenderer, channel, values })`: ひな形のその経路の描き方(`{ from: "layout" }`)> 経路の汎用の描き方(`renderGeneric`、`genericFieldTypes` が経路の欄の型を全部含む時、`{ from: "channel", fields }`)> 要約(経路が `summaryRenderable: true` と `renderFromSummary` を持つ時、`{ from: "summary", summary }`)。どれでも描けない・要約が投げる = `{ cannotRender: 理由 }`。
   - テンプレートの保存・プレビュー・送る前の検査がこれで止める。経路の宣言の型は `MessageChannelRendering`(`rendersAtSend?: true` = 送る時に宛先ごとに描く経路、例 email の停止のリンク)
 - 経路 1 つの組み立て `buildChannelContent({ layout, channelKey, channel, hasLayoutRenderer, values })`(`layout/content.ts`): その経路が使う欄だけ → 要約 → 3 段 → 中身 `{ content, title }`(title = 要約の題)か `{ cannotRender }`。
@@ -164,21 +164,21 @@ export const messageOverride = {
   - `key`
   - `label`
   - `addressing`(`user` = 利用者から引く / `address` = 宛先を直に)
-  - `enabled?`(経路の入切、既定 true。false は項目が無い経路と同じ扱い = 配達の行は `channel_off`。値は項目が自分の設定から読む。門の機能ではない)
-  - `resolveAddresses?`(既定は端末の帳簿)
-  - `endpoint?`(帳簿を読む経路の宛先の形 `{ address: zod }`。端末の登録の口が検査し、変換後の値を残す。無ければ汎用の形)
+  - `enabled?`(経路の入切、既定 true。false は項目が無い経路と同じ扱い = 配達の行は `channel_off`。値は項目が自分の設定から読む。featureGate の機能ではない)
+  - `resolveAddresses?`(既定は端末の登録の表)
+  - `endpoint?`(端末の登録の表を読む経路の宛先の形 `{ address: zod }`。端末の登録の口が検査し、変換後の値を残す。無ければ汎用の形)
   - `preview?`(管理の送信のプレビュー。送る時と同じ組み立ての中身を送る時と同じ描き方で描く。email = HTML。無い経路は中身をそのまま見せる)
-  - `remove?`(届けた物の取り下げ `({ dispatchId }) => { removed }`、D89。管理の削除が呼ぶ。持つ経路 = 消せる経路。何度呼んでも同じ結果に書く)
+  - `remove?`(届けた物の取り下げ `({ dispatchId }) => { removed }`。管理の削除が呼ぶ。持つ経路 = 消せる経路。何度呼んでも同じ結果に書く)
   - `connectHref?`(宛先の無い利用者を案内する先 = サイト内のパスか URL。好みの表が宛先の無い経路に出す。連携の画面が無い経路は持たない)
   - `send(宛先の束)`(宛先 `ChannelSendTarget` = `userId`・`address`・`messageKey`(連絡の鍵)・`idempotencyKey`・`content`(組んだ中身: `MessageLayoutContent` か経路が描いた物)、好みに従う連絡だけ `category`(配信停止の種類)と送る側が付ける `headers`(List-Unsubscribe など))→ 宛先ごとの `ChannelSendResult`(`sent` か `transient` / `permanent` / `unknown`。宛先の失効が確定したときだけ `addressInvalid`)
   - `webhooks?`(provider → `{ verify, normalize }`。事件の形は lib/mail の webhook と同じ + 送る時にタグで渡した配達の id `deliveryId?`)
-- `MessageEnricher`(値): `key`・`target`(当て先 D127 = `{ messages?: 連絡の鍵[], categories?: 種類の鍵[], kinds?: 種別[], all?: true }`、どれかに当たれば当てる。判定 `enricherTargets(target, { key, category, kind })`。使える鍵の検査と実行の両方がこれで選ぶ)・`provides`(足す変数の zod)・`resolve(文脈)`
-- `MessageCategory`(種類 = 1 つの出来事、配信停止の単位 = 種類 × 経路): `key`・`label`(利用者に見せる名前: 好みの設定・配信停止・受け取り箱)・`adminLabel?`(管理画面の名前: 送る・テンプレート・文言の上書き・送った回の画面。無い = `label`、`categoryAdminLabel(category)` で引く、D124)・`description?`・`kind`(7 つ)・`channels`(届ける経路)・`defaultChannels?`(管理の送る画面で最初に入っている経路 = `channels` の中の 1 つ以上、無い = 全部。停止の単位は変えない、D119)・`group?`(設定画面の見出し `MessageCategoryGroup` の鍵、同じ種別だけ)。
+- `MessageEnricher`(値): `key`・`target`(当て先 = `{ messages?: 連絡の鍵[], categories?: 種類の鍵[], kinds?: 種別[], all?: true }`、どれかに当たれば当てる。判定 `enricherTargets(target, { key, category, kind })`。使える鍵の検査と実行の両方がこれで選ぶ)・`provides`(足す変数の zod)・`resolve(文脈)`
+- `MessageCategory`(種類 = 1 つの出来事、配信停止の単位 = 種類 × 経路): `key`・`label`(利用者に見せる名前: 好みの設定・配信停止・受け取り箱)・`adminLabel?`(管理画面の名前: 送る・テンプレート・文言の上書き・送った回の画面。無い = `label`、`categoryAdminLabel(category)` で引く)・`description?`・`kind`(7 つ)・`channels`(届ける経路)・`defaultChannels?`(管理の送る画面で最初に入っている経路 = `channels` の中の 1 つ以上、無い = 全部。停止の単位は変えない)・`group?`(設定画面の見出し `MessageCategoryGroup` の鍵、同じ種別だけ)。
   - fork は上流の種類の `<名前>.override.ts` で `label`・`adminLabel`・`description`・`channels`・`defaultChannels`・`group` を変えられる(鍵・種別は不可)
-- `MessageCategoryGroup`(種類のグループ、`messaging/categoryGroups/<名前>.ts` の `export const group`): `key`・`label`・`order`。見出しだけで停止の単位ではない(D82)。上流は出荷しない
+- `MessageCategoryGroup`(種類のグループ、`messaging/categoryGroups/<名前>.ts` の `export const group`): `key`・`label`・`order`。見出しだけで停止の単位ではない。上流は出荷しない
 - `MessageSource`(送り元): `key`・`label`
-- `MessageSystemTemplate`(システムテンプレート、`messaging/templates/<名前>.ts` の `export const systemTemplate`、D117・D125): `key`・`kind`(管理者がその場で送れる種別 = 性質 `adminFreeText` がある物。1 つの種別に何本でも、受け口の順で使う物の最初がその種別の既定の白紙)・`label`・`layout`・`values`(白紙かできあがった文面)・`embedded?`(専用の埋め込み情報の宣言、DB のテンプレートと同じ形・同じ検査)。
-  - `enabled?`(false = 使わない: 一覧・送る画面の選択肢・既定の白紙から外れ、その鍵では送れない。送れる種別ごとに使う物が 1 本は要る、D122)。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` と `enabled` だけ変えられる。上流は 6 本(種別ごとにシンプル `simple`・リッチ `notice` の白紙、D119。templates/README.md)
+- `MessageSystemTemplate`(システムテンプレート、`messaging/templates/<名前>.ts` の `export const systemTemplate`): `key`・`kind`(管理者がその場で送れる種別 = 性質 `adminFreeText` がある物。1 つの種別に何本でも、受け口の順で使う物の最初がその種別の既定の白紙)・`label`・`layout`・`values`(白紙かできあがった文面)・`embedded?`(専用の埋め込み情報の宣言、DB のテンプレートと同じ形・同じ検査)。
+  - `enabled?`(false = 使わない: 一覧・送る画面の選択肢・既定の白紙から外れ、その鍵では送れない。送れる種別ごとに使う物が 1 本は要る)。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` と `enabled` だけ変えられる。上流は 6 本(種別ごとにシンプル `simple`・リッチ `notice` の白紙。templates/README.md)
 - `MessageSubscriber`(送った後の購読): `key`・`on`(事件の種類)・`filter?`(連絡の鍵・経路)・`handle(事件の束)`(事件の id + 購読の鍵で冪等に。投げると次回もう一度渡る)
 
 ## Internals
@@ -190,9 +190,9 @@ export const messageOverride = {
 
 #### 種別と経路は種類(category)が持つ
 
-- 設計の意図: 配信停止の単位は種類 × 経路、止められるかなどの性質は種別。連絡ごとに書けると、同じ種類の中で経路や性質がばらけ、利用者の切ったマスと届く物がずれる(D81・D86)
+- 設計の意図: 配信停止の単位は種類 × 経路、止められるかなどの性質は種別。連絡ごとに書けると、同じ種類の中で経路や性質がばらけ、利用者の切ったマスと届く物がずれる
 
-#### 種類の粒 = 利用者から見て 1 つの出来事(D79)
+#### 種類の粒 = 利用者から見て 1 つの出来事
 
 - 設計の意図: 種類は停止の単位で、集計と絞り込みの物差し。粒が種別ごと・ドメインごとにばらけると、止める単位も数える単位も揃わない。止められない種別の種類も同じ粒にする
   - 例: いいねをされた時(likeReceived)・フォローされた時・出品した物が売れた時(itemSold)・投稿にコメントが付いた時・メールアドレスの確認(emailVerification)・パスワードの再設定(passwordReset)・アカウントのロック(accountLocked)・会員登録が完了した時(registrationComplete)・ポイントの失効が近づいた時(walletExpiring)・ポイントが失効した時(walletExpired)
@@ -200,11 +200,11 @@ export const messageOverride = {
 
 #### 種類と種別は付け替えない(止めて足す)
 
-- 設計の意図: 上書きで種類・種別を変えると、止めた行・集計・上流の検査が知らないうちに変わる(D74)
+- 設計の意図: 上書きで種類・種別を変えると、止めた行・集計・上流の検査が知らないうちに変わる
 
 #### 機能の連絡(functional)は止められない
 
-- 設計の意図: 止めると機能が壊れる(D68)。性質 `upstreamDisable: false`・`adminTextOverride: false`・`throttle: false`・`emailFixed: true`
+- 設計の意図: 止めると機能が壊れる。性質 `upstreamDisable: false`・`adminTextOverride: false`・`throttle: false`・`emailFixed: true`
 
 ### 字面の守り(pnpm check extensions)
 
@@ -223,7 +223,7 @@ export const messageOverride = {
 - 鍵 = `<ドメインのフォルダ名>.<ファイル名>`(例 `src/features/core/auth/messages/verification.ts` → `auth.verification`)。定義の `key` はこの値の文字列リテラルで書く(ずれ・重なりは生成が止める)
 - 項目 `MessageRegistryEntry` = `{ key, definition, override? }`。どれも遅延 import(`definition` → `{ message }`、`override` → `{ messageOverride }`)。描き方はひな形が持つ(連絡ごとの描き方のフォルダは持たない。前の形の view のフォルダが残っていれば生成が止まる)
 - ファイル名は英小文字始まりの camelCase(点や印は付けない)
-- 全件の検査(L2.2): `src/features/core/messaging/services/server/sendMessage/messageRegistry.test.ts` が一覧の全件に上書きを重ねて `validateMessageDefinition` をかけ、鍵の一致と種類の経路の全部で描けることを確かめる(`checkMessageRegistry`)
+- 全件の検査: `src/features/core/messaging/services/server/sendMessage/messageRegistry.test.ts` が一覧の全件に上書きを重ねて `validateMessageDefinition` をかけ、鍵の一致と種類の経路の全部で描けることを確かめる(`checkMessageRegistry`)
 - 生成は字面だけを読み、定義を実行しない。欄・`{{鍵}}` などの値は送る口が `validateMessageDefinition` で見る
 
 ## Verification
