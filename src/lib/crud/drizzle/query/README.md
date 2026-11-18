@@ -31,7 +31,7 @@ await service.search({
 ```
 
 - ORDER BY 合成順: `searchRank` の句（searchQuery 指定時のみ）→ `extraOrderBy` → `orderBy`（未指定なら defaultOrderBy）→ `id`（`orderBy` に id が無い場合のみ）。合成は `composeSearchOrderBy`（`@/lib/crud/drizzle`）
-- 未指定なら従来と完全に同じ並び順
+- 未指定なら並び順は変わらない
 - サーバー専用。SQL オブジェクトは HTTP で渡せないため `/api/[domain]/search` には出さない（ルートは受け付けるパラメータを個別に組み立てる許可リスト方式）
 - `count` / `countWithDeleted` は並び順を持たないので受け付けない。`searchForSorting` は sort_order 専用のため対象外
 - 式の中で Date を埋め込むときは下の落とし穴に従う
@@ -153,7 +153,7 @@ relationWhere: [
 searchRank?: boolean | { fields?: Array<string | { field: string; weight?: number }> }
 //  true  = サービスの defaultSearchRank、無ければ searchFields を等重み
 //  spec  = 呼び出しごとに重みを指定
-//  未指定 / false = legacy 経路（従来どおり）
+//  未指定 / false = ランキングなし
 
 // サービス側（createCrudService オプション）— 「どう並べるか」の既定のみ。ON/OFF は呼び出し側が決める
 defaultSearchRank?: { fields: [{ field: "name", weight: 3 }, "email"] }

@@ -73,9 +73,9 @@ serverless では 1 回の実行が maxDuration（Vercel 既定 300s）で途中
 - `createDeadline(budgetMs)` — `budgetMs` は maxDuration そのものではなく
   「maxDuration − 1 チャンクの最大所要時間 − 余裕」（300s なら 240_000 程度）
 
-進捗の永続化先は `@/features/cronCheckpoint`（`getCheckpoint` / `advanceCheckpoint`、単調前進）。
+進捗の永続化先は `@/features/cronCheckpoint/services/server`（`getCheckpoint` / `advanceCheckpoint`、単調前進）。
 「ソースの `updated_at` から read-model を差分更新する」典型パターンは、これらを合成済みの
-`@/features/incrementalRefresh`（`createIncrementalRefresh`）を使う。
+`@/features/incrementalRefresh/services/server`（`createIncrementalRefresh`）を使う。
 
 ### スケジュールのセットアップ
 
@@ -208,7 +208,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 
 - **機能の門（自動）**: タスクの住所は名前から組んだ `/api/cron/<name>`。task.ts（と fork の task.override.ts）が閉じられる機能のフォルダ
   （規則の `features`）を値で import すると（静的・動的、型だけは数えない、直に読む物だけ）、`pnpm generate extensions` がその規則に住所を
-  `cronPaths` として導いて `pathPatterns` に足す（規則に手書きしない。手書きは生成器が止める、目録 D10）。複数の機能のフォルダを読む
+  `cronPaths` として導いて `pathPatterns` に足す（規則に手書きしない。手書きは生成器が止める）。複数の機能のフォルダを読む
   task はその全部の規則が住所を持つ = 全部が開いているときだけ動く。機能のフォルダを読まない（lib だけの）task は常に開く。規則が閉じていると、route は本体を呼ばずに
   `{ ok: true, skipped: true, reason: "closed" }` を返し（proxy が先に 404 にする。route の判定は proxy を通らない呼び出しの安全網）、
   `pnpm task` は `--due` でも名前指定でも飛ばし、`pnpm generate cron` は vercel.json に載せない（機能を閉じた・開いたら再生成する）。

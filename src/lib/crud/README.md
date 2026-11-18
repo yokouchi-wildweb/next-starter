@@ -15,7 +15,7 @@
 - 中間テーブルを手で操作し、`belongsToMany` の管理と二重になる → `belongsToManyRelations` に任せる
 - ページングを自前で実装し、`total` の仕様が汎用 search とずれる → `search()` / `base.query()` を使う
 - 生成ファイルを直接編集し、次の `pnpm generate domain` で上書きされる → `wrappers/` で拡張する
-- Firestore で `or` を使って例外になる → 上の「Firestore 版との差異」を先に確認する
+- Firestore で `or` を使って例外になる → `firestore/README.md` の「Drizzle 版との差異」を先に確認する
 
 ## API
 
@@ -35,7 +35,7 @@ createCrudService<TTable, TCreate>(table, {
 
   // 検索デフォルト
   defaultSearchFields?: string[],
-  defaultSearchRank?: SearchRankSpec,          // 関連度ランキングの重み既定（searchRank 節）
+  defaultSearchRank?: SearchRankSpec,          // 関連度ランキングの重み既定（`drizzle/query/README.md` の searchRank）
   defaultOrderBy?: OrderBySpec,
 
   // 入力パース
@@ -65,10 +65,10 @@ createCrudService<TTable, TCreate>(table, {
   // リクエストスコープメモ化（既定: false）
   requestMemo?: boolean,
 
-  // ファイル台帳との連動（Drizzle のみ、後述「storage オプション」）
+  // ファイル台帳との連動（Drizzle のみ、`storageIntegration/README.md`）
   storage?: CrudStorageBinding,
 
-  // ドメイン集約（Drizzle のみ、後述「ドメイン集約」）
+  // ドメイン集約（Drizzle のみ、`collections/README.md`）
   collections?: CrudCollectionConfig[],
 })
 ```
@@ -95,7 +95,7 @@ createCrudService<TTable, TCreate>(table, {
 - 全書き込みメソッド（update / remove / bulkUpdate 等）は完了時にメモを自動破棄する
   → 同一リクエスト内の read-your-writes は維持される（呼び忘れが構造的に起きない）
 - `createCrudService` を経由しない生SQL書き込み（`db.update(Table)` 等）だけはメモが残るので、直後に `service.invalidateRequestMemo()` を呼ぶ（core/services.md raw_sql）
-- リクエストスコープ外（cron / CLI）では自動的に素通しになる（従来動作）
+- リクエストスコープ外（cron / CLI）では自動的に素通しになる
 - 対象基準: identity-stable かつ高 fan-in な行（例: user のセッションユーザー行、
   setting のグローバル設定）のみ。list / search はメモ化されない
 - 詳細・注意点: `src/lib/requestMemo/README.md`
@@ -104,9 +104,7 @@ createCrudService<TTable, TCreate>(table, {
 
 Create/Update Zod スキーマから意図的に除外したシステム管理カラム（`ended_at`,
 `sort_order`, `sold_out_at` 等）は、通常の `update()` に渡しても parseUpdate で
-strip される。従来はこの書き込みだけ生SQL（`db.update(Table)`）に落ちるしかなく、
-audit 自動記録・requestMemo 自動 invalidate 等の横断フックが素通りしていた。
-`systemColumns` はこれを正規経路に戻すための宣言（Drizzle のみ）。
+strip される。`systemColumns` は、これらの列を audit 自動記録・requestMemo 自動 invalidate などの横断フックを通る正規経路で書くための宣言（Drizzle のみ）。
 
 ```typescript
 // 宣言（drizzleBase / domain.json）
@@ -136,7 +134,7 @@ await base.systemBulkUpdateByQuery({ status: "active" }, { archived_at: new Date
 - 宣言はプロパティ名・DB カラム名のどちらでも可。存在しないカラム名はサービス生成時に
   throw（typo の fail-fast）
 - 値には drizzle の `sql\`\`` 式を渡せる（アトミックインクリメント・CASE・COALESCE 採番等）。
-  通常の `update()` は従来どおり SQL 式を受け付けない
+  通常の `update()` は SQL 式を受け付けない
 - updatedAt 付与・audit 記録・requestMemo 自動 invalidate・制約エラー変換は
   `update()` / `bulkUpdateByIds()` と同一挙動。追加クエリなし（ホットパス安全）
 - belongsToMany リレーション同期は対象外
@@ -276,7 +274,7 @@ const inserted = await service.replaceByQuery(
   （NULL は searchForSorting の自動初期化に委ねる）。
 - **削除フェーズ**: `bulkDeleteByQuery` と同じ分岐。`useSoftDelete` テーブルはソフトマーク
   （旧行が残るため、同一 id を records で再送すると PK 衝突する点に注意）、物理削除は
-  制約エラー変換を行う。storage オプション付きのサービスでは台帳も連動する（後述「storage オプション」の replaceByQuery）。
+  制約エラー変換を行う。storage オプション付きのサービスでは台帳も連動する（`storageIntegration/README.md` Internals の replaceByQuery）。
 - **belongsToMany 非対応**: records の M2M フィールドに**非空の値**が入っている場合は throw。
   空配列 / 未指定は Zod default（`[]`）由来のケースがあるため黙って無視する（M2M 同期は行わない）。
   リレーション同期が必要な場合は `create()` を個別に使う。
@@ -312,7 +310,7 @@ const inserted = await service.replaceByQuery(
 | `truncateAll()` | TRUNCATE CASCADE（中間テーブル含む） |
 | `getTruncateAffectedTables()` | 影響テーブル名のみ取得 |
 | `getTableName()` | テーブル名を返す |
-| `duplicateWithIdMap(id, options?, tx?)` | duplicate と同じ複製をし、集まりの旧→新の従属 id の対応表も返す（集まりが無ければ `idMaps` は `{}`。後述「ドメイン集約」） |
+| `duplicateWithIdMap(id, options?, tx?)` | duplicate と同じ複製をし、集まりの旧→新の従属 id の対応表も返す（集まりが無ければ `idMaps` は `{}`。`collections/README.md`「複製（2 段）」） |
 
 ## Internals
 
@@ -353,10 +351,6 @@ PostgreSQL 制約違反を `DomainError` に変換:
 | 23503 | 外部キー | 409 | 関連レコードが存在（delete 時）/ 参照先が不在（write 時） |
 | 23502 | NOT NULL | 409 | 必須フィールドが未入力 |
 | 23505 | UNIQUE | 409 | 値が重複 |
-
-### Drizzle 固有の機能と Firestore
-
-- Drizzle 固有の機能を足したときは、Firestore 側で無視するかエラーにするかを決める（Firestore の差異: `firestore/README.md`）
 
 ## Related
 

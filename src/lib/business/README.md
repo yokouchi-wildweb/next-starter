@@ -55,7 +55,7 @@ export default { source: "sample" } satisfies BusinessFile; // 上流の出荷�
 
 ## Internals
 
-- 本番の検査 `pnpm check business`(門 build): sample のまま本番(`@/lib/appEnv` の `isProduction`、APP_ENV が無いときも本番)でビルドすると止める。Tier1(fork_id = next-starter、上流のデモ)だけ警告。門の実体は `scripts/structure/business/`
+- 本番の検査 `pnpm check business`(門 build): sample のまま本番(`@/lib/appEnv` の `isProduction`、APP_ENV が無いときも本番)でビルドすると止める。Tier1(`repo.json` の `repo_id` = next-starter、上流のデモ)だけ警告。門の実体は `scripts/structure/business/`
 
 ## Verification
 

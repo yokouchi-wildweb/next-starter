@@ -58,7 +58,7 @@ createCrudService(SampleTable, {
   - 同じ値を新しい行の 2 か所に入れたら 400（共有は copy）
   - soft delete の表: 旧行は値を持ったまま残るので、紐付けも残す。旧行の値を新しい行に入れたら 400（restore で同じファイルを 2 行が指さないため）。records がメディア列に触れなければ台帳は連動させない
   - `afterReplace` を持たない binding（`storageBindingFor` 以外の自作）では、replaceByQuery を DomainError 400 で拒否する
-- **bulkUpdateByIds / bulkUpdateByQuery / bulkUpdate / bulkUpsert**: メディア列を変える呼び出しは DomainError 400（行ごとの差分計算は初版の範囲外）。行ごとに update を使う
+- **bulkUpdateByIds / bulkUpdateByQuery / bulkUpdate / bulkUpsert**: メディア列を変える呼び出しは DomainError 400。行ごとに update を使う
 - **TX と後片付け**
   - 呼び出し元が tx を渡さなければ、内部で TX を張る。commit 後に `afterCommit` で実物を消す（ベストエフォート）
   - tx を渡された場合は、外側の TX がまだ commit されていないので消さない

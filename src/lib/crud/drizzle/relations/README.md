@@ -26,6 +26,7 @@
 | `false` / `undefined` | 0 | ID 配列のみ（M2M hydrate は常時実行） |
 | `true` / `1` | 1 | FK → オブジェクト、M2M → オブジェクト配列 |
 | `2` | 2 | さらにリレーション先のリレーションも展開 |
+| `3` 以上 | 3 | 上限 3 に丸める |
 
 ### BelongsToRelation（FK 展開）
 

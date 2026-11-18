@@ -3,7 +3,7 @@ paths:
   - "src/lib/crud/**"
 ---
 # lib/crud
-what: createCrudService (Drizzle, frozen Firestore): search, bulk, relations, sort, storage, collections; generic hooks, client, CRUD buttons (@/lib/crud, /drizzle, /hooks, /client, /components)
+what: createCrudService (Drizzle, frozen Firestore) + hooks, client, CRUD buttons (@/lib/crud, /drizzle, /hooks, /client, /components)
 use: always
 change: none → /order <direct parent>
 rules:
@@ -14,12 +14,13 @@ using:
 - coll_fk_ref: pointing at one collection item = an FK to the child row id (SET NULL), never a copied value
 - coll_hand_wiring: a hand-written drizzle.ts / drizzleBase.ts adds defineTableCollections and passes collections itself
 - coll_dup_wrapper: a wrapper replacing duplicate calls duplicateWithCollections; duplicateStorageValues only for duplicating
-- coll_migrate: moving a mediaUploaderMulti column = collections/Usage.md (direct SQL; never empty the old column by a service save first)
+- coll_migrate: moving a mediaUploaderMulti column = collections/Usage.md, direct SQL (never empty it by a service save)
 - sort_key_sql: own SQL or index on a sort key uses sortKeyExpr / sortKeyIndexColumn (COLLATE "C")
 - buttons_refetch: CRUD buttons over client-fetched data refetch in onSuccess (bulk: also clear selection)
 - hooks_generated: never edit generated domain hooks; derived hooks go beside them under other names
 editing:
 - types_optional: additions to shared types (SearchParams …) are optional only
+- firestore_side: a Drizzle-only addition says if Firestore ignores or throws
 - query_pure: query/ builders stay pure functions (no DB access)
 - hooks_reach: a generated hook signature change goes to the template and the lib together (every domain)
 - coll_names: collections renames add the new name and keep the old; CrudCollectionConfig grows by optional keys only

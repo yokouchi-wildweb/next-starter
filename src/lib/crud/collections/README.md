@@ -22,7 +22,7 @@
 
 ### 基盤に無いもの
 
-- データ移行の補助・書き込みの経路（既存の行を集まりへ移す等）は持たない。一度きりの移行は DB を直接操作する（上の「既存の mediaUploaderMulti 列からの移行」）
+- データ移行の補助・書き込みの経路（既存の行を集まりへ移す等）は持たない。一度きりの移行は DB を直接操作する（同じフォルダの `Usage.md`）
 - 論理削除の従属
 
 ## Usage
@@ -157,7 +157,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
   - 集まりの項目名と同じ出力キーは、`id` のある行では上書きされる
   - `select({ item: table })` のような入れ子の行は直下に `id` が無いので載らない。こうした select や、サービスを通らない生の select には `collectionEntriesForParents` を使う
 - 件数で打ち切らない（`DEFAULT_HAS_MANY_LIMIT` や主のページの大きさに依らず全件）。従属が無ければ `[]`
-- 並びは 並びの列 ASC NULLS LAST → id ASC。text の並びの列は `COLLATE "C"`（下の「並びの鍵の照合順序」）
+- 並びは 並びの列 ASC NULLS LAST → id ASC。text の並びの列は `COLLATE "C"`（`../drizzle/fractionalSort/README.md` の「並びの鍵の照合順序」）
 - 集まりごとに呼び出し 1 回で 1 クエリ（主の id の IN）。呼び出し元の tx の外（`db`）で読む。複製の 1 段目の読み出しも同じ
 - TS 側の先頭 1 件は配列の `[0]`
 - 他ドメインの withRelations で埋め込まれた主の行（belongsTo / hasMany / belongsToMany、深さ 2 まで）にも、主の読み出しと同じ規則（全件・並び順・従属が無ければ `[]`）で集まりの配列を載せる
@@ -165,7 +165,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
   - 埋め込んだ行の集まりは、リレーション 1 つ・深さ 1 つごとに、集まり 1 つにつき 1 クエリ（埋め込んだ主の id の IN）。登録の無い表の埋め込みはクエリも動きも変わらない
   - `entities/drizzle.ts` を手書きする主は、この 1 行を自分で足す（`pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs` が、サービスを読まずに表の登録があるかを確かめる）。無いと、主のサービスを読まない画面の埋め込みで配列が欠ける
   - 埋め込みの配列は全件（先頭だけの省略はしない）なので、埋め込んだ行から作ったフォームを保存しても集まりは減らない
-  - 直接の drizzle の select（`db.select()...`）は対象外。先頭 1 件を SQL で使うなら下の「先頭 1 件の SQL」
+  - 直接の drizzle の select（`db.select()...`）は対象外。先頭 1 件を SQL で使うなら Usage の「先頭 1 件の SQL」
 - 一覧の表示: `formatCollectionThumbnails(value)`（`@/lib/crud`。先頭 1 件のサムネイルと、残りがあれば `+N`。解決できない値は数えず、0 件は null）。生成の presenters は主の集まりの項目（`mediaCollection`）にこれを使う。旧来の複数メディア列（mediaUploaderMulti）は `formatMediaThumbnails`（先頭 3 件を重ねて `+N`）のまま
 
 ### 複製（2 段）
