@@ -15,6 +15,7 @@
 // ```
 
 import { NextResponse } from "next/server";
+import { runAsSystem } from "@/lib/audit";
 import { verifyCronRequest } from "./auth";
 import type { CronTaskDefinition } from "./types";
 import { cronTaskPath } from "./vercelCrons";
@@ -85,18 +86,21 @@ export function createCronRoute<T extends Record<string, unknown> = Record<strin
     }
 
     const startedAt = Date.now();
+    // 監査の文脈は入口が敷く(D211): 予定の cron はここ、pnpm task は runner、リクエストは routeFactory。
+    // ドメインの関数は runAsSystem を呼ばない(入れ子でも安全だが、包む所を 1 つにする)
+    const requestId = crypto.randomUUID();
     try {
-      const result = await options.handler();
+      const result = await runAsSystem(() => options.handler(), { requestId });
       const durationMs = Date.now() - startedAt;
       console.log(
-        JSON.stringify({ level: "info", scope: "cron", task: options.name, ok: true, durationMs, ...result }),
+        JSON.stringify({ level: "info", scope: "cron", task: options.name, ok: true, requestId, durationMs, ...result }),
       );
       return NextResponse.json({ ok: true, ...result });
     } catch (error) {
       const durationMs = Date.now() - startedAt;
       const message = error instanceof Error ? error.message : String(error);
       console.error(
-        JSON.stringify({ level: "error", scope: "cron", task: options.name, ok: false, durationMs, error: message }),
+        JSON.stringify({ level: "error", scope: "cron", task: options.name, ok: false, requestId, durationMs, error: message }),
       );
       return NextResponse.json({ ok: false, error: message }, { status: 500 });
     }

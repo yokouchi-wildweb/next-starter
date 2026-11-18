@@ -13,12 +13,12 @@ import { drizzleSubscriberStore } from "./store";
 
 const deps = { store: drizzleSubscriberStore, subscribers, config: messagingConfig, now: () => new Date() };
 
-/** 購読を 1 回進める(cron) */
+/** 購読を 1 回進める(cron。監査の文脈は入口が敷く: 予定は lib/cron の route、手は pnpm task の runner) */
 export function runMessageSubscribers(): Promise<SubscriberRunResult> {
-  return runAsSystem(() => runSubscribers(deps, { deadline: createDeadline(messagingConfig.subscribers.budgetMs) }));
+  return runSubscribers(deps, { deadline: createDeadline(messagingConfig.subscribers.budgetMs) });
 }
 
-/** 隔離した事件を渡し直す(運用) */
+/** 隔離した事件を渡し直す(運用: 手書きの呼び出しから使うので、ここで system の文脈を敷く) */
 export function reprocessQuarantinedEvents(subscriberKey: string, eventIds?: readonly string[]): Promise<ReprocessResult> {
   return runAsSystem(() => reprocessQuarantined(deps, subscriberKey, eventIds));
 }

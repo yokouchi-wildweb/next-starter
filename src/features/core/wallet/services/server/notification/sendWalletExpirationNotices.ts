@@ -10,7 +10,6 @@
 //   それぞれ呼ぶルートを自前で用意すればよい
 
 import { createDeadline } from "@/lib/cron";
-import { runAsSystem } from "@/lib/audit";
 import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { getExpiredNotice, getPreExpiryNoticeStages } from "@/features/core/wallet/utils/expiration";
 import {
@@ -69,29 +68,28 @@ export async function sendWalletExpirationNotices(
 
   const budgetMs = options.budgetMs ?? DEFAULT_BUDGET_MS;
 
-  return runAsSystem(async () => {
-    const startedAt = new Date();
-    const fullDeadline = createDeadline(budgetMs, startedAt);
-    const state: ExpirationNoticeRunState = { consecutiveFailures: 0 };
+  const startedAt = new Date();
+  const fullDeadline = createDeadline(budgetMs, startedAt);
+  const state: ExpirationNoticeRunState = { consecutiveFailures: 0 };
 
-    let expired = await sendExpiredNotices({
-      deadline: createDeadline(budgetMs / 2, startedAt),
-      state,
-    });
-    if (expired.aborted) {
-      return { skipped: false, preExpiry: emptyResult(), expired, aborted: true };
-    }
-
-    const preExpiry = await sendPreExpiryNotices({ deadline: fullDeadline, state });
-    if (preExpiry.aborted) {
-      return { skipped: false, preExpiry, expired, aborted: true };
-    }
-
-    // 本通知が前半の予算で終わらず、予告の後に時間が残っていれば続きを処理する
-    if (!expired.exhausted && Date.now() < fullDeadline.getTime()) {
-      expired = mergeExpired(expired, await sendExpiredNotices({ deadline: fullDeadline, state }));
-    }
-
-    return { skipped: false, preExpiry, expired, aborted: expired.aborted };
+  let expired = await sendExpiredNotices({
+    deadline: createDeadline(budgetMs / 2, startedAt),
+    state,
   });
+  if (expired.aborted) {
+    return { skipped: false, preExpiry: emptyResult(), expired, aborted: true };
+  }
+
+  const preExpiry = await sendPreExpiryNotices({ deadline: fullDeadline, state });
+  if (preExpiry.aborted) {
+    return { skipped: false, preExpiry, expired, aborted: true };
+  }
+
+  // 本通知が前半の予算で終わらず、予告の後に時間が残っていれば続きを処理する
+  if (!expired.exhausted && Date.now() < fullDeadline.getTime()) {
+    expired = mergeExpired(expired, await sendExpiredNotices({ deadline: fullDeadline, state }));
+  }
+
+  return { skipped: false, preExpiry, expired, aborted: expired.aborted };
+
 }

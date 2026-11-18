@@ -4,7 +4,6 @@ import { sql } from "drizzle-orm";
 
 import { userConfig } from "@/features/user/config";
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { runAsSystem } from "@/lib/audit";
 import { db } from "@/lib/drizzle";
 import { base } from "./drizzleBase";
 import { findAvailableSuffixedUserName } from "./helpers/nameAvailability";
@@ -77,19 +76,18 @@ export async function dedupUserNames(
   // 本実行中に割り当て済みの名前 (DB 未反映の dry-run 計画分も含む) との衝突を防ぐ
   const reserved = new Set<string>();
 
-  await runAsSystem(async () => {
-    for (const members of groups.values()) {
-      // 先頭 (createdAt 最古) は元の名前を保持
-      for (const member of members.slice(1)) {
-        const to = await findAvailableSuffixedUserName(member.name, { reserved });
-        renamed.push({ userId: member.id, from: member.name, to });
+  for (const members of groups.values()) {
+    // 先頭 (createdAt 最古) は元の名前を保持
+    for (const member of members.slice(1)) {
+      const to = await findAvailableSuffixedUserName(member.name, { reserved });
+      renamed.push({ userId: member.id, from: member.name, to });
 
-        if (!dryRun) {
-          await base.update(member.id, { name: to } as Parameters<typeof base.update>[1]);
-        }
+      if (!dryRun) {
+        await base.update(member.id, { name: to } as Parameters<typeof base.update>[1]);
       }
     }
-  });
+  }
+
 
   // 実行後の残存重複を検証 (dry-run 時はスキップ)
   if (!dryRun && renamed.length > 0) {

@@ -17,7 +17,6 @@ import { and, eq, gt, inArray } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { WalletTable, WalletLotTable } from "@/features/core/wallet/entities/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
-import { runAsSystem } from "@/lib/audit";
 import {
   calcExpiresAt,
   getExpirationDays,
@@ -57,96 +56,95 @@ export async function initWalletLots(options: InitWalletLotsOptions): Promise<In
     return { walletTypes: "", initializedWallets: 0, totalAmount: 0 };
   }
 
-  return runAsSystem(async () => {
-    const requestBatchId = resolveRequestBatchId(null);
-    let initializedWallets = 0;
-    let totalAmount = 0;
+  const requestBatchId = resolveRequestBatchId(null);
+  let initializedWallets = 0;
+  let totalAmount = 0;
 
-    for (const walletType of walletTypes) {
-      const expirationDays = getExpirationDays(walletType);
-      if (expirationDays === null) continue;
+  for (const walletType of walletTypes) {
+    const expirationDays = getExpirationDays(walletType);
+    if (expirationDays === null) continue;
 
-      let cursor: string | null = null;
+    let cursor: string | null = null;
 
-      while (true) {
-        const batch = await db.transaction(async (trx) => {
-          const conditions = [eq(WalletTable.type, walletType)];
-          if (cursor) {
-            conditions.push(gt(WalletTable.id, cursor));
-          }
+    while (true) {
+      const batch = await db.transaction(async (trx) => {
+        const conditions = [eq(WalletTable.type, walletType)];
+        if (cursor) {
+          conditions.push(gt(WalletTable.id, cursor));
+        }
 
-          // 並走する残高変更と直列化するため行ロックで取得
-          const wallets = await trx
-            .select()
-            .from(WalletTable)
-            .where(and(...conditions))
-            .orderBy(WalletTable.id)
-            .limit(BATCH_SIZE)
-            .for("update", { of: WalletTable });
+        // 並走する残高変更と直列化するため行ロックで取得
+        const wallets = await trx
+          .select()
+          .from(WalletTable)
+          .where(and(...conditions))
+          .orderBy(WalletTable.id)
+          .limit(BATCH_SIZE)
+          .for("update", { of: WalletTable });
 
-          if (wallets.length === 0) {
-            return { count: 0, amount: 0, lastId: null, hasMore: false };
-          }
+        if (wallets.length === 0) {
+          return { count: 0, amount: 0, lastId: null, hasMore: false };
+        }
 
-          const lastId = wallets[wallets.length - 1]!.id;
-          const walletIds = wallets.map((w) => w.id);
+        const lastId = wallets[wallets.length - 1]!.id;
+        const walletIds = wallets.map((w) => w.id);
 
-          // re-baseline: 既存ロットを破棄してから残高分の初期ロットを作成
-          await trx.delete(WalletLotTable).where(inArray(WalletLotTable.wallet_id, walletIds));
+        // re-baseline: 既存ロットを破棄してから残高分の初期ロットを作成
+        await trx.delete(WalletLotTable).where(inArray(WalletLotTable.wallet_id, walletIds));
 
-          const now = new Date();
-          const expiresAt = calcExpiresAt(now, expirationDays);
-          const targets = wallets.filter((w) => w.balance > 0);
+        const now = new Date();
+        const expiresAt = calcExpiresAt(now, expirationDays);
+        const targets = wallets.filter((w) => w.balance > 0);
 
-          if (targets.length > 0) {
-            await trx.insert(WalletLotTable).values(
-              targets.map((w) => ({
-                wallet_id: w.id,
-                granted_amount: w.balance,
-                remaining: w.balance,
-                expires_at: expiresAt,
-              })),
-            );
-          }
+        if (targets.length > 0) {
+          await trx.insert(WalletLotTable).values(
+            targets.map((w) => ({
+              wallet_id: w.id,
+              granted_amount: w.balance,
+              remaining: w.balance,
+              expires_at: expiresAt,
+            })),
+          );
+        }
 
-          return {
-            count: targets.length,
-            amount: targets.reduce((total, w) => total + w.balance, 0),
-            lastId,
-            hasMore: wallets.length === BATCH_SIZE,
-          };
-        });
+        return {
+          count: targets.length,
+          amount: targets.reduce((total, w) => total + w.balance, 0),
+          lastId,
+          hasMore: wallets.length === BATCH_SIZE,
+        };
+      });
 
-        initializedWallets += batch.count;
-        totalAmount += batch.amount;
+      initializedWallets += batch.count;
+      totalAmount += batch.amount;
 
-        if (!batch.hasMore || batch.lastId === null) break;
-        cursor = batch.lastId;
-      }
+      if (!batch.hasMore || batch.lastId === null) break;
+      cursor = batch.lastId;
     }
+  }
 
-    // 「介入」ログ: 実行単位で1行集約（バッチごとの tx は commit 済みのため bestEffort）
-    await auditLogger.record({
-      targetType: "wallet",
-      targetId: requestBatchId,
-      // 全ユーザー一括の初期化（run 単位の集約行）のため対象ユーザーは特定しない
-      subjectUserId: null,
-      action: "wallet.lots.initialized",
-      metadata: {
-        walletTypes,
-        initializedWallets,
-        totalAmount,
-        requestBatchId,
-      },
-      reason: "ウォレット有効期限導入に伴う初期ロット作成（既存残高の re-baseline）",
-      retentionDays: WALLET_AUDIT_RETENTION_DAYS,
-      bestEffort: true,
-    });
-
-    return {
-      walletTypes: walletTypes.join(","),
+  // 「介入」ログ: 実行単位で1行集約（バッチごとの tx は commit 済みのため bestEffort）
+  await auditLogger.record({
+    targetType: "wallet",
+    targetId: requestBatchId,
+    // 全ユーザー一括の初期化（run 単位の集約行）のため対象ユーザーは特定しない
+    subjectUserId: null,
+    action: "wallet.lots.initialized",
+    metadata: {
+      walletTypes,
       initializedWallets,
       totalAmount,
-    };
+      requestBatchId,
+    },
+    reason: "ウォレット有効期限導入に伴う初期ロット作成（既存残高の re-baseline）",
+    retentionDays: WALLET_AUDIT_RETENTION_DAYS,
+    bestEffort: true,
   });
+
+  return {
+    walletTypes: walletTypes.join(","),
+    initializedWallets,
+    totalAmount,
+  };
+
 }
