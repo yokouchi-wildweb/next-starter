@@ -1,32 +1,26 @@
 # 枠の宣言(frame.ts / frame.override.ts)
 
+## Overview
+
 ルートの隣の小さな宣言ファイルで「そのルートで枠のどの部位を隠すか・本文が画面の高さを埋めるか(fill)」を書き、`pnpm generate extensions` が親の鎖を解決した表を枠ごとに生成する。利用者の枠(`(user)` の UserLayout)と管理の枠(`admin` の AdminLayout)が、共通の読み手 `useFrameAttributes(<自分の表>)` でそれぞれの表を読み、外枠の属性 `data-frame-hide` / `data-frame-fill` にする。
 
 原則: 隣に置く宣言・差し替え・上書きは相手を名指す(ファイル名かキー)。隣に何があるかで意味を変えない。
 
-## 置き場(このフォルダ)
+## Usage
 
-| ファイル | 中身 |
-|---|---|
-| `parts.mjs` | 枠の部位の一覧(唯一の元、data-slot の名前 31 名)・隠せる部位・枠の根・端末 |
-| `resolve.mjs` | 宣言の形の検査・重ね(親の鎖)・表の照合 `matchFrame`(純関数。生成器と実行時の読み手が共有) |
-| `types.ts` | `FrameDeclaration` / `FrameValue`(利用者の枠)・`AdminFrameDeclaration` / `AdminFrameValue`(管理の枠)・表の行の型 |
-| `useFrameAttributes.ts` | 表の共通の読み手("use client" の hook)。`matchFrame(useSelectedLayoutSegments(), table)` → 外枠の属性(型 `FrameAttributes`)。client なので `index.ts` から re-export せず、このパスから直に import する |
-| `index.ts` | 入口(re-export だけ) |
-| `parts.test.mjs` / `resolve.test.mjs` / `useFrameAttributes.test.tsx` | `pnpm test src/app/_layout/frame/` |
-
-生成器は `scripts/structure/extensions/frames.mjs`(テスト `pnpm test scripts/structure/extensions/`)。`.mjs` なのは、tsx を通さない生成器(node)からも TypeScript からも import するため。
-
-## 名前の対
+### 名前の対
 
 - `frame.ts`(`export const frame`)= ルートを作ったリポの宣言(上流の 4 本、中間 Tier・fork が自分で作ったルートの物)
 - `frame.override.ts`(`export const override`)= その下のリポ(fork・中間 Tier)の宣言。相手はそのルート。ルートを作ったリポの `frame.ts` の上に重なる(それが無ければ空の上)。`layout:` / `page:` は隣にある範囲だけ
 - `frame.default.ts` はどの Tier でも失敗(旧い名前)。ほかの名前(`frame.<何か>.ts`・`frame.tsx`)も失敗。上流(Tier1)が `frame.override.ts` を持つのも失敗(`pnpm check extensions`)
 - 親のルート(基準の page / layout / 枠の宣言のあるフォルダ)の隣に fork が印なしの `frame.ts` を足す = `pnpm workflow ownership check` の `frame-plain`(git の分岐点で決める。生成器は git を使わない)。fork は隣の `frame.override.ts` に書く。ルートの無いフォルダの `frame.override.ts` は `override-own`
-- 移し替え: `pnpm check extensions -- frames-move`(既定 dry-run、`--apply` で git mv・export の名前の書き換え・git add、`--json`、基準 = 台帳の upstream の版、`--base <rev>` で上書き)。親のルートの隣の fork の `frame.ts` → `frame.override.ts`、fork 自身の `frame.default.ts` → `frame.ts`。上流の木(基準の版・親の remote のブランチ・親との分岐点、取り込み中の MERGE_HEAD は親のブランチの祖先のときだけ)にあるファイルは動かさず挙げない(台帳の行を書く前に回しても上流の改名を取り違えず、fork のコミットを取り込んでいる間もその木の fork 自身のルートを上流と数えない)。行き先が既にある・export が 1 つのリテラルで無い物は止めて挙げる(notice shared-shelf-frame-override-1 / shared-shelf-frame-override)
+- 移し替え: `pnpm check extensions -- frames-move`(既定 dry-run、`--apply` で git mv・export の名前の書き換え・git add、`--json`、基準 = 台帳の upstream の版、`--base <rev>` で上書き)
+  - 親のルートの隣の fork の `frame.ts` → `frame.override.ts`、fork 自身の `frame.default.ts` → `frame.ts`
+  - 上流の木(基準の版・親の remote のブランチ・親との分岐点、取り込み中の MERGE_HEAD は親のブランチの祖先のときだけ)にあるファイルは動かさず挙げない(台帳の行を書く前に回しても上流の改名を取り違えず、fork のコミットを取り込んでいる間もその木の fork 自身のルートを上流と数えない)
+  - 行き先が既にある・export が 1 つのリテラルで無い物は止めて挙げる(notice shared-shelf-frame-override-1 / shared-shelf-frame-override)
 - 空(空白とコメントだけ)のファイルは不在と同じ
 
-## 書き方
+### 書き方
 
 ```ts
 // src/app/(user)/(protected)/game/frame.ts(ルートを作ったリポ。下のリポは同じ形で frame.override.ts の export const override)
@@ -47,14 +41,15 @@ export const frame = {
 - 値はリテラルだけ(字面で読み、実行しない。変数・式・関数呼び出しは失敗)
 - ページの中身(題など)は書かない(枠の部位の出し入れと fill だけ)
 
-## 重ねる順
+## API
 
-- 浅い段から各段の `layout`(`frame.ts` → `frame.override.ts`)、葉の段で最後に `page`(`frame.ts` → `frame.override.ts`)。部位と端末ごとに後が勝つ
-- 枠の根の隣の宣言の `layout` = 枠の全体の既定(領域全体の入り切り)、`page` = トップページだけ(例 `/` の fill)
-- 置けない: 枠の外(枠が全部要らないページはルートグループに分けて枠の layout の外に置く)・private フォルダ(`_x`)・`@slot`・intercepting(`(.)x`)の下・隣に `layout.tsx` も `page.tsx` も無いフォルダ
-- テスト: `scripts/structure/extensions/frames.test.mjs` が全部の組み合わせで順を固定し、7 つの形({layout だけ, page だけ, 両方} × {`frame.ts` あり, なし} + どちらも無いフォルダ)と隣に無い範囲のキーを確かめる
+### 読み手
 
-## 生成する表
+- 入口 `@/app/_layout/frame`(`index.ts`、re-export だけ)。型 `FrameDeclaration` / `FrameValue`(利用者の枠)・`AdminFrameDeclaration` / `AdminFrameValue`(管理の枠)・表の行の型
+- `useFrameAttributes(table)`("use client" の hook)= `matchFrame(useSelectedLayoutSegments(), table)` → 外枠の属性(型 `FrameAttributes`)。client なので `index.ts` から re-export せず、`@/app/_layout/frame/useFrameAttributes` から直に import する
+- `resolve.mjs`(純関数): 宣言の形の検査・重ね(親の鎖)・表の照合 `matchFrame`。生成器と実行時の読み手が共有する
+
+### 生成する表
 
 `<枠の根>/_layout/extensions/frameTable.ts`(生成物・編集不可。`pnpm check extensions` がずれを止める):
 
@@ -72,7 +67,7 @@ export const frameTable = [
 - 隠す印 = `<部位>-<sp|pc>`(部位の名前 = data-slot の名前)
 - 全部の部位を両方の端末で隠す宣言は warn でルートグループを案内する(書くことは止めない)
 
-## 部位の一覧
+### 部位の一覧
 
 `parts.mjs` の `FRAME_SLOTS`(名前 = data-slot の値):
 
@@ -84,4 +79,24 @@ export const frameTable = [
 - 隠せる部位(`hideable: true`): 利用者 `header`・`header-nav`・`footer`・`bottom-nav`、管理 `admin-header`・`admin-sidebar`・`admin-footer`
 - 部位の印は要素の `data-slot` だけ。隠せる部位は `hideSlots`(その部位を隠す data-slot の名前。今は全部が部位の名前 1 つ)を持ち、隠す CSS(`src/styles/core/frame.css`)はそれだけで隠せる。shadcn の Button のように自分の data-slot を持つ部品は `display: contents` の包みが名前を持つ。差し替えた部品は外側の要素に `data-slot="<部位>"` を付ければ従う
 - frame.css は id で狙わない(枠の部品は見た目のための id を持たない)
-- テスト: 一覧の名前と隠せる部位、見出しの source のファイルが名前を持つ、型のキーの union = 隠せる部位、frame.css の隠す規則 = 両方の枠の隠せる部位 × 端末で hideSlots の data-slot だけを狙う(id なし)、隠せる部位ごとに既定部品の要素が hideSlots の data-slot を持つ(`parts.test.mjs`)。各枠の README の data-slot の一覧と要素の data-slot の照合は `(user)/_layout/UserFrame.test.tsx`(利用者・Main・source が枠の中の見出し)・`admin/_layout/AdminFrame.test.tsx`(管理・source が枠の中の見出し)。見出し 5 つの描画(srOnly あり・なし、呼び手の data-slot に負けない)と一覧の照合は `src/components/TextBlocks/headingSlots.test.tsx`
+
+## Internals
+
+### 重ねる順
+
+- 浅い段から各段の `layout`(`frame.ts` → `frame.override.ts`)、葉の段で最後に `page`(`frame.ts` → `frame.override.ts`)。部位と端末ごとに後が勝つ
+- 枠の根の隣の宣言の `layout` = 枠の全体の既定(領域全体の入り切り)、`page` = トップページだけ(例 `/` の fill)
+- 置けない: 枠の外(枠が全部要らないページはルートグループに分けて枠の layout の外に置く)・private フォルダ(`_x`)・`@slot`・intercepting(`(.)x`)の下・隣に `layout.tsx` も `page.tsx` も無いフォルダ
+
+### 生成器
+
+- 生成器は `scripts/structure/extensions/frames.mjs`。部位の一覧の唯一の元は `parts.mjs`(data-slot の名前・隠せる部位・枠の根・端末)
+- `parts.mjs` / `resolve.mjs` が `.mjs` なのは、tsx を通さない生成器(node)からも TypeScript からも import するため
+
+## Verification
+
+- `pnpm test src/app/_layout/frame/`(`parts.test.mjs` / `resolve.test.mjs` / `useFrameAttributes.test.tsx`)| 生成器 `pnpm test scripts/structure/extensions/`
+- 重ねる順: `scripts/structure/extensions/frames.test.mjs` が全部の組み合わせで順を固定し、7 つの形({layout だけ, page だけ, 両方} × {`frame.ts` あり, なし} + どちらも無いフォルダ)と隣に無い範囲のキーを確かめる
+- 部位(`parts.test.mjs`): 一覧の名前と隠せる部位、見出しの source のファイルが名前を持つ、型のキーの union = 隠せる部位、frame.css の隠す規則 = 両方の枠の隠せる部位 × 端末で hideSlots の data-slot だけを狙う(id なし)、隠せる部位ごとに既定部品の要素が hideSlots の data-slot を持つ
+- 各枠の README の data-slot の一覧と要素の data-slot の照合: `(user)/_layout/UserFrame.test.tsx`(利用者・Main・source が枠の中の見出し)・`admin/_layout/AdminFrame.test.tsx`(管理・source が枠の中の見出し)
+- 見出し 5 つの描画(srOnly あり・なし、呼び手の data-slot に負けない)と一覧の照合: `src/components/TextBlocks/headingSlots.test.tsx`
