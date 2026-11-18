@@ -1,11 +1,14 @@
 # scripts/operations/storage
 
-ファイル保存の新基盤（[src/lib/storage/README.md](../../../src/lib/storage/README.md)）が使うバケットを用意するスクリプト。
+## Overview
 
+- ファイル保存の新基盤（[src/lib/storage/README.md](../../../src/lib/storage/README.md)）が使うバケットを用意するスクリプト。
 - `setup.ts`（`pnpm ops storage setup`）: 新しい公開バケット（pub）と非公開バケット（priv）を冪等に用意する
 - `setup-cors.ts`（`pnpm ops storage setup-cors`）: 旧バケット（Firebase の既定バケット）の CORS 設定。新しい 2 バケットには使わない（`pnpm ops storage setup` が CORS まで設定する）
 
-## pnpm ops storage setup
+## Usage
+
+`pnpm ops storage setup` の手順。
 
 ### 前提
 
@@ -41,6 +44,18 @@ pnpm ops storage setup -- --pub <公開バケット> --priv <非公開バケッ�
 - `--pub` / `--priv` を省略すると env の `STORAGE_PUBLIC_BUCKET` / `STORAGE_PRIVATE_BUCKET` を使う。env ファイルは書き換えない。`ENV_FILE` で読む env ファイルを変えられる（既定 `.env.development`）
 - 旧バケット（`NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`）の名前と、pub / priv に同じ名前は指定できない
 
+### 用意した後
+
+- env を設定する（ローカルの env ファイルと、Vercel などの環境変数）
+  - `STORAGE_PUBLIC_BUCKET` / `STORAGE_PRIVATE_BUCKET`（必須）
+  - `STORAGE_PUBLIC_PREFIX` / `STORAGE_PRIVATE_PREFIX`（任意。バケット内の置き場所の接頭辞）
+  - `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`（公開ファイルの配信元。例 `https://storage.googleapis.com/<公開バケット>`、`STORAGE_PUBLIC_PREFIX` を使うならそれも含める）
+- `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` はビルド時に埋め込まれ、`next.config.ts` の画像の許可リスト（remotePatterns）でも読むので、設定・変更したら再ビルド / 開発サーバーの再起動が必要
+- GCP プロジェクトに Firebase の既定バケットが無い fork（Firebase の Storage を一度も始めていない。バケットが 0 個）は、旧バケットの全拒否ルールの反映（N2 notice の manual_steps ③ `firebase deploy --only storage`）が不要。守る旧バケットが無い
+- env が未設定のままでも起動はする。アップロードなどファイルの経路を使った時点で `StorageNotConfiguredError` になる（旧バケットへの読み替えはしない）
+
+## Internals
+
 ### 用意する状態
 
 - 共通: UBLA（均一なバケットレベルのアクセス）有効、CORS（`--origin`、GET / HEAD / PUT、署名 PUT と再開可能アップロードのヘッダー、max-age 3600 秒）
@@ -68,13 +83,3 @@ pnpm ops storage setup -- --pub <公開バケット> --priv <非公開バケッ�
   - 大きなファイルは rewrite が複数回の呼び出しに分かれ、時間がかかる。地域間の転送料金もかかる
   - 旧バケットの location は GCP コンソールのバケット詳細、または `gcloud storage buckets describe gs://<旧バケット> --format="value(location)"` で確かめられる
   - 大量の copy が見込まれるなら、旧バケットと同じ location を `--location` で指定することを検討する
-
-### 用意した後
-
-- env を設定する（ローカルの env ファイルと、Vercel などの環境変数）
-  - `STORAGE_PUBLIC_BUCKET` / `STORAGE_PRIVATE_BUCKET`（必須）
-  - `STORAGE_PUBLIC_PREFIX` / `STORAGE_PRIVATE_PREFIX`（任意。バケット内の置き場所の接頭辞）
-  - `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`（公開ファイルの配信元。例 `https://storage.googleapis.com/<公開バケット>`、`STORAGE_PUBLIC_PREFIX` を使うならそれも含める）
-- `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` はビルド時に埋め込まれ、`next.config.ts` の画像の許可リスト（remotePatterns）でも読むので、設定・変更したら再ビルド / 開発サーバーの再起動が必要
-- GCP プロジェクトに Firebase の既定バケットが無い fork（Firebase の Storage を一度も始めていない。バケットが 0 個）は、旧バケットの全拒否ルールの反映（N2 notice の manual_steps ③ `firebase deploy --only storage`）が不要。守る旧バケットが無い
-- env が未設定のままでも起動はする。アップロードなどファイルの経路を使った時点で `StorageNotConfiguredError` になる（旧バケットへの読み替えはしない）
