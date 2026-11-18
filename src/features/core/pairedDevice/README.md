@@ -1,5 +1,7 @@
 # pairedDevice — 登録端末（共有端末のペアリングと端末トークン認証）
 
+## Overview
+
 店舗に置くタブレットやキオスクなどの共有端末を、**ユーザーアカウントとは別の認証主体**として登録し、
 長期の端末トークン（httpOnly Cookie）で動かす。誰の個人ログインにも頼らずに、
 「店舗 A のスタッフ用タブレット」「3 番テーブルの客用端末」として API を呼べるようになる。
@@ -9,8 +11,11 @@
 - 端末の Cookie はユーザーセッションと別。端末で `/api/me/**` やユーザー向けのルートは通らない
 - 監査ログには actor `device`（actorId = 端末 id）で残る
 - core にはドメイン画面を置かない。ペアリング画面・管理画面は downstream が下記のパーツで組み立てる
+- 決まり（scope の取り方・レート制限の単位・ペアリング方式・端末ページの置き場・一括失効・actor）は札 `.claude/rules/items/features/pairedDevice.md`
 
-## 有効化（オプトイン、既定は無効）
+## Usage
+
+### 有効化（オプトイン、既定は無効）
 
 1. 機能を開く: fork は `pnpm ops features set pairedDevice on`(`src/config/featureGate/switches.config.ts` に `pairedDevice: true`)。既定は門番の規則 `src/featureGate/rules/pairedDevice.ts` の `defaultEnabled: false`
 2. `pnpm db:push`（`paired_devices` / `device_pairings` が作られる。無効の間は作られない）
@@ -21,48 +26,9 @@
 
 Cookie 名・端末トークンの期間・ペアリングコード・最終アクセスの間引きなどの値は、このドメインの `config.ts`（`pairedDeviceConfig`）が既定を持つ。変えるときは上書き `src/config/features/pairedDevice.config.ts` に書く（例 `export default { token: { maxAgeDays: 90 } } satisfies PairedDeviceOverride;`）。
 
-## 端末の種類（kind）を登録する
+### 端末を主体にするルート・ページ
 
-`kind` と `scope` の語彙・形は downstream が決める。アップストリームは scope の中身を解釈せず、
-`scopeSchema` で検証するだけ。登録されていない kind の端末は作れず、認証にも失敗する（fail-closed）。
-
-```ts
-// src/features/core/pairedDevice/kinds/tableTerminal.ts(1 種類 1 ファイル)
-import { z } from "zod";
-import { definePairedDeviceKind } from "@/features/pairedDevice/types/kind";
-
-export const kind = definePairedDeviceKind({
-  kind: "table_terminal", // paired_devices.kind の値
-  label: "テーブル端末",
-  scopeSchema: z.object({ storeId: z.string().uuid(), tableId: z.string().min(1) }),
-  // 店長は自分の店舗の端末だけ管理できる（省略時は admin カテゴリのロールだけ）
-  manageableScopes: async (user) =>
-    (await storeStaffService.managedStoreIds(user.userId)).map((storeId) => ({ storeId })),
-  // 店舗の回線からのアクセスだけ通す（任意）
-  verify: ({ ip, scope }) => storeNetworkService.isStoreIp(scope.storeId, ip),
-  // 客用端末は 30 日アクセスがなければ無効にする（任意。既定は config の値）
-  idleRevokeDays: 30,
-  // キーボードのない客用端末なので、端末から始めるペアリング（B）も許可する（既定は A だけ）
-  pairingFlows: ["admin_issued", "device_initiated"],
-});
-```
-
-`kind` の文字列は一覧の型に残り、`PairedDeviceKind`・`PairedDeviceScopeOf`（`types/kinds.ts`）が導かれる。
-
-| 項目 | 意味 |
-|---|---|
-| `scopeSchema` | scope の形。登録・変更時と、端末の認証のたびに検証する（合わなくなった端末は認証に失敗する） |
-| `manageableScopes(user)` | そのユーザーが管理（登録・変更・失効・ペアリング）できる範囲。`"all"` か、scope の部分オブジェクトの配列（JSONB の `@>` と同じ包含判定）。**一覧の絞り込みと 1 件ごとの権限判定の両方がこの 1 つから決まる**。admin カテゴリは常に `"all"` |
-| `verify(ctx)` | 認証のたびに実行する追加検証。false か例外で認証失敗 |
-| `pairingFlows` | 許可するペアリング方式。既定は `["admin_issued"]`。端末から始める方式（B）は、攻撃者が自分の端末に出したコードを管理者に承認させる誘導が成り立つので、使う kind だけ `"device_initiated"` を足す |
-| `tokenMaxAgeDays` | 端末トークンの有効期間（既定 400 日。主要ブラウザの Cookie 上限。0 以下・400 超は無視される） |
-| `idleRevokeDays` | 最後のサーバーへの要求（ページ表示を含む）からこの日数で無効にする（`null` = 無効化しない） |
-
-登録すると `kinds` の指定に型が付き、ハンドラの `device.scope` も kind ごとの型になる（未登録の kind はコンパイルエラー）。
-
-## 端末を主体にするルート・ページ
-
-### API: `createDeviceRoute`
+#### API: `createDeviceRoute`
 
 ```ts
 // src/app/api/terminal/lending/route.ts
@@ -105,7 +71,7 @@ export const GET = createDeviceRoute(
 
 `ctx.operator` は将来の「共有端末で操作者（スタッフ）を PIN で選ぶ」機能の予約枠で、現在は常に null。
 
-### ページ: `deviceGuard` / `requireCurrentDevice`
+#### ページ: `deviceGuard` / `requireCurrentDevice`
 
 ```ts
 // src/app/terminal/layout.tsx（layout で守る）
@@ -125,7 +91,7 @@ const device = await requireCurrentDevice({
 ```
 
 - `redirectTo` を省くと 404（端末向けページの存在を明かさない）
-- 端末向けページはユーザーの `(protected)` グループの外に置く（ユーザーのログインを要求しないため）
+- 端末向けページはユーザーの `(protected)` グループの外に置く（ユーザーのログインを要求しないため。札 device_pages_outside_user）
 - Server Component からは Cookie を書けないので、ページ表示では期限を延ばさない（DB と Cookie の期限をずらさないため）。
   延長は Cookie を書ける API 応答（`createDeviceRoute` のルート・`GET /api/paired-device/session`）で行う。
   **API を呼ばない表示専用の端末には heartbeat を置く**:
@@ -136,7 +102,7 @@ const device = await requireCurrentDevice({
   ```
 - 任意の場所で端末を取りたいときは `getSessionDevice()`（無ければ null）
 
-### ページ: 端末またはユーザー（`principalGuard` / `requireCurrentPrincipal`）
+#### ページ: 端末またはユーザー（`principalGuard` / `requireCurrentPrincipal`）
 
 共有タブレットとスタッフ本人のスマホの両方から開くページ（店舗のスタッフ画面・POS 等）。
 API の `createDeviceRoute`（`kinds` + `orUser`）と同じ語彙で、端末を先に判定し、端末でなければユーザーをルールで判定する。
@@ -168,7 +134,7 @@ const storeId =
 - ユーザーのステータスは `allowStatuses`（省略時は利用可能なステータスだけ）で、ページの守り（guard.ts / createLoader）と同じ語彙
 - 端末だけなら `deviceGuard`、ユーザーだけならページの守り（範囲の guard.ts と loader の createLoader）を使う
 
-## scope が古くなった端末を止める（一括失効）
+### scope が古くなった端末を止める（一括失効）
 
 scope の中身（店舗・テーブル等）は downstream のデータなので、テーブルの削除や別店舗への移動があっても端末はそのまま認証し続ける。
 `verify` で毎回 DB を引くと、短い間隔でポーリングする端末では負荷が増える。downstream の削除・移動の処理の中で止める:
@@ -194,34 +160,7 @@ const targets = await listPairedDevicesByScope({ scope: { storeId } }, { actor: 
 - 1 台ずつ `paired_device.device.revoked`（metadata の `bulk: true`）を監査ログに残し、未使用のペアリングコードも取り消す
 - 端末を別の場所に移すだけなら、失効ではなく `updatePairedDevice(id, { scope })` で付け替えてもよい（再ペアリング不要）
 
-## ペアリング（端末を登録する 2 つの方式）
-
-| 方式 | 流れ | 向いている場面 |
-|---|---|---|
-| A. 管理者がコードを発行 | 管理画面で端末を登録 → コードを発行 → 端末でコードを入力 | 端末にキーボードがある / 管理者が端末の前にいる |
-| B. 端末から始める | 端末がコード / QR を表示 → 管理者が自分のスマホで読み取って承認 | キーボードのないキオスク（入力が要らない） |
-
-- コードは 8 文字の Crockford Base32（`ABCD-2345` の形、I / L / O の入力ゆれは吸収）・10 分で失効・使い捨て
-- 同じ端末に新しいコードを出すと、古い未使用コードは取り消される
-- 失効済みの端末にもコードを出せる（ペアリングが成立すると失効が解除される = 再ペアリング）
-- B では、コードを見ただけの第三者はトークンを受け取れない（開始した端末だけが持つ照合用 Cookie で受け取る）
-- B は kind の `pairingFlows` に `"device_initiated"` を足した kind でだけ使える（承認時に判定。許可していなければ reason `flow_not_allowed`）
-- 端末トークンを発行する直前（A の claim・B の完了）にも kind の `verify` を通す。通らなければ発行せず、コードも消費しない
-- 稼働中（トークン有効）の端末への B の承認は、`replaceActive: true` を付けないと 409（reason `device_active`）で止まる（取り違えで今の端末を締め出さないため）
-- 公開のペアリング POST はクロスサイトからの送信を拒否する（`Sec-Fetch-Site` / `Origin`）
-- 総当たりはレート制限で防ぐ。店内の端末は同じ IP から来るので、IP 単位は緩い上限だけにして主な制限は別の単位でかける
-  - コード入力 `pairedDeviceClaim`（IP 単位 100 回 / 10 分）、端末からの開始 `pairedDevicePairingStart`（IP 単位 20 回 / 10 分）
-  - 承認の確認 `pairedDevicePairingPoll`（ペアリング単位 60 回 / 分）+ `pairedDevicePairingPollIp`（IP 単位 600 回 / 分）
-  - 承認・承認情報 `pairedDeviceManage`（ユーザー単位 60 回 / 10 分）+ `pairedDeviceManageIp`（IP 単位 300 回 / 10 分）
-
-管理画面を作る前の最初の 1 台や復旧には CLI を使う:
-
-```bash
-pnpm task pairedDevice:pair -- --kind staff_tablet --label "店舗A タブレット" --scope '{"storeId":"..."}'
-pnpm task pairedDevice:pair -- --device <端末 id>   # 既存の端末に再発行
-```
-
-## 画面の組み立て（downstream）
+### 画面の組み立て（downstream）
 
 hooks はすべて `@/features/pairedDevice/hooks`。失敗の理由は `errorReason`
 （`not_found` / `expired` / `used` / `rate_limited` / `forbidden` / `invalid_scope` / `disabled`）で、文言は自由に決めてよい。
@@ -237,7 +176,7 @@ hooks はすべて `@/features/pairedDevice/hooks`。失敗の理由は `errorRe
 | 管理一覧・詳細 | `usePairedDevices(params)` / `usePairedDevice(id)` / `usePairedDeviceKinds()` |
 | 管理操作 | `useCreatePairedDevice` / `useUpdatePairedDevice` / `useRevokePairedDevice` / `useIssuePairingCode` / `useCancelDevicePairing` |
 
-### レシピ: 端末側のペアリング画面（A と B の両対応）
+#### レシピ: 端末側のペアリング画面（A と B の両対応）
 
 ```tsx
 // src/app/device-pair/_components/DevicePairing.tsx（"use client" の part）
@@ -310,9 +249,9 @@ export function DevicePairingByQr() {
 ```
 
 Screen（`page.tsx` → `_screen` or `_components`）の置き方は src/lib/screens/README.md。
-`useDevicePairingCodeFromUrl` は `useSearchParams` を使うので、この part は `<Suspense>` の内側に置く。
+`useDevicePairingCodeFromUrl` は `useSearchParams` を使う（`<Suspense>` の内側に置く: 札 code_from_url_suspense）。
 
-### レシピ: 承認画面（B。管理者が自分のスマホで開く）
+#### レシピ: 承認画面（B。管理者が自分のスマホで開く）
 
 ```tsx
 const code = useDevicePairingCodeFromUrl();
@@ -329,7 +268,7 @@ await approve.trigger({ code: code!, device: { label: "3番テーブル", kind: 
 
 承認ページはログインが要る（`(user)/(protected)` などに置く）。承認できるのは `manageableScopes` の範囲の端末だけ。
 
-### レシピ: 管理画面
+#### レシピ: 管理画面
 
 ```tsx
 const { data } = usePairedDevices({ kind: "table_terminal", scope: { storeId } }, { refreshInterval: 30_000 });
@@ -341,7 +280,9 @@ const { code, expiresAt } = await issue.trigger(deviceId); // この応答でし
 管理 API はログインユーザーなら誰でも呼べ、範囲はサーバーが `manageableScopes` で絞る
 （admin 以外のロールも使えるよう `/api/admin` 配下にはしていない）。
 
-## API 一覧
+## API
+
+### API 一覧
 
 端末側（`/api/paired-device/**`）
 
@@ -370,9 +311,99 @@ const { code, expiresAt } = await issue.trigger(deviceId); // この応答でし
 
 server-only の API は `@/features/pairedDevice/services/server`（サービス）と
 `.../services/server/session`（`getSessionDevice` / `deviceGuard` / `requireCurrentDevice` / Cookie）。
-サービスの `actor` に `"system"` を渡すと権限判定を省く（CLI・cron 用。HTTP ルートからは必ずユーザーを渡す）。
+サービスの `actor` に `"system"` を渡すと権限判定を省く（CLI・cron 用。札 system_actor_cli）。
 
-## 実機での注意
+### 監査ログ
+
+| action | いつ |
+|---|---|
+| `paired_device.device.created` | 端末の登録 |
+| `paired_device.device.renamed` / `scope_changed` | 名前変更・scope の付け替え |
+| `paired_device.device.paired` | トークン発行（ペアリング成立） |
+| `paired_device.device.revoked` / `unpaired` | 失効・端末自身による登録解除 |
+| `paired_device.pairing.issued` / `approved` / `canceled` | コードの発行・承認・取り消し |
+
+### データ
+
+- `paired_devices`: label / kind / scope(JSONB) / token_hash（SHA-256、サービス境界から出さない）/ token_expires_at /
+  paired_at / last_seen_at・last_seen_ip（`lastSeenThrottleSeconds` で間引いて更新）/ revoked_at
+- `device_pairings`: flow / status / code_hash / pending_token_hash / expires_at。期限切れから 24 時間で
+  cron `paired-device-pairings-prune` が削除する
+- 照合用のランダムトークン・短いコードの生成は `@/lib/crypto`（secretToken.ts）
+
+## Extension
+
+### 端末の種類（kind）を登録する
+
+`kind` と `scope` の語彙・形は downstream が決める。アップストリームは scope の中身を解釈せず、
+`scopeSchema` で検証するだけ。登録されていない kind の端末は作れず、認証にも失敗する（fail-closed）。
+
+```ts
+// src/features/core/pairedDevice/kinds/tableTerminal.ts(1 種類 1 ファイル)
+import { z } from "zod";
+import { definePairedDeviceKind } from "@/features/pairedDevice/types/kind";
+
+export const kind = definePairedDeviceKind({
+  kind: "table_terminal", // paired_devices.kind の値
+  label: "テーブル端末",
+  scopeSchema: z.object({ storeId: z.string().uuid(), tableId: z.string().min(1) }),
+  // 店長は自分の店舗の端末だけ管理できる（省略時は admin カテゴリのロールだけ）
+  manageableScopes: async (user) =>
+    (await storeStaffService.managedStoreIds(user.userId)).map((storeId) => ({ storeId })),
+  // 店舗の回線からのアクセスだけ通す（任意）
+  verify: ({ ip, scope }) => storeNetworkService.isStoreIp(scope.storeId, ip),
+  // 客用端末は 30 日アクセスがなければ無効にする（任意。既定は config の値）
+  idleRevokeDays: 30,
+  // キーボードのない客用端末なので、端末から始めるペアリング（B）も許可する（既定は A だけ）
+  pairingFlows: ["admin_issued", "device_initiated"],
+});
+```
+
+`kind` の文字列は一覧の型に残り、`PairedDeviceKind`・`PairedDeviceScopeOf`（`types/kinds.ts`）が導かれる。
+
+| 項目 | 意味 |
+|---|---|
+| `scopeSchema` | scope の形。登録・変更時と、端末の認証のたびに検証する（合わなくなった端末は認証に失敗する） |
+| `manageableScopes(user)` | そのユーザーが管理（登録・変更・失効・ペアリング）できる範囲。`"all"` か、scope の部分オブジェクトの配列（JSONB の `@>` と同じ包含判定）。**一覧の絞り込みと 1 件ごとの権限判定の両方がこの 1 つから決まる**。admin カテゴリは常に `"all"` |
+| `verify(ctx)` | 認証のたびに実行する追加検証。false か例外で認証失敗 |
+| `pairingFlows` | 許可するペアリング方式。既定は `["admin_issued"]`。端末から始める方式（B）は、攻撃者が自分の端末に出したコードを管理者に承認させる誘導が成り立つので、使う kind だけ `"device_initiated"` を足す |
+| `tokenMaxAgeDays` | 端末トークンの有効期間（既定 400 日。主要ブラウザの Cookie 上限。0 以下・400 超は無視される） |
+| `idleRevokeDays` | 最後のサーバーへの要求（ページ表示を含む）からこの日数で無効にする（`null` = 無効化しない） |
+
+登録すると `kinds` の指定に型が付き、ハンドラの `device.scope` も kind ごとの型になる（未登録の kind はコンパイルエラー）。
+
+- 受け口の書き方は `kinds/README.md`
+
+## Internals
+
+### ペアリング（端末を登録する 2 つの方式）
+
+| 方式 | 流れ | 向いている場面 |
+|---|---|---|
+| A. 管理者がコードを発行 | 管理画面で端末を登録 → コードを発行 → 端末でコードを入力 | 端末にキーボードがある / 管理者が端末の前にいる |
+| B. 端末から始める | 端末がコード / QR を表示 → 管理者が自分のスマホで読み取って承認 | キーボードのないキオスク（入力が要らない） |
+
+- コードは 8 文字の Crockford Base32（`ABCD-2345` の形、I / L / O の入力ゆれは吸収）・10 分で失効・使い捨て
+- 同じ端末に新しいコードを出すと、古い未使用コードは取り消される
+- 失効済みの端末にもコードを出せる（ペアリングが成立すると失効が解除される = 再ペアリング）
+- B では、コードを見ただけの第三者はトークンを受け取れない（開始した端末だけが持つ照合用 Cookie で受け取る）
+- B は kind の `pairingFlows` に `"device_initiated"` を足した kind でだけ使える（承認時に判定。許可していなければ reason `flow_not_allowed`）
+- 端末トークンを発行する直前（A の claim・B の完了）にも kind の `verify` を通す。通らなければ発行せず、コードも消費しない
+- 稼働中（トークン有効）の端末への B の承認は、`replaceActive: true` を付けないと 409（reason `device_active`）で止まる（取り違えで今の端末を締め出さないため）
+- 公開のペアリング POST はクロスサイトからの送信を拒否する（`Sec-Fetch-Site` / `Origin`）
+- 総当たりはレート制限で防ぐ。店内の端末は同じ IP から来るので、IP 単位は緩い上限だけにして主な制限は別の単位でかける
+  - コード入力 `pairedDeviceClaim`（IP 単位 100 回 / 10 分）、端末からの開始 `pairedDevicePairingStart`（IP 単位 20 回 / 10 分）
+  - 承認の確認 `pairedDevicePairingPoll`（ペアリング単位 60 回 / 分）+ `pairedDevicePairingPollIp`（IP 単位 600 回 / 分）
+  - 承認・承認情報 `pairedDeviceManage`（ユーザー単位 60 回 / 10 分）+ `pairedDeviceManageIp`（IP 単位 300 回 / 10 分）
+
+管理画面を作る前の最初の 1 台や復旧には CLI を使う:
+
+```bash
+pnpm task pairedDevice:pair -- --kind staff_tablet --label "店舗A タブレット" --scope '{"storeId":"..."}'
+pnpm task pairedDevice:pair -- --device <端末 id>   # 既存の端末に再発行
+```
+
+### 実機での注意
 
 - **iOS のホーム画面に追加したアプリは Safari と Cookie が別**。ペアリングは実際に使う形（ホーム画面のアプリ / ブラウザ）の中で行う
 - キオスク用ブラウザ・アプリは Cookie を保持する設定にする（終了時に消す設定だと毎回ペアリングが要る）
@@ -384,21 +415,3 @@ server-only の API は `@/features/pairedDevice/services/server`（サービス
 - 端末への応答は `Cache-Control: private, no-store`（Set-Cookie を含むので共有キャッシュに載せない）
 - 端末のルートからお知らせ（notification）を送ると、送信者の種別は既存の慣習どおり admin として残る
   （system 以外は admin 扱い）。端末からの送信を区別したい場合は metadata に端末 id を入れる
-
-## 監査ログ
-
-| action | いつ |
-|---|---|
-| `paired_device.device.created` | 端末の登録 |
-| `paired_device.device.renamed` / `scope_changed` | 名前変更・scope の付け替え |
-| `paired_device.device.paired` | トークン発行（ペアリング成立） |
-| `paired_device.device.revoked` / `unpaired` | 失効・端末自身による登録解除 |
-| `paired_device.pairing.issued` / `approved` / `canceled` | コードの発行・承認・取り消し |
-
-## データ
-
-- `paired_devices`: label / kind / scope(JSONB) / token_hash（SHA-256、サービス境界から出さない）/ token_expires_at /
-  paired_at / last_seen_at・last_seen_ip（`lastSeenThrottleSeconds` で間引いて更新）/ revoked_at
-- `device_pairings`: flow / status / code_hash / pending_token_hash / expires_at。期限切れから 24 時間で
-  cron `paired-device-pairings-prune` が削除する
-- 照合用のランダムトークン・短いコードの生成は `@/lib/crypto`（secretToken.ts）
