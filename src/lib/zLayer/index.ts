@@ -25,6 +25,22 @@ export const Z_LAYER_NAMES = [
 
 export type ZLayerName = (typeof Z_LAYER_NAMES)[number];
 
+/**
+ * ページの層(floating より下の 7 つ)。ページの要素・全画面の部品(FullScreen・Main の fullscreenLayer)・fork の演出が使う。
+ * 浮く物・toast・cover は部品が自分で持つ層で、ページの要素からは選べない(当議会 D190・D194)。
+ */
+export const PAGE_LAYER_NAMES = [
+  "background",
+  "content",
+  "backside-ui",
+  "below-header",
+  "header",
+  "above-header",
+  "forefront",
+] as const satisfies readonly ZLayerName[];
+
+export type PageLayerName = (typeof PAGE_LAYER_NAMES)[number];
+
 /** 層の名 → z-layer.css の utility class(例: "floating" → "floating-layer") */
 export function zLayerClass<N extends ZLayerName>(name: N): `${N}-layer` {
   return `${name}-layer`;

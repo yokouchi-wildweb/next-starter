@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { Z_LAYER_NAMES, zLayerClass } from "./index";
+import { PAGE_LAYER_NAMES, Z_LAYER_NAMES, zLayerClass } from "./index";
 
 const css = readFileSync("src/styles/core/z-layer.css", "utf8");
 
@@ -32,4 +32,8 @@ test("名は当議会 D189 の 10(ページの層 7 + floating・toast・cover)�
     ["background", "content", "backside-ui", "below-header", "header", "above-header", "forefront", "floating", "toast", "cover"],
   );
   for (const name of Z_LAYER_NAMES) assert.equal(zLayerClass(name), `${name}-layer`);
+});
+
+test("ページの層は Z_LAYER_NAMES の floating より前の 7 つ(同じ順)", () => {
+  assert.deepEqual([...PAGE_LAYER_NAMES], Z_LAYER_NAMES.slice(0, Z_LAYER_NAMES.indexOf("floating")));
 });

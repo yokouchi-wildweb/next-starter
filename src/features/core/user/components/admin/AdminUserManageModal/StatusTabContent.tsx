@@ -19,7 +19,6 @@ import type { UserStatus } from "@/features/core/user/types";
 import { USER_STATUS_OPTIONS, formatUserStatusLabel } from "@/features/core/user/constants/status";
 import { useChangeUserStatus } from "@/features/core/user/hooks/useChangeUserStatus";
 import { UserInfoHeader } from "./UserInfoHeader";
-import { zLayerClass } from "@/lib/zLayer";
 
 type Props = {
   user: User;
@@ -137,7 +136,6 @@ export function StatusTabContent({ user, onClose }: Props) {
               onChange={(value) => setSelectedStatus(String(value ?? ""))}
               options={statusOptions}
               placeholder="ステータスを選択"
-              contentClassName={zLayerClass("floating")}
             />
             <Para size="xs" tone="muted" className="mt-1">
               「セキュリティロック」は連続ログイン失敗で自動的にセットされるため、手動では選択できません。

@@ -5,10 +5,10 @@
 import { useEffect } from "react";
 import { useDisableScroll } from "@/hooks/useDisableScroll";
 import { cn } from "@/lib/cn";
-import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
+import { zLayerClass, type PageLayerName } from "@/lib/zLayer";
 
-/** 層(@/lib/zLayer の名、kebab-case。当議会 D186: 他の部品と同じ書き方、camelCase の別名は無い) */
-export type FullScreenLayer = ZLayerName;
+/** 層(@/lib/zLayer のページの層だけ、kebab-case。当議会 D186・D190: 全画面の部品はページの要素で、浮く物・toast・cover は選べない) */
+export type FullScreenLayer = PageLayerName;
 
 type Props = {
   className?: string;

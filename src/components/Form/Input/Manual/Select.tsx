@@ -49,8 +49,7 @@ export type SelectInputProps = {
    */
   className?: string;
   /**
-   * SelectContent に適用するクラス名（z-index調整などに使用）。
-   * モーダル内で使用する場合は zLayerClass("floating")(@/lib/zLayer)などを指定。
+   * SelectContent に適用するクラス名。候補はいつも浮く物の層 floating(モーダルの中でも指定は要らない、当議会 D190)。
    */
   contentClassName?: string;
   /** 無効化 */

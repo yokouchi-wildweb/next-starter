@@ -87,7 +87,7 @@ Layout 部品の余白 prop は 1 つの段の名前で受ける。同じ名前�
 部位の印 `data-slot`(fork の CSS が狙う名前): `<main>` = `main`、`plain`・`fullscreen` 以外の外側の 2 段 = `main-container` / `main-layout`。Main は id(呼び手が渡した時だけ `<main>` に付く)・`data-component` を持たない。一覧: [src/app/(user)/_layout/README.md](../../app/(user)/_layout/README.md)「data-slot の一覧」
 
 #### FullScreen
-モバイルブラウザのアドレスバーを考慮した真のフルスクリーン表示。`layer` propでz-index層を指定。
+モバイルブラウザのアドレスバーを考慮した真のフルスクリーン表示。`layer` prop でページの層(`@/lib/zLayer` の `PageLayerName`: background … forefront、既定 above-header)を指定。浮く物・toast・cover の層は選べない(モーダルより上に出す物は浮く物の部品を使う)。
 高さは `var(--viewport-height, 100dvh)` を読むだけで、自分では計測しない(書き手は root layout の `ViewportHeightWatcher`、[src/lib/viewport](../../lib/viewport/README.md))。
 
 #### ScaledStage
