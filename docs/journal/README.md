@@ -15,13 +15,13 @@
 - 決定の経緯（検討した選択肢、見送った理由、方針が変わったきっかけ）
 - 段階的な作業のログ（各ステップで何をしたか）
 - 「記録して」「残しておいて」の受け皿
-- git に入れない移行(`.local.ts`)を本実行した記録: `pnpm task` が下書き `<日付>--<fork_id>--local-migration-<ドメイン>-<名前>.md` をここに書く(コミットしない)。人が「なぜ・確かめたこと」を書き足してコミットする(`src/lib/task/README.md`)
+- git に入れない移行(`.local.ts`)を本実行した記録: `pnpm task` が下書き `<日付>--<owner>--local-migration-<ドメイン>-<名前>.md` をここに書く(コミットしない)。人が「なぜ・確かめたこと」を書き足してコミットする(`src/lib/task/README.md`)
 
 ### ファイル名と所有者
 
 `<YYYY-MM-DD>--<owner>--<slug>.md`（例: `2026-10-18--next-starter--ui-layers-revision.md`）
 
-- owner = その記録を書いた repo の名前（origin URL の最後の部分を小文字にしたもの）
+- owner = その記録を書いた repo の名前 = repo.json の `repo_id`(読み手 `src/lib/forkOwnership/forkIds.mjs`。origin URL からは取らない)
 - 本文の冒頭に `> owner: <repo名>` の 1 行を書く
 - 1 件 1 ファイル。追記で育てず、新しい出来事は新しいファイルにする
 
