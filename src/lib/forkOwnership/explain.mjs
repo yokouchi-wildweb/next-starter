@@ -1,7 +1,7 @@
 // pnpm workflow ownership who の型の答え: 上流のパスごとに「fork はこれを変えたいとき何をするか」(git には触れない。読む木は呼び手が渡す)。
 // 型: 1 丸ごと(1 行スイッチ・画面の page.tsx / 枠の layout.tsx)/ 2 重ね(<対象>.override.ts・frame.override.ts、鍵 = 宣言の overrideOf)/
-//     3 足す(受け口)/ 4 置き場(地区の config の上書き・placement の点)/ generated(生成器で作り直す)/ own(この fork の物)/ none(/order <直接の親>)。
-// 判定の順: generated → own → 1 → 2 / 3 → 4 → (own | none)。読むのは宣言(extensionPoints.ts)・地区の見つけ方・ルート・1 行スイッチの名前の決まり・
+//     3 足す(受け口)/ 4 置き場(地区の config の上書き・placement の点)/ 5 自分の版(受け口の一覧の self の行)/ generated(生成器で作り直す)/
+//     own(この fork の物)/ none(/order <直接の親>)。判定の順: generated → 5 → own → 1 → 2 / 3 → 4 → (own | none)。読むのは宣言(extensionPoints.ts)・地区の見つけ方・ルート・1 行スイッチの名前の決まり・
 // 受け口の一覧の kind・生成器の gate.json(pnpm generate domain の出力の種類も scripts/structure/domain/gate.json の outputs)。受け口の一覧の行の注記の文言は読まない。
 // 仕様: ./README.md「持ち主を調べる(pnpm workflow ownership who)」
 
@@ -16,7 +16,7 @@ import { LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes } from "../screens/routeTr
 import { matchIntake } from "./intake.mjs";
 
 /** 型の値(L1.45) */
-export const EXPLAIN_TYPES = ["1", "2", "3", "4", "generated", "own", "none"];
+export const EXPLAIN_TYPES = ["1", "2", "3", "4", "5", "generated", "own", "none"];
 
 const GATE_FILE = /^scripts\/structure\/([^/]+)\/gate\.json$/;
 const DOMAIN_JSON = /^src\/features\/(?:core\/)?[^/_][^/]*\/domain\.json$/;
@@ -248,6 +248,9 @@ function placementOf(path, view) {
 export function explainPath(path, view, { tier, addable, parent }) {
   const generated = generatedOf(path, view);
   if (generated) return generated;
+  // 型 5 self: 各リポが自分の版を持つ(取り込みは親の版を採らず、/flux が親の差分を見せ、採る所は自分で写す)
+  if (matchIntake(view.intake, path)?.kind === "self")
+    return answer("5", { write: path, how: "自分の版を書く(親の版は取り込まない。親の差分は /flux が区切りごとに見せる、採る所は別のコミットで自分で写す)" });
   if (tier === "fork" || tier === "middle") return answer("own", { write: path, how: tier === "fork" ? "この fork の物: そのまま書き換える" : "中間 Tier の物: そのまま書き換える" });
   const typed = replaceOf(path, view) ?? overlayOf(path, view) ?? placementOf(path, view);
   if (typed) return typed;

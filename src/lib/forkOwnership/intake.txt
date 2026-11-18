@@ -2,6 +2,7 @@
 # 書式: <kind> <glob>  # 理由 | `!<glob>` = その前までに当たった規則を外す | 最後に当たった規則が効く
 # kind: edit(書き換え可)/ add(足すのは可、基準にあるファイルの書き換えは違反)/ region(fork entries の対の中だけ)/ marker(`fork entries below` の行より下だけ)
 #       append(基準の中身を先頭に残したままの追記だけ)/ generated(生成物、書き換えを問わない)/ debt(upstream の負債)
+#       self(型 5: 各リポが自分の版を持つ。1 ファイル 1 行・ぴったりのパス、行を足すのは Tier1 だけ)
 # どの kind でも、基準にあるファイルの削除・rename は違反。仕様: README.md「受け口の一覧」
 
 # リポジトリ直下(依存・ビルド・接続の設定は fork が足すのを避けられない)
@@ -332,10 +333,12 @@ generated src/lib/zLayer/generated/ownLayers.ts  # 生成器 styles の出力
 region servers/room/src/registry.ts  # ルーム定義の登録点(【下流編集点】)
 edit servers/room/wrangler.toml  # pnpm ops room init が作る fork の Worker の設定(upstream には無い。.example だけ)
 
-# 規則(PER_PROJECT)
-edit .claude/rules/project.md  # CLAUDE.md PER_PROJECT
-edit .claude/rules/behavior.md  # CLAUDE.md PER_PROJECT
-edit repo.json  # リポの名前と段・方針(forkIds.mjs、各リポの版)
+# 規則(自分の版 = 型 5 self、札、業務の全体像)
+self .claude/rules/project.md  # このリポの概要と段だけの情報(型 5)
+self .claude/rules/behavior.md  # 作業の決まり(型 5)
+self repo.json  # リポの名前と段・方針(forkIds.mjs、型 5)
+add .claude/rules/items/**  # 自分の品目の札(.claude/rules/core/design.md cards。上の段の札は直さない。Tier1 の札が入るまでは upstream には無い)
+add .claude/rules/service/**  # 業務を定める段の業務の全体像(上の段の物は中間層の物も直さない。Tier1 は書かないので upstream には無い)
 marker .claude/rules/shortcuts.md  # 印より下が fork
 marker .claude/rules/term-aliases.md  # 印より下が fork
 append .claude/rules/lineage.md  # 中間層の節を末尾に足すだけ(lineage.md の前置き)

@@ -241,6 +241,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
   const tree = {
     "src/lib/forkOwnership/intake.txt": [
       "edit src/config/**  # 値",
+      "self repo.json  # 名前と段(型 5)",
       "generated src/registry/district-map.jsonl  # 生成器の出力",
       "region src/registry/**/*.ts  # 生成器の区画",
       "",
@@ -327,6 +328,8 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     ["pnpm generate domain が毎回書く(直す元 = domain.json)", "src/features/sample/entities/drizzle.ts", { type: "generated", write: "src/features/sample/domain.json", keys: null, source: "pnpm generate domain" }],
     ["pnpm generate domain が毎回書く(直す元 = wrappers/)", "src/features/sample/services/server/drizzleBase.ts", { type: "generated", write: "src/features/sample/services/server/wrappers/", keys: null, source: "pnpm generate domain" }],
     ["管理画面の生成物(ルートのフォルダ → ドメイン)", "src/app/admin/(protected)/samples/_screen/loader.ts", { type: "generated", write: "src/features/sample/domain.json", keys: null, source: "pnpm generate domain" }],
+    // 型 5
+    ["自分の版(self の行)", "repo.json", { type: "5", write: "repo.json", keys: null }],
     // どれでもない
     ["無いときだけ書く(上流の物)", "src/features/sample/seed.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
     ["generate: false のドメイン(上流の物)", "src/features/hand/entities/drizzle.ts", { type: "none", write: null, keys: null, order: "/order parent" }],

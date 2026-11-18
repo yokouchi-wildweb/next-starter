@@ -198,6 +198,7 @@ function addJudge(snapshot, intake, tier1Files) {
       baseLibs: snapshot.libs,
       baseHasCore: snapshot.hasCore,
       baseHasGate: snapshot.hasGate,
+      baseHasRulesCore: snapshot.hasRulesCore,
       intake,
       places: snapshot.places,
       baseUnits: snapshot.units,

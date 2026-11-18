@@ -289,8 +289,9 @@ export function treeSnapshot(repoRoot, rev) {
     .map((path) => path.replace(/^src\/lib\//, ""));
   const hasCore = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", rev, "src/features/core"]) ?? "").trim() !== "";
   const hasGate = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", rev, "src/featureGate"]) ?? "").trim() !== "";
+  const hasRulesCore = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", rev, ".claude/rules/core"]) ?? "").trim() !== "";
   // 単位名の同名・自分の項目への override(D137 の印の代わり): 基準のファイルの単位と照らす
-  return { rev, read, files, libs, hasCore, hasGate, places: unitPlaces(files, read), units: unitIndex(files) };
+  return { rev, read, files, libs, hasCore, hasGate, hasRulesCore, places: unitPlaces(files, read), units: unitIndex(files) };
 }
 
 /**
@@ -340,6 +341,8 @@ export function resolveForkContext(repoRoot, { parent, branch, fetch = true } = 
  * @param {{ status: string, path: string, from?: string, reason: string, verdict: string }[]} entries judge の結果
  * @param {Set<string>} tier1Files
  */
+const SERVICE_PREFIX = ".claude/rules/service/";
+
 export function reassignMiddleTier(entries, tier1Files) {
   const middleTier = [];
   for (const entry of entries) {
@@ -349,10 +352,13 @@ export function reassignMiddleTier(entries, tier1Files) {
     const target = entry.status === "R" ? entry.from : entry.path;
     // 祖先の lib への追加: その lib が Tier1 の版にあれば Tier1 の物(厳密)、無ければ中間 Tier の lib
     const lib = entry.reason === "ancestor-lib-add" ? /^src\/lib\/([^/]+)\//.exec(target)?.[1] : null;
-    // core・門番への追加: core と門番は Tier1 の物(足したファイルは Tier1 の版に無いが、中間 Tier の物にしない)
+    // 業務の全体像 .claude/rules/service/ は中間 Tier が足した物も下流で直せない(D117: このフォルダだけ中間 Tier の付け替えをしない)
+    if (target.startsWith(SERVICE_PREFIX)) continue;
+    // core・門番・決まりの core への追加: どれも Tier1 の物(足したファイルは Tier1 の版に無いが、中間 Tier の物にしない)
+    const tier1Prefix = { "core-add": "src/features/core/", "gate-add": "src/featureGate/", "rules-core-add": ".claude/rules/core/" }[entry.reason];
     const tier1Owned =
-      entry.reason === "core-add" || entry.reason === "gate-add"
-        ? [...tier1Files].some((file) => file.startsWith(entry.reason === "core-add" ? "src/features/core/" : "src/featureGate/"))
+      tier1Prefix
+        ? [...tier1Files].some((file) => file.startsWith(tier1Prefix))
         : lib
           ? [...tier1Files].some((file) => file.startsWith(`src/lib/${lib}/`))
           : tier1Files.has(target);
@@ -386,6 +392,7 @@ export function judgeFork(repoRoot, context) {
     baseLibs: snapshot.libs,
     baseHasCore: snapshot.hasCore,
     baseHasGate: snapshot.hasGate,
+    baseHasRulesCore: snapshot.hasRulesCore,
     intake,
     places: snapshot.places,
     baseUnits: snapshot.units,

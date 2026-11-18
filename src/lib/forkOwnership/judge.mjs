@@ -13,6 +13,7 @@ const MARKER_LINE = /fork entries below/;
 export const REASONS = {
   added: "ok", // fork が足したファイル
   intake: "ok", // 受け口(edit)の中の書き換え
+  self: "ok", // 型 5 self のファイル(各リポが自分の版を持つ。中身の検査は別)
   region: "ok", // fork の区画の中だけの書き換え
   marker: "ok", // 印より下だけの書き換え
   append: "ok", // 基準の中身を先頭に残した追記
@@ -23,6 +24,7 @@ export const REASONS = {
   "ancestor-lib-add": "violation", // 祖先 Tier の lib の中へのファイル追加
   "core-add": "violation", // src/features/core/ の中への受け口の項目でない追加(fork のドメインは src/features/<x>)
   "gate-add": "violation", // 門番 src/featureGate/ の中への受け口の項目でない追加(受け口は rules/・alwaysOnExceptions/・dependencyExceptions/・required/)
+  "rules-core-add": "violation", // 上流の決まりのファイル .claude/rules/core/ の中への追加(自分の決まりは .claude/rules/ の core/ の外、D131)
   "unit-clash": "violation", // 検査する場所(受け口・wiring・route の隣・scripts の直下)への追加が基準の単位と同名(x.ts と x.tsx、ファイルとフォルダ)
   "override-own": "violation", // fork が足した <対象>.override の対象が基準に無い(override は上の Tier の項目にだけ)
   "default-add": "violation", // fork が基準のファイルのあるフォルダに <名前>.default.* を足した(既定はそこを作ったリポの物。自分のフォルダの自分の既定は可)
@@ -45,6 +47,7 @@ const libNameOf = (path) => {
 
 const CORE_PREFIX = "src/features/core/";
 const GATE_PREFIX = "src/featureGate/";
+const RULES_CORE_PREFIX = ".claude/rules/core/";
 
 const headUntilMarker = (text) => {
   if (text === null) return null;
@@ -58,6 +61,7 @@ const withoutTrailingNewlines = (text) => text.replace(/\n+$/, "");
 function judgeModified(rule, baseText, headText) {
   const kind = rule?.kind ?? null;
   if (kind === "edit") return "intake";
+  if (kind === "self") return "self";
   if (kind === "generated") return "generated";
   if (kind === "debt") return "debt";
   if (kind === "region") {
@@ -99,13 +103,14 @@ const isDefaultName = (path) => classifyDottedName(path.slice(path.lastIndexOf("
  *   baseLibs: Iterable<string>,                                  // 基準の src/lib 直下のディレクトリ名
  *   baseHasCore?: boolean,                                       // 基準に src/features/core/ があるか
  *   baseHasGate?: boolean,                                       // 基準に src/featureGate/ があるか
+ *   baseHasRulesCore?: boolean,                                  // 基準に .claude/rules/core/ があるか
  *   intake: { kind: string | null, glob: string, exclude: boolean, line: number }[],  // parseIntake(基準側の intake.txt).rules
  *   places?: { direct: Set<string> },                            // unitPlaces(基準のファイル)。無ければ単位名の検査をしない
  *   baseUnits?: Map<string, string>,                             // unitIndex(基準のファイル): 単位名 → 基準のパス
  * }} input
  * @returns {{ entries: { status: string, path: string, from?: string, kind: string | null, reason: string, verdict: string, clash?: string }[], counts: Record<string, number> }}
  */
-export function judge({ changes, baseText, headText, baseLibs, baseHasCore = false, baseHasGate = false, intake, places = null, baseUnits = new Map() }) {
+export function judge({ changes, baseText, headText, baseLibs, baseHasCore = false, baseHasGate = false, baseHasRulesCore = false, intake, places = null, baseUnits = new Map() }) {
   const libs = new Set(baseLibs);
   // 基準のファイルのあるフォルダ(親の物の隣への *.default.* の追加 = default-add)
   const baseDirs = new Set([...baseUnits.values()].map(dirOf));
@@ -121,6 +126,7 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
       if (lib !== null && libs.has(lib)) reason = "ancestor-lib-add";
       else if (baseHasCore && change.path.startsWith(CORE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "core-add";
       else if (baseHasGate && change.path.startsWith(GATE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "gate-add";
+      else if (baseHasRulesCore && change.path.startsWith(RULES_CORE_PREFIX)) reason = "rules-core-add";
       else if (places && isDefaultName(change.path) && baseDirs.has(dirOf(change.path))) reason = "default-add";
       else if (places && isFramePlain(change.path) && baseHasRoute(baseUnits, dirOf(change.path))) reason = "frame-plain";
       else if (unit !== null && baseUnits.has(unit)) {

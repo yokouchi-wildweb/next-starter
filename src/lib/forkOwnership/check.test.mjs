@@ -296,6 +296,21 @@ describe("pnpm workflow ownership check", () => {
     assert.equal(result.entries.find((item) => item.path === "src/featureGate/rules/mine.ts").reason, "added");
   });
 
+  test("上流の決まりのファイル .claude/rules/core/ への追加は rules-core-add で違反(中間 Tier の物にしない)、自分の札は合格", () => {
+    const parent = makeParent();
+    write(parent, ".claude/rules/core/design.md", "---\npaths:\n  - \"CLAUDE.md\"\n---\n# design\n");
+    write(parent, "src/lib/forkOwnership/intake.txt", "edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nedit .claude/rules/project.md  # 概要\nedit repo.json  # 名前と段\nadd .claude/rules/items/**  # 札\n");
+    commitAll(parent, "rules core");
+    const fork = makeFork(parent);
+    write(fork, ".claude/rules/core/mine.md", "# mine\n");
+    write(fork, ".claude/rules/items/lib/mine.md", "# lib/mine\n");
+    commitAll(fork, "rules add");
+    const result = runCheck(fork);
+    assert.equal(result.status, "fail");
+    assert.equal(result.entries.find((item) => item.path === ".claude/rules/core/mine.md").reason, "rules-core-add");
+    assert.equal(result.entries.find((item) => item.path === ".claude/rules/items/lib/mine.md").reason, "added");
+  });
+
   test("下書きの指紋で一時許可を書けば合格(permitted)、その後に書き換えると許可し直し", () => {
     const fork = makeFork(makeParent());
     write(fork, "src/features/core/user/user.ts", "export const user = 2;\n");
@@ -417,6 +432,24 @@ describe("pnpm workflow ownership check", () => {
     const ng = runCheck(tier3);
     assert.equal(ng.status, "fail");
     assert.equal(ng.entries.find((e) => e.path === "src/features/core/user/user.ts").reason, "outside-intake");
+  });
+
+  test("多段: 中間 Tier が足した .claude/rules/service/ の物は下流で書き換え・削除できない(付け替えない、D117)、自分の service は足してよい", () => {
+    const tier1 = makeParent();
+    write(tier1, "src/lib/forkOwnership/intake.txt", "edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nedit .claude/rules/project.md  # 概要\nedit repo.json  # 名前と段\nadd .claude/rules/service/**  # 業務の全体像\n");
+    commitAll(tier1, "service intake");
+    const tier2 = makeFork(tier1);
+    write(tier2, ".claude/rules/service/shop.md", "# shop\n");
+    commitAll(tier2, "tier2 service");
+    const tier3 = makeTier(tier2, "grandchild");
+    write(tier3, ".claude/rules/service/shop.md", "# shop changed\n");
+    write(tier3, ".claude/rules/service/rental.md", "# rental\n");
+    commitAll(tier3, "tier3 service");
+    const result = runCheck(tier3);
+    assert.equal(result.status, "fail");
+    assert.equal(result.entries.find((e) => e.path === ".claude/rules/service/shop.md").verdict, "violation");
+    assert.equal(result.entries.find((e) => e.path === ".claude/rules/service/rental.md").reason, "added");
+    assert.ok(!result.middleTier.some((m) => m.path === ".claude/rules/service/shop.md"));
   });
 
   test("多段: lineage.md の節(中間層の節・(default) の打ち消しは合格、並び違い・(default) でない打ち消し・none で自分の節は違反、同名の鍵は警告)", () => {

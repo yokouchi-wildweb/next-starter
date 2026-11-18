@@ -285,6 +285,25 @@ describe("judge", () => {
     assert.equal(add("src/featureGateMine/foo.ts").reason, "added", "接頭辞はフォルダの境目で見る");
   });
 
+  test("A: 上流の決まりのファイル .claude/rules/core/ への追加は rules-core-add(受け口の行があっても)、基準に無ければ added", () => {
+    const { rules } = parseIntake("add .claude/rules/items/**  # 札");
+    const add = (path, baseHasRulesCore = true) =>
+      judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], baseHasRulesCore, intake: rules }).entries[0];
+    const mine = add(".claude/rules/core/mine.md");
+    assert.equal(mine.reason, "rules-core-add");
+    assert.equal(mine.verdict, "violation");
+    assert.equal(add(".claude/rules/core/mine.md", false).reason, "added");
+    assert.equal(add(".claude/rules/items/lib/mine.md").reason, "added", "自分の札は足してよい");
+    assert.equal(add(".claude/rules/mine.md").reason, "added", "core の外の自前の決まりは足してよい");
+  });
+
+  test("M: self の行(型 5)は自分の版 = 書き換えてよい(reason self)", () => {
+    const { rules, errors } = parseIntake("self .claude/rules/project.md  # 概要\nself repo.json  # 名前と段");
+    assert.deepEqual(errors, []);
+    const entry = judge({ changes: [{ status: "M", path: "repo.json" }], baseText: () => "a", headText: () => "b", baseLibs: [], intake: rules }).entries[0];
+    assert.deepEqual([entry.kind, entry.reason, entry.verdict], ["self", "self", "ok"]);
+  });
+
   test("add: 足すのは added、基準にあるファイルの書き換えは outside-intake", () => {
     const { rules } = parseIntake("add src/features/core/user/roles/*.role.json  # r");
     const path = "src/features/core/user/roles/x.role.json";

@@ -19,6 +19,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
      - 基準の `src/lib/<name>/` が実在する `<name>` の中 → `ancestor-lib-add`(自分の lib に置いて re-export する)。祖先の lib かどうかは基準の git だけで決まるので、`folderCatalog` の目録は使わない
      - 基準に `src/features/core/` があり、足したパスがその中で受け口(`intake.txt` の debt 以外の行)に当たらない → `core-add`(fork のドメインは `src/features/<x>/`、画面の部品は route の `_components/`)
      - 基準に `src/featureGate/`(門番)があり、足したパスがその中で受け口に当たらない → `gate-add`(足せるのは `rules/`・`alwaysOnExceptions/`・`required/` の `<名前>.ts`)
+     - 基準に `.claude/rules/core/` があり、足したパスがその中 → `rules-core-add`(上流の決まりのファイル。自分の決まりは `.claude/rules/` の `core/` の外に印なしの名前で、自分の品目の札は `.claude/rules/items/`。受け口の行は効かない)
      - 検査する場所への追加で、単位名が基準のファイルと同じ → `unit-clash`(下の「単位名」。`x.ts` と `x.tsx`、ファイルとフォルダの組。別の名前にするか、丸ごと置き換えは `<名前>.replace`)
      - `<対象>.override.ts(x)` で、対象が基準に無い → `override-own`(fork が自分で足した項目への override。fork の項目は直接書き換える。中間 Tier の項目は下の Tier の基準にあるので可)
      - `<名前>.default.<拡張子>` で、同じフォルダに基準のファイルがある → `default-add`(既定はそこを作ったリポの物。fork は既定の上に重ねる側に書く、例 1 行スイッチの `<名前>.replace`。自分のフォルダの自分の既定は可、中間 Tier も自分のルートに出してよい)
@@ -53,6 +54,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   | append | 基準の中身が先頭にそのまま残る → `append` | `not-append` |
   | generated | 生成物 → `generated` | — |
   | debt | — | `debt`(upstream の負債の箇所。一時許可で通す) |
+  | self | 書き換え → `self`(型 5: 各リポが自分の版を持つ。`.claude/rules/project.md`・`.claude/rules/behavior.md`・`repo.json` の 3 行だけ、1 ファイル 1 行・ぴったりのパス。行を足すのは Tier1 だけ。`pnpm workflow ownership who` は型 5 と答える) | — |
 
 - 載せている物(手書き = src の外だけ): リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)と README.md・`eslint.config.fork.mjs`(下)・firebase.json / ロゴ(public/)/ room の登録点(region)と wrangler.toml / `.claude/rules` の PER_PROJECT と marker・lineage.md(append)/ 負債(debt)。src の下の行は全部生成区画(下)
 - 受け口の行(生成区画 `# === AUTO-GENERATED intake START ===` 〜 `END`): `pnpm generate extensions` が書き、ずれは `pnpm check extensions` が止める(手で編集しない、`scripts/structure/extensions/README.md`「受け口の一覧の生成区画」)。src の下の行は全部ここで、出どころは 4 つの型(本部 D189):
@@ -235,7 +237,7 @@ src/lib/cron/config.ts
 
 ## 多段の Tier(D29・D34)
 
-- 厳密に判定するのは **Tier1(`src/lib/CATALOG.md` の先頭の節 = next-starter)の物**だけ。Tier1 の版にあるファイルは今どおり(受け口の中だけ書き換え、削除・rename は違反)。無いファイル = 中間 Tier 以下の物(親の fork が足したもの)は、書き換え・削除・rename を合格(reason `middle-tier`、`--verbose` で参考の一覧)。祖先の lib への追加は、その lib が Tier1 の版にあるときだけ違反。`unit-clash`・`override-own`・`default-add`・`default-edit`・`frame-plain` は付け替えない(どの段でも止める)
+- 厳密に判定するのは **Tier1(`src/lib/CATALOG.md` の先頭の節 = next-starter)の物**だけ。Tier1 の版にあるファイルは今どおり(受け口の中だけ書き換え、削除・rename は違反)。無いファイル = 中間 Tier 以下の物(親の fork が足したもの)は、書き換え・削除・rename を合格(reason `middle-tier`、`--verbose` で参考の一覧)。祖先の lib への追加は、その lib が Tier1 の版にあるときだけ違反。`unit-clash`・`override-own`・`default-add`・`default-edit`・`frame-plain` は付け替えない(どの段でも止める)。`.claude/rules/service/` の下(業務を定める段の業務の全体像)は中間 Tier が足した物も付け替えない(下流は書き換え・削除・rename しない。直したいときは /order <直接の親>、自分の業務は別のファイルで足す)
 - Tier1 の版の決め方: 自分の台帳の最後の `upstream:<sha>`(`/flux` が区間ごとの行に書く、取り込んだ上流の版)の版から、その版に `.notices/applied/` があれば、その版のリポの名前(その版の repo.json の `repo_id`、古い版は project.md の `fork_id:`)の台帳の最後の `upstream:` へ … と、`.notices/applied/` の無い版(Tier1)に着くまでたどる。段数に依らない
 - 未検証(exit 2): 台帳に `upstream:` が無い・その sha が履歴に無い(squash・rebase)・途中の版に名前(`repo_id` / 古い `fork_id:`)か、その名前の台帳が無い・循環・10 段を超える。台帳の改名と `upstream:` 欄は同じ取り込みで入れ、多段では**上の段から順に**取り込む(中間 Tier の台帳が旧い名前のままだと下の段が止まる)
 - override: Tier1 は override(`<対象>.override.ts`。cron は `src/app/api/cron/<name>/task.override.ts`)を出荷しない(`pnpm check extensions` が検査、`scripts/structure/extensions/README.md`「override」)ので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい

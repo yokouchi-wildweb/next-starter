@@ -3,7 +3,7 @@
 
 import { matchesGlob } from "node:path";
 
-export const INTAKE_KINDS = ["edit", "add", "region", "marker", "append", "generated", "debt"];
+export const INTAKE_KINDS = ["edit", "add", "region", "marker", "append", "generated", "debt", "self"];
 
 /** 受け口の一覧の置き場(リポジトリ直下からの相対) */
 export const INTAKE_FILE = "src/lib/forkOwnership/intake.txt";
