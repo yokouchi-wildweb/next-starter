@@ -1,43 +1,101 @@
 # Setting ドメイン
 
-管理者が稼働中に画面から変える値を持つコアドメイン。
+## Overview
 
-- **1 行 + jsonb 1 列**: `settings` 表の `id: "global"` の 1 行の `extended` に、保存したキーだけを持つ。既定値は書かない
+- 管理者が稼働中に画面から変える値を持つコアドメイン。デプロイで決まる値・コードが構造として依存する値は config(`src/config/`)
+- 使う時・直す時の決まりは札 .claude/rules/items/features/setting.md にある。この README は使い方と仕組み
+- **1 行 + jsonb 1 列**: `settings` 表の `id: "global"` の 1 行の `extended` に、保存したキーだけを持つ
 - **1 キー = 1 ファイル**: `fields/` のキーと `sections/` のセクションから、一覧を生成する(`extensions/`、編集不可)
 - **画面は route**: フォームは route の `_screen/` にある。core の setting は hook・型・保存処理だけ
+- 画面: `src/app/admin/(protected)/settings/[section]/_screen/`(`EditSettingSectionForm`)、`src/app/admin/setup/_screen/`(`AdminSetupForm`)
 
-## setting と config の境界
+## Usage
 
-- 管理者が稼働中に画面から変える値 = setting(既定はコード)
-- デプロイで決まる値・コードが構造として依存する値 = config(`src/config/`)
-- 同じ値を両方に置かない。setting の既定値が config を読むのは可、逆は不可
+### 読む
 
-## ディレクトリ構造
+```ts
+import { settingService } from "@/features/core/setting/services/server/settingService";
 
-```
-src/features/core/setting/
-├── extensionPoints.ts        # 拡張点 fields・sections の宣言
-├── fields/<キー>.ts          # 1 キーの定義
-├── sections/<名前>.ts        # 1 セクションの定義
-├── extensions/               # 生成された一覧(pnpm generate extensions)
-├── types/definition.ts       # キーとセクションの型
-├── menu.ts                   # 管理メニューの項目を作る
-├── utils/sectionForm.ts      # セクションの並びとフォームの組み立て
-├── entities/                 # 表の定義と型(Setting・SettingValues)
-├── hooks/                    # useSetting・useUpdateSetting・usePublicSetting・useAdminSetup・useSettingSectionForm・useMaintenanceAutoRedirect
-└── services/
-    ├── client/               # settingClient・adminSetupClient
-    └── server/
-        ├── settingService.ts # 読み・保存の入口(proxy からも読まれる)
-        ├── settingActor.ts   # 管理者向けの読み書き・公開の読み
-        ├── access.ts         # キーごとの権限の解決
-        ├── read.ts           # 保存値をキーごとに検証して読む
-        └── save.ts           # 唯一の書き手
+const setting = await settingService.getGlobalSetting();
+const { maintenanceEnabled } = await settingService.readSettingKeys(["maintenanceEnabled"]);
+const inMaintenance = await settingService.isMaintenanceActive();
 ```
 
-画面: `src/app/admin/(protected)/settings/[section]/_screen/`(`EditSettingSectionForm`)、`src/app/admin/setup/_screen/`(`AdminSetupForm`)。
+- 全キーの読みは `getGlobalSetting`、必要なキーだけの読みは `readSettingKeys`
 
-## キーを足す
+| 読み手 | 使うもの | 返るキー |
+|--------|----------|----------|
+| サーバー内部 | `settingService` | 全部 |
+| 管理画面 | `useSetting` / `getSettingForActor(user)` | そのロールに許されたキー |
+| 誰でも | `usePublicSetting` / `getPublicSetting()` | `public: true` のキー |
+
+### 保存する
+
+```ts
+const { trigger } = useUpdateSetting();
+await trigger({ id: "global", data: { maintenanceEnabled: true } });
+
+await settingService.updateFields({ maintenanceEnabled: true }); // サーバー内部(権限を見ない)
+await saveSettingAsActor(user, { maintenanceEnabled: true }); // 主体のロールの権限を見る
+```
+
+- 一覧に無いキーを送ると 400、検証の失敗も 400
+- 配列は連結せず置き換える(キー単位で重ねる)
+- `create`・`upsert`・`remove` は 405。行を作るのは初回セットアップだけ
+- 注意: 旧版へ戻した間に保存すると、旧版の知らないキーの値が消える
+
+### 管理画面の編集フォームと初期セットアップ(公開 hook、client)
+
+既定の `_screen` 部品(`/admin/settings/[section]` の `EditSettingSectionForm`、`/admin/setup` の `AdminSetupForm`)は次の hook を呼んで描くだけ。見た目を変える fork は自分の Screen の client 部品から同じ hook を呼ぶ(form と送信を写さない)。
+
+| hook | 引数 | 戻り値 |
+| --- | --- | --- |
+| `useSettingSectionForm({ sectionKey, setting, redirectPath? })` | `sectionKey: string`(節の key)/ `setting: Setting`(そのロールに許されたキーだけの今の値)/ `redirectPath?: string`(保存の後の遷移先、既定 `"/"`) | `{ methods, section, fieldConfigs, submit, isMutating }` |
+| `useAdminSetup({ redirectTo? })` | `redirectTo?: string`(既定 `ADMIN_SETUP_REDIRECT_PATH` = `"/admin/login"`) | `{ trigger, submit, isMutating, error }` |
+
+- `useSettingSectionForm`: 欄は節のキーの定義(`setting/fields` の `ui`)から作り(`buildSectionForm`)、`useForm`(zodResolver)まで持つ。部品は `methods` を `AppForm` に、`fieldConfigs` と `section.groups` を `FieldRenderer` に渡す。`submit` を `AppForm` の `onSubmit` に渡す: 更新中の toast → 保存 → 成功の toast → `redirectPath` へ遷移
+- `useAdminSetup`: `submit(values)` = 送信 → 成功の toast → `redirectTo` へ遷移(初期設定の form の `customSubmit.handler` に渡す)。`trigger` は送信だけ
+- 失敗(両方): error の toast を出して投げ直す(src/lib/unsavedGuard/README.md「送信」)
+- この組み立てで足りない画面は、route の `_components/` に Screen を作って組み立てる
+
+### メンテナンス画面の自動遷移
+
+`useMaintenanceAutoRedirect({ endTime, redirectTo }): void`(公開 hook、client)。`endTime` = 終了時刻(ISO8601、`maintenanceEndAt` を /maintenance の loader が渡す。`null` = 遷移しない)、`redirectTo` = 終了時の遷移先。終了時刻に `router.replace(redirectTo)`、過ぎていれば即時、unmount で timer を解く。既定の `_screen/MaintenanceAutoRedirect` はこれを呼ぶだけ。
+
+## API
+
+### ルート
+
+| メソッド | パス | access | 説明 |
+|----------|------|--------|------|
+| GET | `/api/setting/public` | public | `public: true` のキーの値 |
+| GET | `/api/setting/admin` | 管理カテゴリ | そのロールに許されたキーの値 |
+| PATCH | `/api/setting/admin` | 管理カテゴリ | 許されたキーの保存(`{ data }`) |
+| POST | `/api/setting/setup` | public | 初期セットアップ |
+
+汎用 `/api/setting` は閉じている(`INTERNAL_ONLY`、管理データの export だけ管理者)。主体を渡せず、キーごとの権限が効かないため。
+
+### 権限
+
+キーの権限は次の順で決まる: キーの `allowRoles` → 所属セクションの `allowRoles` → どちらも無ければ管理カテゴリの全ロール。
+
+- セクションの `allowRoles`: メニューの表示と画面を開けるロール
+- 許されないキーは欄を出さず、管理者向けの読みでも返さない
+- 許されないキーを 1 つでも送ると 403 で全部拒否する(一部だけ保存しない)
+- フォームは開いているセクションのキーだけを送る
+
+### 初期セットアップ (`POST /api/setting/setup`) のセキュリティモデル
+
+- 未認証(`access: "public"`)だが ワンショット: `initializeAdminSetup` が冒頭で `checkAdminUserExists()` を確認し、管理者が 1 人でも存在すれば 409 で拒否する(fail-closed、画面側の redirect は UI 補助にすぎない)
+- `role` はクライアント入力を無視して `admin` 固定(セットアップ UI にロール選択は存在しない)
+- 設定の行を作るだけで、既定値は書かない
+- レート制限 `adminSetup`(同一 IP 1 時間 10 回、`src/features/core/rateLimit/config.ts`)。レスポンスは `{ success: true }` のみで、作成したユーザー行は返さない
+- 既知の受容リスク: 管理者が 1 人もいない間は、このルートを最初に叩いた人が管理者になる(デプロイ直後にセットアップを済ませる運用が前提)
+- 既知の受容リスク: 存在チェックと作成が同一トランザクションでないため、初回セットアップ完了前のみ同時リクエストによる複数管理者作成の競合窓が理論上ある。セットアップ時点では実運用開始前のためリスク受容(`settingService.ts` の `initializeAdminSetup` のコメント)
+
+## Extension
+
+### キーを足す
 
 `fields/<キー>.ts` を置き、`pnpm generate extensions` を実行する。ファイル名がキーの名前になる(上流も fork も同じ形。名前に fork の印は付けない)。DB の変更は要らない。
 
@@ -57,14 +115,12 @@ export const field = {
 - `public`: `true` で公開の窓口に出す(既定 `false`)
 - `allowRoles`: 書き込みと管理者向けの読みを許すロール
 - `ui`: 設定画面の欄(`section`・`group`・`order`・`field`)。無いキーは設定画面に出ず、使う画面の側が管理者向けの窓口で保存する
-- 値 import の先は `zod`・`@/config`・純関数・型だけ。React・`server-only`・DB・サービスを推移的に辿ると生成で失敗する(proxy と client の両方から読むため)
+- 値 import が React・`server-only`・DB・サービスを推移的に辿ると生成で失敗する
 - 同じ名前のキー・無いセクションを指すキーは生成で失敗する
+- 欄の説明文: `ui.field` に `helperText` を書くと、設定画面の枠がラベルの下に描く(組み込みの入力も、`frame: true` の登録部品も同じ)
+- 独自の入力部品の欄: 部品を `src/wiring/formInputs/inputs/<名前>.ts` に登録し、欄の `ui.field` に `formInput: "<登録名>"` と書く(書き方: `src/wiring/formInputs/inputs/README.md`)。欄の定義は名前だけなので値 import の決まりに当たらない
 
-欄の説明文: `ui.field` に `helperText` を書くと、設定画面の枠がラベルの下に描く(組み込みの入力も、`frame: true` の登録部品も同じ。部品の中で自分で描かない)。
-
-独自の入力部品の欄: 部品を `src/wiring/formInputs/inputs/<名前>.ts` に登録し、欄の `ui.field` に `formInput: "<登録名>"` と書く(書き方: `src/wiring/formInputs/inputs/README.md`)。部品の本体は `src/features/<ドメイン>/components/` に置く(core に足さない。欄の定義は名前だけなので上の値 import の決まりに当たらない)。
-
-## セクションを足す
+### セクションを足す
 
 `sections/<名前>.ts`(上流も fork も同じ形)を置き、`pnpm generate extensions` を実行する。管理メニューと `/admin/settings/<key>` は一覧から作られる。
 
@@ -83,112 +139,30 @@ export const section: SettingSectionDefinition = {
 
 属性は `key`・`label`・`order`・`icon`・`allowRoles`・`description`・`groups`・`feature`。キーは欄の側に `ui.section` で所属を書く。同じ `key` のセクションは生成で失敗する。
 
-- `feature`(省略可、規則名 `FeatureName` の文字列リテラルかその配列): その機能が 1 つでも閉じている間、`/admin/settings/<key>` が門番で閉じる(管理メニューの行が消え、直接開くと 404、`/admin/settings` は次の開いた節へ)。仕組みは生成器が節を字面で読み規則の住所に足す(`src/featureGate/README.md`「規則の書き方」)。規則名でない値は生成で失敗する。override では変えない
+- `feature`(省略可、規則名の配列も可): その機能が 1 つでも閉じている間、`/admin/settings/<key>` が門番で閉じる(管理メニューの行が消え、直接開くと 404、`/admin/settings` は次の開いた節へ)。生成器が節を字面で読み規則の住所に足す(`src/featureGate/README.md`「規則の書き方」)。規則名でない値は生成で失敗する
 - 閉じた節のキーの値と `/api/setting` の読み書きは変わらない(隠すだけ)
 
-この組み立てで足りない画面は、route の `_components/` に Screen とフォームを複製して組み立てる。
+### 親の Tier のキー・セクションを変える
 
-## 親の Tier のキー・セクションを変える
-
-上の Tier のファイルは書き換えない。隣の `<名前>.override.ts` に `export const override` を置く。
+上の Tier のファイルは書き換えず、隣の `<名前>.override.ts` に `export const override` を置く。fork のファイルは、下の Tier が直接書き換える。
 
 - キー: `ui`・`public`・`default`・`allowRoles`(型と検証は変えられない)
 - セクション: `label`・`order`・`icon`・`allowRoles`・`description`・`groups`
-- 権限は絞るだけ(広げない。管理メニューの上書きと同じ決まり): 上書きを重ねた後のキーの実効の権限(キーの `allowRoles` → 所属セクションの `allowRoles` → どちらも無ければ管理カテゴリ全員)が、重ねる前の中に収まること。外のロール・空の配列・`allowRoles: undefined` で絞りを外す・絞りの無いセクションへ `ui` で移す、のどれも `pnpm check extensions` が止める。セクションの上書きの `allowRoles` も同じ。権限に関わる `allowRoles`・`ui.section` は文字列リテラル(の配列)で書く(上流に絞りがある所で読めない書き方は確かめられないので止める)。`groups` は画面の中の並びだけで権限に入らない。検査: `scripts/structure/extensions/derive/settingRoles.mjs`
+- 権限の検査: 上書きを重ねた後のキーの実効の権限(キーの `allowRoles` → 所属セクションの `allowRoles` → どちらも無ければ管理カテゴリ全員)が、重ねる前の中に収まること。外のロール・空の配列・`allowRoles: undefined` で絞りを外す・絞りの無いセクションへ `ui` で移す、のどれも `pnpm check extensions` が止める。セクションの上書きの `allowRoles` も同じ。`groups` は画面の中の並びだけで権限に入らない。検査: `scripts/structure/extensions/derive/settingRoles.mjs`
 
-fork のファイルは、下の Tier が直接書き換える。
+## Internals
 
-## 読む
-
-```ts
-import { settingService } from "@/features/core/setting/services/server/settingService";
-
-const setting = await settingService.getGlobalSetting();
-const { maintenanceEnabled } = await settingService.readSettingKeys(["maintenanceEnabled"]);
-const inMaintenance = await settingService.isMaintenanceActive();
-```
-
-- 全キーの読みは `getGlobalSetting`、必要なキーだけの読みは `readSettingKeys`(proxy・health・maintenance loader はこちら)
-- キーごとに検証する。保存値が今の定義に合わないキーだけ既定値を返し、サーバーログに警告する。保存値は書き換えない
+- 読み: キーごとに検証する。保存値が今の定義に合わないキーだけ既定値を返し、サーバーログに警告する。保存値は書き換えない
 - 行が無い・DB 未構成なら既定値。接続できないときは例外のまま(障害を隠さない)
+- 保存: `save.ts` が送ったキーだけを検証して jsonb に重ね、同じ 1 本の文で一覧に無いキーを取り除く(残りが 0 なら `{}`)
+- `adminListPerPage` の既定値はキーの定義の 1 か所で 100
 
-| 読み手 | 使うもの | 返るキー |
-|--------|----------|----------|
-| サーバー内部 | `settingService` | 全部 |
-| 管理画面 | `useSetting` / `getSettingForActor(user)` | そのロールに許されたキー |
-| 誰でも | `usePublicSetting` / `getPublicSetting()` | `public: true` のキー |
+### 実列 admin_list_per_page から jsonb への移行
 
-公開するのは保存値だけ。計算した値(交換レート等)は持ち主のドメインの route と hook に置く。
+旧版の書き込みを止める → `pnpm task setting:copy-list-per-page`(`mismatched: 0` を確かめる)→ `pnpm db:push` → `pnpm db:push:check`(差分 0)。task より先に push すると列の値が失われる。task は冪等で、列が無ければ何もしない。
 
-### メンテナンス画面の自動遷移
+## Verification
 
-`useMaintenanceAutoRedirect({ endTime, redirectTo }): void`(公開 hook、client)。`endTime` = 終了時刻(ISO8601、`maintenanceEndAt` を /maintenance の loader が渡す。`null` = 遷移しない)、`redirectTo` = 終了時の遷移先。終了時刻に `router.replace(redirectTo)`、過ぎていれば即時、unmount で timer を解く。既定の `_screen/MaintenanceAutoRedirect` はこれを呼ぶだけ。見た目を変える fork は自分の Screen の client 部品から呼ぶ。テスト: `pnpm test src/features/core/setting/hooks/`
-
-## 保存する
-
-```ts
-const { trigger } = useUpdateSetting();
-await trigger({ id: "global", data: { maintenanceEnabled: true } });
-
-await settingService.updateFields({ maintenanceEnabled: true }); // サーバー内部(権限を見ない)
-await saveSettingAsActor(user, { maintenanceEnabled: true }); // 主体のロールの権限を見る
-```
-
-- 書き手は `save.ts` だけ。送ったキーだけを検証して jsonb に重ね、同じ 1 本の文で一覧に無いキーを取り除く(残りが 0 なら `{}`)
-- 一覧に無いキーを送ると 400、検証の失敗も 400
-- 配列は連結せず置き換える(キー単位で重ねる)
-- `create`・`upsert`・`remove` は 405。行を作るのは初回セットアップだけ
-- 注意: 旧版へ戻した間に保存すると、旧版の知らないキーの値が消える
-
-### 管理画面の編集フォームと初期セットアップ(公開 hook、client)
-
-既定の `_screen` 部品(`/admin/settings/[section]` の `EditSettingSectionForm`、`/admin/setup` の `AdminSetupForm`)は次の hook を呼んで描くだけ。見た目を変える fork は自分の Screen の client 部品から同じ hook を呼ぶ(form と送信を写さない)。
-
-| hook | 引数 | 戻り値 |
-| --- | --- | --- |
-| `useSettingSectionForm({ sectionKey, setting, redirectPath? })` | `sectionKey: string`(節の key)/ `setting: Setting`(そのロールに許されたキーだけの今の値)/ `redirectPath?: string`(保存の後の遷移先、既定 `"/"`) | `{ methods, section, fieldConfigs, submit, isMutating }` |
-| `useAdminSetup({ redirectTo? })` | `redirectTo?: string`(既定 `ADMIN_SETUP_REDIRECT_PATH` = `"/admin/login"`) | `{ trigger, submit, isMutating, error }` |
-
-- `useSettingSectionForm`: 欄は節のキーの定義(`setting/fields` の `ui`)から作り(`buildSectionForm`)、`useForm`(zodResolver)まで持つ。部品は `methods` を `AppForm` に、`fieldConfigs` と `section.groups` を `FieldRenderer` に渡す。`submit` を `AppForm` の `onSubmit` に渡す: 更新中の toast → 保存 → 成功の toast → `redirectPath` へ遷移
-- `useAdminSetup`: `submit(values)` = 送信 → 成功の toast → `redirectTo` へ遷移(初期設定の form の `customSubmit.handler` に渡す)。`trigger` は送信だけ
-- 失敗(両方): error の toast を出して**投げ直す**。`AppForm` は `onSubmit` が投げたときだけ未保存の守りを戻すので、投げずに返すと保存していないのに守りが外れる(src/lib/unsavedGuard/README.md「送信」)
-- テスト: `pnpm test src/features/core/setting/hooks/adminFormHooks.test.tsx`
-
-## 権限
-
-キーの権限は次の順で決まる: キーの `allowRoles` → 所属セクションの `allowRoles` → どちらも無ければ管理カテゴリの全ロール。
-
-- セクションの `allowRoles`: メニューの表示と画面を開けるロール
-- 許されないキーは欄を出さず、管理者向けの読みでも返さない
-- 許されないキーを 1 つでも送ると 403 で全部拒否する(一部だけ保存しない)
-- フォームは開いているセクションのキーだけを送る
-
-## API
-
-| メソッド | パス | access | 説明 |
-|----------|------|--------|------|
-| GET | `/api/setting/public` | public | `public: true` のキーの値 |
-| GET | `/api/setting/admin` | 管理カテゴリ | そのロールに許されたキーの値 |
-| PATCH | `/api/setting/admin` | 管理カテゴリ | 許されたキーの保存(`{ data }`) |
-| POST | `/api/setting/setup` | public | 初期セットアップ |
-
-汎用 `/api/setting` は閉じている(`INTERNAL_ONLY`、管理データの export だけ管理者)。主体を渡せず、キーごとの権限が効かないため。
-
-### 初期セットアップ (`POST /api/setting/setup`) のセキュリティモデル
-
-- 未認証(`access: "public"`)だが **ワンショット**: `initializeAdminSetup` が冒頭で `checkAdminUserExists()` を確認し、管理者が 1 人でも存在すれば 409 で拒否する(fail-closed、画面側の redirect は UI 補助にすぎない)
-- `role` はクライアント入力を無視して `admin` 固定(セットアップ UI にロール選択は存在しない)
-- 設定の行を作るだけで、既定値は書かない
-- レート制限 `adminSetup`(同一 IP 1 時間 10 回、`src/features/core/rateLimit/config.ts`)。レスポンスは `{ success: true }` のみで、作成したユーザー行は返さない
-- 既知の受容リスク: 管理者が 1 人もいない間は、このルートを最初に叩いた人が管理者になる(デプロイ直後にセットアップを済ませる運用が前提)
-- 既知の受容リスク: 存在チェックと作成が同一トランザクションでないため、初回セットアップ完了前のみ同時リクエストによる複数管理者作成の競合窓が理論上ある。セットアップ時点では実運用開始前のためリスク受容とし、advisory lock 等での厳密化は意図的に見送っている(判断根拠は `settingService.ts` の `initializeAdminSetup` コメント参照)
-
-## 実列 admin_list_per_page から jsonb への移行
-
-順番を変えない: 旧版の書き込みを止める → `pnpm task setting:copy-list-per-page`(`mismatched: 0` を確かめる)→ `pnpm db:push` → `pnpm db:push:check`(差分 0)。task より先に push すると列の値が失われる。task は冪等で、列が無ければ何もしない。
-
-`adminListPerPage` の既定値はキーの定義の 1 か所で 100。
-
-## テスト
-
-`pnpm test src/features/core/setting/services/server/settingStorage.test.ts src/features/core/setting/scripts/migrations/copy-list-per-page.test.ts`(読み・保存・権限・フォーム)、`pnpm check extensions`(生成物の一致)。
+- `pnpm test src/features/core/setting/services/server/settingStorage.test.ts src/features/core/setting/scripts/migrations/copy-list-per-page.test.ts`(読み・保存・権限・フォーム)
+- `pnpm test src/features/core/setting/hooks/`(メンテナンスの自動遷移・フォームの hook。`adminFormHooks.test.tsx`)
+- `pnpm check extensions`(生成物の一致)
