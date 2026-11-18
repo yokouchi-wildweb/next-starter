@@ -19,7 +19,7 @@
 
 ### fork の差し替え手順
 
-1. 値で済むもの(背景の 3 値、ヘッダー・フッター・ボトムナビの表示設定やメニュー)は枠の設定の上書きに書く: 値は `src/config/layout/user.config.ts`、メニュー項目・SNS リンク・ログアウトのアイコンは `src/config/layout/user.ui.config.ts`(§設定ファイル)
+1. 値で済むもの(背景の 3 値、ヘッダー・フッター・ボトムナビの表示設定やメニュー)は枠の設定の上書きに書く: 値は `src/config/layout/user.config.ts`、メニュー項目・SNS リンク・ログアウトのアイコンは `src/config/layout/user.ui.config.ts`(Extension「設定ファイル」)
 2. 部品を替えるときは、fork の部品をルートの `_components/` に印なしの名前で置き(`src/app/(user)/_components/AcmeHeader.tsx`。`_layout/` の中の部品の隣に `.replace` を置かない: 置き換えられるのは 1 行スイッチの向け先と `<名前>.default` の隣だけで、それ以外は `pnpm check extensions` の孤立の検査が止める)、隣に `UserLayout.replace.tsx` を置いて既定の UserLayout に slot を渡し、layout.tsx をそちらへ向ける
 
 ```tsx
@@ -41,7 +41,7 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.replace";
 ```
 
 3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx を `UserLayout.replace.tsx` へコピーして編集する(外枠の `data-frame-root` と `useFrameAttributes(frameTable)` の属性、部位の `data-slot` は残す。無いと枠の宣言が効かない)
-- 組み立てでガードを書かない(範囲の守りは layout の隣の guard.ts の guard() だけ)。組み立て(スイッチ先)が旧ガード(authGuard 等)を呼ぶとルート地図の生成が失敗する(`pnpm generate routes`、src/lib/screens/README.md §13)
+- 組み立てでガードを書かない(範囲の守りは layout の隣の guard.ts の guard() だけ)。組み立て(スイッチ先)が旧ガード(authGuard 等)を呼ぶとルート地図の生成が失敗する(`pnpm generate routes`、src/lib/screens/Internals.md「ルート地図（`src/app/route-map.jsonl`）」)
 
 ### fill のページ(本文が画面の高さを埋める)
 
@@ -100,7 +100,7 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.replace";
   - 出す住所は `inbox.unreadModalPaths`（既定 `["/"]`、上書き `src/config/features/messaging.config.ts`）。
   - `UserLayout.replace` は既定の `UserLayout` を描けばそのまま付く（自分の枠にもう 1 つ置くと 2 重に出る）。
   - 流れは hook `useInboxUnreadModal`（自前のモーダルを組む時もこれを呼ぶ。門と config もここで見る）
-- slot の約束: 省略(undefined) = 既定の部品 / `null` = 描かない / 要素 = それを描く。props なしの描画(DOM・id・順序)は 1 行スイッチ化の前と同じ(test で固定。寸法変数の区切りで入った差分 2 か所は下の「寸法の CSS 変数」)
+- slot の約束: 省略(undefined) = 既定の部品 / `null` = 描かない / 要素 = それを描く。props なしの描画(DOM・id・順序)は test で固定(寸法の変数のために既定の DOM が持つ 2 か所は下の「寸法の CSS 変数」)
 - banner を渡すと、帯の実測の高さを外枠の `--app-banner-height` に書き、ヘッダーの top と本文(本文の包みの前のスペーサー)をその分押し下げる。SP メニューもヘッダーの下から開く。差し替えたヘッダーは `top-0` の代わりに `top-[var(--app-banner-height,0px)]` を使う(使わないと帯に被る)
 
 ### UserNavigation の slot
@@ -330,7 +330,7 @@ export const frame = {
 
 ### data-slot の一覧
 
-利用者の枠の部位と Main に付ける `data-slot`(余白の議会の一覧の利用者の枠 15 名と Main 3 名 = `src/app/_layout/frame/parts.mjs` の利用者の枠と Main)と、この枠の部品が描く見出しの印 `user-page-title`(一覧の見出しのうち source がこのフォルダのもの)。
+利用者の枠の部位と Main に付ける `data-slot`(部位の一覧 `src/app/_layout/frame/parts.mjs` の利用者の枠の 15 個と Main の 3 個)と、この枠の部品が描く見出しの印 `user-page-title`(一覧の見出しのうち source がこのフォルダのもの)。
 fork の CSS はこの名前で狙う(`[data-slot="header-shell"]` など)。
 枠の部品と Main は見た目のための id・`data-component` を持たない(狙う先は data-slot だけ。残る id は下の一覧の注記)。
 ほかの見出しの印(`page-title`・`sec-title` など)は TextBlocks の部品が付ける(`src/components/TextBlocks/README.md`)。

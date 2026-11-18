@@ -189,3 +189,8 @@ Next サーバー経由 (`createRoomClient`) にすること。** クライア�
 - callback effect は fire-and-forget (失敗はログのみ)。**最終的な永続化の責任はアプリ側の設計に置く**
   (例: 抽選結果は先に PG に書き、ルームには表示反映だけを dispatch する)
 - Firestore の全面置き換えではない。非競合の per-user ドキュメント購読は従来通り Firestore
+
+## Verification
+
+- `pnpm test servers/room`(ルームの中身 `src/core/room.test.ts`。servers/ は名指しした時だけ回る)
+- 動いている Worker: `pnpm ops room check`(疎通・認可・WS 配信・永続化の 11 項目)

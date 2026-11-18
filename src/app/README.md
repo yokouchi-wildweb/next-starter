@@ -9,7 +9,7 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 | `(user)/` | ユーザー向けフロントエンド |
 | `(marketing)/` | ランディングページ等。`(user)/` の枠(ヘッダー・フッター)の外の兄弟の枝。枠は `_layout/MarketingLayout`(既定は素通し、`_layout/README.md`) |
 | `admin/` | 管理者向け画面 |
-| `debug/` | デバッグ用画面（管理者カテゴリ + デバッガーロール限定、layout が一括ガード） |
+| `debug/` | デバッグ用画面（管理者カテゴリ + デバッガーロール限定。範囲は `debug/guard.ts`、layout は `await guard()`） |
 | `api/` | API ルート |
 
 ### (user)/ の構造
@@ -33,6 +33,8 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 | `_template/` | コード生成テンプレート | - |
 
 ### api/ の構造
+
+主な物だけ(全部と書き方は `api/README.md`):
 
 | パス | 説明 |
 |------|------|
@@ -59,7 +61,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 - 差し替え（コピーしてよいかは CLAUDE.md FORK_EXTENSION で判定）: `_screen/` の Screen を `_components/<Name>Screen.tsx` にコピーし、loader の import を `../_screen/loader` に直して page.tsx の 1 行を向ける。loader はそのまま呼ぶ
 - `pnpm test src/lib/screens/screens.test.mjs` が `src/app` 全体のページ（`_` で始まるディレクトリと `api/` を除く）を自動検出して検査する（登録不要。fork の独自エリアや debug / admin に足したページも対象）。検査から外すディレクトリだけ `src/config/app/screens.config.ts` の `FORK_SCAN_EXCLUDES` に書く。スイッチ形でない page.tsx は失敗する（未移行の例外リストは無い）
-- ルート地図 `route-map.jsonl`（このディレクトリ直下）は全ページの守りの鎖（page → Screen → loader の access → guard.ts の段）を 1 行 1 JSON にした生成物（機械が読む）。ページ・loader・guard.ts を変えたら `pnpm generate routes` で作り直してコミットする（ずれは `pnpm test 'src/lib/screens/routeMap*.test.mjs'` が失敗にする。merge で衝突したら作り直す。詳細は `pnpm check routes -- show`、仕様は src/lib/screens/README.md §13）
+- ルート地図 `route-map.jsonl`（このディレクトリ直下）は全ページの守りの鎖（page → Screen → loader の access → guard.ts の段）を 1 行 1 JSON にした生成物（機械が読む）。ページ・loader・guard.ts を変えたら `pnpm generate routes` で作り直してコミットする（ずれは `pnpm test 'src/lib/screens/routeMap*.test.mjs'` が失敗にする。merge で衝突したら作り直す。詳細は `pnpm check routes -- show`、仕様は src/lib/screens/Internals.md「ルート地図（`src/app/route-map.jsonl`）」）
 - 上流の core ルートはすべてスイッチ形。新しい core ルートもスイッチ形で作る
 - `_screen/` には Screen と loader のほかに、既定 Screen 専用の部品を置いてよい（直下でもサブディレクトリでも。例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`）。部品は契約外。`_components/` は下流の場所で、上流のルートでは上流が何も置かない
 
@@ -91,12 +93,12 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 自由: 段の数、名前、group か URL フォルダか、入れ子の順序、枠と認証の混在、ラベルだけの group(どれも禁止しない)。
 
-フォルダ名(`(protected)` 等)は検査にも認可にも意味を持たない。認可は範囲の `guard.ts`(layout の隣、親子 AND)と loader の `access` で決まり、ルート地図(`route-map.jsonl`)が鎖を確かめる(src/lib/screens/README.md §4・§13)。
+フォルダ名(`(protected)` 等)は検査にも認可にも意味を持たない。認可は範囲の `guard.ts`(layout の隣、親子 AND)と loader の `access` で決まり、ルート地図(`route-map.jsonl`)が鎖を確かめる(src/lib/screens/API.md「範囲（guard.ts）と loader の書き方」・Internals.md「ルート地図（`src/app/route-map.jsonl`）」)。
 
 決まった置き場:
 
 - 開発・デモ用ページ → `(user)/demo/`
-- デバッグ用(管理者カテゴリ + デバッガーロールだけに見せる)→ `debug/`(layout が一括でガード)
+- デバッグ用(管理者カテゴリ + デバッガーロールだけに見せる)→ `debug/`(範囲の `debug/guard.ts` が配下の全ページを守る)
 
 ### 推奨する構造（ユーザー向けページ）
 
@@ -114,7 +116,7 @@ loader はドメインの features ではなくルートの中に置く（複数
 
 ### Route Group の使い分け
 
-- `(xxx)`: URLに影響せず、レイアウト・ミドルウェアを共有
+- `(xxx)`: URLに影響せず、レイアウトを共有
 - `xxx`: 通常のルートセグメント（URLに反映）
 - `_xxx`: Next.js に無視される（テンプレート等）
 
@@ -142,7 +144,8 @@ src/app/
 │   └── _layout/            ← MarketingLayout(既定は素通し)
 ├── admin/                  ← URL フォルダの layout(枠 = 1 行スイッチ → _layout/。ガードは (protected)/ の layout)
 └── debug/
-    └── layout.tsx          ← 管理者カテゴリ + デバッガーのガード
+    ├── guard.ts            ← 管理者カテゴリ + デバッガーの範囲
+    └── layout.tsx          ← await guard() の 1 行
 ```
 
 - layout はサーバー側でデータを取らない（services/server・DB・loader を import しない。認可は authorization の関数だけ）。取得は loader で行う。lint `page-authz`、詳細: [auth README「置き場所の検査」](../features/core/auth/README.md)
@@ -151,4 +154,4 @@ src/app/
 
 - 汎用CRUD: `api/[domain]/` で自動対応（routeFactory使用）
 - 個別API: 用途別ディレクトリに配置
-- routeFactory必須: `createApiRoute` / `createDomainRoute` を使用
+- Factory 必須: `createDomainRoute` / `createApiRoute` / `createMeRoute` / `createDeviceRoute` のどれか(`@/wiring/apiRoute` から import。CLAUDE.md API_ROUTES)
