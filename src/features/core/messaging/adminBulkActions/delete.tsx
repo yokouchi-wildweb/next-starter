@@ -31,8 +31,6 @@ function DeleteDispatches({ selection, onDone }: BulkActionProps<AdminDispatchSu
       <Dialog
         open={open}
         onOpenChange={setOpen}
-        layer="floating"
-        overlayLayer="floating"
         title={`${ids.length} 件の送信を削除`}
         confirmLabel="削除する"
         confirmVariant="destructive"

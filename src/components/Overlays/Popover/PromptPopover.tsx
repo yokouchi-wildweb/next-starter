@@ -114,7 +114,6 @@ export function PromptPopover({
   onOpenChange,
   // PopoverContent props
   size = "md",
-  layer,
   showArrow,
   side,
   sideOffset,
@@ -231,7 +230,6 @@ export function PromptPopover({
       <PopoverTrigger asChild={asChild}>{trigger}</PopoverTrigger>
       <PopoverContent
         size={size}
-        layer={layer}
         showArrow={showArrow}
         side={side}
         sideOffset={sideOffset}

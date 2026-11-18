@@ -6,11 +6,8 @@ import * as React from "react";
 import { HoverCardArrow, HoverCardContent, HoverCardPortal, HoverCardRoot, HoverCardTrigger } from "@/components/Primitives/HoverCard";
 
 import { cn } from "@/lib/cn";
-import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
+import { zLayerClass } from "@/lib/zLayer";
 
-// レイヤータイプ
-/** 層(層の名 @/lib/zLayer のうち受ける範囲) */
-export type HoverCardLayer = Extract<ZLayerName, "floating">;
 
 // サイズプリセット
 export type HoverCardSize = "sm" | "md" | "lg" | "xl" | "auto";
@@ -40,8 +37,6 @@ export type HoverCardProps = {
   closeDelay?: number;
   /** サイズプリセット */
   size?: HoverCardSize;
-  /** z-indexレイヤー */
-  layer?: HoverCardLayer;
   /** 矢印を表示するか */
   showArrow?: boolean;
   /** triggerにasChildを適用するか */
@@ -87,7 +82,6 @@ export function HoverCard({
   openDelay = 300,
   closeDelay = 200,
   size = "md",
-  layer = "floating",
   showArrow = false,
   asChild = true,
   className,
@@ -127,7 +121,7 @@ export function HoverCard({
             "data-[side=right]:slide-in-from-left-2",
             "data-[side=top]:slide-in-from-bottom-2",
             SIZE_CLASS[size],
-            zLayerClass(layer),
+            zLayerClass("floating"),
             className
           )}
         >

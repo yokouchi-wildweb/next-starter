@@ -11,16 +11,13 @@ import {
   DialogPortal,
   DialogTitle,
   FALLBACK_DIALOG_TITLE,
-  type DialogOverlayLayer,
 } from "@/components/Primitives/Dialog";
 import { cn } from "@/lib/cn";
-import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
+import { zLayerClass } from "@/lib/zLayer";
 
 /** 板の出る辺 */
 export type SheetSide = "bottom" | "top" | "left" | "right";
 
-/** 板の層(@/lib/zLayer の名のうち受ける範囲)。浮く物は全部 floating(ナビゲーションの引き出しも) */
-export type SheetLayer = Extract<ZLayerName, "floating">;
 
 /** 板の印(data-slot)。sheet 以外は上流の包む部品が渡す。fork は名前を変えずに印を狙う */
 export type SheetSlot = "sheet" | "admin-sidebar";
@@ -42,10 +39,6 @@ export type SheetProps = {
   className?: string;
   /** 背景(覆い)に足すクラス */
   overlayClassName?: string;
-  /** 板の層。@default "floating" */
-  layer?: SheetLayer;
-  /** 背景の層。@default "floating" */
-  overlayLayer?: DialogOverlayLayer;
   /** portal の先の要素(省略 = body)。渡すと背景と板はその要素の中で absolute に重なる */
   container?: HTMLElement | null;
   /** 本体をスクロールの箱(overflow-y-auto)にするか。@default true。
@@ -93,8 +86,6 @@ export function Sheet({
   size,
   className,
   overlayClassName,
-  layer = "floating",
-  overlayLayer = "floating",
   container,
   scrollable = true,
   showCloseButton = true,
@@ -144,7 +135,7 @@ export function Sheet({
         <DialogPrimitive.Overlay
           className={cn(
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 bg-overlay/50",
-            zLayerClass(overlayLayer),
+            zLayerClass("floating"),
             container && "absolute",
             overlayClassName,
           )}
@@ -154,7 +145,7 @@ export function Sheet({
           className={cn(
             "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed flex flex-col shadow-lg outline-none duration-200",
             SIDE_CLASS[side],
-            zLayerClass(layer),
+            zLayerClass("floating"),
             container && "absolute",
             className,
           )}

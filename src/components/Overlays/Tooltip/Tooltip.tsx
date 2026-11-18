@@ -6,13 +6,10 @@ import * as React from "react";
 import { TooltipArrow, TooltipContent, TooltipPortal, TooltipProvider, TooltipRoot, TooltipTrigger } from "@/components/Primitives/Tooltip";
 
 import { cn } from "@/lib/cn";
-import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
+import { zLayerClass } from "@/lib/zLayer";
 
 import { useIsInsideTooltipProvider } from "./Provider";
 
-// レイヤータイプ
-/** 層(層の名 @/lib/zLayer のうち受ける範囲) */
-export type TooltipLayer = Extract<ZLayerName, "floating">;
 
 export type TooltipProps = {
   /** ツールチップの内容 */
@@ -35,8 +32,6 @@ export type TooltipProps = {
    * 未指定なら共有 Provider の設定に従う。
    */
   skipDelayDuration?: number;
-  /** z-indexレイヤー */
-  layer?: TooltipLayer;
   /** 矢印を表示するか */
   showArrow?: boolean;
   /** triggerにasChildを適用するか */
@@ -78,7 +73,6 @@ export function Tooltip({
   sideOffset = 4,
   delayDuration = 200,
   skipDelayDuration,
-  layer = "floating",
   showArrow = true,
   asChild = true,
   className,
@@ -117,7 +111,7 @@ export function Tooltip({
               "data-[side=left]:slide-in-from-right-2",
               "data-[side=right]:slide-in-from-left-2",
               "data-[side=top]:slide-in-from-bottom-2",
-              zLayerClass(layer),
+              zLayerClass("floating"),
               className
             )}
           >

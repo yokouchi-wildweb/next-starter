@@ -73,10 +73,8 @@ export function Popover({
   asChild = true,
   // PopoverContent props
   size,
-  layer,
   showArrow,
   showClose,
-  usePortal,
   side,
   sideOffset,
   align,
@@ -104,10 +102,8 @@ export function Popover({
       <PopoverTrigger asChild={asChild}>{trigger}</PopoverTrigger>
       <PopoverContent
         size={size}
-        layer={layer}
         showArrow={showArrow}
         showClose={showClose}
-        usePortal={usePortal}
         side={side}
         sideOffset={sideOffset}
         align={align}

@@ -84,8 +84,6 @@ export function AdminCommandPalette({ categories, open, onOpenChange }: AdminCom
       title="管理者コマンド"
       titleSrOnly
       showCloseButton={false}
-      layer="floating"
-      overlayLayer="floating"
       className="overflow-hidden p-0"
       maxWidth="32rem"
       maxHeight={null}

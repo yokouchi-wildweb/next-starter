@@ -180,7 +180,6 @@ export function ChecklistPopover({
   createOptionErrorMessage = "追加に失敗しました",
   // PopoverContent props
   size = "md",
-  layer,
   showArrow,
   side,
   sideOffset,
@@ -427,7 +426,6 @@ export function ChecklistPopover({
       <PopoverTrigger asChild={asChild}>{trigger}</PopoverTrigger>
       <PopoverContent
         size={size}
-        layer={layer}
         showArrow={showArrow}
         side={side}
         sideOffset={sideOffset}

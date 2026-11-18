@@ -9,7 +9,7 @@ import { Dialog, type DialogProps } from "@/components/Overlays/Dialog";
 /** 確認の文言と見た目の値(Dialog の props のうち確認に要る物だけ) */
 export type ConfirmOptions = Pick<
   DialogProps,
-  "title" | "description" | "confirmLabel" | "cancelLabel" | "confirmVariant" | "layer" | "overlayLayer"
+  "title" | "description" | "confirmLabel" | "cancelLabel" | "confirmVariant"
 >;
 
 /** 確認を開き、確定で true・取り消し / ✕ / ESC / 背景で false に解ける */

@@ -80,7 +80,6 @@ export function ActionPopover({
   onOpenChange,
   // PopoverContent props
   size = "sm",
-  layer,
   showArrow,
   side,
   sideOffset,
@@ -133,7 +132,6 @@ export function ActionPopover({
       <PopoverTrigger asChild={asChild}>{trigger}</PopoverTrigger>
       <PopoverContent
         size={size}
-        layer={layer}
         showArrow={showArrow}
         side={side}
         sideOffset={sideOffset}

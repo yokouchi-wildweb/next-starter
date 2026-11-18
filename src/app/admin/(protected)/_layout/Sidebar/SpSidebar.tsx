@@ -34,8 +34,6 @@ export function SpSidebar({ width, isOpen, onClose, content }: SpSidebarProps) {
       showCloseButton={false}
       // 子メニューは板の左へはみ出して開く(submenuPlacement left)ので、板の本体で切らない(スクロールは BaseSidebar が持つ)
       scrollable={false}
-      layer="floating"
-      overlayLayer="floating"
       className="md:hidden border-l-0"
       overlayClassName="md:hidden"
       slot="admin-sidebar"

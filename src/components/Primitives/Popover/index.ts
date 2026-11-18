@@ -13,7 +13,6 @@ export {
   PopoverDescription,
   PopoverBody,
   PopoverFooter,
-  type PopoverLayer,
   type PopoverSize,
   type PopoverContentProps,
 } from "./Popover";

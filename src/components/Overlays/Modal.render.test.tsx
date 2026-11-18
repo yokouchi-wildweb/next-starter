@@ -1,6 +1,6 @@
 // Modal と土台の DialogContent の出力の検査(jsdom の上で開いた形を描く)。
 // - 新しい指定を渡さない時: 背景と本体の class・中身・置き場(body)が変更の前に記録した出力(__fixtures__/modal.before.json)と同じ
-// - overlayClassName は背景に足し、layer / overlayLayer は本体 / 背景の層の class になる
+// - overlayClassName は背景に足し、本体と背景の層はいつも floating(当議会 D190、層を選ぶ指定は無い)
 // - fullscreen: 画面いっぱい(中央寄せ・最大幅・角丸・枠なし、高さ 100dvh、上下に safe-area の余白)。閉じるボタンは内側、本体はスクロールの箱
 // - container: その要素の中へ portal し、背景と本体は absolute
 // - 管理者コマンドの形(層 super・閉じるボタンなし・sr-only の題・maxHeight null・幅 32rem)が旧の DialogContent の直の使い方と同じ並び
@@ -114,7 +114,7 @@ test("新しい指定なし: Modal(既定・maxHeight null・scrollable false)�
   );
 });
 
-test("overlayClassName は背景に足し、layer / overlayLayer は層の class になる", () => {
+test("overlayClassName は背景に足し、層はいつも floating", () => {
   const s = snap(
     createElement(
       Modal,
@@ -122,13 +122,11 @@ test("overlayClassName は背景に足し、layer / overlayLayer は層の class
         open: true,
         onOpenChange: noop,
         overlayClassName: "backdrop-blur-sm",
-        layer: "floating",
-        overlayLayer: "floating",
       },
       "body",
     ),
   );
-  // 層は 10 の名の floating だけ(当議会 D189)。指定しても既定と同じ class
+  // 層は floating だけ(当議会 D189・D190、層を選ぶ指定は無い)
   assert.equal(s.overlay, BEFORE.modalDefault.overlay! + " backdrop-blur-sm");
   assert.equal(classes(s.content).filter((k) => k.endsWith("-layer")).join(" "), "floating-layer");
 });
@@ -214,8 +212,6 @@ test("管理者コマンドの形: 旧の DialogContent の直の使い方と層
         title: "管理者コマンド",
         titleSrOnly: true,
         showCloseButton: false,
-        layer: "floating",
-        overlayLayer: "floating",
         className: "overflow-hidden p-0",
         maxWidth: "32rem",
         maxHeight: null,

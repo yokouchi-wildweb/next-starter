@@ -7,7 +7,7 @@ import { HelpCircle } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 
-import { Tooltip, type TooltipLayer } from "./Tooltip";
+import { Tooltip } from "./Tooltip";
 
 const ICON_SIZE_CLASS = {
   sm: "size-3",
@@ -24,8 +24,6 @@ export type HelpTipProps = {
   iconSize?: "sm" | "md" | "lg";
   /** ツールチップの表示位置 */
   side?: "top" | "right" | "bottom" | "left";
-  /** z-indexレイヤー */
-  layer?: TooltipLayer;
   /** ラッパーの追加クラス */
   className?: string;
   /** アイコンの追加クラス */
@@ -55,7 +53,6 @@ export function HelpTip({
   help,
   iconSize = "md",
   side = "top",
-  layer,
   className,
   iconClassName,
   contentClassName,
@@ -72,7 +69,6 @@ export function HelpTip({
       open={open}
       onOpenChange={setOpen}
       side={side}
-      layer={layer}
       className={contentClassName}
     >
       <span

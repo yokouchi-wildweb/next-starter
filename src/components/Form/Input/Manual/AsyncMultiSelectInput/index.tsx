@@ -350,7 +350,6 @@ export function AsyncMultiSelectInput<T>({
         <PopoverContent
           align="start"
           side={side}
-          layer="floating"
           onOpenAutoFocus={(e) => {
             // radix の既定（content への focus）を抑止し、CommandInput の autoFocus に委譲
             e.preventDefault();

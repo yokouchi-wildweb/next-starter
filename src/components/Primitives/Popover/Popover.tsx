@@ -7,13 +7,8 @@ import { Popover as PopoverPrimitive } from "radix-ui";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/cn";
-import { useIsNestedInDialog } from "@/components/Primitives/Dialog";
 import { isDialogFocusRestoration } from "./isDialogFocusRestoration";
-import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
-
-// レイヤータイプ
-/** 層(層の名 @/lib/zLayer のうち受ける範囲) */
-export type PopoverLayer = Extract<ZLayerName, "floating">;
+import { zLayerClass } from "@/lib/zLayer";
 
 // サイズプリセット
 export type PopoverSize = "sm" | "md" | "lg" | "xl" | "auto";
@@ -98,20 +93,10 @@ export type PopoverContentProps = React.ComponentProps<
 > & {
   /** サイズプリセット */
   size?: PopoverSize;
-  /** z-indexレイヤー */
-  layer?: PopoverLayer;
   /** 矢印を表示するか */
   showArrow?: boolean;
   /** 閉じるボタンを表示するか */
   showClose?: boolean;
-  /**
-   * ポータルを使用するか。
-   * 未指定時は自動判定: ダイアログ/モーダル内に入れ子のときは非ポータル（false）、
-   * それ以外は従来通りポータル（true）。
-   * 理由: Radix Dialog の react-remove-scroll は body 直下ポータル（ダイアログ外）の
-   * wheel/touch を食うため、入れ子時は非ポータルにしてスクロールを通す。
-   */
-  usePortal?: boolean;
   /**
    * ダイアログ自身の dismiss 操作（オーバーレイ/閉じるボタン）でポップオーバーが
    * 閉じないようにするか（デフォルト: true）。
@@ -130,10 +115,8 @@ function PopoverContent({
   // 画面端に密着・はみ出さないよう、端から 8px 内側に収める(Radix の既定は 0)
   collisionPadding = 8,
   size = "md",
-  layer = "floating",
   showArrow = false,
   showClose = false,
-  usePortal,
   preventLayerDismiss = true,
   stopPropagation = true,
   onInteractOutside,
@@ -241,13 +224,6 @@ function PopoverContent({
     [stopPropagation, onContextMenu]
   );
 
-  // ダイアログ/モーダル内に入れ子かどうかを React ツリー（DialogContent の context）で判定。
-  // 旧実装はトリガーの DOM 位置を render 中に ref で読んでいたため、初回 render（defaultOpen 等）
-  // では null → ポータル側に振られ、後続 render で付け替わって中身が remount していた
-  const nestedInDialog = useIsNestedInDialog();
-  // 明示指定があれば尊重、無ければ入れ子時のみ非ポータル（RemoveScroll対策）
-  const effectivePortal = usePortal ?? !nestedInDialog;
-
   const content = (
     <PopoverPrimitive.Content
       align={align}
@@ -275,9 +251,9 @@ function PopoverContent({
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
         "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-        // サイズとレイヤー
+        // サイズと層(浮く物はいつも floating、body へ portal。当議会 D189・D190)
         SIZE_CLASS[size],
-        zLayerClass(layer),
+        zLayerClass("floating"),
         className
       )}
       {...props}
@@ -291,11 +267,7 @@ function PopoverContent({
     </PopoverPrimitive.Content>
   );
 
-  if (effectivePortal) {
-    return <PopoverPrimitive.Portal>{content}</PopoverPrimitive.Portal>;
-  }
-
-  return content;
+  return <PopoverPrimitive.Portal>{content}</PopoverPrimitive.Portal>;
 }
 
 // Popover Header

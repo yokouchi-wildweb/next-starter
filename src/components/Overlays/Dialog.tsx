@@ -11,8 +11,6 @@ import {
   DialogTitle,
   DialogDescription,
   FALLBACK_DIALOG_TITLE,
-  type DialogContentLayer,
-  type DialogOverlayLayer,
 } from "@/components/Primitives/Dialog";
 import { Button } from "@/components/Form/Button/Button";
 import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
@@ -70,17 +68,6 @@ export type DialogProps = {
    * 目に見える閉じ手段を必ず残すこと。
    */
   showCloseButton?: boolean;
-  /**
-   * ダイアログのz-indexレイヤー。
-   * 浮く物は全部 floating(後に開いた物が上、当議会 D189)。モーダルの上の確認ダイアログも floating のまま上に出る。
-   * @default "floating"
-   */
-  layer?: DialogContentLayer;
-  /**
-   * オーバーレイ（背景）のz-indexレイヤー。
-   * @default "floating"
-   */
-  overlayLayer?: DialogOverlayLayer;
   footerAlign?: TextAlign;
   showCancelButton?: boolean;
   showConfirmButton?: boolean;
@@ -118,8 +105,6 @@ export function Dialog({
   descriptionAlign = "left",
   children,
   showCloseButton = false,
-  layer,
-  overlayLayer,
   footerAlign = "right",
   showCancelButton = true,
   showConfirmButton = true,
@@ -180,8 +165,6 @@ export function Dialog({
       <DialogContent
         showCloseButton={showCloseButton}
         className={cn("flex flex-col", !fullscreen && "max-h-[calc(100dvh-2rem)]", className)}
-        layer={layer}
-        overlayLayer={overlayLayer}
         overlayClassName={overlayClassName}
         fullscreen={fullscreen}
         container={container}

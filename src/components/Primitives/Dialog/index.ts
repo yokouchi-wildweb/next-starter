@@ -12,8 +12,5 @@ export {
   DialogHeader,
   DialogFooter,
   DialogDescription,
-  useIsNestedInDialog,
   FALLBACK_DIALOG_TITLE,
-  type DialogOverlayLayer,
-  type DialogContentLayer,
 } from "./Dialog";

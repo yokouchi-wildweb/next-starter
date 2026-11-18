@@ -1,7 +1,7 @@
 // 辺から出る板 Sheet の検査(jsdom の上で開いて読む・押す)。
 // - side ごとに辺に付く class と大きさ(bottom/top = max-height、left/right = 幅)、題が無くても role=dialog に名
 // - 背景を押す・ESC・閉じるボタンで onOpenChange(false)
-// - className / overlayClassName / layer / overlayLayer / container / slot / overlaySlot
+// - className / overlayClassName / container / slot / overlaySlot(層はいつも floating)
 // - side bottom のつまみを下へ引いて閾値を超えて離すと閉じ、超えなければ戻る(bottom 以外・handle={false} はつまみなし)
 // 実行: pnpm test src/components/Overlays/Sheet
 import { after, before, test } from "node:test";
@@ -126,8 +126,6 @@ test("className / overlayClassName / 層 / container / 印", () => {
       side: "right",
       className: "md:hidden border-l-0",
       overlayClassName: "md:hidden",
-      layer: "floating",
-      overlayLayer: "floating",
       container: box,
       slot: "admin-sidebar",
       overlaySlot: "admin-sidebar",

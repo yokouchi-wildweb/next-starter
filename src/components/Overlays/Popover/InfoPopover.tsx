@@ -75,7 +75,6 @@ export function InfoPopover({
   onOpenChange,
   // PopoverContent props
   size = "md",
-  layer,
   showArrow = true,
   side = "top",
   sideOffset,
@@ -119,7 +118,6 @@ export function InfoPopover({
       <PopoverTrigger asChild>{trigger ?? defaultTrigger}</PopoverTrigger>
       <PopoverContent
         size={size}
-        layer={layer}
         showArrow={showArrow}
         side={side}
         sideOffset={sideOffset}

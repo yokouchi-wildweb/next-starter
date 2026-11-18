@@ -2,7 +2,7 @@
 
 "use client";
 
-import { createContext, useContext, type ComponentProps, type CSSProperties } from "react";
+import { type ComponentProps, type CSSProperties } from "react";
 import { XIcon } from "lucide-react";
 
 import {
@@ -18,13 +18,10 @@ import {
   DialogDescription,
 } from "./DialogBase";
 import { cn } from "@/lib/cn";
-import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
+import { zLayerClass } from "@/lib/zLayer";
 
-/** 背景(覆い)の層(層の名 @/lib/zLayer のうち受ける範囲) */
-export type DialogOverlayLayer = Extract<ZLayerName, "floating">;
-
-/** 本体の層 */
-export type DialogContentLayer = Extract<ZLayerName, "floating">;
+/** 浮く物の層はいつも floating(当議会 D189・D190: 層を選べない、同じ層では後に開いた物が上) */
+const FLOATING_LAYER_CLASS = zLayerClass("floating");
 
 /** fullscreen の本体の class(中央寄せ・最大幅・角丸・枠・内側の余白を外し、上下に safe-area の余白)。
  * 呼び手の className はこの後に足す(中身の余白は呼び手が決める) */
@@ -34,24 +31,11 @@ const FULLSCREEN_CLASS =
 const FULLSCREEN_CLOSE_BUTTON_CLASS =
   "top-[calc(env(safe-area-inset-top)+0.75rem)] right-3 translate-x-0 sm:translate-x-0 translate-y-0";
 
-/** 「Dialog（DialogContent）の React ツリー内に居るか」を子孫へ伝える context。
- * Popover 等がポータル可否を決めるのに使う（Radix Dialog の react-remove-scroll は
- * body 直下ポータルの wheel/touch を食うため、入れ子時は非ポータルにする必要がある）。
- * DOM 位置を ref で読む判定は初回 render で null になり defaultOpen 等で誤判定するため、
- * React ツリーで同期的に判定する。ポータル越しでも context は届く。 */
-const DialogNestingContext = createContext(false);
-
-/** 現在のコンポーネントが DialogContent の子孫（React ツリー上）なら true */
-export function useIsNestedInDialog(): boolean {
-  return useContext(DialogNestingContext);
-}
-
 /** title 省略時に Dialog / Modal が sr-only で描画する既定のアクセシブルネーム。
  * Radix Dialog は DialogTitle 必須（無いとコンソールエラー + role="dialog" が無名になる）。 */
 export const FALLBACK_DIALOG_TITLE = "ダイアログ";
 
 type DialogOverlayProps = Omit<ComponentProps<typeof BaseDialogOverlay>, "layerClassName"> & {
-  layer?: DialogOverlayLayer;
   layerClassName?: string;
 };
 
@@ -59,8 +43,6 @@ type DialogContentProps = Omit<
   ComponentProps<typeof BaseDialogContent>,
   "layerClassName" | "overlayLayerClassName"
 > & {
-  layer?: DialogContentLayer;
-  overlayLayer?: DialogOverlayLayer;
   showCloseButton?: boolean;
   /** 閉じるボタンに足す class(既定は本体の右上の角に半分はみ出す位置) */
   closeButtonClassName?: string;
@@ -76,7 +58,6 @@ type DialogContentProps = Omit<
 };
 
 export function DialogOverlay({
-  layer = "floating",
   className,
   layerClassName,
   ...props
@@ -84,7 +65,7 @@ export function DialogOverlay({
   return (
     <BaseDialogOverlay
       className={className}
-      layerClassName={cn(zLayerClass(layer), layerClassName)}
+      layerClassName={cn(FLOATING_LAYER_CLASS, layerClassName)}
       {...props}
     />
   );
@@ -96,8 +77,6 @@ export function DialogContent({
   showCloseButton = true,
   closeButtonClassName,
   fullscreen = false,
-  layer = "floating",
-  overlayLayer = "floating",
   layerClassName,
   overlayLayerClassName,
   maxWidth,
@@ -134,12 +113,12 @@ export function DialogContent({
         className,
       )}
       showCloseButton={false}
-      layerClassName={cn(zLayerClass(layer), layerClassName)}
-      overlayLayerClassName={cn(zLayerClass(overlayLayer), overlayLayerClassName)}
+      layerClassName={cn(FLOATING_LAYER_CLASS, layerClassName)}
+      overlayLayerClassName={cn(FLOATING_LAYER_CLASS, overlayLayerClassName)}
       style={contentStyle}
       {...props}
     >
-      <DialogNestingContext.Provider value={true}>{children}</DialogNestingContext.Provider>
+      {children}
       {showCloseButton && (
         <BaseDialogClose
           className={cn(

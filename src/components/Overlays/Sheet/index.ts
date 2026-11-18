@@ -5,7 +5,6 @@ export {
   default,
   type SheetProps,
   type SheetSide,
-  type SheetLayer,
   type SheetSlot,
   type SheetOverlaySlot,
 } from "./Sheet";

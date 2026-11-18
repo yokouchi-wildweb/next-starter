@@ -3,6 +3,5 @@
 export {
   HoverCard,
   type HoverCardProps,
-  type HoverCardLayer,
   type HoverCardSize,
 } from "./HoverCard";

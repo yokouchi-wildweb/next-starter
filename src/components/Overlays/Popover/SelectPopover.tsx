@@ -153,7 +153,6 @@ export function SelectPopover({
   clearLabel = "選択解除",
   // PopoverContent props
   size = "md",
-  layer,
   showArrow,
   side,
   sideOffset,
@@ -249,7 +248,6 @@ export function SelectPopover({
       <PopoverTrigger asChild={asChild}>{trigger}</PopoverTrigger>
       <PopoverContent
         size={size}
-        layer={layer}
         showArrow={showArrow}
         side={side}
         sideOffset={sideOffset}

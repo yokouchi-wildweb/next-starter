@@ -185,8 +185,6 @@ export function RoleTabContent({ user, onClose }: Props) {
         cancelLabel="キャンセル"
         onConfirm={handleConfirm}
         confirmDisabled={isMutating}
-        layer="floating"
-        overlayLayer="floating"
       >
         {confirmContent}
       </Dialog>

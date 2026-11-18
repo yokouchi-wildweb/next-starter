@@ -93,8 +93,6 @@ import { Dialog } from "@/components/Overlays/Dialog";
 | `descriptionAlign` | `TextAlign` | `"left"` | 説明文の配置 |
 | `children` | `ReactNode` | - | 複雑なコンテンツ用。本体（スクロール領域）に描画される |
 | `showCloseButton` | `boolean` | `false` | 右上の ✕ ボタン。`showCancelButton` / `showConfirmButton` を両方 false にする場合は必ず true にして閉じ手段を残す |
-| `layer` | `DialogContentLayer` | `"floating"` | コンテンツのレイヤー（浮く物は全部 `floating`。後に開いた物が上） |
-| `overlayLayer` | `DialogOverlayLayer` | `"floating"` | オーバーレイのレイヤー（浮く物は全部 `floating`） |
 | `footerAlign` | `TextAlign` | `"right"` | フッター（ボタン）の配置 |
 | `showCancelButton` | `boolean` | `true` | キャンセルボタンの表示 |
 | `showConfirmButton` | `boolean` | `true` | 確認ボタンの表示 |
@@ -162,8 +160,6 @@ import Modal from "@/components/Overlays/Modal";
 | `onOpenAutoFocus` | `(event: Event) => void` | - | 開いた直後の自動フォーカス制御。未指定時は Radix 既定（最初のフォーカス可能要素へフォーカス） |
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
 | `overlayClassName` | `string` | - | 背景（覆い）に足すクラス（色・ぼかし等）。省略時は今の `bg-overlay/50` |
-| `layer` | `DialogContentLayer` | `"floating"` | 本体の層（`@/lib/zLayer` の名）。浮く物は全部 `floating`(後に開いた物が上) |
-| `overlayLayer` | `DialogOverlayLayer` | `"floating"` | 背景の層 |
 | `fullscreen` | `boolean` | `false` | 全画面: 角丸・枠・最大幅・中央寄せを外し、高さ `100dvh`。余白は上下の safe-area の分だけで、中身の余白は `className` / 中身で決める。閉じるボタンは画面の内側の右上、本体は箱の残りいっぱいでスクロールする（`maxHeight` 既定のとき） |
 | `container` | `HTMLElement \| null` | - | portal の先の要素（省略 = body）。渡すと背景と本体はその要素の中で `absolute` に重なる（要素に `relative` 等の position が要る）。`fullscreen` と併せると容器いっぱい（`h-full`） |
 
@@ -545,8 +541,7 @@ import {
 ```
 
 **レイヤー管理（z-index）:**
-`DialogContent` の `layer` / `overlayLayer` で z-index 階層を制御可能。
-- `layer` / `overlayLayer`: `floating`(既定、浮く物は全部この層。同じ層では後に開いた物が上。層の名は `src/lib/zLayer/README.md`)
+浮く物(Dialog・Modal・Sheet・Popover・Tooltip・HoverCard・選択の候補)は層を選べない: いつも body へ portal して `floating`、同じ層では後に開いた物が上(当議会 D189・D190。層の名は `src/lib/zLayer/README.md`)。
 
 **DialogContent の主な追加 props**
 - `showCloseButton`（デフォルト `true`）: 右上の Close ボタンの表示有無
@@ -586,7 +581,7 @@ return (
 );
 ```
 
-- `confirm(options?)` = 確定で `true`、取り消し / ✕ / ESC / 背景で `false`。options は Dialog の `title` / `description` / `confirmLabel`（既定 "OK"）/ `cancelLabel`（既定 "キャンセル"）/ `confirmVariant` / `layer` / `overlayLayer`（型 `ConfirmOptions`）
+- `confirm(options?)` = 確定で `true`、取り消し / ✕ / ESC / 背景で `false`。options は Dialog の `title` / `description` / `confirmLabel`（既定 "OK"）/ `cancelLabel`（既定 "キャンセル"）/ `confirmVariant`（型 `ConfirmOptions`）
 - `confirmDialog` を画面に 1 度置く（画面ごとに置く形。アプリ全体の Provider は無い）
 - 開いている間に次の `confirm` が来たら前は `false` で解けて次が出る。画面が外れたら待っている物は `false` で解ける
 - お知らせだけ（`window.alert` の代わり）はトースト（`@/lib/toast` の `useToast`）
@@ -612,8 +607,6 @@ import { Sheet } from "@/components/Overlays/Sheet";
 | `title` / `titleSrOnly` | `ReactNode` / `boolean` | - | 題。省略時は sr-only の既定の題（「ダイアログ」） |
 | `size` | `number \| string` | bottom / top `"85dvh"`、left / right `"20rem"` | bottom / top = 最大の高さ（中身は板の中でスクロール）、left / right = 幅（画面の幅 - 2rem まで） |
 | `className` / `overlayClassName` | `string` | - | 板 / 背景に足すクラス（色・ぼかし・角丸・余白） |
-| `layer` | `SheetLayer` | `"floating"` | 板の層（浮く物は全部 `floating`、ナビゲーションの引き出しも） |
-| `overlayLayer` | `DialogOverlayLayer` | `"floating"` | 背景の層 |
 | `container` | `HTMLElement \| null` | - | portal の先の要素（省略 = body）。渡すと背景と板はその要素の中で `absolute` に重なる（スマホ幅の容器の中に出す等） |
 | `scrollable` | `boolean` | `true` | 本体をスクロールの箱にするか。`false` = 高さだけ渡し、スクロールと板の外へはみ出す物（横に開く子メニュー等）は中身が持つ |
 | `showCloseButton` | `boolean` | `true` | 板の内側の右上の閉じるボタン |
@@ -681,7 +674,6 @@ hideToast();
 - `size`: `"md"`
 - `spinning`: `variant === "loading"` または `mode === "persistent"` のとき自動で `true`
 - `icon`: プリセット文字列（`success` など）または `ReactNode`
-- `layer`: `"floating"`(既定。後に開くので開いた元のモーダルより上)
 
 ---
 
@@ -763,7 +755,6 @@ import { Popover } from "@/components/Overlays/Popover";
 | `showClose` | `boolean` | `false` | 閉じるボタン表示 |
 | `open` | `boolean` | - | 制御モード: 開閉状態 |
 | `onOpenChange` | `(open: boolean) => void` | - | 開閉状態変更コールバック |
-| `usePortal` | `boolean` | 自動判定 | 未指定時は Dialog / Modal の中に居るとき非ポータル（Radix Dialog のスクロールロックが body 直下ポータルの wheel/touch を食うため）。判定は DialogContent の React context で行われ、初回 render から確定する |
 
 **高さ（PopoverContent 共通）:** Radix が算出する配置側のビューポート残り高さ（`--radix-popover-content-available-height`）を上限とし、超える場合は内側のラッパーだけがスクロールする。長いリスト + フッターのポップオーバーでも確定ボタンが画面外に出ることはない。矢印（`showArrow`）はこの上限の外側に描画される。HoverCard も同じ構造。
 
@@ -1078,7 +1069,6 @@ import { HelpTip } from "@/components/Overlays/Tooltip";
 | `help` | `ReactNode` | - | ホバー/タップで表示する説明文 |
 | `iconSize` | `"sm" \| "md" \| "lg"` | `"md"` | ヘルプアイコンのサイズ |
 | `side` | `"top" \| "right" \| "bottom" \| "left"` | `"top"` | 表示位置 |
-| `layer` | `TooltipLayer` | `"floating"` | z-indexレイヤー |
 | `className` | `string` | - | ラッパーの追加クラス |
 | `iconClassName` | `string` | - | アイコンの追加クラス |
 | `contentClassName` | `string` | - | ツールチップコンテンツの追加クラス |
