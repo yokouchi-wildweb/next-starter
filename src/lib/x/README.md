@@ -1,29 +1,10 @@
 # X (Twitter) API ライブラリ
 
-`twitter-api-v2` をベースに、X API の認証・投稿・メディアアップロード・Webhook 検証を統一されたインターフェースで提供する基盤ライブラリ。
+## Overview
 
-**設計思想**: `twitter-api-v2` は TypeScript 完全対応の高品質ライブラリのため、全 API を再ラップせず、認証・設定管理をプロジェクト標準に統一しつつ、ダウンストリームが `twitter-api-v2` の全機能にそのままアクセスできる拡張ポイントを残している。
-
-## ディレクトリ構成
-
-```
-src/lib/x/
-├── index.ts          # re-export（公開API一覧）
-├── env.ts            # 環境変数の一元管理
-├── endpoints.ts      # X API のベースURL
-├── client.ts         # クライアントファクトリ（OAuth 1.0a / 2.0 / App-only）
-├── types.ts          # プロジェクト固有の型定義
-├── constants.ts      # 定数（スコープ、制限値、Cookie名）
-├── oauth.ts          # OAuth 2.0 PKCE フロー
-├── tweets.ts         # ツイート投稿・削除ヘルパー
-├── media.ts          # メディアアップロードヘルパー
-├── errors.ts         # エラー型・判別ヘルパー
-└── webhook.ts        # Webhook 署名検証・CRC チャレンジ応答
-```
-
-## 関連モジュール
-
-X 連携は以下の3レイヤーで構成される（LINE 連携と同じパターン）:
+- `twitter-api-v2` をベースに、X API の認証・投稿・メディアアップロード・Webhook 検証を 1 つの形で提供する基盤ライブラリ。入口 `@/lib/x`
+- `twitter-api-v2` は TypeScript 完全対応なので全 API を再ラップせず、認証・設定管理をプロジェクトの形に揃えつつ、クライアントから `twitter-api-v2` の全機能にそのまま届くようにしている
+- X 連携は 3 層(LINE 連携と同じ形):
 
 | レイヤー | パス | 役割 |
 |---------|------|------|
@@ -32,9 +13,9 @@ X 連携は以下の3レイヤーで構成される（LINE 連携と同じパタ
 | ドメイン | `src/features/core/userXProfile/` | プロフィール + 暗号化トークン保存 |
 | ルート | `src/app/api/auth/x/` | OAuth フロー（login / callback / unlink） |
 
-## セットアップ
+## Usage
 
-### 1. X Developer Portal
+### セットアップ: X Developer Portal
 
 1. [X Developer Portal](https://developer.x.com/) にアクセスし、Developer アカウントを作成
 2. 「Projects & Apps」→「+ Create Project」でプロジェクトを作成
@@ -49,7 +30,7 @@ X 連携は以下の3レイヤーで構成される（LINE 連携と同じパタ
    - **API Key and Secret** → `X_API_KEY` / `X_API_SECRET`
    - **Access Token and Secret** → `X_ACCESS_TOKEN` / `X_ACCESS_SECRET`（Permissions を `Read and Write` に設定してから生成すること）
 
-### 2. 環境変数
+### セットアップ: 環境変数
 
 ```env
 # OAuth 2.0 PKCE（ユーザー認証フロー）
@@ -73,28 +54,9 @@ X_ACCESS_SECRET=
 ENCRYPTION_KEY=
 ```
 
-### 3. DB マイグレーション
+### セットアップ: テーブル
 
-`user_x_profiles` テーブルが新規追加されている（`users` テーブルとは 1:1 リレーション）。
-`pnpm db:push` でスキーマを反映する。
-
-```
-user_x_profiles
-├── id (uuid, PK)
-├── user_id (uuid, FK → users, unique)     ← 1:1
-├── x_user_id (text, unique)               ← X のユーザーID
-├── username (text, nullable)              ← @スクリーンネーム
-├── display_name (text, nullable)
-├── access_token_encrypted (text)          ← AES-256-GCM 暗号化
-├── refresh_token_encrypted (text)         ← AES-256-GCM 暗号化
-├── token_expires_at (timestamp)           ← 期限管理
-├── scopes (text[], nullable)              ← 認可スコープ
-├── created_at / updated_at
-```
-
-プロフィール画像は取らず保存もしない(外部ログインの画像はどの provider でも保存しない)。
-
-## ダウンストリームでの実装
+- `user_x_profiles`(userXProfile ドメイン、`users` と 1:1)を `pnpm db:push` で作る。列は API「user_x_profiles」
 
 ### ツイートを投稿する
 
@@ -239,20 +201,7 @@ import { unlinkX } from "@/features/core/userXProfile/services/client/userXProfi
 await unlinkX(); // POST /api/auth/x/unlink（normalizeHttpError 済みのエラー）
 ```
 
-### userXProfileService
-
-`@/features/core/userXProfile/services/server/userXProfileService` からインポート。
-
-| メソッド | 説明 |
-|---------|------|
-| `linkXAccount(userId, options)` | X アカウントを紐付け（トークン暗号化、重複時は 409） |
-| `unlinkXAccount(userId)` | X 連携解除（X 側 revoke + レコード削除） |
-| `findByUserId(userId)` | ユーザーIDから連携プロフィール検索 |
-| `findByXUserId(xUserId)` | X userId から連携プロフィール検索 |
-| `getValidClient(userId)` | 有効なクライアント取得（期限切れ時は自動リフレッシュ + DB更新） |
-| `updateTokens(userId, tokens)` | トークンを暗号化して更新 |
-
-**`getValidClient` の使用例（推奨）:**
+### ユーザーとして投稿する(推奨: userXProfileService)
 
 ```ts
 import { userXProfileService } from "@/features/core/userXProfile/services/server/userXProfileService";
@@ -277,30 +226,25 @@ await postTweet(client, "ユーザーとして投稿！");
 
 ### トークン自動リフレッシュ
 
-アクセストークンの有効期限（通常2時間）をチェックし、期限切れ前なら自動リフレッシュしてクライアントを返す。トークン更新時はコールバックで DB 更新が可能。
+アクセストークンの有効期限(通常 2 時間)を確かめ、期限切れ前なら自動リフレッシュしてクライアントを返す。トークン更新時はコールバックで保存し直す(userXProfile なら `getValidClient` がここまで済ませる)。
 
 ```ts
 import { getOrRefreshXClient, postTweet } from "@/lib/x";
 
 const { client, refreshed, tokens } = await getOrRefreshXClient({
   tokens: {
-    accessToken: user.xAccessToken,
-    refreshToken: user.xRefreshToken,
-    expiresAt: user.xTokenExpiresAt,  // Unix timestamp（ミリ秒）
+    accessToken,
+    refreshToken,
+    expiresAt,  // Unix timestamp(ミリ秒)
   },
-  // トークンが更新された場合に DB を更新
+  // トークンが更新された場合に保存し直す(サービス経由。例: userXProfileService.updateTokens)
   onTokenRefreshed: async (newTokens) => {
-    await db.update(users).set({
-      xAccessToken: newTokens.accessToken,
-      xRefreshToken: newTokens.refreshToken,
-      xTokenExpiresAt: newTokens.expiresAt,
-    }).where(eq(users.id, user.id));
+    await userXProfileService.updateTokens(userId, newTokens);
   },
-  // 期限の何秒前にリフレッシュするか（デフォルト: 300秒 = 5分）
+  // 期限の何秒前にリフレッシュするか(既定: 300 秒 = 5 分)
   refreshMarginSeconds: 300,
 });
 
-// client は常に有効なトークンで認証済み
 await postTweet(client, "当選おめでとうございます！");
 ```
 
@@ -349,18 +293,6 @@ try {
   if (isXRetryable(err)) { /* リトライ可能 */ }
 }
 ```
-
-エラーコード一覧:
-
-| コード | 意味 | リトライ可能 |
-|-------|------|-------------|
-| `rate_limited` | レート制限（429） | Yes（retryAfter 秒後） |
-| `token_expired` | トークン期限切れ/無効（401） | No（リフレッシュ必要） |
-| `forbidden` | アクセス拒否（403） | No |
-| `suspended` | アカウント凍結（403） | No |
-| `duplicate` | 重複投稿 | No |
-| `not_found` | リソース未検出（404） | No |
-| `unknown` | その他（5xx等） | 5xx の場合 Yes |
 
 ### マルチアカウント対応
 
@@ -470,7 +402,9 @@ export async function POST(request: Request) {
 }
 ```
 
-## ライブラリ公開API
+## API
+
+### 公開の関数と定数
 
 ```ts
 import {
@@ -528,7 +462,30 @@ import {
 } from "@/lib/x";
 ```
 
-## API ルート
+- 保存済みトークンで操作するサーバーのサービス: `@/features/core/userXProfile/services/server/userXProfileService`
+
+| メソッド | 説明 |
+|---------|------|
+| `linkXAccount(userId, options)` | X アカウントを紐付け（トークン暗号化、重複時は 409） |
+| `unlinkXAccount(userId)` | X 連携解除（X 側 revoke + レコード削除） |
+| `findByUserId(userId)` | ユーザーIDから連携プロフィール検索 |
+| `findByXUserId(xUserId)` | X userId から連携プロフィール検索 |
+| `getValidClient(userId)` | 有効なクライアント取得（期限切れ時は自動リフレッシュ + DB更新） |
+| `updateTokens(userId, tokens)` | トークンを暗号化して更新 |
+
+### エラーコード
+
+| コード | 意味 | リトライ可能 |
+|-------|------|-------------|
+| `rate_limited` | レート制限（429） | Yes（retryAfter 秒後） |
+| `token_expired` | トークン期限切れ/無効（401） | No（リフレッシュ必要） |
+| `forbidden` | アクセス拒否（403） | No |
+| `suspended` | アカウント凍結（403） | No |
+| `duplicate` | 重複投稿 | No |
+| `not_found` | リソース未検出（404） | No |
+| `unknown` | その他（5xx等） | 5xx の場合 Yes |
+
+### API ルート
 
 | メソッド | パス | 説明 |
 |---------|------|------|
@@ -536,7 +493,45 @@ import {
 | GET | `/api/auth/x/callback` | X からの OAuth コールバック（直接呼び出さない） |
 | POST | `/api/auth/x/unlink` | X 連携解除（トークン revoke + レコード削除） |
 
-## API料金（2026年2月〜）
+### user_x_profiles
+
+```
+user_x_profiles
+├── id (uuid, PK)
+├── user_id (uuid, FK → users, unique)     ← 1:1
+├── x_user_id (text, unique)               ← X のユーザーID
+├── username (text, nullable)              ← @スクリーンネーム
+├── display_name (text, nullable)
+├── access_token_encrypted (text)          ← AES-256-GCM 暗号化
+├── refresh_token_encrypted (text)         ← AES-256-GCM 暗号化
+├── token_expires_at (timestamp)           ← 期限管理
+├── scopes (text[], nullable)              ← 認可スコープ
+├── created_at / updated_at
+```
+
+## Internals
+
+### セキュリティ
+
+- **トークン暗号化**: `src/lib/crypto/` の AES-256-GCM でアクセストークン・リフレッシュトークンを暗号化して DB に保存。`v1:iv:tag:ciphertext` フォーマットでバージョン管理
+- **Webhook 署名検証**: HMAC-SHA256 + タイミングセーフ比較（`timingSafeEqual`）で検証
+- **OAuth 2.0 PKCE**: code_verifier による認可コード横取り攻撃の防止
+- **CSRF 対策**: OAuth フローの state パラメータ + nonce cookie によるリクエスト偽造防止
+- **連携解除時の revoke**: `unlinkXAccount` は X 側のトークン失効も実行（失敗しても解除は続行）
+
+### 制約
+
+- メディアアップロード（`uploadMedia`）は **OAuth 1.0a 認証が必要**（v1.1 エンドポイントを使用）
+- OAuth 2.0 で取得したクライアントではメディアアップロードは不可
+- Free Tier は 2026年2月以降 Pay-Per-Use への移行が進んでおり、投稿上限が500件/月に制限
+- `twitter-api-v2` のレート制限ハンドリングが必要な場合は `@twitter-api-v2/plugin-rate-limit` の導入を検討
+
+## Related
+
+- トークン暗号化: `src/lib/crypto/`
+- 連携の保存: `src/features/core/userXProfile/`
+- `twitter-api-v2`: https://github.com/PLhery/node-twitter-api-v2
+- API 料金(2026 年 2 月〜、変わりうる外部の情報):
 
 | プラン | 月額 | 投稿上限 | 備考 |
 |-------|------|---------|------|
@@ -544,19 +539,3 @@ import {
 | Pay-Per-Use | 従量 | — | 投稿 $0.010/件、読み取り $0.005/件 |
 | Basic | $200 | — | 一般的な開発用途 |
 | Pro | $5,000 | — | 大規模利用 |
-
-## セキュリティ
-
-- **トークン暗号化**: `src/lib/crypto/` の AES-256-GCM でアクセストークン・リフレッシュトークンを暗号化して DB に保存。`v1:iv:tag:ciphertext` フォーマットでバージョン管理
-- **Webhook 署名検証**: HMAC-SHA256 + タイミングセーフ比較（`timingSafeEqual`）で検証
-- **OAuth 2.0 PKCE**: code_verifier による認可コード横取り攻撃の防止
-- **CSRF 対策**: OAuth フローの state パラメータ + nonce cookie によるリクエスト偽造防止
-- **連携解除時の revoke**: `unlinkXAccount` は X 側のトークン失効も実行（失敗しても解除は続行）
-- **環境変数**: 認証情報・暗号化キーは全て環境変数から取得。コードにハードコードしない
-
-## 注意事項
-
-- メディアアップロード（`uploadMedia`）は **OAuth 1.0a 認証が必要**（v1.1 エンドポイントを使用）
-- OAuth 2.0 で取得したクライアントではメディアアップロードは不可
-- Free Tier は 2026年2月以降 Pay-Per-Use への移行が進んでおり、投稿上限が500件/月に制限
-- `twitter-api-v2` のレート制限ハンドリングが必要な場合は `@twitter-api-v2/plugin-rate-limit` の導入を検討
