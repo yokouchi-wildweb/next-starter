@@ -2,7 +2,7 @@
 
 ## Overview
 
-- 差分 cron や再開可能バッチが「ここまで処理済み」を覚えておくための単調チェックポイント(cron のウォータマークの永続化)。1 テーブル + 数関数の最小プリミティブで、HTTP ルートは持たない(server-internal only)
+- 差分 cron や再開可能バッチが「ここまで処理済み」を覚えておくための単調チェックポイント(cron のウォータマークの永続化)。1 テーブル + 数関数の最小プリミティブ
 - 解くこと: 毎回全件を舐める O(N) の cron は、成長とともに serverless の maxDuration で途中 kill され、read-model が古いまま残る。差分化には「前回どこまで処理したか」の永続化が要り、各 cron が独自に持つと単調性(後退しない)・並走安全・巻き戻し手順がばらつくので、ここに集める
 - 時間予算ランナー(`@/lib/cron` の `runBudgetedBatches`)と組み合わせると、チャンクごとに前進 → 途中 kill でも次回は続きから、が成立する。組み合わせ済みの完成品が `@/features/incrementalRefresh`(`createIncrementalRefresh`: 重なり幅・keyset ページング・trickle 安全網が同梱)
 - 使う時の決まりは札 .claude/rules/items/features/cronCheckpoint.md にある

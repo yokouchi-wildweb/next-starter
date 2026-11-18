@@ -63,15 +63,13 @@ export const maxDuration = 300;
 export const GET = createCronTaskRoute(cronTask);
 ```
 
-フォルダを足したら `pnpm generate cron -- --plan <hobby|pro>` で `vercel.json` を再生成する。`pnpm task user-metrics-refresh` はフォルダを置いた時点で使える。
-
 - フォルダを足したら `pnpm generate cron -- --plan <hobby|pro>` で `vercel.json` を再生成する。`pnpm task user-metrics-refresh` はフォルダを置いた時点で使える
 
 既存の全件再計算からの移行:
 
 - 旧タスク（`recomputeAllUserMetrics` 等）のスケジュールを外す
 - 初回は `initialCheckpoint` 既定（epoch）で全件が dirty 扱いになり、予算ごとに分割されて数回の実行で追いつく。即時に追いつかせたいなら `pnpm task user-metrics-refresh` を追いつくまで繰り返す
-- 遡及修正後にやり直す: `resetCheckpoint("user-metrics-refresh", <修正前の時刻>)`（`@/features/cronCheckpoint`）
+- 遡及修正後にやり直す: `resetCheckpoint("user-metrics-refresh", <修正前の時刻>)`（`@/features/cronCheckpoint/services/server`）
 
 ## API
 

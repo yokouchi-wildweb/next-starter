@@ -5,7 +5,7 @@
 - 不正が疑われるユーザーに **専用フォームを送って回答させ、その提出時にデバイスフィンガープリント + 詳細な行動計測を強制的に採取する** ための基盤
 - このドメインが持つのは **チャレンジのライフサイクル（発行 → 回答 → レビュー）とデータ契約だけ**。フォームの見た目・質問項目・画面は downstream の物で、今は UI の部品を持たない（core の UI の決まりは CLAUDE.md `core_ui`）
 - Usage の「フォーム実装レシピ」をコピーして質問項目を差し替えれば、計測込みの回答フォームが組める
-- 閉じられる機能: 門番の規則 `src/featureGate/rules/fingerprintChallenge.ts`、既定は閉（opt-in）、前提 `requires: ["deviceFingerprint"]`。閉じると `/api/admin/fingerprint-challenges`・`/api/me/fingerprint-challenges`・掃除の cron・汎用の `/api/fingerprintChallenge` が 404 で、表も push から外れる
+- 閉じられる機能: 門番の規則 `src/featureGate/rules/fingerprintChallenge.ts`、既定は閉（opt-in）、前提 `dependsOn: ["deviceFingerprint"]`(domainEntry の `requires` も同じ)。閉じると `/api/admin/fingerprint-challenges`・`/api/me/fingerprint-challenges`・掃除の cron・汎用の `/api/fingerprintChallenge` が 404 で、表も push から外れる
 
 ## Usage
 
@@ -141,7 +141,7 @@ const { data } = useFingerprintChallengeAccessEvents(challenge.id, { page: 1, li
 // data.results: [{ accessedAt, ip, userAgent, ... }] 新しい順
 ```
 
-一覧列の「開封状況」は汎用 `/api/fingerprint-challenge` search の行にそのまま
+一覧列の「開封状況」は汎用 `/api/fingerprintChallenge` search の行にそのまま
 `firstViewedAt / lastViewedAt / viewCount / notifiedAt` が載るので追加 API は不要。
 
 ## API
@@ -158,7 +158,7 @@ const { data } = useFingerprintChallengeAccessEvents(challenge.id, { page: 1, li
 | `/api/me/fingerprint-challenges/pending` | GET | 本人の未回答・期限内の最新 → `{ challenge \| null }` |
 | `/api/me/fingerprint-challenges/by-id/[id]/submit` | POST | 回答提出（本人スコープ経路、`pending` の id で） |
 
-一覧・検索は汎用 `/api/fingerprint-challenge`（serviceRegistry `ADMIN_ONLY`）。
+一覧・検索は汎用 `/api/fingerprintChallenge`（domainEntry の access `ADMIN_ONLY`）。
 
 > `by-id/` を挟むのは Next.js の制約（同一階層に `[token]` と `[id]` を共存させられない）。
 > `pending` は静的セグメントなので `[token]` より優先され、生トークンと衝突しない。

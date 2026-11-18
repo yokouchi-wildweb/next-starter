@@ -4,7 +4,7 @@
 
 - ユーザーが **クーポン発行権を申請** し、管理者が **per-user パラメータ付きで承認** し、承認されたユーザーが **周期ポリシーの下で自分の帰属クーポン（type=affiliate）を発行** するための汎用基盤。アフィリエイト / アンバサダー / フレンドクーポンの「申請 → 承認 → 月 1 枚発行」を支える
 - Tier1 が持つのは権利の台帳と状態遷移・周期発行の骨組みだけ。「何を発行するか」（カテゴリ・周期・settings の意味）は下流がプログラム設定で決める
-- 上流は registry を `null` で出荷 = 発行 API は 503（fail-closed）。申請・審査は registry 未設定でも動く
+- 上流はプログラム設定（`services/server/programConfig.ts` の 1 行スイッチ）を `null` で出荷 = 発行 API は 503（fail-closed）。申請・審査はプログラム設定が無くても動く
 - 今は UI の部品を持たない。画面は下流が Usage のレシピで組む（core の UI の決まりは CLAUDE.md `core_ui`）
 - 門番: 機能 `coupon` の domains に入る（既定 off）
 
@@ -76,7 +76,7 @@ const { issue, isIssuing } = useIssueMyCoupon();
 
 ### 通知（内蔵しない）
 
-- 承認 / 却下 / 停止の本人通知は、下流が管理ルートの呼び出し後に `notificationService.sendToUserSafe` で送る（テンプレートや文言は下流の物）
+- 承認 / 却下 / 停止の本人通知は、下流が管理ルートの呼び出し後に `messagingService.sendMessage`（`@/features/messaging/services/server`、送る物の定義は `messages/<name>.ts`）で送る（テンプレートや文言は下流の物）
 
 ## API
 
@@ -130,7 +130,7 @@ import { couponIssuerGrantService } from "@/features/core/couponIssuerGrant/serv
 | `POST` | `/api/me/coupon-issuer/issue` | 当期クーポン発行 → `{ coupon, created, period }` |
 | `GET` | `/api/me/coupon-issuer/coupons?limit` | 自分が発行したクーポン一覧（過去周期・inactive 含む、既定 24 / 上限 100） |
 | `PATCH` | `/api/admin/coupon-issuer-grants/[id]` | `{ action: approve\|reject\|suspend\|reinstate\|update_settings, settings?, adminNote? }` |
-| 汎用 | `/api/coupon-issuer-grant/**` | admin の一覧・検索（serviceRegistry `couponIssuerGrant`, ADMIN_ONLY） |
+| 汎用 | `/api/couponIssuerGrant/**` | admin の一覧・検索（domainEntry `couponIssuerGrant`、access ADMIN_ONLY） |
 
 ### 管理用リードモデル（一覧統計・ドリルダウン）
 
@@ -147,7 +147,7 @@ const { items, total, grandTotals, period } = await couponIssuerGrantService.get
 
 | 値 | 定義 |
 |---|---|
-| `currentPeriodCoupon` | registry の周期で解決した当期区間に `valid_from` が入る affiliate クーポン（id / code / status / current_total_uses / max_total_uses / valid_from / valid_until）。program 未設定・未発行なら null |
+| `currentPeriodCoupon` | プログラム設定の周期で解決した当期区間に `valid_from` が入る affiliate クーポン（id / code / status / current_total_uses / max_total_uses / valid_from / valid_until）。program 未設定・未発行なら null |
 | `lifetimeUses` | 発行者の affiliate クーポン（program.category 限定）の `coupon_histories` 件数 |
 | `rewardPaidTotal` / `rewardPaidCurrentPeriod` | `coupon_attribution_rewards.amount` の合計（fulfilled のみ。当期は `fulfilled_at` で区切り） |
 | `discountTotal` | `purchase_requests.discount_amount` の合計（status=completed、`coupon_code` で結合）。決済の機能が閉じている（`gate.enabled("payment")` が false）ときは `purchase_requests` を読まず 0（一覧・単体・`grandTotals` とも） |

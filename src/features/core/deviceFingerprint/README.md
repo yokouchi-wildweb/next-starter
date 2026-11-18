@@ -18,8 +18,8 @@
 |---|---|---|
 | canvas | Canvas 2D 描画のハッシュ（GPU/ドライバ/フォント描画差） | 3（強） |
 | audio | OfflineAudioContext 波形ハッシュ（DSP 実装差） | 3（強） |
-| webgl | UNMASKED renderer/vendor + 主要パラメータのハッシュ | 2 |
-| fonts | テキスト幅測定で検出したインストール済みフォント | 2 |
+| webgl | UNMASKED renderer/vendor + 主要パラメータのハッシュ | 2（強） |
+| fonts | テキスト幅測定で検出したインストール済みフォント | 2（強） |
 | screen | 解像度 × 色深度 @ DPR（可読キー） | 1 |
 | timezone | IANA タイムゾーン名 | 1 |
 | languages | navigator.languages | 1 |
@@ -79,7 +79,7 @@ export async function investigate(userId: string, recentIp: string) {
 }
 ```
 
-- admin 用の HTTP は `POST /api/admin/device-fingerprint/similar`(userId か compositeHash)と `/compare`(2 ユーザーの比較)を同梱済み。一覧・検索は汎用 `/api/device-fingerprint`(serviceRegistry `ADMIN_ONLY`)
+- admin 用の HTTP は `POST /api/admin/device-fingerprint/similar`(userId か compositeHash)と `/compare`(2 ユーザーの比較)を同梱済み。一覧・検索は汎用 `/api/deviceFingerprint`(domainEntry の access `ADMIN_ONLY`)
 
 ## API
 
