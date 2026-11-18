@@ -535,3 +535,4 @@
 - id:20261118-040946-base-skills-generic | severity:info | checkpoint:base-skills-generic
 - id:20261118-041815-base-flux-orders-generic | severity:action-required | checkpoint:base-flux-orders-generic
 - id:20261118-050940-devcheck-test-policy-key-type | severity:info | checkpoint:devcheck-test-policy-key-type | fixes:20261118-095901-agent-policy-defaults-manual | pick:clean
+- id:20261118-044933-v2-checks | severity:action-required | checkpoint:v2-checks
