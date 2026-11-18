@@ -5,7 +5,7 @@ import { Link } from "@/components/Navigation";
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { SecTitle } from "@/components/TextBlocks";
+import { SecTitle, Para } from "@/components/TextBlocks";
 import { EarlyRegistrationSendForm, ThirdPartySignupOptions } from "@/features/core/auth/components/Signup";
 
 export function EntrySignupSection() {
@@ -24,14 +24,14 @@ export function EntrySignupSection() {
           <EarlyRegistrationSendForm urlAfterEmailSent={emailSentUrl} />
           <ThirdPartySignupOptions />
 
-          <p className="text-center text-xs text-muted-foreground">
+          <Para size="xs" tone="muted" align="center" className="my-0">
             <Link href="/terms" className="text-primary hover:underline">利用規約</Link>
             、
             <Link href="/privacy-policy" className="text-primary hover:underline">プライバシーポリシー</Link>
             に
             <br />
             同意の上、ご登録ください。
-          </p>
+          </Para>
         </Stack>
       </Stack>
     </Section>

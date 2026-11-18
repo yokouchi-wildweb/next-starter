@@ -10,6 +10,8 @@ import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
+import { Flex } from "@/components/Layout/Flex";
+import { Para } from "@/components/TextBlocks";
 import { Button } from "@/components/Form/Button/Button";
 import { useEmailChangeVerification } from "@/features/core/auth/hooks/useEmailChangeVerification";
 
@@ -24,15 +26,15 @@ export function EmailChangeVerification() {
 
       {phase === "require_login" && (
         <Stack gap="lg" className="items-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+          <Flex align="center" justify="center" className="h-16 w-16 rounded-full bg-primary/10">
             <LockIcon className="h-8 w-8 text-primary" />
-          </div>
+          </Flex>
           <Stack gap="xs" className="items-center">
-            <p className="text-lg font-medium">ログインが必要です</p>
-            <p className="text-sm text-muted-foreground text-center">
+            <Para size="lg" weight="medium" align="inherit" className="my-0">ログインが必要です</Para>
+            <Para size="sm" tone="muted" align="center" className="my-0">
               メールアドレスの変更を完了するには、<br />
               ログインしてください。
-            </p>
+            </Para>
           </Stack>
           <Button asChild className="w-full">
             <Link href={loginHref}>ログインする</Link>
@@ -42,15 +44,15 @@ export function EmailChangeVerification() {
 
       {phase === "processing" && (
         <Stack gap="md" className="items-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+          <Flex align="center" justify="center" className="h-16 w-16 rounded-full bg-primary/10">
             <MailIcon className="h-8 w-8 text-primary" />
-          </div>
+          </Flex>
           <Stack gap="xs" className="items-center">
-            <p className="text-lg font-medium">メールアドレスを変更中...</p>
+            <Para size="lg" weight="medium" align="inherit" className="my-0">メールアドレスを変更中...</Para>
             {newEmail && (
-              <p className="text-sm text-muted-foreground">
+              <Para size="sm" tone="muted" align="inherit" className="my-0">
                 新しいメールアドレス: {newEmail}
-              </p>
+              </Para>
             )}
           </Stack>
           <InlineLoader />
@@ -59,15 +61,15 @@ export function EmailChangeVerification() {
 
       {phase === "completed" && (
         <Stack gap="lg" className="items-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+          <Flex align="center" justify="center" className="h-16 w-16 rounded-full bg-green-100">
             <CheckCircleIcon className="h-8 w-8 text-green-600" />
-          </div>
+          </Flex>
           <Stack gap="xs" className="items-center">
-            <p className="text-lg font-medium">メールアドレスを変更しました</p>
+            <Para size="lg" weight="medium" align="inherit" className="my-0">メールアドレスを変更しました</Para>
             {newEmail && (
-              <p className="text-sm text-muted-foreground">
+              <Para size="sm" tone="muted" align="inherit" className="my-0">
                 新しいメールアドレス: <strong>{newEmail}</strong>
-              </p>
+              </Para>
             )}
           </Stack>
           <Button asChild className="w-full">
@@ -78,12 +80,12 @@ export function EmailChangeVerification() {
 
       {phase === "error" && (
         <Stack gap="lg" className="items-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+          <Flex align="center" justify="center" className="h-16 w-16 rounded-full bg-destructive/10">
             <XCircleIcon className="h-8 w-8 text-destructive-text" />
-          </div>
+          </Flex>
           <Stack gap="xs" className="items-center">
-            <p className="text-lg font-medium">エラーが発生しました</p>
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <Para size="lg" weight="medium" align="inherit" className="my-0">エラーが発生しました</Para>
+            <Para size="sm" tone="muted" align="inherit" className="my-0">{error}</Para>
           </Stack>
           <Button asChild variant="outline" className="w-full">
             <Link href="/mypage">マイページに戻る</Link>

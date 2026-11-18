@@ -3,7 +3,7 @@
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { SecTitle, Para } from "@/components/TextBlocks";
+import { SecTitle, Para, Span } from "@/components/TextBlocks";
 
 /**
  * キャンペーンセクション
@@ -38,16 +38,16 @@ export function CampaignSection() {
           <ul className="flex flex-col gap-2 text-left text-sm">
             {/* TODO: 特典リストをカスタマイズ */}
             <li className="flex items-start gap-2">
-              <span className="text-primary">✓</span>
-              <span>特典1: プレースホルダー</span>
+              <Span inline tone="primary">✓</Span>
+              <Span inline>特典1: プレースホルダー</Span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-primary">✓</span>
-              <span>特典2: プレースホルダー</span>
+              <Span inline tone="primary">✓</Span>
+              <Span inline>特典2: プレースホルダー</Span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-primary">✓</span>
-              <span>特典3: プレースホルダー</span>
+              <Span inline tone="primary">✓</Span>
+              <Span inline>特典3: プレースホルダー</Span>
             </li>
           </ul>
         </Stack>
