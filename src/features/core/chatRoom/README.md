@@ -180,7 +180,7 @@ function ChatRoomList({ uid }: { uid: string }) {
           <li key={room.id}>
             {room.type === "direct" ? profile?.name : room.name}
             {isRoomUnread(room, uid) && <span>●</span>}
-            <p>{room.lastMessageSnapshot?.content}</p>
+            <p>{room.lastMessageSnapshot?.type === "text" ? room.lastMessageSnapshot.content : "添付"}</p>
           </li>
         );
       })}
@@ -248,15 +248,10 @@ const scoutUnread = useUnreadCount(uid, { type: "scout" as any });
 
 Firestore はスキーマレスのため、コアファイルの変更なしに独自フィールドを追加できる。
 
-- ルール例（`firestore.rules.example`）はこの独自フィールドを通さない。既定の `fstore` で書くと、メール+パスワード・OAuth のユーザーは `request.auth.uid` が `users.id` にならない（Internals「chatRoom 専用の Firebase アプリ」）
+- ルール例（`firestore.rules.example`）はこの独自フィールドを通さない
+- 書き込みは chatRoom のクライアントだけが使える。既定の `fstore` で書くと、メール+パスワード・OAuth のユーザーは `request.auth.uid` が `users.id` にならない（Internals「chatRoom 専用の Firebase アプリ」）。独自フィールドを書くクライアント関数は今は無い
 
 ```ts
-// 書き込み
-await updateDoc(doc(fstore, "chat_rooms", roomId), {
-  iconUrl: "https://...",
-  description: "プロジェクトAの相談部屋",
-});
-
 // 読み取り（型拡張）
 type ExtendedChatRoom = ChatRoom & { iconUrl?: string; description?: string };
 ```
@@ -368,6 +363,7 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 | `readAt` | `Record<string, Date>` | `{ [userId]: 最終既読日時 }` |
 | `lastMessageSnapshot` | `object` | 最新メッセージのスナップショット（一覧表示用） |
 | `createdAt` / `updatedAt` | `Date` | タイムスタンプ |
+| `deletedAt` | `Date \| null` | 論理削除日時（管理画面） |
 
 #### LastMessageSnapshot
 
@@ -404,6 +400,7 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 |---|---|
 | テキスト最大長 | 5,000 文字 |
 | 画像最大サイズ | 10 MB |
+| 動画最大サイズ | 200 MB |
 | ファイル最大サイズ | 20 MB |
 
 ### 定数（constants/chat.ts）
@@ -497,13 +494,6 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 - 例は `request.auth.uid` == `users.id`（participants・senderId・readAt のキー）を前提にする。chatRoom のクライアントはどのログイン方法でもこれを満たす（「chatRoom 専用の Firebase アプリ」）
 - 例は chatRoom のクライアントが書くフィールドと type（direct / group）だけを通す。独自フィールド・独自の type を使う fork は、自分の `firestore.rules` に足す
 
-#### chatRoom 専用の Firebase アプリ
-
-- chatRoom のクライアント（`services/client/firestoreClient.ts` / `messageClient.ts`）は、既定のアプリではなく chatRoom 専用のアプリ（名前 `"chatRoom"`、`services/client/chatFirebase.ts`）の Firestore を使う
-- 専用のアプリはカスタムトークン（`/api/auth/firebase-token`。uid = `users.id`）でサインインし、読み書き・購読の前にそれを待つ。認証の状態はメモリにだけ持つ（ページの読み込みごとにトークンを 1 回取る）
-- 理由: メール+パスワード・OAuth でログインすると、既定のアプリの uid はプロバイダーの uid のまま（`users.id` と違う）で、ルールで chatRoom の読み書きがすべて拒否される。既定のアプリ（ログイン・電話番号の紐づけ・パスワード変更）は入れ替えない
-- 専用のアプリは chatRoom の内側だけの部品で、公開の入口ではない
-
 セキュリティルールの書き方:
 
 - ルールはドキュメント単位で評価されるため、各ドキュメントのフィールド値検証で制約を担保する
@@ -514,6 +504,13 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
   - 参加者管理・ルーム名変更等: 用途に応じた権限条件
 - `messages` は親ルームの `participants` に含まれることを read/create の条件にし、create は `senderId == request.auth.uid`。編集・論理削除を使う場合は送信者本人のみに update を許可する
 - チャット添付は Firebase Storage を使わない（「ファイル添付」。発行と読み取りはアプリのサーバーが participants で判定する）
+
+#### chatRoom 専用の Firebase アプリ
+
+- chatRoom のクライアント（`services/client/firestoreClient.ts` / `messageClient.ts`）は、既定のアプリではなく chatRoom 専用のアプリ（名前 `"chatRoom"`、`services/client/chatFirebase.ts`）の Firestore を使う
+- 専用のアプリはカスタムトークン（`/api/auth/firebase-token`。uid = `users.id`）でサインインし、読み書き・購読の前にそれを待つ。認証の状態はメモリにだけ持つ（ページの読み込みごとにトークンを 1 回取る）
+- 理由: メール+パスワード・OAuth でログインすると、既定のアプリの uid はプロバイダーの uid のまま（`users.id` と違う）で、ルールで chatRoom の読み書きがすべて拒否される。既定のアプリ（ログイン・電話番号の紐づけ・パスワード変更）は入れ替えない
+- 専用のアプリは chatRoom の内側だけの部品で、公開の入口ではない
 
 ### ファイル添付
 

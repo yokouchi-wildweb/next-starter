@@ -3,7 +3,7 @@
 ## Overview
 
 - chatRoom のクライアント関数(Firestore SDK を直接操作する)。通常はフック(`../../hooks/firestore/README.md`)から呼ばれる
-- `firestoreClient.ts` = ルーム操作、`messageClient.ts` = メッセージ操作、`bulkMessageClient.ts` = 一斉送信、`chatRoomClient.ts` = 管理画面用の REST クライアント(自動生成)。`chatFirebase.ts` = chatRoom 専用の Firebase アプリ(内側の部品)
+- `firestoreClient.ts` = ルーム操作、`messageClient.ts` = メッセージ操作、`bulkMessageClient.ts` = 一斉送信、`chatRoomClient.ts` = 管理画面用の REST クライアント。`chatFirebase.ts` = chatRoom 専用の Firebase アプリ(内側の部品)
 - 未読のユーティリティは `utils/unread.ts`
 
 ## Usage

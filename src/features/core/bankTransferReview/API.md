@@ -13,14 +13,18 @@
 | `id` | uuid (PK) | レビュー ID |
 | `purchase_request_id` | uuid (FK, **UNIQUE**) | 関連購入リクエスト。1 対 1。purchase_request 削除時は cascade |
 | `user_id` | uuid (FK) | 申告ユーザー。検索高速化と権限照合用に保持 |
-| `status` | enum | `pending_review` / `confirmed` / `rejected` |
+| `status` | enum | `pending_review` / `needs_check` / `investigating` / `confirmed` / `rejected` |
 | `mode` | enum | `immediate` / `approval_required`（作成時固定） |
 | `proof_image_url` | text (NOT NULL) | 振込明細画像の storage ref（`storage://priv/purchaseRequest.bankProof/…`。移行前の行は旧 Firebase Storage URL のまま） |
 | `submitted_at` | timestamp | ユーザー申告日時 |
 | `reviewed_by` | uuid (FK, ON DELETE SET NULL) | レビュー実施管理者。退職時もレビュー履歴は残す |
 | `reviewed_at` | timestamp (nullable) | レビュー実施日時 |
+| `approval_source` | text (nullable) | 承認の経路 `manual` / `csv_auto`（未承認・拒否は null） |
 | `reject_reason` | text (nullable) | 拒否理由（confirmed では null） |
-| `metadata` | jsonb (nullable) | 拡張用（再レビュー履歴・追加コメント等の将来余地） |
+| `admin_memo` | text (nullable) | 管理者の自由メモ |
+| `needs_check_reason` | text (nullable) | 要確認の理由 `amount_mismatch` / `image_judgment_failed`。確定後も残す |
+| `needs_check_context` | jsonb (nullable) | 理由の詳細（例 `amount_mismatch` = `{ csvAmount, expectedAmount }`）。コアは中身を解釈しない |
+| `metadata` | jsonb (nullable) | 拡張用（コアは中身を解釈しない） |
 | `created_at`, `updated_at` | timestamp | 標準タイムスタンプ |
 
 #### インデックス
@@ -35,14 +39,14 @@
 - `purchase_requests` (1) ─ `bank_transfer_reviews` (0..1)
 - `users` (1) ─ `bank_transfer_reviews.user_id` (N) — 申告ユーザー
 - `users` (1) ─ `bank_transfer_reviews.reviewed_by` (N) — レビュー実施管理者
-- `purchase_requests` テーブルへのカラム追加は無い(本ドメインは独立した新規テーブル)
+- `purchase_requests` テーブルへのカラム追加は無い
 
 ### HTTP: ユーザー向け
 
 #### `POST /api/wallet/purchase/[id]/bank-transfer/confirm`
 振込完了をユーザーが申告する。
 
-**リクエスト**: `{ proofImageUrl: string }` (`useBankTransferProofUpload` で上げた storage ref)
+**リクエスト**: `{ proofImageUrl: string, unverifiedNote?: string }`（`proofImageUrl` = `useBankTransferProofUpload` で上げた storage ref。`unverifiedNote` は AI 判定が不合格・未判定のとき必須、500 文字以内）
 
 **レスポンス**:
 ```ts
@@ -97,6 +101,14 @@
   }
 ```
 
+#### `POST /api/wallet/purchase/[id]/bank-transfer/judge-image`
+申告前に振込明細の画像を AI が判定する（`aiImageJudgmentEnabled` のとき）。
+
+**リクエスト**: multipart の `file`
+
+- 合否はサーバーで決め `purchase_requests.metadata` に残す。`/confirm` はこの保存値で合否を確かめる
+- 利用者ごとの回数の上限あり（直近 15 分の失敗・直近 24 時間の試行）
+
 ### HTTP: 管理者向け(管理者のロール区分で保護)
 
 #### `GET /api/admin/bank-transfer-reviews`
@@ -105,6 +117,11 @@
 **クエリ**: `status` / `mode` / `userId` / `dateFrom` / `dateTo` / `page` (1-based) / `limit` (default 20, max 100)
 
 **レスポンス**: `{ items, total, page, limit }` — items は `review + purchaseRequest + user` を JOIN 済み
+
+#### `GET /api/admin/bank-transfer-reviews/status-counts`
+status ごとの件数（タブ用）。
+
+**クエリ**: `searchQuery`（任意。一覧と同じ検索を当てる）
 
 #### `GET /api/admin/bank-transfer-reviews/[id]`
 レビュー詳細。
@@ -115,6 +132,21 @@
 管理者承認。mode に応じて completePurchase 連動。
 
 **レスポンス**: `{ success, review, walletHistoryId }`
+
+#### `POST /api/admin/bank-transfer-reviews/[id]/investigate`
+検証中（`investigating`）へ移す。
+
+**リクエスト**: `{ note?: string }`（500 文字以内）
+
+#### `PATCH /api/admin/bank-transfer-reviews/[id]/admin-memo`
+管理者メモを書き換える。
+
+**リクエスト**: `{ adminMemo?: string | null }`
+
+#### `POST /api/admin/bank-transfer-reviews/bulk/import-csv`
+振込明細 CSV で一括判定する。
+
+**リクエスト**: `{ csvText: string, dryRun: boolean }`（`dryRun: true` は判定の下見だけ）
 
 #### `POST /api/admin/bank-transfer-reviews/[id]/reject`
 管理者拒否。

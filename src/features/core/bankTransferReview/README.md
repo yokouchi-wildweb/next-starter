@@ -17,6 +17,7 @@
 
 - `purchaseRequestConfig.payment.bankTransfer.autoComplete` で 2 モードを切り替える
 - レビュー作成時にモードがレコードに固定保存され、以後不変（途中で設定が変わっても既存レビューは作成時のモードで動く。切り替えは以後の新規申告にだけ効く）
+- AI 画像判定（`aiImageJudgmentEnabled`）が不合格・未判定のまま申告されたレビューは、設定が即時でも `approval_required` で作られ、status は `needs_check`（理由 `image_judgment_failed`）。申告には `unverifiedNote`（振込人名等のメモ）が要る
 
 | mode | 通貨付与のタイミング | 管理者承認の意味 | 拒否時の挙動 |
 |---|---|---|---|
@@ -38,7 +39,7 @@
 
 ### 振込先口座
 
-- `purchaseRequestConfig.payment.bankTransfer.account` の既定はサンプル値。本番リリース前に事業者の正規口座情報に書き換える
+- `purchaseRequestConfig.payment.bankTransfer.account` の既定はサンプル値
 
 ### 流れ: 即時モード (`autoComplete: true`)
 
@@ -89,10 +90,10 @@
 
 ### 画面と部品（ユーザー側）
 
-| 画面 / コンポーネント | パス | 役割 | 実装状況 |
-|---|---|---|---|
+| 画面 / コンポーネント | パス | 役割 |
+|---|---|---|
 | 振込案内ページ | `src/app/(user)/(protected)/wallet/[slug]/purchase/bank-transfer/[requestId]/page.tsx` | 振込先口座・識別子・期限の表示 + 申告 CTA | 実装済 |
-| 案内ページ本体コンポーネント | `src/features/core/purchaseRequest/components/BankTransferInstruction/` | 3 ステップ UI（口座情報 → 画像添付 → 申告） | 実装済 |
+| 案内ページ本体コンポーネント | `src/features/core/purchaseRequest/components/BankTransferInstruction/` | 口座情報 → 画像添付 →（AI 判定）→ 申告。AI 判定が無効なら 3 ステップ |
 | 画像アップロードフック | `src/features/core/purchaseRequest/hooks/useBankTransferProofUpload.ts` | 非公開の用途 purchaseRequest.bankProof へのアップロード（差し替え時は前の画像を取り消す） | 実装済 |
 | 進行中振込バナー | `src/features/core/bankTransferReview/components/ActiveTransferBanner/` | ウォレットトップに表示する未完了振込の案内 | 実装済 |
 | バナー用フック | `src/features/core/bankTransferReview/hooks/useActiveBankTransfer.ts` | `getActiveBankTransfer` のラッパー | 実装済 |
@@ -108,8 +109,7 @@
 | 詳細モーダル | `_screen/BankTransferReviewDetailModal.tsx` | `useAdminBankTransferReview` の詳細、`useAdminBankTransferReviewDecision` の承認 / 拒否 / 検証中への移行、管理者メモ |
 | CSV 取り込み | `_screen/BankTransferReviewCsvImportDialog.tsx` | `useAdminBankTransferReviewCsvImport` を呼んで振込明細 CSV の dry-run と一括判定を描く |
 
-- `_screen` 部品は上流専用で約束なし（引数は足さない）。見た目を変える fork は同じルートの `_components/` の Screen で公開 hook（`API.md`「管理画面の公開 hook」）を呼び、自分の markup で描く
-- 管理画面の部品は client 関数を直に呼ばず、公開 hook を呼ぶ（client 関数は `normalizeHttpError` を統一適用済み）
+- `_screen` 部品は上流専用で約束なし。fork の Screen が呼ぶ公開 hook は `API.md`「管理画面の公開 hook」（client 関数は `normalizeHttpError` を統一適用済み）
 
 ### 拒否した後の運用（即時モード）
 
@@ -133,6 +133,10 @@
 {
   /** true: 申告時即時付与 / false: 管理者承認時付与 */
   autoComplete: boolean;
+  /** 申告前の AI 画像判定の段を出すか（false = 画像添付 → 即申告） */
+  aiImageJudgmentEnabled: boolean;
+  /** true: 振込人名・識別数字・金額の 3 点が読めなければ不合格（aiImageJudgmentEnabled のときだけ） */
+  aiImageJudgmentStrictMode: boolean;
   account: {
     bankName: string;
     branchName: string;
@@ -194,6 +198,8 @@
 | 確認モード申告直後 | processing | pending_review | approval_required |
 | 確認モード承認後 | **completed** | confirmed | approval_required |
 | 確認モード拒否後 | **failed** | rejected | approval_required |
+| AI 判定不合格の申告直後 | processing | needs_check（理由 `image_judgment_failed`） | approval_required |
+| 要確認・検証中 | （元のまま） | needs_check / investigating（管理者の移行・CSV の金額不一致 `amount_mismatch`） | どちらも |
 
 ### 拒否の扱い
 
@@ -233,8 +239,12 @@
 | `bank_transfer_review.review.submitted` | ユーザー申告（新規 or 再申告） | 既存レビューの status / proof_image_url ↔ 新しい状態 | `purchaseRequestId`, `isResubmission` |
 | `bank_transfer_review.review.confirmed` | 管理者承認 | `status: pending_review` ↔ `status: confirmed` + reviewed_by | `purchaseRequestId`, `mode`, `walletHistoryId` |
 | `bank_transfer_review.review.rejected` | 管理者拒否 | `status: pending_review` ↔ `status: rejected` + reviewed_by | `purchaseRequestId`, `mode` (reason には rejectReason) |
+| `bank_transfer_review.review.flagged_needs_check` | 要確認への移行（CSV の金額不一致など） | status ↔ `needs_check` + 理由 | 理由の詳細 |
+| `bank_transfer_review.review.flagged_investigating` | 管理者の検証中への移行 | status ↔ `investigating` | note |
+| `bank_transfer_review.admin_memo.changed` | 管理者メモの変更 | admin_memo | - |
+| `bank_transfer_review.review.cancelled` | 利用者が購入リクエストを取り消した（purchaseRequest の cancelPurchase） | `status: pending_review` ↔ `status: rejected` + 取り消しの理由 | `purchaseRequestId`, `mode`, `cancelledByUser` |
 
-- レビューの status 更新と audit の記録は同一トランザクション。audit が失敗するとレビューの更新も巻き戻る
+- レビューの status 更新と audit の記録は同一トランザクションで、audit が失敗するとレビューの更新も巻き戻る
 - 通貨付与（`completePurchase` 内の `walletService.adjustBalance`）の audit は wallet ドメイン側で記録される（`wallet.balance.changed` 系）
 
 ### 関連ドメインとの接点

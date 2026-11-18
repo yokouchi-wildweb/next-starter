@@ -16,4 +16,4 @@ editing:
 - review_mode_fixed: a review's mode is fixed at creation | never re-read autoComplete for an existing review
 - review_audit_tx: a review status update and its audit record share one transaction
 - review_keys_limits: admin SWR keys only in hooks/adminBankTransferReviewKeys.ts | input limits only in constants/limits.ts, parts read the same values
-read: enable, flows, screens, operations → Usage | data, HTTP, hooks → API (API.md) | config keys, bulk actions → Extension | states, proof image guard, audit → Internals | tests → Verification
+read: enable, flows, screens, operations → Usage | data, HTTP, hooks → src/features/core/bankTransferReview/API.md API | config keys, bulk actions → Extension | states, proof image guard, audit → Internals | tests → Verification

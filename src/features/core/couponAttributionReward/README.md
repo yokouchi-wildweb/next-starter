@@ -45,16 +45,19 @@ registerCouponHandler("purchase_discount", {
 
 ### 通知（tx コミット後に送る）
 
-通知テーブルへの書き込みは tx に乗らないため、`grant` 内で送ると外側 tx のロールバック時に「付与されていないのに通知だけ届く」不整合が起きる。そのため通知は内蔵しない。
+連絡の書き込みは tx に乗らないため、`grant` 内で送ると外側 tx のロールバック時に「付与されていないのに通知だけ届く」不整合が起きる。そのため通知は内蔵しない。送るのは利用者への連絡の口 `messagingService.sendMessage`（連絡の定義 `messages/<名前>.ts` は下流のドメインに置く。書き方は src/features/core/messaging/README.md）。
 
 ```typescript
 // 例: purchaseCompleteHook / routeFactory コミット後処理などから
-import { notificationService } from "@/features/core/notification/services/server/notificationService";
+import { messagingService } from "@/features/messaging/services/server";
+import { message as attributionRewardFulfilled } from "@/features/<downstream>/messages/attributionRewardFulfilled";
+
 const reward = await couponAttributionRewardService.getByCouponHistory(historyId);
 if (reward?.status === "fulfilled") {
-  await notificationService.sendToUserSafe(reward.recipient_user_id, {
-    title: "クーポン報酬を獲得しました",
-    body: `${reward.amount} コインが付与されました。`,
+  await messagingService.sendMessage(attributionRewardFulfilled, {
+    recipient: { userId: reward.recipient_user_id },
+    vars: { amount: reward.amount },
+    idempotencyKey: `coupon-attribution-reward:${reward.id}`,
   });
 }
 ```
@@ -146,7 +149,7 @@ await couponAttributionRewardService.getRecipientSummary(userId);
 // → { fulfilledAmount, fulfilledCount, pendingAmount }
 ```
 
-- 標準 CRUD（`search` / `count` 等）も使える。汎用 `create` / `update` は台帳行を触るだけ（CRUD 自動監査 `coupon_attribution_reward.*` が残る）
+- 標準 CRUD（`search` / `count` 等）も使える。汎用 `create` / `update` は台帳行を触るだけで付与は走らない（管理者の手動補正用。CRUD 自動監査 `coupon_attribution_reward.*` が残る）
 
 ### 本人向け API
 

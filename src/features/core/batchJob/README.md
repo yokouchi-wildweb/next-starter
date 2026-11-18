@@ -63,7 +63,7 @@ const progress = await batchJobService.getProgress(job.id);
 - `status` enum: pending / running / completed / failed / cancelled
 - `total_count` / `processed_count` / `failed_count` / `skipped_count` integer: 総数・処理済み・失敗・スキップの数
 - `batch_size` integer: 1 チャンクの処理件数
-- `max_retry_count` integer: 最大リトライ回数
+- `max_retry_count` integer: 最大リトライ回数(今は記録だけ。failed のアイテムを自動で再実行する処理は無い)
 - `params` jsonb: ジョブ固有パラメータ
 - `target_query` jsonb: 対象抽出条件の記録用（メタデータ）
 - `error_summary` text: チャンクレベル例外時のエラー
@@ -94,15 +94,15 @@ const progress = await batchJobService.getProgress(job.id);
 import { defineBatchJobHandler } from "@/features/core/batchJob/types";
 
 type MyParams = {
-  templateId: string;
-  subject: string;
+  orderNo: string;
 };
 
 export const jobHandler = defineBatchJobHandler<MyParams>({
   jobType: MY_BATCH_JOB_TYPE, // ファサードと共有する定数は別のファイル
   // processChunk か processItem のどちらか一方
   processItem: async (itemKey, params, tx) => {
-    await mailService.send(itemKey, params.templateId, params.subject);
+    // 利用者への連絡は messagingService.sendMessage(連絡の定義 messages/<名前>.ts)
+    await messagingService.sendMessage(orderShipped, { recipient: { userId: itemKey }, vars: { orderNo: params.orderNo } });
   },
   recoveryTimeoutMs: 60_000, // processItem 専用（省略時: 5 分）
 });
@@ -111,21 +111,20 @@ export const jobHandler = defineBatchJobHandler<MyParams>({
 2. ファサード関数を提供する（ダウンストリームが jobType や params 構造を知らずに使える）
 
 ```typescript
-// src/features/core/<domain>/services/server/handlers/myBatchJob.ts
+// src/features/<domain>/services/server/handlers/myBatchJob.ts
 import { batchJobService } from "@/features/batchJob/services/server/batchJobService";
 import type { BatchJob } from "@/features/batchJob/types";
 
 export async function createMyBatchJob(input: {
   jobKey: string;
   userIds: string[];
-  templateId: string;
-  subject: string;
+  orderNo: string;
 }): Promise<BatchJob> {
   return batchJobService.createJob({
     jobType: MY_BATCH_JOB_TYPE,
     jobKey: input.jobKey,
     itemKeys: input.userIds,
-    params: { templateId: input.templateId, subject: input.subject } satisfies MyParams,
+    params: { orderNo: input.orderNo } satisfies MyParams,
   });
 }
 ```
@@ -150,7 +149,7 @@ processItem（外部 API・長時間処理）:
 pending → running     （最初のexecuteChunk時）
 running → completed   （pending + processing 残0件）
 running → failed      （チャンクレベル例外）
-running → cancelled   （管理者キャンセル）
+pending / running → cancelled（管理者キャンセル。処理済み分は巻き戻さない）
 ```
 
 ステータス遷移（`batch_job_items`）:

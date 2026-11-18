@@ -155,7 +155,7 @@ const result = couponService.validateCouponStatically(coupon, userId?, options?)
 // 基本使用（トランザクション内で SELECT FOR UPDATE → 検証 → カウント更新 → 履歴記録）
 // options: { scope?: { types?, categories? } }（skipRedeemerChecks は型で不可）
 const result = await couponService.redeem(code, userId?, additionalMetadata?, tx?, options?);
-// → { success: true, history } | { success: false, reason }
+// → { success: true, history, coupon } | { success: false, reason }
 ```
 
 #### カテゴリ付き検証（ハンドラー連携）
@@ -183,7 +183,7 @@ const coupon = await couponService.getInviteCode(userId, tx?);
 // 招待コード取得 or 作成（冪等）
 const coupon = await couponService.getOrCreateInviteCode(userId, tx?);
 
-// 任意タイプのコード発行
+// 帰属付きコード発行（invite / affiliate のみ。official は対象外）
 const coupon = await couponService.issueCodeForOwner({
   attributionUserId: userId,
   type: "affiliate",
@@ -263,6 +263,9 @@ import { useMyInviteCode } from "@/features/core/coupon/hooks/useMyInviteCode";
 // 招待コード発行
 import { useIssueMyInviteCode } from "@/features/core/coupon/hooks/useIssueMyInviteCode";
 
+// カテゴリ付き検証
+import { useValidateCouponForCategory } from "@/features/core/coupon/hooks/useValidateCouponForCategory";
+
 // 登録済みカテゴリ一覧（管理画面フォーム用）
 import { useCouponCategories } from "@/features/core/coupon/hooks/useCouponCategories";
 ```
@@ -270,6 +273,7 @@ import { useCouponCategories } from "@/features/core/coupon/hooks/useCouponCateg
 ### API ルート
 
 - `POST` `/api/coupon/check-usability`: 使用可否チェック
+- `POST` `/api/coupon/validate-for-category`: カテゴリ付き検証（ログイン必須）
 - `POST` `/api/coupon/redeem`: クーポン使用（汎用・ゲスト可。受理は `official` のみ、帰属付き種別は専用入口）
 - `POST` `/api/referral/validate-invite-code`: 招待コードのログイン前検証（referral ドメイン。valid と文言のみ返す）
 - `GET` `/api/coupon/my-invite`: 自分の招待コード取得
@@ -285,59 +289,65 @@ import { useCouponCategories } from "@/features/core/coupon/hooks/useCouponCateg
 ```typescript
 // src/features/core/purchaseRequest/services/server/coupon/registerHandler.ts（例）
 
+import { gate } from "@/featureGate";
 import { registerCouponHandler } from "@/features/core/coupon/handlers";
 
-registerCouponHandler("purchase_discount", {
-  label: "購入割引",
+export function registerPurchaseDiscountHandler(): void {
+  if (!gate.enabled("coupon")) return;
+  registerCouponHandler("purchase_discount", {
+    label: "購入割引",
 
-  // 管理画面フォームに表示される設定フィールド（FieldConfig 互換）
-  settingsFields: [
-    {
-      name: "discountType", label: "割引タイプ", formInput: "select", required: true,
-      options: [{ value: "percentage", label: "定率" }, { value: "fixed", label: "定額" }],
+    // 管理画面フォームに表示される設定フィールド（FieldConfig 互換）
+    settingsFields: [
+      {
+        name: "discountType", label: "割引タイプ", formInput: "select", required: true,
+        options: [{ value: "percentage", label: "定率" }, { value: "fixed", label: "定額" }],
+      },
+      { name: "discountValue", label: "割引値", formInput: "numberInput", required: true },
+      { name: "maxDiscountAmount", label: "割引上限額", formInput: "numberInput" },
+    ],
+
+    async validateForUse({ coupon, userId, metadata }) {
+      const paymentAmount = metadata?.paymentAmount as number;
+      if (paymentAmount < 500) {
+        return { valid: false, reason: "最低購入金額に達していません" };
+      }
+      return { valid: true };
     },
-    { name: "discountValue", label: "割引値", formInput: "numberInput", required: true },
-    { name: "maxDiscountAmount", label: "割引上限額", formInput: "numberInput" },
-  ],
 
-  async validateForUse({ coupon, userId, metadata }) {
-    const paymentAmount = metadata?.paymentAmount as number;
-    if (paymentAmount < 500) {
-      return { valid: false, reason: "最低購入金額に達していません" };
-    }
-    return { valid: true };
-  },
+    async resolveEffect({ coupon, metadata }) {
+      const { discountType, discountValue, maxDiscountAmount } = coupon.settings;
+      const paymentAmount = metadata?.paymentAmount as number;
+      let discount = discountType === "percentage"
+        ? Math.floor(paymentAmount * (discountValue as number) / 100)
+        : (discountValue as number);
+      if (maxDiscountAmount) discount = Math.min(discount, maxDiscountAmount as number);
+      return {
+        discountAmount: discount,
+        finalPaymentAmount: Math.max(0, paymentAmount - discount),
+      };
+    },
 
-  async resolveEffect({ coupon, metadata }) {
-    const { discountType, discountValue, maxDiscountAmount } = coupon.settings;
-    const paymentAmount = metadata?.paymentAmount as number;
-    let discount = discountType === "percentage"
-      ? Math.floor(paymentAmount * (discountValue as number) / 100)
-      : (discountValue as number);
-    if (maxDiscountAmount) discount = Math.min(discount, maxDiscountAmount as number);
-    return {
-      discountAmount: discount,
-      finalPaymentAmount: Math.max(0, paymentAmount - discount),
-    };
-  },
-
-  describeEffect(coupon) {
-    const { discountType, discountValue } = coupon.settings;
-    const label = discountType === "percentage" ? `${discountValue}%割引` : `${discountValue}円割引`;
-    return { label, description: `コイン購入時に${label}されます` };
-  },
-});
+    describeEffect(coupon) {
+      const { discountType, discountValue } = coupon.settings;
+      const label = discountType === "percentage" ? `${discountValue}%割引` : `${discountValue}円割引`;
+      return { label, description: `コイン購入時に${label}されます` };
+    },
+  });
+}
 ```
 
-2. `handlers/init.ts` にインポートを足す
+2. `handlers/init.ts` で登録の関数を呼ぶ
 
 ```typescript
 // src/features/core/coupon/handlers/init.ts
 
-import "@/features/core/purchaseRequest/services/server/coupon/registerHandler";
+import { registerPurchaseDiscountHandler } from "@/features/core/purchaseRequest/services/server/coupon/registerHandler";
+
+if (gate.enabled("payment")) registerPurchaseDiscountHandler();
 ```
 
-- 消費側が閉じられる機能なら、登録を関数にして init.ts で相手の入切を確かめてから呼ぶ。上流の購入割引は `if (gate.enabled("payment")) registerPurchaseDiscountHandler();` で、決済が閉じていればカテゴリが一覧に出ない（関数の中でもクーポンの入切を確かめる）。招待リファラルも同じ形（`if (gate.enabled("referral")) registerReferralCouponHandler();`）
+- 上流の購入割引は決済が閉じていればカテゴリが一覧に出ない（関数の中でもクーポンの入切を確かめる）。招待リファラルも同じ形（`if (gate.enabled("referral")) registerReferralCouponHandler();`）
 
 3. 管理画面で確かめる
 
@@ -398,7 +408,7 @@ import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";
 
 ### 管理画面のクーポン一覧（useAdminCouponListTable / createAdminCouponListColumns）
 
-処理と列は公開の関数とフックで、fork の Table は並べるだけにする（一般ユーザー一覧と同じ形: `src/features/core/user/README.md`「管理画面の一般ユーザー一覧」）。
+処理と列は公開の関数とフックが持つ（一般ユーザー一覧と同じ形: `src/features/core/user/README.md`「管理画面の一般ユーザー一覧」）。
 
 - `createAdminCouponListColumns()`（`components/AdminCouponList` の入口）: 上流の列（domainDisplay の列 + 操作の列）の配列を返す。呼ぶたびに新しい配列
 - `useAdminCouponListTable()`（`hooks/useAdminCouponListTable.ts`）: 行のクリックで開く詳細のモーダルの対象。`rowProps`（DataTable に広げる）・`modal`（`CouponDetailModal` に広げる）・`selectedId` / `open` / `close`
@@ -417,7 +427,7 @@ const columns = useMemo(() => [...createAdminCouponListColumns(), { header: "利
 
 - 持ち主 `src/features/core/coupon/config.ts`（既定・型 `CouponOverride`・合成 `couponConfig`）、上書き `src/config/features/coupon.config.ts`（値はリテラル。置き方: `src/config/README.md`）
 - `affiliateDescription: string | null`: アフィリエイトクーポンの管理画面（`/admin/coupons/affiliate`）の説明文の下に、同じ見た目で 1 文足す。画面を `_components/` に写さずに文だけ変える受け口
-- 機能の入切（`marketing.coupon.enabled`）は門番の規則 `src/featureGate/rules/coupon.ts` が読むスイッチ
+- 機能の入切は門番の規則 `coupon`（`src/featureGate/rules/coupon.ts`、既定 閉。`pnpm ops features set coupon on`）
 
 ## Internals
 
@@ -449,18 +459,20 @@ const columns = useMemo(() => [...createAdminCouponListColumns(), { header: "利
 ```typescript
 // src/features/core/referral/services/server/coupon/referralHandler.ts
 
-registerCouponHandler("referral", {
-  label: "招待リファラル",
-  async onRedeemed({ coupon, userId }) {
-    const referral = await createReferralFromRedemption(coupon, userId);
-    if (referral) {
-      await referralRewardService.triggerRewards("signup_completed", referral);
-    }
-  },
-});
+export function registerReferralCouponHandler(): void {
+  registerCouponHandler("referral", {
+    label: "招待リファラル",
+    async onRedeemed({ coupon, userId }) {
+      const referral = await createReferralFromRedemption(coupon, userId);
+      if (referral) {
+        await referralRewardService.triggerRewards("signup_completed", referral);
+      }
+    },
+  });
+}
 ```
 
-registration.ts からは `couponService.redeemWithEffect(inviteCode, user.id)` の1行で呼ばれ、ハンドラーが referral 作成と報酬処理を自動実行する。
+registration.ts からは `couponService.redeemWithEffect(inviteCode, user.id, { entryPoint: "registration" }, undefined, { scope: INVITE_CODE_REDEEM_SCOPE })` で呼ばれ、ハンドラーが referral 作成と報酬処理を自動実行する。
 
 ### 自己消込ガード（self_redeem_forbidden）
 
