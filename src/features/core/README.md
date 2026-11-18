@@ -1,5 +1,7 @@
 # core ドメイン一覧
 
+## Overview
+
 upstream（ベーステンプレート）が提供する基盤ドメインの索引。新しい機能を作る前に、ここで同じものが無いかを確認する（CLAUDE.md `reuse_check`）。
 
 - core = Tier1 が出荷するドメイン。上流の持ち物で、fork は足さない・書き換えない(受け口の項目と override だけ)。手書きか生成かは定義に含まない
@@ -8,7 +10,7 @@ upstream（ベーステンプレート）が提供する基盤ドメインの索
 
 README があるものはリンク先が一次資料。README が無いものは、関連ドメインの README かコードを直接参照する。
 
-## 認証・ユーザー
+### 認証・ユーザー
 
 | ドメイン | 役割 |
 |---|---|
@@ -26,7 +28,7 @@ README があるものはリンク先が一次資料。README が無いものは
 | [referral](referral/README.md) | 招待コードと紹介関係 |
 | [referralReward](referralReward/README.md) | 紹介成立時の報酬配布の状態管理 |
 
-## お金・購入
+### お金・購入
 
 | ドメイン | 役割 |
 |---|---|
@@ -40,14 +42,14 @@ README があるものはリンク先が一次資料。README が無いものは
 | [couponAttributionReward](couponAttributionReward/README.md) | 帰属付きクーポンの消込時に発行者へ報酬 |
 | [couponIssuerGrant](couponIssuerGrant/README.md) | クーポン発行権の申請・承認・定期発行 |
 
-## 連絡・通知
+### 連絡・通知
 
 | ドメイン | 役割 |
 |---|---|
 | [messaging](messaging/README.md) | 連絡（メール・お知らせ・fork の経路）。連絡の定義 + 送る口 `messagingService.sendMessage` / `sendMessageToMany`（回・配達の記録・配信停止）、受け取り箱、管理の一括送信と回の読む口 |
 | [chatRoom](chatRoom/README.md) | Firestore ベースのリアルタイムチャット |
 
-## 計測・集計・不正対策
+### 計測・集計・不正対策
 
 | ドメイン | 役割 |
 |---|---|
@@ -62,7 +64,7 @@ README があるものはリンク先が一次資料。README が無いものは
 
 どれを使うか迷ったら CLAUDE.md の COUNTING を先に見る。
 
-## 運用・基盤
+### 運用・基盤
 
 | ドメイン | 役割 |
 |---|---|
@@ -76,7 +78,9 @@ README があるものはリンク先が一次資料。README が無いものは
 | [adminCommand](adminCommand/README.md) | 管理者用コマンドパレット |
 | admin | 管理画面の取得本体（`services/server/screenData/`。生成される管理画面の loader.ts が `src/wiring/adminScreenParts.ts` の組を通して使う）とダッシュボード、管理メニューの受け口（`menu/`: カテゴリー・項目のファイルと組み立て器、`menu/README.md`） |
 
-## エンティティに列を追加・変更するとき
+## Usage
+
+### エンティティに列を追加・変更するとき
 
 core ドメインは手で保守するため、`entities/drizzle.ts` だけを変えると型・検証・画面が取り残される（業務ドメインは `pnpm generate domain` が同期するので対象外）。先に `grep -rln "<エンティティ名>" src/` で使っている場所を全部洗い出し、次を確かめる。
 
