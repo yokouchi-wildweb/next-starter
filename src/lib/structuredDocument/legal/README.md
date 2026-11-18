@@ -1,8 +1,55 @@
 # legal - リーガルドキュメント
 
-利用規約、プライバシーポリシー、特商法表記など、階層構造を持つ法的文書を扱う。
+## Overview
 
-## 構造定義
+- 利用規約、プライバシーポリシー、特商法表記など、階層構造を持つ法的文書の型と描画。入口 `@/lib/structuredDocument/legal`
+- 型と描画だけを持つ。文書の中身(例文・プロジェクトの文面・差し込みの値)は法務のドメイン `src/features/core/legal` が持つ
+
+## Usage
+
+- 画面は `getLegalDocument(kind)` の差し込み済みの文書をこのレンダラーに渡す(`variables` は渡さない。形: `src/features/core/legal/README.md`)
+- 差し込み前の文書を直接描くとき(例):
+
+```tsx
+import {
+  LegalDocumentRenderer,
+  type LegalDocument,
+} from "@/lib/structuredDocument/legal";
+
+<LegalDocumentRenderer
+  document={termsConfig}
+  variables={{ COMPANY_NAME: "株式会社Example" }}
+/>
+```
+
+### 変数置換
+
+`{{VARIABLE_NAME}}` 形式のプレースホルダーを置換:
+
+```typescript
+// データ
+content: ["{{COMPANY_NAME}}が提供する..."]
+
+// 使用
+<LegalDocumentRenderer
+  document={doc}
+  variables={{ COMPANY_NAME: "株式会社Example" }}
+/>
+// => "株式会社Exampleが提供する..."
+```
+
+### Markdown 記法
+
+content 内で以下の記法が使用可能:
+
+- `**太字**`
+- `*斜体*`
+- `~~取り消し線~~`
+- `[リンク](url)`
+
+## API
+
+### 構造定義
 
 ```typescript
 type LegalSection = {
@@ -21,23 +68,7 @@ type LegalDocument = {
 };
 ```
 
-## 使い方
-
-### 基本
-
-```tsx
-import {
-  LegalDocumentRenderer,
-  type LegalDocument,
-} from "@/lib/structuredDocument/legal";
-
-<LegalDocumentRenderer
-  document={termsConfig}
-  variables={{ COMPANY_NAME: "株式会社Example" }}
-/>
-```
-
-### プロパティ
+### `LegalDocumentRenderer` のプロパティ
 
 | プロパティ | 型 | デフォルト | 説明 |
 |------------|-----|------------|------|
@@ -55,31 +86,6 @@ import {
 - **rich**: CSSカウンターで自動採番、Markdown記法をレンダリング
 - **plain**: プレーンテキスト、スクロール領域での表示に適する
 
-### 変数置換
-
-`{{VARIABLE_NAME}}` 形式のプレースホルダーを置換:
-
-```typescript
-// データ
-content: ["{{COMPANY_NAME}}が提供する..."]
-
-// 使用
-<LegalDocumentRenderer
-  document={doc}
-  variables={{ COMPANY_NAME: "株式会社Example" }}
-/>
-// => "株式会社Exampleが提供する..."
-```
-
-### Markdown記法
-
-content 内で以下の記法が使用可能:
-
-- `**太字**`
-- `*斜体*`
-- `~~取り消し線~~`
-- `[リンク](url)`
-
 ### セクション番号
 
 | 値 | 出力 |
@@ -90,6 +96,7 @@ content 内で以下の記法が使用可能:
 
 ※ CSSカウンター（`.numbered-articles`, `.numbered-sections`）と連動
 
-## 文書の置き場
+## Related
 
-このモジュールは型と描画だけを持つ。文書の中身(例文・プロジェクトの文面・差し込みの値)は法務のドメイン `src/features/core/legal` が持ち、画面は `getLegalDocument(kind)` の差し込み済みの文書をこのレンダラーに渡す(`variables` は渡さない)。形: [src/features/core/legal/README.md](../../../features/core/legal/README.md)
+- 文書の中身と取得: `src/features/core/legal/README.md`
+- 差し込み: `../README.md` API「差し込み」
