@@ -5,6 +5,7 @@
 
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
+import { Para } from "@/components/TextBlocks";
 import type { ImportProgress as ImportProgressType } from "../types";
 
 export type ImportProgressProps = {
@@ -23,10 +24,10 @@ export function ImportProgress({ progress }: ImportProgressProps) {
         {progress.totalDomains && progress.totalDomains > 1 && (
           <Block className="mb-3 pb-3 border-b border-border">
             <Flex justify="between" align="center" className="mb-1">
-              <p className="text-xs text-muted-foreground">ドメイン進捗</p>
-              <p className="text-xs text-muted-foreground">
+              <Para size="xs" weight="inherit" tone="muted" align="inherit" className="my-0">ドメイン進捗</Para>
+              <Para size="xs" weight="inherit" tone="muted" align="inherit" className="my-0">
                 {progress.currentDomainIndex} / {progress.totalDomains}
-              </p>
+              </Para>
             </Flex>
             <Block className="h-1.5 bg-muted rounded-full overflow-hidden">
               <Block
@@ -36,14 +37,14 @@ export function ImportProgress({ progress }: ImportProgressProps) {
                 }}
               />
             </Block>
-            <p className="text-xs text-muted-foreground mt-1">現在: {progress.currentDomain}</p>
+            <Para size="xs" weight="inherit" tone="muted" align="inherit" className="mt-1 mb-0">現在: {progress.currentDomain}</Para>
           </Block>
         )}
         <Flex justify="between" align="center" className="mb-2">
-          <p className="text-sm font-medium">インポート中...</p>
-          <p className="text-sm text-muted-foreground">
+          <Para size="sm" weight="medium" align="inherit" className="my-0">インポート中...</Para>
+          <Para size="sm" weight="inherit" tone="muted" align="inherit" className="my-0">
             チャンク {progress.currentChunk} / {progress.totalChunks}
-          </p>
+          </Para>
         </Flex>
         {/* チャンク進捗バー */}
         <Block className="h-2 bg-muted rounded-full overflow-hidden">
@@ -54,7 +55,7 @@ export function ImportProgress({ progress }: ImportProgressProps) {
             }}
           />
         </Block>
-        <p className="text-xs text-muted-foreground mt-2">処理中: {progress.currentChunkName}</p>
+        <Para size="xs" weight="inherit" tone="muted" align="inherit" className="mt-2 mb-0">処理中: {progress.currentChunkName}</Para>
       </Block>
       <Block className="mt-3 p-3 bg-warning/10 rounded text-sm text-warning-text">
         インポート中はページを閉じないでください

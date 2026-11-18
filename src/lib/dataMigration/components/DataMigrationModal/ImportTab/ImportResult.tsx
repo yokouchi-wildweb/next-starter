@@ -5,6 +5,7 @@
 
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
+import { Para, Span } from "@/components/TextBlocks";
 import type { ImportResultData } from "../types";
 
 export type ImportResultProps = {
@@ -24,28 +25,28 @@ export function ImportResult({ result }: ImportResultProps) {
   return (
     <Block className="mb-4">
       <Block className={`p-4 rounded-lg ${failed ? "bg-destructive/10" : "bg-success/10"}`}>
-        <p className={`font-medium mb-2 ${failed ? "text-destructive-text" : ""}`}>
+        <Para size="inherit" weight="medium" tone={failed ? "destructive" : "inherit"} align="inherit" className="mt-0 mb-2">
           {failed ? "インポート失敗（途中で停止）" : "インポート完了"}
-        </p>
+        </Para>
         <Block className="text-sm flex flex-col gap-1">
           {failed ? (
             <>
-              <p>
+              <Para size="inherit" weight="inherit" align="inherit" className="my-0">
                 DB に入ったもの: {result.successfulChunks}チャンク・{result.totalRecords}件
                 {result.successfulChunks > 0 && "（取り消されません）"}
-              </p>
-              <p className="text-destructive-text">
+              </Para>
+              <Para size="inherit" weight="inherit" tone="destructive" align="inherit" className="my-0">
                 入っていないもの: 失敗した {result.failedChunks}チャンク
                 {notRunChunks.length > 0 && ` + 流さなかった ${notRunChunks.length}チャンク`}
-              </p>
-              <p className="text-muted-foreground">
+              </Para>
+              <Para size="inherit" weight="inherit" tone="muted" align="inherit" className="my-0">
                 原因を直して同じファイルを取り込み直すと、入ったチャンクは上書きされ、残りが続けて入ります。
-              </p>
+              </Para>
             </>
           ) : (
             <>
-              <p>インポートされたレコード: {result.totalRecords}件</p>
-              <p>成功したチャンク: {result.successfulChunks}</p>
+              <Para size="inherit" weight="inherit" align="inherit" className="my-0">インポートされたレコード: {result.totalRecords}件</Para>
+              <Para size="inherit" weight="inherit" align="inherit" className="my-0">成功したチャンク: {result.successfulChunks}</Para>
             </>
           )}
         </Block>
@@ -53,19 +54,19 @@ export function ImportResult({ result }: ImportResultProps) {
         {/* 複数ドメインの場合はドメイン別結果を表示 */}
         {result.isMultiDomain && result.domainResults && (
           <Block className="mt-3 pt-3 border-t border-border">
-            <p className="text-xs text-muted-foreground mb-2">ドメイン別結果:</p>
+            <Para size="xs" weight="inherit" tone="muted" align="inherit" className="mt-0 mb-2">ドメイン別結果:</Para>
             <Block className="flex flex-col gap-1 text-xs">
               {result.domainResults.map((dr) => (
                 <Flex key={dr.domain} justify="between" className="text-muted-foreground">
-                  <span>{dr.domain}</span>
-                  <span>
+                  <Span inline>{dr.domain}</Span>
+                  <Span inline>
                     {dr.totalRecords}件
                     {dr.failedChunks > 0 && (
-                      <span className="text-destructive-text ml-1">
+                      <Span inline tone="destructive" className="ml-1">
                         (エラー: {dr.failedChunks}チャンク)
-                      </span>
+                      </Span>
                     )}
-                  </span>
+                  </Span>
                 </Flex>
               ))}
             </Block>
@@ -76,13 +77,13 @@ export function ImportResult({ result }: ImportResultProps) {
       {/* 失敗したチャンクの詳細 */}
       {result.chunkResults.some((c) => !c.success) && (
         <Block className="mt-3 p-3 bg-destructive/10 rounded text-sm">
-          <p className="font-medium mb-1">エラー詳細:</p>
+          <Para size="inherit" weight="medium" align="inherit" className="mt-0 mb-1">エラー詳細:</Para>
           {result.chunkResults
             .filter((c) => !c.success)
             .map((c) => (
-              <p key={`${c.domain}-${c.chunkName}`} className="text-destructive-text">
+              <Para key={`${c.domain}-${c.chunkName}`} size="inherit" weight="inherit" tone="destructive" align="inherit" className="my-0">
                 {label(c.domain, c.chunkName)}: {c.error}
-              </p>
+              </Para>
             ))}
         </Block>
       )}
@@ -90,10 +91,10 @@ export function ImportResult({ result }: ImportResultProps) {
       {/* 止まったために流さなかったチャンク */}
       {notRunChunks.length > 0 && (
         <Block className="mt-3 p-3 bg-muted rounded text-sm">
-          <p className="font-medium mb-1">流さなかったチャンク（DB に入っていません）:</p>
-          <p className="text-muted-foreground">
+          <Para size="inherit" weight="medium" align="inherit" className="mt-0 mb-1">流さなかったチャンク（DB に入っていません）:</Para>
+          <Para size="inherit" weight="inherit" tone="muted" align="inherit" className="my-0">
             {notRunChunks.map((c) => label(c.domain, c.chunkName)).join("、")}
-          </p>
+          </Para>
         </Block>
       )}
     </Block>

@@ -7,6 +7,8 @@ import type { DragEvent, ChangeEvent, RefObject } from "react";
 import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
+import { Input } from "@/components/Form/Input/Manual";
+import { Para } from "@/components/TextBlocks";
 
 export type FileDropzoneProps = {
   /** 選択されたファイル */
@@ -58,8 +60,8 @@ export function FileDropzone({
       <Block className="mb-4 p-4 bg-muted/30 rounded-lg">
         <Flex justify="between" align="center">
           <Block>
-            <p className="text-sm font-medium">{selectedFile.name}</p>
-            <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
+            <Para size="sm" weight="medium" align="inherit" className="my-0">{selectedFile.name}</Para>
+            <Para size="xs" weight="inherit" tone="muted" align="inherit" className="my-0">{formatFileSize(selectedFile.size)}</Para>
           </Block>
           <Button variant="ghost" size="sm" onClick={onClearFile}>
             取り消し
@@ -79,12 +81,12 @@ export function FileDropzone({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
-      <p className="text-muted-foreground mb-2">ZIPファイルをドラッグ＆ドロップ</p>
-      <p className="text-muted-foreground text-sm">または</p>
+      <Para size="inherit" weight="inherit" tone="muted" align="inherit" className="mt-0 mb-2">ZIPファイルをドラッグ＆ドロップ</Para>
+      <Para size="sm" weight="inherit" tone="muted" align="inherit" className="my-0">または</Para>
       <Button variant="outline" className="mt-2" onClick={onClickSelectFile}>
         ファイルを選択
       </Button>
-      <input
+      <Input
         ref={fileInputRef}
         type="file"
         accept=".zip"

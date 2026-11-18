@@ -10,6 +10,7 @@ import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
+import { Span } from "@/components/TextBlocks";
 
 export type ExportField = {
   name: string;
@@ -159,14 +160,14 @@ export function ExportSettingsModal({
               value={includeImages}
               onChange={(checked) => setIncludeImages(checked === true)}
             />
-            <span className="text-sm">画像を含める（ZIP形式でダウンロード）</span>
+            <Span size="sm" weight="inherit">画像を含める（ZIP形式でダウンロード）</Span>
           </Label>
         </Block>
 
         {/* カラム選択 */}
         <Block className="mb-4">
           <Flex justify="between" align="center" className="mb-3">
-            <span className="text-sm font-medium">エクスポートするカラム</span>
+            <Span size="sm" weight="medium">エクスポートするカラム</Span>
             <Flex gap="md">
               <Button
                 size="xs"
@@ -199,10 +200,10 @@ export function ExportSettingsModal({
                   value={selectedFields.includes(field.name)}
                   onChange={() => handleToggleField(field.name)}
                 />
-                <span className="text-sm">
+                <Span size="sm" weight="inherit">
                   {field.label}
-                  <span className="text-muted-foreground ml-1">({field.name})</span>
-                </span>
+                  <Span inline tone="muted" className="ml-1">({field.name})</Span>
+                </Span>
               </Label>
             ))}
           </Block>
