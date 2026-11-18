@@ -1,17 +1,19 @@
 # reCAPTCHA ライブラリ
 
-Google reCAPTCHA v3 / v2 ハイブリッドによるボット対策ライブラリ。
+## Overview
 
-## 概要
+Google reCAPTCHA v3 / v2 ハイブリッドによるボット対策ライブラリ(client `@/lib/recaptcha`、server `@/lib/recaptcha/server`、定数 `@/lib/recaptcha/constants`)。
 
 - **v3**: スコアベースの自動判定（ユーザー操作不要）
 - **v2**: チャレンジベースの手動認証（v3で中間スコアの場合のフォールバック）
 - 環境変数未設定時は自動的に機能を無効化（エラーにならない）
 - バッジは自動で非表示（規約テキストで代替）
 
-## セットアップ
+## Usage
 
-### 1. 環境変数の設定
+### セットアップ
+
+#### 1. 環境変数の設定
 
 ```env
 # v3: スコアベースの自動判定
@@ -24,14 +26,12 @@ RECAPTCHA_V2_SECRET_KEY=your_v2_secret_key_here
 ```
 
 キーは [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin/create) から取得。
-v3とv2は別々のサイトキーが必要（同じキーは使えない）。
+v3 と v2 は別々のサイトキー(同じキーは使えない)。
 
-### 2. Providerの設置（設定済み）
+#### 2. Providerの設置（設定済み）
 
 `RecaptchaProvider`(この lib の入口 `@/lib/recaptcha` から出す)は `src/wiring/AppProviders.tsx` がアプリ全体に設置済み(root layout の AppProviders の中)。
 バッジは自動的に非表示になる（Google公式で許可された方法）。
-
-## 使用方法
 
 ### クライアント側
 
@@ -111,71 +111,7 @@ if (!result.valid) {
 }
 ```
 
-## 新しいアクションの追加
-
-1. `src/lib/recaptcha/constants.ts` にアクション名を追加:
-
-```ts
-export const RECAPTCHA_ACTIONS = {
-  SEND_EMAIL_LINK: "send_email_link",
-  REGISTER: "register",
-  MY_NEW_ACTION: "my_new_action", // 追加
-} as const;
-```
-
-2. 閾値（threshold）は使用箇所の設定ファイルで管理する。
-
-## エクスポート
-
-### クライアント用 (`@/lib/recaptcha`)
-
-| 名前 | 説明 |
-|------|------|
-| `getRecaptchaToken` | reCAPTCHA v3トークンを取得 |
-| `RecaptchaBadge` | バッジ表示コンポーネント（設置したページで右下にバッジ表示） |
-| `RecaptchaV2Challenge` | v2チャレンジモーダルコンポーネント |
-| `useRecaptchaV2Challenge` | v2チャレンジ状態管理フック |
-| `isV2ChallengeRequired` | エラーがv2チャレンジ要求かを判定 |
-
-### サーバー用 (`@/lib/recaptcha/server`)
-
-| 名前 | 説明 |
-|------|------|
-| `verifyRecaptcha` | v3トークンを検証 |
-| `verifyRecaptchaV2` | v2トークンを検証 |
-| `RecaptchaVerifyResult` | v3検証結果の型 |
-| `RecaptchaV2VerifyResult` | v2検証結果の型 |
-
-### 定数 (`@/lib/recaptcha/constants`)
-
-| 名前 | 説明 |
-|------|------|
-| `RECAPTCHA_ACTIONS` | アクション名の定数 |
-| `RECAPTCHA_V3_INTERNALS` | v3内部設定（通常は直接使用しない） |
-| `RECAPTCHA_V2_INTERNALS` | v2内部設定（通常は直接使用しない） |
-
-## v3/v2 ハイブリッド
-
-v2を有効にすると、v3で中間スコアの場合にv2チャレンジを表示できる。
-
-### 閾値設定（`app-features.config.ts`）
-
-```ts
-signup: {
-  recaptchaThreshold: 0.5,    // v3通過閾値
-  recaptchaV2Threshold: 0.3,  // v2チャレンジ閾値
-}
-```
-
-### 判定フロー
-
-```
-スコア >= 0.5  → 通過
-スコア 0.3〜0.5 → v2チャレンジ表示（HTTP 428）
-スコア < 0.3   → ブロック（HTTP 403）
-```
-
-### クライアント側の実装例
+### v2 チャレンジを受ける
 
 ```tsx
 import {
@@ -230,19 +166,81 @@ function MyForm() {
 }
 ```
 
-## スコアについて
+### 新しいアクションを足す
+
+1. `src/lib/recaptcha/constants.ts` にアクション名を追加:
+
+```ts
+export const RECAPTCHA_ACTIONS = {
+  SEND_EMAIL_LINK: "send_email_link",
+  REGISTER: "register",
+  MY_NEW_ACTION: "my_new_action", // 追加
+} as const;
+```
+
+2. 閾値(threshold)は使う所の設定ファイルが持つ
+
+## API
+
+### クライアント用 (`@/lib/recaptcha`)
+
+| 名前 | 説明 |
+|------|------|
+| `getRecaptchaToken` | reCAPTCHA v3トークンを取得 |
+| `RecaptchaBadge` | バッジ表示コンポーネント（設置したページで右下にバッジ表示） |
+| `RecaptchaV2Challenge` | v2チャレンジモーダルコンポーネント |
+| `useRecaptchaV2Challenge` | v2チャレンジ状態管理フック |
+| `isV2ChallengeRequired` | エラーがv2チャレンジ要求かを判定 |
+
+### サーバー用 (`@/lib/recaptcha/server`)
+
+| 名前 | 説明 |
+|------|------|
+| `verifyRecaptcha` | v3トークンを検証 |
+| `verifyRecaptchaV2` | v2トークンを検証 |
+| `RecaptchaVerifyResult` | v3検証結果の型 |
+| `RecaptchaV2VerifyResult` | v2検証結果の型 |
+
+### 定数 (`@/lib/recaptcha/constants`)
+
+| 名前 | 説明 |
+|------|------|
+| `RECAPTCHA_ACTIONS` | アクション名の定数 |
+| `RECAPTCHA_V3_INTERNALS` | v3 の内部の設定 |
+| `RECAPTCHA_V2_INTERNALS` | v2 の内部の設定 |
+
+## Internals
+
+### v3 / v2 ハイブリッド
+
+v2 を有効にすると、v3 で中間スコアの場合に v2 チャレンジを出せる。
+
+#### 閾値設定（`app-features.config.ts`）
+
+```ts
+signup: {
+  recaptchaThreshold: 0.5,    // v3通過閾値
+  recaptchaV2Threshold: 0.3,  // v2チャレンジ閾値
+}
+```
+
+#### 判定フロー
+
+```
+スコア >= 0.5  → 通過
+スコア 0.3〜0.5 → v2チャレンジ表示（HTTP 428）
+スコア < 0.3   → ブロック（HTTP 403）
+```
+
+### スコア
 
 - 範囲: 0.0（bot）〜 1.0（人間）
 - 推奨閾値: 0.5（Googleのデフォルト）
 - テスト時: 0.99 に設定するとほぼ全てブロックされる
 
-## 注意事項
+### そのほか
 
-- バッジを非表示にする場合、`RecaptchaBadge` で規約テキストを表示する必要がある（Google規約）
+- バッジを隠すときの規約の文は `RecaptchaBadge`(Google の規約)
 - 無料枠: 100,000リクエスト/月
 - 環境変数が空または短すぎる（20文字未満）場合は自動で無効化
-
-## 依存パッケージ
-
-- `react-google-recaptcha-v3` - v3用Reactラッパー
-- `react-google-recaptcha` - v2用Reactラッパー
+- 依存パッケージ: `react-google-recaptcha-v3` - v3用Reactラッパー / `react-google-recaptcha` - v2用Reactラッパー
