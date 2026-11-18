@@ -18,10 +18,14 @@ import {
 import { uploadToStorage } from "@/lib/storage/client";
 import { useToast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/Form/Button";
+import { Input } from "@/components/Form/Input/Manual";
+import { Label } from "@/components/Form/Label";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, SecTitle } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
+import { Link } from "@/components/Navigation";
 
 const MAX_SLOTS = 8;
 const INITIAL_SLOTS = 4;
@@ -325,10 +329,10 @@ export function SeamlessAvDemo() {
                 <Block key={slot.id} className="rounded-md border p-3">
                   <Stack gap="xs">
                     <Flex gap="xs" align="center" wrap="wrap">
-                      <span className="shrink-0 text-xs font-medium text-muted-foreground">#{index + 1}</span>
-                      <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${style.className}`}>
+                      <Span size="xs" weight="medium" tone="muted" className="shrink-0">#{index + 1}</Span>
+                      <Span size="xs" weight="medium" className={`shrink-0 rounded px-1.5 py-0.5 ${style.className}`}>
                         {style.label}
-                      </span>
+                      </Span>
                       <Flex gap="xs" align="center" className="ml-auto">
                         <Button variant="ghost" size="xs" onClick={() => moveSlot(slot.id, -1)} disabled={index === 0}>
                           ↑
@@ -354,46 +358,46 @@ export function SeamlessAvDemo() {
                     <Flex gap="xs" align="center" wrap="wrap">
                       <label className={buttonVariants({ variant: "outline", size: "xs" })}>
                         映像を選択
-                        <input
+                        <Input
                           type="file"
                           accept="video/mp4,.mp4,.m4v"
                           hidden
                           onChange={(e) => setVideo(slot.id, e.target.files?.[0])}
                         />
                       </label>
-                      <span className="max-w-[160px] truncate text-xs text-muted-foreground">
+                      <Span size="xs" tone="muted" className="max-w-[160px] truncate">
                         {slot.videoFile?.name ?? "映像 未選択"}
-                      </span>
+                      </Span>
                       <label className={buttonVariants({ variant: "outline", size: "xs" })}>
                         音声を選択
-                        <input
+                        <Input
                           type="file"
                           accept="audio/*,.wav,.m4a,.aac,.mp3"
                           hidden
                           onChange={(e) => setAudio(slot.id, e.target.files?.[0])}
                         />
                       </label>
-                      <span className="max-w-[160px] truncate text-xs text-muted-foreground">
+                      <Span size="xs" tone="muted" className="max-w-[160px] truncate">
                         {slot.audioFile?.name ?? "音声 未選択"}
-                      </span>
+                      </Span>
                     </Flex>
 
                     {v && (
-                      <span className="text-xs text-muted-foreground">
+                      <Span size="xs" tone="muted">
                         映像尺 {fmtSec(v.videoDurationSec)} / 音声尺 {fmtSec(v.audioDurationSec)}
                         {v.videoInfo?.codec ? ` / ${v.videoInfo.codec}` : ""}
                         {v.videoInfo?.width ? ` / ${v.videoInfo.width}×${v.videoInfo.height}` : ""}
-                      </span>
+                      </Span>
                     )}
                     {v?.issues.map((msg, i) => (
-                      <span key={`i-${i}`} className="text-xs text-destructive-text">
+                      <Span key={`i-${i}`} size="xs" tone="destructive">
                         {msg}
-                      </span>
+                      </Span>
                     ))}
                     {v?.warnings.map((msg, i) => (
-                      <span key={`w-${i}`} className="text-xs text-warning-text">
+                      <Span key={`w-${i}`} size="xs" tone="warning">
                         {msg}
-                      </span>
+                      </Span>
                     ))}
                   </Stack>
                 </Block>
@@ -437,19 +441,19 @@ export function SeamlessAvDemo() {
 
           {/* 読み込みモード */}
           <Flex gap="md" align="center" wrap="wrap">
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Label className="gap-1.5 text-xs font-normal text-muted-foreground">
               <input type="checkbox" checked={progressive} onChange={(e) => setProgressive(e.target.checked)} />
               progressive 読み込み（先頭準備で即再生可）
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            </Label>
+            <Label className="gap-1.5 text-xs font-normal text-muted-foreground">
               <input type="checkbox" checked={loopOn} onChange={(e) => setLoopOn(e.target.checked)} />
               ループ再生
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            </Label>
+            <Label className="gap-1.5 text-xs font-normal text-muted-foreground">
               <input type="checkbox" checked={evictOn} onChange={(e) => setEvictOn(e.target.checked)} />
               退避リング(bufferBehindSec=5・長尺向け)
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            </Label>
+            <Label className="gap-1.5 text-xs font-normal text-muted-foreground">
               失敗時:
               <select
                 value={recovery}
@@ -459,24 +463,24 @@ export function SeamlessAvDemo() {
                 <option value="abort">中断(abort)</option>
                 <option value="skip">スキップ継続(skip)</option>
               </select>
-            </label>
-            <span className="text-xs text-muted-foreground">※ トグルは「読み込み」で反映</span>
+            </Label>
+            <Span size="xs" tone="muted">※ トグルは「読み込み」で反映</Span>
           </Flex>
 
           {/* BGM(別レイヤー) */}
           <Flex gap="xs" align="center" wrap="wrap">
             <label className={buttonVariants({ variant: "outline", size: "xs" })}>
               BGMを選択
-              <input
+              <Input
                 type="file"
                 accept="audio/*,.wav,.m4a,.aac,.mp3"
                 hidden
                 onChange={(e) => setBgmFile(e.target.files?.[0] ?? null)}
               />
             </label>
-            <span className="max-w-[180px] truncate text-xs text-muted-foreground">
+            <Span size="xs" tone="muted" className="max-w-[180px] truncate">
               {bgmFile?.name ?? "BGM 未選択（フラグメント音声と独立した別レイヤー）"}
-            </span>
+            </Span>
           </Flex>
 
           {/* 操作 */}
@@ -505,7 +509,7 @@ export function SeamlessAvDemo() {
           {/* 再生中コントロール(音量/フェード/章ジャンプ) */}
           <Stack gap="xs">
             <Flex gap="md" align="center" wrap="wrap">
-              <span className="text-xs text-muted-foreground">音量 {volume.toFixed(2)}</span>
+              <Span size="xs" tone="muted">音量 {volume.toFixed(2)}</Span>
               <input
                 type="range"
                 min={0}
@@ -524,7 +528,7 @@ export function SeamlessAvDemo() {
 
             {bgmFile && (
               <Flex gap="md" align="center" wrap="wrap">
-                <span className="text-xs text-muted-foreground">BGM音量 {bgmVolume.toFixed(2)}</span>
+                <Span size="xs" tone="muted">BGM音量 {bgmVolume.toFixed(2)}</Span>
                 <input
                   type="range"
                   min={0}
@@ -544,7 +548,7 @@ export function SeamlessAvDemo() {
 
             {loadedFragmentCount > 0 && (
               <Flex gap="xs" align="center" wrap="wrap">
-                <span className="text-xs text-muted-foreground">章ジャンプ</span>
+                <Span size="xs" tone="muted">章ジャンプ</Span>
                 {Array.from({ length: loadedFragmentCount }).map((_, i) => (
                   <Button
                     key={i}
@@ -561,17 +565,17 @@ export function SeamlessAvDemo() {
 
             {/* ワンショット SE */}
             <Flex gap="xs" align="center" wrap="wrap">
-              <span className="text-xs text-muted-foreground">SE(効果音)</span>
+              <Span size="xs" tone="muted">SE(効果音)</Span>
               <label className={buttonVariants({ variant: "outline", size: "xs" })}>
                 SEを選択
-                <input
+                <Input
                   type="file"
                   accept="audio/*,.wav,.m4a,.aac,.mp3"
                   hidden
                   onChange={(e) => setSeFile(e.target.files?.[0] ?? null)}
                 />
               </label>
-              <span className="max-w-[140px] truncate text-xs text-muted-foreground">{seFile?.name ?? "未選択"}</span>
+              <Span size="xs" tone="muted" className="max-w-[140px] truncate">{seFile?.name ?? "未選択"}</Span>
               <Button variant="ghost" size="xs" onClick={() => handlePlaySe()} disabled={!canPlay || !seFile}>
                 今すぐ再生
               </Button>
@@ -645,9 +649,9 @@ export function SeamlessAvDemo() {
                   共有URL
                 </Para>
                 <Flex gap="xs" align="center" wrap="wrap">
-                  <a href={shareUrl} target="_blank" rel="noreferrer" className="break-all text-sm text-info-text underline">
+                  <Link href={shareUrl} target="_blank" rel="noreferrer" className="break-all text-sm text-info-text underline">
                     {shareUrl}
-                  </a>
+                  </Link>
                   <Button variant="outline" size="xs" onClick={() => void handleCopyUrl()}>
                     コピー
                   </Button>

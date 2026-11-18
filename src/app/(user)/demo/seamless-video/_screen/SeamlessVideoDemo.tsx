@@ -19,6 +19,9 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, SecTitle } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
+import { Input } from "@/components/Form/Input/Manual";
+import { Label } from "@/components/Form/Label";
 
 type FragmentItem = {
   id: string;
@@ -175,7 +178,7 @@ export function SeamlessVideoDemo() {
           </Block>
 
           <Flex gap="xs" align="center" wrap="wrap">
-            <input
+            <Input
               ref={fileInputRef}
               type="file"
               accept="video/mp4,.mp4,.m4v"
@@ -211,7 +214,7 @@ export function SeamlessVideoDemo() {
             <SecTitle size="sm">検証結果: {report.ok ? "連結成立の見込みあり" : "問題あり"}</SecTitle>
             {report.mimeType && (
               <Para size="sm" tone="muted">
-                共通コーデック: <span className="font-mono">{report.mimeType}</span>
+                共通コーデック: <Span inline className="font-mono">{report.mimeType}</Span>
                 {" / 再生可否: "}
                 {report.supported ? "可" : "不可"}
               </Para>
@@ -246,13 +249,13 @@ export function SeamlessVideoDemo() {
                     return (
                       <Stack gap="2xs" className="min-w-0 flex-1">
                         <Flex gap="xs" align="center" className="min-w-0">
-                          <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${style.className}`}>
+                          <Span size="xs" weight="medium" className={`shrink-0 rounded px-1.5 py-0.5 ${style.className}`}>
                             {style.label}
-                          </span>
-                          <span className="truncate font-medium">{item.name}</span>
+                          </Span>
+                          <Span size="inherit" weight="medium" className="truncate">{item.name}</Span>
                         </Flex>
                         {item.info && (
-                          <span className="text-xs text-muted-foreground">
+                          <Span size="xs" tone="muted">
                             {item.info.codec ?? "codec不明"} / {item.info.width ?? "?"}×{item.info.height ?? "?"} /{" "}
                             {item.info.isFragmented ? "fmp4" : "非fmp4"} /{" "}
                             {item.info.startsWithKeyframe === true
@@ -260,12 +263,12 @@ export function SeamlessVideoDemo() {
                               : item.info.startsWithKeyframe === false
                                 ? "非IDR始まり"
                                 : "先頭不明"}
-                          </span>
+                          </Span>
                         )}
                         {[...item.issues, ...item.warnings].map((msg, i) => (
-                          <span key={i} className="text-xs text-destructive-text">
+                          <Span key={i} size="xs" tone="destructive">
                             {msg}
-                          </span>
+                          </Span>
                         ))}
                       </Stack>
                     );
@@ -284,14 +287,14 @@ export function SeamlessVideoDemo() {
             <Flex gap="xs" align="center" wrap="wrap" justify="between">
               <SecTitle size="sm">3. 継ぎ目なし連結再生</SecTitle>
               <Flex gap="md" align="center" wrap="wrap">
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Label className="gap-1.5 text-xs font-normal text-muted-foreground">
                   <input
                     type="checkbox"
                     checked={playMuxedAudio}
                     onChange={(e) => setPlayMuxedAudio(e.target.checked)}
                   />
                   muxed音声を鳴らす(方式A確認)
-                </label>
+                </Label>
                 <Button
                   onClick={() => void handlePlay()}
                   disabled={!env.mse}
