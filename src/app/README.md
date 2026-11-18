@@ -1,10 +1,8 @@
 # src/app ルート構造
 
-## 概要
+## Overview
 
 Next.js App Router のルートディレクトリ。Route Group を活用して認証要否・用途別に整理。
-
-## 主要ディレクトリ
 
 | ディレクトリ | 説明 |
 |-------------|------|
@@ -14,7 +12,7 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 | `debug/` | デバッグ用画面（管理者カテゴリ + デバッガーロール限定、layout が一括ガード） |
 | `api/` | API ルート |
 
-## (user)/ の構造
+### (user)/ の構造
 
 | グループ | 用途 | 例 |
 |----------|------|-----|
@@ -24,6 +22,29 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 | `(legal)/` | 法的ページ | terms, privacy-policy |
 | `demo/` | 開発用デモ機能 | form-components, dummy-payment |
 | `maintenance/` | メンテナンス画面 | - |
+
+### admin/ の構造
+
+| グループ | 用途 | 例 |
+|----------|------|-----|
+| `(protected)/` | 認証必須ページ | users, samples, settings |
+| `login/` | ログインページ | - |
+| `setup/` | 初期設定 | - |
+| `_template/` | コード生成テンプレート | - |
+
+### api/ の構造
+
+| パス | 説明 |
+|------|------|
+| `[domain]/` | 汎用CRUDエンドポイント（動的ルート） |
+| `auth/` | 認証関連 |
+| `admin/` | 管理者専用API |
+| `debug/` | デバッグ用API（`ADMIN_OR_DEBUGGER_RULE` で認可、`ping/` が雛形） |
+| `storage/` | ファイル操作 |
+| `wallet/` | ウォレット操作 |
+| `webhook/` | 外部サービス連携 |
+
+## Usage
 
 ### 画面の構造（page.tsx スイッチ + `_screen/` + loader）
 
@@ -39,7 +60,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 - 差し替え（コピーしてよいかは CLAUDE.md FORK_EXTENSION で判定）: `_screen/` の Screen を `_components/<Name>Screen.tsx` にコピーし、loader の import を `../_screen/loader` に直して page.tsx の 1 行を向ける。loader はそのまま呼ぶ
 - `pnpm test src/lib/screens/screens.test.mjs` が `src/app` 全体のページ（`_` で始まるディレクトリと `api/` を除く）を自動検出して検査する（登録不要。fork の独自エリアや debug / admin に足したページも対象）。検査から外すディレクトリだけ `src/config/app/screens.config.ts` の `FORK_SCAN_EXCLUDES` に書く。スイッチ形でない page.tsx は失敗する（未移行の例外リストは無い）
 - ルート地図 `route-map.jsonl`（このディレクトリ直下）は全ページの守りの鎖（page → Screen → loader の access → guard.ts の段）を 1 行 1 JSON にした生成物（機械が読む）。ページ・loader・guard.ts を変えたら `pnpm generate routes` で作り直してコミットする（ずれは `pnpm test 'src/lib/screens/routeMap*.test.mjs'` が失敗にする。merge で衝突したら作り直す。詳細は `pnpm check routes -- show`、仕様は src/lib/screens/README.md §13）
-- 上流の core ルートは全て移行済み（wallet 9 / mypage 10 / legal 3 / services / maintenance / entry / トップ / auth 16 / 手書きの管理画面 33）。新しい core ルートはスイッチ形で作る
+- 上流の core ルートはすべてスイッチ形。新しい core ルートもスイッチ形で作る
 - `_screen/` には Screen と loader のほかに、既定 Screen 専用の部品を置いてよい（直下でもサブディレクトリでも。例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`）。部品は契約外。`_components/` は下流の場所で、上流のルートでは上流が何も置かない
 
 ### トップページ（`(user)/page.tsx`）の差し替え
@@ -47,31 +68,6 @@ src/app/(user)/(protected)/wallet/[slug]/
 `(user)/page.tsx` は 1 行のスイッチで、既定画面は `(user)/_screen/StarterHomeScreen.tsx`（上流所有のデモ用トップ。部品は `_screen/StarterHome/`）。
 下流は自前のトップページを `(user)/_components/<Name>Screen.tsx` に作り、page.tsx の import 先だけを差し替える。
 上流は page.tsx を今後編集しないため merge が衝突しない。`_screen/` は削除・編集しない（詳細: `(user)/_screen/README.md`）。
-
-## admin/ の構造
-
-| グループ | 用途 | 例 |
-|----------|------|-----|
-| `(protected)/` | 認証必須ページ | users, samples, settings |
-| `login/` | ログインページ | - |
-| `setup/` | 初期設定 | - |
-| `_template/` | コード生成テンプレート | - |
-
-## api/ の構造
-
-| パス | 説明 |
-|------|------|
-| `[domain]/` | 汎用CRUDエンドポイント（動的ルート） |
-| `auth/` | 認証関連 |
-| `admin/` | 管理者専用API |
-| `debug/` | デバッグ用API（`ADMIN_OR_DEBUGGER_RULE` で認可、`ping/` が雛形） |
-| `storage/` | ファイル操作 |
-| `wallet/` | ウォレット操作 |
-| `webhook/` | 外部サービス連携 |
-
----
-
-## ルート追加ガイドライン
 
 ### 配置の規則(形は自由、守りは検査)
 
@@ -82,13 +78,13 @@ src/app/(user)/(protected)/wallet/[slug]/
 - ページは `src/app` 全体から自動で見つかる(`_` で始まるディレクトリと `api/` を除く)。登録は要らない。ページを足す・消す、loader・guard.ts を変えたら `pnpm generate routes` でルート地図 `route-map.jsonl` を作り直してコミットする(ずれは `pnpm test 'src/lib/screens/routeMap*.test.mjs'` が失敗にする)
 - layout のガードとセッション・ガード API を呼べる場所、layout がサーバー側でデータを取らないこと(services/server・DB・loader を import しない)は lint `page-authz` が全 Tier で error にする(下の「レイアウト継承」)
 - 画面の構造(page.tsx スイッチ + `_screen/` + loader)は `pnpm test src/lib/screens/screens.test.mjs` が検査する(上の「画面の構造」)
-- (後で入る)すべての Screen の loader がアクセス方針を宣言し、公開ページも public と書く
+- すべての Screen の loader が最寄りの guard.ts の `createLoader` で access を宣言し、公開ページも public と書く(ルート地図 `route-map.jsonl` が鎖を確かめる)
 
 推奨(守らなくても動く):
 
 - layout を置く範囲が URL フォルダの配下と一致するなら URL フォルダの layout、ずれるときだけ group にする(例: `(user)` は共通の URL の先頭が無いので group、`admin` は全ページが `/admin` なので URL フォルダ)
 - 方針(ログイン要否など)の違うページで枠を共有するなら、枠をガードの外に置く。その方針専用の枠ならガードと同居してよい
-- 枠を出したくないページは、枠の外の兄弟の枝に置く(例: `(marketing)/` は `(user)/` の枠の外)。元の group の `loading` / `error` / `not-found` も外れるので、要るなら兄弟側に置く。枠の一部を隠すだけなら印(Hide*、`src/app/(user)/_layout/README.md`「枠の部位を隠す」)
+- 枠を出したくないページは、枠の外の兄弟の枝に置く(例: `(marketing)/` は `(user)/` の枠の外)。元の group の `loading` / `error` / `not-found` も外れるので、要るなら兄弟側に置く。枠の一部を隠すだけならルートの隣の枠の宣言 `frame.ts` / `frame.override.ts`(`src/app/(user)/_layout/README.md`「枠の部位を隠す・fill(枠の宣言)」)
 - group の名前は今の語彙を使う: `(protected)` ログインが要る / `(public)` 公開 / `(auth)` ログイン・登録の流れ / `(legal)` 法的ページ / `(marketing)` 枠の外のランディング
 - root の `lang` は事業の素性(`@/business` の `htmlLang`、`src/lib/business/README.md`)、`viewport` は root の枠の設定(`src/app/_layout/config.ts`、上書き `src/config/layout/root.config.ts`)の値。fork が全ページに足す client 部品(バナーなど)と Provider は `src/app/_providers/ForkProviders.replace.tsx` の中に描く(スイッチ `ForkProviders.tsx` をそちらへ向ける、`src/app/_providers/README.md`)(`/entry` などの枠の外のページにも届く)。`layout.tsx` は編集しない
 - root layout は 1 つ(`src/app/layout.tsx`)。複数にすると root layout をまたぐ遷移が full reload になる
@@ -109,10 +105,10 @@ src/app/(user)/.../<route>/
 ├── page.tsx                     export { XScreen as default } from "./_screen/XScreen";(metadata / dynamic もここ)
 └── _screen/
     ├── XScreen.tsx              Server Component。load<X>Screen(props) を await してセクションコンテナを描く
-    └── loader.ts                import "server-only" + cache()。redirect / notFound / 認可 / 取得(サーバー側ロジックがあるときだけ)
+    └── loader.ts                最寄りの guard.ts の createLoader({ access, key?, load })。redirect / notFound / 取得(データが無くても access だけの loader を置く)
 ```
 
-上流の core ページも下流の独自ページも原則この構造（`pnpm test src/lib/screens/screens.test.mjs` が自動検出して検査。未移行は理由付きで例外リストへ）。
+上流の core ページも下流の独自ページも原則この構造（`pnpm test src/lib/screens/screens.test.mjs` が自動検出して検査。未移行の例外リストは無い）。
 loader はドメインの features ではなくルートの中に置く（複数ドメインを組み合わせるページでも同じ）。
 `_components/` は page 専用の部品や、下流が上流の画面を差し替えるときの置き場。
 
