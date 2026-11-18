@@ -18,7 +18,11 @@ import { HelpTip } from "@/components/Overlays/Tooltip";
 import { useToast, type ToastVariant, type ToastPosition, type ToastMode, type ToastSize, type ToastIconPreset } from "@/lib/toast";
 import { business } from "@/business";
 import { logoPath } from "@/utils/assets";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Grid } from "@/components/Layout/Grid";
 import { Section } from "@/components/Layout/Section";
+import { Stack } from "@/components/Layout/Stack";
 import { PageTitle, Para, SecTitle } from "@/components/TextBlocks";
 
 const MODES = [
@@ -169,7 +173,7 @@ export function DemoOverlayDemo() {
       value: "details",
       label: "概要",
       content: (
-        <div className="flex flex-col gap-3">
+        <Stack className="gap-3">
           <SecTitle as="h3" className="mt-0 text-base font-semibold">
             タブでセクションを整理
           </SecTitle>
@@ -186,23 +190,23 @@ export function DemoOverlayDemo() {
               {text}
             </Para>
           ))}
-        </div>
+        </Stack>
       ),
     },
     {
       value: "memo",
       label: "共有メモ",
       content: (
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
+        <Stack className="gap-4">
+          <Stack className="gap-2">
             <Label htmlFor="tabbed-modal-title">メモタイトル</Label>
             <Input
               id="tabbed-modal-title"
               placeholder="例: 次のリリース計画"
               defaultValue="次のリリース計画"
             />
-          </div>
-          <div className="flex flex-col gap-2">
+          </Stack>
+          <Stack className="gap-2">
             <Label htmlFor="tabbed-modal-description">詳細メモ</Label>
             <Textarea
               id="tabbed-modal-description"
@@ -210,7 +214,7 @@ export function DemoOverlayDemo() {
               placeholder="モーダル内で共有したいメモをここに書きます。"
               defaultValue="最優先で確認したいトピックを簡潔にまとめておくことで、参加者全員の認識を合わせられます。"
             />
-          </div>
+          </Stack>
           <Button
             variant="secondary"
             className="self-start"
@@ -218,18 +222,18 @@ export function DemoOverlayDemo() {
           >
             次のタブへ進む
           </Button>
-        </div>
+        </Stack>
       ),
     },
     {
       value: "actions",
       label: "アクション",
       content: (
-        <div className="flex flex-col gap-4">
+        <Stack className="gap-4">
           <Para size="sm" tone="muted" className="mt-0">
             タブごとに異なるアクションボタンを配置できます。ここでは、メモの確認完了や閉じる操作を想定しています。
           </Para>
-          <div className="flex flex-wrap gap-3">
+          <Flex wrap="wrap" className="gap-3">
             <Button variant="outline" onClick={() => setActiveTabbedModalTab("memo")}>
               メモを編集する
             </Button>
@@ -239,8 +243,8 @@ export function DemoOverlayDemo() {
             <Button variant="secondary" onClick={closeTabbedModal}>
               完了して閉じる
             </Button>
-          </div>
-        </div>
+          </Flex>
+        </Stack>
       ),
     },
   ];
@@ -315,8 +319,8 @@ export function DemoOverlayDemo() {
 
   return (
     <ImageViewerProvider>
-    <div className="px-6 py-10">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
+    <Block className="px-6 py-10">
+      <Stack className="mx-auto w-full max-w-5xl gap-8">
         <Section as="header" className="my-0 flex flex-col gap-2">
           <PageTitle size="xxxl" className="font-semibold tracking-tight">
             Overlay デモ
@@ -330,14 +334,14 @@ export function DemoOverlayDemo() {
           as="section"
           className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm"
         >
-          <div className="flex flex-col gap-2">
+          <Stack className="gap-2">
             <SecTitle as="h2">各種オーバーレイの表示</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               LoadingOverlay と合わせて利用する機会が多いモーダル・確認ダイアログ・トーストの表示挙動を確認できます。
             </Para>
-          </div>
+          </Stack>
 
-          <div className="flex flex-wrap gap-3">
+          <Flex wrap="wrap" className="gap-3">
             <Button onClick={() => setIsModalOpen(true)}>モーダルを開く</Button>
             <Button variant="outline" onClick={() => setIsConfirmOpen(true)}>
               確認ダイアログを開く
@@ -345,9 +349,9 @@ export function DemoOverlayDemo() {
             <Button variant="secondary" onClick={() => setIsTabbedModalOpen(true)}>
               タブ付きモーダルを開く
             </Button>
-          </div>
+          </Flex>
 
-          <div className="flex flex-wrap gap-3">
+          <Flex wrap="wrap" className="gap-3">
             <Button variant="accent" onClick={() => handleShowToast("success")}>成功トースト</Button>
             <Button variant="secondary" onClick={() => handleShowToast("info")}>
               インフォトースト
@@ -355,20 +359,20 @@ export function DemoOverlayDemo() {
             <Button variant="destructive" onClick={() => handleShowToast("error")}>
               エラートースト
             </Button>
-          </div>
+          </Flex>
         </Section>
 
         <Section
           as="section"
           className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm"
         >
-          <div className="flex flex-col gap-2">
+          <Stack className="gap-2">
             <SecTitle as="h2">画像ビューアー</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               画像をクリックすると拡大表示されます。ImageViewerProvider でラップされた領域内で動作します。
             </Para>
-          </div>
-          <div className="flex flex-wrap gap-4">
+          </Stack>
+          <Flex wrap="wrap" className="gap-4">
             <ZoomableImage
               src={logoPath(business.logo)}
               alt="ロゴ"
@@ -379,23 +383,23 @@ export function DemoOverlayDemo() {
               alt="ロゴ (大)"
               className="h-32 w-32 rounded border object-contain p-2"
             />
-          </div>
+          </Flex>
         </Section>
 
         <Section
           as="section"
           className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm"
         >
-          <div className="flex flex-col gap-2">
+          <Stack className="gap-2">
             <SecTitle as="h2">AppToast（アプリ用トースト）</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
               画面中央または指定位置にリッチな通知を表示します。
               mode で自動消去（notification）か手動消去（persistent）を切り替えられます。
             </Para>
-          </div>
+          </Stack>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="flex flex-col gap-2">
+          <Grid className="gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Stack className="gap-2">
               <Label htmlFor="app-toast-variant">バリアント</Label>
               <SelectInput
                 size="xs"
@@ -406,9 +410,9 @@ export function DemoOverlayDemo() {
                 showPlaceholderOption={false}
                 onChange={(value) => setAppToastOptions((prev) => ({ ...prev, variant: value as ToastVariant }))}
               />
-            </div>
+            </Stack>
 
-            <div className="flex flex-col gap-2">
+            <Stack className="gap-2">
               <Label htmlFor="app-toast-position">位置</Label>
               <SelectInput
                 size="xs"
@@ -419,9 +423,9 @@ export function DemoOverlayDemo() {
                 showPlaceholderOption={false}
                 onChange={(value) => setAppToastOptions((prev) => ({ ...prev, position: value as ToastPosition }))}
               />
-            </div>
+            </Stack>
 
-            <div className="flex flex-col gap-2">
+            <Stack className="gap-2">
               <Label htmlFor="app-toast-mode">モード</Label>
               <SelectInput
                 size="xs"
@@ -432,9 +436,9 @@ export function DemoOverlayDemo() {
                 showPlaceholderOption={false}
                 onChange={(value) => setAppToastOptions((prev) => ({ ...prev, mode: value as ToastMode }))}
               />
-            </div>
+            </Stack>
 
-            <div className="flex flex-col gap-2">
+            <Stack className="gap-2">
               <Label htmlFor="app-toast-size">サイズ</Label>
               <SelectInput
                 size="xs"
@@ -445,9 +449,9 @@ export function DemoOverlayDemo() {
                 showPlaceholderOption={false}
                 onChange={(value) => setAppToastOptions((prev) => ({ ...prev, size: value as ToastSize }))}
               />
-            </div>
+            </Stack>
 
-            <div className="flex flex-col gap-2">
+            <Stack className="gap-2">
               <Label htmlFor="app-toast-icon">アイコン</Label>
               <SelectInput
                 size="xs"
@@ -458,9 +462,9 @@ export function DemoOverlayDemo() {
                 showPlaceholderOption={false}
                 onChange={(value) => setAppToastOptions((prev) => ({ ...prev, iconPreset: value as "default" | ToastIconPreset }))}
               />
-            </div>
+            </Stack>
 
-            <div className="flex flex-col gap-2">
+            <Stack className="gap-2">
               <Label htmlFor="app-toast-duration">表示時間 (ms)</Label>
               <NumberInput
                 id="app-toast-duration"
@@ -473,9 +477,9 @@ export function DemoOverlayDemo() {
                 }
                 disabled={appToastOptions.mode === "persistent"}
               />
-            </div>
+            </Stack>
 
-            <div className="flex flex-col gap-2">
+            <Stack className="gap-2">
               <Label htmlFor="app-toast-message">メッセージ</Label>
               <Input
                 id="app-toast-message"
@@ -485,9 +489,9 @@ export function DemoOverlayDemo() {
                   setAppToastOptions((prev) => ({ ...prev, message: event.target.value }))
                 }
               />
-            </div>
+            </Stack>
 
-            <div className="flex items-end gap-2 pb-1">
+            <Flex align="end" className="gap-2 pb-1">
               <Label className="flex items-center gap-2">
                 <BooleanCheckboxInput
                   value={appToastOptions.spinning}
@@ -500,10 +504,10 @@ export function DemoOverlayDemo() {
                 />
                 アイコン回転
               </Label>
-            </div>
-          </div>
+            </Flex>
+          </Grid>
 
-          <div className="flex flex-wrap gap-3">
+          <Flex wrap="wrap" className="gap-3">
             <Button onClick={handleShowAppToast}>
               AppToast を表示
             </Button>
@@ -512,9 +516,9 @@ export function DemoOverlayDemo() {
                 非表示にする
               </Button>
             )}
-          </div>
+          </Flex>
 
-          <div className="flex flex-wrap gap-3">
+          <Flex wrap="wrap" className="gap-3">
             <Button
               variant="accent"
               size="sm"
@@ -557,9 +561,9 @@ export function DemoOverlayDemo() {
             >
               ローディング
             </Button>
-          </div>
+          </Flex>
 
-          <div className="flex flex-wrap gap-3">
+          <Flex wrap="wrap" className="gap-3">
             <Button
               size="sm"
               onClick={() => showToast("プライマリカラーの通知", "primary")}
@@ -592,17 +596,17 @@ export function DemoOverlayDemo() {
             >
               Primary + Loading Icon
             </Button>
-          </div>
+          </Flex>
         </Section>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
+        <Grid className="gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
           <Section
             as="section"
             className="order-2 my-0 flex flex-col gap-6 rounded-lg border bg-background p-6 shadow-sm lg:order-1"
           >
             <SecTitle as="h2">オプション</SecTitle>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
+            <Stack className="gap-4">
+              <Stack className="gap-2">
                 <Label htmlFor="mode">モード</Label>
                 <SelectInput
                   size="xs"
@@ -613,9 +617,9 @@ export function DemoOverlayDemo() {
                   showPlaceholderOption={false}
                   onChange={(value) => setOptions((prev) => ({ ...prev, mode: value as LoadingOverlayMode }))}
                 />
-              </div>
+              </Stack>
 
-              <div className="flex flex-col gap-2">
+              <Stack className="gap-2">
                 <Label htmlFor="overlay-class">className (オーバーレイ)</Label>
                 <Input
                   id="overlay-class"
@@ -625,9 +629,9 @@ export function DemoOverlayDemo() {
                     setOptions((prev) => ({ ...prev, className: event.target.value }))
                   }
                 />
-              </div>
+              </Stack>
 
-              <div className="flex flex-col gap-2">
+              <Stack className="gap-2">
                 <Label htmlFor="spinner-variant">spinnerVariant</Label>
                 <SelectInput
                   size="xs"
@@ -638,9 +642,9 @@ export function DemoOverlayDemo() {
                   showPlaceholderOption={false}
                   onChange={(value) => setOptions((prev) => ({ ...prev, spinnerVariant: value as SpinnerVariant }))}
                 />
-              </div>
+              </Stack>
 
-              <div className="flex flex-col gap-2">
+              <Stack className="gap-2">
                 <Label htmlFor="spinner-class">spinnerClassName</Label>
                 <Input
                   id="spinner-class"
@@ -650,9 +654,9 @@ export function DemoOverlayDemo() {
                     setOptions((prev) => ({ ...prev, spinnerClassName: event.target.value }))
                   }
                 />
-              </div>
+              </Stack>
 
-              <div className="flex flex-col gap-2">
+              <Stack className="gap-2">
                 <Label className="gap-2">
                   <BooleanCheckboxInput
                     value={options.showMessage}
@@ -665,8 +669,8 @@ export function DemoOverlayDemo() {
                   />
                   message を表示する
                 </Label>
-                <div className="flex flex-col gap-3 rounded-md border bg-muted/40 p-4">
-                  <div className="flex flex-col gap-2">
+                <Stack className="gap-3 rounded-md border bg-muted/40 p-4">
+                  <Stack className="gap-2">
                     <Label htmlFor="message" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       message
                     </Label>
@@ -679,8 +683,8 @@ export function DemoOverlayDemo() {
                       }
                       disabled={!options.showMessage}
                     />
-                  </div>
-                  <div className="flex flex-col gap-2">
+                  </Stack>
+                  <Stack className="gap-2">
                     <Label
                       htmlFor="message-class"
                       className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
@@ -696,41 +700,41 @@ export function DemoOverlayDemo() {
                       }
                       disabled={!options.showMessage}
                     />
-                  </div>
-                </div>
-              </div>
-            </div>
+                  </Stack>
+                </Stack>
+              </Stack>
+            </Stack>
             <Button onClick={() => setIsVisible(true)} disabled={isVisible} className="self-start">
               {isVisible ? "表示中..." : "オーバーレイを表示 (5 秒間)"}
             </Button>
           </Section>
 
-          <div className="flex flex-col gap-6">
+          <Stack className="gap-6">
             <Section
               as="section"
               className="order-1 my-0 flex flex-col gap-4 rounded-lg border bg-background p-6 shadow-sm lg:order-none"
             >
-              <div className="flex flex-col gap-3">
+              <Stack className="gap-3">
                 <SecTitle as="h2">プレビュー</SecTitle>
                 <Para tone="muted" size="sm" className="mt-0">
                   ボタンを押してから 5 秒間、選択した設定で LoadingOverlay が表示されます。
                 </Para>
-              </div>
-              <div className="relative min-h-72 overflow-hidden rounded-xl border bg-background p-8 shadow-inner">
-                <div className="pointer-events-none select-none text-center text-sm text-muted-foreground">
-                  <p>ここにコンテンツが表示される想定です。</p>
-                  <p>local モードの場合、この枠内にオーバーレイが表示されます。</p>
-                </div>
+              </Stack>
+              <Block className="relative min-h-72 overflow-hidden rounded-xl border bg-background p-8 shadow-inner">
+                <Block className="pointer-events-none select-none text-center text-sm text-muted-foreground">
+                  <Para size="inherit" weight="inherit" align="inherit" className="my-0">ここにコンテンツが表示される想定です。</Para>
+                  <Para size="inherit" weight="inherit" align="inherit" className="my-0">local モードの場合、この枠内にオーバーレイが表示されます。</Para>
+                </Block>
                 {isVisible ? <ScreenLoader {...overlayProps} /> : null}
-              </div>
+              </Block>
             </Section>
 
-          </div>
-        </div>
-      </div>
+          </Stack>
+        </Grid>
+      </Stack>
 
       <Modal open={isModalOpen} onOpenChange={setIsModalOpen} title="カスタムモーダル">
-        <div className="flex flex-col gap-4">
+        <Stack className="gap-4">
           <Para className="mt-0">
             任意のコンテンツを含めることができる共通モーダルです。必要に応じてフォームや補足説明を配置し、操作完了後に閉じるよう制御します。
           </Para>
@@ -741,7 +745,7 @@ export function DemoOverlayDemo() {
           >
             トーストを出す
           </Button>
-          <div data-demo="stack-bench" className="flex flex-col gap-3 rounded border border-border p-3">
+          <Stack data-demo="stack-bench" className="gap-3 rounded border border-border p-3">
             <HelpTip label="重なりの確かめ" help="モーダルの中から開いた浮く物は、どれもモーダルの上に出ます" />
             <ComboboxInput
               value={stackComboValue}
@@ -756,11 +760,11 @@ export function DemoOverlayDemo() {
               placeholder="選択の一覧"
             />
             <Popover trigger={<Button variant="outline" className="self-start">長い中身のポップオーバー</Button>} title="長い中身">
-              <div className="flex flex-col gap-2">
+              <Stack className="gap-2">
                 {STACK_BENCH_OPTIONS.map((o) => (
                   <Para key={o.value} className="m-0">{o.label}</Para>
                 ))}
-              </div>
+              </Stack>
             </Popover>
             <Button variant="outline" className="self-start" onClick={() => setIsStackConfirmOpen(true)}>
               確認を開く
@@ -775,11 +779,11 @@ export function DemoOverlayDemo() {
             >
               全画面の読み込み(2 秒)
             </Button>
-          </div>
+          </Stack>
           <Button variant="secondary" className="self-start" onClick={() => setIsModalOpen(false)}>
             モーダルを閉じる
           </Button>
-        </div>
+        </Stack>
       </Modal>
 
       <Dialog
@@ -818,7 +822,7 @@ export function DemoOverlayDemo() {
         onConfirm={handleConfirm}
         confirmDisabled={isConfirmProcessing}
       />
-    </div>
+    </Block>
     </ImageViewerProvider>
   );
 }
