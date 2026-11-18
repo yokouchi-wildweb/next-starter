@@ -32,7 +32,9 @@ test("コミット済みのサンプルは「変更なし」と「保持」だ�
 test("describeOutput: 作成 / 上書き / 変更なし / 移行 / スキップ を apply と同じ判定で言う", () => {
   const root = makeProject({ cleanup });
   const existing = path.join(root, "a.ts");
-  fs.writeFileSync(existing, "old");
+  // file() の中身には生成物の印が入るので、変更なしの比べは印の入った中身で
+  const OLD = file(existing, "old").content;
+  fs.writeFileSync(existing, OLD);
   assert.equal(describeOutput(file(path.join(root, "new.ts"), "x")).action, "作成");
   assert.equal(describeOutput(file(existing, "new")).action, "上書き");
   assert.equal(describeOutput(file(existing, "old")).action, "変更なし");
@@ -41,7 +43,7 @@ test("describeOutput: 作成 / 上書き / 変更なし / 移行 / スキップ 
   assert.equal(describeOutput(patch(path.join(root, "none.ts"), () => ({}))).action, "スキップ");
   assert.equal(describeOutput(patch(existing, (t) => ({ text: t }))).action, "変更なし");
   assert.equal(describeOutput(patch(existing, (t) => ({ text: t + "!" }))).action, "上書き");
-  assert.equal(fs.readFileSync(existing, "utf8"), "old", "dry-run は書かない");
+  assert.equal(fs.readFileSync(existing, "utf8"), OLD, "dry-run は書かない");
 });
 
 test("CLI: --dry-run は --generate と併用、対話なしで一覧を出す（--yes は受けて無視）", () => {

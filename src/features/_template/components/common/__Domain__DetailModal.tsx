@@ -2,6 +2,7 @@
 
 "use client";
 
+import { Block } from "@/components/Layout/Block";
 import Modal from "@/components/Overlays/Modal";
 import DetailModal from "@/components/Overlays/DetailModal";
 import DetailModalSkeleton from "@/components/Skeleton/DetailModalSkeleton";
@@ -29,7 +30,7 @@ export default function __Domain__DetailModal({ __domain__Id, open, onOpenChange
         onOpenChange={onOpenChange}
         className="animate-[fade-in-scale] fill-both"
         title="詳細情報">
-        <div className="py-8 text-center">{PLACEHOLDER_MESSAGE}</div>
+        <Block className="py-8 text-center">{PLACEHOLDER_MESSAGE}</Block>
       </Modal>
     );
   }

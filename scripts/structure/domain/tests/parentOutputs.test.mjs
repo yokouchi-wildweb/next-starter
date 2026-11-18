@@ -110,7 +110,7 @@ test("collections.ts: 集まりの項目ごとに CrudCollectionConfig（従属�
   const { workspace, ctx } = ownerContext();
   const collections = contentOf(renderCollectionsOutput(ctx), "services/server/collections.ts");
   assert.equal(
-    collections.split("\n").slice(5).join("\n"),
+    collections.split("\n").slice(6).join("\n"), // 先頭 = パスの行・生成物の印・注釈 4 行
     [
       'import type { CrudCollectionConfig } from "@/lib/crud/drizzle";',
       'import { ShowcasePhotoTable } from "@/features/showcasePhoto/entities/drizzle";',

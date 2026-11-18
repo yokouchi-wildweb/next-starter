@@ -170,6 +170,8 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 - 読み手: `pnpm workflow ownership who`（`every-run` = 型 generated で直す元を案内、`write-once` と `"generate": false` のドメインは持ち主で own か none。`src/lib/forkOwnership/README.md`「型」）。当て方は `src/lib/districtMap/domainOutputs.mjs`
 - 照合: `pnpm test scripts/structure/domain/tests/outputs.test.mjs` が、このリポの全ドメイン（`generate: false` を除く）を全カテゴリで組み立て（何も書かない）、`file` の Output は `every-run` の行に、`writeOnce` は `write-once` の行に当たり、どの行もどれかの出力に当たることを見る。生成器が書くファイルを足したら、この行も同じコミットで足す
 
+- 印: 毎回上書きの出力（`file` の Output）で注釈を持てる形式（.ts .tsx .mts .mjs .js .css）は、先頭の `// <パス>` の行の次（無ければ先頭）に生成物の印の 1 行が入る（`render/output.mjs` の `file()` = 1 か所）。`pnpm check rules`（`scripts/workflow/rules/generated.mjs`）が先頭 5 行に印があるかを見る。雛形を変えるのは `src/features/_template/`（生成物は直さない）
+
 ### 生成物を変えたいとき（生成ファイルは編集しない）
 
 - **項目・選択肢・表示列など** → `domain.json` を直して `pnpm forge`

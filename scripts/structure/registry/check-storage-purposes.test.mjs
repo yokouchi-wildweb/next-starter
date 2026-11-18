@@ -16,6 +16,7 @@ import {
   renderStoragePurposesContent,
 } from "../domain/render/registry/storagePurpose/index.mjs";
 import { MEDIA_FIELD_TYPES } from "../domain/spec/fieldTypes.mjs";
+import { withGeneratedMark } from "../domain/render/output.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -277,7 +278,8 @@ describe("ドメインの storagePurposes.ts", () => {
       const config = JSON.parse(fs.readFileSync(path.join(rootDir, rel, "domain.json"), "utf8"));
       const { entries, errors } = buildStoragePurposeEntries({ camel: domain, config, roleCategories: ROLE_CATEGORIES });
       assert.deepEqual(errors, []);
-      assert.equal(fs.readFileSync(path.join(rootDir, rel, "services/server/storagePurposes.ts"), "utf8"), renderStoragePurposesContent(rel, entries));
+      // 書いた中身 = 雛形の中身 + 生成物の印(scripts/structure/domain/render/output.mjs の file())
+      assert.equal(fs.readFileSync(path.join(rootDir, rel, "services/server/storagePurposes.ts"), "utf8"), withGeneratedMark("storagePurposes.ts", renderStoragePurposesContent(rel, entries)));
     }
     const upload = { allow: "authenticated" };
     const media = { visibility: "public", maxBytes: 104857600, contentTypes: ["image/*", "video/*"], metadata: "strip", upload };

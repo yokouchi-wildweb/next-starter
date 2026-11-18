@@ -11,11 +11,13 @@ test("印: 先頭 5 行の印の語だけを見る", () => {
   assert.ok(!hasGeneratedMark("1\n2\n3\n4\n5\n// generated\n"));
 });
 
-test("ドメインの雛形: {dir} は作り直しの対象のドメインにだけ当てる", () => {
-  assert.deepEqual(expandDomainGlob("{dir}/hooks/use{Pascal}.ts", ["src/features/a", "src/features/core/b"]), [
-    "src/features/a/hooks/use*.ts",
-    "src/features/core/b/hooks/use*.ts",
+test("ドメインの雛形: 作り直しの対象のドメインの名で埋める({route} も全部の画面には広げない)", () => {
+  assert.deepEqual(expandDomainGlob("{dir}/hooks/use{Pascal}.ts", [{ dir: "src/features/fooBar" }, { dir: "src/features/core/baz" }]), [
+    "src/features/fooBar/hooks/useFooBar.ts",
+    "src/features/core/baz/hooks/useBaz.ts",
   ]);
+  const [route] = expandDomainGlob("src/app/admin/(protected)/{route}/_screen/loader.ts", [{ dir: "src/features/fooBar" }]);
+  assert.ok(!route.includes("*") && !route.includes("{"), route);
   assert.deepEqual(expandDomainGlob("src/registry/x.ts", []), ["src/registry/x.ts"]);
 });
 
@@ -25,7 +27,7 @@ test("出力の宣言 → ファイル: 文字列は every-run、generate:false 
     { gate: "structure/domain", outputs: [{ glob: "{dir}/entities/schema.ts", kind: "every-run" }] },
   ];
   const files = ["src/registry/a.ts", "src/features/a/entities/schema.ts", "src/features/off/entities/schema.ts", "src/features/a/messages/m.ts"];
-  const out = outputFiles(gates, files, ["src/features/a"]);
+  const out = outputFiles(gates, files, [{ dir: "src/features/a" }]);
   assert.deepEqual(out.map((e) => [e.glob, e.kind, e.domain, e.files]), [
     ["src/registry/a.ts", "every-run", false, ["src/registry/a.ts"]],
     ["src/features/**/messages/*.ts", "write-once", false, ["src/features/a/messages/m.ts"]],

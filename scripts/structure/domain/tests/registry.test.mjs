@@ -11,6 +11,7 @@ import { renderRegistry } from "../render/registry/index.mjs";
 import { ACCESS_PRESETS, PRESET_RULES, serializeAccess, serializeRule } from "../render/registry/presetAccess.mjs";
 import { buildDomainEntryAccess, renderDomainEntry, renderDomainEntryOutput } from "../render/registry/domainEntry.mjs";
 import { domainTableName } from "../domain/names.mjs";
+import { withGeneratedMark } from "../render/output.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
 import { createDomainContext } from "../domain/context.mjs";
 import { applyOutputs } from "../pipeline/apply.mjs";
@@ -223,7 +224,8 @@ test("domainEntry: domain.json から services/server/domainEntry.ts を書き�
   });
   assert.equal(writeDomainEntry(root, "sample"), 0);
   const first = read(root, "src/features/sample/services/server/domainEntry.ts");
-  assert.equal(first, renderDomainEntry({ camel: "sample", config: { apiAccess: API_ACCESS, useImportExport: true } }));
+  // 書いた中身 = 雛形の中身 + 生成物の印(render/output.mjs の file())
+  assert.equal(first, withGeneratedMark("domainEntry.ts", renderDomainEntry({ camel: "sample", config: { apiAccess: API_ACCESS, useImportExport: true } })));
   assert.equal(writeDomainEntry(root, "sample"), 0);
   assert.equal(read(root, "src/features/sample/services/server/domainEntry.ts"), first);
   assert.equal(writeDomainEntry(root, "save"), 1);

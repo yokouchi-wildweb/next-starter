@@ -6,10 +6,12 @@ import { useState } from "react";
 import { Link } from "@/components/Navigation";
 import { SortableList, type ReorderResult } from "@/lib/sortableList";
 import type { __Domain__ } from "@/features/__domain__/entities/model";
+import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Button } from "@/components/Form/Button/Button";
+import { Span } from "@/components/TextBlocks";
 import { useReorder__Domain__ } from "@/features/__domain__/hooks/useReorder__Domain__";
 import { useLoadingToast } from "@/lib/toast";
 
@@ -62,9 +64,9 @@ export default function Admin__Domain__Sort({ initial__Domains__ }: Props) {
 
         {/* エラー表示 */}
         {error && (
-          <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive-text">
+          <Block className="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive-text">
             {error}
-          </div>
+          </Block>
         )}
 
         <SortableList<__Domain__>
@@ -78,7 +80,7 @@ export default function Admin__Domain__Sort({ initial__Domains__ }: Props) {
                   (typeof source.title === "string" && source.title) ||
                   (typeof source.label === "string" && source.label) ||
                   String(item.id);
-                return <span className="truncate font-medium">{label}</span>;
+                return <Span inline weight="medium" className="truncate">{label}</Span>;
               },
               width: "flex-1",
             },

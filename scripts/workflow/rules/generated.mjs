@@ -1,7 +1,6 @@
 // scripts/workflow/rules/generated.mjs — pnpm check rules の生成物の検査(D135)
-// 止める: 生成器の出力の宣言(各 gate.json の outputs)が .claude/rules/core/generated.md の paths に当たらない /
-//         ドメインの外の生成器の毎回の出力(every-run)で、注釈を持てる形式なのに先頭に生成物の印が無い
-// 数の 1 行の知らせ: ドメインの生成器(pnpm generate domain)の毎回の出力の印の無い物(印は雛形から入れる、済んだら止める)
+// 止める: 上流の生成器の出力の宣言(各 gate.json の outputs)が .claude/rules/core/generated.md の paths に当たらない /
+//         毎回の出力(every-run、ドメインの生成器は作り直しの対象のドメインの分)で、注釈を持てる形式なのに先頭に生成物の印が無い
 // 書き場所の一覧の generated の行 = outputs の一致は scripts/structure/extensions/check.mjs が守る(intake.txt の生成区画のずれで止まる)
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -19,19 +18,21 @@ const scriptsDir = join(root, "scripts");
 const gates = scanTargets(scriptsDir, loadGates(scriptsDir)).map((t) => ({ gate: `${t.kind}/${t.name}`, outputs: t.decl.outputs, upstream: t.upstream }));
 const files = execFileSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 }).split("\0").filter(Boolean);
 // 作り直しの対象のドメイン = domain.json を持ち generate が false でない物(false = 生成器が触らない)
-const domainDirs = existsSync(join(root, DISTRICT_MAP))
+const domains = existsSync(join(root, DISTRICT_MAP))
   ? read(DISTRICT_MAP)
       .split("\n")
       .filter(Boolean)
       .map((l) => JSON.parse(l))
       .filter((d) => d.kind === "features" && d.domainJson === true && d.generate !== false)
-      .map((d) => d.dir)
+      .map((d) => {
+        const json = join(root, d.dir, "domain.json");
+        return { dir: d.dir, plural: existsSync(json) ? JSON.parse(readFileSync(json, "utf8")).plural : undefined };
+      })
   : [];
 
-const entries = outputFiles(gates, files, domainDirs);
+const entries = outputFiles(gates, files, domains);
 const generatedPaths = parsePaths(read(`${CORE_DIR}/generated.md`)) ?? [];
 const fails = [];
-let domainUnmarked = 0;
 let domainEveryRun = 0;
 
 for (const e of entries) for (const p of e.problems) fails.push(`${e.gate}/gate.json: ${p}`);
@@ -41,13 +42,10 @@ for (const e of outputsOutsidePaths(entries.filter((x) => upstreamGates.has(x.ga
 for (const e of entries.filter((x) => x.kind === "every-run")) {
   for (const f of e.files.filter((x) => MARKABLE.test(x))) {
     if (e.domain) domainEveryRun++;
-    if (hasGeneratedMark(read(f))) continue;
-    if (e.domain) domainUnmarked++;
-    else fails.push(`${f}: 毎回作り直す生成物(${e.gate})なのに先頭に生成物の印が無い(生成器に印を入れる)`);
+    if (!hasGeneratedMark(read(f))) fails.push(`${f}: 毎回作り直す生成物(${e.gate})なのに先頭に生成物の印が無い(生成器に印を入れる。ドメインの生成器は scripts/structure/domain/render/output.mjs の file() が入れる = pnpm generate domain で作り直す)`);
   }
 }
 
 console.log(`rules generated: 出力の宣言 ${entries.length} 個(${gates.filter((g) => g.outputs).length} の生成器)、ドメインの毎回の出力 ${domainEveryRun} 本`);
-if (domainUnmarked) console.error(`知らせ: ドメインの生成器の毎回の出力で印の無い物 ${domainUnmarked} / ${domainEveryRun} 本(雛形に印を入れて作り直したら止める)`);
 for (const f of fails) console.error(`失敗: ${f}`);
 process.exitCode = fails.length ? 1 : 0;
