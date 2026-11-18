@@ -18,7 +18,7 @@ export function primitiveUnits(repoRoot) {
 
 /** README の「## data-slot の一覧」の行 `- \`<名前>\`` の名前(節が無ければ null) */
 export function readmeSlotsOf(readme) {
-  const at = readme.indexOf("\n## data-slot の一覧");
+  const at = readme.search(/\n#{2,3} data-slot の一覧/);
   if (at < 0) return null;
   const section = readme.slice(at + 1).split(/\n## /)[0];
   return [...section.matchAll(/^- `([a-z0-9-]+)`/gm)].map((m) => m[1]);

@@ -1,10 +1,18 @@
 # Primitives/Slot
 
-radix-ui の Slot の名前空間（`Slot.Root` / `Slot.Slottable`）の再輸出。要素を描かないので印は無い。
+## Overview
 
-- 読むのは入口 `@/components/Primitives/Slot` だけ（`src/components/Primitives/index.ts` は無い）。Radix は統合版の `radix-ui` から読む
-- 画面からは通常、完成品を使う。この部品を直接組むのは完成品で足りないときだけ
+- radix-ui の Slot の名前空間（`Slot.Root` / `Slot.Slottable`）の再輸出。要素を描かないので印は無い。
+- 使う時・直す時の決まり(入口・radix-ui・完成品が先・data-slot の約束)は札 .claude/rules/items/components/Primitives.md にある。この README は部品の説明と印の一覧
 
-## data-slot の一覧
+## Extension
 
-なし（要素を描かない）。照合: `pnpm test src/components/Primitives/slots.test.mjs`
+- fork の CSS は下の一覧の印 `[data-slot="<名前>"]` を狙う。印の数と名前は部品のファイルの物と一致する
+
+### data-slot の一覧
+
+なし（要素を描かない）
+
+## Verification
+
+- 一覧と部品のファイルの印の照合: `pnpm test src/components/Primitives/slots.test.mjs`
