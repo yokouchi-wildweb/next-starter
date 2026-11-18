@@ -128,6 +128,7 @@ export function GlobalToast() {
   const layerClass = zLayerClass("toast");
 
   const content = isCenter ? (
+    // eslint-disable-next-line raw-elements/no-raw-element -- toast は components から読まれる土台で、components を読むと読み込みが輪になる (D208)
     <div
       className={cn(
         "fixed pointer-events-none",
@@ -138,6 +139,7 @@ export function GlobalToast() {
       aria-label={toastConfig.ariaLabel}
       data-slot="toast-region"
     >
+      {/* eslint-disable-next-line raw-elements/no-raw-element -- toast は components から読まれる土台で、components を読むと読み込みが輪になる (D208) */}
       <div className={animationClass}>
         <ToastItem
           key={displayedToast.id}
@@ -174,6 +176,7 @@ export function GlobalToast() {
 function FramedToastRegion({ className, children }: { className: string; children: ReactNode }) {
   const frameDims = useFrameDimsStyle();
   return (
+    // eslint-disable-next-line raw-elements/no-raw-element -- toast は components から読まれる土台で、components を読むと読み込みが輪になる (D208)
     <div className={className} style={frameDims} role="region" aria-label={toastConfig.ariaLabel} data-slot="toast-region">
       {children}
     </div>

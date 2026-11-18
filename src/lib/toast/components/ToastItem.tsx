@@ -178,6 +178,7 @@ export function ToastItem({ toast, onClose }: Props) {
   };
 
   return (
+    // eslint-disable-next-line raw-elements/no-raw-element -- toast は components から読まれる土台で、components を読むと読み込みが輪になる (D208)
     <div
       {...bind()}
       onClick={handleClick}
@@ -203,10 +204,12 @@ export function ToastItem({ toast, onClose }: Props) {
       aria-live="assertive"
     >
       {/* 下層: 不透明な背景 */}
+      {/* eslint-disable-next-line raw-elements/no-raw-element -- toast は components から読まれる土台で、components を読むと読み込みが輪になる (D208) */}
       <div className="absolute inset-0 rounded-xl bg-popover" />
       {/* 上層: 透過色背景 + コンテンツ */}
       {/* toast.style はこの可視レイヤーにも適用する（下層の不透明レイヤーに隠れず */}
       {/* 動的グラデ背景等が実際に見える。className と同じく root/コンテンツ両方に当てる挙動） */}
+      {/* eslint-disable-next-line raw-elements/no-raw-element -- toast は components から読まれる土台で、components を読むと読み込みが輪になる (D208) */}
       <div
         style={toast.style}
         className={cn(
@@ -217,6 +220,7 @@ export function ToastItem({ toast, onClose }: Props) {
           toast.className,
         )}
       >
+        {/* eslint-disable-next-line raw-elements/no-raw-element -- toast は components から読まれる土台で、components を読むと読み込みが輪になる (D208) */}
         <div className={cn("shrink-0", variantConfig.iconClass, toast.iconClassName)}>
           {IconComponent ? (
             <IconComponent
@@ -227,11 +231,13 @@ export function ToastItem({ toast, onClose }: Props) {
           )}
         </div>
 
+        {/* eslint-disable-next-line raw-elements/no-raw-element -- toast は components から読まれる土台で、components を読むと読み込みが輪になる (D208) */}
         <p className={cn("flex-1 font-medium text-foreground", sizeConfig.text, toast.textClassName)}>
           {toast.message}
         </p>
 
         {isNotification && (
+          // eslint-disable-next-line raw-elements/no-raw-element -- toast は components から読まれる土台で、components を読むと読み込みが輪になる (D208)
           <div
             className={cn(
               "shrink-0 p-1 rounded-full",

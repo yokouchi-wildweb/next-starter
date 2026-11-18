@@ -37,6 +37,7 @@
 
 ## 共通ルール
 
+- **生の要素の lint**: `raw-elements/no-raw-element`(`eslint-rules/raw-elements.mjs`)が、包みのある要素(div・span・p・見出し・section 系・main・button・input・textarea・label・img・a)を生で書くと止める。上流リポだけ error、fork は off(fork の既存の生の要素は直させない)。対象外 = `src/components/**`(包みそのもの)とテスト。包みの無い要素(ul・li・dl・select・option・form・pre・code・br・strong・iframe 等)と飾り(svg・video・canvas・motion.*)は止めない。包みで同じ形にできない 1 か所だけの物は理由つきの行ごとの `eslint-disable-next-line raw-elements/no-raw-element -- <理由>`(例: toast = components から読まれる土台)
 - **raw HTML よりラッパー優先**: `div` → `Layout/Block・Flex・Grid・Stack`、`main` → `Layout/Main`、`section` → `Layout/Section`、`button` → `Form/Button`、`p` → `TextBlocks/Para`、`h2` → `TextBlocks/SecTitle`、`img` → `Media/AppImage`（`next/image` 直接使用も不可。選んだ直後の blob: の下見は `Media/PreviewImage`）、ボタンの形のファイル選択 → `Form/FilePickButton` など（一覧: CLAUDE.md「COMPONENTS」）
 - **`_shadcn` 直接使用禁止**: 必ず対応するラッパー（`Form/Button`、`Form/Input`、`Skeleton/BaseSkeleton` など）を使用する。ラッパーが無い場合は新規ラッパーの作成を提案する
 - **shadcn/ui の更新**: `_shadcn/` 内のファイルを更新し、差分はラッパー側で吸収する

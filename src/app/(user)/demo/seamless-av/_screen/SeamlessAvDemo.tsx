@@ -484,6 +484,7 @@ export function SeamlessAvDemo() {
           <Stack gap="xs">
             <Flex gap="md" align="center" wrap="wrap">
               <Span size="xs" tone="muted">音量 {volume.toFixed(2)}</Span>
+              {/* eslint-disable-next-line raw-elements/no-raw-element -- 棚に Slider の部品が無い (注文 36) */}
               <input
                 type="range"
                 min={0}
@@ -503,6 +504,7 @@ export function SeamlessAvDemo() {
             {bgmFile && (
               <Flex gap="md" align="center" wrap="wrap">
                 <Span size="xs" tone="muted">BGM音量 {bgmVolume.toFixed(2)}</Span>
+                {/* eslint-disable-next-line raw-elements/no-raw-element -- 棚に Slider の部品が無い (注文 36) */}
                 <input
                   type="range"
                   min={0}

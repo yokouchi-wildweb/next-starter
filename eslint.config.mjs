@@ -11,6 +11,7 @@ import fieldTypeGuardPlugin from "./eslint-rules/field-type-guard.mjs";
 import intersectionObserverPlugin from "./eslint-rules/intersection-observer.mjs";
 import appEnvPlugin from "./eslint-rules/app-env.mjs";
 import assetPathsPlugin from "./eslint-rules/asset-paths.mjs";
+import rawElementsPlugin from "./eslint-rules/raw-elements.mjs";
 import configOverridesPlugin from "./eslint-rules/config-overrides.mjs";
 import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
 import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
@@ -249,6 +250,17 @@ const config = [
     plugins: { "asset-paths": assetPathsPlugin },
     rules: {
       "asset-paths/no-literal-asset-path": libOwnership.isRoot ? "error" : "warn",
+    },
+  },
+  // 生の要素(当議会 D182・D208。詳細: eslint-rules/raw-elements.mjs): 包みの部品がある HTML の要素を生で書かない。
+  // 上流リポ(目録の先頭の節)だけ error、fork は off(fork の既存の生の要素は直させない)。必須の規則の一覧には載せない(Tier で強さが変わる)。
+  // 対象外: 包みそのもの src/components/** とテスト。包みで同じ形にできない 1 か所だけの物は理由つきの行ごとの eslint-disable(toast = D208)
+  {
+    files: ["src/**/*.tsx"],
+    ignores: ["src/components/**", "src/**/*.test.tsx", "src/**/__tests__/**"],
+    plugins: { "raw-elements": rawElementsPlugin },
+    rules: {
+      "raw-elements/no-raw-element": libOwnership.isRoot ? "error" : "off",
     },
   },
   {
