@@ -5,7 +5,7 @@
 - Anthropic Claude Vision を使った画像の事前判定ユーティリティ。入口は `@/lib/aiVision`(閉じた lib、`libs: ["ai"]`)
 - `checkBankTransferReceipt`: ユーザーが銀行振込の証拠としてアップロードした画像が、振込明細写真またはネットバンク振込完了画面に見えるかを判定する
   - 通常モード: 人間のレビュー前段で「明らかに無関係な画像」を弾くための仮判定。金額や振込先名の一致までは見ない
-  - ストリクトモード(`strict` を渡す): 明細内で振込人名・名前の前後の識別数字・振込金額の 3 点すべてが確認できたときだけ `isLikelyBankTransfer=true`。個別の合否は `strictChecks`
+  - ストリクトモード(`strict` を渡す): 明細らしく、かつ明細内で振込人名・名前の前後の識別数字・振込金額の 3 点すべてが確認できたときだけ `isLikelyBankTransfer=true`(モデルが true でも 3 点のどれかが落ちればコードで false)。個別の合否は `strictChecks`
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/aiVision.md にある
 
 ## Usage
@@ -31,7 +31,7 @@ const result = await checkBankTransferReceipt({
 - 入力 `CheckBankTransferReceiptInput`: `imageBase64`(data URL プレフィックスなし)/ `mediaType`(`SupportedImageMediaType`)/ `strict?`(`BankTransferStrictExpectation`: `expectedIdentifier` = 振込人名の前後どちらかに付く数字 8 桁、`expectedAmount` = 一致すべき振込金額(円))
 - 結果 `CheckBankTransferReceiptResult`: `isLikelyBankTransfer` / `confidence`(0-100)/ `imageType`(`BankTransferReceiptImageType`)/ `reason` / `strictChecks?`
 - `BankTransferStrictChecks`: `senderNameConfirmed` / `identifierConfirmed` / `amountConfirmed` / `detectedSenderName`
-- 投げる: Anthropic API のエラー、または `ANTHROPIC_API_KEY` 未設定時
+- 投げる: Anthropic API のエラー / `ANTHROPIC_API_KEY` 未設定 / 応答に `tool_use` が無い・形が想定外(ストリクトで 3 点の欄が欠けたときも)
 
 ## Internals
 
