@@ -104,7 +104,6 @@ else removeItems((o) => done.has(o.id));
 ### その他
 
 - タブに戻ったときに最新化したい一覧(メッセージ・スレッド等、SWR の revalidateOnFocus 相当)は、フックに `revalidateOnFocus: true` を渡す(既定 false)。一覧を表示したまま `revalidate()` する(5 秒に 1 回まで。複数ページ読み込み済みなら 1 ページ目に戻る)
-- 一覧がスクロールコンテナの中にあるときは、フックの `observerOptions.root` にそのコンテナを渡す
 
 ## API
 
