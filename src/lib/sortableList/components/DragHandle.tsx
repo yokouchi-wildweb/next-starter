@@ -3,12 +3,15 @@
 "use client";
 
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
+import { Button } from "@/components/Form/Button";
+import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
 import { GripVertical } from "lucide-react";
 
 type DragHandleProps = {
   listeners?: SyntheticListenerMap;
-  attributes?: React.HTMLAttributes<HTMLButtonElement>;
+  /** dnd-kit の useSortable の attributes(role・tabIndex・aria-*)。slot は Form/Button の印の名前とぶつかるので受けない */
+  attributes?: Omit<React.HTMLAttributes<HTMLButtonElement>, "slot">;
   disabled?: boolean;
   className?: string;
 };
@@ -24,8 +27,12 @@ export function DragHandle({
   className,
 }: DragHandleProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="none"
+      size="none"
+      // 押しの伝播を止めない(生の button と同じ)
+      propagateClick
       className={cn(
         "relative flex h-8 w-8 shrink-0 items-center justify-center rounded",
         "text-muted-foreground hover:text-foreground",
@@ -40,7 +47,7 @@ export function DragHandle({
       {...listeners}
     >
       <GripVertical className="h-4 w-4" />
-      <span className="sr-only">ドラッグして並び替え</span>
-    </button>
+      <Span srOnly>ドラッグして並び替え</Span>
+    </Button>
   );
 }

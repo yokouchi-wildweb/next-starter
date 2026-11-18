@@ -1,6 +1,6 @@
 # globalLoader
 
-画面全体を覆うローダーの閉じた lib。表示の状態(lib の中の store)・出し入れのフック・描画の部品を持つ。読む lib = `cn`・`isClient`。棚の部品は型も読まない(D103)。
+画面全体を覆うローダーの閉じた lib。表示の状態(lib の中の store)・出し入れのフック・描画の部品を持つ。読む lib = `isClient`、棚 = `components`(package.json の `peers`。描画は棚の `ScreenLoader`、当議会 D208)。
 
 ## 入口(`@/lib/globalLoader`)
 
@@ -26,9 +26,9 @@ try {
 
 ## 描画
 
-棚の `ScreenLoader`(mode="fullscreen")+ `Spinner` と同じ形を自分で持つ(`GlobalScreenLoader.tsx`・種類 → アイコンの対応 `spinner.ts`)。`className` は外側の要素に足す(重ねる層はいつも `cover-layer`。数で持ち上げる指定は無い、当議会 D189)。
+棚の `ScreenLoader`(mode="fullscreen")をそのまま描く(`GlobalScreenLoader.tsx`。種類の型 `LoaderSpinnerVariant` = 棚の `SpinnerVariant`、`spinner.ts`)。`className` は外側の要素に足す(重ねる層はいつも `cover-layer`。数で持ち上げる指定は無い、当議会 D189)。
 
-同じ出力になることは棚の側のテスト `src/components/Overlays/Loading/globalLoaderParity.test.tsx` が既定とすべての種類で確かめる。`ScreenLoader` / `Spinner` の見た目を変えるときはこの lib も同じに直す(片方だけだと落ちる)。
+`ScreenLoader` と同じ出力になることは棚の側のテスト `src/components/Overlays/Loading/globalLoaderParity.test.tsx` が既定とすべての種類で確かめる。
 
 ## 旧パス
 

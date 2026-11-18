@@ -1,6 +1,7 @@
 // src/lib/sortableList/components/StaticItem.tsx
 
 import { memo } from "react";
+import { Flex } from "@/components/Layout";
 import { cn } from "@/lib/cn";
 import { DragHandle } from "./DragHandle";
 import type {
@@ -43,9 +44,10 @@ function StaticItemInner<T extends SortableItemType>({
   const paddingClass = resolvePaddingClass(itemPaddingX, itemPaddingY);
 
   return (
-    <div
+    <Flex
+      align="center"
       className={cn(
-        "group flex items-center gap-2 rounded-lg border bg-background",
+        "group gap-2 rounded-lg border bg-background",
         heightClass,
         paddingClass,
         "transition-shadow",
@@ -53,12 +55,12 @@ function StaticItemInner<T extends SortableItemType>({
       )}
     >
       {showDragHandle && <DragHandle disabled />}
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+      <Flex align="center" className="min-w-0 flex-1 gap-3">
         {columns.map((col, idx) => (
-          <div
+          <Flex
             key={idx}
+            align="center"
             className={cn(
-              "flex items-center",
               resolveColumnFlexAlignClass(col.align),
               resolvePaddingClass(
                 col.paddingX ?? itemPaddingX,
@@ -73,10 +75,10 @@ function StaticItemInner<T extends SortableItemType>({
             }
           >
             {col.render(item)}
-          </div>
+          </Flex>
         ))}
-      </div>
-    </div>
+      </Flex>
+    </Flex>
   );
 }
 

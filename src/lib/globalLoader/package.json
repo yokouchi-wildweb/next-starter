@@ -3,8 +3,9 @@
     ".": "./index.ts"
   },
   "libs": [
-    "cn",
-    "isClient",
-    "zLayer"
+    "isClient"
+  ],
+  "peers": [
+    "components"
   ]
 }

@@ -1,15 +1,8 @@
 // src/lib/globalLoader/spinner.ts
 //
-// スピナーの種類 → lucide のアイコン。棚の Overlays/Loading/Spinner と同じ対応(lib は棚を読まない: D103)。
-// 見た目が棚とずれないことは src/components/Overlays/Loading/globalLoaderParity.test.tsx が確かめる。
+// スピナーの種類。棚の Overlays/Loading/Spinner の SpinnerVariant をそのまま使う(描画も棚の ScreenLoader、当議会 D208)。
 
-import { Loader2Icon, LoaderCircleIcon, LoaderIcon, type LucideIcon } from "lucide-react";
+import type { SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
 
-export const LOADER_SPINNER_ICONS = {
-  default: Loader2Icon,
-  ring: LoaderIcon,
-  circle: LoaderCircleIcon,
-} satisfies Record<string, LucideIcon>;
-
-/** スピナーの種類(棚の SpinnerVariant と同じ値) */
-export type LoaderSpinnerVariant = keyof typeof LOADER_SPINNER_ICONS;
+/** スピナーの種類(棚の SpinnerVariant と同じ) */
+export type LoaderSpinnerVariant = SpinnerVariant;

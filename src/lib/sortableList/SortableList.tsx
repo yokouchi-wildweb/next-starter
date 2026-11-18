@@ -26,6 +26,7 @@ import {
 } from "@tanstack/react-virtual";
 import { useIsClient } from "@/lib/isClient";
 import { cn } from "@/lib/cn";
+import { Block, Flex } from "@/components/Layout";
 import { HeaderRow, SortableItem, StaticItem } from "./components";
 import type {
   SortableItem as SortableItemType,
@@ -199,7 +200,7 @@ export default function SortableList<T extends SortableItemType>({
       return body;
     }
     return (
-      <div className="flex w-full max-w-full flex-col gap-2">
+      <Flex direction="column" className="w-full max-w-full gap-2">
         <HeaderRow
           columns={columns}
           showDragHandle={showDragHandle}
@@ -208,38 +209,41 @@ export default function SortableList<T extends SortableItemType>({
           className={headerClassName}
         />
         {body}
-      </div>
+      </Flex>
     );
   };
 
   // ローディング中またはマウント前はスケルトンを表示
   if (isLoading || !mounted) {
     return withHeader(
-      <div
-        className={cn("w-full max-w-full flex flex-col gap-2", className)}
+      <Flex
+        direction="column"
+        className={cn("w-full max-w-full gap-2", className)}
         style={{ maxHeight: resolvedMaxHeight }}
       >
         {(items.length > 0 ? items : [...Array(3)]).map((_, i) => (
-          <div
+          <Block
             key={i}
             className="h-14 animate-pulse rounded-lg border bg-muted/50"
           />
         ))}
-      </div>
+      </Flex>
     );
   }
 
   if (items.length === 0) {
     return withHeader(
-      <div
+      <Flex
+        align="center"
+        justify="center"
         className={cn(
-          "w-full max-w-full flex items-center justify-center rounded-lg border border-dashed p-8",
+          "w-full max-w-full rounded-lg border border-dashed p-8",
           "text-muted-foreground",
           className
         )}
       >
         {emptyMessage}
-      </div>
+      </Flex>
     );
   }
 
@@ -296,24 +300,24 @@ export default function SortableList<T extends SortableItemType>({
   // ドラッグ中の端寄せスクロールも祖先側で機能する。
   if (!isSelfScroll) {
     return withHeader(
-      <div className={cn("isolate w-full max-w-full flex flex-col gap-2", className)}>
+      <Flex direction="column" className={cn("isolate w-full max-w-full gap-2", className)}>
         {dndBody(
           items.map((item, index) => (
-            <div key={item.id}>{renderRow(item, index)}</div>
+            <Block key={item.id}>{renderRow(item, index)}</Block>
           ))
         )}
-      </div>
+      </Flex>
     );
   }
 
   return withHeader(
-    <div
+    <Block
       ref={scrollContainerRef}
       className={cn("isolate w-full max-w-full overflow-y-auto", className)}
       style={{ maxHeight: resolvedMaxHeight }}
     >
       {dndBody(
-        <div
+        <Block
           style={{
             height: virtualizer.getTotalSize(),
             position: "relative",
@@ -323,7 +327,7 @@ export default function SortableList<T extends SortableItemType>({
             const item = items[virtualRow.index];
             const index = virtualRow.index;
             return (
-              <div
+              <Block
                 key={item.id}
                 style={{
                   position: "absolute",
@@ -334,11 +338,11 @@ export default function SortableList<T extends SortableItemType>({
                 }}
               >
                 {renderRow(item, index)}
-              </div>
+              </Block>
             );
           })}
-        </div>
+        </Block>
       )}
-    </div>
+    </Block>
   );
 }

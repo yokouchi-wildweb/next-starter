@@ -1,6 +1,7 @@
 // src/lib/sortableList/components/HeaderRow.tsx
 
 import { memo } from "react";
+import { Block, Flex } from "@/components/Layout";
 import { cn } from "@/lib/cn";
 import type {
   SortableItem as SortableItemType,
@@ -43,24 +44,25 @@ function HeaderRowInner<T extends SortableItemType>({
   const paddingClass = resolvePaddingClass(itemPaddingX, itemPaddingY);
 
   return (
-    <div
+    <Flex
       role="row"
+      align="center"
       className={cn(
         // データ行と同じ outer レイアウト + 透明ボーダーで 1px ぶんの整列を一致させる
-        "flex items-center gap-2 rounded-lg border border-transparent",
+        "gap-2 rounded-lg border border-transparent",
         paddingClass,
         "text-xs font-medium text-muted-foreground",
         className
       )}
     >
-      {showDragHandle && <div aria-hidden className="h-8 w-8 shrink-0" />}
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+      {showDragHandle && <Block aria-hidden className="h-8 w-8 shrink-0" />}
+      <Flex align="center" className="min-w-0 flex-1 gap-3">
         {columns.map((col, idx) => (
-          <div
+          <Flex
             key={idx}
             role="columnheader"
+            align="center"
             className={cn(
-              "flex items-center",
               resolveColumnFlexAlignClass(col.align),
               resolvePaddingClass(
                 col.paddingX ?? itemPaddingX,
@@ -75,10 +77,10 @@ function HeaderRowInner<T extends SortableItemType>({
             }
           >
             {col.header}
-          </div>
+          </Flex>
         ))}
-      </div>
-    </div>
+      </Flex>
+    </Flex>
   );
 }
 

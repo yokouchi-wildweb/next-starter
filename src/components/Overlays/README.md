@@ -689,7 +689,7 @@ hideToast();
 
 使い分け: 内容が無いあいだその場所に出す → `InlineLoader` | 見えている内容の上に重ねて操作を止める → `ScreenLoader`（local / fullscreen）| ボタンの実行中 → `Button` の `loading`（[Form/README.md](../Form/README.md)「Button の読み込み中」）。`<Flex justify="center"><Spinner /></Flex>` や Spinner + 文の塊を手で組まない。
 
-画面全体のローダー(`GlobalScreenLoader` を root layout に 1 つ置き、`useGlobalLoader()` の `showLoader` / `hideLoader` で出し入れする)は閉じた lib [`@/lib/globalLoader`](../../lib/globalLoader/README.md) にある。lib は棚を読まないので同じ見た目の描画を自分で持ち、`Loading/globalLoaderParity.test.tsx` が `ScreenLoader`(fullscreen)と同じ DOM になることを確かめる(`ScreenLoader` / `Spinner` を変えたら lib の側も揃える)。
+画面全体のローダー(`GlobalScreenLoader` を root layout に 1 つ置き、`useGlobalLoader()` の `showLoader` / `hideLoader` で出し入れする)は閉じた lib [`@/lib/globalLoader`](../../lib/globalLoader/README.md) にある。lib は package.json の `peers` で棚を読み、描画は `ScreenLoader`(fullscreen)そのもの。`Loading/globalLoaderParity.test.tsx` が同じ DOM になることを確かめる。
 
 ページ遷移中の表示は App Router の標準手段で出す（全体を覆う遷移オーバーレイは置かない。App Router には全体の遷移イベントが無い）: ルートの `loading.tsx`（`src/app/(user)/loading.tsx`・`src/app/admin/(protected)/loading.tsx` が `ScreenLoader` を出す）、リンク単位の表示は `next/link` の `useLinkStatus`、自前の遷移は `useTransition` の pending。
 

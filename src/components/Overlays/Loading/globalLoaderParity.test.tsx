@@ -1,6 +1,6 @@
 // 閉じた lib @/lib/globalLoader の GlobalScreenLoader が、棚の ScreenLoader(mode="fullscreen")+ Spinner と
-// 同じ見た目(同じ DOM)を出すことの検査。lib は棚を読まない(D103)ので描画を自前で持っており、片方だけ
-// 変えるとここで落ちる。jsdom の上で両方を描いて outerHTML を比べる。
+// 同じ見た目(同じ DOM)を出すことの検査。lib は peers で棚を読み ScreenLoader をそのまま描く(当議会 D208)。
+// 渡し方(options → props)がずれるとここで落ちる。jsdom の上で両方を描いて outerHTML を比べる。
 // 実行: pnpm test src/components/Overlays/Loading/globalLoaderParity.test.tsx
 // (tsx + jsdom。type: module が無いので tsx は CJS = top-level await 不可 → before() で import)
 import { after, before, test } from "node:test";
