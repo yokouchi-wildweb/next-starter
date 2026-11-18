@@ -1,3 +1,24 @@
 # scripts/structure/legal — 法務の文書が例文(sample)のまま本番でビルドしていないかの検査
 
-`pnpm check legal`(門 build)。`src/config/features/legal.config.ts` の `documents.<kind>` が `{ source: "sample" }`(省略も同じ、上流の例文を表示)の文書が 1 つでもあり、段階が本番(`@/lib/appEnv` の `isProduction`)なら exit 1、Tier1(fork_id = next-starter)は警告だけで exit 0。全部 own・開発・staging は通す。判定は `src/features/core/legal` の `checkLegalRelease`(事業の素性の検査と同じ部品 `@/lib/business` の `sampleReleaseLevel`)。直し方と決まり: [src/features/core/legal/README.md](../../../src/features/core/legal/README.md)
+## Overview
+
+- 法務の文書(利用規約など)が上流の例文のまま本番でビルドされるのを止める検査
+- 判定は `src/features/core/legal` の `checkLegalRelease`(事業の素性の検査と同じ部品 `@/lib/business` の `sampleReleaseLevel`)
+
+## Usage
+
+```bash
+pnpm check legal        # 門 build
+```
+
+- 直し方と決まり: `src/features/core/legal/README.md`
+
+## Internals
+
+- 見る物: `src/config/features/legal.config.ts` の `documents.<kind>`。`{ source: "sample" }`(省略も同じ、上流の例文を表示)の文書が 1 つでもあれば例文のまま
+- 段階が本番(`@/lib/appEnv` の `isProduction`)で例文のままなら exit 1。Tier1(fork_id = next-starter)は警告だけで exit 0
+- 全部 own・開発・staging は通す
+
+## Related
+
+- 法務のドメイン: `src/features/core/legal/README.md`
