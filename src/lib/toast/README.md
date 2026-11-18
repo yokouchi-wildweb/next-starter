@@ -7,7 +7,7 @@
 - フック: `useToast`・`useLoadingToast`・`useToastStore`(ストアを直に読む場合だけ)
 - 部品: `GlobalToast`(root に 1 つ置く)・`ToastItem`
 - リダイレクト: `RedirectToastProvider`(client)・`setRedirectToastCookie`(proxy / route で NextResponse に積む)
-- 型: `ToastMode`・`ToastVariant`・`ToastIconPreset`・`ToastPosition`・`ToastSize`・`ToastLayer`・`Toast`・`ToastOptions`・`RedirectToastPayload`・`RedirectToastVariant`・`ToastConfig`・`ToastOverride`
+- 型: `ToastMode`・`ToastVariant`・`ToastIconPreset`・`ToastPosition`・`ToastSize`・`Toast`・`ToastOptions`・`RedirectToastPayload`・`RedirectToastVariant`・`ToastConfig`・`ToastOverride`
 
 ## 設定(`src/config/lib/toast.config.ts` = `@lib-config/toast`)
 
@@ -28,3 +28,9 @@ export default { duration: 5000, position: "top-center" } satisfies ToastOverrid
 ## テスト
 
 `pnpm test src/lib/toast`(上書きが表示の値に効くこと)
+
+## 重なりと外押し
+
+- トーストの層はいつも `toast`(浮く物の `floating` より上、`cover` より下。層を選ぶ指定は無い、当議会 D189)
+- 外側の要素に `data-slot="toast-region"`(`TOAST_REGION_SLOT`)。浮く物の土台(Primitives の Dialog・Popover、Sheet)は外押しの判定で `isToastTarget(target)` を呼び、トーストの中の押しでは閉じない(モーダルを開いたままトーストを押して消せる)
+

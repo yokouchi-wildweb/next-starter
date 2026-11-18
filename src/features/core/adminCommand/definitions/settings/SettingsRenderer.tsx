@@ -83,24 +83,24 @@ export function SettingsRenderer({ onClose, onBack }: CategoryRendererProps) {
     if (field.type === "number") {
       const numValue = Number(trimmedValue);
       if (Number.isNaN(numValue)) {
-        showToast({ message: "数値を入力してください", variant: "error", position: "center", layer: "toast" });
+        showToast({ message: "数値を入力してください", variant: "error", position: "center" });
         return;
       }
       if (field.validation?.min !== undefined && numValue < field.validation.min) {
-        showToast({ message: `${field.validation.min}以上の値を入力してください`, variant: "error", position: "center", layer: "toast" });
+        showToast({ message: `${field.validation.min}以上の値を入力してください`, variant: "error", position: "center" });
         return;
       }
       if (field.validation?.max !== undefined && numValue > field.validation.max) {
-        showToast({ message: `${field.validation.max}以下の値を入力してください`, variant: "error", position: "center", layer: "toast" });
+        showToast({ message: `${field.validation.max}以下の値を入力してください`, variant: "error", position: "center" });
         return;
       }
     } else {
       if (field.validation?.minLength !== undefined && trimmedValue.length < field.validation.minLength) {
-        showToast({ message: `${field.validation.minLength}文字以上入力してください`, variant: "error", position: "center", layer: "toast" });
+        showToast({ message: `${field.validation.minLength}文字以上入力してください`, variant: "error", position: "center" });
         return;
       }
       if (field.validation?.maxLength !== undefined && trimmedValue.length > field.validation.maxLength) {
-        showToast({ message: `${field.validation.maxLength}文字以内で入力してください`, variant: "error", position: "center", layer: "toast" });
+        showToast({ message: `${field.validation.maxLength}文字以内で入力してください`, variant: "error", position: "center" });
         return;
       }
     }
@@ -113,11 +113,11 @@ export function SettingsRenderer({ onClose, onBack }: CategoryRendererProps) {
           [field.key]: updateValue,
         } as Parameters<typeof updateSetting>[0]["data"],
       });
-      showToast({ message: `${field.label}を更新しました`, variant: "success", position: "center", layer: "toast" });
+      showToast({ message: `${field.label}を更新しました`, variant: "success", position: "center" });
       onClose();
       mutateSetting();
     } catch {
-      showToast({ message: "設定の更新に失敗しました", variant: "error", position: "center", layer: "toast" });
+      showToast({ message: "設定の更新に失敗しました", variant: "error", position: "center" });
     }
   }, [view, inputValue, setting, updateSetting, mutateSetting, onClose, showToast]);
 

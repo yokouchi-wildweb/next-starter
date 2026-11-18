@@ -724,6 +724,13 @@ export function DemoOverlayDemo() {
           <Para className="mt-0">
             任意のコンテンツを含めることができる共通モーダルです。必要に応じてフォームや補足説明を配置し、操作完了後に閉じるよう制御します。
           </Para>
+          <Button
+            variant="outline"
+            className="self-start"
+            onClick={() => showToast({ message: "モーダルの上のトースト(押すと消え、モーダルは開いたまま)", variant: "info" })}
+          >
+            トーストを出す
+          </Button>
           <Button variant="secondary" className="self-start" onClick={() => setIsModalOpen(false)}>
             モーダルを閉じる
           </Button>

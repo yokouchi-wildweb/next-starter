@@ -1,7 +1,6 @@
 // lib/toast/types.ts
 
 import type { CSSProperties, ReactNode } from "react";
-import type { ZLayerName } from "@/lib/zLayer";
 
 export type ToastMode = "notification" | "persistent";
 
@@ -28,9 +27,6 @@ export type ToastPosition =
 
 export type ToastSize = "sm" | "md" | "lg";
 
-/** 層(層の名 @/lib/zLayer のうち受ける範囲) */
-export type ToastLayer = Extract<ZLayerName, "toast">;
-
 export type Toast = {
   id: string;
   message: string;
@@ -41,7 +37,6 @@ export type Toast = {
   size: ToastSize;
   spinning: boolean;
   icon?: ToastIconPreset | ReactNode;
-  layer: ToastLayer;
   /** トースト本体（背景・ボーダー等）のカスタムクラス */
   className?: string;
   /** アイコン部分のカスタムクラス */
@@ -65,7 +60,6 @@ export type ToastOptions = {
   size?: ToastSize;
   spinning?: boolean;
   icon?: ToastIconPreset | ReactNode;
-  layer?: ToastLayer;
   /** トースト本体（背景・ボーダー等）のカスタムクラス */
   className?: string;
   /** アイコン部分のカスタムクラス */

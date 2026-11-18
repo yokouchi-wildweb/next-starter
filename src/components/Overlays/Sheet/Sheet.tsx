@@ -14,6 +14,7 @@ import {
 } from "@/components/Primitives/Dialog";
 import { cn } from "@/lib/cn";
 import { zLayerClass } from "@/lib/zLayer";
+import { isToastTarget } from "@/lib/toast";
 
 /** 板の出る辺 */
 export type SheetSide = "bottom" | "top" | "left" | "right";
@@ -152,6 +153,10 @@ export function Sheet({
           style={style}
           onOpenAutoFocus={onOpenAutoFocus}
           onCloseAutoFocus={onCloseAutoFocus}
+          // トーストの中の押しは外押しにしない(Primitives の DialogContent と同じ判定、当議会 D189)
+          onInteractOutside={(event) => {
+            if (isToastTarget(event.target)) event.preventDefault();
+          }}
           aria-describedby={undefined}
           data-side={side}
           data-slot={slot}

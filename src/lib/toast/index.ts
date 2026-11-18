@@ -10,6 +10,9 @@ export { useToastStore } from "./stores";
 // コンポーネント
 export { GlobalToast, ToastItem } from "./components";
 
+// トーストの領域の印と、押した所がトーストの中かの判定(浮く物の外押しの判定が使う)
+export { TOAST_REGION_SLOT, isToastTarget } from "./target";
+
 // リダイレクトトースト
 export { RedirectToastProvider, setRedirectToastCookie } from "./redirect";
 
@@ -20,7 +23,6 @@ export type {
   ToastIconPreset,
   ToastPosition,
   ToastSize,
-  ToastLayer,
   Toast,
   ToastOptions,
 } from "./types";

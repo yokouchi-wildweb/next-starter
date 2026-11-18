@@ -8,6 +8,7 @@ import { X } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { isDialogFocusRestoration } from "./isDialogFocusRestoration";
+import { isToastTarget } from "@/lib/toast";
 import { zLayerClass } from "@/lib/zLayer";
 
 // サイズプリセット
@@ -135,6 +136,11 @@ function PopoverContent({
 
   const handleInteractOutside = React.useCallback(
     (event: InteractOutsideEvent) => {
+      // トーストの中の押しは外押しにしない(トーストは浮く物より上の toast の層。押して消すとき開いている物を閉じない、当議会 D189)
+      if (isToastTarget(event.target)) {
+        event.preventDefault();
+        return;
+      }
       // Dialog の FocusScope がコンテナ自身へプログラム的に focus を戻した focusin は dismiss にしない。
       // Popover 内のボタンが「クリック → disabled + 中身差し替え」で activeElement を body に落とすと
       // FocusScope の MutationObserver が DialogContent へ focus し、Popover の React ツリー外なので

@@ -11,7 +11,8 @@ import { useIsClient } from "@/lib/isClient";
 import { useToastStore } from "../stores";
 import { toastConfig } from "../config";
 import { TOAST_EXIT_ANIMATION_DURATION } from "../constants";
-import type { ToastPosition, ToastLayer, Toast } from "../types";
+import type { ToastPosition, Toast } from "../types";
+import { TOAST_REGION_SLOT } from "../target";
 import { ToastItem } from "./ToastItem";
 import { zLayerClass } from "@/lib/zLayer";
 
@@ -124,7 +125,8 @@ export function GlobalToast() {
   const animationClass = isExiting
     ? EXIT_ANIMATION_CLASSES[displayedToast.position]
     : ENTER_ANIMATION_CLASSES[displayedToast.position];
-  const layerClass = zLayerClass(displayedToast.layer);
+  // トーストの層はいつも toast(浮く物の floating より上、当議会 D189)
+  const layerClass = zLayerClass("toast");
 
   const content = isCenter ? (
     <div
@@ -135,6 +137,7 @@ export function GlobalToast() {
       )}
       role="region"
       aria-label={toastConfig.ariaLabel}
+      data-slot={TOAST_REGION_SLOT}
     >
       <div className={animationClass}>
         <ToastItem
@@ -172,7 +175,7 @@ export function GlobalToast() {
 function FramedToastRegion({ className, children }: { className: string; children: ReactNode }) {
   const frameDims = useFrameDimsStyle();
   return (
-    <div className={className} style={frameDims} role="region" aria-label={toastConfig.ariaLabel}>
+    <div className={className} style={frameDims} role="region" aria-label={toastConfig.ariaLabel} data-slot={TOAST_REGION_SLOT}>
       {children}
     </div>
   );

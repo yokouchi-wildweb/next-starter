@@ -19,6 +19,7 @@ import {
 } from "./DialogBase";
 import { cn } from "@/lib/cn";
 import { zLayerClass } from "@/lib/zLayer";
+import { isToastTarget } from "@/lib/toast";
 
 /** 浮く物の層はいつも floating(当議会 D189・D190: 層を選べない、同じ層では後に開いた物が上) */
 const FLOATING_LAYER_CLASS = zLayerClass("floating");
@@ -35,9 +36,7 @@ const FULLSCREEN_CLOSE_BUTTON_CLASS =
  * Radix Dialog は DialogTitle 必須（無いとコンソールエラー + role="dialog" が無名になる）。 */
 export const FALLBACK_DIALOG_TITLE = "ダイアログ";
 
-type DialogOverlayProps = Omit<ComponentProps<typeof BaseDialogOverlay>, "layerClassName"> & {
-  layerClassName?: string;
-};
+type DialogOverlayProps = Omit<ComponentProps<typeof BaseDialogOverlay>, "layerClassName">;
 
 type DialogContentProps = Omit<
   ComponentProps<typeof BaseDialogContent>,
@@ -49,23 +48,17 @@ type DialogContentProps = Omit<
   /** 全画面: 本体が画面いっぱい(角丸・枠・最大幅・内側の余白なし、高さ 100dvh。container があれば h-full)。
    * 余白は上下の safe-area の分だけ、閉じるボタンは内側の右上。maxWidth は効かない */
   fullscreen?: boolean;
-  layerClassName?: string;
-  overlayLayerClassName?: string;
   maxWidth?: number | string;
   minHeight?: number | string;
   maxHeight?: number | string;
   height?: number | string;
 };
 
-export function DialogOverlay({
-  className,
-  layerClassName,
-  ...props
-}: DialogOverlayProps) {
+export function DialogOverlay({ className, ...props }: DialogOverlayProps) {
   return (
     <BaseDialogOverlay
       className={className}
-      layerClassName={cn(FLOATING_LAYER_CLASS, layerClassName)}
+      layerClassName={FLOATING_LAYER_CLASS}
       {...props}
     />
   );
@@ -77,13 +70,12 @@ export function DialogContent({
   showCloseButton = true,
   closeButtonClassName,
   fullscreen = false,
-  layerClassName,
-  overlayLayerClassName,
   maxWidth,
   minHeight,
   maxHeight,
   height,
   style,
+  onInteractOutside,
   ...props
 }: DialogContentProps) {
   const resolvedMaxWidth =
@@ -113,9 +105,17 @@ export function DialogContent({
         className,
       )}
       showCloseButton={false}
-      layerClassName={cn(FLOATING_LAYER_CLASS, layerClassName)}
-      overlayLayerClassName={cn(FLOATING_LAYER_CLASS, overlayLayerClassName)}
+      layerClassName={FLOATING_LAYER_CLASS}
+      overlayLayerClassName={FLOATING_LAYER_CLASS}
       style={contentStyle}
+      onInteractOutside={(event) => {
+        // トーストの中の押しは外押しにしない(トーストは浮く物より上の toast の層。押して消すとき開いているモーダルを閉じない、当議会 D189)
+        if (isToastTarget(event.target)) {
+          event.preventDefault();
+          return;
+        }
+        onInteractOutside?.(event);
+      }}
       {...props}
     >
       {children}
