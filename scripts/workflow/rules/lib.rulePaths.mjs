@@ -26,6 +26,24 @@ export function staticPrefix(pattern) {
   return i < 0 ? null : segs.slice(0, i).join("/");
 }
 
+// 入れ子の波かっこ(1 つの { … } の中に別の { がある)か。Claude Code の paths は入れ子を当てない(1 段は中に ** や / を含んでも当たる)。
+// 検査の照合(node の matchesGlob)は入れ子も当てるので、ここで別に止める。\{ のエスケープは数えない
+export function nestedBrace(glob) {
+  let depth = 0;
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i];
+    if (c === "\\") {
+      i++;
+      continue;
+    }
+    if (c === "{") {
+      depth++;
+      if (depth > 1) return true;
+    } else if (c === "}" && depth > 0) depth--;
+  }
+  return false;
+}
+
 // paths の各 glob のうち、files(追跡中のファイルの一覧)のどれにも当たらないもの
 export function unmatchedPaths(paths, files) {
   return paths.filter((p) => !files.some((f) => matchesGlob(f, p)));

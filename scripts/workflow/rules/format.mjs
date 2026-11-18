@@ -1,11 +1,12 @@
 // scripts/workflow/rules/format.mjs — pnpm check rules の書式の検査: 札・README・対応表 existing_parts の入口
-// 止める: 上流の札の書式と札 → 品目の実在、対応表の入口の実在。fork が自分で足した札の書式は知らせだけ。
+// 止める: 上流の札の書式と札 → 品目の実在、対応表の入口の実在、決まりのファイル(.claude/rules の下の全部、fork の自前の物も)の paths の入れ子の波かっこ。fork が自分で足した札の書式は知らせだけ。
 // 数の 1 行の知らせだけ(最後の切り替えで止めるに替える): Tier1 の品目 → 札の実在、README の書式。一覧は --items / --readme。
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { cardId, cardProblems, existingPartRefs, h2Of, readmeProblems } from "./lib.ruleFormat.mjs";
 import { CORE_DIR, ITEMS_DIR, listItems, mdUnder, upstreamReader } from "./lib.ruleRepo.mjs";
+import { nestedBrace, parsePaths } from "./lib.rulePaths.mjs";
 
 const root = join(import.meta.dirname, "../../..");
 const read = (p) => readFileSync(join(root, p), "utf8");
@@ -49,6 +50,14 @@ for (const r of refs) {
   const target = r.kind === "lib" ? `src/lib/${r.ref}` : `src/components/${r.ref}`;
   const exists = existsSync(join(root, target)) || existsSync(join(root, `${target}.tsx`)) || existsSync(join(root, `${target}.ts`));
   if (!exists || (r.kind === "lib" && !statSync(join(root, target)).isDirectory())) fails.push(`${componentsMd}:${r.line}: existing_parts の ${r.ref} が無い(${target})`);
+}
+
+// paths の入れ子の波かっこ: Claude Code は当てず読み込まれない(検査の照合は当てるので他の検査では分からない)。どの段の物でも壊れているので止める
+const ruleMds = mdUnder(root, ".claude/rules");
+for (const path of ruleMds) {
+  for (const glob of parsePaths(read(path)) ?? []) {
+    if (nestedBrace(glob)) fails.push(`${path} の paths "${glob}" は入れ子の波かっこ(Claude Code は当てない)→ 1 段の波かっこか別の行に開く`);
+  }
 }
 
 console.log(`rules format: 札 ${cards.length} 枚、対応表の入口 ${refs.length} 個、README ${readmes.length} 本`);

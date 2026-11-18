@@ -39,7 +39,7 @@ map (every core file, loaded by its paths):
 - context: this repo's overview and tier-only info → project.md | rules this repo passes to its downstream → its own section of lineage.md (rules only) | business overview → service/ | work rules → behavior.md (no switch values, no env branches) | machine values → repo.json | never copy an ancestor's overview (business reaches you through service/)
 
 ## authoring (the ladder: before adding or changing any rule)
-- 1 find its place with places above | 2 write it in that file in this file's formats | 3 pnpm check rules | 4 /ship (the why goes in the commit body)
+- 1 find its place with places above | 2 write it in that file in this file's formats (paths globs: one-level braces only, nested braces never load) | 3 pnpm check rules | 4 /ship (the why goes in the commit body)
 - usual path, no order needed: write a card, a README or a service file | add a rule for a place to an existing core file | fix an existing CLAUDE.md item together with its source item
 - window (order first, even for the Tier1 session: /order next-starter; a fork: /order <direct parent>, relayed up): a CLAUDE.md item or section added, or a key removed or renamed | a core file added, removed, renamed or its paths widened | a new scene kind or card category | a check or MANDATORY rule binding forks | a clash between rules of different owners
 - coverage: every upstream file and every intake.txt place must hit the paths of an upstream core file or card (pnpm check rules; a fork's own files are not counted) | a gap → widen the core file that holds that place's rules (a window item) | only a place that truly needs no rule → .claude/rules/core/uncovered.txt with its reason

@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, matchesGlob } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parsePaths, staticPrefix } from "./lib.rulePaths.mjs";
+import { nestedBrace, parsePaths, staticPrefix } from "./lib.rulePaths.mjs";
 import { isForkPlace, parseIntakeRows } from "./lib.ruleCoverage.mjs";
 import { INTAKE_PATH } from "../../../src/lib/forkOwnership/check.mjs";
 import { formatProblems, LINEAGE_FILE, parseLineage } from "../../../src/lib/forkOwnership/lineage.mjs";
@@ -68,6 +68,16 @@ test("staticPrefix / parsePaths の部品", () => {
   assert.equal(staticPrefix("src/proxy.ts"), null);
   assert.deepEqual(parsePaths('---\npaths:\n  - "a/**"\n  - "b.ts"\n---\n# x\n'), ["a/**", "b.ts"]);
   assert.equal(parsePaths("# no frontmatter\n"), null);
+});
+
+test("nestedBrace: 入れ子の波かっこだけを見分ける(Claude Code の paths は入れ子を当てない)", () => {
+  assert.equal(nestedBrace("src/features/*/{*.ts,{components,hooks}/**}"), true);
+  assert.equal(nestedBrace("src/{a,{b,c}}/**"), true);
+  assert.equal(nestedBrace("src/features/**/{domain.json,entities/**,messages/*.ts}"), false);
+  assert.equal(nestedBrace("src/styles/{**/gradient,z-layer}.css"), false);
+  assert.equal(nestedBrace("src/{a,b}/{c,d}.ts"), false);
+  assert.equal(nestedBrace("src/**/*.tsx"), false);
+  assert.equal(nestedBrace("src/\\{a,{b}}.ts"), false);
 });
 
 test(`${LINEAGE_FILE}: 書式(frontmatter なし・区切り行がちょうど 1 つ・各節は fork の名前の ## 見出しで区切り行で閉じる)`, () => {
