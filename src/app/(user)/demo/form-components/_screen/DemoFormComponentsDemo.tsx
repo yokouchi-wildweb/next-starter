@@ -27,6 +27,8 @@ import { StepperInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { ControlledField } from "@/components/Form";
 import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle, Para, SecTitle } from "@/components/TextBlocks";
@@ -173,7 +175,7 @@ export function DemoFormComponentsDemo() {
                 onSubmit={form.handleSubmit(handleSubmit)}
                 className="grid gap-8 rounded-lg border bg-background p-6 shadow-sm"
             >
-              <div className="grid gap-6 md:grid-cols-2">
+              <Grid gap="lg" className="md:grid-cols-2">
                 <ControlledField
                     control={form.control}
                     name="text"
@@ -368,15 +370,15 @@ export function DemoFormComponentsDemo() {
                         <BooleanCheckboxInput field={field} label="チェックボックスラベル" />
                     )}
                 />
-              </div>
+              </Grid>
 
-              <div className="grid gap-6 md:grid-cols-2">
+              <Grid gap="lg" className="md:grid-cols-2">
                 <Stack gap="md">
                   <Label className="text-sm font-medium">StepperInput</Label>
                   <Para tone="muted" size="xs">
                     サイズ違いのバリエーションをまとめて確認できます。
                   </Para>
-                  <div className="flex flex-wrap gap-3">
+                  <Flex wrap="wrap" gap="sm">
                     <StepperInput
                         label="小"
                         size="s"
@@ -398,38 +400,38 @@ export function DemoFormComponentsDemo() {
                         value={stepperValues.large}
                         onValueChange={(value) => handleStepperValueChange("large", value)}
                     />
-                  </div>
+                  </Flex>
                 </Stack>
 
-              </div>
+              </Grid>
 
-              <div className="flex flex-wrap items-center justify-end gap-3">
+              <Flex wrap="wrap" align="center" justify="end" gap="sm">
                 <Button type="button" variant="ghost" onClick={handleReset}>
                   リセット
                 </Button>
                 <Button type="submit">送信</Button>
-              </div>
+              </Flex>
             </form>
           </Form>
 
-          <div className="flex flex-col gap-4">
-            <div className="rounded-lg border bg-muted/40 p-4">
+          <Flex direction="column" gap="md">
+            <Block className="rounded-lg border bg-muted/40 p-4">
               <SecTitle tone="muted" size="sm">
                 現在の値
               </SecTitle>
               <pre className="mt-2 max-h-96 overflow-auto rounded bg-background/80 p-3 text-xs">
               {JSON.stringify(currentSnapshot, null, 2)}
             </pre>
-            </div>
-            <div className="rounded-lg border bg-muted/40 p-4">
+            </Block>
+            <Block className="rounded-lg border bg-muted/40 p-4">
               <SecTitle tone="muted" size="sm">
                 送信結果
               </SecTitle>
               <pre className="mt-2 max-h-96 overflow-auto rounded bg-background/80 p-3 text-xs">
               {submitted ? JSON.stringify(submitted, null, 2) : "未送信"}
             </pre>
-            </div>
-          </div>
+            </Block>
+          </Flex>
         </Section>
       </Main>
   );

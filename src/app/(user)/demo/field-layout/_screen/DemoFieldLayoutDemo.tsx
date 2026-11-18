@@ -14,9 +14,10 @@ import {
   NumberInput,
 } from "@/components/Form/Input/Controlled";
 import { Input } from "@/components/Form/Input/Manual";
+import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { Main, PageTitle, SecTitle } from "@/components/TextBlocks";
+import { Main, PageTitle, SecTitle, Span } from "@/components/TextBlocks";
 import type { Options } from "@/components/Form/types";
 
 const categoryOptions: Options[] = [
@@ -217,8 +218,8 @@ export function DemoFieldLayoutDemo() {
                 labelClass={LABEL_CLASS}
                 inputLayout="horizontal"
                 inputConfigs={[
-                  { prefix: <span className="w-8">開始</span>, suffix: "～" },
-                  { prefix: <span className="w-8">終了</span> },
+                  { prefix: <Span inline className="w-8">開始</Span>, suffix: "～" },
+                  { prefix: <Span inline className="w-8">終了</Span> },
                 ]}
                 required
                 renderInputs={(fields) => [
@@ -306,7 +307,7 @@ export function DemoFieldLayoutDemo() {
       {/* ManualField（エラー表示確認用） */}
       <Section>
         <SecTitle>ManualField（エラー表示確認）</SecTitle>
-        <div className="mt-4 rounded-lg border bg-background p-6">
+        <Block className="mt-4 rounded-lg border bg-background p-6">
           <Stack gap="lg">
             <ManualField
               label="氏名"
@@ -335,7 +336,7 @@ export function DemoFieldLayoutDemo() {
               <Input placeholder="自由入力" />
             </ManualField>
           </Stack>
-        </div>
+        </Block>
       </Section>
     </Main>
   );

@@ -4,9 +4,11 @@
 import type { ScreenProps } from "@/lib/screens/types";
 import { Check, X, AlertTriangle, Clock, Star, Info, AlertCircle } from "lucide-react";
 
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { PageTitle, Para, SecTitle } from "@/components/TextBlocks";
+import { PageTitle, Para, SecTitle, Span } from "@/components/TextBlocks";
 import { SoftBadge, SolidBadge } from "@/components/Badge";
 
 import { loadDemoStatusBadgeScreen } from "./loader";
@@ -15,8 +17,8 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
   await loadDemoStatusBadgeScreen(props);
 
   return (
-    <div className="px-6 py-10">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
+    <Block className="px-6 py-10">
+      <Flex direction="column" gap="xl" className="mx-auto w-full max-w-3xl">
         {/* ヘッダー */}
         <Section as="header" className="my-0 flex flex-col gap-2">
           <PageTitle size="xxxl" className="font-semibold tracking-tight">
@@ -36,7 +38,7 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
             </Para>
           </Stack>
 
-          <div className="flex flex-wrap gap-3">
+          <Flex wrap="wrap" gap="sm">
             <SoftBadge variant="primary">primary</SoftBadge>
             <SoftBadge variant="secondary">secondary</SoftBadge>
             <SoftBadge variant="destructive">destructive</SoftBadge>
@@ -47,7 +49,7 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
             <SoftBadge variant="muted">muted</SoftBadge>
             <SoftBadge variant="outline">outline</SoftBadge>
             <SoftBadge variant="ghost">ghost</SoftBadge>
-          </div>
+          </Flex>
         </Section>
 
         {/* SolidBadge */}
@@ -59,7 +61,7 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
             </Para>
           </Stack>
 
-          <div className="flex flex-wrap gap-3">
+          <Flex wrap="wrap" gap="sm">
             <SolidBadge variant="primary">primary</SolidBadge>
             <SolidBadge variant="secondary">secondary</SolidBadge>
             <SolidBadge variant="destructive">destructive</SolidBadge>
@@ -68,7 +70,7 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
             <SolidBadge variant="warning">warning</SolidBadge>
             <SolidBadge variant="accent">accent</SolidBadge>
             <SolidBadge variant="muted">muted</SolidBadge>
-          </div>
+          </Flex>
         </Section>
 
         {/* サイズ */}
@@ -80,20 +82,20 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
             </Para>
           </Stack>
 
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="w-16 text-sm text-muted-foreground">Soft:</span>
+          <Flex direction="column" gap="md">
+            <Flex wrap="wrap" align="center" gap="sm">
+              <Span size="sm" weight="inherit" tone="muted" className="w-16">Soft:</Span>
               <SoftBadge variant="success" size="sm">sm</SoftBadge>
               <SoftBadge variant="success" size="md">md</SoftBadge>
               <SoftBadge variant="success" size="lg">lg</SoftBadge>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="w-16 text-sm text-muted-foreground">Solid:</span>
+            </Flex>
+            <Flex wrap="wrap" align="center" gap="sm">
+              <Span size="sm" weight="inherit" tone="muted" className="w-16">Solid:</Span>
               <SolidBadge variant="success" size="sm">sm</SolidBadge>
               <SolidBadge variant="success" size="md">md</SolidBadge>
               <SolidBadge variant="success" size="lg">lg</SolidBadge>
-            </div>
-          </div>
+            </Flex>
+          </Flex>
         </Section>
 
         {/* アイコン付き */}
@@ -105,8 +107,8 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
             </Para>
           </Stack>
 
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap gap-3">
+          <Flex direction="column" gap="md">
+            <Flex wrap="wrap" gap="sm">
               <SoftBadge variant="success" icon={Check}>完了</SoftBadge>
               <SoftBadge variant="destructive" icon={X}>エラー</SoftBadge>
               <SoftBadge variant="info" icon={Info}>お知らせ</SoftBadge>
@@ -114,8 +116,8 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
               <SoftBadge variant="accent" icon={AlertTriangle}>警告</SoftBadge>
               <SoftBadge variant="secondary" icon={Clock}>処理中</SoftBadge>
               <SoftBadge variant="muted" icon={Star}>下書き</SoftBadge>
-            </div>
-            <div className="flex flex-wrap gap-3">
+            </Flex>
+            <Flex wrap="wrap" gap="sm">
               <SolidBadge variant="success" icon={Check}>完了</SolidBadge>
               <SolidBadge variant="destructive" icon={X}>エラー</SolidBadge>
               <SolidBadge variant="info" icon={Info}>お知らせ</SolidBadge>
@@ -123,8 +125,8 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
               <SolidBadge variant="accent" icon={AlertTriangle}>警告</SolidBadge>
               <SolidBadge variant="secondary" icon={Clock}>処理中</SolidBadge>
               <SolidBadge variant="muted" icon={Star}>下書き</SolidBadge>
-            </div>
-          </div>
+            </Flex>
+          </Flex>
         </Section>
 
         {/* 実用例 */}
@@ -136,26 +138,26 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
             </Para>
           </Stack>
 
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between rounded border p-3">
-              <span>注文 #001</span>
+          <Flex direction="column" gap="md">
+            <Flex align="center" justify="between" className="rounded border p-3">
+              <Span inline>注文 #001</Span>
               <SoftBadge variant="success">発送済み</SoftBadge>
-            </div>
-            <div className="flex items-center justify-between rounded border p-3">
-              <span>注文 #002</span>
+            </Flex>
+            <Flex align="center" justify="between" className="rounded border p-3">
+              <Span inline>注文 #002</Span>
               <SolidBadge variant="secondary">処理中</SolidBadge>
-            </div>
-            <div className="flex items-center justify-between rounded border p-3">
-              <span>注文 #003</span>
+            </Flex>
+            <Flex align="center" justify="between" className="rounded border p-3">
+              <Span inline>注文 #003</Span>
               <SoftBadge variant="muted">キャンセル</SoftBadge>
-            </div>
-            <div className="flex items-center justify-between rounded border p-3">
-              <span>注文 #004</span>
+            </Flex>
+            <Flex align="center" justify="between" className="rounded border p-3">
+              <Span inline>注文 #004</Span>
               <SolidBadge variant="destructive">支払いエラー</SolidBadge>
-            </div>
-          </div>
+            </Flex>
+          </Flex>
         </Section>
-      </div>
-    </div>
+      </Flex>
+    </Block>
   );
 }

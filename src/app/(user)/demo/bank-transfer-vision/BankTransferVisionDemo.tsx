@@ -139,12 +139,12 @@ export const BankTransferVisionDemo = () => {
 const ResultView = ({ result }: { result: DemoJudgmentResult }) => {
   return (
     <Stack gap="md" className="rounded-lg border bg-card p-4">
-      <div className="flex items-center gap-3">
+      <Flex align="center" gap="sm">
         <SoftBadge variant={result.isLikelyBankTransfer ? "success" : "destructive"}>
           {result.isLikelyBankTransfer ? "通過候補" : "却下候補"}
         </SoftBadge>
         <SoftBadge variant="muted">{imageTypeLabel(result.imageType)}</SoftBadge>
-      </div>
+      </Flex>
 
       {/* ストリクトモード時は本番 UI と同様に 3 点チェックリストのみ表示
           （確信度は生レスポンス JSON で確認可能） */}
@@ -154,14 +154,14 @@ const ResultView = ({ result }: { result: DemoJudgmentResult }) => {
         <ConfidenceBar value={result.confidence} />
       )}
 
-      <div>
+      <Block>
         <Para size="sm" weight="medium">
           判定根拠
         </Para>
         <Para tone="muted" size="sm">
           {result.reason}
         </Para>
-      </div>
+      </Block>
 
       <details className="text-sm">
         <summary className="cursor-pointer text-muted-foreground">生レスポンス JSON</summary>
@@ -210,18 +210,18 @@ const StrictCheckList = ({ checks }: { checks: DemoStrictChecks }) => {
 const ConfidenceBar = ({ value }: { value: number }) => {
   const tone = value >= 70 ? "bg-success" : value >= 40 ? "bg-warning" : "bg-destructive";
   return (
-    <div>
-      <div className="flex justify-between text-sm">
+    <Block>
+      <Flex justify="between" className="text-sm">
         <Span tone="muted">確信度</Span>
         <Span weight="medium">{value} / 100</Span>
-      </div>
-      <div className="mt-1 h-2 w-full overflow-hidden rounded bg-muted">
-        <div
+      </Flex>
+      <Block className="mt-1 h-2 w-full overflow-hidden rounded bg-muted">
+        <Block
           className={`h-full transition-all ${tone}`}
           style={{ width: `${value}%` }}
         />
-      </div>
-    </div>
+      </Block>
+    </Block>
   );
 };
 

@@ -15,6 +15,7 @@ import { AppImage } from "@/components/Media/AppImage";
 import { Block } from "@/components/Layout/Block";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import { sampleClient } from "@/features/sample/services/client/sampleClient";
 
 type Props = {
@@ -68,18 +69,18 @@ export function SampleSortableList({ initialSamples }: Props) {
               className="h-10 w-10 shrink-0 rounded"
             />
           ) : (
-            <div className="h-10 w-10 shrink-0 rounded bg-muted" />
+            <Block className="h-10 w-10 shrink-0 rounded bg-muted" />
           )}
-          <span className="truncate font-medium">{item.name}</span>
+          <Span inline weight="medium" className="truncate">{item.name}</Span>
         </Flex>
       ),
     },
     {
       render: (item) =>
         item.select ? (
-          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
+          <Span size="xs" weight="medium" className="inline rounded-full bg-secondary px-2.5 py-0.5 text-secondary-foreground">
             {item.select}
-          </span>
+          </Span>
         ) : null,
       width: "w-24",
       align: "center",
@@ -87,11 +88,11 @@ export function SampleSortableList({ initialSamples }: Props) {
     {
       render: (item) => (
         <Flex gap="md" align="center" justify="end" className="text-xs text-muted-foreground">
-          <span>ID: {item.id.slice(0, 8)}...</span>
+          <Span inline>ID: {item.id.slice(0, 8)}...</Span>
           {item.sort_order && (
-            <span className="rounded bg-muted px-1.5 py-0.5 font-mono">
+            <Span inline className="rounded bg-muted px-1.5 py-0.5 font-mono">
               {item.sort_order.slice(0, 6)}
-            </span>
+            </Span>
           )}
         </Flex>
       ),
@@ -104,14 +105,14 @@ export function SampleSortableList({ initialSamples }: Props) {
     <Stack gap="lg">
       {/* エラー表示 */}
       {error && (
-        <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive-text">
+        <Block className="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive-text">
           {error}
-        </div>
+        </Block>
       )}
 
       {/* 保存中インジケーター */}
       {isReordering && (
-        <div className="text-sm text-muted-foreground">保存中...</div>
+        <Block className="text-sm text-muted-foreground">保存中...</Block>
       )}
 
       {/* 既定: リスト自身がスクロールコンテナ（仮想スクロール） */}
@@ -146,12 +147,12 @@ export function SampleSortableList({ initialSamples }: Props) {
 
       {/* デバッグ情報 */}
       {lastReorderResult && (
-        <div className="rounded-lg border bg-muted/50 p-4">
-          <p className="mb-2 text-sm font-medium">最後の並び替え操作:</p>
+        <Block className="rounded-lg border bg-muted/50 p-4">
+          <Para size="sm" weight="medium" align="inherit" className="my-0 mb-2">最後の並び替え操作:</Para>
           <pre className="text-xs text-muted-foreground">
             {JSON.stringify(lastReorderResult, null, 2)}
           </pre>
-        </div>
+        </Block>
       )}
     </Stack>
   );
