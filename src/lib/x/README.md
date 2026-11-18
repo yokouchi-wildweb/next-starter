@@ -179,10 +179,10 @@ await revokeXToken(savedAccessToken);
 LINE 連携と同じパターン。`redirect_after` で連携後の戻り先を指定する。
 
 ```tsx
-// マイページ等に設置
-<a href="/api/auth/x/login?redirect_after=/mypage">
-  X と連携する
-</a>
+// マイページ等に設置(リンクは棚の Link。next/link や生の a は使わない)
+import { Link } from "@/components/Navigation/Link";
+
+<Link href="/api/auth/x/login?redirect_after=/mypage">X と連携する</Link>
 ```
 
 リダイレクト後のクエリパラメータで結果を判定:
@@ -353,20 +353,21 @@ stream.on("data", (tweet) => console.log(tweet));
 ### Webhook（Account Activity API）
 
 ```ts
+// src/app/api/webhook/x/route.ts(例)。HTTP の export は Factory の呼び出しだけ(src/lib/routeFactory/README.md)
 // --- CRC チャレンジ応答（GET） ---
 import { handleCrcChallenge } from "@/lib/x";
+import { createApiRoute } from "@/wiring/apiRoute";
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const crcToken = searchParams.get("crc_token");
-
-  if (!crcToken) {
-    return Response.json({ error: "crc_token is required" }, { status: 400 });
-  }
-
-  const response = handleCrcChallenge(crcToken);
-  return Response.json(response);
-}
+export const GET = createApiRoute(
+  { operation: "GET /api/webhook/x", operationType: "read", access: "public", user: "skip" },
+  async (req) => {
+    const crcToken = req.nextUrl.searchParams.get("crc_token");
+    if (!crcToken) {
+      return Response.json({ error: "crc_token is required" }, { status: 400 });
+    }
+    return handleCrcChallenge(crcToken);
+  },
+);
 ```
 
 ```ts
@@ -374,32 +375,35 @@ export async function GET(request: Request) {
 import { parseXWebhookRequest } from "@/lib/x";
 import type { XTweetCreateEvent, XFollowEvent, XDirectMessageEvent } from "@/lib/x";
 
-export async function POST(request: Request) {
-  const event = await parseXWebhookRequest(request);
+export const POST = createApiRoute(
+  { operation: "POST /api/webhook/x", operationType: "write", access: "public", user: "skip" },
+  async (req) => {
+    const event = await parseXWebhookRequest(req);
 
-  if ("tweet_create_events" in event) {
-    const tweetEvent = event as XTweetCreateEvent;
-    for (const tweet of tweetEvent.tweet_create_events) {
-      console.log(`新しいツイート: ${tweet.text} by @${tweet.user.screen_name}`);
+    if ("tweet_create_events" in event) {
+      const tweetEvent = event as XTweetCreateEvent;
+      for (const tweet of tweetEvent.tweet_create_events) {
+        console.log(`新しいツイート: ${tweet.text} by @${tweet.user.screen_name}`);
+      }
     }
-  }
 
-  if ("follow_events" in event) {
-    const followEvent = event as XFollowEvent;
-    for (const follow of followEvent.follow_events) {
-      console.log(`${follow.type}: @${follow.source.screen_name} → @${follow.target.screen_name}`);
+    if ("follow_events" in event) {
+      const followEvent = event as XFollowEvent;
+      for (const follow of followEvent.follow_events) {
+        console.log(`${follow.type}: @${follow.source.screen_name} → @${follow.target.screen_name}`);
+      }
     }
-  }
 
-  if ("direct_message_events" in event) {
-    const dmEvent = event as XDirectMessageEvent;
-    for (const dm of dmEvent.direct_message_events) {
-      console.log(`DM: ${dm.message_create.message_data.text}`);
+    if ("direct_message_events" in event) {
+      const dmEvent = event as XDirectMessageEvent;
+      for (const dm of dmEvent.direct_message_events) {
+        console.log(`DM: ${dm.message_create.message_data.text}`);
+      }
     }
-  }
 
-  return Response.json({ ok: true });
-}
+    return { ok: true };
+  },
+);
 ```
 
 ## API

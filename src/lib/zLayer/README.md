@@ -3,7 +3,7 @@
 ## Overview
 
 - 重なりの層の名の TS の側の 1 か所。値(z-index の数)と utility class(`.<名>-layer`)は `src/styles/core/z-layer.css` が持ち、ここは名の一覧と class の引き方だけを持つ
-- 閉じた lib(`libs: []`、依存なし)
+- 閉じた lib(入口 `@/lib/zLayer`・`@/lib/zLayer/config`、使う lib は defineConfig)
 - 決まり(class の引き方・選べる層・自分の層の使い道・外押し・名と CSS の同時の変更)は札 `.claude/rules/items/lib/zLayer.md`。数を書かない・浮く物より上に足さない・上流の値を書き換えない・isolate は core `.claude/rules/core/style.md` stacking
 
 ## Usage
@@ -22,7 +22,7 @@ export type MyPanelLayer = Extract<ZLayerName, "above-header" | "forefront">;
 - 層の class は `zLayerClass(name)` で引く(札 class_via_fn)
 - 名の一覧 `Z_LAYER_NAMES` は下から上の順(10): ページの層 background・content・backside-ui(ページの中の覆い・固定の帯)・below-header・header・above-header・forefront(ページの最前面の演出・全画面)→ floating(浮く物: Modal・Dialog・Sheet・Popover・Tooltip・選択の候補。body へ portal し、同じ層では後に開いた物が上)→ toast → cover(全画面の読み込み等、何よりも上)
 - ページの層の一覧 `PAGE_LAYER_NAMES` / 型 `PageLayerName` = floating より下の 7 つ。ページの要素・全画面の部品・fork の演出はこの中から選ぶ(札 page_layers_only)
-- 層を使う上流の部品: FullScreen・Main の fullscreenLayer（`PageLayerName` を受ける、kebab-case）・Primitives の Dialog / Popover・Tooltip・HoverCard・Select・ScreenLoader・lib/toast・lib/globalLoader
+- 全画面の部品(FullScreen・Main の fullscreenLayer)は `PageLayerName`(kebab-case)を受ける。層を使う上流の部品は `zLayerClass` の呼び手
 
 ## API
 
@@ -60,7 +60,7 @@ export default {
 
 ### 名が効く範囲
 
-名の値の比べは、いちばん近い重なりの文脈(transform・filter・1 より小さい opacity・isolate・position と z-index を持つ祖先)の中だけ。文脈の外へ出たい物は portal で body へ出す(浮く物はいつも出る)。部品の中だけの順は根に `isolate` を付け、その中で小さな `z-*` を使う。
+名の値の比べは、いちばん近い重なりの文脈(transform・filter・1 より小さい opacity・isolate・position と z-index を持つ祖先)の中だけ。浮く物はいつも portal で body へ出るので、この文脈に閉じ込められない(出し方と部品の中の順の決まりは `.claude/rules/core/style.md` stacking)。
 
 ### 浮く物の外押しと上の層
 
@@ -68,4 +68,5 @@ export default {
 
 ## Verification
 
-- `zLayer.test.ts` が名・値の順・class を `z-layer.css` と突き合わせる
+- `zLayer.test.ts`(`pnpm test src/lib/zLayer`)= 名・値の順・class を `src/styles/core/z-layer.css` と突き合わせ、ページの層の 7 つと `isAboveFloatingTarget` も確かめる
+- `scripts/structure/styles/zLayerOwn.test.mjs` = 自分の層の割り付け(+10・帯)と生成が失敗する条件
