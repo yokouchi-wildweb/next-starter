@@ -107,7 +107,9 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - with `hotfix`, after the commit, before push, **check that it can be picked** (`.notices/README.md` section `緊急修正(hotfix)`): pass `pnpm check notices` again
      - with `fixes:`, the `pnpm workflow notices pickCheck` above doubles as this check: the reason for `-` is a conflict, a failed check or a dependency on a later notice → no push; STOP (STOP CASES)
      - no `fixes:` → skip it (which version to apply to cannot be decided; report `未確認: 修正元なし`)
-     - next, **check the prerequisites hold in lagging forks**: `pnpm workflow notices hotfixCheck <this commit>` | on a tree picked onto each fork's position in the repos list (`--repos-file=<file of '<name> <path>' lines>` or env `DOWNSTREAM_REPOS_FILE`; merge-base), it checks that the `paths:` of path-scoped rules this commit added or changed, the `pnpm <script>` of the notice's steps and the paths the notice names exist (not relying on what the changes in between bring)
+     - next, **check the prerequisites hold in lagging forks**: `pnpm workflow notices hotfixCheck <this commit>`
+       - fork positions = merge-bases of the repos list (`--repos-file=<file of '<name> <path>' lines>` or env `DOWNSTREAM_REPOS_FILE`)
+       - on a tree picked onto each position it checks that the `paths:` of path-scoped rules this commit added or changed, the `pnpm <script>` of the notice's steps and the paths the notice names exist (not relying on what the changes in between bring)
      - exit 1 → no push; STOP (STOP CASES) | exit 2 (fork position unknown) → report `未確認: 遅れた fork の位置` and go on | a known position can be passed with `--base=<sha>`
    - before push, **with `--safe` only, run the full checks on the tip** (a plain ship runs the area checks above instead and makes no tag; `.notices/README.md` section `区切り(checkpoint)と区間適用`, part `セーフポイント`): `pnpm workflow notices safePoint check`
      - upstream does not check intermediate checkpoints (each fork's /flux checks every segment on its side); only the tip of a `--safe` ship gets the full checks
