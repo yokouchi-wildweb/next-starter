@@ -45,3 +45,19 @@ export default {
 ## 浮く物の外押しと上の層
 
 `isAboveFloatingTarget(target)` = 押した所が toast・cover の層の中か。浮く物の土台(Primitives の Dialog・Popover、Sheet)が外押しの判定で呼び、上の層の中の押しでは閉じない。Radix の上に自前で浮く物を作るときも同じ関数を onInteractOutside で呼ぶ
+
+## どの名を何に(下から上)
+
+- `background` = 頁の全体の背景(トップページの FullScreen など。body の直下の固定の背景は負の z で内容の下に敷く)
+- `content` = 頁の内容を背景より上に出すとき
+- `backside-ui` = 頁の中の覆い・固定の帯(画面の一部の読み込み ScreenLoader local、スマホの下の帯)
+- `below-header` / `header` / `above-header` = ヘッダーの下・ヘッダー・ヘッダーの上(SP のナビの覆い、全画面の部品の既定)
+- `forefront` = 頁の最前面の演出・固定のボタン(管理の右下のボタン)。fork の演出の層はこの上か下に above で足す
+- `floating` = 浮く物の全部(Modal・Dialog・Sheet・Popover・Tooltip・選択の候補)。部品が自分で持ち、呼び手は選ばない
+- `toast` = トースト(lib/toast が自分で持つ)
+- `cover` = 全画面の読み込み(ScreenLoader fullscreen・GlobalScreenLoader・決済の SDK の覆い)。押しを受け止める(pointer-events-auto)
+
+## 名が効く範囲
+
+名の値の比べは、いちばん近い重なりの文脈(transform・filter・1 より小さい opacity・isolate・position と z-index を持つ祖先)の中だけ。文脈の外へ出たい物は portal で body へ出す(浮く物はいつも出る)。部品の中だけの順は根に `isolate` を付け、その中で小さな `z-*` を使う。
+
