@@ -4,9 +4,9 @@
 
 利用者への連絡（メール・お知らせ = 受け取り箱・LINE・fork の経路）の基盤。連絡の定義（`messages/<名前>.ts`、書き方は src/lib/messaging/README.md）を送る口が回（`message_dispatches`）と配達（`message_deliveries`、受信者 × 経路の 1 行）に記録し、経路の受け口の項目で送る。
 
-連絡の形 = **カテゴリー + ひな形 + 欄の中身**。コードの連絡（自動）も管理者のテンプレート（手動）も同じ形で、経路はカテゴリーだけが持ち、見た目はひな形（`layouts/`）が全経路の分を持つ（描けない経路は経路の汎用の描き方か要約で描く）。文面の `{{名前}}` は埋め込み情報（共通 = 受信者ごとに埋まる / 専用 = テンプレートごとに送る人が入れる・コードの連絡の vars、英語の鍵と日本語の別名。連絡の定義は vars の鍵ごとに別名と説明 `varNames` を必ず書く D133）。部品ごとの形と「なぜそうなっているか」（採らなかった案と理由）は [Internals.md](Internals.md)。
+連絡の形 = **カテゴリー + ひな形 + 欄の中身**。コードの連絡（自動）も管理者のテンプレート（手動）も同じ形で、経路はカテゴリーだけが持ち、見た目はひな形（`layouts/`）が全経路の分を持つ（描けない経路は経路の汎用の描き方か要約で描く）。文面の `{{名前}}` は埋め込み情報（共通 = 受信者ごとに埋まる / 専用 = テンプレートごとに送る人が入れる・コードの連絡の vars、英語の鍵と日本語の別名 `varNames`）。部品ごとの形と「なぜそうなっているか」（採らなかった案と理由）は [Internals.md](Internals.md)。
 
-- **利用者への連絡は必ず連絡の定義 + `messagingService.sendMessage` / `sendMessageToMany`（`@/features/messaging/services/server`）を通す**。`lib/mail` の `send()` を直に呼ぶのはメールの経路の項目だけ（回・配達の記録・配信停止・本文の残し方を 1 か所で守る）
+- 送る口 `messagingService.sendMessage` / `sendMessageToMany`（`@/features/messaging/services/server`）が回・配達の記録・配信停止・本文の残し方を 1 か所で守る。`lib/mail` の `send()` はメールの経路の項目が使う
 - このドメインが持つ口: 本人の口（受け取り箱・好み・端末の帳簿）・配信停止の受け口と確認のページ・管理の口（送る・一括送信・送った回・テンプレート・文言の上書き）・provider の webhook・cron 3 本。業務の送信 API は持たない: 送り手（各ドメインの service・cron・fork の route）がサーバーから送る口を呼ぶ
 - 機能の門（`src/featureGate/rules/`）: `messagingDispatches`（送った回の管理、既定 開）・`messagingBroadcast`（管理の送信、既定 閉）・`messagingTemplates`・`messagingOverrides`（既定 閉）・`messagingPreferences`（好みのページと API、既定 閉）・`messagingInbox`（受け取り箱のページと未読のモーダル、既定 閉）・`messagingTracking`（開封・クリックの記録、既定 閉）。送る口・cron・配信停止の受け口・webhook・本人の受け取り箱 API は門の外で常に開
 
@@ -30,8 +30,8 @@ await messagingService.sendMessageToMany(campaign, {
 });
 ```
 
-- 冪等の鍵 `idempotencyKey`: 同じ鍵の 2 回目は送る前に 409（回の UNIQUE と、保持の掃除で移した鍵の表 `message_idempotency_keys` の両方を見る）。新しい送信の画面・バッチでは必ず渡す（画面はフォームを開くたびに `crypto.randomUUID()`、同じフォームの再送信は同じ鍵）。バッチの再実行で送った対象を除くのは `messagingService.existingIdempotencyKeys(keys)`。並走した実行が先に送った時も 409 なので、呼び手は 409 を「送信済み」として扱える（実例: wallet の失効の知らせ `src/features/core/wallet/services/server/notification/expirationNoticeSender.ts`）
-- cron・CLI から送る時は `runAsSystem`（`@/lib/audit`）で包む。送り元 `source` の既定は定義の鍵
+- 冪等の鍵 `idempotencyKey`: 同じ鍵の 2 回目は送る前に 409（回の UNIQUE と、保持の掃除で移した鍵の表 `message_idempotency_keys` の両方を見る）。画面はフォームを開くたびに `crypto.randomUUID()`、同じフォームの再送信は同じ鍵。バッチの再実行で送った対象を除くのは `messagingService.existingIdempotencyKeys(keys)`。並走した実行が先に送った時も 409（実例: wallet の失効の知らせ `src/features/core/wallet/services/server/notification/expirationNoticeSender.ts`）
+- cron・CLI からの送信は `runAsSystem`（`@/lib/audit`）の中。送り元 `source` の既定は定義の鍵
 - 予約は `scheduledAt`（過ぎた時刻と `schedule.maxDaysAhead` 日より先は 400）。required と秘密を差し込む連絡は予約・全員宛てにできない（400）
 
 ### 宛先（target）
@@ -41,22 +41,24 @@ await messagingService.sendMessageToMany(campaign, {
   - 送る時の検査: 門 `userGroups` が閉・グループが無い = 404、しまった・壊れた・版の無い予約のグループ・人数の上限（userGroup の `memberLimit`）超え = 409、時間切れ = 503。誤りなら回を作らない。予約したグループは今の版を回に固定する
   - 固定の時に使えない（門が閉・しまった・上限・版が無い・時間切れ）→ 回を `cancelled` にして `metadata.cancelReason` に理由。管理の選択肢は門 `userGroups` が閉なら空（グループ宛てを出さない）
 - **全員・ロール宛ての時刻の線**: 送り始め（`scheduled_at ?? created_at`）より後に登録した人には届かない。お知らせは回に 1 行の共有の行（全員・ロール、受信者に依る差し込みが無い時）で、見せるかは受け取り箱が読む時に決める（`show_to_later_signups`・好み。services/server/inbox/README.md）
-- 条件で集めた人に送る: ユーザーグループを使う（src/features/core/userGroup/README.md）。SQL で書ける条件 = userGroup の条件の部品 `criteria/<名前>.ts` を動的・定期のグループで使う / SQL で書けない条件 = fork の task が静的グループを書く（`staticMemberWriter.replaceMembers`）。出来事に伴う宛先（注文した人に発送の知らせ等）はグループにせず `sendMessage` の `recipient` で送る
+- 条件で集めた人に送る: ユーザーグループ（src/features/core/userGroup/README.md）。SQL で書ける条件 = userGroup の条件の部品 `criteria/<名前>.ts` を動的・定期のグループで使う / SQL で書けない条件 = fork の task が静的グループを書く（`staticMemberWriter.replaceMembers`）
 
 ### 連絡を足す
 
 1. `pnpm generate message -- <domain> <name> --category <key> --label <名前> [--core]` が送る側のドメインに `messages/<名前>.ts`（鍵 `<ドメインのフォルダ名>.<名前>`、ひな形 notice と欄の中身の雛形）を書き、`src/registry/messageRegistry.ts` と拡張点を作り直す（使い方 scripts/structure/message/README.md）。core のドメインは `--core` = 上流だけ
-2. 種類（category、全部の連絡に必須）= 利用者から見て 1 つの出来事（「〜した時」。例 likeReceived・itemSold・passwordReset）。種別（7 つ）と経路は種類が持ち、連絡は書かない。無ければ先に `categories/<名前>.ts` を足す
-3. 上流の種類: emailVerification・passwordReset・emailChange・earlyRegistration（functional・email）/ accountLocked（security）/ registrationComplete・walletExpired・walletAdjusted（transactional）/ walletExpiring（activity、利用者が止められる）/ promotion（promotion、管理画面「一般的なプロモーション」・利用者「キャンペーン情報」、管理者が書く宣伝の既定）/ announcement（管理画面「一般的なお知らせ」・利用者「運営からのお知らせ」）/ operatorDirect（direct、管理画面「一般的な個別連絡」・利用者「個別のご連絡」、管理者からの個別の連絡と一括の既定）。種類の名前は 2 つ: `label` = 利用者に見せる（好みの設定・配信停止・受け取り箱）、`adminLabel` = 管理画面（無い = `label`、D124）
-   - 種別の表示名（D81、`constants/kindLabels.ts` の `MESSAGE_KIND_LABELS`）: functional 機能通知 / transactional 手続き通知 / security セキュリティ / announcement 運営告知 / direct 個別連絡 / activity アクティビティ / promotion プロモーション
+2. 種類（category）= 利用者から見て 1 つの出来事（「〜した時」。例 likeReceived・itemSold・passwordReset）。種別（7 つ）と経路は種類が持ち、連絡は書かない。無ければ先に `categories/<名前>.ts` を足す
+3. 上流の種類: emailVerification・passwordReset・emailChange・earlyRegistration（functional・email）/ accountLocked（security）/ registrationComplete・walletExpired・walletAdjusted（transactional）/ walletExpiring（activity、利用者が止められる）
+   - promotion（promotion、管理画面「一般的なプロモーション」・利用者「キャンペーン情報」、管理者が書く宣伝の既定）/ announcement（管理画面「一般的なお知らせ」・利用者「運営からのお知らせ」）/ operatorDirect（direct、管理画面「一般的な個別連絡」・利用者「個別のご連絡」、管理者からの個別の連絡と一括の既定）
+   - 種類の名前は 2 つ: `label` = 利用者に見せる（好みの設定・配信停止・受け取り箱）、`adminLabel` = 管理画面（無い = `label`）
+   - 種別の表示名（`constants/kindLabels.ts` の `MESSAGE_KIND_LABELS`）: functional 機能通知 / transactional 手続き通知 / security セキュリティ / announcement 運営告知 / direct 個別連絡 / activity アクティビティ / promotion プロモーション
 4. 見た目 = ひな形（`layouts/<名前>/`、`layouts/README.md`）。上流は notice（汎用のお知らせ）・link（認証のリンク）・welcome（ようこそ）・statement（お知らせの明細）・alert（セキュリティの警告）。定義は `layout` と `values`（ひな形の欄の中身）を書く
 5. 実例: auth の連絡（link・alert）・user の連絡（welcome）・wallet の失効の知らせ（statement、cron、`runAsSystem` + 冪等の鍵）と残高の変更（notice）
 
 ### 運用で間違えやすい線
 
-仕組みが線を引いた所。どれも「できない」ではなく「別の書き方で表す」。定義の側の線は src/lib/messaging/README.md「定義で間違えやすい線」。
+仕組みが線を引いた所。定義の側の線は src/lib/messaging/README.md「定義で間違えやすい線」。
 
-- **経路はカテゴリー（種類）が決める**: 配信停止の単位は種類 × 経路なので、経路が回や連絡ごとに変わると好みのページの表が嘘になる。経路を変える = 種類の経路を変える（上流の種類は `categories/<名前>.override.ts` の `channels`、functional・security は email を外せない）。1 本だけ別の経路 = 別の種類を足してその連絡を属させる
+- 経路は種類が決める: 配信停止の単位は種類 × 経路なので、経路が回や連絡ごとに変わると好みのページの表が嘘になる。上流の種類の経路は `categories/<名前>.override.ts` の `channels`。1 本だけ別の経路で届けるには別の種類を足してその連絡を属させる
 
 ```ts
 // src/features/<domain>/categories/itemSoldInApp.ts(fork、お知らせだけで届ける「出品した物が売れた時」)
@@ -65,13 +67,13 @@ import type { MessageCategory } from "@/lib/messaging";
 export const category: MessageCategory = { key: "itemSoldInApp", label: "出品した物が売れた時(お知らせ)", kind: "activity", channels: ["inApp"] };
 ```
 
-- **その回は経路を絞るだけ**: コードから送る連絡は経路を選ばない（`channels` を渡さない）。管理者が手で送る時だけ種類の経路の中で絞れる（足せない、外・空は 400）。組ごとに送り分けたいなら組ごとに種類を作る（例 `campaignMail` = email、`campaign` = email + inApp）
-- **種別とカテゴリーは付け替えず、止めて足す**: 種別は止められるか・好み・住所の停止・記録の既定を決め（`MESSAGE_KIND_TRAITS`）、種類は停止の単位と集計の軸。上書きは連絡の `category`・種類の `key`・`kind` を変えられない。別の種類で送りたい = 上流の連絡を `messages/<名前>.override.ts` の `{ enabled: false }` で止め、自分の種類と連絡を足して送り手から呼ぶ
-- **機能の連絡（functional）は上書きで止められない**: 止めると機能が壊れる（確認のリンクが届かない）。`enabled: false`・管理画面の文言の上書き・間引き・email を外すことは検査で止まる。文面 = ひな形の描き方の `.replace`（見た目）か fork のファイルの上書きの `values`（文言） / 流れごと = 送り手（auth など）の口を替える
-- **種別まるごとの停止はデータだけ**: 種別まるごとの行は後から足す種類にも当たる。上流の画面はスイッチを出さないが、送る口・受け取り箱・好みの見え方は同じ判定で見る。会員登録で宣伝に同意しなかった人 = promotion の種別まるごとの行（source `signup`）。見せたい fork は hook `useMessagePreferences` の `setKind` と `preferences.kinds`、サーバーは `messagingService.setMessagePreference(userId, { kind, optedOut }, { source })`
-- **グループは見出しだけ**: 種類のグループ（`categoryGroups/`）は好みのページの見出しで、止める単位ではない（後から足した種類が止まるかが決まらないため）。まとめて止めさせたい物は 1 つの種類にする
-- **法の義務の告知はメールを経路に含める**: 全員・ロール宛てのお知らせは共有の 1 行で配達の行が無く、届かなかった人を数えられない。規約の変更などは email を含む種類で送り、届かなかった人は `GET /api/admin/messaging/dispatches/[id]/deliveries?status=failed`（`bounced`・`suppressed`・`unknown` も）の `reason`・`errorCode` で見る
-- **会話の既読とお知らせの既読は別物**: 間引き `untilRead` が見るのは受け取り箱の既読だけ。会話を読んだらお知らせも既読にしたい機能は `POST /api/me/messaging/inbox/[id]/read` か messagingService の既読を呼ぶ
+- その回は経路を絞るだけ: 管理者が手で送る時だけ種類の経路の中で絞れる(足せない、外・空は 400)。組ごとに送り分けるなら組ごとに種類を作る(例 `campaignMail` = email、`campaign` = email + inApp)
+- 種別は止められるか・好み・住所の停止・記録の既定を決め(`MESSAGE_KIND_TRAITS`)、種類は停止の単位と集計の軸。上書きは連絡の `category`・種類の `key`・`kind` を変えられない。上流の連絡を止めるのは `messages/<名前>.override.ts` の `{ enabled: false }`
+- 機能の連絡(functional): `enabled: false`・管理画面の文言の上書き・間引き・email を外すことは検査で止まる。文面 = ひな形の描き方の `.replace`(見た目)か fork のファイルの上書きの `values`(文言) / 流れごと = 送り手(auth など)の口を替える
+- 種別まるごとの停止はデータだけ: 種別まるごとの行は後から足す種類にも当たる。上流の画面はスイッチを出さないが、送る口・受け取り箱・好みの見え方は同じ判定で見る。会員登録で宣伝に同意しなかった人 = promotion の種別まるごとの行(source `signup`)。見せたい fork は hook `useMessagePreferences` の `setKind` と `preferences.kinds`、サーバーは `messagingService.setMessagePreference(userId, { kind, optedOut }, { source })`
+- 種類のグループ(`categoryGroups/`)は好みのページの見出しで、止める単位ではない(後から足した種類が止まるかが決まらないため)
+- 全員・ロール宛てのお知らせは共有の 1 行で配達の行が無く、届かなかった人を数えられない。email を含む種類なら、届かなかった人は `GET /api/admin/messaging/dispatches/[id]/deliveries?status=failed`(`bounced`・`suppressed`・`unknown` も)の `reason`・`errorCode` で見る
+- 間引き `untilRead` が見るのは受け取り箱の既読だけ(会話の既読とは別)。既読にする口は `POST /api/me/messaging/inbox/[id]/read` か messagingService の既読
 
 ## API
 
@@ -109,8 +111,8 @@ HTTP の口と返す形は口のフォルダの README:
 - `categoryGroups/`（`group`: `MessageCategoryGroup`）: 種類のグループ（好みのページの見出し、同じ種別の種類だけ、`order` の順）。上流は出荷しない
 - `sources/`（`source`: `MessageSource`）: 送り元の表示名。上流は管理の送り元 4 つ（`adminSend`・`adminSendTest`・`adminBulk`・`adminBulkTest`）。回の詳細の送り元は `sources/` → 同じ鍵の連絡の `label` → 一括の対象 `<対象>.bulk(.test)` の順に引く（`services/server/admin/sourceLabels.ts`）
 - `bulkSendTargets/`（`bulkSendTarget`: `MessageBulkSendTarget`、型は `services/server/admin/types.ts`）: 管理一覧の一括送信の対象（選んだ記録 → 利用者 id・送った後の処理）。上流は `bankTransferReview`（services/server/admin/README.md）
-- `adminBulkActions/`（`bulkAction`: `MessagingDispatchAdminBulkActionItem`、型は `types/adminBulkAction.ts`、client）: 送信一覧の一括操作（D95）。上流の既定 = `delete.tsx`（削除）。fork は項目を足す・`<名前>.override.ts` で `enabled`・`order`（作り方: src/lib/tableSuite/README.md「一括操作の受け口」）
-- `templates/`（`systemTemplate`: `MessageSystemTemplate`）: システムテンプレート = 管理の送信の白紙とできあがった文面（D117・D119・D125）。上流は 6 本: 種別ごとにシンプル（`announcement`・`direct`・`promotion`、ひな形 simple = 種別の既定の白紙）とリッチ（`…Rich`、ひな形 notice）。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` と `enabled`（false = 一覧・送る画面・既定の白紙から外す、D122）だけ（templates/README.md）
+- `adminBulkActions/`（`bulkAction`: `MessagingDispatchAdminBulkActionItem`、型は `types/adminBulkAction.ts`、client）: 送信一覧の一括操作。上流の既定 = `delete.tsx`（削除）。fork は項目を足す・`<名前>.override.ts` で `enabled`・`order`（作り方: src/lib/tableSuite/README.md「一括操作の受け口」）
+- `templates/`（`systemTemplate`: `MessageSystemTemplate`）: システムテンプレート = 管理の送信の白紙とできあがった文面。上流は 6 本: 種別ごとにシンプル（`announcement`・`direct`・`promotion`、ひな形 simple = 種別の既定の白紙）とリッチ（`…Rich`、ひな形 notice）。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` と `enabled`（false = 一覧・送る画面・既定の白紙から外す）だけ（templates/README.md）
 - `subscribers/`（`subscriber`: `MessageSubscriber`）: 送った後の事件の購読（少なくとも 1 回）。上流の項目は無い（services/server/subscribers/README.md）
 
 ほかの差し替え:
@@ -130,7 +132,7 @@ HTTP の口と返す形は口のフォルダの README:
 - 配信停止の判定（好み・宛先の停止・メールの List-Unsubscribe）→ services/server/preferences/README.md
 - 受け取り箱の見える行・既読・画像の台帳・静かな行 → services/server/inbox/README.md
 - 内部の事件と購読（cron `messaging-subscribers`）→ services/server/subscribers/README.md
-- 生の SQL（`sql```）に JS の Date を渡さない: ISO の文字列 + `::timestamptz` か Drizzle の演算子。生の SQL の組み立ては db を持たないファイル（`sweep/retentionSql.ts`・`inbox/cursorSql.ts` など）に置き、`services/server/rawSqlParams.test.ts` の一覧に 1 行足す
+- 生の SQL（`sql```）の日時は ISO の文字列 + `::timestamptz` か Drizzle の演算子（CLAUDE.md CRUD_SERVICE の raw_sql Date）。生の SQL の組み立ては db を持たないファイル（`sweep/retentionSql.ts`・`inbox/cursorSql.ts` など）にあり、`services/server/rawSqlParams.test.ts` の一覧が検査する
 
 ## Verification
 
