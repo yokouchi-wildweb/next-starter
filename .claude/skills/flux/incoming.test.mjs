@@ -6,7 +6,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { incoming, isBreak, normalizeUrl, parseRow, rowFromBody, run, summary } from "./incoming.mjs";
+import { forkIdOf, incoming, isBreak, normalizeUrl, parseRow, rowFromBody, run, summary } from "./incoming.mjs";
+import { forkIdOfTexts } from "../../../src/lib/forkOwnership/forkIds.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -250,4 +251,26 @@ test("脇の commit の区間: 修正を壊れた地点の脇で出して merge�
   // 直線の履歴では印なし
   const { f: f2 } = twoTier(t);
   assert.ok(incoming(f2.dir, { upstream: "upstream/main" }).segments.every((s) => !s.offLine));
+});
+
+test("名前の写し forkIdOf は forkIds.mjs の forkIdOfTexts と同じ答え(自己完結のための写し、規則は forkIds.mjs が正本)", () => {
+  const CASES = [
+    ['{"repo_id": "acme", "tier": "leaf"}', null],
+    ['{"repo_id": "acme"}', null],
+    ['{"repo_id": "Bad_Name", "tier": "leaf"}', null],
+    ['{"repo_id": "-", "tier": "leaf"}', null],
+    ['{"tier": "leaf"}', null],
+    ["{broken", null],
+    ['{"repo_id": "acme"}', "fork_id: other\n"],
+    [null, "fork_id: acme\n"],
+    [null, "fork_id: acme  # 注釈\n"],
+    [null, "fork_id: -\n"],
+    [null, "fork_id: Bad\n"],
+    [null, "fork_id: a\nfork_id: b\n"],
+    [null, "名前の行なし\n"],
+    [null, null],
+  ];
+  for (const [repoJson, projectMd] of CASES) {
+    assert.equal(forkIdOf(repoJson, projectMd), forkIdOfTexts({ repoJson, projectMd }).forkId, JSON.stringify({ repoJson, projectMd }));
+  }
 });

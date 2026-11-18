@@ -134,9 +134,9 @@ function addCommits(g, ref) {
 }
 
 // 1 つの版の名前: repo.json の repo_id を先に、無ければ古い形の project.md の fork_id:(forkIds.mjs の forkIdOfTexts と同じ規則。
-// このファイルは自己完結なので写しを持つ)
+// このファイルは自己完結なので写しを持つ。同じ答えになることは incoming.test.mjs が forkIdOfTexts と照らして縛る)
 const NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-function forkIdOf(repoJson, projectMd) {
+export function forkIdOf(repoJson, projectMd) {
   if (repoJson !== null && repoJson !== undefined) {
     try {
       const v = JSON.parse(repoJson)?.repo_id;

@@ -3,7 +3,7 @@
 // 置き場: $ORDER_STATE_DIR（既定 $XDG_STATE_HOME/next-starter/orders → ~/.local/state/next-starter/orders。古い ~/.team/orders は最初の 1 回に移し、そこへのリンクを残す）
 //   <root>/<fork-id>/*.md      = そのリポ宛ての未対応の指令
 //   <root>/<fork-id>/done/*.md = 対応済み
-//   fork-id = 各 checkout の repo.json の repo_id（古い形は .claude/rules/project.md の `fork_id:`。小文字・数字・ハイフン。下記 forkIdOf）
+//   fork-id = 各 checkout の repo.json の repo_id（古い形は .claude/rules/project.md の `fork_id:`。読みは forkIds.mjs の forkIdOfTexts、下記 forkIdOf）
 // 使い方:
 //   node mailbox.mjs self    自リポの fork-id と受信箱
 //   node mailbox.mjs from    起票する指令の from: 行（env ORDER_ACTOR があれば発行元はその名前。下記 fromLine）
@@ -40,6 +40,7 @@
 //                            show <sheet>  数と、まだ結果のない項目・スクリーンショットの置き場
 import { execFileSync } from "node:child_process";
 import { existsSync, linkSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, renameSync, rmdirSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { forkIdOfTexts } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { addItem, copySheet, isSheetFile, readSheet, setResult, sheetPathFor, shotsDirOf, startRun, summarize, writeSheet } from "./checkSheet.mjs";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
@@ -102,33 +103,36 @@ export function forkIdFromUrl(url) {
 
 export const FORK_ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 
-// 宣言された名前: repo.json の repo_id を先に、無ければ古い形の project.md の fork_id:（宣言が無ければ ""。旧い `-` もそのまま返す）。
-// 手元のほかのリポ（まだ移していないリポ）も読むので、古い形も読む
+// 宣言された名前: 読みは src/lib/forkOwnership/forkIds.mjs の forkIdOfTexts だけ（repo.json の repo_id を先に、無ければ古い形の project.md の fork_id:）。
+// 手元のほかのリポ（まだ移していないリポ）も読むので、古い形も読む。返り値 = { forkId, error, source }（forkIds.mjs と同じ）
 export function declaredForkId(top) {
+  const read = (file) => (existsSync(file) ? readFileSync(file, "utf8") : null);
+  return forkIdOfTexts({ repoJson: read(join(top, "repo.json")), projectMd: read(join(top, ".claude", "rules", "project.md")) });
+}
+
+// 未宣言 = 名前の宣言が無いか、旧い `-` の印（受信箱の移行中だけ旧い導き方に戻る。名前そのものの読みは上の declaredForkId）
+function isUndeclared(top) {
   const repoJson = join(top, "repo.json");
   if (existsSync(repoJson)) {
     try {
       const v = JSON.parse(readFileSync(repoJson, "utf8"))?.repo_id;
-      return typeof v === "string" ? v : "";
+      return v === undefined || v === "-";
     } catch {
-      return "";
+      return false;
     }
   }
   const file = join(top, ".claude", "rules", "project.md");
-  if (!existsSync(file)) return "";
-  const m = readFileSync(file, "utf8").match(/^fork_id:[ \t]*(\S*)/m);
-  return m ? m[1] : "";
+  const m = existsSync(file) ? readFileSync(file, "utf8").match(/^fork_id:[ \t]*(\S*)/m) : null;
+  return !m || m[1] === "" || m[1] === "-";
 }
 
 // リポの名前（受信箱の名前）= repo.json の repo_id（古い形は project.md の fork_id:）。
 // 形が違えば throw。未宣言（行なし・旧い `-`）は移行中だけ旧い導き方に戻る（declared: false）。
 // env ORDER_REPO_ID_STRICT=1 なら未宣言も throw（移行の終わり）
 export function forkIdOf(top, origin, env = process.env) {
-  const v = declaredForkId(top);
-  if (v && v !== "-") {
-    if (!FORK_ID_RE.test(v)) throw new Error(`repo_id の形が違います（${v}: 小文字・数字・ハイフン）: ${top}/repo.json`);
-    return { id: v, declared: true };
-  }
+  const { forkId, error } = declaredForkId(top);
+  if (forkId) return { id: forkId, declared: true };
+  if (!isUndeclared(top)) throw new Error(`repo_id の形が違います（${error}）: ${top}/repo.json`);
   if (env.ORDER_REPO_ID_STRICT === "1") throw new Error(`repo_id が宣言されていません: ${top}/repo.json`);
   return { id: origin ? forkIdFromUrl(origin) : `local--${basename(top).toLowerCase()}`, declared: false };
 }
