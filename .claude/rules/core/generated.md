@@ -11,6 +11,9 @@ paths:
   - "src/styles/core/gradient.css"
   - "src/components/Layout/spacingClasses.generated.ts"
   - "vercel.json"
+  - "src/wiring/dbAgent.ts"
+  - "src/styles/z-layer.css"
+  - "src/lib/*/generated/**"
 ---
 # generated
 > **ROLE**: loaded when touching generated files or their sources | holds DIRECTORY_STRUCTURE code_generation (generated / write-once / hand-owned)
