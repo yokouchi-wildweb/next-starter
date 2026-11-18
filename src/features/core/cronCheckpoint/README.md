@@ -1,40 +1,15 @@
-# cronCheckpoint（cron のウォータマーク永続化）
+# cronCheckpoint
 
-差分 cron や再開可能バッチが「ここまで処理済み」を覚えておくための単調チェックポイント。
-1 テーブル + 数関数の最小プリミティブ。HTTP ルートは持たない（server-internal only）。
+## Overview
 
-## 何を解決するか
+- 差分 cron や再開可能バッチが「ここまで処理済み」を覚えておくための単調チェックポイント(cron のウォータマークの永続化)。1 テーブル + 数関数の最小プリミティブで、HTTP ルートは持たない(server-internal only)
+- 解くこと: 毎回全件を舐める O(N) の cron は、成長とともに serverless の maxDuration で途中 kill され、read-model が古いまま残る。差分化には「前回どこまで処理したか」の永続化が要り、各 cron が独自に持つと単調性(後退しない)・並走安全・巻き戻し手順がばらつくので、ここに集める
+- 時間予算ランナー(`@/lib/cron` の `runBudgetedBatches`)と組み合わせると、チャンクごとに前進 → 途中 kill でも次回は続きから、が成立する。組み合わせ済みの完成品が `@/features/incrementalRefresh`(`createIncrementalRefresh`: 重なり幅・keyset ページング・trickle 安全網が同梱)
+- 使う時の決まりは札 .claude/rules/items/features/cronCheckpoint.md にある
 
-- 「毎回全件を舐める O(N) cron」は成長とともに serverless の maxDuration で途中 kill され、
-  read-model が恒久的に古くなる（下流で実際に発生した障害）。
-- 差分化には「前回どこまで処理したか」の永続化が要る。各 cron が独自に持つと
-  単調性（後退しない）・並走安全・巻き戻し手順がバラつくので、ここに集約する。
-- 時間予算ランナー（`@/lib/cron` の `runBudgetedBatches`）と組み合わせると、
-  チャンクごとに前進 → 途中 kill でも次回は続きから、が成立する。
-  組み合わせ済みの完成品が `@/features/incrementalRefresh`。
+## Usage
 
-## データモデル
-
-table: `cron_checkpoints`
-- `name text PK` … タスク固有の名前空間付き文字列（例: `user-metrics-refresh`）
-- `checkpoint_at timestamptz` … この時刻までの入力は処理済み
-- `updated_at timestamptz`
-
-## サービス API
-
-import: `import { getCheckpoint, advanceCheckpoint } from "@/features/cronCheckpoint/services/server"`
-
-- `getCheckpoint(name, fallback, tx?) → Date`
-  未登録なら `fallback` を返す（書かない）。
-  初回に全件を対象にしたいなら `new Date(0)`、導入前の履歴を捨ててよいなら `new Date()`。
-- `advanceCheckpoint(name, ts, tx?) → { checkpointAt, advanced }`
-  単調前進。`INSERT ... ON CONFLICT DO UPDATE SET checkpoint_at = GREATEST(現在値, 新値)` の 1 文なので
-  並走 cron や古い値の再送でも後退しない。`advanced=false` は「既に先へ進んでいた」。
-- `resetCheckpoint(name, ts, tx?)` … 無条件上書き（後退可）。**運用操作専用**（遡及修正後に巻き戻して再処理させる等）。cron 経路から呼ばない。
-- `deleteCheckpoint(name, tx?) → boolean` … 行削除。次回 `getCheckpoint` は fallback に戻る。
-- `findCheckpoint(name)` / `listCheckpoints()` … 運用確認用の生読み。
-
-## 使い方（生プリミティブとして）
+### 生プリミティブとして使う
 
 ```ts
 import { createDeadline, runBudgetedBatches } from "@/lib/cron";
@@ -58,12 +33,34 @@ const result = await runBudgetedBatches({
 if (result.exhausted) await advanceCheckpoint(NAME, startedAt);
 ```
 
-ウォータマーク走査を自前で書くより、`@/features/incrementalRefresh` の `createIncrementalRefresh` を
-使う方が短い（重なり幅・keyset ページング・trickle 安全網が同梱）。
+### 運用
 
-## 運用
-
-- 巻き戻し: `resetCheckpoint("<name>", new Date("2026-08-01T00:00:00Z"))` を `pnpm task` のワンショットタスクか
-  スクリプトから呼ぶ。次回 cron がその時刻以降を再処理する（recompute が冪等であること）。
+- 巻き戻し: `resetCheckpoint("<name>", new Date("2026-08-01T00:00:00Z"))` を `pnpm task` のワンショットタスクかスクリプトから呼ぶ。次回 cron がその時刻以降を再処理する
 - 確認: `pnpm ops db inspect query "SELECT * FROM cron_checkpoints ORDER BY name"`
-- DB 反映: `cron_checkpoints` テーブルは schemaRegistry 登録済み。導入時に `pnpm db:push`。
+- DB 反映: `cron_checkpoints` テーブルは schemaRegistry 登録済み。導入時に `pnpm db:push`
+
+## API
+
+import: `import { getCheckpoint, advanceCheckpoint } from "@/features/cronCheckpoint/services/server"`
+
+- `getCheckpoint(name, fallback, tx?) → Date`: 未登録なら `fallback` を返す(書かない)。初回に全件を対象にしたいなら `new Date(0)`、導入前の履歴を捨ててよいなら `new Date()`
+- `advanceCheckpoint(name, ts, tx?) → { checkpointAt, advanced }`: 単調前進。`advanced=false` は「既に先へ進んでいた」
+- `resetCheckpoint(name, ts, tx?)`: 無条件上書き(後退可)。運用操作用(遡及修正後に巻き戻して再処理させる等)
+- `deleteCheckpoint(name, tx?) → boolean`: 行削除。次回 `getCheckpoint` は fallback に戻る
+- `findCheckpoint(name)` / `listCheckpoints()`: 運用確認用の生読み
+- 型: `CronCheckpoint` / `AdvanceCheckpointResult`
+
+table `cron_checkpoints`:
+
+- `name text PK`: タスク固有の名前空間付き文字列(例: `user-metrics-refresh`)
+- `checkpoint_at timestamptz`: この時刻までの入力は処理済み
+- `updated_at timestamptz`
+
+## Internals
+
+- `advanceCheckpoint` は `INSERT ... ON CONFLICT DO UPDATE SET checkpoint_at = GREATEST(現在値, 新値)` の 1 文なので、並走 cron や古い値の再送でも後退しない
+
+## Related
+
+- `src/lib/cron/README.md`: `runBudgetedBatches` / `createDeadline`
+- `src/features/core/incrementalRefresh/README.md`: `createIncrementalRefresh`
