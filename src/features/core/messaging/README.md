@@ -6,6 +6,7 @@
 
 連絡の形 = **カテゴリー + ひな形 + 欄の中身**。コードの連絡（自動）も管理者のテンプレート（手動）も同じ形で、経路はカテゴリーだけが持ち、見た目はひな形（`layouts/`）が全経路の分を持つ（描けない経路は経路の汎用の描き方か要約で描く）。文面の `{{名前}}` は埋め込み情報（共通 = 受信者ごとに埋まる / 専用 = テンプレートごとに送る人が入れる・コードの連絡の vars、英語の鍵と日本語の別名 `varNames`）。部品ごとの形と「なぜそうなっているか」（採らなかった案と理由）は [Internals.md](Internals.md)。
 
+- 語: 口 = 呼び出す入口(関数・HTTP の route) / 回 = 1 回の送信の記録(`message_dispatches` の 1 行)
 - 送る口 `messagingService.sendMessage` / `sendMessageToMany`（`@/features/messaging/services/server`）が回・配達の記録・配信停止・本文の残し方を 1 か所で守る。`lib/mail` の `send()` はメールの経路の項目が使う
 - このドメインが持つ口: 本人の口（受け取り箱・好み・端末の帳簿）・配信停止の受け口と確認のページ・管理の口（送る・一括送信・送った回・テンプレート・文言の上書き）・provider の webhook・cron 3 本。業務の送信 API は持たない: 送り手（各ドメインの service・cron・fork の route）がサーバーから送る口を呼ぶ
 - 機能の門（`src/featureGate/rules/`）: `messagingDispatches`（送った回の管理、既定 開）・`messagingBroadcast`（管理の送信、既定 閉）・`messagingTemplates`・`messagingOverrides`（既定 閉）・`messagingPreferences`（好みのページと API、既定 閉）・`messagingInbox`（受け取り箱のページと未読のモーダル、既定 閉）・`messagingTracking`（開封・クリックの記録、既定 閉）。送る口・cron・配信停止の受け口・webhook・本人の受け取り箱 API は門の外で常に開
@@ -68,7 +69,7 @@ export const category: MessageCategory = { key: "itemSoldInApp", label: "出品�
 ```
 
 - その回は経路を絞るだけ: 管理者が手で送る時だけ種類の経路の中で絞れる(足せない、外・空は 400)。組ごとに送り分けるなら組ごとに種類を作る(例 `campaignMail` = email、`campaign` = email + inApp)
-- 種別は止められるか・好み・住所の停止・記録の既定を決め(`MESSAGE_KIND_TRAITS`)、種類は停止の単位と集計の軸。上書きは連絡の `category`・種類の `key`・`kind` を変えられない。上流の連絡を止めるのは `messages/<名前>.override.ts` の `{ enabled: false }`
+- 種別は止められるか・好み・宛先の停止(suppression)・記録の既定を決め(`MESSAGE_KIND_TRAITS`)、種類は停止の単位と集計の軸。上書きは連絡の `category`・種類の `key`・`kind` を変えられない。上流の連絡を止めるのは `messages/<名前>.override.ts` の `{ enabled: false }`
 - 機能の連絡(functional): `enabled: false`・管理画面の文言の上書き・間引き・email を外すことは検査で止まる。文面 = ひな形の描き方の `.replace`(見た目)か fork のファイルの上書きの `values`(文言) / 流れごと = 送り手(auth など)の口を替える
 - 種別まるごとの停止はデータだけ: 種別まるごとの行は後から足す種類にも当たる。上流の画面はスイッチを出さないが、送る口・受け取り箱・好みの見え方は同じ判定で見る。会員登録で宣伝に同意しなかった人 = promotion の種別まるごとの行(source `signup`)。見せたい fork は hook `useMessagePreferences` の `setKind` と `preferences.kinds`、サーバーは `messagingService.setMessagePreference(userId, { kind, optedOut }, { source })`
 - 種類のグループ(`categoryGroups/`)は好みのページの見出しで、止める単位ではない(後から足した種類が止まるかが決まらないため)
@@ -81,7 +82,7 @@ HTTP の口と返す形は口のフォルダの README:
 
 - 送る口（`sendMessage` / `sendMessageToMany` / `sendTemplateMessage`・プレビュー・見込み・間引き・本文の残し方・送信の結果）→ services/server/sendMessage/README.md
 - 管理の口 `/api/admin/messaging/**`（送る・一括送信・送った回の読む口・回の操作・続きを送る・利用者ごとの履歴）→ services/server/admin/README.md
-- テンプレート `/api/admin/messaging/templates/**` → services/server/templates/README.md / 文言の上書き `/api/admin/messaging/overrides/**` → services/server/overrides/README.md
+- テンプレート `/api/admin/messaging/templates/**`・ひな形のプレビュー `/api/admin/messaging/layouts/preview` → services/server/templates/README.md / 文言の上書き `/api/admin/messaging/overrides/**` → services/server/overrides/README.md
 - 本人の受け取り箱 `/api/me/messaging/inbox/**` → services/server/inbox/README.md / 好み `/api/me/messaging/preferences` → services/server/preferences/README.md / 端末の帳簿 `/api/me/messaging/endpoints` → services/server/endpoints/README.md
 - 配信停止 `/api/messaging/unsubscribe` と確認のページ `/unsubscribe` → services/server/unsubscribe/README.md
 - provider の webhook `/api/webhook/messaging/[channel]/[provider]` → services/server/webhooks/README.md

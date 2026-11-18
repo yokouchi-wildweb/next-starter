@@ -4,7 +4,7 @@
 
 - ユーザーが特定の条件を達成したことを検知・記録し、達成時に任意の処理を実行する汎用フレームワーク
 - 上流は仕組みだけを持つ。具体的なマイルストーン定義は下流が受け口に置く
-- 閉じられる機能: 門番の規則 `src/featureGate/rules/milestone.ts`(既定は閉 `defaultEnabled: false`、fork は `src/config/featureGate/switches.config.ts` で開ける)。閉じたときの統合ポイント: 決済の完了は評価せず結果は空・本登録の後(user_registered)は何もしない
+- 閉じられる機能: 機能の入切(feature gate)の規則 `src/featureGate/rules/milestone.ts`(既定は閉 `defaultEnabled: false`、fork は `src/config/featureGate/switches.config.ts` で開ける)。閉じたときの統合ポイント: 決済の完了は評価せず結果は空・本登録の後(user_registered)は何もしない
 
 ## Usage
 
@@ -50,23 +50,7 @@ export const milestone: MilestoneDefinition = {
 
 ### 2. 段階のあるシリーズ(1 項目で段階の並びを持つ)
 
-ランクのように「段階ごとに達成がある」物は、段階ごとのファイルを並べず 1 項目のシリーズにする(欄は `API.md`「シリーズの欄」)。
-
-```ts
-// services/server/definitions/rankUp.ts
-import { defineMilestoneSeries } from "@/features/core/milestone/types/milestone";
-
-export const milestone = defineMilestoneSeries({
-  kind: "series",
-  key: "rank_up",
-  triggers: ["purchase_completed"],
-  order: "sequential",
-  stages: () => getRankTiers(),                 // [{ key: "bronze", threshold: 3000, bonus: 100 }, …] を設定から
-  stageKey: (tier) => `rank_${tier.key}`,       // 段階の名前から(記録済みの鍵と同じ形を保つ)
-  evaluate: async (tier, { userId }, tx) => (await totalPurchased(userId, tx)) >= tier.threshold,
-  onAchieved: async (tier, { userId, tx }) => grantRankBonus(userId, tier, tx),
-});
-```
+ランクのように「段階ごとに達成がある」物は、段階ごとのファイルを並べず 1 項目のシリーズにする(欄は `API.md`「シリーズの欄」、書き方の全体は下の「レシピ: ランク(段階のあるシリーズ)」)。
 
 - 段階を消すと、その段階はもう評価されない。記録済みの達成は残る(項目のファイルを消したときと同じ)
 - 鍵の重複は読み手が例外にする: 普通の定義・段階の鍵・シリーズの鍵のどれどうしでも、シリーズをまたいでも。`stageKey` が空でも例外
@@ -218,7 +202,7 @@ export const renderer: MilestoneRendererDefinition = {
 
 達成をどこで見せるかは業務の判断なので、上流の画面(購入完了の `PurchaseComplete` を含む)は `MilestoneNotifications` を描かない。達成の結果は購入の状態の API・`usePurchaseStatus` の `milestoneResults` にそのまま入る。
 
-- 画面に出す: fork の route の `_components/` の Screen に置く。機能が閉じたときは描かないよう門番を確かめる
+- 画面に出す: fork の route の `_components/` の Screen に置く。機能が閉じていれば描かない(札 milestone_display)
   ```tsx
   const showMilestones = useGate().enabled("milestone");
   {showMilestones && purchaseInfo?.milestoneResults?.length ? (
@@ -281,7 +265,7 @@ completePurchase() で milestone_results を jsonb に保存
 
 - **冪等性**: `user_id + milestone_key` のユニーク制約で、同じマイルストーンが二重に記録されることはない。記録を確定してから `onAchieved` を呼ぶので、同時に 2 回評価されても付与は 1 回(記録を取れた側だけが呼ぶ)
 - **エラー分離**: 個別マイルストーンの evaluate/onAchieved でエラーが発生しても、他のマイルストーンの評価は継続する。tx がある場合は PostgreSQL の SAVEPOINT で分離されるため、DB エラーがトランザクション全体を汚染しない
-- **トランザクション**: `completePurchase` から呼ばれる場合は既存の tx が渡される。マイルストーンの記録と購入処理が同一トランザクションで実行される。evaluate にも tx が渡されるため、トランザクション内の最新状態を参照可能。tx を渡さない呼び出しでも記録と `onAchieved` は 1 件ごとの `db.transaction` の中で、`onAchieved` の `params.tx` にそれが渡る(付与は `params.tx` で書く)。メールなど DB の外の副作用は戻らないので、tx の後で送る形にする
+- **トランザクション**: `completePurchase` から呼ばれる場合は既存の tx が渡される。マイルストーンの記録と購入処理が同一トランザクションで実行される。evaluate にも tx が渡されるため、トランザクション内の最新状態を参照可能。tx を渡さない呼び出しでも記録と `onAchieved` は 1 件ごとの `db.transaction` の中で、`onAchieved` の `params.tx` にそれが渡る(`params.tx` で書いた付与は記録と一緒に確定する)。メールなど DB の外の副作用は戻らない(札 milestone_grant_tx)
 - **パフォーマンス**: 登録マイルストーンが0件の場合、`evaluateMilestones` は即座に空配列を返す（オーバーヘッドなし）
 - **user_id に FK なし**: ユーザー削除後も達成記録は保持される
 

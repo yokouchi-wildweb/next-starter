@@ -18,4 +18,4 @@ using:
 - revoke_on_scope_change: deleting or moving the data a scope names revokes its devices with revokePairedDevicesByScope in the same tx (or re-scopes them), not a DB lookup in verify
 - system_actor_cli: actor "system" only from CLI / cron; HTTP routes always pass the user
 - code_from_url_suspense: a part using useDevicePairingCodeFromUrl sits inside <Suspense>
-read: turn it on, config → Usage | add a kind → Extension | routes, pages, screens → Usage | API list, audit, data → API | pairing and real devices → Internals
+read: turn it on → Usage | add a kind, config → Extension | routes, pages, screens → Usage | API list, audit, data → API | pairing and real devices → Internals

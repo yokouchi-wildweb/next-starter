@@ -2,7 +2,7 @@
 
 ## Overview
 
-- 表を持たない core ドメイン。文書の例文・文書ごとの印(sample / own)・差し込み済みの文書を返す口・本番の検査を持つ。形は事業の素性 `src/lib/business` の受付係と同じ
+- 表を持たない core ドメイン。文書の例文・文書ごとの印(sample / own)・差し込み済みの文書を返す公開の入口(`documents.ts`)・本番の検査を持つ。作りは事業の素性 `src/lib/business` の結び(`@/business`)と同じ
 - 使う時・直す時の決まりは札 .claude/rules/items/features/legal.md にある。この README は使い方と仕組み
 
 ## Usage
@@ -10,14 +10,14 @@
 初期化: `pnpm ops legal from-example [terms|privacy|tradelaw …] [--force]` = 例文を上書きへリテラルで写して own にする(種類を省くと 3 文書とも)。
 
 - 既に own の文書は `--force` が無い限り変えない
-- 上書きのファイルは今の値から書き直す(他のキーは残る、手で書いた注記は決まった頭に戻る)
+- 上書きのファイルは今の値から書き直す(他のキーは残る、ファイル冒頭のコメントは道具が決めた文に戻る)
 
 ## API
 
 - `getLegalDocument(kind)`: 差し込み済みの文書を返す。文面(sample = 例文、own = 上書き)の題名・本文・子の節の `{{NAME}}` を埋める: `SERVICE_NAME`・`DOMAIN`・`COMPANY_NAME`・`REPRESENTATIVE`・`POSTAL_CODE`・`ADDRESS`・`PHONE`・`EMAIL`(`@/business`)、`PAYMENT_METHODS`(legal)。利用規約・プライバシーポリシーは文面に `enactedAt` が無ければ `business.launchedAt`
 - `getLegalEnactedAtFormat()`: 日付の行の文言(`LegalDocumentRenderer` の `enactedAtFormat` に渡す)
 - `buildLegalDocument(kind, config, business, examples?)`: 上の純関数版(テスト・他の値で組むとき)
-- 口は `@/features/legal/documents`(別名は tsconfig の `@/features/legal/*`)
+- 入口は `@/features/legal/documents`(別名は tsconfig の `@/features/legal/*`)
 
 ## Extension
 
@@ -26,7 +26,7 @@
 文書の選び方 `documents.<kind>`(kind = `terms` / `privacy` / `tradelaw`):
 
 - `{ source: "sample" }`(既定。上流はこれで出荷する)= 上流の例文 `examples/<kind>.ts` を表示する。開発と Tier1 のデモ用
-- `{ source: "own", document: { title, sections, … } }` = このプロジェクトの文面。`document` は型で必須(`LegalOverride` は文書ごとに丸ごと書く)。制定日・最終改定日は文面の `enactedAt` / `lastUpdatedAt` に書く
+- `{ source: "own", document: { title, sections, … } }` = このプロジェクトの文面(型 `LegalOverride`)。制定日・最終改定日は文面の `enactedAt` / `lastUpdatedAt` に書く
 - 例文の変更履歴は `examples/CHANGELOG.md`
 
 ほかのキー:
@@ -37,7 +37,7 @@
 
 ## Internals
 
-- 本番の検査 `pnpm check legal`(門 build): sample の文書が 1 つでもあるまま本番でビルドすると失敗する。Tier1 は警告だけ。判定は事業の素性と同じ部品(`@/lib/business` の `sampleReleaseLevel`)
+- 本番の検査 `pnpm check legal`(`pnpm build` の最初に回る `pnpm check --gate=build` に入る): sample の文書が 1 つでもあるまま本番でビルドすると失敗する。Tier1 は警告だけ。判定は事業の素性と同じ部品(`@/lib/business` の `sampleReleaseLevel`)
 
 ## Verification
 

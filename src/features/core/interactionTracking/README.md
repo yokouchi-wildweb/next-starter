@@ -4,7 +4,7 @@
 
 - 匿名ユーザーを含む行動イベント（クリック等）を (target_type, target_id, action) 単位で記録・集計する汎用計測基盤
 - 答える問い: 「匿名を含む不特定多数が、コンテンツ単位で何回アクションしたか」。管理画面での累計表示（例: バナーAのクリック合計）と、マーケティング用の長期時系列分析（例: 月別クリック推移・導線別内訳。日次集計は永久保持）
-- 閉じられる機能(門番の規則 `src/featureGate/rules/interactionTracking.ts`、今は常に開)。閉じると `/api/interactions`・`/api/admin/interactions`・導出の `/api/interactionEvent`・掃除の cron が 404 で、表も push から外れる
+- 閉じられる機能(門番の規則 `src/featureGate/rules/interactionTracking.ts`、既定は閉 `defaultEnabled: false`。開くのは `pnpm ops features set interactionTracking on`)。閉じると `/api/interactions`・`/api/admin/interactions`・`domains` から導く汎用 API `/api/interactionEvent`・掃除の cron が 404 で、表も push から外れる
 - 使う時・直す時の決まりは札 .claude/rules/items/features/interactionTracking.md にある
 
 ### 守備範囲
@@ -144,7 +144,7 @@ const { items, total, isLoading, hasMore, sentinelRef } = useInfiniteScrollQuery
 - HTTP: `GET /api/cron/interaction-event-prune`（Bearer `CRON_SECRET`）
 - スケジュール: 日次（`vercel.json` のエントリは `pnpm generate cron` が生成）
 - 削除対象は**明細のみ**。累計・日次集計は消えない
-- テーブルは schemaRegistry 登録済み。`pnpm db:push` は手動実行の運用（自動実行しない）
+- テーブルは schemaRegistry 登録済み。`pnpm db:push`（誰が回すかは repo.json `agent.db_push`）
 
 ## API
 
@@ -162,6 +162,7 @@ const { items, total, isLoading, hasMore, sentinelRef } = useInfiniteScrollQuery
 3. **サーバー内部**: `interactionService.record({...})` / `recordBatch([...])` — サーバーロジックから
    直接記録する場合（`tx` を渡せば呼び出し側トランザクションに合流）
 
+- 管理の読み取り: `GET /api/admin/interactions/audience` / `GET /api/admin/interactions/audience-summary`（admin 限定、形は Usage）
 - 汎用 API (`/api/interactionEvent`) は admin 限定のイベント明細調査・閲覧用。汎用 CRUD での直接挿入はカウンタを加算しない
 
 ### サーバー関数
@@ -175,7 +176,7 @@ const { items, total, isLoading, hasMore, sentinelRef } = useInfiniteScrollQuery
 | `getDailySeries(targetType, targetId, opts?)` | 日次時系列: `{date, action, source, count}[]`（永久データ） |
 | `getAudience(targetType, targetId, {action, page, limit, orderBy})` | 「誰がクリックしたか」ユーザー単位一覧（PII 含む・admin ルート専用） |
 | `getAudienceSummary(targetType, targetId)` | action 別の 累計 / ログイン済み / 匿名 件数 |
-| `pruneExpiredInteractionEvents(options?)` | 明細の retention prune（cron 用） |
+| `pruneExpiredInteractionEvents(options?)` | 明細の retention prune（cron 用。`interactionService` ではなく `services/server` の export） |
 | `...base` | 汎用 CRUD（admin 調査用） |
 
 ## Extension

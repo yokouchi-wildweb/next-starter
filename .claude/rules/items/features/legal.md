@@ -11,7 +11,7 @@ rules:
 using:
 - own_before_release: a production build with any document still `source: "sample"` fails pnpm check legal → every document is `own` before release
 - own_whole_document: an `own` entry carries its whole `document` (title, sections, enactedAt / lastUpdatedAt in the text)
-- read_through_entry: readers use @/features/legal/documents, never LEGAL_CONFIG directly (only the gate rules read `pages` from @/features/legal/config)
+- read_through_entry: readers use @/features/legal/documents, never LEGAL_CONFIG directly
 editing:
 - examples_upstream_only: a fork never edits examples/<kind>.ts | an upstream change to them adds a line to examples/CHANGELOG.md and ships a notice; a fork takes it in by editing its own text
 read: pick sample / own, other keys → Extension | filling and readers → API | tests → Verification

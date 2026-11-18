@@ -70,7 +70,7 @@ evaluate: async ({ userId }, tx) => {
 
 #### `purchase_completed`
 
-- **場所**: `purchaseRequest/services/server/wrappers/purchaseService.ts` の `completePurchase()` 内
+- **場所**: `purchaseRequest/services/server/wrappers/completePurchase.ts` の `completePurchase()` 内
 - **タイミング**: 決済完了 → ウォレット残高更新後（同一トランザクション内）
 - **結果の永続化**: 達成されたマイルストーンは `purchase_requests.milestone_results` (jsonb) に自動保存される
 - **クライアントへの伝達**: `/api/wallet/purchase/[id]/status` のレスポンスに `milestoneResults` として含まれる
@@ -92,7 +92,7 @@ evaluate: async ({ userId, payload }, tx) => {
 - **タイミング**: 本登録の守り（ID トークンの検証・メール一致・仮登録の確認）→ `registerFromAuth`（active 化）→ プロフィール・流入経路・招待コードの後、セッション発行の前に 1 回。登録の守りより前には発火しない
 - **トランザクション**: 登録とは別の 1 つの tx を開いて評価する（このトリガーの定義が無ければ開かない）。`onAchieved` に渡る `tx` で付与すれば、付与と `milestones` の記録が同時に確定する（同じ人の同時の 2 回目は記録のユニークで落ち、付与も巻き戻る）
 - **1 人 1 回**: `milestones` の `user_id + milestone_key` のユニーク。退会後の再登録など同じ `users.id` の 2 度目の本登録では、発火しても達成済みで走らない
-- **失敗時**: 定義ごとの失敗は SAVEPOINT で分離（他の定義は確定する）。評価そのもの・tx の失敗はログだけで、**登録は止めない**（登録は確定済みで巻き戻さない。巻き戻したい処理はここに置かない）
+- **失敗時**: 定義ごとの失敗は SAVEPOINT で分離（他の定義は確定する）。評価そのもの・tx の失敗はログだけで、**登録は止めない**（登録は確定済みで巻き戻さない）
 - **結果の伝達**: 応答には載せない（`purchase_completed` の `milestone_results` のような永続化は無い）
 - **payload**（`UserRegisteredPayload`）:
   - `user`: 本登録後の利用者（User 型）
@@ -114,7 +114,7 @@ type PersistedMilestoneResult = {
 };
 ```
 
-`evaluateMilestones` の結果(`MilestoneEvaluationResult`)も段階のときは `series: { seriesKey, stageKey }` を持つ。`completePurchase` は保存する結果にこの 2 つを写す(普通の定義の結果の形は今と同じ)。
+`evaluateMilestones` の結果(`MilestoneEvaluationResult`)も段階のときは `series: { seriesKey, stageKey }` を持つ。`completePurchase` は保存する結果にこの 2 つを写す(普通の定義の結果は series を持たない)。
 
 ### レンダラー
 
@@ -126,7 +126,7 @@ type PersistedMilestoneResult = {
 | `result` | その評価で達成した段のうち一番上の段 | その結果 |
 | `seriesResults` | その評価で達成した段の結果の全部(下から = 評価の順) | `undefined` |
 
-レンダラーの無い段は今と同じく 1 件ずつ既定の通知。テスト: `pnpm test src/features/core/milestone/components/MilestoneNotifications.render.test.tsx`
+レンダラーの無い段は 1 件ずつ既定の通知。テスト: `pnpm test src/features/core/milestone/components/MilestoneNotifications.render.test.tsx`
 
 #### 表示モード(`displayMode`)
 

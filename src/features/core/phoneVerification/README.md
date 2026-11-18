@@ -11,7 +11,7 @@
 - 使うかどうかは機能 `phoneVerification` の入切だけ(規則 `src/featureGate/rules/phoneVerification.ts`、上流の既定 閉)。開けるのは `pnpm ops features set phoneVerification on`(fork は `src/config/featureGate/switches.config.ts` に書かれる)
 - 閉じると: API `/api/phone-verification/**` が 404
 - 外の読み手(どれも自分で入切を確かめる): マイページのアカウントの電話番号の行(`AccountDetails`、未認証の出し分け)・`EditPhone`(SMS の手順か SMS なしの入力か)・`PATCH /api/me/phone`(開なら 404)・財布の残高の「SMS 認証が要る」案内(`PhoneVerificationRequired`、閉なら出さず購入の欄を出す)・財布の購入の制限のサーバーでの強制(wallet の `assertWalletPurchaseAllowed`、`requirePhoneVerification` で 403。閉なら 403 で断る)
-- 電話番号の画面(`/mypage/account/phone`、規則 `pageMypage` の住所)を出すかは user の設定 `account.editableItems` に `"phone"` があるか。この機能が開なら SMS の手順、閉なら user の SMS なしの入力(`PATCH /api/me/phone`、未認証で保存。`src/features/core/user/README.md`)
+- 電話番号の画面(`/mypage/account/phone`、規則 `pageMypage` の pathPatterns)を出すかは user の設定 `account.editableItems` に `"phone"` があるか。この機能が開なら SMS の手順、閉なら user の SMS なしの入力(`PATCH /api/me/phone`、未認証で保存。`src/features/core/user/README.md`)
 
 ## Usage
 
@@ -19,7 +19,7 @@
 
 ## API
 
-| 住所 | 呼び手 | 処理 |
+| メソッド・パス | 呼び手 | 処理 |
 |---|---|---|
 | `POST /api/phone-verification/check` | authenticated | 番号が他の利用者に使われていないか(自分は除く) |
 | `POST /api/phone-verification/verify` | authenticated | OTP の後の ID トークンを検証し、番号と認証日時を保存 |
@@ -33,8 +33,8 @@
 
 - フック: `usePhoneVerification`(手順の状態と Firebase の呼び出し)・`usePhoneVerificationModal`(Promise で認証を求める)
 - サーバー: `checkPhoneAvailability`(重複の確認)・`verifyPhoneOtp`(ID トークンを checkRevoked で検証し番号の一致を確かめる)
-- 書き込みは user が持つ: `verifyPhoneOtp` が user の `updatePhoneVerified`(`@/features/core/user/services/server/phoneVerification`、重複の確認と base.update で監査を通す)を呼ぶ。番号の形式(`E164_PHONE_REGEX`・`formatToE164`・`formatForDisplay`)も user の `utils/phoneNumber`
-- reCAPTCHA の置き場 `<div id="phone-verification-recaptcha" />` は root layout にある(モーダルの外に要る)
+- 書き込みは user が持つ: `verifyPhoneOtp` が user の `updatePhoneVerified`(`@/features/core/user/services/server/phoneVerification`、重複の確認と base.update で監査を通す)を呼ぶ。番号の形式(`E164_PHONE_REGEX`・`formatToE164`・`formatForDisplay`)も user の `utils/phoneNumber`(札 pv_write_via_user / pv_phone_format)
+- reCAPTCHA の置き場(`<Block id="phone-verification-recaptcha" />`)は root layout にある(札 pv_recaptcha_slot)
 
 ## Verification
 

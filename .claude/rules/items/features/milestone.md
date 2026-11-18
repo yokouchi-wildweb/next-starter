@@ -4,7 +4,7 @@ paths:
 ---
 # features/milestone
 what: detects and records a user reaching a condition at integration points (purchase_completed, user_registered, own triggers) and runs onAchieved | entry evaluateMilestones (services/server/wrappers), client MilestoneNotifications
-use: milestone (default off)
+use: milestone
 change: add → src/features/core/milestone/extensionPoints.ts: definitions (services/server/definitions/<name>.ts) and renderers (components/renderers/<name>.ts(x)), then pnpm generate extensions
 rules:
 using:
@@ -16,4 +16,4 @@ using:
 - milestone_display: upstream screens never render MilestoneNotifications | a fork shows it in its _components/ Screen behind useGate().enabled("milestone"), or sends elsewhere from onAchieved
 editing:
 - milestone_record_first: the record (insert … on conflict do nothing) is fixed before onAchieved, which runs only when the row came back | one SAVEPOINT (with tx) or db.transaction (without) per item
-read: define, series, recipes, own trigger, renderer, where to show → Usage | fields, context, payloads, result and renderer types → API (API.md) | receptacles → Extension | evaluation flow, idempotency → Internals | tests → Verification
+read: define, series, recipes, own trigger, renderer, where to show → Usage | fields, context, payloads, result and renderer types → src/features/core/milestone/API.md API | receptacles → Extension | evaluation flow, idempotency → Internals | tests → Verification

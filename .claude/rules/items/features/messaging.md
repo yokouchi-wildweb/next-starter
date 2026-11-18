@@ -6,7 +6,7 @@ paths:
 # features/messaging
 what: messages to users (email, inbox, LINE, fork channels): definitions messages/<name>.ts sent by messagingService (@/features/messaging/services/server), recorded as dispatches and deliveries
 use: sending is always open | messagingDispatches, messagingBroadcast, messagingTemplates, messagingOverrides, messagingPreferences, messagingInbox, messagingTracking
-change: overlay = src/config/features/messaging.config.ts, <name>.override.ts | add = receptacle items (extensionPoints.ts) | looks = layout .replace
+change: placement = src/config/features/messaging.config.ts | overlay = <name>.override.ts | add = receptacle items (extensionPoints.ts) | replace = layouts/<name>/ .replace
 rules:
 using:
 - var_names: a definition gives varNames (alias, description) for every vars key

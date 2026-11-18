@@ -8,8 +8,8 @@ use: phoneVerification
 change: none → /order <direct parent>
 rules:
 using:
-- pv_gate_check: a file outside reading this folder by value checks the gate itself (gate dependency check)
-- pv_recaptcha_slot: the reCAPTCHA slot `<div id="phone-verification-recaptcha" />` stays in the root layout, outside any modal
+- pv_gate_check: a file outside this folder that imports it by value checks the gate itself (gate dependency check)
+- pv_recaptcha_slot: the reCAPTCHA slot (`id="phone-verification-recaptcha"`) stays in the root layout, outside any modal
 editing:
 - pv_write_via_user: writes go through user's updatePhoneVerified (duplicate check + base.update audit), never a direct update here
 - pv_phone_format: phone formats (E164_PHONE_REGEX, formatToE164, formatForDisplay) come from user utils/phoneNumber, never redefined here

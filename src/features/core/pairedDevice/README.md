@@ -11,20 +11,18 @@
 - 端末の Cookie はユーザーセッションと別。端末で `/api/me/**` やユーザー向けのルートは通らない
 - 監査ログには actor `device`（actorId = 端末 id）で残る
 - core にはドメイン画面を置かない。ペアリング画面・管理画面は downstream が下記のパーツで組み立てる
-- 決まり（scope の取り方・レート制限の単位・ペアリング方式・端末ページの置き場・一括失効・actor）は札 `.claude/rules/items/features/pairedDevice.md`
+- 決まり（scope の取り方・レート制限の単位・ペアリング方式・端末ページの置き場・一括失効・actor）は札（カード）`.claude/rules/items/features/pairedDevice.md`
 
 ## Usage
 
 ### 有効化（オプトイン、既定は無効）
 
-1. 機能を開く: fork は `pnpm ops features set pairedDevice on`(`src/config/featureGate/switches.config.ts` に `pairedDevice: true`)。既定は門番の規則 `src/featureGate/rules/pairedDevice.ts` の `defaultEnabled: false`
+1. 機能を開く: fork は `pnpm ops features set pairedDevice on`(`src/config/featureGate/switches.config.ts` に `pairedDevice: true`)。既定は機能の規則（feature gate）`src/featureGate/rules/pairedDevice.ts` の `defaultEnabled: false`
 2. `pnpm db:push`（`paired_devices` / `device_pairings` が作られる。無効の間は作られない）
 3. 端末の種類を `kinds/<名前>.ts` に置き `pnpm generate extensions`（下記）
 
 無効の間は feature-gate が `/api/paired-device/**` `/api/paired-devices/**` を 404 にし、
 `getSessionDevice` は Cookie を読まずに常に null を返す。
-
-Cookie 名・端末トークンの期間・ペアリングコード・最終アクセスの間引きなどの値は、このドメインの `config.ts`（`pairedDeviceConfig`）が既定を持つ。変えるときは上書き `src/config/features/pairedDevice.config.ts` に書く（例 `export default { token: { maxAgeDays: 90 } } satisfies PairedDeviceOverride;`）。
 
 ### 端末を主体にするルート・ページ
 
@@ -163,7 +161,7 @@ const targets = await listPairedDevicesByScope({ scope: { storeId } }, { actor: 
 ### 画面の組み立て（downstream）
 
 hooks はすべて `@/features/pairedDevice/hooks`。失敗の理由は `errorReason`
-（`not_found` / `expired` / `used` / `rate_limited` / `forbidden` / `invalid_scope` / `disabled`）で、文言は自由に決めてよい。
+（`not_found` / `expired` / `used` / `rate_limited` / `forbidden` / `invalid_scope` / `disabled` / `device_active` / `flow_not_allowed`）で、文言は自由に決めてよい。
 
 | 用途 | パーツ |
 |---|---|
@@ -332,6 +330,8 @@ server-only の API は `@/features/pairedDevice/services/server`（サービス
 - 照合用のランダムトークン・短いコードの生成は `@/lib/crypto`（secretToken.ts）
 
 ## Extension
+
+Cookie 名・端末トークンの期間・ペアリングコード・最終アクセスの間引きなどの値は、このドメインの `config.ts`（`pairedDeviceConfig`）が既定を持つ。変えるときは上書き `src/config/features/pairedDevice.config.ts` に書く（例 `export default { token: { maxAgeDays: 90 } } satisfies PairedDeviceOverride;`）。
 
 ### 端末の種類（kind）を登録する
 

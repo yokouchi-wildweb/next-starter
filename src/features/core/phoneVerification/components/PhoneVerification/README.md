@@ -14,7 +14,7 @@
 基本コンポーネント。ページ内に直接埋め込む場合に使用。
 
 ```tsx
-import { PhoneVerification } from "@/features/core/phoneVerification/components/PhoneVerification";
+import { PhoneVerification } from "@/features/phoneVerification/components/PhoneVerification";
 
 // 新規登録
 <PhoneVerification
@@ -40,7 +40,7 @@ import { PhoneVerification } from "@/features/core/phoneVerification/components/
 モーダルでラップしたバージョン。特定アクション前の認証要求に使用。
 
 ```tsx
-import { PhoneVerificationModal } from "@/features/core/phoneVerification/components/PhoneVerification";
+import { PhoneVerificationModal } from "@/features/phoneVerification/components/PhoneVerification";
 
 <PhoneVerificationModal
   open={isOpen}
@@ -56,8 +56,8 @@ import { PhoneVerificationModal } from "@/features/core/phoneVerification/compon
 モーダル管理用フック。Promise based APIで認証フローを簡単に実装可能。
 
 ```tsx
-import { PhoneVerificationModal } from "@/features/core/phoneVerification/components/PhoneVerification";
-import { usePhoneVerificationModal } from "@/features/core/phoneVerification/hooks/usePhoneVerificationModal";
+import { PhoneVerificationModal } from "@/features/phoneVerification/components/PhoneVerification";
+import { usePhoneVerificationModal } from "@/features/phoneVerification/hooks/usePhoneVerificationModal";
 
 function CoinPurchasePage({ user }) {
   const phoneModal = usePhoneVerificationModal();
