@@ -116,8 +116,8 @@ export function UserGroupPeopleModal({ title, people, emptyText, disabled = fals
       <Dialog
         open={removeOpen}
         onOpenChange={setRemoveOpen}
-        layer="alert"
-        overlayLayer="alert"
+        layer="floating"
+        overlayLayer="floating"
         title={`${count} 名を削除`}
         description="選んだユーザーをこの一覧から削除します。"
         confirmLabel="削除する"
@@ -131,8 +131,8 @@ export function UserGroupPeopleModal({ title, people, emptyText, disabled = fals
       <Dialog
         open={clearOpen}
         onOpenChange={setClearOpen}
-        layer="alert"
-        overlayLayer="alert"
+        layer="floating"
+        overlayLayer="floating"
         title="全員を削除"
         description={`${title.replace(/[(（].*[)）]$/, "")}の${total !== null ? ` ${total.toLocaleString("ja-JP")} 名` : ""}を全員削除します。元に戻せません。`}
         confirmLabel="全員を削除する"

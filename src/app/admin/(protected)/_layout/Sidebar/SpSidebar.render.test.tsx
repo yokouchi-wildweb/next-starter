@@ -61,10 +61,10 @@ test("閉じている間は描かず、開くと右の板と背景に admin-side
   const panel = document.querySelector("[role=dialog]")!;
   assert.equal(panel.getAttribute("data-slot"), "admin-sidebar");
   const c = (panel.getAttribute("class") ?? "").split(" ");
-  for (const k of ["right-0", "navigation-layer", "md:hidden", "border-l-0"]) assert.ok(c.includes(k), k);
+  for (const k of ["right-0", "floating-layer", "md:hidden", "border-l-0"]) assert.ok(c.includes(k), k);
   assert.match(panel.getAttribute("style") ?? "", /width: 192px/);
   const overlay = marks.find((m) => m !== panel)!;
-  for (const k of ["backdrop-layer", "md:hidden"])
+  for (const k of ["floating-layer", "md:hidden"])
     assert.ok((overlay.getAttribute("class") ?? "").split(" ").includes(k), k);
   assert.ok(panel.querySelector('x-probe[data-placement="sp"][data-width="192"]'));
 

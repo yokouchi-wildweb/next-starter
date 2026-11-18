@@ -130,7 +130,7 @@ export function MultiSelectInput({
         <PopoverContent
           align="start"
           side={side}
-          layer="surface-ui"
+          layer="floating"
           {...popoverContentProps}
           className={cn(
             "w-[min(320px,90vw)] p-0",

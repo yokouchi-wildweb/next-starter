@@ -55,7 +55,7 @@ function withOpen(el: ReactElement, run: (q: { panel: Element | null; overlay: E
 test("side ごとの辺と大きさ、題が無くても名がある", () => {
   withOpen(createElement(Sheet, { open: true, onOpenChange: noop }, "body"), ({ panel }) => {
     const c = classes(panel);
-    for (const k of ["fixed", "inset-x-0", "bottom-0", "rounded-t-2xl", "modal-layer"]) assert.ok(c.includes(k), k);
+    for (const k of ["fixed", "inset-x-0", "bottom-0", "rounded-t-2xl", "floating-layer"]) assert.ok(c.includes(k), k);
     assert.equal(panel!.getAttribute("data-slot"), "sheet");
     assert.equal(panel!.getAttribute("data-side"), "bottom");
     assert.match(panel!.getAttribute("style") ?? "", /max-height: 85dvh/);
@@ -126,8 +126,8 @@ test("className / overlayClassName / 層 / container / 印", () => {
       side: "right",
       className: "md:hidden border-l-0",
       overlayClassName: "md:hidden",
-      layer: "navigation",
-      overlayLayer: "backdrop",
+      layer: "floating",
+      overlayLayer: "floating",
       container: box,
       slot: "admin-sidebar",
       overlaySlot: "admin-sidebar",
@@ -136,10 +136,11 @@ test("className / overlayClassName / 層 / container / 印", () => {
     ({ panel, overlay }) => {
       assert.ok(panel && overlay && box.contains(panel) && box.contains(overlay));
       const c = classes(panel);
-      for (const k of ["md:hidden", "border-l-0", "navigation-layer", "absolute"]) assert.ok(c.includes(k), k);
-      assert.ok(!c.includes("fixed") && !c.includes("border-l") && !c.includes("modal-layer"));
+      for (const k of ["md:hidden", "border-l-0", "floating-layer", "absolute"]) assert.ok(c.includes(k), k);
+      assert.ok(!c.includes("fixed") && !c.includes("border-l"));
+      assert.equal(c.filter((k) => k.endsWith("-layer")).length, 1);
       const o = classes(overlay);
-      for (const k of ["md:hidden", "backdrop-layer", "absolute"]) assert.ok(o.includes(k), k);
+      for (const k of ["md:hidden", "floating-layer", "absolute"]) assert.ok(o.includes(k), k);
       assert.equal(panel!.getAttribute("data-slot"), "admin-sidebar");
       assert.equal(overlay!.getAttribute("data-slot"), "admin-sidebar");
       assert.equal(panel!.querySelector("[data-slot=sheet-close]"), null);

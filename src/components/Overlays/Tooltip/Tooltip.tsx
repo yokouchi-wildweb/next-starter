@@ -12,7 +12,7 @@ import { useIsInsideTooltipProvider } from "./Provider";
 
 // レイヤータイプ
 /** 層(層の名 @/lib/zLayer のうち受ける範囲) */
-export type TooltipLayer = Extract<ZLayerName, "overlay" | "alert" | "super" | "ultimate" | "apex">;
+export type TooltipLayer = Extract<ZLayerName, "floating">;
 
 export type TooltipProps = {
   /** ツールチップの内容 */
@@ -78,7 +78,7 @@ export function Tooltip({
   sideOffset = 4,
   delayDuration = 200,
   skipDelayDuration,
-  layer = "overlay",
+  layer = "floating",
   showArrow = true,
   asChild = true,
   className,

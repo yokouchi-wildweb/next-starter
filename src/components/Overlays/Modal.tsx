@@ -79,9 +79,9 @@ export type ModalProps = {
   onCloseAutoFocus?: (event: Event) => void;
   /** 背景(覆い)に足す class(色・ぼかし等)。省略時は今の bg-overlay/50 */
   overlayClassName?: string;
-  /** 本体の層(@/lib/zLayer の名)。既定 "modal"。他のモーダルや固定の UI より上に出したい時に上げる */
+  /** 本体の層(@/lib/zLayer の名)。既定 "floating"(浮く物は全部 floating、後に開いた物が上) */
   layer?: DialogContentLayer;
-  /** 背景の層。既定 "modal" */
+  /** 背景の層。既定 "floating" */
   overlayLayer?: DialogOverlayLayer;
   /** 全画面: 本体が画面いっぱい(角丸・枠・最大幅なし、高さ 100dvh)。余白は上下の safe-area の分だけで、
    * 中身の余白は呼び手が className / 中身で決める。閉じるボタンは画面の内の右上に置く */
@@ -272,8 +272,8 @@ export default function Modal({
           onOpenChange={setCloseConfirmOpen}
           title={confirmOnClose.title}
           description={confirmOnClose.message ?? DEFAULT_CONFIRM_ON_CLOSE_MESSAGE}
-          layer="alert"
-          overlayLayer="alert"
+          layer="floating"
+          overlayLayer="floating"
           confirmLabel={confirmOnClose.confirmLabel ?? DEFAULT_CONFIRM_ON_CLOSE_CONFIRM_LABEL}
           cancelLabel={confirmOnClose.cancelLabel ?? DEFAULT_CONFIRM_ON_CLOSE_CANCEL_LABEL}
           confirmVariant="destructive"

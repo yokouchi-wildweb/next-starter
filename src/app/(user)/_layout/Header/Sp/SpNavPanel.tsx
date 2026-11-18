@@ -21,7 +21,7 @@ export type SpNavPanelProps = {
 export const SpNavPanel = ({ items, showIcons = true, onNavigate, footer }: SpNavPanelProps) => (
   <motion.nav
     data-slot="header-sp-nav-panel"
-    className="relative modal-layer ml-auto flex h-full w-3/4 max-w-sm flex-col border-l border-border bg-header text-header-foreground shadow-2xl"
+    className="relative floating-layer ml-auto flex h-full w-3/4 max-w-sm flex-col border-l border-border bg-header text-header-foreground shadow-2xl"
     variants={slideFromRightVariants}
     initial="hidden"
     animate="visible"

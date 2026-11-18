@@ -48,7 +48,7 @@ export function AdminProtectedLayout({ children, sidebar, footer }: AdminProtect
             type="button"
             variant="accent"
             size="icon"
-            className="fixed bottom-4 right-4 size-12 rounded-full surface-ui-layer md:hidden"
+            className="fixed bottom-4 right-4 size-12 rounded-full forefront-layer md:hidden"
             onClick={toggleSidebar}
             aria-pressed={sidebarOpen}
             aria-label={sidebarOpen ? "メニューを閉じる" : "メニューを開く"}

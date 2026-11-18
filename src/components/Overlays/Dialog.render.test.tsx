@@ -102,7 +102,7 @@ test("新しい指定なし: 確認型・OK だけ・children 付き・✕ だ�
   );
   assert.deepEqual(
     snap(
-      createElement(D, { open: true, onOpenChange: noop, title: "T", layer: "alert", overlayLayer: "alert" }, "body"),
+      createElement(D, { open: true, onOpenChange: noop, title: "T", layer: "floating", overlayLayer: "floating" }, "body"),
     ),
     BEFORE.children,
   );

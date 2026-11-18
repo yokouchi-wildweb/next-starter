@@ -122,15 +122,15 @@ test("overlayClassName は背景に足し、layer / overlayLayer は層の class
         open: true,
         onOpenChange: noop,
         overlayClassName: "backdrop-blur-sm",
-        layer: "alert",
-        overlayLayer: "backdrop",
+        layer: "floating",
+        overlayLayer: "floating",
       },
       "body",
     ),
   );
-  assert.equal(s.overlay, BEFORE.modalDefault.overlay!.replace("modal-layer", "backdrop-layer") + " backdrop-blur-sm");
-  assert.ok(classes(s.content).includes("alert-layer"));
-  assert.ok(!classes(s.content).includes("modal-layer"));
+  // 層は 10 の名の floating だけ(当議会 D189)。指定しても既定と同じ class
+  assert.equal(s.overlay, BEFORE.modalDefault.overlay! + " backdrop-blur-sm");
+  assert.equal(classes(s.content).filter((k) => k.endsWith("-layer")).join(" "), "floating-layer");
 });
 
 test("fullscreen: 画面いっぱい・上下に safe-area の余白・閉じるボタンは内側・本体はスクロールの箱", () => {
@@ -214,8 +214,8 @@ test("管理者コマンドの形: 旧の DialogContent の直の使い方と層
         title: "管理者コマンド",
         titleSrOnly: true,
         showCloseButton: false,
-        layer: "super",
-        overlayLayer: "super",
+        layer: "floating",
+        overlayLayer: "floating",
         className: "overflow-hidden p-0",
         maxWidth: "32rem",
         maxHeight: null,

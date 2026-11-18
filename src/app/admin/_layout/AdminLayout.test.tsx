@@ -100,7 +100,7 @@ const BEFORE_LOGO_PRELOAD = LOGO_PRELOAD("dark") + LOGO_PRELOAD("light");
 /** 同じく外枠全体 */
 const BEFORE_OUTER = BEFORE_LOGO_PRELOAD + `<div class="relative flex h-[var(--viewport-height,100dvh)] flex-col overflow-hidden bg-background text-foreground" style="--app-header-height:0px" data-slot="admin-app-container" data-frame-root="">` + BEFORE_HEADER + `<div class="flex-1 min-h-0 flex flex-col overflow-clip">CHILD</div></div>`;
 /** `<AdminProtectedLayout>CHILD</AdminProtectedLayout>` */
-const BEFORE_PROTECTED = `<div class="flex h-full min-h-0 relative"><div data-slot="admin-sidebar" style="width:192px" class="fixed inset-y-0 right-0 navigation-layer transition-transform md:hidden translate-x-full"><x-basesidebar data-nav=""></x-basesidebar></div><div data-slot="admin-sidebar" class="hidden md:block h-full" style="width:192px"><x-basesidebar></x-basesidebar></div><div data-slot="admin-sidebar" class="hidden md:block h-full w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"></div><div class="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden"><div data-slot="admin-main" data-admin-main-wrapper="true" class="flex-1">CHILD</div><footer id="footer" data-slot="admin-footer" class="h-12 flex items-center justify-center px-6 bg-background text-foreground shadow-inner text-sm">${FOOTER_TEXT}</footer></div></div><div data-slot="admin-sidebar" class="contents"><x-button data-variant="accent" aria-label="メニューを開く" aria-pressed="false"></x-button></div>`;
+const BEFORE_PROTECTED = `<div class="flex h-full min-h-0 relative"><div data-slot="admin-sidebar" style="width:192px" class="fixed inset-y-0 right-0 floating-layer transition-transform md:hidden translate-x-full"><x-basesidebar data-nav=""></x-basesidebar></div><div data-slot="admin-sidebar" class="hidden md:block h-full" style="width:192px"><x-basesidebar></x-basesidebar></div><div data-slot="admin-sidebar" class="hidden md:block h-full w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"></div><div class="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden"><div data-slot="admin-main" data-admin-main-wrapper="true" class="flex-1">CHILD</div><footer id="footer" data-slot="admin-footer" class="h-12 flex items-center justify-center px-6 bg-background text-foreground shadow-inner text-sm">${FOOTER_TEXT}</footer></div></div><div data-slot="admin-sidebar" class="contents"><x-button data-variant="accent" aria-label="メニューを開く" aria-pressed="false"></x-button></div>`;
 /** `<AdminPage>CHILD</AdminPage>`(fill は枠の宣言 + frame.css に移った。AdminPage の DOM は通常のページのまま) */
 const BEFORE_PAGE = `<main data-component="Main" id="main" class="max-w-screen overflow-hidden mx-auto w-full p-4 sm:p-6 py-6 sm:py-10">CHILD</main>`;
 /** `<PageTitle>T</PageTitle>`(当時の既定 = page)/ `<PageTitle placement="header">T</PageTitle>`(SSR では AdminHeaderPortal は何も描かない) */
@@ -113,7 +113,7 @@ const BEFORE_TITLE_HEADER = `<h1 class="tracking-tight text-2xl font-normal text
 const withoutLegacyMarks = (html: string) =>
   html.replace(/ id="(?:header|footer|main)"/g, "").replace(/ data-component="Main"/g, "").replace(/ data-admin-main-wrapper="true"/g, "");
 /** SP のドロワーの殻(閉じた形)。Overlays/Sheet になって閉じている間は描かない(legate 指令 17)。開いた形は Sidebar/SpSidebar.render.test.tsx */
-const SP_DRAWER_CLOSED = `<div data-slot="admin-sidebar" style="width:192px" class="fixed inset-y-0 right-0 navigation-layer transition-transform md:hidden translate-x-full"><x-basesidebar data-nav=""></x-basesidebar></div>`;
+const SP_DRAWER_CLOSED = `<div data-slot="admin-sidebar" style="width:192px" class="fixed inset-y-0 right-0 floating-layer transition-transform md:hidden translate-x-full"><x-basesidebar data-nav=""></x-basesidebar></div>`;
 const PROTECTED = withoutLegacyMarks(BEFORE_PROTECTED).replace(SP_DRAWER_CLOSED, "");
 /**
  * 余白の段の区切り(余白の議会 N3)で変わった管理のページの Main の余白の class(同じ px、並びも不変):
@@ -184,7 +184,7 @@ test("sidebar slot に要素を渡すと PC の列の殻の中に既定の代わ
 
 test("sidebar = null はサイドバーの殻・リサイズのつまみ・SP の開閉ボタンを描かない", () => {
   for (const html of [render(<AdminProtectedLayout sidebar={null}>CHILD</AdminProtectedLayout>)]) {
-    assert.ok(!html.includes("navigation-layer"), "SP の殻が残っている");
+    assert.ok(!html.includes("floating-layer"), "SP の殻が残っている");
     assert.ok(!html.includes("hidden md:block"), "PC の殻かつまみが残っている");
     assert.ok(!html.includes("<x-button"), "SP の開閉ボタンが残っている");
     assert.ok(html.includes("CHILD"));

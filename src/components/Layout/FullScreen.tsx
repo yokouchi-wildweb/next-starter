@@ -7,27 +7,8 @@ import { useDisableScroll } from "@/hooks/useDisableScroll";
 import { cn } from "@/lib/cn";
 import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
 
-// 受ける名は camelCase のまま(公開の props)。層の名(@/lib/zLayer)へ写して class を引く
-const LAYER_NAME_MAP = {
-  background: "background",
-  base: "base",
-  content: "content",
-  belowHeader: "below-header",
-  header: "header",
-  aboveHeader: "above-header",
-  forefrontLow: "forefront-low",
-  forefront: "forefront",
-  forefrontTop: "forefront-top",
-  backdrop: "backdrop",
-  modal: "modal",
-  overlay: "overlay",
-  alert: "alert",
-  super: "super",
-  ultimate: "ultimate",
-  apex: "apex",
-} as const satisfies Record<string, ZLayerName>;
-
-export type FullScreenLayer = keyof typeof LAYER_NAME_MAP;
+/** 層(@/lib/zLayer の名、kebab-case。当議会 D186: 他の部品と同じ書き方、camelCase の別名は無い) */
+export type FullScreenLayer = ZLayerName;
 
 type Props = {
   className?: string;
@@ -52,7 +33,7 @@ type Props = {
 export default function FullScreen({
   className,
   children,
-  layer = "aboveHeader",
+  layer = "above-header",
   disableScroll: shouldDisableScroll = true,
 }: Props) {
   const { disableScroll, enableScroll } = useDisableScroll(true);
@@ -75,7 +56,7 @@ export default function FullScreen({
       data-component="FullScreen"
       className={cn(
         "fixed inset-0",
-        zLayerClass(LAYER_NAME_MAP[layer]),
+        zLayerClass(layer),
         className,
       )}
       style={{

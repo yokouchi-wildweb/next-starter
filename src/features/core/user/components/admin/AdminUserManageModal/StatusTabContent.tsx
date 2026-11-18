@@ -137,7 +137,7 @@ export function StatusTabContent({ user, onClose }: Props) {
               onChange={(value) => setSelectedStatus(String(value ?? ""))}
               options={statusOptions}
               placeholder="ステータスを選択"
-              contentClassName={zLayerClass("surface-ui")}
+              contentClassName={zLayerClass("floating")}
             />
             <Para size="xs" tone="muted" className="mt-1">
               「セキュリティロック」は連続ログイン失敗で自動的にセットされるため、手動では選択できません。
@@ -178,8 +178,8 @@ export function StatusTabContent({ user, onClose }: Props) {
         cancelLabel="キャンセル"
         onConfirm={handleConfirm}
         confirmDisabled={isMutating}
-        layer="alert"
-        overlayLayer="alert"
+        layer="floating"
+        overlayLayer="floating"
       >
         {confirmContent}
       </Dialog>

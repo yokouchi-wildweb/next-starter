@@ -99,8 +99,8 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
             maxWidth: dialogMaxWidth,
             maxHeight: DEFAULT_MAX_HEIGHT,
           }}
-          overlayLayer="super"
-          layer="super"
+          overlayLayer="floating"
+          layer="floating"
           showCloseButton={false}
         >
           <DialogTitle className="sr-only">

@@ -38,7 +38,7 @@ export function createToastStore(config: ToastConfig) {
           size: options.size ?? config.size,
           spinning,
           icon: options.icon,
-          layer: options.layer ?? "alert",
+          layer: options.layer ?? "toast",
           className: options.className,
           iconClassName: options.iconClassName,
           textClassName: options.textClassName,

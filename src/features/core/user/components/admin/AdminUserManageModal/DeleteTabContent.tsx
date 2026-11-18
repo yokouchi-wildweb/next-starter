@@ -132,8 +132,8 @@ export function DeleteTabContent({ user, onClose }: Props) {
         onConfirm={handleConfirm}
         confirmDisabled={isMutating}
         confirmVariant="destructive"
-        layer="alert"
-        overlayLayer="alert"
+        layer="floating"
+        overlayLayer="floating"
       >
         {confirmContent}
       </Dialog>

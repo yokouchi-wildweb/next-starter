@@ -13,7 +13,7 @@ import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
 
 // レイヤータイプ
 /** 層(層の名 @/lib/zLayer のうち受ける範囲) */
-export type PopoverLayer = Extract<ZLayerName, "overlay" | "surface-ui" | "alert" | "super" | "ultimate" | "apex">;
+export type PopoverLayer = Extract<ZLayerName, "floating">;
 
 // サイズプリセット
 export type PopoverSize = "sm" | "md" | "lg" | "xl" | "auto";
@@ -130,7 +130,7 @@ function PopoverContent({
   // 画面端に密着・はみ出さないよう、端から 8px 内側に収める(Radix の既定は 0)
   collisionPadding = 8,
   size = "md",
-  layer = "overlay",
+  layer = "floating",
   showArrow = false,
   showClose = false,
   usePortal,

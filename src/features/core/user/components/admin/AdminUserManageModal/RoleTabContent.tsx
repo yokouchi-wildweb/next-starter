@@ -135,7 +135,7 @@ export function RoleTabContent({ user, onClose }: Props) {
               onChange={(value) => setSelectedRole(String(value ?? ""))}
               options={roleOptions}
               placeholder="ロールを選択"
-              contentClassName={zLayerClass("surface-ui")}
+              contentClassName={zLayerClass("floating")}
             />
           </div>
           <div>
@@ -185,8 +185,8 @@ export function RoleTabContent({ user, onClose }: Props) {
         cancelLabel="キャンセル"
         onConfirm={handleConfirm}
         confirmDisabled={isMutating}
-        layer="alert"
-        overlayLayer="alert"
+        layer="floating"
+        overlayLayer="floating"
       >
         {confirmContent}
       </Dialog>

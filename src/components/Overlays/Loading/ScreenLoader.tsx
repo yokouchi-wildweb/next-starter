@@ -44,8 +44,8 @@ const MODE_CLASS: Record<LoadingOverlayMode, string> = {
   // local はページ内容（content-layer: 100）より上、ヘッダ（header: 360）より下の
   // backside-ui-top（290）。生の z-40 だと content-layer の要素に覆われ、隠したい内容が
   // 見えたまま操作できてしまう
-  local: `absolute inset-0 ${zLayerClass("backside-ui-top")}`,
-  fullscreen: `fixed inset-0 ${zLayerClass("overlay")}`,
+  local: `absolute inset-0 ${zLayerClass("backside-ui")}`,
+  fullscreen: `fixed inset-0 ${zLayerClass("cover")}`,
 };
 
 export function ScreenLoader({

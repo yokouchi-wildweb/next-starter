@@ -24,7 +24,7 @@ const { globalMenu } = adminLayoutConfig;
 const sidebarContainer = cva("h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-lg");
 
 const submenuVariants = cva(
-  "modal-layer absolute top-0 rounded bg-sidebar shadow-xl ring-1 ring-sidebar-border/60 transition-all duration-200",
+  "floating-layer absolute top-0 rounded bg-sidebar shadow-xl ring-1 ring-sidebar-border/60 transition-all duration-200",
   {
     variants: {
       open: {

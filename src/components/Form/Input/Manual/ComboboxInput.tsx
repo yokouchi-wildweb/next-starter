@@ -170,7 +170,7 @@ export function ComboboxInput({
         <PopoverContent
           align="start"
           side={side}
-          layer="surface-ui"
+          layer="floating"
           {...popoverContentProps}
           className={cn(
             "w-[--radix-popover-trigger-width] p-0",

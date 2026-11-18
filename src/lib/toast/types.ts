@@ -29,7 +29,7 @@ export type ToastPosition =
 export type ToastSize = "sm" | "md" | "lg";
 
 /** 層(層の名 @/lib/zLayer のうち受ける範囲) */
-export type ToastLayer = Extract<ZLayerName, "alert" | "super" | "ultimate" | "apex">;
+export type ToastLayer = Extract<ZLayerName, "toast">;
 
 export type Toast = {
   id: string;

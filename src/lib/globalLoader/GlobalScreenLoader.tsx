@@ -43,7 +43,7 @@ export function GlobalScreenLoader() {
     <div
       className={cn(
         "flex items-center justify-center bg-background/80 backdrop-blur-sm",
-        `fixed inset-0 ${zLayerClass("overlay")}`,
+        `fixed inset-0 ${zLayerClass("cover")}`,
         className,
       )}
       style={zIndex ? { zIndex } : undefined}

@@ -21,10 +21,10 @@ import { cn } from "@/lib/cn";
 import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
 
 /** 背景(覆い)の層(層の名 @/lib/zLayer のうち受ける範囲) */
-export type DialogOverlayLayer = Extract<ZLayerName, "backdrop" | "modal" | "overlay" | "alert" | "super" | "ultimate" | "apex">;
+export type DialogOverlayLayer = Extract<ZLayerName, "floating">;
 
 /** 本体の層 */
-export type DialogContentLayer = Extract<ZLayerName, "modal" | "alert" | "super" | "ultimate" | "apex">;
+export type DialogContentLayer = Extract<ZLayerName, "floating">;
 
 /** fullscreen の本体の class(中央寄せ・最大幅・角丸・枠・内側の余白を外し、上下に safe-area の余白)。
  * 呼び手の className はこの後に足す(中身の余白は呼び手が決める) */
@@ -76,7 +76,7 @@ type DialogContentProps = Omit<
 };
 
 export function DialogOverlay({
-  layer = "modal",
+  layer = "floating",
   className,
   layerClassName,
   ...props
@@ -96,8 +96,8 @@ export function DialogContent({
   showCloseButton = true,
   closeButtonClassName,
   fullscreen = false,
-  layer = "modal",
-  overlayLayer = "modal",
+  layer = "floating",
+  overlayLayer = "floating",
   layerClassName,
   overlayLayerClassName,
   maxWidth,

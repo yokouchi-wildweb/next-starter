@@ -71,8 +71,8 @@ export function UnsavedGuardRoot({ children }: Readonly<{ children: ReactNode }>
         cancelLabel={texts.cancelLabel}
         confirmVariant="destructive"
         onConfirm={() => settle(true)}
-        layer="apex"
-        overlayLayer="apex"
+        layer="floating"
+        overlayLayer="floating"
       />
     </UnsavedGuardProvider>
   );

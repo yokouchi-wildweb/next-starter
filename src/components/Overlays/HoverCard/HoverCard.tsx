@@ -10,7 +10,7 @@ import { zLayerClass, type ZLayerName } from "@/lib/zLayer";
 
 // レイヤータイプ
 /** 層(層の名 @/lib/zLayer のうち受ける範囲) */
-export type HoverCardLayer = Extract<ZLayerName, "overlay" | "alert" | "super" | "ultimate" | "apex">;
+export type HoverCardLayer = Extract<ZLayerName, "floating">;
 
 // サイズプリセット
 export type HoverCardSize = "sm" | "md" | "lg" | "xl" | "auto";
@@ -87,7 +87,7 @@ export function HoverCard({
   openDelay = 300,
   closeDelay = 200,
   size = "md",
-  layer = "overlay",
+  layer = "floating",
   showArrow = false,
   asChild = true,
   className,

@@ -120,8 +120,8 @@ export function DispatchOperations({
       <Dialog
         open={open === "delete"}
         onOpenChange={close}
-        layer="alert"
-        overlayLayer="alert"
+        layer="floating"
+        overlayLayer="floating"
         title="送信を削除"
         confirmLabel="削除する"
         confirmVariant="destructive"
@@ -137,8 +137,8 @@ export function DispatchOperations({
       <Dialog
         open={open === "resend"}
         onOpenChange={close}
-        layer="alert"
-        overlayLayer="alert"
+        layer="floating"
+        overlayLayer="floating"
         title="失敗分を再送"
         confirmLabel={`${resendCount} 件を再送する`}
         cancelLabel="キャンセル"

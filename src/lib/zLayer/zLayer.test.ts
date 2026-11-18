@@ -1,5 +1,5 @@
 // zLayer の名が src/styles/core/z-layer.css(値と class の置き場)と一致することの検査、
-// 部品が前に自前の表で持っていた class と zLayerClass が同じ文字列を返すことの検査
+// 名の一覧(当議会 D189 の 10)と zLayerClass の形の検査
 // 実行: pnpm test src/lib/zLayer
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -26,27 +26,10 @@ test("値は下から上へ増える(名の並び = 重なりの順)", () => {
   for (let i = 1; i < values.length; i++) assert.ok(values[i] > values[i - 1], `${Z_LAYER_NAMES[i]} > ${Z_LAYER_NAMES[i - 1]}`);
 });
 
-// 置き換える前に部品が持っていた表(FullScreen・Dialog・Popover・Tooltip・HoverCard・toast)の class と同じ
-test("zLayerClass は部品の前の表と同じ class を返す", () => {
-  const before: Record<string, string> = {
-    background: "background-layer",
-    base: "base-layer",
-    content: "content-layer",
-    "backside-ui-top": "backside-ui-top-layer",
-    "below-header": "below-header-layer",
-    header: "header-layer",
-    "above-header": "above-header-layer",
-    "forefront-low": "forefront-low-layer",
-    forefront: "forefront-layer",
-    "forefront-top": "forefront-top-layer",
-    backdrop: "backdrop-layer",
-    modal: "modal-layer",
-    overlay: "overlay-layer",
-    alert: "alert-layer",
-    "surface-ui": "surface-ui-layer",
-    super: "super-layer",
-    ultimate: "ultimate-layer",
-    apex: "apex-layer",
-  };
-  for (const [name, cls] of Object.entries(before)) assert.equal(zLayerClass(name as never), cls, name);
+test("名は当議会 D189 の 10(ページの層 7 + floating・toast・cover)、zLayerClass は <名>-layer", () => {
+  assert.deepEqual(
+    [...Z_LAYER_NAMES],
+    ["background", "content", "backside-ui", "below-header", "header", "above-header", "forefront", "floating", "toast", "cover"],
+  );
+  for (const name of Z_LAYER_NAMES) assert.equal(zLayerClass(name), `${name}-layer`);
 });

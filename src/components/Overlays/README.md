@@ -93,8 +93,8 @@ import { Dialog } from "@/components/Overlays/Dialog";
 | `descriptionAlign` | `TextAlign` | `"left"` | 説明文の配置 |
 | `children` | `ReactNode` | - | 複雑なコンテンツ用。本体（スクロール領域）に描画される |
 | `showCloseButton` | `boolean` | `false` | 右上の ✕ ボタン。`showCancelButton` / `showConfirmButton` を両方 false にする場合は必ず true にして閉じ手段を残す |
-| `layer` | `DialogContentLayer` | `"modal"` | コンテンツのレイヤー（`modal`/`alert`/`super`/`ultimate`/`apex`） |
-| `overlayLayer` | `DialogOverlayLayer` | `"modal"` | オーバーレイのレイヤー（`backdrop`/`modal`/`overlay`/`alert`/`super`/`ultimate`/`apex`） |
+| `layer` | `DialogContentLayer` | `"floating"` | コンテンツのレイヤー（浮く物は全部 `floating`。後に開いた物が上） |
+| `overlayLayer` | `DialogOverlayLayer` | `"floating"` | オーバーレイのレイヤー（浮く物は全部 `floating`） |
 | `footerAlign` | `TextAlign` | `"right"` | フッター（ボタン）の配置 |
 | `showCancelButton` | `boolean` | `true` | キャンセルボタンの表示 |
 | `showConfirmButton` | `boolean` | `true` | 確認ボタンの表示 |
@@ -162,8 +162,8 @@ import Modal from "@/components/Overlays/Modal";
 | `onOpenAutoFocus` | `(event: Event) => void` | - | 開いた直後の自動フォーカス制御。未指定時は Radix 既定（最初のフォーカス可能要素へフォーカス） |
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
 | `overlayClassName` | `string` | - | 背景（覆い）に足すクラス（色・ぼかし等）。省略時は今の `bg-overlay/50` |
-| `layer` | `DialogContentLayer` | `"modal"` | 本体の層（`@/lib/zLayer` の名）。他のモーダルや固定の UI より上に出したい時に上げる（例: 管理者コマンドは `"super"`） |
-| `overlayLayer` | `DialogOverlayLayer` | `"modal"` | 背景の層 |
+| `layer` | `DialogContentLayer` | `"floating"` | 本体の層（`@/lib/zLayer` の名）。浮く物は全部 `floating`(後に開いた物が上) |
+| `overlayLayer` | `DialogOverlayLayer` | `"floating"` | 背景の層 |
 | `fullscreen` | `boolean` | `false` | 全画面: 角丸・枠・最大幅・中央寄せを外し、高さ `100dvh`。余白は上下の safe-area の分だけで、中身の余白は `className` / 中身で決める。閉じるボタンは画面の内側の右上、本体は箱の残りいっぱいでスクロールする（`maxHeight` 既定のとき） |
 | `container` | `HTMLElement \| null` | - | portal の先の要素（省略 = body）。渡すと背景と本体はその要素の中で `absolute` に重なる（要素に `relative` 等の position が要る）。`fullscreen` と併せると容器いっぱい（`h-full`） |
 
@@ -237,7 +237,7 @@ footer はスクロールラッパーの外側（DialogContent 直下）に描�
 </Modal>
 ```
 
-`enabled` が true の間、ユーザー操作による閉じ（✕ ボタン / ESC / 背景クリック）を確認ダイアログ（`layer="alert"` でモーダルの上に表示）で遮り、承諾されたときだけ `onOpenChange(false)` が呼ばれる。文言は `title` / `message` / `confirmLabel` / `cancelLabel` で差し替え可能（既定: 「編集中の内容が保存されていません。閉じてもよろしいですか？」）。見た目は共有の `Overlays/Dialog` に追従する（テーマ/Dialog をカスタマイズしていればそれに従う）。
+`enabled` が true の間、ユーザー操作による閉じ（✕ ボタン / ESC / 背景クリック）を確認ダイアログ（`floating` のままモーダルの後に開くので上に表示）で遮り、承諾されたときだけ `onOpenChange(false)` が呼ばれる。文言は `title` / `message` / `confirmLabel` / `cancelLabel` で差し替え可能（既定: 「編集中の内容が保存されていません。閉じてもよろしいですか？」）。見た目は共有の `Overlays/Dialog` に追従する（テーマ/Dialog をカスタマイズしていればそれに従う）。
 
 注意: 親コンポーネントが `open` を直接 false にするプログラム的クローズ（保存完了後など）は遮らない。モーダル内に自前のキャンセルボタンを置く場合、そのボタンが親の state を直接 false にするとガードを通らないため、破棄確認が必要なら自前で確認を挟むか閉じる前に `enabled` を評価すること。確認ダイアログ表示中にプログラム的クローズが起きた場合、確認ダイアログは `open` の解除に同期して畳まれる（次回オープン時に取り残されない）。TabbedModal にもそのまま透過される。
 
@@ -546,8 +546,7 @@ import {
 
 **レイヤー管理（z-index）:**
 `DialogContent` の `layer` / `overlayLayer` で z-index 階層を制御可能。
-- `layer`: `modal` (デフォルト) / `alert` / `super` / `ultimate` / `apex`
-- `overlayLayer`: `backdrop` / `modal` / `overlay` / `alert` / `super` / `ultimate` / `apex`
+- `layer` / `overlayLayer`: `floating`(既定、浮く物は全部この層。同じ層では後に開いた物が上。層の名は `src/lib/zLayer/README.md`)
 
 **DialogContent の主な追加 props**
 - `showCloseButton`（デフォルト `true`）: 右上の Close ボタンの表示有無
@@ -613,8 +612,8 @@ import { Sheet } from "@/components/Overlays/Sheet";
 | `title` / `titleSrOnly` | `ReactNode` / `boolean` | - | 題。省略時は sr-only の既定の題（「ダイアログ」） |
 | `size` | `number \| string` | bottom / top `"85dvh"`、left / right `"20rem"` | bottom / top = 最大の高さ（中身は板の中でスクロール）、left / right = 幅（画面の幅 - 2rem まで） |
 | `className` / `overlayClassName` | `string` | - | 板 / 背景に足すクラス（色・ぼかし・角丸・余白） |
-| `layer` | `SheetLayer` | `"modal"` | 板の層（`navigation` / `modal` / `alert` / `super` / `ultimate` / `apex`）。ナビゲーションの引き出しは `"navigation"` |
-| `overlayLayer` | `DialogOverlayLayer` | `"modal"` | 背景の層 |
+| `layer` | `SheetLayer` | `"floating"` | 板の層（浮く物は全部 `floating`、ナビゲーションの引き出しも） |
+| `overlayLayer` | `DialogOverlayLayer` | `"floating"` | 背景の層 |
 | `container` | `HTMLElement \| null` | - | portal の先の要素（省略 = body）。渡すと背景と板はその要素の中で `absolute` に重なる（スマホ幅の容器の中に出す等） |
 | `scrollable` | `boolean` | `true` | 本体をスクロールの箱にするか。`false` = 高さだけ渡し、スクロールと板の外へはみ出す物（横に開く子メニュー等）は中身が持つ |
 | `showCloseButton` | `boolean` | `true` | 板の内側の右上の閉じるボタン |
@@ -682,7 +681,7 @@ hideToast();
 - `size`: `"md"`
 - `spinning`: `variant === "loading"` または `mode === "persistent"` のとき自動で `true`
 - `icon`: プリセット文字列（`success` など）または `ReactNode`
-- `layer`: `"alert"`（必要に応じて `super` などへ引き上げる）
+- `layer`: `"floating"`(既定。後に開くので開いた元のモーダルより上)
 
 ---
 
@@ -1079,7 +1078,7 @@ import { HelpTip } from "@/components/Overlays/Tooltip";
 | `help` | `ReactNode` | - | ホバー/タップで表示する説明文 |
 | `iconSize` | `"sm" \| "md" \| "lg"` | `"md"` | ヘルプアイコンのサイズ |
 | `side` | `"top" \| "right" \| "bottom" \| "left"` | `"top"` | 表示位置 |
-| `layer` | `TooltipLayer` | `"overlay"` | z-indexレイヤー |
+| `layer` | `TooltipLayer` | `"floating"` | z-indexレイヤー |
 | `className` | `string` | - | ラッパーの追加クラス |
 | `iconClassName` | `string` | - | アイコンの追加クラス |
 | `contentClassName` | `string` | - | ツールチップコンテンツの追加クラス |

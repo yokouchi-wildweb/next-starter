@@ -26,7 +26,7 @@ try {
 
 ## 描画
 
-棚の `ScreenLoader`(mode="fullscreen")+ `Spinner` と同じ形を自分で持つ(`GlobalScreenLoader.tsx`・種類 → アイコンの対応 `spinner.ts`)。`zIndex` は style、`className` は外側の要素に足す(重ねる層の既定は `overlay-layer`)。
+棚の `ScreenLoader`(mode="fullscreen")+ `Spinner` と同じ形を自分で持つ(`GlobalScreenLoader.tsx`・種類 → アイコンの対応 `spinner.ts`)。`zIndex` は style、`className` は外側の要素に足す(重ねる層の既定は `cover-layer`)。
 
 同じ出力になることは棚の側のテスト `src/components/Overlays/Loading/globalLoaderParity.test.tsx` が既定とすべての種類で確かめる。`ScreenLoader` / `Spinner` の見た目を変えるときはこの lib も同じに直す(片方だけだと落ちる)。
 

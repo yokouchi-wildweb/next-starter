@@ -72,13 +72,13 @@ export type DialogProps = {
   showCloseButton?: boolean;
   /**
    * ダイアログのz-indexレイヤー。
-   * モーダルの上に表示する確認ダイアログなどは "alert" を指定する。
-   * @default "modal"
+   * 浮く物は全部 floating(後に開いた物が上、当議会 D189)。モーダルの上の確認ダイアログも floating のまま上に出る。
+   * @default "floating"
    */
   layer?: DialogContentLayer;
   /**
    * オーバーレイ（背景）のz-indexレイヤー。
-   * @default "modal"
+   * @default "floating"
    */
   overlayLayer?: DialogOverlayLayer;
   footerAlign?: TextAlign;
