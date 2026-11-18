@@ -1,15 +1,25 @@
 # scripts/structure/registry — スキーマ登録と push round-trip の検査
 
-`src/registry/schemaRegistry.ts` は push の唯一のスキーマ入口。ここには、push 本体（`pnpm db:push`）と、その入口と実 DB の整合を機械的に確認する 2 つの検査、それに付随する運用方針・記述ルールをまとめる。
+## Overview
 
-| コマンド | 何をするか | DB 接続 |
-|---|---|---|
-| `pnpm db:push` | schemaRegistry（スキーマゲート適用後）を実 DB に反映する（`scripts/operations/db/push.ts`） | 必要・書き込む |
-| `pnpm test scripts/structure/registry/` | 走査の表の集合 = schemaRegistry の全 pgTable、α 4 本の生成の回帰（`alpha/alpha.test.mjs`） | 不要 |
-| `pnpm db:push:check` | schemaRegistry（スキーマゲート適用後）と実 DB を drizzle-kit の push モードで比較し、提案される SQL を表示する。1 文でもあれば exit 1 | 必要・読み取り専用 |
-| `pnpm generate registry` / `pnpm check registry` | `src/registry` の α 6 本を丸ごと生成・検査する（build の冒頭）: `serviceRegistry`（各ドメインの `domainEntry.ts`、`serviceRegistry/`、仕組みは `src/lib/domain/README.md`。`domainEntry.ts` の静的 import は型はどこからでも・値は値だけのファイルからだけ（中身で推移的に判定、`serviceRegistry/discover.mjs` の `checkEntryStaticImports`））・`schemaRegistry`（`src/features/**` の pgTable を持つ全ファイル。プロフィールの `entities/profiles/<名前>/drizzle.ts` も）・`domainConfigRegistry`（全 `domain.json`、キーはフォルダ名の snake_case）・`storagePurposeRegistry`（全 `services/server/storagePurposes.ts`）・`adminDomains`（管理一覧の画面 `src/app/admin/(protected)/<kebab 複数形>/page.tsx` を持つ全ドメイン、`generate: false` も。キー = フォルダ名 → 題名・住所・`addToAdminDataMenu`。管理メニューの項目 `domain:` と出どころ `dataMenu` が読む: `src/features/core/admin/menu/`）・`messageRegistry`（全ドメインの `messages/<名前>.ts` の連絡の定義、鍵 = `<フォルダ名>.<ファイル名>` → 定義・隣の `.override.ts`・`views/<名前>.tsx` の遅延 import。key のずれ・重なり・定義の無い描き方は止める。`alpha/messageRegistry.mjs`、決まりは `src/lib/messaging/README.md`）（`alpha/`）。手書きの区画は無い。管理メニューの行は受け口 `src/features/core/admin/menu/`。ドメインを「データ管理」から外す = `domain.json` の `addToAdminDataMenu: false` | 不要 |
+- `src/registry/schemaRegistry.ts` は push の唯一のスキーマ入口。ここには、push 本体（`pnpm db:push`）と、その入口と実 DB の整合を機械的に確認する 2 つの検査、それに付随する運用方針・記述ルールをまとめる。
 
-## スキーマ変更を DB に反映する（push）
+コマンド:
+
+- `pnpm db:push`: schemaRegistry(スキーマゲート適用後)を実 DB に反映する(`scripts/operations/db/push.ts`)。DB 接続が要る・書き込む
+- `pnpm test scripts/structure/registry/`: 走査の表の集合 = schemaRegistry の全 pgTable、α 4 本の生成の回帰(`alpha/alpha.test.mjs`)。DB 不要
+- `pnpm db:push:check`: schemaRegistry(スキーマゲート適用後)と実 DB を drizzle-kit の push モードで比較し、提案される SQL を表示する。1 文でもあれば exit 1。DB 接続が要る・読み取り専用
+- `pnpm generate registry` / `pnpm check registry`: `src/registry` の α 6 本を丸ごと生成・検査する(build の冒頭)。DB 不要。手書きの区画は無い。生成の部品は `alpha/`
+  - `serviceRegistry`: 各ドメインの `domainEntry.ts` から(`serviceRegistry/`、仕組みは `src/lib/domain/README.md`)。`domainEntry.ts` の静的 import は型はどこからでも・値は値だけのファイルからだけ(中身で推移的に判定、`serviceRegistry/discover.mjs` の `checkEntryStaticImports`)
+  - `schemaRegistry`: `src/features/**` の pgTable を持つ全ファイル(プロフィールの `entities/profiles/<名前>/drizzle.ts` も)
+  - `domainConfigRegistry`: 全 `domain.json`(キーはフォルダ名の snake_case)
+  - `storagePurposeRegistry`: 全 `services/server/storagePurposes.ts`
+  - `adminDomains`: 管理一覧の画面 `src/app/admin/(protected)/<kebab 複数形>/page.tsx` を持つ全ドメイン(`generate: false` も)。キー = フォルダ名 → 題名・住所・`addToAdminDataMenu`。管理メニューの項目 `domain:` と出どころ `dataMenu` が読む(`src/features/core/admin/menu/`)。管理メニューの行は受け口 `src/features/core/admin/menu/`、ドメインを「データ管理」から外す = `domain.json` の `addToAdminDataMenu: false`
+  - `messageRegistry`: 全ドメインの `messages/<名前>.ts` の連絡の定義(鍵 = `<フォルダ名>.<ファイル名>` → 定義・隣の `.override.ts`・`views/<名前>.tsx` の遅延 import。key のずれ・重なり・定義の無い描き方は止める。`alpha/messageRegistry.mjs`、決まりは `src/lib/messaging/README.md`)
+
+## Usage
+
+### スキーマ変更を DB に反映する(push)
 
 このリポジトリはマイグレーションファイルを使わない。`pnpm db:push` が schemaRegistry と実 DB を直接比較し、差分の SQL をその場で実行する（`drizzle-kit generate` → SQL ファイル適用、という手順は取らない）。
 
@@ -25,9 +35,9 @@
 3. `pnpm db:push` で開発 DB に反映する（`.env.development` 固定。DB に書き込む操作なので実行者が手で行う）
 4. index を追加・変更した場合は `pnpm db:push:check` が差分ゼロになることを確認する（下記）
 
-他環境への push は `pnpm db:push` ではなく `ENV_FILE=<env ファイル> pnpm exec tsx scripts/operations/db/push.ts`（`db:push` スクリプトは `ENV_FILE=.env.development` を固定で設定するため）。本番 push のタイミングは下記「運用方針」に従う。
+他環境への push は `pnpm db:push` ではなく `ENV_FILE=<env ファイル> pnpm exec tsx scripts/operations/db/push.ts`（`db:push` スクリプトは `ENV_FILE=.env.development` を固定で設定するため）。本番 push のタイミングは「運用方針」に従う。
 
-## db:push:check（push の読み取り専用ドライラン）
+### db:push:check(push の読み取り専用ドライラン)
 
 ```bash
 pnpm db:push:check                          # .env.development（ENV_FILE 未指定時の既定）
@@ -38,32 +48,25 @@ pnpm db:push:check -- --allow-defaults      # SET/DROP DEFAULT 行だけ無視�
 - DB には一切書き込まない。drizzle-kit `pushSchema` の差分計算だけを使い、`apply()` は呼ばない。
 - `pnpm db:push` と同じスキーマゲートを掛ける（無効な機能のテーブルは比較対象外）。
 - 出力は「push を実行すると実行される SQL」そのもの。差分ゼロなら exit 0。
-- **push 直後に実行して差分ゼロになること**が、index / default の書き方が正しいことの定義。差分が残る index は、本番でも push のたびに DROP + CREATE される（下記「なぜ重要か」）。
+- **push 直後に実行して差分ゼロになること**が、index / default の書き方が正しいことの定義。差分が残る index は、本番でも push のたびに DROP + CREATE される（Internals「差分が残る index がなぜ問題か」）。
 
-### いつ実行するか
+#### いつ実行するか
 
 - **index を追加・変更したとき（必須）**: `pnpm db:push` → `pnpm db:push:check` が差分ゼロになることを確認してからコミットする。
 - **本番 push の前（任意）**: `pnpm db:push:check -- --env production` で、実行される SQL を事前に見られる。
 - 日常の列追加・テーブル追加では不要。
 
-### なぜ重要か
-
-drizzle-kit 0.31.x は、特定の書き方の index と一部の列 default を DB から正しく読み戻せず、**DB が既にスキーマどおりでも毎回「差分あり」と判定して DROP INDEX + CREATE INDEX / SET DEFAULT を実行する**。drizzle-kit CLI の push は `--verbose` を付けない限り実行した SQL を表示しないため、これは気づかれないまま続いていた（現在の `pnpm db:push` は毎回全文を表示する）。
-
-- SET DEFAULT の再実行は無害。
-- index の再構築は、本番の大規模テーブル（数十万〜数百万行）では **CREATE INDEX 中そのテーブルへの書き込みがロックされ、DROP から CREATE の間は index が存在しない**。pandora（play_batches 120 万行）で push のたびに 4 本が再構築されていたのが発見の契機（upstream-request 20261010-195330 / 20261013-221046）。
-
-## 運用方針（DB push とロック）
+### 運用方針(DB push とロック)
 
 **DB push はテーブルロックを伴いうる操作である。安全は「実行タイミングを選ぶ」ことで担保し、push のたびの個別判断は求めない。**
 
 - 本番 push はメンテナンスモード中（maintenanceProxy / 設定ドメインの config の maintenance）または低トラフィック時に行う。
 - 大規模テーブルへの CREATE INDEX は通常の push ではそのテーブルの書き込みを止める。許容できるタイミングで push すればよい。
-- 無停止で index を追加したい fork 向けの任意テクニック: push 前に `pnpm ops db inspect query "CREATE INDEX CONCURRENTLY IF NOT EXISTS <同名> ON ..."` で先に作っておくと、drizzle-kit は既存 index として認識し push では何もしない（pandora の user_items 2300 万行で約 10 秒・書き込み停止なしを確認済み）。定義は `db:push:check` の出力をそのまま使い `CONCURRENTLY` を足す。
+- 無停止で index を追加したい fork 向けの任意テクニック: push 前に `pnpm ops db inspect query "CREATE INDEX CONCURRENTLY IF NOT EXISTS <同名> ON ..."` で先に作っておくと、drizzle-kit は既存 index として認識し push では何もしない(数千万行の表でも書き込みを止めずに作れる)。定義は `db:push:check` の出力をそのまま使い `CONCURRENTLY` を足す。
 - データ消失を伴う文（DROP COLUMN / DROP TABLE / 型変更）は `pnpm db:push` が y/N で確認を求める。
 - 実行する SQL は毎回全文表示される（drizzle-kit CLI の `--verbose` 相当が既定）。
 
-## index / default の記述ルール（round-trip するために）
+### index / default の書き方(round-trip するために)
 
 drizzle-kit push の index 比較キーは `名前; 列ごとに (式なら "" / 列名)--asc--nulls; unique; method; with` で、`where` と opclass は比較されない。DB 側の「式かどうか」は **index 単位**で判定される。このため次を守る。
 
@@ -78,7 +81,16 @@ drizzle-kit push の index 比較キーは `名前; 列ごとに (式なら "" /
 | 空配列 default | `text("x").array().default([]).notNull()` のまま | drizzle-kit の誤正規化（`'{}'` → `'{""}'`）はパッチで修正済み |
 | jsonb default | `jsonb("x").default({...})` のまま | キー順の不一致（PostgreSQL は jsonb のキーを長さ→バイト順で保存）はパッチで修正済み |
 
-## drizzle-kit へのパッチ（patches/drizzle-kit@\<version\>.patch）
+## Internals
+
+### 差分が残る index がなぜ問題か
+
+drizzle-kit 0.31.x は、特定の書き方の index と一部の列 default を DB から正しく読み戻せず、**DB が既にスキーマどおりでも毎回「差分あり」と判定して DROP INDEX + CREATE INDEX / SET DEFAULT を実行する**。drizzle-kit CLI の push は `--verbose` を付けない限り実行した SQL を表示しないため、これは気づかれないまま続いていた（現在の `pnpm db:push` は毎回全文を表示する）。
+
+- SET DEFAULT の再実行は無害。
+- index の再構築は、本番の大規模テーブル（数十万〜数百万行）では **CREATE INDEX 中そのテーブルへの書き込みがロックされ、DROP から CREATE の間は index が存在しない**。
+
+### drizzle-kit へのパッチ(patches/drizzle-kit@\<version\>.patch)
 
 `pnpm.patchedDependencies` で drizzle-kit に 4 点の修正を当てている。`pnpm install` で自動適用されるので fork 側の作業は不要。
 
@@ -89,7 +101,7 @@ drizzle-kit push の index 比較キーは `名前; 列ごとに (式なら "" /
 
 いずれも比較用の読み取り・正規化のみで、DB に書く default や PK の実効値は変わらない。`pnpm db:push` は api.js の `pushSchema` を使うので 1 の修正も前提になる。bin.cjs（drizzle-kit CLI）にも当てているため、CLI 経由でも無駄な SET DEFAULT は出ない。
 
-### drizzle-kit を更新するとき
+#### drizzle-kit を更新するとき
 
 パッチは `drizzle-kit@0.31.8` に紐づく。package.json の `drizzle-kit` は範囲でなく `"0.31.8"` ぴったりに固定する(範囲だと別の版が入りパッチが外れる)。`pnpm check registry`(門 build / ship)が package.json の値とパッチのキーの版を比べ、違えば止める(`drizzleKitPin.mjs`)。**fork は版を変えない**(上げるのは上流で、下の手順)。
 
