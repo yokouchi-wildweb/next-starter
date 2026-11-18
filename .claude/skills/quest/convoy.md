@@ -16,10 +16,11 @@ words: load = put an order's commits on the Convoy's line | depart = ship the li
 5. it cannot be loaded because the order's own work is broken (not a conflict between two orders) → abort; STOP: report it to go back to its worker with the reason
 6. report: the order, the commits now on the Convoy's line (short sha)
 
-## SEGMENT (`segment <label> notices:<path>`: the council closes this party's segment; the party writes its notice)
-1. every order of the segment is loaded already (the caller sends the cue after the loads)
-2. `/ship no-push notices:<path>` on the Convoy's line: one notice from the party's draft at <path> (the tool built it from the loaded quests' material; every `- ` item, `resolves:` items into `resolves:`), `checkpoint:` = <label>, committed with its index line, not pushed
-3. report: the notice id, the draft items it left out (or none) — the caller tells the council
+## SEGMENT (`segment <label> branch:<branch> <sha>`: the council closed this party's segment; the party's Secretary wrote its notice)
+1. every order of the segment is loaded already and the line held since (the tool loads nothing else until this load)
+2. <sha> = one commit on the Convoy's line tip, made by the Secretary in its own worktree with `/ship no-push notices:<the party's draft>` (the notice with `checkpoint:` = <label> and its index line)
+3. `git merge --ff-only <sha>` on the Convoy's line, nothing else | not a fast-forward → stop and raise it (never rebase, merge or rewrite it yourself)
+4. report: the notice id — the caller tells the council
 
 ## DEPART (`depart`: only on the human's word)
 1. note the orders on the line: the `order: <id>` lines of `git log --format=%B origin/main..HEAD`
