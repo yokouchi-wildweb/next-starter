@@ -1,31 +1,16 @@
 # トップページ（`/`）— 上流デモ用の既定画面と差し替え手順
 
-`src/app/(user)/page.tsx` の既定画面。上流 next-starter の「スターターの顔」として、
-同梱機能の一覧と `/demo` への導線だけを 1 画面に収めた軽量な Server Component です。
-構造は他のルートと同じ（`src/lib/screens/README.md`）。
+## Overview
 
-## 構造
+`src/app/(user)/page.tsx` の既定画面。上流 next-starter の「スターターの顔」として、同梱機能の一覧と `/demo` への導線だけを 1 画面に収めた軽量な Server Component。構造は他のルートと同じ(`src/lib/screens/README.md`)。
 
-```
-src/app/(user)/
-├── page.tsx                      # 1 行のスイッチ(下流所有)。上流は今後このファイルを編集しない
-├── _screen/                      # 上流所有。下流は編集も削除もしない
-│   ├── StarterHomeScreen.tsx     # 既定画面(FullScreen 背景 + fill の UserPage + Hero + Capabilities + footer)
-│   ├── README.md                 # このファイル
-│   └── StarterHome/              # Screen 専用の部品(契約外)
-│       ├── Hero.tsx
-│       ├── Capabilities.tsx / capabilities.ts
-│       └── Backdrop.tsx          # CSS だけの背景(グラデーション + ドットグリッド)
-└── _components/                  # 下流の場所(上流は作らない・触らない)
-    └── <Name>Screen.tsx          # 下流の自前トップページ
-```
+- `page.tsx`: 1 行のスイッチ(下流所有)。上流は今後このファイルを編集しない
+- `_screen/`(上流所有): 既定画面 `StarterHomeScreen.tsx`(FullScreen 背景 + fill の UserPage + Hero + Capabilities + footer)・loader `loader.ts`・Screen 専用の部品 `StarterHome/`(Hero・Capabilities・CSS だけの背景 Backdrop。契約外)
+- `_components/`: 下流の場所(上流は作らない・触らない)。下流の自前トップページ `<Name>Screen.tsx` を置く
 
-- **縦スクロールなし**: fill(`../frame.ts` の `page: { fill: true }`。本文は `flex-1 min-h-0`)でヘッダー下〜フッター上の残り高さちょうどに収めています。内容が収まらない小さな画面では内側の Flex だけがスクロールします（縦中央寄せは `justify-center` ではなく `my-auto`。溢れたときに上端が切れないため）。
-- **背景は全画面**: `<FullScreen layer="background">` でビューポート全体に敷き、`UserPage` 側に `content-layer` を付けて前面に出しています。コンテナ幅に閉じ込めると境界が見えて平板になるため。
-- `/demo` の門番の規則 `demoPages` が閉 のときは「デモを見る」ボタンを出しません。
-- デモの一覧は各デモの route の `_demo.ts` から生成します（`/demo` 一覧がカテゴリ別に描画、閉じた機能のデモは除く）。デモを足すときは `_demo.ts` を置いて `pnpm generate extensions`。
+## Usage
 
-## 下流プロジェクトでトップページを差し替える
+### 下流プロジェクトでトップページを差し替える
 
 ほぼ全ての下流がトップページを自前のものに置き換えます。上流の改修と衝突しないよう、次の手順で行ってください。
 
@@ -41,12 +26,23 @@ export { HomeScreen as default } from "./_components/HomeScreen";
 上流は page.tsx をこれ以上編集しないので、下流側の変更が merge で衝突することはありません。
 既定画面を少しだけ変えたいときは `_screen/StarterHomeScreen.tsx` を `_components/` にコピーし、部品の import を `../_screen/StarterHome/...` に直してから手を入れます。
 
-### やってはいけないこと
+#### やってはいけないこと
 
 - **`_screen/` を削除しない。** 上流がこのディレクトリを改修したとき、下流で削除済みだと modify/delete の merge コンフリクトになります。page.tsx から参照されなくなればバンドルには含まれないので、放置して問題ありません。
 - **`_screen/` を編集して自前ページにしない。** 同じ理由で上流改修と衝突します。必ず `_components/` に作ってください。
 
-## 上流（next-starter）側のルール
+### 上流(next-starter)側の決まり
 
 - `src/app/(user)/page.tsx` は編集しない。トップページの変更は `_screen/` 配下で完結させる。
 - page.tsx に書きたくなる設定（`metadata` 等）が必要になったら、Next.js の仕様上 page.tsx でしか宣言できないものに限り、下流への影響を `.notices` で通知した上で行う。
+
+## Internals
+
+- **縦スクロールなし**: fill(`../frame.ts` の `page: { fill: true }`。本文は `flex-1 min-h-0`)でヘッダー下〜フッター上の残り高さちょうどに収めています。内容が収まらない小さな画面では内側の Flex だけがスクロールします（縦中央寄せは `justify-center` ではなく `my-auto`。溢れたときに上端が切れないため）。
+- **背景は全画面**: `<FullScreen layer="background">` でビューポート全体に敷き、`UserPage` 側に `content-layer` を付けて前面に出しています。コンテナ幅に閉じ込めると境界が見えて平板になるため。
+- `/demo` の門番の規則 `demoPages` が閉 のときは「デモを見る」ボタンを出しません。
+- デモの一覧は各デモの route の `_demo.ts` から生成します（`/demo` 一覧がカテゴリ別に描画、閉じた機能のデモは除く）。デモを足すときは `_demo.ts` を置いて `pnpm generate extensions`。
+
+## Related
+
+- page 層の構造: `src/lib/screens/README.md`
