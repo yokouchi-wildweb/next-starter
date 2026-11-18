@@ -2,6 +2,7 @@
 
 import ReactMarkdown from "react-markdown";
 
+import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, SecTitle } from "@/components/TextBlocks";
@@ -96,7 +97,7 @@ export function RichRenderer({
   const wrapperClassName = getNumberingClassName(numbering);
 
   return (
-    <div className={wrapperClassName || undefined}>
+    <Block className={wrapperClassName || undefined}>
       {sections.map((section, index) => (
         <RenderSection
           key={section.id ?? index}
@@ -104,6 +105,6 @@ export function RichRenderer({
           variables={variables}
         />
       ))}
-    </div>
+    </Block>
   );
 }

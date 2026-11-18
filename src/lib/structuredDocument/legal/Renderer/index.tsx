@@ -1,6 +1,7 @@
 "use client";
 
-import { Para } from "@/components/TextBlocks";
+import { Block } from "@/components/Layout/Block";
+import { Para, SecTitle } from "@/components/TextBlocks";
 
 import type { LegalDocumentRendererProps, LegalEnactedAtFormat } from "../definition";
 import { PlainRenderer } from "./PlainRenderer";
@@ -94,7 +95,7 @@ export function LegalDocumentRenderer({
   // スクロール領域として表示する場合
   if (maxHeight) {
     return (
-      <div
+      <Block
         className={className}
         style={{
           maxHeight,
@@ -105,7 +106,11 @@ export function LegalDocumentRenderer({
         }}
       >
         {showTitle && (
-          <h2
+          <SecTitle
+            as="h2"
+            size="inherit"
+            weight="inherit"
+            align="inherit"
             style={{
               fontSize: "1.25rem",
               fontWeight: "bold",
@@ -113,12 +118,12 @@ export function LegalDocumentRenderer({
             }}
           >
             {document.title}
-          </h2>
+          </SecTitle>
         )}
         {content}
-      </div>
+      </Block>
     );
   }
 
-  return <div className={className}>{content}</div>;
+  return <Block className={className}>{content}</Block>;
 }

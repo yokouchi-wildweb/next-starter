@@ -1,3 +1,6 @@
+import { Block } from "@/components/Layout/Block";
+import { Para } from "@/components/TextBlocks";
+
 import type { VariableMap } from "../../shared";
 import { replaceVariables } from "../../shared";
 import type { LegalSection, LegalSectionNumbering } from "../definition";
@@ -37,15 +40,28 @@ function RenderSection({
     : null;
 
   return (
-    <div style={{ marginBottom: "1rem" }}>
+    <Block style={{ marginBottom: "1rem" }}>
       {title && (
-        <p style={{ fontWeight: "bold", marginBottom: "0.5rem" }}>{title}</p>
+        <Para
+          size="inherit"
+          weight="inherit"
+          align="inherit"
+          className="my-0"
+          style={{ fontWeight: "bold", marginBottom: "0.5rem" }}
+        >{title}</Para>
       )}
 
       {section.content?.map((text, i) => (
-        <p key={i} style={{ marginBottom: "0.5rem" }}>
+        <Para
+          key={i}
+          size="inherit"
+          weight="inherit"
+          align="inherit"
+          className="my-0"
+          style={{ marginBottom: "0.5rem" }}
+        >
           {stripMarkdown(replaceVariables(text, variables))}
-        </p>
+        </Para>
       ))}
 
       {section.children?.map((child, childIndex) => (
@@ -58,7 +74,7 @@ function RenderSection({
           numbering={numbering}
         />
       ))}
-    </div>
+    </Block>
   );
 }
 
@@ -72,7 +88,7 @@ export function PlainRenderer({
   numbering,
 }: PlainRendererProps) {
   return (
-    <div>
+    <Block>
       {sections.map((section, index) => (
         <RenderSection
           key={section.id ?? index}
@@ -82,6 +98,6 @@ export function PlainRenderer({
           numbering={numbering}
         />
       ))}
-    </div>
+    </Block>
   );
 }
