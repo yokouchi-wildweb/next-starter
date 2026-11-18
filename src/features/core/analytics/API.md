@@ -2,7 +2,7 @@
 
 ## Overview
 
-- analytics の組み込み API のクエリパラメータとレスポンスの仕様。README.md の API の h2 から分けた文書(README の書式と同じ)
+- analytics の組み込み API のクエリパラメータとレスポンスの仕様(API の一覧は README.md の Overview)
 
 ## API
 

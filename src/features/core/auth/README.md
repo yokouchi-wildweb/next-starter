@@ -96,7 +96,7 @@ return response;
 ## API
 
 - 公開の口(新しい認証手段)と公開 hook の契約: `API.md`(この README の API を分けた文書)
-- `POST /api/auth/send-email-link`・`/pre-register`・`/register`・`/send-early-registration-link`・`/forgot-password`・`/local/login`・`/logout`、`GET /api/auth/session`(確認と再発行)・`/api/auth/firebase-token`
+- `POST /api/auth/send-email-link`・`/pre-register`・`/register`・`/send-early-registration-link`・`/forgot-password`・`/firebase/login`・`/local/login`・`/logout`・`/firebase-token`・`/account-exists`・`/email-exists`・`/verify-password`、`GET /api/auth/session`(確認と再発行)
 
 ### システムの連絡(メール)
 
@@ -183,7 +183,7 @@ URL ルール              ロール + ステータス + 行き先(親子 AND)  
 
 ### クライアントのセッション
 
-- root layout(`src/app/layout.tsx`)の `AuthSessionProvider`(server)が Cookie を `resolveSessionUser` で解決し、`AuthSessionClientProvider` に初期値として渡す
+- root layout の Provider の束 `src/wiring/AppProviders.tsx` が描く `AuthSessionProvider`(server)が Cookie を `resolveSessionUser` で解決し、`AuthSessionClientProvider` に初期値として渡す
 - `AuthSessionClientProvider` は `useFirebaseAuthSync`(JWT はあるのに Firebase Auth が未サインインのとき `/api/auth/firebase-token` のカスタムトークンで再サインイン)と DAU 記録も担う
 
 ## Verification

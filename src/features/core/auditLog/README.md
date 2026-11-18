@@ -226,7 +226,7 @@ strict / bestEffort:
 export default {
   userVisibleActions: [
     "wallet.balance.charged", // 完全一致
-    "user.profile.*",         // prefix（末尾 ".*" のみ。単独 "*" は無視される）
+    "user.profile.*",         // prefix（末尾 ".*" のみ。単独 "*" は登録しない(全開示になるので無視される)）
   ],
 } satisfies AuditLogOverride;
 ```

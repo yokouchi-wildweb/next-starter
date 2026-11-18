@@ -27,6 +27,7 @@
 | GET /api/admin/analytics/purchase/status-overview | purchaseAnalytics | ステータス概況 |
 | GET /api/admin/analytics/purchase/distribution | purchaseDistributionAnalytics | 購入額グループ分布 |
 | GET /api/admin/analytics/purchase/ranking | purchaseRankingAnalytics | 購入ランキング |
+| GET /api/admin/analytics/purchase/registration-age | purchaseRegistrationAgeAnalytics | 登録からの経過日数別の購入分布 |
 | GET /api/admin/analytics/user/registration/daily | userAnalytics | 日別ユーザー登録数 |
 | GET /api/admin/analytics/user/registration/summary | userAnalytics | ユーザー登録期間サマリー |
 | GET /api/admin/analytics/user/status-overview | userAnalytics | ユーザーステータス概況 |
@@ -45,7 +46,7 @@
 | GET /api/admin/analytics/messaging/breakdown | messagingAnalytics | 軸（`axis=channel / message / category / template / tag`）ごとの指標（前期比含む） |
 | GET /api/admin/analytics/messaging/dispatches | messagingAnalytics | 回ごとの指標（送った時刻の新しい順、`cursor` / `limit`） |
 
-- purchase 系(`purchase*Analytics`)は決済、wallet 系(`walletHistory` / `walletRanking` / `walletState`)はウォレットの機能の表を読むので、外に出す集計関数の先頭で `gate.assert("payment" / "wallet")`（閉なら 404。住所は門番の規則が既に閉じるので、route 以外から呼んだときの自己停止）。
+- purchase 系(`purchase*Analytics`)は決済、wallet 系(`walletHistory` / `walletRanking` / `walletState`)はウォレットの機能の表を読むので、外に出す集計関数の先頭で `gate.assert("payment" / "wallet")`（閉なら 404。route のパスは門番の規則 `paymentAnalytics` / `walletAnalytics` が既に閉じるので、route 以外から呼んだときの自己停止）。
 
 ## Usage
 
@@ -204,7 +205,7 @@ const { history, walletTypes } = await getWalletBalanceSeries({
 ```
 
 - 合算: per-(user, type) の最新 `balance_after` のアンカー差分を合計する（種別ごとの系列の和と一致）。単位の違う種別を合算する意味は呼び手が持つ
-- 除外: `userId` 指定なしは stock の scope（除外の受け口の stock で、除外した人を丸ごと落とす）、`userId` 指定ありは付けない。`includeExcluded: true` で外す（`services/server/exclusion/README.md`）
+- 除外: `userId` 指定なしは除外の受け口の stock（人ごとの状態の集計。除外した人を丸ごと落とす）、`userId` 指定ありは付けない。`includeExcluded: true` で外す（`services/server/exclusion/README.md`）
 - 活動（`activeUsers` / `recordCount`）は集計しない（クエリ 1 本）。要るなら `getWalletBalanceDaily`（walletType 1 つ、活動付き）
 
 ### エンティティの追加
@@ -259,7 +260,7 @@ export const AnalyticsCacheTable = pgTable(
 - 期間サマリー: `SUM()`, `COUNT()`, `MAX()`, `PERCENTILE_CONT(0.5)` 等
 - ランキング: `GROUP BY user_id` + `ORDER BY metric DESC` + `LIMIT/OFFSET`
 - 内訳: 別クエリで `GROUP BY date, category` → Mapに変換
-- `aggregation.ts` のJS集計関数（`groupByDate`, `countUnique`, `groupBy`, `sum`, `median`）は `@deprecated`。`changeRate` のみ引き続き利用可能
+- JS で集計する関数は持たない。`aggregation.ts` は `changeRate` だけ
 
 ### レスポンスキャッシュの挙動
 

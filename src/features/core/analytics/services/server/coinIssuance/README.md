@@ -94,7 +94,7 @@ export const source = gachaProfitSource;
 
 `userFilter (roles / excludeDemo)` は対象テーブルの `user_id` カラムに対して
 `buildUserFilterConditions(column, userFilter)` で適用できる。
-ただし「発行先 user を絞り込むことが意味を持たないソース」は適用しない。分析の除外条件は第 3 引数の scope で足す（上の「分析の除外条件」）。
+ただし「発行先 user を絞り込むことが意味を持たないソース」は適用しない。分析の除外条件は第 3 引数の scope で足す（`../exclusion/README.md` の Usage）。
 
 #### 戻り値は常に絶対値
 

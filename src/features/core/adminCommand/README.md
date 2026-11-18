@@ -3,7 +3,7 @@
 ## Overview
 
 - 管理者専用のコマンドパレット。`Ctrl + Shift + Alt + A`（Mac: `Cmd + Shift + Option + A`）で開く
-- 操作: カテゴリを選ぶ（↑↓ + Enter）→ アイテムを選んで実行 | `Backspace`（入力が空の時）で戻る | `Escape` で閉じる
+- 操作: カテゴリを選ぶ（↑↓ + Enter）→ アイテムを選んで実行 | `Backspace` / `←`（入力が空の時）で戻る | `Escape` で閉じる
 - ログインしていない時にショートカットを押すと `/admin/login` に移る
 - プログラムから開く: `useAdminCommand()`（`@/features/core/adminCommand`）の `openPalette` / `closePalette` / `togglePalette` / `isOpen`
 
@@ -116,12 +116,13 @@ const handleSearchChange = (value: string) => {
 | ナビゲーション先 | `src/features/core/adminCommand/navigationItems/<名前>.ts` の `export const items`（配列） |
 
 - カテゴリとプラグインは管理者のときだけ読み込む（`load: lazy`）。一般の利用者には届かない
-- 画面側の点 `src/app/_layout/adminCommand/` の `AdminCommandRoot.tsx`（client）が一覧を Provider に結ぶ（`load` は関数なのでサーバーから渡せない）
+- React の受け口の置き場 `src/app/_layout/adminCommand/` の `AdminCommandRoot.tsx`（client）が一覧を Provider に結ぶ（`load` は関数なのでサーバーから渡せない）
 
 ## Internals
 
 ### 閉じた機能の候補を隠す（門番）
 
+- 語: 門番 = feature gate（`useGate()`）| 管理の枠 = admin の守りの layout が敷く門番の値 | 利用者の枠 = root の門番の値 | 橋 = `AdminCommandGateBridge` | 棚の Link = 門番を見る共通の Link
 - ナビゲーション先の候補は、管理の枠の門番の厳密な `useGate().path`（管理メニューと同じ判定）で絞る
   - 閉じた機能の住所を指す行は `redirectTo` の有無に関わらず出ない（`?` と `#` の後ろは照合から外す）
   - 外部 URL・`/` で始まらない住所・開いた住所は残る。fork が足す行も同じ
@@ -135,4 +136,4 @@ const handleSearchChange = (value: string) => {
 
 ## Verification
 
-- 門番の絞り込み: `base/navigationGate.test.tsx`（`pnpm test src/featureGate/checks scripts/structure/proxies/walletOff.test.tsx`）
+- 門番の絞り込み: `pnpm test src/features/core/adminCommand/base/navigationGate.test.tsx`

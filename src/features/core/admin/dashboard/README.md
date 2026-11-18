@@ -68,6 +68,7 @@ export const section = defineDashboardSection({
 - 上流のセクションの見た目を変える: `Section` は上書きできない。隠して自分のセクションを足す
 - ダッシュボードごと作り変える: `src/app/admin/(protected)/_components/` に Screen を置き page.tsx を向ける（`src/lib/screens/README.md`）。そのときもこのドメインは消さない
 - 上流は override を出荷しない（`scripts/structure/extensions/README.md`）
+- 設定: 上書き `src/config/features/admin.config.ts`（持ち主 `../config.ts`）。`dashboard.showMainMetrics` / `showAdditionalMetrics`（上流のセクションを出す。false なら取得もしない）・`coffeeLevel`、`dataTable.emptyFieldFallback`（管理の一覧の表で値の無い欄に出す文字）
 
 ## Internals
 

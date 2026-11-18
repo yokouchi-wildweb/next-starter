@@ -7,7 +7,7 @@
 - 休会: `active` → `inactive`(状態の履歴 `self_pause`・監査)
 - 退会: `active` → `withdrawn` + user の `executeCleanup`(受け口 `cleanupHandlers`)・監査を 1 トランザクションで
 - 復帰: `inactive` → `active`(`self_reactivate`)
-- 画面: `/mypage/pause`(`Pause`)・`/mypage/withdraw`(`Withdraw`)・`/reactivate`(`Reactivate`)・`/mypage/other`(`OtherActions` = 休会・退会の入口。閉じた機能のカードは棚の Link が描かない)。ルートは `src/app/(user)/...`
+- 画面: `/mypage/pause`(`Pause`)・`/mypage/withdraw`(`Withdraw`)・`/reactivate`(`Reactivate`)・`/reactivate/complete`・`/mypage/other`(`OtherActions` = 休会・退会の入口。閉じた機能のカードは棚の Link(`@/components/Navigation` の Link。閉じた機能へのリンクは描かない)が描かない)。ルートは `src/app/(user)/...`
 - 呼び出しの層: 画面の部品 → hooks `usePause` / `useWithdraw` / `useReactivate` → ClientService(`services/client`)→ API → ServerService(`services/server`)
 
 ## API
@@ -25,9 +25,9 @@
 
 ### 入切
 
-- 門番の規則 `pause`(`/api/account-lifecycle/pause`)・`withdraw`(`/api/account-lifecycle/withdraw`)と、マイページとの交わりの規則 `mypagePause`・`mypageWithdraw`・`mypageOther` が住所を閉じる
-- このフォルダはどの規則の `domains` にも載らない基盤: 表・汎用 API・cron を持たず、閉じる物は住所だけ
-- 休会を閉じても、休会中の人の復帰(`/reactivate` の画面と `/api/account-lifecycle/reactivate`)は塞がない(後から閉じても既に休会中の人が戻れるように)。`/reactivate` の loader は `pause` が閉なら notFound
+- 門番の規則 `pause`(`/api/account-lifecycle/pause`)・`withdraw`(`/api/account-lifecycle/withdraw`)と、マイページ × 機能の規則(親 `pageMypage` と子の両方に依存する規則)`mypagePause`・`mypageWithdraw`・`mypageOther` がパスを閉じる
+- このフォルダはどの規則の `domains` にも載らない基盤: 表・汎用 API・cron を持たず、閉じる物はパスだけ
+- 門番の規則 `pause` は復帰のパス(`/reactivate` と `/api/account-lifecycle/reactivate`)を載せない(後から閉じても既に休会中の人が API で戻れるように)。画面 `/reactivate` は loader が `pause` の閉で notFound を返す
 
 ### ほかのドメインに残すもの
 

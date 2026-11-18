@@ -4,7 +4,7 @@ paths:
   - "src/config/features/auditLog.config.ts"
 ---
 # features/auditLog
-what: the cross-domain append-only audit trail audit_logs | recorder auditLogger from @/features/core/auditLog/services/server, client parts and hooks from @/features/core/auditLog
+what: the cross-domain append-only audit trail audit_logs | recorder auditLogger from @/features/core/auditLog/services/server, client parts from @/features/core/auditLog, hooks from its hooks/<name>
 use: always
 change: placement = src/config/features/auditLog.config.ts (userVisibleActions, actionLabels)
 rules:
@@ -13,7 +13,7 @@ using:
 - subject_top_level: an op tied to a user passes `subjectUserId` at top level, never in metadata | user target → its id | related record → its owner | none → explicit `null`
 - crud_audit_no_subject: the createCrudService `audit:` option never sets a subject → an op that must show in a user's timeline is recorded with record()
 - many_in_one_tx: many records of one action in one tx → recordMany / recordManyDiff, never record() awaited in a loop | one call never mixes tx, bestEffort or batchId
-- bulk_retention: user / wallet / payment → bulkMode detail and retention ≥ 730 days | high-frequency data → bulkMode off or 90 days
+- bulk_retention: recommended: user / wallet / payment → bulkMode detail, retention ≥ 730 days | high-frequency → off or 90 days
 - strict_default: interventions stay strict | bestEffort only for measurement-like records
 - metadata_no_secrets: metadata skips the denylist → no secrets in it | per-domain exclusion = trackedFields
 - context_not_authz: the audit context is a recording value, never input to authorization

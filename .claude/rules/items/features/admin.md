@@ -4,22 +4,22 @@ paths:
   - "src/config/features/admin.config.ts"
 ---
 # features/admin
-what: admin screen parts: sidebar menu (menu/), /admin dashboard (dashboard/, entry @/features/admin/dashboard) and fetch bodies of admin list / edit / create / sort screens (services/server/screenData/)
+what: admin screen parts: sidebar menu (menu/), /admin dashboard (dashboard/, entry @/features/admin/dashboard), fetch bodies of admin list / edit / create / sort (services/server/screenData/)
 use: always
 change: add = menu categories / items, dashboard sections in the receptacles of extensionPoints.ts | overlay = <key>.override.ts beside an upstream entry | placement = src/config/features/admin.config.ts
 rules:
 using:
-- entry_key_name: an entry's file name = its `key` (camelCase); an override targets that name
+- entry_key_name: an entry's file name = its `key` (camelCase), an override targets it
 - order_between: a fork's entry takes an order between the upstream values
 - allow_roles_narrow: an override's allowRoles only narrows (empty = widening)
-- data_menu_off: keep a domain out of the data menu by addToAdminDataMenu: false in its domain.json, never on the menu side
+- data_menu_off: keep a domain out of the data menu by addToAdminDataMenu: false in domain.json, never on the menu side
 - section_fetch_in_load: a dashboard section fetches only in its `load`; its Section gets the result as `data`
-- section_list_server: the section list and sections/ are never imported from a Client Component
+- section_list_server: a Client Component never imports the section list or sections/
 - dashboard_config_scope: adminConfig.dashboard switches serve the upstream sections only, never a fork's section
 editing:
-- no_own_switch: menu rows and sections show by the feature gate and allowRoles only, no menu- or dashboard-only on/off
+- no_own_switch: menu rows and sections show by the feature gate and allowRoles, no new menu- or dashboard-only on/off (show*: dashboard_config_scope)
 - upstream_roles_on_items: upstream default allowRoles go on menu items, never on upstream categories
-- order_gaps: upstream orders keep gaps (categories and sections 100, items 10)
-- screen_data_no_cache: screenData holds no cache() or authz; the caller's createLoader owns both
+- order_gaps: upstream orders keep gaps (categories, sections 100, items 10; inserts: midpoint)
+- screen_data_no_cache: screenData holds no cache() or authz (the caller's createLoader owns both)
 - relation_options_single: which relations to read and their SWR key live only in relationOptions.mjs
 read: menu entry → src/features/core/admin/menu/README.md Extension | dashboard section → src/features/core/admin/dashboard/README.md Extension | admin screen loader → src/features/core/admin/services/server/screenData/README.md Usage
