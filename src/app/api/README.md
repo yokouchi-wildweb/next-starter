@@ -1,12 +1,11 @@
 # API Routes
 
-このディレクトリ配下のすべてのAPIルートは、**routeFactory を経由して作成する必要があります**。
+## Overview
 
-直接ハンドラをエクスポートすることは禁止されています。
+- このディレクトリ配下のすべてのAPIルートは、**routeFactory を経由して作成する必要があります**
+- 直接ハンドラをエクスポートすることは禁止されています
 
----
-
-## 必須: routeFactory の使用
+## Usage
 
 ```ts
 // ✅ 正しい例
@@ -21,10 +20,6 @@ export const GET = createApiRoute(
 export const GET = async (req: NextRequest) => { ... };
 ```
 
----
+## Related
 
-## 詳細ドキュメント
-
-ファクトリーの詳しい使用方法は以下を参照してください:
-
-→ [src/lib/routeFactory/README.md](../../lib/routeFactory/README.md)
+- ファクトリーの詳しい使用方法: [src/lib/routeFactory/README.md](../../lib/routeFactory/README.md)
