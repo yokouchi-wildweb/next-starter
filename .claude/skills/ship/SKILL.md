@@ -15,8 +15,8 @@ role: **ship** (commit and push this repo's changes; when downstream forks need 
   - other than `yes` / `none` (declaration missing or wrong) → never guess from the text; STOP: have `tier` declared in `repo.json` (`pnpm workflow repo-json set tier <root|middle|leaf>`; `pnpm workflow ownership check` is unverified too)
 
 args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` = commit only, no push | `hotfix` = ship as an emergency fix (only when the human tells you; never add it on your own judgment, since it cuts into every fork's work) | the rest = extra notes
-- `notice:council` = the notice is the council's (a quest under a council commission: the council's segment notice carries it): steps 3-4 judge as usual, step 5 writes no notice and no index line, the report gives the material instead
-- `notices:<path>,…` = a council's segment drafts (a team tool closing a segment: the forks' checkpoints are placed by the council, never coarsened): step 5 writes one notice per draft from its `- ` items, `checkpoint:` = the draft's `segment:` header | with `no-push` | step 1 range empty → the commit holds the notices and their index lines alone (step 2: `pnpm check notices` only)
+- `notice:council` = the notice is the segment's (a quest under a council commission: its party's segment notice carries it, written by the party's Convoy from the party's draft): steps 3-4 judge as usual, step 5 writes no notice and no index line, the report gives the material instead
+- `notices:<path>,…` = segment drafts (a team tool closing a segment — the Envoy / a guild from the council's draft, a caravan party's Convoy from the party's own: the forks' checkpoints are placed by the council, never coarsened): step 5 writes one notice per draft from its `- ` items, `checkpoint:` = the draft's `segment:` header | with `no-push` | step 1 range empty → the commit holds the notices and their index lines alone (step 2: `pnpm check notices` only)
 - which kind (pick it yourself when the caller gave none):
   - more work follows in this session → `--quick`
   - the last ship of the session → plain (no flag; the human's words, else your own reading of whether work goes on) | its area checks also cover the quick ships not yet checked (step 2) | its report may propose a safe point (step 8)
@@ -122,7 +122,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 8. **report** (Japanese):
    - first line = downstream intake verdict (measured): `取り込み判定: 安全 | 要注意(理由)| 危険(理由)`
      - `危険` (danger) = a plain merge breaks the fork's build, boot or existing behavior / needs manual work on the fork side / behavior or permissions change silently | `要注意` (caution) = only as far as merge conflicts may happen | no downstream → omit
-   - commit short sha, push target (or why not pushed), check results, the notice id and a summary of change (none written → `notice 不要: <理由>`; `notice:council` → `notice: 議会の下書きへ` and the material lines), the reference of `fixes:` if added, the order id of `resolves:` if added
+   - commit short sha, push target (or why not pushed), check results, the notice id and a summary of change (none written → `notice 不要: <理由>`; `notice:council` → `notice: 区切りの下書きへ` and the material lines), the reference of `fixes:` if added, the order id of `resolves:` if added
    - a `fixes:` notice shipped → give the `pick:` judgment (clean / `-` with the failed conditions / unverified)
    - `hotfix` → say it was shipped as an emergency fix, the result of the pick check, and that each fork needs `/flux` (forks do not notice until they run it)
    - the safe point: the tag name, or `セーフポイントなし: <理由>` (plain ship, `--quick`, `no-push`, a full check failed / could not run, the tag step failed)

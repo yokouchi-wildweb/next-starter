@@ -45,7 +45,7 @@ export const POLICY_KEYS = [...KIND_NAMES, ...HOOK_KINDS];
 export const POLICY_VALUES = ["auto", "manual", "off"];
 
 /**
- * 危険な 3 つ(D115・D116)。値は off | manual だけ(auto・知らない値は off とみなす)、既定 off。
+ * 危険な 3 つ(D115・D116)。値は off | manual だけ(auto・知らない値は off とみなす)、書いていなければ manual(D265)。
  * 入口の命令(agent.<種類>.entry)は fork が差し替えられる。"-" = 上流の入口なし(fork が自分の命令を書く)
  * - db_push = 開発の DB の反映だけ / env_production = 本番の env を書く / deploy = 本番へ出す(本番の DB の反映も、agent.deploy.db_entry)
  */
@@ -95,8 +95,9 @@ export const declaredAgentKeys = () => [
 ];
 
 /**
- * repo.json の値 → 効いている方針。通常の種類は auto | manual | off(既定 auto、誤りは DevcheckError)、
- * enabled は真偽値(既定 true、誤りは DevcheckError)、危険な 3 つは off | manual(既定 off、ほかは off)、入口は文字列(既定は上流の命令)。
+ * repo.json の値 → 効いている方針。通常の種類は auto | manual | off(書いていなければ manual、誤りは DevcheckError)、
+ * enabled は真偽値(既定 true、誤りは DevcheckError)、危険な 3 つは off | manual(書いていなければ manual、知らない値は off)、入口は文字列(既定は上流の命令)。
+ * 書いていない時に manual なのは、方針を書いていない fork で何も人の確認なしに走らせないため(D265)。自動にするのは repo.json(/repo-policy)
  * 宣言に無い agent.* の鍵は DevcheckError
  * @param {Record<string, string | boolean>} values
  * @returns {{ policy: Record<string, string>, entries: Record<string, Record<string, string>>, enabled: boolean }}
@@ -113,7 +114,7 @@ export const agentPolicyOf = (values) => {
   const policy = {};
   for (const kind of POLICY_KEYS) {
     const key = policyKeyOf(kind);
-    const raw = values[key] ?? "auto";
+    const raw = values[key] ?? "manual";
     if (!POLICY_VALUES.includes(/** @type {string} */ (raw))) throw new DevcheckError(`${POLICY_FILE}: ${key} の値 ${JSON.stringify(raw)} は auto / manual / off のどれか`);
     policy[kind] = enabled ? /** @type {string} */ (raw) : "off";
   }
@@ -121,7 +122,7 @@ export const agentPolicyOf = (values) => {
   const entries = {};
   for (const d of DANGER_NAMES) {
     const raw = values[policyKeyOf(d)];
-    policy[d] = enabled && raw === "manual" ? "manual" : "off";
+    policy[d] = enabled && (raw === undefined || raw === "manual") ? "manual" : "off";
     entries[d] = {};
     for (const [e, def] of Object.entries(DANGER_KINDS[d].entries)) {
       const key = `${policyKeyOf(d)}.${e}`;

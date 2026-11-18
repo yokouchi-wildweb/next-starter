@@ -16,9 +16,9 @@ words: load = put an order's commits on the Convoy's line | depart = ship the li
 5. it cannot be loaded because the order's own work is broken (not a conflict between two orders) → abort; STOP: report it to go back to its worker with the reason
 6. report: the order, the commits now on the Convoy's line (short sha)
 
-## SEGMENT (`segment <label> notices:<path>`: a council's segment closes on its cue)
+## SEGMENT (`segment <label> notices:<path>`: the council closes this party's segment; the party writes its notice)
 1. every order of the segment is loaded already (the caller sends the cue after the loads)
-2. `/ship no-push notices:<path>` on the Convoy's line: one notice from the council's draft (every `- ` item, `resolves:` items into `resolves:`), `checkpoint:` = <label>, committed with its index line, not pushed
+2. `/ship no-push notices:<path>` on the Convoy's line: one notice from the party's draft at <path> (the tool built it from the loaded quests' material; every `- ` item, `resolves:` items into `resolves:`), `checkpoint:` = <label>, committed with its index line, not pushed
 3. report: the notice id, the draft items it left out (or none) — the caller tells the council
 
 ## DEPART (`depart`: only on the human's word)
