@@ -8,7 +8,7 @@
 
 - 持ち主のドメインが描画用の `config.ui.ts` を持つときだけ `<名前>.ui.config.ts` を並べます
 - 持ち主の既定と型は `<ドメイン>/config.ts`。上書きはそこだけが読む
-- 閉じられる機能を開ける・閉じる値(`enabled`)もここに書く(処理の切り替えの値とは別)
+- ドメインの中の処理の入切(例 demo の `mode.enabled`)もここに書く。門番の機能(`src/featureGate/rules/`)の入切は `../featureGate/switches.config.ts`
 
 ## Related
 

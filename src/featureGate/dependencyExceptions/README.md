@@ -16,4 +16,4 @@
 
 ## Related
 
-- 詳細: `../README.md`「依存の検査」
+- 詳細: `../Internals.md`「依存の検査」
