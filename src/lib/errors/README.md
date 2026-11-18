@@ -1,50 +1,24 @@
-# errors - 共通エラー型
+# errors
 
-サーバー側の `DomainError` と、クライアント側の `HttpError` の 2 つの型と、その変換ユーティリティ。
-層をまたいだエラーの流れ（どの層が何に責任を持つか、なぜこの形か）は [docs/!must-read/エラーハンドリング方針.md](../../../docs/!must-read/エラーハンドリング方針.md) を参照。
+## Overview
+
+- 共通エラー型: サーバー側の `DomainError` と、クライアント側の `HttpError` の 2 つの型と、その変換ユーティリティ
+- 層をまたいだエラーの流れ（どの層が何に責任を持つか、なぜこの形か）は [docs/!must-read/エラーハンドリング方針.md](../../../docs/!must-read/エラーハンドリング方針.md)（CLAUDE.md ERROR_HANDLING）
+- 使う時の決まりは札 .claude/rules/items/lib/errors.md にある
 
 ```ts
 import { DomainError, err, normalizeHttpError, createHttpError } from "@/lib/errors";
 ```
 
-## サーバー側: `DomainError`（`domainError.ts`）
+## Usage
 
-ユーザーへ伝えるべき失敗（ビジネスルール違反・権限不足・存在しない等）を表す例外。サーバーサービスが throw する。
+### サーバーサービスで投げる
 
 ```ts
 throw new DomainError("この操作は管理者のみ実行できます", { status: 403 });
 ```
 
-- `status` を省略すると `400`
-- `code`（機械可読な分類）・`details`（補足の値）は省略可。指定するとルートの応答 body に `code` / `details` として載る（クライアントは文言でなく `code` で分岐する）。body の組み立ては `toDomainErrorBody(error)`
-- `message` はそのままユーザーに表示される前提で書く（日本語・次の行動が分かる文言）
-- 判定は `isDomainError(error)`
-- routeFactory のファクトリーが catch して `{ message, code?, details? }` + `status` の JSON に変換する（`src/lib/routeFactory/createApiRoute.ts`）。サーバーサービス以外（API ルートのハンドラ内など）で新たに throw しない
-- `DomainError` 以外の例外は `{ message: "サーバーでエラーが発生しました" }` + 500 に置き換わり、元の `message` はサーバーログ（`console.error`）にだけ残る。ユーザーに見せたい文言は必ず `DomainError` で投げる
-
-## クライアント側: `HttpError`（`httpError.ts`）
-
-クライアント層で扱う唯一のエラー型。`message` / `status?` / `responseData?` / `cause?` を持つ。
-
-| 関数 | 用途 |
-|---|---|
-| `normalizeHttpError(error, fallback?, options?)` | 任意の例外を `HttpError` に正規化する。クライアントサービスの `catch` で必ず通す。`HttpError` はそのまま、axios エラーはレスポンスボディの `message` を優先して採用し `status` / `responseData` を保持、その他の `Error` は `message` を引き継ぐ |
-| `options.rethrowStatuses` | 指定したステータスだけ正規化せず元の例外を再 throw する（例: 428 を呼び出し元で個別処理する） |
-| `createHttpError({ message, status?, responseData?, cause? })` | HTTP 通信を介さない失敗（外部 SDK、ブラウザ API、クライアント側の検証）を `HttpError` として新たに作る。空文字の `message` は既定文言に置き換わる |
-| `err(error, fallback)` | UI で表示文言を得る。`resolveErrorMessage` の短縮形。内部で `normalizeHttpError` を通すので、想定外の値が来ても必ず文字列を返す |
-| `isHttpError(error)` | 型ガード。通常は `normalizeHttpError` / `err` が代わりに担う |
-| `getErrorCode(error)` | `responseData` の `code`（文字列）を返す。`HttpError` でない、または無ければ `null`。`status` だけでは区別できないエラーの分岐に使う |
-| `getErrorDetails(error)` | `responseData` の `details`（オブジェクト）を返す。`HttpError` でない、または無ければ `null`。中身の型は呼び出し側で検証する |
-
-既定のフォールバック文言は `リクエストに失敗しました`。
-
-時間切れ: client の axios の呼び出しのタイムアウトは呼び出しごと(CRUD の通常の操作は 60 秒)。自分の値を持たない呼び出しへのアプリ全体の既定は [`src/lib/httpDefaults`](../httpDefaults/README.md)(設定 `timeoutMs`、既定は付けない。外す印 `defaultTimeout: false`)。時間切れも axios のエラーとして `normalizeHttpError` を通る。
-
-開発中のブラウザでは、`normalizeHttpError` が axios の 401 / 403 を `console.warn` に出す（本番とサーバー側では出ない。`rethrowStatuses` で再 throw するステータスも出ない）。認可の拒否が「データ 0 件」に見えて気づけないのを防ぐためで、ボディに `domain` / `operation` があれば併記する。ログアウト中のセッション確認など、想定内の 401 でも出る。
-
-## 使い方
-
-**クライアントサービス**
+### クライアントサービス
 
 ```ts
 try {
@@ -55,9 +29,9 @@ try {
 }
 ```
 
-`createApiClient`（`@/lib/crud`）で作る CRUD クライアントはこの正規化を内部で行う。
+- `createApiClient`（`@/lib/crud`）で作る CRUD クライアントはこの正規化を内部で行う
 
-**UI（フックの mutation を呼ぶ側）**
+### UI（フックの mutation を呼ぶ側）
 
 ```tsx
 try {
@@ -68,9 +42,50 @@ try {
 }
 ```
 
-`status` で分岐したいときは `normalizeHttpError(error).status === 409` のように確認する。
+- `status` で分岐したいときは `normalizeHttpError(error).status === 409` のように確認する
 
-## アプリ全体の集約ポイント
+## API
+
+### `DomainError`（`domainError.ts`、サーバー側）
+
+- ユーザーへ伝えるべき失敗（ビジネスルール違反・権限不足・存在しない等）を表す例外
+- `status` を省略すると `400`
+- `code`（機械可読な分類）・`details`（補足の値）は省略可。指定するとルートの応答 body に `code` / `details` として載る。body の組み立ては `toDomainErrorBody(error)`
+- 判定は `isDomainError(error)`
+
+### `HttpError`（`httpError.ts`、クライアント側）
+
+クライアント層で扱う唯一のエラー型。`message` / `status?` / `responseData?` / `cause?` を持つ。
+
+| 関数 | 用途 |
+|---|---|
+| `normalizeHttpError(error, fallback?, options?)` | 任意の例外を `HttpError` に正規化する。クライアントサービスの `catch` で通す(CLAUDE.md ARCHITECTURE http)。`HttpError` はそのまま、axios エラーはレスポンスボディの `message` を優先して採用し `status` / `responseData` を保持、その他の `Error` は `message` を引き継ぐ |
+| `options.rethrowStatuses` | 指定したステータスだけ正規化せず元の例外を再 throw する（例: 428 を呼び出し元で個別処理する） |
+| `createHttpError({ message, status?, responseData?, cause? })` | HTTP 通信を介さない失敗（外部 SDK、ブラウザ API、クライアント側の検証）を `HttpError` として新たに作る。空文字の `message` は既定文言に置き換わる |
+| `err(error, fallback)` | UI で表示文言を得る。`resolveErrorMessage` の短縮形。内部で `normalizeHttpError` を通すので、想定外の値が来ても必ず文字列を返す |
+| `isHttpError(error)` | 型ガード。通常は `normalizeHttpError` / `err` が代わりに担う |
+| `getErrorCode(error)` | `responseData` の `code`（文字列）を返す。`HttpError` でない、または無ければ `null`。`status` だけでは区別できないエラーの分岐に使う |
+| `getErrorDetails(error)` | `responseData` の `details`（オブジェクト）を返す。`HttpError` でない、または無ければ `null` |
+
+- 既定のフォールバック文言は `リクエストに失敗しました`
+
+## Internals
+
+### ルートでの変換
+
+- routeFactory のファクトリーが `DomainError` を catch して `{ message, code?, details? }` + `status` の JSON に変換する（`src/lib/routeFactory/createApiRoute.ts`）
+- `DomainError` 以外の例外は `{ message: "サーバーでエラーが発生しました" }` + 500 に置き換わり、元の `message` はサーバーログ（`console.error`）にだけ残る
+
+### 時間切れ
+
+- client の axios の呼び出しのタイムアウトは呼び出しごと(CRUD の通常の操作は 60 秒)。自分の値を持たない呼び出しへのアプリ全体の既定は [`src/lib/httpDefaults`](../httpDefaults/README.md)(設定 `timeoutMs`、既定は付けない。外す印 `defaultTimeout: false`)。時間切れも axios のエラーとして `normalizeHttpError` を通る
+
+### 開発中の 401 / 403 の警告
+
+- 開発中のブラウザでは、`normalizeHttpError` が axios の 401 / 403 を `console.warn` に出す（本番とサーバー側では出ない。`rethrowStatuses` で再 throw するステータスも出ない）
+- 認可の拒否が「データ 0 件」に見えて気づけないのを防ぐためで、ボディに `domain` / `operation` があれば併記する。ログアウト中のセッション確認など、想定内の 401 でも出る
+
+### アプリ全体の集約ポイント
 
 `createApiClient` 経由の通信だけが対象（独自に axios を呼ぶクライアントサービスには効かない）。
 
