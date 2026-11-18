@@ -24,6 +24,9 @@ import { Flex } from "@/components/Layout/Flex";
 import { Button } from "@/components/Form/Button";
 import { Manual } from "@/components/Form/Input";
 import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
+import { Block } from "@/components/Layout/Block";
+import { Label } from "@/components/Form/Label";
 import { SolidBadge } from "@/components/Badge";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import type { BankTransferReviewImportRowDto } from "@/features/core/bankTransferReview";
@@ -98,7 +101,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
         </Flex>
 
         <Stack gap="xs">
-          <label className="text-sm font-medium">CSVファイル</label>
+          <Label className="text-sm font-medium">CSVファイル</Label>
           <Manual.FileInput
             accept=".csv,text/csv"
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => void selectFile(e.target.files?.[0])}
@@ -110,7 +113,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
         </Stack>
 
         <Stack gap="xs">
-          <label className="text-sm font-medium">またはCSVテキストを直接貼り付け</label>
+          <Label className="text-sm font-medium">またはCSVテキストを直接貼り付け</Label>
           <Manual.Textarea
             rows={6}
             value={csvText}
@@ -135,10 +138,14 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
         {preview ? (
           <Stack gap="sm">
             {preview.fatalError ? (
-              <div className="flex items-start gap-2 rounded border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive-text">
+              <Flex
+                align="start"
+                gap="xs"
+                className="rounded border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive-text"
+              >
                 <AlertCircle className="size-4 mt-0.5 shrink-0" />
-                <span>{preview.fatalError}</span>
-              </div>
+                <Span inline>{preview.fatalError}</Span>
+              </Flex>
             ) : null}
 
             {preview.rows.length > 0 ? (
@@ -175,9 +182,9 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
                   ) : null}
                 </Flex>
 
-                <div className="overflow-x-auto rounded border">
+                <Block className="overflow-x-auto rounded border">
                   <PreviewTable rows={preview.rows} />
-                </div>
+                </Block>
               </>
             ) : null}
           </Stack>
@@ -212,10 +219,10 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
 // ----------------------------------------------------------------------------
 
 const PREVIEW_COLUMNS: DataTableColumn<BankTransferReviewImportRowDto>[] = [
-  { header: "行", width: "2.5rem", render: (row) => <span className="text-muted-foreground">{String(row.rowIndex)}</span> },
+  { header: "行", width: "2.5rem", render: (row) => <Span inline tone="muted">{String(row.rowIndex)}</Span> },
   { header: "判定", width: "6rem", render: (row) => <DecisionBadge row={row} /> },
-  { header: "振込人名", render: (row) => <span className="break-all">{row.rawTransferName || "-"}</span> },
-  { header: "識別番号", width: "7rem", render: (row) => <span className="font-mono">{row.parsedIdentifier ?? "-"}</span> },
+  { header: "振込人名", render: (row) => <Span inline className="break-all">{row.rawTransferName || "-"}</Span> },
+  { header: "識別番号", width: "7rem", render: (row) => <Span inline className="font-mono">{row.parsedIdentifier ?? "-"}</Span> },
   {
     header: "CSV金額",
     width: "8rem",
@@ -228,7 +235,7 @@ const PREVIEW_COLUMNS: DataTableColumn<BankTransferReviewImportRowDto>[] = [
     align: "right",
     render: (row) => (row.expectedAmount !== null ? formatJpyAmount(row.expectedAmount) : "-"),
   },
-  { header: "メッセージ", render: (row) => <span className="text-muted-foreground">{row.message ?? ""}</span> },
+  { header: "メッセージ", render: (row) => <Span inline tone="muted">{row.message ?? ""}</Span> },
 ];
 
 /** 取り込みの下見の表(行ごとの判定)。エラーの行は色を付ける */

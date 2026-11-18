@@ -13,6 +13,8 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
+import { Span } from "@/components/TextBlocks/Span";
+import { Label } from "@/components/Form/Label";
 import { Button } from "@/components/Form/Button";
 import { Manual } from "@/components/Form/Input";
 import { SoftBadge } from "@/components/Badge/SoftBadge";
@@ -223,9 +225,11 @@ function PurchaseRequestSection({
       </DefinitionRow>
       <DefinitionRow label="申請/完了日時">
         <Flex gap="md" align="center" wrap="wrap">
-          <span>{formatBankTransferDate(review?.submitted_at ?? null)}</span>
-          <span className="text-muted-foreground">/</span>
-          <span>{formatBankTransferDate(pr.completed_at ?? null)}</span>
+          <Span inline>{formatBankTransferDate(review?.submitted_at ?? null)}</Span>
+          <Span inline tone="muted">
+            /
+          </Span>
+          <Span inline>{formatBankTransferDate(pr.completed_at ?? null)}</Span>
         </Flex>
       </DefinitionRow>
     </DefinitionList>
@@ -256,7 +260,7 @@ function AmountInline({
   return (
     <Flex gap="md" align="center" wrap="wrap">
       {hasAmount && !walletOpen ? (
-        <span>{amount.toLocaleString()}</span>
+        <Span inline>{amount.toLocaleString()}</Span>
       ) : hasAmount && isKnownWalletType ? (
         <CurrencyDisplay
           walletType={walletType as WalletType}
@@ -265,13 +269,15 @@ function AmountInline({
           size="sm"
         />
       ) : (
-        <span>-</span>
+        <Span inline>-</Span>
       )}
-      <span className="text-muted-foreground">/</span>
+      <Span inline tone="muted">
+        /
+      </Span>
       {hasPaymentAmount ? (
-        <span>{formatJpyAmount(paymentAmount)}</span>
+        <Span inline>{formatJpyAmount(paymentAmount)}</Span>
       ) : (
-        <span>-</span>
+        <Span inline>-</Span>
       )}
     </Flex>
   );
@@ -350,7 +356,9 @@ function ReviewedSection({
         {status === "rejected" ? (
           <DefinitionRow label="拒否理由">
             {rejectReason ? (
-              <span className="whitespace-pre-wrap break-words">{rejectReason}</span>
+              <Span inline className="whitespace-pre-wrap break-words">
+                {rejectReason}
+              </Span>
             ) : (
               "(理由は記録されていません)"
             )}
@@ -471,10 +479,10 @@ function ActionSection({
           <Para size="sm" tone="warning">
             {rejectWarning}
           </Para>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">
+          <Label className={FIELD_LABEL_CLASS_NAME}>
+            <Span size="xs" weight="inherit" tone="muted">
               拒否理由 (必須・{REJECT_REASON_MAX} 文字以内)
-            </span>
+            </Span>
             <Manual.Textarea
               value={rejectReason}
               rows={4}
@@ -482,13 +490,15 @@ function ActionSection({
               onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRejectReason(e.target.value)}
               aria-invalid={Boolean(rejectError)}
             />
-            <span className="text-xs text-muted-foreground">
+            <Span size="xs" weight="inherit" tone="muted">
               {rejectReason.length} / {REJECT_REASON_MAX}
-            </span>
+            </Span>
             {rejectError ? (
-              <span className="text-xs text-destructive-text">{rejectError}</span>
+              <Span size="xs" weight="inherit" tone="destructive">
+                {rejectError}
+              </Span>
             ) : null}
-          </label>
+          </Label>
           <Flex gap="md" justify="end">
             <Button
               type="button"
@@ -526,10 +536,10 @@ function ActionSection({
             ケースとして識別します。停止措置の実施自体は別画面・別オペレーションで
             運用してください。
           </Para>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">
+          <Label className={FIELD_LABEL_CLASS_NAME}>
+            <Span size="xs" weight="inherit" tone="muted">
               メモ (任意・{INVESTIGATE_NOTE_MAX} 文字以内)
-            </span>
+            </Span>
             <Manual.Textarea
               value={investigateNote}
               rows={4}
@@ -537,13 +547,15 @@ function ActionSection({
               onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInvestigateNote(e.target.value)}
               aria-invalid={Boolean(investigateError)}
             />
-            <span className="text-xs text-muted-foreground">
+            <Span size="xs" weight="inherit" tone="muted">
               {investigateNote.length} / {INVESTIGATE_NOTE_MAX}
-            </span>
+            </Span>
             {investigateError ? (
-              <span className="text-xs text-destructive-text">{investigateError}</span>
+              <Span size="xs" weight="inherit" tone="destructive">
+                {investigateError}
+              </Span>
             ) : null}
-          </label>
+          </Label>
           <Flex gap="md" justify="end">
             <Button
               type="button"
@@ -670,6 +682,12 @@ function AdminMemoSection({
 // ----------------------------------------------------------------------------
 // 共通の定義リスト UI
 // ----------------------------------------------------------------------------
+
+/**
+ * 入力欄を包む Label の class。Label の既定(横並びの中央寄せ・text-sm・leading-none・font-medium)を、
+ * 生の label のときと同じ見た目(縦並び・幅いっぱい・入力欄の文字の太さは親のまま)に戻す
+ */
+const FIELD_LABEL_CLASS_NAME = "flex-col items-stretch gap-1 font-normal";
 
 function DefinitionList({ children }: { children: React.ReactNode }) {
   return (

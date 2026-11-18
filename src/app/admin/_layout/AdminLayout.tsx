@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { useFrameAttributes } from "@/app/_layout/frame/useFrameAttributes";
+import { Flex } from "@/components/Layout/Flex";
 import { cn } from "@/lib/cn";
 
 import { frameTable } from "./extensions/frameTable";
@@ -34,9 +35,10 @@ export function AdminLayout({ children, className }: AdminLayoutProps) {
   // Admin には banner も bottomNav も無いので --app-banner-height / --app-bottom-nav-height は :root の 0px を継ぐ(safe-area も :root)
 
   return (
-    <div
+    <Flex
+      direction="column"
       className={cn(
-        "relative flex h-[var(--viewport-height,100dvh)] flex-col overflow-hidden bg-background text-foreground",
+        "relative h-[var(--viewport-height,100dvh)] overflow-hidden bg-background text-foreground",
         className,
         extraClassName,
       )}
@@ -53,7 +55,9 @@ export function AdminLayout({ children, className }: AdminLayoutProps) {
           スクロールも発火しない。配下（ResizableArea / login・setup の
           Screen が Main を包む overflow-y-auto の Block）が自前でスクロール可能領域を確保する前提。 */}
       {/* AdminPage の行は上端に固定なので、その高さ(--app-header-height)を上の余白で空ける(利用者の枠の UserLayout と同じ形) */}
-      <div className="flex-1 min-h-0 flex flex-col overflow-clip pt-[var(--app-header-height,0px)]">{children}</div>
-    </div>
+      <Flex direction="column" className="flex-1 min-h-0 overflow-clip pt-[var(--app-header-height,0px)]">
+        {children}
+      </Flex>
+    </Flex>
   );
 }

@@ -14,6 +14,8 @@ import { Pencil } from "lucide-react";
 import { BulkActionItems, RecordSelectionTable, type DataTableColumn } from "@/lib/tableSuite";
 import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Button } from "@/components/Form/Button";
+import { Flex } from "@/components/Layout/Flex";
+import { Span } from "@/components/TextBlocks";
 import { PromptPopover } from "@/components/Overlays/Popover";
 import type {
   AdminBankTransferReviewListItem,
@@ -149,14 +151,16 @@ export function BankTransferReviewTable({
                   item.review.needs_check_context,
                 );
                 return (
-                  <div className="flex flex-col gap-0.5">
+                  <Flex direction="column" className="gap-0.5">
                     <SoftBadge variant="warning" size="sm">
                       {formatNeedsCheckReasonLabel(reason)}
                     </SoftBadge>
                     {summary ? (
-                      <span className="text-xs text-muted-foreground">{summary}</span>
+                      <Span size="xs" weight="inherit" tone="muted">
+                        {summary}
+                      </Span>
                     ) : null}
-                  </div>
+                  </Flex>
                 );
               },
               width: "240px",
@@ -209,11 +213,13 @@ export function BankTransferReviewTable({
         // 送付履歴の追記もこの列・ポップオーバーで確認できる。
         render: (item) =>
           item.review.admin_memo ? (
-            <span className="text-sm truncate max-w-[200px] block">
+            <Span size="sm" weight="inherit" className="truncate max-w-[200px] block">
               {item.review.admin_memo}
-            </span>
+            </Span>
           ) : (
-            <span className="text-sm text-muted-foreground">メモを追加</span>
+            <Span size="sm" weight="inherit" tone="muted" className="inline">
+              メモを追加
+            </Span>
           ),
         cellAction: {
           popover: (item, trigger) => (

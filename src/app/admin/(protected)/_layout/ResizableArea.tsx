@@ -4,6 +4,8 @@
 
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { adminLayoutConfig } from "@/app/admin/_layout/config";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
 import { Footer } from "./Footer";
 import { PcSidebar } from "./Sidebar/PcSidebar";
 import { SpSidebar } from "./Sidebar/SpSidebar";
@@ -51,7 +53,7 @@ export function ResizableArea({
   }, [isSidebarResizable, hasSidebar]);
 
   return (
-    <div className="flex h-full min-h-0 relative">
+    <Flex className="h-full min-h-0 relative">
       {hasSidebar ? (
         <>
           <SpSidebar width={sidebarWidth} isOpen={isSidebarOpen} onClose={onSidebarClose} content={sidebar} />
@@ -60,7 +62,7 @@ export function ResizableArea({
       ) : null}
 
       {hasSidebar && isSidebarResizable ? (
-        <div
+        <Block
           data-slot="admin-sidebar"
           onMouseDown={() => {
             dragging.current = true;
@@ -83,12 +85,12 @@ export function ResizableArea({
           data-frame-fill を読んでこのラッパーを flex-col + min-h-0 の束縛モードに切り替え、直下の
           ページの本文(Main の印 main)を flex-1 min-h-0 にする（styles/core/frame.css）。
           これにより高さチェーンがページへ伝播し、内部ペインが独自スクロール、外側は非スクロールになる。 */}
-      <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">
-        <div data-slot="admin-main" className="flex-1">
+      <Flex direction="column" className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden">
+        <Block data-slot="admin-main" className="flex-1">
           {children}
-        </div>
+        </Block>
         {footer === undefined ? <Footer /> : footer}
-      </div>
-    </div>
+      </Flex>
+    </Flex>
   );
 }

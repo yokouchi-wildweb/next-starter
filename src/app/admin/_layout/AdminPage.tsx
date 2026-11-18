@@ -2,6 +2,7 @@
 
 import type { PropsWithChildren, ReactNode } from "react";
 
+import { Block } from "@/components/Layout/Block";
 import { Main } from "@/components/TextBlocks";
 
 import { AdminHeader } from "./AdminHeader";
@@ -49,7 +50,7 @@ export default function AdminPage({ title, center, actions, tabs, children, main
   const body = (
     <>
       {hasTitle && <AdminPageTitleBody>{title}</AdminPageTitleBody>}
-      {tabs && <div className="mb-6">{tabs}</div>}
+      {tabs && <Block className="mb-6">{tabs}</Block>}
       {children}
     </>
   );

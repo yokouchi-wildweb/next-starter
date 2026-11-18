@@ -112,9 +112,66 @@ const BEFORE_TITLE_HEADER = `<h1 class="tracking-tight text-2xl font-normal text
  */
 const withoutLegacyMarks = (html: string) =>
   html.replace(/ id="(?:header|footer|main)"/g, "").replace(/ data-component="Main"/g, "").replace(/ data-admin-main-wrapper="true"/g, "");
+/**
+ * 生の要素を包みの部品(Layout の Flex / Block / Section、TextBlocks の Span)に替えた区切り(議会 v2 計画書 06)で変わった開きタグ。
+ * 見た目は同じ: 足したのは部品の印 data-component と、CSS の既定と同じ値の class(Flex の flex-row / items-stretch / justify-start /
+ * flex-nowrap / gap-(--space-none)、Block の block、Span の text-inherit / leading-[inherit])。gap-3 は同じ 12px の段 gap-(--space-sm)。
+ * 部品が class を data-slot の前に描くので、属性の並びも変わる
+ */
+const WRAPPER_TAGS: ReadonlyArray<readonly [string, string]> = [
+  [
+    '<div class="relative flex h-[var(--viewport-height,100dvh)] flex-col overflow-hidden bg-background text-foreground"',
+    '<div data-component="Flex" class="flex gap-(--space-none) flex-col items-stretch justify-start flex-nowrap relative h-[var(--viewport-height,100dvh)] overflow-hidden bg-background text-foreground"',
+  ],
+  [
+    '<div class="flex-1 min-h-0 flex flex-col overflow-clip pt-[var(--app-header-height,0px)]">',
+    '<div data-component="Flex" class="flex gap-(--space-none) flex-col items-stretch justify-start flex-nowrap flex-1 min-h-0 overflow-clip pt-[var(--app-header-height,0px)]">',
+  ],
+  ['<header data-slot="admin-header" ', '<header data-component="Section:header" data-slot="admin-header" '],
+  [
+    '<div data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex">',
+    '<div data-component="Flex" class="gap-(--space-none) flex-row items-center justify-start flex-nowrap hidden min-w-0 shrink border-l border-border/40 pl-4 sm:flex" data-slot="admin-header-title">',
+  ],
+  [
+    '<div data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center overflow-hidden">',
+    '<div data-component="Flex" class="flex gap-(--space-none) flex-row items-center justify-center flex-nowrap min-w-0 flex-1 overflow-hidden" data-slot="admin-header-center">',
+  ],
+  [
+    '<div class="flex min-w-0 shrink-0 items-center gap-3 max-sm:shrink">',
+    '<div data-component="Flex" class="flex gap-(--space-sm) flex-row items-center justify-start flex-nowrap min-w-0 shrink-0 max-sm:shrink">',
+  ],
+  [
+    '<div data-slot="admin-header-right" class="flex min-w-0 items-center gap-3">',
+    '<div data-component="Flex" class="flex gap-(--space-sm) flex-row items-center justify-start flex-nowrap min-w-0" data-slot="admin-header-right">',
+  ],
+  ['<span class="block max-w-[40vw] truncate">', '<span class="text-inherit leading-[inherit] block max-w-[40vw] truncate">'],
+  [
+    '<div class="flex h-full min-h-0 relative">',
+    '<div data-component="Flex" class="flex gap-(--space-none) flex-row items-stretch justify-start flex-nowrap h-full min-h-0 relative">',
+  ],
+  [
+    '<div data-slot="admin-sidebar" class="hidden md:block h-full" style="width:192px">',
+    '<div data-component="Block" data-slot="admin-sidebar" style="width:192px" class="hidden md:block h-full">',
+  ],
+  [
+    '<div data-slot="admin-sidebar" class="hidden md:block h-full w-1 ',
+    '<div data-component="Block" data-slot="admin-sidebar" class="hidden md:block h-full w-1 ',
+  ],
+  [
+    '<div class="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">',
+    '<div data-component="Flex" class="flex gap-(--space-none) flex-col items-stretch justify-start flex-nowrap flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden">',
+  ],
+  ['<div data-slot="admin-main" class="flex-1">', '<div data-component="Block" data-slot="admin-main" class="block flex-1">'],
+  ['<footer data-slot="admin-footer" ', '<footer data-component="Section:footer" data-slot="admin-footer" '],
+  ['<div data-slot="admin-sidebar" class="contents">', '<div data-component="Block" data-slot="admin-sidebar" class="contents">'],
+];
+const withWrappers = (html: string) => WRAPPER_TAGS.reduce((out, [before, after]) => out.split(before).join(after), html);
+/** AdminPage の tabs の包み(Block) */
+const TABS_OPEN = '<div data-component="Block" class="block mb-6">';
+
 /** SP のドロワーの殻(閉じた形)。Overlays/Sheet になって閉じている間は描かない(legate 指令 17)。開いた形は Sidebar/SpSidebar.render.test.tsx */
 const SP_DRAWER_CLOSED = `<div data-slot="admin-sidebar" style="width:192px" class="fixed inset-y-0 right-0 floating-layer transition-transform md:hidden translate-x-full"><x-basesidebar data-nav=""></x-basesidebar></div>`;
-const PROTECTED = withoutLegacyMarks(BEFORE_PROTECTED).replace(SP_DRAWER_CLOSED, "");
+const PROTECTED = withWrappers(withoutLegacyMarks(BEFORE_PROTECTED).replace(SP_DRAWER_CLOSED, ""));
 /**
  * 余白の段の区切り(余白の議会 N3)で変わった管理のページの Main の余白の class(同じ px、並びも不変):
  * padding="lg" → { base: "md", sm: "lg" }、paddingBlock="xl" → { base: "lg", sm: "2xl" }
@@ -127,21 +184,23 @@ const PAGE_MAIN = withSpacingScale(withoutLegacyMarks(BEFORE_PAGE));
 // ---- AdminLayout(外枠)と AdminHeader(行の部品・1 行スイッチ) ----
 
 /** 器になった後の外枠: ヘッダーを描かず、子の領域が上の余白で AdminPage の固定の行の高さを空ける(利用者の枠と同じ形) */
-const CONTAINER_OUTER = BEFORE_OUTER.replace(BEFORE_LOGO_PRELOAD, "")
-  .replace(BEFORE_HEADER, "")
-  .replace(' style="--app-header-height:0px"', "")
-  .replace('<div class="flex-1 min-h-0 flex flex-col overflow-clip">', '<div class="flex-1 min-h-0 flex flex-col overflow-clip pt-[var(--app-header-height,0px)]">');
+const CONTAINER_OUTER = withWrappers(
+  BEFORE_OUTER.replace(BEFORE_LOGO_PRELOAD, "")
+    .replace(BEFORE_HEADER, "")
+    .replace(' style="--app-header-height:0px"', "")
+    .replace('<div class="flex-1 min-h-0 flex flex-col overflow-clip">', '<div class="flex-1 min-h-0 flex flex-col overflow-clip pt-[var(--app-header-height,0px)]">'),
+);
 /**
  * 今の AdminHeader の行 = 前の Header の DOM から受け口の id 3 つを除き、行の高さを決まった値(--admin-header-row-height)に固定し
  * (はみ出しは切る)、ロゴの箱の大きさを読み込みの前から決めた物(高さ + 縦横比。仕上がりの大きさは前と同じ)
  */
-const HEADER = withoutLegacyMarks(BEFORE_HEADER).replace(/ id="admin-header-(?:title|center|right)-slot"/g, "")
+const HEADER = withWrappers(withoutLegacyMarks(BEFORE_HEADER).replace(/ id="admin-header-(?:title|center|right)-slot"/g, "")
   .replace('class="flex items-center justify-between gap-3 px-4 ', 'class="flex h-[var(--admin-header-row-height)] items-center justify-between gap-3 overflow-clip px-4 ')
   .replace('class="block h-auto w-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]"', 'class="block aspect-[300/61] h-6 w-auto dark:hidden sm:h-12"')
   .replace('class="hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]"', 'class="hidden aspect-[300/61] h-6 w-auto dark:block sm:h-12"')
   // 横幅のはみ出しの決まり: 中央は中で切る、右の操作は SP だけ縮む(PC は縮めない)、明暗の切り替えは縮めない
   .replace('class="flex min-w-0 flex-1 items-center justify-center"', 'class="flex min-w-0 flex-1 items-center justify-center overflow-hidden"')
-  .replace('<div class="flex shrink-0 items-center gap-3"><div data-slot="admin-header-right" class="flex items-center gap-3"></div><x-darkmode></x-darkmode>', '<div class="flex min-w-0 shrink-0 items-center gap-3 max-sm:shrink"><div data-slot="admin-header-right" class="flex min-w-0 items-center gap-3"></div><x-darkmode class="shrink-0"></x-darkmode>');
+  .replace('<div class="flex shrink-0 items-center gap-3"><div data-slot="admin-header-right" class="flex items-center gap-3"></div><x-darkmode></x-darkmode>', '<div class="flex min-w-0 shrink-0 items-center gap-3 max-sm:shrink"><div data-slot="admin-header-right" class="flex min-w-0 items-center gap-3"></div><x-darkmode class="shrink-0"></x-darkmode>'));
 /** AdminPage の行 = HEADER + 置き方のクラス(上端に固定・全幅・header-layer) */
 const PAGE_HEADER = HEADER.replace(' sm:px-6 sm:text-lg">', ' sm:px-6 sm:text-lg fixed inset-x-0 top-0 header-layer">');
 
@@ -202,7 +261,7 @@ test("sidebar の中身は useAdminSidebarFrame() で殻の placement / width �
 });
 
 test("footer slot: (protected) は要素で置き換え / null で描かない", () => {
-  const footer = PROTECTED.match(/<footer data-slot="admin-footer"[^>]*>[^<]*<\/footer>/)![0];
+  const footer = PROTECTED.match(/<footer [^>]*data-slot="admin-footer"[^>]*>[^<]*<\/footer>/)![0];
   assert.equal(render(<AdminProtectedLayout footer={<i id="f" />}>CHILD</AdminProtectedLayout>), PROTECTED.replace(footer, '<i id="f"></i>'));
   assert.equal(render(<AdminProtectedLayout footer={null}>CHILD</AdminProtectedLayout>), PROTECTED.replace(footer, ""));
 });
@@ -216,7 +275,7 @@ test("props なしの AdminPage = ヘッダーの行(前の Header と同じ DOM
   assert.equal(page(<AdminPage>CHILD</AdminPage>), BEFORE_LOGO_PRELOAD + PAGE_HEADER + PAGE_MAIN);
   assert.equal(
     page(<AdminPage tabs={<i id="t" />}>CHILD</AdminPage>),
-    BEFORE_LOGO_PRELOAD + PAGE_HEADER + PAGE_MAIN.replace(">CHILD<", '><div class="mb-6"><i id="t"></i></div>CHILD<'),
+    BEFORE_LOGO_PRELOAD + PAGE_HEADER + PAGE_MAIN.replace(">CHILD<", `>${TABS_OPEN}<i id="t"></i></div>CHILD<`),
   );
   assert.ok(!BEFORE_PAGE.includes("data-admin-fill"));
 });
@@ -224,13 +283,13 @@ test("props なしの AdminPage = ヘッダーの行(前の Header と同じ DOM
 /** title="T" の本文側(h1 1 つ。SP で見え、PC は sm:sr-only)= 前の PageTitle の本文の大見出しの見た目 + sm:sr-only + 見出しの印 admin-page-title */
 const TITLE_BODY = BEFORE_TITLE_PAGE.replace("mb-8 sm:text-3xl", "mb-8 sm:text-3xl sm:sr-only").replace('">T</h1>', '" data-slot="admin-page-title">T</h1>');
 /** title="T" のヘッダー側 = 前の PageTitle の圧縮の題と同じクラスの飾りの文字(h1 ではない、aria-hidden) */
-const TITLE_COMPACT = `<p title="T" aria-hidden="true" class="relative min-w-0 text-base font-semibold tracking-tight text-foreground sm:text-lg after:absolute after:-bottom-1 after:left-0 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-[&#x27;&#x27;] animate-in fade-in slide-in-from-left-2 duration-200"><span class="block max-w-[40vw] truncate">T</span></p>`;
+const TITLE_COMPACT = withWrappers(`<p title="T" aria-hidden="true" class="relative min-w-0 text-base font-semibold tracking-tight text-foreground sm:text-lg after:absolute after:-bottom-1 after:left-0 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-[&#x27;&#x27;] animate-in fade-in slide-in-from-left-2 duration-200"><span class="block max-w-[40vw] truncate">T</span></p>`);
 
 test("AdminPage title = ページの題: h1 は本文の先頭の 1 つ(SP は大見出し、PC は sm:sr-only)、PC で見える圧縮の題はヘッダーの題の受け口の中の飾りの文字", () => {
   const html = page(<AdminPage title="T" tabs={<i id="t" />}>CHILD</AdminPage>);
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1, "h1 は 1 つ");
-  assert.ok(html.includes(`<div data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex">${TITLE_COMPACT}</div>`), html);
-  assert.ok(html.includes(`<main class="max-w-screen overflow-hidden mx-auto w-full ${ADMIN_MAIN_SPACING}">${TITLE_BODY}<div class="mb-6"><i id="t"></i></div>CHILD</main>`), "題は本文の先頭(タブの前)");
+  assert.ok(html.includes(withWrappers(`<div data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex">${TITLE_COMPACT}</div>`)), html);
+  assert.ok(html.includes(`<main class="max-w-screen overflow-hidden mx-auto w-full ${ADMIN_MAIN_SPACING}">${TITLE_BODY}${TABS_OPEN}<i id="t"></i></div>CHILD</main>`), "題は本文の先頭(タブの前)");
   // 見た目の元: 前の PageTitle placement="header" の本文側(sm:hidden)と同じクラスに、PC で消す手段だけ sm:sr-only に替えた物
   assert.equal(TITLE_BODY.replace(" sm:sr-only", " sm:hidden").replace(' data-slot="admin-page-title"', ""), BEFORE_TITLE_HEADER);
 });
@@ -241,8 +300,8 @@ test("AdminPage の center / actions は行の中央・右の位置(data-slot ad
       CHILD
     </AdminPage>,
   );
-  assert.ok(html.includes('<div data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center overflow-hidden"><b id="pc"></b></div>'));
-  assert.ok(html.includes('<div data-slot="admin-header-right" class="flex min-w-0 items-center gap-3"><b id="pa"></b></div><x-darkmode class="shrink-0"></x-darkmode>'));
+  assert.ok(html.includes(withWrappers('<div data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center overflow-hidden"><b id="pc"></b></div>')));
+  assert.ok(html.includes(withWrappers('<div data-slot="admin-header-right" class="flex min-w-0 items-center gap-3"><b id="pa"></b></div><x-darkmode class="shrink-0"></x-darkmode>')));
   const withoutProps = html.replace('<b id="pc"></b>', "").replace('<b id="pa"></b>', "");
   assert.equal(withoutProps, BEFORE_LOGO_PRELOAD + PAGE_HEADER + PAGE_MAIN, "props の中身のほかは props なしと同じ DOM");
 });
@@ -285,14 +344,14 @@ const hasAll = (set: Set<string>, words: string[]) => {
 test("行のはみ出しの決まり: ロゴと明暗の切り替えは縮めない / 題・中央は縮む(題は … で省く)/ 右の操作は SP だけ縮み PC は縮めない", () => {
   const html = page(<AdminPage title="T" center={<b id="pc" />} actions={<b id="pa" />}>CHILD</AdminPage>);
   hasAll(classesOf(html, /<a class="([^"]*)" href="\/admin">/), ["shrink-0"]);
-  hasAll(classesOf(html, /data-slot="admin-header-title" class="([^"]*)"/), ["min-w-0", "shrink"]);
+  hasAll(classesOf(html, /class="([^"]*)" data-slot="admin-header-title"/), ["min-w-0", "shrink"]);
   hasAll(classesOf(html, /<p title="T" aria-hidden="true" class="([^"]*)"/), ["min-w-0"]);
   hasAll(classesOf(html, /<span class="([^"]*)">T<\/span>/), ["truncate", "block"]);
-  hasAll(classesOf(html, /data-slot="admin-header-center" class="([^"]*)"/), ["min-w-0", "flex-1", "overflow-hidden"]);
-  const right = classesOf(html, /<div class="([^"]*)"><div data-slot="admin-header-right"/);
+  hasAll(classesOf(html, /class="([^"]*)" data-slot="admin-header-center"/), ["min-w-0", "flex-1", "overflow-hidden"]);
+  const right = classesOf(html, /<div data-component="Flex" class="([^"]*)"><div [^>]*data-slot="admin-header-right"/);
   hasAll(right, ["min-w-0", "shrink-0", "max-sm:shrink"]);
   assert.equal(right.has("sm:shrink"), false, "PC で右の操作が縮む");
-  hasAll(classesOf(html, /data-slot="admin-header-right" class="([^"]*)"/), ["min-w-0"]);
+  hasAll(classesOf(html, /class="([^"]*)" data-slot="admin-header-right"/), ["min-w-0"]);
   hasAll(classesOf(html, /<x-darkmode class="([^"]*)">/), ["shrink-0"]);
 });
 

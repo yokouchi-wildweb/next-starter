@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { AdminSidebarFrameProvider } from "@/app/admin/_layout/Sidebar/AdminSidebarFrame";
+import { Block } from "@/components/Layout/Block";
 
 import { BaseSidebar } from "./BaseSidebar";
 
@@ -16,10 +17,10 @@ const noop = () => {};
 
 export function PcSidebar({ width, content }: PcSidebarProps) {
   return (
-    <div data-slot="admin-sidebar" className="hidden md:block h-full" style={{ width }}>
+    <Block data-slot="admin-sidebar" className="hidden md:block h-full" style={{ width }}>
       <AdminSidebarFrameProvider value={{ placement: "pc", width, close: noop }}>
         {content === undefined ? <BaseSidebar width={width} /> : content}
       </AdminSidebarFrameProvider>
-    </div>
+    </Block>
   );
 }

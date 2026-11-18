@@ -7,6 +7,7 @@
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FieldRenderer } from "@/components/Form/FieldRenderer";
+import { Flex } from "@/components/Layout/Flex";
 import type { Setting } from "@/features/core/setting/entities";
 import { useSettingSectionForm } from "@/features/core/setting/hooks/useSettingSectionForm";
 
@@ -30,11 +31,11 @@ export default function EditSettingSectionForm({ sectionKey, setting, redirectPa
         baseFields={fieldConfigs}
         fieldGroups={section.groups}
       />
-      <div className="flex justify-center">
+      <Flex justify="center">
         <Button type="submit" disabled={isMutating} variant="default">
           更新
         </Button>
-      </div>
+      </Flex>
     </AppForm>
   );
 }

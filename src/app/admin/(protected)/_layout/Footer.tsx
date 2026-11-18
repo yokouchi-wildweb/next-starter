@@ -2,6 +2,7 @@
 
 import { cva } from "class-variance-authority";
 
+import { Section } from "@/components/Layout/Section";
 import { cn } from "@/lib/cn";
 import { business } from "@/business";
 
@@ -14,8 +15,8 @@ export function Footer() {
   const footerText = `© ${year} ${business.serviceName}`;
 
   return (
-    <footer data-slot="admin-footer" className={cn(footerContainer())}>
+    <Section as="footer" data-slot="admin-footer" className={cn(footerContainer())}>
       {footerText}
-    </footer>
+    </Section>
   );
 }

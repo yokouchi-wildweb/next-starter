@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/cn";
-import { PageTitle as DefaultPageTitle, type PageTitleProps } from "@/components/TextBlocks";
+import { PageTitle as DefaultPageTitle, Span, type PageTitleProps } from "@/components/TextBlocks";
 
 const marginBottomClassMap = {
   xs: "mb-2",
@@ -75,7 +75,9 @@ export function AdminPageTitleCompact({ children, as: Tag = "p" }: { readonly ch
         "animate-in fade-in slide-in-from-left-2 duration-200",
       )}
     >
-      <span className="block max-w-[40vw] truncate">{children}</span>
+      <Span size="inherit" weight="inherit" className="block max-w-[40vw] truncate">
+        {children}
+      </Span>
     </Tag>
   );
 }

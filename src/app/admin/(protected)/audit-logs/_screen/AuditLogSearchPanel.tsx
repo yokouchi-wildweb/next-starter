@@ -8,6 +8,8 @@ import { useMemo, useState } from "react";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
+import { Label } from "@/components/Form/Label";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { Button } from "@/components/Form/Button";
 import { Manual } from "@/components/Form/Input";
@@ -148,19 +150,27 @@ export function AuditLogSearchPanel() {
           onRetry={retry}
           completedText="すべて読み込み済み"
           initialLoadingNode={
-            <div className="flex min-h-[160px] items-center justify-center">
+            <Flex align="center" justify="center" className="min-h-[160px]">
               <Para tone="muted">読込中...</Para>
-            </div>
+            </Flex>
           }
           errorNode={
-            <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-destructive/40 bg-destructive/5">
+            <Flex
+              align="center"
+              justify="center"
+              className="min-h-[160px] rounded-lg border border-destructive/40 bg-destructive/5"
+            >
               <Para tone="destructive">履歴の取得に失敗しました</Para>
-            </div>
+            </Flex>
           }
           emptyNode={
-            <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-dashed border-border py-6">
+            <Flex
+              align="center"
+              justify="center"
+              className="min-h-[160px] rounded-lg border border-dashed border-border py-6"
+            >
               <Para tone="muted">該当する監査ログはありません</Para>
-            </div>
+            </Flex>
           }
         >
           {(items) => (
@@ -194,15 +204,23 @@ type FilterFieldProps = {
   placeholder?: string;
 };
 
+/**
+ * 欄を包む Label の class。Label の既定(横並びの中央寄せ・text-sm・leading-none・font-medium)を、
+ * 生の label のときと同じ見た目(縦並び・幅いっぱい・入力欄の文字の太さは親のまま)に戻す
+ */
+const FIELD_LABEL_CLASS_NAME = "flex-col items-stretch gap-1 min-w-[180px] font-normal";
+
 function FilterField({ label, value, onChange, placeholder }: FilterFieldProps) {
   return (
-    <label className="flex flex-col gap-1 min-w-[180px]">
-      <span className="text-xs text-muted-foreground">{label}</span>
+    <Label className={FIELD_LABEL_CLASS_NAME}>
+      <Span size="xs" weight="inherit" tone="muted">
+        {label}
+      </Span>
       <Manual.Input
         value={value}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         placeholder={placeholder}
       />
-    </label>
+    </Label>
   );
 }

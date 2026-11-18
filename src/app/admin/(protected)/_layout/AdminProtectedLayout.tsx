@@ -6,6 +6,7 @@ import { type ReactNode, useCallback, useState } from "react";
 import { MenuIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
+import { Block } from "@/components/Layout/Block";
 
 import { ResizableArea } from "./ResizableArea";
 
@@ -43,7 +44,7 @@ export function AdminProtectedLayout({ children, sidebar, footer }: AdminProtect
       {sidebar === null ? null : (
         // SP の開閉ボタン。Form/Button は自分の data-slot(button)を持つので上書きせず、箱を作らない(display: contents)包みに
         // 部位の印 admin-sidebar を付ける(frame.css が隠す)
-        <div data-slot="admin-sidebar" className="contents">
+        <Block data-slot="admin-sidebar" className="contents">
           <Button
             type="button"
             variant="accent"
@@ -55,7 +56,7 @@ export function AdminProtectedLayout({ children, sidebar, footer }: AdminProtect
           >
             {sidebarOpen ? <XIcon className="size-5" /> : <MenuIcon className="size-5" />}
           </Button>
-        </div>
+        </Block>
       )}
     </>
   );

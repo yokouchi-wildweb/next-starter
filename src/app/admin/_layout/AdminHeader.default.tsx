@@ -8,6 +8,8 @@ import { cva } from "class-variance-authority";
 import { cn } from "@/lib/cn";
 import { Link } from "@/components/Navigation";
 import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
+import { Flex } from "@/components/Layout/Flex";
+import { Section } from "@/components/Layout/Section";
 import { AppImage } from "@/components/Media/AppImage";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { business } from "@/business";
@@ -44,7 +46,7 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
   const { isAuthenticated } = useAuthSession();
 
   return (
-    <header data-slot="admin-header" className={cn(headerContainer(), className)}>
+    <Section as="header" data-slot="admin-header" className={cn(headerContainer(), className)}>
       {/* 左側: ロゴ */}
       <Link href="/admin" className="block shrink-0 p-1 sm:p-2" prefetch={isAuthenticated}>
         {/* 箱の大きさは画像の読み込みの前から決める(高さ h-6 / sm:h-12 + 上流のロゴ素材の縦横比 300:61 → SP 24×118 / PC 48×236)。
@@ -70,23 +72,27 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
       </Link>
 
       {/* 題: ロゴの右隣(sm 以上で表示。SP の題は AdminPage の本文の大見出し) */}
-      <div data-slot="admin-header-title" className="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex">
+      <Flex
+        data-slot="admin-header-title"
+        align="center"
+        className="hidden min-w-0 shrink border-l border-border/40 pl-4 sm:flex"
+      >
         {title}
-      </div>
+      </Flex>
 
       {/* 中央: タブ・検索など */}
-      <div data-slot="admin-header-center" className="flex min-w-0 flex-1 items-center justify-center overflow-hidden">
+      <Flex data-slot="admin-header-center" align="center" justify="center" className="min-w-0 flex-1 overflow-hidden">
         {center}
-      </div>
+      </Flex>
 
       {/* 右: ページの操作 + ダークモードスイッチ(エリアが switchable のときだけ描画される。
           切替可否は src/config/lib/siteTheme.config.ts の areas の admin の switchable) */}
-      <div className="flex min-w-0 shrink-0 items-center gap-3 max-sm:shrink">
-        <div data-slot="admin-header-right" className="flex min-w-0 items-center gap-3">
+      <Flex align="center" gap="sm" className="min-w-0 shrink-0 max-sm:shrink">
+        <Flex data-slot="admin-header-right" align="center" gap="sm" className="min-w-0">
           {actions}
-        </div>
+        </Flex>
         <DarkModeSwitch className="shrink-0" />
-      </div>
-    </header>
+      </Flex>
+    </Section>
   );
 }

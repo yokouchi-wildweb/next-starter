@@ -6,6 +6,8 @@ import { Link } from "@/components/Navigation";
 import { cva } from "class-variance-authority";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Block } from "@/components/Layout/Block";
+import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
@@ -119,9 +121,9 @@ export function BaseSidebar({
   };
 
   return (
-    <aside style={{ width }} className={cn(sidebarContainer(), "flex flex-col")}>
+    <Section as="aside" style={{ width }} className={cn(sidebarContainer(), "flex flex-col")}>
       <Stack gap="xs" className="w-full mb-0">
-        <nav aria-label="管理メニュー" className="w-full">
+        <Section as="nav" aria-label="管理メニュー" className="w-full">
           <ul className="flex w-full flex-col p-0 list-none m-0">
             <li className="relative w-full">
               <MenuButton asChild>
@@ -203,7 +205,7 @@ export function BaseSidebar({
               );
             })}
           </ul>
-        </nav>
+        </Section>
       </Stack>
       <Stack gap="xs" className="w-full mt-0">
         <MenuButton asChild>
@@ -212,13 +214,13 @@ export function BaseSidebar({
             {ADMIN_SITE_LINK.label}
           </Link>
         </MenuButton>
-        <div className="group relative w-full">
+        <Block className="group relative w-full">
           <MenuButton type="button" onClick={handleLogout} disabled={isLoading}>
             {ADMIN_MENU_ICONS_ENABLED && <ADMIN_LOGOUT_ICON className="size-4 shrink-0" />}
             ログアウト
           </MenuButton>
-        </div>
+        </Block>
       </Stack>
-    </aside>
+    </Section>
   );
 }

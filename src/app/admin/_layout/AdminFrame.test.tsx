@@ -109,7 +109,7 @@ test("サイドバーの data-slot は PC の列・SP のドロワーと背景(S
   assert.ok(sp.includes('slot="admin-sidebar"') && sp.includes('overlaySlot="admin-sidebar"'), "SpSidebar の板と背景の admin-sidebar");
   // shadcn の部品の data-slot は上書きしない: 開閉ボタンは display: contents の包みが印を持ち、Button 自身は data-slot を持たない
   for (const file of ["src/app/admin/(protected)/_layout/AdminProtectedLayout.tsx"]) {
-    const toggle = /<div data-slot="admin-sidebar" className="contents">\s*<Button\s([^>]*)>[\s\S]*?<\/Button>\s*<\/div>/.exec(read(file));
+    const toggle = /<Block data-slot="admin-sidebar" className="contents">\s*<Button\s([^>]*)>[\s\S]*?<\/Button>\s*<\/Block>/.exec(read(file));
     assert.ok(toggle, `${file}: 開閉ボタンが admin-sidebar の包みの直下に無い`);
     assert.equal(toggle[1].includes("id="), false, `${file}: 開閉ボタンに見た目のための id が残っている(狙う先は包みの data-slot)`);
     assert.equal(toggle[1].includes("data-slot"), false, `${file}: Button の data-slot を上書きしている`);
@@ -151,7 +151,7 @@ test("上流は管理の枠の宣言を持たない(表は空。Tier1 だけ: fo
 
 test("AdminPage の fill の prop は無く、fill の的(本文の直接の親)は (protected) にある", () => {
   assert.equal(read("src/app/admin/_layout/AdminPage.tsx").includes("fill?:"), false);
-  assert.ok(read("src/app/admin/(protected)/_layout/ResizableArea.tsx").includes('<div data-slot="admin-main" className="flex-1">'));
+  assert.ok(read("src/app/admin/(protected)/_layout/ResizableArea.tsx").includes('<Block data-slot="admin-main" className="flex-1">'));
 });
 
 // ---- ヘッダーの行を描く AdminPage を使わない管理のページ(指令 14 d3。止める検査は指令 17) ----
@@ -296,7 +296,7 @@ test("AdminPage actions に置いた ItemNavigator は行の右の位置(data-sl
       CHILD
     </AdminPage>,
   );
-  const right = /<div data-slot="admin-header-right"[^>]*>([\s\S]*?)<\/div><\/div>/.exec(html)?.[1] ?? "";
+  const right = /<div [^>]*data-slot="admin-header-right"[^>]*>([\s\S]*?)<\/div><\/div>/.exec(html)?.[1] ?? "";
   assert.ok(right.includes("切り替え"), html);
   assert.ok(html.indexOf("L-A") < html.indexOf("L-B") || !html.includes("L-B"), "候補の順");
 });
