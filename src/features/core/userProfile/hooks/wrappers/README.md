@@ -2,7 +2,8 @@
 
 ## Overview
 
-- ロール固有の型付き hooks を置く場所。ベースの hooks は `Record<string, unknown>` 型で動くので、ロール固有の型が要るときは薄いラッパーを作る(札 `.claude/rules/items/features/userProfile.md` typed_wrapper)
+- ロール固有の型付き hooks を置く場所。ベースの hooks は `Record<string, unknown>` 型で動くので、ロール固有の型が要るときは薄いラッパーを作る(決まりは `.claude/rules/items/features/userProfile.md` の typed_wrapper)
+- ここに置くのは Tier1 のロールの物。fork のロールのラッパーは fork 自身のドメインの `hooks/` に置く(fork は `src/features/core/` にファイルを足せない)
 
 ## Usage
 

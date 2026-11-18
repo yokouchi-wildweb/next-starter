@@ -201,7 +201,7 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
   範囲内に行が無ければ全額が期限を過ぎた分になる）
 - **運用中の通貨で数え方を切り替える**: ロットの作り直しは要らない。`"grant"` → `"lastActivity"` では、
   切り替え後の最初の残高変更で残っている全ロットの失効日が揃う（それまでは元の失効日のまま）。
-  切り替え時点から揃えたい場合はその通貨を `--wallet-type` で指定して初期化をやり直す（運用ルールの「再実行」の注意を参照）。
+  切り替え時点から揃えたい場合はその通貨を `--wallet-type` で指定して初期化をやり直す（`Extension.md`「運用ルール」の再実行の注意を参照）。
   `"lastActivity"` → `"grant"` は、残っているロットが次の付与から付与ごとの扱いに戻る
 
 ### 失効通知の挙動
@@ -237,8 +237,6 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
 件数あたりの時間はこれ以上短くならない。本番（DB と同一リージョン）ではこれより速い見込みだが未計測。
 3 スライス以上での伸び方も未計測のため、下の表は規模が大きいほど誤差が出る前提で読むこと。
 
-> 以前ここに載せていた「1ユーザーあたり 1.7〜3.9 秒」は 3 件だけの計測で、DB 接続の確立時間を含んだ過大な値だった。
-
 1回の実行の時間予算は 240 秒。上の実測からの推定値:
 
 | sendConcurrency | 1回の実行 | 毎時実行 | 15分ごと |
@@ -256,23 +254,6 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
   数日かかる。**失効日を迎える前に `sendConcurrency` の引き上げと実行間隔の短縮を済ませておくこと**
 - 本通知は数日かけて送りきっても実害は小さいが、予告は段の日数が猶予の上限になる（1日前の段は1日で送りきる必要がある）
 - 1日に数十万件を超える規模はこの仕組みの対象外。外部のキューや一括送信 API が必要
-
-#### 有効期限の実装ファイル
-
-- ロット会計（全経路から呼ばれる）: `services/server/lots/lotAccounting.ts`
-- 失効スイープ: `services/server/lots/sweepExpiredLots.ts`
-- 初期化（導入日から数える）: `services/server/lots/initWalletLots.ts`
-- 初期化（実際の付与日から数える）: `services/server/lots/initWalletLotsFromHistory.ts`
-  （復元ロジックの純粋関数: `utils/lotPlanning.ts` / テスト: `pnpm test src/features/core/wallet/utils/lotPlanning.test.ts`）
-- 初期化の対象通貨の決定: `utils/expiration.ts` の `resolveWalletLotsInitTypes`（テスト: `pnpm test src/features/core/wallet/utils/expiration.test.ts`）
-- 照会: `services/server/lots/getExpiringLots.ts`
-- 失効通知の cron 本体: `services/server/notification/sendWalletExpirationNotices.ts`
-  （予告: `sendPreExpiryNotices.ts` / 本通知: `sendExpiredNotices.ts` / 共通の送信処理: `expirationNoticeSender.ts`、テスト `expirationNoticeSender.test.ts`）
-- 文面: `messages/expiringNotice.ts`・`expiredNotice.ts`・`adjustmentNotice.ts`（テスト: `pnpm test src/features/core/wallet/messages`）
-- 通知用の対象抽出: `services/server/lots/findUsersWithExpiringLots.ts`
-- 通知用のスイープ結果照会: `services/server/lots/listExpirationResults.ts`
-- 消費済みロットの prune: `services/server/lots/pruneConsumedLots.ts`
-- 設定: `src/features/core/wallet/config.ts` の `expiration`
 
 ### トラブルシューティング
 

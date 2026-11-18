@@ -47,7 +47,7 @@ import type {
 | `request_batch_id` | `string?` | バッチ処理ID |
 | `reason` | `string?` | 変更理由（人向けの文。集計に使わない） |
 | `reason_category` | `string` | 区分（`src/features/core/walletHistory/config.ts` の `reasonCategory`、既定 `other`） |
-| `reason_key` | `string?` | 付与の種類（受け口 `walletHistory/reasonKeys` の key。下の「付与の種類」） |
+| `reason_key` | `string?` | 付与の種類（受け口 `walletHistory/reasonKeys` の key。`Extension.md`「付与の種類（reason key）」） |
 | `meta` | `jsonb` | 追加メタ情報 |
 | `createdAt` | `Date` | 作成日時 |
 
@@ -258,7 +258,7 @@ const { items, nextCursor } = await walletService.listExpirationResults({
 - 進捗は `cron_checkpoints`、二重送信防止は `messagingService.sendMessage` の `idempotencyKey` で足りる（ページごとの送信済みの除外は `messagingService.existingIdempotencyKeys`）。
   実装例は組み込みの通知（`services/server/notification/sendExpiredNotices.ts` / `sendPreExpiryNotices.ts`）を参照
 - 予告と本通知を別々の cron に分けたい場合も、上記2つの関数をそれぞれ呼ぶルートを自前で用意すればよい
-- ユーザー向け送信は必ず `messagingService` 経由（`lib/mail` 直呼び禁止）。新しい cron は OPS_TASKS の4点配線に従う
+- ユーザー向け送信は `messagingService.sendMessage`（上の二重送信の鍵）。新しい cron の置き方は `src/lib/cron/README.md`「新しい定期タスクを追加する」
 
 ### 古い定数名との対応
 

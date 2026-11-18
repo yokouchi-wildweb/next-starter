@@ -21,7 +21,8 @@
 #### URL の項目
 
 - URL を持つ項目（キー名の末尾が `Url`）は、`upsertProfile`(作成・更新の共通の通り道。`/api/me/profile`・管理画面・デモユーザーの作成のどれもここを通る)が、値が空でなければ `http://` / `https://` だけを通し、ほかのスキーム(`javascript:` 等)と URL として読めない値を 400 にする(`isSafeHttpUrl`、`@/utils/url`)
-- 理由: 画面で href に渡るため、クライアントの検証を迂回した stored XSS をサーバーで止める。プロフィールの定義(profile.json)に URL の入力の種類はまだ無い(足すのは後の作業)
+- ただし `/api/profile/[role]/**`(管理者用)の PATCH / PUT は ProfileBase を直に呼ぶので、この検査を通らない
+- 理由: 画面で href に渡るため、クライアントの検証を迂回した stored XSS をサーバーで止める。プロフィールの定義(profile.json)に URL の入力の種類はまだ無い
 
 #### userProfileService — userId 単位の操作
 
@@ -70,7 +71,7 @@ const result = await base.search({
 });
 ```
 
-> `getProfileBase` はサーバー専用。クライアントからは hooks（`useProfileSearch` 等）または API ルート経由でアクセスする。
+> `getProfileBase` はサーバー専用。クライアントからは hooks（`useProfileSearch` 等。ルートは管理者だけ）を使う。
 
 > **extraWhere について**: `extraWhere` は Drizzle の `SQL` 型を直接受け取るため、API ルート（HTTP 経由）では使えない。
 
@@ -138,8 +139,7 @@ const { data, total, isLoading } = useSearchUserWithProfile("contributor", {
 ```
 
 > API エンドポイント: `GET /api/admin/user/search-with-profile?role=contributor&searchQuery=田中&profileWhere={"field":"prefecture","op":"eq","value":"東京都"}`
-> `profileWhere` は JSON 文字列として渡す。`WhereExpr` DSL の演算子: `eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `like`, `in`, `notIn`。`and` / `or` で複合条件を組める。
-> プロフィール管理の CRUD 検索には引き続き `getProfileBase(role).search()` を使用する。
+> `profileWhere` は JSON 文字列として渡す。`WhereExpr` DSL の演算子: `eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `like`, `startsWith`, `endsWith`, `in`, `notIn`, `isNull`, `isNotNull`。`and` / `or` で複合条件を組める。
 
 ### クライアントサービス
 
@@ -202,6 +202,8 @@ import {
 ```tsx
 "use client";
 
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { Para } from "@/components/TextBlocks/Para";
 import { useProfileSearch } from "@/features/core/userProfile/hooks";
 
 function ContributorList() {
@@ -211,30 +213,16 @@ function ContributorList() {
     limit: 20,
   });
 
-  if (isLoading) return <div>読み込み中...</div>;
-  return <div>{total}件のプロフィール</div>;
+  if (isLoading) return <InlineLoader />;
+  return <Para>{total}件のプロフィール</Para>;
 }
 ```
 
-#### 型付きラッパー（ダウンストリーム向け）
+#### 型付きラッパー
 
 ベースの hooks・clientService・ProfileBase は すべて `Record<string, unknown>` 型で動作する。
 これはロールが動的パラメータ（`role: string`）であり、汎用レイヤーでは具体型を静的に解決できないため。
-ロール固有の型安全性が必要な場合は `hooks/wrappers/` に薄いラッパーを作成する。
-
-```typescript
-// hooks/wrappers/useContributorProfile.ts
-import { useProfileByUserId } from "../useProfileByUserId";
-import type { ContributorProfile } from "../../entities/profiles/contributor";
-
-export const useContributorProfile = (userId?: string | null) => {
-  const result = useProfileByUserId("contributor", userId);
-  return {
-    ...result,
-    data: result.data as ContributorProfile | undefined,
-  };
-};
-```
+ロール固有の型安全性が必要な場合は薄いラッパーを作成する。Tier1 のロールは `hooks/wrappers/`、fork のロールは自分のドメインの `hooks/`(fork は `src/features/core/` にファイルを足せない)。例は `hooks/wrappers/README.md`。
 
 ### フォームでの使用パターン
 
@@ -330,7 +318,7 @@ roles/
 ```json
 {
   "roleId": "contributor",
-  "searchFields": ["bio", "organization_name"],
+  "searchFields": ["bio", "organizationName"],
   "fields": [
     {
       "name": "organization_name",
@@ -361,7 +349,7 @@ roles/
 - 値: そのタグに属するフィールド名の配列（fields の name か relations の fieldName。無い名前は pnpm generate role が止める）
 
 **searchFields（オプション）:**
-- keyword 検索対象のカラム名を配列で指定（camelCase）
+- keyword 検索対象のカラム名を配列で指定（camelCase。fields の name は snake_case だが searchFields は列のプロパティ名）
 - `ProfileBase.search()` の `searchQuery` パラメータで使用される
 - `userService.searchWithProfile()` でのプロフィール横断検索にも使用される
 - 未指定の場合、keyword 検索は無効
@@ -453,9 +441,9 @@ export const override: CoreRoleOverride = { hasProfile: true };
 各ロールのプロフィールテーブル定義。
 
 ```typescript
-export const contributorProfiles = pgTable("contributor_profiles", {
+export const ContributorProfileTable = pgTable("contributor_profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().unique(),
+  userId: uuid("user_id").notNull().unique().references(() => UserTable.id, { onDelete: "cascade" }),
   organizationName: varchar("organization_name", { length: 255 }),
   bio: text("bio"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -480,13 +468,13 @@ export const ContributorProfileSchema = z.object({
 ロールとプロフィールの自動生成。
 
 ```bash
-pnpm generate role -- -- <roleId>
-pnpm generate role -- -- --all      # 全 *.role.json（user/extensions/roles.ts の今の並び順で回す）
+pnpm generate role -- <roleId>
+pnpm generate role -- --all      # 全 *.role.json（user/extensions/roles.ts の今の並び順で回す）
 ```
 
 書く前に検査する（`scripts/structure/role/checks/`、テスト `pnpm test scripts/structure/role/tests/checks.test.mjs`）。問題は全件並べて何も書かずに終了コード 1、`--all` は全ロールを先に検査する:
 - 止める（ロール）: ロール ID の形（英小文字で始まる英小文字・数字・_）、ファイル名（`<id>.role.json`）、`isCore` のキー、core ロールの置き場（`roles/` に core の ID、`coreRoles/` に 3 つ以外）、category（user / admin）、hasProfile（boolean、true ならプロフィール設定が要る）
-- 止める（プロフィール）: ロール設定の無いプロフィール設定（`--all` のとき）、項目 0 件、メディア型（mediaUploader / mediaCollection）、enum の選択肢・既定値の型（ドメインの検査と同じ）、知らないタグ・tags の無い名前、型の表に無い fieldType（`hasProfile: true` のとき）
+- 止める（プロフィール）: ロール設定の無いプロフィール設定（`--all` のとき）、項目 0 件、メディア型（mediaUploader / mediaCollection）、enum の選択肢・既定値の型（ドメインの検査と同じ）、知らないタグ・tags の無い名前、型の表に無い fieldType（`hasProfile: true` のとき）、項目のキー `default`（既定値は `defaultValue`）
 - 止める（リレーション・上書き・監査）: relationType（belongsTo / belongsToMany）・fieldName・fieldType（省略か uuid）・onDelete の値・SET_NULL × required・formInput、上書きの問題（「fork の上書き」）、audit の形（auditLog の README「A」）
 - 警告だけ: hasProfile: false なのにプロフィール設定がある（プロフィールの生成物は消さずに残す。消すのは `pnpm generate role -- --delete-profile`）、型と入力欄の組が表（`src/lib/domain/fields/fieldFormInputs.mjs` の Neon）に無い、選択肢の要る入力欄に options が無い
 

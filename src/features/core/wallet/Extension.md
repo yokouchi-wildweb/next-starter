@@ -34,7 +34,7 @@ export default {
 } satisfies WalletOverride<Extra>;
 ```
 
-Extra に書いた型は、既定の型と深く合成されてそのまま残る(`src/lib/defineConfig/README.md`「Extra」)。足す通貨は `CurrencyConfig` に限らず、自分の型で書ける:
+Extra に書いた型は、既定の型と深く合成されてそのまま残る(`src/lib/defineConfig/README.md`「Extension」)。足す通貨は `CurrencyConfig` に限らず、自分の型で書ける:
 
 - 足した欄やリテラル型を後で型で読む通貨は、その型ごと書く。例: チケット通貨 `export type Extra = { currency: { premium_ticket: CurrencyConfig & { isTicket: true } } };` → fork のコードの `(typeof walletConfig.currency)[K] extends { isTicket: true }` が効く(`CurrencyConfig` だけで書くと `isTicket` が消え、チケットの種別の型が never になる)
 - 古い設定から移すときは、通貨のキーを手で数えずにコマンドで書き出し、全部を Extra と値に写す。移した後の確かめ: `npx tsx -e 'import("./src/features/core/wallet/config.ts").then((m) => console.log(Object.keys(m.walletConfig.currency).join("\n")))'`
@@ -205,7 +205,7 @@ await walletService.adjustBalance(
    （**追加作業なし**。設定前は呼ばれても即 skipped を返す）。前提は cron の配線（`vercel.json` を `pnpm generate cron` で生成済み、
    Vercel 以外は `pnpm task --due` を毎分。[cron 基盤 README](../../../lib/cron/README.md#スケジュールのセットアップ) 参照）。
 
-   失効通知を送る場合は `wallet-expiration-notice`（毎時）も必要。設定は「失効通知」節を参照。
+   失効通知を送る場合は `wallet-expiration-notice`（毎時）も必要。設定は下の「失効通知の設定」を参照。
    **通知の cron は最初の失効日より前に1回以上動かしておくこと**（本通知は初回実行で開始位置を記録するだけで、
    それより前に没収された分には送られない）。
 
@@ -254,7 +254,7 @@ expiration: {
 ```
 
 - `notice` は省略可（省略 = 何も送らない）。`enabled` フラグは無く、空配列 / `null` が OFF を表す
-- 経路は連絡の種類が決める(D86): 予告 = 種類 `walletExpiring`(種別 activity = 利用者が好みで止められる、D67。email・inApp)、本通知 = 種類 `walletExpired`(取引、email・inApp)。全部の通貨・段で変えるなら種類の上書き `src/features/core/messaging/categories/<種類>.override.ts` の `channels`
+- 経路は連絡の種類が決める: 予告 = 種類 `walletExpiring`(種別 activity = 利用者が好みで止められる。email・inApp)、本通知 = 種類 `walletExpired`(取引、email・inApp)。全部の通貨・段で変えるなら種類の上書き `src/features/core/messaging/categories/<種類>.override.ts` の `channels`
 - `messageKey`(段・本通知ごとに任意): 送る連絡の鍵(省略 = 上流の `wallet.expiringNotice` / `wallet.expiredNotice`)。通貨・段ごとに経路を変えたい fork は、その経路の種類と、同じ vars を受ける連絡を自分のドメインに足して向ける(生成の一覧に無い鍵は cron が止まる)。前の設定の `channels` は無くなった(残っていると cron が止まって知らせる)
 - メールの無い利用者: メールの行が宛先なし(no_address)になり、ほかの経路で届く
 - **文言**: 連絡の定義 `messages/expiringNotice.ts`（予告、鍵 `wallet.expiringNotice`）・`messages/expiredNotice.ts`（本通知、`wallet.expiredNotice`）。ひな形の欄の中身（件名・札・宛名・本文・足元）を持つ。変える fork は隣に `<名前>.override.ts` を置く（段ごと・通貨ごとの文面の設定は無い。段で変えたいときは `{{daysBefore}}` を使う）

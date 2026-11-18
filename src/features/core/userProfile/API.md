@@ -119,7 +119,7 @@ const result = await profileBase.query(baseQuery, { page: 1, limit: 20 });
 | `/api/profile/[role]/by-user/[userId]` | PATCH | userId で更新 |
 | `/api/profile/[role]/by-user/[userId]` | DELETE | userId で削除 |
 
-すべてのルートは `createApiRoute` で作成され、内部で `getProfileBase(role)` からサービスを取得する。
+すべてのルートは `createApiRoute` で作成され、内部で `getProfileBase(role)` からサービスを取得する。すべて管理者だけ(`access: { roleCategories: ["admin"] }`)。本人の編集は `/api/me/profile`。
 存在しないロールに対しては 404 を返す。
 
 ### ユーティリティ

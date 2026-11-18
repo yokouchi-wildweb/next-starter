@@ -23,7 +23,7 @@ const rows = await findUsersBySameIp("203.0.113.10", { excludeUserId: currentUse
 const onSubnet = await findUsersBySubnet("203.0.113.0/24", { limit: 200 });
 ```
 
-- 開始回数だけが欲しいときは `event_type IN ('login','signup')` で絞る(3 関数は event_type を区別せず全行を数える)
+- 3 関数は event_type を区別せず全行を数える(開始回数の数え方は `.claude/rules/items/features/userLoginEvent.md` の login_event_starts)
 - `/16` のような極端に広い範囲を大規模テーブルに対して引くときは、別の集計テーブル (materialized view 等) が要りうる
 
 ### 端末受け渡しを調べる
@@ -51,7 +51,6 @@ const onIp = await findSessionHandoffsByIp("203.0.113.10", { windowMinutes: 10 }
 ```
 
 - 時間窓の目安: 端末の手渡しなら数十秒〜数分。`windowMinutes` を広げるほど同一 Wi-Fi の偶然一致が増える
-- 結果は参考証拠。`deviceFingerprint` の類似照合と同じく単独で断定せず、fingerprint / 回答内容 / 行動特徴など他軸と合わせて評価する
 
 ### UI レシピ (downstream 実装)
 
@@ -116,6 +115,7 @@ core は画面を同梱しない。ユーザー詳細 (admin) に載せる場合
 |---|---|---|
 | ログイン成功 | `user/services/server/wrappers/updateLastAuthenticated.ts` | `login` |
 | サインアップ / 再入会成功 | `user/services/server/registration/preRegisterFromAuth.ts` | `signup` |
+| 外部の認証の身元からの新規作成・再登録(LINE など) | `user/services/server/registration/createFromProvider.ts` | `signup` |
 | 明示ログアウト | `app/api/auth/logout/route.ts` | `logout` |
 | 休止 (pause) | `app/api/account-lifecycle/pause/route.ts` | `logout` |
 | 退会 (withdraw) | `app/api/account-lifecycle/withdraw/route.ts` | `logout` |
@@ -163,7 +163,7 @@ IP に関するデータは現在 **3 箇所に併存** している。本テー
 |---|---|---|---|
 | `users.metadata.loginHistory` (JSONB) | UI の直近ログイン履歴表示 (直近10件) | 永続 (上書きで10件維持) | UI 表示 |
 | `users.signupIp` (text 列) | 登録時 IP の参照 | **永続** | referral 画面 / 管理画面ユーザー詳細 |
-| **`user_login_events`** (本テーブル) | **IP 横断検索・集計** | 365日 (cron 削除) | 検索 API (未接続の新規) |
+| **`user_login_events`** (本テーブル) | **IP 横断検索・集計** | 365日 (cron 削除) | 検索関数(core の画面・API からは未接続。`deviceFingerprint` の類似照合と組で使う想定) |
 
 ログイン / サインアップ成功時は、従来の JSON 列書き込みも継続しつつ、本テーブルにも記録する **二重書き込み** の状態。
 

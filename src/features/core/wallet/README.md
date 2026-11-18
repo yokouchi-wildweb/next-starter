@@ -162,7 +162,7 @@ async function playGacha(userId: string, cost: number) {
 
 ### 失効間近の照会（失効予告 UI・通知のデータソース）
 
-UI・通知はダウンストリーム所有。データレイヤとして以下を提供する。
+失効予告の UI はダウンストリームで作る。通知は組み込みの失効通知（設定だけで送れる、`Extension.md`「失効通知の設定」）か、下のデータレイヤ（`API.md`「失効通知のデータレイヤ（独自の通知を組む）」）で自前に組む。
 
 ```typescript
 // サーバー: 本人の失効間近ロット（失効日ごとに集約）
@@ -178,7 +178,7 @@ const { data } = useMyExpiringLots(userId, "regular_coin", 30);
 
 UI レシピ例（ダウンストリームで実装）:
 - 残高ページに「うち ○○ コインが ○月○日 に失効します」バナー → `useMyExpiringLots` の `lots[0]`
-- 失効前・失効後のユーザー通知 → 次節「失効通知」（設定だけで送れる）
+- 失効前・失効後のユーザー通知 → `Extension.md`「失効通知の設定」（設定だけで送れる）
 
 ### 管理機能
 
@@ -215,15 +215,20 @@ import { AdminWalletAdjustModal } from "@/features/core/wallet/components/AdminW
 
 - 通貨設定・付与の種類（reason key）・有効期限の導入と運用ルール・失効通知の設定・購入の特典の表示（拡張点 purchaseBonuses）は `Extension.md`
 
+## Internals
+
+- トランザクション統合・残高予約フロー・監査ログのポリシー・有効期限（ロット管理）・失効通知の挙動と送信量・トラブルシューティングは `Internals.md`
+
 ## Verification
 
 - 購入の特典: `pnpm test src/features/core/wallet`（`hooks/usePurchaseBonuses.test.ts`・`hooks/usePurchaseBonuses.render.test.tsx`・`components/WalletBalance/purchaseBonusParts.test.tsx`）
 - 付与の種類の静的な検査: `pnpm test src/features/core/wallet/services/server/wrappers/reasonKey.test.ts`
 - ロットの復元・対象通貨: `pnpm test src/features/core/wallet/utils/lotPlanning.test.ts`・`utils/expiration.test.ts`
 - 文面: `pnpm test src/features/core/wallet/messages`
+- 失効通知の送信処理: `pnpm test src/features/core/wallet/services/server/notification/expirationNoticeSender.test.ts`
 
 ## Related
 
 - [purchaseRequest ドメイン（コイン購入の決済フロー・外部決済連携）](../purchaseRequest/README.md)
-- [WalletHistory ドメイン](../walletHistory/README.md)
+- walletHistory ドメイン（付与の種類の受け口 reasonKeys・backfill）: `src/features/core/walletHistory/`
 - 監査の判断軸の横展開: [auditLog/README.md](../auditLog/README.md)
