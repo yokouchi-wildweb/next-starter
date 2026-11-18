@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/Form/Button/Button";
-import { BooleanCheckboxInput, Input, NumberInput, SelectInput, Textarea } from "@/components/Form/Input/Manual";
+import { BooleanCheckboxInput, ComboboxInput, Input, NumberInput, SelectInput, Textarea } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { type SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
@@ -13,6 +13,8 @@ import Modal from "@/components/Overlays/Modal";
 import TabbedModal, { type TabbedModalTab } from "@/components/Overlays/TabbedModal";
 import { Dialog } from "@/components/Overlays/Dialog";
 import { ImageViewerProvider, ZoomableImage } from "@/components/Overlays/ImageViewer";
+import { Popover } from "@/components/Overlays/Popover";
+import { HelpTip } from "@/components/Overlays/Tooltip";
 import { useToast, type ToastVariant, type ToastPosition, type ToastMode, type ToastSize, type ToastIconPreset } from "@/lib/toast";
 import { business } from "@/business";
 import { logoPath } from "@/utils/assets";
@@ -78,6 +80,9 @@ const TAB_DETAILS_PARAGRAPHS = Array.from({ length: 10 }, (_, index) => {
   return `(${paragraphNumber}/10) デモ用の長文コンテンツです。プロジェクト背景や意思決定の経緯、共有したい指針などを詳細に記述する想定でテキスト量を増やしています。スクロールで全体を読みながらタブを切り替え、UI の挙動を確認してください。`;
 });
 
+/** 重なりの確かめの台の候補(長い一覧) */
+const STACK_BENCH_OPTIONS = Array.from({ length: 40 }, (_, i) => ({ value: `opt-${i + 1}`, label: `候補 ${i + 1}` }));
+
 type LoadingOverlayMode = "local" | "fullscreen";
 
 type OverlayOptions = {
@@ -125,6 +130,11 @@ const INITIAL_APP_TOAST_OPTIONS: AppToastDemoOptions = {
 export function DemoOverlayDemo() {
   const [isVisible, setIsVisible] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // モーダルの中の重なりの確かめの台(浮く物は後に開いた物が上、当議会 D189)
+  const [stackComboValue, setStackComboValue] = useState<string | number | boolean | null>(null);
+  const [stackSelectValue, setStackSelectValue] = useState<string | number | boolean | "" | null>("");
+  const [isStackConfirmOpen, setIsStackConfirmOpen] = useState(false);
+  const [isStackLoaderVisible, setIsStackLoaderVisible] = useState(false);
   const [isTabbedModalOpen, setIsTabbedModalOpen] = useState(false);
   const [activeTabbedModalTab, setActiveTabbedModalTab] = useState<string>(
     TABBED_MODAL_DEFAULT_TAB,
@@ -731,11 +741,56 @@ export function DemoOverlayDemo() {
           >
             トーストを出す
           </Button>
+          <div data-demo="stack-bench" className="flex flex-col gap-3 rounded border border-border p-3">
+            <HelpTip label="重なりの確かめ" help="モーダルの中から開いた浮く物は、どれもモーダルの上に出ます" />
+            <ComboboxInput
+              value={stackComboValue}
+              onChange={setStackComboValue}
+              options={STACK_BENCH_OPTIONS}
+              placeholder="長い候補の選択"
+            />
+            <SelectInput
+              value={stackSelectValue}
+              onChange={setStackSelectValue}
+              options={STACK_BENCH_OPTIONS.slice(0, 12)}
+              placeholder="選択の一覧"
+            />
+            <Popover trigger={<Button variant="outline" className="self-start">長い中身のポップオーバー</Button>} title="長い中身">
+              <div className="flex flex-col gap-2">
+                {STACK_BENCH_OPTIONS.map((o) => (
+                  <Para key={o.value} className="m-0">{o.label}</Para>
+                ))}
+              </div>
+            </Popover>
+            <Button variant="outline" className="self-start" onClick={() => setIsStackConfirmOpen(true)}>
+              確認を開く
+            </Button>
+            <Button
+              variant="outline"
+              className="self-start"
+              onClick={() => {
+                setIsStackLoaderVisible(true);
+                window.setTimeout(() => setIsStackLoaderVisible(false), 2000);
+              }}
+            >
+              全画面の読み込み(2 秒)
+            </Button>
+          </div>
           <Button variant="secondary" className="self-start" onClick={() => setIsModalOpen(false)}>
             モーダルを閉じる
           </Button>
         </div>
       </Modal>
+
+      <Dialog
+        open={isStackConfirmOpen}
+        onOpenChange={setIsStackConfirmOpen}
+        title="モーダルの上の確認"
+        description="後に開いたので、開いた元のモーダルより上に出ます"
+        confirmLabel="OK"
+        onConfirm={() => setIsStackConfirmOpen(false)}
+      />
+      {isStackLoaderVisible ? <ScreenLoader mode="fullscreen" message="全画面の読み込み(cover)" /> : null}
 
       <TabbedModal
         open={isTabbedModalOpen}
