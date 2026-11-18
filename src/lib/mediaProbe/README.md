@@ -1,24 +1,22 @@
-# mediaProbe — サーバーサイド メディア解析（probe）
+# mediaProbe
 
-ストレージ上のメディア（動画・音声）をサーバー側で解析し、**ストリーム構成**を返す
-ドメイン非依存の汎用 capability。主目的は「音声トラックの有無」の確実な判定。
+## Overview
 
-クライアント側の検出は標準 API が無くブラウザ依存で安全性を保証できないため、
-配信物の安全性に関わる検証はこの層（サーバー）で行う。
+- サーバーサイドのメディア解析（probe）。ストレージ上のメディア（動画・音声）をサーバー側で解析し、ストリーム構成を返すドメイン非依存の汎用 capability。主目的は「音声トラックの有無」の確実な判定
+- クライアント側の検出は標準 API が無くブラウザ依存で安全性を保証できないため、配信物の安全性に関わる検証はこの層（サーバー）で行う
+- 使う時・直す時の決まりは札 .claude/rules/items/lib/mediaProbe.md にある
 
----
-
-## 責務の境界（重要）
+### 責務の境界
 
 - **この層（tier1）は「事実」だけを返す**: `hasAudioTrack` / `hasVideoTrack` / コンテナ / 尺 / コーデック等。
 - **用途別ルールは消費側（ドメイン）の責務**: 「背景動画は音声なし」「BGM は音声あり」等の
-  ポリシー判定・拒否（409 等）・孤児削除は呼び出し側で行う。ここには持ち込まない。
+  ポリシー判定・拒否（409 等）・孤児削除は呼び出し側で行う。
 
 これにより特定用途に縛られず、どのフォークでも再利用できる。
 
----
+## Usage
 
-## 使い方（サーバー）
+### サーバーで解析する
 
 ```ts
 import { probeMedia, isSilentVideo } from "@/lib/mediaProbe";
@@ -49,6 +47,8 @@ if (!probe.ok) throw new DomainError(probe.error.message, { status: 422 });
 if (!isSilentVideo(probe)) throw new DomainError("音声トラックを含む動画は使用できません。", { status: 409 });
 ```
 
+## API
+
 ### 内部 API（任意・admin 限定）
 
 `POST /api/media/probe` body: `{ ref }`・`{ storagePath }`・`{ downloadUrl }` のどれか。
@@ -58,9 +58,30 @@ if (!isSilentVideo(probe)) throw new DomainError("音声トラックを含む動
 - `storagePath`: 旧バケット内のパスだけ。pub / priv の保存先と重なるパスは 400
 - `downloadUrl`: 自分の旧バケットの URL は旧バケットの位置で署名、それ以外はそのまま Range 取得
 
----
+### 対応範囲・上限
 
-## アーキテクチャ — エンジン差し替え
+- コンテナ: mp4 / mov / webm / mkv / mp3 / wav / ogg / aac / flac 等（mediainfo が網羅）。
+- タイムアウト: 既定 20s（`ProbeOptions.timeoutMs`）。ソース解決・プリフェッチ・解析の end-to-end を締め切る。
+- 署名 URL 有効期限: 既定 120s（`ProbeOptions.signedUrlTtlSec`）。
+- プリフェッチ窓: 先頭/末尾 各既定 4MB（`ProbeOptions.prefetchHeadBytes` / `prefetchTailBytes`）。
+- 尺の上限判定は返り値の `durationSec` を使って**消費側**で行う（ポリシー）。
+
+## Extension
+
+### エンジンの追加・差し替え
+
+```ts
+import { registerProbeEngine, setDefaultProbeEngine } from "@/lib/mediaProbe";
+
+registerProbeEngine(myFfprobeEngine);   // 例: より詳細な情報が必要なフォーク
+setDefaultProbeEngine("ffprobe");
+```
+
+- ffprobe バイナリ / 外部メディア処理サービスも `ProbeEngine` として足せる（ffprobe は Vercel への native バイナリ同梱を確かめてから）
+
+## Internals
+
+### エンジン差し替えの形
 
 「中をどう覗くか」を `ProbeEngine` インターフェースで抽象化し、契約（`ProbeFacts`）を
 変えずに実装を入れ替えられる。
@@ -81,7 +102,7 @@ probeMedia()                       … 消費側はこれだけ呼ぶ
 ### WASM の解決とバンドル同梱（dev と本番の両対応）
 
 `.wasm` の扱いは dev（Turbopack）と本番（Vercel / @vercel/nft）で要件が相反するため、
-両方を満たすよう次の 2 段構えにしている。混乱しやすいので変更時は両方を必ず考慮すること。
+両方を満たすよう次の 2 段構えにしている。
 
 1. **Turbopack 回避（dev）**: `mediainfoEngine.ts` は `req.resolve("...MediaInfoModule.wasm")`
    のような `.wasm` 文字列リテラルを持たない。リテラルがあると Turbopack が WASM ローダーを
@@ -91,24 +112,9 @@ probeMedia()                       … 消費側はこれだけ呼ぶ
    `outputFileTracingIncludes` で `MediaInfoModule.wasm` を明示同梱する。これが無いと本番で
    `ENOENT: ... MediaInfoModule.wasm` になる。
 
-> probeMedia を **API ルート以外**（SSR ページ / Server Action 等）から呼ぶフォークは、
-> `outputFileTracingIncludes` にそのルートのキーを追加すること（既定は `"/api/**"`）。
+- `outputFileTracingIncludes` の既定のキーは `"/api/**"`
 
-### エンジンの追加・差し替え
-
-```ts
-import { registerProbeEngine, setDefaultProbeEngine } from "@/lib/mediaProbe";
-
-registerProbeEngine(myFfprobeEngine);   // 例: より詳細な情報が必要なフォーク
-setDefaultProbeEngine("ffprobe");
-```
-
-将来 ffprobe バイナリ / 外部メディア処理サービスを `ProbeEngine` として追加可能
-（ffprobe は Vercel への native バイナリ同梱検証が前提）。
-
----
-
-## 取得方式（head+tail プリフェッチ）
+### 取得方式（head+tail プリフェッチ）
 
 フルダウンロードしない。呼び出し元が渡した認可済み URL、または旧バケットの path を短命の署名付き URL に
 変換したものに対し、HTTP Range で「目次（ftyp/moov 等）」付近のみ取得する。サイズはメタデータ
@@ -125,7 +131,11 @@ pub / priv の保存先と重なる位置は扱わない。
 - プリフェッチは best-effort。失敗・サイズ不明時はバッファ無しで従来のチャンク取得へ劣化する。
 - 窓サイズは `ProbeOptions.prefetchHeadBytes` / `prefetchTailBytes`（各既定 4MB、0 で無効化）。
 - Range 非対応プロキシ等で `200`（全件）が返ったとき: 全体が要求した長さに収まる小さなファイルなら、要求オフセットへスライスして返す。それより大きい全体は読み込みを中止して `fetch_failed`（大容量の全体をメモリに読まない）。
-- Next のサーバー内の fetch（MANDATORY）: Next は `globalThis.fetch` を差し替え、signal の無い GET の応答を tee して片方を保持する（`next/dist/server/lib/dedupe-fetch.js`）。保持側は閉じられないので、もう片方の `body.cancel()` / `reader.cancel()` は解決しない。そのため mediaSource の fetch には**必ず signal を渡し**（tee されない）、本体の cancel は**待たない**。signal は probeMedia の期限と連動し、期限で通信・ストリームを打ち切る（`createMediaSource` / `fetchRangeRaw` の省略可の `signal`）。fetch を足すときも同じにする。残る例外: 開発時のページ描画中（server action を含む）に Range を無視した `200` が返ると、Next の HMR キャッシュの経路（`patch-fetch.js` の createCachedDynamicResponse）が tee して片方を全部読むため、本体がメモリに読まれ得る（止まらない。期限の abort で切れる。本番・route handler は該当しない）。
+- Next のサーバー内の fetch: Next は `globalThis.fetch` を差し替え、signal の無い GET の応答を tee して片方を保持する（`next/dist/server/lib/dedupe-fetch.js`）
+  - 保持側は閉じられないので、もう片方の `body.cancel()` / `reader.cancel()` は解決しない
+  - そのため mediaSource の fetch には signal を渡し（tee されない）、本体の cancel は待たない
+  - signal は probeMedia の期限と連動し、期限で通信・ストリームを打ち切る（`createMediaSource` / `fetchRangeRaw` の省略可の `signal`）
+  - 残る例外: 開発時のページ描画中（server action を含む）に Range を無視した `200` が返ると、Next の HMR キャッシュの経路（`patch-fetch.js` の createCachedDynamicResponse）が tee して片方を全部読むため、本体がメモリに読まれ得る（止まらない。期限の abort で切れる。本番・route handler は該当しない）
 
 ### WASM インスタンスの再利用
 
@@ -135,18 +145,8 @@ WASM（約 2.5MB）の compile+instantiate はコールド時に秒単位を要�
 並行性も確保する。メモリは `MAX_INSTANCES × WASM` に有界。異常終了したインスタンスは
 プールへ戻さず破棄し、健全なプールを維持する。
 
----
-
-## 関連
+## Related
 
 - `src/lib/seamlessVideo/probe/`: **変換後 fmp4 フラグメント**の検証用 ISO BMFF パーサ。
-  入力（変換前の任意アップロード）も目的（用途別検証）も異なる別物。混同しないこと。
+  入力（変換前の任意アップロード）も目的（用途別検証）も異なる別物
 - `src/lib/storage/`: ストレージ参照の解決元（旧バケットの位置と署名）。管理下の ref の認可は呼び出し元（`/api/media/probe` は storageObjectService）。
-
-## 対応範囲・上限
-
-- コンテナ: mp4 / mov / webm / mkv / mp3 / wav / ogg / aac / flac 等（mediainfo が網羅）。
-- タイムアウト: 既定 20s（`ProbeOptions.timeoutMs`）。ソース解決・プリフェッチ・解析の end-to-end を締め切る。
-- 署名 URL 有効期限: 既定 120s（`ProbeOptions.signedUrlTtlSec`）。
-- プリフェッチ窓: 先頭/末尾 各既定 4MB（`ProbeOptions.prefetchHeadBytes` / `prefetchTailBytes`）。
-- 尺の上限判定は返り値の `durationSec` を使って**消費側**で行う（ポリシー）。
