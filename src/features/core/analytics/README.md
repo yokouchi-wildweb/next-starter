@@ -1,57 +1,21 @@
-# analytics ドメイン
+# analytics
 
-ドメインデータを時系列で集計・分析するためのフレームワーク。
-他ドメインのテーブルを読み取り専用で参照し、共通の集計パターン（日別・期間サマリー・ランキング・残高推移）を提供する。
+## Overview
 
-> **上流はデータの取り出しだけを出荷する**（集計のサービス・管理 API `/api/admin/analytics/**`・rollup）。管理画面のページも管理メニューの項目も持たない。画面は fork が自分の業務に合わせて作り（`src/app/admin/(protected)/` の自分のルート + 管理メニューの受け口 `src/features/core/admin/menu/` に項目）、この API を呼ぶ
-
-## ドメインの位置づけ
-
+- ドメインデータを時系列で集計・分析するためのフレームワーク。他ドメインのテーブルを読み取り専用で参照し、共通の集計パターン（日別・期間サマリー・ランキング・残高推移）を提供する
+- 上流はデータの取り出しだけを出荷する（集計のサービス・管理 API `/api/admin/analytics/**`・rollup）。管理画面のページも管理メニューの項目も持たない。画面は fork が自分の業務に合わせて作り（`src/app/admin/(protected)/` の自分のルート + 管理メニューの受け口 `src/features/core/admin/menu/` に項目）、この API を呼ぶ
+- 使う時・直す時の決まりは札 .claude/rules/items/features/analytics.md にある
 - core ドメイン（domain.json なし、手動管理）
-- 閉じられる機能(門番の規則 `src/featureGate/rules/analytics.ts`、既定は閉 `defaultEnabled: false`。開くのは fork の `src/config/featureGate/switches.config.ts` か `pnpm ops features set analytics on`)。閉じると `/api/admin/analytics`・`/api/activity/dau`・rollup の cron が 404 で、表も push から外れる。ログイン中の DAU の記録は `useGate().enabled("analytics")` が閉なら送らない。analyticsConsent の設定 `enabled`(上書き `src/config/lib/analyticsConsent.config.ts`)(ブラウザのアクセス解析の送信)は別物で、規則は読まない
+- 閉じられる機能(門番の規則 `src/featureGate/rules/analytics.ts`、既定は閉 `defaultEnabled: false`。開くのは fork の `src/config/featureGate/switches.config.ts` か `pnpm ops features set analytics on`)
+- 閉じると `/api/admin/analytics`・`/api/activity/dau`・rollup の cron が 404 で、表も push から外れる
+- ログイン中の DAU の記録は `useGate().enabled("analytics")` が閉なら送らない
+- analyticsConsent の設定 `enabled`(上書き `src/config/lib/analyticsConsent.config.ts`)(ブラウザのアクセス解析の送信)は別物で、規則は読まない
 - エンティティ: `user_daily_activities`（DAU 計測）と `analytics_daily_rollups`（日次事前集計）のみ。下流で必要に応じて追加
 - データ所有: 原則なし（wallet_histories, purchase_requests 等を参照のみ）。例外は上記2テーブル
   - `user_daily_activities`: **本ドメインが所有する一次記録（source of truth）**。イベント発生時の ingest（useDauTracker → POST /api/activity/dau）でのみ生まれ、他テーブルから再計算**できない**
   - `analytics_daily_rollups`: ソーステーブルから再計算可能な**派生キャッシュ**（真実のソースではない）
 
-## ディレクトリ構成
-
-```
-analytics/
-├── README.md                     # 本ファイル
-├── types/
-│   ├── common.ts                 # 集計共通型（DateRangeParams, DailyRecord, UserFilter 等）
-│   └── entities.ts               # エンティティ追加時の基底型（CacheBase, SnapshotBase 等）
-├── entities/
-│   └── drizzle.ts                # user_daily_activities（DAU）+ analytics_daily_rollups（ロールアップ）
-├── constants/
-│   └── index.ts                  # デフォルト日数、最大値、デフォルトタイムゾーン、キャッシュTTL等
-├── services/server/
-│   ├── utils/
-│   │   ├── dateRange.ts          # 日付範囲パラメータの解決（TZ対応）
-│   │   ├── analyticsCache.ts     # サーバーサイドレスポンスキャッシュ（確定範囲=長TTL）
-│   │   ├── aggregation.ts        # changeRate等の算術ヘルパー（※JS集計関数は@deprecated）
-│   │   ├── distribution.ts       # 分布共通: parseBoundaries / buildBucketExpr
-│   │   └── userFilter.ts         # ユーザー属性フィルター（roles, excludeDemo）と分析の除外条件（scope）
-│   ├── rollup/                   # 日次ロールアップ（事前集計）フレームワーク
-│   │   ├── types.ts              # RollupMetricConfig / RollupDayContext 等
-│   │   ├── rollupService.ts      # 計算+冪等upsert・日次cron・バックフィル
-│   │   └── readSeries.ts         # readRolledDailySeries（確定日+当日ライブのマージ読み）
-│   ├── walletHistoryAnalytics.ts # [組み込み] walletHistory 集計 + 日次残高
-│   ├── walletStateAnalytics.ts   # [組み込み] wallets テーブルのスナップショット集計
-│   ├── purchaseAnalytics.ts      # [組み込み] purchase 集計
-│   ├── purchaseDistributionAnalytics.ts # [組み込み] 購入額グループ分布
-│   ├── purchaseRankingAnalytics.ts      # [組み込み] 購入ランキング（purchase_requests）
-│   ├── userAnalytics.ts                 # [組み込み] ユーザー登録集計
-│   ├── walletRankingAnalytics.ts        # [組み込み] ウォレットランキング（wallet_histories）
-│   ├── referralAnalytics.ts             # [組み込み] 紹介経由ユーザー数 + 紹介リワード金額のサマリー
-│   ├── dauAnalytics.ts                  # [組み込み] DAU (Daily Active Users) 集計
-│   ├── messagingAnalytics/              # [組み込み] 連絡(messaging)の集計(service.ts = 組み立て、store.ts = SQL、assemble.ts = 数と率)
-│   └── dauService.ts                    # [組み込み] DAU 記録の書き込み API
-└── presenters.ts                 # （任意）集計結果のフォーマット
-```
-
-## 組み込みAPI一覧
+### 組み込みAPI一覧
 
 | エンドポイント | サービス | 概要 |
 |---|---|---|
@@ -81,312 +45,13 @@ analytics/
 | GET /api/admin/analytics/messaging/breakdown | messagingAnalytics | 軸（`axis=channel / message / category / template / tag`）ごとの指標（前期比含む） |
 | GET /api/admin/analytics/messaging/dispatches | messagingAnalytics | 回ごとの指標（送った時刻の新しい順、`cursor` / `limit`） |
 
-purchase 系(`purchase*Analytics`)は決済、wallet 系(`walletHistory` / `walletRanking` / `walletState`)はウォレットの機能の表を読むので、外に出す集計関数の先頭で `gate.assert("payment" / "wallet")`（閉なら 404。住所は門番の規則が既に閉じるので、route 以外から呼んだときの自己停止）。
+- purchase 系(`purchase*Analytics`)は決済、wallet 系(`walletHistory` / `walletRanking` / `walletState`)はウォレットの機能の表を読むので、外に出す集計関数の先頭で `gate.assert("payment" / "wallet")`（閉なら 404。住所は門番の規則が既に閉じるので、route 以外から呼んだときの自己停止）。
 
-## 連絡（messaging）の集計（messagingAnalytics）
+## Usage
 
-連絡の一次の記録（回・配達・お知らせの既読・配信停止）は messaging にあり、集計はここで読むだけ（analytics → messaging の一方向。messaging は analytics を読まない）。画面は作らない（fork が組む）。
+### 集計サービスを足す
 
-- 住所: 規則 `messagingAnalytics`（`dependsOn: ["analytics"]`、既定 開 = analytics が開なら開。paymentAnalytics / walletAnalytics と同じ形）。route は管理者だけ
-- 関数が測る物の開閉を自分で確かめる: 開封・クリックは計測 `messagingTracking` が閉なら `null`（0 と区別、`trackingEnabled: false`）、回ごとのビューは回の管理 `messagingDispatches` が閉なら空（`dispatchesEnabled: false`）
-- 絞り（共通）: `channel` / `messageKey` / `category`（期間は共通クエリパラメータ）
-- クライアント / フック（画面は置かない。fork の画面がそのまま使う）: `services/client/messagingAnalyticsClient.ts`（fetchMessagingSummary / fetchMessagingSeries / fetchMessagingBreakdown(axis, params) / fetchMessagingDispatches）+ 1 本 1 ファイルのフック（入口の index は無い。ファイルの path で読む）
-  - `hooks/useMessagingAnalyticsSummary.ts` / `useMessagingAnalyticsSeries.ts`: SWR（`(params, { enabled?, config? })`、鍵 = 期間と絞りの値）
-  - `hooks/useMessagingAnalyticsBreakdown.ts`: SWR（`(axis, params, options)`、axis が null なら取らない）
-  - `hooks/useMessagingAnalyticsDispatches.ts`: 回ごとは増え続ける一覧なので `useInfiniteScrollQuery` のカーソルのモード（`{ params, limit?（既定 20）, enabled? }`、期間・絞りが変われば先頭から。`InfiniteScrollList` に渡す）。結果の横に直近の応答の `dispatchesEnabled` / `trackingEnabled`（まだ無ければ null）
-
-指標（`MessagingCounts`）と出どころ:
-
-- `targeted` / `sent` / `failed` / `skippedNoAddress` / `suppressed`（止めで飛ばした）/ `skippedThrottled`: 回の `channel_counts`（全員・ロール宛ての行の無い数と共有のお知らせも入る）
-- `delivered` / `bounced` / `complained` / `opened` / `clicked`: 配達の行
-- `read`: お知らせの既読（受信者ごとの行 = 既読の行か全部既読の watermark、共有の行 = 見られる利用者のうち既読の人）。`inAppSent` = その分母
-- `unsubscribed`: 配信停止の行（`message_preferences` の行 + `message_suppressions` の one_click の行）。種別まるごとの停止の行（`kind` あり）も数え、種類の軸の値は `'*'`。会員登録で宣伝に同意しなかった行（source `signup`、messaging `PREFERENCE_SIGNUP_SOURCE`）は配信停止ではないので数えない
-- 率（`rates`）は同じ送りの組: ÷ `sent` = delivered / bounce / complaint / open / click / unsubscribe、÷ `targeted` = failed / suppressed、÷ `inAppSent` = read。分母 0・分子 null は null
-
-送りの組:
-
-- 基準の時刻 = 回を送った時刻 `COALESCE(scheduled_at, created_at)`。到達・開封・既読も送った日に数える（同じ組の率）。配信停止だけは止めた時刻で数える
-- テスト送信（`is_test`）は数にも分母にも入れない。予約中・取り消した予約は入れない。取り下げた回は数える
-- 写した前のお知らせの回（source `legacy.notification`）は既読の数だけに使う（送り・到達の数に入れない）
-- 前の期間 = 同じ長さの直前（summary と breakdown、`comparison.changeRate`）
-
-軸: 日（series）・経路・定義（message）・種類（category）・テンプレート（template、見出しはテンプレートの名前）・タグ（tag、回のタグごと。タグの無い回は key null）・回（dispatches）。配信停止の結び付きの無い行（好みのページ・前のトークン）は定義・回・テンプレート・タグの軸で key null（「結び付き無し」）。
-
-取れない物:
-
-- 配達の行は保持の日数（messaging の `retention.deliveriesDays`、既定 90 日）で消える: それより前に送った範囲は `delivered` 〜 `clicked` が `null`（`detailRetained: false`、0 ではない）。回の数・既読・配信停止は残る
-- bounce の hard / soft の区別は配達の行に無い（`message_events` の種類だけ、保持 30 日）。`bounced` は合わせた数
-- 全員・ロール宛ての共有のお知らせは配達の行が無い: 数は回の `channel_counts.inApp` だけ（到達・開封は無い）
-- 配信停止は今ある行だけ（好みのページで戻すと行が消え、数から外れる）。定義・回への結び付きは結んだトークン（`mk` / `d`）からの停止だけで、それより前の停止と好みのページの停止は結び付き無し
-- 全部既読（watermark）で読んだお知らせには既読の時刻が無い（既読の数だけ）
-
-### referral summary 固有のパラメータ
-- `referralStatuses`: 集計対象とする `referrals.status` を CSV で指定（例: `active,cancelled`）。省略時は全状態をカウント
-- リワード金額の抽出 SQL 式は `getReferralSummary()` の `rewardAmountExpr` 引数で差し替え可能。デフォルトは `(referral_rewards.metadata ->> 'amount')::numeric`（rewardHandler が metadata に `amount: number` を入れる規約に従う場合）。下流が異なる metadata 構造を持つ場合は独自の API ルートからカスタム SQL を渡す
-
-## 共通クエリパラメータ
-
-日付範囲（status-overview以外の全APIで共通）:
-- `days`: 日数指定（デフォルト 30）
-- `dateFrom`: 開始日（YYYY-MM-DD）
-- `dateTo`: 終了日（YYYY-MM-DD）
-- `timezone`: タイムゾーン（IANA TZ名、デフォルト: `Asia/Tokyo`）
-- `granularity`: 集計粒度。`hour` / `day` / `week` / `month`（デフォルト: `day`）
-- `alignToGranularity`: `true`（または `1`）で dateFrom を粒度のバケット開始境界（week=ISO月曜、month=月初）へ floor する。デフォルト off。先頭の不完全バケットがフロー系メトリクスで過少表示されるのを防ぐ用途
-- dateFrom + dateTo 指定時は days より優先
-
-集計粒度（granularity）の挙動:
-- 時系列集計 API (`*/daily`, `wallet-history/balance` 等) のバケット単位を切り替える
-- `history[].date` の書式は粒度で変わる: hour=`YYYY-MM-DDTHH:00`, day=`YYYY-MM-DD`, week=月曜開始日 `YYYY-MM-DD`, month=`YYYY-MM`
-- レスポンスには解決済み `granularity` フィールドが含まれる
-- 期間上限は粒度ごと: hour=31日, day=365日, week=2年, month=10年（バケット数の爆発を防ぐ）
-- DAU は `day` / `week` / `month` をサポート（week/month はバケット内ユニークユーザー = WAU/MAU）。`hour` は `DomainError`（400）（`UserDailyActivityTable` が日次集計済みのため）
-- 期間サマリー API (`*/summary`) では集計に影響しない（期間全体を1つの集計値にする）
-
-ユーザーフィルタ:
-- `userId`: 特定ユーザーに絞り込み（ranking以外）
-- `roles`: 含めるロール（CSV、ホワイトリスト方式）。未指定=全ロール
-- `excludeDemo`: `true` でデモユーザー（is_demo=true）を除外
-- `groupBy`（`/wallet-history/daily`）: `reasonCategory`（既定）/ `sourceType` / `changeMethod` / `reasonKey`（付与の種類。種類の無い行は鍵 `unkeyed`）
-- `includeExcluded`: `true` で分析の除外条件を足さない（除外の前後を比べる検証用。下の「分析の除外条件」）
-
-フィルタ:
-- `walletType`: ウォレット種別でフィルタ（指定なし = 全種別）
-
-### サービスでの granularity 取り扱い
-
-新しい時系列集計サービスを実装する場合:
-- `resolveDateRange(params)` の戻り値から `range.granularity` を読み取る
-- グルーピング SQL は `granularityDateExpr(column, granularity, tz)` ヘルパーで生成する
-- date 型カラム（timestamptz ではない）は `granularityDateExprForDateColumn(column, granularity)` を使う（AT TIME ZONE 変換を挟むとサーバ TZ 依存の境界ズレが起きるため）
-- `generateDateKeys(range)` がそのまま粒度対応のキー配列を返す
-- `formatDateRangeForResponse(range)` がレスポンスの `granularity` フィールドを含む
-
-特定粒度のみサポートするサービス（例: DAU は hour 非対応）:
-- `export const FOO_SUPPORTED_GRANULARITIES = ["day"] as const satisfies readonly Granularity[];`
-- 関数冒頭で `assertGranularitySupported(range.granularity, FOO_SUPPORTED_GRANULARITIES, "Foo 集計")` を呼ぶ
-- 未サポート粒度では `GranularityNotSupportedError`（DomainError 派生、400）が投げられる
-
-新しい粒度（例: minute）を追加する場合:
-- `types/common.ts` の `Granularity` / `GRANULARITIES` に追加
-- `constants/index.ts` の `MAX_GRANULARITY_PERIOD_DAYS` に上限を追加
-- `utils/dateRange.ts` の `GRANULARITY_SPECS` テーブルに `truncUnit` / `sqlFormatPattern` / `formatKey` / `truncate` / `advance` を追加
-- 既存サービスは変更不要（拡張ポイントが 1 箇所に集約されている）
-
-## 集計設計原則: DB側集計
-
-**全ての集計処理はDB側 GROUP BY + 集約関数で実行すること。**
-
-「全行フェッチ → JS集計」パターンは大量レコード（数万〜数十万行）でメモリ・速度の問題が発生するため禁止。
-組み込みサービスは全てSQL集計方式。
-
-推奨SQLパターン:
-- 日別集計: `GROUP BY DATE(column AT TIME ZONE $tz)` + `SUM()`, `COUNT(DISTINCT)`, `COUNT(*)`
-- 期間サマリー: `SUM()`, `COUNT()`, `MAX()`, `PERCENTILE_CONT(0.5)` 等
-- ランキング: `GROUP BY user_id` + `ORDER BY metric DESC` + `LIMIT/OFFSET`
-- 内訳: 別クエリで `GROUP BY date, category` → Mapに変換
-
-`aggregation.ts` のJS集計関数（`groupByDate`, `countUnique`, `groupBy`, `sum`, `median`）は `@deprecated`。
-`changeRate` のみ引き続き利用可能。
-
-## サーバーサイドレスポンスキャッシュ（withAnalyticsCache）
-
-`services/server/utils/analyticsCache.ts` が提供する透過ラッパー。
-「過去日のみで構成される確定済み範囲は長期TTL、当日を含む範囲は短TTL」を `ResolvedDateRange` から自動判定してインスタンス内メモリにキャッシュする。
-
-```typescript
-import { withAnalyticsCache } from "./utils/analyticsCache";
-
-export async function getWalletSummary(params: DateRangeParams & WalletTypeFilter) {
-  const range = resolveDateRange(params);
-  return withAnalyticsCache(
-    // key にはクエリ結果に影響する全パラメータを含めること（range は自動合成される）
-    { key: ["walletHistory.summary", params.walletType ?? ""], range },
-    () => computeWalletSummary(range, params),
-  );
-}
-```
-
-挙動・運用ルール:
-- **確定済み判定**: `range.dateTo` が `range.timezone` 上の「今日」より前なら確定済み（TTL 既定 12時間）。当日を含むなら短TTL（既定 60秒）。TTL は `ttlClosedMs` / `ttlLiveMs` オプション、既定値は `constants/index.ts` で調整可
-- **immutable ではない**: バックフィル・ロールアップ再計算・集計除外の遡及適用で過去バケットも書き換わり得るため、確定済みでも有限TTL。値を書き換えた直後は `invalidateAnalyticsCache(keyPrefix?)` を呼ぶ（同一インスタンスのみ即時。他インスタンスはTTL満了で追随）
-- **in-flight 共有**: 同一キーの同時リクエストは計算を1回に集約する（ダッシュボードの並列取得対策）
-- **例外はキャッシュしない**: fn が reject した場合エントリは破棄される
-- **スコープ**: インスタンス内メモリLRU（最大 `ANALYTICS_CACHE_MAX_ENTRIES` 件）。サーバーレス多インスタンス間では共有されない（許容仕様）
-- **無効化エスケープハッチ**: 環境変数 `ANALYTICS_CACHE=disabled` で全キャッシュ素通し（デバッグ用）
-- **組み込みサービスには未適用**: 鮮度特性の変更を暗黙に持ち込まないため、アップストリーム組み込み API はラップしていない。ダウンストリームが負荷の高いエンドポイント（複合ダッシュボード等）から順に opt-in する
-
-## 日次ロールアップ（事前集計）フレームワーク
-
-`services/server/rollup/` が提供する GA スタイルの事前集計基盤。
-「確定した過去日の値を `analytics_daily_rollups` に日次で焼き込み、読み取りは PK ルックアップ + 当日だけライブ計算」に置き換えることで、
-**サービス運用年数に比例して重くなる集計**（特にランニングバランス系のベースライン全履歴スキャン）を構造的に解消する。
-
-役割分担: **フレームワーク（保存・cron・マージ読み）= upstream、メトリクス定義（compute）= downstream**。
-upstream が登録する組み込みメトリクスは連絡の日まとめ（`messaging.*`、下の「連絡の日まとめ」）だけ。他は downstream が登録する。
-
-### 採用判断
-
-- 使う: 全履歴スキャンを伴うランニングバランス系列（流通コイン残高・未消化賞品価値等）、期間が長くなるほど重いダッシュボード時系列
-- 使わない: 既に単純な `GROUP BY date` 1クエリで十分軽い集計（まず `withAnalyticsCache` だけで足りないか検討）。ロールアップはテーブル・cron・バックフィル運用を伴うため、キャッシュより導入コストが高い
-- 位置づけ: ロールアップ行は**ソーステーブルから再計算可能な派生キャッシュ**。真実のソースにしない（COUNTING 基盤の userCounter / interactionTracking はイベント発生時の一次記録であり役割が異なる）
-
-### kind の選択（重要）
-
-| kind | 意味 | 週/月集約 | 欠損日 | 例 |
-|---|---|---|---|---|
-| `flow` | 日ごとの発生量 | 日の合計 | 0 | 日次売上、ガチャ収支 |
-| `snapshot` | 日末時点の状態量（クロージング値） | バケット末日の値 | 直前値キャリー | 流通コイン残高、未消化賞品価値 |
-
-`snapshot` は読み取り時に「範囲開始前の直近行」を1行だけベースラインとして先読みするため、
-ランニングバランスでも全履歴スキャンが発生しない。
-
-### メトリクスの登録（downstream）
-
-```typescript
-// 例: src/features/wallet/analytics/rollup/coinClosingBalance.ts
-import { sql } from "drizzle-orm";
-import { db } from "@/lib/drizzle";
-import type { RollupMetricConfig } from "@/features/core/analytics/services/server/rollup";
-
-export const coinClosingBalanceMetric: RollupMetricConfig = {
-  key: "wallet.coin_closing_balance",
-  kind: "snapshot",
-  backfillFrom: "2025-01-01", // ソースデータの開始日
-  async compute({ dateFrom, dateTo, previous }) {
-    // snapshot 推奨パターン: 前日クロージング値があれば「前日値 + 当日差分」の増分計算。
-    // previous 無し（初日・ギャップ）はフル計算にフォールバック。
-    // 集計除外（analytics exclusion 等）の適用はこの関数内部の責務。
-    const baseline = previous?.[0]?.value;
-    if (baseline !== undefined) {
-      const delta = await sumDailyDelta(dateFrom, dateTo); // 当日1日分のみのスキャン
-      return [{ value: baseline + delta }];
-    }
-    const full = await computeBalanceUpTo(dateTo); // フォールバック: 全履歴から算出
-    return [{ value: full }];
-  },
-};
-```
-
-```typescript
-// src/features/core/analytics/rollupMetrics/coinClosingBalance.ts に置き pnpm generate extensions
-import { coinClosingBalanceMetric } from "@/features/wallet/analytics/rollup/coinClosingBalance";
-
-export const metric = coinClosingBalanceMetric;
-```
-
-依存する機能が閉じている間など、メトリクスを外したいときは `enabled: () => boolean` を足す（省略 = 常に有効）。
-false の間は登録が無いのと同じ: `listRollupMetricConfigs`・日次 cron・バックフィルの対象から外れ、`getRollupMetricConfig` / `readRolledDailySeries` で名指しすると 404 の DomainError。
-compute の中で `[]` を返して止めない（一覧に残り、空の行を焼き込み続ける）。読む画面も同じ条件で呼ぶのをやめる。key の重複は無効の項目も含めて例外。
-
-```typescript
-export const metric: RollupMetricConfig = {
-  ...gachaRevenueMetric,
-  enabled: () => gate.enabled("gacha"), // server 側なので gate(@/featureGate)を読める
-};
-```
-
-ディメンション分割が必要な場合は `compute` が `[{ value, dims: { walletType: "coin" } }, ...]` のように複数行を返す
-（dims はフラットなオブジェクトのみ。同一日内で dims の重複は不可）。
-
-### 連絡の日まとめ（`messaging.*`、上流の組み込み）
-
-- 鍵 = 1 指標 1 つ: `messaging.targeted` / `sent` / `failed` / `suppressed` / `delivered` / `bounced` / `complained` / `opened` / `clicked` / `read` / `unsubscribed`（kind flow）。`skipped_no_address` / `skipped_throttled` は日まとめにしない（集計の口 `/api/admin/analytics/messaging/**` だけ）
-- dims = `{ channel, messageKey, category }`（配信停止の結び付きの無い行は `messageKey` null）。数え方は集計の口と同じ（回を送った日の cohort、配信停止は止めた日）。項目 = `rollupMetrics/messaging<Measure>.ts`（1 行、中身は `services/server/messagingAnalytics/rollup.ts`）
-- `lookbackDays`: 回の数・配信停止 = 既定（3）、到達・bounce・苦情 7、開封・クリック 14、既読 30（送った日に遅れて足される。配達の行の保持 90 日より短い）
-- enabled: 規則 `messagingAnalytics` が開の時（集計の口と同じ）。`opened` / `clicked` は計測 `messagingTracking` も開の時だけ。条件は受け口の項目が値に書く（常時実行の入口の検査が項目の値を見る）
-- 1 日分の読み込み（4 つの問い合わせ）は同じ日を計算する指標で共有する（短い memo）
-- 読み方: `readRolledDailySeries({ metricKey: "messaging.sent", range, dims? })`。dims は完全一致なので、経路 × 定義 × 種類の 1 組を指すか、省略して日ごとに合算する（定義だけで絞る読み口は無い。要るなら fork が行を読んで足す）。配達の行が保持で消えた後も日まとめの値は残る
-- 新しく開いた時の過去分: `pnpm task analytics:rollup-backfill -- messaging.<measure> --from YYYY-MM-DD`（配達の行の残る 90 日以内が意味のある範囲）
-
-### 運用（cron / バックフィル）
-
-- 日次: Vercel Cron が 1 日 1 回呼ぶ（`vercel.json` のエントリは `pnpm generate cron` が生成）。手動は `pnpm task analytics-rollup-daily` または `GET /api/cron/analytics-rollup-daily`。昨日を含む直近3日（メトリクスの `lookbackDays` が長ければその日数 = max(`lookbackDays`, 実行の日数)）を冪等に再計算し、遅延到着データと実行漏れを自己修復する。遅れて足されるデータ（開封・既読など）を持つメトリクスだけ `lookbackDays` を長くする
-- 新規メトリクス登録時・遡及修正時: `pnpm task analytics:rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]`（from 省略時 = `backfillFrom`、to 省略時 = 昨日）
-- **集計除外の遡及適用**: 専用機構はない。compute が除外を織り込んでいる前提で、該当期間のバックフィルを再実行すれば整合する（書き込みは日単位 delete → insert の冪等 upsert）
-- 書き込み後は同一インスタンスの `withAnalyticsCache` キャッシュを自動 invalidate する（他インスタンスは TTL 満了で追随）
-
-### 読み取り
-
-```typescript
-import { readRolledDailySeries } from "@/features/core/analytics/services/server/rollup";
-
-const series = await readRolledDailySeries({
-  metricKey: "wallet.coin_closing_balance",
-  range, // resolveDateRange の戻り値
-  // dims: { walletType: "coin" },  // 指定時は完全一致、省略時はディメンション横断で合算
-});
-// → { dateFrom, dateTo, granularity, history: [{ date, value }], includesLiveBucket }
-```
-
-- 確定日はロールアップ行から、当日は `compute` のライブ実行値をマージ（`includeLive: false` で無効化可）
-- granularity は `day` / `week` / `month`（`hour` は `GranularityNotSupportedError`。日次行が最小単位のため）
-- `range.timezone` はメトリクスの timezone（既定 `Asia/Tokyo`）と一致必須（バケット境界の整合のため）
-- `withAnalyticsCache` と合成可能（キャッシュが手前、ロールアップが奥。当日を含む範囲は短TTL側に自動判定されるため相性が良い）
-- 既存のライブ集計サービスのシグネチャは変更しない。メトリクス単位で読み取りパスをロールアップへ**段階的に**置き換える
-
-## タイムゾーン対応
-
-- デフォルト: `Asia/Tokyo`（`constants/index.ts` の `DEFAULT_TIMEZONE`）
-- 日付境界の計算（startOfDay/endOfDay）がタイムゾーンを考慮
-- SQL: `DATE(column AT TIME ZONE $tz)` でタイムゾーン対応の日付抽出
-- JS: `Intl.DateTimeFormat` ベース（外部ライブラリ不要）
-
-## ユーザーフィルター設計
-
-roles パラメータ（ホワイトリスト方式）:
-- 未指定: 全ロールを含む（フィルタなし）
-- `roles=_user`: 一般ユーザーのみ
-- `roles=_user,contributor`: 複数ロール指定
-
-excludeDemo パラメータ:
-- 未指定 or false: デモユーザーを含む
-- `excludeDemo=true`: is_demo=true のユーザーを除外
-
-実装: サブクエリ方式（JOIN不使用）。walletHistoryにはUserTableへのFKがないため、
-`user_id IN/NOT IN (SELECT id FROM users WHERE ...)` パターンで条件を構築。
-
-## 分析の除外条件（exclusionProviders）
-
-不正だった期間の行や不正だった人を管理画面の集計から外す条件を、fork が差し込む口。上流は口だけ（項目 0）で、除外の表・判定・解除の運用は fork が持つ。項目が無い間は集計の結果は変わらない。
-
-- 項目: `exclusionProviders/<名前>.ts` の `export const provider: AnalyticsExclusionProvider` → `pnpm generate extensions`（型: `services/server/exclusion/types.ts`。`key` の重複は一覧の読み込みで例外）
-- 集計の性質ごとに呼び手が scope を渡し、項目の対応する方だけが呼ばれる（返す SQL = 残す行の条件、AND で足す。関係なければ `undefined`）:
-  - `flow`（期間の事実の行: 収支・購入・DAU・付与）→ `flow({ source, rowId, userId })`。除外した**行**だけを落とす
-  - `stock`（残高・流通量など人ごとの状態）→ `stock({ userId })`。不正なコインは除外の期間の外の残高にも残るので、除外した**人**を丸ごと落とす
-- 上流の集計の scope: flow = DAU（`user_daily_activities`）・購入系 4 本と `purchase_bonus_gap`（`purchase_requests`）・ウォレット履歴の日別 / サマリー / ランキング（`wallet_histories`）・`coupon_attribution_reward`（`coupon_attribution_rewards`、受取人）| stock = ウォレットの現在残高（state 軸）・日次残高（`userId` 指定の調査のときは付けない: その人のチャートが空になる）・紹介の報酬合計（受取人）と紹介経由数（invitee。roles / excludeDemo は今まで通り適用しないが、除外は足す）
-- 自前の集計: `buildUserFilterConditions(userIdColumn, params, scope)`（roles / excludeDemo と一緒に）か `buildExclusionConditions(userIdColumn, params, scope)`（除外だけ）。scope を省くと除外は足さない（今まで通り）
-- `includeExcluded: true`（クエリ `includeExcluded=true`）で足さない。比べる検証用で、通常の画面は指定しない
-- 実行時機: 各集計のクエリを組み立てるとき（同期・読みだけ・tx なし）。項目の throw はその集計の 500。fork の除外の表が無いことがある間（機能を閉じた fork）は `enabled` で止める
-- **core の表に列・部分 index を足さない**（`wallet_histories.analytics_exclusion_id` のような形は上流の表を書き換えるので pnpm workflow ownership check で止まる）。行の除外は fork の衛星表と行の id で突き合わせる:
-
-```ts
-// fork: src/features/analyticsExclusion/entities/drizzle.ts（fork の表。主キー (source, row_id) が NOT EXISTS の索引）
-export const AnalyticsExcludedRowTable = pgTable("analytics_excluded_rows", {
-  source: text("source").notNull(),        // "wallet_histories" など（scope の source）
-  row_id: uuid("row_id").notNull(),        // 事実の表の id
-  exclusion_id: uuid("exclusion_id").notNull(),
-}, (t) => [primaryKey({ columns: [t.source, t.row_id] })]);
-
-// fork: src/features/core/analytics/exclusionProviders/fraudRollback.ts → pnpm generate extensions
-import { and, eq, sql } from "drizzle-orm";
-import type { AnalyticsExclusionProvider } from "@/features/core/analytics/services/server/exclusion/types";
-import { AnalyticsExcludedRowTable as x, AnalyticsExclusionTable as ex } from "@/features/analyticsExclusion/entities/drizzle";
-
-export const provider: AnalyticsExclusionProvider = {
-  key: "fraud_rollback",
-  // 行: 衛星表に載った行を落とす
-  flow: ({ source, rowId }) =>
-    sql`NOT EXISTS (SELECT 1 FROM ${x} WHERE ${x.source} = ${source} AND ${x.row_id} = ${rowId})`,
-  // 人: applied の除外の対象者を丸ごと落とす（除外の表は少数行なので NOT IN で足りる）
-  stock: ({ userId }) =>
-    sql`${userId} NOT IN (SELECT ${ex.user_id} FROM ${ex} WHERE ${ex.status} = 'applied')`,
-};
-```
-
-## ダウンストリームでの集計サービス追加
-
-### 1. サービスファイルを追加（SQL集計方式）
+#### 1. サービスファイルを追加（SQL集計方式）
 
 ```typescript
 // services/server/gachaAnalytics.ts
@@ -448,7 +113,7 @@ export async function getGachaDaily(
 }
 ```
 
-### 2. 型ファイルを追加（任意）
+#### 2. 型ファイルを追加（任意）
 
 レスポンス型が複雑な場合は `types/` に専用ファイルを追加:
 
@@ -464,7 +129,7 @@ export type GachaDailyRecord = DailyRecord<{
 }>;
 ```
 
-### 3. APIルートを追加
+#### 3. APIルートを追加
 
 ```typescript
 // src/app/api/admin/analytics/gacha/daily/route.ts
@@ -485,205 +150,71 @@ export const GET = createApiRoute(
 );
 ```
 
-## コイン創出サマリーへの参加方法
+### 時系列サービスでの granularity の扱い
 
-`GET /api/admin/analytics/coin-issuance/summary` は **拡張可能な集計レジストリ** を採用しており、各ドメインが「コイン創出ソース (`CoinIssuanceSource`)」を登録するだけでサービス全体の `finalProfit` 計算に組み込まれる。
-upstream / downstream の双方がソースを登録できるため、サービス間で「最終収支」の定義がブレることを防ぐ。
+新しい時系列集計サービスを実装する場合:
+- `resolveDateRange(params)` の戻り値から `range.granularity` を読み取る
+- グルーピング SQL は `granularityDateExpr(column, granularity, tz)` ヘルパーで生成する
+- date 型カラム（timestamptz ではない）は `granularityDateExprForDateColumn(column, granularity)` を使う（AT TIME ZONE 変換を挟むとサーバ TZ 依存の境界ズレが起きるため）
+- `generateDateKeys(range)` がそのまま粒度対応のキー配列を返す
+- `formatDateRangeForResponse(range)` がレスポンスの `granularity` フィールドを含む
 
-### 概念
+特定粒度のみサポートするサービス（例: DAU は hour 非対応）:
+- `export const FOO_SUPPORTED_GRANULARITIES = ["day"] as const satisfies readonly Granularity[];`
+- 関数冒頭で `assertGranularitySupported(range.granularity, FOO_SUPPORTED_GRANULARITIES, "Foo 集計")` を呼ぶ
+- 未サポート粒度では `GranularityNotSupportedError`（DomainError 派生、400）が投げられる
 
-各ソースは 1 種類のコイン収支寄与を表す。
+新しい粒度（例: minute）を追加する場合:
+- `types/common.ts` の `Granularity` / `GRANULARITIES` に追加
+- `constants/index.ts` の `MAX_GRANULARITY_PERIOD_DAYS` に上限を追加
+- `utils/dateRange.ts` の `GRANULARITY_SPECS` テーブルに `truncUnit` / `sqlFormatPattern` / `formatKey` / `truncate` / `advance` を追加
+- 既存サービスは変更不要（拡張ポイントが 1 箇所に集約されている）
 
-- `kind: "revenue"` … 収入源 (例: ガチャ売上)。`finalProfit` に加算される
-- `kind: "issuance"` … 発行源 = サービスが負担する費用 (例: クーポンボーナス、紹介リワード、当選報告特典)。`finalProfit` から減算される
+### レスポンスキャッシュ（withAnalyticsCache）
 
-`finalProfit = Σ revenue.current − Σ issuance.current`
-
-### upstream 組み込みソース
-
-| key | kind | 概要 |
-|---|---|---|
-| `purchase_bonus_gap` | issuance | `purchase_requests` の `SUM(amount - payment_amount) WHERE status='completed'`（コイン購入時にサービスが負担した分のうち `amount` に含まれるもの＝クーポン割引・購入パッケージの上乗せ等。別のウォレット行で払うボーナスは `wallet_bonus_grant` 側）|
-| `wallet_bonus_grant` | issuance | `wallet_histories` の `SUM(balance_after - balance_before)`。対象 = 数える通貨（`coinIssuanceWalletTypes`、既定 `regular_coin`）× 数える区分（`issuanceReasonCategories`、既定 `bonus`）。付与元を問わず 1 本で数える（紹介報酬・クーポン帰属報酬・登録ボーナス・fork の施策も、wallet の行を `bonus` で書けば入る）。flow の scope（`wallet_histories`）で UserFilter と除外 |
-
-**台帳の純額で 1 本に数える（二重計上しない）**:
-
-- 付与元の表ごとのソース（紹介報酬 `referral_rewards`・クーポン帰属報酬 `coupon_attribution_rewards` など）は `wallet_bonus_grant` の部分集合。`sources` に並べると `finalProfit` から二重に引かれるので、上流は登録しない（旧 `referral_reward` / `coupon_attribution_reward` は外した）。内訳を見たい画面は `aggregateReferralRewardCurrentVsPrev`（`referralAnalytics.ts`）・`aggregateCouponAttributionRewardCurrentVsPrev`（`couponAttributionAnalytics.ts`）を別に呼ぶ（合計には足さない）
-- **数える区分** = `src/features/core/analytics/config.ts` の `issuanceReasonCategories`（上流の既定は `["bonus"]`。何を創出と数えるかは分析の判断なので区分の表と分けて持つ、設定 D74）。fork のカテゴリも上書き `src/config/features/analytics.config.ts` の一覧に足す
-  - `other` は既定で数えない: 区分を書かずに書いた行（`DEFAULT_REASON_CATEGORY`）と reason_category の導入前の行（全部 `other` で埋まっている）が入り、ガチャ・調整・退会の残高クリアなどの引き落としで純額が負になり得るため
-  - 区分なしで書かれた付与も拾いたい fork は上書きの一覧に `"other"` を足せる（その場合、導入前の期間の値は信用しない）
-- **数える通貨** = `src/features/core/analytics/config.ts` の `coinIssuanceWalletTypes`（既定 `["regular_coin"]`）。仕組みはどの通貨にも使え、このまとめに数える通貨だけを config で選ぶ（単位の違う通貨を同じ合計に入れない）
-- **内訳（breakdown、表示だけ）**: `wallet_bonus_grant` は付与の種類（`reason_key`）ごとの行を `sources.wallet_bonus_grant.breakdown` に返す（`{ key, label, current, previous, changeRate }`、key null = 「未分類」、並び = 種類の sortOrder → 未分類は最後）。行の和 = そのソースの値。aggregator は合計（`totalIssuance` / `finalProfit`）に breakdown を使わない。画面は「販促・特典付与 = 合計」の下に行を並べる
-  - 自前のソースも `aggregate()` の戻り値に `breakdown?: CoinIssuanceBreakdownRow[]` を返せる（規約: 表示だけ・行の和はソースの値と一致させる・どの行にも入らない分は key null に寄せる）
-  - 過去の行は種類が無く「未分類」に入る。種類を埋める task は wallet README「付与の種類」
-- **付与は `reasonKey`（付与の種類。区分は種類から決まる）か `reasonCategory` を必ず書く**（`walletService.adjustBalance` 等）。書かないと `other` になり、既定ではこのまとめに入らない（wallet README「付与の種類」）
-
-2 つとも `enabled` で門番の入切を見る（`purchase_bonus_gap` = `gate.enabled("payment")`・`wallet_bonus_grant` = `gate.enabled("wallet")`）。閉じている間は走らず、応答の `sources` に出ない
-
-### ソース追加の手順 (downstream)
-
-1. `CoinIssuanceSource` を満たす値を作成する
-2. `services/server/coinIssuance/sources/<名前>.ts` に `export const source` を置き `pnpm generate extensions`（閉じられる機能を読むソースは `enabled` が必須）
-   - 一覧の順 = ファイル名の順で、応答の `sources` の順もこれ。順序のキーは無い。表示順を決めたい fork は画面側でキーの並びを持って並べる（数値は変わらない）
-3. (任意) `src/features/core/analytics/config.ts` の `coinIssuanceLabels` に表示名を足す
-
-### 実装テンプレート
+- `services/server/utils/analyticsCache.ts` が提供する透過ラッパー。「過去日のみで構成される確定済み範囲は長期TTL、当日を含む範囲は短TTL」を `ResolvedDateRange` から自動判定してインスタンス内メモリにキャッシュする
 
 ```typescript
-// 例: src/features/gacha/analytics/coinIssuance/gachaProfitSource.ts
-import { db } from "@/lib/drizzle";
-import { GachaPlayTable } from "@/features/gacha/entities/drizzle";
-import { and, between, sql } from "drizzle-orm";
-import { buildUserFilterConditions } from "@/features/core/analytics/services/server/utils/userFilter";
-import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance";
+import { withAnalyticsCache } from "./utils/analyticsCache";
 
-const t = GachaPlayTable;
-
-export const gachaProfitSource: CoinIssuanceSource = {
-  key: "gacha_profit",
-  kind: "revenue",
-
-  async aggregate({ range, prevRange, userFilter }) {
-    const isCurrent = sql`(${t.createdAt} >= ${range.dateFrom.toISOString()} AND ${t.createdAt} <= ${range.dateTo.toISOString()})`;
-    const isPrev = sql`(${t.createdAt} >= ${prevRange.dateFrom.toISOString()} AND ${t.createdAt} <= ${prevRange.dateTo.toISOString()})`;
-
-    // 当期+前期を CASE WHEN で 1 クエリ集計
-    const rows = await db
-      .select({
-        current: sql<number>`COALESCE(SUM(CASE WHEN ${isCurrent} THEN ${t.profit} ELSE 0 END), 0)`.as("current_profit"),
-        previous: sql<number>`COALESCE(SUM(CASE WHEN ${isPrev} THEN ${t.profit} ELSE 0 END), 0)`.as("prev_profit"),
-      })
-      .from(t)
-      .where(and(
-        between(t.createdAt, prevRange.dateFrom, range.dateTo),
-        ...buildUserFilterConditions(t.user_id, userFilter),
-      ));
-
-    return {
-      current: Number(rows[0]?.current ?? 0),
-      previous: Number(rows[0]?.previous ?? 0),
-    };
-  },
-};
-```
-
-```typescript
-// src/features/core/analytics/services/server/coinIssuance/sources/gachaProfit.ts
-import { gachaProfitSource } from "@/features/gacha/analytics/coinIssuance/gachaProfitSource";
-
-export const source = gachaProfitSource;
-```
-
-```typescript
-// (任意) src/features/core/analytics/config.ts の coinIssuanceLabels に足す
-  gacha_profit: "ガチャ収支",
-```
-
-### 実装上のベストプラクティス
-
-#### 1. 付与額のスナップショットカラムを推奨
-
-報酬・特典系の付与額は **ドメインテーブルに専用カラム** として持つことを強く推奨する。
-
-- **推奨**: 付与時に `promotion_reward_coin_amount: integer` 等のカラムへスナップショット書き込み → 集計は `SUM(promotion_reward_coin_amount)` で済む
-- **非推奨**: `wallet_history.reason LIKE '当選報告特典%'` のような文字列マッチ集計
-
-専用カラム方式のメリット:
-- reason 文字列の変更や handler 追加に強い (`promotion_reward_coin_amount` の意味は固定)
-- 集計 SQL が単純化される (LIKE / 正規表現を避けられる)
-- 監査ログとの整合が取りやすい
-
-専用カラムが追加できない事情がある場合のみ wallet_history からの集計を選ぶ。
-
-#### 2. 当期+前期を 1 クエリで集計
-
-各ソースは `Promise.all` で並列実行されるため個別ソース内のクエリ数は少ない方が良い。
-**当期と前期を別クエリにせず、`CASE WHEN` で 1 クエリにまとめる** (上記テンプレート参照)。
-これは既存 summary 系 (`purchaseAnalytics`, `referralAnalytics`) と同じパターン。
-
-#### 3. UserFilter は意味のある場合のみ適用
-
-`userFilter (roles / excludeDemo)` は対象テーブルの `user_id` カラムに対して
-`buildUserFilterConditions(column, userFilter)` で適用できる。
-ただし「発行先 user を絞り込むことが意味を持たないソース」は適用しない。分析の除外条件は第 3 引数の scope で足す（上の「分析の除外条件」）。
-
-#### 4. 戻り値は常に絶対値
-
-`CoinIssuanceSource.aggregate()` の戻り値 `{current, previous}` は **絶対値 (正の数)** とする。
-符号反転 (issuance を finalProfit から減算する処理) は aggregator の責務なので、
-ソース側で `-` を返さないこと。
-
-#### 5. key 命名
-
-`CoinIssuanceSource.key` は API レスポンスの `sources` Record のキーとしてそのまま使われる。
-upstream の key と衝突しない snake_case を選ぶ。
-`gacha_profit`, `winning_report_reward`, `winning_comment_reward` 等、ソースの意味が読み取れる命名にする。
-
-### 紹介報酬の金額抽出 SQL を差し替える（内訳の集計）
-
-`aggregateReferralRewardCurrentVsPrev` は `metadata ->> 'amount'` で金額を抽出する規約に従う。
-規約が異なる downstream は `rewardAmountExpr` を渡す。紹介報酬は `wallet_bonus_grant` に含まれるので、
-これをコイン創出の `sources` に足すと二重計上になる。内訳の画面（や合計に入れない表示）で使う。
-
-```typescript
-import { sql } from "drizzle-orm";
-import { ReferralRewardTable } from "@/features/core/referralReward/entities/drizzle";
-import { aggregateReferralRewardCurrentVsPrev } from "@/features/core/analytics/services/server/referralAnalytics";
-import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance";
-
-// 独自 metadata 構造 ({ rewardCoins: number } 等) を持つ downstream の内訳用(合計の sources には登録しない)
-export async function getReferralRewardBreakdown({ range, prevRange }: Parameters<CoinIssuanceSource["aggregate"]>[0]) {
-  return aggregateReferralRewardCurrentVsPrev({
-    range,
-    prevRange,
-    rewardAmountExpr: sql<number>`(${ReferralRewardTable.metadata} ->> 'rewardCoins')::numeric`,
-  });
+export async function getWalletSummary(params: DateRangeParams & WalletTypeFilter) {
+  const range = resolveDateRange(params);
+  return withAnalyticsCache(
+    // key = クエリ結果に影響する全パラメータ（range は自動合成される）
+    { key: ["walletHistory.summary", params.walletType ?? ""], range },
+    () => computeWalletSummary(range, params),
+  );
 }
 ```
 
-### Breaking Changes: コイン創出ソース key 変更履歴
+### 残高の系列（getWalletBalanceSeries）
 
-upstream で組み込みソースの `key` をリネームした際の移行履歴。ダウンストリームは pull 時に該当項目があれば対応すること。
+history 軸の残高推移の公開の入口（server）。`getWalletBalanceDaily`（API `/wallet-history/balance`）と同じ式で、複数の wallet type を合算できる。fork の画面の系列（特定の種別の組の残高推移など）は、この関数を自分の route から呼ぶ。
 
-#### `referral_reward` / `coupon_attribution_reward` → `wallet_bonus_grant`
+```ts
+import { getWalletBalanceSeries } from "@/features/core/analytics/services/server/walletHistoryAnalytics";
 
-応答の `sources` から `referral_reward` と `coupon_attribution_reward` が消え、`wallet_bonus_grant` が出る（2 つは `wallet_bonus_grant` の部分集合で、並べると二重計上だった）。ファイル `sources/referralReward.ts`・`sources/couponAttributionReward.ts` は消した。キーを読む画面は `wallet_bonus_grant` に移し、内訳が要るなら上の集計関数を別に呼ぶ（手順は notice 20261105-123320-coin-issuance-ledger-source）。
+const { history, walletTypes } = await getWalletBalanceSeries({
+  dateFrom: "2026-10-01",
+  dateTo: "2026-10-31",
+  walletTypes: ["prize_deposit", "prize_deposit_bonus"], // 省略・空 = 全種別 / 1 つ = その種別 / 複数 = 合算
+  // granularity, timezone, roles, excludeDemo, userId, includeExcluded も受ける（DateRangeParams・UserFilter と同じ）
+});
+// history: [{ date, closingBalance }, ...]（バケットごとの終了時点の残高。データの無いバケットは前の値を引き継ぐ）
+```
 
-#### `coupon_bonus_gap` → `purchase_bonus_gap`
+- 合算: per-(user, type) の最新 `balance_after` のアンカー差分を合計する（種別ごとの系列の和と一致）。単位の違う種別を合算する意味は呼び手が持つ
+- 除外: `userId` 指定なしは stock の scope（除外の受け口の stock で、除外した人を丸ごと落とす）、`userId` 指定ありは付けない。`includeExcluded: true` で外す（`services/server/exclusion/README.md`）
+- 活動（`activeUsers` / `recordCount`）は集計しない（クエリ 1 本）。要るなら `getWalletBalanceDaily`（walletType 1 つ、活動付き）
 
-| 項目 | 旧 | 新 |
-|---|---|---|
-| ソース key (API レスポンス `sources` のキー) | `coupon_bonus_gap` | `purchase_bonus_gap` |
-| TS シンボル | `couponBonusGapSource` | `purchaseBonusGapSource` |
-| ファイル名 | `sources/couponBonusGap.ts` | `sources/purchaseBonusGap.ts` |
-| 表示ラベル (labels.ts) | 「クーポン・ボーナス発行」 | 「購入時ボーナス発行」 |
-
-**変更理由**: 集計式は `purchase_requests.SUM(amount - payment_amount) WHERE status='completed'` のままで、クーポン割引だけでなくユーザーランクボーナス・決済方法ボーナス・購入パッケージのボーナス等「コイン購入時にサービス側が負担した上乗せ全般」を集計している。旧名称は実態より狭く誤解を招くため、購入と無関係なコインボーナス (紹介リワード・当選報告特典等) との区別を明確にするためリネームした。
-
-**ダウンストリーム移行手順**:
-
-1. (当時の登録表の) import 文を `purchaseBonusGap` 系シンボルに置換 (上記表参照)。
-2. 管理画面ダッシュボード等で `sources["coupon_bonus_gap"]` をハードコード参照している箇所を `sources["purchase_bonus_gap"]` に置換。
-   - grep 推奨: `grep -rn "coupon_bonus_gap\|couponBonusGap" src/`
-3. ダウンストリーム独自に(当時の登録関数で) `coupon_bonus_gap` のラベルを上書きしていた場合は新 key に変更。
-4. 「コインボーナス」というラベル文字列を独自に表示していた場合は `getCoinIssuanceLabel("purchase_bonus_gap")` で取得する形に統一を推奨 (upstream で「購入時ボーナス発行」が登録済み)。
-
-**互換 alias 出力なし**: API レスポンスは新 key (`purchase_bonus_gap`) のみを返す。旧 key (`coupon_bonus_gap`) は出力されないため、本変更を pull したリリースで即時にダウンストリームを更新する必要がある。
-
-## エンティティの追加
+### エンティティの追加
 
 アップストリームが持つのは `user_daily_activities`（DAU）と `analytics_daily_rollups`（日次ロールアップ）のみ。
-日次の事前集計が必要なら独自テーブルより先に**ロールアップフレームワークへのメトリクス登録を検討する**こと（上記セクション参照）。
+日次の事前集計は、独自テーブルより先にロールアップ(`rollupMetrics/README.md`)で足りるかを見る（CLAUDE.md FEATURES analytics_perf）。
 それ以外の集計キャッシュ、スナップショット、ダッシュボード設定等が必要になった場合、`entities/` にテーブル定義を追加する。
 
-### 基底型
-
-`types/entities.ts` に以下の基底型を提供済み:
-- `AnalyticsCacheBase`: 集計キャッシュテーブル用
-- `AnalyticsSnapshotBase`: スナップショットテーブル用
-- `DashboardConfigBase`: ダッシュボード設定テーブル用
-
-### キャッシュテーブルの追加例
+- 基底型(`types/entities.ts`): `AnalyticsCacheBase`（集計キャッシュテーブル用）/ `AnalyticsSnapshotBase`（スナップショットテーブル用）/ `DashboardConfigBase`（ダッシュボード設定テーブル用）
+- 命名: テーブル名は `analytics_` プレフィクス（例: `analytics_cache`, `analytics_snapshots`）、metric_key / snapshot_key は snake_case（例: `daily_wallet_summary`）
 
 ```typescript
 // entities/drizzle.ts
@@ -710,107 +241,60 @@ export const AnalyticsCacheTable = pgTable(
 );
 ```
 
-### 命名規約
-- テーブル名: `analytics_` プレフィクス（例: `analytics_cache`, `analytics_snapshots`）
-- metric_key / snapshot_key: snake_case（例: `daily_wallet_summary`, `wallet_balance_distribution`）
+## API
 
-## DAU（アクティブユーザー）系 API
+- 共通クエリパラメータ・referral summary・DAU 系・ランキング(ウォレット vs 購入)・ウォレット系(history 軸 vs state 軸)の仕様は同じフォルダの `API.md`
 
-`user_daily_activities`（1 ユーザー × 1 日 = 1 行、ON CONFLICT DO NOTHING で冪等 ingest）を一次データとする、訪問・アクティブ系の read 群。
-「DAU / WAU / MAU」「ユーザーごとの訪問日数」「最もアクティブなユーザー」の問いは全てここで解く（userCounter のキーで再実装しない — userCounter README の決定ガイド参照）。
+## Extension
 
-| 関数（dauAnalytics） | エンドポイント | 返すもの |
-|---|---|---|
-| `getDauDaily` | GET /api/admin/analytics/dau/daily | バケット別アクティブユーザー数（day=DAU / week=WAU / month=MAU） |
-| `getDauSummary` | GET /api/admin/analytics/dau/summary | 期間サマリー（avg/max/min、前期比） |
-| `getDauRanking` | GET /api/admin/analytics/dau/ranking | ユーザー別アクティブ日数ランキング |
-| `getDauActiveDaysHistogram` | GET /api/admin/analytics/dau/active-days-histogram | アクティブ日数ヒストグラム（activeDays → userCount 分布） |
+- 受け口(`extensionPoints.ts`、`pnpm generate extensions`): `rollupMetrics`（日次ロールアップのメトリクス、`rollupMetrics/README.md`）/ `coinIssuanceSources`（コイン創出のソース、`services/server/coinIssuance/README.md`）/ `exclusionProviders`（分析の除外条件、`services/server/exclusion/README.md`）
+- 設定の上書き `src/config/features/analytics.config.ts`: `coinIssuanceWalletTypes` / `coinIssuanceLabels` / `issuanceReasonCategories`（意味は `services/server/coinIssuance/README.md`）
 
-### ランキング（getDauRanking）
+## Internals
 
-- パラメータ: 日付範囲共通パラメータ + `limit`（既定 50、最大 200）/ `page`（1 始まり） + ユーザーフィルタ（roles / excludeDemo） + 最終アクティブ日フィルタ（`lastActiveDateFrom` / `lastActiveDateTo`、YYYY-MM-DD・TZ ローカル日付キー、任意）
-- レスポンス: `RankingResponse`（`items: [{ rank, userId, displayName, activeDays, lastActiveDate }]` + `total`）
-- 並び順: activeDays DESC → lastActiveDate DESC → userId ASC（ページングが安定するよう決定的）
-- `(user_id, activity_date)` ユニークのため `COUNT(*)` = 期間内アクティブ日数。`activity_date` index のレンジスキャン + GROUP BY で解決
-- 最終アクティブ日フィルタ: 期間内の `MAX(activity_date)` に対する HAVING 絞り込み。`total` も同じ条件のサブクエリで数えるためページネーションは常に整合。集計後の条件のためサーバー側でのみ解決できる（下流でのページ全走査・クエリ複製は不要）
-  - チャーンリスク抽出（「期間中は高アクティブだが直近 N 日訪問なし」）: `lastActiveDateTo = 今日 − N 日` を渡す。カットオフ日数（3/7/14 等）の決定は下流ポリシー
-  - 復帰・リテンション分析（「X 日以降に戻ってきたユーザー」）: `lastActiveDateFrom = X`
+### DB 側集計
 
-### アクティブ日数ヒストグラム（getDauActiveDaysHistogram）
+- 組み込みサービスは全て SQL 集計方式。「全行フェッチ → JS集計」は大量レコード（数万〜数十万行）でメモリ・速度の問題が出る
+- 日別集計: `GROUP BY DATE(column AT TIME ZONE $tz)` + `SUM()`, `COUNT(DISTINCT)`, `COUNT(*)`
+- 期間サマリー: `SUM()`, `COUNT()`, `MAX()`, `PERCENTILE_CONT(0.5)` 等
+- ランキング: `GROUP BY user_id` + `ORDER BY metric DESC` + `LIMIT/OFFSET`
+- 内訳: 別クエリで `GROUP BY date, category` → Mapに変換
+- `aggregation.ts` のJS集計関数（`groupByDate`, `countUnique`, `groupBy`, `sum`, `median`）は `@deprecated`。`changeRate` のみ引き続き利用可能
 
-- パラメータ: 日付範囲共通パラメータ + ユーザーフィルタ（roles / excludeDemo）。ページネーション不要（行数は期間日数で有界）
-- レスポンス: `{ dateFrom, dateTo, totalUsers, histogram: [{ activeDays, users }] }`（users > 0 の行のみ、activeDays ASC。`totalUsers` = 期間内に 1 日以上アクティブだった DISTINCT ユーザー数 = users 合計）
-- SQL 形: ユーザーごとのアクティブ日数を集計するサブクエリ → その日数で再 GROUP BY（全て DB 側で解決）
-- バケット化（「皆勤 / 80%+ / 50-79% …」等の割合しきい値・ラベル）はプロダクトポリシーのため**下流の責務**。下流はこのヒストグラムをクライアント側で任意の帯にマッピングする（境界変更のたびに upstream 変更が不要になる切り分け）
+### レスポンスキャッシュの挙動
 
-### ユーザー単位ドリルダウン（userId パラメータ）
+- **確定済み判定**: `range.dateTo` が `range.timezone` 上の「今日」より前なら確定済み（TTL 既定 12時間）。当日を含むなら短TTL（既定 60秒）。TTL は `ttlClosedMs` / `ttlLiveMs` オプション、既定値は `constants/index.ts` で調整可
+- **immutable ではない**: バックフィル・ロールアップ再計算・集計除外の遡及適用で過去バケットも書き換わり得るため、確定済みでも有限TTL。値を書き換えた直後は `invalidateAnalyticsCache(keyPrefix?)` を呼ぶ（同一インスタンスのみ即時。他インスタンスはTTL満了で追随）
+- **in-flight 共有**: 同一キーの同時リクエストは計算を1回に集約する（ダッシュボードの並列取得対策）
+- **例外はキャッシュしない**: fn が reject した場合エントリは破棄される
+- **スコープ**: インスタンス内メモリLRU（最大 `ANALYTICS_CACHE_MAX_ENTRIES` 件）。サーバーレス多インスタンス間では共有されない（許容仕様）
+- **無効化エスケープハッチ**: 環境変数 `ANALYTICS_CACHE=disabled` で全キャッシュ素通し（デバッグ用）
+- **組み込みサービスには未適用**: 鮮度特性の変更を暗黙に持ち込まないため、上流の組み込み API はラップしていない。負荷の高いエンドポイント（複合ダッシュボード等）から呼び手が順に包む
 
-daily / summary は `userId` で単一ユーザーに絞り込める（他ドメインの分析 API と同じ共通パラメータ）:
+### タイムゾーン
 
-- `dau/summary?userId=X` → `totalActiveRecords` = そのユーザーの期間内アクティブ日数
-- `dau/daily?userId=X`（day 粒度） → 0/1 の系列（アクティビティカレンダー・ヒートマップ用途）
+- デフォルト: `Asia/Tokyo`（`constants/index.ts` の `DEFAULT_TIMEZONE`）
+- 日付境界の計算（startOfDay/endOfDay）がタイムゾーンを考慮
+- SQL: `DATE(column AT TIME ZONE $tz)` でタイムゾーン対応の日付抽出
+- JS: `Intl.DateTimeFormat` ベース（外部ライブラリ不要）
 
-### クライアント / フック
+### ユーザーフィルター
 
-- 記録（ingest）: `hooks/useDauTracker.ts`（1 日 1 回 `POST /api/activity/dau`）
-- 読み取り: `services/client/dauAnalyticsClient.ts`（fetchDauDaily / fetchDauSummary / fetchDauRanking / fetchDauActiveDaysHistogram）+ `hooks/useDauDaily.ts` / `useDauSummary.ts` / `useDauRanking.ts` / `useDauActiveDaysHistogram.ts`（SWR）。管理画面のダッシュボード・「アクティブユーザー」タブ等はこれらをそのまま利用する（画面 UI は下流の責務）
+roles パラメータ（ホワイトリスト方式）:
+- 未指定: 全ロールを含む（フィルタなし）
+- `roles=_user`: 一般ユーザーのみ
+- `roles=_user,contributor`: 複数ロール指定
 
-## ランキングAPI: ウォレット vs 購入
+excludeDemo パラメータ:
+- 未指定 or false: デモユーザーを含む
+- `excludeDemo=true`: is_demo=true のユーザーを除外
 
-2つのランキングAPIは異なるデータソースを参照し、異なるユースケースに対応する。
+実装: サブクエリ方式（JOIN不使用）。walletHistoryにはUserTableへのFKがないため、
+`user_id IN/NOT IN (SELECT id FROM users WHERE ...)` パターンで条件を構築。
 
-| 観点 | wallet/ranking | purchase/ranking |
-|---|---|---|
-| データソース | wallet_histories | purchase_requests (status='completed') |
-| 日付カラム | createdAt | completed_at |
-| ソートパラメータ | `sortBy` | `sortBy` |
-| sortBy 候補 | totalPurchase, totalConsumption, purchaseCount, netChange | totalCoinAmount, totalPaymentAmount, purchaseCount, avgPaymentAmount |
-| レスポンス | 全指標を常に返す（sortBy はソート順のみ変更） | 全指標を常に返す（sortBy はソート順のみ変更） |
-| ユーザー情報 | userId + displayName（users LEFT JOIN） | userId + displayName（users LEFT JOIN） |
-| 追加フィルタ | — | paymentProvider |
-| デフォルト件数 | 50（最大200） | 20（最大100） |
+## Related
 
-### 使い分け
-
-- **サービス内通貨あり**: どちらも利用可能。コイン/ポイント増減の分析には wallet/ranking、決済金額の分析には purchase/ranking
-- **直接決済のみ（ECサイト等）**: wallet_histories に購入レコードが存在しないため purchase/ranking のみ使用可能
-
-## ウォレット系API: history 軸 vs state 軸
-
-ウォレット分析は2つの軸で構成される。データソースが別なので両方共存する。
-
-| 観点 | history 軸（wallet_histories） | state 軸（wallets） |
-|---|---|---|
-| データソース | 増減台帳の累積 | 現時点の保有スナップショット |
-| 期間概念 | 日付範囲必須（dateFrom/dateTo/days） | スナップショットなので期間なし |
-| walletType | optional（クロス集計可、単位は意味依存） | **必須**（型ごとに残高単位が異なる） |
-| 提供 API | `/wallet-history/{daily,summary,balance}`, `/wallet/ranking` | `/wallet/state/{summary,ranking,distribution}` |
-| 主なユースケース | 期間内の流入・流出、KPI推移 | 現在の流通量・保有者分布、リワード設計 |
-
-### 残高の系列（getWalletBalanceSeries）
-
-history 軸の残高推移の公開の入口（server）。`getWalletBalanceDaily`（API `/wallet-history/balance`）と同じ式で、複数の wallet type を合算できる。fork の画面の系列（特定の種別の組の残高推移など）は、この関数を自分の route から呼ぶ（残高の SQL を写さない）。
-
-```ts
-import { getWalletBalanceSeries } from "@/features/core/analytics/services/server/walletHistoryAnalytics";
-
-const { history, walletTypes } = await getWalletBalanceSeries({
-  dateFrom: "2026-10-01",
-  dateTo: "2026-10-31",
-  walletTypes: ["prize_deposit", "prize_deposit_bonus"], // 省略・空 = 全種別 / 1 つ = その種別 / 複数 = 合算
-  // granularity, timezone, roles, excludeDemo, userId, includeExcluded も受ける（DateRangeParams・UserFilter と同じ）
-});
-// history: [{ date, closingBalance }, ...]（バケットごとの終了時点の残高。データの無いバケットは前の値を引き継ぐ）
-```
-
-- 合算: per-(user, type) の最新 `balance_after` のアンカー差分を合計する（種別ごとの系列の和と一致）。単位の違う種別を合算する意味は呼び手が持つ
-- 除外: `userId` 指定なしは stock の scope（除外の受け口の stock で、除外した人を丸ごと落とす）、`userId` 指定ありは付けない。`includeExcluded: true` で外す（上の「分析の除外条件」）
-- 活動（`activeUsers` / `recordCount`）は集計しない（クエリ 1 本）。要るなら `getWalletBalanceDaily`（walletType 1 つ、活動付き）
-
-### state 軸の追加要件・補足
-
-- **walletType は必須クエリパラメータ**: 残高（balance）の単位は通貨によって意味が変わる（例: コイン枚数とポイント数は加算しても意味がない）。state 系では `walletType` 未指定はリクエストエラー。
-- **保有者の定義**: `balance > 0` のユーザー。`locked_balance` は参考値として `totalLockedBalance` で別途返却する。
-- **distribution の boundaries**: `purchase/distribution` と完全に同じ仕様。CSV、昇順、正整数、最大20個。境界外（balance < 先頭境界）は bucket=0 に集約。さらに完全な 0 残高ウォレットは別途 `zeroBalanceCount` として返す。
-- **クライアント / フック**: `services/client/walletStateAnalyticsClient.ts` および `hooks/useWalletState{Summary,Ranking,Distribution}.ts` を提供済み。下流ではこれらをそのまま再利用する想定。
-- **既定バケット値の扱い**: アップストリームでは保持しない。事業ごとに妥当なバケット値が異なるため、ダウンストリーム側の管理画面コンポーネント等で `boundaries` を組み立ててクライアント関数に渡すこと。
+- `rollupMetrics/README.md`: 日次ロールアップ（事前集計）フレームワークとメトリクスの受け口
+- `services/server/coinIssuance/README.md`: コイン創出サマリーとソースの受け口
+- `services/server/exclusion/README.md`: 分析の除外条件（exclusionProviders）
+- `services/server/messagingAnalytics/README.md`: 連絡（messaging）の集計
