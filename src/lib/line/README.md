@@ -1,10 +1,10 @@
 # LINE連携ライブラリ
 
-既存アカウントに LINE userId を紐付け、Push通知・Bot応答・LIFF などの LINE 機能をサービスに統合するための基盤ライブラリ。
+## Overview
 
-**重要**: LINE を認証プロバイダーとして使うのではなく、Firebase Auth の既存認証はそのまま維持し、ユーザーの `line_user_id` カラムに LINE userId を保存するだけの ID連携方式。
-
-## アーキテクチャ概要
+- 既存アカウントに LINE userId を紐付け、Push通知・Bot応答・LIFF などの LINE 機能をサービスに統合するための基盤ライブラリ
+- LINE を認証プロバイダーとして使うのではなく、Firebase Auth の既存認証はそのまま維持し、LINE userId を `user_line_profiles` に保存する ID 連携方式
+- 使う時・直す時の決まりは札 .claude/rules/items/lib/line.md にある。この README は使い方と仕組み
 
 ```
 ユーザー（ログイン済み）
@@ -14,13 +14,13 @@ GET /api/auth/line/login?redirect_after=/mypage
 LINE 認証画面（プロフィール許可 + 友だち追加）
   ↓ ユーザーが許可
 GET /api/auth/line/callback?code=xxx&state=yyy
-  ↓ nonce検証(CSRF) → code→token交換 → id_token署名検証(LINE Verify API) → users.line_user_id に保存
+  ↓ nonce検証(CSRF) → code→token交換 → id_token署名検証(LINE Verify API) → user_line_profiles に保存
 リダイレクト → /mypage?line_linked=true
 ```
 
-## セットアップ
+## Usage
 
-### 1. LINE Developers Console
+### LINE Developers Console
 
 1. [LINE Developers](https://developers.line.biz/) でプロバイダーを作成
 2. 同一プロバイダー配下に以下の2チャネルを作成:
@@ -30,7 +30,7 @@ GET /api/auth/line/callback?code=xxx&state=yyy
 4. LINE Login チャネルの「コールバックURL」に `https://<your-domain>/api/auth/line/callback` を登録
 5. Messaging API チャネルの「Webhook URL」に `https://<your-domain>/api/webhook/line` を登録
 
-### 2. 環境変数
+### 環境変数
 
 ```env
 # LINE Login チャネル（OAuth + LIFF）
@@ -45,7 +45,7 @@ LINE_MESSAGING_CHANNEL_SECRET=your_channel_secret
 LIFF_ID=your_liff_id
 ```
 
-### 3. DBマイグレーション
+### DBマイグレーション
 
 `user_line_profiles` テーブルが新規追加されている（`users` テーブルとは 1:1 リレーション）。
 `pnpm db:push` でスキーマを反映する。
@@ -60,9 +60,7 @@ user_line_profiles
 └── updated_at
 ```
 
-プロフィール画像は保存しない(URL も画像も持たない。外部ログインの画像はどの provider でも保存しない)。
-
-## ダウンストリームでの実装
+プロフィール画像は持たない(URL も画像も)。
 
 ### LINE連携ボタン
 
@@ -130,12 +128,12 @@ if (lineProfile) {
 }
 ```
 
-#### 失敗の型と再試行の鍵（X-Line-Retry-Key）
+### 失敗の型と再試行の鍵（X-Line-Retry-Key）
 
 - 送信の失敗は `LineApiError`（`status`: HTTP の状態、応答なしは `null` / `retryable`: 429・5xx・応答なし = `true`、他の 4xx = `false` / `body`: LINE の誤りの本文）。`message` は前と同じ文（`LINE Messaging API エラー: <status> <body>`）。push・reply・multicast・broadcast とも同じ
 - `pushMessage(to, messages, { retryKey })` で `X-Line-Retry-Key` を付ける。鍵は UUID の形が要るので `lineRetryKey(呼び手の鍵)` で作る（固定の名前空間の UUID v5。同じ鍵 → 同じ UUID）。呼び手の鍵は送り直しの間で変わらない値（例: 配達の id）
 - 鍵を付けた push の 409（同じ鍵の要求を LINE が受付済み）は成功として、その応答の本文（`sentMessages`）を返す。鍵の無い 409 は `LineApiError`
-- LINE が鍵を覚えるのは **24 時間**。送り直しはその内に行う（過ぎると同じ鍵でも新しい送信になる）。鍵があれば応答なしの失敗も送り直して二重にならない
+- LINE が鍵を覚えるのは 24 時間（過ぎると同じ鍵でも新しい送信になる）。鍵があれば応答なしの失敗も送り直して二重にならない
 
 ```ts
 import { lineRetryKey, LineApiError, pushMessage, textMessage } from "@/lib/line";
@@ -169,7 +167,7 @@ await broadcast([textMessage("キャンペーン開催中！")]);
 
 ### Webhook イベント処理
 
-イベントごとの処理は `src/features/core/userLineProfile/webhookHandlers/<名前>.ts` に置き、`pnpm generate extensions` する(上流の項目は 0)。route は署名検証・振り分け・応答だけを持ち、編集しない。同じ `eventType` の項目は一覧の順に全部呼ばれ、1 つ失敗してもログに残して続行する(LINE へは 200)。
+イベントごとの処理は `src/features/core/userLineProfile/webhookHandlers/<名前>.ts` に置き、`pnpm generate extensions` する(上流の項目は 0)。route は署名検証・振り分け・応答だけを持つ。同じ `eventType` の項目は一覧の順に全部呼ばれ、1 つ失敗してもログに残して続行する(LINE へは 200)。
 
 ```ts
 // src/features/core/userLineProfile/webhookHandlers/follow.ts
@@ -225,9 +223,11 @@ const flexMsg: LineFlexMessage = {
 await pushMessage(user.lineUserId, [flexMsg]);
 ```
 
-## API仕様
+## API
 
-### GET /api/auth/line/login
+### ルート
+
+#### GET /api/auth/line/login
 
 LINE Login OAuth フローを開始する。
 
@@ -236,15 +236,15 @@ LINE Login OAuth フローを開始する。
 | `redirect_after` | Yes | 連携完了後のリダイレクト先パス |
 | `bot_prompt` | No | 友だち追加モード（`aggressive` / `normal` / `none`、デフォルト: `aggressive`） |
 
-### GET /api/auth/line/callback
+#### GET /api/auth/line/callback
 
 LINE からのOAuthコールバック（直接呼び出さない）。
 
-### POST /api/webhook/line
+#### POST /api/webhook/line
 
 LINE Platform からの Webhook 受信。`x-line-signature` ヘッダーで HMAC-SHA256 署名検証を行う。
 
-## userLineProfileService メソッド
+### userLineProfileService
 
 `@/features/core/userLineProfile/services/server/userLineProfileService` からインポート。
 
@@ -255,7 +255,7 @@ LINE Platform からの Webhook 受信。`x-line-signature` ヘッダーで HMAC
 | `findByLineUserId(lineUserId)` | LINE userId から連携プロフィール検索 |
 | `findByUserId(userId)` | ユーザーIDから連携プロフィール検索 |
 
-## ライブラリ公開API
+### ライブラリ公開API
 
 ```ts
 import {
@@ -290,7 +290,7 @@ import {
 ### OAuth の state と nonce cookie（issueOAuthState / verifyOAuthState）
 
 LINE Login の行き（認可 URL へのリダイレクト）と帰り（callback）の CSRF 対策。上流の `/api/auth/line/login`・`/callback` もこれを使う。
-fork が自分の LINE ログイン（新規登録・ログインの流れ）を足すときも、nonce・state を写さずにこの 2 つを呼ぶ。
+fork が自分の LINE ログイン（新規登録・ログインの流れ）を足すときも使える。
 
 ```ts
 import { buildAuthorizationUrl, issueOAuthState, verifyOAuthState } from "@/lib/line";
@@ -309,19 +309,20 @@ if (!verified.ok) { /* invalid_state で "/" へ。cookie は消す */ }
 - state = base64url の JSON `{ nonce, redirectAfter }`、nonce = ランダム 16 byte の hex
 - cookie: `httpOnly`・`sameSite: lax`・`path: /`・10 分（`LINE_OAUTH_STATE_MAX_AGE_SECONDS`）・`secure` は段階が development 以外のとき（`!isDevelopment()`、`@/lib/appEnv`）
 - `cookieName` の既定は `LINE_OAUTH_NONCE_COOKIE`（上流の連携の流れ）。別の流れ（ログインなど）は別の名前にすれば同時に進んでも互いの nonce を上書きしない
-- 照合の後（成功・失敗とも）、呼び手が `response.cookies.delete(cookieName)` で cookie を消す
+- 照合の後（成功・失敗とも）の cookie の削除は呼び手の `response.cookies.delete(cookieName)`
 - 利用者を引く・作る・セッションを出すのは auth README「新しい認証手段」（createFromProvider → establishSession）
-- テスト: `pnpm test src/lib/line/oauthState.test.ts`
 
-## セキュリティ
+## Internals
 
 - **id_token 署名検証**: LINE の Verify API（POST /oauth2/v2.1/verify）でサーバーサイド検証。自前デコードではなく LINE サーバーが署名・aud・iss・exp を検証する
 - **CSRF 対策**: OAuth フロー開始時に nonce を httpOnly cookie に保存し、callback で state 内の nonce と照合（`issueOAuthState` / `verifyOAuthState`）。不一致時は `invalid_state` エラーでリダイレクト
 - **Webhook 署名検証**: HMAC-SHA256 で x-line-signature ヘッダーを検証
 
-## 注意事項
-
 - LINE Login チャネルと Messaging API チャネルは**同一プロバイダー配下**でリンクが必要（`bot_prompt` 機能の前提条件）
 - `line_user_id` は Messaging API の Push 送信に必要。友だち追加だけではサービスのアカウントと紐付かない
 - Push メッセージは月間の無料枠あり（プランにより異なる）。大量送信時は LINE の料金プランを確認
 - LIFF（LINE内ブラウザ）を使う場合は、LINE Login チャネルの LIFF タブでアプリを追加登録する
+
+## Verification
+
+- `pnpm test src/lib/line`(OAuth・state と nonce・Messaging・Webhook)
