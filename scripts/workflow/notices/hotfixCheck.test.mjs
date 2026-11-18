@@ -143,7 +143,7 @@ test("relative refs (HEAD, HEAD~1) are resolved in the calling repo, not inside 
   }
 });
 
-test("fleet.conf: a fork's picked: is laid on its merge-base first, forks with the same base + picks are checked once", () => {
+test("repos file: a fork's picked: is laid on its merge-base first, forks with the same base + picks are checked once", () => {
   const up = miniRepo("hotfix-up-");
   const forks = [];
   const tmp = mkdtempSync(join(tmpdir(), "hotfix-conf-"));
@@ -173,16 +173,16 @@ test("fleet.conf: a fork's picked: is laid on its merge-base first, forks with t
       forks.push(dir);
       return `${name} ${dir}`;
     };
-    const conf = join(tmp, "fleet.conf");
+    const conf = join(tmp, "repos.txt");
     writeFileSync(conf, ["# test", fork("fa", true), fork("fb", true), fork("fc", false)].join("\n") + "\n");
     const out = [];
-    const code = run(up.dir, [hot, `--fleet-conf=${conf}`], (l) => out.push(l));
+    const code = run(up.dir, [hot, `--repos-file=${conf}`], (l) => out.push(l));
     const text = out.join("\n");
     assert.match(text, /fa, fb\([0-9a-f]{8} \+picked 1\): 依存なし/);
     assert.match(text, /fc\([0-9a-f]{8}\): cherry-pick が衝突する/);
     assert.equal(code, 1);
     const out2 = [];
-    run(up.dir, [picked, `--fleet-conf=${conf}`], (l) => out2.push(l));
+    run(up.dir, [picked, `--repos-file=${conf}`], (l) => out2.push(l));
     assert.match(out2.join("\n"), /fa, fb\([0-9a-f]{8} \+picked 1\): この commit は先に取り済み/);
   } finally {
     rmSync(up.dir, { recursive: true, force: true });

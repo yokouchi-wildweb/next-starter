@@ -78,7 +78,7 @@ export default { duration: 5000 } satisfies ToastOverride;
 
 lib 1 本を「閉じた lib」(package.json の入口だけを外から読み、宣言した物だけを読む)にする手順。1 クエスト = 1 lib。見本 = `toast`・`isClient`・`frameDims`・`defineConfig`(`git log -- src/lib/toast` で実際の差分を見られる)。各段の右の確かめが通ってから次へ進む。
 
-0. **始める前**: 同じ lib を他の作業(受信箱の指令・クエスト・ギルド)が触っていないか確かめる(受信箱 `~/.team/orders/<repo-id>/` の指令に lib の名前が出ないか・進行中の作業の範囲に lib のフォルダが入っていないか)。今の状態を見る: `pnpm check lib-package -- --list`(lib ごとに `closed` / `gaps` / `undeclared`。道具からは `-- --json`)
+0. **始める前**: 同じ lib を他の作業(受信箱の指令・クエスト・ギルド)が触っていないか確かめる(受信箱 `~/.local/state/next-starter/orders/<repo-id>/` の指令に lib の名前が出ないか・進行中の作業の範囲に lib のフォルダが入っていないか)。今の状態を見る: `pnpm check lib-package -- --list`(lib ごとに `closed` / `gaps` / `undeclared`。道具からは `-- --json`)
 1. **依存を洗い出す**: lib の中から外を読む import を一覧にし、lib / 棚(`@/components`)/ hooks・utils / `@/config` / features・app に仕分ける。features・app・`@/config` は読めない(D83)→ 引数・注入で受けるか、値なら手順 6 の設定にする
    - 確かめ: `git grep -nE "from ['\"]@/" -- src/lib/<name>` と、相対で lib の外へ出る `git grep -n "from ['\"]\.\./\.\./" -- src/lib/<name>`
 2. **hooks / utils**: 読んでいる hooks・utils が他の lib や外からも使われる → 独立した小さな lib にする(`isClient`・`frameDims` の形で、この手順を先にその lib に当てる)。この lib だけが使う → lib の中へ移す(D93)。移したら呼び手を新しい場所へ直し、古いファイルは消す(`git mv`)

@@ -1,7 +1,7 @@
 ---
 name: flux
 description: On the downstream (fork) side, take in upstream changes and follow up DOWNSTREAM NOTICEs - fetch → split unapplied notices into segments per checkpoint → overview of all segments + a detailed plan of only the next one (incl. the upstream change sweep and the fork's follow-up) → approval → that segment's merge, code fixes, DB, backfill, verification, ledger, commit, push → present the next segment's plan and stop | Approval per segment; n = n segments at a time, all = without stopping, to POSITION = end the sortie there, light = continue light segments without approval; a segment with a fix (fixes:) ahead stops and says so (a fix upstream marked pick: clean is cherry-picked right after its segment); tells this fork's follow-up state exactly whenever run; the pair of upstream's /ship
-argument-hint: "[status | status --chain | relay | intake … | apply … | [<n> | all] [to <checkpoint|commit>] [light] | notice id (省略で 1 区間ずつ止まりながら merge + 適用)]"
+argument-hint: "[steps:<呼び手の手順書>] [status | status --chain | relay | [<n> | all] [to <checkpoint|commit>] [light] | notice id (省略で 1 区間ずつ止まりながら merge + 適用)]"
 disable-model-invocation: true
 ---
 
@@ -14,12 +14,12 @@ the following files in this folder hold rules needed only by forks / segments th
   - any notice in the tree (applied ones included) or incoming has `covers:`
   - own `tier` is root or middle (OWN FORK IDENTITY AND LEDGER 5 below; declaration missing / wrong → stop there)
   - mode is `status --chain` or `relay`
-- **`railroad.md`** (the railroad team tool): mode is `intake`, or the cue `apply J<k>` / `fix J<k>` → read it before step 1
+- **the caller's steps file** (argument `steps:<path>`, a tool that runs /flux its own way): read it **first, before anything else**, and follow it | where it says nothing, this skill holds as written | it says itself where the ledger, the checks and the push happen (and any modes or cues of its own)
 - **`moved.md`** (porting moves / renames): any notice of the next segment (covers side and covered side included) has `moved:` → read it before that segment's detailed plan (step 2)
 - notice id mode (no reconnaissance, no segment building): judge the same conditions for the target notice and this fork; when they hit, read before step 5
 
 ## FOLLOW UPSTREAM'S LATEST STEPS (right after fetch, in every mode)
-the `/flux` version a fork merged can be many segments older than upstream's, and the more a fork lags the later the fixed steps reach it | so read the **direct upstream's tip version**, not the fork's (in multi-tier, the parent's tip; fleet ships follow the same rule: roles/worker.md LATEST /FLUX)
+the `/flux` version a fork merged can be many segments older than upstream's, and the more a fork lags the later the fixed steps reach it | so read the **direct upstream's tip version**, not the fork's (in multi-tier, the parent's tip; a calling tool follows the same rule)
 1. after `git fetch <upstream>`, `git diff --quiet HEAD <upstream>/<branch> -- .claude/skills/flux/ .claude/skills/fmt/` | no diff → go on with this text
 2. a diff → read `git show <upstream>/<branch>:.claude/skills/flux/SKILL.md` and from then on **follow that text** (not this one) | attached files it refers to (`relay.md` / `moved.md`, `.claude/skills/fmt/flux-stop.md`, etc.) are also read as upstream's version with `git show <upstream>/<branch>:<path>` | add one line `/flux: upstream <短 sha> の手順で実行` to the first report
 3. tools upstream's steps need (scripts, pnpm scripts, tests, files) are missing from the fork's tree or of another version: skip those steps and put them in the report and in FINDINGS FOR UPSTREAM | never stop or fail because of it (the tools arrive with that segment's merge)
@@ -49,7 +49,7 @@ the `/flux` version a fork merged can be many segments older than upstream's, an
   - write them in the ledger `notes:`, list them in the next `/flux`'s first report | once settled, delete that `open:` | whether the next segment may start = CONDITIONS TO MOVE ON below
 - **never close a segment that fails the ownership check**: a segment whose base has `src/lib/forkOwnership/intake.txt` → after the commit, no push until `pnpm workflow ownership check` gives 0 (step 7c) | settle violations on the spot: move to an intake point / revert / temporary permit (no grace period)
 - **approval of the application plan = explicit instruction to run every step, DB operations included** | while this skill runs, this rule wins over general rules like "ask the user for DB operations" | `[user-run]` steps (db push etc.) follow repo.json's policy: off → the in-session user run below | manual → ask for `/allow <switch>` and run it once after it (the /allow skill)
-- **run inside a team tool's tab (a fleet / railroad member: its role text is loaded) → never ask in that tab**: every approval, question, `[user-run]` step and `/allow` this skill would ask for goes up through the team's status to its lead (the role text says how), who asks the human in its own tab | the relayed `go` / words are the answer (the /allow skill takes them) | run by a person in their own session → ask in plain text as written here
+- **run inside a calling tool's tab whose steps file or role text says the human is asked elsewhere → never ask in that tab**: every approval, question, `[user-run]` step and `/allow` this skill would ask for goes the way that text says | the relayed `go` / words are the answer (the /allow skill takes them) | run by a person in their own session → ask in plain text as written here
 - **chat is for humans; scripts and identifiers go to the work memo**: every stop's report is written in the format of `.claude/skills/fmt/flux-stop.md` (step 8) | file names, shas, notice ids, application steps and decision grounds are never put in chat; they go to WORK MEMO below
 
 ## CONDITIONS TO MOVE ON (never move to the next segment until all hold)
@@ -81,11 +81,11 @@ the `/flux` version a fork merged can be many segments older than upstream's, an
   - per-segment `aligned:` `kept_old:` (below)
   - for resuming (sha and push state per segment, next merge target, decisions the human made, pending findings)
   - every upstream finding with its grounds and draft order text
-- form of `aligned:` / `kept_old:` (keys English; fleet copies them):
+- form of `aligned:` / `kept_old:` (keys English; a calling tool may copy them):
   - `aligned: <この区間で新しい上流の仕組みに作り直した fork のコード: 何を → どう(件数)。上流が持つパスから移したものも | none>` (every segment)
   - `kept_old: <古い使い方のまま残したもの・上流が持つパスに残した fork の編集: 箇所> | order:<id>` / `| human:<理由>` / `| migration:<id>` (only when something was kept; conditions = "segment done"; write the same in the ledger `open:`)
 - reading: at the start of `/flux`, if the memo's HEAD equals the current HEAD, carry over the previous script and the human's decisions | otherwise ignore it (re-derive state from the ledger and git) | asked "which files conflict?" / "what is the merge target?" → answer from here
-- fleet: the PLAN FILE and the aligned / kept_old of `<tk> status` are copied from this memo
+- a calling tool may copy the PLAN FILE and the aligned / kept_old from this memo
 
 ## STOP CONDITIONS (win over the run-to-the-end principle)
 any of the following during a segment's merge / application → **stop without committing that segment and report** (earlier segments are committed, so the fork stays consistent):
@@ -159,14 +159,14 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
      - no check (`package.json` lacks `pnpm workflow ownership check`) → skip | write `所有の検査なし(後の区間で届く)` in the report and the ledger notes | do not stop
      - an old check (`git diff --quiet HEAD <upstream>/<branch> -- src/lib/forkOwnership/` shows a diff) → run it, but never stop the pick on 1 / 2 (an old check may not know picks) | write the result in the report and the ledger notes
      - same version as upstream → as 7c (1 / 2 are stop conditions)
-     - all of these = the same treatment as the fleet worker's "skip steps of missing / different-version tools, never stop"
+     - all of these = the same treatment as FOLLOW UPSTREAM'S LATEST STEPS 3 "skip steps of missing / different-version tools, never stop"
 - **after the pick**: rebuild the segments (ids recorded in the ledger are no checkpoints) | that spot conflicts at a later merge → take the upstream side when the fork has no edit
 - **picked by hand already**: an unapplied notice in the tree whose adding commit is an ancestor of `<upstream>/<branch>` but not of HEAD (not in the ledger) → apply it in segment 0 and write the ledger line in the form above (regardless of `hotfix:`) | confirm the original commit with the line of `git log --grep "cherry picked from commit"`
 
 ## LIGHT SEGMENTS (the `light` judgment; only segments planned in detail)
 - light segment = a segment meeting all of the following (one miss → not light): no fork follow-up / no db:push / no downtime / no manual data migration / no deviation (0 conflicts forecast, no `[user-run]`, no fork-side change in the notice's required_actions, no backfill) / not a segment whose origin is unapplied (FIXES above) / no pick-clean fix pick
 - only segments planned in detail can be judged (next segment, next batch) | never mark the remaining segments of the overview (their material is not read)
-- write the light judgment in the work memo and add `light` to the SEGMENTS row of the PLAN FILE (fleet's review counts "the next N segments are light") | never write `軽い` (light) in chat
+- write the light judgment in the work memo and add `light` to the SEGMENTS row of the PLAN FILE (a calling tool may count "the next N segments are light") | never write `軽い` (light) in chat
 
 ## FINDINGS FOR UPSTREAM (findings)
 - pile what you notice during application into the work memo (all of them + grounds + draft order text)
@@ -214,7 +214,7 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 
 ## MODES ($ARGUMENTS)
 - **empty (default)**: FULL FLOW (below) | stop after each segment and wait for the instruction to continue (step 4)
-- **`all`**: same as FULL FLOW, but only the first segment's plan gets approval; then repeat "next segment's plan → execute" per segment without stopping to the end (stops at stop conditions and heavy segments) | for when the app need not be checked between segments, or fleet takes the whole run
+- **`all`**: same as FULL FLOW, but only the first segment's plan gets approval; then repeat "next segment's plan → execute" per segment without stopping to the end (stops at stop conditions and heavy segments) | for when the app need not be checked between segments, or a calling tool takes the whole run
 - **`next`**: same as default (one segment at a time) | accepted as an alias of the old name
 - **`<n>`** (integer ≥ 2): width n | plan the next n segments in detail as a "batch", advance them on one approval and stop | the next plan shown on stopping is n segments too (BATCHES below)
 - **`to <checkpoint ラベル | commit>`** (end point; combinable with a width: `<n> to <位置>` / `all to <位置>`): end this sortie at the segment reaching that position (the first segment whose merge target contains the commit)
@@ -227,7 +227,7 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 - **`status`**: state report only | list fetch + unmerged commit count + overview of all segments (one line each, as in step 2) + the results of inherited / ledger matching, then end | **never merge or apply anything** (no detailed plan either)
 - **`status --chain`**: report only the relay state per grandparent notice (no merge, no application) | output form → relay.md
 - **`relay`**: a middle Tier drafts relay notices bundling the unjudged old notices it applied before relay judgment existed (no merge, no application) | steps → relay.md RELAY MODE
-- **`intake [<n> | all] [to <位置>]`** / **`apply J<k>`** (and `fix J<k>`): only inside the railroad team tool (its runtime header) | intake = merge ahead without application, apply = one chunk's follow-up (a run of laid segments, whole fork) on its own branch | steps → railroad.md
+- **`steps:<path>`** (combinable with every mode): a calling tool's steps file, read first (ATTACHED FILES) | the words after it are read as that file says (its own modes or cues), the rest as here
 - **notice id / file name**: only that notice; do FULL FLOW from step 5 on (no merge; targets a notice already in the tree; no segment split)
 
 ## INCOMING TOOL (incoming.mjs)
@@ -449,4 +449,4 @@ merge and porting carry the fork's edits as they are | when the destination is u
 ## DIALOGUE RULES
 - conversation with the user in Japanese | appends to the ledger / notices in English
 - **never use AskUserQuestion (the option widget)** | write everything you ask the user (plan approval, merge policy, conflict judgments, options at a stop) **in plain text** and wait for the next message
-  - why: in fleet (several forks in parallel), the lead answers by sending plain text through tmux, so a widget cannot be answered | same behavior when run alone, one way of asking
+  - why: a calling tool running several forks in parallel answers by sending plain text into the session, so a widget cannot be answered | same behavior when run alone, one way of asking

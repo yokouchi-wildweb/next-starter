@@ -3,9 +3,9 @@
 // fork は間の変更を飛ばしてこの commit だけを cherry-pick するので、間で届くはずのパス・スクリプトに頼ると、
 // fork の検査(例: pnpm check rules が見る paths:)や notice の手順がその木では通らない。
 //
-// 実行: pnpm workflow notices hotfixCheck <commit> [--base=<sha> ...] [--fleet-conf=<path>]
+// 実行: pnpm workflow notices hotfixCheck <commit> [--base=<sha> ...] [--repos-file=<path>]
 //   commit / base は呼んだリポで完全な sha に解決してから使う(HEAD・HEAD~1 等の相対 ref も可)
-//   base = 遅れた fork の位置(上流の commit)。省くと fleet.conf の各 fork の merge-base(上流からは fork の位置が見えないため)
+//   base = 遅れた fork の位置(上流の commit)。省くとリポの一覧(--repos-file か env DOWNSTREAM_REPOS_FILE: `<名前> <パス>` の行)の各 fork の merge-base(上流からは fork の位置が見えないため)
 //     + その fork の台帳 .notices/applied/<name>.md(fork の HEAD の版)の picked:(先に取った修正)のうち merge-base の祖先でないもの
 //   各 base の上に picks を順に載せ、その上に commit を cherry-pick した木(一時の複製、作業ツリーには触れない)で見るもの:
 //     1. commit が足した・変えたパス指定ルール(.claude/rules/**/*.md)の paths: の各 glob が、その木のファイルに当たるか
@@ -121,8 +121,9 @@ export function forkPicks(path, name, base) {
   });
 }
 
-/** fleet.conf の各 fork の位置(`git merge-base HEAD upstream/<main|master>`)と台帳の picks。読めない fork は理由つき */
-export function fleetBases(confPath) {
+/** リポの一覧の各 fork の位置(`git merge-base HEAD upstream/<main|master>`)と台帳の picks。読めない fork は理由つき */
+export function forkBases(confPath) {
+  if (!confPath) return { bases: [], skipped: [] };
   if (!existsSync(confPath)) return { bases: [], skipped: [`${confPath} がない`] };
   const bases = [];
   const skipped = [];
@@ -210,9 +211,9 @@ export function checkOnBase(repo, commit, base, picks = []) {
 export function run(repo, argv, log = console.log) {
   const commitRef = argv.find((a) => !a.startsWith("--"));
   const given = argv.filter((a) => a.startsWith("--base=")).map((a, i) => ({ name: `base${i + 1}`, sha: a.slice(7), picks: [] }));
-  const conf = argv.find((a) => a.startsWith("--fleet-conf="))?.slice(13) ?? join(process.env.TEAM_BASE || join(homedir(), ".team"), "fleet.conf");
+  const conf = argv.find((a) => a.startsWith("--repos-file="))?.slice(13) ?? process.env.DOWNSTREAM_REPOS_FILE;
   if (!commitRef) {
-    console.error("usage: pnpm workflow notices hotfixCheck <commit> [--base=<sha> ...] [--fleet-conf=<path>]");
+    console.error("usage: pnpm workflow notices hotfixCheck <commit> [--base=<sha> ...] [--repos-file=<path>]");
     return 2;
   }
   const commit = resolveCommit(repo, commitRef);
@@ -220,7 +221,7 @@ export function run(repo, argv, log = console.log) {
     log(`hotfix-check: ${commitRef} がない`);
     return 2;
   }
-  const { bases, skipped } = given.length ? { bases: given, skipped: [] } : fleetBases(conf);
+  const { bases, skipped } = given.length ? { bases: given, skipped: [] } : forkBases(conf);
   for (const s of skipped) log(`hotfix-check: 未確認 — ${s}`);
   // 位置(相対 ref は呼んだリポで sha に)と picks が同じ fork はまとめて 1 回。上流が知らない位置・pick は確かめられない
   let unknown = false;
@@ -239,7 +240,7 @@ export function run(repo, argv, log = console.log) {
     groups.set(key, g);
   }
   if (!groups.size) {
-    if (!unknown) log("hotfix-check: 未確認 — 遅れた fork の位置が分からない(--base= か fleet.conf)");
+    if (!unknown) log("hotfix-check: 未確認 — 遅れた fork の位置が分からない(--base= か --repos-file= / DOWNSTREAM_REPOS_FILE)");
     return 2;
   }
   let found = false;

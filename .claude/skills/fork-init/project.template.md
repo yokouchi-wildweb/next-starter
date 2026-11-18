@@ -18,7 +18,7 @@
 this_repo: Tier<N> (direct fork of <upstream name> = Tier<N-1>). <no Tier<N+1> downstream planned for now | downstream forks: ...>
 - name and tier: repo.json at the repo root (`repo_id`, `tier` root | middle | leaf), written by `pnpm workflow repo-json set` | the same name names the ledger .notices/applied/<name>.md, permits .fork-ownership/<name>.permits.txt, this repo's src/lib/CATALOG.md section heading, the order inbox (never file names: ownership = git merge-base) | reader: src/lib/forkOwnership/forkIds.mjs
 rule: generic/foundational capabilities (domain-independent infra, UI primitives, CRUD base, auth) live in Tier1. do NOT hardcode them here — file /order <Tier1 repo> instead. <domain> code lives HERE
-request_protocol (shared mailbox: ~/.team/orders/, one inbox per receiving repo):
+request_protocol (shared mailbox: ~/.local/state/next-starter/orders/ (env ORDER_STATE_DIR), one inbox per receiving repo):
 - file a one-off order into any repo's inbox, or into this repo as a next task, with /order <self|repo>. generic → Tier1, <domain>-specific → the tier that owns it
 - check the orders filed in the current session with /wen
 - handle orders addressed to this repo with /inbox (judge against this repo's role; relay what another repo owns)

@@ -137,7 +137,7 @@ test("CLI: from は ORDER_ACTOR を読み、inbox の一覧は発行元の名前
   assert.equal(cli({ ORDER_ACTOR: "lead l1 | role:Lead" }, "from"),
     `from: lead l1 | role:Lead | repo:git@github.com:Acme/App.git | branch:main | cwd:${repo}\n`);
   const { dir } = box("lead f1 | role:Lead | repo:git@github.com:Acme/App.git | branch:main | cwd:/w/app");
-  const out = cli({ TEAM_ORDERS: dirname(dir) }, "inbox");
+  const out = cli({ ORDER_STATE_DIR: dirname(dir) }, "inbox");
   assert.match(out, /\n  from: lead f1 Lead\n  need: do x\n/);
 });
 
@@ -151,7 +151,7 @@ test("CLI: inbox の一覧は title:（日本語の短い題）があれば need
   const { dir, file } = box();
   writeFileSync(file, "# ORDER id:20260101-000000-x\nfrom: git@x:Acme/App.git | branch:main\nstatus: open\ntitle: 題を出す\nneed: do x\n");
   writeFileSync(join(dir, "20260101-000001-y.md"), "# ORDER id:20260101-000001-y\nfrom: git@x:Acme/App.git | branch:main\nstatus: open\nneed: do y\n\n## BODY\ntitle: not the title\n");
-  const out = execFileSync("node", [SCRIPT, "inbox"], { cwd: repo, encoding: "utf8", env: { ...clean, TEAM_ORDERS: dirname(dir) } });
+  const out = execFileSync("node", [SCRIPT, "inbox"], { cwd: repo, encoding: "utf8", env: { ...clean, ORDER_STATE_DIR: dirname(dir) } });
   assert.match(out, /\n  from: .*\n  title: 題を出す\n  need: do x\n/);
   assert.match(out, /000001-y\.md\n  from: .*\n  need: do y\n/);
 });
@@ -172,7 +172,7 @@ test("CLI: inbox は kind: の行を出し、--kind=<値> でその値だけに�
   const { dir, file } = box();
   writeFileSync(file, "# ORDER id:20260101-000000-x\nfrom: lead c1 | role:Lead\nstatus: open\nkind: special\ntitle: 題\nneed: do x\n");
   writeFileSync(join(dir, "20260101-000001-y.md"), "# ORDER id:20260101-000001-y\nfrom: git@x:Acme/App.git | branch:main\nstatus: open\nneed: do y\n");
-  const env = { ...clean, TEAM_ORDERS: dirname(dir) };
+  const env = { ...clean, ORDER_STATE_DIR: dirname(dir) };
   const all = execFileSync("node", [SCRIPT, "inbox"], { cwd: repo, encoding: "utf8", env });
   assert.match(all, /000000-x\.md\n  from: lead c1 Lead\n  kind: special\n  title: 題\n  need: do x\n/);
   assert.match(all, /000001-y\.md\n  from: .*\n  need: do y\n/);
@@ -324,7 +324,7 @@ test("CLI: take / route と inbox の状態・担当・(you)", () => {
   run("commit", "-q", "--allow-empty", "-m", "x");
   const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("ORDER_")));
   const { dir, file } = box();
-  const env = { ...clean, TEAM_ORDERS: dirname(dir) };
+  const env = { ...clean, ORDER_STATE_DIR: dirname(dir) };
   const cli = (e, ...args) => execFileSync("node", [SCRIPT, ...args], { cwd: repo, encoding: "utf8", env: { ...env, ...e }, stdio: "pipe" });
   assert.equal(cli({}, "me"), "me: git@github.com:Acme/App.git | branch:main\n");
   assert.match(cli({}, "take", file), /^take: open → taken /);
@@ -388,12 +388,12 @@ test("settleBox: 旧い箱を fork-id の名前へ移し、旧い名前は新し
   assert.ok(existsSync(join(r2, "app")) && readlinkSync(join(r2, "acme--app")) === "app");
 });
 
-test("nameProblems: 形・fleet.conf の別のパス・手元の別のリポ・持ち主が別の既存の受信箱と重なれば不可", () => {
+test("nameProblems: 形・リポの一覧の別のパス・手元の別のリポ・持ち主が別の既存の受信箱と重なれば不可", () => {
   const root = mkdtempSync(join(tmpdir(), "mailbox-names-"));
   const self = { top: "/w/app", repoId: "acme--app", oldId: "acme--app" };
   assert.deepEqual(nameProblems("app", self, [], [], root), []);
   assert.match(nameProblems("App_1", self, [], [], root)[0], /形が違います/);
-  assert.match(nameProblems("shop", self, [], [{ name: "shop", path: "/w/shop" }], root)[0], /fleet.conf で \/w\/shop の名前/);
+  assert.match(nameProblems("shop", self, [], [{ name: "shop", path: "/w/shop" }], root)[0], /リポの一覧で \/w\/shop の名前/);
   assert.deepEqual(nameProblems("app", self, [], [{ name: "app", path: "/w/app" }], root), []);
   assert.match(nameProblems("shop", self, [{ top: "/w/shop", repoId: "shop" }], [], root)[0], /手元の別のリポ/);
   mkdirSync(join(root, "shop"));
@@ -488,7 +488,7 @@ test("CLI: file は self / checkout のパスの受信箱に書いてパスだ�
   run("commit", "-q", "-m", "x");
   const root = mkdtempSync(join(tmpdir(), "mailbox-root-"));
   const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("ORDER_")));
-  const cli = (...args) => execFileSync("node", [SCRIPT, ...args], { cwd: repo, encoding: "utf8", env: { ...clean, TEAM_ORDERS: root } });
+  const cli = (...args) => execFileSync("node", [SCRIPT, ...args], { cwd: repo, encoding: "utf8", env: { ...clean, ORDER_STATE_DIR: root } });
   const bodyFile = join(root, "body.txt");
   writeFileSync(bodyFile, "## DETAIL\nx\n");
   const out = cli("file", "--to=self", "--title=題", "--need=do the thing", "--slug=do-it", `--body=${bodyFile}`).trim();
@@ -498,7 +498,7 @@ test("CLI: file は self / checkout のパスの受信箱に書いてパスだ�
   assert.match(text, /\nnotes: -\n\n## DETAIL\nx\n$/);
   const out2 = cli("file", `--to=${repo}`, "--title=題", "--need=other", "--kind=special", "--from=lead c1 | role:Lead").trim();
   assert.match(readFileSync(out2, "utf8"), /\nfrom: lead c1 \| role:Lead\n[\s\S]*\nkind: special\n/);
-  assert.throws(() => execFileSync("node", [SCRIPT, "file", "--to=self", "--title=題"], { cwd: repo, encoding: "utf8", stdio: "pipe", env: { ...clean, TEAM_ORDERS: root } }), /usage/);
+  assert.throws(() => execFileSync("node", [SCRIPT, "file", "--to=self", "--title=題"], { cwd: repo, encoding: "utf8", stdio: "pipe", env: { ...clean, ORDER_STATE_DIR: root } }), /usage/);
 });
 
 test("指令とシート: attach --only は ng の項目だけを C1.. に写し、結果を消して was: に前の結果を残す。題は指令の題", () => {
@@ -533,7 +533,7 @@ test("CLI: inbox はシートを指令に数えず、kind と check_sheet の数
   const boxName = execFileSync("node", [SCRIPT, "self"], { cwd: repo, encoding: "utf8", env: clean }).match(/^self: (\S+)/m)[1];
   const mine = join(dirname(dir), boxName);
   fileCheckOrder({ box: mine, to: "-", from: "x", src, title: "確認" });
-  const out = execFileSync("node", [SCRIPT, "inbox"], { cwd: repo, encoding: "utf8", env: { ...clean, TEAM_ORDERS: dirname(dir) } });
+  const out = execFileSync("node", [SCRIPT, "inbox"], { cwd: repo, encoding: "utf8", env: { ...clean, ORDER_STATE_DIR: dirname(dir) } });
   assert.match(out, /browser-check\.md\n  from: x\n  kind: browser-check\n  title: 確認\n  need: .*\n  check_sheet: .*\.check\.md \| 1 items \| ok 0 ng 0 skip 0 pending 1\n/);
   assert.equal(out.match(/^open /gm).length, 1);
 });

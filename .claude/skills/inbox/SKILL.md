@@ -8,7 +8,7 @@ role: handle the **ORDERs** addressed to this repo (one-off orders filed by `/or
 - sender = head of the order's `from:` | repo = origin URL | own repo = self-addressed plan | a named actor = `<name> | role:<role> | repo:…` (env `ORDER_ACTOR` of the issuing session; repo: = the repo it ran in) | how they are written: `.claude/skills/order/SKILL.md` step 3
 - every order: think whether to accept it against this repo's role before acting
 
-mailbox: `~/.team/orders/` (shared folder; real place = `root:` of `mailbox.mjs self`; outside git; layout explained in `.claude/skills/order/SKILL.md`)
+mailbox: `~/.local/state/next-starter/orders/` (shared folder; real place = `root:` of `mailbox.mjs self`; outside git; layout explained in `.claude/skills/order/SKILL.md`)
 - **own inbox** = `<root>/<own fork-id>/` (fork-id = `repo_id` of `repo.json`) | place and contents from `node .claude/skills/order/mailbox.mjs inbox` (run at the repo root) | never read other repos' inboxes
 - unhandled = `*.md` directly in the inbox | handled = moved to the inbox's `done/`
 - **state** (head `status:` of the order, one value; old orders without it = open): `open` = unhandled | `routed` = routed to a named owner (`routed_to:` = owner) | `taken` = the owner started (`taken_by:` = owner) | answers = done / partial / relayed / rejected / withdrawn (moved to `done/`)

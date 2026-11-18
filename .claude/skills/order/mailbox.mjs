@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 指令メールボックスの補助スクリプト（/order・/inbox 共通）
-// 置き場: $TEAM_ORDERS（既定 ~/.team/orders）
+// 置き場: $ORDER_STATE_DIR（既定 $XDG_STATE_HOME/next-starter/orders → ~/.local/state/next-starter/orders。古い ~/.team/orders は最初の 1 回に移し、そこへのリンクを残す）
 //   <root>/<fork-id>/*.md      = そのリポ宛ての未対応の指令
 //   <root>/<fork-id>/done/*.md = 対応済み
 //   fork-id = 各 checkout の repo.json の repo_id（古い形は .claude/rules/project.md の `fork_id:`。小文字・数字・ハイフン。下記 forkIdOf）
@@ -16,7 +16,8 @@
 //   node mailbox.mjs take <指令> [--as=<id>]      着手する: open → taken。routed は振り分け先の本人だけ（違えば担当を出して断る）
 //   node mailbox.mjs release <指令> [--as=<id>] [--force=<理由>]   手放す: taken → 取る前の状態（取った者だけ）
 //   node mailbox.mjs unroute <指令> [--as=<id>] [--force=<理由>]   振り分けを外す: routed → open（振り分け先か振り分けた者だけ）
-//   node mailbox.mjs name-check <名前>   その名前を自リポの fork_id: にしてよいか（形・fleet.conf・手元のリポ・既存の受信箱と
+//   node mailbox.mjs name-check <名前> [--repos-file=<path>]   その名前を自リポの fork_id: にしてよいか（形・リポの一覧
+//                            （--repos-file か env DOWNSTREAM_REPOS_FILE: `<名前> <パス>` の行）・手元のリポ・既存の受信箱と
 //                            重ならないか。/fork-init が名前を決めるときに使う。重なれば理由を出して exit 1）
 //   node mailbox.mjs resolve <指令ファイル> --status=<done|partial|relayed|rejected|withdrawn> --body=<ファイル>
 //                            [--commit=<sha|->] [--pushed=<yes|no|...>] [--branch=<名前>] [--as=<id>] [--force=<理由>]
@@ -44,7 +45,36 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const ROOT = process.env.TEAM_ORDERS || join(homedir(), ".team", "orders");
+// 受け箱の根: ORDER_STATE_DIR → $XDG_STATE_HOME/next-starter/orders → ~/.local/state/next-starter/orders（peer と同じ並び）
+export function ordersRoot(env = process.env) {
+  if (env.ORDER_STATE_DIR) return { root: resolve(env.ORDER_STATE_DIR), explicit: true };
+  const base = env.XDG_STATE_HOME || join(env.HOME || homedir(), ".local", "state");
+  return { root: join(base, "next-starter", "orders"), explicit: false };
+}
+
+// 既定の根を使う時の最初の 1 回: 根が無く古い置き場（~/.team/orders）が実のフォルダなら丸ごと移し（依頼の id・ファイル名・中の
+// リンクはそのまま）、古い場所に新しい根へのリンクを残す（古い道具も同じ箱を読む）。古い場所が既にリンクならその先を使う。
+// 移せなければ（別のファイルシステムなど）古い場所をそのまま使い、note に理由
+export function settleRoot(root, old = join(homedir(), ".team", "orders")) {
+  if (existsSync(root)) return { root };
+  let st;
+  try { st = lstatSync(old); } catch { return { root }; }
+  if (st.isSymbolicLink()) {
+    try { const t = resolve(dirname(old), readlinkSync(old)); if (existsSync(t)) return { root: t }; } catch { /* 壊れたリンク */ }
+    return { root };
+  }
+  if (!st.isDirectory()) return { root };
+  try {
+    mkdirSync(dirname(root), { recursive: true });
+    renameSync(old, root);
+    symlinkSync(root, old);
+    return { root, moved: old };
+  } catch (e) {
+    return { root: existsSync(root) ? root : old, note: `受け箱を ${root} へ移せませんでした（${String(e.message).split("\n")[0]}）: ${old} のまま使います` };
+  }
+}
+
+let ROOT = ordersRoot().root;
 
 function git(cwd, args) {
   try {
@@ -166,10 +196,9 @@ export function settleBox(id, oldId, root = ROOT) {
   }
 }
 
-// fleet.conf の `<名前> <パス>` の行（~ 可、# はコメント）
-function fleetConf(env = process.env) {
-  const file = env.FLEET_CONF || join(homedir(), ".team", "fleet.conf");
-  if (!existsSync(file)) return [];
+// リポの一覧のファイル（--repos-file か env DOWNSTREAM_REPOS_FILE）の `<名前> <パス>` の行（~ 可、# はコメント）。無ければ空
+function reposList(file) {
+  if (!file || !existsSync(file)) return [];
   return readFileSync(file, "utf8")
     .split("\n")
     .map((l) => l.trim().split(/\s+/))
@@ -178,11 +207,11 @@ function fleetConf(env = process.env) {
 }
 
 // その名前を self の fork_id: にしてよいか: 重なる理由の一覧（空 = よい）。
-// fleet.conf の別のパスの名前・手元の別のリポの名前・持ち主が self でない既存の受信箱と重なれば不可
+// リポの一覧の別のパスの名前・手元の別のリポの名前・持ち主が self でない既存の受信箱と重なれば不可
 export function nameProblems(name, self, others, conf, root = ROOT) {
   const out = [];
   if (!FORK_ID_RE.test(name)) out.push(`形が違います（${name}: 小文字・数字・ハイフン）`);
-  for (const c of conf) if (c.name === name && c.path !== resolve(self.top)) out.push(`fleet.conf で ${c.path} の名前です`);
+  for (const c of conf) if (c.name === name && c.path !== resolve(self.top)) out.push(`リポの一覧で ${c.path} の名前です`);
   for (const r of others) if (r.top !== self.top && r.repoId === name) out.push(`手元の別のリポ ${r.top} の名前です`);
   const box = join(root, name);
   if (existsSync(box)) {
@@ -779,6 +808,13 @@ function checkCli(self, args) {
 }
 
 function main() {
+  // 既定の置き場への最初の移し（repoInfo が受け箱を読む前に）
+  if (!ordersRoot().explicit) {
+    const r = settleRoot(ROOT);
+    ROOT = r.root;
+    if (r.moved) console.error(`受け箱を ${r.moved} から ${ROOT} へ移しました（${r.moved} はリンクで残します）`);
+    if (r.note) console.error(r.note);
+  }
   let self;
   try {
     self = repoInfo(process.cwd());
@@ -806,10 +842,10 @@ function main() {
   } else if (cmd === "name-check") {
     const name = process.argv[3];
     if (!name) {
-      console.error("usage: node mailbox.mjs name-check <名前>");
+      console.error("usage: node mailbox.mjs name-check <名前> [--repos-file=<path>]");
       process.exit(1);
     }
-    const probs = nameProblems(name, self, localRepos(self), fleetConf());
+    const probs = nameProblems(name, self, localRepos(self), reposList(opt(process.argv.slice(4), "repos-file") ?? process.env.DOWNSTREAM_REPOS_FILE));
     if (probs.length) {
       for (const p of probs) console.log(`name-check: ${name} — ${p}`);
       process.exit(1);

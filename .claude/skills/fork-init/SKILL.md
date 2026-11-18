@@ -30,7 +30,7 @@ source_of_truth: `docs/setup/新規プロジェクトの立ち上げ_フォー�
    - Vercel plan: hobby / pro (default: hobby; hobby makes every cron once a day; can be regenerated later)
 6. fix the fork's name (`repo_id`): default = the new repo name `<name>` lowercased (confirmed in the question of 5) | form = lowercase, digits, hyphens (`FORK_ID_PATTERN` of `src/lib/forkOwnership/forkIds.mjs`) | never derived from the origin URL | same name as any of these → STOP: ask for another name (D30 K3):
    - the fork source's `repo_id` in `repo.json`, ledger names in `.notices/applied/`, section headings of `src/lib/CATALOG.md` (ancestors' names)
-   - names in `~/.team/fleet.conf` (compared case-insensitively), inbox folder names in `~/.team/orders/` (skip each when missing)
+   - names in the repos list file (`--repos-file=` / env `DOWNSTREAM_REPOS_FILE`, `<name> <path>` lines; compared case-insensitively), inbox folder names in the mailbox (`root:` of `mailbox.mjs self`) (skip each when missing)
    - name decided → call `node .claude/skills/order/mailbox.mjs name-check <名前>` | an overlap reported → STOP: confirm another name with the human
    - then ask the question of 5; STOP: wait for the answers
 7. fork source version = full sha of the current HEAD (`git rev-parse HEAD`; written to `upstream:` of the ledger's first line)
