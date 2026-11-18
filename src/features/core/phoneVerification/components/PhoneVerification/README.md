@@ -1,12 +1,15 @@
-# PhoneVerification
+# phoneVerification/components/PhoneVerification
 
-電話番号SMS認証コンポーネント。Firebase Phone Authenticationを使用。
+## Overview
 
-Firebase 側の設定（Phone プロバイダ有効化・reCAPTCHA 等）は [SMS認証（電話番号認証）のセットアップ方法](../../../../../../docs/setup/SMS認証（電話番号認証）のセットアップ方法.md) を参照。使うかどうかは機能 `phoneVerification` の入切(上流の既定 閉)。ドメイン全体は [phoneVerification README](../../README.md)。
+- 電話番号の SMS 認証の部品。Firebase Phone Authentication を使う
+- Firebase 側の設定（Phone プロバイダ有効化・reCAPTCHA 等）は [SMS認証（電話番号認証）のセットアップ方法](../../../../../../docs/setup/SMS認証（電話番号認証）のセットアップ方法.md)。使うかどうかは機能 `phoneVerification` の入切(上流の既定 閉)。ドメイン全体は [phoneVerification README](../../README.md)
+- `PhoneVerification` = ページ内に直接埋め込む基本の部品 | `PhoneVerificationModal` = モーダルで包んだ物(特定アクション前の認証要求) | `usePhoneVerificationModal` = モーダルの管理フック(Promise で認証の結果を返す)
+- 中は手順ごとの部品(電話番号の入力 `PhoneNumberStep`・OTP の入力 `OtpStep`・完了 `CompleteStep`)と、認証のロジックのフック `usePhoneVerification`
 
-## コンポーネント
+## Usage
 
-### PhoneVerification
+### PhoneVerification(埋め込み)
 
 基本コンポーネント。ページ内に直接埋め込む場合に使用。
 
@@ -47,8 +50,6 @@ import { PhoneVerificationModal } from "@/features/core/phoneVerification/compon
   onCancel={handleCancel}
 />
 ```
-
-## フック
 
 ### usePhoneVerificationModal
 
@@ -91,31 +92,11 @@ function CoinPurchasePage({ user }) {
 }
 ```
 
-#### API
-
-| メソッド | 戻り値 | 説明 |
-|---------|--------|------|
-| `requireVerification(options?)` | `Promise<boolean>` | 認証完了で`true`、キャンセルで`false` |
-| `requireVerificationWithResult(options?)` | `Promise<Result \| null>` | 認証結果オブジェクトまたは`null` |
-| `open(options?)` | `void` | モーダルを開く |
-| `close()` | `void` | モーダルを閉じる |
-
-#### Options
-
-```ts
-type RequireVerificationOptions = {
-  mode?: "register" | "change";  // デフォルト: "register"
-  currentPhoneNumber?: string | null;  // 変更モード時の現在番号
-};
-```
-
-## 使用パターン
-
-### 1. マイページでの埋め込み
+### 使い分け 1: マイページでの埋め込み
 
 ユーザーが自発的に認証する場合。`PhoneVerification`を直接配置。
 
-### 2. アクション前の認証要求
+### 使い分け 2: アクション前の認証要求
 
 コイン購入など特定アクション前に認証を要求する場合。`usePhoneVerificationModal` + `PhoneVerificationModal`を使用。
 
@@ -125,7 +106,7 @@ if (!verified) return;
 // 続きの処理...
 ```
 
-### 3. 電話番号変更
+### 使い分け 3: 電話番号変更
 
 認証済みユーザーが番号を変更する場合。`mode="change"`を指定。
 
@@ -136,10 +117,22 @@ await phoneModal.requireVerification({
 });
 ```
 
-## 関連ファイル
+## API
 
-- `usePhoneVerification.ts` - 認証ロジックのコアフック
-- `PhoneNumberStep.tsx` - 電話番号入力ステップ
-- `OtpStep.tsx` - OTPコード入力ステップ
-- `CompleteStep.tsx` - 完了ステップ
-- `Modal.tsx` - モーダルラッパー
+### usePhoneVerificationModal の戻り値
+
+| メソッド | 戻り値 | 説明 |
+|---------|--------|------|
+| `requireVerification(options?)` | `Promise<boolean>` | 認証完了で`true`、キャンセルで`false` |
+| `requireVerificationWithResult(options?)` | `Promise<Result \| null>` | 認証結果オブジェクトまたは`null` |
+| `open(options?)` | `void` | モーダルを開く |
+| `close()` | `void` | モーダルを閉じる |
+
+### Options
+
+```ts
+type RequireVerificationOptions = {
+  mode?: "register" | "change";  // デフォルト: "register"
+  currentPhoneNumber?: string | null;  // 変更モード時の現在番号
+};
+```
