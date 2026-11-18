@@ -1,34 +1,18 @@
 # CurrencyDisplay
 
-通貨表示コンポーネント。各通貨の色・アイコンを統一フォーマットで表示する。
+## Overview
 
-## 基本的な使い方
+- 通貨表示コンポーネント。各通貨の色・アイコンを統一フォーマットで表示する
+
+## Usage
 
 ```tsx
-import { CurrencyDisplay } from "@/features/core/wallet/components/CurrencyDisplay";
+import { CurrencyDisplay } from "@/features/core/wallet/components/common/CurrencyDisplay";
 
 <CurrencyDisplay walletType="coin" amount={1000} />
 ```
 
-## Props
-
-| プロパティ | 型 | デフォルト | 説明 |
-|-----------|-----|----------|------|
-| `walletType` | WalletType | **必須** | ウォレット種別 |
-| `amount` | number | **必須** | 表示金額 |
-| `size` | "xs" \| "sm" \| "md" \| "lg" \| "xl" | "md" | テキストサイズ |
-| `iconSize` | "xs" \| "sm" \| "md" \| "lg" \| "xl" | size と同じ | アイコンサイズ |
-| `gap` | "none" \| "xs" \| "sm" \| "md" \| "lg" \| "xl" | "md" | アイコンと数値の間隔 |
-| `align` | "center" \| "baseline" \| "start" \| "end" | "center" | 垂直方向の揃え |
-| `showIcon` | boolean | true | アイコンを表示するか |
-| `showLabel` | boolean | false | ラベルを表示するか（例: "1,000 コイン"） |
-| `showUnit` | boolean | false | 単位を表示するか（例: "1,000 pt"） |
-| `bold` | boolean | false | 太字にするか |
-| `animate` | boolean | false | カウントアップアニメーションを有効にするか |
-| `animationDuration` | number | 2 | アニメーション時間（秒） |
-| `preserveValue` | boolean | true | 値変更時に前の値から開始するか |
-
-## アニメーション機能
+### アニメーション
 
 `animate` を有効にすると、数値が滑らかにカウントアップするアニメーションが適用される。
 
@@ -40,7 +24,7 @@ import { CurrencyDisplay } from "@/features/core/wallet/components/CurrencyDispl
 <CurrencyDisplay walletType="coin" amount={1000} animate animationDuration={1} />
 ```
 
-### preserveValue について
+#### preserveValue
 
 値が変更された時の開始値を制御する。
 
@@ -55,7 +39,7 @@ import { CurrencyDisplay } from "@/features/core/wallet/components/CurrencyDispl
 <CurrencyDisplay walletType="coin" amount={score} animate preserveValue={false} />
 ```
 
-## 使用例
+### 使用例
 
 ```tsx
 // シンプルな表示
@@ -82,3 +66,23 @@ import { CurrencyDisplay } from "@/features/core/wallet/components/CurrencyDispl
 // アイコンなし
 <CurrencyDisplay walletType="coin" amount={1000} showIcon={false} />
 ```
+
+## API
+
+Props:
+
+| プロパティ | 型 | デフォルト | 説明 |
+|-----------|-----|----------|------|
+| `walletType` | WalletType | **必須** | ウォレット種別 |
+| `amount` | number | **必須** | 表示金額 |
+| `size` | "xs" \| "sm" \| "md" \| "lg" \| "xl" | "md" | テキストサイズ |
+| `iconSize` | "xs" \| "sm" \| "md" \| "lg" \| "xl" | size と同じ | アイコンサイズ |
+| `gap` | "none" \| "xs" \| "sm" \| "md" \| "lg" \| "xl" | "md" | アイコンと数値の間隔 |
+| `align` | "center" \| "baseline" \| "start" \| "end" | "center" | 垂直方向の揃え |
+| `showIcon` | boolean | true | アイコンを表示するか |
+| `showLabel` | boolean | false | ラベルを表示するか（例: "1,000 コイン"） |
+| `showUnit` | boolean | false | 単位を表示するか（例: "1,000 pt"） |
+| `bold` | boolean | false | 太字にするか |
+| `animate` | boolean | false | カウントアップアニメーションを有効にするか |
+| `animationDuration` | number | 2 | アニメーション時間（秒） |
+| `preserveValue` | boolean | true | 値変更時に前の値から開始するか |

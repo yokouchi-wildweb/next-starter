@@ -1,0 +1,24 @@
+---
+paths:
+  - "src/features/core/wallet/**"
+  - "src/config/features/wallet.config.ts"
+---
+# features/wallet
+what: per-user in-app currencies: balance, reservation, history, expiry lots | entry walletService (services/server/walletService), types @/features/core/wallet
+use: wallet
+change: add = a purchase bonus display in purchaseBonuses/ (extensionPoints.ts) | overlay = purchaseBonuses/<key>.override.ts (enabled, order) | placement = src/config/features/wallet.config.ts, wallet.ui.config.ts
+rules:
+using:
+- reason_key: a grant names its kind with reasonKey, never reason text or meta
+- locked_wallet_arg: pass a fetched `wallet` only while holding its row lock in the same tx
+- reserve_flow: reserve → consume, and releaseReservation when the work fails
+- undo_by_reverse: a wrong transaction is undone by reverseHistory, never by deleting rows
+- bonus_display_only: a purchase bonus provider only displays; the grant is a purchaseRequest completeHooks item sharing one pure amount function
+- lots_init: enabling expiration for a currency runs one lots init for that currency (--wallet-type) right after deploy; never --all while other currencies run; re-enabling re-inits
+- from_history_sweep: lots-init-from-history goes with sweepEnabled: true
+- notice_cron_first: the notice cron runs at least once before the first expiry date
+- notice_window_absolute: a custom notice batch fixes its window as absolute time per run
+- terms_match_basis: terms wording follows expirationBasis (grant = FIFO, lastActivity = all)
+editing:
+- audit_intervention_only: audit_logs only for intervention (admin-callable) ops, bulk as aggregate; business ops (consume, debit, reserve) stay in wallet_histories only
+read: operate balances → Usage | currencies, bonuses, expiry setup → src/features/core/wallet/Extension.md Extension | methods, tables → src/features/core/wallet/API.md API | locks, lots, notices, audit → src/features/core/wallet/Internals.md Internals
