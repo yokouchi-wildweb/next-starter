@@ -505,7 +505,7 @@ export const MediaUploaderMulti = ({
         type="file"
         multiple
         accept={pickerAcceptFor(accept, metadata ?? "keep")}
-        className="sr-only"
+        hidden
         disabled={disabled}
         onChange={handleInputChange}
       />

@@ -278,7 +278,7 @@ export const MediaInput = ({
           ref={inputRef}
           id={inputId}
           type="file"
-          className="sr-only"
+          hidden
           disabled={disabled}
           accept={accept}
           onChange={handleFileChange}

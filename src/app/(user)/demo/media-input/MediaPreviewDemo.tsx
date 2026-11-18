@@ -170,7 +170,7 @@ export const MediaPreviewDemo = () => {
         ref={fileInputRef}
         id={inputId}
         type="file"
-        className="sr-only"
+        hidden
         onChange={handleFileChange}
       />
     </Stack>
