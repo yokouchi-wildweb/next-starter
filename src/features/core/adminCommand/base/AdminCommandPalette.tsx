@@ -13,7 +13,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/Primitives/Command";
+import { Flex } from "@/components/Layout/Flex";
 import Modal from "@/components/Overlays/Modal";
+import { Span } from "@/components/TextBlocks";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { filterSearchInput } from "../utils";
@@ -95,7 +97,7 @@ export function AdminCommandPalette({ categories, open, onOpenChange }: AdminCom
             key="root"
             className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
           >
-            <div className="flex items-center gap-2 border-b">
+            <Flex align="center" gap="xs" className="border-b">
               <CommandInput
                 placeholder="コマンドを検索..."
                 value={searchValue}
@@ -104,7 +106,7 @@ export function AdminCommandPalette({ categories, open, onOpenChange }: AdminCom
                 inputMode="email"
                 autoFocus
               />
-            </div>
+            </Flex>
             <CommandList>
               <CommandEmpty>項目が見つかりません</CommandEmpty>
               <CommandGroup heading="カテゴリ">
@@ -115,12 +117,17 @@ export function AdminCommandPalette({ categories, open, onOpenChange }: AdminCom
                     value={`${category.label} ${category.description ?? ""}`}
                     onSelect={() => handleCategorySelect(category.id)}
                   >
-                    {category.icon && <span className="mr-2">{category.icon}</span>}
-                    <span>{category.label}</span>
+                    {category.icon && <Span inline className="mr-2">{category.icon}</Span>}
+                    <Span inline>{category.label}</Span>
                     {category.description && (
-                      <span className="ml-2 text-muted-foreground text-xs group-data-[selected=true]:text-accent-foreground">
+                      <Span
+                        size="xs"
+                        weight="inherit"
+                        tone="muted"
+                        className="ml-2 group-data-[selected=true]:text-accent-foreground"
+                      >
                         {category.description}
-                      </span>
+                      </Span>
                     )}
                     <ChevronRightIcon className="ml-auto size-4 text-muted-foreground group-data-[selected=true]:text-accent-foreground" />
                   </CommandItem>

@@ -3,8 +3,10 @@
 "use client";
 
 import Modal from "@/components/Overlays/Modal";
+import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import { BaseSkeleton } from "@/components/Skeleton/BaseSkeleton";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import { useReferralsByInviter } from "@/features/core/referral/hooks/useReferralsByInviter";
@@ -25,23 +27,17 @@ const columns: DataTableColumn<ReferralByInviterItem>[] = [
   {
     header: "被招待者",
     render: (item) => (
-      <span className="text-sm">
+      <Span inline size="sm">
         {item.inviteeUserName ?? item.inviteeUserId}
-      </span>
+      </Span>
     ),
   },
   {
     header: "ステータス",
     render: (item) => (
-      <span
-        className={
-          item.status === "active"
-            ? "text-success-text"
-            : "text-muted-foreground"
-        }
-      >
+      <Span inline tone={item.status === "active" ? "success" : "muted"}>
         {item.status === "active" ? "有効" : "取消"}
-      </span>
+      </Span>
     ),
   },
   {
@@ -55,24 +51,24 @@ const columns: DataTableColumn<ReferralByInviterItem>[] = [
   {
     header: "サインアップIP",
     render: (item) => (
-      <span className="text-sm text-muted-foreground">
+      <Span inline size="sm" tone="muted">
         {item.signupIp ?? "-"}
-      </span>
+      </Span>
     ),
   },
   {
     header: "達成リワード",
     render: (item) =>
       item.fulfilledRewardGroups.length > 0 ? (
-        <span className="flex flex-wrap gap-1">
+        <Flex wrap="wrap" gap="2xs">
           {item.fulfilledRewardGroups.map((label) => (
             <SolidBadge key={label} variant="success" size="sm">
               {label}
             </SolidBadge>
           ))}
-        </span>
+        </Flex>
       ) : (
-        <span className="text-muted-foreground">-</span>
+        <Span inline tone="muted">-</Span>
       ),
   },
 ];

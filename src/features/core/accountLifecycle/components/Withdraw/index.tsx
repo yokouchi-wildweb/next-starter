@@ -6,13 +6,14 @@ import { useState, useCallback } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 
 import { Button } from "@/components/Form/Button/Button";
+import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import Modal from "@/components/Overlays/Modal";
 import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
-import { Para } from "@/components/TextBlocks";
+import { Para, Span } from "@/components/TextBlocks";
 import { useWithdraw } from "@/features/core/accountLifecycle/hooks/useWithdraw";
 import { AccountPageHeader } from "@/features/core/user/components/common/AccountPageHeader";
 
@@ -52,7 +53,7 @@ export function Withdraw() {
           backHref="/mypage/other"
           backDisabled={isLoading}
         />
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <Block className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <Stack gap="md">
             <WithdrawDescription />
             <Button
@@ -68,7 +69,7 @@ export function Withdraw() {
               キャンセル
             </Button>
           </Stack>
-        </div>
+        </Block>
       </Stack>
 
       <Modal
@@ -88,7 +89,7 @@ export function Withdraw() {
               onChange={(checked) => setIsAgreed(Boolean(checked))}
               disabled={isLoading}
             />
-            <span className="text-sm">退会することに同意します</span>
+            <Span size="sm" weight="inherit">退会することに同意します</Span>
           </Label>
 
           {error && (

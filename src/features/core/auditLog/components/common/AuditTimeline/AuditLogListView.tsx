@@ -4,6 +4,7 @@
 
 import { useMemo, useState } from "react";
 
+import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
@@ -152,19 +153,19 @@ export function AuditLogListView({ query, showTargetColumn, className }: Props) 
           onRetry={retry}
           completedText="すべて読み込み済み"
           initialLoadingNode={
-            <div className="flex min-h-[160px] items-center justify-center">
+            <Flex align="center" justify="center" className="min-h-[160px]">
               <Para tone="muted">履歴を読込中...</Para>
-            </div>
+            </Flex>
           }
           errorNode={
-            <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-destructive/40 bg-destructive/5">
+            <Flex align="center" justify="center" className="min-h-[160px] rounded-lg border border-destructive/40 bg-destructive/5">
               <Para tone="destructive">履歴の取得に失敗しました</Para>
-            </div>
+            </Flex>
           }
           emptyNode={
-            <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-dashed border-border py-6">
+            <Flex align="center" justify="center" className="min-h-[160px] rounded-lg border border-dashed border-border py-6">
               <Para tone="muted">操作履歴はまだありません</Para>
-            </div>
+            </Flex>
           }
         >
           {(items) => (

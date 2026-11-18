@@ -2,8 +2,10 @@
 
 "use client";
 
+import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 
 type DiffType = "added" | "removed" | "changed";
 
@@ -72,7 +74,7 @@ export function DiffView({ before, after }: Props) {
   }
 
   return (
-    <div className="divide-y divide-border rounded border border-border overflow-hidden">
+    <Block className="divide-y divide-border rounded border border-border overflow-hidden">
       {diffs.map((diff) => (
         <Flex
           key={diff.key}
@@ -80,30 +82,30 @@ export function DiffView({ before, after }: Props) {
           align="center"
           className="px-2 py-1.5 bg-card text-xs"
         >
-          <span className="shrink-0 font-medium w-28 truncate" title={diff.key}>
+          <Span size="inherit" weight="medium" className="shrink-0 w-28 truncate" title={diff.key}>
             {diff.key}
-          </span>
-          <div className="flex-1 min-w-0 truncate">
+          </Span>
+          <Block className="flex-1 min-w-0 truncate">
             {diff.type === "added" ? (
-              <span className="text-muted-foreground italic">（なし）</span>
+              <Span inline tone="muted" className="italic">（なし）</Span>
             ) : (
               <code className="rounded bg-muted/50 px-1.5 py-0.5 border border-border">
                 {formatValue(diff.before)}
               </code>
             )}
-          </div>
-          <span className="shrink-0 text-muted-foreground">→</span>
-          <div className="flex-1 min-w-0 truncate">
+          </Block>
+          <Span inline tone="muted" className="shrink-0">→</Span>
+          <Block className="flex-1 min-w-0 truncate">
             {diff.type === "removed" ? (
-              <span className="text-destructive-text italic">（削除）</span>
+              <Span inline tone="destructive" className="italic">（削除）</Span>
             ) : (
               <code className="rounded bg-muted/50 px-1.5 py-0.5 border border-border">
                 {formatValue(diff.after)}
               </code>
             )}
-          </div>
+          </Block>
         </Flex>
       ))}
-    </div>
+    </Block>
   );
 }

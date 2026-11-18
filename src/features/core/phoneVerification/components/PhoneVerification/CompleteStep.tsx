@@ -5,8 +5,11 @@
 import { CheckCircle } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
+import { Flex } from "@/components/Layout/Flex";
+import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
 import type { PhoneVerificationMode } from "@/features/core/phoneVerification/hooks/usePhoneVerification";
 
@@ -22,18 +25,18 @@ export function CompleteStep({ phoneNumber, onComplete, mode = "register" }: Com
   const isChangeMode = mode === "change";
 
   return (
-    <section id="phone-verification-complete" className="w-full">
+    <Section id="phone-verification-complete" className="w-full">
       <Stack gap="lg" className="text-center">
-        <div className="flex justify-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
+        <Flex justify="center">
+          <Flex align="center" justify="center" className="h-16 w-16 rounded-full bg-success/15">
             <CheckCircle className="h-8 w-8 text-success-text" />
-          </div>
-        </div>
+          </Flex>
+        </Flex>
 
         <Stack gap="xs">
-          <h2 className="text-xl font-semibold">
+          <SecTitle size="xl" weight="semiBold" align="inherit">
             {isChangeMode ? "電話番号の変更が完了しました" : "電話番号認証が完了しました"}
-          </h2>
+          </SecTitle>
           <Para align="center" size="sm" className="text-muted-foreground">
             {isChangeMode
               ? `電話番号が ${displayPhoneNumber} に変更されました。`
@@ -47,6 +50,6 @@ export function CompleteStep({ phoneNumber, onComplete, mode = "register" }: Com
           </Button>
         )}
       </Stack>
-    </section>
+    </Section>
   );
 }

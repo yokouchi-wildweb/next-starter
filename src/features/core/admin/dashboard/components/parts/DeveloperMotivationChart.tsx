@@ -1,5 +1,8 @@
 // src/features/core/admin/dashboard/components/parts/DeveloperMotivationChart.tsx
 
+import { Flex } from "@/components/Layout/Flex";
+import { Span } from "@/components/TextBlocks";
+
 interface DeveloperMotivationChartProps {
   percentage: number;
 }
@@ -49,7 +52,7 @@ export function DeveloperMotivationChart({ percentage }: DeveloperMotivationChar
   const message = getMotivationMessage(clamped);
 
   return (
-    <div className="flex flex-col items-center justify-center">
+    <Flex direction="column" align="center" justify="center">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <defs>
           <linearGradient id="motivationGradient" x1="0" y1="0" x2="1" y2="1">
@@ -75,12 +78,14 @@ export function DeveloperMotivationChart({ percentage }: DeveloperMotivationChar
         </text>
       </svg>
 
-      <span
-        className="mt-4 mb-4 max-sm:my-1 text-sm font-medium text-primary-foreground px-3 py-1 rounded-full shadow-sm"
+      <Span
+        size="sm"
+        weight="medium"
+        className="mt-4 mb-4 max-sm:my-1 text-primary-foreground px-3 py-1 rounded-full shadow-sm"
         style={{ background: endColor }}
       >
         {message}
-      </span>
-    </div>
+      </Span>
+    </Flex>
   );
 }

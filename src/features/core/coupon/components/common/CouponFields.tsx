@@ -13,6 +13,7 @@ import type {
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
 import { Button } from "@/components/Form/Button";
+import { Block } from "@/components/Layout/Block";
 import { Shuffle } from "lucide-react";
 import { domainDisplay } from "@/features/core/coupon/entities/display";
 import { generateCouponCode } from "@/features/core/coupon/utils/generateCode";
@@ -75,7 +76,7 @@ export function CouponFields<TFieldValues extends FieldValues>({
 
   // デフォルトの自動生成ボタン
   const codeGenerateButton = (
-    <div className="self-start">
+    <Block className="self-start">
       <Button
         type="button"
         variant="outline"
@@ -85,7 +86,7 @@ export function CouponFields<TFieldValues extends FieldValues>({
         <Shuffle className="size-4" />
         自動生成
       </Button>
-    </div>
+    </Block>
   );
 
   // afterFieldをマージ（外部から渡されたものがあれば優先）

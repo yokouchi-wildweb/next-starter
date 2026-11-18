@@ -7,6 +7,9 @@ import { ArrowLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useToast } from "@/lib/toast";
 
 import { Button } from "@/components/Form/Button";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Para, Span } from "@/components/TextBlocks";
 import {
   Command,
   CommandEmpty,
@@ -160,17 +163,20 @@ export function SettingsRenderer({ onClose, onBack }: CategoryRendererProps) {
   if (view.type === "input") {
     return (
       <Command key="settings-input" shouldFilter={false}>
-        <div className="flex items-center gap-2 border-b px-3 h-12">
-          <button
+        <Flex align="center" gap="xs" className="border-b px-3 h-12">
+          <Button
             type="button"
+            variant="none"
+            size="none"
+            propagateClick
             onClick={handleBackToList}
             className="p-1 hover:bg-accent rounded"
           >
             <ArrowLeftIcon className="size-4" />
-          </button>
-          <span className="text-sm text-muted-foreground">{view.field.label}</span>
-        </div>
-        <div className="p-4">
+          </Button>
+          <Span size="sm" tone="muted">{view.field.label}</Span>
+        </Flex>
+        <Block className="p-4">
           <input
             type={view.field.type === "number" ? "number" : "text"}
             value={inputValue}
@@ -182,9 +188,9 @@ export function SettingsRenderer({ onClose, onBack }: CategoryRendererProps) {
             disabled={isMutating}
           />
           {view.field.description && (
-            <p className="mt-2 text-xs text-muted-foreground">{view.field.description}</p>
+            <Para size="xs" tone="muted" align="inherit" className="mt-2 mb-0">{view.field.description}</Para>
           )}
-          <div className="mt-3 flex justify-end gap-2">
+          <Flex justify="end" gap="xs" className="mt-3">
             <Button
               type="button"
               variant="ghost"
@@ -197,8 +203,8 @@ export function SettingsRenderer({ onClose, onBack }: CategoryRendererProps) {
             <Button type="button" variant="primary" size="xs" onClick={handleSave} loading={isMutating}>
               保存
             </Button>
-          </div>
-        </div>
+          </Flex>
+        </Block>
       </Command>
     );
   }
@@ -209,14 +215,17 @@ export function SettingsRenderer({ onClose, onBack }: CategoryRendererProps) {
       key="settings-list"
       className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
     >
-      <div className="flex items-center gap-2 border-b">
-        <button
+      <Flex align="center" gap="xs" className="border-b">
+        <Button
           type="button"
+          variant="none"
+          size="none"
+          propagateClick
           onClick={onBack}
           className="p-1 ml-2 hover:bg-accent rounded"
         >
           <ArrowLeftIcon className="size-4" />
-        </button>
+        </Button>
         <CommandInput
           placeholder="設定項目を検索..."
           value={searchValue}
@@ -225,7 +234,7 @@ export function SettingsRenderer({ onClose, onBack }: CategoryRendererProps) {
           inputMode="email"
           autoFocus
         />
-      </div>
+      </Flex>
       <CommandList>
         <CommandEmpty>項目が見つかりません</CommandEmpty>
         <CommandGroup heading="設定項目">
@@ -236,10 +245,15 @@ export function SettingsRenderer({ onClose, onBack }: CategoryRendererProps) {
               value={`${field.label} ${field.description ?? ""}`}
               onSelect={() => handleFieldSelect(field)}
             >
-              <span>{field.label}</span>
-              <span className="ml-2 text-muted-foreground text-xs group-data-[selected=true]:text-accent-foreground">
+              <Span inline>{field.label}</Span>
+              <Span
+                size="xs"
+                weight="inherit"
+                tone="muted"
+                className="ml-2 group-data-[selected=true]:text-accent-foreground"
+              >
                 現在: {getCurrentValue(field.key) || "(未設定)"}
-              </span>
+              </Span>
               <ChevronRightIcon className="ml-auto size-4 text-muted-foreground group-data-[selected=true]:text-accent-foreground" />
             </CommandItem>
           ))}

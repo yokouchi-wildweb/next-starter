@@ -3,6 +3,7 @@
 // 行のクリックと紹介の一覧のモーダルの対象は useAdminInviteListTable が持つ。
 // fork は戻り値の配列に自分の列を差し込んで使う(README「管理画面の招待コード一覧」)
 
+import { Span } from "@/components/TextBlocks";
 import { type DataTableColumn } from "@/lib/tableSuite";
 import { formatDateJa } from "@/utils/date";
 
@@ -12,28 +13,28 @@ export function createAdminInviteListColumns(): DataTableColumn<InviteCodeWithCo
   return [
     {
       header: "招待コード",
-      render: (item) => <span className="font-mono text-sm font-medium">{item.coupon.code}</span>,
+      render: (item) => <Span inline size="sm" weight="medium" className="font-mono">{item.coupon.code}</Span>,
     },
     {
       header: "発行者",
-      render: (item) => <span className="text-sm">{item.issuerName ?? item.coupon.attribution_user_id ?? "-"}</span>,
+      render: (item) => <Span inline size="sm">{item.issuerName ?? item.coupon.attribution_user_id ?? "-"}</Span>,
     },
     {
       header: "紹介人数",
       render: (item) => (
-        <span className="font-medium">
+        <Span inline weight="medium">
           {item.referralCount}
-          <span className="text-muted-foreground">人</span>
-        </span>
+          <Span inline tone="muted">人</Span>
+        </Span>
       ),
       align: "right",
     },
     {
       header: "ステータス",
       render: (item) => (
-        <span className={item.coupon.status === "active" ? "text-success-text" : "text-muted-foreground"}>
+        <Span inline tone={item.coupon.status === "active" ? "success" : "muted"}>
           {item.coupon.status === "active" ? "有効" : "無効"}
-        </span>
+        </Span>
       ),
     },
     {

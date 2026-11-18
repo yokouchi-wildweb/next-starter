@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
 import type { InsertFieldsMap } from "@/components/Form/FieldRenderer";
+import { Block } from "@/components/Layout/Block";
 import { FieldRenderer, type FieldRendererProps } from "@/components/Form/FieldRenderer";
 import { useRelationOptions } from "@/lib/domain/hooks/useRelationOptions";
 import { toCamelCase } from "@/utils/stringCase.mjs";
@@ -135,7 +136,7 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
   );
 
   if (wrapperClassName) {
-    return <div className={wrapperClassName}>{renderer}</div>;
+    return <Block className={wrapperClassName}>{renderer}</Block>;
   }
 
   return renderer;

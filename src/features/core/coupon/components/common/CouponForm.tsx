@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
+import { Flex } from "@/components/Layout/Flex";
 import type { FieldConfig } from "@/components/Form/Field";
 import type {
   FieldGroup,
@@ -84,7 +85,7 @@ export function CouponForm<TFieldValues extends FieldValues>({
         beforeGroup={beforeGroup}
         afterGroup={afterGroup}
       />
-      <div className="flex justify-center gap-3">
+      <Flex justify="center" gap="sm">
         <Button type="submit" variant="default">
           {submitLabel}
         </Button>
@@ -93,7 +94,7 @@ export function CouponForm<TFieldValues extends FieldValues>({
             キャンセル
           </Button>
         ) : null}
-      </div>
+      </Flex>
     </AppForm>
   );
 }

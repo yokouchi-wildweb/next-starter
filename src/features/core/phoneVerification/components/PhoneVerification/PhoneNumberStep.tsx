@@ -8,8 +8,10 @@ import { Phone } from "lucide-react";
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
 import { Input } from "@/components/Form/Input/Manual";
+import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import type { PhoneVerificationMode } from "@/features/core/phoneVerification/hooks/usePhoneVerification";
 
 export type PhoneNumberStepProps = {
@@ -55,12 +57,12 @@ export function PhoneNumberStep({
   const isChangeMode = mode === "change";
 
   return (
-    <section id="phone-verification-input" className="w-full">
+    <Section id="phone-verification-input" className="w-full">
       <Stack gap="lg">
         <Stack gap="xs">
-          <h2 className="text-xl font-semibold">
+          <SecTitle size="xl" weight="semiBold" align="inherit">
             {isChangeMode ? "電話番号の変更" : "電話番号認証"}
-          </h2>
+          </SecTitle>
           <Para size="sm" className="text-muted-foreground">
             {isChangeMode
               ? "新しい電話番号にSMSで認証コードを送信します。"
@@ -129,6 +131,6 @@ export function PhoneNumberStep({
           </Stack>
         </form>
       </Stack>
-    </section>
+    </Section>
   );
 }

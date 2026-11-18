@@ -8,8 +8,11 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
 import { Input } from "@/components/Form/Input/Manual";
+import { Block } from "@/components/Layout/Block";
+import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { PHONE_VERIFICATION_OTP_LENGTH } from "@/features/core/phoneVerification/constants";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
 
@@ -65,10 +68,10 @@ export function OtpStep({
   const displayPhoneNumber = formatForDisplay(phoneNumber);
 
   return (
-    <section id="phone-verification-otp" className="w-full">
+    <Section id="phone-verification-otp" className="w-full">
       <Stack gap="lg">
         <Stack gap="xs">
-          <h2 className="text-xl font-semibold">認証コード入力</h2>
+          <SecTitle size="xl" weight="semiBold" align="inherit">認証コード入力</SecTitle>
           <Para size="sm" className="text-muted-foreground">
             {displayPhoneNumber} に送信された{PHONE_VERIFICATION_OTP_LENGTH}桁の認証コードを入力してください。
           </Para>
@@ -109,7 +112,7 @@ export function OtpStep({
               {isLoading ? "検証中..." : "認証する"}
             </Button>
 
-            <div className="text-center">
+            <Block className="text-center">
               <Button
                 type="button"
                 variant="ghost"
@@ -119,7 +122,7 @@ export function OtpStep({
               >
                 認証コードを再送信
               </Button>
-            </div>
+            </Block>
 
             <Button
               type="button"
@@ -134,6 +137,6 @@ export function OtpStep({
           </Stack>
         </form>
       </Stack>
-    </section>
+    </Section>
   );
 }

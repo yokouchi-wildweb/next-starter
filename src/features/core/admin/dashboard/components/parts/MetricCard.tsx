@@ -48,21 +48,21 @@ export function MetricCard({ title, value, decoration }: MetricCardProps) {
         decoration.shadow,
       )}
     >
-      <span
+      <Block
         aria-hidden
         className={cn(
           "pointer-events-none absolute inset-0 bg-gradient-to-br opacity-80",
           decoration.gradient,
         )}
       />
-      <span
+      <Block
         aria-hidden
         className={cn(
           "pointer-events-none absolute -right-16 top-1/2 h-52 w-52 -translate-y-1/2 rounded-full blur-3xl",
           decoration.glow,
         )}
       />
-      <span
+      <Block
         aria-hidden
         className={cn(
           "pointer-events-none absolute -left-20 top-0 h-32 w-40 -translate-y-1/3 rotate-12 blur-2xl",

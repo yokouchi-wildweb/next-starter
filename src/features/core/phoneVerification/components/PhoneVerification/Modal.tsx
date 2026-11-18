@@ -2,6 +2,7 @@
 
 "use client";
 
+import { Block } from "@/components/Layout/Block";
 import Modal from "@/components/Overlays/Modal";
 import { PhoneVerification, type PhoneVerificationProps } from "./PhoneVerification";
 
@@ -64,14 +65,14 @@ export function PhoneVerificationModal({
       titleSrOnly
       maxWidth={480}
     >
-      <div className="p-1">
+      <Block className="p-1">
         <PhoneVerification
           mode={mode}
           currentPhoneNumber={currentPhoneNumber}
           onComplete={handleComplete}
           onCancel={handleCancel}
         />
-      </div>
+      </Block>
     </Modal>
   );
 }

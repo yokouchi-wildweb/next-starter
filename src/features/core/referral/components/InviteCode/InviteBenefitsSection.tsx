@@ -4,6 +4,7 @@
 
 import { CheckCircleIcon, GiftIcon } from "lucide-react";
 
+import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks";
@@ -15,12 +16,12 @@ const PLACEHOLDER_BENEFITS = [
 
 export function InviteBenefitsSection() {
   return (
-    <div className="rounded-lg bg-gradient-to-br from-primary/5 to-transparent px-4 py-6">
+    <Block className="rounded-lg bg-gradient-to-br from-primary/5 to-transparent px-4 py-6">
       <Flex direction="column" align="center" gap="lg">
         {/* アイコン */}
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/10">
+        <Flex align="center" justify="center" className="h-14 w-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/10">
           <GiftIcon className="h-7 w-7 text-primary" />
-        </div>
+        </Flex>
 
         {/* タイトル・説明文 */}
         <Stack gap="2xs">
@@ -44,6 +45,6 @@ export function InviteBenefitsSection() {
           ))}
         </Stack>
       </Flex>
-    </div>
+    </Block>
   );
 }

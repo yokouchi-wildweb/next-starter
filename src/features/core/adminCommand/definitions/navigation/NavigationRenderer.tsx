@@ -5,6 +5,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 import { ArrowLeftIcon } from "lucide-react";
+import { Button } from "@/components/Form/Button/Button";
+import { Flex } from "@/components/Layout/Flex";
+import { Span } from "@/components/TextBlocks";
 
 import {
   Command,
@@ -67,14 +70,17 @@ export function NavigationRenderer({ onClose, onBack }: CategoryRendererProps) {
       key="navigation"
       className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
     >
-      <div className="flex items-center gap-2 border-b">
-        <button
+      <Flex align="center" gap="xs" className="border-b">
+        <Button
           type="button"
+          variant="none"
+          size="none"
+          propagateClick
           onClick={onBack}
           className="p-1 ml-2 hover:bg-accent rounded"
         >
           <ArrowLeftIcon className="size-4" />
-        </button>
+        </Button>
         <CommandInput
           placeholder="ナビゲーション先を検索..."
           value={searchValue}
@@ -83,7 +89,7 @@ export function NavigationRenderer({ onClose, onBack }: CategoryRendererProps) {
           inputMode="email"
           autoFocus
         />
-      </div>
+      </Flex>
       <CommandList>
         <CommandEmpty>項目が見つかりません</CommandEmpty>
         <CommandGroup heading="ナビゲーション">
@@ -94,12 +100,17 @@ export function NavigationRenderer({ onClose, onBack }: CategoryRendererProps) {
               value={`${item.label} ${item.description ?? ""} ${item.keywords?.join(" ") ?? ""}`}
               onSelect={() => handleNavigate(item.href)}
             >
-              {item.icon && <span className="mr-2">{item.icon}</span>}
-              <span>{item.label}</span>
+              {item.icon && <Span inline className="mr-2">{item.icon}</Span>}
+              <Span inline>{item.label}</Span>
               {item.description && (
-                <span className="ml-2 text-muted-foreground text-xs group-data-[selected=true]:text-accent-foreground">
+                <Span
+                size="xs"
+                weight="inherit"
+                tone="muted"
+                className="ml-2 group-data-[selected=true]:text-accent-foreground"
+              >
                   {item.description}
-                </span>
+                </Span>
               )}
             </CommandItem>
           ))}

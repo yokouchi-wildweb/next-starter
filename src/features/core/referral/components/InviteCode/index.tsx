@@ -53,7 +53,7 @@ export function InviteCode({ benefits }: { /** 招待特典の説明(省略 = �
 
         <Block appearance="outlined" className="divide-y divide-border">
           {/* 招待コード表示エリア */}
-          <div className="p-4 sm:p-6">
+          <Block className="p-4 sm:p-6">
             {isLoadingCode ? (
               <Flex direction="column" align="center" gap="md">
                 <BaseSkeleton className="h-5 w-40" />
@@ -62,8 +62,11 @@ export function InviteCode({ benefits }: { /** 招待特典の説明(省略 = �
             ) : inviteCode ? (
               <Flex direction="column" align="center" gap="lg">
                 <Para size="sm" tone="muted">あなたの招待コード</Para>
-                <button
+                <Button
                   type="button"
+                  variant="none"
+                  size="none"
+                  propagateClick
                   onClick={() => handleCopy(inviteCode.code)}
                   className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-6 py-3 font-mono text-lg font-bold tracking-widest transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
@@ -73,7 +76,7 @@ export function InviteCode({ benefits }: { /** 招待特典の説明(省略 = �
                   ) : (
                     <CopyIcon className="h-4 w-4 text-muted-foreground" />
                   )}
-                </button>
+                </Button>
                 <Para size="xs" tone="muted">
                   {copied ? "コピーしました" : "タップしてコピー"}
                 </Para>
@@ -91,31 +94,31 @@ export function InviteCode({ benefits }: { /** 招待特典の説明(省略 = �
                 )}
               </Flex>
             )}
-          </div>
+          </Block>
 
           {/* 招待特典 */}
-          <div className="p-4 sm:p-6">
+          <Block className="p-4 sm:p-6">
             {benefits ?? <InviteBenefitsSection />}
-          </div>
+          </Block>
 
           {/* 招待実績 */}
-          <div className="p-4 sm:p-6">
+          <Block className="p-4 sm:p-6">
             <Flex align="center" gap="md">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <Flex align="center" justify="center" className="h-10 w-10 rounded-full bg-primary/10">
                 <UsersIcon className="h-5 w-5 text-primary" />
-              </div>
-              <div>
+              </Flex>
+              <Block>
                 <Para size="sm" tone="muted" className="!mb-0">招待実績</Para>
                 {isLoadingReferrals ? (
                   <BaseSkeleton className="h-5 w-24" />
                 ) : (
-                  <p className="text-sm font-medium text-foreground">
+                  <Para size="sm" weight="medium" tone="default" align="inherit" className="my-0">
                     {count ?? 0}人を招待しました
-                  </p>
+                  </Para>
                 )}
-              </div>
+              </Block>
             </Flex>
-          </div>
+          </Block>
         </Block>
       </Stack>
     </Section>
