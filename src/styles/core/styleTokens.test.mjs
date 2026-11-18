@@ -6,7 +6,7 @@
 //    (下流の直下のファイルに頼らない = 下流が何も書かなくても動く)
 // 2. core/palette.css の .dark は :root に無い変数を持ち込まない(ライトで未定義の変数を作らない)
 // 3. core/palette.css は値だけを持つ(@theme や @custom-variant などの構造を含まない)
-// 4. core/index.css が upstream の CSS を読み、global.css はそれを最初に、fork の 4 ファイルを後に読む(後勝ちの上書き契約)
+// 4. core/index.css が upstream の CSS を読み、global.css はそれを最初に、fork の 5 ファイルを後に読む(後勝ちの上書き契約)
 // 5. 余白の段のトークン --space-<名前> は core/config.css の :root にあり、値は段の一覧(spacingScale.ts)の px と一致。@theme に --spacing-* は置かない
 // 6. 操作部品の高さの段 --control-h-*(9 段、md は 640px 未満 44px・以上 40px)と --tablet-control-h-*(6 段)は core/config.css の :root にあり、@theme には無い
 //
@@ -129,10 +129,10 @@ test("書体スタックは core/typography.css が持ち、core/palette.css に
   assert.deepEqual(fontsInPalette, [], `core/palette.css に書体変数がある: ${fontsInPalette.join(", ")}`);
 });
 
-test("global.css は core/index.css を最初に、fork の 4 ファイルをその後に読み込む", () => {
+test("global.css は core/index.css を最初に、fork の 5 ファイルをその後に読み込む", () => {
   const entry = importsOf(readEntry("global.css"));
   assert.equal(entry[0], "./core/index.css");
-  for (const name of ["./palette.css", "./typography.css", "./overrides.css", "./gradient.css"]) {
+  for (const name of ["./palette.css", "./typography.css", "./overrides.css", "./gradient.css", "./z-layer.css"]) {
     assert.ok(entry.indexOf(name) > 0, `global.css が ${name} を core/index.css の後に import していない`);
   }
 });
@@ -145,7 +145,7 @@ test("core/index.css は tailwindcss を読み、既定値の順序を保つ", (
   assert.ok(imports.indexOf("./palette.css") < imports.indexOf("./typography.css"));
   assert.ok(imports.includes("./gradient.css"), "core/index.css が上流の既定のグラデーションを読まない");
   const outside = imports.filter((name) => name.startsWith("../"));
-  assert.deepEqual(outside, [], "core/index.css は core/ の外を読まない(直下の gradient.css などそのリポの分は global.css が読む)");
+  assert.deepEqual(outside, [], "core/index.css は core/ の外を読まない(直下の gradient.css・z-layer.css などそのリポの分は global.css が読む)");
 });
 
 test("theme.css に色の値が残っていない(値は core/palette.css へ)", () => {
@@ -164,7 +164,7 @@ test("upstream が出荷する直下の palette / typography / overrides / gradi
     assert.match(body, /^$/, `${name} に upstream がコメント以外を書いている`);
   }
   const entry = stripComments(readEntry("global.css")).trim();
-  assert.match(entry, /^(@import\s+"\.\/[a-z_/]+\.css";\s*)+$/, "global.css に upstream が @import 以外を書いている");
+  assert.match(entry, /^(@import\s+"\.\/[a-z_/-]+\.css";\s*)+$/, "global.css に upstream が @import 以外を書いている");
 });
 
 test("余白の段のトークンは core/config.css の :root にあり、値は段の一覧の px と一致(@theme の --spacing-* にしない)", () => {

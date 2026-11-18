@@ -27,7 +27,7 @@ export type MyPanelLayer = Extract<ZLayerName, "above-header" | "forefront">;
 
 ## 自分の層を足す(fork・中間の段)
 
-`src/config/lib/zLayer.config.ts` に書いて `pnpm generate styles`。直下の `src/styles/z-layer.css`(値と `.<名>-layer`)と `src/lib/zLayer/generated/ownLayers.ts`(`ZLayerName`・`PageLayerName` に名が入る)ができる。
+`src/config/lib/zLayer.config.ts` に書いて `pnpm generate styles`。直下の `src/styles/z-layer.css`(値と `.<名>-layer`)と `src/lib/zLayer/generated/ownLayers.ts`(`ZLayerName`・`PageLayerName` に名が入る)ができる。`z-layer.css` はそのリポの入口 `src/styles/global.css` が `./core/index.css` の後に読む(`core/index.css` は `core/` の外を読まない)。
 
 ```ts
 export default {
