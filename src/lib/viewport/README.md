@@ -36,6 +36,6 @@ return <Stack gap={isShortHeight ? "2xs" : "md"}>...</Stack>;
 
 - `ViewportHeightWatcher` が実寸(visualViewport の幅・高さ、無ければ window.inner*)と `:root` の CSS 変数 `--viewport-height` を書く
 - 追随するのは window の resize と visualViewport の resize / scroll(モバイルのアドレスバーの出入り)
-- store の書き込み(setSize)は入口から出さない
-- `SHORT_HEIGHT_MAX_PX` は `src/styles/core/theme.css` の `short:` バリアントと手で揃える(Tailwind のメディアクエリは CSS 変数を読めない)
-- package.json に `sideEffects` を書かないのは、読み込み時に zustand の store を作るため
+- 入口は store の書き込み(setSize)を出していない(書き手は ViewportHeightWatcher だけ)
+- `SHORT_HEIGHT_MAX_PX`(500)と `src/styles/core/theme.css` の `short:` バリアント(`max-height: 500px`)は同じ値を 2 か所に持つ(Tailwind のメディアクエリは CSS 変数を読めない)
+- package.json に `sideEffects` が無いのは、読み込み時に zustand の store を作るため
