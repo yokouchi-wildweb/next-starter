@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { PAGE_LAYER_NAMES, Z_LAYER_NAMES, zLayerClass } from "./index";
+import { OWN_LAYERS, PAGE_LAYER_NAMES, Z_LAYER_NAMES, zLayerClass } from "./index";
 
 const css = readFileSync("src/styles/core/z-layer.css", "utf8");
 
@@ -36,4 +36,8 @@ test("名は当議会 D189 の 10(ページの層 7 + floating・toast・cover)�
 
 test("ページの層は Z_LAYER_NAMES の floating より前の 7 つ(同じ順)", () => {
   assert.deepEqual([...PAGE_LAYER_NAMES], Z_LAYER_NAMES.slice(0, Z_LAYER_NAMES.indexOf("floating")));
+});
+
+test("自分の層(生成物 OWN_LAYERS)は上流の名と重ならない。上流の Tier1 では空", () => {
+  for (const own of OWN_LAYERS as readonly { name: string }[]) assert.ok(!(Z_LAYER_NAMES as readonly string[]).includes(own.name), own.name);
 });

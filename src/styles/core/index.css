@@ -30,6 +30,9 @@
 @import "./config.css";
 @import "./frame.css";
 @import "./z-layer.css";
+/* このリポが足した重なりの層(直下の z-layer.css、pnpm generate styles が src/config/lib/zLayer.config.ts から作る。当議会 D189)。
+   fork 所有の生成物を上流の入口から読むのは、global.css を上流が書き換えないため(fork の手を要らなくする) */
+@import "../z-layer.css";
 @import "./base.css";
 @import "./components.css";
 @import "./utilities.css";

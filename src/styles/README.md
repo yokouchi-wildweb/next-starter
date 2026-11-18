@@ -96,6 +96,7 @@ src/styles/
 ├── typography.css          下流      変えたい書体・サイズだけ書く(同上)
 ├── overrides.css           下流      要素の既定・@keyframes・data-slot の規則(同上)
 ├── gradient.css            下流      このリポのグラデーション。pnpm generate styles が src/config/app/gradients.config.ts から生成(手で書かない。出荷時は空)
+├── z-layer.css             下流      このリポが足した重なりの層。pnpm generate styles が src/config/lib/zLayer.config.ts の layers から生成(手で書かない。出荷時は空。core/index.css が読む)
 ├── README.md               upstream  このファイル(所有はファイル単位)
 └── core/                   upstream  ★ fork は編集しない(値の変更は直下のファイルで上書き)
     ├── index.css           upstream  @layer の順序・tailwindcss・tw-animate-css と upstream の CSS の import だけ

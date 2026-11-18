@@ -24,3 +24,21 @@ export type MyPanelLayer = Extract<ZLayerName, "above-header" | "forefront">;
 ## 依存
 
 なし（閉じた lib。`libs: []`）。
+
+## 自分の層を足す(fork・中間の段)
+
+`src/config/lib/zLayer.config.ts` に書いて `pnpm generate styles`。直下の `src/styles/z-layer.css`(値と `.<名>-layer`)と `src/lib/zLayer/generated/ownLayers.ts`(`ZLayerName`・`PageLayerName` に名が入る)ができる。
+
+```ts
+export default {
+  layers: [
+    { name: "game-effect", above: "forefront" }, // forefront(560)の上 → 570
+    { name: "game-hud", above: "game-effect" },  // 先に書いた自分の層の上 → 580
+  ],
+} satisfies ZLayerOverride;
+```
+
+- `above` はページの層(`PAGE_LAYER_NAMES`)か先に書いた自分の層だけ。値は above の上・上流の次の層の手前の帯の中で、書いた順に +10 ずつ上へ積む
+- 生成が失敗する(理由を出し、何も書かない): above が `floating`・`toast`・`cover`(浮く物より上には置けない、当議会 D194)/ 知らない名 / 後に書く自分の層、名が kebab-case でない・上流の名と同じ・重複、帯に入りきらない、`src/styles/` の自分の CSS が上流の `--z-layer-<上流の名>` を定義している(上流の層の値は書き換えない、D187)
+- 自分の層は自分のページの要素・全画面の部品(`FullScreen` の `layer`)にだけ使う。浮く物は層を選ばない(D190)
+

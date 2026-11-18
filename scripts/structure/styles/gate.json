@@ -1,1 +1,1 @@
-{ "check": "check-built-css.ts", "generate": "generate.ts", "gates": ["build:post"], "outputs": ["src/lib/mail/generated/themeColors.ts", "src/components/Layout/spacingClasses.generated.ts", "src/styles/core/gradient.css", "src/styles/gradient.css"] }
+{ "check": "check-built-css.ts", "generate": "generate.ts", "gates": ["build:post"], "outputs": ["src/lib/mail/generated/themeColors.ts", "src/components/Layout/spacingClasses.generated.ts", "src/styles/core/gradient.css", "src/styles/gradient.css", "src/styles/z-layer.css", "src/lib/zLayer/generated/ownLayers.ts"] }

@@ -4,6 +4,8 @@
 // 部品の layer の指定・fork の演出は、名をこの一覧から選び、class は zLayerClass で引く(表を自前で持たない)。
 // 名の追加・削除は z-layer.css と同時に行う(zLayer.test.ts が突き合わせる)。README: ./README.md
 
+import { OWN_LAYERS } from "./generated/ownLayers";
+
 /**
  * 層の名(下から上の順、当議会 D189)。
  * ページの層 = background・content・backside-ui・below-header・header・above-header・forefront(ページの要素と fork の演出)。
@@ -23,7 +25,14 @@ export const Z_LAYER_NAMES = [
   "cover",
 ] as const;
 
-export type ZLayerName = (typeof Z_LAYER_NAMES)[number];
+/** 上流の層の名 */
+export type UpstreamZLayerName = (typeof Z_LAYER_NAMES)[number];
+
+/** このリポが足した層の名(src/config/lib/zLayer.config.ts → pnpm generate styles、当議会 D189・D194) */
+export type OwnLayerName = (typeof OWN_LAYERS)[number]["name"];
+
+/** 層の名(上流の 10 + 自分の層) */
+export type ZLayerName = UpstreamZLayerName | OwnLayerName;
 
 /**
  * ページの層(floating より下の 7 つ)。ページの要素・全画面の部品(FullScreen・Main の fullscreenLayer)・fork の演出が使う。
@@ -37,9 +46,15 @@ export const PAGE_LAYER_NAMES = [
   "header",
   "above-header",
   "forefront",
-] as const satisfies readonly ZLayerName[];
+] as const satisfies readonly UpstreamZLayerName[];
 
-export type PageLayerName = (typeof PAGE_LAYER_NAMES)[number];
+/** ページの層の名(上流の 7 + 自分の層。自分の層は floating より上に置けないのでいつもページの層) */
+export type PageLayerName = (typeof PAGE_LAYER_NAMES)[number] | OwnLayerName;
+
+/** このリポが足した層(名と above、下から上の順) */
+export { OWN_LAYERS };
+
+export type { OwnLayerDecl, ZLayerConfig, ZLayerOverride } from "./config";
 
 /** 層の名 → z-layer.css の utility class(例: "floating" → "floating-layer") */
 export function zLayerClass<N extends ZLayerName>(name: N): `${N}-layer` {
