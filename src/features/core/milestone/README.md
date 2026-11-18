@@ -1,64 +1,16 @@
 # milestone（マイルストーンフレームワーク）
 
-ユーザーが特定の条件を達成したことを検知・記録し、達成時に任意の処理を実行する汎用フレームワーク。
+## Overview
 
-ベースリポジトリでは**仕組みのみ**提供する。具体的なマイルストーン定義は下流プロジェクトで実装する。
+- ユーザーが特定の条件を達成したことを検知・記録し、達成時に任意の処理を実行する汎用フレームワーク
+- 上流は仕組みだけを持つ。具体的なマイルストーン定義は下流が受け口に置く
+- 閉じられる機能: 門番の規則 `src/featureGate/rules/milestone.ts`(既定は閉 `defaultEnabled: false`、fork は `src/config/featureGate/switches.config.ts` で開ける)。閉じたときの統合ポイント: 決済の完了は評価せず結果は空・本登録の後(user_registered)は何もしない
 
-閉じられる機能(門番の規則 `src/featureGate/rules/milestone.ts`、今は常に開)。閉じたときの統合ポイント: 決済の完了は評価せず結果は空・本登録の後(user_registered)は何もしない。新しい統合ポイントも `gate.enabled("milestone")` を確かめてから `evaluateMilestones` を呼ぶ。
+## Usage
 
----
+### 1. マイルストーン定義を置く
 
-## 仕組み
-
-```
-イベント発生（購入完了など）
-  ↓
-evaluateMilestones(trigger, { userId, payload }, tx?)
-  ↓
-登録済みマイルストーン(シリーズは段階ごとに展開済み)のうち、該当 trigger を持つものをループ
-  ↓ 各マイルストーンについて:
-  ① milestones テーブルで達成済みか確認 → 済みならスキップ
-  ② evaluate(context, tx?) で条件を評価 → false ならスキップ
-  ③ 記録を確定: milestones に insert … on conflict (user_id, milestone_key) do nothing
-     → 行が返らなければ並走が先に記録した = ④ を呼ばない(二重の付与を防ぐ)
-  ④ onAchieved()（報酬付与など。記録と同じ tx）→ 戻り値を metadata に保存
-  ③④ は 1 件ごとに SAVEPOINT(tx あり)か db.transaction(tx なし)の中。④ が投げると記録も戻る
-```
-
-- **シリーズの評価の順**: `order: "sequential"` は段階の並び順に評価し、段階が達成したら、その下に残る未達成の段を**下から順に先に**達成させる(1 回の購入でランクを 2 つ越えたら下の段も記録・付与)。その下の段の `onAchieved` の `params.series` は `{ …印, reachedStageKey: 達成した上の段, viaHigherStage: true }`。下の段の付与を省きたいシリーズは `viaHigherStage` を見て省く(記録はされる)。`"unordered"` と普通の定義は各々独立に評価する
-- **この評価で達成済みの鍵**: `context.achievedInThisEvaluation`(`ReadonlySet<string>`)に、同じ評価で先に達成した鍵が入る(後の定義・段階の evaluate が前の達成を見るとき)
-- テスト: `pnpm test src/features/core/milestone/services/server/wrappers/evaluateMilestones.test.ts`、実 DB(同時実行・巻き戻し・飛ばし): `pnpm test --db src/features/core/milestone/services/server/wrappers/evaluateMilestones.db.test.ts`
-
----
-
-## ファイル構成
-
-```
-milestone/
-├── types/milestone.ts              # 型定義（MilestoneDefinition, PersistedMilestoneResult 等）
-├── constants/triggers.ts            # ベースが提供するトリガー名定数
-├── services/server/
-│   ├── milestoneRegistry.ts         # getMilestonesByTrigger など（一覧の読み手）
-│   ├── wrappers/
-│   │   └── evaluateMilestones.ts    # 評価エンジン（コア処理）
-│   └── definitions/
-│       └── index.ts                 # 下流が副作用インポートを追加する場所
-├── components/
-│   ├── MilestoneNotifications.tsx   # 達成通知リスト表示コンポーネント
-│   ├── DefaultMilestoneNotification.tsx # 未登録キーの汎用通知
-│   └── renderers/
-│       └── <名前>.tsx  # 下流のレンダラーの項目(export const renderer)
-├── entities/                        # 生成ファイル（milestones テーブル定義）
-└── hooks/                           # 生成ファイル（クライアント用フック）
-```
-
----
-
-## 使い方（下流プロジェクト）
-
-### 1. マイルストーン定義ファイルを作成
-
-`services/server/definitions/<名前>.ts` を作成し、`pnpm generate extensions` で一覧に入れる。
+`services/server/definitions/<名前>.ts` を置き、`pnpm generate extensions`(`extensions/definitions.ts` に入る)。これだけで `evaluateMilestones()` の呼び出しで評価される。
 
 ```ts
 // services/server/definitions/firstPurchase.ts
@@ -96,21 +48,9 @@ export const milestone: MilestoneDefinition = {
 };
 ```
 
-### 1-b. 段階のあるシリーズ(1 項目で段階の並びを持つ)
+### 2. 段階のあるシリーズ(1 項目で段階の並びを持つ)
 
-ランクのように「段階ごとに達成がある」物は、段階ごとのファイルを並べず 1 項目のシリーズにする。読み手(`milestoneRegistry`)が評価のたびに `stages()` を読み、段階ごとの定義へ展開する(`getMilestonesByTrigger` / `getMilestoneByKey` / `getAllMilestones` の戻りは展開後の `MilestoneDefinition`、段階のものは `series` の印付き)。
-
-| 欄 | 型 | 意味 |
-| --- | --- | --- |
-| `kind` | `"series"` | シリーズの印(普通の定義には書かない) |
-| `key` | `string` | シリーズの鍵(他のマイルストーン・段階の鍵と重ならない。達成の記録には使わない) |
-| `triggers` | `string[]` | 評価するイベント(段階のすべてに共通) |
-| `order` | `"sequential" \| "unordered"` | 段階どうしの順(ランク = sequential、解放の一覧 = unordered) |
-| `stages` | `() => readonly S[]` | 段階の一覧。評価のたびに呼ぶ(config・setting から読める)。並びがその時の評価の順 |
-| `stageKey` | `(stage: S) => string` | 段階 → 達成の鍵(`milestones.milestone_key` に記録される) |
-| `evaluate` | `(stage, context, tx?) => Promise<boolean>` | 段階の達成条件 |
-| `onAchieved?` | `(stage, params) => Promise<Record<string, unknown> \| void>` | 段階の達成時(付与・通知)。戻り値は metadata |
-| 展開後の `series` | `{ seriesKey, stageKey, index, order }` | 読み手が段階の定義に付ける印(項目には書かない) |
+ランクのように「段階ごとに達成がある」物は、段階ごとのファイルを並べず 1 項目のシリーズにする(欄は `API.md`「シリーズの欄」)。
 
 ```ts
 // services/server/definitions/rankUp.ts
@@ -128,25 +68,8 @@ export const milestone = defineMilestoneSeries({
 });
 ```
 
-- 鍵は段階の名前から作る。並びの番号では作らない(段階を足す・並べ替えると番号が変わり、記録済みの達成と合わなくなる)
-- 段階を消すと、その段階はもう評価されない。記録済みの達成は残る(今の項目のファイルを消したときと同じ)
+- 段階を消すと、その段階はもう評価されない。記録済みの達成は残る(項目のファイルを消したときと同じ)
 - 鍵の重複は読み手が例外にする: 普通の定義・段階の鍵・シリーズの鍵のどれどうしでも、シリーズをまたいでも。`stageKey` が空でも例外
-- `defineMilestoneSeries` は段階の型 `S` を推すための恒等関数(`export const milestone: MilestoneItem = …` と書いてもよい)。受け口の型は `MilestoneItem` = `MilestoneDefinition | MilestoneSeries`
-- テスト: `pnpm test src/features/core/milestone/services/server/milestoneRegistry.test.ts`
-
-### 1-c. シリーズの進み具合(server)
-
-`getMilestoneSeriesProgress(userId, seriesKey, tx?)`(`services/server/wrappers/getMilestoneSeriesProgress.ts`)は今の `stages()` と記録から返す。シリーズが無ければ `null`。
-
-| 欄 | 意味 |
-| --- | --- |
-| `stages` | `[{ stageKey, index, achieved, achievedAt }]`(今の並び。消した段階の記録は出ない) |
-| `achievedKeys` | 達成済みの段階の鍵(並び順。sequential なら最後が今の段) |
-| `next` | 次の段階の鍵(未達成の一番下 / 最初)。全部済みなら `null` |
-| `remaining` | 未達成の段階の数 |
-| `seriesKey` / `order` | シリーズの鍵と順 |
-
-数の残り(次の段まであと何円など)は段階ごとに意味が違うので持たない(段階の値から項目の側で計算する)。client から出すときは自分の route / loader から呼ぶ(上流は hook と API を持たない)。テスト: `pnpm test src/features/core/milestone/services/server/wrappers/getMilestoneSeriesProgress.test.ts`
 
 ### レシピ: ランク(段階のあるシリーズ)
 
@@ -174,80 +97,7 @@ export const milestone = defineMilestoneSeries({
 // 通知: components/renderers/rankUp.tsx に key: "rank_up" のレンダラー 1 つ(seriesResults で越えた段を描く)
 ```
 
-### 2. 一覧を作る
-
-`pnpm generate extensions`（`extensions/definitions.ts` に入る）。
-
-これだけで `evaluateMilestones()` 呼び出し時に自動的に評価される。
-
----
-
-## evaluate で使えるコンテキスト
-
-`evaluate` と `onAchieved` には `MilestoneEventContext` が渡される。
-
-```ts
-type MilestoneEventContext = {
-  userId: string;                       // 対象ユーザーID
-  trigger: string;                      // トリガー名
-  payload: Record<string, unknown>;     // イベント固有データ
-};
-```
-
-`payload` の内容はトリガーごとに異なる。各統合ポイントで何が渡されるかは後述の「統合ポイント一覧」を参照。
-
-`evaluate` には第2引数として `tx?: TransactionClient` も渡される。トランザクション内の最新状態を参照したい場合に使用する。
-
-```ts
-// tx を使ったクエリ例（トランザクション内の未コミットデータも参照可能）
-evaluate: async ({ userId }, tx) => {
-  const executor = tx ?? db;
-  const rows = await executor.select().from(SomeTable).where(...);
-  return rows.length > 0;
-},
-```
-
-`payload` のデータを使うことも、サービスを直接呼び出して追加データを取得することもできる。
-
----
-
-## 統合ポイント一覧
-
-ベースリポジトリが提供する `evaluateMilestones()` の呼び出し箇所。
-
-### `purchase_completed`
-
-- **場所**: `purchaseRequest/services/server/wrappers/purchaseService.ts` の `completePurchase()` 内
-- **タイミング**: 決済完了 → ウォレット残高更新後（同一トランザクション内）
-- **結果の永続化**: 達成されたマイルストーンは `purchase_requests.milestone_results` (jsonb) に自動保存される
-- **クライアントへの伝達**: `/api/wallet/purchase/[id]/status` のレスポンスに `milestoneResults` として含まれる
-- **payload**:
-  - `purchaseRequest`: 完了した購入リクエスト（PurchaseRequest 型）
-  - `walletHistoryId`: 作成されたウォレット履歴ID
-
-```ts
-// payload の使用例
-evaluate: async ({ userId, payload }, tx) => {
-  const pr = payload.purchaseRequest as PurchaseRequest;
-  return pr.payment_amount >= 10000;
-},
-```
-
-### `user_registered`
-
-- **場所**: `auth/services/server/registration.ts` の `register()` の後段（`postRegistrationMilestones.ts` の `runPostRegistrationMilestones`）
-- **タイミング**: 本登録の守り（ID トークンの検証・メール一致・仮登録の確認）→ `registerFromAuth`（active 化）→ プロフィール・流入経路・招待コードの後、セッション発行の前に 1 回。登録の守りより前には発火しない
-- **トランザクション**: 登録とは別の 1 つの tx を開いて評価する（このトリガーの定義が無ければ開かない）。`onAchieved` に渡る `tx` で付与すれば、付与と `milestones` の記録が同時に確定する（同じ人の同時の 2 回目は記録のユニークで落ち、付与も巻き戻る）
-- **1 人 1 回**: `milestones` の `user_id + milestone_key` のユニーク。退会後の再登録など同じ `users.id` の 2 度目の本登録では、発火しても達成済みで走らない
-- **失敗時**: 定義ごとの失敗は SAVEPOINT で分離（他の定義は確定する）。評価そのもの・tx の失敗はログだけで、**登録は止めない**（登録は確定済みで巻き戻さない。巻き戻したい処理はここに置かない）
-- **結果の伝達**: 応答には載せない（`purchase_completed` の `milestone_results` のような永続化は無い）
-- **payload**（`UserRegisteredPayload`）:
-  - `user`: 本登録後の利用者（User 型）
-  - `role`: 本登録のロール
-  - `providerType`: 認証手段（`"email"` など）
-  - `inviteCode`: 招待コードの適用結果（`{ applied: true }` / `{ applied: false, reason }` / `null` = 指定なし）
-
-登録ボーナスのレシピ（金額は管理画面で変えられる setting の項目、付与は定義 1 つ）:
+### レシピ: 登録ボーナス(金額は管理画面で変えられる setting の項目、付与は定義 1 つ)
 
 ```ts
 // 1. src/features/core/setting/fields/signupBonusCoinAmount.ts（setting の項目の受け口。書式は setting README）
@@ -288,13 +138,9 @@ export const milestone: MilestoneDefinition = {
 };
 ```
 
----
+### 独自トリガーを足す
 
-## 独自トリガーの追加（下流プロジェクト）
-
-ベースが提供する統合ポイント以外にも、下流プロジェクトで独自にトリガーを追加できる。
-
-### 手順
+上流の統合ポイント以外にも、下流が独自にトリガーを足せる。
 
 1. トリガー名の定数を定義（任意の場所）
 
@@ -327,49 +173,9 @@ export const milestone: MilestoneDefinition = {
 };
 ```
 
----
+### 達成の通知を描く(レンダラー)
 
-## クライアント側のレンダラーシステム
-
-サーバー側の定義(`definitions/`)と対称的に、クライアント側でマイルストーン達成時のUI通知を登録できる仕組み。
-
-### 仕組み
-
-```
-completePurchase() で milestone_results を jsonb に保存
-  ↓
-/api/wallet/purchase/[id]/status のレスポンスに milestoneResults を含める
-  ↓
-表示する fork が自分の画面に置いた MilestoneNotifications が描画(上流の画面は描かない。下の「表示する場所」)
-  ↓
-各マイルストーンについて:
-  ① レンダラーレジストリから該当キーのレンダラーを検索
-  ② displayMode で分離:
-     - inline（デフォルト）→ リスト内にインライン表示
-     - modal → リストから除外し、別途モーダルとして描画
-  ③ 登録済み → そのコンポーネントで描画
-  ④ 未登録 → DefaultMilestoneNotification（汎用通知）で描画
-```
-
-### 永続化型
-
-`PersistedMilestoneResult` は `evaluateMilestones` の結果を jsonb にシリアライズするための型。
-
-```ts
-type PersistedMilestoneResult = {
-  milestoneKey: string;        // マイルストーンキー
-  achieved: boolean;           // 達成したかどうか（保存されるのは true のみ）
-  metadata?: Record<string, unknown>; // onAchieved の戻り値
-  seriesKey?: string;          // シリーズの段階のとき: シリーズの鍵
-  stageKey?: string;           // シリーズの段階のとき: 段階の鍵(= milestoneKey)
-};
-```
-
-`evaluateMilestones` の結果(`MilestoneEvaluationResult`)も段階のときは `series: { seriesKey, stageKey }` を持つ。`completePurchase` は保存する結果にこの 2 つを写す(普通の定義の結果の形は今と同じ)。
-
-### レンダラーの登録（下流プロジェクト）
-
-#### 1. レンダラーコンポーネントを作成
+1. レンダラーの部品を責務のドメインに作る
 
 ```tsx
 // src/features/myDomain/components/FirstPurchaseCelebration.tsx
@@ -389,7 +195,7 @@ export function FirstPurchaseCelebration({ result }: MilestoneRendererProps) {
 }
 ```
 
-#### 2. 受け口に項目を置く
+2. 受け口 `components/renderers/<名前>.ts` に項目を置き、`pnpm generate extensions`
 
 ```ts
 // components/renderers/firstPurchase.ts
@@ -405,20 +211,8 @@ export const renderer: MilestoneRendererDefinition = {
 };
 ```
 
-→ `pnpm generate extensions`。受け口に置くのは項目だけ(部品は責務のドメインへ)。
-
-#### シリーズのレンダラー(段をまとめて描く)
-
-`key` にシリーズの鍵を書くと、そのシリーズの段の結果を 1 つにまとめて描く(1 回の購入でランクを 2 つ越えても通知は 1 つ)。`MilestoneNotifications` は段階の鍵 → シリーズの鍵の順で引き、**段階の鍵の項目が勝つ**(その段だけ別の演出にできる)。
-
-| props | シリーズの鍵のレンダラー | 段階の鍵・普通の定義の鍵のレンダラー |
-| --- | --- | --- |
-| `result` | その評価で達成した段のうち一番上の段 | その結果 |
-| `seriesResults` | その評価で達成した段の結果の全部(下から = 評価の順) | `undefined` |
-
-レンダラーの無い段は今と同じく 1 件ずつ既定の通知。テスト: `pnpm test src/features/core/milestone/components/MilestoneNotifications.render.test.tsx`
-
-描くのは `MilestoneNotifications` を置いた画面だけ(上流の画面はどこにも置かない。下の「表示する場所」)。
+- モーダル型(`displayMode: "modal"`)の部品は、自身でモーダルの表示 / 非表示を持つ
+- シリーズの段をまとめて描くレンダラーは `key` にシリーズの鍵を書く(props は `API.md`「レンダラー」)
 
 ### 表示する場所
 
@@ -433,29 +227,57 @@ export const renderer: MilestoneRendererDefinition = {
   ```
 - 画面に出さない: 定義の `onAchieved` で別の経路(アプリ内通知など)へ送る
 
-### 表示モード（displayMode）
+## API
 
-レンダラー登録時に `displayMode` を指定して表示方法を切り替えられる。
+- シリーズの欄・進み具合・評価のコンテキスト・統合ポイントの payload・結果の型・レンダラーの props: `API.md`
 
-| モード | 動作 | ユースケース |
-|---|---|---|
-| `inline`（デフォルト） | リスト内にインライン表示 | 一般的な達成通知 |
-| `modal` | リストから除外し、モーダルとして描画 | ランクアップ演出、初回購入の特別演出 |
+## Extension
 
-モーダル型のレンダラーコンポーネントは、自身でモーダルUIの表示/非表示を管理する。
+- マイルストーン定義: 受け口 `services/server/definitions/<名前>.ts` の `export const milestone`(型 `MilestoneItem`、上流の項目は 0)
+- 達成通知のレンダラー: 受け口 `components/renderers/<名前>.ts(x)` の `export const renderer`(型 `MilestoneRendererDefinition`、上流の項目は 0 = 全キーが既定の通知 `DefaultMilestoneNotification`)
+- どちらも置いた・消したら `pnpm generate extensions`(仕組み: `scripts/structure/extensions/README.md`)
 
-```ts
-export const renderer: MilestoneRendererDefinition = {
-  key: "rank_up",
-  component: RankUpModal,       // モーダルUI込みのコンポーネント
-  displayMode: "modal",
-  priority: 100,
-};
+## Internals
+
+### 評価の流れ
+
+```
+イベント発生（購入完了など）
+  ↓
+evaluateMilestones(trigger, { userId, payload }, tx?)
+  ↓
+登録済みマイルストーン(シリーズは段階ごとに展開済み)のうち、該当 trigger を持つものをループ
+  ↓ 各マイルストーンについて:
+  ① milestones テーブルで達成済みか確認 → 済みならスキップ
+  ② evaluate(context, tx?) で条件を評価 → false ならスキップ
+  ③ 記録を確定: milestones に insert … on conflict (user_id, milestone_key) do nothing
+     → 行が返らなければ並走が先に記録した = ④ を呼ばない(二重の付与を防ぐ)
+  ④ onAchieved()（報酬付与など。記録と同じ tx）→ 戻り値を metadata に保存
+  ③④ は 1 件ごとに SAVEPOINT(tx あり)か db.transaction(tx なし)の中。④ が投げると記録も戻る
 ```
 
----
+- **シリーズの評価の順**: `order: "sequential"` は段階の並び順に評価し、段階が達成したら、その下に残る未達成の段を**下から順に先に**達成させる(1 回の購入でランクを 2 つ越えたら下の段も記録・付与)。その下の段の `onAchieved` の `params.series` は `{ …印, reachedStageKey: 達成した上の段, viaHigherStage: true }`。下の段の付与を省きたいシリーズは `viaHigherStage` を見て省く(記録はされる)。`"unordered"` と普通の定義は各々独立に評価する
+- **この評価で達成済みの鍵**: `context.achievedInThisEvaluation`(`ReadonlySet<string>`)に、同じ評価で先に達成した鍵が入る(後の定義・段階の evaluate が前の達成を見るとき)
 
-## 設計上の注意点
+### 通知の描き方
+
+```
+completePurchase() で milestone_results を jsonb に保存
+  ↓
+/api/wallet/purchase/[id]/status のレスポンスに milestoneResults を含める
+  ↓
+表示する fork が自分の画面に置いた MilestoneNotifications が描画(上流の画面は描かない。下の「表示する場所」)
+  ↓
+各マイルストーンについて:
+  ① レンダラーレジストリから該当キーのレンダラーを検索
+  ② displayMode で分離:
+     - inline（デフォルト）→ リスト内にインライン表示
+     - modal → リストから除外し、別途モーダルとして描画
+  ③ 登録済み → そのコンポーネントで描画
+  ④ 未登録 → DefaultMilestoneNotification（汎用通知）で描画
+```
+
+### 冪等・分離・トランザクション
 
 - **冪等性**: `user_id + milestone_key` のユニーク制約で、同じマイルストーンが二重に記録されることはない。記録を確定してから `onAchieved` を呼ぶので、同時に 2 回評価されても付与は 1 回(記録を取れた側だけが呼ぶ)
 - **エラー分離**: 個別マイルストーンの evaluate/onAchieved でエラーが発生しても、他のマイルストーンの評価は継続する。tx がある場合は PostgreSQL の SAVEPOINT で分離されるため、DB エラーがトランザクション全体を汚染しない
@@ -463,9 +285,16 @@ export const renderer: MilestoneRendererDefinition = {
 - **パフォーマンス**: 登録マイルストーンが0件の場合、`evaluateMilestones` は即座に空配列を返す（オーバーヘッドなし）
 - **user_id に FK なし**: ユーザー削除後も達成記録は保持される
 
----
+## Verification
 
-## referralReward との関係
+- 評価: `pnpm test src/features/core/milestone/services/server/wrappers/evaluateMilestones.test.ts`、実 DB(同時実行・巻き戻し・飛ばし): `pnpm test --db src/features/core/milestone/services/server/wrappers/evaluateMilestones.db.test.ts`
+- シリーズの読み手: `pnpm test src/features/core/milestone/services/server/milestoneRegistry.test.ts`
+- 進み具合: `pnpm test src/features/core/milestone/services/server/wrappers/getMilestoneSeriesProgress.test.ts`
+- 通知: `pnpm test src/features/core/milestone/components/MilestoneNotifications.render.test.tsx`
+
+## Related
+
+### referralReward との関係
 
 | | referralReward | milestone |
 |---|---|---|
