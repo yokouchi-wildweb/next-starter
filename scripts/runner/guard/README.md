@@ -22,8 +22,8 @@
 
 ### 使う側
 
-- 書く入口(`guardEntry({ write: true, ... })`): `pnpm task`・`pnpm ops db seed`・`pnpm workflow dev-admin run`(この 3 つは `scripts/runner/task/prepare.ts` の `loadEnvFile`)・`pnpm db:push`・`pnpm ops db clear`・`pnpm ops db inspect query`・`pnpm ops firestore inspect delete`・`pnpm ops storage setup` / `setup-cors`・`pnpm ops mail test-send`
-- 読む入口(`write: false`): `pnpm db:push:check`・`pnpm ops db inspect` のほか・`pnpm ops firestore inspect` のほか・`pnpm ops room check`・`pnpm ops claude test`
+- 書く入口(`guardEntry({ write: true, ... })`): `pnpm task`・`pnpm ops db seed`・`pnpm workflow dev-admin run`(この 3 つは `scripts/runner/task/prepare.ts` の `loadEnvFile`)・`pnpm db:push`・`pnpm ops db clear`・`pnpm ops db inspect query`・`pnpm ops firestore inspect delete`・`pnpm ops storage setup` / `setup-cors`・`pnpm ops mail test-send`・`pnpm ops data import` / `update` / `delete`
+- 読む入口(`write: false`): `pnpm db:push:check`・`pnpm ops db inspect` のほか・`pnpm ops firestore inspect` のほか・`pnpm ops room check`・`pnpm ops claude test`・`pnpm ops data export`
 - デプロイ(`guardDeploy`): Internals「デプロイ」
 - 入口を足したら先頭で `guardEntry` を呼び、dotenv を自前で読まない(`guard.test.ts` の入口の一覧に足す)
 - 守りの旗(`--env`・`--confirm=`)は `process.argv` から外してから入口に渡す。`--dry-run` は入口の物なので残す
@@ -33,7 +33,7 @@
 ### 止める(何もしない、exit 1)
 
 - 読むファイルが無い(`.env.production` が無いことは本番を指した時だけ止める)
-- 段階の印 `APP_ENV` が無い・知らない値・ファイル名(と向き先)の段階と違う。シェルの `APP_ENV` が向き先と違う
+- 段階の印(env ファイルの `APP_ENV=<段階>` の行)が無い・知らない値・ファイル名(と向き先)の段階と違う。シェルの `APP_ENV` が向き先と違う
 - シェルから継いだ `DATABASE_URL` が、向き先のファイル(`.local` を重ねた後)の `DATABASE_URL` と別の DB(host と DB 名で比べる。資格情報や引数の違いは同じ DB)。値は上書きしないので、止めないと検査した DB と繋ぐ DB がずれる。ホストの env は継いだ値そのものなので掛けない
 - 本番を指して、本番と開発が同じ DB(host と DB 名)
 - 本番の DB に書くのに本番の `DATABASE_URL` が空(リリース前 = 未設定。同じ DB の判定には掛けない)
@@ -49,7 +49,7 @@
 - ルームの Worker は常に本番(realtimeRoom の設定 `enabled` が false なら出さないので確認も無い)
 - `live:all` は確認を 1 回だけ取り、子の `pnpm ops room deploy` に `--confirm=production` を渡す
 - 本番に出す時は、確認の後にセーフポイントを確かめる(`pnpm live`・`live:all`・`live:room`・`pnpm ops room deploy` の全部。`scripts/operations/deploy/lib.ts` の `guardSafePoint`。仕様 = `.notices/README.md`「区切り(checkpoint)と区間適用」のセーフポイント)
-  - fork = 台帳の最後の `upstream:<sha>` が直接の親の `safe/<親の fork_id>/*` tag ちょうど、Tier1 = HEAD が `safe/<自分の fork_id>/*` tag ちょうど。違えば止める
+  - fork = 台帳の最後の `upstream:<sha>` が直接の親の `safe/<親の repo_id>/*` tag ちょうど、Tier1 = HEAD が `safe/<自分の repo_id>/*` tag ちょうど。違えば止める
   - `--allow-unsafe=<理由>` で通す(確認は要る。理由を出す。vercel・wrangler には渡さない。`live:all`・`live:room` は子の `pnpm ops room deploy` に同じ `--allow-unsafe=<理由>` を渡す)
 
 ## Verification

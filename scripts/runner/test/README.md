@@ -31,12 +31,12 @@ pnpm test --file-timeout=300    # 1 ファイルの時間の上限を延ばす(�
 
 ### テストを書くとき
 
-- 下駄・時間の上限・module mocks は入口が常に付けるので、テストに書かない
+- 下駄(`--import` で先に読む `scripts/runner/preload/` の serverOnly・fileTimeout)・時間の上限・module mocks は入口が常に付けるので、テストに書かない
 - ほかの node のフラグ: ファイルの先頭行に `// test-flags: <flags>`。入口の許可の一覧(`scan.mjs` の `ALLOWED_FLAGS`、今は空)の物だけ渡し、ほかは止める(exit 2)。足すのは上流
 - 終わり方: ファイルのプロセスは自然に終わるのを待つ。偽物にし忘れた hook の通信(SWR + axios)・閉じ忘れたサーバー・止め忘れたタイマーが残ったファイルは終わらず、1 ファイルの上限(下)で `時間切れ` として名前付きで落ちる → テストの側で本物の通信を偽物にする・閉じる
   - `--test-force-exit` は使わない: テストが終わった子を、報告を親へ書き切る前に終えるので、ファイルの後ろの方のテストの結果が消える。消えた分は pass にも fail にも数えられず exit も変わらない(そこで落ちたテストが隠れる)。実測: 同じ木の pnpm test 全体で、付けると 4156〜4195 本と回ごとに揺れ、付けなければ毎回 4219 本
 - テストの中で子の `node --test` / `tsx --test` を起動する時は、環境変数から `NODE_TEST_CONTEXT` を外す(親の node --test の印。残ると子は結果を親向けに流し、子が落ちても exit 0 になる。例 `src/utils/date.test.ts`)
-- 門番の全開スイッチ `FEATURE_GATE_OPEN` は子に渡さない(上流の開発の env の `all` をシェルで export していても、テストの答えは規則の値と `overrideSwitches` で決まる)。スイッチそのものを試すテストは自分で env を置く
+- 機能の門番(`src/featureGate`)の全開スイッチ `FEATURE_GATE_OPEN` は子に渡さない(上流の開発の env の `all` をシェルで export していても、テストの答えは規則の値と `overrideSwitches` で決まる)。スイッチそのものを試すテストは自分で env を置く
 
 ## Internals
 
@@ -45,7 +45,7 @@ pnpm test --file-timeout=300    # 1 ファイルの時間の上限を延ばす(�
 - 起動: `node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --import ./scripts/runner/preload/fileTimeout.mjs --experimental-test-module-mocks --test-timeout=<ms> --test <files>`(1 ファイル 1 プロセス)
   - `--test` の後のファイルを node は glob として読む → 入口はパスの `[ ] { } * ?` を `[x]` の形にして渡す(`[id]/` の下は `[[]id[]]/`)。そのまま渡すと `src/app/**/[id]/` の下のテストが 0 本になり、黙って通る
   - `npx` は通さない: コマンドを shell に渡すので、shell の glob が `[[]id[]]` を `[id]` に戻してしまう(tsx の cli を node で直に起動する)
-- `--changed`: 範囲(門の watch と同じ: 比べる枝との分岐点..HEAD + 作業ツリー + 未追跡、`scripts/runner/gates/changed.mjs`)の変更したファイルについて、テストのファイルから import を辿って(dpdm、`@/` は tsconfig)届くテストと、変更したファイルと同じフォルダのテストを選ぶ。辿れなかったテストは同じフォルダの規則だけで選び「依存を辿れなかった」と出す。範囲が決まらなければ全部回す
+- `--changed`: 範囲(門 = `scripts/runner/gates` の検査の束、の watch と同じ: 比べる枝との分岐点..HEAD + 作業ツリー + 未追跡、`scripts/runner/gates/changed.mjs`)の変更したファイルについて、テストのファイルから import を辿って(dpdm、`@/` は tsconfig)届くテストと、変更したファイルと同じフォルダのテストを選ぶ。辿れなかったテストは同じフォルダの規則だけで選び「依存を辿れなかった」と出す。範囲が決まらなければ全部回す
 - 1 ファイルの時間の上限の仕組み: `scripts/runner/preload/fileTimeout.mjs` が node --test の子(env `NODE_TEST_CONTEXT` の付いたプロセス)の中で unref したタイマーを置き、過ぎたら exit 1。node の `--test-timeout` は `test()` 1 つごとで、テストの後に接続・タイマーが残って終わらないファイルを止められない。同期の無限ループには効かない(タイマーが動けない)
 - 役目: `run.mjs` 入口(引数・選ぶ・束ねて起動)・`scan.mjs` 走査・群・`// test-flags:`・`changed.mjs` `--changed` の選び方(dpdm の木と同じフォルダ)
 

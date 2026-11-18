@@ -35,9 +35,9 @@ pnpm generate [<対象>] [--gate=<門>] [-- <入口への引数>]
 { "check": "check.mjs", "generate": "generate.mjs", "gates": ["ship", "forge:post"], "after": ["domain"], "watch": ["src/features/**/domain.json"], "features": ["coupon"] }
 ```
 
-- `check` / `generate`: このフォルダの中の入口のファイル名(どちらか必須)。`.mjs` / `.js` は node、`.ts` は tsx(+ server-only の下駄)で起動する。env `GATE=<門 | ->` が付く
+- `check` / `generate`: このフォルダの中の入口のファイル名(どちらか必須)。`.mjs` / `.js` は node、`.ts` は tsx(+ `scripts/runner/preload/serverOnly.mjs` の preload)で起動する。env `GATE=<門 | ->` が付く
 - `gates`: 乗る門(gates.json にある名前だけ)
-- `after`: 先に回る対象のフォルダ名。順序 = after を満たす順。同じ段では上流(名簿にある物)が先で名前順、名簿に無い fork のフォルダは上流の全部の後に名前順。上流の対象が fork の対象の後を求める宣言と循環は止める
+- `after`: 先に回る対象のフォルダ名。順序 = after を満たす順。after の順で同じ位置に並ぶ物の中では上流(名簿にある物)が先で名前順、名簿に無い fork のフォルダは上流の全部の後に名前順。上流の対象が fork の対象の後を求める宣言と循環は止める
 - `watch`: 変更を見るパスの glob(リポジトリ直下からの相対、`**` = 何段でも・`*` = 1 段の中・`?` = 1 文字)。watch の門で選んだ時に使う(下)
 - `features`: 機能名(src/featureGate の規則名)。どれかが閉じていれば飛ばし、「機能 <名前> が閉じているので飛ばした」を必ず出す。知らない機能名は止める
 - `outputs`: この生成器が書くファイルの宣言(生成器が出力を宣言する唯一の場所)。1 行 = glob の文字列(リポジトリ直下からの相対、= `every-run`)か `{ glob, kind?, source? }`(`kind` = `every-run` 毎回書き直す(省略時)/ `write-once` 無いときだけ書く、`source` = 変えたいときに直す物)。`every-run` の行は受け口の一覧(src/lib/forkOwnership/intake.txt)の `generated` の行になる(`pnpm generate extensions` が書く。`{dir}` などドメインの置き換えを持つ glob は除く: scripts/structure/domain/README.md)
@@ -57,8 +57,8 @@ pnpm generate [<対象>] [--gate=<門>] [-- <入口への引数>]
 - 範囲 = 比べる枝(上流の追跡先 → `origin/<今の枝>` → `origin/HEAD` → `origin/main` の最初にある物)との分岐点から HEAD まで + 作業ツリーの変更 + 未追跡のファイル
 - 回す: watch の無い対象・対象の名前で呼んだ時・`--all`・watch の門でない時・範囲が決まらない時(理由を 1 行出す)
 - watch は「この対象の検査を落としうる変更」の glob。迷ったら広めに書く(足りないと壊れた変更が素通りする)
-- 上流の対象は門 ship に乗る物すべてが watch を持つ(structure の 9 つと workflow の notices・rules)。structure の対象の範囲は `watchCoverage.test.mjs` が縛る: 検査の入口から dpdm で届くファイルと、入口が fs で読むデータ(表 READS)の全部が watch に当たらなければ落ちる。入口に読む物を足したら表と watch を一緒に直す
-- 共通に入れる物: `tsconfig.json`・`package.json`・`pnpm-lock.yaml`(依存と解決)・`scripts/runner/gates/**`・`scripts/runner/preload/**`(起動のしかた)。src 全体を読む検査(cycles・config・cron・extensions・registry・routes)は `src/**`
+- 上流の対象は門 ship に乗る物すべてが watch を持つ。structure の対象の範囲は `watchCoverage.test.mjs` が縛る: 検査の入口から dpdm で届くファイルと、入口が fs で読むデータ(表 READS)の全部が watch に当たらなければ落ちる。入口に読む物を足したら表と watch を一緒に直す
+- 共通に入れる物: `tsconfig.json`・`package.json`・`pnpm-lock.yaml`(依存と解決)・`scripts/runner/gates/**`・`scripts/runner/preload/**`(起動のしかた)。src 全体を読む検査(admin-menu・config・cron・cycles・extensions・proxies・registry・routes)は `src/**`
 
 ### build の守り
 
