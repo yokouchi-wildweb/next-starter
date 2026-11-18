@@ -42,3 +42,6 @@ export default {
 - 生成が失敗する(理由を出し、何も書かない): above が `floating`・`toast`・`cover`(浮く物より上には置けない、当議会 D194)/ 知らない名 / 後に書く自分の層、名が kebab-case でない・上流の名と同じ・重複、帯に入りきらない、`src/styles/` の自分の CSS が上流の `--z-layer-<上流の名>` を定義している(上流の層の値は書き換えない、D187)
 - 自分の層は自分のページの要素・全画面の部品(`FullScreen` の `layer`)にだけ使う。浮く物は層を選ばない(D190)
 
+## 浮く物の外押しと上の層
+
+`isAboveFloatingTarget(target)` = 押した所が toast・cover の層の中か。浮く物の土台(Primitives の Dialog・Popover、Sheet)が外押しの判定で呼び、上の層の中の押しでは閉じない。Radix の上に自前で浮く物を作るときも同じ関数を onInteractOutside で呼ぶ

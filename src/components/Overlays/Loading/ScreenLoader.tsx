@@ -45,7 +45,9 @@ const MODE_CLASS: Record<LoadingOverlayMode, string> = {
   // backside-ui-top（290）。生の z-40 だと content-layer の要素に覆われ、隠したい内容が
   // 見えたまま操作できてしまう
   local: `absolute inset-0 ${zLayerClass("backside-ui")}`,
-  fullscreen: `fixed inset-0 ${zLayerClass("cover")}`,
+  // fullscreen は何よりも上の cover。pointer-events-auto = モーダルが開いている間 Radix が body に付ける
+  // pointer-events: none を継がず、下の物(モーダルのボタン等)への押しを受け止める(注文 16)
+  fullscreen: `fixed inset-0 pointer-events-auto ${zLayerClass("cover")}`,
 };
 
 export function ScreenLoader({

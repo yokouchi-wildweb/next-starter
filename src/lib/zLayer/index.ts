@@ -60,3 +60,16 @@ export type { OwnLayerDecl, ZLayerConfig, ZLayerOverride } from "./config";
 export function zLayerClass<N extends ZLayerName>(name: N): `${N}-layer` {
   return `${name}-layer`;
 }
+
+/** 浮く物(floating)より上の層(トースト・全画面の覆い) */
+const ABOVE_FLOATING_SELECTOR = [zLayerClass("toast"), zLayerClass("cover")].map((c) => `.${c}`).join(",");
+
+/**
+ * 押した所(イベントの target)が浮く物より上の層(toast・cover)の中か(当議会 D189)。
+ * 浮く物の土台(Primitives の Dialog・Popover、Sheet)は外押しの判定でこれを呼び、上の層の中の押しでは閉じない
+ * (トーストを押して消しても、全画面の読み込みの上を押しても、開いているモーダルは閉じない)。
+ */
+export function isAboveFloatingTarget(target: EventTarget | null | undefined): boolean {
+  if (!target || typeof (target as Element).closest !== "function") return false;
+  return (target as Element).closest(ABOVE_FLOATING_SELECTOR) !== null;
+}

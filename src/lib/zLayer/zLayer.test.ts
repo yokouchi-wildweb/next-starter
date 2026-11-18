@@ -5,7 +5,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { OWN_LAYERS, PAGE_LAYER_NAMES, Z_LAYER_NAMES, zLayerClass } from "./index";
+import { isAboveFloatingTarget, OWN_LAYERS, PAGE_LAYER_NAMES, Z_LAYER_NAMES, zLayerClass } from "./index";
+import { JSDOM } from "jsdom";
 
 const css = readFileSync("src/styles/core/z-layer.css", "utf8");
 
@@ -40,4 +41,16 @@ test("ページの層は Z_LAYER_NAMES の floating より前の 7 つ(同じ順
 
 test("自分の層(生成物 OWN_LAYERS)は上流の名と重ならない。上流の Tier1 では空", () => {
   for (const own of OWN_LAYERS as readonly { name: string }[]) assert.ok(!(Z_LAYER_NAMES as readonly string[]).includes(own.name), own.name);
+});
+
+test("isAboveFloatingTarget: toast・cover の層の中は true、floating・頁・null は false", () => {
+  const { document } = new JSDOM(
+    `<body><div class="toast-layer"><button id="t">x</button></div><div class="cover-layer" id="c"></div><div class="floating-layer"><button id="f">y</button></div><button id="p">z</button></body>`,
+  ).window;
+  assert.equal(isAboveFloatingTarget(document.getElementById("t")), true);
+  assert.equal(isAboveFloatingTarget(document.getElementById("c")), true);
+  assert.equal(isAboveFloatingTarget(document.getElementById("f")), false);
+  assert.equal(isAboveFloatingTarget(document.getElementById("p")), false);
+  assert.equal(isAboveFloatingTarget(null), false);
+  assert.equal(isAboveFloatingTarget({} as EventTarget), false);
 });

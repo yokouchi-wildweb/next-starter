@@ -541,7 +541,7 @@ import {
 ```
 
 **レイヤー管理（z-index）:**
-浮く物(Dialog・Modal・Sheet・Popover・Tooltip・HoverCard・選択の候補)は層を選べない: いつも body へ portal して `floating`、同じ層では後に開いた物が上(当議会 D189・D190。層の名は `src/lib/zLayer/README.md`)。トーストはその上の `toast` の層で、トーストの中の押しは浮く物の外押しにしない(押して消してもモーダル・ポップオーバーは開いたまま。判定は `@/lib/toast` の `isToastTarget`)。
+浮く物(Dialog・Modal・Sheet・Popover・Tooltip・HoverCard・選択の候補)は層を選べない: いつも body へ portal して `floating`、同じ層では後に開いた物が上(当議会 D189・D190。層の名は `src/lib/zLayer/README.md`)。トーストはその上の `toast`、全画面の読み込みは `cover` の層。その中の押しは浮く物の外押しにしない(トーストを押して消しても、読み込みの上を押してもモーダル・ポップオーバーは開いたまま。判定は `@/lib/zLayer` の `isAboveFloatingTarget`)。全画面の読み込みは押しを受け止める(`pointer-events-auto`)。
 
 **DialogContent の主な追加 props**
 - `showCloseButton`（デフォルト `true`）: 右上の Close ボタンの表示有無

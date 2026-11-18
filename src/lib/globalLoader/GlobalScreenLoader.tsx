@@ -43,7 +43,8 @@ export function GlobalScreenLoader() {
     <div
       className={cn(
         "flex items-center justify-center bg-background/80 backdrop-blur-sm",
-        `fixed inset-0 ${zLayerClass("cover")}`,
+        // cover の全画面。pointer-events-auto = モーダルが開いていても押しを受け止める(ScreenLoader の fullscreen と同じ)
+        `fixed inset-0 pointer-events-auto ${zLayerClass("cover")}`,
         className,
       )}
       role="status"

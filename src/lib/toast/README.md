@@ -32,5 +32,5 @@ export default { duration: 5000, position: "top-center" } satisfies ToastOverrid
 ## 重なりと外押し
 
 - トーストの層はいつも `toast`(浮く物の `floating` より上、`cover` より下。層を選ぶ指定は無い、当議会 D189)
-- 外側の要素に `data-slot="toast-region"`(`TOAST_REGION_SLOT`)。浮く物の土台(Primitives の Dialog・Popover、Sheet)は外押しの判定で `isToastTarget(target)` を呼び、トーストの中の押しでは閉じない(モーダルを開いたままトーストを押して消せる)
+- 外側の要素(`data-slot="toast-region"`)に `toast-layer`。浮く物の土台(Primitives の Dialog・Popover、Sheet)は外押しの判定で `isAboveFloatingTarget(target)`(`@/lib/zLayer`、toast・cover の層の中か)を呼び、トーストの中の押しでは閉じない(モーダルを開いたままトーストを押して消せる)
 

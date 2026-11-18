@@ -12,7 +12,6 @@ import { useToastStore } from "../stores";
 import { toastConfig } from "../config";
 import { TOAST_EXIT_ANIMATION_DURATION } from "../constants";
 import type { ToastPosition, Toast } from "../types";
-import { TOAST_REGION_SLOT } from "../target";
 import { ToastItem } from "./ToastItem";
 import { zLayerClass } from "@/lib/zLayer";
 
@@ -137,7 +136,7 @@ export function GlobalToast() {
       )}
       role="region"
       aria-label={toastConfig.ariaLabel}
-      data-slot={TOAST_REGION_SLOT}
+      data-slot="toast-region"
     >
       <div className={animationClass}>
         <ToastItem
@@ -175,7 +174,7 @@ export function GlobalToast() {
 function FramedToastRegion({ className, children }: { className: string; children: ReactNode }) {
   const frameDims = useFrameDimsStyle();
   return (
-    <div className={className} style={frameDims} role="region" aria-label={toastConfig.ariaLabel} data-slot={TOAST_REGION_SLOT}>
+    <div className={className} style={frameDims} role="region" aria-label={toastConfig.ariaLabel} data-slot="toast-region">
       {children}
     </div>
   );

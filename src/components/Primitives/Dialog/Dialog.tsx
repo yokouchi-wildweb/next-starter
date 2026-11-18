@@ -18,8 +18,7 @@ import {
   DialogDescription,
 } from "./DialogBase";
 import { cn } from "@/lib/cn";
-import { zLayerClass } from "@/lib/zLayer";
-import { isToastTarget } from "@/lib/toast";
+import { isAboveFloatingTarget, zLayerClass } from "@/lib/zLayer";
 
 /** 浮く物の層はいつも floating(当議会 D189・D190: 層を選べない、同じ層では後に開いた物が上) */
 const FLOATING_LAYER_CLASS = zLayerClass("floating");
@@ -109,8 +108,8 @@ export function DialogContent({
       overlayLayerClassName={FLOATING_LAYER_CLASS}
       style={contentStyle}
       onInteractOutside={(event) => {
-        // トーストの中の押しは外押しにしない(トーストは浮く物より上の toast の層。押して消すとき開いているモーダルを閉じない、当議会 D189)
-        if (isToastTarget(event.target)) {
+        // 浮く物より上の層(toast・cover)の中の押しは外押しにしない(トーストを押して消しても、全画面の読み込みの上を押しても閉じない、当議会 D189)
+        if (isAboveFloatingTarget(event.target)) {
           event.preventDefault();
           return;
         }

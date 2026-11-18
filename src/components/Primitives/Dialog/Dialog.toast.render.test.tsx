@@ -1,6 +1,6 @@
-// 浮く物の外押しとトーストの検査(jsdom の上で開いて押す、当議会 D189)
-// - Dialog を開いたままトーストの領域を押しても閉じない(onOpenChange が呼ばれない)、トーストの外を押すと閉じる
-// - Popover も同じ(トーストの中の押しは外押しにしない)
+// 浮く物の外押しと、その上の層(toast・cover)の検査(jsdom の上で開いて押す、当議会 D189)
+// - Dialog を開いたままトーストの層・全画面の覆いの層の中を押しても閉じない(onOpenChange が呼ばれない)、外を押すと閉じる
+// - Popover も同じ(浮く物より上の層の中の押しは外押しにしない)
 // 実行: pnpm test src/components/Primitives/Dialog/Dialog.toast.render.test.tsx
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
@@ -41,16 +41,17 @@ before(async () => {
 });
 after(() => dom.window.close());
 
-/** body の直下にトーストの領域と、外の要素を置く */
+/** body の直下にトーストの層・全画面の覆いの層の要素と、外の要素を置く */
 function stage() {
   const toast = document.createElement("div");
-  toast.setAttribute("data-slot", "toast-region");
-  toast.style.pointerEvents = "auto";
+  toast.className = "fixed toast-layer";
   const button = document.createElement("button");
   toast.appendChild(button);
+  const cover = document.createElement("div");
+  cover.className = "fixed inset-0 pointer-events-auto cover-layer";
   const outside = document.createElement("button");
-  document.body.append(toast, outside);
-  return { toastButton: button, outside };
+  document.body.append(toast, cover, outside);
+  return { toastButton: button, cover, outside };
 }
 
 const press = async (el: Element) => {
@@ -61,8 +62,8 @@ const press = async (el: Element) => {
   });
 };
 
-test("Dialog: トーストを押しても閉じず、外を押すと閉じる", async () => {
-  const { toastButton, outside } = stage();
+test("Dialog: トーストと全画面の覆いの上を押しても閉じず、外を押すと閉じる", async () => {
+  const { toastButton, cover, outside } = stage();
   const host = document.createElement("div");
   document.body.appendChild(host);
   const root = createRoot(host);
@@ -79,14 +80,16 @@ test("Dialog: トーストを押しても閉じず、外を押すと閉じる", 
   await new Promise((r) => setTimeout(r, 0));
   await press(toastButton);
   assert.deepEqual(calls, [], "トーストの押しで閉じない");
+  await press(cover);
+  assert.deepEqual(calls, [], "全画面の覆いの上の押しで閉じない");
   await press(outside);
   assert.deepEqual(calls, [false], "外の押しでは閉じる");
   await act(async () => root.unmount());
   document.body.innerHTML = "";
 });
 
-test("Popover: トーストを押しても閉じず、外を押すと閉じる", async () => {
-  const { toastButton, outside } = stage();
+test("Popover: トーストと全画面の覆いの上を押しても閉じず、外を押すと閉じる", async () => {
+  const { toastButton, cover, outside } = stage();
   const host = document.createElement("div");
   document.body.appendChild(host);
   const root = createRoot(host);
@@ -104,6 +107,8 @@ test("Popover: トーストを押しても閉じず、外を押すと閉じる",
   await new Promise((r) => setTimeout(r, 0));
   await press(toastButton);
   assert.deepEqual(calls, [], "トーストの押しで閉じない");
+  await press(cover);
+  assert.deepEqual(calls, [], "全画面の覆いの上の押しで閉じない");
   await press(outside);
   assert.deepEqual(calls, [false], "外の押しでは閉じる");
   await act(async () => root.unmount());
