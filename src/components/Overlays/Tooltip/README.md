@@ -65,7 +65,7 @@ import { HelpTip } from "@/components/Overlays/Tooltip";
 
 ### TooltipProvider(共有プロバイダー)
 
-- `app/layout.tsx` にアプリ全体で1つ配置済み。隣接するツールチップ間を移動したとき、直前のツールチップが閉じてから `skipDelayDuration`(デフォルト300ms)以内なら表示遅延なしで次が即表示される(Radix の仕様上、この挙動は Provider 単位でしか機能しないため共有している)
+- アプリ全体で 1 つ配置済み(`src/wiring/AppProviders.tsx`、root の `app/layout.tsx` が描く)。隣接するツールチップ間を移動したとき、直前のツールチップが閉じてから `skipDelayDuration`(デフォルト300ms)以内なら表示遅延なしで次が即表示される(Radix の仕様上、この挙動は Provider 単位でしか機能しないため共有している)
 - 各 `Tooltip` は自動で共有 Provider に参加する。**通常は何も意識しなくてよい**
 - `Tooltip` に `skipDelayDuration` を明示指定した場合のみ、そのインスタンスは
   個別 Provider にフォールバックし指定値が適用される（後方互換）

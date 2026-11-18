@@ -12,7 +12,7 @@
 
 ```tsx
 import { AsyncPickerModal } from "@/components/Overlays/AsyncPickerModal";
-import { boardGameClient } from "@/features/boardGame/services/client/boardGameClient";
+import { boardGameClient } from "@/features/boardGame/services/client/boardGameClient"; // 例: 業務ドメインの client(このリポには無い)
 
 const [open, setOpen] = useState(false);
 
@@ -63,7 +63,7 @@ const [open, setOpen] = useState(false);
 | `searchFn` | `(params: SearchParams) => Promise<PaginatedResult<T>>` | - | 既存の `client.search` をそのまま渡す |
 | `getOptionFromResult` | `(item: T) => Options` | - | レコード → 選択肢 |
 | `searchFields` / `searchRank` / `minChars` / `limit` | - | `AsyncMultiSelectInput` と同じ | 検索系オプション |
-| `value` | `OptionPrimitive[]` | `[]` | open 時の初期選択値 |
+| `value` | `OptionPrimitive[]` | - | open 時の初期選択値 |
 | `initialOptions` | `Options[]` | - | `value` のラベルヒント（未解決時は Skeleton 表示） |
 | `disabledValues` | `OptionPrimitive[]` | - | 選択不可にする値。行は表示され `disabledLabelSuffix` が付く（`getOptionFromResult` が返す `Options.disabled` とも OR） |
 | `disabledLabelSuffix` | `ReactNode` | `"（追加済み）"` | 選択不可行の接尾表示 |
@@ -71,7 +71,7 @@ const [open, setOpen] = useState(false);
 | `onConfirm` | `(values, items: T[]) => void \| Promise<void>` | - | 確定。Promise を返すとボタンがローディングになり、resolve 後にモーダルが閉じる。reject は呼び出し元へ伝搬（閉じない） |
 | `confirmLabel` | `string \| (count) => string` | `N件を追加` / `追加` | 確定ボタンのラベル |
 | `cancelLabel` | `string` | `"キャンセル"` | キャンセルボタンのラベル |
-| `searchPlaceholder` / `emptyMessage` / `loadingMessage` | `string` | - | 文言 |
+| `searchPlaceholder` / `emptyMessage` / `loadingMessage` | `string` | `"Enterで検索"` / `"該当する項目がありません"` / `"読み込み中..."` | 文言 |
 | `renderOption` | `(option: Options, item: T \| undefined) => ReactNode` | - | 行の表示差し替え。`item` は fetch 済みのときだけ渡る |
 | `maxWidth` | `number \| string` | `560` | Modal へ透過 |
 | `maxHeight` | `number \| string` | `600` | 箱の高さ（固定高モード）。ビューポート上限でクランプされる |

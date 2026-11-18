@@ -76,7 +76,7 @@ import { AppImage } from "@/components/Media/AppImage";
 - `alt`(必須)
 - `fallbackSrc`: `src` が空(`undefined` / `null` / `""`)のときと読み込みエラーのときに切り替える画像
   - `fallbackSrc` も無い: fill は箱だけ描く(レイアウトを保つ)、intrinsic は何も描かない
-- `priority`: LCP の画像(ファーストビューの主役)にだけ付ける。lazy-loading を外して先読みする
+- `priority`: lazy-loading を外して先読みする(付ける画像の決まりは札)
 - `unoptimized`: 最適化の明示。省略 = `src` から自動判定(Internals)
 - `style` と `data-*`(`data-slot` 等): 一番外の要素に付く(fill = 箱の div、intrinsic = img)
   - `data-component="AppImage"` は部品の印で、渡しても変わらない

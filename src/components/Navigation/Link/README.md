@@ -2,7 +2,7 @@
 
 ## Overview
 
-- `next/link` の包み。アプリのリンクはこれを使う(`import { Link } from "@/components/Navigation"`)
+- `next/link` の包み(`import { Link } from "@/components/Navigation"`)。使う決まりは札 .claude/rules/items/components/Navigation.md
 - 閉じた機能の住所へのリンクを自動で描かない(判定は外から口で差し込まれる)
 
 ## Usage

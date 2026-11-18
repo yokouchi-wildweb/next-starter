@@ -4,7 +4,7 @@
 
 - ポップオーバー系のコンポーネント群。モーダルより軽量なオーバーレイ UI。入口は `@/components/Overlays/Popover`
 - 使う時・直す時の決まりは札 .claude/rules/items/components/Overlays.mdにある
-- 部品: Popover(基本)・ConfirmPopover(確認)・PromptPopover(入力)・ActionPopover(アクションメニュー)・ChecklistPopover(静的な選択肢からの複数選択)・InfoPopover(情報・ヘルプ)
+- 部品: Popover(基本)・ConfirmPopover(確認)・PromptPopover(入力)・ActionPopover(アクションメニュー)・ChecklistPopover(静的な選択肢からの複数選択)・InfoPopover(情報・ヘルプ)・SelectPopover(単一選択)・PopoverAsyncContent(非同期の中身の包み)
 
 ## Usage
 
@@ -180,7 +180,7 @@ import { InfoPopover } from "@/components/Overlays/Popover";
 | `confirmLabel` | `string` | `"確認"` | 確認ボタンラベル |
 | `cancelLabel` | `string` | `"キャンセル"` | キャンセルボタンラベル |
 | `onConfirm` | `() => void \| Promise<void>` | - | 確認コールバック（Promiseで自動ローディング） |
-| `confirmVariant` | `ButtonVariant` | `"primary"` | 確認ボタンスタイル |
+| `confirmVariant` | `ButtonStyleProps["variant"]` | `"primary"` | 確認ボタンスタイル |
 
 ### PromptPopover の props
 
@@ -212,6 +212,7 @@ ActionPopoverItem:
 type ActionItem = {
   type?: "action";
   label: string;
+  description?: string;
   icon?: LucideIcon;
   onClick?: () => void | Promise<void>;
   disabled?: boolean;
@@ -277,7 +278,7 @@ type ChecklistOption = {
 
 - 外側クリックで閉じる標準 UX は維持しつつ、次の 2 つだけは閉じない: (1) Dialog 自身の dismiss chrome(オーバーレイ / 閉じるボタン)への操作(`preventLayerDismiss`、既定 true) | (2) Dialog の FocusScope がコンテナ自身へプログラム的に focus を戻した `focusin`(常時)
 - (2) が無いと、Popover 内のボタンが「クリック → `disabled` + スピナー差し替え」でフォーカスを失った瞬間に Radix が DialogContent へ focus し、処理中の Popover が勝手に閉じる(非同期の確定ボタン全般で再現)
-- 判定は `isDialogFocusRestoration.ts`(純粋関数、`pnpm test src/components/Overlays/Popover/isDialogFocusRestoration.test.mjs`)。空のモーダル本体クリックは pointerdown 側で従来どおり閉じる
+- 判定は `src/components/Primitives/Popover/isDialogFocusRestoration.ts`(純粋関数、`pnpm test src/components/Primitives/Popover/isDialogFocusRestoration.test.mjs`)。空のモーダル本体クリックは pointerdown 側で従来どおり閉じる
 
 ### ActionPopover の読み込み中
 

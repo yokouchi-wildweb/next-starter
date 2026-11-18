@@ -7,18 +7,19 @@
 ## Usage
 
 ```tsx
-import { ImageViewerProvider, ZoomableImage, useImageViewer } from "@/components/Overlays/ImageViewer";
+import { ZoomableImage, useImageViewer } from "@/components/Overlays/ImageViewer";
 
+// ImageViewerProvider はアプリ全体に 1 つ置いてある(src/wiring/AppProviders.tsx)。useImageViewer は Provider の外では投げる
 function Example() {
   const { openImage } = useImageViewer();
 
   return (
-    <ImageViewerProvider>
+    <>
       <ZoomableImage src="/image.jpg" alt="サンプル" />
       <button onClick={() => openImage("/another.jpg", "別の画像")}>
         別の画像を開く
       </button>
-    </ImageViewerProvider>
+    </>
   );
 }
 ```

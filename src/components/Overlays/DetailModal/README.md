@@ -42,6 +42,7 @@ import { DetailTable } from "@/components/Overlays/DetailModal";
 | `titleSrOnly` | `boolean` | - | タイトルをスクリーンリーダー専用にする |
 | `badge` | `{ text: string; variant?: BadgeVariant }` | `variant: "success"` | タイトル横に表示するバッジ(`SolidBadge`) |
 | `media` | `{ type?: "image" \| "video"; url: string; alt?: string; poster?: string }` | `type: "image"` | メディアプレビュー |
+| `mediaNode` | `ReactNode` | - | メディア欄に描く任意の要素。渡すと `media` より優先 |
 | `rows` | `DetailModalRow[]` | - | `{ label, value }` の配列、または `ReactNode[]` によるカスタム行 |
 | `footer` | `ReactNode` | - | テーブル下に任意のフッターを配置 |
 | `className` | `string` | - | 追加クラス |
