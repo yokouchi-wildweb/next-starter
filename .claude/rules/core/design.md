@@ -69,4 +69,5 @@ map (every core file, loaded by its paths):
 ## size (chars, not lines)
 - one core file: target 5,000 | notify 9,000 | fail 10,000 | one line ≤ 400 chars in CLAUDE.md, core files, cards, service
 - a scene (upstream core files + upstream cards loaded while doing it; CLAUDE.md, service and fork context files not counted): target 24,000 | notify 33,000 | fail 36,000 | a one-layer scene aims at 16,000
+- scenes: the scene data = .claude/rules/core/scenes.jsonl (one JSON line per scene: id, scene, files it touches; not a rule file, never loaded) | pnpm check rules sums each scene | CLAUDE.md fails at 36,000 only from the CLAUDE.md rewrite on, until then notify only
 - over a notify line → still ship, and the shipping session files one condense order to the window (none if one with the same title is open) | a new kind of place to write → add its scene

@@ -12,8 +12,6 @@ import { formatProblems, LINEAGE_FILE, parseLineage } from "../../../src/lib/for
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const coreDir = ".claude/rules/core";
-const MAX_CLAUDE_MD_LINES = 200;
-const MAX_CLAUDE_MD_LINE_CHARS = 400;
 
 const claudeMd = readFileSync(join(repoRoot, "CLAUDE.md"), "utf8");
 const designPath = join(repoRoot, coreDir, "design.md");
@@ -21,19 +19,7 @@ const designMd = existsSync(designPath) ? readFileSync(designPath, "utf8") : "";
 const ruleFiles = readdirSync(join(repoRoot, coreDir)).filter((f) => f.endsWith(".md")).sort();
 const tracked = execFileSync("git", ["ls-files"], { cwd: repoRoot, encoding: "utf8" }).split("\n").filter(Boolean);
 
-test(`CLAUDE.md は ${MAX_CLAUDE_MD_LINES} 行未満`, () => {
-  const lines = claudeMd.split("\n").length - (claudeMd.endsWith("\n") ? 1 : 0);
-  assert.ok(lines < MAX_CLAUDE_MD_LINES, `CLAUDE.md が ${lines} 行です。細部は README か ${coreDir}/ へ移してください`);
-});
-
-test(`CLAUDE.md の各行は ${MAX_CLAUDE_MD_LINE_CHARS} 字以内`, () => {
-  // FORMAT_RULE: 長い行は sub-bullet に割る(字数は JS の文字列長 = UTF-16 単位で数える)
-  const long = claudeMd
-    .split("\n")
-    .map((text, index) => ({ line: index + 1, length: text.length }))
-    .filter((item) => item.length > MAX_CLAUDE_MD_LINE_CHARS);
-  assert.deepEqual(long, [], `${MAX_CLAUDE_MD_LINE_CHARS} 字を超える行: ${long.map((item) => `${item.line} 行目(${item.length} 字)`).join(", ")}。sub-bullet に割ってください`);
-});
+// 大きさ(字数の線)と 1 行 400 字は size.mjs(lib.ruleSize.mjs)が見る
 
 test(`${coreDir}/ のファイルが 1 つ以上ある`, () => {
   assert.ok(ruleFiles.length > 0);

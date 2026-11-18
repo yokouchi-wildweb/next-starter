@@ -1,0 +1,22 @@
+{"id": "U1", "scene": "upstream: add a domain (generated)", "files": ["src/features/foo/domain.json", "src/features/foo/entities/schema.ts", "src/features/foo/services/server/fooService.ts", "src/features/foo/services/server/wrappers/create.ts", "src/features/foo/components/AdminFooList/index.tsx", "src/registry/schemaRegistry.ts", "src/app/admin/(protected)/foos/page.tsx"]}
+{"id": "U2", "scene": "upstream: add an API route", "files": ["src/app/api/foo/route.ts", "src/features/foo/services/server/fooService.ts", "src/features/foo/services/client/fooClient.ts", "src/features/foo/hooks/useFoo.ts"]}
+{"id": "U3", "scene": "upstream: add a page and its Screen", "files": ["src/app/(user)/(public)/foo/page.tsx", "src/app/(user)/(public)/foo/_screen/FooScreen.tsx", "src/app/(user)/(public)/foo/_screen/loader.ts", "src/featureGate/rules/foo.ts"]}
+{"id": "U4", "scene": "upstream: fix a core domain part", "files": ["src/features/core/coupon/components/common/CouponCard.tsx", "src/features/core/coupon/hooks/useCoupon.ts"]}
+{"id": "U5", "scene": "upstream: fix a library", "files": ["src/lib/storage/server/upload.ts", "src/lib/storage/README.md", "src/lib/CATALOG.md"]}
+{"id": "U6", "scene": "upstream: add a proxy item", "files": ["src/proxies/foo.ts", "src/proxies/README.md"]}
+{"id": "U7", "scene": "upstream: add a cron task", "files": ["src/app/api/cron/foo/task.ts", "src/app/api/cron/foo/route.ts", "src/features/foo/services/server/fooSweep.ts"]}
+{"id": "U8", "scene": "upstream: fix styles", "files": ["src/styles/core/base.css", "src/components/Layout/Stack/index.tsx", "src/config/ui/variants.config.ts"]}
+{"id": "U9", "scene": "upstream: add a script", "files": ["scripts/operations/foo/index.mjs", "scripts/README.md"]}
+{"id": "U10", "scene": "upstream: fix a skill", "files": [".claude/skills/ship/SKILL.md"]}
+{"id": "F1", "scene": "fork: replace a Screen in _components", "files": ["src/app/(user)/(protected)/mypage/_components/MyMypageScreen.tsx", "src/app/(user)/(protected)/mypage/page.tsx"]}
+{"id": "F2", "scene": "fork: write overrides", "files": ["src/features/core/user/roles/staff.role.override.ts", "src/app/api/cron/foo/task.override.ts", "src/features/core/coupon/services/server/domainEntry.override.ts"]}
+{"id": "F3", "scene": "fork: add receptacle items", "files": ["src/features/core/setting/fields/foo.ts", "src/proxies/foo.ts", "src/wiring/formInputs/inputs/foo.ts"]}
+{"id": "F4", "scene": "fork: change config values", "files": ["src/config/featureGate/switches.config.ts", "src/config/lib/mail.config.ts"]}
+{"id": "F5", "scene": "fork: add a business domain", "files": ["src/features/biz/domain.json", "src/features/biz/entities/schema.ts", "src/features/biz/services/server/bizService.ts", "src/features/biz/components/BizList/index.tsx", "src/app/(user)/(public)/biz/_components/BizScreen.tsx"]}
+{"id": "X1", "scene": "any: change a server service only", "files": ["src/features/foo/services/server/fooService.ts"]}
+{"id": "X2", "scene": "any: write a domain config only", "files": ["src/config/features/coupon.config.ts"]}
+{"id": "X3", "scene": "fork: edit an upstream file under a temporary permit", "files": ["src/features/core/wallet/components/WalletPurchase/CurrencyPurchase.tsx", ".fork-ownership/my-fork.permits.txt"]}
+{"id": "X4", "scene": "any: edit a rules file", "files": [".claude/rules/core/screens.md", "CLAUDE.md"]}
+{"id": "X5", "scene": "any: edit a README", "files": ["src/lib/storage/README.md"]}
+{"id": "X6", "scene": "any: write a service file", "files": [".claude/rules/service/shop.md"]}
+{"id": "X7", "scene": "any: write an item card", "files": [".claude/rules/items/lib/storage.md"]}
