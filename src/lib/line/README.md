@@ -47,8 +47,7 @@ LIFF_ID=your_liff_id
 
 ### DBマイグレーション
 
-`user_line_profiles` テーブルが新規追加されている（`users` テーブルとは 1:1 リレーション）。
-`pnpm db:push` でスキーマを反映する。
+表 `user_line_profiles`（`users` と 1:1）。初めて入れるときは `pnpm db:push` で作る。
 
 ```
 user_line_profiles
@@ -220,7 +219,7 @@ const flexMsg: LineFlexMessage = {
   },
 };
 
-await pushMessage(user.lineUserId, [flexMsg]);
+await pushMessage(lineProfile.lineUserId, [flexMsg]); // lineProfile = userLineProfileService.findByUserId の結果
 ```
 
 ## API
@@ -261,8 +260,10 @@ LINE Platform からの Webhook 受信。`x-line-signature` ヘッダーで HMAC
 import {
   // OAuth
   buildAuthorizationUrl,
-  processCallback,
+  processCallback,      // code の交換 → id_token の検証 → 友だちの状態をまとめて
+  exchangeCodeForToken,
   verifyIdToken,
+  getFriendshipStatus,
   issueOAuthState,   // state と nonce cookie を作る（CSRF 対策）
   verifyOAuthState,  // callback で state と cookie の nonce を照合する
 
@@ -274,6 +275,7 @@ import {
   textMessage,
   lineRetryKey,  // X-Line-Retry-Key の UUID を呼び手の鍵から作る
   LineApiError,  // 送信の失敗（status・retryable・body）
+  isRetryableLineStatus, // 状態が送り直してよい物か（429・5xx・応答なし）
 
   // Webhook
   parseWebhookRequest,
@@ -284,8 +286,15 @@ import {
   getLineLoginConfig,
   getLineMessagingConfig,
   getLiffId,     // string | undefined（LIFF未使用時は undefined）
+
+  // 定数
+  LINE_OAUTH_NONCE_COOKIE,
+  LINE_OAUTH_STATE_MAX_AGE_SECONDS,
+  LINE_MULTICAST_MAX_RECIPIENTS, // multicast の 1 回の上限（500）
 } from "@/lib/line";
 ```
+
+- 型: メッセージ(`LineMessage`・`LineTextMessage`・`LineFlexMessage` ほか)・Webhook の事象(`LineWebhookEvent` ほか)・応答・state の入出力(`IssueOAuthStateInput` ほか)・`PushMessageOptions`
 
 ### OAuth の state と nonce cookie（issueOAuthState / verifyOAuthState）
 

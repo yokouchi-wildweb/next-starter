@@ -6,7 +6,7 @@
 - 用途の二段構成:
   - 実行時(ピッカー / inline style / canvas)→ `listGradients()` の `cssValue` を直接使う(CSS クラス不要・SSR 安全、`getComputedStyle` 非依存)
   - ビルド時(`bg-gradient-*` などの Tailwind `@utility`)→ `pnpm generate styles` で生成。Tailwind はビルド時にしかクラスを生成できないため
-- 使う時・直す時の決まりは札 .claude/rules/items/lib/gradient.md にある
+- 使う時・直す時の決まりは札 .claude/rules/items/lib/gradient.md にある。この README は使い方と仕組み
 
 ## Usage
 
@@ -63,6 +63,7 @@ const css = resolveColorValue(value, { resolveDefault: () => "var(--color-primar
 ### CSS 生成ヘルパー
 
 - `buildGradientCss(stops, angle?): string` — `linear-gradient(...)` 文字列
+- `toGradientToken(input): GradientToken` — 登録形を確定形にする(`cssValue` を既定の角度で付ける)
 - `DEFAULT_GRADIENT_ANGLE`(=135)
 
 ## Extension

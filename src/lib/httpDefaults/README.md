@@ -5,6 +5,11 @@
 - client の axios の呼び出しのうち、自分のタイムアウトを持たない物に、アプリ全体の既定のタイムアウトを付ける閉じた lib。既定は「付けない」(今までの振る舞い)
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/httpDefaults.md にある。この README は使い方と仕組み
 
+## API
+
+- 入口 `@/lib/httpDefaults`: 合成済みの設定 `httpDefaultsConfig`(と `httpDefaultsConfigDef`)・型 `HttpDefaultsConfig` / `HttpDefaultsOverride`・`installHttpDefaults(instance, timeoutMs)`(interceptor を 1 つ登録する。前の登録があれば外してから)・`applyDefaultTimeout(request, timeoutMs)`(1 つの要求に既定を当てる純関数)
+- 入口 `@/lib/httpDefaults/HttpDefaultsRoot`: 登録する client の部品 `<HttpDefaultsRoot />`(何も描かない)
+
 ## Extension
 
 ```ts
