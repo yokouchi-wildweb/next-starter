@@ -2,7 +2,6 @@
 // /demo/google-redirect のデモ本体(client)。Screen が描く。
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FirebaseError } from "firebase/app";
 import {
@@ -16,9 +15,12 @@ import {
 
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 import { PageTitle, Para, SecTitle } from "@/components/TextBlocks";
+import { AppImage } from "@/components/Media/AppImage";
 import { auth } from "@/lib/firebase/client/app";
 
 // --------------------------------------------------------------
@@ -262,7 +264,7 @@ export function DemoGoogleRedirectDemo() {
         <Para size="sm">
           「Google でサインイン」を押すとリダイレクトで認証が行われ、完了するとこの画面に認証情報が表示されます。
         </Para>
-        <div className="flex flex-wrap gap-3">
+        <Flex wrap="wrap" gap="sm">
           <Button type="button" onClick={handleSignIn} disabled={isLoading}>
             {isLoading ? "処理中..." : "Google でサインイン"}
           </Button>
@@ -271,7 +273,7 @@ export function DemoGoogleRedirectDemo() {
               サインアウト
             </Button>
           ) : null}
-        </div>
+        </Flex>
         {isCheckingRedirectResult ? (
           <Para tone="muted" size="sm">
             認証が完了しているか確認しています...
@@ -289,8 +291,9 @@ export function DemoGoogleRedirectDemo() {
         {userSnapshot ? (
           <Block>
             {userSnapshot.photoURL ? (
-              <div className="flex items-center gap-4">
-                <Image
+              <Flex align="center" gap="md">
+                <AppImage
+                  mode="intrinsic"
                   src={userSnapshot.photoURL}
                   alt="Google アカウントのプロフィール画像"
                   width={64}
@@ -298,41 +301,45 @@ export function DemoGoogleRedirectDemo() {
                   unoptimized
                   className="h-16 w-16 rounded-full border border-border object-cover"
                 />
-                <div>
-                  <p className="text-lg font-semibold">{userSnapshot.displayName ?? "(表示名なし)"}</p>
-                  <p className="text-sm text-muted-foreground">{userSnapshot.email ?? "メールアドレスなし"}</p>
-                </div>
-              </div>
+                <Block>
+                  <Para size="lg" weight="semiBold" align="inherit" className="my-0">
+                    {userSnapshot.displayName ?? "(表示名なし)"}
+                  </Para>
+                  <Para size="sm" weight="inherit" tone="muted" align="inherit" className="my-0">
+                    {userSnapshot.email ?? "メールアドレスなし"}
+                  </Para>
+                </Block>
+              </Flex>
             ) : null}
 
-            <div className="overflow-hidden rounded-lg border border-border">
+            <Block className="overflow-hidden rounded-lg border border-border">
               <dl className="divide-y divide-border text-sm">
-                <div className="grid grid-cols-1 gap-1 bg-muted/60 px-4 py-3 sm:grid-cols-3 sm:gap-3">
+                <Grid columns="one" className="gap-1 bg-muted/60 px-4 py-3 sm:grid-cols-3 sm:gap-3">
                   <dt className="font-semibold text-muted-foreground">ユーザー ID</dt>
                   <dd className="sm:col-span-2 break-all">{userSnapshot.uid}</dd>
-                </div>
-                <div className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-3">
+                </Grid>
+                <Grid columns="one" className="gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-3">
                   <dt className="font-semibold text-muted-foreground">メール認証</dt>
                   <dd className="sm:col-span-2">{userSnapshot.isEmailVerified ? "済み" : "未認証"}</dd>
-                </div>
-                <div className="grid grid-cols-1 gap-1 bg-muted/40 px-4 py-3 sm:grid-cols-3 sm:gap-3">
+                </Grid>
+                <Grid columns="one" className="gap-1 bg-muted/40 px-4 py-3 sm:grid-cols-3 sm:gap-3">
                   <dt className="font-semibold text-muted-foreground">連携プロバイダー</dt>
                   <dd className="sm:col-span-2">{userSnapshot.providerIds.join(", ")}</dd>
-                </div>
-                <div className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-3">
+                </Grid>
+                <Grid columns="one" className="gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-3">
                   <dt className="font-semibold text-muted-foreground">作成日時</dt>
                   <dd className="sm:col-span-2">{userSnapshot.metadata.creationTime ?? "(不明)"}</dd>
-                </div>
-                <div className="grid grid-cols-1 gap-1 bg-muted/40 px-4 py-3 sm:grid-cols-3 sm:gap-3">
+                </Grid>
+                <Grid columns="one" className="gap-1 bg-muted/40 px-4 py-3 sm:grid-cols-3 sm:gap-3">
                   <dt className="font-semibold text-muted-foreground">最終サインイン</dt>
                   <dd className="sm:col-span-2">{userSnapshot.metadata.lastSignInTime ?? "(不明)"}</dd>
-                </div>
-                <div className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-3">
+                </Grid>
+                <Grid columns="one" className="gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-3">
                   <dt className="font-semibold text-muted-foreground">ID トークン</dt>
                   <dd className="sm:col-span-2 break-all text-xs">{userSnapshot.idToken}</dd>
-                </div>
+                </Grid>
               </dl>
-            </div>
+            </Block>
           </Block>
         ) : (
           <Para tone="muted" size="sm">
@@ -344,30 +351,30 @@ export function DemoGoogleRedirectDemo() {
       <Section className="flex flex-col gap-4">
         <SecTitle as="h2">リダイレクトで取得した OAuth 認証情報</SecTitle>
         {oauthCredential ? (
-          <div className="overflow-hidden rounded-lg border border-border bg-muted/40">
+          <Block className="overflow-hidden rounded-lg border border-border bg-muted/40">
             <dl className="divide-y divide-border text-sm">
-              <div className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-3">
+              <Grid columns="one" className="gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-3">
                 <dt className="font-semibold text-muted-foreground">Provider ID</dt>
                 <dd className="sm:col-span-2">{oauthCredential.providerId}</dd>
-              </div>
-              <div className="grid grid-cols-1 gap-1 bg-muted/60 px-4 py-3 sm:grid-cols-3 sm:gap-3">
+              </Grid>
+              <Grid columns="one" className="gap-1 bg-muted/60 px-4 py-3 sm:grid-cols-3 sm:gap-3">
                 <dt className="font-semibold text-muted-foreground">Sign-in Method</dt>
                 <dd className="sm:col-span-2">{oauthCredential.signInMethod ?? "(不明)"}</dd>
-              </div>
-              <div className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-3">
+              </Grid>
+              <Grid columns="one" className="gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-3">
                 <dt className="font-semibold text-muted-foreground">Access Token</dt>
                 <dd className="sm:col-span-2 break-all text-xs">
                   {oauthCredential.accessToken ?? "(含まれていません)"}
                 </dd>
-              </div>
-              <div className="grid grid-cols-1 gap-1 bg-muted/60 px-4 py-3 sm:grid-cols-3 sm:gap-3">
+              </Grid>
+              <Grid columns="one" className="gap-1 bg-muted/60 px-4 py-3 sm:grid-cols-3 sm:gap-3">
                 <dt className="font-semibold text-muted-foreground">ID Token</dt>
                 <dd className="sm:col-span-2 break-all text-xs">
                   {oauthCredential.idToken ?? "(含まれていません)"}
                 </dd>
-              </div>
+              </Grid>
             </dl>
-          </div>
+          </Block>
         ) : (
           <Para tone="muted" size="sm">
             直近のリダイレクト認証で取得した OAuth 資格情報がここに表示されます。
