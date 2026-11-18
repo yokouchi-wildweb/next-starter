@@ -76,6 +76,7 @@ README があるものはリンク先が一次資料。README が無いものは
 | [taskRun](taskRun/README.md) | pnpm task の実行の記録（止める鍵・結果不明、HTTP なし） |
 | [incrementalRefresh](incrementalRefresh/README.md) | 派生テーブル（read-model）の差分再計算 |
 | [adminCommand](adminCommand/README.md) | 管理者用コマンドパレット |
+| [demo](demo/README.md) | デモモード・デモのログイン・管理画面のデモ利用者の一覧（表なし、デモ利用者の印は user の列 `is_demo`） |
 | admin | 管理画面の取得本体（`services/server/screenData/`。生成される管理画面の loader.ts が `src/wiring/adminScreenParts.ts` の組を通して使う）とダッシュボード、管理メニューの受け口（`menu/`: カテゴリー・項目のファイルと組み立て器、`menu/README.md`） |
 
 ## Usage
