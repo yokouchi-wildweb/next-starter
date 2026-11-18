@@ -1,29 +1,26 @@
 # src/lib/districtMap — 地区の地図
 
-アプリを「地区(district)」に分けて見つけ、各地区が何を持つかを 1 つの読み手で返す lib です。宣言のファイルは新しく置きません。今の宣言(domain.json・domainEntry・extensionPoints・門の規則・`frame:`・CATALOG.md)が正本のままで、この読み手はそれを字面で読むだけです(ファイルは実行しません)。
+## Overview
 
-## 地区とは
+アプリを「地区(district)」に分けて見つけ、各地区が何を持つかを 1 つの読み手で返す lib。宣言のファイルは新しく置かない。今の宣言(domain.json・domainEntry・extensionPoints・門の規則・`frame:`・CATALOG.md)が正本のままで、この読み手はそれを字面で読むだけ(ファイルは実行しない)。
 
-地区 = 自分の名前空間・`config.ts`(既定値と型)と `src/config` の上書き 1 本・受け口を持ち、所有の単位になる区画。種類は 4 つに閉じています(中間の Tier が種類を足す口はありません。足りなければ `/order` で Tier1 に頼みます)。
+地区 = 自分の名前空間・`config.ts`(既定値と型)と `src/config` の上書き 1 本・受け口を持ち、所有の単位になる区画。種類は 4 つに閉じている(中間の Tier が種類を足す口は無い)。
 
 | 種類 `kind` | 見つけ方 | 名前 | config | 上書き |
 |---|---|---|---|---|
 | `features`(ドメイン) | `src/features/` と `src/features/core/` の直下の `_` で始まらないフォルダ | フォルダ名(core は `core: true`) | `<dir>/config.ts` | `src/config/features/<名前>.config.ts` |
 | `lib` | `src/lib/` の直下のフォルダ(見つけ方は `src/lib/libPackage` の `listLibsFrom` と同じ 1 つの決まり) | フォルダ名 | `<dir>/config.ts` | `src/config/lib/<名前>.config.ts` |
 | `frame`(枠) | `src/app/**/_layout/config.ts` の `frame: "<名前>"` の宣言(宣言の無い `_layout` は地区でない) | 宣言の名前 | `<_layout>/config.ts` | `src/config/layout/<名前>.config.ts` |
-| `proxies` | `src/proxies/<テーマ>/`(直下のフォルダで `config.ts` を持つ物。上流は `demo`、設定 D93) | テーマのフォルダ名 | `src/proxies/<テーマ>/config.ts` | `src/config/proxies/<テーマ>.config.ts` |
+| `proxies` | `src/proxies/<テーマ>/`(直下のフォルダで `config.ts` を持つ物。上流は `demo`) | テーマのフォルダ名 | `src/proxies/<テーマ>/config.ts` | `src/config/proxies/<テーマ>.config.ts` |
 
 - 描画専用の値を持つ地区だけ、`config.ts` の隣に `config.ui.ts`、上書きは `<名前>.ui.config.ts`(同じフォルダ)を並べます。上書きの置き方と 1 対 1 の検査: [src/config/README.md](../../config/README.md)・`pnpm check config-overrides`
 - cron task・role・setting の項目・storage の用途などは地区ではなく、どこかの地区の受け口の項目です
 - 門(`src/featureGate/rules/<名前>.ts`)は地区と別の単位です(複数のドメインを束ねる門・ドメインの無い門があります)。地区の `gates` は「features に自分を持つ規則」です
 - 所有(どのリポの物か)はこの地図に載せません。所有の軸は `src/lib/forkOwnership`・`src/lib/folderCatalog`(CATALOG.md)です
 
-## 名前の決まり
+- 使い手は道具・lint・生成・検査。アプリのコードは地図を読まない(実行時に地区の一覧が要るコードは無い)
 
-- 名前は種類の中で一意。features では core と業務の同名を失敗にします(core は Tier1 の物なので、直すのは業務の側 = 後から足した fork か中間の Tier)。枠は `frame:` の名前の重なりを失敗にします
-- domainEntry のキー(汎用 API・表の資源の名前)は地区の名前と別です。1 ドメインが複数のキーを持ってよく、フォルダ名と違ってよい。キーは全部の地区を通して一意を失敗の条件にします
-
-## 入口
+## Usage
 
 ```js
 import { readDistrictMap, toJsonl } from "@/lib/districtMap";          // 読み方を注入する(node:fs を使わない)
@@ -33,33 +30,52 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 ```
 
 - `listDir(rel)` = フォルダの直下の `{ name, isDir }[]`(無ければ `[]`)、`readText(rel)` = 本文(無ければ `null`)。パスはリポジトリ直下からの相対
-- `problems` が空でなければ、地図は使わずに直します(生成器は書きません)
-- 戻り値には `tableFiles`(features の地区の表と定義ファイル、パス順 → 出現順。schemaRegistry が使う、jsonl には載せない)と `tableProblems`(表名を字面で読めない問題だけ)もあります
 - 使い手: 登録表の生成(ドメインの一覧・表・domain.json・storagePurposes.ts、`scripts/structure/registry`)・門の生成の featureTables(`scripts/structure/extensions/derive/featureTables.mjs`)・上書きと持ち主の 1 対 1 の検査(`scripts/structure/config-overrides`)
-- 字面の読み手 `readTableNames`・`readDomainEntry`・`readRuleFeatures`・`readFrameName`・`readOverrideImports`(持ち主の上書きに許す読み込みの宣言 `overrideImports`、lint `config-overrides/literal-only` が読む。地図には載せない)・`readFeatureRequirements`(機能を要する値の宣言、地図の欄)も出しています
-- 4 種と見つけ方の定数は `kinds.mjs`
-- 受け口の宣言(`extensionPoints.ts`)の唯一の読み手 `declarations.mjs` もここにある(`collectPoints`・`pointsFromFiles`(ファイルの一覧と読み方を渡す形。git の版の木を読む `pnpm workflow ownership who` が使う)・`readDeclaration`・`literalOf`。生成器・所有の検査の単位名・配線のテストが読む)。古い置き場 `src/lib/forkOwnership/declarations.mjs` は消した(締め 2)
-- 拡張の名前の決まり `extensionNames.mjs` もここにある: 1 行スイッチ(`<名前>.default` ↔ 素の名前 ↔ `<名前>.replace`)・ほかの仕組みが名乗る `.default`・`<対象>.override.ts` ↔ 対象・枠の宣言の `frame.ts` / `frame.override.ts` の唯一の元。`scripts/structure/extensions` の検査と `pnpm workflow ownership who` が読む(who は scripts を読めない)
-- ドメインの名前の決まり `domainNames.mjs`(単数 → 複数・管理画面のルートのフォルダ。`pnpm generate domain` が再 export して使う)と、`pnpm generate domain` の出力の種類のデータ(`scripts/structure/domain/gate.json` の `outputs`)をパスに当てる `domainOutputs.mjs` もここにある
-- 地区を見つけるだけの `discoverDistricts`(欄を読まない)と config の置き場 `configSlotsOf` は `read.mjs` にある(who が型 4 の置き場を引く)
-- 点つきの名前の分類 `dottedNames.mjs` もここにある: 受け口のファイル名の点つきの形の唯一の分類。印なし `<名前>` / 既定 `<名前>.default` / 丸ごと置き換え `<名前>.replace` / 一部の上書き `<対象>.override`(`<対象>` は `user.role` のように `.` を含んでよい)/ client の口 `<名前>.client` / テスト `.test`・`.spec`・`.d` / それ以外 = 旧い fork の名前の印。生成器・タスク・常時実行の例外・`src/wiring` の目録・screens の検査・所有の検査が使い、旧い印は止めて共有の棚の印の移行の notice を案内する(`oldMarkerProblem`)。古い置き場 `src/lib/forkOwnership/dottedNames.mjs` は消した(締め 2)
-- import の向き: forkOwnership → districtMap の一方向。この lib の下(テストを含む)は `src/lib/forkOwnership` を import しない(`districtMap.test.mjs` が縛る)
 
-アプリのコードは地図を読みません(実行時に地区の一覧が要るコードはありません)。使い手は道具・lint・生成・検査です。lib は src 直下(門番・registry・wiring)を import しないので、この読み手は門の規則も字面で読みます。
+## API
 
-## 各地区の欄(`District`)
+### 地図の戻り値
 
-`kind`・`name`・`core`(features だけ true / false、ほかは null)・`dir`・`config` と `override`(`{ path, exists }`)・`uiConfig` と `uiOverride`(描画専用の `config.ui.ts` と `<名前>.ui.config.ts`、同じ形)・`apiKeys`(domainEntry のキー)・`tables`(地区の中の `pgTable` の表名、テストを除く)・`requires`(domainEntry の requires)・`gates`(features に自分を持つ規則の名前)・`receptacles`(地区の中の extensionPoints.ts の点の名前)・`frame`(枠だけ)・`featureRequirements`(持ち主の config.ts の機能を要する値の宣言、設定 D110。判定は門番の検査、`src/config/README.md`)。
+- `districts`(各地区の欄 `District`)・`problems`(空でなければ地図は使えない。生成器は書かない)
+- `tableFiles`(features の地区の表と定義ファイル、パス順 → 出現順。schemaRegistry が使う、jsonl には載せない)と `tableProblems`(表名を字面で読めない問題だけ)
 
-載せない物: 値・access・関数・門の pathPatterns と enabled・受け口の項目の一覧・所有。
+### 各地区の欄(`District`)
 
-## 集約ファイル `src/registry/district-map.jsonl`
+- `kind`・`name`・`core`(features だけ true / false、ほかは null)・`dir`
+- `config` と `override`(`{ path, exists }`)・`uiConfig` と `uiOverride`(描画専用の `config.ui.ts` と `<名前>.ui.config.ts`、同じ形)
+- `apiKeys`(domainEntry のキー)・`tables`(地区の中の `pgTable` の表名、テストを除く)・`requires`(domainEntry の requires)
+- `gates`(features に自分を持つ規則の名前)・`receptacles`(地区の中の extensionPoints.ts の点の名前)・`frame`(枠だけ)
+- `featureRequirements`(持ち主の config.ts の機能を要する値の宣言。判定は門番の検査、`src/config/README.md`)
 
-- `pnpm generate district-map` が作り(1 行 1 地区、並びは種類 → 名前)、`pnpm check district-map` が今の木と同じかを見ます(門 build・ship・forge:post)。手で直さず、ずれたら作り直します
-- 読み手は人と agent・/ship と /flux の差分の見張りです。src から import しません(lint `import-boundaries/src-no-district-map`、テストも)。他の生成の入力にもしません(道具は毎回この lib を呼ぶ)
+- domainEntry のキー(汎用 API・表の資源の名前)は地区の名前と別。1 ドメインが複数のキーを持ってよく、フォルダ名と違ってよい。キーは全部の地区を通して一意(重なりは problems)
+- 名前は種類の中で一意(features の core と業務の同名・枠の `frame:` の名前の重なりは problems)
+
+載せない物: 値・access・関数・門の pathPatterns と enabled・受け口の項目の一覧・所有(所有の軸は `src/lib/forkOwnership`・`src/lib/folderCatalog`(CATALOG.md))。
+
+### ほかの読み手と決まりの元
+
+- 字面の読み手 `readTableNames`・`readDomainEntry`・`readRuleFeatures`・`readFrameName`・`readOverrideImports`(持ち主の上書きに許す読み込みの宣言 `overrideImports`、lint `config-overrides/literal-only` が読む。地図には載せない)・`readFeatureRequirements`(機能を要する値の宣言、地図の欄)
+- `kinds.mjs`: 4 種と見つけ方の定数
+- `declarations.mjs`: 受け口の宣言(`extensionPoints.ts`)の読み手(`collectPoints`・`pointsFromFiles`(ファイルの一覧と読み方を渡す形。git の版の木を読む `pnpm workflow ownership who` が使う)・`readDeclaration`・`literalOf`)。生成器・所有の検査の単位名・配線のテストが読む
+- `extensionNames.mjs`: 拡張の名前の決まり(1 行スイッチ `<名前>.default` ↔ 素の名前 ↔ `<名前>.replace`・ほかの仕組みが名乗る `.default`・`<対象>.override.ts` ↔ 対象・枠の宣言の `frame.ts` / `frame.override.ts`)。`scripts/structure/extensions` の検査と `pnpm workflow ownership who` が読む(who は scripts を読めない)
+- `domainNames.mjs`(単数 → 複数・管理画面のルートのフォルダ。`pnpm generate domain` が再 export して使う)と、`pnpm generate domain` の出力の種類のデータ(`scripts/structure/domain/gate.json` の `outputs`)をパスに当てる `domainOutputs.mjs`
+- `read.mjs`: 地区を見つけるだけの `discoverDistricts`(欄を読まない)と config の置き場 `configSlotsOf`(who が型 4 の置き場を引く)
+- `dottedNames.mjs`: 受け口のファイル名の点つきの形の分類。印なし `<名前>` / 既定 `<名前>.default` / 丸ごと置き換え `<名前>.replace` / 一部の上書き `<対象>.override`(`<対象>` は `user.role` のように `.` を含んでよい)/ client の口 `<名前>.client` / テスト `.test`・`.spec`・`.d` / それ以外 = 旧い fork の名前の印。生成器・タスク・常時実行の例外・`src/wiring` の目録・screens の検査・所有の検査が使い、旧い印は止めて共有の棚の印の移行の notice を案内する(`oldMarkerProblem`)
+
+## Internals
+
+### 集約ファイル `src/registry/district-map.jsonl`
+
+- `pnpm generate district-map` が作り(1 行 1 地区、並びは種類 → 名前)、`pnpm check district-map` が今の木と同じかを見る(門 build・ship・forge:post)
+- 読み手は人と agent・/ship と /flux の差分の見張り。src からの import は lint `import-boundaries/src-no-district-map` が止める(テストも)
 - 生成器と検査器: `scripts/structure/district-map/`
+- lib は src 直下(門番・registry・wiring)を import しないので、この読み手は門の規則も字面で読む
 
-## テスト
+## Verification
 
 - `pnpm test src/lib/districtMap` — 注入した小さな木で 4 種・欄・名前の重なり・問題の文
 - `pnpm test scripts/structure/district-map` — 今の木の正本(登録表の走査・表の走査・門の規則・受け口の宣言)との照合と、生成器・検査器の振る舞い
+
+## Related
+
+- 上書きの置き方と 1 対 1 の検査: [src/config/README.md](../../config/README.md)
