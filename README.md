@@ -10,7 +10,7 @@
 | プロジェクト名(GitHub 上の一覧向け) | リポジトリの description 欄 |
 | サービス名・運営者情報 | `src/business/business.ts`(`@/business` で読む) |
 
-動作要件: Node.js 20.9 以上（Next.js 16 の要件）、pnpm。
+動作要件: Node.js 24（`package.json` の `engines`。Next.js 16 自体の下限は 20.9）、pnpm 10（`packageManager`）。
 
 ## Usage
 

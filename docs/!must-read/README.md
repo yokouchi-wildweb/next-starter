@@ -35,6 +35,7 @@
 | 場所 | 中身 | 読むとき |
 |---|---|---|
 | `CLAUDE.md` | ルールの索引（英語・圧縮形式。全 fork 共通） | 毎セッション自動で読まれる |
+| `.claude/rules/core/`・`.claude/rules/items/` | CLAUDE.md の続き: 層・置き場ごとの決まり（core）と品目ごとの札（items）。全 fork 共通 | 触ったファイルが `paths` に当たったとき自動で読まれる |
 | `.claude/rules/project.md` | その fork だけのルールと地図（upstream との差分） | 毎セッション自動で読まれる |
 | `.notices/` | 上流の変更で fork 側に必要な追随作業の通知 | 上流を取り込むとき（`/flux`） |
 | `docs/!must-read/`（ここ） | ルールの背景と設計思想 | 全体を理解したいとき、ルールの解釈に迷ったとき |
@@ -99,7 +100,7 @@
 |---|---|---|
 | コード生成（`pnpm generate domain`） | business ドメインのエンティティ・サービス・フック・管理画面を `domain.json` から生成する。生成物は手で編集せず、`wrappers/` などの差し替え口で拡張する | `scripts/structure/domain/README.md`、`src/features/README.md` |
 | 汎用 CRUD（`createCrudService`） | 一覧・検索・作成・更新・削除・並び替えなどを全ドメイン共通の実装で提供する。ドメインごとの差分だけを書けば済む | `src/lib/crud/README.md` |
-| API ルートのファクトリー（routeFactory） | すべての API ルートを 3 つのファクトリーのどれかで作り、認可・エラー変換・監査のコンテキストを強制する。認可の指定漏れは許可ではなく拒否に倒れる | `src/lib/routeFactory/README.md` |
+| API ルートのファクトリー（routeFactory） | すべての API ルートを 4 つのファクトリー（createDomainRoute / createApiRoute / createMeRoute / createDeviceRoute）のどれかで作り、認可・エラー変換・監査のコンテキストを強制する。認可の指定漏れは許可ではなく拒否に倒れる | `src/lib/routeFactory/README.md` |
 | エラーの流れ | サーバーは `DomainError`、クライアントは `HttpError` の 2 種類だけ。ユーザー向けの文言はサーバーサービスが決め、UI はそれを表示するだけ | [エラーハンドリング方針](エラーハンドリング方針.md) |
 | 認証と認可ガード | JWT セッションと、proxy → 範囲の guard.ts（layout が guard() の 1 行、親子 AND）→ loader の access（guard.ts の createLoader）の 3 段の守り。ロール・ステータスによる判定は必ず DB と同期した値（守りと API の Factory が解く利用者 = `getSessionUser`）で行う。JWT だけの軽い取得（`getTokenOnlySession`）は監査の記録者やデモ判定など、拒否に使わない用途に限る。JWT の中身は発行後に古くなり得るため | `src/features/core/auth/README.md`、`src/lib/pageGuard/README.md` |
 | 登録表（registry） | `src/registry/` は「業務ドメインを全体で扱うため、ドメインを 1 つ作ると 1 行増える一覧」（serviceRegistry・schemaRegistry・domainConfigRegistry など。生成物）。serviceRegistry はドメイン名からサービス・表・主キーを引く正式な仕組みで、各ドメインの `services/server/domainEntry.ts` から生成する。下流の登録口ではない | `src/registry/README.md`、`src/lib/domain/README.md` |
