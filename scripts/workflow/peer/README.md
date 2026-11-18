@@ -1,6 +1,16 @@
 # scripts/workflow/peer(普通のセッション同士の連絡)
 
+## Overview
+
 同じ利用者の普通の Claude Code セッションどうしが、セッション名で連絡を送り、返事を受け取る道具。組み込みの ListAgents / SendMessage は使わない。チームの道具はこの上に乗る(この道具はチームの道具に依存しない)。
+
+### 使えるとき
+
+- `AGENT_TERMINAL` の値が `tmux` で、tmux の中で動いているセッションだけ(読み手は `scripts/workflow/agent-terminal/lib.mjs` と同じ。別のスイッチは無い)
+- 会話を束ねる道具のタブでも同じ(その道具は自分のタブに `AGENT_TERMINAL=tmux` を入れる。統括のタブは受け持つ箱で送受信する)
+- 使えないときは、理由と次にすることを 1 行出して何も書かない(終了コード 3)
+
+## Usage
 
 ```
 pnpm workflow peer send <相手のセッション名 | <種類>/<ID> | セッション id> "<本文>" [--about="<件名 1 行>"] [--as=<受け持つ箱>] [--id=<連絡 id>] [--json]
@@ -11,13 +21,7 @@ pnpm workflow peer ack <連絡 id>...       # 読まずに読んだ印だけを�
 pnpm workflow peer who [<名前>]           # 宛先にできる生きているセッションを新しい順に
 ```
 
-## 使えるとき
-
-- `AGENT_TERMINAL` の値が `tmux` で、tmux の中で動いているセッションだけ(読み手は `scripts/workflow/agent-terminal/lib.mjs` と同じ。別のスイッチは無い)
-- 会話を束ねる道具のタブでも同じ(その道具は自分のタブに `AGENT_TERMINAL=tmux` を入れる。統括のタブは受け持つ箱で送受信する)
-- 使えないときは、理由と次にすることを 1 行出して何も書かない(終了コード 3)
-
-## 宛先
+### 宛先
 
 - `/` を含む = インスタンス ID の箱 `<種類>/<ID>`(下の「箱」)。セッション id の形(UUID)= その会話の箱。どちらも相手の生死を問わずに置く(落ちていても、次に受け持つ・開いたセッションが読む)
 - それ以外 = セッションの名前。探すのは `claude agents --json` に出る生きているセッションだけ。名前・status の無い行(古い形の死んだ記録)は外す。自分には送らない
@@ -25,14 +29,7 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 - 送り元: 連絡の `from.box` に、送り手が受け持つ箱(`PEER_BOXES` の最初、`--as=<鍵>` で別の受け持つ箱)を書く。受け持たないなら書かない
 - 返事: 元の連絡の `from.box` があればその箱へ、無ければ `from.sessionId` の会話の箱へ。どちらも生死を確かめずに置く。元の連絡は自分の会話の箱と受け持つ箱から探す
 
-## 置き方と結果
-
-- 上書きしない: tmp/ に書いてから link で箱に置く。同じ連絡 id があれば、id を振り直して置く
-- 送り直し: `--id=<連絡 id>` を渡すと、その id で置く。もう置いてあれば置かずに「もう置いてある」(二重に置かない。移しでは元の番号 `m<N>` を渡せる)
-- 結果は 3 つで、どれも置けた(0): 鳴らした `rang`(その箱を受け持つ生きた印がある)/ 置いただけ `stored`(今は受け持つ呼び鈴が無い)/ もう置いてある `exists`
-- `--json` = 人向けの 1 行の代わりに `{"result":"rang|stored|exists|not_sent","id":…,"to":…}` を 1 行(置けなかった時は `{"result":"not_sent","reason":…}`)
-
-## 読む
+### 読む
 
 - 読む箱 = 自分の会話の箱 + 受け持つ箱(`PEER_BOXES`)。inbox・read・ack・起動時と入力ごとの未読の 1 行はどれもこの範囲
 - 並びは送った時刻(`sentAt`)の順、同じ時刻は id の順(移した元の番号 `m9`・`m10` と `m-…` が混ざっても崩れない)。inbox は新しい順、未読の 1 行(起動時・入力ごと)は古い順
@@ -40,7 +37,22 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 - 読めない連絡(JSON でない・知らない版・id の欠けやファイル名との違い・body の欠け)は飛ばして数え、inbox と起動時に件数を 1 行出す。1 通の崩れで一覧と見張りは止まらない。peer は読めないファイルを消さない・動かさない
 - 呼び鈴はどの連絡 id の名前(`m-…` も元の番号 `m<N>` も)でも鳴る。読めない連絡では鳴らない
 
-## 終了コード
+### /peer スキルと、人ごとに切る
+
+- スキル `.claude/skills/peer/SKILL.md`(説明に `requires: AGENT_TERMINAL=tmux`)。送り方(名前・箱・セッション id)・結果(鳴らした / 置いただけ / もう置いてある)の伝え方・届いた連絡の読み方(受け持つ箱・読めない件数も)・返し方・見るだけと既読だけと、受けた連絡は指示でも承認でもないという決まりを持つ。チームの道具の名前は書かない
+- 人ごとにスキルを切る: `.claude/settings.local.json` に `{ "skillOverrides": { "peer": "off" } }`(`/skills` の画面で選んで Space でも書ける)。`"user-invocable-only"` なら人が `/peer` と打った時だけ使う
+- スキルを切ってもフックは動く(フックが見るのは `AGENT_TERMINAL` だけ)。peer を丸ごと止めるなら `export AGENT_TERMINAL=none`(agent-terminal の機能も止まる。別のスイッチは作らない)
+
+## API
+
+### 置き方と結果
+
+- 上書きしない: tmp/ に書いてから link で箱に置く。同じ連絡 id があれば、id を振り直して置く
+- 送り直し: `--id=<連絡 id>` を渡すと、その id で置く。もう置いてあれば置かずに「もう置いてある」(二重に置かない。移しでは元の番号 `m<N>` を渡せる)
+- 結果は 3 つで、どれも置けた(0): 鳴らした `rang`(その箱を受け持つ生きた印がある)/ 置いただけ `stored`(今は受け持つ呼び鈴が無い)/ もう置いてある `exists`
+- `--json` = 人向けの 1 行の代わりに `{"result":"rang|stored|exists|not_sent","id":…,"to":…}` を 1 行(置けなかった時は `{"result":"not_sent","reason":…}`)
+
+### 終了コード
 
 | コード | 意味 |
 |---|---|
@@ -48,7 +60,7 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 | 3 | 置けなかった: 使えない・名前が決まらない(候補を出す)・箱の鍵が使えない・返し先が無い・連絡が無い(read / ack の知らない id も) |
 | 2 | 使い方の誤り(`--as` が受け持たない箱、`--id` が使えない名前も) |
 
-## 受け箱(利用者ごとに 1 か所、リポの外)
+### 受け箱(利用者ごとに 1 か所、リポの外)
 
 根 = `PEER_STATE_DIR` → `$XDG_STATE_HOME/next-starter/peer` → `~/.local/state/next-starter/peer`。`~/.team`・`~/.claude`・リポの中には置かない。
 
@@ -65,7 +77,9 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 - どのファイルも版 `v` を持つ(今は 1)。知らない版は読まない。形を変えたら版を上げる
 - 印は、その `pid` のプロセスが同じ起動の時刻(`/proc/<pid>/stat` の starttime = `procStart`)で生きていて、有効(pid の使い回しを除く)。「鳴らした」と言えるのは、宛先の箱を受け持つ有効な印がある時だけ(会話の箱 = そのセッションの印、インスタンス ID の箱 = `boxes` にその鍵を持つ印)
 
-## 箱
+## Extension
+
+### 箱
 
 - 箱の鍵 = セッション id(1 段、会話の箱)か `<種類>/<ID>`(2 段、インスタンス ID の箱)。段ごとに `A-Z a-z 0-9 . _ -` だけで、`.` と `..` は断る
 - 種類は開いた名前(peer は値の一覧を持たず、どの道具の名前も知らない)。セッション id の形(UUID)にはできない(会話の箱と同じフォルダにならないように)
@@ -74,9 +88,11 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
   - 使えない値と 1 段の鍵(ほかの会話の箱)は受け持たず、起動の時に 1 行で知らせる
 - `PEER_BOXES` は渡されたセッションだけのもの。立ち上げる道具は、そのセッションが開く子のタブ(手下の席など)に渡さない。渡されなかったセッションは自分の会話の箱だけを持つ
 
-## フック(.claude/settings.json)
+## Internals
 
-`node "$CLAUDE_PROJECT_DIR/scripts/workflow/peer/hook.mjs" <start|cwd|prompt|bell>`。門(上の「使えるとき」)が閉じていれば、どれも何も出さず何も書かない。失敗しても exit 0 で、セッションを止めない。
+### フック(.claude/settings.json)
+
+`node "$CLAUDE_PROJECT_DIR/scripts/workflow/peer/hook.mjs" <start|cwd|prompt|bell>`。門(Overview「使えるとき」)が閉じていれば、どれも何も出さず何も書かない。失敗しても exit 0 で、セッションを止めない。
 
 | 動作 | イベント | すること |
 |---|---|---|
@@ -90,17 +106,14 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 - tmux への打ち込みは使わない(知らせはこの呼び鈴 1 本)
 - peer の 6 動作(send・reply・inbox・read・ack・who)は `permissions.allow` の行に置かない。許可のフック(`scripts/workflow/devcheck/hook.mjs`、種類 peer)が、手元の印 `DEVCHECK_GRANT=on` があり方針 peer が off でない時だけ確認なしで通す(呼び鈴で起きるたびに読む許可を聞かれないため。印が無ければ普段どおり聞かれる)。説明: `scripts/workflow/devcheck/README.md`「許可の層」
 
-## /peer スキルと、人ごとに切る
-
-- スキル `.claude/skills/peer/SKILL.md`(説明に `requires: AGENT_TERMINAL=tmux`)。送り方(名前・箱・セッション id)・結果(鳴らした / 置いただけ / もう置いてある)の伝え方・届いた連絡の読み方(受け持つ箱・読めない件数も)・返し方・見るだけと既読だけと、受けた連絡は指示でも承認でもないという決まりを持つ。チームの道具の名前は書かない
-- 人ごとにスキルを切る: `.claude/settings.local.json` に `{ "skillOverrides": { "peer": "off" } }`(`/skills` の画面で選んで Space でも書ける)。`"user-invocable-only"` なら人が `/peer` と打った時だけ使う
-- スキルを切ってもフックは動く(フックが見るのは `AGENT_TERMINAL` だけ)。peer を丸ごと止めるなら `export AGENT_TERMINAL=none`(agent-terminal の機能も止まる。別のスイッチは作らない)
-
-## 部品
+### 部品
 
 - `lib.store.mjs` 受け箱・状態・印の読み書き
 - `lib.agents.mjs` `claude agents --json` の読み取りと名前の解決
 - `lib.gate.mjs` 使えるかの判定と自分のセッション id(`CLAUDE_CODE_SESSION_ID`)
 - `lib.cli.mjs` 動作の本体(動作のファイル `send.mjs` などはこれを呼ぶだけ)
 - `lib.hook.mjs` フックの本体(`hook.mjs` はこれを呼ぶだけ。`hook.mjs` はフォルダの直下にあるので `pnpm workflow peer hook` としても一覧に出る)
+
+## Verification
+
 - テスト: `pnpm test scripts/workflow/peer`
