@@ -89,19 +89,19 @@ export function RoleTabContent({ user, onClose }: Props) {
     <Flex direction="column" gap="lg" className="mt-2">
       <Block className="rounded-md border border-border bg-muted/50 p-4">
         <Flex justify="between" align="center" gap="xl">
-          <div className="flex-1">
+          <Block className="flex-1">
             <Para size="xs" tone="muted" className="mb-1">変更前</Para>
             <Para size="sm" className="font-medium">
               {formatUserRoleLabel(user.role, FALLBACK)}
             </Para>
-          </div>
-          <div className="text-muted-foreground">→</div>
-          <div className="flex-1 text-right">
+          </Block>
+          <Block className="text-muted-foreground">→</Block>
+          <Block className="flex-1 text-right">
             <Para size="xs" tone="muted" className="mb-1">変更後</Para>
             <Para size="sm" className="font-medium text-primary">
               {formatUserRoleLabel(selectedRole as UserRoleType, FALLBACK)}
             </Para>
-          </div>
+          </Block>
         </Flex>
       </Block>
       {currentRoleHasProfile && deleteOldProfile && (
@@ -112,10 +112,10 @@ export function RoleTabContent({ user, onClose }: Props) {
         </Block>
       )}
       {reason.trim() && (
-        <div>
+        <Block>
           <Para size="xs" tone="muted" className="mb-1">変更理由</Para>
           <Para size="sm">{reason.trim()}</Para>
-        </div>
+        </Block>
       )}
     </Flex>
   );
@@ -125,7 +125,7 @@ export function RoleTabContent({ user, onClose }: Props) {
       <Stack gap="md" padding={{ base: "sm", sm: "md" }}>
         <UserInfoHeader user={user} showRole />
         <Stack gap="lg" className="mt-4">
-          <div>
+          <Block>
             <Para size="sm" className="mb-2 font-medium">
               変更先ロール
             </Para>
@@ -135,8 +135,8 @@ export function RoleTabContent({ user, onClose }: Props) {
               options={roleOptions}
               placeholder="ロールを選択"
             />
-          </div>
-          <div>
+          </Block>
+          <Block>
             <Para size="sm" className="mb-2 font-medium">
               変更理由（任意）
             </Para>
@@ -148,7 +148,7 @@ export function RoleTabContent({ user, onClose }: Props) {
             <Para size="xs" tone="muted" className="mt-1">
               500文字以内
             </Para>
-          </div>
+          </Block>
           {currentRoleHasProfile && (
             <Block className="rounded-md border border-border bg-muted/30 p-4">
               <SwitchInput

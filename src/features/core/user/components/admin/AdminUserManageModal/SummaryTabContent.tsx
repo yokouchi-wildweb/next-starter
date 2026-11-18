@@ -3,8 +3,10 @@
 "use client";
 
 import { Stack } from "@/components/Layout/Stack";
+import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import type { User, UserLoginRecord } from "@/features/core/user/entities";
 import { formatUserStatusLabel } from "@/features/core/user/constants/status";
@@ -35,10 +37,10 @@ type InfoRowProps = {
 function InfoRow({ label, children }: InfoRowProps) {
   return (
     <Flex gap="lg" align="start" className="py-2 border-b border-border last:border-b-0">
-      <span className="shrink-0 w-32 text-sm font-medium text-muted-foreground">
+      <Span size="sm" weight="medium" tone="muted" className="shrink-0 w-32">
         {label}
-      </span>
-      <div className="flex-1 text-sm">{children}</div>
+      </Span>
+      <Block className="flex-1 text-sm">{children}</Block>
     </Flex>
   );
 }
@@ -69,10 +71,10 @@ export function SummaryTabContent({ user }: Props) {
       {/* 基本情報 */}
       <Stack gap="none" className="rounded-md border border-border bg-card px-4 py-2">
         <InfoRow label="名前">
-          {user.name ?? <span className="text-muted-foreground italic">{FALLBACK}</span>}
+          {user.name ?? <Span inline tone="muted" className="italic">{FALLBACK}</Span>}
         </InfoRow>
         <InfoRow label="メールアドレス">
-          {user.email ?? <span className="text-muted-foreground italic">{FALLBACK}</span>}
+          {user.email ?? <Span inline tone="muted" className="italic">{FALLBACK}</Span>}
         </InfoRow>
         <InfoRow label="ステータス">
           {formatUserStatusLabel(user.status, FALLBACK)}
@@ -86,7 +88,7 @@ export function SummaryTabContent({ user }: Props) {
               {signupIp}
             </code>
           ) : (
-            <span className="text-muted-foreground italic">未記録</span>
+            <Span inline tone="muted" className="italic">未記録</Span>
           )}
         </InfoRow>
       </Stack>
@@ -106,9 +108,9 @@ export function SummaryTabContent({ user }: Props) {
             emptyValueFallback="-"
           />
         ) : (
-          <div className="flex min-h-[80px] items-center justify-center rounded-lg border border-dashed border-border py-4">
+          <Flex align="center" justify="center" className="min-h-[80px] rounded-lg border border-dashed border-border py-4">
             <Para tone="muted" size="sm">ログイン履歴はまだありません</Para>
-          </div>
+          </Flex>
         )}
       </Stack>
     </Stack>

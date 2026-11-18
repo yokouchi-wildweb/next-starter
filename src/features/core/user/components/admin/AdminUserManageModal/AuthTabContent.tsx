@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 
 import { Stack } from "@/components/Layout/Stack";
+import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button/Button";
@@ -90,10 +91,10 @@ function EmailSection({ user, onSuccess }: SectionProps) {
   };
 
   return (
-    <div>
+    <Block>
       <Para size="sm" className="mb-2 font-medium">メールアドレス</Para>
       <Flex gap="md" align="center">
-        <div className="flex-1">
+        <Block className="flex-1">
           <Input
             value={email}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
@@ -101,7 +102,7 @@ function EmailSection({ user, onSuccess }: SectionProps) {
             type="email"
             placeholder="example@mail.com"
           />
-        </div>
+        </Block>
         <Button
           type="button"
           size="sm"
@@ -120,7 +121,7 @@ function EmailSection({ user, onSuccess }: SectionProps) {
           {isMutating ? "更新中..." : "保存"}
         </Button>
       </Flex>
-    </div>
+    </Block>
   );
 }
 
@@ -145,10 +146,10 @@ function PasswordSection({ user, onSuccess }: SectionProps) {
   };
 
   return (
-    <div>
+    <Block>
       <Para size="sm" className="mb-2 font-medium">パスワード変更</Para>
       <Flex gap="md" align="center">
-        <div className="flex-1">
+        <Block className="flex-1">
           <PasswordInput
             // 対象ユーザーのパスワードを設定する欄。管理者自身の保存済みパスワードを自動入力させない
             autoComplete="new-password"
@@ -156,7 +157,7 @@ function PasswordSection({ user, onSuccess }: SectionProps) {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             placeholder="新しいパスワード（8文字以上）"
           />
-        </div>
+        </Block>
         <Button
           type="button"
           size="sm"
@@ -175,7 +176,7 @@ function PasswordSection({ user, onSuccess }: SectionProps) {
           {isMutating ? "更新中..." : "保存"}
         </Button>
       </Flex>
-    </div>
+    </Block>
   );
 }
 
@@ -209,10 +210,10 @@ function PhoneSection({ user, onSuccess }: SectionProps) {
   };
 
   return (
-    <div>
+    <Block>
       <Para size="sm" className="mb-2 font-medium">電話番号</Para>
       <Flex gap="md" align="center">
-        <div className="flex-1">
+        <Block className="flex-1">
           <Input
             value={phoneNumber}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhoneNumber(e.target.value)}
@@ -220,7 +221,7 @@ function PhoneSection({ user, onSuccess }: SectionProps) {
             type="tel"
             placeholder="09012345678"
           />
-        </div>
+        </Block>
         <Button
           type="button"
           size="sm"
@@ -249,7 +250,7 @@ function PhoneSection({ user, onSuccess }: SectionProps) {
           認証済み: {new Date(user.phoneVerifiedAt).toLocaleString("ja-JP")}
         </Para>
       )}
-    </div>
+    </Block>
   );
 }
 

@@ -1,6 +1,7 @@
 // src/features/core/user/components/admin/AdminUserManageModal/UserInfoHeader.tsx
 
 import { Stack } from "@/components/Layout/Stack";
+import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import type { User } from "@/features/core/user/entities";
@@ -32,7 +33,7 @@ export function UserInfoHeader({ user, fallback = DEFAULT_FALLBACK, showRole, in
     >
       <Flex direction="column" gap="xs">
         <Flex justify="between" align="center" gap="xl" wrap="wrap">
-          <div>
+          <Block>
             <Para size="xs" tone="muted">
               対象ユーザー
             </Para>
@@ -40,15 +41,15 @@ export function UserInfoHeader({ user, fallback = DEFAULT_FALLBACK, showRole, in
             <Para tone="muted" size="sm">
               {user.email ?? fallback}
             </Para>
-          </div>
-          <div className="text-right">
+          </Block>
+          <Block className="text-right">
             <Para size="xs" tone="muted">
               {rightLabel}
             </Para>
             <Para size="sm" className="font-medium">
               {rightValue}
             </Para>
-          </div>
+          </Block>
         </Flex>
       </Flex>
     </Stack>

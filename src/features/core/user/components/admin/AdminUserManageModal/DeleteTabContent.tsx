@@ -74,10 +74,10 @@ export function DeleteTabContent({ user, onClose }: Props) {
         </Para>
       </Block>
       {reason.trim() && (
-        <div>
+        <Block>
           <Para size="xs" tone="muted" className="mb-1">削除理由</Para>
           <Para size="sm">{reason.trim()}</Para>
-        </div>
+        </Block>
       )}
     </Flex>
   );
@@ -95,7 +95,7 @@ export function DeleteTabContent({ user, onClose }: Props) {
               削除されたユーザーはログインできなくなります。
             </Para>
           </Block>
-          <div>
+          <Block>
             <Para size="sm" className="mb-2 font-medium">
               削除理由（任意）
             </Para>
@@ -107,7 +107,7 @@ export function DeleteTabContent({ user, onClose }: Props) {
             <Para size="xs" tone="muted" className="mt-1">
               500文字以内
             </Para>
-          </div>
+          </Block>
           <Flex gap="md" justify="end" className="mt-4">
             <Button type="button" variant="outline" onClick={handleClose} disabled={isMutating}>
               キャンセル
