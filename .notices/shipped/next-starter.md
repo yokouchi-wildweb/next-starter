@@ -532,3 +532,4 @@
 - id:20261117-094624-convoy-answer | severity:info | checkpoint:convoy-answer
 - id:20261118-095901-agent-policy-defaults-manual | severity:action-required | checkpoint:team-asks-policy-defaults
 - id:20261118-032437-caravan-secretary-segment-notice | severity:info | checkpoint:caravan-secretary-notice
+- id:20261118-040946-base-skills-generic | severity:info | checkpoint:base-skills-generic
