@@ -7,12 +7,19 @@ import { createElement } from "react";
 import { JSDOM } from "jsdom";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", { url: "http://localhost/" });
-for (const key of ["window", "document", "HTMLElement", "HTMLInputElement", "Node", "Event", "MouseEvent", "File", "navigator", "getComputedStyle"]) {
+// Element 以下は浮く物(ActionPopover = Radix の Popover)が開く時に使う物
+for (const key of ["window", "document", "HTMLElement", "HTMLInputElement", "Node", "Event", "MouseEvent", "File", "navigator", "getComputedStyle", "Element", "NodeFilter", "MutationObserver", "CustomEvent", "FocusEvent", "KeyboardEvent"]) {
   // navigator は Node の組み込み(getter だけ)なので defineProperty で差し替える
   const value = key === "window" ? dom.window : (dom.window as unknown as Record<string, unknown>)[key];
   Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
 }
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
+// ResizeObserver(浮く物の位置の計算)は jsdom に無いので空の物を置く
+(globalThis as Record<string, unknown>).ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
 
 // アップロードの結果を手で決める: 呼ばれるたびに次の結果(true = 成功)を使う
 const outcomes: boolean[] = [];
@@ -84,5 +91,42 @@ test("失敗したら保存を呼ばずエラーを出す → 選び直して成
   await pick(container);
   assert.deepEqual(saved, [{ avatarUrl: "storage://user.avatar/2" }], "成功した画像で保存する");
   assert.doesNotMatch(container.textContent ?? "", /アップロードに失敗しました/, "やり直しでエラーが消える");
+  await act(async () => root.unmount());
+});
+
+// 丸を押した時の分かれ道(メニュー = ActionPopover、body へ portal する浮く物)
+const mount = async (avatarUrl: string | null) => {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  const user = { id: "u1", name: "太郎", avatarUrl } as unknown as Parameters<typeof AccountAvatarSection>[0]["user"];
+  await act(async () => root.render(createElement(AccountAvatarSection, { user })));
+  const trigger = container.querySelector('button[aria-label="アバター画像を変更"]') as HTMLButtonElement;
+  const press = (el: Element) => act(async () => void el.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true })));
+  const menuItem = (label: string) => [...document.body.querySelectorAll("button")].find((b) => b.textContent?.trim() === label);
+  return { container, root, trigger, press, menuItem };
+};
+
+test("画像あり: 丸を押すとメニュー(画像を変更・画像を削除)、画像を変更でファイル選択を開いてメニューが閉じる", async () => {
+  const clicks = mock.method(dom.window.HTMLInputElement.prototype, "click", () => {});
+  const { root, trigger, press, menuItem } = await mount("https://example.test/a.png");
+  assert.equal(menuItem("画像を変更"), undefined);
+  await press(trigger);
+  assert.ok(menuItem("画像を変更"));
+  assert.ok(menuItem("画像を削除"));
+  await press(menuItem("画像を変更") as HTMLButtonElement);
+  assert.equal(clicks.mock.callCount(), 1);
+  assert.equal(menuItem("画像を変更"), undefined);
+  clicks.mock.restore();
+  await act(async () => root.unmount());
+});
+
+test("画像なし: 丸を押すとメニューを出さずにファイル選択を開く", async () => {
+  const clicks = mock.method(dom.window.HTMLInputElement.prototype, "click", () => {});
+  const { root, trigger, press, menuItem } = await mount(null);
+  await press(trigger);
+  assert.equal(menuItem("画像を変更"), undefined);
+  assert.equal(clicks.mock.callCount(), 1);
+  clicks.mock.restore();
   await act(async () => root.unmount());
 });
