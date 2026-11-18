@@ -1,1 +1,1 @@
-{ "check": "check.ts", "gates": ["build"], "watch": ["src/**", "scripts/structure/proxies/**", "tsconfig.json", "package.json", "pnpm-lock.yaml", "scripts/runner/gates/**", "scripts/runner/preload/**"] }
+{ "check": "check.ts", "gates": ["build", "ship"], "watch": ["src/**", "scripts/structure/proxies/**", "eslint-rules/resolve-import.mjs", "tsconfig.json", "package.json", "pnpm-lock.yaml", "scripts/runner/gates/**", "scripts/runner/preload/**"] }
