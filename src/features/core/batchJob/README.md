@@ -1,13 +1,19 @@
 # BatchJob ドメイン
 
-大量データを安全にチャンク分割処理するための汎用バッチジョブ基盤。
-進捗追跡、冪等性、クラッシュリカバリを標準提供する。
+## Overview
 
----
+- 大量データを安全にチャンク分割処理するための汎用バッチジョブ基盤。進捗追跡、冪等性、クラッシュリカバリを標準提供する
+- テーブル: `batch_jobs`（ジョブ管理）、`batch_job_items`（アイテム単位の進捗）
+- 実行モード: processChunk（DB 操作向け）、processItem（外部 API 向け）
+- 同時実行制御: FOR UPDATE SKIP LOCKED（ジョブ行 / アイテム行）
+- 冪等性: UNIQUE(job_type, job_key) + UNIQUE(job_id, item_key)
+- ステータス: pending → running → completed / failed / cancelled
+- 入口: `@/features/batchJob/services/server`（`batchJobService`・`getHandler`・`createJobFromQuery`）。型は `@/features/core/batchJob/types`
+- 決まり（入口・ハンドラの書き方・ファサード）は札 `.claude/rules/items/features/batchJob.md`
 
-## クイックスタート
+## Usage
 
-### ダウンストリームの利用例（ウォレット一括調整）
+ダウンストリームの利用例（ウォレット一括調整）:
 
 ```typescript
 import { createWalletBulkAdjustJob } from "@/features/wallet/services/server/handlers/walletBulkAdjustHandler";
@@ -31,39 +37,58 @@ const result = await batchJobService.executeAll(job.id);
 const progress = await batchJobService.getProgress(job.id);
 ```
 
-### 概要
+## API
 
-| 項目 | 内容 |
-|------|------|
-| **テーブル** | `batch_jobs`（ジョブ管理）、`batch_job_items`（アイテム単位の進捗） |
-| **実行モード** | processChunk（DB操作向け）、processItem（外部API向け） |
-| **同時実行制御** | FOR UPDATE SKIP LOCKED（ジョブ行 / アイテム行） |
-| **冪等性** | UNIQUE(job_type, job_key) + UNIQUE(job_id, item_key) |
-| **ステータス** | pending → running → completed / failed / cancelled |
+サービス（`batchJobService`）:
 
----
+- `createJob(input)`: ジョブ + アイテムを 1 トランザクションで作成
+- `executeChunk(jobId)`: 1 チャンク分を処理。`{ hasMore, job }` を返す
+- `executeAll(jobId, maxDurationMs?)`: maxDurationMs までループ実行（既定 55 秒）
+- `cancel(jobId)`: ジョブをキャンセル。処理済み分は巻き戻さない
+- `getProgress(jobId)`: 進捗情報を取得
+- `recoverStaleItems(jobId)`: processItem モードの滞留アイテムを回復
 
-## 2つの実行モード
+管理 API:
 
-### processChunk — DB操作中心
+- POST `/api/admin/batch-jobs`: ジョブ作成
+- GET `/api/admin/batch-jobs/[jobId]`: 進捗取得
+- POST `/api/admin/batch-jobs/[jobId]/execute`: 実行（executeAll）
+- PATCH `/api/admin/batch-jobs/[jobId]/cancel`: キャンセル
 
-- チャンク全体が **1トランザクション**
-- クラッシュ時はロールバックでpendingに戻る（リカバリ不要）
-- `ChunkResult` で succeeded / failed / skipped を返す
+`batch_jobs`:
 
-### processItem — 外部API・長時間処理
+- `id` uuid PK
+- `job_type` text: ハンドラ識別キー
+- `job_key` text: 冪等キー
+- `status` enum: pending / running / completed / failed / cancelled
+- `total_count` / `processed_count` / `failed_count` / `skipped_count` integer: 総数・処理済み・失敗・スキップの数
+- `batch_size` integer: 1 チャンクの処理件数
+- `max_retry_count` integer: 最大リトライ回数
+- `params` jsonb: ジョブ固有パラメータ
+- `target_query` jsonb: 対象抽出条件の記録用（メタデータ）
+- `error_summary` text: チャンクレベル例外時のエラー
+- `started_at` / `completed_at` timestamp: 実行開始・完了日時
+- ユニーク制約: `(job_type, job_key)`
 
-- **アイテムごと** に独立したトランザクション
-- アイテム単位で pending → processing → completed / failed
-- クラッシュ時: processing のまま残るが `recoverStaleItems` で回復可能
+`batch_job_items`:
 
----
+- `id` uuid PK
+- `job_id` uuid FK → batch_jobs (CASCADE)
+- `item_key` text: 対象識別子（userId 等）
+- `status` enum: pending / processing / completed / failed / skipped
+- `retry_count` integer: リトライ回数
+- `error_message` text: エラーメッセージ
+- `processed_at` timestamp: 処理日時
+- ユニーク制約: `(job_id, item_key)`（構造的冪等性）
+- インデックス: `(job_id, status)`（未処理アイテム取得用）
 
-## 新しいバッチジョブの追加方法
+既定値は `constants/index.ts` の `BATCH_JOB_CONFIG`（executeAll の最大実行時間・1 チャンクの件数・processing → pending の回復タイムアウト・最大リトライ回数・アイテム一括 INSERT の単位）。
 
-### 1. ハンドラを定義
+## Extension
 
-`src/features/core/batchJob/jobHandlers/<名前>.ts` に置き、`pnpm generate extensions` で一覧に入れる（処理が機能を閉じる規則のフォルダを読むなら `enabled` が必須）。
+新しいバッチジョブの追加:
+
+1. ハンドラを `src/features/core/batchJob/jobHandlers/<名前>.ts` に置き、`pnpm generate extensions` で一覧に入れる（受け口 `jobHandlers`、`extensionPoints.ts`）
 
 ```typescript
 import { defineBatchJobHandler } from "@/features/core/batchJob/types";
@@ -74,18 +99,16 @@ type MyParams = {
 };
 
 export const jobHandler = defineBatchJobHandler<MyParams>({
-  jobType: MY_BATCH_JOB_TYPE, // ファサードと共有する定数は別のファイルに置く（項目が読み手と循環しない）
-  // processChunk か processItem のどちらか一方を定義（排他）
+  jobType: MY_BATCH_JOB_TYPE, // ファサードと共有する定数は別のファイル
+  // processChunk か processItem のどちらか一方
   processItem: async (itemKey, params, tx) => {
     await mailService.send(itemKey, params.templateId, params.subject);
   },
-  recoveryTimeoutMs: 60_000, // processItem専用（省略時: 5分）
+  recoveryTimeoutMs: 60_000, // processItem 専用（省略時: 5 分）
 });
 ```
 
-### 2. ファサード関数を提供（推奨）
-
-ダウンストリームが jobType や params 構造を知らずに使えるようにする。
+2. ファサード関数を提供する（ダウンストリームが jobType や params 構造を知らずに使える）
 
 ```typescript
 // src/features/core/<domain>/services/server/handlers/myBatchJob.ts
@@ -107,95 +130,21 @@ export async function createMyBatchJob(input: {
 }
 ```
 
----
+## Internals
 
-## データモデル
+processChunk（DB 操作中心）:
 
-### batch_jobs
+- チャンク全体が 1 トランザクション
+- クラッシュ時はロールバックで pending に戻る（リカバリ不要）
+- `ChunkResult` で succeeded / failed / skipped を返す
 
-| フィールド | 型 | 説明 |
-|-----------|-----|------|
-| `id` | uuid PK | |
-| `job_type` | text | ハンドラ識別キー |
-| `job_key` | text | 冪等キー |
-| `status` | enum | pending / running / completed / failed / cancelled |
-| `total_count` | integer | 総アイテム数 |
-| `processed_count` | integer | 処理済み数 |
-| `failed_count` | integer | 失敗数 |
-| `skipped_count` | integer | スキップ数 |
-| `batch_size` | integer | 1チャンクの処理件数（デフォルト: 100） |
-| `max_retry_count` | integer | 最大リトライ回数（デフォルト: 2） |
-| `params` | jsonb | ジョブ固有パラメータ |
-| `target_query` | jsonb | 対象抽出条件の記録用（メタデータ） |
-| `error_summary` | text | チャンクレベル例外時のエラー |
-| `started_at` | timestamp | 実行開始日時 |
-| `completed_at` | timestamp | 完了日時 |
+processItem（外部 API・長時間処理）:
 
-**ユニーク制約**: `(job_type, job_key)`
+- アイテムごとに独立したトランザクション
+- アイテム単位で pending → processing → completed / failed
+- クラッシュ時は processing のまま残るが `recoverStaleItems` で回復できる
 
-### batch_job_items
-
-| フィールド | 型 | 説明 |
-|-----------|-----|------|
-| `id` | uuid PK | |
-| `job_id` | uuid FK | → batch_jobs (CASCADE) |
-| `item_key` | text | 対象識別子（userId等） |
-| `status` | enum | pending / processing / completed / failed / skipped |
-| `retry_count` | integer | リトライ回数 |
-| `error_message` | text | エラーメッセージ |
-| `processed_at` | timestamp | 処理日時 |
-
-**ユニーク制約**: `(job_id, item_key)` — 構造的冪等性
-**インデックス**: `(job_id, status)` — 未処理アイテム取得用
-
----
-
-## サービスAPI
-
-```typescript
-import { batchJobService } from "@/features/batchJob/services/server";
-```
-
-| メソッド | 説明 |
-|----------|------|
-| `createJob(input)` | ジョブ + アイテムを1トランザクションで作成 |
-| `executeChunk(jobId)` | 1チャンク分を処理。`{ hasMore, job }` を返す |
-| `executeAll(jobId, maxDurationMs?)` | maxDurationMsまでループ実行（デフォルト: 55秒） |
-| `cancel(jobId)` | ジョブをキャンセル。処理済み分は巻き戻さない |
-| `getProgress(jobId)` | 進捗情報を取得 |
-| `recoverStaleItems(jobId)` | processItemモードの滞留アイテムを回復 |
-
----
-
-## 管理API
-
-| メソッド | パス | 説明 |
-|----------|------|------|
-| POST | `/api/admin/batch-jobs` | ジョブ作成 |
-| GET | `/api/admin/batch-jobs/[jobId]` | 進捗取得 |
-| POST | `/api/admin/batch-jobs/[jobId]/execute` | 実行（executeAll） |
-| PATCH | `/api/admin/batch-jobs/[jobId]/cancel` | キャンセル |
-
----
-
-## 設定
-
-```typescript
-// src/features/core/batchJob/constants/index.ts
-export const BATCH_JOB_CONFIG = {
-  defaultMaxDurationMs: 55_000,      // executeAllの最大実行時間
-  defaultBatchSize: 100,             // 1チャンクの件数
-  defaultRecoveryTimeoutMs: 300_000, // processing→pending回復タイムアウト
-  defaultMaxRetryCount: 2,           // 最大リトライ回数
-  itemsInsertChunkSize: 5_000,       // アイテム一括INSERT単位
-};
-```
-
----
-
-## ステータス遷移
-
-### batch_jobs
+ステータス遷移（`batch_jobs`）:
 
 ```
 pending → running     （最初のexecuteChunk時）
@@ -204,55 +153,17 @@ running → failed      （チャンクレベル例外）
 running → cancelled   （管理者キャンセル）
 ```
 
-### batch_job_items（processChunkモード）
+ステータス遷移（`batch_job_items`）:
 
 ```
-pending → completed | failed | skipped
-※ processing は出現しない
+processChunk: pending → completed | failed | skipped（processing は出現しない）
+processItem:  pending → processing → completed | failed
+              processing → pending（リカバリ: recoverStaleItems）
 ```
 
-### batch_job_items（processItemモード）
+- ハンドラの読み手は `services/server/registry.ts`（一覧 `extensions/jobHandlers`）。`services/server/index.ts` が登録を保証して公開する
+- `createJobFromQuery` は `services/server/helpers.ts`
 
-```
-pending → processing → completed | failed
-processing → pending  （リカバリ: recoverStaleItems）
-```
+## Related
 
----
-
-## ディレクトリ構造
-
-```
-src/features/core/batchJob/
-├── README.md
-├── types/
-│   └── index.ts                 # BatchJob, BatchJobHandler, ChunkResult 等
-├── constants/
-│   └── index.ts                 # BATCH_JOB_CONFIG
-├── entities/
-│   └── drizzle.ts               # batch_jobs, batch_job_items テーブル定義
-└── services/
-    └── server/
-        ├── index.ts             # 公開エントリポイント（ハンドラ登録を保証）
-        ├── batchJobService.ts   # コアロジック
-        ├── registry.ts          # ハンドラの読み手（一覧 extensions/jobHandlers）
-        └── helpers.ts           # createJobFromQuery
-```
-
-### 関連ファイル（ウォレットハンドラ）
-
-```
-src/features/core/wallet/services/server/
-├── handlers/
-│   └── walletBulkAdjustHandler.ts  # ファサード関数（処理の本体は batchJob/jobHandlers/walletBulkAdjust.ts）
-└── wrappers/
-    └── bulkAdjustByUsers.ts        # バルク調整ロジック
-```
-
----
-
-## Phase 2（未実装）
-
-- 管理画面UI（進捗表示、実行/キャンセルボタン、ポーリング）
-- processItemモードのジョブレベル同時実行制御強化
-- データ保持期間・クリーンアップ
+- ウォレット一括調整: ファサード `src/features/core/wallet/services/server/handlers/walletBulkAdjustHandler.ts`、処理の本体 `jobHandlers/walletBulkAdjust.ts`、バルク調整ロジック `src/features/core/wallet/services/server/wrappers/bulkAdjustByUsers.ts`
