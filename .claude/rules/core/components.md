@@ -10,6 +10,19 @@ paths:
 
 wrappers (lint raw-elements): div → Layout/{Block,Flex,Grid,Stack} | main → Layout/Main or UserPage | section → Layout/Section | button → Form/Button | input → Form/Input | p → TextBlocks/Para | h2 → TextBlocks/SecTitle | skeleton → Skeleton/BaseSkeleton | img → Media/AppImage (never next/image directly)
 - never import _shadcn directly (lint import-boundaries/no-shadcn-direct, all tiers; wrapper table: src/components/_shadcn/README.md; no wrapper → propose one)
+existing_parts (want → part; check here before building your own | a row = a want where own builds were found, or a choice moved here from CLAUDE.md):
+- loading: inside a button → Form/Button loading prop (+ loadingLabel) | in the flow of a page or card → Overlays/Loading/InlineLoader | over an area or the screen → Overlays/Loading/ScreenLoader
+- table (@/lib/tableSuite): read-only list, column sort, row reorder → DataTable | select rows + bulk actions → RecordSelectionTable | inline cell edit → EditableGridTable | growing rows → the tables' infiniteFooter prop (InfiniteTableFooter) fed by useInfiniteScrollQuery | print → DataTable variant "print" | client sort → sortItems (getValue, nulls)
+- key / value rows → Overlays/DetailModal DetailTable
+- admin list of a core domain with columns of your own → its columns function + list hook with DataTable in your _components/ (coupon: createAdminCouponListColumns, useAdminCouponListTable; referral: createAdminInviteListColumns, useAdminInviteListTable)
+- selection outside a table (cards, tiles) → useRecordSelection + BulkActionBar, or RecordSelectionList (@/lib/tableSuite)
+- paging: links → Navigation/Pagination makeHref prop | state → Pagination onPageChange prop | growing list → Widgets/InfiniteScrollList + useInfiniteScrollQuery (a button → loadMode "button", chat → direction "prepend")
+- overlay: confirm → Overlays/Dialog (third action → extraAction prop) or Overlays/Confirm useConfirm (Promise) | generic → Overlays/Modal (fullscreen, overlayClassName, container props) | from an edge → Overlays/Sheet (side) | tabs → Overlays/TabbedModal | media + rows → Overlays/DetailModal | image → Overlays/ImageViewer (caption prop) | pick N from a large master → Overlays/AsyncPickerModal
+- inline overlay (moved from CLAUDE.md): confirm / prompt / actions / checklist / info → Overlays/Popover | hover → Overlays/Tooltip, Overlays/HoverCard | toast → @/lib/toast
+- stacking and portal: stacking → @/lib/zLayer names via zLayerClass (floating pieces take no layer) | portal → Fanctional/BodyPortal or a part's container prop
+- tabs: state → Navigation/StateTabs (variant "underline", listEnd prop) | routes → Navigation/PageTab
+- link → Navigation/Link | image → Media/AppImage (style, data-* pass through)
+- none fits → the part's look props or slots (slots) | a missing behavior → /order <direct parent> | or build your own, never blocked (an instead-of mark is optional, own_mark in core/extensions.md) | the bans elsewhere in this file are misuses of a shared part, not bans on building your own
 text_blocks_inherit: TextBlocks do not inherit like raw tags → Span directly inside a heading = `size="inherit" weight="inherit"` | Para in a centered parent = `align="center"` | ref: src/components/TextBlocks/README.md
 ui_layers (page / section_container / part, defined by role; ref: docs/!must-read/UIレイヤーの概念とコンポーネント分割方法.md):
 - page = page.tsx switch + Screen (see SCREENS): no hooks, no state, h1 only here

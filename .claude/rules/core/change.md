@@ -17,6 +17,7 @@ change_types (the only 4 ways to change an upstream thing | marks = .default / .
 - 1 whole (code): \<name\>.default + plain 1-line switch → fork \<name\>.replace, repoint the switch | screens: page.tsx switch, default _screen/ → fork _components/\<X\>Screen.tsx | frame: layout.tsx switch → fork _layout/\<Layout\>.replace.tsx beside the default (fork frame parts → route's _components/, plain names)
 - 2 overlay (data): plain target + declared keys (overrideOf / overrides) → fork \<target\>.override.ts, declared keys only | frame: creator frame.ts → lower repo frame.override.ts
 - 3 add: plain new name in a declared receptacle folder | 4 placement (values): src/styles/core/\<name\>.css → src/styles/\<name\>.css, owner config.ts → src/config/{lib,features,layout,proxies}/\<name\>.config.ts
+  - add items: a plain \<name\>.ts(x) in the declared folder, no repo-name mark (the same name as a parent's unit = ownership unit-clash) → pnpm generate extensions
 - none → /order \<direct parent\> | no means to overlay part of code → upstream exposes it by value / receptacle / split
 - tell: sibling .default = 1 | declaration above = 2 / 3 | placement declaration = 4 | none = cannot change
 - who: `pnpm workflow ownership who <path>` answers type 1-4 | generated | own | none (ref: src/lib/forkOwnership/README.md)
