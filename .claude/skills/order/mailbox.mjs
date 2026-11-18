@@ -4,14 +4,14 @@
 //   <root>/<fork-id>/*.md      = そのリポ宛ての未対応の指令
 //   <root>/<fork-id>/done/*.md = 対応済み
 //   fork-id = 各 checkout の repo.json の repo_id（古い形は .claude/rules/project.md の `fork_id:`。小文字・数字・ハイフン。下記 forkIdOf）
-//   council の実装（build）は council 自身のフォルダ（~/.team/_council/builds/）にあり、ここには単発の指令（from: council <議題id>）だけが入る
 // 使い方:
 //   node mailbox.mjs self    自リポの fork-id と受信箱
-//   node mailbox.mjs from    起票する指令の from: 行（チームのタブなら発行元はそのチーム。下記 fromLine）
+//   node mailbox.mjs from    起票する指令の from: 行（env ORDER_ACTOR があれば発行元はその名前。下記 fromLine）
 //   node mailbox.mjs repos   手元のリポ（自リポと同じ親ディレクトリにあるもの）と各受信箱
 //   node mailbox.mjs me      この者の名前（taken_by / routed_by に書く値。下記 actorOf）
-//   node mailbox.mjs inbox   自リポ宛ての未対応の指令（状態 open | routed | taken、waiting_on: の待ち、担当が自分なら (you)）
-//   node mailbox.mjs route <指令> --to=<council <id> | guild:<instance|name> | build <id>.<k> [plan-SS]> [--by=]
+//   node mailbox.mjs inbox [--kind=<値>]   自リポ宛ての未対応の指令（状態 open | routed | taken、waiting_on: の待ち、担当が自分なら (you)）。
+//                            --kind = 先頭の kind: がその値の指令だけ
+//   node mailbox.mjs route <指令> --to=<振り先の名前> [--by=]   振り先は中を読まない文字列（引き受ける者の me: の名前と完全一致で照合）
 //                            振り分ける: open | routed → routed（振り直し可）。着手中は断る
 //   node mailbox.mjs take <指令> [--as=<id>]      着手する: open → taken。routed は振り分け先の本人だけ（違えば担当を出して断る）
 //   node mailbox.mjs release <指令> [--as=<id>] [--force=<理由>]   手放す: taken → 取る前の状態（取った者だけ）
@@ -22,8 +22,8 @@
 //                            [--commit=<sha|->] [--pushed=<yes|no|...>] [--branch=<名前>] [--as=<id>] [--force=<理由>]
 //                            指令に答える: RESOLUTION を末尾に追記し、先頭の status: をその status に書き換えて done/ へ移す。
 //                            他人の taken・別の振り分け先の routed は断る（--force で通すと RESOLUTION に forced: が残る）
-//                            （/inbox 手順 4 と guild close の共通の書き手）。隣にブラウザ確認のシートがあれば一緒に done/ へ移す
-//   node mailbox.mjs file --to=<self | fork-id | checkout のパス> --title=<日本語の短い題> --need=<1 行> [--kind=quest|browser-check]
+//                            （/inbox 手順 4 と道具の共通の書き手）。隣にブラウザ確認のシートがあれば一緒に done/ へ移す
+//   node mailbox.mjs file --to=<self | fork-id | checkout のパス> --title=<日本語の短い題> --need=<1 行> [--kind=<値>]
 //                            [--why=] [--done-when=] [--constraints=] [--refs=] [--notes=] [--tried=] [--from=<行>] [--slug=<kebab>] [--body=<ファイル>]
 //                            指令を 1 件、宛先の受信箱に書く（指令ファイルのただ 1 つの書き手。/order 手順 4 と道具が呼ぶ）:
 //                            <box>/<ts>-<slug>.md を /order の形（先頭 id / from / to / date / status:open / [kind] / title / need / why /
@@ -73,7 +73,7 @@ export function forkIdFromUrl(url) {
 export const FORK_ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 
 // 宣言された名前: repo.json の repo_id を先に、無ければ古い形の project.md の fork_id:（宣言が無ければ ""。旧い `-` もそのまま返す）。
-// 手元のほかのリポ（まだ移していないリポ）も読むので、古い形も読む（~/.team/_bin の tk_fork_id_declared と同じ順）
+// 手元のほかのリポ（まだ移していないリポ）も読むので、古い形も読む
 export function declaredForkId(top) {
   const repoJson = join(top, "repo.json");
   if (existsSync(repoJson)) {
@@ -90,16 +90,16 @@ export function declaredForkId(top) {
   return m ? m[1] : "";
 }
 
-// リポの名前（受信箱の名前）= repo.json の repo_id（古い形は project.md の fork_id:。council 20261030-104205 D27。~/.team/_bin の tk_fork_id_of と同じ規則）。
+// リポの名前（受信箱の名前）= repo.json の repo_id（古い形は project.md の fork_id:）。
 // 形が違えば throw。未宣言（行なし・旧い `-`）は移行中だけ旧い導き方に戻る（declared: false）。
-// env TK_FORK_ID_STRICT=1 なら未宣言も throw（移行の終わり）
+// env ORDER_REPO_ID_STRICT=1 なら未宣言も throw（移行の終わり）
 export function forkIdOf(top, origin, env = process.env) {
   const v = declaredForkId(top);
   if (v && v !== "-") {
     if (!FORK_ID_RE.test(v)) throw new Error(`repo_id の形が違います（${v}: 小文字・数字・ハイフン）: ${top}/repo.json`);
     return { id: v, declared: true };
   }
-  if (env.TK_FORK_ID_STRICT === "1") throw new Error(`repo_id が宣言されていません: ${top}/repo.json`);
+  if (env.ORDER_REPO_ID_STRICT === "1") throw new Error(`repo_id が宣言されていません: ${top}/repo.json`);
   return { id: origin ? forkIdFromUrl(origin) : `local--${basename(top).toLowerCase()}`, declared: false };
 }
 
@@ -114,7 +114,7 @@ function repoInfo(dir) {
   return { top, origin, upstream, repoId, declared, oldId };
 }
 
-// 宣言済みのリポの受信箱を fork-id の名前へ移す（~/.team/_bin の tk_box_settle と同じ規則。名前を読むたびに呼ぶ）:
+// 宣言済みのリポの受信箱を fork-id の名前へ移す（名前を読むたびに呼ぶ）:
 // 旧い箱だけ → 改名 / 両方（古い送り手が旧い箱を作り直した分裂）→ 旧い方の指令（open と done/）を移す。同名は上書きせず残して言う /
 // どちらもない → 新しく作る。最後に旧い名前を新しい箱へのリンクにする（旧い名前で書く送り手も同じ箱に入る）。旧い名前がリンクなら何もしない
 export function settleBox(id, oldId, root = ROOT) {
@@ -178,7 +178,7 @@ function fleetConf(env = process.env) {
 }
 
 // その名前を self の fork_id: にしてよいか: 重なる理由の一覧（空 = よい）。
-// fleet.conf の別のパスの名前・手元の別のリポの名前・持ち主が self でない既存の受信箱と重なれば不可（D30 K3）
+// fleet.conf の別のパスの名前・手元の別のリポの名前・持ち主が self でない既存の受信箱と重なれば不可
 export function nameProblems(name, self, others, conf, root = ROOT) {
   const out = [];
   if (!FORK_ID_RE.test(name)) out.push(`形が違います（${name}: 小文字・数字・ハイフン）`);
@@ -236,33 +236,30 @@ function localRepos(self) {
   return [...byId.values()].sort((a, b) => a.repoId.localeCompare(b.repoId));
 }
 
-// 起票する指令の from: の値。チームのタブ（起動スクリプトが TK_TEAM 等を export する）では発行元 = そのチームで、
-// 動いていたリポは repo: に参考として残す。評議会の実装の `council <議題id> | instance:…` と同じく先頭が発行元
-//   チーム: <team> <instance> | role:<役職名> | repo:<origin> | branch:<b> | cwd:<path>
+// 起票する指令の from: の値。env ORDER_ACTOR（動く者の名前、任意の 1 行。例 `<名前> | role:<役>`）があれば発行元 = その名前で、
+// 動いていたリポは repo: に参考として残す。先頭が発行元
+//   ORDER_ACTOR あり: <ORDER_ACTOR> | repo:<origin> | branch:<b> | cwd:<path>
 //   それ以外: <origin> | branch:<b> | cwd:<path>
 export function fromLine(env, { origin, repoId, branch, cwd }) {
   const repo = origin || repoId;
-  const team = teamIssuer(env);
-  if (team) return `${team} | repo:${repo} | branch:${branch || "-"} | cwd:${cwd}`;
+  const actor = envActor(env);
+  if (actor) return `${actor} | repo:${repo} | branch:${branch || "-"} | cwd:${cwd}`;
   return `${repo} | branch:${branch || "-"} | cwd:${cwd}`;
 }
 
-// チームのタブの発行元 `<team> <instance> | role:<役職名>`(無ければ null)。チームの印の環境変数を読むのはこの 1 か所だけ
-// (from: と taken_by / routed_by の名前が同じ値になる)
-function teamIssuer(env) {
-  if (!env.TK_TEAM || !env.TK_INSTANCE) return null;
-  const role = env.TK_LABEL || env.TK_ROLE || "-";   // TK_LABEL が無いのは、それを渡す前に起動したタブ
-  return `${env.TK_TEAM} ${env.TK_INSTANCE} | role:${role}`;
+// env ORDER_ACTOR（無ければ null）。動く者の名前の環境変数を読むのはこの 1 か所だけ（from: と taken_by / routed_by が同じ値になる）
+function envActor(env) {
+  const v = String(env.ORDER_ACTOR || "").replace(/\s*\r?\n\s*/g, " ").trim();
+  return v || null;
 }
 
 // 指令の発行元（from: の値）を読む。先頭が発行元
-//   council = 評議会の実装（`council <議題id> | build:b<k> order:NN` など、role: 欄なし）| team = チームの役職（role: 欄あり）| repo = リポのセッション
-// 戻り値 { kind, label（一覧に出す名前）, repo（発行元のリポ。council は null）}
+//   actor = ORDER_ACTOR の名前（repo: 欄あり）| repo = リポのセッション
+// 戻り値 { kind, label（一覧に出す名前）, repo（発行元のリポ）}
 export function requester(from) {
   const [head = "", ...rest] = from.split(" | ").map((x) => x.trim());
   const kv = Object.fromEntries(rest.map((x) => [x.slice(0, x.indexOf(":")), x.slice(x.indexOf(":") + 1)]).filter(([k]) => k));
-  if (kv.role) return { kind: "team", label: `${head} ${kv.role}`, repo: kv.repo || null };
-  if (head.startsWith("council ")) return { kind: "council", label: head, repo: null };
+  if (kv.repo) return { kind: "actor", label: kv.role ? `${head} ${kv.role}` : head, repo: kv.repo };
   return { kind: "repo", label: head, repo: head };
 }
 
@@ -305,7 +302,7 @@ function orderState(path) {
   return { state: "missing", path: cur };
 }
 
-// RESOLUTION の本文（--body）に status ごとに要る行。評議会の実装からの指令（requester が council）の done / partial は findings / verify も
+// RESOLUTION の本文（--body）に status ごとに要る行（依頼元が自分の欄を足して求める時は、依頼元が答えを読んで確かめる）
 const REQUIRED = {
   done: ["implemented", "consume", "propagate", "notice", "notes"],
   partial: ["implemented", "consume", "propagate", "notice", "notes"],
@@ -322,7 +319,7 @@ function isoNow(d = new Date()) {
 }
 
 // ---- 指令の状態（status: は 1 つの値）--------------------------------------------------------------
-// open（未対応）→ routed（評議会・ギルド・実装の計画書に振り分け済み）→ taken（担当が着手）→ 答え（REQUIRED の status）
+// open（未対応）→ routed（振り先に振り分け済み）→ taken（担当が着手）→ 答え（REQUIRED の status）
 // routed は routed_to / routed_by / routed_at、taken は taken_by / taken_at を先頭に持つ（今の状態。release で taken_* は消える）。
 // 移り変わりは末尾の `## STATUS_LOG` に 1 行ずつ足す（消さない。前の担当が見える）。答え（resolve）の記録は RESOLUTION が持つ。
 // status: が無い・知らない値の古い指令は open として読む
@@ -370,9 +367,9 @@ function appendLog(text, entry) {
   return lines.join("\n");
 }
 
-// クエストの印 = 先頭の `kind: quest`（/order の引数 quest・評議会の起票の道具が書く）。印の正はこの欄だけで、題の書き方では読まない
-export function isQuest(text) {
-  return headField(text, "kind") === "quest";
+// 指令の種類 = 先頭の `kind:`（任意の値。意味は書く者と読む者のもので、ここは読まない）。印の正はこの欄だけで、題の書き方では読まない
+export function kindOf(text) {
+  return headField(text, "kind");
 }
 
 export function orderStatus(text) {
@@ -381,14 +378,14 @@ export function orderStatus(text) {
 }
 
 // 動いている者の名前（taken_by / routed_by に書く）
-//   チームのタブ: <team> <instance> | role:<役職名>（from: と同じ teamIssuer）| リポのセッション: <origin> | branch:<b>
+//   ORDER_ACTOR があればその名前（from: と同じ envActor）| リポのセッション: <origin> | branch:<b>
 export function actorOf(env, { origin, repoId, branch }) {
-  const team = teamIssuer(env);
-  if (team) return team;
+  const actor = envActor(env);
+  if (actor) return actor;
   return `${origin || repoId} | branch:${branch || "-"}`;
 }
 
-// 同じ担当かを比べる鍵: チーム（role: 欄あり）は <team> <instance>（同じタブの組の誰でも）、リポは cwd: を除いた全体
+// 同じ担当かを比べる鍵: role: 欄のある名前は先頭だけ（同じ名前の誰でも）、ほかは cwd: を除いた全体
 function actorKey(a) {
   const parts = String(a).split(" | ").map((x) => x.trim()).filter((x) => x && !x.startsWith("cwd:"));
   return parts.some((x) => x.startsWith("role:")) ? parts[0] : parts.join(" | ");
@@ -398,15 +395,12 @@ export function sameActor(a, b) {
   return actorKey(a) === actorKey(b);
 }
 
-// routed_to（council <id> | guild:<instance|name> | build <id>.<k> [plan-SS]）がこの者を指すか。
-// as = 明示した名前（--as）。チームのタブは council <instance> / <team>:<instance> / <team> <instance> とも照合する
+// routed_to（中を読まない文字列）がこの者を指すか: 名前（または同じ担当の鍵）と完全一致（空白の幅だけそろえる）。
+// as = 明示した名前（--as）
 export function routedMatches(routedTo, actor, as, env = {}) {
   const norm = (s) => String(s).trim().replace(/\s+/g, " ");
   const want = norm(routedTo);
   const names = as ? [as] : [actor, actorKey(actor)];
-  // チームの者（role: 欄あり）は <team> <instance> と <team>:<instance> でも（actor から。環境変数は読まない）
-  const key = actorKey(actor);
-  if (!as && String(actor).includes("| role:") && /^\S+ \S+$/.test(key)) names.push(key.replace(" ", ":"));
   return names.some((n) => norm(n) === want);
 }
 
@@ -433,7 +427,7 @@ function liveOrder(orderPath) {
 
 // 振り分ける: open | routed → routed（振り直しも可。ログに残る）。taken は断る（取った者が release してから）
 export function routeOrder(orderPath, { to, by, now = isoNow() }) {
-  if (!to) throw new Error("--to=<council <id> | guild:<instance|name> | build <id>.<k> [plan-SS]> が要ります");
+  if (!to) throw new Error("--to=<振り先の名前> が要ります");
   const text = liveOrder(orderPath);
   const s = orderStatus(text);
   if (s === "taken") throw new Error(`着手中です（${whoHas(text)}）: 振り分けるなら取った者が release してから`);
@@ -518,7 +512,6 @@ export function resolveOrder(orderPath, { status, body, by, now = isoNow(), acto
   const forced = resolveGuard(text, { actor, as, env, force });
   const lines = body.split("\n").map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim() !== "");
   const want = [...REQUIRED[status]];
-  if ((status === "done" || status === "partial") && requester(field(text, "from")).kind === "council") want.push("findings", "verify");
   const missing = want.filter((k) => !lines.some((l) => l.startsWith(`${k}:`)));
   if (missing.length) throw new Error(`RESOLUTION の本文に ${missing.map((k) => `${k}:`).join(" ")} の行がありません`);
   const full = status === "done" || status === "partial";
@@ -579,7 +572,8 @@ export function tsId(d = new Date()) {
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 }
 
-export const ORDER_KINDS = ["quest", "browser-check"];
+// kind: の値の形（意味は問わない）
+export const KIND_RE = /^[a-z][a-z0-9-]*$/;
 
 // 先頭の 1 行の欄に入れる値（改行は空白に。空・未指定は `-`）
 function oneLine(v) {
@@ -599,7 +593,7 @@ export function slugOf(text) {
 export function fileOrder({ box, to, from, title, need, kind, why, doneWhen, constraints, refs, notes, tried, body, slug, now = new Date() }) {
   if (!title) throw new Error("--title=<日本語の短い題> が要ります");
   if (!need) throw new Error("--need=<1 行> が要ります");
-  if (kind && !ORDER_KINDS.includes(kind)) throw new Error(`--kind は ${ORDER_KINDS.join(" | ")} のどれかです（${kind}）`);
+  if (kind && !KIND_RE.test(kind)) throw new Error(`--kind は小文字・数字・ハイフンの値です（${kind}）`);
   const s = slug ? String(slug) : slugOf(typeof need === "function" ? "" : need);
   if (/[/\\\s]/.test(s) || s.startsWith(".")) throw new Error(`--slug にはパスの区切り・空白・先頭の . を使えません（${s}）`);
   mkdirSync(box, { recursive: true });
@@ -694,7 +688,7 @@ function printOrder(path, actor, env) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
 
 // 答えた後の口: env ORDER_RESOLVED_HOOK = 実行ファイルのパス（シェルを通さない）。答えた指令（done/ の中）のパスを引数に呼ぶ。
-// 設定が無ければ何もしない（fork の既定）。チームのタブはここで依頼元の統括への知らせを付ける（~/.team/_bin）。
+// 設定が無ければ何もしない（fork の既定）。呼び手の道具はここで依頼元への知らせなどを付ける。
 // 口が落ちても答えは取り消さない（RESOLUTION と done/ は書き終わっている）: 理由を 1 行出して exit 0 のまま
 export function afterResolve(dest, env = process.env) {
   const hook = env.ORDER_RESOLVED_HOOK;
@@ -825,10 +819,11 @@ function main() {
     console.log(`me: ${actorOf(process.env, { ...self, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]) })}`);
   } else if (cmd === "inbox") {
     const actor = actorOf(process.env, { ...self, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]) });
-    const questOnly = process.argv.slice(3).includes("--quest");
+    const onlyKind = opt(process.argv.slice(3), "kind");
+    if (onlyKind !== undefined && !KIND_RE.test(onlyKind)) throw new Error(`--kind は小文字・数字・ハイフンの値です（${onlyKind}）`);
     console.log(`box: ${boxOf(self.repoId)}`);
     for (const p of mdFiles(boxOf(self.repoId))) {
-      if (questOnly && !isQuest(readFileSync(p, "utf8"))) continue;
+      if (onlyKind !== undefined && kindOf(readFileSync(p, "utf8")) !== onlyKind) continue;
       printOrder(p, actor, process.env);
     }
   } else if (["route", "take", "release", "unroute"].includes(cmd)) {
@@ -878,7 +873,7 @@ function main() {
     const args = process.argv.slice(3);
     try {
       const to = opt(args, "to");
-      if (!to || !opt(args, "title") || !opt(args, "need")) throw new Error("usage: node mailbox.mjs file --to=<self | fork-id | checkout のパス> --title=<題> --need=<1 行> [--kind=quest|browser-check] [--why=] [--done-when=] [--constraints=] [--refs=] [--notes=] [--tried=] [--from=<行>] [--slug=<kebab>] [--body=<ファイル>]");
+      if (!to || !opt(args, "title") || !opt(args, "need")) throw new Error("usage: node mailbox.mjs file --to=<self | fork-id | checkout のパス> --title=<題> --need=<1 行> [--kind=<値>] [--why=] [--done-when=] [--constraints=] [--refs=] [--notes=] [--tried=] [--from=<行>] [--slug=<kebab>] [--body=<ファイル>]");
       const t = to === "self" ? { box: boxOf(self.repoId), to: `${self.origin || "-"} | box:${self.repoId}` } : targetOf(self, to);
       const from = opt(args, "from") || fromLine(process.env, { origin: self.origin, repoId: self.repoId, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]), cwd: process.cwd() });
       const bodyFile = home(opt(args, "body"));

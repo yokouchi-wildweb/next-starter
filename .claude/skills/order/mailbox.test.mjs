@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { addItem, parseSheet, readSheet, renderSheet, setResult, shotsDirOf, startRun, summarize } from "./checkSheet.mjs";
-import { actorOf, attachSheet, fileCheckOrder, fileOrder, forkIdOf, fromLine, isQuest, nameProblems, orderStatus, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, settleBox, slugOf, takeOrder, unrouteOrder } from "./mailbox.mjs";
+import { actorOf, attachSheet, fileCheckOrder, fileOrder, forkIdOf, fromLine, kindOf, nameProblems, orderStatus, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, settleBox, slugOf, takeOrder, unrouteOrder } from "./mailbox.mjs";
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "mailbox.mjs");
 const BY = { repoId: "acme--app", origin: "git@x:Acme/App.git", branch: "main", commit: "abc1234", pushed: "yes" };
@@ -23,7 +23,7 @@ function box(from = "git@x:Acme/App.git | branch:main") {
   return { dir, file };
 }
 
-test("done: RESOLUTION を追記して done/ へ移す（/wen・council collect が読む形）", () => {
+test("done: RESOLUTION を追記して done/ へ移す（/wen と呼び手の道具が読む形）", () => {
   const { dir, file } = box();
   const dest = resolveOrder(file, { status: "done", body: BODY, by: BY, now: "2026-01-01T00:00:00+09:00" });
   assert.equal(dest, join(dir, "done", "20260101-000000-x.md"));
@@ -37,8 +37,8 @@ test("done: RESOLUTION を追記して done/ へ移す（/wen・council collect 
 
 test("先頭の status: は RESOLUTION の status に揃う（partial / relayed / rejected / withdrawn も）", () => {
   const head = (p) => readFileSync(p, "utf8").match(/^status: (\S+)$/m)[1];
-  const p = box("council q1 | build:b1 order:01");
-  assert.equal(head(resolveOrder(p.file, { status: "partial", body: `${BODY}findings: x\nverify: y\n`, by: BY })), "partial");
+  const p = box();
+  assert.equal(head(resolveOrder(p.file, { status: "partial", body: BODY, by: BY })), "partial");
   const r = box();
   assert.equal(head(resolveOrder(r.file, { status: "relayed", body: "relayed_to: o/1.md\nnotes: n\n", by: BY })), "relayed");
   const j = box();
@@ -60,11 +60,10 @@ test("done: 要る行が無ければ何も書かずに止める", () => {
   assert.equal(readFileSync(file, "utf8").includes("RESOLUTION"), false);
 });
 
-test("評議会からの指令の done は findings / verify も要る", () => {
-  const { file } = box("council q1 | build:b1 order:01");
-  assert.throws(() => resolveOrder(file, { status: "done", body: BODY, by: BY }), /findings: verify:/);
-  const dest = resolveOrder(file, { status: "partial", body: `${BODY}findings: none\nverify: ran x\n`, by: BY });
-  assert.match(readFileSync(dest, "utf8"), /status: partial\n[\s\S]*\nverify: ran x\n$/);
+test("発行元が何であっても要る行は status ごとの同じ組（依頼元の欄は依頼元が確かめる）", () => {
+  const { file } = box("someone s1 | role:Lead | repo:git@x:Acme/App.git");
+  const dest = resolveOrder(file, { status: "done", body: BODY, by: BY });
+  assert.match(readFileSync(dest, "utf8"), /status: done\n/);
 });
 
 test("done は --pushed が要る", () => {
@@ -110,43 +109,36 @@ test("CLI: by の repo-id・branch・commit は実行したリポから取る", 
   assert.equal(existsSync(bad.file), true);
 });
 
-test("from: チームのタブでは発行元 = そのチーム、リポは repo: に残す", () => {
+test("from: ORDER_ACTOR があれば発行元 = その名前、リポは repo: に残す", () => {
   const where = { origin: "git@x:Acme/App.git", repoId: "acme--app", branch: "main", cwd: "/w/app" };
   assert.equal(fromLine({}, where), "git@x:Acme/App.git | branch:main | cwd:/w/app");
   assert.equal(fromLine({}, { ...where, origin: "" }), "acme--app | branch:main | cwd:/w/app");
-  const tab = { TK_TEAM: "fleet", TK_INSTANCE: "20261024-220119", TK_ROLE: "orchestrator", TK_LABEL: "Admiral" };
-  assert.equal(fromLine(tab, where), "fleet 20261024-220119 | role:Admiral | repo:git@x:Acme/App.git | branch:main | cwd:/w/app");
-  const { TK_LABEL, ...old } = tab;   // TK_LABEL を渡す前に起動したタブは役職 id
-  assert.match(fromLine(old, where), /^fleet 20261024-220119 \| role:orchestrator \| /);
+  assert.equal(fromLine({ ORDER_ACTOR: "lead l1 | role:Lead" }, where), "lead l1 | role:Lead | repo:git@x:Acme/App.git | branch:main | cwd:/w/app");
+  assert.equal(fromLine({ ORDER_ACTOR: "  " }, where), "git@x:Acme/App.git | branch:main | cwd:/w/app");
+  // 古いチームの印（TK_*）は読まない
+  assert.equal(fromLine({ TK_TEAM: "x", TK_INSTANCE: "y" }, where), "git@x:Acme/App.git | branch:main | cwd:/w/app");
 });
 
-test("requester: 先頭が発行元。council（実装）/ team / repo を見分ける", () => {
+test("requester: 先頭が発行元。名前（repo: 欄あり）/ repo を見分ける", () => {
   assert.deepEqual(requester("git@x:Acme/App.git | branch:main | cwd:/w/app"), { kind: "repo", label: "git@x:Acme/App.git", repo: "git@x:Acme/App.git" });
-  assert.deepEqual(requester("council q1 | build:b1 order:01"), { kind: "council", label: "council q1", repo: null });
-  // 切り替えの前に受け箱に入った古い形の頭（legate:l<k>）も評議会からと読む
-  assert.deepEqual(requester("council q1 | legate:l1 order:01"), { kind: "council", label: "council q1", repo: null });
-  assert.deepEqual(requester("council q1 | instance:i1 | cwd:/w/app").kind, "council");
-  assert.deepEqual(requester("guild g1 | role:Architect | repo:git@x:Acme/App.git | branch:main | cwd:/w/app"), { kind: "team", label: "guild g1 Architect", repo: "git@x:Acme/App.git" });
-  // 評議会のタブ（議長など）が /order で書いた指令は実装のものではない: findings / verify は要らない
-  assert.equal(requester("council c1 | role:Chair | repo:git@x:Acme/App.git").kind, "team");
-  const { file } = box("council c1 | role:Chair | repo:git@x:Acme/App.git | branch:main | cwd:/w/app");
-  resolveOrder(file, { status: "done", body: BODY, by: BY });
+  assert.deepEqual(requester("lead l1 | role:Lead | repo:git@x:Acme/App.git | branch:main | cwd:/w/app"), { kind: "actor", label: "lead l1 Lead", repo: "git@x:Acme/App.git" });
+  assert.deepEqual(requester("tool t1 | repo:git@x:Acme/App.git"), { kind: "actor", label: "tool t1", repo: "git@x:Acme/App.git" });
 });
 
-test("CLI: from はチームの環境変数を読み、inbox の一覧は発行元の名前を出す", () => {
+test("CLI: from は ORDER_ACTOR を読み、inbox の一覧は発行元の名前を出す", () => {
   const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
   const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" }).trim();
   run("init", "-q", "-b", "main");
   run("remote", "add", "origin", "git@github.com:Acme/App.git");
   run("commit", "-q", "--allow-empty", "-m", "x");
-  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("TK_")));
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("ORDER_")));
   const cli = (env, ...args) => execFileSync("node", [SCRIPT, ...args], { cwd: repo, encoding: "utf8", env: { ...clean, ...env } });
   assert.equal(cli({}, "from"), `from: git@github.com:Acme/App.git | branch:main | cwd:${repo}\n`);
-  assert.equal(cli({ TK_TEAM: "guild", TK_INSTANCE: "g1", TK_ROLE: "orchestrator", TK_LABEL: "Architect" }, "from"),
-    `from: guild g1 | role:Architect | repo:git@github.com:Acme/App.git | branch:main | cwd:${repo}\n`);
-  const { dir } = box("fleet f1 | role:Admiral | repo:git@github.com:Acme/App.git | branch:main | cwd:/w/app");
+  assert.equal(cli({ ORDER_ACTOR: "lead l1 | role:Lead" }, "from"),
+    `from: lead l1 | role:Lead | repo:git@github.com:Acme/App.git | branch:main | cwd:${repo}\n`);
+  const { dir } = box("lead f1 | role:Lead | repo:git@github.com:Acme/App.git | branch:main | cwd:/w/app");
   const out = cli({ TEAM_ORDERS: dirname(dir) }, "inbox");
-  assert.match(out, /\n  from: fleet f1 Admiral\n  need: do x\n/);
+  assert.match(out, /\n  from: lead f1 Lead\n  need: do x\n/);
 });
 
 test("CLI: inbox の一覧は title:（日本語の短い題）があれば need の前に出す。本文の title: は拾わない", () => {
@@ -155,7 +147,7 @@ test("CLI: inbox の一覧は title:（日本語の短い題）があれば need
   run("init", "-q", "-b", "main");
   run("remote", "add", "origin", "git@github.com:Acme/App.git");
   run("commit", "-q", "--allow-empty", "-m", "x");
-  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("TK_")));
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("ORDER_")));
   const { dir, file } = box();
   writeFileSync(file, "# ORDER id:20260101-000000-x\nfrom: git@x:Acme/App.git | branch:main\nstatus: open\ntitle: 題を出す\nneed: do x\n");
   writeFileSync(join(dir, "20260101-000001-y.md"), "# ORDER id:20260101-000001-y\nfrom: git@x:Acme/App.git | branch:main\nstatus: open\nneed: do y\n\n## BODY\ntitle: not the title\n");
@@ -164,29 +156,29 @@ test("CLI: inbox の一覧は title:（日本語の短い題）があれば need
   assert.match(out, /000001-y\.md\n  from: .*\n  need: do y\n/);
 });
 
-test("クエストの印: 先頭の kind: quest だけを読む（題の【★クエスト】・本文の kind: は印にしない）", () => {
-  assert.equal(isQuest("# ORDER id:a\nfrom: x\nstatus: open\nkind: quest\nneed: y\n"), true);
-  assert.equal(isQuest("# ORDER id:a\nfrom: x\nstatus: open\ntitle: 【★クエスト】題\nneed: y\n"), false);
-  assert.equal(isQuest("# ORDER id:a\nfrom: x\nneed: y\n\n## BODY\nkind: quest\n"), false);
+test("kind: 先頭の kind: の値だけを読む（題・本文の kind: は読まない、値の意味は問わない）", () => {
+  assert.equal(kindOf("# ORDER id:a\nfrom: x\nstatus: open\nkind: any-value\nneed: y\n"), "any-value");
+  assert.equal(kindOf("# ORDER id:a\nfrom: x\nstatus: open\ntitle: 【★印】題\nneed: y\n"), "");
+  assert.equal(kindOf("# ORDER id:a\nfrom: x\nneed: y\n\n## BODY\nkind: other\n"), "");
 });
 
-test("CLI: inbox は kind: quest の行を出し、--quest でクエストだけに絞る", () => {
+test("CLI: inbox は kind: の行を出し、--kind=<値> でその値だけに絞る", () => {
   const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
   const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" });
   run("init", "-q", "-b", "main");
   run("remote", "add", "origin", "git@github.com:Acme/App.git");
   run("commit", "-q", "--allow-empty", "-m", "x");
-  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("TK_")));
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("ORDER_")));
   const { dir, file } = box();
-  writeFileSync(file, "# ORDER id:20260101-000000-x\nfrom: council c1 | role:Chair\nstatus: open\nkind: quest\ntitle: 題\nneed: do x\n");
+  writeFileSync(file, "# ORDER id:20260101-000000-x\nfrom: lead c1 | role:Lead\nstatus: open\nkind: special\ntitle: 題\nneed: do x\n");
   writeFileSync(join(dir, "20260101-000001-y.md"), "# ORDER id:20260101-000001-y\nfrom: git@x:Acme/App.git | branch:main\nstatus: open\nneed: do y\n");
   const env = { ...clean, TEAM_ORDERS: dirname(dir) };
   const all = execFileSync("node", [SCRIPT, "inbox"], { cwd: repo, encoding: "utf8", env });
-  assert.match(all, /000000-x\.md\n  from: council c1 Chair\n  kind: quest\n  title: 題\n  need: do x\n/);
+  assert.match(all, /000000-x\.md\n  from: lead c1 Lead\n  kind: special\n  title: 題\n  need: do x\n/);
   assert.match(all, /000001-y\.md\n  from: .*\n  need: do y\n/);
-  const quests = execFileSync("node", [SCRIPT, "inbox", "--quest"], { cwd: repo, encoding: "utf8", env });
-  assert.match(quests, /000000-x\.md/);
-  assert.doesNotMatch(quests, /000001-y\.md/);
+  const only = execFileSync("node", [SCRIPT, "inbox", "--kind=special"], { cwd: repo, encoding: "utf8", env });
+  assert.match(only, /000000-x\.md/);
+  assert.doesNotMatch(only, /000001-y\.md/);
 });
 
 test("CLI: resolve の後の口 ORDER_RESOLVED_HOOK は答えた指令のパスで呼ばれ、落ちても答えは残る。無ければ何もしない", () => {
@@ -194,7 +186,7 @@ test("CLI: resolve の後の口 ORDER_RESOLVED_HOOK は答えた指令のパス�
   const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" });
   run("init", "-q", "-b", "main");
   run("commit", "-q", "--allow-empty", "-m", "x");
-  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("TK_") && k !== "ORDER_RESOLVED_HOOK"));
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("ORDER_")));
   const bodyFile = join(repo, "..", `body-hook-${process.pid}.md`);
   writeFileSync(bodyFile, BODY);
   const log = join(repo, "..", `hook-${process.pid}.log`);
@@ -216,19 +208,19 @@ test("CLI: resolve の後の口 ORDER_RESOLVED_HOOK は答えた指令のパス�
 // ---- 状態（open | routed | taken）と担当の守り ----
 const ME = "git@x:Acme/App.git | branch:main";
 const OTHER = "git@x:Acme/App.git | branch:feature/y";
-const GUILD_ENV = { TK_TEAM: "guild", TK_INSTANCE: "g1", TK_LABEL: "Architect" };
+const GUILD_ENV = { ORDER_ACTOR: "guild g1 | role:Architect" };
 const GUILD = actorOf(GUILD_ENV, {});
 const head = (p, k) => (readFileSync(p, "utf8").split(/^## /m)[0].match(new RegExp(`^${k}: (.*)$`, "m")) || [])[1];
 
-test("actorOf / sameActor: リポは origin + branch、チームは <team> <instance>（役職・cwd は比べない）", () => {
+test("actorOf / sameActor: リポは origin + branch、ORDER_ACTOR の名前は role: の前だけ（役・cwd は比べない）", () => {
   assert.equal(actorOf({}, { origin: "git@x:Acme/App.git", repoId: "app", branch: "main" }), ME);
   assert.equal(GUILD, "guild g1 | role:Architect");
   assert.ok(sameActor(GUILD, "guild g1 | role:Worker"));
   assert.ok(sameActor(ME, `${ME} | cwd:/w/app`));
   assert.ok(!sameActor(ME, OTHER));
-  assert.ok(routedMatches("guild:g1", GUILD, undefined, GUILD_ENV));
-  assert.ok(routedMatches("council c1", "council c1 | role:Chair", undefined, { TK_TEAM: "council", TK_INSTANCE: "c1" }));
-  assert.ok(!routedMatches("guild:g2", GUILD, undefined, GUILD_ENV));
+  assert.ok(routedMatches("guild g1", GUILD, undefined, GUILD_ENV));
+  assert.ok(!routedMatches("guild:g1", GUILD, undefined, GUILD_ENV));   // 振り先は中を読まない: 読み替えはしない
+  assert.ok(!routedMatches("guild g2", GUILD, undefined, GUILD_ENV));
   assert.ok(routedMatches("build q1.2 plan-03", ME, "build q1.2 plan-03"));
 });
 
@@ -247,18 +239,18 @@ test("古い指令（status: なし・知らない値）は open。take → rele
 
 test("route: open → routed、振り直しも記録。routed は振り分け先だけが take でき、release で routed に戻る", () => {
   const { file } = box();
-  routeOrder(file, { to: "guild:g2", by: "council c1 | role:Archon", now: "T1" });
-  routeOrder(file, { to: "guild:g1", by: "council c1 | role:Archon", now: "T2" });
+  routeOrder(file, { to: "guild g2", by: "boss b1 | role:Lead", now: "T1" });
+  routeOrder(file, { to: "guild g1", by: "boss b1 | role:Lead", now: "T2" });
   assert.equal(head(file, "status"), "routed");
-  assert.equal(head(file, "routed_to"), "guild:g1");
+  assert.equal(head(file, "routed_to"), "guild g1");
   assert.equal(head(file, "routed_at"), "T2");
-  assert.throws(() => takeOrder(file, { actor: ME }), /振り分け先が別です: routed to guild:g1/);
+  assert.throws(() => takeOrder(file, { actor: ME }), /振り分け先が別です: routed to guild g1/);
   takeOrder(file, { actor: GUILD, env: GUILD_ENV, now: "T3" });
   assert.equal(head(file, "taken_by"), GUILD);
-  assert.throws(() => routeOrder(file, { to: "guild:g3", by: ME }), /着手中です（taken by guild g1/);
+  assert.throws(() => routeOrder(file, { to: "guild g3", by: ME }), /着手中です（taken by guild g1/);
   releaseOrder(file, { actor: "guild g1 | role:Worker" });
   assert.equal(head(file, "status"), "routed");
-  assert.equal(head(file, "routed_to"), "guild:g1");
+  assert.equal(head(file, "routed_to"), "guild g1");
   const log = readFileSync(file, "utf8").split("## STATUS_LOG\n")[1].trim().split("\n");
   assert.deepEqual(log.map((l) => l.split(" | ")[0]), ["- T1 open → routed", "- T2 routed → routed", "- T3 routed → taken", log[3].split(" | ")[0]]);
   assert.match(log[3], /taken → routed/);
@@ -284,8 +276,8 @@ test("resolve の守り: 他人の taken・別の振り分け先は断る。--fo
   assert.match(readFileSync(dest, "utf8"), /\nnotes: -\nforced: human asked \(was taken by git@x:Acme\/App\.git \| branch:main; resolved by .*feature\/y\)\n$/);
   assert.equal(head(dest, "status"), "done");
   const b = box();
-  routeOrder(b.file, { to: "guild:g1", by: ME });
-  assert.throws(() => resolveOrder(b.file, { status: "withdrawn", body: "notes: x\n", by: BY, actor: ME }), /routed to guild:g1 です/);
+  routeOrder(b.file, { to: "guild g1", by: ME });
+  assert.throws(() => resolveOrder(b.file, { status: "withdrawn", body: "notes: x\n", by: BY, actor: ME }), /routed to guild g1 です/);
   resolveOrder(b.file, { status: "withdrawn", body: "notes: x\n", by: BY, actor: GUILD, env: GUILD_ENV });
   const c = box();
   takeOrder(c.file, { actor: ME });
@@ -297,30 +289,30 @@ test("resolve の守り: 他人の taken・別の振り分け先は断る。--fo
 test("unroute: routed → open（振り分け先・振り分けた者だけ、--force は理由を残す）。着手中・未振り分けは断る", () => {
   const { file } = box();
   assert.throws(() => unrouteOrder(file, { actor: ME }), /振り分けられていません（open）/);
-  routeOrder(file, { to: "guild:g1", by: "council c1 | role:Archon", now: "T1" });
-  assert.throws(() => unrouteOrder(file, { actor: ME }), /振り分け先は別の担当です: routed to guild:g1/);
+  routeOrder(file, { to: "guild g1", by: "boss b1 | role:Lead", now: "T1" });
+  assert.throws(() => unrouteOrder(file, { actor: ME }), /振り分け先は別の担当です: routed to guild g1/);
   unrouteOrder(file, { actor: GUILD, env: GUILD_ENV, now: "T2" });
   assert.equal(head(file, "status"), "open");
   assert.equal(head(file, "routed_to"), undefined);
   assert.equal(head(file, "routed_by"), undefined);
   assert.equal(head(file, "routed_at"), undefined);
-  assert.match(readFileSync(file, "utf8"), /\n- T2 routed → open \| to:guild:g1 \| by:guild g1 \| role:Architect\n$/);
-  routeOrder(file, { to: "quest:qa", by: "council c1 | role:Archon", now: "T3" });
-  unrouteOrder(file, { actor: "council c1 | role:Archon", now: "T4" });
+  assert.match(readFileSync(file, "utf8"), /\n- T2 routed → open \| to:guild g1 \| by:guild g1 \| role:Architect\n$/);
+  routeOrder(file, { to: "lead qa", by: "boss b1 | role:Lead", now: "T3" });
+  unrouteOrder(file, { actor: "boss b1 | role:Lead", now: "T4" });
   assert.equal(head(file, "status"), "open");
-  routeOrder(file, { to: "quest:qa", by: "council c1 | role:Archon" });
-  takeOrder(file, { actor: "quest qa | role:Seeker", env: { TK_TEAM: "quest", TK_INSTANCE: "qa" } });
-  assert.throws(() => unrouteOrder(file, { actor: "quest qa | role:Seeker", env: { TK_TEAM: "quest", TK_INSTANCE: "qa" } }), /振り分けられていません（taken by quest qa.*release してから/);
-  releaseOrder(file, { actor: "quest qa | role:Seeker" });
-  unrouteOrder(file, { actor: ME, force: "quest gone", now: "T9" });
-  assert.match(readFileSync(file, "utf8"), /- T9 routed → open \| to:quest:qa \| by:.* \| forced:quest gone \(was routed to quest:qa\)\n$/);
+  routeOrder(file, { to: "lead qa", by: "boss b1 | role:Lead" });
+  takeOrder(file, { actor: "lead qa | role:Worker", env: { ORDER_ACTOR: "lead qa | role:Worker" } });
+  assert.throws(() => unrouteOrder(file, { actor: "lead qa | role:Worker", env: { ORDER_ACTOR: "lead qa | role:Worker" } }), /振り分けられていません（taken by lead qa.*release してから/);
+  releaseOrder(file, { actor: "lead qa | role:Worker" });
+  unrouteOrder(file, { actor: ME, force: "lead gone", now: "T9" });
+  assert.match(readFileSync(file, "utf8"), /- T9 routed → open \| to:lead qa \| by:.* \| forced:lead gone \(was routed to lead qa\)\n$/);
 });
 
 test("route / take / release は done/ の指令・答え済みの指令を断る", () => {
   const { file } = box();
   const dest = resolveOrder(file, { status: "withdrawn", body: "notes: x\n", by: BY });
   assert.throws(() => takeOrder(dest, { actor: ME }), /done\//);
-  assert.throws(() => routeOrder(dest, { to: "guild:g1", by: ME }), /done\//);
+  assert.throws(() => routeOrder(dest, { to: "guild g1", by: ME }), /done\//);
   assert.throws(() => routeOrder(box().file, { by: ME }), /--to=/);
 });
 
@@ -330,7 +322,7 @@ test("CLI: take / route と inbox の状態・担当・(you)", () => {
   run("init", "-q", "-b", "main");
   run("remote", "add", "origin", "git@github.com:Acme/App.git");
   run("commit", "-q", "--allow-empty", "-m", "x");
-  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("TK_")));
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("ORDER_")));
   const { dir, file } = box();
   const env = { ...clean, TEAM_ORDERS: dirname(dir) };
   const cli = (e, ...args) => execFileSync("node", [SCRIPT, ...args], { cwd: repo, encoding: "utf8", env: { ...env, ...e }, stdio: "pipe" });
@@ -338,11 +330,11 @@ test("CLI: take / route と inbox の状態・担当・(you)", () => {
   assert.match(cli({}, "take", file), /^take: open → taken /);
   assert.match(cli({}, "inbox"), /\ntaken .*20260101-000000-x\.md\n  from: .*\n  need: do x\n  taken_by: git@github\.com:Acme\/App\.git \| branch:main \(you\)\n/);
   assert.match(cli(GUILD_ENV, "inbox"), /\n  taken_by: git@github\.com:Acme\/App\.git \| branch:main\n/);
-  assert.throws(() => cli({}, "route", file, "--to=guild:g1"), /着手中です/);
+  assert.throws(() => cli({}, "route", file, "--to=guild g1"), /着手中です/);
   cli({}, "release", file);
-  cli({}, "route", file, "--to=guild:g1");
-  assert.match(cli(GUILD_ENV, "inbox"), /\nrouted .*\n[\s\S]*  routed_to: guild:g1 \(you\)\n/);
-  assert.throws(() => cli({}, "take", file), (e) => /振り分け先が別です: routed to guild:g1/.test(e.stderr));
+  cli({}, "route", file, "--to=guild g1");
+  assert.match(cli(GUILD_ENV, "inbox"), /\nrouted .*\n[\s\S]*  routed_to: guild g1 \(you\)\n/);
+  assert.throws(() => cli({}, "take", file), (e) => /振り分け先が別です: routed to guild g1/.test(e.stderr));
   assert.match(cli(GUILD_ENV, "unroute", file), /^unroute: routed → open /);
 });
 
@@ -362,8 +354,8 @@ test("forkIdOf: 宣言があればそれ、未宣言（行なし・旧い -）�
   assert.deepEqual(forkIdOf(checkout(), url, {}), { id: "acme--some-app", declared: false });
   assert.deepEqual(forkIdOf(checkout("-"), url, {}), { id: "acme--some-app", declared: false });
   assert.throws(() => forkIdOf(checkout("Some_App"), url, {}), /形が違います/);
-  assert.throws(() => forkIdOf(checkout(), url, { TK_FORK_ID_STRICT: "1" }), /宣言されていません/);
-  assert.deepEqual(forkIdOf(checkout("some-app"), url, { TK_FORK_ID_STRICT: "1" }), { id: "some-app", declared: true });
+  assert.throws(() => forkIdOf(checkout(), url, { ORDER_REPO_ID_STRICT: "1" }), /宣言されていません/);
+  assert.deepEqual(forkIdOf(checkout("some-app"), url, { ORDER_REPO_ID_STRICT: "1" }), { id: "some-app", declared: true });
 });
 
 test("settleBox: 旧い箱を fork-id の名前へ移し、旧い名前は新しい箱へのリンクに（分裂のマージ・同名は上書きしない・どちらもない）", () => {
@@ -469,12 +461,12 @@ test("指令とシート: file は kind: browser-check の指令とシートを�
 test("fileOrder: /order の形で 1 件書く（省いた欄は -、kind / tried は指定した時だけ、本文は先頭の後）。同じ秒は -2、箱が無ければ作る", () => {
   const dir = join(mkdtempSync(join(tmpdir(), "mailbox-")), "acme--app");
   const now = new Date(2026, 0, 2, 3, 4, 5);
-  const p = fileOrder({ box: dir, to: "git@x:Acme/App.git | box:acme--app", from: "git@x:Me.git | branch:main | cwd:/w", title: "題", need: "Fix the login\nbutton", kind: "quest", constraints: "unchanged: x", tried: "t", body: "\n## DETAIL\nmore", now });
+  const p = fileOrder({ box: dir, to: "git@x:Acme/App.git | box:acme--app", from: "git@x:Me.git | branch:main | cwd:/w", title: "題", need: "Fix the login\nbutton", kind: "special", constraints: "unchanged: x", tried: "t", body: "\n## DETAIL\nmore", now });
   assert.equal(p, join(dir, "20260102-030405-fix-the-login-button.md"));
   const text = readFileSync(p, "utf8");
-  assert.match(text, /^# ORDER id:20260102-030405-fix-the-login-button\nfrom: git@x:Me\.git \| branch:main \| cwd:\/w\nto: git@x:Acme\/App\.git \| box:acme--app\ndate: 2026-01-02T03:04:05[+-]\d\d:\d\d\nstatus: open\nkind: quest\ntitle: 題\nneed: Fix the login button\nwhy: -\ndone_when: -\nconstraints: unchanged: x\nrefs: -\nnotes: -\ntried: t\n\n## DETAIL\nmore\n$/);
+  assert.match(text, /^# ORDER id:20260102-030405-fix-the-login-button\nfrom: git@x:Me\.git \| branch:main \| cwd:\/w\nto: git@x:Acme\/App\.git \| box:acme--app\ndate: 2026-01-02T03:04:05[+-]\d\d:\d\d\nstatus: open\nkind: special\ntitle: 題\nneed: Fix the login button\nwhy: -\ndone_when: -\nconstraints: unchanged: x\nrefs: -\nnotes: -\ntried: t\n\n## DETAIL\nmore\n$/);
   assert.equal(orderStatus(text), "open");
-  assert.equal(isQuest(text), true);
+  assert.equal(kindOf(text), "special");
   const again = fileOrder({ box: dir, to: "-", from: "-", title: "題", need: "Fix the login button", now });
   assert.equal(again, join(dir, "20260102-030405-fix-the-login-button-2.md"));
   assert.doesNotMatch(readFileSync(again, "utf8"), /\nkind:|\ntried:/);
@@ -495,7 +487,7 @@ test("CLI: file は self / checkout のパスの受信箱に書いてパスだ�
   run("add", "repo.json");
   run("commit", "-q", "-m", "x");
   const root = mkdtempSync(join(tmpdir(), "mailbox-root-"));
-  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("TK_")));
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("ORDER_")));
   const cli = (...args) => execFileSync("node", [SCRIPT, ...args], { cwd: repo, encoding: "utf8", env: { ...clean, TEAM_ORDERS: root } });
   const bodyFile = join(root, "body.txt");
   writeFileSync(bodyFile, "## DETAIL\nx\n");
@@ -504,8 +496,8 @@ test("CLI: file は self / checkout のパスの受信箱に書いてパスだ�
   const text = readFileSync(out, "utf8");
   assert.match(text, new RegExp(`\nfrom: git@github\\.com:Acme/App\\.git \\| branch:main \\| cwd:${repo}\nto: git@github\\.com:Acme/App\\.git \\| box:acme-app\n`));
   assert.match(text, /\nnotes: -\n\n## DETAIL\nx\n$/);
-  const out2 = cli("file", `--to=${repo}`, "--title=題", "--need=other", "--kind=quest", "--from=council c1 | role:Chair").trim();
-  assert.match(readFileSync(out2, "utf8"), /\nfrom: council c1 \| role:Chair\n[\s\S]*\nkind: quest\n/);
+  const out2 = cli("file", `--to=${repo}`, "--title=題", "--need=other", "--kind=special", "--from=lead c1 | role:Lead").trim();
+  assert.match(readFileSync(out2, "utf8"), /\nfrom: lead c1 \| role:Lead\n[\s\S]*\nkind: special\n/);
   assert.throws(() => execFileSync("node", [SCRIPT, "file", "--to=self", "--title=題"], { cwd: repo, encoding: "utf8", stdio: "pipe", env: { ...clean, TEAM_ORDERS: root } }), /usage/);
 });
 
@@ -533,7 +525,7 @@ test("CLI: inbox はシートを指令に数えず、kind と check_sheet の数
   const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" });
   run("init", "-q", "-b", "main");
   run("commit", "-q", "--allow-empty", "-m", "x");
-  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("TK_")));
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("ORDER_")));
   const { dir } = box();
   rmSync(join(dir, "20260101-000000-x.md"));
   const src = join(dirname(dir), "acc.md");

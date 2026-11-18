@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship this repo's changes (fix the range → checks → judge downstream impact → write a DOWNSTREAM NOTICE when needed → commit → push); the pair of the receiving side's /flux | When the user tells you to commit, push or ship, and on /inbox's completion
-argument-hint: "[order:<指令 id>] [no-push] [notice:council] [notices:<下書きのパス,…>] [hotfix] [--safe] [--quick] [補足メモ(任意)]"
+argument-hint: "[order:<指令 id>] [no-push] [notice:defer] [notices:<下書きのパス,…>] [hotfix] [--safe] [--quick] [補足メモ(任意)]"
 ---
 
 role: **ship** (commit and push this repo's changes; when downstream forks need follow-up work, put a DOWNSTREAM NOTICE in the same commit) | the receiving side is downstream's `/flux`; write notices to match how it reads them | spec: `.notices/README.md`
@@ -9,14 +9,14 @@ role: **ship** (commit and push this repo's changes; when downstream forks need 
 ## WHEN TO USE
 - the user tells you to commit, push or ship (`コミットして`, `プッシュして`, `出荷して`) | no instruction → never use it (behavior.md: never commit without an instruction)
 - from `/inbox` step 4 (`対応完了`) | the argument `order:<id>` comes with it
-- from `/quest` (`--quick no-push order:<id>`: commit only; `notice:council` added for a quest under a council commission) and its `convoy.md` departure (a plain ship of commits already made: COMMITTED RANGE below)
+- from a tool or skill that ships for its caller (commit only with `--quick no-push`; a later plain ship of the commits already made: COMMITTED RANGE below)
 - also in repos without downstream (leaf forks) | whether downstream exists = `tier` of `repo.json` (root / middle = yes, leaf = none; only reader: `src/lib/forkOwnership/forkIds.mjs`): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/forkIds.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`
   - `none` → skip steps 3-5 (notice)
   - other than `yes` / `none` (declaration missing or wrong) → never guess from the text; STOP: have `tier` declared in `repo.json` (`pnpm workflow repo-json set tier <root|middle|leaf>`; `pnpm workflow ownership check` is unverified too)
 
 args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` = commit only, no push | `hotfix` = ship as an emergency fix (only when the human tells you; never add it on your own judgment, since it cuts into every fork's work) | the rest = extra notes
-- `notice:council` = the notice is the segment's (a quest under a council commission: its party's segment notice carries it, written by the party's Secretary from the party's draft): steps 3-4 judge as usual, step 5 writes no notice and no index line, the report gives the material instead
-- `notices:<path>,…` = segment drafts (a team tool closing a segment — the Envoy / a guild from the council's draft, a caravan party's Secretary from the party's own, in its own worktree: the forks' checkpoints are placed by the council, never coarsened): step 5 writes one notice per draft from its `- ` items, `checkpoint:` = the draft's `segment:` header | with `no-push` | step 1 range empty → the commit holds the notices and their index lines alone (step 2: `pnpm check notices` only)
+- `notice:defer` = someone writes the notice later (a caller that collects the material of several commits into one notice): steps 3-4 judge as usual, step 5 writes no notice and no index line, the report gives the material instead
+- `notices:<path>,…` = notice drafts (one draft = one notice; a caller closing a segment it has drafted; the checkpoints are the draft's, never coarsened): step 5 writes one notice per draft from its `- ` items, `checkpoint:` = the draft's `segment:` header | with `no-push` | step 1 range empty → the commit holds the notices and their index lines alone (step 2: `pnpm check notices` only)
 - which kind (pick it yourself when the caller gave none):
   - more work follows in this session → `--quick`
   - the last ship of the session → plain (no flag; the human's words, else your own reading of whether work goes on) | its area checks also cover the quick ships not yet checked (step 2) | its report may propose a safe point (step 8)
@@ -83,7 +83,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - together with the context (bug report, the order's need), a fix of a bug of an earlier shipment → a `fixes:` candidate | the origin has a notice → its id; none → `commit:<短 sha>`
      - even when this fix needs no fork follow-up, ship a notice to carry `fixes:` (`severity: info`, `required_actions: none`)
 5. **write the notice** (only when needed; write it out without asking first; NOTICE COMPOSITION below)
-   - `notice:council` → write nothing here: list the material for the report instead (one line per item: what changed for forks, required_actions / `[user-run]` steps, `moved:` / deleted paths, `fixes:` origin, `resolves: <id>` when step 3 found an order to resolve — never dropped; `none` when step 3 found no need) and go to step 6
+   - `notice:defer` → write nothing here: list the material for the report instead (one line per item: what changed for forks, required_actions / `[user-run]` steps, `moved:` / deleted paths, `fixes:` origin, `resolves: <id>` when step 3 found an order to resolve — never dropped; `none` when step 3 found no need) and go to step 6
    - `notices:` → one notice per draft: every `- ` item goes in (into change / required_actions / manual_steps / moved: as it reads; `resolves: <id>` items → `resolves:`, `fixes: <id>` items → `fixes:`), plus what steps 3-4 found in this ship's own range; `checkpoint:` = the draft's segment | an item left out → say it in the report (the caller records it)
    - then **add the index line**: `node scripts/workflow/notices/shippedIndex.mjs add .notices/<id>.md` (one line from the body at the end of your index `.notices/shipped/<repo_id>.md`; never by hand, never edit existing lines; `.notices/README.md` section `出荷索引と本文の読み方`)
    - a repo without its own index yet but with its own notices already (a fork that shipped notices before the index existed) → first `node scripts/workflow/notices/shippedIndex.mjs backfill` (skips notices in the parent's index)
@@ -94,7 +94,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - include deleted paths and directories in `git commit -- <paths>` (the commit pathspec picks up deletions)
      - before committing, confirm with `git diff --cached --name-only` that only the range's files are in (with a notice, `.notices/shipped/<repo_id>.md` is in too)
    - message in the behavior.md form (subject `<area>: <summary>`, blank line, body = decision record) | with `order:<id>`, a line `order: <id>` after the body | the trailer the environment specifies at the end | `--quick` → a trailer line `Ship: quick` in that same last paragraph (read by `safePoint quickFiles`)
-   - branch follows behavior.md and the team's policy (already on a feature branch → stay)
+   - branch follows behavior.md and the repo's policy (already on a feature branch → stay)
    - the change itself was committed already and only the notice was written later → make it the commit right after the change (no other notice commit in between) | not allowed with `hotfix` (change and notice always in the same commit; separate → undo and recombine)
    - a `fixes:` notice included → after the commit, before push, **judge whether it can be picked ahead** (`.notices/README.md` section `修正(fixes)`, part `先に取れる印(pick)`): `pnpm workflow notices pickCheck <this commit>`
      - on a temporary tree that puts only this commit on the broken point (the commit of the origin's checkpoint; other `pick: clean` fixes the fork has picked ahead up to that point go on first), it checks:
@@ -122,7 +122,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 8. **report** (Japanese):
    - first line = downstream intake verdict (measured): `取り込み判定: 安全 | 要注意(理由)| 危険(理由)`
      - `危険` (danger) = a plain merge breaks the fork's build, boot or existing behavior / needs manual work on the fork side / behavior or permissions change silently | `要注意` (caution) = only as far as merge conflicts may happen | no downstream → omit
-   - commit short sha, push target (or why not pushed), check results, the notice id and a summary of change (none written → `notice 不要: <理由>`; `notice:council` → `notice: 区切りの下書きへ` and the material lines), the reference of `fixes:` if added, the order id of `resolves:` if added
+   - commit short sha, push target (or why not pushed), check results, the notice id and a summary of change (none written → `notice 不要: <理由>`; `notice:defer` → `notice: 後で書く(材料)` and the material lines), the reference of `fixes:` if added, the order id of `resolves:` if added
    - a `fixes:` notice shipped → give the `pick:` judgment (clean / `-` with the failed conditions / unverified)
    - `hotfix` → say it was shipped as an emergency fix, the result of the pick check, and that each fork needs `/flux` (forks do not notice until they run it)
    - the safe point: the tag name, or `セーフポイントなし: <理由>` (plain ship, `--quick`, `no-push`, a full check failed / could not run, the tag step failed)
@@ -145,7 +145,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - keeps: steps 0, 1, 3-5 (notice judgment and writing), commit (with the `Ship: quick` trailer), push
 - ship route: anywhere | in a linked worktree → WORKTREE ROUTE below when it applies | the main checkout → a plain `git push`
 
-## WORKTREE ROUTE (HQ D176)
+## WORKTREE ROUTE
 - applies: in a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`) whose branch has no upstream of its own (`git rev-parse --abbrev-ref @{u}` fails, or prints `origin/main`) | a branch tracking its own remote branch → a plain `git push` of that branch
 - never touch the main checkout and never move its local `main` ref (no exception)
 - `git fetch origin main` → `git merge-base --is-ancestor origin/main HEAD` must succeed (not → rebase onto origin/main, rerun `pnpm check notices` when it applies; with `--safe` rerun step 6's full checks)
@@ -165,7 +165,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - report: the checks' result, the quick commits covered, the tag name (or `セーフポイントなし: <理由>`) | an older commit than the tip → not covered here (needs a separate procedure)
 
 ## COMMITTED RANGE (step 1's range is empty, HEAD ahead of the push target)
-- the commits on HEAD the push target lacks (`git log --format='%h %s' <target>..HEAD`; target = `origin/main` on the WORKTREE ROUTE, else `origin/<branch>`) = commits made earlier by /ship (e.g. quests' `--quick no-push`, loaded by a Convoy): their notices and index lines are in them
+- the commits on HEAD the push target lacks (`git log --format='%h %s' <target>..HEAD`; target = `origin/main` on the WORKTREE ROUTE, else `origin/<branch>`) = commits made earlier by /ship (e.g. `--quick no-push` ships, collected onto this branch): their notices and index lines are in them
 - skip: step 0 (the caller answers the orders), steps 2-5, step 6's commit | never with `hotfix`
 - keep:
   - each commit in the range that adds a `fixes:` notice → step 6's pickCheck on it (`pnpm workflow notices pickCheck <that commit>`; it writes `pick:` on the unpushed index line) → commit the index change alone: `git commit -m "notices: pick marks" -- .notices/shipped/<repo_id>.md`

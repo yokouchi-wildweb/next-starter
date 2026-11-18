@@ -18,7 +18,7 @@ target: $ARGUMENTS
 ## STATE (per order)
 - a file at the filed path → **not handled** (`まだ…`) | give recipient and need in one line, plus the class from the head `status:` (old orders without it = open):
   - `open`: nobody has picked it up yet
-  - `routed`: `振り分け済み → <routed_to:>` (routed) (council / guild / build plan; add `routed_at:`)
+  - `routed`: `振り分け済み → <routed_to:>` (routed) (add `routed_at:`)
   - `taken`: `着手中 → <taken_by:>` (in progress) (add `taken_at:`) | an earlier taker existed → add one line from the trailing `## STATUS_LOG`
 - at `done/<same name>` beside the filed path → **handled** | Read the body and show the RESOLUTION:
   - `status: done`: summarize implemented / consume / notes | `pushed: no` → add `宛先がまだ push していない` (the recipient has not pushed yet)
