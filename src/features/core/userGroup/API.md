@@ -28,7 +28,7 @@
 - `removeMembers(groupId, userIds)` → `{ removed, memberCount }`（一員でない id は何もしない）
 - 人数の上限: 置き換えは超えた束で止めて下書きを消し 409（前の一員のまま）、足すは書かずに 409
 - 誤り: 門が閉 404・id の形 400・無いグループ 404・保管 409・静的でない 409
-- 監査の行は書かない（管理者の操作は管理の API が記録する。fork の system の task が直に呼んでも書かない）
+- 監査の行を書かない口（管理者の操作は管理の API が記録する）
 - 部品を受けて作る `createStaticMemberWriter({ db, config, gateEnabled })`
 
 ### 条件の定義の木（`entities/schema.ts`）
