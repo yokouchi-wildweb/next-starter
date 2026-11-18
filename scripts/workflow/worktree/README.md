@@ -62,7 +62,7 @@ pnpm workflow worktree remove <path>
 
 Claude Code は、自分で作るワークツリー (`claude --worktree` / サブエージェントの worktree 分離 / デスクトップ版の並列セッション) に、リポジトリ直下の `.worktreeinclude` を同じ規則で読んで複製します。
 
-このリポジトリでは直下にファイルを増やさないため、一覧を `scripts/workflow/worktree/include` に置き、Claude Code の仕組みには乗せていません。ワークツリーは明示したときだけ `pnpm workflow worktree new` で作る運用のためです。Claude Code 側のワークツリーを常用するようになったら、一覧を直下の `.worktreeinclude` に移し、`lib.ts` の `INCLUDE_FILE` を書き換えます。
+このリポジトリでは直下にファイルを増やさないため、一覧を `scripts/workflow/worktree/include`(`lib.ts` の `INCLUDE_FILE`)に置き、Claude Code の仕組みには乗せていません。ワークツリーは明示したときだけ `pnpm workflow worktree new` で作る運用のためです。直下に `.worktreeinclude` は無いので、Claude Code が自分で作るワークツリーには env などが複製されません。
 
 Claude Code のワークツリーは `.claude/worktrees/` (リポジトリの内側) にできるため、`eslint.config.mjs` で除外しています (tsc はドットで始まるフォルダを拾わないので不要)。
 
