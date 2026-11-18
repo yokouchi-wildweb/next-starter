@@ -8,9 +8,15 @@
 
 ## API
 
-- `index.ts`: 入口(`db`・トランザクション・未設定の判定・`DrizzleOverride` の型)
-- `config.ts`: 設定の既定・検査・合成
-- `pool.ts`: 設定から postgres(...) のオプションを組む(中だけ)
+入口 `@/lib/drizzle` が出す物:
+
+- `db`: drizzle の DB(postgres-js)。`DATABASE_URL` が空なら、どのプロパティに触れても `DatabaseNotConfiguredError` を投げる代わりの物(import だけなら投げない)
+- `isDatabaseConfigured()`: `DATABASE_URL` が trim して空でないか。判定は「未設定」だけで、設定済みで繋がらないときは例外のまま
+- `DatabaseNotConfiguredError`: 未設定で DB に触れたときの誤り(接続を待たずにすぐ失敗する)
+- `runWithTransaction(tx, handler)`: `tx` があればそのまま使い、無ければ新しいトランザクションを始めて `handler` を呼ぶ
+- `TransactionClient`: `db.transaction()` のコールバックの引数の型
+- `DrizzleOverride`: 上書きのファイルの型
+- 接続は 1 プロセスに 1 つ(`globalThis` に持ち、開発の HMR で作り直さない)
 
 ## Extension
 

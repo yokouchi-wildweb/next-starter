@@ -148,10 +148,6 @@ export const domainEntries = {
 - 宣言は `export const domainDisplay: DomainDisplay`(リテラル型は持たない)
 - domain.json の無い手書きの domain は、同じ置き場に同じ形を手で書く。`hiddenColumns` は `defineHiddenColumns` と同じ列を宣言する
 
-### 表 ↔ ドメインの逆引き
-
-- 他の利用候補(auditLog の `target_type` の値をドメイン名に揃える、feature-gate の `tables` を登録表と照らす、中間表の名前解決 `junction/` との役割分担)は、まだ対応していない
-
 ### 表示の種類の決め方(`presenterFor`)
 
 - 生成器(`scripts/structure/domain/render/presenters`)は `presenterFor` の答えを presenters.ts の式に写すだけ

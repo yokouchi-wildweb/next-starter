@@ -23,11 +23,11 @@ Hook → ClientService (features/*/services/client/)
 
 - 購読: `subscribeCollection` / `subscribeCollectionChanges` / `subscribeDoc`(`onSnapshot` のラッパー、コレクション / 単一ドキュメント。型 `SubscribeOptions` / `CollectionChangesSnapshot` / `DocChange`)
 - 単発操作: `getDoc` / `queryDocs` / `setDoc` / `updateDoc` / `deleteDoc`(型 `QueryResult`)
-- バッチ: `executeBatch`(`writeBatch` のヘルパー、500 件ごとに自動でチャンク分割。型 `BatchOperation`)
+- バッチ: `executeBatch`(`writeBatch` のヘルパー、500 件ごとに自動でチャンク分割。500 件を超えるとチャンクの間はアトミックでない。型 `BatchOperation`)
 - トランザクション: `executeTransaction`(`runTransaction` のラッパー、read-then-write のアトミック操作。型 `TransactionContext`)
 - 変換: `convertTimestamps`(Firestore Timestamp → JS Date の再帰的変換)
 - 誤り: `normalizeFirestoreError`(Firestore エラーの正規化と日本語メッセージ変換)
-- 共通型: `types.ts`
+- 共通型(`src/lib/firestore/types.ts`): `Unsubscribe`・`FirestoreClientError`
 
 ## Related
 

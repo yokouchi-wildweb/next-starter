@@ -8,6 +8,7 @@ Firebase SDK のクライアント・サーバーの初期化と、各種のユ�
 - server(`server/`): Admin SDK の初期化 `app.ts`・Firebase Auth のユーザー操作 `authAdmin.ts`
 - エラー: `errors.ts`(`FirebaseNotConfiguredError` など)
 - ファイル: [src/lib/storage](../storage/README.md)(Firebase Storage のクライアント SDK の経路は無い。リポ直下の `storage.rules` は全拒否)
+- 使う時・直す時の決まりは札 .claude/rules/items/lib/firebase.md にある。この README は使い方と仕組み
 
 ## Usage
 
@@ -26,7 +27,7 @@ Firebase SDK のクライアント・サーバーの初期化と、各種のユ�
 
 ##### 2. 環境変数を設定
 
-`.env.local` に Measurement ID を追加します。
+env ファイル(`.env.development`、本番は `.env.production`)に Measurement ID を追加します。
 
 ```bash
 NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
@@ -46,7 +47,7 @@ Measurement ID を入れただけでは何も送りません。analyticsConsent 
 開発サーバーを起動し、Firebase コンソールの「Analytics > DebugView」でイベントが送信されていることを確認します。
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 DebugView を有効にするには、ブラウザの開発者ツールで以下を実行します：
@@ -59,7 +60,7 @@ localStorage.setItem('debug_mode', 'true');
 
 ##### ページビューの自動トラッキング
 
-`src/app/layout.tsx` に `<FirebaseAnalytics />` コンポーネントが配置されており、送ってよいとき（上の 3.）はルート遷移時に自動で `page_view` イベントが送信されます。同意が後から出たときは、その時点のページの `page_view` を 1 回送ります。`page_view` を送るのはこのコンポーネントだけで、初期化は `send_page_view: false`（gtag が初期化のときに自分で送る page_view を止める。止めないと最初のページが 2 回数えられる）。GA4 のプロパティの拡張計測「ブラウザの履歴イベントに基づくページの変更」が有効だと、遷移ごとに gtag も送る
+`src/app/layout.tsx` に `<FirebaseAnalytics />` コンポーネントが配置されており、送ってよいとき（上の 3.）はルート遷移時に自動で `page_view` イベントが送信されます。同意が後から出たときは、その時点のページの `page_view` を 1 回送ります。`page_view` を送るのはこのコンポーネントだけで、初期化は `send_page_view: false`（gtag が初期化のときに自分で送る page_view を止める。止めないと最初のページが 2 回数えられる）。GA4 のプロパティの拡張計測「ブラウザの履歴イベントに基づくページの変更」が有効だと、遷移ごとに gtag も送る(page_view が 2 回数えられる)
 
 ```tsx
 // src/app/layout.tsx（設定済み）
@@ -130,7 +131,7 @@ useEffect(() => {
 ### サーバー側ヘルパー(Admin SDK)
 
 すべて Admin SDK ベースで、セキュリティルールを経由しない。
-未設定時は下記すべてが `FirebaseNotConfiguredError("server")` になります（上記「未設定モード」）。
+未設定時は下記すべてが `FirebaseNotConfiguredError("server")` になります（Internals「未設定モード」）。
 
 `server/app.ts`（シングルトン・遅延初期化。サービスアカウントは `MY_SERVICE_ACCOUNT_KEY` の JSON、`projectId` / `storageBucket` はクライアントと同じ `NEXT_PUBLIC_FIREBASE_*` を使用）
 
@@ -142,6 +143,18 @@ useEffect(() => {
 
 - `getAuthUser(uid)` — 存在しなければ null
 - `deleteAuthUser(uid)` / `disableAuthUser(uid)` / `enableAuthUser(uid)` / `revokeAuthTokens(uid)` — 対象ユーザーが既に存在しない場合は警告ログのみで正常終了
+
+### クライアント側ヘルパー(Firebase Auth のメールのリンクと確認コード)
+
+- `signInWithEmailLinkClient(email, link?)`(`client/signInWithEmailLinkClient.ts`): メールのリンクでサインインする。`link` を省くと今の URL
+- `checkActionCodeValidity(oobCode)`(`client/checkActionCodeValidity.ts`): リンクの `oobCode` が有効か。期限切れ・無効なら `false`
+- `getEmailChangeInfo(oobCode)` / `applyEmailChange(oobCode)`(`client/applyEmailChange.ts`): メールアドレスの変更のリンクの中身を読む(型 `EmailChangeInfo`、読めなければ null)/ 変更を確定する(成否を boolean)
+
+### 誤り(`errors.ts`)
+
+- `FirebaseNotConfiguredError(side)`: 未設定で触れたときの誤り。`side` = `"client"` | `"server"`
+- `getFirebasePhoneAuthErrorMessage(error, fallbackMessage)`: 電話番号の認証の Firebase エラーを日本語の文言にする
+- `hasFirebaseErrorCode(error, expectedCode)`: Firebase エラーのコードが `expectedCode` か(型ガード)
 
 ### Analytics
 

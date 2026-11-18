@@ -4,6 +4,8 @@
 
 - デバイス信号の収集・正規化・ハッシュ化と、フォーム操作の行動計測を提供するドメイン非依存のライブラリ
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/fingerprint.md にある。この README は使い方と仕組み
+- 閉じた lib。入口は 3 つ: `@/lib/fingerprint`(client 用。`"use client"` の `useBehavioralCapture` を含むので server からは読まない)・`@/lib/fingerprint/hash`(server でハッシュが要るとき)・`@/lib/fingerprint/types`(型だけ)
+- 収集はブラウザの API を使う。SSR の文脈では全成分 null の骨格が返る
 
 ## API
 
@@ -31,6 +33,8 @@ const payload = await collectFingerprintPayload();
 | uaData | UA Client Hints（getHighEntropyValues、Chromium のみ） |
 | codecs / math | コーデック対応表・Math 関数の丸め癖 |
 
+その他の出す物: `collectDeviceSignals()` / `buildComponentHashes()`(上の 2 段を個別に)・`hashString` / `hashValue` / `stableStringify` / `fnv1a32Hex`(ハッシュ)・版 `FINGERPRINT_SIGNALS_VERSION` / `BEHAVIOR_PAYLOAD_VERSION` と型 `DeviceSignals` / `FingerprintPayload` / `BehaviorPayload` など
+
 ### `useBehavioralCapture()` — フォーム行動計測（ヘッドレス）
 
 ```tsx
@@ -46,6 +50,9 @@ const behavior = useBehavioralCapture();
 
 // 送信時に統計 payload を回収
 const payload = behavior.getPayload();
+
+// 計測をやり直す
+behavior.reset();
 ```
 
 ## Related

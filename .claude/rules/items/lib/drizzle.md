@@ -12,6 +12,6 @@ using:
 - entry_only: read only through @/lib/drizzle, from server code only
 - pool_values: pool values (max, idleTimeout, connectTimeout) are positive integers
 editing:
-- no_process_env: the lib never reads process.env; values arrive through the override file
+- no_process_env: pool values arrive through the override file (it may read process.env), never from process.env inside the lib | the lib reads only DATABASE_URL
 - prepare_fixed: prepare: false stays fixed, never a setting
-read: change the pool → Extension | entry and files → API | tests → Verification
+read: change the pool → Extension | exports, transactions → API | tests → Verification

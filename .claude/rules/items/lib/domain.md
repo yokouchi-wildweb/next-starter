@@ -16,4 +16,4 @@ using:
 - domain_field_type_add: a new fieldType = a table row (with formDefault) + fieldFormInputs.mjs + the Form/Field union | look names up as written, no aliases | retire with `retired`
 editing:
 - domain_presets_const: access presets stay lib constants, never overridable config | the default rule stays fail-closed (admin only)
-read: domainEntry, generate:false, config reads, fieldTypes → Usage | functions, presets, display keys, type table → API (API.md) | core access override → Extension | checks, access, commands, display, lint → Internals | tests → Verification
+read: domainEntry, generate:false, config reads, fieldTypes → Usage | functions, presets, display keys, type table → src/lib/domain/API.md API | core access override → Extension | checks, access, commands, display, lint → Internals | tests → Verification
