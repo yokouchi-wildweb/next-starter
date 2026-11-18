@@ -1,46 +1,12 @@
 # storageCors
 
-別ドメイン(Firebase Storage 等)の **バイト列をブラウザで読み取る** 機能で、`CORS 未設定` を
-**エラー発生地点で開発者に気づかせる** ための自己診断ユーティリティ。
+## Overview
 
-> ⚠ このライブラリは「気づきの安全網」。CORS 設定そのものの手順・判定ルール・前提(権限/env)は
-> 一次情報に集約しています → [StorageのCORS設定（リモートメディア読み取りの基盤前提）](../../../docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)
+- 別ドメイン(Firebase Storage 等)のバイト列をブラウザで読み取る機能で、`CORS 未設定` をエラー発生地点で開発者に気づかせる自己診断ユーティリティ。入口 `@/lib/storageCors`
+- ドキュメントに辿り着かなかった開発者は CORS 未設定のまま進め、本番で初めて `Failed to fetch`(MSE/fetch)や tainted canvas(`SecurityError`)に直面する。素のエラーは原因が分かりにくいので、開発時(段階が development、`@/lib/appEnv`)に限り、原因の可能性・対処コマンド・一次ドキュメントへの導線を `console.warn` で案内する
+- 気づきの安全網で、CORS 設定の手順・判定ルール・前提(権限 / env)の一次情報は docs: `docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md`
 
-## なぜ必要か
-
-ドキュメントを整備しても、辿り着かなかった開発者は CORS 未設定のまま実装を進め、本番で初めて
-`Failed to fetch`(MSE/fetch) や tainted canvas(`SecurityError`) に直面する。素のエラーは原因が分かりにくい。
-そこで **開発時(段階が development、`@/lib/appEnv`)に限り**、原因の可能性・対処コマンド・一次ドキュメントへの導線を
-`console.warn` で案内する。
-
-## 設計方針
-
-- **断定しない**: `Failed to fetch` はネットワーク断 / URL 誤り / 認証失敗でも起きるため「可能性」として案内。
-- **本番では何もしない / ブラウザ以外でも何もしない**(CORS はブラウザの fetch/canvas の概念)。
-- **連投しない**: 同一 URL/文脈の案内は一度だけ(多数フラグメントのループ取得で console を汚さない)。
-- **一次情報は持たない**: 手順・前提は docs に集約し、ここからは参照のみ。
-
-## API
-
-fetch 側 / canvas 側で対称な「診断プリミティブ + ラッパー」を提供する。
-
-| 用途 | 関数 |
-| --- | --- |
-| fetch 失敗を診断(catch 内で呼ぶ) | `diagnoseStorageFetchError(error, url?)` |
-| fetch ラッパー(失敗時に自動診断→再 throw) | `fetchStorageBytes(url, init?)` |
-| tainted canvas を診断(catch 内で呼ぶ) | `diagnoseTaintedCanvasError(error, sourceUrl?)` |
-| canvas.toBlob ラッパー(汚染時に自動診断→reject) | `canvasToBlobSafe(canvas, type?, quality?, sourceUrl?)` |
-| 判定ヘルパ | `isCorsLikeFetchError` / `isLikelyCrossOriginStorageUrl` / `isTaintedCanvasError` / `classifyStorageUrl` |
-| 参照用定数 | `STORAGE_CORS_DOC_PATH` / `STORAGE_CORS_SETUP_COMMAND`(旧バケット) / `STORAGE_SETUP_COMMAND`(新しい公開・非公開バケット) |
-
-### 新しい 2 バケットの判別(`classifyStorageUrl`)
-
-- `private`: 同一 origin の固定 URL `/api/storage/objects/<id>`。302 先が非公開バケットなので、同一 origin でも診断の対象にする
-- `public`: 公開 base(`NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`)の配下、または公開 base の独自ホスト(`publicStorageHosts`)
-- `legacy`: 旧 Firebase Storage のホスト(公開 base の配下以外。非公開バケットの署名 URL を直接渡した場合もここ)
-- 案内の対処は `public` / `private` なら `pnpm ops storage setup`、それ以外は旧バケット用の `pnpm ops storage setup-cors`
-
-## 使い方
+## Usage
 
 ### 別ドメインのバイトを fetch する箇所
 
@@ -64,7 +30,7 @@ try {
 }
 ```
 
-### リモートメディアを canvas に取り込んでサムネ/フレームを書き出す箇所
+### リモートメディアを canvas に取り込んでサムネ / フレームを書き出す箇所
 
 ```ts
 import { canvasToBlobSafe } from "@/lib/storageCors";
@@ -73,6 +39,33 @@ import { canvasToBlobSafe } from "@/lib/storageCors";
 const blob = await canvasToBlobSafe(canvas, "image/png", undefined, videoSrc);
 ```
 
-## 採用箇所
+## API
 
-- `src/lib/seamlessVideo`(URL ソースのフラグメント取得 `core/fragmentBytes.ts`)
+fetch 側 / canvas 側で対称な「診断プリミティブ + ラッパー」。
+
+| 用途 | 関数 |
+| --- | --- |
+| fetch 失敗を診断(catch 内で呼ぶ) | `diagnoseStorageFetchError(error, url?)` |
+| fetch ラッパー(失敗時に自動診断→再 throw) | `fetchStorageBytes(url, init?)` |
+| tainted canvas を診断(catch 内で呼ぶ) | `diagnoseTaintedCanvasError(error, sourceUrl?)` |
+| canvas.toBlob ラッパー(汚染時に自動診断→reject) | `canvasToBlobSafe(canvas, type?, quality?, sourceUrl?)` |
+| 判定ヘルパ | `isCorsLikeFetchError` / `isLikelyCrossOriginStorageUrl` / `isTaintedCanvasError` / `classifyStorageUrl` |
+| 参照用定数 | `STORAGE_CORS_DOC_PATH` / `STORAGE_CORS_SETUP_COMMAND`(旧バケット) / `STORAGE_SETUP_COMMAND`(新しい公開・非公開バケット) |
+
+### バケットの判別(`classifyStorageUrl`)
+
+- `private`: 同一 origin の固定 URL `/api/storage/objects/<id>`。302 先が非公開バケットなので、同一 origin でも診断の対象にする
+- `public`: 公開 base(`NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`)の配下、または公開 base の独自ホスト(`publicStorageHosts`)
+- `legacy`: 旧 Firebase Storage のホスト(公開 base の配下以外。非公開バケットの署名 URL を直接渡した場合もここ)
+- 案内の対処は `public` / `private` なら `pnpm ops storage setup`、それ以外は旧バケット用の `pnpm ops storage setup-cors`
+
+## Internals
+
+- 断定しない: `Failed to fetch` はネットワーク断 / URL 誤り / 認証失敗でも起きるので「可能性」として案内する
+- 本番では何もしない / ブラウザ以外でも何もしない(CORS はブラウザの fetch / canvas の概念)
+- 連投しない: 同じ URL / 文脈の案内は一度だけ(多数フラグメントのループ取得で console を汚さない)
+
+## Related
+
+- CORS 設定の手順(一次情報): `docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md`
+- storage 基盤: `src/lib/storage/README.md`
