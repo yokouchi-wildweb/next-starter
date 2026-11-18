@@ -8,8 +8,9 @@ import { Edit, Copy, Trash, MoreVertical, Settings, Send, Archive, Star } from "
 
 import { Button } from "@/components/Form/Button/Button";
 import { Section } from "@/components/Layout/Section";
+import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
-import { PageTitle, Para, SecTitle } from "@/components/TextBlocks";
+import { PageTitle, Para, SecTitle, Span } from "@/components/TextBlocks";
 import { useToast } from "@/lib/toast";
 
 // Popover コンポーネント群
@@ -109,8 +110,8 @@ export function DemoPopoverDemo() {
   );
 
   return (
-    <div className="px-6 py-10">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
+    <Block className="px-6 py-10">
+      <Stack gap="xl" className="mx-auto w-full max-w-5xl">
         {/* ヘッダー */}
         <Section as="header" className="my-0 flex flex-col gap-2">
           <PageTitle size="xxxl" className="font-semibold tracking-tight">
@@ -130,7 +131,7 @@ export function DemoPopoverDemo() {
             </Para>
           </Stack>
 
-          <div className="flex flex-wrap gap-4">
+          <Flex wrap="wrap" gap="md">
             <Tooltip content="設定を開く">
               <Button variant="outline" size="icon">
                 <Settings className="size-4" />
@@ -160,7 +161,7 @@ export function DemoPopoverDemo() {
                 削除
               </Button>
             </Tooltip>
-          </div>
+          </Flex>
         </Section>
 
         {/* Popover（基本） */}
@@ -172,13 +173,13 @@ export function DemoPopoverDemo() {
             </Para>
           </Stack>
 
-          <div className="flex flex-wrap gap-4">
+          <Flex wrap="wrap" gap="md">
             <Popover
               trigger={<Button variant="outline">基本</Button>}
               title="ポップオーバー"
               description="シンプルな説明文を表示できます"
             >
-              <p>ここに任意のコンテンツを配置できます。</p>
+              <Para size="inherit" weight="inherit" align="inherit" className="my-0">ここに任意のコンテンツを配置できます。</Para>
             </Popover>
 
             <Popover
@@ -186,7 +187,7 @@ export function DemoPopoverDemo() {
               title="矢印付き"
               showArrow
             >
-              <p>矢印でトリガー要素を指し示します。</p>
+              <Para size="inherit" weight="inherit" align="inherit" className="my-0">矢印でトリガー要素を指し示します。</Para>
             </Popover>
 
             <Popover
@@ -194,7 +195,7 @@ export function DemoPopoverDemo() {
               title="閉じるボタン"
               showClose
             >
-              <p>右上に閉じるボタンが表示されます。</p>
+              <Para size="inherit" weight="inherit" align="inherit" className="my-0">右上に閉じるボタンが表示されます。</Para>
             </Popover>
 
             <Popover
@@ -209,7 +210,7 @@ export function DemoPopoverDemo() {
                 </>
               }
             >
-              <p>フッターにボタンを配置できます。</p>
+              <Para size="inherit" weight="inherit" align="inherit" className="my-0">フッターにボタンを配置できます。</Para>
             </Popover>
 
             <Popover
@@ -218,9 +219,9 @@ export function DemoPopoverDemo() {
               size="lg"
               showArrow
             >
-              <p>size=&quot;lg&quot; で幅が広くなります。</p>
+              <Para size="inherit" weight="inherit" align="inherit" className="my-0">size=&quot;lg&quot; で幅が広くなります。</Para>
             </Popover>
-          </div>
+          </Flex>
         </Section>
 
         {/* ConfirmPopover */}
@@ -232,7 +233,7 @@ export function DemoPopoverDemo() {
             </Para>
           </Stack>
 
-          <div className="flex flex-wrap gap-4">
+          <Flex wrap="wrap" gap="md">
             <ConfirmPopover
               trigger={<Button variant="destructive">削除</Button>}
               title="削除しますか？"
@@ -261,7 +262,7 @@ export function DemoPopoverDemo() {
               }}
               confirmLabel="実行"
             />
-          </div>
+          </Flex>
         </Section>
 
         {/* PromptPopover */}
@@ -273,7 +274,7 @@ export function DemoPopoverDemo() {
             </Para>
           </Stack>
 
-          <div className="flex flex-wrap gap-4">
+          <Flex wrap="wrap" gap="md">
             <PromptPopover
               trigger={<Button variant="outline">テキスト入力</Button>}
               title="名前を入力"
@@ -311,7 +312,7 @@ export function DemoPopoverDemo() {
                 showToast(`コメントを保存: ${value}`, "success");
               }}
             />
-          </div>
+          </Flex>
         </Section>
 
         {/* ActionPopover */}
@@ -323,7 +324,7 @@ export function DemoPopoverDemo() {
             </Para>
           </Stack>
 
-          <div className="flex flex-wrap gap-4">
+          <Flex wrap="wrap" gap="md">
             <ActionPopover
               trigger={
                 <Button variant="outline" size="icon">
@@ -372,7 +373,7 @@ export function DemoPopoverDemo() {
                 },
               ]}
             />
-          </div>
+          </Flex>
         </Section>
 
         {/* InfoPopover */}
@@ -384,16 +385,16 @@ export function DemoPopoverDemo() {
             </Para>
           </Stack>
 
-          <div className="flex flex-wrap items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span>税込価格</span>
+          <Flex wrap="wrap" align="center" gap="lg">
+            <Flex align="center" gap="xs">
+              <Span inline>税込価格</Span>
               <InfoPopover title="税込価格について">
                 消費税10%を含んだ価格です。軽減税率対象商品は8%で計算されます。
               </InfoPopover>
-            </div>
+            </Flex>
 
-            <div className="flex items-center gap-2">
-              <span>ステータス</span>
+            <Flex align="center" gap="xs">
+              <Span inline>ステータス</Span>
               <InfoPopover iconType="info" title="ステータスについて">
                 <ul className="list-disc pl-4">
                   <li>pending: 処理待ち</li>
@@ -401,19 +402,21 @@ export function DemoPopoverDemo() {
                   <li>completed: 完了</li>
                 </ul>
               </InfoPopover>
-            </div>
+            </Flex>
 
-            <div className="flex items-center gap-2">
-              <span>カスタムトリガー</span>
+            <Flex align="center" gap="xs">
+              <Span inline>カスタムトリガー</Span>
               <InfoPopover
                 trigger={
-                  <button className="text-primary underline">詳細を見る</button>
+                  <Button variant="none" size="none" propagateClick className="text-base font-normal text-primary underline">
+                    詳細を見る
+                  </Button>
                 }
               >
                 カスタムトリガーを使用した例です。任意の要素をトリガーにできます。
               </InfoPopover>
-            </div>
-          </div>
+            </Flex>
+          </Flex>
         </Section>
 
         {/* ChecklistPopover */}
@@ -425,8 +428,8 @@ export function DemoPopoverDemo() {
             </Para>
           </Stack>
 
-          <div className="flex flex-wrap items-start gap-4">
-            <div className="flex flex-col gap-2">
+          <Flex wrap="wrap" align="start" gap="md">
+            <Stack gap="xs">
               <ChecklistPopover
                 trigger={<Button variant="outline">タグを選択</Button>}
                 title="タグを選択"
@@ -438,12 +441,12 @@ export function DemoPopoverDemo() {
                   showToast(`${values.length}件のタグを適用しました`, "success");
                 }}
               />
-              <div className="text-xs text-muted-foreground">
+              <Block className="text-xs text-muted-foreground">
                 選択中: {selectedTags.join(", ") || "なし"}
-              </div>
-            </div>
+              </Block>
+            </Stack>
 
-            <div className="flex flex-col gap-2">
+            <Stack gap="xs">
               <ChecklistPopover
                 trigger={<Button variant="outline">カテゴリ（検索付き）</Button>}
                 title="カテゴリを選択"
@@ -459,12 +462,12 @@ export function DemoPopoverDemo() {
                   showToast(`${values.length}件のカテゴリを適用しました`, "success");
                 }}
               />
-              <div className="text-xs text-muted-foreground">
+              <Block className="text-xs text-muted-foreground">
                 選択中: {selectedCategories.length}件
-              </div>
-            </div>
+              </Block>
+            </Stack>
 
-            <div className="flex flex-col gap-2">
+            <Stack gap="xs">
               <ChecklistPopover
                 trigger={<Button variant="outline">最大3件まで</Button>}
                 title="優先タグ（最大3件）"
@@ -475,11 +478,11 @@ export function DemoPopoverDemo() {
                   showToast(`選択: ${values.join(", ")}`, "info");
                 }}
               />
-              <div className="text-xs text-muted-foreground">
+              <Block className="text-xs text-muted-foreground">
                 最大選択数の制限
-              </div>
-            </div>
-          </div>
+              </Block>
+            </Stack>
+          </Flex>
         </Section>
 
         {/* SelectPopover */}
@@ -491,8 +494,8 @@ export function DemoPopoverDemo() {
             </Para>
           </Stack>
 
-          <div className="flex flex-wrap items-start gap-4">
-            <div className="flex flex-col gap-2">
+          <Flex wrap="wrap" align="start" gap="md">
+            <Stack gap="xs">
               <SelectPopover
                 trigger={<Button variant="outline">優先度を選択（確認ボタン付き）</Button>}
                 title="優先度を選択"
@@ -506,12 +509,12 @@ export function DemoPopoverDemo() {
                   showToast(`優先度を「${label}」に変更しました`, "success");
                 }}
               />
-              <div className="text-xs text-muted-foreground">
+              <Block className="text-xs text-muted-foreground">
                 選択中: {DEMO_PRIORITIES.find((p) => p.value === selectedPriority)?.label}
-              </div>
-            </div>
+              </Block>
+            </Stack>
 
-            <div className="flex flex-col gap-2">
+            <Stack gap="xs">
               <SelectPopover
                 trigger={<Button variant="outline">検索付き</Button>}
                 title="カテゴリを選択"
@@ -524,11 +527,11 @@ export function DemoPopoverDemo() {
                   showToast(`カテゴリを「${label}」に変更しました`, "success");
                 }}
               />
-              <div className="text-xs text-muted-foreground">
+              <Block className="text-xs text-muted-foreground">
                 searchable: 検索機能付き
-              </div>
-            </div>
-          </div>
+              </Block>
+            </Stack>
+          </Flex>
         </Section>
 
         {/* EnumFieldButton with DataTable */}
@@ -543,9 +546,9 @@ export function DemoPopoverDemo() {
           {isLoadingSamples ? (
             <InlineLoader message="読み込み中..." />
           ) : samples.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
+            <Block className="py-8 text-center text-muted-foreground">
               サンプルデータがありません。管理画面からデータを追加してください。
-            </div>
+            </Block>
           ) : (
             <RecordSelectionTable<SampleWithRelations>
               items={samples.slice(0, 5)}
@@ -661,61 +664,61 @@ export function DemoPopoverDemo() {
             </Para>
           </Stack>
 
-          <div className="flex flex-wrap gap-6">
+          <Flex wrap="wrap" gap="lg">
             <HoverCard
               trigger={
-                <span className="cursor-pointer text-primary underline">
+                <Span inline tone="primary" className="cursor-pointer underline">
                   @yamada_taro
-                </span>
+                </Span>
               }
               openDelay={200}
             >
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-full bg-muted" />
-                  <div>
-                    <p className="font-semibold">山田太郎</p>
-                    <p className="text-sm text-muted-foreground">@yamada_taro</p>
-                  </div>
-                </div>
-                <p className="text-sm">
+              <Stack gap="xs">
+                <Flex align="center" gap="sm">
+                  <Block className="size-10 rounded-full bg-muted" />
+                  <Block>
+                    <Para size="inherit" weight="semiBold" align="inherit" className="my-0">山田太郎</Para>
+                    <Para size="sm" weight="inherit" tone="muted" align="inherit" className="my-0">@yamada_taro</Para>
+                  </Block>
+                </Flex>
+                <Para size="sm" weight="inherit" align="inherit" className="my-0">
                   ソフトウェアエンジニア。React / Next.js が得意です。
-                </p>
-                <div className="flex gap-4 text-sm text-muted-foreground">
-                  <span>
+                </Para>
+                <Flex gap="md" className="text-sm text-muted-foreground">
+                  <Span inline>
                     <strong className="text-foreground">123</strong> フォロー中
-                  </span>
-                  <span>
+                  </Span>
+                  <Span inline>
                     <strong className="text-foreground">456</strong> フォロワー
-                  </span>
-                </div>
-              </div>
+                  </Span>
+                </Flex>
+              </Stack>
             </HoverCard>
 
             <HoverCard
               trigger={
-                <span className="cursor-pointer text-primary underline">
+                <Span inline tone="primary" className="cursor-pointer underline">
                   プロジェクトA
-                </span>
+                </Span>
               }
               size="lg"
             >
-              <div className="flex flex-col gap-2">
-                <p className="font-semibold">プロジェクトA</p>
-                <p className="text-sm text-muted-foreground">
+              <Stack gap="xs">
+                <Para size="inherit" weight="semiBold" align="inherit" className="my-0">プロジェクトA</Para>
+                <Para size="sm" weight="inherit" tone="muted" align="inherit" className="my-0">
                   次世代ECプラットフォームの開発プロジェクト。2024年Q2リリース予定。
-                </p>
-                <div className="flex gap-2">
-                  <span className="rounded bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                </Para>
+                <Flex gap="xs">
+                  <Span size="xs" weight="inherit" tone="primary" className="rounded bg-primary/10 px-2 py-0.5">
                     進行中
-                  </span>
-                  <span className="rounded bg-muted px-2 py-0.5 text-xs">
+                  </Span>
+                  <Span size="xs" weight="inherit" className="rounded bg-muted px-2 py-0.5">
                     メンバー: 5名
-                  </span>
-                </div>
-              </div>
+                  </Span>
+                </Flex>
+              </Stack>
             </HoverCard>
-          </div>
+          </Flex>
         </Section>
 
         {/* 実践的なユースケース: 発送テーブル */}
@@ -736,26 +739,28 @@ export function DemoPopoverDemo() {
               {
                 header: "ステータス",
                 render: (shipment) => (
-                  <span
-                    className={`rounded px-2 py-0.5 text-xs ${
+                  <Span
+                    inline
+                    size="xs"
+                    className={`rounded px-2 py-0.5 ${
                       shipment.status === "shipped"
                         ? "bg-green-100 text-green-800"
                         : "bg-yellow-100 text-yellow-800"
                     }`}
                   >
                     {shipment.status === "shipped" ? "出荷済み" : "準備中"}
-                  </span>
+                  </Span>
                 ),
               },
               {
                 header: "追跡番号",
                 render: (shipment) =>
-                  shipment.trackingNumber || <span className="text-muted-foreground">未登録</span>,
+                  shipment.trackingNumber || <Span inline tone="muted">未登録</Span>,
               },
               {
                 header: "操作",
                 render: (shipment) => (
-                  <div className="flex gap-2">
+                  <Flex gap="xs">
                     {shipment.status === "shipped" && (
                       <PromptPopover
                         trigger={
@@ -800,13 +805,13 @@ export function DemoPopoverDemo() {
                         },
                       ]}
                     />
-                  </div>
+                  </Flex>
                 ),
               },
             ]}
           />
         </Section>
-      </div>
-    </div>
+      </Stack>
+    </Block>
   );
 }
