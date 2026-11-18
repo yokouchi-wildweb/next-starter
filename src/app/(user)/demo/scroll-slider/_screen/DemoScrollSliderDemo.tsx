@@ -17,11 +17,10 @@ import { Block, Flex, Grid, Stack, Main } from "@/components/Layout"
 import { SecTitle, Span } from "@/components/TextBlocks"
 import { Button } from "@/components/Form/Button"
 import { Label } from "@/components/Form/Label"
+import { BooleanCheckboxInput, Input } from "@/components/Form/Input/Manual"
 
 /** 欄を包む Label の class。Label の既定(横並びの中央寄せ・text-sm・leading-none・font-medium)を生の label の見た目に戻す */
 const FIELD_LABEL_CLASS_NAME = "flex-col items-stretch gap-1 font-normal"
-/** チェックボックスの行の Label の class(既定の横並び・中央寄せ・gap-2 はそのまま、太さだけ戻す) */
-const CHECK_LABEL_CLASS_NAME = "cursor-pointer font-normal"
 /** ref 操作のボタンの class(Button の既定の太さ font-medium を戻す) */
 const REF_BUTTON_CLASS_NAME = "rounded border bg-background px-3 py-1 text-sm font-normal hover:bg-accent"
 
@@ -129,15 +128,7 @@ export function DemoScrollSliderDemo() {
               </select>
             </Label>
 
-            <Label className={CHECK_LABEL_CLASS_NAME}>
-              <input
-                type="checkbox"
-                checked={loop}
-                onChange={(e) => setLoop(e.target.checked)}
-                className="rounded"
-              />
-              <Span size="sm" weight="inherit">loop</Span>
-            </Label>
+            <BooleanCheckboxInput value={loop} onChange={(checked) => setLoop(Boolean(checked))} label={<Span size="sm" weight="inherit">loop</Span>} />
 
             <Label className={FIELD_LABEL_CLASS_NAME}>
               <Span size="sm" weight="inherit">peek</Span>
@@ -168,12 +159,12 @@ export function DemoScrollSliderDemo() {
 
             <Label className={FIELD_LABEL_CLASS_NAME}>
               <Span size="sm" weight="inherit">containerWidth</Span>
-              <input
+              <Input
                 type="text"
+                size="xs"
                 value={containerWidth}
                 onChange={(e) => setContainerWidth(e.target.value)}
                 placeholder="例: 400, 80%"
-                className="rounded border px-2 py-1 text-sm bg-background"
               />
             </Label>
 
@@ -243,12 +234,12 @@ export function DemoScrollSliderDemo() {
 
             <Label className={FIELD_LABEL_CLASS_NAME}>
               <Span size="sm" weight="inherit">slideSize</Span>
-              <input
+              <Input
                 type="text"
+                size="xs"
                 value={slideSize}
                 onChange={(e) => setSlideSize(e.target.value)}
                 placeholder="例: 85%, 70%, 300px"
-                className="rounded border px-2 py-1 text-sm bg-background"
               />
             </Label>
 
@@ -270,71 +261,55 @@ export function DemoScrollSliderDemo() {
             {alignMode === "custom" && (
               <Label className={FIELD_LABEL_CLASS_NAME}>
                 <Span size="sm" weight="inherit">align値 (0〜1)</Span>
-                <input
+                <Input
                   type="text"
+                  size="xs"
                   value={alignValue}
                   onChange={(e) => setAlignValue(e.target.value)}
                   placeholder="0.15"
-                  className="rounded border px-2 py-1 text-sm bg-background"
                 />
               </Label>
             )}
 
-            <Label className={CHECK_LABEL_CLASS_NAME}>
-              <input
-                type="checkbox"
-                checked={maskEnabled}
-                onChange={(e) => setMaskEnabled(e.target.checked)}
-                className="rounded"
-              />
-              <Span size="sm" weight="inherit">mask</Span>
-            </Label>
+            <BooleanCheckboxInput value={maskEnabled} onChange={(checked) => setMaskEnabled(Boolean(checked))} label={<Span size="sm" weight="inherit">mask</Span>} />
 
             {maskEnabled && (
               <>
                 <Label className={FIELD_LABEL_CLASS_NAME}>
                   <Span size="sm" weight="inherit">mask left (%)</Span>
-                  <input
+                  <Input
                     type="text"
+                    size="xs"
                     value={maskLeft}
                     onChange={(e) => setMaskLeft(e.target.value)}
                     placeholder="10"
-                    className="rounded border px-2 py-1 text-sm bg-background"
                   />
                 </Label>
 
                 <Label className={FIELD_LABEL_CLASS_NAME}>
                   <Span size="sm" weight="inherit">mask right (%)</Span>
-                  <input
+                  <Input
                     type="text"
+                    size="xs"
                     value={maskRight}
                     onChange={(e) => setMaskRight(e.target.value)}
                     placeholder="10"
-                    className="rounded border px-2 py-1 text-sm bg-background"
                   />
                 </Label>
               </>
             )}
 
-            <Label className={CHECK_LABEL_CLASS_NAME}>
-              <input
-                type="checkbox"
-                checked={autoplay}
-                onChange={(e) => setAutoplay(e.target.checked)}
-                className="rounded"
-              />
-              <Span size="sm" weight="inherit">autoplay</Span>
-            </Label>
+            <BooleanCheckboxInput value={autoplay} onChange={(checked) => setAutoplay(Boolean(checked))} label={<Span size="sm" weight="inherit">autoplay</Span>} />
 
             {autoplay && (
               <Label className={FIELD_LABEL_CLASS_NAME}>
                 <Span size="sm" weight="inherit">autoplay delay (ms)</Span>
-                <input
+                <Input
                   type="text"
+                  size="xs"
                   value={autoplayDelay}
                   onChange={(e) => setAutoplayDelay(e.target.value)}
                   placeholder="4000"
-                  className="rounded border px-2 py-1 text-sm bg-background"
                 />
               </Label>
             )}

@@ -16,6 +16,7 @@ import {
 } from "@/components/Widgets"
 import { Button } from "@/components/Form/Button/Button"
 import { Label } from "@/components/Form/Label"
+import { BooleanCheckboxInput, Input } from "@/components/Form/Input/Manual"
 import { Block, Flex, Grid, Stack, Main } from "@/components/Layout"
 import { Para, SecTitle, Span } from "@/components/TextBlocks"
 
@@ -100,12 +101,12 @@ export function DemoFadeSliderDemo() {
 
             <Label className="flex flex-col items-stretch gap-1 font-normal">
               <Span size="sm">duration (ms)</Span>
-              <input
+              <Input
                 type="text"
+                size="xs"
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="400"
-                className="rounded border px-2 py-1 text-sm bg-background"
               />
             </Label>
 
@@ -124,15 +125,7 @@ export function DemoFadeSliderDemo() {
               </select>
             </Label>
 
-            <Label className="flex items-center gap-2 cursor-pointer font-normal">
-              <input
-                type="checkbox"
-                checked={loop}
-                onChange={(e) => setLoop(e.target.checked)}
-                className="rounded"
-              />
-              <Span size="sm">loop</Span>
-            </Label>
+            <BooleanCheckboxInput value={loop} onChange={(checked) => setLoop(Boolean(checked))} label={<Span size="sm">loop</Span>} />
 
             <Label className="flex flex-col items-stretch gap-1 font-normal">
               <Span size="sm">showArrows</Span>
@@ -228,78 +221,30 @@ export function DemoFadeSliderDemo() {
               </select>
             </Label>
 
-            <Label className="flex items-center gap-2 cursor-pointer font-normal">
-              <input
-                type="checkbox"
-                checked={autoplay}
-                onChange={(e) => setAutoplay(e.target.checked)}
-                className="rounded"
-              />
-              <Span size="sm">autoplay</Span>
-            </Label>
+            <BooleanCheckboxInput value={autoplay} onChange={(checked) => setAutoplay(Boolean(checked))} label={<Span size="sm">autoplay</Span>} />
 
             {autoplay && (
               <Label className="flex flex-col items-stretch gap-1 font-normal">
                 <Span size="sm">autoplay delay (ms)</Span>
-                <input
+                <Input
                   type="text"
+                  size="xs"
                   value={autoplayDelay}
                   onChange={(e) => setAutoplayDelay(e.target.value)}
                   placeholder="4000"
-                  className="rounded border px-2 py-1 text-sm bg-background"
                 />
               </Label>
             )}
 
-            <Label className="flex items-center gap-2 cursor-pointer font-normal">
-              <input
-                type="checkbox"
-                checked={enableKeyboard}
-                onChange={(e) => setEnableKeyboard(e.target.checked)}
-                className="rounded"
-              />
-              <Span size="sm">enableKeyboard</Span>
-            </Label>
+            <BooleanCheckboxInput value={enableKeyboard} onChange={(checked) => setEnableKeyboard(Boolean(checked))} label={<Span size="sm">enableKeyboard</Span>} />
 
-            <Label className="flex items-center gap-2 cursor-pointer font-normal">
-              <input
-                type="checkbox"
-                checked={enableSwipe}
-                onChange={(e) => setEnableSwipe(e.target.checked)}
-                className="rounded"
-              />
-              <Span size="sm">enableSwipe</Span>
-            </Label>
+            <BooleanCheckboxInput value={enableSwipe} onChange={(checked) => setEnableSwipe(Boolean(checked))} label={<Span size="sm">enableSwipe</Span>} />
 
-            <Label className="flex items-center gap-2 cursor-pointer font-normal">
-              <input
-                type="checkbox"
-                checked={pauseOnHover}
-                onChange={(e) => setPauseOnHover(e.target.checked)}
-                className="rounded"
-              />
-              <Span size="sm">pauseOnHover</Span>
-            </Label>
+            <BooleanCheckboxInput value={pauseOnHover} onChange={(checked) => setPauseOnHover(Boolean(checked))} label={<Span size="sm">pauseOnHover</Span>} />
 
-            <Label className="flex items-center gap-2 cursor-pointer font-normal">
-              <input
-                type="checkbox"
-                checked={respectReducedMotion}
-                onChange={(e) => setRespectReducedMotion(e.target.checked)}
-                className="rounded"
-              />
-              <Span size="sm">respectReducedMotion</Span>
-            </Label>
+            <BooleanCheckboxInput value={respectReducedMotion} onChange={(checked) => setRespectReducedMotion(Boolean(checked))} label={<Span size="sm">respectReducedMotion</Span>} />
 
-            <Label className="flex items-center gap-2 cursor-pointer font-normal">
-              <input
-                type="checkbox"
-                checked={useControlled}
-                onChange={(e) => setUseControlled(e.target.checked)}
-                className="rounded"
-              />
-              <Span size="sm">controlled</Span>
-            </Label>
+            <BooleanCheckboxInput value={useControlled} onChange={(checked) => setUseControlled(Boolean(checked))} label={<Span size="sm">controlled</Span>} />
           </Grid>
 
           <Flex wrap="wrap" gap="xs" className="mt-4">

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { Label } from "@/components/Form/Label";
+import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Stack } from "@/components/Layout/Stack";
 import { Link } from "@/components/Navigation";
 import { Para, Span } from "@/components/TextBlocks";
@@ -14,14 +14,7 @@ export const MediaUploadMultiDemo = () => {
 
   return (
     <Stack gap="lg" padding={{ base: "lg", sm: "2xl" }} className="flex flex-col gap-4">
-      <Label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={reorderable}
-          onChange={(event) => setReorderable(event.target.checked)}
-        />
-        <Span>並び替えを有効にする</Span>
-      </Label>
+      <BooleanCheckboxInput value={reorderable} onChange={(checked) => setReorderable(Boolean(checked))} label={<Span>並び替えを有効にする</Span>} />
 
       <MediaUploaderMulti
         purpose="demo.media"

@@ -20,8 +20,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, SecTitle } from "@/components/TextBlocks";
 import { Span } from "@/components/TextBlocks/Span";
-import { Input } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import { BooleanCheckboxInput, Input } from "@/components/Form/Input/Manual";
 
 type FragmentItem = {
   id: string;
@@ -287,14 +286,7 @@ export function SeamlessVideoDemo() {
             <Flex gap="xs" align="center" wrap="wrap" justify="between">
               <SecTitle size="sm">3. 継ぎ目なし連結再生</SecTitle>
               <Flex gap="md" align="center" wrap="wrap">
-                <Label className="gap-1.5 text-xs font-normal text-muted-foreground">
-                  <input
-                    type="checkbox"
-                    checked={playMuxedAudio}
-                    onChange={(e) => setPlayMuxedAudio(e.target.checked)}
-                  />
-                  muxed音声を鳴らす(方式A確認)
-                </Label>
+                <BooleanCheckboxInput value={playMuxedAudio} onChange={(checked) => setPlayMuxedAudio(Boolean(checked))} label={<Span size="xs" tone="muted">muxed音声を鳴らす(方式A確認)</Span>} />
                 <Button
                   onClick={() => void handlePlay()}
                   disabled={!env.mse}

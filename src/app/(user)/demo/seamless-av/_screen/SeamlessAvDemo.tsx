@@ -17,8 +17,9 @@ import {
 } from "@/lib/seamlessVideo";
 import { uploadToStorage } from "@/lib/storage/client";
 import { useToast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/Form/Button";
-import { Input } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Form/Button";
+import { FilePickButton } from "@/components/Form/FilePickButton";
+import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
@@ -356,27 +357,15 @@ export function SeamlessAvDemo() {
                     </Flex>
 
                     <Flex gap="xs" align="center" wrap="wrap">
-                      <label className={buttonVariants({ variant: "outline", size: "xs" })}>
+                      <FilePickButton variant="outline" size="xs" accept="video/mp4,.mp4,.m4v" onFiles={([file]) => setVideo(slot.id, file)}>
                         映像を選択
-                        <Input
-                          type="file"
-                          accept="video/mp4,.mp4,.m4v"
-                          hidden
-                          onChange={(e) => setVideo(slot.id, e.target.files?.[0])}
-                        />
-                      </label>
+                      </FilePickButton>
                       <Span size="xs" tone="muted" className="max-w-[160px] truncate">
                         {slot.videoFile?.name ?? "映像 未選択"}
                       </Span>
-                      <label className={buttonVariants({ variant: "outline", size: "xs" })}>
+                      <FilePickButton variant="outline" size="xs" accept="audio/*,.wav,.m4a,.aac,.mp3" onFiles={([file]) => setAudio(slot.id, file)}>
                         音声を選択
-                        <Input
-                          type="file"
-                          accept="audio/*,.wav,.m4a,.aac,.mp3"
-                          hidden
-                          onChange={(e) => setAudio(slot.id, e.target.files?.[0])}
-                        />
-                      </label>
+                      </FilePickButton>
                       <Span size="xs" tone="muted" className="max-w-[160px] truncate">
                         {slot.audioFile?.name ?? "音声 未選択"}
                       </Span>
@@ -441,18 +430,9 @@ export function SeamlessAvDemo() {
 
           {/* 読み込みモード */}
           <Flex gap="md" align="center" wrap="wrap">
-            <Label className="gap-1.5 text-xs font-normal text-muted-foreground">
-              <input type="checkbox" checked={progressive} onChange={(e) => setProgressive(e.target.checked)} />
-              progressive 読み込み（先頭準備で即再生可）
-            </Label>
-            <Label className="gap-1.5 text-xs font-normal text-muted-foreground">
-              <input type="checkbox" checked={loopOn} onChange={(e) => setLoopOn(e.target.checked)} />
-              ループ再生
-            </Label>
-            <Label className="gap-1.5 text-xs font-normal text-muted-foreground">
-              <input type="checkbox" checked={evictOn} onChange={(e) => setEvictOn(e.target.checked)} />
-              退避リング(bufferBehindSec=5・長尺向け)
-            </Label>
+            <BooleanCheckboxInput value={progressive} onChange={(checked) => setProgressive(Boolean(checked))} label={<Span size="xs" tone="muted">progressive 読み込み（先頭準備で即再生可）</Span>} />
+            <BooleanCheckboxInput value={loopOn} onChange={(checked) => setLoopOn(Boolean(checked))} label={<Span size="xs" tone="muted">ループ再生</Span>} />
+            <BooleanCheckboxInput value={evictOn} onChange={(checked) => setEvictOn(Boolean(checked))} label={<Span size="xs" tone="muted">退避リング(bufferBehindSec=5・長尺向け)</Span>} />
             <Label className="gap-1.5 text-xs font-normal text-muted-foreground">
               失敗時:
               <select
@@ -469,15 +449,9 @@ export function SeamlessAvDemo() {
 
           {/* BGM(別レイヤー) */}
           <Flex gap="xs" align="center" wrap="wrap">
-            <label className={buttonVariants({ variant: "outline", size: "xs" })}>
+            <FilePickButton variant="outline" size="xs" accept="audio/*,.wav,.m4a,.aac,.mp3" onFiles={([file]) => setBgmFile(file)}>
               BGMを選択
-              <Input
-                type="file"
-                accept="audio/*,.wav,.m4a,.aac,.mp3"
-                hidden
-                onChange={(e) => setBgmFile(e.target.files?.[0] ?? null)}
-              />
-            </label>
+            </FilePickButton>
             <Span size="xs" tone="muted" className="max-w-[180px] truncate">
               {bgmFile?.name ?? "BGM 未選択（フラグメント音声と独立した別レイヤー）"}
             </Span>
@@ -566,15 +540,9 @@ export function SeamlessAvDemo() {
             {/* ワンショット SE */}
             <Flex gap="xs" align="center" wrap="wrap">
               <Span size="xs" tone="muted">SE(効果音)</Span>
-              <label className={buttonVariants({ variant: "outline", size: "xs" })}>
+              <FilePickButton variant="outline" size="xs" accept="audio/*,.wav,.m4a,.aac,.mp3" onFiles={([file]) => setSeFile(file)}>
                 SEを選択
-                <Input
-                  type="file"
-                  accept="audio/*,.wav,.m4a,.aac,.mp3"
-                  hidden
-                  onChange={(e) => setSeFile(e.target.files?.[0] ?? null)}
-                />
-              </label>
+              </FilePickButton>
               <Span size="xs" tone="muted" className="max-w-[140px] truncate">{seFile?.name ?? "未選択"}</Span>
               <Button variant="ghost" size="xs" onClick={() => handlePlaySe()} disabled={!canPlay || !seFile}>
                 今すぐ再生
