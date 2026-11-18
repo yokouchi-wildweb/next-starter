@@ -171,13 +171,13 @@ export const VARIANT_OVERRIDES = defineVariantOverrides({
 
 ### 生パレット色の禁止(ESLint)
 
-- 対象: upstream 所有の UI(`src/components` / `src/lib` / `src/features/core` / `src/features/_template`)。fork 固有の UI は対象外。同じ規律を敷きたい fork は `eslint.config.mjs` の `files` にパスを足す
+- 対象: upstream 所有の UI(`src/components` / `src/lib` / `src/features/core` / `src/features/_template` / `src/app/**/_layout/`。`_layout` の `*.replace.tsx` は除く)。fork が足した lib(`src/lib/CATALOG.md` の自分の節)は 2 規則とも warn。fork 固有の UI は対象外。同じ規律を敷きたい fork は `eslint.config.mjs` の `files` にパスを足す
 - `style-tokens/no-raw-palette`: `bg-slate-900` / `text-red-600` / `bg-white` / `text-[#fff]` のような生パレット色クラスを error にする。生パレット色はブランド色に追従せず `dark:` 併記が要り、fork が core を直す動機になるため
   - 代わり: 白黒は `bg-background` / `text-foreground` / `bg-card`、幕は `bg-overlay/50`、意味色は上の 3 変数
   - ブランドロゴ色など正当な例外は理由付き `// eslint-disable-next-line style-tokens/no-raw-palette -- 理由` で明示する
-- `style-tokens/no-bare-semantic-text`: 同じ範囲で意味色の素の文字 `text-success` / `text-info` / `text-warning` / `text-destructive`(修飾子・透過率付きも)を error にする(fork が足した lib では warn)
+- `style-tokens/no-bare-semantic-text`: 同じ範囲で意味色の素の文字 `text-success` / `text-info` / `text-warning` / `text-destructive`(修飾子・透過率付きも)を error にする
   - 素の背景の文字は `text-x-text`、塗りの上の文字は `text-x-foreground`。クラス名ではない文字列(入力欄の例など)は理由付き eslint-disable で明示する
-- あわせて `src/components` 外からの `_shadcn` 直接 import も error(`no-restricted-imports`、対応表は `src/components/_shadcn/README.md`)
+- あわせて `_shadcn` の直接 import も全 Tier で error(`import-boundaries/no-shadcn-direct`。許すのは `src/components/**`・`src/lib/tableSuite/**` だけ、対応表は `src/components/_shadcn/README.md`)
 
 ### config.css の値を変えたいとき
 

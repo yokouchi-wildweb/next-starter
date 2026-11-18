@@ -102,7 +102,7 @@
 - `animations.css` / `base.css` / `components.css` / `utilities.css` / `admin.css`: 下の「upstream 側のファイルの役割」
 - `styleTokens.test.mjs`: `pnpm test src/styles/core/`
 
-- upstream は直下の `global.css` / `palette.css` / `typography.css` / `overrides.css` / `gradient.css` を初回作成後に編集しない。例外は入口の `@import` の行を足すときだけ: 上流の `global.css` を直し、notice で fork に同じ 1 行を足させる(直下の生成物 `gradient.css`・`z-layer.css` の読み込み)。説明は fork 所有のファイルに書かず、この README か `.claude/rules/core/style.md` に書く。fork が直下に足した CSS も fork の物
+- upstream は直下の `global.css` / `palette.css` / `typography.css` / `overrides.css` / `gradient.css` を初回作成後に編集しない。例外は入口の `@import` の行を足すときだけ: 上流の `global.css` を直し、notice で fork に同じ 1 行を足させる(直下の生成物 `gradient.css`・`z-layer.css` の読み込み)。fork が直下に足した CSS も fork の物
 - グラデーションは既定と実効の対: `pnpm generate styles` が上流の既定を `core/gradient.css` に、そのリポの分(`src/config/app/gradients.config.ts`)を直下の `gradient.css` に書く。fork が自分の分を足して再生成するのは正しい使い方(手で編集しない)。`core/` の下に fork の差分は出ない。同じ key を書けば直下の分が後から読まれて上書きする
 - 名前の印: `core/` = upstream の物(`src/features/core/` と同じ印)。既定と上書きは置き場で分ける: `core/<名前>.css` = 上流の既定、直下の同じ名前 `<名前>.css` = そのリポの上書き(`core/palette.css` と直下の `palette.css` など)
 
@@ -124,7 +124,7 @@ upstream 側のファイルの役割(upstream でスタイルを足すときの�
   - `admin-page-title`(管理のページの題の h1、`src/app/admin/_layout/AdminPageTitle.tsx`)・`admin-sec-title`(管理画面の SecTitle)
   - 入らない物: `user-page-title`(UserPageTitle の外側の header)は呼び手の className を受けない(className は中の h1 へ)
 - この一覧に足す条件(3 つすべて): className を渡せる要素である / fork がサイト全体で揃えたい実例がある / バリアントの上書きの口では受けられない
-- 印の名前 = その要素を描く部品(または部位)の名前の kebab(`popover-content`・`header-shell`)。印の一覧は各部品・枠の README(枠 = `src/app/(user)/_layout/README.md` と `src/app/admin/_layout/README.md`)。一覧とコードの一致は印の一覧の検査で確かめる。印を消す・名前を変えるのは notice
+- 印の名前 = その要素を描く部品(または部位)の名前の kebab(`popover-content`・`header-shell`)。印の一覧は各部品・枠の README(枠 = `src/app/(user)/_layout/README.md` と `src/app/admin/_layout/README.md`)。一覧とコードの一致は印の一覧の検査で確かめる。印を消す・名前を変えるときの決まりは `.claude/rules/core/style.md` building_a_part
 
 ### トークンで動く範囲
 
@@ -151,7 +151,7 @@ upstream 側のファイルの役割(upstream でスタイルを足すときの�
 
 ### 表示と保存の分離
 
-lib の中の `src/lib/siteTheme/dom.ts`(入口から出さない)は DOM 適用(`applyThemeToDom`)と保存(`persistThemePreference`)を分けている。保存は利用者が `DarkModeSwitch` を押したときだけ。固定エリアの適用や OS 追従で保存値を汚さない。
+lib の中の `src/lib/siteTheme/dom.ts`(入口から出さない)は DOM 適用(`applyThemeToDom`)と保存(`persistThemePreference`)を分けている。保存は利用者の切替操作(`DarkModeSwitch` や `useSiteThemeStore` の `toggle` / `setDark`)のときだけ。固定エリアの適用や OS 追従で保存値を汚さない。
 
 ### デプロイ後の確認(Vercel ビルドキャッシュ)
 
@@ -172,7 +172,7 @@ Vercel が前回デプロイのビルドキャッシュを復元すると、キ�
 | `pnpm check styles` | ビルド済み CSS に global.css から辿れる全ファイルの変数が揃っているか(`pnpm build` が自動で実行) |
 | `pnpm test scripts/structure/styles/builtCss.test.mjs` | 上記の判定ロジック(@theme / @utility の除外、相対 import の走査、missing / unverifiable の判定) |
 | `pnpm test src/lib/siteTheme/siteTheme.test.mjs` | 既定値の互換、エリア一致、ロック、bootstrap script と resolver の一致 |
-| `pnpm test src/styles/core/` | theme.css の参照変数が上流 CSS で全て定義されている / `.dark` が `:root` に無い変数を持ち込まない / 意味色の 3 変数が揃っている / 書体変数が core/typography.css にある / `core/index.css` と `global.css` の import 順 / upstream が出荷する直下の 3 ファイルはコメントだけ(upstream のみ) |
+| `pnpm test src/styles/core/` | theme.css の参照変数が上流 CSS で全て定義されている / `.dark` が `:root` に無い変数を持ち込まない / 意味色の 3 変数が揃っている / 書体変数が core/typography.css にある / `core/index.css` と `global.css` の import 順 / upstream が出荷する直下の palette / typography / overrides / gradient.css はコメントだけ・global.css は @import だけ(upstream のみ) |
 | `pnpm test src/lib/fonts/fonts.test.mjs` | defineFontsConfig の既定(読み込み無し)と variable クラス連結、core/typography.css の loaded 変数参照 |
 | `pnpm test src/lib/cn/cn.test.mjs` | theme.css の `--text-*` と tailwind-merge 登録のドリフト |
 | `pnpm test src/lib/variantOverrides/variantOverrides.test.mjs` | オーバーライド無しで cva と同一出力 / 結合順(cva → オーバーライド → className)/ 既定 variant の解決 / 出荷時の variants.config.ts が空 |
