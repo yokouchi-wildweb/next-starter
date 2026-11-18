@@ -1,64 +1,20 @@
-# 汎用 CRUD フック（使い方）
+# crud/hooks
 
-> `pnpm generate domain` が各ドメインの `features/<domain>/hooks/` に生成するフックの使い方です。
-> mutation の並列安全性の契約と独自 mutation フックの作り方は [`../README.md`「汎用フック（hooks/）の mutation 契約」](../README.md#汎用フックhooksの-mutation-契約) を参照してください（ここでは繰り返しません）。
+## Overview
 
-例は `sample` ドメイン（`src/features/sample/hooks/`）です。`Sample` / `samples` は対象ドメインの名前に読み替えてください。
-
----
-
-## 構成
+- `pnpm generate domain` が各ドメインの `features/<domain>/hooks/` に生成するフックの使い方。mutation の並列安全性の契約と独自 mutation フックの作り方は [`../README.md`「汎用フック（hooks/）の mutation 契約」](../README.md#汎用フックhooksの-mutation-契約)
+- 例は `sample` ドメイン（`src/features/sample/hooks/`）。`Sample` / `samples` は対象ドメインの名前に読み替える
+- 使う時の決まりは札 .claude/rules/items/lib/crud.md にある
 
 - `src/lib/crud/hooks/use*Domain.ts` … ドメイン非依存の本体（SWR / `useDomainMutation`）
-- `features/<domain>/hooks/use*<Domain>.ts` … 生成物。client service（`<domain>Client`）と SWR キーを束ねるだけの薄いラッパー。**編集しない**（再生成で上書きされる）
+- `features/<domain>/hooks/use*<Domain>.ts` … 生成物。client service（`<domain>Client`）と SWR キーを束ねるだけの薄いラッパー（再生成で上書きされる）
 - 独自のフック（派生フック）は同じ `hooks/` に、生成ファイルと衝突しない名前で追加する
 
----
+## Usage
 
-## 生成されるフック
+### 取得系
 
-テンプレート: `src/features/_template/hooks/`、生成判定: `scripts/structure/domain/render/hooks/catalog.mjs`。
-
-### 常に生成
-
-| 操作 | フック | 戻り値 / trigger |
-|---|---|---|
-| get | `use<Domain>(id)` | `{ data, isLoading, error, mutate }`。`id` が空ならリクエストしない |
-| list | `use<Domain>List(config?)` | `{ data(既定 []), isLoading, error, mutate }` |
-| search | `useSearch<Domain>(params)` | `{ data, total, isLoading, error, mutate }`。`params.enabled === false` でリクエストしない |
-| count | `useCount<Domain>(params)` | `{ total, isLoading, error, mutate }` |
-| create | `useCreate<Domain>()` | `trigger(data)` |
-| update | `useUpdate<Domain>()` | `trigger({ id, data })` |
-| upsert | `useUpsert<Domain>()` | `trigger(data, options?)` |
-| remove | `useDelete<Domain>()` | `trigger(id)` |
-| bulkDeleteByIds | `useBulkDeleteByIds<Domain>()` | `trigger(ids)` |
-| bulkDeleteByQuery | `useBulkDeleteByQuery<Domain>()` | `trigger(where)` |
-| bulkUpsert | `useBulkUpsert<Domain>()` | `trigger(records, options?)` |
-| bulkUpdate | `useBulkUpdate<Domain>()` | `trigger([{ id, data }, ...])`。`data` も返す |
-
-命名の例外: get → `use<Domain>`、list → `use<Domain>List`、remove → `useDelete<Domain>`、count → `useCount<Domain>`。それ以外は `use<Op><Domain>`。
-
-### 条件付きで生成
-
-| 条件（domain.json） | フック |
-|---|---|
-| `dbEngine` が `Firestore` 以外 | `useReplaceByQuery<Domain>()` … `trigger(where, records, options?)` |
-| `useDetailModal` | `use<Domain>ViewModal(id)` … `{ viewModel, <domain>, isLoading }`（詳細モーダルの表示データ。中身はドメインごとに実装する生成雛形） |
-| `useDuplicateButton` | `useDuplicate<Domain>()` … `trigger(id, options?)` |
-| `useSoftDelete` | `useRestore<Domain>()` … `trigger(id)` / `useHardDelete<Domain>()` … `trigger(id)` |
-| `sortOrderField` | `useReorder<Domain>()` … `trigger(id, afterItemId)` / `useSearchForSorting<Domain>(params)` |
-
-- 集まりのエントリ（従属の行 id 付き）は生成フックではなく、`@/lib/crud/hooks` の汎用の `useCollectionEntries(domain, field, parentId または parentIds)` を直接使う（`{ data, entriesOf, isLoading, error, mutate }`。詳細: [`../README.md`「エントリ（従属の行 id 付き）と、集まりの 1 件を FK で参照する」](../README.md)）
-- `bulkUpdateByIds` は `@/lib/crud/hooks` の `useBulkUpdateByIdsDomain` のみで、ドメインへの生成フックは無い（必要なら派生フックで包む）
-- `bulkAddRelation` / `bulkRemoveRelation` も同じく `useBulkAddRelationDomain` / `useBulkRemoveRelationDomain` のみ（例: `features/core/user/hooks/useBulkAddUserTags.ts`）
-- `query` / `belongsToMany` / `systemUpdate` / `bulkUpdateByQuery` / `systemBulkUpdateByQuery` はサーバー専用でフックは無い
-- 生成フックは client service に該当メソッドが無いと呼び出し時に例外を投げる（`createApiClient` は全メソッドを持つので、生成ドメインでは通常起きない）
-
----
-
-## 取得系
-
-### どのフックを使うか
+#### どのフックを使うか
 
 - **ユーザーに紐づく・件数が増えるデータの一覧** → `useInfiniteScrollQuery` を包んだ派生フック + `InfiniteScrollList`（下記）。`use<Domain>List` で全件取得しない（CLAUDE.md PROHIBITED: unpaginated full-fetch）
   - 増え続ける一覧(お知らせ・ログ・履歴)は `useInfiniteScrollQuery` のカーソルのモード(`cursorFetcher` → `CursorPage { items, nextCursor }`、`@/hooks/cursorPage`)。総数を数えず、読み込みの間に行が足されても続きの位置がずれない(例: `src/features/core/messaging/hooks/useInboxItems.ts`)
@@ -67,7 +23,7 @@
 - **件数だけ** → `useCount<Domain>`（レコードを取らない）
 - **リレーション展開（`withRelations` / `withCount` / `hasManyLimit`）** → `useSearch<Domain>` の `params` に渡す。`use<Domain>` / `use<Domain>List` は `WithOptions` を受け取らない
 
-### `useSearch<Domain>`
+#### `useSearch<Domain>`
 
 `params` は `SearchParams & WithOptions`（`page` / `limit` / `searchQuery` / `searchFields` / `searchRank` / `where` / `orderBy` / `relationWhere` など）。`params` は SWR キーに入るので、変えると取り直す。各パラメータの仕様は [`../README.md`「search() / count() の詳細仕様」](../README.md#search--count-の詳細仕様)。
 
@@ -107,7 +63,7 @@ export function SampleSearchResult({ keyword }: { keyword: string }) {
 
 Firestore ドメインでは `where` の `or`、複数列の `orderBy`、`relationWhere`、`searchRank`、`withRelations` が使えず、`searchQuery` は `searchFields` の先頭 1 カラムの前方一致になる（[`../README.md`「Firestore 版との差異」](../README.md#firestore-版との差異)）。
 
-### 無限スクロール一覧
+#### 無限スクロール一覧
 
 Component から client service を直接呼ばない（lint `client-service-boundary/no-direct-import`）。`useInfiniteScrollQuery` は派生フックの中で呼び、画面は `InfiniteScrollList` に戻り値を渡す。
 
@@ -165,7 +121,7 @@ export function SampleFeed({ keyword }: { keyword: string }) {
 - `fetcher` が外部値に依存するなら、その値も `deps` に入れる（`fetcher` の identity 変化では取り直さない）
 - `initialData` の制約・戻り値の詳細は `src/hooks/useInfiniteScrollQuery.ts` の JSDoc、表示の出し分けは [`src/components/Widgets/InfiniteScrollList/README.md`](../../../components/Widgets/InfiniteScrollList/README.md)
 
-### 初期データ（loader → hook）
+#### 初期データ（loader → hook）
 
 初回描画に要るデータは loader で取り、セクションコンテナの `initial<Name>` prop → hook の `fallbackData` で渡す（CLAUDE.md COMPONENTS data_seam）。
 
@@ -196,9 +152,7 @@ export function useSampleDetail(id: string | null, { fallbackData }: { fallbackD
 
 無限スクロールの 1 ページ目は `useInfiniteScrollQuery` の `initialData` で渡す（上の `useSampleFeed`）。
 
----
-
-## 更新系（mutation）
+### 更新系（mutation）
 
 - `trigger` は Promise を返す。成功で結果（create / update は保存後のレコード）に resolve、失敗でその error に reject する
 - `isMutating`（= `isLoading`）は in-flight が 1 件でもある間 true。`error` は直近に終わった trigger の結果
@@ -255,7 +209,7 @@ export function SamplePublishButton({ id, onUpdated }: Props) {
 />
 ```
 
-### 成功後のキャッシュ反映
+#### 成功後のキャッシュ反映
 
 生成された mutation フックは成功時に `revalidateRelatedCaches("<plural>")`（`./revalidateRelatedCaches.ts`）を呼ぶ。再検証されるのは次の SWR キーだけ。
 
@@ -278,19 +232,56 @@ await remove.trigger(id);
 removeItems((s) => s.id === id);
 ```
 
----
-
-## 独自フックを足すとき
+### 独自フックを足すとき
 
 - 取得系: `useDomain` / `useDomainList` / `useSearchDomain` / `useCountDomain`（`@/lib/crud/hooks`）を包むか、`useSWR` を直接使う。client service 経由で HTTP を呼ぶ（Hook から axios / fetch を直接呼ばない）
 - 更新系: `useDomainMutation` を包む。`useSWRMutation` は使わない（理由は [`../README.md`](../README.md#汎用フックhooksの-mutation-契約)）
 - 生成フックのシグネチャを変えたいときはテンプレート（`src/features/_template/hooks/`）と本体（このディレクトリ）を変える。全ドメインに波及する
 
----
-
-## 編集画面の項目の移動（useDomainItemNavigation）
+### 編集画面の項目の移動（useDomainItemNavigation）
 
 - `useDomainItemNavigation({ domain, current, labelField?, limit = 10 })` → `{ items, currentId, getPath, getLabel, isLoading }`。管理の編集画面の「前後の項目へ移る」のデータ
 - `domain` = 呼ぶ側が渡す `<domain>/entities/display.ts` の `domainDisplay`（lib/crud は features を読まない）。取得は汎用の `/api/<singular>` の search（検索の既定の並びの先頭 `limit` 件、SWR キー `<plural>/search`）、`current` が候補に無ければ先頭に足す。パスは `getAdminPaths(domain.plural).edit`、表示名は `labelField` → name → title → id
 - 表示は棚の `ItemNavigator`（`@/components/AppFrames/Admin/Elements/ItemNavigator`、props だけ）に戻り値をそのまま渡す。管理画面では `src/app/admin/_layout/AdminEditItemNavigator` がこの組み合わせ
 - テスト: 候補と表示名の純関数 `internal/itemNavigation.ts`（`pnpm test src/lib/crud/hooks/internal/*.test.mjs`）
+
+## API
+
+### 生成されるフック
+
+テンプレート: `src/features/_template/hooks/`、生成判定: `scripts/structure/domain/render/hooks/catalog.mjs`。
+
+### 常に生成
+
+| 操作 | フック | 戻り値 / trigger |
+|---|---|---|
+| get | `use<Domain>(id)` | `{ data, isLoading, error, mutate }`。`id` が空ならリクエストしない |
+| list | `use<Domain>List(config?)` | `{ data(既定 []), isLoading, error, mutate }` |
+| search | `useSearch<Domain>(params)` | `{ data, total, isLoading, error, mutate }`。`params.enabled === false` でリクエストしない |
+| count | `useCount<Domain>(params)` | `{ total, isLoading, error, mutate }` |
+| create | `useCreate<Domain>()` | `trigger(data)` |
+| update | `useUpdate<Domain>()` | `trigger({ id, data })` |
+| upsert | `useUpsert<Domain>()` | `trigger(data, options?)` |
+| remove | `useDelete<Domain>()` | `trigger(id)` |
+| bulkDeleteByIds | `useBulkDeleteByIds<Domain>()` | `trigger(ids)` |
+| bulkDeleteByQuery | `useBulkDeleteByQuery<Domain>()` | `trigger(where)` |
+| bulkUpsert | `useBulkUpsert<Domain>()` | `trigger(records, options?)` |
+| bulkUpdate | `useBulkUpdate<Domain>()` | `trigger([{ id, data }, ...])`。`data` も返す |
+
+命名の例外: get → `use<Domain>`、list → `use<Domain>List`、remove → `useDelete<Domain>`、count → `useCount<Domain>`。それ以外は `use<Op><Domain>`。
+
+### 条件付きで生成
+
+| 条件（domain.json） | フック |
+|---|---|
+| `dbEngine` が `Firestore` 以外 | `useReplaceByQuery<Domain>()` … `trigger(where, records, options?)` |
+| `useDetailModal` | `use<Domain>ViewModal(id)` … `{ viewModel, <domain>, isLoading }`（詳細モーダルの表示データ。中身はドメインごとに実装する生成雛形） |
+| `useDuplicateButton` | `useDuplicate<Domain>()` … `trigger(id, options?)` |
+| `useSoftDelete` | `useRestore<Domain>()` … `trigger(id)` / `useHardDelete<Domain>()` … `trigger(id)` |
+| `sortOrderField` | `useReorder<Domain>()` … `trigger(id, afterItemId)` / `useSearchForSorting<Domain>(params)` |
+
+- 集まりのエントリ（従属の行 id 付き）は生成フックではなく、`@/lib/crud/hooks` の汎用の `useCollectionEntries(domain, field, parentId または parentIds)` を直接使う（`{ data, entriesOf, isLoading, error, mutate }`。詳細: [`../README.md`「エントリ（従属の行 id 付き）と、集まりの 1 件を FK で参照する」](../README.md)）
+- `bulkUpdateByIds` は `@/lib/crud/hooks` の `useBulkUpdateByIdsDomain` のみで、ドメインへの生成フックは無い（必要なら派生フックで包む）
+- `bulkAddRelation` / `bulkRemoveRelation` も同じく `useBulkAddRelationDomain` / `useBulkRemoveRelationDomain` のみ（例: `features/core/user/hooks/useBulkAddUserTags.ts`）
+- `query` / `belongsToMany` / `systemUpdate` / `bulkUpdateByQuery` / `systemBulkUpdateByQuery` はサーバー専用でフックは無い
+- 生成フックは client service に該当メソッドが無いと呼び出し時に例外を投げる（`createApiClient` は全メソッドを持つので、生成ドメインでは通常起きない）

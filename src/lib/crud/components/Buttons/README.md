@@ -1,10 +1,10 @@
-# CRUD Buttons
+# crud/components/Buttons
 
-`domain` は文字列でなく表示用の写し(`import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display"`)を受ける。全ドメインの設定を client に読まないため(`src/lib/domain/README.md`)。
+## Overview
 
-CRUDボタンコンポーネント群。レコードの操作（更新・削除・複製など）を行うボタン。
-
-## コンポーネント一覧
+- CRUD ボタンコンポーネント群。レコードの操作（更新・削除・複製など）を行うボタン。入口 `@/lib/crud/components`
+- `domain` は文字列でなく表示用の写し(`import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display"`)を受ける。全ドメインの設定を client に読まないため(`src/lib/domain/README.md`)
+- 使う時の決まりは札 .claude/rules/items/lib/crud.md にある
 
 | コンポーネント | 用途 |
 |---|---|
@@ -21,7 +21,9 @@ CRUDボタンコンポーネント群。レコードの操作（更新・削除�
 | `EditButton` | 編集ページへ遷移 |
 | `CreateButton` | 作成ページへ遷移 |
 
-## 管理一覧の一括操作の項目にする（作成関数）
+## Usage
+
+### 管理一覧の一括操作の項目にする（作成関数）
 
 管理一覧では、`Bulk*Button` を `bulkActions` に手で書かず、作成関数で一括操作の受け口の項目にする（`@/lib/crud/components`）。ボタンには選択の ids と `onSuccess` = 項目の `onDone` が入る。書き方と受け口: `src/lib/tableSuite/README.md`「一括操作の受け口」
 
@@ -34,14 +36,13 @@ CRUDボタンコンポーネント群。レコードの操作（更新・削除�
 
 `meta` = 項目の `{ key, lists?, enabled?, order?, access? }`、`options` = ボタンの props から `ids` と `onSuccess` を除いた物。
 
-## 重要: テーブルと併用する場合のミューテーション処理
+### クライアントで取ったデータと併用するとき
 
-これらのボタンは内部で`router.refresh()`を呼び出しますが、これはServer Componentsの再レンダリング用です。
-**クライアント側で`useSWR`などでデータを取得している場合、キャッシュは自動更新されません。**
+- ボタンの `router.refresh()` はクライアントのキャッシュを更新しない（Internals）
 
-### 必須対応
+#### テーブルと併用するとき
 
-テーブルやリストと併用する場合は、必ず`onSuccess`コールバックでデータを再取得してください。
+- テーブルやリストと併用するときは `onSuccess` でデータを取り直す
 
 ```tsx
 // NG: テーブルの表示が更新されない
@@ -64,9 +65,9 @@ const { data, mutate } = useSWR("samples", fetcher);
 />
 ```
 
-### Bulkボタンの場合
+#### Bulk ボタンのとき
 
-一括操作ボタンでは、選択解除（`selection.clear`）とデータ再取得の両方を行う必要があります。
+- 一括操作ボタンでは、選択解除（`selection.clear`）とデータの取り直しの両方をする
 
 ```tsx
 <RecordSelectionTable
@@ -84,9 +85,7 @@ const { data, mutate } = useSWR("samples", fetcher);
 />
 ```
 
-## 使用例
-
-### 単一レコード操作
+#### 単一レコード操作
 
 ```tsx
 // Enumフィールドの変更
@@ -117,7 +116,7 @@ const { data, mutate } = useSWR("samples", fetcher);
 />
 ```
 
-### 一括操作（RecordSelectionTableと併用）
+#### 一括操作（RecordSelectionTableと併用）
 
 ```tsx
 const { data: items, mutate } = useSWR("items", fetcher);
@@ -150,7 +149,7 @@ const { data: items, mutate } = useSWR("items", fetcher);
 />
 ```
 
-### BelongsToMany の選択肢をその場で作る・スクロールする Modal の中で使う
+#### BelongsToMany の選択肢をその場で作る・スクロールする Modal の中で使う
 
 `BelongsToManyFieldButton` / `BulkBelongsToManyFieldButton` 共通（既定はどちらもオフ）。
 
@@ -175,3 +174,7 @@ const { trigger: createUserTag } = useCreateUserTag();
 ```
 
 細かい挙動は `src/components/Overlays/README.md` の ChecklistPopover。
+
+## Internals
+
+- ボタンは内部で `router.refresh()` を呼ぶ。これは Server Components の再レンダリング用で、クライアント側の `useSWR` などのキャッシュは自動では更新されない
