@@ -7,7 +7,7 @@
 
 ## Usage
 
-- 画面は `getLegalDocument(kind)` の差し込み済みの文書をこのレンダラーに渡す(`variables` は渡さない。形: `src/features/core/legal/README.md`)
+- 画面は `getLegalDocument(kind)` の差し込み済みの文書と `enactedAtFormat={getLegalEnactedAtFormat()}` をこのレンダラーに渡す(`variables` は渡さない。形: `src/features/core/legal/README.md`)
 - 差し込み前の文書を直接描くとき(例):
 
 ```tsx
@@ -22,25 +22,11 @@ import {
 />
 ```
 
-### 変数置換
-
-`{{VARIABLE_NAME}}` 形式のプレースホルダーを置換:
-
-```typescript
-// データ
-content: ["{{COMPANY_NAME}}が提供する..."]
-
-// 使用
-<LegalDocumentRenderer
-  document={doc}
-  variables={{ COMPANY_NAME: "株式会社Example" }}
-/>
-// => "株式会社Exampleが提供する..."
-```
+- `variables` は文書の `{{鍵}}` を置換する(書式: `../README.md` API「差し込み({{鍵}})」)
 
 ### Markdown 記法
 
-content 内で以下の記法が使用可能:
+content 内で以下の記法が使用可能(rich のみ。plain では除去):
 
 - `**太字**`
 - `*斜体*`
@@ -84,7 +70,7 @@ type LegalDocument = {
 ### 描画モード
 
 - **rich**: CSSカウンターで自動採番、Markdown記法をレンダリング
-- **plain**: プレーンテキスト、スクロール領域での表示に適する
+- **plain**: プレーンテキスト(Markdown 記法は除去、トップレベルの見出しに番号を文字で付ける)。スクロール領域での表示に適する
 
 ### セクション番号
 
@@ -94,7 +80,7 @@ type LegalDocument = {
 | `"numeric"` | 1. 適用 |
 | `"none"` | 適用 |
 
-※ CSSカウンター（`.numbered-articles`, `.numbered-sections`）と連動
+※ rich はトップレベルの h2 に CSS カウンター（`.numbered-articles`, `.numbered-sections`、`src/styles/core/components.css`）で採番
 
 ## Related
 

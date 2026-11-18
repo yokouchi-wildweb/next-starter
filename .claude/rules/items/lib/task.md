@@ -12,8 +12,8 @@ using:
 - task_lazy_deps: run() imports heavy dependencies dynamically inside
 - task_service_writes: scripts/tasks/ writes through domain services, never @/lib/drizzle, table definitions, raw SQL or drivers (lint tools-no-db-write) | direct SQL only in scripts/migrations/
 - task_shared_part: a part shared by tasks = lib.<name>.ts in the same folder (not counted as a task), tests beside it
-- task_incomplete_idempotent: taskIncomplete and TaskRerunnableError only in idempotent tasks that resume when run again | a non-idempotent task just fails (unknown)
+- task_incomplete_idempotent: taskIncomplete and TaskRerunnableError only in idempotent tasks that resume when run again | a non-idempotent task just throws (unknown when it holds a stop key, else failed)
 - task_local_dry_run: a .local.ts migration honors `--dry-run` itself (no writes) | once downstream needs it, drop `.local` and add `notice:`
 editing:
-- task_no_deps: the lib reads no features, shelf or @/wiring
+- task_no_deps: the lib reads no features, @/components or @/wiring
 read: add a task / migration, .local.ts → Usage | types and marks → API | stop checks, notice check, run records → Internals | taskRun, cron → Related

@@ -8,26 +8,7 @@
 
 ## Usage
 
-```tsx
-import {
-  LegalDocumentRenderer,
-  type LegalDocument,
-} from "@/lib/structuredDocument/legal";
-
-const termsConfig: LegalDocument = {
-  title: "利用規約",
-  sectionNumbering: "article",
-  sections: [
-    { content: ["前文..."] },
-    { id: "article-1", title: "適用", content: ["1. 本規約は..."] },
-  ],
-};
-
-<LegalDocumentRenderer
-  document={termsConfig}
-  variables={{ COMPANY_NAME: "株式会社Example" }}
-/>
-```
+- 法務の文書を描く: `legal/README.md` Usage(画面は差し込み済みの文書を渡す)
 
 ## API
 
@@ -36,18 +17,12 @@ const termsConfig: LegalDocument = {
 - `{{鍵}}` の差し込みはこの lib の 1 本(`shared/variables.ts`)。連絡の欄(lib/messaging)もこれを使う
 - `replaceVariables(text, map)`: 知っている鍵を差し込み、知らない鍵はそのまま残す
 - `listVariables(text)`: 出てくる鍵を順に重複なしで返す(定義の検査が使う)
-- 鍵は `\w+`(英数字と _)。点を含む鍵(`{{a.b}}`)は差し込まれない
+- `replaceVariablesInArray(texts, map)`: 配列の各要素に replaceVariables
+- 鍵は文字(どの文字体系も。日本語の別名 `{{受信者名}}` も)・数字・_ の並び。空白や点を含む鍵(`{{a.b}}`)は差し込まれずに残る
 
-## Extension
+## Internals
 
-新しい文書タイプを足す(`legal/` が手本):
-
-1. サブフォルダを作る(例: `qa/`)
-2. `definition.ts` で構造を定義
-3. `Renderer/` でレンダラーを実装
-4. `index.ts` で型とレンダラーを export
-5. `README.md` に使い方を書く
-6. ルートの `index.ts` に再 export を足す(任意)
+- 文書タイプの形(`legal/` が手本): サブフォルダに `definition.ts`(構造の型)・`Renderer/`(レンダラー)・`index.ts`(型とレンダラーの export)・`README.md`。ルートの `index.ts` への再 export は任意
 
 ## Related
 

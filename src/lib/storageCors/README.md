@@ -50,20 +50,22 @@ fetch 側 / canvas 側で対称な「診断プリミティブ + ラッパー」�
 | tainted canvas を診断(catch 内で呼ぶ) | `diagnoseTaintedCanvasError(error, sourceUrl?)` |
 | canvas.toBlob ラッパー(汚染時に自動診断→reject) | `canvasToBlobSafe(canvas, type?, quality?, sourceUrl?)` |
 | 判定ヘルパ | `isCorsLikeFetchError` / `isLikelyCrossOriginStorageUrl` / `isTaintedCanvasError` / `classifyStorageUrl` |
-| 参照用定数 | `STORAGE_CORS_DOC_PATH` / `STORAGE_CORS_SETUP_COMMAND`(旧バケット) / `STORAGE_SETUP_COMMAND`(新しい公開・非公開バケット) |
+| 参照用定数 | `STORAGE_CORS_DOC_PATH` / `STORAGE_CORS_SETUP_COMMAND`(旧バケット = Firebase の既定バケット) / `STORAGE_SETUP_COMMAND`(新しい公開・非公開バケット) |
 
 ### バケットの判別(`classifyStorageUrl`)
 
 - `private`: 同一 origin の固定 URL `/api/storage/objects/<id>`。302 先が非公開バケットなので、同一 origin でも診断の対象にする
-- `public`: 公開 base(`NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`)の配下、または公開 base の独自ホスト(`publicStorageHosts`)
+- `public`: 公開 base(`NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`)の配下、または公開 base と同じホスト(`publicStorageHosts`。storage.googleapis.com のような共有ホストは base の前方一致でだけ public)
 - `legacy`: 旧 Firebase Storage のホスト(公開 base の配下以外。非公開バケットの署名 URL を直接渡した場合もここ)
-- 案内の対処は `public` / `private` なら `pnpm ops storage setup`、それ以外は旧バケット用の `pnpm ops storage setup-cors`
+- `other`: 上のどれでもない(案内の対処は旧バケット用)
+- 案内の対処は `public` / `private` なら `pnpm ops storage setup -- --origin <アプリの origin>`(CORS まで設定)、それ以外は旧バケット用の `pnpm ops storage setup-cors`
 
 ## Internals
 
-- 断定しない: `Failed to fetch` はネットワーク断 / URL 誤り / 認証失敗でも起きるので「可能性」として案内する
-- 本番では何もしない / ブラウザ以外でも何もしない(CORS はブラウザの fetch / canvas の概念)
-- 連投しない: 同じ URL / 文脈の案内は一度だけ(多数フラグメントのループ取得で console を汚さない)
+- 案内は `console.warn`(error にしない)。文言は「原因の可能性」と、ネットワーク断・URL 誤り・認証失敗でも起きる旨
+- 動く条件: 段階が development(`isDevelopment`)で、`window` がある時だけ(CORS はブラウザの fetch / canvas の概念)
+- 重複の抑止: モジュール内の Set で `fetch:<url>` / `canvas:<url>` ごとに一度だけ出す(多数フラグメントのループ取得で console を汚さない)
+- canvas の案内は、先に `crossOrigin="anonymous"` の付与、次にバケットの CORS を示す
 
 ## Related
 

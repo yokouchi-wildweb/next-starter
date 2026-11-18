@@ -100,7 +100,7 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
 
 | store | env | 用途 |
 |---|---|---|
-| `pub` | `STORAGE_PUBLIC_BUCKET`（必須）/ `STORAGE_PUBLIC_PREFIX`（任意） | 公開バケット（UBLA、allUsers に get のみ） |
+| `pub` | `STORAGE_PUBLIC_BUCKET`（必須）/ `STORAGE_PUBLIC_PREFIX`（任意） | 公開バケット（均一なバケットレベルのアクセス = UBLA、allUsers に get のみ） |
 | `priv` | `STORAGE_PRIVATE_BUCKET`（必須）/ `STORAGE_PRIVATE_PREFIX`（任意） | 非公開バケット（UBLA、公開アクセス防止）。strip の画像の受け取り領域（`incoming/`）もここ |
 | `legacy` | `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | 旧バケット。ref には出ない。サーバー内部で旧 URL の解析・削除・コピーにだけ使う |
 
@@ -134,7 +134,7 @@ type StoragePurpose = {
   upload: { allow; check? };         // 必須。allow は DomainApiAccessRule（"public" 以外）
   read?: { allow; check? };          // private では必須
   delete?: { allow; check? };        // 省略 = HTTP では削除できない
-  maxPending?: number;               // 省略 = storage.config の defaultMaxPending
+  maxPending?: number;               // 省略 = storageObjectConfig.defaultMaxPending
   attach?: false;                    // false = 業務行に紐付けない（チャット添付）
   metadata?: "strip" | "keep";       // 画像のメタデータの扱い。省略 = strip（「位置情報の約束」）
   image?: { maxDimension: number; quality?: number }; // 画像の縮小の指定。省略 = 縮めない（下の「画像の縮小の指定」）

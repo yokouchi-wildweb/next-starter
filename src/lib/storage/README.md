@@ -3,7 +3,7 @@
 ## Overview
 
 - ファイル保存の基盤。判定するのはアプリのサーバーだけで、ファイル本体はブラウザから GCS へ直接送る。どのファイルが何に使われているかは、台帳（core ドメイン `storageObject`）で管理する。
-- 使う時・直す時の決まりは札 .claude/rules/items/lib/storage.md にある。画像のメタデータの必須の決まりは CLAUDE.md FEATURES storage_metadata。この README は使い方と約束の中身、関数の形は [API.md](./API.md)、仕組みは [Internals.md](./Internals.md)
+- 使う時・直す時の決まりは札 .claude/rules/items/lib/storage.md にある。この README は使い方と約束の中身、関数の形は [API.md](./API.md)、仕組みは [Internals.md](./Internals.md)
 
 この lib が持つのは、エンジンに依存しない部品だけ。
 
@@ -17,7 +17,7 @@
 
 誰がアップロード・読み取り・削除してよいかの判定、台帳、commit の流れ（受け取り領域から本来の位置へ）は、`src/features/core/storageObject` が持つ（[README](../../features/core/storageObject/README.md)）。この lib は features に依存しない。
 
-> ファイルのアップロード・読み取り・削除は、すべてこの基盤（とドメインの binding / `storageObjectService`）を通す。旧 API（Firebase クライアント SDK の経路・旧アップロード / 削除ルート・createCrudService の旧削除連動オプション）は N2 `storage-cutover` で削除した。Firebase Storage のルールはリポ直下の `storage.rules`（全拒否）で、クライアント SDK からは何もできない。
+> 旧 API（Firebase クライアント SDK の経路・旧アップロード / 削除ルート・createCrudService の旧削除連動オプション）は無い。Firebase Storage のルールはリポ直下の `storage.rules`（全拒否）で、クライアント SDK からは何もできない。
 
 ### 全体の流れ
 
@@ -38,28 +38,11 @@
 
 ### 表示
 
-保存値を表示用の URL にする純関数。例外は投げない。公開 URL を組み立てる唯一の場所。
-
-| 値 | 結果 |
-|---|---|
-| null・空 | null |
-| `storage://pub/...` | `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` + `/` + オブジェクトキー（env が未設定なら null） |
-| `storage://priv/...` | `/api/storage/objects/<ledgerId>`（都度認可して短期署名 URL へ 302 する固定 URL） |
-| `http(s)://...`・`/` で始まる値 | そのまま（凍結した旧 URL・静的ファイル） |
-| 解析できない `storage://`・それ以外 | null（未知の store を既定バケットに読み替えない） |
-
-- `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` は、オブジェクトキーの直前までを指す
-  - `STORAGE_PUBLIC_PREFIX` を使うなら、それも含める
-  - 例 `https://storage.googleapis.com/<公開バケット>`
-- 公開 base はアプリの cookie を持たない別ドメイン（GCS 直配信）にする。アプリと同じ origin の base は推奨しない
-- `publicStorageHosts()` は公開 base のホストを返す。CORS 診断の表示に使う
-- next/image の許可は `isPublicStorageUrl(src)`（公開 base + `/` の前方一致）で判定する
-  - `storage.googleapis.com` のようにホストが共有のとき、ホストだけで許可すると他のバケットの URL まで最適化に通ってしまうため
-  - `next.config.ts` の remotePatterns も同じ base のパス配下に限る
+値ごとの解決（`resolveStorageSrc`）と公開 base の条件は [API.md](./API.md)「表示: `resolveStorageSrc(value)`」。
 
 - `toStorageDisplaySrc(value)`: ref だけを `resolveStorageSrc` で表示用 URL にし、ref 以外の値（旧 URL・`/` 始まり・`blob:` / `data:` のプレビュー・解決済みの URL）はそのまま返す
   - `resolveStorageSrc` を直接使うと `blob:` / `data:` が null になり、アップロード前のプレビューが消える
-  - 使っている部品: `AppImage`（src/components/Media/AppImage）、`ImageViewer`（`openImage` / `ZoomableImage`）、`DetailModal`（media の url・poster）。呼び出し側は ref をそのまま渡してよい
+  - 表示の部品は内部でこれを使うので、呼び出し側は ref をそのまま渡してよい
 - 固定 URL（`/api/storage/` で始まる値）は、呼び出し側の指定に関わらず next/image の最適化を外す
   - 認可済みの画像が最適化キャッシュに残り、他の利用者に配られるのを防ぐ
 - 公開 base は `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` から next/image の remotePatterns に入る。旧バケットの 2 パターンも残る
@@ -93,7 +76,7 @@ const { cancel } = uploadToStorage(file, {
 - 端末は用途の宣言を推測せず、必要なときだけサーバーの用途の方針を聞く（下記）
 - **下ごしらえ**
   - サーバーが描き直せない画像（`STRIP_IMAGE_TYPES` 以外の `image/*`、または型が空で名前が `.heic` / `.heif`）のときだけ、用途の方針を問い合わせる（`needsClientConversion`）
-    - strip: 端末で JPEG（品質 0.92）に描き直して送る（`prepareStripImage`）。開けない・描き直せない環境・書き出しが 5 型にならないときは、発行の前に `StorageUploadError` code `storage/unsupported-image`（`isStorageUnsupportedImage` で判定、案内文は `UNSUPPORTED_IMAGE_MESSAGE`）。issue も discard も呼ばない
+    - strip: 端末で JPEG（品質 0.92）に描き直して送る（`prepareStripImage`）。開けない・描き直せない環境・書き出しが `STRIP_IMAGE_TYPES` の 5 型（jpeg / png / webp / gif / avif）にならないときは、発行の前に `StorageUploadError` code `storage/unsupported-image`（`isStorageUnsupportedImage` で判定、案内文は `UNSUPPORTED_IMAGE_MESSAGE`）。issue も discard も呼ばない
     - keep: 変換しない。型が空の `.heic` / `.heif` は `image/heic` / `image/heif` として申告する（`withInferredImageType`）
     - 方針を得られない（通信失敗など）: 変換しない（keep の用途を誤って変えない側に倒す。strip の用途ならサーバーが発行を 400 で拒否する）
   - それ以外（5 型の画像・動画・ファイル）は問い合わせない（往復は増えない）
@@ -175,7 +158,7 @@ ref・表示の関数・配信規則・StoragePort・保存先と env・旧 URL�
 > strip の用途に保存された画像は、サーバーが描き直して、位置情報・Exif・XMP・IPTC・ICC プロファイルを消したものだけである。
 
 - 描き直していない物は本来の保存先に置かれない。受け取った原本は非公開の受け取り領域にだけあり、commit で消える（commit されなければ掃除 cron が消す）
-- サーバー内の書き込み・複製（`putFromServer` / `copy`）も、宛先が strip の用途の画像なら描き直す（導入前に上がった画像は処理されていないため）
+- サーバー内の書き込み・複製（`putFromServer` / `copy`）も、宛先が strip の用途の画像なら描き直す（複製元が strip の用途でも。導入前に上がった画像は処理されていないため）
 
 ### 対象外（約束しないもの）
 
@@ -225,11 +208,11 @@ ref・表示の関数・配信規則・StoragePort・保存先と env・旧 URL�
 
 ## Internals
 
-描き直し・非公開の動画・音声の復帰・未設定のとき・Firebase Storage のルール・部品の一覧は [Internals.md](./Internals.md)。
+描き直し・非公開の動画・音声の復帰・未設定のとき・Firebase Storage のルールは [Internals.md](./Internals.md)。
 
 ### 暫定の点
 
-実機での確認が済むまで、次の 2 点は暫定の実装になっている。確認の結果、成り立たないことが分かった場合は、単発 PUT の経路を外してセッションに一本化する（評議会の計画どおり）。
+実機での確認が済むまで、次の 2 点は暫定の実装になっている。
 
 - `issuePut` の署名ヘッダーの組
   - `x-goog-if-generation-match: 0` と `x-goog-content-length-range: 0,<maxBytes>` を署名に含める

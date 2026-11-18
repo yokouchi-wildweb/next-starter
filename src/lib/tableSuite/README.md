@@ -58,7 +58,7 @@ import { RecordSelectionTable } from "@/lib/tableSuite";
 
 ### RecordSelectionList
 
-RecordSelectionTable のカードの一覧の兄弟（D95）。選択の状態・一括操作バー・`selectionMode`・受け口の項目（`BulkActionItems`）は表と同じ物を使う。1 件 = 左のチェックの列 + `renderItem(item, { selected, index })` のカード。
+RecordSelectionTable のカードの一覧の兄弟。選択の状態・一括操作バー・`selectionMode`・一括操作の項目を描く `BulkActionItems`（Extension）は表と同じ物を使う。1 件 = 左のチェックの列 + `renderItem(item, { selected, index })` のカード。
 
 - チェックの列はカードの全高・押しやすい幅で、列のどこを押しても選択が切り替わる（チェックの aria-label・キーボードはそのまま）
 - 見出しの行が無いので「すべて選択」はバーの左に出る（読み込み済みの選べる行が対象）
@@ -66,7 +66,7 @@ RecordSelectionTable のカードの一覧の兄弟（D95）。選択の状態�
 - 無限スクロールは呼び手の `InfiniteScrollList` の children の中に置く（番兵は InfiniteScrollList が持つ。`bottomSentinelRef` は自前で番兵を置くとき用）
 
 ```tsx
-import { BulkActionItems, RecordSelectionList, selectBulkActions } from "@/lib/tableSuite";
+import { BulkActionItems, RecordSelectionList } from "@/lib/tableSuite";
 
 <InfiniteScrollList items={query.items} /* … */>
   {(items) => (
@@ -118,7 +118,7 @@ const selection = useRecordSelection({
 
 制御するときは `selectedKeys` と `onSelectionChange`、非制御の初期値は `defaultSelectedKeys`(RecordSelectionTable と同じ)。
 
-`bulkActionsSticky`（既定 false）を付けると、一括操作バーがスクロールコンテナの端（`bulkActionsPosition` が top なら上端、bottom なら下端）に留まる。スクロールする Modal の本体など、テーブルの外の祖先がスクロールするときに `maxHeight="none"` と組み合わせて使う。バーはそのスクロールコンテナの最上端に留まるので、固定ヘッダーの下に潜るページ全体のスクロールには向かない。
+`bulkActionsSticky`（RecordSelectionTable / RecordSelectionList。BulkActionBar では `sticky`、既定 false）を付けると、一括操作バーがスクロールコンテナの端（`bulkActionsPosition` が top なら上端、bottom なら下端）に留まる。スクロールする Modal の本体など、テーブルの外の祖先がスクロールするときに `maxHeight="none"` と組み合わせて使う。バーはそのスクロールコンテナの端に留まるので、固定ヘッダーの下に潜るページ全体のスクロールには向かない。
 
 ### EditableGridTable
 
@@ -154,11 +154,11 @@ editorType: `text` | `number` | `select` | `multi-select` | `date` | `time` | `d
 - 表は確定した値の未保存の状態を持たない(手元にためて後で保存する画面の守りは札 batch_save_guard)
 - 確定は編集 1 回につき 1 回(Enter・Tab・フォーカスが外れる、のどれで閉じても。Enter の後の blur でもう一度 `onCellChange` を呼ばない。`EditableGridTable/utils/commitOnce.ts`)
 - 行の並び替えの保存待ちは下の「行の並び替えの未保存の守り」(同じ `guardUnsaved` で外れる)
-- 判定: `EditableGridTable/utils/editGuard.ts`(テスト `pnpm test src/lib/`)
+- 判定: `EditableGridTable/utils/editGuard.ts`
 
 #### 行の並び替えの未保存の守り(DataTable / RecordSelectionTable / EditableGridTable)
 
-`reorderable.onReorder` が返した Promise が終わるまで(並びの保存待ち)、理由「未保存」で守る(`lib/sortableList` と同じ決まり。`shared/reorder/reorderGuard.ts`、テスト `pnpm test src/lib/`)。
+`reorderable.onReorder` が返した Promise が終わるまで(並びの保存待ち)、理由「未保存」で守る(`lib/sortableList` と同じ決まり。`shared/reorder/reorderGuard.ts`)。
 
 - 外す: `guardUnsaved={false}`(既定 true。EditableGridTable は編集の守りと同じ prop)
 - `void` を返す `onReorder` は守らない(保存待ちが無い)
@@ -166,12 +166,7 @@ editorType: `text` | `number` | `select` | `multi-select` | `date` | `time` | `d
 
 ### カラムソート
 
-3つのテーブル（DataTable / RecordSelectionTable / EditableGridTable）で共通のヘッダークリックソートを提供する。
-
-#### 設計方針
-
-- テーブルは**ソート状態の表示とイベント通知のみ**を担当する
-- 実際のデータソート（クライアント/サーバー）は**使用側が行う**
+3つのテーブル（DataTable / RecordSelectionTable / EditableGridTable）で共通のヘッダークリックソートを提供する（並べ替え自体は呼び手、札 sort_by_caller）。
 
 #### カラムにソートキーを設定する
 
@@ -311,7 +306,7 @@ import { DataTable, type ReorderResult } from "@/lib/tableSuite";
 />
 ```
 
-呼び出し側の定石は「楽観的更新 + 失敗時ロールバック」（`Admin__Domain__Sort` テンプレートと同じ）:
+呼び出し側の定石は「楽観的更新 + 失敗時ロールバック」（生成の並び替え画面 `Admin__Domain__SortScreen.tsx` と同じ）:
 
 ```tsx
 const handleReorder = async (result: ReorderResult) => {
@@ -416,7 +411,7 @@ const fullWidthRows: FullWidthRow[] = [
 
 ### 印刷の表（variant="print"）
 
-DataTable に `variant="print"` を渡すと印刷の表になる: スクロールの箱を付けない（`maxHeight` / `scrollContainerRef` は効かない）、小さな文字（text-xs）、セルに素の罫線、行の hover と縞なし。印刷の場所（portal・印刷用の CSS）と `window.print()` は呼び手が持つ。選択・編集の表には無い。
+DataTable に `variant="print"` を渡すと印刷の表になる: スクロールの箱を付けない（`maxHeight` / `scrollContainerRef` は効かない）、小さな文字（text-xs）、セルに素の罫線、行の hover と縞なし。印刷の場所（portal・印刷用の CSS）と `window.print()` は呼び手が持つ。選択・編集の表では効かない（RecordSelectionTable は型で受けるが常に list）。
 
 ```tsx
 <DataTable items={rows} columns={columns} variant="print" className="print-area" />
@@ -497,15 +492,15 @@ const { items, total, isFetchingMore, hasMore, sentinelRef } = useMyRows({ obser
 
 ### 一括操作の受け口(管理一覧)
 
-管理一覧の一括操作は、`bulkActions` の中に手で書かず、持ち主のドメインの受け口 `adminBulkActions` に **1 項目 1 ファイル**で置く（棚の評議会 D149）。上流の既定の操作も同じ受け口の項目で、fork は項目を足すか、上流の項目を `<名前>.override.ts` で外す・並べ替える。
+管理一覧の一括操作は、`bulkActions` の中に手で書かず、持ち主のドメインの受け口 `adminBulkActions` に **1 項目 1 ファイル**で置く。上流の既定の操作も同じ受け口の項目で、fork は項目を足すか、上流の項目を `<名前>.override.ts` で外す・並べ替える。
 
 - 項目の型 `BulkActionItem<Row, Access>` = `{ key, Component, lists?, enabled?, order?, access? }`。`Component` は `{ selection, onDone }` を受ける部品
   - `key`: 受け口の中で一意。override の宛先
   - `lists`: 出す一覧の名前（省略 = 全部の一覧。user は `"general"` / `"managerial"` / `"demo"`）
   - `enabled`: `false` か `() => boolean`（機能の設定に従うときは関数）
   - `order`: 小さい順（省略 = 100、同じなら key の順）
-  - `access`: 表示の出し分け（管理一覧は `{ roles: [...] }` = `AdminBulkActionAccess`）。**権限の守りは API**で、ここは見せ方だけ
-- `selectBulkActions(items, { list, can })` が絞って並べ、`<BulkActionItems items selection onDone? />` が描く。項目の `onDone` は選択を外してから容器の `onDone` を呼ぶ。容器はドメインのフック（`useUserAdminBulkActions(list)` など）でこの 2 つを呼ぶ
+  - `access`: 表示の出し分け（管理一覧は `{ roles: [...] }` = `AdminBulkActionAccess`）。見せ方だけ（権限の守りは API）
+- `selectBulkActions(items, { list, can })` が絞って並べ（`list` 省略 = `lists` を持つ項目は出さない、`can` 省略 = `access` を持つ項目は出さない）、`<BulkActionItems items selection onDone? />` が描く。項目の `onDone` は選択を外してから容器の `onDone` を呼ぶ。容器はドメインのフック（`useUserAdminBulkActions(list)` など）でこの 2 つを呼ぶ
 - よくある一括変更は `@/lib/crud/components` の作成関数で数行: `bulkFieldAction`（列挙型の列）・`bulkBelongsToAction`・`bulkRelationAction`（多対多。`mode: "replace" | "add"`）・`bulkDeleteAction`。ボタン（`Bulk*Button`）は成功で `router.refresh()` する
 - 汎用の一括ボタンは**副作用の無い列だけ**。記録が必須の操作（状態の一括変更など）は上流が専用のサービス・API と作成関数で出す
 
@@ -522,7 +517,6 @@ export const override = { enabled: false };
 
 - 受け口のある一覧:
   - user の 3 一覧(`src/features/core/user/adminBulkActions/`)
-  - お知らせ(`src/features/core/notification/adminBulkActions/`、既定 = 一括削除)
   - 振込審査(`src/features/core/bankTransferReview/adminBulkActions/`、既定 = メール一斉送信)
   - 送信一覧(`src/features/core/messaging/adminBulkActions/`、既定 = 削除、RecordSelectionList)
   - pnpm generate domain で作るドメインの一覧(`src/features/<domain>/adminBulkActions/`。受け口の宣言 `extensionPoints.ts` と型は生成器が書く。項目が無ければ選択の無い素の表)
@@ -530,13 +524,9 @@ export const override = { enabled: false };
 
 ## Internals
 
-### 依存(読む lib)
+### 使う部品
 
-守りの lib は入口 `@/lib/unsavedGuard` だけを読む(中のファイルを読まない)。
-
-- `src/lib/unsavedGuard`(EditableGridTable の編集の守り・3 つの表の並び替えの守り)
-- `src/lib/sortableList`(行の並び替えの計算 `computeReorderResult`)
-- `src/lib/cn`・`src/lib/crud`・`src/lib/date`(クラスの結合・ソートの型 `crud/types`・日時の解釈 `date/parseFlexible`)
+- 行の並び替えの計算は `@/lib/sortableList` の `computeReorderResult`、編集と並び替えの未保存の守りは `@/lib/unsavedGuard` の `useUnsavedTasks`
 
 ## Verification
 

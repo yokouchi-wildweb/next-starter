@@ -53,14 +53,14 @@ export const task: OneShotTask = {
 
 - `type OneShotTask = { name, notice?, stopKeys?, run }`(`run` は重い依存を中で動的 import する)
 - `class TaskNotStartedError` — 書き込み前に止まった印(記録は failed、止める鍵を取らない)
-- `taskIncomplete(result)` / `isTaskIncomplete` — 予算で止まった印(記録は incomplete、終了コード 2)
+- `taskIncomplete(result)`(返り値の型 `TaskIncompleteResult`)/ `isTaskIncomplete` — 予算で止まった印(記録は incomplete、終了コード 2)
 - `class TaskRerunnableError(message, result)` — 書いた後だが打ち直してよい失敗(記録は failed で `result` も残る)
 
 ## Internals
 
 ### 止まる置き方
 
-`pnpm task` は次を全部並べて止める: ファイル名が kebab-case でない / 旧い fork の名前の印つきの名前 / 同じ名前が 2 つ / `task.name` が `<ドメイン>:<ファイル名>` と違う / 古い置き場 `scripts/tasks/` に残ったファイル(移し方を出す)。
+`pnpm task` は次を全部並べて止める: ファイル名が kebab-case でない / 旧い fork の名前の印つきの名前 / 同じ名前が 2 つ / 古い置き場 `scripts/tasks/` に残ったファイル(移し方を出す)。定期タスクと同じ名前のタスクも止める。`task.name` が `<ドメイン>:<ファイル名>` と違う時は、そのファイルを読み込んだ時に止める。
 
 ### notice が案内するタスク
 

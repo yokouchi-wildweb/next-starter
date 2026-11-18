@@ -9,7 +9,7 @@ use: always
 change: placement → src/config/lib/toast.config.ts (@lib-config/toast: duration, position, size, ariaLabel)
 rules:
 using:
-- toast_entry: read the lib only through its entry `@/lib/toast` | useToastStore only to read the store directly, otherwise useToast
+- toast_entry: read the lib only through its entry `@/lib/toast` | useToastStore only to read the store directly, otherwise useToast / useLoadingToast
 - toast_one_root: GlobalToast is placed once, at the root
 - toast_redirect: a toast after a redirect = setRedirectToastCookie on the NextResponse in proxy / route + RedirectToastProvider on the client
 - toast_layer: the toast layer is always `toast`, no option to pick a layer

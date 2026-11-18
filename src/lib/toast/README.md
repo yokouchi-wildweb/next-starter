@@ -40,7 +40,7 @@ export default { duration: 5000, position: "top-center" } satisfies ToastOverrid
 
 ### 依存
 
-- `libs`: appEnv(リダイレクトの cookie の secure)・cn・defineConfig・frameDims(下のナビの上に出す枠の寸法)・isClient | 外部: react・react-dom・next・zustand・@use-gesture/react・lucide-react
+- 依存は package.json の通り。appEnv はリダイレクトの cookie の secure、frameDims は下のナビの上に出す枠の寸法、zLayer は層と外押しの判定に使う
 - package.json に `sideEffects` を書かないのは、読み込み時に zustand の store を作るため
 
 ## Verification

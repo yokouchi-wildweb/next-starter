@@ -6,35 +6,6 @@
 
 ## Internals
 
-### 部品の一覧
-
-| ファイル | 実行環境 | 役割 |
-|---|---|---|
-| `index.ts` | client-safe | 入口（ref・配信規則・metadata の判定・スキーマ・用途の型） |
-| `ref.ts` | client-safe | ref の組み立て・解析、`resolveStorageSrc`・`toStorageDisplaySrc`、公開 base・固定 URL の判定（`publicStorageBaseUrl` / `isPublicStorageUrl` / `isPrivateObjectPath` / `publicStorageHosts`） |
-| `contentTypes.ts` | client-safe | 型の照合、拡張子の対応表、inline / attachment の判定 |
-| `metadata.ts` | client-safe | 画像のメタデータの扱いの判定（`STRIP_IMAGE_TYPES` / `resolvePurposeMetadata` / `requiresStrip` / `isAcceptableForPurpose`） |
-| `schema.ts` | client-safe | メディア列の値の zod スキーマ `storageMediaValueSchema` |
-| `policy/types.ts` | client-safe | 用途の型 `StoragePurpose`・`StorageMetadataPolicy` ほか |
-| `server/index.ts` | server | サーバー専用の入口 |
-| `server/port.ts` | server | `StoragePort`（エンジンの境界）と `getStoragePort()`、`StorageReadTooLargeError` |
-| `server/gcs.ts` | server | GCS 実装（Firebase Admin の `getServerStorage()` 経由） |
-| `server/fake.ts` | server（テスト） | メモリ上の実装と `__setStoragePortForTest`、`passThroughImageStrip` |
-| `server/stores.ts` | server | 保存先 → バケット・prefix の解決、`StorageNotConfiguredError` |
-| `server/purposes.ts` | server | 用途表からの引き当て、形式の検査（`listStoragePurposeProblems`） |
-| `server/legacy.ts` | server | 旧バケットの旧 URL → 位置の変換 |
-| `server/imageStrip.ts` | server | 画像の描き直し `stripImageMetadata`（sharp）と `ImageStripError` |
-| `client/index.ts` | client | クライアントの入口（`uploadToStorage` ほか） |
-| `client/uploadToStorage.ts` | client | 下ごしらえ → 発行 → 転送 → commit の流れ、中止・失敗時の取り消し |
-| `client/storageClient.ts` | client | アプリのルート（発行・commit・取り消し・削除・用途の方針）の HTTP クライアント |
-| `client/drivers/put.ts` / `client/drivers/gcsSession.ts` | client | GCS への直接転送（単発 PUT / 再開可能セッション） |
-| `client/purposePolicy.ts` / `client/usePurposeMetadata.ts` | client | 用途の方針（strip / keep）の取得と用途ごとの記憶、React から読む hook |
-| `client/prepareStripImage.ts` | client | strip の用途へ送る前の HEIC などの JPEG 変換、型が空の .heic / .heif の型付け |
-| `client/pickerAccept.ts` | client | ファイル選択の accept を用途の方針に合わせる `pickerAcceptFor` |
-| `client/reencodeImage.ts` | client | 任意の描き直し（既定 OFF）と、描き直しの部品 `ImageCodec` |
-| `client/transferTypes.ts` | client | 進捗・中止の型、ルートの応答の形、`StorageUploadError` |
-| `client/usePrivateMediaRecovery.ts` | client | 非公開の動画・音声の、署名期限後の読み込み失敗からの復帰と先回りの読み直し |
-
 ### 描き直し: `stripImageMetadata(body, contentType)`（`server/imageStrip.ts`、server-only）
 
 - sharp で描き直す。sharp（ネイティブ）は初回の呼び出しで読み込む（`@/lib/storage/server` を使うだけのルートの起動を重くしない）
@@ -78,7 +49,7 @@
 - 独自のプレーヤーに配線するとき: `recovery.src` を要素の `src` に、`handleError` / `handleLoadedMetadata` / `handleCanPlay` / `handleLoadStart` を同名のイベントに、`handlePlaybackIntent` を `onPlay` と `onSeeking` に渡し、`status === "failed"` でエラーと `resume()` の操作を出す
 - `<source>` 子要素だと読み込み失敗の error が `<source>` 側に出て、media 要素の onError に届かない
 
-### 未設定のとき（UNCONFIGURED_BACKENDS）
+### 未設定のとき
 
 - `resolveStorageSrc` は例外を投げない（公開 base が無ければ pub の ref に null）
 - ポートの構築、各モジュールの import は env が空でも落ちない（sharp も初回の描き直しまで読み込まない）

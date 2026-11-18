@@ -8,7 +8,7 @@ use: always
 change: none → /order <direct parent>
 rules:
 using:
-- sc_wrap: browser code reading storage bytes cross-origin fetches through fetchStorageBytes or calls diagnoseStorageFetchError in its catch | a canvas export of remote media uses canvasToBlobSafe or diagnoseTaintedCanvasError
+- sc_wrap: the dev notice appears only where code goes through fetchStorageBytes / canvasToBlobSafe or calls diagnoseStorageFetchError / diagnoseTaintedCanvasError in its catch → a cross-origin byte read or remote-media canvas export that wants it uses one of them
 editing:
 - sc_maybe: a notice names a possible cause, never asserts it (Failed to fetch has other causes)
 - sc_dev_browser_only: nothing happens in production (stage via @/lib/appEnv) or outside the browser
