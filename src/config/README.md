@@ -1,8 +1,10 @@
 # src/config — プロジェクトが上流の既定を上書きする場所
 
+## Overview
+
 既定値と型は持ち主(地区 = lib・ドメイン・枠・proxies、と src 直下の基盤)の `config.ts` などに置き、`src/config` にはプロジェクト(fork)が変えたい値だけを書く上書きを置きます。上流は持ち主ごとに空の上書きを出荷し、fork は変えたい所だけ中身を書きます。地区の定義: [src/lib/districtMap/README.md](../lib/districtMap/README.md)。
 
-## 5 つのフォルダ(地区の 4 種 + 基盤の上書き、中は平ら)
+### 5 つのフォルダ(地区の 4 種 + 基盤の上書き、中は平ら)
 
 | フォルダ | 持ち主 | 上書き | 持ち主の既定 |
 |---|---|---|---|
@@ -13,17 +15,19 @@
 | `featureGate/` | 基盤 `src/featureGate`(門番。固定) | `featureGate/<中身の名前>.config.ts`(例 `switches.config.ts` = 機能の入切の fork の値) | `src/featureGate` の中(門番の規則のファイル) |
 
 - 名前 = 地区の名前(フォルダ名、枠は `frame:` の宣言)。話題などでフォルダを分けない
-- 基盤の上書き(設定 D91): src 直下の基盤(今は `src/featureGate` だけ)の上書きは、その基盤の名前のフォルダに中身の名前のファイルで置く。基盤が別の上書きを持てば同じフォルダに並べる。持ち主は基盤のフォルダに固定で、読めるのはその中のファイルだけ
-- `features/` はドメインの値の上書きだけ。機能(門番の規則)の入切の fork の値は `featureGate/switches.config.ts` に書く(既定は門番の規則のファイル、設定 D92)
+- 基盤の上書き: src 直下の基盤(今は `src/featureGate` だけ)の上書きは、その基盤の名前のフォルダに中身の名前のファイルで置く。基盤が別の上書きを持てば同じフォルダに並べる。持ち主は基盤のフォルダに固定で、読めるのはその中のファイルだけ
+- `features/` はドメインの値の上書きだけ。機能(門番の規則)の入切の fork の値は `featureGate/switches.config.ts` に書く(既定は門番の規則のファイル)
 - 描画専用の値(アイコン・部品など)を持つ持ち主だけ、2 本目 `<名前>.ui.config.ts` を並べる(持ち主の側は `config.ui.ts`)
 - **受け口か config か**: fork が互いに独立した行を足していく一覧(例: 転送の規則)は受け口(`extensionPoints.ts` の点、1 ファイル = 1 項目)。鍵で合わせて値を変える表(例: 通貨・区分)は config(上書きで鍵ごとに重ねる)
 
-## 1 対 1
+## Usage
+
+### 1 対 1
 
 - 上書きと持ち主はちょうど 1 本ずつ揃える。持ち主の無い上書き(余り)と、`config.ts` があるのに上書きが無い(欠落)は `pnpm check config-overrides` が落とす(門 build・ship)。中身: [scripts/structure/config-overrides/README.md](../../scripts/structure/config-overrides/README.md)
 - 上流は持ち主の `config.ts` と空の上書きを同じ commit で作る。持ち主を消す・改名するときは上書きも同じ commit で消す・改名する
 
-## 上書きの中身(lint `config-overrides/literal-only`、全 Tier error)
+### 上書きの中身(lint `config-overrides/literal-only`、全 Tier error)
 
 - ファイルに書けるのは import・`export default`(値 1 つ)・型の宣言だけ。空の上書きは `export default {} satisfies <持ち主の上書きの型>;`
 - 値はリテラル: object・配列・文字列・数・真偽・null・式の無い template・`as const`・`satisfies`。関数・メソッド・呼び出し・`new`・spread・変数(`const`)・`export const` は書けない
@@ -34,6 +38,39 @@
   - 段階の判定 `isProduction()`・`isStaging()`・`isDevelopment()`・`getAppEnv()`(`@/lib/appEnv` から、引数なしの呼び出しだけ。`process.env.APP_ENV` を直に読まない)
   - 持ち主が宣言した指定子の値(下)
 - fork 独自のキーは上書きの中で `export type Extra` を宣言し、持ち主の型引数で受ける | Extra は既定の型と深く合成される: 既定の配列の項目に欄を足すのも Extra で書ける(`{ payment: { paymentMethods: (PaymentMethodConfig & { bonus?: … })[] } }`)。決まり: src/lib/defineConfig/README.md「Extra」
+
+### 読むのは持ち主だけ(lint `config-overrides/owner-reads-only`、全 Tier error)
+
+上書きを import できるのは持ち主の `config.ts`(`<名前>.ui.config.ts` は `config.ui.ts`)だけ。型だけの import も同じ。基盤の上書き(`featureGate/`)は持ち主のフォルダ(`src/featureGate`)の中のファイルだけが読めます。他のコードは持ち主の入口から確定した値を読みます。lib の中は lint `lib-entry`(`@lib-config/<自分>` だけ)が見ます。
+
+### 機能の入切の道具
+
+機能の入切の fork の値は `featureGate/switches.config.ts`(上流は空で出荷、`{ <機能の名前>: true|false }`、型 `FeatureSwitches`)。既定は門番の規則のファイルの `defaultEnabled`。`pnpm ops features set <規則名> on|off` が fork ではここに書く(既定と同じ値でも消さない。詳細: [src/featureGate/README.md](../featureGate/README.md)「pnpm ops features list / pnpm ops features set」)
+
+### 移行中のもの
+
+`app/`・`ui/` は古い置き場です。値は各持ち主の `config.ts` と上の 5 つのフォルダへ移り、空になったら消えます(新しい値をここに足さない)。1 対 1 の検査はこれらを見ません。事業の素性は `@/business`([src/lib/business/README.md](../lib/business/README.md))、法務の文書の値は `features/legal.config.ts`。
+
+残っているのは読み手のある 7 本だけです:
+
+| ファイル | 読み手 |
+|---|---|
+| `app/app-features.config.ts` | `lib/routeFactory`(reCAPTCHA の閾値)・`lib/dataMigration`(maxRecordLimit) |
+| `app/gradients.config.ts` | `lib/gradient`、`pnpm generate styles`(`src/styles/gradient.css`) |
+| `app/screens.config.ts` | `lib/screens` の構造の検査(fork 所有の除外 `FORK_SCAN_EXCLUDES`) |
+| `app/storage.config.ts` | `lib/storage`、`storageObject` |
+| `ui/fonts.config.ts` | `lib/fonts`、`src/app/layout.tsx` |
+| `ui/unsaved-guard.config.ts` | 枠の `src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx` |
+| `ui/variants.config.ts` | `lib/variantOverrides`、Badge・Button の variants |
+
+fork が `app/`・`ui/` に足したファイルと鍵の行き先(どれか 1 つ、値の意味で決める):
+
+- 画面・API を開け閉めする入切 → fork の門番の規則(`src/featureGate/rules/<名前>.ts` の `defaultEnabled`、住所 `pathPatterns`)と `featureGate/switches.config.ts`。env で決まる入切(資格情報の有無など)は規則の `enabled()` に書く
+- fork の業務の値 → その業務ドメインの `config.ts`(上書き `features/<ドメイン>.config.ts`)。持ち主が 1 つに決まらない値は表なしの fork のドメインを作ってそこへ
+- 上流の持ち主に fork が足す鍵 → その上書きの `Extra`(上の「上書きの中身(lint `config-overrides/literal-only`、全 Tier error)」)。枠の値は `layout/<枠>.config.ts` の `Extra`、枠の部品を出さないのは slot の `null`(枠の 1 行スイッチの先)
+- 上流の機能の一部を消す・隠すだけの鍵 → 機能を閉じる(`pnpm ops features set <名前> off`)か、上流の上書きの既存の鍵
+
+## Extension
 
 ### 持ち主の宣言 `overrideImports`
 
@@ -46,7 +83,7 @@ export const overrideImports = ["react-icons/fa", "@/components/Icons"] as const
 
 - 宣言は上流(持ち主)の物で、上書きの中に書いても広がらない。処理(features の関数など)は宣言できず、上書きに書けない
 
-### 持ち主の宣言 `featureRequirements`(機能を要する値、設定 D107・D110)
+### 持ち主の宣言 `featureRequirements`(機能を要する値)
 
 設定の値が別の機能を前提にする(例 購入に SMS 認証を必須にする)なら、持ち主の config.ts にリテラルで宣言します。合成した値(既定 + この上書き)が `off` でないのに機能が閉なら、門 build の `pnpm check proxies` が失敗し、直し方 2 つ(機能を開ける / 上書きに `off` を書く)を出します。
 
@@ -61,35 +98,3 @@ export const featureRequirements = [
 - 宣言するのは本当にその機能を要する値だけ(候補の一覧に入っているだけの物は書かない)。fork が足した持ち主も宣言できる。上書きの側には書かない
 - 読み手は地区の地図(`src/lib/districtMap`、欄 `featureRequirements`)、判定は門番の検査 `src/featureGate/checks/featureRequirements.ts`
 - 上流の宣言: wallet の `purchaseRestriction` → `phoneVerification`(off `"none"`)、demo の `mode.enabled` → `demoPages`(off `false`)
-
-## 読むのは持ち主だけ(lint `config-overrides/owner-reads-only`、全 Tier error)
-
-上書きを import できるのは持ち主の `config.ts`(`<名前>.ui.config.ts` は `config.ui.ts`)だけ。型だけの import も同じ。基盤の上書き(`featureGate/`)は持ち主のフォルダ(`src/featureGate`)の中のファイルだけが読めます。他のコードは持ち主の入口から確定した値を読みます。lib の中は lint `lib-entry`(`@lib-config/<自分>` だけ)が見ます。
-
-## 機能の入切の道具
-
-機能の入切の fork の値は `featureGate/switches.config.ts`(上流は空で出荷、`{ <機能の名前>: true|false }`、型 `FeatureSwitches`)。既定は門番の規則のファイルの `defaultEnabled`(設定 D92・門番 D35)。`pnpm ops features set <規則名> on|off` が fork ではここに書く(既定と同じ値でも消さない。詳細: [src/featureGate/README.md](../featureGate/README.md)「pnpm ops features list / pnpm ops features set」)
-
-## 移行中のもの
-
-`app/`・`ui/` は古い置き場です。値は各持ち主の `config.ts` と上の 5 つのフォルダへ移り、空になったら消えます(新しい値をここに足さない)。1 対 1 の検査はこれらを見ません。事業の素性は `@/business`([src/lib/business/README.md](../lib/business/README.md))、法務の文書の値は `features/legal.config.ts`。
-
-残っているのは読み手のある 8 本だけです(締め 2 の後。移すのは読み手の lib の整理の後):
-
-| ファイル | 読み手 |
-|---|---|
-| `app/app-features.config.ts` | `lib/routeFactory`(reCAPTCHA の閾値)・`lib/dataMigration`(maxRecordLimit) |
-| `app/gradients.config.ts` | `lib/gradient`、`pnpm generate styles`(`src/styles/gradient.css`) |
-| `app/screens.config.ts` | `lib/screens` の構造の検査(fork 所有の除外 `FORK_SCAN_EXCLUDES`) |
-| `app/storage.config.ts` | `lib/storage`、`storageObject` |
-| `ui/fonts.config.ts` | `lib/fonts`、`src/app/layout.tsx` |
-| `ui/site-theme.config.ts` | `lib/siteTheme`、`src/app/layout.tsx`・管理のヘッダー・ダークモードの切り替え |
-| `ui/unsaved-guard.config.ts` | 枠の `src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx` |
-| `ui/variants.config.ts` | `lib/variantOverrides`、Badge・Button の variants |
-
-fork が `app/`・`ui/` に足したファイルと鍵の行き先(どれか 1 つ、値の意味で決める):
-
-- 画面・API を開け閉めする入切 → fork の門番の規則(`src/featureGate/rules/<名前>.ts` の `defaultEnabled`、住所 `pathPatterns`)と `featureGate/switches.config.ts`(設定 D92)。env で決まる入切(資格情報の有無など)は規則の `enabled()` に書く
-- fork の業務の値 → その業務ドメインの `config.ts`(上書き `features/<ドメイン>.config.ts`)。持ち主が 1 つに決まらない値は表なしの fork のドメインを作ってそこへ
-- 上流の持ち主に fork が足す鍵 → その上書きの `Extra`(上の「Extra」)。枠の値は `layout/<枠>.config.ts` の `Extra`、枠の部品を出さないのは slot の `null`(枠の 1 行スイッチの先)
-- 上流の機能の一部を消す・隠すだけの鍵 → 機能を閉じる(`pnpm ops features set <名前> off`)か、上流の上書きの既存の鍵
