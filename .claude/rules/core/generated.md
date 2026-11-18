@@ -1,17 +1,14 @@
 ---
 paths:
   - "src/features/**/{domain.json,entities/**,messages/*.ts}"
-  - "src/features/*/{*.ts,{components,hooks,services,constants,types,adminBulkActions}/**}"
-  - "src/registry/**"
+  - "src/features/*/*.ts"
+  - "src/features/*/{components,hooks,services,constants,types,adminBulkActions}/**"
+  - "src/{registry/**,**/extensions/**,**/*.generated.ts,lib/*/generated/**,wiring/dbAgent.ts}"
   - "scripts/structure/domain/**"
   - "src/app/admin/**"
-  - "src/**/extensions/**"
   - "src/app/route-map.jsonl"
-  - "src/**/*.generated.ts"
   - "src/styles/{**/gradient,z-layer}.css"
   - "vercel.json"
-  - "src/wiring/dbAgent.ts"
-  - "src/lib/*/generated/**"
 ---
 # generated
 > **ROLE**: loaded when touching generated files or their sources | holds DIRECTORY_STRUCTURE code_generation (generated / write-once / hand-owned)
