@@ -1,25 +1,14 @@
 # `src/lib/firestore`
 
-Firestore をクライアント側で操作するためのアプリケーションレイヤーです。
+## Overview
 
-## `src/lib/firebase/*` との違い
+- Firestore をクライアント側で操作するためのアプリケーションレイヤー。入口 `@/lib/firestore/client`
+- `src/lib/firebase/*` は Firebase SDK を初期化する低レイヤー(`fstore` インスタンスの提供等)で、最小限の責務を持つ
+- こちらはその SDK インスタンスを使って、アプリ共通の要件を持つ: リアルタイム購読(`onSnapshot`)のラッパーとデータ変換・単発ドキュメント操作・バッチ書き込みのチャンク分割・トランザクション(read-then-write)・エラーの正規化と日本語メッセージ変換
 
-`src/lib/firebase` 配下は Firebase SDK を直接初期化するための低レイヤー（`fstore` インスタンスの提供等）であり、最小限の責務を担います。
+## Usage
 
-一方 `src/lib/firestore` はその SDK インスタンスを利用して、
-
-- リアルタイム購読（`onSnapshot`）のラッパーとデータ変換
-- 単発ドキュメント操作（get / set / update / delete）
-- バッチ書き込み（`writeBatch`）のヘルパーとチャンク分割
-- トランザクション（read-then-write のアトミック操作）
-- エラーの正規化と日本語メッセージ変換
-
-といったアプリケーション共通の要件を実装しています。
-
-## 利用指針
-
-- **ドメインの ClientService からこのライブラリの API を使ってください。** Hook は ClientService を経由して間接的に利用します。
-- Firebase SDK の細かなオプション調整など、このライブラリでは対応できない特殊なケースのみ `src/lib/firebase/*` を直接参照します。
+- 呼び手はドメインの ClientService。Hook は ClientService を経由して使う
 
 ```
 Hook → ClientService (features/*/services/client/)
@@ -28,12 +17,18 @@ Hook → ClientService (features/*/services/client/)
       → Firebase SDK
 ```
 
-## ファイル構成
+- このライブラリで対応できない SDK の細かなオプション調整など、特殊なケースだけ `src/lib/firebase/*` を直接読む
 
-- `client/subscribe.ts` — `onSnapshot` の購読ラッパー（コレクション／単一ドキュメント）
-- `client/operations.ts` — 単発ドキュメント操作（get / set / update / delete）
-- `client/batch.ts` — `writeBatch` のヘルパー（500件自動チャンク分割）
-- `client/transaction.ts` — `runTransaction` のラッパー（read-then-write アトミック操作）
-- `client/converter.ts` — Firestore Timestamp → JS Date の再帰的変換
-- `client/errors.ts` — Firestore エラーの正規化と日本語メッセージ変換
-- `types.ts` — 共通型定義
+## API
+
+- 購読: `subscribeCollection` / `subscribeCollectionChanges` / `subscribeDoc`(`onSnapshot` のラッパー、コレクション / 単一ドキュメント。型 `SubscribeOptions` / `CollectionChangesSnapshot` / `DocChange`)
+- 単発操作: `getDoc` / `queryDocs` / `setDoc` / `updateDoc` / `deleteDoc`(型 `QueryResult`)
+- バッチ: `executeBatch`(`writeBatch` のヘルパー、500 件ごとに自動でチャンク分割。型 `BatchOperation`)
+- トランザクション: `executeTransaction`(`runTransaction` のラッパー、read-then-write のアトミック操作。型 `TransactionContext`)
+- 変換: `convertTimestamps`(Firestore Timestamp → JS Date の再帰的変換)
+- 誤り: `normalizeFirestoreError`(Firestore エラーの正規化と日本語メッセージ変換)
+- 共通型: `types.ts`
+
+## Related
+
+- SDK の初期化: `src/lib/firebase/README.md`
