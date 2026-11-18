@@ -1,187 +1,13 @@
 # user ドメイン
 
-ユーザー管理のコアドメイン。ユーザーテーブルとロール定義を管理する。
+## Overview
 
-## エンティティとスキーマ
+ユーザー管理の core ドメイン。ユーザーテーブル `users`・ロールの定義・状態とその遷移の記録・表示名の規則・退会と削除の後始末を持つ。
 
-### ディレクトリ構造
+- 文書の分け方: 一覧と型・口の契約は `API.md`、仕組み(ロールの流れ・利用できる利用者・表示名の一意性・削除・状態の履歴)は `Internals.md`
+- 置き場: `entities/`(drizzle・Zod・型)| `coreRoles/`(core ロール admin・user・debugger の JSON、消せない・無効にできない)| `roles/`(追加ロールの JSON)| `extensions/roles.ts`(ロールの一覧、`pnpm generate role` が書く)| `constants/`(ロール・状態・プロバイダの定数)| `services/server/`(`userService` ほか)
 
-```
-src/features/core/user/
-├── entities/
-│   ├── index.ts          # 再エクスポート
-│   ├── drizzle.ts        # Drizzle テーブル定義（DB スキーマ）
-│   ├── schema.ts         # Zod バリデーションスキーマ
-│   ├── model.ts          # 型定義
-│   └── form.ts           # フォーム用型定義
-├── coreRoles/            # core ロール admin・user・debugger の JSON（消せない・無効にできない）
-├── roles/                # 追加ロールの JSON
-├── extensions/roles.ts   # ロールの一覧（pnpm generate role が書く）
-├── constants/
-│   ├── index.ts          # 再エクスポート
-│   ├── role.ts           # ロール派生定数
-│   ├── status.ts         # ステータス定数
-│   └── provider.ts       # プロバイダ定数
-├── types/
-│   ├── index.ts
-│   ├── role.ts           # ロール関連型
-│   └── profileField.ts   # プロフィールフィールド型
-└── utils/
-    ├── index.ts
-    └── roleHelpers.ts    # ロールヘルパー関数
-```
-
-## ロール定義からデータベースへの流れ
-
-```
-roles/*.role.json
-       ↓ import
-roles/index.ts (ALL_ROLES)
-       ↓ import
-constants/role.ts (USER_ROLES)
-       ↓ import
-entities/drizzle.ts (UserRoleEnum)
-       ↓ pnpm db:push
-PostgreSQL (user_role enum)
-```
-
-### 1. ロール設定 JSON
-
-1 ロール 1 ファイルで定義。ファイル名は `<id>.role.json`。
-
-```
-coreRoles/                # core ロール（上流の 3 つだけ。削除・無効化は不可）
-├── admin.role.json
-├── user.role.json
-└── debugger.role.json
-roles/                    # 追加ロール
-├── editor.role.json
-└── contributor.role.json
-```
-
-- `pnpm generate role -- --delete`・`pnpm generate role -- --toggle` は core ロールで止まる。`roles/` に core と同じ ID、`coreRoles/` に 3 つ以外のファイル、`isCore` を書いた JSON は `pnpm generate role` と forge の事前検査で止まる
-- fork が core ロールで変えられるのは `label`・`hasProfile` だけ（`coreRoles/<id>.role.override.ts`、`src/features/core/userProfile/README.md`「fork の上書き」）
-
-**{role}.role.json の構造:**
-```json
-{
-  "id": "contributor",
-  "label": "投稿者",
-  "category": "user",
-  "description": "コンテンツを投稿できる",
-  "hasProfile": true
-}
-```
-
-| フィールド | 説明 |
-|-----------|------|
-| `id` | ロール識別子（DB に保存される値） |
-| `label` | UI 表示名 |
-| `category` | `"admin"` or `"user"`（管理画面での分類） |
-| `description` | 説明文 |
-| `hasProfile` | プロフィールテーブルを持つか |
-
-### 2. ロール読み込み
-
-`pnpm generate role`（forge が回す）が `extensions/roles.ts` に一覧を書き、`constants` が `ALL_ROLES` として再 export する。手で直さない。
-
-一覧の並びは DB の enum `user_role` の順そのもの（`entities/drizzle.ts`）。生成は今の並びを保ち、新しいロールを末尾に足す。
-
-### 3. 派生定数の生成
-
-`constants/role.ts` で `ALL_ROLES` から各種定数を生成。
-
-```typescript
-// constants/role.ts
-import { ALL_ROLES } from "../roles";
-
-// DB スキーマ・バリデーション用の配列
-export const USER_ROLES = ALL_ROLES.map((r) => r.id);
-// → ["admin", "user", "editor", "contributor"]
-
-// 型定義
-export type UserRoleType = (typeof USER_ROLES)[number];
-// → "admin" | "user" | "editor" | "contributor"
-```
-
-### 4. Drizzle テーブル定義
-
-`entities/drizzle.ts` で PostgreSQL Enum とテーブルを定義。
-
-```typescript
-// entities/drizzle.ts
-import { USER_ROLES } from "@/features/core/user/constants";
-
-// PostgreSQL Enum 定義
-export const UserRoleEnum = pgEnum("user_role", [...USER_ROLES]);
-
-// ユーザーテーブル
-export const UserTable = pgTable("users", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  role: UserRoleEnum("role").notNull(),
-  // ...
-});
-```
-
-### 5. データベース反映
-
-```bash
-# スキーマ変更を DB に反映
-pnpm db:push
-```
-
-## ユーザーテーブル
-
-### カラム定義
-
-| カラム | 型 | 説明 |
-|--------|-----|------|
-| `id` | UUID | 主キー |
-| `providerType` | Enum | 認証プロバイダ種別 |
-| `providerUid` | Text | プロバイダ側の UID |
-| `email` | Text | メールアドレス |
-| `name` | Text | 表示名 |
-| `role` | Enum | ロール |
-| `localPassword` | Text | ローカル認証用パスワードハッシュ（**秘匿カラム**、下記参照） |
-| `status` | Enum | ステータス |
-| `isDemo` | Boolean | デモユーザーフラグ |
-| `lastAuthenticatedAt` | Timestamp | 最終認証日時 |
-| `signupIp` | Text | 登録時 IP (referral / 管理画面が参照) |
-| `metadata` | JSONB | 拡張メタデータ。`loginHistory` (直近ログイン履歴) 等を格納 |
-| `deletedAt` | Timestamp | 論理削除日時 |
-| `createdAt` | Timestamp | 作成日時 |
-| `updatedAt` | Timestamp | 更新日時 |
-
-> **秘匿カラム（localPassword）**: `entities/drizzle.ts` の `defineHiddenColumns(UserTable, ["localPassword"])` 宣言により、`userService`（createCrudService）の全戻り値・他ドメインの `withRelations` 展開で **常に null 化** され、API レスポンスに乗ることはない。サーバー内部でハッシュを読む正規経路は `services/server/finders/findByIdWithSecrets.ts`（ID 指定・削除済み含む）と `findByLocalEmail.ts`（ローカルログイン用）の 2 つの直接 drizzle ファインダーのみ。これらの戻り値を HTTP レスポンスに乗せることは厳禁。仕組みの詳細は `src/lib/crud/README.md` の hiddenColumns 節を参照。
->
-> **更新の入口**: `userService.update(id, data)` = 認可済みの呼び手用（汎用 API は管理者限定、サーバー内の処理。管理者のスキーマで検証し、セッションは読まない）。`userService.updateSelf(actor, data)` = 本人用（`actor` は route の `ctx.user`。本人のスキーマ、非管理者のローカル認証は 400）。利用者の入力を渡す route は必ず `updateSelf`。
->
-> **検証の失敗**: スキーマが書いた文はそのまま返し、Zod の既定の文（"Invalid url" など）は `src/features/core/user/config.ts の updateValidation` の固定文に置き換える。失敗した項目の path と code だけを server にログ（値は出さない）。
->
-> **パスワード変更の契約（`newPassword`）**: `userService.update(id, { newPassword })` は **プロバイダー非依存の「このユーザーのパスワードをこれにする」** 契約。UI（`AdminUserManageModal` 認証タブ等）は保存先を知らず、`services/server/helpers/passwordChange.ts` の `planPasswordChange` がサーバー側で振り分ける: `local` → `localPassword` としてスキーマ入力にマージ（hash 変換・ロックアウトカウンタリセット・全セッション失効は既存経路がそのまま動く）| `email` → Firebase Auth へ同期 | それ以外（OAuth/OIDC/SAML 等）→ **DomainError 400**（パスワード経路が無いのに成功を返す「無言 no-op」を禁止）。`localPassword` を直接渡す旧経路も引き続き有効。回帰テスト: `pnpm test src/features/core/user/services/server/helpers/passwordChange.test.ts`。
->
-> **IP データの所在に注意**: ログイン / サインアップの IP は `signupIp` 列・`metadata.loginHistory` (JSONB)・専用テーブル `user_login_events` の **3 箇所に併存** している。同一 IP のアカウント横断検索など IP 集計を行う場合は、JSONB をスキャンせず [`userLoginEvent` ドメイン](../userLoginEvent/README.md) の検索 API (`countDistinctUsersByIp` / `findUsersBySameIp` / `findUsersBySubnet`、端末受け渡し検出は `findSessionHandoffsByUser` / `findSessionHandoffsByIp`) を使うこと。明示ログアウト (logout / pause / withdraw) も同テーブルに `logout` 行として入る。併存の理由と移行方針は同 README を参照。
-
-### Enum 定義
-
-**user_role:**
-```
-admin, user, editor, contributor, ...
-```
-
-**user_provider_type:**
-```
-firebase, local
-```
-
-**user_status:**
-```
-pending, active, inactive, suspended, banned, security_locked, withdrawn
-```
-
-定義元は `constants/status.ts` の `USER_STATUSES`（意味は [ユーザーステータス](#ユーザーステータス) を参照）。
-
-## ユーザーステータス
+### ユーザーステータス
 
 ユーザーのビジネス上の状態は `users.status` 1列で一元管理する（ラベルは `USER_STATUS_LABELS`）。
 
@@ -195,8 +21,6 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 | `security_locked` | セキュリティロック | 不正ログイン試行の検知等によるロック | ローカルログインのロックアウト（`wrappers/lockoutPolicy.ts`）等 |
 | `withdrawn` | 退会済み | 退会済み（再サインアップで `pending` に戻り再入会できる） | `active` から本人退会（accountLifecycle の `withdraw.ts`）、管理者のソフトデリート |
 
-### ステータスグループ（`constants/status.ts`）
-
 | 定数 | 値 | 用途 |
 |------|-----|------|
 | `USER_AVAILABLE_STATUSES` | `active` | サービス利用可能 = ログイン済みとして扱うステータス。ページの守り(guard.ts / createLoader)の `allowStatuses` 既定値、API の Factory の認可（`apiAccess` の evaluateApiAccessRule、`allowStatuses` の既定値）が参照 |
@@ -208,186 +32,9 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 
 ステータス遷移の記録は [ステータス遷移履歴](#ステータス遷移履歴user_status_histories)、操作の監査は audit_logs（`user.withdrew` / `user.status.changed` 等）が担う。
 
-### 利用できる利用者の述語（`services/server/availableUsers.ts`）
+## Usage
 
-サーバーの読み手が「利用できる利用者」で users の行を絞る 1 か所（D103）。`availableUserWhere({ includeDemo? })` → SQL の述語（where にそのまま渡し、他の条件とは and で組む）:
-
-- 削除されていない（`deleted_at IS NULL`）・状態が `USER_AVAILABLE_STATUSES`（今は `active`）・デモの利用者（`is_demo`）は既定で外す（`includeDemo: true` で含める）
-- 読み手: messaging の全員・ロール宛ての展開と数え（`messaging/services/server/sendMessage/store.ts` の `listUserIds` / `countUserIds`。選んだ利用者宛ては対象外）、ユーザーグループの母集団
-- 入口の index は無いのでファイルのパスで読む（`@/features/core/user/services/server/availableUsers`）
-- 今は別の状態の並びを持つ所（まだこの述語を読まない）: API・ページの守り（routeFactory の `availableStatuses` と route ごとの `allowStatuses`）・共有端末（`pairedDevice` の principalUserRule）・client の `useStatusChecker`（`isAvailable`）
-- 索引: `users_status_idx`・`users_deleted_at_idx`・`users_last_authenticated_at_idx`（最後のログインの条件）と `user_to_user_tag_tag_idx`（タグから利用者を引く。主キーは user_id が先）。素の列だけ（push の round-trip）
-
-### ステータスの一括変更
-
-運用者が複数のユーザーの状態をまとめて変える(規約違反の一斉の処分保留・誤ロックの一斉の解除など)。
-
-- コマンド(運用者): `pnpm task user:bulk-change-status -- --to <状態> (--users <id>[,<id>...] | --file <1 行 1 id のファイル>) --reason "<理由>" [--from <状態>] [--dry-run]`
-  - 先に `--dry-run` で変わる人数と飛ばす人(理由つき)を確かめてから、外して打つ。本番は `--env production --confirm=production`
-  - ユーザーは id の並びかファイルで渡す(状態で全員を拾う形は無い)。`--from` は渡した並びを「今その状態の人だけ」に絞るだけ
-  - 止める鍵は無い: 打ち直すと既に変わった人を飛ばすので、途中で落ちても同じ指定で打ち直せる。実行は `task_runs` に記録され、監査の requestId = その行の id
-- サービス: `userService.bulkChangeStatus({ userIds, newStatus, reason, onlyFrom?, dryRun })` → `{ changed, skipped: [{ userId, why }], failed: [{ userId, error }] }`。管理画面から呼ぶときも同じ関数
-- 1 人ずつ `changeStatus` と同じ道: users の更新・遷移の履歴(trigger `admin_change_status`)・監査 `user.status.changed` を 1 人 1 transaction で書き、確定の後に banned / security_locked のセッション失効とロック解除の監査(`afterStatusChange`)。1 人の失敗は他の人を戻さない
-- 変えられる先: `active` / `inactive` / `suspended` / `banned` / `security_locked`。`withdrawn`(退会の流れ `withdraw` がある)と `pending`(登録の途中)は先に止める
-- 飛ばす: 知らない id・削除済み・既にその状態・`--from` でない・管理者のカテゴリのロール(管理者は 1 人ずつの画面で)
-- `changeStatus(input, tx?)`: tx を渡すと更新・履歴・監査はその transaction の中で書き、確定の後の処理はしない(呼び手が commit の後に `afterStatusChange(before, newStatus, reason)` を呼ぶ)
-
-## バリデーションスキーマ
-
-`entities/schema.ts` で Zod スキーマを定義。
-
-| スキーマ | 用途 |
-|---------|------|
-| `UserCoreSchema` | 全フィールドの基本スキーマ |
-| `UserOptionalSchema` | 更新用（フィールドをオプショナル化） |
-| `UserUpdateByAdminSchema` | 管理者による更新用 |
-| `UserSelfUpdateSchema` | ユーザー自身による更新用 |
-
-## 表示名 = ユーザー名（バリデーションと一意性）
-
-`users.name` の仕様。マイページ等の UI ラベルでは「ユーザー名」、コード・スキーマ上は「表示名 (display name)」
-と呼んでいるが同一フィールドを指す。「ユーザー名の重複禁止」を検討している場合はこのセクションが該当する。
-
-設定: `src/features/core/user/config.ts の name`（`userConfig.name`）
-
-### バリデーション（常時適用）
-
-共有スキーマ `entities/userName.ts` を全書き込み経路（サインアップ・本登録・マイページ・管理画面）で使用する。
-デモユーザーの作成経路（`createDemoUser` / `createGuestDemoUser` / シードの `seedCreate`(`src/features/core/user/seed.ts`、デモの利用者だけを作る)）は
-`isDemo = true` で一意性の判定スコープ外のため、一意性ガードを通さない（意図した設計）。
-
-| スキーマ | 用途 |
-|---------|------|
-| `UserNameSchema` | 必須の経路（サインアップ `RegistrationSchema`、本登録 `UserActivationSchema`） |
-| `UserNameNullishSchema` | エンティティ側の任意フィールド（`UserCoreSchema.name`。空文字は null に正規化） |
-| `UserNameFormSchema` | react-hook-form 用（空文字 = クリアを許容、文字列のまま検証） |
-
-ルール: trim + `maxLength`（既定 30、設定で調整）+ 制御文字/改行/ゼロ幅文字の拒否。
-表示名のルールを変える場合は `userName.ts` だけを変更すれば全経路に反映される。
-
-外から来た名前（サインインプロバイダーの表示名など）を表示名にするときは `sanitizeUserName(raw)` で整える
-（使用できない文字の除去 + trim + `maxLength` で切る。空文字になりうる。一意性は見ないので保存は `withUserNameGuard` を通す）。
-禁止文字の一覧を fork 側で持ち直さない。
-
-### 一意性（オプトイン、既定は重複許容）
-
-`userConfig.name.unique.enabled: true` で表示名の重複を禁止できる。DB の unique 制約ではなく
-**アプリケーションレイヤ**（`services/server/helpers/nameAvailability.ts`）で検証する。
-
-- 判定スコープ: `deleted_at IS NULL` かつ `is_demo = false`（退会済み・デモユーザーは名前を占有しない）
-- `caseInsensitive: true`（既定）で大文字小文字を同一視。正規化ロジックは
-  `utils/userName.ts` の `normalizeUserNameForComparison` に一元化
-- check→write 間の同時実行レースは `pg_advisory_xact_lock`（正規化名キー）で直列化して排除
-- 検索は expression index `users_name_norm_idx`（`lower(btrim(name))`、unique 制約ではない）が受ける
-- 違反時は `DomainError` 409「この表示名は既に使用されています」
-
-検証が入る書き込みポイント（`withUserNameGuard` / `assertUserNameAvailable`）:
-
-| 経路 | 実装 |
-|------|------|
-| サインアップ本登録・再入会 | `registration/activate.ts` |
-| マイページ・管理画面の更新 | `wrappers/update.ts`（name 変更時と、デモ → 通常（`isDemo` true→false）の切替時） |
-| 管理画面からのユーザー作成 | `creation/console/createGeneralUser.ts` / `createAdmin.ts` |
-| 管理画面からの再登録（名前指定あり） | `creation/console/restore.ts`（衝突時 409） |
-| 汎用 restore（`/api/user/[id]/restore`） | `wrappers/restore.ts`（衝突時はブロックせず「名前_2」等へ自動付替。候補名もロックしてから判定） |
-| 外部の認証の身元からの作成・再登録 | `registration/createFromProvider.ts`（衝突時はブロックせず「名前_2」等へ自動付替。候補名もロックしてから判定） |
-
-ガードを通らず行を作る一括書き込み・複製系（`upsert` / `bulkUpsert` / `replaceByQuery` / `duplicate`）は
-`userService` から公開しない。汎用 `/api/user/**` の該当ルートは 404、CSV インポートも拒否される
-（`domain.json` も `useImportExport: false`）。サービス内部で必要な場合は `base` を直接使い、表示名・
-ステータス履歴の整合は呼び出し側で担保する。
-
-一括削除（`bulkDeleteByIds` / `bulkDeleteByQuery`）も `softDelete` のステータス変更・クリーンアップ・監査ログを
-通らないため `userService` から公開しない。汎用の `/api/user/bulk/delete-by-ids` と `/api/user/bulk/delete-by-query` は
-404（権限のない呼び出しは先に 401 / 403）。複数のユーザーを消すときは 1 人ずつ `softDelete` を呼ぶ。
-
-単体の削除 `userService.remove`（汎用 `DELETE /api/user/:id`・`useDeleteUser`）は `softDelete` と同じ処理を通す
-（`wrappers/remove.ts`）。削除済みのユーザーは 400、存在しないユーザーは 404。
-
-### 一括更新
-
-管理者が複数ユーザーをまとめて更新する経路。列の性質で使い分ける。
-
-| 更新したいもの | 経路 | 動作 |
-|------|------|------|
-| タグを足す / 外す（既存のタグは残す） | `useBulkAddUserTags` / `useBulkRemoveUserTags` の `trigger(userIds, tagIds)` | 1 文の SQL。再追加は何もしない |
-| `adminMemo`、タグの置き換え | `useBulkUpdateByIdsUser`（同じ値）/ `useBulkUpdateUser`（行ごとに違う値） | `base` の一括更新。全件成功か全件失敗か |
-| `status` / `role` | 1 人ずつ `useChangeUserStatus` / `useChangeUserRole` | 一括の経路は無い |
-| `name` / `email` / `phoneNumber` / パスワード | 1 人ずつ `useUpdateUser` | 一括の経路は無い |
-
-- 認可: 汎用 API の `ADMIN_ONLY`（管理者のみ）
-- 許可する列: `src/features/core/user/config.ts の bulkUpdate` の `userConfig.bulkUpdate.fields`。それ以外の列は黙って捨てず 400。副作用のある列（上の表の下 2 行、`isDemo`）は足さない
-- 上限: 1 回 1000 ユーザー（超えたら 400）。タグの追加・削除はタグ 50 件まで。超える分はクライアントで分割して送る
-- タグの追加・削除の結果: `{ count, affectedIds, unknownIds, unknownTargetIds }`（`unknownTargetIds` = 存在しないタグ）。存在しない id（追加では論理削除済みも）はエラーにせず飛ばして返す
-- 監査: タグの追加・削除は変わったユーザーごとに `user.relation.added` / `user.relation.removed`（metadata に `field` と `targetIds`）。変化が無ければ記録しない
-- `enableUserTag` を切った fork ではタグの表が無いので、タグの経路を呼ばない
-
-画面: 管理一覧の一括操作は受け口 `adminBulkActions/` の項目で出す（`src/lib/tableSuite/README.md`「一括操作の受け口」）。上流の既定は一般ユーザーの一覧のタグの一括設定（`adminBulkActions/userTags.tsx`、置き換え）。追加だけの操作が要る fork は自分の項目を足す:
-
-```tsx
-// src/features/core/user/adminBulkActions/addUserTags.tsx（fork の項目）
-export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
-  { key: "addUserTags", lists: ["general"], order: 20 },
-  { domain: userDisplay, relation: "userTag", mode: "add", label: "タグを追加" },
-);
-```
-
-足りないタグをその場で作るときは `useCreateUserTag` の `trigger` を `onCreateOption` から呼ぶ（書き方: `src/lib/crud/components/Buttons/README.md`）。
-
-自前の UI なら `useBulkAddUserTags` の `trigger` を `ChecklistPopover` の `onConfirm` から呼ぶ。
-
-テスト: `pnpm test src/features/core/user/services/server/helpers/nameAvailability.test.ts`（DB 不要な判定ロジックのみ。同時実行の直列化と SQL の判定スコープは対象外）
-
-一括判定が必要な場合（候補名リストのフィルタリング等）は `isUserNamesTaken(names[]) => Set<使用中の入力文字列>`
-を使う（単一クエリ + 同一の判定条件。`isUserNameTaken` はこの単発版）。
-
-### 予約名（users テーブル外の名前を一意性チェックに参加させる）
-
-ボット・NPC・合成ランキングエントリなど「実ユーザーの隣に表示される非ユーザー名」や、
-「運営」「admin」等の予約語を実ユーザーに取らせたくない場合は、
-`src/features/core/user/reservedNames/<名前>.ts` に `export const provider` を置き `pnpm generate extensions`（上流は項目 0 = 挙動変化なし）。
-
-```ts
-// 例: 静的な予約語リスト
-export const provider: ReservedUserNameProvider = {
-    key: "static-reserved-words",
-    filterReserved: async (names) => names.filter((n) => ["運営", "admin", "公式"].includes(n)),
-  },
-];
-```
-
-- `filterReserved(normalizedNames, ctx)` は「渡された正規化済み名前のうち予約済みのもの」を返す。
-  比較対象は `normalizeUserNameForComparison` と同じ正規化（trim + caseInsensitive 時は小文字化）で保持すること
-- users スキャンで空きだった名前についてのみ照会される。サフィックス採番
-  （restore 衝突・dedup）も予約名を自動回避する
-- **プロバイダは高速なローカル DB 参照に限る。** advisory lock を保持したトランザクション内で
-  呼ばれるため、遅いプロバイダは同名サインアップの直列化待ちを伸ばす。
-  外部 API 等の遅い I/O は事前にテーブルへ同期しておくこと
-- `ctx.executor` が渡された場合、Drizzle 参照はそれを使う（ガードと同一トランザクションで読むため）
-
-### 有効化手順（運用途中の切り替え）
-
-1. `unique.enabled: true` に変更してデプロイ（以後の新規書き込みから検証開始）
-2. 既存の重複を確認: `pnpm task user:name-dedup -- --dry-run`
-3. 既存の重複を解消: `pnpm task user:name-dedup`
-   - 各グループで `createdAt` 最古のユーザーが元の名前を保持し、他は「名前_2」「名前_3」…に自動リネーム
-   - リネームは `base.update` 経由のため audit_logs に記録される
-   - 冪等・one-shot（定期実行しない）
-
-DB 制約を使わないため、既存データに重複があっても有効化がブロックされることはない
-（有効化〜解消完了までの間、既存重複はそのまま残り、新規の書き込みだけが検証される）。
-
-#### 有効化時の注意
-
-- **リネームされたユーザーへの通知は組み込まれていない。** dedup は audit_logs に記録を残すが、
-  本人向けの通知（「表示名が変更されました」等）は行わない。必要なら dry-run の結果
-  （`renamed` の userId 一覧）をもとに `messagingService.send / bulkSend` で通知するのは
-  ダウンストリームの責務
-- **セッション JWT の name クレームは古いまま残る。** リネーム後、DB 参照
-  （loader の ctx.user・`requireUserRecord` 経由）の画面は即反映されるが、JWT クレームの name を表示に
-  使っている箇所は再ログインまで旧名が見える（実害は表示のみ）
-
-## ロール追加の手順
+### ロールを足す
 
 1. **JSON ファイル作成**
    ```bash
@@ -411,14 +58,50 @@ DB 制約を使わないため、既存データに重複があっても有効�
    pnpm db:push
    ```
 
-fork が上流のロールの `label`・`hasProfile`・`enabled` を変えるときは JSON を書き換えず、隣に `<JSON の名前>.override.ts` を置く（`src/features/core/userProfile/README.md`「fork の上書き」）。
+fork が上流のロールの `label`・`hasProfile`・`enabled` を変える上書きは、JSON の隣の `<JSON の名前>.override.ts`（`src/features/core/userProfile/README.md`「fork の上書き」）。
 
-## プロフィール横断検索
+### 状態をまとめて変える
+
+運用者が複数のユーザーの状態をまとめて変える(規約違反の一斉の処分保留・誤ロックの一斉の解除など)。
+
+- コマンド(運用者): `pnpm task user:bulk-change-status -- --to <状態> (--users <id>[,<id>...] | --file <1 行 1 id のファイル>) --reason "<理由>" [--from <状態>] [--dry-run]`
+  - 先に `--dry-run` で変わる人数と飛ばす人(理由つき)を確かめてから、外して打つ。本番は `--env production --confirm=production`
+  - ユーザーは id の並びかファイルで渡す(状態で全員を拾う形は無い)。`--from` は渡した並びを「今その状態の人だけ」に絞るだけ
+  - 止める鍵は無い: 打ち直すと既に変わった人を飛ばすので、途中で落ちても同じ指定で打ち直せる。実行は `task_runs` に記録され、監査の requestId = その行の id
+- サービス: `userService.bulkChangeStatus({ userIds, newStatus, reason, onlyFrom?, dryRun })` → `{ changed, skipped: [{ userId, why }], failed: [{ userId, error }] }`。管理画面から呼ぶときも同じ関数
+- 1 人ずつ `changeStatus` と同じ道: users の更新・遷移の履歴(trigger `admin_change_status`)・監査 `user.status.changed` を 1 人 1 transaction で書き、確定の後に banned / security_locked のセッション失効とロック解除の監査(`afterStatusChange`)。1 人の失敗は他の人を戻さない
+- 変えられる先: `active` / `inactive` / `suspended` / `banned` / `security_locked`。`withdrawn`(退会の流れ `withdraw` がある)と `pending`(登録の途中)は先に止める
+- 飛ばす: 知らない id・削除済み・既にその状態・`--from` でない・管理者のカテゴリのロール(管理者は 1 人ずつの画面で)
+- `changeStatus(input, tx?)`: tx を渡すと更新・履歴・監査はその transaction の中で書き、確定の後の処理はしない(呼び手が commit の後に `afterStatusChange(before, newStatus, reason)` を呼ぶ)
+
+### 表示名の一意性を有効にする
+
+1. `unique.enabled: true` に変更してデプロイ（以後の新規書き込みから検証開始）
+2. 既存の重複を確認: `pnpm task user:name-dedup -- --dry-run`
+3. 既存の重複を解消: `pnpm task user:name-dedup`
+   - 各グループで `createdAt` 最古のユーザーが元の名前を保持し、他は「名前_2」「名前_3」…に自動リネーム
+   - リネームは `base.update` 経由のため audit_logs に記録される
+   - 冪等・one-shot（定期実行しない）
+
+DB 制約を使わないため、既存データに重複があっても有効化がブロックされることはない
+（有効化〜解消完了までの間、既存重複はそのまま残り、新規の書き込みだけが検証される）。
+
+#### 有効化時の注意
+
+- リネームされたユーザーへの通知は組み込まれていない。 dedup は audit_logs に記録を残すが、
+  本人向けの通知（「表示名が変更されました」等）は行わない。必要なら dry-run の結果
+  （`renamed` の userId 一覧）をもとに `messagingService.send / bulkSend` で通知するのは
+  ダウンストリームの責務
+- セッション JWT の name クレームは古いまま残る。 リネーム後、DB 参照
+  （loader の ctx.user・`requireUserRecord` 経由）の画面は即反映されるが、JWT クレームの name を表示に
+  使っている箇所は再ログインまで旧名が見える（実害は表示のみ）
+
+### プロフィール横断検索
 
 ユーザー検索時に、プロフィールテーブルのフィールドも含めて横断検索できる。
 テキスト横断検索（`searchQuery`）と構造化フィルタ（`profileWhere`）の 2 つの仕組みを提供。
 
-### サーバー（SSR ページ / ServerService）
+#### サーバー（SSR ページ / ServerService）
 
 ```typescript
 import { userService } from "@/features/core/user/services/server/userService";
@@ -451,7 +134,7 @@ const result = await userService.searchWithProfile("contributor", {
 });
 ```
 
-### クライアント（Hook）
+#### クライアント（Hook）
 
 ```tsx
 import { useSearchUserWithProfile } from "@/features/core/user/hooks/useSearchUserWithProfile";
@@ -464,7 +147,7 @@ const { data, total, isLoading } = useSearchUserWithProfile("contributor", {
 });
 ```
 
-### クライアント（サービス直接）
+#### クライアント（サービス直接）
 
 ```typescript
 import { userClient } from "@/features/core/user/services/client/userClient";
@@ -485,101 +168,46 @@ const result = await userClient.searchWithProfile("contributor", {
 > API エンドポイント: `GET /api/admin/user/search-with-profile?role=contributor&searchQuery=田中&profileWhere={"field":"prefecture","op":"eq","value":"東京都"}`
 > 検索対象のプロフィールフィールドは `profile.json` の `searchFields` で設定する。`profileWhere` の DSL 詳細は `src/features/core/userProfile/README.md` を参照。
 
-## マイページのアカウントの項目（account.editableItems）
+### 一括更新
 
-- マイページのアカウント（`/mypage/account`）で利用者が変えられる項目は設定 `userConfig.account.editableItems`（`"email"`・`"password"`・`"profile"`・`"phone"`、既定 `["email", "password", "profile"]`）。fork は上書き `src/config/features/user.config.ts` に `account: { editableItems: [...] }` を書く（配列は丸ごと置き換え）
-- 判定は `isAccountItemEditable(item)`（`utils/accountItems.ts`）。アカウントのトップのメニュー（`AccountDetails`）は一覧の項目の行だけを出し、各画面の loader は一覧に無ければ `/mypage/account` へ戻す（レコードの取得より前）
-- 一覧のほかの条件: `password` はメール登録の利用者だけ
-- `phone`: 電話番号の画面は SMS 認証の機能 `phoneVerification` が開なら SMS の手順（`src/features/core/phoneVerification/README.md`）、閉なら SMS なしの入力（`EditPhone` が出し分け）。SMS なしの番号は DB だけに書き `phoneVerifiedAt` は null（未認証。Firebase の電話番号は SMS 認証で link したときだけ）
-  - 口: `PATCH /api/me/phone`（body `{ phoneNumber: E.164 | null }`、null で消す）→ `updateOwnPhoneNumber`（`services/server/phoneNumber`、重複は 409、同じ番号は書かない、`base.update` で監査を通す）。受け付けるのは `isPhoneNumberInputOpen`（一覧に phone があり、かつ phoneVerification が閉）のときだけ、それ以外は 404
-  - client: `updateMyPhoneNumber`（`services/client/phoneNumberClient.ts`）・`useUpdateMyPhoneNumber`（入力の値・保存・消去）・表示の部品 `components/common/PhoneNumberForm`
-  - 管理者が番号を変えると `phoneVerifiedAt` が今の時刻になる（`wrappers/update.ts`。既存の挙動）
-- プロフィール編集の部品 `EditProfile`（`components/EditProfile`）の値の指定: `showHeader`（既定 true）、`afterSaveHref`（保存の後の行き先。既定 `"/mypage/account"`、`null` = 移らずその場に留まり「プロフィールを保存しました」のトースト。他の設定と同じページに置くとき）、`backHref`（見出しの戻る先。既定 `afterSaveHref`、`null` のときは `"/mypage/account"`）
-- アカウントの画面は門番の機能 `pageMypage` の住所（項目ごとの機能は無い）。マイページごと閉じるなら `pnpm ops features set pageMypage off`。表と API は一覧に関わらず開いたまま
+管理者が複数ユーザーをまとめて更新する経路。列の性質で使い分ける。
 
-## 管理のユーザー管理モーダルのタブ（受け口 adminManageTabs）
+| 更新したいもの | 経路 | 動作 |
+|------|------|------|
+| タグを足す / 外す（既存のタグは残す） | `useBulkAddUserTags` / `useBulkRemoveUserTags` の `trigger(userIds, tagIds)` | 1 文の SQL。再追加は何もしない |
+| `adminMemo`、タグの置き換え | `useBulkUpdateByIdsUser`（同じ値）/ `useBulkUpdateUser`（行ごとに違う値） | `base` の一括更新。全件成功か全件失敗か |
+| `status` / `role` | 1 人ずつ `useChangeUserStatus` / `useChangeUserRole` | 一括の経路は無い |
+| `name` / `email` / `phoneNumber` / パスワード | 1 人ずつ `useUpdateUser` | 一括の経路は無い |
 
-管理のユーザー一覧から開くユーザー管理のモーダル（`components/admin/AdminUserManageModal`）は、上流の 6 つのタブ（概要・認証情報・ステータス変更・ロール変更・削除・操作履歴）の後ろに受け口 `adminManageTabs` の項目を並べる。モーダルは上流の画面から開かれ fork は開く所を変えられないので、タブを足すときはモーダルを写さずにここへ項目を置く。
+- 認可: 汎用 API の `ADMIN_ONLY`（管理者のみ）
+- 許可する列: `src/features/core/user/config.ts の bulkUpdate` の `userConfig.bulkUpdate.fields`。それ以外の列は黙って捨てず 400
+- 上限: 1 回 1000 ユーザー（超えたら 400）。タグの追加・削除はタグ 50 件まで。超える分はクライアントで分割して送る
+- タグの追加・削除の結果: `{ count, affectedIds, unknownIds, unknownTargetIds }`（`unknownTargetIds` = 存在しないタグ）。存在しない id（追加では論理削除済みも）はエラーにせず飛ばして返す
+- 監査: タグの追加・削除は変わったユーザーごとに `user.relation.added` / `user.relation.removed`（metadata に `field` と `targetIds`）。変化が無ければ記録しない
+- `enableUserTag` を切った fork ではタグの表が無いので、タグの経路を呼ばない
 
-```
-adminManageTabs/<名前>.tsx          ← 項目（export const tab: UserAdminManageTabItem）。上流の項目は 0
-extensions/adminManageTabs.ts      ← 一覧（生成物、pnpm generate extensions）
-hooks/useAdminManageTabs.ts         ← 絞り込みと並び（selectAdminManageTabs は純関数）
-```
+画面: 管理一覧の一括操作は受け口 `adminBulkActions/` の項目で出す（`src/lib/tableSuite/README.md`「一括操作の受け口」）。上流の既定は一般ユーザーの一覧のタグの一括設定（`adminBulkActions/userTags.tsx`、置き換え）。追加だけの操作が要る fork は自分の項目を足す:
 
-- 項目の型 `UserAdminManageTabItem`（`@/features/core/user/types`）: `key`（タブの value）・`label`・`order?`（小さいほど前、省略 0、同じなら key の順）・`feature?`（門番の規則の名前。閉なら出さない）・`Content`（`{ user, onClose }` を受ける部品）
-- 上流のタブは置き換えない・消さない・並べ替えない。`key` が上流のタブの value（`summary` / `auth` / `status` / `role` / `delete` / `history`）と重なる項目は出さず、`console.warn` で知らせる
-- 置いたら `pnpm generate extensions`（一覧と `src/lib/forkOwnership/intake.txt` の受け口の行は生成）。key の重なる項目が 2 つあると一覧の読み込みで止まる
-- 回帰: `pnpm test src/features/core/user/components/admin/AdminUserManageModal`
-
-## マイページのメニュー（拡張点 mypageMenu）
-
-マイページのトップのカード（`components/MainMenu`）は受け口 `mypageMenu` の項目から描く。`MainMenu` は props なし。
-
-```
-mypageMenu/items/<key>.ts           ← 項目（export const item: MypageMenuItem）
-mypageMenu/items/<key>.override.ts  ← 上の Tier の項目の一部の上書き（fork が置く）
-extensions/mypageMenu.ts            ← 一覧（生成物、pnpm generate extensions）
-mypageMenu/buildMypageMenu.ts       ← 組み立て器（純関数: hidden を除く → 操作を結ぶ → order・key 順）
-types/mypageMenu.ts                 ← 項目・上書き・組み立ての型
+```tsx
+// src/features/core/user/adminBulkActions/addUserTags.tsx（fork の項目）
+export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
+  { key: "addUserTags", lists: ["general"], order: 20 },
+  { domain: userDisplay, relation: "userTag", mode: "add", label: "タグを追加" },
+);
 ```
 
-- 上流の項目: `invite`（10）・`account`（20）・`logout`（30）・`other`（40）。order は 10 刻み、同じ値は key 順
-- 項目は 2 形
-  - リンク: `{ key, order, icon, title, description, href, showChevron?, variant? }`
-  - 操作: `{ key, order, icon, title, description, action: "logout", pendingTitle?, variant? }`。`MainMenu` が `action` を `useLogout` に結び、処理中は `pendingTitle`（無ければ `title`）を出して押せなくする。結び先の無い操作の項目は描かない
-- `icon` は lucide のアイコン（`RichMenuCard` と同じ型）。`variant` は `default`・`muted`・`destructive`
-- 閉じた機能の住所（招待 = 規則 `referral`、その他の操作 = 規則 `mypageOther`）のカードは、`RichMenuCard` の棚の Link（`gate="auto"`）が描かない。項目に門番の判定は書かない
-  - 棚の Link が隠すのは門番の規則が掛かった住所だけ。規則の無い住所（外部リンク・fork の設定で出し分けるだけの画面）の fork 項目は、項目のファイルで静的な設定を読み `hidden: !<設定>` と書く（モジュールの読み込み時に決まる値に限る。フックの結果では隠せない）
-- 見え方は認可ではない（各画面と API の守りは別）
+足りないタグをその場で作るときは `useCreateUserTag` の `trigger` を `onCreateOption` から呼ぶ（書き方: `src/lib/crud/components/Buttons/README.md`）。
 
-**fork が項目を足す**
+自前の UI なら `useBulkAddUserTags` の `trigger` を `ChecklistPopover` の `onConfirm` から呼ぶ。
 
-`src/features/core/user/mypageMenu/items/<key>.ts` に置き `pnpm generate extensions`（名前は印なし、key = ファイル名）。並べたい位置の order を選ぶ（例: 招待とアカウントの間 = 15）。
+テスト: `pnpm test src/features/core/user/services/server/helpers/nameAvailability.test.ts`（DB 不要な判定ロジックのみ。同時実行の直列化と SQL の判定スコープは対象外）
 
-```typescript
-// src/features/core/user/mypageMenu/items/coins.ts
-import { CoinsIcon } from "lucide-react";
+一括判定が必要な場合（候補名リストのフィルタリング等）は `isUserNamesTaken(names[]) => Set<使用中の入力文字列>`
+を使う（単一クエリ + 同一の判定条件。`isUserNameTaken` はこの単発版）。
 
-import type { MypageMenuItem } from "@/features/core/user/types";
+### アバターを自前の見た目で変える
 
-export const item: MypageMenuItem = {
-  key: "coins",
-  order: 25,
-  icon: CoinsIcon,
-  title: "コイン履歴",
-  description: "コインの購入と利用の履歴",
-  href: "/mypage/coins",
-  showChevron: true,
-};
-```
-
-**上流の項目を変える・隠す・並べ替える**
-
-上流の項目の隣に `<key>.override.ts` を置き `pnpm generate extensions`。書ける鍵は `hidden`・`order`・`title`・`description`・`icon`・`variant`・`pendingTitle` だけ（それ以外・対象の無い override は `pnpm check extensions` が止める。上流は override を出荷しない）。
-
-```typescript
-// src/features/core/user/mypageMenu/items/invite.override.ts — 招待のカードを隠す
-import type { MypageMenuItemOverride } from "@/features/core/user/types";
-
-export const override: MypageMenuItemOverride = { hidden: true };
-```
-
-```typescript
-// src/features/core/user/mypageMenu/items/logout.override.ts — ログアウトを最後にして文言を変える
-import type { MypageMenuItemOverride } from "@/features/core/user/types";
-
-export const override: MypageMenuItemOverride = { order: 90, title: "サインアウト", pendingTitle: "サインアウト中..." };
-```
-
-- fork が自分で足した項目は override せず、項目のファイルを直接書き換える
-- 操作の種類（`action`）を足すのは上流（型 `MypageMenuAction` と `MainMenu` の結び）。要るときは `/order` で依頼する
-- 上書きの型は `MypageMenuItemOverride`（注釈 `: MypageMenuItemOverride` でも `satisfies` でもよい）。リンクの項目に `pendingTitle` を重ねても無視される
-- 回帰: `pnpm test src/features/core/user`（`mypageMenu/buildMypageMenu.test.ts`・上流の 4 枚の `mypageMenu/upstreamMenu.test.ts`・上書きの重ね方の型の `mypageMenu/overrideSpread.test.ts`）
-
-## アバターの変更（useAvatarChange）
-
-自分のアバターの変更・削除の流れを持つ公開の hook（`hooks/useAvatarChange.ts`）。見た目を持たない。マイページのアカウントの部品 `components/common/AccountAvatarSection` はこれを呼んで描いており、fork が自前の見た目（カード・別の配置）でアバターを変えるときも、流れをコピーせずにこれを呼ぶ。
+自分のアバターの変更・削除の流れを持つ公開の hook（`hooks/useAvatarChange.ts`）。見た目を持たない。マイページのアカウントの部品 `components/common/AccountAvatarSection` はこれを呼んで描いており、
 
 `AccountAvatarSection` の値の指定は `size`・`acceptTypes`・`maxFileSize`・`onAvatarUpdated`。アバター未設定のときに丸の中に出す物（頭文字・別の絵など）は `children` で渡す（省略時は既定の人の形。丸の箱は部品が持つ）。描き分けの関数（旧 `renderFallback`）は持たない（core のドメインの部品は値の指定と children だけ）。
 
@@ -627,15 +255,15 @@ export function ProfileCard({ user }: { user: User }) {
 - 低い層の `useAvatarUpload`（`upload` / `discard`）と `useUpdateMyProfile` はそのまま公開（戻り値の形は変えない）。自前の前処理（縮小など）を挟む流れは低い層を使ってよい
 - 回帰: `pnpm test src/features/core/user`（`hooks/useAvatarChange.test.tsx`・`components/common/AccountAvatarSection.test.tsx`）
 
-## 管理画面の一般ユーザー一覧（useGeneralUserListTable / createGeneralUserListColumns）
+### 管理画面の一般ユーザー一覧を作り替える
 
-`/admin/users/general` の一覧（`components/admin/GeneralUserList` = `UserListHeader` + `Table`）は、処理と見た目を分けて公開している。fork が列・並び替え・行の押下を変えるときは、`_components/` に自前の Table を置いてこの 2 つを呼ぶ。削除の流れ・モーダルの対象・機能の開閉はコピーしない（CLAUDE.md FORK_EXTENSION 1）。
+`/admin/users/general` の一覧（`components/admin/GeneralUserList` = `UserListHeader` + `Table`）は、処理と見た目を分けて公開している。fork は `_components/` に自前の Table を置いてこの 2 つを呼ぶ。
 
 - `useGeneralUserListTable({ onChanged? })`（`hooks/useGeneralUserListTable.ts`）: 一覧の処理。見た目を持たない
 - `createGeneralUserListColumns(options)`（入口 `components/admin` から）: 上流の列（並び・セルの中身）を `DataTableColumn<User>[]` で返す。fork は戻り値に自分の列を差し込む
 - `UserListHeader`（`components/common/UserListHeader`）: 並び替えの候補 `sortOptions` と既定値 `defaultSort` を渡せる
 
-### useGeneralUserListTable の戻り値
+#### useGeneralUserListTable の戻り値
 
 | キー | 中身 |
 |------|------|
@@ -652,13 +280,13 @@ export function ProfileCard({ user }: { user: User }) {
 
 `createGeneralUserListColumns({ ...columnOptions, editBasePath })` の列: ステータス・ロール・表示名・認証方法・メールアドレス・登録日・（`canMemo` のとき）メモ・操作（ポイント操作 / 管理 か削除 / 編集 = `${editBasePath}/<id>/edit`）。
 
-### UserListHeader の並び替え
+#### UserListHeader の並び替え
 
 - `sortOptions?: { label, value }[]`: 既定 = `DEFAULT_USER_LIST_SORT_OPTIONS`（登録日順 `createdAt`・更新日順 `updatedAt`）
 - `defaultSort?: string`: `?sortBy=` が無いときに選ばれている値（既定 `createdAt`）
 - 選んだ値は `?sortBy=` に乗るだけ。並べるのは loader（上流は `utils/adminUserListQuery.ts` の `buildAdminUserListQuery` が `updatedAt` 以外を `createdAt` で並べる）。値を足した fork は自前の loader でその値を解釈し、`defaultSort` は loader の既定の並びと揃える
 
-### fork の例
+#### fork の例
 
 `src/app/admin/(protected)/users/general/_components/GeneralUserListTable.tsx`（page.tsx の切り替えと Screen の置き換えは src/lib/screens/README.md）:
 
@@ -738,207 +366,38 @@ const SORT_OPTIONS = [...DEFAULT_USER_LIST_SORT_OPTIONS, { label: "保有コイ�
 // <UserListHeader {...props} sortOptions={SORT_OPTIONS} />
 ```
 
-- wallet の部品（`AdminWalletAdjustModal`）を import するファイルは、そのファイルの中で `useGate().enabled("wallet")` を呼ぶ。`canAdjustWallet` も同じ gate を含むが、featureGate の依存の検査は import するファイルの字面だけを見るので、フックの中の確認は数えない（src/featureGate/README.md「依存の検査」の 2）。wallet を必ず使う fork は代わりに `required/wallet.ts` でもよい（同 5）
+- wallet の部品（`AdminWalletAdjustModal`）を import するファイルの中の `useGate().enabled("wallet")`: `canAdjustWallet` も同じ gate を含むが、featureGate の依存の検査は import するファイルの字面だけを見るので、フックの中の確認は数えない（src/featureGate/README.md「依存の検査」の 2）。wallet を必ず使う fork は代わりに `required/wallet.ts` でもよい（同 5）
 - 上流の `GeneralUserList` / `GeneralUserListTable` / `UserListHeader` の props は変わらない（足したものは省略できる）
 - 回帰: `pnpm test src/features/core/user`（`hooks/useGeneralUserListTable.test.tsx`・`components/admin/GeneralUserList/columns.test.tsx`・`components/common/UserListHeader.test.tsx`）
 
-## 退会と削除
+## API
 
-### 2 段階削除（ソフトデリート → 物理削除）
+利用者の列・型・口の契約は `API.md`(この README の API を分けた文書)。
 
-| 操作 | 実装 | 内容 |
-|------|------|------|
-| 本人退会 | accountLifecycle の `services/server/withdraw.ts`（`active` のみ可） | status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.withdrew`（1 トランザクション）。行は残る。アバターなどのファイルも残す |
-| ソフトデリート（管理者） | `wrappers/softDelete.ts` / `POST /api/admin/user/[userId]/delete`（汎用 `DELETE /api/user/:id` = `wrappers/remove.ts` も同じ） | `deleted_at` 設定 + status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.soft_deleted`（1 トランザクション）。ファイルは残す（復元できるように） |
-| 復元 | `wrappers/restore.ts`（汎用 `/api/user/[id]/restore`） | `deleted_at` を戻す（表示名衝突時は自動サフィックス） |
-| 物理削除（管理者） | `wrappers/hardDelete.ts` / `DELETE /api/admin/user/[userId]/hard-delete` | 削除前のユーザー情報全体を `before` に入れた監査ログ `user.hard_deleted` を記録 → user カテゴリなら Firebase Auth も削除 → DB 行を物理削除（アバターの実物も消える）→ その人の未使用のアップロードを取り消す |
+## Extension
 
-物理削除を分けている理由:
+- マイページのアカウントの項目・マイページのメニュー・退会時のクリーンアップハンドラ・登録の完了のメール: `Extension.md`(この README の Extension を分けた文書)
+- 管理のユーザー管理モーダルのタブ: `adminManageTabs/README.md`
+- 表示名の予約名: `reservedNames/README.md`
+- 管理一覧の一括操作: 受け口 `adminBulkActions/`(Usage「一括更新」)
+- ロールの上書き: `<JSON の名前>.override.ts`(Usage「ロールを足す」)
 
-- 管理画面の通常一覧から外す用途（ソフトデリート）と、DB から消す用途（物理削除）を分離し、誤操作による完全削除を防ぐ。ソフトデリートは復元可能な猶予期間として機能する
-- 物理削除が必要なのは、開発・QA・審査・デモ用アカウントの後始末や、GDPR 等の削除要求・法的命令といった限られたケース
+## Internals
 
-> 物理削除の前にソフトデリートを経ることはコード上強制していない（`hardDelete` は削除済み・未削除どちらの行も対象にする）。「削除済み一覧から復元 or 完全削除」する画面構成は上流に同梱していないため、必要ならダウンストリームで用意する。
+仕組みは `Internals.md`(この README の Internals を分けた文書)。
 
-物理削除後に残るもの / 消えるもの:
+## Verification
 
-- 残る: `audit_logs`（`target_id` は text で FK なし。物理削除時の全情報も `user.hard_deleted` の `before` に残る）、`wallet_histories`（`user_id` に FK なし）
-- 消える: `user_status_histories` など `users` に `onDelete: "cascade"` で FK を張っているテーブル
-- ファイル（[storageObject README](../storageObject/README.md)「規則」のユーザーの物理削除）
-  - 消える: アバター（同じ TX で台帳から外し、commit 後に実物）、その人がアップロードしてまだどこにも紐付いていないファイル、cascade で消える表のファイル（振込明細の画像など。掃除 cron の照合が後で消す。経理で残すなら物理削除せず退会・ソフトデリートを使う）
-  - 残る: 他の業務行に紐付いたファイル、チャットの添付など他の人のデータが参照しうるファイル
-  - 公開の用途の画像は、消してもブラウザ・CDN のキャッシュに残りうる
+- `pnpm test src/features/core/user`(マイページのメニュー・アバター・一般ユーザー一覧・管理モーダル)
+- パスワードの振り分け: `pnpm test src/features/core/user/services/server/helpers/passwordChange.test.ts`
+- 表示名の判定: `pnpm test src/features/core/user/services/server/helpers/nameAvailability.test.ts`(DB 不要な判定だけ。同時実行の直列化と SQL の判定スコープは対象外)
+- 外部の身元から作る口: `pnpm test src/features/core/user/services/server/registration/createFromProvider.test.ts`
+- 登録の完了のメールの文面: `pnpm test src/features/core/user/messages`
 
-### 退会時のクリーンアップハンドラ（拡張点 cleanupHandlers）
+## Related
 
-退会・ソフトデリート時に、他ドメインのリソース後始末を実行する仕組み。
-
-```
-cleanupHandlers/<名前>.ts      ← 項目（export const handler: UserCleanupItem）
-extensions/cleanupHandlers.ts                 ← 一覧（生成物、pnpm generate extensions）
-services/server/cleanup.ts                    ← 項目の型と実行（必須 → 任意）
-services/server/executeCleanup.ts             ← 呼び手の入口
-```
-
-- accountLifecycle の `withdraw.ts` / `wrappers/softDelete.ts` の両方がトランザクション内で `executeCleanup(userId, tx)` を呼ぶ
-- ステータス変更（`withdrawn` への更新）は項目の責務外。呼び出し元が自前で行う（softDelete は `setStatusWithdrawn`）
-
-| 種類 | 失敗時の挙動 | 上流の登録 |
-|------|-------------|-----------|
-| `requiredHandlers` | 例外をそのまま投げ、トランザクション全体（ステータス変更・監査ログ含む）をロールバック | `clearWalletBalance`（全ウォレットの balance / locked_balance を 0 にクリア + 履歴記録）・`messagingEndpoints`（端末の帳簿の本人の行を消す）・`messagingPreferences`（連絡の好みの本人の行を消す） |
-| `optionalHandlers` | `console.error` に記録して続行 | `cancelPendingPurchaseRequests`（pending / processing の購入リクエストを expired に。onExpire を持つ purchase_type は per-row でフック呼び出し） |
-
-`required: true` → `false` の順に、それぞれファイル名の順で逐次実行する。`enabled` が false の項目は走らない（機能が無効ならテーブルが無い場合があるため。閉じられる機能を import する項目は必須、`pnpm test src/featureGate scripts/structure/proxies`）。
-
-**ハンドラの追加手順**
-
-1. 対象ドメインの `services/server/` に `UserCleanupHandler` 型 `(userId: string, tx: DbTransaction) => Promise<void>` の関数を作る
-   - DB 操作は必ず渡された `tx` で行う（独自にトランザクションを開始しない）
-2. `src/features/core/user/cleanupHandlers/<名前>.ts` に項目を置き `pnpm generate extensions`:
-   `export const handler: UserCleanupItem = { required: true, enabled: () => <フラグ>, run: cleanupOnWithdraw };`
-
-```typescript
-// src/features/<domain>/services/server/cleanupOnWithdraw.ts
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
-
-export async function cleanupOnWithdraw(userId: string, tx: DbTransaction): Promise<void> {
-  // userId に紐づくリソースを tx で後始末する
-}
-```
-
-**required / optional の判断基準**
-
-- 失敗したときにデータ不整合が起きる → `required`（例: 残高・ポイントのクリア）
-- 失敗しても許容できるベストエフォート → `optional`（例: 通知送信、外部 API への連携通知）
-- 未処理リクエストのキャンセルのような中間的なものはケースバイケース。**迷ったら `required`**（データ整合性を優先）
-
-> optional でも、ハンドラ内の SQL が失敗すると PostgreSQL のトランザクション自体が aborted 状態になり、後続の処理（監査ログ記録等）も失敗して結局ロールバックされる（`executeCleanup` は SAVEPOINT を張らない）。DB 書き込みの失敗まで許容したい optional ハンドラは、内部の DB 操作を `tx.transaction(...)`（ネストトランザクション = SAVEPOINT）で囲むこと。
-
-## システムの連絡（登録の完了のメール）
-
-本登録の後（`registration/registerFromAuth.ts` → `sendRegistrationCompleteMail.ts`）に、`userConfig.signupMode` で連絡を選んで送る口 `messagingService.sendMessage` でメールアドレスへ送る。失敗しても登録は続く（呼び手が受けてログに出す）。一時の失敗で cron の送り直し待ち（`queued`）になったものは失敗にしない。仕組み: src/features/core/messaging/services/server/sendMessage/README.md。
-
-| 鍵 | 選ぶ条件 | vars |
-| --- | --- | --- |
-| `user.registrationComplete` | `signupMode` が `earlyRegistration` 以外 | `displayName`・`serviceNameShort`・`siteUrl`（`business.url`、ボタンの行き先） |
-| `user.earlyRegistrationComplete` | `signupMode` が `earlyRegistration` | `displayName`・`serviceNameShort`（ボタンなし） |
-
-- 取引の連絡（好みを見ない）。定義 `messages/<名前>.ts`、見た目はひな形 `welcome`（ようこそ、`src/features/core/messaging/layouts/welcome/`。見た目を替える fork はその描き方の `.replace`、文言は上書きの `values`）
-- 欄: ロゴ（事業の設定）と `badge` 札 → `heading` お祝いの行 → `thanks` お礼 → 区切り → `guide` 案内 → `button`（あれば）→ 区切り → `footer`。改行はそのまま出す
-- 件名と見える文面は前のテンプレートと同じ（`pnpm test src/features/core/user/messages`）
-
-## 外部の認証の身元から作る口（createFromProvider）
-
-新しい認証手段（fork の LINE ログインなど）で、外部の身元 `(providerType, providerUid)` から有効な利用者を引く・作る公開の口。
-名前の規則・状態の履歴・ログインの記録・監査を写さずに済ませる。使い方の全体（身元の確認 → この口 → `establishSession`）は
-[auth README「新しい認証手段」](../auth/README.md#新しい認証手段身元の確認--createfromprovider--establishsession)。
-
-```ts
-import { userService } from "@/features/core/user/services/server/userService";
-
-const { user, isNewUser, isRejoin } = await userService.createFromProvider({
-  providerType: "line",     // USER_PROVIDER_TYPES の値
-  providerUid: lineUserId,  // プロバイダー側の利用者 ID
-  displayName,              // プロバイダーの表示名（名前の規則を通す）
-  ip,                       // signupIp とログインの記録 signup（省略可）
-  role,                     // 省略 = REGISTRATION_DEFAULT_ROLE（assertRoleEnabled）
-  tx,                       // 呼び手の tx（省略 = 自分で 1 つ開く）
-});
-```
-
-| 見つかった行 | すること | 戻り値 |
-|------|------|------|
-| なし | 新規作成: `active`・`email` null・`isDemo` false・`signupIp` → 状態の履歴 `null → active`（`signup_activate`）→ 監査 `user.registered` → tx の後にログインの記録 `signup` | `isNewUser: true` |
-| `pending` | 本登録と同じく `active` に（状態の履歴 `signup_activate`・監査 `user.registered`） | `isNewUser: false` |
-| `withdrawn` | 上流の再登録の規則で `active` に（`signupIp`・状態の履歴 `signup_activate`・監査 `user.rejoined`・ログインの記録 `signup`） | `isRejoin: true` |
-| その他（`active`・`inactive`・`suspended`・`security_locked` など） | 何も変えずに返す（判断は `establishSession` の状態の分岐） | `isNewUser: false` |
-
-- 名前: `sanitizeUserName(displayName)`、空なら既定名 `PROVIDER_USER_DEFAULT_NAME`（「ユーザー」）。`userConfig.name.unique.enabled` のとき
-  `lockUserName` の後に使用中（予約名を含む）か見て、使用中なら `findAvailableSuffixedUserName`（「名前_2」…）。無効のときはそのまま（他の作成の道と同じ規則）
-- tx: 書き込み（引く・名前・作成または有効化・状態の履歴・監査）は 1 つの tx の中の savepoint で行う。呼び手の tx を渡せばそこで一緒に確定・巻き戻しする
-- 同時に 2 回来て `(provider_type, provider_uid)` の unique 違反になったら savepoint だけ巻き戻して引き直し、既存として返す（他の DB エラーはそのまま）
-- 戻り値の `user` は公開の列だけ（`localPassword` は含まない）
-- 退会者を断りたい fork は、呼ぶ前に `userService.findByProvider` で状態を見てこの口を呼ばない（口の中に選択肢を足さない）
-- 入れない物: 招待コード・流入の記録・プロフィール（呼び手がこの後に行う）。Firebase Auth のアカウントは作らない
-- テスト: `pnpm test src/features/core/user/services/server/registration/createFromProvider.test.ts`
-
-### 名前の公開の部品
-
-利用者を作る・名前を書く処理は普通 `createFromProvider`（外部の身元）や `userService` の作成・更新を使い、自分で users に書かない。
-名前を自分で扱う必要があるときに使える部品（どれも公開）:
-
-| 部品 | 場所 | すること |
-|------|------|------|
-| `sanitizeUserName(raw)` | `entities/userName.ts` | 外から来た名前から使えない文字を除き、前後の空白を削り、`maxLength` に収める（空になり得る。一意性は見ない） |
-| `lockUserName(executor, name)` | `services/server/helpers/nameAvailability.ts` | 正規化名の advisory lock を tx の終わりまで取る（同名の同時書き込みを直列化。executor は tx） |
-| `isUserNameTaken(name, { excludeUserId?, executor? })` | 同上 | 使用中か（削除済み・デモは占有しない、予約名を含む） |
-| `findAvailableSuffixedUserName(name, { executor?, reserved?, lockCandidates? })` | 同上 | 「名前_2」… の空き名を探す（`lockCandidates: true` で候補もロック） |
-| `withUserNameGuard({ name, excludeUserId? }, write)` | 同上 | 判定と書き込みを 1 つの tx で（使用中なら 409）。`unique.enabled` が false なら判定せず書く |
-
-- 一意性を見るのは `userConfig.name.unique.enabled` のときだけ（`lockUserName` と `isUserNameTaken` を自分で呼ぶときも、この設定を見てから呼ぶ）
-- users.status を書くなら `recordStatusTransition` も（ステータス遷移履歴の節）
-
-## ステータス遷移履歴（user_status_histories）
-
-退会・休会・復帰・BAN 等のステータス遷移を恒久保存するサテライトテーブル。**常時オン**（設定フラグなし）。
-
-### 設計方針
-
-- users テーブルに分析用カラム（withdrawnAt 等）を追加しない方針の実装。関心事ごとのサテライトテーブル（USER_ACQUISITION と同じ前例）
-- audit_logs とは責務が別: 監査ログはコンプライアンス用途で保持期限つき（既定365日で prune）、本テーブルは集計用途で恒久保存
-- 記録は `recordStatusTransition()`（`services/server/statusHistory.ts`）に集約。`fromStatus === toStatus` は no-op
-
-### スキーマ
-
-| カラム | 型 | 説明 |
-|--------|-----|------|
-| `user_id` | uuid FK(users, cascade) | 対象ユーザー |
-| `from_status` | user_status \| null | 遷移前。新規作成（INSERT）は null |
-| `to_status` | user_status | 遷移後 |
-| `trigger` | text | 遷移のきっかけ（語彙: `entities/model.ts` の `UserStatusTransitionTrigger`） |
-| `changed_at` | timestamptz | 遷移日時 |
-
-trigger 語彙: `self_withdraw` / `self_pause` / `self_reactivate` / `signup_pre_register` / `signup_activate` / `admin_change_status` / `admin_soft_delete` / `admin_restore` / `admin_create` / `demo_create` / `security_lockout`
-
-### 集計レシピ
-
-```typescript
-// 日別退会数（本人退会 + 管理者削除）
-import { sql } from "drizzle-orm";
-import { UserStatusHistoryTable } from "@/features/core/user/entities/drizzle";
-
-const rows = await db
-  .select({
-    day: sql<string>`date_trunc('day', ${UserStatusHistoryTable.changedAt})::date`,
-    count: sql<number>`count(*)::int`,
-  })
-  .from(UserStatusHistoryTable)
-  .where(eq(UserStatusHistoryTable.toStatus, "withdrawn"))
-  .groupBy(sql`1`)
-  .orderBy(sql`1`);
-```
-
-- デモユーザー除外は users への JOIN で `is_demo = false` を条件に加える
-- ダッシュボードで重くなったら ANALYTICS_PERF（`withAnalyticsCache` → rollup）に載せる。単純 GROUP BY のうちは cache のみで十分
-
-### 過去分のバックフィル
-
-導入時に1回だけ実行（冪等・再実行安全）:
-
-```bash
-pnpm task user:status-history-backfill
-```
-
-audit_logs に残っている `user.withdrew` / `user.status.changed` 等から復元する。監査ログの保持期限を過ぎて prune 済みの遷移は復元不可。
-
-### 注意
-
-**`users.status` を書き換える処理を新設したら、必ず `recordStatusTransition()` の呼び出しを追加すること。** 既存の記録箇所は `statusHistory.ts` の docstring を参照。
-
-## 関連ファイル
-
-| ファイル | 役割 |
-|---------|------|
-| `src/features/core/userProfile/` | ロール別プロフィール管理 |
-| `src/registry/schemaRegistry.ts` | Drizzle スキーマ登録 |
-| `src/lib/drizzle/` | Drizzle 設定 |
+- `src/features/core/userProfile/` — ロール別プロフィール
+- `src/registry/schemaRegistry.ts` — Drizzle スキーマの登録 / `src/lib/drizzle/` — Drizzle の設定
+- auth: [auth README](../auth/README.md)(ログイン・登録・セッション)
+- IP の記録: [userLoginEvent README](../userLoginEvent/README.md)
+- ファイル: [storageObject README](../storageObject/README.md)
