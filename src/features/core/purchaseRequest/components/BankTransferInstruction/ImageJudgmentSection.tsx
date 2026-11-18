@@ -258,7 +258,7 @@ function ResultBar({ isPassed, confidence }: { isPassed: boolean; confidence: nu
           ? "bg-warning"
           : "bg-destructive";
     return (
-      <div>
+      <Block>
         <Flex justify="between">
           <Span tone="muted" size="sm">
             確信度
@@ -267,13 +267,13 @@ function ResultBar({ isPassed, confidence }: { isPassed: boolean; confidence: nu
             {confidence} / 100
           </Span>
         </Flex>
-        <div className="mt-1 h-2 w-full overflow-hidden rounded bg-muted">
-          <div
+        <Block className="mt-1 h-2 w-full overflow-hidden rounded bg-muted">
+          <Block
             className={`h-full transition-all ${tone}`}
             style={{ width: `${confidence}%` }}
           />
-        </div>
-      </div>
+        </Block>
+      </Block>
     );
   }
   const tone =
@@ -283,7 +283,7 @@ function ResultBar({ isPassed, confidence }: { isPassed: boolean; confidence: nu
         ? "bg-destructive/70"
         : "bg-destructive/40";
   return (
-    <div>
+    <Block>
       <Flex justify="between">
         <Span tone="destructive" size="sm">
           不正確信度
@@ -292,13 +292,13 @@ function ResultBar({ isPassed, confidence }: { isPassed: boolean; confidence: nu
           {confidence} / 100
         </Span>
       </Flex>
-      <div className="mt-1 h-2 w-full overflow-hidden rounded bg-muted">
-        <div
+      <Block className="mt-1 h-2 w-full overflow-hidden rounded bg-muted">
+        <Block
           className={`h-full transition-all ${tone}`}
           style={{ width: `${confidence}%` }}
         />
-      </div>
-    </div>
+      </Block>
+    </Block>
   );
 }
 

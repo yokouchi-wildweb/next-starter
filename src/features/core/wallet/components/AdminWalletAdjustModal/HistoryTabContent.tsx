@@ -4,8 +4,11 @@
 
 import { useMemo, useState } from "react";
 
+import { Flex } from "@/components/Layout/Flex";
+import { InBlock } from "@/components/Layout/InBlock";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
@@ -77,22 +80,24 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
     {
       header: "操作",
       render: (history) => (
-        <div className="flex flex-col gap-0.5">
-          <span>{formatChangeMethodLabel(history)}</span>
-          <span className="text-xs text-muted-foreground">{formatDeltaSummary(history)}</span>
-        </div>
+        <Flex direction="column" className="gap-0.5">
+          <Span inline>{formatChangeMethodLabel(history)}</Span>
+          <Span size="xs" weight="inherit" tone="muted">
+            {formatDeltaSummary(history)}
+          </Span>
+        </Flex>
       ),
     },
     {
       header: "残高遷移",
       render: (history) => (
-        <span className="inline-flex items-center gap-1.5 text-sm font-medium">
+        <InBlock className="inline-flex items-center gap-1.5 text-sm font-medium">
           <CurrencyDisplay walletType={history.type} amount={history.balanceBefore} size="sm" showUnit color="inherit" />
-          <span>→</span>
-          <span className={formatBalanceClass(history)}>
+          <Span inline>→</Span>
+          <Span inline className={formatBalanceClass(history)}>
             <CurrencyDisplay walletType={history.type} amount={history.balanceAfter} size="sm" showIcon={false} showUnit color="inherit" />
-          </span>
-        </span>
+          </Span>
+        </InBlock>
       ),
     },
     {
@@ -152,19 +157,27 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
         onRetry={retry}
         completedText="すべて読み込み済み"
         initialLoadingNode={
-          <div className="flex min-h-[160px] items-center justify-center">
+          <Flex align="center" justify="center" className="min-h-[160px]">
             <Para tone="muted">履歴を読込中...</Para>
-          </div>
+          </Flex>
         }
         errorNode={
-          <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-destructive/40 bg-destructive/5">
+          <Flex
+            align="center"
+            justify="center"
+            className="min-h-[160px] rounded-lg border border-destructive/40 bg-destructive/5"
+          >
             <Para tone="destructive">履歴の取得に失敗しました</Para>
-          </div>
+          </Flex>
         }
         emptyNode={
-          <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-dashed border-border py-6">
+          <Flex
+            align="center"
+            justify="center"
+            className="min-h-[160px] rounded-lg border border-dashed border-border py-6"
+          >
             <Para tone="muted">履歴はまだありません</Para>
-          </div>
+          </Flex>
         }
       >
         {(items) => (
@@ -191,7 +204,7 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
       rows={detailRows}
       footer={
         detailHistory ? (
-          <div className="flex flex-col gap-4">
+          <Flex direction="column" gap="md">
             <Para size="sm" weight="medium">
               関連するバッチ処理
             </Para>
@@ -202,7 +215,7 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
               maxHeight="none"
               getKey={(record) => record.id}
             />
-          </div>
+          </Flex>
         ) : null
       }
     />

@@ -6,6 +6,8 @@ import type { ReactElement } from "react";
 import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";
 import type { WalletHistory } from "@/features/core/walletHistory/entities";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
+import { Flex } from "@/components/Layout/Flex";
+import { Span } from "@/components/TextBlocks";
 import {
   WalletHistoryChangeMethodOptions,
   WalletHistorySourceTypeOptions,
@@ -142,11 +144,13 @@ export function extractMetaRows(history: WalletHistoryBatchSummarySerialized): D
  */
 export function renderValueList(values: string[]): ReactElement {
   return (
-    <div className="flex flex-col gap-1">
+    <Flex direction="column" gap="2xs">
       {values.map((value) => (
-        <span key={value}>{value}</span>
+        <Span key={value} inline>
+          {value}
+        </Span>
       ))}
-    </div>
+    </Flex>
   );
 }
 

@@ -91,10 +91,10 @@ export function PurchaseList({ slug, config, couponEffect, packageBonuses }: Pur
               >
                 {isDiscountValid ? (
                   <Stack gap="none" className="items-center">
-                    <span className="text-xs line-through opacity-50">
+                    <Span size="xs" weight="inherit" className="line-through opacity-50">
                       ¥{pkg.price.toLocaleString()}
-                    </span>
-                    <span>¥{discountedPrice.toLocaleString()}</span>
+                    </Span>
+                    <Span inline>¥{discountedPrice.toLocaleString()}</Span>
                   </Stack>
                 ) : (
                   `¥${pkg.price.toLocaleString()}`

@@ -17,6 +17,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
+import { InBlock } from "@/components/Layout/InBlock";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, Span } from "@/components/TextBlocks";
 import { SoftBadge } from "@/components/Badge";
@@ -74,9 +75,9 @@ function SelectionIndicator({ isSelected }: { isSelected: boolean }) {
   const checkOpacity = isSelected ? "opacity-100" : "opacity-0";
 
   return (
-    <span aria-hidden className={containerClass}>
+    <InBlock aria-hidden className={containerClass}>
       <Check className={`h-3.5 w-3.5 transition-opacity ${checkOpacity}`} strokeWidth={3} />
-    </span>
+    </InBlock>
   );
 }
 
@@ -326,7 +327,7 @@ export function SupportedPaymentMethods({
       <Para size="sm" tone="muted" align="center">
         決済方法を選択してください
       </Para>
-      <div role="radiogroup" aria-label="支払い方法">
+      <Block role="radiogroup" aria-label="支払い方法">
         <Stack gap="xs">
           {methods.map((method) => (
             <PaymentMethodCard
@@ -339,7 +340,7 @@ export function SupportedPaymentMethods({
             />
           ))}
         </Stack>
-      </div>
+      </Block>
     </Stack>
   );
 }

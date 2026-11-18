@@ -3,6 +3,7 @@
 
 import type { ReactNode } from "react";
 import { CountUp } from "@/components/Animation";
+import { InBlock } from "@/components/Layout/InBlock";
 import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
 import type { WalletType } from "@/features/wallet/config";
@@ -154,7 +155,7 @@ export function CurrencyDisplay({
   ) : null;
 
   return (
-    <span
+    <InBlock
       data-currency-display="root"
       className={cn("inline-flex", gapClass, alignClass, className)}
     >
@@ -188,12 +189,12 @@ export function CurrencyDisplay({
           amount.toLocaleString()
         )}
         {resolvedSuffix !== "" && resolvedSuffix != null && (
-          <span data-currency-display="suffix">
+          <Span inline data-currency-display="suffix">
             {" "}
             {resolvedSuffix}
-          </span>
+          </Span>
         )}
       </Span>
-    </span>
+    </InBlock>
   );
 }

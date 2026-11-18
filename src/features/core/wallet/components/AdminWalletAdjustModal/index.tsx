@@ -10,6 +10,7 @@ import { useToast } from "@/lib/toast";
 
 import TabbedModal from "@/components/Overlays/TabbedModal";
 import { Stack } from "@/components/Layout/Stack";
+import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { AppForm } from "@/components/Form/AppForm";
@@ -153,7 +154,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
       >
         <Flex direction="column" gap="xs">
           <Flex justify="between" align="center" gap="xl" wrap="wrap">
-            <div>
+            <Block>
               <Para size="xs" tone="muted">
                 対象ユーザー
               </Para>
@@ -161,15 +162,15 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
               <Para tone="muted" size="sm">
                 {user.email ?? adminFallback}
               </Para>
-            </div>
-            <div className="text-right">
+            </Block>
+            <Block className="text-right">
               <Para size="xs" tone="muted">
                 現在の残高
               </Para>
               <Para size="sm">
                 {balanceDisplay}
               </Para>
-            </div>
+            </Block>
           </Flex>
         </Flex>
       </Stack>

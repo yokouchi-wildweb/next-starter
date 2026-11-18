@@ -7,6 +7,7 @@ import { useGate } from "@/featureGate/client";
 import { ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
+import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { SecTitle, Para } from "@/components/TextBlocks";
@@ -41,11 +42,11 @@ export function PhoneVerificationRequired({
     <>
       <Section>
         <Stack gap="lg" className="py-8 text-center">
-          <div className="flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+          <Flex justify="center">
+            <Flex align="center" justify="center" className="h-16 w-16 rounded-full bg-primary/10">
               <ShieldCheck className="h-8 w-8 text-primary" />
-            </div>
-          </div>
+            </Flex>
+          </Flex>
           <Stack gap="xs">
             <SecTitle as="h2" size="lg" align="center">
               SMS認証

@@ -12,6 +12,7 @@ import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Flex } from "@/components/Layout/Flex";
+import { InBlock } from "@/components/Layout/InBlock";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
@@ -36,7 +37,7 @@ export function ActionRow({ icon, iconAccent, label, description, onClick }: Pro
       className="group w-full rounded-lg border border-border bg-card transition-colors hover:bg-accent/30 active:bg-accent/50"
     >
       <Flex align="center" gap="xs" className="px-3 py-3">
-        <span
+        <InBlock
           className={cn(
             "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
             iconAccent ?? "bg-muted text-muted-foreground",
@@ -44,7 +45,7 @@ export function ActionRow({ icon, iconAccent, label, description, onClick }: Pro
           aria-hidden
         >
           {icon}
-        </span>
+        </InBlock>
         <Stack className="gap-0.5 flex-1 text-left">
           <Span weight="semiBold" size="sm">
             {label}

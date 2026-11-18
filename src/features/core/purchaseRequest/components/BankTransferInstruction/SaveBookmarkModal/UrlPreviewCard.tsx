@@ -11,6 +11,7 @@ import { Check, Copy, Link as LinkIcon } from "lucide-react";
 
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
+import { InBlock } from "@/components/Layout/InBlock";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks";
 import { useToast } from "@/lib/toast";
@@ -43,9 +44,9 @@ export function UrlPreviewCard({ title, url }: Props) {
     <Block padding="xs" className="rounded-lg border border-border bg-primary/5">
       <Stack gap="xs">
         <Flex align="center" gap="xs">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <InBlock className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
             <LinkIcon className="h-4 w-4" aria-hidden />
-          </span>
+          </InBlock>
           <Span weight="semiBold" size="sm" className="truncate">
             {title}
           </Span>
