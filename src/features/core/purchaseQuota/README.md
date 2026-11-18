@@ -1,57 +1,92 @@
 # purchaseQuota（購入クォータ）
 
-1 ユーザーが特定の期間内に購入できる金額に上限を設ける汎用フレームワーク。
+## Overview
 
-ベースリポジトリでは**仕組みのみ**提供する。具体的なクォータルールは下流プロジェクトで `src/features/core/purchaseQuota/config.ts`、上書き `src/config/features/purchaseQuota.config.ts` を編集して宣言する。
+- 1 ユーザーが特定の期間内に購入できる金額に上限を設ける汎用フレームワーク
+- ベースリポジトリでは仕組みのみ提供する。具体的なクォータルールは下流プロジェクトが設定で宣言する(Extension)
+- 使う時・直す時の決まりは札 .claude/rules/items/features/purchaseQuota.md にある。この README は使い方と仕組み
 
----
+## Usage
 
-## 仕組み
+古い ledger 行の掃除:
 
-```
-initiatePurchase
-  ↓
-reserveQuota: ルールごとに使用量を集計 → 上限超過なら PurchaseQuotaExceededError (429)
-  ↓ pass
-ledger に reserved 行を insert (または上書き)
-  ↓
-completePurchase → commitQuota (reserved → committed、集計値は不変)
-failPurchase / cancelPurchase / expirePending → releaseQuota (集計から除外)
+```bash
+pnpm task purchaseQuota:cleanup
 ```
 
-ledger の status:
+- 推奨: 1 日 1 回（深夜帯）
+- 90 日より古い ledger 行を物理削除
+- CLI 専用タスク（`/api/cron/*` には無い = 定期実行されない）。定期実行の足し方は [cron 基盤 README](../../../lib/cron/README.md#新しい定期タスクを追加する)
 
-| status | 集計対象 | 用途 |
-|---|---|---|
-| reserved | ✓ | 仮押さえ (pending/processing) |
-| committed | ✓ | 完了済み |
-| released | × | 失敗・キャンセル・期限切れ |
+導入時は新規テーブル `purchase_quota_ledger` を `pnpm db:push` で作る。既存テーブルへの変更は無いため、稼働中プロジェクトもダウンタイム無しで導入できる。
 
----
+## API
 
-## ファイル構成
-
-```
-purchaseQuota/
-├── README.md
-├── domain.json
-├── constants/index.ts                  # status enum / audit action
-├── entities/
-│   ├── drizzle.ts                      # purchase_quota_ledger テーブル
-│   ├── schema.ts                       # Zod スキーマ
-│   ├── model.ts                        # TS 型
-│   ├── form.ts                         # フォーム型 (UI 未提供のため最小)
-│   └── index.ts
-└── services/server/wrappers/
-    └── purchaseQuotaHelper.ts          # 公開 API
+```ts
+import {
+  reserveQuota,
+  commitQuota,
+  releaseQuota,
+  getQuotaUsage,
+  cleanupOldLedger,
+  PurchaseQuotaExceededError,
+} from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 ```
 
----
+### reserveQuota
 
-## 設定 (`src/features/core/purchaseQuota/config.ts`、上書き `src/config/features/purchaseQuota.config.ts`)
+```ts
+reserveQuota({ userId, paymentMethod, amount, purchaseRequestId }, tx): Promise<void>
+```
 
-`rules` 配列にルールを並べるだけで有効化される。
-配列が空 (デフォルト) のときは完全に無効化され、既存挙動と完全互換。
+- ルール超過時 `PurchaseQuotaExceededError` (status 429) を throw
+- 同一 `purchaseRequestId` で再呼び出しすると既存行を上書き (pending 再利用に対応)
+- 同一ユーザー単位で `pg_advisory_xact_lock` により直列化
+- 監査ログに `purchase_quota.reservation.exceeded` を tx 外で記録 (rollback でも残る)
+- `tx` 必須
+
+### commitQuota
+
+```ts
+commitQuota(purchaseRequestId, tx?): Promise<void>
+```
+
+- status reserved → committed (集計値不変)
+
+### releaseQuota
+
+```ts
+releaseQuota(purchaseRequestId: string | readonly string[], tx?): Promise<void>
+```
+
+- status reserved/committed → released (集計除外)
+- 複数 ID をまとめて release 可能 (bulk expire 用)
+
+### getQuotaUsage
+
+```ts
+getQuotaUsage(userId): Promise<QuotaUsage[]>
+```
+
+- 状態変更なし。各ルールの現在使用量と残り上限を返す
+
+### cleanupOldLedger
+
+```ts
+cleanupOldLedger(retentionDays = 90): Promise<number>
+```
+
+- 古い ledger 行を物理削除 (cron 用)
+
+### クォータ超過時のクライアント挙動
+
+- HTTP ステータス: `429`
+- レスポンス例: `{ "message": "購入上限を超えました (銀行振込: 1時間30万円)。しばらく経ってから再度お試しください。" }`
+- ClientService の `normalizeHttpError` 経由で UI に伝搬
+
+## Extension
+
+設定は `config.ts`、上書きは `src/config/features/purchaseQuota.config.ts`。`rules` 配列にルールを並べるだけで有効化される。配列が空 (既定) のときは完全に無効。
 
 ```ts
 export const rules: readonly QuotaRule[] = [
@@ -72,69 +107,39 @@ export const rules: readonly QuotaRule[] = [
 ];
 ```
 
-複数ルールを並列で評価し、**いずれか 1 つでも超過すれば購入が拒否される**。
+複数ルールを並列で評価し、いずれか 1 つでも超過すれば購入が拒否される。
 
-### scope
+scope:
 
 | 値 | 集計対象 |
 |---|---|
 | `{ type: "all" }` | 全 paymentMethod の合算 |
 | `{ type: "paymentMethod", value: "bank_transfer" }` | その paymentMethod のみ |
 
----
+## Internals
 
-## 公開 API
+### 流れ
 
-```ts
-import {
-  reserveQuota,
-  commitQuota,
-  releaseQuota,
-  getQuotaUsage,
-  cleanupOldLedger,
-  PurchaseQuotaExceededError,
-} from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
+```
+initiatePurchase
+  ↓
+reserveQuota: ルールごとに使用量を集計 → 上限超過なら PurchaseQuotaExceededError (429)
+  ↓ pass
+ledger に reserved 行を insert (または上書き)
+  ↓
+completePurchase → commitQuota (reserved → committed、集計値は不変)
+failPurchase / cancelPurchase / expirePending → releaseQuota (集計から除外)
 ```
 
-### reserveQuota
-```ts
-reserveQuota({ userId, paymentMethod, amount, purchaseRequestId }, tx): Promise<void>
-```
-- ルール超過時 `PurchaseQuotaExceededError` (status 429) を throw
-- 同一 `purchaseRequestId` で再呼び出しすると既存行を上書き (pending 再利用に対応)
-- 同一ユーザー単位で `pg_advisory_xact_lock` により直列化
-- 監査ログに `purchase_quota.reservation.exceeded` を tx 外で記録 (rollback でも残る)
-- `tx` 必須 (購入レコードとの atomic 整合のため)
+ledger の status:
 
-### commitQuota
-```ts
-commitQuota(purchaseRequestId, tx?): Promise<void>
-```
-- status reserved → committed (集計値不変)
+| status | 集計対象 | 用途 |
+|---|---|---|
+| reserved | ✓ | 仮押さえ (pending/processing) |
+| committed | ✓ | 完了済み |
+| released | × | 失敗・キャンセル・期限切れ |
 
-### releaseQuota
-```ts
-releaseQuota(purchaseRequestId: string | readonly string[], tx?): Promise<void>
-```
-- status reserved/committed → released (集計除外)
-- 複数 ID をまとめて release 可能 (bulk expire 用)
-
-### getQuotaUsage
-```ts
-getQuotaUsage(userId): Promise<QuotaUsage[]>
-```
-- 状態変更なし
-- 各ルールの現在使用量と残り上限を返す
-
-### cleanupOldLedger
-```ts
-cleanupOldLedger(retentionDays = 90): Promise<number>
-```
-- 古い ledger 行を物理削除 (cron 用)
-
----
-
-## 統合ポイント (ベース提供分)
+### 統合ポイント (ベース提供分)
 
 | 場所 | 呼ばれる API |
 |---|---|
@@ -146,49 +151,11 @@ cleanupOldLedger(retentionDays = 90): Promise<number>
 
 `bankTransferReview` の `submitReview` / `confirmReview` / `rejectReview` は内部で `completePurchase` / `failPurchase` を呼ぶため自動で連動する。
 
----
+### 監査ログ
 
-## クォータ超過時のクライアント挙動
+- `purchase_quota.reservation.exceeded` は `auditLogger.record` で `bestEffort: true` を指定し、AuditContext 未設定時も dead-letter 経由で残る
 
-- HTTP ステータス: `429`
-- レスポンス例: `{ "message": "購入上限を超えました (銀行振込: 1時間30万円)。しばらく経ってから再度お試しください。" }`
-- ClientService の `normalizeHttpError` 経由で UI に伝搬
-
----
-
-## cron
-
-```bash
-pnpm task purchaseQuota:cleanup
-```
-- 推奨: 1 日 1 回（深夜帯）
-- 90 日より古い ledger 行を物理削除
-- CLI 専用タスク（`/api/cron/*` には無い = 定期実行されない）。定期実行したい fork は `src/app/api/cron/<別名>/` に task.ts と route.ts を足す。手順は [cron 基盤 README](../../../lib/cron/README.md#新しい定期タスクを追加する) を参照
-
----
-
-## DB マイグレーション
-
-新規テーブル `purchase_quota_ledger` を追加する。
-
-```bash
-pnpm db:push
-```
-
-既存テーブルへの変更は無いため、稼働中プロジェクトもダウンタイム無しで導入可能。
-
----
-
-## 設計上の注意点
-
-- **冪等性**: 同一 `purchase_request_id` への reserveQuota 再呼び出しは既存 active 行を上書き
-- **整合性**: reserveQuota は呼び出し側の購入 tx に必ず相乗りする (rollback で台帳も巻き戻る)
-- **監査ログ**: クォータ超過拒否のみ記録 (reserve/commit/release は高頻度のため不記録)。`purchase_quota.reservation.exceeded` action は `auditLogger.record` で `bestEffort: true` を指定し、AuditContext 未設定時も dead-letter 経由で残る
-- **並行制御**: 同一ユーザーの並行 reserve は `pg_advisory_xact_lock(hashtext(userId))` で直列化
-
----
-
-## rateLimit との違い
+### rateLimit との違い
 
 | | rateLimit (`src/features/core/rateLimit`) | purchaseQuota (本機能) |
 |---|---|---|
