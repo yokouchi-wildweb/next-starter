@@ -1,16 +1,26 @@
-# Skeleton コンポーネントの使い方
+# Skeleton
 
-このフォルダでは、Shadcn の `Skeleton` をラップした **BaseSkeleton** を中心に、フォームやモーダルなど画面単位で利用する Skeleton を提供しています。
+## Overview
 
-## BaseSkeleton
+読み込み中の形を描く部品(`@/components/Skeleton/*`)。Shadcn の `Skeleton` をラップした `BaseSkeleton` を中心に、フォームやモーダルなど画面の単位の Skeleton を持つ。
+
+- `BaseSkeleton`: 1 つの形(大きさは Tailwind のクラスで付ける)
+- `FormSkeleton`: フォーム全体の読み込み中
+- `DetailModalSkeleton`: 詳細モーダルの代わりの表示
+- `ImageUploaderSkeleton`: 画像アップローダーの下見の領域
+- 画面の単位の 3 つはどれも中で `BaseSkeleton` を使うので、見た目が揃い、props で調整できる
+
+## Usage
 
 ```tsx
-import { BaseSkeleton } from "@/components/Feedback/Skeleton/BaseSkeleton";
+import { BaseSkeleton } from "@/components/Skeleton/BaseSkeleton";
 
 <BaseSkeleton className="h-8 w-40" />;
 ```
 
-### Props
+## API
+
+### BaseSkeleton
 
 | Prop | 型 | デフォルト | 説明 |
 | --- | --- | --- | --- |
@@ -19,14 +29,14 @@ import { BaseSkeleton } from "@/components/Feedback/Skeleton/BaseSkeleton";
 | `shimmerWidth` | `number` | `60` | シマー帯の幅（%）。**5〜100** の間に clamp されます |
 | `backgroundTone` | `"subtle" \| "default" \| "bold"` | `"default"` | 背景色の濃さを切り替えます |
 
-Tailwind クラスや `style` の指定もそのまま渡せます。
+- Tailwind のクラスや `style` もそのまま渡せる
 
-## 既存の Skeleton
+### 画面の単位の Skeleton
 
-| コンポーネント | 役割 |
-| --- | --- |
-| `FormSkeleton.tsx` | フォーム全体のローディング。`fields` や `includeButtons` で調整可能 |
-| `DetailModalSkeleton.tsx` | 詳細モーダルのフォールバック表示 |
-| `ImageUploaderSkeleton.tsx` | 画像アップローダーのプレビュー領域で使用 |
+- `FormSkeleton`: `fields`(欄の数)・`includeButtons`(下のボタンの形)・`className`
+- `DetailModalSkeleton`: `open` / `onOpenChange`(モーダルの開閉)・`rows` / `cols`・`className`
+- `ImageUploaderSkeleton`: `className`
 
-これらはすべて `BaseSkeleton` を内部で利用しているため、スタイルの統一や Props でのカスタマイズが容易です。必要に応じて新しい Skeleton を追加する場合も `BaseSkeleton` を基準に構築してください。
+## Related
+
+- 部品の置き換えの一覧(skeleton → `Skeleton/BaseSkeleton`): `.claude/rules/core/components.md` wrappers
