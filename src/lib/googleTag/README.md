@@ -6,8 +6,8 @@
 - `lib/clarity`(env-gated・null 返却・root layout マウント)と同じパターン
 - Firebase Analytics と `window.gtag` / `dataLayer` を共存させる(既存があれば再利用)
 - クライアント専用(SSR では何もしない)
-- 二重計上防止: `transaction_id` 単位の dedup + mount あたり 1 回ガード(`useGoogleAdsConversion`)
-- 決まり(env だけ・wiring 版を描く・発火の仕方・既存 gtag を上書きしない・features / config を読まない・コンバージョンの足し方)は札 `.claude/rules/items/lib/googleTag.md`
+- 二重計上防止: `transactionId` 指定時はその単位で dedup、未指定時は mount あたり 1 回(`useGoogleAdsConversion`)
+- 決まりは `.claude/rules/items/lib/googleTag.md`
 
 ## Usage
 
@@ -27,12 +27,13 @@ env:
 
 ## API
 
-- `initGoogleTag(options?): void` — 冪等。gtag.js loader を 1 回だけ注入し、存在する ID のみ `config()`。既存の `window.gtag` / `dataLayer`(Firebase 等)を再利用。`options.ignoreReferrerPaths?: RegExp[]` でリファラー無視パスを追加可能
+- `initGoogleTag(options?): void` — 冪等。gtag.js loader を 1 回だけ注入し、存在する ID のみ `config()`。既存の `window.gtag` / `dataLayer`(Firebase 等)を再利用。`options`(`GoogleTagInitOptions`)= `channels?`(判別表)・`ignoreReferrerPaths?: RegExp[]`・`ignoreReferrerDomains?: string[]`(どちらも既定にマージ)
 - `<GoogleTag channels? ignoreReferrerPaths? ignoreReferrerDomains? />` — `"use client"`。mount 時に `initGoogleTag()` を呼ぶ。root layout body に配置済み(判別表を結んだ `src/wiring/GoogleTag.tsx` 経由)
 - `useGoogleAdsConversion()` → `{ fire }` — named コンバージョンを発火するフック。env 解決・dedup・mount ガードを内包
 - `trackGoogleAdsConversion({ sendTo, value?, currency?, transactionId? })` — 低レベル API(`sendTo` 空 or gtag 不在で no-op)
 - `GOOGLE_ADS_CONVERSIONS` — env から解決した named send_to レジストリ(`signup` / `coinPurchase`)
 - `isGoogleTagEnabled()` — GA4 もしくは Ads の ID が設定済みか
+- `resolveLinkCampaign(search, channels)` → `{ campaign_source, campaign_medium } | null` — 招待等の独自チャンネルの判定(UTM・クリック ID があれば null)。`initGoogleTag` が中で使い、userAcquisition のテストが同じ表で突き合わせる
 - 判別表の型 `GoogleTagChannelDefinition` = `{ param, kind: "clickId" | "link", channel: { source, medium } | null }`
 
 ## Extension

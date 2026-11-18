@@ -26,7 +26,7 @@
 - `blobId(text)` / `fingerprint(text, kind)`
 - `checkPermits({ entries, permits, baseText, headText, intake, resolvedUpreqs })` → `{ entries(permit・verdict 付き), leftovers }`
 - `permitsPath(forkId)`
-- 依頼の番号の形: `UPREQ_ID`
+- 依頼の番号の形: `<YYYYMMDD-HHMMSS>-<slug>`(`permits.mjs` の中の正規表現 `UPREQ_ID`。入口からは出していない)
 
 ### 区画(`regions.mjs`、Node 組み込みだけの `.mjs`)
 

@@ -7,7 +7,6 @@
 - 全ファイルの持ち主を書き出すことはしない。持ち主を知る必要がある場面(lint の厳しさ・削除と書き換えの検査・notice)ごとに、必要な範囲だけを決める
 - 受け口の外を変える必要が出たら、まず直接の親へ改良を依頼する(`/order <親>`)。upstream の汎用化の不足を、依頼を通して直していく
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/forkOwnership.md にある。この README は使い方と置き場の形
-- 決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)
 
 ## Usage
 
@@ -132,5 +131,5 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 ## Related
 
 - [`folderCatalog`](../folderCatalog/README.md): 目録(`CATALOG.md`)と実在のディレクトリの整合、lib 単位の所有(目録の節)による lint の厳しさ。forkOwnership は直接の親との差分から、受け口の外の書き換え・削除・祖先 lib への追加を見つける
-- 点つきの名前の分類: `src/lib/districtMap/dottedNames.mjs`([districtMap の README](../districtMap/README.md))。判定の核もそこを読む。ここの `dottedNames.mjs` は再 export だけで、予告の後に消す
+- 点つきの名前の分類: `src/lib/districtMap/dottedNames.mjs`([districtMap の README](../districtMap/README.md))。判定の核(`judge.mjs`)もそこを読む
 - `.notices/README.md`「解決(resolves)」「緊急修正(hotfix)」

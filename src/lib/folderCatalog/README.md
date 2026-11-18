@@ -5,8 +5,8 @@
 - フォルダ目録(`CATALOG.md`)の読み込み・検査・所有判定。目録 = そのフォルダ直下のディレクトリ(ライブラリ等)を、どのリポジトリが作ったかの一覧
 - Node 組み込みだけで動く純粋な `.mjs`(`eslint.config.mjs` の読み込み時にも実行される)
 - フォルダに依存しないので、別のフォルダに目録を作るときもそのまま使える
-- 使い手: テスト(`catalog.test.mjs`)と `eslint.config.mjs`(所有に応じた error / warn の振り分け)
-- 決まり(所有者 ID の出どころ・Node 組み込みだけ・フォルダを引数で受ける)は札 `.claude/rules/items/lib/folderCatalog.md`
+- 使い手: テスト(`catalog.test.mjs`)、`eslint.config.mjs`(所有に応じた error / warn の振り分け)、`src/lib/screens/screens.test.mjs`(Tier1 かどうか = `isRoot`)
+- 決まりは `.claude/rules/items/lib/folderCatalog.md`
 
 ## API
 

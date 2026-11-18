@@ -16,7 +16,7 @@ return createPortal(
 );
 ```
 
-- portal した部品の一番外の要素に style を付け、中では外枠の中と同じく `var()` で書く
+- style を付けた要素の中では、外枠の中と同じく `var()` で寸法変数を読める
 
 ## API
 
