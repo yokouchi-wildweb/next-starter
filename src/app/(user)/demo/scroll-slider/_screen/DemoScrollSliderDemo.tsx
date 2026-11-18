@@ -13,8 +13,17 @@ import {
   type ResponsiveToggle,
   type SliderImperativeApi,
 } from "@/components/Widgets"
-import { Stack, Main } from "@/components/Layout"
-import { SecTitle } from "@/components/TextBlocks"
+import { Block, Flex, Grid, Stack, Main } from "@/components/Layout"
+import { SecTitle, Span } from "@/components/TextBlocks"
+import { Button } from "@/components/Form/Button"
+import { Label } from "@/components/Form/Label"
+
+/** 欄を包む Label の class。Label の既定(横並びの中央寄せ・text-sm・leading-none・font-medium)を生の label の見た目に戻す */
+const FIELD_LABEL_CLASS_NAME = "flex-col items-stretch gap-1 font-normal"
+/** チェックボックスの行の Label の class(既定の横並び・中央寄せ・gap-2 はそのまま、太さだけ戻す) */
+const CHECK_LABEL_CLASS_NAME = "cursor-pointer font-normal"
+/** ref 操作のボタンの class(Button の既定の太さ font-medium を戻す) */
+const REF_BUTTON_CLASS_NAME = "rounded border bg-background px-3 py-1 text-sm font-normal hover:bg-accent"
 
 const sampleItems = [
   { id: 1, title: "お知らせ1", description: "これはサンプルのお知らせです。" },
@@ -25,10 +34,12 @@ const sampleItems = [
 
 function SampleCard({ title, description }: { title: ReactNode; description: ReactNode }) {
   return (
-    <div className="rounded-lg border-2 border-primary bg-primary/10 p-6 shadow-sm h-full">
-      <h3 className="text-lg font-semibold">{title}</h3>
-      <div className="mt-2 text-muted-foreground">{description}</div>
-    </div>
+    <Block className="rounded-lg border-2 border-primary bg-primary/10 p-6 shadow-sm h-full">
+      <SecTitle as="h3" size="lg" weight="semiBold" align="inherit">
+        {title}
+      </SecTitle>
+      <Block className="mt-2 text-muted-foreground">{description}</Block>
+    </Block>
   )
 }
 
@@ -78,12 +89,14 @@ export function DemoScrollSliderDemo() {
       <Stack gap="xl" className="py-8">
         <SecTitle>ScrollSlider デモ</SecTitle>
 
-        <div className="rounded-lg border bg-muted/50 p-4 mb-8">
-          <h3 className="text-sm font-semibold mb-4">設定パネル</h3>
+        <Block className="rounded-lg border bg-muted/50 p-4 mb-8">
+          <SecTitle as="h3" size="sm" weight="semiBold" align="inherit" className="mb-4">
+            設定パネル
+          </SecTitle>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">showArrows</span>
+          <Grid columns="two" gap="md" className="md:grid-cols-3 lg:grid-cols-4">
+            <Label className={FIELD_LABEL_CLASS_NAME}>
+              <Span size="sm" weight="inherit">showArrows</Span>
               <select
                 value={showArrows}
                 onChange={(e) => setShowArrows(e.target.value as ResponsiveToggleOption)}
@@ -97,10 +110,10 @@ export function DemoScrollSliderDemo() {
                 <option value="xl">xl</option>
                 <option value="2xl">2xl</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">showDots</span>
+            <Label className={FIELD_LABEL_CLASS_NAME}>
+              <Span size="sm" weight="inherit">showDots</Span>
               <select
                 value={showDots}
                 onChange={(e) => setShowDots(e.target.value as ResponsiveToggleOption)}
@@ -114,20 +127,20 @@ export function DemoScrollSliderDemo() {
                 <option value="xl">xl</option>
                 <option value="2xl">2xl</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex items-center gap-2 cursor-pointer">
+            <Label className={CHECK_LABEL_CLASS_NAME}>
               <input
                 type="checkbox"
                 checked={loop}
                 onChange={(e) => setLoop(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm">loop</span>
-            </label>
+              <Span size="sm" weight="inherit">loop</Span>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">peek</span>
+            <Label className={FIELD_LABEL_CLASS_NAME}>
+              <Span size="sm" weight="inherit">peek</Span>
               <select
                 value={peek}
                 onChange={(e) => setPeek(e.target.value as PeekOption)}
@@ -138,10 +151,10 @@ export function DemoScrollSliderDemo() {
                 <option value="right">right</option>
                 <option value="both">both</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">gap</span>
+            <Label className={FIELD_LABEL_CLASS_NAME}>
+              <Span size="sm" weight="inherit">gap</Span>
               <select
                 value={gap}
                 onChange={(e) => setGap(e.target.value as GapOption)}
@@ -151,10 +164,10 @@ export function DemoScrollSliderDemo() {
                 <option value="md">md</option>
                 <option value="lg">lg</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">containerWidth</span>
+            <Label className={FIELD_LABEL_CLASS_NAME}>
+              <Span size="sm" weight="inherit">containerWidth</Span>
               <input
                 type="text"
                 value={containerWidth}
@@ -162,10 +175,10 @@ export function DemoScrollSliderDemo() {
                 placeholder="例: 400, 80%"
                 className="rounded border px-2 py-1 text-sm bg-background"
               />
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">arrowVariant</span>
+            <Label className={FIELD_LABEL_CLASS_NAME}>
+              <Span size="sm" weight="inherit">arrowVariant</Span>
               <select
                 value={arrowVariant}
                 onChange={(e) => setArrowVariant(e.target.value as ArrowVariant)}
@@ -176,10 +189,10 @@ export function DemoScrollSliderDemo() {
                 <option value="outline">outline</option>
                 <option value="ghost">ghost</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">arrowSize</span>
+            <Label className={FIELD_LABEL_CLASS_NAME}>
+              <Span size="sm" weight="inherit">arrowSize</Span>
               <select
                 value={arrowSize}
                 onChange={(e) => setArrowSize(e.target.value as ArrowSize)}
@@ -189,10 +202,10 @@ export function DemoScrollSliderDemo() {
                 <option value="md">md</option>
                 <option value="lg">lg</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">arrowPosition</span>
+            <Label className={FIELD_LABEL_CLASS_NAME}>
+              <Span size="sm" weight="inherit">arrowPosition</Span>
               <select
                 value={arrowPosition}
                 onChange={(e) => setArrowPosition(e.target.value as ArrowPosition)}
@@ -201,10 +214,10 @@ export function DemoScrollSliderDemo() {
                 <option value="inside">inside</option>
                 <option value="outside">outside</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">dotVariant</span>
+            <Label className={FIELD_LABEL_CLASS_NAME}>
+              <Span size="sm" weight="inherit">dotVariant</Span>
               <select
                 value={dotVariant}
                 onChange={(e) => setDotVariant(e.target.value as DotVariant)}
@@ -214,10 +227,10 @@ export function DemoScrollSliderDemo() {
                 <option value="line">line</option>
                 <option value="dash">dash</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">dotPosition</span>
+            <Label className={FIELD_LABEL_CLASS_NAME}>
+              <Span size="sm" weight="inherit">dotPosition</Span>
               <select
                 value={dotPosition}
                 onChange={(e) => setDotPosition(e.target.value as DotPosition)}
@@ -226,10 +239,10 @@ export function DemoScrollSliderDemo() {
                 <option value="bottom">bottom</option>
                 <option value="inside-bottom">inside-bottom</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">slideSize</span>
+            <Label className={FIELD_LABEL_CLASS_NAME}>
+              <Span size="sm" weight="inherit">slideSize</Span>
               <input
                 type="text"
                 value={slideSize}
@@ -237,10 +250,10 @@ export function DemoScrollSliderDemo() {
                 placeholder="例: 85%, 70%, 300px"
                 className="rounded border px-2 py-1 text-sm bg-background"
               />
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">align</span>
+            <Label className={FIELD_LABEL_CLASS_NAME}>
+              <Span size="sm" weight="inherit">align</Span>
               <select
                 value={alignMode}
                 onChange={(e) => setAlignMode(e.target.value as typeof alignMode)}
@@ -252,11 +265,11 @@ export function DemoScrollSliderDemo() {
                 <option value="end">end</option>
                 <option value="custom">数値指定</option>
               </select>
-            </label>
+            </Label>
 
             {alignMode === "custom" && (
-              <label className="flex flex-col gap-1">
-                <span className="text-sm">align値 (0〜1)</span>
+              <Label className={FIELD_LABEL_CLASS_NAME}>
+                <Span size="sm" weight="inherit">align値 (0〜1)</Span>
                 <input
                   type="text"
                   value={alignValue}
@@ -264,23 +277,23 @@ export function DemoScrollSliderDemo() {
                   placeholder="0.15"
                   className="rounded border px-2 py-1 text-sm bg-background"
                 />
-              </label>
+              </Label>
             )}
 
-            <label className="flex items-center gap-2 cursor-pointer">
+            <Label className={CHECK_LABEL_CLASS_NAME}>
               <input
                 type="checkbox"
                 checked={maskEnabled}
                 onChange={(e) => setMaskEnabled(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm">mask</span>
-            </label>
+              <Span size="sm" weight="inherit">mask</Span>
+            </Label>
 
             {maskEnabled && (
               <>
-                <label className="flex flex-col gap-1">
-                  <span className="text-sm">mask left (%)</span>
+                <Label className={FIELD_LABEL_CLASS_NAME}>
+                  <Span size="sm" weight="inherit">mask left (%)</Span>
                   <input
                     type="text"
                     value={maskLeft}
@@ -288,10 +301,10 @@ export function DemoScrollSliderDemo() {
                     placeholder="10"
                     className="rounded border px-2 py-1 text-sm bg-background"
                   />
-                </label>
+                </Label>
 
-                <label className="flex flex-col gap-1">
-                  <span className="text-sm">mask right (%)</span>
+                <Label className={FIELD_LABEL_CLASS_NAME}>
+                  <Span size="sm" weight="inherit">mask right (%)</Span>
                   <input
                     type="text"
                     value={maskRight}
@@ -299,23 +312,23 @@ export function DemoScrollSliderDemo() {
                     placeholder="10"
                     className="rounded border px-2 py-1 text-sm bg-background"
                   />
-                </label>
+                </Label>
               </>
             )}
 
-            <label className="flex items-center gap-2 cursor-pointer">
+            <Label className={CHECK_LABEL_CLASS_NAME}>
               <input
                 type="checkbox"
                 checked={autoplay}
                 onChange={(e) => setAutoplay(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm">autoplay</span>
-            </label>
+              <Span size="sm" weight="inherit">autoplay</Span>
+            </Label>
 
             {autoplay && (
-              <label className="flex flex-col gap-1">
-                <span className="text-sm">autoplay delay (ms)</span>
+              <Label className={FIELD_LABEL_CLASS_NAME}>
+                <Span size="sm" weight="inherit">autoplay delay (ms)</Span>
                 <input
                   type="text"
                   value={autoplayDelay}
@@ -323,54 +336,64 @@ export function DemoScrollSliderDemo() {
                   placeholder="4000"
                   className="rounded border px-2 py-1 text-sm bg-background"
                 />
-              </label>
+              </Label>
             )}
-          </div>
+          </Grid>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
+          <Flex wrap="wrap" gap="xs" className="mt-4">
+            <Button
               type="button"
+              variant="none"
+              size="none"
               onClick={() => sliderRef.current?.prev()}
-              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+              className={REF_BUTTON_CLASS_NAME}
             >
               ref.prev()
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="none"
+              size="none"
               onClick={() => sliderRef.current?.next()}
-              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+              className={REF_BUTTON_CLASS_NAME}
             >
               ref.next()
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="none"
+              size="none"
               onClick={() => sliderRef.current?.goTo(0)}
-              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+              className={REF_BUTTON_CLASS_NAME}
             >
               ref.goTo(0)
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="none"
+              size="none"
               onClick={() => sliderRef.current?.play()}
-              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+              className={REF_BUTTON_CLASS_NAME}
             >
               ref.play()
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="none"
+              size="none"
               onClick={() => sliderRef.current?.pause()}
-              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+              className={REF_BUTTON_CLASS_NAME}
             >
               ref.pause()
-            </button>
-          </div>
+            </Button>
+          </Flex>
 
           {lastIndex !== null && (
-            <div className="mt-2 text-xs text-muted-foreground">
+            <Block className="mt-2 text-xs text-muted-foreground">
               onIndexChange: スライド {lastIndex + 1} に移動
-            </div>
+            </Block>
           )}
-        </div>
+        </Block>
 
         <ScrollSlider
           ref={sliderRef}
