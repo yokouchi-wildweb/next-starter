@@ -4,7 +4,7 @@ paths:
   - "src/lib/routeFactory/**"
   - "src/registry/serviceRegistry.ts"
   - "src/features/**/services/server/domainEntry*.ts"
-  - "src/wiring/**"
+  - "src/wiring/*Route*"
   - "src/lib/domain/accessPresets.ts"
   - "src/features/**/domain.json"
 ---

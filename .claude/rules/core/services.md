@@ -1,10 +1,9 @@
 ---
 paths:
-  - "src/features/**"
-  - "src/lib/**"
+  - "src/features/**/{services/server,scripts}/**"
+  - "src/lib/crud/**"
   - "src/app/api/**"
   - "src/app/**/_screen/loader.ts"
-  - "scripts/**"
 ---
 # services
 > **ROLE**: loaded when writing server services, loaders or CRUD calls | holds CRUD_SERVICE (createCrudService) service-side rules

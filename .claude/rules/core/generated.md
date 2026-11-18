@@ -1,18 +1,16 @@
 ---
 paths:
-  - "src/features/**"
+  - "src/features/**/{domain.json,entities/**,messages/*.ts}"
+  - "src/features/*/{*.ts,{components,hooks,services,constants,types,adminBulkActions}/**}"
   - "src/registry/**"
   - "scripts/structure/domain/**"
   - "src/app/admin/**"
-  - "src/features/**/domain.json"
   - "src/**/extensions/**"
   - "src/app/route-map.jsonl"
-  - "src/styles/gradient.css"
-  - "src/styles/core/gradient.css"
-  - "src/components/Layout/spacingClasses.generated.ts"
+  - "src/**/*.generated.ts"
+  - "src/styles/{**/gradient,z-layer}.css"
   - "vercel.json"
   - "src/wiring/dbAgent.ts"
-  - "src/styles/z-layer.css"
   - "src/lib/*/generated/**"
 ---
 # generated

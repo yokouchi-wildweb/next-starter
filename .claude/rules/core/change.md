@@ -6,10 +6,8 @@ paths:
   - "**/*.override.ts"
   - "**/*.replace*"
   - "**/*.default*"
-  - "src/app/**/_components/**"
-  - "src/app/**/_screen/**"
-  - "src/app/**/_layout/**"
-  - "src/lib/forkOwnership/**"
+  - "src/app/**/{_components/**,_layout/**,frame*.ts,favicon.ico}"
+  - "src/lib/forkOwnership/intake.txt"
 ---
 # change
 > **ROLE**: loaded when writing a place a lower repo may change (config, own styles, .override / .replace / .default, _components) | holds the change types (CHANGE_TYPES)

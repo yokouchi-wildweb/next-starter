@@ -4,8 +4,6 @@ paths:
   - "src/app/**/_layout/**"
   - "src/app/**/_components/**"
   - "src/features/core/**"
-  - "src/**/extensionPoints*.ts"
-  - "src/lib/forkOwnership/**"
 ---
 # extensions
 > **ROLE**: loaded when copying or composing a parent's parts | holds FORK_EXTENSION (judge, guards, want → means, copy and own marks)

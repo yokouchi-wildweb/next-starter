@@ -2,7 +2,7 @@
 paths:
   - "src/**/extensionPoints*.ts"
   - "scripts/structure/extensions/**"
-  - "src/lib/forkOwnership/**"
+  - "src/lib/forkOwnership/intake.txt"
 ---
 # receptacles
 > **ROLE**: loaded when declaring a receptacle (extensionPoints.ts) or its generator | holds the upstream side of extension points
