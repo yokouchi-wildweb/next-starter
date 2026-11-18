@@ -14,8 +14,10 @@ import {
   type ResponsiveToggle,
   type SliderImperativeApi,
 } from "@/components/Widgets"
-import { Stack, Main } from "@/components/Layout"
-import { SecTitle } from "@/components/TextBlocks"
+import { Button } from "@/components/Form/Button/Button"
+import { Label } from "@/components/Form/Label"
+import { Block, Flex, Grid, Stack, Main } from "@/components/Layout"
+import { Para, SecTitle, Span } from "@/components/TextBlocks"
 
 const sampleSlides = [
   { id: 1, title: "スライド1", body: "クロスフェードでの切り替えを確認してください。", hue: 220 },
@@ -26,16 +28,19 @@ const sampleSlides = [
 
 function SampleSlide({ title, body, hue }: { title: ReactNode; body: ReactNode; hue: number }) {
   return (
-    <div
-      className="flex flex-col justify-center items-center rounded-lg p-10 text-white shadow-sm"
+    <Flex
+      direction="column"
+      justify="center"
+      align="center"
+      className="rounded-lg p-10 text-white shadow-sm"
       style={{
         background: `linear-gradient(135deg, hsl(${hue} 70% 55%), hsl(${(hue + 40) % 360} 70% 45%))`,
         minHeight: 260,
       }}
     >
-      <h3 className="text-2xl font-semibold">{title}</h3>
-      <p className="mt-3 text-center max-w-md">{body}</p>
-    </div>
+      <SecTitle as="h3" size="xxl" weight="semiBold" align="inherit">{title}</SecTitle>
+      <Para align="center" className="mt-3 mb-0 max-w-md">{body}</Para>
+    </Flex>
   )
 }
 
@@ -77,12 +82,12 @@ export function DemoFadeSliderDemo() {
       <Stack gap="xl" className="py-8">
         <SecTitle>FadeSlider デモ</SecTitle>
 
-        <div className="rounded-lg border bg-muted/50 p-4 mb-8">
-          <h3 className="text-sm font-semibold mb-4">設定パネル</h3>
+        <Block className="rounded-lg border bg-muted/50 p-4 mb-8">
+          <SecTitle as="h3" size="sm" weight="semiBold" align="inherit" className="mb-4">設定パネル</SecTitle>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">transition</span>
+          <Grid columns="two" gap="md" className="md:grid-cols-3 lg:grid-cols-4">
+            <Label className="flex flex-col items-stretch gap-1 font-normal">
+              <Span size="sm">transition</Span>
               <select
                 value={transition}
                 onChange={(e) => setTransition(e.target.value as typeof transition)}
@@ -91,10 +96,10 @@ export function DemoFadeSliderDemo() {
                 <option value="crossfade">crossfade</option>
                 <option value="fadeThrough">fadeThrough</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">duration (ms)</span>
+            <Label className="flex flex-col items-stretch gap-1 font-normal">
+              <Span size="sm">duration (ms)</Span>
               <input
                 type="text"
                 value={duration}
@@ -102,10 +107,10 @@ export function DemoFadeSliderDemo() {
                 placeholder="400"
                 className="rounded border px-2 py-1 text-sm bg-background"
               />
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">easing</span>
+            <Label className="flex flex-col items-stretch gap-1 font-normal">
+              <Span size="sm">easing</Span>
               <select
                 value={easing}
                 onChange={(e) => setEasing(e.target.value)}
@@ -117,20 +122,20 @@ export function DemoFadeSliderDemo() {
                 <option value="ease-out">ease-out</option>
                 <option value="linear">linear</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex items-center gap-2 cursor-pointer">
+            <Label className="flex items-center gap-2 cursor-pointer font-normal">
               <input
                 type="checkbox"
                 checked={loop}
                 onChange={(e) => setLoop(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm">loop</span>
-            </label>
+              <Span size="sm">loop</Span>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">showArrows</span>
+            <Label className="flex flex-col items-stretch gap-1 font-normal">
+              <Span size="sm">showArrows</Span>
               <select
                 value={showArrows}
                 onChange={(e) => setShowArrows(e.target.value as ResponsiveToggleOption)}
@@ -142,10 +147,10 @@ export function DemoFadeSliderDemo() {
                 <option value="md">md</option>
                 <option value="lg">lg</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">showDots</span>
+            <Label className="flex flex-col items-stretch gap-1 font-normal">
+              <Span size="sm">showDots</Span>
               <select
                 value={showDots}
                 onChange={(e) => setShowDots(e.target.value as ResponsiveToggleOption)}
@@ -157,10 +162,10 @@ export function DemoFadeSliderDemo() {
                 <option value="md">md</option>
                 <option value="lg">lg</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">arrowVariant</span>
+            <Label className="flex flex-col items-stretch gap-1 font-normal">
+              <Span size="sm">arrowVariant</Span>
               <select
                 value={arrowVariant}
                 onChange={(e) => setArrowVariant(e.target.value as ArrowVariant)}
@@ -171,10 +176,10 @@ export function DemoFadeSliderDemo() {
                 <option value="outline">outline</option>
                 <option value="ghost">ghost</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">arrowSize</span>
+            <Label className="flex flex-col items-stretch gap-1 font-normal">
+              <Span size="sm">arrowSize</Span>
               <select
                 value={arrowSize}
                 onChange={(e) => setArrowSize(e.target.value as ArrowSize)}
@@ -184,10 +189,10 @@ export function DemoFadeSliderDemo() {
                 <option value="md">md</option>
                 <option value="lg">lg</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">arrowPosition</span>
+            <Label className="flex flex-col items-stretch gap-1 font-normal">
+              <Span size="sm">arrowPosition</Span>
               <select
                 value={arrowPosition}
                 onChange={(e) => setArrowPosition(e.target.value as ArrowPosition)}
@@ -196,10 +201,10 @@ export function DemoFadeSliderDemo() {
                 <option value="inside">inside</option>
                 <option value="outside">outside</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">dotVariant</span>
+            <Label className="flex flex-col items-stretch gap-1 font-normal">
+              <Span size="sm">dotVariant</Span>
               <select
                 value={dotVariant}
                 onChange={(e) => setDotVariant(e.target.value as DotVariant)}
@@ -209,10 +214,10 @@ export function DemoFadeSliderDemo() {
                 <option value="line">line</option>
                 <option value="dash">dash</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">dotPosition</span>
+            <Label className="flex flex-col items-stretch gap-1 font-normal">
+              <Span size="sm">dotPosition</Span>
               <select
                 value={dotPosition}
                 onChange={(e) => setDotPosition(e.target.value as DotPosition)}
@@ -221,21 +226,21 @@ export function DemoFadeSliderDemo() {
                 <option value="bottom">bottom</option>
                 <option value="inside-bottom">inside-bottom</option>
               </select>
-            </label>
+            </Label>
 
-            <label className="flex items-center gap-2 cursor-pointer">
+            <Label className="flex items-center gap-2 cursor-pointer font-normal">
               <input
                 type="checkbox"
                 checked={autoplay}
                 onChange={(e) => setAutoplay(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm">autoplay</span>
-            </label>
+              <Span size="sm">autoplay</Span>
+            </Label>
 
             {autoplay && (
-              <label className="flex flex-col gap-1">
-                <span className="text-sm">autoplay delay (ms)</span>
+              <Label className="flex flex-col items-stretch gap-1 font-normal">
+                <Span size="sm">autoplay delay (ms)</Span>
                 <input
                   type="text"
                   value={autoplayDelay}
@@ -243,102 +248,117 @@ export function DemoFadeSliderDemo() {
                   placeholder="4000"
                   className="rounded border px-2 py-1 text-sm bg-background"
                 />
-              </label>
+              </Label>
             )}
 
-            <label className="flex items-center gap-2 cursor-pointer">
+            <Label className="flex items-center gap-2 cursor-pointer font-normal">
               <input
                 type="checkbox"
                 checked={enableKeyboard}
                 onChange={(e) => setEnableKeyboard(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm">enableKeyboard</span>
-            </label>
+              <Span size="sm">enableKeyboard</Span>
+            </Label>
 
-            <label className="flex items-center gap-2 cursor-pointer">
+            <Label className="flex items-center gap-2 cursor-pointer font-normal">
               <input
                 type="checkbox"
                 checked={enableSwipe}
                 onChange={(e) => setEnableSwipe(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm">enableSwipe</span>
-            </label>
+              <Span size="sm">enableSwipe</Span>
+            </Label>
 
-            <label className="flex items-center gap-2 cursor-pointer">
+            <Label className="flex items-center gap-2 cursor-pointer font-normal">
               <input
                 type="checkbox"
                 checked={pauseOnHover}
                 onChange={(e) => setPauseOnHover(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm">pauseOnHover</span>
-            </label>
+              <Span size="sm">pauseOnHover</Span>
+            </Label>
 
-            <label className="flex items-center gap-2 cursor-pointer">
+            <Label className="flex items-center gap-2 cursor-pointer font-normal">
               <input
                 type="checkbox"
                 checked={respectReducedMotion}
                 onChange={(e) => setRespectReducedMotion(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm">respectReducedMotion</span>
-            </label>
+              <Span size="sm">respectReducedMotion</Span>
+            </Label>
 
-            <label className="flex items-center gap-2 cursor-pointer">
+            <Label className="flex items-center gap-2 cursor-pointer font-normal">
               <input
                 type="checkbox"
                 checked={useControlled}
                 onChange={(e) => setUseControlled(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm">controlled</span>
-            </label>
-          </div>
+              <Span size="sm">controlled</Span>
+            </Label>
+          </Grid>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
+          <Flex wrap="wrap" gap="xs" className="mt-4">
+            <Button
+              variant="none"
+              size="none"
+              propagateClick
               type="button"
               onClick={() => sliderRef.current?.prev()}
-              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+              className="rounded border bg-background px-3 py-1 text-sm font-normal hover:bg-accent"
             >
               ref.prev()
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="none"
+              size="none"
+              propagateClick
               type="button"
               onClick={() => sliderRef.current?.next()}
-              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+              className="rounded border bg-background px-3 py-1 text-sm font-normal hover:bg-accent"
             >
               ref.next()
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="none"
+              size="none"
+              propagateClick
               type="button"
               onClick={() => sliderRef.current?.goTo(0)}
-              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+              className="rounded border bg-background px-3 py-1 text-sm font-normal hover:bg-accent"
             >
               ref.goTo(0)
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="none"
+              size="none"
+              propagateClick
               type="button"
               onClick={() => sliderRef.current?.play()}
-              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+              className="rounded border bg-background px-3 py-1 text-sm font-normal hover:bg-accent"
             >
               ref.play()
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="none"
+              size="none"
+              propagateClick
               type="button"
               onClick={() => sliderRef.current?.pause()}
-              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+              className="rounded border bg-background px-3 py-1 text-sm font-normal hover:bg-accent"
             >
               ref.pause()
-            </button>
-          </div>
+            </Button>
+          </Flex>
 
-          <div className="mt-2 text-xs text-muted-foreground">
+          <Block className="mt-2 text-xs text-muted-foreground">
             onIndexChange: {lastIndex !== null ? `スライド ${lastIndex + 1}` : "未変化"} / controlledIndex: {controlledIndex + 1}
-          </div>
-        </div>
+          </Block>
+        </Block>
 
         <FadeSlider
           ref={sliderRef}
