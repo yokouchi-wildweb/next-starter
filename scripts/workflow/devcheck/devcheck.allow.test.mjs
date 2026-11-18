@@ -42,7 +42,7 @@ test("記録: 書く・足す・使ったスイッチだけ消す・全部消す
 
 test("allow: manual だけ書く。off は人に頼む 1 行、auto は要らない、知らない名前は止める", () => {
   const root = tmp();
-  const agent = agentPolicyOf({ "agent.db_push": "manual", "agent.db_write": "manual", "agent.env_add": "off" });
+  const agent = agentPolicyOf({ "agent.db_push": "manual", "agent.db_write": "manual", "agent.env_add": "off", "agent.deploy": "off", "agent.test": "auto" });
   const ok = runAllow(root, ["dbp", "dw"], "反映していい", agent, KINDS_API);
   assert.equal(ok.code, 0);
   assert.match(ok.lines[0], /1 回分の許可: dbp dw/);
@@ -65,7 +65,7 @@ test("allow: manual だけ書く。off は人に頼む 1 行、auto は要らな
 
 test("danger: off の 1 行 / 許可なしは /allow が要る / 許可ありは打つ命令 / 上流の入口なし", () => {
   const root = tmp();
-  const off = runDanger(root, "dbp", agentPolicyOf({}), KINDS_API);
+  const off = runDanger(root, "dbp", agentPolicyOf({ "agent.db_push": "off" }), KINDS_API);
   assert.equal(off.code, 4);
   assert.match(off.lines[0], /db_push は方針で off: 人が打つなら pnpm db:push/);
   const manual = agentPolicyOf({ "agent.db_push": "manual", "agent.deploy": "manual", "agent.env_production": "manual" });

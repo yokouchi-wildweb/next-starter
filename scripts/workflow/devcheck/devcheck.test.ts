@@ -55,15 +55,16 @@ test("種類の表: スキーマの push・本番の指定・確認の埋め込�
   assert.deepEqual(KIND_NAMES, ["server", "browser", "login", "db-write", "db-delete", "env-add", "test", "check"]);
 });
 
-test("方針: repo.json の agent.* から。無い鍵は既定(通常 auto・危険な 3 つ off)、値の誤り・宣言に無い鍵は止める", () => {
+test("方針: repo.json の agent.* から。無い鍵は既定(全部 manual、危険な 3 つも、D265)、値の誤り・宣言に無い鍵は止める", () => {
   const defaults = policyOfValues({});
-  for (const k of KIND_NAMES) assert.equal(defaults[k], "auto", k);
-  assert.equal(defaults.peer, "auto");
-  for (const d of DANGER_NAMES) assert.equal(defaults[d], "off", d);
-  const p = policyOfValues({ repo_id: "x", "agent.db_write": "manual", "agent.env_add": "off" });
+  for (const k of KIND_NAMES) assert.equal(defaults[k], "manual", k);
+  assert.equal(defaults.peer, "manual");
+  for (const d of DANGER_NAMES) assert.equal(defaults[d], "manual", d);
+  const p = policyOfValues({ repo_id: "x", "agent.db_write": "manual", "agent.env_add": "off", "agent.server": "auto" });
   assert.equal(p["db-write"], "manual");
   assert.equal(p["env-add"], "off");
   assert.equal(p.server, "auto");
+  assert.equal(p.test, "manual");
   assert.throws(() => policyOfValues({ "agent.deployment": "auto" }), /宣言に無い鍵 agent\.deployment/);
   assert.throws(() => policyOfValues({ "agent.server": "yes" }), /agent\.server の値 "yes" は auto \/ manual \/ off/);
   // 危険な 3 つ: off | manual だけ、auto・知らない値は off
@@ -89,8 +90,10 @@ test("方針の入口: 危険な 3 つの入口の既定(db_push = pnpm db:push�
   await assert.rejects(readAgentPolicy(dir), /agent\.deploy\.entry は命令の文字列/);
   writeFileSync(path.join(dir, "repo.json"), "{nope");
   await assert.rejects(loadPolicy(dir), /repo\.json: JSON として読めない/);
-  // このリポの repo.json(agent.* なし)= 既定
-  assert.deepEqual(await loadPolicy(path.join(import.meta.dirname, "../../..")), policyOfValues({}));
+  // このリポの repo.json = 自分の方針(自動にできる種類は全部 auto、危険な 3 つは manual、D265)
+  const own = await loadPolicy(path.join(import.meta.dirname, "../../.."));
+  for (const k of [...KIND_NAMES, "peer"]) assert.equal(own[k], "auto", k);
+  for (const d of DANGER_NAMES) assert.equal(own[d], "manual", d);
   assert.ok(declaredAgentKeys().includes("agent.deploy.db_entry"));
   assert.equal(policyKeyOf("db-write"), "agent.db_write");
 });

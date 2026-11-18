@@ -389,10 +389,10 @@ test("入力の変換(Claude Code の形)と出力", () => {
   });
 });
 
-test("方針の鍵 = 種類 + peer(計画の候補には peer を出さない)、repo.json に agent.* が無ければ通常は auto・危険な 3 つは off", async () => {
+test("方針の鍵 = 種類 + peer(計画の候補には peer を出さない)、このリポの repo.json は通常 auto・危険な 3 つ manual(書いていない鍵の既定は manual、D265)", async () => {
   assert.deepEqual(POLICY_KEYS, [...KIND_NAMES, "peer"]);
   assert.ok(!KIND_NAMES.includes("peer"));
-  assert.deepEqual(await loadPolicy(path.join(TOOL_DIR, "../../..")), { ...ALL_AUTO, db_push: "off", env_production: "off", deploy: "off" });
+  assert.deepEqual(await loadPolicy(path.join(TOOL_DIR, "../../..")), { ...ALL_AUTO, db_push: "manual", env_production: "manual", deploy: "manual" });
 });
 
 test("固定の止め: repo.json の直接の書き換え(Edit / Write とシェルの書き込み)は止め、専用の命令と読むだけは通す", () => {
@@ -436,6 +436,8 @@ test("hook.mjs: 壊れた入力は何も出さず exit 0", () => {
 test("hook.mjs: 止め・allow・何もなし・壊れた方針、ブラウザの記録", () => {
   const dir = mkdtempSync(path.join(os.tmpdir(), "devcheck-grant-"));
   try {
+    // 書いていない鍵は manual(D265): この試しの方針は peer と browser を auto に書く
+    writeFileSync(path.join(dir, "repo.json"), JSON.stringify({ repo_id: "x", tier: "leaf", "agent.peer": "auto", "agent.browser": "auto" }));
     const env = { CLAUDE_PROJECT_DIR: dir };
     const input = (tool_name, tool_input) => JSON.stringify({ tool_name, tool_input, cwd: dir });
     const out = (r) => (r.stdout ? JSON.parse(r.stdout).hookSpecificOutput.permissionDecision : "none");
@@ -466,15 +468,18 @@ test("hook.mjs: 方針はプロジェクトの repo.json の agent.*。壊れた
     const run = (command) =>
       spawnSync(process.execPath, [HOOK], { input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }), encoding: "utf8", env: { PATH: process.env.PATH, CLAUDE_PROJECT_DIR: dir, DEVCHECK_GRANT: "on" } });
     const repo = (extra) => writeFileSync(path.join(dir, "repo.json"), JSON.stringify({ repo_id: "x", tier: "leaf", ...extra }));
-    // repo.json が無い = 既定(全部 auto)
+    // repo.json が無い = 既定(全部 manual、D265): 印の道では何も返さない、止めは効く
+    assert.equal(run("pnpm workflow peer who").stdout, "");
+    assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
+    repo({ "agent.peer": "auto" });
     assert.match(run("pnpm workflow peer who").stdout, /"permissionDecision":"allow"/);
     // 宣言に無い鍵 = 壊れた方針 → 何も返さない、止めは効く
     repo({ "agent.deployment": "auto" });
     assert.equal(run("pnpm workflow peer who").stdout, "");
     assert.equal(run("pnpm workflow peer who").status, 0);
     assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
-    // fork の方針で peer を off → 何も返さない、test は auto のまま
-    repo({ "agent.peer": "off" });
+    // fork の方針で peer を off → 何も返さない、test は auto に書いたまま
+    repo({ "agent.peer": "off", "agent.test": "auto" });
     assert.equal(run("pnpm workflow peer who").stdout, "");
     assert.match(run("pnpm test x").stdout, /"permissionDecision":"allow"/);
     // 全体のスイッチ: false → allow の形は全部何も返さない(devcheck の入口も)、止めは効く / 真偽値でない = 壊れた方針
