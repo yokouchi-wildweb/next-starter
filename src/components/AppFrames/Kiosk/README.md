@@ -176,7 +176,7 @@ return (
 ### text-fluid-* と cn
 
 - `text-fluid-*` は `src/lib/cn` で tailwind-merge の font-size グループに登録済み。`cn("text-primary-foreground text-fluid-base")` のように文字色と並べても両方残り、`text-base` 等の固定サイズとは後勝ちで置き換わる
-- theme.css に新しい `--text-*` トークンを足す時は `src/lib/cn` の `FLUID_TEXT_SIZES` にも登録する。未登録の `text-*` は文字色扱いになり、同じ要素の文字色を消してしまう(`pnpm test src/lib/cn/cn.test.mjs` がドリフトを検出)
+- 未登録の `text-*` は tailwind-merge で文字色扱いになり、同じ要素の文字色を消してしまう。登録先は `src/lib/cn` の `FLUID_TEXT_SIZES`(ドリフトは `pnpm test src/lib/cn/cn.test.mjs` が検出)
 
 ### ScaledStage の拡縮
 

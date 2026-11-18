@@ -8,11 +8,11 @@ use: always
 change: none → /order <direct parent>
 rules:
 using:
-- submit_lock: AppForm drops a second submit itself → no own lock
+- submit_lock: AppForm drops a second submit → no own lock
 - submit_failure: failed submit = onSubmit throws | the thrower toasts, not AppForm
 - media_commit: media field outside AppForm → commit() yourself
 - media_purpose: media field in a hand-written form → register a purpose, pass `purpose`
-- options_disabled: Options.disabled = display only → the server rejects them
+- options_disabled: Options.disabled = display only → validate in the ServerService
 - group_notice: section notice → beforeGroup / afterGroup, not beforeField on its first field
 - default_values: defaults match the schema type (`""` to array / object fails) | required jsonb + formInput none → defaultValue
 - autosave_values: AutoSave onSave gets pre-Zod values → a hand-written one converts them

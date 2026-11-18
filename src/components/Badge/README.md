@@ -81,5 +81,5 @@ defineVariantOverrides({
 
 - `BadgeCore`(`@/components/Primitives/Badge`): asChild(Slot) と icon の描画を一元化する共通コア。icon と children の共存は Radix の `Slottable` で解決している。3 つのバッジはどれもここに委譲する
 - `badge-variants.ts`: variant/size の型と共通サイズ定義、下流オーバーライドの取り出し(`badgeOverrideClasses(kind, variant, size)`)
-- 意味色の文字は本文用トークン(`text-success-text` 等)、塗りの上の文字は `-foreground`。塗り用トークン(`text-success`)は文字色に使わない(下流が塗りを淡くすると読めなくなる)
+- 意味色の文字は本文用トークン(`text-success-text` 等)、塗りの上の文字は `-foreground` を使っている(CLAUDE.md STYLE_OWNERSHIP semantic_colors。下流が塗りを淡くしても読めるように)
 - `SoftBadge` のみ二層構造: 透過色背景の下に不透明な下地 `span` を敷き、背後の色の透けを防ぐ。`ref` はラッパー `span` に付く。asChild 時もラッパー `span` が残り、スタイルと props は子要素にマージされる
