@@ -1,13 +1,12 @@
 # プロフィール hooks ラッパー
 
-ロール固有の型付き hooks をここに配置します。
+## Overview
 
-## 使い方
+- ロール固有の型付き hooks を置く場所。ベースの hooks は `Record<string, unknown>` 型で動くので、ロール固有の型が要るときは薄いラッパーを作る(札 `.claude/rules/items/features/userProfile.md` typed_wrapper)
 
-ベースの hooks は `Record<string, unknown>` 型で動作しますが、
-ロール固有の型安全性が必要な場合はラッパーを作成してください。
+## Usage
 
-### 例: ContributorProfile の型付きラッパー
+例: ContributorProfile の型付きラッパー
 
 ```typescript
 // hooks/wrappers/useContributorProfile.ts
@@ -23,7 +22,7 @@ export const useContributorProfile = (userId?: string | null) => {
 };
 ```
 
-### 例: ContributorProfile の検索ラッパー
+例: ContributorProfile の検索ラッパー
 
 ```typescript
 // hooks/wrappers/useContributorProfileSearch.ts
