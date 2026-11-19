@@ -23,5 +23,5 @@ editing:
 - firestore_side: a Drizzle-only addition says if Firestore ignores or throws
 - query_pure: query/ builders stay pure functions (no DB access)
 - hooks_reach: a generated hook signature change goes to the template and the lib together (every domain)
-- coll_names: collections renames add the new name and keep the old; CrudCollectionConfig grows by optional keys only
+- coll_names: a collections rename rewrites every upstream caller and keeps no old name (fork callers get the old → new table in the notice); CrudCollectionConfig grows by optional keys only
 read: options, methods → API | hooks contract → Internals | storage → src/lib/crud/storageIntegration/README.md Usage | collections → src/lib/crud/collections/README.md Usage | search → src/lib/crud/drizzle/query/README.md API | hooks → src/lib/crud/hooks/README.md Usage

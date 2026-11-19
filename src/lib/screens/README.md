@@ -131,7 +131,7 @@ page.tsx を `_components/` に向けて上流の既定 Screen を使ってい�
 
 - fork が core に足した props / 引数は**省略可能**にし、空の既定値を持たせる（例: `GeneralUserList` に足した集計 map は `= {}`、`AdminInviteList` に足した合計値は省略時 0）
 - 使わない core のコードは**削除しない**（使わないまま残す）。例: 管理画面ダッシュボードを自作に差し替えても `features/core/admin/dashboard` は消さない。上流の `_screen/AdminHomeScreen` が import している
-- シグネチャを変えたいときは新しい名前を足し、古い名前は残す
+- 名前や引数の形は変えない。変える必要があれば直接の親へ依頼する(`/order <direct parent>`)。親が上の「契約（公開 API）と変更規則」の形で変える
 - merge 後に、使っていない上流の `_screen/*` で `tsc` が落ちたら、それは fork 側の core 編集の非互換。直すのは core 側（props を省略可能に戻す・消したものを上流から戻す）で、上流の Screen は編集しない
 
 #### 注意
@@ -203,8 +203,7 @@ import { BalanceCard } from "./BalanceCard";
 
 変更規則:
 - **追加**（新 loader / 新 hook / 返り値や props のフィールド追加 / optional 引数の追加）は自由
-- **改名**: 旧名を再 export として残す。削除は `.notices` で移行手順と対象ステップを通知し、通知後の次ステップ以降にのみ行う
-- **非互換変更**（引数・返り値・必須 props）: 旧契約は残し、新名で追加する。旧を消す場合は改名と同じ手順
+- **改名・非互換変更**（名前・引数・返り値・必須 props）: 上流の呼び手を同じコミットで全部書き換え、旧名・旧契約は残さない。fork の呼び手には `.notices` で旧 → 新の対応表を渡す(機械で置き換えられる物は置き換えの道具を添える)
 - **挙動変更**（loader の redirect 先・notFound 条件）: `.notices` に明記
 - loader の固定の行き先（redirect 先・既定の戻り先）は loader の中の名前付きの定数に置き、export しない。fork が変える口（config・引数）は持たない: 別の行き先が要る fork は同じ guard.ts の `createLoader` で自分の loader を書き、差し替え Screen から呼ぶ（需要が来たら値の設定 1 か所で受ける）
 - **セクションコンテナの子構成変更**（部品の追加・削除・並び替え）: 契約外だが、複製した fork が追随判断できるよう informational な `.notices` に含める
