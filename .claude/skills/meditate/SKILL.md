@@ -1,8 +1,7 @@
 ---
-name: ebb
-description: Tidy auto-memory mechanically to the CLAUDE.md definition (handoff of in-progress work only) - collect only facts per memo (type, duplicate, references, end condition, date), apply the decision table, then delete / move / keep with the user's approval per decision | Periodic cleanup, and the first tidy-up of a fork's accumulated memory
+name: meditate
+description: Meditate - the agent tidies its own auto-memory mechanically to the CLAUDE.md definition (handoff of in-progress work only) - collect only facts per memo (type, duplicate, references, end condition, date), apply the decision table, then delete / move / keep with the user's approval per decision | When the user asks the agent to meditate or tidy its memory, periodic cleanup, and the first tidy-up of a fork's accumulated memory
 argument-hint: "[補足(任意): 一度に扱う件数など]"
-disable-model-invocation: true
 ---
 
 role: a note on how to tidy memory, not a mode switch | keep the conversation's context, policy, tone and constraints as they are; treat what follows as a skeleton
