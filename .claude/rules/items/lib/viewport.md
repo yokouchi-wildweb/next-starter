@@ -10,7 +10,6 @@ rules:
 using:
 - vp_one_writer: ViewportHeightWatcher is the only writer of the size and `--viewport-height`, rendered once by the root layout and nowhere else
 - vp_no_measure: other parts never measure the viewport or set the CSS variable | a part needing the height reads `var(--viewport-height, 100dvh)` in CSS
-- vp_old_paths: the old paths (@/stores/viewportSize, @/hooks/useViewportOrientation, @/hooks/useMediaQuery, Fanctional/ViewportHeightWatcher) are gone → import @/lib/viewport
 editing:
 - vp_no_set_export: the store's setSize is never exported from the entry
 - vp_short_height_pair: SHORT_HEIGHT_MAX_PX moves together with the `short:` variant in src/styles/core/theme.css (Tailwind media queries cannot read a CSS variable)

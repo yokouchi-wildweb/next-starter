@@ -18,8 +18,6 @@ const { isShortHeight } = useViewportOrientation();
 return <Stack gap={isShortHeight ? "2xs" : "md"}>...</Stack>;
 ```
 
-- 旧パスからの書き換え: `@/stores/viewportSize`・`@/hooks/useViewportOrientation`・`@/hooks/useMediaQuery`・`@/components/Fanctional/ViewportHeightWatcher` は消えた(lint deprecated-imports が `@/lib/viewport` を案内する)。旧 store の `setSize` は外から使えない
-
 ## API
 
 - `ViewportHeightWatcher` — 実寸と `--viewport-height` の書き手
