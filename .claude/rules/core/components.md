@@ -8,8 +8,11 @@ paths:
 > **ROLE**: loaded when writing any .tsx or shared hook | holds COMPONENTS detail
 > Tier1-owned: forks never edit (gap → /order <direct parent>)
 
+placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; components/AppFrames/ = leftover shared parts, shelf decided later) | ref: src/components/README.md
+- single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only → app/\<route\>/_components/
 wrappers (lint raw-elements): div → Layout/{Block,Flex,Grid,Stack} | main → Layout/Main or UserPage | section → Layout/Section | button → Form/Button | input → Form/Input | p → TextBlocks/Para | h2 → TextBlocks/SecTitle | skeleton → Skeleton/BaseSkeleton | img → Media/AppImage (never next/image directly)
 - never import _shadcn directly (lint import-boundaries/no-shadcn-direct, all tiers; wrapper table: src/components/_shadcn/README.md; no wrapper → propose one)
+- spacing: never space-y / space-x classes → Layout/Stack `gap` (spacing scale none..4xl, src/components/Layout/README.md)
 existing_parts (want → part; check here before building your own | a row = a want where own builds were found, or a choice moved here from CLAUDE.md):
 - loading: inside a button → Form/Button loading prop (+ loadingLabel) | in the flow of a page or card → Overlays/Loading/InlineLoader | over an area or the screen → Overlays/Loading/ScreenLoader
 - table (@/lib/tableSuite): read-only list, column sort, row reorder → DataTable | select rows + bulk actions → RecordSelectionTable | inline cell edit → EditableGridTable | growing rows → the tables' infiniteFooter prop (InfiniteTableFooter) fed by useInfiniteScrollQuery | print → DataTable variant "print" | client sort → sortItems (getValue, nulls)
@@ -38,6 +41,7 @@ ui_layers (page / section_container / part, defined by role; ref: docs/!must-rea
 - bundle_marker: a folder with package.json sideEffects:false (auth Signup, user components/admin, userProfile entities/profiles) holds no side-effect modules (css import, registration call): an unused re-export is dropped from the bundle, side effects with it
 - data_seam: first-paint data = loader → container prop `initial<Name>` → hook `fallbackData` + `revalidateOnMount: fallbackData === undefined || <SWR cache has the key>` | background data = hook only
 forms: FieldRenderer (ref: src/components/Form/FieldRenderer/README.md) | programmatic value = input type hidden (no UI) or custom (own UI); none = excluded from the schema
+custom_inputs: own input part → register src/wiring/formInputs/inputs/\<name\>.ts, then formInput: "\<name\>" in domain.json / profile / setting / FieldConfig (render only; builtin names = src/lib/domain/fields/formInputs.mjs) | one-screen insert = custom + beforeField | ref: src/wiring/formInputs/inputs/README.md
 async_select: async pickers MUST consume Form/Input/Manual/AsyncOptionSource (never re-implement browse/search paging) | form field → AsyncComboboxInput / AsyncMultiSelectInput (users: UserAsyncCombobox / UserAsyncMultiSelect) | modal opened from an action button → AsyncPickerModal (users: useUserAsyncOptionSource, features/core/user)
 async_feedback (MUST): every client background request (mutation / submit / sync) shows loading: button spinner, local ScreenLoader or loading toast | prefer Dialog / ConfirmPopover Promise handling and useAsyncAction (src/hooks, double-fire lock) | exception: fire-and-forget tracking
 infinite_scroll: use @/components/Widgets/InfiniteScrollList fed by @/hooks/useInfiniteScrollQuery | never build your own sentinel or an isLoading early return (it blanks the list on load-more)

@@ -16,9 +16,9 @@ map (every core file, loaded by its paths):
 - .claude/rules/core/change.md: the change types (CHANGE_TYPES)
 - .claude/rules/core/client.md: the client layer rules (hooks, stores)
 - .claude/rules/core/components.md: COMPONENTS detail
-- .claude/rules/core/db.md: entity-level rules (none yet: schema_registry, push_roundtrip, db_identifiers live in CLAUDE.md)
+- .claude/rules/core/db.md: the schema registry, the push round trip and DB identifier rules
 - .claude/rules/core/design.md: this file
-- .claude/rules/core/domain-definition.md: domain-definition rules (none yet: commands, field_types, domain_config live in CLAUDE.md DOMAINS, domainEntry access in api-routes.md, role / profile overrides in generated.md)
+- .claude/rules/core/domain-definition.md: the domain-definition rules (commands, roles, field types, domain config)
 - .claude/rules/core/extensions.md: FORK_EXTENSION (judge, guards, want → means, copy and own marks)
 - .claude/rules/core/generated.md: DIRECTORY_STRUCTURE code_generation (generated / write-once / hand-owned)
 - .claude/rules/core/lib.md: the library rules (CODE_PLACEMENT library)
