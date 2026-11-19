@@ -95,7 +95,7 @@ export const rule: FeatureGateRule = {
 - **上流の既定**: 上流は付け足しの機能を閉じて出荷し、土台の画面は開いたまま。閉 = wallet・payment・coupon・referral・couponAttributionReward・analytics・chatRoom・milestone・deviceFingerprint・fingerprintChallenge・userAcquisition・userLineProfile・userXProfile・sampleDomain・demoPages・demoLogin・pageEntry・pageServices・interactionTracking・userCounter・phoneVerification・pause・pairedDevice・messagingTracking ほか(依存先に従う子も閉)
   - 開 = signup・pageMypage・利用規約などの法務の画面・withdraw ほか。使う機能は fork が `switches.config.ts` で開ける(`pnpm ops features set <名前> on`)。上流の開発は全開スイッチで全部開ける(「全開スイッチ」)
 - **入切の値**: 上流の既定は規則の `defaultEnabled`(必須、`true` か `false` のリテラル。型 `FeatureGateRule` で必須。fork が足す規則も書く)、fork の値は `src/config/featureGate/switches.config.ts`(上流は空 `{}` で出荷し出荷後に書かない、`{ <機能の名前>: true|false }` を並べる、型 `FeatureSwitches`、未知の名前・真偽でない値は読み込みで throw)。自分の値 = (switches の値 ?? `defaultEnabled`) && `enabled`。合成は `ruleList.ts` の 1 か所。ドメインの `config.ts` に入切を置かない(処理の切り替えはドメインの config のまま)
-- `enabled` は入切でない開く条件だけ(config の値から導いた値を読む同期関数。例 `bankTransferReview` の「自社振込が選べるか」)。省略 = 条件なし。入切そのもの(人が開け閉めする値)を書かない
+- `enabled` は入切でない開く条件だけ(config の値から導いた値を読む同期関数。例 `bankTransferReview` の「自社振込が選べるか」)。省略 = 条件なし。入切そのもの(プロジェクトが開け閉めする値)を書かない
 - `anyOf` = どれか 1 つが開なら開く機能の並び(OR。例 `mypageOther` = 休会か退会)。`dependsOn` と両方あれば両方を満たすとき開
 - `dependsOn` = この機能が使う機能の名前(規則のファイル名)の並び。下の「機能どうしの依存(dependsOn)」
 - `redirectTo` を指定すると 404 の代わりにそこへ rewrite する（例: サインアップ停止中の `/signup-closed`）

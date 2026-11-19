@@ -44,7 +44,7 @@ export type FeatureGateRule = {
   defaultEnabled: boolean;
   /**
    * 入切でない開く条件(config の値から導いた値を読む同期関数。例 銀行振込の方法が選べるか)。省略 = 条件なし。
-   * 入切そのもの(人が開け閉めする値)は defaultEnabled と switches.config.ts に置き、ここに書かない
+   * 入切そのもの(プロジェクトが開け閉めする値)は defaultEnabled と switches.config.ts に置き、ここに書かない
    */
   enabled?: () => boolean;
   /** ブロック時の rewrite 先(省略時: API は 404、ページは /404) */

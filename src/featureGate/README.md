@@ -2,7 +2,7 @@
 
 ## Overview
 
-機能(人が開け閉めする単位、規則 1 本)を閉じると、その住所と、どの開いた機能にも使われなくなったドメインの表・汎用 API・cron を閉じる仕組み。fork が upstream の機能を「削除せず使わないまま残す」ための土台。
+機能(プロジェクトが開け閉めする単位、規則 1 本)を閉じると、その住所と、どの開いている機能にも挙げられていないドメインの表・汎用 API・cron を閉じる仕組み。fork が upstream の機能を「削除せず使わないまま残す」ための土台。
 
 src 直下の専用の基盤に置く(lib にも core のドメインにも置かない)。src 直下の基盤に置いてよいのは、ドメインの集合を横断する仕組みだけ(今は featureGate・registry・wiring)。maintenance・demoMode・cron のタスクなど、仕組みに従う側は置かない。
 
@@ -11,7 +11,7 @@ src 直下の専用の基盤に置く(lib にも core のドメインにも置�
 - **住所**: 機能が閉じる URL の型(`pathPatterns`。前方一致、`=` 付きは完全一致)
 - **常時実行の入口**: どのページからも読まれる結線(provider・登録表など)。閉じた機能の物を自分で外す
 - **ドメイン**(domain): 業務か仕組みの概念の部品。表・サービス・画面の部品の持ち主(今は `src/features/<d>/`)。**開閉の概念を持たない**: 開いた機能のどれかが規則の `domains` に持てば開、どの機能にも載らないドメインは基盤として常に開
-- **機能**(feature): 人が開け閉めする単位 = 規則 1 本(`rules/<名前>.ts`、名前 = `FeatureName`)。使うドメイン(`domains`)・自分の住所(`pathPatterns`)・依存する機能(`dependsOn` / `anyOf`)・自分のスイッチ(`defaultEnabled` と fork の `switches.config.ts`)を持つ
+- **機能**(feature): プロジェクトが開け閉めする単位 = 規則 1 本(`rules/<名前>.ts`、名前 = `FeatureName`)。使うドメイン(`domains`)・自分の住所(`pathPatterns`)・依存する機能(`dependsOn` / `anyOf`)・自分のスイッチ(`defaultEnabled` と fork の `switches.config.ts`)を持つ
 - **門番**(featureGate): 機能の開閉を評価し、住所・表・汎用 API・cron・設定の節・リンクに及ぼす基盤(このフォルダ)。名前(`featureGate`・`FeatureName`・`gate` / `useGate`・設定の節の `feature:`・`pnpm ops features list / set`・`rules/`)はもとから機能の意味
 
 ### 置き場
