@@ -14,6 +14,10 @@ using:
 - effect_in_handler: an effect lives in the consumer's handler; category = the handler key, parameters in coupon.settings by settingsFields
 - handler_gated: a consumer the gate can close registers through a function init.ts calls only when gate.enabled(<its feature>)
 - on_redeemed_tx: onRedeemed uses context.tx; to run with or without a tx use runWithTransaction(context.tx, ...)
+- self_redeem_core: self-redeem of attribution coupons is rejected in core, never re-checked by a consumer
+- reason_messages: reason messages only from constants/redeemReasonMessages.ts
+- reward_recipient: recipients get CouponAttributionRewardForRecipient, never the redeemer's type
+- admin_tabs_built: admin coupon tabs via buildCouponAdminSectionTabs + its sectionTabs receptacle, never hardcoded
 - self_redeem_no_optout: no per-consumer re-implementation; a business needing self-redeem proposes a settings-key opt-out to Tier1
 - tab_enabled: close a section tab by `enabled` (client-readable values only, no hooks), never className "hidden"
 - tabs_by_screen: AdminCouponList / AdminInviteList render no tabs; a Screen using them places CouponSectionTabs

@@ -133,7 +133,7 @@ HTTP の口と返す形は口のフォルダの README:
 - 配信停止の判定（好み・宛先の停止・メールの List-Unsubscribe）→ services/server/preferences/README.md
 - 受け取り箱の見える行・既読・画像の台帳・静かな行 → services/server/inbox/README.md
 - 内部の事件と購読（cron `messaging-subscribers`）→ services/server/subscribers/README.md
-- 生の SQL（`sql```）の日時は ISO の文字列 + `::timestamptz` か Drizzle の演算子（CLAUDE.md CRUD_SERVICE の raw_sql Date）。生の SQL の組み立ては db を持たないファイル（`sweep/retentionSql.ts`・`inbox/cursorSql.ts` など）にあり、`services/server/rawSqlParams.test.ts` の一覧が検査する
+- 生の SQL（`sql```）の日時は ISO の文字列 + `::timestamptz` か Drizzle の演算子（.claude/rules/core/services.md raw_sql）。生の SQL の組み立ては db を持たないファイル（`sweep/retentionSql.ts`・`inbox/cursorSql.ts` など）にあり、`services/server/rawSqlParams.test.ts` の一覧が検査する
 
 ## Verification
 

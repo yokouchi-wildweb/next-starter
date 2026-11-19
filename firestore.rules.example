@@ -7,7 +7,7 @@ rules_version = '2';
 //   3. firebase.json に "firestore": { "rules": "firestore.rules" } を足す（fork が書いてよい場所。src/lib/forkOwnership/intake.txt）
 //   4. 配備: firebase deploy --only firestore:rules --project <project-id>
 // サーバーの Admin SDK（getServerFirestore）はルールを通らないので、このルールの影響を受けない。
-// ブラウザから直接読み書きするコレクションだけに、必要最小限の allow を足す（業務データは Firestore に置かない: CLAUDE.md BACKEND_DOCTRINE）。
+// ブラウザから直接読み書きするコレクションだけに、必要最小限の allow を足す（業務データは Firestore に置かない: CLAUDE.md BACKENDS doctrine）。
 service cloud.firestore {
   match /databases/{database}/documents {
     // どの allow にも当たらないパスはすべて拒否する

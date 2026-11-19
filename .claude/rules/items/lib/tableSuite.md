@@ -8,6 +8,7 @@ use: always
 change: none → /order <direct parent> (admin bulk actions = items of each domain's adminBulkActions)
 rules:
 using:
+- admin_bulk_actions: admin list bulk actions = receptacle items <domain>/adminBulkActions/<name>.tsx (BulkActionItem, @/lib/crud/components bulk*Action creators), never hand-written bulkActions in a Table | generic bulk buttons only for side-effect-free columns, recorded ops → upstream service + API + creator | item access = show / hide only (authz is the API)
 - selection_hook: selection outside a table uses useRecordSelection + BulkActionBar, never a hand-built Set
 - sort_by_caller: tables only show sort state and report changes; the caller sorts, and a paginated list sorts on the server through the URL, never sortItems on one page
 - reorder_key: reorderable needs a getKey returning a stable record id

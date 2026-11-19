@@ -56,7 +56,7 @@ export const handler: ProxyHandler = async (request, ctx) => {
 - 判定の中身は責務のドメインのサービスを呼ぶ（項目のファイルに業務の判定を書き込まない）。項目の入切は各項目が config の値で持つ（多段での並べ替え・置き換えの口は無い）。項目はどのドメインの config も読んでよい。読んだ config から services・drizzle・server-only・node: に届くと門番の到達の検査（`pnpm test src/featureGate/checks/reachability.test.mjs`）が落とす（edge で動くため）
 - **転送された旧 URL（redirect が Response を返したリクエスト）では枠の項目は走らない**。骨組みが打ち切ったリクエストも同じ
 - **受け口か config か**: fork が互いに独立した行を足していく一覧（転送の規則）は受け口、鍵で合わせて値を変える表は config（`src/config/README.md`）
-- 項目も UNCONFIGURED_BACKENDS の契約に従う（DB・Firebase が未構成でも落ちない。既存の判定 `isDatabaseConfigured` 等を使う）
+- 項目も CLAUDE.md BACKENDS unconfigured の契約に従う（DB・Firebase が未構成でも落ちない。既存の判定 `isDatabaseConfigured` 等を使う）
 
 ## Internals
 

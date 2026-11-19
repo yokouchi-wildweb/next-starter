@@ -2,7 +2,7 @@
 
 ## Overview
 
-文章構造のラッパー。生の `h1` / `h2` / `p` の代わりに使う（CLAUDE.md COMPONENTS wrappers）。
+文章構造のラッパー。生の `h1` / `h2` / `p` の代わりに使う（.claude/rules/core/components.md wrappers）。
 
 | コンポーネント | 要素 | 既定値（tone / size / weight / align） | base クラス |
 | --- | --- | --- | --- |

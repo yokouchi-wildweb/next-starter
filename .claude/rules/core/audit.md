@@ -8,7 +8,7 @@ paths:
   - "scripts/**"
 ---
 # audit
-> **ROLE**: loaded when writing server services, API routes or scripts | holds AUDIT detail
+> **ROLE**: loaded when writing server services, API routes or scripts | holds the audit rules (CLAUDE.md CRUD_SERVICE audit)
 > Tier1-owned: forks never edit (gap → /order <direct parent>)
 
 action_naming: \<domain\>.\<entity\>.\<verb_past\> (e.g. user.email.changed, ESLint audit/action-naming: auditLogger calls and any object literal with action + targetType, i.e. injected recorders too)

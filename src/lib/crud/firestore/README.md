@@ -2,7 +2,7 @@
 
 ## Overview
 
-- Firestore 版の createCrudService。機能凍結済みで、下表の制限は仕様として固定し、以後の機能拡張は行わない（CLAUDE.md BACKEND_DOCTRINE、`docs/!must-read/バックエンド構成ドクトリン.md`）
+- Firestore 版の createCrudService。機能凍結済みで、下表の制限は仕様として固定し、以後の機能拡張は行わない（CLAUDE.md BACKENDS doctrine、`docs/!must-read/バックエンド構成ドクトリン.md`）
 
 ## API
 

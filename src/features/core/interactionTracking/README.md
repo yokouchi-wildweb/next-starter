@@ -23,7 +23,7 @@
 
 ### 隣接プリミティブとの棲み分け
 
-- **auditLog**: 「誰が何をどう変更したか」の証跡（コンプラ用）。行動計測には使わない（CLAUDE.md AUDIT）
+- **auditLog**: 「誰が何をどう変更したか」の証跡（コンプラ用）。行動計測には使わない（CLAUDE.md COUNTING NOT_for）
 - **userCounter**: 「この**ユーザー**が何回したか」（per-user・ログイン前提・サーバー内部専用）。
   日次テーブルも持つ。**カウント要求の決定ガイド（単位×時間軸の行列。DAU/訪問日数系は core/analytics の DAU 基盤）は userCounter README 参照**
 - **analytics**: 既存テーブルの読み取り専用集計。イベントの記録はしない

@@ -11,8 +11,8 @@ paths:
 
 map (every core file, loaded by its paths):
 - .claude/rules/core/api-routes.md: API_ROUTES detail
-- .claude/rules/core/audit.md: AUDIT detail
-- .claude/rules/core/backends.md: BACKENDS / SERVERS rules
+- .claude/rules/core/audit.md: the audit rules (CRUD_SERVICE audit)
+- .claude/rules/core/backends.md: BACKENDS rules
 - .claude/rules/core/change.md: the change types (CHANGE_TYPES)
 - .claude/rules/core/client.md: the client layer rules (hooks, stores)
 - .claude/rules/core/components.md: COMPONENTS detail
@@ -31,7 +31,7 @@ map (every core file, loaded by its paths):
 - .claude/rules/core/scripts.md: the scripts placement and rules
 - .claude/rules/core/services.md: CRUD_SERVICE (createCrudService) service-side rules
 - .claude/rules/core/skills.md: the skill format
-- .claude/rules/core/style.md: STYLE_OWNERSHIP detail
+- .claude/rules/core/style.md: the style rules (COMPONENTS style)
 
 ## places (what goes where)
 - roles: core file = the architecture canon (layers, placement, ownership, each district's role, cross-cutting rules, duties of the calling layer) | card = rules only for that item + pointers to its README | README = API, mechanism, usage, options, examples, never the source of a rule

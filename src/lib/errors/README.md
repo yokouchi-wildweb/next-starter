@@ -3,7 +3,7 @@
 ## Overview
 
 - 共通エラー型: サーバー側の `DomainError` と、クライアント側の `HttpError` の 2 つの型と、その変換ユーティリティ
-- 層をまたいだエラーの流れ（どの層が何に責任を持つか、なぜこの形か）は [docs/!must-read/エラーハンドリング方針.md](../../../docs/!must-read/エラーハンドリング方針.md)（CLAUDE.md ERROR_HANDLING）
+- 層をまたいだエラーの流れ（どの層が何に責任を持つか、なぜこの形か）は [docs/!must-read/エラーハンドリング方針.md](../../../docs/!must-read/エラーハンドリング方針.md)（CLAUDE.md ARCHITECTURE errors）
 - 使う時の決まりは札 .claude/rules/items/lib/errors.md にある
 
 ```ts
@@ -59,7 +59,7 @@ try {
 
 | 関数 | 用途 |
 |---|---|
-| `normalizeHttpError(error, fallback?, options?)` | 任意の例外を `HttpError` に正規化する。クライアントサービスの `catch` で通す(CLAUDE.md ARCHITECTURE http)。`HttpError` はそのまま、axios エラーはレスポンスボディの `message` を優先して採用し `status` / `responseData` を保持、その他の `Error` は `message` を引き継ぐ |
+| `normalizeHttpError(error, fallback?, options?)` | 任意の例外を `HttpError` に正規化する。クライアントサービスの `catch` で通す(.claude/rules/core/client.md client_layer)。`HttpError` はそのまま、axios エラーはレスポンスボディの `message` を優先して採用し `status` / `responseData` を保持、その他の `Error` は `message` を引き継ぐ |
 | `options.rethrowStatuses` | 指定したステータスだけ正規化せず元の例外を再 throw する（例: 428 を呼び出し元で個別処理する） |
 | `createHttpError({ message, status?, responseData?, cause? })` | HTTP 通信を介さない失敗（外部 SDK、ブラウザ API、クライアント側の検証）を `HttpError` として新たに作る。空文字の `message` は既定文言に置き換わる |
 | `err(error, fallback)` | UI で表示文言を得る。`resolveErrorMessage` の短縮形。内部で `normalizeHttpError` を通すので、想定外の値が来ても必ず文字列を返す |

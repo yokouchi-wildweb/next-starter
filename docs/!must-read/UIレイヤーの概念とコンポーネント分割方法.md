@@ -1,6 +1,6 @@
 # UI レイヤーの概念とコンポーネント分割方法
 
-> **この文書が裏付ける CLAUDE.md の節**: COMPONENTS（ui_layers / data_seam）/ SCREENS
+> **この文書が裏付ける CLAUDE.md の節**: COMPONENTS（essentials の ui_layers。data_seam は .claude/rules/core/components.md）/ SCREENS
 
 コンポーネントの作成と子コンポーネントの切り分け方、フォルダ構成、フックの呼び出し位置など、
 責務に関するガイドラインです。プロジェクト内では役割の異なる複数種類のコンポーネントを使い、

@@ -123,7 +123,7 @@ export function SampleFeed({ keyword }: { keyword: string }) {
 
 #### 初期データ（loader → hook）
 
-初回描画に要るデータは loader で取り、セクションコンテナの `initial<Name>` prop → hook の `fallbackData` で渡す（CLAUDE.md COMPONENTS data_seam）。
+初回描画に要るデータは loader で取り、セクションコンテナの `initial<Name>` prop → hook の `fallbackData` で渡す（.claude/rules/core/components.md data_seam）。
 
 - `use<Domain>List(config)` は SWR の config をそのまま受け取る
 - `use<Domain>(id)` / `useSearch<Domain>` / `useCount<Domain>` は config を受け取らない → 派生フックで `@/lib/crud/hooks` の `useDomain(key, fetcher, config)` を包む。キーは生成フックと同じ（`sample:${id}`）にしてキャッシュを共有する
@@ -220,7 +220,7 @@ export function SamplePublishButton({ id, onUpdated }: Props) {
 | `"sample:<id>"` | `use<Domain>(id)` | **されない**。必要なら `mutate()` を呼ぶか、trigger の結果を `mutate(updated, { revalidate: false })` で入れる |
 | `useInfiniteScrollQuery` の一覧 | 派生フック | **されない**（SWR 外）。下記 |
 
-無限スクロール一覧は、trigger の結果（更新後レコード・処理済み ID）で `updateItems` / `removeItems` を呼んで即時反映する。結果から反映内容を作れないときだけ `revalidate()`。`reset()` は一覧が消えるので最新化に使わない（CLAUDE.md COMPONENTS action_optimistic、[`InfiniteScrollList/README.md`「アクション後の一覧の反映」](../../../components/Widgets/InfiniteScrollList/README.md#アクション後の一覧の反映)）。
+無限スクロール一覧は、trigger の結果（更新後レコード・処理済み ID）で `updateItems` / `removeItems` を呼んで即時反映する。結果から反映内容を作れないときだけ `revalidate()`。`reset()` は一覧が消えるので最新化に使わない（.claude/rules/core/components.md action_optimistic、[`InfiniteScrollList/README.md`「アクション後の一覧の反映」](../../../components/Widgets/InfiniteScrollList/README.md#アクション後の一覧の反映)）。
 
 ```ts
 const { items, updateItems, removeItems } = useSampleFeed(keyword);

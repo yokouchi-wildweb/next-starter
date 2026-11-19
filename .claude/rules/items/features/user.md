@@ -14,6 +14,9 @@ using:
 - secrets: findByIdWithSecrets / findByLocalEmail output never reaches HTTP
 - ip_search: IP lookups → userLoginEvent, not metadata
 - user_name: names from outside → sanitizeUserName, no own forbidden-char list
+- name_write (MANDATORY): every write path to users.name uses the shared schemas (entities/userName.ts) and withUserNameGuard, never name rules inline | uniqueness = an app-layer check, not a DB constraint
+- status_write (MANDATORY): any code that writes users.status calls recordStatusTransition (services/server/statusHistory.ts)
+- no_user_columns: no analytics columns on users → per-concern satellite tables (aggregation axes = typed columns, long tail = jsonb extras)
 - delete_one_by_one: delete users one by one (softDelete)
 - bulk_fields: no side-effect columns in bulkUpdate.fields (status, role, name, email, phone, password, isDemo)
 - reserved_fast: reservedNames providers read locally only (memory / local table; run under an advisory lock), names normalized as normalizeUserNameForComparison

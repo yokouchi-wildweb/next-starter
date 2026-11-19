@@ -4,7 +4,7 @@
 
 - PostgreSQL(Neon)のクライアント `db`・トランザクションの道具(`runWithTransaction`・`TransactionClient`)・未設定の判定(`isDatabaseConfigured`・`DatabaseNotConfiguredError`)
 - 閉じた lib(入口 `@/lib/drizzle`。`package.json` の `libs` = `defineConfig`)。server 専用(`server-only`)
-- 決まり(入口・プールの値・process.env を読まない・prepare の固定)は札 `.claude/rules/items/lib/drizzle.md`。未設定のときの約束は CLAUDE.md UNCONFIGURED_BACKENDS
+- 決まり(入口・プールの値・process.env を読まない・prepare の固定)は札 `.claude/rules/items/lib/drizzle.md`。未設定のときの約束は CLAUDE.md BACKENDS unconfigured
 
 ## API
 

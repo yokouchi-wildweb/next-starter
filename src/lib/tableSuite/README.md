@@ -7,7 +7,7 @@
 - RecordSelectionTable: 行選択 + 一括操作
 - RecordSelectionList: カードの一覧の行選択 + 一括操作(RecordSelectionTable の兄弟)
 - EditableGridTable: インライン編集(内部構造とエディターの追加は `EditableGridTable/README.md`)
-- 決まり(選択のフック・ソートの責任・並び替えの鍵と範囲・未保存の守り・全幅行・無限スクロール・エディターの作り)は札 `.claude/rules/items/lib/tableSuite.md`。管理一覧の一括操作の受け口は CLAUDE.md COMPONENTS admin_bulk_actions
+- 決まり(選択のフック・ソートの責任・並び替えの鍵と範囲・未保存の守り・全幅行・無限スクロール・エディターの作り)は札 `.claude/rules/items/lib/tableSuite.md`。管理一覧の一括操作の受け口は CLAUDE.md COMPONENTS admin_bulk_actions(札 items/lib/tableSuite.md)
 
 ## Usage
 

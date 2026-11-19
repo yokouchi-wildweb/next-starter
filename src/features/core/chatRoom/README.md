@@ -472,7 +472,7 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 
 - メッセージ作成と snapshot 更新が同一バッチでアトミックに確定し、送信直後に一覧へ反映される（Functions トリガーは非同期で遅延が出る）
 - 整合性はセキュリティルールのフィールド検証で強制できる
-- BACKEND_DOCTRINE の「Firebase Functions にロジックを置かない」とも一致する
+- CLAUDE.md BACKENDS doctrine の「Firebase Functions にロジックを置かない」とも一致する
 
 #### 未読管理を chatRoom 内の `readAt` map に統合する
 

@@ -9,7 +9,7 @@
 // - 遅延: ctx.user() が初めて呼ばれたときだけ解決する(全リクエストで走る proxy で、使わない項目のために DB を引かない)
 // - リクエスト内メモ化: 2 回目以降は同じ Promise(React cache は RSC の外では効かないので自前で持つ)
 // - 利用可能な status(USER_AVAILABLE_STATUSES)の利用者だけ非 null。停止中・休会中などは null(public の ctx.user と同じ)
-// - DB 未構成(isDatabaseConfigured が偽)なら DB を引かず null(UNCONFIGURED_BACKENDS)
+// - DB 未構成(isDatabaseConfigured が偽)なら DB を引かず null(CLAUDE.md BACKENDS unconfigured)
 // - token だけの版は出さない(役割の判定も DB の現在値で)
 
 import type { SessionUser } from "@/features/core/auth/entities/session";

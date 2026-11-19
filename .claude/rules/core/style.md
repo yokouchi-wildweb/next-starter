@@ -6,7 +6,7 @@ paths:
   - "src/lib/cn/**"
 ---
 # style
-> **ROLE**: loaded when writing any .tsx or styles | holds STYLE_OWNERSHIP detail
+> **ROLE**: loaded when writing any .tsx or styles | holds the style rules (CLAUDE.md COMPONENTS style)
 > Tier1-owned: forks never edit (gap → /order <direct parent>)
 
 ownership: see CORE_FILES (src/styles/core/** = upstream | src/styles/*.css at the root (entry global.css + palette / typography / overrides.css + generated gradient.css + fork-added), src/config/ui/*.config.ts = downstream) | color source of truth = CSS

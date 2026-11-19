@@ -43,7 +43,7 @@ export type LocalLoginResult = {
   requiresReactivation: boolean;
   /**
    * Firebase Auth にもサインインするためのカスタムトークン(Storage のルール・chatRoom の私用 app・useFirebaseAuthSync の材料)。
-   * Firebase のサーバー側が未設定なら null(ローカルログインは Firebase なしで完了する。UNCONFIGURED_BACKENDS)
+   * Firebase のサーバー側が未設定なら null(ローカルログインは Firebase なしで完了する。CLAUDE.md BACKENDS unconfigured)
    */
   firebaseCustomToken: string | null;
 };

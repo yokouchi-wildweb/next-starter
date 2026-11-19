@@ -11,6 +11,7 @@ rules:
 using:
 - through_base: every upload, read and delete goes through this base and storageObject
 - display_helpers: public URLs come only from resolveStorageSrc | display parts use toStorageDisplaySrc
+- strip_default (MANDATORY): image purposes default metadata "strip" (the server re-encodes, removing GPS / EXIF / XMP / IPTC / ICC), "keep" only when the original is needed (explicit) | user.avatar is always strip | public docs (privacy policy) name the strip purposes, never "all images"
 - purpose_decides: callers never pass strip / keep | image shrinking is declared once per purpose, never on input parts | purposeId is never renamed
 - upload_callsite: features / app UI never call uploadToStorage → MediaUploader parts or the domain's hook
 - media_schema: media columns use storageMediaValueSchema, never z.string().url()

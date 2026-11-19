@@ -13,5 +13,5 @@ using:
 - error_code_branch: the client branches on `code` (getErrorCode), never on the message text
 - client_non_http: a client failure without HTTP (SDK, browser API, client validation) → createHttpError
 - error_details_check: the caller validates the shape of getErrorDetails
-editing: none of its own (the error flow is CLAUDE.md ERROR_HANDLING)
+editing: none of its own (the error flow is CLAUDE.md ARCHITECTURE errors)
 read: throw and show errors → Usage | functions and options → API | app-wide hooks, dev warnings → Internals
