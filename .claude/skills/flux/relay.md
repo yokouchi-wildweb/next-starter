@@ -74,7 +74,7 @@ as a middle Tier, decide mechanically **by git diffs only** whether applied upst
     ```
     中継未判定の旧 notice が N 件あります: <id>, ...。`/flux relay` で中継 notice を下書きします
     ```
-  - **while unjudged is not 0, flux is not done** (a reason to stop, not advice; CLAUDE.md DOWNSTREAM_NOTICES relay): close it by running `/flux relay` in the same sortie, or else never report completion | 0 → print nothing
+  - **while unjudged is not 0, flux is not done** (a reason to stop, not advice; CLAUDE.md REPO_LINK relay): close it by running `/flux relay` in the same sortie, or else never report completion | 0 → print nothing
 - **relay forgotten** (the segment's commit lacked the relay draft / the judgment was skipped) noticed → in the next commit, put the relay judgment and draft before any other work
 
 ## RELAY NOTICE COMPOSITION

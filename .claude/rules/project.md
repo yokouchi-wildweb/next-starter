@@ -21,7 +21,3 @@ this_repo: Tier1 (canonical upstream). Hierarchy: Tier1 → Tier2 → Tier3.
 - tier: downstream forks exist (or are planned) = root / middle, none = leaf | read by /ship and /flux (notice / relay) and the lineage.md check | root ⇔ own name is the first CATALOG.md section, else pnpm workflow ownership check unverified (exit 2)
 note: downstream forks maintain their OWN project.md and repo.json.
 rule: generic/foundational capabilities live HERE (Tier1); downstream must not hardcode them locally — escalate instead.
-request_protocol (shared mailbox: ~/.local/state/next-starter/orders/ (env ORDER_STATE_DIR; the old ~/.team/orders/ is a link to it) — never under ~/.claude/: Claude Code always prompts for Write/Edit there, allow rules cannot suppress it):
-- inbox per receiving repo: ~/.local/state/next-starter/orders/<repo-id>/ (+ done/) | skills ship in .claude/skills/{order,inbox,wen}, layout: .claude/skills/order/SKILL.md
-- any repo: /order <self|repo> files a one-off order into that repo's inbox (self = own next task) | /wen checks the orders filed in the current session
-- any repo: /inbox judges each order against its own role, then does it → RESOLUTION + done/, or relays it to the repo that owns it (any direction: hand off = close, or wait = waiting_on:)

@@ -4,11 +4,16 @@ paths:
   - ".claude/skills/ship/**"
   - ".claude/skills/flux/**"
   - "scripts/workflow/notices/**"
+  - ".claude/skills/order/**"
+  - ".claude/skills/inbox/**"
+  - ".claude/skills/wen/**"
 ---
 # notices
-> **ROLE**: loaded when writing a downstream notice or the ship / flux tools | holds DOWNSTREAM_NOTICES detail
+> **ROLE**: loaded when writing a downstream notice or the ship / flux / order / inbox / wen tools | holds REPO_LINK detail
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
+loop: upstream ships with /ship (a notice when downstream must follow) → downstream takes it in with /flux, segment by segment
+- then: /flux is recommended, runs the ownership check, and a mid tier relays → what is missing goes out as /order \<to\> → the receiver judges and answers with /inbox, the sender checks with /wen → the notice that ships the order carries resolves: and the temporary permit and the provisional rule end
 notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY also for deleting / moving a file forks may extend: moved: or the deletion in notes:) | ledger: .notices/applied/\<repo_id\>.md, each line records upstream:\<sha\> | ref: .notices/README.md
 - fields: the notice's keys (severity, checkpoint, change, why, required_actions, verify, manual_steps, notes …) = .notices/README.md API | fork follow-up commands go in required_actions
 - keys: renaming / moving / removing a key of CLAUDE.md, a core file or a card → old key → new place in that notice
@@ -17,3 +22,7 @@ resolves (MANDATORY when shipping an order a downstream repo filed): `resolves: 
 ship (MANDATORY): every commit + push = /ship (checks, notice, commit, push) | which kind (quick / plain / safe) and when → .claude/skills/ship/SKILL.md | prod deploys need a safe point (tag safe/\<repo_id\>/\<YYYYMMDD\>-\<n\>) | /flux = its receiving pair | fix to a shipped change → `fixes: <notice id | commit:sha>` in the fix's notice, never edit the earlier one
 checkpoint (MANDATORY on every notice): `checkpoint: <label>` = default = a segment boundary the author declares (the fork is consistent there; upstream does not verify intermediate ones, the fork's /flux does) | `checkpoint: -` only when the fork cannot work without the next notice (reason in notes:) | a shipped one that does not build + an unpickable fix → `skip_checkpoint: <id>` in the fix
 relay: a mid tier's /flux judges per segment by git diff whether each applied upstream notice needs relaying (ledger `relay:none` or a drafted relay notice with covers: ids) | `/flux relay` = only for legacy unjudged ids | /flux's unjudged-relay report ≠ 0 = flux not done (blocker, not a hint) | forgotten → relay in the very next commit before any other work | ref: .notices/README.md
+orders: one-off orders between repos, any direction | shared mailbox ~/.local/state/next-starter/orders/ (env ORDER_STATE_DIR; the old ~/.team/orders/ is a link to it) | never under ~/.claude/ (Claude Code always prompts for Write / Edit there, allow rules cannot suppress it)
+- inbox per receiving repo: ~/.local/state/next-starter/orders/\<repo_id\>/ (+ done/) | skills .claude/skills/{order,inbox,wen}, layout: .claude/skills/order/SKILL.md
+- to: code of a parent (no intake point, a parent's lib, an upstream bug / perf / security fix) → /order \<direct parent\> + a temporary permit | a contract change or gap (CLAUDE.md, a core file, a Tier1 card, a window item of core/design.md authoring) → /order next-starter, straight from any tier | a middle tier's own rule → /order \<that repo\> | self = your own next task
+- /order files it | /wen checks the orders filed in this session | /inbox judges each order against the repo's own role, then does it → RESOLUTION + done/, or relays it to the repo that owns it (hand off = close, or wait = waiting_on:)

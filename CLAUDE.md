@@ -1,14 +1,17 @@
-ai_native: always adopt the environment and architecture that make development by agents most efficient | premise: agents write this code, not hands, held up firmly by a complete context and a full set of tools → reading the whole codebase and rewriting large parts of it is fast, exact and cheap
-- tools over hand work: an agent never does by hand what a tool can do | the same thing has one way to do it and a tool (generator, check, skill) carries it out → run the tool | a repeated hand step with no tool yet → build the tool (keeping the tools complete is part of the work) | an exception is rewritten to match, not kept
+ai_native: always adopt the environment and architecture that make development by agents most efficient | premise: agents write this code, not hands, and they stand on a complete context and a full set of tools that this framework keeps complete → reading the whole codebase and rewriting large parts of it is fast, exact and cheap
+- tools over hand work: an agent never does by hand what a tool can do | the same thing has one way to do it and a tool (generator, check, skill) carries it out → run the tool | a repeated hand step with no tool yet → build the tool (keeping the tools complete is part of the work) | a place that does it another way is rewritten to match, not kept
 - written or checked over remembered: the next agent knows nothing of today's conversation → what must hold goes into the context (a rule, a card, a README) or a check
 domain_driven: the business domain is the unit of design: everything one business concept needs lives together in its domain, in the same shape as every other domain → a spec change stays in one place, and since the feature gate opens and closes domains as a whole, a capability is added, closed or removed as a whole
-- the owning domain over a shared place: code goes to the domain whose concept it is | only what belongs to no domain becomes a lib or a shared component | a component used by one domain stays in that domain
+- the owning domain over a shared place: code goes to the domain whose concept it is | only what belongs to no domain becomes a lib (a mechanism) or a shared component (UI) | a component used by one domain stays in that domain
 - passing in over reaching in: a lib never imports a domain (what it needs is passed in) | a domain reaches another domain only through its public hooks and services
-- each domain's own part over a central list: features, access and tables are built on domains | a feature = the unit a person switches on or off, its rule lists the domains it opens | a domain has no switch of its own and is open when an open feature lists it | a closed feature closes its domains' pages, APIs, tables and scheduled jobs together → a new mechanism has each domain hold its own part
-debt_free: every implementation decision aims at the form that is most rational and cleanest in the long run = the best state reachable in the present situation | present work is chosen over future debt
+- each domain's own part over a central list: features, access and tables are declared per domain | a feature = the unit a project switches on or off, its rule lists the domains it opens
+  - a domain has no switch of its own: it is open while any open feature lists it, and when no open feature lists it, its pages, APIs, tables and scheduled jobs are closed together → a new mechanism has each domain hold its own part
+debt_free: every implementation decision aims at the form that is most rational and cleanest in the long run, and builds the closest state to it that can be reached now | present work is chosen over future debt
 - the root over the patch: no stopgap, workaround or special case that leaves the cause in place | nothing old is kept beside the new to save work (alias, half migration)
 - paying now over carrying debt: none of these counts against an option: the amount of code edits (rewriting every caller, renames, moves) | rewriting tests and docs | data migration (rebuilding columns or tables, moving existing rows) | a temporary burden on operations (maintenance time, one-time migration work)
-use: every rule below follows from these three laws | a question no rule covers → decide by the laws | an open design or refactoring choice → take the option the laws favor | the laws disagree → the lower number first (ai_native, domain_driven, debt_free) | a written rule wins over a law: a rule that seems to break a law is never ignored → /order
+  - this is about choosing an option, not about who runs a step: running one stays with whoever the rules name
+use: every rule below follows from these three laws | a question no rule covers → decide by the laws | an open design or refactoring choice → take the option the laws favor | the laws disagree → the earlier law first (ai_native, then domain_driven, then debt_free)
+- a written rule wins over a law: a rule that seems to break a law is followed and never ignored, and you file /order (a request to the rule's owner, REPO_LINK) to fix it
 
 ## THIS_FILE
 > **HEART**: CLAUDE.md and the core files (core/) are the heart of this framework: every session's work starts from them → change a rule only after careful thought: run the authoring ladder in core/design.md first
@@ -31,7 +34,21 @@ use: a step a tool covers is never built by hand → run the tool | unsure which
 - build: pnpm forge (domains, roles, profiles end to end) | pnpm generate \<target\> (domain, role, registry, routes, cron, extensions, styles)
 - check: pnpm check [--gate=ship] (generator drift, rules, notices, lint) | pnpm test [--changed] | pnpm typecheck | pnpm lint
 - workflow: pnpm workflow \<area\> (ownership, rules, notices, worktree, devcheck, repo-json …) | ops: pnpm ops \<area\> (setup env, features, db inspect, firestore inspect) | task: pnpm task \<name\> (every ops task, no ad-hoc)
+- running_app: a check that needs the running app → /devcheck (an order's check sheet → /patrol) | what the agent may run = repo.json agent.* policy, never stated here, changed only by /repo-policy
 - skills: /ship (checks, notice, commit, push) | /flux (take a parent's changes) | /order /inbox /wen (orders) | /devcheck /patrol (the running app) | /allow /repo-policy (what the agent may run) | the rest → .claude/skills/
+
+## REPO_LINK (one loop links the repos: ship → take in → order → answer → resolves; detail → core/notices.md)
+loop: upstream ships with /ship (a notice when downstream must follow) → downstream takes it in with /flux, segment by segment → what is missing is asked for with /order \<to\> → the receiver judges and answers with /inbox (/wen checks the orders you filed) → the notice that ships the order says resolves: and the temporary permit and the provisional rule end
+ship (MANDATORY): every commit + push = /ship (checks, notice, commit, push) | which kind and when → .claude/skills/ship/SKILL.md | prod deploys need a safe point | fix to a shipped change → `fixes:` in the fix's notice, never edit the earlier one
+notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY also for deleting / moving a file forks may extend: moved: or the deletion in notes:) | renaming / moving / removing a key of CLAUDE.md, a core file or a card → old key → new place in that notice | ledger: .notices/applied/\<repo_id\>.md
+checkpoint (MANDATORY on every notice): `checkpoint: <label>` = a segment boundary the author declares | `checkpoint: -` only when the fork cannot work without the next notice
+take_in: take a parent's changes with /flux (recommended, not required: it runs the segment checks, the ownership check and the notice steps together)
+relay: a mid tier's /flux judges per segment whether each applied upstream notice needs relaying | /flux's unjudged-relay report ≠ 0 = flux not done (blocker) | forgotten → relay in the very next commit before any other work
+orders: /order \<to\> files a one-off order into that repo's inbox | code of a parent (an intake point missing, a parent's lib, an upstream bug) → the direct parent, with a temporary permit while it waits
+- to: a contract change or gap (CLAUDE.md, a core file, a Tier1 card, the window) → next-starter, straight from any tier | a middle tier's own rule → that repo | inbox place and steps → core/notices.md orders
+- contract_gap: while waiting, a provisional rule in your own rules (outside core) ending with `(order: <id>)`
+resolves (MANDATORY when shipping an order a downstream repo filed): `resolves: <order id>` in the notice | a fork's temporary permit expires when all its orders ship as resolves: or the parent touches the file (core/ownership.md) | /flux lists the `(order: <id>)` rule lines on it and asks whether to remove them
+fork_bootstrap: /fork-init right after clone | spec: docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
 
 ## RULES_FILES (.claude/rules/: what each place holds, who writes it, merge | core/\<name\>.md = .claude/rules/core/\<name\>.md, items/… = .claude/rules/items/…)
 core/: upstream architecture canon, one file per kind of file being written, path-scoped (loads when Read / Write / Edit touches a matching file; a new file gets it only after the first Write) | only Tier1 writes; forks never add or edit (fork_ownership) | map of all core files and the authoring ladder: core/design.md | writing .claude/skills/** → core/skills.md
@@ -179,17 +196,6 @@ scope: each line = a rule that applies even when you are not editing that featur
 - budgeted_cron (MANDATORY): sweeps over unbounded-growth tables use runBudgetedBatches + createDeadline (@/lib/cron); read models refresh via createIncrementalRefresh → items/lib/cron.md
 - analytics_perf: before adding per-domain caches or snapshot tables → withAnalyticsCache or analytics rollups → items/features/analytics.md
 - ai_agent: generic runtime src/lib/ai/, each agent owns its safety boundary → items/lib/{ai,dbAgent}.md
-
-## DOWNSTREAM_NOTICES
-notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY also for deleting / moving a file forks may extend: moved: or the deletion in notes:) | renaming / moving / removing a key of CLAUDE.md, a core file or a card → old key → new place in that notice | ledger: .notices/applied/\<repo_id\>.md | detail → core/notices.md
-resolves (MANDATORY when shipping an order a downstream repo filed): `resolves: <order id>` in the notice | a fork's temporary permit expires when all its orders ship as resolves: or the parent touches the file (core/ownership.md) | /flux lists the `(order: <id>)` rule lines on it and asks whether to remove them
-running_app: a check that needs the running app → /devcheck (an order's check sheet → /patrol) | what the agent may run = repo.json agent.* policy, never stated here, changed only by /repo-policy
-ship (MANDATORY): every commit + push = /ship (checks, notice, commit, push) | which kind and when → .claude/skills/ship/SKILL.md | prod deploys need a safe point | /flux = its receiving pair | fix to a shipped change → `fixes:` in the fix's notice, never edit the earlier one
-take_in: take a parent's changes with /flux (recommended, not required: it runs the segment checks, the ownership check and the notice steps together)
-checkpoint (MANDATORY on every notice): `checkpoint: <label>` = a segment boundary the author declares | `checkpoint: -` only when the fork cannot work without the next notice | detail → core/notices.md
-relay: a mid tier's /flux judges per segment whether each applied upstream notice needs relaying | /flux's unjudged-relay report ≠ 0 = flux not done (blocker) | forgotten → relay in the very next commit before any other work
-contract_gap: a missing or wrong rule in CLAUDE.md / a core file / a Tier1 card → /order next-starter, straight from any tier (a middle tier's own rule → /order <that repo>) | while waiting, a provisional rule in your own rules (outside core) ending with `(order: <id>)`
-fork_bootstrap: /fork-init right after clone | spec: docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
 
 ## DOCS
 policy: colocation-first, primary docs = README.md next to the code | docs/ has exactly 3 folders: !must-read/ (principles), setup/ (external service setup), journal/ (dated records) | README format → core/readme-format.md

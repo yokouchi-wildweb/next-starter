@@ -22,7 +22,7 @@ map (every core file, loaded by its paths):
 - .claude/rules/core/extensions.md: FORK_EXTENSION (judge, guards, want → means, copy and own marks)
 - .claude/rules/core/generated.md: DIRECTORY_STRUCTURE code_generation (generated / write-once / hand-owned)
 - .claude/rules/core/lib.md: the library rules (CODE_PLACEMENT library)
-- .claude/rules/core/notices.md: DOWNSTREAM_NOTICES detail
+- .claude/rules/core/notices.md: REPO_LINK detail (notices, ship / flux, orders)
 - .claude/rules/core/ownership.md: who owns what (CORE_FILES, fork_ownership)
 - .claude/rules/core/proxy.md: PROXY detail
 - .claude/rules/core/readme-format.md: the README format

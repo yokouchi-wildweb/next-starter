@@ -122,7 +122,7 @@
  {
   "kind": "rule-key",
   "old": "CLAUDE.md DOWNSTREAM_NOTICES intake",
-  "new": "CLAUDE.md DOWNSTREAM_NOTICES take_in",
+  "new": "CLAUDE.md REPO_LINK take_in",
   "order": 82
  },
  {
@@ -460,5 +460,29 @@
   "old": "CLAUDE.md PER_PROJECT",
   "new": ".claude/rules/core/design.md places",
   "order": 92
+ },
+ {
+  "kind": "claude-section",
+  "old": "CLAUDE.md DOWNSTREAM_NOTICES",
+  "new": "CLAUDE.md REPO_LINK (same keys; running_app -> CLAUDE.md TOOLS running_app, contract_gap -> CLAUDE.md REPO_LINK orders contract_gap)",
+  "order": 93
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md DOWNSTREAM_NOTICES running_app",
+  "new": "CLAUDE.md TOOLS running_app",
+  "order": 93
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md DOWNSTREAM_NOTICES contract_gap",
+  "new": "CLAUDE.md REPO_LINK orders contract_gap",
+  "order": 93
+ },
+ {
+  "kind": "rule-key",
+  "old": ".claude/rules/project.md request_protocol",
+  "new": ".claude/rules/core/notices.md orders",
+  "order": 93
  }
 ]

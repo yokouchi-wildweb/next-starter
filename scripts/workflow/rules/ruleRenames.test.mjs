@@ -33,7 +33,8 @@ test("古い名指しを挙げ、新しい名指しは挙げない", () => {
     "take it with CLAUDE.md DOWNSTREAM_NOTICES intake",
   ].join("\n");
   const hits = staleRefsIn("x.md", text, entries).map((hit) => `${hit.line} ${hit.kind}`);
-  assert.deepEqual(hits, ["1 claude-section", "3 core-file", "4 readme-heading", "6 rule-key"]);
+  // 6 行目は節の名(DOWNSTREAM_NOTICES → REPO_LINK)と鍵(intake → take_in)の両方の古い名指し
+  assert.deepEqual(hits, ["1 claude-section", "3 core-file", "4 readme-heading", "6 rule-key", "6 claude-section"]);
 });
 
 test("対象: 記録と上流の決まりのファイルは見ない", () => {
