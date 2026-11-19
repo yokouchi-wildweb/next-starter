@@ -546,11 +546,13 @@ test("classify: lib/mail の send は送り口と lib/mail 自身だけ、部品
   assert.equal(classifyMailSendImport("src/features/foo/x.ts", "src/lib/other", false, null), null);
 });
 
-test("classify: _shadcn はラッパーの置き場だけ(値も型も)", () => {
+test("classify: _shadcn は src/components と src/lib の中だけ(値も型も、D221)", () => {
   assert.equal(classifyShadcnImport("src/components/Form/Field/FieldControl.tsx", "src/components/_shadcn/form"), null);
   assert.equal(classifyShadcnImport("src/lib/tableSuite/shared/Table.tsx", "src/components/_shadcn/table"), null);
   assert.equal(classifyShadcnImport("src/features/foo/components/X.tsx", "src/components/_shadcn/card"), "shadcnDirect");
-  assert.equal(classifyShadcnImport("src/lib/other/x.tsx", "src/components/_shadcn/card"), "shadcnDirect");
+  assert.equal(classifyShadcnImport("src/lib/other/x.tsx", "src/components/_shadcn/card"), null);
+  assert.equal(classifyShadcnImport("src/app/(user)/page.tsx", "src/components/_shadcn/card"), "shadcnDirect");
+  assert.equal(classifyShadcnImport("src/libx/a.tsx", "src/components/_shadcn/card"), "shadcnDirect");
   assert.equal(classifyShadcnImport("src/features/foo/components/X.tsx", "src/components/Layout/Block"), null);
 });
 
@@ -583,7 +585,11 @@ test("rule axios-in-client-layer / mail-send-via-messaging / no-shadcn-direct: �
     ],
   });
   ruleTester.run("no-shadcn-direct", plugin.rules["no-shadcn-direct"], {
-    valid: [{ code: `import { FormField } from "@/components/_shadcn/form";`, filename: at("src/components/Form/Field/FieldControl.tsx") }],
+    valid: [
+      { code: `import { FormField } from "@/components/_shadcn/form";`, filename: at("src/components/Form/Field/FieldControl.tsx") },
+      // D221: どの lib の中でも読める(名前の一覧でなく src/lib/** 全部)
+      { code: `import { Card } from "@/components/_shadcn/card";`, filename: at("src/lib/someNewLib/parts/Panel.tsx") },
+    ],
     invalid: [
       { code: `import { Card } from "@/components/_shadcn/card";`, filename: at("src/features/foo/components/X.tsx"), errors: [{ messageId: "shadcnDirect" }] },
       { code: `import type { Card } from "../../../components/_shadcn/card";`, filename: at("src/features/foo/components/X.tsx"), errors: [{ messageId: "shadcnDirect" }] },

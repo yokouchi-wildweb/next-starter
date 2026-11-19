@@ -234,7 +234,7 @@ const config = [
   // - axios-in-client-layer: axios は src/lib/** と **/services/client/** だけ。上流 error / fork warn(テストは対象外)
   // - asset-paths/no-literal-asset-path: 資産のパスは src/utils/assets.ts の関数で組む。上流 error / fork warn(組み立て役とテストは対象外)
   // - mail-send-via-messaging: lib/mail の send は messaging の送り口だけ。全 Tier error(必須の規則の一覧)
-  // - no-shadcn-direct: _shadcn はラッパーの置き場(src/components/**・src/lib/tableSuite/**)だけ。全 Tier error(必須の規則の一覧。
+  // - no-shadcn-direct: _shadcn を読めるのは src/components/** と src/lib/**(どの lib でも、D221)だけ。全 Tier error(必須の規則の一覧。
   //   旧 no-restricted-imports の patterns は fork の同じ規則の設定で置き換わって消えるので、専用の規則にした)
   {
     files: ["src/**/*.{ts,tsx}"],

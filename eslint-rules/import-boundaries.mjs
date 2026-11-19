@@ -94,7 +94,8 @@
 // 動的 import・export *)は send を含みうるので止める(動的 import を `const { 名前 } = await import(…)` で受ける形は名前で見る)。強さ: 全 Tier error(必須の規則の一覧)。
 //
 // ── no-shadcn-direct(当議会 D133、旧 no-restricted-imports のブロックを置き換え) ──
-// src/components/_shadcn/** を読めるのはラッパーの置き場 src/components/** と表のラッパー src/lib/tableSuite/** だけ(値も型も)。
+// src/components/_shadcn/** を読めるのは部品の棚 src/components/** と、どの lib でも src/lib/** の中だけ(値も型も、D221。lib は閉じた
+// パッケージで中で何をするかは lib の自由。閉じた lib が components を読む宣言 peers は今の決まりのまま)。
 // ほかは src/components のラッパーを使う(対応表: src/components/_shadcn/README.md)。強さ: 全 Tier error(必須の規則の一覧。
 // 専用の規則にしたのは、fork が core の no-restricted-imports を自分の patterns で書くと上流の patterns が置き換わって消えるため)。
 //
@@ -167,7 +168,7 @@ const MAIL_LIB = "src/lib/mail";
 const MAIL_SEND_POINT = "src/features/core/messaging/channels/email";
 const MAIL_SEND_NAMES = ["send"];
 const SHADCN = "src/components/_shadcn";
-const SHADCN_WRAPPERS = ["src/components", "src/lib/tableSuite"];
+const SHADCN_WRAPPERS = ["src/components", "src/lib"];
 const CLIENT_SERVICE_DIR = /(^|\/)services\/client(\/|$)/;
 
 /** axios の値 import を HTTP の層の外で行うか(source = 書かれた指定子) */
@@ -747,7 +748,7 @@ const mailSendViaMessaging = {
 const noShadcnDirect = {
   meta: {
     type: "problem",
-    docs: { description: "_shadcn を読めるのはラッパーの置き場(src/components/**・src/lib/tableSuite/**)だけ" },
+    docs: { description: "_shadcn を読めるのは src/components/** と src/lib/** の中だけ" },
     messages: {
       shadcnDirect:
         '"{{source}}" は _shadcn を直接読みます。ラッパーを使います(対応表: src/components/_shadcn/README.md。無ければ src/components にラッパーを作る)',
