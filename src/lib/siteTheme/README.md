@@ -2,7 +2,7 @@
 
 ## Overview
 
-サイトテーマ(ライト / ダーク)をパスのエリアごとに決める閉じた lib。判定の純関数・<head> の bootstrap script・クライアントの store と同期(SiteThemeSync)・設定を持つ。読む lib = `appEnv`(開発時の警告)・`defineConfig`(設定の合成)。棚の部品は読まない(切替ボタン `DarkModeSwitch` は棚 `src/components/Fanctional` にあり、この lib の入口を読む)。仕組みの全体: [src/styles/README.md](../../styles/README.md)「サイトテーマ」。
+サイトテーマ(ライト / ダーク)をパスのエリアごとに決める閉じた lib。判定の純関数・<head> の bootstrap script・クライアントの store と同期(SiteThemeSync)・設定を持つ。読む lib = `appEnv`(開発時の警告)・`defineConfig`(設定の合成)。棚の部品は読まない(切替ボタン `DarkModeSwitch` は棚 `src/components/Functional` にあり、この lib の入口を読む)。仕組みの全体: [src/styles/README.md](../../styles/README.md)「サイトテーマ」。
 
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/siteTheme.md にある。この README は使い方と仕組み
 

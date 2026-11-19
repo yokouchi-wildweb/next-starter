@@ -7,7 +7,7 @@ import { cva } from "class-variance-authority";
 
 import { cn } from "@/lib/cn";
 import { Link } from "@/components/Navigation";
-import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
+import { DarkModeSwitch } from "@/components/Functional/DarkModeSwitch";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { AppImage } from "@/components/Media/AppImage";

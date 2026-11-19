@@ -1,6 +1,6 @@
 "use client";
 
-// src/components/Fanctional/FirebaseAnalytics.tsx
+// src/components/Functional/FirebaseAnalytics.tsx
 
 import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";

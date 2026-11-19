@@ -26,7 +26,7 @@ const TABLE = [
 
 const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 mock.module(here("./extensions/frameTable.ts"), { namedExports: { frameTable: TABLE } });
-mock.module("@/components/Fanctional/DarkModeSwitch", { namedExports: { DarkModeSwitch: () => null } });
+mock.module("@/components/Functional/DarkModeSwitch", { namedExports: { DarkModeSwitch: () => null } });
 mock.module("@/features/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
 
 const repo = join(__dirname, "../../../..");

@@ -35,6 +35,8 @@ const PRIMITIVES_REMOVED = "checkpoint primitives-radix で削除済み";
 const STORES_REMOVED = "checkpoint stores-removal で削除済み";
 /** 素の表 PlainTable へ移した旧パスの削除の区切り(deprecated-imports の until) */
 const SHADCN_REMOVED = "checkpoint shadcn-close で削除済み";
+/** 部品の棚の Fanctional(綴りの誤り)を Functional へ改名した旧パスの削除の区切り(deprecated-imports の until) */
+const FUNCTIONAL_RENAMED = "checkpoint context-after-v2 で削除済み";
 
 const config = [
   ...nextConfig,
@@ -313,6 +315,7 @@ const config = [
             { from: "@/stores/siteTheme", to: "@/lib/siteTheme", until: STORES_REMOVED },
             { from: "@/utils/siteTheme", to: "@/lib/siteTheme", until: STORES_REMOVED },
             { from: "@/components/Fanctional/SiteThemeSync", to: "@/lib/siteTheme", until: STORES_REMOVED },
+            { from: "@/components/Fanctional", to: "@/components/Functional", until: FUNCTIONAL_RENAMED },
             { from: "@/stores/globalLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },
             { from: "@/hooks/useGlobalLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },
             { from: "@/components/Overlays/Loading/GlobalScreenLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },

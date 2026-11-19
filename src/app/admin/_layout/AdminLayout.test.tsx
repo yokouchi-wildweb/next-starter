@@ -34,7 +34,7 @@ mock.module("@/hooks/useHeaderHeight", {
   },
 });
 // 明暗の切り替えの目印は受けた className を class に写す(行のはみ出しの決まり = shrink-0 を見る)
-mock.module("@/components/Fanctional/DarkModeSwitch", {
+mock.module("@/components/Functional/DarkModeSwitch", {
   namedExports: { DarkModeSwitch: ({ className }: { className?: string }) => createElement("x-darkmode", className ? { class: className } : null) },
 });
 // 編集画面の「前後の項目へ移る」のデータ: 名前がとても長い今の項目 1 件(SP で行の幅を超える名前)

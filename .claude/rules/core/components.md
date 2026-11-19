@@ -27,7 +27,7 @@ existing_parts (want → part; check here before building your own | a row = a w
 - overlay: confirm → Overlays/Dialog (third action → extraAction prop) or Overlays/Confirm useConfirm (Promise) | generic → Overlays/Modal (fullscreen, overlayClassName, container props) | from an edge → Overlays/Sheet (side) | tabs → Overlays/TabbedModal | media + rows → Overlays/DetailModal | image → Overlays/ImageViewer (caption prop) | pick N from a large master → Overlays/AsyncPickerModal
   - never a raw Primitives/Dialog on a screen: the finished Overlays carry the layering and nesting rules
 - inline overlay: confirm / prompt / actions / checklist / info → Overlays/Popover | hover → Overlays/Tooltip, Overlays/HoverCard | toast → @/lib/toast
-- stacking and portal: stacking → @/lib/zLayer names via zLayerClass (floating pieces take no layer) | portal → Fanctional/BodyPortal or a part's container prop
+- stacking and portal: stacking → @/lib/zLayer names via zLayerClass (floating pieces take no layer) | portal → Functional/BodyPortal or a part's container prop
 - tabs: state → Navigation/StateTabs (variant "underline", listEnd prop) | routes → Navigation/PageTab
 - link → Navigation/Link | image → Media/AppImage (style, data-* pass through)
 - none fits → the part's look props or slots (slots) | a missing behavior → /order <direct parent> | or build your own, never blocked (an instead-of mark is optional, own_mark in core/extensions.md) | the bans elsewhere in this file are misuses of a shared part, not bans on building your own

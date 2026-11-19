@@ -1,4 +1,4 @@
-// src/components/Fanctional/DarkModeSwitch.tsx
+// src/components/Functional/DarkModeSwitch.tsx
 
 "use client";
 

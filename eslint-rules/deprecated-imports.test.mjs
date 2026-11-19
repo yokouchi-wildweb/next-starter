@@ -177,3 +177,20 @@ test("config: 持ち主の lib へ移した Provider(RecaptchaProvider)は @/lib
   assert.equal(hits[0].severity, 1);
   assert.ok(hits[0].message.includes('"@/lib/recaptcha"'), hits[0].message);
 });
+
+test("config: 綴りを直した部品の棚の旧フォルダ Fanctional は Functional の同じ名を出して warn", async () => {
+  const repoRoot = path.resolve(import.meta.dirname, "..");
+  const eslint = new ESLint({ cwd: repoRoot, overrideConfigFile: path.join(repoRoot, "eslint.config.mjs") });
+  for (const [from, to] of [
+    ["@/components/Fanctional", "@/components/Functional"],
+    ["@/components/Fanctional/BodyPortal", "@/components/Functional/BodyPortal"],
+    ["@/components/Fanctional/DarkModeSwitch", "@/components/Functional/DarkModeSwitch"],
+  ]) {
+    const [result] = await eslint.lintText(`import * as X from "${from}";\nexport const y = X;\n`, {
+      filePath: path.join(repoRoot, "src/components/Form/X.tsx"),
+    });
+    const hits = result.messages.filter((m) => m.ruleId === "deprecated-imports/no-deprecated-path");
+    assert.equal(hits.length, 1, from);
+    assert.ok(hits[0].message.includes(`"${to}"`), hits[0].message);
+  }
+});
