@@ -44,7 +44,13 @@ export function nestedBrace(glob) {
   return false;
 }
 
+// Claude Code の paths の読み込みと同じ照合: ** と * は点で始まる名(.gitkeep・.npmrc)と点で始まるフォルダ(.codex/)にも当たる
+// (注文 59 で claude -p に読ませて確かめた、D225)。node の matchesGlob は点の段に当てないので、点で始まる段を同じ印に置き換えてから照らす
+const DOT = "\u0001";
+const undot = (s) => s.split("/").map((seg) => (seg.startsWith(".") && seg !== "." && seg !== ".." ? DOT + seg.slice(1) : seg)).join("/");
+export const matchesLoad = (path, glob) => matchesGlob(undot(path), undot(glob));
+
 // paths の各 glob のうち、files(追跡中のファイルの一覧)のどれにも当たらないもの
 export function unmatchedPaths(paths, files) {
-  return paths.filter((p) => !files.some((f) => matchesGlob(f, p)));
+  return paths.filter((p) => !files.some((f) => matchesLoad(f, p)));
 }

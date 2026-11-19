@@ -44,3 +44,24 @@ test("今の木: .claude/rules/core/uncovered.txt の全行に理由がある", 
   const rows = parseUncovered(readFileSync(join(repoRoot, ".claude/rules/core/uncovered.txt"), "utf8"));
   assert.ok(rows.length > 0);
 });
+
+test("matchesLoad: Claude Code の読み込みと同じく ** と * は点で始まる名・フォルダにも当たる(D225、注文 59 の claude -p の確かめ)", async () => {
+  const { matchesLoad } = await import("./lib.rulePaths.mjs");
+  assert.equal(matchesLoad("src/features/core/analytics/entities/.gitkeep", "src/features/**/entities/**"), true);
+  assert.equal(matchesLoad("servers/room/.npmrc", "servers/**"), true);
+  assert.equal(matchesLoad(".codex/README.md", "**/README*.md"), true);
+  assert.equal(matchesLoad(".notices/README.md", ".notices/**"), true);
+  assert.equal(matchesLoad("src/a.ts", "src/b/**"), false);
+  assert.equal(matchesLoad("drizzle/.gitkeep", "src/**"), false);
+});
+
+test("coverageVerdict: Tier1 は穴で止める、fork は知らせだけ、基準が読めない fork は 1 行(D223)", async () => {
+  const { coverageVerdict } = await import("./lib.ruleCoverage.mjs");
+  const gaps = { files: ["src/x.ts"], intake: ["add src/y/*.ts"] };
+  const none = { files: [], intake: [] };
+  assert.deepEqual(coverageVerdict({ isTier1: true, baseNote: null, gaps }).exitCode, 1);
+  assert.equal(coverageVerdict({ isTier1: true, baseNote: null, gaps }).level, "fail");
+  assert.deepEqual(coverageVerdict({ isTier1: false, baseNote: null, gaps }), { exitCode: 0, level: "notify", lines: ["src/x.ts にどの決まりのファイルの paths も当たらない", "書き場所の一覧の add src/y/*.ts にどの決まりのファイルの paths も当たらない"] });
+  assert.deepEqual(coverageVerdict({ isTier1: false, baseNote: "台帳が無い", gaps }), { exitCode: 0, level: "unverified", lines: ["覆いを確かめられない(台帳が無い)"] });
+  assert.equal(coverageVerdict({ isTier1: true, baseNote: null, gaps: none }).level, "ok");
+});

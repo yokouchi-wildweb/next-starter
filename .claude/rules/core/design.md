@@ -40,10 +40,13 @@ map (every core file, loaded by its paths):
 
 ## authoring (the ladder: before adding or changing any rule)
 - 1 find its place with places above | 2 write it in that file in this file's formats (paths globs: one-level braces only, nested braces never load) | 3 pnpm check rules | 4 /ship (the why goes in the commit body)
-- usual path, no order needed: write a card, a README or a service file | add a rule for a place to an existing core file | fix an existing CLAUDE.md item together with its source item
-- window (order first, even for the Tier1 session: /order next-starter; a fork: /order <direct parent>, relayed up): a CLAUDE.md item or section added, or a key removed or renamed | a core file added, removed, renamed or its paths widened | a new card category | a check or MANDATORY rule binding forks | a clash between rules of different owners
-- coverage: every upstream file and every intake.txt place must hit the paths of an upstream core file or card (pnpm check rules; a fork's own files are not counted) | a gap → widen the core file that holds that place's rules (a window item) | only a place that truly needs no rule → .claude/rules/core/uncovered.txt with its reason
-- the window decides: the Tier1 session handling next-starter's inbox + the user's approval (/inbox)
+- usual path, no order needed: write a card, a README or a service file | add a rule for a place to an existing core file | fix an existing CLAUDE.md item together with its source item | a place you just created: its one line in a core file's paths or in .claude/rules/core/uncovered.txt, in the same commit that creates the place
+- window (order first, even for the Tier1 session: /order next-starter; a fork: /order <direct parent>, relayed up by the parent): a CLAUDE.md item or section added, or a key removed or renamed | a core file added, removed, renamed or its paths widened to places that already exist | a new card category | a check or MANDATORY rule binding forks | a clash between rules of different owners
+  - a clash you notice while working: never fix one side yourself → the window | no check hunts for clashes
+- the window decides: the Tier1 session handling next-starter's inbox + the user's approval (/inbox) | the reason always goes in the commit body (the inbox lives outside the repo)
+- coverage: every upstream file and every intake.txt place must hit the paths of an upstream core file or card (pnpm check rules; a fork's own files are not counted) | matched as Claude Code loads rules (** and * also hit dot-named files and folders) | fails in Tier1 only; a fork gets a notice, and one line "cannot verify" when its base version is unreadable
+  - a gap → widen the core file that holds that place's rules (a window item, unless the place is new: usual path above) | only a place that truly needs no rule → uncovered.txt with its reason, never a blanket line to quiet the check
+- CLAUDE.md over its notify line (size below) → still ship; the shipping session files one condense order to the window (none if one with the same title is open)
 - a missing or wrong rule you do not own → /order <direct parent> | until it ships, a provisional rule in your own rules (outside core/) ending with `(order: <id>)`, followed while the order is open, removed when it ships as resolves: (/flux asks)
 
 ## cards (.claude/rules/items/<category>/<name>.md)

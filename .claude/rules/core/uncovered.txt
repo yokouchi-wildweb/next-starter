@@ -1,14 +1,12 @@
 # 決まりの要らない場所: pnpm check rules の paths の覆いの検査が外す場所(scripts/workflow/rules/coverage.mjs)
 # 1 行 = <glob>  # <理由>。ここに無い書く場所は、どれかの上流の core のファイルか札の paths に当たること
-# 足すのは決まりを書く物が本当に無い場所だけ(決まりがあるなら core のファイルの paths を広げる)
+# 足すのは決まりを書く物が本当に無い場所だけ(決まりがあるなら core のファイルの paths を広げる) | 新しく作った置き場だけに当たる 1 行は、置き場を作ったのと同じコミットで足してよい(窓口を通さない、core/design.md authoring)
 public/**  # 配る画像・静的ファイル。資産のパスの直書きは lint が見る
-**/.gitkeep  # 空のフォルダを残すだけの印
+drizzle/.gitkeep  # drizzle の出力の空のフォルダを残すだけの印(ほかの .gitkeep は置き場の決まりのファイルの paths に当たる)
 package.json  # 依存とスクリプトの宣言。足す手順は各道具の README
 pnpm-lock.yaml  # package.json に従う生成物
 pnpm-workspace.yaml  # ワークスペースの宣言
 .gitignore  # git の除外
-servers/*/.gitignore  # git の除外(servers の各プログラム)
-servers/*/.npmrc  # npm の設定(servers の各プログラム)
 .env.example  # 環境変数の見本。値の決まりは appEnv と各 lib の README
 .prettierrc  # 整形の設定
 .mcp.json  # MCP の接続の設定
@@ -26,6 +24,5 @@ storage.rules  # Firebase Storage の規則(拒否だけ)
 patches/**  # 依存への当て布(pnpm patch の出力)
 .github/**  # CI の見本
 .agents/**  # Codex 向けの skills への案内(.claude/skills へのリンク)
-.codex/**  # Codex の設定と案内
 .claude/settings.json  # Claude Code の設定
 .claude/tmux-launch  # 端末の起動の道具

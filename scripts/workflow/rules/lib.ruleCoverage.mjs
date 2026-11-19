@@ -1,7 +1,7 @@
 // scripts/workflow/rules/lib.ruleCoverage.mjs
 // paths の覆いの部品(純粋な関数): 書く場所が、どれかの決まりのファイル(上流の core のファイルと札)の paths に当たるか。
-// 照合は node の matchesGlob(** は . で始まるフォルダに当たらない = . で始まる場所は glob に明示で書く。実際の読み込みより厳しい側)。
-import { matchesGlob } from "node:path";
+// 照合は Claude Code の実際の読み込みと同じ(lib.rulePaths の matchesLoad: ** と * は点で始まる名・フォルダにも当たる、D225)。
+import { matchesLoad } from "./lib.rulePaths.mjs";
 import { LEDGER_DIR } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { PERMITS_DIR } from "../../../src/lib/forkOwnership/permits.mjs";
 
@@ -37,7 +37,7 @@ export function parseIntakeRows(text) {
     });
 }
 
-const hit = (path, globs) => globs.some((g) => matchesGlob(path, g));
+const hit = (path, globs) => globs.some((g) => matchesLoad(path, g));
 
 /**
  * 覆いの穴
@@ -56,5 +56,17 @@ export function coverageGaps({ files, intake, rulePaths, uncovered }) {
 export function isForkPlace(glob, intake) {
   if (FORK_ONLY_PLACES.some((p) => glob.startsWith(p))) return true;
   const rep = representativePath(glob);
-  return intake.some((r) => r.glob === glob || matchesGlob(rep, r.glob));
+  return intake.some((r) => r.glob === glob || matchesLoad(rep, r.glob));
+}
+
+/**
+ * 覆いの検査の出し方(D223): Tier1 は穴で止める / fork は知らせるだけ / fork で基準の版が読めない時は全部を数えず 1 行
+ * @param {{ isTier1: boolean, baseNote: string | null, gaps: { files: string[], intake: string[] } }} input
+ * @returns {{ exitCode: 0 | 1, level: "fail" | "notify" | "unverified" | "ok", lines: string[] }}
+ */
+export function coverageVerdict({ isTier1, baseNote, gaps }) {
+  if (!isTier1 && baseNote) return { exitCode: 0, level: "unverified", lines: [`覆いを確かめられない(${baseNote})`] };
+  const lines = [...gaps.files.map((f) => `${f} にどの決まりのファイルの paths も当たらない`), ...gaps.intake.map((r) => `書き場所の一覧の ${r} にどの決まりのファイルの paths も当たらない`)];
+  if (lines.length === 0) return { exitCode: 0, level: "ok", lines };
+  return isTier1 ? { exitCode: 1, level: "fail", lines } : { exitCode: 0, level: "notify", lines };
 }
