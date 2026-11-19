@@ -23,7 +23,8 @@ const repo = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 /** 対象 → 読む物。entries・data はリポジトリ直下からの glob */
 const READS = {
-  config: { entries: ["scripts/structure/config/moduleLoad.test.mjs", "src/config/ui/*.config.ts"], data: ["src/config/ui/*.config.ts"] },
+  // moduleLoad.test は fork に残る src/config/ui だけを読む(上流には無い)。上流の置き場 = 持ち主の上書き src/config/lib
+  config: { entries: ["scripts/structure/config/moduleLoad.test.mjs"], data: ["src/config/lib/*.config.ts"] },
   cron: {
     entries: ["scripts/structure/cron/gate-check.ts", "scripts/structure/cron/check.ts", "src/app/api/cron/*/task*.ts"],
     data: ["vercel.json", "src/app/api/cron/**", "src/featureGate/rules/*.ts"],
