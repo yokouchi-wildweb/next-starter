@@ -2,6 +2,8 @@
  * OAuth登録処理フック
  */
 
+"use client";
+
 import { useCallback } from "react";
 import { usePreRegistration } from "@/features/core/auth/hooks/usePreRegistration";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";

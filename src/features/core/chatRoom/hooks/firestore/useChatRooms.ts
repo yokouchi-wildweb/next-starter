@@ -3,6 +3,8 @@
 // ルーム一覧のリアルタイム購読 Hook。
 // 手動実装（Firestore 直接購読）。
 
+"use client";
+
 import { useCallback, useEffect, useState } from "react";
 
 import type { ChatRoom } from "@/features/chatRoom/entities";

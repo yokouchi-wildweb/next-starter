@@ -8,6 +8,8 @@ paths:
 > **ROLE**: loaded when writing hooks, client services or stores | holds the client layer rules (hooks, stores)
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
+use_client: a file that calls a hook (useState, useEffect, any useXxx; not React's use()) starts with "use client" (lint use-client/hooks-need-directive, all tiers error) | a pure function or constant the server also needs → its own file outside hooks/, never beside a hook
+- why: without it a server component reaching the file through an entry file breaks the production build, which only /ship --safe runs
 hooks: one use\<Op\>\<Domain\> per operation | custom mutation hooks MUST build on useDomainMutation (@/lib/crud/hooks); useSWRMutation PROHIBITED | test: pnpm test src/lib/crud/hooks/internal/*.test.mjs
 
 client_layer: client HTTP code lives in src/lib/** or services/client/** (axios only there: lint, Tier1 error, forks warn), always through normalizeHttpError, hooks call it | exceptions: streaming ClientService (SSE) may use fetch + ReadableStream; realtimeRoom useRoomState may use native WebSocket | server side: fetch OK

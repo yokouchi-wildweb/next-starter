@@ -1,5 +1,7 @@
 // src/features/core/purchaseRequest/hooks/usePurchaseStatusPolling.ts
 
+"use client";
+
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 import { getPurchaseStatus } from "../services/client/purchaseRequestClient";

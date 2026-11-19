@@ -10,6 +10,7 @@ import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import fieldTypeGuardPlugin from "./eslint-rules/field-type-guard.mjs";
 import intersectionObserverPlugin from "./eslint-rules/intersection-observer.mjs";
 import appEnvPlugin from "./eslint-rules/app-env.mjs";
+import useClientPlugin from "./eslint-rules/use-client.mjs";
 import assetPathsPlugin from "./eslint-rules/asset-paths.mjs";
 import rawElementsPlugin from "./eslint-rules/raw-elements.mjs";
 import configOverridesPlugin from "./eslint-rules/config-overrides.mjs";
@@ -384,6 +385,17 @@ const config = [
     plugins: { "app-env": appEnvPlugin },
     rules: {
       "app-env/single-reader": libOwnership.isRoot ? "error" : "warn",
+    },
+  },
+  // hook を使うファイルは先頭に "use client"(core/components.md use_client。詳細: eslint-rules/use-client.mjs)。
+  // 無いファイルがサーバーのコンポーネントから届くと本番のビルドが落ちる。ビルドを止める守りなので全 Tier で error(fork 分岐なし)
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    // テストと、テストだけが読む門番の検査の道具(src/featureGate/checks/、node:assert で描いて確かめる)
+    ignores: ["**/*.test.*", "src/featureGate/checks/**"],
+    plugins: { "use-client": useClientPlugin },
+    rules: {
+      "use-client/hooks-need-directive": "error",
     },
   },
   // 生の sql`` に JS の Date を埋め込まない(CLAUDE.md core/services.md raw_sql。Postgres が読めずクエリの時に落ちる)。

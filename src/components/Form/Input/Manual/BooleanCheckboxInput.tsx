@@ -1,5 +1,7 @@
 // @/components/Form/Input/Manual/BooleanCheckboxInput.tsx
 
+"use client";
+
 import { useId, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import type { VariantProps } from "class-variance-authority";

@@ -546,3 +546,4 @@
 - id:20261119-191317-devcheck-tmp-copy | severity:info | checkpoint:devcheck-tmp-copy
 - id:20261119-195101-setting-code-values | severity:action-required | checkpoint:setting-code-values | uses:src/features/core/setting/scripts/migrations/merge-maintenance-keys.ts
 - id:20261119-205938-task-list-merge-maintenance-keys | severity:info | checkpoint:task-list-merge-maintenance-keys | fixes:20261119-195101-setting-code-values | pick:clean
+- id:20261119-212045-use-client-directive | severity:action-required | checkpoint:use-client-directive | fixes:20261119-024228-v2-content | pick:-

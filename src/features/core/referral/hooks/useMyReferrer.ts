@@ -1,5 +1,7 @@
 // 自分の紹介元を取得するフック
 
+"use client";
+
 import useSWR from "swr";
 import { getMyReferrer, type MyReferrerResponse } from "../services/client/myReferrer";
 

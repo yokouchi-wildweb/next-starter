@@ -6,6 +6,8 @@
 // - toggle: 帯はいつも出し、その中の「選択モード」の切り替えが入の間だけチェックと操作を出す。切にすると選択を空に戻す
 // selectionBehavior(行を押して選ぶか、チェックだけで選ぶか)とは別の軸
 
+"use client";
+
 import React from "react";
 
 export type SelectionMode = "onSelect" | "always" | "toggle";

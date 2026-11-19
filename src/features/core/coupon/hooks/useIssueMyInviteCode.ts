@@ -1,5 +1,7 @@
 // 自分の招待コード発行フック
 
+"use client";
+
 import { useState, useCallback } from "react";
 import { useSWRConfig } from "swr";
 import {

@@ -3,6 +3,8 @@
 // 購入ページのクーポン欄（coupon useValidateCouponForCategory）と同じ操作モデル:
 // ユーザーが「適用」を押したときだけ問い合わせる。入力中の自動通信はしない。
 
+"use client";
+
 import { useCallback, useState } from "react";
 
 import { err } from "@/lib/errors";

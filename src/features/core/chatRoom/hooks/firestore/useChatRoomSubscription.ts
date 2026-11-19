@@ -5,6 +5,8 @@
 // 注: 自動生成の useChatRoom（API 経由の単発取得）と区別するため
 // useChatRoomSubscription という名前にしている。
 
+"use client";
+
 import { useCallback, useEffect, useState } from "react";
 
 import type { ChatRoom } from "@/features/chatRoom/entities";

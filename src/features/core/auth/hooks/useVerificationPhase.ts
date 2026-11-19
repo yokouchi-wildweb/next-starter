@@ -1,5 +1,7 @@
 // src/features/auth/hooks/useVerificationPhase.ts
 
+"use client";
+
 import { useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
 

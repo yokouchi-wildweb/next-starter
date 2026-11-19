@@ -2,6 +2,8 @@
  * OAuthリダイレクト処理フック
  */
 
+"use client";
+
 import { useCallback } from "react";
 import { getRedirectResult, signInWithRedirect, type AuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/app";

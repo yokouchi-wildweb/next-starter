@@ -4,6 +4,8 @@
 // 初回の過去メッセージ取得 + 新着メッセージのリアルタイム購読を統合する。
 // 手動実装。
 
+"use client";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { QueryDocumentSnapshot } from "firebase/firestore";

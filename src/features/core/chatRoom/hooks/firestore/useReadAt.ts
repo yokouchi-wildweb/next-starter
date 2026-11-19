@@ -4,6 +4,8 @@
 // チャット画面の入室時・滞在中・退出時に readAt を更新する。
 // 手動実装。
 
+"use client";
+
 import { useEffect, useLayoutEffect, useRef } from "react";
 
 import { updateReadAt } from "@/features/chatRoom/services/client/firestoreClient";

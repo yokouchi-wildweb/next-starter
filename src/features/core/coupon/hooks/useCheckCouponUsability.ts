@@ -1,5 +1,7 @@
 // クーポン使用可否チェックフック
 
+"use client";
+
 import { useState, useEffect, useCallback } from "react";
 import { checkCouponUsability, type CheckUsabilityResponse } from "../services/client/redemption";
 

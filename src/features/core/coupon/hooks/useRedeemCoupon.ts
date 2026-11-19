@@ -1,5 +1,7 @@
 // クーポン使用フック
 
+"use client";
+
 import { useState, useCallback } from "react";
 import { redeemCoupon, type RedeemResponse } from "../services/client/redemption";
 

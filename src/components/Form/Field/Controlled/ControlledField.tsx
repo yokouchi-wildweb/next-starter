@@ -1,5 +1,7 @@
 // src/components/Form/Field/Controlled/ControlledField.tsx
 
+"use client";
+
 import { ReactNode, useCallback } from "react";
 import { FormField, FormItem, FormLabel, FormMessage } from "../fieldContext";
 import { cn } from "@/lib/cn";

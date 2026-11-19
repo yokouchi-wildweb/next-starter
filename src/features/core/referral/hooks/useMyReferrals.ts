@@ -1,5 +1,7 @@
 // 自分が招待した人の一覧を取得するフック
 
+"use client";
+
 import useSWR from "swr";
 import { getMyReferrals, type MyReferralItem } from "../services/client/myReferrals";
 

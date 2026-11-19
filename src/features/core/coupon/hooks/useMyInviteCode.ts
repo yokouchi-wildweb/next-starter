@@ -1,5 +1,7 @@
 // 自分の招待コード取得フック
 
+"use client";
+
 import useSWR from "swr";
 import {
   getMyInviteCode,

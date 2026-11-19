@@ -1,5 +1,7 @@
 // 招待リンク由来の保留中招待コードを取得するフック
 
+"use client";
+
 import useSWR from "swr";
 
 import { getPendingInviteCode } from "../services/client/pendingInviteCode";

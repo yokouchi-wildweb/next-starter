@@ -1,5 +1,7 @@
 // @/components/Form/Input/Manual/CheckGroupInput.tsx
 
+"use client";
+
 import { useId, type HTMLAttributes } from "react";
 
 import { type Options } from "@/components/Form/types";

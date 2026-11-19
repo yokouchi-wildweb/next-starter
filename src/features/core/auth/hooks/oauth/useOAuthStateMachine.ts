@@ -2,6 +2,8 @@
  * OAuthフローのステートマシン
  */
 
+"use client";
+
 import { useReducer, useCallback } from "react";
 import type { OAuthState, OAuthAction, OAuthPhase, OAuthCredentialInfo } from "./types";
 

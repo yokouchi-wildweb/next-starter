@@ -1,5 +1,7 @@
 // src/components/Form/Button/PseudoButton.tsx
 
+"use client";
+
 import * as React from "react";
 
 import { baseButtonClassName } from "@/components/Primitives/Button";

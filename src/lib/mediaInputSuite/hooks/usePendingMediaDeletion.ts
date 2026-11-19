@@ -4,6 +4,8 @@
 // 値の差し替え・削除を業務保存すると、サーバーの CRUD 連動（detach）が台帳を deleted にして実物を消す。
 // 呼び出し側の互換のため API（markDelete / commit / revert）は残し、何もしない。
 
+"use client";
+
 import { useCallback } from "react";
 
 export const usePendingMediaDeletion = () => {

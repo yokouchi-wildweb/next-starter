@@ -3,6 +3,8 @@
 // 編集中にアップロードして、まだ業務保存で採用されていないファイルを追跡し、cleanup で discard する。
 // 追跡・discard の規則は pendingUploadTracker.ts（storage ref だけ・最終値に残ったものは消さない）。
 
+"use client";
+
 import { useCallback, useEffect, useRef } from "react";
 
 import { storageClient } from "@/lib/storage/client/storageClient";

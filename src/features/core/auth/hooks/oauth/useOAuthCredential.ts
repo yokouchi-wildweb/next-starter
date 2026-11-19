@@ -2,6 +2,8 @@
  * OAuth認証情報の処理フック
  */
 
+"use client";
+
 import { useCallback } from "react";
 import type { UserCredential } from "firebase/auth";
 import { extractOAuthCredential } from "@/features/core/auth/utils/extractOAuthCredential";

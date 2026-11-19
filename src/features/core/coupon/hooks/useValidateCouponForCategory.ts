@@ -1,5 +1,7 @@
 // カテゴリ付きクーポン検証フック
 
+"use client";
+
 import { useState, useCallback } from "react";
 import {
   validateCouponForCategory,

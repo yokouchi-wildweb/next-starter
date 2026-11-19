@@ -5,6 +5,8 @@
  * バッジは項目の badge で渡す
  */
 
+"use client";
+
 import { useMemo } from "react";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";

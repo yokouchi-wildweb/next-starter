@@ -1,6 +1,8 @@
 // src/components/Form/Field/FieldControl.tsx
 // Form/Field 内部用。FormItem の中で使う(useFormField が FormItem の id を参照する)
 
+"use client";
+
 import type { ComponentProps } from "react";
 
 import { Slot } from "@/components/Primitives/Slot";

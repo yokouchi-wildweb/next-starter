@@ -3,6 +3,9 @@
 // 行の選択の状態(見た目を持たない)。RecordSelectionTable が使い、表の外(カードの一覧など)でも
 // 入口(@/lib/tableSuite)から使える。制御(selectedKeys)/ 非制御(defaultSelectedKeys)の両方。
 // 省略できる指定: canSelect(選べない行は個別でも全部でも選ばれない)、rangeSelect(shift で起点から今の行まで)
+
+"use client";
+
 import React from "react";
 
 import type { BulkActionSelection } from "../components/BulkActionBar";

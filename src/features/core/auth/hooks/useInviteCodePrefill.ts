@@ -1,5 +1,7 @@
 // src/features/core/auth/hooks/useInviteCodePrefill.ts
 
+"use client";
+
 import { useCallback, useEffect, useRef } from "react";
 
 import { useGate } from "@/featureGate/client";

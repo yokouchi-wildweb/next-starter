@@ -1,5 +1,7 @@
 // @/components/Form/Input/Manual/SwitchInput.tsx
 
+"use client";
+
 import { useId, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { cva } from "class-variance-authority";
