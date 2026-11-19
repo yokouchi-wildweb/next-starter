@@ -149,7 +149,7 @@ export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = Creat
    * storageBindingFor(...) を渡す。指定すると、create / update / upsert / 物理削除 / duplicate で
    * 業務行の書き込みと同じ TX の中で台帳に紐付け・解除し、bulkUpdate* / bulkUpsert でメディア列を
    * 変える呼び出しを拒否する。指定しないサービスの挙動は変わらない。
-   * 詳細: src/lib/crud/README.md「storage オプション」
+   * 詳細: src/lib/crud/storageIntegration/README.md
    */
   storage?: CrudStorageBinding;
   /**

@@ -29,7 +29,7 @@
  *    `hover:bg-primary/90` を消したいなら `hover:bg-primary/80` のように同じ hover: で上書きする。
  * ⚠️ 色はここではなく src/styles/palette.css で変える(トークンを変えれば全部品に効く)。
  *    ここは形(角丸・影・枠線・寸法)の差し替えに使う。
- * 詳細: src/styles/README.md「variant オーバーライド」
+ * 詳細: src/styles/Extension.md「バリアントの上書き(variants.config.ts)」
  */
 
 import { defineVariantOverrides } from "@/lib/variantOverrides";

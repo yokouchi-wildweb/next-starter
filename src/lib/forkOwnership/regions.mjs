@@ -1,5 +1,5 @@
 // fork の区画(fork entries の印の対)の読み取り。Node 組み込みだけで動く純粋な .mjs
-// 仕様: ./README.md「registry の下流の印」
+// 仕様: ./README.md「registry の fork の区画」
 
 export const FORK_REGION_START = "// --- fork entries start (upstream never edits inside) ---";
 export const FORK_REGION_END = "// --- fork entries end ---";

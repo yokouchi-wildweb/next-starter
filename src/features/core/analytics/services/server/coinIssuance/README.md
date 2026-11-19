@@ -146,7 +146,7 @@ export async function getReferralRewardBreakdown({ range, prevRange }: Parameter
 - **数える通貨** = `src/features/core/analytics/config.ts` の `coinIssuanceWalletTypes`（既定 `["regular_coin"]`）。仕組みはどの通貨にも使え、このまとめに数える通貨だけを config で選ぶ（単位の違う通貨を同じ合計に入れない）
 - **内訳（breakdown、表示だけ）**: `wallet_bonus_grant` は付与の種類（`reason_key`）ごとの行を `sources.wallet_bonus_grant.breakdown` に返す（`{ key, label, current, previous, changeRate }`、key null = 「未分類」、並び = 種類の sortOrder → 未分類は最後）。行の和 = そのソースの値。aggregator は合計（`totalIssuance` / `finalProfit`）に breakdown を使わない。画面は「販促・特典付与 = 合計」の下に行を並べる
   - 自前のソースも `aggregate()` の戻り値に `breakdown?: CoinIssuanceBreakdownRow[]` を返せる（規約: 表示だけ・行の和はソースの値と一致させる・どの行にも入らない分は key null に寄せる）
-  - 過去の行は種類が無く「未分類」に入る。種類を埋める task は wallet README「付与の種類」
-- 付与の `reasonKey`（付与の種類。区分は種類から決まる）か `reasonCategory`（`walletService.adjustBalance` 等）を書かない行は `other` になり、既定ではこのまとめに入らない（wallet README「付与の種類」）
+  - 過去の行は種類が無く「未分類」に入る。種類を埋める task は src/features/core/wallet/Extension.md「付与の種類（reason key）」
+- 付与の `reasonKey`（付与の種類。区分は種類から決まる）か `reasonCategory`（`walletService.adjustBalance` 等）を書かない行は `other` になり、既定ではこのまとめに入らない（src/features/core/wallet/Extension.md「付与の種類（reason key）」）
 
 2 つとも `enabled` で門番の入切を見る（`purchase_bonus_gap` = `gate.enabled("payment")`・`wallet_bonus_grant` = `gate.enabled("wallet")`）。閉じている間は走らず、応答の `sources` に出ない

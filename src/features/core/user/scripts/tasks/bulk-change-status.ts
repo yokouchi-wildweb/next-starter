@@ -1,5 +1,5 @@
 // src/features/core/user/scripts/tasks/bulk-change-status.ts
-// ステータスの一括変更(運用コマンド)。中身は userService.bulkChangeStatus(README「ステータスの一括変更」)
+// ステータスの一括変更(運用コマンド)。中身は userService.bulkChangeStatus(README「状態をまとめて変える」)
 // 使い方: pnpm task user:bulk-change-status -- --to <状態> (--users <id>[,...] | --file <path>) --reason "<理由>" [--from <状態>] [--dry-run]
 //   まず --dry-run で変わる人数と飛ばす人(理由つき)を確かめ、--dry-run を外して実行する
 // 止める鍵は無い: 打ち直すと既に変わった人を飛ばすので、途中で落ちても同じ指定で打ち直せる

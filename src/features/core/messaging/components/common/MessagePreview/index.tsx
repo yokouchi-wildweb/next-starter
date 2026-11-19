@@ -106,7 +106,7 @@ export function MessagePreview({ channels, emailHeight = 480, showLabels = true 
           ) : null}
           {channel.key === "email" ? (
             channel.html ? (
-              // 生の HTML の要素の決まりの例外(.claude/rules/core/components.md「wrappers (raw HTML NG)」): ここだけ生の <iframe> を使う。
+              // 生の HTML の要素の決まりの例外(.claude/rules/core/components.md「wrappers」): ここだけ生の <iframe> を使う。
               // 理由: 描いたメールの HTML を画面の DOM と分けるため、sandbox を空にした iframe(スクリプト・同じ origin・フォーム・移動を
               // 全部止める)に srcDoc で入れる(指令 28 の答え)。棚(src/components)に iframe の包みは無く、使い手は messaging だけ
               // なので包みは作らない(議長の答え m46)。2 つ目の使い手が出たら src/components に包みを作って移す。

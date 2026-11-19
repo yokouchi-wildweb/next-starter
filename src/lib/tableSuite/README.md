@@ -254,7 +254,7 @@ const handleSortChange = (nextSort: SortState) => {
 
 #### buildDomainColumns との連携
 
-`presenters` を渡していない列は、生成の presenters.ts と同じ答え（`presenterFor`、src/lib/domain/README.md「何で表示するか」）で描く（boolean は「はい / いいえ」、数値の型は桁区切り、配列は「, 」区切り、enum は選択肢のラベル、画像はサムネイル、主の集まりは先頭 1 件と +N）。一覧特有の扱いは 2 つ: 空・null は空欄（presenters の「―」ではない）、textarea の文字列は `truncateLength` で切り詰める。リレーション・id・createdAt / updatedAt の列は今までどおり。
+`presenters` を渡していない列は、生成の presenters.ts と同じ答え（`presenterFor`、src/lib/domain/README.md「表示の種類の決め方(`presenterFor`)」）で描く（boolean は「はい / いいえ」、数値の型は桁区切り、配列は「, 」区切り、enum は選択肢のラベル、画像はサムネイル、主の集まりは先頭 1 件と +N）。一覧特有の扱いは 2 つ: 空・null は空欄（presenters の「―」ではない）、textarea の文字列は `truncateLength` で切り詰める。リレーション・id・createdAt / updatedAt の列は今までどおり。
 
 `buildDomainColumns` の `sortableFields` オプションで sortKey を自動設定できる。
 
@@ -417,7 +417,7 @@ DataTable に `variant="print"` を渡すと印刷の表になる: スクロー�
 <DataTable items={rows} columns={columns} variant="print" className="print-area" />
 ```
 
-鍵と値の表（行ごとにセルの数が違う「項目名: 値」）は DataTable でなく `DetailTable`（`@/components/Overlays/DetailModal`、src/components/Overlays/README.md「DetailModal」）。
+鍵と値の表（行ごとにセルの数が違う「項目名: 値」）は DataTable でなく `DetailTable`（`@/components/Overlays/DetailModal`、src/components/Overlays/DetailModal/README.md）。
 
 ### 無限スクロールの足元（infiniteFooter）
 

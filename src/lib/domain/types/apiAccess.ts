@@ -91,7 +91,7 @@ export type DomainApiAccessConfig = {
   operations?: Partial<Record<DomainApiOperation, DomainApiAccessRule>>;
   /**
    * データ操作のコマンド（pnpm ops data）の許可の上書き。省略 = API の規則に従う（対応する操作の規則が "none" でなければ許す）。
-   * API とコマンドで範囲を変えたいドメインだけ書く。src/lib/domain/README.md「データ操作のコマンド（pnpm ops data）の許可」
+   * API とコマンドで範囲を変えたいドメインだけ書く。src/lib/domain/README.md「データ操作のコマンド(pnpm ops data)の許可」
    */
   commands?: Partial<Record<DataCommand, DataCommandOverride>>;
 };

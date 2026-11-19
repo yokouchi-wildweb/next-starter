@@ -73,7 +73,7 @@ export const userService = {
   // wrappers
   updateLastAuthenticated,
   changeStatus,
-  /** ステータスの一括変更(1 人 1 transaction、dryRun あり。README「ステータスの一括変更」) */
+  /** ステータスの一括変更(1 人 1 transaction、dryRun あり。README「状態をまとめて変える」) */
   bulkChangeStatus,
   changeRole,
   softDelete,

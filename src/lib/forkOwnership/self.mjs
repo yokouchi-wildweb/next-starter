@@ -4,7 +4,7 @@
 //   3 self-parent    取り込み(親の版を基準にした merge)で親の版が入り、今もそのまま
 //   4 self-overview  Tier1 でないリポの project.md(概要)が直接の親の今の版と同じまま
 // 既定は切る(SELF_CHECK_DEFAULT)。pnpm workflow ownership check --self で走る。既定で入れるのは文脈の書き直しの最後の切り替え。
-// git から入力を集めるのは check.mjs(collectSelf)、ここは純な判定だけ。仕様: ./README.md「型 5 self」
+// git から入力を集めるのは check.mjs(collectSelf)、ここは純な判定だけ。仕様: ./README.md「受け口の一覧(intake.txt)」
 
 export const SELF_FILES = [".claude/rules/project.md", ".claude/rules/behavior.md", "repo.json"];
 export const SELF_OVERVIEW_FILE = ".claude/rules/project.md";

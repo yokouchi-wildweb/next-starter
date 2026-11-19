@@ -4,7 +4,7 @@
 // Store（送信状態管理）+ ClientService（実送信）+ uploadToStorage（アップロード）を
 // 一つのインターフェースで提供する。
 // ファイルは種類ごとの用途 chatRoom.image / video / file に、scopeId = roomId で上げ、メッセージの content に ref を入れる
-// （用途の read はルームの現参加者だけ。表示は resolveStorageSrc(content)。README「ファイル添付」）。
+// （用途の read はルームの現参加者だけ。表示は resolveStorageSrc(content)。src/features/core/chatRoom/README.md「ファイル添付」）。
 // 手動実装。
 
 "use client";

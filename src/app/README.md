@@ -93,7 +93,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 自由: 段の数、名前、group か URL フォルダか、入れ子の順序、枠と認証の混在、ラベルだけの group(どれも禁止しない)。
 
-フォルダ名(`(protected)` 等)は検査にも認可にも意味を持たない。認可は範囲の `guard.ts`(layout の隣、親子 AND)と loader の `access` で決まり、ルート地図(`route-map.jsonl`)が鎖を確かめる(src/lib/screens/README.md「範囲（guard.ts）と loader の書き方」・Internals.md「ルート地図（`src/app/route-map.jsonl`）」)。
+フォルダ名(`(protected)` 等)は検査にも認可にも意味を持たない。認可は範囲の `guard.ts`(layout の隣、親子 AND)と loader の `access` で決まり、ルート地図(`route-map.jsonl`)が鎖を確かめる(src/lib/screens/README.md「範囲（guard.ts）と loader の書き方」「ルート地図（`src/app/route-map.jsonl`）」)。
 
 決まった置き場:
 

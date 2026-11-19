@@ -1,6 +1,6 @@
 // src/features/core/user/services/server/wrappers/bulkChangeStatus.ts
 //
-// ユーザーのステータスの一括変更(README「ステータスの一括変更」)。1 人ずつ changeStatus と同じ道を通す
+// ユーザーのステータスの一括変更(README「状態をまとめて変える」)。1 人ずつ changeStatus と同じ道を通す
 // (users の更新・遷移の履歴 recordStatusTransition・監査 user.status.changed を 1 人 1 transaction で、確定の後にセッション失効)。
 // - 変えられる先: active / inactive / suspended / banned / security_locked。withdrawn(退会の流れ withdraw がある)と
 //   pending(登録の途中)は先に止める

@@ -1,7 +1,7 @@
 // src/app/api/cron/messaging-retention/task.ts
 // 連絡の記録の保持の掃除 — cron タスク定義（実行時刻・呼ぶ関数）
 // 処理本体はドメイン側（messaging/services/server/sweep/retention.ts）。日数は messaging の config
-// 機能の門は持たない（messaging の README「cron」）
+// 機能の門は持たない（src/features/core/messaging/README.md「Internals」）
 
 import type { CronTaskDefinition } from "@/lib/cron";
 

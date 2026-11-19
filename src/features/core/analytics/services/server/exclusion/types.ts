@@ -7,7 +7,7 @@
 // - flow: 期間の事実の行(収支・購入・プレイ数など)。除外した行だけを落とす
 // - stock: 残高・流通量など人ごとの状態。期間外の残高にも残るので、除外した人を丸ごと落とす
 // 実行時機: 各集計のクエリを組み立てるとき(同期、読みだけ、tx なし)。項目の throw はその集計の 500。
-// 詳細: src/features/core/analytics/README.md「分析の除外条件」
+// 詳細: src/features/core/analytics/services/server/exclusion/README.md
 
 import type { Column, SQL } from "drizzle-orm";
 

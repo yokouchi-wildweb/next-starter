@@ -4,7 +4,7 @@
 export const extensionPoints = {
   // 購入の特典の表示: purchaseBonuses/<key>.ts の export const provider(上流の項目は 0)。
   // 表示だけ(付与は purchaseRequest の completeHooks)。上の Tier の提供元は隣の <key>.override.ts で enabled・order を変える
-  // (書き方: README.md「購入の特典の表示」)
+  // (書き方: Extension.md「購入の特典の表示（拡張点 purchaseBonuses）」)
   purchaseBonuses: {
     dir: "purchaseBonuses",
     export: "provider",

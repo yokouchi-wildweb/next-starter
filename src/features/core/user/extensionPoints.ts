@@ -45,7 +45,7 @@ export const extensionPoints = {
     overrideOf: ["enabled", "order"],
   },
   // 管理のユーザー管理モーダルのタブ: adminManageTabs/<名前>.tsx の export const tab(上流の項目は 0)。
-  // 上流の 6 つのタブの後ろに order → key の順で並ぶ。上流のタブは置き換えない(書き方: README.md「管理のユーザー管理モーダルのタブ」)
+  // 上流の 6 つのタブの後ろに order → key の順で並ぶ。上流のタブは置き換えない(書き方: adminManageTabs/README.md)
   adminManageTabs: {
     dir: "adminManageTabs",
     export: "tab",
@@ -54,7 +54,7 @@ export const extensionPoints = {
     key: "key",
   },
   // マイページのメニュー: mypageMenu/items/<key>.ts の export const item(リンク / 操作の 2 形、上流は 10 刻みの order)。
-  // fork は項目を足す・上流の項目は隣の <key>.override.ts で変える(書き方: README.md「マイページのメニュー」)
+  // fork は項目を足す・上流の項目は隣の <key>.override.ts で変える(書き方: Extension.md「マイページのメニュー(拡張点 mypageMenu)」)
   mypageMenu: {
     dir: "mypageMenu/items",
     export: "item",

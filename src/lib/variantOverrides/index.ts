@@ -2,7 +2,7 @@
 //
 // 棚の部品(Button / Badge / 入力部品 / TextBlocks)の variant を、core を編集せずに差し替えるための仕組み。
 // 下流は src/config/ui/variants.config.ts に defineVariantOverrides({ ... }) で差分だけ書く。
-// 詳細: src/styles/README.md「variant オーバーライド」
+// 詳細: src/styles/Extension.md「バリアントの上書き(variants.config.ts)」
 
 export { defineVariantOverrides, variantOverrideClasses } from "./defineConfig";
 export { createOverridableVariants } from "./createOverridableVariants";

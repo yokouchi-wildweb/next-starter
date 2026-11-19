@@ -3,7 +3,7 @@
 // 事前登録の送信 form（/entry のメール入力）の公開 hook。useForm・登録済み確認・事前登録リンクの送信・
 // メールアドレスの保存・送信後の遷移までを持ち、form を返す。
 // 既定の部品 EarlyRegistrationSendForm はこれを呼んで描くだけ。
-// 契約（引数・戻り値・form の項目名）→ auth README「公開 hook の契約表」
+// 契約（引数・戻り値・form の項目名）→ src/features/core/auth/API.md「公開 hook」
 
 "use client";
 

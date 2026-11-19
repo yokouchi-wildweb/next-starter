@@ -1,6 +1,6 @@
 // src/features/core/referral/hooks/useAdminInviteListTable.ts
 // 招待コード発行者の管理一覧の処理(見た目は持たない): 行のクリックで開く紹介の一覧のモーダルの対象。
-// core の AdminInviteList/Table と、fork が _components に置く自前の Table が同じくこれを呼ぶ(README「管理画面の招待コード一覧」)
+// core の AdminInviteList/Table と、fork が _components に置く自前の Table が同じくこれを呼ぶ(README「招待コード一覧に列を足す」)
 
 "use client";
 

@@ -3,7 +3,7 @@
 // 自分のアバターの変更・削除の流れ(検査 → アップロード → プロフィールに保存 → 保存に失敗したら取り消し)。
 // 見た目を持たない: AccountAvatarSection も fork の自前の見た目も、これを呼んで好きに描く。
 // 用途は user.avatar(位置情報などのメタデータは常に strip、受け付ける型は STRIP_IMAGE_TYPES)。
-// 低い層の useAvatarUpload / useUpdateMyProfile はそのまま公開。契約表: src/features/core/user/README.md「アバターの変更」
+// 低い層の useAvatarUpload / useUpdateMyProfile はそのまま公開。契約表: src/features/core/user/README.md「アバターを自前の見た目で変える」
 
 "use client";
 

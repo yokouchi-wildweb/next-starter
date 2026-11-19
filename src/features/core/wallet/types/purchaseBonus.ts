@@ -1,6 +1,6 @@
 // src/features/core/wallet/types/purchaseBonus.ts
 // 購入の特典の表示(受け口 purchaseBonuses: purchaseBonuses/<key>.ts の export const provider)の型。
-// 表示だけ: 特典の付与はサーバーの purchaseRequest の completeHooks が行う。書き方: src/features/core/wallet/README.md「購入の特典の表示」
+// 表示だけ: 特典の付与はサーバーの purchaseRequest の completeHooks が行う。書き方: src/features/core/wallet/Extension.md「購入の特典の表示（拡張点 purchaseBonuses）」
 
 import type { WalletType } from "@/features/wallet/config";
 

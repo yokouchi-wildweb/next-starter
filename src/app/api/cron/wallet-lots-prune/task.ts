@@ -9,7 +9,7 @@ export const cronTask: CronTaskDefinition = {
   name: "wallet-lots-prune",
   description: "消費し尽くしたウォレットロット（remaining = 0）を保持期間経過後に削除する",
   schedule: "40 18 * * *", // 毎日 03:40 JST（wallet-expire-lots の後）
-  // 機能の入切は書かない: 住所 /api/cron/wallet-lots-prune を規則 wallet の pathPatterns が閉じる（src/featureGate/rules/wallet.ts、src/lib/cron/README.md「機能の門」）
+  // 機能の入切は書かない: 住所 /api/cron/wallet-lots-prune を規則 wallet の pathPatterns が閉じる（src/featureGate/rules/wallet.ts、src/lib/cron/README.md「1. task.ts」）
   // 追加の条件: 有効期限を有効にした通貨があるときだけ
   enabled: () => getExpirationEnabledWalletTypes().length > 0,
   run: async () => {

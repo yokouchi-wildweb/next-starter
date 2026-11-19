@@ -78,7 +78,7 @@ export type AppImageProps = FillProps | IntrinsicProps;
  * next/image の共通ラッパー
  *
  * ## 用途
- * - 生の <img> および next/image 直接使用の代わりに使用(CLAUDE.md「wrappers」)
+ * - 生の <img> および next/image 直接使用の代わりに使用(.claude/rules/core/components.md「wrappers」)
  * - fill の親要素規約・sizes 指定・エラーフォールバック・未登録ホストのクラッシュガードを内蔵
  *
  * ## モードの使い分け

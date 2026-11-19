@@ -9,7 +9,7 @@ export const cronTask: CronTaskDefinition = {
   name: "wallet-expire-lots",
   description: "有効期限切れウォレットロットの残額を没収する（sweepEnabled の通貨のみ）",
   schedule: "35 18 * * *", // 毎日 03:35 JST
-  // 機能の入切は書かない: 住所 /api/cron/wallet-expire-lots を規則 wallet の pathPatterns が閉じる（src/featureGate/rules/wallet.ts、src/lib/cron/README.md「機能の門」）
+  // 機能の入切は書かない: 住所 /api/cron/wallet-expire-lots を規則 wallet の pathPatterns が閉じる（src/featureGate/rules/wallet.ts、src/lib/cron/README.md「1. task.ts」）
   // 追加の条件: 失効の没収（sweepEnabled）を有効にした通貨があるときだけ
   enabled: () => getSweepEnabledWalletTypes().length > 0,
   run: async () => {

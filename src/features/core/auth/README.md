@@ -66,7 +66,7 @@ fork が上流に無いログインの方法(LINE など)を足すときの組�
 // ① 身元の確認（fork の物: OAuth のコードの交換・id token の検証など）
 const { providerUid, displayName } = await verifyWithProvider(request);
 
-// ② 利用者を引く・作る（user README「外部の認証の身元から作る口」）
+// ② 利用者を引く・作る（src/features/core/user/API.md「外部の認証の身元から作る口(createFromProvider)」）
 const { user, isNewUser } = await userService.createFromProvider({
   providerType: "line",
   providerUid,

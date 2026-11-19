@@ -1,7 +1,7 @@
 // src/features/core/wallet/config.ts
 // ウォレットの設定(既定 + 上書き、設定の議会 D11・D19・D95)。上書きは src/config/features/wallet.config.ts(このファイルだけが読む)。
-// 置き方: src/config/README.md。合成: @/lib/defineConfig。呼び手は walletConfig.<鍵> を読む(古い定数名の対応: ./README.md「設定」)。
-// 通貨を足す fork は上書きで `export type Extra = { currency: { <walletType>: CurrencyConfig } }` を宣言して値を書く(WalletType に入る)。足した欄・リテラル型は Extra の型ごと残る(例 `CurrencyConfig & { isTicket: true }`、./README.md「設定ファイル」)。
+// 置き方: src/config/README.md。合成: @/lib/defineConfig。呼び手は walletConfig.<鍵> を読む(古い定数名の対応: ./API.md「古い定数名との対応」)。
+// 通貨を足す fork は上書きで `export type Extra = { currency: { <walletType>: CurrencyConfig } }` を宣言して値を書く(WalletType に入る)。足した欄・リテラル型は Extra の型ごと残る(例 `CurrencyConfig & { isTicket: true }`、./Extension.md「設定ファイル」)。
 // [!!] 通貨の設定の変更後は必ずマイグレーションが必要(walletType は DB の値)
 // 機能の入切(wallet.enabled)は門番の規則 src/featureGate/rules/wallet.ts の持ち物で、ここには無い
 
@@ -70,7 +70,7 @@ export type WalletExpirationConfig = {
   expirationDays: number | null;
   /**
    * 失効日の数え方。省略 = "grant"（付与ごと）。
-   * 運用中の通貨で切り替える場合は README「有効期限（ロット管理）」の「数え方」を参照。
+   * 運用中の通貨で切り替える場合は Internals.md「有効期限（ロット管理）」の「数え方」を参照。
    */
   expirationBasis?: WalletExpirationBasis;
   /**
@@ -260,7 +260,7 @@ const defaults: WalletConfig = {
      * 同時に送信する件数。1 = 1件ずつ順番に送る。
      * 1件の送信には1秒弱かかる（メール基盤への通信 + 記録の書き込み）ため、1 では1回の実行で
      * 送れるのが数百件にとどまる。メール基盤の流量制限と DB 接続数に収まる範囲で調整する。
-     * 件数の目安: src/features/core/wallet/README.md「送信量の目安」
+     * 件数の目安: src/features/core/wallet/Internals.md「送信量の目安」
      */
     sendConcurrency: 5,
     /** 文面の日付（{{expiresOn}} / {{expiredOn}}）を表示するタイムゾーン */

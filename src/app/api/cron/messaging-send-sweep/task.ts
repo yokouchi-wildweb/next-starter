@@ -1,7 +1,7 @@
 // src/app/api/cron/messaging-send-sweep/task.ts
 // 連絡の送信の掃き出し — cron タスク定義（実行時刻・呼ぶ関数）
 // 処理本体はドメイン側（messaging/services/server/sweep）。vercel.json のエントリは pnpm generate cron がこのファイルから生成する
-// 機能の門は持たない: 送る口と同じく常に開（messaging の README「cron」）
+// 機能の門は持たない: 送る口と同じく常に開（src/features/core/messaging/README.md「Internals」）
 
 import type { CronTaskDefinition } from "@/lib/cron";
 

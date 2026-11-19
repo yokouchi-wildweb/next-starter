@@ -58,7 +58,7 @@ export function buildPurchaseResultUrl(
 
 /**
  * 購入ステータスをポーリングし、結果に応じてリダイレクトするフック
- * 移り先は completePath / failedPath で変えられる（値だけ。fork が自前の購入の結果画面を持つとき。README「3.2」）
+ * 移り先は completePath / failedPath で変えられる（値だけ。fork が自前の購入の結果画面を持つとき。README「usePurchaseStatusPolling」）
  *
  * @param params パラメータ
  * @returns ポーリング状態

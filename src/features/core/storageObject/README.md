@@ -41,7 +41,7 @@ issue: 行は store=priv・key=incoming/<本来の store>/<purposeId>/<id>.<ext>
 
 ### 業務行の DB の cascade
 
-- メディア列を持つ表の行を DB の cascade で消すと、その場では detach されない。cascade は許す。残った紐付けは掃除 cron の照合（下記「掃除」の orphanedAttached）が後の実行で外し、実物を消す。すぐ片付けたい表は restrict にし、子のサービスで消す（任意。[lib/crud README「storage オプション」](../../../lib/crud/README.md)）
+- メディア列を持つ表の行を DB の cascade で消すと、その場では detach されない。cascade は許す。残った紐付けは掃除 cron の照合（下記「掃除」の orphanedAttached）が後の実行で外し、実物を消す。すぐ片付けたい表は restrict にし、子のサービスで消す（任意。[lib/crud/storageIntegration README](../../../lib/crud/storageIntegration/README.md)）
 
 ### お知らせの画像（messaging の受け取り箱）
 

@@ -1,6 +1,6 @@
 // src/features/core/user/types/mypageMenu.ts
 // マイページのメニューの項目の型(受け口 mypageMenu: src/features/core/user/mypageMenu/items/<key>.ts の export const item)と、
-// 組み立て器(mypageMenu/buildMypageMenu.ts)の入出力の型。書き方: src/features/core/user/README.md「マイページのメニュー」
+// 組み立て器(mypageMenu/buildMypageMenu.ts)の入出力の型。書き方: src/features/core/user/Extension.md「マイページのメニュー(拡張点 mypageMenu)」
 
 import type { LucideIcon } from "lucide-react";
 

@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/admin/index.ts
 //
 // 管理の送信と読む口(本物の部品を結ぶ)。呼び手は messagingService の admin* / listDispatches など。
-// 管理 API: src/app/api/admin/messaging/**(README「管理の送信と回の読む口」)
+// 管理 API: src/app/api/admin/messaging/**(./README.md「API」)
 
 import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 

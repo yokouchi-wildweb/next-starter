@@ -8,7 +8,7 @@ import path from "node:path";
 
 import type { AppEnv } from "@/lib/appEnv";
 
-/** 引数なしで作るファイル(env の規則: 開発と本番の 2 つを必ず置く。src/lib/appEnv/README.md「env ファイルの規則」) */
+/** 引数なしで作るファイル(env の規則: 開発と本番の 2 つを必ず置く。src/lib/appEnv/README.md「env ファイル」) */
 export const DEFAULT_ENV_FILES = [".env.development", ".env.production"] as const;
 
 /** ファイル名から段階の印を決める(.env.staging* → staging / .env.production* → production / ほか → development) */

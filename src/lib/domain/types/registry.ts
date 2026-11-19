@@ -81,7 +81,7 @@ export type DomainRegistryEntry = {
   idColumn: string | null;
   /**
    * このドメインが前提にする(閉じられる)ドメインの名前。省略可。宣言すると、門番の依存の検査が
-   * このドメインのフォルダから相手の閉じられるフォルダを読むことを通す(src/featureGate/README.md「依存の検査」)。
+   * このドメインのフォルダから相手の閉じられるフォルダを読むことを通す(src/featureGate/Internals.md「依存の検査」)。
    * 検査はこの欄を字面で読む(文字列リテラルの配列で書く)
    */
   requires?: readonly string[];

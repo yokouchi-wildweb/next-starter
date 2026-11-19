@@ -3,7 +3,7 @@
 // drizzle の生の sql`` テンプレートに JS の Date を埋め込まない(CLAUDE.md CRUD_SERVICE・.claude/rules/core/services.md raw_sql)。
 // sql`` の値は Date.toString() 相当("Sun Mar 01 2026 … GMT+0900 (…)")で渡り、::timestamptz を付けても Postgres が読めず
 // クエリの時に落ちる('Failed query … WHERE created_at < $1')。→ .toISOString() で渡す。Drizzle の演算子(eq / gt / lt / between …)は
-// Date をそのまま受けるので変換は要らない。詳細: src/lib/crud/README.md「落とし穴: sql テンプレートに Date を直接渡さない」
+// Date をそのまま受けるので変換は要らない。詳細: src/lib/crud/drizzle/query/README.md「落とし穴: `sql` テンプレートに Date を直接渡さない」
 //
 // 止めるもの(型情報なしで分かる範囲): タグが `sql`(sql`` / sql.raw 以外の識別子 sql)のテンプレートの ${…} に
 // - new Date(…)
@@ -34,7 +34,7 @@ const rule = {
     docs: { description: "生の sql`` に JS の Date を埋め込まない(.toISOString() か Drizzle の演算子)" },
     messages: {
       date:
-        "生の sql`` に JS の Date を埋め込まない: Postgres が読めずクエリの時に落ちます。.toISOString() で渡すか、Drizzle の演算子(eq / gt / lt / between …)を使います。詳細: src/lib/crud/README.md「落とし穴」・eslint-rules/raw-sql-date.mjs",
+        "生の sql`` に JS の Date を埋め込まない: Postgres が読めずクエリの時に落ちます。.toISOString() で渡すか、Drizzle の演算子(eq / gt / lt / between …)を使います。詳細: src/lib/crud/drizzle/query/README.md「落とし穴」・eslint-rules/raw-sql-date.mjs",
     },
     schema: [],
   },

@@ -3,7 +3,7 @@
 // 本登録（外部アカウント認証済み）form の公開 hook。useForm・既定値・provider のプロフィール → form の反映・
 // 送信（idToken・reCAPTCHA v3 / v2 再送・登録 API・セッション更新・完了画面への遷移）・429 の表示・招待コード欄までを持ち、form を返す。
 // 既定の部品 OAuthRegistrationForm はこれを呼んで描くだけ。fork は同じ hook で自由な markup を描ける。
-// 契約（引数・戻り値・form の項目名）→ auth README「公開 hook の契約表」
+// 契約（引数・戻り値・form の項目名）→ src/features/core/auth/API.md「公開 hook」
 
 "use client";
 

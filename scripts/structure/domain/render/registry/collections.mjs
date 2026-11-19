@@ -60,7 +60,7 @@ export function renderCollectionsOutput(ctx, workspace) {
     `// ${featureRel(ctx)}/services/server/collections.ts`,
     "// pnpm generate domain が domain.json の集まりの項目（mediaCollection）から生成する。手で直さない。",
     "// createCrudService の collections オプション（ドメイン集約）。生成の drizzleBase.ts が import して渡す。",
-    "// 詳細: src/lib/crud/README.md「ドメイン集約（collections オプション）」",
+    "// 詳細: src/lib/crud/collections/README.md",
     "",
     'import type { CrudCollectionConfig } from "@/lib/crud/drizzle";',
     ...tables.map((child) => `import { ${toPascalCase(child)}Table } from "@/features/${child}/entities/drizzle";`),

@@ -390,7 +390,7 @@ const config = [
   },
   // 生の sql`` に JS の Date を埋め込まない(CLAUDE.md CRUD_SERVICE raw_sql。Postgres が読めずクエリの時に落ちる)。
   // .toISOString() で渡すか Drizzle の演算子を使う。クエリが落ちるのを止める守りなので upstream・下流とも error(fork 分岐なし)。
-  // 詳細: eslint-rules/raw-sql-date.mjs, src/lib/crud/README.md「落とし穴」
+  // 詳細: eslint-rules/raw-sql-date.mjs, src/lib/crud/drizzle/query/README.md「落とし穴」
   {
     files: ["src/**/*.{ts,tsx,mts,mjs}", "scripts/**/*.{ts,mts,mjs}"],
     plugins: { "raw-sql-date": rawSqlDatePlugin },

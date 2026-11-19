@@ -8,6 +8,6 @@
 export function closableIssues(config) {
   if (!Object.prototype.hasOwnProperty.call(config, "closable")) return [];
   return [
-    'closable(閉じられる形の印)はなくなった(D26)。domain.json から消す。機能として閉じるなら src/featureGate/rules/<機能の名前>.ts に規則を書き、features にこのドメインのフォルダを入れる(書き方と例: src/featureGate/README.md「規則の書き方」)',
+    'closable(閉じられる形の印)はなくなった(D26)。domain.json から消す。機能として閉じるなら src/featureGate/rules/<機能の名前>.ts に規則を書き、features にこのドメインのフォルダを入れる(書き方と例: src/featureGate/API.md「規則の書き方」)',
   ];
 }

@@ -47,7 +47,7 @@ import { continueSending } from "./sweep";
  * (回・配達の記録と配信停止・本文の残し方を 1 か所で守る)。lib/mail の send() を直に呼ぶのはメールの経路の項目だけ。
  */
 export const messagingService = {
-  /** 連絡の定義(messages/<名前>.ts)を 1 人へ送る(新しい送る口。README「新しい送る口」) */
+  /** 連絡の定義(messages/<名前>.ts)を 1 人へ送る(新しい送る口。src/features/core/messaging/README.md「送る」) */
   sendMessage,
   /** 連絡の定義を選んだ宛先か宛先の指定(全員・ロール・グループ)へ送る(新しい送る口) */
   sendMessageToMany,

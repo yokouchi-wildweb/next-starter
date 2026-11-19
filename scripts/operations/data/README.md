@@ -37,7 +37,7 @@ pnpm ops data delete <domain> (--ids <id>[,<id>...] | --file <file>) [--dry-run]
 
 ### 許可
 
-`resolveDataCommand`(`src/lib/domain`、README「データ操作のコマンド(pnpm ops data)の許可」)が決める。
+`resolveDataCommand`(src/lib/domain/README.md「データ操作のコマンド(pnpm ops data)の許可」)が決める。
 
 - export → 操作 `export` の規則 / サービスの `search`(`--with-deleted` は `searchWithDeleted`)、import → `import` / `bulkUpsert`、update → `bulkUpdate` / `bulkUpdate`、delete → `bulkDeleteByIds` / `bulkDeleteByIds`
 - 管理 API で何かしらのロールに許した操作は許す。export / import はドメインの管理データ操作(domain.json の `useImportExport`)が開いている時だけ

@@ -1,5 +1,5 @@
 // 検査の本体: git から基準と差分・中身を取り、judge と checkPermits に渡す。対話なし(CI でも動く)
-// 表示と終了コードは cli.mjs。仕様: ./README.md「使い方」「鮮度」
+// 表示と終了コードは cli.mjs。仕様: ./README.md「Usage」「鮮度」
 
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";

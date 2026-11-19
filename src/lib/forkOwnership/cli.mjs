@@ -1,5 +1,5 @@
 // pnpm workflow ownership check — fork の所有の検査。終了コード: 0 = 合格(Tier1 は対象外)/ 1 = 違反あり / 2 = 未検証・設定の不足
-// 引数: --parent=<remote> --branch=<branch> --json --verbose --self(型 5 self の検査も走らせる。既定は切)。仕様: ./README.md「使い方」
+// 引数: --parent=<remote> --branch=<branch> --json --verbose --self(型 5 self の検査も走らせる。既定は切)。仕様: ./README.md「Usage」
 
 import { runCheck } from "./check.mjs";
 

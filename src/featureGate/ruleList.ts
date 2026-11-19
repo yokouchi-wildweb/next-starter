@@ -12,7 +12,7 @@
 //   渡した一覧(rules / configRules / テストの作り物)の開閉で解くので、スイッチの効く・効かないは一覧で決まる
 // 全開スイッチの名前指定は依存先を開けない(D34): 閉じた依存先があれば開かず、足りない名前を値ごとに 1 回 console.warn(pnpm ops features list にも出る)
 // 守り(scripts/structure/proxies/openSwitch.test.ts): 門番の中で extensions/rules を値で読むのも、規則の .enabled() を直に呼ぶのもこのファイルだけ
-// スイッチ: ./openSwitch.ts / 詳細: ./README.md「機能どうしの依存(dependsOn)」
+// スイッチ: ./openSwitch.ts / 詳細: ./API.md「機能どうしの依存(dependsOn)」
 
 import switches from "@/config/featureGate/switches.config";
 

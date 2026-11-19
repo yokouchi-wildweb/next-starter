@@ -2,7 +2,7 @@
 // 過去の wallet_histories の行に、上流の書き手の分の付与の種類(reason_key)を埋める(定期実行しない。冪等なので再実行は安全)。
 // fork の施策の分は fork が自分のドメインの 1 回きりの移行(src/features/<ドメイン>/scripts/migrations/<名前>.ts)で backfillWalletReasonKeys に自分の規則を渡す(済んだら消してよい)。
 // 使い方: pnpm task walletHistory:reason-key-backfill -- --dry-run で件数を確認 → dry-run なしで実行(締切で止まったら再実行で続きから)
-// 詳細: src/features/core/wallet/README.md「付与の種類」
+// 詳細: src/features/core/wallet/Extension.md「付与の種類（reason key）」
 
 import type { OneShotTask } from "@/lib/task";
 

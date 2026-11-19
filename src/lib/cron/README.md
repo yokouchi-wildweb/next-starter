@@ -34,7 +34,7 @@ export const cronTask: CronTaskDefinition = {
 };
 ```
 
-- 閉じられる機能のタスクは、機能のフォルダを import すれば門が付く（`pnpm generate extensions` で規則の `cronPaths` に出る。上の「機能の門」）
+- 閉じられる機能のタスクは、機能のフォルダを import すれば門が付く（`pnpm generate extensions` で規則の `cronPaths` に出る）
 - `run` は動的 import（`pnpm generate cron` や `pnpm task --list` が task.ts を読むだけで DB などの依存を読み込まない）
 - ドメイン名からサービスを引く処理に登録表を渡すときは、`run` の中で `src/wiring/domainRegistry.ts` を動的 import して渡す（例: storage-sweep の `lookupService`。wiring を読めるのは task.ts だけ: `pnpm test src/wiring/wiring.test.mjs`）
 

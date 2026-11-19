@@ -55,7 +55,7 @@ await saveSettingAsActor(user, { maintenanceEnabled: true }); // 主体のロー
 
 - `useSettingSectionForm`: 欄は節のキーの定義(`setting/fields` の `ui`)から作り(`buildSectionForm`)、`useForm`(zodResolver)まで持つ。部品は `methods` を `AppForm` に、`fieldConfigs` と `section.groups` を `FieldRenderer` に渡す。`submit` を `AppForm` の `onSubmit` に渡す: 更新中の toast → 保存 → 成功の toast → `redirectPath` へ遷移
 - `useAdminSetup`: `submit(values)` = 送信 → 成功の toast → `redirectTo` へ遷移(初期設定の form の `customSubmit.handler` に渡す)。`trigger` は送信だけ
-- 失敗(両方): error の toast を出して投げ直す(src/lib/unsavedGuard/README.md「送信」)
+- 失敗(両方): error の toast を出して投げ直す(src/lib/unsavedGuard/README.md「Usage」)
 - この組み立てで足りない画面は、route の `_components/` に Screen を作って組み立てる
 
 ### メンテナンス画面の自動遷移

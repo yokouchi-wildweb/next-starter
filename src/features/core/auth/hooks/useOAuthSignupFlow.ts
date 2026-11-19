@@ -3,7 +3,7 @@
 // OAuth の登録・ログイン画面（/signup/oauth）の公開 hook。useOAuthPhase で認証の段階を進め、
 // 段階が決まったら次の画面へ移す（新規 = 本登録へ遷移ガード経由 / 休会中 = 復帰画面 / 登録済み = トースト + redirectTo）。
 // 既定の部品 OAuth はこれを呼んで phase ごとの表示を描くだけ。
-// 契約（引数・戻り値）→ auth README「公開 hook の契約表」
+// 契約（引数・戻り値）→ src/features/core/auth/API.md「公開 hook」
 
 "use client";
 

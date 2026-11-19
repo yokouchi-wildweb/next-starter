@@ -2,7 +2,7 @@
 //
 // 購入の特典の表示の値(受け口 purchaseBonuses の提供元をまとめる)。表示だけ: 付与はサーバーの completeHooks。
 // container(WalletBalance・CurrencyPurchase、fork の自前の container も)が呼び、表示の部品へ props で渡す。
-// 提供元が 0 なら全部空(部品は今まで通りに描く)。書き方: src/features/core/wallet/README.md「購入の特典の表示」
+// 提供元が 0 なら全部空(部品は今まで通りに描く)。書き方: src/features/core/wallet/Extension.md「購入の特典の表示（拡張点 purchaseBonuses）」
 
 "use client";
 

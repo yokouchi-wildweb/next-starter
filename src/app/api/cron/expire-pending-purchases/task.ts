@@ -8,7 +8,7 @@ export const cronTask: CronTaskDefinition = {
   name: "expire-pending-purchases",
   description: "期限切れの pending 購入リクエストを expired に遷移する（onExpire フックの副次テーブル掃除を含む）",
   schedule: "*/15 * * * *", // 15 分ごと
-  // 機能の入切は書かない: 住所 /api/cron/expire-pending-purchases を規則 payment の pathPatterns が閉じる（src/featureGate/rules/payment.ts、src/lib/cron/README.md「機能の門」）
+  // 機能の入切は書かない: 住所 /api/cron/expire-pending-purchases を規則 payment の pathPatterns が閉じる（src/featureGate/rules/payment.ts、src/lib/cron/README.md「1. task.ts」）
   run: async () => {
     const { expirePendingRequests } = await import(
       "@/features/core/purchaseRequest/services/server/wrappers/purchaseService"

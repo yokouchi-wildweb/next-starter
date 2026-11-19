@@ -359,7 +359,7 @@ const SORT_OPTIONS = [...DEFAULT_USER_LIST_SORT_OPTIONS, { label: "保有コイ�
 // <UserListHeader {...props} sortOptions={SORT_OPTIONS} />
 ```
 
-- wallet の部品（`AdminWalletAdjustModal`）を import するファイルの中の `useGate().enabled("wallet")`: `canAdjustWallet` も同じ gate を含むが、featureGate の依存の検査は import するファイルの字面だけを見るので、フックの中の確認は数えない（src/featureGate/README.md「依存の検査」の 2）。wallet を必ず使う fork は代わりに `required/wallet.ts` でもよい（同 5）
+- wallet の部品（`AdminWalletAdjustModal`）を import するファイルの中の `useGate().enabled("wallet")`: `canAdjustWallet` も同じ gate を含むが、featureGate の依存の検査は import するファイルの字面だけを見るので、フックの中の確認は数えない（src/featureGate/Internals.md「依存の検査」の 2）。wallet を必ず使う fork は代わりに `required/wallet.ts` でもよい（同 5）
 - 上流の `GeneralUserList` / `GeneralUserListTable` / `UserListHeader` の props は変わらない（足したものは省略できる）
 - 回帰: `pnpm test src/features/core/user`（`hooks/useGeneralUserListTable.test.tsx`・`components/admin/GeneralUserList/columns.test.tsx`・`components/common/UserListHeader.test.tsx`）
 

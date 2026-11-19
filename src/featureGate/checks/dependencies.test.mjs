@@ -32,7 +32,7 @@ test("実リポ: 閉じられるフォルダを外から読むファイルは 6 
   const violations = findDependencyViolations({ root: ROOT, rules, exceptionFiles });
   enforce(
     violations.map((v) => `${v.file} → ${v.folder}(規則 ${v.rule})`),
-    "閉じられる機能を確かめずに読んでいる。domainEntry.ts の requires・gate.enabled(\"<規則>\")・required/<規則>.ts・dependencyExceptions/ のどれかで通す(src/featureGate/README.md「依存の検査」)",
+    "閉じられる機能を確かめずに読んでいる。domainEntry.ts の requires・gate.enabled(\"<規則>\")・required/<規則>.ts・dependencyExceptions/ のどれかで通す(src/featureGate/Internals.md「依存の検査」)",
   );
 });
 

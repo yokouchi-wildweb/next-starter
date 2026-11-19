@@ -68,7 +68,7 @@ export const FIELD_TYPES = {
   mediaUploaderMulti: {
     formDefault: [],
     retired:
-      '複数のメディアは mediaCollection（集まり）に移してください。手順: src/lib/crud/README.md「既存の mediaUploaderMulti 列からの移行」',
+      '複数のメディアは mediaCollection（集まり）に移してください。手順: src/lib/crud/collections/Usage.md「既存の mediaUploaderMulti 列からの移行」',
   },
 };
 

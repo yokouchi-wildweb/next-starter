@@ -2,7 +2,7 @@
 // 書き込みの区分(reason_category)と付与の種類(reason_key)を決める。全書き込み口(adjust・consume・debit・一括)が使う。
 // - reasonKey あり: 登録の category が区分。reasonCategory も渡して食い違う・未登録の key は書き手の誤り → DomainError 500
 // - reasonKey なし: 今まで通り reasonCategory ?? 既定(other)。区分が requiresKey なら console.warn(止めない)
-// 詳細: src/features/core/walletHistory/README.md「付与の種類(reason key)」
+// 詳細: src/features/core/wallet/Extension.md「付与の種類（reason key）」
 
 import { DEFAULT_REASON_CATEGORY, walletHistoryConfig, type ReasonCategory, type ReasonCategoryConfig } from "@/features/walletHistory/config";
 import { getWalletReasonKey } from "@/features/core/walletHistory/utils/reasonKey";

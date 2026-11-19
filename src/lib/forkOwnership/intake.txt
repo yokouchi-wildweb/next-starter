@@ -337,7 +337,7 @@ edit servers/room/wrangler.toml  # pnpm ops room init が作る fork の Worker 
 self .claude/rules/project.md  # このリポの概要と段だけの情報(型 5)
 self .claude/rules/behavior.md  # 作業の決まり(型 5)
 self repo.json  # リポの名前と段・方針(forkIds.mjs、型 5)
-add .claude/rules/items/**  # 自分の品目の札(.claude/rules/core/design.md cards。上の段の札は直さない。Tier1 の札が入るまでは upstream には無い)
+add .claude/rules/items/**  # 自分の品目の札(.claude/rules/core/design.md cards。上の段の札は直さない)
 add .claude/rules/service/**  # 業務を定める段の業務の全体像(上の段の物は中間層の物も直さない。Tier1 は書かないので upstream には無い)
 marker .claude/rules/shortcuts.md  # 印より下が fork
 marker .claude/rules/term-aliases.md  # 印より下が fork

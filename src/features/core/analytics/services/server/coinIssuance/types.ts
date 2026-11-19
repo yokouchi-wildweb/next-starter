@@ -56,7 +56,7 @@ export type CoinIssuanceSourceContext = {
   prevRange: PreviousRange;
   /**
    * ユーザー属性フィルタ (roles / excludeDemo / includeExcluded)。ソース側が独自に適用する。
-   * 分析の除外条件は buildUserFilterConditions の第 3 引数(scope)で足す(README「分析の除外条件」)
+   * 分析の除外条件は buildUserFilterConditions の第 3 引数(scope)で足す(src/features/core/analytics/services/server/exclusion/README.md)
    */
   userFilter: UserFilter;
 };

@@ -76,7 +76,7 @@ test("task.ts は機能の入切を書かない(門番を読まない。住所 /
     .map((dir) => ({ dir, sources: gateImportsIn(readFileSync(join(repoRoot, CRON_ROUTE_DIR, dir, "task.ts"), "utf8")) }))
     .filter((hit) => hit.sources.length > 0)
     .map((hit) => `${CRON_ROUTE_DIR}/${hit.dir}/task.ts → ${hit.sources.join(", ")}`);
-  const message = `task.ts が門番を読んでいる(機能の入切は書かない。enabled には機能以外の条件だけ。src/lib/cron/README.md「機能の門」):\n${hits.join("\n")}`;
+  const message = `task.ts が門番を読んでいる(機能の入切は書かない。enabled には機能以外の条件だけ。src/lib/cron/README.md「1. task.ts」):\n${hits.join("\n")}`;
   if (identity.isTier1) {
     assert.deepEqual(hits, [], message);
   } else if (hits.length > 0) {

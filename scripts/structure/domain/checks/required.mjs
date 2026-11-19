@@ -1,7 +1,7 @@
 // 検査: 必須のキーと、決まった値の集合を持つキー（singular・plural・dbEngine・idType・useCreatedAt / useUpdatedAt・generate）。
 // どれも書き忘れると生成器が黙って別の既定（plural の推定・dbEngine ""・作成日時なし）で進むので、生成前に止める。
 // 区分ごとの generateFiles は廃止（generate の旗 1 つ）。残っていれば止める（読み替えると手で直したファイルを上書きしかねない）
-// 規則の正: src/features/README.md「domain.json スキーマ定義」（🟢 = 必須）
+// 規則の正: src/features/README.md「API」（🟢 = 必須）
 
 import { DB_ENGINES, ID_TYPES } from "../spec/domainJson.mjs";
 

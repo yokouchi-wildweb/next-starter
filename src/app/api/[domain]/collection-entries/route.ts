@@ -10,7 +10,7 @@ const MAX_PARENT_IDS = 100;
 
 // GET /api/[domain]/collection-entries?field=<集まりの項目名>&parentIds=<id,id,...>
 // 主の集まりをエントリ（従属の行 id 付き）で読む。認可は主の get の規則（従属の汎用 API は閉じたまま）。
-// 応答: { [parentId]: { id, value, sort }[] }（論理削除された主は空）。詳細: src/lib/crud/README.md「ドメイン集約」
+// 応答: { [parentId]: { id, value, sort }[] }（論理削除された主は空）。詳細: src/lib/crud/collections/README.md「読み出し」
 export const GET = createDomainRoute<any, DomainParams>(
   {
     operation: "GET /api/[domain]/collection-entries",

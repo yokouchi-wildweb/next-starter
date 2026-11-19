@@ -6,7 +6,7 @@
 //   2 度目の本登録では達成済みで走らない)
 // - 付与と記録は同じ tx: onAchieved に渡る tx で付与すれば、記録に失敗したとき(同時の 2 回目)付与も巻き戻る
 // - 失敗しても登録は止めない(登録は確定済み。ここで巻き戻さない)。定義ごとの失敗は evaluateMilestones の SAVEPOINT で分離
-// 詳細: src/features/core/milestone/README.md「統合ポイント一覧」
+// 詳細: src/features/core/milestone/API.md「統合ポイント」
 
 import { gate } from "@/featureGate";
 import type { User } from "@/features/core/user/entities";

@@ -83,7 +83,7 @@ export type UserAdminManageTabItem = {
   }>;
 };
 
-// マイページのメニューの項目の型(受け口 mypageMenu。書き方: README.md「マイページのメニュー」)
+// マイページのメニューの項目の型(受け口 mypageMenu。書き方: src/features/core/user/Extension.md「マイページのメニュー(拡張点 mypageMenu)」)
 export type {
   MypageMenuAction,
   MypageMenuVariant,
