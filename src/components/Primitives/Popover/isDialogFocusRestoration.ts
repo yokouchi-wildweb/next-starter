@@ -19,7 +19,7 @@
  * React に依存しない純粋関数（node --test で検証: pnpm test src/components/Primitives/Popover/isDialogFocusRestoration.test.mjs）。
  */
 
-/** Dialog の FocusScope コンテナ（Radix が role と tabIndex=-1 を付与、shadcn が data-slot を付与）。
+/** Dialog の FocusScope コンテナ（Radix が role と tabIndex=-1 を付与、Primitives/Dialog が data-slot を付与）。
  * 下流が AlertDialog / Sheet 等を独自に足しても拾えるよう role も見る。 */
 export const DIALOG_CONTAINER_SELECTOR =
   '[data-slot="dialog-content"], [role="dialog"], [role="alertdialog"]';

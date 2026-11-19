@@ -1,7 +1,7 @@
 // src/components/Form/Input/Manual/Select.tsx
 
 import {
-  Select as ShadcnSelect,
+  Select as PrimitiveSelect,
   SelectContent,
   SelectItem,
   SelectTrigger,
@@ -107,7 +107,7 @@ export function SelectInput({
   };
 
   return (
-    <ShadcnSelect
+    <PrimitiveSelect
       onValueChange={handleChange}
       onOpenChange={handleOpenChange}
       value={currentValue}
@@ -139,6 +139,6 @@ export function SelectInput({
           );
         })}
       </SelectContent>
-    </ShadcnSelect>
+    </PrimitiveSelect>
   );
 }

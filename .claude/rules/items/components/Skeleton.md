@@ -3,7 +3,7 @@ paths:
   - "src/components/Skeleton/**"
 ---
 # components/Skeleton
-what: loading placeholders (@/components/Skeleton/*): BaseSkeleton (one shape, wraps shadcn Skeleton) and screen-unit skeletons built on it (FormSkeleton, DetailModalSkeleton, ImageUploaderSkeleton)
+what: loading placeholders (@/components/Skeleton/*): BaseSkeleton (one shape, wraps Primitives/Skeleton) and screen-unit skeletons built on it (FormSkeleton, DetailModalSkeleton, ImageUploaderSkeleton)
 use: always
 change: none → /order <direct parent>
 rules:

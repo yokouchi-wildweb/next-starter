@@ -11,8 +11,8 @@ import type { ItemNavigatorProps } from "./types";
 
 /**
  * 長い項目名の決まり(どの画面幅でも同じ):
- * - 閉じた値は 1 行で末尾を … で省く(shadcn は値の span を flex + line-clamp にしていて … が出ないので block + min-w-0 + truncate にする)
- * - 開いた一覧の幅は 最小 = 選択欄の幅(shadcn の既定)、最大 = 画面の幅 − 左右 16px。項目名は折り返して全文を見せる
+ * - 閉じた値は 1 行で末尾を … で省く(Primitives/Select は値の span を flex + line-clamp にしていて … が出ないので block + min-w-0 + truncate にする)
+ * - 開いた一覧の幅は 最小 = 選択欄の幅(Primitives/Select の既定)、最大 = 画面の幅 − 左右 16px。項目名は折り返して全文を見せる
  */
 const VALUE_TRUNCATE = "*:data-[slot=select-value]:block *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate";
 const LIST_BOUNDED = "max-w-[calc(100vw-2rem)] [&_[data-slot=select-item]]:whitespace-normal [&_[data-slot=select-item]]:wrap-anywhere";

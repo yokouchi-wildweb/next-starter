@@ -68,7 +68,7 @@ upstream_side: a repo makes its own thing changeable below only by declaring it:
 order: 1. a public means is enough → use it | 2. one of the five types at a declared point → use it | 3. none → /order <direct parent> + temporary permit | never invent another way (no fork-name marks, no keep-own merge settings, no edits outside intake points without a temporary permit)
 
 ## STACK
-next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: gcs signed direct upload + server-side image metadata strip (sharp) (lib/storage) | http: axios (client), fetch (server)
+next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, radix | auth: firebase-auth + jwt | storage: gcs signed direct upload + server-side image metadata strip (sharp) (lib/storage) | http: axios (client), fetch (server)
 
 ## CODE_PLACEMENT (3-tier)
 domain: src/features/, all including entities | district = lib / domain (core, business) / frame / proxies: own namespace, config.ts + one src/config override, receptacles | its reader → DOMAINS_AND_FEATURES district_map
@@ -170,7 +170,7 @@ essentials: structure and text → components/ wrappers (div → Layout/*, butto
 - → core/components.md wrappers, async_feedback, ui_layers
 admin_bulk_actions: admin list bulk actions = receptacle items \<domain\>/adminBulkActions/\<name\>.tsx, never hand-written bulkActions in a Table → items/lib/tableSuite.md
 existing_parts: before building a loading, table, selection, paging, overlay or tabs part → Read core/components.md existing_parts | your own build stays allowed (an instead-of mark is optional)
-overlays: src/components/Overlays/ (which one → core/components.md existing_parts, overlay) | never a raw _shadcn dialog
+overlays: src/components/Overlays/ (which one → core/components.md existing_parts, overlay) | never a raw Primitives/Dialog
 custom_inputs: own input part → register src/wiring/formInputs/inputs/\<name\>.ts, then formInput: "\<name\>" | ref: src/wiring/formInputs/inputs/README.md
 style: color source of truth = CSS | before changing tokens, variants, fonts or theme → read src/styles/README.md | semantic colors, config, class groups → core/style.md | spacing (no space-y / space-x → Layout/Stack gap) → core/components.md wrappers
 

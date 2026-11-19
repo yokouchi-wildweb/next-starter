@@ -45,8 +45,7 @@ export const REQUIRED_ESLINT_RULES = [
   { rule: "core-ui-entry/no-inner-import", files: ["src/app/(user)/layout.tsx", "src/features/core/auth/components/OAuth/index.tsx"] },
   { rule: "realtime-room/purity", files: ["src/features/example/room/reducer.ts"], example: true },
   { rule: "hidden-columns/no-raw-select", files: ["src/features/core/auth/services/server/registration.ts"] },
-  // 当議会 D133: メールの送り口・_shadcn の直の import(全 Tier error)
+  // 当議会 D133: メールの送り口(全 Tier error)
   { rule: "import-boundaries/mail-send-via-messaging", files: ["src/features/core/messaging/channels/email/index.tsx", "src/features/core/user/services/server/userService.ts"] },
-  { rule: "import-boundaries/no-shadcn-direct", files: ["src/components/Form/Field/FieldControl.tsx", "src/features/core/auth/components/OAuth/index.tsx"] },
   { rule: "raw-sql-date/no-date-param", files: ["src/features/core/messaging/services/server/sweep/retentionSql.ts", "scripts/runner/task/run.ts"] },
 ];

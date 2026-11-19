@@ -2,7 +2,7 @@
 //
 // 1. README の「data-slot の一覧」= 利用者の枠の部品と Main(src/components/Layout/Main.tsx)の要素の data-slot(片方にしか無い名前は失敗)
 //    見出しの印は source が枠の中のもの(user-page-title)も入る。見出しの印と描画の照合は src/components/TextBlocks/headingSlots.test.tsx
-//    = 部位の一覧(src/app/_layout/frame/parts.mjs)の利用者の枠と Main。隠せる部位 ⊂ 一覧。shadcn の部品の data-slot と衝突しない。data-frame-part は残らない
+//    = 部位の一覧(src/app/_layout/frame/parts.mjs)の利用者の枠と Main。隠せる部位 ⊂ 一覧。Primitives の部品の data-slot と衝突しない。data-frame-part は残らない
 // 2. frame.css の利用者の規則が狙う id が既定の枠部品に実在し、外枠に data-frame-root がある(規則と部位の一覧の一致は parts.test.mjs)
 // 3. 根の結線: UserLayout が共通の読み手 useFrameAttributes に自分の表を渡す。上流の宣言の解決結果(Tier1 だけ: 生成の表は fork の frame.override.ts を含む)
 // (読み手そのものの検査は src/app/_layout/frame/useFrameAttributes.test.tsx)
@@ -54,11 +54,11 @@ test("README の data-slot の一覧 = 枠の部品と Main の要素の data-sl
   for (const { slot } of parts.hideableParts("user")) assert.ok(listed.includes(slot), `隠せる部位 ${slot} が一覧に無い`);
 });
 
-test("shadcn の部品の data-slot と名前が衝突せず、data-frame-part は残っていない", () => {
-  // shadcn 由来の部品の印 = Primitives の約束の一覧(README、src/components/Primitives/slots.mjs)+ _shadcn に残る物の字面
-  const shadcn = new Set([...primitiveSlots.allPrimitiveSlots(repo), ...sourcesUnder("src/components/_shadcn").flatMap((file) => slotsIn(read(file)))]);
-  assert.ok(shadcn.has("button"), "shadcn の data-slot が読めていない");
-  for (const name of readmeSlots()) assert.equal(shadcn.has(name), false, `${name} は shadcn の data-slot と同じ`);
+test("Primitives の部品の data-slot と名前が衝突せず、data-frame-part は残っていない", () => {
+  // Primitives の部品の印 = Primitives の約束の一覧(README、src/components/Primitives/slots.mjs)
+  const primitives = new Set(primitiveSlots.allPrimitiveSlots(repo));
+  assert.ok(primitives.has("button"), "Primitives の data-slot が読めていない");
+  for (const name of readmeSlots()) assert.equal(primitives.has(name), false, `${name} は Primitives の data-slot と同じ`);
   for (const file of [...sourcesUnder(LAYOUT), MAIN]) assert.equal(read(file).includes("data-frame-part"), false, `${file} に data-frame-part`);
 });
 
@@ -89,7 +89,7 @@ test("上流の宣言: 準備中は header-nav・footer・bottom-nav、signup �
   assert.deepEqual(parts.matchFrame(["(auth)", "demo-login"], frameTable).hide, ["footer-sp", "footer-pc", "bottom-nav-sp", "bottom-nav-pc"]);
 });
 
-test("SP の開閉ボタンは display: contents の包みが部位の印 header-nav を持ち、ボタン(shadcn)の data-slot=\"button\" は上書きしない", async () => {
+test("SP の開閉ボタンは display: contents の包みが部位の印 header-nav を持ち、ボタン(Primitives/Button)の data-slot=\"button\" は上書きしない", async () => {
   const { renderToStaticMarkup } = await import("react-dom/server");
   const { createElement } = await import("react");
   const { SpNavSwitch } = await import("./Header/Sp/SpNavSwitch");

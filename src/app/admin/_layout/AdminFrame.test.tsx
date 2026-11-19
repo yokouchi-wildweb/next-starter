@@ -1,7 +1,7 @@
 // 管理の枠の部位の data-slot と枠の表の結線の検査。実行: pnpm test src/app/admin/_layout/AdminFrame.test.tsx
 //
 // 1. README の data-slot の一覧 = 管理の枠の部品(admin/_layout・(protected)/_layout)の要素に付く data-slot(両方向)。
-//    一覧 = 部位の一覧(src/app/_layout/frame/parts.mjs の管理の枠)、shadcn の部品の data-slot と衝突しない、data-frame-part は残っていない
+//    一覧 = 部位の一覧(src/app/_layout/frame/parts.mjs の管理の枠)、Primitives の部品の data-slot と衝突しない、data-frame-part は残っていない
 // 2. 外枠(AdminLayout)は管理の表を共通の読み手 useFrameAttributes に渡し、当たった行の属性が初回の静的描画に入る
 // 3. fill の的: 本文の直接の親 [data-slot="admin-main"] が (protected) にある
 // 読み手の行の選び方は src/app/_layout/frame/useFrameAttributes.test.tsx、frame.css の規則と部位の一覧は src/app/_layout/frame のテスト
@@ -106,7 +106,7 @@ test("サイドバーの data-slot は PC の列・SP のドロワーと背景(S
   // SP のドロワーは Overlays/Sheet: 板と背景の印を型つきの値 slot / overlaySlot で渡す(2 つ)
   const sp = read("src/app/admin/(protected)/_layout/Sidebar/SpSidebar.tsx");
   assert.ok(sp.includes('slot="admin-sidebar"') && sp.includes('overlaySlot="admin-sidebar"'), "SpSidebar の板と背景の admin-sidebar");
-  // shadcn の部品の data-slot は上書きしない: 開閉ボタンは display: contents の包みが印を持ち、Button 自身は data-slot を持たない
+  // Primitives の部品の data-slot は上書きしない: 開閉ボタンは display: contents の包みが印を持ち、Button 自身は data-slot を持たない
   for (const file of ["src/app/admin/(protected)/_layout/AdminProtectedLayout.tsx"]) {
     const toggle = /<Block data-slot="admin-sidebar" className="contents">\s*<Button\s([^>]*)>[\s\S]*?<\/Button>\s*<\/Block>/.exec(read(file));
     assert.ok(toggle, `${file}: 開閉ボタンが admin-sidebar の包みの直下に無い`);
@@ -115,14 +115,11 @@ test("サイドバーの data-slot は PC の列・SP のドロワーと背景(S
   }
 });
 
-test("管理の枠の data-slot は shadcn の部品の data-slot と衝突せず、部位の印 data-frame-part は残っていない", () => {
-  // shadcn 由来の部品の印 = Primitives の約束の一覧(README、src/components/Primitives/slots.mjs)+ _shadcn に残る物の字面
-  const shadcn = new Set([
-    ...primitiveSlots.allPrimitiveSlots(repo),
-    ...sourcesOf("src/components/_shadcn").flatMap((file) => [...read(file).matchAll(/data-slot="([a-z0-9-]+)"/g)].map((m) => m[1])),
-  ]);
-  assert.ok(shadcn.has("button"), "shadcn の data-slot を読めていない");
-  for (const name of slotsInSources().keys()) assert.equal(shadcn.has(name), false, `${name} は shadcn と衝突`);
+test("管理の枠の data-slot は Primitives の部品の data-slot と衝突せず、部位の印 data-frame-part は残っていない", () => {
+  // Primitives の部品の印 = Primitives の約束の一覧(README、src/components/Primitives/slots.mjs)
+  const primitives = new Set(primitiveSlots.allPrimitiveSlots(repo));
+  assert.ok(primitives.has("button"), "Primitives の data-slot を読めていない");
+  for (const name of slotsInSources().keys()) assert.equal(primitives.has(name), false, `${name} は Primitives の部品と衝突`);
   for (const file of FRAME_FILES) assert.equal(read(file).includes("data-frame-part"), false, `${file} に data-frame-part`);
 });
 

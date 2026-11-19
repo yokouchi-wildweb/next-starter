@@ -25,7 +25,7 @@
   - `StateTabs`: 状態で切り替えるタブ。`variant="underline"` = PageTab の UnderlineTabs と同じ下線の形、`listEnd` = タブの列と同じ行の右端に置く物
   - `Pagination`: 送り方は `makeHref` = リンク か `onPageChange` = ボタン のどちらか一方、`compact` = 前 / p / N / 次 だけ
 - `Overlays/`: 画面に重ねて表示する UI（モーダル / ダイアログ / ポップオーバー / ツールチップなど）の完成品。低レベル部品は `Primitives/`（`Dialog` / `Command` / `Popover` / `Tooltip` / `HoverCard`）。**自作前に必ず一覧を確認** | 詳細: [Overlays/README.md](./Overlays/README.md)
-- `Primitives/`: 部品の棚の低レベル部品（shadcn・Radix 由来の生の部品）。画面からは通常、完成品（`Form/`・`Overlays/`・`Badge/` など）を使う
+- `Primitives/`: 部品の棚の低レベル部品（Radix などの外部の振る舞いを結ぶ素の部品。置き場の勧め: core/components.md primitives_place）。画面からは通常、完成品（`Form/`・`Overlays/`・`Badge/` など）を使う
   - 1 部品 = 1 フォルダ、読むのは入口 `@/components/Primitives/<部品>`（`Primitives/index.ts` は無い）
   - 部品: `Badge`（`BadgeCore`）・`Button`・`Calendar`・`Carousel`・`Checkbox`・`Command`・`Dialog`・`HoverCard`・`Input`（`Input` / `Textarea`）・`Label`・`Popover`・`RadioGroup`・`Select`・`Skeleton`・`Slot`・`Tabs`・`Tooltip`
   - Radix は統合版の `radix-ui` からだけ読む（`@radix-ui/*` の個別パッケージは lint `radix-unified` が止める）
@@ -33,7 +33,6 @@
 - `TextBlocks/`: 文章構造コンポーネント（`PageTitle` / `SecTitle` / `Para` / `Span`）。見出し・段落の raw HTML の代替
 - `Three/`: three.js を利用した 3D 表現
 - `Widgets/`: 完成品ウィジェット（`FadeSlider`、`ScrollSlider`、`InfiniteScrollList` など） | 詳細: [Widgets/FadeSlider/README.md](./Widgets/FadeSlider/README.md)・[Widgets/ScrollSlider/README.md](./Widgets/ScrollSlider/README.md)・[Widgets/InfiniteScrollList/README.md](./Widgets/InfiniteScrollList/README.md)
-- `_shadcn/`: shadcn/ui からインストールした原本のうち、まだ `Primitives/` へ移していない物（accordion・card・form・scroll-area・table）。**直接インポート禁止**（ラッパー経由で使用） | 詳細: [_shadcn/README.md](./_shadcn/README.md)
 
 ## Usage
 
@@ -45,11 +44,9 @@
 ### 包み
 
 - 生の HTML の代わりの部品（包み）の対応表は `.claude/rules/core/components.md` の wrappers。そこに無い対応（`img` の選んだ直後の blob: の下見 → `Media/PreviewImage`、ボタンの形のファイル選択 → `Form/FilePickButton`、`span` → `TextBlocks/Span`）は `eslint-rules/raw-elements.mjs` の `WRAPPERS`
-- `_shadcn` は直接使わず、対応する包み（`Form/Button`、`Form/Input`、`Skeleton/BaseSkeleton` など）を使う。包みが無ければ新しい包みの作成を提案する
 
 ## Extension
 
-- **shadcn/ui の更新**: `_shadcn/` 内のファイルを更新し、差分はラッパー側で吸収する
 - **カテゴリの追加・仕様の複雑化時**: サブディレクトリに README を追加し、本ファイルの索引にも1行追加する
 
 ## Internals

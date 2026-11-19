@@ -32,6 +32,8 @@ const forkOwnedLibFiles = libOwnership.isRoot ? [] : libOwnership.ownPaths.map((
 const PRIMITIVES_REMOVED = "checkpoint primitives-radix で削除済み";
 /** stores の廃止で閉じた lib へ移した旧パスの削除の区切り(deprecated-imports の until) */
 const STORES_REMOVED = "checkpoint stores-removal で削除済み";
+/** 素の表 PlainTable へ移した旧パスの削除の区切り(deprecated-imports の until) */
+const SHADCN_REMOVED = "checkpoint shadcn-close で削除済み";
 
 const config = [
   ...nextConfig,
@@ -192,7 +194,7 @@ const config = [
   // (詳細: eslint-rules/style-tokens.mjs, src/styles/README.md)。
   // upstream 所有の UI(共有 UI・core ドメイン・ドメイン雛形)は error。下流固有 UI(features/<business>, app/)は対象外
   // (下流が同じ規律を敷きたい場合は files にパスを足す)。
-  // 除外: _shadcn(vendored。見た目はラッパー側が上書きする) / Three(3D 演出) / gradient(トークン生成元)。
+  // 除外: Three(3D 演出) / gradient(トークン生成元)。
   // ブランドロゴ色・ユーザーが選ぶ固定パレットなど正当な例外は理由付き eslint-disable で明示する。
   // 枠の既定部品(src/app/**/_layout/。AppFrames から移した物)も upstream 所有の UI として error。
   // 隣に置く fork の丸ごと置き換え(<Name>.replace.tsx)は ignores で外し、上の app/ の warn に従う。
@@ -205,7 +207,6 @@ const config = [
       "src/app/**/_layout/**/*.{ts,tsx}",
     ],
     ignores: [
-      "src/components/_shadcn/**",
       "src/components/Three/**",
       "src/lib/gradient/**",
       "src/app/**/_layout/**/*.replace.{ts,tsx}",
@@ -234,8 +235,6 @@ const config = [
   // - axios-in-client-layer: axios は src/lib/** と **/services/client/** だけ。上流 error / fork warn(テストは対象外)
   // - asset-paths/no-literal-asset-path: 資産のパスは src/utils/assets.ts の関数で組む。上流 error / fork warn(組み立て役とテストは対象外)
   // - mail-send-via-messaging: lib/mail の send は messaging の送り口だけ。全 Tier error(必須の規則の一覧)
-  // - no-shadcn-direct: _shadcn を読めるのは src/components/** と src/lib/**(どの lib でも、D221)だけ。全 Tier error(必須の規則の一覧。
-  //   旧 no-restricted-imports の patterns は fork の同じ規則の設定で置き換わって消えるので、専用の規則にした)
   {
     files: ["src/**/*.{ts,tsx}"],
     ignores: ["src/**/*.test.{ts,tsx}"],
@@ -268,7 +267,6 @@ const config = [
     plugins: { "import-boundaries": importBoundariesPlugin },
     rules: {
       "import-boundaries/mail-send-via-messaging": "error",
-      "import-boundaries/no-shadcn-direct": "error",
     },
   },
   // 改名・移動済み module の旧パス import を警告する(詳細: eslint-rules/deprecated-imports.mjs)。
@@ -302,6 +300,7 @@ const config = [
             { from: "@/components/_shadcn/command", to: "@/components/Primitives/Command", until: PRIMITIVES_REMOVED },
             { from: "@/components/_shadcn/popover", to: "@/components/Primitives/Popover", until: PRIMITIVES_REMOVED },
             { from: "@/components/_shadcn/tooltip", to: "@/components/Primitives/Tooltip", until: PRIMITIVES_REMOVED },
+            { from: "@/components/_shadcn/table", to: "@/lib/tableSuite", until: SHADCN_REMOVED },
             { from: "@/components/Overlays/DialogPrimitives", to: "@/components/Primitives/Dialog", until: PRIMITIVES_REMOVED },
             { from: "@/components/Overlays/CommandPrimitives", to: "@/components/Primitives/Command", until: PRIMITIVES_REMOVED },
             { from: "@/components/Overlays/Popover/PopoverPrimitives", to: "@/components/Primitives/Popover", until: PRIMITIVES_REMOVED },

@@ -83,13 +83,14 @@ test("rule: import / export from / dynamic import の旧パスを警告し、新
   });
 });
 
-test("config: 部品の棚 Primitives へ移した旧パス(_shadcn・Overlays の *Primitives・Badge/BadgeCore)は置き換え先を出して warn", async () => {
+test("config: 部品の棚 Primitives・素の表 PlainTable へ移した旧パス(_shadcn・Overlays の *Primitives・Badge/BadgeCore)は置き換え先を出して warn", async () => {
   const repoRoot = path.resolve(import.meta.dirname, "..");
   const eslint = new ESLint({ cwd: repoRoot, overrideConfigFile: path.join(repoRoot, "eslint.config.mjs") });
   const cases = [
     ["@/components/_shadcn/checkbox", "@/components/Primitives/Checkbox"],
     ["@/components/_shadcn/textarea", "@/components/Primitives/Input"],
     ["@/components/_shadcn/dialog", "@/components/Primitives/Dialog"],
+    ["@/components/_shadcn/table", "@/lib/tableSuite"],
     ["@/components/Overlays/DialogPrimitives", "@/components/Primitives/Dialog"],
     ["@/components/Overlays/CommandPrimitives", "@/components/Primitives/Command"],
     ["@/components/Overlays/Popover/PopoverPrimitives", "@/components/Primitives/Popover"],
@@ -104,7 +105,7 @@ test("config: 部品の棚 Primitives へ移した旧パス(_shadcn・Overlays �
     assert.equal(hits[0].severity, 1, from);
     assert.ok(hits[0].message.includes(`"${to}"`), hits[0].message);
   }
-  // 残る _shadcn(accordion など)と新しいパスは案内しない
+  // 移し先の無い旧パス(_shadcn の form・card など)と新しいパスは案内しない
   const [kept] = await eslint.lintText(`import * as A from "@/components/Primitives/Dialog";\nexport const y = A;\n`, {
     filePath: path.join(repoRoot, "src/components/Form/X.tsx"),
   });

@@ -12,9 +12,9 @@
 import { ja } from "react-day-picker/locale";
 import { type ComponentProps } from "react";
 
-import { Calendar as ShadcnCalendar } from "@/components/Primitives/Calendar";
+import { Calendar as PrimitiveCalendar } from "@/components/Primitives/Calendar";
 
-export type CalendarProps = ComponentProps<typeof ShadcnCalendar>;
+export type CalendarProps = ComponentProps<typeof PrimitiveCalendar>;
 
 // 年ドロップダウンの選択肢範囲の既定値（生年月日〜遠い将来の予定まで賄える汎用値）
 const DEFAULT_START_MONTH = new Date(1900, 0);
@@ -31,7 +31,7 @@ export function Calendar({
   ...props
 }: CalendarProps) {
   return (
-    <ShadcnCalendar
+    <PrimitiveCalendar
       locale={locale}
       weekStartsOn={weekStartsOn}
       captionLayout={captionLayout}

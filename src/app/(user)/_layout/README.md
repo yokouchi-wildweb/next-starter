@@ -334,7 +334,7 @@ export const frame = {
 fork の CSS はこの名前で狙う(`[data-slot="header-shell"]` など)。
 枠の部品と Main は見た目のための id・`data-component` を持たない(狙う先は data-slot だけ。残る id は下の一覧の注記)。
 ほかの見出しの印(`page-title`・`sec-title` など)は TextBlocks の部品が付ける(`src/components/TextBlocks/README.md`)。
-一覧と要素の照合 = `UserFrame.test.tsx`(片方にしか無い名前・shadcn の data-slot との衝突は失敗)
+一覧と要素の照合 = `UserFrame.test.tsx`(片方にしか無い名前・Primitives の部品の data-slot との衝突は失敗)
 
 - `app-container` — UserLayout の外枠(枠の根 `data-frame-root`)
 - `app-banner` — Banner の `#app-banner`
@@ -346,7 +346,7 @@ fork の CSS はこの名前で狙う(`[data-slot="header-shell"]` など)。
 - `header-brand` — Brand のロゴのリンク
 - `header-brand-logo` — Brand の画像
 - `header-brand-text` — Brand の名前(ロゴ画像が無い時)
-- `header-nav` — PcNavigation の `<nav>`、SpNavigation の開いたメニュー、SP の開閉ボタンの包み(SpNavSwitch。ボタンは shadcn の Button で自分の `data-slot="button"` を持つので、`display: contents` の包みが名前を持つ)
+- `header-nav` — PcNavigation の `<nav>`、SpNavigation の開いたメニュー、SP の開閉ボタンの包み(SpNavSwitch。ボタンは Primitives/Button で自分の `data-slot="button"` を持つので、`display: contents` の包みが名前を持つ)
 - `header-sp-nav-panel` — SpNavPanel のパネル
 - `footer` — Footer の `<footer>`
 - `bottom-nav` — BottomNav の `<nav>` とスペーサー(BottomNavSpacer。同じ部位なので同じ名前。fork の CSS で本体だけを狙うときは `nav[data-slot="bottom-nav"]`)

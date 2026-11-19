@@ -7,7 +7,7 @@
  * (共通の読み手 src/app/_layout/frame/useFrameAttributes.ts。各枠の根が自分の表を渡す):
  *   data-frame-hide = 隠す印 `<部位>-<sp|pc>` の空白区切り / data-frame-fill = 本文が画面の高さを埋める
  * 部位 = src/app/_layout/frame/parts.mjs の隠せる部位(利用者の枠は接頭辞なし、管理の枠は admin-)。狙う先 = 部位の hideSlots の
- * [data-slot="<名前>"] だけで隠せる(shadcn の Button は display: contents の包みが名前を持つ)。差し替えた部品は外側の要素に
+ * [data-slot="<名前>"] だけで隠せる(Primitives/Button は display: contents の包みが名前を持つ)。差し替えた部品は外側の要素に
  * data-slot="<部位>" を付ければ従う。
  * 狙う先は data-slot だけ(id・data-component は約束ではなく、枠の部品は見た目のための id を持たない)。
  * 部位の一覧と規則の一致は src/app/_layout/frame/parts.test.mjs(pnpm test src/app/_layout/frame)が両方の枠で確かめる。
@@ -98,7 +98,7 @@
 
 /*
  * 管理の枠(src/app/admin)。印は admin- 付きなので利用者の規則とは当たらない。
- * サイドバーの印(admin-sidebar)は PC の列・SP のドロワーと背景・リサイズのつまみと、SP の開閉ボタン(shadcn の Button)の
+ * サイドバーの印(admin-sidebar)は PC の列・SP のドロワーと背景・リサイズのつまみと、SP の開閉ボタン(Primitives/Button)の
  * display: contents の包みに付く
  * (サイドバーの PC / SP の切り替えは md だが、隠すのは端末の境界 40rem ごとに全部の印)。
  * ヘッダーを隠すと --app-header-height は 0(測る前もこの規則で 0、測った後も display: none で 0)。

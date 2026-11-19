@@ -5,12 +5,12 @@
 import * as React from "react";
 
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
-import { Button as ShadcnButton, type ButtonSlot } from "@/components/Primitives/Button";
+import { Button as PrimitiveButton, type ButtonSlot } from "@/components/Primitives/Button";
 import { cn } from "@/lib/cn";
 
 import { buttonVariants, type ButtonStyleProps } from "./button-variants";
 
-export type ButtonProps = React.ComponentPropsWithoutRef<typeof ShadcnButton> &
+export type ButtonProps = React.ComponentPropsWithoutRef<typeof PrimitiveButton> &
   ButtonStyleProps & {
     /** クリックイベントを親要素に伝播させるか @default false */
     propagateClick?: boolean;
@@ -74,7 +74,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     return (
-      <ShadcnButton
+      <PrimitiveButton
         ref={ref}
         className={cn(buttonVariants({ variant, size, opticalAdjust, className }))}
         onClick={handleClick}

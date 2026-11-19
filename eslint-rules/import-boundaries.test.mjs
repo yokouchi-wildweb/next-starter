@@ -14,7 +14,6 @@ import plugin, {
   classifyAxiosImport,
   classifyCronFactoryImport,
   classifyMailSendImport,
-  classifyShadcnImport,
   classifyPageGuardImport,
   classifyRouteFactoryImport,
   closablePatternOf,
@@ -546,17 +545,7 @@ test("classify: lib/mail の send は送り口と lib/mail 自身だけ、部品
   assert.equal(classifyMailSendImport("src/features/foo/x.ts", "src/lib/other", false, null), null);
 });
 
-test("classify: _shadcn は src/components と src/lib の中だけ(値も型も、D221)", () => {
-  assert.equal(classifyShadcnImport("src/components/Form/Field/FieldControl.tsx", "src/components/_shadcn/form"), null);
-  assert.equal(classifyShadcnImport("src/lib/tableSuite/shared/Table.tsx", "src/components/_shadcn/table"), null);
-  assert.equal(classifyShadcnImport("src/features/foo/components/X.tsx", "src/components/_shadcn/card"), "shadcnDirect");
-  assert.equal(classifyShadcnImport("src/lib/other/x.tsx", "src/components/_shadcn/card"), null);
-  assert.equal(classifyShadcnImport("src/app/(user)/page.tsx", "src/components/_shadcn/card"), "shadcnDirect");
-  assert.equal(classifyShadcnImport("src/libx/a.tsx", "src/components/_shadcn/card"), "shadcnDirect");
-  assert.equal(classifyShadcnImport("src/features/foo/components/X.tsx", "src/components/Layout/Block"), null);
-});
-
-test("rule axios-in-client-layer / mail-send-via-messaging / no-shadcn-direct: 実際の書き方で止め、許す形は通す", () => {
+test("rule axios-in-client-layer / mail-send-via-messaging: 実際の書き方で止め、許す形は通す", () => {
   const ruleTester = new RuleTester({ languageOptions: { parser: tsParser, ecmaVersion: "latest", sourceType: "module" } });
   const hook = at("src/features/core/auth/hooks/useX.ts");
   const client = at("src/features/core/auth/services/client/x.ts");
@@ -582,17 +571,6 @@ test("rule axios-in-client-layer / mail-send-via-messaging / no-shadcn-direct: �
       { code: `import * as mail from "@/lib/mail";`, filename: other, errors: [{ messageId: "mailSend" }] },
       { code: `async function f() { const { send } = await import("@/lib/mail"); }`, filename: other, errors: [{ messageId: "mailSend" }] },
       { code: `async function f() { const mail = await import("@/lib/mail"); }`, filename: other, errors: [{ messageId: "mailSend" }] },
-    ],
-  });
-  ruleTester.run("no-shadcn-direct", plugin.rules["no-shadcn-direct"], {
-    valid: [
-      { code: `import { FormField } from "@/components/_shadcn/form";`, filename: at("src/components/Form/Field/FieldControl.tsx") },
-      // D221: どの lib の中でも読める(名前の一覧でなく src/lib/** 全部)
-      { code: `import { Card } from "@/components/_shadcn/card";`, filename: at("src/lib/someNewLib/parts/Panel.tsx") },
-    ],
-    invalid: [
-      { code: `import { Card } from "@/components/_shadcn/card";`, filename: at("src/features/foo/components/X.tsx"), errors: [{ messageId: "shadcnDirect" }] },
-      { code: `import type { Card } from "../../../components/_shadcn/card";`, filename: at("src/features/foo/components/X.tsx"), errors: [{ messageId: "shadcnDirect" }] },
     ],
   });
 });

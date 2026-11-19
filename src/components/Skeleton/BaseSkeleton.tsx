@@ -1,6 +1,6 @@
 // src/components/Feedback/Skeleton/BaseSkeleton.tsx
 
-import { Skeleton as ShadcnSkeleton } from "@/components/Primitives/Skeleton";
+import { Skeleton as PrimitiveSkeleton } from "@/components/Primitives/Skeleton";
 import { cn } from "@/lib/cn";
 import type { ComponentProps, CSSProperties } from "react";
 
@@ -32,7 +32,7 @@ const toneClassMap = {
 
 type BackgroundTone = keyof typeof toneClassMap;
 
-type BaseSkeletonProps = ComponentProps<typeof ShadcnSkeleton> & {
+type BaseSkeletonProps = ComponentProps<typeof PrimitiveSkeleton> & {
   /** シマー演出を有効にするか */
   shimmer?: boolean;
   /** シマー帯の移動速度（秒） */
@@ -61,7 +61,7 @@ export function BaseSkeleton({
   };
 
   return (
-    <ShadcnSkeleton
+    <PrimitiveSkeleton
       className={cn(
         "relative overflow-hidden",
         toneClassMap[backgroundTone] ?? toneClassMap.default,
@@ -81,6 +81,6 @@ export function BaseSkeleton({
         </>
       )}
       {children}
-    </ShadcnSkeleton>
+    </PrimitiveSkeleton>
   );
 }

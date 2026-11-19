@@ -10,7 +10,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { Button, TabletButton, buttonVariants, tabletButtonVariants } from "@/components/Form/Button";
-import { Button as ShadcnButton } from "@/components/Primitives/Button";
+import { Button as PrimitiveButton } from "@/components/Primitives/Button";
 import { cn } from "@/lib/cn";
 
 const html = (el: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(el);
@@ -24,7 +24,7 @@ test("loading を渡さない Button は前の出力と同じ", () => {
   for (const { props, label } of cases) {
     const { variant, size, className, ...rest } = props as Record<string, never>; // 前の実装と同じ並びで残りを広げる
     const expected = html(
-      createElement(ShadcnButton, { className: cn(buttonVariants({ variant, size, className })), ...rest }, label),
+      createElement(PrimitiveButton, { className: cn(buttonVariants({ variant, size, className })), ...rest }, label),
     );
     assert.equal(html(createElement(Button, props, label)), expected);
     assert.equal(html(createElement(Button, { ...props, loading: false, loadingLabel: "待つ" }, label)), expected);
@@ -58,7 +58,7 @@ test("asChild では子に Spinner を足さない(Slot は子 1 つ)", () => {
 });
 
 test("TabletButton: loading 無しは前の出力と同じ、loading は Button と同じ動き", () => {
-  const expected = html(createElement(ShadcnButton, { className: cn(tabletButtonVariants({ size: "lg" })) }, "次へ"));
+  const expected = html(createElement(PrimitiveButton, { className: cn(tabletButtonVariants({ size: "lg" })) }, "次へ"));
   assert.equal(html(createElement(TabletButton, { size: "lg" }, "次へ")), expected);
   const out = html(createElement(TabletButton, { loading: true, loadingLabel: "送信中" }, "次へ"));
   assert.match(out, /aria-busy="true"/);

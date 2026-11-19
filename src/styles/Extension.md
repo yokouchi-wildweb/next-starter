@@ -178,7 +178,6 @@ export default {
   - ブランドロゴ色など正当な例外は理由付き `// eslint-disable-next-line style-tokens/no-raw-palette -- 理由` で明示する
 - `style-tokens/no-bare-semantic-text`: 同じ範囲で意味色の素の文字 `text-success` / `text-info` / `text-warning` / `text-destructive`(修飾子・透過率付きも)を error にする
   - 素の背景の文字は `text-x-text`、塗りの上の文字は `text-x-foreground`。クラス名ではない文字列(入力欄の例など)は理由付き eslint-disable で明示する
-- あわせて `_shadcn` の直接 import も全 Tier で error(`import-boundaries/no-shadcn-direct`。許すのは `src/components/**`・`src/lib/tableSuite/**` だけ、対応表は `src/components/_shadcn/README.md`)
 
 ### config.css の値を変えたいとき
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-読み込み中の形を描く部品(`@/components/Skeleton/*`)。Shadcn の `Skeleton` をラップした `BaseSkeleton` を中心に、フォームやモーダルなど画面の単位の Skeleton を持つ。
+読み込み中の形を描く部品(`@/components/Skeleton/*`)。`Primitives/Skeleton` を包んだ `BaseSkeleton` を中心に、フォームやモーダルなど画面の単位の Skeleton を持つ。
 
 - `BaseSkeleton`: 1 つの形(大きさは Tailwind のクラスで付ける)
 - `FormSkeleton`: フォーム全体の読み込み中

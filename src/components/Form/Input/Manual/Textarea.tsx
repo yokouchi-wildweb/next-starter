@@ -1,9 +1,9 @@
 import { forwardRef, type ComponentProps } from "react";
 
 import { cn } from "@/lib/cn";
-import { Textarea as ShadcnTextarea } from "@/components/Primitives/Input";
+import { Textarea as PrimitiveTextarea } from "@/components/Primitives/Input";
 
-export type TextareaProps = ComponentProps<typeof ShadcnTextarea>;
+export type TextareaProps = ComponentProps<typeof PrimitiveTextarea>;
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>((props, ref) => {
   const { className, readOnly, disabled, ...rest } = props;
@@ -13,7 +13,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>((props, r
       ? "bg-muted/50 text-muted-foreground cursor-not-allowed focus-visible:ring-0 focus-visible:border-border"
       : "bg-background";
   return (
-    <ShadcnTextarea
+    <PrimitiveTextarea
       ref={ref}
       readOnly={readOnly}
       disabled={disabled}

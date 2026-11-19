@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/cn";
-import { Input as ShadcnInput } from "@/components/Primitives/Input";
+import { Input as PrimitiveInput } from "@/components/Primitives/Input";
 
 import { inputVariants, type InputSize } from "./Input";
 
@@ -88,7 +88,7 @@ const ColorInput = React.forwardRef<HTMLInputElement, ColorInputProps>(
     return (
       <div className={cn("flex items-center gap-2", className)}>
         {swatch}
-        <ShadcnInput
+        <PrimitiveInput
           ref={ref}
           type="text"
           value={value ?? ""}

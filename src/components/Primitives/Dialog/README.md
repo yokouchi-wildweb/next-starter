@@ -2,7 +2,7 @@
 
 ## Overview
 
-- ダイアログの低レベル部品（`DialogBase.tsx` = shadcn の部品、`Dialog.tsx` = 層・ネストの判定を足した公開の部品 `DialogPrimitives` など）。印は `DialogBase.tsx` が付け、`Dialog.tsx` は包むだけ。完成品は `src/components/Overlays`（`Dialog` / `Modal` …）。
+- ダイアログの低レベル部品（`DialogBase.tsx` = Radix の Dialog を結ぶ素の部品、`Dialog.tsx` = 層・ネストの判定を足した公開の部品 `DialogPrimitives` など）。印は `DialogBase.tsx` が付け、`Dialog.tsx` は包むだけ。完成品は `src/components/Overlays`（`Dialog` / `Modal` …）。
 - 使う時・直す時の決まり(入口・radix-ui・完成品が先・data-slot の約束)は札 .claude/rules/items/components/Primitives.md にある。この README は部品の説明と印の一覧
 
 ## API

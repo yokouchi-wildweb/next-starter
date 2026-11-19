@@ -1,6 +1,6 @@
 // src/components/Primitives/slots.mjs
 // Primitives の印(data-slot)の一覧の読み手。一覧の元 = 各部品の README.md の「## data-slot の一覧」(fork に約束する名前)。
-// 印の名前 = 属性の字面 + 包む上流の部品が渡す型つきの値(export type <X>Slot)。部品ごとの照合(./slots.test.mjs)と、枠の照合の shadcn の印との衝突の検査(src/app/(user)/_layout/UserFrame.test.tsx・
+// 印の名前 = 属性の字面 + 包む上流の部品が渡す型つきの値(export type <X>Slot)。部品ごとの照合(./slots.test.mjs)と、枠の照合の Primitives の印との衝突の検査(src/app/(user)/_layout/UserFrame.test.tsx・
 // src/app/admin/_layout/AdminFrame.test.tsx)が同じ物を読む。.mjs なのは node のテストからも tsx のテストからも読むため
 
 import { readdirSync, readFileSync, statSync } from "node:fs";

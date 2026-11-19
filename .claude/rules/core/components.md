@@ -11,7 +11,6 @@ paths:
 placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; components/AppFrames/ still holds a few shared frame parts, e.g. Kiosk) | ref: src/components/README.md
 - single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only part of an upstream route it replaces → app/\<route\>/_components/ (a route of its own → _screen/, core/screens.md)
 wrappers (lint raw-elements): div → Layout/{Block,Flex,Grid,Stack} | main → Layout/Main or UserPage | section → Layout/Section | button → Form/Button | input → Form/Input | p → TextBlocks/Para | h2 → TextBlocks/SecTitle | skeleton → Skeleton/BaseSkeleton | img → Media/AppImage (never next/image directly)
-- never import _shadcn directly outside src/components/** and src/lib/** (lint import-boundaries/no-shadcn-direct, all tiers; wrapper table: src/components/_shadcn/README.md; no wrapper → propose one)
 - spacing: never space-y / space-x classes → Layout/Stack `gap` (spacing scale none..4xl, src/components/Layout/README.md)
 - as_child_interactive: a clickable thing drawn as another part (badge, card) = `asChild` over Form/Button or a link part, never a raw button / a styled to look like it
 - shelf_no_guard: shelf parts (src/components) never import the gate or a guard lib | judgments come in from outside through a provider / port
@@ -25,6 +24,7 @@ existing_parts (want → part; check here before building your own | a row = a w
 - selection outside a table (cards, tiles) → useRecordSelection + BulkActionBar, or RecordSelectionList (@/lib/tableSuite)
 - paging: links → Navigation/Pagination makeHref prop | state → Pagination onPageChange prop | growing list → Widgets/InfiniteScrollList + useInfiniteScrollQuery (a button → loadMode "button", chat → direction "prepend")
 - overlay: confirm → Overlays/Dialog (third action → extraAction prop) or Overlays/Confirm useConfirm (Promise) | generic → Overlays/Modal (fullscreen, overlayClassName, container props) | from an edge → Overlays/Sheet (side) | tabs → Overlays/TabbedModal | media + rows → Overlays/DetailModal | image → Overlays/ImageViewer (caption prop) | pick N from a large master → Overlays/AsyncPickerModal
+  - never a raw Primitives/Dialog on a screen: the finished Overlays carry the layering and nesting rules
 - inline overlay: confirm / prompt / actions / checklist / info → Overlays/Popover | hover → Overlays/Tooltip, Overlays/HoverCard | toast → @/lib/toast
 - stacking and portal: stacking → @/lib/zLayer names via zLayerClass (floating pieces take no layer) | portal → Fanctional/BodyPortal or a part's container prop
 - tabs: state → Navigation/StateTabs (variant "underline", listEnd prop) | routes → Navigation/PageTab

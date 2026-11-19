@@ -6,7 +6,7 @@ import { XIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { createOverridableVariants, type InputSize } from "@/lib/variantOverrides";
 import { variantOverrides } from "@/lib/variantOverrides/config";
-import { Input as ShadcnInput } from "@/components/Primitives/Input";
+import { Input as PrimitiveInput } from "@/components/Primitives/Input";
 import { Button } from "@/components/Form/Button/Button";
 
 export type { InputSize } from "@/lib/variantOverrides";
@@ -53,7 +53,7 @@ export const inputVariants = createOverridableVariants(
   variantOverrides.input,
 );
 
-export type InputProps = Omit<React.ComponentProps<typeof ShadcnInput>, "size"> & {
+export type InputProps = Omit<React.ComponentProps<typeof PrimitiveInput>, "size"> & {
   /** 高さの段(ボタンの size と同じ名前・同じ高さ)@default "md" */
   size?: InputSize;
   /** HTML の size 属性(表示する文字数の目安)。高さの size と分けてここで渡す */
@@ -80,7 +80,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>((props, ref) => {
   // アイコンもクリアボタンもない場合はシンプルにinputを返す
   if (!leftIcon && !onClear) {
     return (
-      <ShadcnInput
+      <PrimitiveInput
         ref={ref}
         readOnly={readOnly}
         disabled={disabled}
@@ -100,7 +100,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>((props, ref) => {
           {leftIcon}
         </span>
       )}
-      <ShadcnInput
+      <PrimitiveInput
         ref={ref}
         readOnly={readOnly}
         disabled={disabled}

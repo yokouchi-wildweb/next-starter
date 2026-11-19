@@ -10,7 +10,6 @@ pnpm-workspace.yaml  # ワークスペースの宣言
 .env.example  # 環境変数の見本。値の決まりは appEnv と各 lib の README
 .prettierrc  # 整形の設定
 .mcp.json  # MCP の接続の設定
-components.json  # shadcn の生成の設定
 next.config.ts  # Next.js のビルドの設定
 postcss.config.mjs  # PostCSS の設定
 tsconfig.json  # 型の検査の設定

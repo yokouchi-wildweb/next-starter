@@ -1,9 +1,9 @@
 import { forwardRef } from "react";
 import type { ComponentPropsWithoutRef } from "react";
 
-import { Input as ShadcnInput } from "@/components/Primitives/Input";
+import { Input as PrimitiveInput } from "@/components/Primitives/Input";
 
-export type FileInputProps = Omit<ComponentPropsWithoutRef<typeof ShadcnInput>, "type" | "value"> & {
+export type FileInputProps = Omit<ComponentPropsWithoutRef<typeof PrimitiveInput>, "type" | "value"> & {
   resetKey?: number;
   selectedFileName?: string;
   onRemove?: () => void;
@@ -13,7 +13,7 @@ export const FileInput = forwardRef<HTMLInputElement, FileInputProps>(
   ({ resetKey = 0, selectedFileName, onRemove, className, ...props }, ref) => {
     return (
       <div className="flex flex-col gap-2">
-        <ShadcnInput key={resetKey} ref={ref} type="file" className={className} {...props} />
+        <PrimitiveInput key={resetKey} ref={ref} type="file" className={className} {...props} />
         {selectedFileName ? (
           <div className="flex items-center justify-between rounded border border-muted px-3 py-2 text-sm text-muted-foreground">
             <span className="truncate">{selectedFileName}</span>

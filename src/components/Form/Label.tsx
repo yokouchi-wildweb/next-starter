@@ -2,10 +2,10 @@
 
 import * as React from "react";
 
-import { Label as ShadcnLabel } from "@/components/Primitives/Label";
+import { Label as PrimitiveLabel } from "@/components/Primitives/Label";
 
-export type LabelProps = React.ComponentProps<typeof ShadcnLabel>;
+export type LabelProps = React.ComponentProps<typeof PrimitiveLabel>;
 
 export function Label(props: LabelProps) {
-  return <ShadcnLabel {...props} />;
+  return <PrimitiveLabel {...props} />;
 }

@@ -93,12 +93,6 @@
 // テンプレートの部品(Mail*)・型・MAIL_THEME_COLORS・MailSendError・webhook の関数は誰でも可。名前を問わない形(namespace・
 // 動的 import・export *)は send を含みうるので止める(動的 import を `const { 名前 } = await import(…)` で受ける形は名前で見る)。強さ: 全 Tier error(必須の規則の一覧)。
 //
-// ── no-shadcn-direct(当議会 D133、旧 no-restricted-imports のブロックを置き換え) ──
-// src/components/_shadcn/** を読めるのは部品の棚 src/components/** と、どの lib でも src/lib/** の中だけ(値も型も、D221。lib は閉じた
-// パッケージで中で何をするかは lib の自由。閉じた lib が components を読む宣言 peers は今の決まりのまま)。
-// ほかは src/components のラッパーを使う(対応表: src/components/_shadcn/README.md)。強さ: 全 Tier error(必須の規則の一覧。
-// 専用の規則にしたのは、fork が core の no-restricted-imports を自分の patterns で書くと上流の patterns が置き換わって消えるため)。
-//
 // ── lib-entry(D80・D81・D83・D84、L1.21) ──
 // package.json を持つ lib(宣言済みの lib)だけに効く。宣言の読み手は src/lib/libPackage(形: src/lib/README.md)。
 // - 外から宣言済みの lib を読む import は、その exports の先(入口)に当たること(値も型も。中のファイルを読むと error)
@@ -167,8 +161,6 @@ export function classifyCronFactoryImport(importerRel, resolved, typeOnly, speci
 const MAIL_LIB = "src/lib/mail";
 const MAIL_SEND_POINT = "src/features/core/messaging/channels/email";
 const MAIL_SEND_NAMES = ["send"];
-const SHADCN = "src/components/_shadcn";
-const SHADCN_WRAPPERS = ["src/components", "src/lib"];
 const CLIENT_SERVICE_DIR = /(^|\/)services\/client(\/|$)/;
 
 /** axios の値 import を HTTP の層の外で行うか(source = 書かれた指定子) */
@@ -188,12 +180,6 @@ export function classifyMailSendImport(importerRel, resolved, typeOnly, specifie
   if (!Array.isArray(specifiers)) return "*";
   const hit = specifiers.find((sp) => !sp.typeOnly && MAIL_SEND_NAMES.includes(sp.name));
   return hit ? hit.name : null;
-}
-
-/** _shadcn をラッパーの置き場の外から読むか(値も型も) */
-export function classifyShadcnImport(importerRel, resolved) {
-  if (!isUnder(resolved, SHADCN)) return null;
-  return SHADCN_WRAPPERS.some((dir) => isUnder(importerRel, dir)) ? null : "shadcnDirect";
 }
 
 /** features の barrel(services/server の外の index.ts)が services/server を値で再 export するか */
@@ -745,26 +731,6 @@ const mailSendViaMessaging = {
   },
 };
 
-const noShadcnDirect = {
-  meta: {
-    type: "problem",
-    docs: { description: "_shadcn を読めるのは src/components/** と src/lib/** の中だけ" },
-    messages: {
-      shadcnDirect:
-        '"{{source}}" は _shadcn を直接読みます。ラッパーを使います(対応表: src/components/_shadcn/README.md。無ければ src/components にラッパーを作る)',
-    },
-    schema: [],
-  },
-  create(context) {
-    const repoRoot = repoRootOf(context);
-    const importerRel = repoRelative(context.filename, repoRoot);
-    return moduleVisitors(({ node, source }) => {
-      const resolved = resolveImport(source, context.filename, repoRoot);
-      if (classifyShadcnImport(importerRel, resolved)) context.report({ node, messageId: "shadcnDirect", data: { source } });
-    });
-  },
-};
-
 const clientNoDomainJson = {
   meta: {
     type: "problem",
@@ -886,7 +852,6 @@ const plugin = {
     "radix-unified": radixUnified,
     "axios-in-client-layer": axiosInClientLayer,
     "mail-send-via-messaging": mailSendViaMessaging,
-    "no-shadcn-direct": noShadcnDirect,
     "src-no-scripts": srcNoScripts,
     "src-no-district-map": srcNoDistrictMap,
     "seed-reader": seedReader,

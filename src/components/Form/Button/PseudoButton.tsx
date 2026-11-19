@@ -26,7 +26,7 @@ export const PseudoButton = React.forwardRef<HTMLDivElement, PseudoButtonProps>(
       onKeyUp,
       tabIndex,
       type: _type, // divでは使用しないが、Button互換のため受け取る
-      asChild: _asChild, // Shadcn互換のため受け取りのみ
+      asChild: _asChild, // Primitives/Button と同じ props の形のため受け取りのみ
       ...rest
     },
     ref,

@@ -72,7 +72,7 @@ test("target が null / matches を持たない（Text ノード等）なら fal
   );
 });
 
-test("セレクタは shadcn の data-slot と Radix の role の両方を含む", () => {
+test("セレクタは Primitives/Dialog の data-slot と Radix の role の両方を含む", () => {
   assert.match(DIALOG_CONTAINER_SELECTOR, /\[data-slot="dialog-content"\]/);
   assert.match(DIALOG_CONTAINER_SELECTOR, /\[role="dialog"\]/);
   assert.match(DIALOG_CONTAINER_SELECTOR, /\[role="alertdialog"\]/);
