@@ -21,4 +21,4 @@ using:
 editing:
 - reason_add: a new reason updates both UsabilityReason and COUPON_REDEEM_REASON_MESSAGES
 - config_no_switch: the feature on/off stays in the gate rule, never in coupon config
-read: check or redeem → Usage | handlers and new categories → Extension | admin tabs, list, config → Extension | methods, tables, reasons, routes → API
+read: check or redeem → Usage | handlers and new categories → Extension | admin tabs, list, config → Extension | methods, tables, reasons, routes → API | handler system, self-redeem guard → Internals

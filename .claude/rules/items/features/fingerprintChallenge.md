@@ -5,11 +5,11 @@ paths:
 ---
 # features/fingerprintChallenge
 what: a challenge form sent to a suspected user; submitting it forces device fingerprint + behavior capture | the domain holds the lifecycle (issue → answer → review) and data contract, no UI parts | entry @/features/core/fingerprintChallenge, hooks under its hooks/
-use: fingerprintChallenge (default off, requires deviceFingerprint: open both)
+use: fingerprintChallenge (requires deviceFingerprint: open both)
 change: placement → open in src/config/featureGate/switches.config.ts (config.ts has no on/off key) | process values in src/config/features/fingerprintChallenge.config.ts
 rules:
 using:
-- challenge_page_range: an answer page lives outside (user)/(protected) under its own range guard.ts allowing ["active", "suspended"] + an `await guard()` layout (the protected range is active only) | the general rule = core/screens.md status_pages
+- challenge_page_range: an answer page lives outside (user)/(protected) under its own range guard.ts whose allowStatuses = the config challenge.answerableStatuses + an `await guard()` layout (the protected range is active only) | the general rule = core/screens.md status_pages
 - challenge_evidence: view and behavior signals are client-sourced reference evidence | cross-check them with userLoginEvent, never treat them as proof
 editing:
 - challenge_token_once: the raw token comes only in the issue response | the DB keeps its SHA-256 only, token_hash stays in hiddenColumns

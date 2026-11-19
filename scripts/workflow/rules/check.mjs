@@ -1,4 +1,4 @@
-// scripts/workflow/rules/check.mjs — 門 ship の検査(gate.json): CLAUDE.md と .claude/rules/core の決まりのテスト + 大きさ(字数の線と場面の合計、size.mjs)+ 書式(札・README・対応表、format.mjs)+ paths の覆い(coverage.mjs)+ 生成物(generated.mjs)+ 同じ名前の .ts / .tsx を置かない(sameBasename)
+// scripts/workflow/rules/check.mjs — 門 ship の検査(gate.json): CLAUDE.md と .claude/rules/core の決まりのテスト + 大きさ(字数の線、size.mjs)+ 書式(札・README・対応表、format.mjs)+ paths の覆い(coverage.mjs)+ 生成物(generated.mjs)+ 同じ名前の .ts / .tsx を置かない(sameBasename)
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 

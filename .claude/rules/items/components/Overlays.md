@@ -16,7 +16,7 @@ using:
 - picker_choice: N from a large master → AsyncPickerModal, never Modal + AsyncMultiSelectInput | ChecklistPopover = static options
 - primitives_last: Primitives/Dialog only for an overlay Dialog / Modal cannot build | Primitives/Command never for form selects | the general rule = core/components.md primitives_last
 - confirm_in_code: useConfirm only where code awaits yes / no, confirmDialog once per screen | notice only → toast
-- loading_choice: no content yet → InlineLoader | cover and block → ScreenLoader | running button → Button loading | no hand-built Spinner block, no app-wide route-transition overlay
+- loading_choice: which loader = core/components.md loading (InlineLoader / ScreenLoader / Button loading) | no hand-built Spinner block, no app-wide route-transition overlay
 - checklist_create: after onCreateOption the parent updates `options`
 - hint_choice: short hover hint → Tooltip / HelpTip | click or long text → InfoPopover
 - above_floating_presses: a press inside the toast or cover layer is not an outside press: floating parts (Primitives Dialog / Popover, Sheet) check isAboveFloatingTarget before closing
