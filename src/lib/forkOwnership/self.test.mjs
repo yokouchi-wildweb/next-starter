@@ -12,8 +12,8 @@ const files = (project, behavior, repo = "{}\n") => ({ [PROJECT]: project, [BEHA
 const kinds = (result) => result.problems.map((problem) => `${problem.kind} ${problem.path}`);
 
 describe("selfProblems(純な判定)", () => {
-  test("既定は切", () => {
-    assert.equal(SELF_CHECK_DEFAULT, false);
+  test("既定は入", () => {
+    assert.equal(SELF_CHECK_DEFAULT, true);
   });
 
   test("Tier1: 3 つのファイルがあり self の行がちょうど 3 行なら問題なし", () => {
@@ -84,12 +84,12 @@ describe("pnpm workflow ownership check --self(作り物の親と fork)", () => 
     return fork;
   }
 
-  test("既定(切)では走らず結果は合格、--self で取り込んだ親の版を挙げて fail", () => {
+  test("--no-self では走らず結果は合格、既定(入)で取り込んだ親の版を挙げて fail", () => {
     const fork = forkAfterTakingParent();
-    const plain = runCheck(fork);
-    assert.equal(plain.self.enabled, false);
-    assert.equal(plain.status, "pass");
-    const result = runCheck(fork, { self: true });
+    const off = runCheck(fork, { self: false });
+    assert.equal(off.self.enabled, false);
+    assert.equal(off.status, "pass");
+    const result = runCheck(fork);
     assert.equal(result.status, "fail");
     assert.deepEqual(kinds(result.self), [`self-parent ${PROJECT}`, `self-parent ${BEHAVIOR}`, `self-overview ${PROJECT}`]);
     assert.equal(result.counts.self, 3);

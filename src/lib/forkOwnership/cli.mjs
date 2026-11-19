@@ -1,5 +1,5 @@
 // pnpm workflow ownership check — fork の所有の検査。終了コード: 0 = 合格(Tier1 は対象外)/ 1 = 違反あり / 2 = 未検証・設定の不足
-// 引数: --parent=<remote> --branch=<branch> --json --verbose --self(型 5 self の検査も走らせる。既定は切)。仕様: ./README.md「Usage」
+// 引数: --parent=<remote> --branch=<branch> --json --verbose --self(既定と同じ)・--no-self(型 5 self の検査を外す。既定は入)。仕様: ./README.md「Usage」
 
 import { runCheck } from "./check.mjs";
 
@@ -51,6 +51,7 @@ function parseArgs(argv) {
     if (arg === "--json") options.json = true;
     else if (arg === "--verbose") options.verbose = true;
     else if (arg === "--self") options.self = true;
+    else if (arg === "--no-self") options.self = false;
     else if (arg.startsWith("--parent=")) options.parent = arg.slice("--parent=".length);
     else if (arg.startsWith("--branch=")) options.branch = arg.slice("--branch=".length);
     else throw new Error(`不明な引数: ${arg}`);
@@ -61,7 +62,7 @@ function parseArgs(argv) {
 /** 型 5 self の検査の行(切 = 1 行、走った = 結果と問題・未検証の項) */
 function selfLines(self) {
   if (!self) return [];
-  if (!self.enabled) return ["self の検査: 切(既定。--self で走る、既定で入るのは文脈の書き直しの最後の切り替え)"];
+  if (!self.enabled) return ["self の検査: 切(--no-self。既定は入)"];
   const lines = [`self の検査: ${self.problems.length === 0 ? "問題なし" : `問題 ${self.problems.length} 件`}${self.unverified.length ? `・未検証 ${self.unverified.length} 項` : ""}`];
   for (const problem of self.problems) lines.push(`  [${problem.kind}] ${problem.message}`);
   for (const reason of self.unverified) lines.push(`  [未検証] ${reason}`);

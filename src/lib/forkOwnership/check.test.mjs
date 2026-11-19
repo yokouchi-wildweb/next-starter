@@ -5,11 +5,14 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { forkAddedFiles, runCheck } from "./check.mjs";
+import { forkAddedFiles, runCheck as runCheckWithSelf } from "./check.mjs";
 import { closeTmp, commitAll, ENV, FORK_ID, git, LINEAGE_PREAMBLE, makeFork, makeParent, nextId, openTmp, PARENT_ID, recordLedger, repoJson, tmpRoot, write } from "./testRepos.mjs";
 
+// 型 1〜4 の検査のテスト: 作り物のリポは self のファイルを持たないので、既定で入の型 5 self は外す(型 5 は self.test.mjs)
+const runCheck = (repoRoot, options = {}) => runCheckWithSelf(repoRoot, { self: false, ...options });
+
 const CLI = resolve(import.meta.dirname, "cli.mjs");
-const cli = (cwd, ...args) => spawnSync(process.execPath, [CLI, ...args], { cwd, env: ENV, encoding: "utf8" });
+const cli = (cwd, ...args) => spawnSync(process.execPath, [CLI, "--no-self", ...args], { cwd, env: ENV, encoding: "utf8" });
 
 describe("pnpm workflow ownership check", () => {
   before(() => {

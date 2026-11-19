@@ -2,7 +2,7 @@
 // 書式の検査(lib.ruleFormat.mjs)の振る舞い: 札・README・対応表 existing_parts。実行: pnpm test scripts/workflow/rules/ruleFormat.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cardId, cardProblems, existingPartRefs, h2Of, readmeProblems } from "./lib.ruleFormat.mjs";
+import { cardId, cardProblems, countLineTarget, existingPartRefs, h2Of, readmeProblems } from "./lib.ruleFormat.mjs";
 
 const PATH = ".claude/rules/items/lib/storage.md";
 const FOLDER = "src/lib/storage";
@@ -73,4 +73,9 @@ test("対応表 existing_parts: → の先の部品と @/lib を取り出す(→
   ].join("\n");
   assert.deepEqual(existingPartRefs(text).map((r) => `${r.kind}:${r.ref}`), ["component:Form/Button", "component:Overlays/Loading/ScreenLoader", "lib:toast"]);
   assert.deepEqual(existingPartRefs("no key here"), []);
+});
+
+test("札の無い Tier1 の品目・上流の README の書式の数の 1 行: Tier1 は止める、fork は知らせ", () => {
+  assert.equal(countLineTarget(true), "fail");
+  assert.equal(countLineTarget(false), "notify");
 });

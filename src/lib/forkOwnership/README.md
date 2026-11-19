@@ -120,7 +120,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
   | debt | — | `debt`(upstream の負債の箇所。一時許可で通す) |
   | self | 書き換え → `self` | — |
 
-- self(型 5: 各リポが自分の版を持つ): `.claude/rules/project.md`・`.claude/rules/behavior.md`・`repo.json` の 3 行だけ、1 ファイル 1 行・ぴったりのパス。`pnpm workflow ownership who` は型 5 と答える。中身は見ず、`pnpm workflow ownership check --self` が 4 つだけ見る: ファイルが無い・self の行が 3 行ちょうどでない・取り込みの merge で親の版が入ったまま・Tier1 でないリポの project.md が直接の親の版と同じまま。既定は切で、文脈の書き直しの最後の切り替えで入る
+- self(型 5: 各リポが自分の版を持つ): `.claude/rules/project.md`・`.claude/rules/behavior.md`・`repo.json` の 3 行だけ、1 ファイル 1 行・ぴったりのパス。`pnpm workflow ownership who` は型 5 と答える。中身は見ず、`pnpm workflow ownership check` が 4 つだけ見る(既定で入、`--no-self` で外す): ファイルが無い・self の行が 3 行ちょうどでない・取り込みの merge で親の版が入ったまま・Tier1 でないリポの project.md が直接の親の版と同じまま
 - 載せている物(手書き = src の外だけ): リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)と README.md・`eslint.config.fork.mjs`・firebase.json / ロゴ(public/)/ room の登録点(region)と wrangler.toml / `.claude/rules` の PER_PROJECT と marker・lineage.md(append)/ 負債(debt)。src の下の行は全部生成区画(Internals の「受け口の一覧の生成区画」)
 - 外のままにした物と理由: `eslint.config.mjs`(fork の設定は `eslint.config.fork.mjs` に書く。upstream は空の配列で出荷し、`eslint.config.mjs` が最後に読み足す)/ `tsconfig.json`(paths の不足は upstream で直す。要るなら一時許可 + 依頼)/ `AGENTS.md`(`next dev` が書き足す `<!-- BEGIN:nextjs-agent-rules -->` の区画は生成器の区画として除く)/ 既存の `eslint-rules/*.mjs` の書き換え(新しい規則のファイルは追加なので合格)
 - 負債の行(debt): upstream 自身が core の中のファイルを下流の編集点として案内している箇所。理由の欄 = 案内の所在 → 受け口づくりの依頼の番号(`upreq:<id>`)。件数は Tier1 で `pnpm workflow ownership check` が「対象外 — upstream の負債の行 n」(`--verbose` でパスも)、テストが diagnostic で出す。`/inbox` の一覧の先頭にも出る

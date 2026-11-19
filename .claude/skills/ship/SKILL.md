@@ -222,7 +222,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - never write "keep" for fork edits without behavior (comments only etc.) | write that they may be returned to upstream's text (`.notices/README.md`)
    - **a rule key renamed / moved / removed (step 3) → the key table in required_actions**, one line per key: `<old file> <old key> -> <new file> <new key>` (`-> removed` when it is gone, then where its content went)
      - the next step finds the fork's own references: `git grep -n -E '<old key>' -- .claude/rules ':!.claude/rules/core' ':!.claude/rules/items'` (provisional rules ending `(order: <id>)`, `overrides:` lines of project.md, its own rule files) → rewrite each to the new place or drop it
-     - the final switch's table (rule keys, README headings, old core file names → new places) uses this same form
+     - a table of many moves (rule keys, README headings, old core file names → new places) uses this same form
    - **moved or renamed → always write `moved:`** (paths from the repo root, directories allowed, `;`-separated)
      - list them without gaps with `git diff --name-status -M <before> <after>` (uncommitted → `git diff --cached -M --name-status`)
      - write `moved:` only when the move-source path is gone (`pnpm check notices` stops a remaining source)

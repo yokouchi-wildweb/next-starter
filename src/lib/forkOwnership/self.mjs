@@ -3,12 +3,12 @@
 //   2 self-rows      受け口の一覧の self の行が決まった 3 行ちょうどでない
 //   3 self-parent    取り込み(親の版を基準にした merge)で親の版が入り、今もそのまま
 //   4 self-overview  Tier1 でないリポの project.md(概要)が直接の親の今の版と同じまま
-// 既定は切る(SELF_CHECK_DEFAULT)。pnpm workflow ownership check --self で走る。既定で入れるのは文脈の書き直しの最後の切り替え。
+// 既定は入(SELF_CHECK_DEFAULT)。pnpm workflow ownership check がいつも走らせる。--no-self で外す(調べる時だけ)。
 // git から入力を集めるのは check.mjs(collectSelf)、ここは純な判定だけ。仕様: ./README.md「受け口の一覧(intake.txt)」
 
 export const SELF_FILES = [".claude/rules/project.md", ".claude/rules/behavior.md", "repo.json"];
 export const SELF_OVERVIEW_FILE = ".claude/rules/project.md";
-export const SELF_CHECK_DEFAULT = false;
+export const SELF_CHECK_DEFAULT = true;
 
 /** 空白の違いだけは同じと見る(行末の空白・空行の数・末尾の改行) */
 const normalize = (text) =>

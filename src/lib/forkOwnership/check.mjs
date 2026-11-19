@@ -468,7 +468,7 @@ export function collectSelf(repoRoot, { isTier1, base = null, parentRef = null }
 /**
  * @param {string} repoRoot
  * @param {{ parent?: string, branch?: string, fetch?: boolean, self?: boolean }} [options] fetch: false はテスト用(取得済みの ref で判定する)。
- *   self: 型 5 self の検査を走らせるか(省略 = SELF_CHECK_DEFAULT、今は切)
+ *   self: 型 5 self の検査を走らせるか(省略 = SELF_CHECK_DEFAULT = 入)
  * @returns {object} status: tier1 | unverified | pass | fail
  */
 export function runCheck(repoRoot, options = {}) {

@@ -61,7 +61,7 @@ map (every core file, loaded by its paths):
   - change: the type (replace / overlay / add / placement) + its declaring file | none → /order <direct parent>
   - rules: split into using: and editing: | one rule per line `- <key>: <text>`, keys unique within the card | never clash with CLAUDE.md
   - read: work scene → README h2 (`→ <h2>` = the item's README, `→ <path>.md <h2>` = another file) | an item with no README: `read: none (no README; …)` naming the source file whose comments explain it
-- never: a hand-written dependency list | size ≤ 10,000 chars | pnpm check rules checks the format (a Tier1 card fails, a fork's own card notifies)
+- never: a hand-written dependency list | size ≤ 10,000 chars | pnpm check rules checks the format (a Tier1 card fails, a fork's own card notifies) | a Tier1 item with a README but no card, and an upstream README off the format: fail in Tier1, one count line in a fork
 
 ## service (.claude/rules/service/<business>.md)
 - written only by a tier that defines a business (a middle tier or leaf), never by Tier1 | no paths: always loaded | one or more files per tier, named by the business concept, never the repo name
@@ -71,7 +71,7 @@ map (every core file, loaded by its paths):
 ## self_files (each repo keeps its own version; a merge never takes the parent's)
 - project.md: this repo's overview + tier-only info (Tier1: the maker's duty and stance) | behavior.md: work rules | repo.json: machine values (repo_id, tier, agent policy), flat keys one per line, written only through its command, read only via forkIds.mjs
 - lineage.md: one section per tier, rules only, never edit an ancestor's section (→ /order <direct parent>) | own rules: .claude/rules/ outside core/, plain names, never restate core
-- a fork's context files are not checked by upstream beyond the self check (file present, parent's version taken in, overview not left as the parent's): the fork tidies them itself
+- a fork's context files are not checked by upstream beyond the self check (file present, parent's version taken in, overview not left as the parent's; on by default in pnpm workflow ownership check, --no-self only to investigate): the fork tidies them itself
 
 ## size (chars, not lines)
 - CLAUDE.md: notify 37,000 (still ship; the shipping session files one condense order to the window, none if one with the same title is open) | fail 40,000 (Claude Code warns per file there) | no target: inside the line, a longer CLAUDE.md that holds the needed rules is fine

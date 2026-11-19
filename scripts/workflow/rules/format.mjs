@@ -1,10 +1,10 @@
 // scripts/workflow/rules/format.mjs — pnpm check rules の書式の検査: 札・README・対応表 existing_parts の入口
 // 止める: 上流の札の書式と札 → 品目の実在、対応表の入口の実在、決まりのファイル(.claude/rules の下の全部、fork の自前の物も)の paths の入れ子の波かっこ。fork が自分で足した札の書式は知らせだけ。
-// 数の 1 行の知らせだけ(最後の切り替えで止めるに替える): Tier1 の品目 → 札の実在、README の書式。一覧は --items / --readme。
+// Tier1 で止め fork では数の 1 行の知らせ(countLineTarget): Tier1 の品目 → 札の実在、上流の README の書式。一覧は --items / --readme。
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { cardId, cardProblems, existingPartRefs, h2Of, readmeProblems } from "./lib.ruleFormat.mjs";
+import { cardId, cardProblems, countLineTarget, existingPartRefs, h2Of, readmeProblems } from "./lib.ruleFormat.mjs";
 import { CORE_DIR, ITEMS_DIR, listItems, mdUnder, upstreamReader } from "./lib.ruleRepo.mjs";
 import { nestedBrace, parsePaths } from "./lib.rulePaths.mjs";
 
@@ -18,6 +18,7 @@ const { isTier1, upstreamOf, note } = upstreamReader(root);
 if (note) notes.push(note);
 const items = listItems(root);
 const folderOf = (category, name) => items.find((it) => it.category === category && it.name === name)?.folder ?? null;
+const countLine = countLineTarget(isTier1) === "fail" ? fails : notifies;
 const readmeH2 = (file) => (existsSync(join(root, file)) ? h2Of(read(file)) : null);
 
 // 札
@@ -31,7 +32,7 @@ for (const path of cards) {
 // Tier1 の品目 → 札(Tier1 のリポでだけ数える。README のある品目が対象)
 if (isTier1) {
   const missing = items.filter((it) => it.tier1 && it.hasReadme && !cards.includes(`${ITEMS_DIR}/${it.category}/${it.name}.md`));
-  if (missing.length) notifies.push(`札の無い Tier1 の品目 ${missing.length} 個(README のある物、最後の切り替えで止める。一覧: node scripts/workflow/rules/format.mjs --items)`);
+  if (missing.length) countLine.push(`札の無い Tier1 の品目 ${missing.length} 個(README のある物。一覧: node scripts/workflow/rules/format.mjs --items)`);
   if (process.argv.includes("--items")) for (const it of missing) console.log(`${it.category}/${it.name}\t${it.folder}`);
 }
 
@@ -40,7 +41,7 @@ const readmes = execFileSync("git", ["ls-files", "--", ":(glob)**/README*.md"], 
   .split("\n")
   .filter((f) => f && !f.startsWith("node_modules/") && upstreamOf(f));
 const badReadmes = readmes.map((f) => ({ f, problems: readmeProblems(read(f)) })).filter((r) => r.problems.length);
-if (badReadmes.length) notifies.push(`README の書式に合わない物 ${badReadmes.length} / ${readmes.length} 本(最後の切り替えで止める。一覧: node scripts/workflow/rules/format.mjs --readme)`);
+if (badReadmes.length) countLine.push(`README の書式に合わない物 ${badReadmes.length} / ${readmes.length} 本(一覧: node scripts/workflow/rules/format.mjs --readme)`);
 if (process.argv.includes("--readme")) for (const r of badReadmes) console.log(`${r.f}\t${r.problems.join(" / ")}`);
 
 // 対応表 existing_parts の入口の実在

@@ -131,3 +131,8 @@ export function existingPartRefs(text) {
   }
   return refs;
 }
+
+/** Tier1 の品目 → 札の実在と上流の README の書式の数の 1 行: Tier1 は止める、fork は知らせ(fork は上流の物を直せない) */
+export function countLineTarget(isTier1) {
+  return isTier1 ? "fail" : "notify";
+}
