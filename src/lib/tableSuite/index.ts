@@ -17,15 +17,15 @@ export { BulkActionItems, selectBulkActions, DEFAULT_BULK_ACTION_ORDER } from ".
 export type { BulkActionItem, BulkActionProps, BulkActionItemsProps, SelectBulkActionsOptions } from "./BulkActions";
 
 // ============================================================
+// 素の表 PlainTable(機能を足していない表の部品。上の表の土台)
+// ============================================================
+export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "./shared";
+export { TableFooter, TableCaption } from "./DataTable/components";
+
+// ============================================================
 // 共通コンポーネント（shared/）
 // ============================================================
 export {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
   TableCellAction,
   TABLE_CELL_ACTION_CLASS,
   CellClickOverlay,
@@ -33,11 +33,6 @@ export {
   getCellClickOverlayClassName,
   SortableTableHead,
 } from "./shared";
-
-// ============================================================
-// DataTable 固有コンポーネント
-// ============================================================
-export { TableFooter, TableCaption } from "./DataTable/components";
 export { InfiniteTableFooter, type InfiniteTableFooterProps } from "./shared/InfiniteTableFooter";
 
 // 行の選択の状態(見た目を持たない)と一括操作のバー: RecordSelectionTable と同じ物を表の外でも使う

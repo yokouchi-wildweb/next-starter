@@ -1,14 +1,13 @@
-// src/components/Tables/DataTable/components/TableFooter.tsx
+// src/lib/tableSuite/DataTable/components/TableFooter.tsx
 
 "use client";
 
 import * as React from "react";
-import { TableFooter as BaseTableFooter } from "@/components/_shadcn/table";
 import { cn } from "@/lib/cn";
 
 export function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   return (
-    <BaseTableFooter
+    <tfoot
       data-slot="table-footer"
       className={cn("bg-muted/50 border-t font-medium [&>tr]:last:border-b-0", className)}
       {...props}

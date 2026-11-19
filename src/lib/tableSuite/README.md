@@ -7,6 +7,7 @@
 - RecordSelectionTable: 行選択 + 一括操作
 - RecordSelectionList: カードの一覧の行選択 + 一括操作(RecordSelectionTable の兄弟)
 - EditableGridTable: インライン編集(内部構造とエディターの追加は `EditableGridTable/README.md`)
+- PlainTable: 機能を足していない素の表の部品(`Table`・`TableHeader`・`TableBody`・`TableRow`・`TableHead`・`TableCell`・`TableFooter`・`TableCaption`)。上の 4 つの土台で、自分で組む表にもそのまま使う
 - 決まり(選択のフック・ソートの責任・並び替えの鍵と範囲・未保存の守り・全幅行・無限スクロール・エディターの作り)は札 `.claude/rules/items/lib/tableSuite.md`。管理一覧の一括操作の受け口は CLAUDE.md COMPONENTS admin_bulk_actions(札 items/lib/tableSuite.md)
 
 ## Usage
@@ -119,6 +120,27 @@ const selection = useRecordSelection({
 制御するときは `selectedKeys` と `onSelectionChange`、非制御の初期値は `defaultSelectedKeys`(RecordSelectionTable と同じ)。
 
 `bulkActionsSticky`（RecordSelectionTable / RecordSelectionList。BulkActionBar では `sticky`、既定 false）を付けると、一括操作バーがスクロールコンテナの端（`bulkActionsPosition` が top なら上端、bottom なら下端）に留まる。スクロールする Modal の本体など、テーブルの外の祖先がスクロールするときに `maxHeight="none"` と組み合わせて使う。バーはそのスクロールコンテナの端に留まるので、固定ヘッダーの下に潜るページ全体のスクロールには向かない。
+
+### PlainTable
+
+選択・並び替え・編集を持たない表を自分で組むときの部品。`Table` の `variant`(`default` / `list` / `print`)が中の部品の見た目を決める。部位の印は `data-slot`(`table-container`・`table`・`table-header`・`table-body`・`table-row`・`table-head`・`table-cell`・`table-footer`・`table-caption`)。
+
+```tsx
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/lib/tableSuite";
+
+<Table variant="list">
+  <TableHeader>
+    <TableRow>
+      <TableHead>名前</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell>山田</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+```
 
 ### EditableGridTable
 

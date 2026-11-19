@@ -3,11 +3,10 @@
 "use client";
 
 import * as React from "react";
-import { TableHead as BaseTableHead } from "@/components/_shadcn/table";
 import { cn } from "@/lib/cn";
 import { headVariants, TableContext } from "./context";
 
 export function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   const { variant } = React.useContext(TableContext);
-  return <BaseTableHead data-slot="table-head" className={cn(headVariants({ variant, className }))} {...props} />;
+  return <th data-slot="table-head" className={cn("h-10 px-2 text-left", headVariants({ variant, className }))} {...props} />;
 }

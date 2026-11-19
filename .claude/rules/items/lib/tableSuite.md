@@ -3,7 +3,7 @@ paths:
   - "src/lib/tableSuite/**"
 ---
 # lib/tableSuite
-what: table UI library: DataTable (read-only), RecordSelectionTable / RecordSelectionList (selection + bulk actions), EditableGridTable (inline edit), with column sort, row reorder, unsaved guard and infinite footer; entry @/lib/tableSuite only
+what: table UI library: DataTable (read-only), RecordSelectionTable / RecordSelectionList (selection + bulk actions), EditableGridTable (inline edit), PlainTable (the plain table parts Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter, TableCaption), with column sort, row reorder, unsaved guard and infinite footer; entry @/lib/tableSuite only
 use: always
 change: none → /order <direct parent> (admin bulk actions = items of each domain's adminBulkActions)
 rules:
@@ -21,4 +21,4 @@ editing:
 - popup_attr: an editor with a popup sets { [POPUP_ATTR]: cellKey } on the popup root
 - editor_inputs: an editor's inputs come from @/components/Form/Input/Manual wrappers
 - editor_type_public: a new editorType is a public type change of tableSuite (type, renderEditor case, README list)
-read: pick and use a table → Usage | props, sort helpers → API | bulk actions receptacle → Extension | column options → src/lib/tableSuite/EditableGridTable/README.md API | add an editorType → src/lib/tableSuite/EditableGridTable/README.md Extension | cell internals → src/lib/tableSuite/EditableGridTable/README.md Internals
+read: pick and use a table (PlainTable included) → Usage | props, sort helpers → API | bulk actions receptacle → Extension | column options → src/lib/tableSuite/EditableGridTable/README.md API | add an editorType → src/lib/tableSuite/EditableGridTable/README.md Extension | cell internals → src/lib/tableSuite/EditableGridTable/README.md Internals
