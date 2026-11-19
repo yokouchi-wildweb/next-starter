@@ -549,3 +549,4 @@
 - id:20261119-212045-use-client-directive | severity:action-required | checkpoint:use-client-directive | fixes:20261119-024228-v2-content | pick:-
 - id:20261120-070548-flux-origin-sync | severity:info | checkpoint:flux-origin-sync
 - id:20261120-072705-ebb-renamed-meditate | severity:info | checkpoint:ebb-renamed-meditate | moved:.claude/skills/ebb -> .claude/skills/meditate
+- id:20261119-222756-context-after-v2 | severity:action-required | checkpoint:context-after-v2 | moved:src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx -> src/features/core/coupon/components/AdminCouponSectionTabs/index.tsx; src/components/Fanctional -> src/components/Functional | uses:.notices/20261119-222756-context-after-v2.functional-folder.mjs
