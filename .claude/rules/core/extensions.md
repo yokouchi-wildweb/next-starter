@@ -9,7 +9,6 @@ paths:
 > **ROLE**: loaded when copying or composing a parent's parts | holds FORK_EXTENSION (judge, guards, want → means, copy and own marks)
 > Tier1-owned: forks never edit (gap → /order <direct parent>)
 
-> an older CLAUDE.md in a fork that differs → this file wins | old core_domain_ui_boundary ("core is data layer only") is gone
 
 judge: first match, by what the copy would hold | never by line count or area name
 1. a public means gives the result → use it (want → means below)

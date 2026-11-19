@@ -8,7 +8,7 @@ paths:
 > **ROLE**: loaded when writing any .tsx or shared hook | holds COMPONENTS detail
 > Tier1-owned: forks never edit (gap → /order <direct parent>)
 
-placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; components/AppFrames/ = leftover shared parts, shelf decided later) | ref: src/components/README.md
+placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; components/AppFrames/ still holds a few shared frame parts, e.g. Kiosk) | ref: src/components/README.md
 - single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only part of an upstream route it replaces → app/\<route\>/_components/ (a route of its own → _screen/, core/screens.md)
 wrappers (lint raw-elements): div → Layout/{Block,Flex,Grid,Stack} | main → Layout/Main or UserPage | section → Layout/Section | button → Form/Button | input → Form/Input | p → TextBlocks/Para | h2 → TextBlocks/SecTitle | skeleton → Skeleton/BaseSkeleton | img → Media/AppImage (never next/image directly)
 - never import _shadcn directly outside src/components/** and src/lib/** (lint import-boundaries/no-shadcn-direct, all tiers; wrapper table: src/components/_shadcn/README.md; no wrapper → propose one)
@@ -24,7 +24,7 @@ existing_parts (want → part; check here before building your own | a row = a w
 - selection outside a table (cards, tiles) → useRecordSelection + BulkActionBar, or RecordSelectionList (@/lib/tableSuite)
 - paging: links → Navigation/Pagination makeHref prop | state → Pagination onPageChange prop | growing list → Widgets/InfiniteScrollList + useInfiniteScrollQuery (a button → loadMode "button", chat → direction "prepend")
 - overlay: confirm → Overlays/Dialog (third action → extraAction prop) or Overlays/Confirm useConfirm (Promise) | generic → Overlays/Modal (fullscreen, overlayClassName, container props) | from an edge → Overlays/Sheet (side) | tabs → Overlays/TabbedModal | media + rows → Overlays/DetailModal | image → Overlays/ImageViewer (caption prop) | pick N from a large master → Overlays/AsyncPickerModal
-- inline overlay (moved from CLAUDE.md): confirm / prompt / actions / checklist / info → Overlays/Popover | hover → Overlays/Tooltip, Overlays/HoverCard | toast → @/lib/toast
+- inline overlay: confirm / prompt / actions / checklist / info → Overlays/Popover | hover → Overlays/Tooltip, Overlays/HoverCard | toast → @/lib/toast
 - stacking and portal: stacking → @/lib/zLayer names via zLayerClass (floating pieces take no layer) | portal → Fanctional/BodyPortal or a part's container prop
 - tabs: state → Navigation/StateTabs (variant "underline", listEnd prop) | routes → Navigation/PageTab
 - link → Navigation/Link | image → Media/AppImage (style, data-* pass through)
