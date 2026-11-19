@@ -26,7 +26,7 @@ export type StorageMetadataPolicy = "strip" | "keep";
 /**
  * 画像の縮小の指定（用途ごとに 1 か所で宣言する。入力部品の欄には持たない）。
  * - maxDimension: 長い辺の上限（px、1 以上の整数）。超える画像だけを縦横比を保って縮める（小さい画像は描き直さない）
- * - quality: 縮めて書き出すときの画質（1〜100 の整数）。省略 = src/config/app/storage.config.ts の imageStrip.quality
+ * - quality: 縮めて書き出すときの画質（1〜100 の整数）。省略 = src/lib/storage/config.ts の imageStrip.quality
  * 効くのは metadata: strip（省略を含む）の用途の画像だけ（keep の用途には書けない: サーバーが描き直さず守らせられない）。
  * ブラウザは送る前にこの指定で縮め、サーバーは commit の描き直しで同じ指定を守らせる（最後の守り）
  */

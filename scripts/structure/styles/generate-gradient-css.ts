@@ -1,14 +1,14 @@
 // scripts/structure/styles/generate-gradient-css.ts
 // グラデーショントークンから CSS を 2 本生成する(既定と実効の対):
 //   - src/styles/core/gradient.css = 上流の既定(BASE_GRADIENTS)+ 角度ユーティリティ。upstream 所有、fork でも上流と同じ中身
-//   - src/styles/gradient.css             = そのリポの分(src/config/app/gradients.config.ts の customGradients)。fork 所有、global.css が読む
+//   - src/styles/gradient.css             = そのリポの分(src/config/lib/gradient.config.ts の customGradients)。fork 所有、global.css が読む
 //   fork は core/ の下に差分を持たない。同じ key を customGradients に書けば、直下の gradient.css が後から読まれて上書きする
 //
 // 使い方:
 //   pnpm generate styles
 //
 // 方針（生成物コミット方式）:
-//   - 単一ソースは TS（tokens.base.ts ＋ config/app/gradients.config.ts）。
+//   - 単一ソースは TS（tokens.base.ts ＋ config/lib/gradient.config.ts）。
 //   - 本スクリプトで 2 本を生成し、生成物を git にコミットする。
 //   - これにより Vercel など本番ビルドは生成済みCSSをそのまま使い、ビルド手順は不変。
 //   - 実行時用途（ピッカー / inline style / canvas）は listGradients() を直接使う（CSS不要）。
@@ -19,7 +19,9 @@ import * as path from "path";
 import { DEFAULT_GRADIENT_ANGLE } from "@/lib/gradient/build";
 import { BASE_GRADIENTS } from "@/lib/gradient/tokens.base";
 import type { GradientTokenInput } from "@/lib/gradient/types";
-import { customGradients } from "@/config/app/gradients.config";
+import { gradientConfig } from "@/lib/gradient/config";
+
+const { customGradients } = gradientConfig;
 
 const DEFAULT_OUTPUT_PATH = "src/styles/core/gradient.css";
 const REPO_OUTPUT_PATH = "src/styles/gradient.css";
@@ -185,7 +187,7 @@ function main(): void {
       header: [
         REPO_OUTPUT_PATH,
         "【自動生成ファイル】直接編集しないでください。このリポのグラデーション(fork 所有。global.css が読む)。",
-        "生成元: src/config/app/gradients.config.ts の customGradients(空なら中身なし)",
+        "生成元: src/config/lib/gradient.config.ts の customGradients(空なら中身なし)",
         "再生成: pnpm generate styles。上流の既定(core/gradient.css)の後に読まれ、同じ key は上書きする",
       ],
       withAngles: false,

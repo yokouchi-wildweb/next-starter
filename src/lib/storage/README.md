@@ -196,7 +196,7 @@ ref・表示の関数・配信規則・StoragePort・保存先と env・旧 URL�
 
 ### 運用値
 
-- `src/config/app/storage.config.ts`（lib/storage の側）
+- `src/config/lib/storage.config.ts`（lib/storage の側の上書き、既定 `src/lib/storage/config.ts`）
   - 読み取り署名の TTL: 画像・ファイル 300 秒 / 動画・音声 900 秒 / probe 120 秒
   - `imageStrip`（strip の描き直しの画素数の上限と品質。「位置情報の約束」）
 - 持ち主 `src/features/core/storageObject/config.ts`（`storageObjectConfig`、上書き `src/config/features/storageObject.config.ts`）

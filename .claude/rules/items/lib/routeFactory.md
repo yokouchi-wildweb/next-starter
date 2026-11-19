@@ -1,11 +1,12 @@
 ---
 paths:
   - "src/lib/routeFactory/**"
+  - "src/config/lib/routeFactory.config.ts"
 ---
 # lib/routeFactory
 what: the generic API route factories (createApiRoute, createDomainRoute / createDomainIdRoute, createMeRoute, createDeviceRoute, enforceAccessRule) | routes import the wired version @/wiring/apiRoute (src/wiring/apiRoute.ts)
 use: always
-change: add = a fork's own principal factory in src/wiring/<name>.ts built from createRouteFactories
+change: placement = src/config/lib/routeFactory.config.ts (recaptcha threshold / v2Threshold defaults) | add = a fork's own principal factory in src/wiring/<name>.ts built from createRouteFactories
 rules:
 using:
 - public_read_all_public: generic read "public" only when every record is public (search, count, relations too)

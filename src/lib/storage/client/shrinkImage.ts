@@ -13,7 +13,7 @@
 
 "use client";
 
-import { STORAGE_CONFIG } from "@/config/app/storage.config";
+import { storageConfig } from "../config";
 
 import type { StorageImageSpec } from "../policy/types";
 import { needsClientConversion, prepareStripImage } from "./prepareStripImage";
@@ -30,7 +30,7 @@ export function canShrinkImageType(type: string): boolean {
 /** 書き出しの画質（0〜1）。png は可逆なので 1。指定が無ければ storage.config の imageStrip.quality の型ごとの値 */
 function qualityFor(type: string, spec: StorageImageSpec): number {
   if (type === "image/png") return 1;
-  const fallback = type === "image/webp" ? STORAGE_CONFIG.imageStrip.quality.webp : STORAGE_CONFIG.imageStrip.quality.jpeg;
+  const fallback = type === "image/webp" ? storageConfig.imageStrip.quality.webp : storageConfig.imageStrip.quality.jpeg;
   return (spec.quality ?? fallback) / 100;
 }
 

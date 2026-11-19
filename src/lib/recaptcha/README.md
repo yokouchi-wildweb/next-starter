@@ -75,7 +75,6 @@ function MyForm() {
 ```ts
 import { createApiRoute } from "@/wiring/apiRoute";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
-import { APP_FEATURES } from "@/config/app/app-features.config";
 
 export const POST = createApiRoute(
   {
@@ -84,7 +83,7 @@ export const POST = createApiRoute(
     access: "public",
     recaptcha: {
       action: RECAPTCHA_ACTIONS.REGISTER,
-      threshold: APP_FEATURES.auth.signup.recaptchaThreshold,
+      threshold: 0.7, // 省略 = lib/routeFactory の設定の recaptcha.threshold(上書き src/config/lib/routeFactory.config.ts)
     },
   },
   async (req) => {

@@ -2,7 +2,7 @@
 paths:
   - "src/app/**/{*.tsx,*.css,_*,_*/**,guard.ts}"
   - "src/lib/screens/**"
-  - "src/config/app/screens.config.ts"
+  - "src/config/lib/screens.config.ts"
   - "src/features/core/admin/services/server/screenData/**"
   - "src/lib/pageGuard/**"
 ---

@@ -1,12 +1,12 @@
 ---
 paths:
   - "src/lib/storage/**"
-  - "src/config/app/storage.config.ts"
+  - "src/config/lib/storage.config.ts"
 ---
 # lib/storage
 what: engine-independent file storage parts: storage:// refs, display URLs, delivery rules, purposes (strip / keep), StoragePort + GCS, re-encoding, client upload | entries @/lib/storage, /server, /client | authz and the ledger live in storageObject
 use: always
-change: placement = src/config/app/storage.config.ts (read TTLs, imageStrip) | add = storageObject purposes/<name>.ts or domain.json field.storage
+change: placement = src/config/lib/storage.config.ts (read TTLs, imageStrip) | add = storageObject purposes/<name>.ts or domain.json field.storage
 rules:
 using:
 - through_base: every upload, read and delete goes through this base and storageObject

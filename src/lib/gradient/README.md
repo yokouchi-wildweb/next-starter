@@ -13,12 +13,12 @@
 ### トークンを足す
 
 - upstream 標準: `src/lib/gradient/tokens.base.ts`(`BASE_GRADIENTS`)
-- そのリポの分: `src/config/app/gradients.config.ts`(`customGradients`、既定 空)
+- そのリポの分: `src/config/lib/gradient.config.ts` の `customGradients`(既定 空、`src/lib/gradient/config.ts`)
 - 値を変えたら `pnpm generate styles` で再生成し、生成物をコミットする
 - 同一キーは後勝ち(custom が base を上書きできる)
 
 ```ts
-// 例: downstream の config/app/gradients.config.ts
+// 例: downstream の src/config/lib/gradient.config.ts
 export const customGradients: GradientTokenInput[] = [
   { key: "tier-s", label: "Sランク", group: "ランク",
     stops: ["oklch(0.85 0.18 95)", "oklch(0.7 0.2 40)"], text: true },
@@ -81,5 +81,5 @@ const css = resolveColorValue(value, { resolveDefault: () => "var(--color-primar
 
 ## Internals
 
-- TS(`tokens.base.ts` + `config/app/gradients.config.ts`)を単一ソースにし、そこから `gradient.css` を codegen で生成する(生成物コミット方式)。生成器は `scripts/structure/styles/generate-gradient-css.ts`(`pnpm generate styles`)
+- TS(`tokens.base.ts` + `src/config/lib/gradient.config.ts`)を単一ソースにし、そこから `gradient.css` を codegen で生成する(生成物コミット方式)。生成器は `scripts/structure/styles/generate-gradient-css.ts`(`pnpm generate styles`)
 - 出力先: 上流の既定(`tokens.base.ts`)→ `src/styles/core/gradient.css`、そのリポの分(`gradients.config.ts`)→ 直下の `src/styles/gradient.css`(global.css が読む)。fork の分は `core/` の下に出ない

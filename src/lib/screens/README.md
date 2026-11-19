@@ -10,7 +10,7 @@
 
 - 部品: `types.ts`(`ScreenProps<P, S>` = Screen と loader が受け取る props)・`checks.mjs`(副作用の無い検査関数。fork が独自の検査を書くときはこれを import)・`routeTree.mjs`(`src/app` 全体のページの発見)・`routeMap.mjs`(ルート地図の生成、CLI は `scripts/structure/routes/map.mjs`)・`routeMapView.mjs`(地図を見る側)
 - 生成物: `src/app/route-map.jsonl`(ルート地図、1 ページ 1 行の守りの鎖の JSON)
-- 設定: `src/config/app/screens.config.ts`(構造の検査の除外 `FORK_SCAN_EXCLUDES`。upstream は空で出荷、作成後は下流所有)
+- 設定: `src/config/lib/screens.config.ts`(構造の検査の除外 `forkScanExcludes`、既定 `src/lib/screens/config.ts`。upstream は空で出荷、作成後は下流所有)
 
 
 ### ルートの構造と所有権
@@ -348,7 +348,7 @@ export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 - 管理のページは AdminPage を描く — 検査: `checkAdminPageScreen`: `src/app/admin` の下の全ページの Screen が `AdminPage`(`@/app/admin/_layout/AdminPage` か相対の `…/_layout/AdminPage`)を import して `<AdminPage …>` を描く。管理のヘッダーの行は AdminPage が描くので、描かないページにはヘッダーが出ない。字面で Screen のファイル自身を読む: 子の部品の中で AdminPage を描く形は読まずに止める(Screen が AdminPage を描き、子はその中に置く)
   - ヘッダーを出さないページも AdminPage で包み、隣の `frame.ts` の宣言でヘッダーを隠す。全 Tier・例外なし。ルート地図(`pnpm generate routes`)も同じ関数で行の問題にする; 結果: 失敗
 - 枠の layout.tsx を太らせない — 検査: `parseSwitchLayout`（`parseSwitchPage` と同じ本体。参照先は `./_layout/<X>` か `./_layout/<X>.replace`）: `FRAME_LAYOUTS`（screens.test.mjs、upstream の枠を描く layout.tsx）と、`./_layout/` を指す re-export を持つ全ての layout.tsx。参照先は `checkLayoutTarget`（named export あり・default export なし。`"use client"` は可）。全 Tier で検査（fork も採用者所有のスイッチを持つ。fork がルートを消してファイルが無ければ対象外）; 結果: 失敗
-- 除外の鮮度 — 検査: `FORK_SCAN_ROOTS` に行が残っていない（全体走査で不要になった。export は互換のため残す）。`FORK_SCAN_EXCLUDES` の登録が `src/app/...` の形で、ディレクトリとして存在し、重複せず、他の除外の中にないこと; 結果: 失敗
+- 除外の鮮度 — 検査: 上書きの `forkScanExcludes` の登録が `src/app/...` の形で、ディレクトリとして存在し、重複せず、他の除外の中にないこと; 結果: 失敗
 - URL の重複 — 検査: 別の group に同じ URL のページが 2 つない（Next もビルドで失敗する構成）; 結果: 失敗
 - upstream の置き場の印 — 検査: Tier1（`src/lib/CATALOG.md` の先頭節の持ち主 = 自分）でだけ: `findForkOwnedDirFiles` = `src/app` に `_components/` のファイルが無い、`findDotNamedFiles` = `_screen/`・`_layout/` に fork の置き換えの印（丸ごと置き換え `.replace`・一部の上書き `.override`、`classifyDottedName` の判定）が無い（点つきの名前を全部止めるのではない: 1 行スイッチの既定 `<名前>.default`、例 `admin/_layout/AdminHeader.default.tsx`・枠の描画用の設定 `config.ui.ts`・テストは印でないので数えない）
   - `_` の意味は場所で違う（`_screen/`・`_layout/` = 提供者の既定、`_components/` = fork 所有）ので、upstream が fork の置き場や印を使うと fork の物と衝突する。demo の部品も `_screen/` に置く; 結果: 失敗（fork では skip）
@@ -356,14 +356,16 @@ export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
   - 枠の `_layout/` の直下の描画用の設定 `config.ui.ts` = 地区の `UI_CONFIG_FILE` も許す）だけ（旧い fork の名前の印は失敗、移し方 = 共有の棚の印の移行の notice）、`findRouteReplaceProblems` = `_screen/` の下の `.replace` は向け先でも `.default` の隣でも全部失敗（in-screen。案内 = `<route>/_components/<X>Screen.tsx` に置いて page.tsx の 1 行スイッチを向ける
   - README.md「ルートの構造と所有権」「fork の物は `_components/`」）、`_layout/` の `<名前>.replace` は置き換える既定を持つ（そのルートの layout.tsx の 1 行スイッチの向け先か、隣の `<名前>.default`。隣に印なしの部品があるだけは不可 = fork の部品は `_components/` に印なしの名前で。文は `describeRouteReplaceProblem`、`pnpm check extensions` も同じ文を出す。`pnpm check extensions` の孤立の検査も回す）; 結果: 失敗
 
-fork が作った区域（`src/app/store/**` 等）も、upstream の区域の中に足したページ（`src/app/debug/<x>`・`admin/(protected)/<x>`）も、登録なしで検査される。検査したくないディレクトリ（実験場・デモ）は `FORK_SCAN_EXCLUDES` に書く（未移行のページを残す例外リストは無い、「未移行ルートの扱い（例外リストは無い）」）。fork がローカルに screens テストの写しを持つ必要はない。
+fork が作った区域（`src/app/store/**` 等）も、upstream の区域の中に足したページ（`src/app/debug/<x>`・`admin/(protected)/<x>`）も、登録なしで検査される。検査したくないディレクトリ（実験場・デモ）は上書きの `forkScanExcludes` に書く（未移行のページを残す例外リストは無い、「未移行ルートの扱い（例外リストは無い）」）。fork がローカルに screens テストの写しを持つ必要はない。
 
 ```ts
-// src/config/app/screens.config.ts(fork で編集)
-export const FORK_SCAN_EXCLUDES: string[] = ["src/app/lab"];
+// src/config/lib/screens.config.ts(fork で編集)
+import type { ScreensOverride } from "@/lib/screens/config";
+
+export default { forkScanExcludes: ["src/app/lab"] } satisfies ScreensOverride;
 ```
 
-テストは tsx ランナーで動く（`screens.config.ts` の `.ts` を読むため）。pre-commit / CI ガードは置かない。
+テストは tsx ランナーで動く（`config.ts` の `.ts` を読むため）。pre-commit / CI ガードは置かない。
 既知の限界: `stripComments` は正規表現リテラルを追跡しない。`//` や引用符・バッククォートを含む正規表現が page.tsx / Screen / loader にあると判定がずれることがある（検査対象のファイルでは稀。必要なら正規表現を `utils/` に逃がす）。
 
 ### 未移行ルートの扱い（例外リストは無い）

@@ -2,7 +2,7 @@
 //
 // 非公開の動画・音声（固定 URL /api/storage/objects/<id>）の、署名期限後の復帰処理。
 // 固定 URL は都度認可して短期署名 URL へ 302 する。ブラウザは 302 先の署名 URL を使い回して Range 取得するため、
-// 期限（STORAGE_CONFIG.readTtlSec の video / audio）を過ぎた後のシークで読み込みに失敗しうる。
+// 期限（storageConfig.readTtlSec の video / audio）を過ぎた後のシークで読み込みに失敗しうる。
 // 失敗したら位置・再生状態・速度を覚え、固定 URL に非永続の再取得 query を付けて読み直し、同じ位置へ戻す。
 //
 // - src が固定 URL でなければ何もしない（旧 URL・公開 URL はそのまま）
@@ -20,7 +20,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject, SyntheticEvent } from "react";
 
-import { STORAGE_CONFIG } from "@/config/app/storage.config";
+import { storageConfig } from "../config";
 
 import { isPrivateObjectPath } from "../ref";
 
@@ -49,7 +49,7 @@ export function isSignedReadStale(
 
 /** 要素の種類に合う署名 GET の有効期間（秒）。サーバーは用途の型で選ぶ（video / audio） */
 function readTtlSecOf(media: HTMLMediaElement): number {
-  return media.tagName === "AUDIO" ? STORAGE_CONFIG.readTtlSec.audio : STORAGE_CONFIG.readTtlSec.video;
+  return media.tagName === "AUDIO" ? storageConfig.readTtlSec.audio : storageConfig.readTtlSec.video;
 }
 
 type SavedPlayback = { currentTime: number; paused: boolean; playbackRate: number };

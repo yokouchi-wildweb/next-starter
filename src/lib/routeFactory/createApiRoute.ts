@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { routeFactoryConfig } from "./config";
 import {
   runWithAuditContext,
   type AuditActorType,
@@ -300,8 +300,8 @@ export function makeRouteCore<TCategory extends string = string>(
         // v3トークン: X-Recaptcha-Token ヘッダー
         // v2トークン: X-Recaptcha-V2-Token ヘッダー
         if (config.recaptcha) {
-          const threshold = config.recaptcha.threshold ?? APP_FEATURES.auth.signup.recaptchaThreshold;
-          const v2ThresholdConfig = config.recaptcha.v2Threshold ?? APP_FEATURES.auth.signup.recaptchaV2Threshold;
+          const threshold = config.recaptcha.threshold ?? routeFactoryConfig.recaptcha.threshold;
+          const v2ThresholdConfig = config.recaptcha.v2Threshold ?? routeFactoryConfig.recaptcha.v2Threshold;
 
           if (RECAPTCHA_DEBUG.enabled) {
             console.log("[reCAPTCHA] Config:", {

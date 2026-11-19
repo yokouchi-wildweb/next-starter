@@ -8,7 +8,7 @@
 //   - 値を変更したら `pnpm generate styles` で src/styles/core/gradient.css を再生成し、
 //     生成物をコミットすること（生成物コミット方式）。
 //   - downstream 固有のグラデーションはこのファイルではなく
-//     src/config/app/gradients.config.ts に追加すること（マージ衝突回避のため）。
+//     上書き src/config/lib/gradient.config.ts の customGradients に追加すること（マージ衝突回避のため）。
 
 import type { GradientTokenInput } from "./types";
 

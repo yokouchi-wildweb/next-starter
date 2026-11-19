@@ -51,14 +51,10 @@
 
 `app/`・`ui/` は古い置き場です。値は各持ち主の `config.ts` と上の 5 つのフォルダへ移り、空になったら消えます(新しい値をここに足さない)。1 対 1 の検査はこれらを見ません。事業の素性は `@/business`([src/lib/business/README.md](../lib/business/README.md))、法務の文書の値は `features/legal.config.ts`。
 
-残っているのは読み手のある 7 本だけです:
+残っているのは読み手のある 3 本だけです(app/ の 4 本は持ち主の lib の上書き src/config/lib/<名前>.config.ts へ移った):
 
 | ファイル | 読み手 |
 |---|---|
-| `app/app-features.config.ts` | `lib/routeFactory`(reCAPTCHA の閾値)・`lib/dataMigration`(maxRecordLimit) |
-| `app/gradients.config.ts` | `lib/gradient`、`pnpm generate styles`(`src/styles/gradient.css`) |
-| `app/screens.config.ts` | `lib/screens` の構造の検査(fork 所有の除外 `FORK_SCAN_EXCLUDES`) |
-| `app/storage.config.ts` | `lib/storage`、`storageObject` |
 | `ui/fonts.config.ts` | `lib/fonts`、`src/app/layout.tsx` |
 | `ui/unsaved-guard.config.ts` | 枠の `src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx` |
 | `ui/variants.config.ts` | `lib/variantOverrides`、Badge・Button・TextBlocks などの variants |

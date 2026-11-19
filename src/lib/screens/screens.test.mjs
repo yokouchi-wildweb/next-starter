@@ -3,7 +3,7 @@
 //
 // 登録は不要。検査対象は自動検出する(M1):
 //   - src/app 全体のページ(./routeTree.mjs の discoverRoutes。`_` で始まるフォルダと src/app/api を除く、@slot は含む)から、
-//     SCAN_EXCLUDES と fork の FORK_SCAN_EXCLUDES(src/config/app/screens.config.ts)の配下を除いたもの
+//     SCAN_EXCLUDES と fork の forkScanExcludes(上書き src/config/lib/screens.config.ts、既定 src/lib/screens/config.ts)の配下を除いたもの
 //     (除外は構造の検査だけ。ルート地図 src/app/route-map.jsonl には除外したページも載る)
 //   - 検出した各ルートの _screen/loader.ts と _components/loader.ts(ルート内 loader)
 //
@@ -24,8 +24,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// fork の merge で export が欠けても import 時に落ちず、鮮度テストが指摘できるよう namespace import にする
-import * as registry from "../../config/app/screens.config.ts";
+import { screensConfig } from "./config.ts";
 import {
   ROUTE_LOADER_FILE,
   SCREEN_DIRS,
@@ -54,8 +53,7 @@ import { loadCatalogOwnership } from "../folderCatalog/catalog.mjs";
 export { checkLoaderFile, checkScreenFile, checkScreenImports, checkSwitchPage, isReexportOnlyFile, parseSwitchPage, stripComments };
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const FORK_SCAN_ROOTS = registry.FORK_SCAN_ROOTS ?? [];
-const FORK_SCAN_EXCLUDES = registry.FORK_SCAN_EXCLUDES ?? [];
+const FORK_SCAN_EXCLUDES = screensConfig.forkScanExcludes;
 const read = (path) => readFileSync(resolve(repoRoot, path), "utf8");
 const exists = (path) => existsSync(resolve(repoRoot, path));
 
@@ -79,7 +77,7 @@ const SWITCH_REEXPORT = /export\s*\{[^}]*\}\s*from\s*["']\.\/_layout\//;
 
 /**
  * 構造の検査から外すディレクトリとその配下(repo 相対)。upstream は空(デモも 1 行スイッチ + _screen/ + loader の形)。
- * fork は registry の FORK_SCAN_EXCLUDES で足す。ルート地図からは外さない(認可の一覧に例外を作らない)
+ * fork は上書きの forkScanExcludes で足す。ルート地図からは外さない(認可の一覧に例外を作らない)
  */
 export const SCAN_EXCLUDES = [];
 
@@ -111,25 +109,21 @@ export function discoverPages() {
 }
 
 /**
- * FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES の鮮度。
- * FORK_SCAN_ROOTS は src/app 全体の走査(M1)で不要になったので、行が残っていれば外すよう指摘する(export は互換のため残す)。
- * FORK_SCAN_EXCLUDES は形式違い(文字列でない・src/app/ 始まりでない・末尾 /)、存在しないディレクトリ(ファイルも不可)、
+ * forkScanExcludes の鮮度。
+ * 形式違い(文字列でない・src/app/ 始まりでない・末尾 /)、存在しないディレクトリ(ファイルも不可)、
  * 重複、他の除外の中にある登録を返す
  */
 export function staleScanEntries() {
   const stale = [];
-  for (const dir of FORK_SCAN_ROOTS) {
-    stale.push(`FORK_SCAN_ROOTS: ${JSON.stringify(dir)}(src/app 全体を走査するようになったので登録不要。行を外す)`);
-  }
   for (const [i, dir] of FORK_SCAN_EXCLUDES.entries()) {
     if (typeof dir !== "string" || !dir.startsWith("src/app/") || dir.endsWith("/")) {
-      stale.push(`FORK_SCAN_EXCLUDES: ${JSON.stringify(dir)}(repo 相対の src/app/... を末尾 / 無しで書く)`);
+      stale.push(`forkScanExcludes: ${JSON.stringify(dir)}(repo 相対の src/app/... を末尾 / 無しで書く)`);
       continue;
     }
-    if (!isDir(dir)) stale.push(`FORK_SCAN_EXCLUDES: ${dir}(ディレクトリとして存在しない。削除済みなら行を外す)`);
-    if (FORK_SCAN_EXCLUDES.indexOf(dir) !== i) stale.push(`FORK_SCAN_EXCLUDES: ${dir}(重複)`);
+    if (!isDir(dir)) stale.push(`forkScanExcludes: ${dir}(ディレクトリとして存在しない。削除済みなら行を外す)`);
+    if (FORK_SCAN_EXCLUDES.indexOf(dir) !== i) stale.push(`forkScanExcludes: ${dir}(重複)`);
     const outer = scanExcludes.find((ex) => ex !== dir && isUnder(dir, ex));
-    if (outer) stale.push(`FORK_SCAN_EXCLUDES: ${dir}(${outer} で既に除外される。登録不要)`);
+    if (outer) stale.push(`forkScanExcludes: ${dir}(${outer} で既に除外される。登録不要)`);
   }
   return stale;
 }
@@ -279,9 +273,9 @@ for (const loader of routeLoaders) {
   });
 }
 
-test("FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES: 不要になった FORK_SCAN_ROOTS の行・存在しない・重複した除外が無い", () => {
+test("forkScanExcludes: 存在しない・重複した・他の除外の中の除外が無い", () => {
   const stale = staleScanEntries();
-  assert.deepEqual(stale, [], `src/config/app/screens.config.ts を更新する:\n${stale.join("\n")}`);
+  assert.deepEqual(stale, [], `src/config/lib/screens.config.ts を更新する:\n${stale.join("\n")}`);
 });
 
 // wallet ルートは fork が削除してよい(README §7)ので、ディレクトリがあるときだけ「検出されること」を検査する

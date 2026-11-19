@@ -11,7 +11,7 @@ import "server-only";
 
 import { uuidv7 } from "uuidv7";
 
-import { STORAGE_CONFIG } from "@/config/app/storage.config";
+import { storageConfig } from "@/lib/storage";
 import { storageObjectConfig } from "@/features/storageObject/config";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { DomainError } from "@/lib/errors";
@@ -127,7 +127,7 @@ function cacheControlFor(purpose: StoragePurpose): string {
 
 /** 読み取り署名の有効期間（用途ではなくファイルの種類で決める） */
 function readTtlSecFor(contentType: string, use: "view" | "probe"): number {
-  const ttl = STORAGE_CONFIG.readTtlSec;
+  const ttl = storageConfig.readTtlSec;
   if (use === "probe") return ttl.probe;
   if (contentType.startsWith("image/")) return ttl.image;
   if (contentType.startsWith("video/")) return ttl.video;

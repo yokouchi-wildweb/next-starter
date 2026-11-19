@@ -4,7 +4,7 @@
  * reCAPTCHA 内部設定
  *
  * これらの値はシステム内部で使用され、ユーザーが変更すべきではない。
- * スコア閾値（threshold）は APP_FEATURES で設定する。
+ * スコア閾値（threshold）の既定は lib/routeFactory の設定（上書き src/config/lib/routeFactory.config.ts）。
  *
  * v3: スコアベースの自動判定（メイン）
  * v2: チャレンジベースの手動認証（v3で中間スコアの場合のフォールバック）

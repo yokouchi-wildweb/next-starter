@@ -1,11 +1,12 @@
 ---
 paths:
   - "src/lib/dataMigration/**"
+  - "src/config/lib/dataMigration.config.ts"
 ---
 # lib/dataMigration
 what: admin CSV + ZIP export / import in chunks (single domain v1.0, with relations v1.1, media columns bundled) | entry @/lib/dataMigration (DataMigrationButton / DataMigrationModal); routes use @/lib/dataMigration/export, /import, /media
 use: always
-change: placement = src/config/app/app-features.config.ts (dataMigration.maxRecordLimit) | else none → /order <direct parent>
+change: placement = src/config/lib/dataMigration.config.ts (maxRecordLimit) | else none → /order <direct parent>
 rules:
 using:
 - dm_media_source: which columns are media comes from the service's storageFields (createCrudService storage option), never from the client's imageFields

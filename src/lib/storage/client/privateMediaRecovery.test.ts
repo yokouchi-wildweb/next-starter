@@ -6,12 +6,12 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import { STORAGE_CONFIG } from "@/config/app/storage.config";
+import { storageConfig } from "../config";
 
 import { isSignedReadStale, PROACTIVE_RELOAD_MARGIN_SEC, withMediaRetryQuery } from "./usePrivateMediaRecovery";
 
 describe("先回り再読み込みの判定", () => {
-  const ttl = STORAGE_CONFIG.readTtlSec.video;
+  const ttl = storageConfig.readTtlSec.video;
   const start = 1_000_000;
 
   test("読み込み開始から TTL − 30 秒に届かなければ読み直さない", () => {

@@ -7,7 +7,7 @@
 //
 // 純粋TS（Reactに依存しない）。codegen スクリプトからも import される。
 
-import { customGradients } from "@/config/app/gradients.config";
+import { gradientConfig } from "./config";
 
 import { toGradientToken } from "./build";
 import { BASE_GRADIENTS } from "./tokens.base";
@@ -24,11 +24,11 @@ function seed(tokens: GradientTokenInput[]): void {
 
 // 起動時シード: base → custom の順（custom が同キーを上書き）
 seed(BASE_GRADIENTS);
-seed(customGradients);
+seed(gradientConfig.customGradients);
 
 /**
  * グラデーショントークンを実行時に登録（追加・上書き）する。
- * 静的な拡張は src/config/app/gradients.config.ts を推奨。
+ * 静的な拡張は上書き src/config/lib/gradient.config.ts の customGradients を推奨。
  * 本APIは動的生成など特殊用途向け。
  */
 export function registerGradients(tokens: GradientTokenInput[]): void {

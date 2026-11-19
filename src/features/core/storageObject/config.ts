@@ -1,6 +1,6 @@
 // src/features/core/storageObject/config.ts
 // ファイルの台帳（storageObject）の運用値（既定 + 上書き）。上書きは src/config/features/storageObject.config.ts（このファイルだけが読む）。
-// 置き方: src/config/README.md。合成: @/lib/defineConfig。読み取り署名の TTL と strip の描き直しの値は src/config/app/storage.config.ts（lib/storage の側、まだ移していない）
+// 置き方: src/config/README.md。合成: @/lib/defineConfig。読み取り署名の TTL と strip の描き直しの値は lib/storage の設定（src/lib/storage/config.ts、上書き src/config/lib/storage.config.ts）
 
 import override from "@/config/features/storageObject.config";
 import { defineConfig, type OverrideOf } from "@/lib/defineConfig";

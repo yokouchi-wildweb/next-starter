@@ -9,7 +9,7 @@ Firebase Authentication の Twitter プロバイダで「X アカウントでロ
 
 ## 1. アプリ側で有効化する
 
-- `src/config/app/app-features.config.ts` の `APP_FEATURES.auth.thirdPartyProviders.twitter` を `true` にする（既定 `false`）。
+- `src/config/features/auth.config.ts`（auth の上書き）の `thirdPartyProviders.twitter` を `true` にする（既定 `false`、`src/features/core/auth/config.ts`）。
 - プロバイダの生成は `src/features/core/auth/utils/createOAuthProvider.ts`（`TwitterAuthProvider`）。
 
 ## 2. X Developer Console 側

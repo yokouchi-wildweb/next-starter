@@ -85,7 +85,7 @@
 - `palette.css`: 変えたい色だけ書く(出荷時はこの README を指す 1 行のコメントだけ)
 - `typography.css`: 変えたい書体・サイズだけ書く(同上)
 - `overrides.css`: 要素の既定・@keyframes・data-slot の規則(同上)
-- `gradient.css`: このリポのグラデーション。`pnpm generate styles` が `src/config/app/gradients.config.ts` から生成(手で書かない。出荷時は空)
+- `gradient.css`: このリポのグラデーション。`pnpm generate styles` が `src/config/lib/gradient.config.ts` から生成(手で書かない。出荷時は空)
 - `z-layer.css`: このリポが足した重なりの層。`pnpm generate styles` が `src/config/lib/zLayer.config.ts` の layers から生成(手で書かない。出荷時は空。global.css が読む)
 - `README.md` は upstream の物(所有はファイル単位)
 
@@ -103,7 +103,7 @@
 - `styleTokens.test.mjs`: `pnpm test src/styles/core/`
 
 - upstream は直下の `global.css` / `palette.css` / `typography.css` / `overrides.css` / `gradient.css` を初回作成後に編集しない。例外は入口の `@import` の行を足すときだけ: 上流の `global.css` を直し、notice で fork に同じ 1 行を足させる(直下の生成物 `gradient.css`・`z-layer.css` の読み込み)。fork が直下に足した CSS も fork の物
-- グラデーションは既定と実効の対: `pnpm generate styles` が上流の既定を `core/gradient.css` に、そのリポの分(`src/config/app/gradients.config.ts`)を直下の `gradient.css` に書く。fork が自分の分を足して再生成するのは正しい使い方(手で編集しない)。`core/` の下に fork の差分は出ない。同じ key を書けば直下の分が後から読まれて上書きする
+- グラデーションは既定と実効の対: `pnpm generate styles` が上流の既定を `core/gradient.css` に、そのリポの分(`src/config/lib/gradient.config.ts`)を直下の `gradient.css` に書く。fork が自分の分を足して再生成するのは正しい使い方(手で編集しない)。`core/` の下に fork の差分は出ない。同じ key を書けば直下の分が後から読まれて上書きする
 - 名前の印: `core/` = upstream の物(`src/features/core/` と同じ印)。既定と上書きは置き場で分ける: `core/<名前>.css` = 上流の既定、直下の同じ名前 `<名前>.css` = そのリポの上書き(`core/palette.css` と直下の `palette.css` など)
 
 upstream 側のファイルの役割(upstream でスタイルを足すときの置き場所):

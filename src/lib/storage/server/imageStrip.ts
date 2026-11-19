@@ -14,14 +14,14 @@
 // - 用途に画像の縮小の指定（image: StorageImageSpec）があれば、静止画の長い辺が maxDimension を超えるとき縦横比を保って
 //   縮め直す（拒否しない。ブラウザで縮められずに届いた物の最後の守り）。image.quality があれば jpeg / webp / avif の画質に使う。
 //   アニメーションは縮めない（描き直すだけ）
-// 上限と品質の値: src/config/app/storage.config.ts の imageStrip
+// 上限と品質の値: src/lib/storage/config.ts の imageStrip(上書き src/config/lib/storage.config.ts)
 // sharp（ネイティブ）は初回の呼び出しで読み込む（@/lib/storage/server を使うだけのルートの起動を重くしない）
 
 import "server-only";
 
 import type { Metadata, Sharp, SharpOptions } from "sharp";
 
-import { STORAGE_CONFIG } from "@/config/app/storage.config";
+import { storageConfig } from "../config";
 
 import { normalizeContentType } from "../contentTypes";
 import type { StorageImageSpec } from "../policy/types";
@@ -128,7 +128,7 @@ async function orientAnimated(
 export async function stripImageMetadata(
   input: Uint8Array,
   declaredType: string,
-  options: ImageStripOptions = STORAGE_CONFIG.imageStrip,
+  options: ImageStripOptions = storageConfig.imageStrip,
   image: StorageImageSpec | null = null,
 ): Promise<ImageStripResult> {
   const type = normalizeContentType(declaredType);

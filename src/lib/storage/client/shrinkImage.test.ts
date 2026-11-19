@@ -5,7 +5,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import { STORAGE_CONFIG } from "@/config/app/storage.config";
+import { storageConfig } from "../config";
 
 import type { PurposePolicy } from "./purposePolicy";
 import { fitWithin, type ImageCodec } from "./reencodeImage";
@@ -63,8 +63,8 @@ describe("shrinkImageFile", () => {
       return calls[0].quality;
     };
     assert.equal(await run("image/jpeg", 80), 0.8);
-    assert.equal(await run("image/jpeg"), STORAGE_CONFIG.imageStrip.quality.jpeg / 100);
-    assert.equal(await run("image/webp"), STORAGE_CONFIG.imageStrip.quality.webp / 100);
+    assert.equal(await run("image/jpeg"), storageConfig.imageStrip.quality.jpeg / 100);
+    assert.equal(await run("image/webp"), storageConfig.imageStrip.quality.webp / 100);
     assert.equal(await run("image/png", 50), 1);
   });
 
