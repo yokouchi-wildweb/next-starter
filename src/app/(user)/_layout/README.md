@@ -41,7 +41,7 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.replace";
 ```
 
 3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx を `UserLayout.replace.tsx` へコピーして編集する(外枠の `data-frame-root` と `useFrameAttributes(frameTable)` の属性、部位の `data-slot` は残す。無いと枠の宣言が効かない)
-- 組み立てでガードを書かない(範囲の守りは layout の隣の guard.ts の guard() だけ)。組み立て(スイッチ先)が旧ガード(authGuard 等)を呼ぶとルート地図の生成が失敗する(`pnpm generate routes`、src/lib/screens/Internals.md「ルート地図（`src/app/route-map.jsonl`）」)
+- 組み立てでガードを書かない(範囲の守りは layout の隣の guard.ts の guard() だけ)。組み立て(スイッチ先)が旧ガード(authGuard 等)を呼ぶとルート地図の生成が失敗する(`pnpm generate routes`、src/lib/screens/README.md「ルート地図（`src/app/route-map.jsonl`）」)
 
 ### fill のページ(本文が画面の高さを埋める)
 

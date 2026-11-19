@@ -9,7 +9,7 @@
 ### 生成の流れ（`pipeline/generate.mjs`）
 
 - 読む → 検査（`checks/`、全件を並べて止める）→ 全カテゴリの生成物を組み立てる → 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す → 地区の地図 `district-map.jsonl` を書き直す
-- 組み立てでは、主の集まりの項目 `mediaCollection` があれば、従属の domain.json を無いときだけ書き出す Output も足す（`render/collections/`。雛形の形と権限の写し: [src/features/Extension.md](../../../src/features/Extension.md)「主の集まりの項目（mediaCollection）」）
+- 組み立てでは、主の集まりの項目 `mediaCollection` があれば、従属の domain.json を無いときだけ書き出す Output も足す（`render/collections/`。雛形の形と権限の写し: [src/features/README.md](../../../src/features/README.md)「主の集まりの項目（mediaCollection）」）
 - 登録表が作れない状態（手書きの行が残っている、他のドメインに `domainEntry.ts` が無い）なら何も書かずに止まる
 
 `pnpm generate domain` は全ドメインの生成物を先に組み立て、登録表が作れることを確かめてから書き始めるので、途中のドメインで止まって半端に残ることはない。テンプレートを変えたあとの一括反映に使う。

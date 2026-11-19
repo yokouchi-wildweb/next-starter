@@ -40,7 +40,7 @@ admin, user, editor, debugger, contributor, ...（並びは extensions/roles.ts�
 pending, active, inactive, suspended, banned, security_locked, withdrawn
 ```
 
-定義元は `constants/status.ts` の `USER_STATUSES`（意味は [ユーザーステータス](#ユーザーステータス) を参照）。
+定義元は `constants/status.ts` の `USER_STATUSES`（意味は [ユーザーステータス](./README.md#ユーザーステータス) を参照）。
 
 ### ロールの JSON(`<id>.role.json`)
 

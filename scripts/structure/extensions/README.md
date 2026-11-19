@@ -110,7 +110,7 @@ fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印�
 - 型 1 の画面: 上流は `page.tsx` がスイッチ、既定は `_screen/`。fork は `<ルート>/_components/` に `<X>Screen.tsx`(と fork の部品)を置き、`page.tsx` を向け替える
 - 型 1 の枠: 上流は `layout.tsx` がスイッチ、既定は `_layout/<Layout>`。fork は既定の隣に `_layout/<Layout>.replace.tsx` を置き、`layout.tsx` を向け替える(fork の枠の部品はルートの `_components/` に印なしの名前)
 
-- 見分けの順: 隣に `.default` = 丸ごと / 上位に宣言 = 重ね・足す / 置き場の宣言 = 置き場 / どれも無い = 変えられない。どのパスも `pnpm workflow ownership who <path>` で確かめる(答えの type = `1`〜`4` | `generated`(生成物: 直す元を直して作り直す)| `own`(自分の物・中間 Tier の物: そのまま書く)| `none`。判定の順と答えの形: `src/lib/forkOwnership/Internals.md`「型の答え(`explain.mjs`)」)
+- 見分けの順: 隣に `.default` = 丸ごと / 上位に宣言 = 重ね・足す / 置き場の宣言 = 置き場 / どれも無い = 変えられない。どのパスも `pnpm workflow ownership who <path>` で確かめる(答えの type = `1`〜`4` | `generated`(生成物: 直す元を直して作り直す)| `own`(自分の物・中間 Tier の物: そのまま書く)| `none`。判定の順と答えの形: `src/lib/forkOwnership/README.md`「型の答え(`explain.mjs`)」)
 - コードの一部だけを重ねる手段は無い。要るなら上流が値(config・value prop)・受け口・部品の分割で外へ出す(`/order`)
 - 安全の制限は「宣言に鍵が無い」「広げる上書きを止める」で保ち、重ねでも弱めない: 管理メニューの `allowRoles` は絞るだけ・core ロールの `enabled` は不可・プロフィールの `fields` は不可・setting の schema は不可(setting の `allowRoles` は絞るだけ、`derive/settingRoles.mjs`)
 - 違反(`pnpm workflow ownership check`): 親の物の隣に `*.default.*` を足す(`default-add`)・親の `.default` を書き換える(`default-edit`)・上流のルートの隣に素の `frame.ts` を置く(`frame-plain`)。`frame.default.ts` はどの Tier でも生成器が失敗にする。自分の領域の自分の `.default` は中間の Tier も出してよい

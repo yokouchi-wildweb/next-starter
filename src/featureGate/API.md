@@ -61,7 +61,7 @@ gate.filter(menuItems);          // server の gate.filter と同じ判定(hidde
 
 ### 機能を閉じる規則
 
-機能(人が開け閉めする単位、規則 1 本)を閉じると、その住所と、どの開いた機能にも使われなくなったドメインの表・汎用 API・cron を**両方から**閉じる仕組み。fork が upstream の機能を「削除せず使わないまま残す」ための土台。
+閉じると何が閉じるか(住所・使われなくなったドメインの表・汎用 API・cron)は [README.md](./README.md) の Overview。ここは規則の書き方。
 
 - 規則 — 場所: `rules/<名前>.ts` の `export const rule`; いつ効くか: —; やること: 1 機能 1 ファイル、名前 = ファイル名 = `FeatureName`。`pathPatterns` / `domains` / `dependsOn` / `enabled` / `redirectTo`
 - 一覧 — 場所: `extensions/rules.ts`（生成物、型 `GeneratedFeatureRule`・`GatedDomain`・`GatedCronTask`・`GatedSettingSection`）; いつ効くか: —; やること: 規則 + 名前 + `dependsOn`(字面の写し、書かない規則は空) + 説明用の表名・汎用 API・設定の節・cron の住所(`tables`・`domainApiPaths`・`settingPaths`・`cronPaths`。`pathPatterns` には足さない)
@@ -123,7 +123,7 @@ export const rule: FeatureGateRule = {
 - **requires の被覆**(生成で止める。`scripts/structure/extensions/derive/gateRequires.mjs`): 機能 X の `domains` のドメインが `requires`(domainEntry.ts)するドメインは、X の `domains`・X の依存先(推移的)の `domains`・基盤(どの機能にも載らないドメイン)のどれかに無ければ止める。直し方は X の `dependsOn` にそのドメインを持つ機能を足す。上流の例外は理由つきの縮む表(今は 0 行)
 - **住所の検査**(読み込み後の一覧で、`node/addressCheck.ts` の `checkAddresses`、検査は `pnpm test src/featureGate scripts/structure/proxies`): 同じ住所を 2 つの機能が持つ(手書き・汎用 API・cron・設定の節の全部で)、親の前方一致の下の住所の機能が親に `dependsOn` していない(推移的で可)、を止める。fork の規則も同じ(上流の住所の下に足した規則は上流の機能に `dependsOn`)。依存の根拠が無い入れ子は両方に依存する小さな機能へ。上流の例外は 0(理由つきの縮む表 `ADDRESS_EXCEPTIONS`)
 - **組み合わせの検査**(test で止める、`checks/integrity.mjs`、実物は `scripts/structure/proxies/featureGate.test.mjs`): 機能をまたぐ外部キー(ドメインの `requires` と機能の `dependsOn` の両方で覆う。規則の中の外部キーと参照先が基盤のものは対象外)・どの機能にも載らないドメイン(基盤)の `requires` の先が閉じうる・必須の機能(`required/`)が規則の値で閉、を止める。共有のドメインが別の機能で開いたままは落とさず warn し、`pnpm ops features list` の閉じた機能に出す(`sharedDomainsOpen`)。上流の例外は 0(テスト内の縮む表)
-- 全開スイッチの名前指定は依存先を開けない(「全開スイッチ」の節)
+- 全開スイッチの名前指定は依存先を開けない([Internals.md「全開スイッチ(FEATURE_GATE_OPEN)」](./Internals.md#全開スイッチfeature_gate_open))
 - `pnpm ops features list` は依存先・依存元(推移的)・閉の理由を出し、`pnpm ops features set` は必須の機能が依存する機能の off を止める(下の節)
 
 ### 規則の決まりごと

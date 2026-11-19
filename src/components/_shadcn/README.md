@@ -26,7 +26,7 @@ button・badge・input・textarea・select・checkbox・radio-group・label・ta
 
 ### 機械的な強制(ESLint)
 
-`src/components/**` と `src/lib/tableSuite/**`(table の指定ラッパー。セルエディタも primitive 層)以外からの `@/components/_shadcn/*` import は ESLint(`no-restricted-imports`、`eslint.config.mjs`)が error にする。下流固有の UI も対象。
+`src/components/**` と `src/lib/**`(どの lib でも。lib は閉じたパッケージで中は lib の自由)の外からの `@/components/_shadcn/*` import は ESLint(`import-boundaries/no-shadcn-direct`、全 Tier error)が止める。下流固有の UI も対象。
 
 ### ラッパーが存在しない場合
 

@@ -29,7 +29,7 @@
 
 `active` 以外でログインした場合の扱いは範囲の守りの `statusRedirects` が振り分ける（`(user)/(protected)/guard.ts`: `inactive` → `/reactivate`、`suspended` / `banned` / `security_locked` → `/restricted`、`pending` / `withdrawn` → ログアウトしてサインアップへ）。ログイン時点で拒否されるステータスの詳細は auth ドメインの `localLogin.ts` / `firebaseSession.ts` を参照。
 
-ステータス遷移の記録は [ステータス遷移履歴](#ステータス遷移履歴user_status_histories)、操作の監査は audit_logs（`user.withdrew` / `user.status.changed` 等）が担う。
+ステータス遷移の記録は ステータス遷移履歴(表 = [API.md「ステータス遷移履歴の表」](./API.md#ステータス遷移履歴の表user_status_histories)、記録の仕組み = [Internals.md「ステータス遷移履歴」](./Internals.md#ステータス遷移履歴user_status_histories))、操作の監査は audit_logs（`user.withdrew` / `user.status.changed` 等）が担う。
 
 ## Usage
 
@@ -67,7 +67,7 @@ fork がロールを変える上書き（core ロールは `label`・`hasProfile
   - 先に `--dry-run` で変わる人数と飛ばす人(理由つき)を確かめてから、外して打つ。本番は `--env production --confirm=production`
   - ユーザーは id の並びかファイルで渡す(状態で全員を拾う形は無い)。`--from` は渡した並びを「今その状態の人だけ」に絞るだけ
   - 止める鍵は無い: 打ち直すと既に変わった人を飛ばすので、途中で落ちても同じ指定で打ち直せる。実行は `task_runs` に記録され、監査の requestId = その行の id
-- サービス: `userService.bulkChangeStatus({ userIds, newStatus, reason, onlyFrom?, dryRun })` → `{ changed, skipped: [{ userId, why }], failed: [{ userId, error }] }`。管理画面から呼ぶときも同じ関数
+- サービス: `userService.bulkChangeStatus`(引数と戻り値は [API.md](./API.md))。管理画面から呼ぶときも同じ関数
 - 1 人ずつ `changeStatus` と同じ道: users の更新・遷移の履歴(trigger `admin_change_status`)・監査 `user.status.changed` を 1 人 1 transaction で書き、確定の後に banned / security_locked のセッション失効とロック解除の監査(`afterStatusChange`)。1 人の失敗は他の人を戻さない
 - 変えられる先: `active` / `inactive` / `suspended` / `banned` / `security_locked`。`withdrawn`(退会の流れ `withdraw` がある)と `pending`(登録の途中)は先に止める
 - 飛ばす: 知らない id・削除済み・既にその状態・`--from` でない・管理者のカテゴリのロール(管理者は 1 人ずつの画面で)

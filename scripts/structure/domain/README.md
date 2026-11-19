@@ -59,7 +59,7 @@
 - 作成済みの write-once（`<domain>Service.ts`・管理画面の `page.tsx`）をわざと作り直すときは、そのファイルを消してから生成する
 - 不明なカテゴリ名は終了コード 1
 - `--only registry` が書くのは `services/server/` の `domainEntry.ts`・`collections.ts`・`storagePurposes.ts`（ドメイン内）。最後に `serviceRegistry.ts` を丸ごと作り直す（`:all` は全ドメインの domainEntry.ts を書いた後に 1 回だけ）。他の `src/registry/` の一覧は `pnpm generate registry`（forge の段）
-  - storagePurposes.ts には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。`storage.image`（画像の縮小の指定）は書いたときだけ入る（形・keep の項目への指定は生成エラー）。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/features/Extension.md](../../../src/features/Extension.md)「ファイルの保存（storage）」）
+  - storagePurposes.ts には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。`storage.image`（画像の縮小の指定）は書いたときだけ入る（形・keep の項目への指定は生成エラー）。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/features/README.md](../../../src/features/README.md)「ファイルの保存（storage）」）
   - private の用途の `read.allow` は `storage.read`（`"public"` も可）、無ければ apiAccess の get の規則。visibility を省いた項目の公開・非公開の導出も同じ規則を使う
 - `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm generate domain -- --only registry`）。`[user-run]` は付けない
 
@@ -96,11 +96,11 @@
 
 ### よくある失敗
 
-- 生成が `[<domain>] ...` の文を並べて止まる → domain.json の決まり（必須キー・項目名と従属名の snake_case・外部キーの型・enum の選択肢・既定値・メディアの accept・一覧の設定の名前・廃止した `generateFiles`）に反している。文のとおりに直す（規則の一覧: [src/features/API.md](../../../src/features/API.md)「domain.json スキーマ定義」）
+- 生成が `[<domain>] ...` の文を並べて止まる → domain.json の決まり（必須キー・項目名と従属名の snake_case・外部キーの型・enum の選択肢・既定値・メディアの accept・一覧の設定の名前・廃止した `generateFiles`）に反している。文のとおりに直す（規則の一覧: [src/features/README.md](../../../src/features/README.md)「domain.json スキーマ定義」）
 - `[domain.json] <domain>: ...` の警告が出る → 綴り違いのキー、古いキー（`version` → `domainConfigVersion`、`onDeleteCascade` → `onDelete`）、その DB に無い `fieldType`、知らない `formInput`、表に無い型と入力欄の組、選択肢の要る入力欄に options が無い、など（`checks/vocabulary.mjs` と各検査の `*Warnings`）
   - 生成は止まらないが、未知の `fieldType` は列名としてそのまま出力され、未知の `formInput` はフォームに出ないので直す
   - 知らないキーは同じキーをドメインごとに 1 行（件数と最初の 3 か所）にまとめ、他の警告の後ろに並べる
-  - 開発者のメモは `"$comment"`（どの階層でも通り、生成物にも写しにも出ない。`src/features/API.md`「開発者のメモ（$comment）」）
+  - 開発者のメモは `"$comment"`（どの階層でも通り、生成物にも写しにも出ない。`src/features/README.md`「開発者のメモ（$comment）」）
 - `domain.json` が壊れている（JSON として読めない） → 直してから再実行
 - `テンプレートのトークンが置換されていません` → 管理画面テンプレートに未対応のトークンが残っている。テンプレートを直す
 - `src/registry/district-map.jsonl` が `pnpm check district-map` で落ちる → `pnpm generate district-map`（または forge）で作り直してコミット
@@ -119,6 +119,7 @@
 - `false`: 手で管理。生成器は何も書かない（`domainEntry.ts` の書き直し・従属の domain.json も無し。`serviceRegistry.ts` は `domainEntry.ts` から作るので載り続ける）。載せ替えが手間になったドメインをこちらにする
 - `domainEntry.ts` を持たないまま `false` にしたドメイン（旧 `generateFiles.registry: false` から移ったものなど）は登録表に載らず `pnpm check registry` が止まる → `domainEntry.ts` を手書きする（写せる形: [src/lib/domain/README.md](../../../src/lib/domain/README.md)「generate: false の業務ドメイン」）
 - `false` のドメインはどんな実行でも生成器を通さない: `pnpm generate domain`・forge・1 ドメインの名指し・`--only`・`-i` のどれでも何も書かず、生成前の検査もしない（`[<domain>] generate: false（手で管理）のため何も書きません` の 1 行だけ）。一度だけ作り直すときは `generate` を true に戻して生成し、要る手書きを戻してから false に戻す
+- `false` に切り替えたら `pnpm generate domain -- --unmark <Domain>`(名を省くと generate: false の全部)で、そのドメインのフォルダと管理画面のルートのファイルから生成物の印の行を外す。印が残っていると手で直すファイルを「直さない」と読み違えるので、`pnpm check rules` が止める
 - 一覧: 生成の書き込みの最後と `pnpm generate domain -- --delete` の後に地区の地図 `src/registry/district-map.jsonl` を書き直す(features の行の `domainJson` = domain.json の有無・`generate` = 旗、無ければ null。中身: `src/lib/districtMap/README.md`)。ずれは `pnpm check district-map` が落とす。merge で衝突したら `pnpm generate district-map` で作り直す
 
 #### generate の旗を決める（`pnpm check domain -- --compare`）

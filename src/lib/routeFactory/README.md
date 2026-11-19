@@ -199,7 +199,7 @@ export const domainEntries = {
 ```
 
 - 編集元: 自動生成ドメインは domain.json の `apiAccess` / `useImportExport`（domain.json に手で書き、`pnpm generate domain` / forge が domainEntry.ts に展開）。
-  コアドメインは domainEntry.ts を手書き、fork が core の access を変えるときは隣に `domainEntry.override.ts`。ルール値・スキーマは `src/features/Extension.md`「ApiAccess（汎用 API アクセス制御）」、仕組みは `src/lib/domain/README.md`
+  コアドメインは domainEntry.ts を手書き、fork が core の access を変えるときは隣に `domainEntry.override.ts`。ルール値・スキーマは `src/features/README.md`「ApiAccess（汎用 API アクセス制御）」、仕組みは `src/lib/domain/README.md`
 - 管理データ操作 `truncateAll` / `export` / `import` は `operations` に明示したときだけ開く（未指定 = `"none"`）。
   全件削除・データ移行のルートは自分の門（`{ roleCategories: ["admin"] }`）に加えて、ドメインごとの access を `enforceAccessRule(rule, ctx.user)` で評価する（AND）
 - 解決順: `operations[操作名]` → `read` / `write` → `DEFAULT_ACCESS_RULE`(`src/lib/domain/accessPresets.ts`)（`resolveAccessRule`、`src/lib/domain/definition/apiAccess.ts`）。
@@ -339,6 +339,6 @@ export const POST = createApiRoute(
 ## Related
 
 - `src/wiring/README.md` - 設定済み版の置き場・fork の wiring
-- `src/features/Extension.md`「ApiAccess（汎用 API アクセス制御）」 - domain.json の `apiAccess` スキーマ（generator が registry へ展開）
+- `src/features/README.md`「ApiAccess（汎用 API アクセス制御）」 - domain.json の `apiAccess` スキーマ（generator が registry へ展開）
 - `src/lib/errors/README.md` - `DomainError` の `code` / `details`
 - `docs/!must-read/アプリ構築における構成層.md` - 全体アーキテクチャ

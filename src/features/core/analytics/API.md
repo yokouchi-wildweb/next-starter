@@ -22,7 +22,7 @@
 - `history[].date` の書式は粒度で変わる: hour=`YYYY-MM-DDTHH:00`, day=`YYYY-MM-DD`, week=月曜開始日 `YYYY-MM-DD`, month=`YYYY-MM`
 - レスポンスには解決済み `granularity` フィールドが含まれる
 - 期間上限は粒度ごと: hour=31日, day=365日, week=2年, month=10年（バケット数の爆発を防ぐ）
-- DAU は `day` / `week` / `month` をサポート（week/month はバケット内ユニークユーザー = WAU/MAU）。`hour` は `DomainError`（400）（`UserDailyActivityTable` が日次集計済みのため）
+- DAU は `day` / `week` / `month` をサポート（week/month はバケット内ユニークユーザー = WAU/MAU）。`hour` は `GranularityNotSupportedError`（DomainError 派生、400）（`UserDailyActivityTable` が日次集計済みのため）
 - 期間サマリー API (`*/summary`) では集計に影響しない（期間全体を1つの集計値にする）
 
 ユーザーフィルタ:

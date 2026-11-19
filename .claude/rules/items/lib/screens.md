@@ -15,4 +15,4 @@ using:
 - admin_page: every admin Screen renders AdminPage itself (hide its header through frame.ts)
 editing:
 - checks_pure: checks.mjs stays free of side effects
-read: structure, ownership, layers → Overview | own page, replace an upstream screen, examples → Usage | contracts, guard.ts, loader, Screen, containers → src/lib/screens/API.md API | checks, generated admin routes, route map → src/lib/screens/Internals.md Internals
+read: structure, ownership, layers → Overview | own page, replace an upstream screen, examples → Usage | contracts, guard.ts, loader, Screen, containers → API | checks, generated admin routes, route map → Internals

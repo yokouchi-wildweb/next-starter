@@ -1,6 +1,7 @@
 ---
 paths:
   - "**/README*.md"
+  - "**/{API,Usage,Extension,Internals,Verification,Related}.md"
   - "docs/**"
 ---
 # readme-format
