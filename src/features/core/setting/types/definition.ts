@@ -9,15 +9,41 @@ import type { IconComponent } from "@/components/Icons";
 import type { FeatureName } from "@/featureGate";
 import type { UserRoleType } from "@/features/core/user/types";
 
-/** 設定画面の欄。無いキーは設定画面に出ず、使う画面の側が保存する */
-export type SettingFieldUi = {
+type SettingFieldUiPlace = {
   /** 所属するセクションの key */
   section: string;
   /** セクションの中のグループの key */
   group?: string;
   /** セクションの中の並び(昇順) */
   order?: number;
-  /** 入力部品の定義(name はキーの名前) */
+};
+
+/**
+ * 設定画面の欄。無いキーは設定画面に出ず、使う画面の側が保存する。
+ * 1 つの欄(field)か、部分を持つキーの部分ごとの欄(parts)のどちらか
+ */
+export type SettingFieldUi = SettingFieldUiPlace &
+  (
+    | {
+        /** 入力部品の定義(name はキーの名前) */
+        field: Omit<FieldConfig, "name">;
+        parts?: undefined;
+      }
+    | {
+        field?: undefined;
+        /**
+         * 部分を持つキー(schema が z.object)の欄。部分ごとに 1 つの欄を並べる(名前は <キー>.<部分>)。
+         * 片方だけ変えると意味が壊れる値は部分を持つ 1 つのキーにする(札 items/features/setting.md one_key_groups)
+         */
+        parts: Readonly<Record<string, SettingFieldPartUi>>;
+      }
+  );
+
+/** 部分を持つキーの 1 つの部分の欄 */
+export type SettingFieldPartUi = {
+  /** キーの中の並び(昇順) */
+  order?: number;
+  /** 入力部品の定義(name は <キー>.<部分>) */
   field: Omit<FieldConfig, "name">;
 };
 

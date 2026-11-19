@@ -4,6 +4,7 @@
 //
 // 仕様: 未知のセクションキーは 404。セクションに allowRoles があれば、そのロール以外は /admin へ redirect する
 // (範囲 admin/(protected) の createLoader が管理者カテゴリを評価済み。ここはセクション単位の追加制限で、ctx.allows で判定する)。全体設定(global)を取得する。
+// codeKeys = コードで持つキー(設定ドメインの config の codeValues。欄を読み取り専用にする)。
 
 import "server-only";
 import { notFound, redirect } from "next/navigation";
@@ -11,6 +12,7 @@ import { notFound, redirect } from "next/navigation";
 import type { ScreenProps } from "@/lib/screens/types";
 import type { Setting } from "@/features/core/setting/entities";
 import { getSettingForActor } from "@/features/core/setting/services/server/settingActor";
+import { settingService } from "@/features/core/setting/services/server/settingService";
 import { sections } from "@/features/core/setting/extensions/sections";
 import type { SettingSectionDefinition } from "@/features/core/setting/types/definition";
 import { createLoader } from "@/app/admin/(protected)/guard";
@@ -23,6 +25,8 @@ export type AdminSettingSectionScreenData = {
   setting: Setting;
   /** 保存後の戻り先(このセクション自身) */
   redirectPath: string;
+  /** コードで持つキー(欄は読み取り専用、送らない) */
+  codeKeys: readonly string[];
 };
 
 export const loadAdminSettingSectionScreen = createLoader({
@@ -40,7 +44,7 @@ export const loadAdminSettingSectionScreen = createLoader({
     }
 
     const setting = (await getSettingForActor(user!)) as Setting; // 範囲の guard が管理者カテゴリを確かめ済み
-    return { sectionKey, section, setting, redirectPath: `/admin/settings/${sectionKey}` };
+    return { sectionKey, section, setting, redirectPath: `/admin/settings/${sectionKey}`, codeKeys: settingService.codeValueKeys };
   },
 });
 

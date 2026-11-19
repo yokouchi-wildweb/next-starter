@@ -30,6 +30,13 @@ const isAllowedPath = (pathname: string): boolean => {
  */
 export const maintenanceProxy: ProxyHandler = async (request, ctx) => {
   const pathname = request.nextUrl.pathname;
+
+  // 許可パスは期間の中でも外でも通すので、判定(DB の読み)の前に返す。
+  // /maintenance だけは期間の外で終了後の行き先へ送るため、判定を読む
+  if (pathname !== settingConfig.maintenance.redirectTo && isAllowedPath(pathname)) {
+    return;
+  }
+
   const inMaintenance = await settingService.isMaintenanceActive();
 
   // メンテナンス時間外: /maintenance にいるユーザーをリダイレクト

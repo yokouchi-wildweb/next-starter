@@ -12,6 +12,15 @@ import { DomainError } from "@/lib/errors";
 import { settingTable } from "../../entities/drizzle";
 import { fields } from "../../extensions/fields";
 import type { SettingFieldDefinition } from "../../types/definition";
+import { codeValueKeys } from "./codeValues";
+
+/** コードで持つキー(config の codeValues)を送ったら 409(保存しても読まれないため)。送っていない(undefined)キーは見ない */
+export function assertNotCodeValues(input: Record<string, unknown>, codeKeys: readonly string[]): void {
+  const sent = codeKeys.filter((key) => input[key] !== undefined);
+  if (sent.length > 0) {
+    throw new DomainError(`この設定はコードで管理しているため、画面からは変えられません(${sent.join(", ")})`, { status: 409 });
+  }
+}
 
 /** 送った値を検証して保存の形にする。一覧に無いキーは 400、undefined は送っていない扱い */
 export function validateSettingInput(
@@ -45,6 +54,7 @@ export function mergedExtendedSql(values: Record<string, unknown>, keys: readonl
 
 /** 保存する(行が無ければ作る)。読み手のメモの破棄は呼び手(settingService) */
 export async function saveSettingValues(input: Record<string, unknown>, tx?: TransactionClient): Promise<void> {
+  assertNotCodeValues(input, codeValueKeys);
   const values = validateSettingInput(input, fields);
   const client = tx ?? db;
   await client

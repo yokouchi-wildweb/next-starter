@@ -1,5 +1,5 @@
 // src/features/core/setting/hooks/useMaintenanceAutoRedirect.ts
-// メンテナンス画面(/maintenance)の自動遷移の公開 hook。終了時刻(設定 maintenanceEndAt を loader が渡す)が来たら
+// メンテナンス画面(/maintenance)の自動遷移の公開 hook。終了時刻(設定 maintenance.endAt を loader が渡す)が来たら
 // redirectTo へ router.replace する。過ぎていれば即時、null なら何もしない。unmount で timer を解く。
 // 画面は hook を呼ぶだけで、見た目は自由(契約: src/features/core/setting/README.md)
 

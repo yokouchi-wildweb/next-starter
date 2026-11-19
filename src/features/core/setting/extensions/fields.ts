@@ -4,14 +4,10 @@
 import type { SettingFieldDefinition } from "@/features/core/setting/types/definition";
 
 import { field as fields_adminListPerPage } from "@/features/core/setting/fields/adminListPerPage";
-import { field as fields_maintenanceEnabled } from "@/features/core/setting/fields/maintenanceEnabled";
-import { field as fields_maintenanceEndAt } from "@/features/core/setting/fields/maintenanceEndAt";
-import { field as fields_maintenanceStartAt } from "@/features/core/setting/fields/maintenanceStartAt";
+import { field as fields_maintenance } from "@/features/core/setting/fields/maintenance";
 
 const fieldsMap = {
   adminListPerPage: fields_adminListPerPage,
-  maintenanceEnabled: fields_maintenanceEnabled,
-  maintenanceEndAt: fields_maintenanceEndAt,
-  maintenanceStartAt: fields_maintenanceStartAt,
+  maintenance: fields_maintenance,
 } as const satisfies Readonly<Record<string, SettingFieldDefinition>>;
 export const fields = Object.assign(Object.create(null), fieldsMap) as typeof fieldsMap;

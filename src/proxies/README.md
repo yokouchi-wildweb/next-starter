@@ -60,6 +60,19 @@ export const handler: ProxyHandler = async (request, ctx) => {
 
 ## Internals
 
+### 対象の住所(matcher)
+
+`src/proxy.ts` の `export const config = { matcher }` で、proxy を走らせる住所を絞る。外した住所では proxy の関数そのものが呼ばれない(項目も decorator も走らず、DB も読まない)。
+
+- 外すのは静的なファイルだけ: `/_next/static/`(ビルドの出力)・`/_next/image`(画像の最適化)・`/assets/`(public の素材。`utils/assets` の置き場)・`/favicon.ico`・`/robots.txt`・`/sitemap.xml`
+- 拡張子つきの住所をまとめて外すことはしない。点を含むページや `/api` の住所まで門番とメンテナンスを素通りするため。public の直下に置いたほかのファイルは proxy を通る(`/assets/` の下に置けば外れる)
+- matcher はビルド時に読むリテラルで、fork は変えない。外したい住所・通したい住所が要るなら上流へ依頼する
+- 外した住所はメンテナンス中も見える(静的なファイルなので止める意味が無い)
+
+### メンテナンスの判定を読む住所
+
+骨組みの `maintenance.ts` は、許可パス(設定ドメインの config の `maintenance.allowedPaths`・`allowedPrefixes`。既定で `/api`・`/_next`・`/login` など)では期間の判定(`settingService.isMaintenanceActive`)を読まずに通す。判定を読むのは `/maintenance`(期間の外で終了後の行き先へ送る)と許可外のパスだけ。判定が読むキー `maintenance` を設定ドメインの config の `codeValues` で持てば、判定でも DB を読まない(設定ドメインの README Extension「コードで持つキー」)。
+
 ### 機能を閉じる規則(Feature Gate)
 
 規則・判定・検査は門番 `src/featureGate/` にある(詳細: [src/featureGate/README.md](../featureGate/README.md))。proxy の骨組みの項目 `featureGate.ts` は `gate.path(pathname)`(`@/featureGate`)を呼び、閉じていれば応答を作るだけ: `redirectTo` があればそこへ rewrite、無ければ API は 404、ページは `/404` へ rewrite。

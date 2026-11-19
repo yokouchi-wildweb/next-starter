@@ -544,3 +544,4 @@
 - id:20261119-072836-shadcn-close | severity:action-required | checkpoint:shadcn-close | moved:src/components/_shadcn/table.tsx -> src/lib/tableSuite; src/components/_shadcn/form.tsx -> src/components/Form/Field/fieldContext.tsx
 - id:20261119-070827-v2-switch | severity:action-required | checkpoint:v2-switch
 - id:20261119-191317-devcheck-tmp-copy | severity:info | checkpoint:devcheck-tmp-copy
+- id:20261119-195101-setting-code-values | severity:action-required | checkpoint:setting-code-values | uses:src/features/core/setting/scripts/migrations/merge-maintenance-keys.ts

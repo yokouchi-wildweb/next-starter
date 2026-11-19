@@ -6,6 +6,7 @@
 // - 失敗: error の toast を出して投げ直す。AppForm は投げられたときだけ未保存の守りを戻すので、
 //   失敗を成功扱いにしない(投げずに返すと守りが外れたままになる)
 // setting は今の設定値(そのロールに許されたキーだけ。loader の getSettingForActor の値)。
+// codeKeys(コードで持つキー。loader の値)の欄は読み取り専用で、送らない。editable = 送るキーがあるか(無ければ保存のボタンを出さない)
 
 "use client";
 
@@ -30,15 +31,24 @@ export type UseSettingSectionFormOptions = {
   setting: Setting;
   /** 保存の後の遷移先。省略 = "/" */
   redirectPath?: string;
+  /** コードで持つキー(config の codeValues。loader が渡す)。省略 = 無し */
+  codeKeys?: readonly string[];
 };
+
+const NO_CODE_KEYS: readonly string[] = [];
 
 const DEFAULT_REDIRECT_PATH = "/";
 
-export function useSettingSectionForm({ sectionKey, setting, redirectPath = DEFAULT_REDIRECT_PATH }: UseSettingSectionFormOptions) {
+export function useSettingSectionForm({
+  sectionKey,
+  setting,
+  redirectPath = DEFAULT_REDIRECT_PATH,
+  codeKeys = NO_CODE_KEYS,
+}: UseSettingSectionFormOptions) {
   const section = sections[sectionKey];
   const form = useMemo(
-    () => buildSectionForm(sectionKey, fields, setting as unknown as Record<string, unknown>),
-    [sectionKey, setting],
+    () => buildSectionForm(sectionKey, fields, setting as unknown as Record<string, unknown>, codeKeys),
+    [sectionKey, setting, codeKeys],
   );
 
   const methods = useForm({
@@ -55,6 +65,7 @@ export function useSettingSectionForm({ sectionKey, setting, redirectPath = DEFA
   const submit = async (data: Record<string, unknown>) => {
     showToast({ message: "更新中です…", mode: "persistent" });
     try {
+      // data は検証の schema のキーだけ(zodResolver が外す。コードで持つキーは schema に無いので送らない)
       await trigger({ id: setting.id, data });
     } catch (error) {
       showToast(err(error, "更新に失敗しました"), "error");
@@ -64,5 +75,5 @@ export function useSettingSectionForm({ sectionKey, setting, redirectPath = DEFA
     router.push(redirectPath);
   };
 
-  return { methods, section, fieldConfigs: form.fieldConfigs, submit, isMutating };
+  return { methods, section, fieldConfigs: form.fieldConfigs, submit, isMutating, editable: form.keys.length > 0 };
 }

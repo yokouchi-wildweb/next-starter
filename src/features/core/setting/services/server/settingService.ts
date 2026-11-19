@@ -6,39 +6,64 @@ import { checkAdminUserExists } from "@/features/core/user/services/server/finde
 import { isDatabaseConfigured } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 
+import { settingConfig } from "../../config";
 import { fields } from "../../extensions/fields";
+import { isMaintenanceWindowActive } from "../../utils/maintenanceWindow";
 import type { AdminSetupInput } from "../types";
+import { codeValueKeys, codeValues, isCodeKey } from "./codeValues";
 import { base } from "./drizzleBase";
 import { readSettingValues } from "./read";
+import { createReadMemo } from "./readMemo";
 import { saveSettingValues } from "./save";
 
-/** 保存値(行が無い・DB 未構成なら null)。DB 未構成で止めない: maintenanceProxy / (user) 配下の表示のため。接続できない場合は例外のまま(障害を隠さない) */
-async function readStored(): Promise<{ row: Awaited<ReturnType<typeof base.get>> | null; stored: Record<string, unknown> | null }> {
-  if (!isDatabaseConfigured()) return { row: null, stored: null };
+type Stored = { row: Awaited<ReturnType<typeof base.get>> | null; stored: Record<string, unknown> | null };
+
+/** 期限つきのメモの中身: DB の 1 行の読み(期限 = config の readMemoMs) */
+const storedMemo = createReadMemo<Stored>(async () => {
   const row = await base.get("global");
   return { row: row ?? null, stored: (row?.extended as Record<string, unknown> | null | undefined) ?? null };
+}, () => settingConfig.readMemoMs);
+
+/** 保存値(行が無い・DB 未構成なら null)。DB 未構成で止めない: maintenanceProxy / (user) 配下の表示のため。接続できない場合は例外のまま(障害を隠さない) */
+async function readStored(): Promise<Stored> {
+  if (!isDatabaseConfigured()) return { row: null, stored: null };
+  return storedMemo.get();
+}
+
+/** 保存の後: このインスタンスの読みのメモとリクエストのメモを捨てる */
+function invalidateReads(): void {
+  storedMemo.clear();
+  base.invalidateRequestMemo();
 }
 
 async function getGlobalSetting(): Promise<Setting> {
-  const { row, stored } = await readStored();
+  const keys = Object.keys(fields).filter((key) => !isCodeKey(key));
+  const { row, stored } = keys.length > 0 ? await readStored() : { row: null, stored: null };
   return {
     id: "global",
     createdAt: row?.createdAt ?? null,
     updatedAt: row?.updatedAt ?? null,
-    ...readSettingValues(stored, fields),
+    ...readSettingValues(stored, fields, keys),
+    ...codeValues,
   } as Setting;
 }
 
-/** 必要なキーだけを読む(proxy・health・maintenance loader。ほかのキーの検証を走らせない) */
+/**
+ * 必要なキーだけを読む(proxy・health・maintenance loader。ほかのキーの検証を走らせない)。
+ * コードで持つキーはコードの値。頼んだキーが全部コードで持つキーなら DB を読まない
+ */
 async function readSettingKeys<K extends keyof SettingValues>(keys: readonly K[]): Promise<Pick<SettingValues, K>> {
-  const { stored } = await readStored();
-  return readSettingValues(stored, fields, keys as readonly string[]) as Pick<SettingValues, K>;
+  const rest = keys.filter((key) => !isCodeKey(key as string)) as readonly string[];
+  const stored = rest.length > 0 ? (await readStored()).stored : null;
+  const values = rest.length > 0 ? readSettingValues(stored, fields, rest) : {};
+  const codePart = Object.fromEntries(keys.filter((key) => isCodeKey(key as string)).map((key) => [key, codeValues[key as string]]));
+  return { ...values, ...codePart } as Pick<SettingValues, K>;
 }
 
-/** 設定の保存。送ったキーだけを検証して重ねる(./save.ts) */
+/** 設定の保存。送ったキーだけを検証して重ねる(./save.ts。コードで持つキーは 409) */
 async function updateFields(partial: Partial<SettingValues>): Promise<Setting> {
   await saveSettingValues(partial as Record<string, unknown>);
-  base.invalidateRequestMemo();
+  invalidateReads();
   return getGlobalSetting();
 }
 
@@ -47,22 +72,10 @@ async function getAdminListPerPage(): Promise<number> {
   return adminListPerPage;
 }
 
-/**
- * 現在メンテナンス期間内かどうか判定
- * DB上の maintenanceEnabled / maintenanceStartAt / maintenanceEndAt を参照する
- */
+/** 現在メンテナンス期間内かどうか判定(キー maintenance。コードで持てば DB を読まない) */
 async function isMaintenanceActive(): Promise<boolean> {
-  const setting = await readSettingKeys(["maintenanceEnabled", "maintenanceStartAt", "maintenanceEndAt"]);
-  if (!setting.maintenanceEnabled) return false;
-
-  const now = Date.now();
-  const start = setting.maintenanceStartAt ? new Date(setting.maintenanceStartAt).getTime() : null;
-  const end = setting.maintenanceEndAt ? new Date(setting.maintenanceEndAt).getTime() : null;
-
-  if (start !== null && now < start) return false;
-  if (end !== null && now >= end) return false;
-
-  return true;
+  const { maintenance } = await readSettingKeys(["maintenance"]);
+  return isMaintenanceWindowActive(maintenance, Date.now());
 }
 
 export async function initializeAdminSetup(data: AdminSetupInput): Promise<User> {
@@ -79,6 +92,7 @@ export async function initializeAdminSetup(data: AdminSetupInput): Promise<User>
   const user = await createAdmin({ ...data, role: "admin" });
   // 行を作るだけ。既定値は書かない
   if (!(await base.get("global"))) await base.create({ id: "global" });
+  invalidateReads();
 
   return user;
 }
@@ -101,4 +115,6 @@ export const settingService = {
   getAdminListPerPage,
   isMaintenanceActive,
   initializeAdminSetup,
+  /** コードで持つキーの名前(config の codeValues) */
+  codeValueKeys,
 };

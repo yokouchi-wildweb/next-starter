@@ -22,13 +22,13 @@ export async function generateMetadata({ params }: { params: Promise<AdminSettin
 }
 
 export async function AdminSettingSectionScreen(props: ScreenProps<AdminSettingSectionScreenParams>) {
-  const { sectionKey, section, setting, redirectPath } = await loadAdminSettingSectionScreen(props);
+  const { sectionKey, section, setting, redirectPath, codeKeys } = await loadAdminSettingSectionScreen(props);
 
   return (
     <AdminPage title={section.label}>
       <Section>
         <Suspense fallback={<FormSkeleton />}>
-          <EditSettingSectionForm sectionKey={sectionKey} setting={setting} redirectPath={redirectPath} />
+          <EditSettingSectionForm sectionKey={sectionKey} setting={setting} redirectPath={redirectPath} codeKeys={codeKeys} />
         </Suspense>
       </Section>
     </AdminPage>

@@ -3,6 +3,14 @@ import { createProxyUser } from '@/features/core/auth/services/server/proxyUserD
 import { proxyHandlers, proxyResponseDecorators } from './proxies';
 import type { ProxyContext } from './proxies';
 
+// proxy を走らせる住所の絞り込み(Next.js の matcher。ビルド時に読むのでリテラルだけで書く。fork は変えない)。
+// 外すのは、どの項目(メンテナンス・デモ・門番・転送・cookie)も要らない静的なファイルだけ:
+// ビルドの出力 /_next/static・画像の最適化 /_next/image・public の素材 /assets/(utils/assets の置き場)・favicon.ico・robots.txt・sitemap.xml。
+// 「拡張子つきの住所を全部外す」はしない: 点を含むページや /api の住所まで門番を素通りするため。説明: src/proxies/README.md Internals「対象の住所(matcher)」
+export const config = {
+  matcher: ["/((?!_next/static/|_next/image|assets/|favicon\\.ico$|robots\\.txt$|sitemap\\.xml$).*)"],
+};
+
 export default async function proxy(request: NextRequest) {
   // 利用者は項目が ctx.user() を呼んだときだけ 1 回解決する(呼ばれなければ DB を引かない)
   const ctx: ProxyContext = { user: createProxyUser(request.cookies) };

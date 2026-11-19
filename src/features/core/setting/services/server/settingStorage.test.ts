@@ -13,7 +13,7 @@ import { z } from "zod";
 import { fields } from "../../extensions/fields";
 import { sections } from "../../extensions/sections";
 import { publicSettingKeys, settingKeysFor } from "./access";
-import { buildSectionForm, firstOpenSection, listSections, settingSectionHref } from "../../utils/sectionForm";
+import { buildSectionForm, CODE_VALUE_HELPER_TEXT, firstOpenSection, listSections, settingSectionHref } from "../../utils/sectionForm";
 import { readSettingValues, settingDefaultOf } from "./read";
 import { mergedExtendedSql, validateSettingInput } from "./save";
 import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
@@ -23,7 +23,7 @@ const { isTier1 } = readForkIdentity(ROOT);
 /** 上流の既定の値の検査（fork では飛ばす） */
 const tier1Only = { skip: isTier1 ? false : "上流の既定の値の検査（Tier1 だけ）" };
 /** 上流が持つキーとセクション（fields/・sections/ の上流の項目） */
-const UPSTREAM_KEYS = ["adminListPerPage", "maintenanceEnabled", "maintenanceEndAt", "maintenanceStartAt"];
+const UPSTREAM_KEYS = ["adminListPerPage", "maintenance"];
 const UPSTREAM_SECTIONS = ["general", "maintenance"];
 /** Tier1 は完全一致、fork は上流の項目を同じ順で含むこと（fork の項目は間に入ってよい） */
 const assertUpstreamItems = (actual: readonly string[], upstream: readonly string[]) => {
@@ -91,8 +91,7 @@ test("保存の式: 1 本の文で重ね、一覧のキーだけに絞り、残�
 test("上流のキーの既定: adminListPerPage 100、メンテナンスは無効", tier1Only, () => {
   const values = readSettingValues(null, fields);
   assert.equal(values.adminListPerPage, 100);
-  assert.equal(values.maintenanceEnabled, false);
-  assert.equal(values.maintenanceStartAt, null);
+  assert.deepEqual(values.maintenance, { enabled: false, startAt: null, endAt: null });
 });
 
 test("権限: キーの allowRoles → セクションの allowRoles → 管理カテゴリ全員", () => {
@@ -117,18 +116,41 @@ test("公開: public true のキーだけ。上流のキーは全部非公開", 
 });
 
 test("フォーム: セクションの欄を ui.order で並べ、許されていないキーは欄も送信も無い", () => {
-  const current = { adminListPerPage: 5, maintenanceEnabled: true, maintenanceEndAt: null };
+  const maintenance = { enabled: true, startAt: null, endAt: null };
+  const current = { adminListPerPage: 5, maintenance };
   const m = buildSectionForm("maintenance", fields, current);
   // fork は上流のセクションにキーを足せる（Tier1 は完全一致、fork は上流のキーが同じ順で残っていること）
-  assertUpstreamItems(m.keys, ["maintenanceEnabled", "maintenanceEndAt"]);
-  assert.deepEqual(m.fieldConfigs.map((f) => f.name), m.keys);
+  assertUpstreamItems(m.keys, ["maintenance"]);
   assert.deepEqual(Object.keys(m.schema.shape), m.keys);
-  assert.equal(m.defaultValues.maintenanceEnabled, true);
-  assert.equal(m.defaultValues.maintenanceEndAt, null);
-  if (isTier1) assert.equal(m.fieldConfigs[0].label, "メンテナンスモード");
+  assert.deepEqual(m.defaultValues.maintenance, maintenance);
+  if (isTier1) {
+    // 部分を持つキーは部分ごとの欄(<キー>.<部分>、ui.parts の order 順)
+    assert.deepEqual(m.fieldConfigs.map((f) => f.name), ["maintenance.enabled", "maintenance.startAt", "maintenance.endAt"]);
+    assert.equal(m.fieldConfigs[0].label, "メンテナンスモード");
+    assert.equal(m.schema.safeParse({ maintenance }).success, true);
+  }
   const g = buildSectionForm("general", fields, current);
   assertUpstreamItems(g.keys, ["adminListPerPage"]);
-  if (isTier1) assert.equal(m.schema.safeParse({ maintenanceEnabled: true, maintenanceEndAt: null }).success, true);
+  assert.deepEqual(buildSectionForm("general", fields, { adminListPerPage: 5 }).keys, buildSectionForm("general", fields, current).keys);
+});
+
+test("フォーム: コードで持つキーは欄を読み取り専用で出し(説明つき)、検証にも送信にも入れない", () => {
+  const f = {
+    plain: { schema: z.number().default(1), ui: { section: "s", order: 1, field: { label: "a" } } },
+    grouped: {
+      schema: z.object({ on: z.boolean().default(false), at: z.string().nullable().default(null) }).default({}),
+      ui: { section: "s", order: 2, parts: { at: { order: 2, field: { label: "at" } }, on: { order: 1, field: { label: "on" } } } },
+    },
+  } as never;
+  const current = { plain: 3, grouped: { on: true, at: null } };
+  const form = buildSectionForm("s", f, current, ["grouped"]);
+  assert.deepEqual(form.keys, ["plain"]);
+  assert.deepEqual(Object.keys(form.schema.shape), ["plain"]);
+  assert.deepEqual(form.fieldConfigs.map((c) => [c.name, Boolean(c.disabled)]), [["plain", false], ["grouped.on", true], ["grouped.at", true]]);
+  assert.equal(form.fieldConfigs[1].helperText, CODE_VALUE_HELPER_TEXT);
+  assert.deepEqual(form.defaultValues, current);
+  // 節の欄が全部コードなら送るキーは無い(画面は保存のボタンを出さない)
+  assert.deepEqual(buildSectionForm("s", f, current, ["plain", "grouped"]).keys, []);
 });
 
 test("セクション: order 昇順", () => {

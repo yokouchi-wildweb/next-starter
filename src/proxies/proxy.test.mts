@@ -1,7 +1,7 @@
 // src/proxies/proxy.test.mts
 // proxy の主体(ctx.user)と、それを使う上流の handler の判定の回帰テスト。DB は使わない(解決器の部品と config をモックで差し替える)。
 // - createProxyUser: 遅延(呼ばれなければ解決しない)・リクエスト内メモ化・利用可能な status だけ非 null・Cookie なし / DB 未構成は解決せず null
-// - maintenance: メンテ中は bypass ロール(admin・debugger)だけ通す。停止中の管理者は ctx.user() が null なので入れない。許可パスは通す
+// - maintenance: メンテ中は bypass ロール(admin・debugger)だけ通す。停止中の管理者は ctx.user() が null なので入れない。許可パスは通す(期間の判定を読まずに)
 // - demoMode: 有効時はデモ利用者だけ通す
 // - redirect: guestOnly / authedOnly / allowRoles の判定。規則に当たらない住所では ctx.user() を呼ばない
 // - 枠: 生成一覧の handler・decorator は骨組みの後で同じ ctx を受けて走り、骨組みが Response を返したら走らない
@@ -21,8 +21,16 @@ import type { ProxyContext, ProxyHandler } from "./types";
 const srcUrl = (rel: string) => pathToFileURL(join(process.cwd(), "src", rel)).href;
 
 let maintenanceActive = true;
+let maintenanceReads = 0;
 mock.module(srcUrl("features/core/setting/services/server/settingService.ts"), {
-  namedExports: { settingService: { isMaintenanceActive: async () => maintenanceActive } },
+  namedExports: {
+    settingService: {
+      isMaintenanceActive: async () => {
+        maintenanceReads += 1;
+        return maintenanceActive;
+      },
+    },
+  },
 });
 mock.module(srcUrl("features/core/demo/config.ts"), {
   namedExports: {
@@ -148,6 +156,20 @@ test("maintenance: メンテ中は bypass ロールだけ通す(停止中の管�
   assert.equal(location(await maintenanceProxy(req("/mypage"), off.ctx)), "pass");
   assert.equal(location(await maintenanceProxy(req("/maintenance"), off.ctx)), "/");
   assert.equal(off.calls.count, 0);
+  maintenanceActive = true;
+});
+
+test("maintenance: 許可パスは期間の判定(DB の読み)をしない。/maintenance と許可外のパスは判定する", async () => {
+  for (const active of [true, false]) {
+    maintenanceActive = active;
+    maintenanceReads = 0;
+    assert.equal(location(await maintenanceProxy(req("/login"), ctxOf(null).ctx)), "pass");
+    assert.equal(location(await maintenanceProxy(req("/api/health"), ctxOf(null).ctx)), "pass");
+    assert.equal(maintenanceReads, 0);
+    await maintenanceProxy(req("/maintenance"), ctxOf(null).ctx);
+    await maintenanceProxy(req("/mypage"), ctxOf(null).ctx);
+    assert.equal(maintenanceReads, 2);
+  }
   maintenanceActive = true;
 });
 
