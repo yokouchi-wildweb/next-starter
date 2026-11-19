@@ -5,11 +5,13 @@
 //   --changed: 範囲(門の watch と同じ比べ方)の変更から選ぶ(changed.mjs)。辿れなかったテストは名前を出す。
 //   servers/ の下のテストは名指しの時と、--changed の範囲に servers/ の下の変更がある時だけ候補にする。
 //   --list: 選んだファイルを出すだけ(起動しない)。
-//   終わり方: --test-force-exit = テストが全部終わったら、接続・タイマーが残っていてもファイルのプロセスを終える(残り物で止まらない)。
+//   終わり方: ファイルのプロセスは node に任せて自然に終える。接続・タイマーが残って終わらないファイルは 1 ファイルの上限で名前付きで落ちる。
+//   --test-force-exit は付けない: 子の報告の終わりが親へ届く前にプロセスを終え、ファイルの後ろのテストが pass にも fail にも数えられず
+//   黙って消える(実測: 同じ木で 4156〜4195 本と揺れ、付けなければ毎回 4219 本)。
 //   時間の上限: test() 1 つごと 既定 60 秒(node の --test-timeout。--test-timeout=<秒> か env TEST_TIMEOUT、0 = なし)と、
 //   1 ファイルごと 既定 120 秒(preload/fileTimeout.mjs が子の中で見張る。--file-timeout=<秒> か env TEST_FILE_TIMEOUT、0 = なし)。
 //   起動: node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --import ./scripts/runner/preload/fileTimeout.mjs --experimental-test-module-mocks
-//         --test-force-exit [--test-timeout=<ms>] [// test-flags:] --test <files>
+//         [--test-timeout=<ms>] [// test-flags:] --test <files>
 //   (node --test と同じく 1 ファイル 1 プロセス)。--test の後のファイルは node が glob として読むので、[ ] { } * ? は 1 文字の組 [x] で
 //   そのものに戻して渡す(globLiteral。src/app/**/[id]/ の下のテストが 0 本になって黙って通るのを防ぐ)。npx は通さない: npx は
 //   コマンドを shell に渡し、shell の glob が [[]id[]] を [id] に戻してしまう(tsx の cli を node で直に起動する)。db の群は env ENV_FILE=.env.development(未設定なら)。門番の全開スイッチ FEATURE_GATE_OPEN は子に渡さない。
@@ -30,7 +32,6 @@ export const BASE_ARGS = [
   "--import",
   "./scripts/runner/preload/fileTimeout.mjs",
   "--experimental-test-module-mocks",
-  "--test-force-exit",
 ];
 const USAGE = "pnpm test [<パス | glob>...] [--group=unit|fork|db] [--db] [--changed] [--list] [--file-timeout=<秒>] [--test-timeout=<秒>]";
 /** test() 1 つの時間の上限の既定(秒) */

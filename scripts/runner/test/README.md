@@ -13,12 +13,13 @@ pnpm test --file-timeout=300    # 1 ファイルの時間の上限を延ばす(�
 
 - 走査: 毎回、git の追跡 + 未追跡(無視されない物)の `*.test.{ts,tsx,mts,mjs,js,cjs}`。一覧ファイルは無い。除く物: `tests/e2e/`(動いているアプリを外から見る物、playwright = `pnpm e2e`)・`*.types.test.*`(型のテスト = `pnpm typecheck` が見る)。`servers/`(別のプログラム)は引数のパス・glob がそこを名指しした時(`pnpm test servers/room`)と、`--changed` の範囲に `servers/` の下の変更がある時だけ(/ship が変えた時に回す)
 - 群(ファイル名で決まる): `db` = `*.db.test.*` / `fork` = `tests/` の下(fork が足すテスト)/ `unit` = それ以外
-- 起動: `node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --import ./scripts/runner/preload/fileTimeout.mjs --experimental-test-module-mocks --test-force-exit --test-timeout=<ms> --test <files>`(1 ファイル 1 プロセス)。下駄・時間の上限・module mocks・終わり方は入口が常に付けるのでテストに書かない
+- 起動: `node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --import ./scripts/runner/preload/fileTimeout.mjs --experimental-test-module-mocks --test-timeout=<ms> --test <files>`(1 ファイル 1 プロセス)。下駄・時間の上限・module mocks は入口が常に付けるのでテストに書かない
   - `--test` の後のファイルを node は glob として読む → 入口はパスの `[ ] { } * ?` を `[x]` の形にして渡す(`[id]/` の下は `[[]id[]]/`)。そのまま渡すと `src/app/**/[id]/` の下のテストが 0 本になり、黙って通る
   - `npx` は通さない: コマンドを shell に渡すので、shell の glob が `[[]id[]]` を `[id]` に戻してしまう(tsx の cli を node で直に起動する)
 - ほかの node のフラグ: ファイルの先頭行に `// test-flags: <flags>`。入口の許可の一覧(`scan.mjs` の `ALLOWED_FLAGS`、今は空)の物だけ渡し、ほかは止める(exit 2)。足すのは上流
 - `--changed`: 範囲(門の watch と同じ: 比べる枝との分岐点..HEAD + 作業ツリー + 未追跡、`scripts/runner/gates/changed.mjs`)の変更したファイルについて、テストのファイルから import を辿って(dpdm、`@/` は tsconfig)届くテストと、変更したファイルと同じフォルダのテストを選ぶ。辿れなかったテストは同じフォルダの規則だけで選び「依存を辿れなかった」と出す。範囲が決まらなければ全部回す
-- 終わり方(`--test-force-exit`): テストが全部終わったら、接続・タイマーが残っていてもファイルのプロセスを終える。偽物にし忘れた hook の通信(SWR + axios)・閉じ忘れたサーバーで止まらない(結果は変わらない。残り物には気づかないので、テストは本物の通信を偽物にする)
+- 終わり方: ファイルのプロセスは自然に終わるのを待つ。偽物にし忘れた hook の通信(SWR + axios)・閉じ忘れたサーバー・止め忘れたタイマーが残ったファイルは終わらず、1 ファイルの上限(下)で `時間切れ` として名前付きで落ちる → テストの側で本物の通信を偽物にする・閉じる
+  - `--test-force-exit` は使わない: テストが終わった子を、報告を親へ書き切る前に終えるので、ファイルの後ろの方のテストの結果が消える。消えた分は pass にも fail にも数えられず exit も変わらない(そこで落ちたテストが隠れる)。実測: 同じ木の pnpm test 全体で、付けると 4156〜4195 本と回ごとに揺れ、付けなければ毎回 4219 本
 - 時間の上限(test() 1 つごと): 既定 **60 秒**(node の `--test-timeout`)。終わらない test() は名前付きで落ちる。延ばす: `pnpm test --test-timeout=<秒>` か env `TEST_TIMEOUT=<秒>`(フラグが勝つ、`0` = なし)。1 つだけ長いテストは `test("…", { timeout: <ms> }, …)` で自分で延ばす
 - 時間の上限(1 ファイルごと): 既定 **120 秒**。過ぎたファイルは `test: 時間切れ <秒> 秒: <ファイル>` を出して落ち、まとめの failing tests に名前が出る。ほかのファイルは回り続ける
   - 延ばす: `pnpm test --file-timeout=<秒>` か env `TEST_FILE_TIMEOUT=<秒>`(フラグが勝つ)。`0` = 上限なし(調べる時だけ)

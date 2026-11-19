@@ -120,8 +120,8 @@ test("起動: 下駄と module mocks を常に付け、群(db は ENV_FILE)と�
       "--import",
       "./scripts/runner/preload/fileTimeout.mjs",
       "--experimental-test-module-mocks",
-      "--test-force-exit",
     ]);
+  assert.ok(!BASE_ARGS.includes("--test-force-exit"), "force-exit は報告の終わりを消すので付けない(README 終わり方)");
   let spawned = 0;
   const bad = await run([], { ...deps, readFlags: () => ({ flags: ["--inspect"], problem: "許可されていないフラグ --inspect" }), spawn: () => (spawned++, 0) });
   assert.equal(bad, 2);
@@ -208,18 +208,24 @@ test("test() 1 つの上限: 既定 60 秒、env TEST_TIMEOUT・フラグで変�
   assert.equal(spawned, 0);
 });
 
-test("終わり方(実物): --test-force-exit で、通った後に接続・タイマーが残るファイルもすぐ終わる。終わらない test() は --test-timeout で名前付きで落ちる", () => {
-  const dir = mkdtempSync(join(tmpdir(), "runner-force-exit-"));
+test("終わり方(実物): 通った後に接続・タイマーが残るファイルは 1 ファイルの上限で名前付きで落ち、終わらない test() は --test-timeout で落ちる。報告は全部届く", () => {
+  const dir = mkdtempSync(join(tmpdir(), "runner-file-end-"));
   writeFileSync(join(dir, "leak.test.mjs"), 'import { test } from "node:test";\ntest("passes but leaves a handle", () => { setInterval(() => {}, 1000); });\n');
   writeFileSync(join(dir, "wait.test.mjs"), 'import { test } from "node:test";\ntest("never resolves", async () => { await new Promise(() => { setInterval(() => {}, 1000); }); });\n');
-  const env = { ...process.env };
+  writeFileSync(join(dir, "many.test.mjs"), 'import { test } from "node:test";\nfor (let i = 0; i < 200; i++) test(`t${i}`, () => {});\n');
+  const env = { ...process.env, TEST_FILE_TIMEOUT: "2" };
   delete env.NODE_TEST_CONTEXT;
-  const args = ["--test-force-exit", ...testTimeoutArgs("1", {}).args, "--test", "--test-concurrency=0"];
+  const preload = join(import.meta.dirname, "../preload/fileTimeout.mjs");
+  const args = ["--import", preload, ...testTimeoutArgs("1", {}).args, "--test", "--test-concurrency=0"];
   const started = Date.now();
   const leak = spawnSync(process.execPath, [...args, "leak.test.mjs"], { cwd: dir, encoding: "utf8", env, timeout: 30_000 });
-  assert.equal(leak.status, 0, leak.stdout + leak.stderr);
+  assert.equal(leak.status, 1, leak.stdout + leak.stderr);
+  assert.match(leak.stdout + leak.stderr, /時間切れ 2 秒: leak\.test\.mjs/);
   const wait = spawnSync(process.execPath, [...args, "wait.test.mjs"], { cwd: dir, encoding: "utf8", env, timeout: 30_000 });
   assert.equal(wait.status, 1, wait.stdout + wait.stderr);
   assert.match(wait.stdout, /✖ never resolves/);
-  assert.ok(Date.now() - started < 20_000, "どちらもすぐ終わる");
+  const many = spawnSync(process.execPath, [...args, "many.test.mjs"], { cwd: dir, encoding: "utf8", env, timeout: 30_000 });
+  assert.equal(many.status, 0, many.stdout + many.stderr);
+  assert.match(many.stdout, /ℹ tests 200\b/);
+  assert.ok(Date.now() - started < 20_000, "どれもすぐ終わる");
 });

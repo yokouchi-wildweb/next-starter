@@ -537,3 +537,4 @@
 - id:20261118-050940-devcheck-test-policy-key-type | severity:info | checkpoint:devcheck-test-policy-key-type | fixes:20261118-095901-agent-policy-defaults-manual | pick:clean
 - id:20261118-044933-v2-checks | severity:action-required | checkpoint:v2-checks
 - id:20261118-061100-v2-stacking | severity:action-required | checkpoint:v2-stacking
+- id:20261119-092123-test-no-force-exit | severity:action-required | checkpoint:test-full-report | fixes:20261117-181158-test-force-exit | pick:clean
