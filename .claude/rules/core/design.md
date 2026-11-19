@@ -41,7 +41,7 @@ map (every core file, loaded by its paths):
 ## authoring (the ladder: before adding or changing any rule)
 - 1 find its place with places above | 2 write it in that file in this file's formats (paths globs: one-level braces only, nested braces never load) | 3 pnpm check rules | 4 /ship (the why goes in the commit body)
 - usual path, no order needed: write a card, a README or a service file | add a rule for a place to an existing core file | fix an existing CLAUDE.md item together with its source item
-- window (order first, even for the Tier1 session: /order next-starter; a fork: /order <direct parent>, relayed up): a CLAUDE.md item or section added, or a key removed or renamed | a core file added, removed, renamed or its paths widened | a new scene kind or card category | a check or MANDATORY rule binding forks | a clash between rules of different owners
+- window (order first, even for the Tier1 session: /order next-starter; a fork: /order <direct parent>, relayed up): a CLAUDE.md item or section added, or a key removed or renamed | a core file added, removed, renamed or its paths widened | a new card category | a check or MANDATORY rule binding forks | a clash between rules of different owners
 - coverage: every upstream file and every intake.txt place must hit the paths of an upstream core file or card (pnpm check rules; a fork's own files are not counted) | a gap → widen the core file that holds that place's rules (a window item) | only a place that truly needs no rule → .claude/rules/core/uncovered.txt with its reason
 - the window decides: the Tier1 session handling next-starter's inbox + the user's approval (/inbox)
 - a missing or wrong rule you do not own → /order <direct parent> | until it ships, a provisional rule in your own rules (outside core/) ending with `(order: <id>)`, followed while the order is open, removed when it ships as resolves: (/flux asks)
@@ -56,12 +56,12 @@ map (every core file, loaded by its paths):
   - change: the type (replace / overlay / add / placement) + its declaring file | none → /order <direct parent>
   - rules: split into using: and editing: | one rule per line `- <key>: <text>`, keys unique within the card | never clash with CLAUDE.md
   - read: work scene → README h2 (`→ <h2>` = the item's README, `→ <path>.md <h2>` = another file)
-- never: a hand-written dependency list | size ≤ 2,000 chars | pnpm check rules checks the format (a Tier1 card fails, a fork's own card notifies)
+- never: a hand-written dependency list | size ≤ 10,000 chars | pnpm check rules checks the format (a Tier1 card fails, a fork's own card notifies)
 
 ## service (.claude/rules/service/<business>.md)
 - written only by a tier that defines a business (a middle tier or leaf), never by Tier1 | no paths: always loaded | one or more files per tier, named by the business concept, never the repo name
 - body: what the service is | its base domains and their relations | main flows | premises and terms | pointers to cards
-- an ancestor's file is never edited, deleted or renamed below (ownership check) → /order <direct parent>; add your own business in another file | target 5,000-6,000 chars (warns only) | not src/business (= business identity values)
+- an ancestor's file is never edited, deleted or renamed below (ownership check) → /order <direct parent>; add your own business in another file | size ≤ 40,000 chars | not src/business (= business identity values)
 
 ## self_files (each repo keeps its own version; a merge never takes the parent's)
 - project.md: this repo's overview + tier-only info (Tier1: the maker's duty and stance) | behavior.md: work rules | repo.json: machine values (repo_id, tier, agent policy), flat keys one per line, written only through its command, read only via forkIds.mjs
@@ -69,7 +69,7 @@ map (every core file, loaded by its paths):
 - a fork's context files are not checked by upstream beyond the self check (file present, parent's version taken in, overview not left as the parent's): the fork tidies them itself
 
 ## size (chars, not lines)
-- one core file: target 5,000 | notify 9,000 | fail 10,000 | one line ≤ 400 chars in CLAUDE.md, core files, cards, service
-- a scene (upstream core files + upstream cards loaded while doing it; CLAUDE.md, service and fork context files not counted): target 24,000 | notify 33,000 | fail 36,000 | a one-layer scene aims at 16,000
-- scenes: the scene data = .claude/rules/core/scenes.jsonl (one JSON line per scene: id, scene, files it touches; not a rule file, never loaded) | pnpm check rules sums each scene | CLAUDE.md fails at 36,000 only from the CLAUDE.md rewrite on, until then notify only
-- over a notify line → still ship, and the shipping session files one condense order to the window (none if one with the same title is open) | a new kind of place to write → add its scene
+- CLAUDE.md: notify 37,000 (still ship; the shipping session files one condense order to the window, none if one with the same title is open) | fail 40,000 (Claude Code warns per file there) | no target: inside the line, a longer CLAUDE.md that holds the needed rules is fine
+- one core file, one service file, one README: fail 40,000 | one card: fail 10,000 | no notify line or target for these
+- one line ≤ 400 chars in CLAUDE.md, core files, cards, service | never cut a needed line or a blank line to fit a size
+- the amount loaded per work scene is not counted or limited

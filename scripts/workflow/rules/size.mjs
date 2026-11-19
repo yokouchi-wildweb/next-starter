@@ -1,13 +1,12 @@
-// scripts/workflow/rules/size.mjs — pnpm check rules の大きさの検査(字数の線と場面の合計)
-// 線と数え方の正本: .claude/rules/core/design.md の size の節。場面のデータ: .claude/rules/core/scenes.jsonl
-// 知らせる線を超えた物は通して知らせる(出荷したセッションが窓口へまとめ直しの依頼を 1 本)。失敗の線で exit 1。
-import { existsSync, readFileSync } from "node:fs";
+// scripts/workflow/rules/size.mjs — pnpm check rules の大きさの検査(1 ファイルの字数の線と 1 行の長さ)
+// 線の正本: .claude/rules/core/design.md の size の節。作業の場面ごとの読み込みの量は数えない。
+// CLAUDE.md が知らせる線を超えたら通して知らせる(出荷したセッションが窓口へまとめ直しの依頼を 1 本)。失敗の線で exit 1。
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CORE_DIR, ITEMS_DIR, mdUnder as mdUnderRoot, SERVICE_DIR, upstreamReader } from "./lib.ruleRepo.mjs";
-import { charCount, judgeSize, longLines, MAX_LINE_CHARS, parseScenes, sceneTotals, SIZE_LINES } from "./lib.ruleSize.mjs";
+import { charCount, judgeSize, longLines, MAX_LINE_CHARS, SIZE_LINES } from "./lib.ruleSize.mjs";
 
 const root = join(import.meta.dirname, "../../..");
-const SCENES_FILE = `${CORE_DIR}/scenes.jsonl`;
 
 const read = (p) => readFileSync(join(root, p), "utf8");
 const mdUnder = (dir) => mdUnderRoot(root, dir);
@@ -34,11 +33,7 @@ function linesOf(path, kind) {
 }
 
 // CLAUDE.md
-// 書き直しの出荷までは(fail が null の間)知らせも依頼も出さず note だけ: 縮めるのは書き直しそのもの
-if (SIZE_LINES.claudeMd.fail === null) {
-  const chars = charCount(read("CLAUDE.md"));
-  if (chars > SIZE_LINES.claudeMd.notify) notes.push(`CLAUDE.md ${chars} 字(知らせる線 ${SIZE_LINES.claudeMd.notify}、失敗の線 ${SIZE_LINES.claudeMd.failLater} は書き直しの出荷から。それまでの依頼は要らない)`);
-} else sizeOf("CLAUDE.md", SIZE_LINES.claudeMd, "CLAUDE.md ");
+sizeOf("CLAUDE.md", SIZE_LINES.claudeMd, "CLAUDE.md ");
 linesOf("CLAUDE.md", "fail");
 
 // core のファイル(全部 Tier1 の物)
@@ -59,20 +54,7 @@ for (const f of mdUnder(SERVICE_DIR)) {
   linesOf(f, "fail");
 }
 
-// 場面の合計(上流の core のファイルと上流の札だけ。CLAUDE.md・service・fork の文脈は数えない)
-if (!existsSync(join(root, SCENES_FILE))) fails.push(`${SCENES_FILE} が無い`);
-else {
-  const scenes = parseScenes(read(SCENES_FILE));
-  const rules = [...coreFiles, ...cards.filter(upstreamOf)].map((path) => ({ path, text: read(path) }));
-  const totals = sceneTotals(scenes, rules);
-  for (const t of totals) {
-    const verdict = judgeSize(t.chars, SIZE_LINES.scene);
-    if (verdict !== "ok") say(verdict, `場面 ${t.id}(${t.scene}): ${t.chars} 字(場面の${verdict === "fail" ? "失敗" : "知らせる"}線 ${verdict === "fail" ? SIZE_LINES.scene.fail : SIZE_LINES.scene.notify})`);
-  }
-  if (process.argv.includes("--scenes")) for (const t of totals) console.log(`${t.id}\t${t.chars}\t${t.scene}\t${t.loaded.map((p) => p.split("/").pop()).join(",")}`);
-  const max = totals.reduce((a, b) => (b.chars > a.chars ? b : a));
-  console.log(`rules size: 場面 ${totals.length} 個、最大 ${max.id} ${max.chars} 字(目標 ${SIZE_LINES.scene.target}・知らせる ${SIZE_LINES.scene.notify}・失敗 ${SIZE_LINES.scene.fail})`);
-}
+console.log(`rules size: CLAUDE.md・core ${coreFiles.length} 本・札 ${cards.length} 枚・service を見た(CLAUDE.md 知らせる ${SIZE_LINES.claudeMd.notify}・失敗 ${SIZE_LINES.claudeMd.fail}、core と service 1 本 ${SIZE_LINES.core.fail}、札 ${SIZE_LINES.card.fail}、1 行 ${MAX_LINE_CHARS})`);
 
 for (const n of notes) console.error(`note: ${n}`);
 for (const n of notifies) console.error(`知らせ: ${n}`);

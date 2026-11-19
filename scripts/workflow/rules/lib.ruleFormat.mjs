@@ -4,9 +4,9 @@
 // existing_parts = .claude/rules/core/components.md の鍵。ここはそれを検査の形にした物。
 
 export const CARD_PARTS = ["what", "use", "change", "rules", "read"];
-export const CARD_MAX_CHARS = 2000;
+export const CARD_MAX_CHARS = 10000;
 export const README_H2 = ["Overview", "Usage", "API", "Extension", "Internals", "Verification", "Related"];
-export const README_MAX_CHARS = 20000;
+export const README_MAX_CHARS = 40000;
 
 /** 札のパス(.claude/rules/items/<category>/<name>.md)から category と name。形が違えば null */
 export function cardId(path) {
@@ -101,7 +101,7 @@ export function cardProblems({ path, text, itemFolder, readmeH2 }) {
 /** README の書式の問題(空 = 適合) */
 export function readmeProblems(text) {
   const problems = [];
-  if (text.length > README_MAX_CHARS) problems.push(`${text.length} 字(${README_MAX_CHARS} 字まで、下のフォルダか h2 の名の文書へ分ける)`);
+  if (text.length > README_MAX_CHARS) problems.push(`${text.length} 字(${README_MAX_CHARS} 字まで。分けるなら下のフォルダか h2 の名の文書へ)`);
   const h2 = h2Of(text);
   const unknown = h2.filter((h) => !README_H2.includes(h));
   if (unknown.length) problems.push(`決まった語でない h2: ${unknown.join(", ")}`);

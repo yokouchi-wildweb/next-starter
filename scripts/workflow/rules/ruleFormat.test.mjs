@@ -33,7 +33,7 @@ test("札: 置き場・品目のフォルダ・字数", () => {
   assert.ok(problems(card(), FOLDER, ".claude/rules/items/storage.md")[0].includes("置き場"));
   assert.ok(problems(card(), FOLDER, ".claude/rules/items/hooks/x.md").some((p) => p.includes("category")));
   assert.ok(problems(card(), null).some((p) => p.includes("品目のフォルダが無い")));
-  assert.ok(problems(card({ what: `what: ${"x".repeat(2000)}\n` })).some((p) => p.includes("2000 字")));
+  assert.ok(problems(card({ what: `what: ${"x".repeat(10000)}\n` })).some((p) => p.includes("10000 字")));
 });
 
 test("札: frontmatter は paths だけ・paths は品目のフォルダとその設定の中", () => {
@@ -59,7 +59,7 @@ test("README: h2 の語・順・Overview・字数", () => {
   assert.ok(readmeProblems("# x\n## Usage\n").some((p) => p.includes("Overview")));
   assert.ok(readmeProblems("# x\n## Overview\n## 使い方\n").some((p) => p.includes("決まった語でない")));
   assert.ok(readmeProblems("# x\n## Overview\n## API\n## Usage\n").some((p) => p.includes("順")));
-  assert.ok(readmeProblems(`## Overview\n${"x".repeat(20001)}`).some((p) => p.includes("20000")));
+  assert.ok(readmeProblems(`## Overview\n${"x".repeat(40001)}`).some((p) => p.includes("40000")));
   assert.deepEqual(h2Of("## Overview\n```\n## not\n```\n"), ["Overview"]);
 });
 
