@@ -20,6 +20,9 @@ test("読み手: 属性の字面だけを数え、セレクタの文字列は数
   assert.deepEqual(attributeSlotsOf(`<div data-slot="a-b" />\n  data-slot="c"\nclosest('[data-slot="dialog-overlay"]')`), ["a-b", "c"]);
   assert.deepEqual(readmeSlotsOf("# X\n\n## data-slot の一覧\n\n- `x` — 説明\n- `x-y` — 説明\n\n## 次\n- `z`"), ["x", "x-y"]);
   assert.equal(readmeSlotsOf("# X\n"), null);
+  // 見出しの深さに依らず、同じか浅い次の見出しで閉じる(後ろの別の h3 の節の行は拾わない)
+  assert.deepEqual(readmeSlotsOf("# X\n## Internals\n### data-slot の一覧\n- `a`\n#### 注記\n- `b`\n### 別の節\n- `c`\n## Related\n- `d`"), ["a", "b"]);
+  assert.deepEqual(readmeSlotsOf("# X\n#### data-slot の一覧\n- `a`\n### 上\n- `z`"), ["a"]);
 });
 
 test("部品ごと: README の一覧 = 部品のファイルの印(17 部品、Slot は印なし)", () => {

@@ -18,9 +18,13 @@ export function primitiveUnits(repoRoot) {
 
 /** README の「## data-slot の一覧」の行 `- \`<名前>\`` の名前(節が無ければ null) */
 export function readmeSlotsOf(readme) {
-  const at = readme.search(/\n#{2,3} data-slot の一覧/);
-  if (at < 0) return null;
-  const section = readme.slice(at + 1).split(/\n## /)[0];
+  // 見出しの深さに依らず(h2〜h4)見つけ、同じ深さか浅い次の見出しで節を閉じる(README の h2 を 7 つに揃えると節が h3 に下がるため)
+  const head = /(^|\n)(#{2,4}) data-slot の一覧[^\n]*\n/.exec(readme);
+  if (!head) return null;
+  const depth = head[2].length;
+  const body = readme.slice(head.index + head[0].length);
+  const next = new RegExp(`\\n#{1,${depth}} `).exec(`\n${body}`);
+  const section = next ? body.slice(0, Math.max(0, next.index - 1)) : body;
   return [...section.matchAll(/^- `([a-z0-9-]+)`/gm)].map((m) => m[1]);
 }
 

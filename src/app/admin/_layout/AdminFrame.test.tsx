@@ -79,10 +79,9 @@ const slotsInSources = () => {
 
 /** README の「data-slot の一覧」の節の名前(行頭 `- \`<名前>\``) */
 const slotsInReadme = () => {
-  const readme = read("src/app/admin/_layout/README.md");
-  const section = /\n## data-slot の一覧\n([\s\S]*?)(\n## |$)/.exec(readme)?.[1];
-  assert.ok(section, "README に「## data-slot の一覧」の節が無い");
-  return [...section.matchAll(/^- `([a-z0-9-]+)`/gm)].map((m) => m[1]);
+  const listed = primitiveSlots.readmeSlotsOf(read("src/app/admin/_layout/README.md"));
+  assert.ok(listed, "README に「data-slot の一覧」の節が無い");
+  return listed;
 };
 
 test("README の data-slot の一覧 = 管理の枠の部品の要素の data-slot(片方にしか無い名前なし)= 部位の一覧の管理の枠", () => {

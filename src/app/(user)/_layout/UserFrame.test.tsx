@@ -36,11 +36,9 @@ const sourcesUnder = (dir: string): string[] =>
 const slotsIn = (text: string) => [...text.matchAll(/data-slot="([a-z-]+)"/g)].map((m) => m[1]);
 /** README の「data-slot の一覧」の節の `- \`<名前>\`` の行 */
 const readmeSlots = () => {
-  const readme = read(`${LAYOUT}/README.md`);
-  const at = readme.indexOf("## data-slot の一覧");
-  assert.ok(at >= 0, "README に「data-slot の一覧」の節が無い");
-  const section = readme.slice(at).split(/\n## /)[0];
-  return [...section.matchAll(/^- `([a-z-]+)`/gm)].map((m) => m[1]);
+  const listed = primitiveSlots.readmeSlotsOf(read(`${LAYOUT}/README.md`));
+  assert.ok(listed, "README に「data-slot の一覧」の節が無い");
+  return listed;
 };
 
 test("README の data-slot の一覧 = 枠の部品と Main の要素の data-slot = 部位の一覧の利用者の枠と Main", () => {
