@@ -539,3 +539,4 @@
 - id:20261118-061100-v2-stacking | severity:action-required | checkpoint:v2-stacking
 - id:20261119-092123-test-no-force-exit | severity:action-required | checkpoint:test-full-report | fixes:20261117-181158-test-force-exit | pick:clean
 - id:20261119-024228-v2-content | severity:action-required | checkpoint:v2-content | moved:.claude/rules/core/code-generation.md -> .claude/rules/core/generated.md; .claude/rules/core/servers.md -> .claude/rules/core/backends.md; .claude/rules/core/crud-service.md -> .claude/rules/core/services.md; .claude/rules/core/stores.md -> .claude/rules/core/client.md | fixes:20261118-061100-v2-stacking | pick:-
+- id:20261119-160932-merge-patterns | severity:info | checkpoint:merge-patterns

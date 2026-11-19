@@ -15,6 +15,7 @@ the following files in this folder hold rules needed only by forks / segments th
   - own `tier` is root or middle (OWN FORK IDENTITY AND LEDGER 5 below; declaration missing / wrong → stop there)
   - mode is `status --chain` or `relay`
 - **the caller's steps file** (argument `steps:<path>`, a tool that runs /flux its own way): read it **first, before anything else**, and follow it | where it says nothing, this skill holds as written | it says itself where the ledger, the checks and the push happen (and any modes or cues of its own)
+- **`patterns.md`** (the 4 merge patterns: Backport / Refine / Handoff / Rejoin): read before the overview of every run that builds segments | the plan names a pattern where it applies, in its line form, and takes the usual approval
 - **`moved.md`** (porting moves / renames): any notice of the next segment (covers side and covered side included) has `moved:` → read it before that segment's detailed plan (step 2)
 - notice id mode (no reconnaissance, no segment building): judge the same conditions for the target notice and this fork; when they hit, read before step 5
 
@@ -235,6 +236,9 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 - it reads only the upstream tip's permanent index (`.notices/shipped/*.md`, 1 notice = 1 line) and the history of commits that added notices, not the bodies, so the answer does not change even when upstream deleted bodies of closed segments (`.notices/README.md` section `出荷索引と本文の読み方`)
 - run (runs the upstream tip's version like the steps; a self-contained single file, so it works even when the fork's tree lacks it): `git show <upstream>/<branch>:.claude/skills/flux/incoming.mjs > .flux/incoming.mjs && node .flux/incoming.mjs --upstream=<upstream>/<branch> --json` (`.flux/` = the same out-of-git place as the work memo) (cwd = the fork's repo)
 - output: per segment number / merge target (`target`; none for segment 0) / label / notices (`id`, `owner` = name of the index it is in, `grandparent`, `point` = checkpoint point, `body` = where to read the body `<足した commit>:<パス>`, `fields` = the line's fields, `covered` = covered ids riding on that notice, `skipCheckpoint`) and `warnings`
+- a segment with `pattern: "Rejoin"` (→ patterns.md REJOIN): upstream history split into two lines and merged
+  - the tool already put the line with more checkpoints first and the other line into the segment whose target is the merge (`rejoinMerge`) | name it in the overview with its line form
+  - `rejoin.undecided` = the tool did not decide (`why`): show it with the reason and STOP before that segment (ask which line goes first; never reorder by hand without the answer)
 - a segment with `offLine: true` (a `脇の commit` line in the human-readable output) = its merge target is not a descendant of the previous position (merge-base of HEAD and upstream / the previous segment's merge target)
   - the shape where a fix was shipped as a side commit off the broken point and merged; appears in forks that did not take (did not pick / could not pick) that fix
   - show that segment in the overview with the label below; it stops at step 5a
@@ -319,6 +323,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
    - **overview**: every remaining segment, one line each
      - the work memo's segment table: number / short sha of the merge target / checkpoint label / notice id / marks for fix, porting, hotfix, and the count excluded as inherited
      - chat: only number + Japanese gist + notes that matter for the decision (`区間 13 で修正される`, `移植あり`) (flux-stop `残りの概観`) | it is the human's material for how far to go today, so write nothing more
+     - a merge pattern that applies (→ patterns.md: Rejoin from the tool's output; Backport / Refine / Handoff found while planning or applying) → its one line in the overview or the next segment's plan | it changes no approval
    - **the next segment's script**: read in full only the notices of the next segment (segment 0 when it exists) (`git show <incoming.mjs の body>`; for upstream without the tool, incoming ones with `git show <upstream>/<branch>:.notices/<id>.md`)
      - turn required_actions into **an application plan mapped onto this repo's reality** (target files, commands, order, `[user-run]` join points, verify steps) and write it in the work memo
      - also put in the script: CONFLICT FORECAST, `移動元の編集` (→ moved.md), UPSTREAM CHANGE SWEEP, REVIEW OF FORK EDITS IN UPSTREAM-OWNED PATHS (above; merge-only segments without notices too), and, with porting, its content (move source → destination per pair, file count, line count, gist of the fork's edits)
