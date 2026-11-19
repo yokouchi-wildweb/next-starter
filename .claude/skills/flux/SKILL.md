@@ -26,6 +26,15 @@ the `/flux` version a fork merged can be many segments older than upstream's, an
 3. tools upstream's steps need (scripts, pnpm scripts, tests, files) are missing from the fork's tree or of another version: skip those steps and put them in the report and in FINDINGS FOR UPSTREAM | never stop or fail because of it (the tools arrive with that segment's merge)
 4. modes without fetch (notice id given) also do 1-2 when the `<upstream>/<branch>` ref exists | upstream's version cannot be read → go on with this text and write it in the report
 
+## ORIGIN SYNC (catch up with this fork's own remote before building on HEAD)
+another session or machine may have pushed this fork's branch (a /flux of its own included) | building on a stale HEAD counts notices its ledger already holds as unapplied, and the push at step 7d fails after the segment's merge and commit
+1. `git fetch <remote of @{u}>` (the current branch's tracking branch `@{u}`, usually `origin/<branch>`) | no tracking branch → skip and write one line in the report
+2. behind = `git rev-list --count HEAD..@{u}`, ahead = `git rev-list --count @{u}..HEAD`
+3. behind 0 → go on (ahead > 0 = own unpushed commits, pushed with the segment)
+4. behind > 0, ahead 0, clean work tree → `git merge --ff-only @{u}` | one line `origin に追いつく: <短 sha>..<短 sha>(N commits)` in the report
+5. behind > 0 and ahead > 0 (diverged) → no rebase, merge or reset on your own | show both sides (`git log --oneline HEAD..@{u}` / `@{u}..HEAD`) and options (`origin に合わせて手元を捨てる` / `手元を origin の上に載せ直す` / `ここで止める`); STOP: wait
+6. `status` mode: steps 1-2 only, report behind / ahead, never merge
+
 ## PRINCIPLES
 - **derive state from files and history, not events**: "the set of live notices in the tree" − "the set of inherited notices (judged automatically from the fork's founding point, below)" − "the set recorded in own fork ledger" = unapplied | who merged and when does not matter (a manual merge / a merge on GitHub / this command's merge are all the same)
 - **plan in detail only the next segment, approve per segment** (default)
@@ -318,7 +327,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
 - end of a batch: stop the same as step 4's segment end (the segment report covers every segment of the batch, the next plan = the next batch)
 
 ## FULL FLOW
-1. **reconnaissance**: `git fetch <upstream>` → unmerged commit count (`git rev-list --count HEAD..<upstream>/<branch>`) → BUILDING SEGMENTS above (up to the overview of all segments) | uncommitted changes in the working tree → report them first; STOP: confirm whether they may be stashed
+1. **reconnaissance**: uncommitted changes check (below) → ORIGIN SYNC above → `git fetch <upstream>` → unmerged commit count (`git rev-list --count HEAD..<upstream>/<branch>`) → BUILDING SEGMENTS above (up to the overview of all segments) | uncommitted changes in the working tree → report them first; STOP: confirm whether they may be stashed
 2. **overview and the next segment's plan**:
    - **overview**: every remaining segment, one line each
      - the work memo's segment table: number / short sha of the merge target / checkpoint label / notice id / marks for fix, porting, hotfix, and the count excluded as inherited
@@ -334,7 +343,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
 4. **segment loop**: **complete** steps 5-7 for the approved segment | on failure, never paper over it, stop (the fork stays consistent at the previous checkpoint; rerunning continues from the remaining segments)
    - **segment end** (default):
      - first check the 4 of CONDITIONS TO MOVE ON above (missing → no next plan; settle it in that segment or stop as a stop condition)
-     - all hold → redo `git fetch <upstream>`, make step 2's detailed plan for the next segment (overview: only what changed since last time)
+     - all hold → ORIGIN SYNC above (step 4 caught up mid-sortie = another session moved this fork: rerun `incoming.mjs`, rebuild the next plan from the new HEAD and stop for approval even under `all` / `light` / a batch) → redo `git fetch <upstream>`, make step 2's detailed plan for the next segment (overview: only what changed since last time)
      - give step 8's segment report + the next segment's plan and ask in plain text `次の区間 k+1/N をこの計画で進めますか?(go / go last / 再計画 / ここで終える)`; STOP: **wait**
      - go → one next segment with that plan (a batch → the next batch) | go last → GO LAST below
      - finished the end-point (`to`) segment → make no next plan, do not ask, give the final report (step 8) and end
@@ -354,7 +363,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
      - no merge, application or commit | redo `git fetch <upstream>`, rerun `incoming.mjs` (lines added to upstream's index = later fixes / `skip_checkpoint:` change the segments), reread the next segment's notices (`git show <body>`; the body is the adding commit's version and does not change, but the segment's contents may), rebuild step 2's detailed plan
      - show the difference from the earlier plan in 1-2 lines and ask the same question again (step 3: `go` / `go last` / `いいえ`; segment end: `go` / `go last` / `再計画` / `ここで終える`); STOP | the earlier go / go last do not approve the rebuilt plan
      - never redo the report of the segment just finished (step 8) (that segment's result stands)
-   - **on receiving go**: HEAD still the previous segment's commit, clean work tree, (when the next segment is the tail segment) the upstream branch head unchanged since planning → all hold → go on with that plan
+   - **on receiving go**: HEAD still the previous segment's commit, clean work tree, ORIGIN SYNC steps 1-2 give behind 0, (when the next segment is the tail segment) the upstream branch head unchanged since planning → all hold → go on with that plan
      - a segment closed by a checkpoint has a fixed merge target, so the plan does not change even when upstream moved ahead | any differs → rebuild the next segment's plan, show the diff; STOP: get approval again
    - `all`: at each segment switch, report `区間 k/N 完了(checkpoint: <label>)` and the gist of the next segment's plan in 1-2 lines, and go on to the next plan → execute without stopping | the next segment is heavy, or its origin is unapplied (except those with a pick-clean fix pick) → stop before it; STOP: get approval | with an end point (`to`), end at that segment
    - `light`: at a segment end, make the next segment's detailed plan; light (above) → report 1-2 lines like `all` and go on without approval | not light → stop as default; STOP: get approval
