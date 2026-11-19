@@ -1,7 +1,7 @@
 // src/lib/domain/relations/utils.ts
 // リレーション汎用ユーティリティ
 
-import { toSnakeCase } from "@/utils/stringCase.mjs";
+import { toSnakeCase } from "@/lib/stringCase/index.mjs";
 import type { RelationType, RelationInfo, DomainDisplay } from "../types";
 
 export type { RelationType, RelationInfo };

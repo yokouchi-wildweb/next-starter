@@ -5,7 +5,7 @@
 // 型と入力欄の組の外れ・入力欄（select など）の選択肢の無さは、実行時に別の場所から補う使い方があるので警告だけ（fieldsWarnings）
 // enum の switchInput は options がちょうど 2 つのときだけ働く（inputResolver が 1 つ目をオン・2 つ目をオフに描く。それ以外は boolean のスイッチになり enum に入らない）ので、数の外れも警告
 
-import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 import {
   allowsDefaultValue,
   isArrayFieldType,

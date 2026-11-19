@@ -4,7 +4,7 @@
 // リレーション import）を組み立てる。フォルダ名を手で変えたドメインを生成すると、存在しない
 // `@/features/<camel(singular)>/...` への参照や別フォルダへの生成物が黙って書き出されるため、生成前に止める。
 
-import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 
 /**
  * @param {string} folder src/features/ 直下のフォルダ名

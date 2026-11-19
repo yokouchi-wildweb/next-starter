@@ -17,7 +17,7 @@ import path from "node:path";
 
 import { resolveImport } from "../../../eslint-rules/resolve-import.mjs";
 import { libOfPath, readLibPackage } from "../../../src/lib/libPackage/index.mjs";
-import { createExportReader, entryForFile, entryIndex, probeFile } from "./codemod.mjs";
+import { createExportReader, entryForFile, entryIndex, entrySpecifier, probeFile } from "./codemod.mjs";
 
 const SOURCE_EXTS = ["ts", "tsx", "mts", "mjs", "js"];
 const SPEC_RE = /["'](@\/[^"'\s]+)["']/g;
@@ -38,7 +38,6 @@ function fileIn(tree, resolved) {
 }
 
 /** 入口の鍵 → 指定子("." → @/lib/<lib>、"./x" → @/lib/<lib>/x) */
-const entrySpecifier = (lib, key) => (key === "." ? `@/lib/${lib}` : `@/lib/${lib}/${key.replace(/^\.\//, "")}`);
 
 /**
  * 印のファイル(出す名前が全部、同じ lib の 1 つの入口から出ている re-export だけのファイル)の入口の鍵。違えば null
@@ -123,7 +122,7 @@ export function movedRows(root, { base, head = "HEAD" }) {
       unresolved.push({ from: spec, file: headFile, lib });
       continue;
     }
-    const to = entrySpecifier(lib, key);
+    const to = entrySpecifier(root, lib, key);
     if (to !== spec) imports.push({ from: spec, to, files });
   }
   return { base, head, moved, imports, deleted, unresolved };

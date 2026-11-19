@@ -3,7 +3,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { toCamelCase, toKebabCase, toPascalCase, toSnakeCase } from "../../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toKebabCase, toPascalCase, toSnakeCase } from "../../../../../src/lib/stringCase/index.mjs";
 
 export function normalizeName(name) {
   return name?.toLowerCase().replace(/[-_\s]/g, "") ?? "";

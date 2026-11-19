@@ -4,7 +4,7 @@
 
 import { isCollectionFieldType } from "../../spec/fieldTypes.mjs";
 import formatDomainConfig from "../../spec/format.mjs";
-import { toCamelCase } from "../../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../../src/lib/stringCase/index.mjs";
 import { log, writeOnce } from "../output.mjs";
 import { buildChildDomainConfig } from "./childDomainConfig.mjs";
 

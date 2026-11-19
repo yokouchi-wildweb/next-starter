@@ -9,7 +9,7 @@ import { test } from "node:test";
 
 import { renderDomainDisplay, toDomainDisplay } from "./domainDisplay.mjs";
 import { buildAlphaRegistries, staleAlphaRegistries } from "./index.mjs";
-import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 
 const FORBIDDEN = ["apiAccess", "dbEngine", "idType", "generateFiles", "storage", "indexes", "hiddenColumns", "onDelete", "slug", "collection", "defaultOrderBy", "metadataBinding", "uploadPath", "description"];
 

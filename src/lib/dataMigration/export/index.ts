@@ -16,7 +16,7 @@ import {
   type ExportDomainInfo,
 } from "../relations";
 import { db } from "@/lib/drizzle";
-import { toCamelCase } from "@/utils/stringCase.mjs";
+import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
 import { withoutCollectionFields } from "../collectionFields";
 import type { DataMigrationMediaResolver, MediaSkipped } from "../media";

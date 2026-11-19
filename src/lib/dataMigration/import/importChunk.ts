@@ -9,7 +9,7 @@
 
 import "server-only";
 import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
-import { toCamelCase } from "@/utils/stringCase.mjs";
+import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import { importValueShape, isArrayFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
 import { parseCsv } from "./parseCsv";
 import { db } from "@/lib/drizzle";

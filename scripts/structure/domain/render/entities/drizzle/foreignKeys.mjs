@@ -1,6 +1,6 @@
 // entities/drizzle.ts の belongsTo（外部キー列）。FK 名が 63 字を超えるときはテーブルコールバックの foreignKey() に回す
 
-import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../../../src/lib/stringCase/index.mjs";
 import { buildShortFkName, isFkNameTooLong } from "../../../domain/names.mjs";
 import { buildOnDeleteOption, foreignTableName, getOnDeleteBehavior } from "../../../domain/relations.mjs";
 import { columnFunction } from "../../../spec/fieldTypes.mjs";

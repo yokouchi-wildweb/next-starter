@@ -8,7 +8,7 @@ import axios from "axios";
 import JSZip from "jszip";
 import { storageClient, uploadToStorage, type UploadedFile } from "@/lib/storage/client";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
-import { toCamelCase } from "@/utils/stringCase.mjs";
+import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import { contentTypeFromFilename, mediaPurposeOf } from "../../../../media";
 import { importUnsavedGuard } from "./importGuard";
 import { buildImportFieldTypeInfo } from "./importFieldTypeInfo";

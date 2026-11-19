@@ -2,7 +2,7 @@
 // pipeline が組の解決から ctx.collectionChildren を載せていればそれ（この実行で書き出す従属は書き出す中身）、
 // 無ければ（render を直接呼ぶ経路）workspace から従属の domain.json を読む
 
-import { toCamelCase } from "../../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../../src/lib/stringCase/index.mjs";
 import { isCollectionFieldType } from "../../spec/fieldTypes.mjs";
 
 /**

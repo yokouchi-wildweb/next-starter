@@ -1,7 +1,7 @@
 // src/lib/domain/junction/utils.ts
 // 中間テーブル（junction table）に関するユーティリティ
 
-import { toCamelCase, toSnakeCase } from "@/utils/stringCase.mjs";
+import { toCamelCase, toSnakeCase } from "@/lib/stringCase/index.mjs";
 import type { JunctionTableInfo } from "../types";
 
 export type { JunctionTableInfo };

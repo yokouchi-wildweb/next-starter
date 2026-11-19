@@ -10,7 +10,7 @@ import { loadRoleCategories } from "../domain/roles.mjs";
 import { buildChildDomainConfig } from "../render/collections/childDomainConfig.mjs";
 import { isHandManaged } from "../spec/categories.mjs";
 import { isCollectionFieldType } from "../spec/fieldTypes.mjs";
-import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 
 /**
  * @typedef {object} PairIndex

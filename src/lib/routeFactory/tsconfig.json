@@ -1,0 +1,74 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/appEnv": [
+        "../appEnv"
+      ],
+      "@/lib/appEnv/*": [
+        "../appEnv/*"
+      ],
+      "@/lib/audit": [
+        "../audit"
+      ],
+      "@/lib/audit/*": [
+        "../audit/*"
+      ],
+      "@/lib/crud": [
+        "../crud"
+      ],
+      "@/lib/crud/*": [
+        "../crud/*"
+      ],
+      "@/lib/defineConfig": [
+        "../defineConfig"
+      ],
+      "@/lib/defineConfig/*": [
+        "../defineConfig/*"
+      ],
+      "@/lib/domain": [
+        "../domain"
+      ],
+      "@/lib/domain/*": [
+        "../domain/*"
+      ],
+      "@/lib/errors": [
+        "../errors"
+      ],
+      "@/lib/errors/*": [
+        "../errors/*"
+      ],
+      "@/lib/recaptcha": [
+        "../recaptcha"
+      ],
+      "@/lib/recaptcha/*": [
+        "../recaptcha/*"
+      ],
+      "@/lib/request": [
+        "../request"
+      ],
+      "@/lib/request/*": [
+        "../request/*"
+      ],
+      "@/lib/stringCase": [
+        "../stringCase"
+      ],
+      "@/lib/stringCase/*": [
+        "../stringCase/*"
+      ],
+      "@/lib/userDirty": [
+        "../userDirty"
+      ],
+      "@/lib/userDirty/*": [
+        "../userDirty/*"
+      ],
+      "@lib-config/routeFactory": [
+        "../../config/lib/routeFactory.config.ts"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}

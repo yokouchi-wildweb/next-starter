@@ -2,7 +2,7 @@
 // 書き間違いは監査ログが黙って残らない・実行時に落ちる形で出るので、生成の前に止める。
 // 規則の正: src/features/core/auditLog/README.md
 
-import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 import { AUDIT_BULK_MODES, AUDIT_KEYS } from "../spec/audit.mjs";
 
 /** trackedFields に書ける列（TS の列名 = camelCase）: 項目と belongsTo の FK */

@@ -4,7 +4,7 @@
 // 集まりの項目は、どのチャンクにあってもチャンクを 1 つも書く前に DomainError 400 で拒否する（先に全チャンクを調べる）。
 
 import "server-only";
-import { toCamelCase } from "@/utils/stringCase.mjs";
+import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import { getDataMigrationConfig } from "../limits";
 import type { DataMigrationMediaResolver } from "../media";
 import type { DataMigrationJunctionResolver, DataMigrationServiceResolver } from "../serviceResolver";

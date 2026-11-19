@@ -6,7 +6,7 @@
 // どれも同じ名前の変換と hiddenColumns の除外を通す。列名の項目を足すときはここに並べる。
 
 import { isAsyncRelationFormInput } from "../../../../src/lib/domain/relations/relationOptions.mjs";
-import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 
 const FIELD_KEYS = ["name", "label", "fieldType", "formInput", "options", "required", "readonly", "defaultValue", "displayType", "placeholder", "accept", "validationRule", "reorderable", "helperText"];
 const RELATION_KEYS = ["domain", "label", "fieldName", "fieldType", "relationType", "required", "formInput", "labelField", "includeRelationTable"];

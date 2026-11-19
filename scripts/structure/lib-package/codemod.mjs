@@ -135,6 +135,23 @@ export function createExportReader(root) {
 
 const sameOrigin = (a, b) => a.file === b.file && a.name === b.name;
 
+/**
+ * 入口の指定子。JS の入口(.mjs / .js)はファイル名まで書く(TS はフォルダの index.mjs を解かない。例 `@/lib/pathPattern/index.mjs`)
+ * @param {{ key: string, keyPath: string, targetPath: string }} entry
+ */
+export function specifierOfEntry(lib, entry) {
+  if (/\.(mjs|js)$/.test(entry.targetPath)) return `@/lib/${lib}/${entry.targetPath}`;
+  return entry.key === "." ? `@/lib/${lib}` : `@/lib/${lib}/${entry.keyPath}`;
+}
+
+/** 入口の鍵からの指定子(鍵が package.json に無ければ鍵の形から作る) */
+export function entrySpecifier(root, lib, key) {
+  const pkg = readLibPackage(root, lib);
+  const entry = pkg?.exports.find((e) => e.key === key);
+  if (entry) return specifierOfEntry(lib, entry);
+  return key === "." ? `@/lib/${lib}` : `@/lib/${lib}/${key.replace(/^\.\//, "")}`;
+}
+
 /** lib の入口ごとの名前: [{ key, specifier, name, origin }]("." が先、その後は exports の順) */
 export function entryIndex(root, lib, reader = createExportReader(root)) {
   const pkg = readLibPackage(root, lib);
@@ -142,7 +159,7 @@ export function entryIndex(root, lib, reader = createExportReader(root)) {
   const rows = [];
   const keys = [...pkg.exports].sort((a, b) => (a.key === "." ? -1 : b.key === "." ? 1 : 0));
   for (const entry of keys) {
-    const specifier = entry.key === "." ? `@/lib/${lib}` : `@/lib/${lib}/${entry.keyPath}`;
+    const specifier = specifierOfEntry(lib, entry);
     const names = reader.exportsOf(`${pkg.dir}/${entry.targetPath}`);
     for (const [name, origin] of names ?? []) rows.push({ key: entry.key, specifier, name, origin });
   }
@@ -178,6 +195,13 @@ function statementText(keyword, typeOnly, items, specifier) {
 }
 
 const bare = (p) => p.replace(EXT_RE, "").replace(/\/index$/, "");
+
+/** JS のファイル(素の node で動く道具)が相対で読んでいたら、入口の指定子(`@/lib/…`)も相対にする(素の node は `@/` を解かない) */
+function localizeSpecifier(file, original, specifier) {
+  if (!/\.(mjs|js|cjs)$/.test(file) || !original.startsWith(".") || !specifier.startsWith("@/")) return specifier;
+  const rel = toPosix(path.relative(path.posix.dirname(file), `src/${specifier.slice(2)}`));
+  return rel.startsWith(".") ? rel : `./${rel}`;
+}
 
 /**
  * 書き換えの計画を作る(ファイルは書かない)
@@ -316,12 +340,12 @@ export function planCodemod(root, { base } = {}) {
       if (items.length === 0) continue;
       const indent = text.slice(text.lastIndexOf("\n", st.getStart(sf) - 1) + 1, st.getStart(sf));
       const keyword = isImport ? "import" : "export";
-      const newText = [...byEntry.entries()].map(([specifier, list]) => statementText(keyword, typeOnly, list, specifier)).join(`\n${/^\s*$/.test(indent) ? indent : ""}`);
+      const newText = [...byEntry.entries()].map(([specifier, list]) => statementText(keyword, typeOnly, list, localizeSpecifier(file, spec, specifier))).join(`\n${/^\s*$/.test(indent) ? indent : ""}`);
       changes.push({
         file,
         line: lineOf(sf, st),
         from: spec,
-        to: [...byEntry.keys()].join(", "),
+        to: [...byEntry.keys()].map((s) => localizeSpecifier(file, spec, s)).join(", "),
         names: items.map((it) => it.local),
         start: st.getStart(sf),
         end: st.end,

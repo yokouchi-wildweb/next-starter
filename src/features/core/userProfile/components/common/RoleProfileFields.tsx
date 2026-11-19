@@ -9,7 +9,7 @@ import type { InsertFieldsMap } from "@/components/Form/FieldRenderer";
 import { Block } from "@/components/Layout/Block";
 import { FieldRenderer, type FieldRendererProps } from "@/components/Form/FieldRenderer";
 import { useRelationOptions } from "@/lib/domain/hooks/useRelationOptions";
-import { toCamelCase } from "@/utils/stringCase.mjs";
+import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import type { ProfileConfig } from "../../profiles";
 import { getFieldConfigsForFormAsArray } from "../../utils";
 

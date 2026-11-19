@@ -4,7 +4,7 @@
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { toCamelCase, toPascalCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toPascalCase } from "../../../../src/lib/stringCase/index.mjs";
 import { isEnumFieldType, tsType } from "../../../../src/lib/domain/fields/fieldTypes.mjs";
 import { profileFileHeader } from "./header.mjs";
 

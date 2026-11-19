@@ -16,7 +16,7 @@ import { resolveImport } from "../../../../eslint-rules/resolve-import.mjs";
 import { overrideKeysOf } from "../../../../src/lib/districtMap/declarations.mjs";
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { scanObjectEntries } from "../../domain/text/objectEntry.mjs";
-import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 
 export const ENTRY_FILE = "domainEntry.ts";
 export const OVERRIDE_FILE = "domainEntry.override.ts";

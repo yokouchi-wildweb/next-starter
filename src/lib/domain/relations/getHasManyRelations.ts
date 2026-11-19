@@ -1,7 +1,7 @@
 // src/lib/domain/relations/getHasManyRelations.ts
 // hasMany リレーション情報を取得するユーティリティ
 
-import { toSnakeCase } from "@/utils/stringCase.mjs";
+import { toSnakeCase } from "@/lib/stringCase/index.mjs";
 import type { DomainDisplay, HasManyRelationInfo } from "../types";
 
 export type { HasManyRelationInfo };

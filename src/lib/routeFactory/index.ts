@@ -2,6 +2,7 @@
 // 汎用版。値を import してよいのは src/wiring/** だけ（route は @/wiring/apiRoute の設定済み版を使う）。型は誰でも可
 
 export { createRouteFactories, type RouteFactories } from "./createRouteFactories";
+export type { RouteFactoryConfig, RouteFactoryOverride } from "./config";
 export type {
   RouteAccessDecision,
   RouteAuthenticatedDevice,

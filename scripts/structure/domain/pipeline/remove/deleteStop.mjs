@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { toCamelCase } from "../../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../../src/lib/stringCase/index.mjs";
 import { resolvePairs } from "../pairs.mjs";
 
 /** 指されていれば止める関連の種類。belongsToMany は includeRelationTable: false の逆側も含む（生成物が相手を import する） */

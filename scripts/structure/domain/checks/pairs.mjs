@@ -7,7 +7,7 @@ import { domainTableName, buildShortFkName, isFkNameTooLong, PG_MAX_IDENTIFIER_L
 import { belongsToRelations, getOnDeleteBehavior } from "../domain/relations.mjs";
 import { parentRule } from "../render/collections/childDomainConfig.mjs";
 import { resolveOperationRule, unionUploadRules } from "../render/registry/storagePurpose/rules.mjs";
-import { toCamelCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
 import { isCollectionFieldType, isMediaFieldType } from "../spec/fieldTypes.mjs";
 import { describeRule, isBroader, isNarrower } from "./accessRules.mjs";
 

@@ -1,6 +1,6 @@
 // drizzleBase.ts の belongsToManyRelations（中間テーブル経由の id 配列の同期）
 
-import { toCamelCase, toPascalCase } from "../../../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toPascalCase } from "../../../../../../src/lib/stringCase/index.mjs";
 import { belongsToManyRelations } from "../../../domain/relations.mjs";
 
 /**

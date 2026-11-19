@@ -2,7 +2,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { toCamelCase, toKebabCase } from "../../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toKebabCase } from "../../../../../src/lib/stringCase/index.mjs";
 import { cleanupRegistries } from "./registries.mjs";
 import { findDomainDirs, resolveDeleteTarget, resolveDir } from "./names.mjs";
 

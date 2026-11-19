@@ -1,6 +1,6 @@
 // drizzleBase.ts の countableRelations（withCount 用: belongsToMany の件数）
 
-import { toCamelCase, toPascalCase } from "../../../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toPascalCase } from "../../../../../../src/lib/stringCase/index.mjs";
 import { toPlural } from "../../../domain/plural.mjs";
 import { belongsToManyRelations } from "../../../domain/relations.mjs";
 

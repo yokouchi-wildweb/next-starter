@@ -1,6 +1,6 @@
 // entities/drizzle.ts のインデックス（pgTable の第 3 引数）: ソフトデリート時の単一ユニーク（部分インデックス）、複合ユニーク、domain.json の indexes
 
-import { toSnakeCase } from "../../../../../../src/utils/stringCase.mjs";
+import { toSnakeCase } from "../../../../../../src/lib/stringCase/index.mjs";
 import { PG_MAX_IDENTIFIER_LENGTH } from "../../../domain/names.mjs";
 
 // using / opclass の値は生成コードにそのまま入るため、識別子の形だけを許す

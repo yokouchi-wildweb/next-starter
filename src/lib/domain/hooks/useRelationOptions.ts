@@ -9,7 +9,7 @@ import useSWR from "swr";
 import axios from "axios";
 import type { InsertFieldsMap, FieldConfig } from "@/components/Form/FieldRenderer";
 import type { FormInputType } from "@/components/Form/Field/types";
-import { toCamelCase } from "@/utils/stringCase.mjs";
+import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import {
   getFormRelations,
   getStaticRelations,

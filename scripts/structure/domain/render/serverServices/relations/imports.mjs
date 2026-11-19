@@ -1,6 +1,6 @@
 // drizzleBase.ts の import 行: 自ドメインの表 + 中間テーブル、リレーション先ドメインの表
 
-import { toCamelCase } from "../../../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../../../src/lib/stringCase/index.mjs";
 
 /**
  * withRelations / countable の各スニペットから、import が要る { domain, tableImport } を集める（nested も辿る）

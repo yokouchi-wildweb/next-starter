@@ -10,7 +10,7 @@ import type { DomainDataOperation } from "@/lib/domain/types";
 import { resolveAccessRule } from "@/lib/domain";
 import { enforceAccessRule } from "@/wiring/apiRoute";
 import { getDomainAccess } from "@/wiring/domainRegistry";
-import { toCamelCase } from "@/utils/stringCase.mjs";
+import { toCamelCase } from "@/lib/stringCase/index.mjs";
 
 /**
  * 指定ドメイン（snake_case / camelCase どちらでも）の管理データ操作を access で評価する。

@@ -103,7 +103,7 @@ test("書き換え: 名前つき・type・名前ごとの type・re-export・別
   assert.deepEqual(plan.stops, []);
   const out = plan.changes.map((c) => `${c.file}:${c.line} ${c.text}`).sort();
   assert.deepEqual(out, [
-    'scripts/tool.mjs:1 import { readBox } from "@/lib/box/server";',
+    'scripts/tool.mjs:1 import { readBox } from "../src/lib/box/server";',
     'src/features/a/A.tsx:1 import { useBox } from "@/lib/box";',
     'src/features/a/A.tsx:2 import type { BoxSize } from "@/lib/box";',
     'src/features/a/A.tsx:3 import { type BoxProps } from "@/lib/box";',
@@ -115,6 +115,22 @@ test("書き換え: 名前つき・type・名前ごとの type・re-export・別
     'src/features/a/mixed.ts:1 import { useBox } from "@/lib/box";',
     'src/features/e/E.ts:1 import { useBox } from "@/lib/box";\n\timport { readBox as rb } from "@/lib/box/server";',
     'src/lib/other/index.ts:1 import { useBox } from "@/lib/box";',
+  ]);
+});
+
+test("JS の入口(.mjs)はファイル名まで書き、JS のファイルの相対の import は相対のまま入口へ", () => {
+  const root = makeRepo({
+    "src/lib/kase/package.json": { exports: { ".": "./index.mjs" } },
+    "src/lib/kase/index.mjs": 'export { toKase } from "./impl.mjs";\n',
+    "src/lib/kase/impl.mjs": "export function toKase(s) { return s; }\n",
+    "src/features/k/K.ts": 'import { toKase } from "@/lib/kase/impl.mjs";\n',
+    "scripts/gen/tool.mjs": 'import { toKase } from "../../src/lib/kase/impl.mjs";\n',
+  });
+  assert.deepEqual(entryIndex(root, "kase").map((r) => r.specifier), ["@/lib/kase/index.mjs"]);
+  const out = planCodemod(root).changes.map((c) => `${c.file} ${c.text}`).sort();
+  assert.deepEqual(out, [
+    'scripts/gen/tool.mjs import { toKase } from "../../src/lib/kase/index.mjs";',
+    'src/features/k/K.ts import { toKase } from "@/lib/kase/index.mjs";',
   ]);
 });
 

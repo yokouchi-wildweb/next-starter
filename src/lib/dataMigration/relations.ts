@@ -16,7 +16,7 @@ import {
   extractImageFields,
   type DomainFieldInfo,
 } from "@/lib/domain";
-import { toSnakeCase } from "@/utils/stringCase.mjs";
+import { toSnakeCase } from "@/lib/stringCase/index.mjs";
 
 /** ドメイン名から設定を引く（API ルートが src/wiring/domainConfig.ts の getDomainConfig を注入する） */
 export type DataMigrationConfigResolver = (domain: string) => DomainConfig;

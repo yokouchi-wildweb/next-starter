@@ -30,6 +30,7 @@ pnpm check lib-package -- codemod [--apply] [--json] …
 ```
 
 - 閉じた lib の中のファイルを読む import を、その名前を出す入口(package.json の exports、re-export を辿る)に書き換える。既定は dry-run(書かない)、`--apply` で書く、`--json` で機械向け
+- 書き換え先の指定子: JS の入口(`.mjs` / `.js`)はファイル名まで書く(`@/lib/pathPattern/index.mjs`。TS はフォルダの index.mjs を解かない)。JS のファイル(素の node で動く道具)が相対で読んでいた物は相対のまま入口へ(素の node は `@/` を解かない)。moved の imports: の行も同じ指定子
 - 書き換えない物は止まる一覧に種類つきで出す(入口から出ていない名前・default / 名前空間 / 副作用 / 動的な import)
 - 本体と引数の詳細: `codemod.mjs`(`-- codemod --help`)
 

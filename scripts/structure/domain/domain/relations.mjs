@@ -1,6 +1,6 @@
 // domain.json の relations の分類と、リレーション先ドメインの参照。
 
-import { toCamelCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
 
 /** belongsTo（外部キーを持つ側） */
 export function belongsToRelations(config) {

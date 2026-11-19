@@ -7,7 +7,7 @@
 
 import pluralize from "pluralize";
 
-import { toCamelCase, toKebabCase } from "../../utils/stringCase.mjs";
+import { toCamelCase, toKebabCase } from "../stringCase/index.mjs";
 
 // 最後の語の前で区切る: snake / kebab の区切り、または camel の境目(小文字・数字の後の大文字)
 const LAST_SEGMENT = /^(.*(?:[_-]|[a-z0-9](?=[A-Z])))?([^_-]+)$/;

@@ -3,7 +3,7 @@
 // 自分で import と options を足す（渡し忘れは pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs が見つける）。集まりの無い主には出さない
 
 import path from "node:path";
-import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../../src/lib/stringCase/index.mjs";
 import { resolveFieldName } from "../../domain/fieldName.mjs";
 import { belongsToRelations } from "../../domain/relations.mjs";
 import { isCollectionFieldType, isMediaFieldType } from "../../spec/fieldTypes.mjs";

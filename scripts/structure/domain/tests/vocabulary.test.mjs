@@ -6,7 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { BUILTIN_FORM_INPUTS } from "../../../../src/lib/domain/fields/formInputs.mjs";
-import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 import { formInputNameIssues } from "../checks/formInputNames.mjs";
 import { formInputNameOf, readRegisteredFormInputs } from "../domain/formInputNames.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";

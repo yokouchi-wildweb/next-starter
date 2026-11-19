@@ -7,7 +7,7 @@
 
 import { matchesGlob } from "node:path";
 
-import { toPascalCase, toSnakeCase } from "../../utils/stringCase.mjs";
+import { toPascalCase, toSnakeCase } from "../stringCase/index.mjs";
 import { adminRouteFolderOf } from "./domainNames.mjs";
 
 /** 出力の種類(毎回書き直す / 無いときだけ書く) */

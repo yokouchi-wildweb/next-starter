@@ -32,7 +32,7 @@ import { resolveAccessRule, type DomainApiAccessRule, type DomainApiOperation } 
 import { getServiceOrThrow as getServiceOrThrowFrom, hasService as hasServiceFrom } from "@/lib/domain/server";
 import type { LoaderKeyValue, PageLoaderConfig } from "@/lib/pageGuard";
 import { serviceRegistry } from "@/registry/serviceRegistry";
-import { toCamelCase } from "@/utils/stringCase.mjs";
+import { toCamelCase } from "@/lib/stringCase/index.mjs";
 
 // access は汎用 API（createDomainRoute）と同じく serviceRegistry の entry から resolveAccessRule で操作ごとに解く。
 // 取得本体は features/core/admin の screenData（service は外から受ける）。loader.ts の書き方: src/features/core/admin/services/server/screenData/README.md

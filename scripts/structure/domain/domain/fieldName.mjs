@@ -1,6 +1,6 @@
 // dbEngine に応じたフィールド名の表記。Firestore → camelCase（Firestore 慣例）、Drizzle/Neon → そのまま（snake_case、PostgreSQL 慣例）
 
-import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 
 /**
  * @param {string} name domain.json のフィールド名（snake_case）

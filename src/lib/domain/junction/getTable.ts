@@ -3,7 +3,7 @@
 // 表の一覧は引数で受ける（lib は登録表を import しない。結ぶのは src/wiring/domainRegistry.ts）
 
 import "server-only";
-import { toPascalCase } from "@/utils/stringCase.mjs";
+import { toPascalCase } from "@/lib/stringCase/index.mjs";
 import type { PgTable } from "drizzle-orm/pg-core";
 
 /** 表の const 名 → 表の一覧（schemaRegistry の形） */

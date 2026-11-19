@@ -2,7 +2,7 @@
 // ドメイン設定の表を受けて、ドメイン名から設定を引く関数を作る。
 // lib は登録表を import しない。表と結んだ版は src/wiring/domainConfig.ts(server 専用)。
 
-import { toCamelCase, toSnakeCase } from "@/utils/stringCase.mjs";
+import { toCamelCase, toSnakeCase } from "@/lib/stringCase/index.mjs";
 
 /**
  * Firestore ドメインの場合、フィールド名を camelCase に変換して返す。

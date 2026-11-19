@@ -1,8 +1,8 @@
-// src/lib/routeFactory/collectionEntriesRoute.test.mts
+// src/app/api/collectionEntriesRoute.test.mts
 // GET /api/[domain]/collection-entries の認可（主の get の規則）と入力の回帰テスト。
 // 登録表とセッションをモックして実際のルートを動かす（DB は使わない）。node --test の引数はグロブなので、角括弧のある
-// ルートのフォルダではなくここに置き、ルートは相対パスで読む。
-// 実行: pnpm test src/lib/routeFactory/collectionEntriesRoute.test.mts
+// ルートのフォルダではなく api の直下に置き、ルートは相対パスで読む。
+// 実行: pnpm test src/app/api/collectionEntriesRoute.test.mts
 
 import assert from "node:assert/strict";
 import { mock, test } from "node:test";
@@ -42,7 +42,7 @@ mock.module("@/features/core/auth/services/server/session/getSessionUser", {
   namedExports: { getSessionUser: async () => currentUser, getSessionUserForRoute: async () => currentUser },
 });
 
-const { GET } = await import("../../app/api/[domain]/collection-entries/route.ts");
+const { GET } = await import("./[domain]/collection-entries/route.ts");
 
 const call = (domain: string, query: string) =>
   GET(new NextRequest(`http://localhost/api/${domain}/collection-entries?${query}`), { params: Promise.resolve({ domain }) });

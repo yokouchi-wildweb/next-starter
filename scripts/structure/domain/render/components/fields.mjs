@@ -4,7 +4,7 @@
 
 import { getFormRelations } from "../../../../../src/lib/domain/relations/relationOptions.mjs";
 import { collectMediaFields, isCollectionFieldType, isMediaFieldType } from "../../spec/fieldTypes.mjs";
-import { toCamelCase } from "../../../../../src/utils/stringCase.mjs";
+import { toCamelCase } from "../../../../../src/lib/stringCase/index.mjs";
 
 const RELATION_IMPORTS = `import { useRelationOptions } from "@/lib/domain/hooks";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";

@@ -1,6 +1,6 @@
 // entities/drizzle.ts の belongsToMany の中間テーブル（<Domain>To<Relation>Table）。両側 CASCADE、複合主キー
 
-import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../../../src/lib/stringCase/index.mjs";
 import { buildShortFkName, isFkNameTooLong } from "../../../domain/names.mjs";
 import { foreignTableName } from "../../../domain/relations.mjs";
 import { columnFunction } from "../../../spec/fieldTypes.mjs";

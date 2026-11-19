@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
-import { toCamelCase, toKebabCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toKebabCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
 import { FEATURES_DIR, scanFeatureTables } from "../tableScan.mjs";
 import { domainDisplayPath, renderDomainDisplay } from "./domainDisplay.mjs";
 import { MESSAGE_REGISTRY_FILE, renderMessageRegistry } from "./messageRegistry.mjs";

@@ -1,7 +1,7 @@
 // entities/drizzle.ts の列定義（id と fields）。belongsTo の外部キー列は foreignKeys.mjs、中間テーブルは junction.mjs。
 // 型 → 列関数と第 2 引数の対応は spec/fieldTypes.mjs の表（配列・enum だけここで形を変える）
 
-import { toSnakeCase } from "../../../../../../src/utils/stringCase.mjs";
+import { toSnakeCase } from "../../../../../../src/lib/stringCase/index.mjs";
 import { enumNames } from "../../../domain/names.mjs";
 import { columnFunction, columnOptionsLiteral, isArrayFieldType, isCollectionFieldType, isEnumFieldType } from "../../../spec/fieldTypes.mjs";
 

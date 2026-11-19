@@ -2,7 +2,7 @@
 // domain.json の直接インポート時に Firestore ドメインのフィールド名を camelCase に変換する。
 // server が自分のドメインの domain.json を読むときに使う。client は変換済みの写し entities/display.ts を読む。
 
-import { toCamelCase } from "@/utils/stringCase.mjs";
+import { toCamelCase } from "@/lib/stringCase/index.mjs";
 
 type RawDomainConfig = Record<string, unknown>;
 
