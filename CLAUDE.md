@@ -39,7 +39,9 @@ use: a step a tool covers is never built by hand → run the tool | unsure which
 
 ## REPO_LINK (one loop links the repos: ship → take in → order → answer → resolves; detail → core/notices.md)
 loop: upstream ships with /ship (a notice when downstream must follow) → downstream takes it in with /flux, segment by segment → what is missing is asked for with /order \<to\> → the receiver judges and answers with /inbox (/wen checks the orders you filed) → the notice that ships the order says resolves: and the temporary permit and the provisional rule end
-ship (MANDATORY): every commit + push = /ship (checks, notice, commit, push) | which kind and when → .claude/skills/ship/SKILL.md | prod deploys need a safe point | fix to a shipped change → `fixes:` in the fix's notice, never edit the earlier one
+ship (MANDATORY): every commit + push = /ship (checks, notice, commit, push) | which kind and when → .claude/skills/ship/SKILL.md | fix to a shipped change → `fixes:` in the fix's notice, never edit the earlier one
+safe_point: the tag on a pushed tip where the full checks passed (pnpm test all, check, typecheck, lint, build; /ship --safe) = the only periodic full check | a plain ship runs area checks only, its report proposes --safe when due (commits and days since the last one, pnpm workflow notices safePoint status)
+- prod deploys stop unless at a safe point (a fork: its take-in at the parent's) | never add another periodic full-check mechanism
 notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY also for deleting / moving a file forks may extend: moved: or the deletion in notes:) | renaming / moving / removing a key of CLAUDE.md, a core file or a card → old key → new place in that notice | ledger: .notices/applied/\<repo_id\>.md
 checkpoint (MANDATORY on every notice): `checkpoint: <label>` = a segment boundary the author declares | `checkpoint: -` only when the fork cannot work without the next notice
 take_in: take a parent's changes with /flux (recommended, not required: it runs the segment checks, the ownership check and the notice steps together)
