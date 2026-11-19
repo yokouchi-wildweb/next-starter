@@ -5,7 +5,7 @@
 
 import type { VariantProps } from "class-variance-authority";
 
-import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import { variantOverrides } from "@/lib/variantOverrides/config";
 import { createOverridableVariants } from "@/lib/variantOverrides";
 
 const TABLET_BUTTON_VARIANTS = {
@@ -56,7 +56,7 @@ export type TabletButtonSizeName = keyof typeof TABLET_BUTTON_VARIANTS.size;
  * タブレットUI専用ボタンのバリアント定義。
  * 飲食店など、立ったまま・片手で・忙しい中タップする環境を想定。
  * 最小タップ領域 h-16（64px）、タッチフィードバック内蔵。
- * 下流は src/config/ui/variants.config.ts の `tabletButton` キーで差し替える。
+ * 下流は src/config/lib/variantOverrides.config.ts の `tabletButton` キーで差し替える。
  */
 export const tabletButtonVariants = createOverridableVariants(
   "disabled:pointer-events-auto disabled:cursor-not-allowed font-semibold active:scale-[0.97] active:brightness-90 transition-all",
@@ -68,7 +68,7 @@ export const tabletButtonVariants = createOverridableVariants(
       fullWidth: false,
     },
   },
-  VARIANT_OVERRIDES.tabletButton,
+  variantOverrides.tabletButton,
 );
 
 export type TabletButtonStyleProps = VariantProps<typeof tabletButtonVariants>;

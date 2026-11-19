@@ -1,4 +1,20 @@
 {
   "extends": "../../../tsconfig.json",
-  "include": ["**/*.ts", "**/*.tsx"]
+  "compilerOptions": {
+    "paths": {
+      "@/lib/defineConfig": [
+        "../defineConfig"
+      ],
+      "@/lib/defineConfig/*": [
+        "../defineConfig/*"
+      ],
+      "@lib-config/unsavedGuard": [
+        "../../config/lib/unsavedGuard.config.ts"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
 }

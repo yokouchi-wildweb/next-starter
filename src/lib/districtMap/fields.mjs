@@ -173,6 +173,37 @@ export function readOverrideImports(path, text) {
   return { imports, problems };
 }
 
+/** 持ち主が上書きに許すローダーの呼び出しの宣言の名前(書体の next/font など、値に書けないモジュールのトップレベルの呼び出し) */
+export const OVERRIDE_LOADERS_EXPORT = "overrideLoaders";
+
+/**
+ * 持ち主の config.ts(部品は config.ui.ts)の `export const overrideLoaders = ["<指定子の前方一致>", …] as const`。
+ * その持ち主の上書きファイルでだけ、この指定子から読んだ名前を `const <名前> = <ローダー>(<リテラルの引数>)` の形でトップレベルで呼べる
+ * (呼び出しの結果の名前は export default の中で値として読める)。宣言は持ち主のファイルにだけ書ける
+ * @param {string} path
+ * @param {string} text
+ * @returns {{ loaders: string[], problems: string[] }}
+ */
+export function readOverrideLoaders(path, text) {
+  const source = parse(path, text);
+  const loaders = [];
+  const problems = [];
+  for (const { name, init } of exportedConsts(source)) {
+    if (name !== OVERRIDE_LOADERS_EXPORT) continue;
+    let node = init;
+    while (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node)) node = node.expression;
+    if (!ts.isArrayLiteralExpression(node)) {
+      problems.push(`${path}: ${OVERRIDE_LOADERS_EXPORT} は指定子の文字列の配列で書く(字面で読む)`);
+      continue;
+    }
+    for (const element of node.elements) {
+      if ((ts.isStringLiteral(element) || ts.isNoSubstitutionTemplateLiteral(element)) && element.text.length > 0) loaders.push(element.text);
+      else problems.push(`${path}: ${OVERRIDE_LOADERS_EXPORT} の項目は文字列リテラル(${element.getText(source)})`);
+    }
+  }
+  return { loaders, problems };
+}
+
 /** 機能を要する設定の値の宣言の名前(設定 D110) */
 export const FEATURE_REQUIREMENTS_EXPORT = "featureRequirements";
 

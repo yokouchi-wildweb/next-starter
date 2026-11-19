@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 import { Label } from "@/components/Form/Label";
 import { RadioGroup, RadioGroupItem } from "@/components/Primitives/RadioGroup";
 import type { VariantProps } from "class-variance-authority";
-import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import { variantOverrides } from "@/lib/variantOverrides/config";
 import { createOverridableVariants, type CheckControlSize } from "@/lib/variantOverrides";
 
 type BooleanLike = boolean | "true" | "false";
@@ -15,7 +15,7 @@ export type BooleanRadioGroupOption = {
   value: BooleanLike;
 };
 
-// 見た目の上書き口: src/config/ui/variants.config.ts の booleanRadioGroup({ base, size }、各ラジオの丸)。既定のクラスはここ
+// 見た目の上書き口: src/config/lib/variantOverrides.config.ts の booleanRadioGroup({ base, size }、各ラジオの丸)。既定のクラスはここ
 const RADIO_ITEM_SIZE = {
   sm: "!size-3 [&_[data-slot=radio-group-indicator]>svg]:!size-1.5",
   md: "!size-4 [&_[data-slot=radio-group-indicator]>svg]:!size-2",
@@ -25,7 +25,7 @@ const RADIO_ITEM_SIZE = {
 const radioItemSizeVariants = createOverridableVariants(
   "",
   { variants: { size: RADIO_ITEM_SIZE }, defaultVariants: { size: "md" } },
-  VARIANT_OVERRIDES.booleanRadioGroup,
+  variantOverrides.booleanRadioGroup,
 );
 
 type RadioItemSizeProps = VariantProps<typeof radioItemSizeVariants>;

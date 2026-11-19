@@ -5,7 +5,7 @@ import { XIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { createOverridableVariants, type InputSize } from "@/lib/variantOverrides";
-import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import { variantOverrides } from "@/lib/variantOverrides/config";
 import { Input as ShadcnInput } from "@/components/Primitives/Input";
 import { Button } from "@/components/Form/Button/Button";
 
@@ -14,7 +14,7 @@ export type { InputSize } from "@/lib/variantOverrides";
 /**
  * 入力欄系の高さ: 操作部品の高さの段 --control-h-<size>(src/styles/core/config.css の :root、ボタンの size と同じ名前)。
  * 高さを固定して中身を上下中央に置く(py-0)。md は 640px 未満 44px・以上 40px。
- * 上書きの口 = src/config/ui/variants.config.ts の input(入力欄系で 1 つを共有)。className はさらに後ろで勝つ
+ * 上書きの口 = src/config/lib/variantOverrides.config.ts の input(入力欄系で 1 つを共有)。className はさらに後ろで勝つ
  */
 export const INPUT_SIZE_CLASSES = {
   xs: "h-(--control-h-xs) py-0",
@@ -50,7 +50,7 @@ export const INNER_BUTTON_PADDING = {
 export const inputVariants = createOverridableVariants(
   "border-muted-foreground/50",
   { variants: { size: INPUT_SIZE_CLASSES }, defaultVariants: { size: "md" } },
-  VARIANT_OVERRIDES.input,
+  variantOverrides.input,
 );
 
 export type InputProps = Omit<React.ComponentProps<typeof ShadcnInput>, "size"> & {

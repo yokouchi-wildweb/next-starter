@@ -147,7 +147,7 @@ editorType: `text` | `number` | `select` | `multi-select` | `date` | `time` | `d
 
 #### 未保存の守り
 
-書きかけのセル(入力して未確定)がある間と、`onCellChange` が返した Promise が終わるまで(保存待ち)、ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 未保存 `unsaved`。確認の文は `src/config/ui/unsaved-guard.config.ts`)。
+書きかけのセル(入力して未確定)がある間と、`onCellChange` が返した Promise が終わるまで(保存待ち)、ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 未保存 `unsaved`。確認の文は `src/config/lib/unsavedGuard.config.ts`)。
 
 - 外す: `guardUnsaved={false}`(既定 true)
 - セルの外を押すと書きかけは確定する(→ `onCellChange`)。同期に保存する使い手(void を返す)は確定の時点で守りが外れる

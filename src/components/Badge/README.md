@@ -62,7 +62,7 @@ import { SolidBadge, SoftBadge, BookmarkTagBadge } from "@/components/Badge";
 ## Extension
 
 - 色: `src/styles/palette.css` のトークン(`--success` / `--success-foreground` / `--success-text` 等)で変える
-- 形(角丸・余白・枠線): `src/config/ui/variants.config.ts` の `badge` キーで、このディレクトリを編集せずに差し替える
+- 形(角丸・余白・枠線): `src/config/lib/variantOverrides.config.ts` の `badge` キーで、このディレクトリを編集せずに差し替える
 
 ```ts
 defineVariantOverrides({

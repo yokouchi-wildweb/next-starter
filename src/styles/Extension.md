@@ -73,27 +73,27 @@ Layout 部品(Block / Section / Stack / Flex / Grid / Main)の `appearance` の�
 - `appearance.ts` に影の値を直書きしない。影をブランド色に追従させたいときは値に `color-mix(in oklch, var(--primary) 20%, transparent)` を書く(既定の radiant がこの形)
 - トークンの値は `<html>`(`:root` / `.dark` / `[data-area]` の付く要素)で計算される。`--primary` を `<html>` より下の要素で変えても、影の中の `var(--primary)` は追従しない
 
-### 書体(fonts.config.ts と typography.css)
+### 書体(fonts.ui.config.ts と typography.css)
 
 書体は 2 段構え。既定では Web フォントを読み込まず system スタックで表示する。
 
 | やりたいこと | 書く場所 |
 |---|---|
-| Web フォントを読み込む(Google Fonts / ローカルファイル) | `src/config/ui/fonts.config.ts`(next/font) |
+| Web フォントを読み込む(Google Fonts / ローカルファイル) | 上書き `src/config/lib/fonts.ui.config.ts`(next/font) |
 | Web フォントは使わず system フォントの並びを変える | `typography.css` の `--font-geist-sans` |
 | 文字サイズ(流体サイズ等)を変える | `typography.css` の `@theme` |
 
-仕組み: next/font のローダーを `variable: "--font-sans-loaded"`(mono は `"--font-mono-loaded"`)で呼び `defineFontsConfig({ sans })` に渡すと、root layout が `<html>` にクラスを当ててその変数を定義する。`core/typography.css` のスタックは `--font-geist-sans: var(--font-sans-loaded, "Inter", system-ui, ...)` と書かれているので、読み込まれていればそれを、無ければ system スタックを使う。theme.css と Tailwind の `font-sans` / `font-mono` は一切変えない。
+仕組み: next/font のローダーを `variable: "--font-sans-loaded"`(mono は `"--font-mono-loaded"`)で呼び上書きの `export default { sans }` に渡すと、root layout が `<html>` にクラスを当ててその変数を定義する。`core/typography.css` のスタックは `--font-geist-sans: var(--font-sans-loaded, "Inter", system-ui, ...)` と書かれているので、読み込まれていればそれを、無ければ system スタックを使う。theme.css と Tailwind の `font-sans` / `font-mono` は一切変えない。
 
 ```ts
-// src/config/ui/fonts.config.ts
+// src/config/lib/fonts.ui.config.ts
 import { Noto_Sans_JP } from "next/font/google";
-import { defineFontsConfig } from "@/lib/fonts";
+import type { FontsOverride } from "@/lib/fonts/config.ui";
 const sans = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-sans-loaded", display: "swap" });
-export const FONTS_CONFIG = defineFontsConfig({ sans });
+export default { sans } satisfies FontsOverride;
 ```
 
-next/font の制約: ローダーはモジュールのトップレベルで、引数はリテラル(変数や import 定数は不可)。`variable` 名は上の固定文字列をそのまま書く。別名を書いても型や実行時では検知できず黙って効かなくなるため、`pnpm test src/lib/fonts/fonts.test.mjs` が `fonts.config.ts` のソースを静的に検査する。Google Fonts はビルド時に取得されセルフホスト化される(実行時に Google への通信は発生しない)。next/font は Next のコンパイラ外(scripts/ や node --test)では動かないので、ローダーを追加した後は `fonts.config.ts` を Next 外から import しない。
+next/font の制約: ローダーはモジュールのトップレベルで、引数はリテラル(変数や import 定数は不可)。`variable` 名は上の固定文字列をそのまま書く。別名を書いても型や実行時では検知できず黙って効かなくなるため、`pnpm test src/lib/fonts/fonts.test.mjs` が上書き `fonts.ui.config.ts` のソースを静的に検査する。Google Fonts はビルド時に取得されセルフホスト化される(実行時に Google への通信は発生しない)。next/font は Next のコンパイラ外(scripts/ や node --test)では動かないので、上書きを読むのは root layout(持ち主の `config.ui.ts` 経由)だけ。
 
 ```css
 /* src/styles/typography.css */
@@ -105,7 +105,7 @@ next/font の制約: ローダーはモジュールのトップレベルで、�
 }
 ```
 
-注意: `typography.css` で `--font-geist-sans` を上書きすると、その値が `fonts.config.ts` で読み込んだ Web フォントより優先される(loaded 変数への参照を自分で消すことになる)。両方使う場合は `var(--font-sans-loaded, ...)` を含めて書く。
+注意: `typography.css` で `--font-geist-sans` を上書きすると、その値が `fonts.ui.config.ts` で読み込んだ Web フォントより優先される(loaded 変数への参照を自分で消すことになる)。両方使う場合は `var(--font-sans-loaded, ...)` を含めて書く。
 
 メールテンプレートの書体は別系統(各テンプレートの inline `fontFamily`、メールクライアント向けの system スタック)で、この設定の影響を受けない。
 
@@ -134,19 +134,20 @@ next/font の制約: ローダーはモジュールのトップレベルで、�
 
 ### バリアントの上書き(variants.config.ts)
 
-Button / Badge・入力欄系(Input・選ぶ欄の引き金)・入力部品(真偽のチェック・ラジオ・カード型チェック・ステッパー・スイッチ)・TextBlocks(PageTitle / Para / SecTitle / Span)の形(角丸・影・枠線・寸法・文字)は、core を編集せずに `src/config/ui/variants.config.ts` で差し替える。書いたクラスが cva の出力の後ろに結合され、同じプロパティは tailwind-merge で後勝ちする。各要素の `className` はさらにその後ろなので、個別指定は勝つ。
+Button / Badge・入力欄系(Input・選ぶ欄の引き金)・入力部品(真偽のチェック・ラジオ・カード型チェック・ステッパー・スイッチ)・TextBlocks(PageTitle / Para / SecTitle / Span)の形(角丸・影・枠線・寸法・文字)は、core を編集せずに上書き `src/config/lib/variantOverrides.config.ts` で差し替える。書いたクラスが cva の出力の後ろに結合され、同じプロパティは tailwind-merge で後勝ちする。各要素の `className` はさらにその後ろなので、個別指定は勝つ。
 
 ```ts
-// src/config/ui/variants.config.ts
-import { defineVariantOverrides } from "@/lib/variantOverrides";
-export const VARIANT_OVERRIDES = defineVariantOverrides({
+// src/config/lib/variantOverrides.config.ts
+import type { VariantOverridesOverride } from "@/lib/variantOverrides/config";
+
+export default {
   button: {
     base: "rounded-full shadow-none",      // 全 variant / size 共通
     variant: { outline: "border-2" },      // variant 単位
     size: { md: "h-11 px-5" },             // size 単位
   },
   badge: { size: { md: "px-2 py-0.5" }, solid: { base: "rounded-md" } },
-});
+} satisfies VariantOverridesOverride;
 ```
 
 | キー | 対象 | variant / size 名の定義 |

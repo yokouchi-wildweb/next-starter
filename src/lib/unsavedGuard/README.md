@@ -45,7 +45,7 @@ router.push("/admin/samples"); // 編集済みなら確認してから
 
 - 理由は閉じた一覧: `unsaved`(保存していない変更。既定)・`inProgress`(処理の途中。離れると中断される)(札 closed_reasons)
 - 元がいくつ立っていても 1 回の移動に確認は 1 回(フォームの中のアップロードも特別な扱いをしない)。確認には立っている理由を全部渡し、結線は `pickConfirmReason` で 1 つ選ぶ(`inProgress` が勝つ)
-- 文は `src/config/ui/unsaved-guard.config.ts` の `UNSAVED_GUARD_CONFIRM`(理由ごとに題・説明・ボタンの語。fork は値だけ替える)。再読み込み・タブを閉じるときはブラウザの確認で、この文は出ない
+- 文は上書き `src/config/lib/unsavedGuard.config.ts` の `confirm`(既定 `src/lib/unsavedGuard/config.ts`。理由ごとに題・説明・ボタンの語、fork は値だけ替える)。再読み込み・タブを閉じるときはブラウザの確認で、この文は出ない
 
 ## Internals
 

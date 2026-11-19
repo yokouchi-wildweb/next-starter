@@ -1,7 +1,7 @@
 // src/lib/fonts/defineConfig.ts
 //
 // 下流の差分を既定値(Web フォント無し)にマージし、<html> に当てるクラス名を組み立てる。
-// 設定ファイル(src/config/ui/fonts.config.ts)はこの関数を 1 回呼ぶだけにする。
+// 合成は ./config.ui.ts(上書き src/config/lib/fonts.ui.config.ts の値を 1 回渡す)。
 //
 // 既定で Web フォントを読み込まない理由: 上流の既定は「Inter を宣言しているが実際には
 // system-ui で表示されている」状態であり、既定で Google Fonts を読み込むと全 fork の見た目が

@@ -28,6 +28,12 @@
       ],
       "@/lib/unsavedGuard/*": [
         "../unsavedGuard/*"
+      ],
+      "@/lib/defineConfig": [
+        "../defineConfig"
+      ],
+      "@/lib/defineConfig/*": [
+        "../defineConfig/*"
       ]
     }
   },

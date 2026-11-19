@@ -33,7 +33,7 @@ function resolveAxis(
 /**
  * @param base cva の第 1 引数(基底クラス)
  * @param config cva の第 2 引数(variants / compoundVariants / defaultVariants)
- * @param override 下流のオーバーライド(src/config/ui/variants.config.ts の該当キー)
+ * @param override 下流のオーバーライド(src/config/lib/variantOverrides.config.ts の該当キー)
  *
  * 結合順: cva 出力 → override.base → override.<軸>[値](cva の variants の順)→ props.class → props.className
  * tailwind-merge(cn)が同プロパティの衝突を後勝ちで解決するので、呼び出し側の className は従来どおり最後に勝つ。

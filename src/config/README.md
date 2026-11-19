@@ -51,13 +51,10 @@
 
 `app/`・`ui/` は古い置き場です。値は各持ち主の `config.ts` と上の 5 つのフォルダへ移り、空になったら消えます(新しい値をここに足さない)。1 対 1 の検査はこれらを見ません。事業の素性は `@/business`([src/lib/business/README.md](../lib/business/README.md))、法務の文書の値は `features/legal.config.ts`。
 
-残っているのは読み手のある 3 本だけです(app/ の 4 本は持ち主の lib の上書き src/config/lib/<名前>.config.ts へ移った):
+上流のファイルは全部、持ち主の上書き(src/config/lib/<名前>.config.ts・fonts は fonts.ui.config.ts)へ移りました。下の表は空です:
 
 | ファイル | 読み手 |
 |---|---|
-| `ui/fonts.config.ts` | `lib/fonts`、`src/app/layout.tsx` |
-| `ui/unsaved-guard.config.ts` | 枠の `src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx` |
-| `ui/variants.config.ts` | `lib/variantOverrides`、Badge・Button・TextBlocks などの variants |
 
 fork が `app/`・`ui/` に足したファイルと鍵の行き先(どれか 1 つ、値の意味で決める):
 
@@ -78,6 +75,23 @@ export const overrideImports = ["lucide-react"] as const;
 ```
 
 - 宣言は上流(持ち主)の物で、上書きの中に書いても広がらない。処理(features の関数など)は宣言できず、上書きに書けない
+
+### 持ち主の宣言 `overrideLoaders`(値に書けないローダーの呼び出し)
+
+書体の next/font のように、モジュールのトップレベルでリテラルの引数で呼んだ結果を渡す物を受ける持ち主だけ、描画用の `config.ui.ts` にローダーの指定子を宣言します(前方一致、字面で読む)。その持ち主の上書きでだけ、宣言した指定子から読んだ名前を `const <名前> = <ローダー>(<リテラルの引数>)` の 1 文で呼べ、その名前を `export default` の値で読めます(lint `config-overrides/literal-only`)。
+
+```ts
+// src/lib/fonts/config.ui.ts(持ち主の描画用)
+export const overrideLoaders = ["next/font/google", "next/font/local"] as const;
+
+// src/config/lib/fonts.ui.config.ts(上書き)
+import { Noto_Sans_JP } from "next/font/google";
+import type { FontsOverride } from "@/lib/fonts/config.ui";
+const sans = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-sans-loaded", display: "swap" });
+export default { sans } satisfies FontsOverride;
+```
+
+- 上流の宣言は lib/fonts の 1 か所だけ。引数に変数・呼び出しは書けず、`let`・複数の宣言・`export default` の中での呼び出しは止まる
 
 ### 持ち主の宣言 `featureRequirements`(機能を要する値)
 

@@ -1,4 +1,4 @@
-// TextBlocks 4 つ(PageTitle / Para / SecTitle / Span)の見た目の上書き口(src/config/ui/variants.config.ts の
+// TextBlocks 4 つ(PageTitle / Para / SecTitle / Span)の見た目の上書き口(src/config/lib/variantOverrides.config.ts の
 // pageTitle / para / secTitle / span、@/lib/variantOverrides)の検査。
 // 実行: pnpm test src/components/TextBlocks/variantOverrides.test.tsx
 // (tsx。before() で import。config は mock.module で差し替え)
@@ -10,7 +10,7 @@ import { defineVariantOverrides, type VariantOverrides } from "@/lib/variantOver
 
 // 上書きの値はテストごとに中身だけ入れ替える(部品は読み込み時にキーのオブジェクトを掴むので、入れ物は同じまま)
 const OV: VariantOverrides = defineVariantOverrides({});
-mock.module("@/config/ui/variants.config", { namedExports: { VARIANT_OVERRIDES: OV } });
+mock.module("@/lib/variantOverrides/config", { namedExports: { variantOverrides: OV } });
 
 /** 入れ子のキー(中のオブジェクトを部品が掴む) */
 const NESTED = new Set(["badge", "switchInput"]);

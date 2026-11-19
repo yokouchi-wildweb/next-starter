@@ -5,7 +5,7 @@ paths:
 # components/TextBlocks
 what: the text wrappers PageTitle (h1), SecTitle (h2, `as` h1-h6), Para (p), Span (span) with tone / size / weight / align / srOnly variants, entry @/components/TextBlocks
 use: always
-change: placement → look = `pageTitle` / `secTitle` / `para` / `span` keys of src/config/ui/variants.config.ts | heading look = fork CSS on the data-slot marks
+change: placement → look = `pageTitle` / `secTitle` / `para` / `span` keys of src/config/lib/variantOverrides.config.ts | heading look = fork CSS on the data-slot marks
 rules:
 using:
 - screen_h1: a screen's h1 = the frame's title part (e.g. UserPageTitle of src/app/(user)/_layout/PageTitle), not PageTitle directly

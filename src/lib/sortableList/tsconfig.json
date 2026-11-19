@@ -22,6 +22,12 @@
       ],
       "@/components/*": [
         "../../components/*"
+      ],
+      "@/lib/defineConfig": [
+        "../defineConfig"
+      ],
+      "@/lib/defineConfig/*": [
+        "../defineConfig/*"
       ]
     }
   },

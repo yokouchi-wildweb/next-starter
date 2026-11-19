@@ -10,7 +10,9 @@
 //   ファイルの文は import・export default・型の宣言(export type Extra など)だけ。関数・呼び出し・new・変数・export const は書けない。
 //   値の中で許す式: object / array(spread・計算されたキー・メソッド無し)・文字列 / 数 / 真偽 / null / undefined・式の無い template・
 //   単項の - + !・as const・satisfies・process.env.<名前>・許した import の名前とその . の先・比較(=== !== == !=)と ?? || &&・条件式(env で切り替える)。
-//   宣言は持ち主のファイルにだけ効く(上書きの中に overrideImports を書いても広がらない)。
+//   持ち主が `export const overrideLoaders = [...] as const` と宣言した指定子(書体の next/font など)から読んだ名前だけ、
+//   トップレベルの `const <名前> = <ローダー>(<リテラルの引数>)` で呼べ、その名前は値として読める。
+//   宣言は持ち主のファイルにだけ効く(上書きの中に overrideImports・overrideLoaders を書いても広がらない)。
 // - owner-reads-only(src と scripts の全ファイルに掛ける): 上書きを読めるのは持ち主の config.ts(<名前>.ui.config.ts は config.ui.ts)だけ。
 //   @/config/… ・相対・"src/…"・@lib-config/<名前> のどれで読んでも解いた実パスで判定し、型だけの import も止める。
 //   lib の中から自分の上書きを読む所は lint lib-entry の持ち分なので見ない(二重に落とさない)。
@@ -22,7 +24,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { BASE_OVERRIDE_FOLDERS, OVERRIDE_FOLDERS, OVERRIDE_ROOT, readOverrideImports } from "../src/lib/districtMap/index.mjs";
+import { BASE_OVERRIDE_FOLDERS, OVERRIDE_FOLDERS, OVERRIDE_ROOT, readOverrideImports, readOverrideLoaders } from "../src/lib/districtMap/index.mjs";
 import { readDistrictMapAt } from "../src/lib/districtMap/node.mjs";
 import { moduleVisitors, repoRelative, resolveImport } from "./resolve-import.mjs";
 
@@ -75,6 +77,13 @@ function declaredImports(root, ownerPath) {
   const abs = path.join(root, ownerPath);
   if (!existsSync(abs)) return [];
   return readOverrideImports(ownerPath, readFileSync(abs, "utf8")).imports;
+}
+
+/** 持ち主の宣言(overrideLoaders)。持ち主のファイルが無ければ [] */
+function declaredLoaders(root, ownerPath) {
+  const abs = path.join(root, ownerPath);
+  if (!existsSync(abs)) return [];
+  return readOverrideLoaders(ownerPath, readFileSync(abs, "utf8")).loaders;
 }
 
 const TS_WRAPPERS = new Set(["TSAsExpression", "TSSatisfiesExpression", "TSNonNullExpression", "TSTypeAssertion"]);
@@ -141,6 +150,17 @@ function firstNonLiteral(node, allowedNames, stageNames = new Set()) {
   }
 }
 
+/** const <名前> = <宣言したローダー>(...) の 1 文か */
+const isLoaderCall = (statement, loaderNames) =>
+  statement.type === "VariableDeclaration" &&
+  statement.kind === "const" &&
+  statement.declarations.length === 1 &&
+  statement.declarations[0].id.type === "Identifier" &&
+  statement.declarations[0].init?.type === "CallExpression" &&
+  statement.declarations[0].init.callee.type === "Identifier" &&
+  loaderNames.has(statement.declarations[0].init.callee.name) &&
+  !statement.declarations[0].init.arguments.some((arg) => arg.type === "SpreadElement");
+
 const isTypeDeclaration = (node) => node && ["TSTypeAliasDeclaration", "TSInterfaceDeclaration"].includes(node.type);
 
 const literalOnly = {
@@ -172,6 +192,8 @@ const literalOnly = {
           return;
         }
         const declared = slot.base ? [] : declaredImports(root, slot.owner);
+        const loaderSpecs = slot.base ? [] : declaredLoaders(root, slot.owner);
+        const loaderNames = new Set();
         const allowedNames = new Set();
         const stageNames = new Set();
         let hasDefault = false;
@@ -195,6 +217,10 @@ const literalOnly = {
               for (const sp of statement.specifiers) if (sp.importKind !== "type") stageNames.add(sp.local.name);
               continue;
             }
+            if (matchesPrefix(source, loaderSpecs)) {
+              for (const s of statement.specifiers) if (!(s.type === "ImportSpecifier" && s.importKind === "type")) loaderNames.add(s.local.name);
+              continue;
+            }
             if (source === BUSINESS || source.startsWith(`${BUSINESS}/`) || matchesPrefix(source, declared)) {
               for (const s of statement.specifiers) if (!(s.type === "ImportSpecifier" && s.importKind === "type")) allowedNames.add(s.local.name);
               continue;
@@ -208,6 +234,14 @@ const literalOnly = {
             hasDefault = true;
             const bad = firstNonLiteral(statement.declaration, allowedNames, stageNames);
             if (bad) context.report({ node: bad, messageId: "nonLiteral" });
+            continue;
+          }
+          // 持ち主が overrideLoaders で宣言したローダーの呼び出し: const <名前> = <ローダー>(<リテラルの引数>)、その名前は値として読める
+          if (loaderNames.size > 0 && isLoaderCall(statement, loaderNames)) {
+            const args = statement.declarations[0].init.arguments;
+            const bad = args.map((arg) => firstNonLiteral(arg, allowedNames, stageNames)).find(Boolean);
+            if (bad) context.report({ node: bad, messageId: "nonLiteral" });
+            allowedNames.add(statement.declarations[0].id.name);
             continue;
           }
           if (isTypeDeclaration(statement)) continue;

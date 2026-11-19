@@ -3,7 +3,7 @@ import "@/styles/global.css";
 import { Suspense } from "react";
 import { headers } from "next/headers";
 
-import { FONTS_CONFIG } from "@/config/ui/fonts.config";
+import { fontsConfig } from "@/lib/fonts/config.ui";
 import {
   buildSiteThemeBootstrapScript,
   resolveSiteTheme,
@@ -81,7 +81,7 @@ export default async function RootLayout({
 
   // 書体: fonts.config.ts(next/font)で読み込んだフォントの variable クラスを <html> に当てる。
   // 何も読み込んでいなければ空(core/typography.css の system スタックで表示)。
-  const htmlClassName = [isDark ? "dark" : "", FONTS_CONFIG.className].filter(Boolean).join(" ");
+  const htmlClassName = [isDark ? "dark" : "", fontsConfig.className].filter(Boolean).join(" ");
 
   return (
     <html

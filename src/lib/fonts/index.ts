@@ -1,8 +1,8 @@
 // src/lib/fonts/index.ts
 //
 // 書体(Web フォント読み込み)の設定モデル。
-// - 設定の正: src/config/ui/fonts.config.ts(下流所有、defineFontsConfig の差分のみ)
-// - 適用: src/app/layout.tsx が FONTS_CONFIG.className を <html> に当てる
+// - 設定: 上書き src/config/lib/fonts.ui.config.ts(持ち主 ./config.ui.ts、root layout だけが読む)
+// - 適用: src/app/layout.tsx が fontsConfig.className を <html> に当てる
 // - 参照: src/styles/core/typography.css のスタックが --font-sans-loaded / --font-mono-loaded を
 //   var() のフォールバック付きで参照する(読み込まれていなければ system スタック)
 // 詳細: src/styles/README.md

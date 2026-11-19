@@ -1,13 +1,13 @@
 import { type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithoutRef } from "react";
 
-import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import { variantOverrides } from "@/lib/variantOverrides/config";
 import { cn } from "@/lib/cn";
 
 import { createTextVariants } from "./textVariants";
 
-// 見た目の上書き口: src/config/ui/variants.config.ts の pageTitle({ base, tone, size, weight, align })
-const pageTitleVariants = createTextVariants("tracking-tight", VARIANT_OVERRIDES.pageTitle);
+// 見た目の上書き口: src/config/lib/variantOverrides.config.ts の pageTitle({ base, tone, size, weight, align })
+const pageTitleVariants = createTextVariants("tracking-tight", variantOverrides.pageTitle);
 
 /** h1 の印(data-slot)。admin-page-title は上流の管理の見出し部品が渡す(fork は名前を変えずに印を狙う) */
 export type PageTitleSlot = "page-title" | "admin-page-title";

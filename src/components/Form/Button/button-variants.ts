@@ -1,7 +1,7 @@
 // src/components/Form/Button/button-variants.ts
 //
 // Button / LinkButton / PseudoButton 共通の variant 定義。
-// 下流は src/config/ui/variants.config.ts の `button` キーで、ここを編集せずに
+// 下流は src/config/lib/variantOverrides.config.ts の `button` キーで、ここを編集せずに
 // 角丸・影・枠線・寸法などを差し替えられる(結合順: ここ → オーバーライド → 各要素の className)。
 // variant / size の名前は下流の設定が参照する公開契約なので、削除・改名時は .notices で通知する。
 // size の高さは操作部品の高さの段 --control-h-<名前>(src/styles/core/config.css の :root)から取る。
@@ -9,7 +9,7 @@
 
 import type { VariantProps } from "class-variance-authority";
 
-import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import { variantOverrides } from "@/lib/variantOverrides/config";
 import { createOverridableVariants } from "@/lib/variantOverrides";
 
 const BUTTON_VARIANTS = {
@@ -108,7 +108,7 @@ export const buttonVariants = createOverridableVariants(
       opticalAdjust: false,
     },
   },
-  VARIANT_OVERRIDES.button,
+  variantOverrides.button,
 );
 
 export type ButtonStyleProps = VariantProps<typeof buttonVariants>;

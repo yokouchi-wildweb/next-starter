@@ -5,7 +5,7 @@ paths:
 # lib/unsavedGuard
 what: stops navigation away from an edited, unsaved screen and asks first (link, router, plain <a>, back / forward, reload); closed lib, entry @/lib/unsavedGuard (UnsavedGuardProvider, useUnsavedGuard, useUnsavedTasks, useRouter)
 use: always
-change: placement = src/config/ui/unsaved-guard.config.ts (confirm texts per reason, values only)
+change: placement = src/config/lib/unsavedGuard.config.ts (confirm texts per reason)
 rules:
 using:
 - guarded_router: app code navigates with useRouter from @/lib/unsavedGuard, never next/navigation's useRouter (lint import-boundaries/router-via-guard)

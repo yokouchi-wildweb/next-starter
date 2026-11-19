@@ -77,7 +77,7 @@ export const srOnly = {
 } as const;
 
 /**
- * TextBlocks の variant 関数。override = src/config/ui/variants.config.ts の部品のキー
+ * TextBlocks の variant 関数。override = src/config/lib/variantOverrides.config.ts の部品のキー
  * (pageTitle / para / secTitle / span: { base, tone, size, weight, align })。srOnly は上書きしない。
  * 結合順: 既定のクラス → override.base → tone → size → weight → align の上書き(呼び手の className は部品側で最後)。
  */

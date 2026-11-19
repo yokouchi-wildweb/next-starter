@@ -3,3 +3,5 @@
 export { UnsavedGuardProvider, useLinkNavigateJudge, useRouter, useUnsavedGuard, useUnsavedSource, useUnsavedSourceFactory, useUnsavedTasks } from "./UnsavedGuardProvider";
 export { NAVIGATION_PORT_ATTR, UNSAVED_REASONS, pickConfirmReason } from "./guard";
 export type { ConfirmLeave, GuardedRouter, LeaveKind, LeaveRequest, LinkNavigateJudge, UnsavedReason, UnsavedSource, UnsavedTasks } from "./types";
+export { unsavedGuardConfig } from "./config";
+export type { UnsavedGuardConfig, UnsavedGuardConfirmTexts, UnsavedGuardOverride } from "./config";

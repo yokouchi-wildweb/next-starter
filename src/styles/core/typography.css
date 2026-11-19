@@ -3,7 +3,7 @@
  *
  * ⚠️ 下流(fork)はこのファイルを編集しないでください。
  *    - system フォントの並びを変えたい → src/styles/typography.css に同名変数を書く(後勝ち)
- *    - Web フォントを読み込みたい → src/config/ui/fonts.config.ts(next/font)。読み込まれると
+ *    - Web フォントを読み込みたい → src/config/lib/fonts.ui.config.ts(next/font)。読み込まれると
  *      --font-sans-loaded / --font-mono-loaded が <html> に定義され、下のフォールバックより優先される
  *
  * 既定で Web フォントは読み込まない(従来どおり system スタック)。

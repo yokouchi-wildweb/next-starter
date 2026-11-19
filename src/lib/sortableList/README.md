@@ -68,7 +68,7 @@ import { SortableList, type ReorderResult } from "@/lib/sortableList";
 
 ### 未保存の守り(並びの保存待ち)
 
-- `onReorder` が Promise を返すと、終わるまで(並びの保存待ち)ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 未保存 `unsaved`。確認の文は `src/config/ui/unsaved-guard.config.ts`)。void を返す使い手は守らない。外すのは `guardUnsaved={false}`
+- `onReorder` が Promise を返すと、終わるまで(並びの保存待ち)ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 未保存 `unsaved`。確認の文は `src/config/lib/unsavedGuard.config.ts`)。void を返す使い手は守らない。外すのは `guardUnsaved={false}`
 - リストは未保存の並びを持たない(落とすたびに使い手が保存する)
 - 判定は `reorderGuard.ts`(テスト `pnpm test src/lib/sortableList`)
 

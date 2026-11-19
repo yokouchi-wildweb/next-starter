@@ -1,7 +1,7 @@
 // src/lib/variantOverrides/types.ts
 //
 // variant オーバーライドマップの型。
-// 下流は src/config/ui/variants.config.ts に「足したいクラス」だけを書き、
+// 下流は src/config/lib/variantOverrides.config.ts に「足したいクラス」だけを書き、
 // 対象コンポーネント(Button / Badge / 入力部品 / TextBlocks)が cva の出力の後ろに結合する(tailwind-merge で後勝ち)。
 // キー(button / badge.solid / switchInput.track ...)と軸の値の名前は upstream が維持する公開契約。
 // 入力部品・TextBlocks の軸の値の名前はここが持つ(D102)。部品の既定のクラスの表は `satisfies Record<名前, string>` で揃える。

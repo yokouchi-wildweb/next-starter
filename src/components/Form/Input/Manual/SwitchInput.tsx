@@ -3,10 +3,10 @@
 import { useId, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { cva } from "class-variance-authority";
-import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import { variantOverrides } from "@/lib/variantOverrides/config";
 import { variantOverrideClasses, type CheckControlSize, type SwitchInputColor } from "@/lib/variantOverrides";
 
-// 見た目の上書き口: src/config/ui/variants.config.ts の switchInput.track({ base, size, activeColor, inactiveColor })と
+// 見た目の上書き口: src/config/lib/variantOverrides.config.ts の switchInput.track({ base, size, activeColor, inactiveColor })と
 // switchInput.indicator({ base, size })。activeColor はオンの間だけ、inactiveColor はオフの間だけ足す
 // (下の compoundVariants の既定の色と同じ効き方)。既定のクラスはここ
 
@@ -197,7 +197,7 @@ export function SwitchInput<T = boolean>(props: SwitchInputProps<T>) {
         aria-hidden="true"
         className={cn(
           trackVariants({ checked, interactive: !disabled, size, activeColor, inactiveColor }),
-          ...variantOverrideClasses(VARIANT_OVERRIDES.switchInput.track, {
+          ...variantOverrideClasses(variantOverrides.switchInput.track, {
             size: size ?? "md",
             activeColor: checked ? (activeColor ?? "primary") : null,
             inactiveColor: checked ? null : (inactiveColor ?? "muted"),
@@ -207,7 +207,7 @@ export function SwitchInput<T = boolean>(props: SwitchInputProps<T>) {
         <span
           className={cn(
             indicatorVariants({ checked, size }),
-            ...variantOverrideClasses(VARIANT_OVERRIDES.switchInput.indicator, { size: size ?? "md" }),
+            ...variantOverrideClasses(variantOverrides.switchInput.indicator, { size: size ?? "md" }),
           )}
         />
       </label>

@@ -1,6 +1,6 @@
 // src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx
 // 未保存の編集の守り(src/lib/unsavedGuard)の既定の結線: 確認 = Overlays の Dialog(lib は見た目を持たず確認の関数を値で受ける)、
-// 文は理由ごとに src/config/ui/unsaved-guard.config.ts から(立っている理由が複数なら lib の pickConfirmReason = 処理の途中が勝つ)、
+// 文は理由ごとに src/config/lib/unsavedGuard.config.ts(既定 src/lib/unsavedGuard/config.ts) から(立っている理由が複数なら lib の pickConfirmReason = 処理の途中が勝つ)、
 // 守りを棚の Navigation の口(Link の移動の判定・棚の router・AppForm の編集済みの元)へ入れる(棚は lib を読まない、D50)。
 // 門番の口(GateProvider → LinkVisibilityProvider)と同じ置き方。AppProviders(server)が 1 か所で描く。
 // 確認の開閉に state を持つのでクライアント側の部品になり、server の入れ子 AppProviders には書けない → root の layout の部品
@@ -12,11 +12,11 @@ import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 
 import { NavigationPortProvider, type NavigationPortValue } from "@/components/Navigation/NavigationPort";
 import { Dialog } from "@/components/Overlays/Dialog";
-import { UNSAVED_GUARD_CONFIRM } from "@/config/ui/unsaved-guard.config";
 import {
   NAVIGATION_PORT_ATTR,
   pickConfirmReason,
   UnsavedGuardProvider,
+  unsavedGuardConfig,
   useLinkNavigateJudge,
   useRouter,
   useUnsavedSourceFactory,
@@ -56,7 +56,7 @@ export function UnsavedGuardRoot({ children }: Readonly<{ children: ReactNode }>
       }),
     [],
   );
-  const texts = UNSAVED_GUARD_CONFIRM[reason];
+  const texts = unsavedGuardConfig.confirm[reason];
   return (
     <UnsavedGuardProvider confirm={confirm}>
       <NavigationPortBridge>{children}</NavigationPortBridge>

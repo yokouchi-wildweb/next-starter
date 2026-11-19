@@ -1,13 +1,13 @@
 import { type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
-import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import { variantOverrides } from "@/lib/variantOverrides/config";
 import { cn } from "@/lib/cn";
 
 import { createTextVariants } from "./textVariants";
 
-// 見た目の上書き口: src/config/ui/variants.config.ts の para({ base, tone, size, weight, align })
-const paraVariants = createTextVariants("my-2 leading-relaxed", VARIANT_OVERRIDES.para);
+// 見た目の上書き口: src/config/lib/variantOverrides.config.ts の para({ base, tone, size, weight, align })
+const paraVariants = createTextVariants("my-2 leading-relaxed", variantOverrides.para);
 
 export type ParaProps = ComponentPropsWithoutRef<"p"> &
   VariantProps<typeof paraVariants> & { children: ReactNode };

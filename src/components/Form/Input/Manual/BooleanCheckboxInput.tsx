@@ -5,10 +5,10 @@ import { cn } from "@/lib/cn";
 import type { VariantProps } from "class-variance-authority";
 import { Checkbox } from "@/components/Primitives/Checkbox";
 import { Label } from "@/components/Form/Label";
-import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import { variantOverrides } from "@/lib/variantOverrides/config";
 import { createOverridableVariants, type CheckControlSize } from "@/lib/variantOverrides";
 
-// 見た目の上書き口: src/config/ui/variants.config.ts の booleanCheckbox({ base, size })。既定のクラスはここ
+// 見た目の上書き口: src/config/lib/variantOverrides.config.ts の booleanCheckbox({ base, size })。既定のクラスはここ
 const CHECKBOX_SIZE = {
   sm: "!size-3 [&_[data-slot=checkbox-indicator]>svg]:!size-2",
   md: "!size-4 [&_[data-slot=checkbox-indicator]>svg]:!size-3.5",
@@ -18,7 +18,7 @@ const CHECKBOX_SIZE = {
 const checkboxSizeVariants = createOverridableVariants(
   "",
   { variants: { size: CHECKBOX_SIZE }, defaultVariants: { size: "md" } },
-  VARIANT_OVERRIDES.booleanCheckbox,
+  variantOverrides.booleanCheckbox,
 );
 
 type CheckboxSizeProps = VariantProps<typeof checkboxSizeVariants>;

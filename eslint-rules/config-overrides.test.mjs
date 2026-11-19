@@ -21,6 +21,8 @@ const FILES = {
   "src/features/gacha/config.ts": "export const gachaConfig = {};\n",
   "src/lib/toast/config.ts": "export const toastConfig = {};\n",
   "src/lib/toast/index.ts": "",
+  "src/lib/fonts/config.ui.ts": `export const overrideLoaders = ["next/font/google", "next/font/local"] as const;\nexport const fontsConfig = {};\n`,
+  "src/lib/fonts/index.ts": "",
   "src/app/admin/_layout/config.ts": `export const adminLayoutConfig = { frame: "admin" };\n`,
   "src/app/page.tsx": "",
   "src/proxies/index.ts": "",
@@ -41,6 +43,7 @@ const ruleTester = new RuleTester({ languageOptions: { parser: tsParser, ecmaVer
 const WALLET = at("src/config/features/wallet.config.ts");
 const WALLET_UI = at("src/config/features/wallet.ui.config.ts");
 const GACHA = at("src/config/features/gacha.config.ts");
+const FONTS_UI = at("src/config/lib/fonts.ui.config.ts");
 
 test("literal-only: リテラル・型・process.env・@/business・宣言した指定子は通す", () => {
   ruleTester.run("literal-only", plugin.rules["literal-only"], {
@@ -55,6 +58,8 @@ test("literal-only: リテラル・型・process.env・@/business・宣言した
       { filename: WALLET, options, code: `import { USD } from "@/lib/currencyCodes";\nexport default { code: USD };` },
       { filename: WALLET_UI, options, code: `import { FaCoins } from "react-icons/fa";\nimport { Icons } from "@/components/Icons";\nexport default { coin: FaCoins, gem: Icons.Gem };` },
       { filename: GACHA, options, code: `export interface Extra { a: string }\nexport type { Other } from "@/features/gacha/config";\nexport default {};` },
+      // 持ち主が overrideLoaders で宣言したローダー(next/font)は const <名前> = <ローダー>(<リテラル>) で呼べ、その名前を値で読める
+      { filename: FONTS_UI, options, code: `import { Noto_Sans_JP } from "next/font/google";\nimport localFont from "next/font/local";\nimport type { FontsOverride } from "@/lib/fonts/config.ui";\nconst sans = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-sans-loaded" });\nconst mono = localFont({ src: "../../assets/fonts/Mono.woff2", variable: "--font-mono-loaded" });\nexport default { sans, mono } satisfies FontsOverride;` },
       // 古いフォルダ・直下のファイルは対象外
       { filename: at("src/config/app/whatever.config.ts"), options, code: `export const x = () => 1;` },
       { filename: at("src/config/business.config.ts"), options, code: `export const x = () => 1;` },
@@ -83,6 +88,11 @@ test("literal-only: リテラル・型・process.env・@/business・宣言した
       { filename: GACHA, options, code: `import { isProduction } from "@/lib/appEnv";\nexport default { check: isProduction };`, errors: [{ messageId: "nonLiteral" }] },
       { filename: GACHA, options, code: `import { business } from "@/business";\nexport default { x: business.make() };`, errors: [{ messageId: "nonLiteral" }] },
       { filename: GACHA, options, code: `export type Extra = {};`, errors: [{ messageId: "noDefault" }] },
+      // ローダーの呼び出し: 宣言の無い持ち主では読めない・引数はリテラルだけ・const の 1 つの宣言だけ
+      { filename: GACHA, options, code: `import { Inter } from "next/font/google";\nconst sans = Inter({ variable: "--font-sans-loaded" });\nexport default { sans };`, errors: [{ messageId: "valueImport" }, { messageId: "statement" }, { messageId: "nonLiteral" }] },
+      { filename: FONTS_UI, options, code: `import { Inter } from "next/font/google";\nconst name = "--font-sans-loaded";\nconst sans = Inter({ variable: name });\nexport default { sans };`, errors: [{ messageId: "statement" }, { messageId: "nonLiteral" }] },
+      { filename: FONTS_UI, options, code: `import { Inter } from "next/font/google";\nlet sans = Inter({ variable: "--font-sans-loaded" });\nexport default { sans };`, errors: [{ messageId: "statement" }, { messageId: "nonLiteral" }] },
+      { filename: FONTS_UI, options, code: `import { Inter } from "next/font/google";\nexport default { sans: Inter({ variable: "--font-sans-loaded" }) };`, errors: [{ messageId: "nonLiteral" }] },
       { filename: at("src/config/features/ghost.config.ts"), options, code: `export default {};`, errors: [{ messageId: "noOwner" }] },
     ],
   });

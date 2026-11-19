@@ -122,7 +122,7 @@ servers: standalone programs outside Next/Vercel live in servers/\<name\>/ (own 
 ## CORE_FILES (ownership: who edits what)
 core (= CORE, approval required): CLAUDE.md, core/, src/features/core/ (core domains, core roles), src/styles/core/, src/components/, src/proxy.ts, src/proxies/, src/featureGate/, src/wiring/, upstream routes' _screen / _layout, libs in the Tier1 section of src/lib/CATALOG.md (the main ones) | files the fork added = fork-owned | per path → pnpm workflow ownership who
 - full list → core/ownership.md
-downstream_owned (upstream never edits after creation): root src/styles/*.css, src/config/ui/*.config.ts, page.tsx / frame layout.tsx of switched routes, _components/** and \<name\>.replace files of upstream routes (not a generated admin route's hand-owned _components/ = the domain owner's), \<target\>.override.ts
+downstream_owned (upstream never edits after creation): root src/styles/*.css, page.tsx / frame layout.tsx of switched routes, _components/** and \<name\>.replace files of upstream routes (not a generated admin route's hand-owned _components/ = the domain owner's), \<target\>.override.ts
 intake: every place a fork may write in parent files = src/lib/forkOwnership/intake.txt (kinds: edit / add / region / marker / append / generated / debt / self) | src/config/** = an intake point too (the fork may edit it; upstream edits it as well, rules: config below)
 config: src/config/ = values only (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
 fork_ownership (check: pnpm workflow ownership check, run by /flux after each segment commit and before its push | fails from the start | exit 2 = unverified, never a pass | ref: src/lib/forkOwnership/README.md):

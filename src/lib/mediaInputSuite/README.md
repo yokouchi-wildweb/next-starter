@@ -144,7 +144,7 @@ export function FooFields({ methods, onMediaStateChange }) {
 
 ### 送信中の未保存の守り
 
-`MediaUploader` / `MediaUploaderMulti` は送信中(アップロード中)の間、ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 処理の途中 `inProgress`。確認の文は `src/config/ui/unsaved-guard.config.ts`)。
+`MediaUploader` / `MediaUploaderMulti` は送信中(アップロード中)の間、ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 処理の途中 `inProgress`。確認の文は `src/config/lib/unsavedGuard.config.ts`)。
 - フォームの中でも特別な扱いはしない: 守りの元が 1 つ増えるだけで、1 回の移動に確認は 1 回(送信中なら「処理の途中」の文)
 - アップロードが済んで保存前の値は、フォームの編集済み(AppForm の守り)が受ける。ここでは守らない(未採用分の追跡で守ると、保存の後の移動で聞いてしまう: 確定は送信の後に走る)
 

@@ -1,7 +1,6 @@
 // src/lib/variantOverrides/defineConfig.ts
 //
-// 下流の差分を完全形に正規化する。設定ファイル(src/config/ui/variants.config.ts)は
-// この関数を 1 回呼ぶだけにし、ロジックを持たない(CLAUDE.md: config は値のみ)。
+// 下流の差分を完全形に正規化する。合成は ./config.ts(上書き src/config/lib/variantOverrides.config.ts は値だけ)。
 
 import type { VariantOverrides, VariantOverridesInput } from "./types";
 

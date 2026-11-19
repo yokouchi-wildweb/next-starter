@@ -10,7 +10,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -23,7 +23,9 @@ export function reexportsComponent(source) {
   return /^\s*export\s*\{[^}]*\}\s*from\s*["'][^"']+["']/m.test(code);
 }
 
-const targets = readdirSync(join(repoRoot, CONFIG_DIR))
+// 上流は src/config/ui を持たない(値は持ち主の上書き src/config/lib などへ移り、上書きは lint config-overrides/literal-only で部品を re-export できない)。
+// fork に古いフォルダが残っている間だけ、その中を見る
+const targets = (existsSync(join(repoRoot, CONFIG_DIR)) ? readdirSync(join(repoRoot, CONFIG_DIR)) : [])
   .filter((name) => /\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name))
   .filter((name) => reexportsComponent(readFileSync(join(repoRoot, CONFIG_DIR, name), "utf8")))
   .map((name) => `${CONFIG_DIR}/${name}`);
@@ -35,7 +37,7 @@ test("reexportsComponent: コメント内と export type は数えない", () =>
   assert.equal(reexportsComponent(`export type { A } from "./a";`), false);
 });
 
-// upstream の config/ui は値だけ(部品の re-export は notice old-entry-removal で撤去)なので、upstream では 0 件が正しい。
+// upstream に config/ui は無いので 0 件が正しい。
 // fork が config から部品を export しているときだけ、下の検査がそのファイルごとに走る(検出そのものは上の test が見る)。
 test("部品を re-export する config の一覧(0 件 = 値だけの config、検査の対象なし)", () => {
   assert.ok(Array.isArray(targets));

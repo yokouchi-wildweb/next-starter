@@ -49,7 +49,7 @@
   - アプリ全体の Provider の入れ子。root の `src/app/layout.tsx` が 1 か所で描く（server。自分ではデータを取らない）。並び:
     - 門番 `GateProvider`（root layout が計算した利用者の枠の値を prop `gate` で受ける。`src/featureGate/README.md`）
     - → Tooltip → reCAPTCHA → 認証セッション `AuthSessionProvider` → 管理コマンド → 画像ビューア → 入力部品
-    - → 未保存の編集の守り `src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx`（`src/lib/unsavedGuard` + Overlays の Dialog + `src/config/ui/unsaved-guard.config.ts` の文 → 棚の Navigation の口）
+    - → 未保存の編集の守り `src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx`（`src/lib/unsavedGuard` + Overlays の Dialog + `src/config/lib/unsavedGuard.config.ts` の文 → 棚の Navigation の口）
       - 確認の開閉に state を持つ root の枠のクライアント側の Provider で、この入れ子は server なので中に書けない → 管理コマンドの `AdminCommandRoot` と同じく root の layout の部品に置く。wiring へ戻さない（wiring どうしは import しない）
     - → fork の口 `src/app/_providers/ForkProviders.tsx`（1 行スイッチ。上流の既定は空の素通し。fork の Provider は `ForkProviders.replace.tsx` に書いてスイッチを向ける、多段は同じ `.replace` を書き換える。`src/app/_providers/README.md`）
 - `GoogleTag.tsx`: データに届くか = 届かない

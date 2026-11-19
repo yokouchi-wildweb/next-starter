@@ -52,7 +52,7 @@
 
 ## Extension
 
-- 見た目の上書き口: `src/config/ui/variants.config.ts` の `pageTitle` / `para` / `secTitle` / `span`（`base` / `tone` / `size` / `weight` / `align`、`srOnly` は上書きしない）
+- 見た目の上書き口: `src/config/lib/variantOverrides.config.ts` の `pageTitle` / `para` / `secTitle` / `span`（`base` / `tone` / `size` / `weight` / `align`、`srOnly` は上書きしない）
   - 既定のクラスの後ろ・呼び手の `className` の前に足す
   - 値の名前は `@/lib/variantOverrides` の型、キーの一覧: `src/styles/README.md`「バリアントの上書き」
 - 見出しの印（data-slot）: `PageTitle` の h1 は `data-slot="page-title"`、`SecTitle` の見出しは `data-slot="sec-title"` を持つ

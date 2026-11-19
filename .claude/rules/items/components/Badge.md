@@ -5,7 +5,7 @@ paths:
 # components/Badge
 what: the badge parts SolidBadge, SoftBadge, BookmarkTagBadge with shared variant / size / icon / asChild props, entry @/components/Badge
 use: always
-change: placement → colors = semantic tokens in src/styles/palette.css | shape (radius, padding, border) = `badge` key of src/config/ui/variants.config.ts (size / solid / soft / bookmarkTag)
+change: placement → colors = semantic tokens in src/styles/palette.css | shape (radius, padding, border) = `badge` key of src/config/lib/variantOverrides.config.ts (size / solid / soft / bookmarkTag)
 rules:
 using:
 - badge_source: a badge comes from @/components/Badge | BadgeCore (@/components/Primitives/Badge) directly only when the finished badges fall short (Primitives card finished_first)

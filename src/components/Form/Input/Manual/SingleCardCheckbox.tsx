@@ -5,14 +5,14 @@ import { cn } from "@/lib/cn";
 import type { VariantProps } from "class-variance-authority";
 import { Checkbox } from "@/components/Primitives/Checkbox";
 import type { FormControlA11yProps } from "@/components/Form/Field/types";
-import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import { variantOverrides } from "@/lib/variantOverrides/config";
 import {
   createOverridableVariants,
   type CheckControlSize,
   type SingleCardCheckboxColor,
 } from "@/lib/variantOverrides";
 
-// 見た目の上書き口: src/config/ui/variants.config.ts の singleCardCheckbox({ base, size, color })。
+// 見た目の上書き口: src/config/lib/variantOverrides.config.ts の singleCardCheckbox({ base, size, color })。
 // color は今使っている色(チェック時 checkedVariant、未チェック時 uncheckedVariant)のときだけ足す。既定のクラスはここ
 
 /**
@@ -42,7 +42,7 @@ const SIZE = {
 const sizeVariants = createOverridableVariants(
   "",
   { variants: { size: SIZE }, defaultVariants: { size: "md" } },
-  VARIANT_OVERRIDES.singleCardCheckbox,
+  variantOverrides.singleCardCheckbox,
 );
 
 type SizeVariant = VariantProps<typeof sizeVariants>["size"];
@@ -97,7 +97,7 @@ export function SingleCardCheckbox({
         "flex cursor-pointer items-center gap-2 rounded-md border transition-colors",
         sizeVariants({ size }),
         colorVariants[currentVariant],
-        VARIANT_OVERRIDES.singleCardCheckbox.color?.[currentVariant],
+        variantOverrides.singleCardCheckbox.color?.[currentVariant],
         fullWidth && "w-full",
         centered && "justify-center",
         disabled && "cursor-not-allowed opacity-50",

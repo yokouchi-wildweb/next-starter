@@ -128,8 +128,8 @@ test("variant / size の解決は cva と同じ(undefined / 空文字 → 既定
   assert.equal(fn({ variant: null, size: null }), "inline-flex rounded-md");
 });
 
-test("出荷時の variants.config.ts は空(upstream は下流所有ファイルに値を書かない)", () => {
-  const source = readFileSync(resolve(here, "../../config/ui/variants.config.ts"), "utf8");
+test("出荷時の上書き variantOverrides.config.ts は空(upstream は fork の値を書かない)", () => {
+  const source = readFileSync(resolve(here, "../../config/lib/variantOverrides.config.ts"), "utf8");
   const body = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-  assert.match(body, /defineVariantOverrides\(\{\s*\}\)/);
+  assert.match(body, /export default \{\s*\} satisfies VariantOverridesOverride/);
 });

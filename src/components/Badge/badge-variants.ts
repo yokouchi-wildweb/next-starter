@@ -3,11 +3,11 @@
 /**
  * バッジコンポーネント共通のvariantとsize定義
  *
- * 下流は src/config/ui/variants.config.ts の `badge` キー(size / solid / soft / bookmarkTag)で、
+ * 下流は src/config/lib/variantOverrides.config.ts の `badge` キー(size / solid / soft / bookmarkTag)で、
  * ここを編集せずに形を差し替えられる。variant / size 名は下流の設定が参照する公開契約。
  */
 
-import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import { variantOverrides } from "@/lib/variantOverrides/config";
 import { variantOverrideClasses } from "@/lib/variantOverrides";
 
 /** 全バッジ共通のカラーバリアント */
@@ -48,7 +48,7 @@ export type BadgeKind = "solid" | "soft" | "bookmarkTag";
  */
 export function badgeOverrideClasses(kind: BadgeKind, variant: BadgeVariant, size: BadgeSize) {
   return variantOverrideClasses(
-    { ...VARIANT_OVERRIDES.badge[kind], size: VARIANT_OVERRIDES.badge.size },
+    { ...variantOverrides.badge[kind], size: variantOverrides.badge.size },
     { variant, size },
   );
 }

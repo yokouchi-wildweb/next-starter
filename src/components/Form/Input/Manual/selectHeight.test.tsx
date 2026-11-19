@@ -12,7 +12,7 @@ import { createElement as h } from "react";
 import { defineVariantOverrides, type VariantOverrides } from "@/lib/variantOverrides";
 
 const OV: VariantOverrides = defineVariantOverrides({});
-mock.module("@/config/ui/variants.config", { namedExports: { VARIANT_OVERRIDES: OV } });
+mock.module("@/lib/variantOverrides/config", { namedExports: { variantOverrides: OV } });
 
 let render: typeof import("react-dom/server").renderToStaticMarkup;
 let SelectInput: typeof import("./Select").SelectInput;

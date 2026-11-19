@@ -392,7 +392,7 @@ ControlledField / ManualField / ControlledFieldGroup / ManualFieldGroup / Config
 
 - 独自の入力部品: `src/wiring/formInputs/inputs/` に登録し、`formInput` に名前を書く(`FieldRenderer/README.md` Usage「登録された入力部品」)。このフォルダは一覧を知らず、Context と型だけを持つ
 - 高さの段: fork は CSS の変数 `--control-h-<size>`(`src/styles/core/config.css` の `:root`)を上書きすれば全部品の高さが揃って動く(`src/styles/README.md`「トークンで動く範囲」)
-- 高さの上書きの順: 部品の表 → `src/config/ui/variants.config.ts`(入力欄系と引き金は `input` を共有、ボタンは `button`、Stepper は `stepperInput`)→ 要素の `className`(後ろが勝つ。高さを個別に変えるときだけ)
+- 高さの上書きの順: 部品の表 → `src/config/lib/variantOverrides.config.ts`(入力欄系と引き金は `input` を共有、ボタンは `button`、Stepper は `stepperInput`)→ 要素の `className`(後ろが勝つ。高さを個別に変えるときだけ)
 
 ## Internals
 

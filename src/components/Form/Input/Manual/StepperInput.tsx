@@ -8,10 +8,10 @@ import { MinusIcon, PlusIcon } from "lucide-react";
 import type { VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";
 import type { FormControlA11yProps } from "@/components/Form/Field/types";
-import { VARIANT_OVERRIDES } from "@/config/ui/variants.config";
+import { variantOverrides } from "@/lib/variantOverrides/config";
 import { createOverridableVariants, type StepperInputSize } from "@/lib/variantOverrides";
 
-// 見た目の上書き口: src/config/ui/variants.config.ts の stepperInput({ base, size }、外枠)。既定のクラスはここ
+// 見た目の上書き口: src/config/lib/variantOverrides.config.ts の stepperInput({ base, size }、外枠)。既定のクラスはここ
 // 高さは操作部品の高さの段(--control-h-*): xs = xxs 28px・s = sm 36px・m = md 44 / 40px・l = xl 48px(両端のボタンも同じ段の正方形)
 const CONTAINER_SIZE = {
   xs: "h-(--control-h-xxs) text-xs",
@@ -23,7 +23,7 @@ const CONTAINER_SIZE = {
 const containerVariants = createOverridableVariants(
   "inline-flex w-fit items-stretch overflow-hidden rounded-md border",
   { variants: { size: CONTAINER_SIZE }, defaultVariants: { size: "s" } },
-  VARIANT_OVERRIDES.stepperInput,
+  variantOverrides.stepperInput,
 );
 
 type Size = VariantProps<typeof containerVariants>["size"];

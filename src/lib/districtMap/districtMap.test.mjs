@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { readOverrideLoaders } from "./index.mjs";
 import { readDistrictMap, readDomainEntry, readFeatureRequirements, readFrameName, readOverrideImports, readRuleDomains, readTableNames, toJsonl } from "./index.mjs";
 
 /** パス → 本文 の表から source を作る(フォルダはパスから導く) */
@@ -200,4 +201,10 @@ test("readFeatureRequirements: export const featureRequirements のリテラル�
   assert.equal(readFeatureRequirements("c.ts", `export const featureRequirements = [{ key: "a", feature: "x" }];`).problems.length, 1, "off が無い");
   assert.equal(readFeatureRequirements("c.ts", `export const featureRequirements = [{ key: "a", feature: "x", off: 0, extra: 1 }];`).problems.length, 1, "未知のキー");
   assert.equal(readFeatureRequirements("c.ts", `export const featureRequirements = [{ key: "a b", feature: "x", off: 0 }];`).problems.length, 1, "鍵の形");
+});
+
+test("readOverrideLoaders: export const overrideLoaders の文字列の配列を字面で読む", () => {
+  assert.deepEqual(readOverrideLoaders("c.ts", `export const overrideLoaders = ["next/font/google", "next/font/local"] as const;`), { loaders: ["next/font/google", "next/font/local"], problems: [] });
+  assert.deepEqual(readOverrideLoaders("c.ts", "export const fontsConfig = {};"), { loaders: [], problems: [] });
+  assert.equal(readOverrideLoaders("c.ts", "export const overrideLoaders = LIST;").problems.length, 1);
 });

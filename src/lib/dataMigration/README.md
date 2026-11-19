@@ -35,7 +35,7 @@
 
 ### 取り込み中の未保存の守り
 
-取り込み中は、ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 処理の途中 `inProgress`。確認の文は `src/config/ui/unsaved-guard.config.ts`)。自前の `beforeunload` は持たない。
+取り込み中は、ページの移動・戻る / 進む・再読み込みに確認を出す(`src/lib/unsavedGuard`、理由 = 処理の途中 `inProgress`。確認の文は上書き `src/config/lib/unsavedGuard.config.ts`)。自前の `beforeunload` は持たない。
 
 - 外す: `guardUnsaved={false}`(`DataMigrationButton` / `DataMigrationModal` / `useImportHandler`、既定 true)
 - 何を守るかの判定: `ImportTab/hooks/importGuard.ts`(テスト `pnpm test src/lib/`)
