@@ -214,7 +214,9 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - 上流の条件: 本体と notice を同じ 1 commit に入れる / `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含めない / `required_actions` は後の notice を前提にしない / `fixes:` があれば `pnpm workflow notices pickCheck` で壊れた地点に載ることを確かめる(`/ship`。衝突・検査の失敗なら出さない。出荷索引だけの衝突は数えない: 上の「先に取れる印」)/ 遅れた fork の位置に載せた木で、足した・変えたルールの `paths:`・notice の手順の `pnpm <script>`・名指すパスが揃うことを確かめる(`pnpm workflow notices hotfixCheck`。揃わなければ依存を外すか、その fork で何が通らないかを required_actions に書く)
 - 受け取り: 通常の `/flux` が未適用の `hotfix:` を見つけて通常の区間より先に計画する。専用のコマンドは無い。次の区間に入っているなら merge で届くので pick しない。`fixes:` の修正元が未適用の fork には不具合がまだ無いので pick しない
 - 台帳: `upstream:` は今の merge-base のまま、`picked:<元の commit>` を足す。記録済みなので後の区間の区切りにならない。後の merge では同じ変更が自動で解決される
-- 所有の検査: `picked:` の分は基準 + pick と同じ中身なら合格(`src/lib/forkOwnership/README.md`「緊急修正の pick」)。衝突を手で解いたファイルや違反になったファイルは 1 ファイル 1 行の一時許可で通し、後の区間がそのファイルに触れたら許可を取り直す
+- 先取りの道具: `pnpm workflow notices hotfixApply <元の commit> --upstream=<直接の親の ref>`(/flux の HOTFIX)。ぶつかったファイルを人に聞かずに決める: 出荷索引 `.notices/shipped/` は fork 側 / 道具が上流の先端の版を読むファイル(`.claude/skills/flux/` の下)は先取りから外す(ぶつからなくても外す。/flux と鉄道はその手順と incoming.mjs を上流の先端で読むので、fork に先に入れる物ではない)/ fork が merge-base から一度も変えていない上流のファイルは元の commit の時点の上流の版にファイルごと置き換える(間の上流の変更も一緒に入るが、上流の物)/ fork が変えたファイルのぶつかりだけ取り消して止まる(手で解く・飛ばす・区間で進める)。決めた事は台帳の行の `notes:` に `replaced:` / `left-out:` で残す
+- 所有の検査: `picked:` の分は基準 + pick と同じ中身、または pick がそのファイルを変えていてその pick の時点の上流の版と同じ中身(置き換えた形)なら合格(`src/lib/forkOwnership/README.md`「緊急修正の pick」)。手で解いたファイルや違反になったファイルは 1 ファイル 1 行の一時許可で通し、後の区間がそのファイルに触れたら許可を取り直す
+- 後の区間の merge: 置き換えたファイルがぶつかったら上流の側(上流の中身しか持たない)
 - 多段: 取れるのは直接の親の commit だけ。上の段から順に進む(`.claude/skills/flux/relay.md`)
 
 ### 解決(resolves)— 下流から届いた依頼を片付けた

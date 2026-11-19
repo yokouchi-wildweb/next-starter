@@ -399,7 +399,8 @@ export function judgeFork(repoRoot, context) {
     baseUnits: snapshot.units,
   });
   const middleTier = reassignMiddleTier(judged.entries, tier1Files);
-  // 親の緊急修正の pick(台帳の picked:)。基準 + pick と同じ中身なら違反にしない(fork が更に変えた分は違反のまま)。
+  // 親の緊急修正の pick(台帳の picked:)。基準 + pick と同じ中身、または pick の時点の上流の版と同じ中身なら違反にしない
+  // (fork が更に変えた分は違反のまま)。
   // 既に基準に入った pick は差分に出ないので外す
   const picks = pickedShas(headText(`.notices/applied/${ownerId}.md`)).filter(
     (sha) => tryGit(repoRoot, ["cat-file", "-e", `${sha}^^{commit}`]) !== null && tryGit(repoRoot, ["merge-base", "--is-ancestor", sha, base]) === null,
@@ -407,9 +408,16 @@ export function judgeFork(repoRoot, context) {
   for (const entry of judged.entries) {
     if (entry.verdict !== "violation" || picks.length === 0) continue;
     const targets = entry.from ? [entry.from, entry.path] : [entry.path];
+    // 基準 + pick と同じ中身、または pick がそのファイルを変えていて、その pick の時点の上流の版とファイルごと同じ中身
+    // (緊急修正の衝突で fork が変えていない上流のファイルを上流の版に置き換えた形: pnpm workflow notices hotfixApply)
     const onlyPicked = targets.every((path) => {
+      const head = headText(path);
       const after = textAfterPicks(repoRoot, picks, path, baseText(path));
-      return after?.touched && after.text === headText(path);
+      if (after?.touched && after.text === head) return true;
+      return picks.some((sha) => {
+        const next = show(repoRoot, sha, path);
+        return next !== null && next !== show(repoRoot, `${sha}^`, path) && next === head;
+      });
     });
     if (!onlyPicked) continue;
     entry.reason = "picked";

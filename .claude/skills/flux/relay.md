@@ -28,6 +28,7 @@ read when the condition of SKILL.md ATTACHED FILES hits | the rules here act **i
 ## HOTFIX (SKILL.md HOTFIX)
 - original commit of a grandparent notice's `hotfix:` = the commit the direct Tier picked (`commit:` of that id's line in `git show <upstream>/<branch>:.notices/applied/<中間 Tier の名前>.md`) | never take the Tier1 commit directly
 - the direct Tier's ledger has no line (not picked yet) → one line in the overview that it cannot be taken, and go on to the normal segments
+- the pick is the same tool (`pnpm workflow notices hotfixApply <the direct Tier's commit> --upstream=<upstream>/<branch>`): "never changed by the fork" and "the upstream's version" are read against the direct parent (its merge-base, its commit), never Tier1
 - pick-clean fixes (SKILL.md FIXES `pick: clean`) are taken only for notices the direct parent issued | never read a grandparent notice's `pick:` (that mark was tried on Tier1's tree, not the direct Tier's) | when the direct Tier took it ahead, that pick arrives in normal segments in the order of the direct Tier's ledger
 
 ## LEDGER ADDITIONS (SKILL.md step 7a)

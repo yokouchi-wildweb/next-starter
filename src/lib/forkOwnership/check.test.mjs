@@ -65,6 +65,15 @@ describe("pnpm workflow ownership check", () => {
       assert.equal(result.entries.find((entry) => entry.path === CORE).reason, "outside-intake");
     });
 
+    test("衝突で上流の版に置き換えたファイル(pick の時点の上流と同じ中身)は合格(hotfixApply の置き換え)", () => {
+      const { fork } = pickedFork();
+      write(fork, CORE, render(["ONE", ...LINES.slice(1, 7), "EIGHT"]));
+      commitAll(fork, "replaced by the upstream's version at the pick");
+      const result = runCheck(fork);
+      assert.equal(result.status, "pass");
+      assert.equal(result.entries.find((entry) => entry.path === CORE).reason, "picked");
+    });
+
     test("pick の後に fork が更に変えたら違反", () => {
       const { fork } = pickedFork();
       write(fork, CORE, render(["one", "TWO", ...LINES.slice(2, 7), "EIGHT"]));

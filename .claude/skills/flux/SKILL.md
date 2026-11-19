@@ -157,20 +157,23 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
   - stopping: default, `<n>`, `light` get approval here (never a light segment even with `light`); STOP | `all` reports 1-2 lines and goes on | `status` only displays
   - `いいえ` → skip it this time and go to the normal segments (it arrives by a later merge)
 - **execute** (do steps 6-8 as follows):
-  1. `git cherry-pick -x <元の commit>`
-     - a conflict only in `.notices/shipped/` → take the fork side and continue (`git checkout --ours -- <path>`; files the fork lacks `git rm -q -- <path>` → `git cherry-pick --continue --no-edit`) | upstream's index arrives with a later merge and the unapplied judgment reads the upstream tip's index, so the pick does not need it (`.notices/README.md` `先に取れる印`)
-       - `pnpm check notices` accepts the picked body without its row (ledger `picked:`): never add the row by hand
-     - any other conflict → `git cherry-pick --abort` back, stop and give options (`手で解いて続行` / `この緊急修正を飛ばす` / `元の commit まで区間で進める` = resolve by hand and continue / skip this hotfix / advance by segments up to the original commit); STOP
+  1. `pnpm workflow notices hotfixApply <元の commit> --upstream=<upstream>/<branch>` (the fork's checkout; the tree must be clean) — the cherry-pick and every conflict settled without asking (`.notices/README.md` `緊急修正(hotfix)`):
+     - `.notices/shipped/` → the fork side (upstream's index arrives with a later merge; the unapplied judgment reads the upstream tip's index) | `pnpm check notices` accepts the picked body without its row (ledger `picked:`): never add the row by hand
+     - files the tools read from the upstream tip (`.claude/skills/flux/`) → left out of the pick (`left-out`), conflict or not
+     - an upstream file the fork never changed since the merge-base → the upstream's version at the original commit, the whole file (`replaced`)
+     - a file the fork changed → the pick is undone (branch and tree as before), exit 1 with those files (`conflict`) → stop and give options (`手で解いて続行` / `この緊急修正を飛ばす` / `元の commit まで区間で進める` = resolve by hand and continue / skip this hotfix / advance by segments up to the original commit); STOP
+     - its `notes` line goes into the ledger line's `notes:` as is (`hotfix pick; replaced: …; left-out: …`)
   2. the notice's required_actions, the segment checks (the same 3 as step 6; the picked tree lacks `scripts/runner/gates/` → skip the entry and write it in the report) and verify
   3. put the follow-up changes and the ledger in a commit separate from the pick commit (so the tier below can take only the pick commit)
      - ledger line: `- id:<id> | date:<ISO8601> | commit:<pick の短 sha> | upstream:<git merge-base HEAD <upstream>/<branch> の完全な sha> | picked:<元の commit の完全な sha> | notes:<…>`
      - never set `upstream:` to the original commit (the ownership check would misread the Tier1 version) | forks with downstream write `relay:` too
-  4. step 7c `pnpm workflow ownership check` (content equal to base + pick passes as `picked`) → push → report | a pick has no merge target, so instead of 7c's "skip when there is no intake.txt" decide by:
+  4. step 7c `pnpm workflow ownership check` (content equal to base + pick, or a replaced file equal to the upstream's version at the pick, passes as `picked`) → push → report | a pick has no merge target, so instead of 7c's "skip when there is no intake.txt" decide by:
      - no check (`package.json` lacks `pnpm workflow ownership check`) → skip | write `所有の検査なし(後の区間で届く)` in the report and the ledger notes | do not stop
      - an old check (`git diff --quiet HEAD <upstream>/<branch> -- src/lib/forkOwnership/` shows a diff) → run it, but never stop the pick on 1 / 2 (an old check may not know picks) | write the result in the report and the ledger notes
      - same version as upstream → as 7c (1 / 2 are stop conditions)
      - all of these = the same treatment as FOLLOW UPSTREAM'S LATEST STEPS 3 "skip steps of missing / different-version tools, never stop"
-- **after the pick**: rebuild the segments (ids recorded in the ledger are no checkpoints) | that spot conflicts at a later merge → take the upstream side when the fork has no edit
+- **after the pick**: rebuild the segments (ids recorded in the ledger are no checkpoints) | that spot conflicts at a later merge → take the upstream side when the fork has no edit (a replaced file always: it holds only upstream's content)
+- **an older tree**: the fork's tip has no `hotfixApply` (the upstream tip's skill names it, the fork's tree may not) → run it from the upstream tip: `git show <upstream>/<branch>:scripts/workflow/notices/hotfixApply.mjs > <tmp>/hotfixApply.mjs && node <tmp>/hotfixApply.mjs …` (it only runs git)
 - **picked by hand already**: an unapplied notice in the tree whose adding commit is an ancestor of `<upstream>/<branch>` but not of HEAD (not in the ledger) → apply it in segment 0 and write the ledger line in the form above (regardless of `hotfix:`) | confirm the original commit with the line of `git log --grep "cherry picked from commit"`
 
 ## LIGHT SEGMENTS (the `light` judgment; only segments planned in detail)
