@@ -430,5 +430,35 @@
   "old": "src/features/core/auth/README.md「公開 hook の契約表」",
   "new": "src/features/core/auth/API.md「公開 hook」",
   "order": 65
+ },
+ {
+  "kind": "claude-section",
+  "old": "CLAUDE.md FORMAT_RULE",
+  "new": ".claude/rules/core/design.md format",
+  "order": 92
+ },
+ {
+  "kind": "claude-section",
+  "old": "CLAUDE.md SIZE",
+  "new": ".claude/rules/core/design.md size",
+  "order": 92
+ },
+ {
+  "kind": "claude-section",
+  "old": "CLAUDE.md WINDOW",
+  "new": ".claude/rules/core/design.md authoring (window, usual path)",
+  "order": 92
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md PROXY feature_gate",
+  "new": "CLAUDE.md DOMAINS_AND_FEATURES feature_gate",
+  "order": 92
+ },
+ {
+  "kind": "claude-section",
+  "old": "CLAUDE.md PER_PROJECT",
+  "new": ".claude/rules/core/design.md places",
+  "order": 92
  }
 ]

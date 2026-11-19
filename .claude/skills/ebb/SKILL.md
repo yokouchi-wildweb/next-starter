@@ -10,7 +10,7 @@ extra: $ARGUMENTS
 judging: apply the decision table below mechanically | never change a decision by "looks useful" or "seems important" | what the table does not decide → user decision, no recommendation (give one only when asked)
 
 ## PREMISES
-- definition source: CLAUDE.md head ROLE / PER_PROJECT and DOCS `memory` / `durable_info` | memory = handoff of in-progress work only | no durable rules, knowledge or environment facts
+- definition source: CLAUDE.md THIS_FILE ROLE, core/design.md places and CLAUDE.md DOCS `memory` / `durable_info` | memory = handoff of in-progress work only | no durable rules, knowledge or environment facts
 - target: the working directory's memory only = `memory/` of the entry in `ls ~/.claude/projects/` matching the working directory path (non-alphanumerics become `-`) | index = `MEMORY.md`
 
 ## 1. COLLECT FACTS (per memo, no judgment)
@@ -35,7 +35,7 @@ judging: apply the decision table below mechanically | never change a decision b
 - show counts and the list per decision | one row per memo: name, decision, the facts behind it
 - "delete" and "keep": STOP: approval per decision, in one batch each
 - "user decision": one memo at a time, with a summary of its content and the collected facts; STOP: let the user choose
-- decided "move": show the text to write first; STOP: get approval | form follows CLAUDE.md FORMAT_RULE and the target file
+- decided "move": show the text to write first; STOP: get approval | form follows core/design.md format and the target file
 
 ## 4. EXECUTE
 - deleted memos → `mv` to `memory-archive/<YYYY-MM-DD>/` beside the memory directory (never auto-loaded) | never `rm`

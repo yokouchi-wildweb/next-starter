@@ -7,7 +7,7 @@ paths:
 ---
 # services
 > **ROLE**: loaded when writing server services, loaders or CRUD calls | holds CRUD_SERVICE (createCrudService) service-side rules
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 operations: create, list, get, update, remove, search, count, query, upsert, duplicate, restore, hardDelete, bulk* (DeleteByIds, DeleteByQuery, Upsert, Update, UpdateByIds) | Drizzle-only: belongsToMany, reorder, searchForSorting, replaceByQuery | conditional on domain flags: duplicate, restore/hardDelete, reorder/searchForSorting
 search: list = simple full fetch only → relations / filters / pagination use search | options: relationWhere, extraWhere (SQL), extraOrderBy (SQL[], before orderBy, server-only), searchRank, withRelations (depth ≤ 3), hasManyLimit | wrappers that order search results reuse buildSearchWhere / buildSearchRankOrderBy and close ORDER BY with withIdTiebreak (else ties reorder across pages)

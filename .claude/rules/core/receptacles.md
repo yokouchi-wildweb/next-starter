@@ -6,7 +6,7 @@ paths:
 ---
 # receptacles
 > **ROLE**: loaded when declaring a receptacle (extensionPoints.ts) or its generator | holds the upstream side of extension points
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 receptacle limits (upstream):
 - only for a request with a feature that really uses it, whatever the fork count

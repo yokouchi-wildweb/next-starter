@@ -7,7 +7,7 @@ paths:
 ---
 # style
 > **ROLE**: loaded when writing any .tsx or styles | holds the style rules (CLAUDE.md COMPONENTS style)
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 ownership: see CORE_FILES (src/styles/core/** = upstream | src/styles/*.css at the root (entry global.css + palette / typography / overrides.css + generated gradient.css + fork-added), src/config/ui/*.config.ts = downstream) | color source of truth = CSS
 config: variants / fonts / site theme are set through src/config/ui/*.config.ts (an old place: these existing files stay, no new values there) define*Config({partial}) | variant and size names are public contract (rename → .notices) | before changing tokens, variants, fonts or theme → read src/styles/README.md

@@ -6,8 +6,8 @@ paths:
   - ".claude/README.md"
 ---
 # design
-> **ROLE**: loaded when writing CLAUDE.md, AGENTS.md or anything under .claude/rules/ | holds the map of all core files, the authoring ladder, the card / service / context-file formats, the size lines and who to consult
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> **ROLE**: loaded when writing CLAUDE.md, AGENTS.md or anything under .claude/rules/ | holds the map of all core files, the authoring ladder, the format, the card / service / context-file formats, the size lines and who to consult
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 map (every core file, loaded by its paths):
 - .claude/rules/core/api-routes.md: API_ROUTES detail
@@ -41,13 +41,13 @@ map (every core file, loaded by its paths):
 ## authoring (the ladder: before adding or changing any rule)
 - 1 find its place with places above | 2 write it in that file in this file's formats (paths globs: one-level braces only, nested braces never load) | 3 pnpm check rules | 4 /ship (the why goes in the commit body)
 - usual path, no order needed: write a card, a README or a service file | add a rule for a place to an existing core file | fix an existing CLAUDE.md item together with its source item | a place you just created: its one line in a core file's paths or in .claude/rules/core/uncovered.txt, in the same commit that creates the place
-- window (order first, even for the Tier1 session: /order next-starter; a fork: /order <direct parent>, relayed up by the parent): a CLAUDE.md item or section added, or a key removed or renamed | a core file added, removed, renamed or its paths widened to places that already exist | a new card category | a check or MANDATORY rule binding forks | a clash between rules of different owners
+- window (order first: /order next-starter, from the Tier1 session and straight from a fork at any tier, never relayed through a parent): a CLAUDE.md item or section added, or a key removed or renamed | a core file added, removed, renamed or its paths widened to places that already exist | a new card category | a check or MANDATORY rule binding forks | a clash between rules of different owners
   - a clash you notice while working: never fix one side yourself → the window | no check hunts for clashes
 - the window decides: the Tier1 session handling next-starter's inbox + the user's approval (/inbox) | the reason always goes in the commit body (the inbox lives outside the repo)
 - coverage: every upstream file and every intake.txt place must hit the paths of an upstream core file or card (pnpm check rules; a fork's own files are not counted) | matched as Claude Code loads rules (** and * also hit dot-named files and folders) | fails in Tier1 only; a fork gets a notice, and one line "cannot verify" when its base version is unreadable
   - a gap → widen the core file that holds that place's rules (a window item, unless the place is new: usual path above) | only a place that truly needs no rule → uncovered.txt with its reason, never a blanket line to quiet the check
 - CLAUDE.md over its notify line (size below) → still ship; the shipping session files one condense order to the window (none if one with the same title is open)
-- a missing or wrong rule you do not own → /order <direct parent> | until it ships, a provisional rule in your own rules (outside core/) ending with `(order: <id>)`, followed while the order is open, removed when it ships as resolves: (/flux asks)
+- a missing or wrong rule you do not own: CLAUDE.md, a core file or a Tier1 card → /order next-starter straight | a middle tier's own rule (its lineage section, service, cards) → /order <that repo> | until it ships, a provisional rule in your own rules (outside core/) ending with `(order: <id>)`, followed while the order is open, removed when it ships as resolves: (/flux asks)
 - docs/!must-read/: each doc names the CLAUDE.md section it backs | changing that section → fix the doc in the same commit (and the reverse)
 
 ## cards (.claude/rules/items/<category>/<name>.md)
@@ -72,6 +72,11 @@ map (every core file, loaded by its paths):
 - project.md: this repo's overview + tier-only info (Tier1: the maker's duty and stance) | behavior.md: work rules | repo.json: machine values (repo_id, tier, agent policy), flat keys one per line, written only through its command, read only via forkIds.mjs
 - lineage.md is not a self file (a merge takes the ancestors' sections; only your own section is yours): one section per tier, rules only, never edit an ancestor's section (→ /order <direct parent>) | own rules: .claude/rules/ outside core/, plain names, never restate core
 - a fork's context files are not checked by upstream beyond the self check (file present, parent's version taken in, overview not left as the parent's; on by default in pnpm workflow ownership check, --no-self only to investigate): the fork tidies them itself
+
+## format (CLAUDE.md and .claude/rules/)
+- agent-optimized, English only (code comments and READMEs follow behavior.md) | one decision per item, key: value recommended | short headings | no tables, history, precedent, dates or decision numbers
+- ` | ` (spaced) separates items, `a|b` (unspaced) or "or" = alternatives | a line over 400 chars → split into sub-bullets of the same key
+- content that does not fit key: value (ordered steps, branches by case, reasons) may take the form a reader follows best (numbered or per-case sub-lines, short sentences)
 
 ## size (chars, not lines)
 - CLAUDE.md: notify 37,000 (still ship; the shipping session files one condense order to the window, none if one with the same title is open) | fail 40,000 (Claude Code warns per file there) | no target: inside the line, a longer CLAUDE.md that holds the needed rules is fine

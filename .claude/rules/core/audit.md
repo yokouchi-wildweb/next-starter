@@ -9,7 +9,7 @@ paths:
 ---
 # audit
 > **ROLE**: loaded when writing server services, API routes or scripts | holds the audit rules (CLAUDE.md CRUD_SERVICE audit)
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 action_naming: \<domain\>.\<entity\>.\<verb_past\> (e.g. user.email.changed, ESLint audit/action-naming: auditLogger calls and any object literal with action + targetType, i.e. injected recorders too)
 usage: auto = createCrudService audit option | manual = auditLogger.record({..., tx}) from @/features/core/auditLog/services/server (server-only) | pass tx for rollback consistency

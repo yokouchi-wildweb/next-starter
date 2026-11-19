@@ -8,7 +8,7 @@ paths:
 ---
 # backends
 > **ROLE**: loaded when writing standalone servers, realtimeRoom or the DB / Firebase backends | holds the BACKENDS rules (unconfigured, doctrine, servers)
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 doctrine: new domains default dbEngine "Neon" | Firestore = realtime delivery channel only, chosen only when realtime UX is the essential requirement | no business data in Firestore, no logic in Firebase Functions (Firebase = auth / delivery; files = GCS via lib/storage, Firebase Storage rules = shipped deny-all) | ref: docs/!must-read/バックエンド構成ドクトリン.md
 - the crud Firestore adapter is frozen (no additions) | limits: no `or`, single orderBy, no belongsToMany

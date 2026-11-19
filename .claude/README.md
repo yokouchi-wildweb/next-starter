@@ -4,7 +4,7 @@
 
 - `.claude/rules/` には、フォーク先のプロジェクト固有の指示を置く。そこの `.md` は(`paths` フロントマターが無ければ)毎セッション無条件でロードされるので、1 行ごとにコンテキスト費用を毎回払う
 - この説明書は自動ロードされないよう `.claude/rules/` の外(`.claude/README.md`)に置く。`.claude/rules/` には README などの説明の文書を置かない
-- 何を書き何を書かないかの正は `CLAUDE.md` 冒頭の `PER_PROJECT`、書式の正は `CLAUDE.md` 冒頭の `FORMAT_RULE`
+- 何をどこに書くか・書式・大きさ・窓口の正は `.claude/rules/core/design.md`(places・format・size・authoring)
 
 ### ファイルの持ち主
 
@@ -16,7 +16,7 @@
 ## Usage
 
 1. `.claude/rules/` に `.md` ファイルを足すと自動で読み込まれる(`paths` フロントマターが無いファイルは毎セッション全文。コストになるので恒常ルールだけを置く)
-2. ベースの `CLAUDE.md` は変えず、`PER_PROJECT` の範囲に収まるルールだけをここに書く
+2. ベースの `CLAUDE.md` は変えず、`.claude/rules/core/design.md` の places が自分のリポの物とする範囲(self files・lineage の自分の節・core の外の自分の決まり)のルールだけをここに書く
 
 ### 書き方
 

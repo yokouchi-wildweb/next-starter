@@ -9,7 +9,7 @@ paths:
 ---
 # scripts
 > **ROLE**: loaded when writing scripts, domain scripts, seeds | holds the scripts placement and rules
-> Tier1-owned: forks never edit (gap → /order <direct parent>) | extends CODE_PLACEMENT tool_deps
+> Tier1-owned: forks never edit (gap → /order next-starter) | extends CODE_PLACEMENT tool_deps
 
 definition: scripts/ = tools that build, check and run this framework from outside the app | 4 categories: structure (generators + checkers, every one on a gate) | workflow (development-flow tools) | runner (entries, tests, tasks, seeds, guard) | operations (hand-run operations / inspection) | domain-owned tools (ops commands, migrations, seeds) live in the domain
 - nothing the app reads at runtime | ref: scripts/README.md

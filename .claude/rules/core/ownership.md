@@ -8,7 +8,7 @@ paths:
 ---
 # ownership
 > **ROLE**: loaded when writing ownership data (repo.json, permits, ledger, CATALOG.md, lineage.md, the ownership lib) | holds who owns what (CORE_FILES, fork_ownership)
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 core (= CORE, approval required): CLAUDE.md, core/ (.claude/rules/core/), src/features/core/ (core domains, core roles), src/styles/core/**, src/styles/README.md, src/components/, src/proxy.ts, src/proxies/ + src/featureGate/ (files a fork added = fork-owned, extensions/ = generated), scripts/structure/domain/ | per path → pnpm workflow ownership who
 - servers and wiring: servers/room/src/core/, servers/room/src/index.ts, src/wiring/ (files a fork added = fork-owned)

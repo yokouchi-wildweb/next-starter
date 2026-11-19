@@ -8,7 +8,7 @@ paths:
 ---
 # screens
 > **ROLE**: loaded when writing pages, Screens, loaders or layouts | holds SCREENS detail
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 route: page.tsx = downstream-owned 1-line switch `export { XScreen as default } from "./_screen/XScreen"` (metadata / dynamic OK) | _screen/\<Name\>Screen.tsx = default Screen, owned by the route creator (downstream never edits/deletes upstream ones) | _screen/ may hold the default Screen's private parts
 - own_route: a route the repo creates itself (fork or upstream) = it is the creator → its Screen and loader go in _screen/

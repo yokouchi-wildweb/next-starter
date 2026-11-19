@@ -8,7 +8,7 @@ paths:
 ---
 # proxy
 > **ROLE**: loaded when writing the proxy, its items or the feature gate | holds PROXY detail
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 entry: src/proxy.ts builds one ctx per request and runs src/proxies/index.ts | handler returns Response (intercept) or void (pass) → fallback NextResponse.next() + decorators (skipped when a handler intercepts) | x-pathname: proxy.ts sets it on request headers → server components read headers().get("x-pathname")
 chain: skeleton (upstream, hand-written in index.ts) maintenance → demoMode → featureGate → redirect, decorators attribution → inviteLink | then the frame: items in file-name order (no Tier order), independent of each other | never before the skeleton (need → ask upstream)

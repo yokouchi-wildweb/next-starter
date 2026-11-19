@@ -5,7 +5,7 @@ paths:
 ---
 # db
 > **ROLE**: loaded when writing entities or the schema registry | holds the schema registry, the push round trip and DB identifier rules
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 schema_registry (MANDATORY): src/registry/schemaRegistry.ts = the only push entry (pnpm db:push) | generated whole by pnpm generate registry from every pgTable under src/features (core and business) | new table → pnpm generate registry + ship .notices with `[user-run] db:push` | unregistered = the table is never created, best-effort writes fail silently
 push_roundtrip (MANDATORY when adding / changing an index): `pnpm db:push` (who runs it = the repo.json agent.db_push policy) → `pnpm db:push:check` must report zero statements (read-only dry run, the agent may run it) | ref: scripts/structure/registry/README.md

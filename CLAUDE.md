@@ -1,10 +1,10 @@
-ai_native: always adopt the environment and architecture that make development by agents most efficient | premise: agents write this code, not hands → reading the whole codebase and rewriting large parts of it is fast, exact and cheap
-- written or checked over remembered: the next agent knows nothing of today's conversation → what must hold goes into a rule or a check
-- one way over many: the same thing has one way to do it and one place that reads it → an exception is rewritten to match, not kept
-domain_driven: the business domain is the unit of design: everything one business concept needs lives together in its domain, in the same shape as every other domain → a spec change stays in one place, and a capability is added, closed or removed as a whole
+ai_native: always adopt the environment and architecture that make development by agents most efficient | premise: agents write this code, not hands, held up firmly by a complete context and a full set of tools → reading the whole codebase and rewriting large parts of it is fast, exact and cheap
+- tools over hand work: an agent never does by hand what a tool can do | the same thing has one way to do it and a tool (generator, check, skill) carries it out → run the tool | a repeated hand step with no tool yet → build the tool (keeping the tools complete is part of the work) | an exception is rewritten to match, not kept
+- written or checked over remembered: the next agent knows nothing of today's conversation → what must hold goes into the context (a rule, a card, a README) or a check
+domain_driven: the business domain is the unit of design: everything one business concept needs lives together in its domain, in the same shape as every other domain → a spec change stays in one place, and since the feature gate opens and closes domains as a whole, a capability is added, closed or removed as a whole
 - the owning domain over a shared place: code goes to the domain whose concept it is | only what belongs to no domain becomes a lib or a shared component | a component used by one domain stays in that domain
 - passing in over reaching in: a lib never imports a domain (what it needs is passed in) | a domain reaches another domain only through its public hooks and services
-- each domain's own part over a central list: features, access and tables are built on domains (a feature opens the domains it lists, a domain has no switch of its own) → a new mechanism has each domain hold its own part
+- each domain's own part over a central list: features, access and tables are built on domains | a feature = the unit a person switches on or off, its rule lists the domains it opens | a domain has no switch of its own and is open when an open feature lists it | a closed feature closes its domains' pages, APIs, tables and scheduled jobs together → a new mechanism has each domain hold its own part
 debt_free: every implementation decision aims at the form that is most rational and cleanest in the long run = the best state reachable in the present situation | present work is chosen over future debt
 - the root over the patch: no stopgap, workaround or special case that leaves the cause in place | nothing old is kept beside the new to save work (alias, half migration)
 - paying now over carrying debt: none of these counts against an option: the amount of code edits (rewriting every caller, renames, moves) | rewriting tests and docs | data migration (rebuilding columns or tables, moving existing rows) | a temporary burden on operations (maintenance time, one-time migration work)
@@ -14,15 +14,24 @@ use: every rule below follows from these three laws | a question no rule covers 
 > **HEART**: CLAUDE.md and the core files (core/) are the heart of this framework: every session's work starts from them → change a rule only after careful thought: run the authoring ladder in core/design.md first
 > - each rule item here (pointers aside) is extracted from the same key in its source (a core file, or a card for an item rule), shortened or restated as fits this file → change the source first, then review the matching CLAUDE.md line in the same commit
 > - a design rule needed before any file is opened that no core file or card holds (the layers, placement, docs) has CLAUDE.md as its source
-> **WINDOW**: these changes are never made directly → an order to the window first (next-starter's inbox, even for the Tier1 session; forks via /order <direct parent>, relayed up; the Tier1 session decides, the user approves)
-> - a CLAUDE.md item or section added, or a key removed or renamed | a core file added, removed, renamed or its paths widened to places that already exist | a new card category | a check or MANDATORY rule binding forks | a clash between rules of different owners (noticed while working: never fix one side yourself)
-> - the usual path needs no order: write a card, a README or a service file | add a rule for a place to an existing core file | fix an existing CLAUDE.md item together with its source | a place you just created gets its one line in a core file's paths or .claude/rules/core/uncovered.txt in the same commit → pnpm check rules → /ship | ladder → core/design.md authoring
-> **FORMAT_RULE** (this file and .claude/rules/): agent-optimized, English only (code comments and READMEs follow behavior.md). One decision per item, key: value recommended. A line over 400 chars → split into sub-bullets of the same key. ` | ` (spaced) separates items, `a|b` (unspaced) or "or" = alternatives. Short headings. No tables, history, precedent, dates or decision numbers
-> - content that does not fit key: value (ordered steps, branches by case, reasons) may take the form a reader follows best (numbered or per-case sub-lines, short sentences)
-> **ROLE**: CLAUDE.md = the entrance to the architecture contract shared by this base and every downstream repo = the essence of core/ (the canon: core/ + Tier1 item cards cover the whole framework). NEVER edit it downstream (gap → /order <direct parent>) | "fork" here = any repo with a parent, middle tiers included
-> - words: Tier1 = the top repo (next-starter) | upstream = the direct parent (a rule that means only the top repo says Tier1) | window = an order to next-starter's inbox for a contract change (WINDOW)
+> **WRITING**: writing or fixing CLAUDE.md, a rule file or a card → follow core/design.md (it loads when such a file is opened): the format, the size lines, the window and the usual path
+> **ROLE**: CLAUDE.md = the entrance to the architecture contract shared by this base and every downstream repo = the essence of core/ (the canon: core/ + Tier1 item cards cover the whole framework). NEVER edit it downstream (gap → /order next-starter) | "fork" here = any repo with a parent, middle tiers included
+> - words: Tier1 = the top repo (next-starter) | upstream = the direct parent (a rule that means only the top repo says Tier1) | window = an order to next-starter's inbox for a contract change, filed straight from any repo at any tier (core/design.md authoring)
 > **CORE**: core = what Tier1 ships and owns, one meaning everywhere = the paths of CORE_FILES core | a fork never edits it; it changes it only through CHANGE_TYPES or /order <direct parent> (with a temporary permit while it waits)
-> **SIZE**: measured in chars, not lines (Claude Code warns per file over 40,000 chars) | notify 37,000 (still ship; the shipping session files one condense order to the window) | fail 40,000 (pnpm check rules) | no target: inside the line, a longer CLAUDE.md that holds the needed rules is fine | never cut needed lines or blank lines to fit
+
+## DOMAINS_AND_FEATURES (the second law at work: what exists, what opens, what closes)
+domain_unit: a domain = the unit of design = src/features/\<domain\>/ (core domains src/features/core/, business src/features/\<domain\>/) | a domain has no switch of its own | what a domain holds and how it is made → DOMAINS
+feature_gate (MANDATORY): a feature = the unit a person switches on or off = a rule src/featureGate/rules/\<name\>.ts listing the domains it opens (fork values src/config/featureGate/switches.config.ts) | a domain is open when any open feature lists it, listed by none = base | a closed feature → its paths 404, its domains' tables, generic API and cron close
+- dependencies: a feature on a feature → dependsOn (nested URL → dependsOn parent) | code outside a gated domain that uses it → wrap with the gate (requires / gate / required)
+- new route / feature → its rule, 1 URL = 1 feature | read the gate only via gate / useGate | unused upstream page → close its feature | pnpm ops features list|set | ref: src/featureGate/README.md, detail → core/proxy.md
+district_map: what exists and what each district holds → src/lib/districtMap (list src/registry/district-map.jsonl, generated, never imported from src) | what closes → src/featureGate | the two are the domain-driven base (src_root_bases)
+
+## TOOLS (the context and a full set of tools hold up ai_native)
+use: a step a tool covers is never built by hand → run the tool | unsure which tool → scripts/README.md and the descriptions in .claude/skills/
+- build: pnpm forge (domains, roles, profiles end to end) | pnpm generate \<target\> (domain, role, registry, routes, cron, extensions, styles)
+- check: pnpm check [--gate=ship] (generator drift, rules, notices, lint) | pnpm test [--changed] | pnpm typecheck | pnpm lint
+- workflow: pnpm workflow \<area\> (ownership, rules, notices, worktree, devcheck, repo-json …) | ops: pnpm ops \<area\> (setup env, features, db inspect, firestore inspect) | task: pnpm task \<name\> (every ops task, no ad-hoc)
+- skills: /ship (checks, notice, commit, push) | /flux (take a parent's changes) | /order /inbox /wen (orders) | /devcheck /patrol (the running app) | /allow /repo-policy (what the agent may run) | the rest → .claude/skills/
 
 ## RULES_FILES (.claude/rules/: what each place holds, who writes it, merge | core/\<name\>.md = .claude/rules/core/\<name\>.md, items/… = .claude/rules/items/…)
 core/: upstream architecture canon, one file per kind of file being written, path-scoped (loads when Read / Write / Edit touches a matching file; a new file gets it only after the first Write) | only Tier1 writes; forks never add or edit (fork_ownership) | map of all core files and the authoring ladder: core/design.md | writing .claude/skills/** → core/skills.md
@@ -45,7 +54,7 @@ order: 1. a public means is enough → use it | 2. one of the five types at a de
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: gcs signed direct upload + server-side image metadata strip (sharp) (lib/storage) | http: axios (client), fetch (server)
 
 ## CODE_PLACEMENT (3-tier)
-domain: src/features/, all including entities | district = lib / domain (core, business) / frame / proxies: own namespace, config.ts + one src/config override, receptacles | reader src/lib/districtMap, list src/registry/district-map.jsonl (generated, never imported from src)
+domain: src/features/, all including entities | district = lib / domain (core, business) / frame / proxies: own namespace, config.ts + one src/config override, receptacles | its reader → DOMAINS_AND_FEATURES district_map
 library: src/lib/\<name\>/, all except entities | owner per library in src/lib/CATALOG.md (one section per owner repo) | closed lib = read via its exports only | writing a lib → core/lib.md
 - new lib (any tier): add its line to YOUR section only | when a parent takes over your lib through an order, drop your copy + line when it ships
 - lib owned by an ancestor repo: public entry only, never edit internals or delete the dir (unused = leave it), behavior change → /order <direct parent> | a fork file added inside it fails pnpm workflow ownership check → put it in your own lib and re-export
@@ -65,13 +74,13 @@ client_layer: client HTTP code lives in src/lib/** or services/client/** (axios 
 ## DIRECTORY_STRUCTURE
 features/\<domain\>/: components/{Admin*/, common/} | entities/{schema,form,model,drizzle}.ts | services/{client/, server/{drizzleBase, wrappers/, \<domain\>Service}} | hooks/ | constants/, types/, presenters.ts, domain.json
 shared_src: components (index: src/components/README.md), hooks, utils, lib, config, registry, proxies, featureGate | layout frame parts are not shared_src: they live beside their layout in src/app/\<route\>/_layout/
-src_root_bases: src/ directly holds only mechanisms that cut across the set of domains (featureGate, registry, wiring) | what follows them (maintenance, demoMode, cron tasks) never goes there | forks never add one (need → /order <direct parent>; fork mechanisms → lib, business → features) | domain-driven base = featureGate (what closes) + src/lib/districtMap (what exists and holds what)
+src_root_bases: src/ directly holds only mechanisms that cut across the set of domains (featureGate, registry, wiring) | what follows them (maintenance, demoMode, cron tasks) never goes there | forks never add one (need → /order <direct parent>; fork mechanisms → lib, business → features) | the domain-driven base (featureGate + districtMap) → DOMAINS_AND_FEATURES
 code_generation: domain.json `generate` (default true) = forge / pnpm generate domain rewrites the whole domain, hand logic lives in wrappers/ + write-once files | a generated file must be hand-edited → `"generate": false` | generated / write-once / hand-owned → core/generated.md
 stores (zustand): app-wide mechanism → closed lib src/lib/\<name\>/ (state inside, read via its entry; no src/stores) | domain-specific → features/\<domain\>/stores/ | one-frame-only → app/\<route\>/_layout/stores/ | structure and rules → core/client.md
 naming: components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: camelCase.ts | entities: lowercase files, PascalCase types | routes: kebab-case or (group) | constants: UPPER_SNAKE_CASE | index.ts: re-export only | no same-name .ts + .tsx in one folder (tsc skips the .tsx, pnpm check rules)
 db_identifiers: PostgreSQL names ≤ 63 chars | drizzle auto FK name `{table}_{column}_{reftable}_{refcolumn}_fk` gets truncated and can collide → keep table/column names short, or name the FK: `foreignKey({ name: "shortname_fk", columns: [...], foreignColumns: [...] })`
 
-## DOMAINS
+## DOMAINS (what a domain is and how it opens → DOMAINS_AND_FEATURES)
 core_domains: src/features/core/ = domains shipped by Tier1 (forks change them only through CHANGE_TYPES, fork_ownership) | business: all a fork or mid tier adds = src/features/\<domain\>/ | a domain Tier1 adds is core (the business shape's example = src/features/sample) | promotion to core = Tier1's call | hand-written vs generated is not part of the definition
 - index: src/features/core/README.md | imports omit core/ (@/features/\<coreDomain\>/* → features/core/)
 - more data on an upstream domain's records → a table in your own domain, or /order <direct parent> | never a DB column added to an upstream domain's table
@@ -118,8 +127,7 @@ principle: a fork may build any look and any feature | it does not copy behavior
 
 ## PROXY (Next.js 16 proxy, NOT middleware.ts)
 entry: src/proxy.ts | skeleton src/proxies/index.ts + items src/proxies/\<name\>.ts | user = ctx.user() only | chain, items → core/proxy.md
-feature_gate (MANDATORY): feature = human-toggled unit = rule src/featureGate/rules/\<name\>.ts (fork values src/config/featureGate/switches.config.ts) | domain = no switch of its own, open if any open feature lists it (none = base) | closed → paths 404, tables / generic API / cron closed | ref: src/featureGate/README.md
-- new route / feature → its rule, 1 URL = 1 feature (nested → dependsOn parent) | read the gate only via gate / useGate | code outside a gated domain that uses it → wrap with the gate (requires / gate / required) | unused upstream page → close its feature | pnpm ops features list|set | detail → core/proxy.md
+features: features, domains and the gate → DOMAINS_AND_FEATURES feature_gate
 
 ## API_ROUTES
 required: every API route is one Factory call, authz enforced structurally (the list → core/api-routes.md factories; a cron route.ts = createCronTaskRoute from @/wiring/cronRoute) | before writing a route → read src/lib/routeFactory/README.md | imports, generic access, presets → core/api-routes.md
@@ -180,7 +188,7 @@ ship (MANDATORY): every commit + push = /ship (checks, notice, commit, push) | w
 take_in: take a parent's changes with /flux (recommended, not required: it runs the segment checks, the ownership check and the notice steps together)
 checkpoint (MANDATORY on every notice): `checkpoint: <label>` = a segment boundary the author declares | `checkpoint: -` only when the fork cannot work without the next notice | detail → core/notices.md
 relay: a mid tier's /flux judges per segment whether each applied upstream notice needs relaying | /flux's unjudged-relay report ≠ 0 = flux not done (blocker) | forgotten → relay in the very next commit before any other work
-contract_gap: a missing or wrong rule in CLAUDE.md / a core file / a card → /order <direct parent> (mid tiers relay up) | while waiting, a provisional rule in your own rules (outside core) ending with `(order: <id>)`
+contract_gap: a missing or wrong rule in CLAUDE.md / a core file / a Tier1 card → /order next-starter, straight from any tier (a middle tier's own rule → /order <that repo>) | while waiting, a provisional rule in your own rules (outside core) ending with `(order: <id>)`
 fork_bootstrap: /fork-init right after clone | spec: docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
 
 ## DOCS

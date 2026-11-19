@@ -7,7 +7,7 @@ paths:
 ---
 # domain-definition
 > **ROLE**: loaded when writing domain.json, role / profile JSON or domainEntry.ts | holds the domain-definition rules (commands, roles, field types, config utils; reading domain config from parts → components.md domain_config)
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 commands: write domain.json / *.role.json / *.profile.json by hand (no interactive builders) → `pnpm forge` (gates: check forge:pre → generate role → domain → registry → extensions → routes → check forge:post + tests, prints the db:push step, ref: scripts/structure/forge/README.md)
 - single steps: pnpm generate domain -- \<Domain\> [--only \<categories\>] (no Domain = all) / pnpm generate domain -- --delete \<Domain\> --confirm \<snake_name\> | no prompts by default, `-i` = interactive (agents / CI / notices never use it, no [user-run]) | ref: scripts/structure/domain/README.md

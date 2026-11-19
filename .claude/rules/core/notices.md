@@ -7,7 +7,7 @@ paths:
 ---
 # notices
 > **ROLE**: loaded when writing a downstream notice or the ship / flux tools | holds DOWNSTREAM_NOTICES detail
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY also for deleting / moving a file forks may extend: moved: or the deletion in notes:) | ledger: .notices/applied/\<repo_id\>.md, each line records upstream:\<sha\> | ref: .notices/README.md
 - fields: the notice's keys (severity, checkpoint, change, why, required_actions, verify, manual_steps, notes …) = .notices/README.md API | fork follow-up commands go in required_actions

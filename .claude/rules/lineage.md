@@ -1,5 +1,5 @@
 # lineage
-> **ROLE**: rules a middle tier passes to its downstream forks | always loaded (no paths:) | Tier1 ships this preamble only, never a section of its own | format follows CLAUDE.md FORMAT_RULE
+> **ROLE**: rules a middle tier passes to its downstream forks | always loaded (no paths:) | Tier1 ships this preamble only, never a section of its own | format follows core/design.md format
 > **SECTIONS**: a repo with repo.json `tier` root or middle appends `## <repo_id>` at the end only when it has rules to pass, closed by `<!-- end <repo_id> -->` | order = oldest ancestor first, this repo last | `tier` leaf with a section = check fails
 > **CONTENT**: a section holds only rules that apply to this repo and its downstream | self-description → project.md | state / values → config (source of truth)
 > **KEYS**: a key = a line `- <key>: <rule>` or `- <key> (default): <rule>` inside a section | unique within its section | other prose and ### subheadings are contract text, not keys

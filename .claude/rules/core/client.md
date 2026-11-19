@@ -6,7 +6,7 @@ paths:
 ---
 # client
 > **ROLE**: loaded when writing hooks, client services or stores | holds the client layer rules (hooks, stores)
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 hooks: one use\<Op\>\<Domain\> per operation | custom mutation hooks MUST build on useDomainMutation (@/lib/crud/hooks); useSWRMutation PROHIBITED | test: pnpm test src/lib/crud/hooks/internal/*.test.mjs
 

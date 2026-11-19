@@ -10,7 +10,7 @@ paths:
 ---
 # api-routes
 > **ROLE**: loaded when writing API routes or the route factory | holds API_ROUTES detail
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 generic: /api/[domain]/** exposes the CRUD operations (list: src/app/api/[domain]/) | access = the domain's services/server/domainEntry.ts entry { service: () => import(...), access } (TYPE-REQUIRED; a generated domain: domain.json apiAccess → pnpm generate domain; a generate:false or hand-written domain (every core domain today): hand-written; fork override = domainEntry.override.ts)
 - serviceRegistry.ts = generated from them (pnpm generate registry), the runtime source

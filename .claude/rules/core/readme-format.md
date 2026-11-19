@@ -6,7 +6,7 @@ paths:
 ---
 # readme-format
 > **ROLE**: loaded when writing a README or a doc | holds the README format
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 readers: agents first (sent by a card, or writing to these rules) → headings fixed, one point per item, no code-derivable lists
 h2 (this order, these English words; Overview required, the rest only with content): Overview | Usage | API (data shapes) | Extension (config keys, receptacle use) | Internals (mechanism) | Verification | Related

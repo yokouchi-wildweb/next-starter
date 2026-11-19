@@ -12,7 +12,7 @@ paths:
 ---
 # generated
 > **ROLE**: loaded when touching generated files or their sources | holds DIRECTORY_STRUCTURE code_generation (generated / write-once / hand-owned)
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 code_generation:
 - output kinds = data: scripts/structure/domain/gate.json outputs[] { glob, kind, source } (kind every-run | write-once, source = what to edit instead; test: scripts/structure/domain/tests/outputs.test.mjs keeps it equal to the generator's writes) | per path: pnpm workflow ownership who \<path\> (type generated / own / none, write = the source)

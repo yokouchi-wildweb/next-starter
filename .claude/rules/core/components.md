@@ -6,7 +6,7 @@ paths:
 ---
 # components
 > **ROLE**: loaded when writing any .tsx or shared hook | holds COMPONENTS detail
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; components/AppFrames/ still holds a few shared frame parts, e.g. Kiosk) | ref: src/components/README.md
 - single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only part of an upstream route it replaces → app/\<route\>/_components/ (a route of its own → _screen/, core/screens.md)

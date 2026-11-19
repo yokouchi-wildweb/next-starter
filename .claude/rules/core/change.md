@@ -11,7 +11,7 @@ paths:
 ---
 # change
 > **ROLE**: loaded when writing a place a lower repo may change (config, own styles, .override / .replace / .default, _components) | holds the change types (CHANGE_TYPES)
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 change_types (the only 5 ways to change what a parent owns | marks = .default / .replace / .override, upstream files are plain | table → scripts/structure/extensions/README.md Extension):
 - 1 replace (whole code): \<name\>.default + plain 1-line switch → fork \<name\>.replace, repoint the switch | screens carry no mark: the page.tsx 1-line switch is the declaration, default _screen/ → fork plain _components/\<X\>Screen.tsx | frame: layout.tsx switch → fork _layout/\<Layout\>.replace.tsx beside the default (fork frame parts → route's _components/, plain names)

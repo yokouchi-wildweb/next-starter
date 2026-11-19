@@ -7,7 +7,7 @@ paths:
 ---
 # extensions
 > **ROLE**: loaded when copying or composing a parent's parts | holds FORK_EXTENSION (judge, guards, want → means, copy and own marks)
-> Tier1-owned: forks never edit (gap → /order <direct parent>)
+> Tier1-owned: forks never edit (gap → /order next-starter)
 
 
 judge: first match, by what the copy would hold | never by line count or area name
