@@ -1,7 +1,7 @@
 // scripts/workflow/rules/lib.ruleGenerated.mjs
 // 生成物の検査の部品(純粋な関数): 生成器の出力の宣言(各 gate.json の outputs)を、追跡中のファイルに当てる。
 // 決まり: 生成物は直さず生成元を直す。見分け = 注釈を持てる形式は先頭の生成物の印、持てない JSON・JSONL は生成器の一覧(D135)。
-import { matchesGlob } from "node:path";
+import { matchesLoad } from "./lib.rulePaths.mjs";
 import { domainNamesOf, isDomainTemplateGlob, normalizeGateOutputs } from "../../../src/lib/districtMap/domainOutputs.mjs";
 
 // 注釈を持てる形式(先頭に印を書ける物)
@@ -40,7 +40,7 @@ export function outputFiles(gates, files, domains) {
     if (problems.length) out.push({ gate, glob: "-", kind: "-", domain: false, files: [], problems });
     for (const e of entries) {
       const globs = expandDomainGlob(e.glob, domains);
-      out.push({ gate, glob: e.glob, kind: e.kind, domain: isDomainTemplateGlob(e.glob), files: files.filter((f) => globs.some((g) => matchesGlob(f, g))), problems: [] });
+      out.push({ gate, glob: e.glob, kind: e.kind, domain: isDomainTemplateGlob(e.glob), files: files.filter((f) => globs.some((g) => matchesLoad(f, g))), problems: [] });
     }
   }
   return out;
@@ -49,5 +49,5 @@ export function outputFiles(gates, files, domains) {
 /** 宣言の glob(ドメインの置き換えは代表の形)が generated の paths のどれかに当たらない物 */
 export function outputsOutsidePaths(entries, generatedPaths) {
   const rep = (glob) => glob.replace(/\{dir\}/g, "src/features/x").replace(/\{[A-Za-z]+\}/g, "X").replace(/\*\*/g, "x").replace(/\*/g, "x");
-  return entries.filter((e) => e.glob !== "-" && !generatedPaths.some((p) => matchesGlob(rep(e.glob), p) || matchesGlob(e.glob, p)));
+  return entries.filter((e) => e.glob !== "-" && !generatedPaths.some((p) => matchesLoad(rep(e.glob), p) || matchesLoad(e.glob, p)));
 }

@@ -18,7 +18,7 @@ map (every core file, loaded by its paths):
 - .claude/rules/core/components.md: COMPONENTS detail
 - .claude/rules/core/db.md: the schema registry, the push round trip and DB identifier rules
 - .claude/rules/core/design.md: this file
-- .claude/rules/core/domain-definition.md: the domain-definition rules (commands, roles, field types, domain config)
+- .claude/rules/core/domain-definition.md: the domain-definition rules (commands, roles, field types, config utils)
 - .claude/rules/core/extensions.md: FORK_EXTENSION (judge, guards, want → means, copy and own marks)
 - .claude/rules/core/generated.md: DIRECTORY_STRUCTURE code_generation (generated / write-once / hand-owned)
 - .claude/rules/core/lib.md: the library rules (CODE_PLACEMENT library)
@@ -48,6 +48,7 @@ map (every core file, loaded by its paths):
   - a gap → widen the core file that holds that place's rules (a window item, unless the place is new: usual path above) | only a place that truly needs no rule → uncovered.txt with its reason, never a blanket line to quiet the check
 - CLAUDE.md over its notify line (size below) → still ship; the shipping session files one condense order to the window (none if one with the same title is open)
 - a missing or wrong rule you do not own → /order <direct parent> | until it ships, a provisional rule in your own rules (outside core/) ending with `(order: <id>)`, followed while the order is open, removed when it ships as resolves: (/flux asks)
+- docs/!must-read/: each doc names the CLAUDE.md section it backs | changing that section → fix the doc in the same commit (and the reverse)
 
 ## cards (.claude/rules/items/<category>/<name>.md)
 - category: lib (one per library) | features (one per domain, Tier1 and business) | components (one per public category folder src/components/<Category>/, split only when too large) | no cards for hooks / utils: their common rules live in core files

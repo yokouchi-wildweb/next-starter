@@ -14,7 +14,7 @@ using:
 - modal_close_guard: a dirty-form guard = confirmOnClose | more than its 4 texts → your own guard in onOpenChange
 - open_auto_focus: preventDefault on auto focus → also focus the box or an inner element
 - picker_choice: N from a large master → AsyncPickerModal, never Modal + AsyncMultiSelectInput | ChecklistPopover = static options
-- primitives_last: Primitives/Dialog only for an overlay Dialog / Modal cannot build | Primitives/Command never for form selects
+- primitives_last: Primitives/Dialog only for an overlay Dialog / Modal cannot build | Primitives/Command never for form selects | the general rule = core/components.md primitives_last
 - confirm_in_code: useConfirm only where code awaits yes / no, confirmDialog once per screen | notice only → toast
 - loading_choice: no content yet → InlineLoader | cover and block → ScreenLoader | running button → Button loading | no hand-built Spinner block, no app-wide route-transition overlay
 - checklist_create: after onCreateOption the parent updates `options`

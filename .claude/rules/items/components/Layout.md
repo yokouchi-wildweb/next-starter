@@ -18,5 +18,5 @@ using:
 editing:
 - spacing_table: spacing classes are looked up in spacingClasses.generated.ts (pnpm generate styles from spacingScale.ts), never hand-edited
 - spacing_relay: a part that relays a spacing prop types it SpacingValue (e.g. AppForm `fieldSpace`)
-- fullscreen_no_measure: FullScreen reads `var(--viewport-height, 100dvh)` only, never measures
+- fullscreen_no_measure: FullScreen reads `var(--viewport-height, 100dvh)` only, never measures | the general rule = core/style.md viewport_no_measure
 read: pick a part → Usage | props, spacing scale, Main / Section / FullScreen / ScaledStage options → API | fork look, data-slot → Extension | spacing class table, tokens, height source → Internals

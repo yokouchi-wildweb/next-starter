@@ -19,5 +19,5 @@ editing:
 - chat_read_at: readAt is written by the chat screen (useReadAt) and own sends only, never by the list listener
 - chat_app_internal: the dedicated Firebase app (chatFirebase.ts) stays inside chatRoom, never a public entry
 - chat_no_firebase_storage: attachments use lib/storage purposes chatRoom.*, never Firebase Storage
-- chat_typing_rtdb: typing indicators go to Realtime Database, not Firestore
+- chat_typing_rtdb: → core/backends.md high_frequency_presence
 read: set up, build a screen, extend → Usage | data model, limits → API | sync, rules, attachments → Internals | hooks → src/features/core/chatRoom/hooks/firestore/README.md API | room / message calls → src/features/core/chatRoom/services/client/README.md Usage

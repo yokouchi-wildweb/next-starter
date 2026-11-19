@@ -16,6 +16,6 @@ using:
 - fit_scale_ref: the container measured by useFitScale is a raw div (Layout wrappers do not forward ref)
 editing:
 - frame_parts_place: new layout frame parts go to src/app/<route>/_layout/, never here
-- kiosk_no_measure: KioskFrame never measures its height | the one source = `--viewport-height`, written only by ViewportHeightWatcher (@/lib/viewport)
+- kiosk_no_measure: KioskFrame never measures its height | the one source = `--viewport-height`, written only by ViewportHeightWatcher (@/lib/viewport) | the general rule = core/style.md viewport_no_measure
 - kiosk_no_button: no fullscreen button inside KioskFrame (the page places one with useFullscreen)
 read: build a kiosk page → src/components/AppFrames/Kiosk/README.md Usage | props, fit options → src/components/AppFrames/Kiosk/README.md API | height, transform mechanism → src/components/AppFrames/Kiosk/README.md Internals | old Hide* parts → src/components/AppFrames/User/README.md Usage

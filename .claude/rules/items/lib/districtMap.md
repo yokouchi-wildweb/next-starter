@@ -8,7 +8,7 @@ use: always
 change: none → /order <direct parent>
 rules:
 using:
-- tools_only: app code never reads the map | src never imports district-map.jsonl (lint src-no-district-map)
+- tools_only: app code never reads the map | src never imports district-map.jsonl (lint src-no-district-map) | the general rule = core/generated.md district_map_tools_only
 - jsonl_generated: district-map.jsonl is pnpm generate district-map output, never hand-edited, never another generator's input
 - problems_first: problems not empty → fix them before using the map
 - kinds_closed: the 4 kinds are closed | another kind → /order Tier1

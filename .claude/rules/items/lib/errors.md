@@ -8,7 +8,7 @@ use: always
 change: none → /order <direct parent>
 rules:
 using:
-- domain_error_place: server services throw DomainError; an API route handler does not throw a new one
+- domain_error_place: → core/services.md domain_error
 - domain_error_message: the message is shown to the user as is (Japanese, says what to do next) | text the user must see goes in a DomainError (any other error becomes a generic 500)
 - error_code_branch: the client branches on `code` (getErrorCode), never on the message text
 - client_non_http: a client failure without HTTP (SDK, browser API, client validation) → createHttpError

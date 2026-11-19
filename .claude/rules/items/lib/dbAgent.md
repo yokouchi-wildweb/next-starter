@@ -14,7 +14,7 @@ using:
 - dbagent_suffix_trusted: suffix providers return admin-authored text only, never end-user text, and no value that changes per request (keeps the prompt cache)
 - dbagent_ui_events: a UI ignores unknown event `type` / `v` and shows loading before the stream starts
 editing:
-- dbagent_no_fallback: never fall back to DATABASE_URL; the secret's presence is the only on / off switch (no toggle env)
+- dbagent_no_fallback: never fall back to DATABASE_URL; the secret's presence is the only on / off switch (no toggle env) | the general rule = core/lib.md no_toggle_env
 - dbagent_mask: masked columns come from the shared @/lib/audit denylist
 - dbagent_no_ui: the lib ships no UI (screens are the fork's)
 read: enable, readonly role, checks → Usage | entries, config, audit → API | wiring receptacles → Extension | safety layers, injection, suffix → Internals

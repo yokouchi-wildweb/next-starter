@@ -14,3 +14,4 @@ receptacle limits (upstream):
 - must not bypass a guard | named ReactNode stays banned in core
 - same commit: README (timing, tx, on failure) + test + intake line
 extension_points (declaring side): a district's extensionPoints.ts declares a receptacle → pnpm generate extensions lists its items into \<district\>/extensions/ (generated, a duplicate item key throws) | src/registry = generated lists, not an extension point | ref: scripts/structure/extensions/README.md, src/registry/README.md
+receptacle_or_config: a list forks add independent rows to = a receptacle (one file = one item) | a table matched by key = config (src/config/README.md)

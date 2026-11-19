@@ -33,3 +33,4 @@ code_generation:
   - must hand-edit a generated file or re-applying hand logic gets costly → `"generate": false` = the generator never touches that domain (no writes and no checks in any run, `--only` / `-i` included; regenerate once = set it back to true)
   - after switching a domain to false: `pnpm generate domain -- --unmark <Domain>` removes the generated marks from its files (a mark left on a hand-managed file makes pnpm check rules fail)
   - src/registry/district-map.jsonl lists every domain with domainJson and its generate flag (rewritten by pnpm generate district-map and at the end of pnpm generate domain, `pnpm check district-map`) | ref: scripts/structure/domain/README.md
+- district_map_tools_only: src/registry/district-map.jsonl is for tools (people, agents, /ship and /flux diffs), never imported from src (lint import-boundaries/src-no-district-map)

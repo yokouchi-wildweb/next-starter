@@ -13,7 +13,7 @@ using:
 - rm_manual_invalidate: a manual memo invalidates after every write path
 - rm_what: memoize only identity-stable, high fan-in, rarely written reads | never list / search / count, cross-request caches (withAnalyticsCache) or realtime polling
 - rm_immutable: memoized results are shared objects → never mutate them
-- rm_tx_read: reads inside an open transaction go through the tx executor
+- rm_tx_read: → core/services.md tx_reads
 editing:
 - rm_failure: a rejected promise is never cached | write methods invalidate even when they fail
 read: CRUD option, manual memo, what to memoize → Usage | options → API | contexts, limits → Internals | crud, analytics cache → Related

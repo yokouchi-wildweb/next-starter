@@ -8,7 +8,7 @@ use: always
 change: none → /order <direct parent> | own engine = public registerProbeEngine / setDefaultProbeEngine from own server code (→ Extension)
 rules:
 using:
-- mp_facts_only: policy (allow / reject, 409, orphan deletion, duration limits) is the calling domain's; the lib returns facts only
+- mp_facts_only: policy (allow / reject, 409, orphan deletion, duration limits) is the calling domain's; the lib returns facts only | the general rule = core/lib.md facts_not_policy
 - mp_authorize_ref: for a managed storage:// file the caller authorizes the read and passes a short-lived authorizedUrl (the lib never resolves refs)
 - mp_tracing_route: calling probeMedia outside API routes (SSR page, Server Action) adds that route key to outputFileTracingIncludes in next.config.ts
 - mp_not_seamless: not for transcoded fmp4 fragments (src/lib/seamlessVideo/probe/ is the other tool)

@@ -23,3 +23,5 @@ change_types (the only 4 ways to change an upstream thing | marks = .default / .
 - who: `pnpm workflow ownership who <path>` answers type 1-4 | generated | own | none (ref: src/lib/forkOwnership/README.md)
 - safety limits are never loosened: admin menu allowRoles narrow-only, core role enabled, profile fields, setting schema
 - violations: *.default.* beside a parent's file, editing a parent's .default, plain frame.ts beside an upstream route, frame.default.ts (fails) | own .default in own area OK (middle tier too)
+- upstream_no_override: upstream (Tier1) never ships an override, not even an empty one; defaults go in the default place (pnpm check extensions)
+- names_its_target: a declaration, replacement or override beside a target names its target (file name or key) | nothing changes meaning by what sits beside it

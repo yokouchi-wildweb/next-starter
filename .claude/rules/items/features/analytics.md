@@ -9,7 +9,7 @@ use: analytics (also paymentAnalytics, walletAnalytics, messagingAnalytics)
 change: add → rollupMetrics / coinIssuanceSources / exclusionProviders (extensionPoints.ts) | placement → src/config/features/analytics.config.ts
 rules:
 using:
-- db_side_aggregation: aggregate in SQL GROUP BY, never fetch rows and sum in JS (aggregation.ts: changeRate only)
+- db_side_aggregation: → core/services.md db_aggregation (aggregation.ts holds changeRate only)
 - cache_key: a withAnalyticsCache key has every result-changing param
 - rollup_choice: rollup = full-history scans, long series | light GROUP BY → cache first
 - rollup_off: switch a metric off by `enabled`, never compute returning [] (screens stop calling it too)
