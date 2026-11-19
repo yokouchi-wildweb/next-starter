@@ -420,6 +420,36 @@ test("固定の止め: repo.json の直接の書き換え(Edit / Write とシェ
   }
 });
 
+test("固定の止め: 一時の置き場の下の写しの repo.json は止めない(確かめ用の写し)、チェックアウトと他のリポと読めない cd は止める", () => {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), "grant-copy-"));
+  try {
+    const copy = path.join(tmp, "fk");
+    mkdirSync(copy);
+    for (const tool of ["Edit", "Write"]) {
+      assert.equal(fixedStop({ tool, file: path.join(copy, "repo.json") }), null, `${tool} 写し`);
+      assert.equal(fixedStop({ tool, file: path.join(tmp, "new", "repo.json") }), null, `${tool} まだ無い写し`);
+      assert.equal(fixedStop({ tool, file: "/repo/repo.json", cwd: copy })?.decision, "deny", `${tool} チェックアウト`);
+      assert.equal(fixedStop({ tool, file: "../other/repo.json", cwd: "/repo" })?.decision, "deny", `${tool} 他のリポ`);
+      assert.equal(fixedStop({ tool, file: "repo.json" })?.decision, "deny", `${tool} cwd が分からない相対`);
+    }
+    const sh = (/** @type {string} */ command, /** @type {string | undefined} */ cwd) => fixedStop({ tool: "Bash", command, cwd });
+    assert.equal(sh(`echo '{}' > ${copy}/repo.json`), null);
+    assert.equal(sh("sed -i 's/leaf/middle/' repo.json", copy), null);
+    assert.equal(sh("sed -i 's/leaf/middle/' repo.json", "/repo")?.decision, "deny");
+    assert.equal(sh("cd /repo && echo x > repo.json", copy)?.decision, "deny", "cd の後の相対は止める側");
+    assert.equal(sh(`cd /repo && echo x > ${copy}/repo.json`, copy), null, "cd の後でも絶対の写しは通る");
+    // 本番の env と許可の記録は一時の下でも止める
+    assert.equal(fixedStop({ tool: "Write", file: path.join(copy, ".env.production") })?.decision, "deny");
+    assert.equal(sh("echo x > .agent/devcheck-allow.json", copy)?.decision, "deny");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("adaptClaude: 入力の cwd を持つ", () => {
+  assert.equal(adaptClaude({ tool_name: "Write", tool_input: { file_path: "repo.json" }, cwd: "/w" })?.cwd, "/w");
+});
+
 // ---- hook.mjs(素の node で動かす) ----------------------------------------------------------------
 
 const runHook = (stdin, env = {}, cwd = TOOL_DIR) =>

@@ -11,7 +11,8 @@
 // 種類と方針は lib.kinds.mjs(devcheck の命令と同じ物)。入力の形の違いは adapt* で受ける(今は Claude Code の形だけ)
 // 規則と使い方: scripts/workflow/devcheck/README.md「許可の層」
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 import { consumePermit, PERMIT_FILE, readPermit } from "./lib.allow.mjs";
@@ -37,8 +38,8 @@ export const PEER_ACTIONS = ["send", "reply", "inbox", "read", "ack", "who"];
 // ---- 入力の変換 ---------------------------------------------------------------------------
 
 /**
- * @typedef {{ tool: string; command?: string; file?: string; url?: string }} Request
- * 判定の入力。tool = 道具名、command = Bash の全文、file = 書く先のパス、url = 遷移先
+ * @typedef {{ tool: string; command?: string; file?: string; url?: string; cwd?: string }} Request
+ * 判定の入力。tool = 道具名、command = Bash の全文、file = 書く先のパス、url = 遷移先、cwd = 道具を呼んだ時の作業場所(相対の書く先を解く)
  */
 
 /**
@@ -55,6 +56,7 @@ export const adaptClaude = (input) => {
   const file = ti.file_path ?? ti.notebook_path;
   if (typeof file === "string") req.file = file;
   if (typeof ti.url === "string") req.url = ti.url;
+  if (typeof input.cwd === "string") req.cwd = input.cwd;
   return req;
 };
 
@@ -296,7 +298,53 @@ const isProdEnvPath = (/** @type {string} */ p) => /^\.env\.production/.test(pat
 const isRepoJsonPath = (/** @type {string} */ p) => path.basename(p.replace(/['"]/g, "")) === "repo.json";
 /** 1 回分の許可の記録(書くのは pnpm workflow devcheck allow だけ) */
 const isPermitPath = (/** @type {string} */ p) => path.basename(p.replace(/['"]/g, "")) === path.basename(PERMIT_FILE);
-const isGuardedPath = (/** @type {string} */ p) => isProdEnvPath(p) || isRepoJsonPath(p) || isPermitPath(p);
+/** システムの一時の置き場(os.tmpdir() と TMPDIR、実の道) */
+const tmpRoots = () => {
+  /** @type {string[]} */
+  const roots = [];
+  for (const d of [os.tmpdir(), process.env.TMPDIR]) {
+    if (!d) continue;
+    try {
+      const r = realpathSync(d);
+      if (!roots.includes(r)) roots.push(r);
+    } catch {
+      // 無い置き場は数えない
+    }
+  }
+  return roots;
+};
+/** まだ無いファイルも、在る一番近い親の実の道 + 残り */
+const realOf = (/** @type {string} */ p) => {
+  let dir = p;
+  const rest = [];
+  for (;;) {
+    try {
+      return path.join(realpathSync(dir), ...rest.reverse());
+    } catch {
+      const up = path.dirname(dir);
+      if (up === dir) return p;
+      rest.push(path.basename(dir));
+      dir = up;
+    }
+  }
+};
+/**
+ * 書く先がシステムの一時の置き場の下か(確かめ用の使い捨ての写し)。相対の道は cwd から解く。cwd が分からない・
+ * コマンドの中で cd する(どこに書くか読めない)時は絶対の道だけを見る = 止める側
+ * @param {string} p @param {string | undefined} cwd
+ */
+const isTmpPath = (p, cwd) => {
+  const raw = p.replace(/['"]/g, "");
+  if (!path.isAbsolute(raw) && !cwd) return false;
+  const real = realOf(path.resolve(cwd ?? "/", raw));
+  return tmpRoots().some((r) => real === r || real.startsWith(r + path.sep));
+};
+/**
+ * 守るファイルか。repo.json は一時の置き場の下の写し(確かめ用に作った物)なら守らない: 方針の置き場はチェックアウトと
+ * 他のリポの repo.json(S7 (8)、写しの fk の repo.json まで止めた 11-19)。本番の env と許可の記録はどこでも守る
+ * @param {string | undefined} cwd
+ */
+const guardedFor = (cwd) => (/** @type {string} */ p) => isProdEnvPath(p) || (isRepoJsonPath(p) && !isTmpPath(p, cwd)) || isPermitPath(p);
 /** 守るファイルへの書き込みの止め(理由と人がすること) */
 const guardedDeny = (/** @type {string} */ p) => {
   const name = path.basename(String(p).replace(/^of=/, "").replace(/['"]/g, ""));
@@ -321,11 +369,14 @@ const deny = (reason, human) => ({ decision: "deny", reason: `devcheck の固定
  * @returns {Decision | null}
  */
 export const fixedStop = (req) => {
-  if (["Edit", "Write", "MultiEdit", "NotebookEdit"].includes(req.tool) && req.file && isGuardedPath(req.file)) {
+  if (["Edit", "Write", "MultiEdit", "NotebookEdit"].includes(req.tool) && req.file && guardedFor(req.cwd)(req.file)) {
     return guardedDeny(req.file);
   }
   if (req.tool !== "Bash" || typeof req.command !== "string") return null;
-  for (const cmd of parseCommands(req.command)) {
+  const cmds = parseCommands(req.command);
+  // コマンドの中で cd / pushd する時は相対の書く先がどこか読めない: cwd を使わない(絶対の道だけ一時と見る)
+  const isGuardedPath = guardedFor(cmds.some((c) => ["cd", "pushd"].includes(stripPrefix(c.words)[0] ?? "")) ? undefined : req.cwd);
+  for (const cmd of cmds) {
     // 本番の env への書き込み(リダイレクト)
     const written = cmd.writes.find(isGuardedPath);
     if (written) return guardedDeny(written);
