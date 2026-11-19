@@ -352,7 +352,11 @@ test("検査: table / idColumn の欠け・リテラル以外・形式違い・�
 test("generate: false の業務ドメイン: domainEntry.ts が無いと手書きを案内し、README の写せる形を置けば検査が通る（生成器の出力と同じ形）", (t) => {
   t.mock.method(console, "log", () => {});
   const readme = fs.readFileSync(path.join(repoRoot, "src/lib/domain/README.md"), "utf8");
-  const section = readme.slice(readme.indexOf("#### generate: false の業務ドメイン"));
+  // 節は見出しの深さに依らず探し、同じ深さか浅い次の見出しで閉じる(README の書式で h2〜h4 が動いても読める)
+  const head = /^(#{2,6}) generate: false の業務ドメイン\s*$/m.exec(readme);
+  const rest = head ? readme.slice(head.index + head[0].length) : "";
+  const next = head ? new RegExp(`^#{2,${head[1].length}} `, "m").exec(rest) : null;
+  const section = next ? rest.slice(0, next.index) : rest;
   const example = /```ts\n([\s\S]*?)```/.exec(section)?.[1];
   assert.ok(example, "README に「generate: false の業務ドメイン」の ts の例がある");
 
