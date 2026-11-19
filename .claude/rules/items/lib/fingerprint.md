@@ -10,6 +10,7 @@ rules:
 using:
 - payload_as_is: send the collectFingerprintPayload result to the ingest API unchanged
 - capture_on_container: useBehavioralCapture goes on the form's wrapper by spreading `containerProps`; read the stats with getPayload() at submit
+- behavior_no_raw: behavior capture keeps aggregates only (pointer distance, speed, straightness), never raw coordinates
 editing:
 - no_db_http: the lib holds no DB access and no HTTP (storing and matching live in features/core/deviceFingerprint)
 - fail_soft_signals: each signal is collected in its own try-catch and becomes null where unavailable

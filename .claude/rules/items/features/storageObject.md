@@ -18,6 +18,7 @@ using:
 - grant_lifetime: never promise uploads die right at the deadline (session URI ~1 week, PUT URL until expiry)
 - new_record_type: a record_type outside the registry → /order <direct parent> (task.override.ts cannot add one)
 - media_not_hidden: media columns are never hiddenColumns
+- unattached_sweep: a ready file attached to no business row is deleted by storage-sweep after unattachedGraceSec (default 24 h) | a purpose with attach: false is the exception
 editing:
 - fail_closed: unknown purpose 400 | allow AND check | no implicit admin / system pass
 - no_http_bind: attach / detach run only inside the business TX, never over HTTP

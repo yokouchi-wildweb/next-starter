@@ -19,6 +19,9 @@ using:
 - notice_cron_first: the notice cron runs at least once before the first expiry date
 - notice_window_absolute: a custom notice batch fixes its window as absolute time per run
 - terms_match_basis: terms wording follows expirationBasis (grant = FIFO, lastActivity = all)
+- lots_prune_required: with frequent grants, keep the wallet-lots-prune cron running (spent lots are deleted only there; without it wallet_lots grows forever) | retention = walletConfig.lotPruneRetentionDays
+- notice_scale_before_expiry: right after wallet:lots-init every balance expires on one day → raise sendConcurrency and shorten the notice cron interval before that first expiry date (within the mail provider's rate limit and DB connections)
+- reason_category_from_key: with reasonKey the history's reason_category comes from that kind's category; never pass a reasonCategory that disagrees
 editing:
 - audit_intervention_only: audit_logs only for intervention (admin-callable) ops, bulk as aggregate; business ops (consume, debit, reserve) stay in wallet_histories only
 read: operate balances → Usage | currencies, bonuses, expiry setup → src/features/core/wallet/Extension.md Extension | methods, tables → src/features/core/wallet/API.md API | locks, lots, notices, audit → src/features/core/wallet/Internals.md Internals

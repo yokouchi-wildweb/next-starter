@@ -45,7 +45,7 @@ import { createApiRoute, createDomainRoute, createDomainIdRoute, createMeRoute, 
 - **理由**: ここに渡しても `read`・`count`・リレーション展開・`upsert`・bulk・`duplicate` の経路は守れず、どの操作が何を保証するかを契約にできない
 - **形**: 専用のルート（`createApiRoute` か `createMeRoute`）→ 主体を**必須の引数**で受ける業務メソッド → 汎用の経路を閉じる（前例: `user` の `updateSelf(actor, data)`）
 - 省略可能な actor は渡し忘れが権限の抜けになる。AuditContext は JWT から作る記録用の値で、ロール剥奪・利用停止を反映しない
-- 代理の作成は管理者用の別の入口にする
+- 代理の作成の入口の決まりは札 `proxy_create_admin_entry`(.claude/rules/items/lib/routeFactory.md)
 
 移行の手順:
 

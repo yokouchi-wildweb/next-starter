@@ -14,6 +14,8 @@ using:
 - prompt_stable_first: put the stable prompt part (role, tool policy) first and variable parts last (prompt cache = prefix match) | operator-editable instructions = stable prompt + a suffix resolved per request (src/wiring/dbAgent/suffixProviders/)
 - ui_forward_compat: a UI ignores unknown event types and unknown `v`
 - done_is_last: `agent.done` always ends a turn | `agent.error` reports and is still followed by `agent.done`
+- server_only_lazy_client: Anthropic callers are server-only and create the client lazily (getAnthropicClient): a missing ANTHROPIC_API_KEY fails at call time, never at import
+- structured_by_tool_schema: structured output = a tool's JSON Schema the model must fill, never parsing free text
 editing:
 - protocol_versioning: an optional field may be added within a version | a meaning change or removal bumps AGENT_PROTOCOL_VERSION and keeps the old type
 - no_sampling_params: the runtime never sends temperature / top_p / top_k

@@ -17,6 +17,7 @@ using:
 - screen_hooks: rebuilt auth screens call the public hooks, render their form | never import hooks/registration, signup, oauth/transition
 - ui_session: UI shows the user from useAuthSession only
 - token_only: getTokenOnlySession (stale claims) never decides authz (audit actor, demo)
+- no_provider_image: an external login (LINE, X and the rest) never fetches or stores the provider's profile image, URL included
 editing:
 - db_authority: JWT = identity only, status / role / name from the DB | re-issue signs DB values, never old claims
 - session_order: status branch → last login → token → cookie | a refusal writes nothing

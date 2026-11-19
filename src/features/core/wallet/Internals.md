@@ -251,7 +251,7 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
   `sendConcurrency` はメール基盤の流量制限と DB の同時接続数に収まる範囲で上げる
 - **`wallet:lots-init` の直後は既存の全残高が同じ日に失効するロットになる**ため、最初の失効日（init から
   expirationDays 日後）に通知が全ユーザーぶん集中する。ユーザー数が数万規模なら、既定値のままでは送りきるのに
-  数日かかる。**失効日を迎える前に `sendConcurrency` の引き上げと実行間隔の短縮を済ませておくこと**
+  数日かかる(失効日の前に `sendConcurrency` の引き上げと実行間隔の短縮を済ませる決まりは札 `notice_scale_before_expiry`)
 - 本通知は数日かけて送りきっても実害は小さいが、予告は段の日数が猶予の上限になる（1日前の段は1日で送りきる必要がある）
 - 1日に数十万件を超える規模はこの仕組みの対象外。外部のキューや一括送信 API が必要
 

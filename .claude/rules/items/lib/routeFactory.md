@@ -17,6 +17,7 @@ using:
 - device_scope: device routes take store / table from device.scope, never a client id | a device never joins createApiRoute access | an existing route opened to devices adds the scope check
 - demo_by_factory: demo skipping is the factory's
 - return_url_confirms_nothing: a provider return route only redirects
+- proxy_create_admin_entry: creating a record on behalf of another user goes through a separate admin entry, never the generic or the self route
 editing:
 - authz_before_demo: access is evaluated before the demo skip
 - resolve_user_contract: resolveUser returns null = known absent, throws = cannot verify

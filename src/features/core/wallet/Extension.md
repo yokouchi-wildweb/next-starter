@@ -210,7 +210,7 @@ await walletService.adjustBalance(
    それより前に没収された分には送られない）。
 
    wallet-lots-prune は remaining = 0 になったロット行の物理削除。付与のたびに行が増えるため、
-   **付与頻度が高いプロジェクトでは必須**（回さないと wallet_lots が単調増加する）。
+   回さないと wallet_lots が単調増加する(付与の多いプロジェクトで回し続ける決まりは札 `lots_prune_required`)。
    保持日数は `walletConfig.lotPruneRetentionDays`（デフォルト30日）で調整可能。
 
 #### 運用ルール

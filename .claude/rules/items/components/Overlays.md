@@ -19,6 +19,7 @@ using:
 - loading_choice: no content yet → InlineLoader | cover and block → ScreenLoader | running button → Button loading | no hand-built Spinner block, no app-wide route-transition overlay
 - checklist_create: after onCreateOption the parent updates `options`
 - hint_choice: short hover hint → Tooltip / HelpTip | click or long text → InfoPopover
+- above_floating_presses: a press inside the toast or cover layer is not an outside press: floating parts (Primitives Dialog / Popover, Sheet) check isAboveFloatingTarget before closing
 editing:
 - confirm_on_close_frozen: confirmOnClose stays 4 texts + the shared Dialog look (no variant / JSX / UI options)
 - action_popover_loading: ActionPopover keeps its per-item loading look (not Button's)
