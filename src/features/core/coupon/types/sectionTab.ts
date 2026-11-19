@@ -6,7 +6,7 @@ import type { PageTabItem } from "@/components/Navigation";
 /**
  * セクションタブの項目 = 描画用の PageTabItem + 有効の判定。
  * enabled 省略 = 常に出す。false の間はタブの一覧から外れる(className で隠さない)。
- * 組み立ては client(CouponSectionTabs)で走るので、enabled は client で読める値だけを見る(config の値など。hook は呼べない)。
+ * 組み立ては client(AdminCouponSectionTabs)で走るので、enabled は client で読める値だけを見る(config の値など。hook は呼べない)。
  * 例: `enabled: () => friendCouponConfig.enabled`
  */
 export type CouponSectionTabItem = PageTabItem & {

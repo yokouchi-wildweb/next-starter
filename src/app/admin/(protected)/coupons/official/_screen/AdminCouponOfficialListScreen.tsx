@@ -11,7 +11,7 @@ import { loadAdminCouponOfficialListScreen } from "./loader";
 import AdminCouponList from "@/features/core/coupon/components/AdminCouponList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
-import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";
+import { AdminCouponSectionTabs } from "@/features/core/coupon/components/AdminCouponSectionTabs";
 
 export const metadata = {
   title: "クーポン一覧",
@@ -21,7 +21,7 @@ export async function AdminCouponOfficialListScreen(props: ScreenProps<Record<st
   const { results: coupons, page, limit, total } = await loadAdminCouponOfficialListScreen(props);
 
   return (
-    <AdminPage title="クーポン管理" center={<CouponSectionTabs variant="header" />}>
+    <AdminPage title="クーポン管理" center={<AdminCouponSectionTabs variant="header" />}>
       <AdminCouponList coupons={coupons} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

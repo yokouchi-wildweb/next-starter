@@ -14,7 +14,7 @@ import { Para } from "@/components/TextBlocks/Para";
 import { couponConfig } from "@/features/coupon/config";
 import { Construction } from "lucide-react";
 
-import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";
+import { AdminCouponSectionTabs } from "@/features/core/coupon/components/AdminCouponSectionTabs";
 
 import { loadAdminCouponAffiliateListScreen } from "./loader";
 
@@ -26,7 +26,7 @@ export async function AdminCouponAffiliateListScreen(props: ScreenProps) {
   await loadAdminCouponAffiliateListScreen(props);
 
   return (
-    <AdminPage title="クーポン管理" center={<CouponSectionTabs variant="header" />}>
+    <AdminPage title="クーポン管理" center={<AdminCouponSectionTabs variant="header" />}>
       <Section>
         <Stack gap="lg">
           <ListTop title="発行済みのアフィリエイトクーポン" />

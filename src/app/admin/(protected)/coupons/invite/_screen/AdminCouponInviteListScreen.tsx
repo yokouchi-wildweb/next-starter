@@ -9,7 +9,7 @@ import AdminInviteList from "@/features/core/referral/components/AdminInviteList
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Para } from "@/components/TextBlocks/Para";
 
-import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";
+import { AdminCouponSectionTabs } from "@/features/core/coupon/components/AdminCouponSectionTabs";
 import { loadAdminCouponInviteListScreen } from "./loader";
 
 export const metadata = {
@@ -20,7 +20,7 @@ export async function AdminCouponInviteListScreen(props: ScreenProps<Record<stri
   const data = await loadAdminCouponInviteListScreen(props);
 
   return (
-    <AdminPage title="クーポン管理" center={<CouponSectionTabs variant="header" />}>
+    <AdminPage title="クーポン管理" center={<AdminCouponSectionTabs variant="header" />}>
       {data.enabled ? (
         <AdminInviteList items={data.items} page={data.page} perPage={data.perPage} total={data.total} />
       ) : (

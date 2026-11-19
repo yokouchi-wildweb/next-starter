@@ -2,7 +2,7 @@
 //
 // 部品: 通知の管理画面(送信一覧・テンプレート・システム通知)のセクションタブ。
 // タブの中身は buildMessagingAdminSectionTabs(門が閉の画面は外す)が唯一の定義源。門は useGate で読む。
-// 置き場所(ヘッダー中央 or 本文)は Screen が決める(クーポン管理の CouponSectionTabs と同じ型)。
+// 置き場所(ヘッダー中央 or 本文)は Screen が決める(クーポン管理の AdminCouponSectionTabs と同じ型)。
 
 "use client";
 

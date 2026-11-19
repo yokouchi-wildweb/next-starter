@@ -230,13 +230,13 @@ test("中央の差し込み(銀行振込の status タブ・クーポンのタ�
   assert.match(read("src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/AdminBankTransferReviewsScreen.tsx"), /<AdminPage title="銀行振込レビュー" center=\{<BankTransferStatusTabs \/>\}>/);
   for (const section of ["official", "affiliate", "invite"]) {
     const screen = sourcesOf(`src/app/admin/(protected)/coupons/${section}/_screen`).map(read).join("\n");
-    assert.match(screen, /center=\{<CouponSectionTabs variant="header" \/>\}/, `coupons/${section}`);
+    assert.match(screen, /center=\{<AdminCouponSectionTabs variant="header" \/>\}/, `coupons/${section}`);
   }
 });
 
 // ---- ヘッダーの差し込みの仕組みと互換を消した(指令 17) ----
 
-test("上流(src)に AdminHeaderPortal・HeaderSlots・受け口の id とその定数・互換の PageTitle / Header / useItemNavigator・CouponSectionTabs の placement・AdminLayout の header の prop が無い(テストを除く、README とコメントも)", () => {
+test("上流(src)に AdminHeaderPortal・HeaderSlots・受け口の id とその定数・互換の PageTitle / Header / useItemNavigator・AdminCouponSectionTabs の placement・AdminLayout の header の prop が無い(テストを除く、README とコメントも)", () => {
   const files = sourcesOf("src").filter((file) => !/\.test\.tsx?$/.test(file));
   const readmes = (dir: string): string[] =>
     readdirSync(join(repo, dir), { withFileTypes: true }).flatMap((entry) => {
@@ -251,7 +251,7 @@ test("上流(src)に AdminHeaderPortal・HeaderSlots・受け口の id とその
     /admin-header-(?:title|center|right)-slot/,
     /\buseItemNavigator\b/,
     /PageTitle placement/,
-    /CouponSectionTabs placement/,
+    /CouponSectionTabs placement/, // AdminCouponSectionTabs も当たる
     /admin\/_layout\/(?:PageTitle|Header|HeaderSlots|AdminHeaderContext)\b/,
   ];
   const hits = [...files, ...readmes("src")].flatMap((file) =>
@@ -261,7 +261,7 @@ test("上流(src)に AdminHeaderPortal・HeaderSlots・受け口の id とその
   for (const gone of ["src/app/admin/_layout/PageTitle.tsx", "src/app/admin/_layout/Header.tsx", "src/app/admin/_layout/HeaderSlots.tsx", "src/app/admin/_layout/AdminHeaderContext.tsx"]) {
     assert.throws(() => read(gone), `${gone} が残っている`);
   }
-  assert.equal(/placement/.test(read("src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx")), false);
+  assert.equal(/placement/.test(read("src/features/core/coupon/components/AdminCouponSectionTabs/index.tsx")), false);
 });
 // ---- 前後の項目へ移る(指令 16) ----
 

@@ -22,7 +22,7 @@
 ### 管理画面
 
 - `components/AdminInviteList/`: `/admin/coupons/invite` で使用
-  - `index.tsx`: ヘッダー + テーブル（セクションタブは描画しない。Screen が `app/admin/(protected)/coupons/_screen/CouponSectionTabs` を置く。downstream の追加セクションは `coupon/adminSectionTabs/` に項目を置く）
+  - `index.tsx`: ヘッダー + テーブル（セクションタブは描画しない。Screen が `AdminCouponSectionTabs`(`@/features/core/coupon/components/AdminCouponSectionTabs`)を置く。downstream の追加セクションは `coupon/adminSectionTabs/` に項目を置く）
   - `Header.tsx`: 検索ボックス + ページネーション
   - `Table.tsx`: 招待コード / 発行者ID / 紹介人数 / ステータス / 発行日（並べるだけ。列は `columns.tsx`、処理はフック）
   - `ReferralListModal.tsx`: 行クリックで紹介済みユーザー一覧をモーダル表示（API都度取得）

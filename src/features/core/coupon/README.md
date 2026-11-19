@@ -383,10 +383,10 @@ if (result.valid) {
 - downstream が種別に属さない派生クーポンの専用画面（例: フレンドクーポン、type は `affiliate` のまま）を `/admin/coupons/<slug>` に置く場合、受け口に項目を置けば core の全クーポン管理画面のタブに末尾追加される
 - 受け口: `adminSectionTabs/<名前>.ts` の `export const tab: CouponSectionTabItem`（`@/features/core/coupon/types/sectionTab` = `PageTabItem` + `enabled?`。一覧 `extensions/sectionTabs`、upstream は空 = 3 タブ）
 - 組み立て: `buildCouponAdminSectionTabs()`（`@/features/core/coupon/lib/adminSectionTabs`）= core 3 タブ + 有効な項目（`PageTabItem[]`、`enabled` は残さない）。value の重複は例外（無効の項目も含めて判定）
-- 閉じる: 項目の `enabled: () => boolean` が false の間はタブの一覧から外れる（省略 = 常に出す）。組み立ては client（CouponSectionTabs）で走る
-- 描画: `src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx`（`variant?: "body" | "header"`、既定 body）。header はヘッダーの行の中央向けの size="sm"。core ページ（official / invite / affiliate）は `<AdminPage center={<CouponSectionTabs variant="header" />}>`。本文に置くなら本文に `<CouponSectionTabs />`
+- 閉じる: 項目の `enabled: () => boolean` が false の間はタブの一覧から外れる（省略 = 常に出す）。組み立ては client（AdminCouponSectionTabs）で走る
+- 描画: 公開の部品 `AdminCouponSectionTabs`（`@/features/core/coupon/components/AdminCouponSectionTabs`、`variant?: "body" | "header"`、既定 body）。header はヘッダーの行の中央向けの size="sm"。core ページ（official / invite / affiliate）は `<AdminPage center={<AdminCouponSectionTabs variant="header" />}>`。本文に置くなら本文に `<AdminCouponSectionTabs />`
 - DB / enum 変更なし。派生クーポンの画面（一覧・絞り込みクエリ）自体は downstream 所有
-- downstream 所有の official / affiliate ページを差し替えている場合も、ローカルのタブ定義を捨てて CouponSectionTabs に寄せると core と downstream のタブ一覧が常に一致する
+- downstream 所有の official / affiliate ページを差し替えている場合も、ローカルのタブ定義を捨てて AdminCouponSectionTabs に寄せると core と downstream のタブ一覧が常に一致する
 
 downstream レシピ:
 
@@ -401,9 +401,9 @@ export const tab: CouponSectionTabItem = {
 };
 
 // 2. src/app/admin/(protected)/coupons/friend-coupon/_screen/AdminFriendCouponScreen.tsx（downstream 実装）
-import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";
+import { AdminCouponSectionTabs } from "@/features/core/coupon/components/AdminCouponSectionTabs";
 // ...
-<AdminPage title="クーポン管理" center={<CouponSectionTabs variant="header" />}>
+<AdminPage title="クーポン管理" center={<AdminCouponSectionTabs variant="header" />}>
   {/* 一覧本体 */}
 </AdminPage>
 ```

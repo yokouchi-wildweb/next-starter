@@ -20,7 +20,7 @@
 - 題: 管理画面の題は必ず `<AdminPage title="…">` に渡す(位置を選ぶ選択肢は無い。login・setup も)。h1 は 1 つ = 本文の先頭(タブの前)の大見出し `AdminPageTitleBody`(SP で見え、PC は `sm:sr-only` で見た目から消して支援技術向けに残す)。PC で見える題はヘッダーの行のロゴの右隣の `AdminPageTitleCompact`(飾りの文字、aria-hidden)。`main={false}` のときの本文の大見出しは children の前(login・setup では自分のスクロール領域の上)
 - 本文の中の見出しはページの題とは別の普通の見出しの部品(`SecTitle` など)。題の無い AdminPage は無い
 - 前後の項目へ移る(編集画面): `<AdminPage title="…" actions={<AdminEditItemNavigator domain={domainDisplay} current={record} />}>`(domain = `<domain>/entities/display.ts` の domainDisplay、current = loader の行)。候補は検索の既定の並びの先頭 10 件 + 今の行(`src/lib/crud` の `useDomainItemNavigation`)、選ぶと編集画面へ移るだけで保存しない(未保存の守りは移動の仕組みの側)。雛形(`_template`)の編集画面も同じ形
-- 中央の差し込みもページが props で渡す: 銀行振込のレビューの status タブ = `<AdminPage center={<BankTransferStatusTabs />}>`(件数は route の `_screen/useStatusCounts.ts` を一覧の本体と共有)、クーポンのタブ = `<AdminPage center={<CouponSectionTabs variant="header" />}>`
+- 中央の差し込みもページが props で渡す: 銀行振込のレビューの status タブ = `<AdminPage center={<BankTransferStatusTabs />}>`(件数は route の `_screen/useStatusCounts.ts` を一覧の本体と共有)、クーポンのタブ = `<AdminPage center={<AdminCouponSectionTabs variant="header" />}>`
 
 ### サイドバー・フッター((protected))
 

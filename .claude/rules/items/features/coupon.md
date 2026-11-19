@@ -20,7 +20,7 @@ using:
 - admin_tabs_built: admin coupon tabs via buildCouponAdminSectionTabs + its sectionTabs receptacle, never hardcoded
 - self_redeem_no_optout: no per-consumer re-implementation; a business needing self-redeem proposes a settings-key opt-out to Tier1
 - tab_enabled: close a section tab by `enabled` (client-readable values only, no hooks), never className "hidden"
-- tabs_by_screen: AdminCouponList / AdminInviteList render no tabs; a Screen using them places CouponSectionTabs
+- tabs_by_screen: AdminCouponList / AdminInviteList render no tabs; a Screen using them places AdminCouponSectionTabs (@/features/core/coupon/components/AdminCouponSectionTabs)
 - admin_list_no_copy: add list columns by createAdminCouponListColumns + useAdminCouponListTable, never copy the Table
 editing:
 - reason_add: a new reason updates both UsabilityReason and COUPON_REDEEM_REASON_MESSAGES
