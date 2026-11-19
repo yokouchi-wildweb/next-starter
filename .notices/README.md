@@ -1,10 +1,12 @@
 # .notices/ — DOWNSTREAM NOTICE(上流追随通知)
 
+## Overview
+
 上流リポの変更に伴い、下流 fork 側で追随作業(コード修正・DB マイグレーション・バックフィル・再生成など)が必要になるとき、その通知を **リポジトリ内のファイルとして**ここに置く仕組み。
 
 配送インフラは git そのもの: 通知は変更本体と同じコミット/PR に含めて出荷され、**下流が上流を merge した瞬間に一緒に届く**。ローカルマシンの共有ディレクトリ等には依存しないため、リポジトリを fork した誰でもこの仕組みに乗れる。T1→T2 / T2→T3 など任意の上流→下流の多段構成でそのまま機能する。
 
-## 構成
+### 構成
 
 ```
 .notices/
@@ -19,14 +21,16 @@
     └── <名前>.md          # fork ごとの適用台帳(名前 = その fork の fork_id:。その fork だけがコミットする)
 ```
 
-## 使い方
+## Usage
 
 - **出荷(上流側)**: `/ship` スキル。コミット・push のたびに、検査 → 下流への影響の判定 → 要るなら notice を合成して `.notices/<id>.md` に書き出す(前に出荷したものの修正なら `fixes:` を付ける)→ 索引の行を `node scripts/workflow/notices/shippedIndex.mjs add <notice>` で足す → `pnpm check notices` → 変更本体と同じコミットで push、までを行う。`/flux` と対になる(`/ship` が書く欄と `/flux` が読む欄はこの文書のスキーマで揃える。欄を足すときは両方のスキル・`scripts/workflow/notices/notices.test.mjs`・索引の欄の並び(`scripts/workflow/notices/shippedIndex.mjs` の `ROW_KEYS`)・読む側(`.claude/skills/flux/incoming.mjs`、`src/lib/forkOwnership/check.mjs`)を同じコミットで直す)。
 - **中継(中間 Tier)**: 下流を持つ fork(`.claude/rules/project.md` の `downstream: yes`)の `/flux` が、適用した上流 notice ごとに中継の要否を git の差分で判定し、必要な区間だけ `covers:` 付きの中継 notice を下書きする(下記「中継(relay)」)。`/flux relay` はこの判定の導入前に適用した未判定の旧 notice の後始末用。
 - **受領・適用(下流側)**: `/flux` スキル。upstream の fetch → 未適用 notice を checkpoint ごとの区間に分割 → 全区間の概観(1 行ずつ)と**次の区間だけ**の詳細な適用計画を提示 → 承認 → その区間の merge・コード修正・DB 操作・検証・台帳記録・コミット・push → 次の区間の計画を出して止まる。承認は区間ごと(区間の終わりの `go` = 次の区間の計画の承認)で、`/flux all` は最初の区間の承認の後、区間ごとに計画と実行を繰り返して最後まで進める(`/flux next` は既定の別名)。fork が移動元を編集した大きな `moved:` の移植を含む区間は、`all` の途中でも手前で止まる。`/flux status` で状態確認のみ。notice の有無にかかわらず区間の上流差分から使い方の変わった部品・lib・core を洗い出し、fork 側の使用箇所を同じ区間で揃え、区間ごとに typecheck / lint を通してから commit する(古い使い方を残すのはユーザーが判断したときだけ)。notice が無いのに追従が要った変更は「上流への所見」で notice 漏れとして返る。承認後でも、取り込む変更がその fork を壊す・db 差分が破壊的・notice と実態が食い違う等の**停止条件**に当たれば区間を commit せずに止まって選択肢を示す(押し切らない)。最終報告には「上流への所見」(上流のバグ・notice のズレ・/order <上流リポ> 候補)を常設。
 - 対応が不要な通常の変更には notice を作らない。ただコミットされて merge で流れていくだけでよい。
 
-## notice スキーマ(英語・機械間ファイル)
+## API
+
+### notice スキーマ(英語・機械間ファイル)
 
 ```
 # DOWNSTREAM NOTICE id:<ts>-<slug>
@@ -69,7 +73,7 @@ notes: <anything else>
 - 書式は `pnpm check notices` で検査する(見出しの id とファイル名、必須の欄、checkpoint ラベルの重複、`fixes:` / `covers:` の参照先、`pick:` の値と `fixes:` の有無、出荷前の `moved:`、索引: 追記だけ・本文と行の一致・`uses:` の実在と区切り・`skip_checkpoint:` の条件)。`checkpoint:` と `manual_steps:` の必須は検査の導入以降の notice だけ(それより前は欄の無い旧 schema が残る)。
 - `checkpoint` は**原則ラベル必須**(既定 = 区切り)。「この notice まで適用すれば fork は整合した休憩点にある」の宣言で、`-` は「後続 notice なしでは半端」という例外宣言(理由を `notes:` に)。欄が無い旧 schema の notice は区切り扱い。下記「区切り(checkpoint)」参照。
 
-## 出荷索引と本文の読み方
+### 出荷索引と本文の読み方
 
 notice の発見と区切りの判定には、今のツリーに残っている本文の一覧ではなく**出荷索引**(`shipped/<名前>.md`)を使う。本文は区間が閉じれば消してよいので、本文の有無では判断しない。
 
@@ -83,21 +87,21 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - 導入: 上流は今ある全 notice の行を `node scripts/workflow/notices/shippedIndex.mjs backfill` で 1 回起こした。自分の notice を出す fork は、最初に同じ backfill で自分の notice だけの索引を作る(他のリポの notice は飛ばす: 親の索引に載る・本文の `from:` が自分の origin でない・台帳に `picked:` = 親から先に取った修正)
 - 片付け: 古い backfill が、親から先に pick した notice(その時の親の索引にまだ行が無かった物)を自分の索引に書いてしまった fork は、`node scripts/workflow/notices/shippedIndex.mjs repair` を 1 回走らせて commit する(自分の索引から他のリポの物の行だけを消す。何度走らせても同じ)。消えたその行は追記だけの検査が受け入れる(自分の notice の push 済みの行は今どおり書き換えない)
 
-## 使う移行・codemod の欄(uses)
+### 使う移行・codemod の欄(uses)
 
 - 形式: `uses: <path>, <path>`。notice の手順が実行する DB 移行(ドメインの `src/features/<domain>/scripts/migrations/`)・codemod(`.notices/<id>.<名前>.mjs`)を列挙する。本文の説明だけを手がかりに探させない
 - 列挙したファイルは notice を足した commit に実在すること(`pnpm check notices`、中継 notice も同じ)。`.notices/` の下は `.notices/<その notice の id>.<名前>.mjs` の形
 - `uses:` を持つ notice は区切り(`checkpoint: -` にしない)。後の `skip_checkpoint:` でも外せない(区間が後ろにずれると、添付が消えた木に merge しうる)
 - 実行の手順は `required_actions`、確かめ方は `verify` に書く。後から取り込む fork は、添付を notice を足した commit の版から読む
 
-### 運用コマンド・移行を fork に打たせる
+#### 運用コマンド・移行を fork に打たせる
 
 - 打たせる物は `pnpm task <domain>:<名前>` で書く(移行も運用コマンドも同じ入口。本番で打たせるなら `--env production --confirm=production` まで書く)。実行は fork の `task_runs` に記録され、移行は一度きり(同じ notice の鍵で二度流れない)
 - 移行は `uses:` にも挙げる(上)。上流の運用コマンド(`src/features/<domain>/scripts/tasks/`)は上流に残る物なので `uses:` に挙げない
 - 全ドメイン共通のデータ操作を打たせるなら `pnpm ops data <command> <domain>`(`scripts/operations/data/README.md`)
 - 出荷前の検査(`pnpm check notices`、D32): notice が名指す `pnpm task <名前>` はその木に実在すること(ドメインのタスク・移行・定期タスク)。読み方: コードの中(インラインのコード・フェンスの塊・コマンドだけの行)はどの名前も確かめ、地の文の中は `:` か `-` を含む名前だけを確かめる(地の文の 1 語の平らな定期タスクの名前は確かめない)。読み手: `scripts/runner/task/scan.mjs` の `taskNamesIn`
 
-### codemod(`.notices/<id>.<名前>.mjs`)
+#### codemod(`.notices/<id>.<名前>.mjs`)
 
 上流の変更に合わせて fork のコードを機械的に書き換える 1 回きりの道具。案内する notice(最初に名指した notice)の隣に置き、本文と一緒に消す。
 
@@ -130,7 +134,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 4. `admin-header` — portal の区切り(もう一度走らせる。止めた物は期限 今 = 直すまで型の検査が落ちる)
 5. `guarded-router` — 未保存の守りの区切り(admin-header とは触る所が違うので 3・4 との前後は問わない)
 
-## 区切りを外す欄(skip_checkpoint)
+### 区切りを外す欄(skip_checkpoint)
 
 区切りの commit が動かないまま出荷され、その修正が先に取れない(`pick: -`)とき、修正元の区切りに止まる fork は型検査の通らない木で push することになる。そこで修正の notice が修正元の区切りを外す。
 
@@ -139,7 +143,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - 条件(`pnpm check notices`): 相手の checkpoint がラベル / 相手が `uses:` を持たない / 修正の notice 自身は区切り / 修正の行の `pick:` が `clean` でない(先に取れるなら外す理由が無い)
 - `/ship` がこの欄を新しい notice の索引の行に写す(pick-check の後に足したら、push 前の行を `node scripts/workflow/notices/shippedIndex.mjs refresh <notice>` で作り直す)。修正元の本文と既存の行は書き換えない。`/flux` は上流の先端の索引のどの行の `skip_checkpoint:` も区間の組み立てに使う
 
-## 区切り(checkpoint)と区間適用
+### 区切り(checkpoint)と区間適用
 
 長く追随していない fork や初回 merge の fork は、未適用 notice を一度に数十件抱えることがある。全量を 1 回の merge と 1 つの適用計画で進めると、途中で失敗したときに fork が中途半端な状態に残り(schema 変更が 3 つ混ざった merge の途中で db:push が落ちる等)、どこまで終わったかも分かりにくい。DB 規模が大きい fork や独自要素の多い fork ほど危険が増す。そこで **notice 1 件 = 休憩点 1 つを既定とし、/flux は未適用 notice を区切りごとの区間に分けて 1 変更ずつ閉じて進める**。
 
@@ -151,7 +155,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - 上流側の責務: notice は、その区切りに含めたい変更本体と同じ commit かそれより後の commit に含める(notice を先に出すと、merge 先に変更本体が含まれない)。区切りは作り手が宣言する区間の境目で、上流は途中の区切りを検査しない(確かめるのは fork の /flux で、区間ごとに自分の木で検査する)。作り手は fork がそこで動くと見込める所にだけラベルを付ける。動かない区切りが後で分かったら(fork の報告など)、出荷済みの本文と索引の行は書き換えず、修正の notice を出す。修正が先に取れれば `pick: clean` で修正元の区間の直後に取られ、取れなければ修正の notice に `skip_checkpoint: <その notice の id>` を書いて修正元の区切りを外す(上記「区切りを外す欄」、下記「修正(fixes)」)。追随作業が無い区切りは `severity: info` + `required_actions: none` + `checkpoint:` の notice で宣言する。
 - セーフポイント(注釈つきの tag `safe/<repo_id>/<YYYYMMDD>-<n>`。repo_id = 付けたリポの `repo.json` の repo_id、n はその repo_id と日の次の空き番号): `/ship --safe` は push する先端で全部の検査(`pnpm test` 全体・`pnpm check`・`pnpm typecheck`・`pnpm lint`・`pnpm build`)を `pnpm workflow notices safePoint check` で通したときだけ、push の後に `pnpm workflow notices safePoint tag` でその先端に tag を付けて push する。`--safe` でない出荷(ふつうの `/ship`・`/ship --quick`・`no-push`・検査が回せなかった時)は tag を付けない。使い分け: セッションの途中の出荷は `/ship --quick`(検査なし、commit に `Ship: quick` の trailer)、セッションの最後の出荷はふつうの `/ship`(変えた場所の検査に、まだ検査していない quick の分のファイルも入れる。`pnpm workflow notices safePoint quickFiles`。出荷する変更が無くても、push 済みの quick の先端をその検査で締め、`safePoint quickChecked` で記録する)、セーフポイントを作れと言われた時だけ `/ship --safe`(出荷する変更が無ければ、push 済みの先端に全部の検査とタグだけ。誰の出荷か — 議会の実装・ギルド・旅団のコンボイ — では変えず、チームの出荷もふつうの `/ship`)。ふつうの出荷の報告は `pnpm workflow notices safePoint status` で、前の自分のセーフポイントからの commit 数 ÷ 80 + 日数 ÷ 3 が 1 以上(まだ無い時も)なら、セーフポイントを作るかを人に提案する。fork は本番のデプロイの前に /flux をセーフポイントで止める。緊急は `--allow-unsafe=<理由>`。中間の Tier(`downstream: yes`)も同じ `/ship --safe` で自分のリポに自分の repo_id のセーフポイントを付ける(道具は共通で、追加の作業は無い)。名前に repo_id が入るので親子の tag は重ならず、普通の `git fetch <remote> --tags` で取ってよい。見るのは直接の親の tag `safe/<親の repo_id>/*` だけ(親の repo_id = `git show <親の remote>/<branch>:repo.json` の repo_id。古い形の親は `.claude/rules/project.md` の fork_id:)。fork の /flux は区間の終わりの報告に、取り込んだ上流の位置と直接の親のセーフポイントの関係を 1 行出す(`at` / `past (N commits unverified)` / `before` / `no safe point yet`、`pnpm workflow notices safePoint where`)。本番のデプロイ(`pnpm live`・`pnpm live:all`・`pnpm live:room`・`pnpm ops room deploy` の本番)は、fork では台帳の最後の `upstream:<sha>` が直接の親のセーフポイントちょうど、Tier1 では HEAD が自分のセーフポイントちょうどでなければ止まり、近いセーフポイントの名前を出す(fork は `/flux to <その位置>` で進める)。抜け道は `--allow-unsafe=<理由>`(本番の確認と一緒の時だけ通り、理由を出す)。プレビューは止めない
 
-## 移動・改名(moved)
+### 移動・改名(moved)
 
 `git merge` は「merge-base → merge 先」の差分をまとめて見るため、上流が「新しいパスに新規作成 + 古いパスを互換 shim に置き換え」を行うと、git はこれを改名と認識しない(古いパスは「変更」、新しいパスは「追加」に見える)。fork が古いパスで編集していた内容は、shim との衝突になるか、気づかれずに上流版で上書きされる。上流のコミットを mv だけと中身変更に分けても、区間の merge 先が両方を含めばまとめて見られるので解決しない。
 
@@ -162,14 +166,14 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - /flux は計画時に、各組について fork が移動元を編集しているか(`git diff <merge-base> HEAD -- <old>`)を調べて計画に出す。merge 後、その差分のパスを新しいパスに書き換えて `git apply --3way` で当て直す。古いパス側の衝突は上流版(shim または削除)を採る。当て直せなかった部分は停止条件として止まる。
 - 欄が無い旧 notice・`moved:` を知らない旧 /flux では今までどおりの動作(merge するだけ)。
 
-### 削除・移動は notice と同じ commit で出す(必須)
+#### 削除・移動は notice と同じ commit で出す(必須)
 
 fork が手を入れうるファイル(docs・README・registry・config 等)を削除・移動する commit には、その notice(移動なら `moved:`、移動先の無い削除なら `notes:` に削除したパスと「fork 独自の内容の移し先」)を**同じ commit に含める**。後の commit で notice を出すと、/flux はその notice の追加 commit で区間を切るため、削除だけが先の区間で fork に届き、fork は案内の無い modify/delete コンフリクトを自力で解くことになる。
 
 - 起票前に `git diff --name-status --diff-filter=DR <変更前> <変更後>` で削除・改名を全て洗い出し、notice に漏れなく載せる(/ship が行う)
 - fork が編集していないと分かっているファイル(upstream 専用の内部実装等)だけの削除なら notice は不要
 
-## 修正(fixes)— 前に出荷したものの不具合を直す
+### 修正(fixes)— 前に出荷したものの不具合を直す
 
 出荷した変更に後から不具合が見つかり修正を出すと、まだ修正元の区間を通っていない fork は、修正が先に控えていることを知らないまま修正元の区切りで止まり、検査の失敗を自前で直したり、同じ不具合を上流へ依頼し直したりする。そこで修正側の notice が「何を直したか」を宣言し、/flux がそれを先読みする。
 
@@ -185,7 +189,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
   - 修正元が適用済みなら止まらず、概観で修正の区間に「適用済み <修正元> の修正」と印を付ける。その区間では台帳の修正元の行の `notes:` から当時の回避策を探して外す。
   - 「上流への所見」で依頼の文案を出す前に、流入予定の `fixes:` と上流の履歴で修正済みかを確かめる(修正済みなら文案を出さず「上流で修正済み(区間 K)」と書く)。
 
-### 先に取れる印(pick)
+#### 先に取れる印(pick)
 
 修正元の区切りで止まった fork は、修正の区間に着くまで既知の不具合を抱えたまま push する。上流が出荷のときに「壊れた地点に修正だけを載せても通るか」を機械で試し、通った修正に印を付ければ、/flux は修正元の区間を取り込んだ直後にその修正を cherry-pick して、壊れた区切りのまま push せずに済む。
 
@@ -202,7 +206,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - 脇の commit で出した修正: 修正を壊れた地点の脇の commit で出して merge すると、その修正を取らなかった fork では脇の commit が区間の merge 先になり、merge すると上流との merge-base が 2 つになる(所有の検査が判定できない)。/flux はその区間を見つけ(`incoming.mjs` の `offLine`)、merge の前に止まって取り方(修正を pick する・ユーザーに聞く)を出す。所有の検査はこの形を判定するように作り直さない(fork は常に pick する前提)
 - 緊急修正との違い: `hotfix:` は人が宣言して全部の区間の前に割り込む。`pick: clean` は機械の印で、修正元の区間の直後に取るだけで前には出ない
 
-## 緊急修正(hotfix)— 間の変更を飛ばして先に届ける
+### 緊急修正(hotfix)— 間の変更を飛ばして先に届ける
 
 区間の merge は履歴の順に進むので、遅れている fork には修正がすぐ届かない。本番が壊れているとき、または壊れていなくても人間が先に届けると宣言したときだけ、上流が `hotfix:` を宣言した notice の commit を `/flux` が cherry-pick する。任意の commit は取らない(区間の merge を崩さないため)。
 
@@ -213,7 +217,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - 所有の検査: `picked:` の分は基準 + pick と同じ中身なら合格(`src/lib/forkOwnership/README.md`「緊急修正の pick」)。衝突を手で解いたファイルや違反になったファイルは 1 ファイル 1 行の一時許可で通し、後の区間がそのファイルに触れたら許可を取り直す
 - 多段: 取れるのは直接の親の commit だけ。上の段から順に進む(`.claude/skills/flux/relay.md`)
 
-## 解決(resolves)— 下流から届いた依頼を片付けた
+### 解決(resolves)— 下流から届いた依頼を片付けた
 
 下流の fork は、受け口の外の書き換えを「直接の親への依頼が片付くまで」の一時許可で通す(`src/lib/forkOwnership/README.md`「一時許可」)。許可は依頼の番号を持ち、その番号が解決したら失効する。解決を下流へ伝えるのがこの欄。
 
@@ -226,11 +230,11 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - 決まりの鍵の改名・移し・削除: 上流が CLAUDE.md・core のファイル・札・lineage.md の行頭の鍵を変えるときは、その出荷の notice の required_actions に `<古いファイル> <古い鍵> -> <新しいファイル> <新しい鍵 | removed>` の表と、fork の決まりの中の名指しを探す `git grep` を毎回書く(fork の仮の決まり・上書きは鍵で上流を名指すため)
 - 書式は `pnpm check notices` が検査する(id の形・重複)。参照先の実在は見ない(受信箱は git の外)
 
-## 中継(relay)— 3 段以上の Tier
+### 中継(relay)— 3 段以上の Tier
 
 T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2 のツリーに入り、T3 が T2 を merge すると T3 にも届く。T3 から見るとこれは `from:` が自分の origin でも直上 upstream(T2)でもない notice(= **祖父 notice**)で、そのままでは未適用と判定される。しかも追加 commit は T1 の生 commit(T2 の衝突解消を含まない)なので、そこで区間を切ると T3 は T2 が解いた衝突をもう一度解くことになり、さらに T2 の merge commit とも衝突する。そこで次の 3 つで扱う。
 
-### 1. 祖父 notice の区切り(中継 notice が無くても常に効く)
+#### 1. 祖父 notice の区切り(中継 notice が無くても常に効く)
 - 判定: 自分の索引でも直上 Tier の索引でもない索引の行(`shipped/<名前>.md` のファイル名で分かる)= 祖父 notice。索引の無い上流では `from:` の repo が自分の origin とも直上 upstream の URL とも一致しない notice。
 - **祖父 notice の追加 commit は区切りにしない**。代わりに、直上 Tier の台帳(`.notices/applied/<中間 Tier の名前>.md`、merge で流れてくる。名前 = 直上 Tier の fork_id:)にその id が記録された commit を区切り点とする: `git log -S"id:<id>" --format=%H <upstream>/<branch> -- .notices/applied/<中間 Tier の名前>.md` の最古。台帳の `commit:` 欄は `-` のことが多いので使わない。これで、中間 Tier が衝突を解いて適用し終えた点まで merge される。
 - 直上 Tier の台帳に記録が無い(中間 Tier が手動 merge だけして未適用等)祖父 notice は、従来どおり追加 commit を区切りとし、/flux が警告を出す。
@@ -238,7 +242,7 @@ T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2
   - `relay:none`: 中間 Tier が差分で「中継不要」と判定済み(下記 3)。下流が受け取るコードは上流と同じなので、上流 notice をそのまま適用する。
   - 欄が無い(判定導入前の旧台帳): required_actions が中間 Tier の状態を前提に書かれている。/flux は計画にその旨を注記し、中間 Tier の台帳 `notes:` を参考に自 fork の実情へ写像する。
 
-### 2. `covers:`(中間 Tier が書く中継 notice)
+#### 2. `covers:`(中間 Tier が書く中継 notice)
 - 中間 Tier は、下記 3 の判定で中継が必要になった上流 notice を、自分の変更・衝突解消・移動の内容とあわせて区間ごとに 1 件の notice にまとめる(/flux が下書きする)。`covers: <id>, <id>` にまとめた上流 notice の id を書く。
 - /flux の扱い:
   - covered された id は、covers 側の notice を適用した時点で適用済みになる。台帳には covered id も `notes: covered by <covers 側 id>` で自動記録する。
@@ -248,7 +252,7 @@ T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2
 - 後方互換: `covers:` を知らない旧 /flux でも中継 notice が安全に動くよう、中継 notice の合成(`.claude/skills/flux/relay.md`「RELAY NOTICE COMPOSITION」)は required_actions に「この notice の commit まで 1 区間で merge し、covered notice の commit で止まらない」「covered id を台帳に記録する」の 2 行を必ず入れる(新 /flux では no-op)。
 - 状態の見える化: `/flux status --chain` が祖父 notice ごとに「中間 Tier が適用済みか → 中継 notice に covered されているか(または `relay:none`)→ 自分が適用済みか」を 1 行ずつ出す。
 
-### 3. 中継判定(中間 Tier の /flux が区間ごとに行う)
+#### 3. 中継判定(中間 Tier の /flux が区間ごとに行う)
 中継が要るかどうかは文面の解釈ではなく **git の差分と適用の事実だけ**で決める。下流に補足が要るのは「上流が変えた箇所が中間 Tier で食い違う」「中間 Tier が適用作業で上流の外まで変えた」「中間 Tier が手順から外れた」ときだけで、どれも無ければ下流が中間 Tier から受け取るコードと作業は上流 notice どおりで済むため。
 - 対象 fork: `.claude/rules/project.md` の `downstream: yes` の fork(読み手は `src/lib/forkOwnership/forkIds.mjs` だけ。宣言が無い・誤りは止まる)。`downstream: none` の末端 fork は判定しない。
 - 中継の義務(CLAUDE.md DOWNSTREAM_NOTICES relay): `/flux` の中継未判定の報告が 0 でない間は flux 未完(助言ではない)。中継を忘れたら次の commit で他の作業より先に入れる。
@@ -263,7 +267,9 @@ T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2
 - 中身の無い中継 notice は作らない。中継不要の notice は `relay:none` だけで閉じる。
 - 未判定の旧台帳行(`relay:` 欄が無く、どの `covers:` にも無い)は /flux が件数を報告し、`/flux relay` でまとめて中継 notice に covers して閉じる(基準点が古く差分判定できないため)。
 
-## 適用状態の考え方
+## Internals
+
+### 適用状態の考え方
 
 状態は「通知を受け取ったか」というイベントではなく、**ファイルと git 履歴の集合演算**で毎回導出する:
 
@@ -275,7 +281,7 @@ T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2
 
 このため、merge を誰がどの経路で行ったか(手動 / GitHub / /flux)に関係なく、いつ実行しても正確な未対応リストが得られる。
 
-### 継承済み(pre-fork)の自動判定
+#### 継承済み(pre-fork)の自動判定
 
 notice は「変更前から存在していた fork」向けの差分指示であり、**fork は最新コードごと clone して始まるため、fork 成立点のツリーに既にあった notice は定義上すべて適用済み**。新規 fork がセットアップ手順なしでこの状態になるよう、/flux は実行のたびに次を導出して未適用判定から除外する(台帳への記録も不要):
 
@@ -287,11 +293,11 @@ fork 固有コミットがまだ無い場合は現役 notice 全件が継承済�
 
 継承済み notice を下流側で**ファイル削除してはいけない**: 上流の本文の片付けと merge で衝突しうる。除外は判定式で行うのが正。本文の片付けは上流(出荷したリポ)がする。
 
-## 台帳(applied/)が fork ごとに別ファイルである理由
+### 台帳(applied/)が fork ごとに別ファイルである理由
 
 台帳を単一ファイルにすると、多段 Tier で中間 Tier の台帳が下流に merge で流れ込み、双方の追記がコンフリクトする。fork ごとにファイル名を分ける(名前 = その fork の `.claude/rules/project.md` の `fork_id:`。例 `oripa-do.md`)ことで merge 衝突が構造的に起きない。台帳の各行は取り込んだ上流の版 `upstream:<sha>` を持ち、`pnpm workflow ownership check` が Tier1 の版をここからたどる(`src/lib/forkOwnership/README.md`「多段の Tier」)。副産物として、下流からは中間 Tier がどこまで適用したかも見える。台帳は上流へは流れないため、上流側からの完了追跡は行わない(往復不要)。
 
-## 本文と添付物の片付け
+### 本文と添付物の片付け
 
 - 出荷済み(push 済み)の本文は書き換えない(push 前の自分の commit は直してよい。書き間違いでも、手順が実態と合わないなら新しい notice の `fixes:` で直す)。索引の行も書き換えない
 - 本文は区間が閉じた(後ろに区切りの行がある)ものから消してよい。期限はなく、全 fork の適用を待たない(遅れた fork は足した commit の版を履歴から読む)。消すのは出荷したリポだけ。片付けだけの削除に notice は要らない

@@ -85,7 +85,7 @@ src/app/(user)/(protected)/points/
     └── loader.ts                 最寄りの guard.ts の createLoader({ access, key?, load })(データが無くても access だけの loader を置く)
 ```
 
-登録は不要。`pnpm test src/lib/screens/screens.test.mjs` が page.tsx を自動検出し、スイッチ形であること・Screen が存在し Server Component であること・Screen が同じルートの loader を最上位で await すること・loader の規律を検査する。`pnpm generate routes` が鎖（page → Screen → loader → 最寄りの guard.ts → root）を辿れないページは生成失敗になる。
+画面の一覧へ手で足す登録は無い。`pnpm test src/lib/screens/screens.test.mjs` が page.tsx を自動検出し、スイッチ形であること・Screen が存在し Server Component であること・Screen が同じルートの loader を最上位で await すること・loader の規律を検査する。ルート地図（`src/app/route-map.jsonl`）は生成物なので、ページを足したら `pnpm generate routes` で書き直してコミットする（鎖（page → Screen → loader → 最寄りの guard.ts → root）を辿れないページは生成失敗。コミットした地図とのずれは `pnpm check routes` が出荷の門で止める。Internals の「ルート地図（`src/app/route-map.jsonl`）」）。
 新しい範囲（別の方針）が要るなら、その範囲の dir に子の guard.ts（最寄りの親の `extend`）と、`await guard()` の 1 行の layout.tsx を置く（API の「範囲（guard.ts）と loader の書き方」）。
 
 #### 上流の画面を変えたい（例: `/wallet/[slug]`）

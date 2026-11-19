@@ -1,17 +1,21 @@
 # _shadcn
 
+## Overview
+
 このディレクトリには shadcn/ui からインストールした**オリジナルのコンポーネント**がそのまま配置されています。
 
-## ⚠️ 直接使用禁止
+### ⚠️ 直接使用禁止
 
 このディレクトリ内のコンポーネントを**直接インポートして使用しないでください**。
 
-### 理由
+#### 理由
 
 - shadcn/ui のコンポーネントはプリミティブであり、プロジェクト固有のスタイルや振る舞いが適用されていない
 - 一貫したデザインシステムを維持するため、ラッパーコンポーネントを経由する必要がある
 - 下流の見た目差し替え(`src/config/ui/variants.config.ts` / `src/styles/` 直下の fork の CSS)はラッパー側に配線されている。直接 import するとその口が効かない
 - 将来的な変更に対応しやすくするため
+
+## Usage
 
 ### 正しい使い方(ラッパー対応表)
 
@@ -24,13 +28,15 @@
 
 button・badge・input・textarea・select・checkbox・radio-group・label・tabs・skeleton・calendar・carousel・dialog・command・popover・tooltip は `src/components/Primitives/<部品>` へ移した(入口 `@/components/Primitives/<部品>`、画面からは今までどおり `Form/`・`Overlays/`・`Badge/`・`Navigation/`・`Skeleton/`・`Widgets/` の完成品を使う。一覧: `src/components/README.md`)。旧パスの import は lint `deprecated-imports` が置き換え先を出す。Radix は統合版の `radix-ui` から読む(`@radix-ui/*` の個別パッケージは lint `radix-unified` が止める)
 
-### 機械的な強制(ESLint)
-
-`src/components/**` と `src/lib/**`(どの lib でも。lib は閉じたパッケージで中は lib の自由)の外からの `@/components/_shadcn/*` import は ESLint(`import-boundaries/no-shadcn-direct`、全 Tier error)が止める。下流固有の UI も対象。
-
 ### ラッパーが存在しない場合
 
 必要なラッパーが見つからない場合は、新規作成を検討してください。適切なディレクトリ(`Form/`、`Layout/`、`Overlays/` など)にラッパーコンポーネントを作成し、_shadcn のコンポーネントをインポートして使用します。
+
+## Internals
+
+### 機械的な強制(ESLint)
+
+`src/components/**` と `src/lib/**`(どの lib でも。lib は閉じたパッケージで中は lib の自由)の外からの `@/components/_shadcn/*` import は ESLint(`import-boundaries/no-shadcn-direct`、全 Tier error)が止める。下流固有の UI も対象。
 
 ### このディレクトリの色について
 
