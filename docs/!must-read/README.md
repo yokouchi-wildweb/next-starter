@@ -15,26 +15,27 @@
 この前提から、設計全体に通じる 2 つの方針が出てくる。
 
 - **下流が上流のファイルを編集せずに済むようにする。** fork が上流のファイルを書き換えると、上流を merge するたびに衝突する。そこで上流は「構造と既定値」だけを持ち、fork が変えたい部分には差し替え口（設定ファイル、登録口、画面の切り替え）を用意する
-- **汎用的なものは上流に置く。** 複数の fork で必要になる機能を各 fork が個別に作ると、同じものが何度も作られ、それぞれ違う形に育つ。汎用機能は上流に置き、fork はそれを使う（fork から上流への依頼は `/order <上流リポ>`、上流から fork への追随依頼は `.notices/`）
+- **汎用的なものは上流に置く。** 複数の fork で必要になる機能を各 fork が個別に作ると、同じものが何度も作られ、それぞれ違う形に育つ。汎用機能は上流に置き、fork はそれを使う（fork から上流への依頼は `/order`: コードは直接の親へ、決まりの文書は next-starter へ直接。上流から fork への追随依頼は `.notices/`。リポどうしのつながりは `CLAUDE.md` REPO_LINK）
 
-開発は主に AI エージェントが行う。そのため、ルールはエージェントが毎回読む `CLAUDE.md` に集め、ルールを守れているかはできるだけ lint とテストで機械的に検査する。
+設計の判断の土台は `CLAUDE.md` 冒頭の 3 つの法則（ai_native・domain_driven・debt_free）。訳と、何を言いなぜそうするかは [3つの法則](3つの法則.md)。
 
 ## Usage
 
 ### 読む順番
 
 1. この文書
-2. [設計思想とアーキテクチャ](設計思想とアーキテクチャ.md) — どこに置くか
-3. [アプリ構築における構成層](アプリ構築における構成層.md) — どう流れるか
-4. [UIレイヤーの概念とコンポーネント分割方法](UIレイヤーの概念とコンポーネント分割方法.md) — 画面をどう組むか
-5. [エラーハンドリング方針](エラーハンドリング方針.md) — 失敗をどう伝えるか
-6. [バックエンド構成ドクトリン](バックエンド構成ドクトリン.md) — 何に保存するか、なぜこの構成か
+2. [3つの法則](3つの法則.md) — 判断の土台
+3. [設計思想とアーキテクチャ](設計思想とアーキテクチャ.md) — どこに置くか
+4. [アプリ構築における構成層](アプリ構築における構成層.md) — どう流れるか
+5. [UIレイヤーの概念とコンポーネント分割方法](UIレイヤーの概念とコンポーネント分割方法.md) — 画面をどう組むか
+6. [エラーハンドリング方針](エラーハンドリング方針.md) — 失敗をどう伝えるか
+7. [バックエンド構成ドクトリン](バックエンド構成ドクトリン.md) — 何に保存するか、なぜこの構成か
 
 ### 文書の地図
 
 | 場所 | 中身 | 読むとき |
 |---|---|---|
-| `CLAUDE.md` | ルールの索引（英語・圧縮形式。全 fork 共通） | 毎セッション自動で読まれる |
+| `CLAUDE.md` | ルールの索引（英語・圧縮形式。全 fork 共通）。冒頭が 3 つの法則（人向けの訳と説明は [3つの法則](3つの法則.md)） | 毎セッション自動で読まれる |
 | `.claude/rules/core/`・`.claude/rules/items/` | CLAUDE.md の続き: 層・置き場ごとの決まり（core）と品目ごとの札（items。札 = 品目ごとの決まりを書いたファイル。`.claude/rules/items/<分類>/<名前>.md` の 1 枚。英語の決まりのファイル(core・design.md)では card）。全 fork 共通 | 触ったファイルが `paths` に当たったとき自動で読まれる |
 | `.claude/rules/project.md` | その fork だけのルールと地図（upstream との差分） | 毎セッション自動で読まれる |
 | `.notices/` | 上流の変更で fork 側に必要な追随作業の通知 | 上流を取り込むとき（`/flux`） |
@@ -105,6 +106,7 @@
 | 認証と認可ガード | JWT セッションと、proxy → 範囲の guard.ts（layout が guard() の 1 行、親子 AND）→ loader の access（guard.ts の createLoader）の 3 段の守り。ロール・ステータスによる判定は必ず DB と同期した値（守りと API の Factory が解く利用者 = `getSessionUser`）で行う。JWT だけの軽い取得（`getTokenOnlySession`）は監査の記録者やデモ判定など、拒否に使わない用途に限る。JWT の中身は発行後に古くなり得るため | `src/features/core/auth/README.md`、`src/lib/pageGuard/README.md` |
 | 登録表（registry） | `src/registry/` は「業務ドメインを全体で扱うため、ドメインを 1 つ作ると 1 行増える一覧」（serviceRegistry・schemaRegistry・domainConfigRegistry など。生成物）。serviceRegistry はドメイン名からサービス・表・主キーを引く正式な仕組みで、各ドメインの `services/server/domainEntry.ts` から生成する。下流の登録口ではない | `src/registry/README.md`、`src/lib/domain/README.md` |
 | 拡張点 | 機能ごとの差し込みは、持ち主のフォルダの受け口にファイルを置くと生成一覧に並ぶ。上流の既定の項目も fork の項目も同じ受け口に置く | `scripts/structure/extensions/README.md` |
+| 機能の門番（featureGate） | 機能 = 入切する単位で、規則が開くドメインを挙げる。閉じた機能のドメインはページ・API・テーブル・定期の作業がまとめて閉じる（第 2 法則、[3つの法則](3つの法則.md)） | `CLAUDE.md` DOMAINS_AND_FEATURES、`src/featureGate/README.md` |
 | proxy | リクエストごとの前処理（メンテナンス・デモモード・機能ゲート・リダイレクト）を骨組みの handler の連鎖で行い、fork の項目はファイルを足すだけで後ろの枠に入る | `CLAUDE.md` PROXY、`src/proxies/` |
 | 監査ログ・定期処理・集計 | 監査ログ（`auditLog`）、cron とタスクランナー（`lib/cron`）、カウンタ・DAU・集計キャッシュ（`userCounter` / `interactionTracking` / `analytics`）など、運用に必要な基盤 | 各ドメインの README、`CLAUDE.md` の該当節 |
 
