@@ -61,6 +61,16 @@ fork が上流に無いログインの方法を足すときに呼ぶ口。呼ぶ
 - `rootErrorMessage`: `form` の root エラー(`string | null`)。登録済み・送信失敗の文言
 - `recaptchaV2`(メール認証のみ): `{ open, siteKey, onClose, onVerify }`。`RecaptchaV2Challenge` に渡す。v2 トークンを得ると保留中のメールアドレスへ自動で再送する
 
+#### ログイン form(`/login`)
+
+| 名前 | 引数 | 戻り値 |
+| --- | --- | --- |
+| `useEmailPasswordLogin()`(hook) | なし | `{ signIn, isLoading }`。`signIn({ email, password })` → `{ credential, requiresReactivation }`(失敗は投げる) |
+| `UserLoginEmailForm`(部品、入口 `@/features/core/auth/components/UserLogin`) | `redirectTo?: string`(ログインの後の移り先、既定 `"/"`) | メールとパスワードの欄・パスワードを忘れた人へのリンク・誤りの文・送信ボタンを描く |
+
+- `UserLoginEmailForm` は入力の状態・送信(二重の送信を止める)・休会中の利用者の `/reactivate` への移動・失敗の文「ログインが失敗しました」を自分で持つ。既定の `UserLogin` もこれを描く
+- 並べ方を変える Screen は部品を並べ、見た目ごと作り直すなら hook を呼んで自分の form を描く
+
 #### OAuth の登録・ログイン(`/signup/oauth`)
 
 | hook | 引数 | 戻り値 |

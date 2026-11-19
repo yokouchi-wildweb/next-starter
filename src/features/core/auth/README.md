@@ -90,6 +90,7 @@ return response;
 - クライアントは `useAuthSession()` → `{ user, isAuthenticated, refreshSession }`。`refreshSession` は `GET /api/auth/session` を叩いて Context を更新(失敗時は user=null)
 - ログアウト: `useLogout` → `services/client/logout.ts` → `POST /api/auth/logout`(Cookie 削除)
 - パスワード再設定メール: `useForgotPassword` → `services/client/forgotPassword.ts`(`sendPasswordResetEmail`)→ `POST /api/auth/forgot-password`
+- 利用者のログイン(`/login`): セクションコンテナ `UserLogin` = メールのフォームの部品 `UserLoginEmailForm` + 外部のログインの手段 `ThirdPartySignupOptions` + 新規登録へのリンク。手段を替える fork は自分の Screen(`_components/`)で `UserLoginEmailForm`(入口 `@/features/core/auth/components/UserLogin`)と自分の手段を並べる(フォームを写さない。部品の中身は `API.md`「ログイン form」)
 - 管理者ログイン: `AdminLogin` + `useAdminLogin` → `POST /api/auth/local/login`(admin カテゴリのみ、失敗は `loginAudit` で記録・ロックアウト判定)
 - 画面を作り替える fork は同じルートの `_components/` の Screen で公開 hook を呼び、返る `form` を `AppForm` + 任意の markup(`FieldRenderer` 等)で描く(hook の契約は `API.md`)
 
