@@ -226,7 +226,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - 閉じる依頼の番号を書いた一時許可を「残しておく」ように fork へ書かない(`resolves:` を取り込んだ時点でその許可は expired-resolved になり、指示と検査が食い違う)。fork 側の作業が残るとき(fork 自身のデータの移し替えなど)は、required_actions に「その許可の `upreq:` を、fork が自分宛てに出した指令の番号に書き換える(取り込む前か同じ区間で)」と書き、verify に `pnpm workflow ownership check` でその行が valid と書く(`src/lib/forkOwnership/README.md`「一時許可」の upreq)。この notice は `required_actions: none` にしない
 - 却下(rejected)・取り下げで閉じた依頼にも書く(閉じた = その番号の一時許可は失効する)。結果は `done/` の RESOLUTION にあり、下流は `/wen` で却下を知って、元に戻す・受け口へ移す・別の方針で許可し直す(失効した許可は `pnpm workflow ownership check` が違反に戻すので放置されない)
 - 下流の使い方: `pnpm workflow ownership check` が基準(取り込み済み)の索引の行と本文(直下と `done/`)の `resolves:` を集め(本文が消えても索引の行で失効は変わらない)、すべての番号が解決した一時許可を失効(expired-resolved)にする。`/flux` は区間の計画で、流入する `resolves:` のうち自分の一時許可に当たる行を示す
-- 仮の決まり: 決まり(CLAUDE.md・core のファイル・札)が足りない・誤っていて親へ依頼した fork は、出荷されるまで自分の決まりのファイル(`.claude/rules/` の core と items の外)に仮の決まりを書き、行末に `(order: <依頼の id>)` を付ける。その id を `resolves:` に持つ notice の区間で、`/flux` が当たる行を計画に挙げて「消す / 残す(理由)」を聞く(消すのは区間の取り込みの後の別のコミット)
+- 仮の決まり: 決まり(CLAUDE.md・core のファイル・札。札 = 品目ごとの決まりを書いたファイル。`.claude/rules/items/<分類>/<名前>.md` の 1 枚。英語の決まりのファイル(core・design.md)では card)が足りない・誤っていて親へ依頼した fork は、出荷されるまで自分の決まりのファイル(`.claude/rules/` の core と items の外)に仮の決まりを書き、行末に `(order: <依頼の id>)` を付ける。その id を `resolves:` に持つ notice の区間で、`/flux` が当たる行を計画に挙げて「消す / 残す(理由)」を聞く(消すのは区間の取り込みの後の別のコミット)
 - 決まりの鍵の改名・移し・削除: 上流が CLAUDE.md・core のファイル・札・lineage.md の行頭の鍵を変えるときは、その出荷の notice の required_actions に `<古いファイル> <古い鍵> -> <新しいファイル> <新しい鍵 | removed>` の表と、fork の決まりの中の名指しを探す `git grep` を毎回書く(fork の仮の決まり・上書きは鍵で上流を名指すため)
 - 書式は `pnpm check notices` が検査する(id の形・重複)。参照先の実在は見ない(受信箱は git の外)
 

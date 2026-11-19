@@ -35,7 +35,7 @@
 | 場所 | 中身 | 読むとき |
 |---|---|---|
 | `CLAUDE.md` | ルールの索引（英語・圧縮形式。全 fork 共通） | 毎セッション自動で読まれる |
-| `.claude/rules/core/`・`.claude/rules/items/` | CLAUDE.md の続き: 層・置き場ごとの決まり（core）と品目ごとの札（items）。全 fork 共通 | 触ったファイルが `paths` に当たったとき自動で読まれる |
+| `.claude/rules/core/`・`.claude/rules/items/` | CLAUDE.md の続き: 層・置き場ごとの決まり（core）と品目ごとの札（items。札 = 品目ごとの決まりを書いたファイル。`.claude/rules/items/<分類>/<名前>.md` の 1 枚。英語の決まりのファイル(core・design.md)では card）。全 fork 共通 | 触ったファイルが `paths` に当たったとき自動で読まれる |
 | `.claude/rules/project.md` | その fork だけのルールと地図（upstream との差分） | 毎セッション自動で読まれる |
 | `.notices/` | 上流の変更で fork 側に必要な追随作業の通知 | 上流を取り込むとき（`/flux`） |
 | `docs/!must-read/`（ここ） | ルールの背景と設計思想 | 全体を理解したいとき、ルールの解釈に迷ったとき |
