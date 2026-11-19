@@ -61,7 +61,7 @@ export function SampleSearchResult({ keyword }: { keyword: string }) {
 }
 ```
 
-Firestore ドメインでは `where` の `or`、複数列の `orderBy`、`relationWhere`、`searchRank`、`withRelations` が使えず、`searchQuery` は `searchFields` の先頭 1 カラムの前方一致になる（[`../README.md`「Firestore 版との差異」](../README.md#firestore-版との差異)）。
+Firestore ドメインでは `where` の `or`、複数列の `orderBy`、`relationWhere`、`searchRank`、`withRelations` が使えず、`searchQuery` は `searchFields` の先頭 1 カラムの前方一致になる（[`../README.md`「Drizzle 版との差異」](../README.md#firestore-版との差異)）。
 
 #### 無限スクロール一覧
 

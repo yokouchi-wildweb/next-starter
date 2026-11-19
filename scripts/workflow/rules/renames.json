@@ -1,0 +1,434 @@
+[
+ {
+  "kind": "core-file",
+  "old": ".claude/rules/core/code-generation.md",
+  "new": ".claude/rules/core/generated.md",
+  "order": 21
+ },
+ {
+  "kind": "core-file",
+  "old": ".claude/rules/core/servers.md",
+  "new": ".claude/rules/core/backends.md",
+  "order": 21
+ },
+ {
+  "kind": "core-file",
+  "old": ".claude/rules/core/crud-service.md",
+  "new": ".claude/rules/core/services.md (its hooks line: .claude/rules/core/client.md)",
+  "order": 21
+ },
+ {
+  "kind": "core-file",
+  "old": ".claude/rules/core/stores.md",
+  "new": ".claude/rules/core/client.md",
+  "order": 21
+ },
+ {
+  "kind": "claude-section",
+  "old": "CLAUDE.md UNCONFIGURED_BACKENDS",
+  "new": "CLAUDE.md BACKENDS unconfigured",
+  "order": 78
+ },
+ {
+  "kind": "claude-section",
+  "old": "CLAUDE.md BACKEND_DOCTRINE",
+  "new": "CLAUDE.md BACKENDS doctrine",
+  "order": 78
+ },
+ {
+  "kind": "claude-section",
+  "old": "CLAUDE.md SERVERS",
+  "new": "CLAUDE.md BACKENDS servers",
+  "order": 78
+ },
+ {
+  "kind": "claude-section",
+  "old": "CLAUDE.md AUDIT",
+  "new": "CLAUDE.md CRUD_SERVICE audit (.claude/rules/core/audit.md)",
+  "order": 78
+ },
+ {
+  "kind": "claude-section",
+  "old": "CLAUDE.md STYLE_OWNERSHIP",
+  "new": "CLAUDE.md COMPONENTS style (.claude/rules/core/style.md)",
+  "order": 78
+ },
+ {
+  "kind": "claude-section",
+  "old": "CLAUDE.md ERROR_HANDLING",
+  "new": "CLAUDE.md ARCHITECTURE errors",
+  "order": 78
+ },
+ {
+  "kind": "claude-section",
+  "old": "CLAUDE.md NAMING",
+  "new": "CLAUDE.md DIRECTORY_STRUCTURE naming",
+  "order": 78
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md COMPONENTS modal",
+  "new": ".claude/rules/core/components.md overlay",
+  "order": 78
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md COMPONENTS inline",
+  "new": ".claude/rules/core/components.md inline overlay",
+  "order": 78
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md FEATURES coupon",
+  "new": ".claude/rules/items/features/coupon.md self_redeem_core, reason_messages, reward_recipient, admin_tabs_built",
+  "order": 78
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md FEATURES media_collection",
+  "new": ".claude/rules/core/domain-definition.md media_collection",
+  "order": 78
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md ARCHITECTURE http",
+  "new": ".claude/rules/core/client.md client_layer",
+  "order": 78
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md DOCS claude_md_additions",
+  "new": "removed (a feature's rules go to its card: .claude/rules/core/design.md cards)",
+  "order": 78
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md UNCONFIGURED_BACKENDS env",
+  "new": "CLAUDE.md BACKENDS unconfigured",
+  "order": 78
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md UNCONFIGURED_BACKENDS detect",
+  "new": ".claude/rules/core/backends.md unconfigured detect",
+  "order": 78
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md UNCONFIGURED_BACKENDS contract",
+  "new": ".claude/rules/core/backends.md unconfigured contract",
+  "order": 78
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md DOWNSTREAM_NOTICES intake",
+  "new": "CLAUDE.md DOWNSTREAM_NOTICES take_in",
+  "order": 82
+ },
+ {
+  "kind": "rule-key",
+  "old": ".claude/rules/core/generated.md α",
+  "new": ".claude/rules/core/generated.md registries",
+  "order": 70
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/crud/README.md「storage オプション」",
+  "new": "src/lib/crud/storageIntegration/README.md",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/crud/README.md「落とし穴: sql テンプレートに Date を直接渡さない」",
+  "new": "src/lib/crud/drizzle/query/README.md「落とし穴: `sql` テンプレートに Date を直接渡さない」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/crud/README.md「落とし穴」",
+  "new": "src/lib/crud/drizzle/query/README.md「落とし穴」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/featureGate/README.md「pnpm ops db clear と閉じた機能の表」",
+  "new": "src/featureGate/Internals.md「pnpm ops db clear と閉じた機能の表」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/appEnv/README.md「env ファイルの規則」",
+  "new": "src/lib/appEnv/README.md「env ファイル」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/featureGate/README.md「ドメインの開閉」",
+  "new": "src/featureGate/Internals.md「ドメインの開閉(表・汎用 API・cron)と設定の節」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/cron/README.md「機能の門」",
+  "new": "src/lib/cron/README.md「1. task.ts」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/featureGate/README.md「規則の書き方」",
+  "new": "src/featureGate/API.md「規則の書き方」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/README.md「メディア項目」",
+  "new": "src/features/README.md「MediaUploader フィールド追加プロパティ」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/README.md「domain.json スキーマ定義」",
+  "new": "src/features/README.md「API」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/crud/README.md「ドメイン集約（collections オプション）」",
+  "new": "src/lib/crud/collections/README.md",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/crud/README.md「ドメイン集約」",
+  "new": "src/lib/crud/collections/README.md「読み出し」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/screens/Internals.md「ルート地図（`src/app/route-map.jsonl`）」",
+  "new": "src/lib/screens/README.md「ルート地図（`src/app/route-map.jsonl`）」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/messaging/README.md「cron」",
+  "new": "src/features/core/messaging/README.md「Internals」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/messaging/README.md「端末の帳簿」",
+  "new": "src/features/core/messaging/services/server/endpoints/README.md",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/styles/README.md「variant オーバーライド」",
+  "new": "src/styles/Extension.md「バリアントの上書き(variants.config.ts)」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/featureGate/README.md「依存の検査」",
+  "new": "src/featureGate/Internals.md「依存の検査」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/featureGate/README.md「機能どうしの依存(dependsOn)」",
+  "new": "src/featureGate/API.md「機能どうしの依存(dependsOn)」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/wallet/README.md「付与の種類」",
+  "new": "src/features/core/wallet/Extension.md「付与の種類（reason key）」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/walletHistory/README.md「付与の種類(reason key)」",
+  "new": "src/features/core/wallet/Extension.md「付与の種類（reason key）」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/analytics/services/server/coinIssuance/README.md「分析の除外条件」",
+  "new": "src/features/core/analytics/services/server/exclusion/README.md",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/analytics/README.md「分析の除外条件」",
+  "new": "src/features/core/analytics/services/server/exclusion/README.md",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/milestone/README.md「統合ポイント一覧」",
+  "new": "src/features/core/milestone/API.md「統合ポイント」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/chatRoom/hooks/firestore/README.md「ファイル添付」",
+  "new": "src/features/core/chatRoom/README.md「ファイル添付」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/messaging/README.md「管理一覧の一括送信の作成関数」",
+  "new": "src/features/core/messaging/components/README.md「管理一覧の一括送信（AdminBulkSend）」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/messaging/services/server/admin/README.md「管理の送信と回の読む口」",
+  "new": "src/features/core/messaging/services/server/admin/README.md「API」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/messaging/README.md「新しい送る口」",
+  "new": "src/features/core/messaging/README.md「送る」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/purchaseRequest/README.md「6.3 metadata」",
+  "new": "src/features/core/purchaseRequest/README.md「metadata(JSONB)」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/purchaseRequest/README.md「3.2」",
+  "new": "src/features/core/purchaseRequest/README.md「usePurchaseStatusPolling」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/referral/README.md「管理画面の招待コード一覧」",
+  "new": "src/features/core/referral/README.md「招待コード一覧に列を足す」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/unsavedGuard/README.md「送信」",
+  "new": "src/lib/unsavedGuard/README.md「Usage」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/user/README.md「管理のユーザー管理モーダルのタブ」",
+  "new": "src/features/core/user/adminManageTabs/README.md",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/user/README.md「マイページのメニュー」",
+  "new": "src/features/core/user/Extension.md「マイページのメニュー(拡張点 mypageMenu)」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/user/README.md「アバターの変更」",
+  "new": "src/features/core/user/README.md「アバターを自前の見た目で変える」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/user/README.md「ステータスの一括変更」",
+  "new": "src/features/core/user/README.md「状態をまとめて変える」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/wallet/README.md「設定」",
+  "new": "src/features/core/wallet/API.md「古い定数名との対応」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/wallet/README.md「設定ファイル」",
+  "new": "src/features/core/wallet/Extension.md「設定ファイル」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/wallet/README.md「有効期限（ロット管理）」",
+  "new": "src/features/core/wallet/Internals.md「有効期限（ロット管理）」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/wallet/README.md「送信量の目安」",
+  "new": "src/features/core/wallet/Internals.md「送信量の目安」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/wallet/README.md「購入の特典の表示」",
+  "new": "src/features/core/wallet/Extension.md「購入の特典の表示（拡張点 purchaseBonuses）」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/crud/firestore/README.md「Firestore 版との差異」",
+  "new": "src/lib/crud/firestore/README.md「Drizzle 版との差異」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/crud/README.md「既存の mediaUploaderMulti 列からの移行」",
+  "new": "src/lib/crud/collections/Usage.md「既存の mediaUploaderMulti 列からの移行」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/domain/README.md「データ操作のコマンド（pnpm ops data）の許可」",
+  "new": "src/lib/domain/README.md「データ操作のコマンド(pnpm ops data)の許可」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/forkOwnership/README.md「使い方」",
+  "new": "src/lib/forkOwnership/README.md「Usage」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/forkOwnership/README.md「registry の下流の印」",
+  "new": "src/lib/forkOwnership/README.md「registry の fork の区画」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/forkOwnership/README.md「型 5 self」",
+  "new": "src/lib/forkOwnership/README.md「受け口の一覧(intake.txt)」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/lib/domain/README.md「何で表示するか」",
+  "new": "src/lib/domain/README.md「表示の種類の決め方(`presenterFor`)」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/components/Overlays/README.md「DetailModal」",
+  "new": "src/components/Overlays/DetailModal/README.md",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/user/README.md「外部の認証の身元から作る口」",
+  "new": "src/features/core/user/API.md「外部の認証の身元から作る口(createFromProvider)」",
+  "order": 65
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/features/core/auth/README.md「公開 hook の契約表」",
+  "new": "src/features/core/auth/API.md「公開 hook」",
+  "order": 65
+ }
+]

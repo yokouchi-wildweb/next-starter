@@ -139,7 +139,7 @@ export const section: SettingSectionDefinition = {
 
 属性は `key`・`label`・`order`・`icon`・`allowRoles`・`description`・`groups`・`feature`。キーは欄の側に `ui.section` で所属を書く。同じ `key` のセクションは生成で失敗する。
 
-- `feature`(省略可、規則名の配列も可): その機能が 1 つでも閉じている間、`/admin/settings/<key>` が門番で閉じる(管理メニューの行が消え、直接開くと 404、`/admin/settings` は次の開いた節へ)。生成器が節を字面で読み規則の住所に足す(`src/featureGate/README.md`「規則の書き方」)。規則名でない値は生成で失敗する
+- `feature`(省略可、規則名の配列も可): その機能が 1 つでも閉じている間、`/admin/settings/<key>` が門番で閉じる(管理メニューの行が消え、直接開くと 404、`/admin/settings` は次の開いた節へ)。生成器が節を字面で読み規則の住所に足す(`src/featureGate/API.md`「規則の書き方」)。規則名でない値は生成で失敗する
 - 閉じた節のキーの値と `/api/setting` の読み書きは変わらない(隠すだけ)
 
 ### 親の Tier のキー・セクションを変える

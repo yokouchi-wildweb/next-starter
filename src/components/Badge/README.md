@@ -75,7 +75,7 @@ defineVariantOverrides({
 })
 ```
 
-- 結合順は `BASE → variantStyles[variant] → badgeSizeStyles[size] → オーバーライド(base → variant → size) → className`。同じプロパティは後勝ち。詳細は `src/styles/README.md`「variant オーバーライド」
+- 結合順は `BASE → variantStyles[variant] → badgeSizeStyles[size] → オーバーライド(base → variant → size) → className`。同じプロパティは後勝ち。詳細は `src/styles/Extension.md`「バリアントの上書き(variants.config.ts)」
 
 ## Internals
 

@@ -463,11 +463,11 @@ import { ControlledField } from "@/components/Form/Field";
 
 ### 主の集まりの項目（mediaCollection）
 
-主の 1 行に属する従属ドメインの行の並び（例: 商品のギャラリー画像）。主の表に列は持たず、lib の collections オプション（[src/lib/crud/README.md](../lib/crud/README.md)「ドメイン集約」）で読み書きする。Neon のみ。
+主の 1 行に属する従属ドメインの行の並び（例: 商品のギャラリー画像）。主の表に列は持たず、lib の collections オプション（[src/lib/crud/collections/README.md](../lib/crud/collections/README.md)）で読み書きする。Neon のみ。
 
 - 1 つのレコードに複数のメディアを持たせる方法はこれだけ（1 枚ずつ従属のドメインの行に保存）。旧来の fieldType `mediaUploaderMulti`（1 列の text[]）は廃止した
 - 例: `src/features/sample/domain.json` の `images`（従属 `sampleImage`）
-- 廃止前の mediaUploaderMulti 列を集まりへ移す: [src/lib/crud/README.md](../lib/crud/README.md)「既存の mediaUploaderMulti 列からの移行」（手順・やってはいけないこと・確かめ方・戻し方）
+- 廃止前の mediaUploaderMulti 列を集まりへ移す: [src/lib/crud/collections/Usage.md](../lib/crud/collections/Usage.md)「既存の mediaUploaderMulti 列からの移行」（手順・やってはいけないこと・確かめ方・戻し方）
 
 ```json
 { "name": "gallery_images", "label": "ギャラリー", "fieldType": "mediaCollection", "formInput": "mediaUploaderMulti",

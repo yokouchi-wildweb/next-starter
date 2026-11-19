@@ -13,7 +13,7 @@
 ファイル本体はブラウザから GCS へ直接送る。誰が何をしてよいかは、アプリのサーバーだけが判定する。部品（ref・ポート・配信規則・保存先）は [`src/lib/storage`](../../../lib/storage/README.md) にあり、このドメインはそれを使って判定と記録を行う。
 
 - 用途 = 拡張点 `purposes`（`purposes/<名前>.ts`）と各業務ドメインの `services/server/storagePurposes.ts`（生成物）の一覧 `src/registry/storagePurposeRegistry.ts` の合成（`getStoragePurposes()` が返す。ID の重複は例外。`user.avatar` は strip に固定して返す（`FIXED_STRIP_PURPOSES`））
-- 業務行との連動 = createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/README.md](../../../lib/crud/README.md)「storage オプション」）、掃除 = cron `storage-sweep`、クライアント = `uploadToStorage`（[src/lib/storage/README.md](../../../lib/storage/README.md)）
+- 業務行との連動 = createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/storageIntegration/README.md](../../../lib/crud/storageIntegration/README.md)）、掃除 = cron `storage-sweep`、クライアント = `uploadToStorage`（[src/lib/storage/README.md](../../../lib/storage/README.md)）
 - 閉じられる機能の表を読む用途の例: `purposes/purchaseRequest.ts` の upload は `gate.enabled("payment")` が false なら受け付けない。read は保存済みの原本を見られるようそのまま
 
 ### 流れ
