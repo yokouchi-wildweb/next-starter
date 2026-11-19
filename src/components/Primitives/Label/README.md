@@ -12,7 +12,7 @@
 ### data-slot の一覧
 
 - `label` — `Label`
-- `form-label` — フォームの項目のラベル（`Form/Field/Manual` の `ManualField` / `ManualFieldGroup`、`_shadcn/form` の `FormLabel`）が `slot="form-label"` で渡す `Label`
+- `form-label` — フォームの項目のラベル（`Form/Field/Manual` の `ManualField` / `ManualFieldGroup`、`Form/Field` の内側の `FormLabel`（Controlled / Configured の欄が使う））が `slot="form-label"` で渡す `Label`
 
 ## Verification
 

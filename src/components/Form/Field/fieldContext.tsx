@@ -1,12 +1,12 @@
-// src/components/Shadcn/form.tsx
+// src/components/Form/Field/fieldContext.tsx
+// Form/Field 内部用。欄の文脈(react-hook-form の Controller と、項目の id・エラーの状態)を持つ部品。
+// Form/Field の外へは出さない(画面は ControlledField・ConfiguredField・ManualField を使う)
 
 "use client";
 
 import * as React from "react";
-import { Label as LabelPrimitive, Slot } from "radix-ui";
 import {
   Controller,
-  FormProvider,
   useFormContext,
   useFormState,
   type ControllerProps,
@@ -17,8 +17,6 @@ import {
 import { Label } from "@/components/Form/Label";
 import { cn } from "@/lib/cn";
 
-const Form = FormProvider;
-
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
@@ -28,31 +26,31 @@ type FormFieldContextValue<
 
 const FormFieldContext = React.createContext<FormFieldContextValue>({} as FormFieldContextValue);
 
-const FormField = <
+type FormItemContextValue = {
+  id: string;
+};
+
+const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
+
+/** Controller を包み、中の部品が欄の名前を読めるようにする */
+export function FormField<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
->({
-  ...props
-}: ControllerProps<TFieldValues, TName>) => {
+>(props: ControllerProps<TFieldValues, TName>) {
   return (
     <FormFieldContext.Provider value={{ name: props.name }}>
       <Controller {...props} />
     </FormFieldContext.Provider>
   );
-};
+}
 
-const useFormField = () => {
+/** 欄の名前・エラーの状態と、項目の id(入力・説明文・エラーの id)。FormField と FormItem の中で使う */
+export function useFormField() {
   const fieldContext = React.useContext(FormFieldContext);
-  const itemContext = React.useContext(FormItemContext);
+  const { id } = React.useContext(FormItemContext);
   const { getFieldState } = useFormContext();
   const formState = useFormState({ name: fieldContext.name });
   const fieldState = getFieldState(fieldContext.name, formState);
-
-  if (!fieldContext) {
-    throw new Error("useFormField should be used within <FormField>");
-  }
-
-  const { id } = itemContext;
 
   return {
     id,
@@ -62,15 +60,10 @@ const useFormField = () => {
     formMessageId: `${id}-form-item-message`,
     ...fieldState,
   };
-};
+}
 
-type FormItemContextValue = {
-  id: string;
-};
-
-const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
-
-function FormItem({ className, ...props }: React.ComponentProps<"div">) {
+/** 1 つの項目の入れ物。中の部品の id の元になる */
+export function FormItem({ className, ...props }: React.ComponentProps<"div">) {
   const id = React.useId();
 
   return (
@@ -80,7 +73,8 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function FormLabel({ className, ...props }: Omit<React.ComponentProps<typeof LabelPrimitive.Root>, "slot">) {
+/** 項目のラベル。エラーのときは色が変わり、入力の id を指す */
+export function FormLabel({ className, ...props }: Omit<React.ComponentProps<typeof Label>, "slot">) {
   const { error, formItemId } = useFormField();
 
   return (
@@ -94,34 +88,8 @@ function FormLabel({ className, ...props }: Omit<React.ComponentProps<typeof Lab
   );
 }
 
-function FormControl({ ...props }: React.ComponentProps<typeof Slot.Root>) {
-  const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
-
-  return (
-    <Slot.Root
-      data-slot="form-control"
-      id={formItemId}
-      aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
-      aria-invalid={!!error}
-      {...props}
-    />
-  );
-}
-
-function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
-  const { formDescriptionId } = useFormField();
-
-  return (
-    <p
-      data-slot="form-description"
-      id={formDescriptionId}
-      className={cn("text-muted-foreground text-sm", className)}
-      {...props}
-    />
-  );
-}
-
-function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
+/** 項目のエラー文(エラーが無く children も無ければ描かない) */
+export function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
   const body = error ? String(error?.message ?? "") : props.children;
 
@@ -135,5 +103,3 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
     </p>
   );
 }
-
-export { useFormField, Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, FormField };

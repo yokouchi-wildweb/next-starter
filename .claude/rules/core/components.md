@@ -16,6 +16,7 @@ wrappers (lint raw-elements): div → Layout/{Block,Flex,Grid,Stack} | main → 
 - as_child_interactive: a clickable thing drawn as another part (badge, card) = `asChild` over Form/Button or a link part, never a raw button / a styled to look like it
 - shelf_no_guard: shelf parts (src/components) never import the gate or a guard lib | judgments come in from outside through a provider / port
 - primitives_last: Primitives/* only for what the finished parts cannot build
+- primitives_place (recommendation, no check): a raw part worth reusing → src/components/Primitives/\<Part\> (one user today is fine when it reads clearer there) | no reuse value → absorb it into the part that uses it | the writer judges each case
 existing_parts (want → part; check here before building your own | a row = a want where own builds were found, or a choice moved here from CLAUDE.md):
 - loading: inside a button → Form/Button loading prop (+ loadingLabel) | in the flow of a page or card → Overlays/Loading/InlineLoader | over an area or the screen → Overlays/Loading/ScreenLoader
 - table (@/lib/tableSuite): read-only list, column sort, row reorder → DataTable | select rows + bulk actions → RecordSelectionTable | inline cell edit → EditableGridTable | growing rows → the tables' infiniteFooter prop (InfiniteTableFooter) fed by useInfiniteScrollQuery | print → DataTable variant "print" | client sort → sortItems (getValue, nulls)

@@ -3,10 +3,11 @@
 
 import type { ComponentProps } from "react";
 
-import { FormControl, useFormField } from "@/components/_shadcn/form";
+import { Slot } from "@/components/Primitives/Slot";
+import { useFormField } from "./fieldContext";
 import { Para } from "@/components/TextBlocks/Para";
 
-type FieldControlProps = ComponentProps<typeof FormControl> & {
+type FieldControlProps = ComponentProps<typeof Slot.Root> & {
   /** 説明文(FieldDescription)を描画しているか */
   hasDescription?: boolean;
   /** エラーメッセージ(FormMessage)を描画しているか。hideError のときは false */
@@ -14,17 +15,25 @@ type FieldControlProps = ComponentProps<typeof FormControl> & {
 };
 
 /**
- * FormControl の aria-describedby を、実際に描画している説明文・エラーだけに絞って付ける。
- * _shadcn の FormControl は説明文の有無に関わらず説明文の ID を指すため、
- * 存在しない ID の参照(a11y 違反)になっていた
+ * 入力の部品に項目の id・aria-invalid と、実際に描画している説明文・エラーだけを指す aria-describedby を付ける。
+ * 描いていない説明文の ID を指すと存在しない ID の参照(a11y 違反)になるので、hasDescription / hasMessage で絞る
  */
 export function FieldControl({ hasDescription = false, hasMessage = true, ...props }: FieldControlProps) {
-  const { error, formDescriptionId, formMessageId } = useFormField();
+  const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
   const hasErrorMessage = hasMessage && Boolean(error?.message);
   const describedBy =
     [hasDescription && formDescriptionId, hasErrorMessage && formMessageId].filter(Boolean).join(" ") || undefined;
 
-  return <FormControl {...props} aria-describedby={describedBy} />;
+  // aria-describedby は渡された値より上の絞った値が勝つ(id・aria-invalid は呼び手が上書きできる)
+  return (
+    <Slot.Root
+      data-slot="form-control"
+      id={formItemId}
+      aria-invalid={!!error}
+      {...props}
+      {...{ "aria-describedby": describedBy }}
+    />
+  );
 }
 
 /** 入力と結び付く説明文(FieldControl の hasDescription と組で使う) */
