@@ -47,14 +47,9 @@
 
 機能の入切の fork の値は `featureGate/switches.config.ts`(上流は空で出荷、`{ <機能の名前>: true|false }`、型 `FeatureSwitches`)。既定は門番の規則のファイルの `defaultEnabled`。`pnpm ops features set <規則名> on|off` が fork ではここに書く(既定と同じ値でも消さない。詳細: [src/featureGate/README.md](../featureGate/README.md)「pnpm ops features list / pnpm ops features set」)
 
-### 移行中のもの
+### fork に残る古い app/・ui/
 
-`app/`・`ui/` は古い置き場です。値は各持ち主の `config.ts` と上の 5 つのフォルダへ移り、空になったら消えます(新しい値をここに足さない)。1 対 1 の検査はこれらを見ません。事業の素性は `@/business`([src/lib/business/README.md](../lib/business/README.md))、法務の文書の値は `features/legal.config.ts`。
-
-上流のファイルは全部、持ち主の上書き(src/config/lib/<名前>.config.ts・fonts は fonts.ui.config.ts)へ移りました。下の表は空です:
-
-| ファイル | 読み手 |
-|---|---|
+上流は `app/`・`ui/` を持ちません(値は持ち主の `config.ts` と上の 5 つのフォルダの上書きへ移った。移し先の表は区切り config-close の notice)。1 対 1 の検査は fork に残る古いフォルダを見ません。事業の素性は `@/business`([src/lib/business/README.md](../lib/business/README.md))、法務の文書の値は `features/legal.config.ts`。
 
 fork が `app/`・`ui/` に足したファイルと鍵の行き先(どれか 1 つ、値の意味で決める):
 

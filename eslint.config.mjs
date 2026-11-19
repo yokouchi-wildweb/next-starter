@@ -313,7 +313,6 @@ const config = [
             { from: "@/stores/siteTheme", to: "@/lib/siteTheme", until: STORES_REMOVED },
             { from: "@/utils/siteTheme", to: "@/lib/siteTheme", until: STORES_REMOVED },
             { from: "@/components/Fanctional/SiteThemeSync", to: "@/lib/siteTheme", until: STORES_REMOVED },
-            { from: "@/config/ui/site-theme.config", to: "@/lib/siteTheme", until: STORES_REMOVED },
             { from: "@/stores/globalLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },
             { from: "@/hooks/useGlobalLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },
             { from: "@/components/Overlays/Loading/GlobalScreenLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },
@@ -519,7 +518,7 @@ const config = [
     },
   },
   // 上書きファイル(src/config/{lib,features,layout,proxies} と基盤の上書き featureGate)の 2 規則(設定 D34・D35・D38・D91・L1.19・L1.31。詳細: eslint-rules/config-overrides.mjs, src/config/README.md)。
-  // 新しいフォルダだけが対象なので全 Tier error(縮む表なし)。古い src/config/app・ui・documents と直下のファイルには掛けない
+  // 新しいフォルダだけが対象なので全 Tier error(縮む表なし)。fork に残る古い src/config/app・ui・documents と直下のファイルには掛けない
   // - literal-only: 上書きは値のリテラル。読めるのは型・process.env・@/business・持ち主が overrideImports で宣言した指定子だけ
   // - owner-reads-only: 上書きを読めるのは持ち主の config.ts(描画用は config.ui.ts)だけ。lib の中は lib-entry の持ち分
   {

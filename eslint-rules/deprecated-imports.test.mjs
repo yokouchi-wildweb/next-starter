@@ -138,7 +138,6 @@ test("config: stores の廃止で閉じた lib へ移した旧パス(siteTheme)�
     "@/stores/siteTheme",
     "@/utils/siteTheme",
     "@/components/Fanctional/SiteThemeSync",
-    "@/config/ui/site-theme.config",
   ];
   for (const from of olds) {
     const [result] = await eslint.lintText(`import * as X from "${from}";\nexport const y = X;\n`, {
