@@ -9,6 +9,8 @@ import { useBottomNavItems } from "./useBottomNavItems";
 
 export const UserBottomNav = () => {
   const { items, height } = useBottomNavItems();
+  // 項目が空(例: ゲストの項目を [] にした fork)なら描かない
+  if (items.length === 0) return null;
 
   // 隠す端末・ページ(各ルートの枠の宣言 frame.ts / frame.override.ts)では styles/core/frame.css が display: none にする
   return (

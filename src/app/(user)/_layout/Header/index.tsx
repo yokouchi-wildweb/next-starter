@@ -39,7 +39,9 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
     headerOffset,
   } = useHeaderData();
 
-  // ヘッダーとナビを隠す端末・ページ(各ルートの枠の宣言 frame.ts / frame.override.ts)では styles/core/frame.css が display: none にする
+  // ヘッダーとナビを隠す端末・ページ(各ルートの枠の宣言 frame.ts / frame.override.ts)では styles/core/frame.css が display: none にする。
+  // 項目が空(例: ログイン中の項目を [] にした fork)なら、ナビの部品(PC のナビ・SP の開閉ボタンとパネル)を描かない
+  const hasNav = navItems.length > 0;
   return (
     <Section
       as="header"
@@ -54,7 +56,7 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
             <Brand />
           </>
         }
-        center={<PcNavigation items={navItems} showIcons={showIcons} />}
+        center={hasNav ? <PcNavigation items={navItems} showIcons={showIcons} /> : undefined}
         right={
           <>
             {actions === undefined ? (
@@ -65,28 +67,30 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
             ) : (
               actions
             )}
-            <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={toggleMenu} />
+            {hasNav && <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={toggleMenu} />}
           </>
         }
       />
 
-      <SpNavigation
-        isOpen={isMenuOpen}
-        items={navItems}
-        showIcons={showIcons}
-        onClose={closeMenu}
-        headerOffset={headerOffset}
-        footer={
-          menuActions === undefined ? (
-            /* SP版: メニュー下部にCTAボタン */
-            <Button variant="default" className="w-full">
-              お問い合わせ
-            </Button>
-          ) : (
-            menuActions
-          )
-        }
-      />
+      {hasNav && (
+        <SpNavigation
+          isOpen={isMenuOpen}
+          items={navItems}
+          showIcons={showIcons}
+          onClose={closeMenu}
+          headerOffset={headerOffset}
+          footer={
+            menuActions === undefined ? (
+              /* SP版: メニュー下部にCTAボタン */
+              <Button variant="default" className="w-full">
+                お問い合わせ
+              </Button>
+            ) : (
+              menuActions
+            )
+          }
+        />
+      )}
     </Section>
   );
 };

@@ -21,10 +21,12 @@ const marker = (name: string) => {
 };
 const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 
+/** ヘッダーのナビ項目(既定 = 1 件。空のときナビの部品を描かないことは test ごとに書き換えて戻す) */
+const headerItems: { current: readonly unknown[] } = { current: [{ key: "about", label: "概要", href: "/about" }] };
 mock.module(here("./hooks/index.ts"), {
   namedExports: {
     useHeaderData: () => ({
-      navItems: [],
+      navItems: headerItems.current,
       logoLink: "/",
       showIcons: false,
       isMenuOpen: true,
@@ -211,6 +213,20 @@ test("actions / menuActions に null を渡すとその CTA を描かない", ()
   assert.equal(count(render(<UserNavigation actions={null} menuActions={null} />), CTA), 0);
 });
 
+test("ヘッダーのナビ項目が空ならナビの部品(PC のナビ・SP の開閉ボタンとパネル)を描かない(ヘッダー・ブランド・右の CTA は残る)", () => {
+  headerItems.current = [];
+  try {
+    const html = render(<UserNavigation />);
+    for (const part of ["<x-pcnav>", "<x-spswitch>", "<x-spnav>"]) assert.equal(html.includes(part), false, `${part} が残っている`);
+    assert.equal(html.includes('data-slot="header-center"'), false, "空の header-center が残っている");
+    assert.ok(tagOf(html, "header").includes('data-slot="header"'));
+    assert.ok(html.includes("<x-brand>"));
+    assert.equal(count(html, CTA), 1, "ヘッダー右の CTA だけ残る");
+  } finally {
+    headerItems.current = [{ key: "about", label: "概要", href: "/about" }];
+  }
+});
+
 /** リンク項目 2 つの BottomNav の契約: 印・項目の href / 並び、カレント(/items)だけが config の色 */
 const assertLinkItems = (html: string) => {
   assert.ok(tagOf(html, "bottom-nav").includes('data-slot="bottom-nav"'));
@@ -292,6 +308,15 @@ test("Main の verticalAlign=\"start\" は中央寄せ(my-auto)をやめて上�
 
 test("UserPage は containerType の明示が既定より勝つ", () => {
   assert.equal(render(<UserPage containerType="narrowStack">CHILD</UserPage>), render(<Main containerType="narrowStack">CHILD</Main>));
+});
+
+test("BottomNav の項目が空なら何も描かない", () => {
+  navItems.current = [];
+  try {
+    assert.equal(render(<UserBottomNav />), "");
+  } finally {
+    navItems.current = LINK_ITEMS;
+  }
 });
 
 test("BottomNavSpacer は高さ変数を読む 1 要素(sp/pc の px 2 本をやめた。隠す間は styles/core/frame.css が変数を 0 にする)", () => {

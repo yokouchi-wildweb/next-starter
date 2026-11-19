@@ -244,6 +244,8 @@ fork だけのキーは上書きファイルの `export type Extra` に型を足
 
 メニューの配列は上書きで丸ごと置き換わる。バッジは項目の `badge`(固定の ReactNode)で渡す。
 
+- 今の認証の状態の項目が空(`[]`)なら、ナビの部品(PC のナビ・SP の開閉ボタンとメニューのパネル)を描かない。ヘッダー・ブランド・右の CTA は残る(例: ログイン中のメニューをボトムナビだけに出す)
+
 ### Footer の設定
 
 値は枠の設定 `footer`(`./config.ts`)、SNS リンクの一覧(react-icons の部品を持つ)だけ描画用の `footer.sns.links`(`./config.ui.ts`)。部品の差し替えは UserLayout の footer slot。
@@ -260,6 +262,8 @@ fork だけのキーは上書きファイルの `export type Extra` に型を足
 ### BottomNav の設定
 
 高さとカレントの色は枠の設定 `bottomMenu`(`./config.ts`)、メニュー項目は描画用の `bottomMenu`(`./config.ui.ts`)。出し入れは枠の宣言の `bottomNav`(既定 = スマホだけ: `src/app/(user)/frame.ts`)。
+
+- 今の認証の状態の項目が空(`[]`)なら、既定のボトムナビ(slot 省略)はスペーサーごと描かず、`--app-bottom-nav-height` も書かない(0px。GlobalToast・`useFrameDimsStyle` も 0 を読む)。枠の宣言はルートごとで認証の状態に依れないので、認証で出し分けるときは項目を空にする
 
 ```tsx
 // src/config/layout/user.ui.config.ts(type 省略 = リンク項目。配列は丸ごと置き換わる)
@@ -292,7 +296,7 @@ export default {
 |------|----|--------|
 | `--app-header-height` | ヘッダー(`[data-slot="header"]` / `[data-slot="admin-header"]`。差し替えたヘッダーもこの印で測られる)の高さ。初期値 = 今の行の高さ(外枠ごと・端末ごと、測る前の最初の表示とページを移る間に使う)、測った値が上書きする。枠の宣言で隠している端末は 0px | 初期値と隠す間の 0 は `src/styles/core/frame.css`、測った値は UserLayout・AdminLayout の外枠の inline(`useHeaderHeight()` が値を返した時だけ) |
 | `--app-banner-height` | banner の実測の高さ。banner が無い時は書かない(0px) | UserLayout の外枠の inline(banner がある時だけ) |
-| `--app-bottom-nav-height` | `calc(bottomMenu.height px + var(--app-safe-area-bottom))` = ボトムナビが実際に覆う高さ(`bottomMenu.height` は枠の設定 `./config.ts`。iOS では下の safe-area ぶん高い)。`bottomNav={null}` の時は書かない(0px)。ルートの枠の宣言(既定は PC で隠す)で隠している間は 0px(`!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/core/frame.css` |
+| `--app-bottom-nav-height` | `calc(bottomMenu.height px + var(--app-safe-area-bottom))` = ボトムナビが実際に覆う高さ(`bottomMenu.height` は枠の設定 `./config.ts`。iOS では下の safe-area ぶん高い)。`bottomNav={null}` の時と、既定のボトムナビの項目が空の時は書かない(0px)。ルートの枠の宣言(既定は PC で隠す)で隠している間は 0px(`!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/core/frame.css` |
 | `--app-safe-area-top/right/bottom/left` | 端末の切り欠き(CSS の env() の safe-area-inset-*、無ければ 0px)。env() を直接書くのはこの定義だけ | `src/styles/core/config.css` の `:root` |
 
 - 既定値(0px と safe-area)は `src/styles/core/config.css` の `:root`。Admin は header だけを書き、ほかは :root の既定を継ぐ

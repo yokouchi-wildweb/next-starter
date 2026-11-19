@@ -4,13 +4,14 @@
 //    見出しの印は source が枠の中のもの(user-page-title)も入る。見出しの印と描画の照合は src/components/TextBlocks/headingSlots.test.tsx
 //    = 部位の一覧(src/app/_layout/frame/parts.mjs)の利用者の枠と Main。隠せる部位 ⊂ 一覧。Primitives の部品の data-slot と衝突しない。data-frame-part は残らない
 // 2. frame.css の利用者の規則が狙う id が既定の枠部品に実在し、外枠に data-frame-root がある(規則と部位の一覧の一致は parts.test.mjs)
-// 3. 根の結線: UserLayout が共通の読み手 useFrameAttributes に自分の表を渡す。上流の宣言の解決結果(Tier1 だけ: 生成の表は fork の frame.override.ts を含む)
+// 3. 根の結線: UserLayout が共通の読み手 useFrameAttributes に自分の表を渡す。上流の宣言(frame.ts だけ、全 Tier)の解決結果と、生成の表との一致(Tier1 だけ: fork の表は frame.override.ts を含む)
 // (読み手そのものの検査は src/app/_layout/frame/useFrameAttributes.test.tsx)
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
 import { before, test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const repo = join(__dirname, "../../../..");
 const read = (path: string) => readFileSync(join(repo, path), "utf8");
@@ -76,17 +77,45 @@ test("根の結線: UserLayout は共通の読み手に (user) の表を渡す",
   assert.ok(src.includes("useFrameAttributes(frameTable)"));
 });
 
-test("上流の宣言: 準備中は header-nav・footer・bottom-nav、signup の下はボトムナビと SP のフッターを隠し、既定はボトムナビを PC で隠す、トップページ / だけ fill(Tier1 だけ: fork は frame.override.ts で枠を変えてよい)", async (t) => {
+/**
+ * 上流の宣言だけ(各ルートの frame.ts)で segments のページの値を解く。下のリポの frame.override.ts は読まない
+ * (fork・中間 Tier は上流のルートを frame.override.ts で変える。生成の表 frameTable はそれを含むので、全 Tier で見るのはこちら)。
+ * 重ね方は生成器と同じ: 浅い段から layout、葉の段で最後に page(src/app/_layout/frame/README.md)
+ */
+const upstreamFrame = async (segments: readonly string[]) => {
+  const { emptyFrame, frameRowValue, overlayFrame } = await import("@/app/_layout/frame/resolve.mjs");
+  const declarationOf = async (segs: readonly string[]) => {
+    const path = join(repo, "src/app/(user)", ...segs, "frame.ts");
+    if (!existsSync(path)) return undefined;
+    return ((await import(pathToFileURL(path).href)) as { frame?: { layout?: object; page?: object } }).frame;
+  };
+  let value = emptyFrame();
+  for (let i = 0; i <= segments.length; i += 1) value = overlayFrame(value, (await declarationOf(segments.slice(0, i)))?.layout, "user");
+  value = overlayFrame(value, (await declarationOf(segments))?.page, "user");
+  return frameRowValue(value, "user");
+};
+
+test("上流の宣言(frame.ts だけ): 準備中は header-nav・footer・bottom-nav、signup の下はボトムナビと SP のフッターを隠し、既定はボトムナビを PC で隠す、トップページ / だけ fill(全 Tier。fork の frame.override.ts は読まない)", async () => {
+  const cases: [readonly string[], { hide: string[]; fill: boolean }][] = [
+    [[], { hide: ["bottom-nav-pc"], fill: true }],
+    [["(public)", "about"], { hide: ["bottom-nav-pc"], fill: false }],
+    [["maintenance"], { hide: ["header-nav-sp", "header-nav-pc", "footer-sp", "footer-pc", "bottom-nav-sp", "bottom-nav-pc"], fill: false }],
+    [["(auth)", "signup", "verify"], { hide: ["footer-sp", "bottom-nav-sp", "bottom-nav-pc"], fill: false }],
+    [["(auth)", "demo-login"], { hide: ["footer-sp", "footer-pc", "bottom-nav-sp", "bottom-nav-pc"], fill: false }],
+  ];
+  for (const [segments, expected] of cases) assert.deepEqual(await upstreamFrame(segments), expected, `/${segments.join("/")}`);
+  // fill は / だけ(子のルートに継がない) = 上の (public)/about の fill: false
+});
+
+test("生成の表は上流の宣言と同じに解く(Tier1 だけ: fork の表は frame.override.ts の宣言を含む)", async (t) => {
   const { readForkIdentity } = await import("@/lib/forkOwnership/forkIds.mjs");
   if (!readForkIdentity(repo).isTier1) {
-    t.skip("上流の枠の宣言の解決結果の検査（Tier1 だけ。生成の表は fork の frame.override.ts の宣言を含む）");
+    t.skip("fork の生成の表は frame.override.ts を含むので上流の宣言と違ってよい");
     return;
   }
-  assert.deepEqual(parts.matchFrame([], frameTable), { hide: ["bottom-nav-pc"], fill: true });
-  assert.deepEqual(parts.matchFrame(["(public)", "about"], frameTable), { hide: ["bottom-nav-pc"], fill: false }, "fill は / だけ(子のルートに継がない)");
-  assert.deepEqual(parts.matchFrame(["maintenance"], frameTable).hide, ["header-nav-sp", "header-nav-pc", "footer-sp", "footer-pc", "bottom-nav-sp", "bottom-nav-pc"]);
-  assert.deepEqual(parts.matchFrame(["(auth)", "signup", "verify"], frameTable).hide, ["footer-sp", "bottom-nav-sp", "bottom-nav-pc"]);
-  assert.deepEqual(parts.matchFrame(["(auth)", "demo-login"], frameTable).hide, ["footer-sp", "footer-pc", "bottom-nav-sp", "bottom-nav-pc"]);
+  for (const segments of [[], ["(public)", "about"], ["maintenance"], ["(auth)", "signup", "verify"], ["(auth)", "demo-login"]]) {
+    assert.deepEqual(parts.matchFrame(segments, frameTable), await upstreamFrame(segments), `/${segments.join("/")}`);
+  }
 });
 
 test("SP の開閉ボタンは display: contents の包みが部位の印 header-nav を持ち、ボタン(Primitives/Button)の data-slot=\"button\" は上書きしない", async () => {

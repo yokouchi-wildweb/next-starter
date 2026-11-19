@@ -39,6 +39,9 @@ mock.module("@/featureGate/client", {
 mock.module("@/features/core/messaging/components/InboxUnreadModal", { namedExports: { InboxUnreadModal: marker("modal") } });
 mock.module(here("./BottomNav/index.tsx"), { namedExports: { UserBottomNav: marker("bottomnav") } });
 mock.module(here("./BottomNav/BottomNavSpacer.tsx"), { namedExports: { BottomNavSpacer: marker("spacer") } });
+/** 既定のボトムナビの項目(既定 = 1 件。空のときスペーサーごと描かず高さの変数も書かないことは test ごとに書き換えて戻す) */
+const bottomItems: { current: readonly unknown[] } = { current: [{ key: "home", label: "ホーム", href: "/" }] };
+mock.module(here("./BottomNav/useBottomNavItems.ts"), { namedExports: { useBottomNavItems: () => ({ items: bottomItems.current, height: 64 }) } });
 mock.module(here("./Header/index.tsx"), { namedExports: { UserNavigation: marker("header") } });
 mock.module(here("./Footer/index.tsx"), { namedExports: { UserFooter: marker("footer") } });
 
@@ -238,6 +241,21 @@ test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, 
       'data-slot="app-container" data-frame-root=""' + rootHideAttr() + ">" +
       BODY_WRAPPER_TAG + "CHILD</div><x-modal></x-modal></div>",
   );
+});
+
+test("既定のボトムナビの項目が空ならスペーサーもボトムナビも描かず、--app-bottom-nav-height も書かない(:root の 0px)", () => {
+  bottomItems.current = [];
+  try {
+    const html = render(<UserLayout>CHILD</UserLayout>);
+    assert.equal(html.includes("<x-spacer>"), false, "スペーサーが残っている");
+    assert.equal(html.includes("<x-bottomnav>"), false, "ボトムナビが残っている");
+    assert.equal(html.includes("--app-bottom-nav-height"), false);
+    assert.ok(html.includes("<x-footer></x-footer><x-modal></x-modal></div>"), "フッターと未読のモーダルは残る");
+    // 要素を渡したときはその要素の物として高さを書く(項目は既定のボトムナビの物)
+    assert.ok(tagOf(render(<UserLayout bottomNav={<nav id="b" />}>CHILD</UserLayout>), "app-container").includes(`--app-bottom-nav-height:${bottomNavValue()}`));
+  } finally {
+    bottomItems.current = [{ key: "home", label: "ホーム", href: "/" }];
+  }
 });
 
 test("bottomNav に要素を渡しても --app-bottom-nav-height は 枠の設定の bottomMenu.height で、外枠の隠す印も同じ(差し替えも枠の宣言に従う)", () => {

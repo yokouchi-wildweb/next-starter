@@ -11,6 +11,7 @@ import { BackgroundLayer } from "./BackgroundLayer";
 import { Banner } from "./Banner";
 import { UserBottomNav } from "./BottomNav";
 import { BottomNavSpacer } from "./BottomNav/BottomNavSpacer";
+import { useBottomNavItems } from "./BottomNav/useBottomNavItems";
 import { UserFooter } from "./Footer";
 import { UserNavigation } from "./Header";
 import { useFrameAttributes } from "@/app/_layout/frame/useFrameAttributes";
@@ -39,7 +40,7 @@ export type UserLayoutProps = {
   readonly header?: ReactNode;
   /** フッター。既定 = ./Footer の UserFooter */
   readonly footer?: ReactNode;
-  /** ボトムナビ(高さ分のスペーサーを含む)。既定 = BottomNavSpacer + UserBottomNav */
+  /** ボトムナビ(高さ分のスペーサーを含む)。既定 = BottomNavSpacer + UserBottomNav(項目が空なら描かず、--app-bottom-nav-height も書かない) */
   readonly bottomNav?: ReactNode;
   /** 最背面の背景。既定 = BackgroundLayer(枠の設定 layout.background の 3 値、./config.ts) */
   readonly background?: ReactNode;
@@ -59,9 +60,10 @@ export function UserLayout({
   const [bannerHeight, setBannerHeight] = useState(0);
   const hasBanner = banner !== undefined && banner !== null;
   // ボトムナビの高さは config の値 + 下の safe-area(ナビが実際に覆う高さ。固定要素・スペーサー・トーストがこれだけ避ける)。
-  // bottomNav={null} の時は書かない(:root の 0px)。
+  // bottomNav={null} の時と、既定のボトムナビ(slot 省略)の項目が空の時は書かない(:root の 0px)。要素を渡した時はその要素の物として書く。
   // 隠している間(各ルートの枠の宣言 frame.ts / frame.override.ts)の 0 は styles/core/frame.css が作る
-  const hasBottomNav = bottomNav !== null;
+  const { items: bottomNavItems } = useBottomNavItems();
+  const hasBottomNav = bottomNav === undefined ? bottomNavItems.length > 0 : bottomNav !== null;
 
   // ヘッダーの高さは測れた時だけ書く(null = 測る前。最初の HTML とページを移る間は styles/core/frame.css の初期値 = 今の行の高さが効き、
   // 本文がヘッダーに重ならない)。測った値は初期値を上書きするだけ(隠している間の 0 も書く)
@@ -104,11 +106,14 @@ export function UserLayout({
           {children}
         </Flex>
         {footer === undefined ? <UserFooter /> : footer}
+        {/* 既定のボトムナビは項目が空ならスペーサーごと描かない */}
         {bottomNav === undefined ? (
-          <>
-            <BottomNavSpacer />
-            <UserBottomNav />
-          </>
+          hasBottomNav && (
+            <>
+              <BottomNavSpacer />
+              <UserBottomNav />
+            </>
+          )
         ) : (
           bottomNav
         )}
