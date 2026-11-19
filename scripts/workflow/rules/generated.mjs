@@ -7,6 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadGates, scanTargets } from "../../runner/gates/scan.mjs";
 import { hasGeneratedMark, MARKABLE, outputFiles, outputsOutsidePaths } from "./lib.ruleGenerated.mjs";
+import { planUnmark } from "../../structure/domain/cli/unmark.mjs";
 import { parsePaths } from "./lib.rulePaths.mjs";
 import { CORE_DIR } from "./lib.ruleRepo.mjs";
 
@@ -44,6 +45,17 @@ for (const e of entries.filter((x) => x.kind === "every-run")) {
     if (e.domain) domainEveryRun++;
     if (!hasGeneratedMark(read(f))) fails.push(`${f}: 毎回作り直す生成物(${e.gate})なのに先頭に生成物の印が無い(生成器に印を入れる。ドメインの生成器は scripts/structure/domain/render/output.mjs の file() が入れる = pnpm generate domain で作り直す)`);
   }
+}
+
+// generate: false のドメイン(手で管理)に生成物の印が残っていたら止める(D222: 印 = 手で直さない、の読み違いを防ぐ)。
+// 見るのは印の文字列そのもの(広い語の MARK_PATTERN でなく、ドメインの生成器が入れる GENERATED_MARK)。外すのは pnpm generate domain -- --unmark
+if (existsSync(join(root, DISTRICT_MAP))) {
+  const rows = read(DISTRICT_MAP).split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  const plurals = Object.fromEntries(
+    rows.filter((r) => r.domainJson && existsSync(join(root, r.dir, "domain.json"))).map((r) => [r.dir, JSON.parse(readFileSync(join(root, r.dir, "domain.json"), "utf8")).plural]),
+  );
+  const left = planUnmark({ rows, plurals, files, readText: read }).writes;
+  for (const w of left) fails.push(`${w.path}: generate: false のドメインに生成物の印が残っている(手で管理するファイル。pnpm generate domain -- --unmark で外す)`);
 }
 
 console.log(`rules generated: 出力の宣言 ${entries.length} 個(${gates.filter((g) => g.outputs).length} の生成器)、ドメインの毎回の出力 ${domainEveryRun} 本`);

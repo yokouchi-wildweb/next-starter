@@ -3,12 +3,13 @@
 import { createWorkspace } from "../domain/workspace.mjs";
 import { getCliArgs, parseOnlyOption, takeValueOption } from "./args.mjs";
 import { runDelete } from "./delete.mjs";
+import { runUnmark } from "./unmark.mjs";
 import { runGenerate } from "./generate.mjs";
 import { runGenerateAllInteractive } from "./generateAll.mjs";
 import { selectDomain } from "./prompts.mjs";
 
 const USAGE =
-  "使い方: node scripts/structure/domain/index.mjs --generate <Domain> [--only <categories>] [--dry-run] [-i] | --generate --all [--only <categories>] [--dry-run] [-i] | --delete <Domain> --confirm <snake_name> [--extra <path>]... [--remove-config] [-i]";
+  "使い方: node scripts/structure/domain/index.mjs --generate <Domain> [--only <categories>] [--dry-run] [-i] | --generate --all [--only <categories>] [--dry-run] [-i] | --delete <Domain> --confirm <snake_name> [--extra <path>]... [--remove-config] [-i] | --unmark [<Domain>]";
 
 export async function main() {
   let args;
@@ -33,6 +34,16 @@ export async function main() {
   // フラグ以外の最初の引数をドメイン名とする（`--generate --yes User` の順でも受け付ける）
   const positionalDomain = args.find((arg) => !arg.startsWith("-"));
 
+  // generate: false のドメインの生成物の印を外す(D222)。名を省くと generate: false の全部
+  if (args.includes("--unmark")) {
+    try {
+      runUnmark(process.cwd(), positionalDomain ?? null);
+    } catch (err) {
+      console.error(err.message);
+      process.exit(1);
+    }
+    return;
+  }
   if (!hasGenerate && !hasDelete) {
     console.error(USAGE);
     process.exit(1);

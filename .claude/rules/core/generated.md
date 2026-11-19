@@ -31,4 +31,5 @@ code_generation:
 - form inputs: pnpm generate extensions writes src/wiring/formInputs/extensions/inputs.ts from inputs/\<name\>.ts | unknown formInput (not builtin, not registered) stops generation of generate:true domains and profiles | ref: src/wiring/formInputs/inputs/README.md
 - `generate` (domain.json, default true; per-category generateFiles is removed and stops generation) | true = all categories rewritten every run (collection children: the generator picks their categories)
   - must hand-edit a generated file or re-applying hand logic gets costly → `"generate": false` = the generator never touches that domain (no writes and no checks in any run, `--only` / `-i` included; regenerate once = set it back to true)
+  - after switching a domain to false: `pnpm generate domain -- --unmark <Domain>` removes the generated marks from its files (a mark left on a hand-managed file makes pnpm check rules fail)
   - src/registry/district-map.jsonl lists every domain with domainJson and its generate flag (rewritten by pnpm generate district-map and at the end of pnpm generate domain, `pnpm check district-map`) | ref: scripts/structure/domain/README.md

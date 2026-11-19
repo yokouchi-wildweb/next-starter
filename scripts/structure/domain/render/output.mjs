@@ -55,6 +55,16 @@ export function withGeneratedMark(path, content) {
   return `${mark}\n${content}`;
 }
 
+/** 生成物の印の行(withGeneratedMark が入れる 1 行)だけを消す。印が無ければそのまま(generate: false に切り替えたドメインの --unmark、D222) */
+export function withoutGeneratedMark(content) {
+  const marks = new Set(Object.values(MARK_COMMENT).map((wrap) => wrap(GENERATED_MARK)));
+  if (!content.includes(GENERATED_MARK)) return content;
+  return content
+    .split("\n")
+    .filter((line) => !marks.has(line.trim()))
+    .join("\n");
+}
+
 export function file(path, content, { label, unchangedLabel } = {}) {
   return { kind: "file", path, content: withGeneratedMark(path, content), label, unchangedLabel };
 }
