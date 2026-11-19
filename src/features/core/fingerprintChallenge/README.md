@@ -3,7 +3,7 @@
 ## Overview
 
 - 不正が疑われるユーザーに **専用フォームを送って回答させ、その提出時にデバイスフィンガープリント + 詳細な行動計測を強制的に採取する** ための基盤
-- このドメインが持つのは **チャレンジのライフサイクル（発行 → 回答 → レビュー）とデータ契約だけ**。フォームの見た目・質問項目・画面は downstream の物で、今は UI の部品を持たない（core の UI の決まりは CLAUDE.md `core_ui`）
+- このドメインが持つのは **チャレンジのライフサイクル（発行 → 回答 → レビュー）とデータ契約だけ**。フォームの見た目・質問項目・画面は downstream の物で、今は UI の部品を持たない（core の UI の決まりは .claude/rules/core/components.md core_ui）
 - Usage の「フォーム実装レシピ」をコピーして質問項目を差し替えれば、計測込みの回答フォームが組める
 - 閉じられる機能: 門番の規則 `src/featureGate/rules/fingerprintChallenge.ts`、既定は閉（opt-in）、前提 `dependsOn: ["deviceFingerprint"]`(domainEntry の `requires` も同じ)。閉じると `/api/admin/fingerprint-challenges`・`/api/me/fingerprint-challenges`・掃除の cron・汎用の `/api/fingerprintChallenge` が 404 で、表も push から外れる
 
@@ -23,8 +23,8 @@
 `challenge.answerableStatuses`（既定 `["active","suspended"]`）を渡して通している。
 `banned` / `security_locked` / `withdrawn` は列挙しない限り 403（fail-closed）。
 
-回答ページ側も同じ語彙で開ける: 範囲の guard.ts の方針か loader の `createLoader({ allowStatuses: ["active", "suspended"] })`
-で受ける（`(user)/(protected)` の範囲は active 限定なので、その外に出す）。
+回答ページ側も同じ語彙で開ける: `(user)/(protected)` の外に専用の範囲の guard.ts を置き、方針の `allowStatuses` で受ける
+（`(user)/(protected)` の範囲は active 限定で、子の範囲は狭めるだけなので、その外に出す。.claude/rules/core/screens.md status_pages）。
 
 ### フォーム実装レシピ（downstream がコピーする完成形）
 
@@ -40,6 +40,7 @@ import { useBehavioralCapture } from "@/lib/fingerprint";
 import { useFingerprintChallenge } from "@/features/core/fingerprintChallenge/hooks/useFingerprintChallenge";
 import { useSubmitFingerprintChallenge } from "@/features/core/fingerprintChallenge/hooks/useSubmitFingerprintChallenge";
 import { Button } from "@/components/Form/Button";
+import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { Input } from "@/components/Form/Input";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
@@ -51,7 +52,7 @@ export function ChallengeForm({ token }: { token: string }) {
   const [fullName, setFullName] = useState("");
   const [done, setDone] = useState(false);
 
-  if (isLoading) return <Para>読み込み中…</Para>;
+  if (isLoading) return <InlineLoader />;
   if (!challenge || challenge.status === "expired")
     return <Para>このフォームは無効か期限切れです。</Para>;
   if (challenge.status !== "pending" || done)
@@ -76,10 +77,10 @@ export function ChallengeForm({ token }: { token: string }) {
           onChange={(e) => setFullName(e.target.value)}
           placeholder="氏名"
         />
-        {/* isSubmitting でローディング可視化（CLAUDE.md COMPONENTS: background request shows loading）。
+        {/* isSubmitting でローディング可視化（.claude/rules/core/components.md async_feedback・Button の loading）。
             submit() は内部でデバイス信号の収集も自動実行する */}
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "送信中…" : "送信"}
+        <Button type="submit" loading={isSubmitting} loadingLabel="送信中…">
+          送信
         </Button>
       </Stack>
     </form>
@@ -90,7 +91,8 @@ export function ChallengeForm({ token }: { token: string }) {
 発行〜案内の運用例（admin 側）:
 
 ```ts
-// 1. 発行（admin ルート経由）
+// 1. 発行（admin ルート経由。上流に発行の ClientService は無いので、fork の services/client/ の関数の中に書き hook から呼ぶ。
+//    axios は services/client だけ・normalizeHttpError を通す: .claude/rules/core/client.md）
 const { token } = await axios.post("/api/admin/fingerprint-challenges", {
   userId: suspectUserId,
   prompt: { title: "本人確認のお願い", fields: ["fullName"] }, // 自由形式
@@ -125,7 +127,7 @@ export function PendingChallengeForm() {
 ```
 
 `/restricted` 着地ページの CTA は `useMyPendingFingerprintChallenge()` で `data` が非 null の
-ときだけ「本人確認フォームへ」を出す（`/restricted` は `(auth)` 配下 = 認証済みなら
+ときだけ「本人確認フォームへ」を出す（`/restricted` は loader の access が public で allowStatuses = 全 status なので
 ステータス問わず表示できるが、API 側は `answerableStatuses` で絞られる）。
 
 ### 追撃の運用（admin 側）

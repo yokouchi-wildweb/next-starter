@@ -365,7 +365,7 @@ hideToast();
 | `showConfirmButton` | `boolean` | `true` | 確認ボタンの表示 |
 | `confirmLabel` | `string` | `"OK"` | 確認ボタンのラベル |
 | `cancelLabel` | `string` | `"Cancel"` | キャンセルボタンのラベル |
-| `onConfirm` | `() => void \| Promise<void>` | - | 確認時のコールバック |
+| `onConfirm` | `() => void \| Promise<void>` | - | 確認時のコールバック。Promise を返す間は全部のボタンが止まり、確定のボタンだけ「処理中...」（二度押しは無視）。閉じるのは呼び手（`onOpenChange`） |
 | `confirmDisabled` | `boolean` | - | 確認ボタンの無効化 |
 | `confirmVariant` | `ButtonStyleProps["variant"]` | `"primary"` | 確認ボタンのスタイル |
 | `cancelVariant` | `ButtonStyleProps["variant"]` | `"outline"` | キャンセルボタンのスタイル |

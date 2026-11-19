@@ -333,7 +333,7 @@ const inserted = await service.replaceByQuery(
 
 **テスト**: `pnpm test src/lib/crud/hooks/internal/*.test.mjs`（node:test + Node 組み込みの TypeScript type stripping、追加依存なし）。React 非依存の中核 `concurrentMutation.ts` を検証する。
 
-**独自 mutation フックの作り方**: `useDomainMutation(key, fn, revalidateKey?)` を `@/lib/crud/hooks` から import して包む（core の useChangeUserRole / useAdjustWallet / useProfileUpsert / useAdminSetup 等が実例）。`useSWRMutation` を直接使わない理由は上のとおり（CLAUDE.md CRUD_SERVICE）。
+**独自 mutation フックの作り方**: `useDomainMutation(key, fn, revalidateKey?)` を `@/lib/crud/hooks` から import して包む（core の useChangeUserRole / useAdjustWallet / useProfileUpsert / useAdminSetup 等が実例）。`useSWRMutation` を直接使わない理由は上のとおり（決まりは .claude/rules/core/client.md hooks）。
 
 ### トランザクション
 

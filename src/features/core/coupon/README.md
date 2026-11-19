@@ -56,7 +56,7 @@ if (result.success) {
 }
 
 // ハンドラー付き使用（redeem + ハンドラーの onRedeemed 実行）
-// 入口が受理する種別 / カテゴリは scope で必ず絞る（下記「入口スコープ」参照）
+// 入口が受理する種別 / カテゴリは scope で絞る（決まりは札 entry_scope_const、下記「入口スコープ」）
 const result = await couponService.redeemWithEffect(
   "CODE123",
   userId,
@@ -284,6 +284,8 @@ import { useCouponCategories } from "@/features/core/coupon/hooks/useCouponCateg
 
 ### 新しいクーポン用途（ハンドラー）の追加
 
+上流が足すときの手順（登録を呼ぶ `handlers/init.ts` は core のファイルで、ハンドラーの受け口は無い。fork が自分の用途を足したいときは → `/order <direct parent>`）。
+
 1. 消費側ドメインにハンドラーを作る
 
 ```typescript
@@ -347,7 +349,7 @@ import { registerPurchaseDiscountHandler } from "@/features/core/purchaseRequest
 if (gate.enabled("payment")) registerPurchaseDiscountHandler();
 ```
 
-- 上流の購入割引は決済が閉じていればカテゴリが一覧に出ない（関数の中でもクーポンの入切を確かめる）。招待リファラルも同じ形（`if (gate.enabled("referral")) registerReferralCouponHandler();`）
+- 上流の購入割引は決済が閉じていればカテゴリが一覧に出ない（init.ts の `gate.enabled("payment")`。登録の関数の中でもクーポンの入切を確かめる）。招待リファラルは init.ts の `if (gate.enabled("referral")) registerReferralCouponHandler();` だけ（関数の中の確かめは無い）
 
 3. 管理画面で確かめる
 

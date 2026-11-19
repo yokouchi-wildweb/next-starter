@@ -12,21 +12,21 @@
 
 ### 新しい定期タスクを追加する
 
-フォルダを 1 つ足し、`vercel.json` を再生成する。漏れは `pnpm test scripts/structure/cron/cronWiring.test.mjs` と Vercel 上のビルドが検出する。
+フォルダを 1 つ足し、`vercel.json` を持つリポ(fork)は再生成する(upstream は `vercel.json` を持たないので要らない)。漏れは `pnpm test scripts/structure/cron/cronWiring.test.mjs` と Vercel 上のビルドが検出する。
 
 #### 1. task.ts
 
 ```ts
 // src/app/api/cron/my-task/task.ts
 import type { CronTaskDefinition } from "@/lib/cron";
-import { MY_FEATURE_CONFIG } from "@/config/app/my-feature.config";
+import { myDomainConfig } from "@/features/myDomain/config"; // 値の既定はドメインの config.ts、fork の上書きは src/config/features/
 
 export const cronTask: CronTaskDefinition = {
   name: "my-task", // フォルダ名と同じ
   description: "何をするタスクか（pnpm task --list に出る）",
   schedule: "0 18 * * *", // UTC。毎日 03:00 JST
-  // 任意。機能以外の追加条件だけ（機能の入切は規則の pathPatterns に "/api/cron/my-task" を書く）。config だけを見る
-  enabled: () => MY_FEATURE_CONFIG.reminders.length > 0,
+  // 任意。機能以外の追加条件だけ（機能の入切は書かない: 機能のフォルダを import すれば門が付く。下の「機能の門（自動）」）。config だけを見る
+  enabled: () => myDomainConfig.reminders.length > 0,
   run: async () => {
     const { runMyTask } = await import("@/features/myDomain/services/server/myTask");
     return await runMyTask();
@@ -50,7 +50,7 @@ export const maxDuration = 300; // 重い処理のときだけ
 export const GET = createCronTaskRoute(cronTask);
 ```
 
-#### 3. vercel.json を再生成
+#### 3. vercel.json を再生成（vercel.json を持つリポ）
 
 ```bash
 pnpm generate cron -- --plan <hobby|pro>
@@ -216,7 +216,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
   fork のタスクも同じ（import から導く）。止めたくない task は fork の `required/`・常時の例外・`task.override.ts`
 - **enabled**: 機能以外の追加の実行条件（例: 失効を有効にした通貨があるか）。同期関数（札 enabled_config_only）。
   false のときルートは本体を呼ばず `{ ok: true, skipped: true, reason: "disabled" }` を返す。vercel.json には載る（値を変えても再生成は要らない）。
-  個人情報の retention prune は門の規則にも enabled にも載せない（札 pii_prune_kept）
+  個人情報の retention prune は enabled に載せない。門は他の task と同じく import から付く: 閉じられる機能の prune（`device-fingerprint-prune` / `fingerprint-challenge-access-prune`）はその機能を閉じると止まり（その機能の表は作られない）、常に開く機能の prune（`audit-log-prune` / `user-login-event-prune`）は止まらない
 - **配線漏れの防止**: `vercel.json` は人が書かない。タスクの増減で生成結果とずれると、Vercel 上のビルド
   （`pnpm build` の冒頭の門 `pnpm check --gate=build` が cron の検査を `--vercel-build` で回す）と `pnpm live` 系(`pnpm live`・`pnpm live:room`・`pnpm live:all`)が止まる。漏れたまま本番が動き続けることはない
 
