@@ -3,7 +3,7 @@
 // その選択肢の SWR キーを組み立てる純粋関数。
 //
 // 使う側(3 者が同じ判定を共有する。ここ以外に同じ判定を書かない):
-//   - クライアント: src/lib/domain/hooks/useRelationOptions.ts(選択肢の取得と FieldConfig 生成)
+//   - クライアント: src/lib/formSuite/useRelationOptions.ts(選択肢の取得と FieldConfig 生成)
 //   - サーバー:     src/features/core/admin/services/server/screenData/adminRelationOptions.ts(SSR 先読み → SWR fallback。関連先ごとに list の access を先に評価)
 //   - 生成器:       scripts/structure/domain/render/{adminRoutes/relationTokens.mjs, components/fields.mjs}
 // .mjs なのは、tsx を通さない生成器(node)からも TypeScript からも import できるようにするため(src/lib/stringCase/index.mjs と同じ)。

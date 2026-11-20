@@ -1,5 +1,5 @@
-// domain.json の語彙（キーと値の集合）。正は src/features/README.md「API」と
-// src/lib/formSuite/Field/types.ts の FieldConfig。checks/vocabulary.mjs がこれと照合して、綴り違い・古いキー・
+// domain.json の語彙（キーと値の集合）。正は src/features/README.md「API」と、項目の型
+// src/lib/domain/types/domainField.ts の DomainField（関連は types/domainConfig.ts の DomainConfigRelation）。checks/vocabulary.mjs がこれと照合して、綴り違い・古いキー・
 // その DB に無い型を警告する（生成は止めない）。
 
 import { BUILTIN_FORM_INPUTS } from "../../../../src/lib/domain/fields/formInputs.mjs";
@@ -30,7 +30,7 @@ export const RELATION_FORM_INPUTS = {
   belongsToMany: new Set(["checkbox", "multiSelect", "asyncMultiSelect", "custom"]),
 };
 
-/** Field のキー（FieldConfig と、生成器だけが読む unique / storage / collection） */
+/** Field のキー（lib/domain の DomainField のキーと同じ） */
 export const FIELD_KEYS = new Set([
   "name", "label", "fieldType", "formInput", "required", "readonly", "disabled", "defaultValue", "options", "displayType", "placeholder",
   "slug", "mediaTypePreset", "accept", "validationRule", "helperText", "metadataBinding", "reorderable", "unique", "storage", "collection", COMMENT_KEY,

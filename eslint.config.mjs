@@ -360,6 +360,8 @@ const config = [
             // 注文 09: Form の残りは閉じた lib formSuite の入口 1 本、MediaHandler は mediaInputSuite(上の行より後 = 先に上の行が当たる)
             { from: "@/components/Form/MediaHandler", to: "@/lib/mediaInputSuite", until: SHELF_S2_MOVED, collapse: true },
             { from: "@/components/Form", to: "@/lib/formSuite", until: SHELF_S2_MOVED, collapse: true },
+            // 注文 10: useRelationOptions は formSuite へ(残る入口の中で動いた名前は tsc が挙げる)
+            { from: "@/lib/domain/hooks/useRelationOptions", to: "@/lib/formSuite", until: SHELF_S2_MOVED, exact: true },
           ],
         },
       ],

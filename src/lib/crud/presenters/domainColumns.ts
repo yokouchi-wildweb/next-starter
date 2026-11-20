@@ -1,4 +1,4 @@
-import type { DomainField } from "@/lib/domain";
+import type { DomainDisplay, DomainDisplayRelation, DomainField } from "@/lib/domain";
 import { isArrayFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
 import { presenterFor } from "@/lib/domain/fields/presenterFor.mjs";
 import type { DataTableColumn } from "@/lib/tableSuite";
@@ -14,15 +14,13 @@ import { formatCollectionThumbnails, formatMediaThumbnail, formatMediaThumbnails
 type DomainColumnField = Pick<DomainField, "name"> &
   Partial<Pick<DomainField, "label" | "formInput" | "fieldType" | "options">>;
 
-type DomainRelationConfig = {
-  fieldName: string;
-  label?: string;
-};
+/** 列の見出しに読む関連のキー(写しの関連 DomainDisplayRelation から。label の無い関連は fieldName で出す) */
+type DomainColumnRelation = Pick<DomainDisplayRelation, "fieldName"> & Partial<Pick<DomainDisplayRelation, "label">>;
 
-type DomainJsonConfig = {
-  tableFields?: unknown;
+/** 列を作るのに読む設定(写し DomainDisplay か domain.json の、tableFields・fields・relations) */
+type DomainJsonConfig = Partial<Pick<DomainDisplay, "tableFields">> & {
   fields?: readonly DomainColumnField[];
-  relations?: readonly DomainRelationConfig[];
+  relations?: readonly DomainColumnRelation[];
   [key: string]: unknown;
 };
 
@@ -144,7 +142,7 @@ export function buildDomainColumns<T>({
   presenters,
   sortableFields,
 }: BuildDomainColumnsParams<T>): DataTableColumn<T>[] {
-  const tableFields = Array.isArray(config.tableFields) ? (config.tableFields as string[]) : [];
+  const tableFields = config.tableFields ?? [];
   const { labelMap, inputMap } = buildLabelMap(config);
   const fieldConfigMap = new Map((config.fields ?? []).map((f) => [f.name, f]));
 

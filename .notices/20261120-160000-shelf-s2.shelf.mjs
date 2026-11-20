@@ -4,7 +4,12 @@
 // 使い方: node .notices/20261120-160000-shelf-s2.shelf.mjs [--apply]
 //   既定は dry-run(書き換える指定・動かすファイル・止める所・手で直す所の一覧を出すだけ)。--apply で書く。何度走らせても同じ結果。
 //
-// 上流で変わったこと(注文ごとに表の行が足される。今の行 = 注文 08):
+// 上流で変わったこと(注文ごとに表の行が足される。今の行 = 注文 08・09・10):
+// - 注文 10: domain.json の項目の型は lib/domain の DomainField 1 つになり、型の名前は @/lib/domain へ移って改名した:
+//   FieldDataType → NeonFieldType、FieldDataTypeFirestore → FirestoreFieldType、FieldOption → DomainFieldOption、
+//   FormInputType → BuiltinFormInput(@/lib/formSuite から)。lib/domain の FieldOption も DomainFieldOption に。
+//   useRelationOptions(と UseRelationOptionsResult)は @/lib/domain/hooks から @/lib/formSuite へ。
+//   formSuite の FieldType・FormFieldProps は代わり無しで無くなった(読む所は STOP、手で直す)
 // - 注文 09: Form の残り(AppForm・AutoSave・Field・FieldRenderer・FormActions・Input/Controlled・submitLock・backgroundFailure・types)は
 //   閉じた lib @/lib/formSuite(入口 1 本、下の道は読まない)、Form/MediaHandler は @/lib/mediaInputSuite。components/Form は無くなった。
 //   移した先の入口が出していない名前は STOP(行き先の入口がこの木にあるときに確かめる)
@@ -46,6 +51,7 @@ const BUTTON_VARIANTS = `${C}/Button/variants`;
 const INPUT_OPTIONS = `${C}/Input/options`;
 const FORM_SUITE = "src/lib/formSuite";
 const MEDIA_SUITE = "src/lib/mediaInputSuite";
+const DOMAIN = "src/lib/domain";
 
 /**
  * 名前 → 行き先のモジュールの表を作る。`default:X` = 行き先の default export の X、`X=>Y` = 行き先では Y という名前
@@ -179,9 +185,33 @@ const CONTROLLED_NAMES = units({
   ],
 });
 
+/** 項目の型の名前(注文 10: @/lib/formSuite から @/lib/domain へ移って改名) */
+const FIELD_TYPE_NAMES = units({
+  [DOMAIN]: [
+    "FieldDataType=>NeonFieldType",
+    "FieldDataTypeFirestore=>FirestoreFieldType",
+    "FieldOption=>DomainFieldOption",
+    "FormInputType=>BuiltinFormInput",
+  ],
+});
+
+/** 代わり無しで無くなった formSuite の名前(注文 10) */
+const FORM_SUITE_GONE = {
+  FieldType: "formSuite の FieldType は代わり無しで無くなった(手で直す)",
+  FormFieldProps: "formSuite の FormFieldProps は代わり無しで無くなった(手で直す)",
+};
+
+/** lib/domain の FieldOption の改名(注文 10: 同じ入口の DomainFieldOption) */
+const DOMAIN_OPTION_NAMES = units({ [DOMAIN]: ["FieldOption=>DomainFieldOption"] });
+
+/** lib/domain/hooks から formSuite へ移った名前(注文 10) */
+const RELATION_OPTION_NAMES = units({ [FORM_SUITE]: ["useRelationOptions", "UseRelationOptionsResult"] });
+
 /**
  * 名前ごとに分けるモジュール(入口と、名前ごとに行き先が違うファイル)。
  * names = 名前 → 行き先 | rest = 表にない名前: "stay"(元の指定のまま)・"stop"(止める)・モジュールの道(そこへ)
+ * gone = 代わり無しで無くなった名前 → 止める理由
+ * 行き先のモジュールにもその名前の行があれば、もう一段たどる(旧 Form の道 → formSuite → lib/domain)
  * namespaces = そのモジュールが出す名前空間 → その中身を分けるモジュールの道(使い方 `NS.X` を X に直す)
  */
 const SPLITS = {
@@ -210,6 +240,12 @@ const SPLITS = {
   [`${F}/Input/Manual`]: { names: MANUAL_NAMES, rest: "stop" },
   [`${F}/types`]: { names: OPTION_TYPE_NAMES, rest: FORM_SUITE },
   [`${F}/utils`]: { names: OPTION_UTIL_NAMES, rest: "stop" },
+  // 注文 10
+  [FORM_SUITE]: { names: FIELD_TYPE_NAMES, rest: "stay", gone: FORM_SUITE_GONE },
+  [DOMAIN]: { names: DOMAIN_OPTION_NAMES, rest: "stay" },
+  [`${DOMAIN}/fields`]: { names: DOMAIN_OPTION_NAMES, rest: "stay" },
+  [`${DOMAIN}/fields/extractFields`]: { names: DOMAIN_OPTION_NAMES, rest: "stay" },
+  [`${DOMAIN}/hooks`]: { names: RELATION_OPTION_NAMES, rest: "stay" },
 };
 
 /** その下のどのファイルにも同じ名前の表を当てるフォルダ(注文 09: Controlled の入力のファイルを深く読む所) */
@@ -229,6 +265,8 @@ const MOVES = [
   // 注文 09: 閉じた lib・open lib の入口 1 本へ(collapse = 下の道を残さない)。上の行より後に見る
   { from: `${F}/MediaHandler`, to: MEDIA_SUITE, collapse: true },
   { from: F, to: FORM_SUITE, collapse: true },
+  // 注文 10
+  { from: `${DOMAIN}/hooks/useRelationOptions`, to: FORM_SUITE },
 ];
 
 /** 名前付きの export だけになった部品(行き先のモジュール → 名前)。default の import を名前付きに直す */
@@ -345,14 +383,31 @@ function boundNames(text) {
   return names;
 }
 
-/** 分けるモジュールの中の名前を行き先へ。{ unit, isDefault } | { stay: true } | null(止める) */
-function targetOf(split, name) {
-  const hit = split.names[name];
-  if (hit) return hit;
-  if (split.rest === "stay") return { stay: true };
-  if (split.rest === "stop") return null;
-  return { unit: split.rest, isDefault: false };
+/**
+ * 分けるモジュールの中の名前を行き先へ。{ unit, isDefault, rename? } | { stay: true } | { gone: 理由 } | null(止める)。
+ * 行き先のモジュールにもその名前の行(names・gone)があれば、もう一段たどる(改名は合わせる)
+ */
+function targetOf(split, name, depth = 0) {
+  if (split.gone?.[name]) return { gone: split.gone[name] };
+  let hit = split.names[name];
+  if (!hit) {
+    if (split.rest === "stay") return { stay: true };
+    if (split.rest === "stop") return null;
+    hit = { unit: split.rest, isDefault: false };
+  }
+  const next = SPLITS[hit.unit];
+  if (hit.isDefault || !next || next === split || depth > 3) return hit;
+  const nextName = hit.rename ?? name;
+  const h2 = targetOf({ ...next, rest: "stay" }, nextName, depth + 1);
+  if (h2.stay) return hit;
+  if (h2.gone) return h2;
+  return { ...h2, ...(h2.rename || nextName !== name ? { rename: h2.rename ?? nextName } : {}) };
 }
+
+/** 残る名前のある(rest "stay")分けるモジュールは、表の名前をそのファイルが書いているときだけ手の行を出す */
+const namesListedIn = (split, text) =>
+  [...Object.keys(split.names), ...Object.keys(split.gone ?? {})].some((n) => new RegExp(`(?<![\\w$])${n}(?![\\w$])`).test(text));
+const needsHand = (split, text) => split.rest !== "stay" || namesListedIn(split, text);
 
 /** 1 つの行き先への import / export の文 */
 function statementFor(kw, stmtType, quote, spec, semi, group) {
@@ -437,7 +492,7 @@ export function rewriteSource(fromFile, text, opts = {}) {
     const finalName = (name) => targetOf(split, name)?.rename ?? name;
     for (const name of members) {
       const hit = targetOf(split, name);
-      if (!hit || hit.stay) bad.push(`${local}.${name} の行き先が無い`);
+      if (!hit || hit.stay || hit.gone) bad.push(hit?.gone ? `${local}.${name}: ${hit.gone}` : `${local}.${name} の行き先が無い`);
       else if (bound.has(finalName(name))) bad.push(`${finalName(name)} がこのファイルで既に使われている(名前空間を外すと重なる)`);
     }
     if (bad.length) {
@@ -462,9 +517,11 @@ export function rewriteSource(fromFile, text, opts = {}) {
     if (!r) continue;
     const line = lineOf(text, m.index);
     const end = m.index + whole.length;
-    const split = splitOf(r.mod);
     const moved = mapModule(r.mod);
     const target = moved ? moved.to : r.mod;
+    // 動いただけのモジュールでも、行き先が分けるモジュールならその表で分ける(残る名前は行き先へ。注文 10)
+    const movedSplit = !splitOf(r.mod) && moved && !moved.prefix ? splitOf(moved.to) : undefined;
+    const split = splitOf(r.mod) ?? (movedSplit && { ...movedSplit, rest: movedSplit.rest === "stay" ? moved.to : movedSplit.rest });
     const namedOnly = DEFAULT_TO_NAMED[target];
     if (!split && !namedOnly) {
       // 動いただけのモジュール: 行き先の入口が名前を出しているかだけ見て、指定の書き換えは 2. に任せる
@@ -526,8 +583,8 @@ export function rewriteSource(fromFile, text, opts = {}) {
         continue;
       }
       const hit = targetOf(split, it.name);
-      if (!hit) {
-        bad.push(`${it.name} の行き先が無い`);
+      if (!hit || hit.gone) {
+        bad.push(hit?.gone ? `${it.name}: ${hit.gone}` : `${it.name} の行き先が無い`);
         continue;
       }
       if (hit.rename && kw === "import") {
@@ -615,7 +672,7 @@ export function rewriteSource(fromFile, text, opts = {}) {
     const line = lineOf(text, m.index);
     handled.push([m.index, m.index + whole.length]);
     if (splitOf(r.mod).rest === "stay") {
-      hands.push(`${line}: ${spec} の import * as(残る名前もあるので手で分ける)`);
+      if (needsHand(splitOf(r.mod), text)) hands.push(`${line}: ${spec} の import * as(残る名前もあるので手で分ける)`);
       continue;
     }
     bound.delete(local);
@@ -641,7 +698,7 @@ export function rewriteSource(fromFile, text, opts = {}) {
     const moved = mapModule(r.mod);
     const isPlainPath = spec.startsWith("src/");
     if (splitOf(r.mod)) {
-      hands.push(`${line}: ${spec} は名前ごとに行き先が分かれた(export *・mock.module・import()・文字列は手で行き先へ)`);
+      if (needsHand(splitOf(r.mod), text)) hands.push(`${line}: ${spec} は名前ごとに行き先が分かれた(export *・mock.module・import()・文字列は手で行き先へ)`);
     } else if (moved) {
       if (isPlainPath) {
         hands.push(`${line}: ${spec} は ${moved.to} へ動いた(道の文字列は手で直す)`);

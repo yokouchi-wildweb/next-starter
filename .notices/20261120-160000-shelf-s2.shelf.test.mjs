@@ -206,6 +206,58 @@ test("行き先の入口が出していない名前は書かずに STOP(入口�
   assert.match(stops[1], /Gone が無い/);
 });
 
+test("注文 10: 項目の型の名前は @/lib/domain へ改名して移り、使う所も直す。旧 Form の道からも一段たどる", () => {
+  const src = [
+    'import { FieldRenderer, type FieldDataType, type FieldOption as Opt } from "@/lib/formSuite";',
+    'import type { FormInputType } from "@/components/Form/types";',
+    'import type { FieldDataTypeFirestore } from "@/components/Form/FieldRenderer/types";',
+    "type A = { t: FieldDataType; o: Opt[]; i: FormInputType; f: FieldDataTypeFirestore };",
+  ].join("\n");
+  assert.equal(
+    rewriteSource("src/features/x/X.tsx", src).text,
+    [
+      'import { FieldRenderer } from "@/lib/formSuite";',
+      'import { type NeonFieldType, type DomainFieldOption } from "@/lib/domain";',
+      'import type { BuiltinFormInput } from "@/lib/domain";',
+      'import type { FirestoreFieldType } from "@/lib/domain";',
+      "type A = { t: NeonFieldType; o: DomainFieldOption[]; i: BuiltinFormInput; f: FirestoreFieldType };",
+    ].join("\n"),
+  );
+  const own = rewriteSource("src/lib/x/X.ts", 'import type { FieldOption, DomainFieldInfo } from "@/lib/domain/fields";\ntype B = FieldOption;');
+  assert.equal(own.text, 'import type { DomainFieldOption } from "@/lib/domain";\nimport type { DomainFieldInfo } from "@/lib/domain/fields";\ntype B = DomainFieldOption;');
+});
+
+test("注文 10: 代わり無しで無くなった FieldType・FormFieldProps は書かずに STOP(理由つき)", () => {
+  const src = 'import type { FieldType } from "@/lib/formSuite";\nimport type { FormFieldProps } from "@/components/Form/types";';
+  const { text, stops } = rewriteSource("src/app/x.tsx", src);
+  assert.equal(text, src);
+  assert.equal(stops.length, 2);
+  assert.match(stops[0], /FieldType は代わり無しで無くなった/);
+  assert.match(stops[1], /FormFieldProps は代わり無しで無くなった/);
+});
+
+test("注文 10: useRelationOptions は lib/domain/hooks の入口(残る名前はそのまま)と深い道から @/lib/formSuite へ", () => {
+  const src = [
+    'import { useFetchDomains, useRelationOptions } from "@/lib/domain/hooks";',
+    'import { useRelationOptions as useRel } from "@/lib/domain/hooks/useRelationOptions";',
+  ].join("\n");
+  assert.equal(
+    rewriteSource("src/features/x/X.tsx", src).text,
+    [
+      'import { useFetchDomains } from "@/lib/domain/hooks";',
+      'import { useRelationOptions } from "@/lib/formSuite";',
+      'import { useRelationOptions as useRel } from "@/lib/formSuite";',
+    ].join("\n"),
+  );
+});
+
+test("注文 10: 残る名前のある入口の文字列(declare module・mock.module)は、表の名前を書いているファイルだけ hand", () => {
+  const quiet = rewriteSource("src/wiring/x.tsx", 'declare module "@/lib/formSuite" {}\nmock.module("@/lib/domain", {});');
+  assert.equal(quiet.hands.length, 0);
+  const loud = rewriteSource("src/app/x.test.tsx", 'mock.module("@/lib/domain/hooks", { namedExports: { useRelationOptions } });');
+  assert.equal(loud.hands.length, 1);
+});
+
 test("plan と apply: 書き換え・fork のファイルの移動(相対を引き直す)・文書は一覧だけ、2 回目は変えるものなし", () => {
   const root = repo({
     "src/app/page.tsx": 'import { Button } from "@/components/Form/Button";\nimport { Manual } from "@/components/Form/Input";\nexport const P = () => <Manual.Input />;\n',

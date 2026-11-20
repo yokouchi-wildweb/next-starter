@@ -209,6 +209,7 @@ defineHiddenColumns(UserTable, ["localPassword"]);
 
 - `buildDomainColumns({ config, presenters?, actionColumn?, sortableFields?, truncateLength? })`: `config` = domain の `domainDisplay`(または domain.json の設定)。`tableFields` の順に列を作り、`presenters` の無い列は `presenterFor`(`src/lib/domain/fields/presenterFor.mjs`)と同じ答えで描く
 - 読む項目のキーは `name`・`label`・`formInput`・`fieldType`・`options` だけ。型は lib/domain の `DomainField` から取る(crud に項目の型は持たない)。`name` 以外は省ける
+- 関連は `fieldName`・`label`(`DomainDisplayRelation` から、label は省ける)、`tableFields` は `DomainDisplay` の型
 
 ### 提供メソッド一覧
 

@@ -9,6 +9,7 @@
 
 import "server-only";
 import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
+import type { DomainField } from "@/lib/domain";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import { importValueShape, isArrayFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
 import { parseCsv } from "./parseCsv";
@@ -18,10 +19,8 @@ import type { DataMigrationJunctionResolver, DataMigrationServiceResolver } from
 import { MediaValueError, resolveMediaRow } from "./mediaValues";
 import { assertNoCollectionFields } from "../collectionFields";
 
-export type FieldTypeInfo = {
-  name: string;
-  fieldType?: string;
-};
+/** 型変換に使う項目の情報 = domain.json の項目(DomainField)の name と fieldType */
+export type FieldTypeInfo = Pick<DomainField, "name"> & Partial<Pick<DomainField, "fieldType">>;
 
 export type ImportChunkOptions = {
   /** ドメイン名 */

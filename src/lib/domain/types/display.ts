@@ -3,6 +3,7 @@
 // domain.json のある domain は pnpm generate registry が書く。無い手書きの domain は同じ形を手で書く。
 // 秘密・内部の項目(apiAccess・dbEngine・generateFiles・storage 等)は持たない。
 
+import type { DomainConfigRelation } from "./domainConfig";
 import type { DomainField } from "./domainField";
 
 /** client に出す項目 = domain.json の項目(DomainField)のうち client で使うキーだけ(storage・unique・collection などは出さない)。
@@ -34,17 +35,8 @@ export type DomainDisplayFieldGroup = {
   bgColor?: string;
 };
 
-export type DomainDisplayRelation = {
-  domain: string;
-  label: string;
-  fieldName: string;
-  fieldType?: string;
-  relationType: string;
-  required?: boolean;
-  formInput?: string;
-  /** 関連先の表示に使う列 */
-  labelField?: string;
-  includeRelationTable?: boolean;
+/** client に出す関連 = domain.json の関連(DomainConfigRelation)のうち onDelete(DB の制約)を除いたもの + 写しが足す searchFields */
+export type DomainDisplayRelation = Omit<DomainConfigRelation, "onDelete"> & {
   /** 非同期検索の関連だけ: 関連先の searchFields */
   searchFields?: readonly string[];
 };
