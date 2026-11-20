@@ -4,7 +4,6 @@ import * as React from "react";
 import { Slot } from "radix-ui";
 
 import { cn } from "@/lib/cn/index";
-import type { CarouselButtonSlot } from "@/components/Primitives/Carousel";
 
 const baseButtonClassName =
   "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive";
@@ -14,6 +13,12 @@ const iconSizeClassName = "[&_svg:not([class*='size-'])]:size-4";
 
 /** 中のアイコンの大きさ: auto(既定) = size-* の無い svg を 16px に揃える / none = 呼び手が付けた大きさ(h-* w-* や style)のまま */
 export type ButtonIconSizing = "auto" | "none";
+
+/**
+ * Carousel に貸す印の名前(前後のボタン)。印の持ち主は Carousel(Carousel が slot に渡す字面がこの union に無ければ型の検査が止める)。
+ * Carousel は Button を読むので、ここから Carousel を読まない(型でも単位の輪になる)。字面で書く
+ */
+type CarouselButtonSlot = "carousel-previous" | "carousel-next";
 
 /**
  * 枠に貸す印の名前(下のナビのメニュー項目 BottomNavMenuEntry が渡す)。印の持ち主は枠(src/app/(user)/_layout/README.md の一覧)で、

@@ -60,7 +60,7 @@ const [open, setOpen] = useState(false);
 | `open` / `onOpenChange` | `boolean` / `(open) => void` | - | controlled。キャンセル / ✕ / 背景クリック / 確定完了で `false` が渡る |
 | `title` | `ReactNode` | - | タイトル |
 | `description` | `ReactNode` | - | タイトル下の説明文 |
-| `searchFn` | `(params: SearchParams) => Promise<PaginatedResult<T>>` | - | 既存の `client.search` をそのまま渡す |
+| `searchFn` | `(params: AsyncSearchParams) => Promise<AsyncSearchResult<T>>` | - | 既存の `client.search` をそのまま渡す(型は `@/components/Input/AsyncOptionSource` の呼ぶ形。crud の `SearchParams` はこれを含むので受けられる) |
 | `getOptionFromResult` | `(item: T) => Options` | - | レコード → 選択肢 |
 | `searchFields` / `searchRank` / `minChars` / `limit` | - | `AsyncMultiSelectInput` と同じ | 検索系オプション |
 | `value` | `OptionPrimitive[]` | - | open 時の初期選択値 |

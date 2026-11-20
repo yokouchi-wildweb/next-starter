@@ -37,7 +37,7 @@ import { Span } from "@/components/TextBlocks/Span";
 import { cn } from "@/lib/cn";
 
 import { inputVariants, type InputSize } from "./Input";
-import { type SearchParams, type PaginatedResult, type SearchRankSpec } from "@/lib/crud/types";
+import type { AsyncSearchParams, AsyncSearchResult, AsyncSearchRankSpec } from "@/components/Input/AsyncOptionSource";
 
 import {
   AsyncOptionInitialState,
@@ -84,7 +84,7 @@ export type AsyncComboboxInputProps<T> = {
 
   // ===== 検索関数 =====
   /** 検索関数（既存のclient.searchをそのまま渡せる）。scopes を渡した時は第 2 引数に { scope } が来る */
-  searchFn: (params: SearchParams, context: AsyncComboboxSearchContext) => Promise<PaginatedResult<T>>;
+  searchFn: (params: AsyncSearchParams, context: AsyncComboboxSearchContext) => Promise<AsyncSearchResult<T>>;
   /** T → Options に変換 */
   getOptionFromResult: (item: T) => Options;
   /** 検索対象フィールド */
@@ -96,7 +96,7 @@ export type AsyncComboboxInputProps<T> = {
    * false = 従来の並び順（サービスの defaultOrderBy）。spec を渡すと重みを個別指定できる。
    * 先読み一覧（searchQuery 無し）には影響しない。Firestore ドメインでは無視される。
    */
-  searchRank?: boolean | SearchRankSpec;
+  searchRank?: boolean | AsyncSearchRankSpec;
 
   // ===== オプション =====
   /** 最低入力文字数（デフォルト: 1） */
@@ -217,7 +217,7 @@ export function AsyncComboboxInput<T>({
   // 取得の関数は範囲を ref で読む（範囲を替えた直後の取り直しが新しい値で走るように）
   const scopeRef = useRef(currentScope);
   const scopedSearchFn = useCallback(
-    (params: SearchParams) => searchFn(params, { scope: scopeRef.current }),
+    (params: AsyncSearchParams) => searchFn(params, { scope: scopeRef.current }),
     [searchFn],
   );
 

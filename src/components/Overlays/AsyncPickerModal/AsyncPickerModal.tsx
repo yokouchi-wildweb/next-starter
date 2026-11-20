@@ -39,7 +39,7 @@ import { ScreenLoader } from "@/components/Overlays/Loading";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
-import { type SearchParams, type PaginatedResult, type SearchRankSpec } from "@/lib/crud/types";
+import type { AsyncSearchParams, AsyncSearchResult, AsyncSearchRankSpec } from "@/components/Input/AsyncOptionSource";
 
 export type AsyncPickerModalProps<T> = {
   /** 表示状態（controlled） */
@@ -53,13 +53,13 @@ export type AsyncPickerModalProps<T> = {
 
   // ===== 検索関数（AsyncMultiSelectInput と同じ） =====
   /** 検索関数（既存の client.search をそのまま渡せる） */
-  searchFn: (params: SearchParams) => Promise<PaginatedResult<T>>;
+  searchFn: (params: AsyncSearchParams) => Promise<AsyncSearchResult<T>>;
   /** T → Options に変換 */
   getOptionFromResult: (item: T) => Options;
   /** 検索対象フィールド */
   searchFields?: string[];
   /** キーワード検索時の関連度ランキング（デフォルト: true）。AsyncMultiSelectInput と同じ */
-  searchRank?: boolean | SearchRankSpec;
+  searchRank?: boolean | AsyncSearchRankSpec;
   /** 最低入力文字数（デフォルト: 1） */
   minChars?: number;
   /** 1 ページあたりの取得件数（デフォルト: 20） */
