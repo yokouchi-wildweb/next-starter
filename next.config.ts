@@ -73,6 +73,9 @@ const imageRemotePatterns: ImageRemotePatterns = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
+  // AI エージェントの下の next dev(16.3 以降)が、追跡中の AGENTS.md に nextjs-agent-rules の塊を書き足すのを止める。
+  // エージェントへの案内の中身は CLAUDE.md の側で持つ(AGENTS.md はそこへの入口だけ)。false なら既にある塊も next dev が消す
+  agentRules: false,
   generateBuildId: () => buildId,
   env: {
     NEXT_BUILD_ID: buildId,
