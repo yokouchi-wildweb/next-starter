@@ -1,0 +1,19 @@
+{
+  "exports": {
+    ".": "./index.ts"
+  },
+  "libs": [
+    "cn",
+    "crud",
+    "domain",
+    "errors",
+    "gradient",
+    "mediaInputSuite",
+    "spacing",
+    "toast",
+    "variantOverrides"
+  ],
+  "peers": [
+    "components"
+  ]
+}

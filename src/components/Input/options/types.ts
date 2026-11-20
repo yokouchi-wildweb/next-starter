@@ -1,6 +1,6 @@
 // src/components/Input/options/types.ts
 
-import { type ReactNode } from "react";
+import { type AriaAttributes, type ReactNode } from "react";
 
 /**
  * Select や Radio などの選択肢で共有する値の型。
@@ -28,3 +28,14 @@ export type Options = {
  * 選択肢を扱う入力部品で共有する選択肢のプリミティブ値。
  */
 export type OptionPrimitive = Options["value"];
+
+/**
+ * 欄の枠(formSuite の FormControl)が入力へ渡す 3 つ。入力部品は受けて、フォーカスされる要素
+ * (input・トリガーのボタン。選択肢の組は role="group" / "radiogroup" の入れ物)へ付ける。
+ * ラベルの for・説明文・エラーがこれで入力と結び付く(検査: pnpm test src/lib/formSuite/a11yContract.test.tsx)
+ */
+export type FormControlA11yProps = {
+  id?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: AriaAttributes["aria-invalid"];
+};

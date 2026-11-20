@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/Primitives/Select";
-import type { FormControlA11yProps } from "@/components/Form/Field/types";
+import type { FormControlA11yProps } from "./options";
 import { type Options } from "@/components/Input/options";
 import { cn } from "@/lib/cn";
 

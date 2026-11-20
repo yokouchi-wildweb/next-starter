@@ -1,0 +1,223 @@
+// src/lib/formSuite/Field/types.ts
+// フィールド設定の型定義
+
+import type { ComponentType, ReactNode } from "react";
+import type { ControllerRenderProps } from "react-hook-form";
+import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
+import type { FormControlA11yProps } from "@/components/Input/options";
+import type { ParaProps } from "@/components/TextBlocks/Para";
+import type { BUILTIN_FORM_INPUTS } from "@/lib/domain/fields/formInputs.mjs";
+
+/**
+ * フォーム入力種別（domain.json formInput）
+ * @see src/features/README.md - FormInput
+ */
+export type FormInputType = (typeof BUILTIN_FORM_INPUTS)[number];
+
+/** 登録された入力部品の名前（src/wiring/formInputs/FormInputsRoot.tsx が一覧の鍵から広げる） */
+export interface RegisteredFormInputs {}
+
+/** 登録の部品が受ける props（id・aria-* は FormControl が渡す。入力部品へそのまま渡すとラベルと結び付く） */
+export type FormInputProps = {
+  field: ControllerRenderProps<any, any>;
+  fieldConfig: FieldConfig;
+  inputClassName?: string;
+} & FormControlA11yProps;
+
+/** 入力部品の登録の項目（src/wiring/formInputs/inputs/ の export const formInput） */
+export type FormInputItem = {
+  readonly name: string;
+  /** 部品の本体（default export） */
+  readonly load: () => Promise<{ default: ComponentType<FormInputProps> }>;
+  /** 共通の枠（ラベル・必須印・説明）を描くか（既定 true）。false でもエラーの表示は残る */
+  readonly frame?: boolean;
+  /** 自動保存の blur の扱い（既定 "none" = 保存しない） */
+  readonly blurMode?: "immediate" | "debounce" | "none";
+};
+
+/**
+ * フィールドの型（domain.json fieldType - Neon）
+ * @see src/features/README.md - FieldType（Neon）
+ */
+export type FieldDataType =
+  | "string"
+  | "integer"
+  | "float"
+  | "boolean"
+  | "enum"
+  | "date"
+  | "time"
+  | "timestamp With Time Zone"
+  | "email"
+  | "password"
+  | "bigint"
+  | `numeric(${number},${number})`
+  | "uuid"
+  | "Point"
+  | "jsonb"
+  | "array"
+  | "stringArray"
+  | "mediaUploader"
+  | "mediaCollection"
+  | "mediaUploaderMulti";
+
+/**
+ * フィールドの型（domain.json fieldType - Firestore）
+ * @see src/features/README.md - FieldType（Firestore）
+ */
+export type FieldDataTypeFirestore =
+  | "string"
+  | "number"
+  | "boolean"
+  | "timestamp"
+  | "email"
+  | "password"
+  | "array"
+  | "stringArray"
+  | "geopoint"
+  | "reference"
+  | "map"
+  | "null"
+  | "mediaUploader"
+  | "mediaUploaderMulti";
+
+/**
+ * 選択肢の型（select, radio, checkbox, multiSelect で使用）
+ */
+export type FieldOption = {
+  value: string | number | boolean;
+  label: string;
+  /** 表示はするが選択できない選択肢（Options.disabled と同じ意味） */
+  disabled?: boolean;
+};
+
+/**
+ * MediaUploader 用バリデーションルール
+ * mediaUploaderMulti では minItems / maxItems も使用される
+ */
+export type MediaValidationRule = FileValidationRule & {
+  /** 最小件数（mediaUploaderMulti用） */
+  minItems?: number;
+  /** 最大件数（mediaUploaderMulti用、既定 10） */
+  maxItems?: number;
+};
+
+/**
+ * フィールド設定（domain.json の Field と完全互換）
+ * @see src/features/README.md - Field（フィールド定義）
+ */
+export type FieldConfig = {
+  // === 基本プロパティ ===
+  /** フィールド名（snake_case） */
+  name: string;
+  /** 表示ラベル */
+  label: string;
+  /** データ型 */
+  fieldType?: FieldDataType | FieldDataTypeFirestore | string;
+  /** フォーム入力種別 */
+  formInput: FormInputType | keyof RegisteredFormInputs;
+  /** 必須かどうか */
+  required?: boolean;
+  /** 読み取り専用（テキスト系は readOnly、選択系は disabled として適用） */
+  readonly?: boolean;
+  /** 無効化（select, radio, checkbox 等で使用） */
+  disabled?: boolean;
+  /** デフォルト値 */
+  defaultValue?: unknown;
+  /** 選択肢（select, radio, checkbox, multiSelect で使用） */
+  options?: readonly FieldOption[] | FieldOption[];
+  /** radio/checkbox の表示スタイル */
+  displayType?: "standard" | "bookmark" | string;
+  /** プレースホルダー */
+  placeholder?: string;
+  // === MediaUploader 追加プロパティ ===
+  /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名。生成 Fields コンポーネントが付ける） */
+  purpose?: string;
+  /** ハンドラ識別子（camelCase） */
+  slug?: string;
+  /** 許可ファイル種別 */
+  mediaTypePreset?: "images" | "videos" | "imagesAndVideos" | "all";
+  /** accept 属性値（例: image/*,video/*） */
+  accept?: string;
+  /** バリデーション設定 */
+  validationRule?: MediaValidationRule;
+  /** 説明文。フィールドの枠(ControlledField)がラベルの下に描き、入力の aria-describedby が指す(メディアも同じ。props の description があればそちらが優先) */
+  helperText?: string;
+  /** メタデータを別フィールドに保存 */
+  metadataBinding?: Record<string, string>;
+  /** メタデータ変更時のコールバック（mediaUploader用） */
+  onMetadataChange?: (metadata: SelectedMediaMetadata) => void;
+  /** 並び替え可否（mediaUploaderMulti用、既定 true） */
+  reorderable?: boolean;
+
+  // === 非同期リレーション用メタデータ（ランタイム専用） ===
+  /** リレーション先 API パス（例: "/api/sampleCategory"） */
+  asyncApiPath?: string;
+  /** リレーション先のラベルに使うフィールド名（デフォルト: "name"） */
+  asyncLabelField?: string;
+  /** リレーション先の検索対象フィールド */
+  asyncSearchFields?: string[];
+};
+
+// ============================================
+// フィールドコンポーネント共通Props
+// ============================================
+
+/**
+ * 説明テキストの設定
+ */
+export type FieldItemDescription = {
+  /** 説明テキスト */
+  text: ReactNode;
+  /** テキストのトーン */
+  tone?: ParaProps["tone"];
+  /** テキストのサイズ */
+  size?: ParaProps["size"];
+  /** 表示位置（入力の前 or 後） */
+  placement?: "before" | "after";
+};
+
+/**
+ * フィールドレイアウトの設定
+ */
+export type FieldLayoutOptions = {
+  /** レイアウト方向（デフォルト: "vertical"） */
+  layout?: "vertical" | "horizontal" | "responsive";
+  /** ラベルに適用するクラス名（例: "w-[120px]", "text-lg font-bold"） */
+  labelClass?: string;
+};
+
+/**
+ * フィールド表示の共通オプション
+ */
+export type FieldDisplayOptions = FieldLayoutOptions & {
+  /** FormItem全体に適用するクラス名 */
+  className?: string;
+  /** 内部のInputコンポーネントに適用するクラス名 */
+  inputClassName?: string;
+  /** ラベルを視覚的に非表示にする */
+  hideLabel?: boolean;
+  /** エラーメッセージを非表示にする */
+  hideError?: boolean;
+};
+
+/**
+ * 必須マーク関連の共通オプション
+ */
+export type RequiredMarkOptions = {
+  /** フィールドが必須かどうか */
+  required?: boolean;
+  /** カスタム必須マーク（省略時はデフォルトの赤い * を表示） */
+  requiredMark?: ReactNode;
+  /** 必須マークの位置（デフォルト: "after"） */
+  requiredMarkPosition?: "before" | "after";
+};
+
+/**
+ * フィールド共通Props（表示 + 必須マーク + 説明）
+ * ControlledField, ControlledMediaField, ConfiguredField 等で共通使用
+ */
+export type FieldCommonProps = FieldDisplayOptions & RequiredMarkOptions & {
+  /** 説明テキスト */
+  description?: FieldItemDescription;
+};

@@ -1,6 +1,6 @@
 // src/components/Input/options/index.ts
 
-export type { OptionPrimitive, Options, OptionValue } from "./types";
+export type { FormControlA11yProps, OptionPrimitive, Options, OptionValue } from "./types";
 export {
   includesOptionValue,
   normalizeOptionValues,

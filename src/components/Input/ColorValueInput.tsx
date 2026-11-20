@@ -31,7 +31,7 @@ import {
 
 import { ColorInput } from "./ColorInput";
 import { Input } from "./Input";
-import type { FormControlA11yProps } from "@/components/Form/Field/types";
+import type { FormControlA11yProps } from "./options";
 
 const MODE_LABELS: Record<ColorMode, string> = {
   default: "デフォルト",

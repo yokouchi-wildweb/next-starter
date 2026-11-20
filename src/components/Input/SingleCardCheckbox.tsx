@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import type { VariantProps } from "class-variance-authority";
 import { Checkbox } from "@/components/Primitives/Checkbox";
-import type { FormControlA11yProps } from "@/components/Form/Field/types";
+import type { FormControlA11yProps } from "./options";
 import { variantOverrides } from "@/lib/variantOverrides/config";
 import {
   createOverridableVariants,

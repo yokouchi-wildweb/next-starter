@@ -2,7 +2,7 @@
 
 ## Overview
 
-- 入力部品(値と onChange だけを受ける素の入力)の棚。react-hook-form を読まない。フォームの枠・react-hook-form との結び付けは `src/components/Form`(Field / Controlled / FieldRenderer)
+- 入力部品(値と onChange だけを受ける素の入力)の棚。react-hook-form を読まない。フォームの枠・react-hook-form との結び付けは lib formSuite(`src/lib/formSuite`、Field / Controlled の入力 / FieldRenderer)。棚はその lib を読まない
 - 入口は部品(単位)ごと: `@/components/Input/<Name>`(フォルダの単位はその index。`Input/index.ts` は無い)。ファイル名は部品名と違うことがある(`Select` = `SelectInput`、`StepperInput` は default export)
 - 使う時・直す時の決まりは札 `.claude/rules/items/components/Input.md`。この README は使い方と仕組み
 
@@ -41,7 +41,7 @@ import { SelectInput } from "@/components/Input/Select";
 <SelectInput id="status" options={STATUS_OPTIONS} value={status} onChange={setStatus} />
 ```
 
-- 枠(ラベル・説明・エラー)ごと要るときは Form の Field / FieldRenderer を使う
+- 枠(ラベル・説明・エラー)ごと要るときは lib formSuite(`src/lib/formSuite`)の Field / FieldRenderer を使う
 
 ### 選べない選択肢(Options.disabled)
 
@@ -73,6 +73,7 @@ import { SelectInput } from "@/components/Input/Select";
 ### options(`@/components/Input/options`)
 
 - 型: `OptionValue`(string | number | boolean)・`Options`(`{ label, value, color?, disabled? }`)・`OptionPrimitive`(= `Options["value"]`)
+- 型 `FormControlA11yProps`: 欄の枠(lib formSuite の FormControl)が入力へ渡す 3 つ(`id`・`aria-describedby`・`aria-invalid`)。入力部品はこれを props に足す
 - 関数: `serializeOptionValue`(値 → 文字列、null は空)・`normalizeOptionValues`(配列でなければ空)・`includesOptionValue`・`toggleOptionValue`(文字列にして比べる)・`resolveOptionItemIdentity`(cmdk の行の同一性)・`resolveOptionSearchText`(検索用の文字)
 
 ### 高さ(size)
@@ -87,8 +88,8 @@ import { SelectInput } from "@/components/Input/Select";
 
 ### 読み上げの約束
 
-- 入力部品は `id`・`aria-describedby`・`aria-invalid`(`FormControlA11yProps`)を受け、フォーカスされる要素(群は群の入れ物)へ付ける。説明文は枠が描く
-- `a11yContract.test.tsx` がこのフォルダの単位を全部歩く: 入力の単位は表 `UNITS` に描き方、入力でない単位は `NOT_INPUTS` に理由
+- 入力部品は `id`・`aria-describedby`・`aria-invalid`(`FormControlA11yProps`、`@/components/Input/options`)を受け、フォーカスされる要素(群は群の入れ物)へ付ける。説明文は枠が描く
+- `src/lib/formSuite/a11yContract.test.tsx` がこのフォルダの単位を全部歩く(枠に入れた形も同じテストが見る): 入力の単位は表 `UNITS` に描き方、入力でない単位は `NOT_INPUTS` に理由
 
 ### 非同期の候補の取得
 
@@ -97,6 +98,6 @@ import { SelectInput } from "@/components/Input/Select";
 
 ## Related
 
-- フォームの枠・react-hook-form との結び付け: `src/components/Form/README.md`
+- フォームの枠・react-hook-form との結び付け: `src/lib/formSuite/README.md`
 - 候補のポップオーバー: `src/components/Overlays/Popover/README.md`
 - 大量マスタからの選択モーダル: `src/components/Overlays/AsyncPickerModal/README.md`
