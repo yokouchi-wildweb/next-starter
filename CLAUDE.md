@@ -32,7 +32,7 @@ district_map: what exists and what each district holds → src/lib/districtMap (
 ## TOOLS (the context and a full set of tools hold up ai_native)
 use: a step a tool covers is never built by hand → run the tool | unsure which tool → scripts/README.md and the descriptions in .claude/skills/
 - build: pnpm forge (domains, roles, profiles end to end) | pnpm generate \<target\> (domain, role, registry, routes, cron, extensions, styles)
-- check: pnpm check [--gate=ship] (generator drift, rules, notices, lint) | pnpm test [--changed] | pnpm typecheck | pnpm lint
+- check: pnpm check [--gate=ship] | pnpm test [--changed] | pnpm typecheck | pnpm lint = what /ship runs | checks run only inside the shipping tools (/ship, /flux segments), never before them → core/notices.md checks_in_ship
 - workflow: pnpm workflow \<area\> (ownership, rules, notices, worktree, devcheck, repo-json …) | ops: pnpm ops \<area\> (setup env, features, db inspect, firestore inspect) | task: pnpm task \<name\> (every ops task, no ad-hoc)
 - running_app: a check that needs the running app → /devcheck (an order's check sheet → /patrol) | what the agent may run = repo.json agent.* policy, never stated here, changed only by /repo-policy
 - skills: /ship (checks, notice, commit, push) | /flux (take a parent's changes) | /order /inbox /wen (orders) | /devcheck /patrol (the running app) | /allow /repo-policy (what the agent may run) | the rest → .claude/skills/
@@ -109,7 +109,7 @@ commands: write domain.json / *.role.json / *.profile.json by hand (no interacti
 - single steps: pnpm generate domain -- \<Domain\> [--only \<categories\>] | --delete \<Domain\> --confirm \<snake_name\> | `-i` (interactive) never in agent work, CI or notices
 schema_registry (MANDATORY): src/registry/schemaRegistry.ts = the only push entry (pnpm db:push), generated whole by pnpm generate registry | new table → pnpm generate registry + a notice with `[user-run] db:push` | unregistered = never created, writes fail silently | → core/db.md
 service_registry (MANDATORY): serviceRegistry = the one way to resolve a domain name ↔ service / table / id column (never a per-feature map) | server callers → src/wiring/domainRegistry.ts, a lib takes the registry passed in | → core/api-routes.md lookup
-push_roundtrip (MANDATORY when adding/changing an index): after `pnpm db:push` (who runs it = repo.json agent.db_push), `pnpm db:push:check` must report zero statements (read-only, the agent may run it)
+push_roundtrip (MANDATORY when adding/changing an index): after `pnpm db:push` (who runs it = repo.json agent.db_push), `pnpm db:push:check` must report zero statements (a read-only check of the DB, not a code check; the agent may run it)
 - never `sql\`${col} DESC\`` (use .desc()) or plain columns mixed with sql expressions in one index (DROP+CREATE on every push = write lock) | push may lock tables → maintenance / low traffic | → core/db.md
 setting (core): admin changes it while running = setting, fixed at deploy or structural = config | values that mean nothing apart are one key with parts | keys and sections → items/features/setting.md
 - each key has one home per repo: the admin + DB by default, or code when listed in the setting config's codeValues (→ items/features/setting.md code_values) | no other switch

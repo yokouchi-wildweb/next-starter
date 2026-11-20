@@ -13,5 +13,5 @@ using:
 - line_height: change line height with `leading-*` in className (a size class drops the base leading-relaxed)
 - heading_restyle: a fork restyles headings by their data-slot marks, never renames them | the `slot` prop is only for the upstream wrappers drawing the same element (AdminPageTitleHeading, AppFrames/Admin/Elements/SecTitle)
 editing:
-- heading_slot_notice: removing or renaming a data-slot mark → notice | keep pnpm test src/components/TextBlocks/headingSlots.test.tsx passing
+- heading_slot_notice: removing or renaming a data-slot mark → notice | src/components/TextBlocks/headingSlots.test.tsx guards it (/ship runs it)
 read: pick a part, inline / inherit cases → Usage | variant values → API | downstream look, data-slot marks → Extension | slot precedence, leading → Internals | tests → Verification
