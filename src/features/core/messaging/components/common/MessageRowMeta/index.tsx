@@ -11,7 +11,7 @@
 import type { ReactNode } from "react";
 import { ChevronRight, Clock, Send, Tag, type LucideIcon } from "lucide-react";
 
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Flex } from "@/components/Layout/Flex";
 import { Span } from "@/components/TextBlocks/Span";
 

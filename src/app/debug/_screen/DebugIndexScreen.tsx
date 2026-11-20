@@ -5,8 +5,10 @@
 // 認可は debug/layout.tsx が一括で行う。
 
 import type { ScreenProps } from "@/lib/screens/types";
-import { Main, Stack } from "@/components/Layout";
-import { Para, SecTitle } from "@/components/TextBlocks";
+import { Main } from "@/components/Layout/Main";
+import { Stack } from "@/components/Layout/Stack";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 
 import { loadDebugIndexScreen } from "./loader";
 

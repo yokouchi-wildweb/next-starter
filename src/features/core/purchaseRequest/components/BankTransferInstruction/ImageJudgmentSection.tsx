@@ -24,12 +24,13 @@
 import { useEffect, useState } from "react";
 import { Brain, CircleCheck, CircleX, RefreshCw } from "lucide-react";
 
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Para, Span } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 
 import { useBankTransferImageJudge } from "@/features/core/purchaseRequest/hooks/useBankTransferImageJudge";
 import type { JudgmentResult, StrictChecks } from "@/features/core/purchaseRequest/types/bankTransferJudgment";

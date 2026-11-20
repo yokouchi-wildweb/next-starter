@@ -9,7 +9,7 @@ import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { Stack } from "@/components/Layout/Stack";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 import { loadSignupClosedScreen } from "./loader";
 

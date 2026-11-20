@@ -18,7 +18,7 @@ mock.module("@/features/purchaseRequest/utils/paymentMethods", {
   },
 });
 // next/link を描かずに済むように Link を素の a に置き換える
-mock.module("@/components/Navigation", {
+mock.module("@/components/Navigation/Link", {
   namedExports: { Link: ({ href, children }: { href: string; children: unknown }) => createElement("a", { href }, children as never) },
 });
 

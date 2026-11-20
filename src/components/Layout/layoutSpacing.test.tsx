@@ -9,11 +9,29 @@ import assert from "node:assert/strict";
 import { createElement, type ReactElement } from "react";
 
 let render: (node: ReactElement) => string;
-let L: typeof import("./index");
+/** 余白 prop を持つ Layout の部品(単位のファイルから読む。棚の Layout に入口の index は無い) */
+let L: {
+  Block: typeof import("./Block").Block;
+  Flex: typeof import("./Flex").Flex;
+  Grid: typeof import("./Grid").Grid;
+  InBlock: typeof import("./InBlock").InBlock;
+  Main: typeof import("./Main").Main;
+  Section: typeof import("./Section").Section;
+  Stack: typeof import("./Stack").Stack;
+};
 let SPACING_CLASSES: typeof import("@/lib/spacing").SPACING_CLASSES;
 before(async () => {
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
-  L = await import("./index");
+  const [{ Block }, { Flex }, { Grid }, { InBlock }, { Main }, { Section }, { Stack }] = await Promise.all([
+    import("./Block"),
+    import("./Flex"),
+    import("./Grid"),
+    import("./InBlock"),
+    import("./Main"),
+    import("./Section"),
+    import("./Stack"),
+  ]);
+  L = { Block, Flex, Grid, InBlock, Main, Section, Stack };
   ({ SPACING_CLASSES } = await import("@/lib/spacing"));
 });
 

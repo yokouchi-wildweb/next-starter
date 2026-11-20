@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import type { CSSProperties, SyntheticEvent } from "react";
 import { Block } from "@/components/Layout/Block";
 import { PreviewImage } from "@/components/Media/PreviewImage";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 
 export type ImagePreviewProps = {
   src: string;

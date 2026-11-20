@@ -4,8 +4,9 @@ import { useState } from "react";
 
 import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Stack } from "@/components/Layout/Stack";
-import { Link } from "@/components/Navigation";
-import { Para, Span } from "@/components/TextBlocks";
+import { Link } from "@/components/Navigation/Link";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import { MediaUploaderMulti } from "@/lib/mediaInputSuite";
 
 export const MediaUploadMultiDemo = () => {

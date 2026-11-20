@@ -46,7 +46,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { StateTabs, StateTabsContent } from "@/components/Navigation/StateTabs";
 import { Span } from "@/components/TextBlocks/Span";
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { cn } from "@/lib/cn";
 import { type SearchParams, type PaginatedResult, type SearchRankSpec } from "@/lib/crud/types";
 

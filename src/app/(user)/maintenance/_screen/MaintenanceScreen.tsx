@@ -10,7 +10,7 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 import { loadMaintenanceScreen } from "./loader";
 import { MaintenanceAutoRedirect } from "./MaintenanceAutoRedirect";

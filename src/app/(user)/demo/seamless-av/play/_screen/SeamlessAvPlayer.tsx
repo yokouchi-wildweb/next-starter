@@ -9,7 +9,7 @@ import { Block } from "@/components/Layout/Block";
 import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 type Props = {
   manifest: ReelManifest | null;

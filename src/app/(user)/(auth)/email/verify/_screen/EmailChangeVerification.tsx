@@ -4,14 +4,14 @@
 
 "use client";
 
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { CheckCircleIcon, XCircleIcon, MailIcon, LockIcon } from "lucide-react";
 import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button/Button";
 import { useEmailChangeVerification } from "@/features/core/auth/hooks/useEmailChangeVerification";
 

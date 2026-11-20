@@ -21,7 +21,7 @@ import { useState } from "react";
 import { Dialog } from "@/components/Overlays/Dialog";
 import { Flex } from "@/components/Layout/Flex";
 import { Button } from "@/components/Form/Button/Button";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 import { Stack } from "@/components/Layout/Stack";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";

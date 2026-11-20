@@ -3,7 +3,7 @@
 // サインアップ画面全体を表すセクションコンテナです。
 // Server Component として機能し、個別のサインアップ手段は子コンポーネントに委譲します。
 
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 
 import { VerificationEmailSendForm } from "./EmailVarification/sendForm";
 import { ThirdPartySignupOptions } from "./ThirdPartySignupOptions";
@@ -12,7 +12,8 @@ import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
-import { Para, Span } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 
 export { EarlyRegistrationSendForm } from "./EarlyRegistration/SendForm";
 export { ThirdPartySignupOptions } from "./ThirdPartySignupOptions";

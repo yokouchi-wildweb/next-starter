@@ -10,7 +10,10 @@ import { Button } from "@/components/Form/Button/Button";
 import { Section } from "@/components/Layout/Section";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
-import { PageTitle, Para, SecTitle, Span } from "@/components/TextBlocks";
+import { PageTitle } from "@/components/TextBlocks/PageTitle";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
+import { Span } from "@/components/TextBlocks/Span";
 import { useToast } from "@/lib/toast";
 
 // Popover コンポーネント群

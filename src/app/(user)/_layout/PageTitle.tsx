@@ -1,7 +1,7 @@
 // src/app/(user)/_layout/PageTitle.tsx
 
 import { Section } from "@/components/Layout/Section";
-import { PageTitle as BasePageTitle, type PageTitleProps } from "@/components/TextBlocks";
+import { PageTitle as BasePageTitle, type PageTitleProps } from "@/components/TextBlocks/PageTitle";
 
 export type UserPageTitleProps = PageTitleProps;
 

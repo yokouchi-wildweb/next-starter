@@ -3,7 +3,7 @@
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import type { WalletType } from "@/features/wallet/config";
 import type { PurchaseBonus } from "@/features/core/wallet/types/purchaseBonus";
 import { getCurrencyConfig } from "@/features/core/wallet/utils/currency";

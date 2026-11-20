@@ -4,8 +4,8 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import SecTitle from "@/components/AppFrames/Admin/Elements/SecTitle";
-import { Span } from "@/components/TextBlocks";
+import SecTitle from "@/components/Admin/SecTitle";
+import { Span } from "@/components/TextBlocks/Span";
 import { adminConfig } from "@/features/admin/config";
 
 import { DeveloperMotivationChart } from "../parts/DeveloperMotivationChart";

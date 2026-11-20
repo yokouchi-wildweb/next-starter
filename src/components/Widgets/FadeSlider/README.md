@@ -2,7 +2,7 @@
 
 ## Overview
 
-- クロスフェード型のスライダー。`ScrollSlider` と共通の状態契約(controlled/uncontrolled + imperative API)を実装する。入口は `@/components/Widgets`
+- クロスフェード型のスライダー。`ScrollSlider` と共通の状態契約(controlled/uncontrolled + imperative API)を実装する。`@/components/Widgets/FadeSlider` から読む(Widgets に入口の index は無い)
 
 ## Usage
 

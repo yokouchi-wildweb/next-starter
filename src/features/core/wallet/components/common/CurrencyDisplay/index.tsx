@@ -2,9 +2,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { CountUp } from "@/components/Animation";
+import { CountUp } from "@/components/Animation/CountUp";
 import { InBlock } from "@/components/Layout/InBlock";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { cn } from "@/lib/cn";
 import type { WalletType } from "@/features/wallet/config";
 import { getCurrencyConfig } from "@/features/core/wallet/utils/currency";

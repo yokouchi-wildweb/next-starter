@@ -7,7 +7,7 @@ import type { WalletHistoryBatchSummarySerialized } from "@/features/core/wallet
 import type { WalletHistory } from "@/features/core/walletHistory/entities";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
 import { Flex } from "@/components/Layout/Flex";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import {
   WalletHistoryChangeMethodOptions,
   WalletHistorySourceTypeOptions,

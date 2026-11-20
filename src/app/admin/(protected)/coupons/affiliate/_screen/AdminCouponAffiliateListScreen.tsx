@@ -9,7 +9,7 @@ import type { ScreenProps } from "@/lib/screens/types";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
+import ListTop from "@/components/Admin/ListTop";
 import { Para } from "@/components/TextBlocks/Para";
 import { couponConfig } from "@/features/coupon/config";
 import { Construction } from "lucide-react";

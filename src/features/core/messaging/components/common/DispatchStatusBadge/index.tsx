@@ -3,7 +3,7 @@
 
 "use client";
 
-import { SoftBadge, type SoftBadgeProps } from "@/components/Badge";
+import { SoftBadge, type SoftBadgeProps } from "@/components/Badge/SoftBadge";
 
 type Variant = NonNullable<SoftBadgeProps["variant"]>;
 

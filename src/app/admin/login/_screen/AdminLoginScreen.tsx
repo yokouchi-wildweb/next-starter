@@ -5,11 +5,11 @@
 //
 // ログイン後の遷移先とログイン済みの redirect は loader が担う。フォームはセクションコンテナ AdminLogin。
 
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
-import { Main } from "@/components/TextBlocks";
+import { Main } from "@/components/Layout/Main";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { AdminLogin } from "@/features/core/auth/components/AdminLogin";
 import type { ScreenProps } from "@/lib/screens/types";

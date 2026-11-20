@@ -3,7 +3,7 @@
 "use client";
 
 import { useState } from "react";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { SortableList, type ReorderResult } from "@/lib/sortableList";
 import type { __Domain__ } from "@/features/__domain__/entities/model";
 import { Block } from "@/components/Layout/Block";
@@ -11,7 +11,7 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Button } from "@/components/Form/Button/Button";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { useReorder__Domain__ } from "@/features/__domain__/hooks/useReorder__Domain__";
 import { useLoadingToast } from "@/lib/toast";
 

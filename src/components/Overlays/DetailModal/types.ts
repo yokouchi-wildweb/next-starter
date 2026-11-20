@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 
-import type { BadgeVariant } from "@/components/Badge";
+import type { BadgeVariant } from "@/components/Badge/badge-variants";
 
 export type DetailModalCell = {
   label: ReactNode;

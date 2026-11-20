@@ -7,7 +7,8 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
-import { Main, Para } from "@/components/TextBlocks";
+import { Main } from "@/components/Layout/Main";
+import { Para } from "@/components/TextBlocks/Para";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import AdminSetupForm from "./AdminSetupForm";
 

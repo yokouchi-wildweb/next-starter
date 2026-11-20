@@ -1,7 +1,7 @@
 // src/lib/sortableList/components/StaticItem.tsx
 
 import { memo } from "react";
-import { Flex } from "@/components/Layout";
+import { Flex } from "@/components/Layout/Flex";
 import { cn } from "@/lib/cn";
 import { DragHandle } from "./DragHandle";
 import type {

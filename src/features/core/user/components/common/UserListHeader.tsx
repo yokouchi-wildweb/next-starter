@@ -3,10 +3,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
-import { Pagination } from "@/components/Navigation";
-import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
-import SortSelect from "@/components/AppFrames/Admin/Elements/SortSelect";
+import ListTop from "@/components/Admin/ListTop";
+import Pagination from "@/components/Navigation/Pagination";
+import SearchBox from "@/components/Admin/SearchBox";
+import SortSelect from "@/components/Admin/SortSelect";
 import { CreateButton } from "@/lib/crud/components/Buttons";
 
 export type UserListSortOption = { label: string; value: string };

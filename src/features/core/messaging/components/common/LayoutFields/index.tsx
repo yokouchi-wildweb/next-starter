@@ -10,7 +10,7 @@
 
 import { Controller, type Control, type FieldValues, type Path } from "react-hook-form";
 
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";

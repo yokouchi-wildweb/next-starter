@@ -5,7 +5,8 @@
 
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
-import { Para, Span } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import type { ImportResultData } from "../types";
 
 export type ImportResultProps = {

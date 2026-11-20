@@ -4,7 +4,7 @@
 // downstream 追加分 = adminSectionTabs/ の項目(一覧 extensions/sectionTabs)を末尾に連結する(enabled() が false の項目は外す)。
 // クーポン管理画面（core / downstream 問わず）はローカルでタブ配列を組まず、必ずこの関数を使う。
 
-import type { PageTabItem } from "@/components/Navigation";
+import type { PageTabItem } from "@/components/Navigation/PageTab";
 import { CouponTypeOptions } from "@/features/core/coupon/constants/field";
 import { sectionTabs } from "@/features/core/coupon/extensions/sectionTabs";
 import type { CouponSectionTabItem } from "@/features/core/coupon/types/sectionTab";

@@ -1,7 +1,8 @@
 "use client";
 
 import { Block } from "@/components/Layout/Block";
-import { Para, SecTitle } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 
 import type { LegalDocumentRendererProps, LegalEnactedAtFormat } from "../definition";
 import { PlainRenderer } from "./PlainRenderer";

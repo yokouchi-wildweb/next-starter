@@ -11,7 +11,7 @@ import { Input } from "@/components/Form/Input/Manual";
 import { Flex } from "@/components/Layout/Flex";
 import { InBlock } from "@/components/Layout/InBlock";
 import { Stack } from "@/components/Layout/Stack";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 import { ActionPopover } from "@/components/Overlays/Popover";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { AppImage } from "@/components/Media/AppImage";

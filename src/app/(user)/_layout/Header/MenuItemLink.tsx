@@ -6,7 +6,7 @@
  */
 
 import { InBlock } from "@/components/Layout/InBlock";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 
 export type MenuItemLinkProps = {
   readonly href?: string | null;

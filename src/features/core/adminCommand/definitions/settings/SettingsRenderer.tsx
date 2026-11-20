@@ -10,7 +10,8 @@ import { Button } from "@/components/Form/Button";
 import { Input } from "@/components/Form/Input/Manual";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
-import { Para, Span } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import {
   Command,
   CommandEmpty,

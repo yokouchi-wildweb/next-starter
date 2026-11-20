@@ -8,7 +8,7 @@
 
 "use client";
 
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { SelectPopover } from "@/components/Overlays/Popover";

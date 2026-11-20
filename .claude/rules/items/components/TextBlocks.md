@@ -3,7 +3,7 @@ paths:
   - "src/components/TextBlocks/**"
 ---
 # components/TextBlocks
-what: the text wrappers PageTitle (h1), SecTitle (h2, `as` h1-h6), Para (p), Span (span) with tone / size / weight / align / srOnly variants, entry @/components/TextBlocks
+what: the text wrappers PageTitle (h1), SecTitle (h2, `as` h1-h6), Para (p), Span (span) with tone / size / weight / align / srOnly variants, each a unit @/components/TextBlocks/\<Part\>
 use: always
 change: placement → look = `pageTitle` / `secTitle` / `para` / `span` keys of src/config/lib/variantOverrides.config.ts | heading look = fork CSS on the data-slot marks
 rules:

@@ -574,9 +574,9 @@ const linkViaShelf = {
     docs: { description: "next/link を直接 import しない(棚の Link を使う)。fork は閉じられる住所の字面を持つファイルだけ" },
     messages: {
       rawNextLink:
-        '"next/link" を直接 import しません。棚の Link(import { Link } from "@/components/Navigation")を使うと閉じた機能の住所へのリンクが自動で消えます(閉じていても出すなら gate="always"。src/components/Navigation/Link/README.md)',
+        '"next/link" を直接 import しません。棚の Link(import { Link } from "@/components/Navigation/Link")を使うと閉じた機能の住所へのリンクが自動で消えます(閉じていても出すなら gate="always"。src/components/Navigation/Link/README.md)',
       rawNextLinkClosable:
-        '"next/link" のリンクが閉じられる住所 "{{text}}"(門番の規則 {{pattern}})を指しています。棚の Link(import { Link } from "@/components/Navigation")を使うと機能を閉じたとき自動で消えます(src/components/Navigation/Link/README.md)',
+        '"next/link" のリンクが閉じられる住所 "{{text}}"(門番の規則 {{pattern}})を指しています。棚の Link(import { Link } from "@/components/Navigation/Link")を使うと機能を閉じたとき自動で消えます(src/components/Navigation/Link/README.md)',
     },
     schema: [
       {

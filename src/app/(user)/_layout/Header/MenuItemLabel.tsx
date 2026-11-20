@@ -6,7 +6,7 @@
 
 import type { ReactNode } from "react";
 
-import type { IconComponent } from "@/components/Icons";
+import type { IconComponent } from "@/components/Icons/types";
 import { InBlock } from "@/components/Layout/InBlock";
 
 export type MenuItemLabelProps = {

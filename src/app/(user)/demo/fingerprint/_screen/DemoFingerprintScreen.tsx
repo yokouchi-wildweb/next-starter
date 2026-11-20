@@ -4,7 +4,9 @@
 import type { ScreenProps } from "@/lib/screens/types";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { Main, PageTitle, Para } from "@/components/TextBlocks";
+import { Main } from "@/components/Layout/Main";
+import { PageTitle } from "@/components/TextBlocks/PageTitle";
+import { Para } from "@/components/TextBlocks/Para";
 
 import { FingerprintDemo } from "./FingerprintDemo";
 

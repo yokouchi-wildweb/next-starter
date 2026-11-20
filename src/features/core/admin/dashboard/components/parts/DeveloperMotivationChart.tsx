@@ -1,7 +1,7 @@
 // src/features/core/admin/dashboard/components/parts/DeveloperMotivationChart.tsx
 
 import { Flex } from "@/components/Layout/Flex";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 
 interface DeveloperMotivationChartProps {
   percentage: number;

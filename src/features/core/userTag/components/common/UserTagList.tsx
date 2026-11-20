@@ -6,9 +6,9 @@ import { useMemo } from "react";
 import type { UserTag } from "@/features/core/userTag/entities/model";
 import { useUserTagList } from "@/features/core/userTag/hooks/useUserTagList";
 import { getTagColorStyle } from "@/features/core/userTag/constants/colors";
-import { SolidBadge, type SolidBadgeProps } from "@/components/Badge";
+import { SolidBadge, type SolidBadgeProps } from "@/components/Badge/SolidBadge";
 import { Stack } from "@/components/Layout/Stack";
-import type { SpacingValue } from "@/components/Layout/spacing";
+import type { SpacingValue } from "@/lib/spacing";
 import { cn } from "@/lib/cn";
 
 export type UserTagListProps = {

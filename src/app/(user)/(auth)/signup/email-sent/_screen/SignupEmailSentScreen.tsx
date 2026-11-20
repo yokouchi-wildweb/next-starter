@@ -5,11 +5,11 @@
 // loader は access の評価だけ(public。送信先の表示と再送はセクションコンテナ VerificationEmailSent が client 側で扱う)。
 
 import type { ScreenProps } from "@/lib/screens/types";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 import { VerificationEmailSent } from "@/features/core/auth/components/VerificationEmailSent";
 
 import { loadSignupEmailSentScreen } from "./loader";

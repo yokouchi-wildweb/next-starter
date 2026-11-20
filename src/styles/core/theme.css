@@ -100,7 +100,7 @@
  * キオスク・サイネージ・タブレット端末画面など「スクロール禁止・1 画面に収める」用途で、
  * 固定 px (text-5xl 等) の代わりに使う。向き分岐は Tailwind 組み込みの portrait: / landscape:、
  * 高さ不足は short:（上記）。余白の流体化は `p-[clamp(1rem,3vmin,2rem)]` の任意値で書く
- * (レシピ: src/components/AppFrames/Kiosk/README.md)。
+ * (レシピ: src/components/Layout/README.md「KioskFrame と 1 画面に収める画面」)。
  */
 @theme {
   --text-fluid-xs: clamp(0.75rem, 1.6vmin, 0.875rem);

@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { AlignLeft } from "lucide-react";
 
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Button } from "@/components/Form/Button";
 import { SelectInput, SwitchInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";

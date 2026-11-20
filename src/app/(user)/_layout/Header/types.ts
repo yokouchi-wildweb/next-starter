@@ -4,7 +4,7 @@
 
 import type { ReactNode } from "react";
 
-import type { IconComponent } from "@/components/Icons";
+import type { IconComponent } from "@/components/Icons/types";
 
 // ============================================
 // 型定義

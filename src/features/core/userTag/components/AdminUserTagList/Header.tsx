@@ -2,9 +2,9 @@
 
 "use client";
 
-import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
-import { Pagination } from "@/components/Navigation";
-import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
+import ListTop from "@/components/Admin/ListTop";
+import Pagination from "@/components/Navigation/Pagination";
+import SearchBox from "@/components/Admin/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import { CreateButton } from "@/lib/crud/components";

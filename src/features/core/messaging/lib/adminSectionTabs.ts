@@ -5,7 +5,7 @@
 // 門が閉の画面(messagingTemplates / messagingOverrides)のタブは外す。門の読み方は呼び手が渡す(client は useGate)。
 // 通知の管理画面(上流・下流とも)はタブの配列を自分で組まず、必ずこの関数を使う。
 
-import type { PageTabItem } from "@/components/Navigation";
+import type { PageTabItem } from "@/components/Navigation/PageTab";
 import type { FeatureName } from "@/featureGate";
 
 /** 通知の管理画面のベース URL */

@@ -1,11 +1,11 @@
 // src/features/core/wallet/components/WalletList/index.tsx
 // セクションコンテナ(ウォレット一覧)
 
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { ChevronRight } from "lucide-react";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { getCurrencyIcon } from "@/features/core/wallet/components/common/currencyIcons";
 import type { WalletIndexEntry } from "@/features/core/wallet/types/screen";

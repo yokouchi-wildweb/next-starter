@@ -5,7 +5,7 @@
 
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 import type { ImportProgress as ImportProgressType } from "../types";
 
 export type ImportProgressProps = {

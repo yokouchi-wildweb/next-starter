@@ -5,7 +5,8 @@ import { Wrench } from "lucide-react";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { SecTitle, Para } from "@/components/TextBlocks";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
+import { Para } from "@/components/TextBlocks/Para";
 
 type PurchaseSuspendedProps = {
   /** 表示メッセージ */

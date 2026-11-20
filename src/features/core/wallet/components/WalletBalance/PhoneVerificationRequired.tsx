@@ -10,7 +10,8 @@ import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { SecTitle, Para } from "@/components/TextBlocks";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
+import { Para } from "@/components/TextBlocks/Para";
 import { PhoneVerificationModal } from "@/features/core/phoneVerification/components/PhoneVerification";
 import { usePhoneVerificationModal } from "@/features/core/phoneVerification/hooks/usePhoneVerificationModal";
 

@@ -11,7 +11,7 @@ import { useFormContext } from "react-hook-form";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { NumberInput } from "@/components/Form/Input/Manual";
 import { useGate } from "@/featureGate/client";
 import { walletConfig } from "@/features/wallet/config";

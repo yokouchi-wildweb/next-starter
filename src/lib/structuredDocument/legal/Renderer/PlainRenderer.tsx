@@ -1,5 +1,5 @@
 import { Block } from "@/components/Layout/Block";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 import type { VariableMap } from "../../shared";
 import { replaceVariables } from "../../shared";

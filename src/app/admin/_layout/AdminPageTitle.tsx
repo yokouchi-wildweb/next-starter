@@ -5,7 +5,8 @@ import type { ReactNode } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/cn";
-import { PageTitle as DefaultPageTitle, Span, type PageTitleProps } from "@/components/TextBlocks";
+import { PageTitle as DefaultPageTitle, type PageTitleProps } from "@/components/TextBlocks/PageTitle";
+import { Span } from "@/components/TextBlocks/Span";
 
 const marginBottomClassMap = {
   xs: "mb-2",

@@ -28,7 +28,7 @@ mock.module("@/features/core/messaging/services/client/unsubscribeClient", {
     },
   },
 });
-mock.module("@/components/Navigation", {
+mock.module("@/components/Navigation/Link", {
   namedExports: { Link: ({ href, children }: { href: string; children: unknown }) => createElement("a", { href }, children as never) },
 });
 

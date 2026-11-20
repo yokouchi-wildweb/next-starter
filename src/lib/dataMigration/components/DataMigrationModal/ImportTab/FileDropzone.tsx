@@ -8,7 +8,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
 import { Input } from "@/components/Form/Input/Manual";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 export type FileDropzoneProps = {
   /** 選択されたファイル */

@@ -13,7 +13,7 @@ import type {
 import { FormProvider } from "react-hook-form";
 
 import { Stack } from "@/components/Layout/Stack";
-import type { SpacingValue } from "@/components/Layout/spacing";
+import type { SpacingValue } from "@/lib/spacing";
 import { useShelfUnsavedSource } from "@/components/Navigation/NavigationPort";
 import type { MediaState, MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
 import { useToast } from "@/lib/toast";

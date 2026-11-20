@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { CheckCircle, AlertCircle } from "lucide-react";
 import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 

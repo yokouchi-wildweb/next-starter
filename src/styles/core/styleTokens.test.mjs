@@ -19,7 +19,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { SPACING_SCALE } from "@/components/Layout/spacingScale";
+import { SPACING_SCALE } from "@/lib/spacing";
 
 const stylesDir = dirname(fileURLToPath(import.meta.url));
 const entryDir = resolve(stylesDir, "..");

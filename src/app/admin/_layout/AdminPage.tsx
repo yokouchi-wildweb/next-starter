@@ -3,7 +3,7 @@
 import type { PropsWithChildren, ReactNode } from "react";
 
 import { Block } from "@/components/Layout/Block";
-import { Main } from "@/components/TextBlocks";
+import { Main } from "@/components/Layout/Main";
 
 import { AdminHeader } from "./AdminHeader";
 import { AdminPageTitleBody, AdminPageTitleCompact } from "./AdminPageTitle";

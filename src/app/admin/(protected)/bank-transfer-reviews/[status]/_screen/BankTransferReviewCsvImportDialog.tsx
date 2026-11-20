@@ -27,7 +27,7 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { Block } from "@/components/Layout/Block";
 import { Label } from "@/components/Form/Label";
-import { SolidBadge } from "@/components/Badge";
+import { SolidBadge } from "@/components/Badge/SolidBadge";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import type { BankTransferReviewImportRowDto } from "@/features/core/bankTransferReview";
 import { useAdminBankTransferReviewCsvImport } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewCsvImport";

@@ -12,7 +12,7 @@
 
 import { useState } from "react";
 
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Button } from "@/components/Form/Button";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";

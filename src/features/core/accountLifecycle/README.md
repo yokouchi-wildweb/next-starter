@@ -7,7 +7,7 @@
 - 休会: `active` → `inactive`(状態の履歴 `self_pause`・監査)
 - 退会: `active` → `withdrawn` + user の `executeCleanup`(受け口 `cleanupHandlers`)・監査を 1 トランザクションで
 - 復帰: `inactive` → `active`(`self_reactivate`)
-- 画面: `/mypage/pause`(`Pause`)・`/mypage/withdraw`(`Withdraw`)・`/reactivate`(`Reactivate`)・`/reactivate/complete`・`/mypage/other`(`OtherActions` = 休会・退会の入口。閉じた機能のカードは棚の Link(`@/components/Navigation` の Link。閉じた機能へのリンクは描かない)が描かない)。ルートは `src/app/(user)/...`
+- 画面: `/mypage/pause`(`Pause`)・`/mypage/withdraw`(`Withdraw`)・`/reactivate`(`Reactivate`)・`/reactivate/complete`・`/mypage/other`(`OtherActions` = 休会・退会の入口。閉じた機能のカードは棚の Link(`@/components/Navigation/Link` の Link。閉じた機能へのリンクは描かない)が描かない)。ルートは `src/app/(user)/...`
 - 呼び出しの層: 画面の部品 → hooks `usePause` / `useWithdraw` / `useReactivate` → ClientService(`services/client`)→ API → ServerService(`services/server`)
 
 ## API

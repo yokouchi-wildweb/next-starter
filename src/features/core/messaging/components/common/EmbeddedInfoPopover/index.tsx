@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { Braces, ChevronDown, ChevronUp, TriangleAlert } from "lucide-react";
 
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";

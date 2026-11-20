@@ -31,7 +31,10 @@ import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
-import { Main, PageTitle, Para, SecTitle } from "@/components/TextBlocks";
+import { Main } from "@/components/Layout/Main";
+import { PageTitle } from "@/components/TextBlocks/PageTitle";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import type { Options, OptionValue } from "@/components/Form/types";
 
 const textOptions: Options[] = [

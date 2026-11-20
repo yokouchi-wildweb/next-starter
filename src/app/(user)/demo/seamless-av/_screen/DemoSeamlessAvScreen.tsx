@@ -2,7 +2,9 @@
 // /demo/seamless-av(デモ)の既定画面。
 
 import type { ScreenProps } from "@/lib/screens/types";
-import { Main, PageTitle, Para } from "@/components/TextBlocks";
+import { Main } from "@/components/Layout/Main";
+import { PageTitle } from "@/components/TextBlocks/PageTitle";
+import { Para } from "@/components/TextBlocks/Para";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 

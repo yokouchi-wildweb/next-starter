@@ -13,7 +13,8 @@ import { AlertTriangle } from "lucide-react";
 
 import { Stack } from "@/components/Layout/Stack";
 import { Dialog } from "@/components/Overlays/Dialog";
-import { Para, Span } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 
 type Props = {
   open: boolean;

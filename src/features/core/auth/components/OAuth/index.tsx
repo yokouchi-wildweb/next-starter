@@ -4,7 +4,7 @@
 
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { Section } from "@/components/Layout/Section";
-import { SecTitle } from "@/components/TextBlocks";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { useOAuthSignupFlow } from "@/features/core/auth/hooks/useOAuthSignupFlow";
 import type { UserProviderType } from "@/features/core/user/types";
 import { InvalidProcessState } from "./InvalidProcessState";

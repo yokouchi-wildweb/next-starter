@@ -14,7 +14,7 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { InBlock } from "@/components/Layout/InBlock";
 import { Stack } from "@/components/Layout/Stack";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { useToast } from "@/lib/toast";
 
 type Props = {

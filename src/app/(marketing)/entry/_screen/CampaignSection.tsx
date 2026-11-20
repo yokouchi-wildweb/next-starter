@@ -3,7 +3,9 @@
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { SecTitle, Para, Span } from "@/components/TextBlocks";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 
 /**
  * キャンペーンセクション

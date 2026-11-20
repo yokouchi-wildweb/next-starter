@@ -15,7 +15,7 @@ import { BulkActionItems, RecordSelectionTable, type DataTableColumn } from "@/l
 import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { PromptPopover } from "@/components/Overlays/Popover";
 import type {
   AdminBankTransferReviewListItem,

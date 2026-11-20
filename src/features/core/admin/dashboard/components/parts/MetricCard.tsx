@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { cn } from "@/lib/cn";
 
 /**

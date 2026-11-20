@@ -7,8 +7,8 @@ import ReCAPTCHA from "react-google-recaptcha";
 
 import { Button } from "@/components/Form/Button";
 import { Dialog } from "@/components/Overlays/Dialog";
-import { Flex } from "@/components/Layout";
-import { Para } from "@/components/TextBlocks";
+import { Flex } from "@/components/Layout/Flex";
+import { Para } from "@/components/TextBlocks/Para";
 
 type RecaptchaV2ChallengeProps = {
   /** モーダルを表示するか */

@@ -20,7 +20,7 @@ using:
 - kiosk_scroll: the frame never scrolls | a scrolling area = a child pane with `overflow-y-auto`
 - kiosk_fluid_text: text on a fluid kiosk screen = `text-fluid-*` (or TextBlocks fluid sizes), not fixed sizes like `text-5xl`
 - kiosk_stage_choice: input-heavy screens (forms, scroll panes) → fluid layout, not ScaledStage | own fixed / portal overlays stay outside it (Overlays/ parts are fine: BodyPortal)
-- fit_scale_ref: the container measured by useFitScale is a raw div (Layout wrappers do not forward ref)
+- fit_scale_ref: the container measured by useFitScale takes its `ref` on a Layout wrapper (layout_ref), never a raw div | ScaledStage measures its own container
 editing:
 - spacing_relay: a part that relays a spacing prop types it SpacingValue from @/lib/spacing (e.g. AppForm `fieldSpace`)
 - fullscreen_no_measure: FullScreen reads `var(--viewport-height, 100dvh)` only, never measures | the general rule = core/style.md viewport_no_measure

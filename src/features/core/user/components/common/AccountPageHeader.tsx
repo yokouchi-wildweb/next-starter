@@ -1,6 +1,6 @@
 // src/features/core/user/components/common/AccountPageHeader.tsx
 
-import { SecTitle } from "@/components/TextBlocks";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Flex } from "@/components/Layout/Flex";
 
 import { AccountBackButton } from "./AccountBackButton";

@@ -12,7 +12,8 @@ import { Button } from "@/components/Form/Button/Button";
 import { ControlledField } from "@/components/Form";
 import { TextInput } from "@/components/Form/Input/Controlled";
 import { Block } from "@/components/Layout/Block";
-import { Para, Span } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import { useEarlyRegistrationSendForm } from "@/features/core/auth/hooks/useEarlyRegistrationSendForm";
 
 export type EarlyRegistrationSendFormProps = {

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { Pencil, type LucideIcon } from "lucide-react";
 import { useSearchParams, usePathname } from "next/navigation";
 

@@ -5,14 +5,12 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { Grid } from "@/components/Layout/Grid";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import {
-  Main,
-  PageTitle,
-  Para,
-  SecTitle,
-  Span,
-} from "@/components/TextBlocks";
-import { appearance } from "@/components/Layout/commonVariants";
+import { Main } from "@/components/Layout/Main";
+import { PageTitle } from "@/components/TextBlocks/PageTitle";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
+import { Span } from "@/components/TextBlocks/Span";
+import { appearance } from "@/components/Layout/appearance";
 import { tone } from "@/components/TextBlocks/textVariants";
 
 import styles from "../page.module.css";

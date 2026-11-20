@@ -4,9 +4,10 @@ import ReactMarkdown from "react-markdown";
 
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { Stack } from "@/components/Layout/Stack";
-import { Para, SecTitle } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 
 import type { VariableMap } from "../../shared";
 import { replaceVariables } from "../../shared";

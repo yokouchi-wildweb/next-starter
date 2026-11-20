@@ -9,7 +9,7 @@ import type { LucideIcon } from "lucide-react";
 import type { IconType } from "react-icons";
 import { FaFacebook, FaInstagram, FaTiktok, FaXTwitter } from "react-icons/fa6";
 
-import type { IconComponent } from "@/components/Icons";
+import type { IconComponent } from "@/components/Icons/types";
 import override, { type Extra } from "@/config/layout/user.ui.config";
 import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
 

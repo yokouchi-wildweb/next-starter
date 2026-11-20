@@ -1,11 +1,12 @@
 // src/app/(marketing)/entry/_screen/EntrySignupSection.tsx
 // 事前登録フォームセクション
 
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { SecTitle, Para } from "@/components/TextBlocks";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
+import { Para } from "@/components/TextBlocks/Para";
 import { EarlyRegistrationSendForm, ThirdPartySignupOptions } from "@/features/core/auth/components/Signup";
 
 export function EntrySignupSection() {

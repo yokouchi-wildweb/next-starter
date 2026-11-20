@@ -9,7 +9,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Input } from "@/components/Form/Input/Manual/Input";
 import { Button } from "@/components/Form/Button/Button";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { Para } from "@/components/TextBlocks/Para";
 import { useValidateCouponForCategory } from "@/features/core/coupon/hooks/useValidateCouponForCategory";
 import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";

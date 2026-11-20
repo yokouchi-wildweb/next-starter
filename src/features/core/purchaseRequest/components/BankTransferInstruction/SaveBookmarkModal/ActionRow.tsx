@@ -15,7 +15,7 @@ import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { InBlock } from "@/components/Layout/InBlock";
 import { Stack } from "@/components/Layout/Stack";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { cn } from "@/lib/cn";
 
 type Props = {

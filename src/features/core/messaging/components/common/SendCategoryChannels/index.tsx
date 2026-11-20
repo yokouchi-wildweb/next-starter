@@ -6,7 +6,7 @@
 
 export { SendKindPicker, type SendKindPickerProps } from "./SendKindPicker";
 
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Check } from "lucide-react";
 
 import { Button } from "@/components/Form/Button";

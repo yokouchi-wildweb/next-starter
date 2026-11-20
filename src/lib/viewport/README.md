@@ -8,7 +8,7 @@
 ## Usage
 
 - `ViewportHeightWatcher` は root layout(`src/app/layout.tsx`)が 1 度だけ描く(上流は置き済み)
-- 高さが要る部品は CSS で `var(--viewport-height, 100dvh)` を読む(`Layout/FullScreen`・`AppFrames/Kiosk` の KioskFrame)
+- 高さが要る部品は CSS で `var(--viewport-height, 100dvh)` を読む(`Layout/FullScreen`・`Layout/KioskFrame`)
 - JS で寸法・向きが要るときはフックで読む
 
 ```tsx

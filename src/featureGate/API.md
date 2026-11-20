@@ -53,7 +53,7 @@ gate.filter(menuItems);          // server の gate.filter と同じ判定(hidde
 
 閉じた機能へのリンクは自動で消える。新しい機能(規則)を足しても、既存のリンク箇所は書き換えない。
 
-- 棚の Link(`@/components/Navigation` の `Link`、next/link の包み)と `LinkButton`: 棚の口 `LinkVisibilityProvider` に `GateProvider` が判定を差し込む。`gate` prop: `auto`(既定、判定に従う)・`always`(閉じていても描く逃げ道)・`hide`(描かない)。棚の README: `src/components/Navigation/Link/README.md`
+- 棚の Link(`@/components/Navigation/Link` の `Link`、next/link の包み)と `LinkButton`: 棚の口 `LinkVisibilityProvider` に `GateProvider` が判定を差し込む。`gate` prop: `auto`(既定、判定に従う)・`always`(閉じていても描く逃げ道)・`hide`(描かない)。棚の README: `src/components/Navigation/Link/README.md`
 - `GatedLink`(`@/featureGate/client`): 同じ判定で描かない。棚の口の差し込みに依らない(口を別の判定で包み直した場所の中でも門番の判定で隠す)
 - 隠すのは「`/` で始まる内部の住所で、今の枠の中の、`redirectTo` の無い閉じた機能の住所」だけ(判定 `tools/client/linkHidden.ts` → `hiddenHref.ts`、`gate.filter` と同じ)。外部 URL・`redirectTo` 付きの閉・枠の外(利用者の枠で `/admin`)・Provider の外は描く(`useGate` と違い throw しない)
 - server component の中から使ってよい(client 部品として Provider の中で SSR され、判定が効く)。server 版の GatedLink は作らない

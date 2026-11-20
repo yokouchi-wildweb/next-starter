@@ -1,6 +1,6 @@
 // src/app/(user)/_layout/UserPage.tsx
 
-import { Main, type MainProps } from "@/components/TextBlocks";
+import { Main, type MainProps } from "@/components/Layout/Main";
 import { userLayoutConfig } from "./config";
 import { cn } from "@/lib/cn";
 

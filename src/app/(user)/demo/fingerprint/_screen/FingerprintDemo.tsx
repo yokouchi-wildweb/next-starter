@@ -22,7 +22,8 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { Para, SecTitle } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 
 const preClass =
   "max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-md border border-border bg-muted/40 p-4 text-xs leading-relaxed";

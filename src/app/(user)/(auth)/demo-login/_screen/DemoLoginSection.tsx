@@ -6,7 +6,8 @@
 
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
-import { Para, SecTitle } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { useDemoLogin } from "@/features/core/demo/hooks/useDemoLogin";
 import { err } from "@/lib/errors";
 

@@ -12,7 +12,7 @@ import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import { useReferralsByInviter } from "@/features/core/referral/hooks/useReferralsByInviter";
 import type { ReferralByInviterItem } from "@/features/core/referral/services/client/referralsByInviter";
 import { formatDateJa } from "@/utils/date";
-import { SolidBadge } from "@/components/Badge";
+import { SolidBadge } from "@/components/Badge/SolidBadge";
 
 export type ReferralListModalProps = {
   /** 招待者のユーザーID */

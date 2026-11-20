@@ -30,7 +30,7 @@ import { CreateButton } from "@/lib/crud/components";
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { EmbeddedInfoPopover } from "@/features/core/messaging/components/common/EmbeddedInfoPopover";
 import { LayoutFields } from "@/features/core/messaging/components/common/LayoutFields";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";

@@ -21,7 +21,8 @@ import { Mail, Share2 } from "lucide-react";
 
 import Modal from "@/components/Overlays/Modal";
 import { Stack } from "@/components/Layout/Stack";
-import { Para, Span } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import { useToast } from "@/lib/toast";
 
 import { ActionRow } from "./ActionRow";
