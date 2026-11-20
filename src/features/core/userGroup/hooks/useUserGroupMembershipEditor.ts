@@ -8,7 +8,7 @@
 // - 印: 反対側にいる人は「除外中」/「含める中」(部品の optionBadge)
 // - apply() = people-apply を 1 回(読み込みの知らせ)→ 結果を知らせて予定を空に、印を忘れる(次に開いた時に取り直す)→ onApplied
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import type { OptionPrimitive } from "@/components/Form/utils";
 import { err } from "@/lib/errors";
@@ -34,8 +34,8 @@ type Flags = { inList: boolean; otherSide: AdminUserGroupPerson["otherSide"] };
 
 export function useUserGroupMembershipEditor({ groupId, target, onApplied }: UseUserGroupMembershipEditorOptions) {
   const { showToast } = useToast();
-  const flagsRef = useRef<Map<string, Flags>>(new Map());
-  const [flagsVersion, setFlagsVersion] = useState(0);
+  // 読み込んだ人の印(入っているか・反対側の状態)。読み込みのたびに新しい Map を state に置く(描画中に ref を読まない)
+  const [flags, setFlags] = useState<ReadonlyMap<string, Flags>>(() => new Map());
   const [pendingAdd, setPendingAdd] = useState<ReadonlySet<string>>(new Set());
   const [pendingRemove, setPendingRemove] = useState<ReadonlySet<string>>(new Set());
   const [applying, setApplying] = useState(false);
@@ -46,8 +46,11 @@ export function useUserGroupMembershipEditor({ groupId, target, onApplied }: Use
     async ({ searchQuery, cursor, limit }: { searchQuery?: string; cursor: string | null; limit: number }) => {
       if (!groupId) return { items: [] as AdminUserGroupPerson[], nextCursor: null };
       const page = await searchUserGroupPeople(groupId, { target, q: searchQuery, cursor, limit });
-      for (const person of page.items) flagsRef.current.set(person.id, { inList: person.inList, otherSide: person.otherSide });
-      setFlagsVersion((v) => v + 1);
+      setFlags((prev) => {
+        const next = new Map(prev);
+        for (const person of page.items) next.set(person.id, { inList: person.inList, otherSide: person.otherSide });
+        return next;
+      });
       return page;
     },
     [groupId, target],
@@ -58,11 +61,10 @@ export function useUserGroupMembershipEditor({ groupId, target, onApplied }: Use
   /** 部品の値(入っている人 − 外す予定 + 足す予定) */
   const value = useMemo(() => {
     const out: string[] = [];
-    for (const [id, flags] of flagsRef.current) if (flags.inList && !pendingRemove.has(id)) out.push(id);
+    for (const [id, personFlags] of flags) if (personFlags.inList && !pendingRemove.has(id)) out.push(id);
     for (const id of pendingAdd) if (!out.includes(id)) out.push(id);
     return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- flagsRef の中身は flagsVersion で読み直す
-  }, [flagsVersion, pendingAdd, pendingRemove]);
+  }, [flags, pendingAdd, pendingRemove]);
 
   const onChange = useCallback(
     (next: OptionPrimitive[]) => {
@@ -72,27 +74,26 @@ export function useUserGroupMembershipEditor({ groupId, target, onApplied }: Use
       const remove = new Set(pendingRemove);
       for (const id of nextSet) {
         if (prevSet.has(id)) continue;
-        if (flagsRef.current.get(id)?.inList) remove.delete(id);
+        if (flags.get(id)?.inList) remove.delete(id);
         else add.add(id);
       }
       for (const id of prevSet) {
         if (nextSet.has(id)) continue;
-        if (flagsRef.current.get(id)?.inList) remove.add(id);
+        if (flags.get(id)?.inList) remove.add(id);
         else add.delete(id);
       }
       setPendingAdd(add);
       setPendingRemove(remove);
     },
-    [value, pendingAdd, pendingRemove],
+    [value, flags, pendingAdd, pendingRemove],
   );
 
   const optionBadge = useCallback(
     (optionValue: OptionPrimitive) => {
-      const side = flagsRef.current.get(String(optionValue))?.otherSide ?? null;
+      const side = flags.get(String(optionValue))?.otherSide ?? null;
       return side === "exclude" ? "除外中" : side === "include" ? "含める中" : null;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- flagsRef の中身は flagsVersion で読み直す
-    [flagsVersion],
+    [flags],
   );
 
   const apply = useCallback(async () => {
@@ -102,8 +103,7 @@ export function useUserGroupMembershipEditor({ groupId, target, onApplied }: Use
       const result = await applyUserGroupPeople(groupId, { target, add: [...pendingAdd], remove: [...pendingRemove] });
       setPendingAdd(new Set());
       setPendingRemove(new Set());
-      flagsRef.current.clear();
-      setFlagsVersion((v) => v + 1);
+      setFlags(new Map());
       const parts = [`追加 ${result.added} 名`, `削除 ${result.removed} 名`, ...(result.moved > 0 ? [`反対側から移動 ${result.moved} 名`] : [])];
       showToast(`適用しました(${parts.join("・")})`, "success");
       onApplied?.(result);

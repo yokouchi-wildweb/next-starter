@@ -68,10 +68,11 @@ export default function Scene() {
 
   // 毎フレーム実行されるアニメーション処理
   // 時刻 t を基に各オブジェクトの状態を更新します
+  // three.js のマテリアルの uniform は毎フレーム命令的に書き換える(react-three-fiber の通常の使い方)
+  // eslint-disable-next-line react-hooks/immutability -- useMemo で作った three.js のマテリアルを useFrame の中で書き換える(描画の値ではない)
   useFrame(({ camera }) => {
     const t = (performance.now() - start.current) / 1000;
-    // three.js のマテリアルの uniform は毎フレーム命令的に書き換える(react-three-fiber の通常の使い方)
-    /* eslint-disable react-hooks/immutability */
+    /* eslint-disable react-hooks/immutability -- 同じ理由(マテリアルの uniform を命令的に書き換える) */
     (starMaterial as THREE.ShaderMaterial).uniforms.time.value = t;
     (lightningMaterial as THREE.ShaderMaterial).uniforms.time.value = t;
     (circleMaterial as THREE.ShaderMaterial).uniforms.time.value = t;

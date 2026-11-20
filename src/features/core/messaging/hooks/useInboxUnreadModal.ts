@@ -102,6 +102,7 @@ export function useInboxUnreadModal(options: UseInboxUnreadModalOptions = {}) {
     const fresh = items.filter((item) => !item.read && !confirmed.has(item.id));
     if (fresh.length === 0) return;
     const sorted = [...fresh].sort((a, b) => new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime());
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 取得の結果と確認済みの記録(sessionStorage)・開いている間の ref を読んで 1 回だけ開く。描画の中では外部の記録と ref を読めない
     setQueue(sorted);
     setIndex(0);
     setOpen(true);

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useRef, useState, useMemo, useEffect } from "react";
+import { useCallback, useRef, useState, useMemo, useEffect, useLayoutEffect } from "react";
 import type { FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
@@ -119,8 +119,10 @@ export function useAutoSave<TFieldValues extends FieldValues>({
     }
   }, [enabled, onSave, trigger, getValues, reset, showToast, formState]);
 
-  // performSaveの最新参照をRefに保持
-  performSaveRef.current = performSave;
+  // performSaveの最新参照をRefに保持（描画が確定した時点で入れる。描画中には ref を書かない）
+  useLayoutEffect(() => {
+    performSaveRef.current = performSave;
+  }, [performSave]);
 
   /**
    * フィールドblur時のハンドラ

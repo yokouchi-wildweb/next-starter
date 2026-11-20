@@ -40,7 +40,7 @@ export type UseChatMessagesReturn = {
  */
 export function useChatMessages(roomId: string | null): UseChatMessagesReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(Boolean(roomId));
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -50,23 +50,28 @@ export function useChatMessages(roomId: string | null): UseChatMessagesReturn {
   // 新着購読の解除関数
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
-  // 初回取得 + 新着購読の開始
-  useEffect(() => {
-    if (!roomId) {
-      setMessages([]);
+  // 部屋が変わったら表示の state を描画の中で戻す(前の部屋と比べる。effect で戻すと 1 描画だけ前の部屋の行が出る)
+  const [shownRoomId, setShownRoomId] = useState(roomId);
+  if (shownRoomId !== roomId) {
+    setShownRoomId(roomId);
+    setMessages([]);
+    if (roomId) {
+      setIsLoading(true);
+      setError(null);
+    } else {
       setIsLoading(false);
       setHasMore(true);
-      cursorRef.current = null;
-      return;
     }
+  }
+
+  // 初回取得 + 新着購読の開始
+  useEffect(() => {
+    cursorRef.current = null;
+    if (!roomId) return;
 
     let isActive = true;
 
     async function init() {
-      setIsLoading(true);
-      setError(null);
-      setMessages([]);
-      cursorRef.current = null;
 
       try {
         const result = await fetchPastMessages(roomId!);

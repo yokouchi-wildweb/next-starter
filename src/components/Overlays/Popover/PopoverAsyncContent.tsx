@@ -107,11 +107,9 @@ export function PopoverAsyncContent<T>({
   });
   const isMountedRef = useRef(true);
 
-  // データ取得
+  // データ取得(読み込み中の表示は初期値と retry が持つ。effect の中で同期に state を書かない)
   const fetchData = useCallback(async () => {
     const startTime = Date.now();
-    setIsLoading(true);
-    setError(null);
 
     try {
       const result = await fetcherRef.current();
@@ -141,6 +139,8 @@ export function PopoverAsyncContent<T>({
 
   // 再試行
   const retry = useCallback(() => {
+    setIsLoading(true);
+    setError(null);
     fetchData();
   }, [fetchData]);
 

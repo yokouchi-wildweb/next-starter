@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 /**
  * 非同期アクションの並行実行を防ぐフック。
@@ -20,7 +20,10 @@ export function useAsyncAction<TArgs extends unknown[], TResult>(
 ) {
   const lockRef = useRef(false);
   const actionRef = useRef(action);
-  actionRef.current = action;
+  // 最新の action を ref に入れる(描画が確定した時点。描画中には ref を書かない)
+  useLayoutEffect(() => {
+    actionRef.current = action;
+  });
 
   const [isExecuting, setIsExecuting] = useState(false);
 

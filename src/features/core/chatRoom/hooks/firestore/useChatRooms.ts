@@ -25,7 +25,7 @@ export type UseChatRoomsReturn = {
  */
 export function useChatRooms(uid: string | null, options?: SubscribeRoomsOptions): UseChatRoomsReturn {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(Boolean(uid));
   const [error, setError] = useState<Error | null>(null);
 
   const handleError = useCallback((err: Error) => {
@@ -40,15 +40,22 @@ export function useChatRooms(uid: string | null, options?: SubscribeRoomsOptions
     : options?.type ?? "";
   const excludeKey = options?.excludeTypes?.slice().sort().join(",") ?? "";
 
-  useEffect(() => {
-    if (!uid) {
+  // 購読の条件が変わったら表示の state を描画の中で戻す(前の条件と比べる。effect で戻すと 1 描画ずれる)
+  const subscriptionKey = !uid ? null : [uid, typeKey, excludeKey].join("\n");
+  const [shownKey, setShownKey] = useState(subscriptionKey);
+  if (shownKey !== subscriptionKey) {
+    setShownKey(subscriptionKey);
+    if (subscriptionKey === null) {
       setRooms([]);
       setIsLoading(false);
-      return;
+    } else {
+      setIsLoading(true);
+      setError(null);
     }
+  }
 
-    setIsLoading(true);
-    setError(null);
+  useEffect(() => {
+    if (!uid) return;
 
     const unsubscribe = subscribeRooms(
       uid,

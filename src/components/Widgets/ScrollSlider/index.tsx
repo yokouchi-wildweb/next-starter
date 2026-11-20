@@ -7,6 +7,7 @@ import {
   useEffect,
   useId,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -240,7 +241,10 @@ export function ScrollSlider<T>({
   const [canScrollPrev, setCanScrollPrev] = useState(false)
   const [canScrollNext, setCanScrollNext] = useState(false)
   const onIndexChangeRef = useRef(onIndexChange)
-  onIndexChangeRef.current = onIndexChange
+  // 最新の onIndexChange を ref に入れる(描画が確定した時点。描画中には ref を書かない)
+  useLayoutEffect(() => {
+    onIndexChangeRef.current = onIndexChange
+  })
 
   useEffect(() => {
     if (!api) return

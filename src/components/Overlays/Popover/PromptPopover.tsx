@@ -144,16 +144,19 @@ export function PromptPopover({
     [isControlled, onOpenChange]
   );
 
-  // 開いた時の処理
+  // 開いた時の値の初期化: 描画の中で前の open と比べて行う(effect で後から入れると 1 描画だけ前の値が出る)
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setValue(clearOnOpen ? "" : defaultValue);
+      setError(null);
+    }
+  }
+
+  // 開いた時にフォーカスを入力欄に移動
   useEffect(() => {
     if (open) {
-      if (clearOnOpen) {
-        setValue("");
-      } else {
-        setValue(defaultValue);
-      }
-      setError(null);
-      // フォーカスを入力欄に移動
       setTimeout(() => {
         if (multiline) {
           textareaRef.current?.focus();
@@ -162,7 +165,7 @@ export function PromptPopover({
         }
       }, 0);
     }
-  }, [open, clearOnOpen, defaultValue, multiline]);
+  }, [open, multiline]);
 
   const handleConfirm = useCallback(async () => {
     // バリデーション

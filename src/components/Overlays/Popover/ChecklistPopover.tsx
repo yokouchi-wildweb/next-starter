@@ -198,7 +198,8 @@ export function ChecklistPopover({
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
-  const [focusValue, setFocusValue] = useState<string | null>(null);
+  // 作成した項目へ移すフォーカスの予約。作成と同じ更新の commit で読んで消す(state にすると消すための描画が 1 回増える)
+  const pendingFocusRef = useRef<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const createInputRef = useRef<HTMLInputElement>(null);
 
@@ -358,7 +359,7 @@ export function ChecklistPopover({
       setSearchQuery("");
       setCreateName("");
       setIsCreateFormOpen(false);
-      setFocusValue(option.value);
+      pendingFocusRef.current = option.value;
     } catch (error) {
       setCreateError(err(error, createOptionErrorMessage));
     }
@@ -397,14 +398,15 @@ export function ChecklistPopover({
 
   // 作成した項目へスクロールしフォーカスを移す。入力欄が消えた直後に行うので commit と同じタイミングにする
   useLayoutEffect(() => {
+    const focusValue = pendingFocusRef.current;
     if (focusValue === null) return;
+    pendingFocusRef.current = null;
     const row = Array.from(
       listRef.current?.querySelectorAll<HTMLElement>("[data-option-value]") ?? []
     ).find((el) => el.dataset.optionValue === focusValue);
     row?.scrollIntoView({ block: "nearest" });
     row?.querySelector<HTMLElement>('[role="checkbox"]')?.focus();
-    setFocusValue(null);
-  }, [focusValue]);
+  });
 
   // リストの高さスタイル
   const listStyle = useMemo(() => {

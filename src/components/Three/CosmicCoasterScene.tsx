@@ -207,19 +207,23 @@ function StarTunnel() {
   );
 }
 
+/** 流れる線の初期位置(x, y, z の並び)。描画には使わず、毎フレーム書き換えるアニメーション用のバッファ */
+function createTrailPositions(count: number) {
+  const arr = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    arr[i * 3] = (Math.random() - 0.5) * 18;
+    arr[i * 3 + 1] = (Math.random() - 0.5) * 10;
+    arr[i * 3 + 2] = -Math.random() * 90;
+  }
+  return arr;
+}
+
 function VelocityTrails() {
   const ref = useRef<THREE.InstancedMesh>(null);
   const count = 48;
 
-  const [basePositions] = useState(() => {
-    const arr = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 18;
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 10;
-      arr[i * 3 + 2] = -Math.random() * 90;
-    }
-    return arr;
-  });
+  // 毎フレーム書き換えるバッファなので state ではなく ref に持つ(最初のフレームで作る)
+  const basePositionsRef = useRef<Float32Array | null>(null);
 
   const [speeds] = useState(() => {
     const arr = new Float32Array(count);
@@ -241,11 +245,10 @@ function VelocityTrails() {
 
   useFrame((_, delta) => {
     if (!ref.current) return;
+    const basePositions = (basePositionsRef.current ??= createTrailPositions(count));
 
     for (let i = 0; i < count; i++) {
       const index = i * 3;
-      // basePositions は毎フレーム書き換えるアニメーション用のバッファ(描画には使わない)。React の state として扱わない
-      // eslint-disable-next-line react-hooks/immutability
       basePositions[index + 2] += speeds[i] * delta;
       if (basePositions[index + 2] > 5) {
         basePositions[index] = (Math.random() - 0.5) * 20;

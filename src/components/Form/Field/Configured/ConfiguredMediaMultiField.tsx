@@ -4,7 +4,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
 import { ControlledField } from "../Controlled";
@@ -85,7 +85,10 @@ export function ConfiguredMediaMultiField<
       : undefined,
   });
 
-  mediaHandleRef.current = mediaHandle;
+  // 最新の handle を ref に入れる(描画が確定した時点。描画中には ref を書かない)
+  useLayoutEffect(() => {
+    mediaHandleRef.current = mediaHandle;
+  });
 
   useEffect(() => {
     const entry: MediaHandleEntry = {

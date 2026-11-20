@@ -89,9 +89,12 @@ export const MediaUploader = ({
   // 送信中は移動・戻る進む・再読み込みに確認を出す(フォームの中でも元が 1 つ増えるだけ。確認は 1 回)
   const guard = uploadUnsavedGuard({ uploading: progress !== null, guardUnsaved });
   useUnsavedGuard(guard.when, { reason: guard.reason });
-  useEffect(() => {
+  // 外から渡す値(initialUrl)が変わったら表示の値を合わせる。描画の中で前の値と比べる(effect で合わせると 1 描画ずれる)
+  const [seenInitialUrl, setSeenInitialUrl] = useState(initialUrl);
+  if (seenInitialUrl !== initialUrl) {
+    setSeenInitialUrl(initialUrl);
     setCurrentUrl(initialUrl);
-  }, [initialUrl]);
+  }
   useEffect(() => {
     currentUrlRef.current = currentUrl;
   }, [currentUrl]);

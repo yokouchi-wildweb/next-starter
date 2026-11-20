@@ -71,7 +71,6 @@ export function useResolvedParticipants(
 
     let isActive = true;
     // 非同期のプロフィール取得の開始を表示に反映する
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoading(true);
 
     resolver(unresolvedUids)

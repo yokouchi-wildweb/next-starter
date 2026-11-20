@@ -43,6 +43,8 @@ export function useUserAsyncOptionSource({
   formatLabel,
   initialIds,
 }: UseUserAsyncOptionSourceOptions): UserAsyncOptionSource {
+  // where は呼び手が毎回作り直すことがあるので、中身の文字列で変化を見る
+  const whereKey = JSON.stringify(where);
   const searchFn = useMemo(
     () => {
       const mergedWhere = mergeUserWhere(role, where);
@@ -60,8 +62,8 @@ export function useUserAsyncOptionSource({
         });
       };
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [role, JSON.stringify(where)],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- where は中身(whereKey)で見る。参照で見ると毎描画で作り直す
+    [role, whereKey],
   );
 
   const getOptionFromResult = useMemo(

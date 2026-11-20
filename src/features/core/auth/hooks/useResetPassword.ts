@@ -19,6 +19,8 @@ type UseResetPasswordParams = {
   oobCode: string | null;
 };
 
+const INVALID_LINK_MESSAGE = "無効なリンクです。";
+
 type UseResetPasswordReturn = {
   phase: ResetPasswordPhase;
   email: string | null;
@@ -35,13 +37,9 @@ export function useResetPassword({ oobCode }: UseResetPasswordParams): UseResetP
   const [error, setError] = useState<string | null>(null);
   const lockRef = useRef(false);
 
-  // oobCodeの検証
+  // oobCodeの検証(oobCode が無いときは検証せず、下の戻り値で「無効なリンク」にする)
   useEffect(() => {
-    if (!oobCode) {
-      setError("無効なリンクです。");
-      setPhase("error");
-      return;
-    }
+    if (!oobCode) return;
 
     let isActive = true;
 
@@ -75,7 +73,7 @@ export function useResetPassword({ oobCode }: UseResetPasswordParams): UseResetP
   const resetPassword = useCallback(
     async (newPassword: string): Promise<boolean> => {
       if (!oobCode) {
-        setError("無効なリンクです。");
+        setError(INVALID_LINK_MESSAGE);
         return false;
       }
       if (lockRef.current) return false;
@@ -99,6 +97,11 @@ export function useResetPassword({ oobCode }: UseResetPasswordParams): UseResetP
     },
     [oobCode]
   );
+
+  // oobCode が無いリンクは描画の中で「無効なリンク」にする(effect で state に入れると 1 描画だけ初期の表示が出る)
+  if (!oobCode) {
+    return { phase: "error", email: null, error: INVALID_LINK_MESSAGE, resetPassword };
+  }
 
   return {
     phase,

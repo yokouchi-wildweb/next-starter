@@ -233,12 +233,14 @@ function GradientDropdown(props: {
     );
   }, [options, query]);
 
-  React.useEffect(() => {
-    if (open) setQuery("");
-  }, [open]);
+  // 開くたびに検索語を空にする(開く操作の中で消す。effect で後から消すと 1 描画だけ古い語が出る)
+  const handleOpenChange = (next: boolean) => {
+    if (next) setQuery("");
+    setOpen(next);
+  };
 
   return (
-    <PopoverRoot open={open} onOpenChange={setOpen}>
+    <PopoverRoot open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         {/* 全モード共通の正方形スウォッチ。選択中グラデを表示し、クリックでポップオーバーを開く */}
         <button

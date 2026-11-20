@@ -84,14 +84,20 @@ export function useCheckCouponUsabilityAuto(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
+  // コードが変わったら表示の state を描画の中で合わせる(前のコードと比べる。effect で合わせると 1 描画ずれる)
+  const [shownCode, setShownCode] = useState<string | null>(null);
+  if (shownCode !== code) {
+    setShownCode(code);
     if (!code.trim()) {
       setUsability(null);
       setError(null);
-      return;
+    } else {
+      setIsLoading(true);
     }
+  }
 
-    setIsLoading(true);
+  useEffect(() => {
+    if (!code.trim()) return;
 
     const timer = setTimeout(async () => {
       try {

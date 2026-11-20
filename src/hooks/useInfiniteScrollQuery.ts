@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { PaginatedResult } from "@/lib/crud";
 
@@ -347,8 +347,9 @@ export function useInfiniteScrollQuery<
     revalidateOnFocus = false,
   } = options;
   // モードは mount 時に決まる(途中の入れ替えは扱わない)
-  const isCursorModeRef = useRef<boolean>(options.cursorFetcher !== undefined);
-  const isCursorMode = isCursorModeRef.current;
+  const [isCursorMode] = useState<boolean>(options.cursorFetcher !== undefined);
+  // コールバックの中から読むための写し(値は mount 時から変わらない)
+  const isCursorModeRef = useRef<boolean>(isCursorMode);
   const initialData = options.initialData;
 
   const initialState = computeInitialState(initialData, isCursorMode, limit, initialPage);
@@ -390,7 +391,6 @@ export function useInfiniteScrollQuery<
   const sentinelNodeRef = useRef<HTMLElement | null>(null);
   const depsInitializedRef = useRef<boolean>(false);
   const initialDataRef = useRef(initialData);
-  initialDataRef.current = initialData;
   // カーソルのモードの続きの位置 (直前に成功した取得の nextCursor)
   const nextCursorRef = useRef<string | null>(initialState.nextCursor);
 
@@ -398,7 +398,6 @@ export function useInfiniteScrollQuery<
   const enabledRef = useRef<boolean>(enabled);
   const isLoadingRef = useRef<boolean>(false);
   const hasMoreRef = useRef<boolean>(initialHasMore);
-  enabledRef.current = enabled;
 
   // option 系を ref 化して fetchPage の identity を固定する
   const fetcherRef = useRef(options.fetcher);
@@ -407,12 +406,23 @@ export function useInfiniteScrollQuery<
   const limitRef = useRef(limit);
   const initialPageRef = useRef(initialPage);
   const observerOptionsRef = useRef(observerOptions);
-  fetcherRef.current = options.fetcher;
-  cursorFetcherRef.current = options.cursorFetcher;
-  paramsRef.current = params;
-  limitRef.current = limit;
-  initialPageRef.current = initialPage;
-  observerOptionsRef.current = observerOptions;
+  // 最新の値を ref に入れる(描画が確定した時点。描画中には ref を書かない)。後に並ぶ effect より先に走る
+  useLayoutEffect(() => {
+    initialDataRef.current = initialData;
+    enabledRef.current = enabled;
+    fetcherRef.current = options.fetcher;
+    cursorFetcherRef.current = options.cursorFetcher;
+    paramsRef.current = params;
+    limitRef.current = limit;
+    initialPageRef.current = initialPage;
+    observerOptionsRef.current = observerOptions;
+  });
+
+  // 次に取る位置(公開の nextPage)の描画用の写し。位置の ref を書いた所で一緒に入れる(描画中に ref を読まない)
+  const [positionSnapshot, setPositionSnapshot] = useState({
+    lastFetchedPage: initialLastFetchedPage,
+    removedSinceFetch: 0,
+  });
 
   const fetchPage = useCallback(async (pageToFetch: number, skip: number) => {
     if (!enabledRef.current) return;
@@ -446,6 +456,7 @@ export function useInfiniteScrollQuery<
         lastFetchedPageRef.current = pageToFetch;
         nextCursorRef.current = page.nextCursor;
         hasMoreRef.current = nextHasMore;
+        setPositionSnapshot({ lastFetchedPage: lastFetchedPageRef.current, removedSinceFetch: removedSinceFetchRef.current });
 
         setItems(nextItems);
         setTotal(nextItems.length);
@@ -481,6 +492,7 @@ export function useInfiniteScrollQuery<
         ? 0
         : Math.max(0, removedSinceFetchRef.current - removedAtStart);
       hasMoreRef.current = nextHasMore;
+      setPositionSnapshot({ lastFetchedPage: lastFetchedPageRef.current, removedSinceFetch: removedSinceFetchRef.current });
 
       setItems(nextItems);
       setTotal(result.total);
@@ -559,6 +571,7 @@ export function useInfiniteScrollQuery<
     removedSinceFetchRef.current = 0;
     hasMoreRef.current = nextHasMore;
     isLoadingRef.current = false;
+    setPositionSnapshot({ lastFetchedPage: lastFetchedPageRef.current, removedSinceFetch: removedSinceFetchRef.current });
 
     setItems(nextItems);
     setTotal(nextTotalValue);
@@ -597,6 +610,7 @@ export function useInfiniteScrollQuery<
     pendingPageRef.current = initialPageRef.current;
     pendingSkipRef.current = 0;
     lastFetchedPageRef.current = initialPageRef.current - 1;
+    setPositionSnapshot({ lastFetchedPage: lastFetchedPageRef.current, removedSinceFetch: removedSinceFetchRef.current });
     skipNextFetchRef.current = false;
     setFetchTick((tick) => tick + 1);
   }, []);
@@ -622,13 +636,16 @@ export function useInfiniteScrollQuery<
     itemsRef.current = nextItems;
     // カーソルのモードは続きの位置が行の値で決まるので、外しても位置はずれない (補正しない)
     if (!isCursorModeRef.current) removedSinceFetchRef.current += removedCount;
+    setPositionSnapshot({ lastFetchedPage: lastFetchedPageRef.current, removedSinceFetch: removedSinceFetchRef.current });
     setItems(nextItems);
     setTotal((prev) => Math.max(0, prev - removedCount));
   }, []);
 
   // タブ復帰時の再取得 (opt-in)
   const hasFetchedOnceRef = useRef<boolean>(hasFetchedOnce);
-  hasFetchedOnceRef.current = hasFetchedOnce;
+  useLayoutEffect(() => {
+    hasFetchedOnceRef.current = hasFetchedOnce;
+  });
   const lastFocusRevalidateAtRef = useRef<number>(0);
   useEffect(() => {
     if (!revalidateOnFocus || typeof window === "undefined") return;
@@ -716,9 +733,9 @@ export function useInfiniteScrollQuery<
     hasMore,
     // removeItems の補正込み (詰まった分を含むページ)
     nextPage: computeNextFetchPosition(
-      lastFetchedPageRef.current,
+      positionSnapshot.lastFetchedPage,
       limit,
-      removedSinceFetchRef.current,
+      positionSnapshot.removedSinceFetch,
     ).page,
     loadMore,
     retry,

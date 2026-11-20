@@ -200,12 +200,12 @@ export function useEditableCell<T>({
     [handleCommit],
   );
 
-  // エフェクト: draftValueクリア時にエラーもクリア
-  React.useEffect(() => {
-    if (draftValue === null) {
-      setError(null);
-    }
-  }, [draftValue]);
+  // draftValueクリア時にエラーもクリア(描画の中で前の draft と比べる。effect で消すと 1 描画だけ古いエラーが出る)
+  const [seenDraftValue, setSeenDraftValue] = React.useState(draftValue);
+  if (!Object.is(seenDraftValue, draftValue)) {
+    setSeenDraftValue(draftValue);
+    if (draftValue === null) setError(null);
+  }
 
   // エフェクト: 書きかけ(draft がある)の有無をテーブルへ知らせる(未保存の守り)。unmount で外す
   const drafting = draftValue !== null;
@@ -218,12 +218,13 @@ export function useEditableCell<T>({
   }, [drafting]);
   React.useEffect(() => () => onDraftChangeRef.current?.(false), []);
 
-  // エフェクト: multiDraftValueのリセット
-  React.useEffect(() => {
-    if (!isEditing || !isMultiSelectEditor) {
-      setMultiDraftValue(null);
-    }
-  }, [isEditing, isMultiSelectEditor]);
+  // multiDraftValueのリセット: 複数選択の編集でなくなったら外す(描画の中で前の状態と比べる)
+  const editingMulti = isEditing && isMultiSelectEditor;
+  const [seenEditingMulti, setSeenEditingMulti] = React.useState(editingMulti);
+  if (seenEditingMulti !== editingMulti) {
+    setSeenEditingMulti(editingMulti);
+    if (!editingMulti) setMultiDraftValue(null);
+  }
 
   // エフェクト: 編集を始めたら次の確定を受ける
   React.useEffect(() => {

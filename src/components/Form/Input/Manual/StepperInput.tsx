@@ -98,6 +98,7 @@ export default function StepperInput({
   const currentValue = isControlled ? value : internalValue;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 描画の中で合わせるとサーバーの描画(初回の HTML)の欄の値が initialValue から今の値に変わる。今の出方を保つ
     setManualInputValue(String(currentValue));
   }, [currentValue]);
 

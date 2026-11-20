@@ -34,13 +34,14 @@ export type TableReorderState<T> = {
  * マウント後にのみドラッグを有効化してハイドレーションエラーを防ぐ
  * （マウント前はハンドル列のみ表示され、リスナーが付かない）
  */
-const useMounted = () => {
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-  return mounted;
-};
+const subscribeNothing = () => () => {};
+const useMounted = () =>
+  // サーバーの描画とハイドレーションの間は false、クライアントで描き直した後は true
+  React.useSyncExternalStore(
+    subscribeNothing,
+    () => true,
+    () => false,
+  );
 
 type UseTableReorderArgs<T> = {
   items: T[];

@@ -59,7 +59,6 @@ export function useImpressionTracker(options: UseImpressionTrackerOptions) {
     usedEntryRef.current = entry;
     trackImpression({ targetType, targetId, action, source });
     // 記録した対象の監視を外すための、対象ごとに 1 回だけの更新（交差の結果に応じて止める）
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTrackedKey(targetKey);
   }, [enabled, entry, targetKey, targetType, targetId, action, source]);
 

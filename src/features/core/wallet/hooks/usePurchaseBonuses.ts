@@ -49,6 +49,6 @@ const PROVIDERS = orderedProviders(purchaseBonuses);
 export function usePurchaseBonuses(): PurchaseBonuses {
   // 提供元の一覧は生成の定数(PROVIDERS)で、呼ぶ hook の数と順は描画ごとに変わらない(hook の決まりを守る)
   const sources = PROVIDERS.map((provider) => provider.useSource());
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- 依存は提供元の読み方そのもの(数は固定)
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/use-memo -- 依存は提供元の読み方そのもの(数は生成の定数 PROVIDERS で固定なので配列の字面にできない)
   return useMemo(() => combinePurchaseBonusSources(sources), sources);
 }

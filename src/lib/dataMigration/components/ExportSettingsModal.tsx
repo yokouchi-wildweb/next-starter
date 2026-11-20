@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useId, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import axios from "axios";
 import Modal from "@/components/Overlays/Modal";
 import { Button } from "@/components/Form/Button/Button";
@@ -34,6 +34,14 @@ export type ExportSettingsModalProps = {
   searchParams?: string;
 };
 
+/** システムフィールド */
+const SYSTEM_FIELDS: ExportField[] = [
+  { name: "id", label: "ID" },
+  { name: "createdAt", label: "作成日時" },
+  { name: "updatedAt", label: "更新日時" },
+  { name: "deletedAt", label: "削除日時" },
+];
+
 export function ExportSettingsModal({
   open,
   onOpenChange,
@@ -42,16 +50,9 @@ export function ExportSettingsModal({
   domainLabel,
   searchParams,
 }: ExportSettingsModalProps) {
-  // システムフィールド
-  const systemFields: ExportField[] = [
-    { name: "id", label: "ID" },
-    { name: "createdAt", label: "作成日時" },
-    { name: "updatedAt", label: "更新日時" },
-    { name: "deletedAt", label: "削除日時" },
-  ];
-
-  const allFields = [...systemFields.slice(0, 1), ...fields, ...systemFields.slice(1)];
-  const allFieldNames = allFields.map((f) => f.name);
+  // 出力できる欄(id → 項目 → 日時の順)。fields が変わったときだけ作り直す(全選択の callback の依存になる)
+  const allFields = useMemo(() => [...SYSTEM_FIELDS.slice(0, 1), ...fields, ...SYSTEM_FIELDS.slice(1)], [fields]);
+  const allFieldNames = useMemo(() => allFields.map((f) => f.name), [allFields]);
 
   // 画像フィールドを抽出
   const imageFieldNames = fields.filter((f) => f.isImageField).map((f) => f.name);

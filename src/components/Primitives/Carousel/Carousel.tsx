@@ -95,6 +95,8 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return
+    // 外の仕組み(embla の api)の今の状態を読んで合わせる。api はマウント後に effect の中でしか手に入らないため描画では読めない
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- api ができた時点の前後送りの可否を外部から取り込む(購読の初回分)
     onSelect(api)
     api.on("reInit", onSelect)
     api.on("select", onSelect)

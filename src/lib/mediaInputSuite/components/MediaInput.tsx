@@ -179,13 +179,21 @@ export const MediaInput = ({
     [],
   );
 
-  useEffect(() => {
-    abandonPreparing();
+  // 外からの取り消しの合図(resetSignal)で選んだファイルを外す。描画の中で前の合図と比べる(effect で外すと 1 描画ずれる)
+  const [seenResetSignal, setSeenResetSignal] = useState(resetSignal);
+  if (seenResetSignal !== resetSignal) {
+    setSeenResetSignal(resetSignal);
     setSelectedFile(null);
+    setPreparing(false);
+  }
+
+  // 合図で整えている途中の処理を捨て(届いた結果を無視する番号を進める)、DOM の file 入力を空にする
+  useEffect(() => {
+    prepareSeqRef.current += 1;
     if (inputRef.current) {
       inputRef.current.value = "";
     }
-  }, [resetSignal, abandonPreparing]);
+  }, [resetSignal]);
 
   // 整えている間の表示（呼び出し側の containerOverlay があればそちらを出す）
   const overlay =

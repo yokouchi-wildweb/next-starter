@@ -42,16 +42,6 @@ function CouponInputBody({ paymentAmount, purchaseAmount, onApply, onClear }: Co
 
   const { validate, isLoading } = useValidateCouponForCategory();
 
-  // マウント時にアクティブクーポンを復元して自動適用
-  useEffect(() => {
-    const saved = getActiveCoupon();
-    if (saved) {
-      setCode(saved);
-      applyCode(saved);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const applyCode = useCallback(async (targetCode: string) => {
     if (!targetCode.trim()) return;
     setErrorMessage(null);
@@ -83,6 +73,17 @@ function CouponInputBody({ paymentAmount, purchaseAmount, onApply, onClear }: Co
       setErrorMessage("クーポンの検証に失敗しました。");
     }
   }, [paymentAmount, purchaseAmount, validate, onApply]);
+
+  // マウント時にアクティブクーポンを復元して自動適用(保存先はブラウザだけにあるので、描画ではなくマウント後に読む)
+  useEffect(() => {
+    const saved = getActiveCoupon();
+    if (saved) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- ブラウザに保存した適用中のコードをマウント後に 1 回だけ取り込む(サーバーの描画では読めない)
+      setCode(saved);
+      applyCode(saved);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 復元はマウント時の 1 回だけ(金額が変わるたびに適用し直さない)
+  }, []);
 
   const handleApply = useCallback(() => {
     applyCode(code);

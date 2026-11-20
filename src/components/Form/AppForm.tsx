@@ -191,17 +191,20 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
   }, [submitErrorDisplay, formState.submitCount, hasFieldErrors, showToast]);
 
   // 個別メディアフィールドのハンドル管理
-  const mediaHandlesRef = React.useRef<Map<string, MediaHandleEntry>>(new Map());
-  const [mediaHandlesVersion, setMediaHandlesVersion] = React.useState(0);
+  // 登録のたびに新しい Map を state に置く(描画中に ref を読まず、登録の変化で描画し直す)
+  const [mediaHandles, setMediaHandles] = React.useState<ReadonlyMap<string, MediaHandleEntry>>(() => new Map());
 
   const registerMediaHandle = React.useCallback((name: string, entry: MediaHandleEntry) => {
-    mediaHandlesRef.current.set(name, entry);
-    setMediaHandlesVersion((v) => v + 1);
+    setMediaHandles((prev) => new Map(prev).set(name, entry));
   }, []);
 
   const unregisterMediaHandle = React.useCallback((name: string) => {
-    mediaHandlesRef.current.delete(name);
-    setMediaHandlesVersion((v) => v + 1);
+    setMediaHandles((prev) => {
+      if (!prev.has(name)) return prev;
+      const next = new Map(prev);
+      next.delete(name);
+      return next;
+    });
   }, []);
 
   // FieldRenderer用: MediaState全体を管理（後方互換性）
@@ -218,17 +221,15 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
   const effectiveFieldRendererState = externalMediaState ?? fieldRendererMediaState;
 
   // 個別登録されたメディアのアップロード状態を計算
-  const individualMediaUploading = React.useMemo(() => {
-    const entries = Array.from(mediaHandlesRef.current.values());
-    return entries.some((entry) => entry.isUploading);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mediaHandlesVersion]);
+  const individualMediaUploading = React.useMemo(
+    () => Array.from(mediaHandles.values()).some((entry) => entry.isUploading),
+    [mediaHandles],
+  );
 
   // 裏の処理(アップロード)が失敗したままの欄。やり直す・取り消すまで送信を止める(欄は無効にしない。やり直せなくなるため)
   const hasFailedBackground = React.useMemo(
-    () => hasBackgroundFailure([effectiveFieldRendererState, ...mediaHandlesRef.current.values()]),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [effectiveFieldRendererState, mediaHandlesVersion],
+    () => hasBackgroundFailure([effectiveFieldRendererState, ...mediaHandles.values()]),
+    [effectiveFieldRendererState, mediaHandles],
   );
 
   // メディアアップロード中はフォームを無効化（両方を考慮）
@@ -267,7 +268,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
           }
 
           // 個別登録されたメディアをコミット
-          const individualEntries = Array.from(mediaHandlesRef.current.values());
+          const individualEntries = Array.from(mediaHandles.values());
           if (individualEntries.length > 0) {
             await Promise.all(individualEntries.map((entry) => entry.commit()));
           }
@@ -278,16 +279,13 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
       }
       setReleasedAfterSubmit(true);
     },
-    [onSubmit, disableAutoCommitMedia, effectiveFieldRendererState, unsavedSource, guardUnsaved, methods],
+    [onSubmit, disableAutoCommitMedia, effectiveFieldRendererState, mediaHandles, unsavedSource, guardUnsaved, methods],
   );
 
   // 二重送信ロック: isSubmitting / pending は次の描画まで効かないため、同じフレームの 2 回目を同期に捨てる。
   // 検証 → onSubmit → メディアのコミットが終わるまで持ち、成功 / 失敗のどちらでも外す（submitLock.ts）
-  const submitLockRef = React.useRef<SubmitLock | null>(null);
-  if (submitLockRef.current === null) {
-    submitLockRef.current = createSubmitLock();
-  }
-  const submitLock = submitLockRef.current;
+  // 部品ごとに 1 つ(初回の描画で作り、以後は同じ物。描画中に ref を読まないよう state の初期値で持つ)
+  const [submitLock] = React.useState<SubmitLock>(createSubmitLock);
 
   const handleFormSubmit = React.useMemo(() => {
     const submit = submitLock.wrap(handleSubmit(handleSubmitWithMediaCommit, onSubmitError));

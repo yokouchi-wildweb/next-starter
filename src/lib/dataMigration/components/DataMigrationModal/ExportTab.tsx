@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useCallback, useId, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import axios from "axios";
 import { Button } from "@/components/Form/Button/Button";
 import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
@@ -16,6 +16,14 @@ import { MEDIA_SKIPPED_EXAMPLES_HEADER, MEDIA_SKIPPED_HEADER } from "../../media
 import type { ExportTabContentProps, ExportField } from "./types";
 
 /** ZIP に入らなかったメディア値のヘッダを読む（件数 0 なら null） */
+/** システムフィールド */
+const SYSTEM_FIELDS: ExportField[] = [
+  { name: "id", label: "ID" },
+  { name: "createdAt", label: "作成日時" },
+  { name: "updatedAt", label: "更新日時" },
+  { name: "deletedAt", label: "削除日時" },
+];
+
 function readMediaSkipped(headers: Record<string, unknown>): { count: number; examples: string[] } | null {
   const count = Number(headers[MEDIA_SKIPPED_HEADER.toLowerCase()] ?? 0);
   if (!Number.isFinite(count) || count <= 0) return null;
@@ -41,16 +49,9 @@ export function ExportTab({
   hasRelations = false,
   hasManyDomains = [],
 }: ExportTabContentProps) {
-  // システムフィールド
-  const systemFields: ExportField[] = [
-    { name: "id", label: "ID" },
-    { name: "createdAt", label: "作成日時" },
-    { name: "updatedAt", label: "更新日時" },
-    { name: "deletedAt", label: "削除日時" },
-  ];
-
-  const allFields = [...systemFields.slice(0, 1), ...fields, ...systemFields.slice(1)];
-  const allFieldNames = allFields.map((f) => f.name);
+  // 出力できる欄(id → 項目 → 日時の順)。fields が変わったときだけ作り直す(全選択の callback の依存になる)
+  const allFields = useMemo(() => [...SYSTEM_FIELDS.slice(0, 1), ...fields, ...SYSTEM_FIELDS.slice(1)], [fields]);
+  const allFieldNames = useMemo(() => allFields.map((f) => f.name), [allFields]);
 
   // 画像フィールドを抽出
   const imageFieldNames = fields.filter((f) => f.isImageField).map((f) => f.name);

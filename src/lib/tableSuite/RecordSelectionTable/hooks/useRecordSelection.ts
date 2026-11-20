@@ -53,11 +53,12 @@ export function useRecordSelection<T>({
   // 範囲選択の起点(前に shift なしで切り替えた行)
   const anchorKeyRef = React.useRef<React.Key | null>(null);
 
-  React.useEffect(() => {
-    if (!isControlled) {
-      setUncontrolledKeys(defaultSelectedKeys);
-    }
-  }, [defaultSelectedKeys, isControlled]);
+  // 非制御のとき、defaultSelectedKeys が変わったら選択を合わせる(描画の中で前の値と比べる。effect で合わせると 1 描画ずれる)
+  const [seenDefaults, setSeenDefaults] = React.useState({ keys: defaultSelectedKeys, isControlled });
+  if (seenDefaults.keys !== defaultSelectedKeys || seenDefaults.isControlled !== isControlled) {
+    setSeenDefaults({ keys: defaultSelectedKeys, isControlled });
+    if (!isControlled) setUncontrolledKeys(defaultSelectedKeys);
+  }
 
   const keyedItems = React.useMemo<ItemWithKey<T>[]>(
     () =>
