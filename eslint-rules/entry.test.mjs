@@ -157,7 +157,7 @@ test("shelfUnitFolderOf: 単位のファイル・index は null、単位のフ�
   assert.equal(shelfUnitFolderOf("src/components/Overlays/Popover/index.ts"), null);
   assert.equal(shelfUnitFolderOf("src/components/Overlays/Popover/InfoPopover"), "src/components/Overlays/Popover");
   assert.equal(shelfUnitFolderOf("src/components/Overlays/Popover/a/b"), "src/components/Overlays/Popover");
-  assert.equal(shelfUnitFolderOf("src/components/AppStatusGuard"), null);
+  assert.equal(shelfUnitFolderOf("src/components/Guard"), null, "直下が index だけの分類");
   assert.equal(shelfUnitFolderOf("src/lib/cn/index"), null);
   assert.equal(shelfUnitFolderOf(null), null);
 });

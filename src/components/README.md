@@ -3,7 +3,7 @@
 ## Overview
 
 - `src/components/` にはアプリ全体で共有する汎用 UI コンポーネントをカテゴリごとに配置します
-- カテゴリのフォルダに入口の `index` は置かない。部品(単位)はそれを定義するファイル(フォルダの部品はそのフォルダ)から `@/components/<カテゴリ>/<部品>` で読む(まだ入口があるのは `AppStatusGuard/`)
+- カテゴリのフォルダに入口の `index` は置かない。部品(単位)はそれを定義するファイル(フォルダの部品はそのフォルダ)から `@/components/<カテゴリ>/<部品>` で読む
 - どのリポがどの単位を作ったかの一覧は [CATALOG.md](./CATALOG.md)(1 単位 1 行、単位を足したら自分の節に 1 行)
 - 本ファイルは**カテゴリの索引**です。使う時の決まりはカテゴリの札 `.claude/rules/items/components/<カテゴリ>.md`、使い方・仕組みは各サブディレクトリの README（コロケーション）に置き、複雑な仕組みを持つカテゴリには必ず README を併設します
 
@@ -13,7 +13,6 @@
   - ItemNavigator = 前後の項目へ移るだけの選択欄で props だけ。データは `src/lib/crud` の `useDomainItemNavigation`、管理の編集画面は `src/app/admin/_layout/AdminEditItemNavigator` を `<AdminPage actions>` に置く
 - `Animation/`: アニメーション演出（`CountUp`、`PageTransition` など）
   - 部品は無い（キオスク用のビューポート固定枠 `KioskFrame` は `Layout/`、管理画面の部品は `Admin/`。枠の部位を隠すのはルートの `frame.ts` / `frame.override.ts`）
-- `AppStatusGuard/`: メンテナンス・デプロイを検知してリダイレクト / リロードするガード。長時間滞在する画面に配置
 - `Badge/`: バッジ（`SolidBadge`、`SoftBadge` など）
 - `Button/`: ボタン（`Button` / `LinkButton` / `PseudoButton` / `RoundedButton` / `TabletButton` / `BookmarkTag`、形と大きさの表は補助の単位 `Button/variants`）。raw button の代替 | 詳細: [Button/README.md](./Button/README.md)
 - `Input/`: 素の入力部品（`Input` / `Select`(`SelectInput`) / `ComboboxInput` / `AsyncComboboxInput` / `SwitchInput` / `Label` / `FilePickButton` など、値と onChange だけを受ける）。選択肢の型と関数は補助の単位 `Input/options` | 詳細: [Input/README.md](./Input/README.md)

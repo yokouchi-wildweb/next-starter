@@ -5,7 +5,7 @@ import { UserUpdateByAdminSchema } from "@/features/core/user/entities";
 import type { UpdateUserInput } from "@/features/core/user/services/types";
 import { base, baseOptions } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
-import { omitUndefined } from "@/utils/object";
+import { omitUndefined } from "@/lib/crud/utils";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";

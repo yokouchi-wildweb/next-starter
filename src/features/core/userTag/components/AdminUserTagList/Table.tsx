@@ -7,6 +7,8 @@ import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSui
 import { EditButton, DeleteButton } from "@/lib/crud/components";
 import presenters from "@/features/core/userTag/presenters";
 import { buildDomainColumns } from "@/lib/crud";
+import { formatDateJa } from "@/utils/date";
+import { truncateJapanese } from "@/utils/string";
 import { adminConfig } from "@/features/admin/config";
 import { domainDisplay as userTagDisplay } from "@/features/core/userTag/entities/display";
 
@@ -23,6 +25,8 @@ const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<UserTag>[] = buildDomainColumns<UserTag>({
   config: userTagDisplay,
+  formatDate: formatDateJa,
+  truncate: truncateJapanese,
   presenters,
   actionColumn: {
     header: "操作",

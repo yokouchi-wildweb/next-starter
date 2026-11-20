@@ -11,6 +11,8 @@ import { useAdminBulkActionCan } from "@/features/core/user/hooks/useAdminBulkAc
 import { EditButton, DeleteButton } from "@/lib/crud/components";
 import presenters from "@/features/sampleTag/presenters";
 import { buildDomainColumns } from "@/lib/crud";
+import { formatDateJa } from "@/utils/date";
+import { truncateJapanese } from "@/utils/string";
 import { adminConfig } from "@/features/admin/config";
 import { domainDisplay as sampleTagDisplay } from "@/features/sampleTag/entities/display";
 
@@ -27,6 +29,8 @@ const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<SampleTag>[] = buildDomainColumns<SampleTag>({
   config: sampleTagDisplay,
+  formatDate: formatDateJa,
+  truncate: truncateJapanese,
   presenters,
   actionColumn: {
     header: "操作",

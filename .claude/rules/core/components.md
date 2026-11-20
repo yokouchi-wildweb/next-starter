@@ -9,7 +9,7 @@ paths:
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
 placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there) | ref: src/components/README.md
-- shelf_units: a shelf unit = src/components/\<Category\>/\<Unit\> (one file, or a folder with index) read as @/components/\<Category\>/\<Unit\> only, values and types (lint entry/only-entries, all tiers) | a category folder has no first-level entry (no \<Category\>/index; not yet: AppStatusGuard) | a folder without index is not a unit: give it one or fold it | no `_` names
+- shelf_units: a shelf unit = src/components/\<Category\>/\<Unit\> (one file, or a folder with index) read as @/components/\<Category\>/\<Unit\> only, values and types (lint entry/only-entries, all tiers) | a category folder has no first-level entry (no \<Category\>/index) | a folder without index is not a unit: give it one or fold it | no `_` names
 - shelf_catalog: every unit directly under src/components/\<Category\>/ has one line in src/components/CATALOG.md in its maker's section (`- src/components/\<Category\>/\<Unit\> — <what>`), a fork's units in its own section | check: pnpm test src/lib/folderCatalog/catalog.test.mjs
 - shelf_purity: a shelf part (src/components, tests aside) never value-reads src/features, src/app, src/wiring, src/registry, src/stores or a services/ path, react-hook-form, @/lib/domain or @/lib/crud | type-only reads are fine (lint import-boundaries/shelf-purity, all tiers)
   - nor firebase / axios / an SDK-wrapping lib (@/lib/firebase, @/lib/firestore, @/lib/drizzle), nor a lib that value-reads the shelf (found from the import graph), and it never calls fetch | a part mounted once that needs such a lib → src/app/_mounts/

@@ -11,6 +11,8 @@ import { EditButton, DeleteButton } from "@/lib/crud/components";
 __DUPLICATE_IMPORT__import presenters from "@/features/__domain__/presenters";
 import __Domain__DetailModal from "../common/__Domain__DetailModal";
 import { buildDomainColumns } from "@/lib/crud";
+import { formatDateJa } from "@/utils/date";
+import { truncateJapanese } from "@/utils/string";
 import { adminConfig } from "@/features/admin/config";
 import { domainDisplay as __domain__Display } from "@/features/__domain__/entities/display";
 
@@ -27,6 +29,8 @@ const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<__Domain__>[] = buildDomainColumns<__Domain__>({
   config: __domain__Display,
+  formatDate: formatDateJa,
+  truncate: truncateJapanese,
   presenters,
   actionColumn: {
     header: "操作",

@@ -239,7 +239,27 @@ test("config: 棚の場所の整理(shelf-s1)の旧パスは置き換え先を�
     assert.equal(hits[0].severity, 1, from);
     assert.ok(hits[0].message.includes(`"${to}"`), hits[0].message);
   }
-  for (const kept of ["@/components/Layout/Block", "@/components/Navigation/Link", "@/components/Functional/DarkModeSwitch", "@/components/AppStatusGuard"]) {
+  for (const kept of ["@/components/Layout/Block", "@/components/Navigation/Link", "@/components/Overlays/Dialog", "@/components/Button/Button"]) {
     assert.equal((await lint(kept)).length, 0, kept);
+  }
+});
+
+test("config: lib の小物の移行(shelf-s3)の旧パスは置き換え先を出して warn する", async () => {
+  const repoRoot = path.resolve(import.meta.dirname, "..");
+  const eslint = new ESLint({ cwd: repoRoot, overrideConfigFile: path.join(repoRoot, "eslint.config.mjs") });
+  for (const [from, to] of [
+    ["@/utils/object", "@/lib/crud/utils"],
+    ["@/utils/json", "@/lib/firebase/serviceAccountKey"],
+    ["@/hooks/useAppStatus", "@/lib/appStatus"],
+    ["@/components/AppStatusGuard", "@/lib/appStatus"],
+    ["@/components/Functional/DarkModeSwitch", "@/lib/siteTheme"],
+  ]) {
+    const [result] = await eslint.lintText(`import * as X from "${from}";\nexport const y = X;\n`, {
+      filePath: path.join(repoRoot, "src/features/sample/components/X.tsx"),
+    });
+    const hits = result.messages.filter((m) => m.ruleId === "deprecated-imports/no-deprecated-path");
+    assert.equal(hits.length, 1, from);
+    assert.equal(hits[0].severity, 1, from);
+    assert.ok(hits[0].message.includes(`"${to}`), hits[0].message);
   }
 });
