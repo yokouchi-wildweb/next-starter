@@ -1,5 +1,5 @@
 // eslint-rules/import-boundaries.test.mjs
-// 層の境目の import の検査(route-factory-via-wiring・page-guard-via-wiring・cron-route-via-wiring・features-index-no-server-reexport・lib-no-registry・feature-gate-entries)の契約テスト。実行: pnpm test eslint-rules/import-boundaries.test.mjs (node:test)
+// 層の境目の import の検査(route-factory-via-wiring・page-guard-via-wiring・cron-route-via-wiring・features-index-no-server-reexport・lib-no-registry・feature-gate-entries・radix-unified・ui-libs-in-primitives ほか)の契約テスト。実行: pnpm test eslint-rules/import-boundaries.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -21,6 +21,7 @@ import plugin, {
   isDbWriteGuardedFile,
   isToolFile,
   readClosablePatterns,
+  isUiLibSource,
 } from "./import-boundaries.mjs";
 import { resolveImport } from "./resolve-import.mjs";
 import { readForkIdentity } from "../src/lib/forkOwnership/forkIds.mjs";
@@ -393,13 +394,73 @@ test("rule radix-unified: 個別の @radix-ui/* は値・型・副作用・dynam
   });
 });
 
-test("config: radix-unified は src の全部(テストも)で Tier1 は error、fork は warn", async () => {
+test("rule radix-unified: Primitives の外の値の @radix-ui/* は ui-libs-in-primitives の受け持ちなので報告せず、外でも型だけなら報告する", () => {
+  const err = (source) => [{ messageId: "scopedRadix", data: { source } }];
+  ruleTester.run("radix-unified", plugin.rules["radix-unified"], {
+    valid: [{ code: `import * as LabelPrimitive from "@radix-ui/react-label";`, filename: at("src/app/foo/_components/Part.tsx") }],
+    invalid: [
+      { code: `import type { CheckedState } from "@radix-ui/react-checkbox";`, filename: at("src/app/foo/_components/Part.tsx"), errors: err("@radix-ui/react-checkbox") },
+    ],
+  });
+});
+
+test("config: @radix-ui/* は Primitives の中なら radix-unified(Tier1 error・fork warn)、外の値の import は ui-libs-in-primitives(どの Tier も error)の 1 件だけ", async () => {
   const RAW = `import * as LabelPrimitive from "@radix-ui/react-label";\nexport const x = LabelPrimitive;\n`;
   const severity = readForkIdentity(repoRoot).isTier1 ? 2 : 1;
-  for (const file of ["src/components/Primitives/Label/Label.tsx", "src/app/foo/_components/Part.tsx", "src/features/core/user/components/X.tsx"]) {
-    assert.deepEqual(await lintAt(file, RAW), [`import-boundaries/radix-unified:${severity}`], file);
+  assert.deepEqual(await lintAt("src/components/Primitives/Label/Label.tsx", RAW), [`import-boundaries/radix-unified:${severity}`]);
+  for (const file of ["src/app/foo/_components/Part.tsx", "src/features/core/user/components/X.tsx"]) {
+    assert.deepEqual(await lintAt(file, RAW), ["import-boundaries/ui-libs-in-primitives:2"], file);
   }
   assert.deepEqual(await lintAt("src/components/Primitives/Label/Label.tsx", `import { Label } from "radix-ui";\nexport const x = Label;\n`), []);
+});
+
+test("isUiLibSource: radix-ui・@radix-ui/*・cmdk・react-day-picker・embla-carousel* と下の道だけ", () => {
+  for (const s of ["radix-ui", "@radix-ui/react-dialog", "cmdk", "react-day-picker", "react-day-picker/locale", "embla-carousel", "embla-carousel-react", "embla-carousel-autoplay", "embla-carousel-react/x"]) {
+    assert.equal(isUiLibSource(s), true, s);
+  }
+  for (const s of ["react", "radix-uix", "cmdk-extra", "react-day-picker-x", "embla", "@/components/Primitives/Dialog", "./radix-ui"]) {
+    assert.equal(isUiLibSource(s), false, s);
+  }
+});
+
+test("rule ui-libs-in-primitives: Primitives の外の値の import・再輸出・副作用・dynamic・require を止め、型だけと Primitives の中は通す", () => {
+  const app = at("src/components/Overlays/Sheet/Sheet.tsx");
+  const lib = at("src/lib/x/thing.ts");
+  const spec = at("src/features/core/user/components/X.test.tsx");
+  const err = (source) => [{ messageId: "uiLibOutsidePrimitives", data: { source } }];
+  ruleTester.run("ui-libs-in-primitives", plugin.rules["ui-libs-in-primitives"], {
+    valid: [
+      { code: `import { Dialog } from "radix-ui";`, filename: at("src/components/Primitives/Dialog/DialogBase.tsx") },
+      { code: `import useEmblaCarousel from "embla-carousel-react";`, filename: at("src/components/Primitives/Carousel/Carousel.tsx") },
+      { code: `import type { DayPickerProps } from "react-day-picker";`, filename: app },
+      { code: `import { type Locale } from "react-day-picker/locale";`, filename: lib },
+      { code: `export type { EmblaCarouselType } from "embla-carousel";`, filename: app },
+      { code: `import { Dialog } from "@/components/Primitives/Dialog";`, filename: app },
+      { code: `import { useState } from "react";`, filename: app },
+    ],
+    invalid: [
+      { code: `import { Dialog as DialogPrimitive } from "radix-ui";`, filename: app, errors: err("radix-ui") },
+      { code: `import * as LabelPrimitive from "@radix-ui/react-label";`, filename: app, errors: err("@radix-ui/react-label") },
+      { code: `import { Command } from "cmdk";`, filename: lib, errors: err("cmdk") },
+      { code: `import { DayPicker } from "react-day-picker";`, filename: app, errors: err("react-day-picker") },
+      { code: `import { ja } from "react-day-picker/locale";`, filename: app, errors: err("react-day-picker/locale") },
+      { code: `import { ja, type Locale } from "react-day-picker/locale";`, filename: app, errors: err("react-day-picker/locale") },
+      { code: `import useEmblaCarousel from "embla-carousel-react";`, filename: app, errors: err("embla-carousel-react") },
+      { code: `import Autoplay from "embla-carousel-autoplay";`, filename: spec, errors: err("embla-carousel-autoplay") },
+      { code: `export { Slot } from "radix-ui";`, filename: lib, errors: err("radix-ui") },
+      { code: `import "cmdk";`, filename: app, errors: err("cmdk") },
+      { code: `const m = import("react-day-picker");`, filename: app, errors: err("react-day-picker") },
+      { code: `const m = require("embla-carousel");`, filename: lib, errors: err("embla-carousel") },
+    ],
+  });
+});
+
+test("config: ui-libs-in-primitives は src の全部(lib・テストも)で Tier1 も fork も error、Primitives の中は通す", async () => {
+  const RAW = `import { Command } from "cmdk";\nexport const x = Command;\n`;
+  for (const file of ["src/app/foo/_components/Part.tsx", "src/lib/x/thing.ts", "src/features/core/user/components/X.test.tsx", "src/lib/x/thing.mjs"]) {
+    assert.deepEqual(await lintAt(file, RAW), ["import-boundaries/ui-libs-in-primitives:2"], file);
+  }
+  assert.deepEqual(await lintAt("src/components/Primitives/Command/Command.tsx", RAW), []);
 });
 
 test("rule router-via-guard: next/navigation の useRouter を止め(別名・ほかの名前と一緒でも)、守りの lib の中・型だけ・ほかの名前は通す", () => {

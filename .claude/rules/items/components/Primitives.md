@@ -10,6 +10,7 @@ rules:
 using:
 - primitives_entry: import a part only from its entry @/components/Primitives/<Part>, never a file inside it
 - radix_unified: Radix comes from the unified `radix-ui` package only, never `@radix-ui/*` (lint radix-unified)
+- ui_libs_place: radix-ui / @radix-ui/* / cmdk / react-day-picker(/*) / embla-carousel* are value-read only under src/components/Primitives/** (lint ui-libs-in-primitives, error in every tier, lib and tests included) | type-only imports anywhere | a piece a caller needs → add it to the Primitives entry (a fork: its own Primitives part)
 - finished_first: screens use the finished parts (Form/, Overlays/, Badge/, Skeleton/ …) | build on a primitive directly only when the finished part falls short
 - slot_contract: fork CSS targets only the marks listed in each part's README | id, class names and DOM shape are not a contract
 - slot_caller: a caller's `data-slot` prop never replaces the part's mark | a wrapping upstream part renames it only through the typed `slot` value

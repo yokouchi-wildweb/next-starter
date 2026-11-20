@@ -156,6 +156,7 @@ const config = [
       // router-via-guard: next/navigation の useRouter は守り付きの router(@/lib/unsavedGuard)へ。上流 error / fork warn、例外は守りの lib の中だけ
       "import-boundaries/router-via-guard": libOwnership.isRoot ? "error" : "warn",
       // radix-unified: Radix は統合版の radix-ui から読む(@radix-ui/* の個別パッケージは依存から外した)。上流 error / fork warn
+      // (Primitives の外の @radix-ui/* の値の import は ui-libs-in-primitives の受け持ち。ここは Primitives の中と型だけの import)
       "import-boundaries/radix-unified": libOwnership.isRoot ? "error" : "warn",
     },
   },
@@ -165,6 +166,9 @@ const config = [
     plugins: { "import-boundaries": importBoundariesPlugin },
     rules: {
       "import-boundaries/client-no-domain-json": "error",
+      // ui-libs-in-primitives: radix-ui・@radix-ui/*・cmdk・react-day-picker(/*)・embla-carousel* を値で読むのは src/components/Primitives の中だけ
+      // (D233、例外なし。テストも lib も対象、上流も fork も error)。Primitives の外の @radix-ui/* の値の import もここが報告する
+      "import-boundaries/ui-libs-in-primitives": "error",
     },
   },
   {

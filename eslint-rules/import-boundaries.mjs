@@ -81,6 +81,14 @@
 // ── radix-unified(計画書 02 D108) ──
 // Radix は統合版の "radix-ui" から読む(import { Dialog as DialogPrimitive } from "radix-ui")。個別の @radix-ui/* パッケージ
 // (@radix-ui/react-dialog など)は値も型も読まない(依存から外した。radix-ui が入れる版と食い違わないように)。部品は src/components/Primitives
+// 受け持ちの分け方: Primitives の外の @radix-ui/* の値の import は ui-libs-in-primitives が報告する(どの Tier も error)。
+// ここが報告するのはそれ以外 = Primitives の中の @radix-ui/* と、どこであれ型だけの @radix-ui/* の import(同じ import を 2 度報告しない)
+//
+// ── ui-libs-in-primitives(D233) ──
+// 外部の UI ライブラリ(radix-ui・@radix-ui/*・cmdk・react-day-picker と下の道・embla-carousel*)を値で読めるのは
+// src/components/Primitives/** の中だけ。ほか(画面・部品・lib・テストも)は Primitives の入口 @/components/Primitives/<部品> を読む。
+// 足りない物はその入口に足す(fork は自分の Primitives の部品を作る)。型だけの import はどこでも可。例外は無い(lib も同じ)。
+// @radix-ui/* の Primitives の外の値の import はここが報告し、radix-unified は報告しない(上の受け持ちの分け方)
 //
 // ── axios-in-client-layer(当議会 D133) ──
 // axios を値で読めるのは HTTP の層だけ: src/lib/**(汎用の通信の lib)と **/services/client/**(ドメインの ClientService)。
@@ -655,6 +663,32 @@ const routerViaGuard = {
 /** 個別の Radix のパッケージ(@radix-ui/<名前>。統合版の radix-ui は除く) */
 export const isScopedRadixSource = (source) => typeof source === "string" && source.startsWith("@radix-ui/");
 
+/** 外部の UI ライブラリ(値で読めるのは src/components/Primitives/** の中だけ) */
+export const isUiLibSource = (source) =>
+  typeof source === "string" &&
+  (/^(radix-ui|cmdk|react-day-picker)(\/.*)?$/.test(source) || isScopedRadixSource(source) || /^embla-carousel(-[^/]+)?(\/.*)?$/.test(source));
+
+const PRIMITIVES_DIR = "src/components/Primitives";
+const isInsidePrimitives = (context) => isUnder(repoRelative(context.filename, repoRootOf(context)), PRIMITIVES_DIR);
+
+const uiLibsInPrimitives = {
+  meta: {
+    type: "problem",
+    docs: { description: "外部の UI ライブラリ(radix-ui・@radix-ui/*・cmdk・react-day-picker・embla-carousel*)を値で読むのは src/components/Primitives の中だけ" },
+    messages: {
+      uiLibOutsidePrimitives:
+        '"{{source}}" は src/components/Primitives の外では値として読みません。部品は入口 @/components/Primitives/<部品> から読みます(足りない物はその入口に足す。fork は自分の Primitives の部品を作る)。型だけの import は可',
+    },
+    schema: [],
+  },
+  create(context) {
+    if (isInsidePrimitives(context)) return {};
+    return moduleVisitors(({ node, source, typeOnly }) => {
+      if (!typeOnly && isUiLibSource(source)) context.report({ node, messageId: "uiLibOutsidePrimitives", data: { source } });
+    });
+  },
+};
+
 const radixUnified = {
   meta: {
     type: "problem",
@@ -666,8 +700,12 @@ const radixUnified = {
     schema: [],
   },
   create(context) {
-    return moduleVisitors(({ node, source }) => {
-      if (isScopedRadixSource(source)) context.report({ node, messageId: "scopedRadix", data: { source } });
+    const inside = isInsidePrimitives(context);
+    return moduleVisitors(({ node, source, typeOnly }) => {
+      if (!isScopedRadixSource(source)) return;
+      // Primitives の外の値の import は ui-libs-in-primitives の受け持ち(2 度報告しない)
+      if (!inside && !typeOnly) return;
+      context.report({ node, messageId: "scopedRadix", data: { source } });
     });
   },
 };
@@ -850,6 +888,7 @@ const plugin = {
     "link-via-shelf": linkViaShelf,
     "router-via-guard": routerViaGuard,
     "radix-unified": radixUnified,
+    "ui-libs-in-primitives": uiLibsInPrimitives,
     "axios-in-client-layer": axiosInClientLayer,
     "mail-send-via-messaging": mailSendViaMessaging,
     "src-no-scripts": srcNoScripts,
