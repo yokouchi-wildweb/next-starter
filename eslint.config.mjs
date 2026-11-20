@@ -41,6 +41,8 @@ const FUNCTIONAL_RENAMED = "checkpoint context-after-v2 で削除済み";
 const SHELF_S1_MOVED = "checkpoint shelf-s1 で削除済み";
 /** 部品の棚の Form をほどく移行(Button・Input の単位、入力の型と関数を Input/options へ)の旧パスの削除の区切り(deprecated-imports の until) */
 const SHELF_S2_MOVED = "checkpoint shelf-s2 で削除済み";
+/** lib の小物の移行(lib は @/hooks・@/utils を読まない、lib/appStatus、useDarkModeSwitch)の旧パスの削除の区切り(deprecated-imports の until) */
+const SHELF_S3_MOVED = "checkpoint shelf-s3 で削除済み";
 
 const config = [
   ...nextConfig,
@@ -394,6 +396,12 @@ const config = [
             { from: "@/components/Input/AsyncOptionSource/AsyncOptionListStates", to: "@/components/Input/AsyncOptionSource", until: SHELF_S2_MOVED, exact: true },
             { from: "@/components/Widgets/_shared", to: "@/components/Widgets/SliderParts", until: SHELF_S2_MOVED, collapse: true },
             { from: "@/components/Functional/FirebaseAnalytics", to: "@/app/_mounts/FirebaseAnalytics", until: SHELF_S2_MOVED, exact: true },
+            // 注文 12(区切り shelf-s3): 置き換え .notices/20261120-170000-shelf-s3.small.mjs
+            { from: "@/utils/object", to: "@/lib/crud/utils", until: SHELF_S3_MOVED, exact: true },
+            { from: "@/utils/json", to: "@/lib/firebase/serviceAccountKey", until: SHELF_S3_MOVED, exact: true },
+            { from: "@/hooks/useAppStatus", to: "@/lib/appStatus", until: SHELF_S3_MOVED, exact: true },
+            { from: "@/components/AppStatusGuard", to: "@/lib/appStatus(useAppStatus を部品の本体で呼ぶ)", until: SHELF_S3_MOVED, exact: true },
+            { from: "@/components/Functional/DarkModeSwitch", to: "@/lib/siteTheme(useDarkModeSwitch + @/components/Button/Button)", until: SHELF_S3_MOVED, exact: true },
           ],
         },
       ],
