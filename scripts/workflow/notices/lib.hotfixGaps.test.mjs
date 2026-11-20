@@ -1,7 +1,7 @@
 // scripts/workflow/notices/lib.hotfixGaps.test.mjs — 修正を載せた木で前提が揃うかを見る部品(hotfixApply・pickCheck が使う)。実行: pnpm test scripts/workflow/notices
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { findGaps, hasGaps, noticePaths, noticeSections, pnpmEntries, pnpmScripts } from "./lib.hotfixGaps.mjs";
+import { findGaps, hasGaps, importGaps, noticePaths, noticeSections, pnpmEntries, pnpmScripts, relativeImports } from "./lib.hotfixGaps.mjs";
 
 const NOTICE = `# DOWNSTREAM NOTICE id:x
 change: c
@@ -48,4 +48,25 @@ test("gaps: entries named by file (pnpm workflow|ops <target> <action>, pnpm che
   const have = ["scripts/workflow/ownership/check.mjs", "scripts/operations/db/seed.ts", "scripts/structure/registry/gate.json", "scripts/structure/domain/gate.json", "scripts/structure/config/a.test.mjs"];
   assert.deepEqual(findGaps({ files: have, packageJson: { scripts }, rules: [], notice }).scripts, []);
   assert.deepEqual(findGaps({ files: have.slice(1, 3), packageJson: { scripts }, rules: [], notice }).scripts, ["workflow ownership check", "generate domain", "test scripts/structure/config/a.test.mjs"]);
+});
+
+test("notice: pnpm workflow|ops|check|generate|test are entries, never counted as script names (no 'scripts workflow' / 'scripts test')", () => {
+  assert.deepEqual(pnpmScripts("`pnpm workflow agent-terminal compactPlan`; `pnpm test scripts/x.test.mjs`; `pnpm check rules`; `pnpm lint`"), ["lint"]);
+});
+
+test("imports: relative import targets the tree lacks, a file whose every target is missing in one row (先取りしても動かない)", () => {
+  const files = ["scripts/w/a/compactPlan.mjs", "scripts/w/a/has.mjs", "src/x.ts", "src/y/index.ts", "src/z.ts"];
+  const texts = {
+    "scripts/w/a/compactPlan.mjs": 'import { a } from "./lib.mjs";\nimport { b } from "./compactSelf.mjs";\nimport fs from "node:fs";\n',
+    "src/x.ts": 'import { y } from "./y";\nexport { z } from "./z.js";\nconst w = await import("./w");\nimport "./side.css";\n',
+    "scripts/w/a/has.mjs": 'import { a } from "./compactPlan.mjs";\n',
+    "docs/readme.md": 'import { q } from "./q";\n',
+  };
+  assert.deepEqual(relativeImports(texts["src/x.ts"]).sort(), ["./side.css", "./w", "./y", "./z.js"]);
+  const gaps = importGaps({ files, changed: ["scripts/w/a/compactPlan.mjs", "src/x.ts", "scripts/w/a/has.mjs", "docs/readme.md"], read: (f) => texts[f] ?? null });
+  assert.deepEqual(gaps, [
+    { file: "scripts/w/a/compactPlan.mjs", all: true, targets: ["./lib.mjs", "./compactSelf.mjs"] },
+    { file: "src/x.ts", target: "./w" },
+    { file: "src/x.ts", target: "./side.css" },
+  ]);
 });

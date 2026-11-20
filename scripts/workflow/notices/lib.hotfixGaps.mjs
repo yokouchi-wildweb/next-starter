@@ -4,11 +4,14 @@
 //   2. notice の required_actions / verify / manual_steps にある `pnpm <script>` が、その木の package.json にあるか
 //      (入口の名指し pnpm workflow|ops <対象> <動作>・pnpm check|generate <対象>・pnpm test <パス> は、そのファイルがその木にあるか)
 //   3. その notice が名指すリポのパス(`…` と refs:)が、その木にあるか
+//   4. 当てた・足したコードのファイルの相対 import 先が、その木にあるか(importGaps。全部無ければ先取りしても動かない)
 // 使う所: hotfixApply.mjs(fork の木で当てた後に、止めずに報告)・pickCheck.mjs(壊れた地点の木。clean の条件の 1 つ)
 import { parsePaths, unmatchedPaths } from "../rules/lib.rulePaths.mjs";
 
 // pnpm の組み込みコマンド(package.json の scripts ではない)
 const PNPM_BUILTIN = new Set(["install", "i", "add", "remove", "rm", "up", "update", "exec", "dlx", "run", "why", "list", "ls", "store", "env"]);
+// 入口の名(pnpmEntries がファイルで見る): script 名としては数えない(`scripts workflow` / `scripts test` の重ねた行を出さない)
+const PNPM_ENTRY = new Set(["workflow", "ops", "check", "generate", "test"]);
 const PATH_ROOTS = /^(src|scripts|docs|servers|public|\.claude|\.notices|\.fork-ownership)\//;
 const PATH_ROOTS_ANY = /^(src|scripts|servers|tests|eslint-rules|\.claude|\.notices)\//;
 
@@ -28,6 +31,7 @@ export function pnpmScripts(text) {
   const out = new Set();
   for (const m of text.matchAll(/\bpnpm\s+(?:-s\s+|--silent\s+)?(run\s+)?([a-z][\w:.-]*)/g)) {
     if (!m[1] && PNPM_BUILTIN.has(m[2])) continue;
+    if (PNPM_ENTRY.has(m[2])) continue;
     out.add(m[2]);
   }
   return [...out];
@@ -58,6 +62,54 @@ export function noticePaths(steps, refs) {
   const tokens = [...steps.matchAll(/`([^`\s]+)`/g)].map((m) => m[1]);
   tokens.push(...refs.split("|").map((s) => s.trim().split(/\s+/)[0]));
   return [...new Set(tokens.map((t) => t.replace(/[.,:;)]+$/, "")).filter((t) => PATH_ROOTS.test(t) && !/[*?<>{}[\]]/.test(t)))];
+}
+
+const CODE_FILE = /\.(mjs|js|cjs|ts|tsx|mts|cts|jsx)$/;
+const RESOLVE_EXT = ["", ".mjs", ".js", ".cjs", ".ts", ".tsx", ".mts", ".jsx", "/index.mjs", "/index.js", "/index.ts", "/index.tsx"];
+
+/** コードの相対 import 先(import … from / export … from / import("…") / require("…") の ./ ../ で始まる物) */
+export function relativeImports(text) {
+  const out = new Set();
+  const re = /(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*|^\s*import\s+)(["'])(\.{1,2}\/[^"']+)\1/gm;
+  for (const m of text.matchAll(re)) out.add(m[2]);
+  return [...out];
+}
+
+/** <file> の場所から <spec> を解いた候補のうち、木にある物(無ければ null) */
+function resolveIn(files, file, spec) {
+  const parts = file.split("/").slice(0, -1);
+  for (const seg of spec.split("/")) {
+    if (seg === "." || seg === "") continue;
+    if (seg === "..") parts.pop();
+    else parts.push(seg);
+  }
+  const p = parts.join("/");
+  for (const x of RESOLVE_EXT) if (files.has(p + x)) return p + x;
+  // TypeScript の `./x.js` は x.ts を指す
+  const stem = p.replace(/\.(m?js|cjs|jsx)$/, "");
+  if (stem !== p) for (const x of [".ts", ".tsx", ".mts", ".cts"]) if (files.has(stem + x)) return stem + x;
+  return null;
+}
+
+/**
+ * 当てた・足したコードの相対 import 先で、その木に無い物。
+ * @param {{ files: string[], changed: string[], read: (f: string) => string | null }} input  changed = 当てた・足したファイル
+ * @returns {{ file: string, target?: string, all?: boolean, targets?: string[] }[]}  全部の import 先が無いファイルは { file, all, targets } 1 つ
+ */
+export function importGaps({ files, changed, read }) {
+  const have = new Set(files);
+  const out = [];
+  for (const file of changed) {
+    if (!CODE_FILE.test(file)) continue;
+    const text = read(file);
+    if (!text) continue;
+    const specs = relativeImports(text);
+    const missing = specs.filter((s) => !resolveIn(have, file, s));
+    if (!missing.length) continue;
+    if (missing.length === specs.length) out.push({ file, all: true, targets: missing });
+    else for (const s of missing) out.push({ file, target: s });
+  }
+  return out;
 }
 
 /** 1 つの木で見つかった依存: { rules: [{file, globs}], scripts: [], paths: [] } */

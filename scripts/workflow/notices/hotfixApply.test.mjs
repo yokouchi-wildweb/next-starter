@@ -177,6 +177,17 @@ test("当てた後の確かめ: 足りない pnpm の命令・名指したパス
   assert.match(ledgerNotes(r), /gap: /);
 });
 
+test("当てた後の確かめ: 足したコードの相対 import 先が fork の木に無ければ gap imports(全部無ければ先取りしても動かない)", () => {
+  const { fork, hot } = small({
+    files: { "src/a.ts": "a\n" },
+    between: { "src/lib.mjs": "export const a = 1;\n" },
+    hot: { "src/tool.mjs": 'import { a } from "./lib.mjs";\nimport { b } from "./self.mjs";\n', "src/a.ts": 'import { t } from "./tool.mjs";\nimport { n } from "./none";\n' },
+  });
+  const r = hotfixApply(fork, hot, "upstream/main");
+  assert.equal(r.status, "picked");
+  assert.deepEqual(r.gaps.filter((g) => g.kind === "imports").map((g) => g.item).sort(), ["src/a.ts -> ./none", "src/tool.mjs: 先取りしても動かない(import 先が fork に無い: ./lib.mjs, ./self.mjs)"]);
+});
+
 test("mergeText: ぶつかれば ok: false", () => {
   assert.deepEqual(mergeText("a\n", "b\n", "c\n"), { ok: false });
   assert.equal(mergeText("x\n2\n3\n", "1\n2\n3\n", "1\n2\nY\n").text, "x\n2\nY\n");
