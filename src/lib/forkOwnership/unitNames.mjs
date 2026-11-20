@@ -3,7 +3,9 @@
 //
 // 単位名 = パスから最後の拡張子と末尾の /index を除いた名前(.replace / .override は名前の一部として残す)。
 //   x.ts と x.tsx、x.ts と x/index.ts は同じ単位 x。fork が足したパスが、基準(merge-base)にある単位と同じなら同名(unit-clash)。
-// 検査する場所(計画書 S2 の場所だけ。components・hooks・utils・src/lib は対象外):
+// 検査する場所:
+// - 部品の棚(src/components の基準の各分類 <分類>・src/hooks・src/utils・src/lib)… 直下の項目 = 単位(ファイルかフォルダ)。
+//   基準の単位のフォルダの中への追加は inside-unit-add(judge.mjs)、新しい単位は可、基準の単位と同じ名前は同名
 // - 受け口のフォルダ(基準の src/**/extensionPoints.ts の dir:、"." = 持ち主の直下)・src/wiring・scripts・
 //   … 直下の項目だけ(項目のフォルダの中の部品は見ない。門番の例外 src/featureGate/alwaysOnExceptions も宣言の受け口)
 // - route の隣(src/app/**/_layout・_screen・_components)… その下全部
@@ -12,6 +14,8 @@
 import { readDeclaration } from "../districtMap/declarations.mjs";
 
 const DIRECT_FIXED = ["src/wiring", "scripts"];
+const SHELF_FIXED = ["src/hooks", "src/utils", "src/lib"];
+const COMPONENTS = "src/components";
 const ROUTE_NEIGHBOUR = /^src\/app\/(?:.*\/)?(?:_layout|_screen|_components)\//;
 const DECLARATION = /^src\/(?:.*\/)?extensionPoints\.ts$/;
 
@@ -36,15 +40,42 @@ const normalize = (path) => {
   return out.join("/");
 };
 
+/** 部品の棚の場所(shelf の中で、パスがその下にある物。分類 src/components/<分類> を先に見る)。無ければ null */
+function shelfPlaceOf(path, shelf) {
+  const parts = path.split("/");
+  for (const depth of [3, 2]) {
+    if (parts.length <= depth) continue;
+    const place = parts.slice(0, depth).join("/");
+    if (shelf.has(place)) return place;
+  }
+  return null;
+}
+
 /**
  * 基準のファイルの一覧から検査する場所を組み立てる
  * @param {Iterable<string>} baseFiles 基準のファイル(リポジトリ直下からの相対)
  * @param {(path: string) => string | null} readBase 基準側の中身
- * @returns {{ direct: Set<string> }} direct = 直下の項目だけを見るフォルダ(route の隣は形で決まるので持たない)
+ * @returns {{ direct: Set<string>, shelf: Set<string>, unitFolders: Set<string> }}
+ *   direct = 直下の項目だけを見るフォルダ(route の隣は形で決まるので持たない)
+ *   shelf = 部品の棚の場所(基準の分類・hooks・utils・src/lib) | unitFolders = 棚の基準の単位のフォルダ(<場所>/<単位>)
  */
 export function unitPlaces(baseFiles, readBase) {
+  const files = [...baseFiles];
   const direct = new Set(DIRECT_FIXED);
-  for (const path of baseFiles) {
+  const shelf = new Set(SHELF_FIXED);
+  for (const path of files) {
+    const parts = path.split("/");
+    if (path.startsWith(`${COMPONENTS}/`) && parts.length >= 4) shelf.add(parts.slice(0, 3).join("/"));
+  }
+  const unitFolders = new Set();
+  for (const path of files) {
+    const place = shelfPlaceOf(path, shelf);
+    if (place === null) continue;
+    const rest = path.slice(place.length + 1);
+    const slash = rest.indexOf("/");
+    if (slash > 0) unitFolders.add(`${place}/${rest.slice(0, slash)}`);
+  }
+  for (const path of files) {
     if (!DECLARATION.test(path)) continue;
     const owner = dirOf(path);
     // 宣言の唯一の読み手で読む(形の誤りのある宣言は点 0。止めるのは pnpm check extensions)
@@ -52,7 +83,34 @@ export function unitPlaces(baseFiles, readBase) {
       if (typeof point.dir === "string") direct.add(normalize(`${owner}/${point.dir}`));
     }
   }
-  return { direct };
+  return { direct, shelf, unitFolders };
+}
+
+/**
+ * 部品の棚の中のパスなら、その単位名(<場所>/<直下の項目>。直下のファイルは最後の拡張子と /index を除く)。棚の外は null
+ * @param {string} path
+ * @param {{ shelf?: Set<string> }} places
+ */
+export function shelfUnitOf(path, places) {
+  const place = places.shelf ? shelfPlaceOf(path, places.shelf) : null;
+  if (place === null) return null;
+  const rest = path.slice(place.length + 1);
+  const slash = rest.indexOf("/");
+  return slash > 0 ? `${place}/${rest.slice(0, slash)}` : unitName(path);
+}
+
+/**
+ * 基準の単位のフォルダの中のパスなら、そのフォルダ(<場所>/<単位>)。違えば null
+ * @param {string} path
+ * @param {{ shelf?: Set<string>, unitFolders?: Set<string> }} places
+ */
+export function unitFolderOf(path, places) {
+  const place = places.shelf ? shelfPlaceOf(path, places.shelf) : null;
+  if (place === null) return null;
+  const rest = path.slice(place.length + 1);
+  const slash = rest.indexOf("/");
+  const folder = slash > 0 ? `${place}/${rest.slice(0, slash)}` : null;
+  return folder !== null && places.unitFolders?.has(folder) ? folder : null;
 }
 
 /**

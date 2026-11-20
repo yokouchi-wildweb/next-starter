@@ -180,7 +180,7 @@ describe("judge", () => {
     assert.equal(run({ status: "A", path: "src/features/gacha/x.ts" }, null, "x").reason, "added");
     assert.equal(run({ status: "A", path: "src/lib/myLib/x.ts" }, null, "x", ["crud"]).reason, "added");
     const entry = run({ status: "A", path: "src/lib/crud/extra.ts" }, null, "x", ["crud"]);
-    assert.equal(entry.reason, "ancestor-lib-add");
+    assert.equal(entry.reason, "inside-unit-add");
     assert.equal(entry.verdict, "violation");
   });
 
@@ -199,6 +199,42 @@ describe("judge", () => {
     assert.equal(one("src/features/sample/x.tsx").reason, "added", "場所の外は見ない");
     assert.equal(one("src/wiring/other.ts").reason, "added");
     assert.equal(one("src/app/(user)/_layout/Header.replace.tsx").reason, "added", ".replace は別の単位");
+  });
+
+  test("A: 部品の棚(oripa-do の形): 上流の単位のフォルダの中は inside-unit-add、分類の直下・hooks・utils・新しい lib は added、同名は unit-clash", () => {
+    const baseFiles = [
+      "src/components/Form/Input/Manual/TextInput.tsx",
+      "src/components/Form/Field/index.ts",
+      "src/components/Input/Select.tsx",
+      "src/components/Input/MultiSelectInput/index.tsx",
+      "src/hooks/useInView.ts",
+      "src/utils/date.ts",
+      "src/lib/crud/index.ts",
+    ];
+    const places = unitPlaces(baseFiles, () => null);
+    const baseUnits = unitIndex(baseFiles);
+    const one = (path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: ["crud"], intake, places, baseUnits }).entries[0];
+    const inside = one("src/components/Form/Input/Manual/KanaInput.tsx");
+    assert.equal(inside.reason, "inside-unit-add", "Input/Manual の形の単位のフォルダの中");
+    assert.equal(inside.verdict, "violation");
+    assert.equal(inside.unitFolder, "src/components/Form/Input");
+    assert.equal(one("src/components/Input/MultiSelectInput/Extra.tsx").reason, "inside-unit-add");
+    assert.equal(one("src/lib/crud/extra.ts").unitFolder, "src/lib/crud");
+    assert.equal(one("src/components/Form/kanaHelper.ts").reason, "added", "分類の直下のファイル = 新しい単位");
+    assert.equal(one("src/components/Input/KanaInput/index.tsx").reason, "added", "分類の直下の新しいフォルダの単位");
+    assert.equal(one("src/hooks/useKana.ts").reason, "added");
+    assert.equal(one("src/utils/kana.ts").reason, "added");
+    assert.equal(one("src/lib/kana/index.ts").reason, "added", "新しい lib");
+    assert.equal(one("src/components/Mine/X.tsx").reason, "added", "fork の分類");
+    assert.equal(one("src/components/foo.ts").reason, "added", "分類の外の直下");
+    const fileToFolder = one("src/components/Input/Select/index.tsx");
+    assert.equal(fileToFolder.reason, "unit-clash", "基準のファイルの単位と同じ名前のフォルダ");
+    assert.equal(fileToFolder.clash, "src/components/Input/Select.tsx");
+    const folderToFile = one("src/components/Input/MultiSelectInput.tsx");
+    assert.equal(folderToFile.reason, "unit-clash");
+    assert.equal(folderToFile.clash, "src/components/Input/MultiSelectInput/index.tsx");
+    assert.equal(one("src/hooks/useInView.tsx").reason, "unit-clash", "x.ts と x.tsx");
+    assert.equal(one("src/lib/crud.ts").clash, "src/lib/crud/index.ts", "lib のフォルダと同じ名前のファイル");
   });
 
   test("A: <対象>.override の対象が基準に無ければ override-own、上の Tier の項目への override は added", () => {
@@ -493,7 +529,7 @@ describe("一時許可", () => {
     const renamed = { status: "R", from: PATH, path: "src/features/core/user/_x.ts", kind: null, reason: "renamed", verdict: "violation" };
     assert.equal(run({ permitText: line(PATH, ID, blobId(BASE), "-"), entries: [renamed] }).entries[0].permit, "valid");
     const libPath = "src/lib/crud/extra.ts";
-    const added = { status: "A", path: libPath, kind: null, reason: "ancestor-lib-add", verdict: "violation" };
+    const added = { status: "A", path: libPath, kind: null, reason: "inside-unit-add", verdict: "violation" };
     const result = run({ permitText: line(libPath, ID, "-", blobId("x")), entries: [added], head: { [libPath]: "x" } });
     assert.equal(result.entries[0].permit, "valid");
   });

@@ -142,7 +142,7 @@ describe("pnpm workflow ownership who", () => {
     const missing = resultOf(answer, "src/features/game/game.ts");
     assert.equal(missing.owner.kind, "missing");
     assert.deepEqual(actions(missing), ["add"]);
-    assert.deepEqual(resultOf(answer, "src/lib/crud/extra.ts").blocked, [{ action: "add", reason: "ancestor-lib-add" }]);
+    assert.deepEqual(resultOf(answer, "src/lib/crud/extra.ts").blocked, [{ action: "add", reason: "inside-unit-add" }]);
 
     const run = cli(root, "src/config/app.config.ts");
     assert.equal(run.status, 0);

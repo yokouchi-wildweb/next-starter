@@ -410,8 +410,8 @@ export function reassignMiddleTier(entries, tier1Files) {
     // 同名・自分の項目への override・親の既定(*.default.*)の追加と書き換えは持ち主によらず止める(中間 Tier の物にしない。中間 Tier の既定も親の物、D169)
     if (entry.reason === "unit-clash" || entry.reason === "override-own" || entry.reason === "default-add" || entry.reason === "default-edit" || entry.reason === "frame-plain") continue;
     const target = entry.status === "R" ? entry.from : entry.path;
-    // 祖先の lib への追加: その lib が Tier1 の版にあれば Tier1 の物(厳密)、無ければ中間 Tier の lib
-    const lib = entry.reason === "ancestor-lib-add" ? /^src\/lib\/([^/]+)\//.exec(target)?.[1] : null;
+    // 上流の単位の中への追加: その単位のフォルダ(祖先の lib も)が Tier1 の版にあれば Tier1 の物(厳密)、無ければ中間 Tier の単位
+    const folder = entry.reason === "inside-unit-add" ? (entry.unitFolder ?? /^src\/lib\/[^/]+(?=\/)/.exec(target)?.[0] ?? null) : null;
     // 業務の全体像 .claude/rules/service/ は中間 Tier が足した物も下流で直せない(D117: このフォルダだけ中間 Tier の付け替えをしない)
     if (target.startsWith(SERVICE_PREFIX)) continue;
     // core・門番・決まりの core への追加: どれも Tier1 の物(足したファイルは Tier1 の版に無いが、中間 Tier の物にしない)
@@ -419,8 +419,8 @@ export function reassignMiddleTier(entries, tier1Files) {
     const tier1Owned =
       tier1Prefix
         ? [...tier1Files].some((file) => file.startsWith(tier1Prefix))
-        : lib
-          ? [...tier1Files].some((file) => file.startsWith(`src/lib/${lib}/`))
+        : folder
+          ? [...tier1Files].some((file) => file.startsWith(`${folder}/`))
           : tier1Files.has(target);
     if (tier1Owned) continue;
     middleTier.push({ path: entry.path, from: entry.from, was: entry.reason });
