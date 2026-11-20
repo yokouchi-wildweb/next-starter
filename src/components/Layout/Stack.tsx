@@ -4,9 +4,9 @@ import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/cn";
+import { boxSpacingClassName, spacingClassName, type BoxSpacingProps, type SpacingValue } from "@/lib/spacing";
 
-import { appearance } from "./commonVariants";
-import { boxSpacingClassName, spacingClassName, type BoxSpacingProps, type SpacingValue } from "./spacing";
+import { appearance } from "./appearance";
 
 const stackVariants = cva("flex flex-col", {
   variants: {

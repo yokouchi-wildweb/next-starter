@@ -1,6 +1,6 @@
 // scripts/structure/styles/spacingClasses.ts
 //
-// 余白の段の class の表(src/components/Layout/spacingClasses.generated.ts)の中身を作る純粋ロジック。
+// 余白の段の class の表(src/lib/spacing/spacingClasses.generated.ts)の中身を作る純粋ロジック。
 // 書き出しは generate-spacing-classes.ts(pnpm generate styles)、表 ⇔ 名前の一覧の照合は spacingClasses.test.mjs、
 // 表の class がビルドした CSS に届いているかの検査は builtCss.ts の checkSpacingClasses(pnpm check styles)。
 //
@@ -13,9 +13,9 @@ import {
   SPACING_PROP_UTILITIES,
   spacingClass,
   type SpacingProp,
-} from "@/components/Layout/spacingScale";
+} from "@/lib/spacing";
 
-export const SPACING_CLASSES_OUTPUT = "src/components/Layout/spacingClasses.generated.ts";
+export const SPACING_CLASSES_OUTPUT = "src/lib/spacing/spacingClasses.generated.ts";
 
 /** prop → 幅 → 名前 → class の字面 */
 export function buildSpacingClasses(): Record<string, Record<string, Record<string, string>>> {
@@ -40,9 +40,9 @@ const key = (name: string) => (/^[A-Za-z_$][\w$]*$/.test(name) ? name : JSON.str
 /** 生成ファイルの中身 */
 export function renderSpacingClasses(table = buildSpacingClasses()): string {
   const lines = [
-    "// src/components/Layout/spacingClasses.generated.ts",
+    "// src/lib/spacing/spacingClasses.generated.ts",
     "// 生成物(pnpm generate styles、scripts/structure/styles/generate-spacing-classes.ts)。手で直さない。",
-    "// 源 = src/components/Layout/spacingScale.ts(段の名前・幅・余白 prop)。",
+    "// 源 = src/lib/spacing/spacingScale.ts(段の名前・幅・余白 prop)。",
     "// Layout 部品の余白 prop → 幅 → 段の名前 → class の字面。Tailwind が拾えるよう全部の組を字面で持つ",
     "// (class の組み立て禁止)。表の class がビルドした CSS に届いているかは pnpm check styles が確かめる。",
     "",

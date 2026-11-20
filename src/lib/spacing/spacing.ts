@@ -1,14 +1,12 @@
-// src/components/Layout/spacing.ts
+// src/lib/spacing/spacing.ts
 //
-// Layout 部品の余白 prop の型と、値 → class の引き当て。
+// 余白 prop の型と、値 → class の引き当て。
 // - 値 = 段の名前(spacingScale.ts の none…4xl)か、幅別のオブジェクト { base, sm, md, lg, xl, "2xl" }(どれも省略可)
 // - class は生成した表 SPACING_CLASSES から引く(組み立てない。Tailwind は字面に現れた class しか CSS にしない)
 // - 同じ名前は部品が違っても同じトークン(--space-<名前>)
 
 import { SPACING_CLASSES } from "./spacingClasses.generated";
 import { SPACING_BREAKPOINTS, type SpacingBreakpoint, type SpacingName, type SpacingProp } from "./spacingScale";
-
-export type { SpacingBreakpoint, SpacingName, SpacingProp } from "./spacingScale";
 
 /** 余白 prop の値: 段の名前、または幅別の段の名前 */
 export type SpacingValue = SpacingName | Partial<Record<SpacingBreakpoint, SpacingName>>;

@@ -1,12 +1,14 @@
 // src/components/Layout/appearance.ts
 //
-// Layout 系(Block / Section / Stack / Flex / Grid / Main)の appearance。
+// Layout 系(Block / Section / Stack / Flex / Grid / Main)の appearance と、それを載せた共通のバリアント(layoutVariants / createLayoutVariants)。
 // 色は全てテーマトークン(card / border / muted / primary ...)で書く。生パレット色(slate-900 等)は
 // ブランド色に追従せず dark: 併記も必要になるため使わない(ESLint style-tokens/no-raw-palette)。
 // ダークモードの色はトークン側(core/palette.css の .dark)が持つので、透過率が変わる箇所だけ dark: を書く。
 // ダークの --border は白 10% と薄いため、輪郭線が主役の appearance は dark: で muted-foreground の透過に切り替える。
 // 影は appearance ごとのトークン --appearance-shadow-<name>(core/palette.css の :root / .dark が値を持つ)。
 // ここに影の値を直書きしない。fork は src/styles/palette.css で値を変える(src/styles/README.md)。
+
+import { cva } from "class-variance-authority";
 
 export const appearance = {
   surface: [
@@ -74,3 +76,16 @@ export const appearance = {
     "dark:ring-[color:color-mix(in_oklch,_var(--color-primary)_22%,_transparent)]",
   ].join(" "),
 } as const;
+
+/**
+ * Layout 部品の共通のバリアント(見た目だけ)。余白 prop は cva に載せず @/lib/spacing の boxSpacingClassName で付ける
+ * (余白の class は生成した表から引く。variants の上書きで余白の表を書き換えられないようにする)
+ */
+export const layoutVariants = {
+  appearance,
+} as const;
+
+export const createLayoutVariants = (baseClass: string) =>
+  cva(baseClass, {
+    variants: layoutVariants,
+  });

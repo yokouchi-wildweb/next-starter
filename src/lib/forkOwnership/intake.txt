@@ -322,7 +322,7 @@ generated src/wiring/dbAgent.ts  # 生成器 extensions の出力
 generated src/**/extensions/**  # 生成器 extensions の出力
 generated src/app/route-map.jsonl  # 生成器 routes の出力
 generated src/lib/mail/generated/themeColors.ts  # 生成器 styles の出力
-generated src/components/Layout/spacingClasses.generated.ts  # 生成器 styles の出力
+generated src/lib/spacing/spacingClasses.generated.ts  # 生成器 styles の出力
 generated src/styles/core/gradient.css  # 生成器 styles の出力
 generated src/styles/gradient.css  # 生成器 styles の出力
 generated src/styles/z-layer.css  # 生成器 styles の出力

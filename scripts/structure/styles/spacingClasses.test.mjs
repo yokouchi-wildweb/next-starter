@@ -1,4 +1,4 @@
-// 余白の段の名前の一覧と、生成した class の表(src/components/Layout/spacingClasses.generated.ts)の照合。
+// 余白の段の名前の一覧と、生成した class の表(src/lib/spacing/spacingClasses.generated.ts)の照合。
 // 実行: pnpm test scripts/structure/styles/spacingClasses.test.mjs
 //
 // 守りたい契約:
@@ -11,8 +11,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { SPACING_CLASSES } from "@/components/Layout/spacingClasses.generated";
-import { SPACING_BREAKPOINTS, SPACING_NAMES, SPACING_PROP_UTILITIES, SPACING_SCALE } from "@/components/Layout/spacingScale";
+import { SPACING_BREAKPOINTS, SPACING_CLASSES, SPACING_NAMES, SPACING_PROP_UTILITIES, SPACING_SCALE } from "@/lib/spacing";
 
 import { buildSpacingClasses, listSpacingClasses, renderSpacingClasses, SPACING_CLASSES_OUTPUT } from "./spacingClasses.ts";
 

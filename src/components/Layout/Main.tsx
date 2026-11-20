@@ -3,11 +3,11 @@
 import { type VariantProps } from "class-variance-authority";
 import type { ComponentProps, CSSProperties, ReactNode } from "react";
 
-import FullScreen, { type FullScreenLayer } from "@/components/Layout/FullScreen";
 import { cn } from "@/lib/cn";
+import { boxSpacingClassName, type BoxSpacingProps, type SpacingValue } from "@/lib/spacing";
 
-import { createLayoutVariants } from "./commonVariants";
-import { boxSpacingClassName, type BoxSpacingProps, type SpacingValue } from "./spacing";
+import { createLayoutVariants } from "./appearance";
+import { FullScreen, type FullScreenLayer } from "./FullScreen";
 
 const mainLayoutVariants = createLayoutVariants("mx-auto w-full");
 

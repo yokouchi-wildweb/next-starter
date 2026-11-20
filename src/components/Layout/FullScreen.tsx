@@ -30,7 +30,7 @@ type Props = {
  * - `width`: 常に `100vw` を指定。幅についてはアドレスバーの影響を受けにくいため
  * - `disableScroll()`: フルスクリーン表示中にスクロールを無効化
  */
-export default function FullScreen({
+export function FullScreen({
   className,
   children,
   layer = "above-header",

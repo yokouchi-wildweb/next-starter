@@ -1,4 +1,4 @@
-// src/components/AppFrames/Kiosk/KioskFrame.tsx
+// src/components/Layout/KioskFrame.tsx
 
 "use client";
 
