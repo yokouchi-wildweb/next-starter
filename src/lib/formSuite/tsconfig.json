@@ -1,0 +1,98 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/components/*": [
+        "../../components/*"
+      ],
+      "@/lib/appEnv": [
+        "../appEnv"
+      ],
+      "@/lib/appEnv/*": [
+        "../appEnv/*"
+      ],
+      "@/lib/cn": [
+        "../cn"
+      ],
+      "@/lib/cn/*": [
+        "../cn/*"
+      ],
+      "@/lib/crud": [
+        "../crud"
+      ],
+      "@/lib/crud/*": [
+        "../crud/*"
+      ],
+      "@/lib/defineConfig": [
+        "../defineConfig"
+      ],
+      "@/lib/defineConfig/*": [
+        "../defineConfig/*"
+      ],
+      "@/lib/domain": [
+        "../domain"
+      ],
+      "@/lib/domain/*": [
+        "../domain/*"
+      ],
+      "@/lib/errors": [
+        "../errors"
+      ],
+      "@/lib/errors/*": [
+        "../errors/*"
+      ],
+      "@/lib/frameDims": [
+        "../frameDims"
+      ],
+      "@/lib/frameDims/*": [
+        "../frameDims/*"
+      ],
+      "@/lib/gradient": [
+        "../gradient"
+      ],
+      "@/lib/gradient/*": [
+        "../gradient/*"
+      ],
+      "@/lib/isClient": [
+        "../isClient"
+      ],
+      "@/lib/isClient/*": [
+        "../isClient/*"
+      ],
+      "@/lib/mediaInputSuite": [
+        "../mediaInputSuite"
+      ],
+      "@/lib/mediaInputSuite/*": [
+        "../mediaInputSuite/*"
+      ],
+      "@/lib/spacing": [
+        "../spacing"
+      ],
+      "@/lib/spacing/*": [
+        "../spacing/*"
+      ],
+      "@/lib/toast": [
+        "../toast"
+      ],
+      "@/lib/toast/*": [
+        "../toast/*"
+      ],
+      "@/lib/variantOverrides": [
+        "../variantOverrides"
+      ],
+      "@/lib/variantOverrides/*": [
+        "../variantOverrides/*"
+      ],
+      "@/lib/zLayer": [
+        "../zLayer"
+      ],
+      "@/lib/zLayer/*": [
+        "../zLayer/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}

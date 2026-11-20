@@ -8,7 +8,7 @@ import { type ButtonStyleProps } from "@/components/Button/variants";
 import { MinusIcon, PlusIcon } from "lucide-react";
 import type { VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";
-import type { FormControlA11yProps } from "@/components/Form/Field/types";
+import type { FormControlA11yProps } from "./options";
 import { variantOverrides } from "@/lib/variantOverrides/config";
 import { createOverridableVariants, type StepperInputSize } from "@/lib/variantOverrides";
 

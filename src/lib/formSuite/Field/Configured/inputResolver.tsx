@@ -1,0 +1,365 @@
+// src/lib/formSuite/Field/Configured/inputResolver.tsx
+
+import type { ReactNode } from "react";
+import type { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
+
+import {
+  ControlledBooleanCheckboxInput,
+  ControlledCheckGroupInput,
+  ControlledColorInput,
+  ControlledColorValueInput,
+  ControlledComboboxInput,
+  ControlledDateInput,
+  ControlledDatetimeInput,
+  ControlledEmailInput,
+  ControlledMultiSelectInput,
+  ControlledNumberInput,
+  ControlledPasswordInput,
+  ControlledRadioGroupInput,
+  ControlledSelectInput,
+  ControlledStepperInput,
+  ControlledSwitchInput,
+  ControlledTextInput,
+  ControlledTextarea,
+  ControlledTimeInput,
+} from "../../inputs";
+import { BUILTIN_FORM_INPUTS } from "@/lib/domain/fields/formInputs.mjs";
+import type { FieldConfig, FieldOption, FormInputType } from "../types";
+import type { RadioGroupDisplayType } from "@/components/Input/RadioGroupInput";
+import type { CheckGroupDisplayType } from "@/components/Input/CheckGroupInput";
+import { isCheckGroupFieldType } from "./checkGroupFieldTypes";
+
+/**
+ * formInput タイプに応じた入力コンポーネントをレンダリングする
+ *
+ * @param formInput - フォーム入力種別
+ * @param field - react-hook-form の ControllerRenderProps
+ * @param fieldConfig - フィールド設定（FieldConfig）
+ * @param inputClassName - Inputコンポーネントに適用するクラス名
+ * @returns ReactNode（入力コンポーネント）
+ *
+ * @example
+ * ```tsx
+ * <ControlledField
+ *   control={control}
+ *   name={fieldConfig.name}
+ *   label={fieldConfig.label}
+ *   renderInput={(field, inputClassName) => renderInputByFormType(fieldConfig.formInput, field, fieldConfig, inputClassName)}
+ * />
+ * ```
+ */
+export function renderInputByFormType<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>
+>(
+  formInput: FormInputType,
+  field: ControllerRenderProps<TFieldValues, TName>,
+  fieldConfig: FieldConfig,
+  inputClassName?: string
+): ReactNode {
+  const readOnly = fieldConfig.readonly ?? false;
+
+  switch (formInput) {
+    case "textInput":
+      return <ControlledTextInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
+
+    case "numberInput":
+      return <ControlledNumberInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
+
+    case "textarea":
+      return (
+        <ControlledTextarea
+          field={field}
+          placeholder={fieldConfig.placeholder}
+          readOnly={readOnly}
+          disabled={fieldConfig.disabled}
+          className={inputClassName}
+        />
+      );
+
+    case "select":
+      return (
+        <ControlledSelectInput
+          field={field}
+          options={normalizeOptions(fieldConfig.options)}
+          placeholder={fieldConfig.placeholder}
+          disabled={fieldConfig.disabled || readOnly}
+          className={inputClassName}
+        />
+      );
+
+    case "multiSelect":
+      return (
+        <ControlledMultiSelectInput
+          field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
+          options={normalizeOptions(fieldConfig.options)}
+          placeholder={fieldConfig.placeholder}
+          disabled={fieldConfig.disabled || readOnly}
+          className={inputClassName}
+        />
+      );
+
+    case "combobox":
+      return (
+        <ControlledComboboxInput
+          field={field}
+          options={normalizeOptions(fieldConfig.options)}
+          placeholder={fieldConfig.placeholder}
+          disabled={fieldConfig.disabled || readOnly}
+          className={inputClassName}
+        />
+      );
+
+    case "radio": {
+      const options = normalizeRadioOptions(fieldConfig.options);
+      return (
+        <ControlledRadioGroupInput
+          field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
+          options={options}
+          displayType={(fieldConfig.displayType as RadioGroupDisplayType | undefined) ?? "standard"}
+          disabled={fieldConfig.disabled || readOnly}
+          className={inputClassName}
+        />
+      );
+    }
+
+    case "checkbox": {
+      // 値が配列の型（array / stringArray）は CheckGroupInput、それ以外は ControlledBooleanCheckboxInput
+      if (isCheckGroupFieldType(fieldConfig.fieldType)) {
+        return (
+          <ControlledCheckGroupInput
+            field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
+            options={normalizeOptions(fieldConfig.options)}
+            displayType={(fieldConfig.displayType as CheckGroupDisplayType | undefined) ?? "standard"}
+            disabled={fieldConfig.disabled || readOnly}
+            className={inputClassName}
+          />
+        );
+      }
+      return (
+        <ControlledBooleanCheckboxInput
+          field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
+          label={fieldConfig.label}
+          disabled={fieldConfig.disabled || readOnly}
+          className={inputClassName}
+        />
+      );
+    }
+
+    case "stepperInput":
+      return (
+        <ControlledStepperInput
+          field={field}
+          disabled={fieldConfig.disabled || readOnly}
+          className={inputClassName}
+        />
+      );
+
+    case "switchInput": {
+      const options = fieldConfig.options;
+      // options が2つある場合は、最初をonValue、2番目をoffValueとして扱う
+      if (options && options.length === 2) {
+        return (
+          <ControlledSwitchInput
+            field={field}
+            onValue={options[0].value}
+            offValue={options[1].value}
+            label={fieldConfig.label}
+            disabled={fieldConfig.disabled || readOnly}
+            className={inputClassName}
+          />
+        );
+      }
+      return (
+        <ControlledSwitchInput
+          field={field}
+          label={fieldConfig.label}
+          disabled={fieldConfig.disabled || readOnly}
+          className={inputClassName}
+        />
+      );
+    }
+
+    case "dateInput":
+      return <ControlledDateInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
+
+    case "timeInput":
+      return <ControlledTimeInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
+
+    case "datetimeInput":
+      return <ControlledDatetimeInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
+
+    case "emailInput":
+      return <ControlledEmailInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
+
+    case "passwordInput":
+      // ドメインのパスワード項目は管理画面で他人の値を設定する欄。保存済みパスワードを自動入力させない
+      return <ControlledPasswordInput field={field} autoComplete="new-password" placeholder={fieldConfig.placeholder} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
+
+    case "colorInput":
+      return <ControlledColorInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
+
+    case "colorValueInput":
+      // domain.json 経由では default の意味（resolveDefault/プレビュー）を注入できないため
+      // 既定挙動でレンダリングする。意味を注入したい場合は Controlled/Manual を直接利用すること。
+      return <ControlledColorValueInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
+
+    case "hidden":
+      return <input type="hidden" {...field} />;
+
+    case "none":
+      return null;
+
+    case "mediaUploader":
+    case "mediaUploaderMulti":
+      // mediaUploader / mediaUploaderMulti は特殊な処理が必要なため、ConfiguredField では未サポート
+      // FieldRenderer を使用してください
+      console.warn(
+        `[ConfiguredField] formInput="${formInput}" is not supported. Use FieldRenderer instead. Field: ${fieldConfig.name}`
+      );
+      return null;
+
+    case "custom":
+      // custom はUIを自分で実装するため何も描画しない
+      // FieldRenderer の beforeField/afterField で独自コンポーネントを挿入する
+      return null;
+
+    case "asyncCombobox":
+    case "asyncMultiSelect":
+      // FieldRenderer で ConfiguredAsyncRelationField にルーティングされるため、
+      // inputResolver には到達しない。到達した場合は警告
+      console.warn(
+        `[ConfiguredField] formInput="${formInput}" は FieldRenderer 経由で使用してください。Field: ${fieldConfig.name}`
+      );
+      return null;
+
+    default: {
+      // 未知の formInput タイプ
+      const _exhaustiveCheck: never = formInput;
+      console.warn(`[ConfiguredField] Unknown formInput type: ${formInput}`);
+      return null;
+    }
+  }
+}
+
+/**
+ * オプション配列を正規化する
+ * readonly 配列も受け入れる
+ */
+function normalizeOptions(
+  options?: readonly FieldOption[] | FieldOption[]
+): FieldOption[] {
+  if (!options) return [];
+  return [...options];
+}
+
+/**
+ * radio 用のオプションを正規化する
+ * boolean 値の文字列表現も適切に変換
+ */
+function normalizeRadioOptions(
+  options?: readonly FieldOption[] | FieldOption[]
+): FieldOption[] {
+  if (!options) return [];
+  return options.map((option) => {
+    let normalizedValue: string | number | boolean = option.value;
+    if (option.value === true || option.value === "true") {
+      normalizedValue = true;
+    } else if (option.value === false || option.value === "false") {
+      normalizedValue = false;
+    }
+    // value 以外（disabled 等）は引き継ぐ
+    return {
+      ...option,
+      value: normalizedValue,
+    };
+  });
+}
+
+/** 組み込みの入力種別か（それ以外は登録の部品か未知の名前） */
+export function isBuiltinFormInput(formInput: string): formInput is FormInputType {
+  return (BUILTIN_FORM_INPUTS as readonly string[]).includes(formInput);
+}
+
+/**
+ * formInput が入力コンポーネントを持つかどうかを判定
+ * hidden と none は入力コンポーネントを持たない（または非表示）
+ */
+export function hasVisibleInput(formInput: FormInputType): boolean {
+  return formInput !== "hidden" && formInput !== "none";
+}
+
+/**
+ * formInput が ControlledField でラップすべきかどうかを判定
+ * 一部のコンポーネント（switch, stepper, booleanCheckbox）は独自のレイアウトを持つ
+ */
+export function shouldUseFieldItem(formInput: FormInputType): boolean {
+  // 以下は ControlledField ではなく独自レイアウトを使用
+  const noFieldItemTypes: FormInputType[] = [
+    "switchInput",
+    "stepperInput",
+    "hidden",
+    "none",
+    "mediaUploader",
+    "mediaUploaderMulti",
+  ];
+  return !noFieldItemTypes.includes(formInput);
+}
+
+/**
+ * checkbox の formInput が配列型（複数選択）かどうかを判定。答えは型の表（isCheckGroupFieldType）と同じ
+ */
+export function isCheckboxArray(fieldConfig: FieldConfig): boolean {
+  return fieldConfig.formInput === "checkbox" && isCheckGroupFieldType(fieldConfig.fieldType);
+}
+
+/**
+ * 各入力タイプの自動保存時のblurモード設定
+ *
+ * - immediate: blur時点で入力が確定しているため即座に保存
+ * - debounce: 連続操作の可能性があるためデバウンスして保存
+ * - none: blurでは保存しない（独自のオートセーブ処理を持つ、または対象外）
+ */
+const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce" | "none"> = {
+  // 即時保存: blur時点で入力が確定している
+  textInput: "immediate",
+  numberInput: "immediate",
+  textarea: "immediate",
+  emailInput: "immediate",
+  passwordInput: "immediate",
+  radio: "immediate",
+  select: "immediate",
+  multiSelect: "immediate",
+  combobox: "immediate",
+  switchInput: "immediate",
+  dateInput: "immediate",
+  timeInput: "immediate",
+  datetimeInput: "immediate",
+
+  // 即時保存: カラーピッカー確定時
+  colorInput: "immediate",
+  colorValueInput: "immediate",
+
+  // デバウンス保存: 連続操作の可能性がある
+  checkbox: "debounce",
+  stepperInput: "debounce",
+
+  // 独自処理または対象外: blurでは保存しない
+  hidden: "none",
+  none: "none",
+  mediaUploader: "none",  // onUrlChangeで即時コミット+保存
+  mediaUploaderMulti: "none",  // onUrlsChangeで即時コミット+保存
+  custom: "none",  // 独自コンポーネントで処理
+
+  // 非同期リレーション: ポップオーバー閉じた時に即時保存
+  asyncCombobox: "immediate",
+  asyncMultiSelect: "immediate",
+};
+
+/**
+ * 自動保存時のblurモードを取得する
+ */
+export function getBlurMode(fieldConfig: FieldConfig): "immediate" | "debounce" | "none" {
+  const { formInput } = fieldConfig;
+  return isBuiltinFormInput(formInput) ? BLUR_MODE_CONFIG[formInput] : "debounce";
+}
