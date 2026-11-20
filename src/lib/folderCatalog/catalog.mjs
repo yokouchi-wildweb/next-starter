@@ -7,6 +7,9 @@
 //   ## next-starter
 //   - src/lib/ai — 汎用 AI エージェント基盤
 //
+// 目録は 2 つ: src/lib/CATALOG.md(直下のディレクトリ = lib、depth 1)と src/components/CATALOG.md
+// (分類の直下の単位 = src/components/<分類>/<単位>、depth 2。単位の数え方は listUnits)。
+//
 // 所有者 ID = 各リポの fork の名前(repo.json の repo_id、読み手は forkOwnership/forkIds.mjs。D27)。
 // origin の URL からは導かない。
 // テスト(pnpm test src/lib/folderCatalog/catalog.test.mjs)と eslint.config.mjs(所有に応じた error / warn の振り分け)から使う。
@@ -59,11 +62,12 @@ export function parseCatalog(text) {
 }
 
 /**
- * 目録と実在するディレクトリの整合を検査する。問題が無ければ空配列。
- * @param {{ sections: ReturnType<typeof parseCatalog>["sections"], folder: string, dirs: string[] }} input
- *   folder = 目録の対象フォルダ(例 "src/lib")、dirs = その直下に実在するディレクトリ名
+ * 目録と実在するディレクトリ(単位)の整合を検査する。問題が無ければ空配列。
+ * @param {{ sections: ReturnType<typeof parseCatalog>["sections"], folder: string, dirs: string[], depth?: 1 | 2 }} input
+ *   folder = 目録の対象フォルダ(例 "src/lib")、dirs = 実在する項目の folder からの相対名(depth 1 = "ai"、depth 2 = "Input/Select")
  */
-export function checkCatalog({ sections, folder, dirs }) {
+export function checkCatalog({ sections, folder, dirs, depth = 1 }) {
+  const what = depth === 1 ? "直下のディレクトリ" : "分類の直下の単位";
   const problems = [];
   const owners = new Map();
   for (const section of sections) {
@@ -79,8 +83,9 @@ export function checkCatalog({ sections, folder, dirs }) {
     for (const entry of section.entries) {
       const prefix = `${folder}/`;
       const name = entry.path.startsWith(prefix) ? entry.path.slice(prefix.length) : null;
-      if (!name || name.includes("/")) {
-        problems.push(`${entry.line} 行目: "${entry.path}" は ${folder} 直下のディレクトリのパスではありません`);
+      // depth 2 でも、index だけの分類は分類そのものが単位(depth 1 の名前)
+      if (!name || name.split("/").length > depth || name.split("/").some((part) => part === "")) {
+        problems.push(`${entry.line} 行目: "${entry.path}" は ${folder} の${what}のパスではありません`);
         continue;
       }
       const hits = listed.get(entry.path) ?? [];
@@ -108,6 +113,36 @@ export function checkCatalog({ sections, folder, dirs }) {
     }
   }
   return problems;
+}
+
+const CODE_FILE = /\.(tsx|ts|mts|mjs|jsx|js)$/;
+const TEST_FILE = /\.test\.[^.]+$/;
+/** 単位でないフォルダ(テストのデータ) */
+const NOT_UNIT_DIRS = new Set(["__fixtures__"]);
+
+/**
+ * 部品の棚のフォルダの単位(分類の直下の項目)を `<分類>/<単位>` で返す(src/components 用、depth 2)。
+ * 単位 = 分類の直下のフォルダ(隠し・__fixtures__ を除く)とコードのファイル(テスト *.test.* を除く)。
+ * ファイルは最後の拡張子を除いた名前。分類の直下の index.* は分類そのものが 1 つの単位(名前は分類。forkOwnership の unitName と同じ)
+ * @param {string} repoRoot
+ * @param {string} folder 例 "src/components"
+ * @returns {string[]} 例 ["Input/Select", "AppStatusGuard"]
+ */
+export function listUnits(repoRoot, folder) {
+  const units = new Set();
+  for (const category of listDirs(repoRoot, folder)) {
+    for (const entry of readdirSync(join(repoRoot, folder, category), { withFileTypes: true })) {
+      if (entry.name.startsWith(".")) continue;
+      if (entry.isDirectory()) {
+        if (!NOT_UNIT_DIRS.has(entry.name)) units.add(`${category}/${entry.name}`);
+        continue;
+      }
+      if (!CODE_FILE.test(entry.name) || TEST_FILE.test(entry.name)) continue;
+      const stem = entry.name.replace(CODE_FILE, "");
+      units.add(stem === "index" ? category : `${category}/${stem}`);
+    }
+  }
+  return [...units].sort();
 }
 
 /** フォルダ直下のディレクトリ名(隠しディレクトリを除く) */

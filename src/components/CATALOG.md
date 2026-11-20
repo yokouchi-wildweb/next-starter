@@ -1,0 +1,129 @@
+# src/components 目録
+
+`src/components` の分類の直下の単位(`src/components/<分類>/<単位>`)を、どのリポジトリが作ったかの一覧。分類の索引と使い方は [README.md](./README.md)。
+
+- 節 = 所有者(作ったリポジトリ)。見出しはそのリポの名前(repo.json の `repo_id`。`.notices/applied/` の台帳名と同じ)。節は上流から順に並べる(先頭 = Tier1)
+- 1 行 = 1 単位: `- src/components/<分類>/<単位> — <一行説明>`。単位 = 分類の直下のフォルダか、コードのファイル(拡張子を除いた名前。テストと `__fixtures__` は単位でない)。分類の直下が `index` だけの分類は分類そのものが 1 つの単位
+- 単位を足したら**自分の節に 1 行足す**(自分の節が無ければ末尾に作る)。他の節は編集しない
+- 検査: `pnpm test src/lib/folderCatalog/catalog.test.mjs`(実在との不一致・重複・説明の欠落で失敗する)
+
+## next-starter
+- src/components/Admin/ItemNavigator — 管理の編集画面の前後の項目へ移る選択欄(props だけ)
+- src/components/Admin/ListTop — 管理の一覧の上の行(見出しと操作)
+- src/components/Admin/SearchBox — 管理の一覧の検索欄
+- src/components/Admin/SecTitle — 管理画面の節の見出し
+- src/components/Admin/SelectFilter — 管理の一覧の絞り込みの選択欄
+- src/components/Admin/SortSelect — 管理の一覧の並べ替えの選択欄
+- src/components/Animation/CountUp — 数値を数え上げて出す演出
+- src/components/Animation/PageTransition — ページの深さに応じた切り替えの演出
+- src/components/AppStatusGuard — メンテナンス・デプロイを検知してリダイレクト / リロードするガード
+- src/components/Badge/BookmarkTagBadge — 付箋の形のバッジ
+- src/components/Badge/SoftBadge — 淡い塗りのバッジ
+- src/components/Badge/SolidBadge — 濃い塗りのバッジ
+- src/components/Badge/badge-variants — バッジ共通の variant と size の表
+- src/components/Button/BookmarkTag — 選択状態で配色が変わる付箋の形のボタン
+- src/components/Button/Button — 標準のボタン(raw button の代わり)
+- src/components/Button/LinkButton — ボタンの見た目のリンク(棚の Link、閉じた機能の住所は描かない)
+- src/components/Button/PseudoButton — div で描くボタンの見た目(読み込み中の指定なし)
+- src/components/Button/RoundedButton — 選択状態で配色が変わる丸いボタン
+- src/components/Button/TabletButton — タブレット向けの大きなボタン
+- src/components/Button/variants — ボタンの形と大きさの表(buttonVariants・tabletButtonVariants)
+- src/components/Functional/DarkModeSwitch — ライト / ダークの切り替えボタン
+- src/components/Functional/FirebaseAnalytics — Firebase Analytics のページビュー計測
+- src/components/Icons/createImageIcon — 画像ファイルから Lucide 互換のアイコンを作る
+- src/components/Icons/createSvgIcon — SVG の子要素から Lucide 互換のアイコンを作る
+- src/components/Icons/definitions — プロジェクト固有アイコンの定義
+- src/components/Icons/types — 固有アイコンの型
+- src/components/Input/AsyncComboboxInput — 非同期の単一選択コンボボックス
+- src/components/Input/AsyncMultiSelectInput — 非同期の複数選択ピッカー(Popover 版)
+- src/components/Input/AsyncOptionSource — 非同期の選択肢の取得エンジンと共通のリスト部品
+- src/components/Input/BooleanCheckboxInput — 真偽値のチェックボックス
+- src/components/Input/BooleanRadioGroupInput — 真偽値のラジオ
+- src/components/Input/CheckGroupInput — 複数選択のチェックの組
+- src/components/Input/ColorInput — 色(#rrggbb)の入力欄
+- src/components/Input/ColorValueInput — 既定 / 単色 / グラデーションの色の値のピッカー
+- src/components/Input/ComboboxInput — 検索付きの単一選択
+- src/components/Input/DateInput — 日付の入力欄(直入力・カレンダー)
+- src/components/Input/DatetimeInput — 日時の入力欄
+- src/components/Input/FileInput — ファイルの入力欄
+- src/components/Input/FilePickButton — ボタンの形のファイル選択
+- src/components/Input/Input — 1 行の入力欄(raw input の代わり)
+- src/components/Input/Label — 入力欄のラベル
+- src/components/Input/MultiSelectInput — 複数選択の選択欄
+- src/components/Input/NumberInput — 数値の入力欄(blur で上下限に丸める)
+- src/components/Input/OneTimeCodeInput — ワンタイムコードの入力欄
+- src/components/Input/PasswordInput — パスワードの入力欄(autoComplete 必須)
+- src/components/Input/RadioGroupInput — ラジオの組(segmented の切り替えも)
+- src/components/Input/Select — 選択欄(SelectInput)
+- src/components/Input/SingleCardCheckbox — カードの形の 1 つのチェック
+- src/components/Input/StepperInput — 増減ボタン付きの数値の入力欄
+- src/components/Input/SwitchInput — オン / オフのスイッチ
+- src/components/Input/Textarea — 複数行の入力欄
+- src/components/Input/TimeFields — 時と分の分かれた数値の入力(TimeInput・DatetimeInput が共用)
+- src/components/Input/TimeInput — 時刻の入力欄
+- src/components/Input/options — 選択肢の型と関数(Options・OptionValue・正規化)
+- src/components/Layout/Block — ブロック要素(div の代わり)
+- src/components/Layout/Flex — flex の並び
+- src/components/Layout/FullScreen — 画面いっぱいのページの要素
+- src/components/Layout/Grid — grid の並び
+- src/components/Layout/InBlock — インラインブロック要素
+- src/components/Layout/KioskFrame — キオスク用のビューポート固定枠(切り欠きの余白つき)
+- src/components/Layout/Main — main 要素と内側の余白
+- src/components/Layout/ScaledStage — 論理キャンバスを画面に合わせて拡大縮小する舞台
+- src/components/Layout/Section — section 要素
+- src/components/Layout/Stack — 縦の並び(gap の段)
+- src/components/Layout/appearance — Layout 系の appearance と共通のバリアント
+- src/components/Media/AppImage — next/image の包み(raw img の代わり)
+- src/components/Media/AppVideo — アプリのファイルの動画(署名期限切れからの復帰つき)
+- src/components/Media/PreviewImage — 選んだ直後の画像(blob: など)の下見
+- src/components/Navigation/Link — next/link の包み(閉じた機能の住所は描かない)
+- src/components/Navigation/NavigationPort — 移動の判定と router を外から差し込む口
+- src/components/Navigation/PageTab — ページを切り替えるタブ
+- src/components/Navigation/Pagination — ページ送り(リンクかボタン)
+- src/components/Navigation/StateTabs — 状態で切り替えるタブ
+- src/components/Navigation/paginationCases — Pagination の makeHref の出力を比べる場合の一覧(テストと期待値の記録が共用)
+- src/components/Overlays/AsyncPickerModal — 大量の選択肢から選ぶモーダル
+- src/components/Overlays/BodyPortal — body 直下へ要素を出すポータル
+- src/components/Overlays/Calendar — 重ねて出すカレンダー
+- src/components/Overlays/Confirm — 関数の中で答えを待つ確認(Promise<boolean>)
+- src/components/Overlays/DetailModal — 詳細を表で見せるモーダル
+- src/components/Overlays/Dialog — 確認・選択のダイアログ
+- src/components/Overlays/HoverCard — ホバーで出るカード
+- src/components/Overlays/ImageViewer — 画像を拡大して見るビューア
+- src/components/Overlays/Loading — 読み込み中の表示(Spinner・InlineLoader・ScreenLoader)
+- src/components/Overlays/Modal — モーダル(閉じ確認ガードつき)
+- src/components/Overlays/Popover — ポップオーバーの完成品(ConfirmPopover など)
+- src/components/Overlays/Sheet — 辺から出る板(下のシート・横の引き出し)
+- src/components/Overlays/TabbedModal — タブ付きのモーダル
+- src/components/Overlays/Tooltip — ツールチップ(HelpTip など)
+- src/components/Primitives/Badge — バッジの土台 BadgeCore
+- src/components/Primitives/Button — ボタンの土台
+- src/components/Primitives/Calendar — カレンダーの素体(react-day-picker)
+- src/components/Primitives/Carousel — カルーセルの素体(embla)
+- src/components/Primitives/Checkbox — チェックボックスの素体
+- src/components/Primitives/Command — コマンドパレットの低レベル部品(cmdk)
+- src/components/Primitives/Dialog — ダイアログの低レベル部品
+- src/components/Primitives/HoverCard — ホバーカードの低レベル部品
+- src/components/Primitives/Input — 1 行の Input と複数行の Textarea の素体
+- src/components/Primitives/Label — ラベルの素体
+- src/components/Primitives/Popover — ポップオーバーの低レベル部品
+- src/components/Primitives/RadioGroup — ラジオの組の素体
+- src/components/Primitives/Select — 選択欄の素体
+- src/components/Primitives/Skeleton — スケルトンの素体
+- src/components/Primitives/Slot — radix-ui の Slot の名前空間
+- src/components/Primitives/Tabs — タブの素体
+- src/components/Primitives/Tooltip — ツールチップの低レベル部品
+- src/components/Primitives/slots — Primitives の印(data-slot)の一覧の読み手
+- src/components/Skeleton/BaseSkeleton — シマー演出のスケルトンの基盤
+- src/components/Skeleton/DetailModalSkeleton — 詳細モーダルの読み込み中の形
+- src/components/Skeleton/FormSkeleton — フォームの読み込み中の形
+- src/components/Skeleton/ImageUploaderSkeleton — 画像アップローダーの読み込み中の形
+- src/components/TextBlocks/PageTitle — ページの見出し(h1)
+- src/components/TextBlocks/Para — 段落(p の代わり)
+- src/components/TextBlocks/SecTitle — 節の見出し
+- src/components/TextBlocks/Span — 文中の一続きの文字(span の代わり)
+- src/components/TextBlocks/textVariants — 文字の色・大きさ・太さの表
+- src/components/Widgets/FadeSlider — フェードで切り替わるスライダー
+- src/components/Widgets/InfiniteScrollList — 無限スクロールのリスト(useInfiniteScrollQuery と組む)
+- src/components/Widgets/ScrollSlider — 横にスクロールするスライダー
+- src/components/Widgets/SliderParts — FadeSlider・ScrollSlider が共用するスライダーの部品と型
