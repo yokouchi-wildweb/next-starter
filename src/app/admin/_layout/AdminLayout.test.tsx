@@ -2,7 +2,7 @@
 // slot / props と、props なしの描画が slot 化の前(a77da63d)と同じことの検査(足したのは枠の根の data-frame-root・部位の data-slot="admin-*" だけ。data-slot の一覧と枠の表の結線は ./AdminFrame.test.tsx)。
 // 実行: pnpm test src/app/admin/_layout/AdminLayout.test.tsx(pnpm test 'src/app/(user)/_layout/' と同じ方式: tsx + node:test のモジュールモック + react-dom/server の静的描画)
 //
-// 重い部品(BaseSidebar・DarkModeSwitch・Button)と useHeaderHeight・useAuthSession は目印にモックし、
+// 重い部品(BaseSidebar・Button)と useHeaderHeight・useAuthSession・useDarkModeSwitch は目印にモックし、
 // 枠そのもの(外枠・Header・受け口・サイドバーの殻・リサイズのつまみ・Footer・並び順)は本物を描く。
 // サイドバー幅の調整は有効 = fork の設定値に左右されない。
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
@@ -33,10 +33,8 @@ mock.module("@/app/_layout/useHeaderHeight", {
     },
   },
 });
-// 明暗の切り替えの目印は受けた className を class に写す(行のはみ出しの決まり = shrink-0 を見る)
-mock.module("@/components/Functional/DarkModeSwitch", {
-  namedExports: { DarkModeSwitch: ({ className }: { className?: string }) => createElement("x-darkmode", className ? { class: className } : null) },
-});
+// 明暗の切り替え: 切替可・ライトの状態(ヘッダーは Button で描く。Button の目印が className を class に写すので行のはみ出しの決まり = shrink-0 を見られる)
+mock.module("@/lib/siteTheme", { namedExports: { useDarkModeSwitch: () => ({ isDark: false, switchable: true, toggle: () => {} }) } });
 // 編集画面の「前後の項目へ移る」のデータ: 名前がとても長い今の項目 1 件(SP で行の幅を超える名前)
 const LONG_LABEL = "z".repeat(400);
 mock.module("@/lib/crud/hooks", {
@@ -53,8 +51,8 @@ mock.module("@/lib/crud/hooks", {
 mock.module("@/features/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
 mock.module("@/components/Button/Button", {
   namedExports: {
-    Button: (p: { variant?: string; "aria-label"?: string; "aria-pressed"?: boolean }) =>
-      createElement("x-button", { "data-variant": p.variant, "aria-label": p["aria-label"], "aria-pressed": String(p["aria-pressed"]) }),
+    Button: (p: { variant?: string; "aria-label"?: string; "aria-pressed"?: boolean; className?: string }) =>
+      createElement("x-button", { "data-variant": p.variant, "aria-label": p["aria-label"], "aria-pressed": String(p["aria-pressed"]), class: p.className }),
   },
 });
 mock.module(here("./config.ts"), { namedExports: { adminLayoutConfig: { enableSidebarResizing: true, globalMenu: { submenuHideDelayMs: 639 } } } });
@@ -94,13 +92,13 @@ const LOGO_IMG = (variant: "dark" | "light", alt: string, className: string) =>
 const LOGO_PRELOAD = (variant: "dark" | "light") => `<link rel="preload" as="image" imageSrcSet="${logoSrcSet(variant)}"/>`;
 
 /** slot 化の前の旧 admin/layout.tsx が描いていた物のヘッダー(ロゴだけ AppImage 化で差し替え) */
-const BEFORE_HEADER = `<header id="header" data-slot="admin-header" class="flex items-center justify-between gap-3 px-4 py-[var(--admin-header-padding-y)] text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:text-lg"><a class="block shrink-0 p-1 sm:p-2" href="/admin">${LOGO_IMG("dark", "管理画面ロゴ（ライトモード）", "block h-auto w-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]")}${LOGO_IMG("light", "管理画面ロゴ（ダークモード）", "hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]")}</a><div data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex"></div><div data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center"></div><div class="flex shrink-0 items-center gap-3"><div data-slot="admin-header-right" class="flex items-center gap-3"></div><x-darkmode></x-darkmode></div></header>`;
+const BEFORE_HEADER = `<header id="header" data-slot="admin-header" class="flex items-center justify-between gap-3 px-4 py-[var(--admin-header-padding-y)] text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:text-lg"><a class="block shrink-0 p-1 sm:p-2" href="/admin">${LOGO_IMG("dark", "管理画面ロゴ（ライトモード）", "block h-auto w-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]")}${LOGO_IMG("light", "管理画面ロゴ（ダークモード）", "hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]")}</a><div data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex"></div><div data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center"></div><div class="flex shrink-0 items-center gap-3"><div data-slot="admin-header-right" class="flex items-center gap-3"></div><x-button data-variant="outline" aria-label="Switch to dark mode" aria-pressed="false"></x-button></div></header>`;
 /** 既定の Header のロゴ画像が文書の先頭に出す preload(Header を描かないときは出ない) */
 const BEFORE_LOGO_PRELOAD = LOGO_PRELOAD("dark") + LOGO_PRELOAD("light");
 /** 同じく外枠全体 */
 const BEFORE_OUTER = BEFORE_LOGO_PRELOAD + `<div class="relative flex h-[var(--viewport-height,100dvh)] flex-col overflow-hidden bg-background text-foreground" style="--app-header-height:0px" data-slot="admin-app-container" data-frame-root="">` + BEFORE_HEADER + `<div class="flex-1 min-h-0 flex flex-col overflow-clip">CHILD</div></div>`;
 /** `<AdminProtectedLayout>CHILD</AdminProtectedLayout>` */
-const BEFORE_PROTECTED = `<div class="flex h-full min-h-0 relative"><div data-slot="admin-sidebar" style="width:192px" class="fixed inset-y-0 right-0 floating-layer transition-transform md:hidden translate-x-full"><x-basesidebar data-nav=""></x-basesidebar></div><div data-slot="admin-sidebar" class="hidden md:block h-full" style="width:192px"><x-basesidebar></x-basesidebar></div><div data-slot="admin-sidebar" class="hidden md:block h-full w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"></div><div class="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden"><div data-slot="admin-main" data-admin-main-wrapper="true" class="flex-1">CHILD</div><footer id="footer" data-slot="admin-footer" class="h-12 flex items-center justify-center px-6 bg-background text-foreground shadow-inner text-sm">${FOOTER_TEXT}</footer></div></div><div data-slot="admin-sidebar" class="contents"><x-button data-variant="accent" aria-label="メニューを開く" aria-pressed="false"></x-button></div>`;
+const BEFORE_PROTECTED = `<div class="flex h-full min-h-0 relative"><div data-slot="admin-sidebar" style="width:192px" class="fixed inset-y-0 right-0 floating-layer transition-transform md:hidden translate-x-full"><x-basesidebar data-nav=""></x-basesidebar></div><div data-slot="admin-sidebar" class="hidden md:block h-full" style="width:192px"><x-basesidebar></x-basesidebar></div><div data-slot="admin-sidebar" class="hidden md:block h-full w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"></div><div class="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden"><div data-slot="admin-main" data-admin-main-wrapper="true" class="flex-1">CHILD</div><footer id="footer" data-slot="admin-footer" class="h-12 flex items-center justify-center px-6 bg-background text-foreground shadow-inner text-sm">${FOOTER_TEXT}</footer></div></div><div data-slot="admin-sidebar" class="contents"><x-button data-variant="accent" aria-label="メニューを開く" aria-pressed="false" class="fixed bottom-4 right-4 size-12 rounded-full forefront-layer md:hidden"></x-button></div>`;
 /** `<AdminPage>CHILD</AdminPage>`(fill は枠の宣言 + frame.css に移った。AdminPage の DOM は通常のページのまま) */
 const BEFORE_PAGE = `<main data-component="Main" id="main" class="max-w-screen overflow-hidden mx-auto w-full p-4 sm:p-6 py-6 sm:py-10">CHILD</main>`;
 /** `<PageTitle>T</PageTitle>`(当時の既定 = page)/ `<PageTitle placement="header">T</PageTitle>`(SSR では AdminHeaderPortal は何も描かない) */
@@ -200,7 +198,7 @@ const HEADER = withWrappers(withoutLegacyMarks(BEFORE_HEADER).replace(/ id="admi
   .replace('class="hidden h-auto w-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]"', 'class="hidden aspect-[300/61] h-6 w-auto dark:block sm:h-12"')
   // 横幅のはみ出しの決まり: 中央は中で切る、右の操作は SP だけ縮む(PC は縮めない)、明暗の切り替えは縮めない
   .replace('class="flex min-w-0 flex-1 items-center justify-center"', 'class="flex min-w-0 flex-1 items-center justify-center overflow-hidden"')
-  .replace('<div class="flex shrink-0 items-center gap-3"><div data-slot="admin-header-right" class="flex items-center gap-3"></div><x-darkmode></x-darkmode>', '<div class="flex min-w-0 shrink-0 items-center gap-3 max-sm:shrink"><div data-slot="admin-header-right" class="flex min-w-0 items-center gap-3"></div><x-darkmode class="shrink-0"></x-darkmode>'));
+  .replace('<div class="flex shrink-0 items-center gap-3"><div data-slot="admin-header-right" class="flex items-center gap-3"></div><x-button data-variant="outline" aria-label="Switch to dark mode" aria-pressed="false"></x-button>', '<div class="flex min-w-0 shrink-0 items-center gap-3 max-sm:shrink"><div data-slot="admin-header-right" class="flex min-w-0 items-center gap-3"></div><x-button data-variant="outline" aria-label="Switch to dark mode" aria-pressed="false" class="shrink-0"></x-button>'));
 /** AdminPage の行 = HEADER + 置き方のクラス(上端に固定・全幅・header-layer) */
 const PAGE_HEADER = HEADER.replace(' sm:px-6 sm:text-lg">', ' sm:px-6 sm:text-lg fixed inset-x-0 top-0 header-layer">');
 
@@ -301,7 +299,7 @@ test("AdminPage の center / actions は行の中央・右の位置(data-slot ad
     </AdminPage>,
   );
   assert.ok(html.includes(withWrappers('<div data-slot="admin-header-center" class="flex min-w-0 flex-1 items-center justify-center overflow-hidden"><b id="pc"></b></div>')));
-  assert.ok(html.includes(withWrappers('<div data-slot="admin-header-right" class="flex min-w-0 items-center gap-3"><b id="pa"></b></div><x-darkmode class="shrink-0"></x-darkmode>')));
+  assert.ok(html.includes(withWrappers('<div data-slot="admin-header-right" class="flex min-w-0 items-center gap-3"><b id="pa"></b></div><x-button data-variant="outline" aria-label="Switch to dark mode" aria-pressed="false" class="shrink-0"></x-button>')));
   const withoutProps = html.replace('<b id="pc"></b>', "").replace('<b id="pa"></b>', "");
   assert.equal(withoutProps, BEFORE_LOGO_PRELOAD + PAGE_HEADER + PAGE_MAIN, "props の中身のほかは props なしと同じ DOM");
 });
@@ -352,7 +350,7 @@ test("行のはみ出しの決まり: ロゴと明暗の切り替えは縮めな
   hasAll(right, ["min-w-0", "shrink-0", "max-sm:shrink"]);
   assert.equal(right.has("sm:shrink"), false, "PC で右の操作が縮む");
   hasAll(classesOf(html, /class="([^"]*)" data-slot="admin-header-right"/), ["min-w-0"]);
-  hasAll(classesOf(html, /<x-darkmode class="([^"]*)">/), ["shrink-0"]);
+  hasAll(classesOf(html, /<x-button data-variant="outline"[^>]* class="([^"]*)">/), ["shrink-0"]);
 });
 
 test("名前のとても長い項目の編集: 明暗の切り替えは行の中・操作の後に描き、選択欄は SP だけ最小幅を外し、値はどの画面幅でも … で省く(ラベルは SP で見た目だけ隠す)、PC の大きさは前のまま", () => {
@@ -364,7 +362,7 @@ test("名前のとても長い項目の編集: 明暗の切り替えは行の中
   const header = html.slice(html.indexOf("<header"), html.indexOf("</header>") + "</header>".length);
   // 切り替えは行の中、右の操作の後(行の外や操作の前に押し出されない)
   const right = header.indexOf('data-slot="admin-header-right"');
-  const sw = header.indexOf("<x-darkmode");
+  const sw = header.indexOf('<x-button data-variant="outline"');
   assert.ok(right > 0 && sw > right, header);
   assert.ok(header.indexOf("<button", right) < sw, "選択欄は切り替えの前");
   // 選択欄(SelectTrigger): PC の幅(160〜240px)は前のまま、SP だけ縮む。値の … は ItemNavigator の決まり(どの画面幅でも)

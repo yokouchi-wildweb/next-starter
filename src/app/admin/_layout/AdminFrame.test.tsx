@@ -26,7 +26,7 @@ const TABLE = [
 
 const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 mock.module(here("./extensions/frameTable.ts"), { namedExports: { frameTable: TABLE } });
-mock.module("@/components/Functional/DarkModeSwitch", { namedExports: { DarkModeSwitch: () => null } });
+mock.module("@/lib/siteTheme", { namedExports: { useDarkModeSwitch: () => ({ isDark: false, switchable: false, toggle: () => {} }) } });
 mock.module("@/features/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
 
 const repo = join(__dirname, "../../../..");
@@ -191,7 +191,7 @@ test("未ログインの login・setup は AdminPage main={false} で包み、�
   // 行の中身 = ロゴの Link 1 つ + 空の受け口 3 つ + 明暗の切り替え(操作はそれだけ)
   const header = read("src/app/admin/_layout/AdminHeader.default.tsx");
   assert.equal(header.split("<Link ").length - 1, 1);
-  assert.equal(header.split("<DarkModeSwitch").length - 1, 1);
+  assert.equal(header.split("useDarkModeSwitch()").length - 1, 1);
   for (const prop of ["{title}", "{center}", "{actions}"]) assert.ok(header.includes(prop), prop);
 });
 
