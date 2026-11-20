@@ -48,7 +48,7 @@ import { StateTabs, StateTabsContent } from "@/components/Navigation/StateTabs";
 import { Span } from "@/components/TextBlocks/Span";
 import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { cn } from "@/lib/cn";
-import { type SearchParams, type PaginatedResult, type SearchRankSpec } from "@/lib/crud/types";
+import type { AsyncSearchParams, AsyncSearchResult, AsyncSearchRankSpec } from "@/components/Input/AsyncOptionSource";
 
 import type { InputSize } from "@/lib/variantOverrides";
 import { MultiSelectTrigger } from "@/components/Input/MultiSelectInput";
@@ -81,7 +81,7 @@ export type AsyncMultiSelectInputProps<T> = {
 
   // ===== 検索関数 =====
   /** 検索関数（既存のclient.searchをそのまま渡せる）。cursorFn とどちらか 1 つ */
-  searchFn?: (params: SearchParams) => Promise<PaginatedResult<T>>;
+  searchFn?: (params: AsyncSearchParams) => Promise<AsyncSearchResult<T>>;
   /** カーソルで取る口(D102)。searchFn とどちらか 1 つ */
   cursorFn?: AsyncOptionCursorFn<T>;
   /** T → Options に変換 */
@@ -95,7 +95,7 @@ export type AsyncMultiSelectInputProps<T> = {
    * false = 従来の並び順（サービスの defaultOrderBy）。spec を渡すと重みを個別指定できる。
    * browse モード（searchQuery 無し）には影響しない。Firestore ドメインでは無視される。
    */
-  searchRank?: boolean | SearchRankSpec;
+  searchRank?: boolean | AsyncSearchRankSpec;
 
   // ===== オプション =====
   /** 最低入力文字数（デフォルト: 1） */

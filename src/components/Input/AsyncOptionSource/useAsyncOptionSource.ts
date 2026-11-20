@@ -29,7 +29,7 @@ import {
 
 import { serializeOptionValue, type OptionPrimitive } from "@/components/Input/options";
 import { type Options } from "@/components/Input/options";
-import { type SearchParams, type PaginatedResult, type SearchRankSpec } from "@/lib/crud/types";
+import type { AsyncSearchParams, AsyncSearchResult, AsyncSearchRankSpec } from "./types";
 
 export type AsyncOptionFetchStatus = "idle" | "loading" | "error";
 
@@ -67,7 +67,7 @@ export type AsyncOptionCursorFn<T> = (params: {
 
 export type UseAsyncOptionSourceOptions<T> = {
   /** 検索関数（既存の client.search をそのまま渡せる）。cursorFn とどちらか 1 つ */
-  searchFn?: (params: SearchParams) => Promise<PaginatedResult<T>>;
+  searchFn?: (params: AsyncSearchParams) => Promise<AsyncSearchResult<T>>;
   /** カーソルで取る口(D102)。searchFn とどちらか 1 つ */
   cursorFn?: AsyncOptionCursorFn<T>;
   /** T → Options に変換 */
@@ -78,7 +78,7 @@ export type UseAsyncOptionSourceOptions<T> = {
    * キーワード検索時の関連度ランキング（デフォルト: true）。
    * browse モード（searchQuery 無し）には影響しない。Firestore ドメインでは無視される。
    */
-  searchRank?: boolean | SearchRankSpec;
+  searchRank?: boolean | AsyncSearchRankSpec;
   /** 最低入力文字数（デフォルト: 1） */
   minChars?: number;
   /** 1 ページあたりの取得件数（デフォルト: 20） */
@@ -186,7 +186,7 @@ export function useAsyncOptionSource<T>({
   // ---- 1 回分の取得(searchFn か cursorFn) ----
   const fetchOnce = useCallback(
     async (
-      params: Omit<SearchParams, "page" | "limit"> & { page: number },
+      params: Omit<AsyncSearchParams, "page" | "limit"> & { page: number },
       cursor: string | null,
     ): Promise<{ results: T[]; total: number; nextCursor?: string | null }> => {
       if (cursorFn) {
@@ -235,7 +235,7 @@ export function useAsyncOptionSource<T>({
 
   // searchRank は spec オブジェクトがインラインで渡されることが多いため、内容で同一性を判定する
   const searchRankKey = JSON.stringify(searchRank);
-  const resolvedSearchRank = useMemo<SearchParams["searchRank"]>(
+  const resolvedSearchRank = useMemo<AsyncSearchParams["searchRank"]>(
     () => searchRank,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [searchRankKey],

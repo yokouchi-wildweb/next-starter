@@ -16,6 +16,7 @@ export type {
   AsyncOptionMode,
   UseAsyncOptionSourceOptions,
 } from "./useAsyncOptionSource";
+export type { AsyncSearchParams, AsyncSearchRankField, AsyncSearchRankSpec, AsyncSearchResult } from "./types";
 export { useSelectionSnapshot } from "./useSelectionSnapshot";
 export { AsyncOptionList } from "./AsyncOptionList";
 export type { AsyncOptionListProps, AsyncOptionListSelectionMode, AsyncOptionRenderer } from "./AsyncOptionList";
