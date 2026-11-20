@@ -5,17 +5,17 @@
 
 import type { ReactNode } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
-import { AppForm } from "@/components/Form/AppForm";
-import type { AutoSaveOptions } from "@/components/Form/AutoSave";
 import { Button } from "@/components/Button/Button";
-import { FormActions } from "@/components/Form/FormActions";
-import type { FieldConfig } from "@/components/Form/Field";
-import type {
-  FieldGroup,
-  GroupContentMap,
-  InlineFieldGroup,
-  InsertFieldsMap,
-} from "@/components/Form/FieldRenderer/types";
+import {
+  AppForm,
+  FormActions,
+  type AutoSaveOptions,
+  type FieldConfig,
+  type FieldGroup,
+  type GroupContentMap,
+  type InlineFieldGroup,
+  type InsertFieldsMap,
+} from "@/lib/formSuite";
 import { SampleTagFields } from "./SampleTagFields";
 
 export type SampleTagFormProps<TFieldValues extends FieldValues> = {

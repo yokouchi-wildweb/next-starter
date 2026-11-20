@@ -135,7 +135,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 ### 生成物を変えたいとき（生成ファイルは編集しない）
 
 - **項目・選択肢・表示列など** → `domain.json` を直して `pnpm forge`
-- **フォームに独自項目・差し込み UI** → 生成された `<Domain>Form` / `<Domain>Fields` は FieldRenderer の props（`fieldPatches` / `insertBefore` / `insertAfter` / `fieldGroups` / `beforeField` 等）を受け取る。fork 所有の `_components/` から渡す（[`src/components/Form/FieldRenderer/README.md`](../../../src/components/Form/FieldRenderer/README.md)）
+- **フォームに独自項目・差し込み UI** → 生成された `<Domain>Form` / `<Domain>Fields` は FieldRenderer の props（`fieldPatches` / `insertBefore` / `insertAfter` / `fieldGroups` / `beforeField` 等）を受け取る。fork 所有の `_components/` から渡す（[`src/lib/formSuite/FieldRenderer/README.md`](../../../src/lib/formSuite/FieldRenderer/README.md)）
 - **管理画面のレイアウト** → `_screen/` を同じルートの `_components/` にコピーして `page.tsx` を向ける
 - **CRUD の振る舞い** → `services/server/wrappers/` に置き、write-once の `<domain>Service.ts` で組み込む
 - **一覧の一括操作** → 生成された受け口 `adminBulkActions/` に項目を 1 ファイルずつ置いて `pnpm generate extensions`（`Table.tsx` には書かない。書き方: [`src/lib/tableSuite/README.md`](../../../src/lib/tableSuite/README.md)「一括操作の受け口」）。項目が無ければ一覧は選択の無い素の表

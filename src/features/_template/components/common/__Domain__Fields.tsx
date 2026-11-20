@@ -4,14 +4,15 @@
 
 import type { ReactNode } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
-import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer";
-import type { FieldConfig } from "@/components/Form/Field";
-import type {
-  FieldGroup,
-  GroupContentMap,
-  InlineFieldGroup,
-  InsertFieldsMap,
-} from "@/components/Form/FieldRenderer/types";
+import {
+  FieldRenderer,
+  type FieldConfig,
+  type FieldGroup,
+  type GroupContentMap,
+  type InlineFieldGroup,
+  type InsertFieldsMap,
+  type MediaState,
+} from "@/lib/formSuite";
 import { domainDisplay } from "@/features/__domain__/entities/display";
 
 const baseFields = domainDisplay.fields as FieldConfig[];
