@@ -29,6 +29,7 @@ import type { FieldConfig } from "../types";
 import type { RadioGroupDisplayType } from "@/components/Input/RadioGroupInput";
 import type { CheckGroupDisplayType } from "@/components/Input/CheckGroupInput";
 import { isCheckGroupFieldType } from "./checkGroupFieldTypes";
+import { Input } from "@/components/Input/Input";
 
 /**
  * formInput タイプに応じた入力コンポーネントをレンダリングする
@@ -206,7 +207,7 @@ export function renderInputByFormType<
       return <ControlledColorValueInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 
     case "hidden":
-      return <input type="hidden" {...field} />;
+      return <Input type="hidden" {...field} />;
 
     case "none":
       return null;

@@ -6,6 +6,8 @@ import { ReactNode, useId } from "react";
 import { Label } from "@/components/Input/Label";
 import { Para, type ParaProps } from "@/components/TextBlocks/Para";
 import { cn } from "@/lib/cn";
+import { Block } from "@/components/Layout/Block";
+import { Span } from "@/components/TextBlocks/Span";
 
 export type ManualFieldDescription = {
   text: ReactNode;
@@ -43,10 +45,10 @@ export type ManualFieldProps = {
 
 /** デフォルトの必須マーク（位置に応じてマージン方向を変える） */
 const DefaultRequiredMarkAfter = (
-  <span className="text-destructive-text ml-0.5" aria-hidden="true">*</span>
+  <Span inline className="text-destructive-text ml-0.5" aria-hidden="true">*</Span>
 );
 const DefaultRequiredMarkBefore = (
-  <span className="text-destructive-text mr-0.5" aria-hidden="true">*</span>
+  <Span inline className="text-destructive-text mr-0.5" aria-hidden="true">*</Span>
 );
 
 /**
@@ -126,56 +128,56 @@ export function ManualField({
 
   // エラーメッセージ
   const errorElement = !hideError && hasError && (
-    <p data-slot="form-message" className="text-destructive-text text-sm">
+    <Para tone="inherit" size="inherit" weight="inherit" align="inherit" data-slot="form-message" className="text-destructive-text text-sm my-0">
       {error}
-    </p>
+    </Para>
   );
 
   // 入力コンポーネント
   const inputElement = (
-    <div id={`${id}-field`}>
+    <Block id={`${id}-field`}>
       {children}
-    </div>
+    </Block>
   );
 
   // 横並びレイアウト
   if (isHorizontal) {
     return (
-      <div data-slot="form-item" className={cn("flex items-start gap-4", className)}>
+      <Block data-slot="form-item" className={cn("flex items-start gap-4", className)}>
         {labelElement}
-        <div className="flex-1 grid gap-2">
+        <Block className="flex-1 grid gap-2">
           {descBefore}
           {inputElement}
           {descAfter}
           {errorElement}
-        </div>
-      </div>
+        </Block>
+      </Block>
     );
   }
 
   // レスポンシブレイアウト（スマホ: 縦、PC: 横）
   if (isResponsiveLayout) {
     return (
-      <div data-slot="form-item" className={cn("flex flex-col gap-2 md:flex-row md:items-start md:gap-4", className)}>
+      <Block data-slot="form-item" className={cn("flex flex-col gap-2 md:flex-row md:items-start md:gap-4", className)}>
         {labelElement}
-        <div className="flex-1 grid gap-2">
+        <Block className="flex-1 grid gap-2">
           {descBefore}
           {inputElement}
           {descAfter}
           {errorElement}
-        </div>
-      </div>
+        </Block>
+      </Block>
     );
   }
 
   // 縦並びレイアウト（デフォルト）
   return (
-    <div data-slot="form-item" className={cn("grid gap-2", className)}>
+    <Block data-slot="form-item" className={cn("grid gap-2", className)}>
       {labelElement}
       {descBefore}
       {inputElement}
       {descAfter}
       {errorElement}
-    </div>
+    </Block>
   );
 }

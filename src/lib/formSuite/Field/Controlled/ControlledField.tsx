@@ -14,6 +14,8 @@ import {
 import { FieldControl, FieldDescription } from "../FieldControl";
 import type { FieldCommonProps } from "../types";
 import { useAutoSaveContext } from "../../AutoSave";
+import { Block } from "@/components/Layout/Block";
+import { Span } from "@/components/TextBlocks/Span";
 
 /**
  * 自動保存時のblurモード
@@ -39,10 +41,10 @@ export type ControlledFieldProps<
 
 /** デフォルトの必須マーク（位置に応じてマージン方向を変える） */
 const DefaultRequiredMarkAfter = (
-  <span className="text-destructive-text ml-0.5" aria-hidden="true">*</span>
+  <Span inline className="text-destructive-text ml-0.5" aria-hidden="true">*</Span>
 );
 const DefaultRequiredMarkBefore = (
-  <span className="text-destructive-text mr-0.5" aria-hidden="true">*</span>
+  <Span inline className="text-destructive-text mr-0.5" aria-hidden="true">*</Span>
 );
 
 export function ControlledField<
@@ -138,12 +140,12 @@ export function ControlledField<
           return (
             <FormItem className={cn("flex items-start gap-4 [&>*]:!mt-0", className)}>
               {labelElement}
-              <div className="flex-1 grid gap-2">
+              <Block className="flex-1 grid gap-2">
                 {descBefore}
                 {inputElement}
                 {descAfter}
                 {errorElement}
-              </div>
+              </Block>
             </FormItem>
           );
         }
@@ -153,12 +155,12 @@ export function ControlledField<
           return (
             <FormItem className={cn("flex flex-col gap-2 md:flex-row md:items-start md:gap-4 [&>*]:!mt-0", className)}>
               {labelElement}
-              <div className="flex-1 grid gap-2">
+              <Block className="flex-1 grid gap-2">
                 {descBefore}
                 {inputElement}
                 {descAfter}
                 {errorElement}
-              </div>
+              </Block>
             </FormItem>
           );
         }

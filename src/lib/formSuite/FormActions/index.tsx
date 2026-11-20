@@ -8,6 +8,8 @@ import { AlertCircle } from "lucide-react";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { useAppFormError } from "../AppForm";
+import { Block } from "@/components/Layout/Block";
+import { Span } from "@/components/TextBlocks/Span";
 
 type FormActionsProps = {
   children: React.ReactNode;
@@ -65,16 +67,16 @@ function FormErrorMessage() {
   const fieldErrors = Object.entries(errors).filter(([key]) => key !== "root");
 
   return (
-    <div className="flex items-center justify-center gap-1.5 text-sm text-destructive-text">
+    <Block className="flex items-center justify-center gap-1.5 text-sm text-destructive-text">
       <AlertCircle className="size-4 shrink-0" />
-      <span>入力内容にエラーがあります</span>
+      <Span inline>入力内容にエラーがあります</Span>
       {displayMode === "detailed" && fieldErrors.length > 0 && (
-        <span className="text-muted-foreground">
+        <Span inline className="text-muted-foreground">
           （{fieldErrors.map(([, error]) =>
             typeof error?.message === "string" ? error.message : "入力エラー"
           ).join("、")}）
-        </span>
+        </Span>
       )}
-    </div>
+    </Block>
   );
 }

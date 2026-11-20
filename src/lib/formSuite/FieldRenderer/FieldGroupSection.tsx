@@ -3,6 +3,8 @@
 import { useState, type ReactNode } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { Block } from "@/components/Layout/Block";
+import { Span } from "@/components/TextBlocks/Span";
 
 export type FieldGroupSectionProps = {
   /** グループラベル */
@@ -61,25 +63,25 @@ export function FieldGroupSection({
         )}
         onClick={handleToggle}
       >
-        <span className="flex items-center gap-2">
+        <Span inline className="flex items-center gap-2">
           {collapsible && (
-            <span className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground">
+            <Span inline className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground">
               {isCollapsed ? (
                 <ChevronRight className="h-4 w-4" />
               ) : (
                 <ChevronDown className="h-4 w-4" />
               )}
-            </span>
+            </Span>
           )}
           {label}
-        </span>
+        </Span>
       </legend>
       {!isCollapsed && (
-        <div className="flex flex-col gap-4 pt-2">
+        <Block className="flex flex-col gap-4 pt-2">
           {beforeContent}
           {children}
           {afterContent}
-        </div>
+        </Block>
       )}
     </fieldset>
   );

@@ -1,6 +1,6 @@
 // src/lib/formSuite/Field/Configured/ConfiguredAsyncRelationField.tsx
 // FieldConfig の asyncApiPath/asyncLabelField/asyncSearchFields を読み取り、
-// 非同期検索コンポーネント（ControlledAsyncComboboxInput / AsyncMultiSelectInput）をレンダリングする。
+// 非同期検索コンポーネント（ControlledAsyncComboboxInput / ControlledAsyncMultiSelectInput）をレンダリングする。
 // ConfiguredMediaField と同じパターンで FieldRenderer から呼び出される。
 
 "use client";
@@ -268,7 +268,7 @@ function RelationAsyncCombobox<
   disabled?: boolean;
 }) {
   return (
-    <AsyncComboboxInput<RelationRecord, TFieldValues, TName>
+    <ControlledAsyncComboboxInput<RelationRecord, TFieldValues, TName>
       field={field}
       searchFn={searchFn}
       getOptionFromResult={getOptionFromResult}
@@ -299,7 +299,7 @@ function RelationAsyncMultiSelect<
   disabled?: boolean;
 }) {
   return (
-    <AsyncMultiSelectInput<RelationRecord, TFieldValues, TName>
+    <ControlledAsyncMultiSelectInput<RelationRecord, TFieldValues, TName>
       field={field}
       searchFn={searchFn}
       getOptionFromResult={getOptionFromResult}

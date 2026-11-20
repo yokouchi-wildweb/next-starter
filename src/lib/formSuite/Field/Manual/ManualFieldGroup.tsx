@@ -7,6 +7,8 @@ import { Label } from "@/components/Input/Label";
 import { Para } from "@/components/TextBlocks/Para";
 import { cn } from "@/lib/cn";
 import type { FieldItemDescription, RequiredMarkOptions } from "../types";
+import { Block } from "@/components/Layout/Block";
+import { Span } from "@/components/TextBlocks/Span";
 
 /**
  * 各インプットの設定
@@ -49,10 +51,10 @@ export type ManualFieldGroupProps = RequiredMarkOptions & {
 
 /** デフォルトの必須マーク（位置に応じてマージン方向を変える） */
 const DefaultRequiredMarkAfter = (
-  <span className="text-destructive-text ml-0.5" aria-hidden="true">*</span>
+  <Span inline className="text-destructive-text ml-0.5" aria-hidden="true">*</Span>
 );
 const DefaultRequiredMarkBefore = (
-  <span className="text-destructive-text mr-0.5" aria-hidden="true">*</span>
+  <Span inline className="text-destructive-text mr-0.5" aria-hidden="true">*</Span>
 );
 
 /**
@@ -162,16 +164,16 @@ export function ManualFieldGroup({
 
   // エラーメッセージ
   const errorElement = !hideError && uniqueErrors.length > 0 && (
-    <div data-slot="form-message" className="text-destructive-text text-sm">
+    <Block data-slot="form-message" className="text-destructive-text text-sm">
       {uniqueErrors.map((error, index) => (
-        <p key={index}>{error}</p>
+        <Para tone="inherit" size="inherit" weight="inherit" align="inherit" key={index} className="my-0 leading-[inherit]">{error}</Para>
       ))}
-    </div>
+    </Block>
   );
 
   // インプット群の要素
   const inputsElement = (
-    <div
+    <Block
       id={`${id}-field-group`}
       className={cn(
         "flex min-w-0",
@@ -199,60 +201,60 @@ export function ManualFieldGroup({
         const hasAdornments = prefix || suffix;
 
         return (
-          <div key={index} className={cn(widthClass, "min-w-0", hasAdornments && "flex items-center gap-2")}>
+          <Block key={index} className={cn(widthClass, "min-w-0", hasAdornments && "flex items-center gap-2")}>
             {prefix && (
-              <span className="text-sm shrink-0">{prefix}</span>
+              <Span inline className="text-sm shrink-0">{prefix}</Span>
             )}
-            <div className={hasAdornments ? "flex-1 min-w-0" : undefined}>
+            <Block className={hasAdornments ? "flex-1 min-w-0" : undefined}>
               {child}
-            </div>
+            </Block>
             {suffix && (
-              <span className="text-sm shrink-0">{suffix}</span>
+              <Span inline className="text-sm shrink-0">{suffix}</Span>
             )}
-          </div>
+          </Block>
         );
       })}
-    </div>
+    </Block>
   );
 
   // ラベル横並びレイアウト
   if (isHorizontal) {
     return (
-      <div data-slot="form-item" className={cn("flex items-start gap-4", className)}>
+      <Block data-slot="form-item" className={cn("flex items-start gap-4", className)}>
         {labelElement}
-        <div className="flex-1 grid gap-2">
+        <Block className="flex-1 grid gap-2">
           {descBefore}
           {inputsElement}
           {descAfter}
           {errorElement}
-        </div>
-      </div>
+        </Block>
+      </Block>
     );
   }
 
   // レスポンシブレイアウト（スマホ: 縦、PC: 横）
   if (isResponsiveLayout) {
     return (
-      <div data-slot="form-item" className={cn("flex flex-col gap-2 md:flex-row md:items-start md:gap-4", className)}>
+      <Block data-slot="form-item" className={cn("flex flex-col gap-2 md:flex-row md:items-start md:gap-4", className)}>
         {labelElement}
-        <div className="flex-1 grid gap-2">
+        <Block className="flex-1 grid gap-2">
           {descBefore}
           {inputsElement}
           {descAfter}
           {errorElement}
-        </div>
-      </div>
+        </Block>
+      </Block>
     );
   }
 
   // ラベル縦並びレイアウト（デフォルト）
   return (
-    <div data-slot="form-item" className={cn("grid gap-2", className)}>
+    <Block data-slot="form-item" className={cn("grid gap-2", className)}>
       {labelElement}
       {descBefore}
       {inputsElement}
       {descAfter}
       {errorElement}
-    </div>
+    </Block>
   );
 }
