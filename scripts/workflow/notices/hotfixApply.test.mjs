@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, test } from "node:test";
 
-import { hotfixApply, ledgerNotes, mergeText, TIP_READ } from "./hotfixApply.mjs";
+import { hotfixApply, ledgerNotes, ledgerPickedIds, mergeText, TIP_READ } from "./hotfixApply.mjs";
 
 const ENV = { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t", GIT_CONFIG_GLOBAL: "/dev/null" };
 const root = mkdtempSync(join(tmpdir(), "hotfix-apply-"));
@@ -186,6 +186,16 @@ test("当てた後の確かめ: 足したコードの相対 import 先が fork �
   const r = hotfixApply(fork, hot, "upstream/main");
   assert.equal(r.status, "picked");
   assert.deepEqual(r.gaps.filter((g) => g.kind === "imports").map((g) => g.item).sort(), ["src/a.ts -> ./none", "src/tool.mjs: 先取りしても動かない(import 先が fork に無い: ./lib.mjs, ./self.mjs)"]);
+});
+
+test("ledgerPickedIds: 台帳の picked: の付いた行の id だけ(HEAD の版)", () => {
+  const repo = join(root, `ledger${++n}`);
+  mkdirSync(repo);
+  git(repo, "init", "-q", "-b", "main");
+  write(repo, ".notices/applied/f.md", "# APPLIED\n- id:20261120-000000-hot | date:x | commit:abc1234 | upstream:- | picked:0123456789abcdef0123456789abcdef01234567 | notes:hotfix pick\n- id:20261120-000001-plain | date:x | commit:abc1235 | upstream:- | notes:-\n");
+  commit(repo, "ledger");
+  write(repo, ".notices/applied/f.md", "# APPLIED\n- id:20261120-000002-later | date:x | commit:- | upstream:- | picked:0123456\n");
+  assert.deepEqual(ledgerPickedIds(repo), ["20261120-000000-hot"]);
 });
 
 test("mergeText: ぶつかれば ok: false", () => {

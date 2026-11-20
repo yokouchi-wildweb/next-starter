@@ -65,6 +65,18 @@ export function ledgerPickedShas(repo) {
   return out;
 }
 
+/** 台帳(.notices/applied/*.md の HEAD の版)で picked: の付いた行の notice id(先取りした緊急修正・先に取った修正) */
+export function ledgerPickedIds(repo) {
+  const out = [];
+  for (const f of lines(tryGit(repo, ["ls-tree", "--name-only", "HEAD", ".notices/applied/"]).out)) {
+    const text = tryGit(repo, ["show", `HEAD:${f}`]).out;
+    for (const m of text.matchAll(/^- id:(\S+?)\s*\|.*\|\s*picked:[0-9a-f]{7,40}\b/gm)) {
+      if (!out.includes(m[1])) out.push(m[1]);
+    }
+  }
+  return out;
+}
+
 /** 3 方向: ours に base → theirs の差分を当てる。{ ok, text } */
 export function mergeText(ours, base, theirs) {
   const dir = mkdtempSync(join(tmpdir(), "hotfix-apply-"));

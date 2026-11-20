@@ -10,6 +10,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cronTaskNames, scanTasks, taskNamesIn } from "../../runner/task/scan.mjs";
+import { ledgerPickedIds } from "./hotfixApply.mjs";
 import { checkFields, fixesPointsBack } from "./noticeFields.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -187,10 +188,14 @@ test("resolves: は受信箱の指令 id の並び(形・重複)", () => {
 // /flux が cherry-pick する commit の条件(.notices/README.md「緊急修正(hotfix)」)
 const HOTFIX_FORBIDDEN = new Set(["pnpm-lock.yaml", "src/app/route-map.jsonl"]);
 
+// 先取りした notice(台帳の picked:)は外す: 先取りは fork の木に無い本体を飛ばす(left-out)ので、取った側の commit は
+// notice だけになりうる(.notices/README.md「緊急修正(hotfix)」)。台帳の無い Tier1 では全部を見る
+const picked = new Set(ledgerPickedIds(repoRoot));
+
 test("hotfix: の notice は本体と同じ 1 commit で、生成物を含まない", () => {
   const problems = [];
   for (const n of active) {
-    if (n.fields.hotfix === undefined) continue;
+    if (n.fields.hotfix === undefined || picked.has(n.id)) continue;
     if (!n.fields.hotfix) problems.push(`${n.path}: hotfix: が空です`);
     const own = addCommit(n.id);
     if (!own) continue; // 未コミット(出荷の前)。commit の中身はまだ無い
