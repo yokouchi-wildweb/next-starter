@@ -5,6 +5,9 @@
 //   既定は dry-run(書き換える指定・動かすファイル・止める所・手で直す所の一覧を出すだけ)。--apply で書く。何度走らせても同じ結果。
 //
 // 上流で変わったこと(注文ごとに表の行が足される。今の行 = 注文 08):
+// - 注文 09: Form の残り(AppForm・AutoSave・Field・FieldRenderer・FormActions・Input/Controlled・submitLock・backgroundFailure・types)は
+//   閉じた lib @/lib/formSuite(入口 1 本、下の道は読まない)、Form/MediaHandler は @/lib/mediaInputSuite。components/Form は無くなった。
+//   移した先の入口が出していない名前は STOP(行き先の入口がこの木にあるときに確かめる)
 // - 注文 08: Form/Button の 6 つのボタン → components/Button/<名前>、button-variants・tablet-button-variants → @/components/Button/variants
 //   (Button・TabletButton からの buttonVariants・ButtonStyleProps・tabletButtonVariants の再輸出は無くなった。BookmarkTag は名前付きだけ)。
 //   Form/Input/Manual の入力 → components/Input/<名前>(Manual の段は無くなった)、Form/Label → Input/Label、
@@ -41,14 +44,21 @@ const F = `${C}/Form`;
 
 const BUTTON_VARIANTS = `${C}/Button/variants`;
 const INPUT_OPTIONS = `${C}/Input/options`;
+const FORM_SUITE = "src/lib/formSuite";
+const MEDIA_SUITE = "src/lib/mediaInputSuite";
 
-/** 名前 → 行き先のモジュールの表を作る。`default:X` = 行き先の default export の X */
+/**
+ * 名前 → 行き先のモジュールの表を作る。`default:X` = 行き先の default export の X、`X=>Y` = 行き先では Y という名前
+ * (読む側は `Y as X` で元の名前のまま使う。名前空間の使い方 NS.X は Y に直す)
+ */
 const units = (table) => {
   const out = {};
   for (const [unit, names] of Object.entries(table)) {
     for (const n of names) {
       const isDefault = n.startsWith("default:");
-      out[isDefault ? n.slice(8) : n] = { unit, isDefault };
+      const bare = isDefault ? n.slice(8) : n;
+      const [from, to] = bare.split("=>");
+      out[from] = { unit, isDefault, ...(to ? { rename: to } : {}) };
     }
   }
   return out;
@@ -106,6 +116,69 @@ const OPTION_UTIL_NAMES = units({
   ],
 });
 
+/** Form/MediaHandler の名前(注文 09: @/lib/mediaInputSuite の入口へ) */
+const MEDIA_NAMES = units({
+  [MEDIA_SUITE]: [
+    "ManualMediaInput",
+    "ManualMediaInputProps",
+    "ControlledMediaInput",
+    "ControlledMediaInputProps",
+    "ManualMediaUploader",
+    "ManualMediaUploaderProps",
+    "ControlledMediaUploader",
+    "ControlledMediaUploaderProps",
+    "ControlledMediaUploaderBridgeProps",
+    "ControlledMediaUploaderMulti",
+    "ControlledMediaUploaderMultiProps",
+    "ControlledMediaUploaderMultiBridgeProps",
+    "MediaUploaderFieldRenderer",
+    "UseMediaUploaderFieldOptions",
+    "UseMediaUploaderFieldResult",
+    "useMediaUploaderField",
+    "MediaUploaderMultiFieldRenderer",
+    "UseMediaUploaderMultiFieldOptions",
+    "UseMediaUploaderMultiFieldResult",
+    "useMediaUploaderMultiField",
+  ],
+});
+
+/** Form/Field/types のうち入力の側の型(注文 09: @/components/Input/options へ) */
+const FIELD_INPUT_TYPE_NAMES = units({ [INPUT_OPTIONS]: ["FormControlA11yProps"] });
+
+/**
+ * Form/Input/Controlled の名前(注文 09): 入力の部品は棚の Input の単位と同じ名前なので、@/lib/formSuite の入口では頭に
+ * Controlled を付けた名前(名前空間は無い)。読む側は使う所ごと新しい名前に直す(同じ名前がそのファイルに既にあれば `as` で元の名前)。
+ * Controlled*Props の型は今の名前のまま(表にない名前 = 同じ名前で formSuite)
+ */
+const CONTROLLED_NAMES = units({
+  [FORM_SUITE]: [
+    "DateInput=>ControlledDateInput",
+    "DatetimeInput=>ControlledDatetimeInput",
+    "TimeInput=>ControlledTimeInput",
+    "FileInput=>ControlledFileInput",
+    "FileInputProps=>ControlledFileInputProps",
+    "NumberInput=>ControlledNumberInput",
+    "PasswordInput=>ControlledPasswordInput",
+    "SwitchInput=>ControlledSwitchInput",
+    "EmailInput=>ControlledEmailInput",
+    "TextInput=>ControlledTextInput",
+    "Textarea=>ControlledTextarea",
+    "MultiSelectInput=>ControlledMultiSelectInput",
+    "CheckGroupInput=>ControlledCheckGroupInput",
+    "RadioGroupInput=>ControlledRadioGroupInput",
+    "SelectInput=>ControlledSelectInput",
+    "BooleanCheckboxInput=>ControlledBooleanCheckboxInput",
+    "BooleanRadioGroupInput=>ControlledBooleanRadioGroupInput",
+    "SingleCardCheckbox=>ControlledSingleCardCheckbox",
+    "StepperInput=>ControlledStepperInput",
+    "ComboboxInput=>ControlledComboboxInput",
+    "AsyncComboboxInput=>ControlledAsyncComboboxInput",
+    "AsyncMultiSelectInput=>ControlledAsyncMultiSelectInput",
+    "ColorInput=>ControlledColorInput",
+    "ColorValueInput=>ControlledColorValueInput",
+  ],
+});
+
 /**
  * 名前ごとに分けるモジュール(入口と、名前ごとに行き先が違うファイル)。
  * names = 名前 → 行き先 | rest = 表にない名前: "stay"(元の指定のまま)・"stop"(止める)・モジュールの道(そこへ)
@@ -118,9 +191,11 @@ const SPLITS = {
       ...OPTION_TYPE_NAMES,
       ...OPTION_UTIL_NAMES,
       ...BUTTON_NAMES,
+      ...MEDIA_NAMES,
+      ...FIELD_INPUT_TYPE_NAMES,
     },
-    rest: "stay",
-    namespaces: { Manual: `${F}/Input/Manual` },
+    rest: FORM_SUITE,
+    namespaces: { Manual: `${F}/Input/Manual`, Controlled: `${F}/Input/Controlled` },
   },
   [`${F}/Button`]: { names: BUTTON_NAMES, rest: "stop" },
   [`${F}/Button/Button`]: {
@@ -128,11 +203,20 @@ const SPLITS = {
     rest: `${C}/Button/Button`,
   },
   [`${F}/Button/TabletButton`]: { names: units({ [BUTTON_VARIANTS]: ["tabletButtonVariants"] }), rest: `${C}/Button/TabletButton` },
-  [`${F}/Input`]: { names: {}, rest: "stay", namespaces: { Manual: `${F}/Input/Manual` } },
+  [`${F}/Input`]: { names: {}, rest: FORM_SUITE, namespaces: { Manual: `${F}/Input/Manual`, Controlled: `${F}/Input/Controlled` } },
+  [`${F}/Input/Controlled`]: { names: CONTROLLED_NAMES, rest: FORM_SUITE },
+  [`${F}/Field`]: { names: FIELD_INPUT_TYPE_NAMES, rest: FORM_SUITE },
+  [`${F}/Field/types`]: { names: FIELD_INPUT_TYPE_NAMES, rest: FORM_SUITE },
   [`${F}/Input/Manual`]: { names: MANUAL_NAMES, rest: "stop" },
-  [`${F}/types`]: { names: OPTION_TYPE_NAMES, rest: "stay" },
+  [`${F}/types`]: { names: OPTION_TYPE_NAMES, rest: FORM_SUITE },
   [`${F}/utils`]: { names: OPTION_UTIL_NAMES, rest: "stop" },
 };
+
+/** その下のどのファイルにも同じ名前の表を当てるフォルダ(注文 09: Controlled の入力のファイルを深く読む所) */
+const PREFIX_SPLITS = [{ from: `${F}/Input/Controlled`, split: SPLITS[`${F}/Input/Controlled`] }];
+
+/** モジュールの分け方(SPLITS のその道、無ければ PREFIX_SPLITS の当たるフォルダの表)。無ければ undefined */
+const splitOf = (mod) => SPLITS[mod] ?? PREFIX_SPLITS.find((p) => mod.startsWith(`${p.from}/`))?.split;
 
 /** 動いたモジュール(分けるモジュールの後に見る)。prefix = その下も同じ相対の道で動いた */
 const MOVES = [
@@ -142,6 +226,9 @@ const MOVES = [
   { from: `${F}/Input/Manual`, to: `${C}/Input`, prefix: true },
   { from: `${F}/Label`, to: `${C}/Input/Label` },
   { from: `${F}/FilePickButton`, to: `${C}/Input/FilePickButton`, prefix: true },
+  // 注文 09: 閉じた lib・open lib の入口 1 本へ(collapse = 下の道を残さない)。上の行より後に見る
+  { from: `${F}/MediaHandler`, to: MEDIA_SUITE, collapse: true },
+  { from: F, to: FORM_SUITE, collapse: true },
 ];
 
 /** 名前付きの export だけになった部品(行き先のモジュール → 名前)。default の import を名前付きに直す */
@@ -154,10 +241,19 @@ const DIR_MOVES = [
   { from: `${F}/FilePickButton`, to: `${C}/Input/FilePickButton` },
 ];
 
+/** fork が足したファイルが残っていたら止めるフォルダ(DIR_MOVES の後に見る) */
+const DIR_GONE = [
+  {
+    from: F,
+    reason: "components/Form は無くなった(閉じた lib formSuite の中には置けない): fork の部品は components/Button・components/Input の単位か自分の lib へ手で置き直す",
+  },
+];
+
 /** JSON・Markdown で旧パスとみなす字面 */
 const DOC_PATTERNS = [
   /components\/Form\/(Button|Input\/Manual|FilePickButton)(?![\w-])/,
   /components\/Form\/(Label|utils)(?![\w/-]|\.\w)/,
+  /components\/Form(?![\w-])/,
 ];
 
 // ─────────────────────────── 仕組み ───────────────────────────
@@ -190,6 +286,7 @@ export function resolveSpecifier(fromFile, spec) {
 /** 動いたモジュールなら { to, prefix }。動いていなければ null */
 export function mapModule(mod) {
   for (const m of MOVES) {
+    if (m.collapse && under(mod, m.from)) return { to: m.to, prefix: false };
     if (mod === m.from) return { to: m.to, prefix: !!m.prefix };
     if (m.prefix && mod.startsWith(`${m.from}/`)) return { to: `${m.to}${mod.slice(m.from.length)}`, prefix: true };
   }
@@ -271,21 +368,47 @@ function addToGroup(groups, key, hit, it, kw, stmtType) {
   const g = groups.get(key);
   if (hit.isDefault && kw === "import" && !stmtType && !it.type) g.def = it.alias ?? it.name;
   else if (hit.isDefault) g.named.push({ type: it.type, name: "default", alias: it.alias ?? it.name });
+  else if (hit.rename) g.named.push({ type: it.type, name: hit.rename, alias: it.alias ?? it.name });
   else g.named.push(it);
+}
+
+/** 行き先の入口が出す名前(export の宣言・{ … }・export * を辿る)。読めない入口は null */
+export function exportsOfText(text, readRelative, seen = new Set()) {
+  const names = new Set();
+  for (const m of text.matchAll(/^export\s+(?:declare\s+)?(?:async\s+)?(?:const|let|var|function\*?|class|type|interface|enum)\s+([\w$]+)/gm)) names.add(m[1]);
+  if (/^export\s+default\b/m.test(text)) names.add("default");
+  for (const m of text.matchAll(/^export\s+(?:type\s+)?\{([^}]*)\}/gm)) {
+    for (const it of parseItems(m[1]) ?? []) names.add(it.alias ?? it.name);
+  }
+  for (const m of text.matchAll(/^export\s+\*\s+as\s+([\w$]+)\s+from/gm)) names.add(m[1]);
+  for (const m of text.matchAll(/^export\s+\*\s+from\s*["']([^"']+)["']/gm)) {
+    const sub = readRelative(m[1]);
+    if (!sub || seen.has(sub.path)) continue;
+    seen.add(sub.path);
+    for (const n of exportsOfText(sub.text, sub.readRelative, seen)) if (n !== "default") names.add(n);
+  }
+  return names;
 }
 
 /**
  * 1 本のコードのファイルの中身を書き換える。
  * @param {string} fromFile いまの場所(相対の指定はここから解く)
  * @param {string} text 中身
- * @param {{ emitFrom?: string, exists?: (mod: string) => boolean }} [opts]
- *   emitFrom = 書き出す場所(動かすファイルなら行き先)。exists = その道のモジュールが木にあるか
+ * @param {{ emitFrom?: string, exists?: (mod: string) => boolean, exportsOf?: (mod: string) => Set<string> | null }} [opts]
+ *   emitFrom = 書き出す場所(動かすファイルなら行き先)。exists = その道のモジュールが木にあるか。
+ *   exportsOf = 行き先の入口が出す名前(入口がこの木に無ければ null = 確かめない)
  * @returns {{ text: string, hits: string[], stops: string[], hands: string[] }} hits・stops・hands は `<行>: <内容>`
  */
 export function rewriteSource(fromFile, text, opts = {}) {
   const emitFrom = opts.emitFrom ?? fromFile;
   const relocating = emitFrom !== fromFile;
   const exists = opts.exists ?? (() => false);
+  const exportsOf = opts.exportsOf ?? (() => null);
+  /** 行き先の入口が出していない名前(import する側の名前で)。入口が無ければ確かめない */
+  const missingIn = (unit, names) => {
+    const ex = exportsOf(unit);
+    return ex ? names.filter((n) => !ex.has(n)) : [];
+  };
   const edits = [];
   const handled = [];
   const hits = [];
@@ -303,15 +426,25 @@ export function rewriteSource(fromFile, text, opts = {}) {
     const uses = [...text.matchAll(re)];
     const members = [...new Set(uses.map((u) => u[1]))];
     const bad = [];
+    /** 使い方 NS.X を直した後の名前(行き先での名前が違えばそれ) */
+    const finalName = (name) => targetOf(split, name)?.rename ?? name;
     for (const name of members) {
-      if (!targetOf(split, name) || targetOf(split, name).stay) bad.push(`${local}.${name} の行き先が無い`);
-      else if (bound.has(name)) bad.push(`${name} がこのファイルで既に使われている(名前空間を外すと重なる)`);
+      const hit = targetOf(split, name);
+      if (!hit || hit.stay) bad.push(`${local}.${name} の行き先が無い`);
+      else if (bound.has(finalName(name))) bad.push(`${finalName(name)} がこのファイルで既に使われている(名前空間を外すと重なる)`);
     }
     if (bad.length) {
       stops.push(`${line}: ${bad.join("・")}(手で直す)`);
       return null;
     }
-    return { members, uses };
+    return { members, uses, finalName };
+  };
+  /** 名前空間の中身を行き先ごとの組へ(行き先で名前が違えば、その名前のまま import する) */
+  const addNamespaceMembers = (groups, ns, nsSplit, kw, stmtType) => {
+    for (const name of ns.members) {
+      const hit = targetOf(nsSplit, name);
+      addToGroup(groups, hit.unit, { ...hit, rename: undefined }, { type: false, name: ns.finalName(name), alias: null }, kw, stmtType);
+    }
   };
 
   // 1. 分けるモジュール・名前付きだけになった部品を読む `import|export [type] [X,] { … } from "…"`
@@ -322,11 +455,21 @@ export function rewriteSource(fromFile, text, opts = {}) {
     if (!r) continue;
     const line = lineOf(text, m.index);
     const end = m.index + whole.length;
-    const split = SPLITS[r.mod];
+    const split = splitOf(r.mod);
     const moved = mapModule(r.mod);
     const target = moved ? moved.to : r.mod;
     const namedOnly = DEFAULT_TO_NAMED[target];
-    if (!split && !namedOnly) continue;
+    if (!split && !namedOnly) {
+      // 動いただけのモジュール: 行き先の入口が名前を出しているかだけ見て、指定の書き換えは 2. に任せる
+      if (!moved) continue;
+      const its = parseItems(body);
+      const missing = its ? missingIn(target, [...(defaultLocal ? ["default"] : []), ...its.map((it) => it.name)]) : [];
+      if (missing.length) {
+        handled.push([m.index, end]);
+        stops.push(`${line}: ${spec} → ${specOf(spec, target)} の入口に ${missing.join("・")} が無い(入口に足すか手で直す)`);
+      }
+      continue;
+    }
     handled.push([m.index, end]);
     const items = parseItems(body);
     if (!items) {
@@ -358,6 +501,7 @@ export function rewriteSource(fromFile, text, opts = {}) {
     const groups = new Map();
     const bad = [];
     const nsEdits = [];
+    const renames = [];
     for (const it of items) {
       const nsKey = split.namespaces?.[it.name];
       if (nsKey && kw === "import") {
@@ -366,8 +510,7 @@ export function rewriteSource(fromFile, text, opts = {}) {
           bad.push(null);
           continue;
         }
-        const nsSplit = SPLITS[nsKey];
-        for (const name of ns.members) addToGroup(groups, targetOf(nsSplit, name).unit, targetOf(nsSplit, name), { type: false, name, alias: null }, kw, stmtType);
+        addNamespaceMembers(groups, ns, SPLITS[nsKey], kw, stmtType);
         nsEdits.push(ns);
         continue;
       }
@@ -380,6 +523,12 @@ export function rewriteSource(fromFile, text, opts = {}) {
         bad.push(`${it.name} の行き先が無い`);
         continue;
       }
+      if (hit.rename && kw === "import" && !it.alias && !bound.has(hit.rename)) {
+        // 行き先で名前が違う: そのファイルの使う所を新しい名前に直す(同じ名前が既にあれば `as` で元の名前のまま)
+        addToGroup(groups, hit.unit, { ...hit, rename: undefined }, { ...it, name: hit.rename }, kw, stmtType);
+        renames.push([it.name, hit.rename]);
+        continue;
+      }
       addToGroup(groups, hit.stay ? "" : hit.unit, hit, it, kw, stmtType);
     }
     if (bad.length) {
@@ -388,6 +537,15 @@ export function rewriteSource(fromFile, text, opts = {}) {
       continue;
     }
     if ([...groups.keys()].every((k) => k === "") && keepSpec(spec, r) === spec) continue;
+    const missing = [];
+    for (const [unit, g] of groups) {
+      if (unit === "") continue;
+      for (const n of missingIn(unit, [...(g.def ? ["default"] : []), ...g.named.map((it) => it.name)])) missing.push(`${specOf(spec, unit)} の ${n}`);
+    }
+    if (missing.length) {
+      stops.push(`${line}: ${spec} の行き先の入口に ${missing.join("・")} が無い(入口に足すか手で直す)`);
+      continue;
+    }
     const stmts = [];
     const targets = [];
     for (const [unit, g] of groups) {
@@ -398,7 +556,15 @@ export function rewriteSource(fromFile, text, opts = {}) {
     const next = stmts.join("\n");
     if (next === whole) continue;
     edits.push([m.index, end, next]);
-    for (const ns of nsEdits) for (const u of ns.uses) edits.push([u.index, u.index + u[0].length, u[1]]);
+    for (const ns of nsEdits) for (const u of ns.uses) edits.push([u.index, u.index + u[0].length, ns.finalName(u[1])]);
+    for (const [from, to] of renames) {
+      const re = new RegExp(`(?<![\\w$.'"\`/-])${from}(?![\\w$'"\`])`, "g");
+      for (const u of text.matchAll(re)) {
+        if (u.index >= m.index && u.index < end) continue;
+        if (/[{,]\s*$/.test(text.slice(Math.max(0, u.index - 20), u.index)) && /^\s*:(?!:)/.test(text.slice(u.index + from.length))) continue;
+        edits.push([u.index, u.index + from.length, to]);
+      }
+    }
     hits.push(`${line}: ${spec} → ${targets.length ? targets.join(", ") : "(残る名前だけ)"}${nsEdits.length ? "(名前空間を外した)" : ""}`);
   }
 
@@ -420,9 +586,12 @@ export function rewriteSource(fromFile, text, opts = {}) {
       const it = { type: false, name: named, alias: local === named ? null : local };
       edits.push([m.index, m.index + whole.length, `import${stmtType ? " type" : ""} { ${itemText(it)} } from ${quote}${nextSpec}${quote}${semi ? ";" : ""}`]);
       hits.push(`${line}: ${spec} → ${nextSpec}(${named} の default → 名前付き)`);
-    } else if (SPLITS[r.mod]) {
+    } else if (splitOf(r.mod)) {
       handled.push([m.index, m.index + whole.length]);
       stops.push(`${line}: ${spec} に default はない(手で直す)`);
+    } else if (moved && missingIn(target, ["default"]).length) {
+      handled.push([m.index, m.index + whole.length]);
+      stops.push(`${line}: ${spec} → ${specOf(spec, target)} の入口に default が無い(手で直す)`);
     }
   }
 
@@ -431,10 +600,10 @@ export function rewriteSource(fromFile, text, opts = {}) {
   for (const m of text.matchAll(STAR)) {
     const [whole, local, quote, spec, semi] = m;
     const r = resolveSpecifier(fromFile, spec);
-    if (!r || !SPLITS[r.mod]) continue;
+    if (!r || !splitOf(r.mod)) continue;
     const line = lineOf(text, m.index);
     handled.push([m.index, m.index + whole.length]);
-    if (SPLITS[r.mod].rest === "stay") {
+    if (splitOf(r.mod).rest === "stay") {
       hands.push(`${line}: ${spec} の import * as(残る名前もあるので手で分ける)`);
       continue;
     }
@@ -442,10 +611,10 @@ export function rewriteSource(fromFile, text, opts = {}) {
     const ns = namespaceEdits(local, r.mod, line);
     if (!ns) continue;
     const groups = new Map();
-    for (const name of ns.members) addToGroup(groups, targetOf(SPLITS[r.mod], name).unit, targetOf(SPLITS[r.mod], name), { type: false, name, alias: null }, "import", false);
+    addNamespaceMembers(groups, ns, splitOf(r.mod), "import", false);
     const stmts = [...groups].map(([unit, g]) => statementFor("import", false, quote, specOf(spec, unit), semi, g));
     edits.push([m.index, m.index + whole.length, stmts.join("\n")]);
-    for (const u of ns.uses) edits.push([u.index, u.index + u[0].length, u[1]]);
+    for (const u of ns.uses) edits.push([u.index, u.index + u[0].length, ns.finalName(u[1])]);
     hits.push(`${line}: ${spec} の名前空間 ${local} → ${stmts.length} 文`);
   }
 
@@ -460,7 +629,7 @@ export function rewriteSource(fromFile, text, opts = {}) {
     const line = lineOf(text, m.index);
     const moved = mapModule(r.mod);
     const isPlainPath = spec.startsWith("src/");
-    if (SPLITS[r.mod]) {
+    if (splitOf(r.mod)) {
       hands.push(`${line}: ${spec} は名前ごとに行き先が分かれた(export *・mock.module・import()・文字列は手で行き先へ)`);
     } else if (moved) {
       if (isPlainPath) {
@@ -499,11 +668,40 @@ export function plan(root) {
   const stops = [];
   for (const file of files) {
     const dm = DIR_MOVES.find((d) => file.startsWith(`${d.from}/`));
-    if (!dm) continue;
+    if (!dm) {
+      const gone = DIR_GONE.find((d) => file.startsWith(`${d.from}/`));
+      if (gone) stops.push({ file, line: 0, text: gone.reason });
+      continue;
+    }
     const to = `${dm.to}${file.slice(dm.from.length)}`;
     if (existsSync(path.join(root, to))) stops.push({ file, line: 0, text: `${to} がある(名前を変えてから走らせ直す)` });
     else moves.push({ from: file, to });
   }
+  const fileSet = new Set(files);
+  /** モジュールの道 → その入口のファイル(無ければ null) */
+  const fileOf = (mod) => {
+    for (const ext of [".ts", ".tsx", ".mts", ".mjs", ".js", ".jsx"]) {
+      if (fileSet.has(`${mod}${ext}`)) return `${mod}${ext}`;
+      if (fileSet.has(`${mod}/index${ext}`)) return `${mod}/index${ext}`;
+    }
+    return null;
+  };
+  const exportsCache = new Map();
+  const reader = (file) => ({
+    path: file,
+    text: read(file) ?? "",
+    readRelative: (spec) => {
+      const target = fileOf(resolveSpecifier(file, spec)?.mod ?? "");
+      return target ? reader(target) : null;
+    },
+  });
+  const exportsOf = (mod) => {
+    if (!exportsCache.has(mod)) {
+      const file = fileOf(mod);
+      exportsCache.set(mod, file ? exportsOfText(read(file) ?? "", reader(file).readRelative, new Set([file])) : null);
+    }
+    return exportsCache.get(mod);
+  };
 
   const rewrites = [];
   const hands = [];
@@ -513,7 +711,7 @@ export function plan(root) {
       const text = read(file);
       if (text == null) continue;
       const moved = moves.find((mv) => mv.from === file);
-      const res = rewriteSource(file, text, { emitFrom: moved?.to, exists: (mod) => mods.has(mod) });
+      const res = rewriteSource(file, text, { emitFrom: moved?.to, exists: (mod) => mods.has(mod), exportsOf });
       for (const s of res.stops) stops.push({ file, ...splitLine(s) });
       for (const h of res.hands) hands.push({ file, ...splitLine(h) });
       if (res.text !== text) rewrites.push({ file, next: res.text, hits: res.hits });

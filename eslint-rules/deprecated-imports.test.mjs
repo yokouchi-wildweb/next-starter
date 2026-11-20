@@ -41,6 +41,13 @@ test("matchDeprecated: 一致・配下・core 省略形を検出し、配下は�
   assert.equal(matchDeprecated("@/features/core/user/components/UserMyPage", paths), null);
 });
 
+test("matchDeprecated: collapse は配下も検出し、候補は配下の道を付けずに to そのもの", () => {
+  const collapse = [{ from: "@/components/Form", to: "@/lib/formSuite", collapse: true }];
+  assert.equal(matchDeprecated("@/components/Form", collapse).replacement, "@/lib/formSuite");
+  assert.equal(matchDeprecated("@/components/Form/Field/types", collapse).replacement, "@/lib/formSuite");
+  assert.equal(matchDeprecated("@/components/FormX", collapse), null);
+});
+
 test("matchDeprecated: exact は from そのもの(と /index)だけを検出し、配下は通す", () => {
   const exact = [{ from: "@/components/Layout", to: "@/components/Layout/<Unit>", exact: true }];
   assert.equal(matchDeprecated("@/components/Layout", exact).replacement, "@/components/Layout/<Unit>");
