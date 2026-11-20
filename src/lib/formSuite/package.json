@@ -10,6 +10,7 @@
     "gradient",
     "mediaInputSuite",
     "spacing",
+    "stringCase",
     "toast",
     "variantOverrides"
   ],

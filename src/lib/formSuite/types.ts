@@ -4,37 +4,9 @@ import type { InputSize } from "@/lib/variantOverrides";
 import {
   type FieldValues,
   type ControllerRenderProps,
-  type Path,
   type FieldPath,
 } from "react-hook-form";
 import { type InputHTMLAttributes } from "react";
-
-import { type Options } from "@/components/Input/options";
-
-/**
- * FormField コンポーネントで扱う基本的なフィールドタイプの集合。
- */
-export type FieldType =
-  | "text"
-  | "date"
-  | "time"
-  | "textarea"
-  | "radio"
-  | "checkbox"
-  | "select"
-  | "multi-select"
-  | "switch";
-
-/**
- * FormField を利用する際の共通 Props。
- * 各フィールドが受け取る `options` は Options の配列を期待する。
- */
-export type FormFieldProps<T extends FieldValues> = React.HTMLProps<HTMLElement> & {
-  type: FieldType;
-  name: Path<T>;
-  label: string;
-  options?: Options[];
-};
 
 /**
  * Controlled な input コンポーネントで React Hook Form の field を渡す際の型。

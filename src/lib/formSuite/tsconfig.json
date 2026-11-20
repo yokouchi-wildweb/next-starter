@@ -71,6 +71,12 @@
       "@/lib/spacing/*": [
         "../spacing/*"
       ],
+      "@/lib/stringCase": [
+        "../stringCase"
+      ],
+      "@/lib/stringCase/*": [
+        "../stringCase/*"
+      ],
       "@/lib/toast": [
         "../toast"
       ],

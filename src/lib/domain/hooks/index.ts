@@ -2,4 +2,3 @@
 
 export * from "./useFetchDomains";
 export * from "./useTruncateDomains";
-export * from "./useRelationOptions";

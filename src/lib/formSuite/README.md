@@ -252,6 +252,19 @@ ControlledField / ManualField / ControlledFieldGroup / ManualFieldGroup / Config
 - props の `description`(色・位置も指定できる)を渡すとそちらが優先
 - 枠を持たない入力(`switchInput`・`stepperInput`・登録部品の `frame: false`)は helperText を描かない
 
+### FieldConfig のキー
+
+- domain.json に書けるキーは `DomainField`(`@/lib/domain`)のまま。`FieldConfig` はそれを広げた物で、キーを写し直さない
+- `fieldType` は省ける(画面で手で組む設定は型を書かないことがある。domain.json では必須)。型の名前は `@/lib/domain` の表から導く union(`FieldTypeName` など)で、この lib に一覧は無い
+- この lib が狭める物: `formInput`(組み込みの名前 `BuiltinFormInput` + 登録した入力部品の名前)・`options`(`DomainFieldOption`)・`mediaTypePreset`・`validationRule`(メディアの形 `MediaValidationRule`)
+- この lib が足す物(画面でだけ使う値): `purpose`(生成の Fields が付ける)・`onMetadataChange`・`asyncApiPath` / `asyncLabelField` / `asyncSearchFields`
+- 新しい domain.json のキーは `DomainField` に足す(ここには足さない)
+
+### 関連の選択肢(useRelationOptions)
+
+- `useRelationOptions(写し)` が写し(`entities/display.ts`)の relations から関連先の選択肢を取り、`FieldRenderer` の `insertBefore` の形(`{ insertBefore, isLoading }`)で返す
+- どの関連を出すか・全件を読むか・SWR のキーは `@/lib/domain` の `relationOptions.mjs`(SSR の先読みと生成器も同じ判定)
+
 ### メディアの欄
 
 | 目的 | コンポーネント | 入力 | 使いどころ | 注意点 |
