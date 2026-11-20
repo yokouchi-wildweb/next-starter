@@ -46,7 +46,9 @@
   - 署名は読み込み開始より後に発行されるので、開始時刻から数えると早めに倒れる
 - src が固定 URL でなければ何もしない（旧 URL・公開 URL はそのまま）
 - 配線済み: `VideoPreview`（lib/mediaInputSuite）、`DetailModal` の動画（`DetailModalVideo`）。props の追加は無い
-- 独自のプレーヤーに配線するとき: `recovery.src` を要素の `src` に、`handleError` / `handleLoadedMetadata` / `handleCanPlay` / `handleLoadStart` を同名のイベントに、`handlePlaybackIntent` を `onPlay` と `onSeeking` に渡し、`status === "failed"` でエラーと `resume()` の操作を出す
+- 独自のプレーヤーに配線するとき: `recovery.videoProps` を要素に広げ（`<video ref={mediaRef} {...recovery.videoProps} />`）、`status === "failed"` でエラーと `resume()` の操作を出す
+  - `videoProps` = `src` + `handleError` / `handleLoadedMetadata` / `handleCanPlay` / `handleLoadStart` を同名のイベントに、`handlePlaybackIntent` を `onPlay` と `onSeeking` に配線した物（同じ src の間は同じ参照）
+  - 個別の `handle*` は、包んで使うとき（`handleError` の真偽でエラー表示を決めるなど）だけ
 - `<source>` 子要素だと読み込み失敗の error が `<source>` 側に出て、media 要素の onError に届かない
 
 ### 未設定のとき

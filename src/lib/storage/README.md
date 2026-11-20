@@ -46,6 +46,8 @@
 - 固定 URL（`/api/storage/` で始まる値）は、呼び出し側の指定に関わらず next/image の最適化を外す
   - 認可済みの画像が最適化キャッシュに残り、他の利用者に配られるのを防ぐ
 - 公開 base は `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` から next/image の remotePatterns に入る。旧バケットの 2 パターンも残る
+- 非公開の動画・音声を自分で描くプレーヤーは `usePrivateMediaRecovery(src, ref)`（`@/lib/storage/client`）の `videoProps` を要素に広げる（`<video ref={ref} {...recovery.videoProps} />`）。署名期限後の読み直しが配線される
+  - 返り値・`status` / `resume()` の扱い: [API.md](./API.md)「非公開の動画・音声: `usePrivateMediaRecovery`」、仕組み: [Internals.md](./Internals.md)
 
 ### アップロード: `uploadToStorage`
 

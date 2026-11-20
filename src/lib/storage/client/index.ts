@@ -25,4 +25,4 @@ export {
   withMediaRetryQuery,
   MEDIA_RETRY_QUERY,
 } from "./usePrivateMediaRecovery";
-export type { PrivateMediaRecovery, PrivateMediaRecoveryStatus } from "./usePrivateMediaRecovery";
+export type { PrivateMediaRecovery, PrivateMediaRecoveryStatus, PrivateMediaVideoProps } from "./usePrivateMediaRecovery";
