@@ -4,14 +4,16 @@
 
 import type { ReactNode } from "react";
 import { cva } from "class-variance-authority";
+import { MoonIcon, SunIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { Link } from "@/components/Navigation/Link";
-import { DarkModeSwitch } from "@/components/Functional/DarkModeSwitch";
+import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { AppImage } from "@/components/Media/AppImage";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
+import { useDarkModeSwitch } from "@/lib/siteTheme";
 import { business } from "@/business";
 import { logoPath } from "@/utils/assets";
 
@@ -37,13 +39,14 @@ export type AdminHeaderProps = {
 };
 
 /**
- * 管理画面のヘッダーの行の上流の既定: ロゴの Link + 題 / 中央 / 右の位置(data-slot admin-header-title / -center / -right)+ DarkModeSwitch。
+ * 管理画面のヘッダーの行の上流の既定: ロゴの Link + 題 / 中央 / 右の位置(data-slot admin-header-title / -center / -right)+ 明暗の切り替えボタン(Button + useDarkModeSwitch)。
  * 行は各ページの AdminPage が描き、title / center / actions を props で渡す(ページごとに変わる中身はページの中で描く、D134)。
  * 差し替えの口 = 1 行スイッチ: ./AdminHeader.tsx がこのファイルを指す。fork は AdminHeader.replace.tsx に同じ名前・同じ props の
  * AdminHeader を書き、./AdminHeader.tsx の 1 行をそちらへ向ける(手順: ./README.md)
  */
 export function AdminHeader({ title, center, actions, className }: AdminHeaderProps) {
   const { isAuthenticated } = useAuthSession();
+  const darkMode = useDarkModeSwitch();
 
   return (
     <Section as="header" data-slot="admin-header" className={cn(headerContainer(), className)}>
@@ -85,13 +88,27 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
         {center}
       </Flex>
 
-      {/* 右: ページの操作 + ダークモードスイッチ(エリアが switchable のときだけ描画される。
-          切替可否は src/config/lib/siteTheme.config.ts の areas の admin の switchable) */}
+      {/* 右: ページの操作 + 明暗の切り替え(エリアが switchable のときだけ描く。
+          切替可否は src/config/lib/siteTheme.config.ts の areas の admin の switchable。判定は usePathname なので SSR と一致する) */}
       <Flex align="center" gap="sm" className="min-w-0 shrink-0 max-sm:shrink">
         <Flex data-slot="admin-header-right" align="center" gap="sm" className="min-w-0">
           {actions}
         </Flex>
-        <DarkModeSwitch className="shrink-0" />
+        {darkMode.switchable ? (
+          <Button
+            type="button"
+            onClick={darkMode.toggle}
+            aria-label={darkMode.isDark ? "Switch to light mode" : "Switch to dark mode"}
+            aria-pressed={darkMode.isDark}
+            variant="outline"
+            size="icon"
+            className="shrink-0"
+          >
+            {/* アイコンは html の dark クラスで切り替える(store 同期前でも表示が正しい) */}
+            <SunIcon className="hidden size-4 dark:block" />
+            <MoonIcon className="size-4 dark:hidden" />
+          </Button>
+        ) : null}
       </Flex>
     </Section>
   );

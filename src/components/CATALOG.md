@@ -28,7 +28,6 @@
 - src/components/Button/RoundedButton — 選択状態で配色が変わる丸いボタン
 - src/components/Button/TabletButton — タブレット向けの大きなボタン
 - src/components/Button/variants — ボタンの形と大きさの表(buttonVariants・tabletButtonVariants)
-- src/components/Functional/DarkModeSwitch — ライト / ダークの切り替えボタン
 - src/components/Icons/createImageIcon — 画像ファイルから Lucide 互換のアイコンを作る
 - src/components/Icons/createSvgIcon — SVG の子要素から Lucide 互換のアイコンを作る
 - src/components/Icons/definitions — プロジェクト固有アイコンの定義

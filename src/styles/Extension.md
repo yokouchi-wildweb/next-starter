@@ -208,7 +208,7 @@ export default {
 ```
 
 - `mode`: `light` | `dark` | `system`(OS 設定に追従)
-- `switchable: true` のエリアだけ保存値を参照し、`DarkModeSwitch` が描画される
+- `switchable: true` のエリアだけ保存値を参照し、切替ボタン(`useDarkModeSwitch` の `switchable`)が描画される
 - `switchable: false` のエリアは保存値を一切見ない。管理画面でダークを選んでもユーザー側に漏れない
 - 一致判定はセグメント境界(`/admin` は `/administer` に一致しない)
 - 追加したエリアの書かなかった欄は `match: []`・`mode: "light"`・`switchable: false`。`{ key: "admin", $delete: true }` で既定のエリアを消せる(`@/lib/defineConfig` の配列の規則)
@@ -224,4 +224,4 @@ export default {
 
 ### 独自の切替 UI を作るとき
 
-`useSiteThemeStore()`(`@/lib/siteTheme`)の `isDark` / `switchable` / `toggle` / `setDark` を使う。表示可否は `resolveSiteThemeArea(siteThemeConfig, usePathname()).switchable`(どちらも `@/lib/siteTheme`) で判定する(`DarkModeSwitch` の実装がそのまま手本。SSR とクライアントで一致させるため usePathname ベース)。ロックされたエリアでは `setDark` / `toggle` は何もしない(開発時は console.warn)。`<html>` を直接触らない。
+`useDarkModeSwitch()`(`@/lib/siteTheme`)の `isDark` / `switchable` / `toggle` で描く(`switchable` は usePathname ベースで SSR とクライアントで一致する。手本: 管理のヘッダー `src/app/admin/_layout/AdminHeader.default.tsx`)。値を直接決めるときは `useSiteThemeStore()` の `setDark`。ロックされたエリアでは `setDark` / `toggle` は何もしない(開発時は console.warn)。`<html>` を直接触らない。

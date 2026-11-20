@@ -4,7 +4,7 @@ paths:
   - "src/config/lib/siteTheme.config.ts"
 ---
 # lib/siteTheme
-what: light / dark site theme decided per path area (@/lib/siteTheme): pure resolvers, the <head> bootstrap script, store + SiteThemeSync, config
+what: light / dark site theme decided per path area (@/lib/siteTheme): pure resolvers, the <head> bootstrap script, store + SiteThemeSync, config, useDarkModeSwitch (state + toggle for a theme button; the caller draws the button)
 use: always
 change: overlay = src/config/lib/siteTheme.config.ts (storageKey, areas, fallback)
 rules:

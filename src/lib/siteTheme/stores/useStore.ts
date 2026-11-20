@@ -19,7 +19,7 @@ import { getSiteThemeAreaByKey } from "../resolve";
 import { internalStore } from "./internalStore";
 
 /**
- * サイトテーマの状態と切替操作(DarkModeSwitch 等が使う)。
+ * サイトテーマの状態と切替操作(useDarkModeSwitch 等が使う)。
  * DOM への反映は useSiteThemeSync(root layout の SiteThemeSync が呼ぶ)が担うため、
  * ここでは状態更新と「利用者の選択の保存」だけを行う。
  * 現在のエリアが switchable でなければ setDark / toggle は何もしない(ロックの契約を UI 側に委ねない)。

@@ -151,7 +151,7 @@ upstream 側のファイルの役割(upstream でスタイルを足すときの�
 
 ### 表示と保存の分離
 
-lib の中の `src/lib/siteTheme/dom.ts`(入口から出さない)は DOM 適用(`applyThemeToDom`)と保存(`persistThemePreference`)を分けている。保存は利用者の切替操作(`DarkModeSwitch` や `useSiteThemeStore` の `toggle` / `setDark`)のときだけ。固定エリアの適用や OS 追従で保存値を汚さない。
+lib の中の `src/lib/siteTheme/dom.ts`(入口から出さない)は DOM 適用(`applyThemeToDom`)と保存(`persistThemePreference`)を分けている。保存は利用者の切替操作(`useDarkModeSwitch` や `useSiteThemeStore` の `toggle` / `setDark`)のときだけ。固定エリアの適用や OS 追従で保存値を汚さない。
 
 ### デプロイ後の確認(Vercel ビルドキャッシュ)
 
