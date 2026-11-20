@@ -13,8 +13,7 @@ import { SampleForm } from "./SampleForm";
 import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
-import { useAutoSaveConfig } from "@/components/Form/AutoSave";
+import { buildFormDefaultValues, useAutoSaveConfig } from "@/lib/formSuite";
 import { domainDisplay } from "@/features/sample/entities/display";
 
 type Props = {

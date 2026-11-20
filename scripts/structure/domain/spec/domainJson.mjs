@@ -1,5 +1,5 @@
 // domain.json の語彙（キーと値の集合）。正は src/features/README.md「API」と
-// src/components/Form/Field/types.ts の FieldConfig。checks/vocabulary.mjs がこれと照合して、綴り違い・古いキー・
+// src/lib/formSuite/Field/types.ts の FieldConfig。checks/vocabulary.mjs がこれと照合して、綴り違い・古いキー・
 // その DB に無い型を警告する（生成は止めない）。
 
 import { BUILTIN_FORM_INPUTS } from "../../../../src/lib/domain/fields/formInputs.mjs";

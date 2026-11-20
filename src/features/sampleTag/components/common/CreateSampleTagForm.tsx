@@ -12,7 +12,7 @@ import { SampleTagForm } from "./SampleTagForm";
 import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
+import { buildFormDefaultValues } from "@/lib/formSuite";
 import { domainDisplay } from "@/features/sampleTag/entities/display";
 
 type Props = {

@@ -7,8 +7,8 @@ export function applyAutoSave(content, config) {
   if (!(config?.useAutoSave ?? false)) return content;
   return content
     .replace(
-      'import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";',
-      'import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";\nimport { useAutoSaveConfig } from "@/components/Form/AutoSave";',
+      'import { buildFormDefaultValues } from "@/lib/formSuite";',
+      'import { buildFormDefaultValues, useAutoSaveConfig } from "@/lib/formSuite";',
     )
     .replace(
       "const { trigger, isMutating } = useUpdate__Domain__();",
