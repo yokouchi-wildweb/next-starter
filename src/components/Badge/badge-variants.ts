@@ -8,8 +8,7 @@
  * 名前の型(BadgeVariant / BadgeSize)は @/lib/variantOverrides が持つ。ここは部品の props の型として見せるだけ(二つ目の定義を作らない)。
  */
 
-import { variantOverrides } from "@/lib/variantOverrides/config";
-import { variantOverrideClasses, type BadgeSize, type BadgeVariant } from "@/lib/variantOverrides";
+import { variantOverrides, variantOverrideClasses, type BadgeSize, type BadgeVariant } from "@/lib/variantOverrides";
 
 export type { BadgeSize, BadgeVariant } from "@/lib/variantOverrides";
 

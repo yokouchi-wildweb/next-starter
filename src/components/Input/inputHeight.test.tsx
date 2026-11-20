@@ -4,15 +4,16 @@
 // - 上書きの口 input(variants.config)と要素の className の高さがトークンに勝つ
 // - HTML の size 属性は htmlSize で渡し、DOM の <input size> に届く
 // 実行: pnpm test src/components/Input/inputHeight.test.tsx
-// (tsx。type: module が無いので tsx は CJS = top-level await 不可 → before() で import。config は mock.module で差し替え)
+// (tsx。type: module が無いので tsx は CJS = top-level await 不可 → before() で import。上書きのファイル @lib-config/variantOverrides は mock.module で空に)
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement as h } from "react";
 
-import { defineVariantOverrides, type VariantOverrides } from "@/lib/variantOverrides";
+import type { VariantOverrides } from "@/lib/variantOverrides";
 
-const OV: VariantOverrides = defineVariantOverrides({});
-mock.module("@/lib/variantOverrides/config", { namedExports: { variantOverrides: OV } });
+// 上書きのファイルを空にして(fork の値に左右されない)、lib が合成した値をテストが書き換えて部品に効かせる
+mock.module("@lib-config/variantOverrides", { defaultExport: {} });
+let OV: VariantOverrides;
 
 let render: typeof import("react-dom/server").renderToStaticMarkup;
 let Input: typeof import("./Input").Input;
@@ -21,6 +22,7 @@ let ColorInput: typeof import("./ColorInput").ColorInput;
 let buttonVariants: typeof import("@/components/Button/variants").buttonVariants;
 let PrimitiveInput: typeof import("@/components/Primitives/Input").Input;
 before(async () => {
+  ({ variantOverrides: OV } = await import("@/lib/variantOverrides"));
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
   ({ Input } = await import("./Input"));
   ({ PasswordInput } = await import("./PasswordInput"));

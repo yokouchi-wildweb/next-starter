@@ -4,8 +4,7 @@ import * as React from "react";
 import { XIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
-import { createOverridableVariants, type InputSize } from "@/lib/variantOverrides";
-import { variantOverrides } from "@/lib/variantOverrides/config";
+import { createOverridableVariants, variantOverrides, type InputSize } from "@/lib/variantOverrides";
 import { Input as PrimitiveInput } from "@/components/Primitives/Input";
 import { Button } from "@/components/Button/Button";
 

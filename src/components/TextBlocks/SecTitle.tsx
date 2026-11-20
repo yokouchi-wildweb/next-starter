@@ -1,7 +1,7 @@
 import { type VariantProps } from "class-variance-authority";
 import type { HTMLAttributes, ReactNode } from "react";
 
-import { variantOverrides } from "@/lib/variantOverrides/config";
+import { variantOverrides } from "@/lib/variantOverrides";
 import { cn } from "@/lib/cn";
 
 import { createTextVariants } from "./textVariants";

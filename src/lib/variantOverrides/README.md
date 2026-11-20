@@ -2,7 +2,7 @@
 
 ## Overview
 
-- 棚の部品(Button / TabletButton / Badge / 入力部品 / TextBlocks)の形(角丸・影・枠線・寸法・文字)を、core を編集せずに下流が差し替える仕組み。入口 `@/lib/variantOverrides`、合成済みの値は `@/lib/variantOverrides/config`
+- 棚の部品(Button / TabletButton / Badge / 入力部品 / TextBlocks)の形(角丸・影・枠線・寸法・文字)を、core を編集せずに下流が差し替える仕組み。閉じた lib(入口 `@/lib/variantOverrides` だけを読む。合成済みの値・型・関数も入口から)
 - 軸の値の名前(variant / size / tone …)の型はこの lib が持つ。部品の既定のクラスの表はその型に `satisfies Record<名前, string>` で揃え、部品は名前の型をここから読んで自分の props の型として見せる(再 export)。名前の定義は一つだけで、部品の側に二つ目を作らない
 - **この lib は棚(`src/components`)を読まない(型も)**。棚がこの lib を読む向きだけ
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/variantOverrides.md にある
@@ -11,7 +11,7 @@
 
 ```ts
 // src/config/lib/variantOverrides.config.ts
-import type { VariantOverridesOverride } from "@/lib/variantOverrides/config";
+import type { VariantOverridesOverride } from "@/lib/variantOverrides";
 
 export default {
   button: { base: "rounded-full shadow-none", variant: { outline: "border-2" }, size: { md: "h-11 px-5" } },
@@ -30,7 +30,7 @@ export default {
 - 型
   - 上書きの形: `VariantOverride<V, S>`(base / variant / size)、`AxisOverride<Axes>`(base + 任意の軸)、`VariantOverridesInput`(下流が書く差分)、`VariantOverrides`(完全形)、キーごとの `*Override`
   - 軸の値の名前: `ButtonVariantName`・`ButtonSizeName`・`TabletButtonVariantName`・`TabletButtonSizeName`・`BadgeVariant`・`BadgeSize`・`InputSize`・`CheckControlSize`・`SingleCardCheckboxColor`・`StepperInputSize`・`SwitchInputColor`・`TextTone`・`TextSize`・`TextWeight`・`TextAlign`
-- `variantOverrides`(`@/lib/variantOverrides/config`)— 既定と上書きを合成した値。部品はこれを読む
+- `variantOverrides` — 既定と上書きを合成した値。部品はこれを読む(テストは上書き `@lib-config/variantOverrides` を mock.module で空にし、この値を書き換えて効き方を見る)
 
 ## Extension
 

@@ -1,0 +1,31 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "allowImportingTsExtensions": true,
+    "checkJs": true,
+    "paths": {
+      "@/lib/cn": [
+        "../cn"
+      ],
+      "@/lib/cn/*": [
+        "../cn/*"
+      ],
+      "@/lib/defineConfig": [
+        "../defineConfig"
+      ],
+      "@/lib/defineConfig/*": [
+        "../defineConfig/*"
+      ],
+      "@lib-config/variantOverrides": [
+        "../../config/lib/variantOverrides.config.ts"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mjs",
+    "**/*.js"
+  ]
+}

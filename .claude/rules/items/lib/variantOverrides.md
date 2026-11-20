@@ -4,7 +4,7 @@ paths:
   - "src/config/lib/variantOverrides.config.ts"
 ---
 # lib/variantOverrides
-what: the downstream shape overrides of shelf parts (Button, TabletButton, Badge, input parts, TextBlocks) and the owner of their axis value names; entry @/lib/variantOverrides, composed value @/lib/variantOverrides/config
+what: the downstream shape overrides of shelf parts (Button, TabletButton, Badge, input parts, TextBlocks) and the owner of their axis value names; closed lib, entry @/lib/variantOverrides only (the composed value variantOverrides and the override type VariantOverridesOverride too)
 use: always
 change: placement → src/config/lib/variantOverrides.config.ts (`satisfies VariantOverridesOverride`)
 rules:

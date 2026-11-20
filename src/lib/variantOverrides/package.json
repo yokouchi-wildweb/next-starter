@@ -1,0 +1,9 @@
+{
+  "exports": {
+    ".": "./index.ts"
+  },
+  "libs": [
+    "cn",
+    "defineConfig"
+  ]
+}

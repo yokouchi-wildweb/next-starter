@@ -5,8 +5,7 @@
 import { useId, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { cva } from "class-variance-authority";
-import { variantOverrides } from "@/lib/variantOverrides/config";
-import { variantOverrideClasses, type CheckControlSize, type SwitchInputColor } from "@/lib/variantOverrides";
+import { variantOverrides, variantOverrideClasses, type CheckControlSize, type SwitchInputColor } from "@/lib/variantOverrides";
 
 // 見た目の上書き口: src/config/lib/variantOverrides.config.ts の switchInput.track({ base, size, activeColor, inactiveColor })と
 // switchInput.indicator({ base, size })。activeColor はオンの間だけ、inactiveColor はオフの間だけ足す

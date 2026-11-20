@@ -10,8 +10,12 @@
 
 import type { VariantProps } from "class-variance-authority";
 
-import { variantOverrides } from "@/lib/variantOverrides/config";
-import { createOverridableVariants, type ButtonSizeName, type ButtonVariantName } from "@/lib/variantOverrides";
+import {
+  variantOverrides,
+  createOverridableVariants,
+  type ButtonSizeName,
+  type ButtonVariantName,
+} from "@/lib/variantOverrides";
 
 const BUTTON_VARIANTS = {
   variant: {
