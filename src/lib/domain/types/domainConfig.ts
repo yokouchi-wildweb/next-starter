@@ -2,14 +2,10 @@
 // server で読む domain.json の形（lib が読む項目）。生成物の具体の型は src/registry/domainConfigRegistry.ts
 
 import type { DomainConfigOptionals } from "./domainConfigOptionals";
+import type { DomainField } from "./domainField";
 
-export type DomainConfigField = {
-  name: string;
-  label: string;
-  fieldType: string;
-  formInput?: string;
-  options?: readonly { readonly value: unknown; readonly label?: string }[];
-};
+/** server で読む項目 = domain.json の項目そのもの(キーの正は DomainField) */
+export type DomainConfigField = DomainField;
 
 export type DomainConfigRelation = {
   domain: string;
