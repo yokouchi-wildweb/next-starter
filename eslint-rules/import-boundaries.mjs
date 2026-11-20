@@ -820,6 +820,151 @@ const libSelfRelative = {
   },
 };
 
+// ── shelf-purity(D50) ──
+// 棚(src/components、テストを除く)は見た目と振る舞いの部品だけを持つ。値で読まないもの:
+//   (a) src/features・src/app・src/wiring・src/registry・src/stores・services/ の道(別名でも相対でも)
+//   (b) react-hook-form・@/lib/domain・@/lib/crud(フォームとデータの lib)
+//   (c) firebase(/*)・axios・@/lib/firebase・@/lib/firestore・@/lib/drizzle(SDK と SDK を包む lib)と、素の fetch の呼び出し
+//   (d) 棚を値で読む lib(自分のファイルが直接、またはほかの lib を通して src/components を値で読む。src/lib の実際のファイルから毎回求める)
+// 型だけの import は数えない。上流も fork も error(eslint.config.mjs)。
+const SHELF = "src/components";
+const SHELF_PATH_BANS = ["src/features", "src/app", "src/wiring", "src/registry", "src/stores"];
+const SHELF_LIB_BANS = ["src/lib/domain", "src/lib/crud", "src/lib/firebase", "src/lib/firestore", "src/lib/drizzle"];
+const SHELF_PACKAGE_BAN = /^(react-hook-form|axios|firebase)(\/.*)?$/;
+const SHELF_CODE_FILE = /\.(ts|tsx|mts|mjs|js|jsx)$/;
+const SHELF_TEST_FILE = /\.test\.[^.]+$/;
+const STATEMENT =
+  /\b(import|export)\s+(type\s+)?([^;'"]*?)\s*from\s*["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']\s*\)|\bimport\s+["']([^"']+)["']/g;
+
+/** テキストの値の import / export from / import() の指定子(型だけの文は除く) */
+export function valueSpecifiersOfText(text) {
+  const bare = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+  const out = [];
+  for (const m of bare.matchAll(STATEMENT)) {
+    if (m[4]) {
+      if (m[2]) continue;
+      const clause = m[3].trim();
+      const braces = /^\{([^}]*)\}$/.exec(clause);
+      if (braces) {
+        const items = braces[1].split(",").map((t) => t.trim()).filter(Boolean);
+        if (items.length > 0 && items.every((t) => t.startsWith("type "))) continue;
+      }
+      out.push(m[4]);
+    } else out.push(m[5] ?? m[6]);
+  }
+  return out;
+}
+
+const libOfShelfPath = (resolved) => /^src\/lib\/([^/.]+)/.exec(resolved ?? "")?.[1] ?? null;
+const shelfLibsCache = new Map();
+
+/**
+ * 棚を値で読む lib の名前(src/lib/<名前> の自分のファイル(テストを除く)が src/components を値で読む lib と、
+ * 値で読む lib を通してそこへ届く lib)。リポジトリごとに 1 度だけ求める
+ * @param {string} repoRoot
+ */
+export function libsReachingShelf(repoRoot) {
+  if (shelfLibsCache.has(repoRoot)) return shelfLibsCache.get(repoRoot);
+  const direct = new Set();
+  const edges = new Map();
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = readdirSync(join(repoRoot, dir), { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const rel = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) {
+        if (entry.name !== "node_modules" && !entry.name.startsWith(".")) walk(rel);
+        continue;
+      }
+      if (!SHELF_CODE_FILE.test(entry.name) || SHELF_TEST_FILE.test(entry.name)) continue;
+      const own = libOfShelfPath(rel);
+      if (!own) continue;
+      const file = join(repoRoot, rel);
+      for (const spec of valueSpecifiersOfText(readFileSync(file, "utf8"))) {
+        const resolved = resolveImport(spec, file, repoRoot);
+        if (isUnder(resolved, SHELF)) direct.add(own);
+        const other = libOfShelfPath(resolved);
+        if (other && other !== own) {
+          if (!edges.has(own)) edges.set(own, new Set());
+          edges.get(own).add(other);
+        }
+      }
+    }
+  };
+  walk("src/lib");
+  const reaching = new Set(direct);
+  let grown = true;
+  while (grown) {
+    grown = false;
+    for (const [lib, targets] of edges) {
+      if (reaching.has(lib)) continue;
+      if ([...targets].some((t) => reaching.has(t))) {
+        reaching.add(lib);
+        grown = true;
+      }
+    }
+  }
+  shelfLibsCache.set(repoRoot, reaching);
+  return reaching;
+}
+
+/** 棚のファイルの値の import の違反の種類(無ければ null) */
+export function classifyShelfImport(source, resolved, reachingLibs) {
+  if (SHELF_PACKAGE_BAN.test(source)) return "package";
+  if (!resolved) return null;
+  if (isUnder(resolved, SHELF)) return null;
+  if (SHELF_PATH_BANS.some((base) => isUnder(resolved, base)) || /(^|\/)services(\/|$)/.test(resolved)) return "place";
+  if (SHELF_LIB_BANS.some((base) => isUnder(resolved, base))) return "lib";
+  const lib = libOfShelfPath(resolved);
+  if (lib && reachingLibs.has(lib)) return "cycle";
+  return null;
+}
+
+const isFetchCallee = (callee) =>
+  (callee.type === "Identifier" && callee.name === "fetch") ||
+  (callee.type === "MemberExpression" &&
+    !callee.computed &&
+    callee.property.type === "Identifier" &&
+    callee.property.name === "fetch" &&
+    callee.object.type === "Identifier" &&
+    ["window", "globalThis", "self"].includes(callee.object.name));
+
+const shelfPurity = {
+  meta: {
+    type: "problem",
+    docs: { description: "棚(src/components)は features・app・wiring・registry・stores・services・フォームとデータの lib・SDK と SDK を包む lib・棚を読む lib を値で読まず、fetch を呼ばない(D50)" },
+    messages: {
+      place: '"{{source}}": 棚(src/components)は features・app・wiring・registry・stores・services を値で読みません。判断と値は外から props か口(provider / port)で受けます',
+      lib: '"{{source}}": 棚は lib/domain・lib/crud(フォームとデータ)と SDK を包む lib(lib/firebase・lib/firestore・lib/drizzle)を値で読みません。読む部品は使う側(ドメイン・src/app/_mounts)に置きます',
+      package: '"{{source}}": 棚は react-hook-form・axios・firebase を値で読みません(フォームは @/lib/formSuite、通信はドメインの client・フック)',
+      cycle: '"{{source}}": この lib は棚を値で読む(直接か、ほかの lib を通して)ので、棚から値で読むと輪になります。部品を lib の側に置くか、使う側で組みます',
+      fetch: "棚は fetch を呼びません。通信はドメインの client・フックが持ち、部品は結果を props で受けます",
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = repoRootOf(context);
+    if (!isUnder(repoRelative(context.filename, repoRoot), SHELF)) return {};
+    const visitors = moduleVisitors(({ node, source, typeOnly }) => {
+      if (typeOnly) return;
+      const kind = classifyShelfImport(source, resolveImport(source, context.filename, repoRoot), libsReachingShelf(repoRoot));
+      if (kind) context.report({ node, messageId: kind, data: { source } });
+    });
+    const onRequire = visitors.CallExpression;
+    return {
+      ...visitors,
+      CallExpression(node) {
+        onRequire(node);
+        if (isFetchCallee(node.callee)) context.report({ node, messageId: "fetch" });
+      },
+    };
+  },
+};
+
 const plugin = {
   meta: { name: "eslint-plugin-local-import-boundaries", version: "1.0.0" },
   rules: {
@@ -843,6 +988,7 @@ const plugin = {
     "scripts-no-static-wiring": scriptsNoStaticWiring,
     "tools-no-db-write": toolsNoDbWrite,
     "lib-self-relative": libSelfRelative,
+    "shelf-purity": shelfPurity,
   },
 };
 

@@ -14,7 +14,6 @@ import {
 import { GlobalScreenLoader } from "@/lib/globalLoader";
 import { GlobalToast, RedirectToastProvider } from "@/lib/toast";
 import { ViewportHeightWatcher } from "@/lib/viewport";
-import { FirebaseAnalytics } from "@/components/Functional/FirebaseAnalytics";
 import { Block } from "@/components/Layout/Block";
 import { MicrosoftClarity } from "@/lib/clarity";
 import { GoogleTag } from "@/wiring/GoogleTag";
@@ -23,6 +22,7 @@ import { AppProviders } from "@/wiring/AppProviders";
 import { clientGateState } from "@/featureGate";
 
 import { ROOT_LAYOUT_CONFIG } from "./_layout/config";
+import { FirebaseAnalytics } from "./_mounts/FirebaseAnalytics";
 
 // viewport は root の枠の設定(src/app/_layout/config.ts、上書き src/config/layout/root.config.ts)
 export const viewport: Viewport = ROOT_LAYOUT_CONFIG.viewport;

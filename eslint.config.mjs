@@ -174,6 +174,16 @@ const config = [
       "import-boundaries/ui-libs-in-primitives": "error",
     },
   },
+  // shelf-purity: 棚(src/components)は features・app・wiring・registry・stores・services・フォームとデータの lib・SDK と SDK を包む lib・
+  // 棚を値で読む lib(src/lib の実際の import から求める)を値で読まず、fetch を呼ばない(D50)。型だけは可、テストは対象外。上流も fork も error
+  {
+    files: ["src/components/**/*.{ts,tsx,mts,mjs}"],
+    ignores: ["src/components/**/*.test.{ts,tsx,mts,mjs}"],
+    plugins: { "import-boundaries": importBoundariesPlugin },
+    rules: {
+      "import-boundaries/shelf-purity": "error",
+    },
+  },
   {
     files: ["src/features/**/index.{ts,tsx}"],
     plugins: { "import-boundaries": importBoundariesPlugin },
@@ -383,6 +393,7 @@ const config = [
             { from: "@/components/Primitives/Carousel/Carousel", to: "@/components/Primitives/Carousel", until: SHELF_S2_MOVED, exact: true },
             { from: "@/components/Input/AsyncOptionSource/AsyncOptionListStates", to: "@/components/Input/AsyncOptionSource", until: SHELF_S2_MOVED, exact: true },
             { from: "@/components/Widgets/_shared", to: "@/components/Widgets/SliderParts", until: SHELF_S2_MOVED, collapse: true },
+            { from: "@/components/Functional/FirebaseAnalytics", to: "@/app/_mounts/FirebaseAnalytics", until: SHELF_S2_MOVED, exact: true },
           ],
         },
       ],

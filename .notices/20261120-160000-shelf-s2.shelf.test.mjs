@@ -260,6 +260,17 @@ test("注文 10: 残る名前のある入口の文字列(declare module・mock.m
   assert.equal(loud.hands.length, 1);
 });
 
+test("注文 11: Functional/FirebaseAnalytics は棚の外 src/app/_mounts へ(別名でも相対でも @/app/_mounts/…)", () => {
+  assert.equal(
+    rewriteSource("src/app/(user)/layout.tsx", 'import { FirebaseAnalytics } from "@/components/Functional/FirebaseAnalytics";').text,
+    'import { FirebaseAnalytics } from "@/app/_mounts/FirebaseAnalytics";',
+  );
+  assert.equal(
+    rewriteSource("src/components/Functional/Other.tsx", 'import { FirebaseAnalytics } from "./FirebaseAnalytics";').text,
+    'import { FirebaseAnalytics } from "@/app/_mounts/FirebaseAnalytics";',
+  );
+});
+
 test("plan と apply: 書き換え・fork のファイルの移動(相対を引き直す)・文書は一覧だけ、2 回目は変えるものなし", () => {
   const root = repo({
     "src/app/page.tsx": 'import { Button } from "@/components/Form/Button";\nimport { Manual } from "@/components/Form/Input";\nexport const P = () => <Manual.Input />;\n',
