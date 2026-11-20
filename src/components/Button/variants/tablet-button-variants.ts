@@ -2,11 +2,16 @@
 //
 // TabletButton の variant 定義。size の高さはタブレット用の高さの段 --tablet-control-h-<名前>
 // (src/styles/core/config.css の :root)から取る。下流は値をそこで、形を variants.config の tabletButton で変える。
+// 名前の型(TabletButtonVariantName / TabletButtonSizeName)は @/lib/variantOverrides が持つ。表はそれを satisfies で満たす。
 
 import type { VariantProps } from "class-variance-authority";
 
 import { variantOverrides } from "@/lib/variantOverrides/config";
-import { createOverridableVariants } from "@/lib/variantOverrides";
+import {
+  createOverridableVariants,
+  type TabletButtonSizeName,
+  type TabletButtonVariantName,
+} from "@/lib/variantOverrides";
 
 const TABLET_BUTTON_VARIANTS = {
   variant: {
@@ -23,7 +28,7 @@ const TABLET_BUTTON_VARIANTS = {
       "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
     secondary: "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
     ghost: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-  },
+  } satisfies Record<TabletButtonVariantName, string>,
   size: {
     // 48px - 補助的な操作
     xxs: "h-(--tablet-control-h-xxs) rounded-lg gap-1.5 px-8 min-w-24 text-sm",
@@ -41,16 +46,12 @@ const TABLET_BUTTON_VARIANTS = {
     icon: "size-16 rounded-lg",
     // 80px 正方形アイコン
     "icon-lg": "size-20 rounded-lg",
-  },
+  } satisfies Record<TabletButtonSizeName, string>,
   fullWidth: {
     true: "w-full",
     false: "",
   },
 };
-
-/** 下流の variants.config.ts が参照する variant / size 名(公開契約) */
-export type TabletButtonVariantName = keyof typeof TABLET_BUTTON_VARIANTS.variant;
-export type TabletButtonSizeName = keyof typeof TABLET_BUTTON_VARIANTS.size;
 
 /**
  * タブレットUI専用ボタンのバリアント定義。

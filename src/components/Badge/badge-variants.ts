@@ -5,26 +5,13 @@
  *
  * 下流は src/config/lib/variantOverrides.config.ts の `badge` キー(size / solid / soft / bookmarkTag)で、
  * ここを編集せずに形を差し替えられる。variant / size 名は下流の設定が参照する公開契約。
+ * 名前の型(BadgeVariant / BadgeSize)は @/lib/variantOverrides が持つ。ここは部品の props の型として見せるだけ(二つ目の定義を作らない)。
  */
 
 import { variantOverrides } from "@/lib/variantOverrides/config";
-import { variantOverrideClasses } from "@/lib/variantOverrides";
+import { variantOverrideClasses, type BadgeSize, type BadgeVariant } from "@/lib/variantOverrides";
 
-/** 全バッジ共通のカラーバリアント */
-export type BadgeVariant =
-  | "primary"
-  | "secondary"
-  | "destructive"
-  | "success"
-  | "info"
-  | "warning"
-  | "accent"
-  | "muted"
-  | "outline"
-  | "ghost";
-
-/** 全バッジ共通のサイズ */
-export type BadgeSize = "sm" | "md" | "lg";
+export type { BadgeSize, BadgeVariant } from "@/lib/variantOverrides";
 
 /** 共通サイズ定義 */
 export const badgeSizeStyles: Record<BadgeSize, string> = {

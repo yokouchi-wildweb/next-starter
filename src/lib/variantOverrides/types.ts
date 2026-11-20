@@ -4,14 +4,55 @@
 // 下流は src/config/lib/variantOverrides.config.ts に「足したいクラス」だけを書き、
 // 対象コンポーネント(Button / Badge / 入力部品 / TextBlocks)が cva の出力の後ろに結合する(tailwind-merge で後勝ち)。
 // キー(button / badge.solid / switchInput.track ...)と軸の値の名前は upstream が維持する公開契約。
-// 入力部品・TextBlocks の軸の値の名前はここが持つ(D102)。部品の既定のクラスの表は `satisfies Record<名前, string>` で揃える。
+// 軸の値の名前(Button / TabletButton / Badge / 入力部品 / TextBlocks)は全部ここが持つ。部品の既定のクラスの表は
+// `satisfies Record<名前, string>` で揃え、部品は名前の型をここから読んで自分の props の型として見せる(再 export)。
+// この lib は棚(src/components)を読まない(型も)。名前を足す・変えるときはここが先。
 
-import type { BadgeSize, BadgeVariant } from "@/components/Badge/badge-variants";
-import type { ButtonSizeName, ButtonVariantName } from "@/components/Form/Button/button-variants";
-import type {
-  TabletButtonSizeName,
-  TabletButtonVariantName,
-} from "@/components/Form/Button/tablet-button-variants";
+/** Button / LinkButton / PseudoButton の variant(Button/variants の表の名前) */
+export type ButtonVariantName =
+  | "default"
+  | "primary"
+  | "destructive"
+  | "success"
+  | "info"
+  | "warning"
+  | "outline"
+  | "destructiveOutline"
+  | "destructiveGhost"
+  | "secondary"
+  | "ghost"
+  | "accent"
+  | "mutedIcon"
+  | "none";
+/** Button / LinkButton / PseudoButton の size。高さの段は --control-h-<名前>(icon・none は段の外) */
+export type ButtonSizeName = "xxxs" | "xxs" | "xs" | "sm" | "md" | "lg" | "xl" | "xxl" | "xxxl" | "icon" | "none";
+/** TabletButton の variant */
+export type TabletButtonVariantName =
+  | "default"
+  | "primary"
+  | "destructive"
+  | "success"
+  | "info"
+  | "warning"
+  | "outline"
+  | "secondary"
+  | "ghost";
+/** TabletButton の size。高さの段は --tablet-control-h-<名前>(icon・icon-lg は段の外) */
+export type TabletButtonSizeName = "xxs" | "xs" | "sm" | "md" | "lg" | "xl" | "icon" | "icon-lg";
+/** 全バッジ共通のカラーバリアント */
+export type BadgeVariant =
+  | "primary"
+  | "secondary"
+  | "destructive"
+  | "success"
+  | "info"
+  | "warning"
+  | "accent"
+  | "muted"
+  | "outline"
+  | "ghost";
+/** 全バッジ共通のサイズ */
+export type BadgeSize = "sm" | "md" | "lg";
 
 /**
  * 1 コンポーネント分のオーバーライド。
