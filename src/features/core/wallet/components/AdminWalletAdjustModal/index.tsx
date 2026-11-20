@@ -16,7 +16,7 @@ import { Para } from "@/components/TextBlocks/Para";
 import { AppForm } from "@/components/Form/AppForm";
 import { ControlledField } from "@/components/Form";
 import { NumberInput, RadioGroupInput, TextInput } from "@/components/Form/Input/Controlled";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { err } from "@/lib/errors";
 import type { User } from "@/features/core/user/entities";
 import { WalletTypeOptions } from "@/features/core/wallet/constants/field";

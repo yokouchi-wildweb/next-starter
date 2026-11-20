@@ -6,7 +6,7 @@ import { useRouter } from "@/lib/unsavedGuard";
 import { useGate } from "@/featureGate/client";
 import { ShieldCheck } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";

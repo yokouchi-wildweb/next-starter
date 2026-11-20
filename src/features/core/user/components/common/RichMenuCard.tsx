@@ -6,7 +6,7 @@ import { Link } from "@/components/Navigation/Link";
 import type { LucideIcon } from "lucide-react";
 import { ChevronRightIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
@@ -78,7 +78,7 @@ export function RichMenuCard({
     isDisabled && "opacity-50 cursor-not-allowed"
   );
 
-  // アイコンは size-5(= h-5 w-5)。Form/Button は size- の無い svg を size-4 にするので、ボタンの時も同じ大きさにする
+  // アイコンは size-5(= h-5 w-5)。Button/Button は size- の無い svg を size-4 にするので、ボタンの時も同じ大きさにする
   const content = (
     <>
       <Flex align="center" className="gap-3">
@@ -103,7 +103,7 @@ export function RichMenuCard({
   }
 
   return (
-    // Form/Button の既定(中央寄せ・折り返しなし)は元の button に無いので打ち消す。クリックは元どおり親へ伝える
+    // Button/Button の既定(中央寄せ・折り返しなし)は元の button に無いので打ち消す。クリックは元どおり親へ伝える
     <Button
       type="button"
       variant="none"

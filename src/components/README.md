@@ -15,8 +15,10 @@
   - 部品は無い（キオスク用のビューポート固定枠 `KioskFrame` は `Layout/`、管理画面の部品は `Admin/`。枠の部位を隠すのはルートの `frame.ts` / `frame.override.ts`）
 - `AppStatusGuard/`: メンテナンス・デプロイを検知してリダイレクト / リロードするガード。長時間滞在する画面に配置
 - `Badge/`: バッジ（`SolidBadge`、`SoftBadge` など）
+- `Button/`: ボタン（`Button` / `LinkButton` / `PseudoButton` / `RoundedButton` / `TabletButton` / `BookmarkTag`、形と大きさの表は補助の単位 `Button/variants`）。raw button の代替 | 詳細: [Button/README.md](./Button/README.md)
 - `Functional/`: 動作をカプセル化した部品（`DarkModeSwitch`（サイトテーマの切替。同期の `SiteThemeSync` は `@/lib/siteTheme`、詳細: [styles/README.md](../styles/README.md)）、`FirebaseAnalytics` など）
-- `Form/`: フォーム構築の全部品（Input / Field / `FieldRenderer` / `AppForm` / AutoSave） | 詳細: [Form/README.md](./Form/README.md)・[Form/FieldRenderer/README.md](./Form/FieldRenderer/README.md)・[Form/AutoSave/README.md](./Form/AutoSave/README.md)
+- `Form/`: フォームの組み立て（`AppForm` / Field / react-hook-form に結んだ `Input/Controlled` / `FieldRenderer` / AutoSave）。素の入力は `Input/`、ボタンは `Button/` | 詳細: [Form/README.md](./Form/README.md)・[Form/FieldRenderer/README.md](./Form/FieldRenderer/README.md)・[Form/AutoSave/README.md](./Form/AutoSave/README.md)
+- `Input/`: 素の入力部品（`Input` / `Select`(`SelectInput`) / `ComboboxInput` / `AsyncComboboxInput` / `SwitchInput` / `Label` / `FilePickButton` など、値と onChange だけを受ける）。選択肢の型と関数は補助の単位 `Input/options` | 詳細: [Input/README.md](./Input/README.md)
 - `Icons/`: プロジェクト固有アイコンを Lucide 互換 API で一元管理 | 詳細: [Icons/README.md](./Icons/README.md)
 - `Layout/`: レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）とキオスク用のビューポート固定枠 `KioskFrame`。raw HTML の代替。余白の段は閉じた lib `@/lib/spacing` | 詳細: [Layout/README.md](./Layout/README.md)
 - `Media/`: 画像・メディア表示（`AppImage`: next/image ラッパー。raw `<img>` / next/image 直接使用の代替。`PreviewImage`: blob: など選んだ直後の画像の下見。`AppVideo`: 動画、非公開ファイルの署名期限切れからの復帰つき） | 詳細: [Media/AppImage/README.md](./Media/AppImage/README.md)・[Media/PreviewImage/README.md](./Media/PreviewImage/README.md)・[Media/AppVideo/README.md](./Media/AppVideo/README.md)
@@ -43,7 +45,7 @@
 
 ### 包み
 
-- 生の HTML の代わりの部品（包み）の対応表は `.claude/rules/core/components.md` の wrappers。そこに無い対応（`img` の選んだ直後の blob: の下見 → `Media/PreviewImage`、ボタンの形のファイル選択 → `Form/FilePickButton`、`span` → `TextBlocks/Span`）は `eslint-rules/raw-elements.mjs` の `WRAPPERS`
+- 生の HTML の代わりの部品（包み）の対応表は `.claude/rules/core/components.md` の wrappers。そこに無い対応（`img` の選んだ直後の blob: の下見 → `Media/PreviewImage`、ボタンの形のファイル選択 → `Input/FilePickButton`、`span` → `TextBlocks/Span`）は `eslint-rules/raw-elements.mjs` の `WRAPPERS`
 
 ## Extension
 

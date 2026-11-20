@@ -4,7 +4,7 @@ import type { FieldPath, FieldValues, ControllerRenderProps } from "react-hook-f
 import {
   SingleCardCheckbox as ManualSingleCardCheckbox,
   type SingleCardCheckboxProps as ManualSingleCardCheckboxProps,
-} from "../Manual/SingleCardCheckbox";
+} from "@/components/Input/SingleCardCheckbox";
 
 export type ControlledSingleCardCheckboxProps<
   TFieldValues extends FieldValues,

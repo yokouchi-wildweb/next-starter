@@ -7,8 +7,9 @@
 
 import { useState } from "react";
 
-import { Button } from "@/components/Form/Button";
-import { BooleanCheckboxInput, Input } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { BooleanCheckboxInput } from "@/components/Input/BooleanCheckboxInput";
+import { Input } from "@/components/Input/Input";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import Modal from "@/components/Overlays/Modal";

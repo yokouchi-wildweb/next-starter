@@ -4,7 +4,7 @@ import { forwardRef, type ComponentPropsWithoutRef } from "react";
 
 import { ChevronsUpDownIcon } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { cn } from "@/lib/cn";
 
 import { inputVariants, type InputSize } from "@/components/Input/Input";

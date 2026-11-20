@@ -1,7 +1,7 @@
 // src/components/Form/Input/Controlled/StepperInput.tsx
 
 import type { FieldPath, FieldValues, ControllerRenderProps } from "react-hook-form";
-import ManualStepperInput, { type StepperInputProps as ManualStepperInputProps } from "../Manual/StepperInput";
+import ManualStepperInput, { type StepperInputProps as ManualStepperInputProps } from "@/components/Input/StepperInput";
 
 export type ControlledStepperInputProps<
   TFieldValues extends FieldValues,

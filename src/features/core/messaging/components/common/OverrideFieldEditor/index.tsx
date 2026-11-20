@@ -13,8 +13,8 @@
 import { useState } from "react";
 
 import { SoftBadge } from "@/components/Badge/SoftBadge";
-import { Button } from "@/components/Form/Button";
-import { Label } from "@/components/Form/Label";
+import { Button } from "@/components/Button/Button";
+import { Label } from "@/components/Input/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { ConfirmPopover } from "@/components/Overlays/Popover";

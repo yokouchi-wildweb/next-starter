@@ -2,7 +2,7 @@
 
 import React from "react";
 import dayjs from "dayjs";
-import { Input } from "@/components/Form/Input/Manual";
+import { Input } from "@/components/Input/Input";
 import { parseFlexibleDate, parseFlexibleDatetime, parseFlexibleTime } from "@/lib/date";
 import type { BaseEditorProps } from "../types";
 

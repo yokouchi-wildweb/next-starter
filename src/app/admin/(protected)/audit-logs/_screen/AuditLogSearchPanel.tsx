@@ -9,10 +9,10 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
-import { Label } from "@/components/Form/Label";
+import { Label } from "@/components/Input/Label";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
-import { Button } from "@/components/Form/Button";
-import { Manual } from "@/components/Form/Input";
+import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
@@ -216,7 +216,7 @@ function FilterField({ label, value, onChange, placeholder }: FilterFieldProps) 
       <Span size="xs" weight="inherit" tone="muted">
         {label}
       </Span>
-      <Manual.Input
+      <Input
         value={value}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         placeholder={placeholder}

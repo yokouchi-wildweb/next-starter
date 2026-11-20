@@ -29,7 +29,7 @@ import {
 
 import { cn } from "@/lib/cn";
 import { parseFlexibleTime } from "@/lib/date";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import {
   PopoverRoot,
   PopoverTrigger,

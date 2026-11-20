@@ -6,7 +6,8 @@ import { useMemo } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 import { RefreshCw, type LucideIcon } from "lucide-react";
 
-import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
+import { type ButtonStyleProps } from "@/components/Button/variants";
 import {
   SelectPopover,
   type SelectOption,

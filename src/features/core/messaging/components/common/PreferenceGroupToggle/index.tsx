@@ -7,7 +7,7 @@
 
 "use client";
 
-import { SwitchInput } from "@/components/Form/Input/Manual";
+import { SwitchInput } from "@/components/Input/SwitchInput";
 
 export type PreferenceGroupToggleProps = {
   /** グループの表示名(読み上げ) */

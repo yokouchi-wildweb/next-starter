@@ -4,8 +4,9 @@
 
 "use client";
 
-import { RadioGroupInput, SelectInput } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import { RadioGroupInput } from "@/components/Input/RadioGroupInput";
+import { SelectInput } from "@/components/Input/Select";
+import { Label } from "@/components/Input/Label";
 import { Stack } from "@/components/Layout/Stack";
 
 import { UserAsyncMultiSelect } from "@/features/core/user/components/common/UserAsyncMultiSelect";

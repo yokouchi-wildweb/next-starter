@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { AppForm } from "@/components/Form/AppForm";
 import type { AutoSaveOptions } from "@/components/Form/AutoSave";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { FormActions } from "@/components/Form/FormActions";
 import type { FieldConfig } from "@/components/Form/Field";
 import type {

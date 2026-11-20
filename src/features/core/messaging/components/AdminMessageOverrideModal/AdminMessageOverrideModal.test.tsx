@@ -94,7 +94,7 @@ mock.module("@/components/Overlays/Modal", {
 });
 type ButtonProps = { children?: ReactNode; onClick?: () => void; disabled?: boolean; loading?: boolean; "data-slot"?: string };
 // loading は本物の Button と同じく押せなくする(disabled)
-mock.module("@/components/Form/Button", {
+mock.module("@/components/Button/Button", {
   namedExports: {
     Button: (props: ButtonProps) =>
       createElement("button", { type: "button", onClick: props.onClick, disabled: props.disabled || props.loading, "data-slot": props["data-slot"] }, props.children),

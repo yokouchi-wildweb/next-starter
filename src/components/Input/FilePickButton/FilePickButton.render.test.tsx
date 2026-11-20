@@ -20,12 +20,12 @@ for (const key of ["window", "document", "HTMLElement", "HTMLInputElement", "Ele
 let act: typeof import("react").act;
 let createRoot: typeof import("react-dom/client").createRoot;
 let Mod: typeof import(".");
-let Btn: typeof import("@/components/Form/Button/Button");
+let Btn: typeof import("@/components/Button/Button");
 before(async () => {
   ({ act } = await import("react"));
   ({ createRoot } = await import("react-dom/client"));
   Mod = await import(".");
-  Btn = await import("@/components/Form/Button/Button");
+  Btn = await import("@/components/Button/Button");
 });
 after(() => dom.window.close());
 

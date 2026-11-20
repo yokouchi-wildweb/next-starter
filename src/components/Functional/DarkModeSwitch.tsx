@@ -6,7 +6,7 @@ import { MoonIcon, SunIcon } from "lucide-react";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { resolveSiteThemeArea, siteThemeConfig, useSiteThemeStore } from "@/lib/siteTheme";
 
 /**

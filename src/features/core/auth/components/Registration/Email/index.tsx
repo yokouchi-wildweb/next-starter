@@ -3,10 +3,10 @@
 "use client";
 
 import { AppForm } from "@/components/Form/AppForm";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { ControlledField } from "@/components/Form";
 import { PasswordInput, SingleCardCheckbox, TextInput } from "@/components/Form/Input/Controlled";
-import { Input } from "@/components/Form/Input/Manual";
+import { Input } from "@/components/Input/Input";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";

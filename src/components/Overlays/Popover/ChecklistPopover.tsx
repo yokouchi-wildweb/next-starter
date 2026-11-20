@@ -17,10 +17,10 @@ import { Search, Check, Minus, Plus, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
-import { Button } from "@/components/Form/Button/Button";
-import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
-import { Input } from "@/components/Form/Input/Manual/Input";
-import { SwitchInput } from "@/components/Form/Input/Manual/SwitchInput";
+import { Button } from "@/components/Button/Button";
+import { type ButtonStyleProps } from "@/components/Button/variants";
+import { Input } from "@/components/Input/Input";
+import { SwitchInput } from "@/components/Input/SwitchInput";
 import { Checkbox } from "@/components/Primitives/Checkbox";
 
 import {

@@ -4,7 +4,7 @@
 
 "use client";
 
-import { RadioGroupInput } from "@/components/Form/Input/Manual";
+import { RadioGroupInput } from "@/components/Input/RadioGroupInput";
 import { Para } from "@/components/TextBlocks/Para";
 
 export type SendKindPickerProps = {

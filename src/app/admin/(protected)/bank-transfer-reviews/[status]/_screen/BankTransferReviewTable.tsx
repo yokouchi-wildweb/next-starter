@@ -13,7 +13,7 @@ import { Pencil } from "lucide-react";
 
 import { BulkActionItems, RecordSelectionTable, type DataTableColumn } from "@/lib/tableSuite";
 import { SoftBadge } from "@/components/Badge/SoftBadge";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Span } from "@/components/TextBlocks/Span";
 import { PromptPopover } from "@/components/Overlays/Popover";

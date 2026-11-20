@@ -7,9 +7,9 @@ import { Link } from "@/components/Navigation/Link";
 import { CheckCircle, AlertCircle } from "lucide-react";
 import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 
-import { Button } from "@/components/Form/Button/Button";
-import { Label } from "@/components/Form/Label";
-import { PasswordInput } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { Label } from "@/components/Input/Label";
+import { PasswordInput } from "@/components/Input/PasswordInput";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";

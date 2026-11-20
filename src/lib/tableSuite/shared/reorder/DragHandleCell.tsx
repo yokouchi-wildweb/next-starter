@@ -8,7 +8,7 @@ import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { GripVertical } from "lucide-react";
 
 import { cn } from "@/lib/cn";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Span } from "@/components/TextBlocks/Span";
 
 import { TableCell } from "../TableCell";
@@ -38,7 +38,7 @@ const HANDLE_TITLE: Record<DragHandleState, string | undefined> = {
 type DragHandleCellProps = {
   state: DragHandleState;
   listeners?: SyntheticListenerMap;
-  /** dnd-kit の useSortable の attributes。slot は Form/Button の印の名前とぶつかるので受けない(dnd-kit は slot を渡さない) */
+  /** dnd-kit の useSortable の attributes。slot は Button/Button の印の名前とぶつかるので受けない(dnd-kit は slot を渡さない) */
   attributes?: Omit<React.HTMLAttributes<HTMLButtonElement>, "slot">;
   activatorRef?: (element: HTMLElement | null) => void;
 };

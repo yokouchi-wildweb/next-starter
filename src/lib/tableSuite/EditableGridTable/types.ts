@@ -1,6 +1,6 @@
 import type React from "react";
 
-import type { Options } from "@/components/Form/types";
+import type { Options } from "@/components/Input/options";
 import type {
   TableColumnAlignment,
   TableStylingProps,

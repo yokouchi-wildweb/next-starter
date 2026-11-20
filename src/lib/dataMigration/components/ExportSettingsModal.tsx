@@ -5,9 +5,9 @@
 import { useCallback, useId, useMemo, useState } from "react";
 import axios from "axios";
 import Modal from "@/components/Overlays/Modal";
-import { Button } from "@/components/Form/Button/Button";
-import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import { Button } from "@/components/Button/Button";
+import { BooleanCheckboxInput } from "@/components/Input/BooleanCheckboxInput";
+import { Label } from "@/components/Input/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
 import { Span } from "@/components/TextBlocks/Span";

@@ -24,7 +24,7 @@ export const WRAPPERS = {
   nav: "Layout/Section(as=\"nav\")",
   article: "Layout/Section(as=\"article\")",
   main: "Layout/Main",
-  button: "Form/Button(形を自分で付けるなら variant / size none)",
+  button: "Button/Button(形を自分で付けるなら variant / size none)",
   input: "Input/Input・Input/BooleanCheckboxInput 等、ファイル選択のボタンは Input/FilePickButton",
   textarea: "Input/Textarea",
   label: "Input/Label",

@@ -7,7 +7,7 @@ import type { Control, FieldPath, FieldValues } from "react-hook-form";
 
 import { ControlledField } from "@/components/Form";
 import { RadioGroupInput, SelectInput } from "@/components/Form/Input/Controlled";
-import type { RadioGroupDisplayType } from "@/components/Form/Input/Manual/RadioGroupInput";
+import type { RadioGroupDisplayType } from "@/components/Input/RadioGroupInput";
 import {
   getRoleOptionsByCategory,
   getRoleDescription,

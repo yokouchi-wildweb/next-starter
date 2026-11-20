@@ -6,7 +6,7 @@ import { forwardRef, useState, type ComponentProps, type ReactNode } from "react
 import { cn } from "@/lib/cn";
 
 import { Input, INNER_BUTTON_CLASSES, INNER_BUTTON_PADDING } from "./Input";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 
 type InputProps = ComponentProps<typeof Input>;
 

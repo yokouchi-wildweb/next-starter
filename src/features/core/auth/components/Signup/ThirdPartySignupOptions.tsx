@@ -5,7 +5,7 @@
 import { useRouter } from "@/lib/unsavedGuard";
 import { FaGoogle, FaYahoo, FaFacebook, FaXTwitter } from "react-icons/fa6";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";

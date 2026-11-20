@@ -11,7 +11,7 @@
 import type { Control, FieldValues, Path } from "react-hook-form";
 
 import { ControlledField } from "@/components/Form";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { TextInput } from "@/components/Form/Input/Controlled";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";

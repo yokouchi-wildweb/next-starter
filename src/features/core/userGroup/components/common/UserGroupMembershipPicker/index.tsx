@@ -5,8 +5,8 @@
 
 "use client";
 
-import { Button } from "@/components/Form/Button";
-import { AsyncMultiSelectInput } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { AsyncMultiSelectInput } from "@/components/Input/AsyncMultiSelectInput";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 

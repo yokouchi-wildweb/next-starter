@@ -30,24 +30,44 @@ const keep = (props: Record<string, unknown>) => {
   const name = (props.id ?? props["aria-label"]) as string | undefined;
   if (name) inputs.set(name, props);
 };
-mock.module("@/components/Form/Input/Manual", {
+mock.module("@/components/Input/Select", {
   namedExports: {
     SelectInput: (props: { "aria-label"?: string; id?: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) => {
       keep(props);
       selects.push({ label: props["aria-label"] ?? props.id, onChange: props.onChange });
       return createElement("span", { "data-select": props["aria-label"] ?? props.id }, props.options.map((o) => o.label).join("|"));
     },
+  },
+});
+mock.module("@/components/Input/RadioGroupInput", {
+  namedExports: {
     RadioGroupInput: (props: { value: string; options?: { value: string; label: string }[] }) =>
       createElement("span", { "data-radio": props.value, "data-options": (props.options ?? []).map((o) => o.value).join("|") }),
+  },
+});
+mock.module("@/components/Input/MultiSelectInput", {
+  namedExports: {
     MultiSelectInput: () => createElement("span", { "data-multi": "1" }),
+  },
+});
+mock.module("@/components/Input/DatetimeInput", {
+  namedExports: {
     DatetimeInput: (props: Record<string, unknown>) => {
       keep(props);
       return createElement("input", { "data-datetime": "1", id: props.id as string | undefined });
     },
+  },
+});
+mock.module("@/components/Input/DateInput", {
+  namedExports: {
     DateInput: (props: Record<string, unknown>) => {
       keep(props);
       return createElement("input", { "data-date": "1", id: props.id as string | undefined });
     },
+  },
+});
+mock.module("@/components/Input/Input", {
+  namedExports: {
     Input: (props: Record<string, unknown>) => {
       keep(props);
       return createElement("input", { id: props.id as string, type: props.type as string, defaultValue: props.value as string, placeholder: props.placeholder as string });
@@ -55,7 +75,7 @@ mock.module("@/components/Form/Input/Manual", {
   },
 });
 // next/link は jsdom で動かない(requestIdleCallback)ので、ボタンの部品も偽物
-mock.module("@/components/Form/Button", {
+mock.module("@/components/Button/Button", {
   namedExports: {
     Button: (props: { children?: unknown; disabled?: boolean; onClick?: () => void; "aria-pressed"?: boolean }) =>
       createElement(
@@ -63,6 +83,10 @@ mock.module("@/components/Form/Button", {
         { type: "button", disabled: props.disabled, onClick: props.onClick, "aria-pressed": props["aria-pressed"] },
         props.children as never,
       ),
+  },
+});
+mock.module("@/components/Button/LinkButton", {
+  namedExports: {
     LinkButton: (props: { href: string; children?: unknown }) => createElement("a", { href: props.href }, props.children as never),
   },
 });

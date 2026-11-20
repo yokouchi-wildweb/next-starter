@@ -5,7 +5,7 @@
 import { useCallback, useState } from "react";
 import { FormProvider as Form, useForm } from "react-hook-form";
 import { Lock, Mail } from "lucide-react";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import {
   BooleanCheckboxInput,
   CheckGroupInput,
@@ -23,8 +23,8 @@ import {
   Textarea,
   TimeInput,
 } from "@/components/Form/Input/Controlled";
-import { StepperInput } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import StepperInput from "@/components/Input/StepperInput";
+import { Label } from "@/components/Input/Label";
 import { ControlledField } from "@/components/Form";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
@@ -35,7 +35,7 @@ import { Main } from "@/components/Layout/Main";
 import { PageTitle } from "@/components/TextBlocks/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
-import type { Options, OptionValue } from "@/components/Form/types";
+import type { Options, OptionValue } from "@/components/Input/options";
 
 const textOptions: Options[] = [
   { label: "オプション A", value: "A" },

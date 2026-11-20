@@ -4,7 +4,7 @@ import type { FieldPath, FieldValues, ControllerRenderProps } from "react-hook-f
 import {
   AsyncComboboxInput as ManualAsyncComboboxInput,
   type AsyncComboboxInputProps as ManualAsyncComboboxInputProps,
-} from "../Manual/AsyncComboboxInput";
+} from "@/components/Input/AsyncComboboxInput";
 
 export type ControlledAsyncComboboxInputProps<
   T,

@@ -30,7 +30,7 @@ import {
 
 import { cn } from "@/lib/cn";
 import { parseFlexibleDate } from "@/lib/date";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Calendar } from "@/components/Overlays/Calendar";
 import {
   PopoverRoot,

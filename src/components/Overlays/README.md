@@ -318,7 +318,7 @@ import {
 ### Command(`@/components/Primitives/Command`)
 
 - コマンドパレット(入力 + 候補リスト)を自前で組むための低レベル部品(cmdk)。実例: `src/features/core/adminCommand`
-- 検索付き選択は `Form/Input/Manual` の `ComboboxInput` / `AsyncComboboxInput` / `MultiSelectInput`、大量マスタからの選択は `AsyncPickerModal`
+- 検索付き選択は `components/Input` の `ComboboxInput` / `AsyncComboboxInput` / `MultiSelectInput`、大量マスタからの選択は `AsyncPickerModal`
 
 ```tsx
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/Primitives/Command";

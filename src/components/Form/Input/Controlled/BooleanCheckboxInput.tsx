@@ -4,7 +4,7 @@ import type { FieldPath, FieldValues, ControllerRenderProps } from "react-hook-f
 import {
   BooleanCheckboxInput as ManualBooleanCheckboxInput,
   type BooleanCheckboxInputProps as ManualBooleanCheckboxInputProps,
-} from "../Manual/BooleanCheckboxInput";
+} from "@/components/Input/BooleanCheckboxInput";
 
 export type ControlledBooleanCheckboxInputProps<
   TFieldValues extends FieldValues,

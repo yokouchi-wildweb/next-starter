@@ -4,8 +4,8 @@
 
 import { type ReactNode, useState, useCallback, useRef } from "react";
 
-import { Button } from "@/components/Form/Button/Button";
-import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
+import { Button } from "@/components/Button/Button";
+import { type ButtonStyleProps } from "@/components/Button/variants";
 
 import {
   PopoverRoot,

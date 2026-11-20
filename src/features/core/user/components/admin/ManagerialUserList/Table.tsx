@@ -8,7 +8,7 @@ import { useRouter } from "@/lib/unsavedGuard";
 import { BulkActionItems, DataTable, RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { useUserAdminBulkActions } from "@/features/core/user/hooks/useUserAdminBulkActions";
 import { EditButton } from "@/lib/crud/components/Buttons";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import Dialog from "@/components/Overlays/Dialog";
 import type { User } from "@/features/core/user/entities";
 import { adminConfig } from "@/features/admin/config";

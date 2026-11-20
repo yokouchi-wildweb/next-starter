@@ -14,14 +14,15 @@ import {
   type ValidationReport,
 } from "@/lib/seamlessVideo";
 import { SortableList, type ReorderResult } from "@/lib/sortableList";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
-import { BooleanCheckboxInput, Input } from "@/components/Form/Input/Manual";
+import { BooleanCheckboxInput } from "@/components/Input/BooleanCheckboxInput";
+import { Input } from "@/components/Input/Input";
 
 type FragmentItem = {
   id: string;

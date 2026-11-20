@@ -2,8 +2,8 @@
 
 import { useCallback, useId, useMemo, useRef, useState, type ChangeEvent } from "react";
 
-import { Button } from "@/components/Form/Button/Button";
-import { Input } from "@/components/Form/Input/Manual/Input";
+import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";

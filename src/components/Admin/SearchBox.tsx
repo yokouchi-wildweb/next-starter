@@ -4,8 +4,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { useShelfRouter as useRouter } from "@/components/Navigation/NavigationPort";
-import { Button } from "@/components/Form/Button/Button";
-import { Input } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
 import { useState } from "react";
 
 type Props = {

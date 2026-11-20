@@ -271,8 +271,8 @@ type ChecklistOption = {
 
 ### 内側にスクロールリストを持つ中身(ピッカー系)
 
-- 上限を超えると外側ラッパーと内側リストの両方がスクロールし、二重スクロールになる。中身のルートに同じ上限(`PICKER_POPOVER_BODY_CLASS` = available-height − 枠線 2px)を付け、flex-col + `min-h-0` のチェーンでリストだけを縮める(`Form/Input/Manual/AsyncOptionSource/popoverSide.ts`。ComboboxInput / AsyncComboboxInput / MultiSelectInput / AsyncMultiSelectInput が使用)
-- 上限は配置側の残り高さなので、開いた直後に中身が短い(読み込み中など)と Radix の flip は二度と働かない。これらのピッカーは開く瞬間にトリガーの上下の空きを測って `side` を決める(`usePickerPopoverSide`、テスト `pnpm test src/components/Form/Input/Manual/AsyncOptionSource/popoverSide.test.mjs`)。`popoverContentProps.side` を渡せばそちらが優先される
+- 上限を超えると外側ラッパーと内側リストの両方がスクロールし、二重スクロールになる。中身のルートに同じ上限(`PICKER_POPOVER_BODY_CLASS` = available-height − 枠線 2px)を付け、flex-col + `min-h-0` のチェーンでリストだけを縮める(`Input/AsyncOptionSource/popoverSide.ts`。ComboboxInput / AsyncComboboxInput / MultiSelectInput / AsyncMultiSelectInput が使用)
+- 上限は配置側の残り高さなので、開いた直後に中身が短い(読み込み中など)と Radix の flip は二度と働かない。これらのピッカーは開く瞬間にトリガーの上下の空きを測って `side` を決める(`usePickerPopoverSide`、テスト `pnpm test src/components/Input/AsyncOptionSource/popoverSide.test.mjs`)。`popoverContentProps.side` を渡せばそちらが優先される
 
 ### Dialog / Modal 内での外側判定(PopoverContent 共通)
 

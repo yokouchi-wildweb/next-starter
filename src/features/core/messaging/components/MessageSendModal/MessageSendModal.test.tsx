@@ -162,10 +162,14 @@ const FakeDialog = (props: Record<string, unknown>) => {
   return props.open ? createElement("aside", { "data-testid": "dialog" }, props.title as never) : null;
 };
 mock.module("@/components/Overlays/Dialog", { defaultExport: FakeDialog });
-mock.module("@/components/Form/Button", {
+mock.module("@/components/Button/Button", {
   namedExports: {
     Button: (props: { children?: unknown; disabled?: boolean; onClick?: () => void }) =>
       createElement("button", { type: "button", disabled: props.disabled, onClick: props.onClick }, props.children as never),
+  },
+});
+mock.module("@/components/Button/LinkButton", {
+  namedExports: {
     LinkButton: (props: { href: string; children?: unknown }) => createElement("a", { href: props.href }, props.children as never),
   },
 });
@@ -203,10 +207,18 @@ mock.module(`${COMMON}/SampleForYouModal`, { namedExports: { SampleForYouModal: 
 mock.module(`${COMMON}/EmbeddedInfoPopover`, { namedExports: { EmbeddedInfoPopover: stub("embeddedInfo") } });
 
 // 回の一覧(開く口)の周り: 絞り込みの入力・SWR・URL・一括操作・詳細のモーダルは jsdom で動かさない偽物
-mock.module("@/components/Form/Input/Manual", {
+mock.module("@/components/Input/DateInput", {
   namedExports: {
     DateInput: () => createElement("input"),
+  },
+});
+mock.module("@/components/Input/Input", {
+  namedExports: {
     Input: () => createElement("input"),
+  },
+});
+mock.module("@/components/Input/Select", {
+  namedExports: {
     SelectInput: () => createElement("span"),
   },
 });

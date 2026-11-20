@@ -121,16 +121,24 @@ mock.module("@/components/Overlays/Popover", {
     PromptPopover: (props: { trigger: ReactNode }) => createElement("div", null, props.trigger as never),
   },
 });
-mock.module("@/components/Form/Button", {
+mock.module("@/components/Button/Button", {
   namedExports: {
     Button: (props: { children?: unknown; disabled?: boolean; onClick?: () => void }) =>
       createElement("button", { type: "button", disabled: props.disabled, onClick: props.onClick }, props.children as never),
   },
 });
-mock.module("@/components/Form/Input/Manual", {
+mock.module("@/components/Input/Input", {
   namedExports: {
     Input: () => createElement("input"),
+  },
+});
+mock.module("@/components/Input/Textarea", {
+  namedExports: {
     Textarea: () => createElement("textarea"),
+  },
+});
+mock.module("@/components/Input/Select", {
+  namedExports: {
     SelectInput: (props: Record<string, unknown>) => {
       selects[String(props.id ?? "")] = props;
       return createElement("span");

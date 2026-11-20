@@ -5,9 +5,9 @@
 import { useState, type FormEvent } from "react";
 import { Phone } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
-import { Label } from "@/components/Form/Label";
-import { Input } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { Label } from "@/components/Input/Label";
+import { Input } from "@/components/Input/Input";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";

@@ -1,13 +1,13 @@
 import React from "react";
 import { X } from "lucide-react";
 
-import { Button } from "@/components/Form/Button";
-import { SwitchInput } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { SwitchInput } from "@/components/Input/SwitchInput";
 import { Checkbox } from "@/components/Primitives/Checkbox";
 import { cn } from "@/lib/cn";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
-import { Label } from "@/components/Form/Label";
+import { Label } from "@/components/Input/Label";
 import { Span } from "@/components/TextBlocks/Span";
 
 import type { SelectionMode } from "../hooks/useSelectionMode";

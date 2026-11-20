@@ -14,14 +14,14 @@ import {
 import { GripVerticalIcon, ImagePlusIcon, XIcon } from "lucide-react";
 import { uuidv7 } from "uuidv7";
 
-import { Button } from "@/components/Form/Button/Button";
-import { Input } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
-import { PseudoButton } from "@/components/Form/Button/PseudoButton";
+import { PseudoButton } from "@/components/Button/PseudoButton";
 import { cn } from "@/lib/cn";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
 import {

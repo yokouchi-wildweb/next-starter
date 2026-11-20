@@ -7,7 +7,7 @@
 
 import { Copy } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { useToast } from "@/lib/toast";
 
 type Props = {

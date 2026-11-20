@@ -3,7 +3,7 @@
 import { FieldPath, FieldValues } from "react-hook-form";
 import { type ReactNode } from "react";
 
-import { Input } from "../Manual";
+import { Input } from "@/components/Input/Input";
 
 import type { ControlledInputProps } from "@/components/Form/types";
 

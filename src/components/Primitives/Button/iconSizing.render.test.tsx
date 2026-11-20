@@ -1,5 +1,5 @@
 // Button の iconSizing の検査(renderToStaticMarkup)
-// - 渡さない / "auto": 出力が足す前に記録した出力(__fixtures__/button.before.json)と同じ(Primitives と Form/Button)
+// - 渡さない / "auto": 出力が足す前に記録した出力(__fixtures__/button.before.json)と同じ(Primitives と Button/Button)
 // - "none": 中の svg を 16px に揃える token だけが消え、ほかの class と属性は同じ
 // 実行: pnpm test src/components/Primitives/Button
 import { test } from "node:test";
@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { createElement as h } from "react";
 import { renderToStaticMarkup as r } from "react-dom/server";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Button as P } from "@/components/Primitives/Button";
 
 const BEFORE = JSON.parse(readFileSync(new URL("./__fixtures__/button.before.json", import.meta.url), "utf8")) as Record<string, string>;

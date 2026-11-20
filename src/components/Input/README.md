@@ -11,7 +11,7 @@
 | `Input` | テキスト入力(段の表 `INPUT_SIZE_CLASSES` / `inputVariants`、欄の中のボタンの表 `INNER_BUTTON_CLASSES` / `INNER_BUTTON_PADDING` もここ) |
 | `NumberInput` | 数値入力 |
 | `Textarea` | 複数行テキスト |
-| `PasswordInput` | パスワード(`autoComplete` 必須) |
+| `PasswordInput` | パスワード(`autoComplete` 必須: 登録済みを入れる欄 = `"current-password"`、新しく決める欄・管理者が他人に設定する欄 = `"new-password"`。未指定だと Safari 等が管理者自身の保存済みパスワードを自動入力する) |
 | `OneTimeCodeInput` | ワンタイムコード(大文字化・ハイフン区切りの自動整形、`length` 文字そろうと `onComplete`) |
 | `DateInput` / `TimeInput` / `DatetimeInput` | 日付 / 時刻 / 日時(時刻の欄 `TimeFields` は TimeInput と DatetimeInput が使う単位) |
 | `FileInput` | ファイル選択 |
@@ -22,7 +22,7 @@
 | `MultiSelectInput` | 複数選択 |
 | `AsyncComboboxInput` / `AsyncMultiSelectInput` | 非同期検索の単一 / 複数選択 |
 | `AsyncOptionSource` | 非同期の候補の取得の土台(フック・候補の一覧・状態の表示) |
-| `RadioGroupInput` / `BooleanRadioGroupInput` | ラジオ / はい・いいえ |
+| `RadioGroupInput` / `BooleanRadioGroupInput` | ラジオ / はい・いいえ(RadioGroupInput の `displayType`: `standard` 既定 / `classic` 丸い印 / `bookmark` / `rounded` / `segmented` = 1 つの溝に横並び、選んだものだけ白い札が浮く切り替え。2 つ以上いくつでも、高さ 36px = Button sm と同じ) |
 | `CheckGroupInput` / `BooleanCheckboxInput` / `SingleCardCheckbox` | チェックボックスの群 / 単一 / カード型 |
 | `SwitchInput` | トグルスイッチ |
 | `StepperInput` | 数値ステッパー |

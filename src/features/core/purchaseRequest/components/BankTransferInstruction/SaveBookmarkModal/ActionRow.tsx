@@ -3,7 +3,7 @@
 // 共有アクション 1 行ぶんのカード型ボタン。
 // アイコン（カラーアクセント付き）+ ラベル + 補足説明 + 右矢印で構成し、
 // 「メールで送る」「LINE で送る」「その他で共有」等の共有導線を統一フォーマットで並べる。
-// Form/Button の variant / size none に行の形を className で付ける(56px+ の大きな押し口。
+// Button/Button の variant / size none に行の形を className で付ける(56px+ の大きな押し口。
 // Button の土台の inline-flex・折り返さない・文字の大きさと太さは block / whitespace-normal / 継ぐ値で戻す)。
 
 "use client";
@@ -11,7 +11,7 @@
 import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { InBlock } from "@/components/Layout/InBlock";
 import { Stack } from "@/components/Layout/Stack";

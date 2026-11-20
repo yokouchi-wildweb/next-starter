@@ -13,8 +13,8 @@
 
 import { useCallback } from "react";
 
-import { Button } from "@/components/Form/Button/Button";
-import { SwitchInput } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { SwitchInput } from "@/components/Input/SwitchInput";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";

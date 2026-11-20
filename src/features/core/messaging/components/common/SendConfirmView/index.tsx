@@ -5,7 +5,7 @@
 
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
-import { LinkButton } from "@/components/Form/Button";
+import { LinkButton } from "@/components/Button/LinkButton";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";

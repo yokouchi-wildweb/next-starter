@@ -4,7 +4,7 @@
 
 "use client";
 
-import { SwitchInput } from "@/components/Form/Input/Manual";
+import { SwitchInput } from "@/components/Input/SwitchInput";
 
 export type PreferenceCategoryWideToggleProps = {
   /** 種類の表示名(切り替えの読み上げ) */

@@ -8,7 +8,7 @@ import type { ColorValue } from "@/lib/gradient";
 import {
   ColorValueInput as ManualColorValueInput,
   type ColorValueInputProps as ManualProps,
-} from "../Manual/ColorValueInput";
+} from "@/components/Input/ColorValueInput";
 
 type ColorValueInputProps<
   TFieldValues extends FieldValues,

@@ -7,7 +7,7 @@ import { useRouter } from "@/lib/unsavedGuard";
 import { useGate } from "@/featureGate/client";
 import { CheckCircleIcon } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Section } from "@/components/Layout/Section";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";

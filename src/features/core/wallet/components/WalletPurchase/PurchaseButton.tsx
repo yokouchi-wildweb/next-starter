@@ -6,7 +6,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Para } from "@/components/TextBlocks/Para";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 
 type PurchaseButtonProps = {
   onPurchase: () => Promise<void>;

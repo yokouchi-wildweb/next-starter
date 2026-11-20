@@ -10,9 +10,10 @@ import { useRouter } from "@/lib/unsavedGuard";
 import { Link } from "@/components/Navigation/Link";
 import { Mail, LockKeyhole } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
-import { Label } from "@/components/Form/Label";
-import { Input, PasswordInput } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { Label } from "@/components/Input/Label";
+import { Input } from "@/components/Input/Input";
+import { PasswordInput } from "@/components/Input/PasswordInput";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";

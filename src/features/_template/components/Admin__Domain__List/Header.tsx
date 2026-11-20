@@ -7,7 +7,7 @@ import ListTop from "@/components/Admin/ListTop";
 import Pagination from "@/components/Navigation/Pagination";
 import SearchBox from "@/components/Admin/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { useSearchParams } from "next/navigation";
 import { CreateButton } from "@/lib/crud/components";
 import { getAdminPaths } from "@/lib/crud/utils";

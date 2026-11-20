@@ -12,8 +12,8 @@ import {
   DialogDescription,
   FALLBACK_DIALOG_TITLE,
 } from "@/components/Primitives/Dialog";
-import { Button } from "@/components/Form/Button/Button";
-import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
+import { Button } from "@/components/Button/Button";
+import { type ButtonStyleProps } from "@/components/Button/variants";
 import { cn } from "@/lib/cn";
 
 export type TextVariant = "default" | "primary" | "secondary" | "accent" | "sr-only";

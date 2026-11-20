@@ -8,7 +8,7 @@ import { Link } from "@/components/Navigation/Link";
 import { VerificationEmailSendForm } from "./EmailVarification/sendForm";
 import { ThirdPartySignupOptions } from "./ThirdPartySignupOptions";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";

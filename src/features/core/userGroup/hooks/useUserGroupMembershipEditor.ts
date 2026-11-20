@@ -10,7 +10,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import type { OptionPrimitive } from "@/components/Form/utils";
+import type { OptionPrimitive } from "@/components/Input/options";
 import { err } from "@/lib/errors";
 import { useLoadingToast, useToast } from "@/lib/toast";
 

@@ -16,8 +16,9 @@ import {
   type FingerprintPayload,
 } from "@/lib/fingerprint";
 import { reportFingerprint } from "@/features/core/deviceFingerprint/services/client/fingerprintClient";
-import { Button } from "@/components/Form/Button/Button";
-import { Manual } from "@/components/Form/Input";
+import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
+import { Textarea } from "@/components/Input/Textarea";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
@@ -215,7 +216,7 @@ function BehaviorSection() {
               <Para size="sm" weight="medium">
                 氏名
               </Para>
-              <Manual.Input
+              <Input
                 name="name"
                 data-behavior-field="name"
                 value={name}
@@ -227,7 +228,7 @@ function BehaviorSection() {
               <Para size="sm" weight="medium">
                 メールアドレス
               </Para>
-              <Manual.Input
+              <Input
                 name="email"
                 data-behavior-field="email"
                 value={email}
@@ -239,7 +240,7 @@ function BehaviorSection() {
               <Para size="sm" weight="medium">
                 メッセージ（ペーストも試してみてください）
               </Para>
-              <Manual.Textarea
+              <Textarea
                 name="message"
                 data-behavior-field="message"
                 rows={4}

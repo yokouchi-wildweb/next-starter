@@ -17,8 +17,8 @@ import {
   type SortState,
   sortItems,
 } from "@/lib/tableSuite";
-import { Button } from "@/components/Form/Button/Button";
-import { RadioGroupInput } from "@/components/Form/Input/Manual/RadioGroupInput";
+import { Button } from "@/components/Button/Button";
+import { RadioGroupInput } from "@/components/Input/RadioGroupInput";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";

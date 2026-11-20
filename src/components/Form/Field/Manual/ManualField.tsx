@@ -3,7 +3,7 @@
 "use client";
 
 import { ReactNode, useId } from "react";
-import { Label } from "@/components/Form/Label";
+import { Label } from "@/components/Input/Label";
 import { Para, type ParaProps } from "@/components/TextBlocks/Para";
 import { cn } from "@/lib/cn";
 

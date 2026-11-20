@@ -6,7 +6,8 @@ import { Link } from "@/components/Navigation/Link";
 import { Pencil, type LucideIcon } from "lucide-react";
 import { useSearchParams, usePathname } from "next/navigation";
 
-import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
+import { type ButtonStyleProps } from "@/components/Button/variants";
 import type { DomainDisplay } from "@/lib/domain/types/display";
 import { getAdminPaths } from "@/lib/crud/utils";
 

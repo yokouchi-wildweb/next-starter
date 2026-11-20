@@ -179,7 +179,7 @@ mock.module("@/components/Overlays/Popover", {
     },
   },
 });
-mock.module("@/components/Form/Button", {
+mock.module("@/components/Button/Button", {
   namedExports: {
     Button: (props: { children?: unknown; disabled?: boolean; onClick?: () => void }) =>
       createElement("button", { type: "button", disabled: props.disabled, onClick: props.onClick }, props.children as never),
@@ -187,14 +187,26 @@ mock.module("@/components/Form/Button", {
 });
 const selects = new Map<string, Props>();
 const switches = new Map<string, Props>();
-mock.module("@/components/Form/Input/Manual", {
+mock.module("@/components/Input/Input", {
   namedExports: {
     Input: (props: { id?: string }) => createElement("input", { id: props.id }),
+  },
+});
+mock.module("@/components/Input/Textarea", {
+  namedExports: {
     Textarea: (props: { id?: string }) => createElement("textarea", { id: props.id }),
+  },
+});
+mock.module("@/components/Input/Select", {
+  namedExports: {
     SelectInput: (props: Props) => {
       selects.set(String(props.id), props);
       return createElement("span", { id: props.id as string });
     },
+  },
+});
+mock.module("@/components/Input/SwitchInput", {
+  namedExports: {
     SwitchInput: (props: Props) => {
       switches.set(String(props.id), props);
       return createElement(

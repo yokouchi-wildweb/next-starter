@@ -8,7 +8,7 @@ import { baseButtonClassName } from "@/components/Primitives/Button";
 import { Input } from "@/components/Input/Input";
 import { cn } from "@/lib/cn";
 
-import { buttonVariants, type ButtonStyleProps } from "@/components/Form/Button/button-variants";
+import { buttonVariants, type ButtonStyleProps } from "@/components/Button/variants";
 
 export type FilePickButtonProps = ButtonStyleProps & {
   /** 選べるファイルの種類(input の accept) */
@@ -28,7 +28,7 @@ const isActivateKey = (key: string) => key === "Enter" || key === " " || key ===
 
 /**
  * ボタンの形をしたファイル選択。label の中に隠した file の Input を持ち、押すとファイルの選択が開く。
- * 見た目は Form/Button と同じ(variant / size / opticalAdjust)。キーボードでは Tab で止まり Enter / Space で開く。
+ * 見た目は Button/Button と同じ(variant / size / opticalAdjust)。キーボードでは Tab で止まり Enter / Space で開く。
  * ボタンを押して ref で input を開く形(選んだ後に別の処理を挟む等)は Button + Input hidden で組む。
  */
 export function FilePickButton({

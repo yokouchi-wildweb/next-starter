@@ -11,9 +11,10 @@
 import { useState } from "react";
 import { ChevronDown, Heading, ImageIcon, List, Minus, MousePointerClick, Pilcrow, Plus, Rows3, type LucideIcon } from "lucide-react";
 
-import { Button } from "@/components/Form/Button";
-import { Input, Textarea } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
+import { Textarea } from "@/components/Input/Textarea";
+import { Label } from "@/components/Input/Label";
 import { ManualMediaUploader } from "@/components/Form/MediaHandler";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";

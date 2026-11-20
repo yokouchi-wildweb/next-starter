@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { serializeOptionValue, type OptionPrimitive } from "@/components/Form/utils";
+import { serializeOptionValue, type OptionPrimitive } from "@/components/Input/options";
 import { cn } from "@/lib/cn";
 import { Flex } from "@/components/Layout/Flex";
 import type { EditableGridColumn } from "../../../types";

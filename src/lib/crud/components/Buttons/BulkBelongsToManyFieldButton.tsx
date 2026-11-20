@@ -8,7 +8,8 @@ import useSWR from "swr";
 import axios from "axios";
 import { Tags, type LucideIcon } from "lucide-react";
 
-import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
+import { type ButtonStyleProps } from "@/components/Button/variants";
 import {
   ChecklistPopover,
   type ChecklistOption,

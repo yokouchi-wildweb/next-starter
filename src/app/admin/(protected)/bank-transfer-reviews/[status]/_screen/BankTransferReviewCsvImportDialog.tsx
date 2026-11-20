@@ -21,12 +21,13 @@ import { Upload, Download, AlertCircle, CheckCircle2, ArrowRight, MinusCircle } 
 import Modal from "@/components/Overlays/Modal";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
-import { Button } from "@/components/Form/Button";
-import { Manual } from "@/components/Form/Input";
+import { Button } from "@/components/Button/Button";
+import { FileInput } from "@/components/Input/FileInput";
+import { Textarea } from "@/components/Input/Textarea";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { Block } from "@/components/Layout/Block";
-import { Label } from "@/components/Form/Label";
+import { Label } from "@/components/Input/Label";
 import { SolidBadge } from "@/components/Badge/SolidBadge";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import type { BankTransferReviewImportRowDto } from "@/features/core/bankTransferReview";
@@ -102,7 +103,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
 
         <Stack gap="xs">
           <Label className="text-sm font-medium">CSVファイル</Label>
-          <Manual.FileInput
+          <FileInput
             accept=".csv,text/csv"
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => void selectFile(e.target.files?.[0])}
             selectedFileName={fileName}
@@ -114,7 +115,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
 
         <Stack gap="xs">
           <Label className="text-sm font-medium">またはCSVテキストを直接貼り付け</Label>
-          <Manual.Textarea
+          <Textarea
             rows={6}
             value={csvText}
             onChange={(e) => setText(e.target.value)}

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { SwitchInput as ManualSwitchInput } from "@/components/Form/Input/Manual/SwitchInput";
+import { SwitchInput as ManualSwitchInput } from "@/components/Input/SwitchInput";
 import { cn } from "@/lib/cn";
 import { Flex } from "@/components/Layout/Flex";
 import type { SwitchEditorProps } from "../types";

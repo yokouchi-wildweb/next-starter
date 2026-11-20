@@ -12,8 +12,8 @@
 
 import { useState } from "react";
 
-import { Button } from "@/components/Form/Button";
-import { SwitchInput } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { SwitchInput } from "@/components/Input/SwitchInput";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Dialog } from "@/components/Overlays/Dialog";

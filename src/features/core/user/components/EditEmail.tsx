@@ -6,9 +6,9 @@ import { useCallback, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 import { MailIcon } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
-import { Input } from "@/components/Form/Input/Manual/Input";
-import { Label } from "@/components/Form/Label";
+import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
+import { Label } from "@/components/Input/Label";
 import { Section } from "@/components/Layout/Section";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";

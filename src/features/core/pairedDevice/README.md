@@ -166,7 +166,7 @@ hooks はすべて `@/features/pairedDevice/hooks`。失敗の理由は `errorRe
 | 用途 | パーツ |
 |---|---|
 | この端末が登録済みか | `useSessionDevice()`（未登録は `data === null`） |
-| A. コード入力 | `useClaimDevicePairing({ autoClaimCode })` + `OneTimeCodeInput`（`@/components/Form/Input/Manual`） |
+| A. コード入力 | `useClaimDevicePairing({ autoClaimCode })` + `OneTimeCodeInput`（`@/components/Input/OneTimeCodeInput`） |
 | QR から開いたときのコード | `useDevicePairingCodeFromUrl(param = "code")`（Suspense の内側で使う） |
 | B. 端末側の表示と承認待ち | `useStartDevicePairing()`（`phase` / `code` / `lastError` / `restart`）。一時的な失敗では止まらず確認を続ける |
 | B. 承認画面 | `useDevicePairingRequest(code)` + `useApproveDevicePairing()` |
@@ -182,8 +182,8 @@ hooks はすべて `@/features/pairedDevice/hooks`。失敗の理由は `errorRe
 
 import { useState } from "react";
 
-import { OneTimeCodeInput } from "@/components/Form/Input/Manual";
-import { Button } from "@/components/Form/Button/Button";
+import { OneTimeCodeInput } from "@/components/Input/OneTimeCodeInput";
+import { Button } from "@/components/Button/Button";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import {

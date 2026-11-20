@@ -10,8 +10,9 @@
 import { Fragment, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-import { Button } from "@/components/Form/Button";
-import { RadioGroupInput, SelectInput } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { RadioGroupInput } from "@/components/Input/RadioGroupInput";
+import { SelectInput } from "@/components/Input/Select";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";

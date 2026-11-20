@@ -18,14 +18,14 @@ let render: typeof import("react-dom/server").renderToStaticMarkup;
 let Input: typeof import("./Input").Input;
 let PasswordInput: typeof import("./PasswordInput").PasswordInput;
 let ColorInput: typeof import("./ColorInput").ColorInput;
-let buttonVariants: typeof import("@/components/Form/Button/button-variants").buttonVariants;
+let buttonVariants: typeof import("@/components/Button/variants").buttonVariants;
 let PrimitiveInput: typeof import("@/components/Primitives/Input").Input;
 before(async () => {
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
   ({ Input } = await import("./Input"));
   ({ PasswordInput } = await import("./PasswordInput"));
   ({ ColorInput } = await import("./ColorInput"));
-  ({ buttonVariants } = await import("@/components/Form/Button/button-variants"));
+  ({ buttonVariants } = await import("@/components/Button/variants"));
   ({ Input: PrimitiveInput } = await import("@/components/Primitives/Input"));
 });
 

@@ -7,7 +7,7 @@ import { XCircle } from "lucide-react";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
-import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { LinkButton } from "@/components/Button/LinkButton";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet";
 
 /**

@@ -6,8 +6,8 @@
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { CameraIcon, ImageIcon, Trash2Icon, UserIcon } from "lucide-react";
 
-import { Button } from "@/components/Form/Button";
-import { Input } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
 import { Flex } from "@/components/Layout/Flex";
 import { InBlock } from "@/components/Layout/InBlock";
 import { Stack } from "@/components/Layout/Stack";

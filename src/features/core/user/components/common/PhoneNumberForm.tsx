@@ -6,9 +6,9 @@
 import type { FormEvent } from "react";
 import { Phone } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
-import { Input } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
+import { Label } from "@/components/Input/Label";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";

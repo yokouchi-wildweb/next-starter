@@ -2,7 +2,7 @@
 
 import { isDevelopment } from "@/lib/appEnv";
 import React from "react";
-import { normalizeOptionValues, type OptionPrimitive } from "@/components/Form/utils";
+import { normalizeOptionValues, type OptionPrimitive } from "@/components/Input/options";
 import { createCommitOnce } from "../../../utils/commitOnce";
 import { parseCellValue, readCellValue } from "../../../utils/value";
 import { POPUP_ATTR } from "../constants";

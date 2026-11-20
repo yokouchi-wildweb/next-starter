@@ -6,9 +6,9 @@
 
 import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react";
 
-import { Button } from "@/components/Form/Button";
-import { Input } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
+import { Label } from "@/components/Input/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks/Span";

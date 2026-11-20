@@ -4,7 +4,7 @@ import type { FieldPath, FieldValues, ControllerRenderProps } from "react-hook-f
 import {
   AsyncMultiSelectInput as ManualAsyncMultiSelectInput,
   type AsyncMultiSelectInputProps as ManualAsyncMultiSelectInputProps,
-} from "../Manual/AsyncMultiSelectInput";
+} from "@/components/Input/AsyncMultiSelectInput";
 
 export type ControlledAsyncMultiSelectInputProps<
   T,

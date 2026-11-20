@@ -17,7 +17,7 @@ import {
   PopoverRoot,
   PopoverTrigger,
 } from "@/components/Primitives/Popover";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import {
   resolveOptionItemIdentity,
   resolveOptionSearchText,
