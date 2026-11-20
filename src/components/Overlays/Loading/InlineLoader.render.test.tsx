@@ -12,7 +12,7 @@ import { Loader2 } from "lucide-react";
 
 import { AsyncOptionInitialState, AsyncOptionListFooter } from "@/components/Input/AsyncOptionSource";
 import { Flex } from "@/components/Layout/Flex";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 
 const parse = (el: ReactElement) => {
   const doc = new JSDOM(renderToStaticMarkup(el)).window.document;

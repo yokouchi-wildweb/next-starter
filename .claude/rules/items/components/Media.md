@@ -16,4 +16,6 @@ using:
 - preview_scope: PreviewImage only for a just-picked or local image (blob: URL, signed URL) | public and user images → AppImage
 editing:
 - private_unoptimized: fixed URLs to /api/storage/ always stay unoptimized, whatever the prop (authorized images never enter the optimization cache)
-read: which mode, migrate from img → src/components/Media/AppImage/README.md Usage | props, sizes presets → src/components/Media/AppImage/README.md API | remotePatterns, optimization flag → src/components/Media/AppImage/README.md Extension | storage refs, crash guard → src/components/Media/AppImage/README.md Internals | preview → src/components/Media/PreviewImage/README.md Overview | video props, refs → src/components/Media/AppVideo/README.md API | recovery, failed row → src/components/Media/AppVideo/README.md Internals
+read:
+- AppImage: which mode, migrate from img → src/components/Media/AppImage/README.md Usage | props, sizes presets → src/components/Media/AppImage/README.md API | remotePatterns, optimization flag → src/components/Media/AppImage/README.md Extension | storage refs, crash guard → src/components/Media/AppImage/README.md Internals
+- PreviewImage, AppVideo: preview → src/components/Media/PreviewImage/README.md Overview | video props, refs → src/components/Media/AppVideo/README.md API | recovery, failed row → src/components/Media/AppVideo/README.md Internals

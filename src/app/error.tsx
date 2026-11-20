@@ -42,7 +42,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
         <Button variant="outline" onClick={() => reset()}>
           再試行
         </Button>
-        <Button variant="default" onClick={() => (window.location.href = "/")}>
+        <Button variant="default" onClick={() => window.location.assign(new URL("/", window.location.origin))}>
           トップへ戻る
         </Button>
       </Flex>
