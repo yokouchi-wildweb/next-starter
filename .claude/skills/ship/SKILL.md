@@ -95,6 +95,10 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - message in the behavior.md form (subject `<area>: <summary>`, blank line, body = decision record) | with `order:<id>`, a line `order: <id>` after the body | the trailer the environment specifies at the end | `--quick` → a trailer line `Ship: quick` in that same last paragraph (read by `safePoint quickFiles`)
    - branch follows behavior.md and the repo's policy (already on a feature branch → stay)
    - the change itself was committed already and only the notice was written later → make it the commit right after the change (no other notice commit in between) | not allowed with `hotfix` (change and notice always in the same commit; separate → undo and recombine)
+   - not with `no-push` (the push that follows runs it): after the commit, before the pick check, **move each notice's add to its last edit** (D353): `pnpm workflow notices reorder`
+     - rewrites only the unpushed range (`<push target>..HEAD`, the same target as step 7 / WORKTREE ROUTE): a notice added and then edited by a later commit of the range is added at that last commit instead (its checkpoint point = the add); commit count, the tip's tree, authors and messages stay
+     - never moves a `hotfix:` notice, a body the range deletes or renames, an edit past the next notice's add (the line `<id> は次の区切りの後で直されています` → a correction that needs fork work goes into a new notice with `fixes:`, D351), nor anything when the range has a merge | none of these stops the ship
+     - exit 2 → report `並べ替え: 未確認(<理由>)` and go on | the pick check, the hotfix check and the report use the shas after it | its lines (moved ids, not moved) go in the report
    - a `fixes:` notice included → after the commit, before push, **judge whether it can be picked ahead** (`.notices/README.md` section `修正(fixes)`, part `先に取れる印(pick)`): `pnpm workflow notices pickCheck <this commit>`
      - on a temporary tree that puts only this commit on the broken point (the commit of the origin's checkpoint; other `pick: clean` fixes the fork has picked ahead up to that point go on first), it checks:
        - one commit, no lock / route-map, steps naming no later notice, no cherry-pick conflict, `pnpm typecheck`, `pnpm test scripts/structure/config/moduleLoad.test.mjs`, `pnpm check registry`, the prerequisite check
@@ -169,6 +173,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - the commits on HEAD the push target lacks (`git log --format='%h %s' <target>..HEAD`; target = `origin/main` on the WORKTREE ROUTE, else `origin/<branch>`) = commits made earlier by /ship (e.g. `--quick no-push` ships, collected onto this branch): their notices are in them
 - skip: step 0 (the caller answers the orders), steps 2-5, step 6's commit | never with `hotfix`
 - keep:
+  - step 6's `pnpm workflow notices reorder` first (the range is unpushed; with `no-push` it waits for the push)
   - each commit in the range that adds a `fixes:` notice → step 6's pickCheck on it (`pnpm workflow notices pickCheck <that commit>`; it writes `pick:` in the notice's body) → commit the bodies alone: `git commit -m "notices: pick marks" -- .notices/<id>.md`
   - a notice in the range → `pnpm check notices`
   - `--safe` → step 6's full checks on the tip | plain → step 2's area checks on the range's files (`git diff --name-only <target>..HEAD`) plus `safePoint quickFiles`
