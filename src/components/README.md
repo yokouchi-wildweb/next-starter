@@ -3,7 +3,8 @@
 ## Overview
 
 - `src/components/` にはアプリ全体で共有する汎用 UI コンポーネントをカテゴリごとに配置します
-- カテゴリのフォルダに入口の `index` は置かない。部品はそれを定義するファイル(フォルダの部品はそのフォルダ)から `@/components/<カテゴリ>/<部品>` で読む(まだ入口があるのは `Form/`・`AppStatusGuard/`)
+- カテゴリのフォルダに入口の `index` は置かない。部品(単位)はそれを定義するファイル(フォルダの部品はそのフォルダ)から `@/components/<カテゴリ>/<部品>` で読む(まだ入口があるのは `AppStatusGuard/`)
+- どのリポがどの単位を作ったかの一覧は [CATALOG.md](./CATALOG.md)(1 単位 1 行、単位を足したら自分の節に 1 行)
 - 本ファイルは**カテゴリの索引**です。使う時の決まりはカテゴリの札 `.claude/rules/items/components/<カテゴリ>.md`、使い方・仕組みは各サブディレクトリの README（コロケーション）に置き、複雑な仕組みを持つカテゴリには必ず README を併設します
 
 ### カテゴリ一覧
@@ -16,7 +17,6 @@
 - `Badge/`: バッジ（`SolidBadge`、`SoftBadge` など）
 - `Button/`: ボタン（`Button` / `LinkButton` / `PseudoButton` / `RoundedButton` / `TabletButton` / `BookmarkTag`、形と大きさの表は補助の単位 `Button/variants`）。raw button の代替 | 詳細: [Button/README.md](./Button/README.md)
 - `Functional/`: 動作をカプセル化した部品（`DarkModeSwitch`（サイトテーマの切替。同期の `SiteThemeSync` は `@/lib/siteTheme`、詳細: [styles/README.md](../styles/README.md)）、`FirebaseAnalytics` など）
-- `Form/`: フォームの組み立て（`AppForm` / Field / react-hook-form に結んだ `Input/Controlled` / `FieldRenderer` / AutoSave）。素の入力は `Input/`、ボタンは `Button/` | 詳細: [Form/README.md](./Form/README.md)・[Form/FieldRenderer/README.md](./Form/FieldRenderer/README.md)・[Form/AutoSave/README.md](./Form/AutoSave/README.md)
 - `Input/`: 素の入力部品（`Input` / `Select`(`SelectInput`) / `ComboboxInput` / `AsyncComboboxInput` / `SwitchInput` / `Label` / `FilePickButton` など、値と onChange だけを受ける）。選択肢の型と関数は補助の単位 `Input/options` | 詳細: [Input/README.md](./Input/README.md)
 - `Icons/`: プロジェクト固有アイコンを Lucide 互換 API で一元管理 | 詳細: [Icons/README.md](./Icons/README.md)
 - `Layout/`: レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）とキオスク用のビューポート固定枠 `KioskFrame`。raw HTML の代替。余白の段は閉じた lib `@/lib/spacing` | 詳細: [Layout/README.md](./Layout/README.md)
@@ -27,7 +27,7 @@
   - `StateTabs`: 状態で切り替えるタブ。`variant="underline"` = PageTab の UnderlineTabs と同じ下線の形、`listEnd` = タブの列と同じ行の右端に置く物
   - `Pagination`: 送り方は `makeHref` = リンク か `onPageChange` = ボタン のどちらか一方、`compact` = 前 / p / N / 次 だけ
 - `Overlays/`: 画面に重ねて表示する UI（モーダル / ダイアログ / ポップオーバー / ツールチップなど）の完成品と、自作の重ねる物を body 直下へ出す `BodyPortal`。低レベル部品は `Primitives/`（`Dialog` / `Command` / `Popover` / `Tooltip` / `HoverCard`）。**自作前に必ず一覧を確認** | 詳細: [Overlays/README.md](./Overlays/README.md)
-- `Primitives/`: 部品の棚の低レベル部品（Radix などの外部の振る舞いを結ぶ素の部品。置き場の勧め: core/components.md primitives_place）。画面からは通常、完成品（`Form/`・`Overlays/`・`Badge/` など）を使う
+- `Primitives/`: 部品の棚の低レベル部品（Radix などの外部の振る舞いを結ぶ素の部品。置き場の勧め: core/components.md primitives_place）。画面からは通常、完成品（`Input/`・`Overlays/`・`Badge/` など。フォームは `@/lib/formSuite`）を使う
   - 1 部品 = 1 フォルダ、読むのは入口 `@/components/Primitives/<部品>`（`Primitives/index.ts` は無い）
   - 部品: `Badge`（`BadgeCore`）・`Button`・`Calendar`・`Carousel`・`Checkbox`・`Command`・`Dialog`・`HoverCard`・`Input`（`Input` / `Textarea`）・`Label`・`Popover`・`RadioGroup`・`Select`・`Skeleton`・`Slot`・`Tabs`・`Tooltip`
   - Radix は統合版の `radix-ui` からだけ読む（`@radix-ui/*` の個別パッケージは lint `radix-unified` が止める）

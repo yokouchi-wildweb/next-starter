@@ -2,13 +2,15 @@
 // フォルダ目録(CATALOG.md)の契約テスト。実行: pnpm test src/lib/folderCatalog/catalog.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
   checkCatalog,
   listDirs,
+  listUnits,
   loadCatalogOwnership,
   parseCatalog,
 } from "./catalog.mjs";
@@ -25,7 +27,61 @@ test("src/lib/CATALOG.md と src/lib 直下のディレクトリが一致する"
   assert.deepEqual(problems, [], `目録の不一致:\n${problems.join("\n")}`);
 });
 
+test("src/components/CATALOG.md と src/components の分類の直下の単位が一致する", () => {
+  const { sections, errors } = parseCatalog(readFileSync(join(repoRoot, "src/components/CATALOG.md"), "utf8"));
+  assert.deepEqual(errors, [], `目録の書式エラー:\n${errors.join("\n")}`);
+  assert.ok(sections.length > 0, "節が 1 つもありません");
+  const problems = checkCatalog({ sections, folder: "src/components", dirs: listUnits(repoRoot, "src/components"), depth: 2 });
+  assert.deepEqual(problems, [], `目録の不一致:\n${problems.join("\n")}`);
+});
+
 // ---- 部品 ----
+
+test("listUnits: 分類の直下のフォルダとコードのファイルが単位。テスト・__fixtures__・README は単位でなく、index だけの分類は分類が 1 つの単位", () => {
+  const root = mkdtempSync(join(tmpdir(), "folder-catalog-"));
+  try {
+    const put = (path) => {
+      mkdirSync(dirname(join(root, path)), { recursive: true });
+      writeFileSync(join(root, path), "export {};\n");
+    };
+    for (const path of [
+      "shelf/Input/Select.tsx",
+      "shelf/Input/Select.render.test.tsx",
+      "shelf/Input/MultiSelect/index.tsx",
+      "shelf/Input/MultiSelect/Trigger.tsx",
+      "shelf/Input/options/index.ts",
+      "shelf/Input/__fixtures__/a.json",
+      "shelf/Input/README.md",
+      "shelf/Guard/index.tsx",
+      "shelf/README.md",
+    ]) put(path);
+    assert.deepEqual(listUnits(root, "shelf"), ["Guard", "Input/MultiSelect", "Input/Select", "Input/options"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("checkCatalog depth 2: 単位の行の欠け・重複・実在しない行・分類の行・深すぎる行を報告し、index だけの分類の行は通す", () => {
+  const text = `## acme-base
+- src/components/Input/Select — 選択
+- src/components/Guard — 見張り
+- src/components/Input/Gone — 消えた単位
+- src/components/Input/MultiSelect/Trigger — 深すぎる
+
+## acme-fork
+- src/components/Input/Select — 衝突
+`;
+  const { sections, errors } = parseCatalog(text);
+  assert.deepEqual(errors, []);
+  const problems = checkCatalog({ sections, folder: "src/components", dirs: ["Guard", "Input/MultiSelect", "Input/Select"], depth: 2 });
+  const has = (word) => problems.some((p) => p.includes(word));
+  assert.ok(has('"src/components/Input/MultiSelect" が目録にありません'), problems.join("\n"));
+  assert.ok(has('"src/components/Input/Gone"'), problems.join("\n"));
+  assert.ok(has("重複しています"), problems.join("\n"));
+  assert.ok(has("分類の直下の単位のパスではありません"), problems.join("\n"));
+  assert.ok(!has('"src/components/Guard"'), problems.join("\n"));
+  assert.equal(parseCatalog("## acme-base\n- src/components/Input/Select —  \n").errors.length, 1, "説明の欠け");
+});
 
 test("parseCatalog: 見出しは fork の名前の形(小文字・数字・ハイフン)。origin 由来の長い ID・大文字は書式エラー", () => {
   assert.deepEqual(parseCatalog("## next-starter\n- src/lib/a — a\n").errors, []);

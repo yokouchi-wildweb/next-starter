@@ -30,6 +30,7 @@ edit src/app/favicon.ico  # 置き場 appIcon(src/app/_layout/extensionPoints.ts
 edit src/business/**  # 置き場 businessValues(src/lib/business/extensionPoints.ts)
 edit src/config/**  # 置き場 configValues(src/lib/districtMap/extensionPoints.ts)
 append src/lib/CATALOG.md  # 置き場 catalogSections(src/lib/folderCatalog/extensionPoints.ts)
+append src/components/CATALOG.md  # 置き場 componentsCatalogSections(src/lib/folderCatalog/extensionPoints.ts)
 edit src/app/**/_components/**  # 置き場 forkScreenParts(src/lib/screens/extensionPoints.ts)
 edit src/styles/*.css  # 置き場 rootStyles(src/styles/core/extensionPoints.ts)
 edit src/app/(marketing)/entry/page.tsx  # 画面の 1 行スイッチ
