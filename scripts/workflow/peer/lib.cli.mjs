@@ -1,13 +1,13 @@
 // scripts/workflow/peer/lib.cli.mjs
 //
-// pnpm workflow peer <send|reply|inbox|read|ack|who> の本体。動作のファイル(send.mjs など)はこれを呼ぶだけ。
+// pnpm workflow peer <send|reply|inbox|read|ack|who|hold> の本体。動作のファイル(send.mjs など)はこれを呼ぶだけ。
 // 終了コード: 0 = 置けた(鳴らした rang / 置いただけ stored / もう置いてある exists)・済んだ / 3 = 置けなかった(使えない・
 // 宛先が決まらない・鍵が使えない・連絡が無い)/ 2 = 使い方の誤り。
 // 出す文はどれも 1 行で「何が起きたか・次にどうするか」が分かる形にする。--json = 機械向けの 1 行。説明: scripts/workflow/peer/README.md
 
 import { findSelf, readAgents, resolveName } from "./lib.agents.mjs";
 import { checkGate, heldBoxes } from "./lib.gate.mjs";
-import { deliver, getMessage, holderOf, isBoxKey, isInstanceBox, isMessageId, listBox, procStartOf, readMark, setState, stateRoot } from "./lib.store.mjs";
+import { deliver, getMessage, holderOf, isBoxKey, isInstanceBox, isMessageId, listBox, procStartOf, readMark, setState, stateRoot, writeMark } from "./lib.store.mjs";
 
 export const EXIT = { done: 0, usage: 2, notSent: 3 };
 
@@ -18,6 +18,7 @@ const USAGE = {
   read: "pnpm workflow peer read <連絡 id> [--keep]",
   ack: "pnpm workflow peer ack <連絡 id>...",
   who: "pnpm workflow peer who [<名前>]",
+  hold: "pnpm workflow peer hold <種類>/<ID> --session=<会話 id> --pid=<claude の pid> [--cwd=<dir>]",
 };
 
 /** セッション id の形(UUID): 宛先にこの形が来たら名前でなくその会話の箱 */
@@ -314,6 +315,39 @@ export function runAck(argv, deps = defaultDeps()) {
     deps.print(`peer: ${id} を既読にしました${found.key === gate.selfId ? "" : `(box:${found.key})`}`);
   }
   return missing ? EXIT.notSent : EXIT.done;
+}
+
+/**
+ * hold <箱> --session=<id> --pid=<pid>: その会話がインスタンス ID の箱を受け持つ印を書く(フックの無いリポで動く会話の
+ * ために、それを立ち上げた道具が呼ぶ口。フックの印と同じ形・同じ書き手 = writeMark)。同じ pid の印があれば boxes に足すだけ、
+ * 無いか古い(pid が違う・もう居ない)なら書き直す。pid が生きていなければ書かない(3)
+ */
+export function runHold(argv, deps = defaultDeps()) {
+  const { positional, flags } = parseArgs(argv);
+  const [box] = positional;
+  const sid = typeof flags.session === "string" ? flags.session : "";
+  const pid = Number(flags.pid);
+  if (positional.length !== 1 || !isInstanceBox(box) || !SESSION_ID_FORM.test(sid) || !Number.isInteger(pid) || pid <= 0) {
+    deps.print(`使い方: ${USAGE.hold}`);
+    return EXIT.usage;
+  }
+  const procStart = deps.procStart(pid);
+  if (!procStart) {
+    deps.print(`peer: pid ${pid} は動いていないので、${box} を受け持つ印を書いていません`);
+    return EXIT.notSent;
+  }
+  const root = stateRoot(deps.env);
+  const prev = readMark(root, sid);
+  const same = prev && Number(prev.pid) === pid && String(prev.procStart) === String(procStart);
+  const had = same && Array.isArray(prev.boxes) ? prev.boxes : [];
+  if (had.includes(box)) {
+    deps.print(`peer: 会話 ${sid} はもう ${box} を受け持っています(印はそのまま)`);
+    return EXIT.done;
+  }
+  const cwd = (same && prev.cwd) || (typeof flags.cwd === "string" && flags.cwd) || deps.env.PWD || process.cwd();
+  writeMark(root, { sessionId: sid, pid, procStart: String(procStart), cwd, mode: prev?.mode || "unknown", boxes: [...had, box] }, deps.now());
+  deps.print(`peer: 会話 ${sid} が ${box} を受け持つ印を書きました(pid ${pid}。その箱への連絡は呼び鈴つきになります)`);
+  return EXIT.done;
 }
 
 export function runWho(argv, deps = defaultDeps()) {

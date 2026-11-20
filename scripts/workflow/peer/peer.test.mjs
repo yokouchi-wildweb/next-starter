@@ -6,6 +6,7 @@
 // - 名前の解決: 生きている行(名前・status あり)だけ、完全一致 1 つ = 送る、複数・なし = 新しい順の候補で止まる(exit 3)
 // - 印: 有効(pid・procStart が合う)= 送った exit 0 / 無い・古い = 受け箱に置いただけ exit 3
 // - 返事: 送り元が生きているかを確かめてから、reply_to つきで。状態(読んだ・返事した)は箱の外
+// - hold: 道具がフックの無い会話の代わりに箱を受け持つ印を書く(同じ pid には足すだけ、動いていない pid には書かない)
 // - 使い方の誤り = exit 2
 
 import assert from "node:assert/strict";
@@ -15,7 +16,7 @@ import path from "node:path";
 import { after, test } from "node:test";
 
 import { liveSessions, resolveName } from "./lib.agents.mjs";
-import { EXIT, runAck, runInbox, runRead, runReply, runSend, runWho } from "./lib.cli.mjs";
+import { EXIT, runAck, runHold, runInbox, runRead, runReply, runSend, runWho } from "./lib.cli.mjs";
 import { checkGate, heldBoxes } from "./lib.gate.mjs";
 import { FORMAT_VERSION, boxDir, boxSegments, deliver, getState, holderOf, isBoxKey, stateDir, listBox, markIsValid, newMessageId, putMessage, readMark, stateRoot, writeMark } from "./lib.store.mjs";
 
@@ -428,4 +429,27 @@ test("read: 受け持つ箱の連絡も読め、既定で既読(状態は箱ご�
   assert.ok(getState(h.root, "council/r1", "m4").read);
   assert.equal(runAck(["m4", "m-nope"], h.deps), EXIT.notSent);
   assert.equal(runAck([], h.deps), EXIT.usage);
+});
+
+test("hold: フックの無い会話の代わりに、インスタンスの箱を受け持つ印を書く(holderOf がその会話を返す)", () => {
+  const root = temp();
+  const sid = "742b3108-9042-49ab-abe8-325d6d0c07cf";
+  const out = [];
+  const deps = { env: { PEER_STATE_DIR: root, PWD: "/w/triq" }, procStart: (pid) => (pid === 777 ? "9001" : null), now: () => new Date("2026-11-21T00:00:00Z"), print: (l) => out.push(l) };
+  assert.equal(runHold(["railroad/20261120-174517", `--session=${sid}`, "--pid=777"], deps), EXIT.done);
+  const mark = readMark(root, sid);
+  assert.deepEqual(mark.boxes, ["railroad/20261120-174517"]);
+  assert.equal(mark.pid, 777);
+  assert.equal(mark.procStart, "9001");
+  assert.equal(holderOf(root, "railroad/20261120-174517", { procStart: deps.procStart })?.sessionId, sid);
+  // 同じ pid: 足すだけ、もう持っていれば何も変えない
+  assert.equal(runHold(["fleet/20261121-000000", `--session=${sid}`, "--pid=777"], deps), EXIT.done);
+  assert.deepEqual(readMark(root, sid).boxes, ["railroad/20261120-174517", "fleet/20261121-000000"]);
+  assert.equal(runHold(["fleet/20261121-000000", `--session=${sid}`, "--pid=777"], deps), EXIT.done);
+  assert.match(out.at(-1), /もう fleet\/20261121-000000 を受け持っています/);
+  // 動いていない pid には書かない、使い方の誤りは 2(会話の箱・会話 id の形でない・pid なし)
+  assert.equal(runHold(["railroad/x", `--session=${sid}`, "--pid=888"], deps), EXIT.notSent);
+  assert.equal(runHold([sid, `--session=${sid}`, "--pid=777"], deps), EXIT.usage);
+  assert.equal(runHold(["railroad/x", "--session=abc", "--pid=777"], deps), EXIT.usage);
+  assert.equal(runHold(["railroad/x", `--session=${sid}`], deps), EXIT.usage);
 });

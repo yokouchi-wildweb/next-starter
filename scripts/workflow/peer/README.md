@@ -19,6 +19,7 @@ pnpm workflow peer inbox [--all]          # 未読(--all = 全部)を新しい�
 pnpm workflow peer read <連絡 id> [--keep] # 本文を出し、読んだ印を付ける(--keep = 見るだけ)
 pnpm workflow peer ack <連絡 id>...       # 読まずに読んだ印だけを付ける(片付け)
 pnpm workflow peer who [<名前>]           # 宛先にできる生きているセッションを新しい順に
+pnpm workflow peer hold <種類>/<ID> --session=<会話 id> --pid=<claude の pid> [--cwd=<dir>]   # 道具が呼ぶ: その会話が箱を受け持つ印を書く
 ```
 
 ### 宛先
@@ -86,6 +87,7 @@ pnpm workflow peer who [<名前>]           # 宛先にできる生きている�
 - インスタンス ID の箱は、落ちても立ち上げ直しても変わらない宛先(立ち上げのたびに会話の id が変わる道具の受け箱に使う)
 - 受け持つ: 環境変数 `PEER_BOXES` に箱の鍵をカンマか空白で区切って渡す(例 `PEER_BOXES=kind/20261106-194949`)。フックは起動ごとにその箱も作って見張り、呼び鈴はそこへの連絡でも鳴る(行が受け持つ箱を名指す)。印の `boxes` に書く
   - 使えない値と 1 段の鍵(ほかの会話の箱)は受け持たず、起動の時に 1 行で知らせる
+- フックの無いリポで動く会話(peer を別の checkout から借りる古い fork の統括など)は印を書けないので、送り手には「受け持つ呼び鈴が無い」に見える。立ち上げた道具が `peer hold <箱> --session=<会話 id> --pid=<その claude の pid>` で代わりに印を書く(形と書き手はフックと同じ writeMark。同じ pid の印には boxes を足すだけ、pid が動いていなければ書かない)
 - `PEER_BOXES` は渡されたセッションだけのもの。立ち上げる道具は、そのセッションが開く子のタブ(手下の席など)に渡さない。渡されなかったセッションは自分の会話の箱だけを持つ
 
 ## Internals
