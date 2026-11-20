@@ -6,7 +6,7 @@ import { useCallback, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 
 import { PromptPopover } from "@/components/Overlays/Popover/PromptPopover";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Span } from "@/components/TextBlocks/Span";
 import { useUpdateUser } from "@/features/core/user/hooks/useUpdateUser";
 import { useToast } from "@/lib/toast";
@@ -69,7 +69,7 @@ export function UserAdminMemoCell({
   return (
     <PromptPopover
       trigger={
-        // Form/Button の既定の font-medium は元の button に無いので font-normal で打ち消す。クリックは元どおり親へ伝える
+        // Button/Button の既定の font-medium は元の button に無いので font-normal で打ち消す。クリックは元どおり親へ伝える
         <Button
           type="button"
           variant="none"

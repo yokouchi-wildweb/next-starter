@@ -12,7 +12,7 @@ import type {
   InlineFieldGroup,
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Shuffle } from "lucide-react";
 import { domainDisplay } from "@/features/core/coupon/entities/display";

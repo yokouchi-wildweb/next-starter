@@ -4,8 +4,11 @@
 
 "use client";
 
-import { DateInput, DatetimeInput, Input, SelectInput } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import { DateInput } from "@/components/Input/DateInput";
+import { DatetimeInput } from "@/components/Input/DatetimeInput";
+import { Input } from "@/components/Input/Input";
+import { SelectInput } from "@/components/Input/Select";
+import { Label } from "@/components/Input/Label";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks/Span";
 import type { MessageEmbeddedDeclaration } from "@/lib/messaging";

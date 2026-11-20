@@ -1,6 +1,6 @@
 // @/components/Form/Input/Controlled/Textarea.tsx
 
-import { Textarea as ManualTextarea } from "@/components/Form/Input/Manual/Textarea";
+import { Textarea as ManualTextarea } from "@/components/Input/Textarea";
 import { FieldPath, FieldValues } from "react-hook-form";
 import { ControlledTextareaProps } from "@/components/Form/types";
 

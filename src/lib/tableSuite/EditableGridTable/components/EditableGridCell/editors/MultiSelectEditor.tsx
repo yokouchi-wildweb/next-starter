@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { MultiSelectInput } from "@/components/Form/Input/Manual/MultiSelectInput";
-import type { MultiSelectInputProps } from "@/components/Form/Input/Manual/MultiSelectInput";
-import { normalizeOptionValues, type OptionPrimitive } from "@/components/Form/utils";
+import { MultiSelectInput } from "@/components/Input/MultiSelectInput";
+import type { MultiSelectInputProps } from "@/components/Input/MultiSelectInput";
+import { normalizeOptionValues, type OptionPrimitive } from "@/components/Input/options";
 import { cn } from "@/lib/cn";
 import { POPUP_ATTR } from "../constants";
 import type { SelectEditorProps } from "../types";

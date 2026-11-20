@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 import { manifestToFragments, useSeamlessReel, type ReelManifest } from "@/lib/seamlessVideo";
 import { Block } from "@/components/Layout/Block";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
@@ -48,7 +48,7 @@ export function SeamlessAvPlayer({ manifest }: Props) {
           <video ref={videoRef} className="aspect-[9/16] w-full" controls playsInline />
 
           {!started && (
-            // Form/Button の既定の角丸(rounded-md)は rounded-none で元の形に戻す。クリックは元どおり親へ伝える
+            // Button/Button の既定の角丸(rounded-md)は rounded-none で元の形に戻す。クリックは元どおり親へ伝える
             <Button
               type="button"
               variant="none"

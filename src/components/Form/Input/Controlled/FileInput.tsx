@@ -3,10 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import type { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
 
-import {
-  FileInput as ManualFileInput,
-  type FileInputProps as ManualFileInputProps,
-} from "../Manual";
+import { FileInput as ManualFileInput, type FileInputProps as ManualFileInputProps } from "@/components/Input/FileInput";
 
 export type FileInputProps<
   TFieldValues extends FieldValues,

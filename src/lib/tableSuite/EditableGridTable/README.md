@@ -53,7 +53,7 @@ editorType は公開型なので、追加は tableSuite 全体への機能追加
 1. **型**: `EditableGridTable/types.ts` の `EditableGridEditorType` に値を追加する（tableSuite README の editorType 一覧も更新）
 2. **エディター**: `editors/<Name>Editor.tsx` を作る。Props は `BaseEditorProps<T>`（`EditableGridCell/types.ts`）を受け、
    入力変更で `onDraftChange`、確定で `onCommit()`、取消で `onCancel()` を呼び、`inputRef` を入力要素に接続する。
-   入力部品は `TextEditor` と同じく `@/components/Form/Input/Manual` の wrapper(札 editor_inputs)。
+   入力部品は `TextEditor` と同じく `@/components/Input` の部品(札 editor_inputs)。
    ポップアップを持つ場合は `SelectEditorProps<T>`（`popupOpen` / `cellKey` / `onPopupOpenChange`）を受け、`POPUP_ATTR` を付ける（Internals「ポップアップの外部クリック判定」）
 3. **振り分け**: `EditableGridCell/index.tsx` の `renderEditor()` に case を追加する（未知の型は `default` で text 扱い）
 4. **値変換（必要なら）**: `utils/value.ts` の `formatByType` / `parseByType` に型別の整形・解釈を追加する

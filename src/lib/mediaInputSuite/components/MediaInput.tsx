@@ -12,8 +12,8 @@ import {
 } from "react";
 import { XIcon } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
-import { Input } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";

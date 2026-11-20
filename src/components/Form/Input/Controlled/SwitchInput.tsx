@@ -4,7 +4,7 @@ import type { FieldPath, FieldValues, ControllerRenderProps } from "react-hook-f
 import {
   SwitchInput as ManualSwitchInput,
   type SwitchInputProps as ManualSwitchInputProps,
-} from "../Manual/SwitchInput";
+} from "@/components/Input/SwitchInput";
 
 export type ControlledSwitchInputProps<
   TFieldValues extends FieldValues,

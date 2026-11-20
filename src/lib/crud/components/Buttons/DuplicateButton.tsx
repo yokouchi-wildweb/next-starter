@@ -5,7 +5,8 @@
 import { useRouter } from "@/lib/unsavedGuard";
 import { Copy, type LucideIcon } from "lucide-react";
 
-import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
+import { type ButtonStyleProps } from "@/components/Button/variants";
 import { ConfirmPopover, PromptPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";

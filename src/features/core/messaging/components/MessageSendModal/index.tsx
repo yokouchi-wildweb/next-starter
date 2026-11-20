@@ -15,7 +15,7 @@
 import { useState, type ReactNode } from "react";
 import { Send } from "lucide-react";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";

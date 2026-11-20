@@ -14,7 +14,7 @@
 ```
 
 - `'use client'` の部品だが、server component の中から使ってよい(Provider の中で SSR され、判定が効く)
-- `LinkButton`(`Form/Button`)も中でこれを使い、`gate` を受ける
+- `LinkButton`(`Button/Button`)も中でこれを使い、`gate` を受ける
 
 ## API
 

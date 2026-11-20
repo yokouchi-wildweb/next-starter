@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import {
   AsyncMultiSelectInput,
   type AsyncMultiSelectInputProps,
-} from "@/components/Form/Input/Manual/AsyncMultiSelectInput";
+} from "@/components/Input/AsyncMultiSelectInput";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/types";
 import type { WhereExpr } from "@/lib/crud/types";

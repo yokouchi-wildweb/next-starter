@@ -13,7 +13,7 @@ import {
   DateInput,
   NumberInput,
 } from "@/components/Form/Input/Controlled";
-import { Input } from "@/components/Form/Input/Manual";
+import { Input } from "@/components/Input/Input";
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
@@ -21,7 +21,7 @@ import { Main } from "@/components/Layout/Main";
 import { PageTitle } from "@/components/TextBlocks/PageTitle";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
-import type { Options } from "@/components/Form/types";
+import type { Options } from "@/components/Input/options";
 
 const categoryOptions: Options[] = [
   { label: "技術", value: "tech" },

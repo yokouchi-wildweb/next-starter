@@ -4,7 +4,7 @@
 
 "use client";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";

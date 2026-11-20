@@ -7,7 +7,7 @@ import { type ReactNode, useMemo } from "react";
 import {
   AsyncComboboxInput,
   type AsyncComboboxInputProps,
-} from "@/components/Form/Input/Manual/AsyncComboboxInput";
+} from "@/components/Input/AsyncComboboxInput";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/types";
 import type { WhereExpr } from "@/lib/crud/types";

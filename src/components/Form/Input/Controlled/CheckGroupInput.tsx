@@ -4,7 +4,7 @@ import type { FieldPath, FieldValues, ControllerRenderProps } from "react-hook-f
 import {
   CheckGroupInput as ManualCheckGroupInput,
   type CheckGroupInputProps as ManualCheckGroupInputProps,
-} from "../Manual/CheckGroupInput";
+} from "@/components/Input/CheckGroupInput";
 
 export type ControlledCheckGroupInputProps<
   TFieldValues extends FieldValues,

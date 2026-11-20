@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { AppForm } from "@/components/Form/AppForm";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import type { FieldConfig } from "@/components/Form/Field";
 import type {

@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/Primitives/Select";
-import { serializeOptionValue, type OptionPrimitive } from "@/components/Form/utils";
+import { serializeOptionValue, type OptionPrimitive } from "@/components/Input/options";
 import { cn } from "@/lib/cn";
 import { POPUP_ATTR, CLEAR_VALUE } from "../constants";
 import type { SelectEditorProps } from "../types";

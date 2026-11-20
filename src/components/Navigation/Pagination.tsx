@@ -6,8 +6,8 @@ import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useShelfRouter as useRouter } from "@/components/Navigation/NavigationPort";
 
-import { Button } from "@/components/Form/Button/Button";
-import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { Button } from "@/components/Button/Button";
+import { LinkButton } from "@/components/Button/LinkButton";
 
 type PaginationBaseProps = {
   page: number;

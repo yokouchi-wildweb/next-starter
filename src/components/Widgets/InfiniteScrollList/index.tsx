@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";

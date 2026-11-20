@@ -4,10 +4,10 @@
 
 import { type ReactNode, useState, useCallback, useRef, useEffect } from "react";
 
-import { Button } from "@/components/Form/Button/Button";
-import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
-import { Input } from "@/components/Form/Input/Manual/Input";
-import { Textarea } from "@/components/Form/Input/Manual/Textarea";
+import { Button } from "@/components/Button/Button";
+import { type ButtonStyleProps } from "@/components/Button/variants";
+import { Input } from "@/components/Input/Input";
+import { Textarea } from "@/components/Input/Textarea";
 
 import {
   PopoverRoot,

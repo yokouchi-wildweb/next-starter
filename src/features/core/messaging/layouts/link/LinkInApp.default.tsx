@@ -2,7 +2,7 @@
 // ひな形「認証のリンク」のお知らせ(受け取り箱の詳しい表示)の既定の見た目。props だけの部品(hook なし)。
 // 件名は呼び手(受け取り箱の画面)が見出しに出すので、ここは受付の文・ボタンの案内・ボタン
 
-import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { LinkButton } from "@/components/Button/LinkButton";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";

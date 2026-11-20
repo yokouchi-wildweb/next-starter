@@ -5,7 +5,7 @@
 
 import { TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton } from "@/lib/crud/components/Buttons";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import type { User } from "@/features/core/user/entities";
 import presenters from "@/features/core/user/presenters";
 import { UserAdminMemoCell } from "@/features/core/user/components/common/UserAdminMemoCell";

@@ -14,8 +14,8 @@
 
 import { useState } from "react";
 
-import { SelectInput } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import { SelectInput } from "@/components/Input/Select";
+import { Label } from "@/components/Input/Label";
 import { StateTabs, StateTabsContent } from "@/components/Navigation/StateTabs";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";

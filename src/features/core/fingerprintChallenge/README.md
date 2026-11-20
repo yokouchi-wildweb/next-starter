@@ -39,7 +39,7 @@ import { useState } from "react";
 import { useBehavioralCapture } from "@/lib/fingerprint";
 import { useFingerprintChallenge } from "@/features/core/fingerprintChallenge/hooks/useFingerprintChallenge";
 import { useSubmitFingerprintChallenge } from "@/features/core/fingerprintChallenge/hooks/useSubmitFingerprintChallenge";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { Input } from "@/components/Form/Input";
 import { Stack } from "@/components/Layout/Stack";

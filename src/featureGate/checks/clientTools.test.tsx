@@ -14,7 +14,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { clientGateState, gate, type FeatureName, type GatedFeatureRule, type GeneratedFeatureRule } from "@/featureGate";
 import { rules as generatedRules } from "@/featureGate/extensions/rules";
 import { overrideSwitches } from "@/featureGate/ruleList";
-import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { LinkButton } from "@/components/Button/LinkButton";
 import { Link, LinkVisibilityProvider } from "@/components/Navigation/Link";
 import { RichMenuCard } from "@/features/core/user/components/common/RichMenuCard";
 import { GatedLink, GateProvider, useGate, type ClientGate, type ClientGateState } from "@/featureGate/client";

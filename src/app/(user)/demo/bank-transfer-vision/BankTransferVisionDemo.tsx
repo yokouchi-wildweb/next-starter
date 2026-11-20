@@ -4,8 +4,10 @@ import { useState } from "react";
 import { CircleCheck, CircleX } from "lucide-react";
 
 import { SoftBadge } from "@/components/Badge/SoftBadge";
-import { Button } from "@/components/Form/Button/Button";
-import { Input, NumberInput, SwitchInput } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
+import { NumberInput } from "@/components/Input/NumberInput";
+import { SwitchInput } from "@/components/Input/SwitchInput";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";

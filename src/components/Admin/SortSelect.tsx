@@ -5,7 +5,7 @@
 import { useSearchParams } from "next/navigation";
 import { useShelfRouter as useRouter } from "@/components/Navigation/NavigationPort";
 
-import { SelectInput } from "@/components/Form/Input/Manual/Select";
+import { SelectInput } from "@/components/Input/Select";
 
 type SortOption = { label: string; value: string };
 

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Section } from "@/components/Layout/Section";
 
 import { useHeaderData } from "../hooks";

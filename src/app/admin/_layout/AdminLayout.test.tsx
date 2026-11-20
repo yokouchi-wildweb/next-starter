@@ -51,7 +51,7 @@ mock.module("@/lib/crud/hooks", {
   },
 });
 mock.module("@/features/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
-mock.module("@/components/Form/Button/Button", {
+mock.module("@/components/Button/Button", {
   namedExports: {
     Button: (p: { variant?: string; "aria-label"?: string; "aria-pressed"?: boolean }) =>
       createElement("x-button", { "data-variant": p.variant, "aria-label": p["aria-label"], "aria-pressed": String(p["aria-pressed"]) }),

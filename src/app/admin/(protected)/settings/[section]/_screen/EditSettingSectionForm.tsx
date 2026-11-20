@@ -6,7 +6,7 @@
 "use client";
 
 import { AppForm } from "@/components/Form/AppForm";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { FieldRenderer } from "@/components/Form/FieldRenderer";
 import { Flex } from "@/components/Layout/Flex";
 import type { Setting } from "@/features/core/setting/entities";

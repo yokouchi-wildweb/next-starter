@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Dialog } from "@/components/Overlays/Dialog";
 import type { BulkActionProps } from "@/lib/tableSuite";
 

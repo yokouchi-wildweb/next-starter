@@ -4,7 +4,7 @@
 
 import * as React from "react";
 import { Eye } from "lucide-react";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { InBlock } from "@/components/Layout/InBlock";
 import { getCellClickOverlayClassName } from "./cellClickOverlayStyles";
 

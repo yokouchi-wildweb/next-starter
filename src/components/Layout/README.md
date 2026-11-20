@@ -97,7 +97,7 @@ export default function TerminalLayout({ children }: Readonly<{ children: ReactN
 ```tsx
 "use client";
 import { useFullscreen } from "@/hooks/useFullscreen";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 
 export function FullscreenToggle() {
   const { isFullscreen, supported, toggle } = useFullscreen();

@@ -1,6 +1,6 @@
 // src/components/Form/Input/Controlled/ColorInput.tsx
 
-import { ColorInput as ManualColorInput } from "../Manual/ColorInput";
+import { ColorInput as ManualColorInput } from "@/components/Input/ColorInput";
 import { FieldPath, FieldValues } from "react-hook-form";
 import { ControlledInputProps } from "@/components/Form/types";
 

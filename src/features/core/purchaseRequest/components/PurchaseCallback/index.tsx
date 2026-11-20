@@ -7,7 +7,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
-import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { LinkButton } from "@/components/Button/LinkButton";
 import { usePurchaseStatusPolling } from "../../hooks/usePurchaseStatusPolling";
 
 type PurchaseCallbackProps = {

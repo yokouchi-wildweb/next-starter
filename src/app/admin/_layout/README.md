@@ -55,7 +55,7 @@
 - `admin-header-title` — AdminHeader のタイトルの位置(ロゴの右隣)
 - `admin-header-center` — AdminHeader の中央の位置
 - `admin-header-right` — AdminHeader の右の位置(明暗の切り替えの前)
-- `admin-sidebar` — PcSidebar の列・SpSidebar のドロワーと背景(Overlays/Sheet に `slot` / `overlaySlot` で渡す)・ResizableArea のリサイズのつまみ・SP の開閉ボタンの包み(AdminProtectedLayout)。開閉ボタンは Form/Button が自分の `data-slot="button"` を持つので上書きせず、箱を作らない包み(`display: contents`)が印を持つ。ボタンは id を持たない
+- `admin-sidebar` — PcSidebar の列・SpSidebar のドロワーと背景(Overlays/Sheet に `slot` / `overlaySlot` で渡す)・ResizableArea のリサイズのつまみ・SP の開閉ボタンの包み(AdminProtectedLayout)。開閉ボタンは Button/Button が自分の `data-slot="button"` を持つので上書きせず、箱を作らない包み(`display: contents`)が印を持つ。ボタンは id を持たない
 - `admin-main` — ResizableArea の本文の親(管理の fill の的)
 - `admin-footer` — (protected) の Footer の `<footer>`
 - `admin-page-title` — AdminPageTitle.tsx のページの題の h1(AdminPageTitleHeading、AdminPage の title の本文側 AdminPageTitleBody)。TextBlocks/PageTitle に `slot="admin-page-title"` を渡して付ける(照合はその字面と `src/components/TextBlocks/headingSlots.test.tsx` の描画)。sm 以上の `sm:sr-only` でも印は残る。ヘッダーの圧縮の題 AdminPageTitleCompact には付けない(見出しではない飾りの文字)。消す・名前を変えるのは notice

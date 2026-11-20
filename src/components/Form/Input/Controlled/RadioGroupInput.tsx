@@ -4,7 +4,7 @@ import type { FieldPath, FieldValues, ControllerRenderProps } from "react-hook-f
 import {
   RadioGroupInput as ManualRadioGroupInput,
   type RadioGroupInputProps as ManualRadioGroupInputProps,
-} from "../Manual/RadioGroupInput";
+} from "@/components/Input/RadioGroupInput";
 
 export type ControlledRadioGroupInputProps<
   TFieldValues extends FieldValues,

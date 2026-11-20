@@ -3,7 +3,7 @@
 import { isDevelopment } from "@/lib/appEnv";
 import { useEffect } from "react";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";

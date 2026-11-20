@@ -3,7 +3,8 @@
 
 "use client";
 
-import { DatetimeInput, RadioGroupInput } from "@/components/Form/Input/Manual";
+import { DatetimeInput } from "@/components/Input/DatetimeInput";
+import { RadioGroupInput } from "@/components/Input/RadioGroupInput";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 

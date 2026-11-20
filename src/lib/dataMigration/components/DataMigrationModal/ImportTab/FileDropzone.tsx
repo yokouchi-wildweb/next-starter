@@ -4,10 +4,10 @@
 "use client";
 
 import type { DragEvent, ChangeEvent, RefObject } from "react";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
-import { Input } from "@/components/Form/Input/Manual";
+import { Input } from "@/components/Input/Input";
 import { Para } from "@/components/TextBlocks/Para";
 
 export type FileDropzoneProps = {

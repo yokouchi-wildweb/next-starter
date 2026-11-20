@@ -1,6 +1,6 @@
 import type React from "react";
 import type { EditableGridColumn } from "../../types";
-import type { OptionPrimitive } from "@/components/Form/utils";
+import type { OptionPrimitive } from "@/components/Input/options";
 
 /**
  * EditableGridCell内部ステート

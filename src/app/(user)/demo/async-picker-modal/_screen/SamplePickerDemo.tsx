@@ -6,8 +6,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import { Button } from "@/components/Form/Button/Button";
-import { type Options } from "@/components/Form/types";
+import { Button } from "@/components/Button/Button";
+import { type Options } from "@/components/Input/options";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { AsyncPickerModal } from "@/components/Overlays/AsyncPickerModal";

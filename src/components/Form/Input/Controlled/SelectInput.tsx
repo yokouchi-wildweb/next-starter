@@ -1,7 +1,7 @@
 // src/components/Form/Input/Controlled/SelectInput.tsx
 
 import type { FieldPath, FieldValues, ControllerRenderProps } from "react-hook-form";
-import { SelectInput as ManualSelectInput, type SelectInputProps as ManualSelectInputProps } from "../Manual/Select";
+import { SelectInput as ManualSelectInput, type SelectInputProps as ManualSelectInputProps } from "@/components/Input/Select";
 
 export type ControlledSelectInputProps<
   TFieldValues extends FieldValues,

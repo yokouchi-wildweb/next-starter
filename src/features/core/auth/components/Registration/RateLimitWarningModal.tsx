@@ -3,7 +3,7 @@
 "use client";
 
 import Modal from "@/components/Overlays/Modal";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { authConfig } from "@/features/auth/config";
 import { RateLimitWarningContent } from "./RateLimitWarningContent";

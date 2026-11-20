@@ -9,9 +9,9 @@ export { SendKindPicker, type SendKindPickerProps } from "./SendKindPicker";
 import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Check } from "lucide-react";
 
-import { Button } from "@/components/Form/Button";
-import { SelectInput } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import { Button } from "@/components/Button/Button";
+import { SelectInput } from "@/components/Input/Select";
+import { Label } from "@/components/Input/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";

@@ -17,7 +17,7 @@ import useSWR from "swr";
 
 import { ControlledField } from "../Controlled";
 import type { FieldConfig, FieldCommonProps } from "../types";
-import type { Options } from "@/components/Form/types";
+import type { Options } from "@/components/Input/options";
 import {
   AsyncComboboxInput,
 } from "@/components/Form/Input/Controlled/AsyncComboboxInput";

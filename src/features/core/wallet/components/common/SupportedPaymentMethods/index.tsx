@@ -15,7 +15,7 @@ import { useState } from "react";
 import { CalendarClock, Check, ChevronRight, CreditCard, Gauge, Landmark, ShoppingCart, Smartphone, Store, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { InBlock } from "@/components/Layout/InBlock";

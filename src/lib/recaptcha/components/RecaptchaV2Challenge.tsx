@@ -5,7 +5,7 @@
 import { useRef, useCallback, useState } from "react";
 import ReCAPTCHA from "react-google-recaptcha";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Dialog } from "@/components/Overlays/Dialog";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";

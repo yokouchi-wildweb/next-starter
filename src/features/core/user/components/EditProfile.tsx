@@ -11,7 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AppForm } from "@/components/Form/AppForm";
 import { ControlledField } from "@/components/Form";
 import { TextInput } from "@/components/Form/Input/Controlled";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Section } from "@/components/Layout/Section";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";

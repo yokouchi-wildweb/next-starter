@@ -4,7 +4,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
 import { useFileDropzone, useImportHandler } from "./hooks";

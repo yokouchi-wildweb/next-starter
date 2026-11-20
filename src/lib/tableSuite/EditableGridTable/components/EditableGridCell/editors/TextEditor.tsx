@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Input } from "@/components/Form/Input/Manual";
+import { Input } from "@/components/Input/Input";
 import type { BaseEditorProps } from "../types";
 
 type TextEditorProps<T> = BaseEditorProps<T> & {

@@ -5,7 +5,7 @@
 import { type ReactNode, useCallback, useState } from "react";
 import { MenuIcon, XIcon } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 
 import { ResizableArea } from "./ResizableArea";

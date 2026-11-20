@@ -75,22 +75,42 @@ mock.module("@/lib/unsavedGuard", {
 
 type SelectProps = { id?: string; options?: { value: string; label: string }[]; disabled?: boolean; placeholder?: string };
 const selects: Record<string, SelectProps> = {};
-mock.module("@/components/Form/Input/Manual", {
+mock.module("@/components/Input/DateInput", {
   namedExports: {
     DateInput: () => createElement("input"),
+  },
+});
+mock.module("@/components/Input/DatetimeInput", {
+  namedExports: {
     DatetimeInput: () => createElement("input"),
+  },
+});
+mock.module("@/components/Input/SwitchInput", {
+  namedExports: {
     // 一覧の選択(lib/tableSuite の BulkActionBar、J109)の「選択モード」の切り替え
     SwitchInput: (props: { label?: string }) => createElement("input", { type: "checkbox", "aria-label": props.label }),
+  },
+});
+mock.module("@/components/Input/Input", {
+  namedExports: {
     Input: (props: { id?: string }) => createElement("input", { id: props.id }),
+  },
+});
+mock.module("@/components/Input/Select", {
+  namedExports: {
     SelectInput: (props: SelectProps) => {
       if (props.id) selects[props.id] = props;
       return createElement("span", { id: props.id });
     },
   },
 });
-mock.module("@/components/Form/Button", {
+mock.module("@/components/Button/Button", {
   namedExports: {
     Button: (props: { children?: ReactNode; onClick?: () => void }) => createElement("button", { type: "button", onClick: props.onClick }, props.children),
+  },
+});
+mock.module("@/components/Button/LinkButton", {
+  namedExports: {
     LinkButton: (props: { href: string; children?: ReactNode }) => createElement("a", { href: props.href }, props.children),
   },
 });

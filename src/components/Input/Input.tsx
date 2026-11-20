@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 import { createOverridableVariants, type InputSize } from "@/lib/variantOverrides";
 import { variantOverrides } from "@/lib/variantOverrides/config";
 import { Input as PrimitiveInput } from "@/components/Primitives/Input";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 
 export type { InputSize } from "@/lib/variantOverrides";
 

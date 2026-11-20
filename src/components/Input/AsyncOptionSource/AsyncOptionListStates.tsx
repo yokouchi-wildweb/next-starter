@@ -6,7 +6,7 @@
 // useAsyncOptionSource の FetchState をそのまま受けて描画する。3 消費者で共通。
 
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 import { Stack } from "@/components/Layout/Stack";

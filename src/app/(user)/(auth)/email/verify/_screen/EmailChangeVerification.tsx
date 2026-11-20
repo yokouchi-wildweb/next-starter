@@ -12,7 +12,7 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { useEmailChangeVerification } from "@/features/core/auth/hooks/useEmailChangeVerification";
 
 export function EmailChangeVerification() {

@@ -7,7 +7,7 @@
 
 import type { ReactNode } from "react";
 
-import { SwitchInput } from "@/components/Form/Input/Manual";
+import { SwitchInput } from "@/components/Input/SwitchInput";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";

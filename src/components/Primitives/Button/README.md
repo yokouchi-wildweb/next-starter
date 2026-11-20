@@ -2,12 +2,12 @@
 
 ## Overview
 
-- ボタンの土台 `Button`・`baseButtonClassName`（asChild = radix-ui の Slot）。完成品は `src/components/Form/Button`。
+- ボタンの土台 `Button`・`baseButtonClassName`（asChild = radix-ui の Slot）。完成品は `src/components/Button`。
 - 使う時・直す時の決まり(入口・radix-ui・完成品が先・data-slot の約束)は札 .claude/rules/items/components/Primitives.md にある。この README は部品の説明と印の一覧
 
 ## API
 
-- `iconSizing`: 既定 `"auto"` = 大きさの class(`size-*`)の無い中の svg を 16px に揃える。`"none"` = 揃えず、呼び手の付けた大きさ(`h-* w-*`・style)のまま(アイコンの大きさを自分で決める押し口: 表のセルの押し口・アバターの押し口など)。`Form/Button` も同じ名前で受ける
+- `iconSizing`: 既定 `"auto"` = 大きさの class(`size-*`)の無い中の svg を 16px に揃える。`"none"` = 揃えず、呼び手の付けた大きさ(`h-* w-*`・style)のまま(アイコンの大きさを自分で決める押し口: 表のセルの押し口・アバターの押し口など)。`Button/Button` も同じ名前で受ける
 
 ## Extension
 

@@ -3,7 +3,8 @@
 "use client";
 
 import { useEffect, useState, type ChangeEvent } from "react";
-import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
+import { type ButtonStyleProps } from "@/components/Button/variants";
 import { MinusIcon, PlusIcon } from "lucide-react";
 import type { VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";

@@ -2,7 +2,7 @@
 
 ## Overview
 
-- チェックボックス（radix-ui）。型 `CheckedState` も出す。完成品は `Form/Input/Manual` の `BooleanCheckboxInput` など。
+- チェックボックス（radix-ui）。型 `CheckedState` も出す。完成品は `components/Input` の `BooleanCheckboxInput` など。
 - 使う時・直す時の決まり(入口・radix-ui・完成品が先・data-slot の約束)は札 .claude/rules/items/components/Primitives.md にある。この README は部品の説明と印の一覧
 
 ## Extension

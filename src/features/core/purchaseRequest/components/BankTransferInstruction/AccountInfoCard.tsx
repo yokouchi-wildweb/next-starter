@@ -13,7 +13,7 @@ import { Landmark } from "lucide-react";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Span } from "@/components/TextBlocks/Span";
 import type { BankTransferConfig } from "@/features/purchaseRequest/config";
 

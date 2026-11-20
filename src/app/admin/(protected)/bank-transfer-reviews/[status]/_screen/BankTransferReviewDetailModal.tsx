@@ -14,9 +14,9 @@ import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
-import { Label } from "@/components/Form/Label";
-import { Button } from "@/components/Form/Button";
-import { Manual } from "@/components/Form/Input";
+import { Label } from "@/components/Input/Label";
+import { Button } from "@/components/Button/Button";
+import { Textarea } from "@/components/Input/Textarea";
 import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { ZoomableImage } from "@/components/Overlays/ImageViewer";
 import { resolveStorageSrc } from "@/lib/storage";
@@ -483,7 +483,7 @@ function ActionSection({
             <Span size="xs" weight="inherit" tone="muted">
               拒否理由 (必須・{REJECT_REASON_MAX} 文字以内)
             </Span>
-            <Manual.Textarea
+            <Textarea
               value={rejectReason}
               rows={4}
               placeholder="例: 振込明細画像と銀行口座入金履歴の照合ができないため"
@@ -540,7 +540,7 @@ function ActionSection({
             <Span size="xs" weight="inherit" tone="muted">
               メモ (任意・{INVESTIGATE_NOTE_MAX} 文字以内)
             </Span>
-            <Manual.Textarea
+            <Textarea
               value={investigateNote}
               rows={4}
               placeholder="例: 同一画像での複数申告の疑いあり。ユーザーへ確認連絡中"
@@ -654,7 +654,7 @@ function AdminMemoSection({
   return (
     <Stack gap="xs">
       <SecTitle>管理者メモ</SecTitle>
-      <Manual.Textarea
+      <Textarea
         value={draft}
         rows={4}
         placeholder="運用上のメモ（公開されません）"

@@ -61,17 +61,25 @@ mock.module("@/components/Overlays/Modal", {
   defaultExport: (props: { open: boolean; children?: ReactNode; footer?: ReactNode }) =>
     props.open ? createElement("section", { "data-testid": "modal" }, props.children as never, props.footer as never) : null,
 });
-mock.module("@/components/Form/Button", {
+mock.module("@/components/Button/Button", {
   namedExports: {
     Button: (props: { children?: ReactNode; disabled?: boolean; onClick?: () => void }) =>
       createElement("button", { type: "button", disabled: props.disabled, onClick: props.onClick }, props.children as never),
   },
 });
-mock.module("@/components/Form/Input/Manual", {
+mock.module("@/components/Input/Input", {
   namedExports: {
     Input: (props: { onChange: (e: { target: { value: string } }) => void }) =>
       createElement("button", { type: "button", "data-input": "name", onClick: () => props.onChange({ target: { value: "春の招待" } }) }, "name"),
+  },
+});
+mock.module("@/components/Input/Textarea", {
+  namedExports: {
     Textarea: () => createElement("textarea"),
+  },
+});
+mock.module("@/components/Input/Select", {
+  namedExports: {
     SelectInput: (props: { options: { value: string; label: string }[]; onChange: (v: string) => void }) =>
       createElement(
         "span",

@@ -4,7 +4,7 @@ import type { FieldPath, FieldValues, ControllerRenderProps } from "react-hook-f
 import {
   ComboboxInput as ManualComboboxInput,
   type ComboboxInputProps as ManualComboboxInputProps,
-} from "../Manual/ComboboxInput";
+} from "@/components/Input/ComboboxInput";
 
 export type ControlledComboboxInputProps<
   TFieldValues extends FieldValues,

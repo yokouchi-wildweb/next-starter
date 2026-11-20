@@ -4,9 +4,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Button } from "@/components/Form/Button/Button";
-import { BooleanCheckboxInput, ComboboxInput, Input, NumberInput, SelectInput, Textarea } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import { Button } from "@/components/Button/Button";
+import { BooleanCheckboxInput } from "@/components/Input/BooleanCheckboxInput";
+import { ComboboxInput } from "@/components/Input/ComboboxInput";
+import { Input } from "@/components/Input/Input";
+import { NumberInput } from "@/components/Input/NumberInput";
+import { SelectInput } from "@/components/Input/Select";
+import { Textarea } from "@/components/Input/Textarea";
+import { Label } from "@/components/Input/Label";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { type SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
 import Modal from "@/components/Overlays/Modal";

@@ -6,9 +6,9 @@ import { useState, type FormEvent } from "react";
 import { Link } from "@/components/Navigation/Link";
 import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
-import { Label } from "@/components/Form/Label";
-import { Input } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { Label } from "@/components/Input/Label";
+import { Input } from "@/components/Input/Input";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";

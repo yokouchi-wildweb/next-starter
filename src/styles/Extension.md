@@ -152,14 +152,14 @@ export default {
 
 | キー | 対象 | variant / size 名の定義 |
 |---|---|---|
-| `button` | `Button` / `LinkButton` / `PseudoButton`(`buttonVariants` を使う全部品) | `src/components/Form/Button/button-variants.ts` |
-| `tabletButton` | `TabletButton` | `src/components/Form/Button/tablet-button-variants.ts` |
+| `button` | `Button` / `LinkButton` / `PseudoButton`(`buttonVariants` を使う全部品) | `src/components/Button/variants/button-variants.ts` |
+| `tabletButton` | `TabletButton` | `src/components/Button/variants/tablet-button-variants.ts` |
 | `badge.size` | `SolidBadge` / `SoftBadge` / `BookmarkTagBadge` 共通のサイズ | `src/components/Badge/badge-variants.ts` |
 | `badge.solid` / `badge.soft` / `badge.bookmarkTag` | 各バッジの `base` / `variant` | 同上 |
-| `booleanCheckbox` | `BooleanCheckboxInput` のチェックボックス(`base` / `size`) | 値の名前 = `@/lib/variantOverrides` の型(`CheckControlSize`)、既定のクラス = `src/components/Form/Input/Manual/BooleanCheckboxInput.tsx` |
+| `booleanCheckbox` | `BooleanCheckboxInput` のチェックボックス(`base` / `size`) | 値の名前 = `@/lib/variantOverrides` の型(`CheckControlSize`)、既定のクラス = `src/components/Input/BooleanCheckboxInput.tsx` |
 | `booleanRadioGroup` | `BooleanRadioGroupInput` の各ラジオ(`base` / `size`) | `CheckControlSize`、`BooleanRadioGroupInput.tsx` |
 | `singleCardCheckbox` | `SingleCardCheckbox` のカード(`base` / `size` / `color`。`color` は今の色 = チェック時 `checkedVariant`・未チェック時 `uncheckedVariant` のときだけ) | `CheckControlSize`・`SingleCardCheckboxColor`、`SingleCardCheckbox.tsx` |
-| `input` | 入力欄系(`Input` とその上の部品)と選ぶ欄の引き金(`SelectInput` / `ComboboxInput` / `MultiSelectInput` 系)で 1 つを共有(`base` / `size`) | `InputSize`、`src/components/Form/Input/Manual/Input.tsx` の `INPUT_SIZE_CLASSES` |
+| `input` | 入力欄系(`Input` とその上の部品)と選ぶ欄の引き金(`SelectInput` / `ComboboxInput` / `MultiSelectInput` 系)で 1 つを共有(`base` / `size`) | `InputSize`、`src/components/Input/Input.tsx` の `INPUT_SIZE_CLASSES` |
 | `stepperInput` | `StepperInput` の外枠(`base` / `size`。既定の高さは操作部品の高さの段) | `StepperInputSize`、`StepperInput.tsx` |
 | `switchInput.track` / `switchInput.indicator` | `SwitchInput` の台(`base` / `size` / `activeColor` はオンの間・`inactiveColor` はオフの間)と丸(`base` / `size`) | `CheckControlSize`・`SwitchInputColor`、`SwitchInput.tsx` |
 | `pageTitle` / `para` / `secTitle` / `span` | 各 TextBlocks(`base` / `tone` / `size` / `weight` / `align`。`srOnly` は上書きしない) | `TextTone`・`TextSize`・`TextWeight`・`TextAlign`、`src/components/TextBlocks/textVariants.ts` |

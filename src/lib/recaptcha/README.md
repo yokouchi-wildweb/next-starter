@@ -38,7 +38,7 @@ v3 と v2 は別々のサイトキー(同じキーは使えない)。
 ```tsx
 "use client";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { getRecaptchaToken, RecaptchaBadge, useRecaptcha } from "@/lib/recaptcha";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 

@@ -6,8 +6,8 @@ import { useCallback, useState } from "react";
 import { ArrowLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useToast } from "@/lib/toast";
 
-import { Button } from "@/components/Form/Button";
-import { Input } from "@/components/Form/Input/Manual";
+import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";

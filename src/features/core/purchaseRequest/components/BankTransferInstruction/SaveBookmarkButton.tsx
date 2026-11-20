@@ -10,7 +10,7 @@ import { useState, useSyncExternalStore } from "react";
 import { Bookmark } from "lucide-react";
 
 import { Flex } from "@/components/Layout/Flex";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 
 import { SaveBookmarkModal } from "./SaveBookmarkModal";
 

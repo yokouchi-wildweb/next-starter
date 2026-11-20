@@ -12,7 +12,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
 import { Span } from "@/components/TextBlocks/Span";
-import { NumberInput } from "@/components/Form/Input/Manual";
+import { NumberInput } from "@/components/Input/NumberInput";
 import { useGate } from "@/featureGate/client";
 import { walletConfig } from "@/features/wallet/config";
 import type { PackageDiscount } from "@/features/core/purchaseRequest/types/couponEffect";

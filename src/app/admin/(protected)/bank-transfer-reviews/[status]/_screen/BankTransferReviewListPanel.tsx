@@ -14,7 +14,7 @@ import { Upload } from "lucide-react";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import Pagination from "@/components/Navigation/Pagination";
 import SearchBox from "@/components/Admin/SearchBox";
 import type { BankTransferReviewStatus } from "@/features/core/bankTransferReview";

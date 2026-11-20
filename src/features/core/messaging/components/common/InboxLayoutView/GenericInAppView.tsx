@@ -5,7 +5,7 @@
 
 import type { ReactNode } from "react";
 
-import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { LinkButton } from "@/components/Button/LinkButton";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";

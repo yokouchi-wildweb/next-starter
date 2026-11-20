@@ -6,7 +6,7 @@ import React from "react";
 
 import { cn } from "@/lib/cn";
 import { Block } from "@/components/Layout/Block";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { InBlock } from "@/components/Layout/InBlock";
 import { Span } from "@/components/TextBlocks/Span";
 

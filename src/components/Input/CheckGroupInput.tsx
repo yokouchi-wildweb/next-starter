@@ -5,9 +5,10 @@
 import { useId, type HTMLAttributes } from "react";
 
 import { type Options } from "@/components/Input/options";
-import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
-import { BookmarkTag } from "@/components/Form/Button/BookmarkTag";
-import { RoundedButton } from "@/components/Form/Button/RoundedButton";
+import { Button } from "@/components/Button/Button";
+import { type ButtonStyleProps } from "@/components/Button/variants";
+import { BookmarkTag } from "@/components/Button/BookmarkTag";
+import { RoundedButton } from "@/components/Button/RoundedButton";
 import { Label } from "@/components/Input/Label";
 import { Checkbox } from "@/components/Primitives/Checkbox";
 import {

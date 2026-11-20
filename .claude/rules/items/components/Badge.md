@@ -9,7 +9,7 @@ change: placement → colors = semantic tokens in src/styles/palette.css | shape
 rules:
 using:
 - badge_source: a badge comes from @/components/Badge/\<Part\> | BadgeCore (@/components/Primitives/Badge) directly only when the finished badges fall short (Primitives card finished_first)
-- badge_interactive: a clickable or link badge = `asChild` over Form/Button or LinkButton with `variant="none" size="none"`, never a raw button / a styled as a badge | the general rule = core/components.md as_child_interactive
+- badge_interactive: a clickable or link badge = `asChild` over Button/Button or Button/LinkButton with `variant="none" size="none"`, never a raw button / a styled as a badge | the general rule = core/components.md as_child_interactive
 - badge_as_child_single: the asChild child is one React element (no text only, several elements or Fragment: Slot throws at runtime)
 editing:
 - badge_core: a new badge delegates asChild (Slot) and icon drawing to BadgeCore (@/components/Primitives/Badge), never its own Slot branch

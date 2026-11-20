@@ -7,7 +7,7 @@ import { Link } from "@/components/Navigation/Link";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Para } from "@/components/TextBlocks/Para";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 
 export default function SignUpError() {

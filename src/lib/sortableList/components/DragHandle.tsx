@@ -3,14 +3,14 @@
 "use client";
 
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { Span } from "@/components/TextBlocks/Span";
 import { cn } from "@/lib/cn";
 import { GripVertical } from "lucide-react";
 
 type DragHandleProps = {
   listeners?: SyntheticListenerMap;
-  /** dnd-kit の useSortable の attributes(role・tabIndex・aria-*)。slot は Form/Button の印の名前とぶつかるので受けない */
+  /** dnd-kit の useSortable の attributes(role・tabIndex・aria-*)。slot は Button/Button の印の名前とぶつかるので受けない */
   attributes?: Omit<React.HTMLAttributes<HTMLButtonElement>, "slot">;
   disabled?: boolean;
   className?: string;

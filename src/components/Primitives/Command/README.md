@@ -2,7 +2,7 @@
 
 ## Overview
 
-- コマンドパレット（検索付きリスト、cmdk）。フォームの検索付き選択は `Form/Input/Manual` の `ComboboxInput` など。
+- コマンドパレット（検索付きリスト、cmdk）。フォームの検索付き選択は `components/Input` の `ComboboxInput` など。
 - 使う時・直す時の決まり(入口・radix-ui・完成品が先・data-slot の約束)は札 .claude/rules/items/components/Primitives.md にある。この README は部品の説明と印の一覧
 
 ## Extension

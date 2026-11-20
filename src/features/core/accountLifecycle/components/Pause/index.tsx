@@ -5,14 +5,14 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import Modal from "@/components/Overlays/Modal";
-import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import { BooleanCheckboxInput } from "@/components/Input/BooleanCheckboxInput";
+import { Label } from "@/components/Input/Label";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { usePause } from "@/features/core/accountLifecycle/hooks/usePause";

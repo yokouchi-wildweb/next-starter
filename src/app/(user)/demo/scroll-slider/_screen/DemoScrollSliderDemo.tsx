@@ -12,9 +12,10 @@ import { Stack } from "@/components/Layout/Stack"
 import { Main } from "@/components/Layout/Main"
 import { SecTitle } from "@/components/TextBlocks/SecTitle"
 import { Span } from "@/components/TextBlocks/Span"
-import { Button } from "@/components/Form/Button"
-import { Label } from "@/components/Form/Label"
-import { BooleanCheckboxInput, Input } from "@/components/Form/Input/Manual"
+import { Button } from "@/components/Button/Button"
+import { Label } from "@/components/Input/Label"
+import { BooleanCheckboxInput } from "@/components/Input/BooleanCheckboxInput"
+import { Input } from "@/components/Input/Input"
 
 /** 欄を包む Label の class。Label の既定(横並びの中央寄せ・text-sm・leading-none・font-medium)を生の label の見た目に戻す */
 const FIELD_LABEL_CLASS_NAME = "flex-col items-stretch gap-1 font-normal"

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
+import { BooleanCheckboxInput } from "@/components/Input/BooleanCheckboxInput";
 import { Stack } from "@/components/Layout/Stack";
 import { Link } from "@/components/Navigation/Link";
 import { Para } from "@/components/TextBlocks/Para";

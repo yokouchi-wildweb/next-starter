@@ -25,8 +25,8 @@ import {
 } from "@/components/Form/Input/Controlled";
 import { BUILTIN_FORM_INPUTS } from "@/lib/domain/fields/formInputs.mjs";
 import type { FieldConfig, FieldOption, FormInputType } from "../types";
-import type { RadioGroupDisplayType } from "@/components/Form/Input/Manual/RadioGroupInput";
-import type { CheckGroupDisplayType } from "@/components/Form/Input/Manual/CheckGroupInput";
+import type { RadioGroupDisplayType } from "@/components/Input/RadioGroupInput";
+import type { CheckGroupDisplayType } from "@/components/Input/CheckGroupInput";
 import { isCheckGroupFieldType } from "./checkGroupFieldTypes";
 
 /**

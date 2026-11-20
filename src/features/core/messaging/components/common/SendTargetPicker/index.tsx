@@ -8,7 +8,9 @@
 
 "use client";
 
-import { MultiSelectInput, RadioGroupInput, SelectInput } from "@/components/Form/Input/Manual";
+import { MultiSelectInput } from "@/components/Input/MultiSelectInput";
+import { RadioGroupInput } from "@/components/Input/RadioGroupInput";
+import { SelectInput } from "@/components/Input/Select";
 import { Stack } from "@/components/Layout/Stack";
 import { Link } from "@/components/Navigation/Link";
 import { Para } from "@/components/TextBlocks/Para";

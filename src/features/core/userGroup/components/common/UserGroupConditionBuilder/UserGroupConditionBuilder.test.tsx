@@ -17,13 +17,13 @@ g.MouseEvent = dom.window.MouseEvent;
 g.IS_REACT_ACT_ENVIRONMENT = true;
 
 const events: string[] = [];
-mock.module("@/components/Form/Button", {
+mock.module("@/components/Button/Button", {
   namedExports: {
     Button: (props: { children?: ReactNode; disabled?: boolean; onClick?: () => void }) =>
       createElement("button", { type: "button", disabled: props.disabled, onClick: props.onClick }, props.children as never),
   },
 });
-mock.module("@/components/Form/Input/Manual", {
+mock.module("@/components/Input/Select", {
   namedExports: {
     SelectInput: (props: { options: { value: string; label: string }[]; onChange: (v: string) => void; placeholder?: string }) =>
       createElement(
@@ -31,6 +31,10 @@ mock.module("@/components/Form/Input/Manual", {
         { "data-select": props.placeholder ?? "op" },
         ...props.options.map((o) => createElement("button", { type: "button", key: o.value, onClick: () => props.onChange(o.value) }, `pick:${o.label}`)),
       ),
+  },
+});
+mock.module("@/components/Input/RadioGroupInput", {
+  namedExports: {
     // 含める / 除外する: 両方の選択肢を出し、今の値に印(aria-pressed)
     RadioGroupInput: (props: { value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) =>
       createElement(

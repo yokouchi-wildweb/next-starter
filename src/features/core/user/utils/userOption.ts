@@ -4,7 +4,7 @@
 import type { ReactNode } from "react";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/types";
-import type { Options } from "@/components/Form/types";
+import type { Options } from "@/components/Input/options";
 import type { WhereExpr } from "@/lib/crud/types";
 
 /**

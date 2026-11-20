@@ -9,9 +9,13 @@
 
 import { Plus, Trash2, X } from "lucide-react";
 
-import { Button } from "@/components/Form/Button";
-import { DateInput, DatetimeInput, Input, SelectInput, SwitchInput } from "@/components/Form/Input/Manual";
-import { Label } from "@/components/Form/Label";
+import { Button } from "@/components/Button/Button";
+import { DateInput } from "@/components/Input/DateInput";
+import { DatetimeInput } from "@/components/Input/DatetimeInput";
+import { Input } from "@/components/Input/Input";
+import { SelectInput } from "@/components/Input/Select";
+import { SwitchInput } from "@/components/Input/SwitchInput";
+import { Label } from "@/components/Input/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";

@@ -4,7 +4,7 @@
 
 import { useShelfRouter as useRouter } from "@/components/Navigation/NavigationPort";
 
-import { SelectInput } from "@/components/Form/Input/Manual/Select";
+import { SelectInput } from "@/components/Input/Select";
 import { Flex } from "@/components/Layout/Flex";
 import { cn } from "@/lib/cn";
 import type { ItemNavigatorProps } from "./types";

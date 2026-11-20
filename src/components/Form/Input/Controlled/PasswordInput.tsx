@@ -1,5 +1,5 @@
-import { PasswordInput as ManualPasswordInput } from "../Manual";
-import type { PasswordAutoComplete } from "../Manual/PasswordInput";
+import { PasswordInput as ManualPasswordInput } from "@/components/Input/PasswordInput";
+import type { PasswordAutoComplete } from "@/components/Input/PasswordInput";
 import { FieldPath, FieldValues } from "react-hook-form";
 import { type ReactNode } from "react";
 import { ControlledInputProps } from "@/components/Form/types";

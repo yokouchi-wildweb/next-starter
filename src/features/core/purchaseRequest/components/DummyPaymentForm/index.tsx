@@ -7,7 +7,7 @@ import { CreditCard } from "lucide-react";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 
 import { useDummyPayment } from "@/features/core/purchaseRequest/hooks/useDummyPayment";
 

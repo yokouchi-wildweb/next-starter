@@ -2,7 +2,7 @@
 
 import { ArrowRight } from "lucide-react";
 
-import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { LinkButton } from "@/components/Button/LinkButton";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";

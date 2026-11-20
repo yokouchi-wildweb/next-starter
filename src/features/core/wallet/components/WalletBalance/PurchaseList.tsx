@@ -7,7 +7,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
-import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { LinkButton } from "@/components/Button/LinkButton";
 import { SoftBadge } from "@/components/Badge/SoftBadge";
 import type { WalletType } from "@/features/wallet/config";
 import type { CurrencyConfig } from "@/features/core/wallet/types/currency";

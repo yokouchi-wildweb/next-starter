@@ -162,7 +162,7 @@ export function useSampleDetail(id: string | null, { fallbackData }: { fallbackD
 ```tsx
 "use client";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { useUpdateSample } from "@/features/sample/hooks/useUpdateSample";
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";

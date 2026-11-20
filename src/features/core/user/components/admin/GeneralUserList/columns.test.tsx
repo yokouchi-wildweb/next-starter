@@ -14,7 +14,7 @@ const { createElement, Fragment } = require("react") as typeof import("react");
 mock.module("@/lib/tableSuite", {
   namedExports: { TableCellAction: ({ children }: { children: ReactNode }) => createElement(Fragment, null, children) },
 });
-mock.module("@/components/Form/Button/Button", {
+mock.module("@/components/Button/Button", {
   namedExports: {
     Button: (props: { children: ReactNode; onClick?: () => void; disabled?: boolean; variant?: string }) =>
       createElement("button", { "data-variant": props.variant, disabled: props.disabled, onClick: props.onClick }, props.children),

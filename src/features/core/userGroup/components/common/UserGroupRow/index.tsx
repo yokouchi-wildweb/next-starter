@@ -5,7 +5,7 @@
 // 行に乗る・行の中に入る(focus-within)と出る。触る画面(hover: none)と狭い幅ではいつも出す。操作は行の開くボタンの外(押してもモーダルは開かない)。
 // 削除できない(deletable false)時は押せず、理由(サーバーの文 deleteReasons)を Tooltip で出す
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Button/Button";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { Tooltip } from "@/components/Overlays/Tooltip";
 import { Flex } from "@/components/Layout/Flex";

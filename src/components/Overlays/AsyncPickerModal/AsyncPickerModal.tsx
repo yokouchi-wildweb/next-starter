@@ -3,7 +3,7 @@
 // src/components/Overlays/AsyncPickerModal/AsyncPickerModal.tsx
 //
 // 「大量マスタからレコードを選んでリストに入れる」アクション用のモーダル版ピッカー。
-// 取得エンジンは Form/Input/Manual/AsyncOptionSource/useAsyncOptionSource を
+// 取得エンジンは Input/AsyncOptionSource/useAsyncOptionSource を
 // AsyncMultiSelectInput（Popover 版）と共有し、クローム（Modal 本体 + footer）だけが異なる。
 //
 //  - 本体: 検索欄（autofocus）+ 候補リスト（無限スクロール、内側だけがスクロール）
@@ -19,7 +19,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Command, CommandInput } from "@/components/Primitives/Command";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import {
   AsyncOptionInitialState,
   AsyncOptionList,
@@ -29,13 +29,9 @@ import {
   isAsyncOptionInitialState,
   useAsyncOptionSource,
   useSelectionSnapshot,
-} from "@/components/Form/Input/Manual/AsyncOptionSource";
-import {
-  normalizeOptionValues,
-  toggleOptionValue,
-  type OptionPrimitive,
-} from "@/components/Form/utils";
-import { type Options } from "@/components/Form/types";
+} from "@/components/Input/AsyncOptionSource";
+import { normalizeOptionValues, toggleOptionValue, type OptionPrimitive } from "@/components/Input/options";
+import { type Options } from "@/components/Input/options";
 import { Flex } from "@/components/Layout/Flex";
 import { StateTabs, StateTabsContent } from "@/components/Navigation/StateTabs";
 import Modal from "@/components/Overlays/Modal";

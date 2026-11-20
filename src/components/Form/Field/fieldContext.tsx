@@ -14,7 +14,7 @@ import {
   type FieldValues,
 } from "react-hook-form";
 
-import { Label } from "@/components/Form/Label";
+import { Label } from "@/components/Input/Label";
 import { cn } from "@/lib/cn";
 
 type FormFieldContextValue<

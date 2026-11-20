@@ -10,7 +10,7 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Para } from "@/components/TextBlocks/Para";
 import { BaseSkeleton } from "@/components/Skeleton/BaseSkeleton";
 import { AccountPageHeader } from "@/features/core/user/components/common/AccountPageHeader";

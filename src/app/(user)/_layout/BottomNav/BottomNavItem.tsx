@@ -3,7 +3,7 @@
 import { Link } from "@/components/Navigation/Link";
 import { usePathname } from "next/navigation";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { InBlock } from "@/components/Layout/InBlock";
 import { Span } from "@/components/TextBlocks/Span";

@@ -30,7 +30,7 @@ import { BookmarkTagBadge } from "@/components/Badge/BookmarkTagBadge";
 - 子側は `variant="none" size="none"` で自身の装飾を無効化し、見た目はバッジ側に委ねる(クラス衝突は tw-merge でバッジ側が勝つ)
 
 ```tsx
-// クリックでモーダルを開くカウントピル（Form/Button と合成）
+// クリックでモーダルを開くカウントピル（Button/Button と合成）
 <SolidBadge asChild variant="primary" size="sm">
   <Button variant="none" size="none" onClick={openModal}>
     5台

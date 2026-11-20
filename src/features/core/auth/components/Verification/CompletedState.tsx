@@ -4,7 +4,7 @@
 
 import { useEffect } from "react";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Para } from "@/components/TextBlocks/Para";
 import { authConfig } from "@/features/auth/config";

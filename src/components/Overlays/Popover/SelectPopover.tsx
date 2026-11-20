@@ -6,9 +6,9 @@ import { type ReactNode, useState, useCallback, useId, useMemo } from "react";
 import { Search } from "lucide-react";
 
 import { cn } from "@/lib/cn";
-import { Button } from "@/components/Form/Button/Button";
-import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
-import { Input } from "@/components/Form/Input/Manual/Input";
+import { Button } from "@/components/Button/Button";
+import { type ButtonStyleProps } from "@/components/Button/variants";
+import { Input } from "@/components/Input/Input";
 import { RadioGroup, RadioGroupItem } from "@/components/Primitives/RadioGroup";
 import {
   PopoverRoot,
