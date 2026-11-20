@@ -22,7 +22,7 @@ editing:
 - types_optional: additions to shared types (SearchParams …) are optional only
 - firestore_side: a Drizzle-only addition says if Firestore ignores or throws
 - query_pure: query/ builders stay pure functions (no DB access)
-- field_type_from_domain: presenters read domain.json fields through lib/domain's DomainField (Pick) | never a field type of crud's own
+- field_type_from_domain: presenters read domain.json fields, relations and tableFields through lib/domain's types (DomainField, DomainDisplayRelation, DomainDisplay; Pick) | never a shape of crud's own
 - hooks_reach: a generated hook signature change goes to the template and the lib together (every domain)
 - coll_names: a collections rename rewrites every upstream caller and keeps no old name (fork callers get the old → new table in the notice); CrudCollectionConfig grows by optional keys only
 read: options, methods, list columns → API | hooks contract → Internals | storage → src/lib/crud/storageIntegration/README.md Usage | collections → src/lib/crud/collections/README.md Usage | search → src/lib/crud/drizzle/query/README.md API | hooks → src/lib/crud/hooks/README.md Usage

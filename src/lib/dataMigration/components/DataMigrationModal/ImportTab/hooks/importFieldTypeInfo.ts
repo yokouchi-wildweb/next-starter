@@ -2,12 +2,11 @@
 // インポート画面がメインドメインのチャンクと一緒に送るフィールド情報を作る
 
 import { isCollectionFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
+import type { DomainField } from "@/lib/domain";
 import type { ExportField } from "../../types";
 
-export type ImportFieldTypeInfo = {
-  name: string;
-  fieldType: string | undefined;
-};
+/** チャンクと一緒に送る項目の情報 = domain.json の項目(DomainField)の name と fieldType */
+export type ImportFieldTypeInfo = Pick<DomainField, "name"> & { fieldType: DomainField["fieldType"] | undefined };
 
 /**
  * 型変換に使うフィールド情報を作る。

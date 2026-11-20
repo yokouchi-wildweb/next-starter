@@ -6,8 +6,7 @@ import { getFormRelations } from "../../../../../src/lib/domain/relations/relati
 import { collectMediaFields, isCollectionFieldType, isMediaFieldType } from "../../spec/fieldTypes.mjs";
 import { toCamelCase } from "../../../../../src/lib/stringCase/index.mjs";
 
-const RELATION_IMPORTS = `import { useRelationOptions } from "@/lib/domain/hooks";
-import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
+const RELATION_IMPORTS = `import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 `;
 
 const RELATION_BLOCK = `
@@ -119,7 +118,7 @@ import {
   type GroupContentMap,
   type InlineFieldGroup,
   type InsertFieldsMap,
-  type MediaState,
+  type MediaState,${hasRelations ? "\n  useRelationOptions," : ""}
 } from "@/lib/formSuite";
 ${hasRelations ? RELATION_IMPORTS : ""}import { domainDisplay } from "@/features/__domain__/entities/display";
 ${baseFieldsBlock(collectMediaFields(config), collectionFieldPatches(config, collectionChildren))}

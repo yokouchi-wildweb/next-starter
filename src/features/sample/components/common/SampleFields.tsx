@@ -13,8 +13,8 @@ import {
   type InlineFieldGroup,
   type InsertFieldsMap,
   type MediaState,
+  useRelationOptions,
 } from "@/lib/formSuite";
-import { useRelationOptions } from "@/lib/domain/hooks";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 import { domainDisplay } from "@/features/sample/entities/display";
 

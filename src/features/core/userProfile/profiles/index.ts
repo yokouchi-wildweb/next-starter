@@ -5,35 +5,15 @@
 // 例: import userProfile from "@/features/core/userProfile/profiles/user.profile.json";
 
 import type { AuditConfig } from "@/lib/crud/drizzle/types";
+import type { DomainConfigRelation } from "@/lib/domain";
 import type { ProfileFieldConfig } from "../types";
 
-
-
 /**
- * プロフィールリレーション設定。
- * domain.json の relations と同じフォーマット。
+ * プロフィールリレーション設定 = domain.json の関連(DomainConfigRelation)。
+ * プロフィールが持てる関連は belongsTo と belongsToMany だけ
  */
-export type ProfileRelationConfig = {
-  /** 関連先ドメイン名（snake_case） */
-  domain: string;
-  /** ラベル */
-  label: string;
-  /** フィールド名（belongsTo: 外部キー, belongsToMany: 配列フィールド） */
-  fieldName: string;
-  /** フィールドタイプ */
-  fieldType: string;
-  /** リレーションタイプ */
+export type ProfileRelationConfig = Omit<DomainConfigRelation, "relationType"> & {
   relationType: "belongsTo" | "belongsToMany";
-  /** 必須フラグ */
-  required?: boolean;
-  /** 削除時の挙動（belongsTo のみ） */
-  onDelete?: string;
-  /** 中間テーブルを生成するか（belongsToMany のみ） */
-  includeRelationTable?: boolean;
-  /** フォーム入力タイプ */
-  formInput?: string;
-  /** セレクトボックスのラベルに使うフィールド名（デフォルト: "name"） */
-  labelField?: string;
 };
 
 /**

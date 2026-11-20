@@ -250,7 +250,7 @@ custom リレーションの UI 実装例:
 |-----------|-----|------|------|
 | name | string | 🟢 Yes | フィールド名（snake_case） |
 | label | string | 🟢 Yes | 表示名 |
-| fieldType | FieldType | 🟢 Yes | データ型 |
+| fieldType | NeonFieldType / FirestoreFieldType | 🟢 Yes | データ型（型は `@/lib/domain`、名前は表から導く） |
 | formInput | FormInput | 🟢 Yes | フォーム入力種別 |
 | required | boolean | ⚪ No | 必須かどうか（配列の型では「空配列を既定にする」の意味で、1 件以上の意味ではない） |
 | readonly | boolean | ⚪ No | 読み取り専用（テキスト系は readOnly、選択系は disabled として適用） |
@@ -263,7 +263,7 @@ custom リレーションの UI 実装例:
 - リレーションのラベルの既定は関連先の `name` 項目（labelField の既定）なので、選ばれる側のドメインには `{ "name": "name", "fieldType": "string", "formInput": "textInput" }` の項目を置くとよい
 - 型と入力欄の組は `src/lib/domain/fields/fieldFormInputs.mjs` の表（表に無い組は警告）
 
-#### FieldType（Neon）
+#### NeonFieldType（Neon）
 
 | 値 | 説明 |
 |---|---|
@@ -288,7 +288,7 @@ custom リレーションの UI 実装例:
 
 `mediaUploaderMulti`（1 列の text[] に複数のメディアを持つ型）は廃止した。domain.json に残っていると pnpm generate domain が集まりへの移行を案内するエラーで止まる。複数のメディアは mediaCollection で持つ（formInput の `mediaUploaderMulti` は集まりの入力欄の名前として残る）
 
-#### FieldType（Firestore）
+#### FirestoreFieldType（Firestore）
 
 | 値 | 説明 |
 |---|---|

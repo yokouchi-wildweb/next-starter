@@ -11,14 +11,12 @@ import { Label } from "@/components/Input/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
 import { Span } from "@/components/TextBlocks/Span";
+import type { DomainDisplayField } from "@/lib/domain";
 
-export type ExportField = {
-  name: string;
-  label: string;
+/** 書き出す項目 = 写しの項目(DomainDisplayField)の name・label・fieldType(型変換用) + 画像の印 */
+export type ExportField = Pick<DomainDisplayField, "name" | "label" | "fieldType"> & {
   /** 画像フィールドかどうか（formInput: "mediaUploader"） */
   isImageField?: boolean;
-  /** フィールドのデータ型（型変換用） */
-  fieldType?: string;
 };
 
 export type ExportSettingsModalProps = {
