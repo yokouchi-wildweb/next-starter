@@ -64,7 +64,7 @@ export const task: OneShotTask = {
 
 ### notice が案内するタスク
 
-出荷前の notice(`.notices/<id>.md` で、まだ索引 `.notices/shipped/` に無い物)に書いた `pnpm task <名前>` は、その木に実在するタスク・移行・定期タスクでなければ `pnpm check notices` が止める(`scripts/workflow/notices/notices.test.mjs`)。出荷済みの notice の本文は見ない(書き換えない。その notice の版の木で読む)。
+出荷前の notice(`.notices/<id>.md` で、まだ commit していない物)に書いた `pnpm task <名前>` は、その木に実在するタスク・移行・定期タスクでなければ `pnpm check notices` が止める(`scripts/workflow/notices/notices.test.mjs`)。commit 済みの notice の本文は見ない(その notice の版の木で読む)。
 
 ### 実行の記録(task_runs)
 

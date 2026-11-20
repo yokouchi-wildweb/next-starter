@@ -14,7 +14,7 @@ pnpm workflow <対象> <動作> [<引数>...]           # 開発の進め方の�
 pnpm ops <対象> <動作> [<引数>...]                # 手で使う操作・閲覧の道具(scripts/operations/)
 ```
 
-- 例: `pnpm workflow worktree new <branch>` / `pnpm workflow notices shippedIndex verify` / `pnpm ops db inspect tables` / `pnpm ops features list`
+- 例: `pnpm workflow worktree new <branch>` / `pnpm workflow notices pickCheck <commit>` / `pnpm ops db inspect tables` / `pnpm ops features list`
 - 終了コードは動作のもの。対象・動作を省くと一覧(exit 0)、知らない種類・対象・動作は止める(exit 2)
 
 ## Internals

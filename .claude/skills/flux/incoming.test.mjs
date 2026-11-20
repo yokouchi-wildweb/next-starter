@@ -80,7 +80,7 @@ function twoTier(t) {
   return { up, f, p1, p3 };
 }
 
-test("rows: parseRow reads the same line as shippedIndex writes; checkpoint absent = break, skip_checkpoint = not a break", () => {
+test("rows: parseRow reads the old index line form (old histories); checkpoint absent = break, skip_checkpoint = not a break", () => {
   const row = parseRow(rowOf(N(1), ["checkpoint: a", "hotfix: reason", "fixes: x, commit:abc1234"]));
   assert.deepEqual(row, { id: N(1), fields: { severity: "info", checkpoint: "a", fixes: "x, commit:abc1234", hotfix: "yes" } });
   assert.equal(isBreak({ id: "a", fields: {} }, new Set()), true);

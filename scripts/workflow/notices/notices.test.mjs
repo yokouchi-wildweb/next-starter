@@ -1,7 +1,7 @@
 // scripts/workflow/notices/notices.test.mjs
 // DOWNSTREAM NOTICE(.notices/*.md)の契約テスト。実行: pnpm test scripts/workflow/notices/notices.test.mjs (node:test)
 // /ship が notice を出荷する前に通し、/flux が読む書式(見出し行・checkpoint・fixes・pick・covers・moved・resolves)と食い違わないことを確かめる。
-// 索引 .notices/shipped/*.md の検査(追記だけ・行と本文・uses:・skip_checkpoint:)は scripts/workflow/notices/shippedIndex.mjs の checkAll を回す。
+// 本文の欄どうしの検査(uses:・skip_checkpoint:・fixes: の前後)は scripts/workflow/notices/noticeFields.mjs(本文の最後の版で読む。索引は持たない、D350)。
 // 仕様: .notices/README.md
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -10,7 +10,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cronTaskNames, scanTasks, taskNamesIn } from "../../runner/task/scan.mjs";
-import { checkAll, fixesPointsBack, readIndexes } from "./shippedIndex.mjs";
+import { checkFields, fixesPointsBack } from "./noticeFields.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const NOTICES = ".notices";
@@ -92,7 +92,7 @@ const pending = new Set(
   git(["status", "--porcelain", "--untracked-files=all", "--", NOTICES])
     .split("\n")
     .map((l) => l.slice(3).trim())
-    .filter((p) => p && !p.startsWith(`${DONE}/`) && !p.startsWith(`${NOTICES}/applied/`) && !p.startsWith(`${NOTICES}/shipped/`)),
+    .filter((p) => p && !p.startsWith(`${DONE}/`) && !p.startsWith(`${NOTICES}/applied/`)),
 );
 
 test("見出しの id とファイル名が一致する", () => {
@@ -154,12 +154,9 @@ test("fixes: の参照先が実在し、履歴上で自分より前のもの", (
 });
 
 // pick: = 修正を先に取れるかの印。/ship が pnpm workflow notices pickCheck で機械で書く(.notices/README.md「修正(fixes)」)
-test("pick: は clean か - で、fixes: のある notice にだけ付く(索引の行。古い版の pick-check が本文に書いた物も見る)", () => {
+test("pick: は clean か - で、fixes: のある notice にだけ付く(本文の欄)", () => {
   const problems = [];
-  const items = [
-    ...[...active, ...done].map((n) => ({ where: n.path, fields: n.fields })),
-    ...readIndexes(repoRoot).flatMap((ix) => ix.rows.map((r) => ({ where: `${ix.file} ${r.id}`, fields: r.fields }))),
-  ];
+  const items = [...active, ...done].map((n) => ({ where: n.path, fields: n.fields }));
   for (const n of items) {
     if (n.fields.pick === undefined) continue;
     if (!["clean", "-"].includes(n.fields.pick)) problems.push(`${n.where}: pick: は clean | - のどちらか("${n.fields.pick}")`);
@@ -168,9 +165,9 @@ test("pick: は clean か - で、fixes: のある notice にだけ付く(索引
   assert.deepEqual(problems, [], problems.join("\n"));
 });
 
-test("索引 .notices/shipped/: 追記だけ・本文 1 本に行 1 本で欄が一致・uses: の実在と区切り・skip_checkpoint: の条件", (t) => {
-  const { problems, unverified } = checkAll(repoRoot);
-  if (unverified) t.diagnostic(`追記だけの検査は未確認: ${unverified}`);
+test("本文の欄: uses: の実在と区切り・skip_checkpoint: の条件(本文の最後の版)", () => {
+  const ids = new Set([...pending].map((p) => p.match(/(\d{8}-\d{6}-[^/]+)\.md$/)?.[1]).filter(Boolean));
+  const problems = checkFields(repoRoot, { pending: ids });
   assert.deepEqual(problems, [], problems.join("\n"));
 });
 
@@ -235,11 +232,10 @@ test("出荷前の notice の moved: が作業ツリーと合う(移動先があ
 });
 
 test("出荷前の notice が案内する pnpm task <名前> がこの木に実在する(ドメインのタスク・移行・定期タスク。D32)", () => {
-  const shipped = new Set(readIndexes(repoRoot).flatMap((ix) => ix.rows.map((r) => r.id)));
   const known = new Set([...scanTasks(repoRoot).tasks.map((t) => t.name), ...cronTaskNames(repoRoot)]);
   const problems = [];
   for (const n of active) {
-    if (!pending.has(n.path) && shipped.has(n.id)) continue;
+    if (!pending.has(n.path)) continue; // 出荷前 = まだ commit していない本文
     const text = readFileSync(join(repoRoot, n.path), "utf8");
     for (const name of taskNamesIn(text)) {
       if (!known.has(name)) problems.push(`${n.path}: pnpm task ${name} がありません(タスクは <ドメイン>:<名前>、src/lib/task/README.md)`);

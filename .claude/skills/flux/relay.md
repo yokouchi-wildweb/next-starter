@@ -4,10 +4,9 @@ read when the condition of SKILL.md ATTACHED FILES hits | the rules here act **i
 
 ## TERMS AND INDEXES
 - tool: grandparent-notice judgment, checkpoint points, the covers index and absorbing covered ones are produced by the upstream tip's `incoming.mjs` (SKILL.md INCOMING TOOL) (each notice's `owner`, `grandparent`, `point`, `covered`; grandparent notices without a checkpoint point in `warnings`) | below = its rules, and the manual work for upstream without the tool
-- **grandparent notice** = a line of an index that is neither your own index nor the direct Tier's (file name of `.notices/shipped/<名前>.md` = the repo that shipped it)
-  - upstream without an index: a notice whose `from:` repo matches neither your origin nor the direct upstream's URL (URL comparison ignores notation differences, as in the unapplied judgment)
+- **grandparent notice** = a notice in the upstream tip's history list whose `from:` repo (the body's last version) matches neither your origin nor the direct upstream's URL (URL comparison ignores notation differences, as in the unapplied judgment; `incoming.mjs` `owner`)
   - no ledger with the middle Tier's name (SKILL.md OWN FORK IDENTITY AND LEDGER 4) → do not judge grandparent notices (as before)
-- **covers index**: read `covers:` of every index line at the upstream tip (excluding your own index; upstream without an index: the in-tree and incoming bodies) and build `covered id → covers-side id` | the same id covered by several notices → take the covers side earliest in history
+- **covers index**: read `covers:` of every notice in the upstream tip's history list (bodies in their last version; your own notices excluded) and build `covered id → covers-side id` | the same id covered by several notices → take the covers side earliest in history
 - **grandparent notice's checkpoint point** = the commit where that id was recorded in the middle Tier's ledger: the oldest of `git log -S"id:<id>" --format=%H <upstream>/<branch> -- .notices/applied/<中間 Tier の名前>.md` (first with `--reverse`) | never use the ledger's `commit:` field | not found → use the adding commit as the checkpoint point and warn in the plan `中間 Tier が未適用: T1 の生 commit で区切る`
 - grandparent notices not covered are split by the `relay:` field of that id's line in the middle Tier's ledger:
   - `relay:none` → the middle Tier judged "no relay needed" by diff (RELAY JUDGMENT below) | apply the upstream notice as is (no note, no mapping)
@@ -44,7 +43,7 @@ read when the condition of SKILL.md ATTACHED FILES hits | the rules here act **i
 ## RELAY JUDGMENT (forks with downstream only)
 as a middle Tier, decide mechanically **by git diffs only** whether applied upstream notices must be relayed downstream (never judge by interpreting the text)
 - **target forks**: forks with `tier` root / middle in `repo.json` (read as SKILL.md OWN FORK IDENTITY AND LEDGER 5; only reader `forkIds.mjs`) | `tier` leaf = a leaf fork, does nothing | declaration missing / wrong → never guess from the text; STOP (same item of SKILL.md)
-- **target notices**: notices applied in the segment that are not lines of your own index (upstream without an index: `from:` is not your origin; grandparent notices and upstream relay notices included) | a covered id is judged as one with its covers side
+- **target notices**: notices applied in the segment whose `from:` is not your origin (grandparent notices and upstream relay notices included) | a covered id is judged as one with its covers side
 - **judgment** (after verify of the segment's step 6, before step 7; per notice | any one of ①-③ hits → relay needed; none hits → `relay:none`):
   - reference points:
     - `Q` = that notice's checkpoint point (the checkpoint point of BUILDING SEGMENTS = `point` of `incoming.mjs`'s output; segment 0 → the adding commit; grandparent notice → the middle Tier's ledger-record commit)
@@ -70,7 +69,7 @@ as a middle Tier, decide mechanically **by git diffs only** whether applied upst
 - **limits of the judgment** (being mechanical): ② also catches fork-side changes the notice's own steps produce (regenerating fork domains by pnpm generate domain, etc.) (a false positive on the safe side rather than a miss)
   - shapes where fork lines sit right next to upstream's change, like marker files, are caught by ①'s touching | changes depending on each other semantically with distant line ranges are not caught
 - **unjudged** (old ledger lines from before this mechanism):
-  - ids of your ledger with no `relay:` field, not lines of your own index, and in no `covers:` of your own index's lines (inherited ids and ids with no line in any index excluded; versions without an index check the same by: `from:` is not your origin / `covers:` of notices from your origin / no notice file)
+  - ids of your ledger with no `relay:` field, whose `from:` is not your origin, and in no `covers:` of notices from your origin (inherited ids and ids with no notice in the history excluded)
   - one or more → one line in the report:
     ```
     中継未判定の旧 notice が N 件あります: <id>, ...。`/flux relay` で中継 notice を下書きします
@@ -111,7 +110,7 @@ close **unjudged** old notices applied before relay judgment existed by bundling
 4. report: the written path and the covered ids, with `中身は台帳 notes と commit から組み立てた下書きなので、確認・編集してからコミットしてください(コミットは /ship)` | ids put in covers drop out of unjudged (the ledger is not rewritten)
 
 ## EDGE CASES
-- an id in `covers:` is in no index at the upstream tip (upstream without an index: nowhere among the live ones and `done/` in the post-merge tree): include that id in the report (never skip silently) | applying the covers-side notice itself goes on; that id is not recorded in the ledger
+- an id in `covers:` is in no notice of the upstream tip's history list: include that id in the report (never skip silently) | applying the covers-side notice itself goes on; that id is not recorded in the ledger
 - a grandparent notice's middle-Tier ledger-record commit is later than the covers-side notice's adding commit: extend the covers side's segment merge target to that record commit (the latest point in the segment becomes the merge target)
 - a notice from your own origin has `covers:` (a relay notice you issued): out of the unapplied judgment as before | not put in the covers index; used only to compute RELAY JUDGMENT's unjudged
 - in RELAY JUDGMENT, no upstream-changed files between `P` and `Q` (a checkpoint-only notice with `severity: info`, etc.): ① no hit | if ② ③ do not hit either → `relay:none`

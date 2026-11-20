@@ -142,7 +142,7 @@ upstream writes `fixes: <notice id | commit:<sha>>` in a notice that fixes a bug
   - execute: after the commit of the origin segment's step 7b, before 7c, the same as HOTFIX execute 1-3 below (`git cherry-pick -x <修正の追加 commit>` → the fix's required_actions, segment checks, verify → follow-up and ledger in a separate commit; the ledger line has the same form with `picked:`, `notes:` = `pick-clean after <修正元 id>`)
     - then 7c `pnpm workflow ownership check` (the `picked:` part passes) → push with the segment at 7d
   - could not take it:
-    - cherry-pick conflict (a conflict only in `.notices/shipped/` follows execute 1 below: take the fork side and continue; it does not count as not taken) → `git cherry-pick --abort`
+    - cherry-pick conflict (a conflict only in `.notices/shipped/` = an older commit still carrying the removed index: take the upstream side, or remove it when upstream deleted it, and continue; it does not count as not taken) → `git cherry-pick --abort`
     - checks / verify failed → undo the unpushed commits this pick made (`git reset --keep <区間の 7b の commit>`; never undo pushed commits)
     - either way, append `pick failed: <理由>` to `notes:` of the origin's ledger line and commit (when the fix is a side commit, that segment later stops at step 5a's side-commit check), ask the "origin unapplied" question above (`1 区間ずつ進める / ここで止める`); STOP: wait | one line in FINDINGS FOR UPSTREAM (b) (passed upstream's judgment but not in the fork)
   - later segments: ids recorded in the ledger are no checkpoints (same as hotfix) | that spot conflicts at a later merge → take the upstream side when the fork has no edit
@@ -151,14 +151,14 @@ upstream writes `fixes: <notice id | commit:<sha>>` in a notice that fixes a bug
 
 ## HOTFIX (take it ahead, skipping what is in between)
 a notice's commit for which upstream declared `hotfix:` is cherry-picked before the normal segments (`.notices/README.md` section `緊急修正(hotfix)`) | no dedicated command; found by reconnaissance in every mode | only those with a `hotfix:` declaration are taken, never arbitrary commits
-- **finding** (in BUILDING SEGMENTS 5): the `hotfix` field of incoming unapplied notices (index line `hotfix:yes`, the reason sentence in the body) | original commit = that notice's adding commit (grandparent notices → relay.md HOTFIX)
+- **finding** (in BUILDING SEGMENTS 5): the `hotfix:` field of incoming unapplied notices (the reason sentence in the body's last version) | original commit = that notice's adding commit (grandparent notices → relay.md HOTFIX)
 - **when not to pick** (one-line reason in the overview): the first segment's merge target contains the original commit (arrives by merge) / every `fixes:` reference is unapplied (the bug is not in that fork yet; the origin's segment follows FIXES)
 - **plan**: present the hotfix in the plan before the next segment, reading the notice in full (several → one at a time in history order)
   - stopping: default, `<n>`, `light` get approval here (never a light segment even with `light`); STOP | `all` reports 1-2 lines and goes on | `status` only displays
   - `いいえ` → skip it this time and go to the normal segments (it arrives by a later merge)
 - **execute** (do steps 6-8 as follows):
   1. `pnpm workflow notices hotfixApply <元の commit> --upstream=<upstream>/<branch>` (the fork's checkout; the tree must be clean) — the cherry-pick and every conflict settled without asking (`.notices/README.md` `緊急修正(hotfix)`):
-     - `.notices/shipped/` → the fork side (upstream's index arrives with a later merge; the unapplied judgment reads the upstream tip's index) | `pnpm check notices` accepts the picked body without its row (ledger `picked:`): never add the row by hand
+     - `.notices/shipped/` → the fork side (the index removed by D350; only older hotfix commits carry it)
      - files the tools read from the upstream tip (`.claude/skills/flux/`) → left out of the pick (`left-out`), conflict or not
      - an upstream file the fork never changed since the merge-base → the upstream's version at the original commit, the whole file (`replaced`)
      - a file the fork changed → the pick is undone (branch and tree as before), exit 1 with those files (`conflict`) → stop and give options (`手で解いて続行` / `この緊急修正を飛ばす` / `元の commit まで区間で進める` = resolve by hand and continue / skip this hotfix / advance by segments up to the original commit); STOP
@@ -279,7 +279,7 @@ a notice (a body added under `.notices/` in the upstream tip's history, read at 
    - read here only the lines needed for the checkpoint judgment, `checkpoint:`, `covers:`, `moved:`, `fixes:`, `pick:`, plus `resolves:` (expiring temporary permits) and `hotfix:` (hotfixes) | never the notice's full text
    - incoming: narrow `git show <upstream>/<branch>:.notices/<id>.md` with `grep -E '^(checkpoint|covers|moved|fixes|pick|resolves|hotfix):'` | `hotfix:` present → HOTFIX above
    - **segment 0** = in-tree unapplied notices (no merge needed) | empty → none
-   - then walk incoming in history order and **close a segment right after each checkpoint notice** (`checkpoint:` other than `-`, or an old schema without the field; but a notice named by `skip_checkpoint:` of any line of the upstream tip's index counts as `-`)
+   - then walk incoming in history order and **close a segment right after each checkpoint notice** (`checkpoint:` other than `-`, or an old schema without the field; but a notice named by `skip_checkpoint:` of any notice in the upstream tip's history list counts as `-`)
      - merge target of a closed segment = that checkpoint notice's checkpoint point commit | a `checkpoint: -` notice stays in the same segment up to the next checkpoint (upstream's exception declaration; the reason is in notes:)
    - notices after the last checkpoint (empty if none) + the remaining commits = the **tail segment** | merge target = `<upstream>/<branch>` | even without notices, unmerged commits make a tail segment (merge only)
    - as a result, normally 1 notice = 1 segment | several notices shipped in the same commit give consecutive segments with the same merge target (the merge completes on the first; later ones just say "already up to date"; normal)
@@ -385,8 +385,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
    c. resolve conflicts yourself (judge how to reconcile upstream's intent with this fork's changes; confirm with the user only those where the judgment is really split) | how to take per-project files:
       - `.claude/rules/project.md` and `behavior.md`: take the fork side; take in upstream's additions only when they apply to this fork
       - `.claude/rules/shortcuts.md` and `term-aliases.md`: above the `fork entries below` marker from the upstream side, below from the fork side
-      - an ancestor's shipped index `.notices/shipped/<ancestor repo_id>.md`: take the upstream side (`git checkout --theirs -- <path>`), never add or keep a row by hand
-        - a row of a notice this fork picked ahead (ledger `picked:`) may be missing until upstream's index reaches it: `pnpm check notices` accepts that, and a row once hand-added may disappear | your own index `.notices/shipped/<own repo_id>.md` is written only by this fork and never conflicts
+      - `.notices/shipped/` (the index removed by D350; only segments from before its removal carry it): take the upstream side (`git checkout --theirs -- <path>`), or `git rm` it when upstream deleted it | never add a row by hand
       - generated `src/app/route-map.jsonl` (route map; delete the old `route-map.txt` if it remains): never fix by hand even on conflict
         - take either version, resolve the other conflicts first, finally rebuild with `pnpm generate routes` and `git add` | even without a conflict, rebuild the same way when the segment's upstream diff has this file (the rows of fork-own pages are not in upstream's generated result) | a change inside 5d's allowed set
       - generated `src/registry/district-map.jsonl` (district map; includes the domain list) is treated the same; rebuild with `pnpm generate district-map` (delete the old `src/features/feature-map.txt` if it remains)
