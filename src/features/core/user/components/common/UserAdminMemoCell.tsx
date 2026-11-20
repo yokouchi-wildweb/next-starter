@@ -5,7 +5,7 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 
-import { PromptPopover } from "@/components/Overlays/Popover/PromptPopover";
+import { PromptPopover } from "@/components/Overlays/Popover";
 import { Button } from "@/components/Button/Button";
 import { Span } from "@/components/TextBlocks/Span";
 import { useUpdateUser } from "@/features/core/user/hooks/useUpdateUser";

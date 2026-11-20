@@ -19,7 +19,7 @@ import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 import Dialog from "@/components/Overlays/Dialog";
 import Modal from "@/components/Overlays/Modal";
 import { Para } from "@/components/TextBlocks/Para";

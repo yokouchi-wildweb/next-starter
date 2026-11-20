@@ -11,7 +11,7 @@ import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";

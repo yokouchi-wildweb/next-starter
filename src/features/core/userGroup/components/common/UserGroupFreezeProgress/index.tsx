@@ -7,7 +7,7 @@
 import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { Spinner } from "@/components/Overlays/Loading";
 import { Para } from "@/components/TextBlocks/Para";
 
 import type { UserGroupFreezeProgress as Progress } from "@/features/core/userGroup/hooks/useUserGroupFreeze";

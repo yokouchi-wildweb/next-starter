@@ -169,7 +169,7 @@ export function useDbAgentChat() {
 
 - `@/lib/dbAgent` — クライアント安全な物: `streamDbAgentChat`・監査の定数・拡張点の型 (`DbAgentPromptFragment` / `DbAgentSystemSuffixProvider`)・設定 (`dbAgentConfig` / `DbAgentOverride`)
 - `@/lib/dbAgent/server` — サーバー専用: `runDbAgent`・`isDbAgentEnabled`・`getReadonlyDb`・`buildDbAgentSystemPrompt`
-- 中のファイルは外から読めない (lint `lib-entry`)
+- 中のファイルは外から読めない (lint `entry/only-entries`)
 
 ### 設定
 

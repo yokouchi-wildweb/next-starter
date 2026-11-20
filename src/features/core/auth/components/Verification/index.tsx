@@ -17,7 +17,7 @@ import { CompletedState } from "./CompletedState";
 import { EmailInputState } from "./EmailInputState";
 import { InvalidProcessState } from "./InvalidProcessState";
 import { VerifyingState } from "./VerifyingState";
-import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
+import { ScreenLoader } from "@/components/Overlays/Loading";
 export { AlreadyRegisteredState } from "./AlreadyRegisteredState";
 export { CompletedState } from "./CompletedState";
 export { EmailInputState } from "./EmailInputState";

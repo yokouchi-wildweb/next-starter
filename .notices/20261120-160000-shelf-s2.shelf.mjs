@@ -4,7 +4,11 @@
 // 使い方: node .notices/20261120-160000-shelf-s2.shelf.mjs [--apply]
 //   既定は dry-run(書き換える指定・動かすファイル・止める所・手で直す所の一覧を出すだけ)。--apply で書く。何度走らせても同じ結果。
 //
-// 上流で変わったこと(注文ごとに表の行が足される。今の行 = 注文 08・09・10):
+// 上流で変わったこと(注文ごとに表の行が足される。今の行 = 注文 08・09・10・11):
+// - 注文 11: 入口の規則が 1 つ(lint entry/only-entries)になり、型の import も入口から。棚の単位の中のファイルを読む道は単位の入口へ:
+//   Overlays/Loading(InlineLoader・ScreenLoader・Spinner)は入口 @/components/Overlays/Loading の 1 単位に、DetailModal・Popover・ImageViewer・
+//   Primitives/Carousel・Input/AsyncOptionSource の中のファイルの道はその入口へ、Widgets/_shared は Widgets/SliderParts(入口あり)に。
+//   AppFrames の分類は無くなった(最後に残った User/ は説明だけで部品は無い)
 // - 注文 10: domain.json の項目の型は lib/domain の DomainField 1 つになり、型の名前は @/lib/domain へ移って改名した:
 //   FieldDataType → NeonFieldType、FieldDataTypeFirestore → FirestoreFieldType、FieldOption → DomainFieldOption、
 //   FormInputType → BuiltinFormInput(@/lib/formSuite から)。lib/domain の FieldOption も DomainFieldOption に、
@@ -257,6 +261,19 @@ const PREFIX_SPLITS = [{ from: `${F}/Input/Controlled`, split: SPLITS[`${F}/Inpu
 /** モジュールの分け方(SPLITS のその道、無ければ PREFIX_SPLITS の当たるフォルダの表)。無ければ undefined */
 const splitOf = (mod) => SPLITS[mod] ?? PREFIX_SPLITS.find((p) => mod.startsWith(`${p.from}/`))?.split;
 
+/** 注文 11: 中のファイルを外から読んでいた単位と、その中のファイル(入口がその名前を全部出す) */
+const ENTRY_COLLAPSES = [
+  { unit: `${C}/Overlays/Loading`, files: ["InlineLoader", "ScreenLoader", "Spinner"] },
+  { unit: `${C}/Overlays/DetailModal`, files: ["DetailModal", "types"] },
+  {
+    unit: `${C}/Overlays/Popover`,
+    files: ["Popover", "ConfirmPopover", "PromptPopover", "ActionPopover", "InfoPopover", "ChecklistPopover", "SelectPopover", "PopoverAsyncContent"],
+  },
+  { unit: `${C}/Overlays/ImageViewer`, files: ["Provider", "ZoomableImage", "context"] },
+  { unit: `${C}/Primitives/Carousel`, files: ["Carousel"] },
+  { unit: `${C}/Input/AsyncOptionSource`, files: ["AsyncOptionListStates"] },
+];
+
 /** 動いたモジュール(分けるモジュールの後に見る)。prefix = その下も同じ相対の道で動いた */
 const MOVES = [
   { from: `${F}/Button/button-variants`, to: BUTTON_VARIANTS },
@@ -270,6 +287,9 @@ const MOVES = [
   { from: F, to: FORM_SUITE, collapse: true },
   // 注文 10
   { from: `${DOMAIN}/hooks/useRelationOptions`, to: FORM_SUITE },
+  // 注文 11: 棚の単位は入口からだけ読む(lint entry/only-entries)。単位の中のファイルを読んでいた道は単位の入口へ
+  ...ENTRY_COLLAPSES.flatMap(({ unit, files }) => files.map((f) => ({ from: `${unit}/${f}`, to: unit }))),
+  { from: `${C}/Widgets/_shared`, to: `${C}/Widgets/SliderParts`, collapse: true },
 ];
 
 /** 名前付きの export だけになった部品(行き先のモジュール → 名前)。default の import を名前付きに直す */
@@ -295,6 +315,10 @@ const DOC_PATTERNS = [
   /components\/Form\/(Button|Input\/Manual|FilePickButton)(?![\w-])/,
   /components\/Form\/(Label|utils)(?![\w/-]|\.\w)/,
   /components\/Form(?![\w-])/,
+  // 注文 11
+  /components\/AppFrames(?![\w-])/,
+  /components\/Widgets\/_shared(?![\w-])/,
+  /components\/Overlays\/Loading\/(InlineLoader|ScreenLoader|Spinner)(?![\w-])/,
 ];
 
 // ─────────────────────────── 仕組み ───────────────────────────

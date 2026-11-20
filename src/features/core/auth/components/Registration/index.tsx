@@ -5,7 +5,7 @@
 import type { ComponentType } from "react";
 
 import { Stack } from "@/components/Layout/Stack";
-import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
+import { ScreenLoader } from "@/components/Overlays/Loading";
 import { authConfig } from "@/features/auth/config";
 import { useTransitionGuard } from "@/lib/transitionGuard";
 

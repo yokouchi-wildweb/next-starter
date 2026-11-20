@@ -4,7 +4,7 @@
 
 import { type ReactNode, useState, useEffect, useCallback, useLayoutEffect, useRef } from "react";
 
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { Spinner } from "@/components/Overlays/Loading";
 
 export type PopoverAsyncContentProps<T> = {
   /** データ取得関数 */

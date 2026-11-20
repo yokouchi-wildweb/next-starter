@@ -1,6 +1,6 @@
 // src/lib/libPackage/index.mjs
 //
-// lib の package.json(宣言)の唯一の読み手。lint(eslint-rules/import-boundaries.mjs の lib-entry・lib-self-relative)、
+// lib の package.json(宣言)の唯一の読み手。lint(eslint-rules/entry.mjs の entry/only-entries・import-boundaries.mjs の lib-self-relative)、
 // 単体用 tsconfig と sideEffects の検査(scripts/structure/libPackage)、閉じたかの検査が同じものを読む。
 // Node 組み込みだけを読む(features・他の lib を読まない)。形と決まり: README.md
 //

@@ -7,7 +7,7 @@
 //   4. config.ts があるなら上書き src/config/lib/<名前>.config.ts があるか
 //   5. 自前の合成(defineXxxConfig)が残っていないか
 // package.json の形の問題(src/lib/libPackage の checkLibPackage)がある lib は飛ばして名前を出す(形は lint と形の検査が見る)。
-// 宣言の無い lib は数えるだけ(落とさない)。外から中を読む import は --list / --json で数えて見せるだけ(落とすのは pnpm lint の lib-entry)。
+// 宣言の無い lib は数えるだけ(落とさない)。外から中を読む import は --list / --json で数えて見せるだけ(落とすのは pnpm lint の entry/only-entries)。
 //
 //   pnpm check lib-package                 不備の行 + 1 行のまとめ
 //   pnpm check lib-package -- --list       lib ごとの表(外から中を読む import の数も)

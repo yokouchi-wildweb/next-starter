@@ -8,7 +8,7 @@
 // - 載せるのは tier で強さが変わらない error の規則だけ(守り・境界の規則)。tier で強さが変わる規則
 //   (field-type-guard・core-ui-guards・style-tokens・client-service-boundary・axios-in-client-layer・asset-paths)と warn の規則は載せない
 // - fork が規則を足す・一覧の外の規則を緩めるのは自由。行ごとの理由付き eslint-disable も今まで通り使える
-// - lib の入口の lint(棚の議会 D82)= lib-entry・lib-self-relative(package.json を持つ lib にだけ効くが、設定は全ファイルに掛かる)
+// - 入口の lint(棚の議会 D82・D85)= entry/only-entries(棚の単位・core の部品・宣言済みの lib)・lib-self-relative(設定は全ファイルに掛かる)
 // - files = その規則が掛かる代表のファイル(repo 相対)。example: true の行は、upstream にまだ該当ファイルが無い置き場の例
 //   (パスで設定を引くので、ファイルが無くても判定できる)
 
@@ -29,8 +29,15 @@ export const REQUIRED_ESLINT_RULES = [
   { rule: "import-boundaries/seed-reader", files: ["src/features/sample/components/x.tsx", "scripts/runner/seed/run.ts"], example: true },
   { rule: "import-boundaries/tools-no-db-write", files: ["scripts/operations/features/set.ts", "src/features/sample/scripts/tasks/example.ts", "src/features/sample/seed.ts"], example: true },
   {
-    rule: "import-boundaries/lib-entry",
-    files: ["src/features/core/auth/services/server/registration.ts", "src/lib/drizzle/index.ts", "scripts/runner/task/run.ts", "eslint.config.mjs"],
+    rule: "entry/only-entries",
+    files: [
+      "src/features/core/auth/services/server/registration.ts",
+      "src/lib/drizzle/index.ts",
+      "scripts/runner/task/run.ts",
+      "eslint.config.mjs",
+      "src/app/(user)/layout.tsx",
+      "src/features/core/auth/components/OAuth/index.tsx",
+    ],
   },
   { rule: "import-boundaries/lib-self-relative", files: ["src/lib/drizzle/index.ts"] },
   // 上書きファイルの 2 規則(設定 D34・D35・L1.19)。features の上書きはまだ upstream に無い置き場の例
@@ -43,7 +50,6 @@ export const REQUIRED_ESLINT_RULES = [
     files: ["src/app/(user)/layout.tsx", "src/features/core/auth/hooks/useOAuthSignupFlow.ts"],
   },
   { rule: "no-server-action/no-server-action", files: ["src/features/core/auth/services/server/registration.ts"] },
-  { rule: "core-ui-entry/no-inner-import", files: ["src/app/(user)/layout.tsx", "src/features/core/auth/components/OAuth/index.tsx"] },
   { rule: "realtime-room/purity", files: ["src/features/example/room/reducer.ts"], example: true },
   { rule: "hidden-columns/no-raw-select", files: ["src/features/core/auth/services/server/registration.ts"] },
   // 当議会 D133: メールの送り口(全 Tier error)

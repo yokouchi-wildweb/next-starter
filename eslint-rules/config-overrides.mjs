@@ -15,7 +15,7 @@
 //   宣言は持ち主のファイルにだけ効く(上書きの中に overrideImports・overrideLoaders を書いても広がらない)。
 // - owner-reads-only(src と scripts の全ファイルに掛ける): 上書きを読めるのは持ち主の config.ts(<名前>.ui.config.ts は config.ui.ts)だけ。
 //   @/config/… ・相対・"src/…"・@lib-config/<名前> のどれで読んでも解いた実パスで判定し、型だけの import も止める。
-//   lib の中から自分の上書きを読む所は lint lib-entry の持ち分なので見ない(二重に落とさない)。
+//   lib の中から自分の上書きを読む所は lint entry/only-entries の持ち分なので見ない(二重に落とさない)。
 //
 // 上書き → 持ち主は地区の地図(src/lib/districtMap)で引く(リポジトリごとに 1 回読んで覚える。地区を足したら eslint を起動し直す)。
 // 基盤の上書きの持ち主は固定のフォルダ(BASE_OVERRIDE_FOLDERS、例 src/featureGate)で、読めるのはその中のファイル。宣言(overrideImports)は持たない。
@@ -282,7 +282,7 @@ const ownerReadsOnly = {
         return;
       }
       if (stripExt(file) === stripExt(slot.owner)) return;
-      // lib の中から自分の上書きを読む所は lint lib-entry(@lib-config/<自分> だけ)の持ち分
+      // lib の中から自分の上書きを読む所は lint entry/only-entries(@lib-config/<自分> だけ)の持ち分
       if (slot.district.kind === "lib" && file.startsWith(`${slot.district.dir}/`)) return;
       context.report({ node, messageId: "notOwner", data: { source, override, owner: slot.owner } });
     });

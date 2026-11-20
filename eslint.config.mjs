@@ -2,7 +2,6 @@ import nextConfig from "eslint-config-next";
 
 import auditPlugin from "./eslint-rules/audit-action-naming.mjs";
 import clientServiceBoundaryPlugin from "./eslint-rules/client-service-boundary.mjs";
-import coreUiEntryPlugin from "./eslint-rules/core-ui-entry.mjs";
 import coreUiGuardsPlugin from "./eslint-rules/core-ui-guards.mjs";
 import { CORE_UI_GUARDS_ALLOW } from "./eslint-rules/core-ui-guards.allow.mjs";
 import noServerActionPlugin from "./eslint-rules/no-server-action.mjs";
@@ -18,6 +17,7 @@ import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden
 import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
 import rawSqlDatePlugin from "./eslint-rules/raw-sql-date.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
+import entryPlugin from "./eslint-rules/entry.mjs";
 import importBoundariesPlugin from "./eslint-rules/import-boundaries.mjs";
 import routeHttpExportPlugin from "./eslint-rules/route-http-export.mjs";
 import styleTokensPlugin from "./eslint-rules/style-tokens.mjs";
@@ -134,15 +134,16 @@ const config = [
       "import-boundaries/seed-reader": "error",
     },
   },
-  // lib の入口(全 Tier error、package.json を持つ lib にだけ効く。L1.21。宣言の読み手 src/lib/libPackage):
-  // - lib-entry: 外からは exports の入口だけ、宣言済みの lib は "libs" の lib の入口・"peers" の棚・@lib-config/<自分> だけを読む(D80・D83・D84)
+  // 入口(全 Tier error。D85):
+  // - entry/only-entries: 棚の単位・core の部品・宣言済みの lib は入口からだけ読む(値も型も)。宣言済みの lib は
+  //   "libs" の lib の入口・"peers" の棚・@lib-config/<自分> だけを読む(D80・D83・D84。詳細: eslint-rules/entry.mjs)
   // - lib-self-relative: 宣言済みの lib の中で自分を @/lib/<自分> で読まない(相対パスで読む。D100)
   // scripts・テスト・.notices・eslint 設定からの読みも対象(D84)
   {
     files: ["**/*.{ts,tsx,mts,mjs,js,cjs}"],
-    plugins: { "import-boundaries": importBoundariesPlugin },
+    plugins: { entry: entryPlugin, "import-boundaries": importBoundariesPlugin },
     rules: {
-      "import-boundaries/lib-entry": "error",
+      "entry/only-entries": "error",
       "import-boundaries/lib-self-relative": "error",
     },
   },
@@ -362,6 +363,26 @@ const config = [
             { from: "@/components/Form", to: "@/lib/formSuite", until: SHELF_S2_MOVED, collapse: true },
             // 注文 10: useRelationOptions は formSuite へ(残る入口の中で動いた名前は tsc が挙げる)
             { from: "@/lib/domain/hooks/useRelationOptions", to: "@/lib/formSuite", until: SHELF_S2_MOVED, exact: true },
+            // 注文 11: 棚の単位の中のファイルの道は単位の入口へ(lint entry/only-entries も止める)。Widgets/_shared は SliderParts
+            { from: "@/components/Overlays/Loading/InlineLoader", to: "@/components/Overlays/Loading", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/Loading/ScreenLoader", to: "@/components/Overlays/Loading", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/Loading/Spinner", to: "@/components/Overlays/Loading", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/DetailModal/DetailModal", to: "@/components/Overlays/DetailModal", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/DetailModal/types", to: "@/components/Overlays/DetailModal", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/Popover/Popover", to: "@/components/Overlays/Popover", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/Popover/ConfirmPopover", to: "@/components/Overlays/Popover", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/Popover/PromptPopover", to: "@/components/Overlays/Popover", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/Popover/ActionPopover", to: "@/components/Overlays/Popover", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/Popover/InfoPopover", to: "@/components/Overlays/Popover", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/Popover/ChecklistPopover", to: "@/components/Overlays/Popover", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/Popover/SelectPopover", to: "@/components/Overlays/Popover", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/Popover/PopoverAsyncContent", to: "@/components/Overlays/Popover", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/ImageViewer/Provider", to: "@/components/Overlays/ImageViewer", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/ImageViewer/ZoomableImage", to: "@/components/Overlays/ImageViewer", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Overlays/ImageViewer/context", to: "@/components/Overlays/ImageViewer", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Primitives/Carousel/Carousel", to: "@/components/Primitives/Carousel", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Input/AsyncOptionSource/AsyncOptionListStates", to: "@/components/Input/AsyncOptionSource", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Widgets/_shared", to: "@/components/Widgets/SliderParts", until: SHELF_S2_MOVED, collapse: true },
           ],
         },
       ],
@@ -556,14 +577,6 @@ const config = [
       "core-ui-guards/no-guard-in-part": libOwnership.isRoot ? ["error", { allow: CORE_UI_GUARDS_ALLOW }] : "off",
     },
   },
-  // core の部品は入口だけを読む(全 Tier で error。詳細: eslint-rules/core-ui-entry.mjs)
-  {
-    files: ["src/**/*.{ts,tsx}"],
-    plugins: { "core-ui-entry": coreUiEntryPlugin },
-    rules: {
-      "core-ui-entry/no-inner-import": "error",
-    },
-  },
   // ルームロジック (servers/room にバンドルされる) の純度制約。
   // Node/Next/DB import を静的に遮断する (詳細: eslint-rules/realtime-room-purity.mjs)。
   {
@@ -576,7 +589,7 @@ const config = [
   // 上書きファイル(src/config/{lib,features,layout,proxies} と基盤の上書き featureGate)の 2 規則(設定 D34・D35・D38・D91・L1.19・L1.31。詳細: eslint-rules/config-overrides.mjs, src/config/README.md)。
   // 新しいフォルダだけが対象なので全 Tier error(縮む表なし)。fork に残る古い src/config/app・ui・documents と直下のファイルには掛けない
   // - literal-only: 上書きは値のリテラル。読めるのは型・process.env・@/business・持ち主が overrideImports で宣言した指定子だけ
-  // - owner-reads-only: 上書きを読めるのは持ち主の config.ts(描画用は config.ui.ts)だけ。lib の中は lib-entry の持ち分
+  // - owner-reads-only: 上書きを読めるのは持ち主の config.ts(描画用は config.ui.ts)だけ。lib の中は entry/only-entries の持ち分
   {
     files: ["src/config/{lib,features,layout,proxies,featureGate}/*.config.ts"],
     plugins: { "config-overrides": configOverridesPlugin },

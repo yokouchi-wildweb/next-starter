@@ -1,6 +1,7 @@
 // Carousel の素体(embla)。読むのはこの入口だけ
 export {
   type CarouselApi,
+  type CarouselButtonSlot,
   type CarouselPlugin,
   Carousel,
   CarouselContent,

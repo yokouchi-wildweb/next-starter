@@ -4,7 +4,7 @@
 
 import { ReactNode, useRef, useState } from "react"
 import { FadeSlider, type FadeTransition } from "@/components/Widgets/FadeSlider"
-import { type ArrowPosition, type ArrowSize, type ArrowVariant, type DotPosition, type DotVariant, type ResponsiveToggle, type SliderImperativeApi } from "@/components/Widgets/_shared/types"
+import { type ArrowPosition, type ArrowSize, type ArrowVariant, type DotPosition, type DotVariant, type ResponsiveToggle, type SliderImperativeApi } from "@/components/Widgets/SliderParts"
 import { Button } from "@/components/Button/Button"
 import { Label } from "@/components/Input/Label"
 import { BooleanCheckboxInput } from "@/components/Input/BooleanCheckboxInput"

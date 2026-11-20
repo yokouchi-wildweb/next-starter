@@ -6,7 +6,7 @@
 
 import { Link } from "@/components/Navigation/Link";
 import { CheckCircleIcon, XCircleIcon, MailIcon, LockIcon } from "lucide-react";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";

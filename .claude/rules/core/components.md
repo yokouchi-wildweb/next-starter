@@ -8,7 +8,8 @@ paths:
 > **ROLE**: loaded when writing any .tsx or shared hook | holds COMPONENTS detail
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
-placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; components/AppFrames/ holds no parts) | ref: src/components/README.md
+placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there) | ref: src/components/README.md
+- shelf_units: a shelf unit = src/components/\<Category\>/\<Unit\> (one file, or a folder with index) read as @/components/\<Category\>/\<Unit\> only, values and types (lint entry/only-entries, all tiers) | a folder without index is not a unit: give it one or fold it | no `_` names
 - shelf_units: a category folder of src/components has no first-level entry (no \<Category\>/index) | each part is a unit read as @/components/\<Category\>/\<Unit\> (a folder unit through its own index) | not yet: Form, AppStatusGuard
 - single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only part of an upstream route it replaces → app/\<route\>/_components/ (a route of its own → _screen/, core/screens.md)
 use_client: a component file that calls a hook starts with "use client" → core/client.md use_client
@@ -19,7 +20,7 @@ wrappers (lint raw-elements): div → Layout/{Block,Flex,Grid,Stack} | main → 
 - primitives_last: Primitives/* only for what the finished parts cannot build | the UI libraries under them (radix-ui, cmdk, react-day-picker, embla-carousel) are value-read only inside Primitives (lint ui-libs-in-primitives; Primitives card ui_libs_place)
 - primitives_place (recommendation, no check): a raw part worth reusing → src/components/Primitives/\<Part\> (one user today is fine when it reads clearer there) | no reuse value → absorb it into the part that uses it | the writer judges each case
 existing_parts (want → part; check here before building your own | a row = a want where own builds were found, or a choice moved here from CLAUDE.md):
-- loading: inside a button → Button/Button loading prop (+ loadingLabel) | in the flow of a page or card → Overlays/Loading/InlineLoader | over an area or the screen → Overlays/Loading/ScreenLoader
+- loading: inside a button → Button/Button loading prop (+ loadingLabel) | in the flow of a page or card → Overlays/Loading InlineLoader | over an area or the screen → Overlays/Loading ScreenLoader
 - table (@/lib/tableSuite): read-only list, column sort, row reorder → DataTable | select rows + bulk actions → RecordSelectionTable | inline cell edit → EditableGridTable | growing rows → the tables' infiniteFooter prop (InfiniteTableFooter) fed by useInfiniteScrollQuery | print → DataTable variant "print" | client sort → sortItems (getValue, nulls)
 - key / value rows → Overlays/DetailModal DetailTable
 - admin list of a core domain with columns of your own → its columns function + list hook with DataTable in your _components/ (coupon: createAdminCouponListColumns, useAdminCouponListTable; referral: createAdminInviteListColumns, useAdminInviteListTable)
@@ -41,7 +42,7 @@ ui_layers (page / section_container / part, defined by role; ref: docs/!must-rea
   - src/components and libs: look props (className, overlayClassName, variant) and content slots (renderX functions, xNode) are allowed
   - core domain parts: value props and children only (no render function, no named ReactNode / component prop)
   - core default containers and screens: no named slot | a fork recomposes from exported parts and hooks | what upstream screens mount and a fork cannot move → a receptacle
-- core parts (core_ui): every part is public, no private / public split | entry only: nobody imports a file inside components/\<Name\>/ or common/\<Part\>/ from outside that folder (lint core-ui-entry, all tiers; type-only imports exempt) | a part others need → export it from the entry | a fork copying a container points its imports at the entries
+- core parts (core_ui): every part is public, no private / public split | entry only: nobody imports a file inside components/\<Name\>/ or common/\<Part\>/ from outside that folder, values and types (lint entry/only-entries, all tiers) | a part others need → export it from the entry | a fork copying a container points its imports at the entries
 - core_ui_guards: a core part never holds form state, guards (useForm, reCAPTCHA, getIdToken, useAuthSession refreshSession, useGuardedNavigation) or data calls (useSWR*, client functions) → the owner domain's public hook in features/\<domain\>/hooks returns form + handlers, the part only renders (contract table = the domain README)
   - lint core-ui-guards: upstream only (error), off in forks | allowlist eslint-rules/core-ui-guards.allow.mjs only shrinks: hook a part → delete its line (any build / any work) | guarded by eslint-rules/core-ui-guards.test.mjs (/ship runs it)
 - bundle_marker: a folder with package.json sideEffects:false (auth Signup, user components/admin, userProfile entities/profiles) holds no side-effect modules (css import, registration call): an unused re-export is dropped from the bundle, side effects with it

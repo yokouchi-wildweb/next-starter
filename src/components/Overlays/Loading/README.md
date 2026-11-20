@@ -2,7 +2,7 @@
 
 ## Overview
 
-- ローディング表示コンポーネント群。入口は `@/components/Overlays/Loading/<Name>`
+- ローディング表示コンポーネント群。1 つの単位で、入口は `@/components/Overlays/Loading`(`InlineLoader`・`ScreenLoader`・`Spinner`)
 - 使う時の決まりは札 .claude/rules/items/components/Overlays.mdにある
 
 | コンポーネント | 説明 |
@@ -16,7 +16,7 @@
 ## Usage
 
 ```tsx
-import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
+import { ScreenLoader } from "@/components/Overlays/Loading";
 
 // フルスクリーン
 <ScreenLoader mode="fullscreen" message="読み込み中..." />
@@ -26,7 +26,7 @@ import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 ```
 
 ```tsx
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 
 if (isLoading) return <InlineLoader />;
 <InlineLoader size="lg" message="リンクを確認しています..." />
@@ -37,7 +37,7 @@ if (isLoading) return <InlineLoader />;
 
 ## API
 
-`InlineLoader`(`@/components/Overlays/Loading/InlineLoader`):
+`InlineLoader`(`@/components/Overlays/Loading`):
 
 - `size`: `sm` = 横 1 行（Spinner size-4・text-xs・py-2）| `md`（既定）= 中央の塊（size-6・text-sm・py-8）| `lg` = 大きな塊（size-8・text-sm・py-12）
 - `message`: Spinner の横（sm）/ 下（md・lg）に出す文。無いときは読み上げ用の隠れた文「読み込み中」を置く。外側は `role="status"` `aria-live="polite"`

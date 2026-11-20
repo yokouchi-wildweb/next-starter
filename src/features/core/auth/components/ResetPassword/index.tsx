@@ -5,7 +5,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "@/components/Navigation/Link";
 import { CheckCircle, AlertCircle } from "lucide-react";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 
 import { Button } from "@/components/Button/Button";
 import { Label } from "@/components/Input/Label";

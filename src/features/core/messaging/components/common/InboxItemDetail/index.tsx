@@ -5,7 +5,7 @@
 
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 import { Para } from "@/components/TextBlocks/Para";
 
 import type { InboxItemDetailDto } from "@/features/core/messaging/services/client/inboxClient";

@@ -1,7 +1,7 @@
 // src/components/Feedback/ScreenLoader.tsx
 import { type ReactNode } from "react";
 
-import { Spinner, type SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
+import { Spinner, type SpinnerVariant } from "./Spinner";
 import { cn } from "@/lib/cn";
 import { zLayerClass } from "@/lib/zLayer";
 

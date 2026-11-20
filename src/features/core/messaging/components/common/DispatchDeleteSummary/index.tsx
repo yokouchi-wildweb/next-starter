@@ -6,7 +6,7 @@
 "use client";
 
 import { Stack } from "@/components/Layout/Stack";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 import { Para } from "@/components/TextBlocks/Para";
 import { err } from "@/lib/errors";
 

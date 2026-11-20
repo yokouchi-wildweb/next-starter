@@ -35,7 +35,7 @@ import { type Options } from "@/components/Input/options";
 import { Flex } from "@/components/Layout/Flex";
 import { StateTabs, StateTabsContent } from "@/components/Navigation/StateTabs";
 import Modal from "@/components/Overlays/Modal";
-import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
+import { ScreenLoader } from "@/components/Overlays/Loading";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { useAsyncAction } from "@/hooks/useAsyncAction";

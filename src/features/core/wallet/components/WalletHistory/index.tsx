@@ -8,7 +8,7 @@ import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 import { LinkButton } from "@/components/Button/LinkButton";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { useMyWalletHistoryBatches } from "@/features/core/walletHistory/hooks/useMyWalletHistoryBatches";

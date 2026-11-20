@@ -3,7 +3,7 @@
 // 閉じたかの検査(指令 26 d1): lib ごとの状態。
 // - 落とす(宣言した lib = package.json を持ち形に問題が無い lib だけ): 単体用 tsconfig・型検査・sideEffects(standalone.mjs / sideEffects.mjs)、
 //   config.ts があるのに上書き src/config/lib/<名前>.config.ts が無い、自前の合成(defineXxxConfig)が残っている(L1.23)
-// - 数えて見せるだけ(--list / --json): 外から lib の中を読む import。宣言した lib のそれは pnpm lint の lib-entry が落とす(1 つの規則)
+// - 数えて見せるだけ(--list / --json): 外から lib の中を読む import。宣言した lib のそれは pnpm lint の entry/only-entries が落とす(1 つの規則)
 // - 宣言の無い lib は数えて一覧に出すだけで落とさない(L1.21。error にするのは最後の段 D101 (6))
 
 import { execFileSync } from "node:child_process";
@@ -58,7 +58,7 @@ const isLibRoot = (resolved, lib) => {
 };
 
 /**
- * 外から lib の中を読む import を数える(repo を 1 回走査)。lint の lib-entry と同じ部品(resolveImport・libOfPath・findEntry)で判定する
+ * 外から lib の中を読む import を数える(repo を 1 回走査)。lint の entry/only-entries と同じ部品(resolveImport・libOfPath・findEntry)で判定する
  * - 宣言した lib: exports の入口に当たらない import
  * - 宣言の無い lib: lib の根(index)以外に当たる import(参考の数)
  * @returns {Map<string, { count: number, samples: string[] }>}

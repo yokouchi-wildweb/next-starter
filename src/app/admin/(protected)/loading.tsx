@@ -1,6 +1,6 @@
 // src/app/admin/loading.tsx
 
-import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
+import { ScreenLoader } from "@/components/Overlays/Loading";
 
 export default function AdminLoading() {
   return (

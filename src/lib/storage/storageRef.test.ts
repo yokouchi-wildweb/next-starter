@@ -5,8 +5,6 @@
 import { afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import { isOptimizableSrc } from "@/components/Media/AppImage/optimizable";
-import { resolveAppImageSource } from "@/components/Media/AppImage/source";
 import { FirebaseNotConfiguredError } from "@/lib/firebase/errors";
 import { withMediaRetryQuery } from "./client/usePrivateMediaRecovery";
 
@@ -461,7 +459,7 @@ describe("purposes", () => {
   });
 });
 
-describe("AppImage（表示 src と最適化の判定）", () => {
+describe("公開 base・固定 URL の判定と動画の再取得 query(AppImage の判定は src/components/Media/AppImage/source.test.ts)", () => {
   const PUB_BASE = "https://storage.googleapis.com/pub-bucket";
   const LEGACY_BUCKET = "old-bucket.firebasestorage.app";
 
@@ -480,54 +478,6 @@ describe("AppImage（表示 src と最適化の判定）", () => {
     assert.equal(isPrivateObjectPath(`/api/storage/objects/${LEDGER_ID}?_r=1`), true);
     assert.equal(isPrivateObjectPath("/images/a.png"), false);
     assert.equal(isPrivateObjectPath(null), false);
-  });
-
-  test("旧 URL はそのまま。自バケットは最適化可、他ホストは unoptimized", () => {
-    const legacy = `https://firebasestorage.googleapis.com/v0/b/${LEGACY_BUCKET}/o/a.png?alt=media&token=t`;
-    assert.deepEqual(resolveAppImageSource({ src: legacy }), { displaySrc: legacy, unoptimized: false });
-    const other = "https://example.com/a.png";
-    assert.deepEqual(resolveAppImageSource({ src: other }), { displaySrc: other, unoptimized: true });
-    // "/" 始まり・blob: のプレビューは従来どおり素通し
-    assert.deepEqual(resolveAppImageSource({ src: "/images/a.png" }), { displaySrc: "/images/a.png", unoptimized: false });
-    assert.deepEqual(resolveAppImageSource({ src: "blob:http://localhost/x" }), {
-      displaySrc: "blob:http://localhost/x",
-      unoptimized: true,
-    });
-  });
-
-  test("pub ref → 公開 base の URL（最適化可）。base が無ければ fallback", () => {
-    assert.deepEqual(resolveAppImageSource({ src: PUB_REF }), {
-      displaySrc: `${PUB_BASE}/user.avatar/${LEDGER_ID}.webp`,
-      unoptimized: false,
-    });
-    assert.equal(isOptimizableSrc("https://storage.googleapis.com/other-bucket/a.webp"), false);
-    delete process.env.NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL;
-    assert.deepEqual(resolveAppImageSource({ src: PUB_REF, fallbackSrc: "/images/none.png" }), {
-      displaySrc: "/images/none.png",
-      unoptimized: false,
-    });
-  });
-
-  test("priv ref → 固定 URL。呼び出し側が unoptimized={false} でも unoptimized", () => {
-    const expected = { displaySrc: `/api/storage/objects/${LEDGER_ID}`, unoptimized: true };
-    assert.deepEqual(resolveAppImageSource({ src: PRIV_REF }), expected);
-    assert.deepEqual(resolveAppImageSource({ src: PRIV_REF, unoptimized: false }), expected);
-    // "/" 始まりだが最適化は通さない（"/" 判定より先）
-    assert.equal(isOptimizableSrc(`/api/storage/objects/${LEDGER_ID}`), false);
-    // fallback 側に ref を渡しても同じ
-    assert.deepEqual(resolveAppImageSource({ src: null, fallbackSrc: PRIV_REF, unoptimized: false }), expected);
-  });
-
-  test("空・解析できない ref・読み込み失敗は fallback、無ければ画像なし", () => {
-    assert.deepEqual(resolveAppImageSource({ src: "" }), { displaySrc: undefined, unoptimized: undefined });
-    assert.deepEqual(resolveAppImageSource({ src: "storage://main/x/y.png", fallbackSrc: "/f.png" }), {
-      displaySrc: "/f.png",
-      unoptimized: false,
-    });
-    assert.deepEqual(resolveAppImageSource({ src: PUB_REF, fallbackSrc: "/f.png", failed: true }), {
-      displaySrc: "/f.png",
-      unoptimized: false,
-    });
   });
 
   test("動画の再取得 query は既存の query を残して足す", () => {

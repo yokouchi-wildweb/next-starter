@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 
 import { TooltipProvider } from "@/components/Overlays/Tooltip";
 import { RecaptchaProvider } from "@/lib/recaptcha";
-import { ImageViewerProvider } from "@/components/Overlays/ImageViewer/Provider";
+import { ImageViewerProvider } from "@/components/Overlays/ImageViewer";
 import { AdminCommandRoot } from "@/app/_layout/adminCommand/AdminCommandRoot";
 import { UnsavedGuardRoot } from "@/app/_layout/unsavedGuard/UnsavedGuardRoot";
 import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";

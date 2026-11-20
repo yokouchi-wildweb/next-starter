@@ -15,7 +15,7 @@ import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { StateTabs, StateTabsContent } from "@/components/Navigation/StateTabs";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";

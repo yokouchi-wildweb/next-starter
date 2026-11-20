@@ -10,7 +10,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { JSDOM } from "jsdom";
 import { Loader2 } from "lucide-react";
 
-import { AsyncOptionInitialState, AsyncOptionListFooter } from "@/components/Input/AsyncOptionSource/AsyncOptionListStates";
+import { AsyncOptionInitialState, AsyncOptionListFooter } from "@/components/Input/AsyncOptionSource";
 import { Flex } from "@/components/Layout/Flex";
 import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
 

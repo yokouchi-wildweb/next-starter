@@ -32,7 +32,7 @@ function SignupForm() {
 "use client";
 
 import { useTransitionGuard } from "@/lib/transitionGuard";
-import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
+import { ScreenLoader } from "@/components/Overlays/Loading";
 
 export default function SignupCompletePage() {
   const { isChecking } = useTransitionGuard({

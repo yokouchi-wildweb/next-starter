@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { Spinner } from "@/components/Overlays/Loading";
 import { Para } from "@/components/TextBlocks/Para";
 
 /**

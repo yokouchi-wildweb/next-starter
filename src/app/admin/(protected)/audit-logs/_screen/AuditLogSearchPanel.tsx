@@ -14,8 +14,7 @@ import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { Button } from "@/components/Button/Button";
 import { Input } from "@/components/Input/Input";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
-import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
-import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
+import DetailModal, { type DetailModalRow } from "@/components/Overlays/DetailModal";
 import {
   formatActionLabel,
   formatActorTypeLabel,

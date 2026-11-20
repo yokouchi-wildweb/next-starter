@@ -17,7 +17,7 @@ import { Textarea } from "@/components/Input/Textarea";
 import { Label } from "@/components/Input/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 import Modal from "@/components/Overlays/Modal";
 import { Para } from "@/components/TextBlocks/Para";
 import { err } from "@/lib/errors";
