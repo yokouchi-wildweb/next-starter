@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createApiRoute } from "@/wiring/apiRoute";
-import { importChunk } from "@/lib/dataMigration/import/importChunk";
+import { importChunk } from "@/lib/dataMigration/server";
 import { getJunctionTable, getService } from "@/wiring/domainRegistry";
 import { createDataMigrationMediaResolver } from "../_shared/mediaResolver";
 import { denyUnlessDomainDataOperationAllowed } from "../_shared/domainAccess";
