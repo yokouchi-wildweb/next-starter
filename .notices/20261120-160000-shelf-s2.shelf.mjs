@@ -8,7 +8,8 @@
 // - 注文 11: 入口の規則が 1 つ(lint entry/only-entries)になり、型の import も入口から。棚の単位の中のファイルを読む道は単位の入口へ:
 //   Overlays/Loading(InlineLoader・ScreenLoader・Spinner)は入口 @/components/Overlays/Loading の 1 単位に、DetailModal・Popover・ImageViewer・
 //   Primitives/Carousel・Input/AsyncOptionSource の中のファイルの道はその入口へ、Widgets/_shared は Widgets/SliderParts(入口あり)に。
-//   AppFrames の分類は無くなった(最後に残った User/ は説明だけで部品は無い)
+//   AppFrames の分類は無くなった(最後に残った User/ は説明だけで部品は無い)。
+//   Functional/FirebaseAnalytics は棚の外 src/app/_mounts/FirebaseAnalytics へ(SDK を包む lib を読む。lint import-boundaries/shelf-purity)
 // - 注文 10: domain.json の項目の型は lib/domain の DomainField 1 つになり、型の名前は @/lib/domain へ移って改名した:
 //   FieldDataType → NeonFieldType、FieldDataTypeFirestore → FirestoreFieldType、FieldOption → DomainFieldOption、
 //   FormInputType → BuiltinFormInput(@/lib/formSuite から)。lib/domain の FieldOption も DomainFieldOption に、
@@ -290,6 +291,7 @@ const MOVES = [
   // 注文 11: 棚の単位は入口からだけ読む(lint entry/only-entries)。単位の中のファイルを読んでいた道は単位の入口へ
   ...ENTRY_COLLAPSES.flatMap(({ unit, files }) => files.map((f) => ({ from: `${unit}/${f}`, to: unit }))),
   { from: `${C}/Widgets/_shared`, to: `${C}/Widgets/SliderParts`, collapse: true },
+  { from: `${C}/Functional/FirebaseAnalytics`, to: "src/app/_mounts/FirebaseAnalytics" },
 ];
 
 /** 名前付きの export だけになった部品(行き先のモジュール → 名前)。default の import を名前付きに直す */

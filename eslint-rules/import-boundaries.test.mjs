@@ -2,7 +2,8 @@
 // 層の境目の import の検査(route-factory-via-wiring・page-guard-via-wiring・cron-route-via-wiring・features-index-no-server-reexport・lib-no-registry・feature-gate-entries・radix-unified・ui-libs-in-primitives ほか)の契約テスト。実行: pnpm test eslint-rules/import-boundaries.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { ESLint, RuleTester } from "eslint";
@@ -22,6 +23,8 @@ import plugin, {
   isToolFile,
   readClosablePatterns,
   isUiLibSource,
+  libsReachingShelf,
+  valueSpecifiersOfText,
 } from "./import-boundaries.mjs";
 import { resolveImport } from "./resolve-import.mjs";
 import { readForkIdentity } from "../src/lib/forkOwnership/forkIds.mjs";
@@ -634,4 +637,68 @@ test("rule axios-in-client-layer / mail-send-via-messaging: 実際の書き方�
       { code: `async function f() { const mail = await import("@/lib/mail"); }`, filename: other, errors: [{ messageId: "mailSend" }] },
     ],
   });
+});
+
+test("rule shelf-purity: 棚の値の import の禁止(場所・フォームとデータの lib・SDK・棚を読む lib)と fetch を止め、型だけ・棚の中・許す lib は通す", () => {
+  const part = at("src/components/Layout/Thing.tsx");
+  const err = (messageId, source) => [{ messageId, data: { source } }];
+  ruleTester.run("shelf-purity", plugin.rules["shelf-purity"], {
+    valid: [
+      { code: `import { cn } from "@/lib/cn";`, filename: part },
+      { code: `import { Block } from "@/components/Layout/Block";`, filename: part },
+      { code: `import { type SearchParams } from "@/lib/crud/types";`, filename: part },
+      { code: `import type { UseFormReturn } from "react-hook-form";`, filename: part },
+      { code: `import type { DomainDisplay } from "@/lib/domain";`, filename: part },
+      { code: `import type { User } from "@/features/user/entities";`, filename: part },
+      { code: `import { trackPageView } from "@/lib/firebase/client/analytics";`, filename: at("src/app/_mounts/FirebaseAnalytics.tsx") },
+      { code: `const r = await fetch("/x");`, filename: at("src/lib/x/thing.ts") },
+      { code: `const r = await client.fetch("/x");`, filename: part },
+    ],
+    invalid: [
+      { code: `import { useUser } from "@/features/user/hooks/useUser";`, filename: part, errors: err("place", "@/features/user/hooks/useUser") },
+      { code: `import { thing } from "../../app/_layout/config";`, filename: part, errors: err("place", "../../app/_layout/config") },
+      { code: `import { AppProviders } from "@/wiring/AppProviders";`, filename: part, errors: err("place", "@/wiring/AppProviders") },
+      { code: `import { serviceRegistry } from "@/registry/serviceRegistry";`, filename: part, errors: err("place", "@/registry/serviceRegistry") },
+      { code: `import { useStore } from "@/stores/x";`, filename: part, errors: err("place", "@/stores/x") },
+      { code: `import { useForm } from "react-hook-form";`, filename: part, errors: err("package", "react-hook-form") },
+      { code: `import axios from "axios";`, filename: part, errors: err("package", "axios") },
+      { code: `import { getAuth } from "firebase/auth";`, filename: part, errors: err("package", "firebase/auth") },
+      { code: `import { extractFields } from "@/lib/domain";`, filename: part, errors: err("lib", "@/lib/domain") },
+      { code: `import { createCrudService } from "@/lib/crud";`, filename: part, errors: err("lib", "@/lib/crud") },
+      { code: `import { trackPageView } from "@/lib/firebase/client/analytics";`, filename: part, errors: err("lib", "@/lib/firebase/client/analytics") },
+      { code: `import { db } from "@/lib/drizzle";`, filename: part, errors: err("lib", "@/lib/drizzle") },
+      { code: `import { DataTable } from "@/lib/tableSuite";`, filename: part, errors: err("cycle", "@/lib/tableSuite") },
+      { code: `const m = import("@/lib/formSuite");`, filename: part, errors: err("cycle", "@/lib/formSuite") },
+      { code: `const r = await fetch("/x");`, filename: part, errors: [{ messageId: "fetch" }] },
+      { code: `const r = await window.fetch("/x");`, filename: part, errors: [{ messageId: "fetch" }] },
+    ],
+  });
+});
+
+test("libsReachingShelf: 棚を値で読む lib と、値で読む lib を通して届く lib(型だけ・テストは数えない)", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "shelf-purity-"));
+  try {
+    const put = (rel, text) => {
+      mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
+      writeFileSync(path.join(root, rel), text);
+    };
+    put("tsconfig.json", JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "@/*": ["src/*"] } } }));
+    put("src/lib/direct/index.ts", 'import { Block } from "@/components/Layout/Block";\nexport const a = Block;\n');
+    put("src/lib/through/index.ts", 'export { a } from "@/lib/direct";\n');
+    put("src/lib/typeOnly/index.ts", 'import type { X } from "@/components/Layout/Block";\nimport { type Y } from "@/components/Layout/Flex";\nexport type Z = X | Y;\n');
+    put("src/lib/testOnly/index.ts", "export const b = 1;\n");
+    put("src/lib/testOnly/index.test.tsx", 'import { Block } from "@/components/Layout/Block";\n');
+    put("src/lib/clean/index.ts", 'import { cn } from "@/lib/cn";\nexport const c = cn;\n');
+    assert.deepEqual([...libsReachingShelf(root)].sort(), ["direct", "through"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  assert.deepEqual(valueSpecifiersOfText('import type { A } from "a";\nimport { type B } from "b";\nimport { C, type D } from "c";\nexport * from "d";\nimport "e";\nconst f = import("f");\n// import { G } from "g";\n'), ["c", "d", "e", "f"]);
+});
+
+test("config: shelf-purity は src/components(テストを除く)で error、棚の外と棚のテストは対象外", async () => {
+  const RAW = `import { trackPageView } from "@/lib/firebase/client/analytics";\nexport const x = trackPageView;\n`;
+  assert.deepEqual(await lintAt("src/components/Functional/X.tsx", RAW), ["import-boundaries/shelf-purity:2"]);
+  assert.deepEqual(await lintAt("src/components/Functional/X.test.tsx", RAW), []);
+  assert.deepEqual(await lintAt("src/app/_mounts/X.tsx", RAW), []);
 });
