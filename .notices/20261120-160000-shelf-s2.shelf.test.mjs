@@ -27,27 +27,34 @@ test("道: 動いたモジュールと、相対は同じ分類の中だけ相対
   assert.equal(mapModule("src/components/Form/Button/LinkButton").to, "src/components/Button/LinkButton");
   assert.equal(mapModule("src/components/Form/Input/Manual/AsyncOptionSource/popoverSide").to, "src/components/Input/AsyncOptionSource/popoverSide");
   assert.equal(mapModule("src/components/Form/Label").to, "src/components/Input/Label");
-  assert.equal(mapModule("src/components/Form/AppForm"), null);
+  assert.equal(mapModule("src/components/Form/AppForm").to, "src/lib/formSuite");
+  assert.equal(mapModule("src/components/Form/Field/Configured/ConfiguredField").to, "src/lib/formSuite");
+  assert.equal(mapModule("src/components/Form/MediaHandler/useMediaUploaderField").to, "src/lib/mediaInputSuite");
+  assert.equal(mapModule("src/components/Layout/Block"), null);
   assert.equal(emitSpecifier("../Select", "src/components/Input/MultiSelectInput/index.tsx", "src/components/Input/Select"), "../Select");
   assert.equal(emitSpecifier("../Input/Manual/Select", "src/components/Form/Field/x.tsx", "src/components/Input/Select"), "@/components/Input/Select");
 });
 
-test("Form の入口: 動いた名前だけ行き先へ分け、残る名前は元の指定のまま", () => {
+test("Form の入口: 名前ごとに行き先へ分け、残りは @/lib/formSuite の入口へ", () => {
   const src = 'import { AppForm, Label, type Options, Button, buttonVariants, ControlledField } from "@/components/Form";';
   const { text, stops } = rewriteSource("src/app/x.tsx", src);
   assert.deepEqual(stops, []);
   assert.equal(
     text,
     [
-      'import { AppForm, ControlledField } from "@/components/Form";',
+      'import { AppForm, ControlledField } from "@/lib/formSuite";',
       'import { Label } from "@/components/Input/Label";',
       'import { type Options } from "@/components/Input/options";',
       'import { Button } from "@/components/Button/Button";',
       'import { buttonVariants } from "@/components/Button/variants";',
     ].join("\n"),
   );
-  const kept = 'import {\n  AppForm,\n  ControlledField,\n} from "@/components/Form";';
-  assert.equal(rewriteSource("src/app/x.tsx", kept).text, kept, "残る名前だけなら形も触らない");
+  const multi = 'import {\n  AppForm,\n  ControlledMediaInput,\n} from "@/components/Form";';
+  assert.equal(
+    rewriteSource("src/app/x.tsx", multi).text,
+    'import { AppForm } from "@/lib/formSuite";\nimport { ControlledMediaInput } from "@/lib/mediaInputSuite";',
+    "MediaHandler の名前は mediaInputSuite へ",
+  );
 });
 
 test("深いファイルの名前の分割: Button の buttonVariants・TabletButton の tabletButtonVariants は variants へ、ほかは単位へ", () => {
@@ -87,7 +94,7 @@ test("Manual の入口と default の部品: StepperInput は default の import
   );
 });
 
-test("名前空間: { Manual } の Manual.X(JSX の開き・閉じ・式)を X に直し、Controlled は残す", () => {
+test("名前空間: { Manual } の Manual.X(JSX の開き・閉じ・式)を X に、Controlled.X は formSuite の ControlledX に直す", () => {
   const src = [
     'import { Controlled, Manual } from "@/components/Form/Input";',
     "export const A = () => <Manual.Textarea rows={2}>{Manual.Input.name}</Manual.Textarea>;",
@@ -98,11 +105,11 @@ test("名前空間: { Manual } の Manual.X(JSX の開き・閉じ・式)を X �
   assert.equal(
     text,
     [
-      'import { Controlled } from "@/components/Form/Input";',
+      'import { ControlledTextInput } from "@/lib/formSuite";',
       'import { Textarea } from "@/components/Input/Textarea";',
       'import { Input } from "@/components/Input/Input";',
       "export const A = () => <Textarea rows={2}>{Input.name}</Textarea>;",
-      "export const B = () => <Controlled.TextInput />;",
+      "export const B = () => <ControlledTextInput />;",
     ].join("\n"),
   );
 });
@@ -137,6 +144,53 @@ test("止める・手で: 表にない名前・default の無い入口は止め�
   assert.equal(hands.length, 2);
 });
 
+test("formSuite: 深い Field の道・相対の指定は入口 1 本へ、Field/types の入力の型は Input/options へ、MediaHandler は mediaInputSuite へ", () => {
+  const deep = rewriteSource(
+    "src/features/x/components/X.tsx",
+    'import type { FieldConfig, FormControlA11yProps } from "@/components/Form/Field/types";\nimport { ConfiguredField } from "@/components/Form/Field/Configured/ConfiguredField";\nimport { useMediaUploaderField } from "@/components/Form/MediaHandler/useMediaUploaderField";',
+  );
+  assert.equal(
+    deep.text,
+    [
+      'import type { FieldConfig } from "@/lib/formSuite";',
+      'import type { FormControlA11yProps } from "@/components/Input/options";',
+      'import { ConfiguredField } from "@/lib/formSuite";',
+      'import { useMediaUploaderField } from "@/lib/mediaInputSuite";',
+    ].join("\n"),
+  );
+  const rel = rewriteSource("src/components/Form/Field/Manual/X.tsx", 'import { submitLock } from "../../submitLock";');
+  assert.equal(rel.text, 'import { submitLock } from "@/lib/formSuite";');
+});
+
+test("Controlled の入力: 名前付きの import は使う所ごと ControlledX に、同じ名前が既にあれば as で元の名前", () => {
+  const src = [
+    'import { TextInput, type ControlledSelectInputProps } from "@/components/Form/Input/Controlled";',
+    "export const A = () => <TextInput name=\"a\" />;",
+    "const m = { TextInput: 1 };",
+  ].join("\n");
+  assert.equal(
+    rewriteSource("src/app/x.tsx", src).text,
+    [
+      'import { ControlledTextInput, type ControlledSelectInputProps } from "@/lib/formSuite";',
+      "export const A = () => <ControlledTextInput name=\"a\" />;",
+      "const m = { TextInput: 1 };",
+    ].join("\n"),
+  );
+  const clash = rewriteSource("src/app/x.tsx", 'import { SelectInput } from "@/components/Form/Input/Controlled/SelectInput";\nconst ControlledSelectInput = 1;\nexport const A = () => <SelectInput />;');
+  assert.ok(clash.text.startsWith('import { ControlledSelectInput as SelectInput } from "@/lib/formSuite";'), clash.text);
+  assert.ok(clash.text.includes("<SelectInput />"));
+});
+
+test("行き先の入口が出していない名前は書かずに STOP(入口がこの木にあるときだけ確かめる)", () => {
+  const exportsOf = (mod) => (mod === "src/lib/formSuite" ? new Set(["AppForm"]) : null);
+  const src = 'import { AppForm, Missing } from "@/components/Form";\nimport { Gone } from "@/components/Form/AutoSave";';
+  const { text, stops } = rewriteSource("src/app/x.tsx", src, { exportsOf });
+  assert.equal(text, src);
+  assert.equal(stops.length, 2);
+  assert.match(stops[0], /Missing が無い/);
+  assert.match(stops[1], /Gone が無い/);
+});
+
 test("plan と apply: 書き換え・fork のファイルの移動(相対を引き直す)・文書は一覧だけ、2 回目は変えるものなし", () => {
   const root = repo({
     "src/app/page.tsx": 'import { Button } from "@/components/Form/Button";\nimport { Manual } from "@/components/Form/Input";\nexport const P = () => <Manual.Input />;\n',
@@ -160,6 +214,12 @@ test("plan と apply: 書き換え・fork のファイルの移動(相対を引�
   assert.ok(!existsSync(path.join(root, "src/components/Form/Input/Manual/RangeInput.tsx")));
   const second = plan(root);
   assert.equal(second.rewrites.length + second.moves.length + second.stops.length, 0);
+});
+
+test("止める: Form に残った fork のファイル(行き先が閉じた lib)", () => {
+  const root = repo({ "src/components/Form/SaveControl.tsx": "export const SaveControl = 1;\n" });
+  const result = plan(root);
+  assert.deepEqual(result.stops.map((s) => s.file), ["src/components/Form/SaveControl.tsx"]);
 });
 
 test("止める: 行き先に同じ名がある fork のファイルは動かさない", () => {
