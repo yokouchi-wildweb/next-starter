@@ -61,29 +61,6 @@ const config = [
       "src/features/_template/services/server/drizzleBase.ts",
     ],
   },
-  // react-hooks の React Compiler 由来の規則(eslint-config-next が recommended で error にする物)は Tier で強さを切り替える:
-  // 上流(Tier1)は error、fork は warn(他の規則と同じ libOwnership.isRoot の型)。7.1.1 で検出が広がり、fork の自前のコードに
-  // 新しい件が出るため、fork は区切りで止めずに自分の判断で直す。error にしたい fork は eslint.config.fork.mjs で上げる。
-  // rules-of-hooks(error)と exhaustive-deps・incompatible-library・unsupported-syntax(warn)は recommended のまま
-  {
-    files: ["**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
-    rules: Object.fromEntries(
-      [
-        "static-components",
-        "use-memo",
-        "preserve-manual-memoization",
-        "immutability",
-        "globals",
-        "refs",
-        "set-state-in-effect",
-        "error-boundaries",
-        "purity",
-        "set-state-in-render",
-        "config",
-        "gating",
-      ].map((rule) => [`react-hooks/${rule}`, libOwnership.isRoot ? "error" : "warn"]),
-    ),
-  },
   // テンプレートのフックは名前がプレースホルダー(use__Domain__)でフックの命名規則を満たせないため、
   // react-hooks の規則だけ外す。生成後のフックは sample 系ドメインで通常どおり検査される。
   {
