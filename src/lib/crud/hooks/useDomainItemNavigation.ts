@@ -1,7 +1,7 @@
 "use client";
 
 // 編集画面の「前後の項目へ移る」のデータの hook。候補(検索の先頭の数件 + 今の項目)・移る先のパス・表示名を返す。
-// 表示は棚の ItemNavigator(@/components/AppFrames/Admin/Elements/ItemNavigator、props だけ)、置き場はルートの画面
+// 表示は棚の ItemNavigator(@/components/Admin/ItemNavigator、props だけ)、置き場はルートの画面
 // (編集のルートの _screen の client の部品が呼び、Screen が <AdminPage actions> に置く)。
 // lib/crud は features を読まないので、ドメインは呼ぶ側が domainDisplay(<domain>/entities/display.ts)で渡す。
 // 取得は汎用の /api/<domain> の search(DuplicateButton と同じ作り)、パスは getAdminPaths(display.plural).edit。

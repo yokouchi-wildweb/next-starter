@@ -1,4 +1,4 @@
-// src/components/Admin/Elements/SecTitle.tsx
+// src/components/Admin/SecTitle.tsx
 
 import { cva, type VariantProps } from "class-variance-authority";
 

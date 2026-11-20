@@ -74,7 +74,7 @@ export const frameTable = [
 - 利用者の枠: `app-container`・`app-banner`・`header`・`header-shell`・`header-left`・`header-center`・`header-right`・`header-brand`・`header-brand-logo`・`header-brand-text`・`header-nav`・`header-sp-nav-panel`・`footer`・`bottom-nav`・`bottom-nav-item`
 - 管理の枠: `admin-app-container`・`admin-header`・`admin-header-title`・`admin-header-center`・`admin-header-right`・`admin-sidebar`・`admin-main`・`admin-footer`
 - Main: `main`・`main-layout`・`main-container`
-- 見出し(area `heading`、`source` = 印を描く部品のファイル): `user-page-title`(`(user)/_layout/PageTitle.tsx` の外側の header、srOnly の時は無い)・`page-title`(`TextBlocks/PageTitle` の h1)・`admin-page-title`(`admin/_layout/AdminPageTitle.tsx` のページの h1。ヘッダーの圧縮の題には付けない)・`sec-title`(`TextBlocks/SecTitle`)・`admin-sec-title`(`AppFrames/Admin/Elements/SecTitle`)
+- 見出し(area `heading`、`source` = 印を描く部品のファイル): `user-page-title`(`(user)/_layout/PageTitle.tsx` の外側の header、srOnly の時は無い)・`page-title`(`TextBlocks/PageTitle` の h1)・`admin-page-title`(`admin/_layout/AdminPageTitle.tsx` のページの h1。ヘッダーの圧縮の題には付けない)・`sec-title`(`TextBlocks/SecTitle`)・`admin-sec-title`(`components/Admin/SecTitle`)
   - 見出しの印も約束(fork の CSS が狙ってよい)。消す・名前を変えるのは notice。srOnly でも h1・見出しの印は残る。部品自身の印が呼び手の props の `data-slot` に勝つ(包む上流の部品は TextBlocks に型つきの `slot` を渡す)
 - 隠せる部位(`hideable: true`): 利用者 `header`・`header-nav`・`footer`・`bottom-nav`、管理 `admin-header`・`admin-sidebar`・`admin-footer`
 - 部位の印は要素の `data-slot` だけ。隠せる部位は `hideSlots`(その部位を隠す data-slot の名前。今は全部が部位の名前 1 つ)を持ち、隠す CSS(`src/styles/core/frame.css`)はそれだけで隠せる。Primitives/Button のように自分の data-slot を持つ部品は `display: contents` の包みが名前を持つ。差し替えた部品は外側の要素に `data-slot="<部位>"` を付ければ従う

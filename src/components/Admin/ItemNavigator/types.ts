@@ -1,4 +1,4 @@
-// src/components/AppFrames/Admin/Elements/ItemNavigator/types.ts
+// src/components/Admin/ItemNavigator/types.ts
 
 /**
  * ItemNavigator(移るだけの選択欄)の Props。データは src/lib/crud の useDomainItemNavigation の戻り値をそのまま渡せる

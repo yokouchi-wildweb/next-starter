@@ -4,7 +4,7 @@
 
 - 画面上にオーバーレイ表示するコンポーネント群。入口は `@/components/Overlays/<Name>`
 - 使う時・直す時の決まりは札 .claude/rules/items/components/Overlays.mdにある。この README は使い方と仕組み
-- 部品ごとの説明: Dialog / Modal / TabbedModal / useConfirm / DialogPrimitives / Command / Toast はこの README、他は下のフォルダの README(Related)
+- 部品ごとの説明: Dialog / Modal / TabbedModal / useConfirm / DialogPrimitives / Command / Toast / BodyPortal はこの README、他は下のフォルダの README(Related)
 
 ```
 DialogPrimitives (低レベル部品、@/components/Primitives/Dialog)
@@ -15,6 +15,7 @@ DialogPrimitives (低レベル部品、@/components/Primitives/Dialog)
          └── AsyncPickerModal (大量マスタからの選択)
 Sheet (辺から出る板: 下のシート・横の引き出し。Radix Dialog の土台)
 useConfirm (関数の中で答えを待つ確認。Dialog を描く)
+BodyPortal (自作の重ねる物を body 直下へ出す入れ物。何も描かない)
 ```
 
 ### 使い分け
@@ -25,6 +26,7 @@ useConfirm (関数の中で答えを待つ確認。Dialog を描く)
 | **Modal** | 複雑な情報表示 | 自由度が高い、フォームや詳細表示など |
 | **Modal `scrollable={false}`** | タブ + 内部テーブル等の固定高モーダル | 本体はスクロールせず、内側の指定領域だけがスクロールする |
 | **AsyncPickerModal** | 大量マスタから検索してレコードを選びリストに入れる（タグ→記事、ユーザー→グループ、商品→キャンペーン等） | 検索欄 + 無限スクロール候補リスト + 確定フッターをモーダル本体として描画。`AsyncMultiSelectInput` と同じ取得エンジン。フォーム項目ではなくアクションボタン起点のときに使う |
+| **BodyPortal** | 上の完成品で作れない自作の重ねる物を、祖先の重なり・transform から逃がす | 描かず body 直下へ portal するだけ。完成品はもう portal するので包まない |
 | **ChecklistPopover** | 静的な選択肢（十数件）からの複数選択 | 選択肢を全件 props で渡す。マスタが大きい / 非同期検索が要るなら AsyncPickerModal |
 
 ### 重なり(z-index)
@@ -342,6 +344,22 @@ showToast({
   position: "top-center",
 });
 hideToast();
+```
+
+### BodyPortal(`@/components/Overlays/BodyPortal`)
+
+- 子を `<body>` 直下へ portal する。祖先の重なりや transform(キオスクのステージなど)から出す自作の重ねる物に使う
+- 完成品(Dialog・Modal・Popover など)は自分で portal するので包まない。部品に container の props があればそちらを使う
+- 描くのはマウントした後だけ(`useIsClient`)。サーバーで描いた HTML に子は無い
+- 層は `@/lib/zLayer` の名を `zLayerClass` で付ける。外枠の変数(ヘッダーの高さなど)は継げないので、要るときは一番外の要素に `useFrameDimsStyle()`(`@/lib/frameDims`)の style を付ける
+
+```tsx
+import { BodyPortal } from "@/components/Overlays/BodyPortal";
+import { zLayerClass } from "@/lib/zLayer";
+
+<BodyPortal>
+  <div className={`fixed inset-0 bg-overlay/50 ${zLayerClass("forefront")}`} />
+</BodyPortal>
 ```
 
 ## API

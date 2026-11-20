@@ -1,4 +1,4 @@
-// src/components/AppFrames/Admin/Elements/SortSelect.tsx
+// src/components/Admin/SelectFilter.tsx
 
 "use client";
 
@@ -7,43 +7,45 @@ import { useShelfRouter as useRouter } from "@/components/Navigation/NavigationP
 
 import { SelectInput } from "@/components/Form/Input/Manual/Select";
 
-type SortOption = { label: string; value: string };
+type Option = { label: string; value: string };
 
-export type AdminSortSelectProps = {
-  options: SortOption[];
+export type AdminSelectFilterProps = {
+  options: Option[];
   selected?: string;
-  defaultValue: string;
-  paramKey?: string;
+  paramKey: string;
   makeHref: (params: URLSearchParams) => string;
+  placeholder?: string;
 };
 
-export default function SortSelect({
+const ALL_VALUE = "__all__";
+
+export default function SelectFilter({
   options,
   selected,
-  defaultValue,
-  paramKey = "sortBy",
+  paramKey,
   makeHref,
-}: AdminSortSelectProps) {
+  placeholder = "すべて",
+}: AdminSelectFilterProps) {
   const router = useRouter();
   const params = useSearchParams();
 
   const handleChange = (value: string) => {
     const search = new URLSearchParams(params.toString());
-    if (value && value !== defaultValue) {
+    if (value && value !== ALL_VALUE) {
       search.set(paramKey, value);
     } else {
       search.delete(paramKey);
     }
-    search.delete("page");
     router.push(makeHref(search));
   };
 
   return (
     <SelectInput
       size="xs"
-      className="min-w-24"
-      options={options}
-      value={selected ?? defaultValue}
+      className="min-w-32"
+      placeholder={placeholder}
+      options={[{ label: placeholder, value: ALL_VALUE }, ...options]}
+      value={selected ?? ALL_VALUE}
       showPlaceholderOption={false}
       onChange={(value) => handleChange(value == null ? "" : String(value))}
     />

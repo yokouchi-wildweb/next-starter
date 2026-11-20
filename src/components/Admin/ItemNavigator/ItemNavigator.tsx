@@ -1,4 +1,4 @@
-// src/components/AppFrames/Admin/Elements/ItemNavigator/ItemNavigator.tsx
+// src/components/Admin/ItemNavigator/ItemNavigator.tsx
 
 "use client";
 
