@@ -13,7 +13,7 @@ import {
   storageObjectService,
   type StorageObjectService,
 } from "@/features/core/storageObject/services/server/storageObjectService";
-import type { DataMigrationMediaResolver } from "@/lib/dataMigration/media";
+import type { DataMigrationMediaResolver } from "@/lib/dataMigration/server";
 import { parseStorageRef, resolveStorageSrc } from "@/lib/storage";
 
 export function createDataMigrationMediaResolver(

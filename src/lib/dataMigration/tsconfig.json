@@ -1,0 +1,101 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/components/*": [
+        "../../components/*"
+      ],
+      "@/lib/appEnv": [
+        "../appEnv"
+      ],
+      "@/lib/appEnv/*": [
+        "../appEnv/*"
+      ],
+      "@/lib/cn": [
+        "../cn"
+      ],
+      "@/lib/cn/*": [
+        "../cn/*"
+      ],
+      "@/lib/crud": [
+        "../crud"
+      ],
+      "@/lib/crud/*": [
+        "../crud/*"
+      ],
+      "@/lib/defineConfig": [
+        "../defineConfig"
+      ],
+      "@/lib/defineConfig/*": [
+        "../defineConfig/*"
+      ],
+      "@/lib/domain": [
+        "../domain"
+      ],
+      "@/lib/domain/*": [
+        "../domain/*"
+      ],
+      "@/lib/drizzle": [
+        "../drizzle"
+      ],
+      "@/lib/drizzle/*": [
+        "../drizzle/*"
+      ],
+      "@/lib/errors": [
+        "../errors"
+      ],
+      "@/lib/errors/*": [
+        "../errors/*"
+      ],
+      "@/lib/frameDims": [
+        "../frameDims"
+      ],
+      "@/lib/frameDims/*": [
+        "../frameDims/*"
+      ],
+      "@/lib/isClient": [
+        "../isClient"
+      ],
+      "@/lib/isClient/*": [
+        "../isClient/*"
+      ],
+      "@/lib/storage": [
+        "../storage"
+      ],
+      "@/lib/storage/*": [
+        "../storage/*"
+      ],
+      "@/lib/stringCase": [
+        "../stringCase"
+      ],
+      "@/lib/stringCase/*": [
+        "../stringCase/*"
+      ],
+      "@/lib/toast": [
+        "../toast"
+      ],
+      "@/lib/toast/*": [
+        "../toast/*"
+      ],
+      "@/lib/unsavedGuard": [
+        "../unsavedGuard"
+      ],
+      "@/lib/unsavedGuard/*": [
+        "../unsavedGuard/*"
+      ],
+      "@/lib/zLayer": [
+        "../zLayer"
+      ],
+      "@/lib/zLayer/*": [
+        "../zLayer/*"
+      ],
+      "@lib-config/dataMigration": [
+        "../../config/lib/dataMigration.config.ts"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}

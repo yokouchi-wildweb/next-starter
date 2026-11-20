@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { compareCollectionWiring, declaredCollections } from "./compare.mjs";
 import { hasTableCollections } from "../../../../src/lib/crud/collections/tableCollections.ts";
 import { serviceRegistry } from "../../../../src/registry/serviceRegistry.ts";
-import { collectionFieldsOf } from "../../../../src/lib/dataMigration/collectionFields.ts";
+import { collectionFieldsOf } from "../../../../src/lib/dataMigration/server.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 

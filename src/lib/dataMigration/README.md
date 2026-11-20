@@ -8,7 +8,10 @@
 - リレーションを含む複数ドメインのエクスポート/インポート（manifest v1.1）
 - メディア列（画像・動画・ファイル、Multi を含む）の同梱と取り込み（下の「メディア列」）
 - チャンク単位の進捗表示。失敗したチャンクで全体を止め、入ったもの・入っていないものを分けて出す（下の「失敗したとき」）
-- 入口: export `export/`・import `import/`・UI `components/`(`DataMigrationButton` / `DataMigrationModal`)・上限 `limits.ts`・リレーション収集 `relations.ts`
+- 閉じた lib。入口は 2 つ(package.json の exports)で、中のファイルは外から読まない:
+  - `@/lib/dataMigration`: 管理画面の部品(`DataMigrationButton` / `DataMigrationModal` / `ExportSettingsModal`)・フック・`buildExportFields`・設定の上書きの型 `DataMigrationOverride`
+  - `@/lib/dataMigration/server`(server-only): API ルートが使う `exportData` / `exportDataWithRelations` / `importData` / `importChunk` / `importServiceChunk` と型、メディアのヘッダー名 `MEDIA_SKIPPED_HEADER` / `MEDIA_SKIPPED_EXAMPLES_HEADER`、注入の型 `DataMigrationMediaResolver` など、`collectionFieldsOf`
+  - client の部品をルートの読み込みに入れないため 2 つに分ける。どちらの入口も "use client" を付けない
 
 ## Usage
 
@@ -129,7 +132,8 @@ lib は登録表を import しない。API ルートが `src/wiring/domainRegist
 
 ### 依存(読む lib)
 
-守りの lib は入口 `@/lib/unsavedGuard` だけを読む(中のファイルを読まない)。
+- 読む lib は package.json の `libs`(crud・defineConfig・domain・drizzle・errors・storage・stringCase・toast・unsavedGuard)、棚は `peers` の components。設定の上書きは `@lib-config/dataMigration` だけ
+- 閉じた lib(drizzle・errors・toast・unsavedGuard など)は入口だけを読む(守りの lib は `@/lib/unsavedGuard`)
 
 ## Verification
 

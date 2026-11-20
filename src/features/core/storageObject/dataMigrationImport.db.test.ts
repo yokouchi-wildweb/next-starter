@@ -49,8 +49,8 @@ describe("dataMigration import（実 DB の TX）", { skip }, () => {
   let ledger: typeof import("./services/server/ledger/drizzleLedger").drizzleLedger;
   let fake: import("@/lib/storage/server/fake").FakeStoragePort;
   let storageService: import("./services/server/storageObjectService").StorageObjectService;
-  let importServiceChunk: typeof import("@/lib/dataMigration/import/importChunk").importServiceChunk;
-  let media: import("@/lib/dataMigration/media").DataMigrationMediaResolver;
+  let importServiceChunk: typeof import("@/lib/dataMigration/server").importServiceChunk;
+  let media: import("@/lib/dataMigration/server").DataMigrationMediaResolver;
   let service: any;
   let runAs: (fn: () => Promise<any>) => Promise<any>;
   const bulkUpsertCalls: { records: Record<string, unknown>[]; options: any }[] = [];
@@ -67,7 +67,7 @@ describe("dataMigration import（実 DB の TX）", { skip }, () => {
     const { createCrudService } = await import("@/lib/crud/drizzle");
     const { runWithAuditContext } = await import("@/lib/audit");
     const { createDataMigrationMediaResolver } = await import("@/app/api/data-migration/_shared/mediaResolver");
-    ({ importServiceChunk } = await import("@/lib/dataMigration/import/importChunk"));
+    ({ importServiceChunk } = await import("@/lib/dataMigration/server"));
     const { uuidv7 } = await import("uuidv7");
 
     fake = createFakeStoragePort();
