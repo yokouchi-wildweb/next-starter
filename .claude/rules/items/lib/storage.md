@@ -17,6 +17,7 @@ using:
 - media_schema: media columns use storageMediaValueSchema, never z.string().url()
 - legacy_three_uses: legacy URL helpers only for delete-on-row-delete, admin copy and admin probe
 - private_media_src: private video / audio get the URL in the element's src attribute, never a <source> child | no page-wide re-sign mechanism
+- private_media_props: a private video / audio drawn by your own player spreads `videoProps` of usePrivateMediaRecovery (@/lib/storage/client) onto the element, never re-wires the handlers by hand | the single handle* only when wrapping one
 - cross_domain_cors: reading the bytes of a stored file from another origin (fetch for MSE / Web Audio) needs the bucket's CORS (pnpm ops storage setup)
 editing:
 - port_promises: writes never overwrite, issued objects are no-store, generation-bound ops stay bound, the port does no authz | a custom port has read

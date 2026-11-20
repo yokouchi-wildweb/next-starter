@@ -51,6 +51,15 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
   - `storage.googleapis.com` のようにホストが共有のとき、ホストだけで許可すると他のバケットの URL まで最適化に通ってしまうため
   - `next.config.ts` の remotePatterns も同じ base のパス配下に限る
 
+### 非公開の動画・音声: `usePrivateMediaRecovery(src, mediaRef)`
+
+`@/lib/storage/client` の client hook。固定 URL（`/api/storage/objects/<id>`）の動画・音声が署名期限後に読めなくなったときの読み直しを持つ（仕組み: [Internals.md](./Internals.md)）。
+
+- `videoProps`: 要素（`<video>` / `<audio>`）に `{...videoProps}` で広げる `src` と 6 つのイベント（`onError` / `onLoadedMetadata` / `onCanPlay` / `onLoadStart` / `onPlay` / `onSeeking`）。同じ src の間は同じ参照。型 `PrivateMediaVideoProps`
+- `status`: `"idle"` / `"recovering"` / `"failed"`。`"failed"` ならエラーと再開の操作を出し、`resume()` を呼ぶ
+- `src` と `handleError` / `handleLoadedMetadata` / `handleCanPlay` / `handleLoadStart` / `handlePlaybackIntent`: `videoProps` と同じ処理を 1 つずつ。包んで使うとき（`handleError` の真偽でエラー表示を決めるなど）だけ使う
+- src が固定 URL でなければ何もしない（`videoProps` を広げても普通の要素と同じ）
+
 ### 配信規則（inline / attachment）
 
 受け付けてよい型（用途の `contentTypes`）と、ブラウザに inline 表示させてよい型は分けて扱う。

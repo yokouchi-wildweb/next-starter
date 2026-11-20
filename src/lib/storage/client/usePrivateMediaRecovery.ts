@@ -14,10 +14,12 @@
 //   失敗を待たずに同じ手順で読み直す（Chrome は期限後のシークで約 27 秒待ってからエラーを出すため）。
 //   失敗ではないので自動復帰の回数は使わない。ブラウザの判別はしない
 // - 全ページの署名更新の仕組みは作らない（再生・シークされたその要素だけを読み直す）
+// - 自分で描くプレーヤーは videoProps を <video>（<audio>）にそのまま広げる。個別の handle* は包んで使うとき
+//   （handleError の真偽を見てエラー表示を決めるなど）だけ
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject, SyntheticEvent } from "react";
 
 import { storageConfig } from "../config";
@@ -60,6 +62,20 @@ export function withMediaRetryQuery(src: string, key: string | number): string {
   return `${src}${separator}${MEDIA_RETRY_QUERY}=${encodeURIComponent(String(key))}`;
 }
 
+/**
+ * media 要素（<video> / <audio>）にそのまま広げる属性。src と 6 つのイベントを復帰の処理に配線済み。
+ * onPlay と onSeeking はどちらも handlePlaybackIntent
+ */
+export type PrivateMediaVideoProps = {
+  src: string | undefined;
+  onError: (event: SyntheticEvent<HTMLMediaElement>) => void;
+  onLoadedMetadata: (event: SyntheticEvent<HTMLMediaElement>) => void;
+  onCanPlay: () => void;
+  onLoadStart: () => void;
+  onPlay: (event: SyntheticEvent<HTMLMediaElement>) => void;
+  onSeeking: (event: SyntheticEvent<HTMLMediaElement>) => void;
+};
+
 export type PrivateMediaRecovery = {
   /** media 要素（または <source>）に渡す src。復帰中は再取得 query 付き */
   src: string | undefined;
@@ -79,6 +95,8 @@ export type PrivateMediaRecovery = {
   handlePlaybackIntent: (event: SyntheticEvent<HTMLMediaElement>) => void;
   /** status "failed" からの再開操作。最後に覚えた位置で読み直す（それが失敗したらまた "failed" で止まる） */
   resume: () => void;
+  /** media 要素に `{...videoProps}` で広げる src と 6 つのイベント（上の handle* と同じ処理。同じ src の間は同じ参照） */
+  videoProps: PrivateMediaVideoProps;
 };
 
 /**
@@ -192,6 +210,19 @@ export function usePrivateMediaRecovery(
 
   const resolvedSrc = src ? (enabled && retryKey !== null ? withMediaRetryQuery(src, retryKey) : src) : undefined;
 
+  const videoProps = useMemo<PrivateMediaVideoProps>(
+    () => ({
+      src: resolvedSrc,
+      onError: handleError,
+      onLoadedMetadata: handleLoadedMetadata,
+      onCanPlay: handleCanPlay,
+      onLoadStart: handleLoadStart,
+      onPlay: handlePlaybackIntent,
+      onSeeking: handlePlaybackIntent,
+    }),
+    [resolvedSrc, handleError, handleLoadedMetadata, handleCanPlay, handleLoadStart, handlePlaybackIntent],
+  );
+
   return {
     src: resolvedSrc,
     status,
@@ -201,5 +232,6 @@ export function usePrivateMediaRecovery(
     handleLoadStart,
     handlePlaybackIntent,
     resume,
+    videoProps,
   };
 }
