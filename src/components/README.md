@@ -19,7 +19,7 @@
 - `Form/`: フォーム構築の全部品（Input / Field / `FieldRenderer` / `AppForm` / AutoSave） | 詳細: [Form/README.md](./Form/README.md)・[Form/FieldRenderer/README.md](./Form/FieldRenderer/README.md)・[Form/AutoSave/README.md](./Form/AutoSave/README.md)
 - `Icons/`: プロジェクト固有アイコンを Lucide 互換 API で一元管理 | 詳細: [Icons/README.md](./Icons/README.md)
 - `Layout/`: レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）とキオスク用のビューポート固定枠 `KioskFrame`。raw HTML の代替。余白の段は閉じた lib `@/lib/spacing` | 詳細: [Layout/README.md](./Layout/README.md)
-- `Media/`: 画像・メディア表示（`AppImage`: next/image ラッパー。raw `<img>` / next/image 直接使用の代替。`PreviewImage`: blob: など選んだ直後の画像の下見） | 詳細: [Media/AppImage/README.md](./Media/AppImage/README.md)・[Media/PreviewImage/README.md](./Media/PreviewImage/README.md)
+- `Media/`: 画像・メディア表示（`AppImage`: next/image ラッパー。raw `<img>` / next/image 直接使用の代替。`PreviewImage`: blob: など選んだ直後の画像の下見。`AppVideo`: 動画、非公開ファイルの署名期限切れからの復帰つき） | 詳細: [Media/AppImage/README.md](./Media/AppImage/README.md)・[Media/PreviewImage/README.md](./Media/PreviewImage/README.md)・[Media/AppVideo/README.md](./Media/AppVideo/README.md)
 - `Navigation/`: ナビゲーション | 詳細: [Navigation/Link/README.md](./Navigation/Link/README.md)
   - `Link`: next/link の包み。リンクは全部これを使い next/link を直接 import しない（lint `link-via-shelf`）。口 `LinkVisibilityProvider` は既定で何も隠さず、アプリでは `src/wiring/AppProviders.tsx` の門番の `GateProvider` が閉じた機能のパスを隠す判定を差し込む
   - `PageTab`

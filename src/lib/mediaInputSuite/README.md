@@ -121,6 +121,7 @@ export function FooFields({ methods, onMediaStateChange }) {
 - `detectMediaType` で image/video/unknown を判定。
 - `src` に storage ref を渡せる。種類は ref の拡張子で判定し、表示は `resolveStorageSrc`（非公開は固定 URL `/api/storage/objects/<id>`）。
 - `ImagePreview` / `VideoPreview` / `UnsupportedPreview` に振り分け。
+- `VideoPreview` は枠と「読み込み中」の文だけを持ち、動画の描画と非公開ファイルの復帰（失敗の文と「再開」）は [Media/AppVideo](../../components/Media/AppVideo/README.md) に任せる。
 
 ### フック
 

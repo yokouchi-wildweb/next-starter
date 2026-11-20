@@ -54,4 +54,6 @@ import { DetailTable } from "@/components/Overlays/DetailModal";
 
 ## Internals
 
-`media.url` / `media.poster` には `storage://` の ref をそのまま渡してよい（`toStorageDisplaySrc` で表示用 URL に直す。非公開の動画は署名期限切れから復帰する）。
+`media.url` / `media.poster` には `storage://` の ref をそのまま渡してよい（`toStorageDisplaySrc` で表示用 URL に直す）。
+
+- 動画（`type: "video"`）は [Media/AppVideo](../../Media/AppVideo/README.md) が描く。非公開の動画は署名期限切れから復帰し、復帰も止まったら動画の下に失敗の文と「再開」を出す
