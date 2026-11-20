@@ -41,6 +41,14 @@ test("matchDeprecated: 一致・配下・core 省略形を検出し、配下は�
   assert.equal(matchDeprecated("@/features/core/user/components/UserMyPage", paths), null);
 });
 
+test("matchDeprecated: exact は from そのもの(と /index)だけを検出し、配下は通す", () => {
+  const exact = [{ from: "@/components/Layout", to: "@/components/Layout/<Unit>", exact: true }];
+  assert.equal(matchDeprecated("@/components/Layout", exact).replacement, "@/components/Layout/<Unit>");
+  assert.equal(matchDeprecated("@/components/Layout/index", exact).replacement, "@/components/Layout/<Unit>");
+  assert.equal(matchDeprecated("@/components/Layout/Block", exact), null);
+  assert.equal(matchDeprecated("@/components/LayoutX", exact), null);
+});
+
 const ruleTester = new RuleTester({
   languageOptions: { ecmaVersion: 2022, sourceType: "module" },
 });
@@ -192,5 +200,39 @@ test("config: 綴りを直した部品の棚の旧フォルダ Fanctional は Fu
     const hits = result.messages.filter((m) => m.ruleId === "deprecated-imports/no-deprecated-path");
     assert.equal(hits.length, 1, from);
     assert.ok(hits[0].message.includes(`"${to}"`), hits[0].message);
+  }
+});
+
+test("config: 棚の場所の整理(shelf-s1)の旧パスは置き換え先を出して warn し、消した入口の配下の部品は通す", async () => {
+  const repoRoot = path.resolve(import.meta.dirname, "..");
+  const eslint = new ESLint({ cwd: repoRoot, overrideConfigFile: path.join(repoRoot, "eslint.config.mjs") });
+  const lint = async (from) => {
+    const [result] = await eslint.lintText(`import * as X from "${from}";\nexport const y = X;\n`, {
+      filePath: path.join(repoRoot, "src/components/Form/X.tsx"),
+    });
+    return result.messages.filter((m) => m.ruleId === "deprecated-imports/no-deprecated-path");
+  };
+  const cases = [
+    ["@/components/Layout", "@/components/Layout/<Unit>"],
+    ["@/components/TextBlocks", "@/components/TextBlocks/<Unit>"],
+    ["@/components/Functional", "@/components/Functional/<Unit>"],
+    ["@/components/Layout/spacing", "@/lib/spacing"],
+    ["@/components/Layout/spacingScale", "@/lib/spacing"],
+    ["@/components/Layout/spacingClasses.generated", "@/lib/spacing"],
+    ["@/components/Layout/commonVariants", "@/components/Layout/appearance"],
+    ["@/components/AppFrames/Kiosk", "@/components/Layout/KioskFrame"],
+    ["@/components/AppFrames/Kiosk/KioskFrame", "@/components/Layout/KioskFrame"],
+    ["@/components/Functional/BodyPortal", "@/components/Overlays/BodyPortal"],
+    ["@/hooks/useHeaderHeight", "@/app/_layout/useHeaderHeight"],
+    ["@/components/AppFrames/Admin/Elements/ListTop", "@/components/Admin/ListTop"],
+  ];
+  for (const [from, to] of cases) {
+    const hits = await lint(from);
+    assert.equal(hits.length, 1, from);
+    assert.equal(hits[0].severity, 1, from);
+    assert.ok(hits[0].message.includes(`"${to}"`), hits[0].message);
+  }
+  for (const kept of ["@/components/Layout/Block", "@/components/Navigation/Link", "@/components/Functional/DarkModeSwitch", "@/components/AppStatusGuard"]) {
+    assert.equal((await lint(kept)).length, 0, kept);
   }
 });

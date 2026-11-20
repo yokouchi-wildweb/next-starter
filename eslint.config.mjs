@@ -37,6 +37,8 @@ const STORES_REMOVED = "checkpoint stores-removal で削除済み";
 const SHADCN_REMOVED = "checkpoint shadcn-close で削除済み";
 /** 部品の棚の Fanctional(綴りの誤り)を Functional へ改名した旧パスの削除の区切り(deprecated-imports の until) */
 const FUNCTIONAL_RENAMED = "checkpoint context-after-v2 で削除済み";
+/** 部品の棚の場所の整理(入口の廃止・spacing を lib へ・Kiosk / BodyPortal / useHeaderHeight / Elements の移動)の旧パスの削除の区切り(deprecated-imports の until) */
+const SHELF_S1_MOVED = "checkpoint shelf-s1 で削除済み";
 
 const config = [
   ...nextConfig,
@@ -276,8 +278,10 @@ const config = [
   // (次の checkpoint で shim が消えると tsc が止める)。下流が自分の改名で使ってもよい(paths に足す)。
   // 現在の一覧 = 部品の棚 Primitives へ移した物(計画書 02、checkpoint primitives-radix で旧パスは shim なしで削除済み)と、
   // stores の廃止で閉じた lib へ移した物(checkpoint stores-removal、同じく shim なし。
-  // 旧パスの import は tsc も止めるので、ここは置き換え先の案内だけ)。
-  // 書式: { from: "@/features/...", to: "@/features/...", until: "checkpoint <label> の次" }
+  // 旧パスの import は tsc も止めるので、ここは置き換え先の案内だけ)と、棚の場所の整理で消した入口・動かした物(checkpoint shelf-s1、
+  // 同じく shim なし。入口の行は exact: 配下の部品のファイル @/components/<Category>/<Unit> は検出しない。直し方は
+  // .notices/20261120-150000-shelf-s1.places.mjs が名前ごとに分ける)。
+  // 書式: { from: "@/features/...", to: "@/features/...", until: "checkpoint <label> の次"[, exact: true] }
   {
     files: ["src/**/*.{ts,tsx}"],
     plugins: { "deprecated-imports": deprecatedImportsPlugin },
@@ -319,6 +323,23 @@ const config = [
             { from: "@/hooks/useGlobalLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },
             { from: "@/components/Overlays/Loading/GlobalScreenLoader", to: "@/lib/globalLoader", until: STORES_REMOVED },
             { from: "@/components/Providers/RecaptchaProvider", to: "@/lib/recaptcha", until: STORES_REMOVED },
+            { from: "@/components/TextBlocks", to: "@/components/TextBlocks/<Unit>", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/Navigation", to: "@/components/Navigation/<Unit>", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/Badge", to: "@/components/Badge/<Unit>", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/Layout", to: "@/components/Layout/<Unit>", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/Icons", to: "@/components/Icons/<Unit>", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/Widgets", to: "@/components/Widgets/<Unit>", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/Animation", to: "@/components/Animation/<Unit>", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/Functional", to: "@/components/Functional/<Unit>", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/Layout/spacing", to: "@/lib/spacing", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/Layout/spacingScale", to: "@/lib/spacing", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/Layout/spacingClasses.generated", to: "@/lib/spacing", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/Layout/commonVariants", to: "@/components/Layout/appearance", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/AppFrames/Kiosk", to: "@/components/Layout/KioskFrame", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/AppFrames/Kiosk/KioskFrame", to: "@/components/Layout/KioskFrame", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/Functional/BodyPortal", to: "@/components/Overlays/BodyPortal", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/hooks/useHeaderHeight", to: "@/app/_layout/useHeaderHeight", until: SHELF_S1_MOVED, exact: true },
+            { from: "@/components/AppFrames/Admin/Elements", to: "@/components/Admin", until: SHELF_S1_MOVED },
           ],
         },
       ],
