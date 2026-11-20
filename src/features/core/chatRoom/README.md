@@ -520,7 +520,7 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
   - 送信に失敗した添付は `dismiss` / `cancelUpload` / `retry`（再アップロード）のときに取り消す（discard）。送信済みのものは取り消さない
 - 表示は `resolveStorageSrc(content)`（`@/lib/storage`）で固定 URL `/api/storage/objects/<id>` にする。`content` が旧 URL（http(s)）ならそのまま返る
   - 画像: `<AppImage src={message.content} … />`（ref をそのまま渡せる。非公開は最適化を通らない）
-  - 動画: `<VideoPreview src={resolveStorageSrc(message.content)} />`（期限後の再読み込みは自動）。自前のプレイヤーは `usePrivateMediaRecovery`（src/lib/storage/README.md）
+  - 動画: `<AppVideo src={message.content} />`（`@/components/Media/AppVideo`。ref をそのまま渡せる。期限後の再読み込みは自動）。入力欄の下見は `VideoPreview`（lib/mediaInputSuite、中身は AppVideo）。AppVideo を使えない自前のプレイヤーだけ `usePrivateMediaRecovery`（src/lib/storage/README.md）
   - ファイル: `<a href={resolveStorageSrc(message.content)}>`（配信は attachment）
 - `lastMessageSnapshot.content` にも ref が入る。ルーム一覧のプレビューは `type` で「画像」「動画」「ファイル」などに出し分ける（ref を文字として出さない）
 

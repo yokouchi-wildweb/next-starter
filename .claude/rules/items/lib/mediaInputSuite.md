@@ -19,4 +19,5 @@ editing:
 - mis_user_changes_only: onUrlsChange fires only on user actions, never on mount or a new initialUrls
 - mis_discard_own_refs: discard sends only storage refs uploaded in this session, never old URLs or saved values
 - mis_guard_entry: the in-flight guard reads @/lib/unsavedGuard by its entry only | saved-pending values are the form's guard, not this lib's
+- mis_video_via_appvideo: VideoPreview draws the video through Media/AppVideo (the private-file recovery lives there) | no <video> or recovery wiring here
 read: which part, form wiring, commit / reset → Usage | parts and hooks → API | upload vs save, guard, checks → Internals | storage → Related

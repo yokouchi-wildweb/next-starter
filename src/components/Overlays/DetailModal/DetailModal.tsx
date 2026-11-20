@@ -15,11 +15,11 @@
 
 import { SolidBadge } from "@/components/Badge/SolidBadge";
 import { Block } from "@/components/Layout/Block";
+import { AppVideo } from "@/components/Media/AppVideo";
 import { cn } from "@/lib/cn";
 import { toStorageDisplaySrc } from "@/lib/storage/ref";
 
 import Modal from "../Modal";
-import DetailModalVideo from "./DetailModalVideo";
 import DetailTable from "./DetailTable";
 import type { DetailModalProps } from "./types";
 
@@ -63,7 +63,13 @@ export default function DetailModal({
   const generatedMediaNode =
     media &&
     (mediaType === "video" ? (
-      <DetailModalVideo media={media} />
+      // 非公開の動画は署名期限切れから復帰する(AppVideo)
+      <AppVideo
+        src={media.url}
+        poster={media.poster}
+        alt={media.alt}
+        className="mx-auto w-full max-w-md max-h-80 rounded-md shadow"
+      />
     ) : (
       // 実寸不明の画像を max-h と object-contain で収める。AppImage(fill)は箱の寸法が要り見た目が変わるため未移行。
       // モーダルが開いた時だけ描く = 常に見えているので lazy にせず、decode だけ非同期にする

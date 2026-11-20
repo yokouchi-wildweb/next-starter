@@ -1,13 +1,13 @@
 "use client";
 
-import type { CSSProperties, SyntheticEvent } from "react";
-import { useState, useCallback, useRef } from "react";
+// 選んだ・保存済みの動画の下見。動画の描画と非公開ファイルの復帰は Media/AppVideo、ここは枠と「読み込み中」の文だけ
 
-import { Button } from "@/components/Form/Button/Button";
-import { Para } from "@/components/TextBlocks/Para";
-import { Span } from "@/components/TextBlocks/Span";
-import { usePrivateMediaRecovery } from "@/lib/storage/client/usePrivateMediaRecovery";
+import type { CSSProperties } from "react";
+import { useCallback, useState } from "react";
+
 import { Block } from "@/components/Layout/Block";
+import { AppVideo } from "@/components/Media/AppVideo";
+import { Span } from "@/components/TextBlocks/Span";
 
 export type VideoPreviewProps = {
   src: string;
@@ -34,61 +34,37 @@ export const VideoPreview = ({
   onError,
 }: VideoPreviewProps) => {
   const [loading, setLoading] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  // 非公開ファイルの固定 URL(/api/storage/objects/)だけ、署名期限後の読み込み失敗から位置を保って復帰する
-  // (期限が近い状態での再生・シークは先回りで読み直す)
-  const recovery = usePrivateMediaRecovery(src, videoRef);
-  const { handleLoadedMetadata: restorePlayback, handleError: recoverFromError } = recovery;
 
   const handleLoadedMetadata = useCallback(
-    (event: SyntheticEvent<HTMLVideoElement>) => {
+    (video: HTMLVideoElement) => {
       setLoading(false);
-      restorePlayback(event);
-      onLoadedMetadata?.(event.currentTarget);
+      onLoadedMetadata?.(video);
     },
-    [onLoadedMetadata, restorePlayback],
+    [onLoadedMetadata],
   );
 
-  const handleError = useCallback(
-    (event: SyntheticEvent<HTMLVideoElement>) => {
-      if (recoverFromError(event)) return;
-      setLoading(false);
-      onError?.();
-    },
-    [onError, recoverFromError],
-  );
+  const handleError = useCallback(() => {
+    setLoading(false);
+    onError?.();
+  }, [onError]);
 
   return (
     <Block
       className={className}
       style={{ ...style, display: "flex", alignItems: "center", justifyContent: "center" }}
     >
-      <video
-        ref={videoRef}
-        src={recovery.src}
+      <AppVideo
+        src={src}
         controls={controls}
         muted={muted}
         loop={loop}
         preload="metadata"
-        style={{ width: "100%", height: "100%", maxWidth: "100%", maxHeight: "100%", objectFit: fit }}
+        fit={fit}
+        style={{ width: "100%", height: "100%", maxWidth: "100%", maxHeight: "100%" }}
         onLoadedMetadata={handleLoadedMetadata}
         onError={handleError}
-        onCanPlay={recovery.handleCanPlay}
-        onLoadStart={recovery.handleLoadStart}
-        onPlay={recovery.handlePlaybackIntent}
-        onSeeking={recovery.handlePlaybackIntent}
       />
       {loading ? <Span inline>読み込み中...</Span> : null}
-      {recovery.status === "failed" ? (
-        <>
-          <Para tone="destructive" size="sm">
-            動画を読み込めませんでした
-          </Para>
-          <Button type="button" variant="outline" size="sm" onClick={recovery.resume}>
-            再開
-          </Button>
-        </>
-      ) : null}
     </Block>
   );
 };

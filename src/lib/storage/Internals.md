@@ -45,7 +45,7 @@
   - 失敗ではないので自動復帰の回数は使わない。ブラウザの判別はしない
   - 署名は読み込み開始より後に発行されるので、開始時刻から数えると早めに倒れる
 - src が固定 URL でなければ何もしない（旧 URL・公開 URL はそのまま）
-- 配線済み: `VideoPreview`（lib/mediaInputSuite）、`DetailModal` の動画（`DetailModalVideo`）。props の追加は無い
+- 配線済み: `AppVideo`（src/components/Media/AppVideo。`VideoPreview`（lib/mediaInputSuite）と `DetailModal` の動画はこれを描く）。props の追加は無い
 - 独自のプレーヤーに配線するとき: `recovery.videoProps` を要素に広げ（`<video ref={mediaRef} {...recovery.videoProps} />`）、`status === "failed"` でエラーと `resume()` の操作を出す
   - `videoProps` = `src` + `handleError` / `handleLoadedMetadata` / `handleCanPlay` / `handleLoadStart` を同名のイベントに、`handlePlaybackIntent` を `onPlay` と `onSeeking` に配線した物（同じ src の間は同じ参照）
   - 個別の `handle*` は、包んで使うとき（`handleError` の真偽でエラー表示を決めるなど）だけ
