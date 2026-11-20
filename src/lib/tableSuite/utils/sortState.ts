@@ -1,7 +1,6 @@
 // src/lib/tableSuite/utils/sortState.ts
 
 import type { SortDirection, SortState } from "../types";
-import type { OrderBySpec } from "@/lib/crud/types";
 
 const SEPARATOR = ".";
 const VALID_DIRECTIONS: SortDirection[] = ["asc", "desc"];
@@ -34,12 +33,4 @@ export function parseSortState(value: string | undefined): SortState | undefined
   }
 
   return { field, direction: direction as SortDirection };
-}
-
-/**
- * SortState を CRUD の OrderBySpec に変換する。
- * 例: { field: "name", direction: "asc" } → [["name", "ASC"]]
- */
-export function toOrderBySpec(sort: SortState): OrderBySpec {
-  return [[sort.field, sort.direction === "asc" ? "ASC" : "DESC"]];
 }

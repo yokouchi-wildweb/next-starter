@@ -246,9 +246,9 @@ import {
   DataTable,
   serializeSortState,
   parseSortState,
-  toOrderBySpec,
   type SortState,
 } from "@/lib/tableSuite";
+import { toOrderBySpec } from "@/lib/crud"; // SortState → search の orderBy は並べる側(crud)の関数
 ```
 
 **page.tsx（サーバーコンポーネント）:**
@@ -310,8 +310,9 @@ const columns = buildDomainColumns<Sample>({
 | `sortItems(items, sort?, options?)` | クライアントサイドソート（options: `getValue`・`nulls`） |
 | `serializeSortState(sort)` | SortState → URL文字列（例: `"name.asc"`） |
 | `parseSortState(value?)` | URL文字列 → SortState |
-| `toOrderBySpec(sort)` | SortState → CRUD の OrderBySpec |
 | `resolveNextSort(current?, field)` | ヘッダークリック時の次のソート状態を算出 |
+
+SortState を `search` の `orderBy` に直す `toOrderBySpec` は `@/lib/crud` にある(tableSuite は crud を読まない。[src/lib/crud/README.md](../crud/README.md)「一覧の列」)
 
 ### 行の並び替え（reorderable）
 

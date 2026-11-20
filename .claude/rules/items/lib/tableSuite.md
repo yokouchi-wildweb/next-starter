@@ -10,7 +10,7 @@ rules:
 using:
 - admin_bulk_actions: admin list bulk actions = receptacle items <domain>/adminBulkActions/<name>.tsx (BulkActionItem, @/lib/crud/components bulk*Action creators), never hand-written bulkActions in a Table | generic bulk buttons only for side-effect-free columns, recorded ops → upstream service + API + creator | item access = show / hide only (authz is the API)
 - selection_hook: selection outside a table uses useRecordSelection + BulkActionBar, never a hand-built Set
-- sort_by_caller: tables only show sort state and report changes; the caller sorts, and a paginated list sorts on the server through the URL, never sortItems on one page
+- sort_by_caller: tables only show sort state and report changes; the caller sorts, and a paginated list sorts on the server through the URL, never sortItems on one page | SortState → search orderBy = toOrderBySpec from @/lib/crud
 - reorder_key: reorderable needs a getKey returning a stable record id
 - reorder_scope: cross-page or large-volume ordering → a searchForSorting screen / @/lib/sortableList (reorderable cannot cross page boundaries)
 - batch_save_guard: a screen that keeps edits or order locally and saves later calls useUnsavedGuard itself (the table holds no unsaved state)
@@ -18,6 +18,7 @@ using:
 - page_scroll_infinite: a table scrolled by the page (maxHeight="none") is wrapped in InfiniteScrollList instead of infiniteFooter
 editing:
 - guard_entry: the lib reads @/lib/unsavedGuard through its entry only
+- no_crud: tableSuite never imports @/lib/crud, values and types (crud reads tableSuite, never the reverse) | a CRUD-shaped helper goes to crud
 - popup_attr: an editor with a popup sets { [POPUP_ATTR]: cellKey } on the popup root
 - editor_inputs: an editor's inputs come from the @/components/Input units
 - editor_type_public: a new editorType is a public type change of tableSuite (type, renderEditor case, README list)

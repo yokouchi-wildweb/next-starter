@@ -11,6 +11,8 @@
 //   @/components/AppStatusGuard は無くなった(ガードの動き = コールバックを渡さない useAppStatus() の既定。メンテナンスは
 //   設定の行き先へ window.location.assign、新しいデプロイは reload)、
 //   @/components/Functional/DarkModeSwitch も無くなった(@/lib/siteTheme の useDarkModeSwitch + @/components/Button/Button で描く)
+// - 注文 13: tableSuite は crud を読まない。@/lib/tableSuite の toOrderBySpec → @/lib/crud(ほかの tableSuite の名前はそのまま。
+//   道は動いていないので名前ごとに分ける: SPLITS)
 //
 // することは 3 つ:
 // 1. src・scripts のコード(.ts / .tsx / .mts / .mjs / .js / .jsx、git の管理下)の指定(@/… と相対の …)を行き先へ書き換える
@@ -47,7 +49,6 @@ const units = (table) => {
   }
   return out;
 };
-void units;
 
 /** 注文 12 の行き先 */
 const OMIT_UNDEFINED_TARGET = "src/lib/crud/utils";
@@ -58,7 +59,10 @@ const APP_STATUS = "src/lib/appStatus";
  * 名前ごとに分けるモジュール。names = 名前 → 行き先 | rest = 表にない名前: "stay"・"stop"・モジュールの道
  * gone = 代わり無しで無くなった名前 → 止める理由
  */
-const SPLITS = {};
+const SPLITS = {
+  // 注文 13: SortState → OrderBySpec の変換は並べる側(crud)へ。tableSuite の入口のほかの名前は残る
+  "src/lib/tableSuite": { names: units({ "src/lib/crud": ["toOrderBySpec"] }), rest: "stay" },
+};
 
 /** その下のどのファイルにも同じ名前の表を当てるフォルダ */
 const PREFIX_SPLITS = [];

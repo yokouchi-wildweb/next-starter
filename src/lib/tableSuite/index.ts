@@ -110,5 +110,5 @@ export type {
 // ユーティリティ
 // ============================================================
 export { sortItems, type SortItemsOptions } from "./utils/sortItems";
-export { serializeSortState, parseSortState, toOrderBySpec } from "./utils/sortState";
+export { serializeSortState, parseSortState } from "./utils/sortState";
 

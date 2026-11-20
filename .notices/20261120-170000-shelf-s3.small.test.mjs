@@ -1,5 +1,5 @@
 // .notices/20261120-170000-shelf-s3.small.test.mjs
-// codemod shelf-s3 small: 動いたモジュール(@/utils/object・@/utils/json・@/hooks/useAppStatus)・行き先の入口の名前の確かめ・
+// codemod shelf-s3 small: 動いたモジュール(@/utils/object・@/utils/json・@/hooks/useAppStatus)・名前ごとに分かれた入口(tableSuite の toOrderBySpec)・行き先の入口の名前の確かめ・
 // 無くなったモジュール(AppStatusGuard・DarkModeSwitch)の STOP と手順・単位の中の読み・plan と apply・何度走らせても同じ
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -50,6 +50,16 @@ test("注文 12: 移った名前が行き先の入口に無ければ書かずに
   assert.equal(text, src);
   assert.equal(stops.length, 1);
   assert.match(stops[0], /omitUndefined が無い/);
+});
+
+test("注文 13: @/lib/tableSuite の toOrderBySpec だけ @/lib/crud へ、ほかの名前(型も)は tableSuite に残る。書いていないファイルはそのまま", () => {
+  const src = 'import { DataTable, parseSortState, toOrderBySpec, type SortState } from "@/lib/tableSuite";';
+  const { text, stops } = rewriteSource("src/features/shop/components/ShopList.tsx", src);
+  assert.deepEqual(stops, []);
+  assert.match(text, /import \{ DataTable, parseSortState, type SortState \} from "@\/lib\/tableSuite";/);
+  assert.match(text, /import \{ toOrderBySpec \} from "@\/lib\/crud";/);
+  const other = 'import { DataTable, type SortState } from "@/lib/tableSuite";';
+  assert.equal(rewriteSource("src/features/shop/components/Other.tsx", other).text, other);
 });
 
 test("AppStatusGuard: 読む所(import・JSX・mock.module)は書かずに STOP、手順は useAppStatus の呼び出し(props の無い形は oripa-do の RaidPlayClient)", () => {
