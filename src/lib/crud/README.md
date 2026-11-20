@@ -211,6 +211,7 @@ defineHiddenColumns(UserTable, ["localPassword"]);
 - `formatDate`・`truncate` は必須: 日付の書き方と切り詰めはアプリのもので、lib は持たない。呼び手が `@/utils/date` の `formatDateJa` と `@/utils/string` の `truncateJapanese` を渡す(`buildDomainColumns<Sample>({ config: domainDisplay, formatDate: formatDateJa, truncate: truncateJapanese })`)。lib は日時・createdAt / updatedAt に `"YYYY/MM/DD HH:mm"`、日付に `"YYYY/MM/DD"` を、`fallback: null` と一緒に渡す
 - 読む項目のキーは `name`・`label`・`formInput`・`fieldType`・`options` だけ。型は lib/domain の `DomainField` から取る(crud に項目の型は持たない)。`name` 以外は省ける
 - 関連は `fieldName`・`label`(`DomainDisplayRelation` から、label は省ける)、`tableFields` は `DomainDisplay` の型
+- `toOrderBySpec(sort)`: 表の並びの状態(`@/lib/tableSuite` の `SortState`)を `search` の `orderBy`(`OrderBySpec`)に直す(`{ field: "name", direction: "asc" }` → `[["name", "ASC"]]`)。表は並びを見せるだけで、並べるのは一覧を取る側なので crud が持つ。純粋な関数で、page.tsx・loader と client の一覧の両方から呼べる
 
 ### 提供メソッド一覧
 
