@@ -1,0 +1,221 @@
+"use client";
+
+// src/components/Input/ComboboxInput.tsx
+
+import { type ComponentProps, type HTMLAttributes, useState, useMemo } from "react";
+import { Check, ChevronsUpDown, X } from "lucide-react";
+
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/Primitives/Command";
+import {
+  PopoverContent,
+  PopoverRoot,
+  PopoverTrigger,
+} from "@/components/Primitives/Popover";
+import { Button } from "@/components/Form/Button/Button";
+import {
+  resolveOptionItemIdentity,
+  resolveOptionSearchText,
+  serializeOptionValue,
+  type OptionPrimitive,
+} from "@/components/Input/options";
+import { type Options } from "@/components/Input/options";
+import { cn } from "@/lib/cn";
+
+import { inputVariants, type InputSize } from "./Input";
+
+import { PICKER_POPOVER_BODY_CLASS, usePickerPopoverSide } from "./AsyncOptionSource";
+
+/** 縮めずに出したい中身の高さ（検索欄 + 候補リスト max-h-60） */
+const PREFERRED_POPOVER_HEIGHT = 280;
+
+export type ComboboxInputProps = {
+  /** 引き金の高さの段(入力欄・ボタンの size と同じ名前・同じ高さ)@default "md" */
+  size?: InputSize;
+  /** 現在の値 */
+  value?: OptionPrimitive | null;
+  /** 値変更コールバック */
+  onChange: (value: OptionPrimitive | null) => void;
+  /** blur コールバック（ポップオーバー閉じた時に発火） */
+  onBlur?: () => void;
+  /** 選択肢リスト */
+  options?: Options[];
+  /** トリガーのプレースホルダー */
+  placeholder?: string;
+  /** 検索欄のプレースホルダー */
+  searchPlaceholder?: string;
+  /** 該当なし時のメッセージ */
+  emptyMessage?: string;
+  /** 無効化 */
+  disabled?: boolean;
+  /** クリア可能か（選択解除ボタン表示） */
+  clearable?: boolean;
+  /** トリガーのクラス名 */
+  className?: string;
+  /** PopoverContent のクラス名 */
+  contentClassName?: string;
+  /** PopoverContent の props */
+  popoverContentProps?: ComponentProps<typeof PopoverContent>;
+  /** 開閉状態（制御モード） */
+  open?: boolean;
+  /** 開閉状態変更コールバック */
+  onOpenChange?: (open: boolean) => void;
+} & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange">;
+
+export function ComboboxInput({
+  value,
+  onChange,
+  onBlur,
+  options = [],
+  placeholder = "選択してください",
+  searchPlaceholder = "検索...",
+  emptyMessage = "該当する項目がありません",
+  disabled,
+  size = "md",
+  clearable = false,
+  className,
+  contentClassName,
+  popoverContentProps,
+  open,
+  onOpenChange,
+  id,
+  "aria-describedby": ariaDescribedby,
+  "aria-invalid": ariaInvalid,
+  ...rest
+}: ComboboxInputProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = typeof open === "boolean";
+  const resolvedOpen = isControlled ? open : internalOpen;
+  const { side, anchorRef, measure } = usePickerPopoverSide(PREFERRED_POPOVER_HEIGHT);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (disabled) {
+      return;
+    }
+    if (!isControlled) {
+      setInternalOpen(nextOpen);
+    }
+    onOpenChange?.(nextOpen);
+    // 下の空きが足りず上の方が広ければ上へ開く（AsyncOptionSource/popoverSide.ts）
+    if (nextOpen) {
+      measure();
+    }
+    // ポップオーバーが閉じた時に onBlur を発火
+    if (!nextOpen) {
+      onBlur?.();
+    }
+  };
+
+  const handleSelect = (optionValue: OptionPrimitive) => {
+    onChange(optionValue);
+    handleOpenChange(false);
+  };
+
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange(null);
+  };
+
+  // 選択中のラベルを取得
+  const selectedLabel = useMemo(() => {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    const serializedValue = serializeOptionValue(value);
+    const found = options.find(
+      (opt) => serializeOptionValue(opt.value) === serializedValue
+    );
+    return found?.label ?? null;
+  }, [value, options]);
+
+  const hasValue = selectedLabel !== null;
+
+  return (
+    <div ref={anchorRef} className={cn("w-full", className)} {...rest}>
+      <PopoverRoot open={resolvedOpen} onOpenChange={handleOpenChange}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            id={id}
+            aria-describedby={ariaDescribedby}
+            aria-invalid={ariaInvalid}
+            aria-expanded={resolvedOpen}
+            disabled={disabled}
+            className={inputVariants({
+              size,
+              className: cn("w-full justify-between font-normal", !hasValue && "text-muted-foreground"),
+            })}
+          >
+            <span className="truncate">
+              {hasValue ? selectedLabel : placeholder}
+            </span>
+            <span className="flex shrink-0 items-center gap-1">
+              {clearable && hasValue && (
+                <X
+                  className="size-4 opacity-50 hover:opacity-100"
+                  onClick={handleClear}
+                />
+              )}
+              <ChevronsUpDown className="size-4 opacity-50" />
+            </span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          side={side}
+          {...popoverContentProps}
+          className={cn(
+            "w-[--radix-popover-trigger-width] p-0",
+            contentClassName,
+            popoverContentProps?.className
+          )}
+        >
+          {/* スクロール領域は候補リストだけ: 上限を Command に付け、min-h-0 でリストを縮める */}
+          <Command className={PICKER_POPOVER_BODY_CLASS}>
+            <CommandInput placeholder={searchPlaceholder} />
+            <CommandList className="max-h-60 min-h-0">
+              <CommandEmpty>{emptyMessage}</CommandEmpty>
+              {options.map((option, index) => {
+                const serialized = serializeOptionValue(option.value);
+                const identity = resolveOptionItemIdentity(option, index);
+                const isSelected =
+                  value !== null &&
+                  value !== undefined &&
+                  serializeOptionValue(value) === serialized;
+
+                return (
+                  <CommandItem
+                    key={identity}
+                    value={identity}
+                    keywords={[resolveOptionSearchText(option)]}
+                    disabled={option.disabled}
+                    onSelect={() => {
+                      if (option.disabled) return;
+                      handleSelect(option.value);
+                    }}
+                    className={cn("cursor-pointer", option.disabled && "cursor-not-allowed")}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 size-4",
+                        isSelected ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <span className="truncate">{option.label}</span>
+                  </CommandItem>
+                );
+              })}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </PopoverRoot>
+    </div>
+  );
+}

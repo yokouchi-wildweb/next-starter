@@ -1,0 +1,205 @@
+// src/components/Input/CheckGroupInput.tsx
+
+"use client";
+
+import { useId, type HTMLAttributes } from "react";
+
+import { type Options } from "@/components/Input/options";
+import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
+import { BookmarkTag } from "@/components/Form/Button/BookmarkTag";
+import { RoundedButton } from "@/components/Form/Button/RoundedButton";
+import { Label } from "@/components/Input/Label";
+import { Checkbox } from "@/components/Primitives/Checkbox";
+import {
+  includesOptionValue,
+  serializeOptionValue,
+  toggleOptionValue,
+} from "@/components/Input/options";
+import { cn } from "@/lib/cn";
+
+export type CheckGroupDisplayType = "standard" | "bookmark" | "rounded" | "classic";
+export type CheckGroupOrientation = "horizontal" | "vertical";
+
+type OptionPrimitive = Options["value"];
+
+/** カラーマップの値型（bg / text / border クラス） */
+export type ColorMapEntry = { bg: string; text: string; border: string };
+
+export type CheckGroupInputProps = {
+  /** 現在の値（選択されているオプションの配列） */
+  value?: OptionPrimitive[];
+  /** 値が変更されたときのコールバック */
+  onChange: (value: OptionPrimitive[]) => void;
+  /** フォーカスが外れたときのコールバック（値変更後に発火） */
+  onBlur?: () => void;
+  /**
+   * Options to choose from. Optional so the component can render
+   * even when options haven't loaded yet.
+   */
+  options?: Options[];
+  /**
+   * 表示タイプ（標準ボタン / ブックマークタグ / 丸形 / クラシック）
+   */
+  displayType?: CheckGroupDisplayType;
+  /** 選択肢の並び方向（デフォルト: classicはvertical、それ以外はhorizontal） */
+  orientation?: CheckGroupOrientation;
+  /** ボタン表示時に利用するバリアント */
+  buttonVariant?: ButtonStyleProps["variant"];
+  /** ボタン表示時に利用するサイズ */
+  buttonSize?: ButtonStyleProps["size"];
+  /** 選択時に利用するバリアント（未指定の場合は buttonVariant を利用） */
+  selectedButtonVariant?: ButtonStyleProps["variant"];
+  /** 非選択時に利用するバリアント（未指定の場合は buttonVariant を利用） */
+  unselectedButtonVariant?: ButtonStyleProps["variant"];
+  /** オプションの color に対応するスタイルマップ（bookmark 表示時に使用） */
+  colorMap?: Record<string, ColorMapEntry>;
+  /** 無効化 */
+  disabled?: boolean;
+} & Omit<HTMLAttributes<HTMLDivElement>, "disabled">;
+
+export function CheckGroupInput({
+  value,
+  onChange,
+  onBlur,
+  options = [],
+  displayType = "standard",
+  orientation,
+  buttonVariant,
+  buttonSize,
+  selectedButtonVariant,
+  unselectedButtonVariant,
+  colorMap,
+  disabled,
+  ...rest
+}: CheckGroupInputProps) {
+  const groupId = useId();
+
+  const handleToggle = (option: Options) => {
+    // option.disabled は表示のみ。選択済みでもこの項目からは解除できない
+    if (disabled || option.disabled) return;
+    onChange(toggleOptionValue(value, option.value));
+    onBlur?.();
+  };
+
+  // classicのデフォルトはvertical、それ以外はhorizontal
+  const resolvedOrientation = orientation ?? (displayType === "classic" ? "vertical" : "horizontal");
+  const isVertical = resolvedOrientation === "vertical";
+  const classicLayoutClass = isVertical ? "mt-3 flex flex-col gap-4" : "mt-3 flex flex-wrap gap-4";
+  const defaultLayoutClass = isVertical ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
+  const layoutClass = displayType === "classic" ? classicLayoutClass : defaultLayoutClass;
+
+  const { className, ...restDivProps } = rest;
+
+  if (displayType === "classic") {
+    return (
+      <div
+        className={cn(layoutClass, className)}
+        role="group"
+        aria-disabled={disabled}
+        {...restDivProps}
+      >
+        {options.map((op) => {
+          const serialized = serializeOptionValue(op.value);
+          const id = `${groupId}-${serialized}`;
+          const selected = includesOptionValue(value, op.value);
+          const optionDisabled = disabled || op.disabled === true;
+
+          return (
+            <div key={serialized} className="flex items-center gap-2">
+              <Checkbox
+                id={id}
+                checked={selected}
+                onCheckedChange={() => handleToggle(op)}
+                disabled={optionDisabled}
+                aria-checked={selected}
+                className="border-muted-foreground"
+              />
+              <Label
+                htmlFor={id}
+                className={cn(
+                  "text-sm font-normal cursor-pointer",
+                  optionDisabled && "cursor-not-allowed opacity-50"
+                )}
+              >
+                {op.label}
+              </Label>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(layoutClass, className, disabled && "opacity-70")}
+      role="group"
+      aria-disabled={disabled}
+      {...restDivProps}
+    >
+      {options.map((op) => {
+        const selected = includesOptionValue(value, op.value);
+        const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
+        const resolvedUnselectedVariant = unselectedButtonVariant ?? buttonVariant ?? "outline";
+        const serialized = serializeOptionValue(op.value);
+        const optionDisabled = disabled || op.disabled === true;
+        const handleSelect = () => handleToggle(op);
+
+        if (displayType === "bookmark") {
+          const tagColor = op.color && colorMap ? colorMap[op.color] : undefined;
+          return (
+            <BookmarkTag
+              key={serialized}
+              type="button"
+              selected={selected}
+              tagColorClasses={tagColor}
+              variant={buttonVariant}
+              size={buttonSize}
+              onClick={handleSelect}
+              disabled={optionDisabled}
+              aria-pressed={selected}
+            >
+              {op.label}
+            </BookmarkTag>
+          );
+        }
+
+        if (displayType === "standard") {
+          const standardButtonBorderClass = selected
+            ? "border border-primary"
+            : "border border-border";
+
+          return (
+            <Button
+              key={serialized}
+              type="button"
+              variant={selected ? resolvedSelectedVariant : resolvedUnselectedVariant}
+              size={buttonSize}
+              className={standardButtonBorderClass}
+              onClick={handleSelect}
+              disabled={optionDisabled}
+              aria-pressed={selected}
+            >
+              {op.label}
+            </Button>
+          );
+        }
+
+        return (
+          <RoundedButton
+            key={serialized}
+            type="button"
+            selected={selected}
+            variant={buttonVariant}
+            size={buttonSize}
+            onClick={handleSelect}
+            disabled={optionDisabled}
+            aria-pressed={selected}
+          >
+            {op.label}
+          </RoundedButton>
+        );
+      })}
+    </div>
+  );
+}
