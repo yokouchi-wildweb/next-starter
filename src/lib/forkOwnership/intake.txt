@@ -31,6 +31,8 @@ edit src/business/**  # 置き場 businessValues(src/lib/business/extensionPoint
 edit src/config/**  # 置き場 configValues(src/lib/districtMap/extensionPoints.ts)
 append src/lib/CATALOG.md  # 置き場 catalogSections(src/lib/folderCatalog/extensionPoints.ts)
 append src/components/CATALOG.md  # 置き場 componentsCatalogSections(src/lib/folderCatalog/extensionPoints.ts)
+append src/hooks/CATALOG.md  # 置き場 hooksCatalogSections(src/lib/folderCatalog/extensionPoints.ts)
+append src/utils/CATALOG.md  # 置き場 utilsCatalogSections(src/lib/folderCatalog/extensionPoints.ts)
 edit src/app/**/_components/**  # 置き場 forkScreenParts(src/lib/screens/extensionPoints.ts)
 edit src/styles/*.css  # 置き場 rootStyles(src/styles/core/extensionPoints.ts)
 edit src/app/(marketing)/entry/page.tsx  # 画面の 1 行スイッチ

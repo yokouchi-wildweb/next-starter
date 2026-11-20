@@ -10,6 +10,7 @@ paths:
 
 use_client: a file that calls a hook (useState, useEffect, any useXxx; not React's use()) starts with "use client" (lint use-client/hooks-need-directive, all tiers error) | a pure function or constant the server also needs → its own file outside hooks/, never beside a hook
 - why: without it a server component reaching the file through an entry file breaks the production build, which only /ship --safe runs
+shared_hooks: src/hooks = one file per unit, listed in src/hooks/CATALOG.md in its maker's section (`- src/hooks/\<name\> — <what>`, a fork's units in its own section; check: pnpm test src/lib/folderCatalog/catalog.test.mjs) | src/hooks never imports src/features, values and types (lint import-boundaries/hooks-utils-no-features, all tiers; tests aside) → a domain's hook lives in that domain
 hooks: one use\<Op\>\<Domain\> per operation | custom mutation hooks MUST build on useDomainMutation (@/lib/crud/hooks); useSWRMutation PROHIBITED | guarded by src/lib/crud/hooks/internal/*.test.mjs (/ship runs it)
 
 client_layer: client HTTP code lives in src/lib/** or services/client/** (axios only there: lint, Tier1 error, forks warn), always through normalizeHttpError, hooks call it | exceptions: streaming ClientService (SSE) may use fetch + ReadableStream; realtimeRoom useRoomState may use native WebSocket | server side: fetch OK

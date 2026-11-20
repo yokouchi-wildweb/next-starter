@@ -540,6 +540,30 @@ const libNoFeatures = {
   },
 };
 
+/** src/hooks・src/utils のファイルが features を指す import か(D87) */
+export const isHooksUtilsFeaturesImport = (importerRel, resolved) =>
+  (isUnder(importerRel, "src/hooks") || isUnder(importerRel, "src/utils")) && isUnder(resolved, FEATURES);
+
+const hooksUtilsNoFeatures = {
+  meta: {
+    type: "problem",
+    docs: { description: "src/hooks・src/utils から src/features を import しない(値も型も)" },
+    messages: {
+      hooksUtilsFeatures:
+        '"{{source}}": src/hooks・src/utils はドメインを読みません(値も型も)。ドメインの物はそのドメインの hooks / utils に置くか、値と型は引数・型引数で受けます(D87)',
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = context.cwd ?? process.cwd();
+    const importerRel = repoRelative(context.filename, repoRoot);
+    return moduleVisitors(({ node, source }) => {
+      if (!isHooksUtilsFeaturesImport(importerRel, resolveImport(source, context.filename, repoRoot))) return;
+      context.report({ node, messageId: "hooksUtilsFeatures", data: { source } });
+    });
+  },
+};
+
 const featureGateEntries = {
   meta: {
     type: "problem",
@@ -974,6 +998,7 @@ const plugin = {
     "features-index-no-server-reexport": featuresIndexNoServerReexport,
     "lib-no-registry": libNoRegistry,
     "lib-no-features": libNoFeatures,
+    "hooks-utils-no-features": hooksUtilsNoFeatures,
     "client-no-domain-json": clientNoDomainJson,
     "feature-gate-entries": featureGateEntries,
     "link-via-shelf": linkViaShelf,
