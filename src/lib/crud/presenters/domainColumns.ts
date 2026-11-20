@@ -1,3 +1,4 @@
+import type { DomainField } from "@/lib/domain";
 import { isArrayFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
 import { presenterFor } from "@/lib/domain/fields/presenterFor.mjs";
 import type { DataTableColumn } from "@/lib/tableSuite";
@@ -6,18 +7,12 @@ import { truncateJapanese } from "@/utils/string";
 import type { FieldPresenter } from "./formatters";
 import { formatCollectionThumbnails, formatMediaThumbnail, formatMediaThumbnails } from "./media";
 
-type FieldOption = {
-  readonly value: unknown;
-  readonly label?: string;
-};
-
-type DomainFieldConfig = {
-  name: string;
-  label?: string;
-  formInput?: string;
-  fieldType?: string;
-  options?: readonly FieldOption[];
-};
+/**
+ * 列を作るのに読む項目のキー。domain.json の項目の型(lib/domain の DomainField)から取る。
+ * name 以外は省ける(手書きの写し domainDisplay は fieldType を省け、label の無い項目は名前で出す)
+ */
+type DomainColumnField = Pick<DomainField, "name"> &
+  Partial<Pick<DomainField, "label" | "formInput" | "fieldType" | "options">>;
 
 type DomainRelationConfig = {
   fieldName: string;
@@ -26,7 +21,7 @@ type DomainRelationConfig = {
 
 type DomainJsonConfig = {
   tableFields?: unknown;
-  fields?: readonly DomainFieldConfig[];
+  fields?: readonly DomainColumnField[];
   relations?: readonly DomainRelationConfig[];
   [key: string]: unknown;
 };
@@ -85,7 +80,7 @@ function renderValue({
 }: {
   value: unknown;
   field: string;
-  fieldConfig?: DomainFieldConfig;
+  fieldConfig?: DomainColumnField;
   truncateLength: number;
 }) {
   if (field === "createdAt" || field === "updatedAt") return formatDate(value, "YYYY/MM/DD HH:mm");
