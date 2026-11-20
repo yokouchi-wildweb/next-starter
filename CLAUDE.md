@@ -39,7 +39,7 @@ use: a step a tool covers is never built by hand → run the tool | unsure which
 
 ## REPO_LINK (one loop links the repos: ship → take in → order → answer → resolves; detail → core/notices.md)
 loop: upstream ships with /ship (a notice when downstream must follow) → downstream takes it in with /flux, segment by segment → what is missing is asked for with /order \<to\> → the receiver judges and answers with /inbox (/wen checks the orders you filed) → the notice that ships the order says resolves: and the temporary permit and the provisional rule end
-ship (MANDATORY): every commit + push = /ship (checks, notice, commit, push) | which kind and when → .claude/skills/ship/SKILL.md | fix to a shipped change → `fixes:` in the fix's notice, never edit the earlier one
+ship (MANDATORY): every commit + push = /ship (checks, notice, commit, push) | which kind and when → .claude/skills/ship/SKILL.md | fix to a shipped change: a description fix → edit its body | work forks that took it in must do → a new notice with fixes:
 safe_point: the tag on a pushed tip where the full checks passed (pnpm test all, check, typecheck, lint, build; /ship --safe) = the only periodic full check | a plain ship runs area checks only, its report proposes --safe when due (commits and days since the last one, pnpm workflow notices safePoint status)
 - prod deploys stop unless at a safe point (a fork: its take-in at the parent's) | never add another periodic full-check mechanism
 hotfix: a fix the human calls urgent = /ship hotfix → its notice's hotfix: field makes forks take it before every other segment | only on the human's words, never on your own judgment | /ship checks it (pickCheck, hotfixCheck) | → core/notices.md hotfix

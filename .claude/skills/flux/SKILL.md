@@ -245,9 +245,13 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 
 ## INCOMING TOOL (incoming.mjs)
 - the unapplied judgment, inherited set and segment building (and relay.md's grandparent checkpoint points / covers) are produced mechanically by `.claude/skills/flux/incoming.mjs` of the upstream tip's version
-- it reads only the upstream tip's history: the list = every body ever added under `.notices/` (a body a merge added included, a renamed body under its new name), each with its fields from the body's last version (in the tip's tree, else the version before it was deleted) and its owner from the body's `from:` — so a body deleted after its segment closed changes nothing, and a body corrected after shipping is read as corrected (D350)
+- it reads only the upstream tip's history: the list = every body ever added under `.notices/` (a body a merge added included, a renamed body under its new name)
+  - each with its fields from the body's last version (in the tip's tree, else the version before it was deleted) and its owner from the body's `from:`
+  - so a body deleted after its segment closed changes nothing, and a body corrected after shipping is read as corrected (D350)
 - run (runs the upstream tip's version like the steps; a self-contained single file, so it works even when the fork's tree lacks it): `git show <upstream>/<branch>:.claude/skills/flux/incoming.mjs > .flux/incoming.mjs && node .flux/incoming.mjs --upstream=<upstream>/<branch> --json` (`.flux/` = the same out-of-git place as the work memo) (cwd = the fork's repo)
-- output: per segment number / merge target (`target`; none for segment 0) / label / notices (`id`, `owner` = whose notice it is (from the body's `from:`), `grandparent`, `point` = checkpoint point (the adding commit, or the body's `checkpoint_at:` when it holds), `body` = where to read the body's last version (`<tip>:<パス>`, or `<消した commit>^:<パス>`), `fields` = the body's fields, `covered` = covered ids riding on that notice, `skipCheckpoint`) and `warnings`
+- output: per segment number / merge target (`target`; none for segment 0) / label / notices, and `warnings`
+  - each notice: `id`, `owner` = whose notice it is (from the body's `from:`), `grandparent`, `point` = checkpoint point (the adding commit, or the body's `checkpoint_at:` when it holds)
+  - and `body` = where to read the body's last version (`<tip>:<パス>`, or `<消した commit>^:<パス>`), `fields` = the body's fields, `covered` = covered ids riding on that notice, `skipCheckpoint`
 - a segment with `pattern: "Rejoin"` (→ patterns.md REJOIN): upstream history split into two lines and merged
   - the tool already put the line with more checkpoints first and the other line into the segment whose target is the merge (`rejoinMerge`) | name it in the overview with its line form
   - `rejoin.undecided` = the tool did not decide (`why`): show it with the reason and STOP before that segment (ask which line goes first; never reorder by hand without the answer)
