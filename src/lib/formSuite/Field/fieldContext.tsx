@@ -16,6 +16,8 @@ import {
 
 import { Label } from "@/components/Input/Label";
 import { cn } from "@/lib/cn";
+import { Block } from "@/components/Layout/Block";
+import { Para } from "@/components/TextBlocks/Para";
 
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
@@ -68,7 +70,7 @@ export function FormItem({ className, ...props }: React.ComponentProps<"div">) {
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div data-slot="form-item" className={cn("grid gap-2", className)} {...props} />
+      <Block data-slot="form-item" className={cn("grid gap-2", className)} {...props} />
     </FormItemContext.Provider>
   );
 }
@@ -98,8 +100,8 @@ export function FormMessage({ className, ...props }: React.ComponentProps<"p">) 
   }
 
   return (
-    <p data-slot="form-message" id={formMessageId} className={cn("text-destructive-text text-sm", className)} {...props}>
+    <Para tone="inherit" size="inherit" weight="inherit" align="inherit" data-slot="form-message" id={formMessageId} className={cn("text-destructive-text text-sm my-0", className)} {...props}>
       {body}
-    </p>
+    </Para>
   );
 }

@@ -16,6 +16,7 @@ import { FieldGroupSection } from "./FieldGroupSection";
 import { UNGROUPED_GROUP_KEY } from "./types";
 import type { FieldGroup, GroupContentMap, InlineFieldGroup, MediaState, MediaHandleEntry, InsertFieldsMap } from "./types";
 import { hasBackgroundFailure } from "../backgroundFailure";
+import { Block } from "@/components/Layout/Block";
 
 export type FieldRendererProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues, any, TFieldValues>;
@@ -408,11 +409,11 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
       <>
         {groups}
         {(ungroupedFields.length > 0 || ungroupedBefore != null || ungroupedAfter != null) && (
-          <div className="flex flex-col gap-4">
+          <Block className="flex flex-col gap-4">
             {ungroupedBefore}
             {renderFieldsWithInlineSupport(ungroupedFields)}
             {ungroupedAfter}
-          </div>
+          </Block>
         )}
       </>
     );
@@ -473,9 +474,9 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
     <>
       {beforeAll}
       {fieldGroups && fieldGroups.length > 0 ? (
-        <div className="flex flex-col gap-4">
+        <Block className="flex flex-col gap-4">
           {renderedGroupedFields}
-        </div>
+        </Block>
       ) : (
         renderedFields
       )}

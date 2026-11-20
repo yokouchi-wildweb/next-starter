@@ -19,6 +19,7 @@ import {
 } from "./inputResolver";
 import { CustomFormInput, useCustomFormInput } from "./customInputs";
 import { resolveFieldDescription } from "./fieldDescription";
+import { Input } from "@/components/Input/Input";
 
 export type ConfiguredFieldProps<
   TFieldValues extends FieldValues,
@@ -166,7 +167,7 @@ export function ConfiguredField<
         <FormField
           control={control}
           name={resolvedName}
-          render={({ field }) => <input type="hidden" {...field} />}
+          render={({ field }) => <Input type="hidden" {...field} />}
         />
       );
     }
