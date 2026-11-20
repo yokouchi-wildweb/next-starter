@@ -1,4 +1,4 @@
-// src/lib/domain/hooks/useRelationOptions.ts
+// src/lib/formSuite/useRelationOptions.ts
 // 写し(entities/display.ts)の relations を基にリレーション先のデータを取得し、
 // FieldRenderer の insertBefore 形式で返すフック
 
@@ -7,9 +7,7 @@
 import { useMemo } from "react";
 import useSWR from "swr";
 import axios from "axios";
-import type { InsertFieldsMap, FieldConfig } from "@/lib/formSuite";
-import type { FormInputType } from "@/lib/formSuite";
-import { toCamelCase } from "@/lib/stringCase/index.mjs";
+import type { BuiltinFormInput, DomainDisplayRelation } from "@/lib/domain";
 import {
   getFormRelations,
   getStaticRelations,
@@ -17,24 +15,18 @@ import {
   isCustomRelationFormInput,
   relationOptionsKey,
 } from "@/lib/domain/relations/relationOptions.mjs";
+import { toCamelCase } from "@/lib/stringCase/index.mjs";
+
+import type { FieldConfig } from "./Field/types";
+import type { InsertFieldsMap } from "./FieldRenderer/types";
 
 /**
- * 写し(entities/display.ts)の relations の型(userProfile の関連も同じ形)
+ * 写し(entities/display.ts)の relations の型(userProfile の関連も同じ形)。キーは写しの関連の型(DomainDisplayRelation)から取る
  */
-type RelationConfig = {
-  domain: string;
-  label: string;
-  fieldName: string;
-  fieldType?: string;
-  relationType: string; // "belongsTo" | "belongsToMany"（JSON import 時は string になる）
-  required?: boolean;
-  /** リレーションフィールドのフォーム入力種別（省略時は belongsTo→select, belongsToMany→checkbox） */
-  formInput?: string;
-  /** セレクトボックスのラベルに使うフィールド（デフォルト: "name"） */
-  labelField?: string;
-  /** 非同期検索の関連の検索列（写しでは生成器が関連先から写す。手書きの関連は手で書く） */
-  searchFields?: readonly string[];
-};
+type RelationConfig = Pick<
+  DomainDisplayRelation,
+  "domain" | "label" | "fieldName" | "fieldType" | "relationType" | "required" | "formInput" | "labelField" | "searchFields"
+>;
 
 /**
  * 写しの型（relations 部分のみ）
@@ -105,7 +97,7 @@ function buildStaticRelationFieldConfig(
 
   // formInput が明示指定されていればそれを使用、なければデフォルト
   const formInput = (relation.formInput ??
-    (relation.relationType === "belongsTo" ? "select" : "checkbox")) as FormInputType;
+    (relation.relationType === "belongsTo" ? "select" : "checkbox")) as BuiltinFormInput;
   const fieldType = relation.relationType === "belongsToMany" ? "array" : undefined;
 
   return {
@@ -125,7 +117,7 @@ function buildStaticRelationFieldConfig(
 function buildAsyncRelationFieldConfig(
   relation: RelationConfig,
 ): FieldConfig {
-  const formInput = relation.formInput as FormInputType;
+  const formInput = relation.formInput as BuiltinFormInput;
   const fieldType = relation.relationType === "belongsToMany" ? "array" : undefined;
   const apiPath = `/api/${toCamelCase(relation.domain)}`;
   const labelField = relation.labelField ?? "name";

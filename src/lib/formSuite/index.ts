@@ -32,5 +32,9 @@ export { buildFormDefaultValues } from "./FieldRenderer/defaultValueBuilder";
 export { UNGROUPED_GROUP_KEY } from "./FieldRenderer/types";
 export type { FieldGroup, GroupContentMap, InlineFieldGroup, InsertFieldsMap, MediaState } from "./FieldRenderer/types";
 
+// 関連の選択肢(写しの relations → FieldRenderer の insertBefore)
+export { useRelationOptions } from "./useRelationOptions";
+export type { UseRelationOptionsResult } from "./useRelationOptions";
+
 // 自動保存
 export * from "./AutoSave";

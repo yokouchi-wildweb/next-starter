@@ -6,14 +6,7 @@ import type { ReactNode } from "react";
 import type { FieldConfig as FieldConfigType } from "../Field/types";
 
 // Field/types.ts から共通型を re-export
-export type {
-  FormInputType,
-  FieldDataType,
-  FieldDataTypeFirestore,
-  FieldOption,
-  MediaValidationRule,
-  FieldConfig,
-} from "../Field/types";
+export type { MediaValidationRule, FieldConfig } from "../Field/types";
 
 // ファイル内で使用するための型エイリアス
 type FieldConfig = FieldConfigType;

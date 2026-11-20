@@ -2,13 +2,12 @@
 // buildFormDefaultValues の単体テスト（fieldType ごとの既定値）。ドメインの写し・作成の schema との突き合わせは各ドメインの
 // entities/formDefaults.test.ts(lib はドメインを読まない)。
 // 初期値・checkbox の複数選択・編集時の日時変換は型の表（src/lib/domain/fields/fieldTypes.mjs）から引くので、
-// 表の行ごとの答えを期待値の literal で固定する。手書きで残る型の名前の union は表のキーと突き合わせる
+// 表の行ごとの答えを期待値の literal で固定する。dc の選択肢の表(fieldFormInputs.mjs)の型が型の表にあるかも見る
 // 実行: pnpm test src/lib/formSuite/FieldRenderer/defaultValueBuilder.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import type { FieldDataType, FieldDataTypeFirestore } from "../Field/types";
 import { isCheckGroupFieldType } from "../Field/Configured/checkGroupFieldTypes";
 import { isCheckboxArray } from "../Field/Configured/inputResolver";
 import { FIELD_TYPES } from "@/lib/domain/fields/fieldTypes.mjs";
@@ -171,30 +170,9 @@ describe("型の表の行ごとの答え", () => {
   });
 });
 
-// ---- 手書きで残る型の名前の union と表のキーの突き合わせ ----
+// ---- dc の選択肢の表と型の表の突き合わせ(型の名前の union は @/lib/domain の fieldTypeNames.ts が表から導く) ----
 
-type TableFieldType = keyof typeof FIELD_TYPES;
-// union の型はすべて表にある（numeric(${number},${number}) は表の "numeric(10,2)" で代表させる）
-type UnionNotInTable = Exclude<FieldDataType | FieldDataTypeFirestore, TableFieldType | `numeric(${number},${number})`>;
-// 表の型はすべて union にある
-type TableNotInUnion = Exclude<TableFieldType, FieldDataType | FieldDataTypeFirestore>;
-const unionCovered: [UnionNotInTable] extends [never] ? true : UnionNotInTable = true;
-const tableCovered: [TableNotInUnion] extends [never] ? true : TableNotInUnion = true;
-
-// src/lib/domain/fields/fieldFormInputs.mjs の表（domain.json の検査が照らす型）が、フォーム側の union にすべてある（無ければ typecheck が落ちる）
-type MissingNeon = Exclude<keyof (typeof FORM_INPUTS)["Neon"], FieldDataType>;
-type MissingFirestore = Exclude<keyof (typeof FORM_INPUTS)["Firestore"], FieldDataTypeFirestore>;
-const neonCovered: [MissingNeon] extends [never] ? true : MissingNeon = true;
-const firestoreCovered: [MissingFirestore] extends [never] ? true : MissingFirestore = true;
-
-describe("手書きの型の名前が型の表とずれていない", () => {
-  test("union と表のキー、dc の選択肢の型が揃っている（typecheck で検査）", () => {
-    assert.equal(unionCovered, true);
-    assert.equal(tableCovered, true);
-    assert.equal(neonCovered, true);
-    assert.equal(firestoreCovered, true);
-  });
-
+describe("dc の選択肢の表が型の表とずれていない", () => {
   test("dc の選択肢に出る型はすべて表にある", () => {
     for (const engine of Object.keys(FORM_INPUTS) as Array<keyof typeof FORM_INPUTS>) {
       for (const fieldType of Object.keys(FORM_INPUTS[engine])) {
@@ -216,7 +194,7 @@ describe("isCheckboxArray: checkbox かつ値が配列の型（型の表の arra
   test("答えは isCheckGroupFieldType と同じ（表の全行）", () => {
     for (const fieldType of Object.keys(FIELD_TYPES)) {
       assert.equal(
-        isCheckboxArray({ name: "x", label: "x", formInput: "checkbox", fieldType: fieldType as FieldDataType }),
+        isCheckboxArray({ name: "x", label: "x", formInput: "checkbox", fieldType }),
         isCheckGroupFieldType(fieldType),
         fieldType,
       );

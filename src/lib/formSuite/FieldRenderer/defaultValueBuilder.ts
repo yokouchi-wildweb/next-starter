@@ -1,30 +1,22 @@
 // src/lib/formSuite/FieldRenderer/defaultValueBuilder.ts
 
+import type { DomainDisplayRelation, DomainField } from "@/lib/domain";
 import { formDefaultFor, isTimestampFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
 
-// 受け取るのは写し(entities/display.ts)の形。読み取りだけなので readonly、fieldType は無いこともある
-type DomainField = {
-  name: string;
-  fieldType?: string;
-  formInput?: string;
-  // domain.json の defaultValue は JSON の値（jsonb 列では object / array もある）
-  defaultValue?: unknown;
-  options?: readonly { readonly value: unknown; readonly label?: string }[];
+// 受け取るのは写し(entities/display.ts)の形か domain.json。読むキーだけを DomainField から取る。fieldType は無いこともある
+type DefaultValueField = Readonly<Pick<DomainField, "name" | "formInput" | "defaultValue" | "options">> & {
+  readonly fieldType?: DomainField["fieldType"];
 };
 
-type DomainRelation = {
-  relationType: string;
-  fieldName: string;
-  includeRelationTable?: boolean;
-};
+type DefaultValueRelation = Pick<DomainDisplayRelation, "relationType" | "fieldName" | "includeRelationTable">;
 
 type DomainConfig = {
-  fields?: readonly DomainField[];
-  relations?: readonly DomainRelation[];
+  fields?: readonly DefaultValueField[];
+  relations?: readonly DefaultValueRelation[];
 };
 
 // 型ごとの初期値・日時の判定は型の表（src/lib/domain/fields/fieldTypes.mjs）が持つ。ここに型名を書かない
-function getDefaultValueForType(field: DomainField): unknown {
+function getDefaultValueForType(field: DefaultValueField): unknown {
   // field.defaultValue があれば優先
   if (field.defaultValue !== undefined) {
     return field.defaultValue;

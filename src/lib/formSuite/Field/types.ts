@@ -1,18 +1,12 @@
 // src/lib/formSuite/Field/types.ts
-// フィールド設定の型定義
+// フィールド設定の型定義。domain.json の項目のキーは @/lib/domain の DomainField が持ち、ここは画面でだけ使う分を広げる
 
 import type { ComponentType, ReactNode } from "react";
 import type { ControllerRenderProps } from "react-hook-form";
 import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { FormControlA11yProps } from "@/components/Input/options";
 import type { ParaProps } from "@/components/TextBlocks/Para";
-import type { BUILTIN_FORM_INPUTS } from "@/lib/domain/fields/formInputs.mjs";
-
-/**
- * フォーム入力種別（domain.json formInput）
- * @see src/features/README.md - FormInput
- */
-export type FormInputType = (typeof BUILTIN_FORM_INPUTS)[number];
+import type { BuiltinFormInput, DomainField, DomainFieldOption } from "@/lib/domain";
 
 /** 登録された入力部品の名前（src/wiring/formInputs/FormInputsRoot.tsx が一覧の鍵から広げる） */
 export interface RegisteredFormInputs {}
@@ -36,62 +30,6 @@ export type FormInputItem = {
 };
 
 /**
- * フィールドの型（domain.json fieldType - Neon）
- * @see src/features/README.md - FieldType（Neon）
- */
-export type FieldDataType =
-  | "string"
-  | "integer"
-  | "float"
-  | "boolean"
-  | "enum"
-  | "date"
-  | "time"
-  | "timestamp With Time Zone"
-  | "email"
-  | "password"
-  | "bigint"
-  | `numeric(${number},${number})`
-  | "uuid"
-  | "Point"
-  | "jsonb"
-  | "array"
-  | "stringArray"
-  | "mediaUploader"
-  | "mediaCollection"
-  | "mediaUploaderMulti";
-
-/**
- * フィールドの型（domain.json fieldType - Firestore）
- * @see src/features/README.md - FieldType（Firestore）
- */
-export type FieldDataTypeFirestore =
-  | "string"
-  | "number"
-  | "boolean"
-  | "timestamp"
-  | "email"
-  | "password"
-  | "array"
-  | "stringArray"
-  | "geopoint"
-  | "reference"
-  | "map"
-  | "null"
-  | "mediaUploader"
-  | "mediaUploaderMulti";
-
-/**
- * 選択肢の型（select, radio, checkbox, multiSelect で使用）
- */
-export type FieldOption = {
-  value: string | number | boolean;
-  label: string;
-  /** 表示はするが選択できない選択肢（Options.disabled と同じ意味） */
-  disabled?: boolean;
-};
-
-/**
  * MediaUploader 用バリデーションルール
  * mediaUploaderMulti では minItems / maxItems も使用される
  */
@@ -103,52 +41,28 @@ export type MediaValidationRule = FileValidationRule & {
 };
 
 /**
- * フィールド設定（domain.json の Field と完全互換）
+ * 欄の設定 = domain.json の項目(DomainField、@/lib/domain)を画面用に広げた物。
+ * - domain.json に書けるキーは DomainField のまま(キーを写し直さない)
+ * - fieldType は省ける(画面で手で組む設定は型を書かないことがある。domain.json では必須)
+ * - 狭める物: formInput(組み込み + 登録した入力部品の名前)・options(値の型が決まった選択肢)・mediaTypePreset・validationRule(メディアの形)
+ * - 足す物(画面でだけ使う値): purpose・onMetadataChange・async*
  * @see src/features/README.md - Field（フィールド定義）
  */
-export type FieldConfig = {
-  // === 基本プロパティ ===
-  /** フィールド名（snake_case） */
-  name: string;
-  /** 表示ラベル */
-  label: string;
-  /** データ型 */
-  fieldType?: FieldDataType | FieldDataTypeFirestore | string;
-  /** フォーム入力種別 */
-  formInput: FormInputType | keyof RegisteredFormInputs;
-  /** 必須かどうか */
-  required?: boolean;
-  /** 読み取り専用（テキスト系は readOnly、選択系は disabled として適用） */
-  readonly?: boolean;
-  /** 無効化（select, radio, checkbox 等で使用） */
-  disabled?: boolean;
-  /** デフォルト値 */
-  defaultValue?: unknown;
+export type FieldConfig = Omit<DomainField, "fieldType" | "formInput" | "options" | "mediaTypePreset" | "validationRule"> & {
+  /** データ型(表 fieldTypes.mjs の名前。手で組む設定では省ける) */
+  fieldType?: DomainField["fieldType"];
+  /** フォーム入力種別(組み込みの名前か、src/wiring/formInputs に登録した名前) */
+  formInput: BuiltinFormInput | keyof RegisteredFormInputs;
   /** 選択肢（select, radio, checkbox, multiSelect で使用） */
-  options?: readonly FieldOption[] | FieldOption[];
-  /** radio/checkbox の表示スタイル */
-  displayType?: "standard" | "bookmark" | string;
-  /** プレースホルダー */
-  placeholder?: string;
-  // === MediaUploader 追加プロパティ ===
-  /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名。生成 Fields コンポーネントが付ける） */
-  purpose?: string;
-  /** ハンドラ識別子（camelCase） */
-  slug?: string;
+  options?: readonly DomainFieldOption[];
   /** 許可ファイル種別 */
   mediaTypePreset?: "images" | "videos" | "imagesAndVideos" | "all";
-  /** accept 属性値（例: image/*,video/*） */
-  accept?: string;
-  /** バリデーション設定 */
+  /** バリデーション設定(メディアの項目の形) */
   validationRule?: MediaValidationRule;
-  /** 説明文。フィールドの枠(ControlledField)がラベルの下に描き、入力の aria-describedby が指す(メディアも同じ。props の description があればそちらが優先) */
-  helperText?: string;
-  /** メタデータを別フィールドに保存 */
-  metadataBinding?: Record<string, string>;
+  /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名。生成 Fields コンポーネントが付ける） */
+  purpose?: string;
   /** メタデータ変更時のコールバック（mediaUploader用） */
   onMetadataChange?: (metadata: SelectedMediaMetadata) => void;
-  /** 並び替え可否（mediaUploaderMulti用、既定 true） */
-  reorderable?: boolean;
 
   // === 非同期リレーション用メタデータ（ランタイム専用） ===
   /** リレーション先 API パス（例: "/api/sampleCategory"） */

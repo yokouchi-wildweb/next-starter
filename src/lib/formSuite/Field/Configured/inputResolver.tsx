@@ -24,7 +24,8 @@ import {
   ControlledTimeInput,
 } from "../../inputs";
 import { BUILTIN_FORM_INPUTS } from "@/lib/domain/fields/formInputs.mjs";
-import type { FieldConfig, FieldOption, FormInputType } from "../types";
+import type { BuiltinFormInput, DomainFieldOption } from "@/lib/domain";
+import type { FieldConfig } from "../types";
 import type { RadioGroupDisplayType } from "@/components/Input/RadioGroupInput";
 import type { CheckGroupDisplayType } from "@/components/Input/CheckGroupInput";
 import { isCheckGroupFieldType } from "./checkGroupFieldTypes";
@@ -52,7 +53,7 @@ export function renderInputByFormType<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 >(
-  formInput: FormInputType,
+  formInput: BuiltinFormInput,
   field: ControllerRenderProps<TFieldValues, TName>,
   fieldConfig: FieldConfig,
   inputClassName?: string
@@ -247,8 +248,8 @@ export function renderInputByFormType<
  * readonly 配列も受け入れる
  */
 function normalizeOptions(
-  options?: readonly FieldOption[] | FieldOption[]
-): FieldOption[] {
+  options?: readonly DomainFieldOption[]
+): DomainFieldOption[] {
   if (!options) return [];
   return [...options];
 }
@@ -258,8 +259,8 @@ function normalizeOptions(
  * boolean 値の文字列表現も適切に変換
  */
 function normalizeRadioOptions(
-  options?: readonly FieldOption[] | FieldOption[]
-): FieldOption[] {
+  options?: readonly DomainFieldOption[]
+): DomainFieldOption[] {
   if (!options) return [];
   return options.map((option) => {
     let normalizedValue: string | number | boolean = option.value;
@@ -277,7 +278,7 @@ function normalizeRadioOptions(
 }
 
 /** 組み込みの入力種別か（それ以外は登録の部品か未知の名前） */
-export function isBuiltinFormInput(formInput: string): formInput is FormInputType {
+export function isBuiltinFormInput(formInput: string): formInput is BuiltinFormInput {
   return (BUILTIN_FORM_INPUTS as readonly string[]).includes(formInput);
 }
 
@@ -285,7 +286,7 @@ export function isBuiltinFormInput(formInput: string): formInput is FormInputTyp
  * formInput が入力コンポーネントを持つかどうかを判定
  * hidden と none は入力コンポーネントを持たない（または非表示）
  */
-export function hasVisibleInput(formInput: FormInputType): boolean {
+export function hasVisibleInput(formInput: BuiltinFormInput): boolean {
   return formInput !== "hidden" && formInput !== "none";
 }
 
@@ -293,9 +294,9 @@ export function hasVisibleInput(formInput: FormInputType): boolean {
  * formInput が ControlledField でラップすべきかどうかを判定
  * 一部のコンポーネント（switch, stepper, booleanCheckbox）は独自のレイアウトを持つ
  */
-export function shouldUseFieldItem(formInput: FormInputType): boolean {
+export function shouldUseFieldItem(formInput: BuiltinFormInput): boolean {
   // 以下は ControlledField ではなく独自レイアウトを使用
-  const noFieldItemTypes: FormInputType[] = [
+  const noFieldItemTypes: BuiltinFormInput[] = [
     "switchInput",
     "stepperInput",
     "hidden",
@@ -320,7 +321,7 @@ export function isCheckboxArray(fieldConfig: FieldConfig): boolean {
  * - debounce: 連続操作の可能性があるためデバウンスして保存
  * - none: blurでは保存しない（独自のオートセーブ処理を持つ、または対象外）
  */
-const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce" | "none"> = {
+const BLUR_MODE_CONFIG: Record<BuiltinFormInput, "immediate" | "debounce" | "none"> = {
   // 即時保存: blur時点で入力が確定している
   textInput: "immediate",
   numberInput: "immediate",
