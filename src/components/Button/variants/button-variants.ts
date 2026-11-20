@@ -4,13 +4,14 @@
 // 下流は src/config/lib/variantOverrides.config.ts の `button` キーで、ここを編集せずに
 // 角丸・影・枠線・寸法などを差し替えられる(結合順: ここ → オーバーライド → 各要素の className)。
 // variant / size の名前は下流の設定が参照する公開契約なので、削除・改名時は .notices で通知する。
+// 名前の型(ButtonVariantName / ButtonSizeName)は @/lib/variantOverrides が持つ。表はそれを satisfies で満たす(名前を足すときは lib が先)。
 // size の高さは操作部品の高さの段 --control-h-<名前>(src/styles/core/config.css の :root)から取る。
 // 入力欄系も同じ段を読むので、同じ size のボタンと入力欄は同じ高さになる(md はスマホ 44px・640px 以上 40px)。
 
 import type { VariantProps } from "class-variance-authority";
 
 import { variantOverrides } from "@/lib/variantOverrides/config";
-import { createOverridableVariants } from "@/lib/variantOverrides";
+import { createOverridableVariants, type ButtonSizeName, type ButtonVariantName } from "@/lib/variantOverrides";
 
 const BUTTON_VARIANTS = {
   variant: {
@@ -50,7 +51,7 @@ const BUTTON_VARIANTS = {
     mutedIcon: "text-muted-foreground hover:text-foreground",
     // 色を一切付与しないニュートラル。独自スタイルを className で当てつつ、共通挙動(cursor/focus/a11y)だけ継承したい場合に使う。
     none: "",
-  },
+  } satisfies Record<ButtonVariantName, string>,
   size: {
     // インラインUIなど極小サイズ。
     xxxs: "h-(--control-h-xxxs) rounded gap-0.5 px-1.5 min-w-10 text-xs",
@@ -74,17 +75,13 @@ const BUTTON_VARIANTS = {
     icon: "size-9",
     // 高さ・padding・min-width を一切付与しないニュートラル。寸法を className で完全に制御したい場合に使う。
     none: "",
-  },
+  } satisfies Record<ButtonSizeName, string>,
   /** アイコン付きボタンの視覚的補正を有効にする @default false */
   opticalAdjust: {
     true: "",
     false: "",
   },
 };
-
-/** 下流の variants.config.ts が参照する variant / size 名(公開契約) */
-export type ButtonVariantName = keyof typeof BUTTON_VARIANTS.variant;
-export type ButtonSizeName = keyof typeof BUTTON_VARIANTS.size;
 
 export const buttonVariants = createOverridableVariants(
   "disabled:pointer-events-auto disabled:cursor-not-allowed",
