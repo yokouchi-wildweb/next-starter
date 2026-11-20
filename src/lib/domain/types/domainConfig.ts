@@ -4,9 +4,6 @@
 import type { DomainConfigOptionals } from "./domainConfigOptionals";
 import type { DomainField } from "./domainField";
 
-/** server で読む項目 = domain.json の項目そのもの(キーの正は DomainField) */
-export type DomainConfigField = DomainField;
-
 /** domain.json の関連 1 つ(キーの正は生成器の語彙 RELATION_KEYS。client の写し DomainDisplayRelation もここから作る) */
 export type DomainConfigRelation = {
   domain: string;
@@ -28,6 +25,7 @@ export type DomainConfig = DomainConfigOptionals & {
   label: string;
   useCreatedAt?: boolean;
   useUpdatedAt?: boolean;
-  fields: readonly DomainConfigField[];
+  /** 項目 = domain.json の項目そのもの(DomainField) */
+  fields: readonly DomainField[];
   relations?: readonly DomainConfigRelation[];
 };
