@@ -2,8 +2,6 @@ import type { DomainDisplay, DomainDisplayRelation, DomainField } from "@/lib/do
 import { isArrayFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
 import { presenterFor } from "@/lib/domain/fields/presenterFor.mjs";
 import type { DataTableColumn } from "@/lib/tableSuite";
-import { formatDateJa } from "@/utils/date";
-import { truncateJapanese } from "@/utils/string";
 import type { FieldPresenter } from "./formatters";
 import { formatCollectionThumbnails, formatMediaThumbnail, formatMediaThumbnails } from "./media";
 
@@ -24,8 +22,21 @@ type DomainJsonConfig = Partial<Pick<DomainDisplay, "tableFields">> & {
   [key: string]: unknown;
 };
 
+/**
+ * 日付を文字にする関数。format は "YYYY/MM/DD" か "YYYY/MM/DD HH:mm"、日付で無い値は fallback(null)を返す。
+ * 書き方はアプリのもの(呼び手が @/utils/date の formatDateJa を渡す)
+ */
+export type DomainColumnDateFormatter = (value: unknown, options: { format: string; fallback: null }) => string | null;
+
+/** textarea の文字列を maxLength 文字に切り詰める関数(呼び手が @/utils/string の truncateJapanese を渡す) */
+export type DomainColumnTruncate = (text: string, maxLength: number) => string;
+
 type BuildDomainColumnsParams<T> = {
   config: DomainJsonConfig;
+  /** 日付・日時の列の書き方(必須。lib は書き方を持たない) */
+  formatDate: DomainColumnDateFormatter;
+  /** textarea の列の切り詰め(必須) */
+  truncate: DomainColumnTruncate;
   actionColumn?: DataTableColumn<T>;
   truncateLength?: number;
   presenters?: Record<string, FieldPresenter<T>>;
@@ -63,8 +74,6 @@ function buildLabelMap(config: DomainJsonConfig): {
   return { labelMap, inputMap };
 }
 
-const formatDate = (value: unknown, format: string) => formatDateJa(value, { format, fallback: null });
-
 /**
  * presenters を渡していない列の表示。domain.json の項目は生成の presenters.ts と同じ答え（presenterFor）で描く。
  * 一覧特有の扱い: 空・null は空欄（presenters の "―" ではなく ""）、textarea の文字列は切り詰める、値が Date なら日付。
@@ -75,12 +84,17 @@ function renderValue({
   field,
   fieldConfig,
   truncateLength,
+  formatDate: formatDateWith,
+  truncate,
 }: {
   value: unknown;
   field: string;
   fieldConfig?: DomainColumnField;
   truncateLength: number;
+  formatDate: DomainColumnDateFormatter;
+  truncate: DomainColumnTruncate;
 }) {
+  const formatDate = (input: unknown, format: string) => formatDateWith(input, { format, fallback: null });
   if (field === "createdAt" || field === "updatedAt") return formatDate(value, "YYYY/MM/DD HH:mm");
   if (!fieldConfig) {
     if (value instanceof Date) return formatDate(value, "YYYY/MM/DD");
@@ -110,7 +124,7 @@ function renderValue({
     case "mediaThumbnail":
       return formatMediaThumbnail(value);
     default:
-      if (fieldConfig.formInput === "textarea") return truncateJapanese(String(value ?? ""), truncateLength);
+      if (fieldConfig.formInput === "textarea") return truncate(String(value ?? ""), truncateLength);
       return String(value ?? "");
   }
 }
@@ -137,6 +151,8 @@ function resolveSortKey(
 
 export function buildDomainColumns<T>({
   config,
+  formatDate,
+  truncate,
   actionColumn,
   truncateLength = 30,
   presenters,
@@ -161,7 +177,7 @@ export function buildDomainColumns<T>({
       if (presenter) {
         return presenter({ value, field, record: item });
       }
-      return renderValue({ value, field, fieldConfig: fieldConfigMap.get(field), truncateLength });
+      return renderValue({ value, field, fieldConfig: fieldConfigMap.get(field), truncateLength, formatDate, truncate });
     },
   }));
 

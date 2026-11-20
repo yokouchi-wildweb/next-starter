@@ -15,7 +15,7 @@
 // BGM は基本 1 チャンネル(同時 1 曲)。crossfade 時のみ一時的に 2 ソースが重なる。
 
 import { AudioEngine } from "./AudioEngine";
-import { decodeAudio, resolveAudioUrl } from "./decodeCache";
+import { decodeAudio } from "./decodeCache";
 import { getSharedAudioEngine } from "./sharedEngine";
 
 class BgmController {
@@ -87,7 +87,7 @@ class BgmController {
     }
   }
 
-  async preload(fileName: string): Promise<void> {
+  async preload(url: string): Promise<void> {
     if (!AudioEngine.isSupported()) return;
     let ctx: AudioContext;
     try {
@@ -96,20 +96,19 @@ class BgmController {
       return;
     }
     try {
-      await decodeAudio(ctx, resolveAudioUrl(fileName));
+      await decodeAudio(ctx, url);
     } catch {
       /* preload 失敗は黙殺(再生時に再試行される) */
     }
   }
 
-  async play(fileName: string, opts: { loop?: boolean; volume?: number; fadeInSec?: number } = {}): Promise<void> {
+  async play(url: string, opts: { loop?: boolean; volume?: number; fadeInSec?: number } = {}): Promise<void> {
     if (!AudioEngine.isSupported()) return;
     try {
       const engine = getSharedAudioEngine();
       const ctx = engine.ensure();
       if (ctx.state === "suspended") await ctx.resume();
 
-      const url = resolveAudioUrl(fileName);
       const buf = await decodeAudio(ctx, url);
 
       if (opts.volume != null) this.baseVolume = Math.max(0, opts.volume);
@@ -150,14 +149,13 @@ class BgmController {
     this.applyGain(fadeSec);
   }
 
-  async crossfade(fileName: string, opts: { durationSec?: number; volume?: number } = {}): Promise<void> {
+  async crossfade(url: string, opts: { durationSec?: number; volume?: number } = {}): Promise<void> {
     if (!AudioEngine.isSupported()) return;
     try {
       const engine = getSharedAudioEngine();
       const ctx = engine.ensure();
       if (ctx.state === "suspended") await ctx.resume();
 
-      const url = resolveAudioUrl(fileName);
       const buf = await decodeAudio(ctx, url);
 
       if (opts.volume != null) this.baseVolume = Math.max(0, opts.volume);
@@ -225,16 +223,16 @@ class BgmController {
 const controller = new BgmController();
 
 /** BGM を事前デコードしてキャッシュする(初回の立ち上がり遅延を解消)。 */
-export function preloadBgm(fileName: string): Promise<void> {
-  return controller.preload(fileName);
+export function preloadBgm(url: string): Promise<void> {
+  return controller.preload(url);
 }
 
 /** BGM のループ再生を開始する(デコード済みなら即時)。既存トラックはハードカットで停止。 */
 export function playBgm(
-  fileName: string,
+  url: string,
   opts?: { loop?: boolean; volume?: number; fadeInSec?: number },
 ): Promise<void> {
-  return controller.play(fileName, opts);
+  return controller.play(url, opts);
 }
 
 /** BGM を停止する(任意でフェードアウト)。 */
@@ -253,8 +251,8 @@ export function duckBgm(ratio: number, fadeSec?: number): void {
 }
 
 /** BGM トラックを別ファイルへクロスフェードで差し替える(durationSec 既定 1)。 */
-export function crossfadeBgm(fileName: string, opts?: { durationSec?: number; volume?: number }): Promise<void> {
-  return controller.crossfade(fileName, opts);
+export function crossfadeBgm(url: string, opts?: { durationSec?: number; volume?: number }): Promise<void> {
+  return controller.crossfade(url, opts);
 }
 
 /** BGM が再生中か(フック側の宣言的ゲート補助)。 */

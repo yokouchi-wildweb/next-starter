@@ -1,4 +1,4 @@
-// src/utils/object.ts
+// src/lib/crud/utils/object.ts
 
 /**
  * オブジェクトから `undefined` の値を持つプロパティを取り除きます。
