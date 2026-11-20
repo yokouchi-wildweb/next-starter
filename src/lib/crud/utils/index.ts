@@ -2,3 +2,4 @@
 
 export * from "./paths";
 export * from "./schema";
+export * from "./object";

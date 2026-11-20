@@ -1,6 +1,6 @@
 // src/lib/crud/drizzle/utils.ts
 
-import { omitUndefined } from "@/utils/object";
+import { omitUndefined } from "../utils/object";
 import type { CreateCrudServiceOptions, DuplicateOptions, UpsertOptions } from "@/lib/crud/types";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import { uuidv7 } from "uuidv7";

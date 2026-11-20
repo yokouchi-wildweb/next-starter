@@ -4,19 +4,13 @@
 // 圧縮音声を一度だけ decodeAudioData で AudioBuffer に展開してキャッシュし、
 // 再生(playSe / playBgm)は AudioBufferSourceNode で即時に行えるようにする。
 // 同一 URL の重複デコードは in-flight キャッシュで 1 回に集約する。
-
-import { sePath } from "@/utils/assets";
+// 受けるのは URL(絶対 URL か絶対パス)。音の置き場所はアプリのものなので、呼び手が解決して渡す
+// (例: @/utils/assets の sePath("coin.wav"))。
 
 /** デコード済み AudioBuffer のキャッシュ(解決後 URL をキー)。 */
 const cache = new Map<string, AudioBuffer>();
 /** デコード中の重複起動を抑える in-flight キャッシュ。 */
 const inFlight = new Map<string, Promise<AudioBuffer>>();
-
-/** fileName を再生用 URL に解決する。絶対 URL / 絶対パスはそのまま、それ以外は sePath() で SE 配置へ。 */
-export function resolveAudioUrl(fileName: string): string {
-  if (/^https?:\/\//.test(fileName) || fileName.startsWith("/")) return fileName;
-  return sePath(fileName);
-}
 
 /** URL の音声を取得→デコードして AudioBuffer を返す(キャッシュ・重複集約あり)。 */
 export function decodeAudio(ctx: AudioContext, url: string): Promise<AudioBuffer> {
@@ -38,11 +32,11 @@ export function decodeAudio(ctx: AudioContext, url: string): Promise<AudioBuffer
   return task.finally(() => inFlight.delete(url));
 }
 
-/** デコードキャッシュを破棄する(メモリ解放)。引数省略で全件。 */
-export function clearDecodeCache(fileNames?: string[]): void {
-  if (!fileNames) {
+/** デコードキャッシュを破棄する(メモリ解放)。URL を渡した分だけ、引数省略で全件。 */
+export function clearDecodeCache(urls?: string[]): void {
+  if (!urls) {
     cache.clear();
     return;
   }
-  for (const name of fileNames) cache.delete(resolveAudioUrl(name));
+  for (const url of urls) cache.delete(url);
 }

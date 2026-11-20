@@ -1,4 +1,7 @@
-// src/utils/json.ts
+// src/lib/firebase/serviceAccountKey.ts
+//
+// サービスアカウントの鍵(MY_SERVICE_ACCOUNT_KEY の JSON)を読める形に直す。firebase-admin を読まない純粋なファイル
+// (サーバーの初期化 server/app.ts と、初期化に依存しない scripts/operations/storage/iam/iamGrant.ts が読む)
 
 /**
  * JSON形式の文字列から値以外の空白・改行を取り除き、

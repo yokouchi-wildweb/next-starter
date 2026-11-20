@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/drizzle";
 import { stripDenylisted } from "@/lib/audit";
-import { omitUndefined } from "@/utils/object";
+import { omitUndefined } from "../utils/object";
 import { eq, inArray, SQL, and, sql, isNull, asc, desc, getTableName, gt } from "drizzle-orm";
 import { generateSortKey, generateFirstSortKey, generateLastSortKey, generateLastSortKeys, generateInitialSortKeys } from "./fractionalSort";
 import { DomainError } from "@/lib/errors";

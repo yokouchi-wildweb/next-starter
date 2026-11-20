@@ -16,14 +16,15 @@
 //
 // 使い方:
 //   import { preloadSe, playLoopSe, unlockAudio } from "@/lib/webAudio";
-//   preloadSe(["数字高速カウント.mp3"]); // 画面表示時に事前デコード
+//   (sePath は呼び手が読む @/utils/assets の関数。音の URL は呼び手が解決する)
+//   preloadSe([sePath("数字高速カウント.mp3")]); // 画面表示時に事前デコード
 //   unlockAudio();                       // 最初のユーザー操作内で 1 回
-//   const h = playLoopSe("数字高速カウント.mp3", { volume: 0.6, fadeInSec: 0.1 });
+//   const h = playLoopSe(sePath("数字高速カウント.mp3"), { volume: 0.6, fadeInSec: 0.1 });
 //   h.setVolume(0.3);                    // 再生中の音量変更
 //   h.stop(0.2);                         // フェードアウトして停止
 
 import { AudioEngine } from "./AudioEngine";
-import { decodeAudio, resolveAudioUrl } from "./decodeCache";
+import { decodeAudio } from "./decodeCache";
 import { getSharedAudioEngine } from "./sharedEngine";
 
 /** ループSE の操作ハンドル(playLoopSe の戻り値)。 */
@@ -41,7 +42,7 @@ export type LoopSeHandle = {
  * デコード完了前に stop() が呼ばれても発音を開始しない(race ガード)。
  * 取得失敗・未対応環境では黙って無音にフォールバックする(playSe と同挙動。演出を止めない)。
  */
-export function playLoopSe(fileName: string, opts: { volume?: number; fadeInSec?: number } = {}): LoopSeHandle {
+export function playLoopSe(url: string, opts: { volume?: number; fadeInSec?: number } = {}): LoopSeHandle {
   let baseVolume = Math.max(0, opts.volume ?? 1);
   const fadeIn = Math.max(0, opts.fadeInSec ?? 0);
 
@@ -86,7 +87,7 @@ export function playLoopSe(fileName: string, opts: { volume?: number; fadeInSec?
       const ctx = engine.ensure();
       if (ctx.state === "suspended") await ctx.resume();
 
-      const buf = await decodeAudio(ctx, resolveAudioUrl(fileName));
+      const buf = await decodeAudio(ctx, url);
 
       // デコード待ちの間に stop() 済みなら発音しない
       if (stopped) return;

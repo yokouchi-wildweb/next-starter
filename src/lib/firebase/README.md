@@ -6,6 +6,7 @@ Firebase SDK のクライアント・サーバーの初期化と、各種のユ�
 
 - client(`client/`): 初期化 `app.ts`(`app`・`auth`・`fstore`)・Analytics `analytics.ts`・メールのリンクと確認コードの処理
 - server(`server/`): Admin SDK の初期化 `app.ts`・Firebase Auth のユーザー操作 `authAdmin.ts`
+- サービスアカウントの鍵の正規化 `serviceAccountKey.ts`(`normalizeJsonString`。firebase-admin を読まない純粋な関数で、`server/app.ts` と `scripts/operations/storage/iam/iamGrant.ts` が読む)
 - エラー: `errors.ts`(`FirebaseNotConfiguredError` など)
 - ファイル: [src/lib/storage](../storage/README.md)(Firebase Storage のクライアント SDK の経路は無い。リポ直下の `storage.rules` は全拒否)
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/firebase.md にある。この README は使い方と仕組み

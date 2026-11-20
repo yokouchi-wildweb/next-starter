@@ -6,7 +6,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 
-import { normalizeJsonString } from "@/utils/json";
+import { normalizeJsonString } from "../serviceAccountKey";
 
 import { FirebaseNotConfiguredError } from "../errors";
 

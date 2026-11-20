@@ -15,13 +15,21 @@ import { domainDisplay as sampleDisplay } from "@/features/sample/entities/displ
 import { domainDisplay as couponDisplay } from "@/features/core/coupon/entities/display";
 import { domainDisplay as chatRoomDisplay } from "@/features/core/chatRoom/entities/display";
 
-import { buildDomainColumns } from "./domainColumns";
+import { buildDomainColumns, type DomainColumnDateFormatter, type DomainColumnTruncate } from "./domainColumns";
+
+// 日付の書き方・切り詰めは呼び手が渡す(lib は持たない)。ここでは受けた書式と値をそのまま返す代わりを渡し、
+// どの列がどの書式を頼むかを確かめる。日付で無い値(null・undefined)は fallback を返す
+const formatDate: DomainColumnDateFormatter = (value, { format, fallback }) =>
+  value == null ? fallback : `${format}|${String(value)}`;
+const truncate: DomainColumnTruncate = (text, maxLength) =>
+  text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+const formatting = { formatDate, truncate };
 
 type Row = Record<string, unknown>;
 type Config = Parameters<typeof buildDomainColumns<Row>>[0]["config"];
 
 const shape = (config: Config) =>
-  buildDomainColumns<Row>({ config, sortableFields: true }).map(({ header, sortKey }) => ({ header, sortKey }));
+  buildDomainColumns<Row>({ config, ...formatting, sortableFields: true }).map(({ header, sortKey }) => ({ header, sortKey }));
 
 const cases = [
   ["sample", sampleDisplay, sampleConfig],
@@ -52,7 +60,7 @@ const sortConfig = {
 
 const sortKeys = (sortableFields: string[] | true | undefined) =>
   Object.fromEntries(
-    buildDomainColumns({ config: sortConfig, sortableFields }).map((column, i) => [sortConfig.tableFields[i], column.sortKey]),
+    buildDomainColumns({ config: sortConfig, ...formatting, sortableFields }).map((column, i) => [sortConfig.tableFields[i], column.sortKey]),
   );
 
 describe("buildDomainColumns: 並べ替え", () => {
@@ -121,7 +129,7 @@ const renderConfig = {
 };
 
 const renderAll = (record: Record<string, unknown>) => {
-  const columns = buildDomainColumns<Record<string, unknown>>({ config: renderConfig, truncateLength: 5 });
+  const columns = buildDomainColumns<Record<string, unknown>>({ config: renderConfig, ...formatting, truncateLength: 5 });
   return Object.fromEntries(columns.map((column, i) => [renderConfig.tableFields[i], column.render(record)]));
 };
 
@@ -179,16 +187,15 @@ describe("buildDomainColumns: presenters の無い列の表示", () => {
   });
 
   test("一覧特有の扱い: textarea は切り詰め、null は空欄、文字はそのまま", () => {
-    assert.notEqual(out.body, "あいうえおかきくけこ");
-    assert.ok(String(out.body).startsWith("あいうえお"));
+    assert.equal(out.body, "あいうえお…"); // 渡した truncate に truncateLength を渡す
     assert.equal(out.meta, "");
     assert.equal(out.name, "なまえ");
   });
 
-  test("日時・日付・createdAt は日付の書式、リレーションの列は値そのまま", () => {
-    assert.match(String(out.startsAt), /^2026\/01\/02 \d{2}:04$/);
-    assert.equal(out.day, "2026/01/02");
-    assert.match(String(out.createdAt), /^2026\/01\/02 \d{2}:04$/);
+  test("日時・createdAt は日時の書式、日付は日付の書式で渡した formatDate を呼ぶ。リレーションの列は値そのまま", () => {
+    assert.equal(out.startsAt, "YYYY/MM/DD HH:mm|2026-01-02T03:04:00.000Z");
+    assert.equal(out.day, "YYYY/MM/DD|2026-01-02");
+    assert.equal(out.createdAt, "YYYY/MM/DD HH:mm|2026-01-02T03:04:00.000Z");
     assert.equal(out.category_id, "c1");
     assert.equal(out.updatedAt, null); // 日付が無ければ何も描かない（今までどおり）
   });
