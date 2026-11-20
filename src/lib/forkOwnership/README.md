@@ -181,11 +181,12 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 - fork が先に作り、後で親が同じパスに足したファイルは、取り込んだ時点で親の物(基準に入るので自然にそうなる)
 - 判定の順(`judge.mjs`)
   1. A(fork が足した)→ `added`。ただし次は違反(上から順に)
-     - 基準の `src/lib/<name>/` が実在する `<name>` の中 → `ancestor-lib-add`(自分の lib に置いて re-export する)。祖先の lib かどうかは基準の git だけで決まるので、`folderCatalog` の目録は使わない
+     - 上流の単位のフォルダの中 → `inside-unit-add`。単位 = 部品の棚(基準の `src/components/<分類>`・`src/hooks`・`src/utils`・`src/lib`)の直下の項目(ファイルかフォルダ)で、基準でフォルダの単位(`src/components/<分類>/<単位>/`・祖先の lib `src/lib/<name>/` など)の中に足したファイルが当たる。自分の単位・自分の lib に置く(lib なら re-export)。上流の物かどうかは基準の git だけで決まるので、`folderCatalog` の目録は使わない
+     - 分類の直下の新しい単位(ファイルかフォルダ)・`src/hooks`・`src/utils` の新しいファイル・新しい `src/lib/<name>/`・fork の分類・分類の外の `src/components` 直下は `added`
      - 基準に `src/features/core/` があり、足したパスがその中で受け口(`intake.txt` の debt 以外の行)に当たらない → `core-add`(fork のドメインは `src/features/<x>/`、画面の部品は route の `_components/`)
      - 基準に `src/featureGate/`(門番)があり、足したパスがその中で受け口に当たらない → `gate-add`(足せるのは `rules/`・`alwaysOnExceptions/`・`required/` の `<名前>.ts`)
      - 基準に `.claude/rules/core/` があり、足したパスがその中 → `rules-core-add`(自分の決まりは `.claude/rules/` の `core/` の外に印なしの名前で、自分の品目の札は `.claude/rules/items/`。受け口の行は効かない)
-     - 検査する場所への追加で、単位名が基準のファイルと同じ → `unit-clash`(`x.ts` と `x.tsx`、ファイルとフォルダの組。別の名前にするか、丸ごと置き換えは `<名前>.replace`)
+     - 検査する場所への追加で、単位名が基準のファイルと同じ → `unit-clash`(`x.ts` と `x.tsx`、ファイルとフォルダの組。部品の棚では直下の項目の名前で比べる。別の名前にするか、丸ごと置き換えは `<名前>.replace`)。見つけて知らせるだけで、足すのを前もって止める仕組みは無い
      - `<対象>.override.ts(x)` で、対象が基準に無い → `override-own`(fork が自分で足した項目への override。中間 Tier の項目は下の Tier の基準にあるので可)
      - `<名前>.default.<拡張子>` で、同じフォルダに基準のファイルがある → `default-add`(既定はそこを作ったリポの物。自分のフォルダの自分の既定は可、中間 Tier も自分のルートに出してよい)
      - src/app の印なしの `frame.ts` で、同じフォルダに基準のルート(page / layout / 枠の宣言)がある → `frame-plain`(移し替え `pnpm check extensions -- frames-move`)。src/app の `frame.override.ts` の相手は基準のルートで、ルートの無いフォルダなら `override-own`
@@ -198,7 +199,8 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 
 単位名 = パスから最後の拡張子と末尾の `/index` を除いた名前(`.replace` / `.override` は名前に残す)。
 
-- 検査する場所(これだけ。components・hooks・utils・`src/lib` は対象外)
+- 検査する場所(これだけ)
+  - 部品の棚: 基準の `src/components/<分類>`(基準にファイルのある分類だけ)・`src/hooks`・`src/utils`・`src/lib`。直下の項目が単位(直下のファイルは最後の拡張子と `/index` を除いた名前、入れ子のパスは直下のフォルダの名前)。基準の単位のフォルダの中への追加は `inside-unit-add`
   - 直下の項目だけ: 基準の `src/**/extensionPoints.ts` の受け口のフォルダ(宣言は `src/lib/districtMap/declarations.mjs` で読む、`dir: "."` = 持ち主の直下)・`src/wiring`・`scripts`(門番の例外 `src/featureGate/alwaysOnExceptions` は宣言の受け口)
   - その下全部: route の隣(`src/app/**/_layout`・`_screen`・`_components`)
 - `unit-clash`・`override-own`・`default-add`・`default-edit`・`frame-plain` は持ち主によらず止める(多段で `middle-tier` に付け替えない)
@@ -260,7 +262,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 ### 多段の Tier
 
 - 厳密に判定するのは Tier1(`src/lib/CATALOG.md` の先頭の節 = next-starter)の物だけ。Tier1 の版にあるファイルは受け口の中だけ書き換え、削除・rename は違反。無いファイル = 中間 Tier 以下の物は、書き換え・削除・rename を合格(reason `middle-tier`、`--verbose` で参考の一覧)
-- 祖先の lib への追加は、その lib が Tier1 の版にあるときだけ違反
+- 上流の単位の中への追加(`inside-unit-add`、祖先の lib も)は、その単位のフォルダが Tier1 の版にあるときだけ違反(無ければ中間 Tier の単位で `middle-tier`)
 - `.claude/rules/service/` の下は中間 Tier が足した物も付け替えない
 - Tier1 の版の決め方: 自分の台帳の最後の `upstream:<sha>` の版から、その版に `.notices/applied/` があれば、その版のリポの名前(その版の repo.json の `repo_id`、古い版は project.md の `fork_id:`)の台帳の最後の `upstream:` へ … と、`.notices/applied/` の無い版(Tier1)に着くまでたどる。段数に依らない
 - 未検証(exit 2): 台帳に `upstream:` が無い・その sha が履歴に無い(squash・rebase)・途中の版に名前か、その名前の台帳が無い・循環・10 段を超える

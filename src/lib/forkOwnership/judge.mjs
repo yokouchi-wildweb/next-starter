@@ -4,7 +4,7 @@
 
 import { matchIntake } from "./intake.mjs";
 import { classifyDottedName } from "../districtMap/dottedNames.mjs";
-import { overrideTargetUnit, placeUnitOf } from "./unitNames.mjs";
+import { overrideTargetUnit, placeUnitOf, shelfUnitOf, unitFolderOf } from "./unitNames.mjs";
 import { parseForkRegions, stripOwnedRegions } from "./regions.mjs";
 
 const MARKER_LINE = /fork entries below/;
@@ -21,11 +21,11 @@ export const REASONS = {
   "generator-region": "ok", // 生成器の区画の中だけの書き換え(受け口の外のファイルでも)
   deleted: "violation", // 基準にあるファイルの削除
   renamed: "violation", // 基準にあるファイルの rename・移動
-  "ancestor-lib-add": "violation", // 祖先 Tier の lib の中へのファイル追加
+  "inside-unit-add": "violation", // 上流の単位の中へのファイル追加(部品の棚 src/components/<分類>/<単位>/・src/hooks|utils/<単位>/ と祖先の lib src/lib/<名前>/)
   "core-add": "violation", // src/features/core/ の中への受け口の項目でない追加(fork のドメインは src/features/<x>)
   "gate-add": "violation", // 門番 src/featureGate/ の中への受け口の項目でない追加(受け口は rules/・alwaysOnExceptions/・dependencyExceptions/・required/)
   "rules-core-add": "violation", // 上流の決まりのファイル .claude/rules/core/ の中への追加(自分の決まりは .claude/rules/ の core/ の外、D131)
-  "unit-clash": "violation", // 検査する場所(受け口・wiring・route の隣・scripts の直下)への追加が基準の単位と同名(x.ts と x.tsx、ファイルとフォルダ)
+  "unit-clash": "violation", // 検査する場所(部品の棚・受け口・wiring・route の隣・scripts の直下)への追加が基準の単位と同名(x.ts と x.tsx、ファイルとフォルダ)
   "override-own": "violation", // fork が足した <対象>.override の対象が基準に無い(override は上の Tier の項目にだけ)
   "default-add": "violation", // fork が基準のファイルのあるフォルダに <名前>.default.* を足した(既定はそこを作ったリポの物。自分のフォルダの自分の既定は可)
   "default-edit": "violation", // fork が基準の <名前>.default.* を書き換えた(既定の上に重ねる側のファイルに書く。1 行スイッチは隣の <名前>.replace)
@@ -108,7 +108,8 @@ const isDefaultName = (path) => classifyDottedName(path.slice(path.lastIndexOf("
  *   places?: { direct: Set<string> },                            // unitPlaces(基準のファイル)。無ければ単位名の検査をしない
  *   baseUnits?: Map<string, string>,                             // unitIndex(基準のファイル): 単位名 → 基準のパス
  * }} input
- * @returns {{ entries: { status: string, path: string, from?: string, kind: string | null, reason: string, verdict: string, clash?: string }[], counts: Record<string, number> }}
+ * @returns {{ entries: { status: string, path: string, from?: string, kind: string | null, reason: string, verdict: string, clash?: string, unitFolder?: string }[], counts: Record<string, number> }}
+ *   unitFolder = inside-unit-add の単位のフォルダ(中間 Tier の付け替えが Tier1 の版にあるかを見る)
  */
 export function judge({ changes, baseText, headText, baseLibs, baseHasCore = false, baseHasGate = false, baseHasRulesCore = false, intake, places = null, baseUnits = new Map() }) {
   const libs = new Set(baseLibs);
@@ -119,11 +120,17 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
     const rule = matchIntake(intake, change.path);
     let reason;
     let clash;
+    let unitFolder;
     if (status === "A") {
       const lib = libNameOf(change.path);
       const unit = places ? placeUnitOf(change.path, places) : null;
+      const shelfUnit = places ? shelfUnitOf(change.path, places) : null;
       const target = overrideTargetUnit(change.path);
-      if (lib !== null && libs.has(lib)) reason = "ancestor-lib-add";
+      const folder = places ? unitFolderOf(change.path, places) : null;
+      if (folder !== null || (lib !== null && libs.has(lib))) {
+        reason = "inside-unit-add";
+        unitFolder = folder ?? `src/lib/${lib}`;
+      }
       else if (baseHasCore && change.path.startsWith(CORE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "core-add";
       else if (baseHasGate && change.path.startsWith(GATE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "gate-add";
       else if (baseHasRulesCore && change.path.startsWith(RULES_CORE_PREFIX)) reason = "rules-core-add";
@@ -132,6 +139,10 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
       else if (unit !== null && baseUnits.has(unit)) {
         reason = "unit-clash";
         clash = baseUnits.get(unit);
+      } else if (shelfUnit !== null && (baseUnits.has(shelfUnit) || places.unitFolders?.has(shelfUnit))) {
+        // 部品の棚の新しい単位が基準の単位と同じ名前(ファイルとフォルダ、x.ts と x.tsx)。基準の単位のフォルダの中は上の inside-unit-add
+        reason = "unit-clash";
+        clash = baseUnits.get(shelfUnit) ?? `${shelfUnit}/`;
       } else if (places && target !== null && (isFrameOverride(change.path) ? !baseHasRoute(baseUnits, dirOf(change.path)) : !baseUnits.has(target))) reason = "override-own";
       else reason = "added";
     } else if (status === "D") {
@@ -143,7 +154,7 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
     } else {
       reason = judgeModified(rule, baseText(change.path) ?? "", headText(change.path) ?? "");
     }
-    return { ...change, status, kind: rule?.kind ?? null, reason, verdict: REASONS[reason], ...(clash ? { clash } : {}) };
+    return { ...change, status, kind: rule?.kind ?? null, reason, verdict: REASONS[reason], ...(clash ? { clash } : {}), ...(unitFolder ? { unitFolder } : {}) };
   });
 
   const counts = {};

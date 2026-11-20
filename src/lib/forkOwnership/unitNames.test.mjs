@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { overrideTargetUnit, placeUnitOf, unitIndex, unitName, unitPlaces } from "./unitNames.mjs";
+import { overrideTargetUnit, placeUnitOf, shelfUnitOf, unitFolderOf, unitIndex, unitName, unitPlaces } from "./unitNames.mjs";
 
 test("unitName: 最後の拡張子と末尾の /index を除き、.replace / .override は残す", () => {
   assert.equal(unitName("src/wiring/foo.ts"), "src/wiring/foo");
@@ -38,6 +38,32 @@ test("unitPlaces / placeUnitOf: 受け口・wiring・scripts は直下の項目�
   assert.equal(placeUnitOf("src/app/(user)/w/_components/X.tsx", places), "src/app/(user)/w/_components/X");
   assert.equal(placeUnitOf("src/components/Foo.tsx", places), null);
   assert.equal(placeUnitOf("src/lib/x/index.ts", places), null);
+});
+
+test("部品の棚: 基準の分類・hooks・utils・src/lib の直下が単位、基準の単位のフォルダを数える", () => {
+  const files = [
+    "src/components/README.md",
+    "src/components/Input/Select.tsx",
+    "src/components/Input/MultiSelectInput/index.tsx",
+    "src/components/Input/__fixtures__/a.json",
+    "src/hooks/useInView.ts",
+    "src/utils/date.ts",
+    "src/lib/crud/index.ts",
+    "src/lib/CATALOG.md",
+  ];
+  const places = unitPlaces(files, () => null);
+  assert.deepEqual([...places.shelf].sort(), ["src/components/Input", "src/hooks", "src/lib", "src/utils"]);
+  assert.deepEqual([...places.unitFolders].sort(), ["src/components/Input/MultiSelectInput", "src/components/Input/__fixtures__", "src/lib/crud"]);
+  assert.equal(shelfUnitOf("src/components/Input/Select/index.tsx", places), "src/components/Input/Select");
+  assert.equal(shelfUnitOf("src/components/Input/New/part.tsx", places), "src/components/Input/New", "入れ子のパスはフォルダの単位");
+  assert.equal(shelfUnitOf("src/components/Input/Select.test.tsx", places), "src/components/Input/Select.test");
+  assert.equal(shelfUnitOf("src/hooks/useX.tsx", places), "src/hooks/useX");
+  assert.equal(shelfUnitOf("src/components/Mine/X.tsx", places), null, "fork の分類は棚の外");
+  assert.equal(shelfUnitOf("src/components/foo.ts", places), null, "分類の外の直下も棚の外");
+  assert.equal(unitFolderOf("src/components/Input/MultiSelectInput/Extra.tsx", places), "src/components/Input/MultiSelectInput");
+  assert.equal(unitFolderOf("src/lib/crud/extra.ts", places), "src/lib/crud");
+  assert.equal(unitFolderOf("src/components/Input/New/part.tsx", places), null, "新しい単位のフォルダ");
+  assert.equal(unitFolderOf("src/components/Input/Select.tsx", places), null);
 });
 
 test("unitPlaces: 形の誤りのある宣言は点 0(止めるのは pnpm check extensions)・overrideTargetUnit・unitIndex", () => {

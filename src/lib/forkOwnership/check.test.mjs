@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { forkAddedFiles, runCheck as runCheckWithSelf } from "./check.mjs";
+import { forkAddedFiles, reassignMiddleTier, runCheck as runCheckWithSelf } from "./check.mjs";
 import { closeTmp, commitAll, ENV, FORK_ID, git, LINEAGE_PREAMBLE, makeFork, makeParent, nextId, openTmp, PARENT_ID, recordLedger, repoJson, tmpRoot, write } from "./testRepos.mjs";
 
 // 型 1〜4 の検査のテスト: 作り物のリポは self のファイルを持たないので、既定で入の型 5 self は外す(型 5 は self.test.mjs)
@@ -278,7 +278,7 @@ describe("pnpm workflow ownership check", () => {
       [
         [".notices/20260101-000000-inherited.md", "deleted"],
         ["src/features/core/user/user.ts", "outside-intake"],
-        ["src/lib/crud/extra.ts", "ancestor-lib-add"],
+        ["src/lib/crud/extra.ts", "inside-unit-add"],
       ],
     );
     const draft = result.entries.find((entry) => entry.reason === "outside-intake").permitDraft;
@@ -673,4 +673,18 @@ describe("pnpm workflow ownership check", () => {
       assert.deepEqual(runCheck(fork).unrecorded, ["20261029-000000-new"]);
     });
   });
+});
+
+test("多段: 上流の単位の中への追加は、その単位のフォルダが Tier1 の版にあるときだけ違反(無ければ中間 Tier の単位 = middle-tier)", () => {
+  const tier1Files = new Set(["src/components/Input/Select/index.tsx", "src/lib/crud/index.ts"]);
+  const entry = (path, unitFolder) => ({ status: "A", path, kind: null, reason: "inside-unit-add", verdict: "violation", unitFolder });
+  const entries = [
+    entry("src/components/Input/Select/Extra.tsx", "src/components/Input/Select"),
+    entry("src/components/Input/MidUnit/Extra.tsx", "src/components/Input/MidUnit"),
+    entry("src/lib/crud/extra.ts", "src/lib/crud"),
+    entry("src/lib/midLib/extra.ts", "src/lib/midLib"),
+  ];
+  const moved = reassignMiddleTier(entries, tier1Files);
+  assert.deepEqual(entries.map((e) => e.reason), ["inside-unit-add", "middle-tier", "inside-unit-add", "middle-tier"]);
+  assert.equal(moved.length, 2);
 });
