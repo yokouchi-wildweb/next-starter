@@ -228,10 +228,13 @@ function remoteUrl(g, remote) {
 // Rejoin パターン(.claude/skills/flux/patterns.md): 上流の履歴が 2 本の線に分かれ、1 つの merge で合わさり、両方の線に区切りがある形。
 // 区切りの多い線の区間を 1 つずつ先に(その線の上の区切り点)、少ない線の notice は独立の区間にせず、合流の merge を目標にする
 // 区間 1 つにまとめる(merge すれば少ない線が丸ごと入る)。決めない形(同じ数・3 本以上の線や重なった合流・片側の notice の
-// fixes / covers / uses / skip_checkpoint が他の側の notice を名指す)は印だけ付けて今の並び(履歴の順)のまま
+// fixes / covers / uses / skip_checkpoint が他の側の notice を名指す)は印だけ付けて今の並び(履歴の順)のまま。
+// 線の区切りの数・持ち主・名指しは merge 全体(all: fork が取り込み済みの区切りも)で読み、並べ直すのは残り(items)だけ:
+// 長い線の一部を取った後に残りだけで数えると「同じ数」になって止まった(区間 301 の後、計画書 14 S3)
 const NAMING = ["fixes", "covers", "uses", "skip_checkpoint"];
-/** 区切り点の並び(items、履歴の順)を Rejoin で並べ直す。items の各物に rejoin: { merge, joined? | more? | undecided?, why? } */
-export function rejoin(g, items, { base, tip }) {
+/** 区切り点の並び(items、履歴の順)を Rejoin で並べ直す。items の各物に rejoin: { merge, joined? | more? | undecided?, why? }。
+ * all = items を含む全部の区切り点(省くと items) */
+export function rejoin(g, items, { base, tip, all: everything = items }) {
   if (!base || !items.length) return items;
   const merges = (g.tryGit(["rev-list", "--reverse", "--first-parent", "--merges", `${base}..${tip}`]) ?? "").split("\n").filter(Boolean);
   let out = [...items];
@@ -242,12 +245,13 @@ export function rejoin(g, items, { base, tip }) {
     if (!mb) continue;
     const sides = parents.map((p) => new Set((g.tryGit(["rev-list", `${mb}..${p}`]) ?? "").split("\n").filter(Boolean)));
     const on = sides.map((s) => out.filter((it) => s.has(it.point)));
-    const withBreaks = on.filter((s) => s.some((it) => it.break));
-    if (withBreaks.length < 2) continue;
+    const whole = sides.map((s) => everything.filter((it) => s.has(it.point)));
+    if (whole.filter((s) => s.some((it) => it.break)).length < 2) continue;
+    if (!on.some((s) => s.length)) continue;   // 全部取り込み済み: 並べ直す物が無い
     // 1 つの版の中の分かれだけ(全部が同じ持ち主の行で、祖父の行が無い)。中間 Tier が上流を merge した形(片側が中間 Tier の
     // 行、片側が祖父の行)は普段の取り込みで Rejoin ではない
-    const owners = new Set(on.flat().map((it) => it.owner));
-    if (owners.size !== 1 || on.flat().some((it) => it.grandparent)) continue;
+    const owners = new Set(whole.flat().map((it) => it.owner));
+    if (owners.size !== 1 || whole.flat().some((it) => it.grandparent)) continue;
     const all = on.flat();
     const mark = (why) => {
       for (const it of all) it.rejoin = { merge: m, undecided: true, why };
@@ -255,10 +259,10 @@ export function rejoin(g, items, { base, tip }) {
     };
     if (parents.length > 2) { mark("3 本以上の線"); continue; }
     if (all.some((it) => taken.has(it.id))) { mark("重なった合流(3 本以上の線)"); continue; }
-    const counts = on.map((s) => s.filter((it) => it.break).length);
+    const counts = whole.map((s) => s.filter((it) => it.break).length);
     if (counts[0] === counts[1]) { mark(`区切りが同じ数(${counts[0]})`); continue; }
-    const ids = on.map((s) => new Set(s.map((it) => it.id)));
-    const binds = on.some((s, k) => s.some((it) => NAMING.some((f) => list(it.fields[f]).some((x) => ids[1 - k].has(x)))));
+    const ids = whole.map((s) => new Set(s.map((it) => it.id)));
+    const binds = whole.some((s, k) => s.some((it) => NAMING.some((f) => list(it.fields[f]).some((x) => ids[1 - k].has(x)))));
     if (binds) { mark("片側の notice が他の側の notice を名指す(順が縛られる)"); continue; }
     const more = counts[0] > counts[1] ? 0 : 1;
     const a = on[more].map((it) => ({ ...it, rejoin: { merge: m, more: true } }));
@@ -338,7 +342,11 @@ export function incoming(repo, { upstream }) {
   }
   main.sort((a, b) => (pos.get(a.point) ?? -1) - (pos.get(b.point) ?? -1) || (a.id < b.id ? -1 : 1));
   const base0 = (g.tryGit(["merge-base", "HEAD", tip]) ?? "").trim() || null;
-  const ordered = rejoin(g, main.filter((i) => !i.inTree), { base: base0, tip, rowById });
+  // Rejoin の数は merge 全体で(取り込み済み = 継承・台帳の upstream の行も、足した commit を区切り点に)
+  const taken0 = rows.filter((r) => r.owner !== own && !itemIds.has(r.row.id) && adds.get(r.row.id)).map((r) => ({
+    id: r.row.id, owner: r.owner, grandparent: r.owner !== mid && midIsTier, point: adds.get(r.row.id).commit, fields: r.row.fields, break: isBreak(r.row, skipped),
+  }));
+  const ordered = rejoin(g, main.filter((i) => !i.inTree), { base: base0, tip, rowById, all: [...main, ...taken0] });
   const withCovered = (it) => ({ ...it, covered: (riding.get(it.id) ?? []).sort() });
 
   const segments = [];

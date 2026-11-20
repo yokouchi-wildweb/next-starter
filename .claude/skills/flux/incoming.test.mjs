@@ -378,6 +378,17 @@ test("Rejoin: 区切りの多い線(3)を 1 つずつ先に、少ない線(1)は
   assert.match(log.join("\n"), /Rejoin パターン: 少ない側の線を合流の merge/);
 });
 
+test("Rejoin: 長い線の一部を取った後も merge 全体で数える(本線 3・脇 2、本線の 1 つ目を取った後の残り 2 対 2 でも止まらない)", (t) => {
+  const { f, mainPts, sidePts, merge } = split(t, { main: 3, side: 2 });
+  f.g("merge", "-q", "--no-ff", "-m", "take m0", mainPts[0].sha);
+  f.commit(ledger("f", mainPts[0].id));
+  const segs = incoming(f.dir, { upstream: "upstream/main" }).segments.filter((s) => s.target);
+  assert.ok(segs.every((s) => !s.rejoin?.undecided), "残りが同じ数でも決める");
+  assert.deepEqual(segs.slice(0, 2).map((s) => s.target), mainPts.slice(1).map((p) => p.sha), "本線の残りを 1 つずつ先に");
+  assert.equal(segs[2].rejoinMerge, merge);
+  assert.deepEqual(segs[2].notices.map((n) => n.id), sidePts.map((p) => p.id), "脇は合流の merge で");
+});
+
 test("Rejoin: 多い側が脇の線でも同じ(脇 2 → 本線 1 は合流で)", (t) => {
   const { f, mainPts, sidePts, merge } = split(t, { main: 1, side: 2 });
   const segs = incoming(f.dir, { upstream: "upstream/main" }).segments.filter((s) => s.target);
