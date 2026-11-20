@@ -7,8 +7,8 @@
 import { useMemo } from "react";
 import useSWR from "swr";
 import axios from "axios";
-import type { InsertFieldsMap, FieldConfig } from "@/components/Form/FieldRenderer";
-import type { FormInputType } from "@/components/Form/Field/types";
+import type { InsertFieldsMap, FieldConfig } from "@/lib/formSuite";
+import type { FormInputType } from "@/lib/formSuite";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import {
   getFormRelations,

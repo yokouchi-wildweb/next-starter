@@ -2,10 +2,10 @@
 
 import { useForm } from "react-hook-form";
 
-import { AppForm } from "@/components/Form/AppForm";
+import { AppForm } from "@/lib/formSuite";
 import { Button } from "@/components/Button/Button";
-import { ControlledField } from "@/components/Form";
-import { TextInput } from "@/components/Form/Input/Controlled";
+import { ControlledField } from "@/lib/formSuite";
+import { ControlledTextInput } from "@/lib/formSuite";
 
 type EmailInputFormValues = {
   email: string;
@@ -36,7 +36,7 @@ export function EmailInputState({ onSubmit }: EmailInputStateProps) {
         name="email"
         label="メールアドレス"
         renderInput={(field) => (
-          <TextInput
+          <ControlledTextInput
             field={field}
             type="email"
             required

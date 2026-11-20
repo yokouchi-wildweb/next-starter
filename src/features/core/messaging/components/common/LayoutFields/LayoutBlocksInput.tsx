@@ -15,7 +15,7 @@ import { Button } from "@/components/Button/Button";
 import { Input } from "@/components/Input/Input";
 import { Textarea } from "@/components/Input/Textarea";
 import { Label } from "@/components/Input/Label";
-import { ManualMediaUploader } from "@/components/Form/MediaHandler";
+import { ManualMediaUploader } from "@/lib/mediaInputSuite";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks/Span";

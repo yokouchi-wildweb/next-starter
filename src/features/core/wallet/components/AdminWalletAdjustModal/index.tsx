@@ -13,9 +13,9 @@ import { Stack } from "@/components/Layout/Stack";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
-import { AppForm } from "@/components/Form/AppForm";
-import { ControlledField } from "@/components/Form";
-import { NumberInput, RadioGroupInput, TextInput } from "@/components/Form/Input/Controlled";
+import { AppForm } from "@/lib/formSuite";
+import { ControlledField } from "@/lib/formSuite";
+import { ControlledNumberInput, ControlledRadioGroupInput, ControlledTextInput } from "@/lib/formSuite";
 import { Button } from "@/components/Button/Button";
 import { err } from "@/lib/errors";
 import type { User } from "@/features/core/user/entities";
@@ -180,7 +180,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
           name="walletType"
           label="ウォレット種別"
           renderInput={(field) => (
-            <RadioGroupInput
+            <ControlledRadioGroupInput
               field={field}
               options={WALLET_TYPE_OPTIONS}
               displayType="standard"
@@ -199,7 +199,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
             size: "xs",
           }}
           renderInput={(field) => (
-            <RadioGroupInput
+            <ControlledRadioGroupInput
               field={field}
               options={CHANGE_METHOD_OPTIONS}
               displayType="standard"
@@ -214,7 +214,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
           label="金額"
           description={{ text: amountDescription, tone: "muted", size: "xs" }}
           renderInput={(field) => (
-            <NumberInput
+            <ControlledNumberInput
               field={field}
               min={0}
               placeholder="例: 1000"
@@ -231,7 +231,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
             size: "xs",
           }}
           renderInput={(field) => (
-            <TextInput
+            <ControlledTextInput
               field={field}
               placeholder="例: 不具合補填として付与"
             />

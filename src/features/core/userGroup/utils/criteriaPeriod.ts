@@ -5,8 +5,8 @@
 import { and, gte, isNull, lt, lte, or, type AnyColumn, type SQL } from "drizzle-orm";
 import { z } from "zod";
 
-import type { FieldConfig } from "@/components/Form/Field/types";
-import type { InlineFieldGroup } from "@/components/Form/FieldRenderer/types";
+import type { FieldConfig } from "@/lib/formSuite";
+import type { InlineFieldGroup } from "@/lib/formSuite";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

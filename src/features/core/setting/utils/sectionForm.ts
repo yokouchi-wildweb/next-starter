@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 
-import type { FieldConfig } from "@/components/Form/Field/types";
+import type { FieldConfig } from "@/lib/formSuite";
 
 import type { SettingFieldDefinition, SettingSectionDefinition } from "../types/definition";
 

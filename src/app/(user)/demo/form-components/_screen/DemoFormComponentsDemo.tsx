@@ -6,26 +6,10 @@ import { useCallback, useState } from "react";
 import { FormProvider as Form, useForm } from "react-hook-form";
 import { Lock, Mail } from "lucide-react";
 import { Button } from "@/components/Button/Button";
-import {
-  BooleanCheckboxInput,
-  CheckGroupInput,
-  DateInput,
-  DatetimeInput,
-  EmailInput,
-  FileInput,
-  MultiSelectInput,
-  NumberInput,
-  PasswordInput,
-  RadioGroupInput,
-  SelectInput,
-  SwitchInput,
-  TextInput,
-  Textarea,
-  TimeInput,
-} from "@/components/Form/Input/Controlled";
+import { ControlledBooleanCheckboxInput, ControlledCheckGroupInput, ControlledDateInput, ControlledDatetimeInput, ControlledEmailInput, ControlledFileInput, ControlledMultiSelectInput, ControlledNumberInput, ControlledPasswordInput, ControlledRadioGroupInput, ControlledSelectInput, ControlledSwitchInput, ControlledTextInput, ControlledTextarea, ControlledTimeInput } from "@/lib/formSuite";
 import StepperInput from "@/components/Input/StepperInput";
 import { Label } from "@/components/Input/Label";
-import { ControlledField } from "@/components/Form";
+import { ControlledField } from "@/lib/formSuite";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
@@ -168,7 +152,7 @@ export function DemoFormComponentsDemo() {
             Form コンポーネント デモ
           </PageTitle>
           <Para tone="muted" size="sm">
-            <code>src/components/Form</code> に用意されているコンポーネントの見た目と挙動を確認できます。
+            <code>src/lib/formSuite</code> に用意されているコンポーネントの見た目と挙動を確認できます。
           </Para>
         </Section>
 
@@ -184,7 +168,7 @@ export function DemoFormComponentsDemo() {
                     name="text"
                     label="TextInput"
                     renderInput={(field) => (
-                        <TextInput field={field} placeholder="テキストを入力" />
+                        <ControlledTextInput field={field} placeholder="テキストを入力" />
                     )}
                 />
 
@@ -193,7 +177,7 @@ export function DemoFormComponentsDemo() {
                     name="email"
                     label="EmailInput（leftIcon付き）"
                     renderInput={(field) => (
-                        <EmailInput
+                        <ControlledEmailInput
                             field={field}
                             placeholder="例）maile@example.com"
                             leftIcon={<Mail className="size-4" />}
@@ -206,7 +190,7 @@ export function DemoFormComponentsDemo() {
                     name="password"
                     label="PasswordInput（leftIcon付き）"
                     renderInput={(field) => (
-                        <PasswordInput
+                        <ControlledPasswordInput
                             field={field}
                             autoComplete="current-password"
                             placeholder="ご登録のパスワード"
@@ -220,7 +204,7 @@ export function DemoFormComponentsDemo() {
                     name="description"
                     label="Textarea"
                     renderInput={(field) => (
-                        <Textarea field={field} rows={4} placeholder="自由入力" />
+                        <ControlledTextarea field={field} rows={4} placeholder="自由入力" />
                     )}
                 />
 
@@ -228,7 +212,7 @@ export function DemoFormComponentsDemo() {
                     control={form.control}
                     name="date"
                     label="DateInput"
-                    renderInput={(field) => <DateInput field={field} />}
+                    renderInput={(field) => <ControlledDateInput field={field} />}
                 />
 
 
@@ -236,14 +220,14 @@ export function DemoFormComponentsDemo() {
                     control={form.control}
                     name="time"
                     label="TimeInput"
-                    renderInput={(field) => <TimeInput field={field} />}
+                    renderInput={(field) => <ControlledTimeInput field={field} />}
                 />
 
                 <ControlledField
                     control={form.control}
                     name="datetime"
                     label="DatetimeInput"
-                    renderInput={(field) => <DatetimeInput field={field} />}
+                    renderInput={(field) => <ControlledDatetimeInput field={field} />}
                 />
 
                 <ControlledField
@@ -251,7 +235,7 @@ export function DemoFormComponentsDemo() {
                     name="radio"
                     label="RadioGroupInput"
                     renderInput={(field) => (
-                        <RadioGroupInput field={field} options={textOptions} className="flex flex-col gap-2" />
+                        <ControlledRadioGroupInput field={field} options={textOptions} className="flex flex-col gap-2" />
                     )}
                 />
 
@@ -260,7 +244,7 @@ export function DemoFormComponentsDemo() {
                     name="radioStandard"
                     label="RadioGroupInput（Standard Button）"
                     renderInput={(field) => (
-                        <RadioGroupInput
+                        <ControlledRadioGroupInput
                             field={field}
                             options={textOptions}
                             displayType="standard"
@@ -273,7 +257,7 @@ export function DemoFormComponentsDemo() {
                     name="checkGroupRounded"
                     label="CheckGroupInput（Rounded）"
                     renderInput={(field) => (
-                        <CheckGroupInput field={field} options={fruitOptions} displayType="rounded" />
+                        <ControlledCheckGroupInput field={field} options={fruitOptions} displayType="rounded" />
                     )}
                 />
 
@@ -282,7 +266,7 @@ export function DemoFormComponentsDemo() {
                     name="checkGroupStandard"
                     label="CheckGroupInput（Standard Button）"
                     renderInput={(field) => (
-                        <CheckGroupInput field={field} options={fruitOptions} displayType="standard" />
+                        <ControlledCheckGroupInput field={field} options={fruitOptions} displayType="standard" />
                     )}
                 />
 
@@ -291,7 +275,7 @@ export function DemoFormComponentsDemo() {
                     name="checkGroupBookmark"
                     label="CheckGroupInput（Bookmark Tag）"
                     renderInput={(field) => (
-                        <CheckGroupInput field={field} options={fruitOptions} displayType="bookmark" />
+                        <ControlledCheckGroupInput field={field} options={fruitOptions} displayType="bookmark" />
                     )}
                 />
 
@@ -300,7 +284,7 @@ export function DemoFormComponentsDemo() {
                     name="checkGroupCheckbox"
                     label="CheckGroupInput（Checkbox）"
                     renderInput={(field) => (
-                        <CheckGroupInput field={field} options={fruitOptions} displayType="classic" />
+                        <ControlledCheckGroupInput field={field} options={fruitOptions} displayType="classic" />
                     )}
                 />
 
@@ -309,7 +293,7 @@ export function DemoFormComponentsDemo() {
                     name="select"
                     label="SelectInput"
                     renderInput={(field) => (
-                        <SelectInput field={field} options={textOptions} placeholder="選択してください" />
+                        <ControlledSelectInput field={field} options={textOptions} placeholder="選択してください" />
                     )}
                 />
 
@@ -318,7 +302,7 @@ export function DemoFormComponentsDemo() {
                     name="multiSelect"
                     label="MultiSelectInput"
                     renderInput={(field) => (
-                        <MultiSelectInput
+                        <ControlledMultiSelectInput
                             field={field}
                             options={textOptions}
                             placeholder="複数選択してください"
@@ -332,7 +316,7 @@ export function DemoFormComponentsDemo() {
                     label="FileInput"
                     description={{ text: "選択中のファイル名とクリアボタンを確認できます。", tone: "muted", size: "xs" }}
                     renderInput={(field) => (
-                        <FileInput
+                        <ControlledFileInput
                             field={field}
                             accept="image/*"
                             onRemove={() => {
@@ -348,7 +332,7 @@ export function DemoFormComponentsDemo() {
                     name="number"
                     label="NumberInput"
                     renderInput={(field) => (
-                        <NumberInput field={field} placeholder="数値を入力" min={0} step={1} />
+                        <ControlledNumberInput field={field} placeholder="数値を入力" min={0} step={1} />
                     )}
                 />
 
@@ -357,7 +341,7 @@ export function DemoFormComponentsDemo() {
                     name="switch"
                     label="SwitchInput"
                     renderInput={(field) => (
-                        <SwitchInput
+                        <ControlledSwitchInput
                             field={field}
                             label="スイッチラベル"
                             description="チェックボックスのラッパーです"
@@ -370,7 +354,7 @@ export function DemoFormComponentsDemo() {
                     name="booleanCheckbox"
                     label="BooleanCheckboxInput"
                     renderInput={(field) => (
-                        <BooleanCheckboxInput field={field} label="チェックボックスラベル" />
+                        <ControlledBooleanCheckboxInput field={field} label="チェックボックスラベル" />
                     )}
                 />
               </Grid>

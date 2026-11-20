@@ -1,8 +1,8 @@
 // src/features/core/userGroup/services/server/admin/dto.ts
 // 管理の API が返す形(表示名を先に。内部の鍵は値としてだけ持つ、D94)
 
-import type { FieldConfig } from "@/components/Form/Field/types";
-import type { InlineFieldGroup } from "@/components/Form/FieldRenderer/types";
+import type { FieldConfig } from "@/lib/formSuite";
+import type { InlineFieldGroup } from "@/lib/formSuite";
 
 import type { UserGroupDefinitionNode, UserGroupKind, UserGroupStatus } from "../../../entities/schema";
 import type { ReplaceMembersResult } from "../writes";

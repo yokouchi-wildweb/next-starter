@@ -3,16 +3,9 @@
 "use client";
 
 import { FormProvider as Form, useForm } from "react-hook-form";
-import { ControlledField, ControlledFieldGroup } from "@/components/Form";
-import { ManualField } from "@/components/Form/Field/Manual";
-import {
-  TextInput,
-  EmailInput,
-  SelectInput,
-  Textarea,
-  DateInput,
-  NumberInput,
-} from "@/components/Form/Input/Controlled";
+import { ControlledField, ControlledFieldGroup } from "@/lib/formSuite";
+import { ManualField } from "@/lib/formSuite";
+import { ControlledTextInput, ControlledEmailInput, ControlledSelectInput, ControlledTextarea, ControlledDateInput, ControlledNumberInput } from "@/lib/formSuite";
 import { Input } from "@/components/Input/Input";
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
@@ -95,7 +88,7 @@ export function DemoFieldLayoutDemo() {
                 labelClass={LABEL_CLASS}
                 required
                 renderInput={(field) => (
-                  <TextInput field={field} placeholder="イベント名を入力" />
+                  <ControlledTextInput field={field} placeholder="イベント名を入力" />
                 )}
               />
 
@@ -108,7 +101,7 @@ export function DemoFieldLayoutDemo() {
                 required
                 description={{ text: "連絡先として使用します", tone: "muted", size: "xs" }}
                 renderInput={(field) => (
-                  <EmailInput field={field} placeholder="example@mail.com" />
+                  <ControlledEmailInput field={field} placeholder="example@mail.com" />
                 )}
               />
 
@@ -119,7 +112,7 @@ export function DemoFieldLayoutDemo() {
                 layout="horizontal"
                 labelClass={LABEL_CLASS}
                 renderInput={(field) => (
-                  <SelectInput field={field} options={categoryOptions} placeholder="選択してください" />
+                  <ControlledSelectInput field={field} options={categoryOptions} placeholder="選択してください" />
                 )}
               />
 
@@ -129,7 +122,7 @@ export function DemoFieldLayoutDemo() {
                 label="開催日"
                 layout="horizontal"
                 labelClass={LABEL_CLASS}
-                renderInput={(field) => <DateInput field={field} />}
+                renderInput={(field) => <ControlledDateInput field={field} />}
               />
 
               <ControlledField
@@ -140,7 +133,7 @@ export function DemoFieldLayoutDemo() {
                 labelClass={LABEL_CLASS}
                 description={{ text: "イベントの詳細を記載してください", tone: "muted", size: "xs" }}
                 renderInput={(field) => (
-                  <Textarea field={field} rows={3} placeholder="自由入力" />
+                  <ControlledTextarea field={field} rows={3} placeholder="自由入力" />
                 )}
               />
             </Stack>
@@ -162,7 +155,7 @@ export function DemoFieldLayoutDemo() {
                 labelClass={LABEL_CLASS}
                 required
                 renderInput={(field) => (
-                  <TextInput field={field} placeholder="イベント名を入力" />
+                  <ControlledTextInput field={field} placeholder="イベント名を入力" />
                 )}
               />
 
@@ -175,7 +168,7 @@ export function DemoFieldLayoutDemo() {
                 required
                 description={{ text: "連絡先として使用します", tone: "muted", size: "xs" }}
                 renderInput={(field) => (
-                  <EmailInput field={field} placeholder="example@mail.com" />
+                  <ControlledEmailInput field={field} placeholder="example@mail.com" />
                 )}
               />
 
@@ -186,7 +179,7 @@ export function DemoFieldLayoutDemo() {
                 layout="responsive"
                 labelClass={LABEL_CLASS}
                 renderInput={(field) => (
-                  <SelectInput field={field} options={categoryOptions} placeholder="選択してください" />
+                  <ControlledSelectInput field={field} options={categoryOptions} placeholder="選択してください" />
                 )}
               />
 
@@ -198,7 +191,7 @@ export function DemoFieldLayoutDemo() {
                 labelClass={LABEL_CLASS}
                 description={{ text: "イベントの詳細を記載してください", tone: "muted", size: "xs" }}
                 renderInput={(field) => (
-                  <Textarea field={field} rows={3} placeholder="自由入力" />
+                  <ControlledTextarea field={field} rows={3} placeholder="自由入力" />
                 )}
               />
             </Stack>
@@ -226,8 +219,8 @@ export function DemoFieldLayoutDemo() {
                 ]}
                 required
                 renderInputs={(fields) => [
-                  <TextInput key="start" field={fields[0]} placeholder="00:00" />,
-                  <TextInput key="end" field={fields[1]} placeholder="00:00" />,
+                  <ControlledTextInput key="start" field={fields[0]} placeholder="00:00" />,
+                  <ControlledTextInput key="end" field={fields[1]} placeholder="00:00" />,
                 ]}
               />
 
@@ -240,9 +233,9 @@ export function DemoFieldLayoutDemo() {
                 labelClass={LABEL_CLASS}
                 required
                 renderInputs={(fields) => [
-                  <SelectInput key="year" field={fields[0]} options={yearOptions} placeholder="年" />,
-                  <SelectInput key="month" field={fields[1]} options={monthOptions} placeholder="月" />,
-                  <SelectInput key="day" field={fields[2]} options={dayOptions} placeholder="日" />,
+                  <ControlledSelectInput key="year" field={fields[0]} options={yearOptions} placeholder="年" />,
+                  <ControlledSelectInput key="month" field={fields[1]} options={monthOptions} placeholder="月" />,
+                  <ControlledSelectInput key="day" field={fields[2]} options={dayOptions} placeholder="日" />,
                 ]}
               />
 
@@ -256,9 +249,9 @@ export function DemoFieldLayoutDemo() {
                 inputLayout="horizontal"
                 required
                 renderInputs={(fields) => [
-                  <SelectInput key="year" field={fields[0]} options={yearOptions} placeholder="年" />,
-                  <SelectInput key="month" field={fields[1]} options={monthOptions} placeholder="月" />,
-                  <SelectInput key="day" field={fields[2]} options={dayOptions} placeholder="日" />,
+                  <ControlledSelectInput key="year" field={fields[0]} options={yearOptions} placeholder="年" />,
+                  <ControlledSelectInput key="month" field={fields[1]} options={monthOptions} placeholder="月" />,
+                  <ControlledSelectInput key="day" field={fields[2]} options={dayOptions} placeholder="日" />,
                 ]}
               />
 
@@ -272,9 +265,9 @@ export function DemoFieldLayoutDemo() {
                 inputLayout="responsive"
                 required
                 renderInputs={(fields) => [
-                  <SelectInput key="year" field={fields[0]} options={yearOptions} placeholder="年" />,
-                  <SelectInput key="month" field={fields[1]} options={monthOptions} placeholder="月" />,
-                  <SelectInput key="day" field={fields[2]} options={dayOptions} placeholder="日" />,
+                  <ControlledSelectInput key="year" field={fields[0]} options={yearOptions} placeholder="年" />,
+                  <ControlledSelectInput key="month" field={fields[1]} options={monthOptions} placeholder="月" />,
+                  <ControlledSelectInput key="day" field={fields[2]} options={dayOptions} placeholder="日" />,
                 ]}
               />
             </Stack>
@@ -297,9 +290,9 @@ export function DemoFieldLayoutDemo() {
                 labelClass={LABEL_CLASS}
                 required
                 renderInputs={(fields) => [
-                  <SelectInput key="year" field={fields[0]} options={yearOptions} placeholder="年" />,
-                  <SelectInput key="month" field={fields[1]} options={monthOptions} placeholder="月" />,
-                  <SelectInput key="day" field={fields[2]} options={dayOptions} placeholder="日" />,
+                  <ControlledSelectInput key="year" field={fields[0]} options={yearOptions} placeholder="年" />,
+                  <ControlledSelectInput key="month" field={fields[1]} options={monthOptions} placeholder="月" />,
+                  <ControlledSelectInput key="day" field={fields[2]} options={dayOptions} placeholder="日" />,
                 ]}
               />
             </Stack>

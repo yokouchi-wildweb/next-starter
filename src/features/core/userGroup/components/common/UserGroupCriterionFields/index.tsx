@@ -9,8 +9,8 @@
 
 import { FormProvider } from "react-hook-form";
 
-import { FieldRenderer, type InlineFieldGroup } from "@/components/Form/FieldRenderer";
-import type { FieldConfig } from "@/components/Form/Field/types";
+import { FieldRenderer, type InlineFieldGroup } from "@/lib/formSuite";
+import type { FieldConfig } from "@/lib/formSuite";
 import { Stack } from "@/components/Layout/Stack";
 
 import { useUserGroupCriterionArgs } from "@/features/core/userGroup/hooks/useUserGroupCriterionArgs";

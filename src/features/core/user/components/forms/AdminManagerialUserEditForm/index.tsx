@@ -6,11 +6,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "@/lib/unsavedGuard";
 import { useToast } from "@/lib/toast";
-import { AppForm } from "@/components/Form/AppForm";
+import { AppForm } from "@/lib/formSuite";
 import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
-import { ControlledField } from "@/components/Form";
-import { TextInput } from "@/components/Form/Input/Controlled";
+import { ControlledField } from "@/lib/formSuite";
+import { ControlledTextInput } from "@/lib/formSuite";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
 import type { User } from "@/features/user/entities";
@@ -77,7 +77,7 @@ export default function ManagerialUserEditForm({
         control={control}
         name="name"
         label="表示名"
-        renderInput={(field) => <TextInput field={field} />}
+        renderInput={(field) => <ControlledTextInput field={field} />}
       />
       <RoleProfileFields methods={methods} role={user.role} profiles={getProfilesByCategory("admin")} />
       <Flex justify="center" className="gap-3">

@@ -348,7 +348,7 @@ custom リレーションの UI 実装例:
 
 **推奨: `ControlledField` を使う**
 
-統一感を保つため、`src/components/Form/Field/Controlled/ControlledField` を使用する。
+統一感を保つため、`ControlledField`(`@/lib/formSuite`) を使用する。
 以下が自動で統一される:
 - ラベル・必須マーク
 - エラーメッセージ表示
@@ -361,7 +361,7 @@ custom リレーションの UI 実装例:
 { "name": "custom_field", "fieldType": "string", "formInput": "custom" }
 
 // フォームコンポーネント
-import { ControlledField } from "@/components/Form/Field";
+import { ControlledField } from "@/lib/formSuite";
 
 <FieldRenderer
   control={control}
@@ -435,7 +435,7 @@ import { ControlledField } from "@/components/Form/Field";
 
 - どのグループにも属さないフィールドは、全グループの後ろに「グループ外枠」としてまとめて描画される
 - セクションへのUI差し込み（オーバーライド警告等）は `beforeGroup` / `afterGroup` props で行う
-- 描画仕様・カスタマイズの詳細: `src/components/Form/FieldRenderer/README.md`
+- 描画仕様・カスタマイズの詳細: `src/lib/formSuite/FieldRenderer/README.md`
 
 ### compositeUniques（複合ユニーク制約）
 
@@ -509,7 +509,7 @@ import { ControlledField } from "@/components/Form/Field";
 | accept | string | 🟢 Yes | accept 属性値（例: `image/*,video/*`）。受け付ける型を必ず列挙する（`"all"` の preset でも空にしない。空だと pnpm generate domain が止まる。lib は `*/*` を受けない）。preset の目安: images = `image/*`、videos = `video/*`、imagesAndVideos = `image/*,video/*` |
 | validationRule | object | ⚪ No | バリデーション設定 |
 | validationRule.maxSizeBytes | number | ⚪ No | 最大ファイルサイズ（バイト） |
-| helperText | string | ⚪ No | 欄の説明文。フィールドの枠がラベルの下に描く（メディア以外の欄でも同じ。`src/components/Form/README.md`「設定駆動フィールドの使い分け」） |
+| helperText | string | ⚪ No | 欄の説明文。フィールドの枠がラベルの下に描く（メディア以外の欄でも同じ。`src/lib/formSuite/README.md`「説明文と読み上げ」） |
 | metadataBinding | object | ⚪ No | メタデータを別フィールドに保存 |
 | storage | object | ⚪ No | ファイル用途の設定（下の「ファイルの保存（storage）」） |
 | storage.visibility | `"public"` \| `"private"` | ⚪ No | 公開・非公開。**一般利用者がアップロードできる項目では必須**（省略すると pnpm generate domain がエラーで止まる） |

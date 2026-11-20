@@ -1,7 +1,7 @@
 // 生成物・編集不可: pnpm generate extensions が src/wiring/formInputs/extensionPoints.ts から生成する
 // inputs: src/wiring/formInputs/inputs/<名前>.ts(x) か <名前>/index.ts(x) の export const formInput(並びはファイル名の順)
 
-import type { FormInputItem } from "@/components/Form/Field/types";
+import type { FormInputItem } from "@/lib/formSuite";
 
 const inputsList = [] as const satisfies readonly FormInputItem[];
 export const inputs = Object.assign(Object.create(null), Object.fromEntries((inputsList as readonly FormInputItem[]).map((item) => [String(item.name), item]))) as unknown as { readonly [I in (typeof inputsList)[number] as I["name"]]: I };

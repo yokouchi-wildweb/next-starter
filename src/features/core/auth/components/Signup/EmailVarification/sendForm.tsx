@@ -3,14 +3,14 @@
 "use client";
 
 // メールアドレスを利用したサインアップ手段を提供する Client Component です。
-// 入力・送信の処理は useVerificationEmailSendForm が持ち、ここはフォーム部品（components/Form）で描くだけです。
+// 入力・送信の処理は useVerificationEmailSendForm が持ち、ここはフォーム部品（lib/formSuite）で描くだけです。
 
 import { Mail } from "lucide-react";
 
-import { AppForm } from "@/components/Form/AppForm";
+import { AppForm } from "@/lib/formSuite";
 import { Button } from "@/components/Button/Button";
-import { ControlledField } from "@/components/Form";
-import { TextInput } from "@/components/Form/Input/Controlled";
+import { ControlledField } from "@/lib/formSuite";
+import { ControlledTextInput } from "@/lib/formSuite";
 import { Block } from "@/components/Layout/Block";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
@@ -41,7 +41,7 @@ export function VerificationEmailSendForm({
             name="email"
             label={<Span size="sm" weight="medium">メールアドレス</Span>}
             renderInput={(field) => (
-              <TextInput
+              <ControlledTextInput
                 field={field}
                 type="email"
                 required

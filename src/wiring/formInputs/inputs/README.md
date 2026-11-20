@@ -18,7 +18,7 @@
 
 ```ts
 // src/wiring/formInputs/inputs/ticketRates.ts
-import type { FormInputItem } from "@/components/Form/Field/types";
+import type { FormInputItem } from "@/lib/formSuite";
 
 export const formInput = {
   name: "ticketRates",

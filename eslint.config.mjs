@@ -393,13 +393,13 @@ const config = [
   },
   // 型の表の外で fieldType の名前を比べない（番人。詳細: eslint-rules/field-type-guard.mjs・src/lib/domain/README.md「番人」）。
   // 強さはリポジトリ単位: 上流リポ（目録の先頭の節）= error、fork = warn（fork に残る上流の旧版の写しで fork の lint を止めない）。
-  // 対象外: 表そのもの（src/lib/domain/fields/）・型名の union（Field/types.ts。表との突き合わせは pnpm test src/components/Form/FieldRenderer/defaultValueBuilder.test.ts）・テストだけ。
+  // 対象外: 表そのもの（src/lib/domain/fields/）・型名の union（Field/types.ts。表との突き合わせは pnpm test src/lib/formSuite/FieldRenderer/defaultValueBuilder.test.ts）・テストだけ。
   // 決め打ちの許可リストは無い（型の答えが要る所は表の属性・述語を足して引く）
   {
     files: ["src/**/*.{ts,tsx}", "scripts/structure/domain/**/*.mjs", "scripts/structure/role/**/*.mjs"],
     ignores: [
       "src/lib/domain/fields/**",
-      "src/components/Form/Field/types.ts",
+      "src/lib/formSuite/Field/types.ts",
       "**/*.test.{ts,tsx,mjs,mts}",
       "scripts/structure/domain/tests/**",
     ],

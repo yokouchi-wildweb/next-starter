@@ -56,7 +56,7 @@
 - `GoogleTag.tsx`: データに届くか = 届かない
   - `lib/googleTag` の `<GoogleTag>`（client）+ 流入経路の判別表（`features/core/userAcquisition/lib/classifyVisit` の `getChannelDefinitions`。招待などの独自のリンクの印を GA4 の `campaign_source` / `campaign_medium` にする）→ `GoogleTag`（server。root の `src/app/layout.tsx` が描き、表はシリアライズできる値として prop で渡る。lib は features を読まないので結ぶのはここ）
 - `formInputs/`: データに届くか = いいえ
-  - 独自の入力部品の一覧 → `src/components/Form` の Provider（`FormInputsRoot.tsx`、受け口 `inputs/`。書き方は `inputs/README.md`）
+  - 独自の入力部品の一覧 → `@/lib/formSuite` の Provider（`FormInputsRoot.tsx`、受け口 `inputs/`。書き方は `inputs/README.md`）
 
 ## Extension
 

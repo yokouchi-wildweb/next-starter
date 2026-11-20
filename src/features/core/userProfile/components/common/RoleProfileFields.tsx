@@ -5,9 +5,9 @@
 import { useMemo } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
-import type { InsertFieldsMap } from "@/components/Form/FieldRenderer";
+import type { InsertFieldsMap } from "@/lib/formSuite";
 import { Block } from "@/components/Layout/Block";
-import { FieldRenderer, type FieldRendererProps } from "@/components/Form/FieldRenderer";
+import { FieldRenderer, type FieldRendererProps } from "@/lib/formSuite";
 import { useRelationOptions } from "@/lib/domain/hooks/useRelationOptions";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import type { ProfileConfig } from "../../profiles";

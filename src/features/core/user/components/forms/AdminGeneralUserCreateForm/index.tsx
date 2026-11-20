@@ -6,12 +6,12 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "@/lib/unsavedGuard";
 import { useToast } from "@/lib/toast";
-import { AppForm } from "@/components/Form/AppForm";
+import { AppForm } from "@/lib/formSuite";
 import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
-import { ControlledField } from "@/components/Form";
-import { PasswordInput, TextInput } from "@/components/Form/Input/Controlled";
-import { CheckGroupInput } from "@/components/Form/Input/Controlled/CheckGroupInput";
+import { ControlledField } from "@/lib/formSuite";
+import { ControlledPasswordInput, ControlledTextInput } from "@/lib/formSuite";
+import { ControlledCheckGroupInput } from "@/lib/formSuite";
 import { err } from "@/lib/errors";
 import { useCreateUser } from "@/features/user/hooks/useCreateUser";
 import { useUserTagList } from "@/features/core/userTag/hooks/useUserTagList";
@@ -76,7 +76,7 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
           name="user_tag_ids"
           label="ユーザータグ"
           renderInput={(field) => (
-            <CheckGroupInput field={field} options={tagOptions} displayType="bookmark" colorMap={TAG_COLOR_STYLES} />
+            <ControlledCheckGroupInput field={field} options={tagOptions} displayType="bookmark" colorMap={TAG_COLOR_STYLES} />
           )}
         />
       )}
@@ -90,19 +90,19 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
         control={control}
         name="name"
         label="表示名"
-        renderInput={(field) => <TextInput field={field} />}
+        renderInput={(field) => <ControlledTextInput field={field} />}
       />
       <ControlledField
         control={control}
         name="email"
         label="メールアドレス"
-        renderInput={(field) => <TextInput type="email" field={field} />}
+        renderInput={(field) => <ControlledTextInput type="email" field={field} />}
       />
       <ControlledField
         control={control}
         name="localPassword"
         label="パスワード"
-        renderInput={(field) => <PasswordInput field={field} autoComplete="new-password" />}
+        renderInput={(field) => <ControlledPasswordInput field={field} autoComplete="new-password" />}
       />
       <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("user")} />
       <Flex justify="center" className="gap-3">

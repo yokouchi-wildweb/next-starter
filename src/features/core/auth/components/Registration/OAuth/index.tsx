@@ -2,10 +2,10 @@
 
 "use client";
 
-import { AppForm } from "@/components/Form/AppForm";
+import { AppForm } from "@/lib/formSuite";
 import { Button } from "@/components/Button/Button";
-import { ControlledField } from "@/components/Form";
-import { SingleCardCheckbox, TextInput } from "@/components/Form/Input/Controlled";
+import { ControlledField } from "@/lib/formSuite";
+import { ControlledSingleCardCheckbox, ControlledTextInput } from "@/lib/formSuite";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
@@ -62,7 +62,7 @@ export function OAuthRegistrationForm() {
           label="メールアドレス"
           required
           renderInput={(field) => (
-            <TextInput
+            <ControlledTextInput
               field={field}
               required
               type="email"
@@ -78,7 +78,7 @@ export function OAuthRegistrationForm() {
           label="表示名"
           required
           renderInput={(field) => (
-            <TextInput
+            <ControlledTextInput
               field={field}
               required
               placeholder=""
@@ -103,7 +103,7 @@ export function OAuthRegistrationForm() {
           control={form.control}
           name="agreeToTerms"
           renderInput={(field) => (
-            <SingleCardCheckbox
+            <ControlledSingleCardCheckbox
               field={field}
               label={
                 <>

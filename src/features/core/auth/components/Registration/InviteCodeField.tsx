@@ -10,9 +10,9 @@
 
 import type { Control, FieldValues, Path } from "react-hook-form";
 
-import { ControlledField } from "@/components/Form";
+import { ControlledField } from "@/lib/formSuite";
 import { Button } from "@/components/Button/Button";
-import { TextInput } from "@/components/Form/Input/Controlled";
+import { ControlledTextInput } from "@/lib/formSuite";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks/Span";
@@ -67,7 +67,7 @@ export function InviteCodeField<TFieldValues extends FieldValues>({
       description={errorMessage ? { text: errorMessage, tone: "destructive", size: "sm" } : undefined}
       renderInput={(field) => (
         <Flex gap="md">
-          <TextInput
+          <ControlledTextInput
             field={field}
             placeholder="お持ちの場合は入力してください"
             autoComplete="off"

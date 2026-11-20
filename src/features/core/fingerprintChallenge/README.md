@@ -41,7 +41,7 @@ import { useFingerprintChallenge } from "@/features/core/fingerprintChallenge/ho
 import { useSubmitFingerprintChallenge } from "@/features/core/fingerprintChallenge/hooks/useSubmitFingerprintChallenge";
 import { Button } from "@/components/Button/Button";
 import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
-import { Input } from "@/components/Form/Input";
+import { Input } from "@/components/Input/Input";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 

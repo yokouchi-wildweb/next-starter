@@ -4,17 +4,17 @@
 
 import type { ReactNode } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
-import { AppForm } from "@/components/Form/AppForm";
-import type { AutoSaveOptions } from "@/components/Form/AutoSave";
+import { AppForm } from "@/lib/formSuite";
+import type { AutoSaveOptions } from "@/lib/formSuite";
 import { Button } from "@/components/Button/Button";
-import { FormActions } from "@/components/Form/FormActions";
-import type { FieldConfig } from "@/components/Form/Field";
+import { FormActions } from "@/lib/formSuite";
+import type { FieldConfig } from "@/lib/formSuite";
 import type {
   FieldGroup,
   GroupContentMap,
   InlineFieldGroup,
   InsertFieldsMap,
-} from "@/components/Form/FieldRenderer/types";
+} from "@/lib/formSuite";
 import { ChatRoomFields } from "./ChatRoomFields";
 
 export type ChatRoomFormProps<TFieldValues extends FieldValues> = {
