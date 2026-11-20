@@ -1,6 +1,6 @@
-// src/components/Admin/Elements/ListTop.tsx
+// src/components/Admin/ListTop.tsx
 
-import SecTitle from "@/components/AppFrames/Admin/Elements/SecTitle";
+import SecTitle from "@/components/Admin/SecTitle";
 
 type Props = {
   title: string;

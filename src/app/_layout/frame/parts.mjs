@@ -50,7 +50,7 @@ export const FRAME_SLOTS = [
   { name: "page-title", area: "heading", source: "src/components/TextBlocks/PageTitle.tsx" },
   { name: "admin-page-title", area: "heading", source: "src/app/admin/_layout/AdminPageTitle.tsx" },
   { name: "sec-title", area: "heading", source: "src/components/TextBlocks/SecTitle.tsx" },
-  { name: "admin-sec-title", area: "heading", source: "src/components/AppFrames/Admin/Elements/SecTitle.tsx" },
+  { name: "admin-sec-title", area: "heading", source: "src/components/Admin/SecTitle.tsx" },
 ];
 
 /**

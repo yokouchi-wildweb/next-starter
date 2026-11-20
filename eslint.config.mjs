@@ -210,7 +210,6 @@ const config = [
       "src/app/**/_layout/**/*.{ts,tsx}",
     ],
     ignores: [
-      "src/components/Three/**",
       "src/lib/gradient/**",
       "src/app/**/_layout/**/*.replace.{ts,tsx}",
     ],

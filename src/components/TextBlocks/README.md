@@ -48,7 +48,7 @@
 - `size`: `xs`〜`xxxl`、流体サイズ `fluidXs`〜`fluidXxxl`（キオスク向け）、`inherit`
 - `weight`: `thin`〜`black`、`inherit`
 - `align`: `left` / `center` / `right` / `justify` / `centerToStartSm`、`inherit`
-- `PageTitle` / `SecTitle` の `slot`（`PageTitle`: `"page-title" | "admin-page-title"`、`SecTitle`: `"sec-title" | "admin-sec-title"`）: 同じ要素を描く上流の包む部品（管理の `AdminPageTitleHeading`・`AppFrames/Admin/Elements/SecTitle`）が自分の名前を付けるための物
+- `PageTitle` / `SecTitle` の `slot`（`PageTitle`: `"page-title" | "admin-page-title"`、`SecTitle`: `"sec-title" | "admin-sec-title"`）: 同じ要素を描く上流の包む部品（管理の `AdminPageTitleHeading`・`Admin/SecTitle`）が自分の名前を付けるための物
 
 ## Extension
 

@@ -22,7 +22,7 @@ const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 
 /** useHeaderHeight の値(null = 測る前 = SSR の最初の HTML。test ごとに書き換えて戻す) */
 const headerHeight: { current: number | null } = { current: null };
-mock.module("@/hooks/useHeaderHeight", { namedExports: { useHeaderHeight: () => headerHeight.current } });
+mock.module("@/app/_layout/useHeaderHeight", { namedExports: { useHeaderHeight: () => headerHeight.current } });
 // 門番の client の口: 枠は門を読まない(読んだら throw して落とす。静的描画は GateProvider の外)
 const gateReads: string[] = [];
 mock.module("@/featureGate/client", {

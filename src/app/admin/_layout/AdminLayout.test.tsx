@@ -26,7 +26,7 @@ const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 
 // ヘッダーの高さ: 既定は測った値 0(前の DOM の --app-header-height:0px)。null = 測る前
 // AdminLayout はもうヘッダーの高さを測らない(呼ばれたら失敗させる)
-mock.module("@/hooks/useHeaderHeight", {
+mock.module("@/app/_layout/useHeaderHeight", {
   namedExports: {
     useHeaderHeight: () => {
       throw new Error("AdminLayout はヘッダーの高さを測らない");

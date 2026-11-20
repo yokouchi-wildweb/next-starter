@@ -37,14 +37,14 @@ let AdminLayout: typeof import("./AdminLayout").AdminLayout;
 let parts: typeof import("@/app/_layout/frame");
 let primitiveSlots: typeof import("@/components/Primitives/slots.mjs");
 let AdminPage: typeof import("./AdminPage").default;
-let ItemNavigator: typeof import("@/components/AppFrames/Admin/Elements/ItemNavigator").ItemNavigator;
+let ItemNavigator: typeof import("@/components/Admin/ItemNavigator").ItemNavigator;
 before(async () => {
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
   ({ AdminLayout } = await import("./AdminLayout"));
   parts = await import("@/app/_layout/frame");
   primitiveSlots = await import("@/components/Primitives/slots.mjs");
   AdminPage = (await import("./AdminPage")).default;
-  ({ ItemNavigator } = await import("@/components/AppFrames/Admin/Elements/ItemNavigator"));
+  ({ ItemNavigator } = await import("@/components/Admin/ItemNavigator"));
 });
 
 /** 管理の枠の部品のソース(テストを除く .tsx / .ts) */
@@ -265,7 +265,7 @@ test("上流(src)に AdminHeaderPortal・HeaderSlots・受け口の id とその
 });
 // ---- 前後の項目へ移る(指令 16) ----
 
-const NAV_DIR = "src/components/AppFrames/Admin/Elements/ItemNavigator";
+const NAV_DIR = "src/components/Admin/ItemNavigator";
 
 test("ItemNavigator は移るだけ: portal・react-hook-form・保存・トーストを持たない(フォルダの中のどのファイルも)", () => {
   const navigator = read(`${NAV_DIR}/ItemNavigator.tsx`);

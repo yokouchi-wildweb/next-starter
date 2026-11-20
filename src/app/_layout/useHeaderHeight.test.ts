@@ -1,4 +1,4 @@
-// src/hooks/useHeaderHeight.test.ts — pnpm test src/hooks/useHeaderHeight.test.ts
+// src/app/_layout/useHeaderHeight.test.ts — pnpm test src/app/_layout/useHeaderHeight.test.ts
 // ヘッダーの探し方(data-slot だけ。id では探さない)と、差し替わった要素を探し直して測ることを、DOM の道具なしの偽物で確かめる
 import { test } from "node:test";
 import assert from "node:assert/strict";
