@@ -7,7 +7,8 @@
 // 上流で変わったこと(注文ごとに表の行が足される。今の行 = 注文 08・09・10):
 // - 注文 10: domain.json の項目の型は lib/domain の DomainField 1 つになり、型の名前は @/lib/domain へ移って改名した:
 //   FieldDataType → NeonFieldType、FieldDataTypeFirestore → FirestoreFieldType、FieldOption → DomainFieldOption、
-//   FormInputType → BuiltinFormInput(@/lib/formSuite から)。lib/domain の FieldOption も DomainFieldOption に。
+//   FormInputType → BuiltinFormInput(@/lib/formSuite から)。lib/domain の FieldOption も DomainFieldOption に、
+//   DomainConfigField(DomainField の別名)は DomainField に。
 //   useRelationOptions(と UseRelationOptionsResult)は @/lib/domain/hooks から @/lib/formSuite へ。
 //   formSuite の FieldType・FormFieldProps は代わり無しで無くなった(読む所は STOP、手で直す)
 // - 注文 09: Form の残り(AppForm・AutoSave・Field・FieldRenderer・FormActions・Input/Controlled・submitLock・backgroundFailure・types)は
@@ -201,8 +202,8 @@ const FORM_SUITE_GONE = {
   FormFieldProps: "formSuite の FormFieldProps は代わり無しで無くなった(手で直す)",
 };
 
-/** lib/domain の FieldOption の改名(注文 10: 同じ入口の DomainFieldOption) */
-const DOMAIN_OPTION_NAMES = units({ [DOMAIN]: ["FieldOption=>DomainFieldOption"] });
+/** lib/domain の改名(注文 10: 同じ入口の DomainFieldOption・別名だった DomainConfigField は DomainField) */
+const DOMAIN_OPTION_NAMES = units({ [DOMAIN]: ["FieldOption=>DomainFieldOption", "DomainConfigField=>DomainField"] });
 
 /** lib/domain/hooks から formSuite へ移った名前(注文 10) */
 const RELATION_OPTION_NAMES = units({ [FORM_SUITE]: ["useRelationOptions", "UseRelationOptionsResult"] });
@@ -245,6 +246,8 @@ const SPLITS = {
   [DOMAIN]: { names: DOMAIN_OPTION_NAMES, rest: "stay" },
   [`${DOMAIN}/fields`]: { names: DOMAIN_OPTION_NAMES, rest: "stay" },
   [`${DOMAIN}/fields/extractFields`]: { names: DOMAIN_OPTION_NAMES, rest: "stay" },
+  [`${DOMAIN}/types`]: { names: DOMAIN_OPTION_NAMES, rest: "stay" },
+  [`${DOMAIN}/types/domainConfig`]: { names: DOMAIN_OPTION_NAMES, rest: "stay" },
   [`${DOMAIN}/hooks`]: { names: RELATION_OPTION_NAMES, rest: "stay" },
 };
 

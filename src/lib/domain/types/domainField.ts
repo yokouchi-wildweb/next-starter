@@ -1,6 +1,6 @@
 // src/lib/domain/types/domainField.ts
 // domain.json の項目(Field)1 つの型。キーの正は生成器の語彙 scripts/structure/domain/spec/domainJson.mjs の FIELD_KEYS
-// (開発者のメモ $comment を除く)で、ここはその型の 1 か所。項目のキーを持つ型(DomainConfigField・DomainDisplayField・
+// (開発者のメモ $comment を除く)で、ここはその型の 1 か所。項目のキーを持つ型(DomainConfig の fields・DomainDisplayField・
 // DomainFieldInfo、formSuite の FieldConfig、crud の表示の列の設定など)はここから Pick / 広げで作り、キーを写し直さない。
 // 値は domain.json に書ける素の値だけ(関数・実行時だけの値・登録した入力部品の名前への広げは formSuite の FieldConfig が足す)。
 

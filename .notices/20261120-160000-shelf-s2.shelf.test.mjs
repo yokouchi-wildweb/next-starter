@@ -225,6 +225,8 @@ test("注文 10: 項目の型の名前は @/lib/domain へ改名して移り、�
   );
   const own = rewriteSource("src/lib/x/X.ts", 'import type { FieldOption, DomainFieldInfo } from "@/lib/domain/fields";\ntype B = FieldOption;');
   assert.equal(own.text, 'import type { DomainFieldOption } from "@/lib/domain";\nimport type { DomainFieldInfo } from "@/lib/domain/fields";\ntype B = DomainFieldOption;');
+  const alias = rewriteSource("src/lib/x/Y.ts", 'import type { DomainConfig, DomainConfigField } from "@/lib/domain/types/domainConfig";\ntype C = DomainConfigField[];');
+  assert.equal(alias.text, 'import type { DomainConfig } from "@/lib/domain/types/domainConfig";\nimport type { DomainField } from "@/lib/domain";\ntype C = DomainField[];');
 });
 
 test("注文 10: 代わり無しで無くなった FieldType・FormFieldProps は書かずに STOP(理由つき)", () => {
