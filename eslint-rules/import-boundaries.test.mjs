@@ -702,3 +702,29 @@ test("config: shelf-purity は src/components(テストを除く)で error、棚
   assert.deepEqual(await lintAt("src/components/Functional/X.test.tsx", RAW), []);
   assert.deepEqual(await lintAt("src/app/_mounts/X.tsx", RAW), []);
 });
+
+test("rule hooks-utils-no-features: src/hooks・src/utils から features を値も型も(別名・相対)止め、ほかの場所と features 以外は通す", () => {
+  const hook = at("src/hooks/useThing.ts");
+  const util = at("src/utils/thing.ts");
+  const err = (source) => [{ messageId: "hooksUtilsFeatures", data: { source } }];
+  ruleTester.run("hooks-utils-no-features", plugin.rules["hooks-utils-no-features"], {
+    valid: [
+      { code: `import { cn } from "@/lib/cn";`, filename: hook },
+      { code: `import { formatDateJa } from "./date";`, filename: util },
+      { code: `import { useUser } from "@/features/user/hooks/useUser";`, filename: at("src/features/shop/hooks/useShop.ts") },
+    ],
+    invalid: [
+      { code: `import { useUser } from "@/features/user/hooks/useUser";`, filename: hook, errors: err("@/features/user/hooks/useUser") },
+      { code: `import type { User } from "@/features/core/user/entities";`, filename: util, errors: err("@/features/core/user/entities") },
+      { code: `import { x } from "../features/sample/x";`, filename: util, errors: err("../features/sample/x") },
+      { code: `export * from "@/features/sample";`, filename: hook, errors: err("@/features/sample") },
+    ],
+  });
+});
+
+test("config: hooks-utils-no-features は src/hooks・src/utils で error、テストは対象外", async () => {
+  const RAW = `import type { User } from "@/features/core/user/entities";\nexport type X = User;\n`;
+  assert.deepEqual(await lintAt("src/hooks/useThing.ts", RAW), ["import-boundaries/hooks-utils-no-features:2"]);
+  assert.deepEqual(await lintAt("src/utils/thing.ts", RAW), ["import-boundaries/hooks-utils-no-features:2"]);
+  assert.deepEqual(await lintAt("src/utils/thing.test.ts", RAW), []);
+});

@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import {
   checkCatalog,
   listDirs,
+  listFileUnits,
   listUnits,
   loadCatalogOwnership,
   parseCatalog,
@@ -35,7 +36,31 @@ test("src/components/CATALOG.md と src/components の分類の直下の単位�
   assert.deepEqual(problems, [], `目録の不一致:\n${problems.join("\n")}`);
 });
 
+for (const folder of ["src/hooks", "src/utils"]) {
+  test(`${folder}/CATALOG.md と ${folder} の直下のファイルの単位が一致する`, () => {
+    const { sections, errors } = parseCatalog(readFileSync(join(repoRoot, folder, "CATALOG.md"), "utf8"));
+    assert.deepEqual(errors, [], `目録の書式エラー:\n${errors.join("\n")}`);
+    assert.ok(sections.length > 0, "節が 1 つもありません");
+    const problems = checkCatalog({ sections, folder, dirs: listFileUnits(repoRoot, folder) });
+    assert.deepEqual(problems, [], `目録の不一致:\n${problems.join("\n")}`);
+  });
+}
+
 // ---- 部品 ----
+
+test("listFileUnits: 直下のコードのファイルとフォルダが単位。テスト・.gitkeep・Markdown は単位でない", () => {
+  const root = mkdtempSync(join(tmpdir(), "folder-catalog-files-"));
+  try {
+    for (const path of ["hooks/useA.ts", "hooks/useA.test.ts", "hooks/useB.tsx", "hooks/.gitkeep", "hooks/CATALOG.md", "hooks/README.md", "hooks/kit/index.ts", "hooks/pure.mjs"]) {
+      mkdirSync(dirname(join(root, path)), { recursive: true });
+      writeFileSync(join(root, path), "export {};\n");
+    }
+    assert.deepEqual(listFileUnits(root, "hooks"), ["kit", "pure", "useA", "useB"]);
+    assert.deepEqual(listFileUnits(root, "missing"), []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("listUnits: 分類の直下のフォルダとコードのファイルが単位。テスト・__fixtures__・README は単位でなく、index だけの分類は分類が 1 つの単位", () => {
   const root = mkdtempSync(join(tmpdir(), "folder-catalog-"));

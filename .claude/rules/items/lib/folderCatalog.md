@@ -3,9 +3,9 @@ paths:
   - "src/lib/folderCatalog/**"
 ---
 # lib/folderCatalog
-what: reads, checks and resolves ownership of a folder catalog (CATALOG.md: which repo made each directory under a folder, or each shelf unit src/components/\<Category\>/\<Unit\>); entry catalog.mjs (parseCatalog, checkCatalog, listDirs, listUnits, loadCatalogOwnership)
+what: reads, checks and resolves ownership of a folder catalog (CATALOG.md: which repo made each directory under a folder, each shelf unit src/components/\<Category\>/\<Unit\>, or each file unit of src/hooks / src/utils); entry catalog.mjs (parseCatalog, checkCatalog, listDirs, listUnits, listFileUnits, loadCatalogOwnership)
 use: always
-change: placement = src/lib/CATALOG.md and src/components/CATALOG.md (each repo appends its own section; catalogSections / componentsCatalogSections in extensionPoints.ts)
+change: placement = src/lib/CATALOG.md, src/components/CATALOG.md, src/hooks/CATALOG.md and src/utils/CATALOG.md (each repo appends its own section; catalogSections / componentsCatalogSections / hooksCatalogSections / utilsCatalogSections in extensionPoints.ts)
 rules:
 using:
 - owner_from_repo_json: the owner id comes from repo.json repo_id through readForkIdentity, never from the origin URL

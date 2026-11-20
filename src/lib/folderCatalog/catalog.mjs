@@ -7,8 +7,9 @@
 //   ## next-starter
 //   - src/lib/ai — 汎用 AI エージェント基盤
 //
-// 目録は 2 つ: src/lib/CATALOG.md(直下のディレクトリ = lib、depth 1)と src/components/CATALOG.md
-// (分類の直下の単位 = src/components/<分類>/<単位>、depth 2。単位の数え方は listUnits)。
+// 目録は 4 つ: src/lib/CATALOG.md(直下のディレクトリ = lib、depth 1)・src/components/CATALOG.md
+// (分類の直下の単位 = src/components/<分類>/<単位>、depth 2。単位の数え方は listUnits)・src/hooks/CATALOG.md と
+// src/utils/CATALOG.md(直下の 1 ファイル = 1 単位、depth 1。単位の数え方は listFileUnits)。
 //
 // 所有者 ID = 各リポの fork の名前(repo.json の repo_id、読み手は forkOwnership/forkIds.mjs。D27)。
 // origin の URL からは導かない。
@@ -141,6 +142,25 @@ export function listUnits(repoRoot, folder) {
       const stem = entry.name.replace(CODE_FILE, "");
       units.add(stem === "index" ? category : `${category}/${stem}`);
     }
+  }
+  return [...units].sort();
+}
+
+/**
+ * 1 ファイル = 1 単位のフォルダ(src/hooks・src/utils)の単位の名前。直下のコードのファイル(テスト *.test.* を除く、最後の拡張子を
+ * 除いた名前)と直下のフォルダ(隠しを除く。fork が足したフォルダも目録に載せる)。.gitkeep・Markdown は単位でない
+ * @param {string} repoRoot
+ * @param {string} folder 例 "src/hooks"
+ * @returns {string[]} 例 ["useInView", "cursorPage"]
+ */
+export function listFileUnits(repoRoot, folder) {
+  const abs = join(repoRoot, folder);
+  if (!existsSync(abs)) return [];
+  const units = new Set();
+  for (const entry of readdirSync(abs, { withFileTypes: true })) {
+    if (entry.name.startsWith(".")) continue;
+    if (entry.isDirectory()) units.add(entry.name);
+    else if (CODE_FILE.test(entry.name) && !TEST_FILE.test(entry.name)) units.add(entry.name.replace(CODE_FILE, ""));
   }
   return [...units].sort();
 }

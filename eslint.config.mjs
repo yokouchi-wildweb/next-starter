@@ -176,6 +176,15 @@ const config = [
       "import-boundaries/ui-libs-in-primitives": "error",
     },
   },
+  // hooks-utils-no-features: src/hooks・src/utils → src/features は値も型も禁止(D87、lib-no-features と同じくテストは対象外)。上流も fork も error
+  {
+    files: ["src/hooks/**/*.{ts,tsx,mts,mjs}", "src/utils/**/*.{ts,tsx,mts,mjs}"],
+    ignores: ["src/hooks/**/*.test.{ts,tsx,mts,mjs}", "src/utils/**/*.test.{ts,tsx,mts,mjs}"],
+    plugins: { "import-boundaries": importBoundariesPlugin },
+    rules: {
+      "import-boundaries/hooks-utils-no-features": "error",
+    },
+  },
   // shelf-purity: 棚(src/components)は features・app・wiring・registry・stores・services・フォームとデータの lib・SDK と SDK を包む lib・
   // 棚を値で読む lib(src/lib の実際の import から求める)を値で読まず、fetch を呼ばない(D50)。型だけは可、テストは対象外。上流も fork も error
   {
