@@ -9,6 +9,8 @@
 //   from  = 旧パス(`@/features/core/wallet/components/WalletBalancePage`。これに一致、または `from + "/"` 配下の import を検出)
 //   to    = 新パス(メッセージに出す。配下の import は同じ相対部分を to に付け替えた候補を出す)
 //   until = 削除予定(checkpoint 名など。メッセージに出す)
+//   exact = true なら from そのもの(と from + "/index")だけを検出し、配下は検出しない
+//           (消した入口 `@/components/Layout` のように、配下の部品のファイルはそのまま使える旧パス向け)
 //
 // `@/features/<core ドメイン>/...`(core を省略した推奨形)も `@/features/core/<ドメイン>/...` と同一視する。
 // 相対パス import(`../WalletBalancePage`)は解決しない(shim 削除後に tsc が検出する)。
@@ -27,13 +29,17 @@ export function normalizeImportSource(source) {
 /**
  * 旧パス一覧に照らして、該当する設定項目と置き換え候補を返す。該当しなければ null
  * @param {string} source import 元
- * @param {{ from: string, to: string, until?: string }[]} paths
+ * @param {{ from: string, to: string, until?: string, exact?: boolean }[]} paths
  */
 export function matchDeprecated(source, paths) {
   const normalized = normalizeImportSource(source);
   for (const entry of paths) {
     const from = normalizeImportSource(entry.from);
     if (normalized === from) return { entry, replacement: entry.to };
+    if (entry.exact) {
+      if (normalized === `${from}/index`) return { entry, replacement: entry.to };
+      continue;
+    }
     if (normalized.startsWith(`${from}/`)) {
       return { entry, replacement: `${entry.to}${normalized.slice(from.length)}` };
     }
@@ -63,6 +69,7 @@ const noDeprecatedPathRule = {
                 from: { type: "string" },
                 to: { type: "string" },
                 until: { type: "string" },
+                exact: { type: "boolean" },
               },
               required: ["from", "to"],
               additionalProperties: false,
