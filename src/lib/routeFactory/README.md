@@ -334,7 +334,7 @@ export const POST = createApiRoute(
 | `page-authz/session-api-callsite` | `src/app/api/**`（補助ファイルを含む）でセッション取得・`requireRole`・token だけのセッション・Cookie の解析を import しない | `eslint-rules/page-authz.mjs` |
 | 型 | `RouteAccess` に `"custom"` が無い・ctx に `session` が無い・`ctx.user` の null 可は `"public"` だけ・`user: "skip"` は `"public"` だけ | `routeAccess.typecheck.ts`（`pnpm typecheck`） |
 
-テスト: `pnpm test src/wiring/routeFactory.test.mts`（Factory の契約）/ `pnpm test eslint-rules/route-http-export.test.mjs` / `pnpm test eslint-rules/import-boundaries.test.mjs` / `pnpm test src/lib/routeFactory/createDeviceRoute.test.mts src/features/core/pairedDevice src/wiring/apiRoute.test.mts` / `pnpm test src/app/api/collectionEntriesRoute.test.mts`。
+テスト: `pnpm test src/app/api/routeFactory.test.mts`（Factory の契約）/ `pnpm test eslint-rules/route-http-export.test.mjs` / `pnpm test eslint-rules/import-boundaries.test.mjs` / `pnpm test src/lib/routeFactory/createDeviceRoute.test.mts src/features/core/pairedDevice src/wiring/apiRoute.test.mts` / `pnpm test src/app/api/collectionEntriesRoute.test.mts`。
 
 ## Related
 
