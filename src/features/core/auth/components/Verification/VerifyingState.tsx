@@ -1,4 +1,4 @@
-import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
+import { ScreenLoader } from "@/components/Overlays/Loading";
 
 export function VerifyingState() {
   return (

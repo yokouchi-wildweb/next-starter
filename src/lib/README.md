@@ -40,7 +40,7 @@ lib 1 本を「閉じた lib」(package.json の入口だけを外から読み�
    - 確かめ: `git grep -nE "@/lib/<name>(/|['\"])" -- src/lib/<name>` が 0(区切りを付ける: `@/lib/request` だけだと `@/lib/requestMemo` にも当たる)
 4. **package.json を置く**: `exports` は今のパスを写さず機能で整理し、外と fork が読む名前は全部入口に残す(消すのは破壊的変更 = notice を伴う別の変更)。`libs` = 直接読む lib、`peers` = 棚、`sideEffects` は書かない(手順 8)。形と問題の名前: [libPackage/README.md](./libPackage/README.md)・API「lib の package.json(宣言の形)」
    - 確かめ: `pnpm check lib-package`(形の問題が 0。tsconfig.json が無い問題は残るので手順 5 で直す)
-   - package.json を置いた時から lint `lib-entry` がその lib に効き、外から中のファイルを読む import が error になる(手順 7 で直すまで `pnpm lint` は落ちる)
+   - package.json を置いた時から lint `entry/only-entries` がその lib に効き、外から中のファイルを読む import が error になる(手順 7 で直すまで `pnpm lint` は落ちる)
 5. **tsconfig.json を置く**: 無い間は `pnpm check lib-package` が置く中身を丸ごと出すので、それをそのまま `src/lib/<name>/tsconfig.json` に書く(依存の依存も閉包として入る。JS(`.mjs` / `.js`)のファイルを持つ lib は allowJs・allowImportingTsExtensions・checkJs と JS の include も入り、JS も型検査する。型の誤りは JSDoc で直す)。形: [scripts/structure/lib-package/README.md](../../scripts/structure/lib-package/README.md)
    - 確かめ: `pnpm check lib-package`(その lib の単体の型検査が通る)
 6. **設定**(fork が変える値を持つ lib だけ): `config.ts` に既定(lib の設定の型で注釈)・`defineConfig`・入口から出す `XxxOverride` の型・`compose(上書き)` の結果を置き、上書きは `@lib-config/<name>` だけで読む
@@ -48,7 +48,7 @@ lib 1 本を「閉じた lib」(package.json の入口だけを外から読み�
    - 上書きの値が効くテストを足す(toast の `config.test.ts` の形: 設定を受けて作る関数に `compose({...})` を渡す)。形: Extension「設定の届け方」・[defineConfig/README.md](./defineConfig/README.md)
    - 確かめ: `pnpm test src/lib/<name>`。上書きのファイルを一時的に外すと `pnpm check lib-package` が TS2307 で止まる
 7. **呼び手を入口へ**: 外から lib の中のファイルを読む import(`@/lib/<name>/<中のファイル>`)を入口に直す(書き換えの codemod: `pnpm check lib-package -- codemod`、既定 dry-run。`-- codemod --help`)
-   - 確かめ: `pnpm lint`(lib-entry の innerImport が 0)・`git grep -n "@/lib/<name>/" -- src scripts` が 0
+   - 確かめ: `pnpm lint`(entry/only-entries の libInner が 0)・`git grep -n "@/lib/<name>/" -- src scripts` が 0
 8. **sideEffects**: 既定は書かない。読み込んだだけで動く物(store を作る・登録を呼ぶ・CSS を読む)がある lib に `false` を置くと検査が止める。書くのは読み込み量を測って増えた所だけ
 9. **検査を回す**: `pnpm check lib-package -- --list`(その lib が `closed`)・`pnpm lint`・`pnpm typecheck`・`pnpm test src/lib/<name>`・`pnpm check --gate=ship`。client で読む lib・設定を持つ lib は `pnpm build` も
    - テストの無い lib は `pnpm test src/lib/<name>` が「選んだテストは 0 本」で通る(exit 0)。閉じる作業でテストを足す決まりは無い(手順 6 の上書きのテストは別)
@@ -88,7 +88,7 @@ lib は `src/lib/<name>/package.json` で「外から読める入口」と「自
 
 lint(`eslint-rules/import-boundaries.mjs`、全 Tier error):
 
-- `lib-entry`: 外から宣言済みの lib を読む import は exports の入口に当たること(`@/lib` の別名・相対・`"src/…"` を実パスに解いて照合。値も型も、scripts・テスト・.notices・eslint 設定からも)。宣言済みの lib の中からは `libs` の lib の入口・`peers` の棚・`@lib-config/<自分>` と外部パッケージだけを読む(features・app・hooks・utils・`@/config` は読まない)
+- `entry/only-entries`: 外から宣言済みの lib を読む import は exports の入口に当たること(`@/lib` の別名・相対・`"src/…"` を実パスに解いて照合。値も型も、scripts・テスト・.notices・eslint 設定からも)。宣言済みの lib の中からは `libs` の lib の入口・`peers` の棚・`@lib-config/<自分>` と外部パッケージだけを読む(features・app・hooks・utils・`@/config` は読まない)
 - `lib-self-relative`: 宣言済みの lib の中では自分を `@/lib/<自分>` で読まず相対パスで読む
 
 今は **package.json を持つ lib にだけ**効く。宣言の無い lib は error にせず、閉じたかの検査が数えて出す。本当に要る例外は理由つきの `eslint-disable`。
@@ -101,7 +101,7 @@ lint(`eslint-rules/import-boundaries.mjs`、全 Tier error):
 
 lib の設定(fork が値を変える物)は、lib の外の 1 ファイルの上書きで受ける。
 
-- lib は上書きを指定子 `@lib-config/<自分>` だけで読む(lint `lib-entry` が他の書き方・他の lib の上書きを止める)。tsconfig.json の `"@lib-config/*": ["./src/config/lib/*.config.ts"]` の 1 行(上流が出荷、fork は編集しない)が `src/config/lib/<名前>.config.ts` へ向ける。候補は 1 つ
+- lib は上書きを指定子 `@lib-config/<自分>` だけで読む(lint `entry/only-entries` が他の書き方・他の lib の上書きを止める)。tsconfig.json の `"@lib-config/*": ["./src/config/lib/*.config.ts"]` の 1 行(上流が出荷、fork は編集しない)が `src/config/lib/<名前>.config.ts` へ向ける。候補は 1 つ
 - 上書きのファイルが無いと tsc・tsx・テストが解決の失敗で止まる(黙って既定にならない)。上流は設定を持つ lib ごとに空の上書きを置く
 - 上書きのファイルの形: lib の入口から型だけを読み、値はリテラルで書く(読んでよいのは `process.env`・`@/business`・段階の判定 `@/lib/appEnv` の引数なしの呼び出し(`isProduction()` など)・持ち主が config.ts の `overrideImports` で宣言した指定子だけ)。lint `config-overrides/literal-only` が止める(形の全部: [src/config/README.md](../config/README.md))
 

@@ -28,7 +28,7 @@ import { PageTitle } from "@/components/TextBlocks/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
-import { InfoPopover } from "@/components/Overlays/Popover/InfoPopover";
+import { InfoPopover } from "@/components/Overlays/Popover";
 import { useConfirm } from "@/components/Overlays/Confirm";
 import { useToast } from "@/lib/toast";
 import { cn } from "@/lib/cn";

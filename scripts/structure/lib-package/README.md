@@ -53,8 +53,8 @@ pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]
 
 - `state`: `closed`(宣言・不備 0)| `gaps`(宣言・不備あり)| `skipped`(package.json の形に問題)| `undeclared`(package.json 無し)
 - `declared`: `none` | `ok` | `problems:<数>`
-- `inner`: 外から lib の中を読む import の数。宣言した lib = exports の入口に当たらない import、宣言の無い lib = lib の根(index)以外に当たる import。lint の lib-entry と同じ部品(eslint-rules/resolve-import.mjs の resolveImport、src/lib/libPackage の libOfPath・findEntry)で判定する。走査 = lint と同じ所(git の追跡 + 未追跡、node_modules・.next・src/_stash 等を除く)、`@lib-config/…` は数えない
-  - ここでは数えて見せるだけ。宣言した lib の中を外から読む import を落とすのは pnpm lint の lib-entry(1 つの規則)。だから門の watch にも repo 全体は入れない
+- `inner`: 外から lib の中を読む import の数。宣言した lib = exports の入口に当たらない import、宣言の無い lib = lib の根(index)以外に当たる import。lint の entry/only-entries と同じ部品(eslint-rules/resolve-import.mjs の resolveImport、src/lib/libPackage の libOfPath・findEntry)で判定する。走査 = lint と同じ所(git の追跡 + 未追跡、node_modules・.next・src/_stash 等を除く)、`@lib-config/…` は数えない
+  - ここでは数えて見せるだけ。宣言した lib の中を外から読む import を落とすのは pnpm lint の entry/only-entries(1 つの規則)。だから門の watch にも repo 全体は入れない
 - `problems`: 下の 1〜5 の不備の数(宣言した lib だけ)
 - `config`: `none`(config.ts 無し)| `ok`(上書き src/config/lib/<名前>.config.ts あり)| `overrideMissing`
 - `merge`: 残っている自前の合成の名前(下の 5)

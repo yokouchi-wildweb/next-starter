@@ -9,8 +9,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
-import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
-import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
+import DetailModal, { type DetailModalRow } from "@/components/Overlays/DetailModal";
 import type { AuditLog } from "@/features/core/auditLog/entities";
 import {
   formatActionLabel,

@@ -4,7 +4,7 @@
 
 import { ReactNode, useRef, useState } from "react"
 import { ScrollSlider } from "@/components/Widgets/ScrollSlider"
-import { type ArrowPosition, type ArrowSize, type ArrowVariant, type DotPosition, type DotVariant, type ResponsiveToggle, type SliderImperativeApi } from "@/components/Widgets/_shared/types"
+import { type ArrowPosition, type ArrowSize, type ArrowVariant, type DotPosition, type DotVariant, type ResponsiveToggle, type SliderImperativeApi } from "@/components/Widgets/SliderParts"
 import { Block } from "@/components/Layout/Block"
 import { Flex } from "@/components/Layout/Flex"
 import { Grid } from "@/components/Layout/Grid"

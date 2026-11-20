@@ -4,7 +4,7 @@
 
 import * as React from "react";
 
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { Spinner } from "@/components/Overlays/Loading";
 import { Button as PrimitiveButton, type ButtonSlot } from "@/components/Primitives/Button";
 import { cn } from "@/lib/cn";
 

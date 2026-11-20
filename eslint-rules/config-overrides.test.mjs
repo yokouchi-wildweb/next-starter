@@ -105,7 +105,7 @@ test("owner-reads-only: 上書きを読めるのは持ち主の config.ts(描画
       { filename: at("src/features/core/wallet/config.ts"), options, code: `import override from "../../../config/features/wallet.config.ts";` },
       { filename: at("src/features/core/wallet/config.ui.ts"), options, code: `import override from "@/config/features/wallet.ui.config";` },
       { filename: at("src/app/admin/_layout/config.ts"), options, code: `import override from "src/config/layout/admin.config";` },
-      // lib の中は lib-entry の持ち分
+      // lib の中は entry/only-entries の持ち分
       { filename: at("src/lib/toast/config.ts"), options, code: `import override from "@lib-config/toast";` },
       { filename: at("src/lib/toast/index.ts"), options, code: `import override from "@lib-config/toast";` },
       { filename: at("src/app/page.tsx"), options, code: `import { walletConfig } from "@/features/wallet/config";` },

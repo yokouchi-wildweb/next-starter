@@ -28,7 +28,7 @@ import { Input } from "@/components/Input/Input";
 import { PreviewImage } from "@/components/Media/PreviewImage";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
-import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
+import { ScreenLoader } from "@/components/Overlays/Loading";
 import { resolveStorageSrc } from "@/lib/storage";
 import { useToast } from "@/lib/toast";
 

@@ -18,7 +18,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { LinkButton } from "@/components/Button/LinkButton";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 import { usePurchaseStatus } from "@/features/core/purchaseRequest/hooks/usePurchaseStatus";
 import { CurrencyDisplay, getCurrencyConfigBySlug } from "@/features/core/wallet";
 

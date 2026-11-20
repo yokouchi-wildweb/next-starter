@@ -300,3 +300,25 @@ test("止める: 行き先に同じ名がある fork のファイルは動かさ
   assert.deepEqual(result.moves, []);
   assert.deepEqual(result.stops.map((s) => s.file), ["src/components/Form/Button/SaveButton.tsx"]);
 });
+
+test("注文 11: 棚の単位の中のファイルの道は単位の入口へ、Widgets/_shared は Widgets/SliderParts へ", () => {
+  assert.equal(mapModule("src/components/Overlays/Loading/InlineLoader").to, "src/components/Overlays/Loading");
+  assert.equal(mapModule("src/components/Overlays/DetailModal/types").to, "src/components/Overlays/DetailModal");
+  assert.equal(mapModule("src/components/Overlays/Popover/InfoPopover").to, "src/components/Overlays/Popover");
+  assert.equal(mapModule("src/components/Overlays/ImageViewer/Provider").to, "src/components/Overlays/ImageViewer");
+  assert.equal(mapModule("src/components/Widgets/_shared/types").to, "src/components/Widgets/SliderParts");
+  assert.equal(mapModule("src/components/Overlays/Loading"), null);
+  const src = [
+    'import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";',
+    'import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";',
+    'import { type SliderImperativeApi } from "@/components/Widgets/_shared/types";',
+  ].join("\n");
+  assert.equal(
+    rewriteSource("src/app/x.tsx", src).text,
+    [
+      'import { InlineLoader } from "@/components/Overlays/Loading";',
+      'import type { DetailModalRow } from "@/components/Overlays/DetailModal";',
+      'import { type SliderImperativeApi } from "@/components/Widgets/SliderParts";',
+    ].join("\n"),
+  );
+});

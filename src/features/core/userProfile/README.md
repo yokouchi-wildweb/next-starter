@@ -202,7 +202,7 @@ import {
 ```tsx
 "use client";
 
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 import { Para } from "@/components/TextBlocks/Para";
 import { useProfileSearch } from "@/features/core/userProfile/hooks";
 

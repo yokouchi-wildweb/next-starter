@@ -13,7 +13,7 @@ import { InBlock } from "@/components/Layout/InBlock";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { ActionPopover } from "@/components/Overlays/Popover";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { Spinner } from "@/components/Overlays/Loading";
 import { AppImage } from "@/components/Media/AppImage";
 import {
   DEFAULT_AVATAR_ACCEPT_TYPES,

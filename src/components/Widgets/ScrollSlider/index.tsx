@@ -21,28 +21,27 @@ import {
   type CarouselPlugin,
 } from "@/components/Primitives/Carousel"
 import { cn } from "@/lib/cn"
-import { SliderArrow } from "../_shared/SliderArrow"
-import { SliderDots } from "../_shared/SliderDots"
 import {
+  SliderArrow,
+  SliderDots,
   getCarouselRootA11yProps,
   getLiveRegionA11yProps,
-} from "../_shared/a11y"
-import { getResponsiveVisibilityClass, isResponsiveToggleVisible } from "../_shared/helpers"
-import type {
-  ArrowPosition,
-  ArrowSize,
-  ArrowVariant,
-  AutoplayOption,
-  DotPosition,
-  DotVariant,
-  MaskOption,
-  RenderArrowProps,
-  RenderDotsProps,
-  ResponsiveToggle,
-  SliderA11yProps,
-  SliderControlProps,
-  SliderImperativeApi,
-} from "../_shared/types"
+  getResponsiveVisibilityClass,
+  isResponsiveToggleVisible,
+  type ArrowPosition,
+  type ArrowSize,
+  type ArrowVariant,
+  type AutoplayOption,
+  type DotPosition,
+  type DotVariant,
+  type MaskOption,
+  type RenderArrowProps,
+  type RenderDotsProps,
+  type ResponsiveToggle,
+  type SliderA11yProps,
+  type SliderControlProps,
+  type SliderImperativeApi,
+} from "../SliderParts"
 
 export type ScrollSlideState = {
   isActive: boolean

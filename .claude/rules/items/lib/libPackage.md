@@ -3,7 +3,7 @@ paths:
   - "src/lib/libPackage/**"
 ---
 # lib/libPackage
-what: the one reader and shape check of a lib's package.json (exports, libs, peers, sideEffects), read by the lint lib-entry, the standalone tsconfig check and the closed-lib check; entry @/lib/libPackage/index.mjs
+what: the one reader and shape check of a lib's package.json (exports, libs, peers, sideEffects), read by the lint entry/only-entries, the standalone tsconfig check and the closed-lib check; entry @/lib/libPackage/index.mjs
 use: always
 change: none → /order <direct parent>
 rules:

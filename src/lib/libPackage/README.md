@@ -33,4 +33,4 @@
 ## Verification
 
 - `pnpm test src/lib/libPackage/libPackage.test.mjs`(fixture は一時フォルダに作る)
-- lint は `pnpm test eslint-rules/lib-entry.test.mjs`
+- lint は `pnpm test eslint-rules/entry.test.mjs`

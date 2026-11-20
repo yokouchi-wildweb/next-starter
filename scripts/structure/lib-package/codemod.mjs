@@ -15,7 +15,7 @@
 //   その入口。moved.mjs の movedRows を使う)も当てる。古い指定子は別名・相対・"src/…" のどの書き方でも実パスで照らす。
 //   名前は新しい入口の名前と照らし、無ければ notExported。fork は notice に書かれた上流の sha を渡す
 // - 移行の間だけの道具: 全部の lib が閉じた段(D101 (6))で moved とともに消す
-// - exit 0(止まる物があっても。落とすのは pnpm lint の lib-entry)/ 2 = 引数の誤り
+// - exit 0(止まる物があっても。落とすのは pnpm lint の entry/only-entries)/ 2 = 引数の誤り
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";

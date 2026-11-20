@@ -5,7 +5,7 @@
 import { type ReactNode } from "react";
 
 import { Flex } from "@/components/Layout/Flex";
-import { Spinner, type SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
+import { Spinner, type SpinnerVariant } from "./Spinner";
 import { cn } from "@/lib/cn";
 
 export type InlineLoaderSize = "sm" | "md" | "lg";

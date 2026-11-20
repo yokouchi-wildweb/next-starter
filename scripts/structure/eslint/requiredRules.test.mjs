@@ -27,14 +27,14 @@ test("upstream の設定(fork の設定は空)は通る", async () => {
 test("fork が必須規則を off / warn にすると落ちる", async () => {
   const problems = await checkRequiredRules(
     withFork([
-      { files: ["src/**/*.{ts,tsx}"], rules: { "core-ui-entry/no-inner-import": "off" } },
+      { files: ["src/**/*.{ts,tsx}"], rules: { "entry/only-entries": "off" } },
       { files: ["src/app/**/route.{ts,tsx}"], rules: { "route-http-export/http-export": "warn" } },
     ]),
     REQUIRED_ESLINT_RULES,
     repoRoot,
   );
   const rules = new Set(problems.map((p) => p.rule));
-  assert.deepEqual([...rules].sort(), ["core-ui-entry/no-inner-import", "route-http-export/http-export"]);
+  assert.deepEqual([...rules].sort(), ["entry/only-entries", "route-http-export/http-export"]);
   assert.ok(problems.every((p) => /強さが (off|warn)/.test(p.problem)));
 });
 
@@ -61,13 +61,13 @@ test("規則が設定に無い・代表のファイルが無いと落ちる", as
     withFork([]),
     [
       { rule: "no-such-plugin/no-such-rule", files: ["src/app/(user)/layout.tsx"] },
-      { rule: "core-ui-entry/no-inner-import", files: ["src/no/such/file.tsx"] },
+      { rule: "entry/only-entries", files: ["src/no/such/file.tsx"] },
       { rule: "realtime-room/purity", files: ["src/features/example/room/reducer.ts"], example: true },
     ],
     repoRoot,
   );
   assert.deepEqual(
     problems.map((p) => p.rule),
-    ["no-such-plugin/no-such-rule", "core-ui-entry/no-inner-import"],
+    ["no-such-plugin/no-such-rule", "entry/only-entries"],
   );
 });

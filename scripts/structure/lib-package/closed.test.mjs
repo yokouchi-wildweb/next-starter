@@ -140,7 +140,7 @@ test("外から中を読む import: 宣言した lib は入口の外、宣言の
     assert.deepEqual(hits.get("b"), { count: 1, samples: ["src/app/page.ts → @/lib/b/inner"] });
     assert.deepEqual(hits.get("c"), { count: 2, samples: ["src/app/page.ts → @/lib/c/x", "src/app/page.ts → ../lib/c/x"] });
     assert.equal(row(root, "b", { withInner: true }).innerImports, 1);
-    // 外から中を読む import で検査は落とさない(落とすのは pnpm lint の lib-entry)
+    // 外から中を読む import で検査は落とさない(落とすのは pnpm lint の entry/only-entries)
     assert.ok(!codes(root).includes("innerImport"));
   });
 });

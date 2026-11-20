@@ -101,14 +101,7 @@
 // テンプレートの部品(Mail*)・型・MAIL_THEME_COLORS・MailSendError・webhook の関数は誰でも可。名前を問わない形(namespace・
 // 動的 import・export *)は send を含みうるので止める(動的 import を `const { 名前 } = await import(…)` で受ける形は名前で見る)。強さ: 全 Tier error(必須の規則の一覧)。
 //
-// ── lib-entry(D80・D81・D83・D84、L1.21) ──
-// package.json を持つ lib(宣言済みの lib)だけに効く。宣言の読み手は src/lib/libPackage(形: src/lib/README.md)。
-// - 外から宣言済みの lib を読む import は、その exports の先(入口)に当たること(値も型も。中のファイルを読むと error)
-// - 宣言済みの lib の中から: 他の lib は package.json の "libs" に書いた物だけ、その入口だけ(相手が未宣言なら入口の照合はしない)。
-//   src/** など lib の外は "peers" に書いた棚(components = src/components)だけ。上書きは指定子 "@lib-config/<自分>" だけ
-//   (解いた先ではなく指定子で見る。@/config/lib/…・相対・"src/…" で読むのも、他の lib の @lib-config も error)
-// - 宣言のない lib から読む側は、外から宣言済みの lib を読むとき以外は見ない(数えるのは閉じたかの検査)
-// - option root = 宣言を読む repo の根(テストの fixture 用。既定は eslint の cwd)
+// lib の入口(外からは exports の入口だけ・宣言済みの lib は宣言した物だけを読む)は eslint-rules/entry.mjs の entry/only-entries(D85)
 //
 // ── lib-self-relative(D100、L1.21) ──
 // 宣言済みの lib の中で、自分を @/lib/<自分>(や "src/lib/<自分>/…")で読まない。自分の中は相対パスで読む。
@@ -116,7 +109,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { findEntry, libOfPath, PEER_DIRS, readLibPackage } from "../src/lib/libPackage/index.mjs";
+import { libOfPath, readLibPackage } from "../src/lib/libPackage/index.mjs";
 import { matchesPath } from "../src/lib/pathPattern/index.mjs";
 import { isUnder, moduleVisitors, repoRelative, resolveImport } from "./resolve-import.mjs";
 
@@ -798,7 +791,6 @@ const LIB_RULE_SCHEMA = [
   },
 ];
 
-const LIB_CONFIG_PREFIX = "@lib-config/";
 
 /** 宣言の読み手が見る repo の根と、import する側のファイルの lib・その宣言 */
 function libContextOf(context) {
@@ -807,52 +799,6 @@ function libContextOf(context) {
   const ownLib = libOfPath(importerRel);
   return { root, ownLib, ownPkg: ownLib ? readLibPackage(root, ownLib) : null };
 }
-
-const libEntry = {
-  meta: {
-    type: "problem",
-    docs: { description: "宣言済みの lib(package.json を持つ)は exports の入口からだけ読む。宣言済みの lib は宣言した lib と棚だけを読む" },
-    messages: {
-      innerImport:
-        '"{{source}}": lib {{lib}} の中のファイルは読みません。{{lib}}/package.json の exports の入口から読みます(入口が足りなければ exports に足す。詳細: src/lib/README.md)',
-      undeclaredLib:
-        '"{{source}}": lib {{own}} は lib {{lib}} を宣言していません。読むなら {{own}}/package.json の "libs" に "{{lib}}" を足します(src/lib/README.md)',
-      undeclaredPath:
-        '"{{source}}": lib {{own}} は lib の外({{resolved}})を読みません。読めるのは "libs" に書いた lib の入口、"peers" に書いた棚、"@lib-config/{{own}}" だけです(src/lib/README.md)',
-      libConfigOther: '"{{source}}": lib {{own}} が読める上書きは "@lib-config/{{own}}" だけです(src/lib/README.md)',
-    },
-    schema: LIB_RULE_SCHEMA,
-  },
-  create(context) {
-    const { root, ownLib, ownPkg } = libContextOf(context);
-    return moduleVisitors(({ node, source }) => {
-      if (source.startsWith(LIB_CONFIG_PREFIX)) {
-        if (ownPkg && source !== `${LIB_CONFIG_PREFIX}${ownLib}`) {
-          context.report({ node, messageId: "libConfigOther", data: { source, own: ownLib } });
-        }
-        return;
-      }
-      const resolved = resolveImport(source, context.filename, root);
-      if (!resolved) return;
-      const targetLib = libOfPath(resolved);
-      if (targetLib && targetLib === ownLib) return;
-      if (targetLib) {
-        if (ownPkg && !ownPkg.libs.includes(targetLib)) {
-          context.report({ node, messageId: "undeclaredLib", data: { source, own: ownLib, lib: targetLib } });
-          return;
-        }
-        const targetPkg = readLibPackage(root, targetLib);
-        if (targetPkg && !findEntry(targetPkg, resolved)) {
-          context.report({ node, messageId: "innerImport", data: { source, lib: targetLib } });
-        }
-        return;
-      }
-      if (!ownPkg) return;
-      if (ownPkg.peers.some((peer) => isUnder(resolved, PEER_DIRS[peer]))) return;
-      context.report({ node, messageId: "undeclaredPath", data: { source, own: ownLib, resolved } });
-    });
-  },
-};
 
 const libSelfRelative = {
   meta: {
@@ -896,7 +842,6 @@ const plugin = {
     "seed-reader": seedReader,
     "scripts-no-static-wiring": scriptsNoStaticWiring,
     "tools-no-db-write": toolsNoDbWrite,
-    "lib-entry": libEntry,
     "lib-self-relative": libSelfRelative,
   },
 };

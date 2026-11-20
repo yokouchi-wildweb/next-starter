@@ -11,32 +11,31 @@ import {
   useRef,
 } from "react"
 import { cn } from "@/lib/cn"
-import { SliderArrow } from "../_shared/SliderArrow"
-import { SliderDots } from "../_shared/SliderDots"
 import {
+  SliderArrow,
+  SliderDots,
   getCarouselRootA11yProps,
   getLiveRegionA11yProps,
   getSlideA11yProps,
-} from "../_shared/a11y"
-import { getResponsiveVisibilityClass, isResponsiveToggleVisible } from "../_shared/helpers"
-import { useSliderAutoplay } from "../_shared/useSliderAutoplay"
-import { useSliderController } from "../_shared/useSliderController"
-import { useSliderKeyboard } from "../_shared/useSliderKeyboard"
-import { useSliderSwipe } from "../_shared/useSliderSwipe"
-import type {
-  ArrowPosition,
-  ArrowSize,
-  ArrowVariant,
-  AutoplayOption,
-  DotPosition,
-  DotVariant,
-  RenderArrowProps,
-  RenderDotsProps,
-  ResponsiveToggle,
-  SliderA11yProps,
-  SliderControlProps,
-  SliderImperativeApi,
-} from "../_shared/types"
+  getResponsiveVisibilityClass,
+  isResponsiveToggleVisible,
+  useSliderAutoplay,
+  useSliderController,
+  useSliderKeyboard,
+  useSliderSwipe,
+  type ArrowPosition,
+  type ArrowSize,
+  type ArrowVariant,
+  type AutoplayOption,
+  type DotPosition,
+  type DotVariant,
+  type RenderArrowProps,
+  type RenderDotsProps,
+  type ResponsiveToggle,
+  type SliderA11yProps,
+  type SliderControlProps,
+  type SliderImperativeApi,
+} from "../SliderParts"
 
 export type FadeSlideState = {
   isActive: boolean

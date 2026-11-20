@@ -40,7 +40,7 @@ import { useBehavioralCapture } from "@/lib/fingerprint";
 import { useFingerprintChallenge } from "@/features/core/fingerprintChallenge/hooks/useFingerprintChallenge";
 import { useSubmitFingerprintChallenge } from "@/features/core/fingerprintChallenge/hooks/useSubmitFingerprintChallenge";
 import { Button } from "@/components/Button/Button";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 import { Input } from "@/components/Input/Input";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";

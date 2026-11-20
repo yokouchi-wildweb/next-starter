@@ -4,8 +4,6 @@
 
 `src/app/(user)/layout.tsx` が描くユーザーアプリの枠(ヘッダー・フッター・ボトムナビ・背景)と、Screen が使うページ枠部品(UserPage・PageTitle)を置く場所。import は別名なしの `@/app/(user)/_layout/<X>`。
 
-`src/components/AppFrames/User/` に残っている物の説明は [src/components/AppFrames/User/README.md](../../../components/AppFrames/User/README.md)。
-
 決まりの元は CLAUDE.md と .claude/rules/core/(screens.md・change.md・style.md)。この README は使い方と仕組み
 
 所有:

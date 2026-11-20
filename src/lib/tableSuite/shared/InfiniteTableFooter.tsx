@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
-import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { Spinner } from "@/components/Overlays/Loading";
 import { Para } from "@/components/TextBlocks/Para";
 
 export type InfiniteTableFooterProps = {

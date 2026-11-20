@@ -32,7 +32,7 @@ import useSWR from "swr";
 import { sampleClient } from "@/features/sample/services/client/sampleClient";
 import type { SampleWithRelations } from "@/features/sample/entities/model";
 import { Flex } from "@/components/Layout/Flex";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 import { Tooltip } from "@/components/Overlays/Tooltip";
 import { HoverCard } from "@/components/Overlays/HoverCard";
 import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";

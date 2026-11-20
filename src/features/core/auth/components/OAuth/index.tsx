@@ -2,7 +2,7 @@
 
 "use client";
 
-import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
+import { ScreenLoader } from "@/components/Overlays/Loading";
 import { Section } from "@/components/Layout/Section";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { useOAuthSignupFlow } from "@/features/core/auth/hooks/useOAuthSignupFlow";

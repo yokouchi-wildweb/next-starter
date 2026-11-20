@@ -11,7 +11,6 @@
 - `Admin/`: 管理画面の画面部品（ListTop・SecTitle・SearchBox・SelectFilter・SortSelect・ItemNavigator。props だけ）。管理ヘッダーの中身はページが AdminPage の props で渡す | 詳細: [Admin/README.md](./Admin/README.md)
   - ItemNavigator = 前後の項目へ移るだけの選択欄で props だけ。データは `src/lib/crud` の `useDomainItemNavigation`、管理の編集画面は `src/app/admin/_layout/AdminEditItemNavigator` を `<AdminPage actions>` に置く
 - `Animation/`: アニメーション演出（`CountUp`、`PageTransition` など）
-- `AppFrames/`: 解体中の旧フォルダ。枠の部品は `src/app/(user)/_layout/`・`src/app/admin/**/_layout/` へ移動済み | 詳細: [AppFrames/User/README.md](./AppFrames/User/README.md)・[src/app/(user)/_layout/README.md](../app/(user)/_layout/README.md)
   - 部品は無い（キオスク用のビューポート固定枠 `KioskFrame` は `Layout/`、管理画面の部品は `Admin/`。枠の部位を隠すのはルートの `frame.ts` / `frame.override.ts`）
 - `AppStatusGuard/`: メンテナンス・デプロイを検知してリダイレクト / リロードするガード。長時間滞在する画面に配置
 - `Badge/`: バッジ（`SolidBadge`、`SoftBadge` など）

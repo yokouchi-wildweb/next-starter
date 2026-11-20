@@ -8,7 +8,7 @@
 
 import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
-import { InlineLoader } from "@/components/Overlays/Loading/InlineLoader";
+import { InlineLoader } from "@/components/Overlays/Loading";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks/Span";
 
