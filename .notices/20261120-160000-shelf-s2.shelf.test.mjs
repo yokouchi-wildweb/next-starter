@@ -162,23 +162,38 @@ test("formSuite: 深い Field の道・相対の指定は入口 1 本へ、Field
   assert.equal(rel.text, 'import { submitLock } from "@/lib/formSuite";');
 });
 
-test("Controlled の入力: 名前付きの import は使う所ごと ControlledX に、同じ名前が既にあれば as で元の名前", () => {
+test("Controlled の入力の改名: 名前付きの import(as で付けた名前も)は使う所ごと ControlledX に直す", () => {
   const src = [
     'import { TextInput, type ControlledSelectInputProps } from "@/components/Form/Input/Controlled";',
-    "export const A = () => <TextInput name=\"a\" />;",
+    'import { EmailInput as Mail } from "@/components/Form/Input/Controlled/EmailInput";',
+    "export const A = () => <><TextInput name=\"a\" /><Mail name=\"m\" /></>;",
     "const m = { TextInput: 1 };",
   ].join("\n");
   assert.equal(
     rewriteSource("src/app/x.tsx", src).text,
     [
       'import { ControlledTextInput, type ControlledSelectInputProps } from "@/lib/formSuite";',
-      "export const A = () => <ControlledTextInput name=\"a\" />;",
+      'import { ControlledEmailInput } from "@/lib/formSuite";',
+      "export const A = () => <><ControlledTextInput name=\"a\" /><ControlledEmailInput name=\"m\" /></>;",
       "const m = { TextInput: 1 };",
     ].join("\n"),
   );
-  const clash = rewriteSource("src/app/x.tsx", 'import { SelectInput } from "@/components/Form/Input/Controlled/SelectInput";\nconst ControlledSelectInput = 1;\nexport const A = () => <SelectInput />;');
-  assert.ok(clash.text.startsWith('import { ControlledSelectInput as SelectInput } from "@/lib/formSuite";'), clash.text);
-  assert.ok(clash.text.includes("<SelectInput />"));
+});
+
+test("Controlled の入力の改名: 同じ名前の Input の単位を既に読んでいるファイルは ControlledX as <元の名前> で残す", () => {
+  const src = [
+    'import { SelectInput as PlainSelect } from "@/components/Input/Select";',
+    'import { SelectInput as RhfSelect } from "@/components/Form/Input/Controlled";',
+    "export const A = () => <><PlainSelect /><RhfSelect /></>;",
+  ].join("\n");
+  assert.equal(
+    rewriteSource("src/app/x.tsx", src).text,
+    [
+      'import { SelectInput as PlainSelect } from "@/components/Input/Select";',
+      'import { ControlledSelectInput as RhfSelect } from "@/lib/formSuite";',
+      "export const A = () => <><PlainSelect /><RhfSelect /></>;",
+    ].join("\n"),
+  );
 });
 
 test("行き先の入口が出していない名前は書かずに STOP(入口がこの木にあるときだけ確かめる)", () => {

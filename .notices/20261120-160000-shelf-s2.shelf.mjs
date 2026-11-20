@@ -420,6 +420,13 @@ export function rewriteSource(fromFile, text, opts = {}) {
   const keepSpec = (orig, r) => (relocating && (orig.startsWith("./") || orig.startsWith("../")) ? specOf(orig, r.mod, r.suffix) : orig);
   /** 名前空間の使い方 `NS.X` を X に直す。直せなければ止める理由を返す */
   const bound = boundNames(text);
+  /** このファイルが Input の単位(@/components/Input/… か旧 Form/Input/Manual…)から読んでいる名前(読み元での名前) */
+  const inputUnitNames = new Set();
+  for (const m of text.matchAll(/\bimport\s+(?:type\s+)?\{([^}]*)\}\s*from\s*["']([^"'\n]+)["']/g)) {
+    const rr = resolveSpecifier(fromFile, m[2]);
+    if (!rr || !(under(rr.mod, `${C}/Input`) || under(rr.mod, `${F}/Input/Manual`))) continue;
+    for (const it of parseItems(m[1]) ?? []) inputUnitNames.add(it.name);
+  }
   const namespaceEdits = (local, splitKey, line) => {
     const split = SPLITS[splitKey];
     const re = new RegExp(`(?<![\\w$.])${local.replace(/\$/g, "\\$")}\\.([A-Za-z_$][\\w$]*)`, "g");
@@ -523,11 +530,15 @@ export function rewriteSource(fromFile, text, opts = {}) {
         bad.push(`${it.name} の行き先が無い`);
         continue;
       }
-      if (hit.rename && kw === "import" && !it.alias && !bound.has(hit.rename)) {
-        // 行き先で名前が違う: そのファイルの使う所を新しい名前に直す(同じ名前が既にあれば `as` で元の名前のまま)
-        addToGroup(groups, hit.unit, { ...hit, rename: undefined }, { ...it, name: hit.rename }, kw, stmtType);
-        renames.push([it.name, hit.rename]);
-        continue;
+      if (hit.rename && kw === "import") {
+        // 行き先で名前が違う(Controlled の入力 → ControlledX): そのファイルの使う所(as で付けた名前も)を新しい名前に直す。
+        // `ControlledX as <元の名前>` で残すのは、同じ名前の Input の単位をそのファイルが既に読んでいるとき(と新しい名前が既に使われているとき)だけ
+        const local = it.alias ?? it.name;
+        if (!inputUnitNames.has(it.name) && !bound.has(hit.rename)) {
+          addToGroup(groups, hit.unit, { ...hit, rename: undefined }, { type: it.type, name: hit.rename, alias: null }, kw, stmtType);
+          renames.push([local, hit.rename]);
+          continue;
+        }
       }
       addToGroup(groups, hit.stay ? "" : hit.unit, hit, it, kw, stmtType);
     }
