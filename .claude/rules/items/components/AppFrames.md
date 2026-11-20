@@ -3,7 +3,7 @@ paths:
   - "src/components/AppFrames/**"
 ---
 # components/AppFrames
-what: shared frame parts with no permanent home yet: the kiosk page frame KioskFrame (@/components/AppFrames/Kiosk) and the admin list parts Admin/Elements | User/ holds no parts (moved to src/app/(user)/_layout/)
+what: shared frame parts with no permanent home yet: the kiosk page frame KioskFrame (@/components/AppFrames/Kiosk) | admin screen parts moved to components/Admin | User/ holds no parts (moved to src/app/(user)/_layout/)
 use: always
 change: none → /order <direct parent>
 rules:

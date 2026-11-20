@@ -4,7 +4,7 @@ import { type CSSProperties, type ReactNode, useState } from "react";
 
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
-import { useHeaderHeight } from "@/hooks/useHeaderHeight";
+import { useHeaderHeight } from "@/app/_layout/useHeaderHeight";
 import { InboxUnreadModal } from "@/features/core/messaging/components/InboxUnreadModal";
 
 import { BackgroundLayer } from "./BackgroundLayer";

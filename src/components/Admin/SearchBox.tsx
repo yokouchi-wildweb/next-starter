@@ -1,4 +1,4 @@
-// src/components/Admin/Elements/SearchBox.tsx
+// src/components/Admin/SearchBox.tsx
 
 "use client";
 
