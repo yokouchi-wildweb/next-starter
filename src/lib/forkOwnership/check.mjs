@@ -191,6 +191,20 @@ export function lastUpstreamSha(ledgerText) {
   return shas.at(-1) ?? null;
 }
 
+/** <rev>:<path> の blob の id(無ければ null) */
+const blobOf = (repoRoot, rev, path) => tryGit(repoRoot, ["rev-parse", "-q", "--verify", `${rev}:${path}`])?.trim() ?? null;
+
+/** refs の履歴でそのパスが取った版(blob の id)の集合 */
+function upstreamBlobs(repoRoot, refs, path) {
+  const out = new Set();
+  const raw = tryGit(repoRoot, ["log", "--format=", "--raw", "--no-abbrev", "--no-renames", ...refs.filter(Boolean), "--", path]) ?? "";
+  for (const line of raw.split("\n")) {
+    const m = /^:\d+ \d+ ([0-9a-f]{40}) ([0-9a-f]{40}) /.exec(line);
+    if (m) for (const b of [m[1], m[2]]) if (!/^0+$/.test(b)) out.add(b);
+  }
+  return out;
+}
+
 /** 台帳の本文の picked:<sha>(親の緊急修正を cherry-pick した元の commit)を書かれた順に */
 export function pickedShas(ledgerText) {
   return [...(ledgerText ?? "").matchAll(/^- id:.*\|\s*picked:([0-9a-f]{7,40})\b/gm)].map((match) => match[1]);
@@ -421,7 +435,7 @@ export function reassignMiddleTier(entries, tier1Files) {
  * @returns {{ entries: object[], leftovers: object[], middleTier: object[], permitFile: string, permitErrors: object[], snapshot: object, headText: (path: string) => string | null }}
  */
 export function judgeFork(repoRoot, context) {
-  const { ownerId, base, intake, tier1Files } = context;
+  const { ownerId, base, intake, tier1Files, parentRef } = context;
   const changes = parseNameStatus(git(repoRoot, ["diff", "--name-status", "-M", "-z", base, "HEAD"]));
   const snapshot = treeSnapshot(repoRoot, base);
   const baseText = snapshot.read;
@@ -444,8 +458,8 @@ export function judgeFork(repoRoot, context) {
     baseUnits: snapshot.units,
   });
   const middleTier = reassignMiddleTier(judged.entries, tier1Files);
-  // 親の緊急修正の pick(台帳の picked:)。基準 + pick と同じ中身、または pick の時点の上流の版と同じ中身なら違反にしない
-  // (fork が更に変えた分は違反のまま)。
+  // 親の緊急修正の pick(台帳の picked:)。基準 + pick と同じ中身、または pick がそのファイルを変えていて上流のどれかの版と
+  // 同じ中身なら違反にしない(fork が更に変えた分は違反のまま)。
   // 既に基準に入った pick は差分に出ないので外す
   const picks = pickedShas(headText(`.notices/applied/${ownerId}.md`)).filter(
     (sha) => tryGit(repoRoot, ["cat-file", "-e", `${sha}^^{commit}`]) !== null && tryGit(repoRoot, ["merge-base", "--is-ancestor", sha, base]) === null,
@@ -453,16 +467,17 @@ export function judgeFork(repoRoot, context) {
   for (const entry of judged.entries) {
     if (entry.verdict !== "violation" || picks.length === 0) continue;
     const targets = entry.from ? [entry.from, entry.path] : [entry.path];
-    // 基準 + pick と同じ中身、または pick がそのファイルを変えていて、その pick の時点の上流の版とファイルごと同じ中身
-    // (緊急修正の衝突で fork が変えていない上流のファイルを上流の版に置き換えた形: pnpm workflow notices hotfixApply)
+    // 基準 + pick と同じ中身、または pick がそのファイルを変えていて、上流(parentRef)の履歴のそのパスのどれかの版と
+    // ファイルごと同じ中身(fork が触っていない上流のファイルを緊急修正の版に置き換えた形: pnpm workflow notices hotfixApply)
     const onlyPicked = targets.every((path) => {
       const head = headText(path);
       const after = textAfterPicks(repoRoot, picks, path, baseText(path));
       if (after?.touched && after.text === head) return true;
-      return picks.some((sha) => {
+      const touched = picks.some((sha) => {
         const next = show(repoRoot, sha, path);
-        return next !== null && next !== show(repoRoot, `${sha}^`, path) && next === head;
+        return next !== show(repoRoot, `${sha}^`, path);
       });
+      return touched && head !== null && upstreamBlobs(repoRoot, [parentRef, ...picks], path).has(blobOf(repoRoot, "HEAD", path));
     });
     if (!onlyPicked) continue;
     entry.reason = "picked";

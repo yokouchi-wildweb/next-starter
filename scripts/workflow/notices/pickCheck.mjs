@@ -7,8 +7,8 @@
 //   2. cherry-pick が衝突しない(出荷索引 .notices/shipped/ の変更は捨てて載せる: lib.pickDroppingIndex.mjs)
 //   3. 載せた木で検査が通る(既定 pnpm typecheck・pnpm test scripts/structure/config/moduleLoad.test.mjs・pnpm check registry。再編の前の木 = 入口が
 //      package.json に無ければ旧い名前 test:config-module-load・registry:check で回す。どちらも無い script は未実行と書いて飛ばす)
-//   4. 遅れた fork 向けの前提の検査(hotfixCheck.mjs の findGaps: paths:・pnpm <script>・名指すパス)が何も挙げない
-// pnpm workflow notices hotfixCheck は存在の検査だけで型・merge の成立を見ないので、ここでは 4 の部品として呼ぶだけで、clean の根拠は 1〜4 の全部。
+//   4. 前提の検査(lib.hotfixGaps.mjs の findGaps: paths:・pnpm <script>・名指すパス)が何も挙げない
+// findGaps は存在の検査だけで型・merge の成立を見ないので、ここでは 4 の部品として呼ぶだけで、clean の根拠は 1〜4 の全部。
 //
 // 修正元(fixes: の各項目)→ 壊れた地点:
 //   notice id = その notice の追加 commit、commit:<sha> = その commit。そこから履歴を進んで最初に来る区切りの notice
@@ -30,7 +30,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSy
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { findGaps, hasGaps, noticeSections } from "./hotfixCheck.mjs";
+import { findGaps, hasGaps, noticeSections } from "./lib.hotfixGaps.mjs";
 import { pickDroppingIndex } from "./lib.pickDroppingIndex.mjs";
 
 export const FORBIDDEN = ["pnpm-lock.yaml", "src/app/route-map.jsonl"];

@@ -236,7 +236,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 親の緊急修正・先に取れる修正(`pick: clean`)を cherry-pick しても基準は動かないので、受け口の外のファイルはそのままだと違反になる。台帳の `picked:<sha>` がこれを通す。
 
 - 台帳の行: `upstream:` は今の merge-base のまま(進めると Tier1 の版の判定がずれる)、`picked:` に pick の元の commit を書く(`.notices/README.md`「緊急修正(hotfix)」)
-- 判定: 基準に pick を順に当てた中身と HEAD の中身が同じファイル、または pick がそのファイルを変えていて HEAD の中身がその pick の時点の上流の版とファイルごと同じファイル(緊急修正の衝突で fork が変えていない上流のファイルを上流の版に置き換えた形: `pnpm workflow notices hotfixApply`)を `picked`(合格)にする。fork が更に変えた・fork の編集が元からある・元の commit が取得できないときは違反のまま
+- 判定: 基準に pick を順に当てた中身と HEAD の中身が同じファイル、または pick がそのファイルを変えていて HEAD の中身が上流(親の ref と pick の元の commit)の履歴のそのパスのどれかの版とファイルごと同じファイル(fork が触っていない上流のファイルを緊急修正の版に置き換えた形: `hotfixApply`)を `picked`(合格)にする。fork が更に変えた・fork の編集が元からある・元の commit が取得できないときは違反のまま
 - 既に基準に入った pick は対象から外れる(merge の後は差分に出ない)
 
 ### 検査の手順(`check.mjs` の `runCheck`)
