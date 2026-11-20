@@ -174,7 +174,7 @@ export function classSelector(className: string): string {
 }
 
 /**
- * 余白の段の class の表(src/components/Layout/spacingClasses.generated.ts)の class が、出力 CSS に全部あるか。
+ * 余白の段の class の表(src/lib/spacing/spacingClasses.generated.ts)の class が、出力 CSS に全部あるか。
  * Tailwind は字面に現れる class しか出力しないので、表のファイルが走査から外れる・表の class の形が Tailwind の
  * 読めない形になる、のどちらでも抜ける。返り値 = 出力に無い class
  */

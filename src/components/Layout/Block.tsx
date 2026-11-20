@@ -2,9 +2,9 @@ import { type VariantProps } from "class-variance-authority";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/cn";
+import { boxSpacingClassName, type BoxSpacingProps } from "@/lib/spacing";
 
-import { createLayoutVariants } from "./commonVariants";
-import { boxSpacingClassName, type BoxSpacingProps } from "./spacing";
+import { createLayoutVariants } from "./appearance";
 
 const blockVariants = createLayoutVariants("block");
 

@@ -1,6 +1,6 @@
 // scripts/structure/styles/generate-spacing-classes.ts
-// 余白の段の class の表 src/components/Layout/spacingClasses.generated.ts を、段の名前の一覧
-// (src/components/Layout/spacingScale.ts)から作り直す。中身の作り方は spacingClasses.ts。
+// 余白の段の class の表 src/lib/spacing/spacingClasses.generated.ts を、段の名前の一覧
+// (src/lib/spacing/spacingScale.ts)から作り直す。中身の作り方は spacingClasses.ts。
 //
 // 使い方:
 //   pnpm generate styles

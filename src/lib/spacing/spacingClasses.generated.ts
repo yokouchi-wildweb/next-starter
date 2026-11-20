@@ -1,6 +1,6 @@
-// src/components/Layout/spacingClasses.generated.ts
+// src/lib/spacing/spacingClasses.generated.ts
 // 生成物(pnpm generate styles、scripts/structure/styles/generate-spacing-classes.ts)。手で直さない。
-// 源 = src/components/Layout/spacingScale.ts(段の名前・幅・余白 prop)。
+// 源 = src/lib/spacing/spacingScale.ts(段の名前・幅・余白 prop)。
 // Layout 部品の余白 prop → 幅 → 段の名前 → class の字面。Tailwind が拾えるよう全部の組を字面で持つ
 // (class の組み立て禁止)。表の class がビルドした CSS に届いているかは pnpm check styles が確かめる。
 

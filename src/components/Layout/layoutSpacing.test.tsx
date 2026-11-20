@@ -1,8 +1,8 @@
-// Layout 部品の余白 prop の検査(余白の段、spacing.ts)。
+// Layout 部品の余白 prop の検査(余白の段は @/lib/spacing。値 → class の引き当て自体の検査は src/lib/spacing/spacing.test.ts)。
 // - 全部品の余白 prop が段の名前 / 幅別オブジェクトを受け、同じ名前は部品が違っても同じ class(生成した表)になる
 // - 既定値: Main padding = { base: "sm", sm: "md" }(12 → 16px)、Flex・Grid・Stack の gap = none(0)
 // - className が prop の class より勝つ(cn。幅別の class も同じ幅のものだけ外れる)
-// 実行: pnpm test src/components/Layout/spacing.test.tsx
+// 実行: pnpm test src/components/Layout/layoutSpacing.test.tsx
 // (package.json に type: module が無いので tsx は CJS = top-level await 不可 → before() で import)
 import { before, test } from "node:test";
 import assert from "node:assert/strict";
@@ -10,13 +10,11 @@ import { createElement, type ReactElement } from "react";
 
 let render: (node: ReactElement) => string;
 let L: typeof import("./index");
-let spacing: typeof import("./spacing");
-let SPACING_CLASSES: typeof import("./spacingClasses.generated").SPACING_CLASSES;
+let SPACING_CLASSES: typeof import("@/lib/spacing").SPACING_CLASSES;
 before(async () => {
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
   L = await import("./index");
-  spacing = await import("./spacing");
-  ({ SPACING_CLASSES } = await import("./spacingClasses.generated"));
+  ({ SPACING_CLASSES } = await import("@/lib/spacing"));
 });
 
 /** 描いた一番外の要素(at = その字面を持つ要素から。Main は余白を付ける要素)の class の集まり */
@@ -31,14 +29,6 @@ const renderMain = (props: Omit<import("./Main").MainProps, "children">) => rend
 const has = (set: Set<string>, ...classes: string[]) => {
   for (const c of classes) assert.ok(set.has(c), `${c} が無い: ${[...set].join(" ")}`);
 };
-
-test("spacingClassName: 名前は base の class、幅別は base → 2xl の順、未指定は空", () => {
-  assert.equal(spacing.spacingClassName("gap", "md"), "gap-(--space-md)");
-  assert.equal(spacing.spacingClassName("padding", { lg: "xl", base: "sm", sm: "md" }), "p-(--space-sm) sm:p-(--space-md) lg:p-(--space-xl)");
-  assert.equal(spacing.spacingClassName("gapX", undefined), "");
-  assert.equal(spacing.spacingClassName("gapY", null), "");
-  assert.equal(spacing.spacingClassName("marginInline", {}), "");
-});
 
 test("全部品: 同じ名前の余白 prop は同じ class(部品で大きさが変わらない)", () => {
   const box = { padding: "md", paddingBlock: "lg", paddingInline: "xs", margin: "2xs", marginBlock: "xl", marginInline: "4xl" } as const;
@@ -83,7 +73,6 @@ test("既定値: Main padding は {base: sm, sm: md}(12 → 16px)、Flex・Grid�
     const set = classesOf(renderMain({ containerType }), slot);
     has(set, "p-(--space-sm)", "sm:p-(--space-md)");
   }
-  assert.deepEqual(spacing.spacingClassName("padding", { base: "sm", sm: "md" }), "p-(--space-sm) sm:p-(--space-md)");
   for (const part of [L.Flex, L.Grid, L.Stack]) has(classesOf(render(createElement(part, {}))), "gap-(--space-none)");
   const block = classesOf(render(createElement(L.Block, {})));
   assert.ok(![...block].some((c) => c.includes("--space-")), "Block は既定で余白を付けない");

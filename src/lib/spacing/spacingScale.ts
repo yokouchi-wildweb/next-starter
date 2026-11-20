@@ -1,4 +1,4 @@
-// src/components/Layout/spacingScale.ts
+// src/lib/spacing/spacingScale.ts
 //
 // 余白の段(Layout 部品の余白 prop が受ける名前)の一覧。名前 → px の正はここ 1 か所。
 // - CSS のトークン --space-<名前> は src/styles/core/config.css の :root(値の正は CSS、fork は直下の CSS で上書きできる)。
