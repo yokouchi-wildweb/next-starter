@@ -12,6 +12,7 @@
 - src/lib/aiVision — Claude Vision による画像の事前判定ユーティリティ
 - src/lib/appEnv — 段階(APP_ENV: development / staging / production、無い・知らない値は production)の唯一の読み手。NODE_ENV は読まない(lint app-env/single-reader)
 - src/lib/analyticsConsent — アクセス解析の送信の門(設定 enabled・consent(@lib-config/analyticsConsent)+ 同意の状態。計測サービスに依存しない、同意バナー / CMP の差し込み口)
+- src/lib/appStatus — メンテナンス・新しいデプロイを見張る useAppStatus(/api/health を定期的に読む。既定でメンテナンスの道へ移り・読み直す。道と間隔は @lib-config で上書き)と応答の型
 - src/lib/audit — 監査ログ基盤(ALS コンテキスト・diff・denylist)
 - src/lib/business — 事業の素性(サービス名・会社・ロゴ・メールの差出人)の型・例の値(examples/)・受付係の判定 resolveBusiness・本番の検査(sample のまま本番のビルドを止める)。読み手は @/business(src/wiring/business.ts が src/business/business.ts と結ぶ)
 - src/lib/browserStorage — localStorage / sessionStorage のクライアントと React フック
