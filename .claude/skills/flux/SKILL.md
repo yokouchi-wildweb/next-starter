@@ -256,9 +256,9 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 - output: per segment number / merge target (`target`; none for segment 0) / label / notices, and `warnings`
   - each notice: `id`, `owner` = whose notice it is (from the body's `from:`), `grandparent`, `point` = checkpoint point (the adding commit, or the body's `checkpoint_at:` when it holds)
   - and `body` = where to read the body's last version (`<tip>:<パス>`, or `<消した commit>^:<パス>`), `fields` = the body's fields, `covered` = covered ids riding on that notice, `skipCheckpoint`
-- a segment with `pattern: "Rejoin"` (→ patterns.md REJOIN): upstream history split into two lines and merged
-  - the tool already put the line with more checkpoints first and the other line into the segment whose target is the merge (`rejoinMerge`) | name it in the overview with its line form
-  - `rejoin.undecided` = the tool did not decide (`why`): show it with the reason and STOP before that segment (ask which line goes first; never reorder by hand without the answer)
+- a segment with `pattern: "Rejoin"` (→ patterns.md REJOIN): upstream history split into lines and merged
+  - the tool already put the line with the most checkpoints first (same number: upstream's first-parent line) and the other lines left into the segment whose target is the merge (`rejoinMerge`) | name it in the overview with its line form
+  - `rejoin.undecided` = the tool did not decide because a notice on one line names one on another (`why`): show it with the reason and STOP before that segment (ask which line goes first; never reorder by hand without the answer)
 - a segment with `offLine: true` (a `脇の commit` line in the human-readable output) = its merge target is not a descendant of the previous position (merge-base of HEAD and upstream / the previous segment's merge target)
   - the shape where a fix was shipped as a side commit off the broken point and merged; appears in forks that did not take (did not pick / could not pick) that fix
   - show that segment in the overview with the label below; it stops at step 5a

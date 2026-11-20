@@ -29,11 +29,12 @@ do: file the order to the upstream's inbox (/order <upstream>) and go on | an ev
 - the order's text and its from: name no tool or role of the sender (the inbox is generic)
 - reported at the next segment report point, not when filed
 
-## REJOIN (upstream history split into two lines that merge again, both with checkpoints)
-applies (mechanical, incoming.mjs): within one repo's own notices (all the split's rows have the same owner, no grandparent rows), two lines from one fork point each carry at least one checkpoint and meet in one merge commit on upstream's first-parent line
-do: take the line with more checkpoints first, one segment per checkpoint (targets on that line) | the line with fewer checkpoints is not split into segments: its notices ride in one segment whose target is the merge commit (merging it brings that line whole) | segments after the merge go on as before
-- counted over the whole merge: the checkpoints a fork already took in (its ledger, its tree) count for their line too, and only what is left is ordered — a fork that took part of the longer line goes on with that line, never stops on "the same number" of what is left
-- not decided (marked `rejoin: undecided` with the reason, order left as history gives it; stop and ask): the same number of checkpoints on both lines | three or more lines (an octopus merge, or merges that overlap) | a notice on one line names a notice on the other (`fixes:` / `covers:` / `uses:` / `skip_checkpoint:`), so the order is bound
+## REJOIN (upstream history split into lines that merge again, two or more with checkpoints)
+applies (mechanical, incoming.mjs): within one repo's own notices (all the split's rows have the same owner, no grandparent rows), lines from one fork point, two or more carrying a checkpoint, meet in one merge commit on upstream's first-parent line
+do: only lines with something left count (a line the fork already took in whole is not a line here; one left = the usual order) | take the line with the most checkpoints first, one segment per checkpoint (targets on that line)
+- every other line left is not split into segments: its notices ride in one segment whose target is the merge commit (merging it brings those lines whole) | segments after the merge go on as before
+- counted over the whole merge: the checkpoints a fork already took in (its ledger, its tree) count for their line too — a fork that took part of the longer line goes on with that line | the same number: upstream's first-parent line first | three or more lines (an octopus, or merges that overlap: what an earlier merge ordered stays) are decided the same way (D378)
+- not decided (marked `rejoin: undecided` with the reason, order left as history gives it; stop and ask) only when a notice on one line names a notice on another (`fixes:` / `covers:` / `uses:` / `skip_checkpoint:`), so the order is bound (a fix shipped beside the point it fixes goes the Backport way)
 - incoming.mjs --json: each segment of a decided split has `pattern: "Rejoin"`, the joining segment also `rejoinMerge: <merge sha>`; an undecided one `rejoin: { undecided, why, merge }`
 
 ## LINES (the one line per case, in plans and reports)

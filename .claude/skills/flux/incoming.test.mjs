@@ -265,7 +265,7 @@ test("--json through a pipe: the whole output arrives and parses (process.exit u
   assert.equal(parsed.segments.flatMap((s) => s.notices).length, ids.length);
 });
 
-test("脇の commit の区間: 修正を壊れた地点の脇で出して merge、fork が取っていなければ offLine と mainline / 取っていれば・直線なら印なし", (t) => {
+test("脇の commit の区間(Backport の道): 本線の notice を名指す修正を脇で出して merge → Rejoin は名指しで決めず、fork が取っていなければ offLine と mainline / 取っていれば・直線なら印なし", (t) => {
   const up = repo(t, "up", "up");
   up.ship(N(0), ["checkpoint: zero"]);
   const f = repo(t, "f", "f", up);
@@ -273,7 +273,7 @@ test("脇の commit の区間: 修正を壊れた地点の脇で出して merge�
   up.ship(N(2), ["checkpoint: two"]);
   // 修正 n3 を壊れた地点 p1 の脇の commit で出して --no-ff merge(束 5 の形)
   up.g("switch", "-q", "-c", "fix", p1);
-  const side = up.ship(N(3), ["checkpoint: three", `fixes: ${N(1)}`], { "src/fix.txt": "fixed" });
+  const side = up.ship(N(3), ["checkpoint: three", `fixes: ${N(2)}`], { "src/fix.txt": "fixed" });
   up.g("switch", "-q", "main");
   // 本線の索引は脇の行も持つ(/ship は merge で両方の行を残す)
   try {
@@ -289,6 +289,7 @@ test("脇の commit の区間: 修正を壊れた地点の脇で出して merge�
   const segs = incoming(f.dir, { upstream: "upstream/main" }).segments;
   const offs = segs.filter((s) => s.offLine);
   assert.equal(offs.length, 1, summary({ segments: segs }).join("\n"));
+  assert.ok(segs.some((s) => s.rejoin?.undecided && /名指す/.test(s.rejoin.why)), "名指しの縛りは今どおり止める");
   assert.equal(offs[0].target, side);
   assert.equal(offs[0].mainline, merge);
   const log = [];
@@ -302,6 +303,28 @@ test("脇の commit の区間: 修正を壊れた地点の脇で出して merge�
   // 直線の履歴では印なし
   const { f: f2 } = twoTier(t);
   assert.ok(incoming(f2.dir, { upstream: "upstream/main" }).segments.every((s) => !s.offLine));
+});
+
+test("脇で出した修正と本線の両方に区切りがあり名指しが無ければ Rejoin: 本線が先・修正は合流の区間(脇にならない、止まらない)", (t) => {
+  const build = () => {
+    const up = repo(t, "up", "up");
+    up.ship(N(0), ["checkpoint: zero"]);
+    const f = repo(t, "f", "f", up);
+    const p1 = up.ship(N(1), ["checkpoint: one"]);
+    const p2 = up.ship(N(2), ["checkpoint: two"]);
+    up.g("switch", "-q", "-c", "fix", p1);
+    up.ship(N(3), ["checkpoint: three", `fixes: ${N(1)}`], { "src/fix.txt": "fixed" });
+    up.g("switch", "-q", "main");
+    up.g("merge", "-q", "--no-ff", "-m", "merge fix", "fix");
+    const merge = up.g("rev-parse", "HEAD");
+    f.fetch();
+    return { f, p2, merge };
+  };
+  const { f, p2, merge } = build();
+  const segs = incoming(f.dir, { upstream: "upstream/main" }).segments.filter((s) => s.target);
+  assert.ok(segs.every((s) => !s.offLine && !s.rejoin?.undecided), summary({ segments: segs }).join("\n"));
+  assert.equal(segs.find((s) => s.notices.some((n) => n.id === N(2))).target, p2);
+  assert.equal(segs.find((s) => s.notices.some((n) => n.id === N(3))).rejoinMerge, merge);
 });
 
 test("名前の写し forkIdOf は forkIds.mjs の forkIdOfTexts と同じ答え(自己完結のための写し、規則は forkIds.mjs が正本)", () => {
@@ -375,7 +398,7 @@ test("Rejoin: 区切りの多い線(3)を 1 つずつ先に、少ない線(1)は
   assert.equal(segs[4].pattern, undefined);
   const log = [];
   run(f.dir, ["--upstream=upstream/main"], (l) => log.push(l));
-  assert.match(log.join("\n"), /Rejoin パターン: 少ない側の線を合流の merge/);
+  assert.match(log.join("\n"), /Rejoin パターン: ほかの線を合流の merge/);
 });
 
 test("Rejoin: 長い線の一部を取った後も merge 全体で数える(本線 3・脇 2、本線の 1 つ目を取った後の残り 2 対 2 でも止まらない)", (t) => {
@@ -397,19 +420,44 @@ test("Rejoin: 多い側が脇の線でも同じ(脇 2 → 本線 1 は合流で)
   assert.deepEqual(segs[2].notices.map((n) => n.id), mainPts.map((p) => p.id));
 });
 
-test("Rejoin: 決めない形 = 同じ数・片側の notice が他の側を名指す・3 本以上 → 印だけで並びは履歴の順", (t) => {
-  for (const [opts, why] of [
-    [{ main: 2, side: 2 }, /同じ数/],
-    [{ main: 2, side: 1, sideFields: (m) => [`fixes: ${m[0].id}`] }, /名指す/],
-    [{ main: 2, side: 1, extra: 1 }, /3 本以上/],
-  ]) {
-    const { f } = split(t, opts);
-    const r = incoming(f.dir, { upstream: "upstream/main" });
-    const marked = r.segments.filter((s) => s.rejoin?.undecided);
-    assert.ok(marked.length > 0, JSON.stringify(opts));
-    assert.match(marked[0].rejoin.why, why);
-    assert.ok(r.segments.every((s) => !s.rejoinMerge));
-  }
+test("Rejoin: 決めない形は片側の notice が他の側を名指す時だけ → 印だけで並びは履歴の順", (t) => {
+  const { f } = split(t, { main: 2, side: 1, sideFields: (m) => [`fixes: ${m[0].id}`] });
+  const r = incoming(f.dir, { upstream: "upstream/main" });
+  const marked = r.segments.filter((s) => s.rejoin?.undecided);
+  assert.ok(marked.length > 0);
+  assert.match(marked[0].rejoin.why, /名指す/);
+  assert.ok(r.segments.every((s) => !s.rejoinMerge));
+});
+
+test("Rejoin: 同じ数なら上流の first-parent の線を先に(止まらない)", (t) => {
+  const { f, mainPts, sidePts, merge } = split(t, { main: 2, side: 2 });
+  const segs = incoming(f.dir, { upstream: "upstream/main" }).segments.filter((s) => s.target);
+  assert.ok(segs.every((s) => !s.rejoin?.undecided), "同じ数でも決める");
+  assert.deepEqual(segs.slice(0, 2).map((s) => s.target), mainPts.map((p) => p.sha), "first-parent の本線を 1 つずつ先に");
+  assert.equal(segs[2].rejoinMerge, merge);
+  assert.deepEqual(segs[2].notices.map((n) => n.id), sidePts.map((p) => p.id));
+});
+
+test("Rejoin: 3 本以上の線でも決める(重なった合流で前に並べた区切りは並べ直さない、脇の線は合流の区間で)", (t) => {
+  const { f, mainPts, sidePts, merge } = split(t, { main: 2, side: 1, extra: 1 });
+  const r = incoming(f.dir, { upstream: "upstream/main" });
+  const segs = r.segments.filter((s) => s.target);
+  assert.ok(segs.every((s) => !s.rejoin?.undecided), summary(r).join("\n"));
+  assert.deepEqual(segs.slice(0, 2).map((s) => s.target), mainPts.map((p) => p.sha));
+  assert.equal(segs[2].rejoinMerge, merge);
+  assert.deepEqual(segs[2].notices.map((n) => n.id), sidePts.map((p) => p.id));
+});
+
+test("Rejoin: 3 本の線で脇の 2 本が台帳済みなら残る線は 1 本 → 決まり(印なし、止まらない)", (t) => {
+  const { f, sidePts } = split(t, { main: 2, side: 1, extra: 1 });
+  // 脇の線と 3 本目の区切りを取り込み済みに(台帳と木)
+  const third = f.g("rev-parse", "upstream/third0").trim();
+  f.g("merge", "-q", "--no-ff", "-m", "take side", sidePts[0].sha);
+  f.g("merge", "-q", "--no-ff", "-m", "take third", third);
+  const thirdId = f.g("show", "--name-only", "--format=", third).split("\n").find((x) => x.startsWith(".notices/")).replace(/^\.notices\/|\.md$/g, "");
+  f.commit(ledger("f", sidePts[0].id, thirdId));
+  const r = incoming(f.dir, { upstream: "upstream/main" });
+  assert.ok(r.segments.every((s) => !s.rejoin?.undecided), summary(r).join("\n"));
 });
 
 test("Rejoin: 分かれの無い履歴・片側にしか区切りの無い分かれは今と同じ(印なし)", (t) => {

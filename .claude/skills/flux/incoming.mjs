@@ -15,8 +15,9 @@
 //   区切り = 欄 checkpoint がラベルか欄なし。ただし先端のどれかの本文の skip_checkpoint: <id> に名指された物は - とみなす
 //   区間 0 = 区切り点が HEAD の祖先。以降は区切り点の履歴順に、区切りの直後で閉じる。最後の区切り以降 + 残りの commit = 末尾区間
 //   offLine = 前の位置(HEAD と先端の merge-base / 前の区間の merge 先)が merge 先の祖先でない区間(脇の commit。mainline = 本線でそれを含む最初の commit)
-//   Rejoin パターン(patterns.md) = 区切りのある 2 本の線が 1 つの merge で合わさる形: 多い線の区間を先に 1 つずつ、少ない線は合流の
-//            merge を目標の区間 1 つに(区間に pattern:"Rejoin"、合流の区間は rejoinMerge)。決めない形は rejoin:{ undecided, why, merge }
+//   Rejoin パターン(patterns.md) = 区切りのある線が 1 つの merge で合わさる形(2 本以上): 多い線の区間を先に 1 つずつ、ほかの残る線は
+//            合流の merge を目標の区間 1 つに(区間に pattern:"Rejoin"、合流の区間は rejoinMerge)。線どうしの名指しで決めない時だけ
+//            rejoin:{ undecided, why, merge }
 //   body = 本文を読む場所(最後の版: <先端>:<パス> か <消した commit>^:<パス>)
 //   exit 0 = 出した | 2 = 止まる(浅い clone・区切り点が先端の祖先でない・repo_id が無い)
 import { execFileSync } from "node:child_process";
@@ -225,12 +226,14 @@ function remoteUrl(g, remote) {
   return remote ? normalizeUrl(g.tryGit(["remote", "get-url", remote]) ?? "") : "";
 }
 
-// Rejoin パターン(.claude/skills/flux/patterns.md): 上流の履歴が 2 本の線に分かれ、1 つの merge で合わさり、両方の線に区切りがある形。
-// 区切りの多い線の区間を 1 つずつ先に(その線の上の区切り点)、少ない線の notice は独立の区間にせず、合流の merge を目標にする
-// 区間 1 つにまとめる(merge すれば少ない線が丸ごと入る)。決めない形(同じ数・3 本以上の線や重なった合流・片側の notice の
-// fixes / covers / uses / skip_checkpoint が他の側の notice を名指す)は印だけ付けて今の並び(履歴の順)のまま。
-// 線の区切りの数・持ち主・名指しは merge 全体(all: fork が取り込み済みの区切りも)で読み、並べ直すのは残り(items)だけ:
-// 長い線の一部を取った後に残りだけで数えると「同じ数」になって止まった(区間 301 の後、計画書 14 S3)
+// Rejoin パターン(.claude/skills/flux/patterns.md): 上流の履歴が何本かの線に分かれ、1 つの merge で合わさり、2 本以上の線に区切りが
+// ある形。止まって人に聞かない(D378): 残り(items)の区切りが 1 つも無い線(取り込み済み)は数えず、残る線が 1 本なら普段の並び。
+// 残る線が 2 本以上(3 本以上の octopus も)なら区切りの多い線の区間を 1 つずつ先に(その線の上の区切り点)、ほかの残る線の notice は
+// 独立の区間にせず、合流の merge を目標にする区間 1 つにまとめる(merge すればその線が丸ごと入る)。数が同じなら上流の
+// first-parent の線(parents[0] の側)が先。前の merge が並べた区切りは次の merge で並べ直さない。
+// 線の区切りの数・持ち主・名指しは merge 全体(all: fork が取り込み済みの区切りも)で読む(途中まで取った線を続ける、84 の形)。
+// 決めない(印だけ付けて履歴の順)のは、ある線の notice の fixes / covers / uses / skip_checkpoint が他の線の notice を名指して
+// 順が縛られる時だけ
 const NAMING = ["fixes", "covers", "uses", "skip_checkpoint"];
 /** 区切り点の並び(items、履歴の順)を Rejoin で並べ直す。items の各物に rejoin: { merge, joined? | more? | undecided?, why? }。
  * all = items を含む全部の区切り点(省くと items) */
@@ -244,30 +247,32 @@ export function rejoin(g, items, { base, tip, all: everything = items }) {
     const mb = (g.tryGit(["merge-base", "--octopus", ...parents]) ?? "").trim();
     if (!mb) continue;
     const sides = parents.map((p) => new Set((g.tryGit(["rev-list", `${mb}..${p}`]) ?? "").split("\n").filter(Boolean)));
-    const on = sides.map((s) => out.filter((it) => s.has(it.point)));
+    // 前の merge が並べた区切りは数えない(並べ直さない)
+    const on = sides.map((s) => out.filter((it) => s.has(it.point) && !taken.has(it.id)));
     const whole = sides.map((s) => everything.filter((it) => s.has(it.point)));
     if (whole.filter((s) => s.some((it) => it.break)).length < 2) continue;
-    if (!on.some((s) => s.length)) continue;   // 全部取り込み済み: 並べ直す物が無い
+    // 残りのある線だけ(取り込み済みの線は数えない)。1 本なら普段の並び
+    const live = on.map((s, k) => k).filter((k) => on[k].length > 0);
+    if (live.length < 2) continue;
     // 1 つの版の中の分かれだけ(全部が同じ持ち主の行で、祖父の行が無い)。中間 Tier が上流を merge した形(片側が中間 Tier の
     // 行、片側が祖父の行)は普段の取り込みで Rejoin ではない
     const owners = new Set(whole.flat().map((it) => it.owner));
     if (owners.size !== 1 || whole.flat().some((it) => it.grandparent)) continue;
-    const all = on.flat();
-    const mark = (why) => {
-      for (const it of all) it.rejoin = { merge: m, undecided: true, why };
-      for (const it of all) taken.add(it.id);
-    };
-    if (parents.length > 2) { mark("3 本以上の線"); continue; }
-    if (all.some((it) => taken.has(it.id))) { mark("重なった合流(3 本以上の線)"); continue; }
-    const counts = whole.map((s) => s.filter((it) => it.break).length);
-    if (counts[0] === counts[1]) { mark(`区切りが同じ数(${counts[0]})`); continue; }
+    const all = live.flatMap((k) => on[k]);
     const ids = whole.map((s) => new Set(s.map((it) => it.id)));
-    const binds = whole.some((s, k) => s.some((it) => NAMING.some((f) => list(it.fields[f]).some((x) => ids[1 - k].has(x)))));
-    if (binds) { mark("片側の notice が他の側の notice を名指す(順が縛られる)"); continue; }
-    const more = counts[0] > counts[1] ? 0 : 1;
-    const a = on[more].map((it) => ({ ...it, rejoin: { merge: m, more: true } }));
-    const b = on[1 - more].map((it, i, arr) => (i === arr.length - 1 ? { ...it, break: true, point: m, rejoin: { merge: m, joined: true } } : { ...it, break: false, rejoin: { merge: m, joined: true } }));
+    const binds = live.some((k) => whole[k].some((it) => NAMING.some((f) => list(it.fields[f]).some((x) => live.some((j) => j !== k && ids[j].has(x))))));
+    if (binds) {
+      for (const it of all) it.rejoin = { merge: m, undecided: true, why: "ある線の notice が他の線の notice を名指す(順が縛られる)" };
+      for (const it of all) taken.add(it.id);
+      continue;
+    }
+    // 区切りの多い線(merge 全体で数える)、同じ数なら first-parent の側(番号の小さい parents)
+    const counts = whole.map((s) => s.filter((it) => it.break).length);
+    const more = live.reduce((best, k) => (counts[k] > counts[best] ? k : best), live[0]);
     const block = new Set(all.map((it) => it.id));
+    const a = on[more].map((it) => ({ ...it, rejoin: { merge: m, more: true } }));
+    const rest = out.filter((it) => block.has(it.id) && !on[more].some((x) => x.id === it.id));
+    const b = rest.map((it, i, arr) => (i === arr.length - 1 ? { ...it, break: true, point: m, rejoin: { merge: m, joined: true } } : { ...it, break: false, rejoin: { merge: m, joined: true } }));
     const at = out.findIndex((it) => block.has(it.id));
     out = [...out.slice(0, at).filter((it) => !block.has(it.id)), ...a, ...b, ...out.slice(at).filter((it) => !block.has(it.id))];
     for (const id of block) taken.add(id);
@@ -405,7 +410,7 @@ export function run(repo, argv, log = console.log) {
     for (const s of r.segments) {
       const ids = s.notices.map((n) => `${n.id}${n.grandparent ? "(祖父)" : ""}${n.skipCheckpoint ? "(区切りを外された)" : ""}${n.covered.length ? ` covers ${n.covered.join(", ")}` : ""}`);
       log(`区間 ${s.n} → ${s.target ? s.target.slice(0, 8) : "merge なし"} ${s.label}: ${ids.join(" / ") || "(notice なし、merge のみ)"}`);
-      if (s.pattern === "Rejoin") log(s.rejoin?.undecided ? `  Rejoin パターン(決めない: ${s.rejoin.why}、合流 ${s.rejoin.merge.slice(0, 8)}): 並べ替えず止まって聞く(patterns.md)` : s.rejoinMerge ? `  Rejoin パターン: 少ない側の線を合流の merge ${s.rejoinMerge.slice(0, 8)} で取る` : "  Rejoin パターン: 区切りの多い側の線を 1 つずつ先に");
+      if (s.pattern === "Rejoin") log(s.rejoin?.undecided ? `  Rejoin パターン(決めない: ${s.rejoin.why}、合流 ${s.rejoin.merge.slice(0, 8)}): 並べ替えず止まって聞く(patterns.md)` : s.rejoinMerge ? `  Rejoin パターン: ほかの線を合流の merge ${s.rejoinMerge.slice(0, 8)} で取る` : "  Rejoin パターン: 区切りの多い側の線を 1 つずつ先に");
       if (s.offLine) log(`  脇の commit: merge 先が前の位置の子孫でない(merge すると上流との merge-base が 2 つになる)。本線で含む commit ${s.mainline ? s.mainline.slice(0, 8) : "-"}。merge せず止まる(SKILL.md 手順 5a)`);
     }
     for (const w of r.warnings) log(`警告: ${w}`);
