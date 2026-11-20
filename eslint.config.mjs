@@ -39,6 +39,8 @@ const SHADCN_REMOVED = "checkpoint shadcn-close で削除済み";
 const FUNCTIONAL_RENAMED = "checkpoint context-after-v2 で削除済み";
 /** 部品の棚の場所の整理(入口の廃止・spacing を lib へ・Kiosk / BodyPortal / useHeaderHeight / Elements の移動)の旧パスの削除の区切り(deprecated-imports の until) */
 const SHELF_S1_MOVED = "checkpoint shelf-s1 で削除済み";
+/** 部品の棚の Form をほどく移行(Button・Input の単位、入力の型と関数を Input/options へ)の旧パスの削除の区切り(deprecated-imports の until) */
+const SHELF_S2_MOVED = "checkpoint shelf-s2 で削除済み";
 
 const config = [
   ...nextConfig,
@@ -284,7 +286,8 @@ const config = [
   // stores の廃止で閉じた lib へ移した物(checkpoint stores-removal、同じく shim なし。
   // 旧パスの import は tsc も止めるので、ここは置き換え先の案内だけ)と、棚の場所の整理で消した入口・動かした物(checkpoint shelf-s1、
   // 同じく shim なし。入口の行は exact: 配下の部品のファイル @/components/<Category>/<Unit> は検出しない。直し方は
-  // .notices/20261120-150000-shelf-s1.places.mjs が名前ごとに分ける)。
+  // .notices/20261120-150000-shelf-s1.places.mjs が名前ごとに分ける)と、Form をほどいて Button・Input の単位へ移した物(checkpoint shelf-s2、
+  // 同じく shim なし。直し方は .notices/20261120-160000-shelf-s2.shelf.mjs)。
   // 書式: { from: "@/features/...", to: "@/features/...", until: "checkpoint <label> の次"[, exact: true] }
   {
     files: ["src/**/*.{ts,tsx}"],
@@ -344,6 +347,16 @@ const config = [
             { from: "@/components/Functional/BodyPortal", to: "@/components/Overlays/BodyPortal", until: SHELF_S1_MOVED, exact: true },
             { from: "@/hooks/useHeaderHeight", to: "@/app/_layout/useHeaderHeight", until: SHELF_S1_MOVED, exact: true },
             { from: "@/components/AppFrames/Admin/Elements", to: "@/components/Admin", until: SHELF_S1_MOVED },
+            // shelf-s2: 入口と名前ごとに行き先が分かれた物は exact を先に(後ろの prefix の行より先に当たる)。Form の入口・Form/Input・Form/types は残る
+            { from: "@/components/Form/Button", to: "@/components/Button/<Unit>", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Form/Button/button-variants", to: "@/components/Button/variants", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Form/Button/tablet-button-variants", to: "@/components/Button/variants", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Form/Button", to: "@/components/Button", until: SHELF_S2_MOVED },
+            { from: "@/components/Form/Input/Manual", to: "@/components/Input/<Unit>", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Form/Input/Manual", to: "@/components/Input", until: SHELF_S2_MOVED },
+            { from: "@/components/Form/Label", to: "@/components/Input/Label", until: SHELF_S2_MOVED, exact: true },
+            { from: "@/components/Form/FilePickButton", to: "@/components/Input/FilePickButton", until: SHELF_S2_MOVED },
+            { from: "@/components/Form/utils", to: "@/components/Input/options", until: SHELF_S2_MOVED, exact: true },
           ],
         },
       ],
