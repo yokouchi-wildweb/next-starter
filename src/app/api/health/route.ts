@@ -2,6 +2,7 @@
 
 import { NextResponse } from "next/server";
 
+import type { AppStatusResponse } from "@/lib/appStatus";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { canBypassMaintenance } from "@/features/core/setting/utils/maintenanceBypass";
 import { createApiRoute } from "@/wiring/apiRoute";
@@ -34,7 +35,7 @@ export const GET = createApiRoute(
       {
         buildId: BUILD_ID,
         maintenance: { active, bypassed },
-      },
+      } satisfies AppStatusResponse,
       { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } },
     );
   },
