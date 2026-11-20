@@ -1,6 +1,6 @@
 // scripts/workflow/agent-terminal/compactSelf.mjs — pnpm workflow agent-terminal compactSelf [--then continue|wait|none] "<残すこと>"
 //
-// エージェントが自分の会話の圧縮を頼むコマンド。どこで打っても使える(エージェントから見た約束は 1 つ):
+// エージェントが自分の会話の圧縮を頼むコマンド(/coffee-break の最後の一歩。前に compactPlan)。どこで打っても使える(エージェントから見た約束は 1 つ):
 //   - 自分のペインに打てる(AGENT_TERMINAL=tmux・tmux の中・hook が動いている)→ この返答が終わったら `/compact <残すこと>`
 //     を打つ待つ役(lib.waiter.mjs)を残し、「予約した。ここで返答を終える」と出す
 //   - 頼み先がある(AGENT_COMPACT_CMD)→ 自分では打たない。そのコマンドを、残すことを env AGENT_COMPACT_FOCUS に入れて呼び、
@@ -8,17 +8,32 @@
 //   - 打てない → `/compact <残すこと>` をユーザーに打ってもらう 1 行を出す(エラーにしない)
 // --then = 圧縮の後に打つ 1 行の種類(continue = 読み返して続ける(既定)/ wait = 読み返して待つ / none = 何も打たない)。待つ役が /compact を打つときに
 // ペインの印 after に書き、hook.mjs の SessionStart が読む。頼み先があるときは env AGENT_COMPACT_THEN で頼み先に渡す(頼み先が /compact を打つ前に afterCompact で印に書く)。打てないときは使わない(既定の続き)
+// 引き継ぎの一時ファイル(compactPlan が出す場所)があれば、頭に --then と時刻を書く(圧縮の後の SessionStart が読み戻す)。無くても断らない(読み戻すものが無いだけ)。
+// --then を省いたときの既定 = AGENT_COMPACT_CONTEXT の then、無ければ continue。
 // 終了コード: 0(どちらも)/ 1 = 残すことが空・--then の値が違う。説明: scripts/workflow/agent-terminal/README.md
 
 import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { AFTER_COMPACT, COMPACT_THEN_ENV, HERE, compactHandoff, currentPane, marks, oneLine, paneDir } from "./lib.mjs";
+import {
+  AFTER_COMPACT,
+  COMPACT_THEN_ENV,
+  HERE,
+  compactHandoff,
+  currentPane,
+  handoffFile,
+  marks,
+  oneLine,
+  paneDir,
+  readCompactContext,
+  sessionOf,
+  stampHandoff,
+} from "./lib.mjs";
 
 /** 予約できるか。{ mode: "handoff", cmd, args, env } | { mode: "queue", pane, prevIdle } | { mode: "fallback" } */
-export function planCompactSelf(env = process.env, focus = "") {
-  const handoff = compactHandoff(env, focus);
+export function planCompactSelf(env = process.env, focus = "", file = "") {
+  const handoff = compactHandoff(env, focus, file);
   if (handoff) return { mode: "handoff", ...handoff };
   const pane = currentPane(env);
   if (!pane) return { mode: "fallback" };
@@ -35,10 +50,10 @@ const defaultDeps = {
   run: (cmd, args, env) => spawnSync(cmd, args, { env, encoding: "utf8" }),
 };
 
-/** 引数から --then <値> / --then=<値> を抜く。{ then, rest } | null(値が無い・知らない値) */
-export function parseThen(args) {
+/** 引数から --then <値> / --then=<値> を抜く。{ then, rest } | null(値が無い・知らない値)。省けば fallback */
+export function parseThen(args, fallback = "continue") {
   const rest = [];
-  let then = "continue";
+  let then = fallback;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === "--then") then = args[++i] ?? "";
@@ -50,13 +65,15 @@ export function parseThen(args) {
 
 export function runCompactSelf(args, env = process.env, deps = defaultDeps) {
   deps = { ...defaultDeps, ...deps };
-  const parsed = parseThen(args);
+  const parsed = parseThen(args, readCompactContext(env).then ?? "continue");
   const focus = parsed ? oneLine(parsed.rest.join(" ")) : "";
   if (!focus) {
     deps.print('使い方: pnpm workflow agent-terminal compactSelf [--then continue|wait|none] "<圧縮の後も残すこと(1〜3 行)>"');
     return 1;
   }
-  const plan = planCompactSelf(env, focus);
+  const file = handoffFile(sessionOf(env), env);
+  if (file) stampHandoff(file, parsed.then);
+  const plan = planCompactSelf(env, focus, file);
   if (plan.mode === "handoff") {
     const name = [plan.cmd, ...plan.args].join(" ");
     const r = deps.run(plan.cmd, plan.args, { ...env, ...plan.env, [COMPACT_THEN_ENV]: parsed.then });

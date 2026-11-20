@@ -1,13 +1,14 @@
 // scripts/workflow/agent-terminal/lib.mjs
 //
 // エージェントが動かす端末(AGENT_TERMINAL)の読み取りと、tmux のペインに打ち込む道具の共通処理。
-// 使い手: hook.mjs(.claude/settings.json の hook)、compactSelf.mjs(pnpm workflow agent-terminal compactSelf)、lib.waiter.mjs(裏で待って打つ役)。
+// 使い手: hook.mjs(.claude/settings.json の hook)、compactPlan.mjs / compactSelf.mjs(pnpm workflow agent-terminal compactPlan / compactSelf)、
+// lib.waiter.mjs(裏で待って打つ役)。圧縮の引き継ぎの一時ファイルもここ(端末に関係なく使う)。
 // 文脈(ルール・CLAUDE.md・hook の出力)には端末のことを書かない。端末による分かれ道はこのフォルダの中だけに置く。
 // 説明: scripts/workflow/agent-terminal/README.md
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -51,13 +52,128 @@ export const COMPACT_THEN_ENV = "AGENT_COMPACT_THEN";
 /** 圧縮の後に打つ 1 行の種類(印 after の値。none = 何も打たない) */
 export const AFTER_COMPACT = ["continue", "wait", "none"];
 
+/** 頼み先に渡す、引き継ぎの一時ファイルの場所 */
+export const COMPACT_HANDOFF_ENV = "AGENT_COMPACT_HANDOFF";
+/** 会話を束ねる道具が渡す圧縮の文脈ファイル(版つき key=value。下の readCompactContext) */
+export const COMPACT_CONTEXT_ENV = "AGENT_COMPACT_CONTEXT";
+
 /**
  * 圧縮の頼み先(AGENT_COMPACT_CMD)。{ cmd, args, env: <渡す環境変数の追加> } か null
  * @returns {{ cmd: string, args: string[], env: Record<string, string> } | null}
  */
-export function compactHandoff(env = process.env, focus = "") {
+export function compactHandoff(env = process.env, focus = "", handoff = "") {
   const words = (env[COMPACT_CMD_ENV] ?? "").trim().split(/\s+/).filter(Boolean);
-  return words.length > 0 ? { cmd: words[0], args: words.slice(1), env: { [COMPACT_FOCUS_ENV]: focus } } : null;
+  if (words.length === 0) return null;
+  const add = { [COMPACT_FOCUS_ENV]: focus };
+  if (handoff) add[COMPACT_HANDOFF_ENV] = handoff;
+  return { cmd: words[0], args: words.slice(1), env: add };
+}
+
+/**
+ * 圧縮の文脈(AGENT_COMPACT_CONTEXT のファイル)。中身 = `v=1` と `prepare=<足す手順>`(繰り返してよい)・`then=<continue|wait|none>`
+ * (既定の続き)。# から後は注釈。値が無い = 単体({ prepare: [], then: null })。
+ * 読めない・相対パス・版が違う・知らない鍵や値 = { error } (compactPlan が 1 行で知らせ、足す手順なしで進む)
+ * @returns {{ prepare: string[], then: string | null, error?: string }}
+ */
+export function readCompactContext(env = process.env) {
+  const file = (env[COMPACT_CONTEXT_ENV] ?? "").trim();
+  const none = { prepare: [], then: null };
+  if (file === "") return none;
+  if (!path.isAbsolute(file)) return { ...none, error: `${COMPACT_CONTEXT_ENV} は絶対パス(${file})` };
+  let text;
+  try {
+    text = readFileSync(file, "utf8");
+  } catch {
+    return { ...none, error: `${COMPACT_CONTEXT_ENV} を読めない(${file})` };
+  }
+  const lines = text.split("\n").map((l) => l.replace(/#.*/, "").trim()).filter(Boolean);
+  if (!lines.includes("v=1")) return { ...none, error: `${COMPACT_CONTEXT_ENV} の版が v=1 でない(${file})` };
+  const out = { prepare: [], then: null };
+  for (const l of lines) {
+    if (l === "v=1") continue;
+    const m = l.match(/^(prepare|then)=(.*)$/);
+    if (!m) return { ...none, error: `${COMPACT_CONTEXT_ENV} に知らない行(${l})` };
+    if (m[1] === "prepare") {
+      if (m[2].trim()) out.prepare.push(m[2].trim());
+    } else if (AFTER_COMPACT.includes(m[2].trim())) out.then = m[2].trim();
+    else return { ...none, error: `${COMPACT_CONTEXT_ENV} の then が違う(${m[2]})` };
+  }
+  return out;
+}
+
+// ---- 引き継ぎの一時ファイル(圧縮の前に書き、圧縮の後の SessionStart で読み戻して消す。会話ごとに 1 つ)
+
+/** 読み戻す新しさの上限(書いてから圧縮まで)。これより古い = 打たれずに残った物なので読まない */
+export const HANDOFF_FRESH_MS = 6 * 3600 * 1000;
+/** 掃除: これより古い一時ファイルは SessionStart で消す */
+export const HANDOFF_KEEP_MS = 14 * 24 * 3600 * 1000;
+
+/** 今の会話の id(Claude Code が Bash に渡す CLAUDE_CODE_SESSION_ID)。形が違えば "" */
+export const sessionOf = (env = process.env) => {
+  const id = (env.CLAUDE_CODE_SESSION_ID ?? "").trim();
+  return /^[A-Za-z0-9_-]+$/.test(id) ? id : "";
+};
+
+export const handoffDir = (env = process.env) => path.join(stateRoot(env), "handoff");
+
+/** その会話の一時ファイル。会話の id の形が違えば "" */
+export const handoffFile = (session, env = process.env) =>
+  /^[A-Za-z0-9_-]+$/.test(session ?? "") ? path.join(handoffDir(env), `${session}.md`) : "";
+
+/** 一時ファイルの頭の 1 行(compactSelf が書く。圧縮の後の続きと書いた時刻) */
+const HEAD = /^<!-- agent-terminal handoff: then=(continue|wait|none) at=(\d+) -->\n/;
+
+/** compactSelf が圧縮を頼むときに、一時ファイルの頭に続きの種類と時刻を書く(無ければ何もしない)。書いたら true */
+export function stampHandoff(file, then, now = Date.now()) {
+  let body;
+  try {
+    body = readFileSync(file, "utf8");
+  } catch {
+    return false;
+  }
+  writeFileSync(file, `<!-- agent-terminal handoff: then=${then} at=${now} -->\n${body.replace(HEAD, "")}`);
+  return true;
+}
+
+/**
+ * 圧縮の後に読み戻す中身。読んだら消す(一度きり)。無い・空・古い = null(古い物も消す)
+ * @returns {{ then: string, body: string } | null}
+ */
+export function takeHandoff(file, now = Date.now()) {
+  if (!file) return null;
+  let text;
+  let mtime;
+  try {
+    text = readFileSync(file, "utf8");
+    mtime = statSync(file).mtimeMs;
+  } catch {
+    return null;
+  }
+  rmSync(file, { force: true });
+  const m = text.match(HEAD);
+  const at = m ? Number(m[2]) : mtime;
+  const body = text.replace(HEAD, "").trim();
+  if (!body || now - at > HANDOFF_FRESH_MS) return null;
+  return { then: m ? m[1] : "continue", body };
+}
+
+/** 古い一時ファイルの掃除(SessionStart のたび) */
+export function sweepHandoffs(env = process.env, now = Date.now()) {
+  const dir = handoffDir(env);
+  let names;
+  try {
+    names = readdirSync(dir);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    const file = path.join(dir, name);
+    try {
+      if (now - statSync(file).mtimeMs > HANDOFF_KEEP_MS) rmSync(file, { force: true });
+    } catch {
+      // 消せないだけ
+    }
+  }
 }
 
 /** 端末ごとの案内(SessionStart で文脈に入れる)。値ごとに 1 ファイル、none には無い */

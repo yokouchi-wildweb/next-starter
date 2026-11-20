@@ -6,16 +6,19 @@
 // - 圧縮の後の 1 行: 印 after(待つ役が /compact を打てたときだけ書く、/compact を打つ道具は afterCompact で書く)で続行 / 待機 / 何もしないを打ち分け、どの start でも消す
 // - hook の標準出力: tmux の値 + tmux の中の SessionStart だけ端末の案内、ほかは空。記録と、手で打った圧縮の後だけ続きの待つ役を残すこと
 // - 入力欄の読み取り(空・下書き・薄い案内・確認の画面)
+// - 圧縮の文脈(AGENT_COMPACT_CONTEXT)の読み方と compactPlan の出力、引き継ぎの一時ファイル(compactSelf が頭を書く・
+//   頼み先に AGENT_COMPACT_HANDOFF で渡す・圧縮の後に一度だけ読み戻す・古い物と空の物は読まない・掃除・端末なしでも読み戻す)
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { runAfterCompact } from "./afterCompact.mjs";
+import { runCompactPlan } from "./compactPlan.mjs";
 import { parseThen, planCompactSelf, runCompactSelf } from "./compactSelf.mjs";
 import {
   TERMINALS,
@@ -23,10 +26,17 @@ import {
   compactHandoff,
   currentPane,
   guideFile,
+  HANDOFF_FRESH_MS,
+  HANDOFF_KEEP_MS,
+  handoffFile,
   paneDir,
   paneOf,
   readAgentTerminal,
+  readCompactContext,
   readDefaultFile,
+  stampHandoff,
+  sweepHandoffs,
+  takeHandoff,
   writeMark,
 } from "./lib.mjs";
 
@@ -337,5 +347,143 @@ test("waiter(本物の tmux): 予約した返答が終わってから、空の�
     assert.equal(readFileSync(path.join(pdir, "after"), "utf8").trim(), "wait");
   } finally {
     t("kill-server");
+  }
+});
+
+// ---- 圧縮の文脈と引き継ぎの一時ファイル
+
+const contextFile = (text) => {
+  const f = path.join(temp("agent-terminal-ctx-"), "compact.context");
+  writeFileSync(f, text);
+  return f;
+};
+
+test("readCompactContext: 値なし = 足す手順なし。v=1 の prepare(繰り返し)・then。版・鍵・値・相対パスの誤りは error で全体を使わない", () => {
+  assert.deepEqual(readCompactContext({}), { prepare: [], then: null });
+  const f = contextFile("v=1  # 版\nprepare=progress を最新に\nprepare=status を見直す\nthen=none\n");
+  assert.deepEqual(readCompactContext({ AGENT_COMPACT_CONTEXT: f }), { prepare: ["progress を最新に", "status を見直す"], then: "none" });
+  for (const text of ["prepare=x\n", "v=2\nprepare=x\n", "v=1\nauto=x\n", "v=1\nthen=later\n"]) {
+    const r = readCompactContext({ AGENT_COMPACT_CONTEXT: contextFile(text) });
+    assert.deepEqual([r.prepare, r.then], [[], null], text);
+    assert.ok(r.error, text);
+  }
+  assert.ok(readCompactContext({ AGENT_COMPACT_CONTEXT: "rel/ctx" }).error);
+  assert.ok(readCompactContext({ AGENT_COMPACT_CONTEXT: "/nonexistent/ctx" }).error);
+});
+
+test("pnpm workflow agent-terminal compactPlan: 一時ファイルの場所・足す手順・続き・打つ者・次の 1 行。会話の id が無ければ exit 3", () => {
+  const out = (env) => {
+    const printed = [];
+    const code = runCompactPlan(env, (l) => printed.push(l));
+    return { code, text: printed.join("\n") };
+  };
+  assert.equal(out(tmuxEnv()).code, 3);
+  assert.equal(out(tmuxEnv({ CLAUDE_CODE_SESSION_ID: "../x" })).code, 3);
+
+  const env = tmuxEnv({ CLAUDE_CODE_SESSION_ID: "s-9", AGENT_TERMINAL: "none" });
+  const plain = out(env);
+  assert.equal(plain.code, 0);
+  assert.equal(
+    plain.text,
+    [
+      `handoff: ${path.join(env.AGENT_TERMINAL_STATE_DIR, "handoff", "s-9.md")}`,
+      "prepare: none",
+      "then: continue",
+      "typed by: the user (compactSelf prints the line to show them)",
+      'next: pnpm workflow agent-terminal compactSelf --then continue "<one line: what to re-read first>"',
+    ].join("\n"),
+  );
+
+  const team = out({ ...env, AGENT_COMPACT_CMD: "tool compact i1 tabA", AGENT_COMPACT_CONTEXT: contextFile("v=1\nprepare=progress を最新に\nthen=none\n") });
+  assert.match(team.text, /^prepare: progress を最新に$/m);
+  assert.match(team.text, /^then: none$/m);
+  assert.match(team.text, /^typed by: the tool that runs this session/m);
+  assert.match(team.text, /compactSelf --then none /);
+
+  const broken = out({ ...env, AGENT_COMPACT_CONTEXT: contextFile("v=9\n") });
+  assert.match(broken.text, /^context: ignored — /m);
+  assert.match(broken.text, /^prepare: none$/m);
+});
+
+test("pnpm workflow agent-terminal compactSelf: 一時ファイルの頭に続きと時刻を書き、頼み先に AGENT_COMPACT_HANDOFF で渡す。--then の既定は文脈の then。無くても断らない", () => {
+  const env = tmuxEnv({ CLAUDE_CODE_SESSION_ID: "s-3", AGENT_COMPACT_CMD: "tool compact", AGENT_COMPACT_CONTEXT: contextFile("v=1\nthen=none\n") });
+  const file = handoffFile("s-3", env);
+  const ran = [];
+  const { deps } = recorder();
+  deps.run = (cmd, args, runEnv) => {
+    ran.push({ handoff: runEnv.AGENT_COMPACT_HANDOFF, then: runEnv.AGENT_COMPACT_THEN });
+    return { status: 0, stdout: "queued", stderr: "" };
+  };
+  // 一時ファイルが無い: 断らずに渡す(読み戻すものが無いだけ)
+  assert.equal(runCompactSelf(["x"], env, deps), 0);
+  assert.equal(existsSync(file), false);
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, "state: a\n");
+  assert.equal(runCompactSelf(["x"], env, deps), 0);
+  assert.equal(runCompactSelf(["--then", "wait", "x"], env, deps), 0);
+  assert.deepEqual(ran, [
+    { handoff: file, then: "none" },
+    { handoff: file, then: "none" },
+    { handoff: file, then: "wait" },
+  ]);
+  // 頭は 1 行だけ(書き直すたびに置き換わる)
+  const text = readFileSync(file, "utf8");
+  assert.match(text, /^<!-- agent-terminal handoff: then=wait at=\d+ -->\nstate: a\n$/);
+});
+
+test("引き継ぎの一時ファイル: 一度きりの読み戻し(読んだら消す)。空・古い物は読まない。頭が無ければ continue。掃除は 14 日", () => {
+  const env = tmuxEnv();
+  const file = handoffFile("s-4", env);
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, "state: b\n");
+  assert.equal(stampHandoff(file, "wait", 1000), true);
+  assert.deepEqual(takeHandoff(file, 2000), { then: "wait", body: "state: b" });
+  assert.equal(existsSync(file), false);
+  assert.equal(takeHandoff(file, 2000), null);
+  assert.equal(stampHandoff(file, "wait"), false);
+
+  writeFileSync(file, "state: c\n");
+  stampHandoff(file, "continue", 1000);
+  assert.equal(takeHandoff(file, 1000 + HANDOFF_FRESH_MS + 1), null);
+  assert.equal(existsSync(file), false);
+  writeFileSync(file, "  \n");
+  assert.equal(takeHandoff(file), null);
+  writeFileSync(file, "state: d\n");
+  assert.deepEqual(takeHandoff(file), { then: "continue", body: "state: d" });
+  assert.equal(handoffFile("../x", env), "");
+  assert.equal(takeHandoff(""), null);
+
+  const oldFile = handoffFile("s-old", env);
+  const newFile = handoffFile("s-new", env);
+  writeFileSync(oldFile, "x");
+  writeFileSync(newFile, "y");
+  const past = (Date.now() - HANDOFF_KEEP_MS - 60_000) / 1000;
+  utimesSync(oldFile, past, past);
+  sweepHandoffs(env);
+  assert.equal(existsSync(oldFile), false);
+  assert.equal(existsSync(newFile), true);
+});
+
+test("hook: 圧縮の後の SessionStart は端末に関係なく引き継ぎを出して消す。ほかの source では出さず残す", () => {
+  const guide = readFileSync(guideFile("tmux"), "utf8");
+  for (const [env, prefix] of [
+    [tmuxEnv({ AGENT_TERMINAL: "none" }), ""],
+    [tmuxEnv({ TMUX: "", TMUX_PANE: "" }), ""],
+    [tmuxEnv(), guide],
+  ]) {
+    const file = handoffFile("s-5", env);
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(file, "state: e\n");
+    stampHandoff(file, "wait");
+    const startup = runHook("start", env, { session_id: "s-5", source: "startup" });
+    assert.equal(startup.stdout, prefix);
+    assert.equal(existsSync(file), true);
+    // 別の会話の圧縮では読まない
+    assert.equal(runHook("start", env, { session_id: "s-6", source: "compact" }).stdout, prefix);
+    assert.equal(existsSync(file), true);
+    const r = runHook("start", env, { session_id: "s-5", source: "compact" });
+    assert.equal(r.status, 0);
+    assert.equal(r.stdout, `${prefix}# compact handoff (written by this session right before the compact: re-read the files it names, then wait for the user)\nstate: e\n`);
+    assert.equal(existsSync(file), false);
   }
 });
