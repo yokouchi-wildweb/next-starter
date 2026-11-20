@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import type { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
 
-import { MediaUploader, type MediaUploaderProps } from "@/lib/mediaInputSuite";
+import { MediaUploader, type MediaUploaderProps } from "../components";
 
 type BaseProps = Omit<MediaUploaderProps, "initialUrl" | "onUrlChange">;
 

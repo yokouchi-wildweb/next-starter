@@ -7,7 +7,7 @@ import {
   ControlledMediaUploaderMulti,
   type ControlledMediaUploaderMultiProps,
 } from "./ControlledMediaUploaderMulti";
-import { usePendingMediaUploads, usePendingMediaDeletion } from "@/lib/mediaInputSuite";
+import { usePendingMediaUploads, usePendingMediaDeletion } from "../hooks";
 
 type ControlledMediaUploaderMultiExternalProps<
   TFieldValues extends FieldValues,

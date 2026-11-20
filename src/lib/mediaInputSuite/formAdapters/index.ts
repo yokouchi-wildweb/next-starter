@@ -4,3 +4,4 @@ export * from "./ManualMediaUploader";
 export * from "./ControlledMediaUploader";
 export * from "./ControlledMediaUploaderMulti";
 export * from "./useMediaUploaderMultiField";
+export * from "./useMediaUploaderField";
