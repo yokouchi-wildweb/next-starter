@@ -7,13 +7,13 @@ argument-hint: "[確かめたいこと(省略で変更の中身から選ぶ)]"
 role: check the change of this session with `pnpm workflow devcheck plan|run|cleanup` and Playwright MCP, after one go
 source_of_truth: kinds, commands, policy, fork items, exit codes, DEVCHECK_CONTEXT = scripts/workflow/devcheck/README.md | the processing stays in the command
 args: $ARGUMENTS
-out_of_scope: a check sheet of an order (`<order>.check.md`) → /patrol | the schema push (pnpm db:push) and anything on production are never a check
+out_of_scope: a check sheet of an order (`<order>.check.md`) → /patrol | the schema push (pnpm db:push) and anything on production are never a check | tests, lint, types and pnpm check are never a devcheck: checks run only inside a ship tool (D357: /ship step 2, /flux's segment checks)
 
 ## STEPS
 1. **facts**: `pnpm workflow devcheck plan` | exit 2 → tell the user its one line; STOP
    - read: policy per kind (`自動` / `別に確認` / `手で`), fork items, context (`単体` = take a go | approval=auto = no go), state (server, live servers / limit, admin)
 2. **pick** from the candidates what this change needs (the args, else the diff of this session): only what proves the change works
-   - kinds: server · browser · login · db-write · db-delete · env-add · test · check · fork items | cleanup is always the last bullet
+   - kinds: server · browser · login · db-write · db-delete · env-add · fork items | cleanup is always the last bullet
    - `手で` (off) items stay in the list as the user's part, never run by you
 3. **ask once** (skip when the context says approval=auto):
    ```

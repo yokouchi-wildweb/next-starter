@@ -31,7 +31,7 @@ export { DevcheckError } from "./lib.kinds.mjs";
 
 // ---- 種類 ---------------------------------------------------------------------------------
 
-export type KindName = "server" | "browser" | "login" | "db-write" | "db-delete" | "env-add" | "test" | "check";
+export type KindName = "server" | "browser" | "login" | "db-write" | "db-delete" | "env-add";
 
 export type Kind = {
   /** 何をするか(候補の 1 行に出す) */
@@ -48,7 +48,7 @@ export const KINDS = KINDS_DATA as Record<KindName, Kind>;
 export const KIND_NAMES = KIND_NAMES_DATA as KindName[];
 
 /** 許可のフックだけの種類(計画の候補には出ない)と、方針の鍵(種類 + フックだけの種類) */
-export type HookKindName = "peer";
+export type HookKindName = "peer" | "test" | "check";
 export const HOOK_KINDS = HOOK_KINDS_DATA as HookKindName[];
 /** 危険な 3 つ(off | manual だけ、書いていなければ manual) */
 export type DangerName = "db_push" | "env_production" | "deploy";
@@ -118,6 +118,7 @@ export const scanItems = (itemsDir: string, repoRoot: string, scripts: Record<st
     else if (typeof command !== "string" || command.trim() === "") rejected.push({ file: entry, reason: "command がない" });
     else if (SHELL_OPERATORS.test(command)) rejected.push({ file: entry, reason: "command にシェルの記号(; & | < > ` $()は使えない" });
     else if (/(^|\s)(--env|--confirm)(=|\s|$)|db:push/.test(command)) rejected.push({ file: entry, reason: "command に本番の指定・db:push は使えない" });
+    else if (/^pnpm\s+(-s\s+)?(test|check|typecheck|lint)(\s|$)/.test(command.trim())) rejected.push({ file: entry, reason: "command に検査(test / check / typecheck / lint)は使えない: 検査は出荷の道具の中だけ(D357)" });
     else if (!isRepoEntry(command, repoRoot, scripts)) rejected.push({ file: entry, reason: "command はこのリポの入口(pnpm <script> / pnpm workflow / pnpm ops)だけ" });
     else items.push({ name, kind: kind as KindName, command: command.trim(), what: typeof what === "string" ? what : "", file: entry });
   }
@@ -293,7 +294,7 @@ export const formatPlan = (plan: Plan): string => {
     `devcheck plan — ${plan.checkout}`,
     `文脈: ${ctx.file ? `${ctx.file}(approval=${ctx.approval}、server=${ctx.server}、dev_max=${ctx.devMax ?? "-"}、作業場所 ${ctx.workdirs.length}${ctx.auto.length ? `、上書き auto=${ctx.auto.join(",")}` : ""})` : "単体(毎回 go を取る・サーバーは自分で立てる)"}`,
     ...formatState(plan.state, ctx).map((l) => l),
-    `方針: ${KIND_NAMES.map((k) => `${k}=${plan.policy[k]}`).join(" ")} | 危険: ${DANGER_NAMES.map((k) => `${k}=${plan.policy[k]}`).join(" ")}`,
+    `方針: ${[...KIND_NAMES, ...HOOK_KINDS].map((k) => `${k}=${plan.policy[k]}`).join(" ")} | 危険: ${DANGER_NAMES.map((k) => `${k}=${plan.policy[k]}`).join(" ")}`,
   ];
   if (plan.rejected.length > 0) lines.push(`断った fork の項目: ${plan.rejected.map((r) => `${r.file}(${r.reason})`).join("、")}`);
   lines.push("候補:");

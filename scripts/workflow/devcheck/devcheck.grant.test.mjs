@@ -146,8 +146,6 @@ const ALLOWS = [
   ['pnpm workflow devcheck run db-write "INSERT INTO shops (name) VALUES (\'a\') RETURNING id"', "db-write"],
   ['pnpm workflow devcheck run db-delete "DELETE FROM shops WHERE id = 3"', "db-delete"],
   ["pnpm workflow devcheck run env-add FOO_KEY", "env-add"],
-  ["pnpm workflow devcheck run test scripts/workflow/devcheck", "test"],
-  ["pnpm workflow devcheck run check skills", "check"],
   ["pnpm workflow devcheck run seed-shop", "db-write"],
   ["pnpm workflow dev-tab run", "server"],
   ["pnpm workflow dev-tab run --background", "server"],
@@ -200,6 +198,10 @@ test("許可しない形 → 何も返さない", () => {
     'pnpm ops db inspect query "SELECT 1" --json',
     "pnpm workflow devcheck run browser",
     "pnpm workflow devcheck run nope",
+    // 検査は devcheck の種類ではない(D357): pnpm test / pnpm check をそのまま打つ形だけ(/ship の手順 2)
+    "pnpm workflow devcheck run test scripts/workflow/devcheck",
+    "pnpm workflow devcheck run check skills",
+    "pnpm workflow devcheck run smoke",
     "pnpm workflow devcheck run ../x",
     "pnpm workflow devcheck run server; rm -rf x",
     "pnpm workflow devcheck run server && pnpm db:x",
@@ -389,9 +391,9 @@ test("入力の変換(Claude Code の形)と出力", () => {
   });
 });
 
-test("方針の鍵 = 種類 + peer(計画の候補には peer を出さない)、このリポの repo.json は通常 auto・危険な 3 つ manual(書いていない鍵の既定は manual、D265)", async () => {
-  assert.deepEqual(POLICY_KEYS, [...KIND_NAMES, "peer"]);
-  assert.ok(!KIND_NAMES.includes("peer"));
+test("方針の鍵 = 種類 + フックだけの種類 peer・test・check(計画の候補には出さない、検査は出荷の道具の中だけ D357)、このリポの repo.json は通常 auto・危険な 3 つ manual(書いていない鍵の既定は manual、D265)", async () => {
+  assert.deepEqual(POLICY_KEYS, [...KIND_NAMES, "peer", "test", "check"]);
+  for (const k of ["peer", "test", "check"]) assert.ok(!KIND_NAMES.includes(k), k);
   assert.deepEqual(await loadPolicy(path.join(TOOL_DIR, "../../..")), { ...ALL_AUTO, db_push: "manual", env_production: "manual", deploy: "manual" });
 });
 

@@ -15,6 +15,7 @@ import {
   CLEANUP,
   DevcheckError,
   KINDS,
+  HOOK_KINDS,
   KIND_NAMES,
   POLICY_KEYS,
   STANDALONE,
@@ -52,7 +53,9 @@ test("種類の表: スキーマの push・本番の指定・確認の埋め込�
   }
   assert.match(KINDS["db-write"].command ?? "", /^pnpm ops db inspect query /);
   assert.match(KINDS["db-delete"].command ?? "", /^pnpm ops db inspect query /);
-  assert.deepEqual(KIND_NAMES, ["server", "browser", "login", "db-write", "db-delete", "env-add", "test", "check"]);
+  assert.deepEqual(KIND_NAMES, ["server", "browser", "login", "db-write", "db-delete", "env-add"]);
+  // 検査(test / check)は確かめの種類ではない(D357): 許可のフックだけの種類
+  assert.deepEqual(HOOK_KINDS, ["peer", "test", "check"]);
 });
 
 test("方針: repo.json の agent.* から。無い鍵は既定(全部 manual、危険な 3 つも、D265)、値の誤り・宣言に無い鍵は止める", () => {
@@ -105,29 +108,32 @@ test("fork の項目: このリポの入口だけを候補にし、知らない�
   const items = path.join(repo, "items");
   mkdirSync(items);
   const put = (file: string, data: unknown) => writeFileSync(path.join(items, file), typeof data === "string" ? data : JSON.stringify(data));
-  put("a-ok-script.json", { name: "orders-test", kind: "test", command: "pnpm test src/features/order", what: "注文のテスト" });
-  put("b-ok-workflow.json", { name: "orders-smoke", kind: "check", command: "pnpm workflow orders smoke" });
+  put("a-ok-script.json", { name: "orders-seed", kind: "db-write", command: "pnpm seed src/features/order", what: "注文の確かめのデータ" });
+  put("b-ok-workflow.json", { name: "orders-smoke", kind: "login", command: "pnpm workflow orders smoke" });
   put("c-kind.json", { name: "x", kind: "deploy", command: "pnpm test" });
-  put("d-foreign.json", { name: "x", kind: "test", command: "npx vitest" });
-  put("e-shell.json", { name: "x", kind: "test", command: "pnpm test && rm -rf /" });
-  put("f-pipe.json", { name: "x", kind: "test", command: "pnpm test | tee out" });
+  put("d-foreign.json", { name: "x", kind: "login", command: "npx vitest" });
+  put("e-shell.json", { name: "x", kind: "login", command: "pnpm test && rm -rf /" });
+  put("f-pipe.json", { name: "x", kind: "login", command: "pnpm test | tee out" });
   put("g-prod.json", { name: "x", kind: "db-write", command: "pnpm ops db inspect query --env production" });
   put("h-missing-action.json", { name: "x", kind: "check", command: "pnpm workflow orders nope" });
   put("i-broken.json", "{ not json");
   put("j-name.json", { name: "Bad Name", kind: "test", command: "pnpm test" });
-  const scanned = scanItems(items, repo, { test: "node run.mjs" });
+  put("k-test-kind.json", { name: "x", kind: "test", command: "pnpm workflow orders smoke" });
+  put("l-check-command.json", { name: "x", kind: "db-write", command: "pnpm test src/features/order" });
+  const scanned = scanItems(items, repo, { test: "node run.mjs", seed: "node seed.mjs" });
   assert.deepEqual(
     scanned.items.map((i) => [i.name, i.kind, i.command]),
     [
-      ["orders-test", "test", "pnpm test src/features/order"],
-      ["orders-smoke", "check", "pnpm workflow orders smoke"],
+      ["orders-seed", "db-write", "pnpm seed src/features/order"],
+      ["orders-smoke", "login", "pnpm workflow orders smoke"],
     ],
   );
   assert.deepEqual(
     scanned.rejected.map((r) => r.file),
-    ["c-kind.json", "d-foreign.json", "e-shell.json", "f-pipe.json", "g-prod.json", "h-missing-action.json", "i-broken.json", "j-name.json"],
+    ["c-kind.json", "d-foreign.json", "e-shell.json", "f-pipe.json", "g-prod.json", "h-missing-action.json", "i-broken.json", "j-name.json", "k-test-kind.json", "l-check-command.json"],
   );
   assert.match(scanned.rejected.find((r) => r.file === "e-shell.json")?.reason ?? "", /シェルの記号/);
+  assert.match(scanned.rejected.find((r) => r.file === "l-check-command.json")?.reason ?? "", /検査は出荷の道具の中だけ/);
   assert.match(scanned.rejected.find((r) => r.file === "g-prod.json")?.reason ?? "", /本番の指定/);
   assert.deepEqual(scanItems(path.join(repo, "none"), repo, {}), { items: [], rejected: [] });
 });
@@ -190,7 +196,7 @@ test("計画: 上流の種類 + fork の項目、最後はいつも片付け。�
     checkout: "/repo",
     context: { ...STANDALONE, file: "/ctx", server: "background" as const, devMax: 2 },
     policy: { ...ALL_AUTO, "env-add": "off" as const, "db-write": "manual" as const },
-    items: [{ name: "orders-test", kind: "test" as const, command: "pnpm test src/features/order", what: "", file: "a.json" }],
+    items: [{ name: "orders-test", kind: "db-write" as const, command: "pnpm seed src/features/order", what: "", file: "a.json" }],
     rejected: [{ file: "e.json", reason: "シェルの記号" }],
     state: { server: null, liveServers: 1, admin: { present: false } },
   };

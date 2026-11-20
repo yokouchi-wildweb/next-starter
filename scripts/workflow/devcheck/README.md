@@ -29,11 +29,10 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 | db-write | `run db-write "INSERT INTO <表> … RETURNING <列>"` | `pnpm ops db inspect query "<SQL>" --json`。返った id を記録し、cleanup で消す |
 | db-delete | `run db-delete "DELETE FROM <表> WHERE …"` | 同じ入口 |
 | env-add | `run env-add <鍵>`(値は標準入力) | `.env.development` だけに 1 行足す。もうある鍵は書き換えない。値は表示しない |
-| test | `run test <path…>` | `pnpm test <path…>` |
-| check | `run check <target…>` | `pnpm check <target…>` |
 | fork の項目 | `run <項目の名前>` | 項目のファイルのコマンド(引数は取らない) |
 
 - スキーマの push(`pnpm db:push`)・本番(`--env production`・`--confirm`)はどの種類にも無い(テストで固定)
+- テスト・検査(`pnpm test` / `check` / `typecheck` / `lint`)も種類に無い: 検査は出荷の道具の中だけで回す(D357: /ship の手順 2・/flux の区間の検査)。devcheck は動く画面と開発の道具の確かめだけ。fork の項目の command にも書けない
 - DB の種類は **開発のテスト用データ専用**。guard を通る入口(`pnpm ops db inspect query`: 書く入口として guard を通り、既定は開発、本番は人の確認が要る)を `--env` を付けずに使う。workflow の道具は DB を直接書けない(lint `tools-no-db-write`)
   - 生の SQL なのでサービスを通らない(監査・リクエストの記憶・日付の扱い)。user・setting(リクエストの記憶を持つ表)の行は画面から作る
   - 1 文だけ: `INSERT INTO <表> … RETURNING <列>`(作った行を消すため RETURNING が要る)/ `DELETE FROM <表> WHERE …`。DDL・UPDATE・複数の文・WHERE の無い削除・スキーマつきの表は断る
@@ -54,8 +53,8 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 
 | 鍵 | 値 | 既定 |
 |---|---|---|
-| `agent.server`・`agent.browser`・`agent.login`・`agent.db_write`・`agent.db_delete`・`agent.env_add`・`agent.test`・`agent.check` | `auto` / `manual` / `off` | `manual` |
-| `agent.peer`(許可のフックだけの種類、計画の候補に出ない) | 同じ | `manual` |
+| `agent.server`・`agent.browser`・`agent.login`・`agent.db_write`・`agent.db_delete`・`agent.env_add` | `auto` / `manual` / `off` | `manual` |
+| `agent.peer`・`agent.test`・`agent.check`(許可のフックだけの種類、計画の候補に出ない: peer = `pnpm workflow peer`、test / check = `pnpm test` / `pnpm check` をそのまま打つ形。/ship の手順 2 の検査がこれで通る) | 同じ | `manual` |
 | `agent.enabled`(全体のスイッチ) | `true` / `false` | `true` |
 | `agent.db_push`(開発の DB の反映だけ)・`agent.env_production`(本番の env を書く)・`agent.deploy`(本番へ出す、本番の DB の反映を含む) | `off` / `manual`(`auto`・知らない値は `off`) | `manual` |
 | `agent.db_push.entry` | 入口の命令 | `pnpm db:push` |

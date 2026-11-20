@@ -55,18 +55,21 @@ const fake = (over: Partial<Deps> = {}, answers: (argv: string[]) => RunResult =
   return f;
 };
 
-test("方針: off は打たずに断る(exit 4・手で)、manual は --manual-go の時だけ、browser / cleanup は run の対象ではない", async () => {
-  const off = fake({ policy: { ...ALL_AUTO, test: "off" } });
-  assert.equal((await execRun(["test", "src/x"], off)).code, 4);
+test("方針: off は打たずに断る(exit 4・手で)、manual は --manual-go の時だけ、browser / cleanup / 検査(test・check)は run の対象ではない", async () => {
+  const off = fake({ policy: { ...ALL_AUTO, login: "off" } });
+  assert.equal((await execRun(["login"], off)).code, 4);
   assert.deepEqual(off.typed, []);
   assert.match(off.lines[0], /方針で off: 人が打つなら .+、任せるなら \/repo-policy で agent\.\S+ を manual に/);
-  const manual = fake({ policy: { ...ALL_AUTO, check: "manual" } });
-  assert.equal((await execRun(["check", "rules"], manual)).code, 4);
-  assert.equal((await execRun(["check", "rules", "--manual-go"], manual)).code, 0);
-  assert.deepEqual(manual.typed, [["pnpm", "check", "rules"]]);
+  const manual = fake({ policy: { ...ALL_AUTO, login: "manual" } });
+  assert.equal((await execRun(["login"], manual)).code, 4);
+  assert.equal((await execRun(["login", "--manual-go"], manual)).code, 0);
+  assert.deepEqual(manual.typed, [["pnpm", "-s", "workflow", "dev-admin", "run"]]);
   await assert.rejects(execRun(["browser"], fake()), /エージェントが Playwright/);
   await assert.rejects(execRun(["cleanup"], fake()), /devcheck cleanup/);
   await assert.rejects(execRun(["deploy"], fake()), /知らない候補/);
+  // 検査は出荷の道具の中だけ(D357): devcheck の種類ではない
+  await assert.rejects(execRun(["test", "src/x"], fake()), /知らない候補/);
+  await assert.rejects(execRun(["check", "rules"], fake()), /知らない候補/);
 });
 
 test("DB の 1 文: INSERT … RETURNING / DELETE … WHERE だけ。DDL・UPDATE・複数の文・WHERE 無し・RETURNING 無しは断る", () => {
@@ -154,19 +157,17 @@ test("env-add: .env.development に足し、値は出さない。もうある鍵
   assert.equal(appendEnv("A=1", "B", "2"), "A=1\nB=2\n");
 });
 
-test("test / check / login / fork の項目: シェルを通さず打ち、終了コードをそのまま返す", async () => {
-  const items: Item[] = [{ name: "orders-smoke", kind: "check", command: "pnpm workflow orders smoke", what: "", file: "a.json" }];
-  const f = fake({ items }, (argv) => ({ code: argv[1] === "test" ? 7 : 0, stdout: "out", stderr: "" }));
-  assert.equal((await execRun(["test", "src/a", "src/b"], f)).code, 7);
-  await execRun(["login"], f);
+test("login / fork の項目: シェルを通さず打ち、終了コードをそのまま返す", async () => {
+  const items: Item[] = [{ name: "orders-smoke", kind: "login", command: "pnpm workflow orders smoke", what: "", file: "a.json" }];
+  const f = fake({ items }, (argv) => ({ code: argv[2] === "workflow" && argv[3] === "dev-admin" ? 7 : 0, stdout: "out", stderr: "" }));
+  assert.equal((await execRun(["login"], f)).code, 7);
   await execRun(["orders-smoke"], f);
   assert.deepEqual(f.typed, [
-    ["pnpm", "test", "src/a", "src/b"],
     ["pnpm", "-s", "workflow", "dev-admin", "run"],
     ["pnpm", "workflow", "orders", "smoke"],
   ]);
   await assert.rejects(execRun(["orders-smoke", "extra"], f), /引数を取らない/);
-  const offItem = fake({ items, policy: { ...ALL_AUTO, check: "off" } });
+  const offItem = fake({ items, policy: { ...ALL_AUTO, login: "off" } });
   assert.equal((await execRun(["orders-smoke"], offItem)).code, 4);
 });
 

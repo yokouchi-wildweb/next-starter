@@ -3,7 +3,8 @@
 // 種類と方針の唯一の置き場(素の ESM)。devcheck の命令(lib.ts が型を付けて出し直す)と、許可のフック(lib.grant.mjs、
 // tsx なしの node で毎回動く)の両方がここを読む。別の対応表を作らない。
 // - KINDS: やることの種類と打つコマンドの形(上流のコード。スキーマ push・本番は種類に無い)
-// - HOOK_KINDS: 許可のフックだけが使う種類(devcheck の候補には出ない)。peer = pnpm workflow peer の送る・読む口
+// - HOOK_KINDS: 許可のフックだけが使う種類(devcheck の候補には出ない)。peer = pnpm workflow peer の送る・読む口、
+//   test / check = pnpm test・pnpm check をそのまま打つ形(/ship の手順 2 が使う。検査は出荷の道具の中だけ、D357: devcheck の確かめではない)
 // - 方針: リポ直下の repo.json の agent.* の鍵(種類・peer・全体のスイッチ enabled・危険な 3 つと入口)。種類と既定値はこのファイル(上流のコード)
 // 規則と使い方: scripts/workflow/devcheck/README.md
 
@@ -30,14 +31,16 @@ export const KINDS = {
   "db-write": { what: "開発の DB に行を書く(作った行は片付けで消す)", command: 'pnpm ops db inspect query "<SQL>"', writes: true },
   "db-delete": { what: "開発の DB の行を消す", command: 'pnpm ops db inspect query "<SQL>"', writes: true },
   "env-add": { what: "開発の env(.env.development)に値を足す(値は表示しない)", command: null, writes: true },
-  test: { what: "テストを走らせる", command: "pnpm test <path>", writes: false },
-  check: { what: "検査を走らせる", command: "pnpm check <target>", writes: false },
 };
 
 export const KIND_NAMES = Object.keys(KINDS);
 
-/** 許可のフックだけの種類(devcheck の計画の候補には出さない)。方針の鍵は持つ(fork が off にできる) */
-export const HOOK_KINDS = ["peer"];
+/**
+ * 許可のフックだけの種類(devcheck の計画の候補には出さない)と人が打つ命令の形(null = エージェントの道具)。方針の鍵は持つ
+ * (fork が off にできる)。test / check は検査(D357: 出荷の道具の中でだけ回す)で、devcheck の確かめの種類ではない
+ */
+export const HOOK_COMMANDS = { peer: null, test: "pnpm test <path>", check: "pnpm check <target>" };
+export const HOOK_KINDS = Object.keys(HOOK_COMMANDS);
 
 /** 方針の鍵 = 種類 + フックだけの種類 */
 export const POLICY_KEYS = [...KIND_NAMES, ...HOOK_KINDS];
@@ -213,7 +216,7 @@ export const humanCommandOf = (kind, entries) => {
     const e = entries?.[kind]?.entry ?? DANGER_KINDS[kind].entries.entry;
     return e === "-" ? "(上流の入口なし。人が手で行う)" : kind === "deploy" ? `${e}(本番の DB の反映が要るなら先に ${entries?.deploy?.db_entry ?? DANGER_KINDS.deploy.entries.db_entry})` : e;
   }
-  return KINDS[kind]?.command ?? "(エージェントの道具で行う種類)";
+  return KINDS[kind]?.command ?? HOOK_COMMANDS[kind] ?? "(エージェントの道具で行う種類)";
 };
 
 /** off の時の 1 行(D125): 実行せず人に頼む */

@@ -9,12 +9,12 @@
 項目のファイルの形:
 
 ```json
-{ "name": "orders-smoke", "kind": "test", "command": "pnpm test src/features/order", "what": "注文の通しのテスト" }
+{ "name": "seed-shop", "kind": "db-write", "command": "pnpm task seed-shop", "what": "確かめ用の店を開発の DB に作る" }
 ```
 
 - `name`: 英小文字・数字・ハイフン
-- `kind`: `pnpm workflow devcheck plan` の種類のどれか(server・browser・login・db-write・db-delete・env-add・test・check)。方針はその種類のものが効く
-- `command`: このリポの入口だけ(`pnpm <package.json の script>` / `pnpm workflow <対象> <動作>` / `pnpm ops <対象> <動作>`)。シェルの記号(`;` `&` `|` `<` `>` `` ` `` `$(`)・`--env`・`--confirm`・`db:push` は使えない
+- `kind`: `pnpm workflow devcheck plan` の種類のどれか(server・browser・login・db-write・db-delete・env-add)。方針はその種類のものが効く。テスト・検査は項目にしない(検査は出荷の道具の中だけ、D357)
+- `command`: このリポの入口だけ(`pnpm <package.json の script>` / `pnpm workflow <対象> <動作>` / `pnpm ops <対象> <動作>`)。シェルの記号(`;` `&` `|` `<` `>` `` ` `` `$(`)・`--env`・`--confirm`・`db:push`・検査(`pnpm test` / `check` / `typecheck` / `lint`)は使えない
 
 ## Internals
 

@@ -99,9 +99,6 @@ export const execRun = async (args: string[], deps: Deps): Promise<ExecResult> =
     }
     case "login":
       return passThrough(deps, deps.runner(["pnpm", "-s", "workflow", "dev-admin", "run"]));
-    case "test":
-    case "check":
-      return passThrough(deps, deps.runner(["pnpm", target.kind, ...rest]));
     case "db-write":
     case "db-delete": {
       const sql = rest.join(" ");
