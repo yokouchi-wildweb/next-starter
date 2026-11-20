@@ -8,22 +8,14 @@ export type { AppFormProps } from "./AppForm";
 export { useAutoSaveContext, useAutoSaveConfig } from "./AutoSave";
 export type { AutoSaveOptions, AutoSaveContextValue } from "./AutoSave";
 
-export { Label } from "./Label";
-export type { LabelProps } from "./Label";
-
 export * from "./types";
-export * from "./utils";
 
 // サブディレクトリ
-export * from "./Button";
-export { FilePickButton } from "./FilePickButton";
-export type { FilePickButtonProps } from "./FilePickButton";
 // FieldRenderer（FieldType/FieldGroup と衝突するため、直接インポートを推奨）
 export { FieldRenderer } from "./FieldRenderer";
 export type { FieldRendererProps, MediaState } from "./FieldRenderer";
 export * from "./Field";
 export * from "./MediaHandler";
 
-// Controlled と Manual は同名コンポーネントがあるため名前空間として提供
+// Controlled は Input の部品と同名のため名前空間として提供
 export * as Controlled from "./Input/Controlled";
-export * as Manual from "./Input/Manual";

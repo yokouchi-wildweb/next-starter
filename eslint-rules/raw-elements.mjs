@@ -25,9 +25,9 @@ export const WRAPPERS = {
   article: "Layout/Section(as=\"article\")",
   main: "Layout/Main",
   button: "Form/Button(形を自分で付けるなら variant / size none)",
-  input: "Form/Input/Manual の Input・BooleanCheckboxInput 等、ファイル選択のボタンは Form/FilePickButton",
-  textarea: "Form/Input/Manual の Textarea",
-  label: "Form/Label",
+  input: "Input/Input・Input/BooleanCheckboxInput 等、ファイル選択のボタンは Input/FilePickButton",
+  textarea: "Input/Textarea",
+  label: "Input/Label",
   img: "Media/AppImage(選んだ直後の blob: の下見は Media/PreviewImage)",
   a: "Navigation/Link",
 };

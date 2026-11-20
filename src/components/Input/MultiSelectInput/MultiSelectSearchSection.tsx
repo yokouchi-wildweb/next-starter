@@ -1,0 +1,11 @@
+// src/components/Input/MultiSelectInput/MultiSelectSearchSection.tsx
+
+import { CommandInput } from "@/components/Primitives/Command";
+
+type Props = {
+  placeholder?: string;
+};
+
+export function MultiSelectSearchSection({ placeholder }: Props) {
+  return <CommandInput placeholder={placeholder ?? "キーワードで絞り込み"} />;
+}
