@@ -2,7 +2,7 @@
 
 "use client";
 
-import { ItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
+import { ItemNavigator } from "@/components/Admin/ItemNavigator";
 import { useDomainItemNavigation, type UseDomainItemNavigationOptions } from "@/lib/crud/hooks";
 
 export type AdminEditItemNavigatorProps<T extends { id: string }> = UseDomainItemNavigationOptions<T> & {

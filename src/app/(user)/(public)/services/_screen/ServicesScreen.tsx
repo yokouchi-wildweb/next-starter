@@ -7,7 +7,7 @@
 import type { ScreenProps } from "@/lib/screens/types";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 import { loadServicesScreen } from "./loader";
 

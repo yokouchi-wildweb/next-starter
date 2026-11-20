@@ -14,13 +14,14 @@
 
 "use client";
 
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { ChevronRight, Clock } from "lucide-react";
 
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Para, Span } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 
 import { useActiveBankTransfer } from "../../hooks/useActiveBankTransfer";
 

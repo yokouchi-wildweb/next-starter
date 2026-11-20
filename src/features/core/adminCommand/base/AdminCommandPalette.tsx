@@ -15,7 +15,7 @@ import {
 } from "@/components/Primitives/Command";
 import { Flex } from "@/components/Layout/Flex";
 import Modal from "@/components/Overlays/Modal";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { filterSearchInput } from "../utils";

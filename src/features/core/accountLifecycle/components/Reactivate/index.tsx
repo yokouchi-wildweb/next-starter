@@ -7,7 +7,8 @@ import { useCallback } from "react";
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
-import { Para, SecTitle } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { useReactivate } from "@/features/core/accountLifecycle/hooks/useReactivate";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 

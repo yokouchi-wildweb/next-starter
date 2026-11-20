@@ -5,9 +5,10 @@
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
-import { SecTitle, Span } from "@/components/TextBlocks";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
+import { Span } from "@/components/TextBlocks/Span";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import type { WalletType } from "@/features/wallet/config";
 import type { CurrencyConfig } from "@/features/core/wallet/types/currency";
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";

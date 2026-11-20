@@ -6,7 +6,7 @@
 
 "use client";
 
-import { SolidTabs } from "@/components/Navigation";
+import { SolidTabs } from "@/components/Navigation/PageTab";
 import { useGate } from "@/featureGate/client";
 
 import { buildMessagingAdminSectionTabs } from "@/features/core/messaging/lib/adminSectionTabs";

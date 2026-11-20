@@ -6,7 +6,7 @@ import { useEffect } from "react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 import { authConfig } from "@/features/auth/config";
 import { useGuardedNavigation } from "@/lib/transitionGuard";
 

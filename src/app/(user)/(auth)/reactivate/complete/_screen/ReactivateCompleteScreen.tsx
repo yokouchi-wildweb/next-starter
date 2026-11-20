@@ -5,13 +5,13 @@
 // loader は access の評価だけ(public。静的な完了案内のみ)。
 
 import type { ScreenProps } from "@/lib/screens/types";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 import { loadReactivateCompleteScreen } from "./loader";
 

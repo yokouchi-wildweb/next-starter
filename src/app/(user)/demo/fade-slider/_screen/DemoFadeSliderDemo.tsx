@@ -3,22 +3,19 @@
 "use client"
 
 import { ReactNode, useRef, useState } from "react"
-import {
-  FadeSlider,
-  type ArrowPosition,
-  type ArrowSize,
-  type ArrowVariant,
-  type DotPosition,
-  type DotVariant,
-  type FadeTransition,
-  type ResponsiveToggle,
-  type SliderImperativeApi,
-} from "@/components/Widgets"
+import { FadeSlider, type FadeTransition } from "@/components/Widgets/FadeSlider"
+import { type ArrowPosition, type ArrowSize, type ArrowVariant, type DotPosition, type DotVariant, type ResponsiveToggle, type SliderImperativeApi } from "@/components/Widgets/_shared/types"
 import { Button } from "@/components/Form/Button/Button"
 import { Label } from "@/components/Form/Label"
 import { BooleanCheckboxInput, Input } from "@/components/Form/Input/Manual"
-import { Block, Flex, Grid, Stack, Main } from "@/components/Layout"
-import { Para, SecTitle, Span } from "@/components/TextBlocks"
+import { Block } from "@/components/Layout/Block"
+import { Flex } from "@/components/Layout/Flex"
+import { Grid } from "@/components/Layout/Grid"
+import { Stack } from "@/components/Layout/Stack"
+import { Main } from "@/components/Layout/Main"
+import { Para } from "@/components/TextBlocks/Para"
+import { SecTitle } from "@/components/TextBlocks/SecTitle"
+import { Span } from "@/components/TextBlocks/Span"
 
 const sampleSlides = [
   { id: 1, title: "スライド1", body: "クロスフェードでの切り替えを確認してください。", hue: 220 },

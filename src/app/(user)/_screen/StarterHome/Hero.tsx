@@ -6,7 +6,9 @@ import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { PageTitle, Para, Span } from "@/components/TextBlocks";
+import { PageTitle } from "@/components/TextBlocks/PageTitle";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import { business } from "@/business";
 
 type HeroProps = {

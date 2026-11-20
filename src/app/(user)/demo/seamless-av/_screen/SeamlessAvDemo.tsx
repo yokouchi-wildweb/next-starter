@@ -24,9 +24,10 @@ import { Label } from "@/components/Form/Label";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Para, SecTitle } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 
 const MAX_SLOTS = 8;
 const INITIAL_SLOTS = 4;

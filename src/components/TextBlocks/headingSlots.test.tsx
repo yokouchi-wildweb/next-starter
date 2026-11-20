@@ -13,7 +13,7 @@ let PageTitle: typeof import("./PageTitle").PageTitle;
 let SecTitle: typeof import("./SecTitle").SecTitle;
 let UserPageTitle: typeof import("@/app/(user)/_layout/PageTitle").UserPageTitle;
 let AdminTitle: typeof import("@/app/admin/_layout/AdminPageTitle");
-let AdminSecTitle: typeof import("@/components/AppFrames/Admin/Elements/SecTitle").default;
+let AdminSecTitle: typeof import("@/components/Admin/SecTitle").default;
 let headingSlots: string[];
 before(async () => {
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
@@ -21,7 +21,7 @@ before(async () => {
   ({ SecTitle } = await import("./SecTitle"));
   ({ UserPageTitle } = await import("@/app/(user)/_layout/PageTitle"));
   AdminTitle = await import("@/app/admin/_layout/AdminPageTitle");
-  AdminSecTitle = (await import("@/components/AppFrames/Admin/Elements/SecTitle")).default;
+  AdminSecTitle = (await import("@/components/Admin/SecTitle")).default;
   const { FRAME_SLOTS } = await import("@/app/_layout/frame");
   headingSlots = FRAME_SLOTS.filter((s) => s.area === "heading").map((s) => s.name);
 });

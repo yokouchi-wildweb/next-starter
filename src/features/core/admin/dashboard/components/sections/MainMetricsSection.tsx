@@ -2,7 +2,7 @@
 
 import { Grid } from "@/components/Layout/Grid";
 import { Section } from "@/components/Layout/Section";
-import SecTitle from "@/components/AppFrames/Admin/Elements/SecTitle";
+import SecTitle from "@/components/Admin/SecTitle";
 
 import type { MainMetricsData } from "../../services/server/mainMetrics";
 import type { AdminDashboardSectionProps } from "../../types";

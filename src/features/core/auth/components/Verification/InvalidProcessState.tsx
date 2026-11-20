@@ -1,4 +1,4 @@
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 // 手続きが無効になった際の案内メッセージを表示
 export function InvalidProcessState() {

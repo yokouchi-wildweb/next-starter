@@ -1,7 +1,7 @@
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 
 import { Stack } from "@/components/Layout/Stack";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 export function AlreadyRegisteredState() {
   return (

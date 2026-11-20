@@ -10,17 +10,17 @@ type SortSelectProps = { options: { label: string; value: string }[]; selected?:
 let received: SortSelectProps | null = null;
 
 mock.module("next/navigation", { namedExports: { useSearchParams: () => new URLSearchParams() } });
-mock.module("@/components/AppFrames/Admin/Elements/ListTop", {
+mock.module("@/components/Admin/ListTop", {
   defaultExport: ({ children }: { children: unknown }) => createElement("div", null, children as never),
 });
-mock.module("@/components/AppFrames/Admin/Elements/SortSelect", {
+mock.module("@/components/Admin/SortSelect", {
   defaultExport: (props: SortSelectProps) => {
     received = props;
     return null;
   },
 });
-mock.module("@/components/AppFrames/Admin/Elements/SearchBox", { defaultExport: () => null });
-mock.module("@/components/Navigation", { namedExports: { Pagination: () => null } });
+mock.module("@/components/Admin/SearchBox", { defaultExport: () => null });
+mock.module("@/components/Navigation/Pagination", { defaultExport: () => null });
 mock.module("@/lib/crud/components/Buttons", { namedExports: { CreateButton: () => null } });
 
 let UserListHeader: typeof import("./UserListHeader").default;

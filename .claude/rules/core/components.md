@@ -8,7 +8,8 @@ paths:
 > **ROLE**: loaded when writing any .tsx or shared hook | holds COMPONENTS detail
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
-placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; components/AppFrames/ still holds a few shared frame parts, e.g. Kiosk) | ref: src/components/README.md
+placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; components/AppFrames/ holds no parts) | ref: src/components/README.md
+- shelf_units: a category folder of src/components has no first-level entry (no \<Category\>/index) | each part is a unit read as @/components/\<Category\>/\<Unit\> (a folder unit through its own index) | not yet: Form, AppStatusGuard
 - single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only part of an upstream route it replaces → app/\<route\>/_components/ (a route of its own → _screen/, core/screens.md)
 use_client: a component file that calls a hook starts with "use client" → core/client.md use_client
 wrappers (lint raw-elements): div → Layout/{Block,Flex,Grid,Stack} | main → Layout/Main or UserPage | section → Layout/Section | button → Form/Button | input → Form/Input | p → TextBlocks/Para | h2 → TextBlocks/SecTitle | skeleton → Skeleton/BaseSkeleton | img → Media/AppImage (never next/image directly)
@@ -54,4 +55,4 @@ async_feedback (MUST): every client background request (mutation / submit / sync
 infinite_scroll: use @/components/Widgets/InfiniteScrollList fed by @/hooks/useInfiniteScrollQuery | never build your own sentinel or an isLoading early return (it blanks the list on load-more)
 - modes: offset (fetcher: page / limit → {results, total}) = small or bounded lists | cursor (cursorFetcher: cursor / limit → CursorPage {items, nextCursor} from @/hooks/cursorPage) = growing lists (notifications, logs, history): no COUNT, rows added during reading never shift the position, removeItems needs no correction | total in cursor mode = loaded count
 action_optimistic: an action that changes list items returns the processed IDs → onSuccess calls updateItems / removeItems | revalidate only when the response cannot describe the change | never reset to refresh (it empties the list)
-kiosk / device hooks: non-scrolling one-screen pages and src/hooks device hooks (wake lock, fullscreen, orientation, useMediaQuery) → read src/components/AppFrames/Kiosk/README.md | hide frame parts / fill per route: frame.ts beside the route (frame.override.ts in a lower repo) → read src/app/_layout/frame/README.md
+kiosk / device hooks: non-scrolling one-screen pages and src/hooks device hooks (wake lock, fullscreen, orientation, useMediaQuery) → read src/components/Layout/README.md KioskFrame と 1 画面に収める画面 | hide frame parts / fill per route: frame.ts beside the route (frame.override.ts in a lower repo) → read src/app/_layout/frame/README.md

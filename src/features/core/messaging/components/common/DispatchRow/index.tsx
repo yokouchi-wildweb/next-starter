@@ -6,7 +6,7 @@
 
 import { Users } from "lucide-react";
 
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Link } from "@/components/Navigation/Link";

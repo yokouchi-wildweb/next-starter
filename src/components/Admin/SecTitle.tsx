@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/cn";
 
-import { SecTitle as DefaultSecTitle, type SecTitleProps } from "@/components/TextBlocks";
+import { SecTitle as DefaultSecTitle, type SecTitleProps } from "@/components/TextBlocks/SecTitle";
 
 const adminSecTitleVariants = cva("", {
   variants: {

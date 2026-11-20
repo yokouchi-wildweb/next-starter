@@ -8,15 +8,15 @@
 // 背景は FullScreen layer="background" でビューポート全体に敷く(コンテナ幅に閉じない)。
 
 import type { ScreenProps } from "@/lib/screens/types";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
-import FullScreen from "@/components/Layout/FullScreen";
+import { FullScreen } from "@/components/Layout/FullScreen";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { gate } from "@/featureGate";
 
 import { Backdrop } from "./StarterHome/Backdrop";

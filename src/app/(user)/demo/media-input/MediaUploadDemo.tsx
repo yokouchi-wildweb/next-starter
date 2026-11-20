@@ -4,8 +4,9 @@ import { useState } from "react";
 
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
-import { Link } from "@/components/Navigation";
-import { Para, Span } from "@/components/TextBlocks";
+import { Link } from "@/components/Navigation/Link";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import { MediaUploader, type SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 
 export const MediaUploadDemo = () => {

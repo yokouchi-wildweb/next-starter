@@ -7,7 +7,7 @@
 
 import type { ScreenProps } from "@/lib/screens/types";
 import { Main } from "@/components/Layout/Main";
-import { PageTitle } from "@/components/TextBlocks";
+import { PageTitle } from "@/components/TextBlocks/PageTitle";
 
 import { CampaignSection } from "./CampaignSection";
 import { EntrySignupSection } from "./EntrySignupSection";

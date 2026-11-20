@@ -4,7 +4,7 @@
 
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { Button } from "@/components/Form/Button";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { cn } from "@/lib/cn";
 import { GripVertical } from "lucide-react";
 

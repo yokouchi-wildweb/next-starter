@@ -8,7 +8,7 @@
 
 "use client";
 
-import { SolidTabs } from "@/components/Navigation";
+import { SolidTabs } from "@/components/Navigation/PageTab";
 import { buildCouponAdminSectionTabs } from "@/features/core/coupon/lib/adminSectionTabs";
 
 const ARIA_LABEL = "クーポン種別";

@@ -3,7 +3,7 @@
 
 import { Fragment } from "react";
 
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 import { authConfig } from "@/features/auth/config";
 
 export function RateLimitWarningContent() {

@@ -5,7 +5,7 @@
 
 "use client";
 
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 import { LogoutButton } from "@/features/core/auth/components/common/LogoutButton";
 import { useAutoLogout } from "@/features/core/auth/hooks/useAutoLogout";
 

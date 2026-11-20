@@ -1,7 +1,7 @@
 // src/components/Form/Field/Configured/MissingPurposeNotice.tsx
 // FieldConfig.purpose（ファイルの用途 ID）の無いメディア項目に出す表示
 
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 /** purpose の無いメディア項目の表示。アップロード先の用途が決まらないので入力を出さない */
 export function MissingPurposeNotice({ name }: { name: string }) {

@@ -5,13 +5,13 @@
 
 "use client";
 
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 import { useSignupComplete } from "@/features/core/auth/hooks/useSignupComplete";
 
 export function SignupCompleteSection() {

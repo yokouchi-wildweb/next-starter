@@ -16,7 +16,7 @@
 
 import { History } from "lucide-react";
 import { useState } from "react";
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Button } from "@/components/Form/Button";
 import { Input, SelectInput, Textarea } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";

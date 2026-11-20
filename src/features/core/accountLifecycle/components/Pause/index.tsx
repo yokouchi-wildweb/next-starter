@@ -13,7 +13,8 @@ import { Stack } from "@/components/Layout/Stack";
 import Modal from "@/components/Overlays/Modal";
 import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
-import { Para, Span } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 import { usePause } from "@/features/core/accountLifecycle/hooks/usePause";
 import { AccountPageHeader } from "@/features/core/user/components/common/AccountPageHeader";
 

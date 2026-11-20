@@ -5,7 +5,7 @@
 import { Clock } from "lucide-react";
 
 import { Flex } from "@/components/Layout/Flex";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 
 type Props = {
   expiresAt: Date;

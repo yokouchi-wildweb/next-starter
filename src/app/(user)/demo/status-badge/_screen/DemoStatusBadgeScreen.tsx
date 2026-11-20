@@ -8,8 +8,12 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { PageTitle, Para, SecTitle, Span } from "@/components/TextBlocks";
-import { SoftBadge, SolidBadge } from "@/components/Badge";
+import { PageTitle } from "@/components/TextBlocks/PageTitle";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
+import { Span } from "@/components/TextBlocks/Span";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
+import { SolidBadge } from "@/components/Badge/SolidBadge";
 
 import { loadDemoStatusBadgeScreen } from "./loader";
 

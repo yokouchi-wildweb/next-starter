@@ -3,7 +3,8 @@
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
-import { Para, Span } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 
 import type { RegistrationMethod } from "./index";
 

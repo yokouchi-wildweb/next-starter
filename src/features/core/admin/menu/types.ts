@@ -1,7 +1,7 @@
 // src/features/core/admin/menu/types.ts
 // 管理メニューの定義の型(カテゴリー: ./categories/、項目: ./items/。一覧は ../extensions/ の生成物)と、組み立て器の入出力の型。
 
-import type { IconComponent } from "@/components/Icons";
+import type { IconComponent } from "@/components/Icons/types";
 import type { UserRoleType } from "@/features/core/user/types";
 
 /** 1 カテゴリーの定義(categories/<key>.ts の export const category) */

@@ -40,7 +40,7 @@ mock.module("@/features/core/messaging/hooks/useMessagePreferences", {
   },
 });
 mock.module("@/lib/toast", { namedExports: { useToast: () => ({ showToast: () => {} }) } });
-mock.module("@/components/Navigation", {
+mock.module("@/components/Navigation/Link", {
   namedExports: { Link: ({ href, children, className }: { href: string; children: unknown; className?: string }) => createElement("a", { href, className }, children as never) },
 });
 

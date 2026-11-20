@@ -3,7 +3,7 @@ paths:
   - "src/components/Widgets/**"
 ---
 # components/Widgets
-what: interactive widgets: InfiniteScrollList (the display switch of an infinite-scroll list), ScrollSlider (Embla) and FadeSlider (crossfade) with one state contract, and their shared SliderArrow / SliderDots; entry @/components/Widgets
+what: interactive widgets: InfiniteScrollList (the display switch of an infinite-scroll list), ScrollSlider (Embla) and FadeSlider (crossfade) with one state contract, and their shared SliderArrow / SliderDots; each a unit @/components/Widgets/\<Part\> (shared parts and types in _shared/)
 use: always
 change: none → /order <direct parent>
 rules:

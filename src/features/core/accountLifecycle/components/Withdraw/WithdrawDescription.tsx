@@ -1,6 +1,6 @@
 // src/features/core/accountLifecycle/components/Withdraw/WithdrawDescription.tsx
 
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 import { accountLifecycleConfig } from "../../config";
 

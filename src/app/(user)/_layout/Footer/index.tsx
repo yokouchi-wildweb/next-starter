@@ -2,7 +2,7 @@
 
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 

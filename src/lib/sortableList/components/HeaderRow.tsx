@@ -1,7 +1,8 @@
 // src/lib/sortableList/components/HeaderRow.tsx
 
 import { memo } from "react";
-import { Block, Flex } from "@/components/Layout";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
 import { cn } from "@/lib/cn";
 import type {
   SortableItem as SortableItemType,

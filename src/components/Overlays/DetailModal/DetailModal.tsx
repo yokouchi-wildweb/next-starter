@@ -13,7 +13,7 @@
 
 "use client";
 
-import { SolidBadge } from "@/components/Badge";
+import { SolidBadge } from "@/components/Badge/SolidBadge";
 import { Block } from "@/components/Layout/Block";
 import { cn } from "@/lib/cn";
 import { toStorageDisplaySrc } from "@/lib/storage/ref";

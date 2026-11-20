@@ -11,7 +11,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
 import { AppImage } from "@/components/Media/AppImage";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import type { MessageBlock, MessageFieldShape, MessageLayoutFields, MessageLayoutValues } from "@/lib/messaging";

@@ -11,7 +11,7 @@ import { SwitchInput } from "@/components/Form/Input/Manual";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
 

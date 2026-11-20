@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 
 import { Block } from "@/components/Layout/Block";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 
 export type UnsupportedPreviewProps = {
   message?: string;

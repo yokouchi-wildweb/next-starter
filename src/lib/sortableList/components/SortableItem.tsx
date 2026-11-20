@@ -5,7 +5,7 @@
 import { memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Flex } from "@/components/Layout";
+import { Flex } from "@/components/Layout/Flex";
 import { cn } from "@/lib/cn";
 import { DragHandle } from "./DragHandle";
 import type { SortableItem as SortableItemType, SortableItemProps } from "../types";

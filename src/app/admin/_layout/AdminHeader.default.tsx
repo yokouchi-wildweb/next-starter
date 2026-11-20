@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { cva } from "class-variance-authority";
 
 import { cn } from "@/lib/cn";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { DarkModeSwitch } from "@/components/Functional/DarkModeSwitch";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";

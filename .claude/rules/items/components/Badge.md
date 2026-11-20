@@ -3,12 +3,12 @@ paths:
   - "src/components/Badge/**"
 ---
 # components/Badge
-what: the badge parts SolidBadge, SoftBadge, BookmarkTagBadge with shared variant / size / icon / asChild props, entry @/components/Badge
+what: the badge parts SolidBadge, SoftBadge, BookmarkTagBadge with shared variant / size / icon / asChild props, each a unit @/components/Badge/\<Part\> (shared variant / size types in badge-variants)
 use: always
 change: placement → colors = semantic tokens in src/styles/palette.css | shape (radius, padding, border) = `badge` key of src/config/lib/variantOverrides.config.ts (size / solid / soft / bookmarkTag)
 rules:
 using:
-- badge_source: a badge comes from @/components/Badge | BadgeCore (@/components/Primitives/Badge) directly only when the finished badges fall short (Primitives card finished_first)
+- badge_source: a badge comes from @/components/Badge/\<Part\> | BadgeCore (@/components/Primitives/Badge) directly only when the finished badges fall short (Primitives card finished_first)
 - badge_interactive: a clickable or link badge = `asChild` over Form/Button or LinkButton with `variant="none" size="none"`, never a raw button / a styled as a badge | the general rule = core/components.md as_child_interactive
 - badge_as_child_single: the asChild child is one React element (no text only, several elements or Fragment: Slot throws at runtime)
 editing:

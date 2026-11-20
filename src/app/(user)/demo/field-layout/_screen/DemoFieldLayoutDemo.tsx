@@ -17,7 +17,10 @@ import { Input } from "@/components/Form/Input/Manual";
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { Main, PageTitle, SecTitle, Span } from "@/components/TextBlocks";
+import { Main } from "@/components/Layout/Main";
+import { PageTitle } from "@/components/TextBlocks/PageTitle";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
+import { Span } from "@/components/TextBlocks/Span";
 import type { Options } from "@/components/Form/types";
 
 const categoryOptions: Options[] = [

@@ -4,7 +4,7 @@
 import type { ScreenProps } from "@/lib/screens/types";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 import { SamplePickerDemo } from "./SamplePickerDemo";
 

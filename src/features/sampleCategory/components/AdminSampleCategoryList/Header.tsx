@@ -3,10 +3,10 @@
 
 "use client";
 
-import { Link } from "@/components/Navigation";
-import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
-import { Pagination } from "@/components/Navigation";
-import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
+import { Link } from "@/components/Navigation/Link";
+import ListTop from "@/components/Admin/ListTop";
+import Pagination from "@/components/Navigation/Pagination";
+import SearchBox from "@/components/Admin/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { Button } from "@/components/Form/Button/Button";
 import { useSearchParams } from "next/navigation";

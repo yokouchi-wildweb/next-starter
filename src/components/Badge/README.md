@@ -2,7 +2,7 @@
 
 ## Overview
 
-- バッジ系コンポーネント群。入口は `@/components/Badge`
+- バッジ系コンポーネント群。部品ごとのファイル `@/components/Badge/<部品>` から読む(入口の index は無い。共通の型は `badge-variants`)
 - 使う時・足す時の決まりは札 .claude/rules/items/components/Badge.md にある。この README は使い方と仕組み
 
 | コンポーネント | 見た目 | 用途 |
@@ -14,7 +14,9 @@
 ## Usage
 
 ```tsx
-import { SolidBadge, SoftBadge, BookmarkTagBadge } from "@/components/Badge";
+import { SolidBadge } from "@/components/Badge/SolidBadge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
+import { BookmarkTagBadge } from "@/components/Badge/BookmarkTagBadge";
 
 <SolidBadge variant="success">有効</SolidBadge>
 <SolidBadge variant="success" icon={Check}>有効</SolidBadge>

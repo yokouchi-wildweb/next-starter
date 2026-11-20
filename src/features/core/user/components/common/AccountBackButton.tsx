@@ -1,6 +1,6 @@
 // src/features/core/user/components/common/AccountBackButton.tsx
 
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { InBlock } from "@/components/Layout/InBlock";
 import { ArrowLeftIcon } from "lucide-react";
 

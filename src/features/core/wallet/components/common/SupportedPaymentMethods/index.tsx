@@ -10,7 +10,7 @@
 
 "use client";
 
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { useState } from "react";
 import { CalendarClock, Check, ChevronRight, CreditCard, Gauge, Landmark, ShoppingCart, Smartphone, Store, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -20,8 +20,9 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { InBlock } from "@/components/Layout/InBlock";
 import { Stack } from "@/components/Layout/Stack";
-import { Para, Span } from "@/components/TextBlocks";
-import { SoftBadge } from "@/components/Badge";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { useGate } from "@/featureGate/client";
 import { getVisiblePaymentMethods } from "@/features/purchaseRequest/utils/paymentMethods";
 import type { PaymentMethodConfig } from "@/features/purchaseRequest/config";

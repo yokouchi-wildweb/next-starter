@@ -2,7 +2,7 @@
 
 ## Overview
 
-- Embla Carousel ベースの「横スクロール型」スライダー。`FadeSlider` と共通の状態契約(controlled/uncontrolled + imperative API)を実装する。入口は `@/components/Widgets`
+- Embla Carousel ベースの「横スクロール型」スライダー。`FadeSlider` と共通の状態契約(controlled/uncontrolled + imperative API)を実装する。`@/components/Widgets/ScrollSlider` から読む(Widgets に入口の index は無い)
 - 矢印・ドットの部品 `SliderArrow` / `SliderDots` と共有型も同じ入口から出す(独自のスライダーを組むときに再利用できる)
 
 ## Usage
@@ -30,7 +30,7 @@ sliderRef.current?.pause()
 
 | 旧 | 新 |
 |---|---|
-| `import { Slider } from "@/components/Widgets"` | `import { ScrollSlider } from "@/components/Widgets"` |
+| `import { Slider } from "@/components/Widgets"` | `import { ScrollSlider } from "@/components/Widgets/ScrollSlider"` |
 | `onSlideChange` | `onIndexChange` |
 
 その他の props はそのまま互換。

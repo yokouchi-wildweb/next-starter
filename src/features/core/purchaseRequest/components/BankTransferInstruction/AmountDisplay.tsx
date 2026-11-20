@@ -4,7 +4,8 @@
 
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
-import { Para, Span } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
+import { Span } from "@/components/TextBlocks/Span";
 
 type Props = {
   /** 振込金額（円） */

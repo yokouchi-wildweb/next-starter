@@ -53,7 +53,7 @@ Controlled(`ManualFieldController` = Manual 配下の自由レイアウト用の
 import { AppForm } from "@/components/Form";
 import { ManualFieldController } from "@/components/Form/Field";
 import { SwitchInput } from "@/components/Form/Input/Controlled";
-import { Stack } from "@/components/Layout";
+import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 
 <AppForm methods={form} onSubmit={handleSubmit}>
@@ -72,7 +72,7 @@ Manual:
 
 ```tsx
 import { SwitchInput } from "@/components/Form/Input/Manual";
-import { Stack } from "@/components/Layout";
+import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 
 const [notify, setNotify] = useState(false);

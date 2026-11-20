@@ -2,14 +2,14 @@
 
 "use client";
 
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { cva } from "class-variance-authority";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";

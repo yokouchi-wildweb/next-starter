@@ -18,7 +18,9 @@ import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
-import { PageTitle, Para, SecTitle } from "@/components/TextBlocks";
+import { PageTitle } from "@/components/TextBlocks/PageTitle";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { AppImage } from "@/components/Media/AppImage";
 import { auth } from "@/lib/firebase/client/app";
 

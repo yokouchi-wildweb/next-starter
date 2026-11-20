@@ -15,7 +15,7 @@ import { clientGateState, gate, type FeatureName, type GatedFeatureRule, type Ge
 import { rules as generatedRules } from "@/featureGate/extensions/rules";
 import { overrideSwitches } from "@/featureGate/ruleList";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
-import { Link, LinkVisibilityProvider } from "@/components/Navigation";
+import { Link, LinkVisibilityProvider } from "@/components/Navigation/Link";
 import { RichMenuCard } from "@/features/core/user/components/common/RichMenuCard";
 import { GatedLink, GateProvider, useGate, type ClientGate, type ClientGateState } from "@/featureGate/client";
 import { rules } from "@/featureGate/node";

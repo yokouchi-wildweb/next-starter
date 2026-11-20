@@ -7,7 +7,7 @@ import { CheckCircleIcon, GiftIcon } from "lucide-react";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 const PLACEHOLDER_BENEFITS = [
   "招待した方に特典をプレゼント",

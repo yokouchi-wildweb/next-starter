@@ -3,18 +3,15 @@
 "use client"
 
 import { ReactNode, useRef, useState } from "react"
-import {
-  ScrollSlider,
-  type ArrowPosition,
-  type ArrowSize,
-  type ArrowVariant,
-  type DotPosition,
-  type DotVariant,
-  type ResponsiveToggle,
-  type SliderImperativeApi,
-} from "@/components/Widgets"
-import { Block, Flex, Grid, Stack, Main } from "@/components/Layout"
-import { SecTitle, Span } from "@/components/TextBlocks"
+import { ScrollSlider } from "@/components/Widgets/ScrollSlider"
+import { type ArrowPosition, type ArrowSize, type ArrowVariant, type DotPosition, type DotVariant, type ResponsiveToggle, type SliderImperativeApi } from "@/components/Widgets/_shared/types"
+import { Block } from "@/components/Layout/Block"
+import { Flex } from "@/components/Layout/Flex"
+import { Grid } from "@/components/Layout/Grid"
+import { Stack } from "@/components/Layout/Stack"
+import { Main } from "@/components/Layout/Main"
+import { SecTitle } from "@/components/TextBlocks/SecTitle"
+import { Span } from "@/components/TextBlocks/Span"
 import { Button } from "@/components/Form/Button"
 import { Label } from "@/components/Form/Label"
 import { BooleanCheckboxInput, Input } from "@/components/Form/Input/Manual"

@@ -10,7 +10,7 @@ import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { useToast } from "@/lib/toast";
 import { MEDIA_SKIPPED_EXAMPLES_HEADER, MEDIA_SKIPPED_HEADER } from "../../media";
 import type { ExportTabContentProps, ExportField } from "./types";

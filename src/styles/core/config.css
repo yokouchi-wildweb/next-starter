@@ -61,7 +61,7 @@
 
   /*
    * 余白の段(Layout 部品の余白 prop: gap・gapX・gapY・padding*・margin* が受ける名前)。
-   * 名前 → px の一覧の正は src/components/Layout/spacingScale.ts(ここの値はその上流の既定。fork は直下の CSS で上書きできる)。
+   * 名前 → px の一覧の正は src/lib/spacing/spacingScale.ts(ここの値はその上流の既定。fork は直下の CSS で上書きできる)。
    * @theme の --spacing-* にはしない(2xl 以上が --container と重なり max-w-2xl 等が変わる。p-4 等の数値の class も動かさない)。
    * 動くのは Layout 部品の余白 prop だけ。部品の内側の余白(size のバリアント)と className の数値は固定
    */

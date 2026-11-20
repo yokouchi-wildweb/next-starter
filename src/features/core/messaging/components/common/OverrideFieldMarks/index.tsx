@@ -3,7 +3,7 @@
 
 "use client";
 
-import { SoftBadge } from "@/components/Badge";
+import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Flex } from "@/components/Layout/Flex";
 
 import type { AdminOverrideField } from "@/features/core/messaging/services/client/overrideClient";

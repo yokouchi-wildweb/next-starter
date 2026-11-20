@@ -1,7 +1,7 @@
 "use client";
 
 import { AppImage } from "@/components/Media/AppImage";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { Span } from "@/components/TextBlocks/Span";
 
 import { business } from "@/business";

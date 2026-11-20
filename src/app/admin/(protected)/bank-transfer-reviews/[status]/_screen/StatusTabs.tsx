@@ -8,7 +8,7 @@
 
 import { useMemo } from "react";
 
-import { SolidTabs, type PageTabItem } from "@/components/Navigation";
+import { SolidTabs, type PageTabItem } from "@/components/Navigation/PageTab";
 import type { BankTransferReviewStatus } from "@/features/core/bankTransferReview";
 
 import { STATUS_SLUG_BY_VALUE } from "@/features/core/bankTransferReview/constants/statusSlug";

@@ -332,7 +332,7 @@ test("rule link-via-shelf: 既定は棚の Link の外の next/link を全部止
     valid: [
       { code: `import NextLink from "next/link";`, filename: at("src/components/Navigation/Link/index.tsx") },
       { code: `import type { LinkProps } from "next/link";`, filename: at("src/app/x/page.tsx") },
-      { code: `import { Link } from "@/components/Navigation";`, filename: at("src/app/x/page.tsx") },
+      { code: `import { Link } from "@/components/Navigation/Link";`, filename: at("src/app/x/page.tsx") },
     ],
     invalid: [
       { code: `import Link from "next/link";\nconst a = "/somewhere";`, filename: at("src/app/x/page.tsx"), errors: [{ messageId: "rawNextLink" }] },

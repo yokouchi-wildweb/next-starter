@@ -77,7 +77,7 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.replace";
 |-----------|---------|
 | フロー内に留まる非スクロールのページ土台（ヘッダー等と共存） | 枠の宣言の `page: { fill: true }` + `UserPage`(上の「fill のページ」) |
 | 画面全体を覆う一時的なオーバーレイ（スプラッシュ、背景演出） | `<Main containerType="fullscreen">`（FullScreen による fixed オーバーレイ、z 層指定、body スクロールロック） |
-| UserLayout の外（独立ルート群）のビューポート固定ページ枠（卓上端末・サイネージ） | `<KioskFrame>`（[AppFrames/Kiosk/README.md](../../../components/AppFrames/Kiosk/README.md)） |
+| UserLayout の外（独立ルート群）のビューポート固定ページ枠（卓上端末・サイネージ） | `<KioskFrame>`（[Layout/README.md](../../../components/Layout/README.md)「KioskFrame と 1 画面に収める画面」） |
 
 ## API
 

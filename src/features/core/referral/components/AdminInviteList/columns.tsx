@@ -3,7 +3,7 @@
 // 行のクリックと紹介の一覧のモーダルの対象は useAdminInviteListTable が持つ。
 // fork は戻り値の配列に自分の列を差し込んで使う(README「招待コード一覧に列を足す」)
 
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { type DataTableColumn } from "@/lib/tableSuite";
 import { formatDateJa } from "@/utils/date";
 

@@ -4,7 +4,8 @@
 
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 
-import { Stack, type SpacingValue } from "@/components/Layout";
+import { Stack } from "@/components/Layout/Stack";
+import { type SpacingValue } from "@/lib/spacing";
 import type { FieldConfig } from "../types";
 import { ConfiguredField } from "./ConfiguredField";
 

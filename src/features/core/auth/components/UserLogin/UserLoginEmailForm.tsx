@@ -7,7 +7,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { Mail, LockKeyhole } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";

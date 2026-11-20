@@ -2,7 +2,7 @@
 
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";
 import type { WalletType } from "@/features/wallet/config";
 import { CurrencyDisplay } from "../common/CurrencyDisplay";

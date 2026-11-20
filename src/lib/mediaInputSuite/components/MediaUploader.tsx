@@ -17,7 +17,7 @@ import { useUnsavedGuard } from "@/lib/unsavedGuard";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 import { PseudoButton } from "@/components/Form/Button/PseudoButton";
 
 export type MediaUploaderProps = Omit<MediaInputProps, "onFileChange" | "previewUrl" | "statusOverlay" | "clearButtonDisabled"> & {

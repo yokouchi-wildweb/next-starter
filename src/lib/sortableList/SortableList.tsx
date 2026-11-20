@@ -26,7 +26,8 @@ import {
 } from "@tanstack/react-virtual";
 import { useIsClient } from "@/lib/isClient";
 import { cn } from "@/lib/cn";
-import { Block, Flex } from "@/components/Layout";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
 import { HeaderRow, SortableItem, StaticItem } from "./components";
 import type {
   SortableItem as SortableItemType,

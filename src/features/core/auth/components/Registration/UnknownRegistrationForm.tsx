@@ -1,7 +1,7 @@
 // src/features/auth/components/Registration/UnknownRegistrationForm.tsx
 
 import { Block } from "@/components/Layout/Block";
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 export function UnknownRegistrationForm() {
   return (

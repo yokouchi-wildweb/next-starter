@@ -1,6 +1,6 @@
 // src/features/core/accountLifecycle/components/Pause/PauseDescription.tsx
 
-import { Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 
 export function PauseDescription() {
   return (

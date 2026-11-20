@@ -2,7 +2,11 @@
 // /demo/media-input(デモ)の既定画面。
 
 import type { ScreenProps } from "@/lib/screens/types";
-import { Main, PageTitle, Para, SecTitle, Span } from "@/components/TextBlocks";
+import { Main } from "@/components/Layout/Main";
+import { PageTitle } from "@/components/TextBlocks/PageTitle";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
+import { Span } from "@/components/TextBlocks/Span";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { MediaPreviewDemo } from "../MediaPreviewDemo";

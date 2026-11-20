@@ -9,7 +9,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
-import { Span } from "@/components/TextBlocks";
+import { Span } from "@/components/TextBlocks/Span";
 import { OAUTH_PROVIDER_IDS } from "@/features/core/user/constants";
 import { authConfig } from "@/features/auth/config";
 

@@ -1,7 +1,7 @@
 // src/features/core/coupon/types/sectionTab.ts
 // クーポン管理画面のセクションタブの受け口(adminSectionTabs/)の項目の型
 
-import type { PageTabItem } from "@/components/Navigation";
+import type { PageTabItem } from "@/components/Navigation/PageTab";
 
 /**
  * セクションタブの項目 = 描画用の PageTabItem + 有効の判定。

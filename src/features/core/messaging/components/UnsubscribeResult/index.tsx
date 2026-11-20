@@ -2,7 +2,7 @@
 // 部品(props だけ): 配信停止の結果。done = 止めた(通知の設定のページへの案内。門で閉じていれば棚の Link が描かない)/ invalid = リンクが正しくない
 
 import { Stack } from "@/components/Layout/Stack";
-import { Link } from "@/components/Navigation";
+import { Link } from "@/components/Navigation/Link";
 import { Para } from "@/components/TextBlocks/Para";
 
 import { MESSAGE_PREFERENCES_PAGE_PATH } from "@/features/core/messaging/constants/preferences";

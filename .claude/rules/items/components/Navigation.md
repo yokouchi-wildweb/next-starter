@@ -3,12 +3,12 @@ paths:
   - "src/components/Navigation/**"
 ---
 # components/Navigation
-what: the navigation parts: the shelf Link (next/link wrapper that hides links to closed features) with its port LinkVisibilityProvider, route tabs PageTab (SolidTabs / UnderlineTabs), state tabs StateTabs, Pagination and the move port NavigationPort | entry @/components/Navigation
+what: the navigation parts: the shelf Link (next/link wrapper that hides links to closed features) with its port LinkVisibilityProvider, route tabs PageTab (SolidTabs / UnderlineTabs), state tabs StateTabs, Pagination and the move port NavigationPort | each a unit @/components/Navigation/\<Part\>
 use: always
 change: none → /order <direct parent>
 rules:
 using:
-- link_via_shelf: every link = Link from @/components/Navigation, never `next/link` imported directly (lint import-boundaries/link-via-shelf: error upstream, warn in forks on files holding a closable address)
+- link_via_shelf: every link = Link from @/components/Navigation/Link, never `next/link` imported directly (lint import-boundaries/link-via-shelf: error upstream, warn in forks on files holding a closable address)
 - link_gate_escape: a link that must show while its feature is closed = `gate="always"`, never a raw next/link
 editing:
 - link_single_wrapper: Link/index.tsx is the only file that imports next/link

@@ -3,6 +3,7 @@
 ## Overview
 
 - `src/components/` にはアプリ全体で共有する汎用 UI コンポーネントをカテゴリごとに配置します
+- カテゴリのフォルダに入口の `index` は置かない。部品はそれを定義するファイル(フォルダの部品はそのフォルダ)から `@/components/<カテゴリ>/<部品>` で読む(まだ入口があるのは `Form/`・`AppStatusGuard/`)
 - 本ファイルは**カテゴリの索引**です。使う時の決まりはカテゴリの札 `.claude/rules/items/components/<カテゴリ>.md`、使い方・仕組みは各サブディレクトリの README（コロケーション）に置き、複雑な仕組みを持つカテゴリには必ず README を併設します
 
 ### カテゴリ一覧
@@ -10,14 +11,14 @@
 - `Admin/`: 管理画面の画面部品（ListTop・SecTitle・SearchBox・SelectFilter・SortSelect・ItemNavigator。props だけ）。管理ヘッダーの中身はページが AdminPage の props で渡す | 詳細: [Admin/README.md](./Admin/README.md)
   - ItemNavigator = 前後の項目へ移るだけの選択欄で props だけ。データは `src/lib/crud` の `useDomainItemNavigation`、管理の編集画面は `src/app/admin/_layout/AdminEditItemNavigator` を `<AdminPage actions>` に置く
 - `Animation/`: アニメーション演出（`CountUp`、`PageTransition` など）
-- `AppFrames/`: 解体中の旧フォルダ。枠の部品は `src/app/(user)/_layout/`・`src/app/admin/**/_layout/` へ移動済み | 詳細: [AppFrames/User/README.md](./AppFrames/User/README.md)・[src/app/(user)/_layout/README.md](../app/(user)/_layout/README.md)・[AppFrames/Kiosk/README.md](./AppFrames/Kiosk/README.md)
-  - キオスク用のビューポート固定枠 `Kiosk/`（`KioskFrame`）。`User/` に部品は無い（枠の部位を隠すのはルートの `frame.ts` / `frame.override.ts`）
+- `AppFrames/`: 解体中の旧フォルダ。枠の部品は `src/app/(user)/_layout/`・`src/app/admin/**/_layout/` へ移動済み | 詳細: [AppFrames/User/README.md](./AppFrames/User/README.md)・[src/app/(user)/_layout/README.md](../app/(user)/_layout/README.md)
+  - 部品は無い（キオスク用のビューポート固定枠 `KioskFrame` は `Layout/`、管理画面の部品は `Admin/`。枠の部位を隠すのはルートの `frame.ts` / `frame.override.ts`）
 - `AppStatusGuard/`: メンテナンス・デプロイを検知してリダイレクト / リロードするガード。長時間滞在する画面に配置
 - `Badge/`: バッジ（`SolidBadge`、`SoftBadge` など）
 - `Functional/`: 動作をカプセル化した部品（`DarkModeSwitch`（サイトテーマの切替。同期の `SiteThemeSync` は `@/lib/siteTheme`、詳細: [styles/README.md](../styles/README.md)）、`FirebaseAnalytics` など）
 - `Form/`: フォーム構築の全部品（Input / Field / `FieldRenderer` / `AppForm` / AutoSave） | 詳細: [Form/README.md](./Form/README.md)・[Form/FieldRenderer/README.md](./Form/FieldRenderer/README.md)・[Form/AutoSave/README.md](./Form/AutoSave/README.md)
 - `Icons/`: プロジェクト固有アイコンを Lucide 互換 API で一元管理 | 詳細: [Icons/README.md](./Icons/README.md)
-- `Layout/`: レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）。raw HTML の代替 | 詳細: [Layout/README.md](./Layout/README.md)
+- `Layout/`: レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）とキオスク用のビューポート固定枠 `KioskFrame`。raw HTML の代替。余白の段は閉じた lib `@/lib/spacing` | 詳細: [Layout/README.md](./Layout/README.md)
 - `Media/`: 画像・メディア表示（`AppImage`: next/image ラッパー。raw `<img>` / next/image 直接使用の代替。`PreviewImage`: blob: など選んだ直後の画像の下見） | 詳細: [Media/AppImage/README.md](./Media/AppImage/README.md)・[Media/PreviewImage/README.md](./Media/PreviewImage/README.md)
 - `Navigation/`: ナビゲーション | 詳細: [Navigation/Link/README.md](./Navigation/Link/README.md)
   - `Link`: next/link の包み。リンクは全部これを使い next/link を直接 import しない（lint `link-via-shelf`）。口 `LinkVisibilityProvider` は既定で何も隠さず、アプリでは `src/wiring/AppProviders.tsx` の門番の `GateProvider` が閉じた機能のパスを隠す判定を差し込む
