@@ -15,7 +15,7 @@ import { NumberInput } from "@/components/Input/NumberInput";
 import { SelectInput } from "@/components/Input/Select";
 import { Textarea } from "@/components/Input/Textarea";
 import { Label } from "@/components/Input/Label";
-import { ManualMediaUploader } from "@/components/Form/MediaHandler";
+import { ManualMediaUploader } from "@/lib/mediaInputSuite";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";

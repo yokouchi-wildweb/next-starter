@@ -9,7 +9,7 @@
 import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 
-import type { FieldConfig } from "@/components/Form/Field/types";
+import type { FieldConfig } from "@/lib/formSuite";
 
 type Fields = readonly FieldConfig[];
 

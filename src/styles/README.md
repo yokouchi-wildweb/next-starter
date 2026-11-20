@@ -137,7 +137,7 @@ upstream 側のファイルの役割(upstream でスタイルを足すときの�
 | appearance の影(`--appearance-shadow-*`) | Layout 部品の `appearance`(raised / outlined / frosted / soft / radiant) | `shadow-sm` 等の Tailwind の影の段(それは `@theme` の `--shadow-*`)・className の `shadow-[...]` |
 | 部品の形(`variants.config.ts`) | その部品の variant / size の全部 | 要素の `className`(上書きより後ろで勝つ) |
 | 余白の段(`--space-none`〜`--space-4xl`、`core/config.css` の `:root`) | Layout 部品の余白 prop(`gap`・`gapX`・`gapY`・`padding*`・`margin*`、段の表: `src/components/Layout/README.md`「余白」) | 部品の内側の余白(size のバリアントで変える)・className の数値(`p-4` 等。固定)。`@theme` の `--spacing` は使わない |
-| 操作部品の高さの段(`--control-h-xxxs`〜`--control-h-xxxl`・`--tablet-control-h-xxs`〜`xl`、`core/config.css` の `:root`。md は `@media (min-width: 40rem)` の側も) | ボタン・TabletButton の size、入力欄系と選ぶ欄の引き金の size、欄の中の小さなボタン、StepperInput(段の表: `src/components/Form/README.md`「操作部品の高さ(size)」) | 要素の className の高さ(`h-*`・`py-*`)・ボタンの `icon` 系・Textarea・スイッチやチェックボックスの size |
+| 操作部品の高さの段(`--control-h-xxxs`〜`--control-h-xxxl`・`--tablet-control-h-xxs`〜`xl`、`core/config.css` の `:root`。md は `@media (min-width: 40rem)` の側も) | ボタン・TabletButton の size、入力欄系と選ぶ欄の引き金の size、欄の中の小さなボタン、StepperInput(段の表: `src/components/Button/README.md`・`src/components/Input/README.md`「高さ(size)」) | 要素の className の高さ(`h-*`・`py-*`)・ボタンの `icon` 系・Textarea・スイッチやチェックボックスの size |
 
 ### サイトテーマの仕組み
 

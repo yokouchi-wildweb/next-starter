@@ -157,7 +157,7 @@ export function useSampleDetail(id: string | null, { fallbackData }: { fallbackD
 - `trigger` は Promise を返す。成功で結果（create / update は保存後のレコード）に resolve、失敗でその error に reject する
 - `isMutating`（= `isLoading`）は in-flight が 1 件でもある間 true。`error` は直近に終わった trigger の結果
 - 失敗は `try/catch` で受け、`err(error, "既定の文言")`（`@/lib/errors`）でメッセージにする
-- 実行中は必ず見た目に出す（CLAUDE.md async_feedback）。ボタンに `loading` を渡す（押せなくしてスピナーを出す: src/components/Form/README.md「Button の読み込み中」）、または `ConfirmPopover` / `Dialog` の `onConfirm` に Promise を返して自動ローディングに任せる
+- 実行中は必ず見た目に出す（CLAUDE.md async_feedback）。ボタンに `loading` を渡す（押せなくしてスピナーを出す: src/components/Button/README.md「読み込み中(loading / loadingLabel)」）、または `ConfirmPopover` / `Dialog` の `onConfirm` に Promise を返して自動ローディングに任せる
 
 ```tsx
 "use client";

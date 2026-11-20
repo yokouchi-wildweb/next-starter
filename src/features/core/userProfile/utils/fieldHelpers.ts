@@ -1,7 +1,7 @@
 // src/features/core/userProfile/utils/fieldHelpers.ts
 // プロフィールフィールド配列の操作ヘルパー
 
-import type { FieldConfig } from "@/components/Form/Field";
+import type { FieldConfig } from "@/lib/formSuite";
 import type { ProfileFieldConfig } from "../types";
 import type { ProfileConfig } from "../profiles";
 

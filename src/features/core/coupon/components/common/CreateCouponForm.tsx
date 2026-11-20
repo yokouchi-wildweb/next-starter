@@ -14,9 +14,9 @@ import { CouponForm } from "./CouponForm";
 import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
-import type { FieldConfig } from "@/components/Form/Field/types";
-import type { FieldGroup } from "@/components/Form/FieldRenderer/types";
+import { buildFormDefaultValues } from "@/lib/formSuite";
+import type { FieldConfig } from "@/lib/formSuite";
+import type { FieldGroup } from "@/lib/formSuite";
 import { domainDisplay } from "@/features/core/coupon/entities/display";
 import { PackageDiscountsInput } from "./PackageDiscountsInput";
 

@@ -97,7 +97,7 @@ export const domainEntries = {
 
 ### 型(fieldType)を足す・廃止する
 
-- 足す: 表 `fields/fieldTypes.mjs` に 1 行(`formDefault` は必ず書く)+ `src/lib/domain/fields/fieldFormInputs.mjs` に入力種別 + `src/components/Form/Field/types.ts` の union に型名
+- 足す: 表 `fields/fieldTypes.mjs` に 1 行(`formDefault` は必ず書く)+ `src/lib/domain/fields/fieldFormInputs.mjs` に入力種別 + `src/lib/formSuite/Field/types.ts` の union に型名
 - 廃止: 行に `retired`(移り先の案内文)。生成前の検査が止める。実行時は見ない(まだ列を持つ fork の初期値は残す)
 
 ## API
@@ -158,7 +158,7 @@ export const domainEntries = {
 
 - 表の外で型名を決め打ちするコードを止める。ずれのバグ(型を足したときの抜け)は表の外の型名の比較・集合からしか生まれないので、構造で止める
 - 検出: (a) fieldType 由来の値（`.fieldType`・名前に fieldType を含む変数・`.fieldType` から代入した変数）と文字列の `===` / `!==` / `switch` / `includes` 等 (b) 表のキーのうち一般語でないもの（`stringArray`・`bigint`・`"numeric(10,2)"` 等）を 2 つ以上含む配列・`switch` の case 列。typeof の比較と入力種別（formInput）の名前の集合は通す。詳細: `eslint-rules/field-type-guard.mjs`
-- 対象: `src/**/*.{ts,tsx}` と生成器（`scripts/structure/domain`・`scripts/structure/role` の `.mjs`）。対象外: この表（`fields/`）・型名の union（`src/components/Form/Field/types.ts`、表との突き合わせは `pnpm test src/components/Form/FieldRenderer/defaultValueBuilder.test.ts`）・テスト
+- 対象: `src/**/*.{ts,tsx}` と生成器（`scripts/structure/domain`・`scripts/structure/role` の `.mjs`）。対象外: この表（`fields/`）・型名の union（`src/lib/formSuite/Field/types.ts`、表との突き合わせは `pnpm test src/lib/formSuite/FieldRenderer/defaultValueBuilder.test.ts`）・テスト
 - 強さ: 上流リポ（`src/lib/CATALOG.md` の先頭の節の持ち主）= error、fork = warn（fork に残る上流の旧版の写しで fork の lint を止めない）
 - 直し方: 表の属性と導出関数で引く。答えに要る属性が表に無ければ表に属性を足す。正当な例外は理由付き eslint-disable
 - 許可リストは無い(表の外の決め打ち 0)
@@ -171,7 +171,7 @@ export const domainEntries = {
 - domainEntry.ts の生成: `pnpm test scripts/structure/domain/tests/registry.test.mjs`
 - 写し: `pnpm test scripts/structure/registry/alpha/domainDisplay.test.mjs`
 - コマンドの許可: `pnpm test scripts/structure/registry/dataCommands.test.mts`(user と INTERNAL_ONLY を固定)
-- 型の表: `pnpm test src/components/Form/FieldRenderer/defaultValueBuilder.test.ts`(行ごとの答えを literal で固定、union と表のキーの突き合わせ)
+- 型の表: `pnpm test src/lib/formSuite/FieldRenderer/defaultValueBuilder.test.ts`(行ごとの答えを literal で固定、union と表のキーの突き合わせ)
 - 表示の種類: `pnpm test src/lib/domain/fields/presenterFor.test.mjs`
 - 番人: `pnpm test eslint-rules/field-type-guard.test.mjs`
 

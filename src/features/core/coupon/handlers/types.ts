@@ -7,7 +7,7 @@
 
 import type { Coupon } from "../entities/model";
 import type { CouponHistory } from "@/features/core/couponHistory/entities/model";
-import type { FieldConfig } from "@/components/Form/Field/types";
+import type { FieldConfig } from "@/lib/formSuite";
 import type { TransactionClient } from "@/lib/drizzle";
 
 /**

@@ -6,11 +6,11 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "@/lib/unsavedGuard";
 import { useToast } from "@/lib/toast";
-import { AppForm } from "@/components/Form/AppForm";
+import { AppForm } from "@/lib/formSuite";
 import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
-import { ControlledField } from "@/components/Form";
-import { PasswordInput, SelectInput, TextInput } from "@/components/Form/Input/Controlled";
+import { ControlledField } from "@/lib/formSuite";
+import { ControlledPasswordInput, ControlledSelectInput, ControlledTextInput } from "@/lib/formSuite";
 import { err } from "@/lib/errors";
 import { useCreateDemoUser } from "@/features/user/hooks/useCreateDemoUser";
 import { getAllRoleOptions } from "@/features/user/constants";
@@ -69,7 +69,7 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
         name="role"
         label="権限"
         renderInput={(field) => (
-          <SelectInput
+          <ControlledSelectInput
             field={field}
             options={getAllRoleOptions().map((r) => ({
               value: r.id,
@@ -83,19 +83,19 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
         control={control}
         name="name"
         label="表示名"
-        renderInput={(field) => <TextInput field={field} />}
+        renderInput={(field) => <ControlledTextInput field={field} />}
       />
       <ControlledField
         control={control}
         name="email"
         label="メールアドレス"
-        renderInput={(field) => <TextInput type="email" field={field} />}
+        renderInput={(field) => <ControlledTextInput type="email" field={field} />}
       />
       <ControlledField
         control={control}
         name="localPassword"
         label="パスワード"
-        renderInput={(field) => <PasswordInput field={field} autoComplete="new-password" />}
+        renderInput={(field) => <ControlledPasswordInput field={field} autoComplete="new-password" />}
       />
       <RoleProfileFields
         methods={methods}

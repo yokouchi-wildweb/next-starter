@@ -121,7 +121,7 @@ export async function validateCouponForCategory(
 // カテゴリ一覧
 // ============================================================================
 
-import type { FieldConfig } from "@/components/Form/Field/types";
+import type { FieldConfig } from "@/lib/formSuite";
 
 export type CouponCategoryOption = {
   value: string;

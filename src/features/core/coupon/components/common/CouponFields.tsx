@@ -4,14 +4,14 @@
 
 import type { ReactNode } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
-import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer";
-import type { FieldConfig } from "@/components/Form/Field";
+import { FieldRenderer, type MediaState } from "@/lib/formSuite";
+import type { FieldConfig } from "@/lib/formSuite";
 import type {
   FieldGroup,
   GroupContentMap,
   InlineFieldGroup,
   InsertFieldsMap,
-} from "@/components/Form/FieldRenderer/types";
+} from "@/lib/formSuite";
 import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Shuffle } from "lucide-react";

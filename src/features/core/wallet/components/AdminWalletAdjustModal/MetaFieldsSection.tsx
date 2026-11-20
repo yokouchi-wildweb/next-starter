@@ -4,8 +4,8 @@
 
 import type { Control } from "react-hook-form";
 
-import { ControlledField } from "@/components/Form";
-import { TextInput, Textarea } from "@/components/Form/Input/Controlled";
+import { ControlledField } from "@/lib/formSuite";
+import { ControlledTextInput, ControlledTextarea } from "@/lib/formSuite";
 
 import type { WalletType } from "@/features/wallet/config";
 import type { CurrencyMetaFieldConfig } from "@/features/core/wallet/types/currency";
@@ -29,13 +29,13 @@ export function MetaFieldsSection({ control, walletType }: MetaFieldsSectionProp
       description={resolveDescription(field)}
       renderInput={(controllerField) =>
         field.formInput === "textarea" ? (
-          <Textarea
+          <ControlledTextarea
             field={controllerField}
             placeholder={field.placeholder}
             rows={field.rows ?? 2}
           />
         ) : (
-          <TextInput
+          <ControlledTextInput
             field={controllerField}
             placeholder={field.placeholder}
           />

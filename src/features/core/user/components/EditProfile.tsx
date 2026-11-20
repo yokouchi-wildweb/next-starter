@@ -8,9 +8,9 @@ import { useToast } from "@/lib/toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { AppForm } from "@/components/Form/AppForm";
-import { ControlledField } from "@/components/Form";
-import { TextInput } from "@/components/Form/Input/Controlled";
+import { AppForm } from "@/lib/formSuite";
+import { ControlledField } from "@/lib/formSuite";
+import { ControlledTextInput } from "@/lib/formSuite";
 import { Button } from "@/components/Button/Button";
 import { Section } from "@/components/Layout/Section";
 import { Block } from "@/components/Layout/Block";
@@ -131,7 +131,7 @@ export function EditProfile({
               control={control}
               name="name"
               label="ユーザー名"
-              renderInput={(field) => <TextInput field={field} />}
+              renderInput={(field) => <ControlledTextInput field={field} />}
             />
             <RoleProfileFields
               methods={methods}

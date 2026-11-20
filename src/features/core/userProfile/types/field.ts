@@ -1,14 +1,11 @@
 // src/features/core/userProfile/types/field.ts
 // プロフィールフィールド関連の型定義
 
-import type {
-  FieldConfig,
-  FieldDataType,
-} from "@/components/Form/Field";
+import type { FieldConfig, FieldDataType } from "@/lib/formSuite";
 
 /**
  * プロフィールフィールドの設定（FieldConfig + profile固有拡張）
- * @see src/components/Form/FieldRenderer/types.ts - FieldConfig
+ * @see src/lib/formSuite/FieldRenderer/types.ts - FieldConfig
  */
 export type ProfileFieldConfig = FieldConfig & {
   /** データ型（Drizzle スキーマ生成に必須） */

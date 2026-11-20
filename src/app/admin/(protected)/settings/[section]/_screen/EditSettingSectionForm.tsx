@@ -5,9 +5,9 @@
 
 "use client";
 
-import { AppForm } from "@/components/Form/AppForm";
+import { AppForm } from "@/lib/formSuite";
 import { Button } from "@/components/Button/Button";
-import { FieldRenderer } from "@/components/Form/FieldRenderer";
+import { FieldRenderer } from "@/lib/formSuite";
 import { Flex } from "@/components/Layout/Flex";
 import type { Setting } from "@/features/core/setting/entities";
 import { useSettingSectionForm } from "@/features/core/setting/hooks/useSettingSectionForm";

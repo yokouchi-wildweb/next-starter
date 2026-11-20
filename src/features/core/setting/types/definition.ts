@@ -3,8 +3,8 @@
 
 import type { z } from "zod";
 
-import type { FieldConfig } from "@/components/Form/Field/types";
-import type { FieldGroup } from "@/components/Form/FieldRenderer";
+import type { FieldConfig } from "@/lib/formSuite";
+import type { FieldGroup } from "@/lib/formSuite";
 import type { IconComponent } from "@/components/Icons/types";
 import type { FeatureName } from "@/featureGate";
 import type { UserRoleType } from "@/features/core/user/types";

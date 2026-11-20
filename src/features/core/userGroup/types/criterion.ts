@@ -6,8 +6,8 @@
 import type { SQL } from "drizzle-orm";
 import type { z } from "zod";
 
-import type { FieldConfig } from "@/components/Form/Field/types";
-import type { InlineFieldGroup } from "@/components/Form/FieldRenderer/types";
+import type { FieldConfig } from "@/lib/formSuite";
+import type { InlineFieldGroup } from "@/lib/formSuite";
 
 /** where に渡す文脈(評価の時刻。同じ評価の中では全部の部品が同じ時刻を見る) */
 export type UserGroupCriterionContext = { now: Date };

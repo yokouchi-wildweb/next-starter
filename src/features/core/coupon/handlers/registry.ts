@@ -5,7 +5,7 @@
 // クーポンサービスが getCouponHandler() で取得する。
 
 import type { CouponHandler } from "./types";
-import type { FieldConfig } from "@/components/Form/Field/types";
+import type { FieldConfig } from "@/lib/formSuite";
 
 const handlers = new Map<string, CouponHandler>();
 

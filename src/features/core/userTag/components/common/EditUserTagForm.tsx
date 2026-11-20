@@ -12,7 +12,7 @@ import { UserTagForm } from "./UserTagForm";
 import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
+import { buildFormDefaultValues } from "@/lib/formSuite";
 import { domainDisplay } from "@/features/core/userTag/entities/display";
 
 type Props = {
