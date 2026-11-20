@@ -1,4 +1,4 @@
-// src/components/Form/Button/Button.tsx
+// src/components/Button/Button.tsx
 
 "use client";
 
@@ -8,7 +8,7 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { Button as PrimitiveButton, type ButtonSlot } from "@/components/Primitives/Button";
 import { cn } from "@/lib/cn";
 
-import { buttonVariants, type ButtonStyleProps } from "./button-variants";
+import { buttonVariants, type ButtonStyleProps } from "./variants";
 
 export type ButtonProps = React.ComponentPropsWithoutRef<typeof PrimitiveButton> &
   ButtonStyleProps & {
@@ -85,7 +85,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   },
 );
 
-Button.displayName = "FormButton";
+Button.displayName = "Button";
 
-export { Button, buttonVariants };
-export type { ButtonStyleProps };
+export { Button };

@@ -1,4 +1,4 @@
-// src/components/Form/Button/BookmarkTag.tsx
+// src/components/Button/BookmarkTag.tsx
 
 "use client";
 
@@ -60,4 +60,3 @@ const BookmarkTag = React.forwardRef<HTMLButtonElement, BookmarkTagProps>(
 BookmarkTag.displayName = "BookmarkTag";
 
 export { BookmarkTag };
-export default BookmarkTag;

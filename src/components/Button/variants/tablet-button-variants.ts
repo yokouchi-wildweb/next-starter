@@ -1,4 +1,4 @@
-// src/components/Form/Button/tablet-button-variants.ts
+// src/components/Button/variants/tablet-button-variants.ts
 //
 // TabletButton の variant 定義。size の高さはタブレット用の高さの段 --tablet-control-h-<名前>
 // (src/styles/core/config.css の :root)から取る。下流は値をそこで、形を variants.config の tabletButton で変える。
