@@ -499,6 +499,14 @@ export function rewriteSource(fromFile, text, opts = {}) {
   const stops = [];
   const hands = [];
   const isHandled = (i) => handled.some(([s, e]) => i >= s && i < e);
+  /**
+   * 動いたモジュール(mapModule)。ただし行き先の単位の中のファイルが同じ単位の中を読むのは動いていない
+   * (注文 11 の入口へのまとめ: Overlays/Loading/index.ts の ./Spinner は単位の中の読みのまま)
+   */
+  const mapFrom = (mod) => {
+    const m = mapModule(mod);
+    return m && under(fromFile, m.to) && under(mod, m.to) ? null : m;
+  };
   const specOf = (orig, mod, suffix = "") => emitSpecifier(orig, emitFrom, mod, suffix);
   /** 動いていない指定も、ファイルを動かすなら相対を引き直す */
   const keepSpec = (orig, r) => (relocating && (orig.startsWith("./") || orig.startsWith("../")) ? specOf(orig, r.mod, r.suffix) : orig);
@@ -546,7 +554,7 @@ export function rewriteSource(fromFile, text, opts = {}) {
     if (!r) continue;
     const line = lineOf(text, m.index);
     const end = m.index + whole.length;
-    const moved = mapModule(r.mod);
+    const moved = mapFrom(r.mod);
     const target = moved ? moved.to : r.mod;
     // 動いただけのモジュールでも、行き先が分けるモジュールならその表で分ける(残る名前は行き先へ。注文 10)
     const movedSplit = !splitOf(r.mod) && moved && !moved.prefix ? splitOf(moved.to) : undefined;
@@ -674,7 +682,7 @@ export function rewriteSource(fromFile, text, opts = {}) {
     const r = resolveSpecifier(fromFile, spec);
     if (!r) continue;
     const line = lineOf(text, m.index);
-    const moved = mapModule(r.mod);
+    const moved = mapFrom(r.mod);
     const target = moved ? moved.to : r.mod;
     if (DEFAULT_TO_NAMED[target]) {
       handled.push([m.index, m.index + whole.length]);
@@ -724,7 +732,7 @@ export function rewriteSource(fromFile, text, opts = {}) {
     const r = resolveSpecifier(fromFile, spec);
     if (!r) continue;
     const line = lineOf(text, m.index);
-    const moved = mapModule(r.mod);
+    const moved = mapFrom(r.mod);
     const isPlainPath = spec.startsWith("src/");
     if (splitOf(r.mod)) {
       if (needsHand(splitOf(r.mod), text)) hands.push(`${line}: ${spec} は名前ごとに行き先が分かれた(export *・mock.module・import()・文字列は手で行き先へ)`);

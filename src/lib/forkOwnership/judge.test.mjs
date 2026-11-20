@@ -203,8 +203,8 @@ describe("judge", () => {
 
   test("A: 部品の棚(oripa-do の形): 上流の単位のフォルダの中は inside-unit-add、分類の直下・hooks・utils・新しい lib は added、同名は unit-clash", () => {
     const baseFiles = [
-      "src/components/Form/Input/Manual/TextInput.tsx",
-      "src/components/Form/Field/index.ts",
+      "src/components/Kit/Field/Manual/TextInput.tsx",
+      "src/components/Kit/Group/index.ts",
       "src/components/Input/Select.tsx",
       "src/components/Input/MultiSelectInput/index.tsx",
       "src/hooks/useInView.ts",
@@ -214,13 +214,13 @@ describe("judge", () => {
     const places = unitPlaces(baseFiles, () => null);
     const baseUnits = unitIndex(baseFiles);
     const one = (path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: ["crud"], intake, places, baseUnits }).entries[0];
-    const inside = one("src/components/Form/Input/Manual/KanaInput.tsx");
-    assert.equal(inside.reason, "inside-unit-add", "Input/Manual の形の単位のフォルダの中");
+    const inside = one("src/components/Kit/Field/Manual/KanaInput.tsx");
+    assert.equal(inside.reason, "inside-unit-add", "Form/Input/Manual の形(分類/単位/中のフォルダ)の単位のフォルダの中");
     assert.equal(inside.verdict, "violation");
-    assert.equal(inside.unitFolder, "src/components/Form/Input");
+    assert.equal(inside.unitFolder, "src/components/Kit/Field");
     assert.equal(one("src/components/Input/MultiSelectInput/Extra.tsx").reason, "inside-unit-add");
     assert.equal(one("src/lib/crud/extra.ts").unitFolder, "src/lib/crud");
-    assert.equal(one("src/components/Form/kanaHelper.ts").reason, "added", "分類の直下のファイル = 新しい単位");
+    assert.equal(one("src/components/Kit/kanaHelper.ts").reason, "added", "分類の直下のファイル = 新しい単位");
     assert.equal(one("src/components/Input/KanaInput/index.tsx").reason, "added", "分類の直下の新しいフォルダの単位");
     assert.equal(one("src/hooks/useKana.ts").reason, "added");
     assert.equal(one("src/utils/kana.ts").reason, "added");

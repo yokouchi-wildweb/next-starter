@@ -271,6 +271,30 @@ test("注文 11: Functional/FirebaseAnalytics は棚の外 src/app/_mounts へ(�
   );
 });
 
+test("注文 11: 単位の中のファイルが同じ単位の中を読む相対の指定は書き換えない(入口へのまとめは外からの読みだけ)", () => {
+  const index = 'export { InlineLoader } from "./InlineLoader";\nexport { Spinner } from "./Spinner";';
+  assert.equal(rewriteSource("src/components/Overlays/Loading/index.ts", index).text, index);
+  const loader = 'import { Spinner } from "./Spinner";';
+  const res = rewriteSource("src/components/Overlays/Loading/InlineLoader.tsx", loader);
+  assert.equal(res.text, loader);
+  assert.deepEqual(res.hits, []);
+  assert.equal(
+    rewriteSource("src/components/Overlays/Other.tsx", 'import { Spinner } from "./Loading/Spinner";').text,
+    'import { Spinner } from "./Loading";',
+    "同じ分類の別の単位からの読みは入口へ(分類の中なので相対のまま)",
+  );
+});
+
+test("注文 11: 単位の中の型の読みは、入口が出していない名前でも STOP しない(DetailTable の ./types)", () => {
+  const exportsOf = (mod) => (mod === "src/components/Overlays/DetailModal" ? new Set(["DetailModal"]) : null);
+  const src = 'import type { DetailModalCell } from "./types";';
+  const res = rewriteSource("src/components/Overlays/DetailModal/DetailTable.tsx", src, { exportsOf });
+  assert.equal(res.text, src);
+  assert.deepEqual(res.stops, []);
+  const outside = rewriteSource("src/app/x.tsx", 'import type { DetailModalCell } from "@/components/Overlays/DetailModal/types";', { exportsOf });
+  assert.equal(outside.stops.length, 1, "外からの読みは入口に名前が無ければ STOP のまま");
+});
+
 test("plan と apply: 書き換え・fork のファイルの移動(相対を引き直す)・文書は一覧だけ、2 回目は変えるものなし", () => {
   const root = repo({
     "src/app/page.tsx": 'import { Button } from "@/components/Form/Button";\nimport { Manual } from "@/components/Form/Input";\nexport const P = () => <Manual.Input />;\n',
