@@ -176,7 +176,7 @@ test("entry/only-entries(棚の単位): 入口だけ。値も型も、別名も�
     invalid: [
       { code: `import { InfoPopover } from "@/components/Overlays/Popover/InfoPopover";`, filename: screen, options, errors: [{ messageId: "shelfInner" }] },
       { code: `import type { P } from "@/components/Overlays/Popover/types";`, filename: screen, options, errors: [{ messageId: "shelfInner" }], name: "型も" },
-      { code: `import { x } from "../Popover/InfoPopover";`, filename: at("src/components/Overlays/Modal.tsx"), options, errors: [{ messageId: "shelfInner" }], name: "同じ分類の別の単位から相対で" },
+      { code: `import { x } from "./Popover/InfoPopover";`, filename: at("src/components/Overlays/Modal.tsx"), options, errors: [{ messageId: "shelfInner" }], name: "同じ分類の別の単位から相対で" },
       { code: `export * from "src/components/Overlays/Popover/InfoPopover";`, filename: screen, options, errors: [{ messageId: "shelfInner" }] },
       { code: `const m = await import("@/components/Overlays/Popover/InfoPopover");`, filename: screen, options, errors: [{ messageId: "shelfInner" }] },
       { code: `import { x } from "@/components/Input/__fixtures__/data";`, filename: screen, options, errors: [{ messageId: "shelfInner" }], name: "テストでなければ __fixtures__ も単位" },

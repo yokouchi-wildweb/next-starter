@@ -46,6 +46,14 @@ test("型だけの輪は通す", async () => {
   assert.deepEqual(cycles, []);
 });
 
+test("type を付けずに読んでも型にしか使わない import は値の辺にしない(1 回の読みから値の木を求める)", async () => {
+  const cycles = await fixture({
+    "src/a.ts": `import { B } from "./b";\nexport const a = (x: B) => x;\n`,
+    "src/b.ts": `import { a } from "./a";\nexport type B = number;\nexport const b = a;\n`,
+  });
+  assert.deepEqual(cycles, []);
+});
+
 test("import() で閉じる輪は通す", async () => {
   const cycles = await fixture({
     "src/a.ts": `export const a = () => import("./b");\n`,

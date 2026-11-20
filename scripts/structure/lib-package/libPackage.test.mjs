@@ -256,7 +256,7 @@ test("副作用の判定: 直下の文の種類ごと", () => {
   assert.deepEqual(kinds(`export const a = 1;\n"use client";\n`), ["モジュール直下の式の文"]);
 });
 
-test("d5: 今の repo(package.json を持つ lib 0)で問題なし", () => {
+test("d5: 今の repo: package.json を持つ lib のどれにも問題なし", () => {
   clearLibPackageCache();
   const result = checkLibs(repo);
   assert.deepEqual(result.problems, []);
