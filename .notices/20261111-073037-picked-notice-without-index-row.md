@@ -4,6 +4,7 @@ date: 2026-11-10T22:30:37Z
 severity: action-required
 checkpoint: picked-notice-without-index-row
 fixes: 20261105-081445-pick-ignores-shipped-index
+pick: -
 change: pnpm check notices accepts a notice body this fork picked ahead (ledger picked:) with no row yet in an ancestor's shipped index, and a row once hand-added there may disappear; /flux takes the upstream side of an ancestor's shipped index on a segment-merge conflict
 why: a hotfix pick takes the fork side of .notices/shipped/ (pick-ignores-shipped-index), but the check then failed on the body without its row, so forks hand-added the row under a temporary permit, and a later segment merge conflicted on it again and dropped it (railroad Horizon F3)
 required_actions:

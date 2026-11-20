@@ -4,6 +4,7 @@ date: 2026-11-10T12:13:37+09:00
 severity: action-required
 checkpoint: featuregate-switches-write
 fixes: 20261109-171458-feature-gate-foundation
+pick: clean
 resolves: 20261110-104442-features-set-writes-comment, 20261110-104750-featuregate-tests-fork-switches
 change: `pnpm ops features set <name> on|off` (rewriteSwitch in src/featureGate/node/setEnabled.ts) now writes only into the default export at the start of a line of src/config/featureGate/switches.config.ts; before, it wrote into the example `export default { wallet: false, sampleDomain: false }` inside the header comment and reported success while the real `export default {}` stayed empty. src/featureGate tests no longer assume the real switches file is empty outside Tier1 (dependsOn.test.ts) and restore a fork's own wallet / coupon values after the cases that change them
 why: a fork that ran the command (for example per notices 20261109-221552-phone-verification-domain or 20261109-211240-fingerprint-switch-merge) may have the feature still closed although the command said it was set, and its header comment holds the values instead

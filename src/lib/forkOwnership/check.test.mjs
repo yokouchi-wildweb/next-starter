@@ -594,14 +594,10 @@ describe("pnpm workflow ownership check", () => {
     assert.equal(cli(fork, "--bogus").status, 2);
   });
 
-  describe("索引 .notices/shipped/ から読む(本文が消えても判定が変わらない)", () => {
-    const ROW_RESOLVE = "- id:20261029-130000-user-hook-intake | severity:info | checkpoint:user-hook-intake | resolves:20261029-120000-user-hook";
-    const ROW_NEW = "- id:20261029-000000-new | severity:info | checkpoint:new";
-
-    /** 親に notice を本文 + 索引の行で出す(/ship と同じ 1 commit) */
-    const ship = (parent, id, body, rows) => {
+  describe("出荷済みの notice は履歴から読む(本文が消えても判定が変わらない、D350)", () => {
+    /** 親に notice の本文を出す */
+    const ship = (parent, id, body) => {
       write(parent, `.notices/${id}.md`, body);
-      write(parent, `.notices/shipped/${PARENT_ID}.md`, `# SHIPPED ${PARENT_ID}\n\n${rows.join("\n")}\n`);
       commitAll(parent, `ship ${id}`);
     };
     const pull = (fork) => {
@@ -619,10 +615,10 @@ describe("pnpm workflow ownership check", () => {
       return fork;
     };
 
-    test("台帳に無い notice は索引の行からも数え、親が本文を消した後も同じ", () => {
+    test("台帳に無い notice は履歴で足された本文からも数え、親が本文を消した後も同じ", () => {
       const parent = makeParent();
       const fork = makeFork(parent);
-      ship(parent, "20261029-000000-new", "# DOWNSTREAM NOTICE id:20261029-000000-new\ncheckpoint: new\n", [ROW_NEW]);
+      ship(parent, "20261029-000000-new", "# DOWNSTREAM NOTICE id:20261029-000000-new\ncheckpoint: new\n");
       git(parent, "rm", "-q", ".notices/20261029-000000-new.md");
       commitAll(parent, "body removed after the segment closed");
       pull(fork);
@@ -634,20 +630,20 @@ describe("pnpm workflow ownership check", () => {
       assert.equal(runCheck(fork).status, "pass");
     });
 
-    test("fork 成立点の索引の行は継承済み(本文が無くても)", () => {
+    test("fork 成立点の履歴にある notice は継承済み(本文が無くても)", () => {
       const parent = makeParent();
-      ship(parent, "20261029-000000-new", "# DOWNSTREAM NOTICE id:20261029-000000-new\n", [ROW_NEW]);
+      ship(parent, "20261029-000000-new", "# DOWNSTREAM NOTICE id:20261029-000000-new\n");
       git(parent, "rm", "-q", ".notices/20261029-000000-new.md");
       commitAll(parent, "body removed");
       const fork = makeFork(parent);
       assert.equal(runCheck(fork).status, "pass");
     });
 
-    test("resolves: は索引の行から読み、本文を消した commit を取り込んでも一時許可は失効する", () => {
+    test("resolves: は本文の最後の版から読み、本文を消した commit を取り込んでも一時許可は失効する", () => {
       const parent = makeParent();
       const fork = forkWithPermit(parent);
       assert.equal(runCheck(fork).status, "pass");
-      ship(parent, "20261029-130000-user-hook-intake", "# DOWNSTREAM NOTICE id:20261029-130000-user-hook-intake\nresolves: 20261029-120000-user-hook\n", [ROW_RESOLVE]);
+      ship(parent, "20261029-130000-user-hook-intake", "# DOWNSTREAM NOTICE id:20261029-130000-user-hook-intake\nresolves: 20261029-120000-user-hook\n");
       git(parent, "rm", "-q", ".notices/20261029-130000-user-hook-intake.md");
       commitAll(parent, "body removed");
       pull(fork);
@@ -658,14 +654,14 @@ describe("pnpm workflow ownership check", () => {
       assert.equal(result.entries.find((entry) => entry.path === "src/features/core/user/user.ts").permit, "expired-resolved");
     });
 
-    test("索引の行だけにある resolves:(本文に無い)でも失効する = 索引が正", () => {
+    test("改名した notice は新しい名前だけを数える(前の名前は台帳に要らない)", () => {
       const parent = makeParent();
-      const fork = forkWithPermit(parent);
-      ship(parent, "20261029-130000-user-hook-intake", "# DOWNSTREAM NOTICE id:20261029-130000-user-hook-intake\n", [ROW_RESOLVE]);
+      const fork = makeFork(parent);
+      ship(parent, "20261029-000000-old", "# DOWNSTREAM NOTICE id:20261029-000000-old\ncheckpoint: old\n");
+      git(parent, "mv", ".notices/20261029-000000-old.md", ".notices/20261029-000000-new.md");
+      commitAll(parent, "rename");
       pull(fork);
-      recordLedger(fork, "20261029-130000-user-hook-intake");
-      commitAll(fork, "ledger");
-      assert.equal(runCheck(fork).entries.find((entry) => entry.path === "src/features/core/user/user.ts").permit, "expired-resolved");
+      assert.deepEqual(runCheck(fork).unrecorded, ["20261029-000000-new"]);
     });
   });
 });

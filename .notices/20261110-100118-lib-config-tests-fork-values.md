@@ -4,6 +4,7 @@ date: 2026-11-10T10:01:18+09:00
 severity: info
 checkpoint: lib-config-tests-fork-values
 fixes: 20261109-002053-lib-drizzle-pool-config, 20261108-205554-http-default-timeout
+pick: -
 resolves: 20261110-094607-lib-config-tests-fork-override-independent
 change: lib config tests (drizzle, httpDefaults, toast, jwt, spamGuard, frameDims) check the upstream defaults via <name>ConfigDef.compose({}) instead of the loaded @lib-config override; frameDimsConfigDef is now exported
 why: a fork that wrote its own values into src/config/lib/<name>.config.ts (as the notices tell it to) failed pnpm test src/lib/<name>, the verify step of those notices

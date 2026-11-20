@@ -4,6 +4,7 @@ date: 2026-11-04T08:45:36+09:00
 severity: info
 checkpoint: codemod-display-spread
 fixes: 20261101-121000-domain-display-client
+pick: -
 resolves: 20261103-103348-domain-display-codemod-spread-miss
 change: scripts/codemods/domain-json-client-display.mjs no longer misses an object spread of the removed domain.json import (`{ ...config }`): such a file is left unchanged and listed under "書き換えなかったファイル(手で移す)" with the reason "丸ごと展開している(...config)"
 why: the codemod of notice 20261101-121000-domain-display-client removed the import but left `...config` behind without listing the file, so the fork had an uncompilable file that only pnpm typecheck revealed

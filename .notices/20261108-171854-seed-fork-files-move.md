@@ -4,6 +4,7 @@ date: 2026-11-08T17:18:54+09:00
 severity: action-required
 checkpoint: seed-fork-files-move
 fixes: 20261108-095310-scripts-four-folders
+pick: -
 change: Adds the missing step of 20261108-095310-scripts-four-folders for fork files at the seed intake points: the upstream folder scripts/db/seed/ moved to scripts/runner/seed/ (data/registry.ts and data/index.ts with their fork regions, data/demoUser.ts), but seed data files the fork added in scripts/db/seed/data/ are not moved by git and stay behind, so the moved registry.ts / index.ts import files that are no longer beside them (seed errors / typecheck errors).
 why: 095310 required_actions 3 covers files a fork put directly under scripts/ and step 2 covers old command names, but not fork files inside an upstream folder that moved as a whole. A fork that stops at the scripts-four-folders checkpoint has broken seeds. The seed folder is the only intake point of 095310 that moved (src/lib/forkOwnership/intake.txt before and after the segment: only region scripts/db/seed/data/registry.ts, region scripts/db/seed/data/index.ts and edit scripts/db/seed/data/demoUser.ts changed path; add scripts/tasks/*.ts stayed).
 required_actions:

@@ -4,6 +4,7 @@ date: 2026-11-19T21:20:45+09:00
 severity: action-required
 checkpoint: use-client-directive
 fixes: 20261119-024228-v2-content
+pick: -
 change: new lint rule use-client/hooks-need-directive (all tiers error, in the required rules): a src file that calls a hook (useState, useEffect, any useXxx; not React's use()) must start with "use client"; 34 upstream component and hook files gain the directive
 why: since the v2-content segment (commit 191299dd0, tableSuite BulkActionBar importing the Form/Input/Manual entry) `pnpm build` fails: PasswordInput.tsx calls useState without "use client" and is reached from a server component; only a production build showed it
 required_actions:

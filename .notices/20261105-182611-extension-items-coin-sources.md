@@ -4,6 +4,7 @@ date: 2026-11-05T18:26:11+09:00
 severity: info
 checkpoint: extension-items-coin-sources
 fixes: commit:1324eedb
+pick: clean
 change: scripts/extensions/upstreamItems.test.mts expectations follow the coin issuance change of 1324eedb: upstream coinIssuanceSources items are purchaseBonusGap and walletBonusGrant (referralReward / couponAttributionReward were deleted), COIN_ISSUANCE_LABELS keys include wallet_bonus_grant, and the item sets of the newer receptacles are pinned (analytics exclusionProviders: none, walletHistory reasonKeys: adminAdjustment, couponAttributionReward). Test file only, no runtime change.
 why: Since 1324eedb, pnpm test:extension-items failed 2 cases on the upstream tree (stale expectations), so a fork that merged that commit saw the same 2 failures.
 required_actions: none

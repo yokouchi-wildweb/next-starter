@@ -4,6 +4,7 @@ date: 2026-11-10T16:23:19+09:00
 severity: info
 checkpoint: config-extra-deep-merge
 fixes: 20261109-142403-config-district-wallet-b
+pick: -
 resolves: 20261110-121441-config-override-extra-array-elements
 change: defineConfig merges a config override's Extra type deeply into the defaults (WithExtra<D, Extra>) instead of intersecting it (D & Extra): an Extra array type replaces the default's when it widens it, so fork fields on array items (e.g. purchaseRequest payment.paymentMethods) type-check in the override and read back from the composed config; compose<Extra> returns WithExtra<D, Extra>; WithExtra is exported from @/lib/defineConfig
 why: step 3 of 20261109-142403-config-district-wallet-b told forks to put fork-only payment-method fields through Extra, but with D & Extra the array became an intersection and the override failed with TS2322 (and .find()?.<field> could not be read)

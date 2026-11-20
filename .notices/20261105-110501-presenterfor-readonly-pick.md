@@ -4,6 +4,7 @@ date: 2026-11-05T11:05:00+09:00
 severity: info
 checkpoint: presenterfor-readonly-pick
 fixes: 20261029-185421-fieldtype-list-presenter-for
+pick: clean
 resolves: 20261103-105120-presenterfor-readonly-fix-notice, 20261104-143340-presenterfor-fix-pickable-notice
 change: the presenterFor.mjs part of c0b0cd2b as its own commit, based on the fieldtype-list-presenter-for checkpoint (510a8e313) so /flux can pick it right after that segment. Two JSDoc lines in src/lib/domain/fields/presenterFor.mjs: PresenterSpec.options and the field param's options become ReadonlyArray<{ value: unknown, label?: string }> (were Array<{ value: string | number | boolean, label?: string }>). No behavior change (values are compared with String(value))
 why: a fork that applied domain-display-client (284ec4315) before fieldtype-list-presenter-for (parallel branches) failed pnpm typecheck at that checkpoint: src/lib/crud/presenters/domainColumns.ts(97,29) TS2345, readonly FieldOption[] not assignable to the mutable array. The fix c0b0cd2b reached forks ~20 segments later and could not be picked whole (it also touches a later notice body)

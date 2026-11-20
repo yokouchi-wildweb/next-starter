@@ -4,6 +4,7 @@ date: 2026-11-19T09:21:23+09:00
 severity: action-required
 checkpoint: test-full-report
 fixes: 20261117-181158-test-force-exit
+pick: clean
 change: pnpm test no longer passes --test-force-exit (scripts/runner/test/run.mjs BASE_ARGS); a test file now ends on its own, and one that leaves an open handle fails by name at the per-file limit (default 120s)
 why: force-exit ended each test file's process before its report reached the parent, so the tail of a file's results vanished, counted neither pass nor fail with the exit unchanged (a failing test there was hidden); measured on one tree: 4156-4195 tests per run with it, 4219 every run without
 required_actions:

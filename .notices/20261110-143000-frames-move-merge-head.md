@@ -4,6 +4,7 @@ date: 2026-11-10T14:30:00+09:00
 severity: info
 checkpoint: frames-move-merge-head
 fixes: 20261109-175947-shared-shelf-frame-override
+pick: clean
 resolves: 20261110-140016-frame-override-rename-conflict-frames-move
 change: pnpm check extensions -- frames-move counts upstream's tree from the parent remote's branch (the fetched <remote>/<branch>) and the merge-base with it, besides the ledger base. The merge in progress (MERGE_HEAD) counts only when it is an ancestor of that branch (an upstream version being merged); a merge of the fork's own commit (a railroad track branch, a feature branch) no longer counts as upstream, so the fork's own routes in that commit are not taken for parent routes. forkAddedFiles (src/lib/forkOwnership/check.mjs) also returns parentRef.
 why: oripa-do merged a track commit carrying its own routes while running frames-move: MERGE_HEAD's tree made its 21 own frame.ts look like declarations beside parent routes, and the tool proposed moving them to frame.override.ts (a wrong resolution). The same merge hit a conflict the shared-shelf-frame-override step 1 does not describe (below).

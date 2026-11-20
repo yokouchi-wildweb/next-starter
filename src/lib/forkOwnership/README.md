@@ -228,7 +228,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 | unused(残骸) | 違反の無いファイルの行 | 失敗(行を消す) |
 
 - 指紋 = 区画の中身を除いたテキストの git blob id(`git hash-object --stdin` と同じ値)。kind が region のファイルは fork の区画と生成器の区画を、他は生成器の区画だけを除く。区画の中の書き換えでは許可し直しにならない
-- 依頼の解決: 基準(取り込み済み)の消えない索引 `.notices/shipped/*.md` の行と本文(`.notices/` と `done/`)の `resolves:` を集め(和をとる。親が本文を片付けても索引の行で失効は変わらない)、すべての番号が解決した許可を expired-resolved にする
+- 依頼の解決: 基準(取り込み済み)の履歴で `.notices/` に足された notice の本文の最後の版(木に有ればその版、消えていれば消す前の版)の `resolves:` を集め(親が本文を片付けても失効は変わらない)、すべての番号が解決した許可を expired-resolved にする
 - 検査が見るのは依頼の番号の形だけ(`UPREQ_ID`)で、どの受信箱の指令かは見ない。自分宛ての指令は親の notice の `resolves:` に載らないので、fork が自分で行を消すまで残る(親がファイルに触れば expired-base)
 
 ### 緊急修正の pick
@@ -254,7 +254,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 - 親の remote が無い・決まらない、既定のブランチが分からない、取得(`git fetch`)できない
 - shallow clone(基準を求められない)、merge-base が無い
 - 基準に `intake.txt` が無い(この検査を含む版をまだ取り込んでいない)、書式の誤りがある
-- 取り込み済み(基準の索引の行 ∪ 基準の本文)なのに自分の台帳(`.notices/applied/<名前>.md`)に記録の無い notice がある。fork を作った時点の索引の行とツリーの notice は継承済みとして除く(`/flux` と同じ求め方)
+- 取り込み済み(基準の履歴で `.notices/` に足された本文 ∪ 基準の木の本文。merge で足した物も拾い、改名の前の名前は除く = `/flux` の incoming.mjs と同じ)なのに自分の台帳(`.notices/applied/<名前>.md`)に記録の無い notice がある。fork を作った時点の履歴とツリーの notice は継承済みとして除く
 - lint の厳しさは手元の情報だけで決める(確かめられなければ今のパスでの判定)。この検査とは別
 
 ### 多段の Tier

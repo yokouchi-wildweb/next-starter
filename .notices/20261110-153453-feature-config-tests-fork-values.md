@@ -4,6 +4,7 @@ date: 2026-11-10T15:34:53+09:00
 severity: info
 checkpoint: feature-config-tests-fork-values
 fixes: 20261109-142403-config-district-wallet-b, 20261109-143705-config-district-user, 20261109-223134-account-editable-items, 20261109-135223-config-district-wallet-a
+pick: -
 resolves: 20261110-121329-feature-config-tests-fork-override-independent
 change: feature config tests (purchaseRequest paymentMethods, user accountItems / bulkUpdateFields / nameAvailability, wallet reasonKey) check upstream defaults via <name>ConfigDef.compose({}) and check behavior against the loaded config (upstream + your override)
 why: a fork that wrote its own values into src/config/features/<name>.config.ts (as those notices tell it to) failed pnpm test on these files, the verify step of those notices

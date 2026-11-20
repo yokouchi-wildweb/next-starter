@@ -4,6 +4,7 @@ date: 2026-11-10T12:16:37+09:00
 severity: action-required
 checkpoint: core-domain-aliases-slash-only
 fixes: 20261109-201343-core-domain-aliases
+pick: -
 resolves: 20261110-104822-core-domain-aliases-bare-import
 change: no code change upstream; this notice replaces step 2 of notice 20261109-201343-core-domain-aliases. Its sed matched with \b, so a bare import such as `from "@/features/core/userLoginEvent"` became `@/features/userLoginEvent`, but tsconfig.json only has the slash aliases `@/features/<name>/*` (no core domain has a bare alias) → TS2307 Cannot find module
 why: a fork that ran that step 2 on bare imports has a broken typecheck; the rewrite must touch only the slash form

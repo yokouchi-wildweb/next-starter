@@ -4,6 +4,7 @@ date: 2026-11-10T16:42:35+09:00
 severity: action-required
 checkpoint: wallet-extra-currency-types
 fixes: 20261109-135223-config-district-wallet-a
+pick: clean
 resolves: 20261110-105102-wallet-a-notice-extra-currencies
 change: wallet README / config comment state that an Extra currency keeps the type written in Extra (added fields, literal types such as isTicket: true) and show how to list currency keys; notice-writing rule: a fork's key / value lists are enumerated by a command, never counted by hand
 why: 20261109-135223-config-district-wallet-a step 3 [判断] listed 4 own currencies for oripa-do while it had 5 (psa10_merge_point missing), and told forks to type Extra currencies as CurrencyConfig, which drops isTicket: true and makes ticket wallet types never; a fork that followed it may have dropped a currency or broken ticket typing

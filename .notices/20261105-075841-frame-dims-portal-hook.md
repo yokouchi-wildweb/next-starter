@@ -4,6 +4,7 @@ date: 2026-11-05T07:58:41+09:00
 severity: info
 checkpoint: frame-dims-portal-hook
 fixes: 20261102-222255-frame-mobile-a11y
+pick: -
 resolves: 20261105-073339-frame-dims-for-portaled-parts
 hotfix: since frame-mobile-a11y the bottom nav is taller by the safe-area, so fork parts portaled to body that hard-code the nav px overlap the nav icons on iPhone in production; this gives them the frame's value
 change: new public hook useFrameDimsStyle() (@/hooks/useFrameDimsStyle) returns a style object copying the computed --app-header-height / --app-banner-height / --app-bottom-nav-height of the outer frame [data-frame-root] (0 while a part is hidden by a page mark or device visibility; empty outside a frame and during SSR), live on mark / attribute / viewport changes; put it on the outer element of a part portaled to body and keep using var(--app-*-height) inside; GlobalToast now uses it (no longer stale while a toast is shown); also exported: FRAME_DIM_VARS, readFrameDimsStyle, types FrameDimPart / FrameDimsStyle

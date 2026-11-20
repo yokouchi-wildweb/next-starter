@@ -5,6 +5,7 @@ severity: action-required
 checkpoint: devcheck-policy-name
 moved: scripts/workflow/devcheck/policy.default.json -> scripts/workflow/devcheck/policy.json
 fixes: 20261112-104626-devcheck
+pick: clean
 change: devcheck's policy files follow the marks rule - the upstream body is plain policy.json and a fork overlays declared keys only with scripts/workflow/devcheck/policy.override.ts (export const override = { kind: "auto" | "manual" | "off" }); the intake row is now policy.override.ts
 why: the marks are .default / .replace / .override only; .default is the default of a whole-replacement switch, data is a plain body plus a declared-keys .override.ts. policy.default.json and policy.override.json broke that rule and pnpm workflow ownership who could not name the overlay
 required_actions:

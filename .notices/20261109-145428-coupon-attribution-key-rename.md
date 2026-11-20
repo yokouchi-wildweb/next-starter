@@ -4,6 +4,7 @@ date: 2026-11-09T14:54:28+09:00
 severity: action-required
 checkpoint: coupon-attribution-key-rename
 fixes: 20261109-140836-config-district-wallet-c
+pick: -
 change: renamed key (council D99): couponAttributionRewardConfig.recipientVisibleAttributionRewardMetadataKeys -> couponAttributionRewardConfig.recipientVisibleMetadataKeys (src/features/core/couponAttributionReward/config.ts; same type and default []; override key in src/config/features/couponAttributionReward.config.ts) | src/lib/screens/checks.mjs findDotNamedFiles (Tier1-only check) now returns only fork replacement marks (.replace / .override by classifyDottedName) instead of every dotted name with a config.ui.ts name exception; findMarkerNamedFiles (all tiers) allows config.ui.ts only directly in a frame's _layout/ (the district UI_CONFIG_FILE) — no fork tree changes (checked: 0 findings in the 5 forks)
 why: a fork that wrote the old key in its couponAttributionReward override would silently lose it (the override would carry an unknown key, the allow list would fall back to [] = nothing shown to recipients)
 required_actions:

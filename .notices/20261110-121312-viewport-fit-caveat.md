@@ -4,6 +4,7 @@ date: 2026-11-10T12:13:12+09:00
 severity: info
 checkpoint: config-viewport-fit-caveat
 fixes: 20261108-202604-business-home
+pick: clean
 resolves: 20261110-100046-viewport-fit-notice-caveat
 change: caveat for step 4 of notice 20261108-202604-business-home (viewport moved to src/config/layout/root.config.ts): the override is deep-merged, so keys you leave out keep the upstream default of src/app/_layout/config.ts — viewport { width: "device-width", initialScale: 1, viewportFit: "cover" } | copying only width / initialScale from an old seo.config.ts that had no viewportFit adds viewport-fit=cover to the meta viewport (drawing under the notch / safe areas) — a silent rendering change | comments in src/app/_layout/config.ts and src/config/layout/root.config.ts now say so; the default value is unchanged
 why: forks whose old seo.config.ts viewport had no viewportFit render edge-to-edge after the business-home segment unless they write viewportFit: "auto"

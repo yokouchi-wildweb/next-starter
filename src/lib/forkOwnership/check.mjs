@@ -51,41 +51,90 @@ export function resolveParentBranch(repoRoot, remote, requested) {
   return match ? match[1] : null;
 }
 
-const noticeIds = (lsTreeOutput) =>
-  (lsTreeOutput ?? "")
-    .split("\n")
-    .map((path) => /^\.notices\/([^/]+)\.md$/.exec(path)?.[1])
-    .filter((id) => id && id !== "README");
+const NOTICE_FILE = /^\.notices\/(?:done\/)?(\d{8}-\d{6}-[^/]+)\.md$/;
 
-/**
- * ref の消えない索引 .notices/shipped/*.md の行: [{ id, fields }](書式 = scripts/workflow/notices/shippedIndex.mjs。src/lib は scripts を
- * import しないので、行を読む数行をここに置く: `- id:<id> | key:value …`)。索引の無い版(導入前)は空
- */
-function indexRows(repoRoot, ref) {
-  const files = (tryGit(repoRoot, ["ls-tree", "--name-only", ref, ".notices/shipped/"]) ?? "").split("\n").filter((path) => /^\.notices\/shipped\/[^/]+\.md$/.test(path));
-  const rows = [];
-  for (const file of files) {
-    for (const line of (show(repoRoot, ref, file) ?? "").split("\n")) {
-      if (!line.startsWith("- id:")) continue;
-      const [head, ...rest] = line.slice(2).split(" | ");
-      const fields = {};
-      for (const part of rest) {
-        const at = part.indexOf(":");
-        if (at > 0) fields[part.slice(0, at)] = part.slice(at + 1);
-      }
-      rows.push({ id: head.slice("id:".length), fields });
-    }
+/** git log の `@<sha>` 区切りの名前の行: [{ commit, line }] */
+function logNames(repoRoot, args) {
+  const out = [];
+  let cur = null;
+  for (const line of (tryGit(repoRoot, ["-c", "core.quotePath=false", ...args]) ?? "").split("\n")) {
+    if (line.startsWith("@")) cur = line.slice(1);
+    else if (line && cur) out.push({ commit: cur, line });
   }
-  return rows;
+  return out;
 }
 
-/** ref で出荷済みの notice の id = 索引の行 ∪ 直下の本文(本文は区間が閉じれば消えるので索引が正、導入前の版は本文だけ) */
-const shippedIds = (repoRoot, ref) => new Set([...indexRows(repoRoot, ref).map((row) => row.id), ...noticeIds(tryGit(repoRoot, ["ls-tree", "--name-only", ref, ".notices/"]))]);
+/**
+ * ref の履歴で .notices/ に足された notice: id → { commit, path }(最初に足した commit。merge で足した物も拾い、改名の前の名前は除く)。
+ * 出荷済みの一覧の正 = 履歴(索引は持たない、D350)。求め方は .claude/skills/flux/incoming.mjs の addCommits と同じ
+ * (src/lib は .claude を import しないので、数行をここに置く)
+ */
+function historyNotices(repoRoot, ref) {
+  const out = new Map();
+  for (const { commit, line } of logNames(repoRoot, ["log", "--no-renames", "--diff-filter=A", "--name-only", "--format=@%H", ref, "--", ".notices/"])) {
+    const id = NOTICE_FILE.exec(line)?.[1];
+    if (id) out.set(id, { commit, path: line }); // 新しい順 → 最後 = 最も古い
+  }
+  for (const { commit, line } of logNames(repoRoot, ["log", "-m", "--merges", "--no-renames", "--diff-filter=A", "--name-only", "--format=@%H", ref, "--", ".notices/"])) {
+    const id = NOTICE_FILE.exec(line)?.[1];
+    if (id && (!out.has(id) || out.get(id).merge)) out.set(id, { commit, path: line, merge: true });
+  }
+  for (const { line } of logNames(repoRoot, ["log", "-M", "--diff-filter=R", "--name-status", "--format=@%H", ref, "--", ".notices/"])) {
+    const [status, from, to] = line.split("\t");
+    const a = NOTICE_FILE.exec(from ?? "")?.[1];
+    const b = NOTICE_FILE.exec(to ?? "")?.[1];
+    if (status?.startsWith("R") && a && b && a !== b) out.delete(a);
+  }
+  return out;
+}
+
+/** ref で出荷済みの notice の id = その版の履歴で足された本文 ∪ 木の本文(本文は区間が閉じれば消えてよい) */
+function shippedIds(repoRoot, ref) {
+  const ids = new Set(historyNotices(repoRoot, ref).keys());
+  for (const path of (tryGit(repoRoot, ["-c", "core.quotePath=false", "ls-tree", "-r", "--name-only", ref, ".notices/"]) ?? "").split("\n")) {
+    const id = NOTICE_FILE.exec(path)?.[1];
+    if (id) ids.add(id);
+  }
+  return ids;
+}
+
+/** 本文の最後の版: 木に有れば ref の版、消えていれば消す前の版、どちらでもなければ足した版。id → 中身 */
+function lastBodies(repoRoot, ref) {
+  const inTree = new Map();
+  for (const path of (tryGit(repoRoot, ["-c", "core.quotePath=false", "ls-tree", "-r", "--name-only", ref, ".notices/"]) ?? "").split("\n")) {
+    const id = NOTICE_FILE.exec(path)?.[1];
+    if (id) inTree.set(id, `${ref}:${path}`);
+  }
+  const deleted = new Map();
+  for (const { commit, line } of logNames(repoRoot, ["log", "--no-renames", "--diff-filter=D", "--name-only", "--format=@%H", ref, "--", ".notices/"])) {
+    const id = NOTICE_FILE.exec(line)?.[1];
+    if (id && !deleted.has(id)) deleted.set(id, `${commit}^:${line}`); // 新しい順 → 最初 = 最後に消した
+  }
+  const specs = new Map(inTree);
+  for (const [id, add] of historyNotices(repoRoot, ref)) if (!specs.has(id)) specs.set(id, deleted.get(id) ?? `${add.commit}:${add.path}`);
+  const out = new Map();
+  if (specs.size === 0) return out;
+  const list = [...specs];
+  const buf = execFileSync("git", ["cat-file", "--batch"], { cwd: repoRoot, input: list.map(([, spec]) => spec).join("\n") + "\n", maxBuffer: 512 * 1024 * 1024 });
+  let at = 0;
+  for (const [id] of list) {
+    const nl = buf.indexOf(10, at);
+    const head = buf.subarray(at, nl).toString("utf8");
+    if (head.endsWith(" missing")) {
+      at = nl + 1;
+      continue;
+    }
+    const size = Number(head.split(" ")[2]);
+    out.set(id, buf.subarray(nl + 1, nl + 1 + size).toString("utf8"));
+    at = nl + 1 + size + 1;
+  }
+  return out;
+}
 
 /**
  * 取り込み済み(基準にある)なのに自分の台帳に記録の無い notice(L1.7)。
  * fork を作った時点のツリーにあった notice は継承済みとして除く(/flux と同じ求め方)。
- * 基準・成立点とも「索引の行 ∪ 本文」で読む(本文が消えても結果が変わらない)
+ * 基準・成立点とも「履歴で足された本文 ∪ 木の本文」で読む(本文が消えても結果が変わらない)
  */
 function unrecordedNotices(repoRoot, base, parentRef, ownerId) {
   const baseIds = [...shippedIds(repoRoot, base)];
@@ -107,16 +156,12 @@ const splitIds = (value) =>
 
 /**
  * 基準(取り込み済み)の notice の resolves: に書かれた指令 id(上流が解決した下流の依頼)。
- * 索引の行の resolves: ∪ 本文(直下と done/)の resolves:。本文が消えても索引の行が残るので失効は変わらない
+ * 履歴で足された notice の本文の最後の版で読む(本文が消えても消す前の版が残るので失効は変わらない)
  */
 function resolvedOrders(repoRoot, base) {
   const ids = new Set();
-  for (const row of indexRows(repoRoot, base)) for (const id of splitIds(row.fields.resolves ?? "")) ids.add(id);
-  const files = (tryGit(repoRoot, ["ls-tree", "-r", "--name-only", base, ".notices/"]) ?? "")
-    .split("\n")
-    .filter((path) => /^\.notices\/(done\/)?[^/]+\.md$/.test(path) && !path.endsWith("/README.md"));
-  for (const path of files) {
-    const match = /^resolves:\s*(.+)$/m.exec(show(repoRoot, base, path) ?? "");
+  for (const text of lastBodies(repoRoot, base).values()) {
+    const match = /^resolves:\s*(.+)$/m.exec(text);
     if (!match) continue;
     for (const id of splitIds(match[1])) ids.add(id);
   }

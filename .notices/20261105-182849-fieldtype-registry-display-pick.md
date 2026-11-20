@@ -4,6 +4,7 @@ date: 2026-11-05T18:28:49+09:00
 severity: info
 checkpoint: fieldtype-registry-display-pick
 fixes: 20261029-174708-fieldtype-shared-table
+pick: clean
 change: src/features/core/purchaseQuota/entities/display.ts regenerated (pnpm registry:generate) at the fieldtype-shared-table checkpoint (c19dbe47): 4 fieldType values text -> string, matching the domain.json that checkpoint changed. Side commit on c19dbe47 so /flux can pick it right after that segment. No behavior change
 why: c19dbe47 changed purchaseQuota/domain.json fieldType text -> string without regenerating its client display copy, so pnpm registry:check failed at every fieldtype checkpoint 20261029-174708..193321 (found by the upstream checkpoint check). The same change reached main only in 29085ca6, about 30 commits later
 required_actions: none

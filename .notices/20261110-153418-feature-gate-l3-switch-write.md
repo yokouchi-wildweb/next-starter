@@ -4,6 +4,7 @@ date: 2026-11-10T15:34:18+09:00
 severity: action-required
 checkpoint: feature-gate-l3-switch-write
 fixes: 20261109-171458-feature-gate-foundation
+pick: -
 resolves: 20261110-132442-feature-gate-l3-codemod-switch-write
 change: codemod .notices/20261109-171458-feature-gate-foundation.feature-gate-l3.mjs (writeSwitch) now writes only into the default export at the start of a line of src/config/featureGate/switches.config.ts; before, it wrote into the example `export default { wallet: false, sampleDomain: false }` inside the header comment and reported success while the real `export default {}` stayed empty
 why: a fork that ran the codemod with --apply may have its feature switches (values carried over from the old config) written into the header comment, so those features silently fall back to their rule's defaultEnabled
