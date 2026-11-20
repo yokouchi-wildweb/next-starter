@@ -138,7 +138,7 @@ Button / Badge・入力欄系(Input・選ぶ欄の引き金)・入力部品(真�
 
 ```ts
 // src/config/lib/variantOverrides.config.ts
-import type { VariantOverridesOverride } from "@/lib/variantOverrides/config";
+import type { VariantOverridesOverride } from "@/lib/variantOverrides";
 
 export default {
   button: {

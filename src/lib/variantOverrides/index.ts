@@ -7,6 +7,9 @@
 
 export { defineVariantOverrides, variantOverrideClasses } from "./defineConfig";
 export { createOverridableVariants } from "./createOverridableVariants";
+// 合成済みの上書き(部品が読む)と、上書きのファイル src/config/lib/variantOverrides.config.ts の型
+export { variantOverrides } from "./config";
+export type { VariantOverridesOverride } from "./config";
 export type {
   AxisOverride,
   BadgeKindOverride,

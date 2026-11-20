@@ -1,16 +1,17 @@
 // 入力部品 5 つ(BooleanCheckboxInput / BooleanRadioGroupInput / SingleCardCheckbox / StepperInput / SwitchInput)の
 // 見た目の上書き口(src/config/lib/variantOverrides.config.ts の各キー、@/lib/variantOverrides)の検査。
 // 実行: pnpm test src/components/Input/variantOverrides.test.tsx
-// (tsx。type: module が無いので tsx は CJS = top-level await 不可 → before() で import。config は mock.module で差し替え)
+// (tsx。type: module が無いので tsx は CJS = top-level await 不可 → before() で import。上書きのファイル @lib-config/variantOverrides は mock.module で空に)
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement as h } from "react";
 
-import { defineVariantOverrides, type VariantOverrides } from "@/lib/variantOverrides";
+import type { VariantOverrides } from "@/lib/variantOverrides";
 
 // 上書きの値はテストごとに中身だけ入れ替える(部品は読み込み時にキーのオブジェクトを掴むので、入れ物は同じまま)
-const OV: VariantOverrides = defineVariantOverrides({});
-mock.module("@/lib/variantOverrides/config", { namedExports: { variantOverrides: OV } });
+// 上書きのファイルを空にして(fork の値に左右されない)、lib が合成した値をテストが書き換えて部品に効かせる
+mock.module("@lib-config/variantOverrides", { defaultExport: {} });
+let OV: VariantOverrides;
 
 /** 入れ子のキー(中のオブジェクトを部品が掴む) */
 const NESTED = new Set(["badge", "switchInput"]);
@@ -31,6 +32,7 @@ let SingleCardCheckbox: typeof import("./SingleCardCheckbox").SingleCardCheckbox
 let StepperInput: typeof import("./StepperInput").default;
 let SwitchInput: typeof import("./SwitchInput").SwitchInput;
 before(async () => {
+  ({ variantOverrides: OV } = await import("@/lib/variantOverrides"));
   ({ renderToStaticMarkup } = await import("react-dom/server"));
   ({ BooleanCheckboxInput } = await import("./BooleanCheckboxInput"));
   ({ BooleanRadioGroupInput } = await import("./BooleanRadioGroupInput"));

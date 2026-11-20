@@ -9,8 +9,7 @@ import { MinusIcon, PlusIcon } from "lucide-react";
 import type { VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";
 import type { FormControlA11yProps } from "./options";
-import { variantOverrides } from "@/lib/variantOverrides/config";
-import { createOverridableVariants, type StepperInputSize } from "@/lib/variantOverrides";
+import { variantOverrides, createOverridableVariants, type StepperInputSize } from "@/lib/variantOverrides";
 
 // 見た目の上書き口: src/config/lib/variantOverrides.config.ts の stepperInput({ base, size }、外枠)。既定のクラスはここ
 // 高さは操作部品の高さの段(--control-h-*): xs = xxs 28px・s = sm 36px・m = md 44 / 40px・l = xl 48px(両端のボタンも同じ段の正方形)

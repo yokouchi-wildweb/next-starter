@@ -1,16 +1,17 @@
 // TextBlocks 4 つ(PageTitle / Para / SecTitle / Span)の見た目の上書き口(src/config/lib/variantOverrides.config.ts の
 // pageTitle / para / secTitle / span、@/lib/variantOverrides)の検査。
 // 実行: pnpm test src/components/TextBlocks/variantOverrides.test.tsx
-// (tsx。before() で import。config は mock.module で差し替え)
+// (tsx。before() で import。上書きのファイル @lib-config/variantOverrides は mock.module で空に)
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement as h } from "react";
 
-import { defineVariantOverrides, type VariantOverrides } from "@/lib/variantOverrides";
+import type { VariantOverrides } from "@/lib/variantOverrides";
 
 // 上書きの値はテストごとに中身だけ入れ替える(部品は読み込み時にキーのオブジェクトを掴むので、入れ物は同じまま)
-const OV: VariantOverrides = defineVariantOverrides({});
-mock.module("@/lib/variantOverrides/config", { namedExports: { variantOverrides: OV } });
+// 上書きのファイルを空にして(fork の値に左右されない)、lib が合成した値をテストが書き換えて部品に効かせる
+mock.module("@lib-config/variantOverrides", { defaultExport: {} });
+let OV: VariantOverrides;
 
 /** 入れ子のキー(中のオブジェクトを部品が掴む) */
 const NESTED = new Set(["badge", "switchInput"]);
@@ -30,6 +31,7 @@ let Para: typeof import("./Para").Para;
 let SecTitle: typeof import("./SecTitle").SecTitle;
 let Span: typeof import("./Span").Span;
 before(async () => {
+  ({ variantOverrides: OV } = await import("@/lib/variantOverrides"));
   ({ renderToStaticMarkup } = await import("react-dom/server"));
   ({ PageTitle } = await import("./PageTitle"));
   ({ Para } = await import("./Para"));

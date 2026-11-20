@@ -15,13 +15,14 @@ import { createOverridableVariants } from "./createOverridableVariants.ts";
 const here = dirname(fileURLToPath(import.meta.url));
 
 const BASE = "inline-flex rounded-md";
-const CONFIG = {
+const CONFIG = /** @type {const} */ ({
   variants: {
     variant: { default: "bg-primary text-primary-foreground", outline: "border bg-background" },
     size: { sm: "h-9 px-3", md: "h-10 px-4" },
   },
   defaultVariants: { variant: "default", size: "md" },
-};
+});
+/** @param {Parameters<typeof createOverridableVariants>[2]} override */
 const make = (override) => createOverridableVariants(BASE, CONFIG, override);
 
 test("defineVariantOverrides は未指定キーを空オブジェクトで埋める(消費側が ?. 無しで参照できる)", () => {
@@ -83,6 +84,8 @@ test("createOverridableVariants は cva の variants の全ての軸を解決し
 test("オーバーライド無しなら cn(cva(...)) と同じ出力(見た目不変の契約)", () => {
   const plain = make({});
   const reference = cva(BASE, CONFIG);
+  // cva が受ける形の外の値(空文字など)も比べるので、型は問わない
+  /** @type {any[]} */
   const cases = [
     undefined,
     {},
@@ -124,7 +127,7 @@ test("オーバーライドは cva の出力に後勝ちし、呼び出し側の
 test("variant / size の解決は cva と同じ(undefined / 空文字 → 既定値、null → その軸を当てない)", () => {
   const fn = make({ variant: { default: "V-default" }, size: { md: "S-md" } });
   assert.equal(fn({ variant: undefined, size: undefined }), "inline-flex rounded-md bg-primary text-primary-foreground h-10 px-4 V-default S-md");
-  assert.equal(fn({ variant: "", size: "" }), "inline-flex rounded-md bg-primary text-primary-foreground h-10 px-4 V-default S-md");
+  assert.equal(fn(/** @type {any} */ ({ variant: "", size: "" })), "inline-flex rounded-md bg-primary text-primary-foreground h-10 px-4 V-default S-md");
   assert.equal(fn({ variant: null, size: null }), "inline-flex rounded-md");
 });
 

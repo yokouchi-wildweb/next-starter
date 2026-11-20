@@ -5,8 +5,7 @@ import { cn } from "@/lib/cn";
 import { Label } from "@/components/Input/Label";
 import { RadioGroup, RadioGroupItem } from "@/components/Primitives/RadioGroup";
 import type { VariantProps } from "class-variance-authority";
-import { variantOverrides } from "@/lib/variantOverrides/config";
-import { createOverridableVariants, type CheckControlSize } from "@/lib/variantOverrides";
+import { variantOverrides, createOverridableVariants, type CheckControlSize } from "@/lib/variantOverrides";
 
 type BooleanLike = boolean | "true" | "false";
 

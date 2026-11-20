@@ -7,8 +7,7 @@ import { cn } from "@/lib/cn";
 import type { VariantProps } from "class-variance-authority";
 import { Checkbox } from "@/components/Primitives/Checkbox";
 import { Label } from "@/components/Input/Label";
-import { variantOverrides } from "@/lib/variantOverrides/config";
-import { createOverridableVariants, type CheckControlSize } from "@/lib/variantOverrides";
+import { variantOverrides, createOverridableVariants, type CheckControlSize } from "@/lib/variantOverrides";
 
 // 見た目の上書き口: src/config/lib/variantOverrides.config.ts の booleanCheckbox({ base, size })。既定のクラスはここ
 const CHECKBOX_SIZE = {

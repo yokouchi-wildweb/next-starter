@@ -7,10 +7,11 @@ import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement as h, type ReactElement } from "react";
 
-import { defineVariantOverrides, type VariantOverrides } from "@/lib/variantOverrides";
+import type { VariantOverrides } from "@/lib/variantOverrides";
 
-const OV: VariantOverrides = defineVariantOverrides({});
-mock.module("@/lib/variantOverrides/config", { namedExports: { variantOverrides: OV } });
+// 上書きのファイルを空にして(fork の値に左右されない)、lib が合成した値をテストが書き換えて部品に効かせる
+mock.module("@lib-config/variantOverrides", { defaultExport: {} });
+let OV: VariantOverrides;
 
 let render: typeof import("react-dom/server").renderToStaticMarkup;
 let M: {
@@ -21,6 +22,7 @@ let M: {
   DatetimeInput: typeof import("./DatetimeInput").DatetimeInput;
 };
 before(async () => {
+  ({ variantOverrides: OV } = await import("@/lib/variantOverrides"));
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
   M = {
     Input: (await import("./Input")).Input,

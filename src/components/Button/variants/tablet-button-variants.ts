@@ -6,8 +6,8 @@
 
 import type { VariantProps } from "class-variance-authority";
 
-import { variantOverrides } from "@/lib/variantOverrides/config";
 import {
+  variantOverrides,
   createOverridableVariants,
   type TabletButtonSizeName,
   type TabletButtonVariantName,
