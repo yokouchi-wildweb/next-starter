@@ -221,7 +221,7 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 1. the fork's first own commit: the head of `git rev-list --reverse HEAD ^<upstream>/<branch>` (= the oldest commit reachable from HEAD but not in upstream) | fetched beforehand
 2. **none** (the fork has committed nothing yet) → every live notice in the tree is inherited
 3. fork founding point = that commit's first parent (`<first_own>^`) when it has a parent, else (a root commit = born from a GitHub template, etc.) the commit itself
-4. inherited set = the index lines at the founding point (`.notices/shipped/*.md`) ∪ the notice ids present in `git ls-tree -r --name-only <fork成立点> .notices/` (both, for forks founded before the index existed; `incoming.mjs` computes it)
+4. inherited set = the notices added in the founding point's history ∪ the notice ids present in `git ls-tree -r --name-only <fork成立点> .notices/` (`incoming.mjs` computes it)
 5. **shallow clone** (`git rev-parse --is-shallow-repository` is true): history cannot be walked, no judgment possible | say so, propose `git fetch --unshallow <upstream>`, or confirm the inherited range with the user; STOP (never treat everything as inherited on your own)
 - never delete inherited notice files (cleaning bodies is the shipping repo's job; deleting downstream may conflict with upstream's cleanup at merge; exclusion by the judgment formula is right)
 
@@ -245,9 +245,9 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 
 ## INCOMING TOOL (incoming.mjs)
 - the unapplied judgment, inherited set and segment building (and relay.md's grandparent checkpoint points / covers) are produced mechanically by `.claude/skills/flux/incoming.mjs` of the upstream tip's version
-- it reads only the upstream tip's permanent index (`.notices/shipped/*.md`, 1 notice = 1 line) and the history of commits that added notices, not the bodies, so the answer does not change even when upstream deleted bodies of closed segments (`.notices/README.md` section `出荷索引と本文の読み方`)
+- it reads only the upstream tip's history: the list = every body ever added under `.notices/` (a body a merge added included, a renamed body under its new name), each with its fields from the body's last version (in the tip's tree, else the version before it was deleted) and its owner from the body's `from:` — so a body deleted after its segment closed changes nothing, and a body corrected after shipping is read as corrected (D350)
 - run (runs the upstream tip's version like the steps; a self-contained single file, so it works even when the fork's tree lacks it): `git show <upstream>/<branch>:.claude/skills/flux/incoming.mjs > .flux/incoming.mjs && node .flux/incoming.mjs --upstream=<upstream>/<branch> --json` (`.flux/` = the same out-of-git place as the work memo) (cwd = the fork's repo)
-- output: per segment number / merge target (`target`; none for segment 0) / label / notices (`id`, `owner` = name of the index it is in, `grandparent`, `point` = checkpoint point, `body` = where to read the body `<足した commit>:<パス>`, `fields` = the line's fields, `covered` = covered ids riding on that notice, `skipCheckpoint`) and `warnings`
+- output: per segment number / merge target (`target`; none for segment 0) / label / notices (`id`, `owner` = whose notice it is (from the body's `from:`), `grandparent`, `point` = checkpoint point (the adding commit, or the body's `checkpoint_at:` when it holds), `body` = where to read the body's last version (`<tip>:<パス>`, or `<消した commit>^:<パス>`), `fields` = the body's fields, `covered` = covered ids riding on that notice, `skipCheckpoint`) and `warnings`
 - a segment with `pattern: "Rejoin"` (→ patterns.md REJOIN): upstream history split into two lines and merged
   - the tool already put the line with more checkpoints first and the other line into the segment whose target is the merge (`rejoinMerge`) | name it in the overview with its line form
   - `rejoin.undecided` = the tool did not decide (`why`): show it with the reason and STOP before that segment (ask which line goes first; never reorder by hand without the answer)
@@ -257,13 +257,13 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
     ```
     脇の commit の区間(本線では `mainline` の commit)
     ```
-- always read the body (required_actions etc.) with `git show <body>` (the adding commit's version; never substitute the segment's merge target or the upstream tip's version)
-- exit 2 = stop (shallow clone, an index line whose adding commit is missing, a checkpoint point not an ancestor of the upstream tip, no repo_id) | pass the reason on as is; never go on as zero unapplied
-- exit 3 (no index at the upstream tip) / the tool cannot be obtained with `git show` (upstream from before this tool): proceed by the manual steps of UNAPPLIED JUDGMENT and BUILDING SEGMENTS below (those steps also explain the same rules as the tool)
+- always read the body (required_actions etc.) with `git show <body>` (the body's last version: a correction upstream made after shipping reaches you; never substitute the segment's merge target or the adding commit's version)
+- exit 2 = stop (shallow clone, a checkpoint point not an ancestor of the upstream tip, no repo_id) | pass the reason on as is; never go on as zero unapplied
+- the tool cannot be obtained with `git show` (upstream from before this tool): proceed by the manual steps of UNAPPLIED JUDGMENT and BUILDING SEGMENTS below (those steps also explain the same rules as the tool)
 
 ## UNAPPLIED JUDGMENT (the same rules for in-tree and incoming; with the tool, its output is authoritative)
-a notice (a line of the upstream tip's index; for upstream without an index, the body in the tree) is excluded when any of the following holds; the rest are **unapplied**:
-- a line of your own index (`.notices/shipped/<自分の名前>.md`) → filed by yourself as upstream | upstream without an index: the repo URL of `from:` equals your origin (ignore ssh / https notation and `.git`)
+a notice (a body added under `.notices/` in the upstream tip's history, read at its last version) is excluded when any of the following holds; the rest are **unapplied**:
+- yours: the repo of its `from:` is your origin (ignore ssh / https notation and `.git`), or your name
 - contained in the inherited set (automatic judgment above) → treated as applied
 - the id is recorded in own fork ledger → applied
 - a covered-side id (an id bundled into another notice by `covers:`) → judged by relay.md's rules
@@ -363,7 +363,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
    - **REPLAN** (the step-3 approval and the segment-end reply):
      - `再計画 移行は別の依頼` → in the rebuild below, drop from the plan the part of the fork follow-up that can be split, and add the range to split and the draft order (SPLIT A MIGRATION INTO ANOTHER ORDER above)
      - otherwise = when upstream changed the plan's footing (e.g. the next segment's notice was rewritten after planning) | a segment closed by a checkpoint has a fixed merge target, so the check of "on receiving go" below does not notice it
-     - no merge, application or commit | redo `git fetch <upstream>`, rerun `incoming.mjs` (lines added to upstream's index = later fixes / `skip_checkpoint:` change the segments), reread the next segment's notices (`git show <body>`; the body is the adding commit's version and does not change, but the segment's contents may), rebuild step 2's detailed plan
+     - no merge, application or commit | redo `git fetch <upstream>`, rerun `incoming.mjs` (notices added or corrected upstream = later fixes / `skip_checkpoint:` / `checkpoint_at:` change the segments), reread the next segment's notices (`git show <body>`; the body is its last version, so a correction made meanwhile is read), rebuild step 2's detailed plan
      - show the difference from the earlier plan in 1-2 lines and ask the same question again (step 3: `go` / `go last` / `いいえ`; segment end: `go` / `go last` / `再計画` / `ここで終える`); STOP | the earlier go / go last do not approve the rebuilt plan
      - never redo the report of the segment just finished (step 8) (that segment's result stands)
    - **on receiving go**: HEAD still the previous segment's commit, clean work tree, ORIGIN SYNC steps 1-2 give behind 0, (when the next segment is the tail segment) the upstream branch head unchanged since planning → all hold → go on with that plan
@@ -461,10 +461,10 @@ merge and porting carry the fork's edits as they are | when the destination is u
 - upstream has no `.notices/` (upstream before this mechanism): run to the end as a normal merge and only report that
 - a notice whose schema cannot be read / is broken: skip that notice and include it in the report (never ignore it silently)
 - an id in the ledger but not in the tree (upstream cleaned the body / moved it to done/ under the old operation): normal | do nothing
-- an unapplied notice with no body in the tree (upstream cleaned the body): normal | handle it by the index line and `git show <body>` (the adding commit's version) | never skip it because the body is missing
+- an unapplied notice with no body in the tree (upstream cleaned the body): normal | handle it by the tool's `fields` and `git show <body>` (the version before it was deleted) | never skip it because the body is missing
 - a checkpoint notice's adding commit is already an ancestor of HEAD (merged) but not in the ledger: handle it as in-tree unapplied in segment 0 (no merge needed)
-- an incoming notice without the `checkpoint:` field (old schema; no field on the index line either): a checkpoint (the safe side; must not be read as `-`)
-- an index line whose notice's adding commit is not in upstream's history (upstream rewrote history / index mismatch): `incoming.mjs` stops with exit 2 | report and STOP (never go on as zero unapplied)
+- an incoming notice without the `checkpoint:` field (old schema): a checkpoint (the safe side; must not be read as `-`)
+- a body's `checkpoint_at:` that is not after its adding commit, before the next notice's and on the upstream tip's line: `incoming.mjs` cuts at the adding commit and says so in `warnings` | pass the warning on
 - a segment's merge target is not an ancestor of `<upstream>/<branch>` (upstream rewrote history, etc.): report that and STOP | never fall back to merging everything on your own
 
 ## DIALOGUE RULES

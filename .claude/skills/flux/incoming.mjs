@@ -1,30 +1,31 @@
 // .claude/skills/flux/incoming.mjs — /flux の流入の発見と区間の組み立て(手順 SKILL.md「UNAPPLIED JUDGMENT」「BUILDING SEGMENTS」、多段 relay.md)
-// 上流の先端の消えない索引 .notices/shipped/*.md(1 notice = 1 行)と、notice を足した commit の履歴だけで決める。
-// notice の本文は読まない(本文を読む場所 <足した commit>:<パス> を出すだけ)ので、区間が閉じた本文が消えても答えは変わらない。
+// 上流の先端の履歴だけで決める(索引は持たない、D350): お知らせの一覧 = 先端の履歴で .notices/(done/ も)に足された本文の全部
+// (merge で足された本文も、改名の前の名前は除く)。欄はその本文の最後の版(先端の木に有ればその版、消えていれば消す 1 つ前の版)から、
+// 持ち主は本文の from:(own / 直上 / 祖父)。本文は区間が閉じたら消してよい(最後の版は履歴に残る)。
 //
 // 自己完結(このファイルの外を import しない): /flux は手順書と付属ファイルを上流の先端の版で読むので、
 //   git show <upstream>/<branch>:.claude/skills/flux/incoming.mjs > <一時ファイル> && node <一時ファイル> --upstream=<upstream>/<branch>
-// で、索引や scripts/workflow/notices がまだ届いていない遅れた fork でも先端の判定で動く(cwd = fork のリポ)。
-// 行の書式は scripts/workflow/notices/shippedIndex.mjs と同じ(- id:<id> | key:value …、本文にある欄だけ。仕様 .notices/README.md)。
+// で、scripts/workflow/notices がまだ届いていない遅れた fork でも先端の判定で動く(cwd = fork のリポ)。
 //
-// 実行: node .claude/skills/flux/incoming.mjs --upstream=<remote>/<branch> [--json] [--from=index|bodies]
-//   --from=bodies = 索引の代わりに先端の .notices の本文(直下と done/)の欄から同じ行を作る(索引の導入前の方法。比べる用)
-//   未適用 = 先端の全索引の行 − 自分の索引の行 − 継承済み(fork 成立点の索引の行 ∪ その木の .notices)− 自分の台帳
+// 実行: node .claude/skills/flux/incoming.mjs --upstream=<remote>/<branch> [--json]
+//   未適用 = 先端の一覧 − 持ち主が自分の物 − 継承済み(fork 成立点の履歴に足された本文 ∪ その木の .notices)− 自分の台帳
 //            − covers 側が適用済みの covered
-//   区切り点 = 直接の親の行は notice を足した commit、祖父の行は直上 Tier の台帳にその id が載った commit(無ければ足した commit + 警告)
-//   区切り = 行の checkpoint がラベルか欄なし。ただし先端のどれかの行の skip_checkpoint: <id> に名指された物は - とみなす
+//   区切り点 = 直接の親の物は本文の checkpoint_at:(足した commit の子孫・次のお知らせの点より前・先端の祖先の時だけ、外れたら警告)
+//            か notice を足した commit、祖父の物は直上 Tier の台帳にその id が載った commit(無ければ足した commit + 警告)
+//   区切り = 欄 checkpoint がラベルか欄なし。ただし先端のどれかの本文の skip_checkpoint: <id> に名指された物は - とみなす
 //   区間 0 = 区切り点が HEAD の祖先。以降は区切り点の履歴順に、区切りの直後で閉じる。最後の区切り以降 + 残りの commit = 末尾区間
 //   offLine = 前の位置(HEAD と先端の merge-base / 前の区間の merge 先)が merge 先の祖先でない区間(脇の commit。mainline = 本線でそれを含む最初の commit)
 //   Rejoin パターン(patterns.md) = 区切りのある 2 本の線が 1 つの merge で合わさる形: 多い線の区間を先に 1 つずつ、少ない線は合流の
 //            merge を目標の区間 1 つに(区間に pattern:"Rejoin"、合流の区間は rejoinMerge)。決めない形は rejoin:{ undecided, why, merge }
-//   exit 0 = 出した | 2 = 止まる(浅い clone・行があるのに足した commit が無い・区切り点が先端の祖先でない・repo_id が無い)| 3 = 先端に索引が無い(今の手順で進める)
+//   body = 本文を読む場所(最後の版: <先端>:<パス> か <消した commit>^:<パス>)
+//   exit 0 = 出した | 2 = 止まる(浅い clone・区切り点が先端の祖先でない・repo_id が無い)
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const NOTICE_FILE = /^\.notices\/(?:done\/)?(\d{8}-\d{6}-[^/]+)\.md$/;
-const ROW_KEYS = ["severity", "checkpoint", "covers", "moved", "fixes", "resolves", "hotfix", "uses", "pick", "skip_checkpoint"];
+const ROW_KEYS = ["severity", "checkpoint", "checkpoint_at", "covers", "moved", "fixes", "resolves", "hotfix", "uses", "pick", "skip_checkpoint"];
 
 class Stop extends Error {
   constructor(message, code = 2) {
@@ -33,7 +34,7 @@ class Stop extends Error {
   }
 }
 
-/** 索引の 1 行 → { id, fields }。行でなければ null */
+/** 「- id:<id> | key:value …」の 1 行 → { id, fields }(古い索引の行の形。比べる用)。行でなければ null */
 export function parseRow(line) {
   if (!line.startsWith("- id:")) return null;
   const [head, ...rest] = line.slice(2).split(" | ");
@@ -45,7 +46,7 @@ export function parseRow(line) {
   return { id: head.slice("id:".length), fields };
 }
 
-/** notice 本文 → { id, fields(行と同じ欄), from }(--from=bodies 用) */
+/** notice 本文 → { id, fields(一覧の欄), from } */
 export function rowFromBody(text) {
   const lines = text.split("\n");
   const head = lines[0].match(/^# DOWNSTREAM NOTICE id:(\S+)\s*$/);
@@ -89,7 +90,7 @@ function makeGit(repo) {
     }
   };
   const isAncestor = (a, b) => tryGit(["merge-base", "--is-ancestor", a, b]) !== null;
-  return { git, tryGit, isAncestor };
+  return { git, tryGit, isAncestor, repo };
 }
 
 /** ref の木の notice の id(直下と done/) */
@@ -100,37 +101,102 @@ function treeNoticeIds(g, ref) {
     .filter(Boolean);
 }
 
-/** ref の木の全索引の行: [{ owner, row }] */
-function indexRows(g, ref) {
-  const files = (g.tryGit(["ls-tree", "--name-only", ref, "--", ".notices/shipped/"]) ?? "").split("\n").filter((p) => /^\.notices\/shipped\/[^/]+\.md$/.test(p));
-  return files.flatMap((f) => {
-    const owner = f.slice(".notices/shipped/".length, -3);
-    return g.git(["show", `${ref}:${f}`]).split("\n").map(parseRow).filter(Boolean).map((row) => ({ owner, row }));
-  });
+/** ref の木の notice: id → パス(直下と done/) */
+function treeNoticePaths(g, ref) {
+  const out = new Map();
+  for (const p of (g.tryGit(["ls-tree", "-r", "--name-only", ref, "--", ".notices/"]) ?? "").split("\n")) {
+    const m = p.match(NOTICE_FILE);
+    if (m) out.set(m[1], p);
+  }
+  return out;
 }
 
-/** 先端の本文から行を作る(--from=bodies)。owner は from: の URL で own / 直上 / 祖父 に分ける */
-function bodyRows(g, tip, { own, mid, originUrl, upstreamUrl }) {
-  const paths = (g.tryGit(["ls-tree", "-r", "--name-only", tip, "--", ".notices/"]) ?? "").split("\n").filter((p) => NOTICE_FILE.test(p));
-  return paths.map((p) => {
-    const r = rowFromBody(g.git(["show", `${tip}:${p}`]));
-    const repoUrl = normalizeUrl((r.from.match(/^(\S+)/) ?? ["", ""])[1].replace(/[|,].*$/, ""));
-    const owner = originUrl && repoUrl === originUrl ? own : !upstreamUrl || repoUrl === upstreamUrl || !repoUrl ? mid : `grandparent:${repoUrl}`;
-    return { owner, row: { id: r.id ?? p.match(NOTICE_FILE)[1], fields: r.fields } };
-  });
+/** git log の「@<sha>」と名前の並び → [{ commit, line }](新しい順) */
+function logNames(g, args) {
+  const out = [];
+  let cur = null;
+  for (const line of (g.tryGit(args) ?? "").split("\n")) {
+    if (line.startsWith("@")) cur = line.slice(1);
+    else if (line && cur) out.push({ commit: cur, line });
+  }
+  return out;
 }
 
-/** 各 notice を最初に足した commit(ref の履歴、done/ への移動は最も古い追加)。id → { commit, path } */
+/**
+ * ref の履歴で .notices/ に足された本文: id → { commit, path }(最初に足した commit。done/ への移動は最も古い追加)。
+ * merge でない足しが無い本文は merge で足した物(中の段の relay の本文: 「AA」)を -m で探す。改名の前の名前は入れない
+ */
 function addCommits(g, ref) {
   const out = new Map();
-  const log = g.git(["log", "--no-renames", "--diff-filter=A", "--name-only", "--format=@%H", ref, "--", ".notices/"]);
-  let cur = null;
-  for (const line of log.split("\n")) {
-    if (line.startsWith("@")) cur = line.slice(1);
-    else {
-      const m = line.match(NOTICE_FILE);
-      if (m && cur) out.set(m[1], { commit: cur, path: line }); // 新しい順 → 最後 = 最も古い
-    }
+  for (const { commit, line } of logNames(g, ["log", "--no-renames", "--diff-filter=A", "--name-only", "--format=@%H", ref, "--", ".notices/"])) {
+    const m = line.match(NOTICE_FILE);
+    if (m) out.set(m[1], { commit, path: line }); // 新しい順 → 最後 = 最も古い
+  }
+  for (const { commit, line } of logNames(g, ["log", "-m", "--merges", "--no-renames", "--diff-filter=A", "--name-only", "--format=@%H", ref, "--", ".notices/"])) {
+    const m = line.match(NOTICE_FILE);
+    if (m && (!out.has(m[1]) || out.get(m[1]).merge)) out.set(m[1], { commit, path: line, merge: true });
+  }
+  for (const { line } of logNames(g, ["log", "-M", "--diff-filter=R", "--name-status", "--format=@%H", ref, "--", ".notices/"])) {
+    const [st, from, to] = line.split("\t");
+    const a = from?.match(NOTICE_FILE)?.[1];
+    const b = to?.match(NOTICE_FILE)?.[1];
+    if (st?.startsWith("R") && a && b && a !== b) out.delete(a); // 改名: 前の名前の本文は新しい名前の物
+  }
+  return out;
+}
+
+/** 本文の最後の版の場所: 先端の木に有れば <tip>:<パス>、消えていれば <消した commit>^:<パス> */
+function lastBodies(g, tip, adds) {
+  const inTree = treeNoticePaths(g, tip);
+  const deleted = new Map();
+  for (const { commit, line } of logNames(g, ["log", "--no-renames", "--diff-filter=D", "--name-only", "--format=@%H", tip, "--", ".notices/"])) {
+    const m = line.match(NOTICE_FILE);
+    if (m && !deleted.has(m[1])) deleted.set(m[1], `${commit}^:${line}`); // 新しい順 → 最初 = 最後に消した
+  }
+  const out = new Map();
+  for (const [id, add] of adds) out.set(id, inTree.has(id) ? `${tip}:${inTree.get(id)}` : deleted.get(id) ?? `${add.commit}:${add.path}`);
+  return out;
+}
+
+/** 本文をまとめて読む(git cat-file --batch): 場所 → 中身 */
+function readBodies(g, specs) {
+  const out = new Map();
+  if (!specs.length) return out;
+  const buf = execFileSync("git", ["-C", g.repo, "cat-file", "--batch"], { input: specs.join("\n") + "\n", maxBuffer: 512 * 1024 * 1024 });
+  let at = 0;
+  for (const spec of specs) {
+    const nl = buf.indexOf(10, at);
+    const head = buf.subarray(at, nl).toString("utf8");
+    at = nl + 1;
+    const m = head.match(/^\S+ blob (\d+)$/);
+    if (!m) continue; // missing
+    const n = Number(m[1]);
+    out.set(spec, buf.subarray(at, at + n).toString("utf8"));
+    at += n + 1;
+  }
+  return out;
+}
+
+/** repo の ref の履歴の一覧(ほかの読み手・比べる用): [{ owner, id, fields, add, body }] */
+export function historyList(repo, ref, { own = "(own)", mid = "(upstream)", originUrl = null, upstreamUrl = null } = {}) {
+  return historyRows(makeGit(repo), ref, { own, mid, originUrl, upstreamUrl }).map((r) => ({ owner: r.owner, id: r.row.id, fields: r.row.fields, add: r.add, body: r.body }));
+}
+
+/** 先端の履歴の一覧: [{ owner, row, add, body }]。owner は本文の from: の URL で own / 直上 / 祖父 に分ける */
+function historyRows(g, tip, { own, mid, originUrl, upstreamUrl }) {
+  const adds = addCommits(g, tip);
+  const last = lastBodies(g, tip, adds);
+  const texts = readBodies(g, [...new Set(last.values())]);
+  const out = [];
+  for (const [id, add] of adds) {
+    const text = texts.get(last.get(id));
+    if (text === undefined) continue;
+    const r = rowFromBody(text);
+    // from: is the repo's URL, or (older relay bodies) its name: 「next-starter (tier1 upstream)」
+    const repoUrl = normalizeUrl((r.from.match(/^(\S+)/) ?? ["", ""])[1].replace(/[|,].*$/, ""));
+    const name = repoUrl.split("/").pop();
+    const owner = (originUrl && repoUrl === originUrl) || name === own ? own : !upstreamUrl || repoUrl === upstreamUrl || !repoUrl || name === mid ? mid : `grandparent:${repoUrl}`;
+    out.push({ owner, row: { id, fields: r.fields }, add, body: last.get(id) });
   }
   return out;
 }
@@ -206,7 +272,7 @@ export function rejoin(g, items, { base, tip }) {
 }
 
 /** 本体: { tip, own, mid, source, segments, warnings } を返す。止まる時は Stop を投げる */
-export function incoming(repo, { upstream, from = "index" }) {
+export function incoming(repo, { upstream }) {
   const g = makeGit(repo);
   if (!upstream) throw new Stop("--upstream=<remote>/<branch> が無い");
   if (g.git(["rev-parse", "--is-shallow-repository"]).trim() === "true") throw new Stop("浅い clone: 履歴を辿れない(git fetch --unshallow <upstream> の後にもう一度)");
@@ -219,24 +285,19 @@ export function incoming(repo, { upstream, from = "index" }) {
   const midIsTier = Boolean(mid && g.tryGit(["cat-file", "-e", `${tip}:.notices/applied/${mid}.md`]) !== null);
   const warnings = [];
 
-  let rows;
-  if (from === "bodies") {
-    rows = bodyRows(g, tip, { own, mid: mid ?? "(upstream)", originUrl: remoteUrl(g, "origin"), upstreamUrl: remoteUrl(g, upstream.split("/")[0]) });
-  } else {
-    rows = indexRows(g, tip);
-    if (!rows.length) throw new Stop(`${upstream} の先端に索引 .notices/shipped/ が無い(今の手順で進める)`, 3);
-  }
+  const rows = historyRows(g, tip, { own, mid: mid ?? "(upstream)", originUrl: remoteUrl(g, "origin"), upstreamUrl: remoteUrl(g, upstream.split("/")[0]) });
   const rowById = new Map(rows.map((r) => [r.row.id, r]));
   const skipped = new Set(rows.flatMap((r) => list(r.row.fields.skip_checkpoint)));
 
-  // 継承済み = fork 成立点の索引の行 ∪ その木の notice(索引導入前に成立した fork のため両方)
+  // 継承済み = fork 成立点の履歴に足された本文 ∪ その木の notice
   const first = (g.tryGit(["rev-list", "--reverse", "HEAD", `^${tip}`]) ?? "").split("\n").find(Boolean);
   const forkPoint = !first ? "HEAD" : g.tryGit(["rev-parse", "--verify", "-q", `${first}^`]) ? `${first}^` : first;
-  const inherited = new Set([...treeNoticeIds(g, forkPoint), ...indexRows(g, forkPoint).map((r) => r.row.id)]);
+  const inherited = new Set([...treeNoticeIds(g, forkPoint), ...addCommits(g, forkPoint).keys()]);
   const ledger = new Set([...(g.tryGit(["show", `HEAD:.notices/applied/${own}.md`]) ?? "").matchAll(/^- id:(\S+)/gm)].map((m) => m[1]));
   const applied = (id) => inherited.has(id) || ledger.has(id);
 
-  const adds = addCommits(g, tip);
+  const adds = new Map(rows.map((r) => [r.row.id, r.add]));
+  const bodyOf = new Map(rows.map((r) => [r.row.id, r.body]));
   const order = g.git(["rev-list", "--reverse", "--topo-order", tip]).split("\n").filter(Boolean);
   const pos = new Map(order.map((sha, i) => [sha, i]));
   const at = (id) => pos.get(adds.get(id)?.commit) ?? Number.MAX_SAFE_INTEGER;
@@ -249,16 +310,21 @@ export function incoming(repo, { upstream, from = "index" }) {
   const items = [];
   for (const { owner, row } of pending) {
     const add = adds.get(row.id);
-    if (!add) throw new Stop(`${row.id}: 索引に行があるのに ${upstream} の履歴に足した commit が無い(履歴の書き換えか索引の食い違い)`);
     let point = add.commit;
     const grand = owner !== mid && owner !== own && midIsTier;
     if (grand) {
       const rec = (g.tryGit(["log", "--reverse", `-Sid:${row.id}`, "--format=%H", tip, "--", `.notices/applied/${mid}.md`]) ?? "").split("\n").find(Boolean);
       if (rec) point = rec;
       else warnings.push(`${row.id}: 中間 Tier ${mid} が未適用: 足した commit で区切る`);
+    } else if (row.fields.checkpoint_at && row.fields.checkpoint_at !== "-") {
+      // 本文が足した後に直された区切り(D353): 足した commit の子孫・次のお知らせの足しより前・先端の祖先の時だけ採る
+      const cp = g.tryGit(["rev-parse", "--verify", "-q", `${row.fields.checkpoint_at}^{commit}`])?.trim();
+      const nextAt = Math.min(...[...adds.values()].map((a) => pos.get(a.commit) ?? Number.MAX_SAFE_INTEGER).filter((p) => p > (pos.get(add.commit) ?? -1)), Number.MAX_SAFE_INTEGER);
+      if (cp && g.isAncestor(add.commit, cp) && g.isAncestor(cp, tip) && (pos.get(cp) ?? Number.MAX_SAFE_INTEGER) < nextAt) point = cp;
+      else warnings.push(`${row.id}: checkpoint_at: ${row.fields.checkpoint_at} を採らない(足した commit の子孫・次のお知らせより前・先端の祖先でない): 足した commit で区切る`);
     }
     if (!g.isAncestor(point, tip)) throw new Stop(`${row.id}: 区切り点 ${point.slice(0, 8)} が ${upstream} の祖先でない(上流の履歴の書き換え)`);
-    items.push({ id: row.id, owner, grandparent: grand, point, add: add.commit, body: `${add.commit}:${add.path}`, fields: row.fields, break: isBreak(row, skipped), skipCheckpoint: skipped.has(row.id), inTree: g.isAncestor(point, "HEAD") });
+    items.push({ id: row.id, owner, grandparent: grand, point, add: add.commit, body: bodyOf.get(row.id), fields: row.fields, break: isBreak(row, skipped), skipCheckpoint: skipped.has(row.id), inTree: g.isAncestor(point, "HEAD") });
   }
 
   // covered はその covers 側の区間に入る(covers 側が未適用で並ぶとき)。covers 側がまだ届いていなければ通常の notice
@@ -309,7 +375,7 @@ export function incoming(repo, { upstream, from = "index" }) {
     }
     prev = s.target;
   }
-  return { tip, own, mid, midIsTier, source: from, forkPoint, segments, warnings };
+  return { tip, own, mid, midIsTier, forkPoint, segments, warnings };
 }
 
 /** 比べやすい形(区間ごとの merge 先と notice の id、covered) */
@@ -320,14 +386,13 @@ export function summary(result) {
 /** 本体(テストからは repo と log を渡す)。exit code を返す */
 export function run(repo, argv, log = console.log) {
   const upstream = argv.find((a) => a.startsWith("--upstream="))?.slice(11);
-  const from = argv.find((a) => a.startsWith("--from="))?.slice(7) ?? "index";
   try {
-    const r = incoming(repo, { upstream, from });
+    const r = incoming(repo, { upstream });
     if (argv.includes("--json")) {
       log(JSON.stringify(r, null, 2));
       return 0;
     }
-    log(`incoming: ${upstream} ${r.tip.slice(0, 8)} / 自分 ${r.own} / 直上 ${r.mid ?? "-"}${r.midIsTier ? "(中間 Tier)" : ""} / 継承の基準 ${r.forkPoint === "HEAD" ? "HEAD" : r.forkPoint.slice(0, 8)} / 元 ${r.source}`);
+    log(`incoming: ${upstream} ${r.tip.slice(0, 8)} / 自分 ${r.own} / 直上 ${r.mid ?? "-"}${r.midIsTier ? "(中間 Tier)" : ""} / 継承の基準 ${r.forkPoint === "HEAD" ? "HEAD" : r.forkPoint.slice(0, 8)}`);
     if (!r.segments.length) log("incoming: 取り込むものなし");
     for (const s of r.segments) {
       const ids = s.notices.map((n) => `${n.id}${n.grandparent ? "(祖父)" : ""}${n.skipCheckpoint ? "(区切りを外された)" : ""}${n.covered.length ? ` covers ${n.covered.join(", ")}` : ""}`);
@@ -339,7 +404,7 @@ export function run(repo, argv, log = console.log) {
     return 0;
   } catch (e) {
     if (!(e instanceof Stop)) throw e;
-    log(`incoming: ${e.code === 3 ? "" : "止まる — "}${e.message}`);
+    log(`incoming: 止まる — ${e.message}`);
     return e.code;
   }
 }

@@ -11,15 +11,15 @@ import { forkIdOfTexts } from "../../../src/lib/forkOwnership/forkIds.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
-function notice(id, fields = []) {
-  return [`# DOWNSTREAM NOTICE id:${id}`, "from: up", "severity: info", ...fields, "change: c", "required_actions: none", "verify: v", "refs: -", "notes: -", ""].join("\n");
+function notice(id, fields = [], from = "up") {
+  return [`# DOWNSTREAM NOTICE id:${id}`, `from: ${from}`, "severity: info", ...fields, "change: c", "required_actions: none", "verify: v", "refs: -", "notes: -", ""].join("\n");
 }
 const rowOf = (id, fields = []) => {
   const r = rowFromBody(notice(id, fields));
   return [`- id:${r.id}`, ...Object.entries(r.fields).map(([k, v]) => `${k}:${v}`)].join(" | ");
 };
 
-/** 小さなリポ: commit(files) / rm(paths) → sha。index(owner, rows) で索引を足す */
+/** 小さなリポ: commit(files) / rm(paths) → sha、ship(id) で notice を出す */
 function repo(t, name, forkId, from) {
   const dir = mkdtempSync(join(tmpdir(), `incoming-${name}-`));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -31,7 +31,6 @@ function repo(t, name, forkId, from) {
   } else g("init", "-q", "-b", "main");
   g("config", "user.email", "t@t");
   g("config", "user.name", "t");
-  const rows = new Map();
   const r = {
     dir,
     g,
@@ -47,11 +46,9 @@ function repo(t, name, forkId, from) {
       g("commit", "-qm", msg, "--allow-empty");
       return g("rev-parse", "HEAD");
     },
-    /** notice と自分の索引の行を同じ commit で(/ship と同じ) */
+    /** notice を出す(本文の from: = 自分の名前。一覧は履歴から作るので索引は書かない、D350) */
     ship(id, fields = [], extra = {}) {
-      const owner = forkId;
-      rows.set(owner, [...(rows.get(owner) ?? []), rowOf(id, fields)]);
-      return r.commit({ [`.notices/${id}.md`]: notice(id, fields), [`.notices/shipped/${owner}.md`]: `# SHIPPED ${owner}\n\n${rows.get(owner).join("\n")}\n`, ...extra });
+      return r.commit({ [`.notices/${id}.md`]: notice(id, fields, forkId), ...extra });
     },
     rm(paths, msg = "rm") {
       g("rm", "-q", "-r", ...paths);
@@ -96,7 +93,7 @@ test("segments: inherited and ledgered left out, closed right after a break, '-'
   const { f, p1, p3 } = twoTier(t);
   const r = incoming(f.dir, { upstream: "upstream/main" });
   assert.deepEqual(summary(r), [`1:${p1.slice(0, 8)}:${N(1)}`, `2:${p3.slice(0, 8)}:${N(2)},${N(3)}`, `3:${r.tip.slice(0, 8)}:`]);
-  assert.match(r.segments[0].notices[0].body, new RegExp(`^${p1}:\\.notices/${N(1)}\\.md$`));
+  assert.match(r.segments[0].notices[0].body, new RegExp(`^${r.tip}:\\.notices/${N(1)}\\.md$`), "the body's last version: the tip's");
   f.commit(ledger("f", N(1)));
   assert.deepEqual(summary(incoming(f.dir, { upstream: "upstream/main" })).map((s) => s.split(":")[2]), [`${N(2)},${N(3)}`, ""]);
 });
@@ -118,7 +115,7 @@ test("skip_checkpoint on a later fix makes the named notice ride to the next bre
   assert.equal(r.segments[0].notices[0].skipCheckpoint, true);
 });
 
-test("bodies deleted after their segments closed: the same segments (index only, bodies read at the adding commit)", (t) => {
+test("bodies deleted after their segments closed: the same segments (the list is the history), the body read at its last version before the delete", (t) => {
   const { up, f } = twoTier(t);
   const before = summary(incoming(f.dir, { upstream: "upstream/main" })).slice(0, -1);
   up.rm([`.notices/${N(1)}.md`, `.notices/${N(2)}.md`, `.notices/${N(3)}.md`]);
@@ -129,10 +126,65 @@ test("bodies deleted after their segments closed: the same segments (index only,
   assert.match(f.g("show", body), new RegExp(`id:${N(1)}`));
 });
 
-test("--from=bodies gives the same segments as the index (the method before the index)", (t) => {
-  const { f } = twoTier(t);
-  assert.deepEqual(summary(incoming(f.dir, { upstream: "upstream/main", from: "bodies" })), summary(incoming(f.dir, { upstream: "upstream/main" })));
+test("the body's last version: a body corrected after its adding commit is read (fields and body) at the tip (D350)", (t) => {
+  const { up, f } = twoTier(t);
+  up.commit({ [`.notices/${N(1)}.md`]: notice(N(1), ["checkpoint: one", "manual_steps: run the SQL"]).replace("severity: info", "severity: breaking") }, "correct n1");
+  f.fetch();
+  const r = incoming(f.dir, { upstream: "upstream/main" });
+  const n1 = r.segments[0].notices[0];
+  assert.equal(n1.fields.severity, "breaking");
+  assert.match(f.g("show", n1.body), /severity: breaking/);
+  assert.equal(n1.point, r.segments[0].target, "the point stays the adding commit");
 });
+
+test("a body added by a merge (a middle tier's relay) is in the list; a renamed body's old name is not", (t) => {
+  const up = repo(t, "up", "up");
+  up.ship(N(0), ["checkpoint: zero"]);
+  const f = repo(t, "f", "f", up);
+  up.g("checkout", "-q", "-b", "side");
+  up.commit({ "side.txt": "s" }, "side");
+  up.g("checkout", "-q", "main");
+  up.commit({ "main.txt": "m" }, "main");
+  up.g("merge", "-q", "--no-commit", "side");
+  up.put({ [`.notices/${N(1)}.md`]: notice(N(1), ["checkpoint: relay"]) });
+  up.g("add", "-A");
+  up.g("commit", "-qm", "merge side with a relay body");
+  const merged = up.g("rev-parse", "HEAD");
+  up.ship(N(2), ["checkpoint: old-name"]);
+  up.g("mv", `.notices/${N(2)}.md`, `.notices/${N(3)}.md`);
+  up.put({ [`.notices/${N(3)}.md`]: notice(N(3), ["checkpoint: old-name"], "up") });
+  up.g("add", "-A");
+  up.g("commit", "-qm", "rename n2 to n3");
+  f.fetch();
+  const r = incoming(f.dir, { upstream: "upstream/main" });
+  const ids = r.segments.flatMap((s) => s.notices.map((n) => n.id));
+  assert.ok(ids.includes(N(1)), ids.join());
+  assert.equal(r.segments.find((s) => s.notices.some((n) => n.id === N(1))).target, merged, "the merge is its adding commit");
+  assert.ok(ids.includes(N(3)) && !ids.includes(N(2)), ids.join());
+});
+
+test("checkpoint_at: taken only after the adding commit, before the next notice's and on the tip's line; else the adding commit and a warning (D353)", (t) => {
+  const up = repo(t, "up", "up");
+  up.ship(N(0), ["checkpoint: zero"]);
+  const f = repo(t, "f", "f", up);
+  const p1 = up.ship(N(1), ["checkpoint: one"]);
+  const fix = up.commit({ "src/x.txt": "fix" }, "the code n1's body was later written for");
+  up.commit({ [`.notices/${N(1)}.md`]: notice(N(1), ["checkpoint: one", `checkpoint_at: ${fix}`]) }, "n1: checkpoint_at");
+  const p2 = up.ship(N(2), ["checkpoint: two"]);
+  f.fetch();
+  let r = incoming(f.dir, { upstream: "upstream/main" });
+  assert.equal(r.segments[0].target, fix);
+  assert.equal(r.warnings.length, 0, r.warnings.join());
+  up.commit({ [`.notices/${N(1)}.md`]: notice(N(1), ["checkpoint: one", `checkpoint_at: ${p2}`]) }, "n1: past the next notice");
+  f.fetch();
+  r = incoming(f.dir, { upstream: "upstream/main" });
+  assert.equal(r.segments[0].target, p1);
+  assert.match(r.warnings.join(), new RegExp(`${N(1)}: checkpoint_at: .* を採らない`));
+  up.commit({ [`.notices/${N(1)}.md`]: notice(N(1), ["checkpoint: one", "checkpoint_at: 0000000000000000000000000000000000000000"]) }, "n1: unknown");
+  f.fetch();
+  assert.equal(incoming(f.dir, { upstream: "upstream/main" }).segments[0].target, p1);
+});
+
 
 test("3 tiers: a grandparent row's point is the commit the middle tier's ledger recorded it; covered ids ride with the covers side", (t) => {
   const t1 = repo(t, "t1", "t1");
@@ -165,7 +217,7 @@ test("3 tiers: a grandparent row's point is the commit the middle tier's ledger 
   assert.match(r2.warnings.join(), new RegExp(`${N(3)}: 中間 Tier t2 が未適用`));
 });
 
-test("stops: shallow clone, a row without its adding commit (exit 2); no index at the tip (exit 3)", (t) => {
+test("stops: shallow clone (exit 2); an upstream with bodies only is read the same (no index any more)", (t) => {
   const { up, f } = twoTier(t);
   const shallow = mkdtempSync(join(tmpdir(), "incoming-shallow-"));
   t.after(() => rmSync(shallow, { recursive: true, force: true }));
@@ -173,17 +225,15 @@ test("stops: shallow clone, a row without its adding commit (exit 2); no index a
   const out = [];
   assert.equal(run(shallow, ["--upstream=origin/main"], (l) => out.push(l)), 2);
   assert.match(out.join(), /浅い clone/);
-  up.commit({ ".notices/shipped/up.md": `${readFileSync(join(up.dir, ".notices/shipped/up.md"), "utf8")}- id:20990101-000009-ghost | severity:info\n` });
-  f.fetch();
-  const out2 = [];
-  assert.equal(run(f.dir, ["--upstream=upstream/main"], (l) => out2.push(l)), 2);
-  assert.match(out2.join(), /ghost: 索引に行があるのに/);
   const bare = repo(t, "bare", "bare");
   bare.commit({ ".notices/20990101-000001-n1.md": notice(N(1)) });
   const g = repo(t, "g", "g", bare);
+  bare.commit({ [`.notices/${N(2)}.md`]: notice(N(2), [], "bare") });
+  g.fetch();
   const out3 = [];
-  assert.equal(run(g.dir, ["--upstream=upstream/main"], (l) => out3.push(l)), 3);
-  assert.match(out3.join(), /索引 \.notices\/shipped\/ が無い/);
+  assert.equal(run(g.dir, ["--upstream=upstream/main"], (l) => out3.push(l)), 0);
+  assert.match(out3.join("\n"), new RegExp(N(2)));
+  assert.doesNotMatch(out3.join("\n"), new RegExp(N(1)), "inherited at the fork point");
 });
 
 test("self-contained: only node: imports, and a copy written elsewhere runs in the fork's cwd", (t) => {
