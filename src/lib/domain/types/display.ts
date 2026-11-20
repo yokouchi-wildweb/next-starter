@@ -3,23 +3,26 @@
 // domain.json のある domain は pnpm generate registry が書く。無い手書きの domain は同じ形を手で書く。
 // 秘密・内部の項目(apiAccess・dbEngine・generateFiles・storage 等)は持たない。
 
-export type DomainDisplayField = {
-  name: string;
-  label: string;
-  fieldType?: string;
-  formInput?: string;
-  options?: readonly { readonly value: unknown; readonly label?: string }[];
-  required?: boolean;
-  readonly?: boolean;
-  /** 入力の初期値(型はフィールドごとに違う) */
-  defaultValue?: unknown;
-  displayType?: string;
-  placeholder?: string;
-  accept?: string;
-  validationRule?: Readonly<Record<string, unknown>>;
-  reorderable?: boolean;
-  helperText?: string;
-};
+import type { DomainField } from "./domainField";
+
+/** client に出す項目 = domain.json の項目(DomainField)のうち client で使うキーだけ(storage・unique・collection などは出さない)。
+ * 手書きの写しは fieldType を省ける */
+export type DomainDisplayField = Pick<
+  DomainField,
+  | "name"
+  | "label"
+  | "formInput"
+  | "options"
+  | "required"
+  | "readonly"
+  | "defaultValue"
+  | "displayType"
+  | "placeholder"
+  | "accept"
+  | "validationRule"
+  | "reorderable"
+  | "helperText"
+> & { fieldType?: DomainField["fieldType"] };
 
 export type DomainDisplayFieldGroup = {
   key: string;

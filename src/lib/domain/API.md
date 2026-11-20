@@ -50,6 +50,14 @@
 
 宣言は `export const domainDisplay: DomainDisplay`（リテラル型は持たない）。
 
+### 項目の型(`types/domainField.ts`)
+
+- `DomainField` = domain.json の項目 1 つ。キーの正は `scripts/structure/domain/spec/domainJson.mjs` の `FIELD_KEYS`(`$comment` を除く)で、型はここ 1 か所。値は domain.json に書ける素の値だけ(関数・実行時だけの値・登録した入力部品の名前への広げは formSuite の `FieldConfig`)
+- `fieldType` は表の名前(`FieldTypeName`)を案内しつつ表に無い名前も受ける(未知型)。`formInput` は組み込みの名前(`BuiltinFormInput`)と登録した名前
+- 項目のキーを持つ型はここから作る: `DomainConfigField` = `DomainField`、`DomainDisplayField` = client に出すキーの `Pick`(`fieldType` は省ける)、`DomainFieldInfo` = name・label・fieldType・formInput の `Pick`。新しい型でキーを写し直さない
+- `DomainFieldOption` = 選択肢 1 つ(value・label・disabled)。`getFieldOptions` が返す形。domain.json に書いた選択肢は `DomainFieldOptionValue`(値の型を決め打ちしない)
+- 型名の union(`fields/fieldTypeNames.ts`、型だけ): `FieldTypeName`(表のキー)・`NeonFieldType` / `FirestoreFieldType`(`fieldFormInputs.mjs` の DB ごとの表のキー)・`BuiltinFormInput`(`formInputs.mjs`)。表から導くので名前を手で並べない(CLAUDE.md field_types)
+
 ### 関数のありか
 
 - `definition/`: `createDomainConfigLookup`、`normalizeDomainJsonConfig`、`resolveAccessRule`

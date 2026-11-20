@@ -2,15 +2,9 @@
 // ドメイン設定からフィールド情報を抽出するユーティリティ
 
 import type { DomainConfig } from "../types/domainConfig";
-import type { DomainFieldInfo } from "../types";
+import type { DomainFieldInfo, DomainFieldOption } from "../types";
 
 export type { DomainFieldInfo };
-
-/** フィールドオプションの型 */
-export type FieldOption = {
-  value: string | number | boolean;
-  label: string;
-};
 
 /**
  * ドメイン設定から指定フィールドを取得
@@ -36,13 +30,13 @@ export function getField<TField extends { name: string }>(config: { fields: read
 export function getFieldOptions(
   config: { fields: readonly { name: string; options?: unknown }[] },
   fieldName: string
-): FieldOption[] {
+): DomainFieldOption[] {
   const field = getField(config, fieldName);
   if (!field) return [];
 
   // optionsプロパティがある場合はそれを返す
   if ("options" in field && Array.isArray(field.options)) {
-    return field.options as unknown as FieldOption[];
+    return field.options as unknown as DomainFieldOption[];
   }
 
   return [];

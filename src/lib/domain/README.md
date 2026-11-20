@@ -97,7 +97,7 @@ export const domainEntries = {
 
 ### 型(fieldType)を足す・廃止する
 
-- 足す: 表 `fields/fieldTypes.mjs` に 1 行(`formDefault` は必ず書く)+ `src/lib/domain/fields/fieldFormInputs.mjs` に入力種別 + `src/lib/formSuite/Field/types.ts` の union に型名
+- 足す: 表 `fields/fieldTypes.mjs` に 1 行(`formDefault` は必ず書く)+ `src/lib/domain/fields/fieldFormInputs.mjs` に入力種別。型名の union は `fields/fieldTypeNames.ts` が表から導く(手で書かない)
 - 廃止: 行に `retired`(移り先の案内文)。生成前の検査が止める。実行時は見ない(まだ列を持つ fork の初期値は残す)
 
 ## API
