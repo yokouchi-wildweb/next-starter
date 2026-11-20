@@ -47,7 +47,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - always: `pnpm check --gate=ship` | failed → fix and rerun (generator drift → `pnpm generate <target>`)
      - it runs every check of the generators / checkers on gate ship, in order: role, domain, registry, routes, cron, cycles, config, eslint, and the watched rules (pnpm check rules when `CLAUDE.md` / `.claude/rules/` changed), notices (pnpm check notices when `.notices/` or the ship / flux skills changed)
      - targets the watch does not hit are skipped with one line; `--all` runs all | `scripts/runner/gates/README.md`
-   - code changed (`.ts` / `.tsx` / `.js` / `.mjs`): `pnpm typecheck` and `pnpm exec eslint <changed code files>`
+   - code changed (`.ts` / `.tsx` / `.js` / `.mjs`): `pnpm typecheck` and `pnpm exec eslint --no-warn-ignored <changed code files>` (an ignored file, e.g. a _template placeholder file, is skipped without a warning)
    - by where you changed (run every one that applies; checks on the gate = pnpm check registry, pnpm check routes, pnpm check cron, pnpm test scripts/structure/config/moduleLoad.test.mjs, pnpm check eslint, pnpm test scripts/structure/cycles/cycles.test.mjs, pnpm check rules, pnpm check notices are run by `pnpm check --gate=ship` above, never repeat them):
      - adding / deleting under `src/lib/`, `src/lib/CATALOG.md` → `pnpm test src/lib/folderCatalog/catalog.test.mjs`
      - `domainEntry.ts`, `domain.json` → registry drift → `pnpm generate registry`

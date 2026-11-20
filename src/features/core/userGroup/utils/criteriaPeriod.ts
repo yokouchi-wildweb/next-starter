@@ -20,7 +20,6 @@ const periodShape = {
 };
 
 /** 期間の引数(どれか 1 つは要る) */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- 足す鍵が無い時の既定(空の形)
 export function periodArgs<E extends z.ZodRawShape = {}>(extra: E = {} as E) {
   return z
     .object({ ...periodShape, ...extra })
