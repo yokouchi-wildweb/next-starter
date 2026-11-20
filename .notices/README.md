@@ -82,7 +82,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - `pick:` は本文の欄(下記「先に取れる印(pick)」)
 - 読む側: `/flux` の流入の発見と区間(`.claude/skills/flux/incoming.mjs`)・`pnpm workflow ownership check` の「台帳に無い notice」と `resolves:`(`src/lib/forkOwnership/check.mjs`)・`pnpm check notices` の欄どうしの検査(`scripts/workflow/notices/noticeFields.mjs`)は、どれもこの求め方で読む
 - 止まる: 浅い clone(履歴を辿れない)のときは、未適用ゼロとして進まずに止まる
-- 外す前の区間: 索引 `.notices/shipped/` を持つ古い版の区間を merge する fork では、そのファイルの衝突は上流の側を採る(上流が消していれば消す)。自分の notice を出す中の段の fork は、自分の索引 `.notices/shipped/<自分の repo_id>.md` を消す(区間のお知らせの手順)
+- 外す前の区間: 索引 `.notices/shipped/` を持つ古い版の区間を merge する fork では、そのファイルの衝突は上流の側を採る(上流が消していれば消す)。自分の notice を出す中の段の fork は、自分の索引 `.notices/shipped/<自分の repo_id>.md` を消す(区間のお知らせの手順)（sunset: 20261120-122554-notice-history。全部の fork が取り込んだら外す）
 
 ### 使う移行・codemod の欄(uses)
 
@@ -198,7 +198,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - 修正の修正(`fixes:` の先が修正): 前の修正が `pick: clean` のときだけ、その土台に前の修正を載せた木で試す。前の修正が clean でなければ `-`(fork も前の修正を先に取っていない)
 - 別の notice の clean な修正も先に載せる: 出荷済み(出荷する先端の履歴にある。壊れた地点の脇の commit で出した修正も含む)で修正の後の履歴にない `pick: clean` の修正のうち、その土台が壊れた地点かその祖先で、壊れた地点の祖先でないもの(fork が壊れた地点に着くまでに先に取っているもの)を、履歴順に壊れた地点へ先に載せてから試す(土台 + 先に載せた修正 = fork の実際の木)。載らなければ `-`。載せた修正は pick-check の出力(土台の説明)に出し、本文には残さない(/flux も同じ順で取るので同じ木になる)
 - /flux: 直接の親が出した `pick: clean` の修正を、`fixes:` の参照先のどれかが適用済みになった直後(修正元の区間の commit の後、push の前)に `git cherry-pick -x` で取り、修正の verify と区間の検査を通してから区間と一緒に push する。台帳は緊急修正と同じ `picked:` の行。修正元の区間の手前の問い(進めるか止めるか)はしない。衝突・検査の失敗は戻して、その問いに戻る。多段では祖父 notice の `pick:` は読まない(`.claude/skills/flux/relay.md`)
-- 外す前の索引: 索引を外す前の修正・緊急修正の commit は索引の行(`.notices/shipped/`)の変更を持つ。pick-check・hotfix-check はその変更を捨てて載せ(`scripts/workflow/notices/lib.pickDroppingIndex.mjs`)、/flux も衝突が `.notices/shipped/` だけなら上流の側を採って続ける(上流が消していれば消す)
+- 外す前の索引: 索引を外す前の修正・緊急修正の commit は索引の行(`.notices/shipped/`)の変更を持つ。pick-check・hotfix-check はその変更を捨てて載せ(`scripts/workflow/notices/lib.pickDroppingIndex.mjs`)、/flux も衝突が `.notices/shipped/` だけなら上流の側を採って続ける(上流が消していれば消す)（sunset: 20261120-122554-notice-history。全部の fork が取り込んだら外す）
 - 脇の commit で出した修正: 修正を壊れた地点の脇の commit で出して merge すると、その修正を取らなかった fork では脇の commit が区間の merge 先になり、merge すると上流との merge-base が 2 つになる(所有の検査が判定できない)。/flux はその区間を見つけ(`incoming.mjs` の `offLine`)、merge の前に止まって取り方(修正を pick する・ユーザーに聞く)を出す。所有の検査はこの形を判定するように作り直さない(fork は常に pick する前提)
 - 緊急修正との違い: `hotfix:` は人が宣言して全部の区間の前に割り込む。`pick: clean` は機械の印で、修正元の区間の直後に取るだけで前には出ない
 
@@ -211,7 +211,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - 受け取り: 通常の `/flux` が未適用の `hotfix:` を見つけて通常の区間より先に計画する。専用のコマンドは無い。次の区間に入っているなら merge で届くので pick しない。`fixes:` の修正元が未適用の fork には不具合がまだ無いので pick しない
 - 台帳: `upstream:` は今の merge-base のまま、`picked:<元の commit>` を足す。記録済みなので後の区間の区切りにならない。後の merge では同じ変更が自動で解決される
 - 先取りの道具: `scripts/workflow/notices/hotfixApply.mjs`(/flux の HOTFIX・鉄道・艦隊が呼ぶ 1 つの部品)。いつも上流の先端の版で走らせる(`git archive <upstream>/<branch> scripts/workflow/notices scripts/workflow/rules` を一時の場所に出して node で。fork の木の版は使わない)。どの fork でも止まらずに当たることが目的で、元の commit が変えたファイルごとに人に聞かずに決める:
-  - 道具が上流の先端の版を読むファイル(`.claude/skills/flux/` の下)は外す(left-out)/ 出荷索引 `.notices/shipped/`(索引を外す前の commit だけ)は fork 側
+  - 道具が上流の先端の版を読むファイル(`.claude/skills/flux/` の下)は外す(left-out)/ 出荷索引 `.notices/shipped/`(索引を外す前の commit だけ)は fork 側（sunset: 20261120-122554-notice-history。全部の fork が取り込んだら外す）
   - (c) fork の木の中身が上流のどれかの版(merge-base・元の commit の親・台帳の前の `picked:`)と同じ = fork が触っていない → 元の commit の版に置き換える(replaced)。fork が手で変えたファイルは 3 方向で合わせ(merged)、ぶつかった時だけ何も変えずに止まる(手で解く・飛ばす・区間で進める)
   - 足すファイルは足す(added)/ (a) 直す相手が上流で後から移され、fork に前の場所がある → 前の場所に 3 方向(moved-merged)/ (b) 直す相手が fork の木に無い → 飛ばす(left-out。後の区間で届く)
   - 当てた後に fork の木で 3 つの確かめ(足した・変えたルールの `paths:` の当たり・notice の手順の `pnpm <script>`・名指すパス)を回し、足りない物を gap で報告する(止めない)

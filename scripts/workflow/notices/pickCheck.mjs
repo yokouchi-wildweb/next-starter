@@ -5,6 +5,7 @@
 //   1. 機械で決まる hotfix の条件: notice と本体が同じ 1 commit / pnpm-lock.yaml・src/app/route-map.jsonl を含まない /
 //      required_actions 〜 manual_steps が、壊れた地点より後の notice を名指さない
 //   2. cherry-pick が衝突しない(出荷索引 .notices/shipped/ の変更は捨てて載せる: lib.pickDroppingIndex.mjs)
+//      sunset: 20261120-122554-notice-history(全部の fork が取り込んだら外す)
 //   3. 載せた木で検査が通る(既定 pnpm typecheck・pnpm test scripts/structure/config/moduleLoad.test.mjs・pnpm check registry。再編の前の木 = 入口が
 //      package.json に無ければ旧い名前 test:config-module-load・registry:check で回す。どちらも無い script は未実行と書いて飛ばす)
 //   4. 前提の検査(lib.hotfixGaps.mjs の findGaps: paths:・pnpm <script>・名指すパス)が何も挙げない

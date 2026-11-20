@@ -2,6 +2,7 @@
 // 修正の commit を一時の木へ cherry-pick するとき、出荷索引(.notices/shipped/)の変更だけを捨てる(pick-check が使う)。
 // 索引は外した(.notices/README.md「お知らせの一覧と本文の読み方(履歴)」)が、外す前の修正の commit は索引の行の変更を持ち、
 // 索引の無い・短い土台では必ず衝突する。/flux も同じく索引だけの衝突は上流の側を採って続ける。
+// sunset: 20261120-122554-notice-history(この部品ごと: 全部の fork が取り込んだら外し、pickCheck は素の cherry-pick に)
 // 判定・判定の材料はどちらも「索引を除いた中身が載るか」で、索引の変更は木に残さない(衝突しなくても土台の索引のまま)。
 import { execFileSync } from "node:child_process";
 import { rmSync } from "node:fs";

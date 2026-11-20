@@ -6,6 +6,7 @@
 //   - 道具が上流の先端を読むファイル(TIP_READ: .claude/skills/flux/ の下)→ 外す(left-out)。/flux も鉄道もその手順と
 //     incoming.mjs を上流の先端の版で読むので、fork に先に入れる物ではない
 //   - 出荷索引 .notices/shipped/(索引を外す前の commit だけが持つ)→ fork 側のまま(index)
+//     sunset: 20261120-122554-notice-history(全部の fork が取り込んだら外す)
 //   - (c) fork の木に有り、中身が上流のどれかの版(merge-base・元の commit の親・台帳の前の picked: の commit)と同じ
 //     = fork が触っていない → 元の commit の版に置き換える(消す変更なら消す)(replaced)
 //     fork が手で変えた → git merge-file で 3 方向(基 = 元の commit の親の版)。通れば採る(merged)、ぶつかれば全部取り消して止まる
@@ -32,6 +33,7 @@ import { findGaps } from "./lib.hotfixGaps.mjs";
 
 /** 道具が上流の先端の版を読むファイルの置き場(緊急修正の先取りの対象にしない) */
 export const TIP_READ = [".claude/skills/flux/"];
+// sunset: 20261120-122554-notice-history (the index branch: remove once every fork has taken that notice)
 const INDEX_DIR = ".notices/shipped/";
 
 function git(cwd, args, input) {

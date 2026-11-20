@@ -143,6 +143,7 @@ upstream writes `fixes: <notice id | commit:<sha>>` in a notice that fixes a bug
     - then 7c `pnpm workflow ownership check` (the `picked:` part passes) → push with the segment at 7d
   - could not take it:
     - cherry-pick conflict (a conflict only in `.notices/shipped/` = an older commit still carrying the removed index: take the upstream side, or remove it when upstream deleted it, and continue; it does not count as not taken) → `git cherry-pick --abort`
+      - sunset: 20261120-122554-notice-history (remove once every fork has taken that notice)
     - checks / verify failed → undo the unpushed commits this pick made (`git reset --keep <区間の 7b の commit>`; never undo pushed commits)
     - either way, append `pick failed: <理由>` to `notes:` of the origin's ledger line and commit (when the fix is a side commit, that segment later stops at step 5a's side-commit check), ask the "origin unapplied" question above (`1 区間ずつ進める / ここで止める`); STOP: wait | one line in FINDINGS FOR UPSTREAM (b) (passed upstream's judgment but not in the fork)
   - later segments: ids recorded in the ledger are no checkpoints (same as hotfix) | that spot conflicts at a later merge → take the upstream side when the fork has no edit
@@ -160,6 +161,7 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
   1. always the upstream tip's version of the tool (never the fork's): `git archive <upstream>/<branch> scripts/workflow/notices scripts/workflow/rules | tar -x -C <tmp>` → `node <tmp>/scripts/workflow/notices/hotfixApply.mjs <元の commit> --upstream=<upstream>/<branch>`
      - in the fork's checkout (the tree must be clean) — every file settled without asking, one commit (`.notices/README.md` `緊急修正(hotfix)`):
      - files the tools read from the upstream tip (`.claude/skills/flux/`) → left out (`left-out`) | `.notices/shipped/` (older hotfix commits only) → the fork side (`index`)
+       - sunset: 20261120-122554-notice-history (remove once every fork has taken that notice)
      - a file whose content equals an upstream version (merge-base, the original commit's parent, an earlier `picked:`) = the fork never touched it → the original commit's version (`replaced`; deleted when the fix deletes it)
      - a file the fork changed by hand → a 3-way merge of the fix (`merged`) | it conflicts → nothing is changed, exit 1 with those files (`conflict`) → stop and give options (`手で解いて続行` / `この緊急修正を飛ばす` / `元の commit まで区間で進める` = resolve by hand and continue / skip this hotfix / advance by segments up to the original commit); STOP
      - a file the fix adds → added (`added`) | the file to fix is not in the fork's tree: moved upstream later and its old place is in the fork → 3-way there (`moved-merged <前> -> <今>`), else skipped (`left-out`; it arrives with a later segment) — never a stop
@@ -391,6 +393,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
       - `.claude/rules/project.md` and `behavior.md`: take the fork side; take in upstream's additions only when they apply to this fork
       - `.claude/rules/shortcuts.md` and `term-aliases.md`: above the `fork entries below` marker from the upstream side, below from the fork side
       - `.notices/shipped/` (the index removed by D350; only segments from before its removal carry it): take the upstream side (`git checkout --theirs -- <path>`), or `git rm` it when upstream deleted it | never add a row by hand
+        - sunset: 20261120-122554-notice-history (remove once every fork has taken that notice)
       - generated `src/app/route-map.jsonl` (route map; delete the old `route-map.txt` if it remains): never fix by hand even on conflict
         - take either version, resolve the other conflicts first, finally rebuild with `pnpm generate routes` and `git add` | even without a conflict, rebuild the same way when the segment's upstream diff has this file (the rows of fork-own pages are not in upstream's generated result) | a change inside 5d's allowed set
       - generated `src/registry/district-map.jsonl` (district map; includes the domain list) is treated the same; rebuild with `pnpm generate district-map` (delete the old `src/features/feature-map.txt` if it remains)
