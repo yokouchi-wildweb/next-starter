@@ -107,13 +107,11 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - exit 0 / 1 (clean / -): put the written body in the same commit: `git commit --amend --no-edit -- .notices/<id>.md` (only your own commit before push; `pick:` does not affect the judgment) → `pnpm check notices` | with `-` too, ship without stopping (the fork receives it by the current fixes behavior) | write the failed conditions in the report
      - exit 2 (cannot judge: origin not in history, dependencies cannot be installed): ship without the field (no field = same as `-`), report `pick 未確認: <理由>`
      - `未実行: <検査>` (the base tree has no script for it) → write in the report
+   - with `hotfix`, before the commit, **keep it to one purpose** (`.notices/README.md` section `緊急修正(hotfix)`): one fix, never mixed with moving / renaming / relocating files (forks apply it file by file; a moved file is only found in a lagging fork by its old place)
+     - a fix of only the tools /flux reads from the upstream tip (`.claude/skills/flux/`) is never a hotfix (forks already read the tip's version) → ship it plainly
    - with `hotfix`, after the commit, before push, **check that it can be picked** (`.notices/README.md` section `緊急修正(hotfix)`): pass `pnpm check notices` again
      - with `fixes:`, the `pnpm workflow notices pickCheck` above doubles as this check: the reason for `-` is a conflict, a failed check or a dependency on a later notice → no push; STOP (STOP CASES)
      - no `fixes:` → skip it (which version to apply to cannot be decided; report `未確認: 修正元なし`)
-     - next, **check the prerequisites hold in lagging forks**: `pnpm workflow notices hotfixCheck <this commit>`
-       - fork positions = merge-bases of the repos list (`--repos-file=<file of '<name> <path>' lines>` or env `DOWNSTREAM_REPOS_FILE`)
-       - on a tree picked onto each position it checks that the `paths:` of path-scoped rules this commit added or changed, the `pnpm <script>` of the notice's steps and the paths the notice names exist (not relying on what the changes in between bring)
-     - exit 1 → no push; STOP (STOP CASES) | exit 2 (fork position unknown) → report `未確認: 遅れた fork の位置` and go on | a known position can be passed with `--base=<sha>`
    - before push, **with `--safe` only, run the full checks on the tip** (a plain ship runs the area checks above instead and makes no tag; `.notices/README.md` section `区切り(checkpoint)と区間適用`, part `セーフポイント`): `pnpm workflow notices safePoint check`
      - upstream does not check intermediate checkpoints (each fork's /flux checks every segment on its side); only the tip of a `--safe` ship gets the full checks
      - it needs a work tree equal to HEAD and runs on HEAD, in order: `pnpm test` (whole), `pnpm check`, `pnpm typecheck`, `pnpm lint`, `pnpm build`; all pass → it records HEAD as checked (used by step 7's tag)
@@ -140,13 +138,11 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - a check failed and the fix is not obvious
 - in the downstream impact judgment, the notice's required_actions cannot be written concretely enough for downstream Claude to run (the upstream change may be what should be fixed)
 - `hotfix` depending on earlier unshipped / unreceived changes, or the pick check (`pnpm workflow notices pickCheck`) reported a conflict or a failed check (show the dependent changes, ask whether to drop hotfix for a normal shipment or remove the dependency)
-- `hotfix` where `pnpm workflow notices hotfixCheck` listed things missing from a lagging fork's tree (show that list and ask for a choice: remove the dependency / add to the notice's required_actions what fails in that fork and what to do / drop hotfix for a normal shipment / ship as is)
-  - never change a rule's `paths:` just to pass the check (never change it without saying in which files it stops being loaded)
 - on stopping: show what you found and the options in plain text; STOP: wait
 
 ## QUICK SHIP (`--quick`)
 - for every ship but the last of a session | makes no safe point | a run of quick ships is closed by a plain ship (its area checks take in the unchecked quick files, step 2) or a `--safe` ship (full checks on the tip)
-- runs no check except `pnpm check notices` (only when a notice is added or changed): skips step 2 entirely otherwise (`pnpm check --gate=ship` included), step 6's pickCheck / hotfixCheck and full checks, step 7's tag
+- runs no check except `pnpm check notices` (only when a notice is added or changed): skips step 2 entirely otherwise (`pnpm check --gate=ship` included), step 6's pickCheck and full checks, step 7's tag
 - keeps: steps 0, 1, 3-5 (notice judgment and writing), commit (with the `Ship: quick` trailer), push
 - ship route: anywhere | in a linked worktree → WORKTREE ROUTE below when it applies | the main checkout → a plain `git push`
 
@@ -210,7 +206,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - **`skip_checkpoint:`**: only when the `fixes:` origin's checkpoint does not work (the fork's checks fail there) and step 6's pick-check gives `-` → write the origin's id (each id must be in `fixes:`; the fix notice itself is a labeled checkpoint) | the origin has `uses:` → cannot be skipped
      - added to the body after the pick-check → `git commit --amend --no-edit -- .notices/<id>.md` → `pnpm check notices` (`.notices/README.md` section `区切りを外す欄`)
    - required_actions, verify and refs of a `fixes:` notice never name paths / scripts missing from the broken point's tree (tools added later etc.) (the fork takes it right after the broken point, so the pick-check's prerequisite check makes it `-`) | to mention later tools, write them in notes (the prerequisite check does not read notes)
-   - required_actions of a `hotfix:` notice are written without assuming the changes in between or later notices (the fork applies it skipping them) | never include `pnpm-lock.yaml` or `src/app/route-map.jsonl` in the commit (contents differ per fork; `pnpm check notices` checks)
+   - required_actions of a `hotfix:` notice are written without assuming the changes in between or later notices (the fork applies it skipping them; what its tree lacks the fork's hotfixApply skips and reports as `left-out` / `gap`, never a stop) | never include `pnpm-lock.yaml` or `src/app/route-map.jsonl` in the commit (contents differ per fork; `pnpm check notices` checks)
    - **required_actions = "concrete enough for downstream Claude to run without stopping after one approval"**
      - DB migrations, backfills, regeneration and data migrations all go here | only steps the fork's policy may keep for the human (db push, interactive prompts) get `[user-run]`
      - regenerate a domain with `pnpm generate domain -- <Domain>` (no prompts by default; no `[user-run]`), naming only the needed categories with `--only` | the fork-side bulk rebuild after adding settings = `pnpm forge`
