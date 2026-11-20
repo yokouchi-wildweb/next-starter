@@ -230,6 +230,7 @@ function CarouselNext({
 
 export {
   type CarouselApi,
+  type CarouselPlugin,
   Carousel,
   CarouselContent,
   CarouselItem,

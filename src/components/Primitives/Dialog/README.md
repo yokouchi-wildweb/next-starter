@@ -8,6 +8,7 @@
 ## API
 
 - `DialogContent` の省略できる指定(層は選べず、いつも `floating`): `overlayClassName`（背景に足すクラス）、`container`（portal の先の要素。渡すと背景と本体は `absolute`）、`closeButtonClassName`（右上の閉じるボタンに足すクラス）、`fullscreen`（全画面。Modal と Dialog の `fullscreen` はこれを渡す）。どれも省略時の出力は変わらない
+- 素の部品 `DialogBareOverlay` / `DialogBareContent` / `DialogBareClose`（`DialogBare.ts`）: Radix の Overlay / Content / Close そのもので、見た目も印も持たない。自分で形を描く板（`Overlays/Sheet`）が自分の印（`sheet-overlay`・`sheet`・`sheet-close` など）を付けて使う。`DialogClose` は印を `dialog-close` に固定するので、呼び手の印を残したいときはこちら
 
 ## Extension
 

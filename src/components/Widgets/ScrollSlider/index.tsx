@@ -12,13 +12,13 @@ import {
   useRef,
   useState,
 } from "react"
-import useEmblaCarousel from "embla-carousel-react"
-import AutoplayPlugin from "embla-carousel-autoplay"
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
+  carouselAutoplay,
   type CarouselApi,
+  type CarouselPlugin,
 } from "@/components/Primitives/Carousel"
 import { cn } from "@/lib/cn"
 import { SliderArrow } from "../_shared/SliderArrow"
@@ -43,8 +43,6 @@ import type {
   SliderControlProps,
   SliderImperativeApi,
 } from "../_shared/types"
-
-type EmblaPlugins = Parameters<typeof useEmblaCarousel>[1]
 
 export type ScrollSlideState = {
   isActive: boolean
@@ -94,7 +92,7 @@ export type ScrollSliderProps<T> = SliderControlProps & SliderA11yProps & {
   // 操作
   autoplay?: AutoplayOption
   /** Embla プラグインを直接渡す（autoplay 以外用） */
-  plugins?: EmblaPlugins
+  plugins?: CarouselPlugin
 
   // コールバック
   onActiveClick?: (item: T, index: number) => void
@@ -220,12 +218,12 @@ export function ScrollSlider<T>({
 
   const effectivePeek = !keepPeekOnSingle && items.length <= 1 ? false : peek
 
-  const emblaPlugins = useMemo<EmblaPlugins>(() => {
-    const list: NonNullable<EmblaPlugins> = []
+  const emblaPlugins = useMemo<CarouselPlugin>(() => {
+    const list: NonNullable<CarouselPlugin> = []
     if (autoplay) {
       const opts = typeof autoplay === "object" ? autoplay : {}
       list.push(
-        AutoplayPlugin({
+        carouselAutoplay({
           delay: opts.delay ?? 4000,
           stopOnInteraction: opts.stopOnInteraction ?? true,
         })

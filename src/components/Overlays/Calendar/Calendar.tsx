@@ -9,10 +9,9 @@
 
 "use client";
 
-import { ja } from "react-day-picker/locale";
 import { type ComponentProps } from "react";
 
-import { Calendar as PrimitiveCalendar } from "@/components/Primitives/Calendar";
+import { Calendar as PrimitiveCalendar, calendarLocaleJa } from "@/components/Primitives/Calendar";
 
 export type CalendarProps = ComponentProps<typeof PrimitiveCalendar>;
 
@@ -21,7 +20,7 @@ const DEFAULT_START_MONTH = new Date(1900, 0);
 const DEFAULT_END_MONTH = new Date(2100, 11);
 
 export function Calendar({
-  locale = ja,
+  locale = calendarLocaleJa,
   weekStartsOn = 1,
   captionLayout = "dropdown",
   startMonth = DEFAULT_START_MONTH,
