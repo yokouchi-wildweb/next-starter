@@ -51,14 +51,17 @@ function showLineage(cwd, ref, LINEAGE_FILE) {
 
 /**
  * @param {{ cwd?: string, upstream?: string, before: string, after: string }} args
- * @returns {Promise<{ own: string, touched: ReturnType<import("../../../src/lib/forkOwnership/lineage.mjs").touchedOverrides> }>}
+ * @returns {Promise<{ own: string | null, touched: ReturnType<import("../../../src/lib/forkOwnership/lineage.mjs").touchedOverrides> }>}
  */
 export async function lineageTouch({ cwd = process.cwd(), upstream, before, after }) {
   const { ids, lineage } = await loadLibs(cwd, upstream);
-  const { own } = ids.readForkIdentity(cwd);
-  if (!own) throw new Error(`${ids.REPO_JSON_FILE} の repo_id が読めない`);
   const projectPath = join(cwd, ids.PROJECT_RULES_FILE);
   const projectText = existsSync(projectPath) ? readFileSync(projectPath, "utf8") : "";
+  // 打ち消しの在り処は project.md の overrides: と自分の節(fork の木の lineage.md)だけ: どちらも無い fork(repo.json の無い
+  // 古い fork を含む)には触れる物が無いので、名前を読む前に 0
+  if (!existsSync(join(cwd, lineage.LINEAGE_FILE)) && lineage.parseOverrides(projectText).length === 0) return { own: null, touched: [] };
+  const { own } = ids.readForkIdentity(cwd);
+  if (!own) throw new Error(`${ids.REPO_JSON_FILE} の repo_id が読めない`);
   const show = (ref) => showLineage(cwd, ref, lineage.LINEAGE_FILE);
   return { own, touched: lineage.touchedOverrides({ before: show(before), after: show(after), projectText, own }) };
 }

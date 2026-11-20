@@ -98,3 +98,24 @@ test("古い fork: 作業ツリーに判定の lib が無くても、上流の�
     repo.cleanup();
   }
 });
+
+test("古い fork: repo.json も lineage.md も overrides も無ければ触れる物が無いので 0、overrides があって名前が読めなければ 2", () => {
+  const dir = mkdtempSync(join(tmpdir(), "lineage-touch-norepo-"));
+  const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: dir, encoding: "utf8" }).trim();
+  try {
+    run("init", "-q", "-b", "main");
+    writeFileSync(join(dir, "README.md"), "old fork\n");
+    run("add", "-A");
+    run("commit", "-q", "-m", "old fork: no repo.json");
+    const head = run("rev-parse", "HEAD");
+    const cli = (...args) => spawnSync(process.execPath, [SCRIPT, ...args], { cwd: dir, encoding: "utf8" });
+    const none = cli("--before", head, "--after", head);
+    assert.equal(none.status, 0, none.stderr);
+    assert.match(none.stdout, /result: none/);
+    mkdirSync(join(dir, ".claude/rules"), { recursive: true });
+    writeFileSync(join(dir, ".claude/rules/project.md"), "## TIER\noverrides: mid.tone = casual | why: x\n");
+    assert.equal(cli("--before", head, "--after", head).status, 2);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
