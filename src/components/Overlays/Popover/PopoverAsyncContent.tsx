@@ -107,7 +107,7 @@ export function PopoverAsyncContent<T>({
   });
   const isMountedRef = useRef(true);
 
-  // データ取得(読み込み中の表示は初期値と retry が持つ。effect の中で同期に state を書かない)
+  // データ取得(読み込み中・エラーの戻しは取り直しの始まりに行う: 下の描画の中の比べと retry)
   const fetchData = useCallback(async () => {
     const startTime = Date.now();
 
@@ -144,7 +144,20 @@ export function PopoverAsyncContent<T>({
     fetchData();
   }, [fetchData]);
 
-  // マウント時にデータを取得
+  // 取り直しの始まり(fetchData の依存が変わって作り直された)で、読み込み中にして前のエラーを消す。
+  // 描画の中で前の依存の組と比べて行う(effect の中で同期に state を書かない)。初回は初期値がそれに当たる
+  const [fetchDeps, setFetchDeps] = useState({ minLoadingTime, onSuccess, onError });
+  if (
+    fetchDeps.minLoadingTime !== minLoadingTime ||
+    fetchDeps.onSuccess !== onSuccess ||
+    fetchDeps.onError !== onError
+  ) {
+    setFetchDeps({ minLoadingTime, onSuccess, onError });
+    setIsLoading(true);
+    setError(null);
+  }
+
+  // マウント時・依存が変わった時にデータを取得
   useEffect(() => {
     isMountedRef.current = true;
     fetchData();

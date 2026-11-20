@@ -191,20 +191,19 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
   }, [submitErrorDisplay, formState.submitCount, hasFieldErrors, showToast]);
 
   // 個別メディアフィールドのハンドル管理
-  // 登録のたびに新しい Map を state に置く(描画中に ref を読まず、登録の変化で描画し直す)
+  // 描画で使う値(アップロード中・失敗のまま)は state の Map から作る(描画中に ref を読まない)。
+  // 送信の後のコミットは await の後の最新の登録を読むため、同じ中身を ref にも持つ(書くのは登録の callback だけ)
+  const mediaHandlesRef = React.useRef<Map<string, MediaHandleEntry>>(new Map());
   const [mediaHandles, setMediaHandles] = React.useState<ReadonlyMap<string, MediaHandleEntry>>(() => new Map());
 
   const registerMediaHandle = React.useCallback((name: string, entry: MediaHandleEntry) => {
-    setMediaHandles((prev) => new Map(prev).set(name, entry));
+    mediaHandlesRef.current.set(name, entry);
+    setMediaHandles(new Map(mediaHandlesRef.current));
   }, []);
 
   const unregisterMediaHandle = React.useCallback((name: string) => {
-    setMediaHandles((prev) => {
-      if (!prev.has(name)) return prev;
-      const next = new Map(prev);
-      next.delete(name);
-      return next;
-    });
+    if (!mediaHandlesRef.current.delete(name)) return;
+    setMediaHandles(new Map(mediaHandlesRef.current));
   }, []);
 
   // FieldRenderer用: MediaState全体を管理（後方互換性）
@@ -267,8 +266,8 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
             await effectiveFieldRendererState.commitAll();
           }
 
-          // 個別登録されたメディアをコミット
-          const individualEntries = Array.from(mediaHandles.values());
+          // 個別登録されたメディアをコミット(onSubmit の await の後の最新の登録)
+          const individualEntries = Array.from(mediaHandlesRef.current.values());
           if (individualEntries.length > 0) {
             await Promise.all(individualEntries.map((entry) => entry.commit()));
           }
@@ -279,7 +278,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
       }
       setReleasedAfterSubmit(true);
     },
-    [onSubmit, disableAutoCommitMedia, effectiveFieldRendererState, mediaHandles, unsavedSource, guardUnsaved, methods],
+    [onSubmit, disableAutoCommitMedia, effectiveFieldRendererState, unsavedSource, guardUnsaved, methods],
   );
 
   // 二重送信ロック: isSubmitting / pending は次の描画まで効かないため、同じフレームの 2 回目を同期に捨てる。
@@ -287,18 +286,20 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
   // 部品ごとに 1 つ(初回の描画で作り、以後は同じ物。描画中に ref を読まないよう state の初期値で持つ)
   const [submitLock] = React.useState<SubmitLock>(createSubmitLock);
 
-  const handleFormSubmit = React.useMemo(() => {
-    const submit = submitLock.wrap(handleSubmit(handleSubmitWithMediaCommit, onSubmitError));
-    return (event?: React.BaseSyntheticEvent) => {
+  // 送信の口。handleSubmit(react-hook-form)は送信の時に組み立てる(描画中に呼ぶと、ref を読む handler を描画で渡すことになる)。
+  // ロックの状態は submitLock の中にあるので、包むのが毎回でも 2 回目の送信は捨てられる
+  const handleFormSubmit = React.useCallback(
+    (event?: React.BaseSyntheticEvent) => {
       // 失敗したままの欄があれば送らない(古い値で黙って保存しない)
       if (hasFailedBackground) {
         event?.preventDefault();
         showToast(BACKGROUND_FAILURE_MESSAGE, "error");
         return Promise.resolve();
       }
-      return submit(event);
-    };
-  }, [submitLock, handleSubmit, handleSubmitWithMediaCommit, onSubmitError, hasFailedBackground, showToast]);
+      return submitLock.wrap(handleSubmit(handleSubmitWithMediaCommit, onSubmitError))(event);
+    },
+    [submitLock, handleSubmit, handleSubmitWithMediaCommit, onSubmitError, hasFailedBackground, showToast],
+  );
 
   // DOM の送信の口: 失敗はここで受け止め、AppForm の外へ未処理の reject として漏らさない。
   // 報告は投げた側(onSubmit の toast)の役目なので、ここでは何も出さない。await する呼び手(submitLock の Promise・

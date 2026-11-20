@@ -144,17 +144,25 @@ export function PromptPopover({
     [isControlled, onOpenChange]
   );
 
-  // 開いた時の値の初期化: 描画の中で前の open と比べて行う(effect で後から入れると 1 描画だけ前の値が出る)
-  const [wasOpen, setWasOpen] = useState(false);
-  if (open !== wasOpen) {
-    setWasOpen(open);
+  // 開いた時の値の初期化。開いている間に defaultValue・clearOnOpen・multiline が変わった時も同じく戻す。
+  // 描画の中で前の組と比べて行う(effect で後から入れると 1 描画だけ前の値が出る)
+  const resetKey = { open, clearOnOpen, defaultValue, multiline };
+  // 初めは「閉じていた」として持つ(開いた状態で描かれ始めたら、その描画で戻す)
+  const [seenResetKey, setSeenResetKey] = useState({ ...resetKey, open: false });
+  if (
+    seenResetKey.open !== open ||
+    seenResetKey.clearOnOpen !== clearOnOpen ||
+    seenResetKey.defaultValue !== defaultValue ||
+    seenResetKey.multiline !== multiline
+  ) {
+    setSeenResetKey(resetKey);
     if (open) {
       setValue(clearOnOpen ? "" : defaultValue);
       setError(null);
     }
   }
 
-  // 開いた時にフォーカスを入力欄に移動
+  // 開いた時(と開いている間に上の組が変わった時)にフォーカスを入力欄に移動
   useEffect(() => {
     if (open) {
       setTimeout(() => {
@@ -165,7 +173,7 @@ export function PromptPopover({
         }
       }, 0);
     }
-  }, [open, multiline]);
+  }, [open, clearOnOpen, defaultValue, multiline]);
 
   const handleConfirm = useCallback(async () => {
     // バリデーション
