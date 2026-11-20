@@ -1,15 +1,17 @@
-// Form/Button の読み込み中の指定(loading / loadingLabel)の検査。
+// Button の読み込み中の指定(loading / loadingLabel)の検査。
 // - loading を渡さない出力は、前の実装(Primitives の Button + buttonVariants)と同じ
 // - loading で Spinner が子の前に出て、disabled と aria-busy が付く
 // - loadingLabel は子の代わりに出る(null = Spinner だけ)。asChild では子に手を入れない
 // - TabletButton も同じ指定を持つ
-// 実行: pnpm test src/components/Form/Button(tsx + node:test、サーバー描画の文字列で比べる)
+// 実行: pnpm test src/components/Button(tsx + node:test、サーバー描画の文字列で比べる)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { Button, TabletButton, buttonVariants, tabletButtonVariants } from "@/components/Form/Button";
+import { Button } from "./Button";
+import { TabletButton } from "./TabletButton";
+import { buttonVariants, tabletButtonVariants } from "./variants";
 import { Button as PrimitiveButton } from "@/components/Primitives/Button";
 import { cn } from "@/lib/cn";
 

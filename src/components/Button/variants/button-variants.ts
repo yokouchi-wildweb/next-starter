@@ -1,4 +1,4 @@
-// src/components/Form/Button/button-variants.ts
+// src/components/Button/variants/button-variants.ts
 //
 // Button / LinkButton / PseudoButton 共通の variant 定義。
 // 下流は src/config/lib/variantOverrides.config.ts の `button` キーで、ここを編集せずに

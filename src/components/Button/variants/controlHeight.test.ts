@@ -2,7 +2,7 @@
 // - Button の 9 size・TabletButton の 6 size の高さは段のトークンから取る(数値の h-* を持たない)
 // - icon・icon-lg・none は段の外のまま
 // - variants.config の上書き(size の className)と要素の className の高さがトークンの高さに勝つ
-// 実行: pnpm test src/components/Form/Button/controlHeight.test.ts
+// 実行: pnpm test src/components/Button/variants/controlHeight.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

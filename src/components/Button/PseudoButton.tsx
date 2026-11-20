@@ -1,4 +1,4 @@
-// src/components/Form/Button/PseudoButton.tsx
+// src/components/Button/PseudoButton.tsx
 
 "use client";
 
@@ -7,7 +7,7 @@ import * as React from "react";
 import { baseButtonClassName } from "@/components/Primitives/Button";
 import { cn } from "@/lib/cn";
 
-import { buttonVariants, type ButtonStyleProps } from "./button-variants";
+import { buttonVariants, type ButtonStyleProps } from "./variants";
 import type { ButtonLoadingProps, ButtonProps } from "./Button";
 
 /** div で描くので読み込み中の指定(loading / loadingLabel)は持たない */

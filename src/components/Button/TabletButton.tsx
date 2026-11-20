@@ -1,4 +1,4 @@
-// src/components/Form/Button/TabletButton.tsx
+// src/components/Button/TabletButton.tsx
 
 "use client";
 
@@ -8,7 +8,7 @@ import { Button as PrimitiveButton } from "@/components/Primitives/Button";
 import { cn } from "@/lib/cn";
 
 import { resolveButtonLoading, type ButtonLoadingProps } from "./Button";
-import { tabletButtonVariants, type TabletButtonStyleProps } from "./tablet-button-variants";
+import { tabletButtonVariants, type TabletButtonStyleProps } from "./variants";
 
 export type TabletButtonProps = React.ComponentPropsWithoutRef<typeof PrimitiveButton> &
   TabletButtonStyleProps & {
@@ -52,4 +52,4 @@ const TabletButton = React.forwardRef<HTMLButtonElement, TabletButtonProps>(
 
 TabletButton.displayName = "TabletButton";
 
-export { TabletButton, tabletButtonVariants };
+export { TabletButton };
