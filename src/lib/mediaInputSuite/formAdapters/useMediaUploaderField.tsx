@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } 
 import type { ControllerRenderProps, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
 import { ControlledMediaUploader, type ControlledMediaUploaderProps } from "./ControlledMediaUploader";
-import { usePendingMediaUploads, usePendingMediaDeletion } from "@/lib/mediaInputSuite";
+import { usePendingMediaUploads, usePendingMediaDeletion } from "../hooks";
 
 type ControlledMediaUploaderExternalProps<
   TFieldValues extends FieldValues,

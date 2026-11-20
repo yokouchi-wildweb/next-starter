@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 
-import { MediaInput, type MediaInputProps } from "@/lib/mediaInputSuite";
+import { MediaInput, type MediaInputProps } from "../components";
 
 type BaseProps = Omit<MediaInputProps, "onFileChange" | "resetSignal">;
 

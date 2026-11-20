@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 
-import { MediaUploader, type MediaUploaderProps } from "@/lib/mediaInputSuite";
+import { MediaUploader, type MediaUploaderProps } from "../components";
 
 type BaseProps = Omit<MediaUploaderProps, "initialUrl" | "onUrlChange">;
 

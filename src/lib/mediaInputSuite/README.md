@@ -3,8 +3,8 @@
 ## Overview
 
 - メディアの入力の lib: メタデータ取得 → プレビュー → storage 基盤(`src/lib/storage`)へのアップロード を一貫して扱う部品とフック。入口 `@/lib/mediaInputSuite`
-- 部品(入力・プレビュー・アップロードの UI)、フック(メタデータ取得・RHF 連携・未採用分の管理)、型と検査・整形の関数を持つ
-- RHF 連携のラッパー(`src/components/Form/MediaHandler`)と FieldRenderer 連携(`src/components/Form/FieldRenderer`)は別フォルダ
+- 部品(入力・プレビュー・アップロードの UI)、フック(メタデータ取得・RHF 連携・未採用分の管理)、react-hook-form の連携(`formAdapters/`)、型と検査・整形の関数を持つ
+- 連携が読むのは react-hook-form の型とこの lib だけ(フォームの lib `@/lib/formSuite` は読まない)。FieldRenderer の連携は formSuite の側にある
 
 ## Usage
 
@@ -21,21 +21,18 @@
 3. **FieldRenderer で自動生成フォーム**
    - `FieldRenderer` + `baseFields`（domain.json から読み込み）。メディア項目には `purpose` が要る（生成の `<Domain>Fields` が付ける）
 
-### フォーム連携(別フォルダ)
+### フォーム連携(formAdapters/、入口から読む)
 
-- `src/components/Form/MediaHandler`
-  - `ControlledMediaUploader` / `ControlledMediaInput`（RHF 連携）
-  - `useMediaUploaderField` / `useMediaUploaderMultiField`（RHF ブリッジ。`render` / `isUploading` / `hasFailed` / `commit` / `reset`）
-  - `ManualMediaUploader` / `ManualMediaInput`（手動 state 連携）
-- `src/components/Form/FieldRenderer`
-  - `FieldRenderer` が `mediaUploader` タイプのフィールドを自動処理
+- `ControlledMediaUploader` / `ControlledMediaUploaderMulti` / `ControlledMediaInput`: react-hook-form の `field` を受ける形
+- `useMediaUploaderField` / `useMediaUploaderMultiField`: RHF ブリッジ。`render` / `isUploading` / `hasFailed` / `commit` / `reset` を返す(formSuite の media の欄がこれを使う)
+- `ManualMediaUploader` / `ManualMediaInput`: 手動の state(value + onChange)で使う形
+- `FieldRenderer`(`@/lib/formSuite`)が `mediaUploader` タイプのフィールドを自動処理
 
 ### FieldRenderer でメディアの項目を扱う例
 
 ```tsx
 import type { FieldPath } from "react-hook-form";
-import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer";
-import type { FieldConfig, MediaFieldConfig } from "@/components/Form/Field";
+import { FieldRenderer, type FieldConfig, type MediaFieldConfig, type MediaState } from "@/lib/formSuite";
 import { useMediaMetadataBinding } from "@/lib/mediaInputSuite";
 import { domainDisplay } from "@/features/foo/entities/display";
 
@@ -68,7 +65,7 @@ export function FooFields({ methods, onMediaStateChange }) {
 
 ### アップロードと保存の手順
 
-- 業務保存が成功したら `useMediaUploaderField`（MediaHandler）の `commit()`(最終値の確定 + 残りの未採用分の取り消し)、やめるなら `reset()`(未採用分を取り消し元の値に戻す)
+- 業務保存が成功したら `useMediaUploaderField`（formAdapters）の `commit()`(最終値の確定 + 残りの未採用分の取り消し)、やめるなら `reset()`(未採用分を取り消し元の値に戻す)
 - 大きさ・縮小の案内文は欄の `helperText` に書く(フィールドの枠が描く)。例: 「大きな写真は長い辺 2048px まで自動で縮小してから送ります」。数値は用途の宣言(`image.maxDimension`)と揃える
 - 長寿命フォームでは `usePendingMediaUploads` の `cleanupOnUnmount: false` を検討する(既定は unmount で未採用分を discard)
 - 送信中の守りを外す: `guardUnsaved={false}`(既定 true)
@@ -159,6 +156,7 @@ export function FooFields({ methods, onMediaStateChange }) {
 - `src/lib/unsavedGuard`(送信中の守り)
 - `src/lib/storage`(アップロード・取り消し・用途の方針)
 - `src/lib/cn`(クラスの結合)
+- `react-hook-form`(`formAdapters/` の型だけ。値は読まない)
 
 ## Verification
 

@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import type { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
 
-import { MediaInput, type MediaInputProps } from "@/lib/mediaInputSuite";
+import { MediaInput, type MediaInputProps } from "../components";
 
 type BaseProps = Omit<MediaInputProps, "onFileChange" | "resetSignal">;
 
