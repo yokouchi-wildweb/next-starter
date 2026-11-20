@@ -62,7 +62,10 @@ export function checkFrameValue(value, root) {
   return problems;
 }
 
-/** 何も宣言していない値 */
+/**
+ * 何も宣言していない値(overlayFrame の base と同じ形。型を書かないと fill が undefined だけに推論され、重ねた値を入れ直せない)
+ * @returns {{ hide: Record<string, { sp?: boolean, pc?: boolean }>, fill?: boolean }}
+ */
 export const emptyFrame = () => ({ hide: {}, fill: undefined });
 
 /**
