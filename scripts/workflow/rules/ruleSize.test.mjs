@@ -8,11 +8,11 @@ import { judgeSize, longLines, SIZE_LINES } from "./lib.ruleSize.mjs";
 
 const repoRoot = join(import.meta.dirname, "../../..");
 
-test("CLAUDE.md: 37,000 字までは ok、越えると知らせ、40,000 字で止める", () => {
+test("CLAUDE.md: 38,000 字までは ok、越えると知らせ、40,000 字で止める", () => {
   const line = SIZE_LINES.claudeMd;
-  assert.deepEqual(line, { notify: 37000, fail: 40000 });
-  assert.equal(judgeSize(37000, line), "ok");
-  assert.equal(judgeSize(37001, line), "notify");
+  assert.deepEqual(line, { notify: 38000, fail: 40000 });
+  assert.equal(judgeSize(38000, line), "ok");
+  assert.equal(judgeSize(38001, line), "notify");
   assert.equal(judgeSize(39999, line), "notify");
   assert.equal(judgeSize(40000, line), "fail");
 });

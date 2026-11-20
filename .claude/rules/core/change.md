@@ -18,7 +18,9 @@ change_types (the only 5 ways to change what a parent owns | marks = .default / 
 - 2 overlay (data): plain target + declared keys (overrideOf / overrides) → fork \<target\>.override.ts, declared keys only | frame: creator frame.ts → lower repo frame.override.ts
 - 3 add: plain new name in a declared receptacle folder | 4 placement (values): src/styles/core/\<name\>.css → src/styles/\<name\>.css, owner config.ts → src/config/\<area\>/\<name\>.config.ts (lib, features, layout, proxies, featureGate)
   - add items: a plain \<name\>.ts(x) in the declared folder, no repo-name mark (the same name as a parent's unit = ownership unit-clash) → pnpm generate extensions
-- 5 self: the self files each repo writes its own version of (.claude/rules/project.md, .claude/rules/behavior.md, repo.json; a merge never takes the parent's) → core/design.md self_files
+- 5 self: the self files each repo writes its own version of (.claude/rules/project.md, .claude/rules/behavior.md, repo.json; a merge never takes the parent's, by any method: pnpm workflow ownership check) → core/design.md self_files
+  - porting: /flux shows the parent's diff once per segment → port by hand, in a separate commit, only what fits this repo | a self file holds only what describes this repo, never a rule a lower repo must follow
+  - upstream side: nothing to declare, the list of self files is closed (intake.txt kind self) and only Tier1 extends it | a new repo.json key gets a reader default, a required one ships a notice + migration tool
 - none → /order \<direct parent\> | no means to overlay part of code → upstream exposes it by value / receptacle / split
 - tell: sibling .default, or a page.tsx / frame layout.tsx 1-line switch = 1 | declaration above = 2 / 3 | placement declaration = 4 | none = cannot change
 - who: `pnpm workflow ownership who <path>` answers type 1-5 | generated | own | none (ref: src/lib/forkOwnership/README.md)

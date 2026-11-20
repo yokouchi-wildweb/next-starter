@@ -32,16 +32,15 @@ district_map: what exists and what each district holds → src/lib/districtMap (
 ## TOOLS (the context and a full set of tools hold up ai_native)
 use: a step a tool covers is never built by hand → run the tool | unsure which tool → scripts/README.md and the descriptions in .claude/skills/
 - build: pnpm forge (domains, roles, profiles end to end) | pnpm generate \<target\> (domain, role, registry, routes, cron, extensions, styles)
-- check: pnpm check [--gate=ship] | pnpm test [--changed] | pnpm typecheck | pnpm lint = what /ship runs | checks run only inside the shipping tools (/ship, /flux segments), never before them → core/notices.md checks_in_ship
+- check: pnpm check [--gate=ship] | pnpm test [--changed] | pnpm typecheck | pnpm lint = what /ship runs, only inside the shipping tools (/ship, /flux segments) → core/notices.md checks_in_ship
 - workflow: pnpm workflow \<area\> (ownership, rules, notices, worktree, devcheck, repo-json …) | ops: pnpm ops \<area\> (setup env, features, db inspect, firestore inspect) | task: pnpm task \<name\> (every ops task, no ad-hoc)
 - running_app: a check that needs the running app → /devcheck (an order's check sheet → /patrol) | what the agent may run = repo.json agent.* policy, never stated here, changed only by /repo-policy
 - skills: /ship (checks, notice, commit, push) | /flux (take a parent's changes) | /order /inbox /wen (orders) | /devcheck /patrol (the running app) | /allow /repo-policy (what the agent may run) | the rest → .claude/skills/
 
 ## REPO_LINK (one loop links the repos: ship → take in → order → answer → resolves; detail → core/notices.md)
-loop: upstream ships with /ship (a notice when downstream must follow) → downstream takes it in with /flux, segment by segment → what is missing is asked for with /order \<to\> → the receiver judges and answers with /inbox (/wen checks the orders you filed) → the notice that ships the order says resolves: and the temporary permit and the provisional rule end
+loop: upstream ships with /ship (a notice when downstream must follow) → downstream takes it in with /flux, segment by segment → what is missing goes out as /order \<to\> → the receiver judges and answers with /inbox (/wen checks yours) → the notice that ships it says resolves: and the temporary permit and the provisional rule end
 ship (MANDATORY): every commit + push = /ship (checks, notice, commit, push) | which kind and when → .claude/skills/ship/SKILL.md | fix to a shipped change: a description fix → edit its body | work forks that took it in must do → a new notice with fixes:
-safe_point: the tag on a pushed tip where the full checks passed (pnpm test all, check, typecheck, lint, build; /ship --safe) = the only periodic full check | a plain ship runs area checks only, its report proposes --safe when due (commits and days since the last one, pnpm workflow notices safePoint status)
-- prod deploys stop unless at a safe point (a fork: its take-in at the parent's) | never add another periodic full-check mechanism
+safe_point: the tag on a pushed tip where the full checks passed (/ship --safe) = the only periodic full check | a plain ship's report proposes --safe when due | prod deploys stop unless at a safe point (a fork: its take-in at the parent's) | never add another periodic full-check mechanism | → core/notices.md safe_point
 hotfix: a fix the human calls urgent = /ship hotfix → its notice's hotfix: field makes forks take it before every other segment | only on the human's words, never on your own judgment | /ship checks it (pickCheck) | forks apply it with hotfixApply, which skips what their tree lacks and reports it | → core/notices.md hotfix
 notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY, deleting / moving a file forks may extend too) | a key of CLAUDE.md, a core file or a card renamed / moved / removed → old → new in that notice | → core/notices.md notice
 checkpoint (MANDATORY on every notice): `checkpoint: <label>` = a segment boundary the author declares | `checkpoint: -` only when the fork cannot work without the next notice
@@ -65,9 +64,9 @@ self_files (CHANGE_TYPES 5): .claude/rules/project.md (overview + tier-only info
 ## CHANGE_TYPES (the only five ways to change what a parent owns: the owner declares, the repo below uses)
 types: 1 replace = switch \<name\>.ts → \<name\>.default, fork \<name\>.replace (a screen: a plain _components/\<X\>Screen.tsx, no mark; a frame: _layout/\<Layout\>.replace) | 2 overlay = \<target\>.override.ts, declared keys only | 3 add = plain name in a receptacle (extensionPoints.ts) | 4 placement = src/styles/, src/config/ | 5 self = same path, each repo writes its own version (self_files)
 - marks = .default / .replace / .override only, the owner's files are plain | upstream ships no \<target\>.override.ts (the config override of src/config/** is type 4, CORE_FILES config) | per path → pnpm workflow ownership who | detail → core/change.md
-- 5 self: a merge never takes the parent's version, by any method (pnpm workflow ownership check) | /flux shows the parent's diff once per segment → port by hand, in a separate commit, only what fits this repo | holds only what describes this repo, never a rule a lower repo must follow
+- 5 self: a merge never takes the parent's version (pnpm workflow ownership check) | port the parent's diff by hand, only what fits this repo | → core/change.md 5 self
 upstream_side: a repo makes its own thing changeable below only by declaring it: 1 a \<name\>.default beside a plain 1-line switch | 2 the keys an override may set (overrideOf / overrides) | 3 a receptacle in its extensionPoints.ts | 4 a placement for values (src/styles/core/\<name\>.css ↔ src/styles/\<name\>.css, owner config.ts ↔ src/config/) | adding a receptacle → core/receptacles.md
-- 5 self: nothing to declare, the list is closed (intake.txt kind self) and only Tier1 extends it | a new repo.json key gets a reader default, a required one ships a notice + migration tool
+- 5 self: nothing to declare, the list of self files is closed and only Tier1 extends it | a new repo.json key gets a reader default, a required one ships a notice + migration tool
 order: 1. a public means is enough → use it | 2. one of the five types at a declared point → use it | 3. none → /order <direct parent> + temporary permit | never invent another way (no fork-name marks, no keep-own merge settings, no edits outside intake points without a temporary permit)
 
 ## STACK
@@ -120,14 +119,14 @@ inspect: DB / Firestore investigation → pnpm ops db inspect | pnpm ops firesto
 
 ## BACKENDS (DB, Firebase, servers; detail → core/backends.md)
 unconfigured: DB / Firebase env may be empty after pnpm ops setup env → always-mounted paths (proxy, root layout, settingService.getGlobalSetting, createCrudService construction) and new ones never crash while unconfigured | configured-but-unreachable still throws (never hide outages) | → core/backends.md
-doctrine: new domains default dbEngine "Neon" | Firestore = realtime delivery channel only, chosen only when realtime UX is the essential requirement | no business data in Firestore, no logic in Firebase Functions | hot-path realtime (sustained ~1 write/sec+ shared state, 100s+ subscribers, single-TX threshold semantics) → realtimeRoom, not Firestore | ref: docs/!must-read/バックエンド構成ドクトリン.md
+doctrine: new domains default dbEngine "Neon" | Firestore = realtime delivery only, when realtime UX is the essential requirement | no business data in Firestore, no logic in Firebase Functions | hot-path realtime (shared state ~1 write/sec+, 100s+ subscribers) → realtimeRoom | → core/backends.md doctrine
 servers: standalone programs outside Next/Vercel live in servers/\<name\>/ (own package.json, not in the pnpm workspace) | src→servers forbidden
 
 ## CORE_FILES (ownership: who edits what)
-core (= CORE, approval required): CLAUDE.md, core/, src/features/core/ (core domains, core roles), src/styles/core/, src/components/, src/proxy.ts, src/proxies/, src/featureGate/, src/wiring/, upstream routes' _screen / _layout, libs in the Tier1 section of src/lib/CATALOG.md (the main ones) | files the fork added = fork-owned | per path → pnpm workflow ownership who
+core (= CORE, approval required): CLAUDE.md, core/, src/features/core/ (core domains, core roles), src/styles/core/, src/components/, src/proxy.ts, src/proxies/, src/featureGate/, src/wiring/, upstream routes' _screen / _layout, libs in the Tier1 section of src/lib/CATALOG.md | files the fork added = fork-owned | per path → pnpm workflow ownership who
 - full list → core/ownership.md
 downstream_owned (upstream never edits after creation): root src/styles/*.css, page.tsx / frame layout.tsx of switched routes, _components/** and \<name\>.replace files of upstream routes (not a generated admin route's hand-owned _components/ = the domain owner's), \<target\>.override.ts
-intake: every place a fork may write in parent files = src/lib/forkOwnership/intake.txt (kinds: edit / add / region / marker / append / generated / debt / self) | src/config/** = an intake point too (the fork may edit it; upstream edits it as well, rules: config below)
+intake: every place a fork may write in parent files = src/lib/forkOwnership/intake.txt (kinds: edit / add / region / marker / append / generated / debt / self) | src/config/** = an intake point too (fork and upstream both edit it, rules: config below)
 config: src/config/ = values only (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
 fork_ownership (check: pnpm workflow ownership check, run by /flux after each segment commit and before its push | fails from the start | exit 2 = unverified, never a pass | ref: src/lib/forkOwnership/README.md):
 - base = merge-base with the direct parent | parent-owned (in the base): write only inside intake points, never delete / move / rename (a `_` prefix too) | a file added inside an ancestor's lib, or under src/features/core/, src/featureGate/ or core/ outside a receptacle = violation
@@ -137,7 +136,7 @@ fork_core_edit_compat (while a permit lets a fork edit a parent-owned file): sta
 
 ## FORK_EXTENSION (copying a parent's parts)
 principle: a fork may build any look and any feature | it does not copy behavior it does not change | new features and calling public services or Factories are not copying | a shared part lacks a behavior you need → /order <direct parent> (your own build meanwhile may carry an instead-of mark) | → core/extensions.md judge
-- the copy brings only looks and layout (visual state incl.) → copy OK at any line count | unchanged behavior (form state, submit, effect logic, query, route, server logic) or a guard comes along, or no means → /order <direct parent> + temporary permit, upstream splits the part or adds a receptacle
+- the copy holds only looks and layout (visual state incl.) → copy OK at any line count | unchanged behavior or a guard comes along, or no means → /order <direct parent> + temporary permit | → core/extensions.md judge
 
 ## PROHIBITED (cross-cutting bans; area bans sit with their rule)
 - edit generated files: a file with a generated mark at its head, or a JSON / JSONL listed as generated (intake.txt generated rows) → edit its source | → core/generated.md
@@ -152,7 +151,7 @@ features: features, domains and the gate → DOMAINS_AND_FEATURES feature_gate
 
 ## API_ROUTES
 required: every API route is one Factory call, authz enforced structurally (the list → core/api-routes.md factories; a cron route.ts = createCronTaskRoute from @/wiring/cronRoute) | before writing a route → read src/lib/routeFactory/README.md | imports, generic access, presets → core/api-routes.md
-ownership_routes: user-owned ("self only") → createMeRoute (/api/me/**), scope by ctx.user server-side, never trust a client-supplied id | generic /api/[domain] cannot enforce ownership → keep it admin-only | shared kiosk / store device → pairedDevice (opt-in): createDeviceRoute / deviceGuard, scope from `device.scope` | ref: src/features/core/pairedDevice/README.md
+ownership_routes: user-owned ("self only") → createMeRoute (/api/me/**), scoped by ctx.user, never a client-supplied id | generic /api/[domain] stays admin-only | shared kiosk / store device → pairedDevice (createDeviceRoute, scope from `device.scope`)
 - → core/api-routes.md route_access
 principal: handlers use ctx.user only (the Factory resolves the DB-synced user once per request) | access = public | authenticated | {roles, roleCategories} (+ allowStatuses), no self-guarded route
 
@@ -179,7 +178,7 @@ custom_inputs: own input part → register src/wiring/formInputs/inputs/\<name\>
 style: color source of truth = CSS | before changing tokens, variants, fonts or theme → read src/styles/README.md | semantic colors, config, class groups → core/style.md | spacing (no space-y / space-x → Layout/Stack gap) → core/components.md wrappers
 
 ## CRUD_SERVICE (createCrudService)
-before adding or changing CRUD calls, search options or raw SQL → read src/lib/crud/README.md | service-side rules (never re-implement base CRUD, extension order, raw SQL, media columns, hiddenColumns, systemUpdate) → core/services.md | hook-side rules → core/client.md
+before adding or changing CRUD calls, search options or raw SQL → read src/lib/crud/README.md | never re-implement base CRUD | service-side rules (extensions, raw SQL, media columns, system writes) → core/services.md | hook-side rules → core/client.md
 audit: auto = createCrudService audit option | manual = auditLogger.record({..., tx}) | context = set by the entry (routeFactory, the task runner, the cron route), no entry → runAsSystem | → core/audit.md
 
 ## COUNTING (check BEFORE building any count / tracking feature)
@@ -189,14 +188,14 @@ NOT_for: game telemetry, scroll / mousemove streams, tens of millions of events 
 ## FEATURES
 scope: each line = a rule that applies even when you are not editing that feature | detail in the item's card and README
 - users_table: no analytics columns on users → per-concern satellite tables
-- user_acquisition: signup attribution, opt-in default disabled | invite links run on their own pending_invite cookie gated by the referral flag | → items/features/{userAcquisition,referral}.md
+- user_acquisition: signup attribution, opt-in default disabled | the invite link cookie (pending_invite) is gated by referral alone | → items/features/{userAcquisition,referral}.md
 - user_name: every write path to users.name MUST use the shared schemas and withUserNameGuard → items/features/user.md
 - user_status_history (MANDATORY): any code that writes users.status → recordStatusTransition → items/features/user.md
 - coupon_entry_scope (MANDATORY): every code-accepting entry passes one `scope` const to isUsable and redeem / redeemWithEffect → items/features/coupon.md
 - fingerprint: opt-in default OFF, signals are reference evidence, never proof → items/features/{deviceFingerprint,fingerprintChallenge}.md
 - storage_metadata (MANDATORY): image purposes default metadata "strip", "keep" only when the original is needed | public docs name strip purposes, never "all images" → items/lib/storage.md
 - ops_tasks: all via `pnpm task <name>`, no ad-hoc | tasks → core/scripts.md
-- cron_wiring (MANDATORY): 1 task = 1 folder src/app/api/cron/\<name\>/ (task.ts + 1-line route.ts, fork retime / off = task.override.ts), no list file | vercel.json crons = `pnpm generate cron` output only | upstream add/remove/retime → notice | → items/lib/cron.md
+- cron_wiring (MANDATORY): 1 task = 1 folder src/app/api/cron/\<name\>/ (task.ts + 1-line route.ts, a fork retimes or turns it off with task.override.ts), no list file | vercel.json crons = `pnpm generate cron` output only | upstream add / remove / retime → notice | → items/lib/cron.md
 - budgeted_cron (MANDATORY): sweeps over unbounded-growth tables use runBudgetedBatches + createDeadline (@/lib/cron); read models refresh via createIncrementalRefresh → items/lib/cron.md
 - analytics_perf: before adding per-domain caches or snapshot tables → withAnalyticsCache or analytics rollups → items/features/analytics.md
 - ai_agent: generic runtime src/lib/ai/, each agent owns its safety boundary → items/lib/{ai,dbAgent}.md

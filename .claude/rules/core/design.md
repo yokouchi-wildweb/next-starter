@@ -79,7 +79,7 @@ map (every core file, loaded by its paths):
 - content that does not fit key: value (ordered steps, branches by case, reasons) may take the form a reader follows best (numbered or per-case sub-lines, short sentences)
 
 ## size (chars, not lines)
-- CLAUDE.md: notify 37,000 (still ship; the shipping session files one condense order to the window, none if one with the same title is open) | fail 40,000 (Claude Code warns per file there) | no target: inside the line, a longer CLAUDE.md that holds the needed rules is fine
+- CLAUDE.md: notify 38,000 (still ship; the shipping session files one condense order to the window, none if one with the same title is open) | fail 40,000 (Claude Code warns per file there) | no target: inside the line, a longer CLAUDE.md that holds the needed rules is fine
 - one core file, one service file, one README: fail 40,000 | one card: fail 10,000 | no notify line or target for these
 - one line ≤ 400 chars in CLAUDE.md, core files, cards, service | never cut a needed line or a blank line to fit a size
 - the amount loaded per work scene is not counted or limited

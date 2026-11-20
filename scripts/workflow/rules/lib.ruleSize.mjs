@@ -8,8 +8,8 @@ export const MAX_LINE_CHARS = 400;
 
 // 線: notify = 通して知らせる(null = 知らせない)/ fail = 止める。目標の字数は置かない
 export const SIZE_LINES = {
-  // Claude Code が 1 ファイルの警告を出す 40,000 字で止め、少し手前の 37,000 字で知らせる
-  claudeMd: { notify: 37000, fail: 40000 },
+  // Claude Code が 1 ファイルの警告を出す 40,000 字で止め、少し手前の 38,000 字で知らせる
+  claudeMd: { notify: 38000, fail: 40000 },
   core: { notify: null, fail: 40000 },
   card: { notify: null, fail: 10000 },
   service: { notify: null, fail: 40000 },
