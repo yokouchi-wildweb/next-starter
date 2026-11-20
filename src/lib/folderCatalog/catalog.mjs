@@ -126,7 +126,7 @@ const NOT_UNIT_DIRS = new Set(["__fixtures__"]);
  * ファイルは最後の拡張子を除いた名前。分類の直下の index.* は分類そのものが 1 つの単位(名前は分類。forkOwnership の unitName と同じ)
  * @param {string} repoRoot
  * @param {string} folder 例 "src/components"
- * @returns {string[]} 例 ["Input/Select", "AppStatusGuard"]
+ * @returns {string[]} 例 ["Input/Select", "Guard"](Guard = 直下が index だけの分類)
  */
 export function listUnits(repoRoot, folder) {
   const units = new Set();

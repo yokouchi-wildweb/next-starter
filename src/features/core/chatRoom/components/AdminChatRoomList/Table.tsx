@@ -9,6 +9,8 @@ import presenters from "@/features/core/chatRoom/presenters";
 import { useState } from "react";
 import ChatRoomDetailModal from "../common/ChatRoomDetailModal";
 import { buildDomainColumns } from "@/lib/crud";
+import { formatDateJa } from "@/utils/date";
+import { truncateJapanese } from "@/utils/string";
 import { adminConfig } from "@/features/admin/config";
 import { domainDisplay as chatRoomDisplay } from "@/features/core/chatRoom/entities/display";
 
@@ -25,6 +27,8 @@ const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<ChatRoom>[] = buildDomainColumns<ChatRoom>({
   config: chatRoomDisplay,
+  formatDate: formatDateJa,
+  truncate: truncateJapanese,
   presenters,
   actionColumn: {
     header: "操作",

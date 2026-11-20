@@ -8,11 +8,15 @@ import { TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton, DuplicateButton } from "@/lib/crud/components/Buttons";
 import presenters from "@/features/core/coupon/presenters";
 import { buildDomainColumns } from "@/lib/crud";
+import { formatDateJa } from "@/utils/date";
+import { truncateJapanese } from "@/utils/string";
 import { domainDisplay as couponDisplay } from "@/features/core/coupon/entities/display";
 
 export function createAdminCouponListColumns(): DataTableColumn<Coupon>[] {
   return buildDomainColumns<Coupon>({
     config: couponDisplay,
+    formatDate: formatDateJa,
+    truncate: truncateJapanese,
     presenters,
     actionColumn: {
       header: "操作",

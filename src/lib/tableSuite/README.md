@@ -282,16 +282,23 @@ const handleSortChange = (nextSort: SortState) => {
 
 ```tsx
 import { buildDomainColumns } from "@/lib/crud";
+import { formatDateJa } from "@/utils/date";
+import { truncateJapanese } from "@/utils/string";
 
 // 特定フィールドのみソート可能（値が配列の型 array・stringArray の列は指定してもソートしない）
+// formatDate・truncate は必須(日付の書き方と切り詰めはアプリのもの)
 const columns = buildDomainColumns<Sample>({
   config,
+  formatDate: formatDateJa,
+  truncate: truncateJapanese,
   sortableFields: ["name", "number", "updatedAt"],
 });
 
 // 全 tableFields をソート可能にする（画像・配列の型 array・stringArray は自動除外）
 const columns = buildDomainColumns<Sample>({
   config,
+  formatDate: formatDateJa,
+  truncate: truncateJapanese,
   sortableFields: true,
 });
 ```

@@ -16,7 +16,6 @@
 - src/components/Admin/SortSelect — 管理の一覧の並べ替えの選択欄
 - src/components/Animation/CountUp — 数値を数え上げて出す演出
 - src/components/Animation/PageTransition — ページの深さに応じた切り替えの演出
-- src/components/AppStatusGuard — メンテナンス・デプロイを検知してリダイレクト / リロードするガード
 - src/components/Badge/BookmarkTagBadge — 付箋の形のバッジ
 - src/components/Badge/SoftBadge — 淡い塗りのバッジ
 - src/components/Badge/SolidBadge — 濃い塗りのバッジ
