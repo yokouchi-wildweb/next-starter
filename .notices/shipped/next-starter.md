@@ -552,3 +552,4 @@
 - id:20261119-222756-context-after-v2 | severity:action-required | checkpoint:context-after-v2 | moved:src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx -> src/features/core/coupon/components/AdminCouponSectionTabs/index.tsx; src/components/Fanctional -> src/components/Functional | uses:.notices/20261119-222756-context-after-v2.functional-folder.mjs
 - id:20261119-232024-context-condense | severity:action-required | checkpoint:context-condense
 - id:20261120-084634-hotfix-replace | severity:info | checkpoint:hotfix-replace
+- id:20261120-104712-append-only-own-index | severity:info | checkpoint:hotfix-own-index | hotfix:yes

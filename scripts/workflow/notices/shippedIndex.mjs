@@ -2,7 +2,7 @@
 // 出荷した notice の消えない索引 .notices/shipped/<fork_id>.md(1 notice = 1 行、追記だけ)を、notice 本文から機械で作る。
 // 行は手で書かない。書くのは索引の持ち主のリポだけ(台帳 .notices/applied/<fork_id>.md と同じ理由: 多段の merge で追記が重ならない)。
 // 仕様: .notices/README.md
-// 先に取った物(台帳の picked:): 親の索引にまだ行が無くてよく、手で足した行が消えても追記だけの検査で落とさない(checkRows / appendOnlyProblems)
+// 先に取った物(台帳の picked:): 親の索引にまだ行が無くてよい(checkRows)。親の索引は追記だけの検査で見ない(appendOnlyProblems、D349)
 //
 // 実行: node scripts/workflow/notices/shippedIndex.mjs <add <notice>... | refresh <notice>... | backfill | repair | verify>
 //   add <notice>...  自分の索引の末尾に、その notice の行を 1 本ずつ足す(/ship が notice を出荷する commit の前に)
@@ -367,7 +367,11 @@ export function appendOnlyBase(repo, ref) {
   }
 }
 
-/** 全索引の追記だけの検査(HEAD と ref の分かれ目の版と比べる: appendOnlyBase)。ref が無ければ { unverified } */
+/**
+ * 自分の索引の追記だけの検査(HEAD と ref の分かれ目の版と比べる: appendOnlyBase)。ref が無ければ { unverified }
+ * 親の索引(ix.owner が自分でない)は見ない: 親の帳簿で、親が出荷済みの行を書き換えると fork には直す手段が無く止まり続けた
+ * (D349、緊急修正)。自分の名前が読めない時は今どおり全部の索引を見る。検査そのものの見直しは後(D348)
+ */
 export function appendOnlyProblems(repo, ref = pushedRef(repo)) {
   if (!ref) return { unverified: "前に push した版が分からない(@{u} も origin/HEAD も無い)", problems: [] };
   const base = appendOnlyBase(repo, ref);
@@ -379,16 +383,15 @@ export function appendOnlyProblems(repo, ref = pushedRef(repo)) {
     own = null;
   }
   const foreign = own ? foreignNoticeIds(repo, own) : new Set();
-  // 親の索引: 先に取った物の行は消えてよい(前に手で足した行を、上流側を採った merge が落とす。行は後の merge で上流の位置に届く)
-  const picked = own ? pickedNoticeIds(repo, own) : new Set();
   for (const ix of readIndexes(repo)) {
+    if (own && ix.owner !== own) continue;
     let prev = "";
     try {
       prev = git(repo, ["show", `${base}:${ix.file}`]);
     } catch {
       prev = ""; // まだ push していない(分かれ目の版に無い)ファイル
     }
-    problems.push(...checkAppendOnly(prev, ix.text, ix.file, ix.owner === own ? foreign : picked));
+    problems.push(...checkAppendOnly(prev, ix.text, ix.file, foreign));
   }
   return { problems };
 }
