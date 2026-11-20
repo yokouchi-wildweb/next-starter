@@ -92,7 +92,7 @@ sliderRef.current?.pause()
 |------|------|------|
 | `onActiveClick` | `(item: T, index: number) => void` | 現在アクティブなスライドをクリックした時のコールバック |
 | `autoplay` | `AutoplayOption` | 自動再生。`true` でデフォルト(4000ms, 操作時停止) |
-| `plugins` | `EmblaPlugins` | autoplay 以外の Embla プラグインを直接渡す |
+| `plugins` | `CarouselPlugin`（`@/components/Primitives/Carousel`） | autoplay 以外の Embla プラグインを直接渡す |
 
 ### a11y
 

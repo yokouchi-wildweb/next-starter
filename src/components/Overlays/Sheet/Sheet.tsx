@@ -3,10 +3,12 @@
 "use client";
 
 import { type CSSProperties, type PointerEvent, type ReactNode, useRef, useState } from "react";
-import { Dialog as DialogPrimitive } from "radix-ui";
 import { XIcon } from "lucide-react";
 
 import {
+  DialogBareClose,
+  DialogBareContent,
+  DialogBareOverlay,
   DialogPrimitives,
   DialogPortal,
   DialogTitle,
@@ -132,7 +134,7 @@ export function Sheet({
   return (
     <DialogPrimitives open={open} onOpenChange={onOpenChange}>
       <DialogPortal container={container}>
-        <DialogPrimitive.Overlay
+        <DialogBareOverlay
           className={cn(
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 bg-overlay/50",
             zLayerClass("floating"),
@@ -141,7 +143,7 @@ export function Sheet({
           )}
           data-slot={overlaySlot}
         />
-        <DialogPrimitive.Content
+        <DialogBareContent
           className={cn(
             "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed flex flex-col shadow-lg outline-none duration-200",
             SIDE_CLASS[side],
@@ -179,15 +181,15 @@ export function Sheet({
           )}
           <div className={cn("min-h-0 flex-1", scrollable && "overflow-y-auto")}>{children}</div>
           {showCloseButton ? (
-            <DialogPrimitive.Close
+            <DialogBareClose
               className="absolute top-3 right-3 cursor-pointer rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               data-slot="sheet-close"
             >
               <XIcon className="size-5" />
               <span className="sr-only">閉じる</span>
-            </DialogPrimitive.Close>
+            </DialogBareClose>
           ) : null}
-        </DialogPrimitive.Content>
+        </DialogBareContent>
       </DialogPortal>
     </DialogPrimitives>
   );

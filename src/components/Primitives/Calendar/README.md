@@ -5,6 +5,11 @@
 - 日付の選択（react-day-picker）。完成品は `src/components/Overlays/Calendar`。
 - 使う時・直す時の決まり(入口・radix-ui・完成品が先・data-slot の約束)は札 .claude/rules/items/components/Primitives.md にある。この README は部品の説明と印の一覧
 
+## API
+
+- 入口 `@/components/Primitives/Calendar` が出すもの: `Calendar`、型 `CalendarProps`（react-day-picker の `DayPickerProps`）、`calendarLocaleJa`（`locale` に渡す日本語の設定）
+- この部品は既定の locale を持たない。日本語・月曜始まりを既定にした完成品は `src/components/Overlays/Calendar`
+
 ## Extension
 
 - fork の CSS は下の一覧の印 `[data-slot="<名前>"]` を狙う。印の数と名前は部品のファイルの物と一致する

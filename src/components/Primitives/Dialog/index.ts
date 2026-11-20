@@ -14,3 +14,4 @@ export {
   DialogDescription,
   FALLBACK_DIALOG_TITLE,
 } from "./Dialog";
+export { DialogBareOverlay, DialogBareContent, DialogBareClose } from "./DialogBare";
