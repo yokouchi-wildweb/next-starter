@@ -370,7 +370,8 @@ test("readClosablePatterns: 実リポの規則から字面のパターンを読�
 });
 
 test("config: link-via-shelf は Tier1 で error、fork で warn(テストは対象外)", async () => {
-  const RAW = `import Link from "next/link";\nexport const x = Link;\n`;
+  // 閉じられる住所(/wallet)を持つ見本: fork の closableOnly でも止まる形で、両方の段の重さを確かめる
+  const RAW = `import Link from "next/link";\nexport const x = Link;\nexport const href = "/wallet";\n`;
   const severity = readForkIdentity(repoRoot).isTier1 ? 2 : 1;
   assert.deepEqual(await lintAt("src/app/foo/_components/Part.tsx", RAW), [`import-boundaries/link-via-shelf:${severity}`]);
   assert.deepEqual(await lintAt("src/app/foo/_components/Part.test.tsx", RAW), []);

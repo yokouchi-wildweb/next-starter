@@ -28,5 +28,6 @@ test("SMS なしの電話番号の入力は、一覧に phone があり SMS 認�
   assert.equal(isPhoneNumberInputOpen(false, ["email", "phone"]), true);
   assert.equal(isPhoneNumberInputOpen(true, ["email", "phone"]), false);
   assert.equal(isPhoneNumberInputOpen(false, ["email"]), false);
-  assert.equal(isPhoneNumberInputOpen(false), false);
+  // 一覧を渡さなければ読み込んだ設定(上流 + fork の上書き)の一覧で判定する
+  assert.equal(isPhoneNumberInputOpen(false), userConfig.account.editableItems.includes("phone"));
 });

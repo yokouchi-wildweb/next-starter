@@ -42,7 +42,7 @@ const upstreamTest = (name: string, fn: () => void) =>
 const shape = (menu: ReturnType<typeof buildAdminMenu>) =>
   menu.categories.map((c) => [c.label, c.rows.map((r) => r.label)]);
 
-test("全部開いた admin: マーケティング → リクエスト管理 → データ管理 → ユーザー管理 → コミュニティ → システム", () => {
+upstreamTest("全部開いた admin: マーケティング → リクエスト管理 → データ管理 → ユーザー管理 → コミュニティ → システム", () => {
   const menu = buildAdminMenu(input(() => false));
   assert.deepEqual(shape(menu), [
     ["マーケティング", ["メッセージ管理", "クーポン"]],
@@ -84,7 +84,7 @@ upstreamTest("門番の規則を全部閉じた admin: 規則の無い住所の�
   ]);
 });
 
-test("管理者でない(ロール user): ロールの絞りの無い行だけ", () => {
+upstreamTest("管理者でない(ロール user): ロールの絞りの無い行だけ", () => {
   const menu = buildAdminMenu({ ...input(() => false), role: "user" });
   assert.deepEqual(shape(menu), [
     ["マーケティング", ["メッセージ管理", "クーポン"]],

@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 import { explainPath, explainView } from "./explain.mjs";
+import { readForkIdentity } from "./forkIds.mjs";
 import { parseIntake } from "./intake.mjs";
 import { fingerprint } from "./permits.mjs";
 import { overrideCandidate, replaceCandidate, whoOwns } from "./who.mjs";
@@ -349,7 +350,12 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     assert.equal(explain("src/features/core/user/new.ts", "missing", false).type, "none");
   });
 
-  test("このリポ(Tier1、HEAD の木)の代表のパス", () => {
+  // このリポの木そのものの答え = Tier1 だけ(fork の status は tier1 にならない。仕組みは上の作り物の木で確かめる)
+  test("このリポ(Tier1、HEAD の木)の代表のパス", (t) => {
+    if (!readForkIdentity(REPO_ROOT).isTier1) {
+      t.skip("このリポの木の答えの検査（Tier1 だけ。fork の status は tier1 にならない）");
+      return;
+    }
     const answer = whoOwns(REPO_ROOT, [
       "src/app/admin/_layout/AdminHeader.tsx",
       "src/app/(user)/layout.tsx",

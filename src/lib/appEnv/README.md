@@ -53,6 +53,7 @@ if (isDevelopment()) console.warn("開発中だけの警告");
 - ログインのセッション・端末トークン = 常に `secure: true`(共通オプション `SESSION_COOKIE_BASE_OPTIONS`。localhost はブラウザが secure 扱いにするので開発でも通る)
 - それ以外(OAuth の state・流入元・招待リンク・画面の通知) = `secure: !isDevelopment()`
 - `cookieSecure.test.mjs` が src の cookie を書く場所を全部走査し、判定の形が無ければ落とす。上流の場所の一覧は `COOKIE_WRITERS`
+- 上流の公開の道具が判定を持つ cookie(`issueOAuthState` の `nonceCookie` など。道具の一覧は `ISSUERS`)は、返した値を `cookies.set` にそのまま渡すだけの場所なら、上流・fork とも一覧に載せずに通る
 
 ### lint
 

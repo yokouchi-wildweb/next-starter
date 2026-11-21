@@ -8,8 +8,21 @@ import { test } from "node:test";
 import { BellIcon, EllipsisIcon, GiftIcon, LogOutIcon, UserCircleIcon } from "lucide-react";
 
 import { mypageMenu } from "@/features/core/user/extensions/mypageMenu";
+import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
 
 import { buildMypageMenu } from "./buildMypageMenu";
+
+// このファイルは上流のメニューの中身そのものの回帰 = Tier1 だけ。fork の生成の一覧には fork の項目・override が入る
+// (組み立ての仕組みは buildMypageMenu.test.ts が作り物でどの段でも確かめる)
+const isTier1 = readForkIdentity(process.cwd()).isTier1 === true;
+const upstreamTest = (name: string, fn: () => void) =>
+  test(name, (t) => {
+    if (!isTier1) {
+      t.skip("上流のマイページのメニューの中身の検査（Tier1 だけ。fork の一覧は fork の項目・override を含む）");
+      return;
+    }
+    fn();
+  });
 
 const view = (pending: boolean) =>
   buildMypageMenu({ items: mypageMenu, actions: { logout: { run: () => {}, pending } } }).rows.map((row) => ({
@@ -24,7 +37,7 @@ const view = (pending: boolean) =>
     disabled: row.kind === "action" ? row.disabled : undefined,
   }));
 
-test("上流の 5 枚: 招待・アカウント・通知の設定・ログアウト・その他の順と文言", () => {
+upstreamTest("上流の 5 枚: 招待・アカウント・通知の設定・ログアウト・その他の順と文言", () => {
   assert.deepEqual(view(false), [
     { key: "invite", kind: "link", icon: GiftIcon, title: "招待コードを取得", description: "お友だちを招待して特典を獲得", variant: undefined, href: "/mypage/invite", showChevron: true, disabled: undefined },
     { key: "account", kind: "link", icon: UserCircleIcon, title: "アカウント基本情報", description: "ユーザー名、メールアドレスを確認・編集", variant: undefined, href: "/mypage/account", showChevron: true, disabled: undefined },
@@ -34,7 +47,7 @@ test("上流の 5 枚: 招待・アカウント・通知の設定・ログアウ
   ]);
 });
 
-test("ログアウト中: 題名が「ログアウト中...」になり押せない", () => {
+upstreamTest("ログアウト中: 題名が「ログアウト中...」になり押せない", () => {
   const row = view(true).find((r) => r.key === "logout");
   assert.equal(row?.title, "ログアウト中...");
   assert.equal(row?.disabled, true);
