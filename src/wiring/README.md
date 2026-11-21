@@ -87,7 +87,7 @@ wiring どうしの import の例外は次の 2 つだけ（`pnpm test src/wirin
 
 - 受け口: 生成物 `wiring/<束>.ts` → その束の受け口の項目 `wiring/<束>/<受け口>/…`（受け口 = `wiring/<束>/extensionPoints.ts` が宣言した `dir`）と、同じ受け口の中の項目どうし。項目は fork が足した物を含み、名前に fork の印は付けない。例: 生成物 `dbAgent.ts` → `dbAgent/extraTools/<名前>.ts`・`dbAgent/promptFragments/<名前>.ts`
 - 閉じた束: `AppProviders.tsx` → `formInputs/FormInputsRoot.tsx` と、束のフォルダ（`formInputs/`・`serverErrors/`）の中どうし（入口 → 生成物の一覧 → 受け口の項目）
-- 失敗の記録の束: `apiRoute.ts`・`cronRoute.ts` → `serverErrors/index.ts`（API の Factory と cron の失敗を同じ記録へ結ぶ。項目の読み込みと上限を 1 か所に保つ。他の wiring からは不可）
+- 失敗の記録の束: `serverErrors/` の外のどの wiring のファイル（fork が足したものを含む）→ `serverErrors/index.ts`（入口だけ。API の Factory・cron・fork の自前の Factory の失敗を同じ記録へ結ぶ。項目の読み込みと上限を 1 か所に保つ）
 
 ## Verification
 

@@ -312,6 +312,7 @@ export const POST = createApiRoute(
 ## Extension
 
 - fork が独自の主体の Factory を作るときは `src/wiring/<名前>.ts` で汎用版から作る（`src/wiring/README.md`）
+  - 束の `serverError.onServerError` に `@/wiring/serverErrors` の `serverErrorReport.report` を結ぶ（`scope: "api"`、`name` = operation。上流の `src/wiring/apiRoute.ts` と同じ形。結ばないと 500 が既定の記録と送り先に残らない）
 
 ## Internals
 

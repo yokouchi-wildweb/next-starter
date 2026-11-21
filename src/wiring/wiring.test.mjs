@@ -10,8 +10,8 @@
 // 3. wiring どうしは import しない（別の wiring は自分で登録表を結ぶ。共有するのは lib の汎用版と登録表だけ）
 //    例外は閉じた束: AppProviders → formInputs/FormInputsRoot と、束のフォルダ（BUNDLE_DIRS: formInputs・serverErrors）の中どうし（入口 → 一覧 → 項目）と、
 //    受け口: 生成物 wiring/<名前>.ts → wiring/<名前>/extensionPoints.ts が宣言した受け口の中の項目（fork が足した項目を含む）、
-//    受け口の中の項目どうし（同じ受け口の中だけ）と、失敗の記録の束: 上流の wiring の入口（SERVER_ERRORS_IMPORTERS）→ serverErrors/index.ts
-//    （API の Factory と cron の失敗を同じ記録へ結ぶ。項目の読み込みと上限を 1 か所に保つ）
+//    受け口の中の項目どうし（同じ受け口の中だけ）と、失敗の記録の束: serverErrors の外のどの wiring のファイル（fork のものを含む）→ serverErrors/index.ts
+//    （API の Factory・cron・fork の自前の Factory の失敗を同じ記録へ結ぶ。項目の読み込みと上限を 1 か所に保つ）
 // 4. 「データに届く wiring」= services/server を値 import する wiring。判定は registry → domainEntry.ts → 遅延 import（動的 import も辺に数える）
 //    の鎖を辿る。domainRegistry.ts はデータに届く wiring である（鎖が切れたら生成物か検査が壊れている）
 //    一覧の完全一致は Tier1 だけ。fork は受け口の項目でデータに届く wiring が増えてよい（上流の分が残っていることを見る。増えた分も 5 が同じ場所に限る）
@@ -43,8 +43,6 @@ const INSTRUMENTATION_FILE = "instrumentation.ts";
 const SERVER_ERRORS_ENTRY = "wiring/serverErrors/index.ts";
 /** 中どうしの import を許す閉じた束のフォルダ（入口 → 生成物の一覧 → 受け口の項目が 1 つのフォルダに収まる） */
 const BUNDLE_DIRS = ["formInputs", "serverErrors"];
-/** 失敗の記録の束の入口を読んでよい上流の wiring（API の Factory・cron の失敗を同じ記録へ結ぶ） */
-const SERVER_ERRORS_IMPORTERS = ["wiring/apiRoute.ts", "wiring/cronRoute.ts"];
 const CRON_DIR = "app/api/cron/";
 
 const toPosix = (p) => p.split(sep).join("/");
@@ -90,7 +88,8 @@ function resolveSource(fromFile, source) {
 /** 閉じた束の例外: AppProviders → FormInputsRoot、同じ束のフォルダの中どうし */
 function isBundleImport(from, to) {
   if (from === "wiring/AppProviders.tsx" && to === "wiring/formInputs/FormInputsRoot.tsx") return true;
-  if (SERVER_ERRORS_IMPORTERS.includes(from) && to === SERVER_ERRORS_ENTRY) return true;
+  // 失敗の記録の束の入口は serverErrors の外のどの wiring のファイルも読める（fork の自前の Factory も同じ記録へ結ぶ）
+  if (to === SERVER_ERRORS_ENTRY && from.startsWith("wiring/") && !from.startsWith("wiring/serverErrors/")) return true;
   return BUNDLE_DIRS.some((dir) => from.startsWith(`wiring/${dir}/`) && to.startsWith(`wiring/${dir}/`));
 }
 
@@ -342,7 +341,11 @@ test("閉じた束: 例外は AppProviders → Root と束のフォルダの中�
   assert.equal(isBundleImport("wiring/apiRoute.ts", "wiring/serverErrors/index.ts"), true);
   assert.equal(isBundleImport("wiring/cronRoute.ts", "wiring/serverErrors/index.ts"), true);
   assert.equal(isBundleImport("wiring/apiRoute.ts", "wiring/serverErrors/extensions/reporters.ts"), false);
-  assert.equal(isBundleImport("wiring/pageGuard.ts", "wiring/serverErrors/index.ts"), false);
+  assert.equal(isBundleImport("wiring/pageGuard.ts", "wiring/serverErrors/index.ts"), true, "serverErrors の外のどの wiring も入口を読める");
+  assert.equal(isBundleImport("wiring/storeMemberRoute.ts", "wiring/serverErrors/index.ts"), true, "fork の自前の Factory");
+  assert.equal(isBundleImport("wiring/dbAgent/extraTools/x.ts", "wiring/serverErrors/index.ts"), true);
+  assert.equal(isBundleImport("wiring/pageGuard.ts", "wiring/serverErrors/extensions/reporters.ts"), false, "入口だけ");
+  assert.equal(isBundleImport("wiring/serverErrors/reporters/a.ts", "wiring/serverErrors/index.ts"), true, "束の中どうしは今のまま");
   assert.equal(isAllowedImporter("instrumentation.ts", "wiring/apiRoute.ts"), false);
   assert.equal(isBundleImport("wiring/AppProviders.tsx", "wiring/formInputs/FormInputsRoot.tsx"), true);
   assert.equal(isBundleImport("wiring/formInputs/FormInputsRoot.tsx", "wiring/formInputs/extensions/inputs.ts"), true);
