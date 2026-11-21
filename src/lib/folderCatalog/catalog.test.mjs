@@ -65,7 +65,7 @@ test("listFileUnits: 直下のコードのファイルとフォルダが単位�
 test("listUnits: 分類の直下のフォルダとコードのファイルが単位。テスト・__fixtures__・README は単位でなく、index だけの分類は分類が 1 つの単位", () => {
   const root = mkdtempSync(join(tmpdir(), "folder-catalog-"));
   try {
-    const put = (path) => {
+    const put = (/** @type {string} */ path) => {
       mkdirSync(dirname(join(root, path)), { recursive: true });
       writeFileSync(join(root, path), "export {};\n");
     };
@@ -99,7 +99,7 @@ test("checkCatalog depth 2: 単位の行の欠け・重複・実在しない行�
   const { sections, errors } = parseCatalog(text);
   assert.deepEqual(errors, []);
   const problems = checkCatalog({ sections, folder: "src/components", dirs: ["Guard", "Input/MultiSelect", "Input/Select"], depth: 2 });
-  const has = (word) => problems.some((p) => p.includes(word));
+  const has = (/** @type {string} */ word) => problems.some((p) => p.includes(word));
   assert.ok(has('"src/components/Input/MultiSelect" が目録にありません'), problems.join("\n"));
   assert.ok(has('"src/components/Input/Gone"'), problems.join("\n"));
   assert.ok(has("重複しています"), problems.join("\n"));
@@ -159,7 +159,7 @@ test("checkCatalog: 未登録・実在しない・重複・別フォルダのパ
   const text = `${SAMPLE}- src/lib/a — 衝突\n- src/components/x — 別フォルダ\n## acme-base\n`;
   const { sections } = parseCatalog(text);
   const problems = checkCatalog({ sections, folder: "src/lib", dirs: ["a", "c", "d"] });
-  const has = (word) => problems.some((p) => p.includes(word));
+  const has = (/** @type {string} */ word) => problems.some((p) => p.includes(word));
   assert.ok(has('"src/lib/d" が目録にありません'), problems.join("\n")); // 未登録
   assert.ok(has('"src/lib/b"'), problems.join("\n")); // 実在しない
   assert.ok(has("重複しています"), problems.join("\n")); // a が 2 つの節に
@@ -168,7 +168,7 @@ test("checkCatalog: 未登録・実在しない・重複・別フォルダのパ
 });
 
 test("loadCatalogOwnership: 自分の節と上流の節を分け、先頭の節なら isRoot", () => {
-  const withFixture = (ownerId) =>
+  const withFixture = (/** @type {string | null} */ ownerId) =>
     loadCatalogOwnership({ repoRoot, folder: "src/lib", catalogFile: "src/lib/folderCatalog/fixtures/CATALOG.sample.md", ownerId });
   const fork = withFixture("acme-fork");
   assert.equal(fork.isRoot, false);

@@ -22,17 +22,25 @@ import { join } from "node:path";
 import { FORK_ID_PATTERN, readForkIdentity } from "../forkOwnership/node.mjs";
 
 const OWNER_ID = FORK_ID_PATTERN;
+/**
+ * @typedef {{ path: string, description: string, line: number }} CatalogEntry 目録の 1 行
+ * @typedef {{ owner: string, line: number, entries: CatalogEntry[] }} CatalogSection 目録の 1 節(所有者ごと)
+ */
+
 const SECTION_LINE = /^##\s+(.+?)\s*$/;
 const ENTRY_LINE = /^-\s+(\S+)\s+—\s+(.*)$/;
 
 /**
  * 目録テキストを解析する。最初の `## ` 見出しより前は説明文として読み飛ばす。
  * @param {string} text
- * @returns {{ sections: { owner: string, line: number, entries: { path: string, description: string, line: number }[] }[], errors: string[] }}
+ * @returns {{ sections: CatalogSection[], errors: string[] }}
  */
 export function parseCatalog(text) {
+  /** @type {CatalogSection[]} */
   const sections = [];
+  /** @type {string[]} */
   const errors = [];
+  /** @type {CatalogSection | null} */
   let current = null;
   text.split(/\r?\n/).forEach((raw, index) => {
     const lineNo = index + 1;
@@ -69,7 +77,9 @@ export function parseCatalog(text) {
  */
 export function checkCatalog({ sections, folder, dirs, depth = 1 }) {
   const what = depth === 1 ? "直下のディレクトリ" : "分類の直下の単位";
+  /** @type {string[]} */
   const problems = [];
+  /** @type {Map<string, number>} */
   const owners = new Map();
   for (const section of sections) {
     if (owners.has(section.owner)) {
@@ -79,6 +89,7 @@ export function checkCatalog({ sections, folder, dirs, depth = 1 }) {
     }
   }
 
+  /** @type {Map<string, { owner: string, line: number }[]>} */
   const listed = new Map(); // path → [{owner, line}]
   for (const section of sections) {
     for (const entry of section.entries) {
@@ -165,7 +176,12 @@ export function listFileUnits(repoRoot, folder) {
   return [...units].sort();
 }
 
-/** フォルダ直下のディレクトリ名(隠しディレクトリを除く) */
+/**
+ * フォルダ直下のディレクトリ名(隠しディレクトリを除く)
+ * @param {string} repoRoot
+ * @param {string} folder
+ * @returns {string[]}
+ */
 export function listDirs(repoRoot, folder) {
   const abs = join(repoRoot, folder);
   if (!existsSync(abs)) return [];
@@ -192,7 +208,9 @@ export function loadCatalogOwnership({ repoRoot, folder, catalogFile = `${folder
   const { sections } = parseCatalog(text);
   if (sections.length === 0) return empty;
   const isRoot = resolvedOwner !== null && sections[0].owner === resolvedOwner;
+  /** @type {string[]} */
   const ownPaths = [];
+  /** @type {string[]} */
   const upstreamPaths = [];
   for (const section of sections) {
     const target = resolvedOwner !== null && section.owner === resolvedOwner ? ownPaths : upstreamPaths;
