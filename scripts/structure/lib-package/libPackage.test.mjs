@@ -12,6 +12,7 @@ import { test } from "node:test";
 
 import { clearLibPackageCache } from "../../../src/lib/libPackage/node.mjs";
 import { checkLibs } from "./check.mjs";
+import { findReactInNodeEntry, hasUseClient, runtimeImports } from "./entries.mjs";
 import { sideEffectsInSource } from "./sideEffects.mjs";
 import { expectedTsconfig } from "./standalone.mjs";
 
@@ -232,16 +233,16 @@ test("d4: sideEffects:false の lib に css の import があると落ちる", (
 });
 
 test("d4: sideEffects:false の lib にモジュール直下の登録の呼び出しがあると落ちる", () => {
-  const code = `"use client";\nconst registry: string[] = [];\nexport function register(x: string) { registry.push(x); }\nregister("a");\n`;
+  const code = `const registry: string[] = [];\nexport function register(x: string) { registry.push(x); }\nregister("a");\n`;
   withRepo({ ...B, ...libA(code, { libs: [], sideEffects: false }) }, { tsconfig: ["a", "b"] }, (root) => {
     const result = checkLibs(root);
     assert.deepEqual(codes(result), ["sideEffects"]);
-    assert.match(messages(result), /index\.ts:4: モジュール直下の式の文/);
+    assert.match(messages(result), /index\.ts:3: モジュール直下の式の文/);
   });
 });
 
 test("d4: 宣言だけ(const x = f() を含む)なら sideEffects:false で通る・一覧に載せたファイルの副作用は通る", () => {
-  const pure = `"use client";\nconst make = () => ({ n: 1 });\nexport const store = make();\nexport type T = number;\nexport default store;\n`;
+  const pure = `const make = () => ({ n: 1 });\nexport const store = make();\nexport type T = number;\nexport default store;\n`;
   withRepo({ ...B, ...libA(pure, { libs: [], sideEffects: false }) }, { tsconfig: ["a", "b"] }, (root) => {
     assert.deepEqual(checkLibs(root).problems, []);
   });
@@ -268,4 +269,72 @@ test("副作用の判定: 直下の文の種類ごと", () => {
   ]);
   // 先頭でない文字列の文は指示ではない
   assert.deepEqual(kinds(`export const a = 1;\n"use client";\n`), ["モジュール直下の式の文"]);
+});
+
+// 入口の名前と中身(D248): 名前は src/lib/libPackage の形の検査(entryName)、中身は entries.mjs
+test("入口の名前: 4 つ(. ./server ./client ./node)の lib は通り、ほかの名前の lib は shape で落ちて理由に entryName が出る", () => {
+  const four = {
+    ...B,
+    "src/lib/a/package.json": { exports: { ".": "./index.ts", "./server": "./server.ts", "./client": "./client.ts", "./node": "./node.ts" } },
+    "src/lib/a/index.ts": "export const a = 1;\n",
+    "src/lib/a/server.ts": "export const s = 1;\n",
+    "src/lib/a/client.ts": "export const c = 1;\n",
+    "src/lib/a/node.ts": "export const n = 1;\n",
+  };
+  withRepo(four, { tsconfig: ["a", "b"] }, (root) => {
+    assert.deepEqual(checkLibs(root).problems, []);
+  });
+  const alias = { ...B, "src/lib/a/package.json": { exports: { ".": "./index.ts", "./types": "./types.ts" } }, "src/lib/a/index.ts": "export {};\n", "src/lib/a/types.ts": "export type T = 1;\n" };
+  withRepo(alias, { tsconfig: ["b"] }, (root) => {
+    const result = checkLibs(root);
+    assert.deepEqual(result.skipped, ["a"]);
+    assert.deepEqual(codes(result), ["shape"]);
+    assert.match(messages(result), /entryName: exports の鍵 "\.\/types" は入口の名前ではありません/);
+  });
+});
+
+test('入口 "." の先頭に "use client" があると entryUseClient で落ちる(部品のファイルの "use client" は通る)', () => {
+  const marked = { ...B, ...libA(`"use client";\nexport const a = 1;\n`, { libs: [] }) };
+  withRepo(marked, { tsconfig: ["a", "b"] }, (root) => {
+    const result = checkLibs(root);
+    assert.deepEqual(codes(result), ["entryUseClient"]);
+    assert.match(messages(result), /src\/lib\/a\/index\.ts: 入口 "\." の先頭に "use client" は書きません/);
+  });
+  const part = { ...B, ...libA(`export { A } from "./A";\n`, { libs: [] }), "src/lib/a/A.ts": `"use client";\nexport const A = 1;\n` };
+  withRepo(part, { tsconfig: ["a", "b"] }, (root) => {
+    assert.deepEqual(checkLibs(root).problems, []);
+  });
+});
+
+test('入口 "./node" から値で辿れるファイルが React・Next を読むと nodeEntryReact で落ち、道を出す', () => {
+  const nodeLib = (/** @type {Record<string, string>} */ extra, libs = ["b"]) => ({
+    ...B,
+    "src/lib/a/package.json": { exports: { ".": "./index.ts", "./node": "./node.ts" }, libs },
+    "src/lib/a/index.ts": "export const a = 1;\n",
+    ...extra,
+  });
+  // 中のファイル越しに react
+  withRepo(nodeLib({ "src/lib/a/node.ts": `export { n } from "./inner";\n`, "src/lib/a/inner.ts": `import { useState } from "react";\nexport const n = useState;\n` }), {}, (root) => {
+    const hit = findReactInNodeEntry(root, "src/lib/a/node.ts");
+    assert.deepEqual(hit, { file: "src/lib/a/inner.ts", line: 1, specifier: "react", chain: ["src/lib/a/node.ts", "src/lib/a/inner.ts"] });
+    const result = checkLibs(root);
+    assert.ok(codes(result).includes("nodeEntryReact"));
+    assert.match(messages(result), /src\/lib\/a\/inner\.ts:1: 入口 "\.\/node" から辿れるファイルが "react" を読みます.*道: src\/lib\/a\/node\.ts → src\/lib\/a\/inner\.ts/);
+  });
+  // 読む lib の入口越しに next/…
+  withRepo(nodeLib({ "src/lib/a/node.ts": `export { b } from "@/lib/b";\n`, "src/lib/b/index.ts": `import { headers } from "next/headers";\nexport const b = headers;\n` }), {}, (root) => {
+    assert.equal(findReactInNodeEntry(root, "src/lib/a/node.ts")?.specifier, "next/headers");
+  });
+  // 型だけの import / export と、react を読まない道は通る
+  const typeOnly = `import type { ReactNode } from "react";\nimport { type FC } from "react";\nexport type { Props } from "./props";\nexport const n: ReactNode | FC | null = null;\n`;
+  withRepo(nodeLib({ "src/lib/a/node.ts": typeOnly, "src/lib/a/props.ts": `import { useState } from "react";\nexport type Props = typeof useState;\n` }), {}, (root) => {
+    assert.equal(findReactInNodeEntry(root, "src/lib/a/node.ts"), null);
+  });
+});
+
+test("runtimeImports / hasUseClient: 実行時に残る指定子と先頭の指示", () => {
+  const code = `import a from "x1";\nimport type { B } from "x2";\nimport { type C } from "x3";\nimport { type D, e } from "x4";\nexport * from "x5";\nexport type { F } from "x6";\nconst g = await import("x7");\nconst h = require("x8");\n`;
+  assert.deepEqual(runtimeImports(code, "f.ts").map((i) => i.specifier), ["x1", "x4", "x5", "x7", "x8"]);
+  assert.equal(hasUseClient(`// c\n"use client";\nexport {};\n`), true);
+  assert.equal(hasUseClient(`export {};\n"use client";\n`), false);
 });

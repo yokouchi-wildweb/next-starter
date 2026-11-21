@@ -4,10 +4,12 @@
 //   1. tsconfig.json を package.json の宣言と比べる(無い・食い違う → 直す行を出す。この lib の型検査はしない)
 //   2. その tsconfig.json で型検査する(宣言の外の lib・棚を読む → 落ちる)
 //   3. sideEffects の宣言と副作用を照らす
-//   4. config.ts があるなら上書き src/config/lib/<名前>.config.ts があるか
-//   5. 自前の合成(defineXxxConfig)が残っていないか
-// package.json の形の問題(src/lib/libPackage の checkLibPackage)がある lib は 1〜5 を飛ばし、閉じていない不備 1 つ(shape)で落とす
-// (形の中身は lint と形の検査が見る。宣言した lib が全部閉じているかの確かめはこの門だけ: テストは今の repo を見ない)。
+//   4. 入口の中身: "." の先頭に "use client" が無いか、"./node" から React・Next を辿らないか(entries.mjs)
+//   5. config.ts があるなら上書き src/config/lib/<名前>.config.ts があるか
+//   6. 自前の合成(defineXxxConfig)が残っていないか
+// package.json の形の問題(src/lib/libPackage の checkLibPackage。入口の名前 = exports の鍵が . ./server ./client ./node だけ、も
+// ここ: entryName)がある lib は 1〜6 を飛ばし、閉じていない不備 1 つ(shape、形の問題を並べる)で落とす
+// (宣言した lib が全部閉じているかの確かめはこの門だけ: テストは今の repo を見ない)。
 // 宣言の無い lib は数えるだけ(落とさない)。外から中を読む import は --list / --json で数えて見せるだけ(落とすのは pnpm lint の entry/only-entries)。
 //
 //   pnpm check lib-package                 不備の行 + 1 行のまとめ
@@ -33,12 +35,13 @@ export function checkLibs(root) {
   const problems = [];
   const declared = listDeclaredLibs(root);
   for (const lib of declared) {
-    if (readLibPackage(root, lib).problems.length > 0) {
+    const shape = readLibPackage(root, lib).problems;
+    if (shape.length > 0) {
       skipped.push(lib);
       problems.push({
         lib,
         code: "shape",
-        message: `${lib}: 宣言した lib が閉じていません: package.json の形に問題がある(pnpm lint / src/lib/libPackage の形の検査で直す)`,
+        message: `${lib}: 宣言した lib が閉じていません: package.json の形に問題がある(${shape.map((p) => `${p.code}: ${p.message}`).join(" | ")})`,
       });
       continue;
     }

@@ -2,6 +2,7 @@
 //
 // 閉じたかの検査(指令 26 d1): lib ごとの状態。
 // - 落とす(宣言した lib = package.json を持ち形に問題が無い lib だけ): 単体用 tsconfig・型検査・sideEffects(standalone.mjs / sideEffects.mjs)、
+//   入口の中身(entries.mjs: "." に "use client" を書かない・"./node" から React と Next を辿らない)、
 //   config.ts / config.ui.ts があるのに上書き src/config/lib/<名前>.config.ts / <名前>.ui.config.ts が無い、自前の合成(defineXxxConfig)が残っている(L1.23)
 // - 数えて見せるだけ(--list / --json): 外から lib の中を読む import。宣言した lib のそれは pnpm lint の entry/only-entries が落とす(1 つの規則)
 // - 宣言の無い lib は数えて一覧に出すだけで落とさない(L1.21。error にするのは最後の段 D101 (6))
@@ -15,6 +16,7 @@ import ts from "typescript";
 import { resolveImport } from "../../../eslint-rules/resolve-import.mjs";
 import { LIB_DIR, findEntry, libOfPath } from "../../../src/lib/libPackage/index.mjs";
 import { listLibs, readLibPackage } from "../../../src/lib/libPackage/node.mjs";
+import { entryProblems } from "./entries.mjs";
 import { checkSideEffects } from "./sideEffects.mjs";
 import { compareTsconfig, libConfigsOf, typecheckLib } from "./standalone.mjs";
 
@@ -146,6 +148,7 @@ export function closedLibProblems(root, lib) {
   out.push(...diverged);
   if (diverged.length === 0) out.push(...typecheckLib(root, lib));
   out.push(...checkSideEffects(root, lib));
+  out.push(...entryProblems(root, lib));
   for (const config of missingOverridesOf(root, lib)) {
     out.push({ lib, code: "overrideMissing", message: `${LIB_DIR}/${lib}/${config.owner} があるのに上書き ${config.override} がありません(空の上書きを置きます。src/lib/README.md「設定の届け方」)` });
   }

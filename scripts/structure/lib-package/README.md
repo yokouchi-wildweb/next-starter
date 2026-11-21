@@ -1,8 +1,8 @@
-# scripts/structure/lib-package — 閉じたかの検査(宣言した lib の単体の型検査・sideEffects・設定・自前の合成)
+# scripts/structure/lib-package — 閉じたかの検査(宣言した lib の単体の型検査・sideEffects・入口の中身・設定・自前の合成)
 
 ## Overview
 
-- lib ごとの「閉じたか」を確かめます。`package.json` を持つ lib(= 宣言した lib)は下の 1〜5 の不備で落ち、宣言の無い lib は数えて一覧に出すだけで落としません。package.json の形そのもの(exports・libs・peers・sideEffects の書き方)は `src/lib/libPackage`(読み手と形の検査)と lint が見ます。形に問題がある宣言の lib は 1〜5 を飛ばし、閉じていない不備 1 つ(`shape`)で落とします(state skipped)。今の repo の lib を型検査するのはこの門だけで、テストは作り物のリポで仕組みを試します(1 回の `/ship --safe` で同じ型検査を重ねない)。
+- lib ごとの「閉じたか」を確かめます。`package.json` を持つ lib(= 宣言した lib)は下の 1〜6 の不備で落ち、宣言の無い lib は数えて一覧に出すだけで落としません。package.json の形そのもの(exports・libs・peers・sideEffects の書き方。入口の名前 = exports の鍵が `.`・`./server`・`./client`・`./node` の 4 つだけ、ほかは `entryName`)は `src/lib/libPackage`(読み手と形の検査)が見ます。形に問題がある宣言の lib は 1〜6 を飛ばし、閉じていない不備 1 つ(`shape`。理由に形の問題の名前と文を並べる)で落とします(state skipped)。上流の lib にも fork が足した自前の lib にも同じに効きます。今の repo の lib を型検査するのはこの門だけで、テストは作り物のリポで仕組みを試します(1 回の `/ship --safe` で同じ型検査を重ねない)。
 
 ## Usage
 
@@ -132,7 +132,7 @@ pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]
 
 ## Internals
 
-検査の 1〜5(宣言した lib が落ちる不備): 1 = 上の API「lib の tsconfig.json」の食い違い、2〜5 = 下。
+検査の 1〜6(宣言した lib が落ちる不備): 1 = 上の API「lib の tsconfig.json」の食い違い、2〜6 = 下。
 
 ### 2. 単体の型検査
 
@@ -153,11 +153,21 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 - 書いていない → 見ない(副作用ありとして扱われる)。sideEffects は測った所だけ書く
 - 判定は書き方だけで見る: 初期化の式の中に隠れた呼び出し(`export const x = register()`)は拾わない
 
-### 4. 設定の上書き
+### 4. 入口の中身
+
+入口の名前の意味(D248。src/lib/README.md 手順 4)のうち、ファイルを読めば分かる 2 つを見ます(`entries.mjs`)。
+
+- `entryUseClient`: 入口 `.` のファイルの先頭の指示に `"use client"` がある(入口が client だと、server が入口を通して読む値が全部 client の参照になる。`"use client"` は要る部品のファイルにだけ書く。core/lib.md entry_no_use_client)
+- `nodeEntryReact`: 入口 `./node` から値で辿れるファイルが `react`・`react-dom`・`next`(とその下の道)を読む。入口から道(ファイルの並び)を出す
+  - 辿る: 静的な import・`export … from`・文字列 1 つの `import()` と `require()`。相対と別名(`@/…`・`@lib-config/…`、lint と同じ解決 eslint-rules/resolve-import.mjs)で解ける `src/` の下のファイルへ(他の lib の入口・棚も)
+  - 辿らない: 型だけの import / export(`import type`・`export type`・指定子が全部 `type`)。実行時に残らない
+  - 見えない物は通す: 文字列で組み立てる `import()`、外部のパッケージの中で React を引く物
+
+### 5. 設定の上書き
 
 - lib に `config.ts` があるなら、上書き `src/config/lib/<名前>.config.ts` が要る(無ければ落とす。空の上書きは `export default {};`)。置き方: src/lib/README.md「設定の届け方」
 
-### 5. 自前の合成の残り
+### 6. 自前の合成の残り
 
 閉じた lib は設定の合成を `@/lib/defineConfig` の defineConfig で行います。lib ごとの一覧は持たず、形で見ます。
 
@@ -166,12 +176,12 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 - 合成器そのもの(`src/lib/defineConfig` = `COMPOSER_LIB`)には掛けない
 - 設定の合成でない define(crud の defineHiddenColumns など)は当たらない。別の名前の自前の合成は見えない(名前と置き場で見るため)
 
-- 入口 `check.mjs`(gate.json の check)が `checkLibs(root)`(→ `{ checked, skipped, undeclared, problems }`)・`libReport(root)`(→ `{ rows, summary }`)を呼ぶ。部品: `closed.mjs`(状態・中を読む import・設定・合成)・`standalone.mjs`(閉包・tsconfig.json の期待と比べ・型検査)・`configSlots.mjs`(設定の口: 値と描画専用の上書きの置き場と指定子。lint entry/only-entries も読む)・`sideEffects.mjs`・動きの `moved.mjs` / `codemod.mjs` / `renames.mjs`(改名表 `renames.json`)
+- 入口 `check.mjs`(gate.json の check)が `checkLibs(root)`(→ `{ checked, skipped, undeclared, problems }`)・`libReport(root)`(→ `{ rows, summary }`)を呼ぶ。部品: `closed.mjs`(状態・中を読む import・設定・合成)・`standalone.mjs`(閉包・tsconfig.json の期待と比べ・型検査)・`configSlots.mjs`(設定の口: 値と描画専用の上書きの置き場と指定子。lint entry/only-entries も読む)・`sideEffects.mjs`・`entries.mjs`(入口の中身)・動きの `moved.mjs` / `codemod.mjs` / `renames.mjs`(改名表 `renames.json`)
 
 ## Verification
 
 - `pnpm test scripts/structure/lib-package`
-- `libPackage.test.mjs` 一時フォルダの小さな repo でのテスト
+- `libPackage.test.mjs` 一時フォルダの小さな repo でのテスト(入口の名前: 4 つの名前が通る例・ほかの名前が shape / entryName で落ちる例、入口の中身: entryUseClient・nodeEntryReact・型だけの読みは通ること)
 - `closed.test.mjs` 閉じたかの検査のテスト
 - `moved.test.mjs` moved の動き(一時フォルダの git repo)
 - `codemod.test.mjs` codemod の動き(名前ごとの割り・改名表の export / method の行と、別の型の同じ名前を触らないこと)
