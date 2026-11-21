@@ -11,7 +11,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { MediaPreview, detectMediaType } from "@/lib/mediaInputSuite";
-import { useImageMetadata, useVideoMetadata } from "@/lib/mediaInputSuite/hooks";
+import { useImageMetadata, useVideoMetadata } from "@/lib/mediaInputSuite";
 import type { MediaOrientation } from "@/lib/mediaInputSuite";
 
 export const MediaPreviewDemo = () => {

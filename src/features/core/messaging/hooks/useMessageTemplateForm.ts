@@ -31,7 +31,7 @@ import {
   type MessageEmbeddedType,
   type MessageLayout,
 } from "@/lib/messaging";
-import { listVariables } from "@/lib/structuredDocument";
+import { listVariables } from "@/lib/templateVariables";
 import { useToast } from "@/lib/toast";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
 

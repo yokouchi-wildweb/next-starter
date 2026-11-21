@@ -11,19 +11,19 @@
  * import {
  *   LegalDocumentRenderer,
  *   type LegalDocument,
- * } from "@/lib/structuredDocument/legal";
+ * } from "@/lib/structuredDocument";
  */
 
-// 共通ユーティリティ
-export type { VariableMap } from "./shared";
-export { listVariables, replaceVariables, replaceVariablesInArray } from "./shared";
+// 入口 "." だけ(閉じた lib)。リーガルドキュメント(legal/)の構造の型・描画・整形の関数を出す。
+// 差し込みの変数(replaceVariables など)は lib templateVariables(@/lib/templateVariables)
 
-// リーガルドキュメント（再エクスポート）
 export type {
   LegalDocument,
+  LegalDocumentDates,
   LegalDocumentRendererProps,
+  LegalEnactedAtFormat,
   LegalRenderMode,
   LegalSection,
   LegalSectionNumbering,
 } from "./legal";
-export { LegalDocumentRenderer } from "./legal";
+export { LegalDocumentRenderer, formatSectionTitle, getNumberingClassName, stripMarkdown, stripMarkdownLinks } from "./legal";

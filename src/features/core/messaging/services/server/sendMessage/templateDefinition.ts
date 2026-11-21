@@ -36,7 +36,7 @@ import {
   type MessageSystemTemplate,
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
-import { replaceVariables } from "@/lib/structuredDocument/shared";
+import { replaceVariables } from "@/lib/templateVariables";
 
 import { enricherKeysFor, enrichersFor, type AnyMessageDefinition, type AnyResolvedMessageDefinition, registeredChannelKeys } from "./definition";
 import { adminSendableKinds, isAdminSendableKind } from "./systemTemplates";

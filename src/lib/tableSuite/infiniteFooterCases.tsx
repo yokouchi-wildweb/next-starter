@@ -2,7 +2,7 @@
 // (render テストと期待値の記録で同じ物を使う)
 import { createElement, type ReactElement } from "react";
 
-import { DataTable, EditableGridTable, RecordSelectionTable } from "@/lib/tableSuite";
+import { DataTable, EditableGridTable, RecordSelectionTable } from "./index";
 
 type Row = { id: string; name: string };
 const items: Row[] = [

@@ -5,7 +5,7 @@
 // 種別と経路は定義に無く、属する種類(category)から引く(D81・D86)。種別の性質(MESSAGE_KIND_TRAITS)で管理画面の文言の上書き・間引きを止める。
 // 中身はひな形 + 欄の中身(D122): ひな形が受け口にあり、欄の中身が種類の経路で使う欄の zod(layoutValuesSchema)を通り、{{鍵}} が宣言済み。
 
-import { listVariables } from "@/lib/structuredDocument/shared";
+import { listVariables } from "@/lib/templateVariables";
 import type { z } from "zod";
 
 import type { MessageLayout } from "../layout/types";

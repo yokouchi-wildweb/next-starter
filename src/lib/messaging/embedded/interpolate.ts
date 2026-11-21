@@ -1,10 +1,10 @@
 // src/lib/messaging/embedded/interpolate.ts
 //
-// 文面の埋め込み情報: {{鍵}} と {{別名}} を同じ値で埋める。差し込みの書式は lib/structuredDocument の 1 本(replaceVariables・listVariables)。
+// 文面の埋め込み情報: {{鍵}} と {{別名}} を同じ値で埋める。差し込みの書式は lib/templateVariables の 1 本(replaceVariables・listVariables)。
 // - findEmbedded: 文面に書かれた名前を鍵に直して並べる(出てくる順・重複なし)。一覧に無い名前は unknown(保存・送る前に拒む)
 // - embeddedVariableMap: 鍵 → 値 の表に別名の行を足す(replaceVariables に渡す)
 
-import { listVariables, type VariableMap } from "@/lib/structuredDocument/shared";
+import { listVariables, type VariableMap } from "@/lib/templateVariables";
 
 import { resolveEmbeddedName, type MessageEmbeddedCatalog } from "./catalog";
 

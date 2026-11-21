@@ -275,7 +275,7 @@ export function EditableGridCell<T>({
                 iconSizing="none"
                 slot="cell-click-overlay"
                 propagateClick
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
                 className={getCellClickOverlayClassName(fullWidth)}
                 aria-label="詳細を表示"
               >

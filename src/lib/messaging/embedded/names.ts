@@ -1,6 +1,6 @@
 // src/lib/messaging/embedded/names.ts
 //
-// 埋め込み情報の名前の形。差し込みの書式 {{名前}}(lib/structuredDocument の VARIABLE_PATTERN)が拾える形に合わせる
+// 埋め込み情報の名前の形。差し込みの書式 {{名前}}(lib/templateVariables の VARIABLE_PATTERN)が拾える形に合わせる
 
 /** 鍵: 英字で始まる英数字(camelCase) */
 export const EMBEDDED_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_]*$/;

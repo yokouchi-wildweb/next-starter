@@ -11,7 +11,7 @@ import { createElement, type Key } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { JSDOM } from "jsdom";
 
-import { RecordSelectionTable, useRecordSelection, type UseRecordSelectionOptions } from "@/lib/tableSuite";
+import { RecordSelectionTable, useRecordSelection, type UseRecordSelectionOptions } from "./index";
 
 import { tableDefaultCases } from "./infiniteFooterCases";
 

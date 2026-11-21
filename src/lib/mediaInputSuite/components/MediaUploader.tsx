@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 
 import { MediaInput, type MediaInputProps } from "./MediaInput";
 import type { FileValidationError, FileValidationRule } from "../types";
@@ -244,7 +244,7 @@ export const MediaUploader = ({
           variant="ghost"
           size="sm"
           className="text-xs text-muted-foreground"
-          onClick={(event) => {
+          onClick={(event: MouseEvent<HTMLButtonElement>) => {
             event.preventDefault();
             cancelUpload({ restore: true });
           }}

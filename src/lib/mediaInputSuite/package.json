@@ -1,0 +1,7 @@
+{
+  "exports": {
+    ".": "./index.ts"
+  },
+  "libs": ["cn", "isClient", "storage", "unsavedGuard"],
+  "peers": ["components"]
+}

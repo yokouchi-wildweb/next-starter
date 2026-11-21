@@ -21,8 +21,8 @@ import {
   isV2ChallengeRequired,
   useRecaptcha,
   useRecaptchaV2Challenge,
+  RECAPTCHA_ACTIONS,
 } from "@/lib/recaptcha";
-import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 
 import { DefaultValues, FormSchema, type FormValues } from "./signup/emailSendFormEntities";
 import { retryEmailSendWithV2, submitEmailSend, type EmailSendOutcome } from "./signup/sendFlow";

@@ -10,6 +10,7 @@ import {
   type ChangeEvent,
   type DragEvent,
   type KeyboardEvent,
+  type MouseEvent,
 } from "react";
 import { GripVerticalIcon, ImagePlusIcon, XIcon } from "lucide-react";
 import { uuidv7 } from "uuidv7";
@@ -570,7 +571,7 @@ const ThumbCell = ({
             variant="ghost"
             size="sm"
             className="text-[10px] text-muted-foreground"
-            onClick={(event) => {
+            onClick={(event: MouseEvent<HTMLButtonElement>) => {
               event.preventDefault();
               event.stopPropagation();
               onRemove(slot.id);
@@ -596,7 +597,7 @@ const ThumbCell = ({
           aria-label="並び替え"
           {...dragHandleListeners}
           className="absolute left-1 top-1 z-10 flex size-6 cursor-grab items-center justify-center rounded bg-background/80 text-muted-foreground hover:text-foreground active:cursor-grabbing"
-          onClick={(event) => {
+          onClick={(event: MouseEvent<HTMLButtonElement>) => {
             // ドラッグ開始のみで onClick は抑制
             event.preventDefault();
             event.stopPropagation();
@@ -612,7 +613,7 @@ const ThumbCell = ({
           variant="destructive"
           size="icon"
           className="absolute right-1 top-1 z-10 size-6"
-          onClick={(event) => {
+          onClick={(event: MouseEvent<HTMLButtonElement>) => {
             event.preventDefault();
             event.stopPropagation();
             onRemove(slot.id);

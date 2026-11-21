@@ -2,7 +2,7 @@
 
 "use client";
 
-import type { RecaptchaAction } from "@/lib/recaptcha/constants";
+import type { RecaptchaAction } from "../constants";
 
 /**
  * reCAPTCHA v3 トークンを取得する

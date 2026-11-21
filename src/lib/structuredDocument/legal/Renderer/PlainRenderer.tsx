@@ -1,8 +1,8 @@
 import { Block } from "@/components/Layout/Block";
 import { Para } from "@/components/TextBlocks/Para";
 
-import type { VariableMap } from "../../shared";
-import { replaceVariables } from "../../shared";
+import type { VariableMap } from "@/lib/templateVariables";
+import { replaceVariables } from "@/lib/templateVariables";
 import type { LegalSection, LegalSectionNumbering } from "../definition";
 import { formatSectionTitle, stripMarkdown } from "./utils";
 

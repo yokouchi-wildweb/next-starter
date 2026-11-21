@@ -1,4 +1,4 @@
-import type { VariableMap } from "../shared";
+import type { VariableMap } from "@/lib/templateVariables";
 
 /**
  * リーガルドキュメント - 構造定義

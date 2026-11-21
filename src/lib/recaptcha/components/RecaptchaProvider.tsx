@@ -8,7 +8,7 @@ import {
 } from "react-google-recaptcha-v3";
 import type { ReactNode } from "react";
 
-import { RECAPTCHA_V3_INTERNALS } from "../constants";
+import { hasRecaptchaSiteKey, recaptchaSiteKey } from "../siteKey";
 import { RecaptchaContext } from "../hooks/useRecaptcha";
 
 type RecaptchaProviderProps = {
@@ -35,7 +35,7 @@ function RecaptchaBridge({ children }: { children: ReactNode }) {
  */
 export function RecaptchaProvider({ children }: RecaptchaProviderProps) {
   // サイトキーが無効（未設定または短すぎる）の場合はProviderをスキップ
-  if (!RECAPTCHA_V3_INTERNALS.hasSiteKey) {
+  if (!hasRecaptchaSiteKey("v3")) {
     return (
       <RecaptchaContext.Provider value={{ executeRecaptcha: undefined }}>
         {children}
@@ -45,7 +45,7 @@ export function RecaptchaProvider({ children }: RecaptchaProviderProps) {
 
   return (
     <GoogleReCaptchaProvider
-      reCaptchaKey={RECAPTCHA_V3_INTERNALS.siteKey}
+      reCaptchaKey={recaptchaSiteKey("v3")}
       scriptProps={{
         async: true,
         defer: true,

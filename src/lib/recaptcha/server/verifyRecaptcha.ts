@@ -1,6 +1,7 @@
 // src/lib/recaptcha/server/verifyRecaptcha.ts
 
-import { RECAPTCHA_V3_INTERNALS, RECAPTCHA_DEBUG } from "@/lib/recaptcha/constants";
+import { RECAPTCHA_DEBUG } from "../constants";
+import { RECAPTCHA_V3_INTERNALS } from "./settings";
 
 /**
  * reCAPTCHA検証レスポンス

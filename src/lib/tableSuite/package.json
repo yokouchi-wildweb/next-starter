@@ -1,0 +1,7 @@
+{
+  "exports": {
+    ".": "./index.ts"
+  },
+  "libs": ["appEnv", "cn", "date", "sortableList", "unsavedGuard"],
+  "peers": ["components"]
+}

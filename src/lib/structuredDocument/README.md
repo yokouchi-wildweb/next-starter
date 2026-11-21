@@ -4,7 +4,8 @@
 
 - 構造化ドキュメントライブラリ。文書タイプごとにサブフォルダを持ち、構造定義(型)とレンダラーをセットで提供する
 - 文書タイプ: `legal`(利用規約、プライバシーポリシー、特商法表記。`legal/README.md`)
-- 共通: `{{鍵}}` の差し込み(`shared/variables.ts`)
+- 閉じた lib: 入口は `@/lib/structuredDocument` だけ(文書タイプの構造の型・レンダラー・整形の関数)。読む lib は templateVariables、棚 `@/components`(peers)
+- `{{鍵}}` の差し込みは lib templateVariables(`@/lib/templateVariables`)。レンダラーはそれで `variables` を差し込む
 
 ## Usage
 
@@ -12,19 +13,15 @@
 
 ## API
 
-### 差し込み({{鍵}})
-
-- `{{鍵}}` の差し込みはこの lib の 1 本(`shared/variables.ts`)。連絡の欄(lib/messaging)もこれを使う
-- `replaceVariables(text, map)`: 知っている鍵を差し込み、知らない鍵はそのまま残す
-- `listVariables(text)`: 出てくる鍵を順に重複なしで返す(定義の検査が使う)
-- `replaceVariablesInArray(texts, map)`: 配列の各要素に replaceVariables
-- 鍵は文字(どの文字体系も。日本語の別名 `{{受信者名}}` も)・数字・_ の並び。空白や点を含む鍵(`{{a.b}}`)は差し込まれずに残る
+- 入口 `.` が出す名前: `legal/index.ts` の型・`LegalDocumentRenderer`・整形の関数(`formatSectionTitle`・`getNumberingClassName`・`stripMarkdown`・`stripMarkdownLinks`)。中身: `legal/README.md` API
+- 差し込み(`replaceVariables` など)は `src/lib/templateVariables/README.md` API
 
 ## Internals
 
-- 文書タイプの形(`legal/` が手本): サブフォルダに `definition.ts`(構造の型)・`Renderer/`(レンダラー)・`index.ts`(型とレンダラーの export)・`README.md`。ルートの `index.ts` への再 export は任意
+- 文書タイプの形(`legal/` が手本): サブフォルダに `definition.ts`(構造の型)・`Renderer/`(レンダラー)・`index.ts`(型とレンダラーの export)・`README.md`。外から読めるのは入口 `.` だけなので、文書タイプの名前はルートの `index.ts` から全部出す
 
 ## Related
 
 - リーガルドキュメント: `legal/README.md`
+- 差し込みの 1 本: `src/lib/templateVariables/README.md`
 - 連絡の差し込み: `src/lib/messaging/README.md`

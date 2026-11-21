@@ -17,8 +17,8 @@ import {
   isV2ChallengeRequired,
   useRecaptcha,
   useRecaptchaV2Challenge,
+  RECAPTCHA_ACTIONS,
 } from "@/lib/recaptcha";
-import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { useGuardedNavigation } from "@/lib/transitionGuard";
 
 import {

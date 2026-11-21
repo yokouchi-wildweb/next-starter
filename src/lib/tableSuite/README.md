@@ -3,6 +3,7 @@
 ## Overview
 
 - テーブル系 UI コンポーネントのライブラリ。すべて `@/lib/tableSuite` からインポートする
+- 閉じた lib: 入口は `@/lib/tableSuite` だけ。読む lib は appEnv・cn・date・sortableList・unsavedGuard、棚 `@/components`(peers)
 - DataTable: 読み取り専用の一覧表示
 - RecordSelectionTable: 行選択 + 一括操作
 - RecordSelectionList: カードの一覧の行選択 + 一括操作(RecordSelectionTable の兄弟)

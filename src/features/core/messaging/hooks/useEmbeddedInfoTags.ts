@@ -19,7 +19,7 @@ export type UseEmbeddedInfoTagsOptions = {
 
 const NO_ENTRIES: readonly MessageEmbeddedEntry[] = [];
 
-// lib structuredDocument の {{名前}} と同じ形
+// lib templateVariables の {{名前}} と同じ形
 const VARIABLE = /\{\{([\p{L}\p{N}_]+)\}\}/gu;
 
 /** 文の中の {{鍵}} を {{別名}} に(別名のある名前だけ)。escape = 別名を入れる前の加工(HTML に入れる時) */

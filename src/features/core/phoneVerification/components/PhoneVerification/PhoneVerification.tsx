@@ -2,7 +2,7 @@
 
 "use client";
 
-import { RecaptchaBadge } from "@/lib/recaptcha/components/RecaptchaBadge";
+import { RecaptchaBadge } from "@/lib/recaptcha";
 import { usePhoneVerification, type PhoneVerificationMode } from "@/features/core/phoneVerification/hooks/usePhoneVerification";
 import { PhoneNumberStep } from "./PhoneNumberStep";
 import { OtpStep } from "./OtpStep";

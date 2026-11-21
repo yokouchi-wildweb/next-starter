@@ -38,7 +38,7 @@ export function getProbeEngine(ref?: ProbeEngine | string): ProbeEngine {
   const name = ref ?? defaultName;
   if (!name) {
     throw new Error(
-      "probe エンジンが登録されていません。'@/lib/mediaProbe' をエントリとして import してください。",
+      "probe エンジンが登録されていません。'@/lib/mediaProbe/server' を入口として import してください。",
     );
   }
   const engine = engines.get(name);

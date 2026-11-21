@@ -2,9 +2,16 @@
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
     "paths": {
-      "@/lib/structuredDocument": ["../structuredDocument"],
-      "@/lib/structuredDocument/*": ["../structuredDocument/*"]
+      "@/lib/templateVariables": [
+        "../templateVariables"
+      ],
+      "@/lib/templateVariables/*": [
+        "../templateVariables/*"
+      ]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
 }

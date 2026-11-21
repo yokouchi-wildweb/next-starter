@@ -1,0 +1,71 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/analyticsConsent": [
+        "../analyticsConsent"
+      ],
+      "@/lib/analyticsConsent/*": [
+        "../analyticsConsent/*"
+      ],
+      "@/lib/appEnv": [
+        "../appEnv"
+      ],
+      "@/lib/appEnv/*": [
+        "../appEnv/*"
+      ],
+      "@/lib/cn": [
+        "../cn"
+      ],
+      "@/lib/cn/*": [
+        "../cn/*"
+      ],
+      "@/lib/defineConfig": [
+        "../defineConfig"
+      ],
+      "@/lib/defineConfig/*": [
+        "../defineConfig/*"
+      ],
+      "@/lib/domainAccess": [
+        "../domainAccess"
+      ],
+      "@/lib/domainAccess/*": [
+        "../domainAccess/*"
+      ],
+      "@/lib/errors": [
+        "../errors"
+      ],
+      "@/lib/errors/*": [
+        "../errors/*"
+      ],
+      "@/lib/firebase": [
+        "../firebase"
+      ],
+      "@/lib/firebase/*": [
+        "../firebase/*"
+      ],
+      "@/lib/storage": [
+        "../storage"
+      ],
+      "@/lib/storage/*": [
+        "../storage/*"
+      ],
+      "@/lib/storageCors": [
+        "../storageCors"
+      ],
+      "@/lib/storageCors/*": [
+        "../storageCors/*"
+      ],
+      "@/lib/webAudio": [
+        "../webAudio"
+      ],
+      "@/lib/webAudio/*": [
+        "../webAudio/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}
