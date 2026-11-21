@@ -1,0 +1,4 @@
+{
+  "about": "lib の改名表(codemod が読む)。行 = { segment, lib, kind: method | export, from, to, receivers?, origin? }。仕様: README.md「改名表」",
+  "rows": []
+}

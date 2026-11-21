@@ -10,7 +10,7 @@
 pnpm check lib-package               # 不備の行 + 1 行のまとめ(門 build・ship でも回る)
 pnpm check lib-package -- --list     # lib ごとの表(外から中を読む import の数も)
 pnpm check lib-package -- --json     # 同じものを JSON で({ rows, summary }、機械向け)
-pnpm check lib-package -- codemod …  # 動き: 中を読む import を入口へ書き換える(下の「動き」)
+pnpm check lib-package -- codemod …  # 動き: 中を読む import を入口へ・出ていった名前を今の入口へ・改名表の改名(下の「動き」)
 pnpm check lib-package -- moved …    # 動き: notice の moved: と imports: の表(下の「動き」)
 pnpm check lib-package -- jsdoc …    # 動き: JS の lib の暗黙の any に推した型を JSDoc で書く(下の「動き」)
 pnpm check lib-package -- help       # 使い方
@@ -24,7 +24,7 @@ pnpm test scripts/structure/lib-package
 
 codemod と moved は lib の名前を持たず、作業ツリーで閉じた lib(package.json を持ち形に問題の無い lib)の宣言から求めます。閉じた lib が増えれば同じ道具がそのまま使え、fork は自分の木で回します。
 
-#### codemod — 中を読む import を入口へ書き換える
+#### codemod — 中を読む import を入口へ、出ていった名前を今の入口へ、改名表の改名
 
 ```
 pnpm check lib-package -- codemod [--apply] [--json] …
@@ -34,7 +34,19 @@ pnpm check lib-package -- codemod [--apply] [--json] …
 - 書き換え先の指定子: JS の入口(`.mjs` / `.js`)はファイル名まで書く(`@/lib/pathPattern/index.mjs`。TS はフォルダの index.mjs を解かない)。JS のファイル(素の node で動く道具)が相対で読んでいた物は相対のまま入口へ(素の node は `@/` を解かない)。moved の imports: の行も同じ指定子
 - 書き換えない物は止まる一覧に種類つきで出す(入口から出ていない名前・default / 名前空間 / 副作用 / 動的な import)
 - 閉じる段で消した束(例 入口 `.` にたたんで消した `@/lib/storage/client`)を読む import: `--base <rev>` なら moved の行の `byName`(束が出していた名前 → 今の入口)で名前ごとに書き換える(入口が分かれれば文を分ける。束が出していなかった名前は止まる)。`--base` なしは `unparsable` で止まり、`--base` の案内を出す
-- 本体と引数の詳細: `codemod.mjs`(`-- codemod --help`)
+- 名前ごとの割り: 閉じた lib の入口を読む文(`import { a, b } from "@/lib/x"`・`export { a } from "@/lib/x"`)で、その入口がもう出していない名前は、次の順で今それを出す入口を決め、入口ごとの文に分ける(名前が全部入口から出ている文は触らない)
+  1. 同じ lib の別の入口の同じ名前(例 `.` から `./server` へ移った名前)
+  2. `--base <rev>` があれば、`<base>` の木でその指定子から読んだ名前の実体を引き、git の改名(`<base>` → 作業ツリー)で今のファイルへ辿り、その実体を出す入口(別の lib へ移った名前。同じ名前が別の lib にもある時もこれで分かれる)
+  3. その名前を出す閉じた lib の入口が 1 つ(実体が 1 つ)ならそれ(`--base` なしでも。git の改名なしに別のファイルへ移った名前)
+  - 決まらなければ `ambiguous`(候補の入口を並べる)、どこにも無ければ `notExported` で止まる。パッケージからの `export *` を持つ入口(名前を数えきれない)を読む文は触らない
+  - 中のファイルを読む文も、そのファイルから消えた名前は同じ順で行き先を探す(ファイルに今もある名前は入口から出していないだけなので探さない)
+- 改名表 `renames.json`: 行 = `{ segment, lib, kind, from, to, receivers?, origin? }`(segment = その行を持ち込んだ区切り / notice。名前を変えた段がその区切りの行を足す)
+  - `kind: "export"` = 入口から出す名前の改名。その lib から古い名前を読む import を新しい名前にし、別名の無い import ならファイルの中の参照も書き換える(TypeScript の検査器でその束縛と同じ symbol の識別子だけ。`{ Old }` の短縮は `{ Old: New }`)。`origin` = lib の別の物と同じ名前の時、`<base>` の木で名前の実体が置かれたファイル(例 firestore の `createCrudService`)。`origin` の行は `--base` が要る
+  - `kind: "method"` = メソッド名の改名(例 crud のサービスの `remove` → `delete`、ApiClient の `getById` → `get`)。repo の tsconfig.json で TypeScript の program を立て、受け手の型が `src/lib/<lib>/` の中で新しい名前を宣言し、古い名前を自分では持たない時だけ書き換える(= lib を改名した後の木。名前だけでは書き換えない)。`x.old(`・`x["old"]`・`{ old } = x`(→ `{ new: old }`。束縛名は元のまま、`delete` は束縛名にできない)・`{ old: y } = x`。そうした受け手を広げた object literal の中の `old`(ドメインの包みの上書き `{ ...service, old: … }`)も書き換え、その包みを通した呼び出しも追う。同じ名前のメソッドを持つ別の型(Map・DOM の要素など)は触らない
+  - 改名の止まる一覧: `needsBase`(origin の行に `--base` が無い)・`renamedReexport`(改名する名前をファイルから出し直している。出す名前を変えると読み手が壊れるので手で決める)・`nameTaken`(新しい名前がファイルに既にある)・`untyped`(受け手の型が any / unknown / 解けない import で、ファイルがその lib を読んでいる。報告だけ)
+  - method の program は表に method の行があり、古い名前を含むファイルがある時だけ立てる(repo 全体で数秒〜十数秒)
+- fork は notice を取り込んだ後、notice に書かれた上流の sha を `--base` に渡して回す(名前ごとの割り・origin の行・消えた束が `--base` で決まる)
+- 本体と引数の詳細: `codemod.mjs`・`renames.mjs`(`-- codemod --help`)
 
 #### moved — notice の moved: と imports: の表
 
@@ -152,7 +164,7 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 - 合成器そのもの(`src/lib/defineConfig` = `COMPOSER_LIB`)には掛けない
 - 設定の合成でない define(crud の defineHiddenColumns など)は当たらない。別の名前の自前の合成は見えない(名前と置き場で見るため)
 
-- 入口 `check.mjs`(gate.json の check)が `checkLibs(root)`(→ `{ checked, skipped, undeclared, problems }`)・`libReport(root)`(→ `{ rows, summary }`)を呼ぶ。部品: `closed.mjs`(状態・中を読む import・設定・合成)・`standalone.mjs`(閉包・tsconfig.json の期待と比べ・型検査)・`configSlots.mjs`(設定の口: 値と描画専用の上書きの置き場と指定子。lint entry/only-entries も読む)・`sideEffects.mjs`・動きの `moved.mjs` / `codemod.mjs`
+- 入口 `check.mjs`(gate.json の check)が `checkLibs(root)`(→ `{ checked, skipped, undeclared, problems }`)・`libReport(root)`(→ `{ rows, summary }`)を呼ぶ。部品: `closed.mjs`(状態・中を読む import・設定・合成)・`standalone.mjs`(閉包・tsconfig.json の期待と比べ・型検査)・`configSlots.mjs`(設定の口: 値と描画専用の上書きの置き場と指定子。lint entry/only-entries も読む)・`sideEffects.mjs`・動きの `moved.mjs` / `codemod.mjs` / `renames.mjs`(改名表 `renames.json`)
 
 ## Verification
 
@@ -160,6 +172,6 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 - `libPackage.test.mjs` 一時フォルダの小さな repo でのテスト
 - `closed.test.mjs` 閉じたかの検査のテスト
 - `moved.test.mjs` moved の動き(一時フォルダの git repo)
-- `codemod.test.mjs` codemod の動き
+- `codemod.test.mjs` codemod の動き(名前ごとの割り・改名表の export / method の行と、別の型の同じ名前を触らないこと)
 - `jsdoc.test.mjs` jsdoc の動き(一時フォルダの小さな repo)
 - `delivery.test.mjs` @lib-config の 1 行と、上書きが無い時に tsc・tsx・pnpm test が止まること
