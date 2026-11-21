@@ -8,6 +8,7 @@ import {
   useState,
   type ChangeEvent,
   type KeyboardEvent,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 import { XIcon } from "lucide-react";
@@ -257,7 +258,7 @@ export const MediaInput = ({
                   size="icon"
                   className="absolute right-2 top-2 z-10"
                   disabled={clearButtonDisabled}
-                  onClick={(event) => {
+                  onClick={(event: MouseEvent<HTMLButtonElement>) => {
                     event.preventDefault();
                     event.stopPropagation();
                     handleClear();

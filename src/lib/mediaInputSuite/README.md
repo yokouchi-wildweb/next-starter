@@ -2,7 +2,7 @@
 
 ## Overview
 
-- メディアの入力の lib: メタデータ取得 → プレビュー → storage 基盤(`src/lib/storage`)へのアップロード を一貫して扱う部品とフック。入口 `@/lib/mediaInputSuite`
+- メディアの入力の lib: メタデータ取得 → プレビュー → storage 基盤(`src/lib/storage`)へのアップロード を一貫して扱う部品とフック。閉じた lib: 入口 `@/lib/mediaInputSuite` だけ(部品・フック・連携・型・関数を全部出す)。読む lib は cn・isClient・storage・unsavedGuard、棚 `@/components`(peers)
 - 部品(入力・プレビュー・アップロードの UI)、フック(メタデータ取得・RHF 連携・未採用分の管理)、react-hook-form の連携(`formAdapters/`)、型と検査・整形の関数を持つ
 - 連携が読むのは react-hook-form の型とこの lib だけ(フォームの lib `@/lib/formSuite` は読まない)。FieldRenderer の連携は formSuite の側にある
 

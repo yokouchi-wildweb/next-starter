@@ -48,7 +48,7 @@
 - src/lib/libPackage — lib の package.json(入口 exports・読む lib の一覧 libs・棚 peers・sideEffects)の唯一の読み手と形の検査(lint entry/only-entries・単体用 tsconfig・閉じたかの検査が読む)
 - src/lib/line — LINE 連携(Push 通知・Bot 応答・LIFF・Webhook 検証)
 - src/lib/mail — メール送信(Resend / SendGrid)と React Email テンプレート
-- src/lib/mediaInputSuite — メディア入力(メタデータ取得 → プレビュー → Storage アップロード)
+- src/lib/mediaInputSuite — メディア入力(メタデータ取得 → プレビュー → Storage アップロード)。閉じた lib: 入口 "." だけ、棚 components を peers に
 - src/lib/mediaProbe — Storage 上のメディアをサーバーで解析しストリーム構成を返す(エンジン差し替え可)。閉じた lib: 入口 "."(結果の型・形の判定)・"./server"(probeMedia・エンジンの登録)
 - src/lib/messaging — 連絡の定義の型(defineMessage・経路ごとの欄 MessageContent・上書き MessageOverride)と定義の読み手の検査(validateMessageDefinition)、経路の失敗 ChannelError
 - src/lib/metadata — Next.js の generateMetadata 生成ヘルパ(createMetadata)
