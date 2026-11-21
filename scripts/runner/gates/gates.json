@@ -48,7 +48,8 @@
       "config-overrides",
       "business",
       "legal",
-      "message"
+      "message",
+      "cache-components"
     ],
     "workflow": [
       "worktree",
