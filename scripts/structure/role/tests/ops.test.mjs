@@ -1,15 +1,14 @@
 // pnpm generate role -- --delete・pnpm generate role -- --delete-profile・pnpm generate role -- --toggle・pnpm generate role -- --profile の引数と止まり方の契約テスト（既定は対話なし、-i のときだけ対話）。
 // コマンドはスクリプトの置き場からリポジトリのルートを決めるので、一時ディレクトリに要るものを写して、そこで実行する。
 // 標準入力は空にして、対話が出ない（待たない）ことも見る。実行: pnpm test scripts/structure/role/tests/ops.test.mjs
-// 写すコードは走らせる命令から import で届くファイル(dpdm)で決め、手書きの一覧は命令が読むデータと命令の置き場だけ
-// (コードの置き場が動いても一覧を直さずに済む)。
+// 写すコードは走らせる命令から import で届くファイル(copyByImports)、手書きの一覧は命令が読むデータと命令の置き場だけ。
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { parseDependencyTree } from "dpdm";
+import { copyByImports } from "../../../runner/test/lib.copyByImports.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../../..");
 // 走らせる命令(この入口から import で届くコードは before で足す)
@@ -26,19 +25,10 @@ const COPY = [
   "src/registry",
 ];
 let root;
-/** 命令から import で届くリポの中のファイル(node_modules と組み込みは除く) */
-const importedFiles = async () => {
-  const entries = COMMANDS.map((c) => `scripts/structure/role/${c}`);
-  const tree = await parseDependencyTree(entries, { context: repoRoot, transform: false, skipDynamicImports: false, progress: false });
-  return Object.keys(tree).filter((f) => !f.startsWith("node_modules/") && fs.existsSync(path.join(repoRoot, f)));
-};
 before(async () => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), "role-ops-"));
-  for (const rel of [...COPY, ...(await importedFiles())]) {
-    fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
-    fs.cpSync(path.join(repoRoot, rel), path.join(root, rel), { recursive: true });
-  }
-  fs.symlinkSync(path.join(repoRoot, "node_modules"), path.join(root, "node_modules"));
+  const entries = COMMANDS.map((c) => `scripts/structure/role/${c}`);
+  await copyByImports({ from: repoRoot, to: root, entries, data: COPY, nodeModules: true });
 });
 after(() => fs.rmSync(root, { recursive: true, force: true }));
 

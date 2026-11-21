@@ -38,6 +38,14 @@ pnpm test --file-timeout=300    # 1 ファイルの時間の上限を延ばす(�
 - テストの中で子の `node --test` / `tsx --test` を起動する時は、環境変数から `NODE_TEST_CONTEXT` を外す(親の node --test の印。残ると子は結果を親向けに流し、子が落ちても exit 0 になる。例 `src/utils/date.test.ts`)
 - 機能の門番(`src/featureGate`)の全開スイッチ `FEATURE_GATE_OPEN` は子に渡さない(上流の開発の env の `all` をシェルで export していても、テストの答えは規則の値と `overrideSwitches` で決まる)。スイッチそのものを試すテストは自分で env を置く
 
+### 一時フォルダへリポを写すテスト
+
+- 命令や生成器を一時フォルダで走らせるテストは、写すコードを `scripts/runner/test/lib.copyByImports.mjs` の `copyByImports({ from, to, entries, data, nodeModules })` で求める
+  - `entries` = 走らせる入口(`from` からの相対)。そこから import(静的・動的・`@/` などの tsconfig の paths)で届く `from` の中のファイルを写す(dpdm、`--changed` と同じ道具)
+  - `data` = コードが import ではなくファイルとして読む物(JSON・テンプレート・登録表など)だけを手で挙げる。コードの道は挙げない(lib の置き直しでテストが落ちないように)
+  - `nodeModules: true` = `to/node_modules` を `from` の node_modules への symlink にする | 戻り値 = 写した道の一覧
+- 入口から辿れる物だけを写したいときは `importedFiles(from, entries)`
+
 ## Internals
 
 - 走査: 毎回、git の追跡 + 未追跡(無視されない物)の `*.test.{ts,tsx,mts,mjs,js,cjs}`。一覧ファイルは無い。除く物: `tests/e2e/`(動いているアプリを外から見る物、playwright = `pnpm e2e`)・`*.types.test.*`(型のテスト = `pnpm typecheck` が見る)。`servers/`(別のプログラム)は引数のパス・glob がそこを名指しした時(`pnpm test servers/room`)と、`--changed` の範囲に `servers/` の下の変更がある時だけ(/ship が変えた時に回す)

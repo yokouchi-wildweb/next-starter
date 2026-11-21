@@ -28,4 +28,5 @@ lint (all tiers error): src-no-scripts | scripts-no-static-wiring (scripts/**, f
 - a reasoned eslint-disable for a real exception (e.g. a db test closing the pool)
 tests: pnpm test [path|--changed|--db] | groups by name: \*.db.test.\* = db, tests/ outside tests/e2e/ = fork (tests a fork adds), else unit | the entry always adds the server-only preload and module mocks (never write them)
 - feature_gate_env: tests never get FEATURE_GATE_OPEN from the shell; a switch test sets its own env
+- temp_copy: a test that runs a command in a temp dir copies its code with copyByImports (scripts/runner/test/lib.copyByImports.mjs, from the import graph of what it runs) | its hand list = data the code reads as files only, never a code path | ref: scripts/runner/test/README.md
 - node flags: `// test-flags:` on line 1, allowed list only | a test that spawns node --test drops NODE_TEST_CONTEXT from the child env (else a child failure exits 0) | ref: scripts/runner/test/README.md
