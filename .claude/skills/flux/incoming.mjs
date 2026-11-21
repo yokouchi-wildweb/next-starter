@@ -7,7 +7,10 @@
 //   git show <upstream>/<branch>:.claude/skills/flux/incoming.mjs > <一時ファイル> && node <一時ファイル> --upstream=<upstream>/<branch>
 // で、scripts/workflow/notices がまだ届いていない遅れた fork でも先端の判定で動く(cwd = fork のリポ)。
 //
-// 実行: node .claude/skills/flux/incoming.mjs --upstream=<remote>/<branch> [--json]
+// 実行: node .claude/skills/flux/incoming.mjs --upstream=<remote>/<branch> [--own=<repo_id>] [--json]
+//   --own = 自分の名前を外から渡す(作業ツリーの repo.json / project.md より先)。作業ツリーの repo.json が自分の名前でない
+//            作業場所(鉄道の敷設の track: 上流の取り込みの並びで repo.json が上流の値)で、自分を上流と読んで区間が 1 つになる
+//            (Summit 線 11-21)のを避ける
 //   未適用 = 先端の一覧 − 持ち主が自分の物 − 継承済み(fork 成立点の履歴に足された本文 ∪ その木の .notices)− 自分の台帳
 //            − covers 側が適用済みの covered
 //   区切り点 = 直接の親の物は本文の checkpoint_at:(足した commit の子孫・次のお知らせの点より前・先端の祖先の時だけ、外れたら警告)
@@ -281,13 +284,14 @@ export function rejoin(g, items, { base, tip, all: everything = items }) {
 }
 
 /** 本体: { tip, own, mid, source, segments, warnings } を返す。止まる時は Stop を投げる */
-export function incoming(repo, { upstream }) {
+export function incoming(repo, { upstream, own: ownArg }) {
   const g = makeGit(repo);
   if (!upstream) throw new Stop("--upstream=<remote>/<branch> が無い");
   if (g.git(["rev-parse", "--is-shallow-repository"]).trim() === "true") throw new Stop("浅い clone: 履歴を辿れない(git fetch --unshallow <upstream> の後にもう一度)");
   const tip = g.tryGit(["rev-parse", "--verify", "-q", `${upstream}^{commit}`])?.trim();
   if (!tip) throw new Stop(`${upstream} が無い(fetch の後にもう一度)`);
-  const own = forkIdOf(readOrNull(join(repo, "repo.json")), readOrNull(join(repo, ".claude/rules/project.md")));
+  if (ownArg !== undefined && !NAME_RE.test(ownArg)) throw new Stop(`--own=${ownArg} は repo_id の形でない(小文字・数字・ハイフン)`);
+  const own = ownArg ?? forkIdOf(readOrNull(join(repo, "repo.json")), readOrNull(join(repo, ".claude/rules/project.md")));
   if (!own) throw new Stop("repo.json の repo_id が読めない(古い形なら .claude/rules/project.md の fork_id:)");
   // 上流の先端の版の名前(repo.json を先に、無ければ古い形の project.md)
   const mid = forkIdOf(g.tryGit(["show", `${tip}:repo.json`]), g.tryGit(["show", `${tip}:.claude/rules/project.md`]));
@@ -399,8 +403,9 @@ export function summary(result) {
 /** 本体(テストからは repo と log を渡す)。exit code を返す */
 export function run(repo, argv, log = console.log) {
   const upstream = argv.find((a) => a.startsWith("--upstream="))?.slice(11);
+  const own = argv.find((a) => a.startsWith("--own="))?.slice(6);
   try {
-    const r = incoming(repo, { upstream });
+    const r = incoming(repo, { upstream, own });
     if (argv.includes("--json")) {
       log(JSON.stringify(r, null, 2));
       return 0;

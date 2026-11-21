@@ -466,3 +466,19 @@ test("Rejoin: 分かれの無い履歴・片側にしか区切りの無い分か
   const { f: f2 } = split(t, { main: 2, side: 0 });
   assert.ok(incoming(f2.dir, { upstream: "upstream/main" }).segments.every((s) => !s.pattern && !s.rejoin));
 });
+
+test("own: --own names the repo when the work tree's repo.json is upstream's (a railroad track): without it every notice reads as own", (t) => {
+  const { f, p1, p3 } = twoTier(t);
+  f.put({ "repo.json": `{"repo_id": "up", "tier": "root"}\n` });   // the track's work tree: upstream's repo.json
+  const wrong = incoming(f.dir, { upstream: "upstream/main" });
+  assert.equal(wrong.own, "up");
+  assert.equal(wrong.segments.length, 1, "upstream's notices read as own: only the tail");
+  const r = incoming(f.dir, { upstream: "upstream/main", own: "f" });
+  assert.equal(r.own, "f");
+  assert.deepEqual(summary(r), [`1:${p1.slice(0, 8)}:${N(1)}`, `2:${p3.slice(0, 8)}:${N(2)},${N(3)}`, `3:${r.tip.slice(0, 8)}:`]);
+  const lines = [];
+  assert.equal(run(f.dir, ["--upstream=upstream/main", "--own=f"], (s) => lines.push(s)), 0);
+  assert.match(lines[0], /自分 f /);
+  assert.equal(run(f.dir, ["--upstream=upstream/main", "--own=Bad_Name"], (s) => lines.push(s)), 2);
+  assert.match(lines.at(-1), /repo_id の形でない/);
+});
