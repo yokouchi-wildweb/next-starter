@@ -39,6 +39,7 @@ lib 1 本を「閉じた lib」(package.json の入口だけを外から読み�
 3. **自分を相対で読む**: lib の中で自分を `@/lib/<name>` で読む import を相対パスに直す(宣言の後は lint `lib-self-relative` が止める)
    - 確かめ: `git grep -nE "@/lib/<name>(/|['\"])" -- src/lib/<name>` が 0(区切りを付ける: `@/lib/request` だけだと `@/lib/requestMemo` にも当たる)
 4. **package.json を置く**: `exports` は今のパスを写さず機能で整理し、外と fork が読む名前は全部入口に残す(消すのは破壊的変更 = notice を伴う別の変更)。入口の名前は `.`(client でも server でも読める物。入口に `"use client"` を書かない)・`./server`(DB・管理 SDK・秘密・node の API)・`./client`(import しただけでブラウザの SDK を引く物)・`./node`(Next の外のプログラム = scripts・eslint-rules・servers が読む物。React と Next を引かない)の 4 つだけ。`libs` = 直接読む lib、`peers` = 棚、`sideEffects` は書かない(手順 8)。形と問題の名前: [libPackage/README.md](./libPackage/README.md)・API「lib の package.json(宣言の形)」
+   - 自分の節の lib(fork の自前の lib も)は `pnpm check lib-package -- declare <name>` が package.json と手順 5 の tsconfig.json の初めの形を推して書ける(既定 dry-run、決めきれない所を一覧に出す。祖先の lib は拒む。形: [scripts/structure/lib-package/README.md](../../scripts/structure/lib-package/README.md)「declare」)
    - 確かめ: `git grep -n '"\./' -- src/lib/<name>/package.json`(exports の鍵が上の 4 つだけ・値が lib の中の実ファイル)
    - 形の問題は `pnpm check lib-package` が守る(/ship の検査が回す。tsconfig.json が無い問題は手順 5 で直す)。入口の名前の外の鍵は `entryName`、`.` の先頭の `"use client"` は `entryUseClient`、`./node` から React・Next を辿れば `nodeEntryReact`(道を出す)で落ちる
    - package.json を置いた時から lint `entry/only-entries` がその lib に効き、外から中のファイルを読む import が error になる(手順 7 で直すまで `pnpm lint` は落ちる)

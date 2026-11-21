@@ -13,6 +13,7 @@ pnpm check lib-package -- --json     # 同じものを JSON で({ rows, summary 
 pnpm check lib-package -- codemod …  # 動き: 中を読む import を入口へ・出ていった名前を今の入口へ・改名表の改名(下の「動き」)
 pnpm check lib-package -- moved …    # 動き: notice の moved: と imports: の表(下の「動き」)
 pnpm check lib-package -- jsdoc …    # 動き: JS の lib の暗黙の any に推した型を JSDoc で書く(下の「動き」)
+pnpm check lib-package -- declare …  # 動き: 自分の節の宣言の無い lib に package.json と tsconfig.json を書く(下の「動き」)
 pnpm check lib-package -- help       # 使い方
 pnpm test scripts/structure/lib-package
 ```
@@ -79,6 +80,26 @@ pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]
 - 暗黙の any 以外の型の誤り(TS2339 など)は直さない。それは閉じたかの検査(門の検査)が名指しする。返り値が `object` になっている所は、typedef を 1 つ書くと読み手の誤りがまとめて消えることが多い
 - 単体用 tsconfig は緩めない(下の「lib の tsconfig.json」の形のまま。閉じた .mjs の lib は JSDoc で strict の型検査を通す)
 - 本体と引数: `jsdoc.mjs`
+
+#### declare — 自分の lib に package.json と tsconfig.json を書く
+
+```
+pnpm check lib-package -- declare [<名前>]... [--apply] [--json]
+```
+
+- 対象 = `src/lib/CATALOG.md` の自分の節(repo.json の repo_id)にある、package.json の無い lib(名前を書かなければ全部)。宣言の無い lib は門の検査が `undeclared` で落とすので、fork が自前の lib を閉じる入り口
+- 拒む(書かない): 祖先の lib(自分の節に無い。宣言は持ち主が行う → /order <直の親>)・宣言済みの lib・自分の節に行の無い lib
+- 推して書く物:
+  - `exports`: lib の中のファイルの名前から。`index.*` → `.`、`server.*` / `server/index.*` → `./server`、`client…` → `./client`、`node…` → `./node`(入口の名前は 4 つだけ)
+  - `libs` / `peers`: lib のファイル(テストも)の import の先から。`src/lib/<他>` → libs、`src/components` → peers `components`
+  - tsconfig.json: その宣言の閉包で、門の検査が期待する形(下の API「lib の tsconfig.json」)
+- 決めきれない所は一覧に出す(書く物は変えない。1 つでもあれば exit 1):
+  - `inner`: 外から入口でない中のファイルを読む import。読み手の場所から入口の候補を添える(scripts・eslint-rules・servers → `./node`、services/server・app/api・server の名 → `./server`、ほか → `.`)。読む名前をその入口から出し、codemod で直す
+  - `outside`: lib が読めない所(features・app・hooks・utils・`@/config` など)を読む import。引数・注入で受けるか、値なら設定(src/lib/README.md 手順 1・6)
+  - `noEntry`: 入口のファイルが 1 つも無い
+- 既定は dry-run、`--apply` で書く(tsconfig.json が既にあれば上書き)、`--json` で機械向け `{ apply, plans: [{ lib, status, reason?, packageJson?, tsconfig?, unresolved? }] }`
+- fork の順番: 取り込み → `declare`(dry-run で決めきれない所を見て直す → `--apply`)→ `codemod --apply` → `pnpm check lib-package`
+- 本体と引数: `declare.mjs`
 
 ## API
 
@@ -176,7 +197,7 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 - 合成器そのもの(`src/lib/defineConfig` = `COMPOSER_LIB`)には掛けない
 - 設定の合成でない define(crud の defineHiddenColumns など)は当たらない。別の名前の自前の合成は見えない(名前と置き場で見るため)
 
-- 入口 `check.mjs`(gate.json の check)が `checkLibs(root)`(→ `{ checked, skipped, undeclared, problems }`)・`libReport(root)`(→ `{ rows, summary }`)を呼ぶ。部品: `closed.mjs`(状態・中を読む import・設定・合成)・`standalone.mjs`(閉包・tsconfig.json の期待と比べ・型検査)・`configSlots.mjs`(設定の口: 値と描画専用の上書きの置き場と指定子。lint entry/only-entries も読む)・`sideEffects.mjs`・`entries.mjs`(入口の中身)・動きの `moved.mjs` / `codemod.mjs` / `renames.mjs`(改名表 `renames.json`)
+- 入口 `check.mjs`(gate.json の check)が `checkLibs(root)`(→ `{ checked, skipped, undeclared, problems }`)・`libReport(root)`(→ `{ rows, summary }`)を呼ぶ。部品: `closed.mjs`(状態・中を読む import・設定・合成)・`standalone.mjs`(閉包・tsconfig.json の期待と比べ・型検査)・`configSlots.mjs`(設定の口: 値と描画専用の上書きの置き場と指定子。lint entry/only-entries も読む)・`sideEffects.mjs`・`entries.mjs`(入口の中身)・動きの `declare.mjs`(宣言の道具)・ `moved.mjs` / `codemod.mjs` / `renames.mjs`(改名表 `renames.json`)
 
 ## Verification
 
@@ -186,4 +207,5 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 - `moved.test.mjs` moved の動き(一時フォルダの git repo)
 - `codemod.test.mjs` codemod の動き(名前ごとの割り・改名表の export / method の行と、別の型の同じ名前を触らないこと)
 - `jsdoc.test.mjs` jsdoc の動き(一時フォルダの小さな repo)
+- `declare.test.mjs` declare の動き(一時フォルダの小さな fork: 自前の lib に package.json と tsconfig.json が書けて検査の undeclared が消える・祖先の lib と宣言済みの lib は拒む・決めきれない所の一覧)
 - `delivery.test.mjs` @lib-config の 1 行と、上書きが無い時に tsc・tsx・pnpm test が止まること
