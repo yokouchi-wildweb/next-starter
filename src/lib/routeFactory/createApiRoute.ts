@@ -8,9 +8,8 @@ import {
   type AuditActorType,
   type AuditContext,
 } from "@/lib/audit";
-import type { RecaptchaAction } from "@/lib/recaptcha/constants";
-import { RECAPTCHA_V2_INTERNALS, RECAPTCHA_V3_INTERNALS, RECAPTCHA_DEBUG } from "@/lib/recaptcha/constants";
-import { verifyRecaptcha, verifyRecaptchaV2 } from "@/lib/recaptcha/server";
+import type { RecaptchaAction } from "@/lib/recaptcha";
+import { RECAPTCHA_DEBUG, RECAPTCHA_V2_INTERNALS, RECAPTCHA_V3_INTERNALS, verifyRecaptcha, verifyRecaptchaV2 } from "@/lib/recaptcha/server";
 import { isDomainError, toDomainErrorBody } from "@/lib/errors";
 import { readClientIp } from "@/lib/request";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";

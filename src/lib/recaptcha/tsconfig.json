@@ -1,0 +1,23 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/components/*": [
+        "../../components/*"
+      ],
+      "@/lib/defineConfig": [
+        "../defineConfig"
+      ],
+      "@/lib/defineConfig/*": [
+        "../defineConfig/*"
+      ],
+      "@lib-config/recaptcha": [
+        "../../config/lib/recaptcha.config.ts"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}

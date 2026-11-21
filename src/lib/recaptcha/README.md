@@ -2,7 +2,7 @@
 
 ## Overview
 
-Google reCAPTCHA v3 / v2 ハイブリッドによるボット対策ライブラリ(client `@/lib/recaptcha`、server `@/lib/recaptcha/server`、定数 `@/lib/recaptcha/constants`)。
+Google reCAPTCHA v3 / v2 ハイブリッドによるボット対策ライブラリ(閉じた lib: 入口 `@/lib/recaptcha` = client の部品・フック・トークン・アクション名・サイトキー・設定の型、`@/lib/recaptcha/server` = 検証・版ごとの設定(シークレット)・デバッグの設定。キーは上書き `src/config/lib/recaptcha.config.ts` から受け、lib の中では env を読まない)。
 
 - **v3**: スコアベースの自動判定（ユーザー操作不要）
 - **v2**: チャレンジベースの手動認証（v3で中間スコアの場合のフォールバック）
@@ -25,6 +25,8 @@ NEXT_PUBLIC_RECAPTCHA_V2_SITE_KEY=your_v2_site_key_here
 RECAPTCHA_V2_SECRET_KEY=your_v2_secret_key_here
 ```
 
+上流の上書き `src/config/lib/recaptcha.config.ts` がこの env の名前を読む(サイトキーは `process.env.NEXT_PUBLIC_*` の字面で client に埋め込まれ、シークレットは関数で `./server` の中で使う時に読む)。別の env の名前で読みたい fork は上書きの右辺を変える。
+
 キーは [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin/create) から取得。
 v3 と v2 は別々のサイトキー(同じキーは使えない)。
 
@@ -39,8 +41,7 @@ v3 と v2 は別々のサイトキー(同じキーは使えない)。
 "use client";
 
 import { Button } from "@/components/Button/Button";
-import { getRecaptchaToken, RecaptchaBadge, useRecaptcha } from "@/lib/recaptcha";
-import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
+import { getRecaptchaToken, RECAPTCHA_ACTIONS, RecaptchaBadge, useRecaptcha } from "@/lib/recaptcha";
 
 function MyForm() {
   // reCAPTCHA が無効(env 未設定)でも Provider が無くても落ちない(executeRecaptcha は undefined)
@@ -74,7 +75,7 @@ function MyForm() {
 
 ```ts
 import { createApiRoute } from "@/wiring/apiRoute";
-import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
+import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha";
 
 export const POST = createApiRoute(
   {
@@ -189,6 +190,9 @@ export const RECAPTCHA_ACTIONS = {
 | `RecaptchaV2Challenge` | v2チャレンジモーダルコンポーネント |
 | `useRecaptchaV2Challenge` | v2チャレンジ状態管理フック |
 | `isV2ChallengeRequired` | エラーがv2チャレンジ要求かを判定 |
+| `RECAPTCHA_ACTIONS` / `RecaptchaAction` | アクション名の定数と型 |
+| `recaptchaSiteKey` / `hasRecaptchaSiteKey` | 版(`"v3"` / `"v2"`)のサイトキーと、有効か(20 文字以上) |
+| `RecaptchaOverride` / `RecaptchaConfig` / `RecaptchaKeys` | 設定の上書きと設定の型 |
 
 ### サーバー用 (`@/lib/recaptcha/server`)
 
@@ -198,14 +202,15 @@ export const RECAPTCHA_ACTIONS = {
 | `verifyRecaptchaV2` | v2トークンを検証 |
 | `RecaptchaVerifyResult` | v3検証結果の型 |
 | `RecaptchaV2VerifyResult` | v2検証結果の型 |
+| `RECAPTCHA_V3_INTERNALS` / `RECAPTCHA_V2_INTERNALS` | 版ごとの設定(サイトキー・シークレット・検証の URL・有効か)。シークレットは読むたびに上書きの関数を呼ぶ |
+| `RECAPTCHA_DEBUG` | デバッグの設定(ログ・スコアの上書き) |
 
-### 定数 (`@/lib/recaptcha/constants`)
+### 設定(上書き `src/config/lib/recaptcha.config.ts`)
 
-| 名前 | 説明 |
+| キー | 説明 |
 |------|------|
-| `RECAPTCHA_ACTIONS` | アクション名の定数 |
-| `RECAPTCHA_V3_INTERNALS` | v3 の内部の設定 |
-| `RECAPTCHA_V2_INTERNALS` | v2 の内部の設定 |
+| `v3.siteKey` / `v2.siteKey` | サイトキー(公開)。上書きに `process.env.NEXT_PUBLIC_RECAPTCHA_*` の字面で書く。既定 `""` = 未設定 |
+| `v3.secretKey` / `v2.secretKey` | シークレットを返す引数なしの関数(サーバーだけ。`./server` の中で使う時に呼ぶ)。既定 = 未設定 |
 
 ## Internals
 
