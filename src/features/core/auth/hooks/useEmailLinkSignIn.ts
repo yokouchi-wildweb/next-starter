@@ -5,7 +5,7 @@
 // メールリンクでサインインするためのカスタムフック
 import { useCallback, useState } from "react";
 
-import { signInWithEmailLinkClient } from "@/lib/firebase/client/signInWithEmailLinkClient";
+import { signInWithEmailLinkClient } from "@/lib/firebase/client";
 import type { HttpError } from "@/lib/errors";
 
 /**

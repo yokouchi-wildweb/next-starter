@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 
 let firebaseConfigured = false;
 const customTokenCalls: Array<{ uid: string; claims: unknown }> = [];
-mock.module("@/lib/firebase/server/app", {
+mock.module("@/lib/firebase/server", {
   namedExports: {
     isFirebaseServerConfigured: () => firebaseConfigured,
     getServerAuth: () => {

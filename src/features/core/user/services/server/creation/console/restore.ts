@@ -3,7 +3,7 @@
 import type { User } from "@/features/core/user/entities";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
-import { getServerAuth } from "@/lib/firebase/server/app";
+import { getServerAuth } from "@/lib/firebase/server";
 import { withUserNameGuard } from "@/features/core/user/services/server/helpers/nameAvailability";
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { createHash } from "@/utils/hash";

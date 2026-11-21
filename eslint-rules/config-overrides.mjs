@@ -4,12 +4,14 @@
 // 2 つの規則(設定 D34・D35・D38・D91・L1.19・L1.31)。
 // 全 Tier error(新しいフォルダだけが対象なので縮む表は無い)。置き方の決まり: src/config/README.md
 //
-// - literal-only(上書きファイルに掛ける): 値はリテラルだけ。読んでよいのは
+// - literal-only(上書きファイルに掛ける): 値はリテラル、または env を読むだけの関数(下)。読んでよいのは
 //     型だけの import、process.env、@/business の値、@/lib/appEnv の段階の判定の引数なしの呼び出し(isProduction() など、設定 D87)、
 //     持ち主が自分の config.ts(描画用の上書きは config.ui.ts)で `export const overrideImports = [...] as const` と宣言した指定子(前方一致)の値。
 //   ファイルの文は import・export default・型の宣言(export type Extra など)だけ。関数・呼び出し・new・変数・export const は書けない。
 //   値の中で許す式: object / array(spread・計算されたキー・メソッド無し)・文字列 / 数 / 真偽 / null / undefined・式の無い template・
 //   単項の - + !・as const・satisfies・process.env.<名前>・許した import の名前とその . の先・比較(=== !== == !=)と ?? || &&・条件式(env で切り替える)。
+//   env を読むだけの関数: 引数なしの矢印関数で、本体が式の process.env.<名前>、またはそれを ?? / || でつないだ形(右端だけリテラルの既定可)。
+//   例 `serviceAccountKey: () => process.env.MY_SERVICE_ACCOUNT_KEY`(呼んだ時に読む値。lib は server の中でだけ呼ぶ、設定 D249)
 //   持ち主が `export const overrideLoaders = [...] as const` と宣言した指定子(書体の next/font など)から読んだ名前だけ、
 //   トップレベルの `const <名前> = <ローダー>(<リテラルの引数>)` で呼べ、その名前は値として読める。
 //   宣言は持ち主のファイルにだけ効く(上書きの中に overrideImports・overrideLoaders を書いても広がらない)。
@@ -94,6 +96,29 @@ function isProcessEnv(node) {
   return node.type === "MemberExpression" && !node.computed && node.property.name === "env" && node.object.type === "Identifier" && node.object.name === "process";
 }
 
+/** 関数の中に置けるリテラル(既定の値): 文字列・数・真偽・null・式の無い template・undefined */
+const isPlainLiteral = (node) =>
+  (node.type === "Literal" && !node.regex) ||
+  (node.type === "TemplateLiteral" && node.expressions.length === 0) ||
+  (node.type === "Identifier" && node.name === "undefined");
+
+/** process.env.X(X は名前か文字列) */
+const isEnvRead = (node) =>
+  node.type === "MemberExpression" &&
+  isProcessEnv(node.object) &&
+  (!node.computed || (node.property.type === "Literal" && typeof node.property.value === "string"));
+
+/** process.env.X、またはそれを ?? / || でつないだ式(右端だけリテラルの既定可) */
+function isEnvChain(node) {
+  if (isEnvRead(node)) return true;
+  if (node.type !== "LogicalExpression" || !["??", "||"].includes(node.operator)) return false;
+  return isEnvChain(node.left) && (isEnvChain(node.right) || isPlainLiteral(node.right));
+}
+
+/** env を読むだけの関数: () => <isEnvChain>(引数なし・async でない・本体が式) */
+const isEnvReader = (node) =>
+  node.type === "ArrowFunctionExpression" && node.params.length === 0 && !node.async && node.expression && isEnvChain(node.body);
+
 /**
  * 値の式を確かめる。許さない所の node を返す(全部よければ null)
  * @param {Set<string>} allowedNames 値として読める import の名前
@@ -145,6 +170,8 @@ function firstNonLiteral(node, allowedNames, stageNames = new Set()) {
       return next(node.left) ?? next(node.right);
     case "ConditionalExpression":
       return next(node.test) ?? next(node.consequent) ?? next(node.alternate);
+    case "ArrowFunctionExpression":
+      return isEnvReader(node) ? null : node;
     default:
       return node;
   }
@@ -166,7 +193,7 @@ const isTypeDeclaration = (node) => node && ["TSTypeAliasDeclaration", "TSInterf
 const literalOnly = {
   meta: {
     type: "problem",
-    docs: { description: "上書きファイルは値のリテラルだけ(読めるのは process.env・@/business・持ち主が宣言した指定子、src/config/README.md)" },
+    docs: { description: "上書きファイルは値のリテラルか env を読むだけの関数(読めるのは process.env・@/business・持ち主が宣言した指定子、src/config/README.md)" },
     schema: [{ type: "object", properties: { root: { type: "string" } }, additionalProperties: false }],
     messages: {
       noOwner: "{{file}}: 持ち主の地区が無い上書き。pnpm check config-overrides で直し方を見る(src/config/README.md)",
@@ -175,7 +202,7 @@ const literalOnly = {
       sideEffect: '"{{source}}": 上書きに副作用の import は書けません',
       stageImport: "@/lib/appEnv から上書きで読めるのは段階の判定 {{names}} だけです(引数なしで呼ぶ、設定 D87)",
       statement: "上書きのファイルに書けるのは import・export default・型の宣言(export type Extra など)だけです。値は export default の中にリテラルで書きます",
-      nonLiteral: "上書きの値はリテラルだけです(関数・呼び出し・new・変数・式の template は書けない。読めるのは process.env・@/business・段階の判定 isProduction() など・宣言した import)",
+      nonLiteral: "上書きの値はリテラルか env を読むだけの関数(() => process.env.X、?? / || でつなげる)です(他の関数・呼び出し・new・変数・式の template は書けない。読めるのは process.env・@/business・段階の判定 isProduction() など・宣言した import)",
       noDefault: "上書きは export default で値を 1 つ出します(空なら export default {} satisfies <持ち主の上書きの型>)",
     },
   },

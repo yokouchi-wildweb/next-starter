@@ -6,7 +6,7 @@
 
 import { useCallback } from "react";
 import { getRedirectResult, signInWithRedirect, type AuthProvider } from "firebase/auth";
-import { auth } from "@/lib/firebase/client/app";
+import { auth } from "@/lib/firebase/client";
 import { log } from "@/utils/log";
 import type { StorageClient } from "@/lib/browserStorage";
 import { markRedirectAttempted, hasRedirectAttempt } from "./utils";

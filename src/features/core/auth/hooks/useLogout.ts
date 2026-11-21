@@ -10,7 +10,7 @@ import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { logout as logoutService } from "@/features/core/auth/services/client/logout";
 import type { HttpError } from "@/lib/errors";
 import { isHttpError } from "@/lib/errors";
-import { auth } from "@/lib/firebase/client/app";
+import { auth } from "@/lib/firebase/client";
 
 type UseLogoutOptions = {
   redirectTo?: string;

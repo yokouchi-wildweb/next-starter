@@ -4,7 +4,7 @@
 
 import { checkActionCode } from "firebase/auth";
 
-import { auth } from "@/lib/firebase/client/app";
+import { auth } from "./app";
 
 /**
  * Firebase Auth のアクションコードが有効かどうかを判定します。

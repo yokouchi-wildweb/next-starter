@@ -8,7 +8,7 @@ import {
   updatePassword,
 } from "firebase/auth";
 
-import { auth } from "@/lib/firebase/client/app";
+import { auth } from "@/lib/firebase/client";
 
 type UseChangePasswordParams = {
   email: string | null;

@@ -31,7 +31,7 @@ mock.module(pathToFileURL(require.resolve("next/navigation")).href, {
 mock.module("@/features/core/auth/hooks/useAuthSession", {
   namedExports: { useAuthSession: () => ({ isAuthenticated: authenticated }) },
 });
-mock.module("@/lib/firebase/client/applyEmailChange", {
+mock.module("@/lib/firebase/client", {
   namedExports: {
     getEmailChangeInfo: async () => ({ newEmail: "new@example.test" }),
     applyEmailChange: async (code: string) => {

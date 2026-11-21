@@ -8,7 +8,7 @@ import { signInWithCustomToken } from "firebase/auth";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { localLogin } from "@/features/core/auth/services/client/localLogin";
-import { auth, isFirebaseClientConfigured } from "@/lib/firebase/client/app";
+import { auth, isFirebaseClientConfigured } from "@/lib/firebase/client";
 import { err } from "@/lib/errors";
 
 type AdminLoginParams = {

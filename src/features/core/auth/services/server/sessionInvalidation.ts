@@ -6,7 +6,7 @@ import { auditLogger } from "@/features/core/auditLog/services/server";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { base as userBase } from "@/features/core/user/services/server/drizzleBase";
 import { db } from "@/lib/drizzle";
-import { revokeAuthTokens } from "@/lib/firebase/server/authAdmin";
+import { revokeAuthTokens } from "@/lib/firebase/server";
 
 /**
  * 全セッション失効の発火理由 (監査ログ metadata.reason に格納される値)。

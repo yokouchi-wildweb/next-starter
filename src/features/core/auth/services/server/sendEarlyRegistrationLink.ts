@@ -2,7 +2,7 @@
 
 import type { ActionCodeSettings } from "firebase-admin/auth";
 
-import { getServerAuth } from "@/lib/firebase/server/app";
+import { getServerAuth } from "@/lib/firebase/server";
 import { business } from "@/business";
 import { message as earlyRegistrationMessage } from "@/features/core/auth/messages/earlyRegistration";
 import { sendMailMessage } from "@/features/core/auth/services/server/sendMailMessage";

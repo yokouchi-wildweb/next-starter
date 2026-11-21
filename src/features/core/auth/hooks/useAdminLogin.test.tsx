@@ -33,7 +33,7 @@ mock.module(pathToFileURL(require.resolve("firebase/auth")).href, {
     },
   },
 });
-mock.module("@/lib/firebase/client/app", {
+mock.module("@/lib/firebase/client", {
   namedExports: { auth: {}, isFirebaseClientConfigured: () => clientConfigured },
 });
 mock.module("@/features/core/auth/services/client/localLogin", {

@@ -11,7 +11,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { auth } from "@/lib/firebase/client/app";
+import { auth } from "@/lib/firebase/client";
 
 import { DefaultValues, FormSchema, type FormValues } from "./registration/oauthFormEntities";
 import { oauthRegistrationVariant } from "./registration/submitFlow";

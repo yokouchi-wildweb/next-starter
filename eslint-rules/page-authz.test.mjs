@@ -20,7 +20,7 @@ test("classifyLayoutImport: services/server・DB(entities/drizzle を含む)を�
   assert.equal(classifyLayoutImport("@/lib/drizzle"), "db");
   assert.equal(classifyLayoutImport("@/lib/drizzle/client"), "db");
   assert.equal(classifyLayoutImport("drizzle-orm"), "db");
-  assert.equal(classifyLayoutImport("@/lib/firebase/server/app"), "db");
+  assert.equal(classifyLayoutImport("@/lib/firebase/server"), "db");
   assert.equal(classifyLayoutImport("firebase-admin/firestore"), "db");
   assert.equal(classifyLayoutImport("./_screen/loader"), "loader");
   assert.equal(classifyLayoutImport("@/app/admin/setup/_screen/loader"), "loader");
@@ -36,7 +36,7 @@ test("classifyLayoutImport: services/server・DB(entities/drizzle を含む)を�
   assert.equal(classifyLayoutImport("@/features/core/user/constants"), null);
   assert.equal(classifyLayoutImport("@/app/admin/(protected)/_layout/AdminProtectedLayout"), null);
   assert.equal(classifyLayoutImport("@/features/core/auth/components/AuthSessionProvider"), null);
-  assert.equal(classifyLayoutImport("@/lib/firebase/client/app"), null);
+  assert.equal(classifyLayoutImport("@/lib/firebase/client"), null);
   assert.equal(classifyLayoutImport("./uploader"), null);
 });
 

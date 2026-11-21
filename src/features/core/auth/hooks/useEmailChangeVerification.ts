@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { getEmailChangeInfo, applyEmailChange } from "@/lib/firebase/client/applyEmailChange";
+import { getEmailChangeInfo, applyEmailChange } from "@/lib/firebase/client";
 import { userClient } from "@/features/core/user/services/client/userClient";
 import { isHttpError } from "@/lib/errors";
 

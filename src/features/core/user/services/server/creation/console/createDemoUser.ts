@@ -11,8 +11,8 @@ import {
   type UserRoleType,
 } from "@/features/core/user/constants";
 import { DomainError } from "@/lib/errors";
-import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
-import { getServerAuth } from "@/lib/firebase/server/app";
+import { hasFirebaseErrorCode } from "@/lib/firebase";
+import { getServerAuth } from "@/lib/firebase/server";
 import { db } from "@/lib/drizzle";
 import { assertEmailAvailability } from "@/features/core/user/services/server/helpers/assertEmailAvailability";
 import { findSoftDeletedUser } from "@/features/core/user/services/server/finders/findSoftDeletedUser";

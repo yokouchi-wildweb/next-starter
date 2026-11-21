@@ -23,7 +23,7 @@ import { guardEntry } from "../../runner/guard";
 // 共通の守り: バケットの設定を書くので書く入口
 guardEntry({ write: true, what: "pnpm ops storage setup" });
 
-import { getServerStorage } from "@/lib/firebase/server/app";
+import { getServerStorage } from "@/lib/firebase/server";
 
 import { formatIamGrantGuide, resolveIamGrantTarget } from "./iam/iamGrant";
 

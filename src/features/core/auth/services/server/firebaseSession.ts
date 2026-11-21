@@ -10,7 +10,7 @@ import { userService } from "@/features/core/user/services/server/userService";
 import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
-import { getServerAuth } from "@/lib/firebase/server/app";
+import { getServerAuth } from "@/lib/firebase/server";
 import { SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 
 import { assertAuthenticatedAfterInvalidation } from "./session/invalidationBoundary";

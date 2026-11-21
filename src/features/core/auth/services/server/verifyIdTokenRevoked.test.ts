@@ -14,7 +14,7 @@ import { DomainError } from "@/lib/errors";
 const calls: unknown[][] = [];
 let revoked = false;
 
-mock.module("@/lib/firebase/server/app", {
+mock.module("@/lib/firebase/server", {
   namedExports: {
     getServerAuth: () => ({
       verifyIdToken: async (...args: unknown[]) => {

@@ -249,7 +249,7 @@ test("config: lib の小物の移行(shelf-s3)の旧パスは置き換え先を�
   const eslint = new ESLint({ cwd: repoRoot, overrideConfigFile: path.join(repoRoot, "eslint.config.mjs") });
   for (const [from, to] of [
     ["@/utils/object", "@/lib/crud/utils"],
-    ["@/utils/json", "@/lib/firebase/serviceAccountKey"],
+    ["@/utils/json", "@/lib/firebase"],
     ["@/hooks/useAppStatus", "@/lib/appStatus"],
     ["@/components/AppStatusGuard", "@/lib/appStatus"],
     ["@/components/Functional/DarkModeSwitch", "@/lib/siteTheme"],

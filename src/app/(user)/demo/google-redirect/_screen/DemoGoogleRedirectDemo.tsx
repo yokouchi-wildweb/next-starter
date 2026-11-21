@@ -23,7 +23,7 @@ import { PageTitle } from "@/components/TextBlocks/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { AppImage } from "@/components/Media/AppImage";
-import { auth } from "@/lib/firebase/client/app";
+import { auth } from "@/lib/firebase/client";
 
 // --------------------------------------------------------------
 // 型定義

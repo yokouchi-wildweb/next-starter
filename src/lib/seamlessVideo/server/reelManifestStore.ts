@@ -4,7 +4,7 @@
 // 実機テスト用に「最新の 1 件」を固定キーで保持し、共有 URL から常に最新を再生できるようにする。
 // ※ サーバー専用。クライアントから import しないこと(index.ts では再エクスポートしない)。
 
-import { getServerFirestore } from "@/lib/firebase/server/app";
+import { getServerFirestore } from "@/lib/firebase/server";
 
 import type { ReelManifest } from "../manifest";
 

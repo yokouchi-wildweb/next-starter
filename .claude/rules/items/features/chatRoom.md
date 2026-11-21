@@ -10,7 +10,7 @@ change: placement → src/config/features/chatRoom.config.ts (attachment content
 rules:
 using:
 - chat_indexes: create the Firestore composite indexes of Usage「Firestore 複合インデックス」 before use (rooms list, type filter, admin list)
-- chat_client_only: write chat_rooms / messages only through the chatRoom clients, never with the default fstore (@/lib/firebase/client/app): its uid is not users.id for email / OAuth users
+- chat_client_only: write chat_rooms / messages only through the chatRoom clients, never with the default fstore (@/lib/firebase/client): its uid is not users.id for email / OAuth users
 - chat_rules: own room types or fields → add them to your own firestore.rules (the shipped example passes only the built-in ones)
 - chat_attachment_view: show attachments through resolveStorageSrc / AppImage; list previews switch on `type`, never print the ref
 - chat_timestamp_null: date displays handle a null serverTimestamp field

@@ -2,7 +2,7 @@
 // ハードデリート: Firebase Auth と DB レコードを物理削除し、監査ログを記録。
 // アバターは users の storage binding が物理削除と同じ TX で外して消す。その人の未使用のアップロードは削除の後に取り消す（D41）
 
-import { deleteAuthUser } from "@/lib/firebase/server/authAdmin";
+import { deleteAuthUser } from "@/lib/firebase/server";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { storageObjectService } from "@/features/core/storageObject/services/server/storageObjectService";
 import { DomainError } from "@/lib/errors";

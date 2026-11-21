@@ -1,15 +1,28 @@
 // src/lib/firebase/client/unconfigured.test.ts
 //
-// クライアント側 Firebase が未設定（NEXT_PUBLIC_FIREBASE_* が空）のときの契約の検査（Firebase 不要）。
+// クライアント側 Firebase が未設定（設定の apiKey / projectId が空 = NEXT_PUBLIC_FIREBASE_* が空）のときの契約の検査（Firebase 不要）。
 // import だけでは落ちず、`auth` / `fstore` に触れた時点で FirebaseNotConfiguredError("client") を投げる。
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
-import { before, test } from "node:test";
+import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 
 import { FirebaseNotConfiguredError } from "../errors";
 
-process.env.NEXT_PUBLIC_FIREBASE_API_KEY = "";
-process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = "";
+// 設定を未設定(公開の値が空)に差し替える(.env の値に左右されない)
+mock.module("../config", {
+  namedExports: {
+    firebaseConfig: {
+      apiKey: "",
+      authDomain: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: "",
+      measurementId: "",
+      serviceAccountKey: () => undefined,
+    },
+  },
+});
 
 let client: typeof import("./app");
 before(async () => {

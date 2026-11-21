@@ -3,7 +3,7 @@
 
 import type { UserRecord } from "firebase-admin/auth";
 
-import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
+import { hasFirebaseErrorCode } from "../errors";
 import { getServerAuth } from "./app";
 
 /**

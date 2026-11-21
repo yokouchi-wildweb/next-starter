@@ -18,7 +18,7 @@ const firebaseCalls: string[] = [];
 const issued: string[] = [];
 let currentUser: Record<string, unknown> | null = null;
 
-mock.module("@/lib/firebase/server/app", {
+mock.module("@/lib/firebase/server", {
   namedExports: {
     // checkRevoked=true でも通る = Firebase の取り消しが失敗した(またはまだ届いていない)状態
     getServerAuth: () => ({

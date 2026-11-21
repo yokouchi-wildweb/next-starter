@@ -5,7 +5,7 @@
 import { afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import { FirebaseNotConfiguredError } from "@/lib/firebase/errors";
+import { FirebaseNotConfiguredError } from "@/lib/firebase";
 import { withMediaRetryQuery } from "./client/usePrivateMediaRecovery";
 
 import {

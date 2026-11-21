@@ -14,8 +14,8 @@ import {
   type ConfirmationResult,
   type User,
 } from "firebase/auth";
-import { auth } from "@/lib/firebase/client/app";
-import { getFirebasePhoneAuthErrorMessage } from "@/lib/firebase/errors";
+import { auth } from "@/lib/firebase/client";
+import { getFirebasePhoneAuthErrorMessage } from "@/lib/firebase";
 import {
   checkPhoneAvailability,
   verifyPhone,

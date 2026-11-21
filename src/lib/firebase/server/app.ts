@@ -6,20 +6,20 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 
-import { normalizeJsonString } from "../serviceAccountKey";
-
+import { firebaseConfig } from "../config";
 import { FirebaseNotConfiguredError } from "../errors";
+import { normalizeJsonString } from "../serviceAccountKey";
+import { firebaseAdminOptions, readServiceAccountKey } from "./options";
 
 /**
- * サーバー側 Firebase Admin が設定済み（MY_SERVICE_ACCOUNT_KEY が非空）かどうか。
+ * サーバー側 Firebase Admin が設定済み（サービスアカウントの鍵 = 上書きの serviceAccountKey() が非空）かどうか。
  *
  * `pnpm ops setup env` 直後は空で、その状態でも dev サーバーが起動することを手順書で約束している。
  * Firebase Admin を要する処理に未設定で到達すると FirebaseNotConfiguredError("server") が
  * 即座に投げられる（遅延初期化のため import だけでは失敗しない）。
  * 判定は「未設定」のみ。設定済みで初期化に失敗した場合は従来どおり理由付きの Error になる。
  */
-export const isFirebaseServerConfigured = (): boolean =>
-  (process.env.MY_SERVICE_ACCOUNT_KEY ?? "").trim().length > 0;
+export const isFirebaseServerConfigured = (): boolean => readServiceAccountKey(firebaseConfig).length > 0;
 
 /** 未設定エラーは各層の「理由付き再 throw」で包まず、型を保ったまま素通しする */
 function rethrowIfNotConfigured(error: unknown): void {
@@ -27,10 +27,11 @@ function rethrowIfNotConfigured(error: unknown): void {
 }
 
 function loadRawServiceAccountKey(): string {
-  if (!isFirebaseServerConfigured()) {
+  const key = readServiceAccountKey(firebaseConfig);
+  if (!key) {
     throw new FirebaseNotConfiguredError("server");
   }
-  return process.env.MY_SERVICE_ACCOUNT_KEY!.trim();
+  return key;
 }
 
 function createCredential() {
@@ -76,14 +77,8 @@ function ensureServerApp() {
   }
   const options: AppOptions = {
     credential,
+    ...firebaseAdminOptions(firebaseConfig),
   };
-
-  if (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
-    options.projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  }
-  if (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) {
-    options.storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-  }
 
   try {
     return initializeApp(options, ADMIN_APP_NAME);
