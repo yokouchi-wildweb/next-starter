@@ -216,14 +216,17 @@ export function findForkOwnedDirFiles(files) {
 const PAGE_CONFIG_EXPORTS = ["metadata", "viewport", "preferredRegion", "maxDuration"];
 
 /**
- * cacheComponents と両立しない segment config の名(書かない)。可否は lint segment-config/cc-incompatible が判じる
- * (上流 error・fork warn)ので、切り替えの形の検査では取り除いて形だけを見る(lint と二重に落とさない)。
- * cacheComponents を有効にする区切りで、ここからも外して形の違反にする
+ * cacheComponents と両立しない segment config の名(書かない)。切り替えの形の検査でも違反にする
+ * (lint segment-config/cc-incompatible と同じ名。全 Tier error)
  */
 const CC_INCOMPATIBLE_SEGMENT_CONFIG = ["dynamic", "dynamicParams", "fetchCache", "revalidate", "runtime"];
 
-/** 切り替えの形の検査が取り除く設定 export の名前(書ける物と、lint が判じる 5 つ) */
-const STRIPPED_CONFIG_EXPORTS = [...PAGE_CONFIG_EXPORTS, ...CC_INCOMPATIBLE_SEGMENT_CONFIG];
+/**
+ * cacheComponents と両立しない segment config の問題文
+ * @param {string} name
+ */
+const ccIncompatibleProblem = (name) =>
+  `segment config \`${name}\` は書かない(cacheComponents と両立しない。lint segment-config/cc-incompatible、消すだけでよい)`;
 
 /** Screen のファイルから default と一緒に re-export してよい名前(Next が実行時に読む値・関数) */
 export const REEXPORTABLE_FROM_SCREEN = ["metadata", "generateMetadata", "viewport", "generateViewport"];
@@ -262,12 +265,13 @@ export function findBalancedEnd(src, start, open, close) {
 }
 
 /**
- * `export const metadata = {...};` / `export const dynamic = "force-dynamic";` などの設定 export を 1 つ取り除く
+ * `export const metadata = {...};` などの設定 export を 1 つ取り除く(names = 取り除く名前、既定は書ける設定)
  * @param {string} src
+ * @param {string[]} [names]
  * @returns {string | null} 取り除いた後の中身。無ければ null
  */
-function stripConfigExport(src) {
-  const re = new RegExp(`export\\s+(const|let)\\s+(${STRIPPED_CONFIG_EXPORTS.join("|")})\\b[^=]*=\\s*`);
+function stripConfigExport(src, names = PAGE_CONFIG_EXPORTS) {
+  const re = new RegExp(`export\\s+(const|let)\\s+(${names.join("|")})\\b[^=]*=\\s*`);
   const m = re.exec(src);
   if (!m) return null;
   const valueStart = m.index + m[0].length;
@@ -348,7 +352,8 @@ const SWITCH_KINDS = {
 /**
  * page.tsx / layout.tsx を解析し、1 行スイッチ形かどうかと参照先を返す(共通の本体)。
  * 許されるもの: `./<dir>/<X>` からの `export { <Name> as default[, metadata, generateMetadata] }` 1 つ、
- * 設定 export(metadata / dynamic 等)、generateMetadata、それらに必要な import。
+ * 書ける設定 export(metadata / viewport / preferredRegion / maxDuration)、generateMetadata、それらに必要な import。
+ * dynamic 等 cacheComponents と両立しない 5 つの名は違反。
  * @param {string} source ファイルの内容
  * @param {"page" | "layout"} kind
  * @returns {{ problems: string[], target: SwitchTarget | null }}
@@ -387,7 +392,9 @@ function parseSwitchModule(source, kind) {
       if (REEXPORTABLE_FROM_SCREEN.includes(spec)) continue;
       if (spec === "default") {
         problems.push(`${targetLabel} は default export しない。\`export { ${example} as default } from ...\` の形で束ねる`);
-      } else if (STRIPPED_CONFIG_EXPORTS.includes(spec)) {
+      } else if (CC_INCOMPATIBLE_SEGMENT_CONFIG.includes(spec)) {
+        problems.push(ccIncompatibleProblem(spec));
+      } else if (PAGE_CONFIG_EXPORTS.includes(spec)) {
         problems.push(`\`${spec}\` は ${targetLabel} から re-export できない(Next が静的解析するため ${fileLabel} 自体に書く)`);
       } else {
         problems.push(`${targetLabel} から re-export できる名前は default と ${REEXPORTABLE_FROM_SCREEN.join(" / ")} だけ(${spec})`);
@@ -404,11 +411,16 @@ function parseSwitchModule(source, kind) {
     }
   }
 
-  // 3. 設定 export と generateMetadata は取り除く(中身は検査しない)
+  // 3. cacheComponents と両立しない segment config は違反として取り除く(残りの検査で二重に出さない)
+  const ccNames = new RegExp(`export\\s+(?:const|let)\\s+(${CC_INCOMPATIBLE_SEGMENT_CONFIG.join("|")})\\b`, "g");
+  for (const [, name] of src.matchAll(ccNames)) problems.push(ccIncompatibleProblem(name));
+  for (let next = stripConfigExport(src, CC_INCOMPATIBLE_SEGMENT_CONFIG); next !== null; next = stripConfigExport(src, CC_INCOMPATIBLE_SEGMENT_CONFIG)) src = next;
+
+  // 4. 書ける設定 export と generateMetadata は取り除く(中身は検査しない)
   for (let next = stripConfigExport(src); next !== null; next = stripConfigExport(src)) src = next;
   for (let next = stripGenerateMetadata(src); next !== null; next = stripGenerateMetadata(src)) src = next;
 
-  // 4. 残りは空でなければならない
+  // 5. 残りは空でなければならない
   const remainder = src.replace(/;/g, "").trim();
   if (remainder) {
     problems.push(`許可されない記述が残っている: ${remainder.split("\n")[0].trim()}`);
@@ -419,7 +431,8 @@ function parseSwitchModule(source, kind) {
 /**
  * page.tsx を解析し、スイッチ形かどうかと参照先を返す。
  * 許されるもの: `./_screen/<X>` または `./_components/<X>` からの `export { <Name> as default[, metadata, generateMetadata] }` 1 つ、
- * 設定 export(metadata / dynamic 等)、generateMetadata、それらに必要な import。
+ * 書ける設定 export(metadata / viewport / preferredRegion / maxDuration)、generateMetadata、それらに必要な import
+ * (dynamic 等 cacheComponents と両立しない 5 つの名は違反)。
  * @param {string} source page.tsx の内容
  * @returns {{ problems: string[], target: SwitchTarget | null }}
  *   problems が空ならスイッチ形。target は参照先(screenDir = "_screen" | "_components"、file = import パスの末尾、name = default に束ねた export 名)

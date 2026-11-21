@@ -28,7 +28,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 | 対象 | 置き場 | 所有 | 規則 |
 |---|---|---|---|
-| page.tsx | `src/app/<route>/page.tsx` | 下流 | `export { XScreen as default } from "./_screen/XScreen";` の 1 行。書けるセグメント設定(`preferredRegion` / `maxDuration`)は page.tsx に書く。`dynamic`・`dynamicParams`・`fetchCache`・`revalidate`・`runtime` は書かない(cacheComponents と両立しない。lint `segment-config/cc-incompatible`、上流 error・fork warn。layout.tsx・route.ts も同じ)。`metadata` / `generateMetadata` は page.tsx に書くか Screen から re-export する |
+| page.tsx | `src/app/<route>/page.tsx` | 下流 | `export { XScreen as default } from "./_screen/XScreen";` の 1 行。書けるセグメント設定(`preferredRegion` / `maxDuration`)は page.tsx に書く。`dynamic`・`dynamicParams`・`fetchCache`・`revalidate`・`runtime` は書かない(cacheComponents と両立しない。lint `segment-config/cc-incompatible` が全 Tier error、page.tsx・layout.tsx の切り替えの形の検査でも違反。layout.tsx・route.ts も同じ)。`metadata` / `generateMetadata` は page.tsx に書くか Screen から re-export する |
 | 既定画面（page 層） | `src/app/<route>/_screen/<Name>Screen.tsx` | ルートを作った側 | 1 ルート 1 Screen。Server Component（`"use client"` 不可）。loader を await してセクションコンテナを描く。状態を持たない |
 | loader | `src/app/<route>/_screen/loader.ts` | ルートを作った側 | **契約**。最寄りの guard.ts の `createLoader` で作る page 入口（access の評価 → ドメインのサービスを呼んで組み立てる・redirect / notFound）。ルートの付属物なので Screen の隣に置く |
 | 範囲の方針 | `src/app/<range>/guard.ts`（layout.tsx の隣、root は `src/app/guard.ts`） | 範囲を作った側 | 配下の全ページに掛かる方針（親の `extend` で狭めるだけ）。layout は `await guard()` の 1 行（API の「範囲（guard.ts）と loader の書き方」） |

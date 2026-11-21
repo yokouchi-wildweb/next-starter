@@ -11,7 +11,7 @@ paths:
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
 route: page.tsx = downstream-owned 1-line switch `export { XScreen as default } from "./_screen/XScreen"` (+ allowed segment config, below) | _screen/\<Name\>Screen.tsx = default Screen, owned by the route creator (downstream never edits/deletes upstream ones) | _screen/ may hold the default Screen's private parts
-- segment_config: page.tsx may export metadata / viewport / preferredRegion / maxDuration | never dynamic / dynamicParams / fetchCache / revalidate / runtime (incompatible with cacheComponents; lint segment-config/cc-incompatible, upstream error / fork warn; layout.tsx and route.ts too)
+- segment_config: page.tsx may export metadata / viewport / preferredRegion / maxDuration | never dynamic / dynamicParams / fetchCache / revalidate / runtime (incompatible with cacheComponents; lint segment-config/cc-incompatible error in every tier, and the page / layout switch check; layout.tsx and route.ts too)
 - own_route: a route the repo creates itself (fork or upstream) = it is the creator → its Screen and loader go in _screen/
 - _components/ = Screens and parts of the repo that replaces the route; the route's creator never writes it, except a generated admin route's hand-owned _components/ (the domain owner's, generated.md) | 1 route = 1 Screen
 screen: server component, named export, no default export, NO "use client", never try/catch | awaits the same route's loader at the top level of its body before the first return (guarded by scripts/structure/routes/screens.test.mjs + route map, /ship runs them) | hook-bound bits → a "use client" part in _screen/ or a section container

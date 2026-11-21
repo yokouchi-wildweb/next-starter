@@ -2,13 +2,13 @@
 //
 // src/app/**/{page,layout,route}.{ts,tsx} の route segment config のうち、Next の cacheComponents と両立しない 5 つの名
 // (dynamic・dynamicParams・fetchCache・revalidate・runtime)の export を止める(cacheComponents の準備)。
-// 強さ: 上流 error・fork warn(eslint.config.mjs)。cacheComponents を有効にする区切りで全 Tier error になる。
+// 強さ: 全 Tier error(eslint.config.mjs、必須の規則の表 required-rules.mjs = fork の設定で緩めない)。cacheComponents は有効。
 //
 // 止める形: `export const|let|var <名> = …`(分割代入の中の名も)・`export { x as <名> }`・`export { <名> } from …`
 // 通す名: metadata・viewport・generateMetadata・preferredRegion・maxDuration(cacheComponents でも使える)ほか 5 つ以外の全部
 // 理由: cacheComponents の build は 5 つの名を見ると止まる(「Route segment config "X" is not compatible with
 //   `nextConfig.cacheComponents`. Please remove it.」)。force-dynamic は今の上流では要らない(どのページも request を読む)。
-// page.tsx の切り替えの形の検査(src/lib/screens/checks.mjs)は 5 つの名を取り除いて形だけを見る。可否はこの規則が判じる。
+// page.tsx・layout.tsx の切り替えの形の検査(src/lib/screens/checks.mjs)でも 5 つの名は違反(route.ts はこの規則だけ)。
 
 /** cacheComponents と両立しない route segment config の名 */
 export const CC_INCOMPATIBLE_SEGMENT_CONFIG = new Set(["dynamic", "dynamicParams", "fetchCache", "revalidate", "runtime"]);

@@ -55,4 +55,6 @@ export const REQUIRED_ESLINT_RULES = [
   // 当議会 D133: メールの送り口(全 Tier error)
   { rule: "import-boundaries/mail-send-via-messaging", files: ["src/features/core/messaging/channels/email/index.tsx", "src/features/core/user/services/server/userService.ts"] },
   { rule: "raw-sql-date/no-date-param", files: ["src/features/core/messaging/services/server/sweep/retentionSql.ts", "scripts/runner/task/run.ts"] },
+  // cacheComponents と両立しない segment config(有効化の区切りから全 Tier error。fork が false に戻す・緩める道を残さない)
+  { rule: "segment-config/cc-incompatible", files: ["src/app/(user)/(public)/services/page.tsx", "src/app/(user)/layout.tsx", "src/app/api/health/route.ts"] },
 ];

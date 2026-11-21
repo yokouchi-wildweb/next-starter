@@ -9,7 +9,7 @@
 //
 // 守りたい契約(設計: src/lib/screens/README.md):
 // 1. page.tsx は「./_screen/<X> または ./_components/<X> からの 1 行 re-export」+ 任意のページ設定
-//    (metadata 等の export、generateMetadata、それらに必要な import)だけ。dynamic 等 5 つは取り除いて形だけを見る(可否は lint segment-config)。画面ロジックを page.tsx に置かない
+//    (metadata 等の export、generateMetadata、それらに必要な import)だけ。dynamic 等 5 つ(cacheComponents と両立しない)は違反。画面ロジックを page.tsx に置かない
 // 2. 参照先の Screen が存在し、その名前を named export していて、default export も "use client" も持たない
 // 3. loader は `import "server-only"` と、最寄りの guard.ts の createLoader(Factory が cache を張る)か React の cache() を使い load<Xxx> を export する
 // 4. 未移行の例外リストは無い(upstream も fork も全ページがスイッチ形、D30 K11)。スイッチでない page.tsx は失敗
@@ -342,7 +342,7 @@ test("parseSwitchPage: _screen / _components / metadata re-export を許可し�
     import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "./_screen/loader";
     import type { ScreenProps } from "@/lib/screens";
 
-    export const dynamic = "force-dynamic";
+    export const maxDuration = 60;
     export const metadata: Metadata = {
       title: "ウォレット",
       openGraph: { images: ["/og.png"] },
@@ -376,11 +376,22 @@ test("parseSwitchPage: _screen / _components / metadata re-export を許可し�
   const defaultSpec = `export { default } from "./_screen/XScreen";`;
   assert.ok(parseSwitchPage(defaultSpec).problems.some((p) => p.includes("default export しない")));
 
-  const generated = `
+  const generated = `export { AdminSampleListScreen as default, metadata } from "./_screen/AdminSampleListScreen";`;
+  assert.deepEqual(parseSwitchPage(generated).problems, []);
+
+  // cacheComponents と両立しない segment config は形の違反(名ごとに 1 件、残りの記述としては二重に出さない)
+  const forceDynamic = `
     export const dynamic = "force-dynamic";
     export { AdminSampleListScreen as default, metadata } from "./_screen/AdminSampleListScreen";
   `;
-  assert.deepEqual(parseSwitchPage(generated).problems, []);
+  assert.deepEqual(parseSwitchPage(forceDynamic).problems, [
+    "segment config `dynamic` は書かない(cacheComponents と両立しない。lint segment-config/cc-incompatible、消すだけでよい)",
+  ]);
+  const revalidate = `export const revalidate = 60;\nexport const runtime = "nodejs";\nexport { XScreen as default } from "./_screen/XScreen";`;
+  assert.equal(parseSwitchPage(revalidate).problems.length, 2);
+  assert.ok(parseSwitchPage(revalidate).problems.every((p) => p.startsWith("segment config ")));
+  const layoutDynamic = `export const dynamic = "force-dynamic";\nexport { XLayout as default } from "./_layout/XLayout";`;
+  assert.ok(parseSwitchLayout(layoutDynamic).problems.some((p) => p.includes("segment config `dynamic`")));
 
   const dynamicReexport = `export { AdminSampleListScreen as default, dynamic } from "./_screen/AdminSampleListScreen";`;
   assert.ok(parseSwitchPage(dynamicReexport).problems.some((p) => p.includes("dynamic")));

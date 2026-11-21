@@ -102,13 +102,13 @@ const config = [
     },
   },
   // page・layout・route の segment config のうち cacheComponents と両立しない 5 つ(dynamic・dynamicParams・fetchCache・
-  // revalidate・runtime)を書かない。上流 error / fork warn(cacheComponents を有効にする区切りで全 Tier error)。
-  // page.tsx の切り替えの形の検査(src/lib/screens/checks.mjs)は 5 つを取り除いて形だけを見る。詳細: eslint-rules/segment-config.mjs
+  // revalidate・runtime)を書かない。cacheComponents が有効なので全 Tier error(fork 分岐なし、必須の規則の表 required-rules.mjs)。
+  // page.tsx・layout.tsx の切り替えの形の検査(src/lib/screens/checks.mjs)でも違反。詳細: eslint-rules/segment-config.mjs
   {
     files: ["src/app/**/{page,layout,route}.{ts,tsx}"],
     plugins: { "segment-config": segmentConfigPlugin },
     rules: {
-      "segment-config/cc-incompatible": libOwnership.isRoot ? "error" : "warn",
+      "segment-config/cc-incompatible": "error",
     },
   },
   // 層の境目の import を実パスで検査する(エイリアス・相対・"src/…"・サブパス・dynamic import も同じ)。全 Tier error。
