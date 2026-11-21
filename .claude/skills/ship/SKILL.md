@@ -114,7 +114,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - with `hotfix`, after the commit, before push, **check that it can be picked** (`.notices/README.md` section `緊急修正(hotfix)`): pass `pnpm check notices` again
      - with `fixes:`, the `pnpm workflow notices pickCheck` above doubles as this check: the reason for `-` is a conflict, a failed check or a dependency on a later notice → no push; STOP (STOP CASES)
      - no `fixes:` → skip it (which version to apply to cannot be decided; report `未確認: 修正元なし`)
-7. **push** (not with `no-push`): `git push` | WORKTREE ROUTE below when it applies | failed → never paper over it, report the reason | rejected because the remote moved → rebase onto it, rerun `pnpm check notices` when it applies, push again (the full checks of `--safe` come after the push, so a moving remote never restarts them)
+7. **push** (not with `no-push`): `git push` | WORKTREE ROUTE below when it applies | failed → never paper over it, report the reason | rejected because the remote moved → lay the branch again on it with `pnpm workflow notices catchUp --onto=<remote>/<branch>` (CATCH UP below), rerun `pnpm check notices` when it applies, push again (the full checks of `--safe` come after the push, so a moving remote never restarts them)
    - then, **with `--safe` only, run the full checks on the pushed HEAD** (a plain ship runs the area checks above instead and makes no tag; `.notices/README.md` section `区切り(checkpoint)と区間適用`, part `セーフポイント`): `pnpm workflow notices safePoint check`
      - upstream does not check intermediate checkpoints (each fork's /flux checks every segment on its side); only the pushed tip of a `--safe` ship gets the full checks
      - it needs a work tree equal to HEAD and runs on HEAD, in order: `pnpm test` (whole), `pnpm check`, `pnpm typecheck`, `pnpm lint`, the build (`next build` then `pnpm check --gate=build:post`: `pnpm build`'s own head gate is what `pnpm check` just ran); all pass → it records HEAD as checked (used by the tag below) | keep HEAD and the work tree as they are while it runs
@@ -152,9 +152,14 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 ## WORKTREE ROUTE
 - applies: in a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`) whose branch has no upstream of its own (`git rev-parse --abbrev-ref @{u}` fails, or prints `origin/main`) | a branch tracking its own remote branch → a plain `git push` of that branch
 - never touch the main checkout and never move its local `main` ref (no exception)
-- `git fetch origin main` → `git merge-base --is-ancestor origin/main HEAD` must succeed (not → rebase onto origin/main, rerun `pnpm check notices` when it applies; the full checks of `--safe` run after the push, step 7)
+- `git fetch origin main` → `git merge-base --is-ancestor origin/main HEAD` must succeed (not → `pnpm workflow notices catchUp` (CATCH UP below), rerun `pnpm check notices` when it applies; the full checks of `--safe` run after the push, step 7)
 - push with `git push origin HEAD:main` | the push target of this route = `origin/main` (COMMITTED RANGE, the safe point tag)
 - any condition fails → STOP
+
+## CATCH UP (laying your branch again on a moved push target — D395 (2))
+- `pnpm workflow notices catchUp [--onto=<ref>]` (default origin/main): the same commits in the same order on the target; a work merge (a guild ticket's merge a cargo kept) stays a merge, a merge that took main into the line is dropped (main's first-parent is one line), the line's root moves onto the target | never a plain `git rebase` (it flattens the work merges)
+- only for a line with one owner (the branch you /ship); a line several build on (a guild's junction) catches up by the tool's merge, never this | it never reorders (not a reorder of a run with merges, D383)
+- exit 1 = stopped on a conflict inside the rebase (git rerere replays what was solved before): solve, `git add`, `git rebase --continue` | exit 2 = cannot run (reason printed) → STOP
 
 ## SHIPPED TIP (plain or `--safe`, step 1's range is empty, HEAD = the push target)
 - closes a tip already pushed (e.g. by `--quick` ships) without a new commit | no commit, no notice, no push of commits
