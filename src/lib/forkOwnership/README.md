@@ -94,7 +94,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 
 ### 中間層の規則(`lineage.mjs`)
 
-- `checkLineageStructure` / `checkOverrides` / `touchedOverrides` / `formatProblems`(中身は Internals の「中間層の規則」)
+- `checkLineageStructure` / `formatProblems`(中身は Internals の「中間層の規則」)
 
 ### 検査の本体(`check.mjs`)
 
@@ -276,8 +276,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 `.claude/rules/lineage.md`(仕様 = その前置き)の検査。git に触れない純関数だけで、git を読むのは呼び手。
 
 - 構造(`checkLineageStructure`): 前置き → `<!-- end preamble -->` → `## <fork_id>` の節を古い祖先から順(自分は在れば最後)、各節は `<!-- end <fork_id> -->` で閉じる。`tier` leaf のリポが自分の節を持つ = 失敗
-- 打ち消し(`checkOverrides`): 名指せるのは祖先の節の `(default)` の鍵だけ。鍵が無い・`(default)` でない・同じ project.md か同じ節で同じ対象を 2 回 = 失敗。祖先の鍵と同じ名前の鍵が project.md に overrides の行なしである = 警告
-- 接触(`touchedOverrides`): `/flux` が取り込む前後の lineage.md を比べ、自分の打ち消しが名指す鍵が変わったら止める(`.claude/skills/flux/lineage-touch.mjs`)
+- 鍵: 節の中の `- <key>: ...` の行。下の段が祖先の鍵を変えるのは、自分の文脈に同じ鍵を `(priority)` 付きで書くこと(`.claude/rules/core/design.md` priority)。読み方の決まりなので検査はしない
 - `runCheck` の `lineage` 欄の failures は違反と同じく exit 1、件数は reason `lineage`。lineage.md の無い版は `checked: false`。祖先の部分が基準どおりかは受け口 `append .claude/rules/lineage.md` の判定が見る
 - 書式(`formatProblems`): `pnpm check rules` が全リポで同じ parser を使って見る(前置きの終わりの印・節の閉じ・節の中の鍵の重複)
 

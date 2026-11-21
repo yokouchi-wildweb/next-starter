@@ -34,7 +34,7 @@ const LABELS = {
   picked: "親の緊急修正の pick(台帳の picked:)",
   "permit-same-as-base": "一時許可の残骸: 基準と同じに戻った",
   "permit-unused": "一時許可の残骸: 違反の無いファイル",
-  lineage: ".claude/rules/lineage.md の並び・鍵・打ち消しの誤り",
+  lineage: ".claude/rules/lineage.md の並び・鍵の誤り",
   self: "型 5 self の問題(project.md・behavior.md・repo.json)",
 };
 
@@ -131,12 +131,8 @@ function print(result, { verbose }) {
     for (const error of result.permitErrors) lines.push(`  ${error.line} 行目: ${error.message}`);
   }
   if (lineageFailures.length > 0) {
-    lines.push("", "中間層の規則の誤り(.claude/rules/lineage.md・project.md の overrides:。前置きの規則に合わせて直す):");
+    lines.push("", "中間層の規則の誤り(.claude/rules/lineage.md。前置きの規則に合わせて直す):");
     for (const failure of lineageFailures) lines.push(`  ${failure}`);
-  }
-  if ((result.lineage?.warnings ?? []).length > 0) {
-    lines.push("", "警告(合否は変えない):");
-    for (const warning of result.lineage.warnings) lines.push(`  ${warning}`);
   }
   if (verbose) {
     lines.push("", "合格:");

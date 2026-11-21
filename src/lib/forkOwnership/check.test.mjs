@@ -473,11 +473,11 @@ describe("pnpm workflow ownership check", () => {
     assert.ok(!result.middleTier.some((m) => m.path === ".claude/rules/service/shop.md"));
   });
 
-  test("多段: lineage.md の節(中間層の節・(default) の打ち消しは合格、並び違い・(default) でない打ち消し・none で自分の節は違反、同名の鍵は警告)", () => {
+  test("多段: lineage.md の節(中間層の節・同じ鍵を (priority) で書く下の段は合格、並び違い・none で自分の節は違反)", () => {
     const tier1 = makeParent({ withLineage: true });
     const tier2 = makeFork(tier1);
     const lineage = ".claude/rules/lineage.md";
-    write(tier2, lineage, `${LINEAGE_PREAMBLE}## ${FORK_ID}\n- relay: always\n- tone (default): polite\n<!-- end ${FORK_ID} -->\n`);
+    write(tier2, lineage, `${LINEAGE_PREAMBLE}## ${FORK_ID}\n- relay: always\n- tone: polite\n<!-- end ${FORK_ID} -->\n`);
     commitAll(tier2, "tier2 section");
     const tier2Result = runCheck(tier2);
     assert.equal(tier2Result.status, "pass", JSON.stringify(tier2Result.lineage));
@@ -485,31 +485,25 @@ describe("pnpm workflow ownership check", () => {
 
     const tier3 = makeTier(tier2, "grandchild");
     const project = `## TIER\n`;
-    write(tier3, ".claude/rules/project.md", `${project}overrides: ${FORK_ID}.tone = casual | why: 若年層向け\n`);
-    commitAll(tier3, "override default");
+    write(tier3, ".claude/rules/project.md", `${project}- tone (priority): casual\n`);
+    commitAll(tier3, "change a key by the mark");
     const ok = runCheck(tier3);
     assert.equal(ok.status, "pass", JSON.stringify(ok.lineage));
-    assert.deepEqual(ok.lineage.warnings, []);
-
-    write(tier3, ".claude/rules/project.md", `${project}overrides: ${FORK_ID}.relay = never | why: r\n- tone: casual\n`);
-    commitAll(tier3, "override non-default");
-    const ng = runCheck(tier3);
-    assert.equal(ng.status, "fail");
-    assert.match(ng.lineage.failures.join(), /\(default\) でない/);
-    assert.match(ng.lineage.warnings.join(), /鍵 tone は祖先/);
-    assert.equal(ng.counts.lineage, 1);
-    const printed = cli(tier3);
-    assert.equal(printed.status, 1);
-    assert.match(printed.stdout, /中間層の規則の誤り/);
 
     // 自分の節の後ろに祖先の節をもう一度(追記なので append は通るが、並びが違う)
     write(tier3, ".claude/rules/project.md", project);
     write(tier3, lineage, `${readFileSync(join(tier3, lineage), "utf8")}## grandchild\n- own: 1\n<!-- end grandchild -->\n## ${FORK_ID}\n<!-- end ${FORK_ID} -->\n`);
     commitAll(tier3, "bad order");
-    assert.match(runCheck(tier3).lineage.failures.join(), /並びが違う/);
+    const badOrder = runCheck(tier3);
+    assert.equal(badOrder.status, "fail");
+    assert.match(badOrder.lineage.failures.join(), /並びが違う/);
+    assert.equal(badOrder.counts.lineage, 1);
+    const printed = cli(tier3);
+    assert.equal(printed.status, 1);
+    assert.match(printed.stdout, /中間層の規則の誤り/);
 
     // 末端(tier leaf)なのに自分の節
-    write(tier3, lineage, `${LINEAGE_PREAMBLE}## ${FORK_ID}\n- relay: always\n- tone (default): polite\n<!-- end ${FORK_ID} -->\n## grandchild\n- own: 1\n<!-- end grandchild -->\n`);
+    write(tier3, lineage, `${LINEAGE_PREAMBLE}## ${FORK_ID}\n- relay: always\n- tone: polite\n<!-- end ${FORK_ID} -->\n## grandchild\n- own: 1\n<!-- end grandchild -->\n`);
     write(tier3, "repo.json", repoJson("grandchild", "leaf"));
     commitAll(tier3, "leaf with section");
     const leaf = runCheck(tier3);

@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { forkIdOfTexts, PROJECT_RULES_FILE, readForkIdentity, REPO_JSON_FILE } from "./forkIds.mjs";
 import { matchIntake, parseIntake } from "./intake.mjs";
 import { judge } from "./judge.mjs";
-import { checkLineageStructure, checkOverrides, LINEAGE_FILE, parseLineage } from "./lineage.mjs";
+import { checkLineageStructure, LINEAGE_FILE, parseLineage } from "./lineage.mjs";
 import { unitIndex, unitPlaces } from "./unitNames.mjs";
 import { checkPermits, fingerprint, parsePermits, permitsPath } from "./permits.mjs";
 import { SELF_CHECK_DEFAULT, SELF_FILES, SELF_OVERVIEW_FILE, selfProblems } from "./self.mjs";
@@ -563,17 +563,14 @@ export function runCheck(repoRoot, options = {}) {
   }
   for (const leftover of leftovers) counts[`permit-${leftover.reason}`] = (counts[`permit-${leftover.reason}`] ?? 0) + 1;
 
-  // 中間層の規則(lineage.md)の並び・鍵・打ち消し。祖先の部分が基準どおりかは append の判定が見る。
+  // 中間層の規則(lineage.md)の並び・鍵。祖先の部分が基準どおりかは append の判定が見る。
   // chain は直接の親から上へ積むので、古い順は逆。lineage.md の無い fork(この版を取り込む前)は検査しない
   const lineageText = headText(LINEAGE_FILE);
-  const lineage = { checked: lineageText !== null, failures: [], warnings: [] };
+  const lineage = { checked: lineageText !== null, failures: [] };
   if (lineageText !== null) {
     const parsed = parseLineage(lineageText);
     const ancestorsOldestFirst = tier1.chain.map((step) => step.name).reverse();
     lineage.failures.push(...checkLineageStructure({ parsed, ancestorsOldestFirst, own: ownerId, downstream }));
-    const overrides = checkOverrides({ parsed, projectText: headText(PROJECT_RULES_FILE) ?? "", own: ownerId, projectFile: PROJECT_RULES_FILE });
-    lineage.failures.push(...overrides.failures);
-    lineage.warnings.push(...overrides.warnings);
   }
   if (lineage.failures.length > 0) counts.lineage = lineage.failures.length;
 
