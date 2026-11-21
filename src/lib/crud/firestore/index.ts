@@ -8,7 +8,7 @@ import type {
   SearchParams,
   CountParams,
   CountResult,
-  CreateCrudServiceOptions,
+  CrudServiceBaseOptions,
   PaginatedResult,
   UpsertOptions,
   BulkUpsertOptions,
@@ -36,19 +36,22 @@ function convertTimestamps<T>(data: T): T {
   return data;
 }
 
-export type DefaultInsert<T> = Partial<Omit<T, "id" | "createdAt" | "updatedAt">>;
+export type FirestoreDefaultInsert<T> = Partial<Omit<T, "id" | "createdAt" | "updatedAt">>;
+
+/** createFirestoreCrudService のオプション(今は共通の土台そのまま。Firestore だけの鍵はここへ足す) */
+export type FirestoreCrudServiceOptions<TData extends Record<string, any> = Record<string, any>> = CrudServiceBaseOptions<TData>;
 
 /**
  * Create a CRUD service for the given Firestore collection.
  * The interface mirrors `createCrudService` for Drizzle but
  * search and pagination are intentionally simplified.
  */
-export function createCrudService<
+export function createFirestoreCrudService<
   T extends { id?: string; createdAt?: any; updatedAt?: any; deletedAt?: any },
-  TCreate extends Record<string, any> = DefaultInsert<T>,
->(collectionPath: string, options: CreateCrudServiceOptions<TCreate> = {}) {
+  TCreate extends Record<string, any> = FirestoreDefaultInsert<T>,
+>(collectionPath: string, options: FirestoreCrudServiceOptions<TCreate> = {}) {
   // Firestore の解決は構築時ではなく初回メソッド呼び出し時に行う（memoize）。
-  // createCrudService は serviceRegistry 経由で全 API ルートの module 評価時に走るため、
+  // createFirestoreCrudService は serviceRegistry 経由で全 API ルートの module 評価時に走るため、
   // 構築時に getServerFirestore() を呼ぶと Firebase 未設定（pnpm ops setup env 直後）で全ルートが落ちる。
   // 設定済み時の挙動は従来と同一（初回アクセスで 1 回だけ初期化）。
   let firestoreRef: FirebaseFirestore.Firestore | undefined;
@@ -168,7 +171,7 @@ export function createCrudService<
       return convertTimestamps({ id: ref.id, ...(snap.data() as T) } as Select);
     },
 
-    async remove(id: string): Promise<void> {
+    async delete(id: string): Promise<void> {
       if (useSoftDelete) {
         // ソフトデリート: deletedAt を現在時刻に設定
         await getCol().doc(id).set({ deletedAt: new Date() }, { merge: true });

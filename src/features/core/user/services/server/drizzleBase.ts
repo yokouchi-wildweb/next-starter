@@ -5,8 +5,8 @@ import { UserTagTable } from "@/features/core/userTag/entities/drizzle";
 import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { storageBindingFor } from "@/features/core/storageObject/services/server/crudBinding";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
 import { normalizeDomainJsonConfig } from "@/lib/domain";
 import type { DomainConfigOptionals } from "@/lib/domain";
 import rawConf from "@/features/user/domain.json";
@@ -77,6 +77,6 @@ export const baseOptions = {
   // アバター（ref）をファイル台帳に紐付ける。物理削除で紐付けを外し、commit 後に実物を消す（D41）。
   // 退会（論理削除）では何もしない（復帰できるようにファイルを残す、D45）
   storage: storageBindingFor("user", [{ name: "avatarUrl", purpose: "user.avatar", multi: false }]),
-} satisfies DrizzleCrudServiceOptions<z.infer<typeof UserCoreSchema>>;
+} satisfies CrudServiceOptions<z.infer<typeof UserCoreSchema>>;
 
 export const base = createCrudService(UserTable, baseOptions);

@@ -39,7 +39,7 @@ createCrudService(SampleTable, {
   - import や複製では、`storageObjectService.copy` / `putFromServer` で新しい ref にする
   - 置換で外れた旧 URL の実物は消さない
 - **物理削除**
-  - 対象は `hardDelete` と、soft delete を使わない表の `remove` / `bulkDeleteByIds` / `bulkDeleteByQuery`
+  - 対象は `hardDelete` と、soft delete を使わない表の `delete` / `bulkDeleteByIds` / `bulkDeleteByQuery`
   - 削除する行を `FOR UPDATE` で読み、同じ TX で ref を deleted（reason `record_removed`）にする
   - 自分の旧バケットの旧 URL は、commit 後に実物ごと消す
   - `storageBindingFor(..., { onHardDelete: "keep" })` にすると何もしない（台帳と実物を残す。上流では使っていない選択肢）
@@ -67,4 +67,4 @@ createCrudService(SampleTable, {
 - **storageFields**: storage を指定したサービスは、binding の列の宣言（`name` / `purpose` / `multi` / `scope`）を読み取り専用の `service.storageFields` で出す。指定しないサービスでは undefined。どの列がメディア列かを知る正本で、dataMigration の import / export が使う（クライアントの申告は信用しない）
 - **FK cascade**: メディア列を持つ表に、親の削除に伴う DB の `onDelete: "cascade"` を付けてよい
   - DB が消した行は binding を通らない。残った紐付けは、掃除 cron（`storage-sweep`）の照合が後の実行で外し、実物を消す（その場ではない。予算と上限つき。[storageObject README「掃除」](../../../features/core/storageObject/README.md)）
-  - すぐ片付けたい表は、子の表の FK を `onDelete: "restrict"` にし、親のサービスの削除（remove / hardDelete の wrapper）の中で、同じ tx を渡して子のサービスの削除（`bulkDeleteByQuery` など）を先に呼ぶ（任意）
+  - すぐ片付けたい表は、子の表の FK を `onDelete: "restrict"` にし、親のサービスの削除（delete / hardDelete の wrapper）の中で、同じ tx を渡して子のサービスの削除（`bulkDeleteByQuery` など）を先に呼ぶ（任意）

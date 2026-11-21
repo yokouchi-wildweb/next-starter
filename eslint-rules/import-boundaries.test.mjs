@@ -647,7 +647,7 @@ test("rule shelf-purity: 棚の値の import の禁止(場所・フォームと�
     valid: [
       { code: `import { cn } from "@/lib/cn";`, filename: part },
       { code: `import { Block } from "@/components/Layout/Block";`, filename: part },
-      { code: `import { type SearchParams } from "@/lib/crud/types";`, filename: part },
+      { code: `import { type SearchParams } from "@/lib/crud";`, filename: part },
       { code: `import type { UseFormReturn } from "react-hook-form";`, filename: part },
       { code: `import type { DomainDisplay } from "@/lib/domain";`, filename: part },
       { code: `import type { User } from "@/features/user/entities";`, filename: part },
@@ -665,7 +665,7 @@ test("rule shelf-purity: 棚の値の import の禁止(場所・フォームと�
       { code: `import axios from "axios";`, filename: part, errors: err("package", "axios") },
       { code: `import { getAuth } from "firebase/auth";`, filename: part, errors: err("package", "firebase/auth") },
       { code: `import { extractFields } from "@/lib/domain";`, filename: part, errors: err("lib", "@/lib/domain") },
-      { code: `import { createCrudService } from "@/lib/crud";`, filename: part, errors: err("lib", "@/lib/crud") },
+      { code: `import { createApiClient } from "@/lib/crud";`, filename: part, errors: err("lib", "@/lib/crud") },
       { code: `import { trackPageView } from "@/lib/firebase/client";`, filename: part, errors: err("lib", "@/lib/firebase/client") },
       { code: `import { db } from "@/lib/drizzle";`, filename: part, errors: err("lib", "@/lib/drizzle") },
       { code: `import { DataTable } from "@/lib/tableSuite";`, filename: part, errors: err("cycle", "@/lib/tableSuite") },

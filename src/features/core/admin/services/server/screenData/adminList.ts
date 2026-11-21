@@ -4,7 +4,7 @@
 
 import "server-only";
 
-import type { PaginatedResult, SearchParams, WithOptions } from "@/lib/crud/types";
+import type { PaginatedResult, SearchParams, WithOptions } from "@/lib/crud";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 
 /** 一覧が service に要求する最小の形(createCrudService の search) */

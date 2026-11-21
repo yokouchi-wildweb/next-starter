@@ -2,8 +2,8 @@
 
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import { PurchaseRequestCreateSchema, PurchaseRequestUpdateSchema } from "@/features/core/purchaseRequest/entities/schema";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
 import type { z } from "zod";
 
 const baseOptions = {
@@ -12,7 +12,7 @@ const baseOptions = {
   useUpdatedAt: true,
   defaultSearchFields: ["user_id", "idempotency_key", "status", "payment_session_id"],
   defaultOrderBy: [["createdAt", "DESC"]],
-} satisfies DrizzleCrudServiceOptions<
+} satisfies CrudServiceOptions<
   z.infer<typeof PurchaseRequestCreateSchema>
 >;
 

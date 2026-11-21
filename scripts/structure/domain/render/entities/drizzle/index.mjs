@@ -49,12 +49,17 @@ export function renderDrizzleEntity(ctx, workspace) {
   if (needsPartialIndex || (config.useSoftDelete && hasCompositeUniques) || extraIndexesHaveWhere(config)) {
     content += `import { sql } from "drizzle-orm";\n`;
   }
+  // crud の入口 ./server から読む名前(秘匿カラムの宣言・集まりの宣言)
+  const crudServerNames = [];
   if (hiddenColumns.length > 0) {
-    content += `import { defineHiddenColumns } from "@/lib/crud/drizzle/hiddenColumns";\n`;
+    crudServerNames.push("defineHiddenColumns");
   }
   const ownsCollections = (config.fields ?? []).some((field) => isCollectionFieldType(field.fieldType));
   if (ownsCollections) {
-    content += `import { defineTableCollections } from "@/lib/crud/collections/tableCollections";\n`;
+    crudServerNames.push("defineTableCollections");
+  }
+  if (crudServerNames.length > 0) {
+    content += `import { ${crudServerNames.join(", ")} } from "@/lib/crud/server";\n`;
   }
   relationImports.forEach((domainPascal, domainCamel) => {
     content += `import { ${domainPascal}Table } from "@/features/${domainCamel}/entities/drizzle";\n`;

@@ -20,7 +20,7 @@ import {
   type AdminBulkImportBankTransferReviewCsvResponse,
 } from "@/features/core/bankTransferReview";
 import { buildCsv, downloadCsv, downloadCsvTemplate, formatYmd } from "@/lib/csv";
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 import { useToast } from "@/lib/toast";
 
 import { ADMIN_BANK_TRANSFER_REVIEW_KEYS } from "./adminBankTransferReviewKeys";

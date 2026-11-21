@@ -1,7 +1,7 @@
 // src/features/core/user/services/server/setStatusWithdrawn.ts
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 import { eq } from "drizzle-orm";
 
 import { base } from "./drizzleBase";

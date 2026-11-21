@@ -5,7 +5,7 @@ import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import type { WalletHistoryMeta, WalletHistoryMetaInput } from "@/features/core/walletHistory/types/meta";
 import { DomainError } from "@/lib/errors";
-import { isPgUniqueViolation, handleConstraintError } from "@/lib/crud/drizzle/service";
+import { isPgUniqueViolation, handleConstraintError } from "@/lib/crud/server";
 import { db } from "@/lib/drizzle";
 import { and, eq } from "drizzle-orm";
 import { randomUUID } from "crypto";

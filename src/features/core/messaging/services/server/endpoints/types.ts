@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/endpoints/types.ts
 
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 
 import type { MessageEndpoint, MessageEndpointInsert } from "../../../entities/model";
 

@@ -240,7 +240,7 @@ Google Analytics 4 では以下の推奨イベントを使用すると、自動�
 
 - 判定は「未設定」だけ。設定済みで初期化・接続に失敗した場合は理由付きの Error / Firebase SDK のエラーになる（`DatabaseNotConfiguredError` と同じ線引き）
 - 全ページに常時マウントされる経路は未設定でも落ちない: `useFirebaseAuthSync`（root layout の `AuthSessionClientProvider` から呼ばれる）と `getFirebaseAnalytics` は `isFirebaseClientConfigured()` でスキップする
-- Firestore の `createCrudService`（`@/lib/crud/firestore`）は構築時に Firestore を解決せず、初回のメソッド呼び出し時に memoize する。これにより `serviceRegistry` 経由で全 API ルートが module 評価時に落ちることを防いでいます。
+- Firestore の `createFirestoreCrudService`（`@/lib/crud/server`）は構築時に Firestore を解決せず、初回のメソッド呼び出し時に memoize する。これにより `serviceRegistry` 経由で全 API ルートが module 評価時に落ちることを防いでいます。
 - それ以外の消費者（ログイン hooks、メール送信、Storage 等）はガード不要です。未設定で呼べば即座に `FirebaseNotConfiguredError` になり、ユーザーには通常のエラー表示として出ます。
 
 未設定で動く範囲と、各機能に必要な設定の一覧は手順書の「機能別に必要なバックエンド」を参照してください。

@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useCreateDomain } from "@/lib/crud/hooks";
+import { useCreateDomain } from "@/lib/crud";
 import { sampleClient } from "../services/client/sampleClient";
 import type { Sample } from "../entities";
 import type { SampleCreateFields } from "../entities/form";

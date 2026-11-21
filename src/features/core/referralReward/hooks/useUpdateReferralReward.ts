@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useUpdateDomain } from "@/lib/crud/hooks";
+import { useUpdateDomain } from "@/lib/crud";
 import { referralRewardClient } from "../services/client/referralRewardClient";
 import type { ReferralReward } from "../entities";
 import type { ReferralRewardUpdateFields } from "../entities/form";

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useBulkUpsertDomain } from "@/lib/crud/hooks";
+import { useBulkUpsertDomain } from "@/lib/crud";
 import { referralClient } from "../services/client/referralClient";
 import type { Referral } from "../entities";
 import type { ReferralCreateFields } from "../entities/form";

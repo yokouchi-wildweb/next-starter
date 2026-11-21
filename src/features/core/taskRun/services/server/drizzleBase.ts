@@ -3,10 +3,10 @@
 
 import { TaskRunTable } from "@/features/taskRun/entities/drizzle";
 import { TaskRunCreateSchema, TaskRunUpdateSchema, type TaskRunWriteInput } from "@/features/taskRun/entities/schema";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
 
-const taskRunOptions: DrizzleCrudServiceOptions<TaskRunWriteInput> = {
+const taskRunOptions: CrudServiceOptions<TaskRunWriteInput> = {
   idType: "uuid",
   defaultOrderBy: [["startedAt", "DESC"]],
   parseCreate: (data) => TaskRunCreateSchema.parse(data),

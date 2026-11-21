@@ -2,7 +2,7 @@
 //
 // 端末の帳簿の service の結び(本物の部品)。
 
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 
 import { channels } from "../../../extensions/channels";
 import { createEndpointService } from "./endpointService";

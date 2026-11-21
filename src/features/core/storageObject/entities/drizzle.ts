@@ -8,7 +8,7 @@ import type {
   StorageObjectStore,
   StorageTransferKind,
 } from "@/features/core/storageObject/entities/model";
-import { defineHiddenColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { defineHiddenColumns } from "@/lib/crud/server";
 
 /**
  * ファイル台帳。アップロード権の発行から業務行への紐付け・削除までを 1 行で追う。

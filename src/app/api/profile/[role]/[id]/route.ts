@@ -59,7 +59,7 @@ export const DELETE = createApiRoute<Params>(
       return new NextResponse("Not Found", { status: 404 });
     }
 
-    await profileBase.remove(params.id);
+    await profileBase.delete(params.id);
     return { success: true };
   },
 );

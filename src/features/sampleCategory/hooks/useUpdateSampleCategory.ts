@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useUpdateDomain } from "@/lib/crud/hooks";
+import { useUpdateDomain } from "@/lib/crud";
 import { sampleCategoryClient } from "../services/client/sampleCategoryClient";
 import type { SampleCategory } from "../entities";
 import type { SampleCategoryUpdateFields } from "../entities/form";

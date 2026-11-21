@@ -1,7 +1,7 @@
 // src/lib/crud/drizzle/utils.ts
 
 import { omitUndefined } from "../utils/object";
-import type { CreateCrudServiceOptions, DuplicateOptions, UpsertOptions } from "@/lib/crud/types";
+import type { CrudServiceBaseOptions, DuplicateOptions, UpsertOptions } from "../types";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import { uuidv7 } from "uuidv7";
 
@@ -13,7 +13,7 @@ type TableWithId = PgTable & { id: AnyPgColumn };
  */
 export function applyInsertDefaults<TData extends Record<string, any>>(
   data: TData,
-  serviceOptions: CreateCrudServiceOptions<TData>,
+  serviceOptions: CrudServiceBaseOptions<TData>,
 ) {
   const working = {
     ...data,
@@ -111,7 +111,7 @@ export function coerceEmptyArraysToNull<T extends Record<string, any>>(
  */
 export function resolveConflictTarget<TData extends Record<string, any>>(
   table: TableWithId,
-  serviceOptions: CreateCrudServiceOptions<TData>,
+  serviceOptions: CrudServiceBaseOptions<TData>,
   upsertOptions?: UpsertOptions<TData>,
 ) {
   const defaultConflictFields = serviceOptions.defaultUpsertConflictFields as

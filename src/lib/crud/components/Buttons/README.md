@@ -2,7 +2,7 @@
 
 ## Overview
 
-- CRUD ボタンコンポーネント群。レコードの操作（更新・削除・複製など）を行うボタン。入口 `@/lib/crud/components`
+- CRUD ボタンコンポーネント群。レコードの操作（更新・削除・複製など）を行うボタン。入口 `@/lib/crud`
 - `domain` は文字列でなく表示用の写し(`import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display"`)を受ける。全ドメインの設定を client に読まないため(`src/lib/domain/README.md`)
 - 使う時の決まりは札 .claude/rules/items/lib/crud.md にある
 
@@ -25,7 +25,7 @@
 
 ### 管理一覧の一括操作の項目にする（作成関数）
 
-管理一覧では、`Bulk*Button` を `bulkActions` に手で書かず、作成関数で一括操作の受け口の項目にする（`@/lib/crud/components`）。ボタンには選択の ids と `onSuccess` = 項目の `onDone` が入る。書き方と受け口: `src/lib/tableSuite/README.md`「一括操作の受け口」
+管理一覧では、`Bulk*Button` を `bulkActions` に手で書かず、作成関数で一括操作の受け口の項目にする（`@/lib/crud`）。ボタンには選択の ids と `onSuccess` = 項目の `onDone` が入る。書き方と受け口: `src/lib/tableSuite/README.md`「一括操作の受け口」
 
 | 作成関数 | 包むボタン |
 |---|---|

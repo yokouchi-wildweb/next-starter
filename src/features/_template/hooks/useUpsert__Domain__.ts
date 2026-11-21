@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useUpsertDomain } from "@/lib/crud/hooks";
+import { useUpsertDomain } from "@/lib/crud";
 import { __domain__Client } from "../services/client/__domain__Client";
 import type { __Domain__ } from "../entities";
 import type { __Domain__CreateFields } from "../entities/form";

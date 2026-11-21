@@ -2,10 +2,10 @@
 
 "use client";
 
-import { useSearchDomain } from "@/lib/crud/hooks";
+import { useSearchDomain } from "@/lib/crud";
 import { __domain__Client } from "../services/client/__domain__Client";
 import type { __Domain__ } from "../entities";
-import type { SearchParams } from "@/lib/crud/types";
+import type { SearchParams } from "@/lib/crud";
 
 export type __Domain__SearchParams = NonNullable<typeof __domain__Client.search> extends (
   params: infer P,

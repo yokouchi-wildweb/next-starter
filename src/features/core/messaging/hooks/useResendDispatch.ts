@@ -5,7 +5,7 @@
 // 管理: 回の失敗の再送({ includeUnknown } = 送れたか分からない宛先も含める)。成功したらその回と回の一覧を再検証する
 // (新しい回として送った時は結果の newDispatchId がその回)
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 
 import { resendAdminDispatch, type AdminResendResult } from "../services/client/adminMessagingClient";
 

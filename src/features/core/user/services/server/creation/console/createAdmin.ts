@@ -15,7 +15,7 @@ import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { base } from "../../drizzleBase";
 import { restoreSoftDeletedUser } from "./restore";
-import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { getPublicColumns } from "@/lib/crud/server";
 
 export type CreateAdminInput = {
   name: string;

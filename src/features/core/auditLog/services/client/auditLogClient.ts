@@ -3,7 +3,7 @@
 import axios from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
-import type { PaginatedResult, SearchParams, WhereExpr } from "@/lib/crud/types";
+import type { PaginatedResult, SearchParams, WhereExpr } from "@/lib/crud";
 
 import type { AuditLog } from "@/features/core/auditLog/entities";
 

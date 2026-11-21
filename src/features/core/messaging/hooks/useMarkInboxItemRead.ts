@@ -4,7 +4,7 @@
 //
 // 1 件を既読にする。成功したら未読の数を再検証する(一覧の印は呼び手が updateItems で変える)
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 
 import { markInboxRead } from "../services/client/inboxClient";
 

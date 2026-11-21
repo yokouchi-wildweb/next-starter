@@ -12,7 +12,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
-import { CreateButton } from "@/lib/crud/components";
+import { CreateButton } from "@/lib/crud";
 
 import { AdminUserGroupModal } from "@/features/core/userGroup/components/AdminUserGroupModal";
 import { UserGroupRow } from "@/features/core/userGroup/components/common/UserGroupRow";

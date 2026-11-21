@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useBulkDeleteByQueryDomain } from "@/lib/crud/hooks";
+import { useBulkDeleteByQueryDomain } from "@/lib/crud";
 import { __domain__Client } from "../services/client/__domain__Client";
 
 export const useBulkDeleteByQuery__Domain__ = () => {

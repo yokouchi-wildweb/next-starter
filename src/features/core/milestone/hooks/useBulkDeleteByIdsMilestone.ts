@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useBulkDeleteByIdsDomain } from "@/lib/crud/hooks";
+import { useBulkDeleteByIdsDomain } from "@/lib/crud";
 import { milestoneClient } from "../services/client/milestoneClient";
 
 export const useBulkDeleteByIdsMilestone = () => {

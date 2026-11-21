@@ -5,10 +5,10 @@ import {
   UserLoginEventCreateSchema,
   type UserLoginEventCreateInput,
 } from "@/features/userLoginEvent/entities/schema";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
 
-const userLoginEventOptions: DrizzleCrudServiceOptions<UserLoginEventCreateInput> = {
+const userLoginEventOptions: CrudServiceOptions<UserLoginEventCreateInput> = {
   idType: "uuid",
   defaultOrderBy: [["occurredAt", "DESC"]],
   parseCreate: (data) => UserLoginEventCreateSchema.parse(data),

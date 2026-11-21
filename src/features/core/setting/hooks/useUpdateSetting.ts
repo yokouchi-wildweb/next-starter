@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useUpdateDomain } from "@/lib/crud/hooks";
+import { useUpdateDomain } from "@/lib/crud";
 import { settingClient } from "../services/client/settingClient";
 import type { Setting } from "../entities";
 import type { SettingUpdateFields } from "../entities/form";

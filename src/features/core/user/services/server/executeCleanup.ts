@@ -1,7 +1,7 @@
 // src/features/core/user/services/server/executeCleanup.ts
 
 import { cleanupHandlers } from "@/features/core/user/extensions/cleanupHandlers";
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 
 import { runCleanupItems } from "./cleanup";
 

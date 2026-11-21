@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCreateDomain } from "@/lib/crud/hooks";
+import { useCreateDomain } from "@/lib/crud";
 import { referralClient } from "../services/client/referralClient";
 import type { Referral } from "../entities";
 import type { ReferralCreateFields } from "../entities/form";

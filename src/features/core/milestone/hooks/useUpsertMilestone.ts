@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useUpsertDomain } from "@/lib/crud/hooks";
+import { useUpsertDomain } from "@/lib/crud";
 import { milestoneClient } from "../services/client/milestoneClient";
 import type { Milestone } from "../entities";
 import type { MilestoneCreateFields } from "../entities/form";

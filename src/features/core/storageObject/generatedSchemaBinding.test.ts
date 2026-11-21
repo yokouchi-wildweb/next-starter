@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entities/schema";
 import { runWithAuditContext, type AuditContext } from "@/lib/audit";
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 import { DomainError } from "@/lib/errors";
 import type { StoragePurposeMap } from "@/lib/storage";
 import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server";

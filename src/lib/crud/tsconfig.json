@@ -1,0 +1,151 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "allowImportingTsExtensions": true,
+    "checkJs": true,
+    "paths": {
+      "@/components/*": [
+        "../../components/*"
+      ],
+      "@/lib/analyticsConsent": [
+        "../analyticsConsent"
+      ],
+      "@/lib/analyticsConsent/*": [
+        "../analyticsConsent/*"
+      ],
+      "@/lib/appEnv": [
+        "../appEnv"
+      ],
+      "@/lib/appEnv/*": [
+        "../appEnv/*"
+      ],
+      "@/lib/audit": [
+        "../audit"
+      ],
+      "@/lib/audit/*": [
+        "../audit/*"
+      ],
+      "@/lib/cn": [
+        "../cn"
+      ],
+      "@/lib/cn/*": [
+        "../cn/*"
+      ],
+      "@/lib/date": [
+        "../date"
+      ],
+      "@/lib/date/*": [
+        "../date/*"
+      ],
+      "@/lib/defineConfig": [
+        "../defineConfig"
+      ],
+      "@/lib/defineConfig/*": [
+        "../defineConfig/*"
+      ],
+      "@/lib/domain": [
+        "../domain"
+      ],
+      "@/lib/domain/*": [
+        "../domain/*"
+      ],
+      "@/lib/domainAccess": [
+        "../domainAccess"
+      ],
+      "@/lib/domainAccess/*": [
+        "../domainAccess/*"
+      ],
+      "@/lib/drizzle": [
+        "../drizzle"
+      ],
+      "@/lib/drizzle/*": [
+        "../drizzle/*"
+      ],
+      "@/lib/errors": [
+        "../errors"
+      ],
+      "@/lib/errors/*": [
+        "../errors/*"
+      ],
+      "@/lib/firebase": [
+        "../firebase"
+      ],
+      "@/lib/firebase/*": [
+        "../firebase/*"
+      ],
+      "@/lib/frameDims": [
+        "../frameDims"
+      ],
+      "@/lib/frameDims/*": [
+        "../frameDims/*"
+      ],
+      "@/lib/httpDefaults": [
+        "../httpDefaults"
+      ],
+      "@/lib/httpDefaults/*": [
+        "../httpDefaults/*"
+      ],
+      "@/lib/isClient": [
+        "../isClient"
+      ],
+      "@/lib/isClient/*": [
+        "../isClient/*"
+      ],
+      "@/lib/requestMemo": [
+        "../requestMemo"
+      ],
+      "@/lib/requestMemo/*": [
+        "../requestMemo/*"
+      ],
+      "@/lib/sortableList": [
+        "../sortableList"
+      ],
+      "@/lib/sortableList/*": [
+        "../sortableList/*"
+      ],
+      "@/lib/storage": [
+        "../storage"
+      ],
+      "@/lib/storage/*": [
+        "../storage/*"
+      ],
+      "@/lib/stringCase": [
+        "../stringCase"
+      ],
+      "@/lib/stringCase/*": [
+        "../stringCase/*"
+      ],
+      "@/lib/tableSuite": [
+        "../tableSuite"
+      ],
+      "@/lib/tableSuite/*": [
+        "../tableSuite/*"
+      ],
+      "@/lib/toast": [
+        "../toast"
+      ],
+      "@/lib/toast/*": [
+        "../toast/*"
+      ],
+      "@/lib/unsavedGuard": [
+        "../unsavedGuard"
+      ],
+      "@/lib/unsavedGuard/*": [
+        "../unsavedGuard/*"
+      ],
+      "@/lib/zLayer": [
+        "../zLayer"
+      ],
+      "@/lib/zLayer/*": [
+        "../zLayer/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mjs",
+    "**/*.js"
+  ]
+}

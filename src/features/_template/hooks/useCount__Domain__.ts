@@ -2,9 +2,9 @@
 
 "use client";
 
-import { useCountDomain } from "@/lib/crud/hooks";
+import { useCountDomain } from "@/lib/crud";
 import { __domain__Client } from "../services/client/__domain__Client";
-import type { CountParams } from "@/lib/crud/types";
+import type { CountParams } from "@/lib/crud";
 
 export const useCount__Domain__ = (params: CountParams) => {
   const count = __domain__Client.count;

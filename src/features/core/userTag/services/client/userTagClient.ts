@@ -1,7 +1,7 @@
 // src/features/userTag/services/client/userTagClient.ts
 
 import { createApiClient } from "@/lib/crud";
-import type { ApiClient } from "@/lib/crud/types";
+import type { ApiClient } from "@/lib/crud";
 import type { UserTag } from "@/features/core/userTag/entities";
 import type {
   UserTagCreateFields,

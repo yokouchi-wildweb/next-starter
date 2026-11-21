@@ -3,7 +3,7 @@
 import { UserStatusHistoryTable } from "@/features/core/user/entities/drizzle";
 import type { UserStatusTransitionTrigger } from "@/features/core/user/entities";
 import type { UserStatus } from "@/features/core/user/types";
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 import { db } from "@/lib/drizzle";
 
 export type RecordStatusTransitionInput = {

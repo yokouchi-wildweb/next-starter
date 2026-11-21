@@ -8,7 +8,7 @@
 import { asc, type SQL } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
 
-/** OrderBySpec の要素のうち、判定に使う field だけを見る（型は @/lib/crud/types の OrderBySpec と互換） */
+/** OrderBySpec の要素のうち、判定に使う field だけを見る（型は @/lib/crud の OrderBySpec と互換） */
 type OrderBySpecLike = ReadonlyArray<readonly [string, ...unknown[]]>;
 
 /**

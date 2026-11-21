@@ -7,7 +7,7 @@
 
 import useSWR from "swr";
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 
 import {
   adminBulkSend,

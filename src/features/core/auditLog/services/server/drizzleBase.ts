@@ -7,10 +7,10 @@ import {
   type AuditLogCreateInput,
   type AuditLogFailedCreateInput,
 } from "@/features/core/auditLog/entities/schema";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
 
-const auditLogOptions: DrizzleCrudServiceOptions<AuditLogCreateInput> = {
+const auditLogOptions: CrudServiceOptions<AuditLogCreateInput> = {
   idType: "uuid",
   defaultOrderBy: [["createdAt", "DESC"]],
   parseCreate: (data) => AuditLogCreateSchema.parse(data),
@@ -18,7 +18,7 @@ const auditLogOptions: DrizzleCrudServiceOptions<AuditLogCreateInput> = {
 
 export const auditLogBase = createCrudService(AuditLogTable, auditLogOptions);
 
-const auditLogFailedOptions: DrizzleCrudServiceOptions<AuditLogFailedCreateInput> = {
+const auditLogFailedOptions: CrudServiceOptions<AuditLogFailedCreateInput> = {
   idType: "uuid",
   defaultOrderBy: [["createdAt", "DESC"]],
   parseCreate: (data) => AuditLogFailedCreateSchema.parse(data),

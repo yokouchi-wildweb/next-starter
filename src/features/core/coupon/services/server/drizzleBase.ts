@@ -6,9 +6,9 @@ import rawConf from "@/features/coupon/domain.json";
 import { CouponTable } from "@/features/core/coupon/entities/drizzle";
 import { CouponCreateSchema, CouponUpdateSchema } from "@/features/core/coupon/entities/schema";
 import { storageBindingFor } from "@/features/core/storageObject/services/server/crudBinding";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
-import type { IdType, OrderBySpec } from "@/lib/crud/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
+import type { IdStrategy, OrderBySpec } from "@/lib/crud";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
@@ -20,14 +20,14 @@ const sortOrderColumn = conf.sortOrderField
   : undefined;
 
 export const baseOptions = {
-  idType: conf.idType as IdType,
+  idType: conf.idType as IdStrategy,
   useCreatedAt: conf.useCreatedAt,
   useUpdatedAt: conf.useUpdatedAt,
   useSoftDelete: conf.useSoftDelete,
   defaultSearchFields: conf.searchFields,
   defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
 
-} satisfies DrizzleCrudServiceOptions<
+} satisfies CrudServiceOptions<
   z.infer<typeof CouponCreateSchema>
 >;
 

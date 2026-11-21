@@ -3,9 +3,9 @@
 
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { BelongsToManyRelationConfig, DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
-import type { BelongsToRelation, BelongsToManyObjectRelation, CountableRelation } from "@/lib/crud/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { BelongsToManyRelationConfig, CrudServiceOptions } from "@/lib/crud/server";
+import type { BelongsToRelation, BelongsToManyObjectRelation, CountableRelation } from "@/lib/crud";
 import type { ProfileBase } from "../types";
 
 /** createProfileBase のオプション */
@@ -13,7 +13,7 @@ type CreateProfileBaseOptions = {
   /** keyword検索対象のカラム名 */
   defaultSearchFields?: string[];
   /** belongsToMany リレーション（ID配列の同期） */
-  belongsToManyRelations?: DrizzleCrudServiceOptions<any>["belongsToManyRelations"];
+  belongsToManyRelations?: CrudServiceOptions<any>["belongsToManyRelations"];
   /** belongsTo リレーション（withRelations 用） */
   belongsToRelations?: BelongsToRelation[];
   /** belongsToMany オブジェクト展開（withRelations 用） */
@@ -21,7 +21,7 @@ type CreateProfileBaseOptions = {
   /** カウント取得対象リレーション（withCount 用） */
   countableRelations?: CountableRelation[];
   /** 監査ログの設定（createCrudService の audit をそのまま渡す。pnpm generate role が profile.json から書く） */
-  audit?: DrizzleCrudServiceOptions<any>["audit"];
+  audit?: CrudServiceOptions<any>["audit"];
 };
 
 /**

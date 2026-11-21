@@ -8,7 +8,7 @@
 // （existingRows "keep"。毎回全行を upsert すると、変わっていない行の updatedAt まで書き換わるため）。
 
 import "server-only";
-import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
+import type { CrudStorageField } from "@/lib/crud/server";
 import type { DomainField } from "@/lib/domain";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import { importValueShape, isArrayFieldType } from "@/lib/domain";

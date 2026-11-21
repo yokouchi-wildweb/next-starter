@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useDomainList } from "@/lib/crud/hooks";
+import { useDomainList } from "@/lib/crud";
 import { purchaseRequestClient } from "../services/client/purchaseRequestClient";
 import type { PurchaseRequest } from "../entities";
 import type { SWRConfiguration } from "swr";

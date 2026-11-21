@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/drizzle";
 import { and, asc, inArray, isNull } from "drizzle-orm";
-import type { HasManyRelation, BelongsToRelation, BelongsToManyObjectRelation } from "@/lib/crud/types";
+import type { HasManyRelation, BelongsToRelation, BelongsToManyObjectRelation } from "../../types";
 import { stripHiddenColumnsForTable } from "../hiddenColumns";
 import { projectTableCollections } from "../../collections/projectCollections";
 

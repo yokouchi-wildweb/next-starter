@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useHardDeleteDomain } from "@/lib/crud/hooks";
+import { useHardDeleteDomain } from "@/lib/crud";
 import { couponClient } from "../services/client/couponClient";
 
 export const useHardDeleteCoupon = () => useHardDeleteDomain("coupons/hard-delete", couponClient.hardDelete!, "coupons");

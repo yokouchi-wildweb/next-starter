@@ -9,7 +9,7 @@
 import { useCallback, useMemo } from "react";
 
 import type { DomainDisplay } from "@/lib/domain";
-import { createApiClient } from "@/lib/crud/client";
+import { createApiClient } from "../client";
 import { getAdminPaths } from "@/lib/domain";
 
 import { useSearchDomain } from "./useSearchDomain";

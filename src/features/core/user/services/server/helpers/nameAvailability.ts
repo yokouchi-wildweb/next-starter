@@ -6,7 +6,7 @@ import { userConfig } from "@/features/user/config";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import type { ReservedUserNameProvider } from "@/features/core/user/types";
 import { normalizeUserNameForComparison } from "@/features/core/user/utils/userName";
-import type { DbExecutor, DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbExecutor, DbTransaction } from "@/lib/crud/server";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import { reservedNames } from "@/features/core/user/extensions/reservedNames";

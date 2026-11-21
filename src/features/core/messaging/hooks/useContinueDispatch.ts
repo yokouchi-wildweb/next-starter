@@ -4,7 +4,7 @@
 //
 // 管理: 回を 1 束だけ進める(続きを送る)。成功したらその回を再検証する(配達の一覧は呼び手が revalidate する)
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 
 import { continueAdminDispatch, type ContinueSendingResult } from "../services/client/adminMessagingClient";
 

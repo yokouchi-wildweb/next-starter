@@ -267,7 +267,7 @@ export type DuplicateOptions = {
 
 export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   getAll(options?: WithOptions): Promise<T[]>;
-  getById(id: string, options?: WithOptions): Promise<T>;
+  get(id: string, options?: WithOptions): Promise<T>;
   create(data: CreateData): Promise<T>;
   update(id: string, data: UpdateData): Promise<T>;
   delete(id: string): Promise<void>;
@@ -295,7 +295,7 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   restore?(id: string): Promise<T>;
   hardDelete?(id: string): Promise<void>;
   getAllWithDeleted?(options?: WithOptions): Promise<T[]>;
-  getByIdWithDeleted?(id: string, options?: WithOptions): Promise<T>;
+  getWithDeleted?(id: string, options?: WithOptions): Promise<T>;
   searchWithDeleted?(params: SearchParams & WithOptions): Promise<PaginatedResult<T>>;
   // 並び替え用メソッド
   reorder?(id: string, afterItemId: string | null): Promise<T>;
@@ -309,9 +309,16 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   count?(params: CountParams): Promise<CountResult>;
 };
 
-export type IdType = "uuid" | "db" | "manual" | "string";
+/** レコードの id の付け方（サービスのオプション idType の値） */
+export type IdStrategy = "uuid" | "db" | "manual" | "string";
 
-type BaseCrudServiceOptions = {
+type MaybePromise<T> = T | Promise<T>;
+
+/**
+ * createCrudService(Drizzle)と createFirestoreCrudService が共通で受けるオプション。
+ * Drizzle は CrudServiceOptions、Firestore は FirestoreCrudServiceOptions がこれを土台にする。
+ */
+export type CrudServiceBaseOptions<TData extends Record<string, any> = Record<string, any>> = {
   /**
    * How to assign the `id` field when creating a record.
    *
@@ -319,7 +326,7 @@ type BaseCrudServiceOptions = {
    * - `"db"`     - Let the DB handle it
    * - `"manual"` - Caller provides the id
    */
-  idType?: IdType;
+  idType?: IdStrategy;
   /**
    * Column names searched when a query string is provided.
    */
@@ -349,34 +356,28 @@ type BaseCrudServiceOptions = {
   useUpdatedAt?: boolean;
   /**
    * 論理削除（ソフトデリート）を使用するかどうか。
-   * true の場合、remove() は物理削除ではなく deletedAt を設定する。
+   * true の場合、delete() は物理削除ではなく deletedAt を設定する。
    * list(), get(), search() は deletedAt IS NULL のレコードのみ返す。
    */
   useSoftDelete?: boolean;
+  /**
+   * `upsert` を実行する際のデフォルト衝突検知フィールド。
+   * 呼び出し側で `conflictFields` を指定した場合はそちらが優先される。
+   */
+  defaultUpsertConflictFields?: Array<Extract<keyof TData, string>>;
+  /**
+   * 保存前に実行する正規化処理。ドメインスキーマでのパース結果を利用する。
+   */
+  parseCreate?: (data: TData) => MaybePromise<TData>;
+  /**
+   * 更新前に実行する正規化処理。部分更新を想定したパース結果を利用する。
+   */
+  parseUpdate?: (data: Partial<TData>) => MaybePromise<Partial<TData>>;
+  /**
+   * upsert 前に実行する正規化処理。指定が無い場合は `parseCreate` を利用する。
+   */
+  parseUpsert?: (data: TData) => MaybePromise<TData>;
 };
-
-type MaybePromise<T> = T | Promise<T>;
-
-export type CreateCrudServiceOptions<TData extends Record<string, any> = Record<string, any>> =
-  BaseCrudServiceOptions & {
-    /**
-     * `upsert` を実行する際のデフォルト衝突検知フィールド。
-     * 呼び出し側で `conflictFields` を指定した場合はそちらが優先される。
-     */
-    defaultUpsertConflictFields?: Array<Extract<keyof TData, string>>;
-    /**
-     * 保存前に実行する正規化処理。ドメインスキーマでのパース結果を利用する。
-     */
-    parseCreate?: (data: TData) => MaybePromise<TData>;
-    /**
-     * 更新前に実行する正規化処理。部分更新を想定したパース結果を利用する。
-     */
-    parseUpdate?: (data: Partial<TData>) => MaybePromise<Partial<TData>>;
-    /**
-     * upsert 前に実行する正規化処理。指定が無い場合は `parseCreate` を利用する。
-     */
-    parseUpsert?: (data: TData) => MaybePromise<TData>;
-  };
 
 // ============================================================
 // withRelations / withCount オプション

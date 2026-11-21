@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useDeleteDomain } from "@/lib/crud/hooks";
+import { useDeleteDomain } from "@/lib/crud";
 import { sampleCategoryClient } from "../services/client/sampleCategoryClient";
 
 export const useDeleteSampleCategory = () => useDeleteDomain("sampleCategories/delete", sampleCategoryClient.delete, "sampleCategories");

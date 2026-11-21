@@ -1,6 +1,6 @@
 // src/features/core/userGroup/components/AdminUserGroupBulkActions/index.tsx
 // 管理一覧の一括操作の作成関数(利用者一覧の受け口 user/adminBulkActions の項目が使う。lib は features を読めないので userGroup に置く)。
-// @/lib/crud/components の bulk*Action と同じ形(meta + options → BulkActionItem)。選んだ記録の id = 利用者 id。
+// @/lib/crud の bulk*Action と同じ形(meta + options → BulkActionItem)。選んだ記録の id = 利用者 id。
 // - bulkCreateUserGroupAction: 選んだ人で固定のグループを作る(名前・説明)。一員の書き込みが途中なら自動で送り直し、終わるまで進み具合を出す
 // - bulkAddToUserGroupAction: 選んだ人を既存の固定のグループに足す(使用中の固定のグループを名前で選ぶ)
 // 終わったらグループ名と人数のトースト。人数の上限などで断られた時はサーバーの理由を出す。内部の鍵・id は出さない(D94)。門 userGroups の出し分けは項目の feature

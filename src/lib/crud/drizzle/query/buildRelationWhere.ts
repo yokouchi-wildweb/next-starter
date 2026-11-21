@@ -1,7 +1,7 @@
 import { and, sql, type SQL } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
-import type { BelongsToManyFilter, BelongsToFilter, RelationFilter, BelongsToRelation } from "@/lib/crud/types";
-import type { BelongsToManyRelationConfig } from "@/lib/crud/drizzle/types";
+import type { BelongsToManyFilter, BelongsToFilter, RelationFilter, BelongsToRelation } from "../../types";
+import type { BelongsToManyRelationConfig } from "../types";
 import { buildWhere } from "./buildWhere";
 
 // ============================================================

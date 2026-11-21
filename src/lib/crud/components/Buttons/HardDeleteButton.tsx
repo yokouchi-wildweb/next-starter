@@ -11,8 +11,8 @@ import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import type { DomainDisplay } from "@/lib/domain";
-import { createApiClient } from "@/lib/crud/client";
-import { useHardDeleteDomain } from "@/lib/crud/hooks";
+import { createApiClient } from "../../client";
+import { useHardDeleteDomain } from "../../hooks";
 
 export type HardDeleteButtonProps = ButtonStyleProps & {
   /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */

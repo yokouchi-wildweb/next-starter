@@ -1,7 +1,7 @@
 // src/features/couponHistory/services/client/couponHistoryClient.ts
 
 import { createApiClient } from "@/lib/crud";
-import type { ApiClient } from "@/lib/crud/types";
+import type { ApiClient } from "@/lib/crud";
 import type { CouponHistory } from "@/features/core/couponHistory/entities";
 import type {
   CouponHistoryCreateFields,

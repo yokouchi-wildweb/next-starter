@@ -6,7 +6,7 @@ import "server-only";
 
 import { and, asc, eq, gt, inArray, isNotNull, isNull, lte, notInArray, or, sql } from "drizzle-orm";
 
-import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { getPublicColumns } from "@/lib/crud/server";
 import { db } from "@/lib/drizzle";
 import type { TransactionClient } from "@/lib/drizzle";
 

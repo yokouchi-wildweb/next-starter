@@ -141,7 +141,7 @@ scope の中身（店舗・テーブル等）は downstream のデータなの�
 import { listPairedDevicesByScope, revokePairedDevicesByScope } from "@/features/pairedDevice/services/server";
 
 await db.transaction(async (tx) => {
-  await tableService.remove(tableId, tx);
+  await tableService.delete(tableId, tx);
   // 同じトランザクションで、そのテーブルの端末を失効させる（削除がロールバックされれば失効も戻る）
   await revokePairedDevicesByScope(
     { kind: "table_terminal", scope: { tableId }, reason: "テーブルの削除" },

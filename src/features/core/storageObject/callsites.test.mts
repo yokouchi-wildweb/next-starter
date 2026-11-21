@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import type { AuditContext } from "@/lib/audit";
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 import type { StoragePurposeMap } from "@/lib/storage";
 import type { FakeStoragePort } from "@/lib/storage/server";
 

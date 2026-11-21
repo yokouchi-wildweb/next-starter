@@ -108,7 +108,7 @@ export const settingService = {
   update: (_id: string, data: Partial<SettingValues>) => updateFields(data),
   create: closed("create"),
   upsert: closed("upsert"),
-  remove: closed("remove"),
+  delete: closed("delete"),
   getGlobalSetting,
   readSettingKeys,
   updateFields,

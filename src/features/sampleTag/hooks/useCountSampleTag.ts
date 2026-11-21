@@ -3,9 +3,9 @@
 
 "use client";
 
-import { useCountDomain } from "@/lib/crud/hooks";
+import { useCountDomain } from "@/lib/crud";
 import { sampleTagClient } from "../services/client/sampleTagClient";
-import type { CountParams } from "@/lib/crud/types";
+import type { CountParams } from "@/lib/crud";
 
 export const useCountSampleTag = (params: CountParams) => {
   const count = sampleTagClient.count;

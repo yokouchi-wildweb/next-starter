@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { compareCollectionWiring, declaredCollections } from "./compare.mjs";
-import { hasTableCollections } from "../../../../src/lib/crud/collections/tableCollections.ts";
+import { hasTableCollections } from "../../../../src/lib/crud/server.ts";
 import { serviceRegistry } from "../../../../src/registry/serviceRegistry.ts";
 import { collectionFieldsOf } from "../../../../src/lib/dataMigration/server.ts";
 

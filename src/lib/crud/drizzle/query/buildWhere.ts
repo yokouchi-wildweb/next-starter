@@ -1,6 +1,6 @@
 import { and, eq, ne, lt, lte, gt, gte, ilike, isNull, isNotNull, or, SQL, sql, inArray, notInArray } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
-import type { WhereExpr } from "@/lib/crud/types";
+import type { WhereExpr } from "../../types";
 
 // HTTP 経由で WhereExpr を受け取る場合、JSON は Date をシリアライズできないため
 // value は必ず string で届く。Drizzle の PgTimestamp/PgDate (mode:"date") は

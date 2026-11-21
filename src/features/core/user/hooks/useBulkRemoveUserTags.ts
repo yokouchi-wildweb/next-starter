@@ -1,7 +1,7 @@
 // src/features/core/user/hooks/useBulkRemoveUserTags.ts
 "use client";
 
-import { useBulkRemoveRelationDomain } from "@/lib/crud/hooks";
+import { useBulkRemoveRelationDomain } from "@/lib/crud";
 import { userClient } from "../services/client/userClient";
 
 /** 複数ユーザーから指定のタグだけを外す(他のタグは残る)。trigger(userIds, tagIds) */

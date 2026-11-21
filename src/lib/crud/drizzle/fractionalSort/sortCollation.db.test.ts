@@ -14,7 +14,7 @@ import { resolve } from "node:path";
 import { config as loadEnv } from "dotenv";
 import { asc, sql } from "drizzle-orm";
 import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { generateInitialSortKeys } from "@/lib/crud/drizzle/fractionalSort";
+import { generateInitialSortKeys } from "./index";
 
 const envFile = resolve(process.cwd(), process.env.ENV_FILE ?? ".env.development");
 if (existsSync(envFile)) loadEnv({ path: envFile, quiet: true });
@@ -48,16 +48,16 @@ const byteLess = (a: string, b: string) => a < b;
 
 describe("並びの鍵の照合順序（COLLATE \"C\"）", { skip }, () => {
   let db: typeof import("@/lib/drizzle").db;
-  let createCrudService: typeof import("@/lib/crud/drizzle").createCrudService;
-  let buildOrderBy: typeof import("@/lib/crud/drizzle").buildOrderBy;
-  let server: typeof import("@/lib/crud/drizzle/fractionalSort/server");
+  let createCrudService: typeof import("../index").createCrudService;
+  let buildOrderBy: typeof import("../index").buildOrderBy;
+  let server: typeof import("./server");
   let nonCCollation: string | undefined;
   let sorted: any;
 
   before(async () => {
     ({ db } = await import("@/lib/drizzle"));
-    ({ createCrudService, buildOrderBy } = await import("@/lib/crud/drizzle"));
-    server = await import("@/lib/crud/drizzle/fractionalSort/server");
+    ({ createCrudService, buildOrderBy } = await import("../index"));
+    server = await import("./server");
 
     await db.execute(sql`drop table if exists test_crud_sort_coll`);
     await db.execute(sql`drop table if exists test_crud_sort_int`);

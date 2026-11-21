@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useUpsertDomain } from "@/lib/crud/hooks";
+import { useUpsertDomain } from "@/lib/crud";
 import { walletClient } from "../services/client/walletClient";
 import type { Wallet } from "../entities";
 import type { WalletCreateFields } from "../entities/form";

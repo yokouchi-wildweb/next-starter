@@ -21,12 +21,19 @@ mock.module("@/components/Admin/SortSelect", {
 });
 mock.module("@/components/Admin/SearchBox", { defaultExport: () => null });
 mock.module("@/components/Navigation/Pagination", { defaultExport: () => null });
-mock.module("@/lib/crud/components/Buttons", { namedExports: { CreateButton: () => null } });
 
 let UserListHeader: typeof import("./UserListHeader").default;
 let DEFAULT_USER_LIST_SORT_OPTIONS: typeof import("./UserListHeader").DEFAULT_USER_LIST_SORT_OPTIONS;
 let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;
 before(async () => {
+  // crud の入口を本物のまま、描かせたくない物だけ差し替える(SUT を読む前に置く)
+  const crudEntry = await import("@/lib/crud");
+  mock.module("@/lib/crud", {
+    namedExports: {
+      ...crudEntry,
+      CreateButton: () => null,
+    },
+  });
   ({ default: UserListHeader, DEFAULT_USER_LIST_SORT_OPTIONS } = await import("./UserListHeader"));
   ({ renderToStaticMarkup } = await import("react-dom/server"));
 });

@@ -25,7 +25,7 @@ import {
   ControlledAsyncMultiSelectInput,
 } from "../../inputs/AsyncMultiSelectInput";
 import { createApiClient } from "@/lib/crud";
-import type { SearchParams, PaginatedResult } from "@/lib/crud/types";
+import type { SearchParams, PaginatedResult } from "@/lib/crud";
 import { getBlurMode } from "./inputResolver";
 
 // ---- 内部型 ----

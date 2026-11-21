@@ -2,7 +2,7 @@
 // ロールパラメータ付きのプロフィールAPIクライアント
 
 import axios from "axios";
-import type { SearchParams, PaginatedResult, WithOptions } from "@/lib/crud/types";
+import type { SearchParams, PaginatedResult, WithOptions } from "@/lib/crud";
 import { normalizeHttpError } from "@/lib/errors";
 
 type ProfileRecord = Record<string, unknown>;

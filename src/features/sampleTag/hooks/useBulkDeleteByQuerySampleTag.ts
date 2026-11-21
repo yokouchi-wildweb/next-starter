@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useBulkDeleteByQueryDomain } from "@/lib/crud/hooks";
+import { useBulkDeleteByQueryDomain } from "@/lib/crud";
 import { sampleTagClient } from "../services/client/sampleTagClient";
 
 export const useBulkDeleteByQuerySampleTag = () => {

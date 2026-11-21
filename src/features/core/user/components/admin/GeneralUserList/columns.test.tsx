@@ -20,9 +20,6 @@ mock.module("@/components/Button/Button", {
       createElement("button", { "data-variant": props.variant, disabled: props.disabled, onClick: props.onClick }, props.children),
   },
 });
-mock.module("@/lib/crud/components/Buttons", {
-  namedExports: { EditButton: ({ href }: { href: string }) => createElement("a", { href }, "編集") },
-});
 mock.module("@/features/core/user/components/common/UserAdminMemoCell", {
   namedExports: { UserAdminMemoCell: ({ memo }: { memo: string | null }) => createElement("span", null, memo ?? "") },
 });
@@ -39,6 +36,14 @@ mock.module("@/features/core/user/presenters", { defaultExport: fakePresenters }
 let createGeneralUserListColumns: typeof import("./columns").createGeneralUserListColumns;
 let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;
 before(async () => {
+  // crud の入口を本物のまま、描かせたくない物だけ差し替える(SUT を読む前に置く)
+  const crudEntry = await import("@/lib/crud");
+  mock.module("@/lib/crud", {
+    namedExports: {
+      ...crudEntry,
+      EditButton: ({ href }: { href: string }) => createElement("a", { href }, "編集"),
+    },
+  });
   ({ createGeneralUserListColumns } = await import("./columns"));
   ({ renderToStaticMarkup } = await import("react-dom/server"));
 });

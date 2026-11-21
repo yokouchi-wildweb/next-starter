@@ -4,7 +4,7 @@ import { foreignKey, index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid }
 
 import type { DevicePairingFlow, DevicePairingStatus } from "@/features/pairedDevice/constants";
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { defineHiddenColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { defineHiddenColumns } from "@/lib/crud/server";
 
 /**
  * 登録端末（店舗のタブレット・キオスク等の共有端末）。ユーザーとは別の認証主体。

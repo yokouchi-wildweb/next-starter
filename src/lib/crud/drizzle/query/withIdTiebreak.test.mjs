@@ -8,7 +8,7 @@ import { pgTable, text, integer, PgDialect } from "drizzle-orm/pg-core";
 import { withIdTiebreak, composeSearchOrderBy } from "./withIdTiebreak.ts";
 
 const dialect = new PgDialect();
-const toSql = (clauses) => dialect.sqlToQuery(sql.join(clauses, sql`, `)).sql;
+const toSql = (/** @type {import("drizzle-orm").SQLChunk[]} */ clauses) => dialect.sqlToQuery(sql.join(clauses, sql`, `)).sql;
 
 const Items = pgTable("items", {
   id: text("id").primaryKey(),

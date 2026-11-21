@@ -2,8 +2,8 @@
 
 import { UserCounterTable } from "@/features/core/userCounter/entities/drizzle";
 import { UserCounterCreateSchema, UserCounterUpdateSchema } from "@/features/core/userCounter/entities/schema";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
 import type { z } from "zod";
 
 const baseOptions = {
@@ -13,7 +13,7 @@ const baseOptions = {
   useUpdatedAt: false,
   defaultSearchFields: ["counter_key"],
   defaultOrderBy: [["last_occurred_at", "DESC"]],
-} satisfies DrizzleCrudServiceOptions<
+} satisfies CrudServiceOptions<
   z.infer<typeof UserCounterCreateSchema>
 >;
 

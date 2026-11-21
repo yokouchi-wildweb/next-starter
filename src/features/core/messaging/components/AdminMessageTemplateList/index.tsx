@@ -18,7 +18,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
-import { CreateButton } from "@/lib/crud/components";
+import { CreateButton } from "@/lib/crud";
 
 import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLabels";
 import { AdminMessageTemplateModal } from "@/features/core/messaging/components/AdminMessageTemplateModal";

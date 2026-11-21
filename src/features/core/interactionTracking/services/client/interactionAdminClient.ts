@@ -10,7 +10,7 @@ import type {
   InteractionAudienceOrderBy,
   InteractionAudienceSummaryMap,
 } from "@/features/core/interactionTracking/entities/model";
-import type { PaginatedResult } from "@/lib/crud/types";
+import type { PaginatedResult } from "@/lib/crud";
 import { normalizeHttpError } from "@/lib/errors";
 
 const BASE_PATH = "/api/admin/interactions";

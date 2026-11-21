@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useDomainList } from "@/lib/crud/hooks";
+import { useDomainList } from "@/lib/crud";
 import { couponHistoryClient } from "../services/client/couponHistoryClient";
 import type { CouponHistory } from "../entities";
 import type { SWRConfiguration } from "swr";

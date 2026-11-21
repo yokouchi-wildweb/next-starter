@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/AdminBulkSend/index.tsx
 // 管理一覧の一括操作「一括送信」の作成関数 bulkMessageAction(どのドメインの adminBulkActions の項目からも使う。D42)。
-// @/lib/crud/components の bulk*Action と同じ形(meta + options → BulkActionItem)。lib は features を読めないので messaging に置く。
+// @/lib/crud の bulk*Action と同じ形(meta + options → BulkActionItem)。lib は features を読めないので messaging に置く。
 // 項目の部品 = 送るモーダル MessageSendModal を一括(bulk)の開き方で描く(宛先 = 選んだ記録、POST /api/admin/messaging/bulk-send、
 // 門 messagingBroadcast の外。テンプレートの呼び出し・プレビュー・自分へのテスト送信が使える。予約は無い)。
 // 対に要るもの: サーバーの受け口 messaging/bulkSendTargets/<名前>.ts(key = options.target。記録 → 利用者 id・afterSend)。

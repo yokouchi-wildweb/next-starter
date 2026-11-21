@@ -2,10 +2,10 @@
 
 "use client";
 
-import { useSearchDomain } from "@/lib/crud/hooks";
+import { useSearchDomain } from "@/lib/crud";
 import { couponHistoryClient } from "../services/client/couponHistoryClient";
 import type { CouponHistory } from "../entities";
-import type { SearchParams } from "@/lib/crud/types";
+import type { SearchParams } from "@/lib/crud";
 
 export type CouponHistorySearchParams = NonNullable<typeof couponHistoryClient.search> extends (
   params: infer P,

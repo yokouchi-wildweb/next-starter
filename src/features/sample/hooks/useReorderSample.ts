@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useReorderDomain } from "@/lib/crud/hooks";
+import { useReorderDomain } from "@/lib/crud";
 import { sampleClient } from "../services/client/sampleClient";
 import type { Sample } from "../entities";
 

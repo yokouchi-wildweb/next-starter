@@ -3,7 +3,7 @@
 // createCrudService の `storage` オプションの実装。書き込み系メソッドを包み、業務行の書き込みと
 // 同じ TX の中で binding（台帳への紐付け・解除）を呼ぶ。storage を指定しないサービスには適用しない。
 // - create / update / upsert: 書いた直後に afterWrite（update / upsert は書く前の行を FOR UPDATE で読む）
-// - 物理削除（hardDelete と、soft delete を使わない表の remove / bulkDeleteByIds / bulkDeleteByQuery）: afterHardDelete
+// - 物理削除（hardDelete と、soft delete を使わない表の delete / bulkDeleteByIds / bulkDeleteByQuery）: afterHardDelete
 // - soft delete・restore: 何もしない（restore で戻せるように紐付けを残す）
 // - replaceByQuery: 対象の旧行を FOR UPDATE で読み、置き換えた直後に afterReplace（旧行全体と新しい行全体の差分）。
 //   afterReplace の無い binding では DomainError（台帳を通らない置き換えをさせない）
@@ -19,7 +19,7 @@ import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
-import type { DuplicateOptions, ReplaceByQueryOptions, UpsertOptions, WhereExpr } from "@/lib/crud/types";
+import type { DuplicateOptions, ReplaceByQueryOptions, UpsertOptions, WhereExpr } from "../types";
 
 import type { DbTransaction } from "../drizzle/types";
 import { buildWhere } from "../drizzle/query";
@@ -36,7 +36,7 @@ type StorageBindingAugmented = {
 type ApplyStorageBindingContext = {
   table: PgTable & { id: AnyPgColumn };
   binding: CrudStorageBinding;
-  /** true = remove / bulkDelete* は論理削除（ファイルを残す） */
+  /** true = delete / bulkDelete* は論理削除（ファイルを残す） */
   useSoftDelete: boolean;
   /** upsert の衝突対象の列（createCrudService の resolveConflictTarget） */
   conflictTarget: (upsertOptions?: UpsertOptions<any>) => AnyPgColumn | AnyPgColumn[];
@@ -46,7 +46,7 @@ type StorageAwareService = {
   create(data: any, tx?: DbTransaction): Promise<any>;
   update(id: string, data: any, tx?: DbTransaction): Promise<any>;
   upsert(data: any, upsertOptions?: any, tx?: DbTransaction): Promise<any>;
-  remove(id: string, tx?: DbTransaction): Promise<void>;
+  delete(id: string, tx?: DbTransaction): Promise<void>;
   hardDelete(id: string, tx?: DbTransaction): Promise<void>;
   bulkDeleteByIds(ids: string[], tx?: DbTransaction): Promise<void>;
   bulkDeleteByQuery(where: WhereExpr, tx?: DbTransaction): Promise<void>;
@@ -122,11 +122,11 @@ export function applyStorageBinding<TService extends StorageAwareService>(
   const hardDeleteWith = async (
     tx: DbTransaction | undefined,
     where: SQL | undefined,
-    remove: (executor: DbTransaction) => Promise<void>,
+    deleteRows: (executor: DbTransaction) => Promise<void>,
   ): Promise<void> =>
     runInTx(tx, async (executor) => {
       const rows = await lockRows(executor, where);
-      await remove(executor);
+      await deleteRows(executor);
       const cleanup = rows.length ? await binding.afterHardDelete(executor, rows) : null;
       return { result: undefined, cleanups: [cleanup] };
     });
@@ -166,9 +166,9 @@ export function applyStorageBinding<TService extends StorageAwareService>(
       });
     },
 
-    async remove(id, tx) {
-      if (useSoftDelete) return service.remove(id, tx);
-      return hardDeleteWith(tx, eq(idColumn, id), (executor) => service.remove(id, executor));
+    async delete(id, tx) {
+      if (useSoftDelete) return service.delete(id, tx);
+      return hardDeleteWith(tx, eq(idColumn, id), (executor) => service.delete(id, executor));
     },
 
     async hardDelete(id, tx) {

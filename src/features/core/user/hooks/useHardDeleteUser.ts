@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useHardDeleteDomain } from "@/lib/crud/hooks";
+import { useHardDeleteDomain } from "@/lib/crud";
 import { userClient } from "../services/client/userClient";
 
 export const useHardDeleteUser = () =>

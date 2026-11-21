@@ -27,7 +27,7 @@ import {
   SelectPopover,
 } from "@/components/Overlays/Popover";
 import { DataTable, RecordSelectionTable } from "@/lib/tableSuite";
-import { EnumFieldButton, BelongsToFieldButton, BelongsToManyFieldButton, BulkDeleteButton, BulkEnumFieldButton, BulkBelongsToFieldButton, BulkBelongsToManyFieldButton } from "@/lib/crud/components/Buttons";
+import { EnumFieldButton, BelongsToFieldButton, BelongsToManyFieldButton, BulkDeleteButton, BulkEnumFieldButton, BulkBelongsToFieldButton, BulkBelongsToManyFieldButton } from "@/lib/crud";
 import useSWR from "swr";
 import { sampleClient } from "@/features/sample/services/client/sampleClient";
 import type { SampleWithRelations } from "@/features/sample/entities/model";

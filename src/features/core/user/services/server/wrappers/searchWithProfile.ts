@@ -11,15 +11,15 @@ import type { SQL } from "drizzle-orm";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { normalizeDomainJsonConfig } from "@/lib/domain";
 import rawUserConf from "@/features/core/user/domain.json";
-import type { SearchParams, PaginatedResult, WithOptions, WhereExpr } from "@/lib/crud/types";
-import type { ExtraWhereOption } from "@/lib/crud/drizzle/types";
+import type { SearchParams, PaginatedResult, WithOptions, WhereExpr } from "@/lib/crud";
+import type { ExtraWhereClause } from "@/lib/crud/server";
 import type { User } from "@/features/core/user/entities";
 import { getProfileConfig } from "@/features/core/userProfile/utils/configHelpers";
 import { profileTables } from "@/features/core/userProfile/extensions/profileTables";
-import { buildWhere } from "@/lib/crud/drizzle/query/buildWhere";
+import { buildWhere } from "@/lib/crud/server";
 import { base } from "../drizzleBase";
 
-export type SearchWithProfileParams = SearchParams & WithOptions & ExtraWhereOption & {
+export type SearchWithProfileParams = SearchParams & WithOptions & ExtraWhereClause & {
   /** プロフィールフィールドの構造化フィルタ（WhereExpr DSL） */
   profileWhere?: WhereExpr;
 };

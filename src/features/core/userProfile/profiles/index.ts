@@ -4,7 +4,7 @@
 // 各 profile.json は使用箇所で直接インポートすること
 // 例: import userProfile from "@/features/core/userProfile/profiles/user.profile.json";
 
-import type { AuditConfig } from "@/lib/crud/drizzle/types";
+import type { AuditConfig } from "@/lib/crud/server";
 import type { DomainConfigRelation } from "@/lib/domain";
 import type { ProfileFieldConfig } from "../types";
 

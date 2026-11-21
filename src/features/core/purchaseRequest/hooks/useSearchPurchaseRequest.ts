@@ -2,10 +2,10 @@
 
 "use client";
 
-import { useSearchDomain } from "@/lib/crud/hooks";
+import { useSearchDomain } from "@/lib/crud";
 import { purchaseRequestClient } from "../services/client/purchaseRequestClient";
 import type { PurchaseRequest } from "../entities";
-import type { SearchParams } from "@/lib/crud/types";
+import type { SearchParams } from "@/lib/crud";
 
 export type PurchaseRequestSearchParams = NonNullable<typeof purchaseRequestClient.search> extends (
   params: infer P,

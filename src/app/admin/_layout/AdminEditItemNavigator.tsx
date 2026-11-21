@@ -3,7 +3,7 @@
 "use client";
 
 import { ItemNavigator } from "@/components/Admin/ItemNavigator";
-import { useDomainItemNavigation, type UseDomainItemNavigationOptions } from "@/lib/crud/hooks";
+import { useDomainItemNavigation, type UseDomainItemNavigationOptions } from "@/lib/crud";
 
 export type AdminEditItemNavigatorProps<T extends { id: string }> = UseDomainItemNavigationOptions<T> & {
   /** 選択欄の前のラベル(既定 "切り替え") */

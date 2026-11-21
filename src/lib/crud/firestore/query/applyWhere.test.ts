@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import type { QueryOp, WhereExpr } from "@/lib/crud/types";
+import type { QueryOp, WhereExpr } from "../../types";
 import { applyWhere } from "./applyWhere";
 
 type Call = [string, string, unknown];

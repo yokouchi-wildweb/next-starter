@@ -2,9 +2,9 @@
 
 "use client";
 
-import { useDomain } from "@/lib/crud/hooks";
+import { useDomain } from "@/lib/crud";
 import { settingClient } from "../services/client/settingClient";
 import type { Setting } from "../entities";
 
 export const useSetting = () =>
-  useDomain<Setting>("setting", () => settingClient.getById("global"));
+  useDomain<Setting>("setting", () => settingClient.get("global"));
