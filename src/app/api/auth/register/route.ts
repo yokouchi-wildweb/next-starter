@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { gate } from "@/featureGate";
-import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
+import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { register } from "@/features/core/auth/services/server/registration";
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";

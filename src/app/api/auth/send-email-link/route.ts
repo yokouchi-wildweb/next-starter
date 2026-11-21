@@ -3,7 +3,8 @@
 import { NextResponse } from "next/server";
 
 import { authConfig } from "@/features/auth/config";
-import { RECAPTCHA_ACTIONS, RECAPTCHA_V2_INTERNALS } from "@/lib/recaptcha/constants";
+import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha";
+import { RECAPTCHA_V2_INTERNALS } from "@/lib/recaptcha/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { isDisposableEmail, isHideMyEmail } from "@/lib/spamGuard";
 import { sendSignInLink } from "@/features/core/auth/services/server/sendSignInLink";

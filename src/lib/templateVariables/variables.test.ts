@@ -1,6 +1,6 @@
-// src/lib/structuredDocument/shared/variables.test.ts
+// src/lib/templateVariables/variables.test.ts
 //
-// 差し込みの 1 本(replaceVariables・listVariables)の検査。実行: pnpm test src/lib/structuredDocument
+// 差し込みの 1 本(replaceVariables・listVariables)の検査。実行: pnpm test src/lib/templateVariables
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

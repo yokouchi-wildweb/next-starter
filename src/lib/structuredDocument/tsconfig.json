@@ -1,0 +1,20 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/components/*": [
+        "../../components/*"
+      ],
+      "@/lib/templateVariables": [
+        "../templateVariables"
+      ],
+      "@/lib/templateVariables/*": [
+        "../templateVariables/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}

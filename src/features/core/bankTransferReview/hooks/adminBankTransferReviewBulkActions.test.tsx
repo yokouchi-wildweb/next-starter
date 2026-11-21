@@ -19,11 +19,11 @@ mock.module("@/features/core/messaging/components/MessageSendModal", {
 });
 
 let adminBulkActions: typeof import("../extensions/adminBulkActions").adminBulkActions;
-let selectBulkActions: typeof import("@/lib/tableSuite/BulkActions/selectBulkActions").selectBulkActions;
+let selectBulkActions: typeof import("@/lib/tableSuite").selectBulkActions;
 let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;
 before(async () => {
   ({ adminBulkActions } = await import("../extensions/adminBulkActions"));
-  ({ selectBulkActions } = await import("@/lib/tableSuite/BulkActions/selectBulkActions"));
+  ({ selectBulkActions } = await import("@/lib/tableSuite"));
   ({ renderToStaticMarkup } = await import("react-dom/server"));
 });
 

@@ -23,7 +23,7 @@ import {
   type MessageLayout,
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
-import type { VariableMap } from "@/lib/structuredDocument/shared";
+import type { VariableMap } from "@/lib/templateVariables";
 
 import { renderValue, toVariableMap } from "./context";
 import type { AnyResolvedMessageDefinition } from "./definition";

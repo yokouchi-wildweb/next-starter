@@ -1,0 +1,8 @@
+{
+  "exports": {
+    ".": "./index.ts",
+    "./server": "./server.ts"
+  },
+  "libs": ["defineConfig"],
+  "peers": ["components"]
+}

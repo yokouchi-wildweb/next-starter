@@ -2,7 +2,7 @@
 
 ## Overview
 
-- 利用規約、プライバシーポリシー、特商法表記など、階層構造を持つ法的文書の型と描画。入口 `@/lib/structuredDocument/legal`
+- 利用規約、プライバシーポリシー、特商法表記など、階層構造を持つ法的文書の型と描画。入口 `@/lib/structuredDocument`(lib の入口は 1 つ)
 - 型と描画だけを持つ。文書の中身(例文・プロジェクトの文面・差し込みの値)は法務のドメイン `src/features/core/legal` が持つ
 
 ## Usage
@@ -14,7 +14,7 @@
 import {
   LegalDocumentRenderer,
   type LegalDocument,
-} from "@/lib/structuredDocument/legal";
+} from "@/lib/structuredDocument";
 
 <LegalDocumentRenderer
   document={termsConfig}

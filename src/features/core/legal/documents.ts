@@ -3,8 +3,8 @@
 
 import { business } from "@/business";
 import type { BusinessValues } from "@/lib/business";
-import type { LegalDocument, LegalSection } from "@/lib/structuredDocument/legal";
-import { replaceVariables, type VariableMap } from "@/lib/structuredDocument";
+import type { LegalDocument, LegalSection } from "@/lib/structuredDocument";
+import { replaceVariables, type VariableMap } from "@/lib/templateVariables";
 
 import { LEGAL_CONFIG } from "./config";
 import { LEGAL_DOCUMENT_KINDS, LICENSES_SECTION_ID, LAUNCH_DATE_DEFAULT_KINDS } from "./constants";

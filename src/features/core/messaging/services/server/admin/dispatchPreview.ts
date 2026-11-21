@@ -9,7 +9,7 @@
 
 import { displayEmbeddedValues, embeddedVariableMap, type MessageEmbeddedEntry, type MessageLayout } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
-import type { VariableMap } from "@/lib/structuredDocument/shared";
+import type { VariableMap } from "@/lib/templateVariables";
 
 import type { MessageDispatch } from "../../../entities/model";
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";

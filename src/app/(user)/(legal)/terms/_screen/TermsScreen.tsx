@@ -10,7 +10,7 @@ import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import { getLegalDocument, getLegalEnactedAtFormat } from "@/features/legal/documents";
-import { LegalDocumentRenderer } from "@/lib/structuredDocument/legal";
+import { LegalDocumentRenderer } from "@/lib/structuredDocument";
 
 import { loadTermsScreen } from "./loader";
 

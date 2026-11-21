@@ -3,8 +3,8 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { parseReelManifest } from "@/lib/seamlessVideo/manifest";
-import { normalizeManifestKey, saveManifest } from "@/lib/seamlessVideo/server/reelManifestStore";
+import { parseReelManifest } from "@/lib/seamlessVideo";
+import { normalizeManifestKey, saveManifest } from "@/lib/seamlessVideo/server";
 
 /**
  * 連結リールのマニフェストを保存する(実機テスト用の共有)。認証必須。

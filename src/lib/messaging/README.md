@@ -89,7 +89,7 @@ export const messageOverride = {
 
 ### 差し込み({{鍵}})
 
-- 書式は `lib/structuredDocument` の差し込み 1 本(`replaceVariables`・`listVariables`)。名前は文字(日本語も)・数字・_ の並びで、空白・点を含む名前は差し込まれない
+- 書式は `lib/templateVariables` の差し込み 1 本(`replaceVariables`・`listVariables`)。名前は文字(日本語も)・数字・_ の並びで、空白・点を含む名前は差し込まれない
 - 差し込める鍵 = `vars` の鍵 ∪ 共通の文脈 `COMMON_CONTEXT_KEYS`(`recipientName`・`recipientEmail`・`serviceName`・`appBaseUrl`。送る口が埋める)∪ throttle のある連絡だけ `collapsedCount`
 - enrichers の `provides` の鍵は `validateMessageDefinition(def, { variableKeys })` で足して許す(送る口がその連絡に当たる enrichers の鍵を渡す。当たるか = 当て先 `enricherTargets`、下の受け口)
 

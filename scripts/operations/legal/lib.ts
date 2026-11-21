@@ -2,7 +2,7 @@
 // 上書き src/config/features/legal.config.ts を今の値から書き直す: 選んだ文書を例文の写しで own にし、他のキー(paymentMethods・licenses など)は残す。
 // 値はリテラルで書く(上書きの lint config-overrides/literal-only)。ファイルの注記は決まった頭に戻る(手で書いた注記は残らない)
 
-import type { LegalDocument } from "@/lib/structuredDocument/legal";
+import type { LegalDocument } from "@/lib/structuredDocument";
 import type { LegalDocumentKind } from "@/features/legal/types";
 
 export const LEGAL_OVERRIDE_FILE = "src/config/features/legal.config.ts";

@@ -36,7 +36,7 @@ mock.module("@/features/core/storageObject/services/server/storageObjectService"
 mock.module("@/features/core/auth/services/server/session/getSessionUser", {
   namedExports: { getSessionUser: async () => ADMIN, getSessionUserForRoute: async () => ADMIN },
 });
-mock.module("@/lib/mediaProbe", {
+mock.module("@/lib/mediaProbe/server", {
   namedExports: {
     probeMedia: async (ref: unknown) => {
       probed.push(ref);

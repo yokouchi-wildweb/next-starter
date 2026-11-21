@@ -22,11 +22,11 @@ mock.module("../Buttons/BulkBelongsToManyFieldButton", { namedExports: { BulkBel
 
 let render: (node: ReactNode) => string;
 let creators: typeof import("./index");
-let BulkActionItems: typeof import("@/lib/tableSuite/BulkActions").BulkActionItems;
+let BulkActionItems: typeof import("@/lib/tableSuite").BulkActionItems;
 before(async () => {
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
   creators = await import("./index");
-  ({ BulkActionItems } = await import("@/lib/tableSuite/BulkActions"));
+  ({ BulkActionItems } = await import("@/lib/tableSuite"));
 });
 
 const domain = { singular: "x" } as never;

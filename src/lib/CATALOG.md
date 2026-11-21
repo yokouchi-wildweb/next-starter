@@ -48,19 +48,19 @@
 - src/lib/libPackage — lib の package.json(入口 exports・読む lib の一覧 libs・棚 peers・sideEffects)の唯一の読み手と形の検査(lint entry/only-entries・単体用 tsconfig・閉じたかの検査が読む)
 - src/lib/line — LINE 連携(Push 通知・Bot 応答・LIFF・Webhook 検証)
 - src/lib/mail — メール送信(Resend / SendGrid)と React Email テンプレート
-- src/lib/mediaInputSuite — メディア入力(メタデータ取得 → プレビュー → Storage アップロード)
-- src/lib/mediaProbe — Storage 上のメディアをサーバーで解析しストリーム構成を返す(エンジン差し替え可)
+- src/lib/mediaInputSuite — メディア入力(メタデータ取得 → プレビュー → Storage アップロード)。閉じた lib: 入口 "." だけ、棚 components を peers に
+- src/lib/mediaProbe — Storage 上のメディアをサーバーで解析しストリーム構成を返す(エンジン差し替え可)。閉じた lib: 入口 "."(結果の型・形の判定)・"./server"(probeMedia・エンジンの登録)
 - src/lib/messaging — 連絡の定義の型(defineMessage・経路ごとの欄 MessageContent・上書き MessageOverride)と定義の読み手の検査(validateMessageDefinition)、経路の失敗 ChannelError
 - src/lib/metadata — Next.js の generateMetadata 生成ヘルパ(createMetadata)
 - src/lib/pageGuard — ページの守りの汎用版(範囲の guard()・createLoader・extend、親子 AND。利用者の解き方と access の評価を差し込む。値 import は src/wiring だけ、guard.ts は @/wiring/pageGuard)。閉じた lib(入口 ".")
 - src/lib/pathPattern — 住所のパターン照合(セグメント境界の前方一致と = の完全一致、ルートを覆うか)
 - src/lib/realtimeRoom — ホットパス・リアルタイム基盤の SDK(servers/room 接続、購読フック、サーバー dispatch)
-- src/lib/recaptcha — Google reCAPTCHA v3 / v2 ハイブリッドのボット対策(RecaptchaProvider は src/wiring/AppProviders が置く)
+- src/lib/recaptcha — Google reCAPTCHA v3 / v2 ハイブリッドのボット対策(RecaptchaProvider は src/wiring/AppProviders が置く)。閉じた lib: 入口 "."(client の部品・フック・アクション名・サイトキー)・"./server"(検証・版ごとの設定)、キーは上書き src/config/lib/recaptcha.config.ts
 - src/lib/request — リクエスト情報の取得(getClientIp、ヘッダーを受け取る純粋版 readClientIp)
 - src/lib/requestMemo — リクエストスコープの無効化可能なメモ化(同一リクエスト内の重複読み取りを圧縮)
 - src/lib/routeFactory — 全 API ルートの生成ファクトリの汎用版(主体の解き方・access の評価・登録表を差し込む。値 import は src/wiring だけ、route は @/wiring/apiRoute)
 - src/lib/screens — page 層の構造(1 行スイッチ + _screen/ + loader)の型 ScreenProps と規律テスト、src/app 全体のページ発見とルート地図(pnpm generate routes)
-- src/lib/seamlessVideo — 変換済み fmp4 を MSE で継ぎ目なく連結再生(映像 + 音声・A/V 同期・BGM)
+- src/lib/seamlessVideo — 変換済み fmp4 を MSE で継ぎ目なく連結再生(映像 + 音声・A/V 同期・BGM)。閉じた lib: 入口 "."(再生・フック・部品・検証・マニフェスト・保存の ClientService)・"./server"(マニフェストの Firestore の保存)
 - src/lib/siteTheme — エリア別のライト / ダーク解決と SSR 時のちらつき防止(設定 @lib-config/siteTheme、<html> を書く唯一の SiteThemeSync、切替の useSiteThemeStore)
 - src/lib/sortableList — ドラッグ & ドロップの並べ替えリスト UI
 - src/lib/spacing — 余白の段(none…4xl)・余白 prop の型と class の引き当て・生成した class の表(Layout 部品と生成器が読む)
@@ -68,8 +68,9 @@
 - src/lib/storage — ファイル保存の基盤(storage:// ref と表示解決、inline/attachment 配信規則、StoragePort と GCS 実装、保存先の解決、strip 用途の画像のメタデータ除去(サーバーの描き直し)、クライアントの uploadToStorage)。閉じた lib: 入口 "."(ref・表示・規則・型・設定・アップロードの部品)・"./server"(ポート・GCS・保存先・用途・旧 URL・描き直し・fake)、保存先と公開 base は上書き src/config/lib/storage.config.ts の env の関数
 - src/lib/storageCors — 別ドメインの Storage バイト読み取りの CORS 未設定を開発時に自己診断・案内。閉じた lib(入口 ".")
 - src/lib/stringCase — 名前の書き方の変換(camelCase / PascalCase / kebab-case / snake_case。生成器・lib・画面から同じ物を読む .mjs)
-- src/lib/structuredDocument — 構造化ドキュメント(文書タイプ別の構造定義とレンダラー、利用規約など)
-- src/lib/tableSuite — テーブル系 UI(DataTable / EditableGridTable / RecordSelectionTable / カードの一覧の RecordSelectionList)
+- src/lib/structuredDocument — 構造化ドキュメント(文書タイプ別の構造定義とレンダラー、利用規約など)。閉じた lib: 入口 "." だけ、棚 components を peers に
+- src/lib/tableSuite — テーブル系 UI(DataTable / EditableGridTable / RecordSelectionTable / カードの一覧の RecordSelectionList)。閉じた lib: 入口 "." だけ、棚 components を peers に
+- src/lib/templateVariables — テキストの差し込み {{鍵}} の 1 本(replaceVariables / listVariables。リーガルドキュメント・連絡が読む)。依存なしの純関数の閉じた lib(入口 ".")
 - src/lib/seed — ドメインのシード(seed.ts)の書き方 defineSeed・ref と入れる順の計画 planSeeds(入れるのは scripts/runner/seed)
 - src/lib/task — ワンショット・任意タスク(pnpm task)の定義の型 OneShotTask
 - src/lib/toast — トースト通知(GlobalToast / useToast)

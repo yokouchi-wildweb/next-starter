@@ -2,7 +2,7 @@
 
 "use client";
 
-import { RECAPTCHA_V3_INTERNALS } from "@/lib/recaptcha/constants";
+import { hasRecaptchaSiteKey } from "../siteKey";
 
 /**
  * reCAPTCHA バッジ表示コンポーネント
@@ -14,7 +14,7 @@ import { RECAPTCHA_V3_INTERNALS } from "@/lib/recaptcha/constants";
  */
 export function RecaptchaBadge() {
   // reCAPTCHA v3が無効な場合は何もしない
-  if (!RECAPTCHA_V3_INTERNALS.hasSiteKey) {
+  if (!hasRecaptchaSiteKey("v3")) {
     return null;
   }
 

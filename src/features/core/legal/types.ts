@@ -1,6 +1,6 @@
 // src/features/core/legal/types.ts — 法務の文書の型(設定の議会 D21・D23・L1.24)
 
-import type { LegalDocument, LegalEnactedAtFormat } from "@/lib/structuredDocument/legal";
+import type { LegalDocument, LegalEnactedAtFormat } from "@/lib/structuredDocument";
 
 /** 法務の文書の種類(利用規約・プライバシーポリシー・特定商取引法に基づく表示) */
 export type LegalDocumentKind = "terms" | "privacy" | "tradelaw";

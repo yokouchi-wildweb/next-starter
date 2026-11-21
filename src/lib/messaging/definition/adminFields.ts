@@ -11,7 +11,7 @@
 // - 欄の宣言の zod(lib の語彙 fieldValueSchema。必須の欄は空にできない)を通る
 // - {{鍵}} は vars の鍵と別名(秘密の印 secretVar の鍵を除く)∪ 共通の文脈 ∪ throttle の鍵 ∪ variableKeys(enrichers の provides)だけ
 
-import { listVariables } from "@/lib/structuredDocument/shared";
+import { listVariables } from "@/lib/templateVariables";
 import type { z } from "zod";
 
 import { layoutVersionOf, type MessageLayout } from "../layout/types";

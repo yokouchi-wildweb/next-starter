@@ -2,7 +2,7 @@
 //
 // 連結リールのマニフェストを Firestore に永続化するサーバー専用ストア。
 // 実機テスト用に「最新の 1 件」を固定キーで保持し、共有 URL から常に最新を再生できるようにする。
-// ※ サーバー専用。クライアントから import しないこと(index.ts では再エクスポートしない)。
+// ※ サーバー専用。入口 "./server"(server/index.ts)から読む(入口 "." では出さない)。
 
 import { getServerFirestore } from "@/lib/firebase/server";
 

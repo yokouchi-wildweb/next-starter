@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 
 import { legalConfigDef } from "@/features/legal/config";
 import { EXAMPLE_BUSINESS } from "@/lib/business";
-import type { LegalDocument } from "@/lib/structuredDocument/legal";
+import type { LegalDocument } from "@/lib/structuredDocument";
 
 import { buildLegalDocument, checkLegalRelease, LEGAL_DOCUMENT_KINDS, LEGAL_EXAMPLES, legalVariables, sampleLegalDocuments, type LegalConfig } from "./index";
 

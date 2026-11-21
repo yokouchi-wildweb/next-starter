@@ -5,6 +5,7 @@
 - 事前に統一プロファイルへ変換された **fragmented MP4(fmp4)** フラグメントを、ブラウザの **MSE(MediaSource Extensions)** で 1 本の映像として **継ぎ目なく連結再生** する汎用ライブラリ。
 - 複数の演出動画を「順不同で繋いで 1 本に見せる」ユースケース(抽選で順序が実行時に決まる等)を想定。
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/seamlessVideo.md にある。この README は使い方と仕組み
+- 閉じた lib: 入口 `@/lib/seamlessVideo`(再生・フック・部品・検証・マニフェストの形・保存の ClientService)と `@/lib/seamlessVideo/server`(マニフェストの Firestore への保存・読み出し。Admin SDK を読む)。読む lib は cn・errors・firebase・storageCors・webAudio
 
 ### スコープ
 
@@ -194,7 +195,7 @@ await load(fragments, { progressive: true }); // 先頭準備で ready(=playable
 リールを URL ベースで保存・共有し、別端末で再生するための仕組み。
 
 - `buildReelManifest(fragments, createdAtISO)` でマニフェスト(各フラグメントの公開 URL + 順序)を作成
-- `reelManifestClient.save(manifest, key?)` で保存(サーバー側は `server/reelManifestStore`)。`key` 省略時は最新スロット、指定で任意キー名前空間(複数リール定義を URL で持てる)。`saveLatest(manifest)` は後方互換
+- `reelManifestClient.save(manifest, key?)` で保存(サーバー側は入口 `@/lib/seamlessVideo/server` の `saveManifest` / `getManifest` / `getLatestManifest`)。`key` 省略時は最新スロット、指定で任意キー名前空間(複数リール定義を URL で持てる)。`saveLatest(manifest)` は後方互換
 - 再生側は保存済みマニフェストを `manifestToFragments(manifest)` に通して `useSeamlessReel().load(...)` へ
 - アップロードは `uploadToStorage`(`@/lib/storage`、ブラウザ→GCS 直)で公開の用途に上げ、完了時の `src`(公開 URL)をマニフェストに入れる。上限は用途の maxBytes
   - デモ(`/demo/seamless-av`)は用途 `demo.media`(管理者のみ)。業務行に紐付けないので、猶予(24 時間)を過ぎると storage-sweep がファイルを消し、保存したマニフェストは再生できなくなる。製品で使うときは、マニフェストを保存する業務行に紐付ける用途を作る

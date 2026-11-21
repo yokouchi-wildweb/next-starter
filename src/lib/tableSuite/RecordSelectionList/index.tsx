@@ -145,7 +145,7 @@ export default function RecordSelectionList<T>({
                     align="center"
                     justify="center"
                     className="h-full w-11 cursor-pointer rounded-md transition-colors hover:bg-muted/60"
-                    onClick={(event) => {
+                    onClick={(event: React.MouseEvent<HTMLDivElement>) => {
                       if (!selectionOn || isCheckboxEvent(event)) return;
                       updateKeySelection(key);
                     }}

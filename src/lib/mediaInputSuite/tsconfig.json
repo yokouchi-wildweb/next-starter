@@ -1,0 +1,74 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/components/*": [
+        "../../components/*"
+      ],
+      "@/lib/analyticsConsent": [
+        "../analyticsConsent"
+      ],
+      "@/lib/analyticsConsent/*": [
+        "../analyticsConsent/*"
+      ],
+      "@/lib/appEnv": [
+        "../appEnv"
+      ],
+      "@/lib/appEnv/*": [
+        "../appEnv/*"
+      ],
+      "@/lib/cn": [
+        "../cn"
+      ],
+      "@/lib/cn/*": [
+        "../cn/*"
+      ],
+      "@/lib/defineConfig": [
+        "../defineConfig"
+      ],
+      "@/lib/defineConfig/*": [
+        "../defineConfig/*"
+      ],
+      "@/lib/domainAccess": [
+        "../domainAccess"
+      ],
+      "@/lib/domainAccess/*": [
+        "../domainAccess/*"
+      ],
+      "@/lib/errors": [
+        "../errors"
+      ],
+      "@/lib/errors/*": [
+        "../errors/*"
+      ],
+      "@/lib/firebase": [
+        "../firebase"
+      ],
+      "@/lib/firebase/*": [
+        "../firebase/*"
+      ],
+      "@/lib/isClient": [
+        "../isClient"
+      ],
+      "@/lib/isClient/*": [
+        "../isClient/*"
+      ],
+      "@/lib/storage": [
+        "../storage"
+      ],
+      "@/lib/storage/*": [
+        "../storage/*"
+      ],
+      "@/lib/unsavedGuard": [
+        "../unsavedGuard"
+      ],
+      "@/lib/unsavedGuard/*": [
+        "../unsavedGuard/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}
