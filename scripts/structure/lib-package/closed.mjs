@@ -5,7 +5,7 @@
 //   入口の中身(entries.mjs: "." に "use client" を書かない・"./node" から React と Next を辿らない)、
 //   config.ts / config.ui.ts があるのに上書き src/config/lib/<名前>.config.ts / <名前>.ui.config.ts が無い、自前の合成(defineXxxConfig)が残っている(L1.23)
 // - 数えて見せるだけ(--list / --json): 外から lib の中を読む import。宣言した lib のそれは pnpm lint の entry/only-entries が落とす(1 つの規則)
-// - 宣言の無い lib は数えて一覧に出すだけで落とさない(L1.21。error にするのは最後の段 D101 (6))
+// - 宣言の無い lib(package.json の無い src/lib/<名前>)は undeclared 1 つで落とす(K6。閉じた lib の検査は掛けない)
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -159,8 +159,20 @@ export function closedLibProblems(root, lib) {
 }
 
 /**
+ * 宣言の無い lib の落とす不備(1 つ)。上流は lib を閉じる手順で、fork の自前の lib は宣言の道具で package.json を置く
+ * @returns {{ lib: string, code: string, message: string }}
+ */
+export function undeclaredProblem(lib) {
+  return {
+    lib,
+    code: "undeclared",
+    message: `${LIB_DIR}/${lib}: package.json がありません(宣言の無い lib は落とします。入口・libs・peers を宣言して閉じる: src/lib/README.md「lib を閉じる手順」)`,
+  };
+}
+
+/**
  * lib ごとの状態の行(全部の lib)。withInner = 外から中を読む import も数える(repo を走査する。--list / --json)
- * state: closed(宣言・不備 0)| gaps(宣言・不備あり)| skipped(package.json の形に問題)| undeclared
+ * state: closed(宣言・不備 0)| gaps(宣言・不備あり)| skipped(package.json の形に問題)| undeclared(不備 undeclared 1 つ)
  */
 export function libStates(root, { withInner = false } = {}) {
   const inner = withInner ? scanInnerImports(root) : null;
@@ -176,7 +188,7 @@ export function libStates(root, { withInner = false } = {}) {
       mergeHelpers: mergeHelpersOf(root, lib),
       problems: [],
     };
-    if (!pkg) return row;
+    if (!pkg) return { ...row, problems: [undeclaredProblem(lib)] };
     if (pkg.problems.length > 0) return { ...row, state: "skipped" };
     row.problems = closedLibProblems(root, lib);
     row.state = row.problems.length === 0 ? "closed" : "gaps";

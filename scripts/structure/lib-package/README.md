@@ -2,7 +2,7 @@
 
 ## Overview
 
-- lib ごとの「閉じたか」を確かめます。`package.json` を持つ lib(= 宣言した lib)は下の 1〜6 の不備で落ち、宣言の無い lib は数えて一覧に出すだけで落としません。package.json の形そのもの(exports・libs・peers・sideEffects の書き方。入口の名前 = exports の鍵が `.`・`./server`・`./client`・`./node` の 4 つだけ、ほかは `entryName`)は `src/lib/libPackage`(読み手と形の検査)が見ます。形に問題がある宣言の lib は 1〜6 を飛ばし、閉じていない不備 1 つ(`shape`。理由に形の問題の名前と文を並べる)で落とします(state skipped)。上流の lib にも fork が足した自前の lib にも同じに効きます。今の repo の lib を型検査するのはこの門だけで、テストは作り物のリポで仕組みを試します(1 回の `/ship --safe` で同じ型検査を重ねない)。
+- lib ごとの「閉じたか」を確かめます。`package.json` を持つ lib(= 宣言した lib)は下の 1〜6 の不備で落ち、宣言の無い lib(package.json の無い `src/lib/<名前>`)は不備 `undeclared` 1 つで落ちます(閉じた lib の検査は掛けない。上流の lib は「lib を閉じる手順」、fork の自前の lib は宣言の道具で package.json を置く)。package.json の形そのもの(exports・libs・peers・sideEffects の書き方。入口の名前 = exports の鍵が `.`・`./server`・`./client`・`./node` の 4 つだけ、ほかは `entryName`)は `src/lib/libPackage`(読み手と形の検査)が見ます。形に問題がある宣言の lib は 1〜6 を飛ばし、閉じていない不備 1 つ(`shape`。理由に形の問題の名前と文を並べる)で落とします(state skipped)。上流の lib にも fork が足した自前の lib にも同じに効きます。今の repo の lib を型検査するのはこの門だけで、テストは作り物のリポで仕組みを試します(1 回の `/ship --safe` で同じ型検査を重ねない)。
 
 ## Usage
 
@@ -84,13 +84,13 @@ pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]
 
 ### lib ごとの状態(--list / --json)
 
-- `state`: `closed`(宣言・不備 0)| `gaps`(宣言・不備あり)| `skipped`(package.json の形に問題)| `undeclared`(package.json 無し)
+- `state`: `closed`(宣言・不備 0)| `gaps`(宣言・不備あり)| `skipped`(package.json の形に問題)| `undeclared`(package.json 無し。不備 `undeclared` 1 つ)
 - `declared`: `none` | `ok` | `problems:<数>`
 - `inner`: 外から lib の中を読む import の数。宣言した lib = exports の入口に当たらない import、宣言の無い lib = lib の根(index)以外に当たる import。lint の entry/only-entries と同じ部品(eslint-rules/resolve-import.mjs の resolveImport、src/lib/libPackage の libOfPath・findEntry)で判定する。走査 = lint と同じ所(git の追跡 + 未追跡、node_modules・.next・src/_stash 等を除く)、`@lib-config/…` は数えない
   - ここでは数えて見せるだけ。宣言した lib の中を外から読む import を落とすのは pnpm lint の entry/only-entries(1 つの規則)。だから門の watch にも repo 全体は入れない
-- `problems`: 下の 1〜5 の不備の数(宣言した lib だけ)
+- `problems`: 下の 1〜6 の不備の数(宣言の無い lib は `undeclared` の 1)
 - `config`: `none`(config.ts も config.ui.ts も無し)| `ok`(持つ口の上書き src/config/lib/<名前>.config.ts / <名前>.ui.config.ts が全部あり)| `overrideMissing`
-- `merge`: 残っている自前の合成の名前(下の 5)
+- `merge`: 残っている自前の合成の名前(下の 6)
 
 ### lib の tsconfig.json(手で書く)
 
@@ -181,8 +181,8 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 ## Verification
 
 - `pnpm test scripts/structure/lib-package`
-- `libPackage.test.mjs` 一時フォルダの小さな repo でのテスト(入口の名前: 4 つの名前が通る例・ほかの名前が shape / entryName で落ちる例、入口の中身: entryUseClient・nodeEntryReact・型だけの読みは通ること)
-- `closed.test.mjs` 閉じたかの検査のテスト
+- `libPackage.test.mjs` 一時フォルダの小さな repo でのテスト(宣言の無い lib が undeclared で落ち、宣言すると消える例。入口の名前: 4 つの名前が通る例・ほかの名前が shape / entryName で落ちる例、入口の中身: entryUseClient・nodeEntryReact・型だけの読みは通ること)
+- `closed.test.mjs` 閉じたかの検査のテスト(宣言の無い lib は undeclared 1 つで落ち、閉じた lib の検査は掛けない)
 - `moved.test.mjs` moved の動き(一時フォルダの git repo)
 - `codemod.test.mjs` codemod の動き(名前ごとの割り・改名表の export / method の行と、別の型の同じ名前を触らないこと)
 - `jsdoc.test.mjs` jsdoc の動き(一時フォルダの小さな repo)

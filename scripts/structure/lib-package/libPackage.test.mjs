@@ -47,27 +47,31 @@ function withRepo(files, { tsconfig = [] } = {}, fn) {
 const codes = (result) => result.problems.map((p) => p.code);
 const messages = (result) => result.problems.map((p) => p.message).join("\n");
 
-// b: 宣言済みの lib(入口 1 つ)、c: 宣言していない lib
+// b: 宣言済みの lib(入口 1 つ)、c: 宣言済みで a の libs に書かない lib(宣言の無い lib は undeclared で落ちる: 最後のテスト)
 const B = {
   "src/lib/b/package.json": { exports: { ".": "./index.ts" } },
   "src/lib/b/index.ts": "export const b = 1;\n",
 };
-const C = { "src/lib/c/index.ts": "export const c = 1;\n", "src/lib/c/x.ts": "export const cx = 1;\n" };
+const C = {
+  "src/lib/c/package.json": { exports: { ".": "./index.ts" } },
+  "src/lib/c/index.ts": "export const c = 1;\n",
+  "src/lib/c/x.ts": "export const cx = 1;\n",
+};
 const libA = (code, pkg = {}) => ({
   "src/lib/a/package.json": { exports: { ".": "./index.ts" }, libs: ["b"], ...pkg },
   "src/lib/a/index.ts": code,
 });
 
 test("d3: 宣言した lib と外部パッケージを読む lib は通る", () => {
-  withRepo({ ...B, ...C, ...libA(`import { b } from "@/lib/b";\nimport { pkgValue } from "fakepkg";\nexport const a = b + pkgValue;\n`) }, { tsconfig: ["a", "b"] }, (root) => {
+  withRepo({ ...B, ...C, ...libA(`import { b } from "@/lib/b";\nimport { pkgValue } from "fakepkg";\nexport const a = b + pkgValue;\n`) }, { tsconfig: ["a", "b", "c"] }, (root) => {
     const result = checkLibs(root);
-    assert.deepEqual(result.checked, ["a", "b"]);
+    assert.deepEqual(result.checked, ["a", "b", "c"]);
     assert.deepEqual(result.problems, []);
   });
 });
 
-test("d3: 宣言していない lib を @/lib で読むと型検査で落ちる", () => {
-  withRepo({ ...B, ...C, ...libA(`import { c } from "@/lib/c";\nexport const a = c;\n`) }, { tsconfig: ["a", "b"] }, (root) => {
+test("d3: libs に書いていない lib を @/lib で読むと型検査で落ちる", () => {
+  withRepo({ ...B, ...C, ...libA(`import { c } from "@/lib/c";\nexport const a = c;\n`) }, { tsconfig: ["a", "b", "c"] }, (root) => {
     const result = checkLibs(root);
     assert.deepEqual(codes(result), ["diagnostic"]);
     assert.match(messages(result), /src\/lib\/a\/index\.ts:1:\d+ TS2307/);
@@ -81,7 +85,7 @@ test("d3: lib でない棚(@/hooks)を読むと落ちる", () => {
 });
 
 test("d3: 相対パスで宣言の外の lib へ出ると落ちる(paths では止まらない)", () => {
-  withRepo({ ...B, ...C, ...libA(`import { cx } from "../c/x";\nexport const a = cx;\n`) }, { tsconfig: ["a", "b"] }, (root) => {
+  withRepo({ ...B, ...C, ...libA(`import { cx } from "../c/x";\nexport const a = cx;\n`) }, { tsconfig: ["a", "b", "c"] }, (root) => {
     const result = checkLibs(root);
     assert.deepEqual(codes(result), ["escape"]);
     assert.match(messages(result), /"\.\.\/c\/x" が宣言の外 src\/lib\/c\/x\.ts を読みます/);
@@ -337,4 +341,18 @@ test("runtimeImports / hasUseClient: 実行時に残る指定子と先頭の指�
   assert.deepEqual(runtimeImports(code, "f.ts").map((i) => i.specifier), ["x1", "x4", "x5", "x7", "x8"]);
   assert.equal(hasUseClient(`// c\n"use client";\nexport {};\n`), true);
   assert.equal(hasUseClient(`export {};\n"use client";\n`), false);
+});
+
+test("宣言の無い lib(package.json の無い src/lib/<name>)は undeclared で落ちる。宣言すると消える", () => {
+  withRepo({ ...B, "src/lib/u/index.ts": "export const u = 1;\n" }, { tsconfig: ["b"] }, (root) => {
+    const result = checkLibs(root);
+    assert.deepEqual(result.undeclared, ["u"]);
+    assert.deepEqual(codes(result), ["undeclared"]);
+    assert.match(messages(result), /src\/lib\/u: package\.json がありません/);
+  });
+  withRepo({ ...B, "src/lib/u/index.ts": "export const u = 1;\n", "src/lib/u/package.json": { exports: { ".": "./index.ts" } } }, { tsconfig: ["b", "u"] }, (root) => {
+    const result = checkLibs(root);
+    assert.deepEqual(result.undeclared, []);
+    assert.deepEqual(result.problems, []);
+  });
 });

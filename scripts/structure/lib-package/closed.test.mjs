@@ -98,17 +98,18 @@ test("自前の合成でない物: 合成器 defineConfig を読む lib・合成
   });
 });
 
-test("宣言の無い lib は合成が残っても・上書きが無くても数えて出すだけで落とさない", () => {
+test("宣言の無い lib は undeclared 1 つで落ち、閉じた lib の検査(合成・上書き)は掛けない。状態の行は合成・設定を見せる", () => {
   const files = {
     "src/lib/u/index.ts": `export function defineUConfig() { return {}; }\n`,
     "src/lib/u/config.ts": `export const config = {};\n`,
   };
   withRepo(files, {}, (root) => {
     const result = checkLibs(root);
-    assert.deepEqual(result.problems, []);
+    assert.deepEqual(codes(root), ["undeclared"]);
     assert.deepEqual(result.undeclared, ["u"]);
     const u = row(root, "u");
     assert.equal(u.state, "undeclared");
+    assert.deepEqual(u.problems.map((p) => p.code), ["undeclared"]);
     assert.equal(u.config, "overrideMissing");
     assert.deepEqual(u.mergeHelpers, ["defineUConfig"]);
   });

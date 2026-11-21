@@ -92,7 +92,7 @@ lint(`eslint-rules/import-boundaries.mjs`、全 Tier error):
 - `entry/only-entries`: 外から宣言済みの lib を読む import は exports の入口に当たること(`@/lib` の別名・相対・`"src/…"` を実パスに解いて照合。値も型も、scripts・テスト・.notices・eslint 設定からも)。宣言済みの lib の中からは `libs` の lib の入口・`peers` の棚・`@lib-config/<自分>`(と `<自分>.ui`)と外部パッケージだけを読む(features・app・hooks・utils・`@/config` は読まない)
 - `lib-self-relative`: 宣言済みの lib の中では自分を `@/lib/<自分>` で読まず相対パスで読む
 
-今は **package.json を持つ lib にだけ**効く。宣言の無い lib は error にせず、閉じたかの検査が数えて出す。本当に要る例外は理由つきの `eslint-disable`。
+lint は **package.json を持つ lib にだけ**効く。宣言の無い lib(package.json の無い `src/lib/<name>`)は `pnpm check lib-package` が不備 `undeclared` で落とす(上流にも fork の自前の lib にも)。本当に要る例外は理由つきの `eslint-disable`。
 
 宣言の無い lib を閉じるときは Usage「lib を閉じる手順」に従う。
 
