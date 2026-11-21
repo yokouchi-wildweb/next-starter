@@ -3,7 +3,8 @@ paths:
   - "src/lib/mediaInputSuite/**"
 ---
 # lib/mediaInputSuite
-what: media input parts and hooks: metadata, preview and upload to src/lib/storage (MediaInput, MediaUploader, MediaUploaderMulti, MediaThumbGrid, MediaPreview, usePendingMediaUploads …) and their react-hook-form adapters in formAdapters/ (ControlledMediaUploader, useMediaUploaderField, ManualMediaUploader …) | closed lib: one entry @/lib/mediaInputSuite (parts, hooks, adapters, types, helpers), shelf @/components as peers
+what: media input parts and hooks: metadata, preview and upload to src/lib/storage (MediaInput, MediaUploader, MediaUploaderMulti, MediaThumbGrid, MediaPreview, usePendingMediaUploads …) and their react-hook-form adapters in formAdapters/ (ControlledMediaUploader, useMediaUploaderField, ManualMediaUploader …)
+  - closed lib: one entry @/lib/mediaInputSuite (parts, hooks, adapters, types, helpers), shelf @/components as peers
 use: always
 change: none → /order <direct parent>
 rules:

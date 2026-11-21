@@ -3,7 +3,8 @@ paths:
   - "src/lib/seamlessVideo/**"
 ---
 # lib/seamlessVideo
-what: seamless playback of pre-transcoded fmp4 fragments through MSE (SeamlessVideoPlayer, useSeamlessVideo, SeamlessSource), with audio by Web Audio (useSeamlessReel), format checks (validateFragments, validateReel) and reel manifests | closed lib: entries @/lib/seamlessVideo (playback, hooks, player, checks, manifest shape, reelManifestClient) and @/lib/seamlessVideo/server (manifest store in Firestore: saveManifest / getManifest / getLatestManifest)
+what: seamless playback of pre-transcoded fmp4 fragments through MSE (SeamlessVideoPlayer, useSeamlessVideo, SeamlessSource), with audio by Web Audio (useSeamlessReel), format checks (validateFragments, validateReel) and reel manifests
+  - closed lib: entries @/lib/seamlessVideo (playback, hooks, player, checks, manifest shape, reelManifestClient) and @/lib/seamlessVideo/server (manifest store in Firestore: saveManifest / getManifest / getLatestManifest)
 use: always
 change: none → /order <direct parent>
 rules:

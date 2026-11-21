@@ -3,7 +3,8 @@ paths:
   - "src/lib/tableSuite/**"
 ---
 # lib/tableSuite
-what: table UI library: DataTable (read-only), RecordSelectionTable / RecordSelectionList (selection + bulk actions), EditableGridTable (inline edit), PlainTable (the plain table parts Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter, TableCaption), with column sort, row reorder, unsaved guard and infinite footer | closed lib: one entry @/lib/tableSuite, shelf @/components as peers
+what: table UI library: DataTable (read-only), RecordSelectionTable / RecordSelectionList (selection + bulk actions), EditableGridTable (inline edit), PlainTable (the plain table parts Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter, TableCaption), with column sort, row reorder, unsaved guard and infinite footer
+  - closed lib: one entry @/lib/tableSuite, shelf @/components as peers
 use: always
 change: none → /order <direct parent> (admin bulk actions = items of each domain's adminBulkActions)
 rules:

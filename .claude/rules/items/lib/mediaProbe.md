@@ -3,7 +3,9 @@ paths:
   - "src/lib/mediaProbe/**"
 ---
 # lib/mediaProbe
-what: server-side probe of stored media (video / audio) returning facts about its streams (hasAudioTrack, container, duration, codecs), engine swappable | closed lib: entries @/lib/mediaProbe (result types, hasAudioTrack / isSilentVideo …) and @/lib/mediaProbe/server (probeMedia, registerProbeEngine / setDefaultProbeEngine, ProbeEngine; server-only, registers the default engine on import) | admin API POST /api/media/probe
+what: server-side probe of stored media (video / audio) returning facts about its streams (hasAudioTrack, container, duration, codecs), engine swappable
+  - closed lib: entries @/lib/mediaProbe (result types, hasAudioTrack / isSilentVideo …) and @/lib/mediaProbe/server (probeMedia, registerProbeEngine / setDefaultProbeEngine, ProbeEngine; server-only, registers the default engine on import)
+  - admin API POST /api/media/probe
 use: always
 change: none → /order <direct parent> | own engine = registerProbeEngine / setDefaultProbeEngine from @/lib/mediaProbe/server in own server code (→ Extension)
 rules:

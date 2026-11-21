@@ -3,7 +3,9 @@ paths:
   - "src/lib/domain/**"
 ---
 # lib/domain
-what: a domain's definition and fields: domain.json reading, field types with their schema and display helpers (CRUD_ID_FIELD, nullableDatetime / requiredDatetime, format* / FieldPresenter), relations, the domain's routes (getAdminPaths / AdminPaths); and resolves a domain name ↔ service / table / id column from the registry passed in | closed lib: entry "." @/lib/domain (client and server, no React value code / hooks / HTTP client), "./server" @/lib/domain/server (registry lookups, getJunctionTable), "./node" src/lib/domain/node.mjs (the 5 .mjs tables for scripts / eslint-rules) | access types and presets → @/lib/domainAccess
+what: a domain's definition and fields: domain.json reading, field types with their schema and display helpers (CRUD_ID_FIELD, nullableDatetime / requiredDatetime, format* / FieldPresenter), relations, the domain's routes (getAdminPaths / AdminPaths); and resolves a domain name ↔ service / table / id column from the registry passed in
+  - closed lib: entry "." @/lib/domain (client and server, no React value code / hooks / HTTP client), "./server" @/lib/domain/server (registry lookups, getJunctionTable), "./node" src/lib/domain/node.mjs (the 5 .mjs tables for scripts / eslint-rules)
+  - access types and presets → @/lib/domainAccess
 use: always
 change: overlay → domainEntry.override.ts beside a core domainEntry.ts (replaces `access` only)
 rules:

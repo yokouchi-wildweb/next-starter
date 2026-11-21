@@ -3,7 +3,8 @@ paths:
   - "src/lib/firestore/**"
 ---
 # lib/firestore
-what: the client-side Firestore application layer over the SDK instance of src/lib/firebase: subscriptions, single-document operations, chunked batches, transactions, Timestamp conversion and error normalization | closed lib: entries @/lib/firestore/client (client SDK operations) and @/lib/firestore (shared types + convertTimestampsWith, the one SDK-free Timestamp → Date walk; the caller passes its own SDK's Timestamp test, as crud/firestore does with the Admin SDK)
+what: the client-side Firestore application layer over the SDK instance of src/lib/firebase: subscriptions, single-document operations, chunked batches, transactions, Timestamp conversion and error normalization
+  - closed lib: entries @/lib/firestore/client (client SDK operations) and @/lib/firestore (shared types + convertTimestampsWith, the one SDK-free Timestamp → Date walk; the caller passes its own SDK's Timestamp test, as crud/firestore does with the Admin SDK)
 use: always
 change: none → /order <direct parent>
 rules:

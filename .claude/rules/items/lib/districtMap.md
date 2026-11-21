@@ -3,7 +3,9 @@ paths:
   - "src/lib/districtMap/**"
 ---
 # lib/districtMap
-what: finds the app's districts (features, lib, frame, proxies) and what each holds by reading the existing declarations as text | closed lib with two entries: "." @/lib/districtMap/index.mjs (reads no file: readDistrictMap, field readers, kinds, declaration and name rules) and "./node" node.mjs (node:fs / node:path: readDistrictMapAt, collectPoints, overrideKeysOf, domainOutputs) | output src/registry/district-map.jsonl
+what: finds the app's districts (features, lib, frame, proxies) and what each holds by reading the existing declarations as text
+  - closed lib with two entries: "." @/lib/districtMap/index.mjs (reads no file: readDistrictMap, field readers, kinds, declaration and name rules) and "./node" node.mjs (node:fs / node:path: readDistrictMapAt, collectPoints, overrideKeysOf, domainOutputs)
+  - output src/registry/district-map.jsonl
 use: always
 change: none → /order <direct parent>
 rules:
