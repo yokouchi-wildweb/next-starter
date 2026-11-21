@@ -10,19 +10,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import {
-  CATALOG_FILE,
-  PROJECT_RULES_FILE,
-  REPO_JSON_FILE,
-  TIER_VALUES,
-  catalogSectionNames,
-  formatRepoJson,
-  isKnownRepoKey,
-  parseDownstreamDeclaration,
-  parseForkIdDeclaration,
-  parseRepoIdentity,
-  parseRepoJson,
-} from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { CATALOG_FILE, PROJECT_RULES_FILE, REPO_JSON_FILE, TIER_VALUES, catalogSectionNames, formatRepoJson, isKnownRepoKey, parseDownstreamDeclaration, parseForkIdDeclaration, parseRepoIdentity, parseRepoJson } from "../../../src/lib/forkOwnership/node.mjs";
 
 export class RepoJsonError extends Error {
   /** @param {string} message */

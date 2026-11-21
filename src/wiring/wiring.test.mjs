@@ -25,7 +25,7 @@ import { fileURLToPath } from "node:url";
 
 import { BUILTIN_FORM_INPUTS } from "../lib/domain/fields/formInputs.mjs";
 import { readDeclaration, classifyDottedName, oldMarkerProblem } from "../lib/districtMap/index.mjs";
-import { readForkIdentity } from "../lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "../lib/forkOwnership/node.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const srcDir = join(repoRoot, "src");

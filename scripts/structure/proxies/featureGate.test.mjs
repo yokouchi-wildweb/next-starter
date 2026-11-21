@@ -39,7 +39,7 @@ import { alwaysOnExceptions, alwaysOnRegistries, checkAddresses, configEnabled, 
 import { checkBaseRequires, checkForeignKeys, checkRequiredClosed, sharedDomainsOpen } from "../../../src/featureGate/checks/integrity.mjs";
 import { readRequiredNames } from "../../../src/featureGate/checks/dependencies.mjs";
 import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
-import { forkAddedFiles } from "../../../src/lib/forkOwnership/check.mjs";
+import { forkAddedFiles } from "../../../src/lib/forkOwnership/node.mjs";
 import { itemsOf, planExtensions } from "../extensions/extensions.mjs";
 import { ALWAYS_ON_DIR, judgeAlwaysOnEntries, readForkAlwaysOn, staleAlwaysOnFiles } from "../../../src/featureGate/checks/alwaysOnEntries.mjs";
 import { findOpenGenericApis, findOpenRouteImports, rulesWithFeatures } from "../../../src/featureGate/checks/routeImports.mjs";

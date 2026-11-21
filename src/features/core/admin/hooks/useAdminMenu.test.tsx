@@ -12,7 +12,7 @@ import { rules } from "@/featureGate/node";
 import type { AdminMenuBuiltCategory } from "@/features/core/admin/menu/types";
 import { AuthSessionContext } from "@/features/core/auth/components/AuthSessionContext";
 import type { SessionUser } from "@/features/core/auth/entities/session";
-import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 import { useAdminMenu } from "./useAdminMenu";
 

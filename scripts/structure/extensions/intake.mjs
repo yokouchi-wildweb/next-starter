@@ -11,7 +11,7 @@ import { loadGates, scanTargets } from "../../runner/gates/scan.mjs";
 import { parseSwitchLayout, APP_DIR, discoverRoutes, listAppFiles } from "../../../src/lib/screens/node.mjs";
 
 import { isListPoint, overrideGlobOf } from "../../../src/lib/districtMap/index.mjs";
-import { INTAKE_FILE, replaceIntakeBlock } from "../../../src/lib/forkOwnership/intake.mjs";
+import { INTAKE_FILE, replaceIntakeBlock } from "../../../src/lib/forkOwnership/node.mjs";
 import { intakeOutputGlobs } from "../../../src/lib/districtMap/node.mjs";
 
 /** 宣言に依らない受け口(route の隣の丸ごと置き換え・枠の宣言)。ドメインのタスクは fork 自身のドメインに置くので受け口の行は無い */

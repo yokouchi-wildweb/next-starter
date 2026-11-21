@@ -10,7 +10,7 @@ import { orphanProfileIssues, roleConfigIssues, roleConfigWarnings } from "../ch
 import { profileFieldIssues, profileTagIssues, profileWarnings } from "../checks/profile.mjs";
 import { profileRelationIssues } from "../checks/relations.mjs";
 import { roleFolderIssues, roleIssues } from "../checks/role.mjs";
-import { readForkIdentity } from "../../../../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "../../../../src/lib/forkOwnership/node.mjs";
 
 const role = (extra = {}) => ({ id: "reviewer", label: "審査", category: "user", hasProfile: true, ...extra });
 

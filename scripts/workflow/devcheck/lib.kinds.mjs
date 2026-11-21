@@ -145,7 +145,7 @@ export const agentPolicyOf = (values) => {
 export const readAgentPolicy = async (root) => {
   const file = path.join(root, POLICY_FILE);
   if (!existsSync(file)) return agentPolicyOf({});
-  const { parseRepoJson } = await import("../../../src/lib/forkOwnership/forkIds.mjs");
+  const { parseRepoJson } = await import("../../../src/lib/forkOwnership/node.mjs");
   const { values, errors } = parseRepoJson(readFileSync(file, "utf8"));
   if (errors.length) throw new DevcheckError(`${POLICY_FILE}: ${errors.join(" / ")}`);
   return agentPolicyOf(values);

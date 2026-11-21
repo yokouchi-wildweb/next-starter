@@ -1,0 +1,23 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "allowImportingTsExtensions": true,
+    "checkJs": true,
+    "paths": {
+      "@/lib/defineConfig": ["../defineConfig"],
+      "@/lib/defineConfig/*": ["../defineConfig/*"],
+      "@/lib/districtMap": ["../districtMap"],
+      "@/lib/districtMap/*": ["../districtMap/*"],
+      "@/lib/libPackage": ["../libPackage"],
+      "@/lib/libPackage/*": ["../libPackage/*"],
+      "@/lib/pathPattern": ["../pathPattern"],
+      "@/lib/pathPattern/*": ["../pathPattern/*"],
+      "@/lib/screens": ["../screens"],
+      "@/lib/screens/*": ["../screens/*"],
+      "@/lib/stringCase": ["../stringCase"],
+      "@/lib/stringCase/*": ["../stringCase/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.js"]
+}

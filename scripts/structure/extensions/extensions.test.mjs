@@ -16,7 +16,7 @@ import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 
 import { readDeclaration } from "../../../src/lib/districtMap/index.mjs";
 import { checkDependsOnGraph, readDependsOn } from "./derive/gateDependsOn.mjs";

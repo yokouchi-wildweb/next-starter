@@ -1,7 +1,7 @@
 // scripts/workflow/repo-json/show.mjs — pnpm workflow repo-json show
 // repo.json の中身と、読み手(forkIds.mjs)の読んだ名前・段・下流の有無・誤りを出す。何も書かない。
 // 終了コード: 0 = 読めた / 2 = 誤りがある。説明: scripts/workflow/repo-json/README.md
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 import { readValues, runAction } from "./lib.mjs";
 
 runAction(() => {

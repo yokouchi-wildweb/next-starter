@@ -40,7 +40,7 @@
 //                            show <sheet>  数と、まだ結果のない項目・スクリーンショットの置き場
 import { execFileSync } from "node:child_process";
 import { existsSync, linkSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, renameSync, rmdirSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
-import { forkIdOfTexts } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { forkIdOfTexts } from "../../../src/lib/forkOwnership/node.mjs";
 import { addItem, copySheet, isSheetFile, readSheet, setResult, sheetPathFor, shotsDirOf, startRun, summarize, writeSheet } from "./checkSheet.mjs";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";

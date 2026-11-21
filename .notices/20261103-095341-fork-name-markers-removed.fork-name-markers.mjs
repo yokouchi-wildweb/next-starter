@@ -45,10 +45,9 @@ import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
 
-import { readBaseFiles } from "../src/lib/forkOwnership/baseFiles.mjs";
+import { readBaseFiles, unitName } from "../src/lib/forkOwnership/node.mjs";
 import { DECLARATION_NAME, classifyDottedName, literalOf } from "../src/lib/districtMap/index.mjs";
 import { findDeclarationFiles } from "../src/lib/districtMap/node.mjs";
-import { unitName } from "../src/lib/forkOwnership/unitNames.mjs";
 
 const KEEP = new Set(["default", "replace", "client"]);
 const CODE = /\.(ts|tsx|mts|cts|mjs|js|cjs)$/;

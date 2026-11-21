@@ -45,7 +45,7 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 import { checkAdminPageScreen } from "../src/lib/screens/node.mjs";
-import { readBaseFiles } from "../src/lib/forkOwnership/baseFiles.mjs";
+import { readBaseFiles } from "../src/lib/forkOwnership/node.mjs";
 
 /** 止める種類(閉じた一覧)→ 移し先 */
 export const STOP_KINDS = Object.freeze({

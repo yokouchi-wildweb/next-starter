@@ -14,8 +14,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { readBaseFiles } from "../../../src/lib/forkOwnership/baseFiles.mjs";
-import { forkAddedFiles } from "../../../src/lib/forkOwnership/check.mjs";
+import { readBaseFiles, forkAddedFiles } from "../../../src/lib/forkOwnership/node.mjs";
 import { listAppFiles } from "../../../src/lib/screens/node.mjs";
 import { FRAME_DEFAULT_FILE, FRAME_FILE, FRAME_OVERRIDE_FILE, readExportedLiteral } from "./frames.mjs";
 

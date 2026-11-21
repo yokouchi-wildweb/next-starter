@@ -19,7 +19,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { FORK_ID_PATTERN, readForkIdentity } from "../forkOwnership/forkIds.mjs";
+import { FORK_ID_PATTERN, readForkIdentity } from "../forkOwnership/node.mjs";
 
 const OWNER_ID = FORK_ID_PATTERN;
 const SECTION_LINE = /^##\s+(.+?)\s*$/;

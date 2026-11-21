@@ -9,8 +9,7 @@ import { dirname, join, matchesGlob } from "node:path";
 import { fileURLToPath } from "node:url";
 import { nestedBrace, parsePaths, staticPrefix } from "./lib.rulePaths.mjs";
 import { isForkPlace, parseIntakeRows } from "./lib.ruleCoverage.mjs";
-import { INTAKE_PATH } from "../../../src/lib/forkOwnership/check.mjs";
-import { formatProblems, LINEAGE_FILE, parseLineage } from "../../../src/lib/forkOwnership/lineage.mjs";
+import { INTAKE_PATH, formatProblems, LINEAGE_FILE, parseLineage } from "../../../src/lib/forkOwnership/node.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const coreDir = ".claude/rules/core";

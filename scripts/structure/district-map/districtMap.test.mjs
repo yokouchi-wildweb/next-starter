@@ -11,7 +11,7 @@ import { test } from "node:test";
 import { configRules } from "../../../src/featureGate/node.ts";
 import { DISTRICT_MAP_FILE } from "../../../src/lib/districtMap/index.mjs";
 import { collectPoints, readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 import { scanFeatureTables } from "../registry/tableScan.mjs";
 import { ENTRIES_EXPORT, listDomainDirs, readObjectKeys } from "../registry/serviceRegistry/discover.mjs";
 import { buildDistrictMap, checkDistrictMap, generateDistrictMap, repoRoot } from "./map.mjs";

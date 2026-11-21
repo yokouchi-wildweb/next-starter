@@ -5,8 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { readBaseFiles } from "../../../src/lib/forkOwnership/baseFiles.mjs";
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { readBaseFiles, readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 import { checkAll, parsePending, PENDING_FILE, readSkills, readVocabulary, RULE_FILE, SKILLS_DIR } from "./lib.skillFormat.mjs";
 
 /**

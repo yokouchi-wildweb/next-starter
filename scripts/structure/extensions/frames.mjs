@@ -14,7 +14,7 @@ import ts from "typescript";
 import { FRAME_ROOTS } from "../../../src/app/_layout/frame/parts.mjs";
 import { checkFrameDeclaration, emptyFrame, frameRowValue, hidesWholeFrame, matchFrame, overlayFrame, sameFrameValue } from "../../../src/app/_layout/frame/resolve.mjs";
 import { literalOf, FRAME_DEFAULT_FILE, FRAME_FILE, FRAME_OVERRIDE_FILE } from "../../../src/lib/districtMap/index.mjs";
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 import { isBlankSource } from "./overrides.mjs";
 import { LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes, listAppFiles } from "../../../src/lib/screens/node.mjs";
 

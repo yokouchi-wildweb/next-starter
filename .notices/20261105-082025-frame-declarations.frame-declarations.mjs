@@ -42,7 +42,7 @@ import { FRAME_ROOTS, hideableParts } from "../src/app/_layout/frame/parts.mjs";
 import { checkFrameDeclaration } from "../src/app/_layout/frame/resolve.mjs";
 import { headerFor } from "../scripts/structure/extensions/extensions.mjs";
 import { FRAME_FILE, planFrames, readExportedLiteral } from "../scripts/structure/extensions/frames.mjs";
-import { readBaseFiles } from "../src/lib/forkOwnership/baseFiles.mjs";
+import { readBaseFiles } from "../src/lib/forkOwnership/node.mjs";
 
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git", ".turbo", "dist", "coverage"]);
 const HIDE_MODULE = /AppFrames\/User\/controls/;

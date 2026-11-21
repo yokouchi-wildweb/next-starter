@@ -13,7 +13,7 @@ import { sampleLegalDocuments } from "@/features/legal/documents";
 import { checkLegalRelease } from "@/features/legal/release";
 import { isProduction } from "@/lib/appEnv";
 
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 

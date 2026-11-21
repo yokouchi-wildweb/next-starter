@@ -28,8 +28,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { forkIdOfTexts, PROJECT_RULES_FILE, readForkIdentity, REPO_JSON_FILE } from "../../../src/lib/forkOwnership/forkIds.mjs";
-import { lastUpstreamSha, resolveParentBranch, resolveParentRemote } from "../../../src/lib/forkOwnership/check.mjs";
+import { forkIdOfTexts, PROJECT_RULES_FILE, readForkIdentity, REPO_JSON_FILE, lastUpstreamSha, resolveParentBranch, resolveParentRemote } from "../../../src/lib/forkOwnership/node.mjs";
 
 export const SAFE_NAME = /^safe\/([a-z0-9]+(?:-[a-z0-9]+)*)\/(\d{8})-([1-9]\d*)$/;
 export const FULL_CHECKS = ["pnpm test", "pnpm check", "pnpm typecheck", "pnpm lint", "pnpm build"];

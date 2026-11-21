@@ -14,7 +14,7 @@ import path from "node:path";
 import { parseDependencyTree } from "dpdm";
 import ts from "typescript";
 
-import { shelfUnitOf, unitPlaces } from "../../../src/lib/forkOwnership/unitNames.mjs";
+import { shelfUnitOf, unitPlaces } from "../../../src/lib/forkOwnership/node.mjs";
 
 /** 有向の図(ノード → 次のノードの配列)の強連結成分のうち 2 つ以上のもの(各成分は並べ替え済み) */
 function stronglyConnected(graph) {

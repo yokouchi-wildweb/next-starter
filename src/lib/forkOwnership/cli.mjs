@@ -1,4 +1,5 @@
 // pnpm workflow ownership check — fork の所有の検査。終了コード: 0 = 合格(Tier1 は対象外)/ 1 = 違反あり / 2 = 未検証・設定の不足
+// 読み込んだだけでは走らない: runOwnershipCheckCli() を呼ぶ(入口 "./node")
 // 引数: --parent=<remote> --branch=<branch> --json --verbose --self(既定と同じ)・--no-self(型 5 self の検査を外す。既定は入)。仕様: ./README.md「Usage」
 
 import { runCheck } from "./check.mjs";
@@ -147,7 +148,8 @@ function print(result, { verbose }) {
   return lines;
 }
 
-function main() {
+/** pnpm workflow ownership check の本体(引数は process.argv、結果は process.exitCode)。呼ぶのは scripts/workflow/ownership/check.mjs */
+export function runOwnershipCheckCli() {
   let options;
   try {
     options = parseArgs(process.argv.slice(2));
@@ -164,5 +166,3 @@ function main() {
   }
   process.exitCode = exitCode(result);
 }
-
-main();

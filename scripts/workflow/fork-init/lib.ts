@@ -11,17 +11,7 @@ import path from "node:path";
 
 import { EXAMPLE_BUSINESS, type BusinessValues } from "@/lib/business";
 
-import {
-  CATALOG_FILE,
-  LEDGER_DIR,
-  PROJECT_RULES_FILE,
-  REPO_JSON_FILE,
-  FORK_ID_PATTERN,
-  catalogSectionNames,
-  formatRepoJson,
-  isKnownRepoKey,
-  parseRepoIdentity,
-} from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { CATALOG_FILE, LEDGER_DIR, PROJECT_RULES_FILE, REPO_JSON_FILE, FORK_ID_PATTERN, catalogSectionNames, formatRepoJson, isKnownRepoKey, parseRepoIdentity } from "@/lib/forkOwnership/node.mjs";
 import { readValues, setValue } from "../repo-json/lib.mjs";
 import { BUSINESS_FILE, ownFileText } from "../../operations/business/lib";
 

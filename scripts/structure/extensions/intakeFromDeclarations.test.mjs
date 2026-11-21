@@ -10,8 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { collectPoints, intakeOutputGlobs } from "../../../src/lib/districtMap/node.mjs";
 import { OVERRIDE_ROOT } from "../../../src/lib/districtMap/index.mjs";
-import { INTAKE_BLOCK_END, INTAKE_BLOCK_START, INTAKE_FILE, matchIntake, parseIntake } from "../../../src/lib/forkOwnership/intake.mjs";
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { INTAKE_BLOCK_END, INTAKE_BLOCK_START, INTAKE_FILE, matchIntake, parseIntake, readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 import { FORK_OWNED_DIR } from "../../../src/lib/screens/node.mjs";
 import { loadGates, scanTargets } from "../../runner/gates/scan.mjs";
 import { literalGlob, overrideGlobOf } from "./intake.mjs";

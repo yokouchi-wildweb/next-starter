@@ -3,7 +3,7 @@ paths:
   - "src/lib/forkOwnership/**"
 ---
 # lib/forkOwnership
-what: the fork ownership check (pnpm workflow ownership check) and the owner lookup (pnpm workflow ownership who), with intake.txt, permits and repo.json readers
+what: the fork ownership check (pnpm workflow ownership check) and the owner lookup (pnpm workflow ownership who), with intake.txt, permits and repo.json readers | closed lib: one entry "./node" src/lib/forkOwnership/node.mjs (programs outside Next only, no ".")
 use: always
 change: none → /order <direct parent>
 rules:

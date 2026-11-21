@@ -28,7 +28,7 @@ import {
   listHobbyDowngradedTasks,
   matchesCronExpression,
 } from "../../../src/lib/cron/index.ts";
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 

@@ -12,7 +12,8 @@ import { parseIntake } from "./intake.mjs";
 import { fingerprint } from "./permits.mjs";
 import { overrideCandidate, replaceCandidate, whoOwns } from "./who.mjs";
 
-const CLI = resolve(import.meta.dirname, "whoCli.mjs");
+// 走らせるのは pnpm workflow ownership who の入口(whoCli.mjs は読み込んだだけでは走らない。runOwnershipWhoCli を呼ぶ)
+const CLI = resolve(import.meta.dirname, "../../../scripts/workflow/ownership/who.mjs");
 const REPO_ROOT = resolve(import.meta.dirname, "../../..");
 /** このリポの本物のファイル(宣言・出力の種類のデータ)を表の木に写す */
 const real = (path) => readFileSync(join(REPO_ROOT, path), "utf8");

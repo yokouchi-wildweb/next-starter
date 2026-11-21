@@ -108,7 +108,7 @@ test("上流の宣言(frame.ts だけ): 準備中は header-nav・footer・botto
 });
 
 test("生成の表は上流の宣言と同じに解く(Tier1 だけ: fork の表は frame.override.ts の宣言を含む)", async (t) => {
-  const { readForkIdentity } = await import("@/lib/forkOwnership/forkIds.mjs");
+  const { readForkIdentity } = await import("@/lib/forkOwnership/node.mjs");
   if (!readForkIdentity(repo).isTier1) {
     t.skip("fork の生成の表は frame.override.ts を含むので上流の宣言と違ってよい");
     return;

@@ -12,7 +12,7 @@ import { menuItems } from "@/features/core/admin/extensions/menuItems";
 import { rules } from "@/featureGate/extensions/rules";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 import { adminDomains } from "@/registry/adminDomains";
-import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 import { buildAdminMenu } from "./buildAdminMenu";
 import { adminMenuSources } from "./sources";

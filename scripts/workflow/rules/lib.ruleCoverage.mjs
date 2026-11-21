@@ -2,8 +2,7 @@
 // paths の覆いの部品(純粋な関数): 書く場所が、どれかの決まりのファイル(上流の core のファイルと札)の paths に当たるか。
 // 照合は Claude Code の実際の読み込みと同じ(lib.rulePaths の matchesLoad: ** と * は点で始まる名・フォルダにも当たる、D225)。
 import { matchesLoad } from "./lib.rulePaths.mjs";
-import { LEDGER_DIR } from "../../../src/lib/forkOwnership/forkIds.mjs";
-import { PERMITS_DIR } from "../../../src/lib/forkOwnership/permits.mjs";
+import { LEDGER_DIR, PERMITS_DIR } from "../../../src/lib/forkOwnership/node.mjs";
 
 // fork にだけある場所(上流の木には無いが、所有の道具が名前を決めている): ここの glob は paths に置いてよい
 export const FORK_ONLY_PLACES = [`${PERMITS_DIR}/`, `${LEDGER_DIR}/`];

@@ -12,7 +12,7 @@ import { isProduction } from "@/lib/appEnv";
 import { checkBusinessRelease, type BusinessFile } from "@/lib/business";
 
 import businessFile from "../../../src/business/business";
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 

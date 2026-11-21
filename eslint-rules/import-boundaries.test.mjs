@@ -27,7 +27,7 @@ import plugin, {
   valueSpecifiersOfText,
 } from "./import-boundaries.mjs";
 import { resolveImport } from "./resolve-import.mjs";
-import { readForkIdentity } from "../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "../src/lib/forkOwnership/node.mjs";
 
 const tsParser = createRequire(import.meta.resolve("eslint-config-next"))("@typescript-eslint/parser");
 const repoRoot = path.resolve(import.meta.dirname, "..");

@@ -10,7 +10,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 import { configRules, ruleEnabled, transitiveDependencies, type FeatureDependencyNode } from "../ruleList";
 import type { GatedFeatureRule } from "../types";

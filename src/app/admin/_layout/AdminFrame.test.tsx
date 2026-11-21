@@ -137,7 +137,7 @@ test("外枠(AdminLayout)は管理の表を共通の読み手に渡し、当た�
 });
 
 test("上流は管理の枠の宣言を持たない(表は空。Tier1 だけ: fork は frame.ts で枠を宣言してよい)", async (t) => {
-  const { readForkIdentity } = await import("@/lib/forkOwnership/forkIds.mjs");
+  const { readForkIdentity } = await import("@/lib/forkOwnership/node.mjs");
   if (!readForkIdentity(repo).isTier1) {
     t.skip("上流の枠の表が空であることの検査（Tier1 だけ。fork は自分の frame.ts の宣言を持つ）");
     return;

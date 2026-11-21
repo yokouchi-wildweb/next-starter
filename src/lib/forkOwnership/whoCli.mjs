@@ -1,4 +1,5 @@
 // pnpm workflow ownership who <path...> — パスごとの持ち主・できること・根拠(読むだけ)。終了コード: 0 = 答えた / 2 = 未検証・引数の誤り
+// 読み込んだだけでは走らない: runOwnershipWhoCli() を呼ぶ(入口 "./node")
 // 引数: --parent=<remote> --branch=<branch> --no-fetch --json。仕様: ./README.md「持ち主を調べる(pnpm workflow ownership who)」
 
 import { relative, resolve, sep } from "node:path";
@@ -106,7 +107,8 @@ function print(answer) {
   return lines;
 }
 
-function main() {
+/** pnpm workflow ownership who の本体(引数は process.argv、結果は process.exitCode)。呼ぶのは scripts/workflow/ownership/who.mjs */
+export function runOwnershipWhoCli() {
   let options;
   try {
     options = parseArgs(process.argv.slice(2));
@@ -124,5 +126,3 @@ function main() {
   console.log(options.json ? JSON.stringify(answer, null, 2) : print(answer).join("\n"));
   process.exitCode = answer.status === "unverified" ? 2 : 0;
 }
-
-main();

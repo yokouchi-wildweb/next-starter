@@ -21,10 +21,9 @@ const git = (cwd, args) => execFileSync("git", args, { cwd, encoding: "utf8", st
 /** 判定の lib: upstream があればその版を .flux/flux-lib/<sha>/ に取り出して、無ければこの repo の lib を読む */
 async function loadLibs(cwd, upstream) {
   if (!upstream) {
-    return {
-      ids: await import(`../../../${LIB_DIR}/forkIds.mjs`),
-      lineage: await import(`../../../${LIB_DIR}/lineage.mjs`),
-    };
+    // この repo の lib は入口 "./node" から読む(閉じた lib)。upstream の版は下で 2 ファイルだけを取り出す(古い版には入口が無い)
+    const node = await import("../../../src/lib/forkOwnership/node.mjs");
+    return { ids: node, lineage: node };
   }
   const sha = git(cwd, ["rev-parse", "--verify", "--quiet", `${upstream}^{commit}`]).trim();
   const dir = join(cwd, ".flux", "flux-lib", sha);

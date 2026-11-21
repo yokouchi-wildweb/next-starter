@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, posix } from "node:path";
 
 import { classifyDottedName, oldMarkerProblem, DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, isListPoint } from "../../../src/lib/districtMap/index.mjs";
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 
 import { collectPoints } from "../../../src/lib/districtMap/node.mjs";
 import { createFeatureTables } from "./derive/featureTables.mjs";

@@ -7,7 +7,7 @@ import path from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 import { migrate, parseValue, readValues, RepoJsonError, setValue } from "./lib.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));

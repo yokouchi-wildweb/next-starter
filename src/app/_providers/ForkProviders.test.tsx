@@ -22,7 +22,7 @@ let isTier1: boolean;
 before(async () => {
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
   ({ ForkProviders } = await import("./ForkProviders.default"));
-  const { readForkIdentity } = await import("@/lib/forkOwnership/forkIds.mjs");
+  const { readForkIdentity } = await import("@/lib/forkOwnership/node.mjs");
   isTier1 = readForkIdentity(join(__dirname, "../../..")).isTier1;
 });
 

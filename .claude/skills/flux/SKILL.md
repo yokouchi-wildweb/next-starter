@@ -211,7 +211,7 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
    - a ledger, permits or section heading of an old origin-derived name (`<owner>--<repo>`) remains → rename with `git mv` by the steps of the naming notice
 3. other names' files in `.notices/applied/` are ledgers of middle Tiers or other forks (came in by merge) | **never mix them with own state** | reading them as reference is fine
 4. **middle Tier's name** = `repo_id` of `repo.json` in the direct upstream's version (`<upstream>/<branch>`; old versions: `fork_id:` of project.md) | that version has `.notices/applied/<middle Tier name>.md` → the direct Tier is a middle Tier that itself follows its upstream as a downstream (→ relay.md) | none → the direct upstream is the top (Tier1) and grandparent notices do not exist
-5. **downstream presence** = `tier` of `repo.json` (root / middle = yes, leaf = none; only reader `forkIds.mjs`): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/forkIds.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`
+5. **downstream presence** = `tier` of `repo.json` (root / middle = yes, leaf = none; only reader `forkIds.mjs`): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/node.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`
    - `yes` = has downstream (judge relay → relay.md) | `none` = leaf
    - anything else (declaration missing / wrong) → never guess from the text; STOP: have the user add the declaration (`pnpm workflow ownership check` stops as unverified too)
 

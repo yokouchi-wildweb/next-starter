@@ -16,7 +16,7 @@ import { coveredPatternsOf, overrideSwitches } from "@/featureGate/ruleList";
 import type { DerivedPath } from "@/featureGate/ruleList";
 import { menuItems } from "@/features/core/admin/extensions/menuItems";
 import { buildAdminMenu } from "@/features/core/admin/menu/buildAdminMenu";
-import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
 import { adminSidebar, adminSidebarHrefs } from "./adminSidebar";

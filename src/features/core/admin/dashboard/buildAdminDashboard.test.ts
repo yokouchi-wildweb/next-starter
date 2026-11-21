@@ -7,7 +7,7 @@ import { test } from "node:test";
 
 import type { FeatureName } from "@/featureGate";
 import { dashboardSections } from "@/features/core/admin/extensions/dashboardSections";
-import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 import { buildAdminDashboard, defineDashboardSection } from "./buildAdminDashboard";
 import type { AdminDashboardSectionDefinition, BuildAdminDashboardInput } from "./types";

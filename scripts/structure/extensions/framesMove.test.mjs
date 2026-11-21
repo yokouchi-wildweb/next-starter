@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { closeTmp, commitAll, git as tgit, makeFork, makeParent, openTmp, write } from "../../../src/lib/forkOwnership/testRepos.mjs";
+import { closeTmp, commitAll, git as tgit, makeFork, makeParent, openTmp, write } from "../../../src/lib/forkOwnership/node.mjs";
 import { planFramesMove, runFramesMove } from "./framesMove.mjs";
 
 const page = "export default function Page() { return null; }\n";

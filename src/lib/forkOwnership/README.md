@@ -51,6 +51,8 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 
 ## API
 
+入口は `./node` の 1 つ(`src/lib/forkOwnership/node.mjs`。閉じた lib: 下の名前は全部ここから読み、中のファイルは読まない)。読み手は Next の外のプログラム(scripts・lint・テスト・next.config・.notices の codemod)だけなので入口 `.` は置かない。CLI の本体 `runOwnershipCheckCli`(cli.mjs)・`runOwnershipWhoCli`(whoCli.mjs)も読み込んだだけでは走らず、`scripts/workflow/ownership/check.mjs`・`who.mjs` が呼ぶ。
+
 ### 受け口の一覧(`intake.mjs`)
 
 - `parseIntake(text)` → `{ rules, errors }`
@@ -82,7 +84,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 
 ### 基準の版のファイル(`baseFiles.mjs`)
 
-- `readBaseFiles` / `lastUpstreamSha`: notice の隣の codemod `.notices/<id>.<名前>.mjs` が読む公開の入口
+- `readBaseFiles` / `lastUpstreamSha`: notice の隣の codemod `.notices/<id>.<名前>.mjs` が入口 `./node` から読む
 
 ### リポの名前と段(`forkIds.mjs`)
 

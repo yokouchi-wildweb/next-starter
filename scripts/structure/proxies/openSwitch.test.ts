@@ -22,7 +22,7 @@ import { closedTables, configPath, configRules, gate as nodeGate, readFeatureRep
 import { isOpenSwitchActive, isTier1Build, parseOpenSwitch, resolveOpenSwitch } from "@/featureGate/openSwitch";
 import { configEnabled, overrideSwitches } from "@/featureGate/ruleList";
 import { setAppEnv } from "@/lib/appEnv";
-import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 import { gateClosedBy } from "../cron/discover";
 

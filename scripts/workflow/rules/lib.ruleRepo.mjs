@@ -2,8 +2,7 @@
 // pnpm check rules の検査(size.mjs・format.mjs)が共有する、リポの読み手: 決まりのファイルの一覧・上流の物の見分け・品目の一覧。
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
-import { readBaseFiles } from "../../../src/lib/forkOwnership/baseFiles.mjs";
-import { CATALOG_FILE, catalogSectionNames, readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { readBaseFiles, CATALOG_FILE, catalogSectionNames, readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 
 export const CORE_DIR = ".claude/rules/core";
 export const ITEMS_DIR = ".claude/rules/items";

@@ -1,0 +1,6 @@
+{
+  "exports": {
+    "./node": "./node.mjs"
+  },
+  "libs": ["districtMap", "screens"]
+}

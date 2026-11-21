@@ -49,7 +49,7 @@ test("項目 0: 空の一覧を差し込めば scope を渡しても条件は増
 });
 
 test("項目 0 の上流(生成の一覧): scope を渡しても条件は増えない(Tier1 だけ: fork は受け口 exclusionProviders/ に項目を足せる)", async (t) => {
-  const { readForkIdentity } = await import("@/lib/forkOwnership/forkIds.mjs");
+  const { readForkIdentity } = await import("@/lib/forkOwnership/node.mjs");
   if (!readForkIdentity(process.cwd()).isTier1) {
     t.skip("上流の生成の一覧が空であることの検査（Tier1 だけ。fork は notice analytics-exclusion-providers の手順で項目を足せる）");
     return;

@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { forkIdOf, incoming, isBreak, normalizeUrl, parseRow, rowFromBody, run, summary } from "./incoming.mjs";
-import { forkIdOfTexts } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { forkIdOfTexts } from "../../../src/lib/forkOwnership/node.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 

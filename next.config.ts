@@ -5,7 +5,7 @@ import path from "node:path";
 import type { NextConfig } from "next";
 
 import { getAppEnv } from "./src/lib/appEnv";
-import { readForkIdentity } from "./src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 // ビルドごとに一意なID（デプロイ検知用）
 const buildId = crypto.randomUUID();

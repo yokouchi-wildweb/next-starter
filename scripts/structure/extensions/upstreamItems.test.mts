@@ -42,7 +42,7 @@ import { EXAMPLE_BUSINESS } from "@/lib/business";
 import { messageRegistry } from "@/registry/messageRegistry";
 import { layouts } from "@/features/core/messaging/extensions/layouts";
 import { configEnabled } from "@/featureGate/node";
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 import { listOneShotTasks, loadOneShotTask } from "../../runner/task/discover";
 import { itemsOf, planExtensions } from "./extensions.mjs";
 

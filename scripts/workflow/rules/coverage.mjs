@@ -6,7 +6,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { INTAKE_PATH } from "../../../src/lib/forkOwnership/check.mjs";
+import { INTAKE_PATH } from "../../../src/lib/forkOwnership/node.mjs";
 import { coverageGaps, coverageVerdict, parseIntakeRows, parseUncovered } from "./lib.ruleCoverage.mjs";
 import { parsePaths } from "./lib.rulePaths.mjs";
 import { CORE_DIR, ITEMS_DIR, mdUnder, upstreamReader } from "./lib.ruleRepo.mjs";

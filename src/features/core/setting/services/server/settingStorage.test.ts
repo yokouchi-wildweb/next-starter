@@ -16,7 +16,7 @@ import { publicSettingKeys, settingKeysFor } from "./access";
 import { buildSectionForm, CODE_VALUE_HELPER_TEXT, firstOpenSection, listSections, settingSectionHref } from "../../utils/sectionForm";
 import { readSettingValues, settingDefaultOf } from "./read";
 import { mergedExtendedSql, validateSettingInput } from "./save";
-import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../../../../..");
 const { isTier1 } = readForkIdentity(ROOT);

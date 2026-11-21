@@ -4,7 +4,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { forkAddedFiles } from "../../../src/lib/forkOwnership/check.mjs";
+import { forkAddedFiles } from "../../../src/lib/forkOwnership/node.mjs";
 import { isStaleRefTarget, staleRefsIn } from "./lib.ruleRenames.mjs";
 
 const root = join(import.meta.dirname, "../../..");

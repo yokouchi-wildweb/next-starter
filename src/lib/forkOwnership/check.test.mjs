@@ -11,7 +11,8 @@ import { closeTmp, commitAll, ENV, FORK_ID, git, LINEAGE_PREAMBLE, makeFork, mak
 // 型 1〜4 の検査のテスト: 作り物のリポは self のファイルを持たないので、既定で入の型 5 self は外す(型 5 は self.test.mjs)
 const runCheck = (repoRoot, options = {}) => runCheckWithSelf(repoRoot, { self: false, ...options });
 
-const CLI = resolve(import.meta.dirname, "cli.mjs");
+// 走らせるのは pnpm workflow ownership check の入口(cli.mjs は読み込んだだけでは走らない。runOwnershipCheckCli を呼ぶ)
+const CLI = resolve(import.meta.dirname, "../../../scripts/workflow/ownership/check.mjs");
 const cli = (cwd, ...args) => spawnSync(process.execPath, [CLI, "--no-self", ...args], { cwd, env: ENV, encoding: "utf8" });
 
 describe("pnpm workflow ownership check", () => {

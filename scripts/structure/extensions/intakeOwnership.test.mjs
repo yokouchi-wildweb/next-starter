@@ -6,8 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { runCheck } from "../../../src/lib/forkOwnership/check.mjs";
-import { closeTmp, commitAll, makeFork, makeParent, openTmp, write } from "../../../src/lib/forkOwnership/testRepos.mjs";
+import { runCheck, closeTmp, commitAll, makeFork, makeParent, openTmp, write } from "../../../src/lib/forkOwnership/node.mjs";
 import { planExtensions } from "./extensions.mjs";
 
 before(() => {
