@@ -108,8 +108,6 @@ any of the following during a segment's merge / application → **stop without c
 - the fork's uses cannot be fully aligned to the upstream change (aligning to the new usage needs a fork-specific judgment / aligning changes the fork's behavior) | never commit silently keeping the old usage
 - the segment checks (step 6 check entry, typecheck, lint) fail and the fix is not obvious (known failures excluded: FIXES below)
 - the merge result changed files outside the segment's upstream diff (step 5d out-of-segment check; git's rename guess pours upstream files into an unrelated fork directory, deletes fork files, etc.)
-- incoming changes to `.claude/rules/lineage.md` touched a key of your own overrides (`overrides:`) (step 5a `lineage-touch.mjs` gives 1)
-  - an ancestor changed the rule's content / `(default)`, so confirm with the human whether to keep, fix or delete the override (options: `打ち消しを新しい鍵の行に合わせて直す` / `打ち消しを消して祖先の規則に従う` / `上流に報告して待つ` = fix the override to the new key line / delete it and follow the ancestor's rule / report upstream and wait) | the key lines before / after go to the work memo
 - the ownership check (step 7c `pnpm workflow ownership check`) gave 1 (violation) or 2 (unverified) | this stop happens after the commit, before push: keep the segment's commit, do not push, stack the cleanup / fix in extra commits and rerun the check (no `git merge --abort`)
 
 how to stop:
@@ -383,9 +381,6 @@ merge and porting carry the fork's edits as they are | when the destination is u
    a. preparation:
       - a `moved:` porting target in the segment → save the diff first (→ moved.md step 2)
       - note the HEAD right before the merge (`git rev-parse HEAD` = `<pre>`)
-      - check override contact: `git show <upstream>/<branch>:.claude/skills/flux/lineage-touch.mjs > .flux/lineage-touch.mjs && node .flux/lineage-touch.mjs --upstream=<upstream>/<branch> --before <pre> --after <区間の merge 先>`
-        - the upstream tip's version, like incoming.mjs; it reads the judging lib at that ref too, so a fork without it still runs
-        - 1 = incoming changes to `.claude/rules/lineage.md` touched an ancestor key named by your overrides (`overrides:` of project.md / your own section) → do not merge; stop condition (above) | 0 = go on | 2 = cannot read (STOP: say why)
    - **side-commit check** (after a, before the merge): `git merge-base --is-ancestor $(git merge-base HEAD <upstream>/<branch>) <区間の merge 先>` is false (the tool's `offLine`) → do not merge; STOP
      - why: merging makes 2 merge-bases with upstream, so the out-of-segment check (5d), the ownership check (7c) and the next segment's footing cannot be decided (the ownership check is not rebuilt to judge this shape; stop before this segment and choose how to take it)
      - give the ways to take it and wait: (1) pick that fix (same as the execution of the pick-clean fix above; with `pick: -` too, try it on the user's approval; taken → rebuild the segments) / (2) ask the user (e.g. skip this segment and make the mainline commit `mainline` that contains it the next segment's merge target)
@@ -450,7 +445,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
       - the `relay:` field is written only by forks with downstream; leaf forks omit the whole field | covered-id lines and `relay:` values when recording a covers-side notice → relay.md LEDGER ADDITIONS
    b. commit the diff (application + ledger + relay notices drafted in this segment) (no push yet) | message: a one-line summary + blank line + `downstream-notice: <id>` (every id of the segment, one per line) + the Co-Authored-By trailer the environment specifies | branch handling follows this repo's policy
    c. **ownership check** (only when that segment's merge target has `src/lib/forkOwnership/intake.txt`; none → skip): `pnpm workflow ownership check` | it looks only at the committed HEAD (ledger, temporary permits and cleanup are read from HEAD too), so run it after b's commit, before push | middle Tiers with downstream too
-      - 0 → d
+      - 0 → d | its `[self-parent-lost]` lines (a self file whose own lines this take-in dropped; never a failure) → before d, ask per file: `親の版に従う` (nothing to do) / `自分の行を戻す` (restore them from `git show <the segment's merge>^1:<path>` in an extra commit of the segment, rerun the check)
       - 1 (violation) → stop condition | no push; show the violation list and settle it (move to an intake point / revert / temporary permit; how: `src/lib/forkOwnership/README.md` section `導入の段階` and required_actions of the cleanup notice `fork-ownership-cleanup`) | stack the cleanup in extra commits, rerun the check, go to d once it gives 0 | never push and close the segment with violations left
       - 2 (unverified) → stop condition | no push; fix the reason (a notice not in the ledger = a missing ledger append / no ledger / no `upstream:` line in the ledger = append it to this segment's line / that sha cannot be walked / no `repo_id` in the parent's version / a naming declaration problem / no parent remote, cannot fetch it / shallow) | after fixing, commit and rerun the check
    d. push | the segment's merge commit, if unpushed, is pushed with it | push failed → never paper over it, report, and reflect it honestly in the ledger `notes:`

@@ -43,6 +43,7 @@ pnpm workflow memory header --apply [--dir <path>]   # 区画の中だけを正�
 
 - 置き場 = `<CLAUDE_CONFIG_DIR か ~/.claude>/projects/<本体のチェックアウトの道の英数字以外を - にした名>/memory`。本体の道 = `git rev-parse --git-common-dir` の親なので、ワークツリーから走らせても本体と同じ置き場(Claude Code はメモリーを git の本体ごとに持ち、ワークツリーと共有する)
 - `header --apply` は区画の外を変えない。MEMORY.md が無ければ区画だけで作る。区画の印が壊れているときは書かずに止める
+- 道・frontmatter・参照の実在・同じ行の部品は `scripts/workflow/context/lib.lines.mjs`(`pnpm workflow context facts` と共有)
 - 書くのは `header --apply` の MEMORY.md だけ。memo の移動・書き出しは `/meditate` が承認の後に行う
 
 ## Verification
@@ -53,3 +54,4 @@ pnpm workflow memory header --apply [--dir <path>]   # 区画の中だけを正�
 
 - `/meditate`(`.claude/skills/meditate/SKILL.md`): この命令の出力で片付ける
 - メモリーと個人の置き場の定義: CLAUDE.md DOCS `memory` / `personal`
+- `scripts/workflow/context/README.md`: 文脈の行の事実(部品を共有)

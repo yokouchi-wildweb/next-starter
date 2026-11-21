@@ -2,7 +2,7 @@
 //
 // サイトテーマ(ライト / ダーク)の入口。説明: README.md
 // - 設定: siteThemeConfig(既定 ./defaults.ts + 上書き src/config/lib/siteTheme.config.ts、型 SiteThemeOverride)
-// - SSR 判定: src/app/layout.tsx(x-pathname → <html class / data-area>)と <head> の bootstrap script
+// - 初回の判定: src/app/layout.tsx の <head> の bootstrap script(location.pathname → <html class / data-area>。SSR では付けない)
 // - クライアント同期: SiteThemeSync(root layout に 1 つ。<html> を書くのはこれだけ)
 // - 切替: useDarkModeSwitch(切替ボタンの状態と操作。管理のヘッダーが使う)・useSiteThemeStore(状態と操作の素)
 

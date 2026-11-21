@@ -8,19 +8,17 @@ import { after, test } from "node:test";
 
 import {
   applyHeader,
-  checkRefs,
   collectFacts,
-  commitRefs,
   formatMemo,
   HEADER_SOURCE,
   headerState,
   memoryDir,
   MemoryError,
   parseArgs,
-  pathRefs,
   projectDirName,
   withHeader,
 } from "./lib.mjs";
+import { checkRefs, commitRefs, pathRefs } from "../context/lib.lines.mjs";
 
 const made = [];
 after(() => made.forEach((d) => rmSync(d, { recursive: true, force: true })));
@@ -29,8 +27,11 @@ const temp = (name) => {
   made.push(d);
   return d;
 };
+// commit の日時を固定する: 一時のリポの sha が毎回同じになる(日時で変わると短い sha 9 桁が数字だけになる回が約 1.5% あり、
+// commitRefs は数字だけの語を数えないので「参照」のテストがたまに落ちた)。作者は repo() の config で固定
+const FIXED_DATE = "2026-01-01T00:00:00+0000";
 const run = (cwd, ...args) => {
-  const r = spawnSync("git", args, { cwd, encoding: "utf8" });
+  const r = spawnSync("git", args, { cwd, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_DATE: FIXED_DATE, GIT_COMMITTER_DATE: FIXED_DATE } });
   assert.equal(r.status, 0, r.stderr);
   return r.stdout.trim();
 };
@@ -72,6 +73,7 @@ test("参照: パスらしい語とコミットらしい語、URL と仮の名�
   ]);
   assert.deepEqual(commitRefs("commit 56f8b2221 on 20261103 deadbeef"), ["56f8b2221"]);
   const { root, sha } = repo();
+  assert.match(sha, /[a-f]/, `固定した sha ${sha} に英字が無い(commitRefs が数えない)`);
   const r = checkRefs(`docs/rule.md ${sha} docs/gone.md 0abc1234`, root);
   assert.deepEqual(r, { exist: 2, total: 4, gone: ["docs/gone.md", "0abc1234"] });
 });

@@ -6,7 +6,8 @@
 //   3. sideEffects の宣言と副作用を照らす
 //   4. config.ts があるなら上書き src/config/lib/<名前>.config.ts があるか
 //   5. 自前の合成(defineXxxConfig)が残っていないか
-// package.json の形の問題(src/lib/libPackage の checkLibPackage)がある lib は飛ばして名前を出す(形は lint と形の検査が見る)。
+// package.json の形の問題(src/lib/libPackage の checkLibPackage)がある lib は 1〜5 を飛ばし、閉じていない不備 1 つ(shape)で落とす
+// (形の中身は lint と形の検査が見る。宣言した lib が全部閉じているかの確かめはこの門だけ: テストは今の repo を見ない)。
 // 宣言の無い lib は数えるだけ(落とさない)。外から中を読む import は --list / --json で数えて見せるだけ(落とすのは pnpm lint の entry/only-entries)。
 //
 //   pnpm check lib-package                 不備の行 + 1 行のまとめ
@@ -34,6 +35,11 @@ export function checkLibs(root) {
   for (const lib of declared) {
     if (readLibPackage(root, lib).problems.length > 0) {
       skipped.push(lib);
+      problems.push({
+        lib,
+        code: "shape",
+        message: `${lib}: 宣言した lib が閉じていません: package.json の形に問題がある(pnpm lint / src/lib/libPackage の形の検査で直す)`,
+      });
       continue;
     }
     checked.push(lib);
@@ -131,13 +137,9 @@ async function main() {
   if (args.includes("--json") || args.includes("--list")) {
     const report = libReport(root);
     console.log(args.includes("--json") ? JSON.stringify(report, null, 2) : formatTable(report));
-    return report.summary.problems > 0 ? 1 : 0;
+    return report.summary.problems > 0 || report.summary.skipped > 0 ? 1 : 0;
   }
   const { checked, skipped, undeclared, problems } = checkLibs(root);
-  for (const lib of skipped)
-    console.log(
-      `lib-package: ${lib}: package.json の形に問題があるので飛ばした(pnpm lint / src/lib/libPackage の形の検査で直す)`,
-    );
   for (const p of problems) console.log(`lib-package: ${p.message}`);
   console.log(
     `lib-package: package.json を持つ lib ${checked.length + skipped.length}(検査 ${checked.length}・飛ばした ${skipped.length})・問題 ${problems.length}・宣言のない lib ${undeclared.length}(数えるだけ。一覧: pnpm check lib-package -- --list)`,

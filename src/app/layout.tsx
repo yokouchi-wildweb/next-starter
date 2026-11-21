@@ -1,16 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "@/styles/global.css";
 import { Suspense } from "react";
-import { headers } from "next/headers";
 
 import { fontsConfig } from "@/lib/fonts";
-import {
-  buildSiteThemeBootstrapScript,
-  resolveSiteTheme,
-  SITE_THEME_AREA_ATTRIBUTE,
-  siteThemeConfig,
-  SiteThemeSync,
-} from "@/lib/siteTheme";
+import { buildSiteThemeBootstrapScript, siteThemeConfig, SiteThemeSync } from "@/lib/siteTheme";
 import { GlobalScreenLoader } from "@/lib/globalLoader";
 import { GlobalToast, RedirectToastProvider } from "@/lib/toast";
 import { ViewportHeightWatcher } from "@/lib/viewport";
@@ -60,35 +53,26 @@ export const metadata: Metadata = {
 // 設定は静的なので bootstrap script はモジュール評価時に 1 回だけ生成する
 const siteThemeBootstrapScript = buildSiteThemeBootstrapScript(siteThemeConfig);
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // サイトテーマ: proxy.ts が付与した x-pathname からエリアを判定し、<html> に dark クラスと
-  // data-area を SSR で出力する(初回描画がエリアの既定で確定する)。保存値と OS 設定は SSR では
-  // 分からないので <head> の bootstrap script が body 描画前に補正し、以後は SiteThemeSync が
-  // クライアント遷移・切替操作・OS 設定変化のたびに再解決する。
-  // 判定ロジックは @/lib/siteTheme に一本化(設定の上書き: src/config/lib/siteTheme.config.ts)。
-  // proxy ハンドラが rewrite で intercept した場合は x-pathname が無く fallback エリア扱いになるが、
-  // bootstrap script が location.pathname で描画前に補正するので実害はない。
-  const pathname = (await headers()).get("x-pathname") ?? "/";
-  const { area, isDark } = resolveSiteTheme(siteThemeConfig, {
-    pathname,
-    stored: null,
-    systemPrefersDark: false,
-  });
+  // サイトテーマ: <html> の dark クラスと data-area は <head> の bootstrap script が body の描画前に決める
+  // (location.pathname・保存値・OS 設定から。初回描画のフラッシュなし)。以後は SiteThemeSync が
+  // クライアント遷移・切替操作・OS 設定変化のたびに再解決する。root layout は request(headers)を読まない
+  // (どのページも同じ静的な殻を出せるように)。判定ロジックは @/lib/siteTheme に一本化
+  // (設定の上書き: src/config/lib/siteTheme.config.ts)。
 
   // 書体: fonts.config.ts(next/font)で読み込んだフォントの variable クラスを <html> に当てる。
   // 何も読み込んでいなければ空(core/typography.css の system スタックで表示)。
-  const htmlClassName = [isDark ? "dark" : "", fontsConfig.className].filter(Boolean).join(" ");
+  const htmlClassName = fontsConfig.className;
 
   return (
     <html
       lang={business.htmlLang}
       suppressHydrationWarning
       className={htmlClassName || undefined}
-      {...{ [SITE_THEME_AREA_ATTRIBUTE]: area.key }}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: siteThemeBootstrapScript }} />

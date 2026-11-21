@@ -20,6 +20,7 @@ import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
 import entryPlugin from "./eslint-rules/entry.mjs";
 import importBoundariesPlugin from "./eslint-rules/import-boundaries.mjs";
 import routeHttpExportPlugin from "./eslint-rules/route-http-export.mjs";
+import segmentConfigPlugin from "./eslint-rules/segment-config.mjs";
 import styleTokensPlugin from "./eslint-rules/style-tokens.mjs";
 import { loadCatalogOwnership } from "./src/lib/folderCatalog/node.mjs";
 import forkConfig from "./eslint.config.fork.mjs";
@@ -98,6 +99,16 @@ const config = [
     plugins: { "route-http-export": routeHttpExportPlugin },
     rules: {
       "route-http-export/http-export": "error",
+    },
+  },
+  // page・layout・route の segment config のうち cacheComponents と両立しない 5 つ(dynamic・dynamicParams・fetchCache・
+  // revalidate・runtime)を書かない。上流 error / fork warn(cacheComponents を有効にする区切りで全 Tier error)。
+  // page.tsx の切り替えの形の検査(src/lib/screens/checks.mjs)は 5 つを取り除いて形だけを見る。詳細: eslint-rules/segment-config.mjs
+  {
+    files: ["src/app/**/{page,layout,route}.{ts,tsx}"],
+    plugins: { "segment-config": segmentConfigPlugin },
+    rules: {
+      "segment-config/cc-incompatible": libOwnership.isRoot ? "error" : "warn",
     },
   },
   // 層の境目の import を実パスで検査する(エイリアス・相対・"src/…"・サブパス・dynamic import も同じ)。全 Tier error。

@@ -155,11 +155,12 @@ const ALLOWS = [
   ["pnpm -s workflow dev-tab run --port=3005", "server"],
   ["pnpm workflow dev-admin run", "login"],
   ["pnpm workflow dev-admin run --check", "login"],
-  ["pnpm test scripts/workflow/devcheck", "test"],
-  ["pnpm test 'src/lib/screens/routeMap*.test.mjs'", "test"],
-  ["pnpm test --changed", "test"],
-  ["pnpm check skills", "check"],
-  ["pnpm check --gate=ship", "check"],
+  // 出荷の検査の命令は方針の鍵なしで通す(D272。種類が無いので null の列)
+  ["pnpm test scripts/workflow/devcheck", null],
+  ["pnpm test 'src/lib/screens/routeMap*.test.mjs'", null],
+  ["pnpm test --changed", null],
+  ["pnpm check skills", null],
+  ["pnpm check --gate=ship", null],
   ['pnpm workflow peer send build "読んで"', "peer"],
   ["pnpm workflow peer inbox", "peer"],
   ["pnpm workflow peer read 3", "peer"],
@@ -188,8 +189,23 @@ test("方針 off → 何も返さない(deny にしない)/ manual → 印の道
   assert.equal(verdict(bash('pnpm workflow devcheck run db-write "INSERT INTO t (a) VALUES (1) RETURNING id" --manual-go'), manual), "none");
   assert.equal(verdict(bash("pnpm workflow devcheck run seed-shop --manual-go"), manual), "none");
   // devcheck の入口(plan / status / cleanup)は種類の方針を見ない(どれかが off でなければ通す)
-  const mostlyOff = fakeDeps({ policy: () => ({ ...Object.fromEntries(POLICY_KEYS.map((k) => [k, "off"])), test: "manual" }) });
+  const mostlyOff = fakeDeps({ policy: () => ({ ...Object.fromEntries(POLICY_KEYS.map((k) => [k, "off"])), peer: "manual" }) });
   assert.equal(verdict(bash("pnpm workflow devcheck cleanup"), mostlyOff), "allow");
+});
+
+test("出荷の検査の命令(pnpm test・pnpm check)は方針の鍵なしで通す: 全部 off・方針が読めなくても印があれば allow、--db は通さない(D272)", () => {
+  const allOff = fakeDeps({ policy: () => Object.fromEntries(POLICY_KEYS.map((k) => [k, "off"])) });
+  const broken = fakeDeps({
+    policy: () => {
+      throw new Error("x");
+    },
+  });
+  for (const command of ["pnpm test x", "pnpm check --gate=ship"]) {
+    assert.equal(verdict(bash(command), allOff), "allow", command);
+    assert.equal(decide(bash(command), broken)?.decision, "allow", command);
+    assert.equal(verdict(bash(command), fakeDeps({ grant: false })), "none", command);
+  }
+  assert.equal(verdict(bash("pnpm test --db")), "none");
 });
 
 test("許可しない形 → 何も返さない", () => {
@@ -373,7 +389,7 @@ test("壊れた時は何も返さない: 方針が読めない(例外)でも止�
       throw new Error("x");
     },
   });
-  assert.throws(() => decide(bash("pnpm test x"), broken)); // hook.mjs が受けて何も出さない
+  assert.throws(() => decide(bash("pnpm workflow peer who"), broken)); // hook.mjs が受けて何も出さない
   assert.equal(decide(bash("pnpm db:push"), broken)?.decision, "deny");
   assert.equal(verdict({ tool: "Read", file: "/repo/.env.production" }), "none");
   assert.equal(verdict({ tool: "Bash" }), "none");
@@ -391,9 +407,9 @@ test("入力の変換(Claude Code の形)と出力", () => {
   });
 });
 
-test("方針の鍵 = 種類 + フックだけの種類 peer・test・check(計画の候補には出さない、検査は出荷の道具の中だけ D357)、このリポの repo.json は通常 auto・危険な 3 つ manual(書いていない鍵の既定は manual、D265)", async () => {
-  assert.deepEqual(POLICY_KEYS, [...KIND_NAMES, "peer", "test", "check"]);
-  for (const k of ["peer", "test", "check"]) assert.ok(!KIND_NAMES.includes(k), k);
+test("方針の鍵 = 種類 + フックだけの種類 peer(計画の候補には出さない。検査は種類でも鍵でもない、D272)、このリポの repo.json は通常 auto・危険な 3 つ manual(書いていない鍵の既定は manual、D265)", async () => {
+  assert.deepEqual(POLICY_KEYS, [...KIND_NAMES, "peer"]);
+  assert.ok(!KIND_NAMES.includes("peer"));
   assert.deepEqual(await loadPolicy(path.join(TOOL_DIR, "../../..")), { ...ALL_AUTO, db_push: "manual", env_production: "manual", deploy: "manual" });
 });
 
@@ -401,7 +417,7 @@ test("固定の止め: repo.json の直接の書き換え(Edit / Write とシェ
   for (const tool of ["Edit", "Write", "MultiEdit"]) {
     const d = decide({ tool, file: "/repo/repo.json" }, fakeDeps({ grant: false }));
     assert.equal(d?.decision, "deny", tool);
-    assert.match(d.reason, /人が手で打つ: pnpm workflow repo-json set <鍵> <値> か \/repo-policy/);
+    assert.match(d.reason, /人が手で打つ: pnpm workflow repo-json set <鍵> <値>\(消すのは unset <鍵>\)か \/repo-policy/);
   }
   for (const command of [
     "echo '{}' > repo.json",
@@ -510,16 +526,22 @@ test("hook.mjs: 方針はプロジェクトの repo.json の agent.*。壊れた
     assert.equal(run("pnpm workflow peer who").stdout, "");
     assert.equal(run("pnpm workflow peer who").status, 0);
     assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
-    // fork の方針で peer を off → 何も返さない、test は auto に書いたまま
-    repo({ "agent.peer": "off", "agent.test": "auto" });
+    // fork の方針で peer を off → 何も返さない、出荷の検査の命令は方針の鍵なしで通る
+    repo({ "agent.peer": "off" });
     assert.equal(run("pnpm workflow peer who").stdout, "");
     assert.match(run("pnpm test x").stdout, /"permissionDecision":"allow"/);
-    // 全体のスイッチ: false → allow の形は全部何も返さない(devcheck の入口も)、止めは効く / 真偽値でない = 壊れた方針
+    // 全体のスイッチ: false → 方針で通す形は全部何も返さない(devcheck の入口も)、止めは効く / 真偽値でない = 壊れた方針
+    // 出荷の検査の命令は方針の鍵なしで通る(D272)
     repo({ "agent.enabled": false });
-    for (const command of ["pnpm test x", "pnpm workflow peer who", "pnpm workflow devcheck run server", "pnpm workflow devcheck plan"]) assert.equal(run(command).stdout, "", command);
+    for (const command of ["pnpm workflow peer who", "pnpm workflow devcheck run server", "pnpm workflow devcheck plan"]) assert.equal(run(command).stdout, "", command);
+    assert.match(run("pnpm test x").stdout, /"permissionDecision":"allow"/);
     assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
     repo({ "agent.enabled": "no" });
-    assert.equal(run("pnpm test x").stdout, "");
+    assert.equal(run("pnpm workflow peer who").stdout, "");
+    // 鍵を消す前の fork(agent.test が残る)= 壊れた方針: 方針で通す形は何も返さず、出荷の検査の命令は通る
+    repo({ "agent.test": "auto" });
+    assert.equal(run("pnpm workflow peer who").stdout, "");
+    assert.match(run("pnpm test x").stdout, /"permissionDecision":"allow"/);
     assert.match(run("pnpm db:push").stdout, /"permissionDecision":"deny"/);
     // 危険な 3 つを manual にしても、許可が無ければ止めたまま。許可があれば 1 回だけ通り、prompt(人の入力)で消える
     repo({ "agent.db_push": "manual" });
@@ -543,13 +565,13 @@ test("文脈の上書き(v=2 の auto=): manual の通常の種類だけ auto �
   const { applyAuto, contextAutoKinds } = await import("./lib.kinds.mjs");
   const { mkdtempSync, writeFileSync } = await import("node:fs");
   const { tmpdir } = await import("node:os");
-  const p = { server: "manual", login: "off", test: "manual", db_push: "manual" };
-  assert.deepEqual(applyAuto(p, ["server", "login"]), { server: "auto", login: "off", test: "manual", db_push: "manual" });
+  const p = { server: "manual", login: "off", peer: "manual", db_push: "manual" };
+  assert.deepEqual(applyAuto(p, ["server", "login"]), { server: "auto", login: "off", peer: "manual", db_push: "manual" });
   assert.deepEqual(applyAuto(p, []), p);
   const dir = mkdtempSync(path.join(tmpdir(), "dc-ctx-"));
   const f = path.join(dir, "ctx");
-  writeFileSync(f, "v=2\nauto=server,test\n");
-  assert.deepEqual(contextAutoKinds({ DEVCHECK_CONTEXT: f }), ["server", "test"]);
+  writeFileSync(f, "v=2\nauto=server,peer\n");
+  assert.deepEqual(contextAutoKinds({ DEVCHECK_CONTEXT: f }), ["server", "peer"]);
   writeFileSync(f, "v=1\nauto=server\n");
   assert.deepEqual(contextAutoKinds({ DEVCHECK_CONTEXT: f }), []);
   writeFileSync(f, "v=2\nauto=db_push\n");

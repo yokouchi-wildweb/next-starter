@@ -55,7 +55,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 ```
 
-`dynamic` 等のセグメント設定は page.tsx に書きます。`metadata` / `generateMetadata` は page.tsx に書くか、Screen 側に書いて `export { XScreen as default, metadata } from "./_screen/XScreen"` と一緒に re-export します。それ以外のロジック（JSX、セクションコンテナの import、`redirect` / `notFound`）は書きません（`pnpm test scripts/structure/routes/screens.test.mjs` が page.tsx を自動検出して検査。登録は不要）。
+書けるセグメント設定(`preferredRegion` / `maxDuration`)は page.tsx に書きます(`dynamic`・`dynamicParams`・`fetchCache`・`revalidate`・`runtime` は cacheComponents と両立しないので書きません。lint `segment-config/cc-incompatible`)。`metadata` / `generateMetadata` は page.tsx に書くか、Screen 側に書いて `export { XScreen as default, metadata } from "./_screen/XScreen"` と一緒に re-export します。それ以外のロジック（JSX、セクションコンテナの import、`redirect` / `notFound`）は書きません（`pnpm test scripts/structure/routes/screens.test.mjs` が page.tsx を自動検出して検査。登録は不要）。
 
 ### `_screen/<Name>Screen.tsx`（ページ層の本体）
 
@@ -170,7 +170,7 @@ export const useMyWalletBalances = (userId?: string | null, { fallbackData }: { 
 };
 ```
 
-- 実装の前例: `wallet/[slug]/_screen/loader.ts` → `WalletBalanceScreen` → `WalletBalance`（`initialWallets`）→ `useMyWalletBalances`。SSR 時も `AuthSessionProvider` が cookie からユーザーを初期値で渡すので hook のキーが揃い、初回描画からデータが出る
+- 実装の前例: `wallet/[slug]/_screen/loader.ts` → `WalletBalanceScreen` → `WalletBalance`（`initialWallets`）→ `useMyWalletBalances`。SSR 時も `AuthSessionProvider` が cookie から解くセッションの promise を渡し、`useAuthSession` がそれを読むので hook のキーが揃い、初回描画からデータが出る
 - `revalidateOnMount` は明示が必要です。未指定だと SWR は `revalidateIfStale`（既定 true）に従い、`fallbackData` があってもマウント時に取り直します
 - SWR はキャッシュにその key のデータが既にあればそちらを `fallbackData` より優先します（`data = cached ?? fallbackData`）。クライアント遷移で同じ画面に戻ったときは loader の新しい初期データではなくキャッシュが表示されるので、**キャッシュがあるときはマウント時に再検証する**（上の `hasCachedData`）。初回ロード（キャッシュ空）だけが「往復なし」になります
 - loader は API route と同じ ServerService を呼びます。業務ロジックは二重化しません（どのデータを取るかの判断だけが loader に移る）

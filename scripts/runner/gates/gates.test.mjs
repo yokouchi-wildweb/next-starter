@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { globToRegExp, run } from "./run.mjs";
-import { GateError, loadGates, scanTargets } from "./scan.mjs";
+import { GateError, gateTestFiles, gateTestsOf, loadGates, scanTargets } from "./scan.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -205,4 +205,17 @@ test("watch: 門 ship で選んだ watch つきの対象は、範囲の変更が
   let calls = 0;
   f.exec(["check", "--gate=forge:post"], { changed: () => (calls++, { files: [] }) });
   assert.equal(calls, 0, "watch の門でなければ範囲を読まない");
+});
+
+test("tests の欄: リポ相対の *.test.* の配列で実在する物だけ。check がテストの対象と tests が gateTestFiles に門の名で並ぶ(D389)", (t) => {
+  const { repo, scriptsDir, add } = fixture(t);
+  mkdirSync(join(repo, "lib"), { recursive: true });
+  writeFileSync(join(repo, "lib/a.test.mjs"), "");
+  add("structure", "cyc", { check: "cyc.test.mjs", gates: ["ship"] }, { "cyc.test.mjs": "" });
+  add("workflow", "ntc", { check: "check.mjs", gates: ["ship"], tests: ["lib/a.test.mjs"] });
+  assert.deepEqual([...gateTestFiles(repo)], [["scripts/structure/cyc/cyc.test.mjs", "cyc"], ["lib/a.test.mjs", "ntc"]]);
+  assert.deepEqual(gateTestsOf(join(scriptsDir, "workflow/ntc")), ["lib/a.test.mjs"]);
+  add("workflow", "bad", { check: "check.mjs", tests: ["lib/a.mjs", "lib/none.test.mjs"] });
+  assert.throws(() => scanTargets(scriptsDir, loadGates(scriptsDir)), (e) => e instanceof GateError && /lib\/a\.mjs はテストのファイル/.test(e.message) && /lib\/none\.test\.mjs が無い/.test(e.message));
+  assert.deepEqual([...gateTestFiles(repo)], []);   // 宣言が読めない時は空(テストを減らさない)
 });

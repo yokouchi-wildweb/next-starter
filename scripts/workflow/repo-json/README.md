@@ -10,6 +10,7 @@
 pnpm workflow repo-json show                    # 中身と、読み手の読んだ名前・段・下流の有無・誤り(誤りがあれば exit 2)
 pnpm workflow repo-json get <鍵>                # 1 つの値(無い = 空行と exit 1)
 pnpm workflow repo-json set <鍵> <値>           # 1 つの鍵を書く(true / false は真偽値、ほかは文字列)
+pnpm workflow repo-json unset <鍵>              # 1 つの鍵を消す(repo_id・tier は消せない、無い鍵は何もしない)
 pnpm workflow repo-json migrate [--tier root|middle|leaf] [--dry-run]   # 古い形(project.md の 2 行)から移す
 ```
 
@@ -27,12 +28,13 @@ repo.json の形:
 
 - 直接の書き換え(Edit / Write・シェルの書き込み)は許可のフックが止める。方針を変えるのは `/repo-policy`(変える値を見せて確認の後にこの命令で書く)
 - `set` は読み手と同じ決まりで確かめてから、ファイル全体を 1 鍵 1 行の形に書き直す(鍵の並び = repo_id・tier・ほかは名前順)。誤り(知らない鍵・形違いの名前・知らない段・今のファイルが読めない)は何も書かず exit 2
+- `unset` は 1 つの鍵を消して同じ形で書き直す(set の対。廃止した方針の鍵を fork が外す時など)。`repo_id`・`tier` と知らない形の鍵は何も書かず exit 2、無い鍵は何もせず exit 0
 - `migrate`: `.claude/rules/project.md` の `fork_id:` / `downstream:` の行を読み、`repo.json` に書いて、その 2 行を project.md から消す
   - 段: `downstream: none` = `leaf` / `yes` = 自分の名前が `src/lib/CATALOG.md` の先頭の節なら `root`、ほかは `middle`
   - `downstream:` が無い・読めない = 止める(exit 2)。段を人が決めて `--tier` を付けてもう一度
   - 今の `repo.json` のほかの鍵は残す
 - 書くのはこの命令と、それを使う道具(`/fork-init`)だけ
-- 部品 `lib.mjs`(読む・書く・移す)と動作 `show.mjs`・`get.mjs`・`set.mjs`・`migrate.mjs`
+- 部品 `lib.mjs`(読む・書く・消す・移す)と動作 `show.mjs`・`get.mjs`・`set.mjs`・`unset.mjs`・`migrate.mjs`
 
 ## Verification
 

@@ -6,14 +6,17 @@
 // lib/routeFactory の外に置くのは、本物の認可の判定(features の evaluateApiAccessRule)を差し込むため(閉じた lib は features を読まない)
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { mock, test } from "node:test";
 
-import { NextRequest } from "next/server";
+import nextServer, { NextRequest } from "next/server";
 
 import { evaluateApiAccessRule } from "@/features/core/auth/services/server/apiAccess";
 import { DomainError } from "@/lib/errors";
 
-import { createRouteFactories } from "@/lib/routeFactory";
+// 入口の芯は最初に next/server の connection() を待つ。Next のリクエストの外(ここ)では throw するので、
+// next/server は本物のまま connection だけ空にする(入口を読み込む前に置く)
+mock.module("next/server", { namedExports: { ...nextServer, connection: async () => {} } });
+const { createRouteFactories } = await import("@/lib/routeFactory");
 
 type FakeUser = { userId: string; role: string; status: string; isDemo: boolean };
 let currentUser: FakeUser | null = null;

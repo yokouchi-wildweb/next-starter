@@ -89,7 +89,7 @@ export const rule: FeatureGateRule = {
 - `domains` = 規則が閉じるドメインのフォルダ（`src/features` からの相対で `core/<名前>` か `<名前>`、文字列リテラルの配列）。features の地区（`src/lib/districtMap` が見つけるドメイン）でない書き方（無いフォルダ・`core/wallet/entities` のような深い場所・`core` そのもの・`_` で始まる雛形）は生成器が止める。表名は書かない: `pnpm generate extensions`（宣言の `derive: "featureTables"`）が地区の下の全 `pgTable` から導く（地区の地図の読み手 `src/lib/districtMap`、字面・コメントの中は見ない）。fork が上流のフォルダに足した表も上流の規則が拾う
   - フォルダの一部の表だけを外す書き方は無い。表を持たないドメイン（Firestore 版の `core/chatRoom` など）も書ける: 表は 0 のまま、汎用 API の住所と依存の検査は表のあるドメインと同じに効く
 - **汎用 API の住所（`/api/<domain>`）は書かない**: 生成器が `domains` の各フォルダの `services/server/domainEntry.ts` の `domainEntries` のキーから `/api/<キー>` を導き（字面）、生成一覧の `domains` のそのドメインの `apiPaths` に載せる。住所はドメインに付き、ドメインの開閉で閉じる(下の「ドメインの開閉」。規則の `pathPatterns` には足さない、項目の `domainApiPaths` は説明用)。`domainEntry.ts` の無いフォルダは住所を持たない
-  - 手書きと重なると `pnpm test src/featureGate scripts/structure/proxies` が知らせる（上流の規則は失敗、fork の規則は表示だけ）。ドメインを足した・キーを変えたら `pnpm generate extensions`（ずれは `pnpm check extensions` が止める）
+  - 手書きと重なると `src/featureGate`・`scripts/structure/proxies` のテスト(/ship の検査が回す)が知らせる（上流の規則は失敗、fork の規則は表示だけ）。ドメインを足した・キーを変えたら `pnpm generate extensions`（ずれは `pnpm check extensions` が止める）
 - **設定の節の住所（`/admin/settings/<key>`）も書かない**: 設定の節（`src/features/core/setting/sections/`）に `feature: "<規則名>"`（か配列）を書くと、生成器が節の住所と名指す機能を生成一覧の `settingSections` に載せる（`scripts/structure/extensions/derive/gateSettingPaths.mjs`）。節自身の判定で、**名指す機能が全部開のときだけ開く**(機能の `pathPatterns` には混ぜない、項目の `settingPaths` は説明用)。閉じたときの `rule` は閉じた名指しの機能のうち一覧の順で最初。管理メニューの行は住所の絞り込みで消える。規則名でない `feature` は生成で失敗
 - **cron の task の住所（`/api/cron/<name>`）も書かない**: task.ts・task.override.ts がどれかの規則の `domains` のフォルダを値で import すると、生成器が生成一覧の `cronTasks`(住所・読むドメイン)に載せ、読むドメインが全部開のときだけ開く（`scripts/structure/extensions/derive/featureTables.mjs`。項目の `cronPaths` は説明用）。規則に `/api/cron/` を手書きすると生成で失敗
 - **上流の既定**: 上流は付け足しの機能を閉じて出荷し、土台の画面は開いたまま。閉 = wallet・payment・coupon・referral・couponAttributionReward・analytics・chatRoom・milestone・deviceFingerprint・fingerprintChallenge・userAcquisition・userLineProfile・userXProfile・sampleDomain・demoPages・demoLogin・pageEntry・pageServices・interactionTracking・userCounter・phoneVerification・pause・pairedDevice・messagingTracking ほか(依存先に従う子も閉)
@@ -128,7 +128,7 @@ export const rule: FeatureGateRule = {
 
 ### 規則の決まりごと
 
-- **ゲート対象のドメインにルートを足したら、同じ規則の `pathPatterns` に追記する**（表は `domains` のフォルダから自動で入る）。`pnpm test src/featureGate scripts/structure/proxies` が次を検査する:
+- **ゲート対象のドメインにルートを足したら、同じ規則の `pathPatterns` に追記する**（表は `domains` のフォルダから自動で入る）。`src/featureGate`・`scripts/structure/proxies` のテスト(/ship の検査が回す)が次を検査する:
   - 導いた表名が schemaRegistry に実在する（走査の表の集合 = schemaRegistry の全表は `pnpm test scripts/structure/registry/`）
   - **今 `enabled` が false の規則について**、その規則の `domains` のドメイン（表の数は問わない）を import するルート（route.ts / page.tsx と `_screen/` `_components/` 配下）が、その規則の `pathPatterns` で閉じている（判定 `checks/routeImports.mjs`。`domains` の無い規則は対象外）
   - 同じく、そのドメインの汎用 CRUD（`/api/<domain>`）が閉じている

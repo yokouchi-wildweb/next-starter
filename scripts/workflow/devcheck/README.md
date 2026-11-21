@@ -54,7 +54,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 | 鍵 | 値 | 既定 |
 |---|---|---|
 | `agent.server`・`agent.browser`・`agent.login`・`agent.db_write`・`agent.db_delete`・`agent.env_add` | `auto` / `manual` / `off` | `manual` |
-| `agent.peer`・`agent.test`・`agent.check`(許可のフックだけの種類、計画の候補に出ない: peer = `pnpm workflow peer`、test / check = `pnpm test` / `pnpm check` をそのまま打つ形。/ship の手順 2 の検査がこれで通る) | 同じ | `manual` |
+| `agent.peer`(許可のフックだけの種類、計画の候補に出ない: `pnpm workflow peer`) | 同じ | `manual` |
 | `agent.enabled`(全体のスイッチ) | `true` / `false` | `true` |
 | `agent.db_push`(開発の DB の反映だけ)・`agent.env_production`(本番の env を書く)・`agent.deploy`(本番へ出す、本番の DB の反映を含む) | `off` / `manual`(`auto`・知らない値は `off`) | `manual` |
 | `agent.db_push.entry` | 入口の命令 | `pnpm db:push` |
@@ -64,7 +64,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 - 書いていない鍵は全部 `manual`(危険な 3 つも): 方針を書いていない fork では、確かめも人の 1 回分の許可の後にだけ走る。自動にしたい種類は `/repo-policy`(か `pnpm workflow repo-json set agent.<種類> auto`)で書く。next-starter 自身は自動にできる種類を全部 `auto`、危険な 3 つを `manual` と書いている(`repo.json`)
 
 - `auto` = go 1 回の中で実行 | `manual` = 人の 1 回分の許可(`/allow <スイッチ名>` か言葉)の後に 1 回だけ実行 | `off` = 実行せず人に頼む 1 行(「人が打つなら <コマンド>、任せるなら /repo-policy で <鍵> を manual に」。人が言ってもやらない。計画で「手で」、run は exit 4)
-- スイッチ名(打つための呼び名、`lib.kinds.mjs` の `SWITCHES`): `sv` server・`br` browser・`lg` login・`dw` db-write・`dd` db-delete・`ea` env-add・`ts` test・`ck` check・`pr` peer・`dbp` db_push・`evp` env_production・`dep` deploy
+- スイッチ名(打つための呼び名、`lib.kinds.mjs` の `SWITCHES`): `sv` server・`br` browser・`lg` login・`dw` db-write・`dd` db-delete・`ea` env-add・`pr` peer・`dbp` db_push・`evp` env_production・`dep` deploy
 
 #### 1 回分の許可(manual の流れ)
 
@@ -128,9 +128,10 @@ auto=<種類>[,<種類>…]   # v=2: 方針が manual の通常の種類を、�
 2. **allow**: 手元の印 `DEVCHECK_GRANT=on`(`.claude/settings.local.json` の env。整えるスキルが書く)があり、その種類の方針が `off` でなく、許可してよい形の時だけ
    - 形はシェルの記号の無い 1 つのコマンドだけ(引用符の外の `; & | < > $ ( ) { } * ? # ! ~ [ ]`・`\`・改行は不可。`'…'` の中は文字、`"…"` の中は `$` と `` ` `` だけを見る)
    - `pnpm workflow devcheck plan|status [--json]`・`cleanup`・`danger <スイッチ名>`(種類の方針は見ない。全部の種類が `off`(`enabled: false` を含む)の時は通さない)/ `devcheck run <種類|fork の項目> […]`(その種類の方針が `auto` の時だけ。`manual` は印の道では通さず、1 回分の許可の道だけ)
-   - 種類の命令: server = `pnpm workflow dev-tab run [start|status|stop] [--background] [--port <n>]` / login = `pnpm workflow dev-admin run [--check]` / test = `pnpm test …`(`--db` は除く)/ check = `pnpm check …`
+   - 種類の命令: server = `pnpm workflow dev-tab run [start|status|stop] [--background] [--port <n>]` / login = `pnpm workflow dev-admin run [--check]`
    - db-write・db-delete は `devcheck run` だけ(生の `pnpm ops db inspect query` は返さない = 文の検査と片付けの記録を通す)
    - peer(フックだけの種類): `pnpm workflow peer send|reply|inbox|read|ack|who …`
+   - 出荷の検査の命令 `pnpm test …`(`--db` は除く)・`pnpm check …`: 種類でも方針の鍵でもなく、印があれば方針を見ずに通す(許可で開け閉めしない。出荷の外で回さないのは core/notices.md checks_in_ship)
    - browser: `browser_navigate` は dev-tab の記録(`.agent/dev-tab.json` の port)の `http://localhost|127.0.0.1:<port>` だけ。ほかの道具は、フックが最後に見た遷移先(`.agent/devcheck-browser.json`、遷移のたびに書く)がその origin の間だけ。`browser_run_code_unsafe`・`browser_evaluate`・`browser_file_upload`・`browser_install` は返さない。`browser_navigate_back`・`browser_tabs` は返さず、最後の遷移先を消す
    - 限界: クリックでページが外へ移ったことはフックには見えない。次の遷移まで操作は通る。遷移は `browser_navigate` で行う
 3. **それ以外は何も返さない**(= 普段どおり聞かれる)。方針 `off` も deny にしない。壊れた時(入力が JSON でない・方針や上書きが読めない・記録が読めない・例外)も何も出さず exit 0(止めだけは方針に依らず効く)

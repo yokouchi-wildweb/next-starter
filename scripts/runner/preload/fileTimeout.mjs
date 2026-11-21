@@ -15,7 +15,7 @@ if (process.env.NODE_TEST_CONTEXT && Number.isFinite(seconds) && seconds > 0) {
   const shown = file.startsWith(`${process.cwd()}/`) ? file.slice(process.cwd().length + 1) : file;
   setTimeout(() => {
     process.stderr.write(
-      `test: 時間切れ ${seconds} 秒: ${shown}(終わらないファイルを止めた。残った接続・タイマーを確かめる。延ばす: TEST_FILE_TIMEOUT=<秒> か pnpm test --file-timeout=<秒>)\n`,
+      `test: 時間切れ ${seconds} 秒: ${shown}(終わらないファイルを止めた。残った接続・タイマーを確かめる。遅いだけなら /ship の検査で TEST_FILE_TIMEOUT=<秒> か pnpm test --file-timeout=<秒> で延ばす)\n`,
     );
     process.exit(1);
   }, seconds * 1000).unref();

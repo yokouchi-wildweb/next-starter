@@ -8,7 +8,9 @@ import { join } from "node:path";
 import { normalizeGateOutputs } from "../../../src/lib/districtMap/node.mjs";
 
 export const KINDS = ["structure", "workflow"];
-export const KEYS = ["check", "generate", "gates", "after", "watch", "features", "outputs", "regions"];
+export const KEYS = ["check", "generate", "gates", "after", "watch", "features", "outputs", "regions", "tests"];
+/** テストのファイルの形(pnpm test の入口と同じ: scripts/runner/test/scan.mjs の TEST_FILE) */
+const TEST_FILE = /\.test\.(ts|tsx|mts|mjs|js|cjs)$/;
 
 export class GateError extends Error {}
 
@@ -32,7 +34,14 @@ export function validate(decl, dir, gateNames) {
     if (typeof decl[k] !== "string" || /[/\\]/.test(decl[k])) errs.push(`${k} はこのフォルダの中のファイル名(${JSON.stringify(decl[k])})`);
     else if (!existsSync(join(dir, decl[k]))) errs.push(`${k} のファイル ${decl[k]} が無い`);
   }
-  for (const k of ["gates", "after", "watch", "features", "regions"]) if (decl[k] !== undefined && !strings(decl[k])) errs.push(`${k} は文字列の配列`);
+  for (const k of ["gates", "after", "watch", "features", "regions", "tests"]) if (decl[k] !== undefined && !strings(decl[k])) errs.push(`${k} は文字列の配列`);
+  // tests: check が node --test に渡すテストのファイル(リポ相対)。pnpm test はこれと、テストのファイルそのものの check を回さない(門 1 回、D389)
+  if (strings(decl.tests)) {
+    for (const f of decl.tests) {
+      if (!TEST_FILE.test(f)) errs.push(`tests の ${f} はテストのファイル(*.test.*)でない`);
+      else if (!existsSync(join(dir, "../../..", f))) errs.push(`tests の ${f} が無い(リポ相対のパス)`);
+    }
+  }
   // outputs: 1 行 = glob の文字列(= every-run)か { glob, kind?, source? }(生成器が出力を宣言する唯一の場所。読み方は src/lib/districtMap/domainOutputs.mjs)
   errs.push(...normalizeGateOutputs(decl.outputs).problems);
   for (const g of decl.gates ?? []) if (!gateNames.includes(g)) errs.push(`知らない門 ${g}(門は ${gateNames.join(", ")})`);
@@ -93,6 +102,32 @@ export function order(targets) {
       pool = pool.filter((x) => x !== t);
     }
     rest = rest.filter((t) => rank(t) !== pass);
+  }
+  return out;
+}
+
+/** gate.json の tests を読む(その門の check.mjs が node --test に渡す一覧の唯一の場所): リポ相対のパスの配列 */
+export function gateTestsOf(dir) {
+  const decl = JSON.parse(readFileSync(join(dir, "gate.json"), "utf8"));
+  return decl.tests ?? [];
+}
+
+/**
+ * 門が回すテストのファイル: Map<リポ相対のパス, 門の対象名>。check そのものがテストのファイルの対象(cycles・config)と、
+ * tests の欄(notices・rules)。pnpm test は名指しでない時にこれを除く(門の入口のテストはテストの段で繰り返さない、D389)。
+ * 門の宣言が読めない時は空(テストを減らさない: 誤りは pnpm check が出す)
+ */
+export function gateTestFiles(repo) {
+  const out = new Map();
+  let targets;
+  try {
+    targets = scanTargets(join(repo, "scripts"), loadGates(join(repo, "scripts")));
+  } catch {
+    return out;
+  }
+  for (const t of targets) {
+    if (typeof t.decl.check === "string" && TEST_FILE.test(t.decl.check)) out.set(`scripts/${t.kind}/${t.name}/${t.decl.check}`, t.name);
+    for (const f of t.decl.tests ?? []) out.set(f, t.name);
   }
   return out;
 }

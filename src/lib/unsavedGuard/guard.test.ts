@@ -89,6 +89,30 @@ test("編集済みになると番兵を 1 つ積み(Next の state を残す)、
   assert.equal(fake.listeners.size, 0);
 });
 
+test("番兵の印は最初に積む時に作り、同じ守りの積み直しは同じ印。自分の印でない番兵・まだ積んでいない守りは外さない", async () => {
+  const { guard, fake } = setup(true);
+  const source = guard.createSource();
+  assert.equal(fake.pushed.length, 0, "作った直後は何も積まない");
+  source.set(true);
+  const first = (fake.pushed[0] as Record<string, unknown>)[SENTINEL_KEY];
+  assert.equal(typeof first, "string");
+  source.set(false);
+  landBack(fake);
+  await tick();
+  source.set(true);
+  assert.equal(fake.pushed.length, 2, "また編集済みになって積み直す");
+  assert.equal((fake.pushed[1] as Record<string, unknown>)[SENTINEL_KEY], first, "同じ守りは同じ印");
+
+  // 再読み込みの前の番兵(別の守りの印)が今の履歴: まだ積んでいない守りは history.back しない
+  const other = setup(true);
+  other.fake.env.win.history.state = { __NA: true, [SENTINEL_KEY]: "g-before-reload" };
+  const otherSource = other.guard.createSource();
+  otherSource.set(true);
+  assert.equal(other.fake.pushed.length, 0, "今の履歴が番兵なら積まない");
+  otherSource.set(false);
+  assert.equal(other.fake.backs(), 0, "自分の印でない番兵は外さない");
+});
+
 test("router: 留まるなら進まない、移るなら進み、移動が終わるまで二度と聞かない", async () => {
   const stay = setup(false);
   stay.guard.createSource().set(true);

@@ -1,6 +1,6 @@
 // src/lib/routeFactory/createApiRoute.ts
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, connection } from "next/server";
 
 import { routeFactoryConfig } from "./config";
 import {
@@ -213,7 +213,8 @@ export function toRouteResponse(result: unknown): Response {
  * 全 Factory 共通の土台を作る（利用者の束を結ぶ）。
  * 認可（authorize）は各 Factory が渡す。土台が持つのは監査文脈・デモスキップ・レート制限・reCAPTCHA・
  * ハンドラ実行（監査文脈と userDirty の中）・応答の生成・エラー整形。
- * 門番の口（gate、省略可）があれば最初に要求の住所を聞き、閉なら not_found の 404（主体の解決・認可・ハンドラの前）。
+ * 最初の文で connection() を待つ（どの早期 return より前）。門番の口（gate、省略可）があれば次に要求の住所を聞き、
+ * 閉なら not_found の 404（主体の解決・認可・ハンドラの前）。
  */
 export function makeRouteCore<TCategory extends string = string>(
   deps: { resolveTokenSession: () => Promise<RouteUserBase | null> },
@@ -226,6 +227,9 @@ export function makeRouteCore<TCategory extends string = string>(
     handler: (req: NextRequest, base: { params: TParams }, grant: TGrant) => Promise<unknown>,
   ): NextRouteHandler<TParams> {
     return async (req: NextRequest, context: { params: Promise<TParams> }) => {
+      // 本物のリクエストが来てから動く印。cacheComponents の build は request を読まずに返す早期 return
+      // （門番の 404 等）を静的な応答に焼き付けるので、どの return より前に置く。cacheComponents off では何も変えない
+      await connection();
       // 門番: 閉じた機能の住所なら何も解かずに 404（proxy が先に止める。ここは通り抜けたときの安全網）
       if (gate?.isClosed(req.nextUrl.pathname)) {
         return accessDenialResponse("not_found") ?? new NextResponse("Not Found", { status: 404 });

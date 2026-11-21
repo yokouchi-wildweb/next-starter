@@ -42,13 +42,14 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - write what you carried over in the report and the commit body | partial edits keep others' changes naturally since the work tree sits on HEAD; changes get lost only on delete, move or whole rewrite
 2. **checks** (failed → fix and rerun; the fix is not obvious → STOP):
    - plain ship: `pnpm workflow notices safePoint quickFiles` first
-     - line 1 `<N> quick commits unchecked`, then the files the run of `Ship: quick` commits behind HEAD changed (the walk stops at an unmarked commit or this repo's own safe tag)
+     - line 1 `<N> quick commits unchecked`, then the files the run of `Ship: quick` commits behind HEAD changed (the walk stops at an unmarked commit or this repo's own safe tag; it walks on through a merge with neither `Ship:` nor `downstream-notice:`, e.g. a work merge a cargo kept, so the side it joined counts too)
      - add those files to the range the checks below look at (the commit range stays yours) | another session's quick change fails a check and the fix is not obvious → STOP | exit 2 → report `quick 分の検査: 未確認(<理由>)` and go on
    - always: `pnpm check --gate=ship` | failed → fix and rerun (generator drift → `pnpm generate <target>`)
      - it runs every check of the generators / checkers on gate ship, in order: role, domain, registry, routes, cron, cycles, config, eslint, and the watched rules (pnpm check rules when `CLAUDE.md` / `.claude/rules/` changed), notices (pnpm check notices when `.notices/` or the ship / flux skills changed)
      - targets the watch does not hit are skipped with one line; `--all` runs all | `scripts/runner/gates/README.md`
    - code changed (`.ts` / `.tsx` / `.js` / `.mjs`): `pnpm typecheck` and `pnpm exec eslint --no-warn-ignored <changed code files>` (an ignored file, e.g. a _template placeholder file, is skipped without a warning)
    - by where you changed (run every one that applies; checks on the gate = pnpm check registry, pnpm check routes, pnpm check cron, pnpm test scripts/structure/config/moduleLoad.test.mjs, pnpm check eslint, pnpm test scripts/structure/cycles/cycles.test.mjs, pnpm check rules, pnpm check notices are run by `pnpm check --gate=ship` above, never repeat them):
+     - `pnpm test` skips the tests a gate runs unless named (D389)
      - adding / deleting under `src/lib/`, `src/lib/CATALOG.md` → `pnpm test src/lib/folderCatalog/catalog.test.mjs`
      - `domainEntry.ts`, `domain.json` → registry drift → `pnpm generate registry`
      - `entities/drizzle.ts`, `src/registry/schemaRegistry.ts` → `pnpm test scripts/structure/registry/` | an index changed → write the explanation of the diff `pnpm db:push:check` prints in the report (never run db:push itself)
@@ -66,10 +67,10 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - behavior or permissions change silently
    - the rules / README of the changed area ask for a notice (conditions in CLAUDE.md, `.claude/rules/core/` or a colocated README saying `→ notice` / `ship .notices`; read those of the changed area to confirm)
    - a fix to something shipped earlier (step 4)
-   - renaming / moving / removing a rule key (a `key:` at the head of a line of CLAUDE.md, a core file `.claude/rules/core/*.md`, an item card `.claude/rules/items/**` or `.claude/rules/lineage.md`): forks name upstream rules by key (provisional rules, overrides, their own rule files) → always a notice with the key table (NOTICE COMPOSITION)
+   - renaming / moving / removing a rule key (a `key:` at the head of a line of CLAUDE.md, a core file `.claude/rules/core/*.md`, an item card `.claude/rules/items/**` or `.claude/rules/lineage.md`): forks name upstream rules by key (provisional rules, `(priority)` lines, their own rule files) → always a notice with the key table (NOTICE COMPOSITION)
    - you changed your own section of `.claude/rules/lineage.md` (`## <own repo_id>`): a change of rules that act downstream → always a notice
      - wording-only change = `severity: info` + `required_actions: none`
-     - deleting / renaming a `(default)` key, dropping `(default)`, or a contract change that needs downstream work → in `required_actions`, write how downstream repos that wrote an override (`overrides: <own repo_id>.<key> = …`) fix it (rewrite to the key's new name, delete the override, etc.; downstream `/flux` stops at a segment that touches an overridden key)
+     - deleting / renaming a key, or a contract change that needs downstream work → in `required_actions`, write how downstream repos that wrote the same key marked `(priority)` in their own context fix it (rewrite to the key's new name, drop the mark, etc.: `git grep -n '<key>' -- .claude/rules ':!.claude/rules/core' ':!.claude/rules/items'`)
    - resolving an order from a downstream fork: the argument `order:<id>` is given and the order's sender is a repo other than this one (judged by `requester` of `node .claude/skills/order/mailbox.mjs`; the head of the order's `from:` is a repo origin URL different from this repo)
      - write `resolves: <id>` in the notice | even when no other notice is needed, ship a notice with `severity: info` + `required_actions: none` + `checkpoint:` (used to expire downstream temporary permits; `.notices/README.md` section `解決(resolves)`) | also for orders closed by rejecting or withdrawing
      - never tell forks to keep a temporary permit that cites the resolved id (it expires as expired-resolved when the fork takes the notice)
@@ -113,10 +114,11 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - with `hotfix`, after the commit, before push, **check that it can be picked** (`.notices/README.md` section `緊急修正(hotfix)`): pass `pnpm check notices` again
      - with `fixes:`, the `pnpm workflow notices pickCheck` above doubles as this check: the reason for `-` is a conflict, a failed check or a dependency on a later notice → no push; STOP (STOP CASES)
      - no `fixes:` → skip it (which version to apply to cannot be decided; report `未確認: 修正元なし`)
-7. **push** (not with `no-push`): `git push` | WORKTREE ROUTE below when it applies | failed → never paper over it, report the reason | rejected because the remote moved → rebase onto it, rerun `pnpm check notices` when it applies, push again (the full checks of `--safe` come after the push, so a moving remote never restarts them)
+7. **push** (not with `no-push`): `git push` | WORKTREE ROUTE below when it applies | failed → never paper over it, report the reason
+   - rejected because the remote moved → `pnpm workflow notices catchUp --onto=<remote>/<branch>` (CATCH UP below), rerun `pnpm check notices` when it applies, push again (the full checks of `--safe` come after the push, so a moving remote never restarts them)
    - then, **with `--safe` only, run the full checks on the pushed HEAD** (a plain ship runs the area checks above instead and makes no tag; `.notices/README.md` section `区切り(checkpoint)と区間適用`, part `セーフポイント`): `pnpm workflow notices safePoint check`
      - upstream does not check intermediate checkpoints (each fork's /flux checks every segment on its side); only the pushed tip of a `--safe` ship gets the full checks
-     - it needs a work tree equal to HEAD and runs on HEAD, in order: `pnpm test` (whole), `pnpm check`, `pnpm typecheck`, `pnpm lint`, `pnpm build`; all pass → it records HEAD as checked (used by the tag below) | keep HEAD and the work tree as they are while it runs
+     - it needs a work tree equal to HEAD and runs on HEAD, in order: `pnpm test` (whole), `pnpm check`, `pnpm typecheck`, `pnpm lint`, the build (`next build` then `pnpm check --gate=build:post`: `pnpm build`'s own head gate is what `pnpm check` just ran); all pass → it records HEAD as checked (used by the tag below) | keep HEAD and the work tree as they are while it runs
      - exit 1 (a check failed): no tag | fix it in a new commit and ship that with `--safe` (the push stands) | the fix is not obvious → STOP
      - exit 2 (cannot run: uncommitted changes, a check changed tracked files, etc.): report `セーフポイントなし: <理由>` (no tag)
    - then **tag the safe point** (`--safe` only, when the check passed): `pnpm workflow notices safePoint tag`
@@ -151,9 +153,14 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 ## WORKTREE ROUTE
 - applies: in a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`) whose branch has no upstream of its own (`git rev-parse --abbrev-ref @{u}` fails, or prints `origin/main`) | a branch tracking its own remote branch → a plain `git push` of that branch
 - never touch the main checkout and never move its local `main` ref (no exception)
-- `git fetch origin main` → `git merge-base --is-ancestor origin/main HEAD` must succeed (not → rebase onto origin/main, rerun `pnpm check notices` when it applies; the full checks of `--safe` run after the push, step 7)
+- `git fetch origin main` → `git merge-base --is-ancestor origin/main HEAD` must succeed (not → `pnpm workflow notices catchUp` (CATCH UP below), rerun `pnpm check notices` when it applies; the full checks of `--safe` run after the push, step 7)
 - push with `git push origin HEAD:main` | the push target of this route = `origin/main` (COMMITTED RANGE, the safe point tag)
 - any condition fails → STOP
+
+## CATCH UP (laying your branch again on a moved push target — D395 (2))
+- `pnpm workflow notices catchUp [--onto=<ref>]` (default origin/main): the same commits in the same order on the target; a work merge (a guild ticket's merge a cargo kept) stays a merge, a merge that took main into the line is dropped (main's first-parent is one line), the line's root moves onto the target | never a plain `git rebase` (it flattens the work merges)
+- only for a line with one owner (the branch you /ship); a line several build on (a guild's junction) catches up by the tool's merge, never this | it never reorders (not a reorder of a run with merges, D383)
+- exit 1 = stopped on a conflict inside the rebase (git rerere replays what was solved before): solve, `git add`, `git rebase --continue` | exit 2 = cannot run (reason printed) → STOP
 
 ## SHIPPED TIP (plain or `--safe`, step 1's range is empty, HEAD = the push target)
 - closes a tip already pushed (e.g. by `--quick` ships) without a new commit | no commit, no notice, no push of commits
@@ -174,7 +181,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
   - step 6's `pnpm workflow notices reorder` first (the range is unpushed; with `no-push` it waits for the push)
   - each commit in the range that adds a `fixes:` notice → step 6's pickCheck on it (`pnpm workflow notices pickCheck <that commit>`; it writes `pick:` in the notice's body) → commit the bodies alone: `git commit -m "notices: pick marks" -- .notices/<id>.md`
   - a notice in the range → `pnpm check notices`
-  - `--safe` → step 7's full checks on the pushed tip | plain → step 2's area checks on the range's files (`git diff --name-only <target>..HEAD`) plus `safePoint quickFiles`
+  - `--safe` → step 7's full checks on the pushed tip | plain → step 2's area checks on the range's files (`git diff --name-only <target>..HEAD`) plus `safePoint quickFiles --through=<target>` (it walks through the range whatever its marks and counts the quick commits pushed below it — from HEAD it would stop at the range's first unmarked commit)
   - steps 7 and 8 (the report lists the commits shipped)
 
 ## NOTICE COMPOSITION
@@ -222,7 +229,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - **a notice that has forks add config keys also writes the steps for when the fork already has the same key**: the steps to drop the fork's part and align to upstream's line, and the `git grep` to find it | when fork and upstream add at different spots, git takes both without conflict, so "on conflict" / "add if missing" is not enough (`.notices/README.md`)
    - never write "keep" for fork edits without behavior (comments only etc.) | write that they may be returned to upstream's text (`.notices/README.md`)
    - **a rule key renamed / moved / removed (step 3) → the key table in required_actions**, one line per key: `<old file> <old key> -> <new file> <new key>` (`-> removed` when it is gone, then where its content went)
-     - the next step finds the fork's own references: `git grep -n -E '<old key>' -- .claude/rules ':!.claude/rules/core' ':!.claude/rules/items'` (provisional rules ending `(order: <id>)`, `overrides:` lines of project.md, its own rule files) → rewrite each to the new place or drop it
+     - the next step finds the fork's own references: `git grep -n -E '<old key>' -- .claude/rules ':!.claude/rules/core' ':!.claude/rules/items'` (provisional rules ending `(order: <id>)`, lines marked `(priority)`, its own rule files) → rewrite each to the new place or drop it
      - a table of many moves (rule keys, README headings, old core file names → new places) uses this same form
    - **moved or renamed → always write `moved:`** (paths from the repo root, directories allowed, `;`-separated)
      - list them without gaps with `git diff --name-status -M <before> <after>` (uncommitted → `git diff --cached -M --name-status`)
