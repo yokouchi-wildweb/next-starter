@@ -7,7 +7,7 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
-import type { DomainServiceLookup } from "@/lib/domain/types";
+import type { DomainServiceLookup } from "@/lib/domain";
 import { DomainError } from "@/lib/errors";
 import type { StoragePurposeMap } from "@/lib/storage";
 import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server/fake";

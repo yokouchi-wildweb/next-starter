@@ -14,7 +14,7 @@ import {
   isTextFieldType,
   tsType,
 } from "../spec/fieldTypes.mjs";
-import { FORM_INPUTS } from "../../../../src/lib/domain/fields/fieldFormInputs.mjs";
+import { FORM_INPUTS } from "../../../../src/lib/domain/node.mjs";
 
 /** 選択肢（options）が要る入力欄。checkbox は値が配列の型のときだけ */
 const CHOICE_INPUTS = new Set(["select", "radio", "multiSelect"]);

@@ -6,15 +6,15 @@
 // （access は呼び出し側＝server の routeFactory / 管理ルートが渡す）。
 // ルールの評価（セッション照合）は呼び出し側（routeFactory の enforceAccessRule）が行う。
 
-import { DEFAULT_ACCESS_RULE } from "../accessPresets";
 import {
+  DEFAULT_ACCESS_RULE,
   DOMAIN_CRUD_OPERATIONS,
   DOMAIN_DATA_OPERATIONS,
   type DomainApiAccessConfig,
   type DomainApiAccessRule,
   type DomainApiOperation,
   type DomainDataOperation,
-} from "../types";
+} from "@/lib/domainAccess";
 
 const VALID_STRING_RULES = ["public", "authenticated", "none"] as const;
 

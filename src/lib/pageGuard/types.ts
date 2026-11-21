@@ -4,7 +4,7 @@
 // lib/pageGuard は利用者の解き方・access の評価・現在パス・前提の判定を自分で import せず、ここで決めた形で受け取る。
 // 束を作るのは持ち主のドメイン(利用者 = features/core/auth)、結ぶのは src/wiring/pageGuard.ts。
 
-import type { DomainApiAccessRule } from "@/lib/domain/types/apiAccess";
+import type { DomainApiAccessRule } from "@/lib/domainAccess";
 
 /** access の評価結果(API の Factory と同じ語彙) */
 export type PageAccessDecision = "granted" | "not_found" | "unauthenticated" | "forbidden";

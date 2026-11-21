@@ -52,7 +52,7 @@ export type DomainConfigOptionals = {
   // 詳細は src/lib/crud/README.md の hiddenColumns 節を参照。
   hiddenColumns?: string[];
   // JSON インポートの型推論（string）と相性を保つため、リテラル union ではなく緩い型で宣言する。
-  // 厳密な型は src/lib/domain/types/apiAccess.ts の DomainApiAccessConfig を参照。
+  // 厳密な型は @/lib/domainAccess の DomainApiAccessConfig を参照。
   apiAccess?: {
     read?: string | { roles?: string[]; roleCategories?: string[] };
     write?: string | { roles?: string[]; roleCategories?: string[] };

@@ -1,7 +1,7 @@
 // 生成物・編集不可: pnpm generate registry が src/features/core/purchaseQuota/domain.json から生成する
 // client に出す表示用の写し(秘密・内部の項目は持たない)。詳細: src/lib/domain/README.md
 
-import type { DomainDisplay } from "@/lib/domain/types/display";
+import type { DomainDisplay } from "@/lib/domain";
 
 export const domainDisplay: DomainDisplay = {
   "singular": "purchase_quota_ledger",

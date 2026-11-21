@@ -39,8 +39,8 @@ const HEAD = `type Eq<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false)
 import type { CoreRoleOverride, RoleOverride } from "@/features/core/user/types/role";
 import type { ProfileOverride } from "@/features/core/userProfile/types";
 import type { CronTaskOverride } from "@/lib/cron";
-import type { DomainEntryOverrides } from "@/lib/domain/types";
-import type { DomainApiAccessConfig } from "@/lib/domain/types/apiAccess";
+import type { DomainEntryOverrides } from "@/lib/domain";
+import type { DomainApiAccessConfig } from "@/lib/domainAccess";
 `;
 
 test("今の型の鍵 = 宣言の鍵(core ロールに enabled・プロフィールに fields は無い)。domainEntry の値は access の型", () => {

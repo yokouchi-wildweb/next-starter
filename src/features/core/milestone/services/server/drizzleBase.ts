@@ -1,7 +1,7 @@
 // src/features/milestone/services/server/drizzleBase.ts
 
-import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
-import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
+import { normalizeDomainJsonConfig } from "@/lib/domain";
+import type { DomainConfigOptionals } from "@/lib/domain";
 import rawConf from "@/features/milestone/domain.json";
 import { MilestoneTable } from "@/features/core/milestone/entities/drizzle";
 import { MilestoneCreateSchema, MilestoneUpdateSchema } from "@/features/core/milestone/entities/schema";

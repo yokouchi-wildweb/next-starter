@@ -75,7 +75,7 @@ function renderDomainConfigRegistry(domains) {
     "",
     'import "server-only";',
     "",
-    'import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";',
+    'import type { DomainConfigOptionals } from "@/lib/domain";',
     "",
     ...domains.map((d) => `import ${d.camel}Config from "@/${d.file.slice("src/".length)}";`),
     "",

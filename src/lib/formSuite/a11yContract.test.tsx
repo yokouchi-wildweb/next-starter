@@ -13,7 +13,7 @@ import { createElement, type ReactElement } from "react";
 import { renderToString } from "react-dom/server";
 import { FormProvider, useForm, type FieldValues } from "react-hook-form";
 
-import { BUILTIN_FORM_INPUTS } from "@/lib/domain/fields/formInputs.mjs";
+import { BUILTIN_FORM_INPUTS } from "@/lib/domain";
 import type { FieldConfig } from "./Field/types";
 import { ConfiguredField } from "./Field/Configured/ConfiguredField";
 import { AsyncComboboxInput } from "@/components/Input/AsyncComboboxInput";

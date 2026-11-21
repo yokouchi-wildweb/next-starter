@@ -7,7 +7,7 @@ import { file } from "../output.mjs";
 import { ACCESS_PRESETS, PRESET_MODULE, serializeAccess } from "./presetAccess.mjs";
 
 /** domainEntry.ts が型 DomainEntries を読む先(生成の文と、写すテストの helpers が使う) */
-export const TYPES_MODULE = "@/lib/domain/types";
+export const TYPES_MODULE = "@/lib/domain";
 
 // fail-closed 既定（apiAccess 未宣言ドメイン用）。出力は ...ADMIN_ONLY になる
 const FAIL_CLOSED_ACCESS = ACCESS_PRESETS.ADMIN_ONLY;

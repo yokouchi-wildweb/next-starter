@@ -4,8 +4,6 @@
 import { toCamelCase, toSnakeCase } from "@/lib/stringCase/index.mjs";
 import type { JunctionTableInfo } from "../types";
 
-export type { JunctionTableInfo };
-
 /**
  * 中間テーブル名を解決
  * 命名規則: {sourceDomain}_to_{targetDomain}

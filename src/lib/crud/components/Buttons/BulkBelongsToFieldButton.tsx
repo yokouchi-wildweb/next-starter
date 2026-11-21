@@ -16,8 +16,8 @@ import {
 } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import type { DomainDisplay } from "@/lib/domain/types/display";
-import { getBelongsToRelationsOf } from "@/lib/domain/relations/getBelongsToRelations";
+import type { DomainDisplay } from "@/lib/domain";
+import { getBelongsToRelationsOf } from "@/lib/domain";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import { createApiClient } from "@/lib/crud/client";
 import { useBulkUpdateByIdsDomain } from "@/lib/crud/hooks";

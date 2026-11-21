@@ -5,7 +5,7 @@
 // 列名を持つ項目(fields・searchFields・tableFields・sortOrderField・fieldGroups[].fields・relations.fieldName)は
 // どれも同じ名前の変換と hiddenColumns の除外を通す。列名の項目を足すときはここに並べる。
 
-import { isAsyncRelationFormInput } from "../../../../src/lib/domain/relations/relationOptions.mjs";
+import { isAsyncRelationFormInput } from "../../../../src/lib/domain/node.mjs";
 import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 
 const FIELD_KEYS = ["name", "label", "fieldType", "formInput", "options", "required", "readonly", "defaultValue", "displayType", "placeholder", "accept", "validationRule", "reorderable", "helperText"];
@@ -65,7 +65,7 @@ export function renderDomainDisplay(domainJsonFile, config, allConfigs = []) {
     `// 生成物・編集不可: pnpm generate registry が ${domainJsonFile} から生成する`,
     `// client に出す表示用の写し(秘密・内部の項目は持たない)。詳細: src/lib/domain/README.md`,
     "",
-    `import type { DomainDisplay } from "@/lib/domain/types/display";`,
+    `import type { DomainDisplay } from "@/lib/domain";`,
     "",
     `export const domainDisplay: DomainDisplay = ${JSON.stringify(toDomainDisplay(config, allConfigs), null, 2)};`,
     "",

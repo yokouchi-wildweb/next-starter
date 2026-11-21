@@ -8,7 +8,7 @@
 
 import type { extensionPoints } from "../extensionPoints";
 
-import type { DomainApiAccessConfig } from "./apiAccess";
+import type { DomainApiAccessConfig } from "@/lib/domainAccess";
 
 // サービスのメソッドはドメインごとに引数・戻り値が違うため、構造型では緩い関数型で受ける
 type AnyServiceMethod = (...args: any[]) => any;

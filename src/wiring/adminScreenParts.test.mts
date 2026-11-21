@@ -11,7 +11,7 @@ import { test } from "node:test";
 import { fetchAdminRelationOptions } from "@/features/core/admin/services/server/screenData/adminRelationOptions";
 // `export *` だけの index.ts は tsx の ESM 読み込みで名前を拾えないので、実装ファイルを直接読む
 import { withAppEnv } from "@/lib/appEnv";
-import { resolveAccessRule } from "@/lib/domain/definition/apiAccess";
+import { resolveAccessRule } from "@/lib/domain";
 import { serviceRegistry } from "@/registry/serviceRegistry";
 
 import { adminCreateParts, adminEditParts, adminListParts, adminSortParts } from "./adminScreenParts.ts";

@@ -32,7 +32,7 @@ import { getTableName, is } from "drizzle-orm";
 import { getTableConfig, isPgEnum, PgTable } from "drizzle-orm/pg-core";
 
 import { serviceRegistry } from "../../../src/registry/serviceRegistry.ts";
-import { isGenericApiClosed } from "../../../src/lib/domain/definition/apiAccess.ts";
+import { isGenericApiClosed } from "../../../src/lib/domain/index.ts";
 // 規則の値だけの一覧(全開スイッチを通さない。検査は env で揺れない、L2.3)
 // 住所で覆うかを見る検査は、規則の pathPatterns に規則のドメインの導出の住所(汎用 API・cron)を足した写しで見る(withCoveredPatterns、D34 K4)
 import { alwaysOnExceptions, alwaysOnRegistries, checkAddresses, configEnabled, configRules, gatedDomains, gatedSchema as applySchemaGate, readRequired, withCoveredPatterns } from "../../../src/featureGate/node.ts";

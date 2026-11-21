@@ -4,8 +4,8 @@
 // 登録表 src/registry/serviceRegistry.ts はこのファイルから pnpm generate registry が作る（pnpm generate domain の最後に自動で走る）。
 // access = 汎用 API（/api/<domain>/**）と管理データ操作（truncateAll / export / import）の認可。詳細: src/lib/domain/README.md
 
-import type { DomainEntries } from "@/lib/domain/types";
-import { ADMIN_RULE, PUBLIC_READ } from "@/lib/domain/accessPresets";
+import type { DomainEntries } from "@/lib/domain";
+import { ADMIN_RULE, PUBLIC_READ } from "@/lib/domainAccess";
 
 export const domainEntries = {
   sampleCategory: {

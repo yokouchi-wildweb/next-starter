@@ -10,7 +10,7 @@ import { type ButtonStyleProps } from "@/components/Button/variants";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import type { DomainDisplay } from "@/lib/domain/types/display";
+import type { DomainDisplay } from "@/lib/domain";
 import { createApiClient } from "@/lib/crud/client";
 import { useHardDeleteDomain } from "@/lib/crud/hooks";
 

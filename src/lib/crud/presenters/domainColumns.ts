@@ -1,6 +1,6 @@
 import type { DomainDisplay, DomainDisplayRelation, DomainField } from "@/lib/domain";
-import { isArrayFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
-import { presenterFor } from "@/lib/domain/fields/presenterFor.mjs";
+import { isArrayFieldType } from "@/lib/domain";
+import { presenterFor } from "@/lib/domain";
 import type { DataTableColumn } from "@/lib/tableSuite";
 import type { FieldPresenter } from "./formatters";
 import { formatCollectionThumbnails, formatMediaThumbnail, formatMediaThumbnails } from "./media";

@@ -3,7 +3,7 @@
 // Zod は uuid 固定でずれる。SET_NULL × required はドメインの生成器は止めるがプロフィールの生成器は止めない。どれも生成前に止める。
 // 規則の正: src/features/core/userProfile/README.md「リレーション設定」
 
-import { columnFunction } from "../../../../src/lib/domain/fields/fieldTypes.mjs";
+import { columnFunction } from "../../../../src/lib/domain/node.mjs";
 import { RELATION_FORM_INPUTS } from "../../domain/spec/domainJson.mjs";
 
 const RELATION_TYPES = new Set(["belongsTo", "belongsToMany"]);

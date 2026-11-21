@@ -3,8 +3,8 @@
 // このファイルから pnpm generate registry が作る。fork が access を変えるときは隣に domainEntry.override.ts を置く（このファイルは編集しない）。
 // access = 汎用 API（/api/<domain>/**）と管理データ操作（truncateAll / export / import）の認可。詳細: src/lib/domain/README.md
 
-import type { DomainEntries } from "@/lib/domain/types";
-import { ADMIN_DATA_OPERATIONS, ADMIN_ONLY } from "@/lib/domain/accessPresets";
+import type { DomainEntries } from "@/lib/domain";
+import { ADMIN_DATA_OPERATIONS, ADMIN_ONLY } from "@/lib/domainAccess";
 
 export const domainEntries = {
   // ユーザー所有データ。オーナーシップ強制の /api/me/ 専用ルートへ移行するまで汎用 API は admin 限定に維持する。

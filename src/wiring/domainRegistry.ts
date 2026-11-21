@@ -25,7 +25,8 @@ import {
   withRecordCounts as withRecordCountsFrom,
 } from "@/lib/domain/server";
 import type { DomainTable } from "@/lib/domain/server";
-import type { DomainApiAccessConfig, DomainInfo, DomainService, DomainServiceLookup } from "@/lib/domain/types";
+import type { DomainInfo, DomainService, DomainServiceLookup } from "@/lib/domain";
+import type { DomainApiAccessConfig } from "@/lib/domainAccess";
 import { domainConfigMap } from "@/registry/domainConfigRegistry";
 import { serviceRegistry } from "@/registry/serviceRegistry";
 

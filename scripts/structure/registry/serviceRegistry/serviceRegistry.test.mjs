@@ -24,13 +24,10 @@ import { checkServiceRegistry } from "./check.mjs";
 import { renderDomainEntry } from "../../domain/render/registry/domainEntry.mjs";
 import { serviceRegistry } from "../../../../src/registry/serviceRegistry.ts";
 import { domainConfigMap } from "../../../../src/registry/domainConfigRegistry.ts";
-import { DOMAIN_CRUD_OPERATIONS, DOMAIN_DATA_OPERATIONS } from "../../../../src/lib/domain/types/apiAccess.ts";
-import { isGenericApiClosed, resolveAccessRule } from "../../../../src/lib/domain/definition/apiAccess.ts";
-import { ADMIN_ONLY, ADMIN_RULE, INTERNAL_ONLY, PUBLIC_READ } from "../../../../src/lib/domain/accessPresets.ts";
-// `export *` だけの index.ts は tsx の ESM 読み込みで名前を拾えないので、実装ファイルを直接読む
-import { getDomainList } from "../../../../src/lib/domain/service/server/getDomainList.ts";
-import { getService, hasService, lookupDomainService } from "../../../../src/lib/domain/service/server/getService.ts";
-import { findDomainByTable, getDomainTable } from "../../../../src/lib/domain/service/server/tableLookup.ts";
+// 閉じた lib は入口のファイル(domainAccess の "."・domain の "." と "./server")を相対で読む
+import { ADMIN_ONLY, ADMIN_RULE, DOMAIN_CRUD_OPERATIONS, DOMAIN_DATA_OPERATIONS, INTERNAL_ONLY, PUBLIC_READ } from "../../../../src/lib/domainAccess/index.ts";
+import { isGenericApiClosed, resolveAccessRule } from "../../../../src/lib/domain/index.ts";
+import { findDomainByTable, getDomainList, getDomainTable, getService, hasService, lookupDomainService } from "../../../../src/lib/domain/server.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 
@@ -201,21 +198,20 @@ after(() => {
   for (const root of tempRoots) fs.rmSync(root, { recursive: true, force: true });
 });
 
-const ENTRY = (key, service = `${key}Service`, table = `"${key}s", idColumn: "id"`) => `import type { DomainEntries } from "@/lib/domain/types";
-import { ADMIN_ONLY } from "@/lib/domain/accessPresets";
+const ENTRY = (key, service = `${key}Service`, table = `"${key}s", idColumn: "id"`) => `import type { DomainEntries } from "@/lib/domain";
+import { ADMIN_ONLY } from "@/lib/domainAccess";
 
 export const domainEntries = {
   ${key}: { service: () => import("./${service}").then((m) => m.${service}), table: ${table}, access: ADMIN_ONLY },
 } satisfies DomainEntries;
 `;
 
-/** 一時の木に必ず写す実物: tsconfig(paths で @/ を解く)と、domainEntry が値で読む lib/domain の 2 つ */
+/** 一時の木に必ず写す実物: tsconfig(paths で @/ を解く)と、domainEntry が値で読む lib/domainAccess(値だけのファイル)と lib/domain の型 */
 function baseFiles() {
   const real = (rel) => fs.readFileSync(path.join(repoRoot, rel), "utf8");
-  const typeFiles = Object.fromEntries(
-    fs.readdirSync(path.join(repoRoot, "src/lib/domain/types")).map((name) => [`src/lib/domain/types/${name}`, real(`src/lib/domain/types/${name}`)]),
-  );
-  return { "tsconfig.json": real("tsconfig.json"), "src/lib/domain/accessPresets.ts": real("src/lib/domain/accessPresets.ts"), ...typeFiles };
+  const copyDir = (dir) =>
+    Object.fromEntries(fs.readdirSync(path.join(repoRoot, dir)).filter((name) => name.endsWith(".ts")).map((name) => [`${dir}/${name}`, real(`${dir}/${name}`)]));
+  return { "tsconfig.json": real("tsconfig.json"), ...copyDir("src/lib/domainAccess"), ...copyDir("src/lib/domain/types") };
 }
 
 function makeRoot(files) {
@@ -235,8 +231,8 @@ test("生成: core → 業務の順に並び、override は access だけ差し�
     "src/features/core/user/services/server/domainEntry.ts": ENTRY("user"),
     "src/features/core/user/services/server/drizzleBase.ts": "",
     "src/features/core/userTag/services/server/domainEntry.ts": ENTRY("userTag"),
-    "src/features/core/userTag/services/server/domainEntry.override.ts": `import type { DomainEntryOverrides } from "@/lib/domain/types";
-import { PUBLIC_READ } from "@/lib/domain/accessPresets";
+    "src/features/core/userTag/services/server/domainEntry.override.ts": `import type { DomainEntryOverrides } from "@/lib/domain";
+import { PUBLIC_READ } from "@/lib/domainAccess";
 export const domainEntryOverrides = { userTag: PUBLIC_READ } satisfies DomainEntryOverrides;
 `,
     "src/features/article/services/server/domainEntry.ts": ENTRY("article"),
@@ -406,7 +402,7 @@ test("generate: false の業務ドメイン: domainEntry.ts が無いと手書�
 function makeImportRoot(entryImports, files = {}) {
   return makeRoot({
     ...files,
-    "src/features/shop/services/server/domainEntry.ts": `import type { DomainEntries } from "@/lib/domain/types";
+    "src/features/shop/services/server/domainEntry.ts": `import type { DomainEntries } from "@/lib/domain";
 ${entryImports}
 export const domainEntries = {
   shop: { service: () => import("./shopService").then((m) => m.shopService), table: "shops", idColumn: "id", access: {} },
@@ -419,8 +415,9 @@ const ENTRY_PATH = "src/features/shop/services/server/domainEntry.ts";
 
 test("静的 import の決まり: 通る例(lib/domain の 2 つ・fork の constants/ の定型・型だけの import・推移と循環)", () => {
   const cases = {
-    "lib/domain の定型": `import { ADMIN_ONLY, ADMIN_RULE } from "@/lib/domain/accessPresets";`,
-    "lib/domain/types の値の import(型だけのファイルの再 export)": `import { DOMAIN_DATA_OPERATIONS } from "@/lib/domain/types";`,
+    "lib/domain の定型": `import { ADMIN_ONLY, ADMIN_RULE } from "@/lib/domainAccess";`,
+    "lib/domain/types の値の import(型だけのファイルの再 export)": `import { DOMAIN_DATA_OPERATIONS } from "@/lib/domainAccess";
+`,
     "fork の constants/ の定型(spread・参照・as const・satisfies)": `import { STAFF_ONLY } from "@/features/shop/constants/access";`,
     "相対の値の import": `import { STAFF_ONLY } from "../../constants/access";`,
     "型だけの import はどこからでも(services・drizzle・パッケージ)": [
@@ -431,8 +428,8 @@ test("静的 import の決まり: 通る例(lib/domain の 2 つ・fork の cons
     "値だけのファイルが値だけのファイルを読む(推移)・循環しても止まる": `import { CHAIN } from "@/features/shop/constants/chain";`,
   };
   const files = {
-    "src/features/shop/constants/access.ts": `import type { DomainApiAccessConfig } from "@/lib/domain/types";
-import { ADMIN_RULE } from "@/lib/domain/accessPresets";
+    "src/features/shop/constants/access.ts": `import type { DomainApiAccessConfig } from "@/lib/domainAccess";
+import { ADMIN_RULE } from "@/lib/domainAccess";
 
 /** 店舗の関係者だけ */
 const STAFF_RULE = { roles: ["staff"], roleCategories: ["admin"] } as const;
@@ -478,8 +475,8 @@ test("静的 import の決まり: 落ちる例(services・drizzle・entities の
 });
 
 test("静的 import の決まり: override も同じ決まりで pnpm check registry が見る。生成器の domainEntry の出力も通る", () => {
-  const root = makeImportRoot(`import { ADMIN_ONLY } from "@/lib/domain/accessPresets";`, {
-    "src/features/shop/services/server/domainEntry.override.ts": `import type { DomainEntryOverrides } from "@/lib/domain/types";
+  const root = makeImportRoot(`import { ADMIN_ONLY } from "@/lib/domainAccess";`, {
+    "src/features/shop/services/server/domainEntry.override.ts": `import type { DomainEntryOverrides } from "@/lib/domain";
 import { shopService } from "./shopService";
 export const domainEntryOverrides = { shop: { read: "public", write: "none" } } satisfies DomainEntryOverrides;
 `,

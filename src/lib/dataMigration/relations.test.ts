@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import type { DomainConfig } from "@/lib/domain/types/domainConfig";
+import type { DomainConfig } from "@/lib/domain";
 
 import { collectExportDomains } from "./relations";
 

@@ -8,12 +8,8 @@
 import { isDevelopment } from "@/lib/appEnv";
 import "server-only";
 
-import type { DomainApiAccessRule } from "@/lib/domain";
-import {
-  domainsFromRelationOptionsKey,
-  getStaticRelations,
-  relationOptionsKey,
-} from "@/lib/domain/relations/relationOptions.mjs";
+import type { DomainApiAccessRule } from "@/lib/domainAccess";
+import { domainsFromRelationOptionsKey, getStaticRelations, relationOptionsKey } from "@/lib/domain";
 
 /** domain.json のうち読む部分 */
 export type AdminRelationOptionsConfig = {

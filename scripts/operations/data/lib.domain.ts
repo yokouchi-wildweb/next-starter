@@ -3,7 +3,7 @@
 // 許されない・サービスに無い・知らないドメインは理由を出して止める(lib/crud を直接呼ばない。登録表で引けることは許可ではない)。
 // @/wiring は動的 import だけ(lint scripts-no-static-wiring)
 
-import type { DataCommand } from "@/lib/domain/types";
+import type { DataCommand } from "@/lib/domainAccess";
 
 import { DataUsageError } from "./lib.args";
 
@@ -32,7 +32,7 @@ export async function resolveDataTarget(domainName: string, command: DataCommand
   const resolution = resolveDataCommand(access, command, service);
   if (!resolution.allowed) throw new DataUsageError(`${domain} で ${command} はできません: ${resolution.why}`);
   const { getDomainConfig, hasDomainConfig } = await import("@/wiring/domainConfig");
-  const { collectMediaFields, isCollectionFieldType } = await import("@/lib/domain/fields/fieldTypes.mjs");
+  const { collectMediaFields, isCollectionFieldType } = await import("@/lib/domain/node.mjs");
   const config = hasDomainConfig(domain) ? (getDomainConfig(domain) as unknown as { fields?: Array<{ name: string; fieldType: string }> }) : null;
   const mediaFields = config
     ? [...collectMediaFields(config as never).map((f: { name: string }) => f.name), ...(config.fields ?? []).filter((f) => isCollectionFieldType(f.fieldType)).map((f) => f.name)]

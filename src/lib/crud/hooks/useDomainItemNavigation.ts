@@ -8,7 +8,7 @@
 
 import { useCallback, useMemo } from "react";
 
-import type { DomainDisplay } from "@/lib/domain/types/display";
+import type { DomainDisplay } from "@/lib/domain";
 import { createApiClient } from "@/lib/crud/client";
 import { getAdminPaths } from "@/lib/crud/utils/paths";
 

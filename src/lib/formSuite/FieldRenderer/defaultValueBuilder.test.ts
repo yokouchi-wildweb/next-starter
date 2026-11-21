@@ -10,8 +10,8 @@ import assert from "node:assert/strict";
 
 import { isCheckGroupFieldType } from "../Field/Configured/checkGroupFieldTypes";
 import { isCheckboxArray } from "../Field/Configured/inputResolver";
-import { FIELD_TYPES } from "@/lib/domain/fields/fieldTypes.mjs";
-import { FORM_INPUTS } from "@/lib/domain/fields/fieldFormInputs.mjs";
+import { FIELD_TYPES } from "@/lib/domain";
+import { FORM_INPUTS } from "@/lib/domain";
 
 import { buildFormDefaultValues } from "./defaultValueBuilder";
 

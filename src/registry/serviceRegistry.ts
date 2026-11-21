@@ -9,7 +9,7 @@
 // サービスは遅延読み込み（この表を import しても各ドメインのサービス・DB 接続は読み込まれない）。
 // 検査: pnpm check registry / 詳細: src/lib/domain/README.md
 
-import type { DomainRegistry } from "@/lib/domain/types";
+import type { DomainRegistry } from "@/lib/domain";
 
 import { domainEntries as auditLogEntries } from "@/features/core/auditLog/services/server/domainEntry";
 import { domainEntries as bankTransferReviewEntries } from "@/features/core/bankTransferReview/services/server/domainEntry";

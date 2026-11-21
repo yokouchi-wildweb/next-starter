@@ -7,7 +7,7 @@ import { Plus, type LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/Button/Button";
 import { type ButtonStyleProps } from "@/components/Button/variants";
-import type { DomainDisplay } from "@/lib/domain/types/display";
+import type { DomainDisplay } from "@/lib/domain";
 import { getAdminPaths } from "@/lib/crud/utils";
 
 export type CreateButtonProps = ButtonStyleProps & {

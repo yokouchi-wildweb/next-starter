@@ -4,8 +4,6 @@
 import type { DomainConfig } from "../types/domainConfig";
 import type { DomainFieldInfo, DomainFieldOption } from "../types";
 
-export type { DomainFieldInfo };
-
 /**
  * ドメイン設定から指定フィールドを取得
  *

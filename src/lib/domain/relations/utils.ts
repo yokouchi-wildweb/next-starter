@@ -4,8 +4,6 @@
 import { toSnakeCase } from "@/lib/stringCase/index.mjs";
 import type { RelationType, RelationInfo, DomainDisplay } from "../types";
 
-export type { RelationType, RelationInfo };
-
 /** 写し（または同じ形の設定）からリレーション情報を取得（belongsTo, belongsToMany） */
 export function getRelationsOf(config: Pick<DomainDisplay, "relations">): RelationInfo[] {
   const relations: RelationInfo[] = [];

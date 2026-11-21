@@ -23,7 +23,7 @@ import {
   ControlledTextarea,
   ControlledTimeInput,
 } from "../../inputs";
-import { BUILTIN_FORM_INPUTS } from "@/lib/domain/fields/formInputs.mjs";
+import { BUILTIN_FORM_INPUTS } from "@/lib/domain";
 import type { BuiltinFormInput, DomainFieldOption } from "@/lib/domain";
 import type { FieldConfig } from "../types";
 import type { RadioGroupDisplayType } from "@/components/Input/RadioGroupInput";
