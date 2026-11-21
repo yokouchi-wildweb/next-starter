@@ -36,15 +36,25 @@ import {
  *   gates: string[], receptacles: string[], frame: string | null,
  *   featureRequirements: { key: string, feature: string, off: unknown, element?: true }[],
  * }} District
+ * @typedef {(typeof DISTRICT_KINDS)[number]} DistrictKind
+ * @typedef {{ kind: DistrictKind, name: string, core: boolean | null, dir: string }} FoundDistrict 見つけただけの地区(欄を読む前)
  *   featureRequirements = 持ち主の config.ts の機能を要する値の宣言(設定 D110。判定は門番の検査 src/featureGate/checks/featureRequirements.ts)
  */
 
 const SOURCE_FILE = /\.tsx?$/;
 const TEST_FILE = /\.test\./;
+/** @param {...string} parts */
 const join = (...parts) => parts.filter((p) => p !== "").join("/");
+/** @param {Pick<DistrictSource, "listDir">} source @param {string} rel */
 const dirsOf = (source, rel) => source.listDir(rel).filter((e) => e.isDir && !e.name.startsWith("."));
 
-/** 地区の中の全ファイル(SKIP_DIRS と隠しフォルダには入らない) */
+/**
+ * 地区の中の全ファイル(SKIP_DIRS と隠しフォルダには入らない)
+ * @param {Pick<DistrictSource, "listDir">} source
+ * @param {string} rel
+ * @param {string[]} [out]
+ * @returns {string[]}
+ */
 function filesUnder(source, rel, out = []) {
   for (const entry of source.listDir(rel)) {
     if (entry.name.startsWith(".")) continue;
@@ -59,16 +69,17 @@ function filesUnder(source, rel, out = []) {
 /**
  * 地区を見つけるだけ(欄は読まない。読むのは枠の _layout/config.ts と proxies の config.ts の有無だけ)。pnpm workflow ownership who が型 4 の置き場を引くのに使う
  * @param {DistrictSource} source
- * @returns {{ districts: { kind: string, name: string, core: boolean | null, dir: string }[], problems: string[] }}
+ * @returns {{ districts: FoundDistrict[], problems: string[] }}
  */
 export function discoverDistricts(source) {
+  /** @type {string[]} */
   const problems = [];
   return { districts: discover(source, problems), problems };
 }
 
 /**
  * 地区の config と上書きの置き場(設定 D11・D38)
- * @param {{ kind: (typeof DISTRICT_KINDS)[number], name: string, dir: string }} district
+ * @param {{ kind: DistrictKind, name: string, dir: string }} district
  */
 export const configSlotsOf = (district) => ({
   config: join(district.dir, CONFIG_FILE),
@@ -77,8 +88,14 @@ export const configSlotsOf = (district) => ({
   uiOverride: uiOverridePathOf(district.kind, district.name),
 });
 
-/** 地区の見つけ方(種類ごと)。{ kind, name, core, dir, frame? } の一覧 */
+/**
+ * 地区の見つけ方(種類ごと)
+ * @param {DistrictSource} source
+ * @param {string[]} problems 見つけ方の問題を足す先
+ * @returns {FoundDistrict[]}
+ */
 function discover(source, problems) {
+  /** @type {FoundDistrict[]} */
   const found = [];
   for (const entry of dirsOf(source, FEATURES_ROOT)) {
     if (entry.name.startsWith("_")) continue;
@@ -90,6 +107,7 @@ function discover(source, problems) {
   }
   // lib の見つけ方は libPackage の決まり 1 つ(二重に解かない、L1.14)
   for (const name of listLibsFrom(source.listDir)) found.push({ kind: "lib", name, core: null, dir: join(LIB_ROOT, name) });
+  /** @param {string} rel */
   const walkApp = (rel) => {
     for (const entry of dirsOf(source, rel)) {
       if (SKIP_DIRS.includes(entry.name)) continue;
@@ -117,10 +135,16 @@ function discover(source, problems) {
   return found;
 }
 
-/** 名前の一意(種類の中、目録 D3・D17)。直すのは後から足した側 */
+/**
+ * 名前の一意(種類の中、目録 D3・D17)。直すのは後から足した側
+ * @param {FoundDistrict[]} found
+ * @returns {string[]}
+ */
 function nameProblems(found) {
+  /** @type {string[]} */
   const problems = [];
   for (const kind of DISTRICT_KINDS) {
+    /** @type {Map<string, FoundDistrict[]>} */
     const byName = new Map();
     for (const d of found.filter((x) => x.kind === kind)) byName.set(d.name, [...(byName.get(d.name) ?? []), d]);
     for (const [name, same] of byName) {
@@ -139,8 +163,15 @@ function nameProblems(found) {
   return problems;
 }
 
-/** 門の規則の features → 地区の dir ごとの規則の名前 */
+/**
+ * 門の規則の features → 地区の dir ごとの規則の名前
+ * @param {DistrictSource} source
+ * @param {Map<string, string>} featuresByFolder src/features からの相対 → 地区の dir
+ * @param {string[]} problems
+ * @returns {Map<string, string[]>}
+ */
 function readGates(source, featuresByFolder, problems) {
+  /** @type {Map<string, string[]>} */
   const gates = new Map();
   for (const entry of source.listDir(GATE_RULES_DIR)) {
     if (entry.isDir || !/\.ts$/.test(entry.name) || TEST_FILE.test(entry.name)) continue;
@@ -164,14 +195,18 @@ function readGates(source, featuresByFolder, problems) {
  *   districts の並び = 種類(DISTRICT_KINDS の順)→ 名前。tableFiles = features の地区の表と定義ファイル(パス順 → 出現順。schemaRegistry が定義ファイルを使う。jsonl には載せない)、tableProblems = 表名を字面で読めない問題だけ(problems にも入る)
  */
 export function readDistrictMap(source) {
+  /** @type {string[]} */
   const problems = [];
+  /** @type {{ name: string, file: string, dir: string }[]} */
   const tableFiles = [];
+  /** @type {string[]} */
   const tableProblems = [];
   const found = discover(source, problems);
   problems.push(...nameProblems(found));
   // 規則の features は src/features からの相対("core/<d>" か "<d>")
   const featuresByFolder = new Map(found.filter((d) => d.kind === "features").map((d) => [d.dir.slice(FEATURES_ROOT.length + 1), d.dir]));
   const gates = readGates(source, featuresByFolder, problems);
+  /** @type {Map<string, string[]>} */
   const apiKeyOwners = new Map();
 
   const districts = found.map((d) => {
@@ -214,7 +249,7 @@ export function readDistrictMap(source) {
         try {
           district.generate = JSON.parse(domainJsonText).generate !== false;
         } catch (error) {
-          problems.push(`${domainJsonPath}: JSON として読めない(${error.message})`);
+          problems.push(`${domainJsonPath}: JSON として読めない(${error instanceof Error ? error.message : String(error)})`);
         }
       }
       const entryPath = join(d.dir, DOMAIN_ENTRY_FILE);
@@ -246,7 +281,7 @@ export function readDistrictMap(source) {
   for (const [key, dirs] of apiKeyOwners) {
     if (dirs.length > 1) problems.push(`domainEntry のキー ${key} が ${dirs.join("・")} で重なる(汎用 API の名前は一意。後から足した側のキーを変える)`);
   }
-  const order = (d) => DISTRICT_KINDS.indexOf(d.kind);
+  const order = (/** @type {District} */ d) => DISTRICT_KINDS.indexOf(d.kind);
   districts.sort((a, b) => order(a) - order(b) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   tableFiles.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
   return { districts, problems, tableFiles, tableProblems };

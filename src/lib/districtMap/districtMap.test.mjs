@@ -6,12 +6,17 @@ import { test } from "node:test";
 import { readOverrideLoaders } from "./index.mjs";
 import { readDistrictMap, readDomainEntry, readFeatureRequirements, readFrameName, readOverrideImports, readRuleDomains, readTableNames, toJsonl } from "./index.mjs";
 
-/** パス → 本文 の表から source を作る(フォルダはパスから導く) */
+/**
+ * パス → 本文 の表から source を作る(フォルダはパスから導く)
+ * @param {Record<string, string>} files
+ * @returns {import("./read.mjs").DistrictSource}
+ */
 function memorySource(files) {
   const paths = Object.keys(files);
   return {
     listDir(rel) {
       const prefix = `${rel}/`;
+      /** @type {Map<string, boolean>} */
       const names = new Map();
       for (const path of paths) {
         if (!path.startsWith(prefix)) continue;
@@ -24,7 +29,7 @@ function memorySource(files) {
   };
 }
 
-const entry = (body) => `import type { DomainEntries } from "@/lib/domain/types";\nexport const domainEntries = {\n${body}\n} satisfies DomainEntries;\n`;
+const entry = (/** @type {string} */ body) => `import type { DomainEntries } from "@/lib/domain/types";\nexport const domainEntries = {\n${body}\n} satisfies DomainEntries;\n`;
 const BASE = {
   "src/features/README.md": "",
   "src/features/_template/entities/drizzle.ts": `export const t = pgTable("template_rows", {});`,

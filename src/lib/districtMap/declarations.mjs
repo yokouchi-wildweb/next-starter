@@ -16,6 +16,14 @@ export const SEARCH_ROOT = "src";
 /** 生成一覧の置き場の名前(持ち主のフォルダの直下) */
 export const EXTENSIONS_DIR_NAME = "extensions";
 
+/** @typedef {LiteralValue[]} LiteralArray 再帰の型は配列だけ別の JSDoc に置く(同じ塊だと TS2456) */
+/**
+ * @typedef {string | number | boolean | LiteralArray | LiteralObject} LiteralValue 宣言に書けるリテラルの値
+ * @typedef {{ [key: string]: LiteralValue }} LiteralObject
+ * @typedef {{ value: LiteralValue, problem?: undefined } | { problem: string, value?: undefined }} LiteralRead literalOf の結果
+ * @typedef {{ [key: string]: LiteralValue | undefined }} PointSpec 1 つの点の宣言(キーと形は checkPoint が確かめる)
+ */
+
 const SIDES = ["server", "client", "shared"];
 const LOADS = ["eager", "lazy"];
 const WRITERS = ["role:generate"];
@@ -30,7 +38,11 @@ const OVERRIDE_TARGET_KEYS = ["overrides", "side", "overrideOf", "addable", "exp
 const POINT_NAME = /^[a-z][A-Za-z0-9]*$/;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
-/** 構文木の値をリテラルとして読む。リテラルでなければ { problem } */
+/**
+ * 構文木の値をリテラルとして読む。リテラルでなければ { problem }
+ * @param {ts.Node} node
+ * @returns {LiteralRead}
+ */
 export function literalOf(node) {
   while (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node)) node = node.expression;
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return { value: node.text };
@@ -38,22 +50,24 @@ export function literalOf(node) {
   if (node.kind === ts.SyntaxKind.TrueKeyword) return { value: true };
   if (node.kind === ts.SyntaxKind.FalseKeyword) return { value: false };
   if (ts.isArrayLiteralExpression(node)) {
+    /** @type {LiteralValue[]} */
     const value = [];
     for (const element of node.elements) {
       const read = literalOf(element);
-      if (read.problem) return read;
+      if (read.problem !== undefined) return read;
       value.push(read.value);
     }
     return { value };
   }
   if (ts.isObjectLiteralExpression(node)) {
+    /** @type {{ [key: string]: LiteralValue }} */
     const value = {};
     for (const property of node.properties) {
       if (!ts.isPropertyAssignment(property)) return { problem: `リテラルでない書き方(${property.getText()})` };
       const name = property.name;
       if (!(ts.isIdentifier(name) || ts.isStringLiteral(name))) return { problem: `キーはリテラル(${name.getText()})` };
       const read = literalOf(property.initializer);
-      if (read.problem) return read;
+      if (read.problem !== undefined) return read;
       value[name.text] = read.value;
     }
     return { value };
@@ -61,19 +75,39 @@ export function literalOf(node) {
   return { problem: `リテラルでない値(${node.getText()})。宣言は文字列・真偽・数・配列・object だけで書く` };
 }
 
-/** 1 つの点の宣言を確かめる。問題の一覧を返す */
-function checkPoint(name, point) {
+/**
+ * 空でない文字列か
+ * @param {unknown} v
+ * @returns {v is string}
+ */
+const isString = (v) => typeof v === "string" && v.length > 0;
+/**
+ * 決まった名前の 1 つか
+ * @param {readonly string[]} list
+ * @param {unknown} v
+ */
+const oneOf = (list, v) => typeof v === "string" && list.includes(v);
+
+/**
+ * 1 つの点の宣言を確かめる。問題の一覧を返す
+ * @param {string} name
+ * @param {LiteralValue} value
+ * @returns {string[]}
+ */
+function checkPoint(name, value) {
+  /** @type {string[]} */
   const problems = [];
   if (!POINT_NAME.test(name)) problems.push(`点の名前 ${name} は英小文字始まりの camelCase(項目の種類の複数形)`);
-  if (typeof point !== "object" || point === null || Array.isArray(point)) return [...problems, `${name}: 点は object で書く`];
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return [...problems, `${name}: 点は object で書く`];
+  /** @type {PointSpec} */
+  const point = value;
   for (const key of Object.keys(point)) if (!KEYS.includes(key)) problems.push(`${name}: 未知のキー ${key}(使えるのは ${KEYS.join(" / ")})`);
-  const isString = (v) => typeof v === "string" && v.length > 0;
   // placement: 置き場の点。fork が書いてよい場所(リポジトリ直下からの glob)と、その書き方(intake.txt の kind)だけを持つ
   if (point.placement !== undefined) {
     if (!isString(point.placement) || !point.placement.startsWith(`${SEARCH_ROOT}/`) || point.placement.split("/").includes("..")) {
       problems.push(`${name}: placement は置き場のリポジトリ直下からの glob(${SEARCH_ROOT}/ 始まり、.. 無し)`);
     }
-    if (!PLACEMENT_KINDS.includes(point.kind)) problems.push(`${name}: kind は ${PLACEMENT_KINDS.join(" | ")}`);
+    if (!oneOf(PLACEMENT_KINDS, point.kind)) problems.push(`${name}: kind は ${PLACEMENT_KINDS.join(" | ")}`);
     for (const key of Object.keys(point)) if (KEYS.includes(key) && key !== "placement" && key !== "kind") problems.push(`${name}: placement の点に ${key} は書けない(書けるのは placement / kind)`);
     return problems;
   }
@@ -85,7 +119,7 @@ function checkPoint(name, point) {
     if (!isString(point.overrides) || !point.overrides.startsWith(`${SEARCH_ROOT}/`) || point.overrides.split("/").includes("..")) {
       problems.push(`${name}: overrides は対象のファイルのリポジトリ直下からの glob(${SEARCH_ROOT}/ 始まり、.. 無し)`);
     }
-    if (!SIDES.includes(point.side)) problems.push(`${name}: side は ${SIDES.join(" | ")}`);
+    if (!oneOf(SIDES, point.side)) problems.push(`${name}: side は ${SIDES.join(" | ")}`);
     if (!(Array.isArray(point.overrideOf) && point.overrideOf.length > 0 && point.overrideOf.every(isString))) problems.push(`${name}: overrideOf は上書きしてよい属性の名前の配列(overrides の点では必須)`);
     if (!isString(point.export) || !IDENTIFIER.test(point.export)) problems.push(`${name}: export は上書きのファイルが export する名前(例 override)`);
     // keyedBy: 上書きが { <対象のキー>: <宣言した 1 つの属性の値> } の形(domainEntry)。値は対象のその export のキーの中だけ
@@ -97,23 +131,23 @@ function checkPoint(name, point) {
   }
   // writer: 一覧を別の生成器が書く点。受け口・印・型は無く、持てるのは side だけ
   if (point.writer !== undefined) {
-    if (!WRITERS.includes(point.writer)) problems.push(`${name}: writer は ${WRITERS.join(" | ")}`);
-    if (!SIDES.includes(point.side)) problems.push(`${name}: side は ${SIDES.join(" | ")}`);
+    if (!oneOf(WRITERS, point.writer)) problems.push(`${name}: writer は ${WRITERS.join(" | ")}`);
+    if (!oneOf(SIDES, point.side)) problems.push(`${name}: side は ${SIDES.join(" | ")}`);
     for (const key of Object.keys(point)) if (key !== "writer" && key !== "side") problems.push(`${name}: writer の点に ${key} は書けない`);
     return problems;
   }
   if (point.keyedBy !== undefined) problems.push(`${name}: keyedBy は overrides の点だけ`);
   if (!isString(point.dir) || point.dir.startsWith("/") || point.dir.split("/").includes("..")) problems.push(`${name}: dir は持ち主のフォルダからの相対パス("." = 持ち主の直下)`);
   if (!isString(point.export) || !IDENTIFIER.test(point.export)) problems.push(`${name}: export は項目が export する名前`);
-  if (typeof point.type !== "object" || point.type === null || !isString(point.type.from) || !isString(point.type.name) || !IDENTIFIER.test(point.type.name)) {
+  if (typeof point.type !== "object" || point.type === null || Array.isArray(point.type) || !isString(point.type.from) || !isString(point.type.name) || !IDENTIFIER.test(point.type.name)) {
     problems.push(`${name}: type は { from: "<import 元>", name: "<型の名前>" }`);
   }
-  if (!SIDES.includes(point.side)) problems.push(`${name}: side は ${SIDES.join(" | ")}`);
+  if (!oneOf(SIDES, point.side)) problems.push(`${name}: side は ${SIDES.join(" | ")}`);
   if (point.key !== undefined && (!isString(point.key) || !IDENTIFIER.test(point.key))) problems.push(`${name}: key は項目の値のプロパティ名`);
-  if (point.load !== undefined && !LOADS.includes(point.load)) problems.push(`${name}: load は ${LOADS.join(" | ")}`);
-  if (point.target !== undefined && !TARGETS.includes(point.target)) problems.push(`${name}: target は ${TARGETS.join(" | ")}`);
+  if (point.load !== undefined && !oneOf(LOADS, point.load)) problems.push(`${name}: load は ${LOADS.join(" | ")}`);
+  if (point.target !== undefined && !oneOf(TARGETS, point.target)) problems.push(`${name}: target は ${TARGETS.join(" | ")}`);
   if (point.ignore !== undefined && !(Array.isArray(point.ignore) && point.ignore.every(isString))) problems.push(`${name}: ignore はファイル名の配列`);
-  if (point.derive !== undefined && !DERIVES.includes(point.derive)) problems.push(`${name}: derive は ${DERIVES.join(" | ")}(組み込みの変換だけ)`);
+  if (point.derive !== undefined && !oneOf(DERIVES, point.derive)) problems.push(`${name}: derive は ${DERIVES.join(" | ")}(組み込みの変換だけ)`);
   if (point.literalKeys !== undefined && (point.literalKeys !== true || point.key === undefined)) problems.push(`${name}: literalKeys は key と一緒に true だけ`);
   if (point.alwaysOn !== undefined && typeof point.alwaysOn !== "boolean") problems.push(`${name}: alwaysOn は真偽`);
   if (point.files !== undefined && !(isString(point.files) && /^\*\/[A-Za-z_][A-Za-z0-9_.]*\.tsx?$/.test(point.files))) problems.push(`${name}: files は "*/<ファイル名>"(受け口の 1 段下の決まった名前のファイル)`);
@@ -125,17 +159,21 @@ function checkPoint(name, point) {
   return problems;
 }
 
-/** 受け口の点(項目のフォルダ dir を持ち、pnpm generate extensions が一覧を書く)か。writer の点・overrides の点・placement の点は違う */
+/**
+ * 受け口の点(項目のフォルダ dir を持ち、pnpm generate extensions が一覧を書く)か。writer の点・overrides の点・placement の点は違う
+ * @param {PointSpec} spec
+ */
 export const isListPoint = (spec) => spec.writer === undefined && spec.overrides === undefined && spec.placement === undefined;
 
 /**
  * 宣言のファイルを 1 つ読む
  * @param {string} path リポジトリ直下からの相対
  * @param {string} text
- * @returns {{ points: Record<string, object>, problems: string[] }}
+ * @returns {{ points: Record<string, PointSpec>, problems: string[] }}
  */
 export function readDeclaration(path, text) {
   const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  /** @type {ts.Expression | null} */
   let initializer = null;
   for (const statement of source.statements) {
     if (!ts.isVariableStatement(statement)) continue;
@@ -146,15 +184,23 @@ export function readDeclaration(path, text) {
   }
   if (!initializer) return { points: {}, problems: [`${path}: export const ${DECLARATION_NAME} = { … } が無い`] };
   const read = literalOf(initializer);
-  if (read.problem) return { points: {}, problems: [`${path}: ${read.problem}`] };
+  if (read.problem !== undefined) return { points: {}, problems: [`${path}: ${read.problem}`] };
   if (typeof read.value !== "object" || read.value === null || Array.isArray(read.value)) {
     return { points: {}, problems: [`${path}: ${DECLARATION_NAME} は { <点の名前>: { … } } の object`] };
   }
-  const problems = Object.entries(read.value).flatMap(([name, point]) => checkPoint(name, point).map((p) => `${path}: ${p}`));
-  return { points: problems.length > 0 ? {} : read.value, problems };
+  const declared = read.value;
+  const problems = Object.entries(declared).flatMap(([name, point]) => checkPoint(name, point).map((p) => `${path}: ${p}`));
+  // 問題が無い = どの点も object(checkPoint が確かめた)
+  /** @type {Record<string, PointSpec>} */
+  const points = {};
+  if (problems.length === 0) for (const [name, point] of Object.entries(declared)) if (typeof point === "object" && point !== null && !Array.isArray(point)) points[name] = point;
+  return { points, problems };
 }
 
-/** 宣言のファイルのパスか(src の下の extensionPoints.ts。生成一覧 extensions/ と node_modules・隠しフォルダの中は除く) */
+/**
+ * 宣言のファイルのパスか(src の下の extensionPoints.ts。生成一覧 extensions/ と node_modules・隠しフォルダの中は除く)
+ * @param {string} path
+ */
 export const isDeclarationPath = (path) =>
   path.startsWith(`${SEARCH_ROOT}/`) &&
   path.endsWith(`/${DECLARATION_NAME}.ts`) &&
@@ -164,10 +210,12 @@ export const isDeclarationPath = (path) =>
  * 宣言のファイルの一覧と読み方から点の一覧を作る(ファイルにも git にも触れない。git の版の木を読む pnpm workflow ownership who も使う)
  * @param {Iterable<string>} files 宣言のファイル(リポジトリ直下からの相対。宣言でないパスは isDeclarationPath で除く)
  * @param {(path: string) => string | null} readText
- * @returns {{ points: { owner: string, name: string, declaredIn: string, spec: object }[], problems: string[] }}
+ * @returns {{ points: { owner: string, name: string, declaredIn: string, spec: PointSpec }[], problems: string[] }}
  */
 export function pointsFromFiles(files, readText) {
+  /** @type {{ owner: string, name: string, declaredIn: string, spec: PointSpec }[]} */
   const points = [];
+  /** @type {string[]} */
   const problems = [];
   for (const path of [...files].filter(isDeclarationPath).sort()) {
     const text = readText(path);

@@ -32,26 +32,33 @@ export const FRAME_SEARCH_ROOT = "src/app";
  */
 export const CLAIMED_DEFAULTS = [{ by: "scripts/structure/extensions/frames.mjs(枠の宣言の既定)", under: FRAME_SEARCH_ROOT, name: FRAME_DEFAULT_FILE }];
 
-const fileName = (path) => path.slice(path.lastIndexOf("/") + 1);
-const dirName = (path) => path.slice(0, Math.max(path.lastIndexOf("/"), 0));
+const fileName = (/** @type {string} */ path) => path.slice(path.lastIndexOf("/") + 1);
+const dirName = (/** @type {string} */ path) => path.slice(0, Math.max(path.lastIndexOf("/"), 0));
 
-/** path(リポジトリ直下からの相対)がどれかの仕組みの名乗った .default の形か */
+/**
+ * path(リポジトリ直下からの相対)がどれかの仕組みの名乗った .default の形か
+ * @param {string} path
+ * @param {typeof CLAIMED_DEFAULTS} [claims]
+ * @returns {boolean}
+ */
 export function isClaimedDefault(path, claims = CLAIMED_DEFAULTS) {
   const name = fileName(path);
-  return claims.some((c) => path.startsWith(`${c.under}/`) && (c.name !== undefined ? name === c.name : c.pattern.test(name)));
+  return claims.some((c) => path.startsWith(`${c.under}/`) && (c.name !== undefined ? name === c.name : c.pattern !== undefined && c.pattern.test(name)));
 }
 
 /**
  * 1 行スイッチの組。path が既定 <名前>.default.ts(x)・素の <名前>.ts(x)・置き換え <名前>.replace.ts(x) のどれかなら、その組の 3 つのパスの候補。
  * 拡張子は ts と tsx の両方を返す(どちらがあるかは呼び手が木で見る)。名乗った形と、そうでない名前は null
  * @param {string} path
+ * @param {typeof CLAIMED_DEFAULTS} [claims]
  * @returns {{ name: string, dir: string, role: "default" | "switch" | "replace", defaults: string[], switches: string[], replaces: string[] } | null}
  */
 export function switchSetOf(path, claims = CLAIMED_DEFAULTS) {
   if (isClaimedDefault(path, claims)) return null;
   const dir = dirName(path);
   const name = fileName(path);
-  const of = (stem) => ["ts", "tsx"].map((ext) => `${dir}/${stem}.${ext}`);
+  const of = (/** @type {string} */ stem) => ["ts", "tsx"].map((ext) => `${dir}/${stem}.${ext}`);
+  /** @param {string} base @param {"default" | "switch" | "replace"} role */
   const set = (base, role) => ({ name: base, dir, role, defaults: of(`${base}.default`), switches: of(base), replaces: of(`${base}.replace`) });
   const asDefault = DEFAULT_FILE.exec(name);
   if (asDefault) return set(asDefault[1], "default");
@@ -62,14 +69,18 @@ export function switchSetOf(path, claims = CLAIMED_DEFAULTS) {
   return null;
 }
 
-/** 上書きのファイルか(<対象>.override.ts(x)。src/app の frame.override.ts は枠の宣言で、上書きの検査の対象でない) */
+/**
+ * 上書きのファイルか(<対象>.override.ts(x)。src/app の frame.override.ts は枠の宣言で、上書きの検査の対象でない)
+ * @param {string} path
+ * @returns {boolean}
+ */
 export function isOverridePath(path) {
   if (!OVERRIDE_FILE.test(fileName(path))) return false;
   return !(path.startsWith(`${FRAME_SEARCH_ROOT}/`) && /^frame\.override\.tsx?$/.test(fileName(path)));
 }
 
 /** 対象の glob → 隣の上書きの glob(最後の拡張子を .override.ts に: task.ts → task.override.ts、*.role.json → *.role.override.ts) */
-export const overrideGlobOf = (glob) => glob.replace(/\.[A-Za-z]+$/, ".override.ts");
+export const overrideGlobOf = (/** @type {string} */ glob) => glob.replace(/\.[A-Za-z]+$/, ".override.ts");
 
 /** 対象のパス → 隣の上書きのパス(overrideGlobOf と同じ決まり) */
 export const overridePathOfTarget = overrideGlobOf;

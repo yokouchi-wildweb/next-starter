@@ -6,7 +6,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { collectPoints, isListPoint, overrideKeysOf } from "./declarations.mjs";
+import { collectPoints, overrideKeysOf } from "./declarationFiles.mjs";
+import { isListPoint } from "./declarations.mjs";
 
 test("実リポの上書きの対象の点 5 つ: 鍵の集合は宣言へ寄せる前と同じ(fork の今の重ねが同じに通る)。core ロールに enabled・プロフィールに fields は無い", () => {
   assert.deepEqual(overrideKeysOf("src/features/core/user/extensionPoints.ts", "coreRoleDefinitions"), ["label", "hasProfile"]);
@@ -36,6 +37,7 @@ test("実リポ: overrides の点は受け口の一覧に入らない(writer の
 test("overrideKeysOf: 宣言が無い・点が無い・overrides の点でない・形の誤りは throw", () => {
   const root = mkdtempSync(join(tmpdir(), "declarations-"));
   try {
+    /** @param {string} path @param {string} text */
     const put = (path, text) => {
       mkdirSync(dirname(join(root, path)), { recursive: true });
       writeFileSync(join(root, path), text);

@@ -12,6 +12,11 @@ import { toCamelCase, toKebabCase } from "../stringCase/index.mjs";
 // 最後の語の前で区切る: snake / kebab の区切り、または camel の境目(小文字・数字の後の大文字)
 const LAST_SEGMENT = /^(.*(?:[_-]|[a-z0-9](?=[A-Z])))?([^_-]+)$/;
 
+/**
+ * 元の語の大文字小文字を複数形に写す
+ * @param {string} source
+ * @param {string} word
+ */
 function restoreCase(source, word) {
   if (source === source.toUpperCase() && source.length > 1) return word.toUpperCase();
   if (source[0] === source[0].toUpperCase()) return word.charAt(0).toUpperCase() + word.slice(1);

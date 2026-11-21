@@ -23,6 +23,7 @@ export const DOMAIN_OUTPUTS_FILE = "scripts/structure/domain/gate.json";
 export function normalizeGateOutputs(outputs) {
   if (outputs === undefined) return { entries: [], problems: [] };
   if (!Array.isArray(outputs)) return { entries: [], problems: ["outputs は配列(1 行 = glob の文字列か { glob, kind?, source? })"] };
+  /** @type {string[]} */
   const problems = [];
   const entries = outputs.map((entry, index) => {
     if (typeof entry === "string") {
@@ -43,7 +44,7 @@ export function normalizeGateOutputs(outputs) {
 }
 
 /** ドメインごとの置き換え({dir} など)を持つ glob か(ドメインに当てて初めてパスになる) */
-export const isDomainTemplateGlob = (glob) => /\{(dir|camel|Pascal|route)\}/.test(glob);
+export const isDomainTemplateGlob = (/** @type {string} */ glob) => /\{(dir|camel|Pascal|route)\}/.test(glob);
 
 /**
  * 受け口の一覧の generated の行になる glob: every-run で、ドメインの置き換えを持たない物(write-once は持ち主の手書き、
@@ -67,7 +68,7 @@ export function parseDomainOutputs(text) {
   try {
     data = JSON.parse(text);
   } catch (error) {
-    return { outputs: [], problems: [`${DOMAIN_OUTPUTS_FILE}: JSON でない(${error.message})`] };
+    return { outputs: [], problems: [`${DOMAIN_OUTPUTS_FILE}: JSON でない(${error instanceof Error ? error.message : String(error)})`] };
   }
   if (!Array.isArray(data?.outputs)) return { outputs: [], problems: [`${DOMAIN_OUTPUTS_FILE}: outputs は配列`] };
   const { entries, problems } = normalizeGateOutputs(data.outputs);
@@ -83,7 +84,13 @@ export function domainNamesOf({ dir, plural }) {
   return { dir, camel, Pascal: toPascalCase(toSnakeCase(camel)), route: adminRouteFolderOf(camel, plural) };
 }
 
-const fill = (text, names) => text.replace(/\{(dir|camel|Pascal|route)\}/g, (_, key) => names[key]);
+/**
+ * glob の置き換え({dir} など)をドメインの値で埋める
+ * @param {string} text
+ * @param {ReturnType<typeof domainNamesOf>} names
+ */
+const fill = (text, names) => text.replace(/\{(dir|camel|Pascal|route)\}/g, (_, /** @type {"dir" | "camel" | "Pascal" | "route"} */ key) => names[key]);
+/** @param {string} glob */
 const literalBrackets = (glob) => glob.replace(/[[\]]/g, (ch) => `[${ch}]`);
 
 /**

@@ -12,6 +12,10 @@ const CODE = /\.(mjs|js|ts|tsx|cjs)$/;
 // import / export ... from / import() の指定子(コメントの中の言及は見ない)
 const SPECIFIER = /^\s*(?:import|export)\b[^"'`]*?\bfrom\s*["']([^"']+)["']|^\s*import\s*["']([^"']+)["']|\bimport\(\s*["']([^"']+)["']\s*\)/gm;
 
+/**
+ * @param {string} dir
+ * @returns {string[]}
+ */
 function codeFiles(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);

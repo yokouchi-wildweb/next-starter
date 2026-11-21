@@ -7,13 +7,14 @@ import { isClaimedDefault, isOverridePath, overrideGlobOf, overridePathOfTarget,
 test("1 行スイッチの組: 既定・素の名前・置き換えのどれからも同じ組", () => {
   for (const path of ["src/a/onThing.default.ts", "src/a/onThing.ts", "src/a/onThing.replace.tsx"]) {
     const set = switchSetOf(path);
+    assert.ok(set);
     assert.equal(set.name, "onThing");
     assert.deepEqual(set.defaults, ["src/a/onThing.default.ts", "src/a/onThing.default.tsx"]);
     assert.deepEqual(set.switches, ["src/a/onThing.ts", "src/a/onThing.tsx"]);
     assert.deepEqual(set.replaces, ["src/a/onThing.replace.ts", "src/a/onThing.replace.tsx"]);
   }
-  assert.equal(switchSetOf("src/a/onThing.default.ts").role, "default");
-  assert.equal(switchSetOf("src/a/onThing.ts").role, "switch");
+  assert.equal(switchSetOf("src/a/onThing.default.ts")?.role, "default");
+  assert.equal(switchSetOf("src/a/onThing.ts")?.role, "switch");
   assert.equal(switchSetOf("src/a/user.role.json"), null);
   assert.equal(switchSetOf("src/app/(user)/frame.default.ts"), null, "枠の仕組みが名乗った形はスイッチでない");
 });

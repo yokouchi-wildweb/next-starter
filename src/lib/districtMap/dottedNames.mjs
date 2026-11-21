@@ -12,7 +12,13 @@
 /** 旧い印から移すときに案内する notice */
 export const MARKER_MIGRATION_NOTICE = "共有の棚の印の移行の notice(the shared-shelf marker migration notice)";
 
-const KNOWN = new Set(["default", "replace", "client"]);
+/** @type {readonly ("default" | "replace" | "client")[]} */
+const KNOWN = ["default", "replace", "client"];
+/**
+ * @param {string} word
+ * @returns {word is "default" | "replace" | "client"}
+ */
+const isKnown = (word) => KNOWN.some((known) => known === word);
 const TEST_SUFFIX = new Set(["test", "spec", "d"]);
 
 /**
@@ -33,7 +39,8 @@ export function classifyDottedName(fileName, { folder = false } = {}) {
   const last = rest[rest.length - 1];
   if (last === "override") return { base, kind: "override", target: segments.slice(0, -1).join("."), ext };
   if (TEST_SUFFIX.has(last)) return { base, kind: "test", ext };
-  if (rest.length === 1 && KNOWN.has(rest[0])) return { base, kind: rest[0], ext };
+  const only = rest.length === 1 ? rest[0] : null;
+  if (only !== null && isKnown(only)) return { base, kind: only, ext };
   return { base, kind: "marker", marker: rest.join("."), ext };
 }
 

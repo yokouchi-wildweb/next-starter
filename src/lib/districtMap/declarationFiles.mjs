@@ -14,8 +14,11 @@ import { classifyDottedName, oldMarkerProblem } from "./dottedNames.mjs";
  * @returns {{ files: string[], stale: string[] }} リポジトリ直下からの相対パス(並びは path 順)。stale = 旧い形 extensionPoints.<x>.ts
  */
 export function findDeclarationFiles(repoRoot) {
+  /** @type {string[]} */
   const found = [];
+  /** @type {string[]} */
   const stale = [];
+  /** @param {string} dir */
   const walk = (dir) => {
     if (!existsSync(dir)) return;
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -35,6 +38,7 @@ export function findDeclarationFiles(repoRoot) {
 
 /** このモジュールの置き場から見たリポジトリ直下(src/lib/districtMap/ の 3 つ上) */
 const OWN_REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
+/** @type {Map<string, string[]>} */
 const overrideKeysMemo = new Map();
 
 /**
@@ -47,7 +51,8 @@ const overrideKeysMemo = new Map();
  */
 export function overrideKeysOf(declaredIn, pointName, repoRoot = OWN_REPO_ROOT) {
   const memoKey = `${repoRoot}\0${declaredIn}\0${pointName}`;
-  if (overrideKeysMemo.has(memoKey)) return overrideKeysMemo.get(memoKey);
+  const memo = overrideKeysMemo.get(memoKey);
+  if (memo) return memo;
   const file = join(repoRoot, declaredIn);
   if (!existsSync(file)) throw new Error(`${declaredIn} が無い(上書きしてよい鍵の宣言)`);
   const { points, problems } = readDeclaration(declaredIn, readFileSync(file, "utf8"));
@@ -55,7 +60,8 @@ export function overrideKeysOf(declaredIn, pointName, repoRoot = OWN_REPO_ROOT) 
   const point = points[pointName];
   if (!point) throw new Error(`${declaredIn} に点 ${pointName} が無い(上書きしてよい鍵の宣言)`);
   if (point.overrides === undefined) throw new Error(`${declaredIn} の ${pointName} は overrides の点でない(上書きの対象の点は { overrides, side, overrideOf })`);
-  const keys = [...point.overrideOf];
+  // overrides の点の overrideOf は文字列の配列(readDeclaration の checkPoint が確かめた)
+  const keys = Array.isArray(point.overrideOf) ? point.overrideOf.filter((key) => typeof key === "string") : [];
   overrideKeysMemo.set(memoKey, keys);
   return keys;
 }
@@ -64,9 +70,10 @@ export function overrideKeysOf(declaredIn, pointName, repoRoot = OWN_REPO_ROOT) 
  * 全宣言を読んで点の一覧にする。宣言は 1 フォルダ 1 ファイル(extensionPoints.ts)なので 持ち主:点の名前 は重ならない。
  * fork の点は fork 自身のフォルダ(fork が足したドメイン・lib)の extensionPoints.ts に書く
  * @param {string} repoRoot
- * @returns {{ points: { owner: string, name: string, declaredIn: string, spec: object }[], problems: string[] }}
+ * @returns {{ points: { owner: string, name: string, declaredIn: string, spec: import("./declarations.mjs").PointSpec }[], problems: string[] }}
  */
 export function collectPoints(repoRoot) {
+  /** @type {string[]} */
   const problems = [];
   const { files, stale } = findDeclarationFiles(repoRoot);
   for (const path of stale) {

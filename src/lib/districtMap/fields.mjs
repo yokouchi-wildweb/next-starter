@@ -11,7 +11,7 @@ const PG_TABLE_CALL = /\bpgTable\s*\(/g;
 const PG_TABLE_LITERAL = /^\s*["'`]([A-Za-z0-9_]+)["'`]/;
 
 /** コメントを空白に(JSDoc の使用例 `pgTable("x", …)` を拾わないため) */
-const stripComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+const stripComments = (/** @type {string} */ text) => text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
 
 /**
  * 1 ファイルの pgTable の表名
@@ -20,26 +20,36 @@ const stripComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/
  * @returns {{ tables: string[], problems: string[] }}
  */
 export function readTableNames(path, text) {
+  /** @type {string[]} */
   const tables = [];
+  /** @type {string[]} */
   const problems = [];
   const body = stripComments(text);
   for (const match of body.matchAll(PG_TABLE_CALL)) {
-    const literal = PG_TABLE_LITERAL.exec(body.slice(match.index + match[0].length));
+    const literal = PG_TABLE_LITERAL.exec(body.slice((match.index ?? 0) + match[0].length));
     if (literal) tables.push(literal[1]);
     else problems.push(`${path}: pgTable の表名が文字列リテラルでない(字面で読めない)`);
   }
   return { tables, problems };
 }
 
-const parse = (path, text) => ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+const parse = (/** @type {string} */ path, /** @type {string} */ text) => ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 
-/** as・satisfies・括弧を外した式 */
+/**
+ * as・satisfies・括弧を外した式
+ * @param {ts.Expression} node
+ * @returns {ts.Expression}
+ */
 function unwrap(node) {
   while (node && (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node))) node = node.expression;
   return node;
 }
 
-/** export const の (名前, 初期値) */
+/**
+ * export const の (名前, 初期値)
+ * @param {ts.SourceFile} source
+ * @returns {Generator<{ name: string, init: ts.Expression }>}
+ */
 function* exportedConsts(source) {
   for (const statement of source.statements) {
     if (!ts.isVariableStatement(statement) || !statement.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) continue;
@@ -49,6 +59,7 @@ function* exportedConsts(source) {
   }
 }
 
+/** @param {ts.ObjectLiteralElementLike} property */
 const propertyName = (property) => {
   const name = property.name;
   if (!name) return null;
@@ -56,8 +67,13 @@ const propertyName = (property) => {
   return null;
 };
 
-/** object リテラルの直下の名前 → 値の式 */
+/**
+ * object リテラルの直下の名前 → 値の式
+ * @param {ts.ObjectLiteralExpression} object
+ * @returns {Map<string, ts.Expression | null>}
+ */
 function propertiesOf(object) {
+  /** @type {Map<string, ts.Expression | null>} */
   const out = new Map();
   for (const property of object.properties) {
     const name = propertyName(property);
@@ -67,9 +83,14 @@ function propertiesOf(object) {
   return out;
 }
 
-/** 文字列リテラルの配列 → 値。そうでなければ null */
+/**
+ * 文字列リテラルの配列 → 値。そうでなければ null
+ * @param {ts.Expression | null | undefined} node
+ * @returns {string[] | null}
+ */
 function stringArray(node) {
   if (!node || !ts.isArrayLiteralExpression(node)) return null;
+  /** @type {string[]} */
   const values = [];
   for (const element of node.elements) {
     const value = unwrap(element);
@@ -209,7 +230,17 @@ export const FEATURE_REQUIREMENTS_EXPORT = "featureRequirements";
 
 const KEY_PATH = /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/;
 
-/** 構文木の値をリテラルとして読む(文字列・数・真偽・null・配列・object)。リテラルでなければ undefined */
+/** @typedef {ConfigLiteral[]} ConfigLiteralArray 再帰の型は配列だけ別の JSDoc に置く(同じ塊だと TS2456) */
+/**
+ * @typedef {string | number | boolean | null | ConfigLiteralArray | ConfigLiteralObject} ConfigLiteral 字面で読めるリテラルの値
+ * @typedef {{ [key: string]: ConfigLiteral }} ConfigLiteralObject
+ */
+
+/**
+ * 構文木の値をリテラルとして読む(文字列・数・真偽・null・配列・object)。リテラルでなければ undefined
+ * @param {ts.Expression} node
+ * @returns {{ value: ConfigLiteral } | undefined}
+ */
 function literalValue(node) {
   while (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node)) node = node.expression;
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return { value: node.text };
@@ -218,6 +249,7 @@ function literalValue(node) {
   if (node.kind === ts.SyntaxKind.FalseKeyword) return { value: false };
   if (node.kind === ts.SyntaxKind.NullKeyword) return { value: null };
   if (ts.isArrayLiteralExpression(node)) {
+    /** @type {ConfigLiteral[]} */
     const value = [];
     for (const element of node.elements) {
       const read = literalValue(element);
@@ -227,6 +259,7 @@ function literalValue(node) {
     return { value };
   }
   if (ts.isObjectLiteralExpression(node)) {
+    /** @type {{ [key: string]: ConfigLiteral }} */
     const value = {};
     for (const property of node.properties) {
       if (!ts.isPropertyAssignment(property)) return undefined;
@@ -250,7 +283,9 @@ function literalValue(node) {
  */
 export function readFeatureRequirements(path, text) {
   const source = parse(path, text);
+  /** @type {{ key: string, feature: string, off: unknown, element?: true }[]} */
   const requirements = [];
+  /** @type {string[]} */
   const problems = [];
   for (const { name, init } of exportedConsts(source)) {
     if (name !== FEATURE_REQUIREMENTS_EXPORT) continue;
