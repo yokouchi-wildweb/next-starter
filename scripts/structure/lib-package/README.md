@@ -33,6 +33,7 @@ pnpm check lib-package -- codemod [--apply] [--json] …
 - 閉じた lib の中のファイルを読む import を、その名前を出す入口(package.json の exports、re-export を辿る)に書き換える。既定は dry-run(書かない)、`--apply` で書く、`--json` で機械向け
 - 書き換え先の指定子: JS の入口(`.mjs` / `.js`)はファイル名まで書く(`@/lib/pathPattern/index.mjs`。TS はフォルダの index.mjs を解かない)。JS のファイル(素の node で動く道具)が相対で読んでいた物は相対のまま入口へ(素の node は `@/` を解かない)。moved の imports: の行も同じ指定子
 - 書き換えない物は止まる一覧に種類つきで出す(入口から出ていない名前・default / 名前空間 / 副作用 / 動的な import)
+- 閉じる段で消した束(例 入口 `.` にたたんで消した `@/lib/storage/client`)を読む import: `--base <rev>` なら moved の行の `byName`(束が出していた名前 → 今の入口)で名前ごとに書き換える(入口が分かれれば文を分ける。束が出していなかった名前は止まる)。`--base` なしは `unparsable` で止まり、`--base` の案内を出す
 - 本体と引数の詳細: `codemod.mjs`(`-- codemod --help`)
 
 #### moved — notice の moved: と imports: の表
@@ -44,9 +45,10 @@ pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]
 - `--base` = 付け替えの前の版(例: 閉じる波を始める前の main)、`--head` = 改名を比べる先(既定 HEAD)。宣言は作業ツリーから読む。git から読むので checkout しない
 - `moved:` = ファイルの行。`<base>`→`<head>` で git が改名と見た(-M)行のうち、新しいパスが閉じた lib の中で古いパスがその lib の外の物(例 `src/hooks/useIsClient.ts -> src/lib/isClient/useIsClient.ts`)。notice の moved: 欄にそのまま貼る(/flux が fork の編集を移す)
 - `imports:` = 指定子の行。`<base>` のソースにある `"@/…"` の指定子を lint と同じ解決(eslint-rules/resolve-import.mjs)で `<base>` のファイルに解き、`<head>` のファイル(同じパスか改名の先)が閉じた lib の入口でない中のファイルなら、それを出す入口(codemod の `entryForFile` と同じ求め方)と組にする(例 `@/hooks/useIsClient -> @/lib/isClient`)。notice の notes: と codemod の手順に使う
-- `deleted:` = 指定子の先が `<head>` で消え改名も無い物 / `unresolved:` = 閉じた lib の中のファイルだが、どの入口からも出ていない物。どちらも推し量らずに出す(notes: に書く・入口を足す材料)
+- 消えた束: 指定子の先が `<head>` で消え改名も無く、閉じた lib の中の束(相対の `export … from` / `export * from` だけのファイル)なら、`<base>` の版を読んで出していた名前ごとに今それを出す入口を引き、`imports:` の行にする(入口が分かれれば `to` は `, ` で並べる。例 `@/lib/storage/client -> @/lib/storage`)。どの入口からも出ていない名前があれば `unresolved:`
+- `deleted:` = 指定子の先が `<head>` で消え改名も無い物(束でない物) / `unresolved:` = 閉じた lib の中のファイルだが、どの入口からも出ていない物。どちらも推し量らずに出す(notes: に書く・入口を足す材料)
 - 行にするのは `<base>` で上流が使っていた指定子だけ。fork だけが読む中のパスは fork の木で codemod を回して直す
-- `--json` = `{ base, head, moved: [{from,to}], imports: [{from,to,files}], deleted: [{from,file}], unresolved: [{from,file,lib}] }`
+- `--json` = `{ base, head, moved: [{from,to}], imports: [{from,to,files,byName?}], deleted: [{from,file}], unresolved: [{from,file,lib}] }`
 
 #### jsdoc — JS の lib の暗黙の any に推した型を JSDoc で書く
 

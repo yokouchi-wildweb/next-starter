@@ -6,7 +6,10 @@
 //           新しいパスが閉じた lib の中で、古いパスがその lib の外の物
 // - imports: 指定子の行(notice の notes: と codemod の手順)= <base> で使われていた "@/…" の指定子が、<head> では閉じた lib の
 //           入口でない中のファイルを指す物 → その名前を出す入口(codemod.mjs の entryForFile と同じ求め方)
-// - deleted: <base> の指定子の先が <head> で消え、改名も無い物(推し量らない。notes: に書く材料)
+// - deleted: <base> の指定子の先が <head> で消え、改名も無い物(推し量らない。notes: に書く材料)。
+//           ただし閉じた lib の中の束(re-export だけのファイル。例 入口 "." にたたんで消した src/lib/storage/client/index.ts)は
+//           <base> の版を読み、出していた名前ごとに今それを出す入口を引いて imports: の行にする(byName = 名前 → { to, name }。
+//           codemod が名前ごとに書き換える)。どの入口からも出ていない名前があれば unresolved
 // 行にするのは <base>..<head> の変更で生まれた物だけ: imports: / unresolved: は、指定子の先のファイルが改名されたか、
 // その lib の package.json が <base>..<head> で足された・変わった物(<base> で既に閉じていた lib の中を読む古い書き方は出さない)
 // 印のファイル(入口を re-export するためだけに残したファイル。例 src/lib/drizzle/transaction.ts)は re-export を辿って入口を求める
@@ -14,6 +17,8 @@
 
 import { execFileSync } from "node:child_process";
 import path from "node:path";
+
+import ts from "typescript";
 
 import { resolveImport } from "../../../eslint-rules/resolve-import.mjs";
 import { libOfPath } from "../../../src/lib/libPackage/index.mjs";
@@ -60,9 +65,65 @@ function entryForMarker(root, lib, file, reader) {
 }
 
 /**
+ * <base> で消えた束(re-export だけのファイル)が出していた名前 → 今の実体 { file, name }。束でない・先が読めなければ null
+ * 束の文は export … from "./x" と export * from "./x" だけ(相対)。"./x" は今の木で解き、名前の実体は今の export の辿りで求める
+ * @param {string} baseFile repo 相対(<base> の版にあるパス)
+ */
+export function barrelOrigins(root, base, baseFile, reader) {
+  let text;
+  try {
+    text = git(root, ["show", `${base}:${baseFile}`]);
+  } catch {
+    return null;
+  }
+  const kind = baseFile.endsWith(".tsx") ? ts.ScriptKind.TSX : /\.(mjs|js|cjs)$/.test(baseFile) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
+  const sf = ts.createSourceFile(baseFile, text, ts.ScriptTarget.Latest, true, kind);
+  const out = new Map();
+  for (const st of sf.statements) {
+    if (!ts.isExportDeclaration(st) || !st.moduleSpecifier || !ts.isStringLiteral(st.moduleSpecifier)) return null;
+    const spec = st.moduleSpecifier.text;
+    if (!spec.startsWith(".")) return null;
+    const target = probeFile(root, path.posix.join(path.posix.dirname(baseFile), spec));
+    const names = target ? reader.exportsOf(target) : null;
+    if (!names) return null;
+    const clause = st.exportClause;
+    if (!clause) {
+      for (const [name, origin] of names) if (name !== "default" && !out.has(name)) out.set(name, origin);
+    } else if (ts.isNamedExports(clause)) {
+      for (const el of clause.elements) {
+        const origin = names.get((el.propertyName ?? el.name).text);
+        if (!origin) return null;
+        out.set(el.name.text, origin);
+      }
+    } else {
+      return null; // export * as ns
+    }
+  }
+  return out.size > 0 ? out : null;
+}
+
+/**
+ * 消えた束の名前ごとの行き先(今の入口)。{ byName, to } か、どの入口からも出ていない名前があれば { missing }
+ * 同じ実体を出す入口が複数なら、同じ名前の物を優先、次に "."(entryIndex の順)
+ */
+function barrelTargets(root, lib, origins, reader) {
+  const index = entryIndex(root, lib, reader);
+  const byName = {};
+  const missing = [];
+  for (const [name, origin] of origins) {
+    const hits = index.filter((r) => r.origin.file === origin.file && r.origin.name === origin.name);
+    const hit = hits.find((r) => r.name === name) ?? hits[0];
+    if (hit) byName[name] = { to: hit.specifier, name: hit.name };
+    else missing.push(name);
+  }
+  if (missing.length > 0) return { missing };
+  return { byName, to: [...new Set(Object.values(byName).map((t) => t.to))].join(", ") };
+}
+
+/**
  * @param {string} root repo の根
  * @param {{ base: string, head?: string }} opts
- * @returns {{ base: string, head: string, moved: {from: string, to: string}[], imports: {from: string, to: string, files: number}[], deleted: {from: string, file: string}[], unresolved: {from: string, file: string, lib: string}[] }}
+ * @returns {{ base: string, head: string, moved: {from: string, to: string}[], imports: {from: string, to: string, files: number, byName?: Record<string, {to: string, name: string}>}[], deleted: {from: string, file: string}[], unresolved: {from: string, file: string, lib: string}[] }}
  */
 export function movedRows(root, { base, head = "HEAD" }) {
   const baseTree = new Set(git(root, ["ls-tree", "-r", "--name-only", base]).split("\n").filter(Boolean));
@@ -110,7 +171,14 @@ export function movedRows(root, { base, head = "HEAD" }) {
     const headFile = headTree.has(baseFile) ? baseFile : renames.get(baseFile);
     if (!headFile) {
       // 先が消え、改名も無い。閉じた lib に関わる物だけを出す
-      if (closedPkg(root, libOfPath(baseFile))) deleted.push({ from: spec, file: baseFile });
+      const goneLib = libOfPath(baseFile);
+      if (!closedPkg(root, goneLib)) continue;
+      // 閉じた lib の中の束なら、名前ごとに今の入口へ
+      const origins = barrelOrigins(root, base, baseFile, reader);
+      const targets = origins ? barrelTargets(root, goneLib, origins, reader) : null;
+      if (targets?.byName) imports.push({ from: spec, to: targets.to, files, byName: targets.byName });
+      else if (targets?.missing) unresolved.push({ from: spec, file: baseFile, lib: goneLib });
+      else deleted.push({ from: spec, file: baseFile });
       continue;
     }
     const lib = libOfPath(headFile);
