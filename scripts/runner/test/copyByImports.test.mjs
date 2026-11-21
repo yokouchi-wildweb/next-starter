@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
 
-import { copyByImports, copyBySpecifiers, importedFiles, resolveSpecifiers } from "./lib.copyByImports.mjs";
+import { copyByImports, copyBySpecifiers, importedFiles, resolveSpecifiers, unresolvedImports } from "./lib.copyByImports.mjs";
 
 const made = [];
 after(() => made.forEach((d) => fs.rmSync(d, { recursive: true, force: true })));
@@ -72,4 +72,10 @@ test("copyBySpecifiers: @/ の指定子を tsconfig の paths で解いたファ
   const copied = await copyBySpecifiers({ from, to, specifiers: ["@/lib/x"], data: ["tsconfig.json"] });
   assert.deepEqual(copied.sort(), ["src/lib/x/index.ts", "src/lib/x/y.ts", "tsconfig.json"]);
   assert.throws(() => resolveSpecifiers(from, ["@/lib/missing"]), /解けない/);
+});
+
+test("unresolvedImports: from に無い相対の import を issuer の置き場から解いた道で返す(パッケージと @/ は返さない)", async () => {
+  const from = repo();
+  write(from, "scripts/tool/gone.mjs", 'import "../../src/missing/a.mjs";\nimport "./b.mjs";\nimport "nope-package";\n');
+  assert.deepEqual(await unresolvedImports(from, ["scripts/tool/gone.mjs"]), [{ issuer: "scripts/tool/gone.mjs", path: "src/missing/a.mjs" }]);
 });

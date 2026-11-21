@@ -176,9 +176,9 @@ function compare(workOld, workNew, runsOld, runsNew, excluded) {
   return problems;
 }
 
-const oldSide = extractOld();
+const oldSide = await extractOld();
 const newSide = { root: repoRoot, scripts: path.join(repoRoot, "scripts"), parts: [] };
-const newParts = generatorImportDirs(repoRoot);
+const newParts = await generatorImportDirs(repoRoot);
 const excluded = [...new Set([...oldSide.parts, ...newParts])].sort();
 console.log(`旧側の src 部品（${ref} から重ねる）: ${oldSide.parts.join("・") || "なし"}`);
 if (oldSide.missing.length) console.log(`  ${ref} に無いので作業ツリーの src を使う: ${oldSide.missing.join("・")}`);

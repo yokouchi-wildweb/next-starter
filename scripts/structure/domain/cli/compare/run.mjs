@@ -73,7 +73,7 @@ export async function runCompare(argv, { repoRoot = process.cwd(), io = console 
   if (named.length && domains.length !== named.length) throw new Error(`domain.json の無いドメイン: ${named.filter((n) => !all.includes(n)).join(", ")}`);
   const configs = all.map((name) => ({ name, configPath: workspace.configPath(name) }));
 
-  const ref = extractGeneratorAt(repoRoot, base, "dc-compare-ref-");
+  const ref = await extractGeneratorAt(repoRoot, base, "dc-compare-ref-");
   const { GENERATE_CATEGORIES } = await import(pathToFileURL(path.join(ref.scripts, domainDirIn(ref.scripts), "spec", "categories.mjs")).href);
   const categories = GENERATE_CATEGORIES ?? [];
   const trees = [];

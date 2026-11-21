@@ -8,10 +8,13 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { importedFiles } from "../../../scripts/runner/test/lib.copyByImports.mjs";
 import { lineageTouch } from "./lineage-touch.mjs";
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "lineage-touch.mjs");
-const LIB = join(dirname(fileURLToPath(import.meta.url)), "../../../src/lib/forkOwnership");
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+// lineage-touch.mjs が道を組み立てて読む 2 本(import の道からは見えないので入口として挙げる)。そこから届くコードは importedFiles で
+const LIB_ENTRIES = ["src/lib/forkOwnership/forkIds.mjs", "src/lib/forkOwnership/lineage.mjs"];
 const PREAMBLE = "# lineage\n<!-- end preamble -->\n";
 const midSection = (tone) => `## mid\n- tone (default): ${tone}\n- relay: always\n<!-- end mid -->\n`;
 
@@ -71,14 +74,14 @@ test("lineageTouch: lineage.md の無い版(取り込む前)からは触れな�
   }
 });
 
-test("古い fork: 作業ツリーに判定の lib が無くても、上流の先端版を .flux/ に出して --upstream の版の lib で判定する", () => {
+test("古い fork: 作業ツリーに判定の lib が無くても、上流の先端版を .flux/ に出して --upstream の版の lib で判定する", async () => {
   const repo = setup();
   try {
     repo.write(".claude/rules/lineage.md", PREAMBLE + midSection("polite"));
     const before = repo.commit("old fork: no lib");
     // 上流の線: lib が入り、名指す鍵が変わる(fork の作業ツリーは before のまま = lib が無い)
     repo.run("checkout", "-q", "-b", "upstream");
-    for (const file of ["forkIds.mjs", "lineage.mjs"]) repo.write(`src/lib/forkOwnership/${file}`, readFileSync(join(LIB, file), "utf8"));
+    for (const rel of await importedFiles(REPO_ROOT, LIB_ENTRIES)) repo.write(rel, readFileSync(join(REPO_ROOT, rel), "utf8"));
     mkdirSync(join(repo.dir, ".claude/skills/flux"), { recursive: true });
     copyFileSync(SCRIPT, join(repo.dir, ".claude/skills/flux/lineage-touch.mjs"));
     repo.write(".claude/rules/lineage.md", PREAMBLE + midSection("formal"));

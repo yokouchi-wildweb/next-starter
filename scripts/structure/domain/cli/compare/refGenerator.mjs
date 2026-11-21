@@ -1,12 +1,14 @@
 // git ref の時点の生成器を一時ディレクトリに組み立てる（pnpm test scripts/structure/domain/tests の旧側・pnpm check domain -- --compare の base 側で共有）。
 // 生成器 = scripts/structure/domain と scripts/structure/registry。生成器は src の .mjs（型の表 src/lib/domain/fields、src/utils など）も
-// import するので、ref の生成器の相対 import を辿り切って、それらのフォルダも ref から取り出す（ref に無いフォルダは missing）。
+// import するので、ref の生成器の import を辿り切って(共有の部品 scripts/runner/test/lib.copyByImports.mjs の辿り方)、
+// それらのフォルダも ref から取り出す（ref に無いフォルダは missing）。
 // テンプレート（src/features/_template・src/app/admin/_template）も生成器の一部として ref から取り出す（parts に入る）。
 
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { importedFiles, unresolvedImports } from "../../../../runner/test/lib.copyByImports.mjs";
 
 export const GENERATOR_DIRS = ["scripts/structure/domain", "scripts/structure/registry"];
 /** 旧い版での生成器の置き場(scripts/ の再編の前)。ref に今の置き場が無ければこちらを取り出す */
@@ -20,43 +22,50 @@ export function generatorDirIn(scriptsDir, dir) {
 /** その版のドメインの生成器の置き場(scripts/ からの相対) */
 export const domainDirIn = (scriptsDir) => generatorDirIn(scriptsDir, "scripts/structure/domain");
 export const TEMPLATE_DIRS = ["src/features/_template", "src/app/admin/_template"];
-const RELATIVE_IMPORT = /from\s+["']((?:\.\.?\/)+[^"']+)["']/g;
-
-/** 生成器が src の外で相対 import してよい所(登録表の検査が指定子を解く部品 eslint-rules/resolve-import.mjs) */
+/** 生成器が src の外で import してよい所(登録表の検査が指定子を解く部品 eslint-rules/resolve-import.mjs) */
 const OUTSIDE_SRC_IMPORT_DIRS = ["eslint-rules"];
 
-/** dir 以下の .mjs（tests/ と *.test.mjs を除く）が相対 import する、root/src 配下のフォルダと eslint-rules（root 相対） */
-export function srcImportDirs(root, dir) {
-  const out = new Set();
+/** dir 以下の .mjs(tests/ と *.test.mjs を除く、root 相対) */
+function generatorEntries(root, dir) {
+  const out = [];
   const walk = (d) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const abs = path.join(d, e.name);
       if (e.isDirectory()) {
         if (e.name !== "tests" && e.name !== "node_modules") walk(abs);
-      } else if (e.name.endsWith(".mjs") && !e.name.endsWith(".test.mjs")) {
-        for (const m of fs.readFileSync(abs, "utf8").matchAll(RELATIVE_IMPORT)) {
-          const rel = path.relative(root, path.resolve(path.dirname(abs), m[1]));
-          if (rel.startsWith(`src${path.sep}`) || OUTSIDE_SRC_IMPORT_DIRS.some((d) => rel.startsWith(`${d}${path.sep}`))) out.add(path.dirname(rel));
-        }
-      }
+      } else if (e.name.endsWith(".mjs") && !e.name.endsWith(".test.mjs")) out.push(path.relative(root, abs));
     }
   };
   walk(dir);
-  return out;
+  return out.sort();
+}
+
+/**
+ * dir 以下の .mjs(tests/ と *.test.mjs を除く)から import で届く・届くはずの、root/src 配下のフォルダと eslint-rules(root 相対)。
+ * root に在る物(importedFiles)と、まだ無い物(unresolvedImports。git ref からこれから取り出す)の両方
+ */
+export async function srcImportDirs(root, dir) {
+  const entries = generatorEntries(root, dir);
+  if (!entries.length) return new Set();
+  const files = [...(await importedFiles(root, entries)), ...(await unresolvedImports(root, entries)).map((u) => u.path)];
+  const inPlace = (rel) => rel.startsWith(`src${path.sep}`) || OUTSIDE_SRC_IMPORT_DIRS.some((d) => rel.startsWith(`${d}${path.sep}`));
+  return new Set(files.filter(inPlace).map((rel) => path.dirname(rel)));
 }
 
 /** リポジトリの今の生成器が import する src のフォルダ（比べないフォルダの判定に使う） */
-export const generatorImportDirs = (repoRoot) =>
-  [...new Set([...TEMPLATE_DIRS, ...GENERATOR_DIRS.flatMap((p) => [...srcImportDirs(repoRoot, path.join(repoRoot, p))])])].sort();
+export async function generatorImportDirs(repoRoot) {
+  const found = await Promise.all(GENERATOR_DIRS.map((p) => srcImportDirs(repoRoot, path.join(repoRoot, p))));
+  return [...new Set([...TEMPLATE_DIRS, ...found.flatMap((dirs) => [...dirs])])].sort();
+}
 
 /**
  * <ref> の生成器と、それが import する src のフォルダを取り出す
  * @param {string} repoRoot git のリポジトリ
  * @param {string} ref
  * @param {string} [prefix] 一時ディレクトリの名前の頭
- * @returns {{ root: string, scripts: string, parts: string[], missing: string[] }} root = 一時ディレクトリ（使い終わったら消す）
+ * @returns {Promise<{ root: string, scripts: string, parts: string[], missing: string[] }>} root = 一時ディレクトリ（使い終わったら消す）
  */
-export function extractGeneratorAt(repoRoot, ref, prefix = "dc-ref-") {
+export async function extractGeneratorAt(repoRoot, ref, prefix = "dc-ref-") {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   const archive = (paths) =>
     execFileSync("sh", ["-c", `git archive ${JSON.stringify(ref)} ${paths.map((p) => JSON.stringify(p)).join(" ")} | tar -x -C ${JSON.stringify(root)}`], { cwd: repoRoot });
@@ -70,7 +79,7 @@ export function extractGeneratorAt(repoRoot, ref, prefix = "dc-ref-") {
   for (const dir of TEMPLATE_DIRS) (templates.includes(dir) ? parts : missing).add(dir);
   let pending = generatorDirs;
   while (pending.length) {
-    const found = new Set(pending.flatMap((p) => [...srcImportDirs(root, path.join(root, p))]));
+    const found = new Set((await Promise.all(pending.map((p) => srcImportDirs(root, path.join(root, p))))).flatMap((dirs) => [...dirs]));
     const fresh = [...found].filter((d) => !parts.has(d) && !missing.has(d));
     const present = fresh.filter(inRef);
     for (const d of fresh) (present.includes(d) ? parts : missing).add(d);

@@ -11,12 +11,11 @@ import { parseDependencyTree } from "dpdm";
 import ts from "typescript";
 
 /**
- * 入口から import で届くファイル(from からの相対)。node_modules・組み込み・from の外は除く
- * @param {string} from リポの根
- * @param {string[]} entries 走らせる入口(from からの相対)
- * @returns {Promise<string[]>}
+ * dpdm の依存の木(鍵 = from からの相対)
+ * @param {string} from
+ * @param {string[]} entries 入口(from からの相対)
  */
-export async function importedFiles(from, entries) {
+async function dependencyTree(from, entries) {
   // dpdm は入口を今の作業の場所(process.cwd())からの glob で読み、その外("../")の入口を見つけない。
   // 呼んだその場で(同期のうちに)作業の場所と glob の起点を決めるので、呼ぶ間だけ from へ移ってすぐ戻す
   const back = process.cwd();
@@ -33,11 +32,39 @@ export async function importedFiles(from, entries) {
   } finally {
     process.chdir(back);
   }
-  const tree = await pending;
+  return pending;
+}
+
+/**
+ * 入口から import で届くファイル(from からの相対)。node_modules・組み込み・from の外は除く
+ * @param {string} from リポの根
+ * @param {string[]} entries 走らせる入口(from からの相対)
+ * @returns {Promise<string[]>}
+ */
+export async function importedFiles(from, entries) {
+  const tree = await dependencyTree(from, entries);
   return Object.keys(tree)
     .filter((f) => !f.startsWith("node_modules/") && !f.startsWith("..") && !path.isAbsolute(f))
     .filter((f) => fs.statSync(path.join(from, f), { throwIfNoEntry: false })?.isFile())
     .sort();
+}
+
+/**
+ * 入口から辿って from に無い相対の import(git ref から足りない物を取り出す側が使う)
+ * @param {string} from
+ * @param {string[]} entries 入口(from からの相対)
+ * @returns {Promise<{ issuer: string, path: string }[]>} path = issuer の置き場から解いた道(from からの相対)
+ */
+export async function unresolvedImports(from, entries) {
+  const tree = await dependencyTree(from, entries);
+  const out = [];
+  for (const [issuer, deps] of Object.entries(tree)) {
+    for (const dep of deps ?? []) {
+      if (dep.id !== null || !dep.request.startsWith(".")) continue;
+      out.push({ issuer, path: path.relative(from, path.resolve(from, path.dirname(issuer), dep.request)) });
+    }
+  }
+  return out.sort((a, b) => a.path.localeCompare(b.path) || a.issuer.localeCompare(b.issuer));
 }
 
 /**
