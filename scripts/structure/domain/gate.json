@@ -3,7 +3,7 @@
   "generate": "generateAll.mjs",
   "gates": ["forge:pre", "ship"],
   "after": ["role"],
-  "watch": ["src/features/**", "src/app/admin/**", "src/registry/**", "src/wiring/formInputs/**", "src/lib/domain/**", "src/lib/forkOwnership/**", "src/lib/districtMap/**", "src/lib/libPackage/**", "src/lib/stringCase/**", "scripts/structure/domain/**", "scripts/structure/registry/**", "tsconfig.json", "eslint-rules/resolve-import.mjs", "package.json", "pnpm-lock.yaml", "scripts/runner/gates/**", "scripts/runner/preload/**"],
+  "watch": ["src/features/**", "src/app/admin/**", "src/registry/**", "src/wiring/formInputs/**", "src/lib/domain/**", "src/lib/forkOwnership/**", "src/lib/districtMap/**", "src/lib/libPackage/**", "src/lib/stringCase/**", "src/lib/plainObject/**", "scripts/structure/domain/**", "scripts/structure/registry/**", "tsconfig.json", "eslint-rules/resolve-import.mjs", "package.json", "pnpm-lock.yaml", "scripts/runner/gates/**", "scripts/runner/preload/**"],
   "outputs": [
     {"glob": "{dir}/entities/drizzle.ts", "kind": "every-run", "source": "{dir}/domain.json"},
     {"glob": "{dir}/entities/form.ts", "kind": "every-run", "source": "{dir}/domain.json"},

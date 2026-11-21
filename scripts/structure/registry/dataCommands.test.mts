@@ -14,7 +14,8 @@ type Resolution = { allowed: true; method: string } | { allowed: false; why: str
 
 test("データ操作のコマンドの許可: 全ドメインを解き、user と INTERNAL_ONLY を固定する", async () => {
   const { serviceRegistry } = await import("@/registry/serviceRegistry");
-  const { DATA_COMMANDS, resolveDataCommand } = await import("@/lib/domain");
+  const { resolveDataCommand } = await import("@/lib/domain");
+  const { DATA_COMMANDS } = await import("@/lib/domainAccess");
   const { getService, getDomainAccess } = await import("@/wiring/domainRegistry");
 
   const table: Record<string, Record<string, string>> = {};

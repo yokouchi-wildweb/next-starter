@@ -38,7 +38,7 @@ test("drizzle: 集まりの項目は列を出さない（型名の列関数も i
   assert.doesNotMatch(drizzle, /photos/);
   assert.doesNotMatch(drizzle, /mediaCollection/);
   assert.match(drizzle, /brochure: text\("brochure"\)/);
-  assert.match(drizzle, /^import \{ defineTableCollections \} from "@\/lib\/crud\/collections\/tableCollections";$/m);
+  assert.match(drizzle, /^import \{ defineTableCollections \} from "@\/lib\/crud\/server";$/m);
   assert.match(
     drizzle,
     /^defineTableCollections\(ShowcaseTable, \(\) => import\("@\/features\/showcase\/services\/server\/collections"\)\.then\(\(m\) => m\.collections\)\);$/m,
@@ -54,7 +54,7 @@ test("スキーマ: 値は複数枚の行と同じ z.array(storageMediaValueSche
     schema,
     /photos: z\.array\(storageMediaValueSchema\)\.min\(1, \{ message: "写真は1件以上必要です。" \}\)\.max\(8, \{ message: "写真は8件以下にしてください。" \}\)\.default\(\[\]\),/,
   );
-  assert.match(schema, /import \{ storageMediaValueSchema \} from "@\/lib\/storage\/schema";/);
+  assert.match(schema, /import \{ storageMediaValueSchema \} from "@\/lib\/storage";/);
 });
 
 test("スキーマ: 必須でなく最大件数も無い集まりは min / max を付けない", () => {

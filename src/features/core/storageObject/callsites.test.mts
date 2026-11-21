@@ -59,7 +59,7 @@ const { baseOptions: userBaseOptions } = await import("@/features/core/user/serv
 const { storageBinding: bankTransferReviewBinding } = await import(
   "@/features/core/bankTransferReview/services/server/drizzleBase"
 );
-const { runWithAuditContext } = await import("@/lib/audit");
+const { runWithAuditContext } = await import("@/lib/audit/server");
 const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server");
 const { purposes: PURPOSE_ITEMS } = await import("@/features/core/storageObject/extensions/purposes");
 const { storageBindingFor } = await import("./services/server/crudBinding");
