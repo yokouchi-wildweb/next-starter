@@ -181,7 +181,7 @@ test("当てた後の確かめ: 足したコードの相対 import 先が fork �
   const { fork, hot } = small({
     files: { "src/a.ts": "a\n" },
     between: { "src/lib.mjs": "export const a = 1;\n" },
-    hot: { "src/tool.mjs": 'import { a } from "./lib.mjs";\nimport { b } from "./self.mjs";\n', "src/a.ts": 'import { t } from "./tool.mjs";\nimport { n } from "./none";\n' },
+    hot: { "src/tool.mjs": 'import { a } from "./lib.mjs";\nimport { b } from "./self.mjs";\nexport const t = 1;\n', "src/a.ts": 'import { t } from "./tool.mjs";\nimport { n } from "./none";\n' },
   });
   const r = hotfixApply(fork, hot, "upstream/main");
   assert.equal(r.status, "picked");

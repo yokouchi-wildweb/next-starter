@@ -15,7 +15,7 @@
 //     → 前の場所に 3 方向。通れば採る(moved-merged <前> -> <今>)。当たらなければ (b)
 //   - (b) 直す相手が fork の木に無い → 飛ばす(left-out)。後の区間で届く
 // 当てた後に fork の木で 4 つの確かめ(lib.hotfixGaps.mjs: 足した・変えたルールの paths: の当たり・notice の手順の pnpm の命令・
-// 名指したパス・当てた・足したコードの相対 import 先)を回し、足りない物を gap の行で出す(止めない)。
+// 名指したパス・当てた・足したコードの相対 import 先と、そこから名前で取る物の export)を回し、足りない物を gap の行で出す(止めない)。
 // 通れば 1 commit(元の題 + `(cherry picked from commit <sha>)`)。台帳の行と区間の検査は /flux の手順のまま(この道具は書かない)。
 //
 // 実行: node <上流の先端から出した>/scripts/workflow/notices/hotfixApply.mjs <元の commit> [--upstream=<ref>](fork の checkout で)

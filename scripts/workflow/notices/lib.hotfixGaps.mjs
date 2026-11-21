@@ -4,7 +4,8 @@
 //   2. notice の required_actions / verify / manual_steps にある `pnpm <script>` が、その木の package.json にあるか
 //      (入口の名指し pnpm workflow|ops <対象> <動作>・pnpm check|generate <対象>・pnpm test <パス> は、そのファイルがその木にあるか)
 //   3. その notice が名指すリポのパス(`…` と refs:)が、その木にあるか
-//   4. 当てた・足したコードのファイルの相対 import 先が、その木にあるか(importGaps。全部無ければ先取りしても動かない)
+//   4. 当てた・足したコードのファイルの相対 import 先が、その木にあるか・名前で取る物をそこが export しているか(importGaps。
+//      全部無い、または名の欠けがあれば先取りしても動かない)
 // 使う所: hotfixApply.mjs(fork の木で当てた後に、止めずに報告)・pickCheck.mjs(壊れた地点の木。clean の条件の 1 つ)
 import { parsePaths, unmatchedPaths } from "../rules/lib.rulePaths.mjs";
 
@@ -91,10 +92,40 @@ function resolveIn(files, file, spec) {
   return null;
 }
 
+/** コードが相対 import 先から名前で取る物: spec → 名前の一覧(`import { a, b as c } from "./x"` の a・b、`export { a } from "./x"` の a)。
+ *  型だけの import(`import type …`・`{ type A }`)は実行時に消えるので数えない。default・名前空間(`* as`)の import は数えない */
+export function namedImports(text) {
+  const out = new Map();
+  const re = /\b(import|export)\s+(type\s+)?((?:[\w$]+\s*,\s*)?\{([^}]*)\})\s*from\s*(["'])(\.{1,2}\/[^"']+)\5/g;
+  for (const m of text.matchAll(re)) {
+    if (m[2]) continue;
+    const names = m[4].split(",").map((x) => x.trim()).filter((x) => x && !/^type\s/.test(x)).map((x) => x.split(/\s+as\s+/)[0].trim()).filter((x) => x && x !== "default");
+    if (!names.length) continue;
+    out.set(m[6], [...new Set([...(out.get(m[6]) ?? []), ...names])]);
+  }
+  return out;
+}
+
+/** 本文が export する名前(`export const|let|var|function|function*|async function|class|enum <名>`・`export { a, b as c }` の a・c・
+ *  `export default` = default)。`export * from` があれば名を決められないので null(照らさない) */
+export function exportedNames(text) {
+  if (/\bexport\s+\*\s+from\b/.test(text)) return null;
+  const out = new Set();
+  for (const m of text.matchAll(/\bexport\s+(?:declare\s+)?(?:async\s+)?(?:const|let|var|function\*?|class|enum|abstract\s+class)\s+([\w$]+)/g)) out.add(m[1]);
+  for (const m of text.matchAll(/\bexport\s+(?:type\s+)?\{([^}]*)\}/g)) {
+    for (const x of m[1].split(",").map((y) => y.trim()).filter(Boolean)) out.add(x.replace(/^type\s+/, "").split(/\s+as\s+/).pop().trim());
+  }
+  for (const m of text.matchAll(/\bexport\s+\*\s+as\s+([\w$]+)\s+from\b/g)) out.add(m[1]);
+  if (/\bexport\s+default\b/.test(text)) out.add("default");
+  return out;
+}
+
 /**
- * 当てた・足したコードの相対 import 先で、その木に無い物。
+ * 当てた・足したコードの相対 import 先で、その木に無い物と、有っても名前で取る物を export していない物(ESM はその名が無いと
+ * 読み込めない: Aurora線 11-21、先取りした compactPlan.mjs の `{ handoffFile }` を fork の lib.mjs が持たず /coffee-break が止まった)。
  * @param {{ files: string[], changed: string[], read: (f: string) => string | null }} input  changed = 当てた・足したファイル
- * @returns {{ file: string, target?: string, all?: boolean, targets?: string[] }[]}  全部の import 先が無いファイルは { file, all, targets } 1 つ
+ * @returns {{ file: string, target?: string, all?: boolean, targets?: string[] }[]}  全部の import 先が無いファイル、または名の欠けが
+ *   あるファイル(読み込めない = 動かない)は { file, all, targets } 1 つ(名の欠けは `./x (a, b が無い)`)
  */
 export function importGaps({ files, changed, read }) {
   const have = new Set(files);
@@ -105,8 +136,19 @@ export function importGaps({ files, changed, read }) {
     if (!text) continue;
     const specs = relativeImports(text);
     const missing = specs.filter((s) => !resolveIn(have, file, s));
-    if (!missing.length) continue;
-    if (missing.length === specs.length) out.push({ file, all: true, targets: missing });
+    const named = namedImports(text);
+    const lacking = [];
+    for (const [spec, names] of named) {
+      const at = resolveIn(have, file, spec);
+      if (!at) continue;
+      const body = read(at);
+      const exp = body == null ? null : exportedNames(body);
+      if (!exp) continue;   // 読めない・`export *` = 名を決められない: 出さない
+      const no = names.filter((n) => !exp.has(n));
+      if (no.length) lacking.push(`${spec} (${no.join(", ")} が無い)`);
+    }
+    if (!missing.length && !lacking.length) continue;
+    if (lacking.length || missing.length === specs.length) out.push({ file, all: true, targets: [...missing, ...lacking] });
     else for (const s of missing) out.push({ file, target: s });
   }
   return out;
