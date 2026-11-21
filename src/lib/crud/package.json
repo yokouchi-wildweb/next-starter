@@ -3,6 +3,6 @@
     ".": "./index.ts",
     "./server": "./server.ts"
   },
-  "libs": ["audit", "domain", "drizzle", "errors", "firebase", "httpDefaults", "requestMemo", "storage", "stringCase", "tableSuite", "toast", "unsavedGuard"],
+  "libs": ["audit", "domain", "drizzle", "errors", "firebase", "firestore", "httpDefaults", "requestMemo", "storage", "stringCase", "tableSuite", "toast", "unsavedGuard"],
   "peers": ["components"]
 }
