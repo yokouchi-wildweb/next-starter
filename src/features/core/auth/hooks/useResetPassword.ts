@@ -5,7 +5,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
 
-import { auth } from "@/lib/firebase/client/app";
+import { auth } from "@/lib/firebase/client";
 
 type ResetPasswordPhase =
   | "initial"

@@ -60,6 +60,8 @@ test("literal-only: リテラル・型・process.env・@/business・宣言した
       { filename: GACHA, options, code: `export interface Extra { a: string }\nexport type { Other } from "@/features/gacha/config";\nexport default {};` },
       // 持ち主が overrideLoaders で宣言したローダー(next/font)は const <名前> = <ローダー>(<リテラル>) で呼べ、その名前を値で読める
       { filename: FONTS_UI, options, code: `import { Noto_Sans_JP } from "next/font/google";\nimport localFont from "next/font/local";\nimport type { FontsOverride } from "@/lib/fonts";\nconst sans = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-sans-loaded" });\nconst mono = localFont({ src: "../../assets/fonts/Mono.woff2", variable: "--font-mono-loaded" });\nexport default { sans, mono } satisfies FontsOverride;` },
+      // env を読むだけの関数(引数なしの矢印、本体は process.env.X と ?? / ||、右端だけリテラルの既定可。設定 D249)
+      { filename: GACHA, options, code: `export default { key: () => process.env.MY_KEY, alt: () => process.env.A ?? process.env["B"] ?? "", soft: () => process.env.C || undefined };` },
       // 古いフォルダ・直下のファイルは対象外
       { filename: at("src/config/app/whatever.config.ts"), options, code: `export const x = () => 1;` },
       { filename: at("src/config/business.config.ts"), options, code: `export const x = () => 1;` },
@@ -67,6 +69,13 @@ test("literal-only: リテラル・型・process.env・@/business・宣言した
     invalid: [
       { filename: GACHA, options, code: `export default { make: () => 1 };`, errors: [{ messageId: "nonLiteral" }] },
       { filename: GACHA, options, code: `export default { make() { return 1; } };`, errors: [{ messageId: "nonLiteral" }] },
+      { filename: GACHA, options, code: `export default { key: () => "x" };`, errors: [{ messageId: "nonLiteral" }] },
+      { filename: GACHA, options, code: `export default { key: (name) => process.env[name] };`, errors: [{ messageId: "nonLiteral" }] },
+      { filename: GACHA, options, code: `export default { key: () => { return process.env.MY_KEY; } };`, errors: [{ messageId: "nonLiteral" }] },
+      { filename: GACHA, options, code: `export default { key: async () => process.env.MY_KEY };`, errors: [{ messageId: "nonLiteral" }] },
+      { filename: GACHA, options, code: `export default { key: () => process.env.MY_KEY?.trim() };`, errors: [{ messageId: "nonLiteral" }] },
+      { filename: GACHA, options, code: `export default { key: () => "x" ?? process.env.MY_KEY };`, errors: [{ messageId: "nonLiteral" }] },
+      { filename: GACHA, options, code: `export default { key: function () { return process.env.MY_KEY; } };`, errors: [{ messageId: "nonLiteral" }] },
       { filename: GACHA, options, code: `export default { at: Date.now() };`, errors: [{ messageId: "nonLiteral" }] },
       { filename: GACHA, options, code: `export default { at: new Date() };`, errors: [{ messageId: "nonLiteral" }] },
       { filename: GACHA, options, code: `export default { s: \`a\${1}\` };`, errors: [{ messageId: "nonLiteral" }] },

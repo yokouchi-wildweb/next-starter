@@ -4,7 +4,7 @@
 import { isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
 
 import { HttpError, normalizeHttpError } from "@/lib/errors";
-import { auth } from "@/lib/firebase/client/app";
+import { auth } from "./app";
 
 /**
  * メールリンクでのサインインを実行する

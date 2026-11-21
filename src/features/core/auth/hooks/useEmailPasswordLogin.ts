@@ -7,7 +7,7 @@ import { signInWithEmailAndPassword, signOut, type UserCredential } from "fireba
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { createFirebaseSession } from "@/features/core/auth/services/client/firebaseSession";
-import { auth } from "@/lib/firebase/client/app";
+import { auth } from "@/lib/firebase/client";
 import { normalizeHttpError } from "@/lib/errors";
 import { log } from "@/utils/log";
 import type { UserProviderType } from "@/features/core/user/types";

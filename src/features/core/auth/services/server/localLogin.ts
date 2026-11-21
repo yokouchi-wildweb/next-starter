@@ -11,7 +11,7 @@ import { auditLogger } from "@/features/core/auditLog/services/server";
 import { recordLoginFailure } from "./loginAudit";
 import { invalidateSessionsForUser } from "./sessionInvalidation";
 import { DomainError } from "@/lib/errors";
-import { getServerAuth, isFirebaseServerConfigured } from "@/lib/firebase/server/app";
+import { getServerAuth, isFirebaseServerConfigured } from "@/lib/firebase/server";
 import { SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import type { User } from "@/features/core/user/entities";
 import { getRoleCategory } from "@/features/core/user/constants";

@@ -4,7 +4,7 @@
 
 import { applyActionCode, checkActionCode } from "firebase/auth";
 
-import { auth } from "@/lib/firebase/client/app";
+import { auth } from "./app";
 
 export type EmailChangeInfo = {
   /** 変更前のメールアドレス */

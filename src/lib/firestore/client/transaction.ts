@@ -10,7 +10,7 @@ import {
   runTransaction,
 } from "firebase/firestore";
 
-import { fstore } from "@/lib/firebase/client/app";
+import { fstore } from "@/lib/firebase/client";
 
 import { convertTimestamps } from "./converter";
 import { normalizeFirestoreError } from "./errors";

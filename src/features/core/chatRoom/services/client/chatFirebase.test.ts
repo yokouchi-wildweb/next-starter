@@ -38,7 +38,7 @@ mock.module(pathToFileURL(require.resolve("firebase/auth")).href, {
 mock.module(pathToFileURL(require.resolve("firebase/firestore")).href, {
   namedExports: { getFirestore: (app: { name: string }) => ({ app }) },
 });
-mock.module("@/lib/firebase/client/app", {
+mock.module("@/lib/firebase/client", {
   namedExports: { app: { options: {} }, isFirebaseClientConfigured: () => true },
 });
 mock.module("@/features/core/auth/services/client/firebaseToken", {

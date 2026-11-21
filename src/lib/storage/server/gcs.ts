@@ -11,7 +11,7 @@
 
 import "server-only";
 
-import { getServerStorage } from "@/lib/firebase/server/app";
+import { getServerStorage } from "@/lib/firebase/server";
 
 import { contentDispositionFor } from "../contentTypes";
 import type { HeadResult, ObjectLocation, StoragePort } from "./port";

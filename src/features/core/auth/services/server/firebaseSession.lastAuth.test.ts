@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 const calls: string[] = [];
 let currentUser: Record<string, unknown> | null = null;
 
-mock.module("@/lib/firebase/server/app", {
+mock.module("@/lib/firebase/server", {
   namedExports: {
     getServerAuth: () => ({ verifyIdToken: async () => ({ uid: "provider-uid" }) }),
   },

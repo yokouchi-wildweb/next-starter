@@ -5,7 +5,7 @@
 
 import { type DocumentReference, type SetOptions, writeBatch } from "firebase/firestore";
 
-import { fstore } from "@/lib/firebase/client/app";
+import { fstore } from "@/lib/firebase/client";
 
 import { normalizeFirestoreError } from "./errors";
 

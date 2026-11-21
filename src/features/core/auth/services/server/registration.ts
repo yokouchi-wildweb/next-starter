@@ -16,7 +16,7 @@ import { registerFromAuth } from "@/features/core/user/services/server/registrat
 import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
 import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 import { DomainError } from "@/lib/errors";
-import { getServerAuth } from "@/lib/firebase/server/app";
+import { getServerAuth } from "@/lib/firebase/server";
 import { SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import { gate } from "@/featureGate";
 import { couponService } from "@/features/core/coupon/services/server/couponService";

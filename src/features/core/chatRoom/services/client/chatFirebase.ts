@@ -16,8 +16,8 @@ import { type Auth, getAuth, inMemoryPersistence, initializeAuth, signInWithCust
 import { type Firestore, getFirestore } from "firebase/firestore";
 
 import { fetchFirebaseCustomToken } from "@/features/core/auth/services/client/firebaseToken";
-import { app as defaultApp, isFirebaseClientConfigured } from "@/lib/firebase/client/app";
-import { FirebaseNotConfiguredError } from "@/lib/firebase/errors";
+import { app as defaultApp, isFirebaseClientConfigured } from "@/lib/firebase/client";
+import { FirebaseNotConfiguredError } from "@/lib/firebase";
 
 const CHAT_APP_NAME = "chatRoom";
 

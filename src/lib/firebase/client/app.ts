@@ -10,18 +10,9 @@ import {
   persistentMultipleTabManager,
 } from "firebase/firestore";
 
+import { firebaseConfig } from "../config";
 import { FirebaseNotConfiguredError } from "../errors";
-
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || undefined,
-};
+import { firebaseClientOptions, isClientConfigComplete } from "./options";
 
 /**
  * クライアント側 Firebase が設定済み（API key と projectId が非空）かどうか。
@@ -30,17 +21,15 @@ const firebaseConfig = {
  * 起動しトップページが表示できることを手順書で約束している。root layout に常時マウントされる
  * 経路（useFirebaseAuthSync / analytics）はこの判定で Firebase への接触をスキップする。
  *
- * NEXT_PUBLIC_* はビルド時にインライン展開されるため、process.env を直接参照すること。
+ * 値は上書き src/config/lib/firebase.config.ts の NEXT_PUBLIC_* から(ビルド時に埋め込まれる)。
  */
-export const isFirebaseClientConfigured = (): boolean =>
-  (process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "").trim().length > 0 &&
-  (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "").trim().length > 0;
+export const isFirebaseClientConfigured = (): boolean => isClientConfigComplete(firebaseConfig);
 
 // Initialize Firebase (client side)
 // initializeApp は設定が空でも throw しない（遅延評価）。
 // getAuth は apiKey が空だと同期的に auth/invalid-api-key を投げ、Firestore は空の projectId のまま
 // 接続を試みるため、未設定時はどちらも初期化せず、触れた時点で投げる代替を置く。
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseClientOptions(firebaseConfig));
 
 /**
  * 未設定時の `auth` / `fstore` 代替。どのプロパティに触れても FirebaseNotConfiguredError を投げる。

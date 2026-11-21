@@ -13,7 +13,7 @@ import {
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { createFirebaseSession } from "@/features/core/auth/services/client/firebaseSession";
-import { auth } from "@/lib/firebase/client/app";
+import { auth } from "@/lib/firebase/client";
 import { sessionStorageClient } from "@/lib/browserStorage";
 import { createHttpError, normalizeHttpError } from "@/lib/errors";
 import { log } from "@/utils/log";

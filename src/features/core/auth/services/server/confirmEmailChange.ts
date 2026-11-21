@@ -5,7 +5,7 @@
 
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors";
-import { getServerAuth } from "@/lib/firebase/server/app";
+import { getServerAuth } from "@/lib/firebase/server";
 
 /** 本人(userId)の Firebase Auth の最新メールアドレスを読み、DB と違えば更新する */
 export async function confirmEmailChange(userId: string): Promise<{ success: true; email: string }> {

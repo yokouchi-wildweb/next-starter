@@ -2,16 +2,35 @@
 
 ## Overview
 
-Firebase SDK のクライアント・サーバーの初期化と、各種のユーティリティ。
+Firebase SDK のクライアント・サーバーの初期化と、各種のユーティリティ。閉じた lib(`package.json` の exports)で、外からは 3 つの入口だけで読む。
 
-- client(`client/`): 初期化 `app.ts`(`app`・`auth`・`fstore`)・Analytics `analytics.ts`・メールのリンクと確認コードの処理
-- server(`server/`): Admin SDK の初期化 `app.ts`・Firebase Auth のユーザー操作 `authAdmin.ts`
-- サービスアカウントの鍵の正規化 `serviceAccountKey.ts`(`normalizeJsonString`。firebase-admin を読まない純粋な関数で、`server/app.ts` と `scripts/operations/storage/iam/iamGrant.ts` が読む)
-- エラー: `errors.ts`(`FirebaseNotConfiguredError` など)
+- `@/lib/firebase`(入口 `.`、client でも server でも読める): 誤り `FirebaseNotConfiguredError`・`getFirebasePhoneAuthErrorMessage`・`hasFirebaseErrorCode`、鍵の正規化 `normalizeJsonString`(firebase-admin を読まない純粋な関数。`scripts/operations/storage/iam/iamGrant.ts` も読む)、設定の型 `FirebaseOverride` など
+- `@/lib/firebase/client`(入口 `./client`、読み込むとブラウザの SDK の app を初期化する): `app`・`auth`・`fstore`・`isFirebaseClientConfigured`・Analytics・メールのリンクと確認コードの処理
+- `@/lib/firebase/server`(入口 `./server`、Admin SDK): `isFirebaseServerConfigured`・`getServerApp` / `Auth` / `Firestore` / `Storage`・Firebase Auth のユーザー操作
+- 設定: `config.ts`(既定 + 上書き `src/config/lib/firebase.config.ts`)。lib の中は env を読まない(Usage「設定」)
 - ファイル: [src/lib/storage](../storage/README.md)(Firebase Storage のクライアント SDK の経路は無い。リポ直下の `storage.rules` は全拒否)
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/firebase.md にある。この README は使い方と仕組み
 
 ## Usage
+
+### 設定(上書き src/config/lib/firebase.config.ts)
+
+値は上書きの 1 ファイルから受ける(置き方: [src/lib/README.md](../README.md)「設定の届け方」)。上流の上書きは今までの env の名前をそのまま読む:
+
+```ts
+// src/config/lib/firebase.config.ts
+import type { FirebaseOverride } from "@/lib/firebase";
+
+export default {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  // authDomain・projectId・storageBucket・messagingSenderId・appId・measurementId も同じ形(NEXT_PUBLIC_FIREBASE_*)
+  serviceAccountKey: () => process.env.MY_SERVICE_ACCOUNT_KEY,
+} satisfies FirebaseOverride;
+```
+
+- 公開の値(`FirebasePublicConfig`: `apiKey`・`authDomain`・`projectId`・`storageBucket`・`messagingSenderId`・`appId`・`measurementId`): `process.env.NEXT_PUBLIC_*` をこの字面で書く(client ではビルド時に埋め込まれる。変数を介すと埋め込まれない)。既定はすべて `""`(= 未設定)
+- サーバーだけの値(`FirebaseServerConfig`: `serviceAccountKey`): 呼んだ時に読む関数。`./server` の中でだけ、Admin を使う時に毎回呼ぶ(読み込み時には読まない)。関数の本体は client にも載るが、値は載らない(埋め込まれるのは `NEXT_PUBLIC_*` だけ)
+- 別の env の名前で読みたい fork は自分の上書きの右辺を変える
 
 ### Firebase Analytics を使う
 
@@ -28,7 +47,7 @@ Firebase SDK のクライアント・サーバーの初期化と、各種のユ�
 
 ##### 2. 環境変数を設定
 
-env ファイル(`.env.development`、本番は `.env.production`)に Measurement ID を追加します。
+上書きの `measurementId`(上流は `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` を読む)に届くよう、env ファイル(`.env.development`、本番は `.env.production`)に Measurement ID を追加します。
 
 ```bash
 NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
@@ -75,7 +94,7 @@ localStorage.setItem('debug_mode', 'true');
 任意のイベントを送信するには `trackEvent` 関数を使用します。
 
 ```tsx
-import { trackEvent } from "@/lib/firebase/client/analytics";
+import { trackEvent } from "@/lib/firebase/client";
 
 // ボタンクリックをトラッキング
 function handleClick() {
@@ -99,7 +118,7 @@ function handlePurchase(amount: number) {
 特定のタイミングでページビューを送信したい場合は `trackPageView` を使用します。
 
 ```tsx
-import { trackPageView } from "@/lib/firebase/client/analytics";
+import { trackPageView } from "@/lib/firebase/client";
 
 // モーダル内のコンテンツ表示をページビューとして記録
 trackPageView("/modal/terms", "利用規約");
@@ -109,7 +128,7 @@ trackPageView("/modal/terms", "利用規約");
 
 ##### イベントが送信されない
 
-1. **環境変数の確認**: `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` が正しく設定されているか確認
+1. **環境変数の確認**: `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`(上書きの `measurementId`)が正しく設定されているか確認
 2. **ブラウザ拡張機能**: 広告ブロッカーが Analytics をブロックしている可能性あり
 3. **開発環境**: DebugView で確認（本番レポートには反映に時間がかかる）
 
@@ -134,24 +153,24 @@ useEffect(() => {
 すべて Admin SDK ベースで、セキュリティルールを経由しない。
 未設定時は下記すべてが `FirebaseNotConfiguredError("server")` になります（Internals「未設定モード」）。
 
-`server/app.ts`（シングルトン・遅延初期化。サービスアカウントは `MY_SERVICE_ACCOUNT_KEY` の JSON、`projectId` / `storageBucket` はクライアントと同じ `NEXT_PUBLIC_FIREBASE_*` を使用）
+`@/lib/firebase/server`（`server/app.ts`。シングルトン・遅延初期化。サービスアカウントは設定の `serviceAccountKey()` が返す JSON、`projectId` / `storageBucket` はクライアントと同じ設定の公開の値。空の値は渡さない）
 
 - `getServerApp()` / `getServerAuth()` / `getServerFirestore()` / `getServerStorage()`
 
 ファイルの保存・読み取り・削除は `src/lib/storage`（[Storage の使い方](../storage/README.md)）。`getServerStorage()` を使うのはその GCS 実装（`src/lib/storage/server/gcs.ts`）と `scripts/operations/storage/` だけ。Firebase Storage のクライアント SDK の経路はありません（リポ直下の `storage.rules` は全拒否）。
 
-`server/authAdmin.ts`（Firebase Auth ユーザー操作。`uid` は users の providerUid）
+`@/lib/firebase/server`（`server/authAdmin.ts`。Firebase Auth ユーザー操作。`uid` は users の providerUid）
 
 - `getAuthUser(uid)` — 存在しなければ null
 - `deleteAuthUser(uid)` / `disableAuthUser(uid)` / `enableAuthUser(uid)` / `revokeAuthTokens(uid)` — 対象ユーザーが既に存在しない場合は警告ログのみで正常終了
 
-### クライアント側ヘルパー(Firebase Auth のメールのリンクと確認コード)
+### クライアント側ヘルパー(`@/lib/firebase/client`。Firebase Auth のメールのリンクと確認コード)
 
 - `signInWithEmailLinkClient(email, link?)`(`client/signInWithEmailLinkClient.ts`): メールのリンクでサインインする。`link` を省くと今の URL
 - `checkActionCodeValidity(oobCode)`(`client/checkActionCodeValidity.ts`): リンクの `oobCode` が有効か。期限切れ・無効なら `false`
 - `getEmailChangeInfo(oobCode)` / `applyEmailChange(oobCode)`(`client/applyEmailChange.ts`): メールアドレスの変更のリンクの中身を読む(型 `EmailChangeInfo`、読めなければ null)/ 変更を確定する(成否を boolean)
 
-### 誤り(`errors.ts`)
+### 誤り(`@/lib/firebase`。`errors.ts`)
 
 - `FirebaseNotConfiguredError(side)`: 未設定で触れたときの誤り。`side` = `"client"` | `"server"`
 - `getFirebasePhoneAuthErrorMessage(error, fallbackMessage)`: 電話番号の認証の Firebase エラーを日本語の文言にする
@@ -164,10 +183,10 @@ useEffect(() => {
 Firebase Analytics インスタンスを取得します。
 
 - SSR 環境では `null` を返す
-- `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` が未設定の場合は `null` を返す
+- 設定の `measurementId` が空の場合は `null` を返す
 
 ```tsx
-import { getFirebaseAnalytics } from "@/lib/firebase/client/analytics";
+import { getFirebaseAnalytics } from "@/lib/firebase/client";
 
 const analytics = getFirebaseAnalytics();
 if (analytics) {
@@ -212,12 +231,12 @@ Google Analytics 4 では以下の推奨イベントを使用すると、自動�
 
 ### 未設定モード(Firebase なしで起動する)
 
-`pnpm ops setup env` 直後は `NEXT_PUBLIC_FIREBASE_*` と `MY_SERVICE_ACCOUNT_KEY` が全て空です。この状態でも dev サーバーが起動し、トップページや `/api/health` が表示できることを手順書（`docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md` §3）で約束しています。そのための契約は次のとおりです。
+`pnpm ops setup env` 直後は `NEXT_PUBLIC_FIREBASE_*` と `MY_SERVICE_ACCOUNT_KEY` が全て空で、上書きから届く設定の値も空です。この状態でも dev サーバーが起動し、トップページや `/api/health` が表示できることを手順書（`docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md` §3）で約束しています。そのための契約は次のとおりです。
 
 | 層 | 判定関数 | 未設定時の挙動 |
 |---|---|---|
-| client (`client/app.ts`) | `isFirebaseClientConfigured()`（API key と projectId が非空） | `app` は従来どおり生成（空設定でも throw しない）。`auth` と `fstore` は初期化せず、触れた瞬間に `FirebaseNotConfiguredError("client")` を投げる Proxy になる（`import { auth, fstore }` の形状は不変。`collection(fstore, …)` などの SDK 関数も同じエラーで即座に止まる） |
-| server (`server/app.ts`) | `isFirebaseServerConfigured()`（`MY_SERVICE_ACCOUNT_KEY` が非空） | `getServerApp / getServerAuth / getServerFirestore / getServerStorage` が `FirebaseNotConfiguredError("server")` を投げる（遅延初期化なので import だけでは失敗しない） |
+| client (`client/app.ts`) | `isFirebaseClientConfigured()`（設定の apiKey と projectId が非空。空白だけは空） | `app` は従来どおり生成（空設定でも throw しない）。`auth` と `fstore` は初期化せず、触れた瞬間に `FirebaseNotConfiguredError("client")` を投げる Proxy になる（`import { auth, fstore }` の形状は不変。`collection(fstore, …)` などの SDK 関数も同じエラーで即座に止まる） |
+| server (`server/app.ts`) | `isFirebaseServerConfigured()`（`serviceAccountKey()` が非空。呼ぶたびに読む） | `getServerApp / getServerAuth / getServerFirestore / getServerStorage` が `FirebaseNotConfiguredError("server")` を投げる（遅延初期化なので import だけでは失敗しない） |
 
 - 判定は「未設定」だけ。設定済みで初期化・接続に失敗した場合は理由付きの Error / Firebase SDK のエラーになる（`DatabaseNotConfiguredError` と同じ線引き）
 - 全ページに常時マウントされる経路は未設定でも落ちない: `useFirebaseAuthSync`（root layout の `AuthSessionClientProvider` から呼ばれる）と `getFirebaseAnalytics` は `isFirebaseClientConfigured()` でスキップする

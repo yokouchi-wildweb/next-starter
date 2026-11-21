@@ -1,6 +1,6 @@
 // src/lib/crud/firestore/index.ts
 
-import { getServerFirestore } from "@/lib/firebase/server/app";
+import { getServerFirestore } from "@/lib/firebase/server";
 import { omitUndefined } from "../utils/object";
 import { uuidv7 } from "uuidv7";
 import { Timestamp } from "firebase-admin/firestore";

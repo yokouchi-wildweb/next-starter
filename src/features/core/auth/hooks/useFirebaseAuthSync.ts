@@ -5,7 +5,7 @@
 import { useEffect, useRef } from "react";
 import { onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
 
-import { auth, isFirebaseClientConfigured } from "@/lib/firebase/client/app";
+import { auth, isFirebaseClientConfigured } from "@/lib/firebase/client";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { fetchFirebaseCustomToken } from "@/features/core/auth/services/client/firebaseToken";
 

@@ -5,7 +5,7 @@
 // ここではコマンドを実行せず、値を埋めた gcloud の 1 行と GCP コンソールの URL を組み立てるだけ。
 // Firebase の初期化に依存しない純粋関数にしてあるのは、テストから読み込めるようにするため。
 
-import { normalizeJsonString } from "@/lib/firebase/serviceAccountKey";
+import { normalizeJsonString } from "@/lib/firebase";
 
 export const STORAGE_ADMIN_ROLE = "roles/storage.admin";
 

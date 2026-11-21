@@ -27,6 +27,9 @@ mock.module(pathToFileURL(require.resolve("firebase/analytics")).href, {
     setAnalyticsCollectionEnabled: (_instance: unknown, enabled: boolean) => void sdk.collection.push(enabled),
   },
 });
+mock.module("../config", {
+  namedExports: { firebaseConfig: { measurementId: "G-TEST" } },
+});
 mock.module("./app", {
   namedExports: { app: {}, isFirebaseClientConfigured: () => true },
 });
@@ -55,7 +58,6 @@ before(async () => {
   // analytics.ts はブラウザでだけ動く。window と document の最小限を置く
   (globalThis as { window?: unknown }).window = globalThis;
   (globalThis as { document?: unknown }).document = { title: "t" };
-  process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID = "G-TEST";
   firebase = await import("./analytics");
 });
 

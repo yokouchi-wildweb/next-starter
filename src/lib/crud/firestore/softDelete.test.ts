@@ -93,7 +93,7 @@ const fakeDb = {
   },
 };
 
-mock.module("@/lib/firebase/server/app", { namedExports: { getServerFirestore: () => fakeDb } });
+mock.module("@/lib/firebase/server", { namedExports: { getServerFirestore: () => fakeDb } });
 
 let createCrudService: typeof import("./index").createCrudService;
 before(async () => {

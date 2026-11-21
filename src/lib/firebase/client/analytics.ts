@@ -9,6 +9,7 @@ import {
 
 import { isAnalyticsAllowed, subscribeAnalyticsConsent } from "@/lib/analyticsConsent";
 
+import { firebaseConfig } from "../config";
 import { app, isFirebaseClientConfigured } from "./app";
 
 let analytics: Analytics | null = null;
@@ -24,7 +25,7 @@ if (typeof window !== "undefined") {
  * Firebase Analytics インスタンスを取得
  * - SSR環境では null を返す
  * - Firebase クライアント自体が未設定の場合は null を返す
- * - NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID が未設定の場合は null を返す
+ * - 測定 ID(設定の measurementId = NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID)が空の場合は null を返す
  * - 送ってよくない（ANALYTICS_CONFIG.enabled が false、または同意が無い）場合は null を返す。
  *   初期化は呼んだ時点で gtag を読み込むので、許可が出るまで初期化しない（@/lib/analyticsConsent）
  */
@@ -32,8 +33,7 @@ export function getFirebaseAnalytics(): Analytics | null {
   if (typeof window === "undefined") return null;
   if (!isFirebaseClientConfigured()) return null;
 
-  const measurementId = process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID;
-  if (!measurementId) return null;
+  if (!firebaseConfig.measurementId) return null;
 
   if (!isAnalyticsAllowed()) return null;
 

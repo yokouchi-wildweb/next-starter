@@ -1,6 +1,6 @@
 // src/features/auth/services/server/createFirebaseToken.ts
 
-import { getServerAuth } from "@/lib/firebase/server/app";
+import { getServerAuth } from "@/lib/firebase/server";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { getRoleCategory } from "@/features/core/user/constants";
 

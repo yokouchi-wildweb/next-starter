@@ -651,7 +651,7 @@ test("rule shelf-purity: 棚の値の import の禁止(場所・フォームと�
       { code: `import type { UseFormReturn } from "react-hook-form";`, filename: part },
       { code: `import type { DomainDisplay } from "@/lib/domain";`, filename: part },
       { code: `import type { User } from "@/features/user/entities";`, filename: part },
-      { code: `import { trackPageView } from "@/lib/firebase/client/analytics";`, filename: at("src/app/_mounts/FirebaseAnalytics.tsx") },
+      { code: `import { trackPageView } from "@/lib/firebase/client";`, filename: at("src/app/_mounts/FirebaseAnalytics.tsx") },
       { code: `const r = await fetch("/x");`, filename: at("src/lib/x/thing.ts") },
       { code: `const r = await client.fetch("/x");`, filename: part },
     ],
@@ -666,7 +666,7 @@ test("rule shelf-purity: 棚の値の import の禁止(場所・フォームと�
       { code: `import { getAuth } from "firebase/auth";`, filename: part, errors: err("package", "firebase/auth") },
       { code: `import { extractFields } from "@/lib/domain";`, filename: part, errors: err("lib", "@/lib/domain") },
       { code: `import { createCrudService } from "@/lib/crud";`, filename: part, errors: err("lib", "@/lib/crud") },
-      { code: `import { trackPageView } from "@/lib/firebase/client/analytics";`, filename: part, errors: err("lib", "@/lib/firebase/client/analytics") },
+      { code: `import { trackPageView } from "@/lib/firebase/client";`, filename: part, errors: err("lib", "@/lib/firebase/client") },
       { code: `import { db } from "@/lib/drizzle";`, filename: part, errors: err("lib", "@/lib/drizzle") },
       { code: `import { DataTable } from "@/lib/tableSuite";`, filename: part, errors: err("cycle", "@/lib/tableSuite") },
       { code: `const m = import("@/lib/formSuite");`, filename: part, errors: err("cycle", "@/lib/formSuite") },
@@ -698,7 +698,7 @@ test("libsReachingShelf: 棚を値で読む lib と、値で読む lib を通し
 });
 
 test("config: shelf-purity は src/components(テストを除く)で error、棚の外と棚のテストは対象外", async () => {
-  const RAW = `import { trackPageView } from "@/lib/firebase/client/analytics";\nexport const x = trackPageView;\n`;
+  const RAW = `import { trackPageView } from "@/lib/firebase/client";\nexport const x = trackPageView;\n`;
   assert.deepEqual(await lintAt("src/components/Functional/X.tsx", RAW), ["import-boundaries/shelf-purity:2"]);
   assert.deepEqual(await lintAt("src/components/Functional/X.test.tsx", RAW), []);
   assert.deepEqual(await lintAt("src/app/_mounts/X.tsx", RAW), []);

@@ -8,7 +8,7 @@ import type { User } from "@/features/core/user/entities";
 import { userService } from "@/features/core/user/services/server/userService";
 import { preRegisterFromAuth } from "@/features/core/user/services/server/registration";
 import { DomainError } from "@/lib/errors";
-import { getServerAuth } from "@/lib/firebase/server/app";
+import { getServerAuth } from "@/lib/firebase/server";
 
 export type PreRegistrationInput = z.infer<typeof PreRegistrationSchema>;
 

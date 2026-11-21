@@ -32,7 +32,7 @@
 - src/lib/drizzle — PostgreSQL(Neon)クライアントとトランザクションヘルパ、未設定判定
 - src/lib/errors — DomainError / HttpError の定義と正規化
 - src/lib/fingerprint — ブラウザのデバイス信号収集・ハッシュ化とフォーム操作の行動計測(ドメイン非依存)
-- src/lib/firebase — Firebase SDK のクライアント / サーバー初期化とユーティリティ、未設定判定
+- src/lib/firebase — Firebase SDK のクライアント / サーバー初期化とユーティリティ、未設定判定。閉じた lib: 入口 "."(誤り・鍵の正規化・設定の型)・"./client"(ブラウザの SDK)・"./server"(Admin SDK)、設定は上書き src/config/lib/firebase.config.ts
 - src/lib/firestore — Firestore のクライアント操作レイヤー
 - src/lib/folderCatalog — フォルダ目録(CATALOG.md)の読み込み・検査・所有判定(入口 "./node" だけの閉じた lib)
 - src/lib/forkOwnership — 入口 "./node" だけの閉じた lib。fork の所有の検査 pnpm workflow ownership check・持ち主の答え who(直接の親との merge-base 比較・受け口の一覧・一時許可・鮮度)と、その部品(受け口の一覧 intake.txt・判定の核・一時許可の照合・registry の fork の区画と生成器の区画の読み取り)

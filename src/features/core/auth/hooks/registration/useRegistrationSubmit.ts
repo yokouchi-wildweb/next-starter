@@ -11,7 +11,7 @@ import type { UseFormReturn } from "react-hook-form";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useRegistration, type RegistrationInput } from "@/features/core/auth/hooks/useRegistration";
-import { auth } from "@/lib/firebase/client/app";
+import { auth } from "@/lib/firebase/client";
 import {
   getRecaptchaToken,
   isV2ChallengeRequired,

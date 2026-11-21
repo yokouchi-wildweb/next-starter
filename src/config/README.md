@@ -30,7 +30,10 @@
 ### 上書きの中身(lint `config-overrides/literal-only`、全 Tier error)
 
 - ファイルに書けるのは import・`export default`(値 1 つ)・型の宣言だけ。空の上書きは `export default {} satisfies <持ち主の上書きの型>;`
-- 値はリテラル: object・配列・文字列・数・真偽・null・undefined・単項の `-` `+` `!`・式の無い template・`as const`・`satisfies`。関数・メソッド・呼び出し・`new`・spread・変数(`const`)・`export const` は書けない
+- 値はリテラル、または env を読むだけの関数
+  - リテラル: object・配列・文字列・数・真偽・null・undefined・単項の `-` `+` `!`・式の無い template・`as const`・`satisfies`
+  - env を読むだけの関数: 引数なしの矢印関数で、本体が式の `process.env.<名前>`、またはそれを `??` / `||` でつないだ形(右端だけリテラルの既定可)。例 `serviceAccountKey: () => process.env.MY_SERVICE_ACCOUNT_KEY`。呼んだ時に読む値(server だけの秘密など)を持ち主が関数の型で受けるときに使う
+  - それ以外の関数・メソッド・呼び出し・`new`・spread・変数(`const`)・`export const` は書けない
 - リテラル以外に読んでよいもの:
   - 型(`import type`、どこからでも)
   - `process.env.<名前>` と、それを比べる・切り替える式(`===`・`!==`・`==`・`!=`・`??`・`||`・`&&`・`? :`)。client から読まれる設定に env を使うなら `NEXT_PUBLIC_` の付く名前でないと client では読めない

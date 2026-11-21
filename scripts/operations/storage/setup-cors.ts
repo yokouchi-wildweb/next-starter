@@ -14,7 +14,7 @@ import { guardEntry } from "../../runner/guard";
 // 共通の守り: バケットの CORS を書くので書く入口(既定は開発、本番は --env production と確認。scripts/runner/guard)
 guardEntry({ write: true, what: "pnpm ops storage setup-cors" });
 
-import { getServerStorage } from "@/lib/firebase/server/app";
+import { getServerStorage } from "@/lib/firebase/server";
 
 // MSE / Web Audio でのバイト読み取りに必要な範囲の CORS 設定
 function buildCorsConfig(origins: string[]) {

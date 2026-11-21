@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { useAnalyticsConsent } from "@/lib/analyticsConsent";
-import { trackPageView } from "@/lib/firebase/client/analytics";
+import { trackPageView } from "@/lib/firebase/client";
 
 /**
  * Firebase Analytics ページビュートラッキングコンポーネント

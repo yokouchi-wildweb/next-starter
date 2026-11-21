@@ -6,7 +6,7 @@ import {
 } from "@/features/core/phoneVerification/entities/phoneVerification";
 import { updatePhoneVerified } from "@/features/core/user/services/server/phoneVerification";
 import { DomainError } from "@/lib/errors";
-import { getServerAuth } from "@/lib/firebase/server/app";
+import { getServerAuth } from "@/lib/firebase/server";
 
 export type VerifyPhoneOtpParams = {
   userId: string;

@@ -4,7 +4,7 @@
 
 import { useCallback, useState } from "react";
 
-import { checkActionCodeValidity } from "@/lib/firebase/client/checkActionCodeValidity";
+import { checkActionCodeValidity } from "@/lib/firebase/client";
 
 export function useCheckActionCode() {
 
