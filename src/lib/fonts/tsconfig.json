@@ -7,6 +7,8 @@
     "paths": {
       "@/lib/defineConfig": ["../defineConfig"],
       "@/lib/defineConfig/*": ["../defineConfig/*"],
+      "@/lib/plainObject": ["../plainObject"],
+      "@/lib/plainObject/*": ["../plainObject/*"],
       "@lib-config/fonts.ui": ["../../config/lib/fonts.ui.config.ts"]
     }
   },

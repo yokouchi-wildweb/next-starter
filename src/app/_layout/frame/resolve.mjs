@@ -5,11 +5,11 @@
 // 部位と端末ごとに上書き(省略 = 親のまま、false = 親の指定の取り消し、後が勝つ)。
 // 表の行は生成時に解決済みの最終の値なので、照合は当たる行を 1 つ選ぶだけ(重ねない)。仕組み: ./README.md
 
+import { isPlainObject } from "../../../lib/plainObject/index.mjs";
 import { FRAME_DEVICES, hideableParts } from "./parts.mjs";
 
 const SCOPES = ["layout", "page"];
 const VALUE_KEYS = ["hide", "fill"];
-const isPlainObject = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 
 /**
  * 宣言を確かめる(範囲のキーが 1 つ以上・知らないキーは失敗・各範囲の値の形)

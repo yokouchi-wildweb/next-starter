@@ -113,6 +113,12 @@
       "@/lib/mediaInputSuite/*": [
         "../mediaInputSuite/*"
       ],
+      "@/lib/plainObject": [
+        "../plainObject"
+      ],
+      "@/lib/plainObject/*": [
+        "../plainObject/*"
+      ],
       "@/lib/requestMemo": [
         "../requestMemo"
       ],

@@ -57,6 +57,7 @@
 - src/lib/realtimeRoom — ホットパス・リアルタイム基盤の SDK(servers/room 接続、購読フック、サーバー dispatch)
 - src/lib/recaptcha — Google reCAPTCHA v3 / v2 ハイブリッドのボット対策(RecaptchaProvider は src/wiring/AppProviders が置く)。閉じた lib: 入口 "."(client の部品・フック・アクション名・サイトキー)・"./server"(検証・版ごとの設定)、キーは上書き src/config/lib/recaptcha.config.ts
 - src/lib/request — リクエスト情報の取得(getClientIp、ヘッダーを受け取る純粋版 readClientIp)
+- src/lib/plainObject — 素のオブジェクトの判定 isPlainObject の 1 つ(prototype が Object か null。lib・ドメイン・画面・Node の道具から同じ物を読む .mjs、入口 ".")
 - src/lib/requestMemo — リクエストスコープの無効化可能なメモ化(同一リクエスト内の重複読み取りを圧縮)
 - src/lib/routeFactory — 全 API ルートの生成ファクトリの汎用版(主体の解き方・access の評価・登録表を差し込む。値 import は src/wiring だけ、route は @/wiring/apiRoute)
 - src/lib/screens — page 層の構造(1 行スイッチ + _screen/ + loader)の型 ScreenProps と規律テスト、src/app 全体のページ発見とルート地図(pnpm generate routes)

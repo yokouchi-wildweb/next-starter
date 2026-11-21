@@ -11,6 +11,12 @@
       "@/lib/defineConfig/*": [
         "../defineConfig/*"
       ],
+      "@/lib/plainObject": [
+        "../plainObject"
+      ],
+      "@/lib/plainObject/*": [
+        "../plainObject/*"
+      ],
       "@lib-config/recaptcha": [
         "../../config/lib/recaptcha.config.ts"
       ]

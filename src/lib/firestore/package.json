@@ -3,5 +3,5 @@
     ".": "./index.ts",
     "./client": "./client/index.ts"
   },
-  "libs": ["firebase"]
+  "libs": ["firebase", "plainObject"]
 }

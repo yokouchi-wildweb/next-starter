@@ -101,6 +101,12 @@
       "@/lib/isClient/*": [
         "../isClient/*"
       ],
+      "@/lib/plainObject": [
+        "../plainObject"
+      ],
+      "@/lib/plainObject/*": [
+        "../plainObject/*"
+      ],
       "@/lib/requestMemo": [
         "../requestMemo"
       ],

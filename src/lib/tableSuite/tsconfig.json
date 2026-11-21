@@ -35,6 +35,12 @@
       "@/lib/isClient/*": [
         "../isClient/*"
       ],
+      "@/lib/plainObject": [
+        "../plainObject"
+      ],
+      "@/lib/plainObject/*": [
+        "../plainObject/*"
+      ],
       "@/lib/sortableList": [
         "../sortableList"
       ],

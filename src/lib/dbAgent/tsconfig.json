@@ -12,6 +12,8 @@
       "@/lib/defineConfig/*": ["../defineConfig/*"],
       "@/lib/errors": ["../errors"],
       "@/lib/errors/*": ["../errors/*"],
+      "@/lib/plainObject": ["../plainObject"],
+      "@/lib/plainObject/*": ["../plainObject/*"],
       "@lib-config/dbAgent": ["../../config/lib/dbAgent.config.ts"]
     }
   },

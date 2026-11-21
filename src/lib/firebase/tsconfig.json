@@ -26,6 +26,12 @@
       "@/lib/errors/*": [
         "../errors/*"
       ],
+      "@/lib/plainObject": [
+        "../plainObject"
+      ],
+      "@/lib/plainObject/*": [
+        "../plainObject/*"
+      ],
       "@lib-config/firebase": [
         "../../config/lib/firebase.config.ts"
       ]

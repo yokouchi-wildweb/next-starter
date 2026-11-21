@@ -8,6 +8,12 @@
       "@/lib/defineConfig/*": [
         "../defineConfig/*"
       ],
+      "@/lib/plainObject": [
+        "../plainObject"
+      ],
+      "@/lib/plainObject/*": [
+        "../plainObject/*"
+      ],
       "@lib-config/drizzle": [
         "../../config/lib/drizzle.config.ts"
       ]

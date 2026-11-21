@@ -1,11 +1,12 @@
 // domain.json の整形。JSON.stringify ではなく、読みやすい固定の形（options は 1 行 1 要素、tags は配列を 1 行）で書く。
 // 従属の domain.json の書き出し（render/collections）と pnpm generate role -- --toggle（role.json の書き戻し）が使う。
 
+import { isPlainObject } from "../../../../src/lib/plainObject/index.mjs";
+
 const INDENT_SIZE = 2;
 
 const indent = (level) => " ".repeat(level * INDENT_SIZE);
 
-const isPlainObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 
 const formatOptionsArray = (options, depth) => {
   const lineIndent = indent(depth + 1);

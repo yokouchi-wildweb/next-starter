@@ -5,7 +5,9 @@
       "@/lib/ai": ["../ai"],
       "@/lib/ai/*": ["../ai/*"],
       "@/lib/defineConfig": ["../defineConfig"],
-      "@/lib/defineConfig/*": ["../defineConfig/*"]
+      "@/lib/defineConfig/*": ["../defineConfig/*"],
+      "@/lib/plainObject": ["../plainObject"],
+      "@/lib/plainObject/*": ["../plainObject/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"]

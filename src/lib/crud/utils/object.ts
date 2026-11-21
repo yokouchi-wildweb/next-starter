@@ -1,10 +1,5 @@
 // src/lib/crud/utils/object.ts
-// サーバー側の小さなオブジェクトの道具(Firestore のサービス・集まり・多対多と、入口 ./server の omitUndefined)。
-
-/** 自分のプロパティとして key を持つか(継承した物は数えない) */
-export function hasOwn(target: object, key: PropertyKey): boolean {
-  return Object.prototype.hasOwnProperty.call(target, key);
-}
+// サーバー側の小さなオブジェクトの道具(入口 ./server の omitUndefined)。自分のプロパティかの判定は組み込みの Object.hasOwn
 
 /**
  * オブジェクトから `undefined` の値を持つプロパティを取り除きます。
@@ -16,7 +11,7 @@ export function omitUndefined<T extends Record<string, unknown>>(input: T): Part
   const result: Partial<T> = {};
 
   for (const key in input) {
-    if (!hasOwn(input, key)) {
+    if (!Object.hasOwn(input, key)) {
       continue;
     }
 
