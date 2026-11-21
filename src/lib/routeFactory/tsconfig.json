@@ -5,6 +5,12 @@
       "@/components/*": [
         "../../components/*"
       ],
+      "@/lib/analyticsConsent": [
+        "../analyticsConsent"
+      ],
+      "@/lib/analyticsConsent/*": [
+        "../analyticsConsent/*"
+      ],
       "@/lib/appEnv": [
         "../appEnv"
       ],
@@ -17,11 +23,23 @@
       "@/lib/audit/*": [
         "../audit/*"
       ],
+      "@/lib/cn": [
+        "../cn"
+      ],
+      "@/lib/cn/*": [
+        "../cn/*"
+      ],
       "@/lib/crud": [
         "../crud"
       ],
       "@/lib/crud/*": [
         "../crud/*"
+      ],
+      "@/lib/date": [
+        "../date"
+      ],
+      "@/lib/date/*": [
+        "../date/*"
       ],
       "@/lib/defineConfig": [
         "../defineConfig"
@@ -41,11 +59,41 @@
       "@/lib/domainAccess/*": [
         "../domainAccess/*"
       ],
+      "@/lib/drizzle": [
+        "../drizzle"
+      ],
+      "@/lib/drizzle/*": [
+        "../drizzle/*"
+      ],
       "@/lib/errors": [
         "../errors"
       ],
       "@/lib/errors/*": [
         "../errors/*"
+      ],
+      "@/lib/firebase": [
+        "../firebase"
+      ],
+      "@/lib/firebase/*": [
+        "../firebase/*"
+      ],
+      "@/lib/frameDims": [
+        "../frameDims"
+      ],
+      "@/lib/frameDims/*": [
+        "../frameDims/*"
+      ],
+      "@/lib/httpDefaults": [
+        "../httpDefaults"
+      ],
+      "@/lib/httpDefaults/*": [
+        "../httpDefaults/*"
+      ],
+      "@/lib/isClient": [
+        "../isClient"
+      ],
+      "@/lib/isClient/*": [
+        "../isClient/*"
       ],
       "@/lib/recaptcha": [
         "../recaptcha"
@@ -59,17 +107,59 @@
       "@/lib/request/*": [
         "../request/*"
       ],
+      "@/lib/requestMemo": [
+        "../requestMemo"
+      ],
+      "@/lib/requestMemo/*": [
+        "../requestMemo/*"
+      ],
+      "@/lib/sortableList": [
+        "../sortableList"
+      ],
+      "@/lib/sortableList/*": [
+        "../sortableList/*"
+      ],
+      "@/lib/storage": [
+        "../storage"
+      ],
+      "@/lib/storage/*": [
+        "../storage/*"
+      ],
       "@/lib/stringCase": [
         "../stringCase"
       ],
       "@/lib/stringCase/*": [
         "../stringCase/*"
       ],
+      "@/lib/tableSuite": [
+        "../tableSuite"
+      ],
+      "@/lib/tableSuite/*": [
+        "../tableSuite/*"
+      ],
+      "@/lib/toast": [
+        "../toast"
+      ],
+      "@/lib/toast/*": [
+        "../toast/*"
+      ],
+      "@/lib/unsavedGuard": [
+        "../unsavedGuard"
+      ],
+      "@/lib/unsavedGuard/*": [
+        "../unsavedGuard/*"
+      ],
       "@/lib/userDirty": [
         "../userDirty"
       ],
       "@/lib/userDirty/*": [
         "../userDirty/*"
+      ],
+      "@/lib/zLayer": [
+        "../zLayer"
+      ],
+      "@/lib/zLayer/*": [
+        "../zLayer/*"
       ],
       "@lib-config/routeFactory": [
         "../../config/lib/routeFactory.config.ts"

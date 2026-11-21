@@ -49,13 +49,6 @@ export function generateLastSortKey(currentLast: string | null): string {
 }
 
 /**
- * 初期ソートキーを生成（リストが空の場合）
- */
-export function generateInitialSortKey(): string {
-  return generateKeyBetween(null, null);
-}
-
-/**
  * 複数アイテムの初期ソートキーを一括生成
  *
  * @param count - 生成するキーの数

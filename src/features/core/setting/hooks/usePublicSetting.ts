@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useDomain } from "@/lib/crud/hooks";
+import { useDomain } from "@/lib/crud";
 
 import type { SettingValues } from "../entities";
 import { settingClient } from "../services/client/settingClient";

@@ -72,7 +72,7 @@ export const baseOptions = {
     strict: true,                               // 既定。false で bestEffort (dead-letter 退避)
     recorder: auditLogger,
   },
-} satisfies DrizzleCrudServiceOptions<...>;
+} satisfies CrudServiceOptions<...>;
 ```
 
 | 操作 | action |

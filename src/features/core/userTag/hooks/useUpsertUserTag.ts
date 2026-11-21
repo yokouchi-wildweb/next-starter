@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useUpsertDomain } from "@/lib/crud/hooks";
+import { useUpsertDomain } from "@/lib/crud";
 import { userTagClient } from "../services/client/userTagClient";
 import type { UserTag } from "../entities";
 import type { UserTagCreateFields } from "../entities/form";

@@ -3,7 +3,7 @@
 // src/features/core/pairedDevice/hooks/useUnpairThisDevice.ts
 
 import { unpairThisDevice } from "@/features/pairedDevice/services/client/pairedDeviceClient";
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 
 import { SESSION_DEVICE_KEY } from "./keys";
 

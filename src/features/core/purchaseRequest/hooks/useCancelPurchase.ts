@@ -9,7 +9,7 @@
 
 "use client";
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 import { ACTIVE_BANK_TRANSFER_KEY } from "@/features/core/bankTransferReview/hooks/useActiveBankTransfer";
 import {
   cancelPurchase,

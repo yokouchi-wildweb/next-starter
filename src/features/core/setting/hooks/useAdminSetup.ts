@@ -9,7 +9,7 @@
 
 import { useCallback } from "react";
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 import { useRouter } from "@/lib/unsavedGuard";

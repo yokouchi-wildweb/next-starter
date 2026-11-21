@@ -2,7 +2,7 @@
 
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 import { and, eq, inArray, notInArray } from "drizzle-orm";
 import { getPurchaseCompletionStrategy, getRegisteredPurchaseTypes } from "./completion";
 

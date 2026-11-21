@@ -3,10 +3,10 @@
 // 作る・直す・消す・評価の口は次の指令(S2・S3)で service に足す
 
 import { UserGroupTable } from "@/features/core/userGroup/entities/drizzle";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
 
-const userGroupOptions: DrizzleCrudServiceOptions<Record<string, unknown>> = {
+const userGroupOptions: CrudServiceOptions<Record<string, unknown>> = {
   idType: "uuid",
   defaultOrderBy: [["createdAt", "DESC"]],
   defaultSearchFields: ["name"],

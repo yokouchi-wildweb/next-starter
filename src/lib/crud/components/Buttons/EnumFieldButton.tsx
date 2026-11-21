@@ -16,8 +16,8 @@ import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { getFieldOptions, getFieldLabel } from "@/lib/domain";
 import type { DomainDisplay } from "@/lib/domain";
-import { createApiClient } from "@/lib/crud/client";
-import { useUpdateDomain } from "@/lib/crud/hooks";
+import { createApiClient } from "../../client";
+import { useUpdateDomain } from "../../hooks";
 
 export type EnumFieldButtonProps = ButtonStyleProps & {
   /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */

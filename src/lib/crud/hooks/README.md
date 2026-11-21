@@ -126,14 +126,14 @@ export function SampleFeed({ keyword }: { keyword: string }) {
 初回描画に要るデータは loader で取り、セクションコンテナの `initial<Name>` prop → hook の `fallbackData` で渡す（.claude/rules/core/components.md data_seam）。
 
 - `use<Domain>List(config)` は SWR の config をそのまま受け取る
-- `use<Domain>(id)` / `useSearch<Domain>` / `useCount<Domain>` は config を受け取らない → 派生フックで `@/lib/crud/hooks` の `useDomain(key, fetcher, config)` を包む。キーは生成フックと同じ（`sample:${id}`）にしてキャッシュを共有する
+- `use<Domain>(id)` / `useSearch<Domain>` / `useCount<Domain>` は config を受け取らない → 派生フックで `@/lib/crud` の `useDomain(key, fetcher, config)` を包む。キーは生成フックと同じ（`sample:${id}`）にしてキャッシュを共有する
 
 ```ts
 // src/features/sample/hooks/useSampleDetail.ts（派生フック）
 "use client";
 
 import { useSWRConfig } from "swr";
-import { useDomain } from "@/lib/crud/hooks";
+import { useDomain } from "@/lib/crud";
 import { sampleClient } from "../services/client/sampleClient";
 import type { Sample } from "../entities";
 
@@ -142,7 +142,7 @@ export function useSampleDetail(id: string | null, { fallbackData }: { fallbackD
   const key = id ? `sample:${id}` : null;
   const hasCachedData = key !== null && cache.get(key)?.data !== undefined;
 
-  return useDomain<Sample>(key, () => sampleClient.getById(id!), {
+  return useDomain<Sample>(key, () => sampleClient.get(id!), {
     fallbackData,
     // キャッシュは fallbackData より優先されるので、再マウント時は取り直す
     revalidateOnMount: fallbackData === undefined || hasCachedData,
@@ -234,7 +234,7 @@ removeItems((s) => s.id === id);
 
 ### 独自フックを足すとき
 
-- 取得系: `useDomain` / `useDomainList` / `useSearchDomain` / `useCountDomain`（`@/lib/crud/hooks`）を包むか、`useSWR` を直接使う。client service 経由で HTTP を呼ぶ（Hook から axios / fetch を直接呼ばない）
+- 取得系: `useDomain` / `useDomainList` / `useSearchDomain` / `useCountDomain`（`@/lib/crud`）を包むか、`useSWR` を直接使う。client service 経由で HTTP を呼ぶ（Hook から axios / fetch を直接呼ばない）
 - 更新系: `useDomainMutation` を包む。`useSWRMutation` は使わない（理由は [`../README.md`](../README.md#汎用フックhooksの-mutation-契約)）
 - 生成フックのシグネチャを変えたいときはテンプレート（`src/features/_template/hooks/`）と本体（このディレクトリ）を変える。全ドメインに波及する
 
@@ -262,13 +262,13 @@ removeItems((s) => s.id === id);
 | create | `useCreate<Domain>()` | `trigger(data)` |
 | update | `useUpdate<Domain>()` | `trigger({ id, data })` |
 | upsert | `useUpsert<Domain>()` | `trigger(data, options?)` |
-| remove | `useDelete<Domain>()` | `trigger(id)` |
+| delete | `useDelete<Domain>()` | `trigger(id)` |
 | bulkDeleteByIds | `useBulkDeleteByIds<Domain>()` | `trigger(ids)` |
 | bulkDeleteByQuery | `useBulkDeleteByQuery<Domain>()` | `trigger(where)` |
 | bulkUpsert | `useBulkUpsert<Domain>()` | `trigger(records, options?)` |
 | bulkUpdate | `useBulkUpdate<Domain>()` | `trigger([{ id, data }, ...])`。`data` も返す |
 
-命名の例外: get → `use<Domain>`、list → `use<Domain>List`、remove → `useDelete<Domain>`、count → `useCount<Domain>`。それ以外は `use<Op><Domain>`。
+命名の例外: get → `use<Domain>`、list → `use<Domain>List`、count → `useCount<Domain>`。それ以外は `use<Op><Domain>`。
 
 ### 条件付きで生成
 
@@ -280,8 +280,8 @@ removeItems((s) => s.id === id);
 | `useSoftDelete` | `useRestore<Domain>()` … `trigger(id)` / `useHardDelete<Domain>()` … `trigger(id)` |
 | `sortOrderField` | `useReorder<Domain>()` … `trigger(id, afterItemId)` / `useSearchForSorting<Domain>(params)` |
 
-- 集まりのエントリ（従属の行 id 付き）は生成フックではなく、`@/lib/crud/hooks` の汎用の `useCollectionEntries(domain, field, parentId または parentIds)` を直接使う（`{ data, entriesOf, isLoading, error, mutate }`。詳細: [`../README.md`「エントリ（従属の行 id 付き）と、集まりの 1 件を FK で参照する」](../README.md)）
-- `bulkUpdateByIds` は `@/lib/crud/hooks` の `useBulkUpdateByIdsDomain` のみで、ドメインへの生成フックは無い（必要なら派生フックで包む）
+- 集まりのエントリ（従属の行 id 付き）は生成フックではなく、`@/lib/crud` の汎用の `useCollectionEntries(domain, field, parentId または parentIds)` を直接使う（`{ data, entriesOf, isLoading, error, mutate }`。詳細: [`../README.md`「エントリ（従属の行 id 付き）と、集まりの 1 件を FK で参照する」](../README.md)）
+- `bulkUpdateByIds` は `@/lib/crud` の `useBulkUpdateByIdsDomain` のみで、ドメインへの生成フックは無い（必要なら派生フックで包む）
 - `bulkAddRelation` / `bulkRemoveRelation` も同じく `useBulkAddRelationDomain` / `useBulkRemoveRelationDomain` のみ（例: `features/core/user/hooks/useBulkAddUserTags.ts`）
 - `query` / `belongsToMany` / `systemUpdate` / `bulkUpdateByQuery` / `systemBulkUpdateByQuery` はサーバー専用でフックは無い
 - 生成フックは client service に該当メソッドが無いと呼び出し時に例外を投げる（`createApiClient` は全メソッドを持つので、生成ドメインでは通常起きない）

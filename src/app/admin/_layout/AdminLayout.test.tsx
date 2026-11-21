@@ -37,17 +37,6 @@ mock.module("@/app/_layout/useHeaderHeight", {
 mock.module("@/lib/siteTheme", { namedExports: { useDarkModeSwitch: () => ({ isDark: false, switchable: true, toggle: () => {} }) } });
 // 編集画面の「前後の項目へ移る」のデータ: 名前がとても長い今の項目 1 件(SP で行の幅を超える名前)
 const LONG_LABEL = "z".repeat(400);
-mock.module("@/lib/crud/hooks", {
-  namedExports: {
-    useDomainItemNavigation: () => ({
-      items: [{ id: "a", name: LONG_LABEL }],
-      currentId: "a",
-      getPath: (id: string) => `/admin/samples/${id}/edit`,
-      getLabel: (item: { name: string }) => item.name,
-      isLoading: false,
-    }),
-  },
-});
 mock.module("@/features/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
 mock.module("@/components/Button/Button", {
   namedExports: {
@@ -66,6 +55,20 @@ let AdminProtectedLayout: typeof import("../(protected)/_layout/AdminProtectedLa
 let AdminPage: typeof import("./AdminPage").default;
 let AdminEditItemNavigator: typeof import("./AdminEditItemNavigator").AdminEditItemNavigator;
 before(async () => {
+  // crud の入口を本物のまま、描かせたくない物だけ差し替える(SUT を読む前に置く)
+  const crudEntry = await import("@/lib/crud");
+  mock.module("@/lib/crud", {
+    namedExports: {
+      ...crudEntry,
+      useDomainItemNavigation: () => ({
+        items: [{ id: "a", name: LONG_LABEL }],
+        currentId: "a",
+        getPath: (id: string) => `/admin/samples/${id}/edit`,
+        getLabel: (item: { name: string }) => item.name,
+        isLoading: false,
+      }),
+    },
+  });
   ({ AdminEditItemNavigator } = await import("./AdminEditItemNavigator"));
   ({ renderToStaticMarkup } = await import("react-dom/server"));
   ({ AdminLayout } = await import("./AdminLayout"));

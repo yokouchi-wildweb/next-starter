@@ -451,7 +451,7 @@ export default STAFF_ONLY;
 
 test("静的 import の決まり: 落ちる例(services・drizzle・entities の値・副作用の import・関数や呼び出し・推移の先・解けない指定子)", () => {
   const cases = [
-    ["services の値", `import { shopService } from "./shopService";`, { "src/features/shop/services/server/shopService.ts": `import { createCrudService } from "@/lib/crud";\nexport const shopService = createCrudService({});\n` }, /"\.\/shopService" → .*shopService\.ts: const shopService が 値の式でない/],
+    ["services の値", `import { shopService } from "./shopService";`, { "src/features/shop/services/server/shopService.ts": `import { createCrudService } from "@/lib/crud/server";\nexport const shopService = createCrudService({});\n` }, /"\.\/shopService" → .*shopService\.ts: const shopService が 値の式でない/],
     ["drizzle の値", `import { ShopTable } from "@/features/shop/entities/drizzle";`, { "src/features/shop/entities/drizzle.ts": `import { pgTable } from "drizzle-orm/pg-core";\nexport const ShopTable = pgTable("shops", {});\n` }, /"drizzle-orm\/pg-core" を値で import している\(解けない指定子/],
     ["entities の関数", `import { toShop } from "@/features/shop/entities/model";`, { "src/features/shop/entities/model.ts": `export function toShop() { return 1; }\n` }, /model\.ts: 値だけのファイルに置けない文がある\(関数/],
     ["副作用の import", `import "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export const A = 1;\n` }, /"@\/features\/shop\/constants\/access" を副作用の import している/],

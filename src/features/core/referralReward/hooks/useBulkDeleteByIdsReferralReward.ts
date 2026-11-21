@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useBulkDeleteByIdsDomain } from "@/lib/crud/hooks";
+import { useBulkDeleteByIdsDomain } from "@/lib/crud";
 import { referralRewardClient } from "../services/client/referralRewardClient";
 
 export const useBulkDeleteByIdsReferralReward = () => {

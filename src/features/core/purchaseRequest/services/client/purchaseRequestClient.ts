@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { createApiClient } from "@/lib/crud";
-import type { ApiClient } from "@/lib/crud/types";
+import type { ApiClient } from "@/lib/crud";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities";
 import type {
   PurchaseRequestCreateFields,

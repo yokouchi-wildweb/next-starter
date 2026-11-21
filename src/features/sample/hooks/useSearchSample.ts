@@ -3,10 +3,10 @@
 
 "use client";
 
-import { useSearchDomain } from "@/lib/crud/hooks";
+import { useSearchDomain } from "@/lib/crud";
 import { sampleClient } from "../services/client/sampleClient";
 import type { Sample } from "../entities";
-import type { SearchParams } from "@/lib/crud/types";
+import type { SearchParams } from "@/lib/crud";
 
 export type SampleSearchParams = NonNullable<typeof sampleClient.search> extends (
   params: infer P,

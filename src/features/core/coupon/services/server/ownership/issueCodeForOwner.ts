@@ -3,7 +3,7 @@
 import { CouponTable } from "../../../entities/drizzle";
 import type { Coupon } from "../../../entities/model";
 import { generateCouponCode } from "../../../utils/generateCode";
-import { isPgUniqueViolation } from "@/lib/crud/drizzle/service";
+import { isPgUniqueViolation } from "@/lib/crud/server";
 import { DomainError } from "@/lib/errors";
 import { runWithTransaction, type TransactionClient } from "@/lib/drizzle";
 import { isStorageRef } from "@/lib/storage";

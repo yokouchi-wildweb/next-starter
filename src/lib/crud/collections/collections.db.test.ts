@@ -15,8 +15,8 @@ import { config as loadEnv } from "dotenv";
 import { randomUUID } from "node:crypto";
 import { asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { generateInitialSortKeys } from "@/lib/crud/drizzle/fractionalSort";
-import type { CrudStorageBinding } from "@/lib/crud/storageIntegration/types";
+import { generateInitialSortKeys } from "../drizzle/fractionalSort";
+import type { CrudStorageBinding } from "../storageIntegration/types";
 
 const envFile = resolve(process.cwd(), process.env.ENV_FILE ?? ".env.development");
 if (existsSync(envFile)) loadEnv({ path: envFile, quiet: true });
@@ -117,11 +117,11 @@ const keys = (count: number): string[] => generateInitialSortKeys(count);
 describe("collections オプション（実 DB の TX）", { skip }, () => {
   // 遅延 import（DATABASE_URL を読んでから @/lib/drizzle を初期化する）
   let db: typeof import("@/lib/drizzle").db;
-  let createCrudService: typeof import("@/lib/crud/drizzle").createCrudService;
-  let syncCollection: typeof import("@/lib/crud/drizzle").syncCollection;
-  let firstInCollection: typeof import("@/lib/crud/drizzle").firstInCollection;
-  let firstInCollectionForAlias: typeof import("@/lib/crud/drizzle").firstInCollectionForAlias;
-  let duplicateWithCollections: typeof import("@/lib/crud/drizzle").duplicateWithCollections;
+  let createCrudService: typeof import("../drizzle").createCrudService;
+  let syncCollection: typeof import("../drizzle").syncCollection;
+  let firstInCollection: typeof import("../drizzle").firstInCollection;
+  let firstInCollectionForAlias: typeof import("../drizzle").firstInCollectionForAlias;
+  let duplicateWithCollections: typeof import("../drizzle").duplicateWithCollections;
   let child: any;
   let parent: any;
   let plain: any;
@@ -147,7 +147,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
   before(async () => {
     ({ db } = await import("@/lib/drizzle"));
     ({ createCrudService, syncCollection, firstInCollection, firstInCollectionForAlias, duplicateWithCollections } = await import(
-      "@/lib/crud/drizzle"
+      "../drizzle"
     ));
 
     child = createCrudService(ItemTable as never, { idType: "uuid", systemColumns: ["sort"] });
@@ -556,7 +556,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
     );
 
     const deleted = await readParent.create({ name: "d-deleted", items: ["x", "y"] });
-    await readParent.remove(deleted.id);
+    await readParent.delete(deleted.id);
 
     readFixture = {
       readParent,

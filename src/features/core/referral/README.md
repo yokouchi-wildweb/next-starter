@@ -74,7 +74,7 @@ const columns = useMemo(() => [...createAdminInviteListColumns(), { header: "報
 
 ### referralService（`services/server/referralService.ts`）
 
-**ベース CRUD**: `base`（list, get, search, create, update, remove 等）
+**ベース CRUD**: `base`（list, get, search, create, update, delete 等）
 
 **カスタムメソッド**:
 - `validateInviteCode(code)`: 招待コードのログイン前検証(Internals「coupon ドメインとの関係」)。`{ valid: true } | { valid: false, reason }`(型 `InviteCodeValidationResult`)。`reason` はサーバーの中の診断用で、route は返さない

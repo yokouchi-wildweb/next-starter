@@ -3,8 +3,8 @@
 import { z } from "zod";
 
 import { settingTable } from "@/features/core/setting/entities/drizzle";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
 
 // 行は id だけで作る(値は保存処理 ./save.ts だけが書く)
 const SettingRowSchema = z.object({ id: z.string().min(1) });
@@ -16,6 +16,6 @@ const baseOptions = {
   requestMemo: true,
   parseCreate: (data) => SettingRowSchema.parse(data),
   parseUpsert: (data) => SettingRowSchema.parse(data),
-} satisfies DrizzleCrudServiceOptions<z.infer<typeof SettingRowSchema>>;
+} satisfies CrudServiceOptions<z.infer<typeof SettingRowSchema>>;
 
 export const base = createCrudService(settingTable, baseOptions);

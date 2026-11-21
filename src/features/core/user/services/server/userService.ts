@@ -16,7 +16,7 @@ import { seedCreate } from "./creation/seedCreate";
 import { registerFromAuth, preRegisterFromAuth, createFromProvider } from "./registration";
 import { create } from "./wrappers/create";
 import { hardDelete } from "./wrappers/hardDelete";
-import { remove } from "./wrappers/remove";
+import { deleteUser } from "./wrappers/delete";
 import { restore } from "./wrappers/restore";
 import { update, updateSelf } from "./wrappers/update";
 import { updateLastAuthenticated } from "./wrappers/updateLastAuthenticated";
@@ -59,7 +59,7 @@ const {
 export const userService = {
   ...exposedBase,
   create,
-  remove,
+  delete: deleteUser,
   hardDelete,
   restore,
   update,

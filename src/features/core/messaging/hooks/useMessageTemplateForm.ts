@@ -19,7 +19,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useWatch } from "react-hook-form";
 import { useSWRConfig } from "swr";
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 import { err } from "@/lib/errors";
 import {
   checkEmbeddedCatalog,

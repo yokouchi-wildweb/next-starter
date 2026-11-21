@@ -6,7 +6,7 @@
 
 import { useCallback, useState } from "react";
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 import { err } from "@/lib/errors";
 import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
 

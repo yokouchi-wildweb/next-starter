@@ -7,13 +7,13 @@ import {
   type CouponIssuerGrantWriteInput,
 } from "@/features/core/couponIssuerGrant/entities/schema";
 import { auditLogger } from "@/features/core/auditLog/services/server";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
 
 // 監査: 承認・却下・停止・設定変更は管理者の意思決定であり、wrapper は base.update を
 // 通して書くため CRUD 自動監査（coupon_issuer_grant.updated、before/after 差分付き）で
 // 全遷移が残る。個別 action 名での手動記録は重複になるので行わない。
-const couponIssuerGrantOptions: DrizzleCrudServiceOptions<CouponIssuerGrantWriteInput> = {
+const couponIssuerGrantOptions: CrudServiceOptions<CouponIssuerGrantWriteInput> = {
   idType: "uuid",
   defaultOrderBy: [["requested_at", "DESC"]],
   defaultSearchFields: ["user_id"],

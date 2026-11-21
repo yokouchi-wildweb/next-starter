@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useUpdateDomain } from "@/lib/crud/hooks";
+import { useUpdateDomain } from "@/lib/crud";
 import { milestoneClient } from "../services/client/milestoneClient";
 import type { Milestone } from "../entities";
 import type { MilestoneUpdateFields } from "../entities/form";

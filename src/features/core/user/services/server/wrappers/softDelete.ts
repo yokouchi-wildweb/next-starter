@@ -33,7 +33,7 @@ export async function softDelete(input: SoftDeleteInput): Promise<void> {
   }
 
   await db.transaction(async (tx) => {
-    await base.remove(userId, tx);
+    await base.delete(userId, tx);
     await setStatusWithdrawn(userId, tx);
     // すでに withdrawn だった場合（本人退会後の管理者削除等）はヘルパー側で no-op
     await recordStatusTransition({

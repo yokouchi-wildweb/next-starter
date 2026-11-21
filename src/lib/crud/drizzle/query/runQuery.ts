@@ -1,7 +1,7 @@
 import { db } from "@/lib/drizzle";
 import { sql, SQL } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
-import type { PaginatedResult } from "@/lib/crud/types";
+import type { PaginatedResult } from "../../types";
 
 export const runQuery = async <T>(
   table: PgTable,

@@ -95,16 +95,16 @@ const fakeDb = {
 
 mock.module("@/lib/firebase/server", { namedExports: { getServerFirestore: () => fakeDb } });
 
-let createCrudService: typeof import("./index").createCrudService;
+let createFirestoreCrudService: typeof import("./index").createFirestoreCrudService;
 before(async () => {
-  ({ createCrudService } = await import("./index"));
+  ({ createFirestoreCrudService } = await import("./index"));
 });
 beforeEach(() => store.clear());
 
 const SOFT = "soft_items";
 const PLAIN = "plain_items";
-const soft = () => createCrudService<{ id?: string; name?: string; deletedAt?: unknown }>(SOFT, { idType: "uuid", useSoftDelete: true });
-const plain = () => createCrudService<{ id?: string; name?: string; deletedAt?: unknown }>(PLAIN, { idType: "uuid" });
+const soft = () => createFirestoreCrudService<{ id?: string; name?: string; deletedAt?: unknown }>(SOFT, { idType: "uuid", useSoftDelete: true });
+const plain = () => createFirestoreCrudService<{ id?: string; name?: string; deletedAt?: unknown }>(PLAIN, { idType: "uuid" });
 const stored = (path: string, id: string) => docsOf(path).get(id);
 const visibleIds = async (service: ReturnType<typeof soft>) => ({
   list: (await service.list()).map((row) => row.id).sort(),
@@ -118,7 +118,7 @@ test("useSoftDelete の create は deletedAt: null を書き、list / search / c
   assert.equal(stored(SOFT, created.id!)?.deletedAt, null);
   assert.deepEqual(await visibleIds(service), { list: [created.id], search: [created.id], count: 1 });
 
-  await service.remove(created.id!);
+  await service.delete(created.id!);
   assert.deepEqual(await visibleIds(service), { list: [], search: [], count: 0 });
 });
 
@@ -140,7 +140,7 @@ test("upsert: 新規は null、論理削除済みは削除のまま、deletedAt 
   const fresh = await service.upsert({ id: "new", name: "a" });
   assert.equal(stored(SOFT, fresh.id!)?.deletedAt, null);
 
-  await service.remove("new");
+  await service.delete("new");
   await service.upsert({ id: "new", name: "b" });
   assert.ok(stored(SOFT, "new")?.deletedAt instanceof Date, "upsert は復元しない");
   assert.equal(stored(SOFT, "new")?.name, "b");
@@ -154,7 +154,7 @@ test("upsert: 新規は null、論理削除済みは削除のまま、deletedAt 
 test("bulkUpsert: upsert と同じ規則で、useSoftDelete の無いサービスは deletedAt を書かない", async () => {
   const service = soft();
   await service.upsert({ id: "deleted", name: "d" });
-  await service.remove("deleted");
+  await service.delete("deleted");
   docsOf(SOFT).set("legacy", { id: "legacy", name: "old" });
 
   const result = await service.bulkUpsert([

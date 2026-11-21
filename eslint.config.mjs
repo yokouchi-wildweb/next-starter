@@ -426,7 +426,7 @@ const config = [
             { from: "@/components/Widgets/_shared", to: "@/components/Widgets/SliderParts", until: SHELF_S2_MOVED, collapse: true },
             { from: "@/components/Functional/FirebaseAnalytics", to: "@/app/_mounts/FirebaseAnalytics", until: SHELF_S2_MOVED, exact: true },
             // 注文 12(区切り shelf-s3): 置き換え .notices/20261120-170000-shelf-s3.small.mjs
-            { from: "@/utils/object", to: "@/lib/crud/utils", until: SHELF_S3_MOVED, exact: true },
+            { from: "@/utils/object", to: "@/lib/crud/server", until: SHELF_S3_MOVED, exact: true },
             { from: "@/utils/json", to: "@/lib/firebase", until: SHELF_S3_MOVED, exact: true },
             { from: "@/hooks/useAppStatus", to: "@/lib/appStatus", until: SHELF_S3_MOVED, exact: true },
             { from: "@/components/AppStatusGuard", to: "@/lib/appStatus(useAppStatus を部品の本体で呼ぶ)", until: SHELF_S3_MOVED, exact: true },

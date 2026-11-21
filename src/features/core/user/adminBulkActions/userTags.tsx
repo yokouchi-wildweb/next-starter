@@ -4,7 +4,7 @@
 
 import { Tags } from "lucide-react";
 
-import { bulkRelationAction } from "@/lib/crud/components";
+import { bulkRelationAction } from "@/lib/crud";
 import { domainDisplay as userDisplay } from "@/features/core/user/entities/display";
 import type { UserAdminBulkActionItem } from "@/features/core/user/types";
 

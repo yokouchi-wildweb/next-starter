@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useReplaceByQueryDomain } from "@/lib/crud/hooks";
+import { useReplaceByQueryDomain } from "@/lib/crud";
 import { sampleClient } from "../services/client/sampleClient";
 import type { Sample } from "../entities";
 import type { SampleCreateFields } from "../entities/form";

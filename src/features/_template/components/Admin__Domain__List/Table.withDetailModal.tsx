@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { BulkActionItems, DataTable, RecordSelectionTable, TableCellAction, selectBulkActions, type DataTableColumn } from "@/lib/tableSuite";
 import { adminBulkActions } from "@/features/__domain__/extensions/adminBulkActions";
 import { useAdminBulkActionCan } from "@/features/core/user/hooks/useAdminBulkActionCan";
-import { EditButton, DeleteButton } from "@/lib/crud/components";
+import { EditButton, DeleteButton } from "@/lib/crud";
 __DUPLICATE_IMPORT__import presenters from "@/features/__domain__/presenters";
 import __Domain__DetailModal from "../common/__Domain__DetailModal";
 import { buildDomainColumns } from "@/lib/crud";

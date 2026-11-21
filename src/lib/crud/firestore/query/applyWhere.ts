@@ -1,4 +1,4 @@
-import type { WhereExpr } from "@/lib/crud/types";
+import type { WhereExpr } from "../../types";
 
 /** Firestore の where が扱う演算子（凍結。src/lib/crud/firestore/README.md「Drizzle 版との差異」と同じ） */
 const SUPPORTED_OPS = ["eq", "ne", "lt", "lte", "gt", "gte", "like"] as const;

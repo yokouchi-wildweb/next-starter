@@ -4,7 +4,7 @@
 // fork は戻り値の配列に自分の列を差し込んで使う(README「管理画面の一般ユーザー一覧」)
 
 import { TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { EditButton } from "@/lib/crud/components/Buttons";
+import { EditButton } from "@/lib/crud";
 import { Button } from "@/components/Button/Button";
 import type { User } from "@/features/core/user/entities";
 import presenters from "@/features/core/user/presenters";

@@ -1,7 +1,7 @@
 // src/app/api/[domain]/count/route.ts
 
 import { createDomainRoute } from "@/wiring/apiRoute";
-import type { CountParams } from "@/lib/crud/types";
+import type { CountParams } from "@/lib/crud";
 
 type DomainParams = { domain: string };
 

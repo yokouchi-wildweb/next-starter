@@ -8,7 +8,7 @@ import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { db } from "@/lib/drizzle";
 import { base } from "../drizzleBase";
-import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { getPublicColumns } from "@/lib/crud/server";
 
 const DEMO_USER_PROVIDER_TYPE = "custom";
 

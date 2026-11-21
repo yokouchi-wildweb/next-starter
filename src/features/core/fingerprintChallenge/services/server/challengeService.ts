@@ -30,7 +30,7 @@ import type {
 import type { EffectiveChallengeStatus } from "@/features/core/fingerprintChallenge/constants";
 import { recordChallengeView } from "./accessLog";
 import { fingerprintChallengeBase } from "./drizzleBase";
-import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { getPublicColumns } from "@/lib/crud/server";
 
 /** prompt (質問定義 JSONB) の保存上限バイト数 */
 const MAX_PROMPT_BYTES = 16384;

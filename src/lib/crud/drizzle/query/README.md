@@ -2,7 +2,7 @@
 
 ## Overview
 
-- `search()` / `count()` の WHERE と ORDER BY を組み立てる SQL クエリビルダー群（純粋関数、DB アクセスは持たない）。公開の部品は `@/lib/crud/drizzle`（`buildSearchWhere` / `buildSearchRankOrderBy` / `withIdTiebreak` / `composeSearchOrderBy`）
+- `search()` / `count()` の WHERE と ORDER BY を組み立てる SQL クエリビルダー群（純粋関数、DB アクセスは持たない）。公開の部品は `@/lib/crud/server`（`buildSearchWhere` / `buildSearchRankOrderBy` / `withIdTiebreak` / `composeSearchOrderBy`）
 
 ## Usage
 
@@ -30,7 +30,7 @@ await service.search({
 });
 ```
 
-- ORDER BY 合成順: `searchRank` の句（searchQuery 指定時のみ）→ `extraOrderBy` → `orderBy`（未指定なら defaultOrderBy）→ `id`（`orderBy` に id が無い場合のみ）。合成は `composeSearchOrderBy`（`@/lib/crud/drizzle`）
+- ORDER BY 合成順: `searchRank` の句（searchQuery 指定時のみ）→ `extraOrderBy` → `orderBy`（未指定なら defaultOrderBy）→ `id`（`orderBy` に id が無い場合のみ）。合成は `composeSearchOrderBy`（`@/lib/crud/server`）
 - 未指定なら並び順は変わらない
 - サーバー専用。SQL オブジェクトは HTTP で渡せないため `/api/[domain]/search` には出さない（ルートは受け付けるパラメータを個別に組み立てる許可リスト方式）
 - `count` / `countWithDeleted` は並び順を持たないので受け付けない。`searchForSorting` は sort_order 専用のため対象外
@@ -134,8 +134,8 @@ relationWhere: [
 
 - `searchFields` の各カラムに対して `ILIKE %query%` を OR で結合（結果集合・count はこれだけで決まる）。テキストでない列（enum・uuid・数値など、relation の FK 列も）は `::text` に cast して比べる（cast しないと Postgres が `operator does not exist` で拒む）。テキストの列（text・varchar・char）は cast しないので索引の効き方は変わらない
 - 並び順: `searchRank` 指定時は後述の関連度ランキングを `extraOrderBy` / `orderBy` の前に置く。未指定なら `extraOrderBy`（あれば）→ `orderBy`
-- SQL 片は `buildSearchWhere` / `buildSearchRankOrderBy`（`@/lib/crud/drizzle`）として公開。`base.query()` で独自 JOIN を組む wrapper からも同じ順位付けを再利用できる
-- 並び順の最後は `withIdTiebreak(table, orderBy, clauses)`（`@/lib/crud/drizzle`）で閉じる。`orderBy` に id が無ければ `asc(id)` を末尾に足す（base `search()` と同じ規則）。wrapper で `buildOrderBy` の結果だけを使うと、同順位の行の並びが DB 任せになり、ページをまたいで入れ替わる・重複する。base と同じ合成順（rank → extraOrderBy → orderBy → id）でよければ `composeSearchOrderBy` を使う
+- SQL 片は `buildSearchWhere` / `buildSearchRankOrderBy`（`@/lib/crud/server`）として公開。`base.query()` で独自 JOIN を組む wrapper からも同じ順位付けを再利用できる
+- 並び順の最後は `withIdTiebreak(table, orderBy, clauses)`（`@/lib/crud/server`）で閉じる。`orderBy` に id が無ければ `asc(id)` を末尾に足す（base `search()` と同じ規則）。wrapper で `buildOrderBy` の結果だけを使うと、同順位の行の並びが DB 任せになり、ページをまたいで入れ替わる・重複する。base と同じ合成順（rank → extraOrderBy → orderBy → id）でよければ `composeSearchOrderBy` を使う
   ```ts
   const orderClauses = composeSearchOrderBy(table, orderBy, {
     rank: rankOrderClause,

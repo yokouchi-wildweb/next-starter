@@ -19,8 +19,8 @@ import { err } from "@/lib/errors";
 import type { DomainDisplay } from "@/lib/domain";
 import { getBelongsToRelationsOf } from "@/lib/domain";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
-import { createApiClient } from "@/lib/crud/client";
-import { useUpdateDomain } from "@/lib/crud/hooks";
+import { createApiClient } from "../../client";
+import { useUpdateDomain } from "../../hooks";
 
 /** リレーション先データの型 */
 type RelationData = {

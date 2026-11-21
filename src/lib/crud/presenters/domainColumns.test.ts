@@ -1,19 +1,12 @@
 // src/lib/crud/presenters/domainColumns.test.ts
-// 写しから作る一覧の列が domain.json(正規化後)から作る列と同じこと、並べ替えの対象、presenters を渡していない列の表示を確かめる。
+// 一覧の列の並べ替えの対象と、presenters を渡していない列の表示を確かめる(実際のドメインの写しと domain.json が同じ列になることは
+// scripts/structure/registry/alpha/domainDisplayColumns.test.ts)。
 // 値が配列の型(型の表の array 属性 = array・stringArray)の列は、sortableFields が true でも列名の指定でもソートしない。
 // 実行: pnpm test src/lib/crud/presenters/domainColumns.test.ts
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
-
-import { normalizeDomainJsonConfig } from "@/lib/domain";
-import sampleConfig from "@/features/sample/domain.json";
-import couponConfig from "@/features/core/coupon/domain.json";
-import chatRoomConfig from "@/features/core/chatRoom/domain.json";
-import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";
-import { domainDisplay as couponDisplay } from "@/features/core/coupon/entities/display";
-import { domainDisplay as chatRoomDisplay } from "@/features/core/chatRoom/entities/display";
 
 import { buildDomainColumns, type DomainColumnDateFormatter, type DomainColumnTruncate } from "./domainColumns";
 
@@ -27,23 +20,6 @@ const formatting = { formatDate, truncate };
 
 type Row = Record<string, unknown>;
 type Config = Parameters<typeof buildDomainColumns<Row>>[0]["config"];
-
-const shape = (config: Config) =>
-  buildDomainColumns<Row>({ config, ...formatting, sortableFields: true }).map(({ header, sortKey }) => ({ header, sortKey }));
-
-const cases = [
-  ["sample", sampleDisplay, sampleConfig],
-  ["coupon", couponDisplay, couponConfig],
-  ["chatRoom", chatRoomDisplay, chatRoomConfig],
-] as const;
-
-for (const [name, display, config] of cases) {
-  test(`${name}: 列の見出しと並び替えキーが domain.json と同じ`, () => {
-    const columns = shape(display);
-    assert.ok(columns.length > 0);
-    assert.deepEqual(columns, shape(normalizeDomainJsonConfig(config as Record<string, unknown>) as Config));
-  });
-}
 
 const sortConfig = {
   tableFields: ["name", "tags", "labels", "count", "image", "images", "created_at"],

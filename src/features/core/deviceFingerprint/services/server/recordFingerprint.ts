@@ -7,7 +7,7 @@ import { sql } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { getAuditContext } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 import { stableStringify } from "@/lib/fingerprint/hash";
 import { deviceFingerprintConfig } from "@/features/deviceFingerprint/config";
 

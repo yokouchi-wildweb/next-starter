@@ -174,12 +174,6 @@ mock.module("@/components/Button/LinkButton", {
   },
 });
 // 「新規送信」の CreateButton(押すと onClick)
-mock.module("@/lib/crud/components", {
-  namedExports: {
-    CreateButton: (props: { label?: string; disabled?: boolean; onClick?: () => void }) =>
-      createElement("button", { type: "button", disabled: props.disabled, onClick: props.onClick }, props.label),
-  },
-});
 
 // 部品は偽物: data-part に名前を出し、最後に受けた props を控える(open を受ける部品は閉じている間は描かない)
 const lastProps = new Map<string, Record<string, unknown>>();
@@ -262,6 +256,15 @@ let act: typeof import("react").act;
 let createRoot: typeof import("react-dom/client").createRoot;
 let MessageSendModal: typeof import("./index").MessageSendModal;
 before(async () => {
+  // crud の入口を本物のまま、描かせたくない物だけ差し替える(SUT を読む前に置く)
+  const crudEntry = await import("@/lib/crud");
+  mock.module("@/lib/crud", {
+    namedExports: {
+      ...crudEntry,
+      CreateButton: (props: { label?: string; disabled?: boolean; onClick?: () => void }) =>
+        createElement("button", { type: "button", disabled: props.disabled, onClick: props.onClick }, props.label),
+    },
+  });
   ({ act } = await import("react"));
   ({ createRoot } = await import("react-dom/client"));
   ({ MessageSendModal } = await import("./index"));

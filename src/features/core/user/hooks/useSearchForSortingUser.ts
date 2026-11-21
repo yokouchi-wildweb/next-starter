@@ -2,10 +2,10 @@
 
 "use client";
 
-import { useSearchForSortingDomain } from "@/lib/crud/hooks";
+import { useSearchForSortingDomain } from "@/lib/crud";
 import { userClient } from "../services/client/userClient";
 import type { User } from "../entities";
-import type { SearchParams } from "@/lib/crud/types";
+import type { SearchParams } from "@/lib/crud";
 
 export const useSearchForSortingUser = (params: SearchParams = {}) => {
   const searchForSorting = userClient.searchForSorting;

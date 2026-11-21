@@ -8,7 +8,7 @@ import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
-import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { getPublicColumns } from "@/lib/crud/server";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 

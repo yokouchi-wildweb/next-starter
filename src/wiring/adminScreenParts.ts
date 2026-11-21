@@ -27,7 +27,7 @@ import {
 } from "@/features/core/admin/services/server/screenData/adminRelationOptions";
 import { fetchAdminSort, type AdminSortScreenData, type AdminSortService } from "@/features/core/admin/services/server/screenData/adminSort";
 
-import type { ListPageSearchParams } from "@/lib/crud/types";
+import type { ListPageSearchParams } from "@/lib/crud";
 import { resolveAccessRule } from "@/lib/domain";
 import { type DomainApiAccessRule, type DomainApiOperation } from "@/lib/domainAccess";
 import { getServiceOrThrow as getServiceOrThrowFrom, hasService as hasServiceFrom } from "@/lib/domain/server";

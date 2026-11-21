@@ -50,9 +50,9 @@ type Row = Record<string, any>;
 
 describe("集まりを持つ主の、他ドメインの withRelations での埋め込み（実 DB）", { skip }, () => {
   let db: typeof import("@/lib/drizzle").db;
-  let createCrudService: typeof import("@/lib/crud/drizzle").createCrudService;
-  let syncCollection: typeof import("@/lib/crud/drizzle").syncCollection;
-  let defineTableCollections: typeof import("@/lib/crud/collections/tableCollections").defineTableCollections;
+  let createCrudService: typeof import("../drizzle").createCrudService;
+  let syncCollection: typeof import("../drizzle").syncCollection;
+  let defineTableCollections: typeof import("./tableCollections").defineTableCollections;
   let ownerCollection: any;
   let loaderCalls = 0;
   const ids = { group: randomUUID(), owners: [randomUUID(), randomUUID(), randomUUID()], tag: randomUUID() };
@@ -67,8 +67,8 @@ describe("集まりを持つ主の、他ドメインの withRelations での埋�
 
   before(async () => {
     ({ db } = await import("@/lib/drizzle"));
-    ({ createCrudService, syncCollection } = await import("@/lib/crud/drizzle"));
-    ({ defineTableCollections } = await import("@/lib/crud/collections/tableCollections"));
+    ({ createCrudService, syncCollection } = await import("../drizzle"));
+    ({ defineTableCollections } = await import("./tableCollections"));
 
     await dropTables();
     await db.execute(sql`create table test_crud_emb_groups (id uuid primary key, name text not null)`);
@@ -208,7 +208,7 @@ describe("集まりを持つ主の、他ドメインの withRelations での埋�
   });
 
   test("主のサービスを作ると、その表にも登録される（entities/drizzle.ts を手書きする主の経路）", async () => {
-    const { hasTableCollections } = await import("@/lib/crud/collections/tableCollections");
+    const { hasTableCollections } = await import("./tableCollections");
     assert.equal(hasTableCollections(PlainTable), false);
     createCrudService(PlainTable as never, {
       idType: "uuid",

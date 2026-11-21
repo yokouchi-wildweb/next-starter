@@ -2,10 +2,10 @@
 
 "use client";
 
-import { useSearchDomain } from "@/lib/crud/hooks";
+import { useSearchDomain } from "@/lib/crud";
 import { walletHistoryClient } from "../services/client/walletHistoryClient";
 import type { WalletHistory } from "../entities";
-import type { SearchParams } from "@/lib/crud/types";
+import type { SearchParams } from "@/lib/crud";
 
 export type WalletHistorySearchParams = NonNullable<typeof walletHistoryClient.search> extends (
   params: infer P,

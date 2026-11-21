@@ -26,7 +26,7 @@ import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
-import { CreateButton } from "@/lib/crud/components";
+import { CreateButton } from "@/lib/crud";
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 

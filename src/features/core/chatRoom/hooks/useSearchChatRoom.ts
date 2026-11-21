@@ -2,10 +2,10 @@
 
 "use client";
 
-import { useSearchDomain } from "@/lib/crud/hooks";
+import { useSearchDomain } from "@/lib/crud";
 import { chatRoomClient } from "../services/client/chatRoomClient";
 import type { ChatRoom } from "../entities";
-import type { SearchParams } from "@/lib/crud/types";
+import type { SearchParams } from "@/lib/crud";
 
 export type ChatRoomSearchParams = NonNullable<typeof chatRoomClient.search> extends (
   params: infer P,

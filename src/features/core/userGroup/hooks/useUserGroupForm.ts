@@ -12,7 +12,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";

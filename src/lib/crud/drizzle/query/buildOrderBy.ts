@@ -1,6 +1,6 @@
 import { asc, desc, sql, SQL } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
-import type { OrderBySpec } from "@/lib/crud/types";
+import type { OrderBySpec } from "../../types";
 import { sortKeyExpr } from "../fractionalSort/sortKeyOrder";
 
 export type BuildOrderByOptions = {

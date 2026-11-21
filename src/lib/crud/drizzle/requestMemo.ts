@@ -11,7 +11,7 @@ const WRITE_METHOD_NAMES = [
   "create",
   "update",
   "systemUpdate",
-  "remove",
+  "delete",
   "restore",
   "hardDelete",
   "upsert",

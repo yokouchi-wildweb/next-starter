@@ -57,7 +57,7 @@ describe("storage オプション（実 DB の TX）", { skip }, () => {
     const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server");
     const { createStorageObjectService } = await import("./services/server/storageObjectService");
     const { storageBindingFor } = await import("./services/server/crudBinding");
-    const { createCrudService } = await import("@/lib/crud/drizzle");
+    const { createCrudService } = await import("@/lib/crud/server");
     const { runWithAuditContext } = await import("@/lib/audit");
     const { uuidv7 } = await import("uuidv7");
 
@@ -194,7 +194,7 @@ describe("storage オプション（実 DB の TX）", { skip }, () => {
       const row = fake.objects;
       return [...row.keys()].find((key) => key.endsWith(ref.split("/").at(-1)!));
     };
-    await soft.remove(item.id);
+    await soft.delete(item.id);
     assert.equal((await ledgerRow(ref))?.recordId, item.id);
     assert.ok(objectKey(), "論理削除では実物を残す");
     await soft.restore(item.id);

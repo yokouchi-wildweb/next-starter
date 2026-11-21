@@ -1,7 +1,7 @@
 // src/features/core/user/services/server/cleanup.ts
 // 退会・ソフトデリートの後片付けの項目の型と実行(一覧は読まない。一覧: ../../extensions/cleanupHandlers.ts、呼び手: ./executeCleanup.ts)
 
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 
 export type UserCleanupHandler = (userId: string, tx: DbTransaction) => Promise<void>;
 

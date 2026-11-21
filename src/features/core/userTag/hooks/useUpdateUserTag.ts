@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useUpdateDomain } from "@/lib/crud/hooks";
+import { useUpdateDomain } from "@/lib/crud";
 import { userTagClient } from "../services/client/userTagClient";
 import type { UserTag } from "../entities";
 import type { UserTagUpdateFields } from "../entities/form";

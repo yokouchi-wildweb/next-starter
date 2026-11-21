@@ -5,7 +5,7 @@ import type { UserStatus } from "@/features/core/user/types";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { invalidateSessionsForUser } from "@/features/core/auth/services/server/sessionInvalidation";
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 import { runWithTransaction } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import { base } from "../drizzleBase";

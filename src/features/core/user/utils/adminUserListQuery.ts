@@ -1,7 +1,7 @@
 // src/features/core/user/utils/adminUserListQuery.ts
 // 管理画面のユーザー一覧(一般 / システム管理者 / デモ)の検索条件。3 つの一覧ルートの loader が共有する
 
-import type { OrderBySpec, WhereExpr } from "@/lib/crud/types";
+import type { OrderBySpec, WhereExpr } from "@/lib/crud";
 import { getRolesByCategory, type RoleCategory } from "@/features/core/user/constants";
 import { normalizePhoneSearchQuery } from "@/features/core/user/utils/phoneNumber";
 

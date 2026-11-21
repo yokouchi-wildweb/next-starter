@@ -1,7 +1,7 @@
 // src/features/walletHistory/services/client/walletHistoryBatchClient.ts
 
 import axios from "axios";
-import type { PaginatedResult } from "@/lib/crud/types";
+import type { PaginatedResult } from "@/lib/crud";
 import type { WalletType } from "@/features/wallet/config";
 import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";
 

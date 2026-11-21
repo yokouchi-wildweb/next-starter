@@ -1,7 +1,7 @@
 // src/features/chatRoom/services/server/firestoreBase.ts
 
-import { createCrudService } from "@/lib/crud/firestore";
-import type { CreateCrudServiceOptions } from "@/lib/crud/types";
+import { createFirestoreCrudService } from "@/lib/crud/server";
+import type { FirestoreCrudServiceOptions } from "@/lib/crud/server";
 import type { ChatRoom } from "@/features/core/chatRoom/entities";
 import { ChatRoomCreateSchema, ChatRoomUpdateSchema } from "@/features/core/chatRoom/entities/schema";
 
@@ -19,12 +19,12 @@ export const baseOptions = {
       "DESC"
     ]
   ],
-} satisfies CreateCrudServiceOptions;
+} satisfies FirestoreCrudServiceOptions;
 
 // 互換性のためエイリアスもエクスポート
 export const chatRoomServiceOptions = baseOptions;
 
-export const base = createCrudService<ChatRoom>("chat_rooms", {
+export const base = createFirestoreCrudService<ChatRoom>("chat_rooms", {
   ...baseOptions,
   parseCreate: (data) => ChatRoomCreateSchema.parse(data),
   parseUpdate: (data) => ChatRoomUpdateSchema.parse(data),

@@ -1,0 +1,8 @@
+{
+  "exports": {
+    ".": "./index.ts",
+    "./server": "./server.ts"
+  },
+  "libs": ["audit", "domain", "drizzle", "errors", "firebase", "httpDefaults", "requestMemo", "storage", "stringCase", "tableSuite", "toast", "unsavedGuard"],
+  "peers": ["components"]
+}

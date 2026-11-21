@@ -7,7 +7,7 @@ import Pagination from "../../../../../components/Navigation/Pagination";
 import SearchBox from "@/components/Admin/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
-import { CreateButton } from "@/lib/crud/components/Buttons";
+import { CreateButton } from "@/lib/crud";
 import { domainDisplay as couponDisplay } from "@/features/core/coupon/entities/display";
 
 export type AdminCouponListHeaderProps = {

@@ -10,7 +10,7 @@ import SearchBox from "@/components/Admin/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { Button } from "@/components/Button/Button";
 import { useSearchParams } from "next/navigation";
-import { CreateButton } from "@/lib/crud/components";
+import { CreateButton } from "@/lib/crud";
 import { getAdminPaths } from "@/lib/domain";
 import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";
 

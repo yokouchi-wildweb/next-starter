@@ -5,9 +5,9 @@ import type { DomainConfigOptionals } from "@/lib/domain";
 import rawConf from "@/features/milestone/domain.json";
 import { MilestoneTable } from "@/features/core/milestone/entities/drizzle";
 import { MilestoneCreateSchema, MilestoneUpdateSchema } from "@/features/core/milestone/entities/schema";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
-import type { IdType, OrderBySpec } from "@/lib/crud/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
+import type { IdStrategy, OrderBySpec } from "@/lib/crud";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
@@ -19,14 +19,14 @@ const sortOrderColumn = conf.sortOrderField
   : undefined;
 
 export const baseOptions = {
-  idType: conf.idType as IdType,
+  idType: conf.idType as IdStrategy,
   useCreatedAt: conf.useCreatedAt,
   useUpdatedAt: conf.useUpdatedAt,
   useSoftDelete: conf.useSoftDelete,
   defaultSearchFields: conf.searchFields,
   defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
 
-} satisfies DrizzleCrudServiceOptions<
+} satisfies CrudServiceOptions<
   z.infer<typeof MilestoneCreateSchema>
 >;
 

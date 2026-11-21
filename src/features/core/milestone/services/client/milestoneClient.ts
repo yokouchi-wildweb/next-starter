@@ -1,7 +1,7 @@
 // src/features/milestone/services/client/milestoneClient.ts
 
 import { createApiClient } from "@/lib/crud";
-import type { ApiClient } from "@/lib/crud/types";
+import type { ApiClient } from "@/lib/crud";
 import type { Milestone } from "@/features/core/milestone/entities";
 import type {
   MilestoneCreateFields,

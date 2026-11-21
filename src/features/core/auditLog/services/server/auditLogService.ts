@@ -11,7 +11,7 @@ import {
   type AuditContext,
   type AuditRecordInput,
 } from "@/lib/audit";
-import type { DbTransaction } from "@/lib/crud/drizzle";
+import type { DbTransaction } from "@/lib/crud/server";
 
 import { AuditLogTable, AuditLogFailedTable } from "@/features/core/auditLog/entities/drizzle";
 import {

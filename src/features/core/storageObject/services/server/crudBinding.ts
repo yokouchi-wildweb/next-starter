@@ -22,7 +22,7 @@
 // actor は routeFactory が敷く AuditContext の actorId（runAsSystem の中では null）。
 
 import { getAuditContext } from "@/lib/audit";
-import type { CrudStorageBinding, CrudStorageCleanup, CrudStorageField } from "@/lib/crud/storageIntegration/types";
+import type { CrudStorageBinding, CrudStorageCleanup, CrudStorageField } from "@/lib/crud/server";
 import { DomainError } from "@/lib/errors";
 import { isStorageRef } from "@/lib/storage";
 import {

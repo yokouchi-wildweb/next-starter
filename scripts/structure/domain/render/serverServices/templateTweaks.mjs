@@ -63,8 +63,8 @@ const PARSE_LINES = [
 export function stripDrizzleBaseForEmptySchema(content) {
   content = content.replace(/import \{ \w+CreateSchema, \w+UpdateSchema \} from [^\n]+;\n/, "");
   content = content.replace(/import type \{ z \} from "zod";\n/, "");
-  content = content.replace(/import type \{ DrizzleCrudServiceOptions \} from [^\n]+;\n/, "");
-  content = content.replace(/\} satisfies DrizzleCrudServiceOptions<\n\s*z\.infer<typeof \w+CreateSchema>\n>;/, "};");
+  content = content.replace(/import type \{ CrudServiceOptions \} from [^\n]+;\n/, "");
+  content = content.replace(/\} satisfies CrudServiceOptions<\n\s*z\.infer<typeof \w+CreateSchema>\n>;/, "};");
   for (const pattern of PARSE_LINES) content = content.replace(pattern, "");
   return content;
 }

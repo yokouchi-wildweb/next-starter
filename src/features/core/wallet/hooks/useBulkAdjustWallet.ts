@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 import { walletClient, type BulkAdjustByTypePayload } from "../services/client/walletClient";
 import type { BulkAdjustByTypeResult } from "@/features/core/wallet/services/types";
 

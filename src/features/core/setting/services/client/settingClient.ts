@@ -10,7 +10,7 @@ const ADMIN_URL = "/api/setting/admin";
 
 export const settingClient = {
   /** 管理者向けの読み(ロールに許されたキーだけ) */
-  getById: async (_id: string): Promise<Setting> => {
+  get: async (_id: string): Promise<Setting> => {
     try {
       const { data } = await axios.get<Setting>(ADMIN_URL);
       return data;

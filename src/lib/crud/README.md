@@ -3,7 +3,8 @@
 ## Overview
 
 - `createCrudService` を中心とした汎用 CRUD ライブラリ。Drizzle (Neon/PostgreSQL) 実装と、機能凍結した Firestore 実装を持つ
-- 入口: `@/lib/crud`（共通型・一覧の列 presenters・管理画面の全件削除の一覧の hooks `useFetchDomains` / `useTruncateDomains` と client `domainClient`）/ `@/lib/crud/drizzle`（`createCrudService` と SQL の部品）/ `@/lib/crud/hooks`（汎用フック）/ `@/lib/crud/client`（`createApiClient`）/ `@/lib/crud/components`（CRUD ボタン。`@/lib/crud` は UI を持たない）
+- 閉じた lib。入口は 2 つ: `@/lib/crud` = 画面側(汎用 hooks・CRUD ボタンと一括操作の作成関数 `bulk*Action`・HTTP の client `createApiClient` / `domainClient`・一覧の列 presenters・共通型・`toOrderBySpec`。client でも server でも読める。server からは型だけ) / `@/lib/crud/server` = 保存側(Drizzle の `createCrudService` と `CrudServiceOptions`・Firestore の `createFirestoreCrudService`・集まり・ストレージ連動・秘匿カラム・SQL の部品・並びの鍵・`omitUndefined`)。中のファイルを外から読まない
+- 差し込み口(画面側): `setApiErrorHandler`(HTTP の失敗の扱い)・`registerCrudEventHandler`(CRUD の出来事の通知)
 - ドメインの定義と欄の物(主キーの論理名 `CRUD_ID_FIELD`・日時の schema `nullableDatetime` / `requiredDatetime`・値の表示 `format*` / `FieldPresenter`・管理画面のパス `getAdminPaths` / `AdminPaths`)は `@/lib/domain`、戻り先の検証は `@/lib/url` の `sanitizeRedirectPath`
 - 拡張は次の順で、手前で足りるならそこで止める: ① 提供メソッド → ② `relationWhere` → ③ `extraWhere` / `extraOrderBy` → ④ `base.query()` + `wrappers/` → ⑤ 独自サービス（core/services.md extension）
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/crud.md にある
@@ -93,7 +94,7 @@ createCrudService<TTable, TCreate>(table, {
 `requestMemo: true` にすると、`get(id)`（オプションなし呼び出しのみ）が同一サーバー
 リクエスト内でメモ化され、複数サブシステムからの同一行の重複クエリが1回に圧縮される。
 
-- 全書き込みメソッド（update / remove / bulkUpdate 等）は完了時にメモを自動破棄する
+- 全書き込みメソッド（update / delete / bulkUpdate 等）は完了時にメモを自動破棄する
   → 同一リクエスト内の read-your-writes は維持される（呼び忘れが構造的に起きない）
 - `createCrudService` を経由しない生SQL書き込み（`db.update(Table)` 等）だけはメモが残るので、直後に `service.invalidateRequestMemo()` を呼ぶ（core/services.md raw_sql）
 - リクエストスコープ外（cron / CLI）では自動的に素通しになる
@@ -152,7 +153,7 @@ await base.systemBulkUpdateByQuery({ status: "active" }, { archived_at: new Date
 
 ```typescript
 // entities/drizzle.ts（テーブル定義の直後）
-import { defineHiddenColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { defineHiddenColumns } from "@/lib/crud/server";
 
 defineHiddenColumns(UserTable, ["localPassword"]);
 ```
@@ -190,7 +191,7 @@ defineHiddenColumns(UserTable, ["localPassword"]);
   （戻り値の形はサービス経由の null 置換と同じ。未宣言テーブルでは `getTableColumns` と同じ）
 
   ```typescript
-  import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
+  import { getPublicColumns } from "@/lib/crud/server";
 
   const [user] = await db.insert(UserTable).values(values).returning(getPublicColumns(UserTable));
   const rows = await db.select(getPublicColumns(UserTable)).from(UserTable).where(...);
@@ -225,18 +226,18 @@ defineHiddenColumns(UserTable, ["localPassword"]);
 | `list(options?)` | WithOptions | Select[] | 全件取得（上限 100）。フィルタ不要な場合のみ |
 | `update(id, data, tx?)` | string, Partial | Select | M2M 差分同期 |
 | `systemUpdate(id, data, tx?)` | string, Record | Select | 特権更新（systemColumns 必須・SQL 式可・サーバー専用） |
-| `remove(id, tx?)` | string | void | useSoftDelete 時は論理削除 |
+| `delete(id, tx?)` | string | void | useSoftDelete 時は論理削除 |
 
 #### 検索・クエリ・カウント
 
 | メソッド | 引数 | 戻り値 | 備考 |
 |----------|------|--------|------|
-| `search(params?)` | SearchParams & WithOptions & ExtraWhereOption & ExtraOrderByOption | PaginatedResult | メインの検索メソッド |
+| `search(params?)` | SearchParams & WithOptions & ExtraWhereClause & ExtraOrderByClause | PaginatedResult | メインの検索メソッド |
 | `searchWithDeleted(params?)` | 同上 | PaginatedResult | 論理削除レコードも含む |
-| `count(params?)` | CountParams & ExtraWhereOption | CountResult | 件数のみ取得（レコード不要時に最適） |
+| `count(params?)` | CountParams & ExtraWhereClause | CountResult | 件数のみ取得（レコード不要時に最適） |
 | `countWithDeleted(params?)` | 同上 | CountResult | 論理削除レコードも含めた件数 |
 | `query(baseQuery, options?, countQuery?)` | カスタム SELECT | PaginatedResult | サーバー専用。JOIN 等の自由なクエリ |
-| `searchForSorting(params?)` | SearchParams & ExtraWhereOption | PaginatedResult | sort_order NULL を自動初期化 |
+| `searchForSorting(params?)` | SearchParams & ExtraWhereClause | PaginatedResult | sort_order NULL を自動初期化 |
 
 #### バルク操作
 
@@ -342,7 +343,7 @@ const inserted = await service.replaceByQuery(
 
 **テスト**: `pnpm test src/lib/crud/hooks/internal/*.test.mjs`（node:test + Node 組み込みの TypeScript type stripping、追加依存なし）。React 非依存の中核 `concurrentMutation.ts` を検証する。
 
-**独自 mutation フックの作り方**: `useDomainMutation(key, fn, revalidateKey?)` を `@/lib/crud/hooks` から import して包む（core の useChangeUserRole / useAdjustWallet / useProfileUpsert / useAdminSetup 等が実例）。`useSWRMutation` を直接使わない理由は上のとおり（決まりは .claude/rules/core/client.md hooks）。
+**独自 mutation フックの作り方**: `useDomainMutation(key, fn, revalidateKey?)` を `@/lib/crud` から import して包む（core の useChangeUserRole / useAdjustWallet / useProfileUpsert / useAdminSetup 等が実例）。`useSWRMutation` を直接使わない理由は上のとおり（決まりは .claude/rules/core/client.md hooks）。
 
 ### トランザクション
 

@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useDomainList } from "@/lib/crud/hooks";
+import { useDomainList } from "@/lib/crud";
 import { sampleTagClient } from "../services/client/sampleTagClient";
 import type { SampleTag } from "../entities";
 import type { SWRConfiguration } from "swr";

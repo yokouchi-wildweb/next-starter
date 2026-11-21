@@ -1,7 +1,7 @@
 // src/features/referralReward/services/client/referralRewardClient.ts
 
 import { createApiClient } from "@/lib/crud";
-import type { ApiClient } from "@/lib/crud/types";
+import type { ApiClient } from "@/lib/crud";
 import type { ReferralReward } from "@/features/core/referralReward/entities";
 import type {
   ReferralRewardCreateFields,

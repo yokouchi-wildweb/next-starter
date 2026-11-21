@@ -62,7 +62,7 @@ export function renderCollectionsOutput(ctx, workspace) {
     "// createCrudService の collections オプション（ドメイン集約）。生成の drizzleBase.ts が import して渡す。",
     "// 詳細: src/lib/crud/collections/README.md",
     "",
-    'import type { CrudCollectionConfig } from "@/lib/crud/drizzle";',
+    'import type { CrudCollectionConfig } from "@/lib/crud/server";',
     ...tables.map((child) => `import { ${toPascalCase(child)}Table } from "@/features/${child}/entities/drizzle";`),
     "",
     "export const collections: CrudCollectionConfig[] = [",

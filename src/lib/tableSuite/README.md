@@ -532,7 +532,7 @@ const { items, total, isFetchingMore, hasMore, sentinelRef } = useMyRows({ obser
   - `order`: 小さい順（省略 = 100、同じなら key の順）
   - `access`: 表示の出し分け（管理一覧は `{ roles: [...] }` = `AdminBulkActionAccess`）。見せ方だけ（権限の守りは API）
 - `selectBulkActions(items, { list, can })` が絞って並べ（`list` 省略 = `lists` を持つ項目は出さない、`can` 省略 = `access` を持つ項目は出さない）、`<BulkActionItems items selection onDone? />` が描く。項目の `onDone` は選択を外してから容器の `onDone` を呼ぶ。容器はドメインのフック（`useUserAdminBulkActions(list)` など）でこの 2 つを呼ぶ
-- よくある一括変更は `@/lib/crud/components` の作成関数で数行: `bulkFieldAction`（列挙型の列）・`bulkBelongsToAction`・`bulkRelationAction`（多対多。`mode: "replace" | "add"`）・`bulkDeleteAction`。ボタン（`Bulk*Button`）は成功で `router.refresh()` する
+- よくある一括変更は `@/lib/crud` の作成関数で数行: `bulkFieldAction`（列挙型の列）・`bulkBelongsToAction`・`bulkRelationAction`（多対多。`mode: "replace" | "add"`）・`bulkDeleteAction`。ボタン（`Bulk*Button`）は成功で `router.refresh()` する
 - 汎用の一括ボタンは**副作用の無い列だけ**。記録が必須の操作（状態の一括変更など）は上流が専用のサービス・API と作成関数で出す
 
 ```tsx

@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useUpsertDomain } from "@/lib/crud/hooks";
+import { useUpsertDomain } from "@/lib/crud";
 import { sampleTagClient } from "../services/client/sampleTagClient";
 import type { SampleTag } from "../entities";
 import type { SampleTagCreateFields } from "../entities/form";

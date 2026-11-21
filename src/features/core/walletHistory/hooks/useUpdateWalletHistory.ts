@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useUpdateDomain } from "@/lib/crud/hooks";
+import { useUpdateDomain } from "@/lib/crud";
 import { walletHistoryClient } from "../services/client/walletHistoryClient";
 import type { WalletHistory } from "../entities";
 import type { WalletHistoryUpdateFields } from "../entities/form";

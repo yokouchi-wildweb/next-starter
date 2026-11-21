@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useUpsertDomain } from "@/lib/crud/hooks";
+import { useUpsertDomain } from "@/lib/crud";
 import { couponClient } from "../services/client/couponClient";
 import type { Coupon } from "../entities";
 import type { CouponCreateFields } from "../entities/form";

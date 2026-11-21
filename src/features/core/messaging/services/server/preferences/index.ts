@@ -3,7 +3,7 @@
 // 好みの service の結び(本物の部品)。/api/me/messaging/preferences・user の退会の後片付け・サーバーの呼び手(会員登録の同意など、source を渡す)が呼ぶ。
 
 import { gate } from "@/featureGate";
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 
 import { categories } from "../../../extensions/categories";
 import { categoryGroups } from "../../../extensions/categoryGroups";

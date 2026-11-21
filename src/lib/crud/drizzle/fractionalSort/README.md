@@ -35,7 +35,7 @@ afterItemId = "xxx" → xxx の直後に配置（generateSortKey(xxx.sort_order,
 - 保存された鍵は書き換えない（並べ方と比べ方だけ）
 - index: 並びの列の普通の index は `COLLATE "C"` の並べ方・比べ方に使われない（DB の既定が C.UTF-8 でも）。自分で index を張るなら `sortKeyIndexColumn` で宣言する。生成器は並びの列に index を出さない
   ```ts
-  import { sortKeyIndexColumn } from "@/lib/crud/drizzle/fractionalSort/sortKeyOrder";
+  import { sortKeyIndexColumn } from "@/lib/crud/server";
 
   index("items_sort_idx").on(sortKeyIndexColumn(table.sort_order));
   index("items_parent_sort_idx").on(table.parent_id, sortKeyIndexColumn(table.sort_order));
@@ -47,4 +47,4 @@ afterItemId = "xxx" → xxx の直後に配置（generateSortKey(xxx.sort_order,
     - 普通の `.on(table.sort_order)`: 新しい環境では C にならず、並びに使われない
     - 列を `text COLLATE "C"` で宣言: push のたびに ALTER COLUMN が出る
   - 既にある普通の index を書き換えても push は気づかない（opclass は比較されないので、同じ名前のままだと C にならない）。index の名前を変えて作り直す（表が大きければ書き込みの少ない時間に）
-- 自前の SQL で並びの列を並べる・比べるときも `sortKeyExpr`（`@/lib/crud/drizzle/fractionalSort/sortKeyOrder`）を使う
+- 自前の SQL で並びの列を並べる・比べるときも `sortKeyExpr`（`@/lib/crud/server`）を使う

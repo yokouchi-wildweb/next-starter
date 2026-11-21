@@ -7,7 +7,7 @@ import { PreRegistrationSchema } from "@/features/core/auth/entities/schema";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { userService } from "@/features/core/user/services/server/userService";
-import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { getPublicColumns } from "@/lib/crud/server";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server";

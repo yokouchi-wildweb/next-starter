@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useDuplicateDomain } from "@/lib/crud/hooks";
+import { useDuplicateDomain } from "@/lib/crud";
 import { sampleClient } from "../services/client/sampleClient";
 
 export const useDuplicateSample = () => useDuplicateDomain("samples/duplicate", sampleClient.duplicate!, "samples");

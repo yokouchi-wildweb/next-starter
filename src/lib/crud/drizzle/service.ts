@@ -36,7 +36,7 @@ import {
   composeSearchOrderBy,
 } from "./query";
 import { applyInsertDefaults, buildColumnToPropertyMap, buildDuplicateData, coerceEmptyArraysToNull, isBulkValueEqual, normalizeRecordKeys, resolveConflictTarget } from "./utils";
-import type { AuditConfig, BulkAuditMode, DrizzleCrudServiceOptions, DbTransaction, DbExecutor, ExtraWhereOption, ExtraOrderByOption } from "./types";
+import type { AuditConfig, BulkAuditMode, CrudServiceOptions, DbTransaction, DbExecutor, ExtraWhereClause, ExtraOrderByClause } from "./types";
 import {
   assignLocalRelationValues,
   hydrateBelongsToManyRelations,
@@ -221,7 +221,7 @@ export type DefaultInsert<TTable extends PgTable> = Omit<
 export function createCrudService<
   TTable extends PgTable & { id: AnyPgColumn },
   TCreate extends Record<string, any> = DefaultInsert<TTable>
->(table: TTable, serviceOptions: DrizzleCrudServiceOptions<TCreate> = {}) {
+>(table: TTable, serviceOptions: CrudServiceOptions<TCreate> = {}) {
   type Select = InferSelectModel<TTable>;
   type Insert = TCreate;
   const idColumn = table.id;
@@ -959,7 +959,7 @@ export function createCrudService<
       });
     },
 
-    async remove(id: string, tx?: DbTransaction): Promise<void> {
+    async delete(id: string, tx?: DbTransaction): Promise<void> {
       // audit 用に before を同一 tx で取得 → 削除 → audit 記録
       const performRemove = async (executor: DbExecutor): Promise<void> => {
         const before = audit
@@ -1038,7 +1038,7 @@ export function createCrudService<
       }
     },
 
-    async count(params: CountParams & ExtraWhereOption = {}): Promise<CountResult> {
+    async count(params: CountParams & ExtraWhereClause = {}): Promise<CountResult> {
       const {
         searchQuery,
         searchFields = serviceOptions.defaultSearchFields,
@@ -1071,7 +1071,7 @@ export function createCrudService<
       return { total: Number(count) };
     },
 
-    async search(params: SearchParams & WithOptions & ExtraWhereOption & ExtraOrderByOption = {}): Promise<PaginatedResult<Select>> {
+    async search(params: SearchParams & WithOptions & ExtraWhereClause & ExtraOrderByClause = {}): Promise<PaginatedResult<Select>> {
       const {
         page = 1,
         limit = 100,
@@ -1141,7 +1141,7 @@ export function createCrudService<
       return result;
     },
 
-    async countWithDeleted(params: CountParams & ExtraWhereOption = {}): Promise<CountResult> {
+    async countWithDeleted(params: CountParams & ExtraWhereClause = {}): Promise<CountResult> {
       const {
         searchQuery,
         searchFields = serviceOptions.defaultSearchFields,
@@ -1171,7 +1171,7 @@ export function createCrudService<
       return { total: Number(count) };
     },
 
-    async searchWithDeleted(params: SearchParams & WithOptions & ExtraWhereOption & ExtraOrderByOption = {}): Promise<PaginatedResult<Select>> {
+    async searchWithDeleted(params: SearchParams & WithOptions & ExtraWhereClause & ExtraOrderByClause = {}): Promise<PaginatedResult<Select>> {
       const {
         page = 1,
         limit = 100,
@@ -2467,7 +2467,7 @@ export function createCrudService<
      * @param params - 検索パラメータ
      * @returns 検索結果（NULL が初期化済み）
      */
-    async searchForSorting(params: SearchParams & WithOptions & ExtraWhereOption): Promise<PaginatedResult<Select>> {
+    async searchForSorting(params: SearchParams & WithOptions & ExtraWhereClause): Promise<PaginatedResult<Select>> {
       if (!sortOrderColumn) {
         throw new DomainError(
           "searchForSorting() requires sortOrderColumn to be configured in service options.",

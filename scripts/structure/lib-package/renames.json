@@ -1,6 +1,16 @@
 {
   "about": "lib の改名表(codemod が読む)。行 = { segment, lib, kind: method | export, from, to, receivers?, origin? }。仕様: README.md「改名表」",
   "rows": [
-    { "segment": "k5", "lib": "crud", "kind": "export", "from": "resolveReturnTo", "to": "sanitizeRedirectPath" }
+    { "segment": "k5", "lib": "crud", "kind": "export", "from": "resolveReturnTo", "to": "sanitizeRedirectPath" },
+    { "segment": "k5", "lib": "crud", "kind": "method", "from": "remove", "to": "delete", "receivers": "createCrudService / createFirestoreCrudService の戻り値(と、それを広げたドメインの包み)" },
+    { "segment": "k5", "lib": "crud", "kind": "method", "from": "getById", "to": "get", "receivers": "ApiClient(createApiClient の戻り値)" },
+    { "segment": "k5", "lib": "crud", "kind": "method", "from": "getByIdWithDeleted", "to": "getWithDeleted", "receivers": "ApiClient" },
+    { "segment": "k5", "lib": "crud", "kind": "export", "from": "IdType", "to": "IdStrategy" },
+    { "segment": "k5", "lib": "crud", "kind": "export", "from": "CreateCrudServiceOptions", "to": "CrudServiceBaseOptions" },
+    { "segment": "k5", "lib": "crud", "kind": "export", "from": "DrizzleCrudServiceOptions", "to": "CrudServiceOptions" },
+    { "segment": "k5", "lib": "crud", "kind": "export", "from": "ExtraWhereOption", "to": "ExtraWhereClause" },
+    { "segment": "k5", "lib": "crud", "kind": "export", "from": "ExtraOrderByOption", "to": "ExtraOrderByClause" },
+    { "segment": "k5", "lib": "crud", "kind": "export", "from": "createCrudService", "to": "createFirestoreCrudService", "origin": "src/lib/crud/firestore/index.ts" },
+    { "segment": "k5", "lib": "crud", "kind": "export", "from": "DefaultInsert", "to": "FirestoreDefaultInsert", "origin": "src/lib/crud/firestore/index.ts" }
   ]
 }

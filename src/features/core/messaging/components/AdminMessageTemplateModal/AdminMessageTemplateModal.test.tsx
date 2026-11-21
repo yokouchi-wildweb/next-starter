@@ -245,17 +245,20 @@ mock.module("@/features/core/messaging/hooks/useAdminDispatchCategories", {
     useAdminDispatchCategories: () => ({ categories: [{ key: "notice", label: "お知らせ", kind: "announcement" }] }),
   },
 });
-mock.module("@/lib/crud/components", {
-  namedExports: {
-    CreateButton: (props: { label?: string; onClick?: () => void }) =>
-      createElement("button", { type: "button", onClick: props.onClick }, props.label ?? "新規作成"),
-  },
-});
 
 let act: typeof import("react").act;
 let createRoot: typeof import("react-dom/client").createRoot;
 let AdminMessageTemplateModal: typeof import("./index").AdminMessageTemplateModal;
 before(async () => {
+  // crud の入口を本物のまま、描かせたくない物だけ差し替える(SUT を読む前に置く)
+  const crudEntry = await import("@/lib/crud");
+  mock.module("@/lib/crud", {
+    namedExports: {
+      ...crudEntry,
+      CreateButton: (props: { label?: string; onClick?: () => void }) =>
+        createElement("button", { type: "button", onClick: props.onClick }, props.label ?? "新規作成"),
+    },
+  });
   ({ act } = await import("react"));
   ({ createRoot } = await import("react-dom/client"));
   ({ AdminMessageTemplateModal } = await import("./index"));

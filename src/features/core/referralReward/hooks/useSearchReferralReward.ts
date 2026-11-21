@@ -2,10 +2,10 @@
 
 "use client";
 
-import { useSearchDomain } from "@/lib/crud/hooks";
+import { useSearchDomain } from "@/lib/crud";
 import { referralRewardClient } from "../services/client/referralRewardClient";
 import type { ReferralReward } from "../entities";
-import type { SearchParams } from "@/lib/crud/types";
+import type { SearchParams } from "@/lib/crud";
 
 export type ReferralRewardSearchParams = NonNullable<typeof referralRewardClient.search> extends (
   params: infer P,

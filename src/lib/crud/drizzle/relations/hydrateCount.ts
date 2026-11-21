@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/drizzle";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
-import type { CountableRelation } from "@/lib/crud/types";
+import type { CountableRelation } from "../../types";
 
 /**
  * リレーション先のレコード数を _count に追加する。

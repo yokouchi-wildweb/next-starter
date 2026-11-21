@@ -20,8 +20,8 @@ import { err } from "@/lib/errors";
 import type { DomainDisplay } from "@/lib/domain";
 import { getBelongsToManyRelationsOf } from "@/lib/domain";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
-import { createApiClient } from "@/lib/crud/client";
-import { useBulkAddRelationDomain, useBulkUpdateByIdsDomain } from "@/lib/crud/hooks";
+import { createApiClient } from "../../client";
+import { useBulkAddRelationDomain, useBulkUpdateByIdsDomain } from "../../hooks";
 
 /** リレーション先データの型 */
 type RelationData = {
