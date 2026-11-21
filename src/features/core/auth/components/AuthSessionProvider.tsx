@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { cookies } from "next/headers";
 
 import { parseSessionCookie } from "@/lib/jwt";
+import type { SessionUser } from "@/features/core/auth/entities/session";
 import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";
 
 import { AuthSessionClientProvider } from "./AuthSessionClientProvider";
@@ -12,23 +13,15 @@ type AuthSessionProviderProps = {
   children: ReactNode;
 };
 
-export async function AuthSessionProvider({ children }: AuthSessionProviderProps) {
-  // リクエストに紐づく Cookie ストアを取得し、サーバー側でセッショントークンを解析する。
-  const cookieStore = await cookies();
-  const token = parseSessionCookie(cookieStore);
+/** リクエストの Cookie からセッションの利用者を解く。トークンが無い・解決できなければ null(未ログイン) */
+async function readSessionUser(): Promise<SessionUser | null> {
+  const token = parseSessionCookie(await cookies());
+  if (!token) return null;
+  return (await resolveSessionUser(token)) ?? null;
+}
 
-  if (!token) {
-    // トークンが存在しない場合は未ログイン扱いとして、ユーザー情報なしでコンテキストを初期化する。
-    return <AuthSessionClientProvider initialUser={null}>{children}</AuthSessionClientProvider>;
-  }
-
-  // 有効なトークンであればユーザー情報へ正規化し、失敗した場合は未ログイン扱いとする。
-  const sessionUser = await resolveSessionUser(token);
-
-  if (!sessionUser) {
-    return <AuthSessionClientProvider initialUser={null}>{children}</AuthSessionClientProvider>;
-  }
-
-  // 認証済みユーザーを初期値としてクライアント側プロバイダーに委譲する。
-  return <AuthSessionClientProvider initialUser={sessionUser}>{children}</AuthSessionClientProvider>;
+export function AuthSessionProvider({ children }: AuthSessionProviderProps) {
+  // セッションは await せず promise のまま渡す(読み手が use で読む)。Provider と children は
+  // セッションを待たないので、セッションを読まない部分はリクエストを待たずに描ける。
+  return <AuthSessionClientProvider userPromise={readSessionUser()}>{children}</AuthSessionClientProvider>;
 }

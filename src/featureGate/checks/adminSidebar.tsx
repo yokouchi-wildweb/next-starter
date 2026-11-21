@@ -23,7 +23,7 @@ export function adminSidebar(role = "admin"): AdminMenuBuiltCategory[] {
   const user = { role } as unknown as SessionUser;
   renderToStaticMarkup(
     <GateProvider state={clientGateState("admin")}>
-      <AuthSessionContext.Provider value={{ user, isAuthenticated: true, refreshSession: async () => {} }}>
+      <AuthSessionContext.Provider value={{ userPromise: Promise.resolve(user), override: { user }, refreshSession: async () => {} }}>
         <Probe onMenu={(m) => (captured = m)} />
       </AuthSessionContext.Provider>
     </GateProvider>,

@@ -52,7 +52,7 @@ function menuFor(role: string | null): AdminMenuBuiltCategory[] {
   const user = role === null ? null : ({ role } as unknown as SessionUser);
   renderToStaticMarkup(
     <GateProvider state={clientGateState("admin")}>
-      <AuthSessionContext.Provider value={{ user, isAuthenticated: user !== null, refreshSession: async () => {} }}>
+      <AuthSessionContext.Provider value={{ userPromise: Promise.resolve(user), override: { user }, refreshSession: async () => {} }}>
         <Probe onMenu={(m) => (captured = m)} />
       </AuthSessionContext.Provider>
     </GateProvider>,

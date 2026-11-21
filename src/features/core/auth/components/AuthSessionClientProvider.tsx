@@ -1,9 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
+import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useFirebaseAuthSync } from "@/features/core/auth/hooks/useFirebaseAuthSync";
 import { useDauTracker } from "@/features/core/analytics/hooks/useDauTracker";
 import { useGate } from "@/featureGate/client";
@@ -12,16 +13,46 @@ import { useGate } from "@/featureGate/client";
 // eslint-disable-next-line client-service-boundary/no-direct-import, core-ui-guards/no-guard-in-part -- セッションの持ち主(上の理由)。core-ui-guards も同じ理由
 import { fetchSession } from "@/features/core/auth/services/client/session";
 
-import type { AuthSessionValue } from "./AuthSessionContext";
+import type { AuthSessionSource } from "./AuthSessionContext";
 import { AuthSessionContext } from "./AuthSessionContext";
 
 type AuthSessionClientProviderProps = {
-  initialUser: SessionUser | null;
+  /** サーバーが渡したセッションの利用者の promise(解けた値が null = 未ログイン)。この Provider 自身は待たない */
+  userPromise: Promise<SessionUser | null>;
   children: ReactNode;
 };
 
-export function AuthSessionClientProvider({ initialUser, children }: AuthSessionClientProviderProps) {
-  const [user, setUser] = useState<SessionUser | null>(initialUser);
+export function AuthSessionClientProvider({ userPromise, children }: AuthSessionClientProviderProps) {
+  // refreshSession が決めた利用者。Provider の寿命の間 userPromise より優先する(進行中の古い promise の値へ戻らない)
+  const [override, setOverride] = useState<{ user: SessionUser | null } | undefined>(undefined);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const { user: refreshedUser } = await fetchSession();
+      setOverride({ user: refreshedUser });
+    } catch (error) {
+      setOverride({ user: null });
+      throw error;
+    }
+  }, []);
+
+  const value: AuthSessionSource = useMemo(() => ({ userPromise, override, refreshSession }), [userPromise, override, refreshSession]);
+
+  return (
+    <AuthSessionContext.Provider value={value}>
+      {children}
+      {/* 利用者を読む副作用は Suspense の内側の子で(Provider と children はセッションを待たない)。
+          children の後に置き、effect の順(children の effect の後)を Provider が持っていた時と同じに保つ */}
+      <Suspense fallback={null}>
+        <AuthSessionEffects />
+      </Suspense>
+    </AuthSessionContext.Provider>
+  );
+}
+
+/** セッションの利用者に合わせる副作用(Firebase Auth との同期・DAU の記録)。何も描かない */
+function AuthSessionEffects() {
+  const { user } = useAuthSession();
 
   // Firebase Auth とローカルセッションの同期を維持する。
   useFirebaseAuthSync(user);
@@ -30,24 +61,5 @@ export function AuthSessionClientProvider({ initialUser, children }: AuthSession
   const dauOpen = useGate().enabled("analytics");
   useDauTracker(dauOpen ? user : null);
 
-  const refreshSession = useCallback(async () => {
-    try {
-      const { user: refreshedUser } = await fetchSession();
-      setUser(refreshedUser);
-    } catch (error) {
-      setUser(null);
-      throw error;
-    }
-  }, []);
-
-  const value: AuthSessionValue = useMemo(
-    () => ({
-      user,
-      isAuthenticated: user !== null,
-      refreshSession,
-    }),
-    [user, refreshSession],
-  );
-
-  return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;
+  return null;
 }
