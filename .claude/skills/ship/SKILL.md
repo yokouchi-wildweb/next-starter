@@ -160,7 +160,9 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 ## CATCH UP (laying your branch again on a moved push target — D395 (2))
 - `pnpm workflow notices catchUp [--onto=<ref>]` (default origin/main): the same commits in the same order on the target; a work merge (a guild ticket's merge a cargo kept) stays a merge, a merge that took main into the line is dropped (main's first-parent is one line), the line's root moves onto the target | never a plain `git rebase` (it flattens the work merges)
 - only for a line with one owner (the branch you /ship); a line several build on (a guild's junction) catches up by the tool's merge, never this | it never reorders (not a reorder of a run with merges, D383)
-- tip rebuild (D402): origin/main is an ancestor of HEAD but the tip is a merge that took the target itself into the line (first parent = the line, second = the target) → the same tree as a merge whose first parent is the target and second the line, the same author, subject `merge: <branch> を main へ`; one line `catchUp: 組み直した …`, never a stop (pushed as is, the previous main would leave main's first-parent line) | such a merge further down the line is not rebuilt
+- tip rebuild (D402): origin/main is an ancestor of HEAD but the tip is a merge that took the target itself into the line (first parent = the line, second = the target)
+  - → the same tree as a merge whose first parent is the target and second the line, the same author, subject `merge: <branch> を main へ`; one line `catchUp: 組み直した …`, never a stop
+  - why: pushed as is, the previous main would leave main's first-parent line | such a merge further down the line is not rebuilt
 - exit 1 = stopped on a conflict inside the rebase (git rerere replays what was solved before): solve, `git add`, `git rebase --continue` | exit 2 = cannot run (reason printed) → STOP
 
 ## SHIPPED TIP (plain or `--safe`, step 1's range is empty, HEAD = the push target)
