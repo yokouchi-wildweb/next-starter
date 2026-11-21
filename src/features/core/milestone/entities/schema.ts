@@ -1,6 +1,6 @@
 // src/features/milestone/entities/schemaRegistry.ts
 
-import { requiredDatetime } from "@/lib/crud/utils";
+import { requiredDatetime } from "@/lib/domain";
 import { z } from "zod";
 
 export const MilestoneBaseSchema = z.object({

@@ -7,7 +7,7 @@ import "server-only";
 
 import type { DomainRegistry } from "../../types";
 
-/** ドメインの表（物理名）と主キー列（物理名。論理名は常に lib/crud の CRUD_ID_FIELD = "id"） */
+/** ドメインの表（物理名）と主キー列（物理名。論理名は常に fields/idField.ts の CRUD_ID_FIELD = "id"） */
 export type DomainTable = { table: string; idColumn: string };
 
 const tableIndexes = new WeakMap<DomainRegistry, ReadonlyMap<string, string>>();

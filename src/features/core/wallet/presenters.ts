@@ -1,8 +1,8 @@
 // src/features/core/wallet/presenters.ts
 
 import type { Wallet } from "@/features/core/wallet/entities";
-import type { FieldPresenter } from "@/lib/crud";
-import { formatNumber, formatString } from "@/lib/crud";
+import type { FieldPresenter } from "@/lib/domain";
+import { formatNumber, formatString } from "@/lib/domain";
 
 export type WalletFieldPresenter = FieldPresenter<Wallet>;
 

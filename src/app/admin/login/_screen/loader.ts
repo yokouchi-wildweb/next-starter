@@ -10,7 +10,7 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
-import { resolveReturnTo } from "@/lib/crud/utils/paths";
+import { sanitizeRedirectPath } from "@/lib/url";
 import type { ScreenProps } from "@/lib/screens";
 import { createLoader } from "@/app/guard";
 
@@ -34,7 +34,7 @@ export const loadAdminLoginScreen = createLoader({
     return [typeof returnTo === "string" ? returnTo : undefined];
   },
   load: async ({ allows }, rawReturnTo): Promise<AdminLoginScreenData> => {
-    const redirectTo = resolveReturnTo(rawReturnTo, DEFAULT_REDIRECT_PATH);
+    const redirectTo = sanitizeRedirectPath(rawReturnTo, DEFAULT_REDIRECT_PATH);
     if (allows({ roleCategories: ["admin"] })) {
       redirect(redirectTo);
     }

@@ -1,6 +1,6 @@
 // src/features/coupon/entities/schemaRegistry.ts
 
-import { nullableDatetime } from "@/lib/crud/utils/schema";
+import { nullableDatetime } from "@/lib/domain";
 import { emptyToNull } from "@/utils/string";
 import { storageMediaValueSchema } from "@/lib/storage";
 import { z } from "zod";

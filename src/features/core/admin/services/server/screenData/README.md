@@ -52,7 +52,7 @@ export const loadAdminSampleEditScreen = createLoader(
 取得本体（このフォルダ）:
 
 - `fetchAdminList(service, page, searchQuery, options?)`: 設定の 1 ページ件数で `service.search`
-- `fetchAdminEdit(service, id, returnTo, fallbackPath)`: `service.get`、無ければ `notFound()`、戻り先は `resolveReturnTo`
+- `fetchAdminEdit(service, id, returnTo, fallbackPath)`: `service.get`、無ければ `notFound()`、戻り先は `sanitizeRedirectPath`(`@/lib/url`)
 - `fetchAdminSort(service, sortOrderColumn)`: `service.searchForSorting`
 - `fetchAdminRelationOptions(domainConfig, { resolveTarget, allows })`: フォームの関連選択肢を SWRConfig の fallback の形で返す
 - `service` の型は構造的（`search` / `get` / `searchForSorting` を持てばよい）

@@ -4,7 +4,7 @@ import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 import { walletConfig, type WalletType } from "@/features/wallet/config";
 import { PURCHASE_TYPE_KEYS } from "@/features/purchaseRequest/config";
-import { nullableDatetime } from "@/lib/crud/utils";
+import { nullableDatetime } from "@/lib/domain";
 
 // walletConfig.currency から動的に walletType の値を取得
 const walletTypes = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];

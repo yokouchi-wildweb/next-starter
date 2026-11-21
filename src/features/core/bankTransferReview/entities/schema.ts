@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { emptyToNull } from "@/utils/string";
 import { storageMediaValueSchema } from "@/lib/storage";
-import { nullableDatetime } from "@/lib/crud/utils";
+import { nullableDatetime } from "@/lib/domain";
 
 export const BANK_TRANSFER_REVIEW_STATUSES = [
   "pending_review",

@@ -1,4 +1,5 @@
-// src/lib/crud/utils/schema.ts
+// src/lib/domain/fields/datetimeSchema.ts
+// 日時の欄の Zod スキーマ(生成した entities/schema.ts とプロフィールの schema が読む)
 
 import { z } from "zod";
 

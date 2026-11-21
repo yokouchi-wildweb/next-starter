@@ -1,4 +1,4 @@
-// src/lib/domain/hooks/useTruncateDomains.ts
+// src/lib/crud/hooks/useTruncateDomains.ts
 
 "use client";
 
@@ -8,7 +8,7 @@ import {
   domainClient,
   type TruncatePayload,
   type TruncateResponse,
-} from "../service/client/domainClient";
+} from "../client/domainClient";
 
 /**
  * ドメイン削除を実行するフック

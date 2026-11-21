@@ -10,7 +10,7 @@
 
 import "server-only";
 
-import { resolveReturnTo } from "@/lib/crud/utils/paths";
+import { sanitizeRedirectPath } from "@/lib/url";
 import type { ScreenProps } from "@/lib/screens";
 import { createLoader } from "@/app/guard";
 
@@ -34,7 +34,7 @@ export const loadLogoutScreen = createLoader({
     return [typeof redirectTo === "string" ? redirectTo : undefined];
   },
   load: async (_ctx, rawRedirectTo): Promise<LogoutScreenData> => {
-    return { redirectTo: resolveReturnTo(rawRedirectTo, DEFAULT_REDIRECT_PATH) };
+    return { redirectTo: sanitizeRedirectPath(rawRedirectTo, DEFAULT_REDIRECT_PATH) };
   },
 });
 

@@ -480,3 +480,61 @@ test("改名表: lib を改名する前の木(受け手が古い名前を持つ)
   assert.throws(() => validateRenames([{ segment: "k5", lib: "svc", kind: "method", from: "a", to: "a" }]), /from \/ to/);
   assert.deepEqual(loadRenames().length >= 0, true, "同梱の renames.json は形が正しい");
 });
+
+/** git の見本: 閉じる前の lib "raw"(package.json なし)から、名前を閉じた lib "def" と "url2" へ移す。ファイルごと移した物(paths.ts)と、名前だけ移した物 */
+function makeLooseRepo() {
+  const root = makeRepo({
+    "src/lib/def/package.json": { exports: { ".": "./index.ts" } },
+    "src/lib/def/index.ts": "export const other = 1;\n",
+    "src/lib/url2/package.json": { exports: { ".": "./index.ts" } },
+    "src/lib/url2/index.ts": "export const sanitize = 1;\n",
+    "src/lib/raw/index.ts": 'export { keep, ID } from "./types";\n',
+    "src/lib/raw/types.ts": 'export const keep = 1;\nexport const ID = "id";\n',
+    "src/lib/raw/utils/paths.ts": "export function adminPaths() { return 1; }\nexport function returnTo() { return 2; }\n",
+    "src/features/f/F.ts": [
+      'import { keep, ID } from "@/lib/raw";',
+      'import { ID as Key } from "@/lib/raw/types";',
+      'import { adminPaths, returnTo } from "@/lib/raw/utils/paths";',
+      'import { notThere } from "@/lib/raw";',
+      "",
+    ].join("\n"),
+  });
+  const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.test", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.test" } });
+  git("init", "-q");
+  git("add", "-A");
+  git("commit", "-q", "-m", "base");
+  const base = git("rev-parse", "HEAD").trim();
+  mkdirSync(path.join(root, "src/lib/def/routes"), { recursive: true });
+  git("mv", "src/lib/raw/utils/paths.ts", "src/lib/def/routes/paths.ts");
+  writeFileSync(path.join(root, "src/lib/def/routes/paths.ts"), "export function adminPaths() { return 1; }\n");
+  writeFileSync(path.join(root, "src/lib/url2/returnTo.ts"), "export function returnTo() { return 2; }\n");
+  writeFileSync(path.join(root, "src/lib/url2/index.ts"), 'export const sanitize = 1;\nexport { returnTo } from "./returnTo";\n');
+  writeFileSync(path.join(root, "src/lib/raw/index.ts"), 'export { keep } from "./types";\n');
+  writeFileSync(path.join(root, "src/lib/raw/types.ts"), "export const keep = 1;\n");
+  writeFileSync(path.join(root, "src/lib/def/id.ts"), 'export const ID = "id";\n');
+  writeFileSync(path.join(root, "src/lib/def/index.ts"), 'export const other = 1;\nexport { ID } from "./id";\nexport { adminPaths } from "./routes/paths";\n');
+  git("add", "-A");
+  git("commit", "-q", "-m", "head");
+  clearLibPackageCache();
+  return { root, base };
+}
+
+test("閉じる前の lib のファイルから出ていった名前も行き先へ(ファイルに残る名前はそのまま)。消えたファイルは --base で名前ごとに。決まらない文は止めずに見送る", () => {
+  const { root, base } = makeLooseRepo();
+  const plan = planCodemod(root, { base, table: [] });
+  assert.deepEqual(
+    plan.changes.map((c) => `${c.line} ${c.text}`),
+    [
+      '1 import { keep } from "@/lib/raw";\nimport { ID } from "@/lib/def";',
+      '2 import { ID as Key } from "@/lib/def";',
+      '3 import { adminPaths } from "@/lib/def";\nimport { returnTo } from "@/lib/url2";',
+    ],
+  );
+  assert.deepEqual(plan.stops, [], "閉じた lib の外の文(4 行目の無い名前)は止めずに見送る");
+  const noBase = planCodemod(root, { table: [] });
+  assert.deepEqual(
+    noBase.changes.map((c) => c.line),
+    [1, 2],
+    "--base なしでは消えたファイル(3 行目)は引けない",
+  );
+});

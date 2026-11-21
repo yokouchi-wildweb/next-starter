@@ -5,7 +5,7 @@
 import "server-only";
 import { notFound } from "next/navigation";
 
-import { resolveReturnTo } from "@/lib/crud/utils/paths";
+import { sanitizeRedirectPath } from "@/lib/url";
 
 /** 編集が service に要求する最小の形(createCrudService の get。null / undefined = 存在しない) */
 export type AdminEditService<T> = {
@@ -34,5 +34,5 @@ export async function fetchAdminEdit<T>(
   if (!record) {
     notFound();
   }
-  return { id, record, redirectPath: resolveReturnTo(returnTo, fallbackPath) };
+  return { id, record, redirectPath: sanitizeRedirectPath(returnTo, fallbackPath) };
 }

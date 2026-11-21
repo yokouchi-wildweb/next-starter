@@ -1,6 +1,6 @@
 // src/lib/domain/index.ts
 // 入口 ".": client でも server でも読める物(閉じた lib。入口は "." / "./server" / "./node" の 3 つ、package.json)。
-// "use client" は書かない(hooks のファイルがそれぞれ持つ)。server 専用 → "./server"(@/lib/domain/server)、
+// React の値のコード・hooks・HTTP の client を持たない(server の物も読める。管理画面の全件削除の hooks と client は @/lib/crud)。server 専用 → "./server"(@/lib/domain/server)、
 // Next の外のプログラム(scripts・eslint-rules)→ "./node"(node.mjs)。権限の型と定型は別の lib @/lib/domainAccess。
 // 名前は 1 つずつ書く(export * にしない: tsx でテストが入口を読むとき名前が見えなくなる。入口の契約をここで読める)
 
@@ -45,7 +45,7 @@ export {
   type RelationOptionsRelation,
 } from "./relations/relationOptions.mjs";
 
-// fields: フィールド情報・項目の型の表・入力種別の表・表示の答え(.mjs は "./node" からも出る)
+// fields: フィールド情報・項目の型の表・入力種別の表・表示の答え・主キーの論理名・日時の schema・値の表示(.mjs は "./node" からも出る)
 export { extractFields, getField, getFieldLabel, getFieldOptions } from "./fields/extractFields";
 export { extractImageFields, hasImageFields } from "./fields/extractImageFields";
 export type { BuiltinFormInput, FieldTypeName, FirestoreFieldType, NeonFieldType } from "./fields/fieldTypeNames";
@@ -80,6 +80,18 @@ export {
 export { FORM_INPUTS } from "./fields/fieldFormInputs.mjs";
 export { BUILTIN_FORM_INPUTS } from "./fields/formInputs.mjs";
 export { presenterFor, type PresenterKind, type PresenterSpec } from "./fields/presenterFor.mjs";
+export { CRUD_ID_FIELD } from "./fields/idField";
+export { nullableDatetime, requiredDatetime } from "./fields/datetimeSchema";
+export {
+  formatBoolean,
+  formatDateValue,
+  formatEnumLabel,
+  formatNumber,
+  formatString,
+  formatStringArray,
+  type FieldPresenter,
+  type FieldPresenterParams,
+} from "./fields/formatters";
 
 // junction: 中間テーブルの名前の決まり(表そのものを引く getJunctionTable は "./server")
 export {
@@ -90,15 +102,5 @@ export {
   resolveJunctionTableName,
 } from "./junction/utils";
 
-// 管理画面の全件削除の一覧(client の hooks と HTTP の client)
-export { useFetchDomains } from "./hooks/useFetchDomains";
-export { useTruncateDomains } from "./hooks/useTruncateDomains";
-export {
-  domainClient,
-  fetchDomains,
-  truncateDomains,
-  type FetchDomainsResponse,
-  type TruncatePayload,
-  type TruncateResponse,
-  type TruncateResult,
-} from "./service/client/domainClient";
+// routes: ドメインの管理画面のパス
+export { getAdminPaths, type AdminPaths } from "./routes/adminPaths";

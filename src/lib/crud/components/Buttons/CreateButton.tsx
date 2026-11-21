@@ -8,7 +8,7 @@ import { Plus, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/Button/Button";
 import { type ButtonStyleProps } from "@/components/Button/variants";
 import type { DomainDisplay } from "@/lib/domain";
-import { getAdminPaths } from "@/lib/crud/utils";
+import { getAdminPaths } from "@/lib/domain";
 
 export type CreateButtonProps = ButtonStyleProps & {
   /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */

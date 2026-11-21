@@ -21,5 +21,8 @@ export * from "./useSearchForSortingDomain";
 export * from "./useCountDomain";
 export * from "./useCollectionEntries";
 export * from "./useDomainItemNavigation";
+// 管理画面の全件削除の一覧(ドメイン一覧の取得と全件削除)
+export * from "./useFetchDomains";
+export * from "./useTruncateDomains";
 // mutation 系フックの共通実装（独自 mutation フックはこれを土台にする。useSWRMutation 直接利用は禁止）
 export { useDomainMutation } from "./internal/useDomainMutation";

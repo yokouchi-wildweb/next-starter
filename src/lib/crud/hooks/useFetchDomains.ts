@@ -1,16 +1,17 @@
-// src/lib/domain/hooks/useFetchDomains.ts
+// src/lib/crud/hooks/useFetchDomains.ts
 
 "use client";
 
 import useSWR from "swr";
 
-import { domainClient } from "../service/client/domainClient";
-import type { DomainInfoWithCount } from "../types";
+import type { DomainInfoWithCount } from "@/lib/domain";
+
+import { domainClient } from "../client/domainClient";
 
 const DOMAINS_KEY = "admin/domains";
 
 /**
- * ドメイン一覧を取得するフック
+ * ドメイン一覧を取得するフック(管理画面の全件削除の一覧)
  */
 export function useFetchDomains() {
   const { data, error, isLoading, mutate } = useSWR<DomainInfoWithCount[]>(

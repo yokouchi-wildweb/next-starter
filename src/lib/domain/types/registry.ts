@@ -52,7 +52,7 @@ export type DomainService = {
   getTruncateAffectedTables?: () => Promise<string[]>;
   /** 表の物理名（Drizzle 版のみ） */
   getTableName?: () => string;
-  /** 主キー列の物理名（Drizzle 版のみ。論理名は lib/crud の CRUD_ID_FIELD = "id"） */
+  /** 主キー列の物理名（Drizzle 版のみ。論理名は fields/idField.ts の CRUD_ID_FIELD = "id"） */
   getIdColumnName?: () => string;
   /** storage オプション付きサービスのメディア列宣言 */
   storageFields?: ReadonlyArray<{ name: string; purpose: string; multi?: boolean }>;
@@ -75,7 +75,7 @@ export type DomainRegistryEntry = {
    */
   table: string | null;
   /**
-   * 主キー列の物理名（サービスの getIdColumnName() と同じ値。論理名は常に lib/crud の CRUD_ID_FIELD = "id"）。
+   * 主キー列の物理名（サービスの getIdColumnName() と同じ値。論理名は常に fields/idField.ts の CRUD_ID_FIELD = "id"）。
    * null は表を持たない Firestore 版のドメインだけ。業務ドメインは pnpm generate domain が書き、core は手書き
    */
   idColumn: string | null;

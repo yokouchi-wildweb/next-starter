@@ -40,6 +40,7 @@ pnpm check lib-package -- codemod [--apply] [--json] …
   3. その名前を出す閉じた lib の入口が 1 つ(実体が 1 つ)ならそれ(`--base` なしでも。git の改名なしに別のファイルへ移った名前)
   - 決まらなければ `ambiguous`(候補の入口を並べる)、どこにも無ければ `notExported` で止まる。パッケージからの `export *` を持つ入口(名前を数えきれない)を読む文は触らない
   - 中のファイルを読む文も、そのファイルから消えた名前は同じ順で行き先を探す(ファイルに今もある名前は入口から出していないだけなので探さない)
+  - 閉じた lib の外の repo のファイル(閉じる前の lib・ドメイン。`src/` と `scripts/` の JS / TS)を読む文も、そのファイルから出ていった名前を同じ順(2・3)で閉じた lib の入口へ向ける。`--base` があれば、今の木に無いファイル(閉じる前の lib から動いた・消えた物)を読む文も名前を全部「出ていった」として探す。行き先の決まらない名前のある文は止めずに見送る(閉じた lib の契約の外。型検査と lint が見る)
 - 改名表 `renames.json`: 行 = `{ segment, lib, kind, from, to, receivers?, origin? }`(segment = その行を持ち込んだ区切り / notice。名前を変えた段がその区切りの行を足す)
   - `kind: "export"` = 入口から出す名前の改名。その lib から古い名前を読む import を新しい名前にし、別名の無い import ならファイルの中の参照も書き換える(TypeScript の検査器でその束縛と同じ symbol の識別子だけ。`{ Old }` の短縮は `{ Old: New }`)。`origin` = lib の別の物と同じ名前の時、`<base>` の木で名前の実体が置かれたファイル(例 firestore の `createCrudService`)。`origin` の行は `--base` が要る
   - `kind: "method"` = メソッド名の改名(例 crud のサービスの `remove` → `delete`、ApiClient の `getById` → `get`)。repo の tsconfig.json で TypeScript の program を立て、受け手の型が `src/lib/<lib>/` の中で新しい名前を宣言し、古い名前を自分では持たない時だけ書き換える(= lib を改名した後の木。名前だけでは書き換えない)。`x.old(`・`x["old"]`・`{ old } = x`(→ `{ new: old }`。束縛名は元のまま、`delete` は束縛名にできない)・`{ old: y } = x`。そうした受け手を広げた object literal の中の `old`(ドメインの包みの上書き `{ ...service, old: … }`)も書き換え、その包みを通した呼び出しも追う。同じ名前のメソッドを持つ別の型(Map・DOM の要素など)は触らない

@@ -1,15 +1,12 @@
-// src/lib/crud/utils/paths.ts
+// src/lib/domain/routes/adminPaths.ts
 
-import { sanitizeRedirectPath } from "@/lib/url";
 import { toKebabCase } from "@/lib/stringCase/index.mjs";
 
 /**
- * CRUDパス生成ユーティリティ
- *
- * ドメインの一覧・新規作成・詳細・編集ページのパスを生成する
+ * ドメインの管理画面のパス(一覧・新規作成・詳細・編集)を生成する
  */
 
-export type CrudPaths = {
+export type AdminPaths = {
   /** 一覧ページ */
   list: string;
   /** 新規作成ページ */
@@ -21,7 +18,7 @@ export type CrudPaths = {
 };
 
 /**
- * 基本のCRUDパス生成（汎用）
+ * 基本のパス生成(getAdminPaths の中身。外へは出さない)
  *
  * @param basePath - ベースとなるパス
  * @returns CRUDパスオブジェクト
@@ -33,7 +30,7 @@ export type CrudPaths = {
  * paths.detail("1") // "/admin/users/general/1"
  * paths.edit("1")   // "/admin/users/general/1/edit"
  */
-export function getCrudPaths(basePath: string): CrudPaths {
+function getCrudPaths(basePath: string): AdminPaths {
   return {
     list: basePath,
     new: `${basePath}/new`,
@@ -43,7 +40,7 @@ export function getCrudPaths(basePath: string): CrudPaths {
 }
 
 /**
- * 管理画面用CRUDパス生成
+ * 管理画面のパス生成
  *
  * @param slugPlural - ドメインのslugPlural（kebab-case複数形）
  * @returns CRUDパスオブジェクト
@@ -55,19 +52,6 @@ export function getCrudPaths(basePath: string): CrudPaths {
  * paths.detail("1") // "/admin/samples/1"
  * paths.edit("1")   // "/admin/samples/1/edit"
  */
-export function getAdminPaths(slugPlural: string): CrudPaths {
+export function getAdminPaths(slugPlural: string): AdminPaths {
   return getCrudPaths(`/admin/${toKebabCase(slugPlural)}`);
-}
-
-/**
- * returnToパラメータを検証し、安全なリダイレクト先を返す
- *
- * オープンリダイレクト対策として、同一オリジンの相対パスのみ許可する（判定は sanitizeRedirectPath）。
- * 不正な値の場合はfallbackを返す。
- *
- * @param returnTo - URLから取得したreturnToパラメータ
- * @param fallback - returnToが無効な場合のデフォルトパス
- */
-export function resolveReturnTo(returnTo: string | undefined, fallback: string): string {
-  return sanitizeRedirectPath(returnTo, fallback);
 }

@@ -17,7 +17,7 @@
 | `getDomainTable(registry, key)` | 同期・読み込まない。キー → `{ table, idColumn }`。未登録と Firestore 版は `null` |
 | `getDomainList(registry, configMap)` / `getDomainListWithCount` / `withRecordCounts` / `isValidDomainKey` / `getInvalidDomainKeys` | 全件削除の一覧（access の評価は呼び手）。`getDomainList` はサービスを読み込まず、`table` を持つ行（= Drizzle 版 = truncateAll あり）で作る。読み込めないドメインも一覧に出るが、実行の直前の `isValidDomainKey` / `getInvalidDomainKeys` はサービスを読み込んで truncateAll を確かめる |
 
-戻りの型 `DomainService` は createCrudService の操作の構造型（全 optional）。Drizzle 版は `getTableName()`（表の物理名）と `getIdColumnName()`（主キー列の物理名）を持つ。主キーの論理名は常に `CRUD_ID_FIELD = "id"`（`@/lib/crud`）。表そのものは公開しない。Firestore 版（凍結）は `truncateAll` / `getTableName` / `getIdColumnName` を持たない。
+戻りの型 `DomainService` は createCrudService の操作の構造型（全 optional）。Drizzle 版は `getTableName()`（表の物理名）と `getIdColumnName()`（主キー列の物理名）を持つ。主キーの論理名は常に `CRUD_ID_FIELD = "id"`（この lib の "."）。表そのものは公開しない。Firestore 版（凍結）は `truncateAll` / `getTableName` / `getIdColumnName` を持たない。
 
 - 登録表を結んだ版は `src/wiring/domainRegistry.ts`(import してよい場所は `src/wiring/README.md`)。lib が引きたいときは呼び手が注入する(`src/lib/dataMigration` の `services`、storageObject の sweep の `lookupService`)
 
@@ -61,14 +61,14 @@
 
 ### 入口と関数のありか
 
-- 入口は 3 つ(`package.json`): `.` = `@/lib/domain`(client でも server でも読める: 型・写しを受ける関数・定義の読み方・型の表と入力種別の表と表示の答え・中間表の名前・全件削除の一覧の hooks と client)、`./server` = `@/lib/domain/server`(登録表から引く関数・`getJunctionTable`)、`./node` = `node.mjs`(Next の外のプログラムが読む `.mjs` 5 つ: `fieldTypes`・`fieldFormInputs`・`formInputs`・`presenterFor`・`relationOptions`。scripts・eslint-rules からは相対で `src/lib/domain/node.mjs`)
+- 入口は 3 つ(`package.json`): `.` = `@/lib/domain`(client でも server でも読める: 型・写しを受ける関数・定義の読み方・型の表と入力種別の表と表示の答え・主キーの論理名 `CRUD_ID_FIELD`・日時の schema・値の表示 `format*` と `FieldPresenter`・中間表の名前・管理画面のパス `getAdminPaths` / `AdminPaths`。React の値・hooks・HTTP の client は無い)、`./server` = `@/lib/domain/server`(登録表から引く関数・`getJunctionTable`)、`./node` = `node.mjs`(Next の外のプログラムが読む `.mjs` 5 つ: `fieldTypes`・`fieldFormInputs`・`formInputs`・`presenterFor`・`relationOptions`。scripts・eslint-rules からは相対で `src/lib/domain/node.mjs`)
 - 外から下の中のファイルは読まない(lint `entry/only-entries`)。下はフォルダの中の置き場
 
 - `definition/`: `createDomainConfigLookup`、`normalizeDomainJsonConfig`、`resolveAccessRule`
 - `relations/`: 写しを受ける関数、関連選択肢（`relationOptions.mjs`）
-- `fields/`: `extractFields` / `extractImageFields`、型（fieldType）の表 `fieldTypes.mjs`
+- `fields/`: `extractFields` / `extractImageFields`、型（fieldType）の表 `fieldTypes.mjs`、主キーの論理名 `idField.ts`、日時の schema `datetimeSchema.ts`、値の表示 `formatters.ts`(生成した presenters.ts が読む。`FieldPresenter` の戻りの型だけ react を型で読む)
+- `routes/`: 管理画面のパス `getAdminPaths(slugPlural)` → `AdminPaths`(list / new / detail(id) / edit(id))
 - `junction/`: 中間表の名前解決（utils は client 可、`getJunctionTable(tables, name)` は server-only で表の一覧を引数で受ける。結んだ版は `src/wiring/domainRegistry.ts` の `getJunctionTable(name)`）
-- `hooks/` `service/client/`: 管理画面の全件削除一覧（`useFetchDomains`）
 
 ### 型(fieldType)の表: `fields/fieldTypes.mjs`
 

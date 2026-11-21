@@ -8,7 +8,7 @@ import SearchBox from "@/components/Admin/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import { CreateButton } from "@/lib/crud/components";
-import { getAdminPaths } from "@/lib/crud/utils";
+import { getAdminPaths } from "@/lib/domain";
 import { domainDisplay as chatRoomDisplay } from "@/features/core/chatRoom/entities/display";
 
 const paths = getAdminPaths("chat-rooms");

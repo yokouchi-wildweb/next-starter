@@ -11,7 +11,7 @@ import { DataMigrationButton } from "@/lib/dataMigration";
 import { Button } from "@/components/Button/Button";
 import { useSearchParams } from "next/navigation";
 import { CreateButton } from "@/lib/crud/components";
-import { getAdminPaths } from "@/lib/crud/utils";
+import { getAdminPaths } from "@/lib/domain";
 import { domainDisplay as sampleCategoryDisplay } from "@/features/sampleCategory/entities/display";
 
 const paths = getAdminPaths("sample-categories");

@@ -1,11 +1,11 @@
-// src/lib/domain/service/client/domainClient.ts
+// src/lib/crud/client/domainClient.ts
 
 "use client";
 
 import axios from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
-import type { DomainInfoWithCount } from "../../types";
+import type { DomainInfoWithCount } from "@/lib/domain";
 
 // エンドポイント
 const ENDPOINTS = {

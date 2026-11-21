@@ -1,15 +1,8 @@
 // src/features/core/walletHistory/presenters.ts
 
 import type { WalletHistory } from "@/features/core/walletHistory/entities";
-import type { FieldPresenter } from "@/lib/crud";
-import {
-  formatBoolean,
-  formatEnumLabel,
-  formatNumber,
-  formatString,
-  formatStringArray,
-  formatDateValue,
-} from "@/lib/crud";
+import type { FieldPresenter } from "@/lib/domain";
+import { formatBoolean, formatEnumLabel, formatNumber, formatString, formatStringArray, formatDateValue } from "@/lib/domain";
 import { formatDateJa } from "@/utils/date";
 
 type WalletHistoryFieldPresenter = FieldPresenter<WalletHistory>;
