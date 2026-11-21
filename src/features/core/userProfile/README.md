@@ -144,6 +144,9 @@ const { data, total, isLoading } = useSearchUserWithProfile("contributor", {
 ### クライアントサービス
 
 `services/client/profileClient.ts` はロールをパラメータに取る汎用クライアント。
+共通の CRUD(`getAll` / `get` / `update` / `search` / `upsert` / `delete`)は crud の `createApiClient`(`/api/profile/<role>`)に任せ、
+プロフィールにしかない操作(`getByUserId` / `updateByUserId` / `deleteByUserId`、`/api/profile/<role>/by-user/<userId>`)だけを持つ。
+失敗はどれも `normalizeHttpError` を通した `HttpError` で投げる。
 
 UI（コンポーネント・Screen）からは直接呼ばず、下の「hooks」節のフック（`useProfileSearch` など）を使う（lint `client-service-boundary/no-direct-import` が検出する）。以下はフックを実装する側の呼び方。
 

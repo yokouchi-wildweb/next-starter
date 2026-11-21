@@ -112,7 +112,7 @@ const result = await profileBase.query(baseQuery, { page: 1, limit: 20 });
 | `/api/profile/[role]` | GET | 一覧取得 |
 | `/api/profile/[role]/search` | GET | 検索 |
 | `/api/profile/[role]/[id]` | GET | プロフィール ID で取得 |
-| `/api/profile/[role]/[id]` | PATCH | プロフィール ID で更新 |
+| `/api/profile/[role]/[id]` | PUT | プロフィール ID で更新 |
 | `/api/profile/[role]/[id]` | DELETE | プロフィール ID で削除 |
 | `/api/profile/[role]/upsert` | PUT | upsert |
 | `/api/profile/[role]/by-user/[userId]` | GET | userId で取得 |

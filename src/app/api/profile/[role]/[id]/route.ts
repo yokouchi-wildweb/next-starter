@@ -28,10 +28,10 @@ export const GET = createApiRoute<Params>(
   },
 );
 
-// PATCH /api/profile/[role]/[id] : プロフィールIDで更新
-export const PATCH = createApiRoute<Params>(
+// PUT /api/profile/[role]/[id] : プロフィールIDで更新
+export const PUT = createApiRoute<Params>(
   {
-    operation: "PATCH /api/profile/[role]/[id]",
+    operation: "PUT /api/profile/[role]/[id]",
     operationType: "write",
     access: { roleCategories: ["admin"] },
   },
