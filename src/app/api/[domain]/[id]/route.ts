@@ -41,7 +41,7 @@ export const PUT = createDomainIdRoute(
 export const DELETE = createDomainIdRoute(
   {
     operation: "DELETE /api/[domain]/[id]",
-    crudOp: "remove",
+    crudOp: "delete",
     operationType: "write",
   },
   async (_req, { service, params }) => {

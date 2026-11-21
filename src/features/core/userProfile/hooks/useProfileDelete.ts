@@ -10,6 +10,6 @@ import { profileClient } from "../services/client/profileClient";
 export const useProfileDelete = (role: string) =>
   useDeleteDomain(
     `profile:${role}/delete`,
-    (id) => profileClient.remove(role, id).then(() => {}),
+    (id) => profileClient.delete(role, id).then(() => {}),
     `profile:${role}/search`,
   );

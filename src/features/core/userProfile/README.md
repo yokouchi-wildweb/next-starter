@@ -167,10 +167,10 @@ await profileClient.updateByUserId("contributor", userId, { bio: "新しい自�
 await profileClient.upsert("contributor", { userId, bio: "自己紹介" });
 
 // 削除（プロフィールIDで）
-await profileClient.remove("contributor", profileId);
+await profileClient.delete("contributor", profileId);
 
 // 削除（userIdで）
-await profileClient.removeByUserId("contributor", userId);
+await profileClient.deleteByUserId("contributor", userId);
 ```
 
 ### hooks
@@ -428,7 +428,7 @@ export const override: CoreRoleOverride = { hasProfile: true };
 
 ### 監査ログ
 
-`profile.json` か上書きに `audit` を書くと `extensions/profileBases.ts` の `createProfileBase` に渡る。書き方は `src/features/core/auditLog/README.md`「A」。`updateByUserId` は `base.update` を通るので監査に残る。`removeByUserId` は残らない。
+`profile.json` か上書きに `audit` を書くと `extensions/profileBases.ts` の `createProfileBase` に渡る。書き方は `src/features/core/auditLog/README.md`「A」。`updateByUserId` は `base.update` を通るので監査に残る。`deleteByUserId` は残らない。
 
 ## Internals
 
