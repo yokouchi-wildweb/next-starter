@@ -1,0 +1,12 @@
+# DOWNSTREAM NOTICE id:20261121-113128-personal-context
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:build/20261111-153718-claude-md-context.2-content | commit:- (this commit)
+date: 2026-11-21T02:31:28Z
+severity: info
+checkpoint: personal-context
+change: personal places and the memory definition: CLAUDE.md DOCS gains the key `personal` (your own notes = ~/.claude/CLAUDE.md for every repo | <repo>/CLAUDE.local.md for this repo, gitignored and copied into worktrees | free form, never checked | no personal file under .claude/ or ~/.claude/rules); `memory` now asks for a checkable end condition and is tidied by /meditate (a fixed block at the head of MEMORY.md); `durable_info` sends a correction to behavior.md (everyone's work rule) or a personal place (yours only); core/design.md places context gets the matching sub-line; AGENTS.md tells Codex to read CLAUDE.local.md and ~/.claude/CLAUDE.md after the rules; new commands `pnpm workflow memory facts` (one read-only row of facts per memo) and `pnpm workflow memory header [--apply]` (restore the head block of MEMORY.md from the canon .claude/skills/meditate/header.md); /meditate rewritten (head block → facts → one approval per destination batch → one memo at a time for judgment → write the destination, read it back, then mv the memo to memory-archive/<date>/; run from the main checkout's session only)
+why: personal preferences had no place of their own and leaked into auto-memory or shared rule files; forks get the same two places, the same memory definition and the tool to tidy existing memory
+required_actions: none
+verify: -
+manual_steps: -
+refs: CLAUDE.md (DOCS personal, memory, durable_info) | .claude/rules/core/design.md (places context) | AGENTS.md | .gitignore | scripts/workflow/worktree/include | scripts/workflow/memory/README.md | .claude/skills/meditate/SKILL.md | .claude/skills/meditate/header.md
+notes: no rule key renamed or removed (`personal` is added). .gitignore and the upstream part of scripts/workflow/worktree/include come in by merge; fork lines below `# --- fork entries below ---` stay. Recommended once after taking this: in the main checkout's session run /meditate — it puts the head block into MEMORY.md and brings the existing memory to the definition (handoff of in-progress work only), moving personal notes to CLAUDE.local.md (this repo) or ~/.claude/CLAUDE.md (every repo) on your approval. A fork that kept personal notes in behavior.md or files under .claude/ may move them to those places; how a personal file is written is free.
