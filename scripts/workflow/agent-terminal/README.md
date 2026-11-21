@@ -76,7 +76,7 @@ then=continue|wait|none     # 圧縮の後の続きの既定(compactSelf の --t
 
 ### 圧縮の後の 1 行(印 `after`)
 
-- 値: `continue`(既定、読み返して続ける)/ `wait`(読み返して待つ)/ `none`(何も打たない)| 無い・知らない値 = `continue`
+- 値: `continue`(既定、読み返して続ける)/ `wait`(読み返して待つ: 人がこの圧縮について今は待てと言った時だけ。答え待ち・承認待ちの途中は `continue` のまま、続けた後に待っていた問いを出し直す)/ `none`(何も打たない)| 無い・知らない値 = `continue`
 - 書くのは `/compact` を打つ者だけ、打つ直前に: 待つ役(`compactSelf --then`)、または `/compact` を自分で打つ道具(`pnpm workflow agent-terminal afterCompact <値> --socket=<path> --pane=%<N>`、頼み先なら受けた `AGENT_COMPACT_THEN`)| 道具が決めずに打った `/compact` は人が打ったのと同じ(`continue`)
 - 次の SessionStart(どの source でも)で消える | 書くのは記録の置き場(下)のペインごとの印で、どのチェックアウトから書いても同じ
 
