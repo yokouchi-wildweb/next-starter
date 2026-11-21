@@ -71,3 +71,15 @@ test("規則が設定に無い・代表のファイルが無いと落ちる", as
     ["no-such-plugin/no-such-rule", "entry/only-entries"],
   );
 });
+
+test("entry/only-entries は出荷済みの notice の道具(.notices/*.mjs とそのテスト)にだけ掛からない(D267)。ほかの lint は掛かる", async () => {
+  const eslint = new ESLint({ cwd: repoRoot });
+  const ruleOf = async (file, rule) => severityOf((await eslint.calculateConfigForFile(file)).rules?.[rule]);
+  for (const file of [".notices/20990101-000000-x.tool.mjs", ".notices/20990101-000000-x.tool.test.mjs"]) {
+    assert.ok(!(await ruleOf(file, "entry/only-entries")), `${file} に entry/only-entries が掛かっている`);
+    assert.equal(await ruleOf(file, "import-boundaries/scripts-no-static-wiring"), 2, `${file} のほかの lint が外れた`);
+  }
+  for (const file of ["scripts/runner/task/run.ts", "src/lib/drizzle/index.ts"]) {
+    assert.equal(await ruleOf(file, "entry/only-entries"), 2, `${file} に entry/only-entries が掛かっていない`);
+  }
+});

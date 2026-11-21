@@ -151,12 +151,21 @@ const config = [
   // - entry/only-entries: 棚の単位・core の部品・宣言済みの lib は入口からだけ読む(値も型も)。宣言済みの lib は
   //   "libs" の lib の入口・"peers" の棚・@lib-config/<自分> だけを読む(D80・D83・D84。詳細: eslint-rules/entry.mjs)
   // - lib-self-relative: 宣言済みの lib の中で自分を @/lib/<自分> で読まない(相対パスで読む。D100)
-  // scripts・テスト・.notices・eslint 設定からの読みも対象(D84)
+  // scripts・テスト・eslint 設定からの読みも対象(D84)。出荷済みの notice の道具(.notices/<id>.*.mjs とそのテスト)だけは
+  // entry/only-entries から外す: 道具は自分の区切り(checkpoint)の時点の木に対して走り、出荷後は書き換えない(D267)。
+  // その木では正しい中のファイルの道(閉じる前の lib など)を、今の木の入口で止めない。ほかの lint は .notices にも掛かる
   {
     files: ["**/*.{ts,tsx,mts,mjs,js,cjs}"],
-    plugins: { entry: entryPlugin, "import-boundaries": importBoundariesPlugin },
+    ignores: [".notices/*.mjs"],
+    plugins: { entry: entryPlugin },
     rules: {
       "entry/only-entries": "error",
+    },
+  },
+  {
+    files: ["**/*.{ts,tsx,mts,mjs,js,cjs}"],
+    plugins: { "import-boundaries": importBoundariesPlugin },
+    rules: {
       "import-boundaries/lib-self-relative": "error",
     },
   },
