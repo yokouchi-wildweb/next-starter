@@ -4,7 +4,7 @@
 "use client";
 
 import { useRouter as useNextRouter, usePathname } from "next/navigation";
-import { createContext, type ReactNode, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { createContext, type ReactNode, Suspense, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 
 import { createTaskTracker, createUnsavedGuard, type UnsavedGuard } from "./guard";
 import type { ConfirmLeave, GuardedRouter, LinkNavigateJudge, UnsavedReason, UnsavedSource, UnsavedTasks } from "./types";
@@ -24,12 +24,26 @@ export function UnsavedGuardProvider({ confirm, children }: Readonly<{ confirm: 
   useLayoutEffect(() => {
     guard.configure({ confirm, router: raw });
   });
+  const value = useMemo(() => ({ guard, raw }), [guard, raw]);
+  return (
+    <GuardContext.Provider value={value}>
+      {children}
+      {/* 住所を読むのは何も描かない子だけ(Suspense の内側)。Provider と children は住所を待たない。
+          children の後に置き、effect の順(children の後に navigated)を Provider が読んでいた時と同じに保つ */}
+      <Suspense fallback={null}>
+        <GuardNavigationWatcher guard={guard} />
+      </Suspense>
+    </GuardContext.Provider>
+  );
+}
+
+/** 住所が変わったら守りに伝える(移った後にまた守れるようにする)。何も描かない */
+function GuardNavigationWatcher({ guard }: Readonly<{ guard: UnsavedGuard }>) {
   const pathname = usePathname();
   useEffect(() => {
     guard.navigated();
   }, [guard, pathname]);
-  const value = useMemo(() => ({ guard, raw }), [guard, raw]);
-  return <GuardContext.Provider value={value}>{children}</GuardContext.Provider>;
+  return null;
 }
 
 /** 編集済みの間(when = true)守る。フォームなら formState.isDirty を渡す。reason = 守る理由(既定 unsaved、処理の途中は inProgress) */

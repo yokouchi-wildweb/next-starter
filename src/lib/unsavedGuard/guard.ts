@@ -59,8 +59,10 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
   let leaving = false;
   let asking = false;
   let attached = false;
-  // 番兵の印(この守りが積んだ番兵だけを外す。再読み込みの前の番兵は別の文書の履歴の上にあり、戻ると読み直しになる)
-  const sentinelToken = `g${Math.random().toString(36).slice(2)}`;
+  // 番兵の印(この守りが積んだ番兵だけを外す。再読み込みの前の番兵は別の文書の履歴の上にあり、戻ると読み直しになる)。
+  // 最初に番兵を積む時に 1 度だけ作り、以後同じ値。守りは描画中(Provider の useState の初期化)に作られるので、
+  // 乱数は描画の外で読む(描画を純粋に保つ。cacheComponents の prerender は描画中の乱数を嫌う)
+  let sentinelToken: string | null = null;
   // 「移る」と決めた(次に編集済みになるまで)= 離れたので番兵を外さない
   let departed = false;
   // 番兵を外す途中(history.back の popstate を待つ)。done は外れ終わる(または待つのをやめる)と解ける
@@ -101,6 +103,7 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
     if (removal) return; // 外す途中は今の state がまだ番兵を指す。外れ終わった時に積み直す(onPopState)
     const state = getEnv().win.history.state as Record<string, unknown> | null;
     if (state && state[SENTINEL_KEY]) return;
+    sentinelToken ??= `g${Math.random().toString(36).slice(2)}`;
     getEnv().win.history.pushState({ ...(state ?? {}), [SENTINEL_KEY]: sentinelToken }, "", getEnv().win.location.href);
   };
 
@@ -116,7 +119,7 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
   const removeSentinel = () => {
     if (removal) return;
     const state = getEnv().win.history.state as Record<string, unknown> | null;
-    if (!state || state[SENTINEL_KEY] !== sentinelToken) return;
+    if (!sentinelToken || !state || state[SENTINEL_KEY] !== sentinelToken) return; // まだ積んでいない守りは外す物が無い
     let finish = () => {};
     const done = new Promise<void>((resolve) => {
       finish = resolve;
