@@ -11,6 +11,7 @@
     { "segment": "k5", "lib": "crud", "kind": "export", "from": "ExtraWhereOption", "to": "ExtraWhereClause" },
     { "segment": "k5", "lib": "crud", "kind": "export", "from": "ExtraOrderByOption", "to": "ExtraOrderByClause" },
     { "segment": "k5", "lib": "crud", "kind": "export", "from": "createCrudService", "to": "createFirestoreCrudService", "origin": "src/lib/crud/firestore/index.ts" },
-    { "segment": "k5", "lib": "crud", "kind": "export", "from": "DefaultInsert", "to": "FirestoreDefaultInsert", "origin": "src/lib/crud/firestore/index.ts" }
+    { "segment": "k5", "lib": "crud", "kind": "export", "from": "DefaultInsert", "to": "FirestoreDefaultInsert", "origin": "src/lib/crud/firestore/index.ts" },
+    { "segment": "k7", "lib": "crud", "kind": "method", "from": "list", "to": "getAll", "receivers": "profileClient(userProfile のロール付きクライアント。宣言が src/lib の外なので codemod は書き換えない: notice の手順で直す)" }
   ]
 }
