@@ -15,7 +15,7 @@ import {
   clearPairedDeviceCookie,
   syncPairedDeviceCookie,
 } from "@/features/pairedDevice/services/server/session";
-import { getAuditContext, runWithAuditContext } from "@/lib/audit";
+import { getAuditContext, runWithAuditContext } from "@/lib/audit/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute(

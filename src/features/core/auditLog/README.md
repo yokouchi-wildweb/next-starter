@@ -11,7 +11,7 @@ import の使い分け:
 
 - **server（記録・参照）**: `import { auditLogger } from "@/features/core/auditLog/services/server";`
 - **client / 表示系**: `import { AuditTimeline, auditLogClient } from "@/features/core/auditLog";`
-- **context 操作**: `import { runAsSystem, runWithAuditContext } from "@/lib/audit";`
+- **context 操作**: `import { runAsSystem, runWithAuditContext } from "@/lib/audit/server";`
 
 `auditLogger` がバレル (`@/features/core/auditLog`) に無いのは、Client Component 経由で `node:async_hooks` / DB ドライバがクライアントバンドルに流入するのを防ぐため。
 
@@ -254,7 +254,7 @@ export default {
 - `createCronRoute` と `pnpm task` は context を敷かない。cron / CLI / バックグラウンド処理から記録する場合は処理側で `runAsSystem` を張る（張らずに記録すると `AuditContext is not set` で throw、bestEffort なら dead-letter 行き）。実例: `wallet/services/server/lots/sweepExpiredLots.ts`
 
 ```ts
-import { runAsSystem, runWithAuditContext } from "@/lib/audit";
+import { runAsSystem, runWithAuditContext } from "@/lib/audit/server";
 
 await runAsSystem(async () => {
   await someBackgroundTask(); // 内部の record() は actor_type="system"

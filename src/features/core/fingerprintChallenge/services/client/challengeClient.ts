@@ -5,7 +5,7 @@
 import axios from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
-import type { BehaviorPayload, FingerprintPayload } from "@/lib/fingerprint/types";
+import type { BehaviorPayload, FingerprintPayload } from "@/lib/fingerprint";
 import type { FingerprintChallengeForUser } from "@/features/core/fingerprintChallenge/entities/model";
 
 const BASE = "/api/me/fingerprint-challenges";

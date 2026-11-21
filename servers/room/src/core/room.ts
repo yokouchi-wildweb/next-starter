@@ -13,7 +13,7 @@
 //   - WebSocket 経由の dispatch: RoomDefinition.clientActions 許可リストに載る action のみ
 //   - WebSocket の寿命 = 接続トークンの期限: 期限後は状態も操作も通さず、受信・送信のたびに見て閉じる (./socketExpiry.ts)
 
-import { ROOM_CLOSE_CODES, ROOM_PROTOCOL_VERSION, ROOM_TOKEN_KINDS, ROOM_TOKEN_QUERY_PARAM } from "@/lib/realtimeRoom/protocol";
+import { ROOM_CLOSE_CODES, ROOM_PROTOCOL_VERSION, ROOM_TOKEN_KINDS, ROOM_TOKEN_QUERY_PARAM } from "@/lib/realtimeRoom/node";
 import type {
   AnyRoomDefinition,
   RoomActionBase,
@@ -23,7 +23,7 @@ import type {
   RoomReducer,
   RoomServerMessage,
   RoomStateBase,
-} from "@/lib/realtimeRoom/protocol";
+} from "@/lib/realtimeRoom/node";
 
 import { roomRegistry } from "../registry";
 import { extractBearerToken, isTokenForRoom, signCallbackToken, verifyRoomToken } from "./auth";

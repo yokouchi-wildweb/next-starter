@@ -5,10 +5,10 @@ import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
-import { getAuditContext } from "@/lib/audit";
+import { getAuditContext } from "@/lib/audit/server";
 import { DomainError } from "@/lib/errors";
 import type { DbTransaction } from "@/lib/crud/server";
-import { stableStringify } from "@/lib/fingerprint/hash";
+import { stableStringify } from "@/lib/fingerprint";
 import { deviceFingerprintConfig } from "@/features/deviceFingerprint/config";
 
 import { DeviceFingerprintTable } from "@/features/core/deviceFingerprint/entities/drizzle";

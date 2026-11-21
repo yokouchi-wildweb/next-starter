@@ -6,8 +6,8 @@
 
 import { SignJWT, jwtVerify } from "jose";
 
-import { ROOM_TOKEN_KINDS } from "@/lib/realtimeRoom/protocol";
-import type { RoomTokenClaims } from "@/lib/realtimeRoom/protocol";
+import { ROOM_TOKEN_KINDS } from "@/lib/realtimeRoom/node";
+import type { RoomTokenClaims } from "@/lib/realtimeRoom/node";
 
 const encoder = new TextEncoder();
 

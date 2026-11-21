@@ -7,8 +7,8 @@
 
 ## API
 
-- 入口 `@/lib/httpDefaults`: 合成済みの設定 `httpDefaultsConfig`(と `httpDefaultsConfigDef`)・型 `HttpDefaultsConfig` / `HttpDefaultsOverride`・`installHttpDefaults(instance, timeoutMs)`(interceptor を 1 つ登録する。前の登録があれば外してから)・`applyDefaultTimeout(request, timeoutMs)`(1 つの要求に既定を当てる純関数)
-- 入口 `@/lib/httpDefaults/HttpDefaultsRoot`: 登録する client の部品 `<HttpDefaultsRoot />`(何も描かない)
+- 入口 `@/lib/httpDefaults`(1 つだけ): 合成済みの設定 `httpDefaultsConfig`(と `httpDefaultsConfigDef`)・型 `HttpDefaultsConfig` / `HttpDefaultsOverride`・`installHttpDefaults(instance, timeoutMs)`(interceptor を 1 つ登録する。前の登録があれば外してから)・`applyDefaultTimeout(request, timeoutMs)`(1 つの要求に既定を当てる純関数)
+- 同じ入口の client の部品 `<HttpDefaultsRoot />`(何も描かない。`"use client"` のファイルで、読み込まれた時に 1 回登録する)
 
 ## Extension
 

@@ -10,7 +10,7 @@
 //
 // namespace はレジストリ登録済みのもののみ受け付ける (fail-closed 404)。
 
-import { ROOM_PROTOCOL_VERSION } from "@/lib/realtimeRoom/protocol";
+import { ROOM_PROTOCOL_VERSION } from "@/lib/realtimeRoom/node";
 
 import { RoomDurableObject } from "./core/room";
 import type { Env } from "./core/types";

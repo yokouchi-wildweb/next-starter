@@ -7,7 +7,7 @@ import { gate } from "@/featureGate";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { getAuditContext } from "@/lib/audit";
+import { getAuditContext } from "@/lib/audit/server";
 import { db } from "@/lib/drizzle";
 
 import { userGroupConfig } from "../../../config";

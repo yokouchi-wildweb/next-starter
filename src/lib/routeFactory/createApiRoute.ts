@@ -3,11 +3,8 @@
 import { NextRequest, NextResponse, connection } from "next/server";
 
 import { routeFactoryConfig } from "./config";
-import {
-  runWithAuditContext,
-  type AuditActorType,
-  type AuditContext,
-} from "@/lib/audit";
+import { runWithAuditContext } from "@/lib/audit/server";
+import type { AuditActorType, AuditContext } from "@/lib/audit";
 import type { RecaptchaAction } from "@/lib/recaptcha";
 import { RECAPTCHA_DEBUG, RECAPTCHA_V2_INTERNALS, RECAPTCHA_V3_INTERNALS, verifyRecaptcha, verifyRecaptchaV2 } from "@/lib/recaptcha/server";
 import { isDomainError, toDomainErrorBody } from "@/lib/errors";

@@ -8,7 +8,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { DomainError } from "@/lib/errors";
-import { ROOM_PROTOCOL_VERSION } from "@/lib/realtimeRoom/protocol";
+import { ROOM_PROTOCOL_VERSION } from "@/lib/realtimeRoom/node";
 import { getRealtimeRoomEnv, signRoomClientToken, toWebSocketUrl } from "@/lib/realtimeRoom/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 

@@ -25,7 +25,7 @@
 
 import { SignJWT } from "jose";
 
-import { ROOM_PROTOCOL_VERSION } from "../../../src/lib/realtimeRoom/protocol";
+import { ROOM_PROTOCOL_VERSION } from "../../../src/lib/realtimeRoom/node";
 import { guardEntry } from "../../runner/guard";
 
 // 共通の守り(確かめの道具なので読む入口として扱う: 向き先と段階の印だけ)

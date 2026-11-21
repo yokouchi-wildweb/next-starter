@@ -5,7 +5,7 @@
 
 import { business } from "@/business";
 import { gate } from "@/featureGate";
-import { getAuditContext } from "@/lib/audit";
+import { getAuditContext } from "@/lib/audit/server";
 import { getAppBaseUrl } from "@/lib/url";
 import { messageRegistry } from "@/registry/messageRegistry";
 import { userGroupEvaluator } from "@/features/core/userGroup/services/server";

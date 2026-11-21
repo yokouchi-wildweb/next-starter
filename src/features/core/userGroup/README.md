@@ -45,7 +45,7 @@ const page = await userGroupEvaluator.listMemberIds(groupId, { cursor, limit: 50
 fork の task で静的グループを書く（SQL で書けない条件: 外のサービスの値・重い集計）:
 
 ```ts
-import { runAsSystem } from "@/lib/audit";
+import { runAsSystem } from "@/lib/audit/server";
 import { staticMemberWriter } from "@/features/core/userGroup/services/server";
 
 const result = await runAsSystem(() =>

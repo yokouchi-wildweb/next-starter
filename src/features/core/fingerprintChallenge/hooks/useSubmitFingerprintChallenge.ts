@@ -5,7 +5,7 @@
 import { useCallback, useState } from "react";
 
 import { collectFingerprintPayload } from "@/lib/fingerprint";
-import type { BehaviorPayload } from "@/lib/fingerprint/types";
+import type { BehaviorPayload } from "@/lib/fingerprint";
 import {
   submitMyChallenge,
   type SubmitMyChallengeTarget,

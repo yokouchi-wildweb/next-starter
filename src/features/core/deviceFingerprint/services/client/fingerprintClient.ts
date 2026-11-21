@@ -5,7 +5,7 @@
 import axios from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
-import type { FingerprintPayload } from "@/lib/fingerprint/types";
+import type { FingerprintPayload } from "@/lib/fingerprint";
 
 const ENDPOINT = "/api/me/fingerprint";
 

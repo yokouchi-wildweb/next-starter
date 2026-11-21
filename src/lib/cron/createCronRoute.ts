@@ -15,7 +15,7 @@
 // ```
 
 import { NextResponse, connection } from "next/server";
-import { runAsSystem } from "@/lib/audit";
+import { runAsSystem } from "@/lib/audit/server";
 import { verifyCronRequest } from "./auth";
 import type { CronTaskDefinition } from "./types";
 import { cronTaskPath } from "./vercelCrons";

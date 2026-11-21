@@ -76,18 +76,18 @@ callback は fire-and-forget(詳細: servers/room/README.md)。
 ## API
 
 ```
-protocol/   共有プロトコル (型・バージョン・トークン語彙)。servers/room と両方から参照される唯一の接点
+node.ts     入口 ./node: 共有プロトコル (protocol/ の型・バージョン・トークン語彙)。servers/room と両方から参照される唯一の接点
 server/     ServerService 用: createRoomClient / verifyRoomCallback / トークン署名
 client/     ブラウザ用: useRoomState フック + roomSessionClient (ClientService)
 config.ts   設定 (既定 + 上書き @lib-config/realtimeRoom)。入口 index.ts から出す
 ```
 
-入口は package.json の exports の 4 つ(閉じた lib)。機能はサブパスにある("use client" とサーバー専用コードを分けるため)。ルートの入口 `@/lib/realtimeRoom` は設定(`realtimeRoomConfig`・`RealtimeRoomOverride`)だけ:
+入口は package.json の exports の 4 つ(`.`・`./server`・`./client`・`./node`、閉じた lib)。機能はサブパスにある("use client" とサーバー専用コードを分けるため)。ルートの入口 `@/lib/realtimeRoom` は設定(`realtimeRoomConfig`・`RealtimeRoomOverride`)だけ:
 
 ```ts
 import { createRoomClient, verifyRoomCallback } from "@/lib/realtimeRoom/server";
 import { useRoomState } from "@/lib/realtimeRoom/client";
-import type { RoomDefinition } from "@/lib/realtimeRoom/protocol";
+import type { RoomDefinition } from "@/lib/realtimeRoom/node";
 import { realtimeRoomConfig } from "@/lib/realtimeRoom";
 ```
 

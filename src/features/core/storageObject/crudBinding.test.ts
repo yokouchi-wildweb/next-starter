@@ -7,7 +7,8 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
-import { runWithAuditContext, type AuditContext } from "@/lib/audit";
+import { runWithAuditContext } from "@/lib/audit/server";
+import type { AuditContext } from "@/lib/audit";
 import { applyStorageBinding } from "@/lib/crud/server";
 import type { DbTransaction } from "@/lib/crud/server";
 import { DomainError } from "@/lib/errors";

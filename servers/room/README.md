@@ -119,7 +119,7 @@ Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 serv
 - **wrangler.toml は有効化したフォークがコミットする** (vercel.json と同じ方式。secret は含まれず、
   Worker 名や vars のみなのでコミットして安全)。アップストリームは `.example` のみを出荷する
 - ルームロジック本体: `src/features/<domain>/room/` (ドメインに帰属、純度制約付き)
-- 境界: `servers/room → src` の import は `lib/realtimeRoom/protocol` と `features/*/room` のみ。
+- 境界: `servers/room → src` の import は `@/lib/realtimeRoom/node`(共有プロトコル)と `features/*/room` のみ。
   `src → servers` の import は全面禁止
 - プロトコル互換性を壊す変更は `ROOM_PROTOCOL_VERSION` をインクリメントすること
 
@@ -154,7 +154,7 @@ Cloudflare Worker (servers/room)
 Next.js アプリ (Vercel) ── ServerService → createRoomClient / verifyRoomCallback
 ```
 
-- 共有プロトコル (型・バージョン・トークン語彙) は `src/lib/realtimeRoom/protocol/` が唯一の接点
+- 共有プロトコル (型・バージョン・トークン語彙) は `src/lib/realtimeRoom/node.ts`(中身は `protocol/`)が唯一の接点
 - トークンは全て専用鍵 `REALTIME_ROOM_AUTH_SECRET` (HS256) で署名 (認証セッション鍵とは分離)
 - プロトコルバージョン不一致はハンドシェイク/HTTP 応答で明示エラー (スキュー検知)
 

@@ -3,7 +3,7 @@
 // 注意: @/lib/audit (index) からは import しないこと。
 // presenters → constants → lib/audit と辿った先に context.ts (node:async_hooks) があり、
 // クライアントバンドルに混入してビルドエラーになる。types のみを浅く import する。
-import { AUDIT_ACTOR_TYPES, type AuditActorType } from "@/lib/audit/types";
+import { AUDIT_ACTOR_TYPES, type AuditActorType } from "@/lib/audit";
 
 export { AUDIT_ACTOR_TYPES, type AuditActorType };
 

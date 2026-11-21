@@ -1,7 +1,6 @@
 {
   "exports": {
-    ".": "./index.ts",
-    "./HttpDefaultsRoot": "./HttpDefaultsRoot.tsx"
+    ".": "./index.ts"
   },
   "libs": ["defineConfig"]
 }

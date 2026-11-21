@@ -64,12 +64,12 @@ mock.module("./roomSessionClient", {
 let act: typeof import("react").act;
 let createRoot: typeof import("react-dom/client").createRoot;
 let useRoomState: typeof import("./useRoomState").useRoomState;
-let ROOM_CLOSE_CODES: typeof import("../protocol").ROOM_CLOSE_CODES;
+let ROOM_CLOSE_CODES: typeof import("../node").ROOM_CLOSE_CODES;
 before(async () => {
   ({ act } = await import("react"));
   ({ createRoot } = await import("react-dom/client"));
   ({ useRoomState } = await import("./useRoomState"));
-  ({ ROOM_CLOSE_CODES } = await import("../protocol"));
+  ({ ROOM_CLOSE_CODES } = await import("../node"));
 });
 after(() => dom.window.close());
 beforeEach(() => {
