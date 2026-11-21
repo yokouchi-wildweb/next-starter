@@ -8,19 +8,17 @@ import { after, test } from "node:test";
 
 import {
   applyHeader,
-  checkRefs,
   collectFacts,
-  commitRefs,
   formatMemo,
   HEADER_SOURCE,
   headerState,
   memoryDir,
   MemoryError,
   parseArgs,
-  pathRefs,
   projectDirName,
   withHeader,
 } from "./lib.mjs";
+import { checkRefs, commitRefs, pathRefs } from "../context/lib.lines.mjs";
 
 const made = [];
 after(() => made.forEach((d) => rmSync(d, { recursive: true, force: true })));

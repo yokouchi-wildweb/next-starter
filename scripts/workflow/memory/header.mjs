@@ -5,7 +5,8 @@
 // 説明: scripts/workflow/memory/README.md
 import { existsSync } from "node:fs";
 
-import { applyHeader, headerState, memoryDir, MemoryError, parseArgs, readHeaderSource, repoTop, runAction } from "./lib.mjs";
+import { repoTop } from "../context/lib.lines.mjs";
+import { applyHeader, headerState, memoryDir, MemoryError, parseArgs, readHeaderSource, runAction } from "./lib.mjs";
 
 runAction(() => {
   const { dir: dirFlag, apply } = parseArgs(process.argv.slice(2), { allowApply: true });

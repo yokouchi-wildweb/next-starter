@@ -2,38 +2,23 @@
 //
 // pnpm workflow memory の部品。Claude Code の auto-memory(このリポの memo の置き場)を /meditate のために扱う。
 // - memoryDir: 置き場を git の本体の道から決める(ワークツリーから走らせても本体と同じ置き場)
+// - 参照の実在・同じ行・frontmatter・道の部品は ../context/lib.lines.mjs と共有(pnpm workflow context facts も使う)
 // - collectFacts: memo ごとの事実(type・引き継ぎの 4 項目・日付・参照の実在・リポに同じ行・索引)を集める。判断はしない
 // - headerState / applyHeader: MEMORY.md の先頭の区画を正本(.claude/skills/meditate/header.md)と字面で比べる・戻す
 // 規則と使い方: scripts/workflow/memory/README.md
 
-import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
 import path from "node:path";
+
+import { checkRefs, claudeConfigDir, listShort, mainCheckout, repoTop, sameLines, splitFrontmatter } from "../context/lib.lines.mjs";
 
 export const INDEX_FILE = "MEMORY.md";
 export const HEADER_SOURCE = ".claude/skills/meditate/header.md";
 export const HEADER_START = "<!-- meditate:header";
 export const HEADER_END = "<!-- /meditate:header -->";
 export const HANDOFF_KEYS = ["state", "next", "end", "date"];
-const SAME_MIN_CHARS = 20;
-const LIST_MAX = 3;
 
 export class MemoryError extends Error {}
-
-const git = (cwd, args) => {
-  const r = spawnSync("git", args, { cwd, encoding: "utf8" });
-  return r.status === 0 ? r.stdout.trim() : null;
-};
-
-/** このリポの今の作業木の根(git の外なら cwd) */
-export const repoTop = (cwd) => git(cwd, ["rev-parse", "--show-toplevel"]) ?? cwd;
-
-/** 本体のチェックアウトの道: git の共有の .git の親(ワークツリーでも本体を指す)。git の外なら cwd */
-export const mainCheckout = (cwd) => {
-  const common = git(cwd, ["rev-parse", "--path-format=absolute", "--git-common-dir"]);
-  return common ? path.dirname(common) : cwd;
-};
 
 /** Claude Code がプロジェクトの道から作るフォルダ名(英数字以外を - に) */
 export const projectDirName = (p) => p.replace(/[^A-Za-z0-9]/g, "-");
@@ -41,8 +26,7 @@ export const projectDirName = (p) => p.replace(/[^A-Za-z0-9]/g, "-");
 /** memo の置き場。dirFlag(--dir)が先、無ければ <CLAUDE_CONFIG_DIR か ~/.claude>/projects/<本体の道の名>/memory */
 export const memoryDir = ({ cwd, env = process.env, dirFlag } = {}) => {
   if (dirFlag) return path.resolve(cwd, dirFlag);
-  const config = env.CLAUDE_CONFIG_DIR || path.join(homedir(), ".claude");
-  return path.join(config, "projects", projectDirName(mainCheckout(cwd)), "memory");
+  return path.join(claudeConfigDir(env), "projects", projectDirName(mainCheckout(cwd)), "memory");
 };
 
 /** 引数: --dir <path> と --apply だけ。ほかは MemoryError */
@@ -58,12 +42,6 @@ export const parseArgs = (argv, { allowApply = false } = {}) => {
   return out;
 };
 
-/** frontmatter と本文に分ける(frontmatter が無ければ空) */
-export const splitFrontmatter = (text) => {
-  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
-  return m ? { front: m[1], body: text.slice(m[0].length) } : { front: "", body: text };
-};
-
 /** frontmatter の鍵(metadata の下の字下げも、古い形の最上位も)。最初に当たった値 */
 const frontValue = (front, key) => {
   const m = front.match(new RegExp(`^\\s*${key}:\\s*(.+)$`, "m"));
@@ -77,57 +55,6 @@ const bodyLine = (body, key) => {
 };
 
 const ymd = (s) => s?.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? null;
-
-/** 本文からパスらしい語(/ を含み、拡張子か ~/ / ./ ../ / の始まりか / の終わり)。URL と仮の名(<> *)は除く */
-export const pathRefs = (body) => {
-  const text = body.replace(/https?:\/\/\S+/g, " ");
-  const found = new Set();
-  for (const m of text.matchAll(/(?:~\/|\.{1,2}\/|\/)?[\w.@\-[\]()!+]+(?:\/[\w.@\-[\]()!+]+)+\/?/g)) {
-    let p = m[0].replace(/[.,:;)]+$/, "");
-    if (/[<>*]/.test(p) || !p.includes("/")) continue;
-    const marked = /^(~\/|\.{1,2}\/|\/)/.test(p) || p.endsWith("/") || /\.[A-Za-z0-9]{1,6}$/.test(p);
-    if (marked) found.add(p);
-  }
-  return [...found];
-};
-
-/** 本文からコミットらしい語(7〜40 桁の 16 進で、数字と a-f の両方を含む) */
-export const commitRefs = (body) => {
-  const found = new Set();
-  for (const m of body.matchAll(/\b[0-9a-f]{7,40}\b/g)) if (/\d/.test(m[0]) && /[a-f]/.test(m[0])) found.add(m[0]);
-  return [...found];
-};
-
-const resolveRef = (p, top) => (p.startsWith("~/") ? path.join(homedir(), p.slice(2)) : path.isAbsolute(p) ? p : path.join(top, p));
-
-/** 参照の実在: 在る数・全数・無い物 */
-export const checkRefs = (body, top) => {
-  const gone = [];
-  let total = 0;
-  for (const p of pathRefs(body)) {
-    total++;
-    if (!existsSync(resolveRef(p, top))) gone.push(p);
-  }
-  for (const c of commitRefs(body)) {
-    total++;
-    if (git(top, ["cat-file", "-e", `${c}^{commit}`]) === null) gone.push(c);
-  }
-  return { exist: total - gone.length, total, gone };
-};
-
-/** 本文の 20 字以上の行と同じ行を持つリポの追跡ファイル(path:line) */
-export const sameLines = (body, top) => {
-  const hits = new Set();
-  const lines = body
-    .split(/\r?\n/)
-    .map((l) => l.replace(/^\s*(?:#+|[-*]|\d+\.)\s+/, "").trim())
-    .filter((l) => [...l].length >= SAME_MIN_CHARS);
-  for (const l of new Set(lines)) {
-    const out = git(top, ["grep", "-F", "-n", "-I", "-e", l]);
-    if (out) for (const row of out.split("\n")) hits.add(row.split(":").slice(0, 2).join(":"));
-  }
-  return [...hits];
-};
 
 /** MEMORY.md の中の ](name.md) の名(同じフォルダの物だけ) */
 export const indexLinks = (indexText) => {
@@ -221,8 +148,6 @@ export const collectFacts = ({ cwd, env, dirFlag }) => {
   };
 };
 
-const list = (xs) => xs.slice(0, LIST_MAX).join(",") + (xs.length > LIST_MAX ? ",…" : "");
-
 /** memo 1 件の 1 行 */
 export const formatMemo = (m) =>
   [
@@ -230,8 +155,8 @@ export const formatMemo = (m) =>
     `type:${m.type}`,
     `handoff:${m.handoff.join(",")}`,
     `date:${m.date}`,
-    `refs:${m.refs.exist}/${m.refs.total}${m.refs.gone.length ? ` gone:${list(m.refs.gone)}` : ""}`,
-    `same:${m.same.length}${m.same.length ? ` ${list(m.same)}` : ""}`,
+    `refs:${m.refs.exist}/${m.refs.total}${m.refs.gone.length ? ` gone:${listShort(m.refs.gone)}` : ""}`,
+    `same:${m.same.length}${m.same.length ? ` ${listShort(m.same)}` : ""}`,
     `index:${m.index ? "yes" : "no"}`,
   ].join(" | ");
 
