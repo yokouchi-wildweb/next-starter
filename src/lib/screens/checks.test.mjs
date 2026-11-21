@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { checkAdminPageScreen, findMarkerNamedFiles, parseLoaderGuard } from "./checks.mjs";
 
 const HEAD = `import { createLoader } from "@/app/admin/(protected)/guard";\nimport { adminListParts, adminEditParts, adminCreateParts, adminSortParts } from "@/wiring/adminScreenParts";\n`;
-const loader = (body) => parseLoaderGuard(HEAD + body);
+const loader = (/** @type {string} */ body) => parseLoaderGuard(HEAD + body);
 const UNREADABLE = /access が字面で読めない/;
 
 test("access: 組の const を 1 回束ねた <x>.access は引数まるごとの形と同じ registry に読む", () => {
@@ -81,7 +81,7 @@ test("access: 字面のオブジェクトは従来どおり", () => {
 
 // 管理のページの Screen は AdminPage を描く(指令 17 d3)。純関数で Tier を受け取らない = fork の管理のページにも同じに効く
 const ADMIN_IMPORT = `import { AdminPage } from "@/app/admin/_layout/AdminPage";\n`;
-const screen = (imports, body) => `${imports}import { loadX } from "./loader";\n\nexport async function XScreen() {\n  await loadX();\n  return ${body};\n}\n`;
+const screen = (/** @type {string} */ imports, /** @type {string} */ body) => `${imports}import { loadX } from "./loader";\n\nexport async function XScreen() {\n  await loadX();\n  return ${body};\n}\n`;
 
 test("checkAdminPageScreen: AdminPage を import して描く Screen は合格(named・default・別名・相対・属性つき)", () => {
   assert.deepEqual(checkAdminPageScreen(screen(ADMIN_IMPORT, `<AdminPage title="一覧" actions={<X />}>body</AdminPage>`)), []);

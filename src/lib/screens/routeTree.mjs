@@ -14,11 +14,11 @@ export const PAGE_FILE_RE = /^page\.(tsx|ts|jsx|js|mdx)$/;
 /** Next.js が layout として扱うファイル */
 export const LAYOUT_FILE_RE = /^layout\.(tsx|ts|jsx|js)$/;
 
-const isUnder = (rel, prefix) => rel === prefix || rel.startsWith(`${prefix}/`);
+const isUnder = (/** @type {string} */ rel, /** @type {string} */ prefix) => rel === prefix || rel.startsWith(`${prefix}/`);
 
 /** route group `(name)`。intercepting の `(.)x` `(..)x` `(...)x` は group ではない */
-const isGroupSegment = (seg) => /^\([^().][^()]*\)$/.test(seg);
-const isSlotSegment = (seg) => seg.startsWith("@");
+const isGroupSegment = (/** @type {string} */ seg) => /^\([^().][^()]*\)$/.test(seg);
+const isSlotSegment = (/** @type {string} */ seg) => seg.startsWith("@");
 
 /**
  * ルートの一覧を作る。
@@ -73,10 +73,12 @@ export function discoverRoutes(files) {
  * src/app 配下のファイルを repo 相対パスで列挙する(src/app/api と . 始まりは降りない)。
  * `_` で始まるフォルダの中も返す(ルート内 loader `_screen/loader.ts` を地図が読むため。ページの発見からは discoverRoutes が外す)
  * @param {string} repoRoot
+ * @returns {string[]}
  */
 export function listAppFiles(repoRoot) {
+  /** @type {string[]} */
   const out = [];
-  const walk = (rel) => {
+  const walk = (/** @type {string} */ rel) => {
     for (const entry of readdirSync(resolve(repoRoot, rel))) {
       if (entry.startsWith(".")) continue;
       const child = `${rel}/${entry}`;

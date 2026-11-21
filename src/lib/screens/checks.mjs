@@ -6,12 +6,27 @@
 import { classifyDottedName, UI_CONFIG_FILE } from "../districtMap/index.mjs";
 
 /**
+ * @typedef {{ screenDir: string, file: string, name: string }} SwitchTarget 1 行スイッチの向け先(screenDir = 向け先のディレクトリ名、file = import パスの末尾、name = default に束ねた export 名)
+ * @typedef {"in-screen" | "orphan" | "no-default"} RouteReplaceReason
+ * @typedef {{ path: string, reason: RouteReplaceReason }} RouteReplaceProblem
+ */
+
+/**
+ * 素のオブジェクト(配列・null でない)か
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+const isRecord = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+/**
  * コメントを除去する(行コメントとブロックコメント)。
  * 文字列・テンプレートリテラルの中は触らず、行コメント内の「/」+「*」をブロックコメントの開始と誤認しない
  * (正規表現 2 本の置換だと `// see /api/me/` + `**` の後ろを次の `*` + `/` まで飲み込む)。
  * 行コメントは改行を残して消す(行番号を保つ)。
  * 既知の限界: 正規表現リテラルは追跡しない。`//` や引用符・バッククォートを含む正規表現が
  * page.tsx / Screen / loader にあると、その行以降の判定がずれることがある(検査対象のファイルでは稀)。
+ * @param {string} src
+ * @returns {string}
  */
 export function stripComments(src) {
   let out = "";
@@ -68,12 +83,15 @@ export const SCREEN_DIRS = ["_screen", "_components"];
 /** 提供者(upstream)の既定の実装を置くディレクトリ。fork の丸ごと置き換えは隣に <名前>.replace.ts(x) で置く(W) */
 export const DEFAULT_IMPL_DIRS = ["_screen", "_layout"];
 
-/** DEFAULT_IMPL_DIRS 配下の点つきの名前(テストを除く)と、その形(dottedNames.mjs の classifyDottedName の kind) */
+/**
+ * DEFAULT_IMPL_DIRS 配下の点つきの名前(テストを除く)と、その形(dottedNames.mjs の classifyDottedName の kind)
+ * @param {string[]} files repo 相対パス
+ */
 function dottedInImplDirs(files) {
   const out = [];
   for (const file of files) {
     const segments = file.split("/");
-    const base = segments.pop();
+    const base = segments.pop() ?? "";
     if (!segments.some((segment) => DEFAULT_IMPL_DIRS.includes(segment))) continue;
     const { kind } = classifyDottedName(base);
     // 素の名前とテスト(`UserLayout.test.tsx`、既定の隣に置いてよい)は点つきの名前として扱わない
@@ -130,7 +148,7 @@ export function findOrphanReplaceFiles(files) {
  * 画面の丸ごとの差し替えは <ルート>/_components/<X>Screen.tsx + page.tsx のスイッチ、README §1「fork の物は _components/」)
  * @param {string[]} files repo 相対パス
  * @param {(path: string) => string | null} readText page.tsx / layout.tsx の中身
- * @returns {{ path: string, reason: "in-screen" | "orphan" | "no-default" }[]} in-screen = `_screen/` の下 /
+ * @returns {RouteReplaceProblem[]} in-screen = `_screen/` の下 /
  *   orphan = 隣に <名前> も無い / no-default = 隣にあるが既定でない
  */
 export function findRouteReplaceProblems(files, readText) {
@@ -144,6 +162,7 @@ export function findRouteReplaceProblems(files, readText) {
     if (target) targets.add(`${file.slice(0, file.lastIndexOf("/"))}/${target.screenDir}/${target.file.replace(/\.replace$/, "")}`);
   }
   const orphans = new Set(findOrphanReplaceFiles(files));
+  /** @type {RouteReplaceProblem[]} */
   const problems = [];
   for (const file of findDotNamedFiles(files)) {
     const match = /^(.*)\/([^/]+)\.replace\.tsx?$/.exec(file);
@@ -168,7 +187,7 @@ export const FORK_OWNED_DIR = "_components";
 
 /**
  * findRouteReplaceProblems の 1 件を直し方つきの文にする(pnpm test scripts/structure/routes/screens.test.mjs と pnpm check extensions が同じ文を出す)
- * @param {{ path: string, reason: "in-screen" | "orphan" | "no-default" }} problem
+ * @param {RouteReplaceProblem} problem
  * @returns {string}
  */
 export function describeRouteReplaceProblem({ path, reason }) {
@@ -212,9 +231,15 @@ export const REEXPORTABLE_FROM_SCREEN = ["metadata", "generateMetadata", "viewpo
 /**
  * `start` 以降で最初に現れる open と対応する close の位置(括弧の釣り合い)を返す。
  * 文字列リテラル・テンプレートリテラル内の括弧は数えない。見つからなければ -1
+ * @param {string} src
+ * @param {number} start
+ * @param {string} open
+ * @param {string} close
+ * @returns {number}
  */
 export function findBalancedEnd(src, start, open, close) {
   let depth = 0;
+  /** @type {string | null} */
   let quote = null;
   for (let i = start; i < src.length; i += 1) {
     const ch = src[i];
@@ -236,7 +261,11 @@ export function findBalancedEnd(src, start, open, close) {
   return -1;
 }
 
-/** `export const metadata = {...};` / `export const dynamic = "force-dynamic";` などの設定 export を 1 つ取り除く */
+/**
+ * `export const metadata = {...};` / `export const dynamic = "force-dynamic";` などの設定 export を 1 つ取り除く
+ * @param {string} src
+ * @returns {string | null} 取り除いた後の中身。無ければ null
+ */
 function stripConfigExport(src) {
   const re = new RegExp(`export\\s+(const|let)\\s+(${PAGE_CONFIG_EXPORTS.join("|")})\\b[^=]*=\\s*`);
   const m = re.exec(src);
@@ -260,7 +289,11 @@ function stripConfigExport(src) {
   return src.slice(0, m.index) + src.slice(cut);
 }
 
-/** `export async function generateMetadata(...) {...}` / `generateViewport` を 1 つ取り除く */
+/**
+ * `export async function generateMetadata(...) {...}` / `generateViewport` を 1 つ取り除く
+ * @param {string} src
+ * @returns {string | null} 取り除いた後の中身。無ければ null
+ */
 function stripGenerateMetadata(src) {
   const m = /export\s+(async\s+)?function\s+(generateMetadata|generateViewport)\s*\(/.exec(src);
   if (!m) return null;
@@ -274,7 +307,11 @@ function stripGenerateMetadata(src) {
   return src.slice(0, m.index) + src.slice(braceEnd + 1);
 }
 
-/** import 文を 1 つ取り除き、import 元を返す */
+/**
+ * import 文を 1 つ取り除き、import 元を返す
+ * @param {string} src
+ * @returns {{ src: string, source: string } | null}
+ */
 function stripImport(src) {
   const m = /import\s+(type\s+)?[\s\S]*?\s+from\s+["']([^"']+)["']\s*;?/.exec(src);
   if (!m) return null;
@@ -288,6 +325,8 @@ export const ROUTE_LOADER_FILE = "loader";
  * page.tsx が許される import 元か。
  * 設定 export(metadata / generateMetadata)に必要なもの: next(型)、lib、config、ルート内 loader。
  * 画面ロジックに当たるもの(セクションコンテナ・hook・next/navigation 等)は不可
+ * @param {string} source
+ * @returns {boolean}
  */
 function isAllowedImportSource(source) {
   if (source === "next") return true;
@@ -312,13 +351,14 @@ const SWITCH_KINDS = {
  * 設定 export(metadata / dynamic 等)、generateMetadata、それらに必要な import。
  * @param {string} source ファイルの内容
  * @param {"page" | "layout"} kind
- * @returns {{ problems: string[], target: { screenDir: string, file: string, name: string } | null }}
+ * @returns {{ problems: string[], target: SwitchTarget | null }}
  *   problems が空ならスイッチ形。target は参照先(screenDir = 参照先のディレクトリ名、file = import パスの末尾、name = default に束ねた export 名)
  */
 function parseSwitchModule(source, kind) {
   const { file: fileLabel, dirs, target: targetLabel, example } = SWITCH_KINDS[kind];
   const dirLabel = dirs.map((dir) => `./${dir}/`).join(" または ");
   const problems = [];
+  /** @type {SwitchTarget | null} */
   let target = null;
   let src = stripComments(source);
 
@@ -381,7 +421,7 @@ function parseSwitchModule(source, kind) {
  * 許されるもの: `./_screen/<X>` または `./_components/<X>` からの `export { <Name> as default[, metadata, generateMetadata] }` 1 つ、
  * 設定 export(metadata / dynamic 等)、generateMetadata、それらに必要な import。
  * @param {string} source page.tsx の内容
- * @returns {{ problems: string[], target: { screenDir: string, file: string, name: string } | null }}
+ * @returns {{ problems: string[], target: SwitchTarget | null }}
  *   problems が空ならスイッチ形。target は参照先(screenDir = "_screen" | "_components"、file = import パスの末尾、name = default に束ねた export 名)
  */
 export function parseSwitchPage(source) {
@@ -392,7 +432,7 @@ export function parseSwitchPage(source) {
  * 枠を描く layout.tsx を解析し、1 行スイッチ形かどうかと参照先を返す(page.tsx と同じ検査。参照先は `./_layout/<X>`)。
  * 例: `export { UserLayout as default } from "./_layout/UserLayout";`
  * @param {string} source layout.tsx の内容
- * @returns {{ problems: string[], target: { screenDir: string, file: string, name: string } | null }} screenDir は常に "_layout"
+ * @returns {{ problems: string[], target: SwitchTarget | null }} screenDir は常に "_layout"
  */
 export function parseSwitchLayout(source) {
   return parseSwitchModule(source, "layout");
@@ -522,6 +562,9 @@ export function checkScreenImports(source, options) {
 
 /**
  * Screen ファイルが barrel(`export { X } from "./Y"`)なら、実体のファイル名(拡張子なし)を返す。そうでなければ null
+ * @param {string} source Screen ファイルの内容
+ * @param {string} name Screen の名前(named export)
+ * @returns {string | null}
  */
 export function barrelTarget(source, name) {
   const src = stripComments(source);
@@ -533,6 +576,8 @@ export function barrelTarget(source, name) {
  * 再 export しか持たないファイルか(barrel / 旧パス互換の shim)。
  * 全ての export 文が `from` 句付き(`export { X } from` / `export type { X } from` / `export * from` / `export * as ns from`)なら true。
  * 宣言や `export { local }`(from 無し)が 1 つでもあれば false。loader の検査対象から外すために使う(本体は別の場所にある)
+ * @param {string} source
+ * @returns {boolean}
  */
 export function isReexportOnlyFile(source) {
   const src = stripComments(source);
@@ -541,7 +586,12 @@ export function isReexportOnlyFile(source) {
   return !/\bexport\b/.test(rest);
 }
 
-/** 相対 import(`./x` / `../x`)を from ファイルの位置から解決する(node:path に依存しない。`/` 区切り、`\` は `/` に正規化) */
+/**
+ * 相対 import(`./x` / `../x`)を from ファイルの位置から解決する(node:path に依存しない。`/` 区切り、`\` は `/` に正規化)
+ * @param {string} fromFile repo 相対パス
+ * @param {string} source 相対の import 元
+ * @returns {string}
+ */
 function resolveRelative(fromFile, source) {
   const segments = fromFile.replace(/\\/g, "/").split("/").slice(0, -1);
   for (const seg of source.split("/")) {
@@ -555,6 +605,9 @@ function resolveRelative(fromFile, source) {
  * loader が import してはいけない相手: `_components/`(契約外の部品)と Screen ファイル。型だけの import も不可(契約の型を契約外が決める逆転になる)。
  * 相対 import は loader の場所(path)から解決して判定する(`_components/loader.ts` からの `./Part` は `_components/` 内を指す)。
  * Screen 名の判定は相対 import か `_screen/` / `_components/` 配下に限る(`features/<domain>/types/XScreen` のような型ファイルを誤検出しない)
+ * @param {string} source import 元
+ * @param {string} loaderPath loader の repo 相対パス(空なら相対 import を解決しない)
+ * @returns {boolean}
  */
 function isInvertedLoaderImport(source, loaderPath) {
   const resolved = /^\.\.?\//.test(source) && loaderPath ? resolveRelative(loaderPath, source) : source;
@@ -604,9 +657,10 @@ export function parseLiteral(text) {
   const ws = () => {
     while (i < src.length && /\s/.test(src[i])) i += 1;
   };
-  const expr = (start) => {
+  const expr = (/** @type {number} */ start) => {
     // 値の終わり(同じ深さの , } ])まで読み、字面のまま返す
     let depth = 0;
+    /** @type {string | null} */
     let quote = null;
     for (; i < src.length; i += 1) {
       const ch = src[i];
@@ -624,12 +678,14 @@ export function parseLiteral(text) {
     }
     return { expr: src.slice(start, i).trim() };
   };
+  /** @returns {unknown} */
   const value = () => {
     ws();
     const start = i;
     const ch = src[i];
     if (ch === "{") {
       i += 1;
+      /** @type {Record<string, unknown>} */
       const obj = {};
       for (;;) {
         ws();
@@ -687,16 +743,25 @@ export function parseLiteral(text) {
   return result;
 }
 
-/** parseLiteral の結果に字面で読めない値(`{ expr }`)が含まれるか */
+/**
+ * parseLiteral の結果に字面で読めない値(`{ expr }`)が含まれるか
+ * @param {unknown} value
+ * @returns {boolean}
+ */
 export function hasExpression(value) {
   if (value && typeof value === "object") {
-    if (!Array.isArray(value) && Object.keys(value).length === 1 && typeof value.expr === "string") return true;
+    if (isRecord(value) && Object.keys(value).length === 1 && typeof value.expr === "string") return true;
     return Object.values(value).some(hasExpression);
   }
   return false;
 }
 
-/** `name(` の直後の最初の引数の字面(括弧の釣り合いで切る)。見つからなければ null */
+/**
+ * `name(` の直後の最初の引数の字面(括弧の釣り合いで切る)。見つからなければ null
+ * @param {string} src
+ * @param {string} name
+ * @returns {{ text: string, value: unknown } | null}
+ */
 function firstCallArgument(src, name) {
   const m = new RegExp(`\\b${name}\\s*(?:<[^()]*>)?\\(`).exec(src);
   if (!m) return null;
@@ -708,7 +773,12 @@ function firstCallArgument(src, name) {
   return { text: inner.trim(), value: parseLiteral(inner) };
 }
 
-/** 名前付き import の import 元(`import { a, b as c } from "x"` の a / c)を探す。無ければ null */
+/**
+ * 名前付き import の import 元(`import { a, b as c } from "x"` の a / c)を探す。無ければ null
+ * @param {string} src
+ * @param {string} localName
+ * @returns {{ source: string, imported: string } | null} imported = import 元での名前
+ */
 function namedImportSource(src, localName) {
   for (const m of src.matchAll(/import\s+(?!type\b)\{([^}]*)\}\s*from\s*["']([^"']+)["']/g)) {
     const names = m[1].split(",").map((s) => s.trim()).filter(Boolean);
@@ -721,7 +791,13 @@ function namedImportSource(src, localName) {
   return null;
 }
 
-/** import 元(`@/...` / 相対)を repo 相対のファイルに解決する(fileSet で .ts / .tsx / index を探す)。見つからなければ null */
+/**
+ * import 元(`@/...` / 相対)を repo 相対のファイルに解決する(fileSet で .ts / .tsx / index を探す)。見つからなければ null
+ * @param {string} fromFile import するファイル(repo 相対)
+ * @param {string} source import 元
+ * @param {Set<string>} fileSet repo 相対のファイルの集合
+ * @returns {string | null}
+ */
 export function resolveImportFile(fromFile, source, fileSet) {
   let base;
   if (source.startsWith("@/")) base = `src/${source.slice(2)}`;
@@ -730,7 +806,10 @@ export function resolveImportFile(fromFile, source, fileSet) {
   return [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`, base].find((c) => fileSet.has(c)) ?? null;
 }
 
-/** 管理画面の共通部品の組(src/wiring/adminScreenParts.ts)と、それぞれが serviceRegistry から解く操作 */
+/**
+ * 管理画面の共通部品の組(src/wiring/adminScreenParts.ts)と、それぞれが serviceRegistry から解く操作
+ * @type {Readonly<Record<string, string>>}
+ */
 export const ADMIN_PARTS_OPERATIONS = {
   adminListParts: "search",
   adminEditParts: "get",
@@ -751,7 +830,7 @@ export function checkScreenLoaderCall(source, name) {
   const loaderNames = imp
     ? imp[1].split(",").map((s) => s.trim()).filter((s) => /^load[A-Z]\w*$/.test(s))
     : [];
-  if (loaderNames.length === 0) return { problems: ["同じルートの loader(./loader の load<Name>)を import していない"], loaderName: null, loaderImport: null };
+  if (!imp || loaderNames.length === 0) return { problems: ["同じルートの loader(./loader の load<Name>)を import していない"], loaderName: null, loaderImport: null };
   const fm = new RegExp(`export\\s+(?:async\\s+)?function\\s+${name}\\s*\\(`).exec(src)
     ?? new RegExp(`export\\s+const\\s+${name}\\s*=\\s*(?:async\\s*)?\\(`).exec(src);
   if (!fm) return { problems: [`${name} の関数本体が読めない(export function / export const = (…) => の形にする)`], loaderName: null, loaderImport: null };
@@ -762,6 +841,7 @@ export function checkScreenLoaderCall(source, name) {
   // return 以降(JSX)は読まない: JSX のテキストの引用符で括弧の釣り合いが崩れるため。loader の await は return より前に置く
   let depth = 0;
   let top = "";
+  /** @type {string | null} */
   let quote = null;
   for (let i = bodyOpen + 1; i < src.length; i += 1) {
     const ch = src[i];
@@ -801,7 +881,11 @@ export function checkScreenLoaderCall(source, name) {
 
 const PARTS_CALL_HEAD = /^(admin(?:List|Edit|Create|Sort)Parts)\s*(?:<[^()]*>)?\(\s*["']([\w]+)["']/;
 
-/** `text` の先頭が `adminXxxParts("<domain>"…)` の呼び出しなら、組の名前・domain・閉じ括弧の位置。読めなければ null */
+/**
+ * `text` の先頭が `adminXxxParts("<domain>"…)` の呼び出しなら、組の名前・domain・閉じ括弧の位置。読めなければ null
+ * @param {string} text
+ * @returns {{ partsName: string, domain: string, end: number } | null}
+ */
 function partsCallAt(text) {
   const m = PARTS_CALL_HEAD.exec(text);
   if (!m) return null;
@@ -810,14 +894,16 @@ function partsCallAt(text) {
   return { partsName: m[1], domain: m[2], end };
 }
 
-const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegExp = (/** @type {string} */ s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
  * createLoader({ access: <式> }) の式が管理画面の共通部品の組の access か。組の access = domainAccess(domain, 操作) なので、
  * 引数まるごとの形(createLoader(adminListParts("d")))と同じ registry:<domain>.<operation> に読める。
  * 受け付ける形: `adminXxxParts("d"…).access` / 同じファイルで 1 回だけ `const x = adminXxxParts("d"…)` と束ねた `x.access`
- * (組の関数は @/wiring/adminScreenParts から import、domain は文字列の字面)。
+ * (組の関数は `@/wiring/adminScreenParts` から import、domain は文字列の字面)。
  * それ以外(分割代入・別ファイルの組・let / var・名前の再宣言や再代入・`.access` の先まで辿る式)は null(字面で読めない扱い)。
+ * @param {string} src loader の内容(コメントを除いた物)
+ * @param {string} expr access の式の字面
  * @returns {{ partsName: string, domain: string } | null}
  */
 function partsAccessOf(src, expr) {
@@ -847,6 +933,7 @@ function partsAccessOf(src, expr) {
  * loader の createLoader の import 元と access を読む。
  * access はオブジェクトの access の字面、または管理画面の共通部品の組(registry:<domain>.<operation>)。
  * 組は引数まるごと(createLoader(adminListParts("d")))か、access: <組>.access(partsAccessOf の形)。
+ * @param {string} source loader の内容
  * @returns {{ problems: string[], guardImport: string | null, access: unknown, allowStatuses: unknown }}
  */
 export function parseLoaderGuard(source) {
@@ -871,12 +958,12 @@ export function parseLoaderGuard(source) {
     };
   }
   const config = arg.value;
-  if (!config || typeof config !== "object" || Array.isArray(config) || "expr" in config) {
+  if (!isRecord(config) || "expr" in config) {
     return { problems: ["createLoader の引数が字面のオブジェクトでない({ access, … } か管理画面の組 admin*Parts(…))"], guardImport: imp.source, access: null, allowStatuses: null };
   }
   if (!("access" in config)) return { problems: ["createLoader に access が無い"], guardImport: imp.source, access: null, allowStatuses: null };
   const partsAccess =
-    config.access && typeof config.access === "object" && typeof config.access.expr === "string" && Object.keys(config.access).length === 1
+    isRecord(config.access) && typeof config.access.expr === "string" && Object.keys(config.access).length === 1
       ? partsAccessOf(src, config.access.expr)
       : null;
   if (partsAccess) {
@@ -902,6 +989,7 @@ export const GUARD_POLICY_KEYS = ["access", "allowStatuses", "redirectTo", "forb
 
 /**
  * guard.ts を読む: root(@/wiring/pageGuard の defineRootGuard)か、親の extend を import して呼ぶ子か。
+ * @param {string} source guard.ts の内容
  * @returns {{ problems: string[], root: boolean, parentImport: string | null, policy: Record<string, unknown> | null }}
  */
 export function parseGuardFile(source) {
@@ -922,17 +1010,22 @@ export function parseGuardFile(source) {
   }
   const arg = firstCallArgument(src, callee);
   const policy = arg?.value;
-  if (!policy || typeof policy !== "object" || Array.isArray(policy) || "expr" in policy) {
+  if (!isRecord(policy) || "expr" in policy) {
     return { problems: [...problems, `${callee}(…) の方針が字面のオブジェクトでない`], root: Boolean(root), parentImport, policy: null };
   }
   if (hasExpression(policy)) problems.push(`方針に字面で読めない値がある(${JSON.stringify(policy)})`);
+  /** @type {Record<string, unknown>} */
   const ordered = {};
   for (const key of GUARD_POLICY_KEYS) if (key in policy) ordered[key] = policy[key];
   for (const key of Object.keys(policy)) if (!GUARD_POLICY_KEYS.includes(key)) problems.push(`方針の未知のキー ${key}`);
   return { problems, root: Boolean(root), parentImport, policy: ordered };
 }
 
-/** layout(か 1 行スイッチ先)が `guard()` を呼んでいるか(`./guard` から import して await) */
+/**
+ * layout(か 1 行スイッチ先)が `guard()` を呼んでいるか(`./guard` から import して await)
+ * @param {string} source
+ * @returns {boolean}
+ */
 export function layoutCallsGuard(source) {
   const src = stripComments(source);
   const imp = namedImportSource(src, "guard");

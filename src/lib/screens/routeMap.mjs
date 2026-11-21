@@ -43,10 +43,20 @@ export const LEGACY_GUARD_CALLS = [
   "deviceGuard",
 ];
 
-const appRelative = (dir) => (dir === APP_DIR ? "/" : dir.slice(APP_DIR.length + 1));
-const dirOf = (file) => file.slice(0, file.lastIndexOf("/"));
+/**
+ * @import { SwitchTarget } from "./checks.mjs"
+ * @typedef {(path: string) => string} ReadFile repo 相対パスの中身を返す
+ */
 
-/** ページの dir から上へ最初の guard.ts(repo 相対)。無ければ null */
+const appRelative = (/** @type {string} */ dir) => (dir === APP_DIR ? "/" : dir.slice(APP_DIR.length + 1));
+const dirOf = (/** @type {string} */ file) => file.slice(0, file.lastIndexOf("/"));
+
+/**
+ * ページの dir から上へ最初の guard.ts(repo 相対)。無ければ null
+ * @param {string} dir ページの dir(repo 相対)
+ * @param {Set<string>} fileSet repo 相対のファイルの集合
+ * @returns {string | null}
+ */
 export function findNearestGuard(dir, fileSet) {
   for (let d = dir; d.startsWith(APP_DIR); d = d === APP_DIR ? "" : dirOf(d)) {
     const candidate = `${d}/${GUARD_FILE}`;
@@ -56,7 +66,14 @@ export function findNearestGuard(dir, fileSet) {
   return null;
 }
 
-/** page.tsx の採用 Screen を実ファイルに解決する(barrel は 1 段だけ辿る)。見つからなければ null */
+/**
+ * page.tsx の採用 Screen を実ファイルに解決する(barrel は 1 段だけ辿る)。見つからなければ null
+ * @param {string} pageDir
+ * @param {SwitchTarget} target page.tsx の 1 行スイッチの向け先
+ * @param {Set<string>} fileSet
+ * @param {ReadFile} read
+ * @returns {string | null}
+ */
 function resolveScreen(pageDir, target, fileSet, read) {
   const base = `${pageDir}/${target.screenDir}/${target.file}`;
   const found = [`${base}.tsx`, `${base}.ts`, `${base}/index.tsx`, `${base}/index.ts`].find((c) => fileSet.has(c));
@@ -72,12 +89,18 @@ function resolveScreen(pageDir, target, fileSet, read) {
 
 /**
  * guard.ts から root まで親を辿る。各段 = { kind: "guard", file, policy }(近い順)。
- * @returns {{ stages: Array<{ kind: "guard", file: string, policy: Record<string, unknown> }>, problems: string[] }}
+ * @param {string} guardFile 最寄りの guard.ts(repo 相対)
+ * @param {Set<string>} fileSet
+ * @param {ReadFile} read
+ * @returns {{ stages: GuardStage[], problems: string[] }}
  */
 export function walkGuards(guardFile, fileSet, read) {
+  /** @type {GuardStage[]} */
   const stages = [];
+  /** @type {string[]} */
   const problems = [];
   const seen = new Set();
+  /** @type {string | null} */
   let file = guardFile;
   while (file) {
     if (seen.has(file)) {
@@ -90,6 +113,7 @@ export function walkGuards(guardFile, fileSet, read) {
     if (!parsed.policy) break;
     stages.push({ kind: "guard", file, policy: parsed.policy });
     if (parsed.root) break;
+    /** @type {string | null} */
     const parent = parsed.parentImport ? resolveImportFile(file, parsed.parentImport, fileSet) : null;
     if (!parent || !parent.endsWith(`/${GUARD_FILE}`)) {
       problems.push(`${file}: extend の親(${parsed.parentImport})が guard.ts に解決できない`);
@@ -102,10 +126,17 @@ export function walkGuards(guardFile, fileSet, read) {
   return { stages, problems };
 }
 
-/** layout(とスイッチ先)の守りの検査: 旧ガードの直接呼び出しは不可、隣に public でない guard.ts があれば guard() を呼ぶ */
+/**
+ * layout(とスイッチ先)の守りの検査: 旧ガードの直接呼び出しは不可、隣に public でない guard.ts があれば guard() を呼ぶ
+ * @param {string} layoutFile
+ * @param {Set<string>} fileSet
+ * @param {ReadFile} read
+ * @returns {string[]}
+ */
 function checkLayout(layoutFile, fileSet, read) {
   const problems = [];
   const source = read(layoutFile);
+  /** @type {[string, string][]} */
   const sources = [[layoutFile, source]];
   const { problems: switchProblems, target } = parseSwitchLayout(source);
   if (switchProblems.length === 0 && target) {
@@ -143,27 +174,36 @@ export function buildRouteMap({ files, read, gateRules = [] }) {
   const disabledRules = gateRules.filter((rule) => !rule.enabled());
   const { routes, problems } = discoverRoutes(files);
   const fileSet = new Set(files.map((f) => f.replace(/\\/g, "/")));
+  /** @type {Map<string, string[]>} */
   const checkedLayouts = new Map();
+  /** @type {RouteMapRow[]} */
   const rows = [];
   for (const route of routes) {
+    /** @type {string[]} */
     const rowProblems = [];
     const where = `${route.key}(${route.page})`;
     for (const layout of route.layouts) {
-      if (!checkedLayouts.has(layout)) checkedLayouts.set(layout, checkLayout(layout, fileSet, read));
-      rowProblems.push(...checkedLayouts.get(layout));
+      let checked = checkedLayouts.get(layout);
+      if (!checked) {
+        checked = checkLayout(layout, fileSet, read);
+        checkedLayouts.set(layout, checked);
+      }
+      rowProblems.push(...checked);
     }
+    /** @type {RouteMapStage[]} */
     const chain = [{ kind: "page", file: route.page }];
     const page = parseSwitchPage(read(route.page));
-    const screenFile = page.problems.length === 0 && page.target ? resolveScreen(route.dir, page.target, fileSet, read) : null;
-    if (!screenFile) {
+    const target = page.problems.length === 0 ? page.target : null;
+    const screenFile = target ? resolveScreen(route.dir, target, fileSet, read) : null;
+    if (!target || !screenFile) {
       rowProblems.push(`${where}: page.tsx の 1 行スイッチから Screen を解決できない`);
     } else {
-      chain.push({ kind: "screen", file: screenFile, name: page.target.name });
+      chain.push({ kind: "screen", file: screenFile, name: target.name });
       // 管理のページは Screen が AdminPage を描く(ヘッダーの行は AdminPage が描く。全 Tier、例外なし)
       if (route.dir === ADMIN_DIR || route.dir.startsWith(`${ADMIN_DIR}/`)) {
         for (const p of checkAdminPageScreen(read(screenFile))) rowProblems.push(`${screenFile}: ${p}`);
       }
-      const call = checkScreenLoaderCall(read(screenFile), page.target.name);
+      const call = checkScreenLoaderCall(read(screenFile), target.name);
       for (const p of call.problems) rowProblems.push(`${screenFile}: ${p}`);
       const loaderFile = call.loaderImport ? resolveImportFile(screenFile, call.loaderImport, fileSet) : null;
       if (call.problems.length === 0 && !loaderFile) rowProblems.push(`${screenFile}: loader(${call.loaderImport})が見つからない`);
@@ -207,20 +247,32 @@ export function buildRouteMap({ files, read, gateRules = [] }) {
   return { rows, problems: [...new Set(problems)] };
 }
 
-/** 地図ファイルの中身(1 ページ 1 行の JSON、キーの順は固定、行は path → slot の順) */
+/**
+ * 地図ファイルの中身(1 ページ 1 行の JSON、キーの順は固定、行は path → slot の順)
+ * @param {RouteMapRow[]} rows
+ * @returns {string}
+ */
 export function formatRouteMap(rows) {
   const sorted = [...rows].sort((a, b) => (a.path === b.path ? String(a.slot ?? "").localeCompare(String(b.slot ?? "")) : a.path < b.path ? -1 : 1));
   return sorted.map((r) => JSON.stringify({ path: r.path, slot: r.slot, state: r.state, gatedOff: r.gatedOff, chain: r.chain })).join("\n") + "\n";
 }
 
-/** access の短い表示(pnpm check routes -- show 用) */
+/**
+ * access の短い表示(pnpm check routes -- show 用)
+ * @param {unknown} access
+ * @returns {string}
+ */
 export function formatAccess(access) {
   if (typeof access === "string") return access;
   if (access && typeof access === "object" && "registry" in access) return `registry:${access.registry}`;
   return JSON.stringify(access);
 }
 
-/** pnpm check routes -- show の表示(コミットしない。人が読む形) */
+/**
+ * pnpm check routes -- show の表示(コミットしない。人が読む形)
+ * @param {RouteMapRow[]} rows
+ * @returns {string}
+ */
 export function formatRouteDetails(rows) {
   const out = [];
   for (const r of rows) {
@@ -244,6 +296,7 @@ export function formatRouteDetails(rows) {
  * @typedef {{ kind: "page", file: string }
  *   | { kind: "screen", file: string, name: string }
  *   | { kind: "loader", file: string, access: unknown, allowStatuses?: unknown }
- *   | { kind: "guard", file: string, policy: Record<string, unknown> }} RouteMapStage
+ *   | GuardStage} RouteMapStage
+ * @typedef {{ kind: "guard", file: string, policy: Record<string, unknown> }} GuardStage
  * @typedef {{ path: string, slot: string | null, state: string, gatedOff: string | null, chain: RouteMapStage[] }} RouteMapRow
  */

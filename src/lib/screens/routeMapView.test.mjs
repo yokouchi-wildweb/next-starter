@@ -26,12 +26,21 @@ const here = dirname(fileURLToPath(import.meta.url));
 const FIXTURE = readFileSync(join(here, "__fixtures__/route-map.sample.jsonl"), "utf8");
 const rows = parseRouteMapJsonl(FIXTURE);
 
-/** 引数を読んで絞り込んだ行の path(slot 付き) */
-const pick = (...argv) => {
+/**
+ * 引数を読んだ ShowOptions(読めなければ失敗)
+ * @param {string[]} argv
+ */
+const optsOf = (...argv) => {
   const parsed = parseShowArgs(argv);
-  assert.ok(parsed.ok, parsed.error);
-  return filterRows(rows, parsed.opts).map((r) => `${r.path}${r.slot ? ` ${r.slot}` : ""}`);
+  if (!parsed.ok) assert.fail(parsed.error);
+  return parsed.opts;
 };
+
+/**
+ * 引数を読んで絞り込んだ行の path(slot 付き)
+ * @param {string[]} argv
+ */
+const pick = (...argv) => filterRows(rows, optsOf(...argv)).map((r) => `${r.path}${r.slot ? ` ${r.slot}` : ""}`);
 
 test("地図ファイルを読む: 1 行 1 ページ、formatRouteMap に通すと同じ中身(形を変えていない)", () => {
   assert.equal(rows.length, 10);
@@ -131,7 +140,7 @@ test("tree: URL の木、ページの行に access・最寄りの範囲・止め
     ].join("\n"),
   );
   // ページの無いルート("/" も)はセグメント名だけ
-  assert.equal(renderTree(filterRows(rows, parseShowArgs(["/admin/users"]).opts)), "/\n└─ admin\n   └─ users\n      └─ general  access=role:admin  scope=admin/(protected)/users\n");
+  assert.equal(renderTree(filterRows(rows, optsOf("/admin/users"))), "/\n└─ admin\n   └─ users\n      └─ general  access=role:admin  scope=admin/(protected)/users\n");
 });
 
 test("table: Markdown の表(page dir で route group が見える、guard は最寄り → root)", () => {
@@ -160,7 +169,7 @@ test("mermaid: guard の範囲を extend の親子で入れ子の subgraph、ペ
   assert.equal(subgraphs.length, 5);
   assert.equal(lines.filter((l) => l.trim() === "end").length, 5);
   // 入れ子の深さ = extend の深さ(root の中に admin/(protected)、その中に users)
-  const indentOf = (needle) => lines.find((l) => l.includes(needle)).search(/\S/);
+  const indentOf = (/** @type {string} */ needle) => (lines.find((l) => l.includes(needle)) ?? "").search(/\S/);
   assert.equal(indentOf('["/ · public"]'), 2);
   assert.equal(indentOf('["admin/(protected) · category:admin"]'), 4);
   assert.equal(indentOf('["admin/(protected)/users · role:admin"]'), 6);
@@ -169,7 +178,7 @@ test("mermaid: guard の範囲を extend の親子で入れ子の subgraph、ペ
   assert.ok(lines.some((l) => l.includes('"/mypage @modal<br/>authenticated"]')));
   assert.equal(lines.filter((l) => /^\s*p\d+\[/.test(l)).length, 10, "ページは 1 行 1 箱");
   // 絞り込んだ行だけの範囲を描く(root の外枠は残る)
-  const admin = renderMermaid(filterRows(rows, parseShowArgs(["--access=role:admin"]).opts));
+  const admin = renderMermaid(filterRows(rows, optsOf("--access=role:admin")));
   assert.equal(admin.split("\n").filter((l) => l.trim().startsWith("subgraph")).length, 4);
   assert.equal(admin.includes("(user)/(protected)"), false);
   // ラベルの " は Mermaid の #quot; にする
@@ -177,7 +186,7 @@ test("mermaid: guard の範囲を extend の親子で入れ子の subgraph、ペ
 });
 
 test("jsonl: 絞った行を地図と同じ形で出す(エージェント向け)、0 件は空", () => {
-  const selected = filterRows(rows, parseShowArgs(["--access=public"]).opts);
+  const selected = filterRows(rows, optsOf("--access=public"));
   assert.equal(renderRouteMap(selected, "jsonl"), formatRouteMap(selected));
   assert.deepEqual(parseRouteMapJsonl(renderRouteMap(selected, "jsonl")), selected);
   assert.equal(renderRouteMap([], "jsonl"), "");

@@ -4,6 +4,11 @@
 // 設計: src/lib/screens/README.md §13「見る」
 import { formatRouteDetails, formatRouteMap } from "./routeMap.mjs";
 
+/**
+ * @import { GuardStage, RouteMapRow, RouteMapStage } from "./routeMap.mjs"
+ * @typedef {Extract<RouteMapStage, { kind: "loader" }>} LoaderStage
+ */
+
 const APP_DIR = "src/app";
 const VIEWS = ["details", "tree", "table", "mermaid", "jsonl"];
 const STATES = ["verified", "gated-off", "live"];
@@ -23,13 +28,21 @@ export const SHOW_USAGE = `使い方: pnpm check routes -- show [<URL 接頭辞>
 ( ) を含む値はシェルで '…' で囲む(例 --scope='admin/(protected)')。
 `;
 
-/** guard.ts の file → 範囲の名前("/" = root、それ以外は src/app からの相対ディレクトリ) */
+/**
+ * guard.ts の file → 範囲の名前("/" = root、それ以外は src/app からの相対ディレクトリ)
+ * @param {string} guardFile
+ * @returns {string}
+ */
 export function rangeOf(guardFile) {
   const dir = guardFile.slice(0, guardFile.lastIndexOf("/"));
   return dir === APP_DIR ? "/" : dir.slice(APP_DIR.length + 1);
 }
 
-/** --scope の書き方を範囲の名前にそろえる */
+/**
+ * --scope の書き方を範囲の名前にそろえる
+ * @param {string} value
+ * @returns {string}
+ */
 export function normalizeScope(value) {
   let s = value.trim().replace(/\/guard\.ts$/, "").replace(/\/+$/, "");
   if (s === APP_DIR || s === "" || s === "root") return "/";
@@ -41,6 +54,7 @@ const ACCESS_TOKEN = /^(public|authenticated|statuses|registry(:[\w.-]+)?|role:[
 
 /**
  * pnpm check routes -- show の引数(show の後ろ)を読む。
+ * @param {string[]} argv
  * @returns {{ ok: true, opts: ShowOptions } | { ok: false, error: string }}
  */
 export function parseShowArgs(argv) {
@@ -78,7 +92,11 @@ export function parseShowArgs(argv) {
   return { ok: true, opts };
 }
 
-/** 地図ファイル(JSON Lines)を行の配列にする */
+/**
+ * 地図ファイル(JSON Lines)を行の配列にする
+ * @param {string} text
+ * @returns {RouteMapRow[]}
+ */
 export function parseRouteMapJsonl(text) {
   return text
     .split("\n")
@@ -95,28 +113,45 @@ export function parseRouteMapJsonl(text) {
 /**
  * access の短い表示(tree / table / mermaid 用。--access の値と同じ言葉)。
  * public / authenticated はそのまま、{roles, roleCategories} は category:<c> / role:<r> を + でつなぐ、registry は registry:<domain>.<op>
+ * @param {unknown} access
+ * @returns {string}
  */
 export function shortAccess(access) {
   if (typeof access === "string") return access;
   if (!access || typeof access !== "object") return JSON.stringify(access);
   if ("registry" in access) return `registry:${access.registry}`;
-  const parts = [
-    ...(Array.isArray(access.roleCategories) ? access.roleCategories.map((c) => `category:${c}`) : []),
-    ...(Array.isArray(access.roles) ? access.roles.map((r) => `role:${r}`) : []),
-  ];
+  const roleCategories = "roleCategories" in access && Array.isArray(access.roleCategories) ? access.roleCategories : [];
+  const roles = "roles" in access && Array.isArray(access.roles) ? access.roles : [];
+  const parts = [...roleCategories.map((c) => `category:${c}`), ...roles.map((r) => `role:${r}`)];
   return parts.length > 0 ? parts.join("+") : JSON.stringify(access);
 }
 
-/** page.tsx のフォルダ(src/app からの相対。route group が見える) */
+/**
+ * page.tsx のフォルダ(src/app からの相対。route group が見える)
+ * @param {RouteMapRow} row
+ */
 const pageDirOf = (row) => {
   const page = row.chain.find((stage) => stage.kind === "page");
   return page ? rangeOf(page.file) : "?";
 };
 
+/**
+ * @param {RouteMapRow} row
+ * @returns {LoaderStage | undefined}
+ */
 const loaderOf = (row) => row.chain.find((stage) => stage.kind === "loader");
+/**
+ * @param {RouteMapRow} row
+ * @returns {GuardStage[]} 最寄り → root の順
+ */
 const guardsOf = (row) => row.chain.filter((stage) => stage.kind === "guard");
 
-/** loader の access が --access の 1 つの値に当たるか */
+/**
+ * loader の access が --access の 1 つの値に当たるか
+ * @param {LoaderStage | undefined} loader
+ * @param {string} token --access の値 1 つ
+ * @returns {boolean}
+ */
 export function matchesAccess(loader, token) {
   if (!loader) return false;
   const { access } = loader;
@@ -126,17 +161,22 @@ export function matchesAccess(loader, token) {
   if (token === "registry") return "registry" in access;
   if (token.startsWith("registry:")) {
     const want = token.slice("registry:".length);
-    return typeof access.registry === "string" && (access.registry === want || access.registry.startsWith(`${want}.`));
+    return "registry" in access && typeof access.registry === "string" && (access.registry === want || access.registry.startsWith(`${want}.`));
   }
-  if (token.startsWith("role:")) return Array.isArray(access.roles) && access.roles.includes(token.slice(5));
-  if (token.startsWith("category:")) return Array.isArray(access.roleCategories) && access.roleCategories.includes(token.slice(9));
+  if (token.startsWith("role:")) return "roles" in access && Array.isArray(access.roles) && access.roles.includes(token.slice(5));
+  if (token.startsWith("category:")) return "roleCategories" in access && Array.isArray(access.roleCategories) && access.roleCategories.includes(token.slice(9));
   return false;
 }
 
-const matchesState = (row, state) =>
+const matchesState = (/** @type {RouteMapRow} */ row, /** @type {string} */ state) =>
   state === "verified" ? row.state === "verified" : state === "gated-off" ? row.gatedOff != null : row.gatedOff == null;
 
-/** 絞り込み(別の種類どうしは AND、同じ種類の中は OR) */
+/**
+ * 絞り込み(別の種類どうしは AND、同じ種類の中は OR)
+ * @param {RouteMapRow[]} rows
+ * @param {ShowOptions} opts
+ * @returns {RouteMapRow[]}
+ */
 export function filterRows(rows, opts) {
   const base = opts.prefix?.replace(/\/+$/, "");
   return rows.filter((row) => {
@@ -154,7 +194,11 @@ export function filterRows(rows, opts) {
 
 const EMPTY = "該当するページはありません\n";
 
-/** ページ 1 行の要約(tree の行末) */
+/**
+ * ページ 1 行の要約(tree の行末)
+ * @param {RouteMapRow} row
+ * @returns {string}
+ */
 function summary(row) {
   const loader = loaderOf(row);
   const nearest = guardsOf(row)[0];
@@ -165,21 +209,36 @@ function summary(row) {
   return parts.join("  ");
 }
 
-/** tree: URL のセグメントの木。ページの行に access・最寄りの範囲・止めているか */
+/**
+ * tree: URL のセグメントの木。ページの行に access・最寄りの範囲・止めているか
+ * @param {RouteMapRow[]} rows
+ * @returns {string}
+ */
 export function renderTree(rows) {
   if (rows.length === 0) return EMPTY;
+  /** @typedef {{ name: string, rows: RouteMapRow[], children: Map<string, TreeNode> }} TreeNode */
+  /** @type {TreeNode} */
   const root = { name: "/", rows: [], children: new Map() };
   for (const row of rows) {
     let node = root;
     for (const segment of row.path.split("/").filter(Boolean)) {
-      if (!node.children.has(segment)) node.children.set(segment, { name: segment, rows: [], children: new Map() });
-      node = node.children.get(segment);
+      let child = node.children.get(segment);
+      if (!child) {
+        child = { name: segment, rows: [], children: new Map() };
+        node.children.set(segment, child);
+      }
+      node = child;
     }
     node.rows.push(row);
   }
+  /** @type {string[]} */
   const out = [];
-  const labels = (node) =>
+  const labels = (/** @type {TreeNode} */ node) =>
     node.rows.length === 0 ? [node.name] : node.rows.map((row) => `${node.name}${row.slot ? ` ${row.slot}` : ""}  ${summary(row)}`);
+  /**
+   * @param {TreeNode} node
+   * @param {string} prefix
+   */
   const walk = (node, prefix) => {
     const children = [...node.children.values()].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     children.forEach((child, i) => {
@@ -196,9 +255,13 @@ export function renderTree(rows) {
   return `${out.join("\n")}\n`;
 }
 
-const cell = (value) => String(value).replace(/\|/g, "\\|");
+const cell = (/** @type {unknown} */ value) => String(value).replace(/\|/g, "\\|");
 
-/** table: Markdown の表(1 ページ 1 行。page dir = page.tsx のフォルダで route group が見える) */
+/**
+ * table: Markdown の表(1 ページ 1 行。page dir = page.tsx のフォルダで route group が見える)
+ * @param {RouteMapRow[]} rows
+ * @returns {string}
+ */
 export function renderTable(rows) {
   if (rows.length === 0) return EMPTY;
   const out = ["| path | slot | page dir | state | scope | access | guards (nearest → root) |", "|---|---|---|---|---|---|---|"];
@@ -213,31 +276,41 @@ export function renderTable(rows) {
   return `${out.join("\n")}\n`;
 }
 
-const mermaidText = (text) => text.replace(/"/g, "#quot;");
+const mermaidText = (/** @type {string} */ text) => text.replace(/"/g, "#quot;");
 
-/** mermaid: guard.ts の範囲を入れ子の subgraph(extend の親子)、ページを最寄りの範囲の中の箱で描く */
+/**
+ * mermaid: guard.ts の範囲を入れ子の subgraph(extend の親子)、ページを最寄りの範囲の中の箱で描く
+ * @param {RouteMapRow[]} rows
+ * @returns {string}
+ */
 export function renderMermaid(rows) {
   if (rows.length === 0) return EMPTY;
-  /** 範囲の名前 → { file, access, parent, children:Set, pages:[] } */
+  /** @typedef {{ name: string, access: unknown, parent: string | null, children: Set<string>, pages: RouteMapRow[] }} MermaidRange */
+  /** @type {Map<string, MermaidRange>} 範囲の名前 → 範囲 */
   const ranges = new Map();
   for (const row of rows) {
     const guards = guardsOf(row);
     guards.forEach((guard, i) => {
       const name = rangeOf(guard.file);
-      if (!ranges.has(name)) ranges.set(name, { name, access: guard.policy.access, parent: null, children: new Set(), pages: [] });
-      const parent = guards[i + 1];
-      if (parent) {
-        const parentName = rangeOf(parent.file);
-        ranges.get(name).parent = parentName;
+      let range = ranges.get(name);
+      if (!range) {
+        range = { name, access: guard.policy.access, parent: null, children: new Set(), pages: [] };
+        ranges.set(name, range);
       }
+      const parent = guards[i + 1];
+      if (parent) range.parent = rangeOf(parent.file);
     });
-    if (guards[0]) ranges.get(rangeOf(guards[0].file)).pages.push(row);
+    if (guards[0]) ranges.get(rangeOf(guards[0].file))?.pages.push(row);
   }
   for (const range of ranges.values()) if (range.parent) ranges.get(range.parent)?.children.add(range.name);
 
   const out = ["flowchart LR", "  classDef gated stroke-dasharray: 5 5"];
   let guardId = 0;
   let pageId = 0;
+  /**
+   * @param {MermaidRange} range
+   * @param {string} indent
+   */
   const walk = (range, indent) => {
     out.push(`${indent}subgraph g${guardId++}["${mermaidText(`${range.name} · ${shortAccess(range.access)}`)}"]`);
     for (const row of range.pages) {
@@ -245,7 +318,10 @@ export function renderMermaid(rows) {
       const label = `${row.path}${row.slot ? ` ${row.slot}` : ""}<br/>${loader ? shortAccess(loader.access) : "?"}${row.gatedOff ? "<br/>gated-off" : ""}`;
       out.push(`${indent}  p${pageId++}["${mermaidText(label)}"]${row.gatedOff ? ":::gated" : ""}`);
     }
-    for (const child of [...range.children].sort()) walk(ranges.get(child), `${indent}  `);
+    for (const child of [...range.children].sort()) {
+      const childRange = ranges.get(child);
+      if (childRange) walk(childRange, `${indent}  `);
+    }
     out.push(`${indent}end`);
   };
   const roots = [...ranges.values()].filter((r) => !r.parent || !ranges.has(r.parent)).sort((a, b) => (a.name < b.name ? -1 : 1));
@@ -253,7 +329,12 @@ export function renderMermaid(rows) {
   return `${out.join("\n")}\n`;
 }
 
-/** --view の形で描く */
+/**
+ * --view の形で描く
+ * @param {RouteMapRow[]} rows
+ * @param {string} view ShowOptions の view
+ * @returns {string}
+ */
 export function renderRouteMap(rows, view) {
   if (view === "tree") return renderTree(rows);
   if (view === "table") return renderTable(rows);
