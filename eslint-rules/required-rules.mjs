@@ -56,5 +56,7 @@ export const REQUIRED_ESLINT_RULES = [
   { rule: "import-boundaries/mail-send-via-messaging", files: ["src/features/core/messaging/channels/email/index.tsx", "src/features/core/user/services/server/userService.ts"] },
   { rule: "raw-sql-date/no-date-param", files: ["src/features/core/messaging/services/server/sweep/retentionSql.ts", "scripts/runner/task/run.ts"] },
   // cacheComponents と両立しない segment config(有効化の区切りから全 Tier error。fork が false に戻す・緩める道を残さない)
+  // 共有の use cache の中で利用者・権限を引数の外から読まない(cacheComponents の解禁と同時、全 Tier error)
+  { rule: "use-cache/no-principal-outside-args", files: ["src/features/core/auth/services/server/registration.ts", "src/app/(user)/layout.tsx"] },
   { rule: "segment-config/cc-incompatible", files: ["src/app/(user)/(public)/services/page.tsx", "src/app/(user)/layout.tsx", "src/app/api/health/route.ts"] },
 ];

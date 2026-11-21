@@ -24,3 +24,4 @@ domain_error: a server service throws DomainError for what the user must see (it
 db_aggregation: aggregate in SQL (GROUP BY), never fetch rows and sum in JS
 tx_side_effects: inside a service transaction write through the passed tx | side effects outside the DB (mail, external calls) go after it commits
 tx_reads: reads inside an open transaction go through the tx executor
+use_cache: a shared "use cache" / "use cache: remote" never reads the user or permissions outside its arguments (session / guard APIs, cookies / headers, getAuditContext) → resolve them in the caller and pass them as arguments, or "use cache: private" | lint use-cache/no-principal-outside-args (direct calls only)

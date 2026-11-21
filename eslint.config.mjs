@@ -21,6 +21,7 @@ import entryPlugin from "./eslint-rules/entry.mjs";
 import importBoundariesPlugin from "./eslint-rules/import-boundaries.mjs";
 import routeHttpExportPlugin from "./eslint-rules/route-http-export.mjs";
 import segmentConfigPlugin from "./eslint-rules/segment-config.mjs";
+import useCachePlugin from "./eslint-rules/use-cache.mjs";
 import styleTokensPlugin from "./eslint-rules/style-tokens.mjs";
 import { loadCatalogOwnership } from "./src/lib/folderCatalog/node.mjs";
 import forkConfig from "./eslint.config.fork.mjs";
@@ -109,6 +110,16 @@ const config = [
     plugins: { "segment-config": segmentConfigPlugin },
     rules: {
       "segment-config/cc-incompatible": "error",
+    },
+  },
+  // 共有の "use cache"(と remote)の中で利用者・権限を引数の外から読まない(セッション・ガードの API・cookies / headers・監査の文脈の主体)。
+  // 引数に含めるか "use cache: private"。認可の検査なので全 Tier error(必須の規則の表)。詳細: eslint-rules/use-cache.mjs
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/**/*.test.{ts,tsx}"],
+    plugins: { "use-cache": useCachePlugin },
+    rules: {
+      "use-cache/no-principal-outside-args": "error",
     },
   },
   // 層の境目の import を実パスで検査する(エイリアス・相対・"src/…"・サブパス・dynamic import も同じ)。全 Tier error。
