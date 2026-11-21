@@ -8,6 +8,8 @@
       "@/lib/defineConfig/*": ["../defineConfig/*"],
       "@/lib/errors": ["../errors"],
       "@/lib/errors/*": ["../errors/*"],
+      "@/lib/plainObject": ["../plainObject"],
+      "@/lib/plainObject/*": ["../plainObject/*"],
       "@lib-config/realtimeRoom": ["../../config/lib/realtimeRoom.config.ts"]
     }
   },

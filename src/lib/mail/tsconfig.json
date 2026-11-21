@@ -14,6 +14,12 @@
       "@/lib/messaging/*": [
         "../messaging/*"
       ],
+      "@/lib/plainObject": [
+        "../plainObject"
+      ],
+      "@/lib/plainObject/*": [
+        "../plainObject/*"
+      ],
       "@/lib/templateVariables": [
         "../templateVariables"
       ],

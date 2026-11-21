@@ -23,6 +23,12 @@
       "@/lib/errors/*": [
         "../errors/*"
       ],
+      "@/lib/plainObject": [
+        "../plainObject"
+      ],
+      "@/lib/plainObject/*": [
+        "../plainObject/*"
+      ],
       "@/lib/unsavedGuard": [
         "../unsavedGuard"
       ],

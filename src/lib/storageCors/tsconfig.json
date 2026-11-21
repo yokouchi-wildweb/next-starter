@@ -38,6 +38,12 @@
       "@/lib/firebase/*": [
         "../firebase/*"
       ],
+      "@/lib/plainObject": [
+        "../plainObject"
+      ],
+      "@/lib/plainObject/*": [
+        "../plainObject/*"
+      ],
       "@/lib/storage": [
         "../storage"
       ],

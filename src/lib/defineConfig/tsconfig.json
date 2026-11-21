@@ -1,4 +1,10 @@
 {
   "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/plainObject": ["../plainObject"],
+      "@/lib/plainObject/*": ["../plainObject/*"]
+    }
+  },
   "include": ["**/*.ts", "**/*.tsx"]
 }

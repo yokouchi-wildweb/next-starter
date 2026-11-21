@@ -7,6 +7,7 @@
 // - 既定に無いキー(fork 独自のキー)はそのまま写す
 // - schema(Standard Schema)で合成した値を確かめる。検査だけで、出力は使わない(zod の出力は fork 独自のキーを落とすため)
 
+import { isPlainObject } from "@/lib/plainObject/index.mjs";
 import type { ArrayRule, ConfigDefinition, ConfigRules, StandardSchemaIssue } from "./types";
 
 /** 規則や上書きの形の誤り */
@@ -35,12 +36,6 @@ function pathOfIssue(issue: StandardSchemaIssue): string[] {
 }
 
 type PlainObject = Record<string, unknown>;
-
-function isPlainObject(value: unknown): value is PlainObject {
-  if (value === null || typeof value !== "object") return false;
-  const proto = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
-}
 
 /** 配列とプレーンなオブジェクトだけ写す(他は参照のまま) */
 function clone<T>(value: T): T {

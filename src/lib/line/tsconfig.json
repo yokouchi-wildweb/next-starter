@@ -6,6 +6,8 @@
       "@/lib/appEnv/*": ["../appEnv/*"],
       "@/lib/defineConfig": ["../defineConfig"],
       "@/lib/defineConfig/*": ["../defineConfig/*"],
+      "@/lib/plainObject": ["../plainObject"],
+      "@/lib/plainObject/*": ["../plainObject/*"],
       "@/lib/url": ["../url"],
       "@/lib/url/*": ["../url/*"]
     }

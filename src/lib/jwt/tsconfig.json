@@ -4,6 +4,8 @@
     "paths": {
       "@/lib/defineConfig": ["../defineConfig"],
       "@/lib/defineConfig/*": ["../defineConfig/*"],
+      "@/lib/plainObject": ["../plainObject"],
+      "@/lib/plainObject/*": ["../plainObject/*"],
       "@lib-config/jwt": ["../../config/lib/jwt.config.ts"]
     }
   },

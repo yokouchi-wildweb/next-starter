@@ -4,6 +4,8 @@
     "paths": {
       "@/lib/defineConfig": ["../defineConfig"],
       "@/lib/defineConfig/*": ["../defineConfig/*"],
+      "@/lib/plainObject": ["../plainObject"],
+      "@/lib/plainObject/*": ["../plainObject/*"],
       "@lib-config/frameDims": ["../../config/lib/frameDims.config.ts"]
     }
   },

@@ -1,5 +1,7 @@
 // src/features/core/pairedDevice/utils/scopeContains.ts
 
+import { isPlainObject } from "@/lib/plainObject/index.mjs";
+
 /**
  * JSONB の @> と同じ判定（container が pattern を含むか）。
  * manageableScopes の 1 件ごとの権限判定に使う（一覧の SQL 側は @> そのもの）。
@@ -19,12 +21,6 @@ export function scopeContains(container: unknown, pattern: unknown): boolean {
     scopeContains((container as Record<string, unknown>)[key], value),
   );
 }
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
-  const proto = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
-};
 
 /** JSON に損失なく往復できる値か（undefined・関数・NaN / Infinity・Date 等のクラスを含まない） */
 function isJsonSafe(value: unknown): boolean {

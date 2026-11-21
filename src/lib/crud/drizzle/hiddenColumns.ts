@@ -15,6 +15,7 @@
 // このモジュールは entities/drizzle.ts から import されるため、
 // 依存は drizzle-orm のみに限定する（@/lib/drizzle への循環 import を避ける）。
 
+import { isPlainObject } from "@/lib/plainObject/index.mjs";
 import { getTableColumns, sql, type SQL } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
 
@@ -86,12 +87,6 @@ export function getPublicColumns<T extends PgTable>(table: T): T["_"]["columns"]
   }
   return result as T["_"]["columns"];
 }
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-  if (value === null || typeof value !== "object") return false;
-  const proto = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
-};
 
 /**
  * 戻り値グラフを再帰的に走査し、秘匿カラム名に一致するキーを null に置換する。
