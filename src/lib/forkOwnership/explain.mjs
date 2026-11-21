@@ -9,8 +9,7 @@ import { matchesGlob } from "node:path";
 
 import { pointsFromFiles, isListPoint, FRAME_FILE, FRAME_OVERRIDE_FILE, FRAME_SEARCH_ROOT, overridePathOfTarget, switchSetOf, configSlotsOf, discoverDistricts } from "../districtMap/index.mjs";
 import { DOMAIN_OUTPUTS_FILE, intakeOutputGlobs, matchDomainOutput, parseDomainOutputs } from "../districtMap/node.mjs";
-import { parseSwitchLayout } from "../screens/checks.mjs";
-import { LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes } from "../screens/routeTree.mjs";
+import { parseSwitchLayout, LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes } from "../screens/node.mjs";
 import { matchIntake } from "./intake.mjs";
 
 /** 型の値(L1.45) */

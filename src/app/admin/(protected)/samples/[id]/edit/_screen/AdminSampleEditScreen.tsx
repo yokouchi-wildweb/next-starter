@@ -4,7 +4,7 @@
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
 import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/features/core/admin/services/server/screenData/adminEdit";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { SWRConfig } from "swr";
 import AdminSampleEdit from "@/features/sample/components/AdminSampleEdit";
 import AdminPage from "@/app/admin/_layout/AdminPage";

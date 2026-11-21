@@ -1,7 +1,7 @@
 // src/app/(user)/demo/popover/_screen/DemoPopoverScreen.tsx
 // /demo/popover(デモ)の既定画面。本体は client の DemoPopoverDemo。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 
 import { DemoPopoverDemo } from "./DemoPopoverDemo";
 import { loadDemoPopoverScreen } from "./loader";

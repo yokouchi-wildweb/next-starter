@@ -5,7 +5,7 @@
 
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { PurchaseCallback } from "@/features/core/purchaseRequest/components/PurchaseCallback";
 
 import { loadWalletPurchaseCallbackScreen, type WalletPurchaseCallbackScreenParams } from "./loader";

@@ -8,7 +8,7 @@
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { OAuth } from "@/features/core/auth/components/OAuth";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 
 import { loadSignupOAuthScreen, type SignupOAuthScreenSearchParams } from "./loader";
 

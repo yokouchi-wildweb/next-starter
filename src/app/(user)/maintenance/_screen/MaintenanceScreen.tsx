@@ -6,7 +6,7 @@
 // ヘッダーのナビ・フッター・ボトムナビを隠した 1 画面の案内(隠すのは ../frame.ts)。終了時刻は loader が設定から読み、
 // MaintenanceAutoRedirect(client 部品)が公開 hook useMaintenanceAutoRedirect で時刻到来に遷移する。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";

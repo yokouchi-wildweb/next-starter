@@ -8,7 +8,7 @@
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Registration } from "@/features/core/auth/components/Registration";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 
 import { loadSignupRegisterScreen, type SignupRegisterScreenSearchParams } from "./loader";
 

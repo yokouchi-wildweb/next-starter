@@ -12,7 +12,7 @@ import { collectPoints, intakeOutputGlobs } from "../../../src/lib/districtMap/n
 import { OVERRIDE_ROOT } from "../../../src/lib/districtMap/index.mjs";
 import { INTAKE_BLOCK_END, INTAKE_BLOCK_START, INTAKE_FILE, matchIntake, parseIntake } from "../../../src/lib/forkOwnership/intake.mjs";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
-import { FORK_OWNED_DIR } from "../../../src/lib/screens/checks.mjs";
+import { FORK_OWNED_DIR } from "../../../src/lib/screens/node.mjs";
 import { loadGates, scanTargets } from "../../runner/gates/scan.mjs";
 import { literalGlob, overrideGlobOf } from "./intake.mjs";
 import { checkSwitches } from "./switches.mjs";

@@ -6,7 +6,7 @@
 // loader は access の評価だけ(public)。デモモード無効時の 404 は Proxy 層(demoModeProxy)が担う。
 // ログイン操作は client 部品 DemoLoginSection が hook で行う。フッターとボトムナビを隠すのは ../frame.ts。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";

@@ -6,7 +6,7 @@
 // loader が既定のセクションへ redirect するので、この画面は表示されない。管理のページは必ず AdminPage を返す
 // (AdminPage を使わない管理のページを止める検査に例外を作らない)ので、題だけの AdminPage を返す。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 import { loadAdminSettingIndexScreen } from "./loader";

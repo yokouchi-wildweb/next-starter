@@ -1,7 +1,7 @@
 // src/app/(user)/demo/async-picker-modal/_screen/DemoAsyncPickerModalScreen.tsx
 // /demo/async-picker-modal(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";

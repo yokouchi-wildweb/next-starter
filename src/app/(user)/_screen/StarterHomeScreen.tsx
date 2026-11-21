@@ -7,7 +7,7 @@
 // ページ自体はスクロールしない(本文は flex-1 min-h-0 で残り高さを占める)。内容が収まらない小さな画面では内側だけがスクロールする。
 // 背景は FullScreen layer="background" でビューポート全体に敷く(コンテナ幅に閉じない)。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { Link } from "@/components/Navigation/Link";
 
 import { UserPage } from "@/app/(user)/_layout/UserPage";

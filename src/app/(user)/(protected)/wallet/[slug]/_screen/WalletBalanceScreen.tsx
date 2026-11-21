@@ -6,7 +6,7 @@
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";
 
 import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "./loader";

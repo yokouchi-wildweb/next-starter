@@ -7,7 +7,7 @@
 
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 
 import { loadLogoutScreen, type LogoutScreenSearchParams } from "./loader";
 import { LogoutSection } from "./LogoutSection";

@@ -4,7 +4,7 @@
 //
 // loader は access の評価だけ(public。静的な案内のみ。ここへの誘導は登録フロー側が行う)。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { LinkButton } from "@/components/Button/LinkButton";

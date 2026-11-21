@@ -1,7 +1,7 @@
 // src/app/(user)/demo/media-input/_screen/DemoMediaInputScreen.tsx
 // /demo/media-input(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { Main } from "@/components/Layout/Main";
 import { PageTitle } from "@/components/TextBlocks/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";

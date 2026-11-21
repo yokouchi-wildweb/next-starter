@@ -10,7 +10,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 
 import type { WalletType } from "@/features/wallet/config";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { requireUserRecord } from "@/features/core/user/services/server/userService";
 import type { Wallet } from "@/features/core/wallet/entities";
 import { walletService } from "@/features/core/wallet/services/server/walletService";

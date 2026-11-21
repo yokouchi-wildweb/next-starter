@@ -1,7 +1,7 @@
 // src/app/(user)/demo/dummy-payment/_screen/DemoDummyPaymentScreen.tsx
 // /demo/dummy-payment(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { DummyPaymentForm } from "@/features/core/purchaseRequest/components/DummyPaymentForm";
 
 import { loadDemoDummyPaymentScreen } from "./loader";

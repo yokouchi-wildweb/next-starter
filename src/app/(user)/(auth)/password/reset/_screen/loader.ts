@@ -7,7 +7,7 @@
 
 import "server-only";
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { createLoader } from "@/app/guard";
 
 export type PasswordResetScreenSearchParams = {

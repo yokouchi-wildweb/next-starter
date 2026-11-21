@@ -85,7 +85,7 @@ function dottedInImplDirs(files) {
 
 /**
  * DEFAULT_IMPL_DIRS 配下の fork の置き換えの印(classifyDottedName が replace = 丸ごと置き換え・override = 一部の上書きと判定する名前)を返す。
- * 置き換えの印は fork の物なので upstream はこれを作らない(pnpm test src/lib/screens/screens.test.mjs が Tier1 でだけ検査する、設定 D101)。
+ * 置き換えの印は fork の物なので upstream はこれを作らない(pnpm test scripts/structure/routes/screens.test.mjs が Tier1 でだけ検査する、設定 D101)。
  * 点つきの名前を全部止めるのではない: 1 行スイッチの既定 `<名前>.default`・枠の描画用の設定 `config.ui.ts`(設定 D38)・テストは印でないので返さない
  * @param {string[]} files repo 相対パス
  */
@@ -167,7 +167,7 @@ export function findRouteReplaceProblems(files, readText) {
 export const FORK_OWNED_DIR = "_components";
 
 /**
- * findRouteReplaceProblems の 1 件を直し方つきの文にする(pnpm test src/lib/screens と pnpm check extensions が同じ文を出す)
+ * findRouteReplaceProblems の 1 件を直し方つきの文にする(pnpm test scripts/structure/routes/screens.test.mjs と pnpm check extensions が同じ文を出す)
  * @param {{ path: string, reason: "in-screen" | "orphan" | "no-default" }} problem
  * @returns {string}
  */
@@ -186,7 +186,7 @@ export function describeRouteReplaceProblem({ path, reason }) {
 /**
  * src/app 配下で FORK_OWNED_DIR のセグメントを持つファイルを返す。
  * `_` の意味は場所で違う: `_screen/`・`_layout/` = 提供者の既定、`_components/` = fork 所有。
- * upstream が `_components/` に置くと fork の置き場と衝突するので、pnpm test src/lib/screens/screens.test.mjs が Tier1 でだけ検査する
+ * upstream が `_components/` に置くと fork の置き場と衝突するので、pnpm test scripts/structure/routes/screens.test.mjs が Tier1 でだけ検査する
  * @param {string[]} files repo 相対パス
  */
 export function findForkOwnedDirFiles(files) {
@@ -588,7 +588,7 @@ export function checkLoaderFile(source, options) {
 }
 
 // ---------------------------------------------------------------------------
-// 守りの鎖の解析(ルート地図の verified と pnpm test src/lib/screens/screens.test.mjs の D21 が共有する。字面だけを読む)
+// 守りの鎖の解析(ルート地図の verified と pnpm test scripts/structure/routes/screens.test.mjs の D21 が共有する。字面だけを読む)
 // page.tsx → 採用 Screen → 同じルートの loader → 最寄りの guard.ts → extend の親 → root(defineRootGuard)
 // ---------------------------------------------------------------------------
 

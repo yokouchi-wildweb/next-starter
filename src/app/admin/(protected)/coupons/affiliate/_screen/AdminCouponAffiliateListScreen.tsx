@@ -5,7 +5,7 @@
 //
 // loader は access の評価だけ(準備中の案内だけ)。説明文に足す 1 文は couponConfig.affiliateDescription(fork は上書きに書く)。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";

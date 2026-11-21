@@ -12,7 +12,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Main } from "@/components/Layout/Main";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { AdminLogin } from "@/features/core/auth/components/AdminLogin";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 
 import { loadAdminLoginScreen, type AdminLoginScreenSearchParams } from "./loader";
 

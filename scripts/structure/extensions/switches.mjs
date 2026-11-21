@@ -3,13 +3,13 @@
 // 中身(コメントを除く)は ./<名前>.default か ./<名前>.replace を指す re-export 1 文だけ。Tier1 は .default を指す。
 // fork の実装 = <名前>.replace.ts(x)(丸ごと置き換え。旧い <名前>.<fork の名前> は止めて移し方を案内する)。
 // .default は作ったリポが出す既定の共通の印(D171)。ほかの仕組みが名乗った形(各仕組みの CLAIMED_DEFAULTS、下の CLAIMERS)はスイッチの既定として扱わない。
-// 隣に <名前>.default の無い <名前>.replace(孤立)は ./orphans.mjs(1 つの孤立の検査)。page.tsx・layout.tsx のスイッチ(_screen / _components を指す)は pnpm test src/lib/screens/screens.test.mjs の側。書式: ./README.md
+// 隣に <名前>.default の無い <名前>.replace(孤立)は ./orphans.mjs(1 つの孤立の検査)。page.tsx・layout.tsx のスイッチ(_screen / _components を指す)は pnpm test scripts/structure/routes/screens.test.mjs の側。書式: ./README.md
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { oldMarkerProblem, SEARCH_ROOT, CLAIMED_DEFAULTS, DEFAULT_FILE, isClaimedDefault } from "../../../src/lib/districtMap/index.mjs";
-import { stripComments } from "../../../src/lib/screens/checks.mjs";
+import { stripComments } from "../../../src/lib/screens/node.mjs";
 
 
 /**

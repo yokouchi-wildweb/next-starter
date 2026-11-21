@@ -10,7 +10,7 @@ import "server-only";
 
 import { gate } from "@/featureGate";
 import type { ListPageSearchParams } from "@/lib/crud";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { referralService } from "@/features/core/referral/services/server/referralService";
 import type { InviteCodeWithCount } from "@/features/core/referral/services/server/wrappers/getInviteCodeListWithCounts";
 import { settingService } from "@/features/core/setting/services/server/settingService";

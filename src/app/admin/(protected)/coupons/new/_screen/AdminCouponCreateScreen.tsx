@@ -5,7 +5,7 @@
 // pnpm generate domain の管理画面と同じ形(_screen/loader.ts が管理画面の共通部品の組を使う)。core ドメインは pnpm generate domain の対象外なので手で保守する。
 // フォームに出る関連が無いので関連選択肢の先読みは無い(loader は access の判定だけ)。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { loadAdminCouponCreateScreen } from "./loader";
 import AdminCouponCreate from "@/features/core/coupon/components/AdminCouponCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";

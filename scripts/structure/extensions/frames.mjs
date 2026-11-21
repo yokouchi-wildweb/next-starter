@@ -16,7 +16,7 @@ import { checkFrameDeclaration, emptyFrame, frameRowValue, hidesWholeFrame, matc
 import { literalOf, FRAME_DEFAULT_FILE, FRAME_FILE, FRAME_OVERRIDE_FILE } from "../../../src/lib/districtMap/index.mjs";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { isBlankSource } from "./overrides.mjs";
-import { LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes, listAppFiles } from "../../../src/lib/screens/routeTree.mjs";
+import { LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes, listAppFiles } from "../../../src/lib/screens/node.mjs";
 
 // 名前(frame.ts / frame.override.ts / frame.default.ts と .default の名乗り)の元は src/lib/districtMap/extensionNames.mjs
 export { CLAIMED_DEFAULTS, FRAME_DEFAULT_FILE, FRAME_FILE, FRAME_OVERRIDE_FILE } from "../../../src/lib/districtMap/index.mjs";

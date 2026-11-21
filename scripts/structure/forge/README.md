@@ -28,7 +28,7 @@ pnpm forge --lint   # 事後検査の最後に lint（eslint . 全体、30 秒�
    - `pnpm test scripts/structure/registry/check-storage-purposes.test.mjs`
    - `pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs`
    - `pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs`
-   - `pnpm test src/lib/screens/screens.test.mjs`
+   - `pnpm test scripts/structure/routes/screens.test.mjs`
    - `pnpm test src/wiring/wiring.test.mjs`
    - `pnpm test scripts/structure/proxies/featureGate.test.mjs src/featureGate/checks/dependencies.test.mjs`
 4. デプロイ先の検査（生成・検査とは別の段）: `pnpm check --gate=deploy`。今は Vercel だけ: cron の検査は `vercel.json` があるときだけ crons が hobby / pro どちらかの生成結果と一致するかを見る(plan は要らない)。無いリポは Vercel にデプロイしていないとみなして飛ばして出す。ずれていれば `pnpm generate cron -- --plan hobby|pro`（契約中のプラン）で作り直す

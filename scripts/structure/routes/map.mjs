@@ -4,7 +4,7 @@
 //
 // 使い方:
 //   pnpm generate routes            # 地図を書き出す(ページ・loader・guard.ts を変えたら実行してコミットする)
-//   pnpm check routes    # 地図が生成結果と一致するか検査する(ずれていれば exit 1。pnpm test src/lib/screens も同じ検査をする)
+//   pnpm check routes    # 地図が生成結果と一致するか検査する(ずれていれば exit 1。pnpm test scripts/structure/routes/routeMap.test.mjs も同じ検査をする)
 //   pnpm check routes -- show [<URL>] [--view= --scope= --access= --state= --file=]
 //                              # 地図を絞り込んで描く(既定 = 段ごとの鎖。tree / table / mermaid / jsonl)。pnpm check routes -- show --help
 //
@@ -14,9 +14,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { ROUTE_MAP_FILE, buildRouteMap, formatRouteMap } from "../../../src/lib/screens/routeMap.mjs";
-import { SHOW_USAGE, filterRows, parseRouteMapJsonl, parseShowArgs, renderRouteMap } from "../../../src/lib/screens/routeMapView.mjs";
-import { listAppFiles } from "../../../src/lib/screens/routeTree.mjs";
+import { ROUTE_MAP_FILE, buildRouteMap, formatRouteMap, SHOW_USAGE, filterRows, parseRouteMapJsonl, parseShowArgs, renderRouteMap, listAppFiles } from "../../../src/lib/screens/node.mjs";
 // 規則の値だけの一覧(全開スイッチを通さない: コミットする route-map.jsonl が env で揺れないため、L2.3)
 import { configRules as featureGateRules } from "../../../src/featureGate/node.ts";
 

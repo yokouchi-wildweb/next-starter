@@ -6,7 +6,7 @@
 - 目録は 4 つ: `src/lib/CATALOG.md`(直下のディレクトリ = lib)・`src/components/CATALOG.md`(分類の直下の単位 `src/components/<分類>/<単位>`)・`src/hooks/CATALOG.md` と `src/utils/CATALOG.md`(直下の 1 ファイル = 1 単位)。どれも各リポが自分の節を末尾に足すだけの置き場(`extensionPoints.ts` の `catalogSections`・`componentsCatalogSections`・`hooksCatalogSections`・`utilsCatalogSections`、受け口の一覧の `append` の行)
 - Node 組み込みだけで動く純粋な `.mjs`(`eslint.config.mjs` の読み込み時にも実行される)
 - フォルダに依存しないので、別のフォルダに目録を作るときもそのまま使える
-- 使い手: テスト(`catalog.test.mjs`)、`eslint.config.mjs`(所有に応じた error / warn の振り分け)、`src/lib/screens/screens.test.mjs`(Tier1 かどうか = `isRoot`)
+- 使い手: テスト(`catalog.test.mjs`)、`eslint.config.mjs`(所有に応じた error / warn の振り分け)、`scripts/structure/routes/screens.test.mjs`(Tier1 かどうか = `isRoot`)
 - 決まりは `.claude/rules/items/lib/folderCatalog.md`
 
 ## API

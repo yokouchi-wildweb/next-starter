@@ -2,7 +2,7 @@
 //
 // 画面の構造の検査の設定(既定 + 上書き)。上書きは src/config/lib/screens.config.ts(@lib-config/screens)。
 // 置き方: src/lib/README.md「設定の届け方」。合成: @/lib/defineConfig
-// 読み手は pnpm test src/lib/screens/screens.test.mjs(src/app 全体のページを自動で見つける。登録は無い)
+// 読み手は pnpm test scripts/structure/routes/screens.test.mjs(src/app 全体のページを自動で見つける。登録は無い)
 
 import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
 import override from "@lib-config/screens";

@@ -9,7 +9,7 @@
 import "server-only";
 import { notFound, redirect } from "next/navigation";
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import type { Setting } from "@/features/core/setting/entities";
 import { getSettingForActor } from "@/features/core/setting/services/server/settingActor";
 import { settingService } from "@/features/core/setting/services/server/settingService";

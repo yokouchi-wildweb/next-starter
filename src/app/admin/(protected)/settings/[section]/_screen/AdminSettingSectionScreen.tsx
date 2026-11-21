@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { Section } from "@/components/Layout/Section";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 import { sections } from "@/features/core/setting/extensions/sections";

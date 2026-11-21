@@ -9,7 +9,7 @@
 import "server-only";
 
 import type { ListPageSearchParams } from "@/lib/crud";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import type { User } from "@/features/core/user/entities";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { userService } from "@/features/core/user/services/server/userService";

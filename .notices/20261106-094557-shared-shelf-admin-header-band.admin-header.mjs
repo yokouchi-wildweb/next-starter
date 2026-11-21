@@ -44,7 +44,7 @@ import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
 
-import { checkAdminPageScreen } from "../src/lib/screens/checks.mjs";
+import { checkAdminPageScreen } from "../src/lib/screens/node.mjs";
 import { readBaseFiles } from "../src/lib/forkOwnership/baseFiles.mjs";
 
 /** 止める種類(閉じた一覧)→ 移し先 */

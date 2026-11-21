@@ -1,7 +1,7 @@
 // src/app/(user)/demo/_screen/DemoIndexScreen.tsx
 // /demo(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { Link } from "@/components/Navigation/Link";
 import { ArrowUpRight } from "lucide-react";
 

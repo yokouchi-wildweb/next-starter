@@ -69,16 +69,16 @@
 ### 所有
 
 - このフォルダ(と `(protected)/_layout/`)の既定の部品 = 提供者(upstream)の所有。fork は直接編集しない(core と同じ扱い)
-- fork の丸ごと置き換えはベースの隣に `<名前>.replace` で置く(例 `AdminHeader.replace.tsx`)。fork が足したファイル = 採用者(fork)の所有(名前に fork の印は付けない)。upstream はここに `.replace` / `.override` のファイルを作らない(`.default` は出す。`pnpm test src/lib/screens/screens.test.mjs` が Tier1 でだけ検査)。隣に既定の無い `.replace`・旧い fork の名前の印は全 Tier で失敗
+- fork の丸ごと置き換えはベースの隣に `<名前>.replace` で置く(例 `AdminHeader.replace.tsx`)。fork が足したファイル = 採用者(fork)の所有(名前に fork の印は付けない)。upstream はここに `.replace` / `.override` のファイルを作らない(`.default` は出す。`pnpm test scripts/structure/routes/screens.test.mjs` が Tier1 でだけ検査)。隣に既定の無い `.replace`・旧い fork の名前の印は全 Tier で失敗
 - lint: 既定の部品は `src/components/**` と同じ upstream 所有 UI の強さ(style-tokens・client-service-boundary が error)。`*.replace.tsx` は app/ の画面と同じ warn。page-authz は両方に error
-- `admin/layout.tsx` は採用者所有の 1 行スイッチ(`export { AdminLayout as default } from "./_layout/AdminLayout";`、write-once。`pnpm test src/lib/screens/screens.test.mjs` が全 Tier で検査)
+- `admin/layout.tsx` は採用者所有の 1 行スイッチ(`export { AdminLayout as default } from "./_layout/AdminLayout";`、write-once。`pnpm test scripts/structure/routes/screens.test.mjs` が全 Tier で検査)
 - `admin/(protected)/layout.tsx` はガードと同居するので提供者所有。枠の部品は sidebar / footer の props を持つが、fork から渡す口は今は無い(渡すには提供者所有の layout.tsx を編集することになるため)
 - 差し替え部品の置き場: `useAdminSidebarFrame` を使う差し替え部品(ヘッダー・サイドバーの中身)は `src/app/admin/**` の中(この `_layout/` の隣の `<名前>.replace`)に置く。`src/app/<X>/_layout/**` を import してよいのは `src/app/<X>/**` だけ
 
 ### AdminLayout と AdminHeader(差し替えの口)
 
 - AdminLayout はヘッダーを描かない器(props は children・className だけ。`className`: 外枠に足すクラス名)。ヘッダーの行は各ページの AdminPage が描く
-- ヘッダーの行を丸ごと差し替える口 = 1 行スイッチ(既存の `.default` / `.replace` の仕組み): 上流は `AdminHeader.default.tsx`(部品)と、それを指す re-export 1 文の `AdminHeader.tsx` を出す。fork は隣に `AdminHeader.replace.tsx` を置き、`AdminHeader.tsx` の 1 行をそちらへ向ける(検査: `pnpm check extensions`・`pnpm test src/lib/screens/screens.test.mjs`)
+- ヘッダーの行を丸ごと差し替える口 = 1 行スイッチ(既存の `.default` / `.replace` の仕組み): 上流は `AdminHeader.default.tsx`(部品)と、それを指す re-export 1 文の `AdminHeader.tsx` を出す。fork は隣に `AdminHeader.replace.tsx` を置き、`AdminHeader.tsx` の 1 行をそちらへ向ける(検査: `pnpm check extensions`・`pnpm test scripts/structure/routes/screens.test.mjs`)
 - 差し替えの約束: 名前 `AdminHeader`、props `{ title?, center?, actions?, className? }`(className = AdminPage が渡す置き方のクラス。`<header>` に付ける)。部位の印は `data-slot`(下の一覧。高さの測定 useHeaderHeight と枠の宣言の隠す CSS もこの印で読む)を残す
 - fork が `admin/layout.tsx` を丸ごと置き換えるときは `_layout/AdminLayout.replace.tsx` へ向ける(器の作りを変えたいとき)
 

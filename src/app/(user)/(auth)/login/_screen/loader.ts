@@ -13,7 +13,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 
 import { resolveReturnTo } from "@/lib/crud/utils/paths";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { createLoader } from "@/app/guard";
 
 /** returnTo 未指定・不正時のログイン後の遷移先 */

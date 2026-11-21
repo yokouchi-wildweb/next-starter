@@ -6,7 +6,7 @@
 // 種別 official で絞った一覧(絞り込みは loader.ts の固定の検索条件)。
 
 import type { ListPageSearchParams } from "@/lib/crud";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { loadAdminCouponOfficialListScreen } from "./loader";
 import AdminCouponList from "@/features/core/coupon/components/AdminCouponList";
 import AdminPage from "@/app/admin/_layout/AdminPage";

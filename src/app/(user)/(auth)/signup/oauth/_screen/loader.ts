@@ -11,7 +11,7 @@ import "server-only";
 import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
 import type { UserProviderType } from "@/features/core/user/types";
 import { resolveReturnTo } from "@/lib/crud/utils/paths";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { createLoader } from "@/app/guard";
 
 /** returnTo 未指定・不正時の遷移先 */

@@ -19,7 +19,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getBankTransferConfig } from "@/features/purchaseRequest/utils/paymentMethods";
 import type { BankTransferConfig } from "@/features/purchaseRequest/config";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import {
   INHOUSE_BANK_TRANSFER_METHOD_ID,
   INHOUSE_PROVIDER_NAME,

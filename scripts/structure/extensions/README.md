@@ -55,7 +55,7 @@ export const extensionPoints = {
 | `<名前>.replace.ts(x)` | fork の丸ごと置き換え(既定と同じ export の形) | 足した Tier |
 
 - 多段: 下の Tier は同じスイッチを書き換える(親の実装を使い続けるなら触らない)
-- page.tsx の 1 行スイッチ(`_screen` / `_components` を指す)・枠の layout.tsx の 1 行スイッチ(`_layout/<Layout>` / `_layout/<Layout>.replace` を指す)は別の仕組み(`src/lib/screens/README.md`、`pnpm test src/lib/screens/screens.test.mjs`)
+- page.tsx の 1 行スイッチ(`_screen` / `_components` を指す)・枠の layout.tsx の 1 行スイッチ(`_layout/<Layout>` / `_layout/<Layout>.replace` を指す)は別の仕組み(`src/lib/screens/README.md`、`pnpm test scripts/structure/routes/screens.test.mjs`)
 
 ### override(既定を変える隣のファイル)
 

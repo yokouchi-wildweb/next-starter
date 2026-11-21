@@ -21,7 +21,7 @@ export const POST_TESTS = [
   ["scripts/structure/registry/check-storage-purposes.test.mjs"],
   ["scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs"],
   ["scripts/structure/registry/collectionWiring/collectionWiring.test.mjs"],
-  ["src/lib/screens/screens.test.mjs"],
+  ["scripts/structure/routes/screens.test.mjs"],
   ["src/wiring/wiring.test.mjs"],
   ["scripts/structure/proxies/featureGate.test.mjs", "src/featureGate/checks/dependencies.test.mjs"],
 ];

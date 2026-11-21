@@ -1,7 +1,7 @@
 // src/app/(user)/demo/status-badge/_screen/DemoStatusBadgeScreen.tsx
 // /demo/status-badge(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { Check, X, AlertTriangle, Clock, Star, Info, AlertCircle } from "lucide-react";
 
 import { Block } from "@/components/Layout/Block";

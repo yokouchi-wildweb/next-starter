@@ -1,7 +1,7 @@
 // src/app/(user)/demo/block-appearance/_screen/DemoBlockAppearanceScreen.tsx
 // /demo/block-appearance(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { Grid } from "@/components/Layout/Grid";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";

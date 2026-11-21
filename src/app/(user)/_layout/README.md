@@ -9,7 +9,7 @@
 所有:
 
 - このフォルダの既定の部品 = 提供者(upstream)の所有。fork は直接編集しない(core と同じ扱い。CLAUDE.md CORE_FILES)
-- fork の丸ごと置き換えはベースの隣に `<名前>.replace` で置く(例 `UserLayout.replace.tsx`・`Header/index.replace.tsx`)。fork が足したファイル = 採用者(fork)の所有(所有は git の分岐点で見る。名前に fork の印は付けない)。隣に置き換える既定の無い `.replace` は孤立で失敗(`pnpm test src/lib/screens/screens.test.mjs`)
+- fork の丸ごと置き換えはベースの隣に `<名前>.replace` で置く(例 `UserLayout.replace.tsx`・`Header/index.replace.tsx`)。fork が足したファイル = 採用者(fork)の所有(所有は git の分岐点で見る。名前に fork の印は付けない)。隣に置き換える既定の無い `.replace` は孤立で失敗(`pnpm test scripts/structure/routes/screens.test.mjs`)
 - upstream はここ(と `_screen/`)に点つきの名前のファイルを作らない(Tier1 でだけ検査、fork では skip)。点つきの名前で許すのは `.replace` と `.test` だけ(旧い fork の名前の印は全 Tier で失敗。移し方 = 共有の棚の印の移行の notice)
 - lint: 既定の部品は `src/components/**` と同じ upstream 所有 UI の強さ(style-tokens/no-raw-palette・style-tokens/span-in-heading・client-service-boundary/no-direct-import が error)。丸ごと置き換え(`*.replace.tsx`)は app/ の画面と同じ warn。page-authz(layout はサーバー側でデータを取らない)は両方に error
 
@@ -81,7 +81,7 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.replace";
 
 ### layout.tsx と slot(枠の差し替え)
 
-- `src/app/(user)/layout.tsx` は 1 行スイッチ: `export { UserLayout as default } from "./_layout/UserLayout";`。page.tsx と同じく採用者(fork)所有・write-once で、upstream は作成後に編集しない。`pnpm test src/lib/screens/screens.test.mjs` が page.tsx と同じ検査関数(`src/lib/screens/checks.mjs` の parseSwitchLayout)で全 Tier に対し検査する
+- `src/app/(user)/layout.tsx` は 1 行スイッチ: `export { UserLayout as default } from "./_layout/UserLayout";`。page.tsx と同じく採用者(fork)所有・write-once で、upstream は作成後に編集しない。`pnpm test scripts/structure/routes/screens.test.mjs` が page.tsx と同じ検査関数(`src/lib/screens/checks.mjs` の parseSwitchLayout)で全 Tier に対し検査する
 - `(protected)/mypage/layout.tsx` も同じ形で `mypage/_layout/MyPageLayout.tsx`(UserPage narrowStack + Stack + PageTransition)を指す
 - 既定の組み立て `UserLayout` の slot(すべて省略可能な props):
 
@@ -362,4 +362,4 @@ fork の CSS はこの名前で狙う(`[data-slot="header-shell"]` など)。
 
 - `pnpm test 'src/app/(user)/_layout/'`(slot と props なしの描画・部品の slot・UserPage の幅の既定・data-slot の一覧と要素の照合 `UserFrame.test.tsx`)
 - `pnpm test src/app/_layout/frame/`(部位の一覧と CSS の規則の一致・読み手の行の選び方)
-- `pnpm test src/lib/screens/screens.test.mjs`(1 行スイッチ・孤立した `.replace`)
+- `pnpm test scripts/structure/routes/screens.test.mjs`(1 行スイッチ・孤立した `.replace`)

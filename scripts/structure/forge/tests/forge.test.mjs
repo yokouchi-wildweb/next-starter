@@ -23,7 +23,7 @@ test("段の並び: 門の forge:pre → 門の生成(forge:pre・forge:post)→
   assert.equal(order[0], "check --gate=forge:pre");
   assert.equal(order[1], "generate --gate=forge:pre,forge:post");
   assert.equal(order[2], "check --gate=forge:post");
-  const screens = "test src/lib/screens/screens.test.mjs";
+  const screens = "test scripts/structure/routes/screens.test.mjs";
   assert.ok(at("check --gate=forge:post") < at(screens));
   assert.ok(at("test src/wiring/wiring.test.mjs") < at("typecheck"));
   assert.deepEqual(buildSteps().filter((step) => step.script === "test").map((step) => step.args), POST_TESTS);
@@ -49,8 +49,8 @@ test("止まり方: 落ちた段で止まり、後の段を回さない（事前
   assert.equal(failPre.ok, false);
   assert.equal(failPre.failed.phase, "pre");
   assert.ok(!failPre.ran.includes("generate --gate=forge:pre,forge:post"));
-  const failPost = runSteps(steps, { exec: (step) => step.name !== "test src/lib/screens/screens.test.mjs", io: SILENT });
-  assert.equal(failPost.failed.name, "test src/lib/screens/screens.test.mjs");
+  const failPost = runSteps(steps, { exec: (step) => step.name !== "test scripts/structure/routes/screens.test.mjs", io: SILENT });
+  assert.equal(failPost.failed.name, "test scripts/structure/routes/screens.test.mjs");
   assert.ok(!failPost.ran.includes("typecheck"));
   assert.equal(runSteps(steps, { exec: () => true, io: SILENT }).ok, true);
 });

@@ -5,7 +5,7 @@
 //
 // 機能フラグ・ログイン・status の遷移制御は loader、復帰操作はセクションコンテナ Reactivate。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";

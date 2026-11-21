@@ -1,7 +1,7 @@
 // src/app/(user)/demo/seamless-av/play/_screen/DemoSeamlessAvPlayScreen.tsx
 // /demo/seamless-av/play(デモ)の既定画面。最新マニフェストを各端末で連結再生する。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 
 import { loadDemoSeamlessAvPlayScreen } from "./loader";
 import { SeamlessAvPlayer } from "./SeamlessAvPlayer";

@@ -1,7 +1,7 @@
 // src/app/(user)/demo/sortable-list/_screen/DemoSortableListScreen.tsx
 // /demo/sortable-list(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 

@@ -4,7 +4,7 @@
 //
 // loader は access の評価だけ(public。送信先の表示と再送はセクションコンテナ VerificationEmailSent が client 側で扱う)。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { Link } from "@/components/Navigation/Link";
 
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";

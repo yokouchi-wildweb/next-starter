@@ -5,7 +5,7 @@
 // loader は access の評価だけ(サーバー側の取得も遷移制御も無い。未ログインは範囲 (user)/(protected)/guard.ts が弾く)。
 // mypage 配下は layout が UserPage + Stack + PageTransition を巻くので Screen は fragment を返す。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { MainMenu } from "@/features/core/user/components/MainMenu";
 

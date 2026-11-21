@@ -11,7 +11,7 @@
 import "server-only";
 
 import { resolveReturnTo } from "@/lib/crud/utils/paths";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { createLoader } from "@/app/guard";
 
 /** redirectTo 未指定・不正時のログアウト後の遷移先 */

@@ -1,7 +1,7 @@
 // src/app/(user)/demo/fingerprint/_screen/DemoFingerprintScreen.tsx
 // /demo/fingerprint(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Main } from "@/components/Layout/Main";

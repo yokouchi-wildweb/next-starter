@@ -8,7 +8,7 @@ import "server-only";
 
 import { notFound } from "next/navigation";
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 

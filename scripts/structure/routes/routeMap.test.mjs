@@ -1,8 +1,8 @@
 // ルート地図(src/app/route-map.jsonl)の生成器のテストと、コミットされた地図のずれ検査。
 // 鎖(page → Screen → loader → 最寄りの guard.ts → 親 → root)を字面で辿れる行だけが verified、読めない鎖は problems(生成失敗)。
-// 実行: pnpm test src/lib/screens/routeMap.test.mjs (node:test)
+// 実行: pnpm test scripts/structure/routes/routeMap.test.mjs (node:test)
 //
-// fixture はテストの中で仮想のファイル木として組み立てる(ディスクに page.tsx を置くと tsc・next・pnpm test src/lib/screens/screens.test.mjs が拾うため)。
+// fixture はテストの中で仮想のファイル木として組み立てる(ディスクに page.tsx を置くと tsc・next・pnpm test scripts/structure/routes/screens.test.mjs が拾うため)。
 // 設計: src/lib/screens/README.md §13
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -10,10 +10,17 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { ROUTE_MAP_FILE, ROUTE_STATE_VERIFIED, buildRouteMap, findNearestGuard, formatRouteMap } from "./routeMap.mjs";
-import { parseLiteral } from "./checks.mjs";
-import { discoverRoutes, listAppFiles } from "./routeTree.mjs";
-import { rules as featureGateRules } from "../../featureGate/node.ts";
+import {
+  ROUTE_MAP_FILE,
+  ROUTE_STATE_VERIFIED,
+  buildRouteMap,
+  discoverRoutes,
+  findNearestGuard,
+  formatRouteMap,
+  listAppFiles,
+  parseLiteral,
+} from "../../../src/lib/screens/node.mjs";
+import { rules as featureGateRules } from "../../../src/featureGate/node.ts";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -25,7 +32,7 @@ function tree(entries) {
 
 // 正常な鎖の部品(仮想のファイル木)
 const page = (name) => `export { ${name} as default } from "./_screen/${name}";`;
-const screen = (name, loader) => `import type { ScreenProps } from "@/lib/screens/types";
+const screen = (name, loader) => `import type { ScreenProps } from "@/lib/screens";
 import { ${loader} } from "./loader";
 
 export async function ${name}(props: ScreenProps) {
@@ -33,7 +40,7 @@ export async function ${name}(props: ScreenProps) {
   return <div>{"it's" + JSON.stringify(data)}</div>;
 }`;
 /** 管理のページの Screen(AdminPage を描く = checkAdminPageScreen) */
-const adminScreen = (name, loader) => `import type { ScreenProps } from "@/lib/screens/types";
+const adminScreen = (name, loader) => `import type { ScreenProps } from "@/lib/screens";
 import { AdminPage } from "@/app/admin/_layout/AdminPage";
 import { ${loader} } from "./loader";
 

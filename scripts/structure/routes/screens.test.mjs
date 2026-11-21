@@ -1,5 +1,5 @@
 // page 層(page.tsx スイッチ + Screen + loader)の規律テスト。
-// 実行: pnpm test src/lib/screens/screens.test.mjs (node:test + tsx。registry の .ts を読むため tsx ランナーを使う)
+// 実行: pnpm test scripts/structure/routes/screens.test.mjs (node:test + tsx。registry の .ts を読むため tsx ランナーを使う)
 //
 // 登録は不要。検査対象は自動検出する(M1):
 //   - src/app 全体のページ(./routeTree.mjs の discoverRoutes。`_` で始まるフォルダと src/app/api を除く、@slot は含む)から、
@@ -17,14 +17,14 @@
 //    (参照先は ./_layout/<X>、採用者所有・write-once)。全 Tier で検査する。ガード付きの layout.tsx が ./_layout/ の枠を
 //    素の import で描くのはスイッチではない(提供者所有、検査対象外)
 //
-// 検査関数の本体は ./checks.mjs(副作用なし)。
+// 検査関数の本体は src/lib/screens/checks.mjs(副作用なし、入口 "./node")。
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { screensConfig } from "./config.ts";
+import { screensConfig } from "../../../src/lib/screens/index.ts";
 import {
   ROUTE_LOADER_FILE,
   SCREEN_DIRS,
@@ -46,9 +46,10 @@ import {
   parseSwitchLayout,
   parseSwitchPage,
   stripComments,
-} from "./checks.mjs";
-import { discoverRoutes, listAppFiles } from "./routeTree.mjs";
-import { loadCatalogOwnership } from "../folderCatalog/catalog.mjs";
+  discoverRoutes,
+  listAppFiles,
+} from "../../../src/lib/screens/node.mjs";
+import { loadCatalogOwnership } from "../../../src/lib/folderCatalog/catalog.mjs";
 
 export { checkLoaderFile, checkScreenFile, checkScreenImports, checkSwitchPage, isReexportOnlyFile, parseSwitchPage, stripComments };
 
@@ -339,7 +340,7 @@ test("parseSwitchPage: _screen / _components / metadata re-export を許可し�
     import type { Metadata } from "next";
     import { createMetadata } from "@/lib/metadata";
     import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "./_screen/loader";
-    import type { ScreenProps } from "@/lib/screens/types";
+    import type { ScreenProps } from "@/lib/screens";
 
     export const dynamic = "force-dynamic";
     export const metadata: Metadata = {
@@ -484,7 +485,7 @@ test("checkLoaderFile: createLoader 製(Factory が cache を張る)も cache() 
 
 test("checkLoaderFile: DTO 型は loader が所有する(_components / Screen からの import は type でも不可)", () => {
   const base = `import "server-only";\nimport { cache } from "react";\n`;
-  const ok = `${base}import type { ScreenProps } from "@/lib/screens/types";\nimport { userService } from "@/features/core/user/services/server/userService";\nexport type WinReportScreenData = { reports: string[] };\nexport const loadWinReportScreen = cache(async () => ({ reports: [] }));`;
+  const ok = `${base}import type { ScreenProps } from "@/lib/screens";\nimport { userService } from "@/features/core/user/services/server/userService";\nexport type WinReportScreenData = { reports: string[] };\nexport const loadWinReportScreen = cache(async () => ({ reports: [] }));`;
   assert.deepEqual(checkLoaderFile(ok, { path: "src/app/(user)/(protected)/win-reports/_screen/loader.ts" }), []);
   const fromParts = `${base}import type { WinReportData } from "../_components/WinReportList";\nexport const loadWinReportScreen = cache(async (): Promise<WinReportData[]> => []);`;
   assert.ok(checkLoaderFile(fromParts).some((p) => p.includes("../_components/WinReportList")));

@@ -16,7 +16,7 @@ import { join } from "node:path";
 
 import { readBaseFiles } from "../../../src/lib/forkOwnership/baseFiles.mjs";
 import { forkAddedFiles } from "../../../src/lib/forkOwnership/check.mjs";
-import { listAppFiles } from "../../../src/lib/screens/routeTree.mjs";
+import { listAppFiles } from "../../../src/lib/screens/node.mjs";
 import { FRAME_DEFAULT_FILE, FRAME_FILE, FRAME_OVERRIDE_FILE, readExportedLiteral } from "./frames.mjs";
 
 const USAGE = "pnpm check extensions -- frames-move [--base <rev>] [--apply] [--json]";

@@ -4,7 +4,7 @@
 //
 // loader は access の評価だけ(public。サーバー側の取得も遷移制御も無い。送信はセクションコンテナ ForgotPassword が hook で行う)。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";

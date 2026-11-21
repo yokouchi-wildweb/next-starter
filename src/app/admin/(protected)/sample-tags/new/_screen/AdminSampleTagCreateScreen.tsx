@@ -3,7 +3,7 @@
 // このファイルは pnpm generate domain が生成する(再生成で上書きされるため手で編集しない)。
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import AdminSampleTagCreate from "@/features/sampleTag/components/AdminSampleTagCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 

@@ -5,7 +5,7 @@
 //
 // loader は access の評価だけ(public)。CampaignSection は fork がキャンペーン情報に置き換える前提のプレースホルダー。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { Main } from "@/components/Layout/Main";
 import { PageTitle } from "@/components/TextBlocks/PageTitle";
 

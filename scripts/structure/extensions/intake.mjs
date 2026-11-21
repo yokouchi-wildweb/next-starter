@@ -8,8 +8,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 
 import { loadGates, scanTargets } from "../../runner/gates/scan.mjs";
-import { parseSwitchLayout } from "../../../src/lib/screens/checks.mjs";
-import { APP_DIR, discoverRoutes, listAppFiles } from "../../../src/lib/screens/routeTree.mjs";
+import { parseSwitchLayout, APP_DIR, discoverRoutes, listAppFiles } from "../../../src/lib/screens/node.mjs";
 
 import { isListPoint, overrideGlobOf } from "../../../src/lib/districtMap/index.mjs";
 import { INTAKE_FILE, replaceIntakeBlock } from "../../../src/lib/forkOwnership/intake.mjs";

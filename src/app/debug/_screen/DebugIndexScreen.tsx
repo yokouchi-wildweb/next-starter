@@ -4,7 +4,7 @@
 // デバッグ用ページはこの階層（src/app/debug/）にディレクトリを追加する。
 // 認可は debug/layout.tsx が一括で行う。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { Main } from "@/components/Layout/Main";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";

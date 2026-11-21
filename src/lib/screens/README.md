@@ -6,8 +6,9 @@
 新しく覚える語は **2 つだけ**: `_screen/`（page 層の本体を置く場所）と **loader**（page 層が呼ぶサーバー側ロジック）。
 残りは既存の UI レイヤー（ページ / セクションコンテナ / 部品）そのままです。
 
-この構造は上流のルートだけでなく、**fork が作るユーザー向けページにも原則として適用**します（「下流から見た手順」）。登録作業はありません。page.tsx を 1 行にして `_screen/` に本体を置けば、`pnpm test src/lib/screens/screens.test.mjs` が自動で検出して検査します。
+この構造は上流のルートだけでなく、**fork が作るユーザー向けページにも原則として適用**します（「下流から見た手順」）。登録作業はありません。page.tsx を 1 行にして `_screen/` に本体を置けば、`pnpm test scripts/structure/routes/screens.test.mjs` が自動で検出して検査します。
 
+- 入口(閉じた lib): `.` = `@/lib/screens`(型 `ScreenProps`・`ScreenSearchParams`、設定 `screensConfig`・`ScreensOverride`)、`./node` = `src/lib/screens/node.mjs`(下の検査の部品の全部。道具・検査・テストが読む)
 - 部品: `types.ts`(`ScreenProps<P, S>` = Screen と loader が受け取る props)・`checks.mjs`(副作用の無い検査関数。fork が独自の検査を書くときはこれを import)・`routeTree.mjs`(`src/app` 全体のページの発見)・`routeMap.mjs`(ルート地図の生成、CLI は `scripts/structure/routes/map.mjs`)・`routeMapView.mjs`(地図を見る側)
 - 生成物: `src/app/route-map.jsonl`(ルート地図、1 ページ 1 行の守りの鎖の JSON)
 - 設定: `src/config/lib/screens.config.ts`(構造の検査の除外 `forkScanExcludes`、既定 `src/lib/screens/config.ts`。upstream は空で出荷、作成後は下流所有)
@@ -22,7 +23,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 │   ├── WalletBalanceScreen.tsx
 │   ├── loader.ts     最寄りの guard.ts の createLoader で作る(データが無くても access の loader を置く)。既定 Screen も差し替え Screen もこれを呼ぶ
 │   └── <部品>        既定 Screen 専用の部品(あるときだけ。直下でもサブディレクトリでも可。契約外)
-└── _components/      任意。fork の物の置き場 = 画面の丸ごとの差し替え(<Name>Screen.tsx)と fork のそのページ専用の部品(下の「fork の物は _components/」)。上流は src/app のどこにも置かない(pnpm test src/lib/screens/screens.test.mjs、Tier1)
+└── _components/      任意。fork の物の置き場 = 画面の丸ごとの差し替え(<Name>Screen.tsx)と fork のそのページ専用の部品(下の「fork の物は _components/」)。上流は src/app のどこにも置かない(pnpm test scripts/structure/routes/screens.test.mjs、Tier1)
 ```
 
 | 対象 | 置き場 | 所有 | 規則 |
@@ -41,7 +42,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 - 画面を丸ごと替える = `src/app/<route>/_components/<X>Screen.tsx` に自分の Screen を置き、page.tsx の 1 行スイッチをそこへ向ける（手順は 「下流から見た手順」「上流の画面を変えたい」、コピーしてよいかは `.claude/rules/core/extensions.md`）
 - fork のそのページ専用の部品と自分の loader（`_components/loader.ts`）も同じ `_components/` に置く（部品は印なしの名前）
-- `_screen/` に fork の物を混ぜない（部品も Screen の置き換えも置かない）。`_screen/` はルートを作ったリポの既定 Screen・loader・その部品だけ（`_screen/` の下の `.replace` は全 Tier で失敗。Internals の「仕組みによる保護（`pnpm test src/lib/screens/screens.test.mjs`）」「route の隣の点つきの名前」）
+- `_screen/` に fork の物を混ぜない（部品も Screen の置き換えも置かない）。`_screen/` はルートを作ったリポの既定 Screen・loader・その部品だけ（`_screen/` の下の `.replace` は全 Tier で失敗。Internals の「仕組みによる保護（`pnpm test scripts/structure/routes/screens.test.mjs`）」「route の隣の点つきの名前」）
 - どこに書くかの確かめ: `pnpm workflow ownership who src/app/<route>/page.tsx`（型 1 の答え。`write` = `<route>/_components/`、`source` = page.tsx。`_screen/` の下のファイルを問うても同じ答え。`src/lib/forkOwnership/README.md`「持ち主を調べる」）
 
 枠を描く layout.tsx も同じ形（Screen と Layout は対: page.tsx ↔ layout.tsx、`_screen/` ↔ `_layout/`）:
@@ -67,7 +68,7 @@ src/app/(user)/
 
 - page / ページ — 実体: `page.tsx`（1 行スイッチ）+ `_screen/<Name>Screen.tsx`（本体）; 補足: 「SSR の入口、最小限のタグ、hook なし」は不変。ServerService 呼び出しは loader 経由。hook が要る部分は `_screen/` の `"use client"` 部品へ
 - section_container / セクションコンテナ — 実体: **Screen が直接配置するコンポーネント**。`features/<domain>/components/<Name>`（部品を持つなら `<Name>/index.tsx`、無ければ `<Name>.tsx`）; 補足: 役割で定義（タグやフォルダでは決めない）。名前は接尾辞なし（`*Page` は付けない）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格）
-  - Screen はコンテナ自体を import し、内側は読まない（`pnpm test src/lib/screens/screens.test.mjs` が検査。API の「セクションコンテナの条件（契約 D）」）
+  - Screen はコンテナ自体を import し、内側は読まない（`pnpm test scripts/structure/routes/screens.test.mjs` が検査。API の「セクションコンテナの条件（契約 D）」）
 - part / 部品 — 実体: コンテナの内側の要素（例: `BalanceCard`、`CouponInput`）。ドメイン共有なら `common/`; 補足: 契約外。表示専用でも自己完結した操作付きでもよい。hook を呼ぶのは自己完結するときだけ
 - （新規）loader — 実体: `src/app/<route>/_screen/loader.ts`; 補足: page 層が呼ぶサーバー側ロジック。レイヤーではなく page 層の付属物（業務ロジックは ServerService に置き、loader はそれを呼んで組み立てる）。初回描画に見えるデータは loader が取り `initial<Name>` props で渡す（API の「契約（公開 API）と変更規則」）
 
@@ -85,7 +86,7 @@ src/app/(user)/(protected)/points/
     └── loader.ts                 最寄りの guard.ts の createLoader({ access, key?, load })(データが無くても access だけの loader を置く)
 ```
 
-画面の一覧へ手で足す登録は無い。`pnpm test src/lib/screens/screens.test.mjs` が page.tsx を自動検出し、スイッチ形であること・Screen が存在し Server Component であること・Screen が同じルートの loader を最上位で await すること・loader の規律を検査する。ルート地図（`src/app/route-map.jsonl`）は生成物なので、ページを足したら `pnpm generate routes` で書き直してコミットする（鎖（page → Screen → loader → 最寄りの guard.ts → root）を辿れないページは生成失敗。コミットした地図とのずれは `pnpm check routes` が出荷の門で止める。Internals の「ルート地図（`src/app/route-map.jsonl`）」）。
+画面の一覧へ手で足す登録は無い。`pnpm test scripts/structure/routes/screens.test.mjs` が page.tsx を自動検出し、スイッチ形であること・Screen が存在し Server Component であること・Screen が同じルートの loader を最上位で await すること・loader の規律を検査する。ルート地図（`src/app/route-map.jsonl`）は生成物なので、ページを足したら `pnpm generate routes` で書き直してコミットする（鎖（page → Screen → loader → 最寄りの guard.ts → root）を辿れないページは生成失敗。コミットした地図とのずれは `pnpm check routes` が出荷の門で止める。Internals の「ルート地図（`src/app/route-map.jsonl`）」）。
 新しい範囲（別の方針）が要るなら、その範囲の dir に子の guard.ts（最寄りの親の `extend`）と、`await guard()` の 1 行の layout.tsx を置く（API の「範囲（guard.ts）と loader の書き方」）。
 
 #### 上流の画面を変えたい（例: `/wallet/[slug]`）
@@ -148,7 +149,7 @@ page.tsx を `_components/` に向けて上流の既定 Screen を使ってい�
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";
 
 import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "../_screen/loader"; // 上流の loader をそのまま呼ぶ
@@ -243,7 +244,7 @@ export const { guard, createLoader, extend } = extendRoot({
 // src/app/(user)/(protected)/wallet/[slug]/_screen/loader.ts
 import "server-only";
 import { notFound } from "next/navigation";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { requireUserRecord } from "@/features/core/user/services/server/userService";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
@@ -310,14 +311,14 @@ export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 - Next は default export に page props をそのまま渡すので、re-export で `params` / `searchParams` が Screen に届く
 - **Screen は Server Component**。`"use client"` は付けない（テストが弾く）。hook や状態が必要な部分は client のセクションコンテナか `_screen/` の client 部品に下ろし、Screen はそれを描くだけにする
 - グループごとに形が違う: `mypage` 配下は layout が `UserPage` + `Stack` + `PageTransition` を巻くので Screen は fragment を返す。`wallet` は Screen が `UserPage` を持つ
-- **Screen は同じルートの loader を import し、本体の最上位（最初の `return` より前）で `await` する**（データの無い Screen も access だけの loader を await する）。条件分岐・try・コールバックの中や JSX の中で呼ばない。`pnpm test src/lib/screens/screens.test.mjs` とルート地図（Internals の「ルート地図（`src/app/route-map.jsonl`）」）が同じ解析で検査する。差し替え Screen（`_components/`）は `../_screen/loader` か自分の `./loader`（`_components/loader.ts`）を呼ぶ
+- **Screen は同じルートの loader を import し、本体の最上位（最初の `return` より前）で `await` する**（データの無い Screen も access だけの loader を await する）。条件分岐・try・コールバックの中や JSX の中で呼ばない。`pnpm test scripts/structure/routes/screens.test.mjs` とルート地図（Internals の「ルート地図（`src/app/route-map.jsonl`）」）が同じ解析で検査する。差し替え Screen（`_components/`）は `../_screen/loader` か自分の `./loader`（`_components/loader.ts`）を呼ぶ
 - Screen はサーバーのデータを自分で取らない（services/server・DB の値 import は lint `page-authz/layout-no-server-data` が止める）。表示用の利用者は client の `useAuthSession`（root の `AuthSessionProvider`）
 - 差し替えは「同じルート内」が基本条件（範囲の guard.ts と root の Provider を前提にする）
 - `metadata` は Screen 側に書いて page.tsx から `export { XScreen as default, metadata } from "./_screen/XScreen"` と re-export してもよい（`generateMetadata` / `viewport` も同様）。`dynamic` 等のセグメント設定は Next が静的解析するため page.tsx 自体に書く
 
 ### セクションコンテナの条件（契約 D）
 
-- Screen が import するのはコンテナ自体（`<Name>/index.tsx` または `<Name>.tsx`）。内側の `<Name>/<Part>` は部品なので Screen から読まない（`pnpm test src/lib/screens/screens.test.mjs` の `checkScreenImports` が検査）。判定 = `index.tsx` を持つディレクトリがコンテナで、import 先の途中にあれば違反。`index.tsx` を持たないディレクトリ（`Admin/` `Mobile/` `common/` などのグループ分け、`index.ts` だけの barrel）は名前空間として通す。上流の配置は平たい `components/<Name>` + 共有部品は `common/`（慣習）
+- Screen が import するのはコンテナ自体（`<Name>/index.tsx` または `<Name>.tsx`）。内側の `<Name>/<Part>` は部品なので Screen から読まない（`pnpm test scripts/structure/routes/screens.test.mjs` の `checkScreenImports` が検査）。判定 = `index.tsx` を持つディレクトリがコンテナで、import 先の途中にあれば違反。`index.tsx` を持たないディレクトリ（`Admin/` `Mobile/` `common/` などのグループ分け、`index.ts` だけの barrel）は名前空間として通す。上流の配置は平たい `components/<Name>` + 共有部品は `common/`（慣習）
   - fork が `components/Admin/<Name>` のようにグループ分けするのは自由
 - 内部の部品 import は絶対パス（`@/features/core/wallet/components/WalletBalance/BalanceCard`）。`index.tsx` から部品を barrel export する。下流が `index.tsx` を複製しても import を触らずに動く
 - `index.tsx` が `"use client"` のとき、barrel 経由の部品は client 境界になる（Server Component から使いたい部品は部品ファイルを直接 import する）
@@ -330,7 +331,7 @@ export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 
 ## Internals
 
-### 仕組みによる保護（`pnpm test src/lib/screens/screens.test.mjs`）
+### 仕組みによる保護（`pnpm test scripts/structure/routes/screens.test.mjs`）
 
 検査対象は自動検出する。登録は不要。
 
@@ -360,7 +361,7 @@ fork が作った区域（`src/app/store/**` 等）も、upstream の区域の�
 
 ```ts
 // src/config/lib/screens.config.ts(fork で編集)
-import type { ScreensOverride } from "@/lib/screens/config";
+import type { ScreensOverride } from "@/lib/screens";
 
 export default { forkScanExcludes: ["src/app/lab"] } satisfies ScreensOverride;
 ```
@@ -370,7 +371,7 @@ export default { forkScanExcludes: ["src/app/lab"] } satisfies ScreensOverride;
 
 ### 未移行ルートの扱い（例外リストは無い）
 
-スイッチ形でない page.tsx は `pnpm test src/lib/screens/screens.test.mjs` が失敗にし、ルート地図（「ルート地図（`src/app/route-map.jsonl`）」）も鎖を辿れないページで生成失敗になる。未移行のページを理由付きで残す例外リストは無い（upstream の `UPSTREAM_LEGACY_ROUTES`・fork の `FORK_LEGACY_ROUTES` という表は読まれない）。新しいページは最初からスイッチ形で作る。fork が merge の後に `FORK_LEGACY_ROUTES` の行を持っていたら消す。
+スイッチ形でない page.tsx は `pnpm test scripts/structure/routes/screens.test.mjs` が失敗にし、ルート地図（「ルート地図（`src/app/route-map.jsonl`）」）も鎖を辿れないページで生成失敗になる。未移行のページを理由付きで残す例外リストは無い（upstream の `UPSTREAM_LEGACY_ROUTES`・fork の `FORK_LEGACY_ROUTES` という表は読まれない）。新しいページは最初からスイッチ形で作る。fork が merge の後に `FORK_LEGACY_ROUTES` の行を持っていたら消す。
 
 ### 生成される管理画面ルート（pnpm generate domain）
 
@@ -394,11 +395,11 @@ src/app/admin/(protected)/samples/
 
 - `_screen/loader.ts` は最寄りの guard.ts（`admin/(protected)/guard.ts`）の `createLoader` に `src/wiring/adminScreenParts.ts` の共通部品の組（`adminListParts` / `adminEditParts` / `adminCreateParts` / `adminSortParts`）を渡す 1 行。access は serviceRegistry の entry から汎用 API と同じ解き方で操作ごとに解き、範囲の方針と合わせて取得前に評価する。取得本体と規則は `src/features/core/admin/services/server/screenData/README.md`
 - 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `pnpm generate domain` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される。ドメイン固有のサーバー側判定が要るなら `_components/loader.ts` に書く（同じ guard.ts の `createLoader` で作る）
-- 生成ルートも `pnpm test src/lib/screens/screens.test.mjs` が自動検出して検査する（domain.json から導出）
+- 生成ルートも `pnpm test scripts/structure/routes/screens.test.mjs` が自動検出して検査する（domain.json から導出）
 
 ### ルート地図（`src/app/route-map.jsonl`）
 
-全ページの「守りの鎖」を 1 ページ 1 行の JSON（JSON Lines）にした生成物で、コミットする。主な読み手はエージェント（機械が読む構造化データ）。人が読む形は `pnpm check routes -- show`。発見は 「仕組みによる保護（`pnpm test src/lib/screens/screens.test.mjs`）」 と同じ `discoverRoutes`（`src/app` 全体、構造の検査の除外も含めて全ページ）。
+全ページの「守りの鎖」を 1 ページ 1 行の JSON（JSON Lines）にした生成物で、コミットする。主な読み手はエージェント（機械が読む構造化データ）。人が読む形は `pnpm check routes -- show`。発見は 「仕組みによる保護（`pnpm test scripts/structure/routes/screens.test.mjs`）」 と同じ `discoverRoutes`（`src/app` 全体、構造の検査の除外も含めて全ページ）。
 
 | コマンド | 用途 |
 |---|---|
@@ -433,12 +434,13 @@ src/app/admin/(protected)/samples/
   - loader の `access` = `createLoader({ access })` の字面。管理画面の共通部品の組（`adminListParts("sample")` 等）は `{"registry":"sample.search"}`（serviceRegistry の entry から操作ごとに解く）。自前の load を書く loader も `access: <組>.access` なら同じ値に読む（同じファイルで 1 回だけ `const x = adminListParts("sample")` と束ねた `x.access`、またはインラインの `adminListParts("sample").access`
     - 組の関数は `@/wiring/adminScreenParts` から import、domain は文字列の字面）。access を手書きの字面にすると domain の access が変わっても追随しないので、組を使う loader はこちらにする。`allowStatuses` は書いたときだけ（字面で読めない値は `{"expr":"USER_STATUSES"}`）
   - guard の `policy` = `defineRootGuard({…})` / 親の `extend({…})` の字面（`access`・`allowStatuses`・`redirectTo`・`forbiddenRedirectTo`・`returnBack`・`statusRedirects`・`setupRedirectTo` の順）
-- 生成失敗（`pnpm generate routes` が非 0、行と理由）: page.tsx から Screen を解決できない / Screen が同じルートの loader を import して本体の最上位（最初の `return` より前）で await しない（`pnpm test src/lib/screens/screens.test.mjs` も同じ解析で検査）/ loader が最寄りの guard.ts の `createLoader` を使わない / access・方針・extend の親が字面で読めない / guard.ts の範囲の layout（とスイッチ先）が `authGuard` 等の旧ガードを直接呼ぶ / public でない guard.ts の隣の layout が `guard()` を呼ばない
-- 解析は `checks.mjs`（`checkScreenLoaderCall`・`parseLoaderGuard`・`parseGuardFile`・`layoutCallsGuard`・`parseLiteral`）で、地図と `pnpm test src/lib/screens/screens.test.mjs` が共有する
+- 生成失敗（`pnpm generate routes` が非 0、行と理由）: page.tsx から Screen を解決できない / Screen が同じルートの loader を import して本体の最上位（最初の `return` より前）で await しない（`pnpm test scripts/structure/routes/screens.test.mjs` も同じ解析で検査）/ loader が最寄りの guard.ts の `createLoader` を使わない / access・方針・extend の親が字面で読めない / guard.ts の範囲の layout（とスイッチ先）が `authGuard` 等の旧ガードを直接呼ぶ / public でない guard.ts の隣の layout が `guard()` を呼ばない
+- 解析は `checks.mjs`（`checkScreenLoaderCall`・`parseLoaderGuard`・`parseGuardFile`・`layoutCallsGuard`・`parseLiteral`）で、地図と `pnpm test scripts/structure/routes/screens.test.mjs` が共有する
 - 既知の限界: 字面だけを読む。import の別名（`createLoader as x`）・変数に入れた方針・スプレッドは読めない（生成失敗になる）。組の access も上の 2 形だけ: 分割代入・別ファイルから import した組・let / var・名前の再宣言や再代入・`.access` の先まで辿る式は生成失敗（`pnpm test src/lib/screens/checks.test.mjs`）。Screen の `return` の後（JSX の中）の await は数えない
 - 地図は生成物: merge で衝突した時の解き方は `pnpm generate routes` での作り直し
 
 ## Verification
 
-- `pnpm test src/lib/screens/screens.test.mjs`(page.tsx と loader を自動検出して検査)
-- `pnpm test 'src/lib/screens/routeMap*.test.mjs'`(地図の生成器・ずれ・全行 verified・見る側)
+- `pnpm test scripts/structure/routes/screens.test.mjs`(page.tsx と loader を自動検出して検査)
+- `pnpm test scripts/structure/routes/routeMap.test.mjs`(地図の生成器・ずれ・全行 verified)・`pnpm test src/lib/screens`(見る側 routeMapView・checks の解析)
+- repo 全体を見るテスト(src/app・featureGate・folderCatalog を読む)は道具の側 `scripts/structure/routes/` に置く(閉じた lib の中のテストは宣言した物だけを読む)

@@ -8,7 +8,7 @@
 import "server-only";
 import { notFound } from "next/navigation";
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import type { BankTransferReviewStatus } from "@/features/core/bankTransferReview";
 
 import { STATUS_VALUE_BY_SLUG } from "@/features/core/bankTransferReview/constants/statusSlug";

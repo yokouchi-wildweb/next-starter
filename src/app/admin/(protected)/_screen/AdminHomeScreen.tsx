@@ -7,7 +7,7 @@
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Stack } from "@/components/Layout/Stack";
 import { AdminDashboard } from "@/features/admin/dashboard";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 
 import { loadAdminHomeScreen } from "./loader";
 

@@ -4,7 +4,7 @@
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
 import type { ListPageSearchParams } from "@/lib/crud";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import AdminSampleList from "@/features/sample/components/AdminSampleList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 

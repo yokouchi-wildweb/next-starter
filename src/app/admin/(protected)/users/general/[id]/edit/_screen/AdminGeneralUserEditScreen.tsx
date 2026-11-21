@@ -3,7 +3,7 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける(loader の import は ../_screen/loader に直す)。
 // 手順: src/lib/screens/README.md
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { GeneralUserEdit } from "@/features/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 

@@ -5,7 +5,7 @@
 
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { AdminUserGroupList } from "@/features/core/userGroup/components/AdminUserGroupList";
 
 import { loadAdminUserGroupListScreen } from "./loader";

@@ -5,7 +5,7 @@
 //
 // loader は access の評価だけ(検索はこのルートの部品 AuditLogSearchPanel が hook で行う)。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
 

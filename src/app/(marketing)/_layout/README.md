@@ -16,5 +16,5 @@ fork が LP に共通の枠を付けるとき:
 
 ## Verification
 
-- `pnpm test src/lib/screens/screens.test.mjs`: スイッチの形と指す先
+- `pnpm test scripts/structure/routes/screens.test.mjs`: スイッチの形と指す先
 - `pnpm workflow ownership check`

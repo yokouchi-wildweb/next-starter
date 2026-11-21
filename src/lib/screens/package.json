@@ -1,0 +1,7 @@
+{
+  "exports": {
+    ".": "./index.ts",
+    "./node": "./node.mjs"
+  },
+  "libs": ["defineConfig", "districtMap", "pathPattern"]
+}

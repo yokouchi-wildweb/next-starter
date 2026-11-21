@@ -6,7 +6,7 @@
 // loader は access の評価だけ(public)。/signup/register からの正当な遷移かどうかは公開 hook useSignupComplete の
 // client 側ガード(useTransitionGuard)で判定するため、サーバー側の遷移制御は持たない。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 
 import { SignupCompleteSection } from "./SignupCompleteSection";

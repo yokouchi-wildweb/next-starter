@@ -1,7 +1,7 @@
 // src/app/(user)/demo/bank-transfer-vision/_screen/DemoBankTransferVisionScreen.tsx
 // /demo/bank-transfer-vision(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Main } from "@/components/Layout/Main";

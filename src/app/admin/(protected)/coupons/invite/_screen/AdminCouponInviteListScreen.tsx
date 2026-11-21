@@ -4,7 +4,7 @@
 // 手順: src/lib/screens/README.md
 
 import type { ListPageSearchParams } from "@/lib/crud";
-import type { ScreenProps } from "@/lib/screens/types";
+import type { ScreenProps } from "@/lib/screens";
 import AdminInviteList from "@/features/core/referral/components/AdminInviteList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Para } from "@/components/TextBlocks/Para";
