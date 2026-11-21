@@ -242,7 +242,7 @@ test("check: 全部通れば HEAD を記録、一つ落ちれば exit 1 で記�
   assert.equal(existsSync(passFile(r.dir)), false);
 });
 
-test("tag: 記録が無い・HEAD と違う・push していないは exit 1、通れば注釈つきの tag を push、次は -2、同じ HEAD は既にある", () => {
+test("tag: 記録が無い・記録の commit が無い・push していないは exit 1、通れば注釈つきの tag を push、次は -2、同じ HEAD は既にある", () => {
   const r = tier1(1);
   const tag = () => {
     const l = logs();
@@ -280,6 +280,33 @@ test("tag: 記録が無い・HEAD と違う・push していないは exit 1、�
   assert.equal(again.code, 0);
   assert.match(again.lines[0], /既にある/);
   assert.doesNotMatch(remoteTags(), new RegExp(`${DATE}-3`));
+});
+
+test("tag: 検査の間に origin が先へ進んでも、push 済みの検査した commit に付ける。手元で rebase した(検査した commit が origin に無い)は exit 1", () => {
+  const r = tier1(1);
+  const tagRun = () => {
+    const l = logs();
+    return { code: run(r.dir, ["tag", `--date=${DATE}`], l), lines: l.lines };
+  };
+  const checked = commit(r.dir, "checked");
+  git(r.dir, "push", "-q", "origin", "main");
+  assert.equal(run(r.dir, ["check", `--check=${PASS}`], logs()), 0);
+
+  // 別の手元から origin を 1 つ進め、こちらも取り込んで先へ進む
+  const other = tmp();
+  git(other, "clone", "-q", r.origin, ".");
+  init(other);
+  commit(other, "someone else");
+  git(other, "push", "-q", "origin", "main");
+  git(r.dir, "pull", "-q", "--ff-only", "origin", "main");
+
+  const done = tagRun();
+  assert.equal(done.code, 0, done.lines.join("\n"));
+  assert.equal(git(r.dir, "rev-parse", `safe/next-starter/${DATE}-1^{commit}`), checked);
+
+  const local = commit(r.dir, "local only");
+  writeFileSync(passFile(r.dir), `${local}\n`);
+  assert.match(tagRun().lines[0], /push されていない/);
 });
 
 test("proposeScore: commits ÷ 80 + 日数 ÷ 3、小数 2 桁", () => {

@@ -2,14 +2,15 @@
 // セーフポイント = 全部の検査(pnpm test 全体・pnpm check・pnpm typecheck・pnpm lint・pnpm build)が通って push された先端に付ける
 // 注釈つきの tag `safe/<fork_id>/<YYYYMMDD>-<n>`(fork_id = 付けたリポの repo.json の repo_id、n = その fork_id と日の次の空き番号)。
 // 名前に fork_id が入るので親子の tag は重ならず、見るのは直接の親の `safe/<親の fork_id>/*` だけ。
-// 仕様 = .notices/README.md「区切り(checkpoint)と区間適用」のセーフポイント。使う所: /ship --safe(check → push → tag)、/flux の区間の報告(where)、
+// 仕様 = .notices/README.md「区切り(checkpoint)と区間適用」のセーフポイント。使う所: /ship --safe(push → check → tag)、/flux の区間の報告(where)、
 // 本番のデプロイの止め(deployVerdict。scripts/operations/deploy/lib.ts の guardSafePoint)。
 //
 // 実行: pnpm workflow notices safePoint <動作>
 //   check [--check=<cmd> ...]   作業ツリー = HEAD を確かめ、全部の検査を順に回す。全部通れば HEAD を「検査済み」と記録する
 //                               (<git dir>/safe-point-pass)。--check = 検査を差し替える(繰り返し可。テスト用)
 //   tag [--remote=origin] [--branch=<b>] [--date=YYYYMMDD]
-//                               HEAD = push 済みの <remote>/<branch> かつ HEAD = check の記録 のときだけ、HEAD に tag を付けて push する
+//                               check が記録した commit が push 済み(<remote>/<branch> の祖先かちょうど)のとき、その commit に tag を付けて push する。
+//                               検査の間に <remote>/<branch> が先へ進んでも付く(セーフポイント = その commit で全部の検査が通った、は変わらない)
 //   where [--remote=<name>] [--at=<sha>] [--id=<fork_id>]
 //                               <at>(既定 = 自分の台帳の最後の upstream:<sha>)と <remote>(既定 = 親の remote)の safe/<id>/* の関係を 1 行:
 //                               at <tag> | past <tag> (N commits unverified) | before <tag> | no safe point yet
@@ -267,14 +268,15 @@ function runTag(repo, argv, log) {
     log(`safe-point: ${remote}/${branch} を取れない: ${firstLine(error)}`);
     return 2;
   }
-  const head = git(repo, ["rev-parse", "HEAD"]);
-  if (head !== tryGit(repo, ["rev-parse", `refs/remotes/${remote}/${branch}`])) {
-    log(`safe-point: 先端 ${short(head)} が ${remote}/${branch} と違う(push されていない・先に進んでいる)。tag なし`);
+  const passFile = passFilePath(repo);
+  const checked = existsSync(passFile) ? readFileSync(passFile, "utf8").trim() : "";
+  if (!checked || !hasCommit(repo, checked)) {
+    log("safe-point: 全部の検査が通った記録が無い(先に safePoint check)。tag なし");
     return 1;
   }
-  const passFile = passFilePath(repo);
-  if (!existsSync(passFile) || readFileSync(passFile, "utf8").trim() !== head) {
-    log("safe-point: 全部の検査が通った記録が HEAD に無い(先に safePoint check)。tag なし");
+  const pushed = tryGit(repo, ["rev-parse", `refs/remotes/${remote}/${branch}`]);
+  if (!pushed || !isAncestor(repo, checked, pushed)) {
+    log(`safe-point: 検査した ${short(checked)} が ${remote}/${branch} に無い(push されていない)。tag なし`);
     return 1;
   }
   let tags;
@@ -284,7 +286,7 @@ function runTag(repo, argv, log) {
     log(`safe-point: ${error.message}`);
     return 2;
   }
-  const existing = tags.find((t) => t.commit === head);
+  const existing = tags.find((t) => t.commit === checked);
   if (existing) {
     log(`safe-point: ${existing.tag} が既にある`);
     rmSync(passFile, { force: true });
@@ -295,7 +297,7 @@ function runTag(repo, argv, log) {
     tags.map((t) => t.tag),
     date,
   );
-  git(repo, ["tag", "-a", name, "-m", "safe point: pnpm test / check / typecheck / lint / build passed", "HEAD"]);
+  git(repo, ["tag", "-a", name, "-m", "safe point: pnpm test / check / typecheck / lint / build passed", checked]);
   try {
     git(repo, ["push", remote, `refs/tags/${name}`]);
   } catch (error) {
@@ -304,7 +306,7 @@ function runTag(repo, argv, log) {
     return 1;
   }
   rmSync(passFile, { force: true });
-  log(`safe-point: ${name} を付けて push した(${short(head)})`);
+  log(`safe-point: ${name} を付けて push した(${short(checked)})`);
   return 0;
 }
 

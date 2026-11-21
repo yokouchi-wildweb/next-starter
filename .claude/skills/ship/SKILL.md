@@ -113,14 +113,14 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - with `hotfix`, after the commit, before push, **check that it can be picked** (`.notices/README.md` section `緊急修正(hotfix)`): pass `pnpm check notices` again
      - with `fixes:`, the `pnpm workflow notices pickCheck` above doubles as this check: the reason for `-` is a conflict, a failed check or a dependency on a later notice → no push; STOP (STOP CASES)
      - no `fixes:` → skip it (which version to apply to cannot be decided; report `未確認: 修正元なし`)
-   - before push, **with `--safe` only, run the full checks on the tip** (a plain ship runs the area checks above instead and makes no tag; `.notices/README.md` section `区切り(checkpoint)と区間適用`, part `セーフポイント`): `pnpm workflow notices safePoint check`
-     - upstream does not check intermediate checkpoints (each fork's /flux checks every segment on its side); only the tip of a `--safe` ship gets the full checks
-     - it needs a work tree equal to HEAD and runs on HEAD, in order: `pnpm test` (whole), `pnpm check`, `pnpm typecheck`, `pnpm lint`, `pnpm build`; all pass → it records HEAD as checked (used by step 7's tag)
-     - exit 1 (a check failed): fix it in your own unpushed commit (amend) and rerun | the fix is not obvious → STOP
-     - exit 2 (cannot run: uncommitted changes, a check changed tracked files, etc.): report `セーフポイントなし: <理由>` and go on (push without a tag)
-7. **push** (not with `no-push`): `git push` | WORKTREE ROUTE below when it applies | failed → never paper over it, report the reason
-   - then **tag the safe point** (`--safe` only, when step 6's `safePoint check` passed on this HEAD): `pnpm workflow notices safePoint tag`
-     - it confirms HEAD = the pushed `origin/<branch>` (WORKTREE ROUTE: `origin/main`, the tool's default) and HEAD = the sha the check recorded, creates the annotated tag `safe/<own repo_id>/<YYYYMMDD>-<n>` (n = the next free number for that repo_id and day) on HEAD and pushes it (`git push origin refs/tags/<tag>`)
+7. **push** (not with `no-push`): `git push` | WORKTREE ROUTE below when it applies | failed → never paper over it, report the reason | rejected because the remote moved → rebase onto it, rerun `pnpm check notices` when it applies, push again (the full checks of `--safe` come after the push, so a moving remote never restarts them)
+   - then, **with `--safe` only, run the full checks on the pushed HEAD** (a plain ship runs the area checks above instead and makes no tag; `.notices/README.md` section `区切り(checkpoint)と区間適用`, part `セーフポイント`): `pnpm workflow notices safePoint check`
+     - upstream does not check intermediate checkpoints (each fork's /flux checks every segment on its side); only the pushed tip of a `--safe` ship gets the full checks
+     - it needs a work tree equal to HEAD and runs on HEAD, in order: `pnpm test` (whole), `pnpm check`, `pnpm typecheck`, `pnpm lint`, `pnpm build`; all pass → it records HEAD as checked (used by the tag below) | keep HEAD and the work tree as they are while it runs
+     - exit 1 (a check failed): no tag | fix it in a new commit and ship that with `--safe` (the push stands) | the fix is not obvious → STOP
+     - exit 2 (cannot run: uncommitted changes, a check changed tracked files, etc.): report `セーフポイントなし: <理由>` (no tag)
+   - then **tag the safe point** (`--safe` only, when the check passed): `pnpm workflow notices safePoint tag`
+     - it fetches `origin/<branch>` (WORKTREE ROUTE: `origin/main`, the tool's default), confirms the sha the check recorded is in it (equal or an ancestor: others may have pushed meanwhile), creates the annotated tag `safe/<own repo_id>/<YYYYMMDD>-<n>` (n = the next free number for that repo_id and day) on that sha and pushes it (`git push origin refs/tags/<tag>`)
      - exit 1 → no tag; write the reason in the report (the push stands; the next `--safe` ship tags its own tip)
      - a middle tier (`tier` middle) tags its own repo the same way (same /ship, same tool, its own repo_id in the tag name)
 8. **report** (Japanese):
@@ -144,14 +144,14 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 
 ## QUICK SHIP (`--quick`)
 - for every ship but the last of a session | makes no safe point | a run of quick ships is closed by a plain ship (its area checks take in the unchecked quick files, step 2) or a `--safe` ship (full checks on the tip)
-- runs no check except `pnpm check notices` (only when a notice is added or changed): skips step 2 entirely otherwise (`pnpm check --gate=ship` included), step 6's pickCheck and full checks, step 7's tag
+- runs no check except `pnpm check notices` (only when a notice is added or changed): skips step 2 entirely otherwise (`pnpm check --gate=ship` included), step 6's pickCheck, step 7's full checks and tag
 - keeps: steps 0, 1, 3-5 (notice judgment and writing), commit (with the `Ship: quick` trailer), push
 - ship route: anywhere | in a linked worktree → WORKTREE ROUTE below when it applies | the main checkout → a plain `git push`
 
 ## WORKTREE ROUTE
 - applies: in a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`) whose branch has no upstream of its own (`git rev-parse --abbrev-ref @{u}` fails, or prints `origin/main`) | a branch tracking its own remote branch → a plain `git push` of that branch
 - never touch the main checkout and never move its local `main` ref (no exception)
-- `git fetch origin main` → `git merge-base --is-ancestor origin/main HEAD` must succeed (not → rebase onto origin/main, rerun `pnpm check notices` when it applies; with `--safe` rerun step 6's full checks)
+- `git fetch origin main` → `git merge-base --is-ancestor origin/main HEAD` must succeed (not → rebase onto origin/main, rerun `pnpm check notices` when it applies; the full checks of `--safe` run after the push, step 7)
 - push with `git push origin HEAD:main` | the push target of this route = `origin/main` (COMMITTED RANGE, the safe point tag)
 - any condition fails → STOP
 
@@ -164,7 +164,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
   - all pass → `pnpm workflow notices safePoint quickChecked` (records HEAD; the next `quickFiles` stops there) → step 8's report with `safePoint status` (may propose a safe point)
 - `--safe`:
   - HEAD already carries an own safe tag (`pnpm workflow notices safePoint status` prints `at <tag>`) → report `セーフポイント: 既にある <tag>` and end
-  - step 6's full checks (`pnpm workflow notices safePoint check`) → step 7's tag (`pnpm workflow notices safePoint tag`) | exit codes as there
+  - step 7's full checks (`pnpm workflow notices safePoint check`) → step 7's tag (`pnpm workflow notices safePoint tag`) | exit codes as there
 - report: the checks' result, the quick commits covered, the tag name (or `セーフポイントなし: <理由>`) | an older commit than the tip → not covered here (needs a separate procedure)
 
 ## COMMITTED RANGE (step 1's range is empty, HEAD ahead of the push target)
@@ -174,7 +174,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
   - step 6's `pnpm workflow notices reorder` first (the range is unpushed; with `no-push` it waits for the push)
   - each commit in the range that adds a `fixes:` notice → step 6's pickCheck on it (`pnpm workflow notices pickCheck <that commit>`; it writes `pick:` in the notice's body) → commit the bodies alone: `git commit -m "notices: pick marks" -- .notices/<id>.md`
   - a notice in the range → `pnpm check notices`
-  - `--safe` → step 6's full checks on the tip | plain → step 2's area checks on the range's files (`git diff --name-only <target>..HEAD`) plus `safePoint quickFiles`
+  - `--safe` → step 7's full checks on the pushed tip | plain → step 2's area checks on the range's files (`git diff --name-only <target>..HEAD`) plus `safePoint quickFiles`
   - steps 7 and 8 (the report lists the commits shipped)
 
 ## NOTICE COMPOSITION
@@ -239,7 +239,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      ```
    - the type check in verify is written `pnpm typecheck` (never `tsc --noEmit`; `.notices/README.md`)
    - **`checkpoint` = a label by default** (English kebab, no clash with existing ones; unsure → `<slug>`) | declares "applying up to this notice puts the fork at a consistent resting point"
-     - **a checkpoint is the author's declaration**: upstream does not verify intermediate checkpoints (each fork's /flux checks every segment on its side; only the pushed tip of a `--safe` ship gets the full checks, step 6) | label only a point where you expect the fork to work; a change whose fix lands in a later commit → `checkpoint: -` + notes
+     - **a checkpoint is the author's declaration**: upstream does not verify intermediate checkpoints (each fork's /flux checks every segment on its side; only the pushed tip of a `--safe` ship gets the full checks, step 7) | label only a point where you expect the fork to work; a change whose fix lands in a later commit → `checkpoint: -` + notes
        - a checkpoint found broken later (a fork's report) → a fix notice with `fixes:` (and `skip_checkpoint:` when it cannot be picked ahead)
      - `-` only when you can assert "an intermediate point where forks do not work without the following notice", with the reason in `notes:` (e.g. `notes: checkpoint:- because <id> (step 2) is required for the build to pass`) | unsure → never `-`
    - no follow-up work, only a checkpoint or `fixes:` to pass on → `severity: info` + `required_actions: none` + `checkpoint: <label>`
