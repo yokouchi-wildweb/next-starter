@@ -11,7 +11,7 @@ import "server-only";
 import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
 import type { DomainField } from "@/lib/domain";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
-import { importValueShape, isArrayFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
+import { importValueShape, isArrayFieldType } from "@/lib/domain";
 import { parseCsv } from "./parseCsv";
 import { db } from "@/lib/drizzle";
 import type { DataMigrationMediaResolver } from "../media";

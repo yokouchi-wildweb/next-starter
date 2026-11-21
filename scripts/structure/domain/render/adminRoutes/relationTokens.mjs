@@ -1,6 +1,6 @@
 // 管理画面 _screen/ テンプレート(Screen と loader.ts)の、関連選択肢の先読み(SSR → SWR fallback)に関するトークン
 
-import { getStaticRelations } from "../../../../../src/lib/domain/relations/relationOptions.mjs";
+import { getStaticRelations } from "../../../../../src/lib/domain/node.mjs";
 
 /**
  * 関連ドメイン定義から _screen/ テンプレートのトークン文字列を生成

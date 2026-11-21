@@ -35,6 +35,12 @@
       "@/lib/domain/*": [
         "../domain/*"
       ],
+      "@/lib/domainAccess": [
+        "../domainAccess"
+      ],
+      "@/lib/domainAccess/*": [
+        "../domainAccess/*"
+      ],
       "@/lib/drizzle": [
         "../drizzle"
       ],

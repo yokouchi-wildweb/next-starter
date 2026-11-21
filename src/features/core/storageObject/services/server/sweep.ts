@@ -28,7 +28,7 @@
 import { storageObjectConfig } from "@/features/storageObject/config";
 import { createDeadline, runBudgetedBatches } from "@/lib/cron";
 import { CRUD_ID_FIELD } from "@/lib/crud/types";
-import type { DomainService, DomainServiceLookup } from "@/lib/domain/types";
+import type { DomainService, DomainServiceLookup } from "@/lib/domain";
 import { parseStorageRef, type StoragePurposeMap } from "@/lib/storage";
 
 import { drizzleLedger } from "./ledger/drizzleLedger";

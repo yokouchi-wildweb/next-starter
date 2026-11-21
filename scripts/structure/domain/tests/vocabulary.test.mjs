@@ -5,14 +5,14 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { BUILTIN_FORM_INPUTS } from "../../../../src/lib/domain/fields/formInputs.mjs";
+import { BUILTIN_FORM_INPUTS } from "../../../../src/lib/domain/node.mjs";
 import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 import { formInputNameIssues } from "../checks/formInputNames.mjs";
 import { formInputNameOf, readRegisteredFormInputs } from "../domain/formInputNames.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
 import { vocabularyWarnings } from "../checks/vocabulary.mjs";
 import { FORM_INPUT_VALUES, RELATION_FORM_INPUTS } from "../spec/domainJson.mjs";
-import { FORM_INPUTS } from "../../../../src/lib/domain/fields/fieldFormInputs.mjs";
+import { FORM_INPUTS } from "../../../../src/lib/domain/node.mjs";
 import { repoRoot } from "./helpers.mjs";
 
 const BASE = {

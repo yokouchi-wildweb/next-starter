@@ -1,7 +1,7 @@
 // src/lib/dataMigration/components/DataMigrationModal/ImportTab/hooks/importFieldTypeInfo.ts
 // インポート画面がメインドメインのチャンクと一緒に送るフィールド情報を作る
 
-import { isCollectionFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
+import { isCollectionFieldType } from "@/lib/domain";
 import type { DomainField } from "@/lib/domain";
 import type { ExportField } from "../../types";
 

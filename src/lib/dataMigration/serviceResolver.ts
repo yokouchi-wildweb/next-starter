@@ -6,7 +6,7 @@
 
 import type { PgTable } from "drizzle-orm/pg-core";
 
-import type { DomainService } from "@/lib/domain/types";
+import type { DomainService } from "@/lib/domain";
 
 /** ドメインキー（camelCase）からサービスを引く。未登録なら undefined、読み込み失敗は throw */
 export type DataMigrationServiceResolver = (key: string) => Promise<DomainService | undefined>;

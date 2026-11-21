@@ -8,7 +8,8 @@
 
 import type { NextRequest, NextResponse } from "next/server";
 
-import type { DomainApiAccessRule, DomainRegistry } from "@/lib/domain";
+import type { DomainRegistry } from "@/lib/domain";
+import type { DomainApiAccessRule } from "@/lib/domainAccess";
 
 /**
  * access の評価結果

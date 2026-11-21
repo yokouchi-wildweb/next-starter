@@ -5,7 +5,7 @@
 
 import { useMemo } from "react";
 import { hasRelationsOf, getHasManyRelationsOf } from "@/lib/domain";
-import type { DomainDisplay } from "@/lib/domain/types/display";
+import type { DomainDisplay } from "@/lib/domain";
 import { buildExportFields } from "../configUtils";
 
 /**

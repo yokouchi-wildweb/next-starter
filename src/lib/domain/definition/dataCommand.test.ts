@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import type { DomainApiAccessConfig } from "../types/apiAccess";
+import type { DomainApiAccessConfig } from "@/lib/domainAccess";
 import { DATA_COMMAND_OPERATIONS, isDataCommand, resolveDataCommand } from "./dataCommand";
 
 const ADMIN = { roleCategories: ["admin"] };

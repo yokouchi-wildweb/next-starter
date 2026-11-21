@@ -6,7 +6,7 @@
 
 ## API
 
-### 引く(`src/lib/domain/server`、登録表は引数)
+### 引く(入口 `@/lib/domain/server`、登録表は引数)
 
 | 関数 | 用途 |
 |---|---|
@@ -21,9 +21,9 @@
 
 - 登録表を結んだ版は `src/wiring/domainRegistry.ts`(import してよい場所は `src/wiring/README.md`)。lib が引きたいときは呼び手が注入する(`src/lib/dataMigration` の `services`、storageObject の sweep の `lookupService`)
 
-### access のプリセット(`src/lib/domain/accessPresets.ts`)
+### access のプリセット(別の閉じた lib `@/lib/domainAccess`、`src/lib/domainAccess/accessPresets.ts`)
 
-- lib/domain の公開の定数(上書きできる設定ではない)。既定 `DEFAULT_ACCESS_RULE`(admin カテゴリだけ)は access の書き漏れの fail-closed
+- domainAccess の公開の定数(上書きできる設定ではない)。access の型(`DomainApiAccessConfig` ほか)と操作名(`DOMAIN_DATA_OPERATIONS` ほか)も domainAccess。domainEntry.ts が値で読むので値だけのファイルで作る(`src/lib/domainAccess/README.md`)。既定 `DEFAULT_ACCESS_RULE`(admin カテゴリだけ)は access の書き漏れの fail-closed
 
 | 名前 | 意味 |
 |---|---|
@@ -32,7 +32,7 @@
 | `ADMIN_RULE` / `ADMIN_OR_DEBUGGER_RULE` | 単一ルール（`operations` の上書きに） |
 | `ADMIN_DATA_OPERATIONS` | `{ truncateAll, export, import }` を管理者に開く断片。`{ ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS }` / import だけ閉じるなら `operations: { ...ADMIN_DATA_OPERATIONS, import: "none" }` |
 
-`isGenericApiClosed(access)` = 汎用 CRUD が全操作 `"none"` か（feature gate の検査が「閉じているべき `/api/<domain>`」から除くのに使う）。
+`isGenericApiClosed(access)`(`@/lib/domain`)= 汎用 CRUD が全操作 `"none"` か（feature gate の検査が「閉じているべき `/api/<domain>`」から除くのに使う）。
 
 ### データ操作のコマンドの対応(`definition/dataCommand.ts`)
 
@@ -59,7 +59,10 @@
 - `DomainFieldOption` = 選択肢 1 つ(value・label・disabled)。`getFieldOptions` が返す形。domain.json に書いた選択肢は `DomainFieldOptionValue`(値の型を決め打ちしない)
 - 型名の union(`fields/fieldTypeNames.ts`、型だけ): `FieldTypeName`(表のキー)・`NeonFieldType` / `FirestoreFieldType`(`fieldFormInputs.mjs` の DB ごとの表のキー)・`BuiltinFormInput`(`formInputs.mjs`)。表から導くので名前を手で並べない(CLAUDE.md field_types)
 
-### 関数のありか
+### 入口と関数のありか
+
+- 入口は 3 つ(`package.json`): `.` = `@/lib/domain`(client でも server でも読める: 型・写しを受ける関数・定義の読み方・型の表と入力種別の表と表示の答え・中間表の名前・全件削除の一覧の hooks と client)、`./server` = `@/lib/domain/server`(登録表から引く関数・`getJunctionTable`)、`./node` = `node.mjs`(Next の外のプログラムが読む `.mjs` 5 つ: `fieldTypes`・`fieldFormInputs`・`formInputs`・`presenterFor`・`relationOptions`。scripts・eslint-rules からは相対で `src/lib/domain/node.mjs`)
+- 外から下の中のファイルは読まない(lint `entry/only-entries`)。下はフォルダの中の置き場
 
 - `definition/`: `createDomainConfigLookup`、`normalizeDomainJsonConfig`、`resolveAccessRule`
 - `relations/`: 写しを受ける関数、関連選択肢（`relationOptions.mjs`）

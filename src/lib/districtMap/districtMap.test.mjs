@@ -29,7 +29,7 @@ function memorySource(files) {
   };
 }
 
-const entry = (/** @type {string} */ body) => `import type { DomainEntries } from "@/lib/domain/types";\nexport const domainEntries = {\n${body}\n} satisfies DomainEntries;\n`;
+const entry = (/** @type {string} */ body) => `import type { DomainEntries } from "@/lib/domain";\nexport const domainEntries = {\n${body}\n} satisfies DomainEntries;\n`;
 const BASE = {
   "src/features/README.md": "",
   "src/features/_template/entities/drizzle.ts": `export const t = pgTable("template_rows", {});`,

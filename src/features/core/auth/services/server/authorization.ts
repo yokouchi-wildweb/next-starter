@@ -8,7 +8,7 @@ import { headers } from "next/headers";
 import { getRolesByCategory } from "@/features/core/user/constants";
 import { hasActiveUserWithRoles } from "@/features/core/user/services/server/finders/hasActiveUserWithRoles";
 import type { RoleCategory, UserRoleType } from "@/features/core/user/types";
-import type { DomainApiAccessRule } from "@/lib/domain";
+import type { DomainApiAccessRule } from "@/lib/domainAccess";
 
 /** proxy.ts で付与された x-pathname ヘッダーから現在のパスを取得する(ページの守りの returnTo に使う) */
 export async function getRequestPathname(): Promise<string | null> {

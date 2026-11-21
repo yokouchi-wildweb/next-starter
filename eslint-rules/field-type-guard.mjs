@@ -15,7 +15,7 @@
 // 正当な例外は理由付き eslint-disable で明示する（フォルダ単位の許可リストは無い）。対象範囲と強さ（上流リポ = error、fork = warn）は
 // eslint.config.mjs 側で決める。
 
-import { FIELD_TYPES } from "../src/lib/domain/fields/fieldTypes.mjs";
+import { FIELD_TYPES } from "../src/lib/domain/node.mjs";
 import { FORM_INPUT_VALUES } from "../scripts/structure/domain/spec/domainJson.mjs";
 
 /** 表のキーのうち、型以外の意味でもよく書かれる語（集合の数に入れない） */

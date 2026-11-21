@@ -5,7 +5,7 @@
 // 規則の正: src/features/core/userProfile/README.md（プロフィール設定）
 
 import { PROFILE_FIELD_TAGS } from "../../../../src/features/core/userProfile/constants/fieldTags.mjs";
-import { FIELD_TYPES, isCollectionFieldType, isMediaFieldType } from "../../../../src/lib/domain/fields/fieldTypes.mjs";
+import { FIELD_TYPES, isCollectionFieldType, isMediaFieldType } from "../../../../src/lib/domain/node.mjs";
 import { fieldsIssues, fieldsWarnings } from "../../domain/checks/fields.mjs";
 
 /** プロフィールのテーブルは Neon（型と入力欄の組はドメインの Neon の表で照らす） */

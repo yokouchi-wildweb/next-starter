@@ -4,6 +4,7 @@
 
 - `domain.json` の写しと設定(フィールド・リレーション・中間表)を読む純関数群と、登録表(serviceRegistry)からドメイン名でサービス・表・主キーを引く正式な仕組みの汎用部分を持つ
 - ここの関数は登録表を import せず引数で受ける(既存の例外と規則は `src/wiring/README.md`)。登録表を結んだそのまま使える関数は `src/wiring/adminScreenParts.ts`
+- 閉じた lib: 外からは入口だけを読む。`@/lib/domain`(client でも server でも)・`@/lib/domain/server`(登録表から引く関数)・`./node` = `src/lib/domain/node.mjs`(scripts・eslint-rules が読む `.mjs`)。何がどこから出るか: `API.md`「入口と関数のありか」。access の型と定型は別の閉じた lib `@/lib/domainAccess`(domainEntry.ts が値で読むので値だけで作る)
 - 登録表 `src/registry/serviceRegistry.ts` = ドメイン名(camelCase のキー)→ `{ service, access, table, idColumn }` の表。ドメインを 1 つ作ると 1 行増える一覧で、下流が中身を足す「登録口」ではない。Drizzle はモデルの登録簿を持たないので、アプリ側でここに 1 か所用意する
 
 | 入口 | 何が決まるか |
@@ -23,8 +24,8 @@
 
 ```ts
 // src/features/core/auditLog/services/server/domainEntry.ts
-import type { DomainEntries } from "@/lib/domain/types";
-import { INTERNAL_ONLY } from "@/lib/domain/accessPresets";
+import type { DomainEntries } from "@/lib/domain";
+import { INTERNAL_ONLY } from "@/lib/domainAccess";
 
 export const domainEntries = {
   auditLog: {
@@ -51,7 +52,7 @@ export const domainEntries = {
 - 静的 import(`domainEntry.ts` と `domainEntry.override.ts`): 登録表がこれを全ドメイン分静的に読むので、軽く副作用なしに保つ。`pnpm check registry` が縛る(判定: `scripts/structure/registry/serviceRegistry/discover.mjs` の `checkEntryStaticImports`)
   - 型だけの import（`import type`・名前がすべて `type`）はどこからでも可
   - 値の import は**値だけのファイル**からだけ。置き場や名前でなく中身で見る: 文が 型だけの import・値だけのファイルからの値の import と再 export・型の宣言（`type` / `interface`）・`const <名> = <値の式>`・`export default <値の式>` だけのファイル。値の式 = リテラル・そのファイルの定数か import した名前の参照（`.プロパティ` も）・それらの object / 配列 / spread（`as` / `satisfies` は外して見る）。関数・呼び出し・`new`・副作用の import・`let` / `var`・`enum`・`class` は不可。値の import の先も同じ決まりで推移的に確かめ、解けない指定子（パッケージ・無いファイル）は不可
-  - 上流の `@/lib/domain/types` と `@/lib/domain/accessPresets` はこの決まりで通る。fork が自分の権限の定型（例: 店舗の関係者だけ）を持つなら、自分のドメインの `constants/` などに値だけのファイルとして置き、`domainEntry.ts` から import する
+  - 上流の権限の型と定型 `@/lib/domainAccess`(値だけのファイルだけで作った閉じた lib)はこの決まりで通る。`@/lib/domain` の入口は関数・hooks を含むので、値は読まない(型だけなら可)。fork が自分の権限の定型（例: 店舗の関係者だけ）を持つなら、自分のドメインの `constants/` などに値だけのファイルとして置き、`domainEntry.ts` から import する
 - 業務ドメイン: `pnpm generate domain`（forge）が domain.json から生成する（registry カテゴリ。手で直すならそのドメインを `"generate": false`）。access = `apiAccess`（無ければ ADMIN_ONLY）+ `truncateAll` は管理者 + `export` / `import` は `useImportExport: true` のときだけ管理者、それ以外（省略を含む）は `"none"`。
   - `table` = 表の定義の生成器と同じ決め方（`scripts/structure/domain/domain/names.mjs` の `domainTableName` = domain.json の `plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`
 - core ドメイン・fork が手書きする domainEntry.ts（core パスのドメイン、`generate: false` のドメイン）: `table` / `idColumn` も自分で書く。値の正しさは `pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs` が実物と比べる。core のファイルは fork が編集しない。業務ドメインの写せる形は下の「generate: false の業務ドメイン」
@@ -63,8 +64,8 @@ export const domainEntries = {
 形は生成器が書くものと同じ（下は domain.json が `"plural": "visits"`、`apiAccess` 無し、`useImportExport` 無しの `visit` の例。`pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs` がこの例をそのまま置いて検査が通ることを確かめている）:
 
 ```ts
-import type { DomainEntries } from "@/lib/domain/types";
-import { ADMIN_ONLY, ADMIN_RULE } from "@/lib/domain/accessPresets";
+import type { DomainEntries } from "@/lib/domain";
+import { ADMIN_ONLY, ADMIN_RULE } from "@/lib/domainAccess";
 
 export const domainEntries = {
   visit: {

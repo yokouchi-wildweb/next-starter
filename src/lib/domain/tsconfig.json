@@ -1,0 +1,40 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "allowImportingTsExtensions": true,
+    "checkJs": true,
+    "paths": {
+      "@/lib/appEnv": [
+        "../appEnv"
+      ],
+      "@/lib/appEnv/*": [
+        "../appEnv/*"
+      ],
+      "@/lib/domainAccess": [
+        "../domainAccess"
+      ],
+      "@/lib/domainAccess/*": [
+        "../domainAccess/*"
+      ],
+      "@/lib/errors": [
+        "../errors"
+      ],
+      "@/lib/errors/*": [
+        "../errors/*"
+      ],
+      "@/lib/stringCase": [
+        "../stringCase"
+      ],
+      "@/lib/stringCase/*": [
+        "../stringCase/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mjs",
+    "**/*.js"
+  ]
+}

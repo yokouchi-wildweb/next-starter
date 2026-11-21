@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
-import type { DomainDataOperation } from "@/lib/domain/types";
+import type { DomainDataOperation } from "@/lib/domainAccess";
 import { resolveAccessRule } from "@/lib/domain";
 import { enforceAccessRule } from "@/wiring/apiRoute";
 import { getDomainAccess } from "@/wiring/domainRegistry";

@@ -2,7 +2,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { resolveAccessRule, type DomainCrudOperation, type DomainRegistry } from "@/lib/domain";
+import { resolveAccessRule, type DomainRegistry } from "@/lib/domain";
+import { type DomainCrudOperation } from "@/lib/domainAccess";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
 
 import type { OperationType, ApiRouteContext, RouteCore } from "./createApiRoute";

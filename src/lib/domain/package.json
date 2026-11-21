@@ -1,0 +1,8 @@
+{
+  "exports": {
+    ".": "./index.ts",
+    "./server": "./server.ts",
+    "./node": "./node.mjs"
+  },
+  "libs": ["domainAccess", "errors", "stringCase"]
+}

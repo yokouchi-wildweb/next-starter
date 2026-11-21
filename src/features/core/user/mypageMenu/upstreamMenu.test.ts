@@ -8,7 +8,7 @@ import { test } from "node:test";
 import { BellIcon, EllipsisIcon, GiftIcon, LogOutIcon, UserCircleIcon } from "lucide-react";
 
 import { mypageMenu } from "@/features/core/user/extensions/mypageMenu";
-import { readForkIdentity } from "@/lib/forkOwnership/forkIds.mjs";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 import { buildMypageMenu } from "./buildMypageMenu";
 

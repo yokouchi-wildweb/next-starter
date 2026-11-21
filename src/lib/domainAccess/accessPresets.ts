@@ -1,11 +1,11 @@
-// src/lib/domain/accessPresets.ts
+// src/lib/domainAccess/accessPresets.ts
 //
-// 汎用ドメイン API (/api/[domain]/**) の権限の定型(設定の議会 D63)。上書きできる設定ではなく lib/domain の公開の定数。
-// 読み手: 各ドメインの domainEntry.ts の access・定型を使う route(createApiRoute の access)・既定の解決(definition/apiAccess.ts)。
+// 汎用ドメイン API (/api/[domain]/**) の権限の定型(設定の議会 D63)。上書きできる設定ではなく lib/domainAccess の公開の定数。
+// 読み手: 各ドメインの domainEntry.ts の access・定型を使う route(createApiRoute の access)・既定の解決(src/lib/domain/definition/apiAccess.ts)。
 // 生成器の写し: scripts/structure/domain/render/registry/presetAccess.mjs(値の一致は registry.test.mjs が確かめる)。
 // 詳細: src/lib/domain/README.md、src/lib/routeFactory/README.md
 
-import type { DomainApiAccessConfig, DomainApiAccessRule, DomainApiRoleRule, DomainDataOperation } from "./types";
+import type { DomainApiAccessConfig, DomainApiAccessRule, DomainApiRoleRule, DomainDataOperation } from "./apiAccess";
 
 /**
  * access が当該 CRUD 操作のルールを宣言していないときの既定(fail-closed)。安全側に倒して admin カテゴリだけ許す。

@@ -15,7 +15,7 @@ import {
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { getFieldOptions, getFieldLabel } from "@/lib/domain";
-import type { DomainDisplay } from "@/lib/domain/types/display";
+import type { DomainDisplay } from "@/lib/domain";
 import { createApiClient } from "@/lib/crud/client";
 import { useUpdateDomain } from "@/lib/crud/hooks";
 

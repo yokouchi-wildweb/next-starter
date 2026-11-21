@@ -23,7 +23,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { BUILTIN_FORM_INPUTS } from "../lib/domain/fields/formInputs.mjs";
+import { BUILTIN_FORM_INPUTS } from "../lib/domain/node.mjs";
 import { readDeclaration, classifyDottedName, oldMarkerProblem } from "../lib/districtMap/index.mjs";
 import { readForkIdentity } from "../lib/forkOwnership/node.mjs";
 

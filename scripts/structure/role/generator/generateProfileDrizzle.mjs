@@ -5,7 +5,7 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
-import { columnFunction, columnOptionsLiteral, fieldTypeSpec, isArrayFieldType } from "../../../../src/lib/domain/fields/fieldTypes.mjs";
+import { columnFunction, columnOptionsLiteral, fieldTypeSpec, isArrayFieldType } from "../../../../src/lib/domain/node.mjs";
 import { profileFileHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

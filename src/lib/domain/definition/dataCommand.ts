@@ -6,8 +6,7 @@
 // - 登録表で引けること(getService)は許可ではない。INTERNAL_ONLY のドメインは 4 つとも閉じる
 // README.md「データ操作のコマンド(pnpm ops data)の許可」
 
-import type { DataCommand, DomainApiAccessConfig, DomainApiOperation } from "../types/apiAccess";
-import { DATA_COMMANDS } from "../types/apiAccess";
+import { DATA_COMMANDS, type DataCommand, type DomainApiAccessConfig, type DomainApiOperation } from "@/lib/domainAccess";
 import { resolveAccessRule } from "./apiAccess";
 
 /** コマンド → 規則を引く API の操作と、呼ぶサービスの関数 */

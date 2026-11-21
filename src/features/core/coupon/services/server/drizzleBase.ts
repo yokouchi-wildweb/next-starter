@@ -1,7 +1,7 @@
 // src/features/coupon/services/server/drizzleBase.ts
 
-import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
-import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
+import { normalizeDomainJsonConfig } from "@/lib/domain";
+import type { DomainConfigOptionals } from "@/lib/domain";
 import rawConf from "@/features/coupon/domain.json";
 import { CouponTable } from "@/features/core/coupon/entities/drizzle";
 import { CouponCreateSchema, CouponUpdateSchema } from "@/features/core/coupon/entities/schema";

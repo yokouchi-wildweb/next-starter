@@ -7,7 +7,7 @@
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import { getJunctionTable, getJunctionTableOrThrow } from "@/lib/domain/junction/getTable";
+import { getJunctionTable, getJunctionTableOrThrow } from "@/lib/domain/server";
 
 import { assertNoCollectionFields } from "./collectionFields";
 import { createZip, downloadChunkMedia } from "./export/createZip";

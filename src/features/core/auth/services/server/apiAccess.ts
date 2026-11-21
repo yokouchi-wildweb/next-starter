@@ -4,7 +4,7 @@
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { USER_AVAILABLE_STATUSES, getRoleCategory } from "@/features/core/user/constants";
 import type { UserStatus } from "@/features/core/user/types";
-import type { DomainApiAccessRule } from "@/lib/domain";
+import type { DomainApiAccessRule } from "@/lib/domainAccess";
 
 /**
  * アクセス評価の結果

@@ -72,21 +72,53 @@ export const FIELD_TYPES = {
   },
 };
 
+/**
+ * 型の行 1 つの形(属性の意味は上の頭のコメント)
+ * @typedef {{
+ *   column?: string,
+ *   columnOptions?: Record<string, string | number | boolean>,
+ *   zod?: string,
+ *   ts?: string,
+ *   text?: boolean,
+ *   emailFormat?: boolean,
+ *   requiredByRefine?: boolean,
+ *   hashOnWrite?: boolean,
+ *   enumValues?: boolean,
+ *   numeric?: boolean,
+ *   media?: boolean,
+ *   array?: boolean,
+ *   presenter?: string,
+ *   noDefault?: boolean,
+ *   collection?: boolean,
+ *   retired?: string,
+ *   datetime?: boolean,
+ *   formDefault?: unknown,
+ *   formDefaultWithChoices?: unknown,
+ *   importValue?: "date" | "time" | "number",
+ * }} FieldTypeSpec
+ */
+
+/** @type {FieldTypeSpec} */
 const UNKNOWN_SPEC = Object.freeze({});
 const UNKNOWN_FORM_DEFAULT = "";
 
 /**
  * 型の行（表に無い型・undefined は空の行）
  * @param {string | undefined} fieldType
+ * @returns {FieldTypeSpec}
  */
 export function fieldTypeSpec(fieldType) {
   if (fieldType === undefined || !Object.hasOwn(FIELD_TYPES, fieldType)) return UNKNOWN_SPEC;
-  return /** @type {Record<string, unknown>} */ (FIELD_TYPES[/** @type {keyof typeof FIELD_TYPES} */ (fieldType)]);
+  return /** @type {FieldTypeSpec} */ (FIELD_TYPES[/** @type {keyof typeof FIELD_TYPES} */ (fieldType)]);
 }
 
 const spec = fieldTypeSpec;
 
-/** drizzle-orm/pg-core の列関数名（未知の型は型名そのまま） */
+/**
+ * drizzle-orm/pg-core の列関数名（未知の型は型名そのまま）
+ * @param {string} fieldType
+ * @returns {string}
+ */
 export function columnFunction(fieldType) {
   return spec(fieldType).column ?? fieldType;
 }
@@ -103,13 +135,21 @@ export function columnOptionsLiteral(fieldType) {
   return `{ ${entries.join(", ")} }`;
 }
 
-/** Zod の式。datetime は required で分ける（未知の型は z.any()） */
+/**
+ * Zod の式。datetime は required で分ける（未知の型は z.any()）
+ * @param {string | undefined} fieldType
+ * @returns {string}
+ */
 export function zodType(fieldType, required = false) {
   if (spec(fieldType).datetime) return required ? "requiredDatetime" : "nullableDatetime";
   return spec(fieldType).zod ?? "z.any()";
 }
 
-/** TS の型（未知の型は any） */
+/**
+ * TS の型（未知の型は any）
+ * @param {string | undefined} fieldType
+ * @returns {string}
+ */
 export function tsType(fieldType) {
   return spec(fieldType).ts ?? "any";
 }
@@ -139,7 +179,7 @@ export const allowsDefaultValue = (fieldType) => !spec(fieldType).noDefault;
 /** @param {string | undefined} fieldType */
 export const presenterKind = (fieldType) => spec(fieldType).presenter;
 
-/** CSV 取り込みの値の形（"date" | "time" | "number" | undefined = そのまま） */
+/** CSV 取り込みの値の形（"date" | "time" | "number" | undefined = そのまま） @param {string | undefined} fieldType */
 export const importValueShape = (fieldType) => spec(fieldType).importValue;
 
 /** formInput "checkbox" を複数選択（CheckGroupInput）にする型 = 値が文字列の配列の型（array 属性） @param {string | undefined} fieldType */
@@ -163,6 +203,7 @@ export function retiredFieldTypeMessage(fieldType) {
 export function formDefaultFor(field) {
   const row = spec(field.fieldType);
   const hasChoices = field.formInput === "radio" || (Array.isArray(field.options) && field.options.length > 0);
+  /** @type {unknown} */
   let value = UNKNOWN_FORM_DEFAULT;
   if (hasChoices && Object.hasOwn(row, "formDefaultWithChoices")) value = row.formDefaultWithChoices;
   else if (Object.hasOwn(row, "formDefault")) value = row.formDefault;
@@ -182,11 +223,17 @@ export function collectMediaFields(config) {
   return config.fields.filter((f) => MEDIA_FIELD_TYPES.has(f.fieldType)).map((f) => ({ name: f.name }));
 }
 
-/** 選択肢（options）を持つ項目。constants/field.ts と types/field.ts の生成対象 */
+/**
+ * 選択肢（options）を持つ項目。constants/field.ts と types/field.ts の生成対象
+ * @template {{ options?: unknown }} F
+ * @param {{ fields?: F[] } | null | undefined} config
+ * @returns {F[]}
+ */
 export function collectOptionFields(config) {
   return (config?.fields || []).filter((field) => Array.isArray(field.options) && field.options.length > 0);
 }
 
+/** @param {{ fields?: Array<{ options?: unknown }> } | null | undefined} config */
 export function hasOptionFields(config) {
   return collectOptionFields(config).length > 0;
 }

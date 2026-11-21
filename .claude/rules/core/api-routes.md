@@ -5,7 +5,7 @@ paths:
   - "src/registry/serviceRegistry.ts"
   - "src/features/**/services/server/domainEntry*.ts"
   - "src/wiring/*Route*"
-  - "src/lib/domain/accessPresets.ts"
+  - "src/lib/domainAccess/**"
   - "src/features/**/domain.json"
 ---
 # api-routes
@@ -18,7 +18,7 @@ generic: /api/[domain]/** exposes the CRUD operations (list: src/app/api/[domain
 - lookup: domain name ↔ service / table / id column = serviceRegistry only (never a new per-feature map) | server callers import src/wiring/domainRegistry.ts (getService / lookupDomainService / findDomainByTable / getDomainTable; allowed from src/app, src/proxies, src/proxy.ts, cron task.ts only)
   - lib takes the registry as an argument or injected, never imports src/registry (lint import-boundaries/lib-no-registry, no exception list) | ref: src/lib/domain/README.md
 - access rules (domainEntry.ts): public | authenticated | none | {roles, roleCategories}, per-op override | a CRUD op's rule = operations[op] → else access.read / access.write by kind → else admin only (fail-closed default)
-  - presets: ADMIN_ONLY, PUBLIC_READ, ADMIN_OR_DEBUGGER, INTERNAL_ONLY (all none), plus single rules ADMIN_RULE / ADMIN_OR_DEBUGGER_RULE for createApiRoute or a per-op override and ADMIN_DATA_OPERATIONS (truncateAll / export / import = admin) = lib/domain constants, not an overridable config (src/lib/domain/accessPresets.ts, fail-closed default DEFAULT_ACCESS_RULE)
+  - presets: ADMIN_ONLY, PUBLIC_READ, ADMIN_OR_DEBUGGER, INTERNAL_ONLY (all none), plus single rules ADMIN_RULE / ADMIN_OR_DEBUGGER_RULE for createApiRoute or a per-op override and ADMIN_DATA_OPERATIONS (truncateAll / export / import = admin) = @/lib/domainAccess constants, not an overridable config (src/lib/domainAccess/accessPresets.ts, fail-closed default DEFAULT_ACCESS_RULE)
   - domainEntry.ts / domainEntry.override.ts static imports (pnpm check registry): type-only from anywhere, values only from value-only files (judged by content, transitively: literals, consts, references, object / array / spread, no function / call / new / side-effect import) → a fork's own presets live in such a file, e.g. its domain's constants/
 route_access: createApiRoute `access` is TYPE-REQUIRED: "public" | "authenticated" | {roles, roleCategories} (none = generic CRUD only) | no "custom": webhook / callback = "public" + verify authenticity in the handler | extra gate = enforceAccessRule(rule, ctx.user) from @/wiring/apiRoute
 - factories (all from @/wiring/apiRoute): createApiRoute | createDomainRoute / createDomainIdRoute (generic CRUD) | createMeRoute (/api/me/**, self only, scope by ctx.user) | createDeviceRoute (paired device)

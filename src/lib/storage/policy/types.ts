@@ -5,7 +5,7 @@
 // lib は features に依存しないため、判定関数に渡す利用者は最小限の StorageActor で表す
 // （SessionUser からの変換は features/core/storageObject の policy.ts が行う）。
 
-import type { DomainApiAccessRule } from "@/lib/domain";
+import type { DomainApiAccessRule } from "@/lib/domainAccess";
 
 /** 判定関数に渡す利用者（DB と同期したセッションから作る） */
 export type StorageActor = {

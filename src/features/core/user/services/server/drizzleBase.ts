@@ -7,8 +7,8 @@ import { auditLogger } from "@/features/core/auditLog/services/server";
 import { storageBindingFor } from "@/features/core/storageObject/services/server/crudBinding";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
-import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
-import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
+import { normalizeDomainJsonConfig } from "@/lib/domain";
+import type { DomainConfigOptionals } from "@/lib/domain";
 import rawConf from "@/features/user/domain.json";
 import type { z } from "zod";
 

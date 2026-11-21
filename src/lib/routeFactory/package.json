@@ -2,5 +2,5 @@
   "exports": {
     ".": "./index.ts"
   },
-  "libs": ["audit", "crud", "defineConfig", "domain", "errors", "recaptcha", "request", "stringCase", "userDirty"]
+  "libs": ["audit", "crud", "defineConfig", "domain", "domainAccess", "errors", "recaptcha", "request", "stringCase", "userDirty"]
 }

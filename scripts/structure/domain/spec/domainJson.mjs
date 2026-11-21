@@ -2,8 +2,7 @@
 // src/lib/domain/types/domainField.ts の DomainField（関連は types/domainConfig.ts の DomainConfigRelation）。checks/vocabulary.mjs がこれと照合して、綴り違い・古いキー・
 // その DB に無い型を警告する（生成は止めない）。
 
-import { BUILTIN_FORM_INPUTS } from "../../../../src/lib/domain/fields/formInputs.mjs";
-import { FORM_INPUTS } from "../../../../src/lib/domain/fields/fieldFormInputs.mjs";
+import { BUILTIN_FORM_INPUTS, FORM_INPUTS } from "../../../../src/lib/domain/node.mjs";
 
 /** 開発者のメモのキー（JSON Schema の注記と同じ名前）。どの階層にも書け、生成器も client の写しも読まない。値は文字列か文字列の配列 */
 export const COMMENT_KEY = "$comment";

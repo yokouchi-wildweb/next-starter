@@ -3,7 +3,7 @@
 
 import { NextResponse } from "next/server";
 
-import type { DomainApiAccessRule } from "@/lib/domain";
+import type { DomainApiAccessRule } from "@/lib/domainAccess";
 
 import type { RouteAccessDecision, RouteUserBase, RouteUserDeps } from "./deps";
 

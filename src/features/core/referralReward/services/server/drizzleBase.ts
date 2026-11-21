@@ -1,7 +1,7 @@
 // src/features/referralReward/services/server/drizzleBase.ts
 
-import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
-import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
+import { normalizeDomainJsonConfig } from "@/lib/domain";
+import type { DomainConfigOptionals } from "@/lib/domain";
 import rawConf from "@/features/referralReward/domain.json";
 import { ReferralRewardTable } from "@/features/core/referralReward/entities/drizzle";
 import { ReferralRewardCreateSchema, ReferralRewardUpdateSchema } from "@/features/core/referralReward/entities/schema";

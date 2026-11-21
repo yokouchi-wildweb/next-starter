@@ -1,4 +1,4 @@
-// src/lib/domain/types/apiAccess.ts
+// src/lib/domainAccess/apiAccess.ts
 // 汎用ドメイン API (/api/[domain]/**) と管理データ操作のアクセス制御型定義
 
 /**

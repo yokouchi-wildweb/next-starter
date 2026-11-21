@@ -5,7 +5,7 @@ import path from "node:path";
 import { toCamelCase, toPascalCase } from "../../../../../src/lib/stringCase/index.mjs";
 import { requireConfig } from "../../domain/context.mjs";
 import { resolveFieldName } from "../../domain/fieldName.mjs";
-import { presenterFor } from "../../../../../src/lib/domain/fields/presenterFor.mjs";
+import { presenterFor } from "../../../../../src/lib/domain/node.mjs";
 import { isCollectionFieldType } from "../../spec/fieldTypes.mjs";
 import { file } from "../output.mjs";
 

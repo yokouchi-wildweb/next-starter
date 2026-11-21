@@ -1,7 +1,7 @@
 // src/lib/dataMigration/configUtils.ts
 // 写し(entities/display.ts)から DataMigration 用の設定を生成するユーティリティ
 
-import type { DomainDisplay } from "@/lib/domain/types/display";
+import type { DomainDisplay } from "@/lib/domain";
 import type { ExportField } from "./components/ExportSettingsModal";
 
 /**

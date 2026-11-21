@@ -8,13 +8,7 @@ import { useMemo } from "react";
 import useSWR from "swr";
 import axios from "axios";
 import type { BuiltinFormInput, DomainDisplayRelation } from "@/lib/domain";
-import {
-  getFormRelations,
-  getStaticRelations,
-  isAsyncRelationFormInput,
-  isCustomRelationFormInput,
-  relationOptionsKey,
-} from "@/lib/domain/relations/relationOptions.mjs";
+import { getFormRelations, getStaticRelations, isAsyncRelationFormInput, isCustomRelationFormInput, relationOptionsKey } from "@/lib/domain";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
 
 import type { FieldConfig } from "./Field/types";

@@ -5,7 +5,7 @@
 
 import "server-only";
 
-import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
+import type { DomainConfigOptionals } from "@/lib/domain";
 
 import chatRoomConfig from "@/features/core/chatRoom/domain.json";
 import couponConfig from "@/features/core/coupon/domain.json";

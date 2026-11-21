@@ -6,7 +6,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import { normalizeDomainJsonConfig } from "@/lib/domain/definition/normalizeDomainJsonConfig";
+import { normalizeDomainJsonConfig } from "@/lib/domain";
 import { buildFormDefaultValues } from "@/lib/formSuite";
 
 import domainConfig from "../domain.json";

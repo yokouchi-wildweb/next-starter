@@ -28,7 +28,8 @@ import {
 import { fetchAdminSort, type AdminSortScreenData, type AdminSortService } from "@/features/core/admin/services/server/screenData/adminSort";
 
 import type { ListPageSearchParams } from "@/lib/crud/types";
-import { resolveAccessRule, type DomainApiAccessRule, type DomainApiOperation } from "@/lib/domain";
+import { resolveAccessRule } from "@/lib/domain";
+import { type DomainApiAccessRule, type DomainApiOperation } from "@/lib/domainAccess";
 import { getServiceOrThrow as getServiceOrThrowFrom, hasService as hasServiceFrom } from "@/lib/domain/server";
 import type { LoaderKeyValue, PageLoaderConfig } from "@/lib/pageGuard";
 import { serviceRegistry } from "@/registry/serviceRegistry";
