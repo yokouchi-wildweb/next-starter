@@ -5,6 +5,7 @@
 - サーバーサイドのメディア解析（probe）。ストレージ上のメディア（動画・音声）をサーバー側で解析し、ストリーム構成を返すドメイン非依存の汎用 capability。主目的は「音声トラックの有無」の確実な判定
 - クライアント側の検出は標準 API が無くブラウザ依存で安全性を保証できないため、配信物の安全性に関わる検証はこの層（サーバー）で行う
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/mediaProbe.md にある
+- 閉じた lib: 入口 `@/lib/mediaProbe`(結果の型と形の判定 `hasAudioTrack` / `isSilentVideo` など。client でも server でも読める)と `@/lib/mediaProbe/server`(解析 `probeMedia`・エンジンの登録・`ProbeEngine` の型。server-only、読み込んだ時に既定エンジンを登録する)。読む lib は storage だけ
 
 ### 責務の境界
 
@@ -19,7 +20,8 @@
 ### サーバーで解析する
 
 ```ts
-import { probeMedia, isSilentVideo } from "@/lib/mediaProbe";
+import { isSilentVideo } from "@/lib/mediaProbe";
+import { probeMedia } from "@/lib/mediaProbe/server";
 
 // 管理下のファイル（storage:// の ref）: 呼び出し元が用途の read で認可し、短期 URL を authorizedUrl で渡す
 // （lib は ref を解決しない。lib/mediaProbe は features を import しないため）
@@ -71,7 +73,7 @@ if (!isSilentVideo(probe)) throw new DomainError("音声トラックを含む動
 ### エンジンの追加・差し替え
 
 ```ts
-import { registerProbeEngine, setDefaultProbeEngine } from "@/lib/mediaProbe";
+import { registerProbeEngine, setDefaultProbeEngine } from "@/lib/mediaProbe/server";
 
 registerProbeEngine(myFfprobeEngine);   // 例: より詳細な情報が必要なフォーク
 setDefaultProbeEngine("ffprobe");
