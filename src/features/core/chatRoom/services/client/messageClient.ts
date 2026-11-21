@@ -21,7 +21,7 @@ import {
   subscribeCollectionChanges,
 } from "@/lib/firestore/client";
 import type { BatchOperation, CollectionChangesSnapshot } from "@/lib/firestore/client";
-import type { Unsubscribe } from "@/lib/firestore/types";
+import type { Unsubscribe } from "@/lib/firestore";
 
 import type { ChatMessage, LastMessageSnapshot, MessageMetadata, MessageType } from "@/features/chatRoom/entities/message";
 import { messagesSubcollectionPath } from "@/features/chatRoom/entities/message";

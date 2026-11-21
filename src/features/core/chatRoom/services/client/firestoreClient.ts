@@ -24,7 +24,7 @@ import {
   updateDoc,
 } from "@/lib/firestore/client";
 import type { BatchOperation } from "@/lib/firestore/client";
-import type { Unsubscribe } from "@/lib/firestore/types";
+import type { Unsubscribe } from "@/lib/firestore";
 
 import { ensureChatAuth, getChatFirestore, subscribeAfterChatAuth } from "./chatFirebase";
 
