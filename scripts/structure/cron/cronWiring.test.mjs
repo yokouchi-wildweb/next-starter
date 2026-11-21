@@ -10,7 +10,7 @@
 // 4. fork の task.override.ts(任意)は schedule の差し替えと disabled だけを持ち、task.ts の無いフォルダには置けない
 // 5. README と task.ts / task.override.ts が @/lib/cron から import する名前は、すべて src/lib/cron/index.ts が export している
 // 6. vercel.json(あれば)は task.ts(+ task.override.ts)からの生成結果と一致する(配線漏れ・消えたタスクの残骸・手書きの時刻を検出)
-import { test } from "node:test";
+import { mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -18,7 +18,6 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { CRON_ROUTE_DIR, gateClosedBy, listCronTaskDirs, loadCronTasks, scheduledCronTasks } from "./discover.ts";
-import { createCronRoute, createCronTaskRoute } from "../../../src/lib/cron/createCronRoute.ts";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { buildVercelCrons, checkVercelCrons, listHobbyDowngradedTasks } from "../../../src/lib/cron/vercelCrons.ts";
 import {
@@ -26,6 +25,13 @@ import {
   isValidCronExpression,
   matchesCronExpression,
 } from "../../../src/lib/cron/cronExpression.ts";
+
+import nextServer from "next/server";
+
+// 入口の芯は最初に next/server の connection() を待つ。Next のリクエストの外(ここ)では throw するので、
+// next/server は本物のまま connection だけ空にする(入口を読み込む前に置く)
+mock.module("next/server", { namedExports: { ...nextServer, connection: async () => {} } });
+const { createCronRoute, createCronTaskRoute } = await import("../../../src/lib/cron/createCronRoute.ts");
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 

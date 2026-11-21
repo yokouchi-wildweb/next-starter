@@ -318,6 +318,7 @@ export const POST = createApiRoute(
   - `deps` = `{ user: RouteUserDeps, device: RouteDeviceDeps, rateLimit: RouteRateLimitDeps, domains: DomainRegistry, gate?: RouteGateDeps }`。
   - `gate`(省略可)= 門番の口 `{ isClosed(pathname) }`: 全 Factory の土台(`runRoute`)が最初に要求の住所を聞き、閉なら主体の解決・認可・ハンドラの前に `not_found` と同じ 404(本文 `Not Found`、機能名を出さない)。
   - proxy の門番の 404 が先に効くので、通り抜けたときの安全網。
+  - 土台の最初の文は `await connection()`(next/server)で、門番の 404 を含むどの早期 return より前。cacheComponents の build は request を読まずに返す応答を静的に焼き付けるため(cacheComponents off では何も変えない)。route.ts の側には書かない。
   - lib は門番を知らず、`src/wiring/apiRoute.ts` が `gate.path` で結ぶ(Factory に機能名の指定欄は無い)。
   - 主体の型(利用者・status・端末の種類ごとの型・認証済みの端末)は型引数で受け、lib は features を import しない(lint `import-boundaries/lib-no-features`)。
   - 具体の型を結ぶのは `src/wiring/apiRoute.ts`（全項目必須、型は `deps.ts`）。

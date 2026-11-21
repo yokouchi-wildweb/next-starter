@@ -217,6 +217,8 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 - **enabled**: 機能以外の追加の実行条件（例: 失効を有効にした通貨があるか）。同期関数（札 enabled_config_only）。
   false のときルートは本体を呼ばず `{ ok: true, skipped: true, reason: "disabled" }` を返す。vercel.json には載る（値を変えても再生成は要らない）。
   個人情報の retention prune は enabled に載せない。門は他の task と同じく import から付く: 閉じられる機能の prune（`device-fingerprint-prune` / `fingerprint-challenge-access-prune`）はその機能を閉じると止まり（その機能の表は作られない）、常に開く機能の prune（`audit-log-prune` / `user-login-event-prune`）は止まらない
+- **最初の文は connection()**: route の作り手（`createCronRoute`）は認証・門・enabled より前に `await connection()`（next/server）を待つ。
+  cacheComponents の build は request を読む前に返す 200（closed / disabled）を静的な応答に焼き付けるため（cacheComponents off では何も変えない）。route.ts の側には書かない
 - **配線漏れの防止**: `vercel.json` は人が書かない。タスクの増減で生成結果とずれると、Vercel 上のビルド
   （`pnpm build` の冒頭の門 `pnpm check --gate=build` が cron の検査を `--vercel-build` で回す）と `pnpm live` 系(`pnpm live`・`pnpm live:room`・`pnpm live:all`)が止まる。漏れたまま本番が動き続けることはない
 
