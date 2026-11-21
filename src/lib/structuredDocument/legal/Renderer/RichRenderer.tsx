@@ -9,8 +9,8 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 
-import type { VariableMap } from "../../shared";
-import { replaceVariables } from "../../shared";
+import type { VariableMap } from "@/lib/templateVariables";
+import { replaceVariables } from "@/lib/templateVariables";
 import type { LegalSection, LegalSectionNumbering } from "../definition";
 import { getNumberingClassName } from "./utils";
 

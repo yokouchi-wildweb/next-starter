@@ -25,7 +25,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useDomainMutation } from "@/lib/crud/hooks";
 import { err, getErrorCode, getErrorDetails } from "@/lib/errors";
-import { listVariables } from "@/lib/structuredDocument";
+import { listVariables } from "@/lib/templateVariables";
 import { useToast } from "@/lib/toast";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
 

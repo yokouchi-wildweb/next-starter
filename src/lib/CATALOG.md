@@ -68,8 +68,9 @@
 - src/lib/storage — ファイル保存の基盤(storage:// ref と表示解決、inline/attachment 配信規則、StoragePort と GCS 実装、保存先の解決、strip 用途の画像のメタデータ除去(サーバーの描き直し)、クライアントの uploadToStorage)。閉じた lib: 入口 "."(ref・表示・規則・型・設定・アップロードの部品)・"./server"(ポート・GCS・保存先・用途・旧 URL・描き直し・fake)、保存先と公開 base は上書き src/config/lib/storage.config.ts の env の関数
 - src/lib/storageCors — 別ドメインの Storage バイト読み取りの CORS 未設定を開発時に自己診断・案内。閉じた lib(入口 ".")
 - src/lib/stringCase — 名前の書き方の変換(camelCase / PascalCase / kebab-case / snake_case。生成器・lib・画面から同じ物を読む .mjs)
-- src/lib/structuredDocument — 構造化ドキュメント(文書タイプ別の構造定義とレンダラー、利用規約など)
+- src/lib/structuredDocument — 構造化ドキュメント(文書タイプ別の構造定義とレンダラー、利用規約など)。閉じた lib: 入口 "." だけ、棚 components を peers に
 - src/lib/tableSuite — テーブル系 UI(DataTable / EditableGridTable / RecordSelectionTable / カードの一覧の RecordSelectionList)。閉じた lib: 入口 "." だけ、棚 components を peers に
+- src/lib/templateVariables — テキストの差し込み {{鍵}} の 1 本(replaceVariables / listVariables。リーガルドキュメント・連絡が読む)。依存なしの純関数の閉じた lib(入口 ".")
 - src/lib/seed — ドメインのシード(seed.ts)の書き方 defineSeed・ref と入れる順の計画 planSeeds(入れるのは scripts/runner/seed)
 - src/lib/task — ワンショット・任意タスク(pnpm task)の定義の型 OneShotTask
 - src/lib/toast — トースト通知(GlobalToast / useToast)

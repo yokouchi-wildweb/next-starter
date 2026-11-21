@@ -8,7 +8,7 @@
  * import {
  *   LegalDocumentRenderer,
  *   type LegalDocument,
- * } from "@/lib/structuredDocument/legal";
+ * } from "@/lib/structuredDocument";
  *
  * const termsConfig: LegalDocument = {
  *   title: "利用規約",

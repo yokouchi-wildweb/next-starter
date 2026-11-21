@@ -3,7 +3,7 @@
 // 自分の文面にする: pnpm ops legal from-example tradelaw(この例文を上書きへ写して own にする)の後に直す。形と差し込み: src/features/core/legal/README.md
 // {{COMPANY_NAME}} などの差し込みは表示のときに @/business と legal の値で埋める。日付(enactedAt / lastUpdatedAt)は例文に持たない
 
-import type { LegalDocument } from "@/lib/structuredDocument/legal";
+import type { LegalDocument } from "@/lib/structuredDocument";
 
 export const EXAMPLE_TRADELAW: LegalDocument = {
   title: "特定商取引法に基づく表示",

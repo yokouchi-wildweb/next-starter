@@ -16,7 +16,7 @@ import { useWatch } from "react-hook-form";
 
 import { useDomainMutation } from "@/lib/crud/hooks";
 import { embeddedVariableMap, type MessageEmbeddedDeclaration, type MessageLayoutFields } from "@/lib/messaging";
-import { replaceVariables } from "@/lib/structuredDocument";
+import { replaceVariables } from "@/lib/templateVariables";
 
 import type { AdminSendLayoutOption } from "../services/client/sendClient";
 import { updateMessageTemplate } from "../services/client/templateClient";

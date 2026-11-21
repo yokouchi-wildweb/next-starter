@@ -14,7 +14,7 @@
 //   固定の時にグループが使えない(門が閉・しまった・壊れた・版が無い・人数の上限・時間の上限)→ 回を cancelled にし metadata.cancelReason に理由
 
 import { DomainError } from "@/lib/errors";
-import { listVariables } from "@/lib/structuredDocument/shared";
+import { listVariables } from "@/lib/templateVariables";
 
 import type { MessageDispatch, MessageDispatchInsert, MessageInboxItemInsert } from "../../../entities/model";
 import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";

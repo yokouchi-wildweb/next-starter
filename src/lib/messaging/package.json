@@ -2,6 +2,6 @@
   "exports": {
     ".": "./index.ts"
   },
-  "libs": ["structuredDocument"],
+  "libs": ["templateVariables"],
   "sideEffects": false
 }

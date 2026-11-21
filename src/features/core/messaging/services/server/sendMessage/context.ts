@@ -9,7 +9,7 @@ import {
   type MessageEnricher,
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
-import { replaceVariables, type VariableMap } from "@/lib/structuredDocument/shared";
+import { replaceVariables, type VariableMap } from "@/lib/templateVariables";
 
 import type { AnyResolvedMessageDefinition } from "./definition";
 import { enrichersFor } from "./enrichers";
