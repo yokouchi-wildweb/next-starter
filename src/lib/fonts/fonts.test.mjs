@@ -11,7 +11,7 @@ import { buildFontsConfig, FONT_SANS_LOADED_VAR, FONT_MONO_LOADED_VAR } from "./
 const here = dirname(fileURLToPath(import.meta.url));
 const typographyCss = readFileSync(resolve(here, "../../styles/core/typography.css"), "utf8");
 const fontsConfigSource = readFileSync(resolve(here, "../../config/lib/fonts.ui.config.ts"), "utf8");
-const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+const stripComments = (/** @type {string} */ src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
 /** 従来からの system スタック(見た目を変えない契約)。変更時はこのテストと .notices を更新する */
 const DEFAULT_SANS_STACK = '"Inter", "system-ui", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
@@ -36,7 +36,7 @@ test("variable 無しのローダー結果は拒否する(className だけ渡し
 });
 
 test("core/typography.css のスタックは loaded 変数をフォールバック付きで参照し、既定スタックは従来どおり", () => {
-  const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escape = (/** @type {string} */ s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   assert.match(
     typographyCss,
     new RegExp(`--font-geist-sans:\\s*var\\(${FONT_SANS_LOADED_VAR},\\s*${escape(DEFAULT_SANS_STACK)}\\);`),
