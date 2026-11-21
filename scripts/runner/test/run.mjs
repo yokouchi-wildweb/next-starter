@@ -10,7 +10,8 @@
 //   --test-force-exit は付けない: 子の報告の終わりが親へ届く前にプロセスを終え、ファイルの後ろのテストが pass にも fail にも数えられず
 //   黙って消える(実測: 同じ木で 4156〜4195 本と揺れ、付けなければ毎回 4219 本)。
 //   時間の上限: test() 1 つごと 既定 60 秒(node の --test-timeout。--test-timeout=<秒> か env TEST_TIMEOUT、0 = なし)と、
-//   1 ファイルごと 既定 120 秒(preload/fileTimeout.mjs が子の中で見張る。--file-timeout=<秒> か env TEST_FILE_TIMEOUT、0 = なし)。
+//   1 ファイルごと 既定 120 秒 = テストが全部終わった後に出ないでいる時間(preload/fileTimeout.mjs が子の中で見張る。押さえは起動から
+//   その 10 倍。--file-timeout=<秒> か env TEST_FILE_TIMEOUT、0 = なし)。
 //   起動: node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --import ./scripts/runner/preload/fileTimeout.mjs --experimental-test-module-mocks
 //         [--test-timeout=<ms>] [// test-flags:] --test <files>
 //   (node --test と同じく 1 ファイル 1 プロセス)。--test の後のファイルは node が glob として読むので、[ ] { } * ? は 1 文字の組 [x] で

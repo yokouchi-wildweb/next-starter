@@ -192,7 +192,7 @@ test("時間の上限(実物): 終わらないファイルは上限で落ちて�
   const out = r.stdout + r.stderr;
   assert.equal(r.status, 1, out);
   assert.ok(Date.now() - started < 20_000, "上限で止まる");
-  assert.match(out, /時間切れ 1 秒: hang\.test\.mjs/);
+  assert.match(out, /時間切れ 1 秒\(テストの後\): hang\.test\.mjs/);
   assert.match(out, /✖ hang\.test\.mjs/);
   assert.match(out, /pass 2\b/);
   // 0 = 上限なし: 普通に終わるファイルはそのまま通る(見張りのタイマーが引き止めない)
@@ -232,7 +232,7 @@ test("終わり方(実物): 通った後に接続・タイマーが残るファ�
   const started = Date.now();
   const leak = spawnSync(process.execPath, [...args, "leak.test.mjs"], { cwd: dir, encoding: "utf8", env, timeout: 30_000 });
   assert.equal(leak.status, 1, leak.stdout + leak.stderr);
-  assert.match(leak.stdout + leak.stderr, /時間切れ 2 秒: leak\.test\.mjs/);
+  assert.match(leak.stdout + leak.stderr, /時間切れ 2 秒\(テストの後\): leak\.test\.mjs/);
   const wait = spawnSync(process.execPath, [...args, "wait.test.mjs"], { cwd: dir, encoding: "utf8", env, timeout: 30_000 });
   assert.equal(wait.status, 1, wait.stdout + wait.stderr);
   assert.match(wait.stdout, /✖ never resolves/);
@@ -240,4 +240,24 @@ test("終わり方(実物): 通った後に接続・タイマーが残るファ�
   assert.equal(many.status, 0, many.stdout + many.stderr);
   assert.match(many.stdout, /ℹ tests 200\b/);
   assert.ok(Date.now() - started < 20_000, "どれもすぐ終わる");
+});
+
+test("時間の上限は数え始めがテストの後(実物): 上限より長くかかっても終わるファイルは落ちない、テストに入る前で止まるファイルは起動から上限の 10 倍で落ちる", () => {
+  const dir = mkdtempSync(join(tmpdir(), "runner-after-done-"));
+  writeFileSync(join(dir, "slow.test.mjs"), 'import { test } from "node:test";\ntest("slow but finishes", async () => { await new Promise((r) => setTimeout(r, 2500)); });\n');
+  writeFileSync(join(dir, "stuck.test.mjs"), 'import { test } from "node:test";\nawait new Promise(() => { setInterval(() => {}, 1000); });\ntest("never reached", () => {});\n');
+  const preload = join(import.meta.dirname, "../preload/fileTimeout.mjs");
+  const env = { ...process.env, TEST_FILE_TIMEOUT: "0.3" };
+  delete env.NODE_TEST_CONTEXT;
+  const args = ["--import", preload, ...testTimeoutArgs("30", {}).args, "--test", "--test-concurrency=0"];
+  // 負荷で遅いだけ: 0.3 秒の上限の 8 倍かかるが、テストが進んでいる間は数えない(起動からの押さえ 3 秒にも届かない)
+  const slow = spawnSync(process.execPath, [...args, "slow.test.mjs"], { cwd: dir, encoding: "utf8", env, timeout: 30_000 });
+  assert.equal(slow.status, 0, slow.stdout + slow.stderr);
+  assert.doesNotMatch(slow.stdout + slow.stderr, /時間切れ/);
+  // テストに入る前で止まる: after が来ないので、起動から 0.3 × 10 = 3 秒で名前を出して落ちる
+  const started = Date.now();
+  const stuck = spawnSync(process.execPath, [...args, "stuck.test.mjs"], { cwd: dir, encoding: "utf8", env, timeout: 30_000 });
+  assert.equal(stuck.status, 1, stuck.stdout + stuck.stderr);
+  assert.match(stuck.stdout + stuck.stderr, /時間切れ 3 秒\(起動から\): stuck\.test\.mjs/);
+  assert.ok(Date.now() - started < 20_000, "押さえで止まる");
 });

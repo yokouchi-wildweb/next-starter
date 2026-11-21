@@ -16,7 +16,7 @@ pnpm test src/lib/crud          # パス(前方一致)か glob(src/**/x.test.ts)
 pnpm test --changed             # 範囲の変更に関係するテストだけ(/ship が使う)
 pnpm test --list                # 選んだファイルを出すだけ
 pnpm test --test-timeout=120    # test() 1 つの時間の上限を延ばす(秒、0 = なし。env TEST_TIMEOUT=120 でも同じ)
-pnpm test --file-timeout=300    # 1 ファイルの時間の上限を延ばす(秒、0 = なし。env TEST_FILE_TIMEOUT=300 でも同じ)
+pnpm test --file-timeout=300    # 1 ファイルの時間の上限(テストの後に出ない時間)を延ばす(秒、0 = なし。env TEST_FILE_TIMEOUT=300 でも同じ)
 ```
 
 - 1 本・1 フォルダだけ回す: `pnpm test <パス>`(環境変数の要る物は前に付ける: `FEATURE_GATE_CHECK=all pnpm test scripts/structure/proxies/featureGate.test.mjs`)
@@ -25,7 +25,8 @@ pnpm test --file-timeout=300    # 1 ファイルの時間の上限を延ばす(�
 ### 時間の上限
 
 - 時間の上限(test() 1 つごと): 既定 **60 秒**(node の `--test-timeout`)。終わらない test() は名前付きで落ちる。延ばす: `pnpm test --test-timeout=<秒>` か env `TEST_TIMEOUT=<秒>`(フラグが勝つ、`0` = なし)。1 つだけ長いテストは `test("…", { timeout: <ms> }, …)` で自分で延ばす
-- 時間の上限(1 ファイルごと): 既定 **120 秒**。過ぎたファイルは `test: 時間切れ <秒> 秒: <ファイル>` を出して落ち、まとめの failing tests に名前が出る。ほかのファイルは回り続ける
+- 時間の上限(1 ファイルごと): 既定 **120 秒**。数えるのはそのファイルのテストが全部終わった後(残った接続・タイマーでプロセスが出ない時間)で、テストが進んでいる間は数えない(負荷の中で遅いだけのファイルを落とさない。受信箱 20261121-044322)。過ぎたファイルは `test: 時間切れ <秒> 秒(テストの後): <ファイル>` を出して落ち、まとめの failing tests に名前が出る。ほかのファイルは回り続ける
+  - 押さえ: テストに入る前(読み込みの途中)で止まるファイルは、起動から上限の 10 倍で `時間切れ <秒> 秒(起動から)` で落ちる。テストの途中で止まる物は test() ごとの上限が見る
   - 延ばす: `pnpm test --file-timeout=<秒>` か env `TEST_FILE_TIMEOUT=<秒>`(フラグが勝つ)。`0` = 上限なし(調べる時だけ)
   - 時間切れが出たら: 落ちたアサーションの後片付け(`after` で閉じる・`clearInterval`・接続の close)を確かめる。遅いだけのファイルは分けるか、上限を延ばす
 
