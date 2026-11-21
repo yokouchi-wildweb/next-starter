@@ -1,8 +1,8 @@
 // src/lib/siteTheme/resolve.ts
 //
 // パス・保存値・OS 設定からテーマを決める純関数。
-// SSR(root layout)、クライアント(SiteThemeSync / store)、bootstrap script の
-// 3 箇所が同じ判定をする必要があるため、ロジックはここに一本化する。
+// クライアント(SiteThemeSync / store・dom.ts の SSR 既定値)と bootstrap script(root layout の <head>)が
+// 同じ判定をする必要があるため、ロジックはここに一本化する。
 // bootstrap script は JS 文字列なので同じロジックを手書きしており、
 // 一致は siteTheme.test.mjs で同一ケース集を両方に流して保証する。
 

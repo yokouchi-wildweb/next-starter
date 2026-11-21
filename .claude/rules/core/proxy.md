@@ -10,7 +10,8 @@ paths:
 > **ROLE**: loaded when writing the proxy, its items or the feature gate | holds PROXY detail
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
-entry: src/proxy.ts builds one ctx per request and runs src/proxies/index.ts | handler returns Response (intercept) or void (pass) → fallback NextResponse.next() + decorators (skipped when a handler intercepts) | x-pathname: proxy.ts sets it on request headers → server components read headers().get("x-pathname")
+entry: src/proxy.ts builds one ctx per request and runs src/proxies/index.ts | handler returns Response (intercept) or void (pass) → fallback NextResponse.next() + decorators (skipped when a handler intercepts)
+- x-pathname: proxy.ts sets it on request headers → read only by the page guard (returnTo, auth authorization.ts) | the root layout never reads request headers (site theme and area come from its head bootstrap script)
 chain: skeleton (upstream, hand-written in index.ts) maintenance → demoMode → featureGate → redirect, decorators attribution → inviteLink | then the frame: items in file-name order (no Tier order), independent of each other | never before the skeleton (need → ask upstream)
 add: item = src/proxies/\<name\>.ts (upstream and fork alike, no fork-name marker) with exactly one `export const handler` or `export const decorator` → pnpm generate extensions | forks never edit index.ts | decision logic lives in the owning domain's service
 - generator: declaration src/proxies/extensionPoints.ts → lists src/proxies/extensions/ (never hand-edit; pnpm check extensions runs at build) | ref: scripts/structure/extensions/README.md
