@@ -25,6 +25,10 @@
 //                               `Ship:` も `downstream-notice:` も無い merge(cargo が残す作業の合流など)では止まらず数に入れて辿る
 //                               (ファイルは起点からの diff なので合流の 2 番目の親の側も入る)。/flux の取り込み(downstream-notice:)では止まる
 //                               /ship のふつうの出荷が、まだ検査していない quick の分を範囲に足すのに使う。quickChecked で記録した commit でも止まる
+//   quickFiles --through=<ref>  COMMITTED RANGE のふつうの出荷: <ref>(push 先)の祖先でない commit(= 出す範囲、道具が積んだ印の無い
+//                               commit を含む)は印に関係なく通り抜け(数えない・止まらない)、<ref> から下を同じ規則で歩く。範囲の先頭の
+//                               印の無い commit で止まると、push 済みで範囲の下にある他のセッションの quick の分が検査に入らず、出荷の後は
+//                               その先端が検査した起点に見えて後の出荷でも歩かれない(注文 195 の note、計画書 33 S2)
 //   quickChecked                HEAD を「quick の分まで検査した」と記録する(<git common dir>/quick-checked。worktree をまたいで共有)。
 //                               commit の無いふつうの出荷が、push 済みの quick の先端を検査した後に使う
 //   exit 0 = 通った | 1 = 検査が落ちた・tag を付けられない | 2 = 回せない・確かめられない(理由を出す)
@@ -421,8 +425,10 @@ function runStatus(repo, argv, log) {
   }
 }
 
-function runQuickFiles(repo, log) {
+function runQuickFiles(repo, log, argv = []) {
   try {
+    const throughRef = argv.find((a) => a.startsWith("--through="))?.slice("--through=".length);
+    const through = throughRef ? git(repo, ["rev-parse", "--verify", `${throughRef}^{commit}`]) : null;
     const checked = readQuickChecked(repo);
     const identity = readForkIdentity(repo);
     const own = identity.own;
@@ -449,6 +455,8 @@ function runQuickFiles(repo, log) {
       // 印の無い道具の merge(作業の合流・線の合流)は検査した点ではない: 数に入れて first-parent を辿り続ける。
       // /flux の区切りの取り込み(downstream-notice:)はその区切りの検査を通した点なので止まる
       const toolMerge = parents.trim().split(" ").length > 1 && ship.trim() === "" && notice.trim() === "";
+      // --through: 出す範囲(<ref> の祖先でない commit)は印に関係なく通り抜け、<ref> から下を歩く
+      if (through && !isAncestor(repo, sha, through)) continue;
       if (safeCommits.has(sha) || sha === checked || (!values.includes("quick") && !toolMerge)) {
         base = sha;
         break;
@@ -481,10 +489,10 @@ export function run(repo, argv, { log = console.log } = {}) {
   if (action === "tag") return runTag(repo, rest, log);
   if (action === "where") return runWhere(repo, rest, log);
   if (action === "status") return runStatus(repo, rest, log);
-  if (action === "quickFiles") return runQuickFiles(repo, log);
+  if (action === "quickFiles") return runQuickFiles(repo, log, rest);
   if (action === "quickChecked") return runQuickChecked(repo, log);
   log(
-    "使い方: pnpm workflow notices safePoint check [--check=<cmd> ...] | tag [--remote=origin] [--branch=<b>] [--date=YYYYMMDD] | where [--remote=<name>] [--at=<sha>] [--id=<fork_id>] | status [--remote=origin] [--commits=80] [--days=3] [--now=<unix 秒>] | quickFiles | quickChecked",
+    "使い方: pnpm workflow notices safePoint check [--check=<cmd> ...] | tag [--remote=origin] [--branch=<b>] [--date=YYYYMMDD] | where [--remote=<name>] [--at=<sha>] [--id=<fork_id>] | status [--remote=origin] [--commits=80] [--days=3] [--now=<unix 秒>] | quickFiles [--through=<ref>] | quickChecked",
   );
   return 2;
 }

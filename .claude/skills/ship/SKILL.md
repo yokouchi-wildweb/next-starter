@@ -181,7 +181,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
   - step 6's `pnpm workflow notices reorder` first (the range is unpushed; with `no-push` it waits for the push)
   - each commit in the range that adds a `fixes:` notice → step 6's pickCheck on it (`pnpm workflow notices pickCheck <that commit>`; it writes `pick:` in the notice's body) → commit the bodies alone: `git commit -m "notices: pick marks" -- .notices/<id>.md`
   - a notice in the range → `pnpm check notices`
-  - `--safe` → step 7's full checks on the pushed tip | plain → step 2's area checks on the range's files (`git diff --name-only <target>..HEAD`) plus `safePoint quickFiles`
+  - `--safe` → step 7's full checks on the pushed tip | plain → step 2's area checks on the range's files (`git diff --name-only <target>..HEAD`) plus `safePoint quickFiles --through=<target>` (it walks through the range whatever its marks and counts the quick commits pushed below it — from HEAD it would stop at the range's first unmarked commit)
   - steps 7 and 8 (the report lists the commits shipped)
 
 ## NOTICE COMPOSITION
