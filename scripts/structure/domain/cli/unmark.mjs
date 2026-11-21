@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { domainNamesOf } from "../../../../src/lib/districtMap/domainOutputs.mjs";
+import { domainNamesOf } from "../../../../src/lib/districtMap/node.mjs";
 import { GENERATED_MARK, withoutGeneratedMark } from "../render/output.mjs";
 
 export const DISTRICT_MAP = "src/registry/district-map.jsonl";

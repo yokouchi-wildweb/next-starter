@@ -11,7 +11,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { classifyDottedName, oldMarkerProblem } from "../../../src/lib/districtMap/dottedNames.mjs";
+import { classifyDottedName, oldMarkerProblem } from "../../../src/lib/districtMap/index.mjs";
 
 const FEATURES = "src/features";
 const CORE = "src/features/core";

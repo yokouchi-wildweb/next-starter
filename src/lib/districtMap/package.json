@@ -1,0 +1,7 @@
+{
+  "exports": {
+    ".": "./index.mjs",
+    "./node": "./node.mjs"
+  },
+  "libs": ["libPackage", "stringCase"]
+}

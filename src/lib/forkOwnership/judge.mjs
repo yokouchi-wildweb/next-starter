@@ -3,7 +3,7 @@
 // 仕様: ./README.md「判定」
 
 import { matchIntake } from "./intake.mjs";
-import { classifyDottedName } from "../districtMap/dottedNames.mjs";
+import { classifyDottedName } from "../districtMap/index.mjs";
 import { overrideTargetUnit, placeUnitOf, shelfUnitOf, unitFolderOf } from "./unitNames.mjs";
 import { parseForkRegions, stripOwnedRegions } from "./regions.mjs";
 

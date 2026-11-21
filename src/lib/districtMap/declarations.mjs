@@ -2,18 +2,13 @@
 // 所有の検査の単位名(src/lib/forkOwnership/unitNames.mjs)・src/wiring の配線テスト・上書きの読み手(ロール scripts/structure/role・
 // cron src/lib/cron/discover.ts・登録表 scripts/structure/registry/serviceRegistry。上書きしてよい鍵は overrideKeysOf)が使う
 // (D2: 仕組みは src/lib に 1 本、scripts から import。目録 D13: 地区の発見の側に置き、所有の軸 forkOwnership はここを import する)。
-// 宣言を探して読む。fork の点は fork 自身のフォルダの extensionPoints.ts に書く
+// ファイルを読まない(入口 "." から出す。木を歩いて探す findDeclarationFiles・collectPoints・overrideKeysOf は ./declarationFiles.mjs、入口 "./node")。
+// fork の点は fork 自身のフォルダの extensionPoints.ts に書く
 // (旧い extensionPoints.<x>.ts は止めて移し方を案内する)。
 // 宣言はリテラルだけ: TypeScript の構文木で字面を読み、実行しない(式・変数・関数呼び出し・テンプレートは失敗)。
 // 書式と置き場: scripts/structure/extensions/README.md
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
-
 import ts from "typescript";
-
-import { classifyDottedName, oldMarkerProblem } from "./dottedNames.mjs";
 
 export const DECLARATION_NAME = "extensionPoints";
 /** 宣言を探す範囲(リポジトリ直下からの相対) */
@@ -34,31 +29,6 @@ export const PLACEMENT_KINDS = ["edit", "append"];
 const OVERRIDE_TARGET_KEYS = ["overrides", "side", "overrideOf", "addable", "export", "keyedBy"];
 const POINT_NAME = /^[a-z][A-Za-z0-9]*$/;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
-
-/**
- * src の下の宣言のファイルを集める(node_modules・extensions/ の中は見ない)
- * @param {string} repoRoot
- * @returns {{ files: string[], stale: string[] }} リポジトリ直下からの相対パス(並びは path 順)。stale = 旧い形 extensionPoints.<x>.ts
- */
-export function findDeclarationFiles(repoRoot) {
-  const found = [];
-  const stale = [];
-  const walk = (dir) => {
-    if (!existsSync(dir)) return;
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (entry.isDirectory()) {
-        if (entry.name === "node_modules" || entry.name === EXTENSIONS_DIR_NAME || entry.name.startsWith(".")) continue;
-        walk(join(dir, entry.name));
-      } else if (entry.name === `${DECLARATION_NAME}.ts`) {
-        found.push(relative(repoRoot, join(dir, entry.name)).split("\\").join("/"));
-      } else if (/\.tsx?$/.test(entry.name) && classifyDottedName(entry.name).base === DECLARATION_NAME && classifyDottedName(entry.name).kind !== "test") {
-        stale.push(relative(repoRoot, join(dir, entry.name)).split("\\").join("/"));
-      }
-    }
-  };
-  walk(join(repoRoot, SEARCH_ROOT));
-  return { files: found.sort(), stale: stale.sort() };
-}
 
 /** 構文木の値をリテラルとして読む。リテラルでなければ { problem } */
 export function literalOf(node) {
@@ -158,33 +128,6 @@ function checkPoint(name, point) {
 /** 受け口の点(項目のフォルダ dir を持ち、pnpm generate extensions が一覧を書く)か。writer の点・overrides の点・placement の点は違う */
 export const isListPoint = (spec) => spec.writer === undefined && spec.overrides === undefined && spec.placement === undefined;
 
-/** このモジュールの置き場から見たリポジトリ直下(src/lib/districtMap/ の 3 つ上) */
-const OWN_REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
-const overrideKeysMemo = new Map();
-
-/**
- * 上書きの対象の点(overrides の点)が宣言する、上書きしてよい鍵。読み手(ロール・cron・登録表)が自前の一覧を持たず、ここから読む。
- * 宣言は上流の仕組みの物なので、fixture の根でなくこのリポジトリの宣言を読む
- * @param {string} declaredIn 宣言のファイル(リポジトリ直下からの相対。例 src/lib/cron/extensionPoints.ts)
- * @param {string} pointName 点の名前
- * @param {string} [repoRoot] 既定 = このモジュールのリポジトリ(テストだけが差し替える)
- * @returns {string[]}
- */
-export function overrideKeysOf(declaredIn, pointName, repoRoot = OWN_REPO_ROOT) {
-  const memoKey = `${repoRoot}\0${declaredIn}\0${pointName}`;
-  if (overrideKeysMemo.has(memoKey)) return overrideKeysMemo.get(memoKey);
-  const file = join(repoRoot, declaredIn);
-  if (!existsSync(file)) throw new Error(`${declaredIn} が無い(上書きしてよい鍵の宣言)`);
-  const { points, problems } = readDeclaration(declaredIn, readFileSync(file, "utf8"));
-  if (problems.length > 0) throw new Error(problems.join("\n"));
-  const point = points[pointName];
-  if (!point) throw new Error(`${declaredIn} に点 ${pointName} が無い(上書きしてよい鍵の宣言)`);
-  if (point.overrides === undefined) throw new Error(`${declaredIn} の ${pointName} は overrides の点でない(上書きの対象の点は { overrides, side, overrideOf })`);
-  const keys = [...point.overrideOf];
-  overrideKeysMemo.set(memoKey, keys);
-  return keys;
-}
-
 /**
  * 宣言のファイルを 1 つ読む
  * @param {string} path リポジトリ直下からの相対
@@ -211,22 +154,6 @@ export function readDeclaration(path, text) {
   return { points: problems.length > 0 ? {} : read.value, problems };
 }
 
-/**
- * 全宣言を読んで点の一覧にする。宣言は 1 フォルダ 1 ファイル(extensionPoints.ts)なので 持ち主:点の名前 は重ならない。
- * fork の点は fork 自身のフォルダ(fork が足したドメイン・lib)の extensionPoints.ts に書く
- * @param {string} repoRoot
- * @returns {{ points: { owner: string, name: string, declaredIn: string, spec: object }[], problems: string[] }}
- */
-export function collectPoints(repoRoot) {
-  const problems = [];
-  const { files, stale } = findDeclarationFiles(repoRoot);
-  for (const path of stale) {
-    problems.push(`${oldMarkerProblem(path, `${DECLARATION_NAME}.ts`)}。fork の拡張点は fork 自身のフォルダの ${DECLARATION_NAME}.ts に宣言する`);
-  }
-  const read = pointsFromFiles(files, (path) => readFileSync(join(repoRoot, path), "utf8"));
-  return { points: read.points, problems: [...problems, ...read.problems] };
-}
-
 /** 宣言のファイルのパスか(src の下の extensionPoints.ts。生成一覧 extensions/ と node_modules・隠しフォルダの中は除く) */
 export const isDeclarationPath = (path) =>
   path.startsWith(`${SEARCH_ROOT}/`) &&
@@ -247,7 +174,7 @@ export function pointsFromFiles(files, readText) {
     if (text === null) continue;
     const read = readDeclaration(path, text);
     problems.push(...read.problems);
-    for (const [name, spec] of Object.entries(read.points)) points.push({ owner: dirname(path), name, declaredIn: path, spec });
+    for (const [name, spec] of Object.entries(read.points)) points.push({ owner: path.slice(0, path.lastIndexOf("/")), name, declaredIn: path, spec });
   }
   return { points: points.sort((a, b) => (a.declaredIn + a.name < b.declaredIn + b.name ? -1 : 1)), problems };
 }

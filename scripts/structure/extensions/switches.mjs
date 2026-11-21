@@ -8,11 +8,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { oldMarkerProblem } from "../../../src/lib/districtMap/dottedNames.mjs";
+import { oldMarkerProblem, SEARCH_ROOT, CLAIMED_DEFAULTS, DEFAULT_FILE, isClaimedDefault } from "../../../src/lib/districtMap/index.mjs";
 import { stripComments } from "../../../src/lib/screens/checks.mjs";
 
-import { SEARCH_ROOT } from "../../../src/lib/districtMap/declarations.mjs";
-import { CLAIMED_DEFAULTS, DEFAULT_FILE, isClaimedDefault } from "../../../src/lib/districtMap/extensionNames.mjs";
 
 /**
  * .default を使うほかの仕組みが名乗るファイルの形(名前の決まりの元 src/lib/districtMap/extensionNames.mjs の CLAIMED_DEFAULTS)

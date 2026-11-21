@@ -7,9 +7,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { SEARCH_ROOT } from "../../../src/lib/districtMap/declarations.mjs";
+import { SEARCH_ROOT, isOverridePath } from "../../../src/lib/districtMap/index.mjs";
 // override のファイルの名前の決まり(<対象> は user.role のように . も含む。src/app の frame.override.ts は枠の宣言で override ではない)の元
-import { isOverridePath } from "../../../src/lib/districtMap/extensionNames.mjs";
 
 export { isOverridePath };
 

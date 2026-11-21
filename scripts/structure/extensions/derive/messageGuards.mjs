@@ -21,8 +21,7 @@ import { join, matchesGlob } from "node:path";
 
 import ts from "typescript";
 
-import { literalOf } from "../../../../src/lib/districtMap/declarations.mjs";
-import { isOverridePath, overrideGlobOf } from "../../../../src/lib/districtMap/extensionNames.mjs";
+import { literalOf, isOverridePath, overrideGlobOf } from "../../../../src/lib/districtMap/index.mjs";
 
 /** 守りを当てる点(持ち主のフォルダ・点の名前) */
 export const MESSAGE_POINT = { owner: "src/lib/messaging", name: "messages" };

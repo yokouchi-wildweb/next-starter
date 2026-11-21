@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 
-import { readDeclaration } from "../../../src/lib/districtMap/declarations.mjs";
+import { readDeclaration } from "../../../src/lib/districtMap/index.mjs";
 import { checkDependsOnGraph, readDependsOn } from "./derive/gateDependsOn.mjs";
 import { checkOverrides } from "./overrides.mjs";
 import { CLAIMERS, checkSwitches, isClaimedDefault } from "./switches.mjs";

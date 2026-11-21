@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
-import { DOMAIN_OUTPUTS_FILE, matchDomainOutput, parseDomainOutputs } from "../../../../src/lib/districtMap/domainOutputs.mjs";
+import { DOMAIN_OUTPUTS_FILE, matchDomainOutput, parseDomainOutputs } from "../../../../src/lib/districtMap/node.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
 import { loadDomainForGenerate } from "../pipeline/generate.mjs";
 import { collectionChildrenOf, resolvePairs } from "../pipeline/pairs.mjs";

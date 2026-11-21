@@ -9,9 +9,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, matchesGlob } from "node:path";
 
-import { SEARCH_ROOT } from "../../../src/lib/districtMap/declarations.mjs";
+import { SEARCH_ROOT, REPLACE_FILE, isOverridePath, overrideGlobOf, targetOfOverride } from "../../../src/lib/districtMap/index.mjs";
 import { DEFAULT_IMPL_DIRS, FORK_OWNED_DIR, describeRouteReplaceProblem, findRouteReplaceProblems } from "../../../src/lib/screens/checks.mjs";
-import { REPLACE_FILE, isOverridePath, overrideGlobOf, targetOfOverride } from "../../../src/lib/districtMap/extensionNames.mjs";
 import { isBlankSource } from "./overrides.mjs";
 
 /** src の下を 1 回だけ歩いて全ファイル(node_modules・. 始まりは降りない)。連絡の守り ./derive/messageGuards.mjs も読む */

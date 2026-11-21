@@ -11,9 +11,9 @@ import { loadGates, scanTargets } from "../../runner/gates/scan.mjs";
 import { parseSwitchLayout } from "../../../src/lib/screens/checks.mjs";
 import { APP_DIR, discoverRoutes, listAppFiles } from "../../../src/lib/screens/routeTree.mjs";
 
-import { isListPoint } from "../../../src/lib/districtMap/declarations.mjs";
+import { isListPoint, overrideGlobOf } from "../../../src/lib/districtMap/index.mjs";
 import { INTAKE_FILE, replaceIntakeBlock } from "../../../src/lib/forkOwnership/intake.mjs";
-import { intakeOutputGlobs } from "../../../src/lib/districtMap/domainOutputs.mjs";
+import { intakeOutputGlobs } from "../../../src/lib/districtMap/node.mjs";
 
 /** 宣言に依らない受け口(route の隣の丸ごと置き換え・枠の宣言)。ドメインのタスクは fork 自身のドメインに置くので受け口の行は無い */
 const FIXED_ROWS = [
@@ -26,8 +26,7 @@ const FIXED_ROWS = [
 export const literalGlob = (path) => path.replace(/[[\]*?]/g, (ch) => `[${ch}]`);
 
 /** 対象の glob → 隣の上書きの glob(名前の決まりの元 src/lib/districtMap/extensionNames.mjs) */
-export { overrideGlobOf } from "../../../src/lib/districtMap/extensionNames.mjs";
-import { overrideGlobOf } from "../../../src/lib/districtMap/extensionNames.mjs";
+export { overrideGlobOf } from "../../../src/lib/districtMap/index.mjs";
 
 /**
  * 生成区画の行。並びは効く種類を決める(最後に当たった行が効く): 置き場 → 画面 → 受け口 → 1 行スイッチ → 上書き → route の隣 → 生成器の region → 生成物

@@ -5,7 +5,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { normalizeGateOutputs } from "../../../src/lib/districtMap/domainOutputs.mjs";
+import { normalizeGateOutputs } from "../../../src/lib/districtMap/node.mjs";
 
 export const KINDS = ["structure", "workflow"];
 export const KEYS = ["check", "generate", "gates", "after", "watch", "features", "outputs", "regions"];

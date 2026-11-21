@@ -11,7 +11,7 @@
 // - route の隣(src/app/**/_layout・_screen・_components)… その下全部
 // <対象>.override.ts(x) の対象の単位 = 同じフォルダの <対象>(fork が足した override の対象が基準に無い = override-own)。
 
-import { readDeclaration } from "../districtMap/declarations.mjs";
+import { readDeclaration } from "../districtMap/index.mjs";
 
 const DIRECT_FIXED = ["src/wiring", "scripts"];
 const SHELF_FIXED = ["src/hooks", "src/utils", "src/lib"];

@@ -7,10 +7,10 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, posix } from "node:path";
 
-import { classifyDottedName, oldMarkerProblem } from "../../../src/lib/districtMap/dottedNames.mjs";
+import { classifyDottedName, oldMarkerProblem, DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, isListPoint } from "../../../src/lib/districtMap/index.mjs";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 
-import { DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, collectPoints, isListPoint } from "../../../src/lib/districtMap/declarations.mjs";
+import { collectPoints } from "../../../src/lib/districtMap/node.mjs";
 import { createFeatureTables } from "./derive/featureTables.mjs";
 import { checkDependsOnGraph } from "./derive/gateDependsOn.mjs";
 import { checkRequiresCoverage } from "./derive/gateRequires.mjs";

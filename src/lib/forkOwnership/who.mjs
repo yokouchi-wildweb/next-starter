@@ -5,7 +5,7 @@
 import { execFileSync } from "node:child_process";
 
 import { existsAt, filesUnder, forkIdAt, INTAKE_PATH, judgeFork, reassignMiddleTier, resolveForkContext, treeSnapshot } from "./check.mjs";
-import { overridePathOfTarget } from "../districtMap/extensionNames.mjs";
+import { overridePathOfTarget } from "../districtMap/index.mjs";
 import { explainPath, explainView } from "./explain.mjs";
 import { matchIntake, parseIntake } from "./intake.mjs";
 import { judge } from "./judge.mjs";

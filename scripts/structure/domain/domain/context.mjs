@@ -4,7 +4,7 @@
 // plural は domain.json の plural（無ければ src/lib/districtMap/domainNames.mjs の toPlural で推定）、dbEngine は domain.json の dbEngine（引数で上書き可）。
 
 import { toCamelCase, toKebabCase, toPascalCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
-import { camelPluralOf } from "../../../../src/lib/districtMap/domainNames.mjs";
+import { camelPluralOf } from "../../../../src/lib/districtMap/index.mjs";
 import { toPlural } from "./plural.mjs";
 
 /**

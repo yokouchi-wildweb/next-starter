@@ -13,14 +13,13 @@ import ts from "typescript";
 
 import { FRAME_ROOTS } from "../../../src/app/_layout/frame/parts.mjs";
 import { checkFrameDeclaration, emptyFrame, frameRowValue, hidesWholeFrame, matchFrame, overlayFrame, sameFrameValue } from "../../../src/app/_layout/frame/resolve.mjs";
-import { literalOf } from "../../../src/lib/districtMap/declarations.mjs";
+import { literalOf, FRAME_DEFAULT_FILE, FRAME_FILE, FRAME_OVERRIDE_FILE } from "../../../src/lib/districtMap/index.mjs";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 import { isBlankSource } from "./overrides.mjs";
 import { LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes, listAppFiles } from "../../../src/lib/screens/routeTree.mjs";
 
 // 名前(frame.ts / frame.override.ts / frame.default.ts と .default の名乗り)の元は src/lib/districtMap/extensionNames.mjs
-export { CLAIMED_DEFAULTS, FRAME_DEFAULT_FILE, FRAME_FILE, FRAME_OVERRIDE_FILE } from "../../../src/lib/districtMap/extensionNames.mjs";
-import { FRAME_DEFAULT_FILE, FRAME_FILE, FRAME_OVERRIDE_FILE } from "../../../src/lib/districtMap/extensionNames.mjs";
+export { CLAIMED_DEFAULTS, FRAME_DEFAULT_FILE, FRAME_FILE, FRAME_OVERRIDE_FILE } from "../../../src/lib/districtMap/index.mjs";
 /** 宣言の名前と export の名前(並び = 重ねる順): ルートを作ったリポの frame.ts → その下のリポの frame.override.ts */
 const SOURCES = [
   { file: FRAME_FILE, exportName: "frame", slot: "frame" },

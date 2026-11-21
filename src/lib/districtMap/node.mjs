@@ -1,10 +1,14 @@
 // src/lib/districtMap/node.mjs
-// 今の木を node:fs で読む入口(道具・検査・テスト用。アプリのコードは地図を読まない、目録 D12)。
+// 入口 "./node": 今の木を node:fs で読む物と node:path を使う物(道具・検査・テスト用。アプリのコードは地図を読まない、目録 D12)。
+// ファイルを読まない物は入口 "."(./index.mjs)。同じ名前を 2 つの入口に置かない
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { readDistrictMap } from "./read.mjs";
+
+export { collectPoints, findDeclarationFiles, overrideKeysOf } from "./declarationFiles.mjs";
+export { DOMAIN_OUTPUTS_FILE, OUTPUT_KINDS, domainNamesOf, intakeOutputGlobs, isDomainTemplateGlob, matchDomainOutput, normalizeGateOutputs, parseDomainOutputs } from "./domainOutputs.mjs";
 
 /**
  * リポジトリの木を読む source(readDistrictMap に渡す)

@@ -3,8 +3,7 @@
 // fork が独自の検査を書くときもここを import する(screens.test.mjs は import した時点でテストを登録する)。
 // 設計: src/lib/screens/README.md
 
-import { classifyDottedName } from "../districtMap/dottedNames.mjs";
-import { UI_CONFIG_FILE } from "../districtMap/kinds.mjs";
+import { classifyDottedName, UI_CONFIG_FILE } from "../districtMap/index.mjs";
 
 /**
  * コメントを除去する(行コメントとブロックコメント)。

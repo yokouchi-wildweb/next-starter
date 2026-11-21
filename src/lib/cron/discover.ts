@@ -10,7 +10,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { overrideKeysOf } from "../districtMap/declarations.mjs";
+import { overrideKeysOf } from "../districtMap/node.mjs";
 
 import { isValidCronExpression } from "./cronExpression";
 import type { CronTaskDefinition, CronTaskOverride } from "./types";

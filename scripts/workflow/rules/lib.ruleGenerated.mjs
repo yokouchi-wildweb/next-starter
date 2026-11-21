@@ -2,7 +2,7 @@
 // 生成物の検査の部品(純粋な関数): 生成器の出力の宣言(各 gate.json の outputs)を、追跡中のファイルに当てる。
 // 決まり: 生成物は直さず生成元を直す。見分け = 注釈を持てる形式は先頭の生成物の印、持てない JSON・JSONL は生成器の一覧(D135)。
 import { matchesLoad } from "./lib.rulePaths.mjs";
-import { domainNamesOf, isDomainTemplateGlob, normalizeGateOutputs } from "../../../src/lib/districtMap/domainOutputs.mjs";
+import { domainNamesOf, isDomainTemplateGlob, normalizeGateOutputs } from "../../../src/lib/districtMap/node.mjs";
 
 // 注釈を持てる形式(先頭に印を書ける物)
 export const MARKABLE = /\.(ts|tsx|mts|mjs|js|css)$/;

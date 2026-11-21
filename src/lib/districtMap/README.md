@@ -23,12 +23,13 @@
 ## Usage
 
 ```js
-import { readDistrictMap, toJsonl } from "@/lib/districtMap";          // 読み方を注入する(node:fs を使わない)
-import { readDistrictMapAt } from "@/lib/districtMap/node.mjs";        // 今の木を node:fs で読む(道具・検査・テスト)
+import { readDistrictMap, toJsonl } from "@/lib/districtMap";          // 入口 ".": 読み方を注入する(node の API を使わない)
+import { readDistrictMapAt } from "@/lib/districtMap/node.mjs";        // 入口 "./node": 今の木を node:fs で読む(道具・検査・テスト)
 
 const { districts, problems } = readDistrictMap({ listDir, readText });
 ```
 
+- 閉じた lib: 外からは 2 つの入口だけを読む(scripts からは相対で `src/lib/districtMap/index.mjs` / `node.mjs`)。`.` = ファイルを読まない物(地図の読み手・字面の読み手・`kinds`・宣言の読み方・名前の決まり)、`./node` = node:fs・node:path を使う物(`readDistrictMapAt`・`nodeDistrictSource`・宣言を木から探す `collectPoints`・`findDeclarationFiles`・`overrideKeysOf`・`domainOutputs.mjs` の全部)。同じ名前を 2 つの入口に置かない
 - `listDir(rel)` = フォルダの直下の `{ name, isDir }[]`(無ければ `[]`)、`readText(rel)` = 本文(無ければ `null`)。パスはリポジトリ直下からの相対
 - 使い手: 登録表の生成(ドメインの一覧・表・domain.json・storagePurposes.ts、`scripts/structure/registry`)・門の生成の featureTables(`scripts/structure/extensions/derive/featureTables.mjs`)・上書きと持ち主の 1 対 1 の検査(`scripts/structure/config-overrides`)
 
@@ -56,7 +57,7 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 
 - 字面の読み手 `readTableNames`・`readDomainEntry`・`readRuleDomains`・`readFrameName`・`readOverrideImports`(持ち主の上書きに許す読み込みの宣言 `overrideImports`、lint `config-overrides/literal-only` が読む。地図には載せない)・`readFeatureRequirements`(機能を要する値の宣言、地図の欄)
 - `kinds.mjs`: 4 種と見つけ方の定数
-- `declarations.mjs`: 受け口の宣言(`extensionPoints.ts`)の読み手(`collectPoints`・`pointsFromFiles`(ファイルの一覧と読み方を渡す形。git の版の木を読む `pnpm workflow ownership who` が使う)・`readDeclaration`・`literalOf`)。生成器・所有の検査の単位名・配線のテストが読む
+- `declarations.mjs`(入口 `.`、ファイルを読まない)と `declarationFiles.mjs`(入口 `./node`、木から探す `collectPoints`・`findDeclarationFiles`・`overrideKeysOf`): 受け口の宣言(`extensionPoints.ts`)の読み手(`pointsFromFiles`(ファイルの一覧と読み方を渡す形。git の版の木を読む `pnpm workflow ownership who` が使う)・`readDeclaration`・`literalOf`)。生成器・所有の検査の単位名・配線のテストが読む
 - `extensionNames.mjs`: 拡張の名前の決まり(1 行スイッチ `<名前>.default` ↔ 素の名前 ↔ `<名前>.replace`・ほかの仕組みが名乗る `.default`・`<対象>.override.ts` ↔ 対象・枠の宣言の `frame.ts` / `frame.override.ts`)。`scripts/structure/extensions` の検査と `pnpm workflow ownership who` が読む(who は scripts を読めない)
 - `domainNames.mjs`(単数 → 複数・管理画面のルートのフォルダ。`pnpm generate domain` が再 export して使う)と、`pnpm generate domain` の出力の種類のデータ(`scripts/structure/domain/gate.json` の `outputs`)をパスに当てる `domainOutputs.mjs`
 - `read.mjs`: 地区を見つけるだけの `discoverDistricts`(欄を読まない)と config の置き場 `configSlotsOf`(who が型 4(placement、src/config の値)の置き場を引く)

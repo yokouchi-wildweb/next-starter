@@ -13,8 +13,7 @@ import path from "node:path";
 import ts from "typescript";
 
 import { resolveImport } from "../../../../eslint-rules/resolve-import.mjs";
-import { overrideKeysOf } from "../../../../src/lib/districtMap/declarations.mjs";
-import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
+import { overrideKeysOf, readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { scanObjectEntries } from "../../domain/text/objectEntry.mjs";
 import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 
