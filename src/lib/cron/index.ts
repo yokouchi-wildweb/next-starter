@@ -1,5 +1,5 @@
 // src/lib/cron/index.ts
-// cron 基盤の公開エントリ
+// cron 基盤の公開エントリ(入口 ".")。task の探索(node:fs)は入口 "./node"(./node.ts)
 
 export { verifyCronRequest } from "./auth";
 export { createCronRoute, createCronTaskRoute } from "./createCronRoute";

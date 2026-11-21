@@ -136,7 +136,7 @@ env ファイルを置かずホストの環境変数で動かすときは、`APP
 
 ## API
 
-### 公開の口（`@/lib/cron`・node 用 `@/lib/cron/discover`）
+### 公開の口（入口 `.` = `@/lib/cron`・入口 `./node` = `@/lib/cron/node`）
 
 - `types.ts` — タスク定義の型 `CronTaskDefinition`
 - `cronExpression.ts` — cron 式の検証・照合（`isValidCronExpression` / `isAtMostDailySchedule` / `matchesCronExpression`）
@@ -144,12 +144,12 @@ env ファイルを置かずホストの環境変数で動かすときは、`APP
 - `createCronRoute.ts` — API ルート生成ファクトリ（`createCronRoute`、task.ts の定義から作る `createCronTaskRoute`）。省略可の依存 `gate`（住所 → 閉か）で機能の門を受ける。route.ts は直接読まず、門番を結んだ `@/wiring/cronRoute` を使う
 - `vercelCrons.ts` — `vercel.json` の crons の生成・検査（純関数）
 - `extensionPoints.ts` — 上書きの対象の点 `cronTasks` の宣言（`task.override.ts` が書いてよい鍵 = `schedule`・`disabled`。読み手は `discover.ts`、値の検査 = cron 式・真偽はそちら）
-- `discover.ts` — task を探す処理（`src/app/api/cron/<name>/` の走査・`task.override.ts` の反映・`listCronTaskDirs` / `loadCronTasks` / `scheduledCronTasks`）。node 用の 2 つ目の入口 `@/lib/cron/discover`（node:fs を使う。画面からは読まない）。門番は読まず、閉じているかは呼ぶ側が `closedBy` で渡す。生成器・検査（`scripts/structure/cron`）と `pnpm task` が共有する
+- `discover.ts` — task を探す処理（`src/app/api/cron/<name>/` の走査・`task.override.ts` の反映・`listCronTaskDirs` / `loadCronTasks` / `scheduledCronTasks`）。入口 `./node`（`node.ts` が出す。`@/lib/cron/node`。node:fs を使う。画面からは読まない）。門番は読まず、閉じているかは呼ぶ側が `closedBy` で渡す。生成器・検査（`scripts/structure/cron`）と `pnpm task` が共有する
 - `runBudgetedBatches.ts` — 時間予算付き・再開可能バッチランナー（下記）
 - `index.ts` — 公開エントリ
 
 周辺: `src/app/api/cron/<name>/{task.ts,route.ts}`（各タスク）・`task.override.ts`（fork の上書き、任意）/ `src/wiring/cronRoute.ts`（門番を結んだ `createCronTaskRoute`）/
-`scripts/structure/cron/`（`discover.ts` = `@/lib/cron/discover` に門番を結ぶ呼び手、`pnpm generate cron` / `pnpm check cron`、`cronWiring.test.mjs` = `pnpm test scripts/structure/cron/cronWiring.test.mjs`）
+`scripts/structure/cron/`（`discover.ts` = `@/lib/cron/node` に門番を結ぶ呼び手、`pnpm generate cron` / `pnpm check cron`、`cronWiring.test.mjs` = `pnpm test scripts/structure/cron/cronWiring.test.mjs`）
 
 ### 認証
 

@@ -29,7 +29,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { matchesCronExpression } from "@/lib/cron/cronExpression";
+import { matchesCronExpression } from "@/lib/cron";
 import { type LoadedCronTask, loadCronTasks } from "../../structure/cron/discover";
 import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask, type OneShotTaskFile } from "./discover";
 import { type ExecuteOutcome, executeTask, isDryRun } from "./execute";

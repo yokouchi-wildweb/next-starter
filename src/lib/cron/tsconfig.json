@@ -1,0 +1,18 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/appEnv": ["../appEnv"],
+      "@/lib/appEnv/*": ["../appEnv/*"],
+      "@/lib/audit": ["../audit"],
+      "@/lib/audit/*": ["../audit/*"],
+      "@/lib/districtMap": ["../districtMap"],
+      "@/lib/districtMap/*": ["../districtMap/*"],
+      "@/lib/libPackage": ["../libPackage"],
+      "@/lib/libPackage/*": ["../libPackage/*"],
+      "@/lib/stringCase": ["../stringCase"],
+      "@/lib/stringCase/*": ["../stringCase/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

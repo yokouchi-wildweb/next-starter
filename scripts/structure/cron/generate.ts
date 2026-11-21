@@ -13,14 +13,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import {
-  CRON_PATH_PREFIX,
-  CRON_PLANS,
-  buildVercelCrons,
-  isCronPlan,
-  listHobbyDowngradedTasks,
-  validateCronSchedules,
-} from "@/lib/cron/vercelCrons";
+import { CRON_PATH_PREFIX, CRON_PLANS, buildVercelCrons, isCronPlan, listHobbyDowngradedTasks, validateCronSchedules } from "@/lib/cron";
 import { loadCronTasks, scheduledCronTasks } from "./discover";
 
 const VERCEL_SCHEMA_URL = "https://openapi.vercel.sh/vercel.json";

@@ -3,7 +3,7 @@ paths:
   - "src/lib/cron/**"
 ---
 # lib/cron
-what: the base for scheduled tasks: one folder src/app/api/cron/<name>/ (task.ts + 1-line route.ts) read by the API route, `pnpm task` and the vercel.json generator, plus the time-budgeted batch runner | entry @/lib/cron, node entry @/lib/cron/discover
+what: the base for scheduled tasks: one folder src/app/api/cron/<name>/ (task.ts + 1-line route.ts) read by the API route, `pnpm task` and the vercel.json generator, plus the time-budgeted batch runner | closed lib: entry "." @/lib/cron, entry "./node" @/lib/cron/node (task discovery with node:fs, for programs outside Next)
 use: always
 change: overlay = src/app/api/cron/<name>/task.override.ts (schedule, disabled; cronTasks in extensionPoints.ts)
 rules:

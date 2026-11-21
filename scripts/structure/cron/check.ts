@@ -17,7 +17,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { checkVercelCrons } from "@/lib/cron/vercelCrons";
+import { checkVercelCrons } from "@/lib/cron";
 import { loadCronTasks, scheduledCronTasks } from "./discover";
 
 async function main() {

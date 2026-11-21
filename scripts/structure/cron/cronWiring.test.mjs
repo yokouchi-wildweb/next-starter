@@ -18,14 +18,17 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { CRON_ROUTE_DIR, gateClosedBy, listCronTaskDirs, loadCronTasks, scheduledCronTasks } from "./discover.ts";
-import { createCronRoute, createCronTaskRoute } from "../../../src/lib/cron/createCronRoute.ts";
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
-import { buildVercelCrons, checkVercelCrons, listHobbyDowngradedTasks } from "../../../src/lib/cron/vercelCrons.ts";
 import {
+  buildVercelCrons,
+  checkVercelCrons,
+  createCronRoute,
+  createCronTaskRoute,
   isAtMostDailySchedule,
   isValidCronExpression,
+  listHobbyDowngradedTasks,
   matchesCronExpression,
-} from "../../../src/lib/cron/cronExpression.ts";
+} from "../../../src/lib/cron/index.ts";
+import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
