@@ -17,7 +17,7 @@ import { SolidBadge } from "@/components/Badge/SolidBadge";
 import { Block } from "@/components/Layout/Block";
 import { AppVideo } from "@/components/Media/AppVideo";
 import { cn } from "@/lib/cn";
-import { toStorageDisplaySrc } from "@/lib/storage/ref";
+import { toStorageDisplaySrc } from "@/lib/storage";
 
 import Modal from "../Modal";
 import DetailTable from "./DetailTable";

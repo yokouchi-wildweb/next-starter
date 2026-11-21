@@ -3,7 +3,7 @@
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/features/core/user/constants";
 import { UserNameSchema, UserNameNullishSchema } from "@/features/core/user/entities/userName";
 import { createHashPreservingNullish } from "@/utils/hash";
-import { storageMediaValueSchema } from "@/lib/storage/schema";
+import { storageMediaValueSchema } from "@/lib/storage";
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 

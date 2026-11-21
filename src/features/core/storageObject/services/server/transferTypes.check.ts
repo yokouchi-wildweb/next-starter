@@ -5,11 +5,7 @@
 // lib は features を import できないため、型を 2 か所に持ち、ここ（features 側）で双方向の代入を検査する。
 // どちらかの型を変えて食い違うと `pnpm typecheck` が落ちる。実行時のコードは無い。
 
-import type {
-  CommitUploadResponse,
-  IssueUploadResponse,
-  PurposePolicyResponse,
-} from "@/lib/storage/client/transferTypes";
+import type { CommitUploadResponse, IssueUploadResponse, PurposePolicyResponse } from "@/lib/storage";
 
 import type { CommitResult, IssueResult, PurposePolicyResult } from "./storageObjectService";
 

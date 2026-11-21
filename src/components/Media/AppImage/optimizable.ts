@@ -8,7 +8,7 @@
 // NOTE: 旧バケット（凍結した旧 URL）のホスト判定は、firebase SDK を伴わない純粋な URL 判定として自前で持つ。
 //       新基盤（storage://・公開 base・非公開の固定 URL）の判定は lib/storage/ref の純関数を使う。
 
-import { isPrivateObjectPath, isPublicStorageUrl } from "@/lib/storage/ref";
+import { isPrivateObjectPath, isPublicStorageUrl } from "@/lib/storage";
 
 export function isOptimizableSrc(src: string): boolean {
   // プロトコル相対 URL は外部ホスト扱い

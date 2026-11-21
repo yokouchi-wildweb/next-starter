@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 
-import { storageClient } from "@/lib/storage/client/storageClient";
+import { storageClient } from "@/lib/storage";
 
 import { createPendingUploadTracker, type PendingUploadTracker } from "./pendingUploadTracker";
 

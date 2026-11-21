@@ -8,7 +8,7 @@
 import { afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import { __setStoragePortForTest, createFakeStoragePort } from "@/lib/storage/server/fake";
+import { __setStoragePortForTest, createFakeStoragePort } from "@/lib/storage/server";
 
 import { createMediaSource, fetchRangeRaw } from "./mediaSource";
 import { ProbeEngineError } from "./engine/types";

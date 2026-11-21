@@ -4,6 +4,8 @@
 // 表示用 URL への解決（client-safe の純関数）。
 // 公開 URL を組み立てるのはこのファイルの resolveStorageSrc だけ。ほかの場所でバケットのホストを書かない。
 
+import { storageConfig } from "./config";
+
 /** ref に現れる保存先。legacy（旧バケット）はサーバー内部だけの位置で、ref には出さない */
 export const STORAGE_STORES = ["pub", "priv"] as const;
 export type StorageStoreId = (typeof STORAGE_STORES)[number];
@@ -96,7 +98,7 @@ export function isPrivateObjectPath(src: string | null | undefined): boolean {
 export type ResolveStorageSrcOptions = {
   /**
    * 公開ファイルの base URL（STORAGE_PUBLIC_PREFIX を含めた、オブジェクトキーの直前まで）。
-   * 省略時は NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL。テストや差し替え用。
+   * 省略時は設定の publicBaseUrl()(上流の上書きは NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL)。テストや差し替え用。
    */
   publicBaseUrl?: string | null;
 };
@@ -105,7 +107,7 @@ function readPublicBaseUrl(options?: ResolveStorageSrcOptions): string | null {
   const raw =
     options && "publicBaseUrl" in options
       ? options.publicBaseUrl
-      : process.env.NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL;
+      : storageConfig.publicBaseUrl();
   const trimmed = (raw ?? "").trim();
   return trimmed.length > 0 ? trimmed.replace(/\/+$/, "") : null;
 }

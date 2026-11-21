@@ -5,6 +5,11 @@
 - ファイル保存の基盤。判定するのはアプリのサーバーだけで、ファイル本体はブラウザから GCS へ直接送る。どのファイルが何に使われているかは、台帳（core ドメイン `storageObject`）で管理する。
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/storage.md にある。この README は使い方と約束の中身、関数の形は [API.md](./API.md)、仕組みは [Internals.md](./Internals.md)
 
+閉じた lib(`package.json` の exports)で、外からは 2 つの入口だけで読む。
+
+- `@/lib/storage`(入口 `.`、client でも server でも読める): ref と表示用 URL・配信規則・用途の型・メディア列のスキーマ・設定と、クライアントのアップロードの部品(`uploadToStorage`・縮小・用途の方針・`usePrivateMediaRecovery` など。ブラウザの SDK は読まない)
+- `@/lib/storage/server`(入口 `./server`): StoragePort と GCS 実装・保存先の解決・用途の引き当て・旧 URL の解析・画像の描き直し・テスト用の偽物(`createFakeStoragePort`・`passThroughImageStrip` など)
+
 この lib が持つのは、エンジンに依存しない部品だけ。
 
 - ファイル参照（ref）の形式と表示用 URL への解決
@@ -45,14 +50,14 @@
   - 表示の部品は内部でこれを使うので、呼び出し側は ref をそのまま渡してよい
 - 固定 URL（`/api/storage/` で始まる値）は、呼び出し側の指定に関わらず next/image の最適化を外す
   - 認可済みの画像が最適化キャッシュに残り、他の利用者に配られるのを防ぐ
-- 公開 base は `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` から next/image の remotePatterns に入る。旧バケットの 2 パターンも残る
-- 非公開の動画・音声を自分で描くプレーヤーは `usePrivateMediaRecovery(src, ref)`（`@/lib/storage/client`）の `videoProps` を要素に広げる（`<video ref={ref} {...recovery.videoProps} />`）。署名期限後の読み直しが配線される
+- 公開 base は `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`(lib は上書きの `publicBaseUrl()` で読む。next.config.ts は env を直に読む)から next/image の remotePatterns に入る。旧バケットの 2 パターンも残る
+- 非公開の動画・音声を自分で描くプレーヤーは `usePrivateMediaRecovery(src, ref)`（`@/lib/storage`）の `videoProps` を要素に広げる（`<video ref={ref} {...recovery.videoProps} />`）。署名期限後の読み直しが配線される
   - 返り値・`status` / `resume()` の扱い: [API.md](./API.md)「非公開の動画・音声: `usePrivateMediaRecovery`」、仕組み: [Internals.md](./Internals.md)
 
 ### アップロード: `uploadToStorage`
 
 ```ts
-import { uploadToStorage, isStorageUploadCanceled } from "@/lib/storage/client";
+import { uploadToStorage, isStorageUploadCanceled } from "@/lib/storage";
 
 const { cancel } = uploadToStorage(file, {
   purpose: "user.avatar",           // 用途 ID
@@ -95,12 +100,12 @@ const { cancel } = uploadToStorage(file, {
   - GCS への直接転送も axios で行う（ブラウザでは XHR になり、`onUploadProgress` で進捗、`AbortSignal` で中止）。アプリの Cookie は送らない（`withCredentials: false`）
 - **ルートの応答の形**（`IssueUploadResponse` / `CommitUploadResponse` / `PurposePolicyResponse`）: features/core/storageObject の `storageObjectService` と揃えて `transferTypes.ts` に持つ（lib は features に依存しない。同一は `transferTypes.check.ts` が型で確かめる）
 - **呼び出す場所**: lib の部品（`MediaUploader` / `MediaUploaderMulti`、lib/mediaInputSuite）と、各ドメインの hook（チャット送信など）。フォームの項目は `MediaUploader` 系の部品（FieldRenderer・MediaHandler 経由を含む）
-  - lint（client-service-boundary）は `@/lib/storage/client` を対象にしない(決まりは札)
+  - lint（client-service-boundary）はこの lib のアップロードの部品を対象にしない(決まりは札)
 
 ### 送る前の縮小
 
 ```ts
-import { shrinkImageFile, shrinkImageForPurpose } from "@/lib/storage/client";
+import { shrinkImageFile, shrinkImageForPurpose } from "@/lib/storage";
 
 const file = await shrinkImageForPurpose(selected, "album.photo"); // 用途の方針の image で縮める（無ければ元のまま）
 const avatar = await shrinkImageFile(cropped, { maxDimension: 512 }); // 指定で縮める（fork が直に呼ぶ口）
@@ -199,6 +204,7 @@ ref・表示の関数・配信規則・StoragePort・保存先と env・旧 URL�
 ### 運用値
 
 - `src/config/lib/storage.config.ts`（lib/storage の側の上書き、既定 `src/lib/storage/config.ts`）
+  - 保存先と公開 base(env を読む引数なしの関数。lib は使うたびに呼ぶ、読み込み時には読まない。lib の中は env を読まない): `publicBaseUrl`(公開。本体は `process.env.NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` の字面のまま、client ではビルド時に埋め込まれる)・`stores.pub` / `stores.priv` の `bucket` / `prefix`・`stores.legacy.bucket`(server だけ。`./server` の中でだけ呼ぶ)。上流の上書きが読む env の名前は API.md「保存先（store）と env」。別の env の名前で読みたい fork は自分の上書きの右辺を変える
   - 読み取り署名の TTL: 画像・ファイル 300 秒 / 動画・音声 900 秒 / probe 120 秒
   - `imageStrip`（strip の描き直しの画素数の上限と品質。「位置情報の約束」）
 - 持ち主 `src/features/core/storageObject/config.ts`（`storageObjectConfig`、上書き `src/config/features/storageObject.config.ts`）
@@ -238,4 +244,4 @@ ref・表示の関数・配信規則・StoragePort・保存先と env・旧 URL�
 - `pnpm test src/lib/storage/client src/lib/mediaInputSuite`: axios の adapter を差し替えて、ルートと GCS を偽物にする。下ごしらえ（方針の問い合わせ・HEIC の変換と unsupported-image・keep での型付け）、方針の記憶、`pickerAcceptFor`、先回りの読み直しの判定（`isSignedReadStale`）、MediaUploader の未採用分の追跡（lib/mediaInputSuite の `pendingUploadTracker`）も同じコマンドで走る
 - `pnpm test scripts/structure/registry/check-storage-purposes.test.mjs`: 用途表の検査（metadata の規則を含む）
 - 本物のブラウザ（XHR の進捗・中止、canvas、HEIC の変換と iOS の accept、動画の読み直し）は手で確かめる
-- 単体テストで `createStorageObjectService` にダミーのバイト列を流すときは、`stripImage: passThroughImageStrip`（`@/lib/storage/server/fake`）を渡す
+- 単体テストで `createStorageObjectService` にダミーのバイト列を流すときは、`stripImage: passThroughImageStrip`（`@/lib/storage/server`）を渡す

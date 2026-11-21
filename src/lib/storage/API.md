@@ -37,7 +37,7 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
 | 値 | 結果 |
 |---|---|
 | null・空 | null |
-| `storage://pub/...` | `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` + `/` + オブジェクトキー（env が未設定なら null） |
+| `storage://pub/...` | 公開 base（設定の `publicBaseUrl()`、上流は `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`）+ `/` + オブジェクトキー（未設定なら null） |
 | `storage://priv/...` | `/api/storage/objects/<ledgerId>`（都度認可して短期署名 URL へ 302 する固定 URL） |
 | `http(s)://...`・`/` で始まる値 | そのまま（凍結した旧 URL・静的ファイル） |
 | 解析できない `storage://`・それ以外 | null（未知の store を既定バケットに読み替えない） |
@@ -53,7 +53,7 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
 
 ### 非公開の動画・音声: `usePrivateMediaRecovery(src, mediaRef)`
 
-`@/lib/storage/client` の client hook。固定 URL（`/api/storage/objects/<id>`）の動画・音声が署名期限後に読めなくなったときの読み直しを持つ（仕組み: [Internals.md](./Internals.md)）。
+`@/lib/storage` の client hook。固定 URL（`/api/storage/objects/<id>`）の動画・音声が署名期限後に読めなくなったときの読み直しを持つ（仕組み: [Internals.md](./Internals.md)）。
 
 - `videoProps`: 要素（`<video>` / `<audio>`）に `{...videoProps}` で広げる `src` と 6 つのイベント（`onError` / `onLoadedMetadata` / `onCanPlay` / `onLoadStart` / `onPlay` / `onSeeking`）。同じ src の間は同じ参照。型 `PrivateMediaVideoProps`
 - `status`: `"idle"` / `"recovering"` / `"failed"`。`"failed"` ならエラーと再開の操作を出し、`resume()` を呼ぶ
@@ -106,6 +106,8 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
 - StoragePort を自前で実装する場合は read も実装する（fake は同梱）
 
 ### 保存先（store）と env
+
+値は上書き `src/config/lib/storage.config.ts` の `stores.<store>` の関数(`bucket` / `prefix`)から、`isStorageStoreConfigured`・`getStoreConfig`・`locationOf` が呼ぶたびに読む。下の env はその上流の上書きが読む名前(未設定の誤りの文もこの名前を出す)。
 
 | store | env | 用途 |
 |---|---|---|

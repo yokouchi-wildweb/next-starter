@@ -95,7 +95,7 @@ function buildImports(uses) {
     if (uses.requiredDatetime) datetimeImports.push("requiredDatetime");
     importStatements.push(`import { ${datetimeImports.join(", ")} } from "@/lib/crud/utils";`);
   }
-  if (uses.storageMediaValue) importStatements.push('import { storageMediaValueSchema } from "@/lib/storage/schema";');
+  if (uses.storageMediaValue) importStatements.push('import { storageMediaValueSchema } from "@/lib/storage";');
   importStatements.push('import { z } from "zod";');
   return importStatements;
 }

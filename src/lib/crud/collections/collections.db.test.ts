@@ -813,7 +813,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
   // ストレージは fake ポート、binding はテスト用（複製は fake の copy、紐付けは Map に記録）
 
   type TestBinding = CrudStorageBinding & { bound: Map<string, unknown> };
-  let fake: import("@/lib/storage/server/fake").FakeStoragePort;
+  let fake: import("@/lib/storage/server").FakeStoragePort;
   let copyCalls = 0;
   let failCopyAt = 0; // n 回目の copy を失敗させる（0 = 失敗させない）
 
@@ -862,7 +862,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
 
   const setupDup = async (): Promise<DupFixture> => {
     if (dupFixture) return dupFixture;
-    const { createFakeStoragePort } = await import("@/lib/storage/server/fake");
+    const { createFakeStoragePort } = await import("@/lib/storage/server");
     fake = createFakeStoragePort();
     const parentBinding = testBinding("photo", "parent");
     const mediaBinding = testBinding("ref", "media");

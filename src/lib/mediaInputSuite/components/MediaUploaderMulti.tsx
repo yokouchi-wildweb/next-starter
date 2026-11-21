@@ -31,7 +31,7 @@ import {
   uploadToStorage,
   usePurposeMetadata,
   type UploadProgress,
-} from "@/lib/storage/client";
+} from "@/lib/storage";
 
 import { MediaPreview } from "./MediaPreview";
 import { MediaThumbGrid } from "./MediaThumbGrid";

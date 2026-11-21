@@ -236,7 +236,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 - `pnpm test src/features/core/storageObject`: memoryLedger と fake ポートを使った単体テスト。読み取りルートのヘッダーのテストも含む
   - 往復: issue → commit → attach → detach → 掃除対象化
   - strip の受け入れ（実 sharp）: 受け取り領域への発行・最終 ref、commit 後に本来の位置だけに処理済み、原本の削除、途中で止まった commit の再 commit、取り消し・期限切れで両方削除、`type_mismatch` / `process_failed`、HEIC / SVG / TIFF の拒否と keep での受け付け、動画は直送、putFromServer・copy の描き直し、`user.avatar` の固定、`describePurpose`
-  - 描き直しを伴わないテストは `stripImage: passThroughImageStrip`（`@/lib/storage/server/fake`）を渡す
+  - 描き直しを伴わないテストは `stripImage: passThroughImageStrip`（`@/lib/storage/server`）を渡す
   - 発行・commit・取り消し・読み取りの受入項目
   - storage オプションの規則（`crudBinding.test.ts`）、掃除・照合（行が消えた紐付けの detach、引けない record_type、大量一致、上限、予算切れからの続き、一巡、値の照合の off / report / detach・held・列も条件にした detach）・ユーザーの物理削除の `discardAllOwnedBy`・期限切れ put pending の枠返却（`sweep.test.ts`）
 - `pnpm test --db src/features/core/storageObject/services/server/ledger/drizzleLedger.db.test.ts`: 実 DB で、条件付き INSERT / UPDATE が並行実行でも一方だけ成功することを確かめる

@@ -10,7 +10,7 @@ import type { SessionUser } from "@/features/core/auth/entities/session";
 import type { DomainServiceLookup } from "@/lib/domain";
 import { DomainError } from "@/lib/errors";
 import type { StoragePurposeMap } from "@/lib/storage";
-import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server/fake";
+import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server";
 
 import { createMemoryLedger, type MemoryLedger } from "./services/server/ledger/memoryLedger";
 import type { StorageLedger } from "./services/server/ledger/types";

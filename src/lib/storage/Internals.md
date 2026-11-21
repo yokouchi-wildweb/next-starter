@@ -54,7 +54,7 @@
 ### 未設定のとき
 
 - `resolveStorageSrc` は例外を投げない（公開 base が無ければ pub の ref に null）
-- ポートの構築、各モジュールの import は env が空でも落ちない（sharp も初回の描き直しまで読み込まない）
+- ポートの構築、各モジュールの import は env が空でも落ちない(保存先と公開 base は設定の関数を使うたびに呼ぶ。import では呼ばない)（sharp も初回の描き直しまで読み込まない）
 - 操作した時点で、次のエラーがすぐに出る
   - pub / priv の env 不足は `StorageNotConfiguredError`
   - Firebase Admin の未設定は `FirebaseNotConfiguredError`

@@ -14,7 +14,7 @@ import sharp from "sharp";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { DomainError } from "@/lib/errors";
 import type { StoragePurposeMap } from "@/lib/storage";
-import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server/fake";
+import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server";
 import { StorageNotConfiguredError, locationOf, type StoragePort } from "@/lib/storage/server";
 
 import { issueUploadInputSchema } from "./services/server/http";

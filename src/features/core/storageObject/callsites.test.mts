@@ -15,7 +15,7 @@ import type { SessionUser } from "@/features/core/auth/entities/session";
 import type { AuditContext } from "@/lib/audit";
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
 import type { StoragePurposeMap } from "@/lib/storage";
-import type { FakeStoragePort } from "@/lib/storage/server/fake";
+import type { FakeStoragePort } from "@/lib/storage/server";
 
 // 判定先: ルーム → 参加者、振込依頼 → 依頼者（自社銀行振込・処理中・レビュー未判定）。
 // モックは判定関数が読む先にだけ掛け、core.ts の配線と判定関数の条件は実物を動かす。
@@ -60,7 +60,7 @@ const { storageBinding: bankTransferReviewBinding } = await import(
   "@/features/core/bankTransferReview/services/server/drizzleBase"
 );
 const { runWithAuditContext } = await import("@/lib/audit");
-const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server/fake");
+const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server");
 const { purposes: PURPOSE_ITEMS } = await import("@/features/core/storageObject/extensions/purposes");
 const { storageBindingFor } = await import("./services/server/crudBinding");
 const { createMemoryLedger } = await import("./services/server/ledger/memoryLedger");

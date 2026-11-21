@@ -4,7 +4,7 @@
 
 import { type ComponentPropsWithoutRef, type MouseEvent } from "react";
 
-import { toStorageDisplaySrc } from "@/lib/storage/ref";
+import { toStorageDisplaySrc } from "@/lib/storage";
 
 import { useImageViewer, type ImageViewerOptions } from "./context";
 

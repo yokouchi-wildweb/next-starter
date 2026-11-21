@@ -8,7 +8,7 @@
 
 import { useCallback } from "react";
 
-import { storageClient, uploadToStorage, type UploadedFile } from "@/lib/storage/client";
+import { storageClient, uploadToStorage, type UploadedFile } from "@/lib/storage";
 
 export const AVATAR_STORAGE_PURPOSE = "user.avatar";
 

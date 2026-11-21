@@ -12,7 +12,7 @@ import {
   uploadToStorage,
   usePurposeMetadata,
   type UploadProgress,
-} from "@/lib/storage/client";
+} from "@/lib/storage";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";

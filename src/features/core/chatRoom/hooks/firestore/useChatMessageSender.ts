@@ -16,7 +16,7 @@ import {
   storageClient,
   uploadToStorage,
   type UploadTaskHandle,
-} from "@/lib/storage/client";
+} from "@/lib/storage";
 
 import type { MessageMetadata, MessageType } from "@/features/chatRoom/entities/message";
 import {

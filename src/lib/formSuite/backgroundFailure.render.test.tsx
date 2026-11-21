@@ -27,8 +27,16 @@ URL.revokeObjectURL = () => {};
 type UploadCallbacks = { onComplete: (r: { ref: string }) => void; onError: (e: Error) => void };
 const outcomes: boolean[] = [];
 let uploads = 0;
-mock.module("@/lib/storage/client", {
+// 入口 "." は ref の純関数とアップロードの部品を一緒に出す。このテストの値(storage://notification.image/<n>)は
+// ref の形でないので、ref の判定は本物と同じ答え(ref でない・解析できない・値のまま表示)を返す偽物で足りる
+mock.module("@/lib/storage", {
   namedExports: {
+    isStorageRef: () => false,
+    parseStorageRef: () => null,
+    resolveStorageSrc: (value: string | null | undefined) => value || null,
+    toStorageDisplaySrc: (value: string | null | undefined) => value || null,
+    isPrivateObjectPath: () => false,
+    isPublicStorageUrl: () => false,
     uploadToStorage: (_file: File, callbacks: UploadCallbacks) => {
       uploads += 1;
       const ok = outcomes.shift() ?? true;

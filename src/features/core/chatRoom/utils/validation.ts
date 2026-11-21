@@ -11,7 +11,7 @@ import {
   MESSAGE_MAX_LENGTH,
   VIDEO_MAX_SIZE,
 } from "@/features/chatRoom/constants/chat";
-import { matchesContentType } from "@/lib/storage/contentTypes";
+import { matchesContentType } from "@/lib/storage";
 
 export type ValidationResult =
   | { valid: true }

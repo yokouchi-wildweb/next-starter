@@ -33,7 +33,7 @@ function albumContext(config) {
 test("スキーマ: メディア列は storageMediaValueSchema", () => {
   const { ctx } = albumContext(FIXTURE);
   const schema = renderSchema(ctx);
-  assert.match(schema, /import \{ storageMediaValueSchema \} from "@\/lib\/storage\/schema";/);
+  assert.match(schema, /import \{ storageMediaValueSchema \} from "@\/lib\/storage";/);
   assert.match(schema, /cover: z\.string\(\)\.trim\(\)\.min\(1, \{ message: "表紙は必須です。" \}\)\.pipe\(storageMediaValueSchema\),/);
   assert.match(schema, /thumbnail: z\.string\(\)\.trim\(\)\.nullish\(\)\n\s+\.transform\(\(value\) => emptyToNull\(value\)\)\n\s+\.pipe\(storageMediaValueSchema\.nullish\(\)\),/);
 });
@@ -149,7 +149,7 @@ test("用途: storage.image の誤りは生成エラー（形・範囲・知ら�
 });
 
 test("用途: 書き出した image は lib の用途の検査（listStoragePurposeProblems）でも問題なし", async () => {
-  const { listStoragePurposeProblems } = await import("../../../../src/lib/storage/server/purposes.ts");
+  const { listStoragePurposeProblems } = await import("../../../../src/lib/storage/server/index.ts");
   for (const image of [{ maxDimension: 2048 }, { maxDimension: 640, quality: 1 }, { maxDimension: 1, quality: 100 }]) {
     const { entries } = imagePurposeOf({ image });
     // 生成のエントリの値は TS の式（数・文字列・配列・オブジェクトだけ）なので、そのまま評価して用途の項目にする

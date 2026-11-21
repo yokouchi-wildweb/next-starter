@@ -18,7 +18,7 @@
 //     非公開バケットは固定 URL /api/storage/objects/<id>(同一 origin だが 302 で非公開バケットへ飛ぶ)から判別する。
 
 import { isDevelopment } from "@/lib/appEnv";
-import { isPrivateObjectPath, isPublicStorageUrl, publicStorageHosts } from "@/lib/storage/ref";
+import { isPrivateObjectPath, isPublicStorageUrl, publicStorageHosts } from "@/lib/storage";
 
 /** 一次ドキュメント(設定手順・前提・判定ルール・トラブルシュートの集約先)。 */
 export const STORAGE_CORS_DOC_PATH =

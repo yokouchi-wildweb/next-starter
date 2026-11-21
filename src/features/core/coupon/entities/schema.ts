@@ -2,7 +2,7 @@
 
 import { nullableDatetime } from "@/lib/crud/utils/schema";
 import { emptyToNull } from "@/utils/string";
-import { storageMediaValueSchema } from "@/lib/storage/schema";
+import { storageMediaValueSchema } from "@/lib/storage";
 import { z } from "zod";
 
 export const CouponBaseSchema = z.object({

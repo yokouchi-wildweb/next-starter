@@ -15,7 +15,7 @@ import {
   type ReelManifestFragment,
   type ReelValidationReport,
 } from "@/lib/seamlessVideo";
-import { uploadToStorage } from "@/lib/storage/client";
+import { uploadToStorage } from "@/lib/storage";
 import { useToast } from "@/lib/toast";
 import { Button } from "@/components/Button/Button";
 import { FilePickButton } from "@/components/Input/FilePickButton";
