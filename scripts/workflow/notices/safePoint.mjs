@@ -22,6 +22,8 @@
 //                               /ship のふつうの出荷の報告が使う(セーフポイントを作るかの提案)
 //   quickFiles                  HEAD から --first-parent でさかのぼり、`Ship: quick` の trailer がある commit が続く間(手元の自分の
 //                               safe tag の commit で止まる)を集め、1 行目に `<N> quick commits unchecked`、続けて変わったファイルを 1 行ずつ。
+//                               `Ship:` も `downstream-notice:` も無い merge(cargo が残す作業の合流など)では止まらず数に入れて辿る
+//                               (ファイルは起点からの diff なので合流の 2 番目の親の側も入る)。/flux の取り込み(downstream-notice:)では止まる
 //                               /ship のふつうの出荷が、まだ検査していない quick の分を範囲に足すのに使う。quickChecked で記録した commit でも止まる
 //   quickChecked                HEAD を「quick の分まで検査した」と記録する(<git common dir>/quick-checked。worktree をまたいで共有)。
 //                               commit の無いふつうの出荷が、push 済みの quick の先端を検査した後に使う
@@ -431,14 +433,23 @@ function runQuickFiles(repo, log) {
           )
         : [],
     );
-    const out = git(repo, ["log", "--first-parent", `-n${QUICK_WALK_LIMIT + 1}`, "--format=%H %(trailers:key=Ship,valueonly,separator=%x2C)"]);
+    // 1 行 = sha・親の数・Ship の値・downstream-notice の有無(\x1f 区切り)
+    const out = git(repo, [
+      "log",
+      "--first-parent",
+      `-n${QUICK_WALK_LIMIT + 1}`,
+      "--format=%H%x1f%P%x1f%(trailers:key=Ship,valueonly,separator=%x2C)%x1f%(trailers:key=downstream-notice,valueonly,separator=%x2C)",
+    ]);
     const rows = out === "" ? [] : out.split("\n");
     let count = 0;
     let base = null;
     for (const row of rows) {
-      const [sha, ...rest] = row.split(" ");
-      const values = rest.join(" ").split(",").map((v) => v.trim());
-      if (safeCommits.has(sha) || sha === checked || !values.includes("quick")) {
+      const [sha, parents = "", ship = "", notice = ""] = row.split("\x1f");
+      const values = ship.split(",").map((v) => v.trim());
+      // 印の無い道具の merge(作業の合流・線の合流)は検査した点ではない: 数に入れて first-parent を辿り続ける。
+      // /flux の区切りの取り込み(downstream-notice:)はその区切りの検査を通した点なので止まる
+      const toolMerge = parents.trim().split(" ").length > 1 && ship.trim() === "" && notice.trim() === "";
+      if (safeCommits.has(sha) || sha === checked || (!values.includes("quick") && !toolMerge)) {
         base = sha;
         break;
       }
