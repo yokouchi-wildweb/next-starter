@@ -46,6 +46,7 @@ safe_point: the tag on a pushed commit where the full checks passed (/ship --saf
 hotfix: a fix the human calls urgent (their words only, never your judgment) = /ship hotfix → forks take it before every other segment (hotfixApply skips and reports what their tree lacks) | → core/notices.md hotfix
 notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY, deleting / moving a file forks may extend too) | a key of CLAUDE.md, a core file or a card renamed, moved or removed → old → new in it | → core/notices.md notice
 checkpoint (MANDATORY on every notice): `checkpoint: <label>` = a segment boundary the author declares | `checkpoint: -` only when the fork cannot work without the next notice
+git_shape: main's first-parent is one line (unit-of-work merges may stay, never main merged into a work line; a segment's notice sits on that line) | → core/notices.md git_shape
 take_in: /flux (recommended, not required: segment checks, ownership check and notice steps together)
 relay: a mid tier's /flux judges per segment whether each applied upstream notice needs relaying | its unjudged-relay report ≠ 0 = flux not done | → core/notices.md relay
 orders: /order \<to\> files a one-off order into that repo's inbox | a parent's code (missing intake point, its lib, an upstream bug) → the direct parent + a temporary permit meanwhile
