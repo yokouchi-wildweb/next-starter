@@ -15,6 +15,7 @@
 // 動き(action。-- の後の最初の語。scripts/structure/routes の -- show と同じ形):
 //   pnpm check lib-package -- codemod [引数]  閉じた lib の中を読む import を入口へ書き換える(codemod.mjs。-- codemod --help)
 //   pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]  notice の moved: と imports: の表(moved.mjs)
+//   pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]  JS の lib の暗黙の any に推した型を JSDoc で書く(jsdoc.mjs)
 //   pnpm check lib-package -- help          使い方
 // exit 0 = 宣言した lib に不備 0(package.json を持つ lib 0 も含む)/ 1 = 不備あり / 2 = 引数の誤り(動きの exit はその動きの物)
 
@@ -97,6 +98,7 @@ export const USAGE = [
   "pnpm check lib-package -- --list | --json      lib ごとの状態の表 / JSON",
   "pnpm check lib-package -- codemod [引数]        閉じた lib の中を読む import を入口へ書き換える(既定 dry-run。-- codemod --help)",
   "pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]  notice の moved:(ファイル)と imports:(指定子)の表",
+  "pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]  JS の lib の暗黙の any に推した型を JSDoc で書く(既定 dry-run、{any} の所を一覧に出す)",
 ].join("\n");
 
 // 終了コードを返す(process.exit で抜けると、パイプ先へ書き切る前に出力が切れる)
@@ -112,6 +114,10 @@ async function main() {
   if (action === "codemod") {
     const { runCodemod } = await import("./codemod.mjs");
     return runCodemod(root, args.slice(1));
+  }
+  if (action === "jsdoc") {
+    const { runJsdoc } = await import("./jsdoc.mjs");
+    return runJsdoc(root, args.slice(1));
   }
   if (action === "moved") {
     const { runMoved } = await import("./moved.mjs");

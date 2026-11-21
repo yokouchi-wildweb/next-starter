@@ -12,6 +12,7 @@ pnpm check lib-package -- --list     # lib ごとの表(外から中を読む im
 pnpm check lib-package -- --json     # 同じものを JSON で({ rows, summary }、機械向け)
 pnpm check lib-package -- codemod …  # 動き: 中を読む import を入口へ書き換える(下の「動き」)
 pnpm check lib-package -- moved …    # 動き: notice の moved: と imports: の表(下の「動き」)
+pnpm check lib-package -- jsdoc …    # 動き: JS の lib の暗黙の any に推した型を JSDoc で書く(下の「動き」)
 pnpm check lib-package -- help       # 使い方
 pnpm test scripts/structure/lib-package
 ```
@@ -21,7 +22,7 @@ pnpm test scripts/structure/lib-package
 
 ### 動き(action)
 
-どちらも lib の名前を持たず、作業ツリーで閉じた lib(package.json を持ち形に問題の無い lib)の宣言から求めます。閉じた lib が増えれば同じ道具がそのまま使え、fork は自分の木で回します。
+codemod と moved は lib の名前を持たず、作業ツリーで閉じた lib(package.json を持ち形に問題の無い lib)の宣言から求めます。閉じた lib が増えれば同じ道具がそのまま使え、fork は自分の木で回します。
 
 #### codemod — 中を読む import を入口へ書き換える
 
@@ -46,6 +47,20 @@ pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]
 - `deleted:` = 指定子の先が `<head>` で消え改名も無い物 / `unresolved:` = 閉じた lib の中のファイルだが、どの入口からも出ていない物。どちらも推し量らずに出す(notes: に書く・入口を足す材料)
 - 行にするのは `<base>` で上流が使っていた指定子だけ。fork だけが読む中のパスは fork の木で codemod を回して直す
 - `--json` = `{ base, head, moved: [{from,to}], imports: [{from,to,files}], deleted: [{from,file}], unresolved: [{from,file,lib}] }`
+
+#### jsdoc — JS の lib の暗黙の any に推した型を JSDoc で書く
+
+```
+pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]
+```
+
+- 対象 = package.json と単体用 tsconfig.json を持ち、JS(`.mjs` / `.js`)のファイルを持つ lib(`--lib` で絞る。tsconfig が期待と食い違う lib は飛ばして名前を出す)
+- lib の単体用 tsconfig で TypeScript の言語サービスを立て、lib の中の JS ファイルの暗黙の any の診断(TS7006・TS7005・TS7034 など)に codefix inferFromUsage を当てる。使われ方から推した型を JSDoc(`@param`・`@type`・`@returns`)で書く。1 つ書くと次の推しが変わるので、変わらなくなるまで繰り返す。書くのは lib の中のファイルだけ
+- 既定は dry-run(lib ごとに暗黙の any の数の前 → 後・ファイルごとの箇所)、`--apply` で書く、`--json` で機械向け
+- 推せずに `{any}` を含む型を書いた所は `any <ファイル>:<行>` で一覧に出す。人が本当の型に直す(any を残さない)
+- 暗黙の any 以外の型の誤り(TS2339 など)は直さない。それは閉じたかの検査(門の検査)が名指しする。返り値が `object` になっている所は、typedef を 1 つ書くと読み手の誤りがまとめて消えることが多い
+- 単体用 tsconfig は緩めない(下の「lib の tsconfig.json」の形のまま。閉じた .mjs の lib は JSDoc で strict の型検査を通す)
+- 本体と引数: `jsdoc.mjs`
 
 ## API
 
@@ -142,4 +157,5 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 - `closed.test.mjs` 閉じたかの検査のテスト
 - `moved.test.mjs` moved の動き(一時フォルダの git repo)
 - `codemod.test.mjs` codemod の動き
+- `jsdoc.test.mjs` jsdoc の動き(一時フォルダの小さな repo)
 - `delivery.test.mjs` @lib-config の 1 行と、上書きが無い時に tsc・tsx・pnpm test が止まること
