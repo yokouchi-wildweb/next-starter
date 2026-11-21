@@ -3,7 +3,7 @@ paths:
   - "src/lib/storageCors/**"
 ---
 # lib/storageCors
-what: a development-only self-diagnosis that points to a missing storage CORS setting where a browser fetch or canvas export of cross-origin storage bytes fails | entry @/lib/storageCors (fetchStorageBytes, canvasToBlobSafe, diagnose*, classifyStorageUrl)
+what: a development-only self-diagnosis that points to a missing storage CORS setting where a browser fetch or canvas export of cross-origin storage bytes fails | closed lib, entry "." = @/lib/storageCors (fetchStorageBytes, canvasToBlobSafe, diagnose*, classifyStorageUrl)
 use: always
 change: none → /order <direct parent>
 rules:

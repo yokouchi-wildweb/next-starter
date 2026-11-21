@@ -10,7 +10,7 @@
  * - 文字列リテラル内の空白・エスケープシーケンスは保持します。
  * - 文字列外に存在するスペース、タブ、改行などの空白文字はすべて削除します。
  * - Windows/Mac/Linux の改行コード差異（CRLF・CR）をLFへ統一します。
- * - 正規化後に JSON.parse で検証し、不正な入力は例外として通知します。
+ * - 正規化後に JSON.parse で検証し、不正な入力は例外として通知します(文に入力の値や JSON.parse の文を含めない)。
  */
 export function normalizeJsonString(raw: string): string {
   if (typeof raw !== 'string') {
@@ -71,15 +71,11 @@ export function normalizeJsonString(raw: string): string {
 
   try {
     JSON.parse(result);
-  } catch (error) {
-    const message =
-      'JSON文字列の正規化に失敗しました。入力が正しいJSON形式か確認してください。';
-
-    if (error instanceof Error) {
-      throw new Error(`${message} 原因: ${error.message}`);
-    }
-
-    throw new Error(message);
+  } catch {
+    // JSON.parse の文は入力の一部を引用する(鍵が漏れる)ので渡さない。種類だけを言う
+    throw new Error(
+      'JSON文字列の正規化に失敗しました。入力が正しいJSON形式か確認してください(値は表示しません)。',
+    );
   }
 
   return result;

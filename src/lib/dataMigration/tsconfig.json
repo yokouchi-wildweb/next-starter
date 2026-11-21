@@ -5,6 +5,12 @@
       "@/components/*": [
         "../../components/*"
       ],
+      "@/lib/analyticsConsent": [
+        "../analyticsConsent"
+      ],
+      "@/lib/analyticsConsent/*": [
+        "../analyticsConsent/*"
+      ],
       "@/lib/appEnv": [
         "../appEnv"
       ],
@@ -52,6 +58,12 @@
       ],
       "@/lib/errors/*": [
         "../errors/*"
+      ],
+      "@/lib/firebase": [
+        "../firebase"
+      ],
+      "@/lib/firebase/*": [
+        "../firebase/*"
       ],
       "@/lib/frameDims": [
         "../frameDims"
