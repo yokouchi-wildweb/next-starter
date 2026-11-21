@@ -169,6 +169,62 @@ test("moved: 印のファイル(入口を re-export するだけのファイル)
   });
 });
 
+test("moved: 閉じる段で消した束(入口 \".\" にたたんだ client/index.ts)は <base> の版を読み、名前ごとに今の入口へ解く", () => {
+  withGitRepo((ctx) => {
+    write(ctx.root, {
+      "tsconfig.json": TSCONFIG,
+      "src/lib/s/index.ts": `export { ref } from "./ref";\n`,
+      "src/lib/s/ref.ts": "export const ref = 1;\n",
+      "src/lib/s/client/index.ts": `export { upload, type Upload } from "./upload";\nexport * from "./types";\n`,
+      "src/lib/s/client/upload.ts": "export const upload = 1;\nexport type Upload = number;\n",
+      "src/lib/s/client/types.ts": "export type Progress = number;\n",
+      "src/lib/s/server/fake.ts": "export const fake = 1;\n",
+      "src/lib/s/server/index.ts": `export { fake } from "./fake";\n`,
+      "src/lib/s/gone.ts": "export const gone = 1;\n",
+      "src/lib/s/mixed/index.ts": `export { upload } from "../client/upload";\nexport { fake } from "../server/fake";\n`,
+      "src/lib/s/partial/index.ts": `export { ref } from "../ref";\nexport { hidden } from "./hidden";\n`,
+      "src/lib/s/partial/hidden.ts": "export const hidden = 1;\n",
+      "src/app/a.ts": [
+        `import { upload, type Progress } from "@/lib/s/client";`,
+        `import { upload as u2, fake } from "@/lib/s/mixed";`,
+        `import { hidden } from "@/lib/s/partial";`,
+        `import { gone } from "@/lib/s/gone";`,
+        "",
+      ].join("\n"),
+    });
+    const base = ctx.commit("base");
+    // 閉じる: client/index.ts は "." に、mixed は "." と "./server" に分かれ、partial の hidden はどこからも出ない。gone は束でない
+    ctx.git("rm", "-q", "src/lib/s/client/index.ts", "src/lib/s/mixed/index.ts", "src/lib/s/partial/index.ts", "src/lib/s/gone.ts");
+    write(ctx.root, {
+      "src/lib/s/package.json": { exports: { ".": "./index.ts", "./server": "./server/index.ts" } },
+      "src/lib/s/index.ts": `export { ref } from "./ref";\nexport { upload, type Upload } from "./client/upload";\nexport * from "./client/types";\n`,
+    });
+    ctx.commit("head");
+    clearLibPackageCache();
+    const rows = movedRows(ctx.root, { base });
+    assert.deepEqual(rows.imports, [
+      {
+        from: "@/lib/s/client",
+        to: "@/lib/s",
+        files: 1,
+        byName: {
+          upload: { to: "@/lib/s", name: "upload" },
+          Upload: { to: "@/lib/s", name: "Upload" },
+          Progress: { to: "@/lib/s", name: "Progress" },
+        },
+      },
+      {
+        from: "@/lib/s/mixed",
+        to: "@/lib/s, @/lib/s/server",
+        files: 1,
+        byName: { upload: { to: "@/lib/s", name: "upload" }, fake: { to: "@/lib/s/server", name: "fake" } },
+      },
+    ]);
+    assert.deepEqual(rows.unresolved, [{ from: "@/lib/s/partial", file: "src/lib/s/partial/index.ts", lib: "s" }], "どの入口からも出ない名前を持つ束");
+    assert.deepEqual(rows.deleted, [{ from: "@/lib/s/gone", file: "src/lib/s/gone.ts" }], "束でない消えたファイルは今までどおり");
+  });
+});
+
 test("moved: 引数の誤り(--base 無し・知らない引数・commit でない rev)は exit 2", () => {
   withGitRepo((ctx) => {
     fixture(ctx);

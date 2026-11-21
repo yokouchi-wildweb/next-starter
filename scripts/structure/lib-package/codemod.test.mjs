@@ -248,3 +248,57 @@ test("--base なしでは古い指定子は触らない。runCodemod --base で�
   assert.equal(planCodemod(root, { base }).changes.length, 0, "2 回目は 0");
   assert.equal(runCodemod(root, ["--base"], { stdout }), 2, "--base に値が無いと 2");
 });
+
+/** git の見本: 閉じた lib "s" の束 client/index.ts を、閉じる段で入口 "." にたたんで消す(呼び手は古い書き方のまま = fork の物) */
+function makeFoldedRepo() {
+  const root = makeRepo({
+    "src/lib/s/index.ts": 'export { ref } from "./ref";\n',
+    "src/lib/s/ref.ts": "export const ref = 1;\n",
+    "src/lib/s/client/index.ts": 'export { upload, type Upload } from "./upload";\n',
+    "src/lib/s/client/upload.ts": "export const upload = 1;\nexport type Upload = number;\nexport const notInBarrel = 1;\n",
+    "src/lib/s/server/fake.ts": "export const fake = 1;\n",
+    "src/features/f/F.tsx": [
+      'import { upload, type Upload } from "@/lib/s/client";',
+      'import { upload as send } from "@/lib/s/client";',
+      'import { notInBarrel } from "@/lib/s/client";',
+      "",
+    ].join("\n"),
+  });
+  const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.test", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.test" } });
+  git("init", "-q");
+  git("add", "-A");
+  git("commit", "-q", "-m", "base");
+  const base = git("rev-parse", "HEAD").trim();
+  git("rm", "-q", "src/lib/s/client/index.ts");
+  writeFileSync(path.join(root, "src/lib/s/index.ts"), 'export { ref } from "./ref";\nexport { upload, type Upload } from "./client/upload";\n');
+  writeFileSync(path.join(root, "src/lib/s/package.json"), JSON.stringify({ exports: { ".": "./index.ts" } }));
+  git("add", "-A");
+  git("commit", "-q", "-m", "head");
+  clearLibPackageCache();
+  return { root, base };
+}
+
+test("--base: 閉じる段で消した束(@/lib/s/client)を読む import は、束が出していた名前ごとに今の入口へ書き換える", () => {
+  const { root, base } = makeFoldedRepo();
+  const plan = planCodemod(root, { base });
+  assert.deepEqual(
+    plan.changes.map((c) => `${c.line} ${c.text}`),
+    ['1 import { upload, type Upload } from "@/lib/s";', '2 import { upload as send } from "@/lib/s";'],
+  );
+  assert.deepEqual(
+    plan.stops.map((s) => `${s.line} ${s.kind}`),
+    ["3 notExported"],
+    "束が出していなかった名前は止まる",
+  );
+});
+
+test("--base なしでは消えた束は unparsable で止まり、--base の案内を出す", () => {
+  const { root } = makeFoldedRepo();
+  const plan = planCodemod(root);
+  assert.deepEqual(plan.changes, []);
+  assert.deepEqual(
+    plan.stops.map((s) => s.kind),
+    ["unparsable", "unparsable", "unparsable"],
+  );
+  assert.match(plan.stops[0].detail, /--base <rev> で名前ごとに引ける/);
+});

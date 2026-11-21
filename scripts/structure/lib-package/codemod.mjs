@@ -14,6 +14,8 @@
 // - --base <rev>: moved の imports: の行(<rev> で使われていた指定子のうち、lib の外から閉じた lib へ移ったファイルを指す物 →
 //   その入口。moved.mjs の movedRows を使う)も当てる。古い指定子は別名・相対・"src/…" のどの書き方でも実パスで照らす。
 //   名前は新しい入口の名前と照らし、無ければ notExported。fork は notice に書かれた上流の sha を渡す
+//   閉じる段で消した束(例 入口 "." にたたんだ src/lib/storage/client/index.ts)を読む import も、--base なら moved の行の
+//   byName(束が出していた名前 → 今の入口)で名前ごとに書き換える(入口が分かれれば文を分ける)。--base なしは unparsable で止まる
 // - 移行の間だけの道具: 全部の lib が閉じた段(D101 (6))で moved とともに消す
 // - exit 0(止まる物があっても。落とすのは pnpm lint の entry/only-entries)/ 2 = 引数の誤り
 
@@ -222,11 +224,11 @@ export function planCodemod(root, { base } = {}) {
     return indexes.get(lib);
   };
   // 古い指定子の行: 古い実パス(拡張子・index なし)→ { from, to, lib }。中を読む import として扱える物は先にそちらで当たる
-  const rows = base && closed.size > 0 ? movedRows(root, { base }).imports.map(({ from, to }) => ({ from, to })) : [];
+  const rows = base && closed.size > 0 ? movedRows(root, { base }).imports.map(({ from, to, byName }) => (byName ? { from, to, byName } : { from, to })) : [];
   const rowByPath = new Map();
   for (const row of rows) {
     const resolved = resolveImport(row.from, path.join(root, "src/__codemod__.ts"), root);
-    const lib = libOfPath(resolveImport(row.to, path.join(root, "src/__codemod__.ts"), root) ?? "");
+    const lib = libOfPath(resolveImport(row.to.split(", ")[0], path.join(root, "src/__codemod__.ts"), root) ?? "");
     if (resolved && lib) rowByPath.set(bare(resolved), { ...row, lib });
   }
   const changes = [];
@@ -249,6 +251,9 @@ export function planCodemod(root, { base } = {}) {
       const lib = libOfPath(resolved);
       if (lib && closed.has(lib)) {
         if (lib === importerLib || findEntry(closed.get(lib), resolved)) return null;
+        // 消えた束(今の木に無いファイル)は --base の行で名前ごとに引く
+        const goneRow = probeFile(root, resolved) ? null : rowByPath.get(bare(resolved));
+        if (goneRow?.byName) return { lib, row: goneRow };
         return { lib, resolved };
       }
       const row = rowByPath.get(bare(resolved));
@@ -316,14 +321,17 @@ export function planCodemod(root, { base } = {}) {
         innerFile = probeFile(root, inner.resolved);
         names = innerFile ? reader.exportsOf(innerFile) : null;
         if (!names) {
-          stop(st, spec, "unparsable", `中のファイル ${inner.resolved} を読めない`);
+          stop(st, spec, "unparsable", `中のファイル ${inner.resolved} を読めない${base ? "" : "。閉じる段で消した束なら --base <rev> で名前ごとに引ける"}`);
           continue;
         }
       }
       const missing = [];
       const byEntry = new Map();
       for (const item of items) {
-        const target = inner.row
+        const byName = inner.row?.byName?.[item.inner];
+        const target = byName
+          ? index.find((r) => r.specifier === byName.to && r.name === byName.name) ?? null
+          : inner.row
           ? index.find((r) => r.specifier === inner.row.to && r.name === item.inner) ?? null
           : targetOf(index, names.get(item.inner) ?? { file: innerFile, name: item.inner }, item.inner);
         if (!target) {
