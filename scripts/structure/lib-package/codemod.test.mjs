@@ -10,6 +10,7 @@ import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { clearLibPackageCache } from "../../../src/lib/libPackage/node.mjs";
+import { scanInnerImports } from "./closed.mjs";
 import { applyCodemod, entryForFile, entryIndex, planCodemod, runCodemod } from "./codemod.mjs";
 import { loadRenames, validateRenames } from "./renames.mjs";
 
@@ -184,6 +185,20 @@ test("runCodemod: dry-run は書かず、--apply で書き、もう一度回す�
 test("閉じた lib が無い repo では何もしない", () => {
   const root = makeRepo({ "src/lib/loose/index.ts": "export {};\n", "src/a.ts": 'import { y } from "@/lib/loose/deep";\n' });
   assert.deepEqual(planCodemod(root), { scanned: 0, rows: [], changes: [], stops: [] });
+});
+
+test("出荷済みの notice の道具(.notices/**)は走査しない: 書き換え・止まる一覧・中を読む数のどれにも入らない(D267)", () => {
+  const read = 'import { readBox } from "../src/lib/box/internal/read";\n';
+  const root = makeRepo({
+    ...BOX,
+    ".notices/20990101-000000-x.tool.mjs": read,
+    ".notices/20990101-000000-x.tool.test.mjs": read,
+    "scripts/tool.mjs": read,
+  });
+  const plan = planCodemod(root);
+  assert.deepEqual(plan.changes.map((c) => c.file), ["scripts/tool.mjs"]);
+  assert.deepEqual(plan.stops, []);
+  assert.deepEqual(scanInnerImports(root).get("box")?.samples.map((s) => s.split(" → ")[0]), ["scripts/tool.mjs"]);
 });
 
 test("上流で回すと書き換え 0(閉じた lib の中を読む import は手で直してある)", () => {

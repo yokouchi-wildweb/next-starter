@@ -10,7 +10,8 @@
 //   1 文の名前が別の入口に分かれるなら入口ごとの文に分ける。import type・名前ごとの type は残す
 // - 書き換えない(止まる一覧): notExported(入口から出ていない名前が 1 つでもある文は丸ごと)・default・namespace(import * as)・
 //   exportAll(export * from / export * as)・sideEffect(import "x")・dynamic(import()・require)・unparsable(元のファイルが無い)
-// - 走査するファイルは閉じたかの検査の数え方と同じ(closed.mjs の scanFiles)。lib の中のファイルは書き換えない
+// - 走査するファイルは閉じたかの検査の数え方と同じ(closed.mjs の scanFiles)。lib の中のファイルは書き換えない。
+//   出荷済みの notice の道具(.notices/**)も見ない: 自分の区切りの時点の木に対して走る物で、出荷後は書き換えない(D267)
 // - --base <rev>: moved の imports: の行(<rev> で使われていた指定子のうち、lib の外から閉じた lib へ移ったファイルを指す物 →
 //   その入口。moved.mjs の movedRows を使う)も当てる。古い指定子は別名・相対・"src/…" のどの書き方でも実パスで照らす。
 //   名前は新しい入口の名前と照らし、無ければ notExported。fork は notice に書かれた上流の sha を渡す

@@ -106,6 +106,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - 1 つの道具 = 1 つの変更の持ち分。道具はほかの道具を呼ばず、import もし合わない(本文と一緒に消したとき別の道具が壊れないように)。順番は notice の手順と下の表が示す
 - 道具どうしの共有の部品は lib に置く: 基準の版(台帳の最後の `upstream:<sha>`)のファイル一覧 = `src/lib/forkOwnership/baseFiles.mjs` の `readBaseFiles`
 - テストは隣の `.notices/<id>.<名前>.test.mjs`(`pnpm test .notices` = `.notices/*.test.mjs` 全部)。道具を消すときはテストも消す
+- 道具は自分の区切り(checkpoint)の時点の木に対して走る: 出荷した後は今の木に合わせて書き換えない(その木で正しい道、例えば閉じる前の lib の中のファイルを読む道のまま)。そのため lint の entry/only-entries と lib-package の codemod(閉じたかの検査の数え方も)は `.notices/*.mjs` を外す。ほかの lint は掛かる
 - 出荷済みの notice の本文の `uses:` は出荷した時の置き場(scripts の下の旧い置き場)のまま。fork はその notice の区間の木で走らせるので、そこには旧い置き場がある
 
 今ある道具(`.notices/<id>.<名前>.mjs`):
