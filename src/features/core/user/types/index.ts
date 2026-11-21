@@ -29,7 +29,7 @@ export type ReservedUserNameProvider = {
   key: string;
   filterReserved(
     normalizedNames: string[],
-    ctx: { executor?: import("@/lib/crud/drizzle/types").DbExecutor },
+    ctx: { executor?: import("@/lib/crud/server").DbExecutor },
   ): Promise<string[]>;
 };
 

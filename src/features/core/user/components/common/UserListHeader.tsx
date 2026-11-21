@@ -7,7 +7,7 @@ import ListTop from "@/components/Admin/ListTop";
 import Pagination from "@/components/Navigation/Pagination";
 import SearchBox from "@/components/Admin/SearchBox";
 import SortSelect from "@/components/Admin/SortSelect";
-import { CreateButton } from "@/lib/crud/components/Buttons";
+import { CreateButton } from "@/lib/crud";
 
 export type UserListSortOption = { label: string; value: string };
 

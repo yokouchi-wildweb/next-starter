@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCreateDomain } from "@/lib/crud/hooks";
+import { useCreateDomain } from "@/lib/crud";
 import { userClient } from "../services/client/userClient";
 import type { User } from "../entities";
 import type { CreateUserInput } from "../services/types";

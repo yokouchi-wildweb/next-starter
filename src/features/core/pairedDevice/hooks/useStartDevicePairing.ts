@@ -19,7 +19,7 @@ import {
   startDevicePairing,
 } from "@/features/pairedDevice/services/client/pairedDeviceClient";
 import { getPairedDeviceErrorReason } from "@/features/pairedDevice/utils/errorReason";
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 import { isHttpError } from "@/lib/errors";
 
 import { SESSION_DEVICE_KEY } from "./keys";

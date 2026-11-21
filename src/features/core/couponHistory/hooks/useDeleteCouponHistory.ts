@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useDeleteDomain } from "@/lib/crud/hooks";
+import { useDeleteDomain } from "@/lib/crud";
 import { couponHistoryClient } from "../services/client/couponHistoryClient";
 
 export const useDeleteCouponHistory = () => useDeleteDomain("couponHistories/delete", couponHistoryClient.delete, "couponHistories");

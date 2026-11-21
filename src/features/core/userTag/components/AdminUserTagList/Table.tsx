@@ -4,7 +4,7 @@
 
 import type { UserTag } from "@/features/core/userTag/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { EditButton, DeleteButton } from "@/lib/crud/components";
+import { EditButton, DeleteButton } from "@/lib/crud";
 import presenters from "@/features/core/userTag/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { formatDateJa } from "@/utils/date";

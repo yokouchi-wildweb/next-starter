@@ -22,7 +22,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { useGate } from "@/featureGate/client";
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 import type { MessageEmbeddedEntry } from "@/lib/messaging";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
 

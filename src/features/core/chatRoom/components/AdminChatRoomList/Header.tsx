@@ -7,7 +7,7 @@ import Pagination from "@/components/Navigation/Pagination";
 import SearchBox from "@/components/Admin/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
-import { CreateButton } from "@/lib/crud/components";
+import { CreateButton } from "@/lib/crud";
 import { getAdminPaths } from "@/lib/domain";
 import { domainDisplay as chatRoomDisplay } from "@/features/core/chatRoom/entities/display";
 

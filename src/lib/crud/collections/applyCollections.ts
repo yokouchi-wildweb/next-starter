@@ -26,10 +26,10 @@ import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
-import type { ReplaceByQueryOptions, WhereExpr } from "@/lib/crud/types";
+import type { ReplaceByQueryOptions, WhereExpr } from "../types";
 
 import type { DbTransaction } from "../drizzle/types";
-import type { DuplicateOptions } from "@/lib/crud/types";
+import type { DuplicateOptions } from "../types";
 
 import { collectionEntriesForParents } from "./collectionEntries";
 import { duplicateWithCollections } from "./duplicateWithCollections";

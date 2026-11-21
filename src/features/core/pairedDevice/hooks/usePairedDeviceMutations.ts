@@ -20,7 +20,7 @@ import {
   updatePairedDevice,
   type IssuedPairingCodeResponse,
 } from "@/features/pairedDevice/services/client/pairedDeviceManageClient";
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 
 import { PAIRED_DEVICES_KEY } from "./keys";
 

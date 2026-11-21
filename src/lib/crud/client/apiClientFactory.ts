@@ -123,8 +123,8 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
   return {
     getAll: (options?: WithOptions) =>
       handleRequest("getAll", async () => (await axios.get<T[]>(`${baseUrl}${buildWithOptionsParams(options)}`, NORMAL_REQUEST)).data),
-    getById: (id, options?: WithOptions) =>
-      handleRequest("getById", async () => (await axios.get<T>(`${baseUrl}/${id}${buildWithOptionsParams(options)}`, NORMAL_REQUEST)).data),
+    get: (id, options?: WithOptions) =>
+      handleRequest("get", async () => (await axios.get<T>(`${baseUrl}/${id}${buildWithOptionsParams(options)}`, NORMAL_REQUEST)).data),
     create: (data: CreateData) =>
       handleRequest("create", async () => (await axios.post<T>(baseUrl, { data }, NORMAL_REQUEST)).data),
     update: (id, data: UpdateData) =>

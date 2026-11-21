@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useSearchDomain } from "@/lib/crud/hooks";
+import { useSearchDomain } from "@/lib/crud";
 import { userClient } from "../services/client/userClient";
 import type { SearchWithProfileClientParams } from "../services/client/userClient";
 import type { User } from "../entities";

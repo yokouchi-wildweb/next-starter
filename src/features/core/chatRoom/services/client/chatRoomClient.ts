@@ -1,7 +1,7 @@
 // src/features/chatRoom/services/client/chatRoomClient.ts
 
 import { createApiClient } from "@/lib/crud";
-import type { ApiClient } from "@/lib/crud/types";
+import type { ApiClient } from "@/lib/crud";
 import type { ChatRoom } from "@/features/core/chatRoom/entities";
 import type {
   ChatRoomCreateFields,

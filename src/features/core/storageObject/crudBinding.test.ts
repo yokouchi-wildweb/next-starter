@@ -8,8 +8,8 @@ import assert from "node:assert/strict";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { runWithAuditContext, type AuditContext } from "@/lib/audit";
-import { applyStorageBinding } from "@/lib/crud/storageIntegration/applyStorageBinding";
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import { applyStorageBinding } from "@/lib/crud/server";
+import type { DbTransaction } from "@/lib/crud/server";
 import { DomainError } from "@/lib/errors";
 import type { StoragePurposeMap } from "@/lib/storage";
 import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server";
@@ -353,8 +353,8 @@ describe("applyStorageBinding（bulk の拒否と素通し）", () => {
     create: async (data: unknown) => data,
     update: async () => ({}),
     upsert: async () => ({}),
-    remove: async () => {
-      calls.push("remove");
+    delete: async () => {
+      calls.push("delete");
     },
     hardDelete: async () => {},
     bulkDeleteByIds: async () => {
@@ -402,8 +402,8 @@ describe("applyStorageBinding（bulk の拒否と素通し）", () => {
 
   test("メディア列に触れない bulk と、soft delete の削除はそのまま通す", async () => {
     assert.deepEqual(await wrapped.bulkUpdateByIds(["a"], { name: "x" }), { count: 1 });
-    await wrapped.remove("a");
+    await wrapped.delete("a");
     await wrapped.bulkDeleteByIds(["a"]);
-    assert.deepEqual(calls, ["remove", "bulkDeleteByIds"]);
+    assert.deepEqual(calls, ["delete", "bulkDeleteByIds"]);
   });
 });

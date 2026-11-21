@@ -19,7 +19,7 @@
 - src/lib/clarity — Microsoft Clarity 解析タグ
 - src/lib/cn — Tailwind className 結合(clsx + tailwind-merge、独自トークンのクラス群登録)
 - src/lib/cron — /api/cron/* 定期タスク基盤(1 タスク 1 フォルダの task.ts から vercel.json を生成・検査)と CLI 実行、時間予算付きの再開可能ループ runBudgetedBatches
-- src/lib/crud — createCrudService 汎用 CRUD(サービス・フック・クエリ構築、管理画面の全件削除の一覧の hooks と client)
+- src/lib/crud — 汎用 CRUD: createCrudService(Drizzle)・createFirestoreCrudService(凍結)・汎用 hooks・HTTP の client・CRUD ボタンと一括操作の作成関数・一覧の列・クエリ構築。閉じた lib: 入口 "."(画面側。client でも server でも、server からは型だけ)・"./server"(保存側: サービス・集まり・ストレージ連動・秘匿カラム・SQL の部品)、peers components
 - src/lib/crypto — AES-256-GCM 対称暗号化(トークン・機密データの暗号化保存)と、ハッシュ照合用のランダムトークン・短いコード生成
 - src/lib/csv — CSV ダウンロードとヘッダ付きパース
 - src/lib/districtMap — 地区(lib・ドメイン・枠・proxies)の地図の読み手: 4 種の見つけ方と各地区の欄(config と上書き・描画用の config と上書きの有無・API のキー・表・requires・門・受け口)を字面で読み、集約 src/registry/district-map.jsonl を作る(pnpm generate district-map)。受け口の宣言 extensionPoints.ts の唯一の読み手(declarations.mjs)も持つ。入口 "."(ファイルを読まない)と "./node"(node:fs で読む)

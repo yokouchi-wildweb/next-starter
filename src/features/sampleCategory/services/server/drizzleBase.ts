@@ -8,9 +8,9 @@ import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle"
 import { SampleTable, SampleToSampleTagTable } from "@/features/sample/entities/drizzle";
 import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
 import { SampleCategoryCreateSchema, SampleCategoryUpdateSchema } from "@/features/sampleCategory/entities/schema";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
-import type { IdType, OrderBySpec, SearchRankSpec } from "@/lib/crud/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
+import type { IdStrategy, OrderBySpec, SearchRankSpec } from "@/lib/crud";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
@@ -22,7 +22,7 @@ const sortOrderColumn = conf.sortOrderField
   : undefined;
 
 export const baseOptions = {
-  idType: conf.idType as IdType,
+  idType: conf.idType as IdStrategy,
   useCreatedAt: conf.useCreatedAt,
   useUpdatedAt: conf.useUpdatedAt,
   useSoftDelete: conf.useSoftDelete,
@@ -61,7 +61,7 @@ export const baseOptions = {
     }
   ],
 
-} satisfies DrizzleCrudServiceOptions<
+} satisfies CrudServiceOptions<
   z.infer<typeof SampleCategoryCreateSchema>
 >;
 

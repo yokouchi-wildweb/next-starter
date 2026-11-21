@@ -2,8 +2,8 @@
 
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { WalletCreateSchema, WalletUpdateSchema } from "@/features/core/wallet/entities/schema";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
 import type { z } from "zod";
 
 const baseOptions = {
@@ -12,7 +12,7 @@ const baseOptions = {
   useUpdatedAt: true,
   defaultSearchFields: ["type"],
   defaultOrderBy: [["updatedAt", "DESC"]],
-} satisfies DrizzleCrudServiceOptions<
+} satisfies CrudServiceOptions<
   z.infer<typeof WalletCreateSchema>
 >;
 

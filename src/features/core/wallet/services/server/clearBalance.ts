@@ -4,7 +4,7 @@ import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { clearLots } from "@/features/core/wallet/services/server/lots/lotAccounting";
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 import { eq, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 

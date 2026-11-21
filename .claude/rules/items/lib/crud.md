@@ -3,7 +3,7 @@ paths:
   - "src/lib/crud/**"
 ---
 # lib/crud
-what: createCrudService (Drizzle, frozen Firestore) + hooks, client, CRUD buttons (@/lib/crud, /drizzle, /hooks, /client, /components)
+what: createCrudService (Drizzle), createFirestoreCrudService (frozen) + hooks, client, CRUD buttons | entries: @/lib/crud (client face: hooks, Buttons, bulk*Action, client, presenters, types; server reads types only), @/lib/crud/server (services, collections, storage binding, hidden columns, SQL parts)
 use: always
 change: none → /order <direct parent>
 rules:

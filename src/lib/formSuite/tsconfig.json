@@ -17,6 +17,12 @@
       "@/lib/appEnv/*": [
         "../appEnv/*"
       ],
+      "@/lib/audit": [
+        "../audit"
+      ],
+      "@/lib/audit/*": [
+        "../audit/*"
+      ],
       "@/lib/cn": [
         "../cn"
       ],
@@ -28,6 +34,12 @@
       ],
       "@/lib/crud/*": [
         "../crud/*"
+      ],
+      "@/lib/date": [
+        "../date"
+      ],
+      "@/lib/date/*": [
+        "../date/*"
       ],
       "@/lib/defineConfig": [
         "../defineConfig"
@@ -46,6 +58,12 @@
       ],
       "@/lib/domainAccess/*": [
         "../domainAccess/*"
+      ],
+      "@/lib/drizzle": [
+        "../drizzle"
+      ],
+      "@/lib/drizzle/*": [
+        "../drizzle/*"
       ],
       "@/lib/errors": [
         "../errors"
@@ -71,6 +89,12 @@
       "@/lib/gradient/*": [
         "../gradient/*"
       ],
+      "@/lib/httpDefaults": [
+        "../httpDefaults"
+      ],
+      "@/lib/httpDefaults/*": [
+        "../httpDefaults/*"
+      ],
       "@/lib/isClient": [
         "../isClient"
       ],
@@ -82,6 +106,18 @@
       ],
       "@/lib/mediaInputSuite/*": [
         "../mediaInputSuite/*"
+      ],
+      "@/lib/requestMemo": [
+        "../requestMemo"
+      ],
+      "@/lib/requestMemo/*": [
+        "../requestMemo/*"
+      ],
+      "@/lib/sortableList": [
+        "../sortableList"
+      ],
+      "@/lib/sortableList/*": [
+        "../sortableList/*"
       ],
       "@/lib/spacing": [
         "../spacing"
@@ -100,6 +136,12 @@
       ],
       "@/lib/stringCase/*": [
         "../stringCase/*"
+      ],
+      "@/lib/tableSuite": [
+        "../tableSuite"
+      ],
+      "@/lib/tableSuite/*": [
+        "../tableSuite/*"
       ],
       "@/lib/toast": [
         "../toast"

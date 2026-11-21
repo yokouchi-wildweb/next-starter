@@ -17,7 +17,7 @@ import {
 import { FINGERPRINT_CHALLENGE_STATUSES } from "@/features/core/fingerprintChallenge/constants";
 import { DeviceFingerprintTable } from "@/features/core/deviceFingerprint/entities/drizzle";
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { defineHiddenColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { defineHiddenColumns } from "@/lib/crud/server";
 
 export const FingerprintChallengeStatusEnum = pgEnum("fingerprint_challenge_status", [
   ...FINGERPRINT_CHALLENGE_STATUSES,

@@ -6,7 +6,7 @@
 
 import { useCallback, useState } from "react";
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 
 import { postUnsubscribe } from "../services/client/unsubscribeClient";
 

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCreateDomain } from "@/lib/crud/hooks";
+import { useCreateDomain } from "@/lib/crud";
 import { purchaseRequestClient } from "../services/client/purchaseRequestClient";
 import type { PurchaseRequest } from "../entities";
 import type { PurchaseRequestCreateFields } from "../entities/form";

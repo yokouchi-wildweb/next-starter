@@ -9,7 +9,7 @@ paths:
 > **ROLE**: loaded when writing server services, loaders or CRUD calls | holds CRUD_SERVICE (createCrudService) service-side rules
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
-operations: create, list, get, update, remove, search, count, query, upsert, duplicate, restore, hardDelete, bulk* (DeleteByIds, DeleteByQuery, Upsert, Update, UpdateByIds) | Drizzle-only: belongsToMany, reorder, searchForSorting, replaceByQuery | conditional on domain flags: duplicate, restore/hardDelete, reorder/searchForSorting
+operations: create, list, get, update, delete, search, count, query, upsert, duplicate, restore, hardDelete, bulk* (DeleteByIds, DeleteByQuery, Upsert, Update, UpdateByIds) | Drizzle-only: belongsToMany, reorder, searchForSorting, replaceByQuery | conditional on domain flags: duplicate, restore/hardDelete, reorder/searchForSorting
 search: list = simple full fetch only → relations / filters / pagination use search | options: relationWhere, extraWhere (SQL), extraOrderBy (SQL[], before orderBy, server-only), searchRank, withRelations (depth ≤ 3), hasManyLimit | wrappers that order search results reuse buildSearchWhere / buildSearchRankOrderBy and close ORDER BY with withIdTiebreak (else ties reorder across pages)
 reuse_base: never re-implement what base CRUD already provides (operations above, search options) | many-to-many → belongsToMany, never a hand-built m2m when it is available (Drizzle only)
 extension: 1.base methods → 2.relationWhere → 3.extraWhere / extraOrderBy → 4.base.query() + wrappers → 5.custom service | files: \<domain\>Service.ts (import only), wrappers/ (CRUD overrides), \<other\>/ (domain-specific)

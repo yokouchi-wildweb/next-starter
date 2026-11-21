@@ -50,7 +50,7 @@ import {
   runDeviceVerify,
   safeParseDeviceScope,
 } from "./kinds";
-import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { getPublicColumns } from "@/lib/crud/server";
 
 const MINUTE_MS = 60 * 1000;
 

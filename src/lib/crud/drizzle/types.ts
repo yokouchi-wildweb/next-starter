@@ -4,12 +4,12 @@ import type { SQL } from "drizzle-orm";
 import type { PgTable, AnyPgColumn } from "drizzle-orm/pg-core";
 import type { AuditRecorder } from "@/lib/audit";
 import type {
-  CreateCrudServiceOptions,
+  CrudServiceBaseOptions,
   BelongsToRelation,
   BelongsToManyObjectRelation,
   CountableRelation,
   HasManyRelation,
-} from "@/lib/crud/types";
+} from "../types";
 import type { db } from "@/lib/drizzle";
 
 import type { CrudCollectionConfig } from "../collections/types";
@@ -59,7 +59,7 @@ export type BelongsToManyRelationConfig<TData extends Record<string, any>> = {
  * search / searchWithDeleted で WhereExpr DSL では表現できない
  * Drizzle SQL条件（サブクエリ、EXISTS、JSONB演算子等）を注入する。
  */
-export type ExtraWhereOption = {
+export type ExtraWhereClause = {
   extraWhere?: SQL;
 };
 
@@ -70,7 +70,7 @@ export type ExtraWhereOption = {
  * 指定時は orderBy より優先され、orderBy はタイブレークとして後続に適用される（searchRank の句があればその後ろ、末尾は id）。
  * サーバー専用（SQL オブジェクトは HTTP で渡せないため /api/[domain]/search には出さない）。
  */
-export type ExtraOrderByOption = {
+export type ExtraOrderByClause = {
   extraOrderBy?: SQL[];
 };
 
@@ -112,7 +112,7 @@ export type AuditConfig = {
   recorder: AuditRecorder;
 };
 
-export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = CreateCrudServiceOptions<TData> & {
+export type CrudServiceOptions<TData extends Record<string, any>> = CrudServiceBaseOptions<TData> & {
   belongsToManyRelations?: Array<BelongsToManyRelationConfig<TData>>;
   /**
    * withRelations オプション用: belongsTo リレーション設定。

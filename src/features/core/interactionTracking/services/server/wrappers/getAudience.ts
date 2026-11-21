@@ -12,7 +12,7 @@ import type {
   InteractionAudienceSummaryMap,
 } from "@/features/core/interactionTracking/entities/model";
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import type { PaginatedResult } from "@/lib/crud/types";
+import type { PaginatedResult } from "@/lib/crud";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 

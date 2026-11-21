@@ -100,12 +100,3 @@ export async function calculateLastSortOrder<TTable extends PgTable>(
 
   return generateSortKey(lastSortOrder, null);
 }
-
-/**
- * 新規レコード作成時のsortOrderを計算する（末尾に追加）
- *
- * @param table - drizzle テーブル
- * @param sortOrderColumn - sortOrderカラム
- * @returns 新しいsortOrder文字列
- */
-export const calculateInitialSortOrder = calculateLastSortOrder;

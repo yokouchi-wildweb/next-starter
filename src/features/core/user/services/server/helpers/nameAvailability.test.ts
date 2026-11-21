@@ -14,7 +14,7 @@ import {
 } from "./nameAvailability";
 import { userConfig, userConfigDef } from "@/features/user/config";
 import type { ReservedUserNameProvider } from "@/features/core/user/types";
-import type { DbExecutor } from "@/lib/crud/drizzle/types";
+import type { DbExecutor } from "@/lib/crud/server";
 
 /** select().from().where() の結果だけを差し替える executor */
 function fakeExecutor(names: (string | null)[]): DbExecutor {

@@ -23,7 +23,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 import { err, getErrorCode, getErrorDetails } from "@/lib/errors";
 import { listVariables } from "@/lib/templateVariables";
 import { useToast } from "@/lib/toast";

@@ -1,7 +1,7 @@
 // src/features/core/user/hooks/useBulkUpdateUser.ts
 "use client";
 
-import { useBulkUpdateDomain } from "@/lib/crud/hooks";
+import { useBulkUpdateDomain } from "@/lib/crud";
 import { userClient } from "../services/client/userClient";
 import type { User } from "../entities";
 import type { UserBulkUpdateInput } from "../services/types";

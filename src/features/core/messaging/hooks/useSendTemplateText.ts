@@ -14,7 +14,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useWatch } from "react-hook-form";
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 import { embeddedVariableMap, type MessageEmbeddedDeclaration, type MessageLayoutFields } from "@/lib/messaging";
 import { replaceVariables } from "@/lib/templateVariables";
 

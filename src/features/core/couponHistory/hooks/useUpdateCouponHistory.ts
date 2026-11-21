@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useUpdateDomain } from "@/lib/crud/hooks";
+import { useUpdateDomain } from "@/lib/crud";
 import { couponHistoryClient } from "../services/client/couponHistoryClient";
 import type { CouponHistory } from "../entities";
 import type { CouponHistoryUpdateFields } from "../entities/form";

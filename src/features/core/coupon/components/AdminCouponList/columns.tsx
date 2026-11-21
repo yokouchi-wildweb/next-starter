@@ -5,7 +5,7 @@
 
 import type { Coupon } from "@/features/core/coupon/entities";
 import { TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { EditButton, DeleteButton, DuplicateButton } from "@/lib/crud/components/Buttons";
+import { EditButton, DeleteButton, DuplicateButton } from "@/lib/crud";
 import presenters from "@/features/core/coupon/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { formatDateJa } from "@/utils/date";

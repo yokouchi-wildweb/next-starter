@@ -29,7 +29,7 @@ export const useContributorProfile = (userId?: string | null) => {
 // hooks/wrappers/useContributorProfileSearch.ts
 import { useProfileSearch } from "../useProfileSearch";
 import type { ContributorProfile } from "../../entities/profiles/contributor";
-import type { SearchParams, WithOptions } from "@/lib/crud/types";
+import type { SearchParams, WithOptions } from "@/lib/crud";
 
 export const useContributorProfileSearch = (params: SearchParams & WithOptions) => {
   const result = useProfileSearch("contributor", params);

@@ -82,7 +82,7 @@ export const override: MypageMenuItemOverride = { order: 90, title: "サイン�
 
 ```typescript
 // src/features/<domain>/services/server/cleanupOnWithdraw.ts
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 
 export async function cleanupOnWithdraw(userId: string, tx: DbTransaction): Promise<void> {
   // userId に紐づくリソースを tx で後始末する

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useDomainList } from "@/lib/crud/hooks";
+import { useDomainList } from "@/lib/crud";
 import { userClient } from "../services/client/userClient";
 import type { User } from "../entities";
 import type { SWRConfiguration } from "swr";

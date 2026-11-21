@@ -12,7 +12,7 @@ const updates: unknown[][] = [];
 mock.module("@/lib/drizzle", {
   namedExports: { db: { select: () => ({ from: () => ({ where: async () => (row ? [row] : []) }) }) } },
 });
-mock.module("@/lib/crud/drizzle", {
+mock.module("@/lib/crud/server", {
   namedExports: {
     createCrudService: (_table: unknown, options: Record<string, unknown>) => {
       crudOptions = options;

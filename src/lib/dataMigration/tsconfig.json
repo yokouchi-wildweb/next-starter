@@ -17,6 +17,12 @@
       "@/lib/appEnv/*": [
         "../appEnv/*"
       ],
+      "@/lib/audit": [
+        "../audit"
+      ],
+      "@/lib/audit/*": [
+        "../audit/*"
+      ],
       "@/lib/cn": [
         "../cn"
       ],
@@ -28,6 +34,12 @@
       ],
       "@/lib/crud/*": [
         "../crud/*"
+      ],
+      "@/lib/date": [
+        "../date"
+      ],
+      "@/lib/date/*": [
+        "../date/*"
       ],
       "@/lib/defineConfig": [
         "../defineConfig"
@@ -71,11 +83,29 @@
       "@/lib/frameDims/*": [
         "../frameDims/*"
       ],
+      "@/lib/httpDefaults": [
+        "../httpDefaults"
+      ],
+      "@/lib/httpDefaults/*": [
+        "../httpDefaults/*"
+      ],
       "@/lib/isClient": [
         "../isClient"
       ],
       "@/lib/isClient/*": [
         "../isClient/*"
+      ],
+      "@/lib/requestMemo": [
+        "../requestMemo"
+      ],
+      "@/lib/requestMemo/*": [
+        "../requestMemo/*"
+      ],
+      "@/lib/sortableList": [
+        "../sortableList"
+      ],
+      "@/lib/sortableList/*": [
+        "../sortableList/*"
       ],
       "@/lib/storage": [
         "../storage"
@@ -88,6 +118,12 @@
       ],
       "@/lib/stringCase/*": [
         "../stringCase/*"
+      ],
+      "@/lib/tableSuite": [
+        "../tableSuite"
+      ],
+      "@/lib/tableSuite/*": [
+        "../tableSuite/*"
       ],
       "@/lib/toast": [
         "../toast"

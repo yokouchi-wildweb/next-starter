@@ -3,7 +3,7 @@
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/features/core/user/constants";
 import { sql } from "drizzle-orm";
 import { boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { defineHiddenColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { defineHiddenColumns } from "@/lib/crud/server";
 import { UserTagTable } from "@/features/core/userTag/entities/drizzle";
 import type { UserMetadata } from "./model";
 

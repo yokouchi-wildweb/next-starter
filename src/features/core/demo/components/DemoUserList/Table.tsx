@@ -6,7 +6,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import { BulkActionItems, DataTable, RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { useUserAdminBulkActions } from "@/features/core/user/hooks/useUserAdminBulkActions";
-import { HardDeleteButton } from "@/lib/crud/components/Buttons";
+import { HardDeleteButton } from "@/lib/crud";
 import { Button } from "@/components/Button/Button";
 import type { User } from "@/features/core/user/entities";
 import { adminConfig } from "@/features/admin/config";

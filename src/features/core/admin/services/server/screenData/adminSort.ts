@@ -4,7 +4,7 @@
 
 import "server-only";
 
-import type { PaginatedResult, SearchParams } from "@/lib/crud/types";
+import type { PaginatedResult, SearchParams } from "@/lib/crud";
 
 /**
  * 並び替えが service に要求する最小の形(sortOrderField を持つドメインの searchForSorting)

@@ -10,7 +10,7 @@ import {
 } from "@/components/Input/AsyncMultiSelectInput";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/types";
-import type { WhereExpr } from "@/lib/crud/types";
+import type { WhereExpr } from "@/lib/crud";
 
 import { useUserAsyncOptionSource } from "@/features/core/user/hooks/useUserAsyncOptionSource";
 import { DEFAULT_USER_SEARCH_FIELDS } from "@/features/core/user/utils/userOption";

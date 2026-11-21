@@ -3,12 +3,12 @@
 
 "use client";
 
-import { useDomain } from "@/lib/crud/hooks";
+import { useDomain } from "@/lib/crud";
 import { sampleCategoryClient } from "../services/client/sampleCategoryClient";
 import type { SampleCategory } from "../entities";
 
 export const useSampleCategory = (id?: string | null) =>
   useDomain<SampleCategory | undefined>(
     id ? `sampleCategory:${id}` : null,
-    () => sampleCategoryClient.getById(id!) as Promise<SampleCategory>,
+    () => sampleCategoryClient.get(id!) as Promise<SampleCategory>,
   );

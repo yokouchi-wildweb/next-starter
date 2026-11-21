@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeleteDomain } from "@/lib/crud/hooks";
+import { useDeleteDomain } from "@/lib/crud";
 import { profileClient } from "../services/client/profileClient";
 
 /**

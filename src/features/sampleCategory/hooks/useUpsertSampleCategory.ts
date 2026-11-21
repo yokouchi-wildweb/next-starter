@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useUpsertDomain } from "@/lib/crud/hooks";
+import { useUpsertDomain } from "@/lib/crud";
 import { sampleCategoryClient } from "../services/client/sampleCategoryClient";
 import type { SampleCategory } from "../entities";
 import type { SampleCategoryCreateFields } from "../entities/form";

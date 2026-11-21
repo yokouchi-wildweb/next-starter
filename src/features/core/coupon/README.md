@@ -206,7 +206,7 @@ const coupons = await couponService.getCodesByOwner({
 
 #### CRUD
 
-標準の CRUD 操作（`create`, `get`, `list`, `search`, `update`, `remove`, `restore`, `hardDelete`, `duplicate`, `upsert`）も利用可能。
+標準の CRUD 操作（`create`, `get`, `list`, `search`, `update`, `delete`, `restore`, `hardDelete`, `duplicate`, `upsert`）も利用可能。
 
 ### CouponHandler インターフェース
 

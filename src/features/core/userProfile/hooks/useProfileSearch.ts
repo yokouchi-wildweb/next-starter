@@ -1,8 +1,8 @@
 "use client";
 
-import { useSearchDomain } from "@/lib/crud/hooks";
+import { useSearchDomain } from "@/lib/crud";
 import { profileClient } from "../services/client/profileClient";
-import type { SearchParams, WithOptions } from "@/lib/crud/types";
+import type { SearchParams, WithOptions } from "@/lib/crud";
 
 type ProfileSearchParams = SearchParams & WithOptions;
 

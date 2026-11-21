@@ -1,8 +1,8 @@
 // src/features/core/user/services/server/wrappers/bulkUpdate.ts
 
 import type { User } from "@/features/core/user/entities";
-import type { BulkUpdateRecord, BulkUpdateResult } from "@/lib/crud/types";
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { BulkUpdateRecord, BulkUpdateResult } from "@/lib/crud";
+import type { DbTransaction } from "@/lib/crud/server";
 import { base } from "../drizzleBase";
 import { assertBulkUpdateIds, parseBulkUpdateFields, type UserBulkUpdateFields } from "../helpers/bulkUpdateFields";
 

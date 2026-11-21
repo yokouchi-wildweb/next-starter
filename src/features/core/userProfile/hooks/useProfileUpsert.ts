@@ -1,6 +1,6 @@
 "use client";
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 import { profileClient } from "../services/client/profileClient";
 
 /**

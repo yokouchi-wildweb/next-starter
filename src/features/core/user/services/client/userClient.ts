@@ -1,12 +1,12 @@
 // src/features/user/services/client/userClient.ts
 
 import { createApiClient } from "@/lib/crud";
-import type { ApiClient } from "@/lib/crud/types";
+import type { ApiClient } from "@/lib/crud";
 import type { User } from "@/features/core/user/entities";
 import type { UserStatus } from "@/features/core/user/types";
 import type { UserRoleType } from "@/features/core/user/constants/role";
 import type { CreateUserInput, UpdateUserInput } from "../types";
-import type { SearchParams, PaginatedResult, WithOptions, WhereExpr } from "@/lib/crud/types";
+import type { SearchParams, PaginatedResult, WithOptions, WhereExpr } from "@/lib/crud";
 import { normalizeHttpError } from "@/lib/errors";
 import axios from "axios";
 

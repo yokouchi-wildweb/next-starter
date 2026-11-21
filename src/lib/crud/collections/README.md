@@ -30,7 +30,7 @@
 ### 宣言
 
 ```ts
-import { createCrudService } from "@/lib/crud/drizzle";
+import { createCrudService } from "@/lib/crud/server";
 
 // 従属: 並びの列を systemColumns に宣言する（並びは systemUpdate で書く）
 export const galleryImageService = createCrudService(GalleryImageTable, {
@@ -72,7 +72,7 @@ export const productService = createCrudService(ProductTable, {
 | `resolveCollectionEntryIds({ collection, parentId, values }, tx?)` | 複数の値（1 クエリ）。`Map<値, 従属の行 id>`（無い値は入らない） |
 | 主のサービスの `collectionEntries(fieldName, parentId)` / `collectionEntriesForParents(fieldName, parentIds)` | collections を指定したサービスだけが持つ。主の表で論理削除された主を除く。知らない項目は 404 |
 | `GET /api/<domain>/collection-entries?field=<項目名>&parentIds=<id,id>` | client からの読み出し（汎用ルート、主の id 100 件まで）。認可は主の **get** の規則（従属の汎用 API は閉じたまま）。応答 `{ [主の id]: エントリ[] }` |
-| `fetchCollectionEntries(domain, field, parentIds)`（`@/lib/crud/client`）/ `useCollectionEntries(domain, field, parentId または parentIds)`（`@/lib/crud/hooks`） | client service と SWR のフック。`entriesOf(parentId)` で 1 つの主の並び |
+| `fetchCollectionEntries(domain, field, parentIds)`/ `useCollectionEntries(domain, field, parentId または parentIds)`（どちらも `@/lib/crud`） | client service と SWR のフック。`entriesOf(parentId)` で 1 つの主の並び |
 
 - 並びは読み出しと同じ（並びの列 ASC NULLS LAST → id ASC、text は `COLLATE "C"`）。1 回の呼び出しで 1 クエリ
 - 従属が値・並びの列を秘匿列（`defineHiddenColumns`）にしていれば、その値は `null`。ファイルの読み取りの規則（storage）は変わらない
@@ -90,7 +90,7 @@ export const productService = createCrudService(ProductTable, {
 SQL の中で集まりの先頭 1 件（並び順の最初の従属の行）の値を使う。主の行ごとに 1 値のスカラー副問い合わせで、集まりが空なら NULL。select / where / orderBy にそのまま置け、`COALESCE` / `CASE` で包める。
 
 ```ts
-import { firstInCollection, firstInCollectionForAlias } from "@/lib/crud/drizzle";
+import { firstInCollection, firstInCollectionForAlias } from "@/lib/crud/server";
 
 // 列の形: 主の id を列（表・alias の列）か SQL で渡す
 db.select({ id: ProductTable.id, cover: firstInCollection(galleryCollection, ProductTable.id) }).from(ProductTable);

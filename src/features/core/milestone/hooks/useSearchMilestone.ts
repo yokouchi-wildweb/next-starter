@@ -2,10 +2,10 @@
 
 "use client";
 
-import { useSearchDomain } from "@/lib/crud/hooks";
+import { useSearchDomain } from "@/lib/crud";
 import { milestoneClient } from "../services/client/milestoneClient";
 import type { Milestone } from "../entities";
-import type { SearchParams } from "@/lib/crud/types";
+import type { SearchParams } from "@/lib/crud";
 
 export type MilestoneSearchParams = NonNullable<typeof milestoneClient.search> extends (
   params: infer P,

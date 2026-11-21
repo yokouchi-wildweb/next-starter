@@ -13,7 +13,7 @@
 
 import "server-only";
 
-import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
+import type { CrudStorageField } from "@/lib/crud/server";
 import { isStorageRef } from "@/lib/storage";
 import { parseLegacyStorageUrl } from "@/lib/storage/server";
 

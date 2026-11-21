@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useUpdateDomain } from "@/lib/crud/hooks";
+import { useUpdateDomain } from "@/lib/crud";
 import { chatRoomClient } from "../services/client/chatRoomClient";
 import type { ChatRoom } from "../entities";
 import type { ChatRoomUpdateFields } from "../entities/form";

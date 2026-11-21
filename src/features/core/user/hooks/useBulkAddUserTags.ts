@@ -1,7 +1,7 @@
 // src/features/core/user/hooks/useBulkAddUserTags.ts
 "use client";
 
-import { useBulkAddRelationDomain } from "@/lib/crud/hooks";
+import { useBulkAddRelationDomain } from "@/lib/crud";
 import { userClient } from "../services/client/userClient";
 
 /** 複数ユーザーにタグを足す(既存のタグは残る)。trigger(userIds, tagIds) */

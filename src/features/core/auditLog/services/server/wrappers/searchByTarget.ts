@@ -1,6 +1,6 @@
 // src/features/core/auditLog/services/server/wrappers/searchByTarget.ts
 
-import type { PaginatedResult, SearchParams } from "@/lib/crud/types";
+import type { PaginatedResult, SearchParams } from "@/lib/crud";
 
 import type { AuditLog } from "@/features/core/auditLog/entities/model";
 import { auditLogBase } from "../drizzleBase";

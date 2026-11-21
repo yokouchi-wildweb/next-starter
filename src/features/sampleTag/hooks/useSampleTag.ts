@@ -3,12 +3,12 @@
 
 "use client";
 
-import { useDomain } from "@/lib/crud/hooks";
+import { useDomain } from "@/lib/crud";
 import { sampleTagClient } from "../services/client/sampleTagClient";
 import type { SampleTag } from "../entities";
 
 export const useSampleTag = (id?: string | null) =>
   useDomain<SampleTag | undefined>(
     id ? `sampleTag:${id}` : null,
-    () => sampleTagClient.getById(id!) as Promise<SampleTag>,
+    () => sampleTagClient.get(id!) as Promise<SampleTag>,
   );

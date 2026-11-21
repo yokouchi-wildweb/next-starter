@@ -3,9 +3,9 @@
 
 "use client";
 
-import { useCountDomain } from "@/lib/crud/hooks";
+import { useCountDomain } from "@/lib/crud";
 import { sampleCategoryClient } from "../services/client/sampleCategoryClient";
-import type { CountParams } from "@/lib/crud/types";
+import type { CountParams } from "@/lib/crud";
 
 export const useCountSampleCategory = (params: CountParams) => {
   const count = sampleCategoryClient.count;

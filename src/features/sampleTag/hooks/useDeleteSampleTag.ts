@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useDeleteDomain } from "@/lib/crud/hooks";
+import { useDeleteDomain } from "@/lib/crud";
 import { sampleTagClient } from "../services/client/sampleTagClient";
 
 export const useDeleteSampleTag = () => useDeleteDomain("sampleTags/delete", sampleTagClient.delete, "sampleTags");

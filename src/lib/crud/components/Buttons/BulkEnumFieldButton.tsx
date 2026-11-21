@@ -16,8 +16,8 @@ import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { getFieldOptions, getFieldLabel } from "@/lib/domain";
 import type { DomainDisplay } from "@/lib/domain";
-import { createApiClient } from "@/lib/crud/client";
-import { useBulkUpdateByIdsDomain } from "@/lib/crud/hooks";
+import { createApiClient } from "../../client";
+import { useBulkUpdateByIdsDomain } from "../../hooks";
 
 export type BulkEnumFieldButtonProps = ButtonStyleProps & {
   /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */

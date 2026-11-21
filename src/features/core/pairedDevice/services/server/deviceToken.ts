@@ -11,12 +11,12 @@ import { PAIRED_DEVICE_AUDIT_TARGET } from "@/features/pairedDevice/constants";
 import { PairedDeviceTable } from "@/features/pairedDevice/entities/drizzle";
 import type { SessionDevice } from "@/features/pairedDevice/entities/model";
 import type { PairedDeviceKindDefinition } from "@/features/pairedDevice/types/kind";
-import type { DbTransaction } from "@/lib/crud/drizzle";
+import type { DbTransaction } from "@/lib/crud/server";
 import { generateSecretToken, hashSecretToken } from "@/lib/crypto";
 import { db, isDatabaseConfigured } from "@/lib/drizzle";
 
 import { getPairedDeviceKind, runDeviceVerify, safeParseDeviceScope } from "./kinds";
-import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { getPublicColumns } from "@/lib/crud/server";
 import { gate } from "@/featureGate";
 
 const DAY_MS = 24 * 60 * 60 * 1000;

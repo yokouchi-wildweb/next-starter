@@ -5,7 +5,7 @@
 // - buildSearchRankOrderBy: 関連度スコア（完全 > 前置 > 語頭 > 部分 × weight の合算）の ORDER BY 片
 //
 // base.query() で独自 JOIN を組む wrapper からも同じ順位付けを再利用できるよう
-// `@/lib/crud/drizzle` から公開している。
+// `@/lib/crud/server` から公開している。
 // NOTE: node --test から .ts を直接読むため、ランタイムの相対 import を持たないこと（drizzle-orm のみ）。
 
 import { ilike, or, sql, SQL } from "drizzle-orm";

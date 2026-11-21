@@ -41,7 +41,7 @@ type Row = Record<string, any>;
 
 describe("集まりのエントリと値 → 従属の行 id の解決（実 DB）", { skip }, () => {
   let db: typeof import("@/lib/drizzle").db;
-  let crud: typeof import("@/lib/crud/drizzle");
+  let crud: typeof import("../drizzle");
   let collection: any;
   let secretCollection: any;
   const parents = { a: randomUUID(), b: randomUUID(), empty: randomUUID(), deleted: randomUUID() };
@@ -55,8 +55,8 @@ describe("集まりのエントリと値 → 従属の行 id の解決（実 DB�
 
   before(async () => {
     ({ db } = await import("@/lib/drizzle"));
-    crud = await import("@/lib/crud/drizzle");
-    const { defineHiddenColumns } = await import("@/lib/crud/drizzle/hiddenColumns");
+    crud = await import("../drizzle");
+    const { defineHiddenColumns } = await import("../drizzle/hiddenColumns");
     defineHiddenColumns(SecretItemTable, ["token"]);
 
     await dropTables();

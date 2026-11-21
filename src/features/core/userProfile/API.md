@@ -32,7 +32,7 @@ type ProfileBase = {
   upsert: (data: Record<string, unknown>) => Promise<Record<string, unknown>>;
 
   // 検索・一覧（createCrudService から継承）
-  search: (params?: SearchParams & WithOptions & ExtraWhereOption) => Promise<PaginatedResult<Record<string, unknown>>>;
+  search: (params?: SearchParams & WithOptions & ExtraWhereClause) => Promise<PaginatedResult<Record<string, unknown>>>;
   list: (options?: WithOptions) => Promise<Record<string, unknown>[]>;
   query: <T>(baseQuery, options?, countQuery?) => Promise<PaginatedResult<T>>;
 

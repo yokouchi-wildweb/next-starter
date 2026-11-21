@@ -19,7 +19,7 @@
 //   where / orderBy など条件側での参照（eq(Table.tokenHash, hash) 等）は対象外（正当な用途）。
 //
 // 直し方:
-//   行を丸ごと取りたい → getPublicColumns(<Table>)（@/lib/crud/drizzle/hiddenColumns）を
+//   行を丸ごと取りたい → getPublicColumns(<Table>)（@/lib/crud/server）を
 //   select / returning に渡す。秘匿カラムは DB から null として返る。
 //   秘匿値そのものをサーバー内部で読む必要がある → services/server/finders/ の専用ファインダー
 //   （このディレクトリは eslint.config.mjs で対象外）。それ以外の正当な例外は理由付き eslint-disable。
@@ -120,7 +120,7 @@ const noRawSelectRule = {
       explicitColumn:
         "秘匿カラム {{table}}.{{column}} を select / returning で取り出しています。生 SQL では hiddenColumns の自動除去が効かず、行を HTTP や Client Component に渡すと漏れます。不要なら外し、内部で値が要るなら services/server/finders/ の専用ファインダーへ。",
       spreadColumns:
-        "getTableColumns({{table}}) は秘匿カラム（{{columns}}）を含みます。getPublicColumns({{table}})（@/lib/crud/drizzle/hiddenColumns）を使ってください。",
+        "getTableColumns({{table}}) は秘匿カラム（{{columns}}）を含みます。getPublicColumns({{table}})（@/lib/crud/server）を使ってください。",
       fullRow:
         "{{table}} の行を丸ごと取得しています（秘匿カラム: {{columns}}）。生 SQL では hiddenColumns の自動除去が効かないため、{{method}}(getPublicColumns({{table}})) で取得してください。",
     },

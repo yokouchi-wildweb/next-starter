@@ -4,7 +4,7 @@ import type { HttpError } from "@/lib/errors";
 
 export type CrudAction =
   | "getAll"
-  | "getById"
+  | "get"
   | "create"
   | "update"
   | "delete"

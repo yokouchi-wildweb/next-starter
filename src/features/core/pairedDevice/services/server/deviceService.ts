@@ -24,7 +24,7 @@ import type {
   ListPairedDevicesInput,
   UpdatePairedDeviceInput,
 } from "@/features/pairedDevice/entities/schema";
-import type { DbTransaction } from "@/lib/crud/drizzle";
+import type { DbTransaction } from "@/lib/crud/server";
 import { db } from "@/lib/drizzle";
 
 import { isValidScopePattern } from "@/features/pairedDevice/utils/scopeContains";
@@ -42,7 +42,7 @@ import {
   parseDeviceScope,
   resolveManageableScopes,
 } from "./kinds";
-import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { getPublicColumns } from "@/lib/crud/server";
 
 /** 操作者。HTTP ルートはセッションユーザー、CLI・cron は "system" */
 export type PairedDeviceActor = SessionUser | "system";

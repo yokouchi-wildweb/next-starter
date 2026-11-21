@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCreateDomain } from "@/lib/crud/hooks";
+import { useCreateDomain } from "@/lib/crud";
 import { couponHistoryClient } from "../services/client/couponHistoryClient";
 import type { CouponHistory } from "../entities";
 import type { CouponHistoryCreateFields } from "../entities/form";

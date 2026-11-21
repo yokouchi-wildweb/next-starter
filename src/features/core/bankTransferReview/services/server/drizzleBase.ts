@@ -6,8 +6,8 @@ import {
   BankTransferReviewUpdateSchema,
 } from "@/features/bankTransferReview/entities/schema";
 import { storageBindingFor } from "@/features/core/storageObject/services/server/crudBinding";
-import { createCrudService } from "@/lib/crud/drizzle";
-import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
 import type { z } from "zod";
 
 const baseOptions = {
@@ -16,7 +16,7 @@ const baseOptions = {
   useUpdatedAt: true,
   defaultSearchFields: ["user_id", "purchase_request_id", "status"],
   defaultOrderBy: [["submitted_at", "DESC"]],
-} satisfies DrizzleCrudServiceOptions<
+} satisfies CrudServiceOptions<
   z.infer<typeof BankTransferReviewCreateSchema>
 >;
 

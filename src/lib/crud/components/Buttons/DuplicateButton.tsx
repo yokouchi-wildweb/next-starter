@@ -11,8 +11,8 @@ import { ConfirmPopover, PromptPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import type { DomainDisplay } from "@/lib/domain";
-import { createApiClient } from "@/lib/crud/client";
-import { useDuplicateDomain } from "@/lib/crud/hooks";
+import { createApiClient } from "../../client";
+import { useDuplicateDomain } from "../../hooks";
 
 export type DuplicateButtonProps = ButtonStyleProps & {
   /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */

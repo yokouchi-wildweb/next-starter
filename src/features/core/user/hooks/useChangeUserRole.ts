@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useDomainMutation } from "@/lib/crud/hooks";
+import { useDomainMutation } from "@/lib/crud";
 import { normalizeHttpError } from "@/lib/errors";
 
 import { userClient, type ChangeRoleInput } from "../services/client/userClient";

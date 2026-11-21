@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/preferences/types.ts
 
-import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import type { DbTransaction } from "@/lib/crud/server";
 
 /** 好みの行(止めた時だけある)。kind のある行 = 種別まるごとの停止(category・channel は '*')。null = 表の '*'(store が読み替える) */
 export type MessagePreferenceRow = { category: string; channel: string; kind: string | null };

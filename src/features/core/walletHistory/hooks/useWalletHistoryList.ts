@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useDomainList } from "@/lib/crud/hooks";
+import { useDomainList } from "@/lib/crud";
 import { walletHistoryClient } from "../services/client/walletHistoryClient";
 import type { WalletHistory } from "../entities";
 import type { SWRConfiguration } from "swr";

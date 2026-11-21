@@ -2,12 +2,12 @@
 
 "use client";
 
-import { useDomain } from "@/lib/crud/hooks";
+import { useDomain } from "@/lib/crud";
 import { userClient } from "../services/client/userClient";
 import type { User } from "../entities";
 
 export const useUser = (id?: string | null) =>
   useDomain<User | undefined>(
     id ? `user:${id}` : null,
-    () => userClient.getById(id!) as Promise<User>,
+    () => userClient.get(id!) as Promise<User>,
   );

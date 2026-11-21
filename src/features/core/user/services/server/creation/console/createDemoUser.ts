@@ -21,7 +21,7 @@ import { userProfileService } from "@/features/core/userProfile/services/server/
 import type { CreateDemoUserInput } from "../../../types";
 import { base } from "../../drizzleBase";
 import { restoreSoftDeletedUser } from "./restore";
-import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
+import { getPublicColumns } from "@/lib/crud/server";
 
 /**
  * デモユーザーを登録する。

@@ -45,7 +45,7 @@ export const DELETE = createDomainIdRoute(
     operationType: "write",
   },
   async (_req, { service, params }) => {
-    await service.remove(params.id);
+    await service.delete(params.id);
     return { success: true };
   },
 );

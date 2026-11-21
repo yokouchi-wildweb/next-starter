@@ -292,7 +292,7 @@ describe("ドメインの storagePurposes.ts", () => {
 describe("メディア列と systemColumns（特権書き込み）・hiddenColumns", () => {
   test("storage オプションの列を systemColumns に入れると、サービスを作る時点で throw", async () => {
     const { pgTable, text, uuid } = await import("drizzle-orm/pg-core");
-    const { createCrudService } = await import("../../../src/lib/crud/drizzle/service.ts");
+    const { createCrudService } = await import("../../../src/lib/crud/server.ts");
     const table = pgTable("check_storage_system_columns", { id: uuid("id").primaryKey(), photo: text("photo"), note: text("note") });
     const binding = {
       fields: [{ name: "photo", purpose: "item.photo" }],
@@ -310,8 +310,8 @@ describe("メディア列と systemColumns（特権書き込み）・hiddenColum
 
   test("storage オプションの列を hiddenColumns にすると、サービスを作る時点で throw（掃除の照合が値を読めないため）", async () => {
     const { pgTable, text, uuid } = await import("drizzle-orm/pg-core");
-    const { createCrudService } = await import("../../../src/lib/crud/drizzle/service.ts");
-    const { defineHiddenColumns } = await import("../../../src/lib/crud/drizzle/hiddenColumns.ts");
+    const { createCrudService } = await import("../../../src/lib/crud/server.ts");
+    const { defineHiddenColumns } = await import("../../../src/lib/crud/server.ts");
     const binding = {
       fields: [{ name: "photo", purpose: "item.photo" }],
       afterWrite: async () => null,

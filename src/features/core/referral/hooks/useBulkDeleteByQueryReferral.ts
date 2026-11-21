@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useBulkDeleteByQueryDomain } from "@/lib/crud/hooks";
+import { useBulkDeleteByQueryDomain } from "@/lib/crud";
 import { referralClient } from "../services/client/referralClient";
 
 export const useBulkDeleteByQueryReferral = () => {

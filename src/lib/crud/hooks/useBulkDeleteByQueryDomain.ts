@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import type { WhereExpr } from "@/lib/crud/types";
+import type { WhereExpr } from "../types";
 import { useDomainMutation } from "./internal/useDomainMutation";
 
 /**

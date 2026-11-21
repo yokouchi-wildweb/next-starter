@@ -4,9 +4,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createConcurrentMutation } from "./concurrentMutation.ts";
 
+/** @returns {{ promise: Promise<any>, resolve: (value?: unknown) => void, reject: (reason?: unknown) => void }} */
 const deferred = () => {
-  let resolve;
-  let reject;
+  /** @type {(value?: unknown) => void} */
+  let resolve = () => {};
+  /** @type {(reason?: unknown) => void} */
+  let reject = () => {};
   const promise = new Promise((res, rej) => {
     resolve = res;
     reject = rej;
@@ -19,6 +22,7 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 test("並列 2 発で先行 trigger が reject → Promise.all は reject する（後続の成功に握りつぶされない）", async () => {
   const first = deferred();
   const second = deferred();
+  /** @type {unknown[]} */
   const calls = [];
   const mutation = createConcurrentMutation({
     execute: (arg) => {
@@ -59,6 +63,7 @@ test("成功した trigger は自分の結果で resolve する（先行分も u
 test("isMutating は全件 settle まで true、settle 後 false", async () => {
   const first = deferred();
   const second = deferred();
+  /** @type {unknown[]} */
   const seen = [];
   const mutation = createConcurrentMutation({
     execute: (arg) => (arg === "a" ? first.promise : second.promise),
@@ -91,7 +96,7 @@ test("error / data は直近に settle した trigger の結果", async () => {
   assert.equal(mutation.getSnapshot().error, undefined);
 
   await assert.rejects(mutation.trigger("fail"));
-  assert.equal(mutation.getSnapshot().error.message, "nope");
+  assert.equal(/** @type {Error} */ (mutation.getSnapshot().error).message, "nope");
 
   await mutation.trigger("y");
   assert.equal(mutation.getSnapshot().data, "y");
@@ -99,6 +104,7 @@ test("error / data は直近に settle した trigger の結果", async () => {
 });
 
 test("onSuccess は成功した trigger ごとに resolve 前に await される。失敗した trigger では呼ばれない", async () => {
+  /** @type {string[]} */
   const order = [];
   const mutation = createConcurrentMutation({
     execute: async (arg) => {
@@ -125,6 +131,7 @@ test("onSuccess は成功した trigger ごとに resolve 前に await される
 
 test("onSuccess（再検証）の失敗は書き込み成功を reject に変えない", async () => {
   const originalError = console.error;
+  /** @type {unknown[][]} */
   const logged = [];
   console.error = (...args) => logged.push(args);
   try {

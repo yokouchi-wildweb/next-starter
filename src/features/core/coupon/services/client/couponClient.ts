@@ -1,7 +1,7 @@
 // src/features/coupon/services/client/couponClient.ts
 
 import { createApiClient } from "@/lib/crud";
-import type { ApiClient } from "@/lib/crud/types";
+import type { ApiClient } from "@/lib/crud";
 import type { Coupon } from "@/features/core/coupon/entities";
 import type {
   CouponCreateFields,

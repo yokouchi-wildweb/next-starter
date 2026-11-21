@@ -4,7 +4,7 @@ import { createAdmin, createGeneralUser } from "../creation/console";
 import type { CreateUserInput } from "@/features/core/user/services/types";
 import { getRoleCategory, hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
 import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
-import { syncBelongsToManyRelations } from "@/lib/crud/drizzle/belongsToMany";
+import { syncBelongsToManyRelations } from "@/lib/crud/server";
 import { db } from "@/lib/drizzle";
 import { baseOptions } from "../drizzleBase";
 

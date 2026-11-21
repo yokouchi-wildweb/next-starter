@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useUpsertDomain } from "@/lib/crud/hooks";
+import { useUpsertDomain } from "@/lib/crud";
 import { purchaseRequestClient } from "../services/client/purchaseRequestClient";
 import type { PurchaseRequest } from "../entities";
 import type { PurchaseRequestCreateFields } from "../entities/form";
