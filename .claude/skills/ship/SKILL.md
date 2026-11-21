@@ -132,6 +132,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - the safe point: the tag name, or `セーフポイントなし: <理由>` (plain ship, `--quick`, `no-push`, a full check failed / could not run, the tag step failed)
    - plain ship (pushed): `pnpm workflow notices safePoint status` → write `セーフポイント: <line 1>` | line 2 `propose` → end the report with one line `セーフポイントを作りますか(/ship --safe、<line 1 の数>)` and wait for the human | exit 2 → `セーフポイント: 未確認(<理由>)` | not with `--quick` / `--safe`
      - score = commits since the last own safe tag ÷ 80 + days ÷ 3 (`--first-parent`); ≥ 1 → propose | no safe tag yet → propose
+     - no human in this session (a team tool's executor that reports to its lead) → put that one proposal line in the result it hands back (RESOLUTION, status note, report) and end without waiting: the lead asks the human
    - came from `/inbox` → do not stop here, return to the rest of `/inbox` step 4 (RESOLUTION) | use the commit sha and push result there
 
 ## STOP CASES
