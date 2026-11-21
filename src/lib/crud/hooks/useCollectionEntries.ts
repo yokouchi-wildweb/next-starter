@@ -2,7 +2,7 @@
 
 import useSWR, { type SWRConfiguration } from "swr";
 
-import type { CollectionEntry } from "../collections/collectionEntries";
+import type { CollectionEntry } from "../collections/types";
 import { fetchCollectionEntries, type CollectionEntriesByParent } from "../client/collectionEntries";
 import type { HttpError } from "@/lib/errors";
 

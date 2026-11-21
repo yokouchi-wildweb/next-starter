@@ -3,12 +3,8 @@
 // サーバーでだけ読む。画面側(hooks・ボタン・client・presenters・型)は入口 "."(index.ts)。
 
 // Drizzle の CRUD サービス
-export {
-  createCrudService,
-  extractPgErrorCode,
-  isPgUniqueViolation,
-  handleConstraintError,
-} from "./drizzle/service";
+export { createCrudService } from "./drizzle/service";
+export { extractPgErrorCode, isPgUniqueViolation, handleConstraintError } from "./drizzle/service/errors";
 export type { DefaultInsert } from "./drizzle/service";
 export type {
   CrudServiceOptions,
@@ -77,31 +73,28 @@ export {
 export type { NormalizedSearchRankField } from "./drizzle/query";
 
 // 集まり(collections)
+export { applyCollections } from "./collections/applyCollections";
+export { syncCollection, validateCollectionValues } from "./collections/syncCollection";
+export type { SyncCollectionParams } from "./collections/syncCollection";
+export { duplicateWithCollections } from "./collections/duplicateWithCollections";
 export {
-  applyCollections,
-  syncCollection,
-  validateCollectionValues,
-  duplicateWithCollections,
   defineTableCollections,
-  collectionEntries,
-  collectionEntriesForParents,
-  resolveCollectionEntryId,
-  resolveCollectionEntryIds,
-  firstInCollection,
-  firstInCollectionForAlias,
-} from "./collections";
-export {
   registerTableCollections,
   hasTableCollections,
   getTableCollections,
 } from "./collections/tableCollections";
+export {
+  collectionEntries,
+  collectionEntriesForParents,
+  resolveCollectionEntryId,
+  resolveCollectionEntryIds,
+} from "./collections/collectionEntries";
+export type { CollectionEntriesParams } from "./collections/collectionEntries";
+export { firstInCollection, firstInCollectionForAlias } from "./collections/firstInCollection";
+export type { FirstInCollectionOptions, FirstInCollectionForAliasOptions } from "./collections/firstInCollection";
+export type { CollectionColumns } from "./collections/collectionOrder";
 export type {
-  SyncCollectionParams,
   CollectionEntry,
-  CollectionEntriesParams,
-  FirstInCollectionOptions,
-  FirstInCollectionForAliasOptions,
-  CollectionColumns,
   CrudCollectionConfig,
   CrudCollectionChildService,
   CollectionValue,
@@ -110,7 +103,7 @@ export type {
   CollectionFieldsAugmented,
   CollectionDuplicateResult,
   DuplicateWithCollectionsParams,
-} from "./collections";
+} from "./collections/types";
 
 // ストレージ連動(メディア列)
 export { applyStorageBinding } from "./storageIntegration/applyStorageBinding";

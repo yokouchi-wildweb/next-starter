@@ -1,6 +1,6 @@
 // src/lib/crud/collections/internalMarkers.ts
 //
-// collections の層の中だけで使う印。公開しない（collections/index.ts からも再公開しない）。
+// collections の層の中だけで使う印。公開しない（入口 ./server からも出さない）。
 
 /**
  * 複製の内側の主の create に付ける印（入力の symbol のキー）。

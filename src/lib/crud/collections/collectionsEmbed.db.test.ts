@@ -50,8 +50,8 @@ type Row = Record<string, any>;
 
 describe("集まりを持つ主の、他ドメインの withRelations での埋め込み（実 DB）", { skip }, () => {
   let db: typeof import("@/lib/drizzle").db;
-  let createCrudService: typeof import("../drizzle").createCrudService;
-  let syncCollection: typeof import("../drizzle").syncCollection;
+  let createCrudService: typeof import("../server").createCrudService;
+  let syncCollection: typeof import("../server").syncCollection;
   let defineTableCollections: typeof import("./tableCollections").defineTableCollections;
   let ownerCollection: any;
   let loaderCalls = 0;
@@ -67,7 +67,7 @@ describe("集まりを持つ主の、他ドメインの withRelations での埋�
 
   before(async () => {
     ({ db } = await import("@/lib/drizzle"));
-    ({ createCrudService, syncCollection } = await import("../drizzle"));
+    ({ createCrudService, syncCollection } = await import("../server"));
     ({ defineTableCollections } = await import("./tableCollections"));
 
     await dropTables();

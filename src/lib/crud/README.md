@@ -78,7 +78,7 @@ createCrudService<TTable, TCreate>(table, {
 ### 型パラメーター（TCreate / DefaultInsert）と upsert の要求型
 
 - `TCreate` = サービスが受け取る作成データ型。省略時は `DefaultInsert<TTable>`
-  （= `InferInsertModel<TTable>` から `id` / `createdAt` / `updatedAt` を除いた型、`drizzle/service.ts`）。
+  （= `InferInsertModel<TTable>` から `id` / `createdAt` / `updatedAt` を除いた型、`drizzle/service/index.ts`）。
   `entities/drizzle.ts` のテーブル定義変更がそのまま型に連動する
 - 作成用型を差し替える場合は `createCrudService<MyTable, CustomCreate>(...)` と第 2 型引数を明示する
 - `defaultUpsertConflictFields` / `upsert` の `conflictFields` は `TCreate` のキーからしか選べない。
@@ -322,7 +322,21 @@ const inserted = await service.replaceByQuery(
 | `getTableName()` | テーブル名を返す |
 | `duplicateWithIdMap(id, options?, tx?)` | duplicate と同じ複製をし、集まりの旧→新の従属 id の対応表も返す（集まりが無ければ `idMaps` は `{}`。`collections/README.md`「複製（2 段）」） |
 
+## Extension
+
+### 差し込み口（画面側、`@/lib/crud`）
+
+- `setApiErrorHandler((error: HttpError) => void)`: `createApiClient` の HTTP の失敗を受ける関数を 1 つ差し替える(既定は 500 以上を console.error)。呼んだ後も error は呼び手へ投げ直す
+- `registerCrudEventHandler((event: CrudEvent) => void)`: client の操作ごとの出来事 `{ action, payload?, success, error? }` を受ける関数を 1 つ置く(`action` = `CrudAction`: `get` / `create` / `delete` / `search` …)
+- どちらも 1 つだけ持つ(後から置いた物が勝つ)。アプリ全体のログ送信・監視に使い、UI には書かない(docs/!must-read/エラーハンドリング方針.md)
+
 ## Internals
+
+### サービスの組み立て（drizzle/service/・firestore/）
+
+- `createCrudService` は共有の状態(context: 関係の設定・論理削除の列・特権書き込みの検査・リレーション展開・監査)を 1 つ作り、操作の群(read / write / bulk / upsert / table / sort)を 1 つのサービスにまとめてから、集まり → ストレージ連動 → 集まりの複製 → リクエストメモ → 秘匿カラムの順に包む
+- 自分の他のメソッドを `this` で呼ぶ物(duplicate・duplicateWithIdMap・searchForSorting)は組み立ての中に置く。`this` は呼ばれたサービス(包みの後)なので、複製の create もストレージ連動と集まりを通る
+- `createFirestoreCrudService` も同じ形(context + read / write / bulk、duplicate は組み立て)
 
 ### 汎用フック（hooks/）の mutation 契約
 

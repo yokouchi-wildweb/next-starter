@@ -21,14 +21,11 @@ import type { DomainDisplay } from "@/lib/domain";
 import { getBelongsToManyRelationsOf } from "@/lib/domain";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import { createApiClient } from "../../client";
+import type { RelationData } from "./relationData";
+import { formatMessage } from "./bulkMessage";
 import { useBulkAddRelationDomain, useBulkUpdateByIdsDomain } from "../../hooks";
 
 /** リレーション先データの型 */
-type RelationData = {
-  id: string;
-  name: string;
-};
-
 export type BulkBelongsToManyFieldButtonProps = ButtonStyleProps & {
   /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */
   domain: DomainDisplay;
@@ -93,13 +90,6 @@ export type BulkBelongsToManyFieldButtonProps = ButtonStyleProps & {
    * @default "replace"
    */
   mode?: "replace" | "add";
-};
-
-/**
- * メッセージ内の {count} プレースホルダーを件数に置換
- */
-const formatMessage = (message: string, count: number): string => {
-  return message.replace(/\{count\}/g, String(count));
 };
 
 /**

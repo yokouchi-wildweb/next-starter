@@ -117,11 +117,11 @@ const keys = (count: number): string[] => generateInitialSortKeys(count);
 describe("collections オプション（実 DB の TX）", { skip }, () => {
   // 遅延 import（DATABASE_URL を読んでから @/lib/drizzle を初期化する）
   let db: typeof import("@/lib/drizzle").db;
-  let createCrudService: typeof import("../drizzle").createCrudService;
-  let syncCollection: typeof import("../drizzle").syncCollection;
-  let firstInCollection: typeof import("../drizzle").firstInCollection;
-  let firstInCollectionForAlias: typeof import("../drizzle").firstInCollectionForAlias;
-  let duplicateWithCollections: typeof import("../drizzle").duplicateWithCollections;
+  let createCrudService: typeof import("../server").createCrudService;
+  let syncCollection: typeof import("../server").syncCollection;
+  let firstInCollection: typeof import("../server").firstInCollection;
+  let firstInCollectionForAlias: typeof import("../server").firstInCollectionForAlias;
+  let duplicateWithCollections: typeof import("../server").duplicateWithCollections;
   let child: any;
   let parent: any;
   let plain: any;
@@ -147,7 +147,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
   before(async () => {
     ({ db } = await import("@/lib/drizzle"));
     ({ createCrudService, syncCollection, firstInCollection, firstInCollectionForAlias, duplicateWithCollections } = await import(
-      "../drizzle"
+      "../server"
     ));
 
     child = createCrudService(ItemTable as never, { idType: "uuid", systemColumns: ["sort"] });

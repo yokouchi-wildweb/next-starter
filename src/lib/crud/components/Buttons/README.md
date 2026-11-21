@@ -3,7 +3,7 @@
 ## Overview
 
 - CRUD ボタンコンポーネント群。レコードの操作（更新・削除・複製など）を行うボタン。入口 `@/lib/crud`
-- `domain` は文字列でなく表示用の写し(`import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display"`)を受ける。全ドメインの設定を client に読まないため(`src/lib/domain/README.md`)
+- `domain` は文字列でなく表示用の写し(`import { domainDisplay as <domain>Display } from "@/features/<domain>/entities/display"`)を受ける。全ドメインの設定を client に読まないため(`src/lib/domain/README.md`)
 - 使う時の決まりは札 .claude/rules/items/lib/crud.md にある
 
 | コンポーネント | 用途 |

@@ -5,7 +5,7 @@
 
 import axios from "axios";
 
-import type { CollectionEntry } from "../collections/collectionEntries";
+import type { CollectionEntry } from "../collections/types";
 import { normalizeHttpError } from "@/lib/errors";
 
 /** 主の id → エントリの並び */

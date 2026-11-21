@@ -5,8 +5,7 @@ import { and, eq, getTableName, inArray, isNull, sql } from "drizzle-orm";
 import { getTableConfig, type AnyPgColumn, type PgTable } from "drizzle-orm/pg-core";
 import type { BulkRelationResult } from "../types";
 import type { BelongsToManyRelationConfig } from "./types";
-
-const hasOwn = Object.prototype.hasOwnProperty;
+import { hasOwn } from "../utils/object";
 
 type RelationValueMap = Map<string, unknown[]>;
 
@@ -28,7 +27,7 @@ export function separateBelongsToManyInput<
   const relationValues: RelationValueMap = new Map();
 
   relations.forEach((relation) => {
-    if (hasOwn.call(sanitizedData, relation.fieldName)) {
+    if (hasOwn(sanitizedData, relation.fieldName)) {
       const value = sanitizedData[relation.fieldName];
       relationValues.set(relation.fieldName, Array.isArray(value) ? value : []);
       delete sanitizedData[relation.fieldName];
