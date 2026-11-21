@@ -79,7 +79,10 @@ export default function RootLayout({
       </head>
 
       <body suppressHydrationWarning className="antialiased font-sans">
-        <SiteThemeSync />
+        {/* 殻の外へ: URL を読む葉(usePathname)と Provider(セッション・門番)の下は request ごとに流し込む。fallback null = 見た目は変えない */}
+        <Suspense fallback={null}>
+          <SiteThemeSync />
+        </Suspense>
         <Suspense fallback={null}>
           <FirebaseAnalytics />
         </Suspense>
@@ -92,10 +95,14 @@ export default function RootLayout({
         <GlobalToast />
         {/* Provider の入れ子は src/wiring/AppProviders.tsx(Tooltip → reCAPTCHA → 認証セッション → 管理コマンド → 画像ビューア) */}
         {/* 門番の client への受け渡し: 利用者の枠の値をここで計算して渡す(管理の枠は admin の守りの layout が包み直す) */}
-        <AppProviders gate={clientGateState("user")}>
-          {children}
-        </AppProviders>
-        <RedirectToastProvider />
+        <Suspense fallback={null}>
+          <AppProviders gate={clientGateState("user")}>
+            {children}
+          </AppProviders>
+        </Suspense>
+        <Suspense fallback={null}>
+          <RedirectToastProvider />
+        </Suspense>
         {/* Firebase Phone Auth用reCAPTCHAコンテナ（モーダル外に配置が必要） */}
         <Block id="phone-verification-recaptcha" />
       </body>

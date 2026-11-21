@@ -76,6 +76,12 @@ const nextConfig: NextConfig = {
   // AI エージェントの下の next dev(16.3 以降)が、追跡中の AGENTS.md に nextjs-agent-rules の塊を書き足すのを止める。
   // エージェントへの案内の中身は CLAUDE.md の側で持つ(AGENTS.md はそこへの入口だけ)。false なら既にある塊も next dev が消す
   agentRules: false,
+  // Cache Components(静的な殻 + 実行時の中身の流し込み)を有効にする。両モードで同じ挙動の直しは区切り cc-prep で済み
+  // (API と cron の入口の connection()・root layout は request を読まない・セッションは promise・segment config の 5 つの名なし)。
+  // root layout の Suspense(fallback null)が Provider と URL を読む葉を殻から外す。fork はこの区間を取り込む時に build の検査を通す。
+  // partialPrefetching は段 3(見える読み手ごとの境界)まで false。書かないと Next が警告する(既定が変わる途中の鍵)
+  cacheComponents: true,
+  partialPrefetching: false,
   generateBuildId: () => buildId,
   env: {
     NEXT_BUILD_ID: buildId,
