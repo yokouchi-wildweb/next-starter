@@ -49,6 +49,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - targets the watch does not hit are skipped with one line; `--all` runs all | `scripts/runner/gates/README.md`
    - code changed (`.ts` / `.tsx` / `.js` / `.mjs`): `pnpm typecheck` and `pnpm exec eslint --no-warn-ignored <changed code files>` (an ignored file, e.g. a _template placeholder file, is skipped without a warning)
    - by where you changed (run every one that applies; checks on the gate = pnpm check registry, pnpm check routes, pnpm check cron, pnpm test scripts/structure/config/moduleLoad.test.mjs, pnpm check eslint, pnpm test scripts/structure/cycles/cycles.test.mjs, pnpm check rules, pnpm check notices are run by `pnpm check --gate=ship` above, never repeat them):
+     - `pnpm test` skips the tests a gate runs unless named (D389)
      - adding / deleting under `src/lib/`, `src/lib/CATALOG.md` → `pnpm test src/lib/folderCatalog/catalog.test.mjs`
      - `domainEntry.ts`, `domain.json` → registry drift → `pnpm generate registry`
      - `entities/drizzle.ts`, `src/registry/schemaRegistry.ts` → `pnpm test scripts/structure/registry/` | an index changed → write the explanation of the diff `pnpm db:push:check` prints in the report (never run db:push itself)
