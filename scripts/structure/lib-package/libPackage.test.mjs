@@ -1,5 +1,6 @@
 // scripts/structure/lib-package/libPackage.test.mjs
-// 単体用 tsconfig の照合と型検査(指令 23 d3)・sideEffects の検査(d4)・今の repo で通ること(d5)。
+// 単体用 tsconfig の照合と型検査(指令 23 d3)・sideEffects の検査(d4)。今の repo の lib の検査は門
+// pnpm check lib-package だけ(テストで回すと 1 回の --safe で 45 個の型検査が重なる)。
 // 実行: pnpm test scripts/structure/lib-package/libPackage.test.mjs
 // fixture = 一時フォルダの小さな repo(ルートの tsconfig.json・src/lib/<名前>/・偽の node_modules)。実物の lib には置かない。
 
@@ -8,14 +9,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 
 import { clearLibPackageCache } from "../../../src/lib/libPackage/index.mjs";
 import { checkLibs } from "./check.mjs";
 import { sideEffectsInSource } from "./sideEffects.mjs";
 import { expectedTsconfig } from "./standalone.mjs";
-
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
 const ROOT_TSCONFIG = {
   compilerOptions: { target: "ES2020", module: "esnext", moduleResolution: "bundler", strict: true, noEmit: true, skipLibCheck: true, types: [], paths: { "@/*": ["./src/*"] } },
@@ -201,11 +199,11 @@ test("@lib-config/<自分> の行は設定 config.ts を持つ lib だけ。無�
   });
 });
 
-test("package.json の形に問題がある lib は飛ばす(形は lint と形の検査が見る)", () => {
+test("package.json の形に問題がある lib は型検査を飛ばし、閉じていない不備 shape 1 つで落ちる(形の中身は lint と形の検査が見る)", () => {
   withRepo({ ...B, ...libA(`export const a = 1;\n`, { name: "a" }) }, { tsconfig: ["b"] }, (root) => {
     const result = checkLibs(root);
     assert.deepEqual(result.skipped, ["a"]);
-    assert.deepEqual(result.problems, []);
+    assert.deepEqual(codes(result), ["shape"]);
   });
 });
 
@@ -254,10 +252,4 @@ test("副作用の判定: 直下の文の種類ごと", () => {
   ]);
   // 先頭でない文字列の文は指示ではない
   assert.deepEqual(kinds(`export const a = 1;\n"use client";\n`), ["モジュール直下の式の文"]);
-});
-
-test("d5: 今の repo: package.json を持つ lib のどれにも問題なし", () => {
-  clearLibPackageCache();
-  const result = checkLibs(repo);
-  assert.deepEqual(result.problems, []);
 });
