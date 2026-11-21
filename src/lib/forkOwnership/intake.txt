@@ -260,6 +260,8 @@ add src/wiring/dbAgent/suffixProviders/*.{ts,tsx}  # 受け口 suffixProviders
 add src/wiring/dbAgent/suffixProviders/*/**  # 受け口 suffixProviders(フォルダ形)
 add src/wiring/formInputs/inputs/*.{ts,tsx}  # 受け口 inputs
 add src/wiring/formInputs/inputs/*/**  # 受け口 inputs(フォルダ形)
+add src/wiring/serverErrors/reporters/*.{ts,tsx}  # 受け口 reporters
+add src/wiring/serverErrors/reporters/*/**  # 受け口 reporters(フォルダ形)
 edit src/app/_providers/ForkProviders.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/app/admin/_layout/AdminHeader.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
 edit src/features/core/auth/components/Registration/RateLimitWarningContent.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)

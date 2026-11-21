@@ -13,6 +13,7 @@
 ### 向き（import してよい場所）
 
 - `src/app/**`（API ルート・Screen・loader）、`src/proxies/**`、`src/proxy.ts`
+- `src/instrumentation.ts`（Next の instrumentation の入口）は `serverErrors/` の入口 `@/wiring/serverErrors` だけ
 - cron のフォルダ `src/app/api/cron/<name>/` では `task.ts` と、1 行の `route.ts` からの `cronRoute.ts` だけ（fork 所有の `task.override.ts` は不可）。task.ts の `run` の中で動的 import する（`const { lookupDomainService } = await import("@/wiring/domainRegistry")`）
 - `business.ts` だけは例外: `@/business` の名前で features・app・proxies・scripts(`await import`)と、上書きファイル(`src/config/lib/{mail,url,metadata}.config.ts` ほか)から読む(データに届かず、`src/business` と `lib/business` だけを読む。lib と utils は読まず値を引数で受ける)
 - features / lib / components / registry からは import しない（`domainConfig.ts` も同じ。features の server は自分の domain.json、client は写し entities/display.ts を読む）。lib がドメイン名からサービスを引きたいときは、呼び手（ルート）が wiring の関数を注入する（例: `src/lib/dataMigration` の `services` オプション、`storageObject` の sweep の `lookupService`）
@@ -57,6 +58,8 @@
   - `lib/googleTag` の `<GoogleTag>`（client）+ 流入経路の判別表（`features/core/userAcquisition/lib/classifyVisit` の `getChannelDefinitions`。招待などの独自のリンクの印を GA4 の `campaign_source` / `campaign_medium` にする）→ `GoogleTag`（server。root の `src/app/layout.tsx` が描き、表はシリアライズできる値として prop で渡る。lib は features を読まないので結ぶのはここ）
 - `formInputs/`: データに届くか = いいえ
   - 独自の入力部品の一覧 → `@/lib/formSuite` の Provider（`FormInputsRoot.tsx`、受け口 `inputs/`。書き方は `inputs/README.md`）
+- `serverErrors/`: データに届くか = いいえ（上流の項目は 0。fork の項目がデータに届くなら届く wiring になる）
+  - サーバーの失敗の送り先の一覧（受け口 `reporters/`、lazy）+ `lib/serverErrorReport` → `serverErrorReport`（`register` / `onRequestError` / `report`。読み手は `src/instrumentation.ts`。書き方は `serverErrors/README.md`）
 
 ## Extension
 
@@ -78,10 +81,10 @@ DB 調査エージェントの拡張点は `src/wiring/dbAgent/`(宣言と受け
 
 ## Internals
 
-wiring どうしの import の例外は次の 2 つだけ（`pnpm test src/wiring/wiring.test.mjs` の `isReceptacleImport` / `isFormInputsBundleImport` と同じ）:
+wiring どうしの import の例外は次の 2 つだけ（`pnpm test src/wiring/wiring.test.mjs` の `isReceptacleImport` / `isBundleImport` と同じ）:
 
 - 受け口: 生成物 `wiring/<束>.ts` → その束の受け口の項目 `wiring/<束>/<受け口>/…`（受け口 = `wiring/<束>/extensionPoints.ts` が宣言した `dir`）と、同じ受け口の中の項目どうし。項目は fork が足した物を含み、名前に fork の印は付けない。例: 生成物 `dbAgent.ts` → `dbAgent/extraTools/<名前>.ts`・`dbAgent/promptFragments/<名前>.ts`
-- 入力部品の束: `AppProviders.tsx` → `formInputs/FormInputsRoot.tsx` と、`formInputs/` の中どうし（受け口 `formInputs/inputs/` の項目を含む）
+- 閉じた束: `AppProviders.tsx` → `formInputs/FormInputsRoot.tsx` と、束のフォルダ（`formInputs/`・`serverErrors/`）の中どうし（入口 → 生成物の一覧 → 受け口の項目）
 
 ## Verification
 

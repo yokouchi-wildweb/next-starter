@@ -5,10 +5,10 @@
 // 1. 目録: Tier1 では src/wiring に置けるファイルは WIRING_FILES に書いたものだけ（upstream のファイルは勝手に増やさない。
 //    増やすなら README と一緒に）。fork は目録を見ない（fork が足したファイルは印なしの名前。所有は git の分岐点で pnpm workflow ownership check が見る）。
 //    名前に fork の印（旧い `<名前>[.client].<fork ID>.ts(x)`）は全 Tier で止める（src/lib/districtMap/dottedNames.mjs）。2〜4 は fork のファイルにも同じに掛かる
-// 2. 向き: wiring を import してよいのは src/app/**・src/proxies/**・src/proxy.ts だけ。cron のフォルダ（src/app/api/cron/<name>/）では
+// 2. 向き: wiring を import してよいのは src/app/**・src/proxies/**・src/proxy.ts と、src/instrumentation.ts(serverErrors/index.ts だけ)。cron のフォルダ（src/app/api/cron/<name>/）では
 //    task.ts だけ（fork 所有の task.override.ts と 1 行の route.ts は不可）。features / lib / components / registry からは import しない
 // 3. wiring どうしは import しない（別の wiring は自分で登録表を結ぶ。共有するのは lib の汎用版と登録表だけ）
-//    例外は入力部品の束: AppProviders → formInputs/FormInputsRoot と、formInputs の中どうし（Root → 一覧 → 項目）と、
+//    例外は閉じた束: AppProviders → formInputs/FormInputsRoot と、束のフォルダ（BUNDLE_DIRS: formInputs・serverErrors）の中どうし（入口 → 一覧 → 項目）と、
 //    受け口: 生成物 wiring/<名前>.ts → wiring/<名前>/extensionPoints.ts が宣言した受け口の中の項目（fork が足した項目を含む）、
 //    受け口の中の項目どうし（同じ受け口の中だけ）
 // 4. 「データに届く wiring」= services/server を値 import する wiring。判定は registry → domainEntry.ts → 遅延 import（動的 import も辺に数える）
@@ -32,11 +32,16 @@ const srcDir = join(repoRoot, "src");
 const wiringDir = join(srcDir, "wiring");
 
 /** src/wiring に置けるファイル（目録） */
-const WIRING_FILES = ["AppProviders.tsx", "GoogleTag.tsx", "README.md", "adminScreenParts.test.mts", "adminScreenParts.ts", "apiRoute.test.mts", "apiRoute.ts", "business.ts", "cronRoute.ts", "dbAgent", "dbAgent.ts", "domainConfig.ts", "domainRegistry.ts", "formInputs", "pageGuard.ts", "routeFactory.test.mts", "wiring.test.mjs"];
+const WIRING_FILES = ["AppProviders.tsx", "GoogleTag.tsx", "README.md", "adminScreenParts.test.mts", "adminScreenParts.ts", "apiRoute.test.mts", "apiRoute.ts", "business.ts", "cronRoute.ts", "dbAgent", "dbAgent.ts", "domainConfig.ts", "domainRegistry.ts", "formInputs", "pageGuard.ts", "routeFactory.test.mts", "serverErrors", "wiring.test.mjs"];
 
 /** wiring を import してよい場所（src 相対の接頭辞） */
 const ALLOWED_IMPORTER_PREFIXES = ["app/", "proxies/"];
 const ALLOWED_IMPORTER_FILES = ["proxy.ts"];
+/** Next の instrumentation の入口は失敗の記録の束だけを読む */
+const INSTRUMENTATION_FILE = "instrumentation.ts";
+const INSTRUMENTATION_WIRING = "wiring/serverErrors/index.ts";
+/** 中どうしの import を許す閉じた束のフォルダ（入口 → 生成物の一覧 → 受け口の項目が 1 つのフォルダに収まる） */
+const BUNDLE_DIRS = ["formInputs", "serverErrors"];
 const CRON_DIR = "app/api/cron/";
 
 const toPosix = (p) => p.split(sep).join("/");
@@ -79,10 +84,10 @@ function resolveSource(fromFile, source) {
   return null;
 }
 
-/** 入力部品の束だけの例外: AppProviders → FormInputsRoot、formInputs の中どうし */
-function isFormInputsBundleImport(from, to) {
+/** 閉じた束の例外: AppProviders → FormInputsRoot、同じ束のフォルダの中どうし */
+function isBundleImport(from, to) {
   if (from === "wiring/AppProviders.tsx" && to === "wiring/formInputs/FormInputsRoot.tsx") return true;
-  return from.startsWith("wiring/formInputs/") && to.startsWith("wiring/formInputs/");
+  return BUNDLE_DIRS.some((dir) => from.startsWith(`wiring/${dir}/`) && to.startsWith(`wiring/${dir}/`));
 }
 
 /**
@@ -136,6 +141,7 @@ const CRON_ROUTE_WIRING = "wiring/cronRoute.ts";
 
 export function isAllowedImporter(relPath, targetRel) {
   if (ALLOWED_IMPORTER_FILES.includes(relPath)) return true;
+  if (relPath === INSTRUMENTATION_FILE) return targetRel === INSTRUMENTATION_WIRING;
   if (!ALLOWED_IMPORTER_PREFIXES.some((prefix) => relPath.startsWith(prefix))) return false;
   if (relPath.startsWith(CRON_DIR)) {
     // cron のフォルダは task.ts（どの wiring も可）と、1 行の route.ts（cronRoute.ts だけ）。task.override.ts は fork 所有で schedule / disabled しか持てない
@@ -194,7 +200,7 @@ test("目録: Tier1 は src/wiring のファイルが WIRING_FILES と一致、�
   assert.deepEqual(problems, [], problems.join("\n"));
 });
 
-test("向き: wiring を import するのは src/app・src/proxies・src/proxy.ts だけ（cron は task.ts と route.ts → cronRoute.ts）、wiring どうしは import しない", () => {
+test("向き: wiring を import するのは src/app・src/proxies・src/proxy.ts・src/instrumentation.ts（serverErrors だけ）（cron は task.ts と route.ts → cronRoute.ts）、wiring どうしは import しない", () => {
   const problems = [];
   for (const file of walk(srcDir)) {
     const rel = toPosix(relative(srcDir, file));
@@ -203,12 +209,12 @@ test("向き: wiring を import するのは src/app・src/proxies・src/proxy.t
     for (const { source } of listImportSources(text)) {
       const target = resolveSource(file, source);
       if (!target || !toPosix(relative(srcDir, target)).startsWith("wiring/")) continue;
-      if (isFormInputsBundleImport(rel, toPosix(relative(srcDir, target)))) continue;
+      if (isBundleImport(rel, toPosix(relative(srcDir, target)))) continue;
       if (isReceptacleImport(rel, toPosix(relative(srcDir, target)), receptacleDirsOnDisk)) continue;
       if (rel.startsWith("wiring/")) {
         problems.push(`${rel} → ${source}（wiring どうしは import しない。登録表と lib の汎用版を自分で結ぶ）`);
       } else if (!isAllowedImporter(rel, toPosix(relative(srcDir, target)))) {
-        problems.push(`${rel} → ${source}（wiring を import してよいのは src/app・src/proxies・src/proxy.ts。cron は task.ts と、route.ts からの cronRoute.ts だけ）`);
+        problems.push(`${rel} → ${source}（wiring を import してよいのは src/app・src/proxies・src/proxy.ts・src/instrumentation.ts（serverErrors だけ）。cron は task.ts と、route.ts からの cronRoute.ts だけ）`);
       }
     }
   }
@@ -323,12 +329,18 @@ test("受け口の例外: 生成物 wiring/<名前>.ts → 宣言された受け
   assert.equal(isReceptacleImport("wiring/dbAgent/promptFragments/x.ts", "wiring/domainRegistry.ts", dirs), false, "項目から別の wiring へ");
 });
 
-test("入力部品の束: 例外は AppProviders → Root と formInputs の中だけ、組み込みと同名の登録は落ちる", () => {
-  assert.equal(isFormInputsBundleImport("wiring/AppProviders.tsx", "wiring/formInputs/FormInputsRoot.tsx"), true);
-  assert.equal(isFormInputsBundleImport("wiring/formInputs/FormInputsRoot.tsx", "wiring/formInputs/extensions/inputs.ts"), true);
-  assert.equal(isFormInputsBundleImport("wiring/AppProviders.tsx", "wiring/formInputs/extensions/inputs.ts"), false);
-  assert.equal(isFormInputsBundleImport("wiring/AppProviders.tsx", "wiring/domains.ts"), false);
-  assert.equal(isFormInputsBundleImport("wiring/formInputs/FormInputsRoot.tsx", "wiring/domains.ts"), false);
+test("閉じた束: 例外は AppProviders → Root と束のフォルダの中だけ、instrumentation.ts は serverErrors だけ、組み込みと同名の登録は落ちる", () => {
+  assert.equal(isBundleImport("wiring/serverErrors/index.ts", "wiring/serverErrors/extensions/reporters.ts"), true);
+  assert.equal(isBundleImport("wiring/serverErrors/extensions/reporters.ts", "wiring/serverErrors/reporters/sentry.ts"), true);
+  assert.equal(isBundleImport("wiring/serverErrors/index.ts", "wiring/formInputs/extensions/inputs.ts"), false);
+  assert.equal(isBundleImport("wiring/dbAgent/extraTools/x.ts", "wiring/dbAgent/promptFragments/y.ts"), false);
+  assert.equal(isAllowedImporter("instrumentation.ts", "wiring/serverErrors/index.ts"), true);
+  assert.equal(isAllowedImporter("instrumentation.ts", "wiring/apiRoute.ts"), false);
+  assert.equal(isBundleImport("wiring/AppProviders.tsx", "wiring/formInputs/FormInputsRoot.tsx"), true);
+  assert.equal(isBundleImport("wiring/formInputs/FormInputsRoot.tsx", "wiring/formInputs/extensions/inputs.ts"), true);
+  assert.equal(isBundleImport("wiring/AppProviders.tsx", "wiring/formInputs/extensions/inputs.ts"), false);
+  assert.equal(isBundleImport("wiring/AppProviders.tsx", "wiring/domains.ts"), false);
+  assert.equal(isBundleImport("wiring/formInputs/FormInputsRoot.tsx", "wiring/domains.ts"), false);
   assert.deepEqual(formInputItemProblems({ "a.ts": 'export const formInput = { name: "ticketRates", load };' }), []);
   assert.match(formInputItemProblems({ "a.ts": 'export const formInput = { name: "select", load };' }).join(), /組み込みの入力種別と同じ名前/);
   const dir = join(wiringDir, "formInputs/inputs");
