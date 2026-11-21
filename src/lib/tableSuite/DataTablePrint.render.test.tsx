@@ -7,7 +7,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { JSDOM } from "jsdom";
 
-import { DataTable } from "@/lib/tableSuite";
+import { DataTable } from "./index";
 
 import { tableDefaultCases } from "./infiniteFooterCases";
 

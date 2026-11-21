@@ -69,7 +69,7 @@
 - src/lib/storageCors — 別ドメインの Storage バイト読み取りの CORS 未設定を開発時に自己診断・案内。閉じた lib(入口 ".")
 - src/lib/stringCase — 名前の書き方の変換(camelCase / PascalCase / kebab-case / snake_case。生成器・lib・画面から同じ物を読む .mjs)
 - src/lib/structuredDocument — 構造化ドキュメント(文書タイプ別の構造定義とレンダラー、利用規約など)
-- src/lib/tableSuite — テーブル系 UI(DataTable / EditableGridTable / RecordSelectionTable / カードの一覧の RecordSelectionList)
+- src/lib/tableSuite — テーブル系 UI(DataTable / EditableGridTable / RecordSelectionTable / カードの一覧の RecordSelectionList)。閉じた lib: 入口 "." だけ、棚 components を peers に
 - src/lib/seed — ドメインのシード(seed.ts)の書き方 defineSeed・ref と入れる順の計画 planSeeds(入れるのは scripts/runner/seed)
 - src/lib/task — ワンショット・任意タスク(pnpm task)の定義の型 OneShotTask
 - src/lib/toast — トースト通知(GlobalToast / useToast)

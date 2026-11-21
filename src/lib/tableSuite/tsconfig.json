@@ -1,0 +1,56 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/components/*": [
+        "../../components/*"
+      ],
+      "@/lib/appEnv": [
+        "../appEnv"
+      ],
+      "@/lib/appEnv/*": [
+        "../appEnv/*"
+      ],
+      "@/lib/cn": [
+        "../cn"
+      ],
+      "@/lib/cn/*": [
+        "../cn/*"
+      ],
+      "@/lib/date": [
+        "../date"
+      ],
+      "@/lib/date/*": [
+        "../date/*"
+      ],
+      "@/lib/defineConfig": [
+        "../defineConfig"
+      ],
+      "@/lib/defineConfig/*": [
+        "../defineConfig/*"
+      ],
+      "@/lib/isClient": [
+        "../isClient"
+      ],
+      "@/lib/isClient/*": [
+        "../isClient/*"
+      ],
+      "@/lib/sortableList": [
+        "../sortableList"
+      ],
+      "@/lib/sortableList/*": [
+        "../sortableList/*"
+      ],
+      "@/lib/unsavedGuard": [
+        "../unsavedGuard"
+      ],
+      "@/lib/unsavedGuard/*": [
+        "../unsavedGuard/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}

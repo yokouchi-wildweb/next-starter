@@ -40,7 +40,7 @@ export function CellClickOverlay({
       slot="cell-click-overlay"
       // クリックの伝播は下の onClick が止める(Button の既定の止め方には頼らない = 生の button と同じ)
       propagateClick
-      onClick={(e) => {
+      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         onClick();
       }}

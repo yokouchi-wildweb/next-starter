@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { DataTable, EditableGridTable, RecordSelectionTable } from "@/lib/tableSuite";
+import { DataTable, EditableGridTable, RecordSelectionTable } from "./index";
 
 import { tableDefaultCases } from "./infiniteFooterCases";
 
