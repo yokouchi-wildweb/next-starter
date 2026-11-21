@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
 
-import { copyByImports, importedFiles } from "./lib.copyByImports.mjs";
+import { copyByImports, copyBySpecifiers, importedFiles, resolveSpecifiers } from "./lib.copyByImports.mjs";
 
 const made = [];
 after(() => made.forEach((d) => fs.rmSync(d, { recursive: true, force: true })));
@@ -63,4 +63,13 @@ test("copyByImports: nodeModules が無ければ node_modules を作らない", 
   await copyByImports({ from, to, entries: ["scripts/tool/b.mjs"] });
   assert.ok(fs.existsSync(path.join(to, "scripts/tool/b.mjs")));
   assert.ok(!fs.existsSync(path.join(to, "node_modules")));
+});
+
+test("copyBySpecifiers: @/ の指定子を tsconfig の paths で解いたファイルとその import を写す。解けない指定子は止める", async () => {
+  const from = repo();
+  const to = temp("to");
+  assert.deepEqual(resolveSpecifiers(from, ["@/lib/x"]), ["src/lib/x/index.ts"]);
+  const copied = await copyBySpecifiers({ from, to, specifiers: ["@/lib/x"], data: ["tsconfig.json"] });
+  assert.deepEqual(copied.sort(), ["src/lib/x/index.ts", "src/lib/x/y.ts", "tsconfig.json"]);
+  assert.throws(() => resolveSpecifiers(from, ["@/lib/missing"]), /解けない/);
 });

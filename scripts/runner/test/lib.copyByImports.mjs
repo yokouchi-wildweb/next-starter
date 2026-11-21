@@ -8,6 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseDependencyTree } from "dpdm";
+import ts from "typescript";
 
 /**
  * 入口から import で届くファイル(from からの相対)。node_modules・組み込み・from の外は除く
@@ -54,4 +55,32 @@ export async function copyByImports({ from, to, entries, data = [], nodeModules 
   }
   if (nodeModules) fs.symlinkSync(path.join(from, "node_modules"), path.join(to, "node_modules"), "dir");
   return copied;
+}
+
+/**
+ * import の指定子(@/… などの tsconfig の paths か相対)を、from の tsconfig.json で from の中のファイルに解く
+ * (生成器が書くファイルの import のように、まだファイルが無い物が読む先を求める)。解けない指定子は誤りで止める
+ * @param {string} from リポの根(tsconfig.json の置き場)
+ * @param {string[]} specifiers
+ * @param {string} [issuer] 指定子を書くファイル(from からの相対、相対の指定子の起点)。既定は from の根
+ * @returns {string[]} 解いたファイル(from からの相対)
+ */
+export function resolveSpecifiers(from, specifiers, issuer = "index.ts") {
+  const config = ts.readConfigFile(path.join(from, "tsconfig.json"), ts.sys.readFile).config ?? {};
+  const options = ts.parseJsonConfigFileContent(config, ts.sys, from).options;
+  const host = ts.createCompilerHost(options);
+  return specifiers.map((spec) => {
+    const resolved = ts.resolveModuleName(spec, path.join(from, issuer), options, host).resolvedModule;
+    if (!resolved || resolved.isExternalLibraryImport) throw new Error(`copyBySpecifiers: ${spec} を ${from} の中のファイルに解けない`);
+    return path.relative(from, resolved.resolvedFileName);
+  });
+}
+
+/**
+ * 指定子が指すファイルを入口に、copyByImports と同じく写す
+ * @param {{ from: string, to: string, specifiers: string[], issuer?: string, data?: string[], nodeModules?: boolean }} options
+ * @returns {Promise<string[]>} 写した道(from からの相対)
+ */
+export async function copyBySpecifiers({ from, to, specifiers, issuer, data, nodeModules }) {
+  return copyByImports({ from, to, entries: resolveSpecifiers(from, specifiers, issuer), data, nodeModules });
 }

@@ -18,8 +18,8 @@ after(() => removeAll(cleanup));
 const API_ACCESS = { read: "public", write: { roleCategories: ["admin"] } };
 
 /** 登録表が空の最小リポ + foo（domain.json だけ） */
-function project() {
-  const root = copyRegistryBase(makeProject({ configs: { foo: { singular: "foo", plural: "foos", dbEngine: "Neon", apiAccess: API_ACCESS } }, cleanup }));
+async function project() {
+  const root = await copyRegistryBase(makeProject({ configs: { foo: { singular: "foo", plural: "foos", dbEngine: "Neon", apiAccess: API_ACCESS } }, cleanup }));
   fs.mkdirSync(path.join(root, "src", "registry"), { recursive: true });
   fs.writeFileSync(path.join(root, "src", "registry", "serviceRegistry.ts"), `${GENERATED_HEADER}\nexport const serviceRegistry: DomainRegistry = {\n};\n`);
   return root;
@@ -34,8 +34,8 @@ function plannedOutputs(root) {
   ];
 }
 
-test("重ねた見え方: これから書く domainEntry.ts のキーが見え、ディスクには何も無い", () => {
-  const root = project();
+test("重ねた見え方: これから書く domainEntry.ts のキーが見え、ディスクには何も無い", async () => {
+  const root = await project();
   const workspace = createWorkspace(root);
   const overlay = overlayFromOutputs(plannedOutputs(root), workspace);
   const domains = discoverDomainEntries(root, createOverlayView(overlay));
@@ -49,8 +49,8 @@ test("重ねた見え方: これから書く domainEntry.ts のキーが見え�
   assert.equal(overlayFromOutputs(plannedOutputs(root), workspace).has(path.join(root, "src", "features", "foo", "services", "server", "fooService.ts")), false);
 });
 
-test("作れる状態なら通り、書いた後に pnpm generate registry が同じ結論になる", () => {
-  const root = project();
+test("作れる状態なら通り、書いた後に pnpm generate registry が同じ結論になる", async () => {
+  const root = await project();
   const workspace = createWorkspace(root);
   const outputs = plannedOutputs(root);
   assert.doesNotThrow(() => precheckServiceRegistry(workspace, outputs));
@@ -58,8 +58,8 @@ test("作れる状態なら通り、書いた後に pnpm generate registry が�
   assert.deepEqual(discoverDomainEntries(root).find((d) => d.dir === "foo").keys, ["foo"]);
 });
 
-test("他のドメインに domainEntry.ts が無ければ、書く前に止まり何も書かない", () => {
-  const root = project();
+test("他のドメインに domainEntry.ts が無ければ、書く前に止まり何も書かない", async () => {
+  const root = await project();
   const workspace = createWorkspace(root);
   const barServer = path.join(root, "src", "features", "bar", "services", "server");
   fs.mkdirSync(barServer, { recursive: true });

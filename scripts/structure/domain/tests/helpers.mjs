@@ -7,6 +7,9 @@ import { fileURLToPath } from "node:url";
 import { createDomainContext } from "../domain/context.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
 import { applyOutputs } from "../pipeline/apply.mjs";
+import { TYPES_MODULE } from "../render/registry/domainEntry.mjs";
+import { PRESET_MODULE } from "../render/registry/presetAccess.mjs";
+import { copyBySpecifiers } from "../../../runner/test/lib.copyByImports.mjs";
 
 export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 
@@ -35,13 +38,11 @@ export function makeProject({ templates = [], domains = [], configs = {}, cleanu
 
 /**
  * 登録表の検査(domainEntry の静的 import の決まり)が読む物を一時プロジェクトへ写す:
- * tsconfig.json(@/ の paths)と、生成された domainEntry.ts が値で読む src/lib/domain/accessPresets.ts・型の src/lib/domain/types/
+ * tsconfig.json(@/ の paths、データ)と、生成される domainEntry.ts が import する先(生成器の定数 TYPES_MODULE・PRESET_MODULE)から
+ * import で届くファイル(copyBySpecifiers。置き場が動いても直さずに済む)
  */
-export function copyRegistryBase(root) {
-  fs.cpSync(path.join(repoRoot, "tsconfig.json"), path.join(root, "tsconfig.json"));
-  fs.mkdirSync(path.join(root, "src", "lib", "domain"), { recursive: true });
-  fs.cpSync(path.join(repoRoot, "src", "lib", "domain", "accessPresets.ts"), path.join(root, "src", "lib", "domain", "accessPresets.ts"));
-  fs.cpSync(path.join(repoRoot, "src", "lib", "domain", "types"), path.join(root, "src", "lib", "domain", "types"), { recursive: true });
+export async function copyRegistryBase(root) {
+  await copyBySpecifiers({ from: repoRoot, to: root, specifiers: [TYPES_MODULE, PRESET_MODULE], data: ["tsconfig.json"] });
   return root;
 }
 

@@ -11,6 +11,7 @@ import { classifyFile, diffStats, summarizeDomain } from "../cli/compare/classif
 import { generateAllConfig } from "../cli/compare/trees.mjs";
 import { runCompare } from "../cli/compare/run.mjs";
 import { repoRoot } from "./helpers.mjs";
+import { copyByImports } from "../../../runner/test/lib.copyByImports.mjs";
 
 const cleanup = [];
 after(() => cleanup.forEach((dir) => fs.rmSync(dir, { recursive: true, force: true })));
@@ -73,11 +74,8 @@ const MEMO = {
 test("実地: base で生成 → fork が手を入れる → 分類。generateFiles の残る domain.json を読み、fork のリポには書かない", { timeout: 240_000 }, async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "dc-compare-test-"));
   cleanup.push(root);
-  fs.cpSync(path.join(repoRoot, "src"), path.join(root, "src"), { recursive: true });
-  for (const dir of ["scripts/structure/domain", "scripts/structure/registry"]) fs.cpSync(path.join(repoRoot, dir), path.join(root, dir), { recursive: true });
-  // 登録表の検査(domainEntry の静的 import の決まり)が指定子を解く部品と tsconfig の paths
-  for (const rel of ["eslint-rules/resolve-import.mjs", "tsconfig.json"]) fs.cpSync(path.join(repoRoot, rel), path.join(root, rel));
-  fs.symlinkSync(path.join(repoRoot, "node_modules"), path.join(root, "node_modules"), "dir");
+  // 生成器のコードは入口から import で求める。src(生成の入力と出力の木)と tsconfig(@/ の paths)はデータ
+  await copyByImports({ from: repoRoot, to: root, entries: ["scripts/structure/domain/index.mjs"], data: ["src", "tsconfig.json"], nodeModules: true });
   fs.writeFileSync(path.join(root, ".gitignore"), "node_modules\n");
   const memoDir = path.join(root, "src/features/memo");
   fs.mkdirSync(memoDir, { recursive: true });

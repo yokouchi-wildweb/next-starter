@@ -1,6 +1,6 @@
 // サンプルドメイン（sample / sampleCategory / sampleTag / sampleImage）の生成物が現在のテンプレート・生成器と一致するかを検査する。
 // テンプレートや生成器を変えたのにサンプルを再生成し忘れると落ちる（fork が手本にするサンプルの陳腐化防止）。
-// 作業ツリーを上書きしないよう、src/ と scripts/structure/domain/・scripts/structure/registry/ を一時ディレクトリへ複製して生成・比較する。
+// 作業ツリーを上書きしないよう、src/ と生成器(入口から import で届くコード、copyByImports)を一時ディレクトリへ複製して生成・比較する。
 // 対象ドメインが存在しなければスキップする（サンプルを削除した fork では何もしない）。
 // 実行: pnpm test scripts/structure/domain/tests/sampleDrift.test.mjs
 import { test } from "node:test";
@@ -10,6 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { copyByImports } from "../../../runner/test/lib.copyByImports.mjs";
 
 const SAMPLE_DOMAINS = ["sample", "sampleCategory", "sampleTag", "sampleImage"];
 
@@ -29,17 +30,13 @@ function listFiles(dir, base = dir) {
 
 const targets = SAMPLE_DOMAINS.filter((d) => fs.existsSync(path.join(rootDir, "src", "features", d, "domain.json")));
 
-test("サンプルドメインを再生成しても差分が出ない", { skip: targets.length === 0 && "サンプルドメインが無い" }, (t) => {
+test("サンプルドメインを再生成しても差分が出ない", { skip: targets.length === 0 && "サンプルドメインが無い" }, async (t) => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dc-sample-drift-"));
   t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
 
-  fs.cpSync(path.join(rootDir, "src"), path.join(tempRoot, "src"), { recursive: true });
-  fs.cpSync(generatorDir, path.join(tempRoot, "scripts", generatorName), { recursive: true });
-  // pnpm generate domain の最後に走る serviceRegistry の生成器（scripts/structure/registry/serviceRegistry/）も複製する
-  fs.cpSync(path.join(rootDir, "scripts", "structure", "registry"), path.join(tempRoot, "scripts", "structure", "registry"), { recursive: true });
-  // その検査(domainEntry の静的 import の決まり)が指定子を解く部品と tsconfig の paths
-  for (const rel of ["eslint-rules/resolve-import.mjs", "tsconfig.json"]) fs.cpSync(path.join(rootDir, rel), path.join(tempRoot, rel));
-  fs.symlinkSync(path.join(rootDir, "node_modules"), path.join(tempRoot, "node_modules"), "dir");
+  // 生成器のコード(serviceRegistry の生成器と検査が読む部品も)は入口から import で求める。src と tsconfig(@/ の paths)はデータ
+  const entry = path.join("scripts", generatorName, "index.mjs");
+  await copyByImports({ from: rootDir, to: tempRoot, entries: [entry], data: ["src", "tsconfig.json"], nodeModules: true });
 
   for (const domain of targets) {
     const result = spawnSync("node", [path.join(tempRoot, "scripts", generatorName, "index.mjs"), "--generate", domain, "--yes"], {
