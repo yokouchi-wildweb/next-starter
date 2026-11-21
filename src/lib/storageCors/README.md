@@ -2,7 +2,7 @@
 
 ## Overview
 
-- 別ドメイン(Firebase Storage 等)のバイト列をブラウザで読み取る機能で、`CORS 未設定` をエラー発生地点で開発者に気づかせる自己診断ユーティリティ。入口 `@/lib/storageCors`
+- 別ドメイン(Firebase Storage 等)のバイト列をブラウザで読み取る機能で、`CORS 未設定` をエラー発生地点で開発者に気づかせる自己診断ユーティリティ。閉じた lib(`package.json` の exports)で、入口は `@/lib/storageCors`(入口 `.`)の 1 つ。読む lib は appEnv と storage(どちらも入口から)
 - ドキュメントに辿り着かなかった開発者は CORS 未設定のまま進め、本番で初めて `Failed to fetch`(MSE/fetch)や tainted canvas(`SecurityError`)に直面する。素のエラーは原因が分かりにくいので、開発時(段階が development、`@/lib/appEnv`)に限り、原因の可能性・対処コマンド・一次ドキュメントへの導線を `console.warn` で案内する
 - 気づきの安全網で、CORS 設定の手順・判定ルール・前提(権限 / env)の一次情報は docs: `docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md`
 

@@ -34,28 +34,44 @@ function loadRawServiceAccountKey(): string {
   return key;
 }
 
+/** 鍵を設定する場所の案内(誤りの文の末尾。鍵の値は書かない) */
+const KEY_HINT =
+  "src/config/lib/firebase.config.ts の serviceAccountKey が返す値(上流は env の MY_SERVICE_ACCOUNT_KEY)に、サービスアカウントの鍵の JSON をそのまま設定してください";
+
+/** cert() が求める欄。欠けている欄の名前だけを誤りの文に出す */
+const REQUIRED_KEY_FIELDS = ["project_id", "client_email", "private_key"] as const;
+
+/** 鍵の誤り。文には鍵の値も、その一部を引用しうる解析器・SDK の文も含めない(種類と案内だけ) */
+function credentialError(kind: string): Error {
+  return new Error(`Firebase のサービスアカウントの鍵を使えません: ${kind}(値は表示しません)。${KEY_HINT}`);
+}
+
 function createCredential() {
   const serviceAccount = loadRawServiceAccountKey();
-  let parsedServiceAccount: Record<string, unknown>;
+  let parsed: unknown;
 
   try {
-    parsedServiceAccount = JSON.parse(normalizeJsonString(serviceAccount));
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    throw new Error(
-      `Firebase のサービスアカウント情報の解析に失敗しました。` +
-        `MY_SERVICE_ACCOUNT_KEY の値: ${serviceAccount}。理由: ${reason}`,
-    );
+    parsed = JSON.parse(normalizeJsonString(serviceAccount));
+  } catch {
+    throw credentialError("JSON として読めません");
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw credentialError("JSON がオブジェクトではありません");
+  }
+  const fields = parsed as Record<string, unknown>;
+  const missing = REQUIRED_KEY_FIELDS.filter((name) => typeof fields[name] !== "string" || fields[name] === "");
+  if (missing.length > 0) {
+    throw credentialError(`欄が足りません(${missing.join(", ")})`);
   }
 
   try {
-    return cert(parsedServiceAccount);
+    return cert(fields);
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    throw new Error(
-      `Firebase のサービスアカウント証明書の作成に失敗しました。` +
-        `MY_SERVICE_ACCOUNT_KEY の値: ${serviceAccount}。理由: ${reason}`,
-    );
+    // SDK の文は鍵の中身に触れうるので渡さず、誤りのコード(app/invalid-credential など)だけを出す
+    const code =
+      error && typeof error === "object" && "code" in error && typeof error.code === "string" ? `、コード ${error.code}` : "";
+    throw credentialError(`証明書を作れません(private_key の形など${code})`);
   }
 }
 
