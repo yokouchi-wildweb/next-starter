@@ -11,7 +11,7 @@ never: edit repo.json yourself (the hook stops Edit / Write and shell writes) | 
 
 ## STEPS
 1. **now**: `pnpm workflow repo-json show` and `pnpm workflow devcheck plan` (its `方針` line = the values in effect, defaults included)
-2. **what changes**: from the args or the user's words, the keys and values (`agent.<kind>`: server · browser · login · db_write · db_delete · env_add · test · check · peer = auto | manual | off; `agent.enabled` = true | false; `agent.db_push` · `agent.env_production` · `agent.deploy` = off | manual; `agent.<danger>.entry` / `agent.deploy.db_entry` = a command) | unclear → ask which key; STOP
+2. **what changes**: from the args or the user's words, the keys and values (`agent.<kind>`: server · browser · login · db_write · db_delete · env_add · peer = auto | manual | off; `agent.enabled` = true | false; `agent.db_push` · `agent.env_production` · `agent.deploy` = off | manual; `agent.<danger>.entry` / `agent.deploy.db_entry` = a command) | unclear → ask which key; STOP
 3. **ask once**:
    ```
    repo.json の方針を変えます:

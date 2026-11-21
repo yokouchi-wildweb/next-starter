@@ -8,7 +8,7 @@ import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
-import { migrate, parseValue, readValues, RepoJsonError, setValue } from "./lib.mjs";
+import { migrate, parseValue, readValues, RepoJsonError, setValue, unsetValue } from "./lib.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const made = [];
@@ -73,6 +73,18 @@ test("set: 読み手の決まりで確かめて 1 鍵 1 行で書く。ほかの
   assert.throws(() => setValue(broken, "tier", "leaf"), /JSON として読めない/);
   assert.equal(parseValue("true"), true);
   assert.equal(parseValue("auto"), "auto");
+});
+
+test("unset: 1 つの鍵を消して同じ形で書き直す。無い鍵は何もしない。repo_id・tier・知らない鍵は書かない", () => {
+  const root = repo({ repoJson: '{"repo_id":"shop","tier":"leaf","agent.test":"auto","agent.server":"manual"}' });
+  assert.equal(unsetValue(root, "agent.test").removed, true);
+  assert.equal(read(root, "repo.json"), '{\n  "repo_id": "shop",\n  "tier": "leaf",\n  "agent.server": "manual"\n}\n');
+  const before = read(root, "repo.json");
+  assert.equal(unsetValue(root, "agent.check").removed, false);
+  assert.throws(() => unsetValue(root, "tier"), /消せない/);
+  assert.throws(() => unsetValue(root, "repo_id"), /消せない/);
+  assert.throws(() => unsetValue(root, "color"), /知らない鍵 color/);
+  assert.equal(read(root, "repo.json"), before);
 });
 
 test("命令: show は誤りで exit 2、get は値、set の誤りは exit 2(1 行)", () => {

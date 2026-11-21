@@ -2,7 +2,7 @@
 //
 // pnpm workflow repo-json の部品。リポ直下の repo.json(機械用の値: 名前・段・エージェントに任せる方針)を読む・書く。
 // 形と読み手は src/lib/forkOwnership/forkIds.mjs(parseRepoJson・formatRepoJson)。ここは書く側だけを持つ。
-// - set: 鍵と値を読み手の決まりで確かめ、1 鍵 1 行の形で書き直す
+// - set: 鍵と値を読み手の決まりで確かめ、1 鍵 1 行の形で書き直す / unset: 1 つの鍵を消す(repo_id・tier は消せない)
 // - migrate: 古い形(.claude/rules/project.md の fork_id: / downstream: の 2 行)を repo.json へ移し、2 行を消す。
 //   downstream: が無い・読めない時は止める(--tier で人が決める)
 // 規則と使い方: scripts/workflow/repo-json/README.md
@@ -14,6 +14,7 @@ import {
   CATALOG_FILE,
   PROJECT_RULES_FILE,
   REPO_JSON_FILE,
+  REPO_KEYS,
   TIER_VALUES,
   catalogSectionNames,
   formatRepoJson,
@@ -68,6 +69,22 @@ export const setValue = (root, key, raw) => {
   if (parsed.errors.length) throw new RepoJsonError(parsed.errors.join(" / "));
   writeFileSync(repoFile(root), text);
   return values;
+};
+
+/**
+ * 1 つの鍵を消す(set の対。廃止した方針の鍵を fork の repo.json から外す時など)。repo_id・tier は消せない。
+ * 無い鍵は何もしない。消した後の値と、消したかを返す
+ * @param {string} root @param {string} key
+ * @returns {{ values: Record<string, string | boolean>, removed: boolean }}
+ */
+export const unsetValue = (root, key) => {
+  if (REPO_KEYS.includes(key)) throw new RepoJsonError(`${key} は消せない(どのリポも持つ鍵。変えるのは set)`);
+  if (!isKnownRepoKey(key)) throw new RepoJsonError(`知らない鍵 ${key}(使える鍵 = repo_id / tier / agent.<種類>)`);
+  const current = readValues(root);
+  if (!(key in current)) return { values: current, removed: false };
+  const { [key]: _, ...values } = current;
+  writeFileSync(repoFile(root), formatRepoJson(values));
+  return { values, removed: true };
 };
 
 /**

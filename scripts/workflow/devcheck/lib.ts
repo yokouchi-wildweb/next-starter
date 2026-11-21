@@ -48,7 +48,7 @@ export const KINDS = KINDS_DATA as Record<KindName, Kind>;
 export const KIND_NAMES = KIND_NAMES_DATA as KindName[];
 
 /** 許可のフックだけの種類(計画の候補には出ない)と、方針の鍵(種類 + フックだけの種類) */
-export type HookKindName = "peer" | "test" | "check";
+export type HookKindName = "peer";
 export const HOOK_KINDS = HOOK_KINDS_DATA as HookKindName[];
 /** 危険な 3 つ(off | manual だけ、書いていなければ manual) */
 export type DangerName = "db_push" | "env_production" | "deploy";

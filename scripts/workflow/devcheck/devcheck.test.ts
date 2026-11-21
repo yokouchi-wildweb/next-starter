@@ -54,8 +54,8 @@ test("種類の表: スキーマの push・本番の指定・確認の埋め込�
   assert.match(KINDS["db-write"].command ?? "", /^pnpm ops db inspect query /);
   assert.match(KINDS["db-delete"].command ?? "", /^pnpm ops db inspect query /);
   assert.deepEqual(KIND_NAMES, ["server", "browser", "login", "db-write", "db-delete", "env-add"]);
-  // 検査(test / check)は確かめの種類ではない(D357): 許可のフックだけの種類
-  assert.deepEqual(HOOK_KINDS, ["peer", "test", "check"]);
+  // 検査(pnpm test・pnpm check)は種類でも方針の鍵でもない(D272): 許可のフックだけの種類は peer
+  assert.deepEqual(HOOK_KINDS, ["peer"]);
 });
 
 test("方針: repo.json の agent.* から。無い鍵は既定(全部 manual、危険な 3 つも、D265)、値の誤り・宣言に無い鍵は止める", () => {
@@ -67,7 +67,9 @@ test("方針: repo.json の agent.* から。無い鍵は既定(全部 manual、
   assert.equal(p["db-write"], "manual");
   assert.equal(p["env-add"], "off");
   assert.equal(p.server, "auto");
-  assert.equal(p.test, "manual");
+  assert.equal(p.login, "manual");
+  // 廃止した鍵(agent.test・agent.check、D272)は宣言に無い鍵: fork は pnpm workflow repo-json unset で消す
+  assert.throws(() => policyOfValues({ "agent.test": "auto" }), /宣言に無い鍵 agent\.test/);
   assert.throws(() => policyOfValues({ "agent.deployment": "auto" }), /宣言に無い鍵 agent\.deployment/);
   assert.throws(() => policyOfValues({ "agent.server": "yes" }), /agent\.server の値 "yes" は auto \/ manual \/ off/);
   // 危険な 3 つ: off | manual だけ、auto・知らない値は off
@@ -160,7 +162,7 @@ test("文脈: 変数が無い = 単体。版つき key=value を読み、無い�
 });
 
 test("方針の全体のスイッチ agent.enabled(D103): false = 全部の種類(peer・危険な 3 つも)が off、無い = true、真偽値でなければ止める", async () => {
-  const allOff = policyOfValues({ "agent.enabled": false, "agent.test": "auto", "agent.db_push": "manual" });
+  const allOff = policyOfValues({ "agent.enabled": false, "agent.peer": "auto", "agent.db_push": "manual" });
   for (const key of POLICY_KEYS) assert.equal(allOff[key], "off", key);
   for (const d of DANGER_NAMES) assert.equal(allOff[d], "off", d);
   assert.equal(policyOfValues({ "agent.enabled": true, "agent.db_write": "manual" })["db-write"], "manual");
