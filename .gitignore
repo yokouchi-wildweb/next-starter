@@ -71,6 +71,9 @@ next-env.d.ts
 # Claude Code の個人用設定（マシンごと。許可モードは ~/.claude/settings.json で設定する）
 .claude/settings.local.json
 
+# 個人の注意（人 × このリポ。CLAUDE.md DOCS personal。書き方は自由で検査しない）
+CLAUDE.local.md
+
 # /flux の作業メモ（止まるたびに書き直す手元の控え。.claude/skills/flux/SKILL.md「WORK MEMO」）
 .flux/
 

@@ -6,5 +6,6 @@
 - required: Before starting any task, read the current CLAUDE.md and discover and read all .claude/rules/**/*.md files in full; follow them as this repository's instructions.
 - scope: Honor any applicability conditions declared in rule files (e.g. paths frontmatter); apply unscoped rules to all tasks.
 - cards: Item cards (.claude/rules/items/**) are path-scoped: read the cards whose paths match the files you are about to touch, in full, before touching them; before using an item from elsewhere (calling a lib, a domain's hooks or services, a shared part), also read that item's card, since it does not load where the item is merely used (CLAUDE.md RULES_FILES reach).
+- personal: If CLAUDE.local.md (this directory) or ~/.claude/CLAUDE.md exists, read it after the rules above: that person's own notes.
 - reload: At each new session and after context compaction, repeat discovery and reading before continuing work; include newly added rule files.
 - maintenance: Keep shared rules in CLAUDE.md and additional rules in .claude/rules/; do not duplicate or summarize them here.

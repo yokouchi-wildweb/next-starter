@@ -37,6 +37,7 @@ map (every core file, loaded by its paths):
 - roles: core file = the architecture canon (layers, placement, ownership, each district's role, cross-cutting rules, duties of the calling layer) | card = rules only for that item + pointers to its README | README = API, mechanism, usage, options, examples, never the source of a rule
 - duty_by_reach: a duty anyone writing that layer needs, whichever item they pick → the core file of that layer | a duty only for those who chose to use an item → its card's rules using:
 - context: this repo's overview and tier-only info → project.md | rules this repo passes to its downstream → its own section of lineage.md (rules only) | business overview → service/ | work rules → behavior.md (no switch values, no env branches) | machine values → repo.json | never copy an ancestor's overview (business reaches you through service/)
+  - one person's own notes are not repo context → personal places (CLAUDE.md DOCS personal)
 
 ## authoring (the ladder: before adding or changing any rule)
 - 1 find its place with places above | 2 write it in that file in this file's formats (paths globs: one-level braces only, nested braces never load) | 3 pnpm check rules | 4 /ship (the why goes in the commit body)
