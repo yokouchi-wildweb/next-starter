@@ -66,6 +66,7 @@ export const reporter = {
 - 受け口の宣言は `extensionPoints.ts` の `reporters`(`side: "server"`・`load: "lazy"`)
 - いまの runtime は `index.ts` が `process.env.NEXT_RUNTIME` から lib に渡す(閉じた lib は env を読まない)
 - fork の入口: `src/instrumentation.ts` は上流の版を取る(自前の register・onRequestError は項目へ移す)
+- 限界: 項目は `load()`(`import()`)でも edge 用の instrumentation の束に入る(Turbopack が `import()` の先も edge 向けに束ねる)。edge の関数が無い間は実行されないので無害。edge の関数を足す fork は項目のファイルの最上位を軽く保つ(Node 専用の物は関数の中で `import()`)
 
 ## Related
 

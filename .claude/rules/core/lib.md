@@ -2,6 +2,7 @@
 paths:
   - "src/lib/**"
   - "src/wiring/**"
+  - "src/instrumentation.ts"
   - "src/config/lib/**"
   - "src/utils/**"
 ---
