@@ -36,7 +36,7 @@ export const section = defineDashboardSection({
   - 外側を `<Section id="...">` で包み、見出しは `<SecTitle>` で揃える
   - Client Component にするなら先頭に `"use client"`。server-only なものを import せず、data（シリアライズできる値）を受ける
 - 上流の部品（`components/sections/*`・`components/parts/*`）は公開の部品。自分のセクションの中身を組むのに使ってよい
-- `export const dynamic = "force-dynamic"` は `page.tsx` 側で持つ
+- `page.tsx` に `export const dynamic = "force-dynamic"` 等のセグメント設定は書かない(cacheComponents と両立しない。lint `segment-config/cc-incompatible`)
 
 ## API
 

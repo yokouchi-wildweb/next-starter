@@ -105,7 +105,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 ```
 src/app/(user)/.../<route>/
-├── page.tsx                     export { XScreen as default } from "./_screen/XScreen";(metadata / dynamic もここ)
+├── page.tsx                     export { XScreen as default } from "./_screen/XScreen";(metadata もここ。dynamic 等のセグメント設定は書かない: src/lib/screens/README.md)
 └── _screen/
     ├── XScreen.tsx              Server Component。load<X>Screen(props) を await してセクションコンテナを描く
     └── loader.ts                最寄りの guard.ts の createLoader({ access, key?, load })。redirect / notFound / 取得(データが無くても access だけの loader を置く)

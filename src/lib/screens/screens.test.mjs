@@ -9,7 +9,7 @@
 //
 // 守りたい契約(設計: src/lib/screens/README.md):
 // 1. page.tsx は「./_screen/<X> または ./_components/<X> からの 1 行 re-export」+ 任意のページ設定
-//    (metadata / dynamic 等の export、generateMetadata、それらに必要な import)だけ。画面ロジックを page.tsx に置かない
+//    (metadata 等の export、generateMetadata、それらに必要な import)だけ。dynamic 等 5 つは取り除いて形だけを見る(可否は lint segment-config)。画面ロジックを page.tsx に置かない
 // 2. 参照先の Screen が存在し、その名前を named export していて、default export も "use client" も持たない
 // 3. loader は `import "server-only"` と、最寄りの guard.ts の createLoader(Factory が cache を張る)か React の cache() を使い load<Xxx> を export する
 // 4. 未移行の例外リストは無い(upstream も fork も全ページがスイッチ形、D30 K11)。スイッチでない page.tsx は失敗

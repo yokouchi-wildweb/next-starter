@@ -55,7 +55,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 ```
 
-`dynamic` 等のセグメント設定は page.tsx に書きます。`metadata` / `generateMetadata` は page.tsx に書くか、Screen 側に書いて `export { XScreen as default, metadata } from "./_screen/XScreen"` と一緒に re-export します。それ以外のロジック（JSX、セクションコンテナの import、`redirect` / `notFound`）は書きません（`pnpm test src/lib/screens/screens.test.mjs` が page.tsx を自動検出して検査。登録は不要）。
+書けるセグメント設定(`preferredRegion` / `maxDuration`)は page.tsx に書きます(`dynamic`・`dynamicParams`・`fetchCache`・`revalidate`・`runtime` は cacheComponents と両立しないので書きません。lint `segment-config/cc-incompatible`)。`metadata` / `generateMetadata` は page.tsx に書くか、Screen 側に書いて `export { XScreen as default, metadata } from "./_screen/XScreen"` と一緒に re-export します。それ以外のロジック（JSX、セクションコンテナの import、`redirect` / `notFound`）は書きません（`pnpm test src/lib/screens/screens.test.mjs` が page.tsx を自動検出して検査。登録は不要）。
 
 ### `_screen/<Name>Screen.tsx`（ページ層の本体）
 

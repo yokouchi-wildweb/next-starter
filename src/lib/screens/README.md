@@ -27,7 +27,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 | 対象 | 置き場 | 所有 | 規則 |
 |---|---|---|---|
-| page.tsx | `src/app/<route>/page.tsx` | 下流 | `export { XScreen as default } from "./_screen/XScreen";` の 1 行。`dynamic` 等のセグメント設定は page.tsx に書く。`metadata` / `generateMetadata` は page.tsx に書くか Screen から re-export する |
+| page.tsx | `src/app/<route>/page.tsx` | 下流 | `export { XScreen as default } from "./_screen/XScreen";` の 1 行。書けるセグメント設定(`preferredRegion` / `maxDuration`)は page.tsx に書く。`dynamic`・`dynamicParams`・`fetchCache`・`revalidate`・`runtime` は書かない(cacheComponents と両立しない。lint `segment-config/cc-incompatible`、上流 error・fork warn。layout.tsx・route.ts も同じ)。`metadata` / `generateMetadata` は page.tsx に書くか Screen から re-export する |
 | 既定画面（page 層） | `src/app/<route>/_screen/<Name>Screen.tsx` | ルートを作った側 | 1 ルート 1 Screen。Server Component（`"use client"` 不可）。loader を await してセクションコンテナを描く。状態を持たない |
 | loader | `src/app/<route>/_screen/loader.ts` | ルートを作った側 | **契約**。最寄りの guard.ts の `createLoader` で作る page 入口（access の評価 → ドメインのサービスを呼んで組み立てる・redirect / notFound）。ルートの付属物なので Screen の隣に置く |
 | 範囲の方針 | `src/app/<range>/guard.ts`（layout.tsx の隣、root は `src/app/guard.ts`） | 範囲を作った側 | 配下の全ページに掛かる方針（親の `extend` で狭めるだけ）。layout は `await guard()` の 1 行（API の「範囲（guard.ts）と loader の書き方」） |
@@ -313,7 +313,7 @@ export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 - **Screen は同じルートの loader を import し、本体の最上位（最初の `return` より前）で `await` する**（データの無い Screen も access だけの loader を await する）。条件分岐・try・コールバックの中や JSX の中で呼ばない。`pnpm test src/lib/screens/screens.test.mjs` とルート地図（Internals の「ルート地図（`src/app/route-map.jsonl`）」）が同じ解析で検査する。差し替え Screen（`_components/`）は `../_screen/loader` か自分の `./loader`（`_components/loader.ts`）を呼ぶ
 - Screen はサーバーのデータを自分で取らない（services/server・DB の値 import は lint `page-authz/layout-no-server-data` が止める）。表示用の利用者は client の `useAuthSession`（root の `AuthSessionProvider`）
 - 差し替えは「同じルート内」が基本条件（範囲の guard.ts と root の Provider を前提にする）
-- `metadata` は Screen 側に書いて page.tsx から `export { XScreen as default, metadata } from "./_screen/XScreen"` と re-export してもよい（`generateMetadata` / `viewport` も同様）。`dynamic` 等のセグメント設定は Next が静的解析するため page.tsx 自体に書く
+- `metadata` は Screen 側に書いて page.tsx から `export { XScreen as default, metadata } from "./_screen/XScreen"` と re-export してもよい（`generateMetadata` / `viewport` も同様）。書けるセグメント設定(`preferredRegion` / `maxDuration`)は Next が静的解析するため page.tsx 自体に書く(`dynamic` 等 5 つは書かない: 上の表)
 
 ### セクションコンテナの条件（契約 D）
 
@@ -380,7 +380,6 @@ export default { forkScanExcludes: ["src/app/lab"] } satisfies ScreensOverride;
 ```
 src/app/admin/(protected)/samples/
 ├── page.tsx                          write-once。初回だけ生成、以後 pnpm generate domain は上書きしない(fork 所有)
-│                                     export const dynamic = "force-dynamic";
 │                                     export { AdminSampleListScreen as default, metadata } from "./_screen/AdminSampleListScreen";
 ├── _screen/AdminSampleListScreen.tsx 毎回再生成(手で編集しない)。metadata もここ(ラベル変更が再生成で反映される)
 └── _components/                      fork 所有。生成器は触らない
