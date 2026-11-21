@@ -86,7 +86,7 @@ export function createProfileBase(
   /**
    * userId でプロフィールを削除
    */
-  async function removeByUserId(userId: string): Promise<boolean> {
+  async function deleteByUserId(userId: string): Promise<boolean> {
     const result = await db
       .delete(table)
       .where(eq(table.userId, userId))
@@ -100,6 +100,6 @@ export function createProfileBase(
     getByUserId,
     existsByUserId,
     updateByUserId,
-    removeByUserId,
+    deleteByUserId,
   } as ProfileBase;
 }

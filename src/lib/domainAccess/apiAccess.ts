@@ -12,7 +12,7 @@ export const DOMAIN_CRUD_OPERATIONS = [
   "count",
   "create",
   "update",
-  "remove",
+  "delete",
   "upsert",
   "duplicate",
   "restore",
@@ -85,7 +85,7 @@ export type DataCommandOverride = "allow" | "deny";
 export type DomainApiAccessConfig = {
   /** 読み取り操作（list, get, search, count）の既定ルール */
   read?: DomainApiAccessRule;
-  /** 書き込み操作（create, update, remove, upsert, ...）の既定ルール */
+  /** 書き込み操作（create, update, delete, upsert, ...）の既定ルール */
   write?: DomainApiAccessRule;
   /** 操作単位の上書き（read/write より優先）。truncateAll / export / import はここにだけ書ける */
   operations?: Partial<Record<DomainApiOperation, DomainApiAccessRule>>;

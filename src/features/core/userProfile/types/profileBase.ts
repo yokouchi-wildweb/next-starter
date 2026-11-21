@@ -35,5 +35,5 @@ export type ProfileBase = {
   getByUserId: (userId: string) => Promise<Record<string, unknown> | null>;
   existsByUserId: (userId: string) => Promise<boolean>;
   updateByUserId: (userId: string, data: Record<string, unknown>) => Promise<Record<string, unknown> | null>;
-  removeByUserId: (userId: string) => Promise<boolean>;
+  deleteByUserId: (userId: string) => Promise<boolean>;
 };

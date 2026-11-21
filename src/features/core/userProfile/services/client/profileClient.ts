@@ -85,13 +85,13 @@ export const profileClient = {
     ),
 
   /** プロフィールIDで削除 */
-  remove: (role: string, id: string) =>
+  delete: (role: string, id: string) =>
     handleRequest(async () =>
       (await axios.delete<{ success: boolean }>(`${buildBaseUrl(role)}/${id}`)).data,
     ),
 
   /** userIdでプロフィールを削除 */
-  removeByUserId: (role: string, userId: string) =>
+  deleteByUserId: (role: string, userId: string) =>
     handleRequest(async () =>
       (await axios.delete<{ success: boolean }>(`${buildBaseUrl(role)}/by-user/${userId}`)).data,
     ),

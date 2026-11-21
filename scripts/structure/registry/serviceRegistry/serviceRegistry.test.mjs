@@ -136,7 +136,7 @@ test("useImportExport: false の core は import だけ閉じ、export / truncat
   // それ以外の既存 core 行はデータ操作 3 つとも管理者
   // setting の読み書きは専用の窓口だけ。汎用 API は export のほか閉じる
   const setting = defaults.setting.access;
-  for (const [operation, kind] of [["get", "read"], ["list", "read"], ["update", "write"], ["create", "write"], ["remove", "write"], ["truncateAll", "write"], ["import", "write"]]) assert.equal(resolveAccessRule(setting, operation, kind), "none", `setting: ${operation}`);
+  for (const [operation, kind] of [["get", "read"], ["list", "read"], ["update", "write"], ["create", "write"], ["delete", "write"], ["truncateAll", "write"], ["import", "write"]]) assert.equal(resolveAccessRule(setting, operation, kind), "none", `setting: ${operation}`);
   assert.deepEqual(resolveAccessRule(setting, "export", "write"), ADMIN_RULE);
   for (const key of ["wallet", "walletHistory", "purchaseRequest", "couponHistory", "userCounter", "interactionEvent", "chatRoom", "deviceFingerprint", "fingerprintChallenge", "couponAttributionReward", "couponIssuerGrant"]) {
     for (const operation of DOMAIN_DATA_OPERATIONS) {

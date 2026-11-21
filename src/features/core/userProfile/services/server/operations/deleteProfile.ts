@@ -19,5 +19,5 @@ export async function deleteProfile(
     return false;
   }
 
-  return base.removeByUserId(userId);
+  return base.deleteByUserId(userId);
 }

@@ -79,7 +79,7 @@ export const baseOptions = {
 |---|---|
 | create | `<prefix>.created` |
 | update | `<prefix>.updated`（`recordDiff`、差分なしはスキップ） |
-| remove / hardDelete | `<prefix>.deleted` / `<prefix>.hard_deleted` |
+| delete / hardDelete | `<prefix>.deleted` / `<prefix>.hard_deleted` |
 | restore | `<prefix>.restored` |
 | upsert | `<prefix>.upserted` |
 | bulk 系 | `<prefix>.bulk_deleted` / `bulk_hard_deleted` / `bulk_updated` / `bulk_upserted`（aggregate 時） |
