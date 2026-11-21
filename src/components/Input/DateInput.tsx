@@ -29,7 +29,7 @@ import {
 } from "react";
 
 import { cn } from "@/lib/cn";
-import { parseFlexibleDate } from "@/lib/date";
+import { formatDateLike, parseFlexibleDate } from "@/lib/date";
 import { Button } from "@/components/Button/Button";
 import { Calendar } from "@/components/Overlays/Calendar";
 import {
@@ -54,17 +54,9 @@ export type DateInputProps = BaseProps & {
   onChange?: ChangeEventHandler<HTMLInputElement>;
 };
 
-const formatDateValue = (value: DateLike): string => {
-  if (value === null || typeof value === "undefined") return "";
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed) return "";
-    const parsed = dayjs(trimmed);
-    return parsed.isValid() ? parsed.format("YYYY-MM-DD") : trimmed;
-  }
-  const parsed = dayjs(value);
-  return parsed.isValid() ? parsed.format("YYYY-MM-DD") : "";
-};
+/** 入力欄の値: 読める日付は YYYY-MM-DD、読めない文字列は打たれたまま(前後の空白だけ削る)、それ以外は空 */
+const formatDateValue = (value: DateLike): string =>
+  formatDateLike(value, "YYYY-MM-DD") ?? (typeof value === "string" ? value.trim() : "");
 
 export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, forwardedRef) => {
   const {

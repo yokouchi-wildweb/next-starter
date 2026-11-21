@@ -1,6 +1,6 @@
 "use client";
 
-import dayjs, { isDayjs } from "dayjs";
+import { formatDateLike, toDayjs } from "@/lib/date";
 
 import type { EditableGridColumn, EditableGridEditorType } from "../types";
 
@@ -80,34 +80,12 @@ const parseByType = (type: EditableGridEditorType, value: unknown) => {
     if (value instanceof Date) {
       return value;
     }
-    if (isDayjs(value)) {
-      return value.toDate();
-    }
-    if (typeof value === "string" || typeof value === "number") {
-      const parsed = dayjs(value);
-      return parsed.isValid() ? parsed.toDate() : null;
-    }
-    return null;
+    return toDayjs(value)?.toDate() ?? null;
   }
 
   return value;
 };
 
-const formatDateValue = (value: unknown, format: string) => {
-  if (value == null) {
-    return null;
-  }
-  if (
-    typeof value !== "string" &&
-    typeof value !== "number" &&
-    !(value instanceof Date) &&
-    !isDayjs(value)
-  ) {
-    return null;
-  }
-  const date = dayjs(value);
-  if (!date.isValid()) {
-    return typeof value === "string" ? value : null;
-  }
-  return date.format(format);
-};
+/** 表の表示: 読める日付は format で、読めない文字列はそのまま、それ以外は null */
+const formatDateValue = (value: unknown, format: string) =>
+  formatDateLike(value, format) ?? (typeof value === "string" ? value : null);

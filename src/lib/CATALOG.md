@@ -24,7 +24,7 @@
 - src/lib/csv — CSV ダウンロードとヘッダ付きパース
 - src/lib/districtMap — 地区(lib・ドメイン・枠・proxies)の地図の読み手: 4 種の見つけ方と各地区の欄(config と上書き・描画用の config と上書きの有無・API のキー・表・requires・門・受け口)を字面で読み、集約 src/registry/district-map.jsonl を作る(pnpm generate district-map)。受け口の宣言 extensionPoints.ts の唯一の読み手(declarations.mjs)も持つ。入口 "."(ファイルを読まない)と "./node"(node:fs で読む)
 - src/lib/dataMigration — CSV + ZIP のエクスポート / インポート(管理画面・チャンク処理)
-- src/lib/date — dayjs ラッパと柔軟な日付パース
+- src/lib/date — dayjs ラッパと柔軟な日付パース、日付らしい値(string / number / Date / dayjs)を dayjs にする toDayjs と書式の formatDateLike(棚・tableSuite・utils/date が読む)。閉じた lib(入口 ".")
 - src/lib/defineConfig — lib の設定の共通の合成器(既定 + 規則 → 上書きを深く合成、配列の扱い replace / append / id で合わせる、null で削除、Standard Schema の検査、fork 独自キーの型引数)
 - src/lib/dbAgent — 自然言語で PostgreSQL を調べる管理者向け DB 調査エージェントのデータレイヤ
 - src/lib/domain — ドメインの定義と欄: domain.json 設定の読み取り、フィールド・リレーション抽出、欄の schema(日時)と表示(format*・FieldPresenter)・主キーの論理名・管理画面のパス(getAdminPaths)、登録表（serviceRegistry）からドメイン名でサービス・表・主キーを引く汎用関数（結ぶのは src/wiring/domainRegistry.ts）。閉じた lib: 入口 "."(client でも server でも)・"./server"(登録表から引く)・"./node"(scripts・eslint-rules が読む .mjs)

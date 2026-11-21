@@ -1,6 +1,7 @@
 // src/utils/date.ts
 
-import dayjs, { isDayjs, type ConfigType } from "dayjs";
+import dayjs, { type ConfigType } from "dayjs";
+import { toDayjs } from "@/lib/date";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 // 既定ロケール "ja" をこのモジュールで読み込む（他所の副作用 import に頼るとサーバーとブラウザで曜日・月名の言語が食い違う）
@@ -30,14 +31,6 @@ const DEFAULT_TIME_ZONE = "Asia/Tokyo";
 // 時刻を持たない日付だけの文字列（date 列など）。暦の日付として扱い、時間帯で日をずらさない
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-function resolveDateInput(date: unknown): ConfigType | undefined {
-  if (date == null) return undefined;
-  if (isDayjs(date)) return date;
-  if (date instanceof Date) return date;
-  if (typeof date === "string" || typeof date === "number") return date;
-  return undefined;
-}
-
 /**
  * 日付を日本のローカル日付文字列に変換するヘルパー
  *
@@ -56,17 +49,12 @@ export function formatDateJa(date: unknown, options: FormatDateJaOptions = {}): 
     timeZone = DEFAULT_TIME_ZONE,
   } = options;
 
-  const input = resolveDateInput(date);
-  if (input === undefined) {
+  const parsed = toDayjs(date);
+  if (!parsed) {
     return fallback;
   }
 
-  const parsed = dayjs(input);
-  if (!parsed.isValid()) {
-    return fallback;
-  }
-
-  const zoned = typeof input === "string" && DATE_ONLY_PATTERN.test(input) ? parsed : parsed.tz(timeZone);
+  const zoned = typeof date === "string" && DATE_ONLY_PATTERN.test(date.trim()) ? parsed : parsed.tz(timeZone);
   return zoned.locale(locale).format(format);
 }
 
