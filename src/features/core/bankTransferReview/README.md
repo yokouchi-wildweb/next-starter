@@ -268,7 +268,7 @@
 #### storageObject ドメイン / lib/storage
 
 - `storageBindingFor()` (`features/core/storageObject`): `proof_image_url` の紐付け（drizzleBase）
-- `uploadToStorage()` (`@/lib/storage/client`): 振込明細画像のアップロード（UI 側、`useBankTransferProofUpload` 経由）
+- `uploadToStorage()` (`@/lib/storage`): 振込明細画像のアップロード（UI 側、`useBankTransferProofUpload` 経由）
 - `resolveStorageSrc()` (`@/lib/storage`): 管理画面の表示で固定 URL に解決
 
 ## Verification

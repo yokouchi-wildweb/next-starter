@@ -3,7 +3,7 @@
 import { z } from "zod";
 
 import { emptyToNull } from "@/utils/string";
-import { storageMediaValueSchema } from "@/lib/storage/schema";
+import { storageMediaValueSchema } from "@/lib/storage";
 import { nullableDatetime } from "@/lib/crud/utils";
 
 export const BANK_TRANSFER_REVIEW_STATUSES = [

@@ -12,7 +12,7 @@ import { applyStorageBinding } from "@/lib/crud/storageIntegration/applyStorageB
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
 import { DomainError } from "@/lib/errors";
 import type { StoragePurposeMap } from "@/lib/storage";
-import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server/fake";
+import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server";
 import type { StoragePort } from "@/lib/storage/server";
 
 import { storageBindingFor } from "./services/server/crudBinding";

@@ -82,12 +82,12 @@ export function FooFields({ methods, onMediaStateChange }) {
 
 ### MediaUploader
 
-- `MediaInput` を内包し、`uploadToStorage`（`@/lib/storage/client`）でアップロードする。
+- `MediaInput` を内包し、`uploadToStorage`（`@/lib/storage`）でアップロードする。
 - `purpose`（必須）: ファイルの用途 ID `<domain>.<field>`。`src/registry/storagePurposeRegistry.ts` に登録した名前。保存先・型・サイズ上限・アップロードできる人は用途で決まる（保存先パスの指定は無い）。
 - 画像の位置情報などのメタデータは、用途が strip（画像を含む用途の既定）ならサーバーが commit で消す。この部品に strip / keep の指定は無い（用途の宣言で決まる。`src/lib/storage/README.md`「位置情報の約束」）。
 - `accept`: 表示時に用途の方針をサーバーから得て（`usePurposeMetadata`）、strip の用途なら `image/*` を jpeg / png / webp / gif / avif の列挙に置き換え、それ以外の `image/〜`（HEIC など）を外す（`pickerAcceptFor`。iOS が HEIC を JPEG にして渡すため）。方針が分かるまで・取得に失敗したとき・keep の用途では変えない。
 - HEIC など、サーバーが描き直せない画像を strip の用途へ選んだときは、送る前に端末で JPEG にする。開けないブラウザでは `storage/unsupported-image` のエラーを表示する（`uploadToStorage`）。
-- **送る前の縮小**: 用途の宣言に画像の縮小の指定（`image: { maxDimension, quality? }`）があれば、サイズの検査の前に `shrinkImageForPurpose`（`@/lib/storage/client`）で長い辺を縮める。fork の画面のコードは要らない（宣言だけで有効。この部品・欄に縮小の指定は無い）。縮められなかった物は元のまま検査へ進む（失敗に数えない。失敗はアップロードの失敗だけ）。その用途では HEIC なども検査の前に JPEG にする。指定・形・守り方: `src/lib/storage/README.md`「画像の縮小の指定」「送る前の縮小」
+- **送る前の縮小**: 用途の宣言に画像の縮小の指定（`image: { maxDimension, quality? }`）があれば、サイズの検査の前に `shrinkImageForPurpose`（`@/lib/storage`）で長い辺を縮める。fork の画面のコードは要らない（宣言だけで有効。この部品・欄に縮小の指定は無い）。縮められなかった物は元のまま検査へ進む（失敗に数えない。失敗はアップロードの失敗だけ）。その用途では HEIC なども検査の前に JPEG にする。指定・形・守り方: `src/lib/storage/README.md`「画像の縮小の指定」「送る前の縮小」
 - `prepareFile?`（任意）: 呼び出し側の整え（切り抜きなど）。これが先、用途の縮小が後（縮小の約束は残る）。投げたら元のまま
 - `reencodeImage`（既定 `false`）: 送る前にブラウザで jpeg / png / webp を描き直す任意の前処理（通信量を減らしたいとき）。位置情報の除去の保証には数えない。
 - 値（`onUrlChange` に渡る・`initialUrl` で受ける）は storage ref（`storage://…`）。移行前の旧 URL もそのまま表示・保持できる。プレビューは `MediaPreview` が ref を表示用 URL にする。

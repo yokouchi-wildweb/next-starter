@@ -13,7 +13,7 @@
 
 import { useCallback, useRef } from "react";
 
-import { storageClient, uploadToStorage, type UploadedFile } from "@/lib/storage/client";
+import { storageClient, uploadToStorage, type UploadedFile } from "@/lib/storage";
 
 export const BANK_TRANSFER_PROOF_PURPOSE = "purchaseRequest.bankProof";
 

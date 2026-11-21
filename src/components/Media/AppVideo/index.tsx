@@ -14,8 +14,8 @@ import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { cn } from "@/lib/cn";
-import { usePrivateMediaRecovery } from "@/lib/storage/client/usePrivateMediaRecovery";
-import { toStorageDisplaySrc } from "@/lib/storage/ref";
+import { usePrivateMediaRecovery } from "@/lib/storage";
+import { toStorageDisplaySrc } from "@/lib/storage";
 
 export type AppVideoFit = "contain" | "cover";
 

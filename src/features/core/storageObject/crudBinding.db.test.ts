@@ -44,7 +44,7 @@ describe("storage オプション（実 DB の TX）", { skip }, () => {
   // 遅延 import（DATABASE_URL を読んでから @/lib/drizzle を初期化する）
   let db: typeof import("@/lib/drizzle").db;
   let ledger: typeof import("./services/server/ledger/drizzleLedger").drizzleLedger;
-  let fake: import("@/lib/storage/server/fake").FakeStoragePort;
+  let fake: import("@/lib/storage/server").FakeStoragePort;
   let storageService: import("./services/server/storageObjectService").StorageObjectService;
   let hard: any;
   let soft: any;
@@ -54,7 +54,7 @@ describe("storage オプション（実 DB の TX）", { skip }, () => {
   before(async () => {
     ({ db } = await import("@/lib/drizzle"));
     ({ drizzleLedger: ledger } = await import("./services/server/ledger/drizzleLedger"));
-    const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server/fake");
+    const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server");
     const { createStorageObjectService } = await import("./services/server/storageObjectService");
     const { storageBindingFor } = await import("./services/server/crudBinding");
     const { createCrudService } = await import("@/lib/crud/drizzle");

@@ -13,7 +13,7 @@ import { runWithAuditContext, type AuditContext } from "@/lib/audit";
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
 import { DomainError } from "@/lib/errors";
 import type { StoragePurposeMap } from "@/lib/storage";
-import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server/fake";
+import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server";
 
 import { storageBindingFor } from "./services/server/crudBinding";
 import { createMemoryLedger, type MemoryLedger } from "./services/server/ledger/memoryLedger";

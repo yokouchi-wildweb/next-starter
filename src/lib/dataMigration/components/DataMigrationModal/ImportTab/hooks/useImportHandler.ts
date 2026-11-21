@@ -6,7 +6,7 @@
 import { useState, useCallback } from "react";
 import axios from "axios";
 import JSZip from "jszip";
-import { storageClient, uploadToStorage, type UploadedFile } from "@/lib/storage/client";
+import { storageClient, uploadToStorage, type UploadedFile } from "@/lib/storage";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import { contentTypeFromFilename, mediaPurposeOf } from "../../../../media";

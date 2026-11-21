@@ -36,7 +36,7 @@ import { AppVideo } from "@/components/Media/AppVideo";
 
 ## Internals
 
-- ref → URL は `toStorageDisplaySrc`(`@/lib/storage/ref`)。非公開は固定 URL `/api/storage/objects/<id>`、公開は公開の URL、ref 以外はそのまま
+- ref → URL は `toStorageDisplaySrc`(`@/lib/storage`)。非公開は固定 URL `/api/storage/objects/<id>`、公開は公開の URL、ref 以外はそのまま
 - 復帰は `usePrivateMediaRecovery(src, videoRef)`(src/lib/storage/Internals.md「非公開の動画・音声」)。`videoProps` を video に広げ、`onError` と `onLoadedMetadata` だけは個別の `handleError` / `handleLoadedMetadata` で包む(`handleError` の真偽で呼び手の `onError` を呼ぶか決める)
 - 固定 URL でない src では復帰は何もせず、素の video と同じに動く
 - `status === "failed"` で失敗の行を出し、「再開」は `resume()`(最後に覚えた位置で読み直す)

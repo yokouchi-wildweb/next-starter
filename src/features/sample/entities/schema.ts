@@ -3,7 +3,7 @@
 
 import { emptyToNull } from "@/utils/string";
 import { nullableDatetime } from "@/lib/crud/utils";
-import { storageMediaValueSchema } from "@/lib/storage/schema";
+import { storageMediaValueSchema } from "@/lib/storage";
 import { z } from "zod";
 
 export const SampleBaseSchema = z.object({

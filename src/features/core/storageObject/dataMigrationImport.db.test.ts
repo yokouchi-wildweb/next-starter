@@ -47,7 +47,7 @@ const legacyUrl = (path: string) =>
 describe("dataMigration import（実 DB の TX）", { skip }, () => {
   let db: typeof import("@/lib/drizzle").db;
   let ledger: typeof import("./services/server/ledger/drizzleLedger").drizzleLedger;
-  let fake: import("@/lib/storage/server/fake").FakeStoragePort;
+  let fake: import("@/lib/storage/server").FakeStoragePort;
   let storageService: import("./services/server/storageObjectService").StorageObjectService;
   let importServiceChunk: typeof import("@/lib/dataMigration/server").importServiceChunk;
   let media: import("@/lib/dataMigration/server").DataMigrationMediaResolver;
@@ -61,7 +61,7 @@ describe("dataMigration import（実 DB の TX）", { skip }, () => {
     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = LEGACY_BUCKET;
     ({ db } = await import("@/lib/drizzle"));
     ({ drizzleLedger: ledger } = await import("./services/server/ledger/drizzleLedger"));
-    const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server/fake");
+    const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server");
     const { createStorageObjectService } = await import("./services/server/storageObjectService");
     const { storageBindingFor } = await import("./services/server/crudBinding");
     const { createCrudService } = await import("@/lib/crud/drizzle");

@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { createDataMigrationMediaResolver } from "@/app/api/data-migration/_shared/mediaResolver";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import type { StoragePurposeMap } from "@/lib/storage";
-import { createFakeStoragePort, passThroughImageStrip } from "@/lib/storage/server/fake";
+import { createFakeStoragePort, passThroughImageStrip } from "@/lib/storage/server";
 
 import { createMemoryLedger } from "./services/server/ledger/memoryLedger";
 import { createStorageObjectService } from "./services/server/storageObjectService";

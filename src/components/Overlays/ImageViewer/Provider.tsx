@@ -6,7 +6,7 @@ import { useState, useCallback, useMemo, type ReactNode, type CSSProperties } fr
 import { XIcon } from "lucide-react";
 import { DialogPrimitives, DialogClose, DialogContent, DialogTitle } from "@/components/Primitives/Dialog";
 import { BaseSkeleton } from "@/components/Skeleton/BaseSkeleton";
-import { toStorageDisplaySrc } from "@/lib/storage/ref";
+import { toStorageDisplaySrc } from "@/lib/storage";
 import { ImageViewerContext, type ImageViewerContextValue, type ImageViewerOptions } from "./context";
 
 type ImageViewerProviderProps = {

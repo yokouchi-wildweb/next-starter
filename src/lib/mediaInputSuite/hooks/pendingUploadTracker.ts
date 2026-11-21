@@ -6,7 +6,7 @@
 // - 採用済みの旧物はクライアントから消さない（差し替え・削除は業務保存の detach が担う）
 // React に依存しない純粋な処理にして、node のテストで確かめる。
 
-import { parseStorageRef } from "@/lib/storage/ref";
+import { parseStorageRef } from "@/lib/storage";
 
 export type PendingUploadTracker = {
   /** このセッションでアップロードした値を登録する（storage ref 以外は無視） */

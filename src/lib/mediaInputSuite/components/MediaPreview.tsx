@@ -8,7 +8,7 @@ import { ImagePreview, type ImagePreviewProps } from "./ImagePreview";
 import { VideoPreview, type VideoPreviewProps } from "./VideoPreview";
 import { UnsupportedPreview, type UnsupportedPreviewProps } from "./UnsupportedPreview";
 import { detectMediaType } from "../types";
-import { isStorageRef, resolveStorageSrc } from "@/lib/storage/ref";
+import { isStorageRef, resolveStorageSrc } from "@/lib/storage";
 
 export type MediaPreviewProps = {
   file?: File | null;

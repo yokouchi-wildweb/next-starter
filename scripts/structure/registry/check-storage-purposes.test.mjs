@@ -22,8 +22,8 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.
 
 const { allStoragePurposes, mergeStoragePurposes } = await import("../../../src/features/core/storageObject/services/server/purposeSource.ts");
 const storagePurposeRegistry = allStoragePurposes();
-const { listStoragePurposeProblems } = await import("../../../src/lib/storage/server/purposes.ts");
-const { isValidStoragePurposeId } = await import("../../../src/lib/storage/ref.ts");
+const { listStoragePurposeProblems } = await import("../../../src/lib/storage/server/index.ts");
+const { isValidStoragePurposeId } = await import("../../../src/lib/storage/index.ts");
 const { FIXED_STRIP_PURPOSES } = await import("../../../src/features/core/storageObject/services/server/purposeSource.ts");
 
 /** src/features/<domain>/domain.json と src/features/core/<domain>/domain.json（ドメイン名 = フォルダ名） */

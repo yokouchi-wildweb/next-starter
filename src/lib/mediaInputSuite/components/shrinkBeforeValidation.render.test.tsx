@@ -7,6 +7,9 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { JSDOM } from "jsdom";
 
+// 入口 "." は ref の純関数とアップロードの部品を一緒に出す: 本物を写し、アップロードの部品だけを偽物にする
+import * as realStorage from "@/lib/storage";
+
 const dom = new JSDOM("<!doctype html><html><body></body></html>", { url: "http://localhost/" });
 const g = globalThis as Record<string, unknown>;
 for (const key of ["window", "document", "HTMLElement", "HTMLInputElement", "Node", "Event", "MouseEvent", "File", "FileList", "navigator", "getComputedStyle"]) {
@@ -26,8 +29,9 @@ const uploaded: { name: string; size: number }[] = [];
 const shrinkCalls: { name: string; purpose: string }[] = [];
 let shrinkGate: Promise<void> | null = null;
 let shrinkThrows = false;
-mock.module("@/lib/storage/client", {
+mock.module("@/lib/storage", {
   namedExports: {
+    ...realStorage,
     uploadToStorage: (file: File) => {
       uploaded.push({ name: file.name, size: file.size });
       return { cancel: () => {} };

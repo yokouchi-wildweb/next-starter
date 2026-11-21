@@ -5,7 +5,7 @@
 // プレビュー等）は従来どおりそのまま渡す（toStorageDisplaySrc。overlays と同じ規則）。
 // 非公開ファイルの固定 URL（/api/storage/）は呼び出し側の指定に関わらず unoptimized。
 
-import { isPrivateObjectPath, toStorageDisplaySrc } from "@/lib/storage/ref";
+import { isPrivateObjectPath, toStorageDisplaySrc } from "@/lib/storage";
 
 import { isOptimizableSrc } from "./optimizable";
 
