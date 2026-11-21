@@ -3,24 +3,46 @@
 // - 範囲は段の並びで親子 AND(子は狭めるだけ)。setup 誘導・未認証・status 別・権限不足の行き先、無ければ notFound
 // - loader は範囲とページの access を単独で評価し、拒否なら load を呼ばない。public の主体は利用可能な status のときだけ
 // - key が返すプリミティブが load に渡る
+// - access の評価は差し込む関数(束の evaluateAccess)。ここでは auth の評価と同じ答えを返す小さな代わりを置く
+//   (閉じた lib は features を読まない。本物の評価 evaluateApiAccessRule は auth のテストが見る)
 // 実行: pnpm test src/lib/pageGuard/createPageGuard.test.mts
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { evaluateApiAccessRule } from "@/features/core/auth/services/server/apiAccess";
-
 import { createPageGuard } from "./createPageGuard.ts";
+import type { PageAccess, PageAccessDecision } from "./types.ts";
 
 type FakeUser = { userId: string; role: string; status: string };
+
+/** ロール → カテゴリ(テストの利用者の分だけ) */
+const ROLE_CATEGORY: Record<string, string> = { admin: "admin", editor: "admin", user: "user" };
+const AVAILABLE_STATUSES: readonly string[] = ["active"];
+
+/** auth の evaluateApiAccessRule と同じ順の代わり: none → public → 未認証 → status → authenticated → roles → roleCategories */
+function evaluateAccess(
+  rule: PageAccess,
+  user: FakeUser | null,
+  options: { allowStatuses?: readonly string[] },
+): PageAccessDecision {
+  if (rule === "none") return "not_found";
+  if (rule === "public") return "granted";
+  if (!user) return "unauthenticated";
+  if (!(options.allowStatuses ?? AVAILABLE_STATUSES).includes(user.status)) return "forbidden";
+  if (rule === "authenticated") return "granted";
+  if (rule.roles?.includes(user.role)) return "granted";
+  const category = ROLE_CATEGORY[user.role];
+  if (category && rule.roleCategories?.includes(category)) return "granted";
+  return "forbidden";
+}
 let currentUser: FakeUser | null = null;
 let currentPath: string | null = "/mypage/account";
 let usersExist = true;
 
 const defineRootGuard = createPageGuard<FakeUser>({
   resolveUser: async () => currentUser,
-  evaluateAccess: (rule, user, options) => evaluateApiAccessRule(rule, user as never, options as never),
-  availableStatuses: ["active"],
+  evaluateAccess,
+  availableStatuses: AVAILABLE_STATUSES,
   getRequestPathname: async () => currentPath,
   hasUserForAccess: async () => usersExist,
 });
