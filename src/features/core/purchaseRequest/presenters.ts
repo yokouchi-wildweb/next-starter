@@ -1,15 +1,8 @@
 // src/features/purchaseRequest/presenters.ts
 
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities";
-import type { FieldPresenter } from "@/lib/crud";
-import {
-  formatBoolean,
-  formatNumber,
-  formatString,
-  formatStringArray,
-  formatEnumLabel,
-  formatDateValue,
-} from "@/lib/crud";
+import type { FieldPresenter } from "@/lib/domain";
+import { formatBoolean, formatNumber, formatString, formatStringArray, formatEnumLabel, formatDateValue } from "@/lib/domain";
 import { formatDateJa } from "@/utils/date";
 import { walletConfig, type WalletType } from "@/features/wallet/config";
 

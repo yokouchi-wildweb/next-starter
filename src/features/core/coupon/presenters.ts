@@ -1,15 +1,8 @@
 // src/features/coupon/presenters.ts
 
 import type { Coupon } from "@/features/core/coupon/entities";
-import type { FieldPresenter } from "@/lib/crud";
-import {
-  formatBoolean,
-  formatNumber,
-  formatString,
-  formatStringArray,
-  formatEnumLabel,
-  formatDateValue,
-} from "@/lib/crud";
+import type { FieldPresenter } from "@/lib/domain";
+import { formatBoolean, formatNumber, formatString, formatStringArray, formatEnumLabel, formatDateValue } from "@/lib/domain";
 import { formatDateJa } from "@/utils/date";
 
 export type CouponFieldPresenter = FieldPresenter<Coupon>;

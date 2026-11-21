@@ -5,14 +5,7 @@
 // 元情報: src/features/core/userProfile/profiles/contributor.profile.json
 // このファイルは pnpm generate role によって自動生成されました
 
-import {
-  formatBoolean,
-  formatDateValue,
-  formatEnumLabel,
-  formatNumber,
-  formatString,
-  formatStringArray,
-} from "@/lib/crud/presenters";
+import { formatBoolean, formatDateValue, formatEnumLabel, formatNumber, formatString, formatStringArray } from "@/lib/domain";
 import { formatDateJa } from "@/utils/date";
 
 /**

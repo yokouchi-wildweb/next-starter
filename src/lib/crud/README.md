@@ -3,7 +3,8 @@
 ## Overview
 
 - `createCrudService` を中心とした汎用 CRUD ライブラリ。Drizzle (Neon/PostgreSQL) 実装と、機能凍結した Firestore 実装を持つ
-- 入口: `@/lib/crud`（共通型・presenters）/ `@/lib/crud/drizzle`（`createCrudService` と SQL の部品）/ `@/lib/crud/hooks`（汎用フック）/ `@/lib/crud/client`（`createApiClient`）/ `@/lib/crud/components`（CRUD ボタン。`@/lib/crud` は UI を持たない）
+- 入口: `@/lib/crud`（共通型・一覧の列 presenters・管理画面の全件削除の一覧の hooks `useFetchDomains` / `useTruncateDomains` と client `domainClient`）/ `@/lib/crud/drizzle`（`createCrudService` と SQL の部品）/ `@/lib/crud/hooks`（汎用フック）/ `@/lib/crud/client`（`createApiClient`）/ `@/lib/crud/components`（CRUD ボタン。`@/lib/crud` は UI を持たない）
+- ドメインの定義と欄の物(主キーの論理名 `CRUD_ID_FIELD`・日時の schema `nullableDatetime` / `requiredDatetime`・値の表示 `format*` / `FieldPresenter`・管理画面のパス `getAdminPaths` / `AdminPaths`)は `@/lib/domain`、戻り先の検証は `@/lib/url` の `sanitizeRedirectPath`
 - 拡張は次の順で、手前で足りるならそこで止める: ① 提供メソッド → ② `relationWhere` → ③ `extraWhere` / `extraOrderBy` → ④ `base.query()` + `wrappers/` → ⑤ 独自サービス（core/services.md extension）
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/crud.md にある
 - 部分ごとの説明は下のフォルダの README（Related）

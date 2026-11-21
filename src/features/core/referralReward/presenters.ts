@@ -1,15 +1,8 @@
 // src/features/referralReward/presenters.ts
 
 import type { ReferralReward } from "@/features/core/referralReward/entities";
-import type { FieldPresenter } from "@/lib/crud";
-import {
-  formatBoolean,
-  formatNumber,
-  formatString,
-  formatStringArray,
-  formatEnumLabel,
-  formatDateValue,
-} from "@/lib/crud";
+import type { FieldPresenter } from "@/lib/domain";
+import { formatBoolean, formatNumber, formatString, formatStringArray, formatEnumLabel, formatDateValue } from "@/lib/domain";
 import { formatDateJa } from "@/utils/date";
 
 export type ReferralRewardFieldPresenter = FieldPresenter<ReferralReward>;

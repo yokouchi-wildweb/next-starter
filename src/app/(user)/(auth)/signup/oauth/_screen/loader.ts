@@ -10,7 +10,7 @@ import "server-only";
 
 import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
 import type { UserProviderType } from "@/features/core/user/types";
-import { resolveReturnTo } from "@/lib/crud/utils/paths";
+import { sanitizeRedirectPath } from "@/lib/url";
 import type { ScreenProps } from "@/lib/screens";
 import { createLoader } from "@/app/guard";
 
@@ -44,6 +44,6 @@ export const loadSignupOAuthScreen = createLoader({
   },
   load: async (_ctx, rawProvider, rawReturnTo): Promise<SignupOAuthScreenData> => {
     const provider = rawProvider && isProviderType(rawProvider) ? rawProvider : undefined;
-    return { provider, redirectTo: resolveReturnTo(rawReturnTo, DEFAULT_REDIRECT_PATH) };
+    return { provider, redirectTo: sanitizeRedirectPath(rawReturnTo, DEFAULT_REDIRECT_PATH) };
   },
 });

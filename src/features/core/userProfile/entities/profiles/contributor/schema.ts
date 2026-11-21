@@ -6,7 +6,7 @@
 // このファイルは pnpm generate role によって自動生成されました
 
 import { emptyToNull } from "@/utils/string";
-import { nullableDatetime } from "@/lib/crud/utils";
+import { nullableDatetime } from "@/lib/domain";
 import { z } from "zod";
 
 /**

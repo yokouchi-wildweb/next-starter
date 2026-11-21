@@ -82,7 +82,7 @@ import {
   formatNumber,
   formatString,
   formatStringArray,
-} from "@/lib/crud/presenters";
+} from "@/lib/domain";
 import { formatDateJa } from "@/utils/date";
 
 /**

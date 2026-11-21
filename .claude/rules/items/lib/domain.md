@@ -3,7 +3,7 @@ paths:
   - "src/lib/domain/**"
 ---
 # lib/domain
-what: reads domain.json copies and settings (fields, relations, junctions) and resolves a domain name ↔ service / table / id column from the registry passed in | closed lib: entry "." @/lib/domain (client and server), "./server" @/lib/domain/server (registry lookups, getJunctionTable), "./node" src/lib/domain/node.mjs (the 5 .mjs tables for scripts / eslint-rules) | access types and presets → @/lib/domainAccess
+what: a domain's definition and fields: domain.json reading, field types with their schema and display helpers (CRUD_ID_FIELD, nullableDatetime / requiredDatetime, format* / FieldPresenter), relations, the domain's routes (getAdminPaths / AdminPaths); and resolves a domain name ↔ service / table / id column from the registry passed in | closed lib: entry "." @/lib/domain (client and server, no React value code / hooks / HTTP client), "./server" @/lib/domain/server (registry lookups, getJunctionTable), "./node" src/lib/domain/node.mjs (the 5 .mjs tables for scripts / eslint-rules) | access types and presets → @/lib/domainAccess
 use: always
 change: overlay → domainEntry.override.ts beside a core domainEntry.ts (replaces `access` only)
 rules:
@@ -19,4 +19,5 @@ using:
 editing:
 - domain_entries: an entry lists its names one by one (no export *: tsx test readers lose the names) | "./node" stays plain JS without React / Next (eslint rules and generators load it with plain node)
 - domain_no_access_reexport: access types and presets live in @/lib/domainAccess only, never re-exported here
+- domain_no_client: "." holds no React value code, hooks or HTTP client (data reads and writes, the admin truncate list included, live in @/lib/crud; domain never reads crud)
 read: domainEntry, generate:false, config reads, fieldTypes → Usage | functions, presets, display keys, field type, type table → src/lib/domain/API.md API | core access override → Extension | checks, access, commands, display, lint → Internals | tests → Verification

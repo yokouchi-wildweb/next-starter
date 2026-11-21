@@ -19,7 +19,7 @@
 - src/lib/clarity — Microsoft Clarity 解析タグ
 - src/lib/cn — Tailwind className 結合(clsx + tailwind-merge、独自トークンのクラス群登録)
 - src/lib/cron — /api/cron/* 定期タスク基盤(1 タスク 1 フォルダの task.ts から vercel.json を生成・検査)と CLI 実行、時間予算付きの再開可能ループ runBudgetedBatches
-- src/lib/crud — createCrudService 汎用 CRUD(サービス・フック・クエリ構築)
+- src/lib/crud — createCrudService 汎用 CRUD(サービス・フック・クエリ構築、管理画面の全件削除の一覧の hooks と client)
 - src/lib/crypto — AES-256-GCM 対称暗号化(トークン・機密データの暗号化保存)と、ハッシュ照合用のランダムトークン・短いコード生成
 - src/lib/csv — CSV ダウンロードとヘッダ付きパース
 - src/lib/districtMap — 地区(lib・ドメイン・枠・proxies)の地図の読み手: 4 種の見つけ方と各地区の欄(config と上書き・描画用の config と上書きの有無・API のキー・表・requires・門・受け口)を字面で読み、集約 src/registry/district-map.jsonl を作る(pnpm generate district-map)。受け口の宣言 extensionPoints.ts の唯一の読み手(declarations.mjs)も持つ。入口 "."(ファイルを読まない)と "./node"(node:fs で読む)
@@ -27,7 +27,7 @@
 - src/lib/date — dayjs ラッパと柔軟な日付パース
 - src/lib/defineConfig — lib の設定の共通の合成器(既定 + 規則 → 上書きを深く合成、配列の扱い replace / append / id で合わせる、null で削除、Standard Schema の検査、fork 独自キーの型引数)
 - src/lib/dbAgent — 自然言語で PostgreSQL を調べる管理者向け DB 調査エージェントのデータレイヤ
-- src/lib/domain — domain.json 設定の読み取り、フィールド・リレーション抽出、登録表（serviceRegistry）からドメイン名でサービス・表・主キーを引く汎用関数（結ぶのは src/wiring/domainRegistry.ts）。閉じた lib: 入口 "."(client でも server でも)・"./server"(登録表から引く)・"./node"(scripts・eslint-rules が読む .mjs)
+- src/lib/domain — ドメインの定義と欄: domain.json 設定の読み取り、フィールド・リレーション抽出、欄の schema(日時)と表示(format*・FieldPresenter)・主キーの論理名・管理画面のパス(getAdminPaths)、登録表（serviceRegistry）からドメイン名でサービス・表・主キーを引く汎用関数（結ぶのは src/wiring/domainRegistry.ts）。閉じた lib: 入口 "."(client でも server でも)・"./server"(登録表から引く)・"./node"(scripts・eslint-rules が読む .mjs)
 - src/lib/domainAccess — 汎用ドメイン API と管理データ操作の権限の型・操作名・定型(ADMIN_ONLY など)。domainEntry.ts が値で読むので値だけのファイルで作る閉じた lib(入口 ".")
 - src/lib/drizzle — PostgreSQL(Neon)クライアントとトランザクションヘルパ、未設定判定
 - src/lib/errors — DomainError / HttpError の定義と正規化

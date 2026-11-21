@@ -113,7 +113,7 @@ export function generateProfileSchema(roleConfig, profileConfig) {
     importStatements.push(`import { emptyToNull } from "@/utils/string";`);
   }
   if (usesNullableDatetime) {
-    importStatements.push(`import { nullableDatetime } from "@/lib/crud/utils";`);
+    importStatements.push(`import { nullableDatetime } from "@/lib/domain";`);
   }
   importStatements.push(`import { z } from "zod";`);
 

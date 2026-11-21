@@ -12,7 +12,7 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
-import { resolveReturnTo } from "@/lib/crud/utils/paths";
+import { sanitizeRedirectPath } from "@/lib/url";
 import type { ScreenProps } from "@/lib/screens";
 import { createLoader } from "@/app/guard";
 
@@ -36,7 +36,7 @@ export const loadLoginScreen = createLoader({
     return [typeof returnTo === "string" ? returnTo : undefined];
   },
   load: async ({ user }, rawReturnTo): Promise<LoginScreenData> => {
-    const redirectTo = resolveReturnTo(rawReturnTo, DEFAULT_REDIRECT_PATH);
+    const redirectTo = sanitizeRedirectPath(rawReturnTo, DEFAULT_REDIRECT_PATH);
     if (user) {
       redirect(redirectTo);
     }

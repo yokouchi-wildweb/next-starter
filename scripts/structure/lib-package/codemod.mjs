@@ -21,6 +21,8 @@
 //   の順で行き先を決め、入口ごとの文に分ける。決まらなければ ambiguous、どこにも無ければ notExported で止まる。
 //   パッケージからの export * を持つ入口(名前を数えきれない)は触らない。中のファイルを読む文で、そのファイルに今も
 //   ある名前は「入口から出していないだけ」なので行き先を探さない
+// - 閉じた lib の外の repo のファイル(loose。閉じる前の lib など)を読む文も、そこから出ていった名前を同じ求め方で閉じた lib の
+//   入口へ。--base なら今の木に無いファイル(gone)を読む文も。決まらない文は止めずに見送る
 // - 改名表(renames.json、renames.mjs): export の行 = 入口の名前の改名(import の名前を新しい名前にし、別名の無い import は
 //   ファイルの中の参照も検査器の symbol で書き換える。lib の別の物と同じ名前は origin と --base で分ける)、method の行 =
 //   TypeScript の型で受け手が lib の物と分かる呼び出しだけのメソッド名の書き換え(名前だけでは書き換えない、D266)
@@ -44,6 +46,7 @@ import { bindingRenameEdits, loadRenames, planMethodRenames } from "./renames.mj
 
 const EXTENSIONS = ["ts", "tsx", "mts", "mjs", "js", "jsx", "cjs"];
 const EXT_RE = /\.(ts|tsx|mts|mjs|js|jsx|cjs)$/;
+const LOOSE_RE = /^(src|scripts)\/.*\.(ts|tsx|mts|mjs|js|jsx)$/;
 const toPosix = (p) => p.split(path.sep).join("/");
 
 function scriptKindOf(file) {
@@ -308,7 +311,6 @@ export function planCodemod(root, { base, table = loadRenames() } = {}) {
     const importerLib = libOfPath(file);
     const abs = path.join(root, file);
     const text = readFileSync(abs, "utf8");
-    if (rows.length === 0 && ![...closed.keys()].some((lib) => text.includes(lib))) continue;
     const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, scriptKindOf(file));
 
     /**
@@ -330,6 +332,14 @@ export function planCodemod(root, { base, table = loadRenames() } = {}) {
       }
       const row = rowByPath.get(bare(resolved));
       if (row && row.lib !== importerLib) return { lib: row.lib, row };
+      // 閉じた lib の外の repo のファイル(閉じる前の lib・ドメインなど): そこから出ていった名前だけを行き先へ(loose。止めずに見送る)
+      const real = probeFile(root, resolved);
+      if (real && LOOSE_RE.test(real) && !real.endsWith(".d.ts") && real !== file) return { lib: null, resolved, loose: real };
+      // --base: 今の木に無く <base> にあったファイル(閉じる前の lib から動いた・消えた物)。名前は全部「出ていった」として行き先を探す
+      if (!real && baseTree) {
+        const gone = probeFile(root, resolved, baseTree.exists);
+        if (gone && LOOSE_RE.test(gone)) return { lib: null, resolved, loose: gone, gone: true };
+      }
       return null;
     };
     const stop = (node, specifier, kind, detail) => stops.push({ file, line: lineOf(sf, node), specifier, kind, detail });
@@ -348,7 +358,7 @@ export function planCodemod(root, { base, table = loadRenames() } = {}) {
      * @returns {{ target } | { ambiguous: string[] } | null}
      */
     const findHome = (lib, spec, oldName, wanted) => {
-      const same = indexOf(lib).find((r) => r.name === wanted);
+      const same = lib ? indexOf(lib).find((r) => r.name === wanted) : null;
       if (same) return { target: same };
       const origin = baseOrigin(spec, oldName);
       if (origin) {
@@ -366,6 +376,7 @@ export function planCodemod(root, { base, table = loadRenames() } = {}) {
 
     /** 改名表の export の行(lib から読んだ名前 oldName が改名された物)。origin の行は --base の実体で照らす */
     const exportRowFor = (lib, spec, oldName) => {
+      if (!lib) return null;
       const candidates = exportRows.filter((row) => row.lib === lib && row.from === oldName);
       for (const row of candidates) {
         if (row.origin === undefined) return { row };
@@ -381,7 +392,7 @@ export function planCodemod(root, { base, table = loadRenames() } = {}) {
         const isImport = node.expression.kind === ts.SyntaxKind.ImportKeyword;
         const isRequire = ts.isIdentifier(node.expression) && node.expression.text === "require";
         const inner = (isImport || isRequire) && arg && ts.isStringLiteralLike(arg) ? innerOf(arg.text) : null;
-        if (inner && !inner.entry) stop(node, arg.text, "dynamic", isImport ? "import()" : "require()");
+        if (inner && !inner.entry && !inner.loose) stop(node, arg.text, "dynamic", isImport ? "import()" : "require()");
       }
       ts.forEachChild(node, visit);
     };
@@ -398,12 +409,16 @@ export function planCodemod(root, { base, table = loadRenames() } = {}) {
       const inner = innerOf(spec);
       if (!inner) continue;
 
-      // 入口を読む文: 名前が全部その入口から出ていれば触らない(数えられない入口も触らない)
+      // 入口(と loose のファイル)を読む文: 名前が全部そこから出ていれば触らない(数えられないファイルも触らない)
       let entryNames = null;
-      if (inner.entry) {
-        const entryFile = `${closed.get(inner.lib).dir}/${inner.entry.targetPath}`;
-        if (!reader.complete(entryFile)) continue;
-        entryNames = reader.exportsOf(entryFile) ?? new Map();
+      const readsWhole = Boolean(inner.entry || inner.loose);
+      if (readsWhole) {
+        const entryFile = inner.loose ?? `${closed.get(inner.lib).dir}/${inner.entry.targetPath}`;
+        if (inner.gone) entryNames = new Map();
+        else {
+          if (!reader.complete(entryFile)) continue;
+          entryNames = reader.exportsOf(entryFile) ?? new Map();
+        }
       }
 
       let items;
@@ -411,10 +426,10 @@ export function planCodemod(root, { base, table = loadRenames() } = {}) {
       if (isImport) {
         const clause = st.importClause;
         if (!clause) {
-          if (!inner.entry) stop(st, spec, "sideEffect", "名前を受け取らない import");
+          if (!readsWhole) stop(st, spec, "sideEffect", "名前を受け取らない import");
           continue;
         }
-        if (inner.entry && (clause.name || (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)))) continue;
+        if (readsWhole && (clause.name || (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)))) continue;
         if (clause.name) {
           stop(st, spec, "default", `default import ${clause.name.text}`);
           continue;
@@ -427,18 +442,18 @@ export function planCodemod(root, { base, table = loadRenames() } = {}) {
         items = (clause.namedBindings?.elements ?? []).map((el) => ({ inner: (el.propertyName ?? el.name).text, local: el.name.text, isType: el.isTypeOnly }));
       } else {
         if (!st.exportClause || ts.isNamespaceExport(st.exportClause)) {
-          if (!inner.entry) stop(st, spec, "exportAll", st.exportClause ? `export * as ${st.exportClause.name.text}` : "export *");
+          if (!readsWhole) stop(st, spec, "exportAll", st.exportClause ? `export * as ${st.exportClause.name.text}` : "export *");
           continue;
         }
         typeOnly = st.isTypeOnly;
         items = st.exportClause.elements.map((el) => ({ inner: (el.propertyName ?? el.name).text, local: el.name.text, isType: el.isTypeOnly }));
       }
-      if (inner.entry && items.every((item) => entryNames.has(item.inner))) continue;
+      if (readsWhole && items.every((item) => entryNames.has(item.inner))) continue;
 
-      const index = indexOf(inner.lib);
+      const index = inner.lib ? indexOf(inner.lib) : [];
       let names = null;
       let innerFile = null;
-      if (!inner.row && !inner.entry) {
+      if (!inner.row && !readsWhole) {
         innerFile = probeFile(root, inner.resolved);
         names = innerFile ? reader.exportsOf(innerFile) : null;
         if (!names) {
@@ -456,12 +471,12 @@ export function planCodemod(root, { base, table = loadRenames() } = {}) {
         byEntry.set(specifier, list);
       };
       for (const item of items) {
-        if (inner.entry && entryNames.has(item.inner)) {
+        if (readsWhole && entryNames.has(item.inner)) {
           place(spec, { name: item.inner, local: item.local, isType: item.isType });
           continue;
         }
         const byName = inner.row?.byName?.[item.inner];
-        let target = inner.entry
+        let target = readsWhole
           ? null
           : byName
           ? index.find((r) => r.specifier === byName.to && r.name === byName.name) ?? null
@@ -474,7 +489,7 @@ export function planCodemod(root, { base, table = loadRenames() } = {}) {
         // 読んだ中のファイルに今もある名前 = 入口から出していないだけ(出ていった名前ではない)。行き先は探さない
         const stillThere = Boolean(names?.has(item.inner));
         if (!target && !stillThere) {
-          const renameHit = exportRowFor(inner.lib, spec, item.inner);
+          const renameHit = exportRowFor(inner.lib ?? libOfPath(inner.resolved ?? ""), spec, item.inner);
           if (renameHit?.needsBase) {
             problems.push(["needsBase", `${item.inner} は改名表で lib の別の物と分ける行(origin ${renameHit.needsBase.origin})。--base <rev> が要る`]);
             continue;
@@ -507,6 +522,8 @@ export function planCodemod(root, { base, table = loadRenames() } = {}) {
         }
         place(localizeSpecifier(file, spec, target.specifier), { name: target.name, local, isType: item.isType });
       }
+      // loose: 行き先の決まらない名前があれば文ごと見送る(閉じた lib の契約の外。型検査と lint が見る)
+      if (inner.loose && (problems.length > 0 || missing.length > 0)) continue;
       if (problems.length > 0) {
         for (const [kind, detail] of problems) stop(st, spec, kind, detail);
         continue;

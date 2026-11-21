@@ -9,7 +9,7 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/Button/Button";
 import { type ButtonStyleProps } from "@/components/Button/variants";
 import type { DomainDisplay } from "@/lib/domain";
-import { getAdminPaths } from "@/lib/crud/utils";
+import { getAdminPaths } from "@/lib/domain";
 
 export type EditButtonProps = ButtonStyleProps & {
   /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */

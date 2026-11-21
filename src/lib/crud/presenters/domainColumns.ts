@@ -2,7 +2,7 @@ import type { DomainDisplay, DomainDisplayRelation, DomainField } from "@/lib/do
 import { isArrayFieldType } from "@/lib/domain";
 import { presenterFor } from "@/lib/domain";
 import type { DataTableColumn } from "@/lib/tableSuite";
-import type { FieldPresenter } from "./formatters";
+import type { FieldPresenter } from "@/lib/domain";
 import { formatCollectionThumbnails, formatMediaThumbnail, formatMediaThumbnails } from "./media";
 
 /**

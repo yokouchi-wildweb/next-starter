@@ -93,7 +93,7 @@ function buildImports(uses) {
     const datetimeImports = [];
     if (uses.nullableDatetime) datetimeImports.push("nullableDatetime");
     if (uses.requiredDatetime) datetimeImports.push("requiredDatetime");
-    importStatements.push(`import { ${datetimeImports.join(", ")} } from "@/lib/crud/utils";`);
+    importStatements.push(`import { ${datetimeImports.join(", ")} } from "@/lib/domain";`);
   }
   if (uses.storageMediaValue) importStatements.push('import { storageMediaValueSchema } from "@/lib/storage";');
   importStatements.push('import { z } from "zod";');
