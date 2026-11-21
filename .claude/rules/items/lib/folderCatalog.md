@@ -3,7 +3,7 @@ paths:
   - "src/lib/folderCatalog/**"
 ---
 # lib/folderCatalog
-what: reads, checks and resolves ownership of a folder catalog (CATALOG.md: which repo made each directory under a folder, each shelf unit src/components/\<Category\>/\<Unit\>, or each file unit of src/hooks / src/utils); entry catalog.mjs (parseCatalog, checkCatalog, listDirs, listUnits, listFileUnits, loadCatalogOwnership)
+what: reads, checks and resolves ownership of a folder catalog (CATALOG.md: which repo made each directory under a folder, each shelf unit src/components/\<Category\>/\<Unit\>, or each file unit of src/hooks / src/utils); closed lib, one entry "./node" src/lib/folderCatalog/node.mjs (parseCatalog, checkCatalog, listDirs, listUnits, listFileUnits, loadCatalogOwnership)
 use: always
 change: placement = src/lib/CATALOG.md, src/components/CATALOG.md, src/hooks/CATALOG.md and src/utils/CATALOG.md (each repo appends its own section; catalogSections / componentsCatalogSections / hooksCatalogSections / utilsCatalogSections in extensionPoints.ts)
 rules:

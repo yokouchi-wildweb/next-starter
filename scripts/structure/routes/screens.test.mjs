@@ -49,7 +49,7 @@ import {
   discoverRoutes,
   listAppFiles,
 } from "../../../src/lib/screens/node.mjs";
-import { loadCatalogOwnership } from "../../../src/lib/folderCatalog/catalog.mjs";
+import { loadCatalogOwnership } from "../../../src/lib/folderCatalog/node.mjs";
 
 export { checkLoaderFile, checkScreenFile, checkScreenImports, checkSwitchPage, isReexportOnlyFile, parseSwitchPage, stripComments };
 

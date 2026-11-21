@@ -11,7 +11,7 @@
 
 ## API
 
-`catalog.mjs`:
+入口は `./node` の 1 つ(`src/lib/folderCatalog/node.mjs`。閉じた lib: 中のファイルは読まない。読み手は eslint.config・テスト・道具だけなので入口 `.` は置かない)。中身は `catalog.mjs`:
 
 - `parseCatalog(text)`: 目録を `{ sections: [{ owner, line, entries: [{ path, description, line }] }], errors }` に読む。最初の `## ` 見出しより前は説明文として読み飛ばす
 - `checkCatalog({ sections, folder, dirs, depth? })`: 実在する項目との不一致(行の無い項目・実在しない行)・重複・その深さでないパス・節の重複を、日本語のメッセージ配列で返す(空 = 問題なし)。`depth` 1(既定)= `<folder>/<名前>`、2 = `<folder>/<分類>/<単位>`(index だけの分類は分類の行で通す)

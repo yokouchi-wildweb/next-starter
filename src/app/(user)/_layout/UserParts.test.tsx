@@ -80,7 +80,7 @@ before(async () => {
 
 // upstream(Tier1)だけで見る検査の判定(screens.test と同じ)。Header・Main の固定の class は upstream の「DOM を変えない」保証で、
 // fork が部品を自分で変えていても fork の test は落とさない(UserPage が Main に正しく渡すことは全 Tier で見る)
-const { loadCatalogOwnership } = require("../../../lib/folderCatalog/catalog.mjs") as typeof import("../../../lib/folderCatalog/catalog.mjs");
+const { loadCatalogOwnership } = require("../../../lib/folderCatalog/node.mjs") as typeof import("../../../lib/folderCatalog/node.mjs");
 const isUpstreamRoot = loadCatalogOwnership({ repoRoot: join(__dirname, "../../../.."), folder: "src/lib" }).isRoot;
 const tier1Only = { skip: isUpstreamRoot ? false : "fork(Tier1 以外)は upstream の部品を自分で変えうるので、固定の class は見ない" };
 

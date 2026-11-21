@@ -21,7 +21,7 @@ import entryPlugin from "./eslint-rules/entry.mjs";
 import importBoundariesPlugin from "./eslint-rules/import-boundaries.mjs";
 import routeHttpExportPlugin from "./eslint-rules/route-http-export.mjs";
 import styleTokensPlugin from "./eslint-rules/style-tokens.mjs";
-import { loadCatalogOwnership } from "./src/lib/folderCatalog/catalog.mjs";
+import { loadCatalogOwnership } from "./src/lib/folderCatalog/node.mjs";
 import forkConfig from "./eslint.config.fork.mjs";
 
 // src/lib のライブラリの所有(src/lib/CATALOG.md の節)。自分の origin の節 = 自分のライブラリ。
