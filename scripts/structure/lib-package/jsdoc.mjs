@@ -5,7 +5,9 @@
 // - 対象: package.json と単体用 tsconfig.json を持ち、JS のファイルを持つ lib(--lib で絞る)。tsconfig が期待と食い違う lib は飛ばして名前を出す
 // - lib の単体用 tsconfig で言語サービスを立て、lib の中の JS ファイルの暗黙の any の診断(IMPLICIT_ANY_CODES)に codefix を当てる。
 //   1 つ書くと次の推しが変わるので、変わらなくなるまで(最大 ROUNDS 回)繰り返す。書くのは lib の中のファイルだけ
-// - 推せずに {any} と書いた所は一覧に出す(人が本当の型に直す)。暗黙の any 以外の型の誤りは直さない(pnpm check lib-package が名指しする)
+// - 推せずに any と書いた所(欄の any・複数行の型の行も)は一覧に出す(人が本当の型に直す)。暗黙の any 以外の型の誤りは直さない(pnpm check lib-package が名指しする)
+// - 空の配列から推した never[] を含む直しは書かずに一覧に出す(never[] は何も入らない配列 = 本当の型でない。人が書く)
+// - 書式(FORMAT)を codefix に渡す: 渡さないと複数行の JSDoc の字下げが落ちる
 // - 緩めない: 単体用 tsconfig の形は変えない(閉じた .mjs の lib は JSDoc で strict の型検査を通す。README「lib の tsconfig.json」)
 // - exit 0(書いた・書く物が無い)/ 2 = 引数の誤り・知らない lib
 
@@ -23,9 +25,24 @@ export const IMPLICIT_ANY_CODES = new Set([7005, 7006, 7008, 7010, 7011, 7019, 7
 /** codefix の id(JS では JSDoc の @param / @type / @returns を書く) */
 const FIX_ID = "inferFromUsage";
 const ROUNDS = 4;
+/** 書く JSDoc の書式(渡さないと複数行の JSDoc の字下げが落ちる)。この repo の字下げ = 空白 2 */
+const FORMAT = { ...ts.getDefaultFormatCodeSettings("\n"), indentSize: 2, tabSize: 2, convertTabsToSpaces: true };
 const JS_FILE_RE = /\.(mjs|js)$/;
-/** 推せずに any と書いた JSDoc の型(人が直す所) */
-const ANY_RE = /\{[^{}\n]*\bany\b[^{}\n]*\}/;
+/** 推せずに書いた any(JSDoc の型の中の語。欄の any も) */
+const ANY_RE = /(?<![\w$."'])any(?![\w$"'])/;
+/** 空の配列から推した型(書かない) */
+const NEVER_ARRAY_RE = /\bnever\[\]/;
+/** JSDoc の行(書いた型の行): `/** … *\/` を含むか、`*` で始まる続きの行 */
+const isJsdocLine = (/** @type {string} */ line) => line.includes("/**") || /^\s*\*/.test(line);
+/** 複数行の JSDoc を 1 行に(続きの行の先頭の * を落とす) */
+const oneLine = (/** @type {string} */ jsdoc) =>
+  jsdoc
+    .split("\n")
+    .map((line) => line.trim().replace(/^\*(?!\/)\s?/, ""))
+    .filter(Boolean)
+    .join(" ");
+
+/** @typedef {{ file: string, line: number, kind: "any" | "never[]", text: string }} JsdocAny 人が本当の型に直す所 */
 
 const USAGE = "pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]";
 const toPosix = (p) => p.split(path.sep).join("/");
@@ -78,7 +95,8 @@ function libService(root, lib) {
  * 1 つの lib の書く物を求める(書かない)
  * @param {string} root
  * @param {string} lib
- * @returns {{ lib: string, before: number, after: number, files: { file: string, edits: number, text: string }[], anys: { file: string, line: number, text: string }[] }}
+ * @returns {{ lib: string, before: number, after: number, files: { file: string, edits: number, text: string }[], anys: JsdocAny[] }}
+ *   anys = 人が本当の型に直す所(kind any = 書いた / never[] = 書かなかった直しで、line・text はその直しを当てる行)
  */
 export function planLib(root, lib) {
   const { service, files, texts, setText, readText } = libService(root, lib);
@@ -87,34 +105,61 @@ export function planLib(root, lib) {
   const before = count();
   /** @type {Map<string, number>} */
   const edits = new Map();
+  /** 書かなかった never[] の直し: ファイル → 当てる行の中身 → 書こうとした JSDoc(回をまたいで同じ物は 1 つ) */
+  /** @type {Map<string, Map<string, string>>} */
+  const skipped = new Map();
   for (let round = 0; round < ROUNDS; round++) {
     let changed = 0;
     for (const file of files) {
       if (implicitAny(file).length === 0) continue;
-      const fix = service.getCombinedCodeFix({ type: "file", fileName: file }, FIX_ID, {}, {});
+      const fix = service.getCombinedCodeFix({ type: "file", fileName: file }, FIX_ID, FORMAT, {});
       for (const change of fix.changes) {
         // lib の外(依存の lib・棚)には書かない
         if (!files.includes(change.fileName) || change.textChanges.length === 0) continue;
         let text = readText(change.fileName) ?? "";
-        for (const tc of [...change.textChanges].sort((a, b) => b.span.start - a.span.start)) {
+        const writable = [];
+        for (const tc of change.textChanges) {
+          if (!NEVER_ARRAY_RE.test(tc.newText)) {
+            writable.push(tc);
+            continue;
+          }
+          const lineStart = text.lastIndexOf("\n", tc.span.start - 1) + 1;
+          const lineEnd = text.indexOf("\n", tc.span.start);
+          const target = text.slice(lineStart, lineEnd === -1 ? text.length : lineEnd);
+          const byLine = skipped.get(change.fileName) ?? new Map();
+          byLine.set(target, tc.newText.trim());
+          skipped.set(change.fileName, byLine);
+        }
+        if (writable.length === 0) continue;
+        for (const tc of writable.sort((a, b) => b.span.start - a.span.start)) {
           text = text.slice(0, tc.span.start) + tc.newText + text.slice(tc.span.start + tc.span.length);
         }
         setText(change.fileName, text);
-        edits.set(change.fileName, (edits.get(change.fileName) ?? 0) + change.textChanges.length);
-        changed += change.textChanges.length;
+        edits.set(change.fileName, (edits.get(change.fileName) ?? 0) + writable.length);
+        changed += writable.length;
       }
     }
     if (changed === 0) break;
   }
   const after = count();
   const rel = (/** @type {string} */ f) => toPosix(path.relative(root, f));
+  /** @type {JsdocAny[]} */
   const anys = [];
   for (const [file, text] of texts) {
-    const original = readFileSync(file, "utf8").split("\n");
+    const original = new Set(readFileSync(file, "utf8").split("\n"));
     text.split("\n").forEach((line, i) => {
-      if (ANY_RE.test(line) && line.includes("@") && !original.includes(line)) anys.push({ file: rel(file), line: i + 1, text: line.trim() });
+      if (original.has(line) || !isJsdocLine(line)) return;
+      if (ANY_RE.test(line)) anys.push({ file: rel(file), line: i + 1, kind: "any", text: line.trim() });
+      else if (NEVER_ARRAY_RE.test(line)) anys.push({ file: rel(file), line: i + 1, kind: "never[]", text: line.trim() });
     });
   }
+  for (const [file, byLine] of skipped) {
+    const lines = (readText(file) ?? "").split("\n");
+    for (const [target, jsdoc] of byLine) {
+      anys.push({ file: rel(file), line: lines.indexOf(target) + 1, kind: "never[]", text: `書かなかった: ${oneLine(jsdoc)}` });
+    }
+  }
+  anys.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
   return {
     lib,
     before,
@@ -169,16 +214,16 @@ export function runJsdoc(root, argv = [], { stdout = process.stdout } = {}) {
   }
   for (const lib of skipped) stdout.write(`飛ばした ${lib}: tsconfig.json が期待と食い違う(pnpm check lib-package が直す行を出す)\n`);
   for (const plan of plans) {
-    if (plan.files.length === 0) continue;
+    if (plan.files.length === 0 && plan.anys.length === 0) continue;
     stdout.write(`${plan.lib}: 暗黙の any ${plan.before} → ${plan.after}\n`);
     for (const f of plan.files) stdout.write(`  ${f.file} ${f.edits} 箇所\n`);
-    for (const a of plan.anys) stdout.write(`  any ${a.file}:${a.line} ${a.text}\n`);
+    for (const a of plan.anys) stdout.write(`  ${a.kind} ${a.file}:${a.line} ${a.text}\n`);
   }
   const edits = plans.reduce((n, p) => n + p.files.reduce((m, f) => m + f.edits, 0), 0);
   const files = plans.reduce((n, p) => n + p.files.length, 0);
   const anys = plans.reduce((n, p) => n + p.anys.length, 0);
   stdout.write(
-    `lib-package jsdoc: ${apply ? "書いた" : "書く(dry-run、書くのは --apply)"} ${edits} 箇所 / ${files} ファイル・{any} ${anys}(本当の型に直す)・lib ${plans.length}${skipped.length ? `・飛ばした ${skipped.length}` : ""}\n`,
+    `lib-package jsdoc: ${apply ? "書いた" : "書く(dry-run、書くのは --apply)"} ${edits} 箇所 / ${files} ファイル・any / never[] ${anys}(本当の型に直す)・lib ${plans.length}${skipped.length ? `・飛ばした ${skipped.length}` : ""}\n`,
   );
   return 0;
 }

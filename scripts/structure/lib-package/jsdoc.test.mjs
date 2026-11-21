@@ -1,5 +1,5 @@
 // scripts/structure/lib-package/jsdoc.test.mjs
-// 動き jsdoc: JS の lib の暗黙の any に推した型を JSDoc で書く(既定 dry-run・--apply で書く・{any} の一覧・tsconfig の食い違う lib は飛ばす)。
+// 動き jsdoc: JS の lib の暗黙の any に推した型を JSDoc で書く(既定 dry-run・--apply で書く・字下げを保つ・any / never[] の一覧・tsconfig の食い違う lib は飛ばす)。
 // 実行: pnpm test scripts/structure/lib-package/jsdoc.test.mjs
 // fixture = 一時フォルダの小さな repo。
 
@@ -69,6 +69,27 @@ test("推せない所は {any} の一覧に出す", () => {
     const plan = planLib(root, "a");
     for (const a of plan.anys) assert.match(a.text, /any/);
     assert.ok(plan.anys.every((a) => a.file === "src/lib/a/index.mjs"));
+  });
+});
+
+test("複数行の JSDoc は字下げを保つ(入れ子の関数でも)", () => {
+  const files = { ...LIB_A, "src/lib/a/index.mjs": `export function wrap() {\n  function count(items, size) {\n    return items.length + size.toFixed(0).length;\n  }\n  return count("ab", 1);\n}\n` };
+  withRepo(files, { tsconfig: ["a"] }, (root) => {
+    const text = planLib(root, "a").files[0].text;
+    assert.match(text, /\n  \/\*\*\n   \* @param \{[^}\n]+\} items\n   \* @param \{number\} size\n   \*\/\n  function count/);
+  });
+});
+
+test("欄の any も一覧に出す / 空の配列から推した never[] の直しは書かずに一覧に出す", () => {
+  const code = `export const pick = (o) => o.kind;\npick({ kind: 1 });\n\n/** @param {never[]} xs */\nconst k = (xs) => xs.length;\nexport function m(items) {\n  return k(items);\n}\n`;
+  withRepo({ ...LIB_A, "src/lib/a/index.mjs": code }, { tsconfig: ["a"] }, (root) => {
+    const plan = planLib(root, "a");
+    const field = plan.anys.find((a) => a.kind === "any");
+    assert.ok(field && /kind: any/.test(field.text), JSON.stringify(plan.anys));
+    const never = plan.anys.find((a) => a.kind === "never[]");
+    assert.ok(never && /書かなかった: .*never\[\]\} items/.test(never.text), JSON.stringify(plan.anys));
+    assert.equal(never.line, 6);
+    assert.doesNotMatch(plan.files[0].text, /@param \{never\[\]\} items/);
   });
 });
 

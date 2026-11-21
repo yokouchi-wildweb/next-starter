@@ -57,7 +57,9 @@ pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]
 - 対象 = package.json と単体用 tsconfig.json を持ち、JS(`.mjs` / `.js`)のファイルを持つ lib(`--lib` で絞る。tsconfig が期待と食い違う lib は飛ばして名前を出す)
 - lib の単体用 tsconfig で TypeScript の言語サービスを立て、lib の中の JS ファイルの暗黙の any の診断(TS7006・TS7005・TS7034 など)に codefix inferFromUsage を当てる。使われ方から推した型を JSDoc(`@param`・`@type`・`@returns`)で書く。1 つ書くと次の推しが変わるので、変わらなくなるまで繰り返す。書くのは lib の中のファイルだけ
 - 既定は dry-run(lib ごとに暗黙の any の数の前 → 後・ファイルごとの箇所)、`--apply` で書く、`--json` で機械向け
-- 推せずに `{any}` を含む型を書いた所は `any <ファイル>:<行>` で一覧に出す。人が本当の型に直す(any を残さない)
+- 推せずに any を含む型を書いた所(欄の any・複数行の型の続きの行も)は `any <ファイル>:<行>` で一覧に出す。人が本当の型に直す(any を残さない)
+- 空の配列から推した `never[]` を含む直しは書かず、`never[] <ファイル>:<行> 書かなかった: <JSDoc>` で一覧に出す(行 = 直しを当てる行。人が本当の型を書く)
+- 書式(字下げ = 空白 2)を codefix に渡す: 入れ子の関数の複数行の JSDoc も字下げを保つ
 - 暗黙の any 以外の型の誤り(TS2339 など)は直さない。それは閉じたかの検査(門の検査)が名指しする。返り値が `object` になっている所は、typedef を 1 つ書くと読み手の誤りがまとめて消えることが多い
 - 単体用 tsconfig は緩めない(下の「lib の tsconfig.json」の形のまま。閉じた .mjs の lib は JSDoc で strict の型検査を通す)
 - 本体と引数: `jsdoc.mjs`
