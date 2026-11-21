@@ -31,18 +31,31 @@ const SECTION_HEADING = /^##\s+(\S+)\s*$/gm;
 /** 下流の有無の宣言の値(yes = 下流の fork を持つ・持つ予定がある、none = 末端) */
 export const DOWNSTREAM_VALUES = ["yes", "none"];
 
+/** @typedef {"root" | "middle" | "leaf"} RepoTier 段 */
+
 /** 段(root = Tier1 / middle = 下流を持つ中間 / leaf = 末端)。無い = leaf */
 export const TIER_VALUES = ["root", "middle", "leaf"];
 export const DEFAULT_TIER = "leaf";
 
-/** 段 → 下流の有無 */
+/**
+ * 段の値か
+ * @param {unknown} value
+ * @returns {value is RepoTier}
+ */
+const isTier = (value) => typeof value === "string" && TIER_VALUES.includes(value);
+
+/**
+ * 段 → 下流の有無
+ * @param {string} tier
+ * @returns {"yes" | "none"}
+ */
 export const downstreamOfTier = (tier) => (tier === "leaf" ? "none" : "yes");
 
 /** repo.json の鍵の形(小文字の語を . でつなぐ)と、知っている鍵(agent.* は方針の鍵、ここでは形だけ見る) */
 const REPO_KEY_PATTERN = /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/;
 export const REPO_KEYS = ["repo_id", "tier"];
 export const AGENT_KEY_PREFIX = "agent.";
-export const isKnownRepoKey = (key) => REPO_KEYS.includes(key) || (key.startsWith(AGENT_KEY_PREFIX) && REPO_KEY_PATTERN.test(key));
+export const isKnownRepoKey = (/** @type {string} */ key) => REPO_KEYS.includes(key) || (key.startsWith(AGENT_KEY_PREFIX) && REPO_KEY_PATTERN.test(key));
 
 /**
  * repo.json の本文を読む。平らな鍵・値は文字列か真偽値だけ・知っている鍵だけ。誤りは errors(読めた鍵は values に残す)
@@ -54,10 +67,12 @@ export function parseRepoJson(text) {
   try {
     data = JSON.parse(text);
   } catch (error) {
-    return { values: {}, errors: [`JSON として読めない(${error.message})`] };
+    return { values: {}, errors: [`JSON として読めない(${error instanceof Error ? error.message : String(error)})`] };
   }
   if (!data || typeof data !== "object" || Array.isArray(data)) return { values: {}, errors: ["JSON のオブジェクトでない"] };
+  /** @type {Record<string, string | boolean>} */
   const values = {};
+  /** @type {string[]} */
   const errors = [];
   for (const [key, value] of Object.entries(data)) {
     if (!isKnownRepoKey(key)) {
@@ -76,18 +91,22 @@ export function parseRepoJson(text) {
 /**
  * repo.json の名前と段。repo_id が無い・形違いは error、tier が無い = leaf、知らない値は tierError
  * @param {string} text
- * @returns {{ forkId: string | null, tier: "root" | "middle" | "leaf", error: string | null, tierError: string | null, values: Record<string, string | boolean>, errors: string[] }}
+ * @returns {{ forkId: string | null, tier: RepoTier, error: string | null, tierError: string | null, values: Record<string, string | boolean>, errors: string[] }}
  */
 export function parseRepoIdentity(text) {
   const { values, errors } = parseRepoJson(text);
   const id = values.repo_id;
+  /** @type {string | null} */
   let error = null;
+  /** @type {string | null} */
+  let forkId = null;
   if (id === undefined) error = "repo_id が無い(全リポが自分の名前を書く。Tier1 = next-starter)";
   else if (typeof id !== "string" || !FORK_ID_PATTERN.test(id)) error = `repo_id ${JSON.stringify(id)} は使えない形(小文字・数字・ハイフンだけ)`;
+  else forkId = id;
   const rawTier = values.tier ?? DEFAULT_TIER;
-  const tierError = TIER_VALUES.includes(rawTier) ? null : `tier ${JSON.stringify(rawTier)} は使えない値(root / middle / leaf)`;
-  const tier = tierError ? DEFAULT_TIER : rawTier;
-  return { forkId: error ? null : id, tier, error, tierError, values, errors };
+  const tierError = isTier(rawTier) ? null : `tier ${JSON.stringify(rawTier)} は使えない値(root / middle / leaf)`;
+  const tier = isTier(rawTier) ? rawTier : DEFAULT_TIER;
+  return { forkId, tier, error, tierError, values, errors };
 }
 
 /**
@@ -116,7 +135,11 @@ export const formatRepoJson = (values) => {
   return `{\n${order.map((k) => `  ${JSON.stringify(k)}: ${JSON.stringify(values[k])}`).join(",\n")}\n}\n`;
 };
 
-/** 行番号 index の行が属する ## 節の見出しの行番号(節の外 = -1) */
+/**
+ * 行番号 index の行が属する ## 節の見出しの行番号(節の外 = -1)
+ * @param {string[]} lines
+ * @param {number} index
+ */
 const sectionStartOf = (lines, index) => {
   for (let i = index; i >= 0; i -= 1) if (/^##\s/.test(lines[i])) return i;
   return -1;
@@ -156,7 +179,11 @@ export function parseDownstreamDeclaration(text) {
   return { downstream: /** @type {"yes" | "none"} */ (value), error: null };
 }
 
-/** CATALOG.md の節の見出し(上流から順、先頭 = Tier1) */
+/**
+ * CATALOG.md の節の見出し(上流から順、先頭 = Tier1)
+ * @param {string} text
+ * @returns {string[]}
+ */
 export function catalogSectionNames(text) {
   return [...text.matchAll(SECTION_HEADING)].map((match) => match[1]);
 }
@@ -164,15 +191,18 @@ export function catalogSectionNames(text) {
 /**
  * 自分の名前・祖先の名前・Tier1 か・段と下流の有無を読む
  * @param {string} repoRoot リポジトリ直下
- * @returns {{ own: string | null, ancestors: string[], isTier1: boolean, tier: "root" | "middle" | "leaf", downstream: "yes" | "none" | null, downstreamError: string | null, errors: string[] }}
+ * @returns {{ own: string | null, ancestors: string[], isTier1: boolean, tier: RepoTier, downstream: "yes" | "none" | null, downstreamError: string | null, errors: string[] }}
  *   downstreamError = 段の宣言の誤り(errors と別。読むのは pnpm workflow ownership check と lineage.md の検査だけ)
  */
 export function readForkIdentity(repoRoot) {
   const errors = [];
   const repoPath = join(repoRoot, REPO_JSON_FILE);
   const repoText = existsSync(repoPath) ? readFileSync(repoPath, "utf8") : null;
+  /** @type {string | null} */
   let own = null;
+  /** @type {RepoTier} */
   let tier = DEFAULT_TIER;
+  /** @type {string | null} */
   let tierError = null;
   if (repoText === null) {
     errors.push(`${REPO_JSON_FILE} が無い(リポ直下に {"repo_id": "<名前>", "tier": "root|middle|leaf"}。古い形からは pnpm workflow repo-json migrate)`);

@@ -9,11 +9,27 @@ import { forkAddedFiles, reassignMiddleTier, runCheck as runCheckWithSelf } from
 import { closeTmp, commitAll, ENV, FORK_ID, git, LINEAGE_PREAMBLE, makeFork, makeParent, nextId, openTmp, PARENT_ID, recordLedger, repoJson, tmpRoot, write } from "./testRepos.mjs";
 
 // 型 1〜4 の検査のテスト: 作り物のリポは self のファイルを持たないので、既定で入の型 5 self は外す(型 5 は self.test.mjs)
-const runCheck = (repoRoot, options = {}) => runCheckWithSelf(repoRoot, { self: false, ...options });
+/** @import { CheckResult } from "./check.mjs" */
+const runCheck = (/** @type {string} */ repoRoot, options = {}) => runCheckWithSelf(repoRoot, { self: false, ...options });
+
+/** 検査が走った結果(pass / fail)。走らなければ失敗 */
+const ran = (/** @type {CheckResult} */ result) => {
+  if (result.status !== "pass" && result.status !== "fail") assert.fail(`検査が走っていない: ${JSON.stringify(result)}`);
+  return result;
+};
+/** 未検証の結果。未検証でなければ失敗 */
+const notVerified = (/** @type {CheckResult} */ result) => {
+  if (result.status !== "unverified") assert.fail(`未検証でない: ${result.status}`);
+  return result;
+};
+/** 合格を確かめる assert の説明に出す物(違反の一覧。検査が走っていなければ結果そのもの) */
+const violationsOf = (/** @type {CheckResult} */ result) => ("entries" in result ? result.entries.filter((entry) => entry.verdict === "violation") : result);
+/** 合格を確かめる assert の説明に出す物(lineage の結果。検査が走っていなければ結果そのもの) */
+const lineageOf = (/** @type {CheckResult} */ result) => ("lineage" in result ? result.lineage : result);
 
 // 走らせるのは pnpm workflow ownership check の入口(cli.mjs は読み込んだだけでは走らない。runOwnershipCheckCli を呼ぶ)
 const CLI = resolve(import.meta.dirname, "../../../scripts/workflow/ownership/check.mjs");
-const cli = (cwd, ...args) => spawnSync(process.execPath, [CLI, "--no-self", ...args], { cwd, env: ENV, encoding: "utf8" });
+const cli = (/** @type {string} */ cwd, /** @type {string[]} */ ...args) => spawnSync(process.execPath, [CLI, "--no-self", ...args], { cwd, env: ENV, encoding: "utf8" });
 
 describe("pnpm workflow ownership check", () => {
   before(() => {
@@ -26,7 +42,7 @@ describe("pnpm workflow ownership check", () => {
   describe("緊急修正の pick(台帳の picked:)", () => {
     const CORE = "src/features/core/user/multi.ts";
     const LINES = ["one", "two", "three", "four", "five", "six", "seven", "eight"];
-    const render = (lines) => `${lines.join("\n")}\n`;
+    const render = (/** @type {string[]} */ lines) => `${lines.join("\n")}\n`;
 
     /** 親の間の変更を飛ばして修正だけを pick した fork(1 行目は親の間の変更、8 行目が修正) */
     function pickedFork({ record = true } = {}) {
@@ -56,14 +72,14 @@ describe("pnpm workflow ownership check", () => {
       const result = runCheck(fork);
       assert.equal(result.status, "pass");
       assert.equal(result.base, base);
-      assert.equal(result.entries.find((entry) => entry.path === CORE).reason, "picked");
+      assert.equal(result.entries.find((entry) => entry.path === CORE)?.reason, "picked");
     });
 
     test("台帳に picked: が無ければ受け口の外の違反", () => {
       const { fork } = pickedFork({ record: false });
       const result = runCheck(fork);
       assert.equal(result.status, "fail");
-      assert.equal(result.entries.find((entry) => entry.path === CORE).reason, "outside-intake");
+      assert.equal(result.entries.find((entry) => entry.path === CORE)?.reason, "outside-intake");
     });
 
     test("衝突で上流の版に置き換えたファイル(pick の時点の上流と同じ中身)は合格(hotfixApply の置き換え)", () => {
@@ -72,7 +88,7 @@ describe("pnpm workflow ownership check", () => {
       commitAll(fork, "replaced by the upstream's version at the pick");
       const result = runCheck(fork);
       assert.equal(result.status, "pass");
-      assert.equal(result.entries.find((entry) => entry.path === CORE).reason, "picked");
+      assert.equal(result.entries.find((entry) => entry.path === CORE)?.reason, "picked");
     });
 
     test("pick が変えたファイルが上流のどれかの版(間の版)と同じ中身なら合格(hotfixApply が触っていないファイルを置き換えた形)", () => {
@@ -81,7 +97,7 @@ describe("pnpm workflow ownership check", () => {
       commitAll(fork, "the upstream's between version");
       const result = runCheck(fork);
       assert.equal(result.status, "pass");
-      assert.equal(result.entries.find((entry) => entry.path === CORE).reason, "picked");
+      assert.equal(result.entries.find((entry) => entry.path === CORE)?.reason, "picked");
     });
 
     test("pick の後に fork が更に変えたら違反", () => {
@@ -90,7 +106,7 @@ describe("pnpm workflow ownership check", () => {
       commitAll(fork, "own edit");
       const result = runCheck(fork);
       assert.equal(result.status, "fail");
-      assert.equal(result.entries.find((entry) => entry.path === CORE).reason, "outside-intake");
+      assert.equal(result.entries.find((entry) => entry.path === CORE)?.reason, "outside-intake");
     });
   });
 
@@ -142,7 +158,7 @@ describe("pnpm workflow ownership check", () => {
     assert.equal(cli(fork).status, 2);
     write(fork, "repo.json", repoJson(FORK_ID, "root"));
     commitAll(fork, "fake root");
-    assert.match(runCheck(fork).reason, /tier root なのに/);
+    assert.match(notVerified(runCheck(fork)).reason, /tier root なのに/);
     git(fork, "rm", "-q", "repo.json");
     commitAll(fork, "no repo.json");
     const none = runCheck(fork);
@@ -175,11 +191,11 @@ describe("pnpm workflow ownership check", () => {
       commitAll(fork, "clash");
       const result = runCheck(fork);
       assert.equal(result.status, "fail");
-      const reasonOf = (path) => result.entries.find((entry) => entry.path === path)?.reason;
+      const reasonOf = (/** @type {string} */ path) => result.entries.find((entry) => entry.path === path)?.reason;
       for (const path of ["src/features/core/setting/fields/a.tsx", "src/wiring/apiRoute.tsx", "src/wiring/dbAgent.ts", "src/app/(user)/_layout/Header.tsx"]) {
         assert.equal(reasonOf(path), "unit-clash", path);
       }
-      assert.equal(result.entries.find((entry) => entry.path === "src/wiring/dbAgent.ts").clash, "src/wiring/dbAgent/index.ts");
+      assert.equal(result.entries.find((entry) => entry.path === "src/wiring/dbAgent.ts")?.clash, "src/wiring/dbAgent/index.ts");
       assert.equal(reasonOf("src/features/core/setting/fields/mine.override.ts"), "override-own");
       assert.equal(reasonOf("src/features/core/setting/fields/mine.ts"), "added");
       assert.deepEqual(result.middleTier, []);
@@ -197,7 +213,7 @@ describe("pnpm workflow ownership check", () => {
       write(fork, "src/features/shop/scripts/tasks/mine.ts", "export const task = 2;\n");
       commitAll(fork, "plain");
       const result = runCheck(fork);
-      assert.equal(result.status, "pass", JSON.stringify(result.entries.filter((e) => e.verdict === "violation")));
+      assert.equal(result.status, "pass", JSON.stringify(violationsOf(result)));
     });
   });
 
@@ -219,7 +235,7 @@ describe("pnpm workflow ownership check", () => {
       commitAll(fork, "defaults");
       const result = runCheck(fork);
       assert.equal(result.status, "fail");
-      const reasonOf = (path) => result.entries.find((entry) => entry.path === path)?.reason;
+      const reasonOf = (/** @type {string} */ path) => result.entries.find((entry) => entry.path === path)?.reason;
       assert.equal(reasonOf("src/app/(user)/(protected)/frame.default.ts"), "default-add");
       assert.equal(reasonOf("src/app/(user)/(public)/news/frame.default.ts"), "default-edit");
       assert.deepEqual(result.middleTier, []);
@@ -236,7 +252,7 @@ describe("pnpm workflow ownership check", () => {
       write(fork, "src/app/(user)/(public)/mine/frame.ts", "export const frame = { page: {} };\n");
       commitAll(fork, "frames ok");
       const result = runCheck(fork);
-      assert.equal(result.status, "pass", JSON.stringify(result.entries.filter((e) => e.verdict === "violation")));
+      assert.equal(result.status, "pass", JSON.stringify(violationsOf(result)));
     });
 
     test("親のルートの隣に足した印なしの frame.ts は frame-plain(1)、中間 Tier の物にしない", () => {
@@ -282,7 +298,7 @@ describe("pnpm workflow ownership check", () => {
         ["src/lib/crud/extra.ts", "inside-unit-add"],
       ],
     );
-    const draft = result.entries.find((entry) => entry.reason === "outside-intake").permitDraft;
+    const draft = result.entries.find((entry) => entry.reason === "outside-intake")?.permitDraft ?? "";
     assert.match(draft, /^src\/features\/core\/user\/user\.ts upreq:<依頼の番号> base:[0-9a-f]{40} head:[0-9a-f]{40}  # <理由>$/);
     const out = cli(fork);
     assert.equal(out.status, 1);
@@ -296,8 +312,9 @@ describe("pnpm workflow ownership check", () => {
     const result = runCheck(fork);
     assert.equal(result.status, "fail");
     const entry = result.entries.find((item) => item.path === "src/features/core/user/mine.ts");
+    assert.ok(entry);
     assert.equal(entry.reason, "core-add");
-    const line = entry.permitDraft.replace("<依頼の番号>", "20261029-120000-core-add").replace("<理由>", "移すまで");
+    const line = (entry.permitDraft ?? "").replace("<依頼の番号>", "20261029-120000-core-add").replace("<理由>", "移すまで");
     write(fork, `.fork-ownership/${FORK_ID}.permits.txt`, `${line}\n`);
     commitAll(fork, "permit");
     assert.equal(runCheck(fork).status, "pass");
@@ -314,8 +331,8 @@ describe("pnpm workflow ownership check", () => {
     commitAll(fork, "gate add");
     const result = runCheck(fork);
     assert.equal(result.status, "fail");
-    assert.equal(result.entries.find((item) => item.path === "src/featureGate/mine.ts").reason, "gate-add");
-    assert.equal(result.entries.find((item) => item.path === "src/featureGate/rules/mine.ts").reason, "added");
+    assert.equal(result.entries.find((item) => item.path === "src/featureGate/mine.ts")?.reason, "gate-add");
+    assert.equal(result.entries.find((item) => item.path === "src/featureGate/rules/mine.ts")?.reason, "added");
   });
 
   test("上流の決まりのファイル .claude/rules/core/ への追加は rules-core-add で違反(中間 Tier の物にしない)、自分の札は合格", () => {
@@ -329,15 +346,15 @@ describe("pnpm workflow ownership check", () => {
     commitAll(fork, "rules add");
     const result = runCheck(fork);
     assert.equal(result.status, "fail");
-    assert.equal(result.entries.find((item) => item.path === ".claude/rules/core/mine.md").reason, "rules-core-add");
-    assert.equal(result.entries.find((item) => item.path === ".claude/rules/items/lib/mine.md").reason, "added");
+    assert.equal(result.entries.find((item) => item.path === ".claude/rules/core/mine.md")?.reason, "rules-core-add");
+    assert.equal(result.entries.find((item) => item.path === ".claude/rules/items/lib/mine.md")?.reason, "added");
   });
 
   test("下書きの指紋で一時許可を書けば合格(permitted)、その後に書き換えると許可し直し", () => {
     const fork = makeFork(makeParent());
     write(fork, "src/features/core/user/user.ts", "export const user = 2;\n");
     commitAll(fork, "outside");
-    const draft = runCheck(fork).entries.find((entry) => entry.reason === "outside-intake").permitDraft;
+    const draft = ran(runCheck(fork)).entries.find((entry) => entry.reason === "outside-intake")?.permitDraft ?? "";
     const line = draft.replace("<依頼の番号>", "20261029-120000-user-hook").replace("<理由>", "フック待ち");
     write(fork, `.fork-ownership/${FORK_ID}.permits.txt`, `${line}\n`);
     commitAll(fork, "permit");
@@ -349,7 +366,7 @@ describe("pnpm workflow ownership check", () => {
     commitAll(fork, "edit again");
     const refreshed = runCheck(fork);
     assert.equal(refreshed.status, "fail");
-    assert.equal(refreshed.entries.find((entry) => entry.path === "src/features/core/user/user.ts").permit, "refresh");
+    assert.equal(refreshed.entries.find((entry) => entry.path === "src/features/core/user/user.ts")?.permit, "refresh");
   });
 
   test("親が resolves: でその依頼を解決した notice を出すと、取り込んだ fork の一時許可が失効する", () => {
@@ -357,7 +374,7 @@ describe("pnpm workflow ownership check", () => {
     const fork = makeFork(parent);
     write(fork, "src/features/core/user/user.ts", "export const user = 2;\n");
     commitAll(fork, "outside");
-    const draft = runCheck(fork).entries.find((entry) => entry.reason === "outside-intake").permitDraft;
+    const draft = ran(runCheck(fork)).entries.find((entry) => entry.reason === "outside-intake")?.permitDraft ?? "";
     write(fork, `.fork-ownership/${FORK_ID}.permits.txt`, `${draft.replace("<依頼の番号>", "20261029-120000-user-hook").replace("<理由>", "待ち")}\n`);
     commitAll(fork, "permit");
     assert.equal(runCheck(fork).status, "pass");
@@ -370,7 +387,7 @@ describe("pnpm workflow ownership check", () => {
     commitAll(fork, "ledger");
     const result = runCheck(fork);
     assert.equal(result.status, "fail");
-    assert.equal(result.entries.find((entry) => entry.path === "src/features/core/user/user.ts").permit, "expired-resolved");
+    assert.equal(result.entries.find((entry) => entry.path === "src/features/core/user/user.ts")?.permit, "expired-resolved");
   });
 
   test("Tier1 でないのに親の remote が無い → 未検証(2)", () => {
@@ -386,7 +403,7 @@ describe("pnpm workflow ownership check", () => {
     const parent = makeParent();
     const fork = makeFork(parent);
     git(fork, "remote", "add", "other", parent);
-    assert.match(runCheck(fork).reason, /決まらない/);
+    assert.match(notVerified(runCheck(fork)).reason, /決まらない/);
     assert.equal(runCheck(fork, { parent: "upstream" }).status, "pass");
   });
 
@@ -400,7 +417,7 @@ describe("pnpm workflow ownership check", () => {
 
   test("基準に受け口の一覧が無い(この検査を取り込む前)→ 未検証", () => {
     const fork = makeFork(makeParent({ withIntake: false }));
-    assert.match(runCheck(fork).reason, /intake\.txt が無い/);
+    assert.match(notVerified(runCheck(fork)).reason, /intake\.txt が無い/);
   });
 
   test("取り込み済みの notice が台帳に無い → 未検証(継承済みは除く)、台帳に記録すれば合格", () => {
@@ -420,7 +437,7 @@ describe("pnpm workflow ownership check", () => {
   });
 
   /** 下の Tier を作る: 親を clone、名前の宣言と、取り込んだ親の版を upstream: に書いた台帳 */
-  const makeTier = (upper, name) => {
+  const makeTier = (/** @type {string} */ upper, /** @type {string} */ name) => {
     const root = join(tmpRoot(), `${name}-${nextId()}`);
     git(tmpRoot(), "clone", "-q", upper, root);
     git(root, "remote", "rename", "origin", "upstream");
@@ -443,7 +460,7 @@ describe("pnpm workflow ownership check", () => {
     git(tier3, "rm", "-q", "src/features/game/rules.ts"); // 中間 Tier の物の削除
     commitAll(tier3, "tier3");
     const ok = runCheck(tier3);
-    assert.equal(ok.status, "pass", JSON.stringify(ok.entries?.filter((e) => e.verdict === "violation")));
+    assert.equal(ok.status, "pass", JSON.stringify(violationsOf(ok)));
     assert.equal(ok.tier1.sha, tier1Sha);
     assert.deepEqual(ok.tier1.chain.map((step) => step.name), [FORK_ID]);
     assert.deepEqual(ok.middleTier.map((m) => `${m.was}:${m.path}`).sort(), ["deleted:src/features/game/rules.ts", "outside-intake:src/features/game/game.ts"]);
@@ -453,7 +470,7 @@ describe("pnpm workflow ownership check", () => {
     commitAll(tier3, "tier1 file");
     const ng = runCheck(tier3);
     assert.equal(ng.status, "fail");
-    assert.equal(ng.entries.find((e) => e.path === "src/features/core/user/user.ts").reason, "outside-intake");
+    assert.equal(ng.entries.find((e) => e.path === "src/features/core/user/user.ts")?.reason, "outside-intake");
   });
 
   test("多段: 中間 Tier が足した .claude/rules/service/ の物は下流で書き換え・削除できない(付け替えない、D117)、自分の service は足してよい", () => {
@@ -469,8 +486,8 @@ describe("pnpm workflow ownership check", () => {
     commitAll(tier3, "tier3 service");
     const result = runCheck(tier3);
     assert.equal(result.status, "fail");
-    assert.equal(result.entries.find((e) => e.path === ".claude/rules/service/shop.md").verdict, "violation");
-    assert.equal(result.entries.find((e) => e.path === ".claude/rules/service/rental.md").reason, "added");
+    assert.equal(result.entries.find((e) => e.path === ".claude/rules/service/shop.md")?.verdict, "violation");
+    assert.equal(result.entries.find((e) => e.path === ".claude/rules/service/rental.md")?.reason, "added");
     assert.ok(!result.middleTier.some((m) => m.path === ".claude/rules/service/shop.md"));
   });
 
@@ -481,7 +498,7 @@ describe("pnpm workflow ownership check", () => {
     write(tier2, lineage, `${LINEAGE_PREAMBLE}## ${FORK_ID}\n- relay: always\n- tone (default): polite\n<!-- end ${FORK_ID} -->\n`);
     commitAll(tier2, "tier2 section");
     const tier2Result = runCheck(tier2);
-    assert.equal(tier2Result.status, "pass", JSON.stringify(tier2Result.lineage));
+    assert.equal(tier2Result.status, "pass", JSON.stringify(lineageOf(tier2Result)));
     assert.equal(tier2Result.lineage.checked, true);
 
     const tier3 = makeTier(tier2, "grandchild");
@@ -489,7 +506,7 @@ describe("pnpm workflow ownership check", () => {
     write(tier3, ".claude/rules/project.md", `${project}overrides: ${FORK_ID}.tone = casual | why: 若年層向け\n`);
     commitAll(tier3, "override default");
     const ok = runCheck(tier3);
-    assert.equal(ok.status, "pass", JSON.stringify(ok.lineage));
+    assert.equal(ok.status, "pass", JSON.stringify(lineageOf(ok)));
     assert.deepEqual(ok.lineage.warnings, []);
 
     write(tier3, ".claude/rules/project.md", `${project}overrides: ${FORK_ID}.relay = never | why: r\n- tone: casual\n`);
@@ -507,7 +524,7 @@ describe("pnpm workflow ownership check", () => {
     write(tier3, ".claude/rules/project.md", project);
     write(tier3, lineage, `${readFileSync(join(tier3, lineage), "utf8")}## grandchild\n- own: 1\n<!-- end grandchild -->\n## ${FORK_ID}\n<!-- end ${FORK_ID} -->\n`);
     commitAll(tier3, "bad order");
-    assert.match(runCheck(tier3).lineage.failures.join(), /並びが違う/);
+    assert.match(ran(runCheck(tier3)).lineage.failures.join(), /並びが違う/);
 
     // 末端(tier leaf)なのに自分の節
     write(tier3, lineage, `${LINEAGE_PREAMBLE}## ${FORK_ID}\n- relay: always\n- tone (default): polite\n<!-- end ${FORK_ID} -->\n## grandchild\n- own: 1\n<!-- end grandchild -->\n`);
@@ -537,7 +554,7 @@ describe("pnpm workflow ownership check", () => {
     git(tier4, "rm", "-q", "src/features/shop/shop.ts"); // Tier3 の物
     commitAll(tier4, "tier4");
     const ok = runCheck(tier4);
-    assert.equal(ok.status, "pass", JSON.stringify(ok.entries?.filter((e) => e.verdict === "violation")));
+    assert.equal(ok.status, "pass", JSON.stringify(violationsOf(ok)));
     assert.equal(ok.tier1.sha, tier1Sha);
     assert.deepEqual(ok.tier1.chain.map((step) => step.name), ["third", FORK_ID]);
     assert.deepEqual(ok.middleTier.map((m) => m.path).sort(), ["src/features/game/game.ts", "src/features/shop/shop.ts"]);
@@ -557,7 +574,7 @@ describe("pnpm workflow ownership check", () => {
     git(tier3, "rm", "-q", "src/features/core/user/services/server/domainEntry.override.ts");
     commitAll(tier3, "tier3 drops overrides");
     const result = runCheck(tier3);
-    assert.equal(result.status, "pass", JSON.stringify(result.entries?.filter((e) => e.verdict === "violation")));
+    assert.equal(result.status, "pass", JSON.stringify(violationsOf(result)));
     assert.equal(result.middleTier.length, 2);
   });
 
@@ -566,19 +583,19 @@ describe("pnpm workflow ownership check", () => {
     const fork = makeFork(parent);
     write(fork, `.notices/applied/${FORK_ID}.md`, "# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | notes:-\n");
     commitAll(fork, "no field");
-    assert.match(runCheck(fork).reason, /upstream:<sha> の行が無い/);
+    assert.match(notVerified(runCheck(fork)).reason, /upstream:<sha> の行が無い/);
     assert.equal(cli(fork).status, 2);
 
     write(fork, `.notices/applied/${FORK_ID}.md`, `# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | upstream:${"0".repeat(40)} | notes:-\n`);
     commitAll(fork, "bad sha");
-    assert.match(runCheck(fork).reason, /履歴に無い/);
+    assert.match(notVerified(runCheck(fork)).reason, /履歴に無い/);
 
     // 中間 Tier の版に名前が無い
     const tier2 = makeFork(makeParent());
     write(tier2, "repo.json", '{\n  "tier": "middle"\n}\n');
     commitAll(tier2, "drop name");
     const tier3 = makeTier(tier2, "grandchild");
-    assert.match(runCheck(tier3).reason, /repo_id\(古い形は .claude\/rules\/project.md の fork_id:\)が無い/);
+    assert.match(notVerified(runCheck(tier3)).reason, /repo_id\(古い形は .claude\/rules\/project.md の fork_id:\)が無い/);
 
     // 古い形の中間 Tier の版(repo.json が無く project.md の fork_id:)は読める
     const tier2old = makeFork(makeParent());
@@ -593,7 +610,7 @@ describe("pnpm workflow ownership check", () => {
     git(tier2b, "mv", `.notices/applied/${FORK_ID}.md`, ".notices/applied/old-child.md");
     commitAll(tier2b, "old ledger name");
     const tier3b = makeTier(tier2b, "grandchild");
-    assert.match(runCheck(tier3b).reason, /が無い\(台帳の名前を repo_id にそろえる\)/);
+    assert.match(notVerified(runCheck(tier3b)).reason, /が無い\(台帳の名前を repo_id にそろえる\)/);
   });
 
   test("--json は結果のオブジェクトをそのまま出す", () => {
@@ -606,20 +623,20 @@ describe("pnpm workflow ownership check", () => {
 
   describe("出荷済みの notice は履歴から読む(本文が消えても判定が変わらない、D350)", () => {
     /** 親に notice の本文を出す */
-    const ship = (parent, id, body) => {
+    const ship = (/** @type {string} */ parent, /** @type {string} */ id, /** @type {string} */ body) => {
       write(parent, `.notices/${id}.md`, body);
       commitAll(parent, `ship ${id}`);
     };
-    const pull = (fork) => {
+    const pull = (/** @type {string} */ fork) => {
       git(fork, "fetch", "-q", "upstream");
       git(fork, "merge", "-q", "--no-edit", "upstream/main");
     };
     /** fork が一時許可を持つ状態(親の user.ts を外で変え、依頼 20261029-120000-user-hook の許可で通す) */
-    const forkWithPermit = (parent) => {
+    const forkWithPermit = (/** @type {string} */ parent) => {
       const fork = makeFork(parent);
       write(fork, "src/features/core/user/user.ts", "export const user = 2;\n");
       commitAll(fork, "outside");
-      const draft = runCheck(fork).entries.find((entry) => entry.reason === "outside-intake").permitDraft;
+      const draft = ran(runCheck(fork)).entries.find((entry) => entry.reason === "outside-intake")?.permitDraft ?? "";
       write(fork, `.fork-ownership/${FORK_ID}.permits.txt`, `${draft.replace("<依頼の番号>", "20261029-120000-user-hook").replace("<理由>", "待ち")}\n`);
       commitAll(fork, "permit");
       return fork;
@@ -661,7 +678,7 @@ describe("pnpm workflow ownership check", () => {
       commitAll(fork, "ledger");
       const result = runCheck(fork);
       assert.equal(result.status, "fail");
-      assert.equal(result.entries.find((entry) => entry.path === "src/features/core/user/user.ts").permit, "expired-resolved");
+      assert.equal(result.entries.find((entry) => entry.path === "src/features/core/user/user.ts")?.permit, "expired-resolved");
     });
 
     test("改名した notice は新しい名前だけを数える(前の名前は台帳に要らない)", () => {
@@ -671,14 +688,14 @@ describe("pnpm workflow ownership check", () => {
       git(parent, "mv", ".notices/20261029-000000-old.md", ".notices/20261029-000000-new.md");
       commitAll(parent, "rename");
       pull(fork);
-      assert.deepEqual(runCheck(fork).unrecorded, ["20261029-000000-new"]);
+      assert.deepEqual(notVerified(runCheck(fork)).unrecorded, ["20261029-000000-new"]);
     });
   });
 });
 
 test("多段: 上流の単位の中への追加は、その単位のフォルダが Tier1 の版にあるときだけ違反(無ければ中間 Tier の単位 = middle-tier)", () => {
   const tier1Files = new Set(["src/components/Input/Select/index.tsx", "src/lib/crud/index.ts"]);
-  const entry = (path, unitFolder) => ({ status: "A", path, kind: null, reason: "inside-unit-add", verdict: "violation", unitFolder });
+  const entry = (/** @type {string} */ path, /** @type {string} */ unitFolder) => ({ status: "A", path, kind: null, reason: "inside-unit-add", verdict: "violation", unitFolder });
   const entries = [
     entry("src/components/Input/Select/Extra.tsx", "src/components/Input/Select"),
     entry("src/components/Input/MidUnit/Extra.tsx", "src/components/Input/MidUnit"),

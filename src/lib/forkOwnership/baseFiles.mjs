@@ -14,7 +14,7 @@ export { lastUpstreamSha };
  * 基準の版のファイル(台帳 .notices/applied/<fork_id>.md の最後の upstream:<sha>、base で上書き)
  * @param {string} root リポジトリのルート
  * @param {string | null | undefined} base 基準の版(--base <rev>)。無ければ台帳から決める
- * @returns {{ rev: string, files: string[] } | { problem: string }}
+ * @returns {{ rev: string, files: string[], problem?: undefined } | { problem: string }}
  */
 export function readBaseFiles(root, base) {
   let rev = base;

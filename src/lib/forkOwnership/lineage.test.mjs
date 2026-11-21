@@ -5,7 +5,11 @@ import assert from "node:assert/strict";
 import { checkLineageStructure, checkOverrides, formatProblems, parseLineage, parseOverrideBody, touchedOverrides } from "./lineage.mjs";
 
 const PREAMBLE = "# lineage\n> **ROLE**: x\n<!-- end preamble -->\n";
-const section = (name, ...lines) => `## ${name}\n${lines.map((line) => `${line}\n`).join("")}<!-- end ${name} -->\n`;
+const section = (/** @type {string} */ name, /** @type {string[]} */ ...lines) => `## ${name}\n${lines.map((line) => `${line}\n`).join("")}<!-- end ${name} -->\n`;
+/**
+ * @param {string} text
+ * @param {{ ancestors?: string[], own?: string, downstream?: "yes" | "none" | null }} [options]
+ */
 const structure = (text, { ancestors = ["oripa-do"], own = "pandora", downstream = "yes" } = {}) =>
   checkLineageStructure({ parsed: parseLineage(text), ancestorsOldestFirst: ancestors, own, downstream });
 
@@ -53,15 +57,15 @@ test("checkLineageStructure: 祖先の古い順 + 自分は最後。知らない
 
 test("parseOverrideBody: 形・値・why: の理由", () => {
   assert.deepEqual(parseOverrideBody("oripa-do.tone = casual | why: 若年層向け"), { owner: "oripa-do", key: "tone", value: "casual", why: "若年層向け" });
-  assert.match(parseOverrideBody("tone = casual | why: r").error, /形が違う/);
-  assert.match(parseOverrideBody("oripa-do.tone = casual").error, /形が違う/);
-  assert.match(parseOverrideBody("oripa-do.tone = casual | why: ").error, /理由が無い/);
-  assert.match(parseOverrideBody("oripa-do.tone =  | why: r").error, /値が空/);
+  assert.match(parseOverrideBody("tone = casual | why: r").error ?? "", /形が違う/);
+  assert.match(parseOverrideBody("oripa-do.tone = casual").error ?? "", /形が違う/);
+  assert.match(parseOverrideBody("oripa-do.tone = casual | why: ").error ?? "", /理由が無い/);
+  assert.match(parseOverrideBody("oripa-do.tone =  | why: r").error ?? "", /値が空/);
 });
 
 test("checkOverrides: (default) の祖先の鍵だけ。無い節・無い鍵・(default) でない・同じ対象 2 回・形違いは失敗、同名の鍵は警告", () => {
   const lineage = parseLineage(PREAMBLE + section("oripa-do", "- relay: always", "- tone (default): polite") + section("pandora", "overrides: oripa-do.tone = brief | why: 下流にも"));
-  const run = (projectText) => checkOverrides({ parsed: lineage, projectText, own: "pandora" });
+  const run = (/** @type {string} */ projectText) => checkOverrides({ parsed: lineage, projectText, own: "pandora" });
 
   assert.deepEqual(run("## TIER\nfork_id: pandora\n- overrides: oripa-do.tone = casual | why: 若年層向け\n"), { failures: [], warnings: [] });
   assert.match(run("overrides: someone.tone = x | why: r\n").failures.join(), /祖先に無い/);
@@ -87,7 +91,7 @@ test("checkOverrides: (default) の祖先の鍵だけ。無い節・無い鍵・
 test("touchedOverrides: 名指す鍵の行が変わった・消えた・(default) が外れた = 接触、他の鍵の変更・名指し先が前から無いのは接触でない", () => {
   const before = PREAMBLE + section("oripa-do", "- tone (default): polite", "- relay: always") + section("pandora", "overrides: oripa-do.relay = x | why: r");
   const projectText = "overrides: oripa-do.tone = casual | why: r\noverrides: oripa-do.ghost = 1 | why: r\n";
-  const run = (after) => touchedOverrides({ before, after, projectText, own: "pandora" });
+  const run = (/** @type {string | null} */ after) => touchedOverrides({ before, after, projectText, own: "pandora" });
 
   assert.deepEqual(run(before), []);
   assert.deepEqual(run(PREAMBLE + section("oripa-do", "- tone (default): polite", "- relay: always", "- new: 1") + section("pandora", "overrides: oripa-do.relay = x | why: r")), [], "他の鍵を足しただけ");

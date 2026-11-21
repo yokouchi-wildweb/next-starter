@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 export const PARENT_ID = "parent";
 export const FORK_ID = "child";
 
+/** @type {Record<string, string | undefined>} */
 export const ENV = {
   ...process.env,
   GIT_AUTHOR_NAME: "t",
@@ -19,46 +20,68 @@ export const ENV = {
 };
 delete ENV.FORK_OWNERSHIP_PARENT;
 
+/**
+ * @param {string} cwd
+ * @param {...string} args
+ * @returns {string}
+ */
 export const git = (cwd, ...args) => execFileSync("git", args, { cwd, env: ENV, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
+/**
+ * @param {string} root
+ * @param {string} path repo 相対
+ * @param {string} text
+ */
 export const write = (root, path, text) => {
   mkdirSync(dirname(join(root, path)), { recursive: true });
   writeFileSync(join(root, path), text);
 };
 
-export const commitAll = (root, message) => {
+export const commitAll = (/** @type {string} */ root, /** @type {string} */ message) => {
   git(root, "add", "-A");
   git(root, "commit", "-q", "-m", message);
 };
 
+/** @type {string | undefined} */
 let tmp;
 let counter = 0;
 
+/** 開いている一時の置き場(openTmp の前は投げる) */
+const openedTmp = () => {
+  if (tmp === undefined) throw new Error("openTmp() を先に呼ぶ");
+  return tmp;
+};
+
 /** 一時の置き場を作る(テストの before で呼ぶ) */
 export function openTmp() {
-  tmp = mkdtempSync(join(tmpdir(), "fork-ownership-"));
-  return tmp;
+  const dir = mkdtempSync(join(tmpdir(), "fork-ownership-"));
+  tmp = dir;
+  return dir;
 }
 
 /** 今の一時の置き場 */
-export const tmpRoot = () => tmp;
+export const tmpRoot = () => openedTmp();
 
 /** 一時のリポの名前の通し番号 */
 export const nextId = () => (counter += 1);
 
 /** 一時の置き場を消す(テストの after で呼ぶ) */
 export function closeTmp() {
-  rmSync(tmp, { recursive: true, force: true });
+  rmSync(openedTmp(), { recursive: true, force: true });
 }
 
 /** repo.json の中身(1 鍵 1 行) */
-export const repoJson = (id, tier) => `{\n  "repo_id": "${id}",\n  "tier": "${tier}"\n}\n`;
+export const repoJson = (/** @type {string} */ id, /** @type {string} */ tier) => `{\n  "repo_id": "${id}",\n  "tier": "${tier}"\n}\n`;
 
 export const LINEAGE_PREAMBLE = "# lineage\n> **ROLE**: 中間層の規則\n<!-- end preamble -->\n";
 
-/** 親(Tier1 役)を作る。withIntake: false = この検査を含まない版、withLineage = 前置きだけの lineage.md と append の受け口 */
+/**
+ * 親(Tier1 役)を作る。withIntake: false = この検査を含まない版、withLineage = 前置きだけの lineage.md と append の受け口
+ * @param {{ withIntake?: boolean, withLineage?: boolean }} [options]
+ * @returns {string} 親のリポのフォルダ
+ */
 export function makeParent({ withIntake = true, withLineage = false } = {}) {
-  const root = join(tmp, `parent-${(counter += 1)}`);
+  const root = join(openedTmp(), `parent-${(counter += 1)}`);
   mkdirSync(root);
   git(root, "init", "-q", "-b", "main");
   git(root, "remote", "add", "origin", `git@github.com:acme/parent.git`);
@@ -81,10 +104,14 @@ export function makeParent({ withIntake = true, withLineage = false } = {}) {
   return root;
 }
 
-/** 親を clone して fork を作る(親の remote = upstream、origin = acme/child、名前は repo.json の repo_id child) */
+/**
+ * 親を clone して fork を作る(親の remote = upstream、origin = acme/child、名前は repo.json の repo_id child)
+ * @param {string} parent 親のリポのフォルダ
+ * @returns {string} fork のリポのフォルダ
+ */
 export function makeFork(parent) {
-  const root = join(tmp, `fork-${(counter += 1)}`);
-  git(tmp, "clone", "-q", parent, root);
+  const root = join(openedTmp(), `fork-${(counter += 1)}`);
+  git(openedTmp(), "clone", "-q", parent, root);
   git(root, "remote", "rename", "origin", "upstream");
   git(root, "remote", "add", "origin", `git@github.com:acme/child.git`);
   write(root, "src/features/game/game.ts", "export const game = 1;\n");
@@ -96,6 +123,11 @@ export function makeFork(parent) {
 }
 
 /** 台帳に 1 行足す(upstream: = 今取り込んだ親の版) */
+/**
+ * @param {string} fork fork のリポのフォルダ
+ * @param {string} id notice の id
+ * @param {string} [ledger] 台帳の名前
+ */
 export const recordLedger = (fork, id, ledger = FORK_ID) => {
   const path = `.notices/applied/${ledger}.md`;
   const current = readFileSync(join(fork, path), "utf8");

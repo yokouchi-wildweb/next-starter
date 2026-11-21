@@ -5,6 +5,11 @@ import { matchesGlob } from "node:path";
 
 export const INTAKE_KINDS = ["edit", "add", "region", "marker", "append", "generated", "debt", "self"];
 
+/**
+ * @typedef {{ kind: string | null, glob: string, exclude: boolean, note: string, line: number }} IntakeRule 受け口の一覧の 1 行(kind null = `!` の除外の行)
+ * @typedef {{ line: number, message: string }} LineError 行番号つきの書式の誤り
+ */
+
 /** 受け口の一覧の置き場(リポジトリ直下からの相対) */
 export const INTAKE_FILE = "src/lib/forkOwnership/intake.txt";
 /** 受け口の行の生成区画(pnpm generate extensions が拡張点の宣言・1 行スイッチから書く。生成器の区画なので所有の検査の対象外: regions.mjs) */
@@ -29,10 +34,13 @@ export function replaceIntakeBlock(text, rows) {
 
 /**
  * 受け口の一覧を読む。行番号は 1 始まり。
- * @returns {{ rules: { kind: string | null, glob: string, exclude: boolean, note: string, line: number }[], errors: { line: number, message: string }[] }}
+ * @param {string} text intake.txt の中身
+ * @returns {{ rules: IntakeRule[], errors: LineError[] }}
  */
 export function parseIntake(text) {
+  /** @type {IntakeRule[]} */
   const rules = [];
+  /** @type {LineError[]} */
   const errors = [];
   text.split("\n").forEach((raw, index) => {
     const line = index + 1;
@@ -70,9 +78,13 @@ export function parseIntake(text) {
 
 /**
  * パス(repo 相対、`/` 区切り)に効く規則。最後に当たった規則が効き、`!` の規則はそれまでの当たりを外す。
- * @returns {{ kind: string, glob: string, line: number } | null}
+ * @template {{ kind: string | null, glob: string, exclude: boolean }} R
+ * @param {R[]} rules parseIntake().rules(line・note を持たない形でもよい)
+ * @param {string} path
+ * @returns {R | null}
  */
 export function matchIntake(rules, path) {
+  /** @type {R | null} */
   let hit = null;
   for (const rule of rules) {
     if (!matchesGlob(path, rule.glob)) continue;

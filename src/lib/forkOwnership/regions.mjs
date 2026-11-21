@@ -11,19 +11,28 @@ export const LEGACY_FORK_MARKERS = [
   /^\s*\/\/ --- FORK \(手書き\) ---\s*$/,
 ];
 
-const indentOf = (line) => line.length - line.trimStart().length;
+/**
+ * @import { LineError } from "./intake.mjs"
+ * @typedef {{ start: number, end: number, legacy?: boolean }} OwnedRegion 区画(start / end = 印の行、1 始まり)
+ */
 
-const isLegacyMarker = (line) => LEGACY_FORK_MARKERS.some((re) => re.test(line));
+const indentOf = (/** @type {string} */ line) => line.length - line.trimStart().length;
+
+const isLegacyMarker = (/** @type {string} */ line) => LEGACY_FORK_MARKERS.some((re) => re.test(line));
 
 /**
  * テキストから fork の区画を読む。行番号は 1 始まり、start / end は印の行。
  * 古い印の区画は end = 閉じ括弧の行(legacy: true)。
- * @returns {{ regions: { start: number, end: number, legacy: boolean }[], errors: { line: number, message: string }[] }}
+ * @param {string} text
+ * @returns {{ regions: { start: number, end: number, legacy: boolean }[], errors: LineError[] }}
  */
 export function parseForkRegions(text) {
   const lines = text.split("\n");
+  /** @type {{ start: number, end: number, legacy: boolean }[]} */
   const regions = [];
+  /** @type {LineError[]} */
   const errors = [];
+  /** @type {number | null} */
   let open = null;
 
   lines.forEach((raw, index) => {
@@ -72,6 +81,8 @@ export function parseForkRegions(text) {
 }
 
 // 生成器の区画(所有の検査の対象外、D22)。印の統一は後継の論点なので今の書き方をそのまま読む
+/** @typedef {{ start: RegExp, end: RegExp, whole?: boolean }} GeneratorPair */
+/** @type {GeneratorPair[]} */
 const GENERATOR_PAIRS = [
   { start: /^\s*\/\/ --- AUTO-GENERATED-START ---\s*$/, end: /^\s*\/\/ --- AUTO-GENERATED-END ---\s*$/ },
   { start: /^\s*\/\/ === AUTO-GENERATED (\S+) START ===\s*$/, end: /^\s*\/\/ === AUTO-GENERATED (\S+) END ===\s*$/ },
@@ -89,11 +100,14 @@ const GENERATOR_OPEN_IMPORTS = /^\s*\/\/ --- Auto-generated imports ---\s*$/;
  * 終わりの印の無い区画の end は、最後の import 行の次の行(その行は区画の外)。
  * whole の対は印の行と直前の空行も中身に含める(start / end をその外側の行にする。start は 0 になり得る)。
  * 閉じていない対は区画にしない(生成器自身が印の欠けを検出する)。
+ * @param {string} text
  * @returns {{ start: number, end: number }[]}
  */
 export function parseGeneratorRegions(text) {
   const lines = text.split("\n");
+  /** @type {{ start: number, end: number }[]} */
   const regions = [];
+  /** @type {{ start: number, pair: GeneratorPair } | null} */
   let open = null;
 
   lines.forEach((raw, index) => {
@@ -133,9 +147,12 @@ export function parseGeneratorRegions(text) {
 /**
  * 区画の中身(印の行は残す)を除いたテキスト。基準側と fork 側でこれが同じなら、書き換えは区画の中だけ。
  * 一時許可の指紋の元にもなる(D22: fork の区画と生成器の区画を除いて取る)。
+ * @param {string} text
  * @param {{ fork?: boolean }} [options] fork: false = 生成器の区画だけを除く(fork の区画を受け口にしないファイル用)
+ * @returns {string}
  */
-export function stripOwnedRegions(text, { fork = true } = {}) {
+export function stripOwnedRegions(text, options = {}) {
+  const { fork = true } = options;
   const all = [...(fork ? parseForkRegions(text).regions : []), ...parseGeneratorRegions(text)];
   const lines = text.split("\n");
   return lines.filter((_, index) => !isInForkRegion(all, index + 1)).join("\n");
@@ -143,6 +160,9 @@ export function stripOwnedRegions(text, { fork = true } = {}) {
 
 /**
  * 行番号(1 始まり)が区画の中(印の行を除く)にあるか。fork の区画にも生成器の区画にも使える。
+ * @param {OwnedRegion[]} regions
+ * @param {number} line
+ * @returns {boolean}
  */
 export function isInForkRegion(regions, line) {
   return regions.some((region) => line > region.start && line < region.end);

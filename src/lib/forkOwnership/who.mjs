@@ -11,7 +11,22 @@ import { matchIntake, parseIntake } from "./intake.mjs";
 import { judge } from "./judge.mjs";
 import { unitName } from "./unitNames.mjs";
 
-/** 受け口の kind → 書き換えてよい範囲(既存のファイル) */
+/**
+ * @import { Tier1Version, Unverified } from "./check.mjs"
+ * @import { ExplainAnswer, ExplainTier } from "./explain.mjs"
+ * @import { IntakeRule } from "./intake.mjs"
+ * @import { OwnershipEntry } from "./judge.mjs"
+ * @import { Permit } from "./permits.mjs"
+ * @typedef {ReturnType<typeof describePath>} WhoResult 1 パスの答え
+ * @typedef {Unverified
+ *   | { status: "tier1", ownerId: string, results: WhoResult[] }
+ *   | { status: "ok", ownerId: string, remote: string, branch: string, base: string, tier1: Tier1Version, results: WhoResult[] }} WhoAnswer whoOwns の結果
+ */
+
+/**
+ * 受け口の kind → 書き換えてよい範囲(既存のファイル)
+ * @type {Readonly<Record<string, string | undefined>>}
+ */
 const EDIT_BY_KIND = {
   edit: "受け口(edit): 書き換えてよい",
   region: "fork の区画(fork entries start … end)の中だけ",
@@ -20,6 +35,11 @@ const EDIT_BY_KIND = {
   generated: "生成物: 生成器で作り直す(手で直さない)",
 };
 
+/**
+ * @param {string} repoRoot
+ * @param {string} path
+ * @returns {string | null}
+ */
 const showHead = (repoRoot, path) => {
   try {
     return execFileSync("git", ["show", `HEAD:${path}`], { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
@@ -28,7 +48,11 @@ const showHead = (repoRoot, path) => {
   }
 };
 
-/** 丸ごと置き換え <名前>.replace の候補(<名前>.default の隣も同じ名前)。.replace / .override 自身は null */
+/**
+ * 丸ごと置き換え <名前>.replace の候補(<名前>.default の隣も同じ名前)。.replace / .override 自身は null
+ * @param {string} path
+ * @returns {string | null}
+ */
 export function replaceCandidate(path) {
   const match = /\.(tsx?)$/.exec(path);
   if (!match) return null;
@@ -37,7 +61,11 @@ export function replaceCandidate(path) {
   return `${unit.replace(/\.default$/, "")}.replace.${match[1]}`;
 }
 
-/** 一部の上書き <対象>.override.ts の候補(cron のフォルダは上書きできるのが task.ts だけなので、どのファイルも task.override.ts)。.override 自身は null */
+/**
+ * 一部の上書き <対象>.override.ts の候補(cron のフォルダは上書きできるのが task.ts だけなので、どのファイルも task.override.ts)。.override 自身は null
+ * @param {string} path
+ * @returns {string | null}
+ */
 export function overrideCandidate(path) {
   const cron = /^(src\/app\/api\/cron\/[^/]+)\/[^/]+$/.exec(path);
   if (cron) return /\.override\.tsx?$/.test(path) ? null : `${cron[1]}/task.override.ts`;
@@ -52,19 +80,24 @@ export function overrideCandidate(path) {
  *   path: string,
  *   inBase: boolean, inHead: boolean, inTier1: boolean,
  *   middleName: string | null,           // 基準にあり Tier1 の版に無いファイルを足した Tier の名前
- *   intake: object[],                    // 基準の受け口の一覧(parseIntake().rules)
- *   entry: object | null,                // 基準との差分の判定(judgeFork の entries の 1 件、差分が無ければ null)
- *   permit: object | null,               // 自分の一時許可の行(parsePermits の 1 件)
+ *   intake: IntakeRule[],                // 基準の受け口の一覧(parseIntake().rules)
+ *   entry: OwnershipEntry | null,        // 基準との差分の判定(judgeFork の entries の 1 件、差分が無ければ null)
+ *   permit: Permit | null,               // 自分の一時許可の行(parsePermits の 1 件)
  *   judgeAdd: (path: string) => { reason: string, verdict: string },  // そのパスを足したときの判定(中間 Tier の付け替え込み)
- *   explain?: (path: string, who: { tier: string, addable: boolean }) => object,  // 型の答え(explain.mjs の explainPath を木と直接の親に結んだ物)
+ *   explain?: (path: string, who: { tier: ExplainTier, addable: boolean }) => ExplainAnswer,  // 型の答え(explain.mjs の explainPath を木と直接の親に結んだ物)
  * }} input
  */
 export function describePath({ path, inBase, inHead, inTier1, middleName, intake, entry, permit, judgeAdd, explain }) {
   const rule = matchIntake(intake, path);
+  /** @type {ExplainTier} */
   const tier = !inBase ? (inHead ? "fork" : "missing") : inTier1 ? "tier1" : "middle";
+  /** @type {{ kind: string, tier: ExplainTier, forkId?: string | null }} */
   const owner = { kind: rule?.kind === "generated" && tier !== "missing" ? "generated" : tier, tier, ...(tier === "middle" ? { forkId: middleName } : {}) };
+  const editHow = rule?.kind ? EDIT_BY_KIND[rule.kind] : undefined;
 
+  /** @type {{ action: string, how: string, path?: string }[]} */
   const allowed = [];
+  /** @type {{ action: string, reason: string }[]} */
   const blocked = [];
   if (tier === "missing") {
     const added = judgeAdd(path);
@@ -74,8 +107,8 @@ export function describePath({ path, inBase, inHead, inTier1, middleName, intake
     allowed.push({ action: "edit", how: "fork が足したファイル: 書き換え・削除・rename してよい" });
   } else if (tier === "middle") {
     allowed.push({ action: "edit", how: `中間 Tier${middleName ? ` ${middleName}` : ""} の物: 書き換え・削除・rename してよい(D29)` });
-  } else if (rule && EDIT_BY_KIND[rule.kind]) {
-    allowed.push({ action: "edit", how: EDIT_BY_KIND[rule.kind] });
+  } else if (rule && editHow) {
+    allowed.push({ action: "edit", how: editHow });
   } else {
     blocked.push({ action: "edit", reason: rule?.kind === "debt" ? "debt" : "outside-intake" });
   }
@@ -85,12 +118,12 @@ export function describePath({ path, inBase, inHead, inTier1, middleName, intake
   if (tier !== "missing" && tier !== "fork") {
     const replace = replaceCandidate(path);
     const replaceRule = replace ? matchIntake(intake, replace) : null;
-    if (replaceRule?.kind === "add" && replaceRule.glob.includes(".replace") && judgeAdd(replace).verdict === "ok") {
+    if (replace && replaceRule?.kind === "add" && replaceRule.glob.includes(".replace") && judgeAdd(replace).verdict === "ok") {
       allowed.push({ action: "replace", how: `${replace} を足し、1 行スイッチを向け替える`, path: replace });
     }
     const override = overrideCandidate(path);
     const overrideRule = override ? matchIntake(intake, override) : null;
-    if ((overrideRule?.kind === "edit" || overrideRule?.kind === "add") && overrideRule.glob.includes("override") && judgeAdd(override).verdict === "ok") {
+    if (override && (overrideRule?.kind === "edit" || overrideRule?.kind === "add") && overrideRule.glob.includes("override") && judgeAdd(override).verdict === "ok") {
       allowed.push({ action: "override", how: `${override} で上書きする`, path: override });
     }
   }
@@ -111,11 +144,19 @@ export function describePath({ path, inBase, inHead, inTier1, middleName, intake
   return { path, owner, ...(typed ?? {}), allowed, blocked, evidence };
 }
 
-/** 引数のパスを repo 相対のファイルに広げる(フォルダ = その下のファイル、HEAD ∪ 基準) */
+/**
+ * 引数のパスを repo 相対のファイルに広げる(フォルダ = その下のファイル、HEAD ∪ 基準)
+ * @param {string} repoRoot
+ * @param {string[]} paths
+ * @param {string[]} revs
+ * @returns {string[]}
+ */
 export function expandPaths(repoRoot, paths, revs) {
+  /** @type {string[]} */
   const out = [];
+  /** @type {Set<string>} */
   const seen = new Set();
-  const push = (path) => {
+  const push = (/** @type {string} */ path) => {
     if (seen.has(path)) return;
     seen.add(path);
     out.push(path);
@@ -137,7 +178,7 @@ export function expandPaths(repoRoot, paths, revs) {
  * @param {string} repoRoot
  * @param {string[]} paths repo 相対(フォルダはその下のファイルに広げる)
  * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options]
- * @returns {{ status: "tier1" | "ok", ownerId: string, results: object[] } & object | { status: "unverified", reason: string }}
+ * @returns {WhoAnswer}
  */
 export function whoOwns(repoRoot, paths, options = {}) {
   const context = resolveForkContext(repoRoot, options);
@@ -151,6 +192,7 @@ export function whoOwns(repoRoot, paths, options = {}) {
     const files = new Set(snapshot.files);
     const judgeAdd = addJudge(snapshot, intake.rules, files);
     const view = explainView({ files: snapshot.files, read: snapshot.read, intake: intake.rules });
+    /** @type {(path: string, who: { tier: ExplainTier, addable: boolean }) => ExplainAnswer} */
     const explain = (path, who) => explainPath(path, view, { ...who, parent: context.ownerId });
     const results = expandPaths(repoRoot, paths, ["HEAD"]).map((path) =>
       describePath({ path, inBase: files.has(path), inHead: files.has(path), inTier1: files.has(path), middleName: null, intake: intake.rules, entry: null, permit: null, judgeAdd, explain }),
@@ -162,9 +204,10 @@ export function whoOwns(repoRoot, paths, options = {}) {
   const baseFiles = new Set(snapshot.files);
   const judgeAdd = addJudge(snapshot, context.intake, context.tier1Files);
   const chain = [...context.tier1.chain].reverse(); // Tier1 に近い版から
-  const middleNameOf = (path) => chain.find((step) => existsAt(repoRoot, step.sha, path))?.name ?? forkIdAt(repoRoot, context.base);
+  const middleNameOf = (/** @type {string} */ path) => chain.find((step) => existsAt(repoRoot, step.sha, path))?.name ?? forkIdAt(repoRoot, context.base);
   const view = explainView({ files: snapshot.files, read: snapshot.read, intake: context.intake });
   const parent = forkIdAt(repoRoot, context.base) ?? context.remote;
+  /** @type {(path: string, who: { tier: ExplainTier, addable: boolean }) => ExplainAnswer} */
   const explain = (path, who) => explainPath(path, view, { ...who, parent });
 
   const results = expandPaths(repoRoot, paths, ["HEAD", context.base]).map((path) => {
@@ -188,7 +231,13 @@ export function whoOwns(repoRoot, paths, options = {}) {
   return { status: "ok", ownerId, remote, branch, base, tier1, results };
 }
 
-/** そのパスを足したときの判定(judge + 中間 Tier の付け替え。pnpm workflow ownership check と同じ) */
+/**
+ * そのパスを足したときの判定(judge + 中間 Tier の付け替え。pnpm workflow ownership check と同じ)
+ * @param {ReturnType<typeof treeSnapshot>} snapshot
+ * @param {IntakeRule[]} intake
+ * @param {Set<string>} tier1Files
+ * @returns {(path: string) => OwnershipEntry}
+ */
 function addJudge(snapshot, intake, tier1Files) {
   return (path) => {
     const { entries } = judge({

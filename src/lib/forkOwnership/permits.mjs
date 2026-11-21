@@ -7,18 +7,28 @@ import { createHash } from "node:crypto";
 import { matchIntake } from "./intake.mjs";
 import { stripOwnedRegions } from "./regions.mjs";
 
+/**
+ * @import { IntakeRule, LineError } from "./intake.mjs"
+ * @import { OwnershipEntry } from "./judge.mjs"
+ * @typedef {{ path: string, upreqs: string[], base: string, head: string, note: string, line: number }} Permit 一時許可の 1 行
+ * @typedef {{ path: string, line: number, reason: "same-as-base" | "unused" }} PermitLeftover 一時許可の残骸
+ */
+
 export const PERMITS_DIR = ".fork-ownership";
-export const permitsPath = (forkId) => `${PERMITS_DIR}/${forkId}.permits.txt`;
+export const permitsPath = (/** @type {string} */ forkId) => `${PERMITS_DIR}/${forkId}.permits.txt`;
 
 const UPREQ_ID = /^\d{8}-\d{6}-[a-z0-9][a-z0-9-]*$/;
 const FINGERPRINT = /^([0-9a-f]{40}|-)$/;
 
 /**
  * 1 行 1 許可: `<path> upreq:<id>[,<id>…] base:<指紋|-> head:<指紋|->  # 理由`
- * @returns {{ permits: { path: string, upreqs: string[], base: string, head: string, note: string, line: number }[], errors: { line: number, message: string }[] }}
+ * @param {string} text permits.txt の中身
+ * @returns {{ permits: Permit[], errors: LineError[] }}
  */
 export function parsePermits(text) {
+  /** @type {Permit[]} */
   const permits = [];
+  /** @type {LineError[]} */
   const errors = [];
   const seen = new Map();
   text.split("\n").forEach((raw, index) => {
@@ -57,7 +67,11 @@ export function parsePermits(text) {
   return { permits, errors };
 }
 
-/** テキストの git blob id(`git hash-object --stdin` と同じ値)。null = ファイルが無い → `-` */
+/**
+ * テキストの git blob id(`git hash-object --stdin` と同じ値)。null = ファイルが無い → `-`
+ * @param {string | null} text
+ * @returns {string}
+ */
 export function blobId(text) {
   if (text === null) return "-";
   const body = Buffer.from(text, "utf8");
@@ -66,6 +80,9 @@ export function blobId(text) {
 
 /**
  * 許可の指紋 = 区画の中身を除いたテキストの blob id(D22)。region の kind は fork の区画も除き、他は生成器の区画だけを除く。
+ * @param {string | null} text
+ * @param {string | null} kind 受け口の kind(当たる行が無ければ null)
+ * @returns {string}
  */
 export function fingerprint(text, kind) {
   if (text === null) return "-";
@@ -79,22 +96,25 @@ export function fingerprint(text, kind) {
  * - 残骸(leftovers): same-as-base(基準と同じに戻った)| unused(違反の無いファイルの行)。どちらも失敗
  * R の許可は移動元のパスに書く。
  * @param {{
- *   entries: { status: string, path: string, from?: string, kind: string | null, reason: string, verdict: string }[],
- *   permits: { path: string, upreqs: string[], base: string, head: string, line: number }[],
+ *   entries: OwnershipEntry[],
+ *   permits: Pick<Permit, "path" | "upreqs" | "base" | "head" | "line">[],
  *   baseText: (path: string) => string | null,
  *   headText: (path: string) => string | null,
- *   intake: { kind: string | null, glob: string, exclude: boolean, line: number }[],
+ *   intake: Pick<IntakeRule, "kind" | "glob" | "exclude" | "line">[],
  *   resolvedUpreqs: Iterable<string>,
  * }} input
+ * @returns {{ entries: OwnershipEntry[], leftovers: PermitLeftover[] }}
  */
 export function checkPermits({ entries, permits, baseText, headText, intake, resolvedUpreqs }) {
   const resolved = new Set(resolvedUpreqs);
   const byPath = new Map(permits.map((permit) => [permit.path, permit]));
+  /** @type {Set<string>} */
   const used = new Set();
 
+  /** @type {OwnershipEntry[]} */
   const checked = entries.map((entry) => {
     if (entry.verdict !== "violation") return entry;
-    const target = entry.status === "R" ? entry.from : entry.path;
+    const target = (entry.status === "R" ? entry.from : undefined) ?? entry.path;
     const permit = byPath.get(target);
     if (!permit) return { ...entry, permit: "none" };
     used.add(target);
@@ -102,6 +122,7 @@ export function checkPermits({ entries, permits, baseText, headText, intake, res
     const kind = matchIntake(intake, target)?.kind ?? null;
     const base = fingerprint(baseText(target), kind);
     const head = entry.status === "D" || entry.status === "R" ? "-" : fingerprint(headText(target), kind);
+    /** @type {"expired-resolved" | "expired-base" | "refresh" | "valid"} */
     let state;
     if (permit.upreqs.every((id) => resolved.has(id))) state = "expired-resolved";
     else if (permit.base !== base) state = "expired-base";
@@ -110,6 +131,7 @@ export function checkPermits({ entries, permits, baseText, headText, intake, res
     return { ...entry, permit: state, permitLine: permit.line, verdict: state === "valid" ? "permitted" : "violation", fingerprints: { base, head } };
   });
 
+  /** @type {PermitLeftover[]} */
   const leftovers = permits
     .filter((permit) => !used.has(permit.path))
     .map((permit) => {

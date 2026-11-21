@@ -14,10 +14,11 @@ test("unitName: 最後の拡張子と末尾の /index を除き、.replace / .ov
   assert.equal(unitName("scripts/README"), "scripts/README");
 });
 
-const spec = (dir) => `{ dir: "${dir}", export: "x", type: { from: "@/t", name: "T" }, side: "server" }`;
+const spec = (/** @type {string} */ dir) => `{ dir: "${dir}", export: "x", type: { from: "@/t", name: "T" }, side: "server" }`;
 
 test("unitPlaces / placeUnitOf: 受け口・wiring・scripts は直下の項目だけ、route の隣はその下全部、それ以外は対象外", () => {
   const files = ["src/features/core/user/extensionPoints.ts", "src/proxies/extensionPoints.ts"];
+  /** @type {Record<string, string>} */
   const texts = {
     "src/features/core/user/extensionPoints.ts": `export const extensionPoints = {\n  // b: ${spec("commented")},\n  a: ${spec("cleanup")},\n};\n`,
     "src/proxies/extensionPoints.ts": `export const extensionPoints = { h: ${spec(".")}, r: ${spec("featureGateRules")} };\n`,

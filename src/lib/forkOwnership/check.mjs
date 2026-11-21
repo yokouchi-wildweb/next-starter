@@ -14,12 +14,46 @@ import { unitIndex, unitPlaces } from "./unitNames.mjs";
 import { checkPermits, fingerprint, parsePermits, permitsPath } from "./permits.mjs";
 import { SELF_CHECK_DEFAULT, SELF_FILES, SELF_OVERVIEW_FILE, selfProblems } from "./self.mjs";
 
+/**
+ * @import { IntakeRule, LineError } from "./intake.mjs"
+ * @import { OwnershipChange, OwnershipEntry } from "./judge.mjs"
+ * @import { Permit, PermitLeftover } from "./permits.mjs"
+ * @import { SelfProblem } from "./self.mjs"
+ * @typedef {{ status: "unverified", reason: string, ownerId?: string | null, remote?: string, branch?: string, base?: string, errors?: LineError[], unrecorded?: string[] }} Unverified 未検証(exit 2)
+ * @typedef {{ sha: string, chain: { sha: string, name: string }[] }} Tier1Version Tier1 の版と、そこまでたどった中間 Tier(直接の親から上へ)
+ * @typedef {{
+ *   status: "ok", ownerId: string, remote: string, branch: string, base: string, downstream: "yes" | "none" | null, parentRef: string,
+ *   intake: IntakeRule[], tier1: Tier1Version, tier1Files: Set<string>,
+ * }} ForkContext 検査の前提(resolveForkContext の ok)
+ * @typedef {{ path: string, from?: string, was: string }} MiddleTierItem 中間 Tier の物に付け替えた違反(was = 元の reason)
+ * @typedef {{ enabled: true, problems: SelfProblem[], unverified: string[] } | { enabled: false }} SelfResult 型 5 self の検査(切 = enabled: false)
+ * @typedef {{ checked: boolean, failures: string[], warnings: string[] }} LineageResult
+ * @typedef {Unverified
+ *   | { status: "tier1", ownerId: string, debt: string[], self: SelfResult }
+ *   | {
+ *       status: "pass" | "fail", ownerId: string, remote: string, branch: string, base: string, tier1: Tier1Version, middleTier: MiddleTierItem[],
+ *       permitFile: string, permitErrors: LineError[], counts: Record<string, number>, entries: OwnershipEntry[], leftovers: PermitLeftover[],
+ *       lineage: LineageResult, self: SelfResult,
+ *     }} CheckResult runCheck の結果
+ */
+
 export const INTAKE_PATH = "src/lib/forkOwnership/intake.txt";
 export const PARENT_ENV = "FORK_OWNERSHIP_PARENT";
 
+/**
+ * @param {string} repoRoot
+ * @param {string[]} args
+ * @param {{ input?: string }} [options]
+ * @returns {string}
+ */
 const git = (repoRoot, args, { input } = {}) =>
   execFileSync("git", args, { cwd: repoRoot, encoding: "utf8", input, stdio: ["pipe", "pipe", "pipe"], maxBuffer: 256 * 1024 * 1024 });
 
+/**
+ * @param {string} repoRoot
+ * @param {string[]} args
+ * @returns {string | null} 失敗なら null
+ */
 const tryGit = (repoRoot, args) => {
   try {
     return git(repoRoot, args);
@@ -28,12 +62,28 @@ const tryGit = (repoRoot, args) => {
   }
 };
 
-/** <rev>:<path> の中身。無ければ null */
-const show = (repoRoot, rev, path) => tryGit(repoRoot, ["show", `${rev}:${path}`]);
+/**
+ * <rev>:<path> の中身。無ければ null(rev が null でも null)
+ * @param {string} repoRoot
+ * @param {string | null} rev
+ * @param {string} path
+ * @returns {string | null}
+ */
+const show = (repoRoot, rev, path) => (rev === null ? null : tryGit(repoRoot, ["show", `${rev}:${path}`]));
 
+/**
+ * @param {string} reason
+ * @param {Omit<Unverified, "status" | "reason">} [extra]
+ * @returns {Unverified}
+ */
 const unverified = (reason, extra = {}) => ({ status: "unverified", reason, ...extra });
 
-/** 親の remote(/flux の「FINDING THE UPSTREAM」と同じ: 指定 > 環境変数 > origin 以外が 1 つ) */
+/**
+ * 親の remote(/flux の「FINDING THE UPSTREAM」と同じ: 指定 > 環境変数 > origin 以外が 1 つ)
+ * @param {string} repoRoot
+ * @param {string | null} [requested]
+ * @returns {{ remote: string, error?: undefined } | { error: string, remote?: undefined }}
+ */
 export function resolveParentRemote(repoRoot, requested) {
   const remotes = (tryGit(repoRoot, ["remote"]) ?? "").split("\n").filter(Boolean);
   const wanted = requested ?? process.env[PARENT_ENV] ?? null;
@@ -44,6 +94,13 @@ export function resolveParentRemote(repoRoot, requested) {
   return { error: `親の remote が決まらない(${others.join(", ")})。--parent か ${PARENT_ENV} で指定する` };
 }
 
+/**
+ * 親の remote の既定のブランチ(指定があればそれ)。分からなければ null
+ * @param {string} repoRoot
+ * @param {string} remote
+ * @param {string | null} [requested]
+ * @returns {string | null}
+ */
 export function resolveParentBranch(repoRoot, remote, requested) {
   if (requested) return requested;
   const out = tryGit(repoRoot, ["ls-remote", "--symref", remote, "HEAD"]);
@@ -53,8 +110,13 @@ export function resolveParentBranch(repoRoot, remote, requested) {
 
 const NOTICE_FILE = /^\.notices\/(?:done\/)?(\d{8}-\d{6}-[^/]+)\.md$/;
 
-/** git log の `@<sha>` 区切りの名前の行: [{ commit, line }] */
+/**
+ * git log の `@<sha>` 区切りの名前の行: [{ commit, line }]
+ * @param {string} repoRoot
+ * @param {string[]} args
+ */
 function logNames(repoRoot, args) {
+  /** @type {{ commit: string, line: string }[]} */
   const out = [];
   let cur = null;
   for (const line of (tryGit(repoRoot, ["-c", "core.quotePath=false", ...args]) ?? "").split("\n")) {
@@ -68,8 +130,11 @@ function logNames(repoRoot, args) {
  * ref の履歴で .notices/ に足された notice: id → { commit, path }(最初に足した commit。merge で足した物も拾い、改名の前の名前は除く)。
  * 出荷済みの一覧の正 = 履歴(索引は持たない、D350)。求め方は .claude/skills/flux/incoming.mjs の addCommits と同じ
  * (src/lib は .claude を import しないので、数行をここに置く)
+ * @param {string} repoRoot
+ * @param {string} ref
  */
 function historyNotices(repoRoot, ref) {
+  /** @type {Map<string, { commit: string, path: string, merge?: boolean }>} */
   const out = new Map();
   for (const { commit, line } of logNames(repoRoot, ["log", "--no-renames", "--diff-filter=A", "--name-only", "--format=@%H", ref, "--", ".notices/"])) {
     const id = NOTICE_FILE.exec(line)?.[1];
@@ -77,7 +142,7 @@ function historyNotices(repoRoot, ref) {
   }
   for (const { commit, line } of logNames(repoRoot, ["log", "-m", "--merges", "--no-renames", "--diff-filter=A", "--name-only", "--format=@%H", ref, "--", ".notices/"])) {
     const id = NOTICE_FILE.exec(line)?.[1];
-    if (id && (!out.has(id) || out.get(id).merge)) out.set(id, { commit, path: line, merge: true });
+    if (id && (!out.has(id) || out.get(id)?.merge)) out.set(id, { commit, path: line, merge: true });
   }
   for (const { line } of logNames(repoRoot, ["log", "-M", "--diff-filter=R", "--name-status", "--format=@%H", ref, "--", ".notices/"])) {
     const [status, from, to] = line.split("\t");
@@ -88,7 +153,11 @@ function historyNotices(repoRoot, ref) {
   return out;
 }
 
-/** ref で出荷済みの notice の id = その版の履歴で足された本文 ∪ 木の本文(本文は区間が閉じれば消えてよい) */
+/**
+ * ref で出荷済みの notice の id = その版の履歴で足された本文 ∪ 木の本文(本文は区間が閉じれば消えてよい)
+ * @param {string} repoRoot
+ * @param {string} ref
+ */
 function shippedIds(repoRoot, ref) {
   const ids = new Set(historyNotices(repoRoot, ref).keys());
   for (const path of (tryGit(repoRoot, ["-c", "core.quotePath=false", "ls-tree", "-r", "--name-only", ref, ".notices/"]) ?? "").split("\n")) {
@@ -98,13 +167,20 @@ function shippedIds(repoRoot, ref) {
   return ids;
 }
 
-/** 本文の最後の版: 木に有れば ref の版、消えていれば消す前の版、どちらでもなければ足した版。id → 中身 */
+/**
+ * 本文の最後の版: 木に有れば ref の版、消えていれば消す前の版、どちらでもなければ足した版。id → 中身
+ * @param {string} repoRoot
+ * @param {string} ref
+ * @returns {Map<string, string>}
+ */
 function lastBodies(repoRoot, ref) {
+  /** @type {Map<string, string>} */
   const inTree = new Map();
   for (const path of (tryGit(repoRoot, ["-c", "core.quotePath=false", "ls-tree", "-r", "--name-only", ref, ".notices/"]) ?? "").split("\n")) {
     const id = NOTICE_FILE.exec(path)?.[1];
     if (id) inTree.set(id, `${ref}:${path}`);
   }
+  /** @type {Map<string, string>} */
   const deleted = new Map();
   for (const { commit, line } of logNames(repoRoot, ["log", "--no-renames", "--diff-filter=D", "--name-only", "--format=@%H", ref, "--", ".notices/"])) {
     const id = NOTICE_FILE.exec(line)?.[1];
@@ -112,6 +188,7 @@ function lastBodies(repoRoot, ref) {
   }
   const specs = new Map(inTree);
   for (const [id, add] of historyNotices(repoRoot, ref)) if (!specs.has(id)) specs.set(id, deleted.get(id) ?? `${add.commit}:${add.path}`);
+  /** @type {Map<string, string>} */
   const out = new Map();
   if (specs.size === 0) return out;
   const list = [...specs];
@@ -135,6 +212,11 @@ function lastBodies(repoRoot, ref) {
  * 取り込み済み(基準にある)なのに自分の台帳に記録の無い notice(L1.7)。
  * fork を作った時点のツリーにあった notice は継承済みとして除く(/flux と同じ求め方)。
  * 基準・成立点とも「履歴で足された本文 ∪ 木の本文」で読む(本文が消えても結果が変わらない)
+ * @param {string} repoRoot
+ * @param {string} base
+ * @param {string} parentRef
+ * @param {string} ownerId
+ * @returns {string[]}
  */
 function unrecordedNotices(repoRoot, base, parentRef, ownerId) {
   const baseIds = [...shippedIds(repoRoot, base)];
@@ -148,7 +230,7 @@ function unrecordedNotices(repoRoot, base, parentRef, ownerId) {
   return baseIds.filter((id) => !inherited.has(id) && !recorded.has(id)).sort();
 }
 
-const splitIds = (value) =>
+const splitIds = (/** @type {string} */ value) =>
   value
     .split(",")
     .map((s) => s.trim())
@@ -157,8 +239,11 @@ const splitIds = (value) =>
 /**
  * 基準(取り込み済み)の notice の resolves: に書かれた指令 id(上流が解決した下流の依頼)。
  * 履歴で足された notice の本文の最後の版で読む(本文が消えても消す前の版が残るので失効は変わらない)
+ * @param {string} repoRoot
+ * @param {string} base
  */
 function resolvedOrders(repoRoot, base) {
+  /** @type {Set<string>} */
   const ids = new Set();
   for (const text of lastBodies(repoRoot, base).values()) {
     const match = /^resolves:\s*(.+)$/m.exec(text);
@@ -168,9 +253,14 @@ function resolvedOrders(repoRoot, base) {
   return ids;
 }
 
-/** `git diff --name-status -M -z` → [{ status, path, from? }] */
+/**
+ * `git diff --name-status -M -z` → [{ status, path, from? }]
+ * @param {string} out
+ * @returns {OwnershipChange[]}
+ */
 function parseNameStatus(out) {
   const parts = out.split("\0").filter((part) => part !== "");
+  /** @type {OwnershipChange[]} */
   const changes = [];
   for (let i = 0; i < parts.length; ) {
     const status = parts[i];
@@ -185,17 +275,33 @@ function parseNameStatus(out) {
   return changes;
 }
 
-/** 台帳の本文の最後の upstream:<sha>(取り込んだ上流の版、/flux が区間ごとの行に書く)。無ければ null */
+/**
+ * 台帳の本文の最後の upstream:<sha>(取り込んだ上流の版、/flux が区間ごとの行に書く)。無ければ null
+ * @param {string | null | undefined} ledgerText
+ * @returns {string | null}
+ */
 export function lastUpstreamSha(ledgerText) {
   const shas = [...(ledgerText ?? "").matchAll(/^- id:.*\|\s*upstream:([0-9a-f]{7,40})\b/gm)].map((match) => match[1]);
   return shas.at(-1) ?? null;
 }
 
-/** <rev>:<path> の blob の id(無ければ null) */
+/**
+ * <rev>:<path> の blob の id(無ければ null)
+ * @param {string} repoRoot
+ * @param {string} rev
+ * @param {string} path
+ * @returns {string | null}
+ */
 const blobOf = (repoRoot, rev, path) => tryGit(repoRoot, ["rev-parse", "-q", "--verify", `${rev}:${path}`])?.trim() ?? null;
 
-/** refs の履歴でそのパスが取った版(blob の id)の集合 */
+/**
+ * refs の履歴でそのパスが取った版(blob の id)の集合
+ * @param {string} repoRoot
+ * @param {string[]} refs
+ * @param {string} path
+ */
 function upstreamBlobs(repoRoot, refs, path) {
+  /** @type {Set<string>} */
   const out = new Set();
   const raw = tryGit(repoRoot, ["log", "--format=", "--raw", "--no-abbrev", "--no-renames", ...refs.filter(Boolean), "--", path]) ?? "";
   for (const line of raw.split("\n")) {
@@ -205,12 +311,23 @@ function upstreamBlobs(repoRoot, refs, path) {
   return out;
 }
 
-/** 台帳の本文の picked:<sha>(親の緊急修正を cherry-pick した元の commit)を書かれた順に */
+/**
+ * 台帳の本文の picked:<sha>(親の緊急修正を cherry-pick した元の commit)を書かれた順に
+ * @param {string | null | undefined} ledgerText
+ * @returns {string[]}
+ */
 export function pickedShas(ledgerText) {
   return [...(ledgerText ?? "").matchAll(/^- id:.*\|\s*picked:([0-9a-f]{7,40})\b/gm)].map((match) => match[1]);
 }
 
-/** 3 方向の合成(git merge-file)。衝突・バイナリは null */
+/**
+ * 3 方向の合成(git merge-file)。衝突・バイナリは null
+ * @param {string} repoRoot
+ * @param {string} current
+ * @param {string} old
+ * @param {string} next
+ * @returns {string | null}
+ */
 function mergeText(repoRoot, current, old, next) {
   const dir = mkdtempSync(join(tmpdir(), "fork-ownership-pick-"));
   try {
@@ -224,6 +341,10 @@ function mergeText(repoRoot, current, old, next) {
 
 /**
  * 基準に pick だけを順に当てた、そのパスの中身(無いファイルは null)。
+ * @param {string} repoRoot
+ * @param {string[]} picks
+ * @param {string} path
+ * @param {string | null} baseContent
  * @returns {{ touched: boolean, text: string | null } | null} 当てられない(衝突)なら null
  */
 function textAfterPicks(repoRoot, picks, path, baseContent) {
@@ -255,10 +376,14 @@ export const TIER1_WALK_LIMIT = 10;
  * その版に .notices/applied/ があれば、その版のリポの名前(その版の project.md の fork_id:)の台帳の最後の upstream: へ …
  * と .notices/applied/ を持たない版(= Tier1)に着くまでたどる。段数に依らない。
  * 途中で欠ける(upstream: が無い・sha が無い・その版に fork_id: / 台帳が無い)・循環・深さの上限 → error(exit 2)
- * @returns {{ sha: string, chain: { sha: string, name: string }[] } | { error: string }}
+ * @param {string} repoRoot
+ * @param {string} ownerId
+ * @returns {Tier1Version | { error: string }}
  */
 function resolveTier1Version(repoRoot, ownerId) {
+  /** @type {Tier1Version["chain"]} */
   const chain = [];
+  /** @type {Set<string>} */
   const seen = new Set();
   let ledgerPath = `.notices/applied/${ownerId}.md`;
   let ledgerText = show(repoRoot, "HEAD", ledgerPath);
@@ -290,14 +415,17 @@ function resolveTier1Version(repoRoot, ownerId) {
 
 /**
  * 直接の親との基準(merge-base)を求める(runCheck と forkAddedFiles の共通の入口)
- * @returns {{ ownerId: string, remote: string, branch: string, base: string, parentRef: string } | { status: "unverified", reason: string }}
+ * @param {string} repoRoot
+ * @param {string | null} ownerId
+ * @param {{ parent?: string, branch?: string, fetch?: boolean }} options
+ * @returns {{ status?: undefined, ownerId: string | null, remote: string, branch: string, base: string, parentRef: string } | Unverified}
  */
 function resolveParentBase(repoRoot, ownerId, { parent, branch, fetch }) {
   if (tryGit(repoRoot, ["rev-parse", "--is-shallow-repository"])?.trim() === "true") {
     return unverified("shallow clone では基準を求められない(git fetch --unshallow)", { ownerId });
   }
   const parentRemote = resolveParentRemote(repoRoot, parent);
-  if (parentRemote.error) return unverified(parentRemote.error, { ownerId });
+  if (parentRemote.error !== undefined) return unverified(parentRemote.error, { ownerId });
   const remote = parentRemote.remote;
   const parentBranch = resolveParentBranch(repoRoot, remote, branch);
   if (!parentBranch) return unverified(`${remote} の既定のブランチが分からない(取得できないか --branch で指定する)`, { ownerId, remote });
@@ -315,7 +443,7 @@ function resolveParentBase(repoRoot, ownerId, { parent, branch, fetch }) {
  * Tier1 は git に触れず空の一覧を返す(全部が上流の物)。基準が求められなければ unverified(合格にしない)
  * @param {string} repoRoot
  * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options] fetch: false = 取得済みの ref で判定する(テストの中など)
- * @returns {{ status: "tier1", added: Set<string> } | { status: "ok", base: string, parentRef: string, added: Set<string> } | { status: "unverified", reason: string }}
+ * @returns {{ status: "tier1", added: Set<string> } | { status: "ok", base: string, parentRef: string, added: Set<string> } | Unverified}
  *   parentRef = 親の remote のブランチ(<remote>/<branch>、取得済みの ref)
  */
 export function forkAddedFiles(repoRoot, { parent, branch, fetch = true } = {}) {
@@ -337,10 +465,11 @@ export function forkAddedFiles(repoRoot, { parent, branch, fetch = true } = {}) 
  * @param {string} rev
  */
 export function treeSnapshot(repoRoot, rev) {
+  /** @type {Map<string, string | null>} */
   const cache = new Map();
-  const read = (path) => {
+  const read = (/** @type {string} */ path) => {
     if (!cache.has(path)) cache.set(path, show(repoRoot, rev, path));
-    return cache.get(path);
+    return cache.get(path) ?? null;
   };
   const files = (tryGit(repoRoot, ["ls-tree", "-r", "--name-only", rev]) ?? "").split("\n").filter(Boolean);
   const libs = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", rev, "src/lib/"]) ?? "")
@@ -359,16 +488,14 @@ export function treeSnapshot(repoRoot, rev) {
  * 直接の親との基準 → 基準の受け口の一覧 → 鮮度(台帳に無い notice)→ Tier1 の版。どこかで欠ければ unverified(exit 2)
  * @param {string} repoRoot
  * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options]
- * @returns {{ status: "tier1", ownerId: string }
- *   | { status: "unverified", reason: string }
- *   | { status: "ok", ownerId: string, remote: string, branch: string, base: string, downstream: "yes" | "none" | null, parentRef: string,
- *       intake: object[], tier1: { sha: string, chain: { sha: string, name: string }[] }, tier1Files: Set<string> }}
+ * @returns {{ status: "tier1", ownerId: string } | Unverified | ForkContext}
  */
 export function resolveForkContext(repoRoot, { parent, branch, fetch = true } = {}) {
   // 自分の名前と Tier1 の判定は forkIds.mjs だけが読む(project.md の fork_id:、CATALOG.md の先頭の節。origin は読まない、D27)
   const identity = readForkIdentity(repoRoot);
   const ownerId = identity.own;
-  if (identity.errors.length > 0) {
+  // 宣言に誤りが無ければ名前はある(own = null は errors に理由が入る)
+  if (identity.errors.length > 0 || ownerId === null) {
     return unverified(`fork の名前の宣言に問題がある: ${identity.errors.join(" / ")}`, { ownerId });
   }
   if (identity.isTier1) return { status: "tier1", ownerId };
@@ -390,32 +517,36 @@ export function resolveForkContext(repoRoot, { parent, branch, fetch = true } = 
 
   // 多段(D29): Tier1 の版にあるファイルだけ厳密、無いファイル(中間 Tier 以下の物)は合格にして参考の一覧へ
   const tier1 = resolveTier1Version(repoRoot, ownerId);
-  if (tier1.error) return unverified(tier1.error, where);
+  if ("error" in tier1) return unverified(tier1.error, where);
   const tier1Files = new Set((tryGit(repoRoot, ["ls-tree", "-r", "--name-only", tier1.sha]) ?? "").split("\n").filter(Boolean));
 
   return { status: "ok", ...where, downstream: identity.downstream, parentRef, intake: intake.rules, tier1: { sha: tier1.sha, chain: tier1.chain }, tier1Files };
 }
 
+const SERVICE_PREFIX = ".claude/rules/service/";
+/** @type {Readonly<Record<string, string | undefined>>} core・門番・決まりの core への追加 → Tier1 の置き場 */
+const TIER1_ADD_PREFIXES = { "core-add": "src/features/core/", "gate-add": "src/featureGate/", "rules-core-add": ".claude/rules/core/" };
+
 /**
  * Tier1 の版に無いファイルの違反を `middle-tier`(合格・参考)に付け替える(D29)。entries を書き換え、付け替えた分を返す
- * @param {{ status: string, path: string, from?: string, reason: string, verdict: string }[]} entries judge の結果
+ * @param {Pick<OwnershipEntry, "status" | "path" | "from" | "reason" | "verdict" | "unitFolder">[]} entries judge の結果
  * @param {Set<string>} tier1Files
+ * @returns {MiddleTierItem[]}
  */
-const SERVICE_PREFIX = ".claude/rules/service/";
-
 export function reassignMiddleTier(entries, tier1Files) {
+  /** @type {MiddleTierItem[]} */
   const middleTier = [];
   for (const entry of entries) {
     if (entry.verdict !== "violation") continue;
     // 同名・自分の項目への override・親の既定(*.default.*)の追加と書き換えは持ち主によらず止める(中間 Tier の物にしない。中間 Tier の既定も親の物、D169)
     if (entry.reason === "unit-clash" || entry.reason === "override-own" || entry.reason === "default-add" || entry.reason === "default-edit" || entry.reason === "frame-plain") continue;
-    const target = entry.status === "R" ? entry.from : entry.path;
+    const target = (entry.status === "R" ? entry.from : undefined) ?? entry.path;
     // 上流の単位の中への追加: その単位のフォルダ(祖先の lib も)が Tier1 の版にあれば Tier1 の物(厳密)、無ければ中間 Tier の単位
     const folder = entry.reason === "inside-unit-add" ? (entry.unitFolder ?? /^src\/lib\/[^/]+(?=\/)/.exec(target)?.[0] ?? null) : null;
     // 業務の全体像 .claude/rules/service/ は中間 Tier が足した物も下流で直せない(D117: このフォルダだけ中間 Tier の付け替えをしない)
     if (target.startsWith(SERVICE_PREFIX)) continue;
     // core・門番・決まりの core への追加: どれも Tier1 の物(足したファイルは Tier1 の版に無いが、中間 Tier の物にしない)
-    const tier1Prefix = { "core-add": "src/features/core/", "gate-add": "src/featureGate/", "rules-core-add": ".claude/rules/core/" }[entry.reason];
+    const tier1Prefix = TIER1_ADD_PREFIXES[entry.reason];
     const tier1Owned =
       tier1Prefix
         ? [...tier1Files].some((file) => file.startsWith(tier1Prefix))
@@ -432,17 +563,23 @@ export function reassignMiddleTier(entries, tier1Files) {
 
 /**
  * 基準との差分の全件を判定する(judge → 中間 Tier の付け替え → pick → 一時許可 → 許可の下書き)。context = resolveForkContext の ok
- * @returns {{ entries: object[], leftovers: object[], middleTier: object[], permitFile: string, permitErrors: object[], snapshot: object, headText: (path: string) => string | null }}
+ * @param {string} repoRoot
+ * @param {ForkContext} context
+ * @returns {{
+ *   entries: OwnershipEntry[], leftovers: PermitLeftover[], middleTier: MiddleTierItem[], permitFile: string, permitErrors: LineError[], permits: Permit[],
+ *   snapshot: ReturnType<typeof treeSnapshot>, headText: (path: string) => string | null,
+ * }}
  */
 export function judgeFork(repoRoot, context) {
   const { ownerId, base, intake, tier1Files, parentRef } = context;
   const changes = parseNameStatus(git(repoRoot, ["diff", "--name-status", "-M", "-z", base, "HEAD"]));
   const snapshot = treeSnapshot(repoRoot, base);
   const baseText = snapshot.read;
+  /** @type {Map<string, string | null>} */
   const headCache = new Map();
-  const headText = (path) => {
+  const headText = (/** @type {string} */ path) => {
     if (!headCache.has(path)) headCache.set(path, show(repoRoot, "HEAD", path));
-    return headCache.get(path);
+    return headCache.get(path) ?? null;
   };
 
   const judged = judge({
@@ -477,7 +614,8 @@ export function judgeFork(repoRoot, context) {
         const next = show(repoRoot, sha, path);
         return next !== show(repoRoot, `${sha}^`, path);
       });
-      return touched && head !== null && upstreamBlobs(repoRoot, [parentRef, ...picks], path).has(blobOf(repoRoot, "HEAD", path));
+      const blob = blobOf(repoRoot, "HEAD", path);
+      return touched && head !== null && blob !== null && upstreamBlobs(repoRoot, [parentRef, ...picks], path).has(blob);
     });
     if (!onlyPicked) continue;
     entry.reason = "picked";
@@ -497,7 +635,7 @@ export function judgeFork(repoRoot, context) {
   // 許可の行の下書き(違反だけ。今の指紋で書く)
   for (const entry of entries) {
     if (entry.verdict !== "violation") continue;
-    const target = entry.status === "R" ? entry.from : entry.path;
+    const target = (entry.status === "R" ? entry.from : undefined) ?? entry.path;
     const kind = matchIntake(intake, target)?.kind ?? null;
     const baseFp = entry.fingerprints?.base ?? fingerprint(baseText(target), kind);
     const headFp = entry.fingerprints?.head ?? (entry.status === "D" || entry.status === "R" ? "-" : fingerprint(headText(target), kind));
@@ -510,7 +648,9 @@ export function judgeFork(repoRoot, context) {
 /**
  * 型 5 self の検査の入力を git から集めて判定する(self.mjs)。Tier1 は自分の受け口の一覧とファイルの有無だけ
  * 「取り込みで親の版が入った」の merge = 基準 base を 2 番目以降の親に持つ、HEAD から見て最新の merge
- * @returns {{ enabled: true, problems: { kind: string, path: string, message: string }[], unverified: string[] }}
+ * @param {string} repoRoot
+ * @param {{ isTier1: boolean, base?: string | null, parentRef?: string | null }} input base / parentRef = 直接の親との基準と親の ref(fork だけ)
+ * @returns {{ enabled: true, problems: SelfProblem[], unverified: string[] }}
  */
 export function collectSelf(repoRoot, { isTier1, base = null, parentRef = null }) {
   const head = Object.fromEntries(SELF_FILES.map((path) => [path, show(repoRoot, "HEAD", path)]));
@@ -519,7 +659,8 @@ export function collectSelf(repoRoot, { isTier1, base = null, parentRef = null }
   if (isTier1) return { enabled: true, ...selfProblems({ isTier1, selfRows, head, merge: null, parentNow: null }) };
 
   const lines = (tryGit(repoRoot, ["rev-list", "--merges", "--parents", "--ancestry-path", `${base}..HEAD`]) ?? "").split("\n").filter(Boolean);
-  const mergeLine = lines.map((line) => line.split(" ")).find(([, , ...others]) => others.includes(base));
+  const mergeLine = lines.map((line) => line.split(" ")).find(([, , ...others]) => base !== null && others.includes(base));
+  /** @type {{ found: boolean, before: Record<string, string | null>, base: Record<string, string | null> }} */
   let merge = { found: false, before: {}, base: {} };
   if (mergeLine) {
     const [, firstParent] = mergeLine;
@@ -537,7 +678,7 @@ export function collectSelf(repoRoot, { isTier1, base = null, parentRef = null }
  * @param {string} repoRoot
  * @param {{ parent?: string, branch?: string, fetch?: boolean, self?: boolean }} [options] fetch: false はテスト用(取得済みの ref で判定する)。
  *   self: 型 5 self の検査を走らせるか(省略 = SELF_CHECK_DEFAULT = 入)
- * @returns {object} status: tier1 | unverified | pass | fail
+ * @returns {CheckResult} status: tier1 | unverified | pass | fail
  */
 export function runCheck(repoRoot, options = {}) {
   const selfEnabled = options.self ?? SELF_CHECK_DEFAULT;
@@ -549,6 +690,7 @@ export function runCheck(repoRoot, options = {}) {
   if (context.status === "tier1") {
     // Tier1 は検査の対象外。upstream の負債の行の数だけ返す(D29: 件数を Tier1 のコマンドと /inbox に出す)
     const own = parseIntake(show(repoRoot, "HEAD", INTAKE_PATH) ?? "");
+    /** @type {SelfResult} */
     const self = selfEnabled ? collectSelf(repoRoot, { isTier1: true }) : { enabled: false };
     return { status: "tier1", ownerId: context.ownerId, debt: own.rules.filter((rule) => rule.kind === "debt").map((rule) => rule.glob), self };
   }
@@ -556,6 +698,7 @@ export function runCheck(repoRoot, options = {}) {
 
   const { entries, leftovers, middleTier, permitFile, permitErrors, headText } = judgeFork(repoRoot, context);
 
+  /** @type {Record<string, number>} */
   const counts = {};
   for (const entry of entries) {
     const key = entry.verdict === "permitted" ? "permitted" : entry.reason;
@@ -566,6 +709,7 @@ export function runCheck(repoRoot, options = {}) {
   // 中間層の規則(lineage.md)の並び・鍵・打ち消し。祖先の部分が基準どおりかは append の判定が見る。
   // chain は直接の親から上へ積むので、古い順は逆。lineage.md の無い fork(この版を取り込む前)は検査しない
   const lineageText = headText(LINEAGE_FILE);
+  /** @type {LineageResult} */
   const lineage = { checked: lineageText !== null, failures: [], warnings: [] };
   if (lineageText !== null) {
     const parsed = parseLineage(lineageText);
@@ -577,6 +721,7 @@ export function runCheck(repoRoot, options = {}) {
   }
   if (lineage.failures.length > 0) counts.lineage = lineage.failures.length;
 
+  /** @type {SelfResult} */
   const self = selfEnabled ? collectSelf(repoRoot, { isTier1: false, base, parentRef: context.parentRef }) : { enabled: false };
   if (self.enabled && self.problems.length > 0) counts.self = self.problems.length;
 
@@ -600,12 +745,29 @@ export function runCheck(repoRoot, options = {}) {
   };
 }
 
-/** rev のツリーにファイル(blob)としてあるか(フォルダは false) */
+/**
+ * rev のツリーにファイル(blob)としてあるか(フォルダは false)
+ * @param {string} repoRoot
+ * @param {string} rev
+ * @param {string} path
+ * @returns {boolean}
+ */
 export const existsAt = (repoRoot, rev, path) => tryGit(repoRoot, ["cat-file", "-t", `${rev}:${path}`])?.trim() === "blob";
 
-/** rev のツリーで dir の下にあるファイル(dir がファイルなら空) */
+/**
+ * rev のツリーで dir の下にあるファイル(dir がファイルなら空)
+ * @param {string} repoRoot
+ * @param {string} rev
+ * @param {string} dir
+ * @returns {string[]}
+ */
 export const filesUnder = (repoRoot, rev, dir) =>
   (tryGit(repoRoot, ["ls-tree", "-r", "--name-only", rev, "--", `${dir.replace(/\/+$/, "")}/`]) ?? "").split("\n").filter(Boolean);
 
-/** rev の版の名前(repo.json の repo_id を先に、無ければ古い形の project.md の fork_id:。無ければ null) */
+/**
+ * rev の版の名前(repo.json の repo_id を先に、無ければ古い形の project.md の fork_id:。無ければ null)
+ * @param {string} repoRoot
+ * @param {string} rev
+ * @returns {string | null}
+ */
 export const forkIdAt = (repoRoot, rev) => forkIdOfTexts({ repoJson: show(repoRoot, rev, REPO_JSON_FILE), projectMd: show(repoRoot, rev, PROJECT_RULES_FILE) }).forkId ?? null;

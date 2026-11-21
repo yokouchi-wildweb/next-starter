@@ -12,13 +12,19 @@ import { parseIntake } from "./intake.mjs";
 import { fingerprint } from "./permits.mjs";
 import { overrideCandidate, replaceCandidate, whoOwns } from "./who.mjs";
 
+/**
+ * @import { ExplainAnswer, ExplainTier } from "./explain.mjs"
+ * @import { WhoAnswer } from "./who.mjs"
+ */
+
 // 走らせるのは pnpm workflow ownership who の入口(whoCli.mjs は読み込んだだけでは走らない。runOwnershipWhoCli を呼ぶ)
 const CLI = resolve(import.meta.dirname, "../../../scripts/workflow/ownership/who.mjs");
 const REPO_ROOT = resolve(import.meta.dirname, "../../..");
 /** このリポの本物のファイル(宣言・出力の種類のデータ)を表の木に写す */
-const real = (path) => readFileSync(join(REPO_ROOT, path), "utf8");
+const real = (/** @type {string} */ path) => readFileSync(join(REPO_ROOT, path), "utf8");
 const TIER1_ID = "parent";
 
+/** @type {Record<string, string | undefined>} */
 const ENV = {
   ...process.env,
   GIT_AUTHOR_NAME: "t",
@@ -30,18 +36,28 @@ const ENV = {
 };
 delete ENV.FORK_OWNERSHIP_PARENT;
 
-const git = (cwd, ...args) => execFileSync("git", args, { cwd, env: ENV, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-const write = (root, path, text) => {
+const git = (/** @type {string} */ cwd, /** @type {string[]} */ ...args) => execFileSync("git", args, { cwd, env: ENV, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+const write = (/** @type {string} */ root, /** @type {string} */ path, /** @type {string} */ text) => {
   mkdirSync(dirname(join(root, path)), { recursive: true });
   writeFileSync(join(root, path), text);
 };
-const commitAll = (root, message) => {
+const commitAll = (/** @type {string} */ root, /** @type {string} */ message) => {
   git(root, "add", "-A");
   git(root, "commit", "-q", "-m", message);
 };
-const cli = (cwd, ...args) => spawnSync(process.execPath, [CLI, ...args], { cwd, env: ENV, encoding: "utf8" });
-const resultOf = (answer, path) => answer.results.find((item) => item.path === path);
-const actions = (result) => result.allowed.map((item) => item.action);
+const cli = (/** @type {string} */ cwd, /** @type {string[]} */ ...args) => spawnSync(process.execPath, [CLI, ...args], { cwd, env: ENV, encoding: "utf8" });
+/**
+ * 答えのうち 1 パスの物(未検証・パスが無ければ失敗)
+ * @param {WhoAnswer} answer
+ * @param {string} path
+ */
+const resultOf = (answer, path) => {
+  if (answer.status === "unverified") assert.fail(`未検証: ${answer.reason}`);
+  const result = answer.results.find((item) => item.path === path);
+  assert.ok(result, path);
+  return result;
+};
+const actions = (/** @type {{ allowed: { action: string }[] }} */ result) => result.allowed.map((item) => item.action);
 
 const INTAKE = [
   "edit src/config/**  # 値",
@@ -55,6 +71,7 @@ const INTAKE = [
   "",
 ].join("\n");
 
+/** @type {string} 一時の置き場(before で作る) */
 let tmp;
 let counter = 0;
 
@@ -78,7 +95,11 @@ function makeTier1() {
   return root;
 }
 
-/** parent を clone した fork(親の remote = upstream)。台帳の upstream: = 今の親の版 */
+/**
+ * parent を clone した fork(親の remote = upstream)。台帳の upstream: = 今の親の版
+ * @param {string} parent
+ * @param {string} forkId
+ */
 function makeFork(parent, forkId) {
   const root = join(tmp, `${forkId}-${(counter += 1)}`);
   git(tmp, "clone", "-q", parent, root);
@@ -125,7 +146,7 @@ describe("pnpm workflow ownership who", () => {
     const config = resultOf(answer, "src/config/app.config.ts");
     assert.equal(config.owner.kind, "tier1");
     assert.deepEqual(actions(config), ["edit"]);
-    assert.equal(config.evidence.intake.glob, "src/config/**");
+    assert.equal(config.evidence.intake?.glob, "src/config/**");
 
     const core = resultOf(answer, "src/features/core/user/user.ts");
     assert.deepEqual(actions(core), ["none"]);
@@ -172,13 +193,13 @@ describe("pnpm workflow ownership who", () => {
 
     const core = resultOf(answer, "src/features/core/user/user.ts");
     assert.equal(core.owner.kind, "tier1");
-    assert.equal(core.evidence.current.reason, "outside-intake");
-    assert.match(core.evidence.current.permitDraft, /^src\/features\/core\/user\/user\.ts upreq:/);
+    assert.equal(core.evidence.current?.reason, "outside-intake");
+    assert.match(core.evidence.current?.permitDraft ?? "", /^src\/features\/core\/user\/user\.ts upreq:/);
 
     const own = resultOf(answer, "src/features/game/game.ts");
     assert.equal(own.owner.kind, "fork");
     assert.deepEqual(actions(own), ["edit"]);
-    assert.equal(own.evidence.current.reason, "added");
+    assert.equal(own.evidence.current?.reason, "added");
     // 型: fork の物 = own(置くファイル = そのパス)、変える口の無い親の物 = none(/order <直接の親>)
     assert.deepEqual([own.type, own.write], ["own", "src/features/game/game.ts"]);
     assert.deepEqual([core.type, core.order], ["none", "/order parent"]);
@@ -197,7 +218,7 @@ describe("pnpm workflow ownership who", () => {
     write(fork, ".fork-ownership/child.permits.txt", `${path} upreq:20260102-000000-user-intake base:${fingerprint(base, null)} head:${fingerprint(head, null)}  # 受け口待ち\n`);
     commitAll(fork, "permitted edit");
     const result = resultOf(whoOwns(fork, [path], { fetch: false }), path);
-    assert.equal(result.evidence.current.verdict, "permitted");
+    assert.equal(result.evidence.current?.verdict, "permitted");
     assert.deepEqual(result.evidence.permit, { line: 1, upreqs: ["20260102-000000-user-intake"], state: "valid" });
   });
 
@@ -240,6 +261,7 @@ describe("pnpm workflow ownership who", () => {
 
 describe("型の答え(パスの表、explain.mjs)", () => {
   // 表の木: 宣言と出力の種類のデータはこのリポの本物を写し、その周りに代表のファイルを置く
+  /** @type {Record<string, string>} */
   const tree = {
     "src/lib/forkOwnership/intake.txt": [
       "edit src/config/**  # 値",
@@ -297,9 +319,10 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     "src/features/hand/entities/drizzle.ts": "export const t = 1;\n",
   };
   const view = explainView({ files: Object.keys(tree), read: (path) => tree[path] ?? null, intake: parseIntake(tree["src/lib/forkOwnership/intake.txt"]).rules });
-  const explain = (path, tier = "tier1", addable = false) => explainPath(path, view, { tier, addable, parent: "parent" });
-  const pick = (result) => ({ type: result.type, write: result.write, keys: result.keys, ...(result.source ? { source: result.source } : {}), ...(result.order ? { order: result.order } : {}) });
+  const explain = (/** @type {string} */ path, /** @type {ExplainTier} */ tier = "tier1", addable = false) => explainPath(path, view, { tier, addable, parent: "parent" });
+  const pick = (/** @type {ExplainAnswer} */ result) => ({ type: result.type, write: result.write, keys: result.keys, ...(result.source ? { source: result.source } : {}), ...(result.order ? { order: result.order } : {}) });
 
+  /** @type {[string, string, object][]} */
   const ROWS = [
     // 型 1
     ["1 行スイッチ(素の名前)", "src/features/core/demo/services/server/onDemoUserCreated.ts", { type: "1", write: "src/features/core/demo/services/server/onDemoUserCreated.replace.ts", keys: null, source: "src/features/core/demo/services/server/onDemoUserCreated.ts" }],
@@ -370,7 +393,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
       "src/features/core/user/services/server/userService.ts",
     ]);
     assert.equal(answer.status, "tier1");
-    const typeOf = (path) => {
+    const typeOf = (/** @type {string} */ path) => {
       const result = resultOf(answer, path);
       return [result.type, result.write];
     };

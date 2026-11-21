@@ -10,8 +10,10 @@ export const SELF_FILES = [".claude/rules/project.md", ".claude/rules/behavior.m
 export const SELF_OVERVIEW_FILE = ".claude/rules/project.md";
 export const SELF_CHECK_DEFAULT = true;
 
+/** @typedef {{ kind: string, path: string, message: string }} SelfProblem */
+
 /** 空白の違いだけは同じと見る(行末の空白・空行の数・末尾の改行) */
-const normalize = (text) =>
+const normalize = (/** @type {string} */ text) =>
   text
     .split("\n")
     .map((line) => line.trimEnd())
@@ -21,16 +23,19 @@ const normalize = (text) =>
 /**
  * @param {{
  *   isTier1: boolean,
- *   selfRows: string[] | null,        受け口の一覧の self の行の glob(Tier1 = 自分の一覧、fork = 基準の一覧)。一覧が読めなければ null
- *   head: Record<string, string | null>,   今の中身(SELF_FILES ごと、無ければ null)
+ *   selfRows: string[] | null,
+ *   head: Record<string, string | null>,
  *   merge: { found: boolean, before: Record<string, string | null>, base: Record<string, string | null> } | null,
- *                                     基準を親に持つ最新の merge の前(fork の前の版)と基準(親の取り込んだ版)の中身。Tier1 は null
- *   parentNow: string | null,         直接の親の今の project.md(Tier1 は null)
- * }} input
- * @returns {{ problems: { kind: string, path: string, message: string }[], unverified: string[] }}
+ *   parentNow: string | null,
+ * }} input selfRows = 受け口の一覧の self の行の glob(Tier1 = 自分の一覧、fork = 基準の一覧。一覧が読めなければ null)、
+ *   head = 今の中身(SELF_FILES ごと、無ければ null)、merge = 基準を親に持つ最新の merge の前(fork の前の版)と基準(親の取り込んだ版)の中身(Tier1 は null)、
+ *   parentNow = 直接の親の今の project.md(Tier1 は null)
+ * @returns {{ problems: SelfProblem[], unverified: string[] }}
  */
 export function selfProblems({ isTier1, selfRows, head, merge, parentNow }) {
+  /** @type {SelfProblem[]} */
   const problems = [];
+  /** @type {string[]} */
   const unverified = [];
 
   for (const path of SELF_FILES) {

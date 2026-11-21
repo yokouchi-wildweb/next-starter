@@ -20,9 +20,15 @@ const OVERRIDE_LINE = /^(?:- )?overrides:\s*(.*)$/;
 const OVERRIDE_BODY = /^([a-z0-9]+(?:-[a-z0-9]+)*)\.([A-Za-z0-9_-]+)\s*=\s*(.*?)\s*\|\s*why:\s*(.*?)\s*$/;
 
 /**
+ * @typedef {{ line: number, owner?: string, key?: string, value?: string, why?: string, error?: string }} LineageOverride overrides 行 1 つ(読めなければ error)
+ * @typedef {{ key: string, isDefault: boolean, line: number, text: string }} LineageKey 節の鍵の行
+ * @typedef {{ name: string, line: number, closed: boolean, keys: LineageKey[], overrides: LineageOverride[] }} LineageSection
+ */
+
+/**
  * overrides 行の中身を読む
  * @param {string} body `overrides:` の後ろ
- * @returns {{ owner: string, key: string, value: string, why: string } | { error: string }}
+ * @returns {{ owner: string, key: string, value: string, why: string, error?: undefined } | { error: string }}
  */
 export function parseOverrideBody(body) {
   const match = OVERRIDE_BODY.exec(body.trim());
@@ -37,9 +43,10 @@ export function parseOverrideBody(body) {
  * 本文(project.md など)の overrides 行を集める
  * @param {string} text
  * @param {number} [offset] 行番号の始まり(1 始まりの行番号 = offset + 添字 + 1)
- * @returns {{ line: number, owner?: string, key?: string, value?: string, why?: string, error?: string }[]}
+ * @returns {LineageOverride[]}
  */
 export function parseOverrides(text, offset = 0) {
+  /** @type {LineageOverride[]} */
   const out = [];
   text.split("\n").forEach((line, index) => {
     const match = OVERRIDE_LINE.exec(line);
@@ -54,15 +61,19 @@ export function parseOverrides(text, offset = 0) {
  * @returns {{
  *   frontmatter: boolean,
  *   preambleEnds: number[],
- *   sections: { name: string, line: number, closed: boolean, keys: { key: string, isDefault: boolean, line: number, text: string }[], overrides: object[] }[],
+ *   sections: LineageSection[],
  *   stray: number[],
  * }} stray = 節の外(区切り行の後)の空でない行の行番号
  */
 export function parseLineage(text) {
   const lines = text.split("\n");
+  /** @type {number[]} */
   const preambleEnds = [];
+  /** @type {LineageSection[]} */
   const sections = [];
+  /** @type {number[]} */
   const stray = [];
+  /** @type {LineageSection | null} */
   let current = null;
   lines.forEach((raw, index) => {
     const line = raw.trimEnd();
@@ -104,6 +115,7 @@ export function parseLineage(text) {
  * @returns {string[]}
  */
 export function formatProblems(parsed) {
+  /** @type {string[]} */
   const problems = [];
   if (parsed.frontmatter) problems.push("frontmatter がある(paths なしの常時読み込みにする)");
   if (parsed.preambleEnds.length !== 1) problems.push(`区切り行 ${PREAMBLE_END} がちょうど 1 つでない(${parsed.preambleEnds.length} 個)`);
@@ -135,6 +147,7 @@ export function checkLineageStructure({ parsed, ancestorsOldestFirst, own, downs
     }
     if (at <= last) failures.push(`${section.line} 行目: 節 ${section.name} の並びが違う(古い祖先から順、自分は最後、同じ名前は 1 回)`);
     last = Math.max(last, at);
+    /** @type {Map<string, number>} */
     const seen = new Map();
     for (const { key, line } of section.keys) {
       if (seen.has(key)) failures.push(`${line} 行目: 節 ${section.name} の鍵 ${key} が重複(${seen.get(key)} 行目)`);
@@ -153,13 +166,21 @@ export function checkLineageStructure({ parsed, ancestorsOldestFirst, own, downs
  * @returns {{ failures: string[], warnings: string[] }}
  */
 export function checkOverrides({ parsed, projectText, own, projectFile = ".claude/rules/project.md" }) {
+  /** @type {string[]} */
   const failures = [];
+  /** @type {string[]} */
   const warnings = [];
+  /** @type {Map<string, Map<string, LineageKey>>} */
   const ancestorKeys = new Map();
   for (const section of parsed.sections) {
     if (section.name !== own) ancestorKeys.set(section.name, new Map(section.keys.map((item) => [item.key, item])));
   }
+  /**
+   * @param {string} where
+   * @param {LineageOverride[]} overrides
+   */
   const checkSet = (where, overrides) => {
+    /** @type {Map<string, number>} */
     const seen = new Map();
     for (const item of overrides) {
       if (item.error) {
@@ -169,12 +190,12 @@ export function checkOverrides({ parsed, projectText, own, projectFile = ".claud
       const target = `${item.owner}.${item.key}`;
       if (seen.has(target)) failures.push(`${where} ${item.line} 行目: ${target} を 2 回打ち消している(${seen.get(target)} 行目)`);
       else seen.set(target, item.line);
-      const keys = ancestorKeys.get(item.owner);
+      const keys = ancestorKeys.get(item.owner ?? "");
       if (!keys) {
         failures.push(`${where} ${item.line} 行目: ${target} の節 ${item.owner} が祖先に無い(名指すのは元の持ち主の fork_id)`);
         continue;
       }
-      const key = keys.get(item.key);
+      const key = keys.get(item.key ?? "");
       if (!key) failures.push(`${where} ${item.line} 行目: ${target} の鍵が節 ${item.owner} に無い`);
       else if (!key.isDefault) failures.push(`${where} ${item.line} 行目: ${target} は (default) でない(打ち消せない。変えたいなら /order ${item.owner})`);
     }
@@ -205,12 +226,19 @@ export function checkOverrides({ parsed, projectText, own, projectFile = ".claud
 export function touchedOverrides({ before, after, projectText, own }) {
   const beforeParsed = parseLineage(before ?? "");
   const afterParsed = parseLineage(after ?? "");
+  /**
+   * @param {ReturnType<typeof parseLineage>} parsed
+   * @param {string | undefined} owner
+   * @param {string | undefined} key
+   */
   const keyOf = (parsed, owner, key) => parsed.sections.find((section) => section.name === owner)?.keys.find((item) => item.key === key) ?? null;
+  /** @type {(LineageOverride & { where: string })[]} */
   const targets = [];
   for (const item of parseOverrides(projectText)) if (!item.error) targets.push({ ...item, where: ".claude/rules/project.md" });
   const ownSection = afterParsed.sections.find((section) => section.name === own) ?? beforeParsed.sections.find((section) => section.name === own);
   for (const item of ownSection?.overrides ?? []) if (!item.error) targets.push({ ...item, where: `${LINEAGE_FILE} の節 ${own}` });
 
+  /** @type {{ target: string, where: string, change: "changed" | "removed" | "default-removed", before: string | null, after: string | null }[]} */
   const touched = [];
   for (const { owner, key, where } of targets) {
     const was = keyOf(beforeParsed, owner, key);

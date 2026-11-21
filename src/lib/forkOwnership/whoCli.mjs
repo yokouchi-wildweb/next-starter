@@ -6,6 +6,12 @@ import { relative, resolve, sep } from "node:path";
 
 import { whoOwns } from "./who.mjs";
 
+/**
+ * @import { WhoAnswer, WhoResult } from "./who.mjs"
+ * @typedef {{ json: boolean, fetch: boolean, paths: string[], parent?: string, branch?: string }} WhoCliOptions
+ */
+
+/** @type {Readonly<Record<string, string | undefined>>} */
 const OWNER_LABELS = {
   tier1: "Tier1",
   middle: "中間 Tier",
@@ -14,9 +20,13 @@ const OWNER_LABELS = {
   missing: "なし(基準にも HEAD にも無い)",
 };
 
+/** @type {Readonly<Record<string, string | undefined>>} */
 const TIER_LABELS = { tier1: "Tier1 の物", middle: "中間 Tier の物", fork: "この fork の物" };
 
-/** 型(fork がこのパスを変えたいときにすること) */
+/**
+ * 型(fork がこのパスを変えたいときにすること)
+ * @type {Readonly<Record<string, string | undefined>>}
+ */
 const TYPE_LABELS = {
   1: "型 1 丸ごと置き換え",
   2: "型 2 重ね(一部の上書き)",
@@ -27,7 +37,12 @@ const TYPE_LABELS = {
   none: "変えられない(依頼する)",
 };
 
+/**
+ * @param {string[]} argv
+ * @returns {WhoCliOptions}
+ */
 function parseArgs(argv) {
+  /** @type {WhoCliOptions} */
   const options = { json: false, fetch: true, paths: [] };
   for (const arg of argv) {
     if (arg === "--json") options.json = true;
@@ -41,8 +56,12 @@ function parseArgs(argv) {
   return options;
 }
 
-const toRepoPath = (repoRoot, arg) => relative(repoRoot, resolve(repoRoot, arg)).split(sep).join("/");
+const toRepoPath = (/** @type {string} */ repoRoot, /** @type {string} */ arg) => relative(repoRoot, resolve(repoRoot, arg)).split(sep).join("/");
 
+/**
+ * @param {WhoResult["owner"]} owner
+ * @returns {string | undefined}
+ */
 function ownerLine(owner) {
   const label = owner.kind === "middle" && owner.forkId ? `中間 Tier ${owner.forkId}` : OWNER_LABELS[owner.kind];
   if (owner.kind !== "generated") return label;
@@ -50,6 +69,10 @@ function ownerLine(owner) {
   return `${label}(${tier})`;
 }
 
+/**
+ * @param {WhoResult} result
+ * @returns {string[]}
+ */
 function printResult(result) {
   const lines = [result.path];
   lines.push(`  持ち主: ${ownerLine(result.owner)}`);
@@ -87,7 +110,12 @@ function printResult(result) {
   return lines;
 }
 
+/**
+ * @param {WhoAnswer} answer
+ * @returns {string[]}
+ */
 function print(answer) {
+  /** @type {string[]} */
   const lines = [];
   if (answer.status === "unverified") {
     lines.push(`未検証: ${answer.reason}`);
@@ -109,11 +137,12 @@ function print(answer) {
 
 /** pnpm workflow ownership who の本体(引数は process.argv、結果は process.exitCode)。呼ぶのは scripts/workflow/ownership/who.mjs */
 export function runOwnershipWhoCli() {
+  /** @type {WhoCliOptions} */
   let options;
   try {
     options = parseArgs(process.argv.slice(2));
   } catch (error) {
-    console.error(error.message);
+    console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 2;
     return;
   }

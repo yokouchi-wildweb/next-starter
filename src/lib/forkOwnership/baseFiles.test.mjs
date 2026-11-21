@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { lastUpstreamSha, readBaseFiles } from "./baseFiles.mjs";
 
-const git = (root, ...args) => execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
+const git = (/** @type {string} */ root, /** @type {string[]} */ ...args) => execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
 
 function repo() {
   const root = mkdtempSync(join(tmpdir(), "base-files-"));
@@ -37,8 +37,8 @@ test("readBaseFiles: 台帳の最後の upstream:<sha> の版のファイル一�
 test("readBaseFiles: base を渡せば台帳を見ない / 決まらない・読めない版は problem", () => {
   const { root, sha } = repo();
   assert.deepEqual(readBaseFiles(root, sha), { rev: sha, files: ["src/a.ts"] });
-  assert.match(readBaseFiles(root, null).problem, /基準の版が決まらない/);
-  assert.match(readBaseFiles(root, "deadbeef").problem, /読めない/);
+  assert.match(readBaseFiles(root, null).problem ?? "", /基準の版が決まらない/);
+  assert.match(readBaseFiles(root, "deadbeef").problem ?? "", /読めない/);
 });
 
 test("lastUpstreamSha: 入口から check.mjs と同じ関数", () => {

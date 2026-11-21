@@ -8,8 +8,8 @@ import { closeTmp, commitAll, git, makeFork, makeParent, openTmp, write } from "
 
 const PROJECT = ".claude/rules/project.md";
 const BEHAVIOR = ".claude/rules/behavior.md";
-const files = (project, behavior, repo = "{}\n") => ({ [PROJECT]: project, [BEHAVIOR]: behavior, "repo.json": repo });
-const kinds = (result) => result.problems.map((problem) => `${problem.kind} ${problem.path}`);
+const files = (/** @type {string} */ project, /** @type {string | null} */ behavior, repo = "{}\n") => ({ [PROJECT]: project, [BEHAVIOR]: behavior, "repo.json": repo });
+const kinds = (/** @type {{ problems: { kind: string, path: string }[] }} */ result) => result.problems.map((problem) => `${problem.kind} ${problem.path}`);
 
 describe("selfProblems(純な判定)", () => {
   test("既定は入", () => {
@@ -87,10 +87,11 @@ describe("pnpm workflow ownership check --self(作り物の親と fork)", () => 
   test("--no-self では走らず結果は合格、既定(入)で取り込んだ親の版を挙げて fail", () => {
     const fork = forkAfterTakingParent();
     const off = runCheck(fork, { self: false });
-    assert.equal(off.self.enabled, false);
     assert.equal(off.status, "pass");
+    assert.equal(off.self.enabled, false);
     const result = runCheck(fork);
     assert.equal(result.status, "fail");
+    assert.ok(result.self.enabled);
     assert.deepEqual(kinds(result.self), [`self-parent ${PROJECT}`, `self-parent ${BEHAVIOR}`, `self-overview ${PROJECT}`]);
     assert.equal(result.counts.self, 3);
   });
@@ -100,8 +101,9 @@ describe("pnpm workflow ownership check --self(作り物の親と fork)", () => 
     git(fork, "checkout", "HEAD^1", "--", PROJECT, BEHAVIOR);
     commitAll(fork, "keep own self files");
     const result = runCheck(fork, { self: true });
+    assert.equal(result.status, "pass");
+    assert.ok(result.self.enabled);
     assert.deepEqual(result.self.problems, []);
     assert.deepEqual(result.self.unverified, []);
-    assert.equal(result.status, "pass");
   });
 });

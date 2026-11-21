@@ -9,7 +9,28 @@ import { parseForkRegions, stripOwnedRegions } from "./regions.mjs";
 
 const MARKER_LINE = /fork entries below/;
 
-// reason → verdict。violation 以外はすべて合格
+/**
+ * @import { IntakeRule } from "./intake.mjs"
+ * @import { UnitPlaces } from "./unitNames.mjs"
+ * @typedef {{ status: string, path: string, from?: string }} OwnershipChange git diff --name-status -M <base> HEAD の 1 行(R は from → path)
+ * @typedef {"none" | "valid" | "expired-resolved" | "expired-base" | "refresh"} PermitState
+ * @typedef {OwnershipChange & {
+ *   kind: string | null,
+ *   reason: string,
+ *   verdict: string,
+ *   clash?: string,
+ *   unitFolder?: string,
+ *   permit?: PermitState,
+ *   permitLine?: number,
+ *   fingerprints?: { base: string, head: string },
+ *   permitDraft?: string,
+ * }} OwnershipEntry 1 ファイルの判定(verdict = ok | violation | permitted。permit 以下は checkPermits と judgeFork が足す)
+ */
+
+/**
+ * reason → verdict。violation 以外はすべて合格
+ * @type {Readonly<Record<string, "ok" | "violation">>}
+ */
 export const REASONS = {
   added: "ok", // fork が足したファイル
   intake: "ok", // 受け口(edit)の中の書き換え
@@ -40,7 +61,7 @@ export const REASONS = {
   picked: "ok", // 親の緊急修正を pick しただけの差(台帳の picked:。check.mjs が付け替える)
 };
 
-const libNameOf = (path) => {
+const libNameOf = (/** @type {string} */ path) => {
   const match = /^src\/lib\/([^/]+)\//.exec(path);
   return match ? match[1] : null;
 };
@@ -49,15 +70,22 @@ const CORE_PREFIX = "src/features/core/";
 const GATE_PREFIX = "src/featureGate/";
 const RULES_CORE_PREFIX = ".claude/rules/core/";
 
-const headUntilMarker = (text) => {
+const headUntilMarker = (/** @type {string | null} */ text) => {
   if (text === null) return null;
   const lines = text.split("\n");
   const index = lines.findIndex((line) => MARKER_LINE.test(line));
   return index === -1 ? null : lines.slice(0, index + 1).join("\n");
 };
 
-const withoutTrailingNewlines = (text) => text.replace(/\n+$/, "");
+const withoutTrailingNewlines = (/** @type {string} */ text) => text.replace(/\n+$/, "");
 
+/**
+ * 基準にあるファイルの書き換えの reason
+ * @param {{ kind: string | null } | null} rule
+ * @param {string} baseText
+ * @param {string} headText
+ * @returns {string}
+ */
 function judgeModified(rule, baseText, headText) {
   const kind = rule?.kind ?? null;
   if (kind === "edit") return "intake";
@@ -85,41 +113,45 @@ function judgeModified(rule, baseText, headText) {
     : "outside-intake";
 }
 
-const dirOf = (path) => path.slice(0, Math.max(path.lastIndexOf("/"), 0));
+const dirOf = (/** @type {string} */ path) => path.slice(0, Math.max(path.lastIndexOf("/"), 0));
 /** 枠の宣言の上書き(src/app の frame.override.ts)。相手はそのルート(隣の page / layout、ルートを作ったリポの frame の宣言)で、frame という単位ではない */
-const isFrameOverride = (path) => path.startsWith("src/app/") && path.endsWith("/frame.override.ts");
+const isFrameOverride = (/** @type {string} */ path) => path.startsWith("src/app/") && path.endsWith("/frame.override.ts");
 /** 枠の宣言(src/app の frame.ts = ルートを作ったリポの名前) */
-const isFramePlain = (path) => path.startsWith("src/app/") && path.endsWith("/frame.ts");
+const isFramePlain = (/** @type {string} */ path) => path.startsWith("src/app/") && path.endsWith("/frame.ts");
 /** 基準にそのフォルダのルート(page / layout)か枠の宣言があるか */
-const baseHasRoute = (baseUnits, dir) => ["page", "layout", "frame", "frame.default"].some((name) => baseUnits.has(`${dir}/${name}`));
+const baseHasRoute = (/** @type {Map<string, string>} */ baseUnits, /** @type {string} */ dir) => ["page", "layout", "frame", "frame.default"].some((name) => baseUnits.has(`${dir}/${name}`));
 /** <名前>.default.<拡張子>(既定。D173: そこを作ったリポだけが書く) */
-const isDefaultName = (path) => classifyDottedName(path.slice(path.lastIndexOf("/") + 1)).kind === "default";
+const isDefaultName = (/** @type {string} */ path) => classifyDottedName(path.slice(path.lastIndexOf("/") + 1)).kind === "default";
 
 /**
  * @param {{
- *   changes: { status: string, path: string, from?: string }[],  // git diff --name-status -M <base> HEAD の各行(R は from → path)
+ *   changes: OwnershipChange[],                                  // git diff --name-status -M <base> HEAD の各行(R は from → path)
  *   baseText: (path: string) => string | null,                   // 基準側の中身(無ければ null)
  *   headText: (path: string) => string | null,                   // fork 側の中身(無ければ null)
  *   baseLibs: Iterable<string>,                                  // 基準の src/lib 直下のディレクトリ名
  *   baseHasCore?: boolean,                                       // 基準に src/features/core/ があるか
  *   baseHasGate?: boolean,                                       // 基準に src/featureGate/ があるか
  *   baseHasRulesCore?: boolean,                                  // 基準に .claude/rules/core/ があるか
- *   intake: { kind: string | null, glob: string, exclude: boolean, line: number }[],  // parseIntake(基準側の intake.txt).rules
- *   places?: { direct: Set<string> },                            // unitPlaces(基準のファイル)。無ければ単位名の検査をしない
+ *   intake: Pick<IntakeRule, "kind" | "glob" | "exclude" | "line">[],  // parseIntake(基準側の intake.txt).rules
+ *   places?: UnitPlaces | null,                                  // unitPlaces(基準のファイル)。無ければ単位名の検査をしない
  *   baseUnits?: Map<string, string>,                             // unitIndex(基準のファイル): 単位名 → 基準のパス
  * }} input
- * @returns {{ entries: { status: string, path: string, from?: string, kind: string | null, reason: string, verdict: string, clash?: string, unitFolder?: string }[], counts: Record<string, number> }}
+ * @returns {{ entries: OwnershipEntry[], counts: Record<string, number> }}
  *   unitFolder = inside-unit-add の単位のフォルダ(中間 Tier の付け替えが Tier1 の版にあるかを見る)
  */
 export function judge({ changes, baseText, headText, baseLibs, baseHasCore = false, baseHasGate = false, baseHasRulesCore = false, intake, places = null, baseUnits = new Map() }) {
   const libs = new Set(baseLibs);
   // 基準のファイルのあるフォルダ(親の物の隣への *.default.* の追加 = default-add)
   const baseDirs = new Set([...baseUnits.values()].map(dirOf));
+  /** @type {OwnershipEntry[]} */
   const entries = changes.map((change) => {
     const status = change.status[0];
     const rule = matchIntake(intake, change.path);
+    /** @type {string} */
     let reason;
+    /** @type {string | undefined} */
     let clash;
+    /** @type {string | undefined} */
     let unitFolder;
     if (status === "A") {
       const lib = libNameOf(change.path);
@@ -139,7 +171,7 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
       else if (unit !== null && baseUnits.has(unit)) {
         reason = "unit-clash";
         clash = baseUnits.get(unit);
-      } else if (shelfUnit !== null && (baseUnits.has(shelfUnit) || places.unitFolders?.has(shelfUnit))) {
+      } else if (places && shelfUnit !== null && (baseUnits.has(shelfUnit) || places.unitFolders?.has(shelfUnit))) {
         // 部品の棚の新しい単位が基準の単位と同じ名前(ファイルとフォルダ、x.ts と x.tsx)。基準の単位のフォルダの中は上の inside-unit-add
         reason = "unit-clash";
         clash = baseUnits.get(shelfUnit) ?? `${shelfUnit}/`;
@@ -157,6 +189,7 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
     return { ...change, status, kind: rule?.kind ?? null, reason, verdict: REASONS[reason], ...(clash ? { clash } : {}), ...(unitFolder ? { unitFolder } : {}) };
   });
 
+  /** @type {Record<string, number>} */
   const counts = {};
   for (const entry of entries) counts[entry.reason] = (counts[entry.reason] ?? 0) + 1;
   return { entries, counts };

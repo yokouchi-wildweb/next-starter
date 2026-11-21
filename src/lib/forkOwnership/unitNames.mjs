@@ -13,13 +13,21 @@
 
 import { readDeclaration } from "../districtMap/index.mjs";
 
+/**
+ * @typedef {{ direct: Set<string>, shelf: Set<string>, unitFolders: Set<string> }} UnitPlaces 検査する場所(unitPlaces の結果)
+ */
+
 const DIRECT_FIXED = ["src/wiring", "scripts"];
 const SHELF_FIXED = ["src/hooks", "src/utils", "src/lib"];
 const COMPONENTS = "src/components";
 const ROUTE_NEIGHBOUR = /^src\/app\/(?:.*\/)?(?:_layout|_screen|_components)\//;
 const DECLARATION = /^src\/(?:.*\/)?extensionPoints\.ts$/;
 
-/** パスの単位名(最後の拡張子と末尾の /index を除く) */
+/**
+ * パスの単位名(最後の拡張子と末尾の /index を除く)
+ * @param {string} path
+ * @returns {string}
+ */
 export function unitName(path) {
   const slash = path.lastIndexOf("/");
   const name = path.slice(slash + 1);
@@ -28,9 +36,9 @@ export function unitName(path) {
   return stem.endsWith("/index") ? stem.slice(0, -"/index".length) : stem;
 }
 
-const dirOf = (path) => path.slice(0, Math.max(path.lastIndexOf("/"), 0));
+const dirOf = (/** @type {string} */ path) => path.slice(0, Math.max(path.lastIndexOf("/"), 0));
 
-const normalize = (path) => {
+const normalize = (/** @type {string} */ path) => {
   const out = [];
   for (const part of path.split("/")) {
     if (part === "" || part === ".") continue;
@@ -40,7 +48,12 @@ const normalize = (path) => {
   return out.join("/");
 };
 
-/** 部品の棚の場所(shelf の中で、パスがその下にある物。分類 src/components/<分類> を先に見る)。無ければ null */
+/**
+ * 部品の棚の場所(shelf の中で、パスがその下にある物。分類 src/components/<分類> を先に見る)。無ければ null
+ * @param {string} path
+ * @param {Set<string>} shelf
+ * @returns {string | null}
+ */
 function shelfPlaceOf(path, shelf) {
   const parts = path.split("/");
   for (const depth of [3, 2]) {
@@ -55,7 +68,7 @@ function shelfPlaceOf(path, shelf) {
  * 基準のファイルの一覧から検査する場所を組み立てる
  * @param {Iterable<string>} baseFiles 基準のファイル(リポジトリ直下からの相対)
  * @param {(path: string) => string | null} readBase 基準側の中身
- * @returns {{ direct: Set<string>, shelf: Set<string>, unitFolders: Set<string> }}
+ * @returns {UnitPlaces}
  *   direct = 直下の項目だけを見るフォルダ(route の隣は形で決まるので持たない)
  *   shelf = 部品の棚の場所(基準の分類・hooks・utils・src/lib) | unitFolders = 棚の基準の単位のフォルダ(<場所>/<単位>)
  */
@@ -67,6 +80,7 @@ export function unitPlaces(baseFiles, readBase) {
     const parts = path.split("/");
     if (path.startsWith(`${COMPONENTS}/`) && parts.length >= 4) shelf.add(parts.slice(0, 3).join("/"));
   }
+  /** @type {Set<string>} */
   const unitFolders = new Set();
   for (const path of files) {
     const place = shelfPlaceOf(path, shelf);
@@ -90,6 +104,7 @@ export function unitPlaces(baseFiles, readBase) {
  * 部品の棚の中のパスなら、その単位名(<場所>/<直下の項目>。直下のファイルは最後の拡張子と /index を除く)。棚の外は null
  * @param {string} path
  * @param {{ shelf?: Set<string> }} places
+ * @returns {string | null}
  */
 export function shelfUnitOf(path, places) {
   const place = places.shelf ? shelfPlaceOf(path, places.shelf) : null;
@@ -103,6 +118,7 @@ export function shelfUnitOf(path, places) {
  * 基準の単位のフォルダの中のパスなら、そのフォルダ(<場所>/<単位>)。違えば null
  * @param {string} path
  * @param {{ shelf?: Set<string>, unitFolders?: Set<string> }} places
+ * @returns {string | null}
  */
 export function unitFolderOf(path, places) {
   const place = places.shelf ? shelfPlaceOf(path, places.shelf) : null;
@@ -117,6 +133,7 @@ export function unitFolderOf(path, places) {
  * 検査する場所の中のパスなら単位名、外なら null
  * @param {string} path
  * @param {{ direct: Set<string> }} places
+ * @returns {string | null}
  */
 export function placeUnitOf(path, places) {
   const unit = unitName(path);
@@ -124,14 +141,23 @@ export function placeUnitOf(path, places) {
   return places.direct.has(dirOf(unit)) ? unit : null;
 }
 
-/** <対象>.override.ts(x) なら対象の単位名(同じフォルダの <対象>。cron の task.override.ts は task)、違えば null */
+/**
+ * <対象>.override.ts(x) なら対象の単位名(同じフォルダの <対象>。cron の task.override.ts は task)、違えば null
+ * @param {string} path
+ * @returns {string | null}
+ */
 export function overrideTargetUnit(path) {
   const match = /^(.*\/)?([^/]+)\.override\.tsx?$/.exec(path);
   return match ? `${match[1] ?? ""}${match[2]}` : null;
 }
 
-/** 基準のファイルの単位名 → 基準のパス(最初の 1 つ) */
+/**
+ * 基準のファイルの単位名 → 基準のパス(最初の 1 つ)
+ * @param {Iterable<string>} baseFiles
+ * @returns {Map<string, string>}
+ */
 export function unitIndex(baseFiles) {
+  /** @type {Map<string, string>} */
   const index = new Map();
   for (const path of baseFiles) {
     const unit = unitName(path);

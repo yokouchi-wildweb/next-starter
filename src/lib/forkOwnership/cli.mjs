@@ -4,8 +4,15 @@
 
 import { runCheck } from "./check.mjs";
 
+/**
+ * @import { CheckResult, SelfResult } from "./check.mjs"
+ * @typedef {{ json: boolean, verbose: boolean, self?: boolean, parent?: string, branch?: string }} CheckCliOptions
+ */
+
+/** @type {Readonly<Record<CheckResult["status"], number>>} */
 const EXIT = { pass: 0, tier1: 0, fail: 1, unverified: 2 };
 
+/** @type {Readonly<Record<string, string | undefined>>} */
 const LABELS = {
   added: "fork が足したファイル",
   intake: "受け口の中の書き換え",
@@ -39,6 +46,7 @@ const LABELS = {
   self: "型 5 self の問題(project.md・behavior.md・repo.json)",
 };
 
+/** @type {Readonly<Record<string, string | undefined>>} */
 const PERMIT_STATES = {
   none: "許可なし",
   refresh: "許可の後に書き換えた(中身を見て許可し直す)",
@@ -46,7 +54,12 @@ const PERMIT_STATES = {
   "expired-resolved": "失効: 依頼がすべて解決した(受け口へ移す・元に戻す)",
 };
 
+/**
+ * @param {string[]} argv
+ * @returns {CheckCliOptions}
+ */
 function parseArgs(argv) {
+  /** @type {CheckCliOptions} */
   const options = { json: false, verbose: false };
   for (const arg of argv) {
     if (arg === "--json") options.json = true;
@@ -60,7 +73,11 @@ function parseArgs(argv) {
   return options;
 }
 
-/** 型 5 self の検査の行(切 = 1 行、走った = 結果と問題・未検証の項) */
+/**
+ * 型 5 self の検査の行(切 = 1 行、走った = 結果と問題・未検証の項)
+ * @param {SelfResult | undefined} self
+ * @returns {string[]}
+ */
 function selfLines(self) {
   if (!self) return [];
   if (!self.enabled) return ["self の検査: 切(--no-self。既定は入)"];
@@ -70,15 +87,26 @@ function selfLines(self) {
   return lines;
 }
 
-/** 終了コード: 状態の表 + self の検査(Tier1 の問題 = 1、未検証の項だけ = 2、違反の方が強い) */
+/**
+ * 終了コード: 状態の表 + self の検査(Tier1 の問題 = 1、未検証の項だけ = 2、違反の方が強い)
+ * @param {CheckResult} result
+ * @returns {number}
+ */
 export function exitCode(result) {
   const code = EXIT[result.status];
-  if (code !== 0 || !result.self?.enabled) return code;
-  if (result.self.problems.length > 0) return 1;
-  return result.self.unverified.length > 0 ? 2 : 0;
+  const self = result.status === "unverified" ? undefined : result.self;
+  if (code !== 0 || !self?.enabled) return code;
+  if (self.problems.length > 0) return 1;
+  return self.unverified.length > 0 ? 2 : 0;
 }
 
+/**
+ * @param {CheckResult} result
+ * @param {{ verbose: boolean }} options
+ * @returns {string[]}
+ */
 function print(result, { verbose }) {
+  /** @type {string[]} */
   const lines = [];
   if (result.status === "tier1") {
     lines.push(`親なし(Tier1: ${result.ownerId}): 対象外 — upstream の負債の行 ${result.debt.length}(src/lib/forkOwnership/intake.txt の debt)`);
@@ -150,11 +178,12 @@ function print(result, { verbose }) {
 
 /** pnpm workflow ownership check の本体(引数は process.argv、結果は process.exitCode)。呼ぶのは scripts/workflow/ownership/check.mjs */
 export function runOwnershipCheckCli() {
+  /** @type {CheckCliOptions} */
   let options;
   try {
     options = parseArgs(process.argv.slice(2));
   } catch (error) {
-    console.error(error.message);
+    console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 2;
     return;
   }
