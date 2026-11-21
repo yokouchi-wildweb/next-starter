@@ -23,7 +23,7 @@ export function createRouteFactories<
   TAuthenticated extends RouteAuthenticatedDevice,
   TCategory extends string = string,
 >(deps: RouteFactoryDeps<TUser, TStatus, TAuthenticated, TCategory>) {
-  const runRoute = makeRouteCore<TCategory>(deps.user, deps.rateLimit, deps.gate);
+  const runRoute = makeRouteCore<TCategory>(deps.user, deps.rateLimit, deps.gate, deps.serverError);
   const createApiRoute = makeCreateApiRoute<TUser, TStatus, TCategory>(deps.user, runRoute);
   const { createDomainRoute, createDomainIdRoute } = makeDomainRoutes<TUser, TStatus, TCategory>(deps.user, deps.domains, runRoute);
   const createMeRoute = makeCreateMeRoute(createApiRoute);

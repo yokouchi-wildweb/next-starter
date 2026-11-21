@@ -120,3 +120,13 @@ test("report: 入口の失敗も既定の 1 行 + 項目へ(proxy は routeType 
   assert.equal(lines[1].routeType, "proxy");
   assert.deepEqual(seen, [["/api/cron/sweep", "route"], ["/x", "proxy"]]);
 });
+
+test("report の extra は既定の行に足し、既定のキーは上書きしない", async () => {
+  const { report, lines } = setup([]);
+  await report.report(new Error("x"), { scope: "cron", path: "/api/cron/a", method: "GET", extra: { durationMs: 12, ok: false, scope: "api", path: "/evil", requestId: "forged" } });
+  assert.equal(lines[0].durationMs, 12);
+  assert.equal(lines[0].ok, false);
+  assert.equal(lines[0].scope, "cron");
+  assert.equal(lines[0].path, "/api/cron/a");
+  assert.equal(lines[0].requestId, undefined);
+});

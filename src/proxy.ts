@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createProxyUser } from '@/features/core/auth/services/server/proxyUserDeps';
 import { proxyHandlers, proxyResponseDecorators } from './proxies';
 import type { ProxyContext } from './proxies';
+import { serverErrorReport } from '@/wiring/serverErrors';
 
 // proxy を走らせる住所の絞り込み(Next.js の matcher。ビルド時に読むのでリテラルだけで書く。fork は変えない)。
 // 外すのは、どの項目(メンテナンス・デモ・門番・転送・cookie)も要らない静的なファイルだけ:
@@ -12,6 +13,21 @@ export const config = {
 };
 
 export default async function proxy(request: NextRequest) {
+  try {
+    return await runProxy(request);
+  } catch (error) {
+    // proxy の throw は Next の onRequestError に届かない。サーバーの失敗の記録へ渡してから同じ失敗を投げ直す(Next の 500 は今のまま)
+    await serverErrorReport.report(error, {
+      scope: 'proxy',
+      path: request.nextUrl.pathname,
+      method: request.method,
+      headers: Object.fromEntries(request.headers),
+    });
+    throw error;
+  }
+}
+
+async function runProxy(request: NextRequest) {
   // 利用者は項目が ctx.user() を呼んだときだけ 1 回解決する(呼ばれなければ DB を引かない)
   const ctx: ProxyContext = { user: createProxyUser(request.cookies) };
 

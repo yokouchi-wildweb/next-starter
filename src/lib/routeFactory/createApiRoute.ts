@@ -11,7 +11,7 @@ import { isDomainError, toDomainErrorBody } from "@/lib/errors";
 import { readClientIp } from "@/lib/request";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";
 
-import type { RouteGateDeps, RouteRateLimitDeps, RouteUserBase, RouteUserDeps } from "./deps";
+import type { RouteGateDeps, RouteRateLimitDeps, RouteServerErrorDeps, RouteUserBase, RouteUserDeps } from "./deps";
 import { accessDenialResponse } from "./enforceAccess";
 import { resolveRouteUser } from "./routeUser";
 
@@ -211,11 +211,14 @@ export function toRouteResponse(result: unknown): Response {
  * ハンドラ実行（監査文脈と userDirty の中）・応答の生成・エラー整形。
  * 最初の文で connection() を待つ（どの早期 return より前）。門番の口（gate、省略可）があれば次に要求の住所を聞き、
  * 閉なら not_found の 404（主体の解決・認可・ハンドラの前）。
+ * 想定外の失敗（DomainError 以外と status 500 以上の DomainError）は記録の口（serverError、省略可）へ渡して待つ。
+ * 口があればその 1 行が記録（1 失敗 1 行）、無ければ console.error の行。400 番台の DomainError は口へ渡さない。
  */
 export function makeRouteCore<TCategory extends string = string>(
   deps: { resolveTokenSession: () => Promise<RouteUserBase | null> },
   rateLimit: RouteRateLimitDeps<TCategory>,
   gate?: RouteGateDeps,
+  serverError?: RouteServerErrorDeps,
 ) {
   return function runRoute<TParams, TGrant>(
     config: ApiRouteBaseConfig<TCategory>,
@@ -397,7 +400,18 @@ export function makeRouteCore<TCategory extends string = string>(
         // ===== レスポンス生成 =====
         return toRouteResponse(result);
       } catch (error) {
-        console.error(`${config.operation} failed:`, error);
+        const unexpected = !isDomainError(error) || error.status >= 500;
+        if (unexpected && serverError) {
+          await serverError.onServerError(error, {
+            path: req.nextUrl.pathname,
+            method: req.method,
+            headers: Object.fromEntries(req.headers),
+            requestId: auditContext.requestId,
+            operation: config.operation,
+          });
+        } else {
+          console.error(`${config.operation} failed:`, error);
+        }
 
         if (isDomainError(error)) {
           return NextResponse.json(toDomainErrorBody(error), { status: error.status });

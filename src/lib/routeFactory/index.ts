@@ -11,6 +11,8 @@ export type {
   RouteGateDeps,
   RouteRateLimitDeps,
   RouteRateLimitResult,
+  RouteServerErrorDeps,
+  RouteServerErrorInput,
   RouteUserBase,
   RouteUserDeps,
 } from "./deps";

@@ -21,6 +21,9 @@ export type ServerErrorReport = {
 
 const TIMED_OUT = Symbol("timedOut");
 
+/** 既定の行のキー(report の extra が書けない) */
+const DEFAULT_KEYS = new Set(["level", "scope", "path", "method", "routePath", "routeType", "renderSource", "digest", "requestId", "name", "error"]);
+
 /** 上限までだけ待つ(上限越えは TIMED_OUT。待った後の続きは止めない) */
 async function withLimit<T>(work: () => T | Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -91,9 +94,15 @@ export function createServerErrorReport(
     );
   };
 
-  const writeDefault = (error: unknown, line: Omit<ServerErrorLine, "level" | "error" | "digest">) => {
+  const writeDefault = (
+    error: unknown,
+    line: Omit<ServerErrorLine, "level" | "error" | "digest">,
+    extra?: ServerErrorReportInput["extra"],
+  ) => {
     const { digest, ...described } = describeError(error);
-    write({ level: "error", ...line, ...(digest ? { digest } : {}), error: described });
+    // extra は既定のキー(無い時も)を書けない
+    const added = Object.fromEntries(Object.entries(extra ?? {}).filter(([key]) => !DEFAULT_KEYS.has(key)));
+    write({ ...added, level: "error", ...line, ...(digest ? { digest } : {}), error: described });
   };
 
   return {
@@ -144,7 +153,7 @@ export function createServerErrorReport(
           routeType,
           ...(input.requestId ? { requestId: input.requestId } : {}),
           ...(input.name ? { name: input.name } : {}),
-        });
+        }, input.extra);
         await deliver(
           error,
           { path, method: input.method, headers: input.headers ?? {} },

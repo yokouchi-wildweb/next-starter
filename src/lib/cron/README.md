@@ -224,7 +224,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 
 ### 運用上の注意
 
-- 失敗時は API ルートが 500 `{ ok: false, error }` を返し、stderr に JSON ログ（`scope: "cron"`）を出す。成功時も stdout に JSON ログ（`durationMs` + 結果）。CLI は `scope: "task-cli"` で同形式、失敗時は exit 1
+- 失敗時は API ルートが 500 `{ ok: false, error }` を返す。記録は束の口 `onServerError`（省略可）があればその 1 行（上流の wiring はサーバーの失敗の記録へ結ぶ: `{ level: "error", scope: "cron", path: "/api/cron/<name>", method, routeType: "route", requestId, name: <タスク名>, ok: false, durationMs, error: { name, message, stack } }`、`src/wiring/serverErrors/README.md`）、無ければ stderr に JSON ログ（`scope: "cron"`、`task`・`error` は message）。成功時も stdout に JSON ログ（`durationMs` + 結果）。CLI は `scope: "task-cli"` で同形式、失敗時は exit 1
 - Vercel Cron は失敗を自動リトライしないため、失敗の監視はログ側で行う
 
 ## Verification

@@ -15,6 +15,7 @@ import type { RateLimitCategory } from "@/features/rateLimit/config";
 import type { UserStatus } from "@/features/core/user/types";
 import { gate } from "@/featureGate";
 import { createRouteFactories } from "@/lib/routeFactory";
+import { serverErrorReport } from "@/wiring/serverErrors";
 import type {
   ApiRouteConfig as GenericApiRouteConfig,
   ApiRouteContext as GenericApiRouteContext,
@@ -65,6 +66,18 @@ const factories = createRouteFactories<DevicesByKind, SessionUser, UserStatus, A
   domains: serviceRegistry,
   // 門番: 閉じた機能の住所の API は Factory も 404（proxy の 404 の安全網、D19）
   gate: { isClosed: (pathname) => !gate.path(pathname).open },
+  // 想定外の失敗(500)はサーバーの失敗の記録へ(既定の 1 行 + fork の送り先。src/wiring/serverErrors/README.md)
+  serverError: {
+    onServerError: (error, input) =>
+      serverErrorReport.report(error, {
+        scope: "api",
+        path: input.path,
+        method: input.method,
+        headers: input.headers,
+        requestId: input.requestId,
+        name: input.operation,
+      }),
+  },
 });
 
 /** 全 API ルート共通の Factory（access で認可し、利用者を ctx.user で渡す） */

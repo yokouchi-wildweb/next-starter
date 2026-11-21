@@ -304,6 +304,7 @@ export const POST = createApiRoute(
 - ハンドラが返した `Response`（`NextResponse` 以外も）は**そのまま**返す（redirect・binary・SSE・Cookie 付きの応答）。それ以外の値は `NextResponse.json(value ?? null)`
 - `DomainError` → `{ message, code?, details? }` + その status。`code`（機械可読な分類）・`details` は指定したときだけ載る（`src/lib/errors/README.md`）
 - それ以外の例外 → `{ message: "サーバーでエラーが発生しました" }` + 500（元の message はサーバーログだけ）
+- 想定外の失敗（DomainError 以外と status 500 以上の DomainError）は束の口 `serverError.onServerError`（省略可）へ path・method・headers・requestId・operation を渡して待つ。口があればその記録が 1 失敗 1 行（`console.error` の `<operation> failed:` は出さない）、無ければ `console.error`。400 番台の DomainError は口へ渡さない。上流の wiring はサーバーの失敗の記録（`src/wiring/serverErrors/README.md`）へ結ぶ
 - 認可の拒否 → 401 / 403 の JSON（`code`、汎用 CRUD は `domain` / `operation` も）、404 は `text/plain`
 - 利用者を確かめられない（DB 障害）→ 503 の JSON（`code: "route_user_unavailable"`、上の「主体（`ctx.user`）」）。クライアントは再試行
 - レート制限で止めた → 429 + `Retry-After`(サブネット単位は `silent: true`)/ reCAPTCHA の中間スコア → 428(v2 チャレンジを求める)

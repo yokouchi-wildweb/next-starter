@@ -7,10 +7,22 @@
 
 import { gate } from "@/featureGate";
 import { createCronTaskRoute as createGenericCronTaskRoute } from "@/lib/cron";
-import type { CronTaskDefinition, CronTaskResult } from "@/lib/cron";
+import type { CreateCronRouteDeps, CronTaskDefinition, CronTaskResult } from "@/lib/cron";
+import { serverErrorReport } from "@/wiring/serverErrors";
 
-const cronRouteDeps = {
+const cronRouteDeps: CreateCronRouteDeps = {
   gate: { isClosed: (pathname: string) => !gate.path(pathname).open },
+  // 失敗したタスクはサーバーの失敗の記録へ(既定の 1 行 + fork の送り先。src/wiring/serverErrors/README.md)
+  onServerError: (error, input) =>
+    serverErrorReport.report(error, {
+      scope: "cron",
+      path: input.path,
+      method: input.method,
+      headers: input.headers,
+      requestId: input.requestId,
+      name: input.name,
+      extra: { ok: false, durationMs: input.durationMs },
+    }),
 };
 
 /** task.ts のタスク定義から cron の GET ハンドラを作る（門番の判定つき） */

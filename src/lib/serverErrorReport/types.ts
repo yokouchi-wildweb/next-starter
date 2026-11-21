@@ -43,6 +43,8 @@ export type ServerErrorReportInput = {
   requestId?: string;
   /** cron のタスク名など、範囲ごとの名前 */
   name?: string;
+  /** 既定の行に足す値(数・文字・真偽だけ。既定のキーは上書きしない。例: cron の durationMs) */
+  extra?: Record<string, string | number | boolean>;
 };
 
 export type ServerErrorReportOptions = {

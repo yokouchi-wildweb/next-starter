@@ -43,6 +43,31 @@ test("handler は system の文脈の中で走り、応答とログに同じ req
   assert.equal(getAuditContext(), null);
 });
 
+test("失敗の記録の口があればそこへ渡し(タスク名・requestId・durationMs・道)、JSON の error 行は出さない", async () => {
+  const reported: { error: unknown; input: Record<string, unknown> }[] = [];
+  const route = createCronRoute(
+    { name: "report-throw", handler: async () => { throw new Error("boom"); } },
+    { onServerError: async (error, input) => void reported.push({ error, input }) },
+  );
+  const original = console.error;
+  const lines: unknown[] = [];
+  console.error = (...args: unknown[]) => void lines.push(args);
+  try {
+    const res = await route(new Request("http://localhost/api/cron/report-throw?x=1"));
+    assert.equal(res.status, 500);
+    assert.deepEqual(await res.json(), { ok: false, error: "boom" });
+  } finally {
+    console.error = original;
+  }
+  assert.equal(lines.length, 0);
+  assert.equal(reported.length, 1);
+  assert.equal((reported[0].error as Error).message, "boom");
+  assert.equal(reported[0].input.name, "report-throw");
+  assert.equal(reported[0].input.path, "/api/cron/report-throw");
+  assert.equal(typeof reported[0].input.requestId, "string");
+  assert.equal(typeof reported[0].input.durationMs, "number");
+});
+
 test("handler が投げても 500 で返し、文脈は外に漏れない", async () => {
   const route = createCronRoute({ name: "audit-context-throw", handler: async () => { throw new Error("boom"); } });
   const original = console.error;

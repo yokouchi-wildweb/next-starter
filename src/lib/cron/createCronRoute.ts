@@ -31,8 +31,21 @@ export type CronRouteGate = {
   isClosed: (pathname: string) => boolean;
 };
 
+/** 失敗したタスクの記録の文脈。headers は送り先へだけ(既定の記録には書かない) */
+export type CronServerErrorInput = {
+  path: string;
+  method: string;
+  headers: Record<string, string>;
+  requestId: string;
+  /** タスク名 */
+  name: string;
+  durationMs: number;
+};
+
 export type CreateCronRouteDeps = {
   gate?: CronRouteGate;
+  /** 失敗の記録の口(結ぶのは src/wiring。throw しない Promise)。省略時 = 下の JSON の error 行 */
+  onServerError?: (error: unknown, input: CronServerErrorInput) => Promise<void>;
 };
 
 export type CreateCronRouteOptions<T extends Record<string, unknown>> = {
@@ -62,7 +75,7 @@ export type CreateCronRouteOptions<T extends Record<string, unknown>> = {
  * - 機能が閉じている（deps.gate が `/api/cron/<name>` を閉と答えた）: 200 { ok: true, skipped: true, reason: "closed" }
  * - 追加の条件が false: 200 { ok: true, skipped: true, reason: "disabled" }
  * - 実行成功: 200 { ok: true, ...result }
- * - 実行失敗: 500 { ok: false, error }
+ * - 実行失敗: 500 { ok: false, error }。記録は口（deps.onServerError）があればその 1 行、無ければ JSON の error 行
  *
  * ログは常に stdout に JSON で出す（Vercel / Datadog 等でパース可能）。
  */
@@ -103,9 +116,20 @@ export function createCronRoute<T extends Record<string, unknown> = Record<strin
     } catch (error) {
       const durationMs = Date.now() - startedAt;
       const message = error instanceof Error ? error.message : String(error);
-      console.error(
-        JSON.stringify({ level: "error", scope: "cron", task: options.name, ok: false, requestId, durationMs, error: message }),
-      );
+      if (deps.onServerError) {
+        await deps.onServerError(error, {
+          path: new URL(req.url).pathname,
+          method: req.method,
+          headers: Object.fromEntries(req.headers),
+          requestId,
+          name: options.name,
+          durationMs,
+        });
+      } else {
+        console.error(
+          JSON.stringify({ level: "error", scope: "cron", task: options.name, ok: false, requestId, durationMs, error: message }),
+        );
+      }
       return NextResponse.json({ ok: false, error: message }, { status: 500 });
     }
   };

@@ -25,7 +25,7 @@ await report.report(error, { scope: "api", path: request.nextUrl.pathname, metho
 - `createServerErrorReport(loaders, options)` → `{ register, onRequestError, report }`(どれも throw しない Promise)
   - `loaders`: `{ name, load: () => Promise<ServerErrorReporter> }[]`
   - `options.runtime`: `"nodejs" | "edge"`(合わない項目を外す)| `timeoutMs`: 項目の onRequestError の上限 | `registerTimeoutMs`: 項目の register の上限 | `write`: 1 行の書き手(既定 console.error、test 用)
-- `report(error, input)`: `input` = `{ scope: "api" | "cron" | "proxy" | "request", path, method, headers?, routePath?, routeType?, requestId?, name? }`。既定の行の後、項目へ Next と同じ形の引数(`routerKind: "App Router"`、routeType 既定 = proxy なら `proxy`、他は `route`)で配る
+- `report(error, input)`: `input` = `{ scope: "api" | "cron" | "proxy" | "request", path, method, headers?, routePath?, routeType?, requestId?, name?, extra? }`(`extra` = 既定の行に足す数・文字・真偽。既定のキーは書けない)。既定の行の後、項目へ Next と同じ形の引数(`routerKind: "App Router"`、routeType 既定 = proxy なら `proxy`、他は `route`)で配る
 - `ServerErrorReporter` = `{ name, runtime?: "nodejs" | "edge" | "both", register?, onRequestError? }`
 - `stripQuery(path)`: クエリと断片を外す
 

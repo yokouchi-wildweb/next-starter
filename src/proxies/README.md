@@ -69,6 +69,11 @@ export const handler: ProxyHandler = async (request, ctx) => {
 - matcher はビルド時に読むリテラルで、fork は変えない。外したい住所・通したい住所が要るなら上流へ依頼する
 - 外した住所はメンテナンス中も見える(静的なファイルなので止める意味が無い)
 
+### 失敗のとき
+
+- `src/proxy.ts` の本体(項目・decorator)の throw は Next の onRequestError に届かないので、`proxy.ts` が受け止めてサーバーの失敗の記録(`@/wiring/serverErrors` の `report`、scope proxy。既定の 1 行 + fork の送り先、`src/wiring/serverErrors/README.md`)へ渡して待ち、同じ失敗を投げ直す(応答は今までどおり Next の 500)
+- 項目は自分で失敗を握りつぶさない(握りつぶすと記録に残らない)
+
 ### メンテナンスの判定を読む住所
 
 骨組みの `maintenance.ts` は、許可パス(設定ドメインの config の `maintenance.allowedPaths`・`allowedPrefixes`。既定で `/api`・`/_next`・`/login` など)では期間の判定(`settingService.isMaintenanceActive`)を読まずに通す。判定を読むのは `/maintenance`(期間の外で終了後の行き先へ送る)と許可外のパスだけ。判定が読むキー `maintenance` を設定ドメインの config の `codeValues` で持てば、判定でも DB を読まない(設定ドメインの README Extension「コードで持つキー」)。

@@ -85,6 +85,21 @@ export type RouteGateDeps = {
   isClosed: (pathname: string) => boolean;
 };
 
+/** 想定外の失敗(500)を受け止めた入口が渡す文脈。headers は送り先へだけ(既定の記録には書かない) */
+export type RouteServerErrorInput = {
+  path: string;
+  method: string;
+  headers: Record<string, string>;
+  requestId: string;
+  /** ルートの operation 名 */
+  operation: string;
+};
+
+/** 想定外の失敗の記録の口(結ぶのは src/wiring。throw しない Promise を返す) */
+export type RouteServerErrorDeps = {
+  onServerError: (error: unknown, input: RouteServerErrorInput) => Promise<void>;
+};
+
 /** createRouteFactories に渡す束 */
 export type RouteFactoryDeps<
   TUser extends RouteUserBase<TStatus>,
@@ -99,4 +114,6 @@ export type RouteFactoryDeps<
   domains: DomainRegistry;
   /** 門番の口(省略時 = 住所では閉じない) */
   gate?: RouteGateDeps;
+  /** 想定外の失敗の記録の口(省略時 = console.error の行だけ) */
+  serverError?: RouteServerErrorDeps;
 };

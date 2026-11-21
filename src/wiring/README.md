@@ -34,9 +34,11 @@
   - + レート制限の束（`features/core/rateLimit` の `apiRouteRateLimitDeps`）
   - + 端末の束（`features/core/pairedDevice` の `apiRouteDeviceDeps`。端末の機能が閉じている間は `gateDeviceDeps` が端末の認証を「端末なし」にする、テスト `apiRoute.test.mts`）
   - + 主体の具体の型 + `serviceRegistry` → `createApiRoute` / `createDomainRoute` / `createDomainIdRoute` / `createMeRoute` / `createDeviceRoute` / `enforceAccessRule` / `ownerWhere`（API ルートとその補助ファイルはここから import する）
+  - + 想定外の失敗(500)の口 `serverError` → `serverErrors/index.ts` の `serverErrorReport.report`（scope api、name = operation）
   - テスト `routeFactory.test.mts`: Factory の契約（主体の解き方・allowStatuses・拒否の body・DomainError）を、汎用版に本物の認可の判定（`features/core/auth` の `evaluateApiAccessRule`）を差し込んで回す。閉じた lib は features を読めず、汎用版を値で読めるのは wiring だけ（lint `route-factory-via-wiring`）なのでここに置く
 - `cronRoute.ts`: データに届くか = 届かない
   - `lib/cron` の `createCronTaskRoute` + 門番（`@/featureGate` の `gate.path`）→ `createCronTaskRoute`（cron の `route.ts` はここから import する。タスクの住所 `/api/cron/<name>` が閉じていれば本体を呼ばずに skipped。`src/lib/cron/README.md`）
+  - + 失敗したタスクの口 `onServerError` → `serverErrors/index.ts` の `serverErrorReport.report`（scope cron、name = タスク名、extra ok:false・durationMs）
 - `business.ts`: データに届くか = 届かない
   - `src/business/business.ts`(fork の値と印 source)+ `lib/business` の `resolveBusiness` → `business` / `businessSource`(受付係。tsconfig.json の `"@/business"` がここを指し、読み手は `@/business` を読む。sample のときは例の値。`src/lib/business/README.md`)
 - `domainRegistry.ts`: データに届くか = 届く（registry → domainEntry.ts → 遅延 import でサービスに届く）
@@ -85,6 +87,7 @@ wiring どうしの import の例外は次の 2 つだけ（`pnpm test src/wirin
 
 - 受け口: 生成物 `wiring/<束>.ts` → その束の受け口の項目 `wiring/<束>/<受け口>/…`（受け口 = `wiring/<束>/extensionPoints.ts` が宣言した `dir`）と、同じ受け口の中の項目どうし。項目は fork が足した物を含み、名前に fork の印は付けない。例: 生成物 `dbAgent.ts` → `dbAgent/extraTools/<名前>.ts`・`dbAgent/promptFragments/<名前>.ts`
 - 閉じた束: `AppProviders.tsx` → `formInputs/FormInputsRoot.tsx` と、束のフォルダ（`formInputs/`・`serverErrors/`）の中どうし（入口 → 生成物の一覧 → 受け口の項目）
+- 失敗の記録の束: `apiRoute.ts`・`cronRoute.ts` → `serverErrors/index.ts`（API の Factory と cron の失敗を同じ記録へ結ぶ。項目の読み込みと上限を 1 か所に保つ。他の wiring からは不可）
 
 ## Verification
 
