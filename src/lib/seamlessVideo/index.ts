@@ -61,7 +61,7 @@ export {
 export { formatValidationReport, formatReelValidationReport } from "./probe/formatReport";
 
 // 連結リールの永続化・共有(マニフェスト)
-// ※ server/reelManifestStore はサーバー専用のため、ここでは再エクスポートしない
+// ※ マニフェストの保存(Firestore)はサーバー専用のため入口 "./server"(server/index.ts)
 export {
   buildReelManifest,
   parseReelManifest,

@@ -4,7 +4,7 @@
 
 import "server-only";
 
-import { getLatestManifest } from "@/lib/seamlessVideo/server/reelManifestStore";
+import { getLatestManifest } from "@/lib/seamlessVideo/server";
 import { createLoader } from "@/app/guard";
 
 export const loadDemoSeamlessAvPlayScreen = createLoader({
