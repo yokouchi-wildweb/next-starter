@@ -4,7 +4,7 @@
 // 今の木を node:fs で読む読み手と形の検査は ./node.mjs(入口 "./node")。形と決まり: README.md
 //
 // 形: { "exports": { ".": "./index.ts", "./server": "./server.ts" }, "libs": ["cn"], "peers": ["components"], "sideEffects": false }
-// - exports(必須)= 外から読める入口。鍵 = 実パス("." = ./index.<ext>、"./x" = ./x.<ext> か ./x/index.<ext>)、値 = 文字列 1 つ
+// - exports(必須)= 外から読める入口。鍵 = 入口の名前 ENTRY_NAMES の 4 つのどれか = 実パス("." = ./index.<ext>、"./x" = ./x.<ext> か ./x/index.<ext>)、値 = 文字列 1 つ
 // - libs = 読む lib の名前(src/lib/<name>)、peers = 共有の同一性が要る棚(今は components = src/components)
 // - sideEffects = false か、副作用のあるファイルの一覧(測った所だけ。D86)
 // - name・dependencies など他のキーは書かない
@@ -15,6 +15,12 @@ export const LIB_DIR = "src/lib";
 /** peers に書ける項目 → その置き場(repo 相対) */
 export const PEER_DIRS = Object.freeze({ components: "src/components" });
 export const ALLOWED_KEYS = Object.freeze(["exports", "libs", "peers", "sideEffects"]);
+/**
+ * exports の鍵に使える入口の名前(D248。src/lib/README.md 手順 4):
+ * "." = client でも server でも読める物 | "./server" = DB・管理 SDK・秘密・node の API | "./client" = 読み込むだけでブラウザの SDK を引く物 |
+ * "./node" = Next の外のプログラム(scripts・eslint-rules・servers)が読む物(React と Next を引かない)
+ */
+export const ENTRY_NAMES = Object.freeze([".", "./server", "./client", "./node"]);
 /** exports の値に使える拡張子 */
 export { ENTRY_EXTENSIONS } from "./entryPath.mjs";
 

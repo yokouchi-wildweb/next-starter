@@ -3,7 +3,6 @@
 import { db } from "@/lib/drizzle";
 import {
   computeAuditDiff,
-  getAuditContext,
   stripDenylisted,
   truncateLargeValues,
   validateActionName,
@@ -11,6 +10,7 @@ import {
   type AuditContext,
   type AuditRecordInput,
 } from "@/lib/audit";
+import { getAuditContext } from "@/lib/audit/server";
 import type { DbTransaction } from "@/lib/crud/server";
 
 import { AuditLogTable, AuditLogFailedTable } from "@/features/core/auditLog/entities/drizzle";

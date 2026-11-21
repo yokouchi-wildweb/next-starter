@@ -39,8 +39,9 @@ lib 1 本を「閉じた lib」(package.json の入口だけを外から読み�
 3. **自分を相対で読む**: lib の中で自分を `@/lib/<name>` で読む import を相対パスに直す(宣言の後は lint `lib-self-relative` が止める)
    - 確かめ: `git grep -nE "@/lib/<name>(/|['\"])" -- src/lib/<name>` が 0(区切りを付ける: `@/lib/request` だけだと `@/lib/requestMemo` にも当たる)
 4. **package.json を置く**: `exports` は今のパスを写さず機能で整理し、外と fork が読む名前は全部入口に残す(消すのは破壊的変更 = notice を伴う別の変更)。入口の名前は `.`(client でも server でも読める物。入口に `"use client"` を書かない)・`./server`(DB・管理 SDK・秘密・node の API)・`./client`(import しただけでブラウザの SDK を引く物)・`./node`(Next の外のプログラム = scripts・eslint-rules・servers が読む物。React と Next を引かない)の 4 つだけ。`libs` = 直接読む lib、`peers` = 棚、`sideEffects` は書かない(手順 8)。形と問題の名前: [libPackage/README.md](./libPackage/README.md)・API「lib の package.json(宣言の形)」
+   - 自分の節の lib(fork の自前の lib も)は `pnpm check lib-package -- declare <name>` が package.json と手順 5 の tsconfig.json の初めの形を推して書ける(既定 dry-run、決めきれない所を一覧に出す。祖先の lib は拒む。形: [scripts/structure/lib-package/README.md](../../scripts/structure/lib-package/README.md)「declare」)
    - 確かめ: `git grep -n '"\./' -- src/lib/<name>/package.json`(exports の鍵が上の 4 つだけ・値が lib の中の実ファイル)
-   - 形の問題は `pnpm check lib-package` が守る(/ship の検査が回す。tsconfig.json が無い問題は手順 5 で直す)
+   - 形の問題は `pnpm check lib-package` が守る(/ship の検査が回す。tsconfig.json が無い問題は手順 5 で直す)。入口の名前の外の鍵は `entryName`、`.` の先頭の `"use client"` は `entryUseClient`、`./node` から React・Next を辿れば `nodeEntryReact`(道を出す)で落ちる
    - package.json を置いた時から lint `entry/only-entries` がその lib に効き、外から中のファイルを読む import が error になる(手順 7 で直すまで `pnpm lint` は落ちる)
 5. **tsconfig.json を置く**: 無い間は `pnpm check lib-package` が置く中身を丸ごと出すので(作業の材料として出させる。通ったかは出荷の /ship で読む)、それをそのまま `src/lib/<name>/tsconfig.json` に書く(依存の依存も閉包として入る。JS(`.mjs` / `.js`)のファイルを持つ lib は allowJs・allowImportingTsExtensions・checkJs と JS の include も入り、JS も型検査する。型の誤りは JSDoc で直す)。形: [scripts/structure/lib-package/README.md](../../scripts/structure/lib-package/README.md)
    - JS(`.mjs` / `.js`)の lib は、出荷の型検査の前に暗黙の any へ型を書く: `pnpm check lib-package -- jsdoc --lib <name>`(既定 dry-run、`--apply` で書く。`any` / `never[]` と出た所は本当の型に直す)。tsconfig は緩めない
@@ -80,7 +81,7 @@ lib は `src/lib/<name>/package.json` で「外から読める入口」と「自
 }
 ```
 
-- `exports`(必須): 入口の一覧。**鍵 = 実パス**(`"."` = `./index.<ext>`、`"./x"` = `./x.<ext>` か `./x/index.<ext>`)。値は lib の中の実在するファイル 1 つ。パターン `./*`・条件分け(`import` / `default` など)・配列は使わない
+- `exports`(必須): 入口の一覧。**鍵 = 入口の名前** `.`・`./server`・`./client`・`./node` の 4 つだけ(意味は Usage 手順 4。ほかの名前は `pnpm check lib-package` が形の問題 `entryName` で止める。上流の lib にも fork の自前の lib にも効く)。**鍵 = 実パス**(`"."` = `./index.<ext>`、`"./x"` = `./x.<ext>` か `./x/index.<ext>`)。値は lib の中の実在するファイル 1 つ。パターン `./*`・条件分け(`import` / `default` など)・配列は使わない
 - `libs`: この lib が読む他の lib の名前(`src/lib/<name>`)。読むのはその lib の入口だけ
 - `peers`: 共有の同一性が要る棚(今は `components` = `src/components` だけ)
 - `sideEffects`: 書かないのが既定。測って要る所だけ `false` か副作用のあるファイルの一覧(副作用を持つ lib に `false` を置くと `pnpm check lib-package` が止める)
@@ -92,7 +93,7 @@ lint(`eslint-rules/import-boundaries.mjs`、全 Tier error):
 - `entry/only-entries`: 外から宣言済みの lib を読む import は exports の入口に当たること(`@/lib` の別名・相対・`"src/…"` を実パスに解いて照合。値も型も、scripts・テスト・.notices・eslint 設定からも)。宣言済みの lib の中からは `libs` の lib の入口・`peers` の棚・`@lib-config/<自分>`(と `<自分>.ui`)と外部パッケージだけを読む(features・app・hooks・utils・`@/config` は読まない)
 - `lib-self-relative`: 宣言済みの lib の中では自分を `@/lib/<自分>` で読まず相対パスで読む
 
-今は **package.json を持つ lib にだけ**効く。宣言の無い lib は error にせず、閉じたかの検査が数えて出す。本当に要る例外は理由つきの `eslint-disable`。
+lint は **package.json を持つ lib にだけ**効く。宣言の無い lib(package.json の無い `src/lib/<name>`)は `pnpm check lib-package` が不備 `undeclared` で落とす(上流にも fork の自前の lib にも)。本当に要る例外は理由つきの `eslint-disable`。
 
 宣言の無い lib を閉じるときは Usage「lib を閉じる手順」に従う。
 

@@ -16,8 +16,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { realtimeRoomConfig } from "../config";
-import { ROOM_CLOSE_CODES, ROOM_PROTOCOL_VERSION } from "../protocol";
-import type { RoomActionBase, RoomServerMessage, RoomStateBase } from "../protocol";
+import { ROOM_CLOSE_CODES, ROOM_PROTOCOL_VERSION } from "../node";
+import type { RoomActionBase, RoomServerMessage, RoomStateBase } from "../node";
 
 import { roomSessionClient } from "./roomSessionClient";
 

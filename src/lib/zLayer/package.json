@@ -1,7 +1,7 @@
 {
   "exports": {
     ".": "./index.ts",
-    "./config": "./config.ts"
+    "./node": "./node.ts"
   },
   "libs": [
     "defineConfig"

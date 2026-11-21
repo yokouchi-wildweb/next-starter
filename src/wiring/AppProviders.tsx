@@ -17,7 +17,7 @@ import { AuthSessionProvider } from "@/features/core/auth/components/AuthSession
 import { ForkProviders } from "@/app/_providers/ForkProviders";
 import { FormInputsRoot } from "@/wiring/formInputs/FormInputsRoot";
 import { GateProvider, type ClientGateState } from "@/featureGate/client";
-import { HttpDefaultsRoot } from "@/lib/httpDefaults/HttpDefaultsRoot";
+import { HttpDefaultsRoot } from "@/lib/httpDefaults";
 
 export function AppProviders({
   children,

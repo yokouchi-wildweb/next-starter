@@ -1,7 +1,7 @@
 // scripts/structure/lib-package/standalone.mjs
 //
 // 宣言した lib(package.json を持つ lib)の単体用 tsconfig.json を確かめ、その tsconfig で型検査する。
-// - tsconfig.json は lib の中に手で書く(道具は lib の中に書かない)。形 = expectedTsconfig(下)、説明 = README.md
+// - tsconfig.json は lib の中に手で書く(検査は lib の中に書かない。初めの 1 つは宣言の道具 declare.mjs が書ける)。形 = expectedTsconfig(下)、説明 = README.md
 // - paths は package.json の libs・peers を辿った閉包 + 設定の上書きの行(@lib-config/<自分> = config.ts を持つ lib、@lib-config/<自分>.ui = config.ui.ts を持つ lib だけ。無い lib に無いファイルへの行を書かない)。ルートの "@/*" は引き継がない
 //   (extends は paths を丸ごと置き換える)ので、宣言していない lib・棚を読むと解決できずに落ちる
 // - 相対パスで lib の外へ出る import は paths では止まらないので、自分のファイルの import を解いて別に見る
@@ -43,15 +43,17 @@ export function libConfigsOf(root, lib) {
 
 /**
  * 宣言の閉包: 自分の libs を辿り、辿った先の package.json の libs・peers も足す(package.json の無い lib は先へ辿らない)
+ * own = 自分の宣言(既定 = 自分の package.json。宣言の道具 declare.mjs は書く前の案 { libs, peers } を渡す)
  * @returns {{ libs: string[], peers: string[] }}
  */
-export function closureOf(root, lib) {
+export function closureOf(root, lib, own = readLibPackage(root, lib)) {
   const libs = new Set();
   const peers = new Set();
   const queue = [lib];
   const seen = new Set([lib]);
   while (queue.length > 0) {
-    const pkg = readLibPackage(root, queue.shift());
+    const name = queue.shift();
+    const pkg = name === lib ? own : readLibPackage(root, name);
     if (!pkg) continue;
     for (const peer of pkg.peers) peers.add(peer);
     for (const dep of pkg.libs) {
@@ -65,9 +67,9 @@ export function closureOf(root, lib) {
   return { libs: [...libs].sort(), peers: [...peers].sort() };
 }
 
-/** その lib の tsconfig.json に書く paths(鍵 → 値の配列 1 つ)。鍵の名前順 */
-export function expectedPaths(root, lib) {
-  const { libs, peers } = closureOf(root, lib);
+/** その lib の tsconfig.json に書く paths(鍵 → 値の配列 1 つ)。鍵の名前順。own = closureOf と同じ */
+export function expectedPaths(root, lib, own = readLibPackage(root, lib)) {
+  const { libs, peers } = closureOf(root, lib, own);
   const paths = {};
   for (const dep of libs) {
     paths[`@/lib/${dep}`] = [`../${dep}`];
@@ -97,9 +99,9 @@ export function hasJsFiles(root, lib) {
   return walk(path.join(root, LIB_DIR, lib));
 }
 
-/** その lib が持つべき tsconfig.json の中身(JS のファイルを持つ lib は allowJs・checkJs と JS の include を足す) */
-export function expectedTsconfig(root, lib) {
-  const paths = expectedPaths(root, lib);
+/** その lib が持つべき tsconfig.json の中身(JS のファイルを持つ lib は allowJs・checkJs と JS の include を足す)。own = closureOf と同じ */
+export function expectedTsconfig(root, lib, own = readLibPackage(root, lib)) {
+  const paths = expectedPaths(root, lib, own);
   const js = hasJsFiles(root, lib);
   // 行の無い paths・空の compilerOptions は書かない(依存も設定も無い lib)
   const compilerOptions = { ...(js ? STANDALONE_JS_OPTIONS : {}), ...(Object.keys(paths).length > 0 ? { paths } : {}) };

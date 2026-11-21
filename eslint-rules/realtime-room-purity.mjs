@@ -11,10 +11,10 @@
 //
 // 許可する import:
 //   - 相対 import (同一 room/ ディレクトリ内の分割)
-//   - @/lib/realtimeRoom/protocol (共有プロトコル = 唯一の接点)
+//   - @/lib/realtimeRoom/node (共有プロトコル = 唯一の接点)
 //   - import type (型のみ。ランタイムに残らないため任意のパスを許可)
 
-const ALLOWED_PREFIXES = ["@/lib/realtimeRoom/protocol"];
+const ALLOWED_PREFIXES = ["@/lib/realtimeRoom/node"];
 
 const purityRule = {
   meta: {
@@ -24,7 +24,7 @@ const purityRule = {
     },
     messages: {
       forbiddenImport:
-        'room/ 配下は Cloudflare Workers にバンドルされるため "{{source}}" を import できません。許可: 相対 import / @/lib/realtimeRoom/protocol / import type',
+        'room/ 配下は Cloudflare Workers にバンドルされるため "{{source}}" を import できません。許可: 相対 import / @/lib/realtimeRoom/node / import type',
     },
     schema: [],
   },

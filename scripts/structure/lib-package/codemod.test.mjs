@@ -363,16 +363,16 @@ test("名前ごとの割り: 入口から出ていった名前を、同じ lib �
 /** git の見本: <base> で lib st の CONST_A と firestore 側の createCrudService、<head> で CONST_A を lib dom へ移し(同じ名前が lib zz にも)、firestore 側を改名 */
 function makeRenamedRepo() {
   const root = makeRepo({
-    "src/lib/st/package.json": { exports: { ".": "./index.ts", "./fire": "./fire.ts" } },
+    "src/lib/st/package.json": { exports: { ".": "./index.ts", "./server": "./server.ts" } },
     "src/lib/st/index.ts": 'export { createCrudService } from "./drizzle";\nexport { CONST_A } from "./consts";\n',
     "src/lib/st/drizzle.ts": "export function createCrudService() { return 1; }\n",
-    "src/lib/st/fire.ts": "export function createCrudService() { return 2; }\n",
+    "src/lib/st/server.ts": "export function createCrudService() { return 2; }\n",
     "src/lib/st/consts.ts": "export const CONST_A = 1;\n",
     "src/lib/dom/package.json": { exports: { ".": "./index.ts" } },
     "src/lib/dom/index.ts": "export const other = 1;\n",
     "src/lib/zz/package.json": { exports: { ".": "./index.ts" } },
     "src/lib/zz/index.ts": "export const CONST_A = 9;\n",
-    "src/features/b/a.ts": 'import { createCrudService } from "@/lib/st";\nimport { createCrudService as fire } from "@/lib/st/fire";\nimport { CONST_A } from "@/lib/st";\nexport const z = [createCrudService, fire, CONST_A];\n',
+    "src/features/b/a.ts": 'import { createCrudService } from "@/lib/st";\nimport { createCrudService as fire } from "@/lib/st/server";\nimport { CONST_A } from "@/lib/st";\nexport const z = [createCrudService, fire, CONST_A];\n',
   });
   const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.test", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.test" } });
   git("init", "-q");
@@ -382,20 +382,20 @@ function makeRenamedRepo() {
   git("mv", "src/lib/st/consts.ts", "src/lib/dom/consts.ts");
   writeFileSync(path.join(root, "src/lib/st/index.ts"), 'export { createCrudService } from "./drizzle";\n');
   writeFileSync(path.join(root, "src/lib/dom/index.ts"), 'export const other = 1;\nexport { CONST_A } from "./consts";\n');
-  writeFileSync(path.join(root, "src/lib/st/fire.ts"), "export function createFirestoreCrudService() { return 2; }\n");
+  writeFileSync(path.join(root, "src/lib/st/server.ts"), "export function createFirestoreCrudService() { return 2; }\n");
   git("add", "-A");
   git("commit", "-q", "-m", "head");
   clearLibPackageCache();
   return { root, base };
 }
-const FIRE_ROW = [{ segment: "k5", lib: "st", kind: "export", from: "createCrudService", to: "createFirestoreCrudService", origin: "src/lib/st/fire.ts" }];
+const FIRE_ROW = [{ segment: "k5", lib: "st", kind: "export", from: "createCrudService", to: "createFirestoreCrudService", origin: "src/lib/st/server.ts" }];
 
 test("--base: 出ていった名前は <base> の実体を改名で辿って入口を決め(同じ名前の別物と分ける)、origin の export の行は同じ名前の別物を分けて改名する", () => {
   const { root, base } = makeRenamedRepo();
   const plan = planCodemod(root, { base, table: FIRE_ROW });
   assert.deepEqual(
     plan.changes.map((c) => `${c.line} ${c.text}`),
-    ['2 import { createFirestoreCrudService as fire } from "@/lib/st/fire";', '3 import { CONST_A } from "@/lib/dom";'],
+    ['2 import { createFirestoreCrudService as fire } from "@/lib/st/server";', '3 import { CONST_A } from "@/lib/dom";'],
     "drizzle 側の createCrudService(1 行目)は触らない",
   );
   assert.deepEqual(plan.stops, []);

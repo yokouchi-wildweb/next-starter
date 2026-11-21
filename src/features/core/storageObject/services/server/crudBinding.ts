@@ -21,7 +21,7 @@
 //   旧行の値を新しい行に入れたら 400（restore で同じファイルを 2 行が指さないため）
 // actor は routeFactory が敷く AuditContext の actorId（runAsSystem の中では null）。
 
-import { getAuditContext } from "@/lib/audit";
+import { getAuditContext } from "@/lib/audit/server";
 import type { CrudStorageBinding, CrudStorageCleanup, CrudStorageField } from "@/lib/crud/server";
 import { DomainError } from "@/lib/errors";
 import { isStorageRef } from "@/lib/storage";

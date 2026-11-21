@@ -7,13 +7,13 @@
 import "server-only";
 
 import { DomainError } from "@/lib/errors";
-import { ROOM_PROTOCOL_VERSION } from "../protocol";
+import { ROOM_PROTOCOL_VERSION } from "../node";
 import type {
   RoomActionBase,
   RoomDispatchResponse,
   RoomStateBase,
   RoomStateResponse,
-} from "../protocol";
+} from "../node";
 
 import { getRealtimeRoomEnv } from "./env";
 import { signRoomServerToken } from "./tokens";

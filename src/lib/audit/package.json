@@ -1,7 +1,7 @@
 {
   "exports": {
     ".": "./index.ts",
-    "./types": "./types.ts"
+    "./server": "./server.ts"
   },
   "libs": []
 }

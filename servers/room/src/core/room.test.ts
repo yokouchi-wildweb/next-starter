@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { SignJWT } from "jose";
 
 // protocol の入口は下の before で定数の値だけの物に差し替える(型は消えるので値だけでよい。Worker のビルドは wrangler が束ねるので関係しない)
-import { ROOM_CLOSE_CODES, ROOM_PROTOCOL_VERSION, ROOM_TOKEN_KINDS, ROOM_TOKEN_QUERY_PARAM } from "@/lib/realtimeRoom/protocol";
+import { ROOM_CLOSE_CODES, ROOM_PROTOCOL_VERSION, ROOM_TOKEN_KINDS, ROOM_TOKEN_QUERY_PARAM } from "@/lib/realtimeRoom/node";
 
 import { isSocketExpired } from "./socketExpiry";
 
@@ -50,7 +50,7 @@ const g = globalThis as Record<string, unknown>;
 const realResponse = g.Response;
 let RoomDurableObject: typeof import("./room").RoomDurableObject;
 before(async () => {
-  mock.module("@/lib/realtimeRoom/protocol", { namedExports: { ...protocolConstants } });
+  mock.module("@/lib/realtimeRoom/node", { namedExports: { ...protocolConstants } });
   g.Response = FakeResponse;
   g.WebSocketPair = class {
     0 = new FakeSocket();

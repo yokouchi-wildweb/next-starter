@@ -1,9 +1,9 @@
 {
   "exports": {
     ".": "./index.ts",
-    "./protocol": "./protocol/index.ts",
     "./client": "./client/index.ts",
-    "./server": "./server/index.ts"
+    "./server": "./server/index.ts",
+    "./node": "./node.ts"
   },
   "libs": ["defineConfig", "errors"]
 }

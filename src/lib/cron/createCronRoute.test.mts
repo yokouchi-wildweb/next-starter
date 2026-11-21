@@ -4,7 +4,7 @@ import { after, mock, test } from "node:test";
 import assert from "node:assert/strict";
 
 import { setAppEnv } from "@/lib/appEnv";
-import { getAuditContext } from "@/lib/audit";
+import { getAuditContext } from "@/lib/audit/server";
 
 import nextServer from "next/server";
 

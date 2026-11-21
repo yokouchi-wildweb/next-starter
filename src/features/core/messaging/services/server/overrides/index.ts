@@ -5,7 +5,7 @@
 
 import { eq } from "drizzle-orm";
 
-import { getAuditContext } from "@/lib/audit";
+import { getAuditContext } from "@/lib/audit/server";
 import { db } from "@/lib/drizzle";
 import { messageRegistry } from "@/registry/messageRegistry";
 

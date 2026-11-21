@@ -7,7 +7,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { ENTRY_EXTENSIONS, EXT_RE, entryPathOf } from "./entryPath.mjs";
-import { ALLOWED_KEYS, LIB_DIR, PEER_DIRS, listLibsFrom } from "./index.mjs";
+import { ALLOWED_KEYS, ENTRY_NAMES, LIB_DIR, PEER_DIRS, listLibsFrom } from "./index.mjs";
 
 /**
  * @typedef {import("./index.mjs").LibPackage} LibPackage
@@ -76,6 +76,8 @@ function checkExport(root, lib, key, target) {
   if (target.includes("*")) out.push(problem(lib, "pattern", `exports "${key}" の値 "${target}" にパターン * は使えません`));
   if (key !== "." && !/^\.\/[^.]/.test(key)) {
     out.push(problem(lib, "keyForm", `exports の鍵 "${key}" は "." か "./<パス>" で書きます`));
+  } else if (!key.includes("*") && !ENTRY_NAMES.includes(key)) {
+    out.push(problem(lib, "entryName", `exports の鍵 "${key}" は入口の名前ではありません(使えるのは ${ENTRY_NAMES.join(" / ")}。中身の側で行き先を決めて畳みます: src/lib/README.md 手順 4)`));
   }
   if (!target.startsWith("./") || target.split("/").includes("..")) {
     out.push(problem(lib, "targetOutside", `exports "${key}" の値 "${target}" は lib の中の "./<パス>" で書きます`));

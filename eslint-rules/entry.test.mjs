@@ -24,13 +24,13 @@ function write(rel, content) {
 }
 
 write("tsconfig.json", { compilerOptions: { paths: { "@/*": ["./src/*"], "@/features/wallet/*": ["./src/features/core/wallet/*"] } } });
-// toastlike: 宣言済み(入口 . と ./useToast)。cn を読み、棚 components を peer に持つ
+// toastlike: 宣言済み(入口 . と ./client)。cn を読み、棚 components を peer に持つ
 write("src/lib/toastlike/package.json", {
-  exports: { ".": "./index.ts", "./useToast": "./useToast.ts" },
+  exports: { ".": "./index.ts", "./client": "./client.ts" },
   libs: ["cn", "plain"],
   peers: ["components"],
 });
-for (const file of ["index.ts", "useToast.ts", "inner/store.ts"]) write(`src/lib/toastlike/${file}`, "export {};\n");
+for (const file of ["index.ts", "client.ts", "inner/store.ts"]) write(`src/lib/toastlike/${file}`, "export {};\n");
 // cn: 宣言済み(入口 . だけ)
 write("src/lib/cn/package.json", { exports: { ".": "./index.ts" } });
 for (const file of ["index.ts", "groups.ts"]) write(`src/lib/cn/${file}`, "export {};\n");
@@ -53,11 +53,11 @@ test("entry/only-entries(lib): 外から宣言済みの lib は exports の入�
   ruleTester.run("entry/only-entries", entryPlugin.rules["only-entries"], {
     valid: [
       { code: `import { useToast } from "@/lib/toastlike";`, filename: outside, options },
-      { code: `import { useToast } from "@/lib/toastlike/useToast";`, filename: outside, options },
+      { code: `import { useToast } from "@/lib/toastlike/client";`, filename: outside, options },
       { code: `import { x } from "@/lib/toastlike/index";`, filename: outside, options },
-      { code: `import { x } from "../../../lib/toastlike/useToast.ts";`, filename: outside, options },
+      { code: `import { x } from "../../../lib/toastlike/client.ts";`, filename: outside, options },
       { code: `import { x } from "src/lib/toastlike";`, filename: outside, options },
-      { code: `const m = await import("@/lib/toastlike/useToast");`, filename: outside, options },
+      { code: `const m = await import("@/lib/toastlike/client");`, filename: outside, options },
       { code: `import { x } from "@/lib/plain/deep";`, filename: outside, options, name: "宣言の無い lib の中は見ない(L1.21)" },
       { code: `import { x } from "@/lib/toastlike";`, filename: at("scripts/tool/run.mjs"), options },
       { code: `import { x } from "react"; import fs from "node:fs";`, filename: outside, options },
@@ -97,7 +97,7 @@ test("entry/only-entries(lib): 宣言済みの lib は宣言した lib の入口
       { code: `import { Button } from "@/components/Button/Button";`, filename: inToast, options },
       { code: `import config from "@lib-config/toastlike";`, filename: inToast, options },
       { code: `import ui from "@lib-config/toastlike.ui";`, filename: inToast, options, name: "描画専用の上書き(config.ui.ts の口)も自分の設定" },
-      { code: `import { x } from "../useToast"; import { y } from "./other";`, filename: inToast, options },
+      { code: `import { x } from "../client"; import { y } from "./other";`, filename: inToast, options },
       { code: `import { create } from "zustand";`, filename: inToast, options },
       { code: `import { x } from "@/hooks/useIsClient";`, filename: inPlain, options, name: "宣言の無い lib の読みは見ない(L1.21)" },
     ],
@@ -121,13 +121,13 @@ test("entry/only-entries(lib): 宣言済みの lib は宣言した lib の入口
 test("rule lib-self-relative: 宣言済みの lib の中で自分を別名で読むと error、相対と宣言の無い lib は通す", () => {
   ruleTester.run("lib-self-relative", plugin.rules["lib-self-relative"], {
     valid: [
-      { code: `import { x } from "../useToast";`, filename: inToast, options },
+      { code: `import { x } from "../client";`, filename: inToast, options },
       { code: `import { cn } from "@/lib/cn";`, filename: inToast, options },
       { code: `import { x } from "@/lib/plain/deep";`, filename: inPlain, options, name: "宣言の無い lib は見ない(L1.21)" },
       { code: `import { x } from "@/lib/toastlike";`, filename: outside, options },
     ],
     invalid: [
-      { code: `import { x } from "@/lib/toastlike/useToast";`, filename: inToast, options, errors: [{ messageId: "selfAlias" }] },
+      { code: `import { x } from "@/lib/toastlike/client";`, filename: inToast, options, errors: [{ messageId: "selfAlias" }] },
       { code: `import { x } from "@/lib/toastlike";`, filename: inToast, options, errors: [{ messageId: "selfAlias" }] },
       { code: `import type { X } from "src/lib/toastlike/index";`, filename: inToast, options, errors: [{ messageId: "selfAlias" }] },
       { code: `const m = await import("@/lib/toastlike/inner/store");`, filename: inToast, options, errors: [{ messageId: "selfAlias" }] },

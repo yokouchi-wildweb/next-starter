@@ -15,7 +15,7 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
-import { getAuditContext } from "@/lib/audit";
+import { getAuditContext } from "@/lib/audit/server";
 import { fingerprintChallengeConfig } from "@/features/fingerprintChallenge/config";
 
 import {

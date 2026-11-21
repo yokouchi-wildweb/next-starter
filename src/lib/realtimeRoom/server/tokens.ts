@@ -10,7 +10,7 @@ import { SignJWT, jwtVerify } from "jose";
 
 import { realtimeRoomConfig } from "../config";
 import { DomainError } from "@/lib/errors";
-import { ROOM_TOKEN_KINDS } from "../protocol";
+import { ROOM_TOKEN_KINDS } from "../node";
 
 import { getRealtimeRoomEnv } from "./env";
 

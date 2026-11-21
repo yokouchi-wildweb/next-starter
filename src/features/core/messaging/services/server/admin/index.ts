@@ -7,7 +7,7 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 
 import { business } from "@/business";
 import { gate } from "@/featureGate";
-import { getAuditContext } from "@/lib/audit";
+import { getAuditContext } from "@/lib/audit/server";
 import { db } from "@/lib/drizzle";
 
 import { auditLogger } from "@/features/core/auditLog/services/server";

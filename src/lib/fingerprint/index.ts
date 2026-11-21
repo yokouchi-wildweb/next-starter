@@ -7,10 +7,9 @@
 // collect 系はブラウザ専用 API を使うため client コンポーネント / フックから呼ぶこと
 // （SSR 文脈では全成分 null の骨格が返る）。
 //
-// NOTE: このバレルは "use client" モジュール (useBehavioralCapture) を含むため、
-// server コードからは import しないこと（client モジュールの値 export は RSC で
-// undefined になる）。server で hash 系が必要な場合は "@/lib/fingerprint/hash" を、
-// 型のみ必要な場合は "@/lib/fingerprint/types" を直接 import する。
+// 入口はこの 1 つ。server のコードも hash 系(stableStringify など)と型をここから読む。
+// useBehavioralCapture は "use client" のファイルなので、server の側では client の参照になり
+// (呼べない)、他の名前(hash・型・定数)はそのまま使える。
 
 export {
   collectDeviceSignals,

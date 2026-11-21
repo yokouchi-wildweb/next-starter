@@ -6,7 +6,7 @@ import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 
 import { pairedDeviceConfig } from "@/features/pairedDevice/config";
 import { auditLogger } from "@/features/core/auditLog/services/server";
-import { getAuditContext } from "@/lib/audit";
+import { getAuditContext } from "@/lib/audit/server";
 import { PAIRED_DEVICE_AUDIT_TARGET } from "@/features/pairedDevice/constants";
 import { PairedDeviceTable } from "@/features/pairedDevice/entities/drizzle";
 import type { SessionDevice } from "@/features/pairedDevice/entities/model";

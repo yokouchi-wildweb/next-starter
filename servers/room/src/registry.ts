@@ -12,7 +12,7 @@
 //   import { raidRoomDefinition } from "@/features/gachaRaid/room/definition";
 //   export const roomRegistry = { raid: raidRoomDefinition, ... };
 
-import type { AnyRoomDefinition, RoomDefinition } from "@/lib/realtimeRoom/protocol";
+import type { AnyRoomDefinition, RoomDefinition } from "@/lib/realtimeRoom/node";
 
 // --- fork entries start (upstream never edits inside) ---
 // --- fork entries end ---

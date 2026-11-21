@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { getAuditContext, runWithAuditContext } from "@/lib/audit";
+import { getAuditContext, runWithAuditContext } from "@/lib/audit/server";
 import { isDomainError, toDomainErrorBody } from "@/lib/errors";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";
 

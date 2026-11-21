@@ -7,7 +7,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 import { PAGE_LAYER_NAMES } from "@/lib/zLayer";
-import { zLayerConfig } from "@/lib/zLayer/config";
+import { zLayerConfig } from "@/lib/zLayer/node";
 
 import { assignOwnLayers, parseUpstreamLayers, renderOwnLayerCss, renderOwnLayersTs } from "./zLayerOwn.mjs";
 

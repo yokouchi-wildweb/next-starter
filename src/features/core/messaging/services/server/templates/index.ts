@@ -4,7 +4,7 @@
 
 import { eq } from "drizzle-orm";
 
-import { getAuditContext } from "@/lib/audit";
+import { getAuditContext } from "@/lib/audit/server";
 import { db } from "@/lib/drizzle";
 
 import { auditLogger } from "@/features/core/auditLog/services/server";

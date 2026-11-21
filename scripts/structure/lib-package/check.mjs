@@ -4,11 +4,13 @@
 //   1. tsconfig.json を package.json の宣言と比べる(無い・食い違う → 直す行を出す。この lib の型検査はしない)
 //   2. その tsconfig.json で型検査する(宣言の外の lib・棚を読む → 落ちる)
 //   3. sideEffects の宣言と副作用を照らす
-//   4. config.ts があるなら上書き src/config/lib/<名前>.config.ts があるか
-//   5. 自前の合成(defineXxxConfig)が残っていないか
-// package.json の形の問題(src/lib/libPackage の checkLibPackage)がある lib は 1〜5 を飛ばし、閉じていない不備 1 つ(shape)で落とす
-// (形の中身は lint と形の検査が見る。宣言した lib が全部閉じているかの確かめはこの門だけ: テストは今の repo を見ない)。
-// 宣言の無い lib は数えるだけ(落とさない)。外から中を読む import は --list / --json で数えて見せるだけ(落とすのは pnpm lint の entry/only-entries)。
+//   4. 入口の中身: "." の先頭に "use client" が無いか、"./node" から React・Next を辿らないか(entries.mjs)
+//   5. config.ts があるなら上書き src/config/lib/<名前>.config.ts があるか
+//   6. 自前の合成(defineXxxConfig)が残っていないか
+// package.json の形の問題(src/lib/libPackage の checkLibPackage。入口の名前 = exports の鍵が . ./server ./client ./node だけ、も
+// ここ: entryName)がある lib は 1〜6 を飛ばし、閉じていない不備 1 つ(shape、形の問題を並べる)で落とす
+// (宣言した lib が全部閉じているかの確かめはこの門だけ: テストは今の repo を見ない)。
+// 宣言の無い lib(package.json の無い src/lib/<名前>)は不備 undeclared で落とす(K6)。外から中を読む import は --list / --json で数えて見せるだけ(落とすのは pnpm lint の entry/only-entries)。
 //
 //   pnpm check lib-package                 不備の行 + 1 行のまとめ
 //   pnpm check lib-package -- --list       lib ごとの表(外から中を読む import の数も)
@@ -17,14 +19,15 @@
 //   pnpm check lib-package -- codemod [引数]  閉じた lib の中を読む import を入口へ書き換える(codemod.mjs。-- codemod --help)
 //   pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]  notice の moved: と imports: の表(moved.mjs)
 //   pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]  JS の lib の暗黙の any に推した型を JSDoc で書く(jsdoc.mjs)
+//   pnpm check lib-package -- declare [<名前>]... [--apply] [--json]  自分の節の宣言の無い lib に package.json と tsconfig.json を書く(declare.mjs)
 //   pnpm check lib-package -- help          使い方
-// exit 0 = 宣言した lib に不備 0(package.json を持つ lib 0 も含む)/ 1 = 不備あり / 2 = 引数の誤り(動きの exit はその動きの物)
+// exit 0 = 不備 0(宣言の無い lib 0 を含む)/ 1 = 不備あり / 2 = 引数の誤り(動きの exit はその動きの物)
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { listDeclaredLibs, listLibs, readLibPackage } from "../../../src/lib/libPackage/node.mjs";
-import { closedLibProblems, libStates } from "./closed.mjs";
+import { closedLibProblems, libStates, undeclaredProblem } from "./closed.mjs";
 
 /** @returns {{ checked: string[], skipped: string[], undeclared: string[], problems: { lib: string, code: string, message: string }[] }} */
 export function checkLibs(root) {
@@ -33,12 +36,13 @@ export function checkLibs(root) {
   const problems = [];
   const declared = listDeclaredLibs(root);
   for (const lib of declared) {
-    if (readLibPackage(root, lib).problems.length > 0) {
+    const shape = readLibPackage(root, lib).problems;
+    if (shape.length > 0) {
       skipped.push(lib);
       problems.push({
         lib,
         code: "shape",
-        message: `${lib}: 宣言した lib が閉じていません: package.json の形に問題がある(pnpm lint / src/lib/libPackage の形の検査で直す)`,
+        message: `${lib}: 宣言した lib が閉じていません: package.json の形に問題がある(${shape.map((p) => `${p.code}: ${p.message}`).join(" | ")})`,
       });
       continue;
     }
@@ -46,6 +50,7 @@ export function checkLibs(root) {
     problems.push(...closedLibProblems(root, lib));
   }
   const undeclared = listLibs(root).filter((lib) => !declared.includes(lib));
+  problems.push(...undeclared.map(undeclaredProblem));
   return { checked, skipped, undeclared, problems };
 }
 
@@ -105,6 +110,7 @@ export const USAGE = [
   "pnpm check lib-package -- codemod [引数]        閉じた lib の中を読む import を入口へ書き換える(既定 dry-run。-- codemod --help)",
   "pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]  notice の moved:(ファイル)と imports:(指定子)の表",
   "pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]  JS の lib の暗黙の any に推した型を JSDoc で書く(既定 dry-run、{any} の所を一覧に出す)",
+  "pnpm check lib-package -- declare [<名前>]... [--apply] [--json]  自分の節(src/lib/CATALOG.md)の宣言の無い lib に package.json と tsconfig.json を書く(既定 dry-run、決めきれない所を一覧に出す。祖先の lib は拒む)",
 ].join("\n");
 
 // 終了コードを返す(process.exit で抜けると、パイプ先へ書き切る前に出力が切れる)
@@ -125,6 +131,10 @@ async function main() {
     const { runJsdoc } = await import("./jsdoc.mjs");
     return runJsdoc(root, args.slice(1));
   }
+  if (action === "declare") {
+    const { runDeclare } = await import("./declare.mjs");
+    return runDeclare(root, args.slice(1));
+  }
   if (action === "moved") {
     const { runMoved } = await import("./moved.mjs");
     return runMoved(root, args.slice(1));
@@ -137,12 +147,12 @@ async function main() {
   if (args.includes("--json") || args.includes("--list")) {
     const report = libReport(root);
     console.log(args.includes("--json") ? JSON.stringify(report, null, 2) : formatTable(report));
-    return report.summary.problems > 0 || report.summary.skipped > 0 ? 1 : 0;
+    return report.summary.problems > 0 || report.summary.skipped > 0 ? 1 : 0; // undeclared の行も不備 1 つを持つ
   }
   const { checked, skipped, undeclared, problems } = checkLibs(root);
   for (const p of problems) console.log(`lib-package: ${p.message}`);
   console.log(
-    `lib-package: package.json を持つ lib ${checked.length + skipped.length}(検査 ${checked.length}・飛ばした ${skipped.length})・問題 ${problems.length}・宣言のない lib ${undeclared.length}(数えるだけ。一覧: pnpm check lib-package -- --list)`,
+    `lib-package: package.json を持つ lib ${checked.length + skipped.length}(検査 ${checked.length}・飛ばした ${skipped.length})・問題 ${problems.length}・宣言のない lib ${undeclared.length}(不備に入る。一覧: pnpm check lib-package -- --list)`,
   );
   return problems.length > 0 ? 1 : 0;
 }

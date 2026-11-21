@@ -3,7 +3,7 @@
 ## Overview
 
 - 重なりの層の名の TS の側の 1 か所。値(z-index の数)と utility class(`.<名>-layer`)は `src/styles/core/z-layer.css` が持ち、ここは名の一覧と class の引き方だけを持つ
-- 閉じた lib(入口 `@/lib/zLayer`・`@/lib/zLayer/config`、使う lib は defineConfig)
+- 閉じた lib(入口 `@/lib/zLayer`・`@/lib/zLayer/node`(合成済みの設定 `zLayerConfig`。pnpm generate styles が読む)、使う lib は defineConfig)
 - 決まり(class の引き方・選べる層・自分の層の使い道・外押し・名と CSS の同時の変更)は札 `.claude/rules/items/lib/zLayer.md`。数を書かない・浮く物より上に足さない・上流の値を書き換えない・isolate は core `.claude/rules/core/style.md` stacking
 
 ## Usage
