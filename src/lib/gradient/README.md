@@ -40,6 +40,14 @@ const css = resolveColorValue(value, { resolveDefault: () => "var(--color-primar
 
 ## API
 
+入口は `@/lib/gradient` の 1 つ(package.json の exports "."。中のファイルは読まない)。React と Next を読まないので、Next の外の生成(`scripts/structure/styles/generate-gradient-css.ts`)も同じ入口を読む。
+
+### 設定
+
+- `gradientConfig` — 合成済みの設定(`customGradients`。上書き `src/config/lib/gradient.config.ts`、合成 `@/lib/defineConfig`)
+- `GradientOverride` / `GradientConfig` — 上書きのファイルの型 / 設定の型
+- `BASE_GRADIENTS` — 上流の既定のトークン(登録形。生成が `src/styles/core/gradient.css` を作る元)
+
 ### トークンレジストリ
 
 - `listGradients(): GradientToken[]` — 確定形(`cssValue` 付き)で全件列挙。ピッカーの選択肢など

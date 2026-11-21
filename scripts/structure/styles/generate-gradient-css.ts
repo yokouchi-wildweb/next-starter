@@ -16,10 +16,7 @@
 import * as fs from "fs";
 import * as path from "path";
 
-import { DEFAULT_GRADIENT_ANGLE } from "@/lib/gradient/build";
-import { BASE_GRADIENTS } from "@/lib/gradient/tokens.base";
-import type { GradientTokenInput } from "@/lib/gradient/types";
-import { gradientConfig } from "@/lib/gradient/config";
+import { BASE_GRADIENTS, DEFAULT_GRADIENT_ANGLE, gradientConfig, type GradientTokenInput } from "@/lib/gradient";
 
 const { customGradients } = gradientConfig;
 
