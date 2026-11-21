@@ -3,7 +3,7 @@
 ## Overview
 
 - `pnpm generate domain` が各ドメインの `features/<domain>/hooks/` に生成するフックの使い方。mutation の並列安全性の契約と独自 mutation フックの作り方は [`../README.md`「汎用フック（hooks/）の mutation 契約」](../README.md#汎用フックhooksの-mutation-契約)
-- 例は `sample` ドメイン（`src/features/sample/hooks/`）。`Sample` / `samples` は対象ドメインの名前に読み替える
+- 例のコードの `<domain>` / `<Domain>` / `<domains>` は対象ドメインの名前（camelCase / PascalCase / 複数形）に読み替える
 - 使う時の決まりは札 .claude/rules/items/lib/crud.md にある
 
 - `src/lib/crud/hooks/use*Domain.ts` … ドメイン非依存の本体（SWR / `useDomainMutation`）
@@ -32,16 +32,16 @@
 
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
-import { useSearchSample } from "@/features/sample/hooks/useSearchSample";
+import { useSearch<Domain> } from "@/features/<domain>/hooks/useSearch<Domain>";
 import { err } from "@/lib/errors";
 
-export function SampleSearchResult({ keyword }: { keyword: string }) {
-  const { data, total, isLoading, error } = useSearchSample({
+export function <Domain>SearchResult({ keyword }: { keyword: string }) {
+  const { data, total, isLoading, error } = useSearch<Domain>({
     page: 1,
     limit: 20,
     searchQuery: keyword,
     searchRank: true,
-    where: { field: "select", op: "eq", value: "apple" },
+    where: { field: "status", op: "eq", value: "published" },
     orderBy: [["updatedAt", "DESC"]],
     withRelations: true,
     enabled: keyword.length > 0,
@@ -53,8 +53,8 @@ export function SampleSearchResult({ keyword }: { keyword: string }) {
   return (
     <Stack gap="xs">
       <Para tone="muted">{total} 件</Para>
-      {data.map((sample) => (
-        <Para key={sample.id}>{sample.name}</Para>
+      {data.map((item) => (
+        <Para key={item.id}>{item.name}</Para>
       ))}
     </Stack>
   );
@@ -67,21 +67,21 @@ Firestore ドメインでは `where` の `or`、複数列の `orderBy`、`relati
 
 Component から client service を直接呼ばない（lint `client-service-boundary/no-direct-import`）。`useInfiniteScrollQuery` は派生フックの中で呼び、画面は `InfiniteScrollList` に戻り値を渡す。
 
+例: 自分の帰属報酬の履歴 `useMyAttributionRewards`（`src/features/core/couponAttributionReward/hooks/useMyAttributionRewards.ts`）。
+
 ```ts
-// src/features/sample/hooks/useSampleFeed.ts（派生フック）
+// 派生フック（features/<domain>/hooks/）
 "use client";
 
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
-import { sampleClient } from "../services/client/sampleClient";
-import type { Sample } from "../entities";
+import { fetchMyAttributionRewards } from "@/features/core/couponAttributionReward/services/client/couponAttributionRewardClient";
+import type { CouponAttributionRewardForRecipient } from "@/features/core/couponAttributionReward/entities/model";
 
-export function useSampleFeed(keyword: string, initialData?: { items: Sample[]; total: number }) {
-  return useInfiniteScrollQuery<Sample, { searchQuery: string }>({
-    fetcher: (params) => sampleClient.search!(params),
-    params: { searchQuery: keyword },
-    limit: 30,
-    deps: [keyword], // 条件が変わったら 1 ページ目から取り直す
-    initialData, // loader で取った 1 ページ目（任意。limit を揃える）
+export function useMyAttributionRewards(options: { limit?: number; enabled?: boolean } = {}) {
+  return useInfiniteScrollQuery<CouponAttributionRewardForRecipient, Record<string, never>>({
+    fetcher: ({ page, limit }) => fetchMyAttributionRewards({ page, limit }),
+    limit: options.limit ?? 20,
+    enabled: options.enabled,
   });
 }
 ```
@@ -89,13 +89,11 @@ export function useSampleFeed(keyword: string, initialData?: { items: Sample[]; 
 ```tsx
 "use client";
 
-import { Stack } from "@/components/Layout/Stack";
-import { Para } from "@/components/TextBlocks/Para";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
-import { useSampleFeed } from "@/features/sample/hooks/useSampleFeed";
+import { useMyAttributionRewards } from "@/features/core/couponAttributionReward/hooks/useMyAttributionRewards";
 
-export function SampleFeed({ keyword }: { keyword: string }) {
-  const { items, isInitialLoading, isFetchingMore, hasMore, error, sentinelRef } = useSampleFeed(keyword);
+export function MyRewardHistory() {
+  const { items, isInitialLoading, isFetchingMore, hasMore, error, sentinelRef } = useMyAttributionRewards();
 
   return (
     <InfiniteScrollList
@@ -106,18 +104,13 @@ export function SampleFeed({ keyword }: { keyword: string }) {
       error={error}
       sentinelRef={sentinelRef}
     >
-      {(samples) => (
-        <Stack gap="xs">
-          {samples.map((sample) => (
-            <Para key={sample.id}>{sample.name}</Para>
-          ))}
-        </Stack>
-      )}
+      {(rewards) => /* 1 行ずつ描く */ null}
     </InfiniteScrollList>
   );
 }
 ```
 
+- 条件で絞る一覧は `params` と `deps` を渡す（`params: { searchQuery: keyword }`・`deps: [keyword]` で、条件が変わったら 1 ページ目から取り直す）
 - `fetcher` が外部値に依存するなら、その値も `deps` に入れる（`fetcher` の identity 変化では取り直さない）
 - `initialData` の制約・戻り値の詳細は `src/hooks/useInfiniteScrollQuery.ts` の JSDoc、表示の出し分けは [`src/components/Widgets/InfiniteScrollList/README.md`](../../../components/Widgets/InfiniteScrollList/README.md)
 
@@ -126,23 +119,23 @@ export function SampleFeed({ keyword }: { keyword: string }) {
 初回描画に要るデータは loader で取り、セクションコンテナの `initial<Name>` prop → hook の `fallbackData` で渡す（.claude/rules/core/components.md data_seam）。
 
 - `use<Domain>List(config)` は SWR の config をそのまま受け取る
-- `use<Domain>(id)` / `useSearch<Domain>` / `useCount<Domain>` は config を受け取らない → 派生フックで `@/lib/crud` の `useDomain(key, fetcher, config)` を包む。キーは生成フックと同じ（`sample:${id}`）にしてキャッシュを共有する
+- `use<Domain>(id)` / `useSearch<Domain>` / `useCount<Domain>` は config を受け取らない → 派生フックで `@/lib/crud` の `useDomain(key, fetcher, config)` を包む。キーは生成フックと同じ（`<domain>:${id}`）にしてキャッシュを共有する
 
 ```ts
-// src/features/sample/hooks/useSampleDetail.ts（派生フック）
+// src/features/<domain>/hooks/use<Domain>Detail.ts（派生フック）
 "use client";
 
 import { useSWRConfig } from "swr";
 import { useDomain } from "@/lib/crud";
-import { sampleClient } from "../services/client/sampleClient";
-import type { Sample } from "../entities";
+import { <domain>Client } from "../services/client/<domain>Client";
+import type { <Domain> } from "../entities";
 
-export function useSampleDetail(id: string | null, { fallbackData }: { fallbackData?: Sample } = {}) {
+export function use<Domain>Detail(id: string | null, { fallbackData }: { fallbackData?: <Domain> } = {}) {
   const { cache } = useSWRConfig();
-  const key = id ? `sample:${id}` : null;
+  const key = id ? `<domain>:${id}` : null;
   const hasCachedData = key !== null && cache.get(key)?.data !== undefined;
 
-  return useDomain<Sample>(key, () => sampleClient.get(id!), {
+  return useDomain<<Domain>>(key, () => <domain>Client.get(id!), {
     fallbackData,
     // キャッシュは fallbackData より優先されるので、再マウント時は取り直す
     revalidateOnMount: fallbackData === undefined || hasCachedData,
@@ -150,7 +143,7 @@ export function useSampleDetail(id: string | null, { fallbackData }: { fallbackD
 }
 ```
 
-無限スクロールの 1 ページ目は `useInfiniteScrollQuery` の `initialData` で渡す（上の `useSampleFeed`）。
+無限スクロールの 1 ページ目は、派生フックが受けた `initialData` を `useInfiniteScrollQuery` に渡す（loader で取った 1 ページ目。`limit` を揃える）。
 
 ### 更新系（mutation）
 
@@ -163,20 +156,20 @@ export function useSampleDetail(id: string | null, { fallbackData }: { fallbackD
 "use client";
 
 import { Button } from "@/components/Button/Button";
-import { useUpdateSample } from "@/features/sample/hooks/useUpdateSample";
+import { useUpdate<Domain> } from "@/features/<domain>/hooks/useUpdate<Domain>";
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
-import type { Sample } from "@/features/sample/entities";
+import type { <Domain> } from "@/features/<domain>/entities";
 
-type Props = { id: string; onUpdated?: (sample: Sample) => void };
+type Props = { id: string; onUpdated?: (item: <Domain>) => void };
 
-export function SamplePublishButton({ id, onUpdated }: Props) {
+export function <Domain>PublishButton({ id, onUpdated }: Props) {
   const { showToast } = useToast();
-  const { trigger, isMutating } = useUpdateSample();
+  const { trigger, isMutating } = useUpdate<Domain>();
 
   const handleClick = async () => {
     try {
-      const updated = await trigger({ id, data: { switch: true } });
+      const updated = await trigger({ id, data: { published: true } });
       showToast("更新しました", "success");
       onUpdated?.(updated);
     } catch (error) {
@@ -215,15 +208,15 @@ export function SamplePublishButton({ id, onUpdated }: Props) {
 
 | キー | 該当フック | 自動で再検証 |
 |---|---|---|
-| `"samples"`（完全一致） | `use<Domain>List` | される |
-| `["samples/...", params]`（先頭要素が `samples/` で始まる配列） | `useSearch<Domain>` / `useCount<Domain>` / `useSearchForSorting<Domain>` | される |
-| `"sample:<id>"` | `use<Domain>(id)` | **されない**。必要なら `mutate()` を呼ぶか、trigger の結果を `mutate(updated, { revalidate: false })` で入れる |
+| `"<domains>"`（完全一致） | `use<Domain>List` | される |
+| `["<domains>/...", params]`（先頭要素が `<domains>/` で始まる配列） | `useSearch<Domain>` / `useCount<Domain>` / `useSearchForSorting<Domain>` | される |
+| `"<domain>:<id>"` | `use<Domain>(id)` | **されない**。必要なら `mutate()` を呼ぶか、trigger の結果を `mutate(updated, { revalidate: false })` で入れる |
 | `useInfiniteScrollQuery` の一覧 | 派生フック | **されない**（SWR 外）。下記 |
 
 無限スクロール一覧は、trigger の結果（更新後レコード・処理済み ID）で `updateItems` / `removeItems` を呼んで即時反映する。結果から反映内容を作れないときだけ `revalidate()`。`reset()` は一覧が消えるので最新化に使わない（.claude/rules/core/components.md action_optimistic、[`InfiniteScrollList/README.md`「アクション後の一覧の反映」](../../../components/Widgets/InfiniteScrollList/README.md#アクション後の一覧の反映)）。
 
 ```ts
-const { items, updateItems, removeItems } = useSampleFeed(keyword);
+const { items, updateItems, removeItems } = use<Domain>Feed(keyword); // useInfiniteScrollQuery を包んだ派生フック
 
 const updated = await update.trigger({ id, data });
 updateItems((s) => s.id === updated.id, () => updated);

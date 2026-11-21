@@ -12,6 +12,7 @@ import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import type { DomainDisplay } from "@/lib/domain";
 import { createApiClient } from "../../client";
+import { formatMessage } from "./bulkMessage";
 import { useBulkDeleteByIdsDomain } from "../../hooks";
 
 export type BulkDeleteButtonProps = ButtonStyleProps & {
@@ -53,13 +54,6 @@ export type BulkDeleteButtonProps = ButtonStyleProps & {
   onSuccess?: () => void;
   /** ボタンを無効化するかどうか @default false */
   disabled?: boolean;
-};
-
-/**
- * メッセージ内の {count} プレースホルダーを件数に置換
- */
-const formatMessage = (message: string, count: number): string => {
-  return message.replace(/\{count\}/g, String(count));
 };
 
 export function BulkDeleteButton({

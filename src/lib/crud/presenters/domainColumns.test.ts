@@ -18,9 +18,6 @@ const truncate: DomainColumnTruncate = (text, maxLength) =>
   text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
 const formatting = { formatDate, truncate };
 
-type Row = Record<string, unknown>;
-type Config = Parameters<typeof buildDomainColumns<Row>>[0]["config"];
-
 const sortConfig = {
   tableFields: ["name", "tags", "labels", "count", "image", "images", "created_at"],
   fields: [

@@ -21,14 +21,10 @@ import type { DomainDisplay } from "@/lib/domain";
 import { getBelongsToManyRelationsOf } from "@/lib/domain";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
 import { createApiClient } from "../../client";
+import type { RelationData } from "./relationData";
 import { useUpdateDomain } from "../../hooks";
 
 /** リレーション先データの型 */
-type RelationData = {
-  id: string;
-  name: string;
-};
-
 export type BelongsToManyFieldButtonProps = ButtonStyleProps & {
   /** ドメインの表示用の写し（<domain>/entities/display.ts の domainDisplay） */
   domain: DomainDisplay;

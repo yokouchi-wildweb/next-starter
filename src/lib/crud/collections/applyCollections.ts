@@ -27,6 +27,7 @@ import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import type { ReplaceByQueryOptions, WhereExpr } from "../types";
+import { hasOwn } from "../utils/object";
 
 import type { DbTransaction } from "../drizzle/types";
 import type { DuplicateOptions } from "../types";
@@ -69,8 +70,6 @@ type CollectionAwareService = {
   replaceByQuery(where: WhereExpr, records: any[], replaceOptions?: ReplaceByQueryOptions, tx?: DbTransaction): Promise<any[]>;
 };
 
-const hasOwn = Object.prototype.hasOwnProperty;
-
 export function applyCollections<TService extends CollectionAwareService>(
   service: TService,
   context: ApplyCollectionsContext,
@@ -110,7 +109,7 @@ export function applyCollections<TService extends CollectionAwareService>(
     const rest: Row = { ...(data as Row) };
     delete (rest as Record<PropertyKey, unknown>)[SKIP_OMITTED_MIN_ITEMS];
     collections.forEach((collection, index) => {
-      if (!hasOwn.call(rest, collection.fieldName)) return;
+      if (!hasOwn(rest, collection.fieldName)) return;
       const value = rest[collection.fieldName];
       delete rest[collection.fieldName];
       if (value !== undefined) values.set(index, validateCollectionValues(collection, value));

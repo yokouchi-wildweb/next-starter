@@ -16,17 +16,7 @@ import { getHiddenColumnProps } from "../drizzle/hiddenColumns";
 import type { DbTransaction } from "../drizzle/types";
 import { collectionOrderBy } from "./collectionOrder";
 import { resolveCollectionColumns } from "./syncCollection";
-import type { CollectionValue, CrudCollectionConfig } from "./types";
-
-/** 集まりの 1 要素と、その従属の行 id */
-export type CollectionEntry = {
-  /** 従属の行 id（FK で参照する値） */
-  id: string | number;
-  /** 集まりの値（値の列。主の値の配列の要素と同じ） */
-  value: CollectionValue | null;
-  /** 並びの列の値 */
-  sort: string | number | null;
-};
+import type { CollectionEntry, CollectionValue, CrudCollectionConfig } from "./types";
 
 export type CollectionEntriesParams = {
   collection: CrudCollectionConfig;

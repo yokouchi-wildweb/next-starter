@@ -53,7 +53,7 @@ describe("bulkAddRelation / bulkRemoveRelation", { skip }, () => {
   };
 
   const buildService = async (bulkMode: "detail" | "aggregate") => {
-    const { createCrudService } = await import("./index");
+    const { createCrudService } = await import("../server");
     return createCrudService(OwnerTable, {
       idType: "uuid",
       useSoftDelete: true,

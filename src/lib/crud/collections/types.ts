@@ -8,7 +8,6 @@ import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 import type { DuplicateOptions } from "../types";
 import type { DbTransaction } from "../drizzle/types";
-import type { CollectionEntry } from "./collectionEntries";
 
 /**
  * collections オプション付きのサービスが出す読み取り専用の宣言（集まりの項目名）。
@@ -105,4 +104,14 @@ export type CollectionDuplicateResult<T = Record<string, unknown>> = {
   record: T;
   /** 集まりの項目ごとの、複製元の従属の id → 複製した従属の id */
   idMaps: Record<string, Map<string | number, string | number>>;
+};
+
+/** 集まりの 1 要素と、その従属の行 id */
+export type CollectionEntry = {
+  /** 従属の行 id（FK で参照する値） */
+  id: string | number;
+  /** 集まりの値（値の列。主の値の配列の要素と同じ） */
+  value: CollectionValue | null;
+  /** 並びの列の値 */
+  sort: string | number | null;
 };

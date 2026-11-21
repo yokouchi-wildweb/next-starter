@@ -17,6 +17,7 @@ import { err } from "@/lib/errors";
 import { getFieldOptions, getFieldLabel } from "@/lib/domain";
 import type { DomainDisplay } from "@/lib/domain";
 import { createApiClient } from "../../client";
+import { formatMessage } from "./bulkMessage";
 import { useBulkUpdateByIdsDomain } from "../../hooks";
 
 export type BulkEnumFieldButtonProps = ButtonStyleProps & {
@@ -56,13 +57,6 @@ export type BulkEnumFieldButtonProps = ButtonStyleProps & {
   onSuccess?: () => void;
   /** ボタンを無効化するかどうか @default false */
   disabled?: boolean;
-};
-
-/**
- * メッセージ内の {count} プレースホルダーを件数に置換
- */
-const formatMessage = (message: string, count: number): string => {
-  return message.replace(/\{count\}/g, String(count));
 };
 
 /**

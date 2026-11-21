@@ -48,15 +48,15 @@ const byteLess = (a: string, b: string) => a < b;
 
 describe("並びの鍵の照合順序（COLLATE \"C\"）", { skip }, () => {
   let db: typeof import("@/lib/drizzle").db;
-  let createCrudService: typeof import("../index").createCrudService;
-  let buildOrderBy: typeof import("../index").buildOrderBy;
+  let createCrudService: typeof import("../../server").createCrudService;
+  let buildOrderBy: typeof import("../../server").buildOrderBy;
   let server: typeof import("./server");
   let nonCCollation: string | undefined;
   let sorted: any;
 
   before(async () => {
     ({ db } = await import("@/lib/drizzle"));
-    ({ createCrudService, buildOrderBy } = await import("../index"));
+    ({ createCrudService, buildOrderBy } = await import("../../server"));
     server = await import("./server");
 
     await db.execute(sql`drop table if exists test_crud_sort_coll`);
