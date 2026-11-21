@@ -74,6 +74,12 @@
       "@/lib/firebase/*": [
         "../firebase/*"
       ],
+      "@/lib/firestore": [
+        "../firestore"
+      ],
+      "@/lib/firestore/*": [
+        "../firestore/*"
+      ],
       "@/lib/frameDims": [
         "../frameDims"
       ],
