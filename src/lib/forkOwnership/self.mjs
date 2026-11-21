@@ -1,8 +1,10 @@
-// 型 5 self の検査(各リポが自分の版を持つ 3 つのファイル)。中身は見ない: 見るのは 4 つだけ
+// 型 5 self の検査(各リポが自分の版を持つ 3 つのファイル)。中身は見ない: 落とすのは 3 つだけ
 //   1 self-missing   ファイルが無い
 //   2 self-rows      受け口の一覧の self の行が決まった 3 行ちょうどでない
-//   3 self-parent    取り込み(親の版を基準にした merge)で親の版が入り、今もそのまま
-//   4 self-overview  Tier1 でないリポの project.md(概要)が直接の親の今の版と同じまま
+//   3 self-overview  Tier1 でないリポの project.md(概要)が直接の親の今の版と同じまま
+// 落とさず聞く物(asks、/flux が人に聞く。D280):
+//   self-parent-lost 取り込みの前は自分の版(前に取り込んだ親の版と違う)だったのに、取り込みで親の版と同じになった
+//                    → 親の版に従う / 自分の行を戻す。取り込みの前から親の版のまま(親の版をそのまま使う、正式な選び方)は何も言わない
 // 既定は入(SELF_CHECK_DEFAULT)。pnpm workflow ownership check がいつも走らせる。--no-self で外す(調べる時だけ)。
 // git から入力を集めるのは check.mjs(collectSelf)、ここは純な判定だけ。仕様: ./README.md「受け口の一覧(intake.txt)」
 
@@ -23,14 +25,16 @@ const normalize = (text) =>
  *   isTier1: boolean,
  *   selfRows: string[] | null,        受け口の一覧の self の行の glob(Tier1 = 自分の一覧、fork = 基準の一覧)。一覧が読めなければ null
  *   head: Record<string, string | null>,   今の中身(SELF_FILES ごと、無ければ null)
- *   merge: { found: boolean, before: Record<string, string | null>, base: Record<string, string | null> } | null,
- *                                     基準を親に持つ最新の merge の前(fork の前の版)と基準(親の取り込んだ版)の中身。Tier1 は null
+ *   merge: { found: boolean, before: Record<string, string | null>, base: Record<string, string | null>, prevBase?: Record<string, string | null> } | null,
+ *                                     基準を親に持つ最新の merge の前(fork の前の版)・基準(親の取り込んだ版)・その前に取り込んだ親の版
+ *                                     (merge の前と基準の分岐点。読めなければ null)の中身。Tier1 は null
  *   parentNow: string | null,         直接の親の今の project.md(Tier1 は null)
  * }} input
- * @returns {{ problems: { kind: string, path: string, message: string }[], unverified: string[] }}
+ * @returns {{ problems: { kind: string, path: string, message: string }[], asks: { kind: string, path: string, message: string }[], unverified: string[] }}
  */
 export function selfProblems({ isTier1, selfRows, head, merge, parentNow }) {
   const problems = [];
+  const asks = [];
   const unverified = [];
 
   for (const path of SELF_FILES) {
@@ -50,7 +54,7 @@ export function selfProblems({ isTier1, selfRows, head, merge, parentNow }) {
     }
   }
 
-  if (isTier1) return { problems, unverified };
+  if (isTier1) return { problems, asks, unverified };
 
   if (!merge?.found) {
     unverified.push("基準を親に持つ merge が無い(merge でない取り込み): 親の版が入ったかは見ていない");
@@ -59,10 +63,12 @@ export function selfProblems({ isTier1, selfRows, head, merge, parentNow }) {
       const now = head[path];
       const before = merge.before[path];
       const base = merge.base[path];
+      const prevBase = merge.prevBase?.[path] ?? null;
       if (now == null || before == null || base == null) continue;
-      if (normalize(before) !== normalize(base) && normalize(now) === normalize(base)) {
-        problems.push({ kind: "self-parent", path, message: `${path} に取り込みで親の版が入ったまま(自分の版に戻し、採る所は別のコミットで写す)` });
-      }
+      if (normalize(now) !== normalize(base) || normalize(before) === normalize(base)) continue;
+      // 取り込みの前から親の版のまま = 親の版をそのまま使っている(何も言わない)
+      if (prevBase != null && normalize(before) === normalize(prevBase)) continue;
+      asks.push({ kind: "self-parent-lost", path, message: `${path} の自分の行が取り込みで消え、親の版と同じになった(親の版に従う / 自分の行を戻す: git show <merge>^1:${path})` });
     }
   }
 
@@ -70,5 +76,5 @@ export function selfProblems({ isTier1, selfRows, head, merge, parentNow }) {
   if (overview != null && parentNow != null && normalize(overview) === normalize(parentNow)) {
     problems.push({ kind: "self-overview", path: SELF_OVERVIEW_FILE, message: `${SELF_OVERVIEW_FILE} が直接の親の版と同じまま(自分の概要に書き直す)` });
   }
-  return { problems, unverified };
+  return { problems, asks, unverified };
 }

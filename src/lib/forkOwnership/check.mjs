@@ -509,8 +509,9 @@ export function judgeFork(repoRoot, context) {
 
 /**
  * 型 5 self の検査の入力を git から集めて判定する(self.mjs)。Tier1 は自分の受け口の一覧とファイルの有無だけ
- * 「取り込みで親の版が入った」の merge = 基準 base を 2 番目以降の親に持つ、HEAD から見て最新の merge
- * @returns {{ enabled: true, problems: { kind: string, path: string, message: string }[], unverified: string[] }}
+ * 「取り込みで親の版が入った」の merge = 基準 base を 2 番目以降の親に持つ、HEAD から見て最新の merge。
+ * その前に取り込んだ親の版 = merge の前(1 番目の親)と基準の分岐点
+ * @returns {{ enabled: true, problems: { kind: string, path: string, message: string }[], asks: { kind: string, path: string, message: string }[], unverified: string[] }}
  */
 export function collectSelf(repoRoot, { isTier1, base = null, parentRef = null }) {
   const head = Object.fromEntries(SELF_FILES.map((path) => [path, show(repoRoot, "HEAD", path)]));
@@ -523,10 +524,12 @@ export function collectSelf(repoRoot, { isTier1, base = null, parentRef = null }
   let merge = { found: false, before: {}, base: {} };
   if (mergeLine) {
     const [, firstParent] = mergeLine;
+    const prevPoint = tryGit(repoRoot, ["merge-base", firstParent, base])?.trim() || null;
     merge = {
       found: true,
       before: Object.fromEntries(SELF_FILES.map((path) => [path, show(repoRoot, firstParent, path)])),
       base: Object.fromEntries(SELF_FILES.map((path) => [path, show(repoRoot, base, path)])),
+      prevBase: Object.fromEntries(SELF_FILES.map((path) => [path, prevPoint ? show(repoRoot, prevPoint, path) : null])),
     };
   }
   const parentNow = show(repoRoot, parentRef, SELF_OVERVIEW_FILE);

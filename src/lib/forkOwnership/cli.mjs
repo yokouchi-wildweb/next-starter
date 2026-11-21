@@ -59,13 +59,18 @@ function parseArgs(argv) {
   return options;
 }
 
-/** 型 5 self の検査の行(切 = 1 行、走った = 結果と問題・未検証の項) */
+/** 型 5 self の検査の行(切 = 1 行、走った = 結果と問題・未検証の項・聞くこと) */
 function selfLines(self) {
   if (!self) return [];
   if (!self.enabled) return ["self の検査: 切(--no-self。既定は入)"];
   const lines = [`self の検査: ${self.problems.length === 0 ? "問題なし" : `問題 ${self.problems.length} 件`}${self.unverified.length ? `・未検証 ${self.unverified.length} 項` : ""}`];
   for (const problem of self.problems) lines.push(`  [${problem.kind}] ${problem.message}`);
   for (const reason of self.unverified) lines.push(`  [未検証] ${reason}`);
+  const asks = self.asks ?? [];
+  if (asks.length > 0) {
+    lines.push(`self の聞くこと(合否は変えない、/flux が人に聞く): ${asks.length} 件`);
+    for (const ask of asks) lines.push(`  [${ask.kind}] ${ask.message}`);
+  }
   return lines;
 }
 

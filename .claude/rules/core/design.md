@@ -80,7 +80,7 @@ map (every core file, loaded by its paths):
 ## self_files (each repo keeps its own version; a merge never takes the parent's)
 - project.md: this repo's overview + tier-only info (Tier1: the maker's duty and stance) | behavior.md: work rules | repo.json: machine values (repo_id, tier, agent policy), flat keys one per line, written only through its command, read only via forkIds.mjs
 - lineage.md is not a self file (a merge takes the ancestors' sections; only your own section is yours): one section per tier, rules only, never edit an ancestor's section (→ /order <direct parent>) | own rules: .claude/rules/ outside core/, plain names, never restate core
-- a fork's context files are not checked by upstream beyond the self check (file present, parent's version taken in, overview not left as the parent's; on by default in pnpm workflow ownership check, --no-self only to investigate): the fork tidies them itself
+- a fork's context files are not checked by upstream beyond the self check (file present, overview not left as the parent's; own lines a take-in dropped are asked by /flux, never failed; on by default in pnpm workflow ownership check, --no-self only to investigate): the fork tidies them itself
 
 ## format (CLAUDE.md and .claude/rules/)
 - agent-optimized, English only (code comments and READMEs follow behavior.md) | one decision per item, key: value recommended | short headings | no tables, history, precedent, dates or decision numbers
