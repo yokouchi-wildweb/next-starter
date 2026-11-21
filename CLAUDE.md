@@ -130,7 +130,7 @@ core (= CORE, approval required): CLAUDE.md, core/, src/features/core/ (core dom
 - full list → core/ownership.md
 downstream_owned (upstream never edits after creation): root src/styles/*.css, page.tsx / frame layout.tsx of switched routes, _components/** and \<name\>.replace files of upstream routes, \<target\>.override.ts | exceptions → core/ownership.md
 intake: every place a fork may write in parent files = src/lib/forkOwnership/intake.txt (kinds: edit / add / region / marker / append / generated / debt / self) | src/config/** too (both sides edit it: config below)
-config: src/config/ = values only (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
+config: src/config/ = values, or a zero-arg function that only returns env (process.env.X joined with ?? / ||) (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
 fork_ownership (check: pnpm workflow ownership check, run by /flux after each segment commit | exit 2 = unverified, never a pass | ref: src/lib/forkOwnership/README.md):
 - base = merge-base with the direct parent | parent-owned (in the base): write only inside intake points, never delete / move / rename (a `_` prefix too) | a file added inside an upstream unit, or under src/features/core/, src/featureGate/ or core/ outside a receptacle = violation (units → core/ownership.md)
 - multi-tier: strict only for files in the Tier1 version (a middle tier's files may change below it, except an ancestor's .default and service/) → core/ownership.md fork_ownership
