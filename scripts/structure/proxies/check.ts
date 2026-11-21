@@ -42,7 +42,7 @@ async function main() {
       console.error(`  環境の依存の不足 ${tests.environment.length} 件(違反ではない。門番のテストは DB・外部の env なしで通る前提 → テストの依存を外す):`);
       for (const e of tests.environment) console.error(`  - ${e.name}(${e.at}、${e.reason})`);
     }
-    if (tests.violations.length + tests.environment.length === 0) console.error(`  落ちたテストを読めなかった(runner の exit ${tests.status})。pnpm test で回して確かめる`);
+    if (tests.violations.length + tests.environment.length === 0) console.error(`  落ちたテストを読めなかった(runner の exit ${tests.status})。出荷の直しの中で落ちた物だけ回し直す(core/notices.md checks_in_ship (2)): FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies`);
   }
   if (failed) process.exit(1);
 }

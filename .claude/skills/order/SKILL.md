@@ -92,7 +92,7 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
    - a permit request for delete / rename is limited to "please provide an intake that switches it off (feature-gate etc.)"; an addition to an ancestor lib to "please take it into that lib / please add an intake point"
    - never file for upstream debt spots (debt of intake.txt) or orders upstream already accepted (fix orders in its inbox) | use the reason field of the intake.txt debt / the order id as is
 2. fill the draft's `<依頼の番号>` and `<理由>` with the filed id, paste it into `.fork-ownership/<fork-id>.permits.txt`, one line per file (several orders on one file → `upreq:<id>,<id>`)
-3. commit the permit file, rerun `pnpm workflow ownership check`, confirm the line becomes permitted
+3. commit the permit file | the next /flux's ownership check (a check: never run it as a step here, core/notices.md checks_in_ship) confirms the line is permitted
 4. check the request state with `/wen permits` | resolved (the parent notice's `resolves:`) or rejected → drop the line and move to the intake point or revert
 
 ## SELF-ADDRESSED USE

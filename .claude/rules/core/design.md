@@ -40,7 +40,7 @@ map (every core file, loaded by its paths):
   - one person's own notes are not repo context → personal places (CLAUDE.md DOCS personal)
 
 ## authoring (the ladder: before adding or changing any rule)
-- 1 find its place with places above | 2 write it in that file in this file's formats (paths globs: one-level braces only, nested braces never load) | 3 pnpm check rules | 4 /ship (the why goes in the commit body)
+- 1 find its place with places above | 2 write it in that file in this file's formats (paths globs: one-level braces only, nested braces never load) | 3 /ship (its checks run pnpm check rules, never before it; the why goes in the commit body)
 - usual path, no order needed: write a card, a README or a service file | add a rule for a place to an existing core file | fix an existing CLAUDE.md item together with its source item | a place you just created: its one line in a core file's paths or in .claude/rules/core/uncovered.txt, in the same commit that creates the place
 - window (order first: /order next-starter, from the Tier1 session and straight from a fork at any tier, never relayed through a parent): a CLAUDE.md item or section added, or a key removed or renamed | a core file added, removed, renamed or its paths widened to places that already exist | a new card category | a check or MANDATORY rule binding forks | a clash between rules of different owners
   - a clash you notice while working: never fix one side yourself → the window | no check hunts for clashes

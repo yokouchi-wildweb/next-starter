@@ -23,7 +23,7 @@
 
 1. `src/lib/<name>/` を作る（名前は camelCase。入口は `index.ts` を推奨）
 2. [CATALOG.md](./CATALOG.md) の**自分の節**に `- src/lib/<name> — <一行説明>` を足す。自分の節が無ければ末尾に `## <自分の所有者 ID>` を作る。他の節は編集しない
-3. `pnpm test src/lib/folderCatalog/catalog.test.mjs` を通す
+3. 目録の形は `src/lib/folderCatalog/catalog.test.mjs` が守る(/ship の検査が回す。作業の中では回さない)
 
 - 所有者 ID = 各リポの名前（リポ直下の `repo.json` の `repo_id`、読み手は `src/lib/forkOwnership/forkIds.mjs`）。origin の URL からは導かない。`.notices/applied/<repo_id>.md` の名前と同じ
 
@@ -39,10 +39,10 @@ lib 1 本を「閉じた lib」(package.json の入口だけを外から読み�
 3. **自分を相対で読む**: lib の中で自分を `@/lib/<name>` で読む import を相対パスに直す(宣言の後は lint `lib-self-relative` が止める)
    - 確かめ: `git grep -nE "@/lib/<name>(/|['\"])" -- src/lib/<name>` が 0(区切りを付ける: `@/lib/request` だけだと `@/lib/requestMemo` にも当たる)
 4. **package.json を置く**: `exports` は今のパスを写さず機能で整理し、外と fork が読む名前は全部入口に残す(消すのは破壊的変更 = notice を伴う別の変更)。`libs` = 直接読む lib、`peers` = 棚、`sideEffects` は書かない(手順 8)。形と問題の名前: [libPackage/README.md](./libPackage/README.md)・API「lib の package.json(宣言の形)」
-   - 確かめ: `pnpm check lib-package`(形の問題が 0。tsconfig.json が無い問題は残るので手順 5 で直す)
+   - 形の問題は `pnpm check lib-package` が守る(/ship の検査が回す。tsconfig.json が無い問題は手順 5 で直す)
    - package.json を置いた時から lint `entry/only-entries` がその lib に効き、外から中のファイルを読む import が error になる(手順 7 で直すまで `pnpm lint` は落ちる)
 5. **tsconfig.json を置く**: 無い間は `pnpm check lib-package` が置く中身を丸ごと出すので、それをそのまま `src/lib/<name>/tsconfig.json` に書く(依存の依存も閉包として入る。JS(`.mjs` / `.js`)のファイルを持つ lib は allowJs・allowImportingTsExtensions・checkJs と JS の include も入り、JS も型検査する。型の誤りは JSDoc で直す)。形: [scripts/structure/lib-package/README.md](../../scripts/structure/lib-package/README.md)
-   - 確かめ: `pnpm check lib-package`(その lib の単体の型検査が通る)
+   - その lib の単体の型検査は `pnpm check lib-package` が守る(/ship の検査が回す)
 6. **設定**(fork が変える値を持つ lib だけ): `config.ts` に既定(lib の設定の型で注釈)・`defineConfig`・入口から出す `XxxOverride` の型・`compose(上書き)` の結果を置き、上書きは `@lib-config/<name>` だけで読む
    - 上流の空の上書き `src/config/lib/<name>.config.ts` を置く。lib が自前の合成(`defineXxxConfig` など)を持っていたら `defineConfig` に置き換えて消す
    - 上書きの値が効くテストを足す(toast の `config.test.ts` の形: 設定を受けて作る関数に `compose({...})` を渡す)。形: Extension「設定の届け方」・[defineConfig/README.md](./defineConfig/README.md)
