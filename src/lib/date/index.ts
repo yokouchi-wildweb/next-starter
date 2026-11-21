@@ -3,3 +3,4 @@
 
 export { dayjs } from "./dayjs";
 export { parseFlexibleDate, parseFlexibleTime, parseFlexibleDatetime } from "./parseFlexible";
+export { toDayjs, formatDateLike } from "./value";
