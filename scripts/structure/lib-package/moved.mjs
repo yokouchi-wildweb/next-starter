@@ -16,7 +16,8 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 
 import { resolveImport } from "../../../eslint-rules/resolve-import.mjs";
-import { libOfPath, readLibPackage } from "../../../src/lib/libPackage/index.mjs";
+import { libOfPath } from "../../../src/lib/libPackage/index.mjs";
+import { readLibPackage } from "../../../src/lib/libPackage/node.mjs";
 import { createExportReader, entryForFile, entryIndex, entrySpecifier, probeFile } from "./codemod.mjs";
 
 const SOURCE_EXTS = ["ts", "tsx", "mts", "mjs", "js"];

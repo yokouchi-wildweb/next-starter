@@ -89,13 +89,14 @@ test("entry/only-entries(lib): 外から宣言済みの lib は exports の入�
   });
 });
 
-test("entry/only-entries(lib): 宣言済みの lib は宣言した lib の入口・peers の棚・@lib-config/<自分> だけを読む", () => {
+test("entry/only-entries(lib): 宣言済みの lib は宣言した lib の入口・peers の棚・@lib-config/<自分>(と <自分>.ui)だけを読む", () => {
   ruleTester.run("entry/only-entries", entryPlugin.rules["only-entries"], {
     valid: [
       { code: `import { cn } from "@/lib/cn";`, filename: inToast, options },
       { code: `import { x } from "@/lib/plain/deep";`, filename: inToast, options, name: "宣言した相手が未宣言なら入口の照合はしない" },
       { code: `import { Button } from "@/components/Button/Button";`, filename: inToast, options },
       { code: `import config from "@lib-config/toastlike";`, filename: inToast, options },
+      { code: `import ui from "@lib-config/toastlike.ui";`, filename: inToast, options, name: "描画専用の上書き(config.ui.ts の口)も自分の設定" },
       { code: `import { x } from "../useToast"; import { y } from "./other";`, filename: inToast, options },
       { code: `import { create } from "zustand";`, filename: inToast, options },
       { code: `import { x } from "@/hooks/useIsClient";`, filename: inPlain, options, name: "宣言の無い lib の読みは見ない(L1.21)" },
@@ -110,6 +111,8 @@ test("entry/only-entries(lib): 宣言済みの lib は宣言した lib の入口
       { code: `import c from "@/config/lib/toastlike.config";`, filename: inToast, options, errors: [{ messageId: "undeclaredPath" }] },
       { code: `import c from "src/config/lib/toastlike.config";`, filename: inToast, options, errors: [{ messageId: "undeclaredPath" }] },
       { code: `import c from "@lib-config/cn";`, filename: inToast, options, errors: [{ messageId: "libConfigOther" }] },
+      { code: `import c from "@lib-config/cn.ui";`, filename: inToast, options, errors: [{ messageId: "libConfigOther" }] },
+      { code: `import c from "@lib-config/toastlike.uix";`, filename: inToast, options, errors: [{ messageId: "libConfigOther" }] },
       { code: `import c from "@lib-config/toastlike/extra";`, filename: inToast, options, errors: [{ messageId: "libConfigOther" }] },
     ],
   });

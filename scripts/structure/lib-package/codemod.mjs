@@ -23,7 +23,8 @@ import path from "node:path";
 import ts from "typescript";
 
 import { resolveImport } from "../../../eslint-rules/resolve-import.mjs";
-import { LIB_DIR, findEntry, libOfPath, listDeclaredLibs, readLibPackage } from "../../../src/lib/libPackage/index.mjs";
+import { LIB_DIR, findEntry, libOfPath } from "../../../src/lib/libPackage/index.mjs";
+import { listDeclaredLibs, readLibPackage } from "../../../src/lib/libPackage/node.mjs";
 import { scanFiles } from "./closed.mjs";
 import { movedRows } from "./moved.mjs";
 

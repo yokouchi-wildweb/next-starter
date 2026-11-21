@@ -2,7 +2,7 @@
 //
 // 閉じたかの検査(指令 26 d1): lib ごとの状態。
 // - 落とす(宣言した lib = package.json を持ち形に問題が無い lib だけ): 単体用 tsconfig・型検査・sideEffects(standalone.mjs / sideEffects.mjs)、
-//   config.ts があるのに上書き src/config/lib/<名前>.config.ts が無い、自前の合成(defineXxxConfig)が残っている(L1.23)
+//   config.ts / config.ui.ts があるのに上書き src/config/lib/<名前>.config.ts / <名前>.ui.config.ts が無い、自前の合成(defineXxxConfig)が残っている(L1.23)
 // - 数えて見せるだけ(--list / --json): 外から lib の中を読む import。宣言した lib のそれは pnpm lint の entry/only-entries が落とす(1 つの規則)
 // - 宣言の無い lib は数えて一覧に出すだけで落とさない(L1.21。error にするのは最後の段 D101 (6))
 
@@ -13,9 +13,10 @@ import path from "node:path";
 import ts from "typescript";
 
 import { resolveImport } from "../../../eslint-rules/resolve-import.mjs";
-import { LIB_DIR, findEntry, libOfPath, listLibs, readLibPackage } from "../../../src/lib/libPackage/index.mjs";
+import { LIB_DIR, findEntry, libOfPath } from "../../../src/lib/libPackage/index.mjs";
+import { listLibs, readLibPackage } from "../../../src/lib/libPackage/node.mjs";
 import { checkSideEffects } from "./sideEffects.mjs";
-import { LIB_CONFIG_PATH, compareTsconfig, hasLibConfig, typecheckLib } from "./standalone.mjs";
+import { compareTsconfig, libConfigsOf, typecheckLib } from "./standalone.mjs";
 
 /** 設定の合成器そのものの lib(契約 api.defineconfig が名指す lib)。自前の合成の判定は掛けない */
 export const COMPOSER_LIB = "defineConfig";
@@ -120,10 +121,15 @@ export function mergeHelpersOf(root, lib) {
   return usesComposer ? [] : [...new Set(names)].sort();
 }
 
-/** 設定: config.ts が無ければ "none"、あって上書きがあれば "ok"、上書きが無ければ "overrideMissing" */
+/** 上書きが無い設定の口(持ち主 config.ts / config.ui.ts はあるのに上書きが無い物) */
+function missingOverridesOf(root, lib) {
+  return libConfigsOf(root, lib).filter((config) => !existsSync(path.join(root, config.override)));
+}
+
+/** 設定: config.ts も config.ui.ts も無ければ "none"、持つ口の上書きが全部あれば "ok"、1 つでも無ければ "overrideMissing" */
 export function configStateOf(root, lib) {
-  if (!hasLibConfig(root, lib)) return "none";
-  return existsSync(path.join(root, LIB_CONFIG_PATH.replace("<self>", lib))) ? "ok" : "overrideMissing";
+  if (libConfigsOf(root, lib).length === 0) return "none";
+  return missingOverridesOf(root, lib).length === 0 ? "ok" : "overrideMissing";
 }
 
 /**
@@ -136,8 +142,8 @@ export function closedLibProblems(root, lib) {
   out.push(...diverged);
   if (diverged.length === 0) out.push(...typecheckLib(root, lib));
   out.push(...checkSideEffects(root, lib));
-  if (configStateOf(root, lib) === "overrideMissing") {
-    out.push({ lib, code: "overrideMissing", message: `${LIB_DIR}/${lib}/config.ts があるのに上書き ${LIB_CONFIG_PATH.replace("<self>", lib)} がありません(空の上書きを置きます。src/lib/README.md「設定の届け方」)` });
+  for (const config of missingOverridesOf(root, lib)) {
+    out.push({ lib, code: "overrideMissing", message: `${LIB_DIR}/${lib}/${config.owner} があるのに上書き ${config.override} がありません(空の上書きを置きます。src/lib/README.md「設定の届け方」)` });
   }
   for (const name of mergeHelpersOf(root, lib)) {
     out.push({ lib, code: "mergeHelper", message: `${LIB_DIR}/${lib}: 自前の合成 ${name} が残っています(@/lib/defineConfig の defineConfig に寄せます。L1.23)` });

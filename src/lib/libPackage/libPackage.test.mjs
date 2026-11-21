@@ -3,22 +3,13 @@
 // 実行: pnpm test src/lib/libPackage/libPackage.test.mjs (node:test)
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-import {
-  checkAllLibPackages,
-  checkLibPackage,
-  clearLibPackageCache,
-  findEntry,
-  hasLibPackage,
-  libOfPath,
-  listDeclaredLibs,
-  listLibs,
-  listLibsFrom,
-  readLibPackage,
-} from "./index.mjs";
+import { findEntry, libOfPath, listLibsFrom } from "./index.mjs";
+import { checkAllLibPackages, checkLibPackage, clearLibPackageCache, hasLibPackage, listDeclaredLibs, listLibs, readLibPackage } from "./node.mjs";
 
 const root = mkdtempSync(path.join(tmpdir(), "lib-package-"));
 after(() => rmSync(root, { recursive: true, force: true }));
@@ -192,4 +183,13 @@ test("clearLibPackageCache: 書き換えた後に読み直す", () => {
   assert.equal(readLibPackage(root, "later"), null, "覚えた結果のまま");
   clearLibPackageCache();
   assert.deepEqual(readLibPackage(root, "later")?.problems, []);
+});
+
+test('入口 "." は node の API を読まない(client でも server でも読める。node:fs で読む物は "./node"、D248)', () => {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  for (const file of ["index.mjs", "entryPath.mjs"]) {
+    const text = readFileSync(path.join(here, file), "utf8");
+    assert.doesNotMatch(text, /from\s+["']node:|from\s+["'](fs|path|os|child_process)["']/, `${file} が node の API を読む`);
+    assert.doesNotMatch(text, /from\s+["']\.\/node\.mjs["']/, `${file} が ./node を読む`);
+  }
 });

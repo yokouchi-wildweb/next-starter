@@ -56,7 +56,7 @@ pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]
 - `inner`: 外から lib の中を読む import の数。宣言した lib = exports の入口に当たらない import、宣言の無い lib = lib の根(index)以外に当たる import。lint の entry/only-entries と同じ部品(eslint-rules/resolve-import.mjs の resolveImport、src/lib/libPackage の libOfPath・findEntry)で判定する。走査 = lint と同じ所(git の追跡 + 未追跡、node_modules・.next・src/_stash 等を除く)、`@lib-config/…` は数えない
   - ここでは数えて見せるだけ。宣言した lib の中を外から読む import を落とすのは pnpm lint の entry/only-entries(1 つの規則)。だから門の watch にも repo 全体は入れない
 - `problems`: 下の 1〜5 の不備の数(宣言した lib だけ)
-- `config`: `none`(config.ts 無し)| `ok`(上書き src/config/lib/<名前>.config.ts あり)| `overrideMissing`
+- `config`: `none`(config.ts も config.ui.ts も無し)| `ok`(持つ口の上書き src/config/lib/<名前>.config.ts / <名前>.ui.config.ts が全部あり)| `overrideMissing`
 - `merge`: 残っている自前の合成の名前(下の 5)
 
 ### lib の tsconfig.json(手で書く)
@@ -86,7 +86,7 @@ pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]
 - `paths` はルートの paths を丸ごと置き換える(`@/*` を引き継がない)。だから宣言していない lib・棚(`@/hooks/*` など)を読むと解決できずに落ちる
 - `@/lib/<dep>` と `@/lib/<dep>/*` = package.json の `libs` を辿った閉包(依存の package.json の libs・peers も足す)。package.json に書くのは直接の依存だけで、tsconfig.json には閉包を書く。依存が依存を増やすと、こちらの検査が足す行を出す
 - `@/<peer>/*` = `peers` の棚(今は `components` → `src/components`)。閉包の peers も含む
-- `@lib-config/<自分>` = 設定 `config.ts`(か `config.tsx`)を持つ lib だけが書く(無い lib に、無いファイルへの行を残さない。残っていれば検査が消す行を名指しする)。先(`src/config/lib/<自分>.config.ts`)が無い時は、読んだ時だけ型検査で落ちる(既定値で黙って通さない)。config.ts の無い lib が `@lib-config` を読むと行が無いので TS2307 で落ちる。置き場の決まり: src/lib/README.md「設定の届け方」
+- `@lib-config/<自分>` = 設定 `config.ts`(か `config.tsx`)を持つ lib だけが書く / `@lib-config/<自分>.ui` = 描画専用の `config.ui.ts` を持つ lib だけが書き、`src/config/lib/<自分>.ui.config.ts` を指す。口の決まり(置き場の名前は地区の地図 src/lib/districtMap と同じ)は `configSlots.mjs` の 1 つで、lint `entry/only-entries` も同じ物を読む(無い lib に、無いファイルへの行を残さない。残っていれば検査が消す行を名指しする)。先(`src/config/lib/<自分>.config.ts`)が無い時は、読んだ時だけ型検査で落ちる(既定値で黙って通さない)。config.ts の無い lib が `@lib-config` を読むと行が無いので TS2307 で落ちる。置き場の決まり: src/lib/README.md「設定の届け方」
 - 依存も設定も無い lib は paths を書かず、compilerOptions も書かない(JS を持つ lib は上の 3 つだけ)
 - 外部のパッケージはルートの node_modules から今までどおり解決する
 
@@ -133,7 +133,7 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 - 合成器そのもの(`src/lib/defineConfig` = `COMPOSER_LIB`)には掛けない
 - 設定の合成でない define(crud の defineHiddenColumns など)は当たらない。別の名前の自前の合成は見えない(名前と置き場で見るため)
 
-- 入口 `check.mjs`(gate.json の check)が `checkLibs(root)`(→ `{ checked, skipped, undeclared, problems }`)・`libReport(root)`(→ `{ rows, summary }`)を呼ぶ。部品: `closed.mjs`(状態・中を読む import・設定・合成)・`standalone.mjs`(閉包・tsconfig.json の期待と比べ・型検査)・`sideEffects.mjs`・動きの `moved.mjs` / `codemod.mjs`
+- 入口 `check.mjs`(gate.json の check)が `checkLibs(root)`(→ `{ checked, skipped, undeclared, problems }`)・`libReport(root)`(→ `{ rows, summary }`)を呼ぶ。部品: `closed.mjs`(状態・中を読む import・設定・合成)・`standalone.mjs`(閉包・tsconfig.json の期待と比べ・型検査)・`configSlots.mjs`(設定の口: 値と描画専用の上書きの置き場と指定子。lint entry/only-entries も読む)・`sideEffects.mjs`・動きの `moved.mjs` / `codemod.mjs`
 
 ## Verification
 

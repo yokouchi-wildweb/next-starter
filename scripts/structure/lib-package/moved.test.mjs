@@ -11,7 +11,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { clearLibPackageCache } from "../../../src/lib/libPackage/index.mjs";
+import { clearLibPackageCache } from "../../../src/lib/libPackage/node.mjs";
 import { formatMoved, movedRows, runMoved } from "./moved.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");

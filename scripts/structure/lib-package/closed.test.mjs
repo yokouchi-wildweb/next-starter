@@ -10,7 +10,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { clearLibPackageCache, listDeclaredLibs, listLibs } from "../../../src/lib/libPackage/index.mjs";
+import { clearLibPackageCache, listDeclaredLibs, listLibs } from "../../../src/lib/libPackage/node.mjs";
 import { checkLibs, libReport } from "./check.mjs";
 import { configStateOf, libStates, mergeHelpersOf, scanInnerImports } from "./closed.mjs";
 import { expectedTsconfig } from "./standalone.mjs";

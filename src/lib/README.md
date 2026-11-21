@@ -29,7 +29,7 @@
 
 ### lib を閉じる手順
 
-lib 1 本を「閉じた lib」(package.json の入口だけを外から読み、宣言した物だけを読む)にする手順。1 回の作業 = 1 lib。見本 = `toast`・`isClient`・`frameDims`・`defineConfig`(`git log -- src/lib/toast` で実際の差分を見られる)。各段の右の確かめが通ってから次へ進む。
+lib 1 本を「閉じた lib」(package.json の入口だけを外から読み、宣言した物だけを読む)にする手順。1 回の作業 = 1 lib。見本 = `toast`・`isClient`・`frameDims`・`defineConfig`(`git log -- src/lib/toast` で実際の差分を見られる)。各段の確かめは diff と grep で書く。型・lint・テストの検査は手順の中で回さず、出荷の /ship が回す(落ちたら落ちた所だけを回し直す)。
 
 0. **始める前**: 同じ lib を他の作業(受信箱の依頼・進行中の別の作業)が触っていないか確かめる(受信箱 `~/.local/state/next-starter/orders/<repo-id>/` の依頼に lib の名前が出ないか・進行中の作業の範囲に lib のフォルダが入っていないか)。今の状態を見る: `pnpm check lib-package -- --list`(lib ごとに `closed` / `gaps` / `undeclared`。道具からは `-- --json`)
 1. **依存を洗い出す**: lib の中から外を読む import を一覧にし、lib / 棚(`@/components`)/ hooks・utils / `@/config` / features・app に仕分ける。features・app・`@/config` は読めない → 引数・注入で受けるか、値なら手順 6 の設定にする
@@ -38,21 +38,19 @@ lib 1 本を「閉じた lib」(package.json の入口だけを外から読み�
    - 確かめ: `git grep -n "@/hooks/<x>" -- src scripts` が 0
 3. **自分を相対で読む**: lib の中で自分を `@/lib/<name>` で読む import を相対パスに直す(宣言の後は lint `lib-self-relative` が止める)
    - 確かめ: `git grep -nE "@/lib/<name>(/|['\"])" -- src/lib/<name>` が 0(区切りを付ける: `@/lib/request` だけだと `@/lib/requestMemo` にも当たる)
-4. **package.json を置く**: `exports` は今のパスを写さず機能で整理し、外と fork が読む名前は全部入口に残す(消すのは破壊的変更 = notice を伴う別の変更)。`libs` = 直接読む lib、`peers` = 棚、`sideEffects` は書かない(手順 8)。形と問題の名前: [libPackage/README.md](./libPackage/README.md)・API「lib の package.json(宣言の形)」
-   - 確かめ: `pnpm check lib-package`(形の問題が 0。tsconfig.json が無い問題は残るので手順 5 で直す)
-   - package.json を置いた時から lint `entry/only-entries` がその lib に効き、外から中のファイルを読む import が error になる(手順 7 で直すまで `pnpm lint` は落ちる)
-5. **tsconfig.json を置く**: 無い間は `pnpm check lib-package` が置く中身を丸ごと出すので、それをそのまま `src/lib/<name>/tsconfig.json` に書く(依存の依存も閉包として入る。JS(`.mjs` / `.js`)のファイルを持つ lib は allowJs・allowImportingTsExtensions・checkJs と JS の include も入り、JS も型検査する。型の誤りは JSDoc で直す)。形: [scripts/structure/lib-package/README.md](../../scripts/structure/lib-package/README.md)
-   - 確かめ: `pnpm check lib-package`(その lib の単体の型検査が通る)
-6. **設定**(fork が変える値を持つ lib だけ): `config.ts` に既定(lib の設定の型で注釈)・`defineConfig`・入口から出す `XxxOverride` の型・`compose(上書き)` の結果を置き、上書きは `@lib-config/<name>` だけで読む
-   - 上流の空の上書き `src/config/lib/<name>.config.ts` を置く。lib が自前の合成(`defineXxxConfig` など)を持っていたら `defineConfig` に置き換えて消す
+4. **package.json を置く**: `exports` は今のパスを写さず機能で整理し、外と fork が読む名前は全部入口に残す(消すのは破壊的変更 = notice を伴う別の変更)。入口の名前は `.`(client でも server でも読める物。入口に `"use client"` を書かない)・`./server`(DB・管理 SDK・秘密・node の API)・`./client`(import しただけでブラウザの SDK を引く物)・`./node`(Next の外のプログラム = scripts・eslint-rules・servers が読む物。React と Next を引かない)の 4 つだけ。`libs` = 直接読む lib、`peers` = 棚、`sideEffects` は書かない(手順 8)。形と問題の名前: [libPackage/README.md](./libPackage/README.md)・API「lib の package.json(宣言の形)」
+   - 確かめ: `git grep -n '"\./' -- src/lib/<name>/package.json`(exports の鍵が上の 4 つだけ・値が lib の中の実ファイル)
+   - package.json を置いた時から lint `entry/only-entries` がその lib に効き、外から中のファイルを読む import が error になる(手順 7 で直す)
+5. **tsconfig.json を置く**: 無い間は `pnpm check lib-package` が置く中身を丸ごと出すので(作業の材料として出させる。通ったかは出荷の /ship で読む)、それをそのまま `src/lib/<name>/tsconfig.json` に書く(依存の依存も閉包として入る。JS(`.mjs` / `.js`)のファイルを持つ lib は allowJs・allowImportingTsExtensions・checkJs と JS の include も入り、JS も型検査する。型の誤りは JSDoc で直す)。形: [scripts/structure/lib-package/README.md](../../scripts/structure/lib-package/README.md)
+   - 確かめ: `git diff -- src/lib/<name>/tsconfig.json`(paths = package.json の libs・peers の閉包と、設定を持つ lib の `@lib-config/<name>`・`@lib-config/<name>.ui` だけ)
+6. **設定**(fork が変える値を持つ lib だけ): `config.ts` に既定(lib の設定の型で注釈)・`defineConfig`・入口から出す `XxxOverride` の型・`compose(上書き)` の結果を置き、上書きは `@lib-config/<name>` だけで読む(描画専用の `config.ui.ts` は `@lib-config/<name>.ui`)
+   - 上流の空の上書き `src/config/lib/<name>.config.ts`(描画専用は `<name>.ui.config.ts`)を置く。lib が自前の合成(`defineXxxConfig` など)を持っていたら `defineConfig` に置き換えて消す
    - 上書きの値が効くテストを足す(toast の `config.test.ts` の形: 設定を受けて作る関数に `compose({...})` を渡す)。形: Extension「設定の届け方」・[defineConfig/README.md](./defineConfig/README.md)
-   - 確かめ: `pnpm test src/lib/<name>`。上書きのファイルを一時的に外すと `pnpm check lib-package` が TS2307 で止まる
+   - 確かめ: `git grep -n "@lib-config/" -- src/lib/<name>`(自分の `<name>` / `<name>.ui` だけ)・`git ls-files "src/config/lib/<name>.*"`(持ち主の config ごとに上書きが 1 つ)
 7. **呼び手を入口へ**: 外から lib の中のファイルを読む import(`@/lib/<name>/<中のファイル>`)を入口に直す(書き換えの codemod: `pnpm check lib-package -- codemod`、既定 dry-run。`-- codemod --help`)
-   - 確かめ: `pnpm lint`(entry/only-entries の libInner が 0)・`git grep -n "@/lib/<name>/" -- src scripts` が 0
+   - 確かめ: `git grep -n "@/lib/<name>/" -- src scripts` が 0(入口のファイル名まで書く JS の入口 `@/lib/<name>/index.mjs` などは除く)
 8. **sideEffects**: 既定は書かない。読み込んだだけで動く物(store を作る・登録を呼ぶ・CSS を読む)がある lib に `false` を置くと検査が止める。書くのは読み込み量を測って増えた所だけ
-9. **検査を回す**: `pnpm check lib-package -- --list`(その lib が `closed`)・`pnpm lint`・`pnpm typecheck`・`pnpm test src/lib/<name>`・`pnpm check --gate=ship`。client で読む lib・設定を持つ lib は `pnpm build` も
-   - テストの無い lib は `pnpm test src/lib/<name>` が「選んだテストは 0 本」で通る(exit 0)。閉じる作業でテストを足す決まりは無い(手順 6 の上書きのテストは別)
-10. **moved: の行を書く**: 消えた・動いた古い指定子ごとに `moved: <古い指定子> -> <新しい入口>` を、コミットの本文と、依頼で行ったならその RESOLUTION の notes: に書く(fork への notice の材料)。名前を消した・変えたときはその名前と代わりも書く
+9. **moved: の行を書く**: 消えた・動いた古い指定子ごとに `moved: <古い指定子> -> <新しい入口>` を、コミットの本文と、依頼で行ったならその RESOLUTION の notes: に書く(fork への notice の材料)。名前を消した・変えたときはその名前と代わりも書く
     - 下書き: `pnpm check lib-package -- moved --base <閉じる前の rev>`(notice に貼れる moved: と imports: の塊)
     - 例: `moved: @/hooks/useIsClient -> @/lib/isClient` | `moved: @/lib/toast/useToast -> @/lib/toast` | `moved: TOAST_DEFAULT_DURATION(@/lib/toast/constants) -> src/config/lib/toast.config.ts の duration`
 
@@ -84,11 +82,11 @@ lib は `src/lib/<name>/package.json` で「外から読める入口」と「自
 - `peers`: 共有の同一性が要る棚(今は `components` = `src/components` だけ)
 - `sideEffects`: 書かないのが既定。測って要る所だけ `false` か副作用のあるファイルの一覧(副作用を持つ lib に `false` を置くと `pnpm check lib-package` が止める)
 - `name`・`dependencies` など他のキーは書かない(lib は `@/lib/<name>` で読む。`dependencies` は npm の更新の道具が本物の依存と読み違える)
-- 上書き(設定)は指定子 `@lib-config/<自分>` だけで読む
+- 上書き(設定)は指定子 `@lib-config/<自分>`(描画専用は `@lib-config/<自分>.ui`)だけで読む
 
 lint(`eslint-rules/import-boundaries.mjs`、全 Tier error):
 
-- `entry/only-entries`: 外から宣言済みの lib を読む import は exports の入口に当たること(`@/lib` の別名・相対・`"src/…"` を実パスに解いて照合。値も型も、scripts・テスト・.notices・eslint 設定からも)。宣言済みの lib の中からは `libs` の lib の入口・`peers` の棚・`@lib-config/<自分>` と外部パッケージだけを読む(features・app・hooks・utils・`@/config` は読まない)
+- `entry/only-entries`: 外から宣言済みの lib を読む import は exports の入口に当たること(`@/lib` の別名・相対・`"src/…"` を実パスに解いて照合。値も型も、scripts・テスト・.notices・eslint 設定からも)。宣言済みの lib の中からは `libs` の lib の入口・`peers` の棚・`@lib-config/<自分>`(と `<自分>.ui`)と外部パッケージだけを読む(features・app・hooks・utils・`@/config` は読まない)
 - `lib-self-relative`: 宣言済みの lib の中では自分を `@/lib/<自分>` で読まず相対パスで読む
 
 今は **package.json を持つ lib にだけ**効く。宣言の無い lib は error にせず、閉じたかの検査が数えて出す。本当に要る例外は理由つきの `eslint-disable`。
@@ -101,7 +99,7 @@ lint(`eslint-rules/import-boundaries.mjs`、全 Tier error):
 
 lib の設定(fork が値を変える物)は、lib の外の 1 ファイルの上書きで受ける。
 
-- lib は上書きを指定子 `@lib-config/<自分>` だけで読む(lint `entry/only-entries` が他の書き方・他の lib の上書きを止める)。tsconfig.json の `"@lib-config/*": ["./src/config/lib/*.config.ts"]` の 1 行(上流が出荷、fork は編集しない)が `src/config/lib/<名前>.config.ts` へ向ける。候補は 1 つ
+- lib は上書きを指定子 `@lib-config/<自分>` だけで読む(描画専用の `config.ui.ts` を持つ lib はその上書き `src/config/lib/<自分>.ui.config.ts` を `@lib-config/<自分>.ui` で。lint `entry/only-entries` が他の書き方・他の lib の上書きを止める)。tsconfig.json の `"@lib-config/*": ["./src/config/lib/*.config.ts"]` の 1 行(上流が出荷、fork は編集しない)が `src/config/lib/<名前>.config.ts` へ向ける。候補は 1 つ
 - 上書きのファイルが無いと tsc・tsx・テストが解決の失敗で止まる(黙って既定にならない)。上流は設定を持つ lib ごとに空の上書きを置く
 - 上書きのファイルの形: lib の入口から型だけを読み、値はリテラルで書く(読んでよいのは `process.env`・`@/business`・段階の判定 `@/lib/appEnv` の引数なしの呼び出し(`isProduction()` など)・持ち主が config.ts の `overrideImports` で宣言した指定子だけ)。lint `config-overrides/literal-only` が止める(形の全部: [src/config/README.md](../config/README.md))
 

@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
 
-import { clearLibPackageCache } from "../../../src/lib/libPackage/index.mjs";
+import { clearLibPackageCache } from "../../../src/lib/libPackage/node.mjs";
 import { BASE_ARGS } from "../../runner/test/run.mjs";
 import { expectedPaths } from "./standalone.mjs";
 

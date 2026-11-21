@@ -2,7 +2,8 @@
 
 ## Overview
 
-- lib の package.json(宣言)の唯一の読み手と形の検査。Node 組み込みだけを読む(他の lib・features を読まない)ので、lint(`eslint-rules/import-boundaries.mjs`)・Node の道具(`scripts/structure/libPackage`)・テストのどこからでも読める
+- lib の package.json(宣言)の唯一の読み手と形の検査。Node 組み込みだけを読む(他の lib・features を読まない)ので、lint(`eslint-rules/import-boundaries.mjs`)・Node の道具(`scripts/structure/lib-package`)・テストのどこからでも読める
+- 入口は 2 つ: `.`(`index.mjs`)= ファイルを読まない決まり(定数・`listLibsFrom`・`libOfPath`・`findEntry`)、client でも server でも読める / `./node`(`node.mjs`)= 今の木を node:fs で読む読み手と形の検査(Next の外のプログラム = lint・scripts・テストが読む)
 - 宣言の形と lint の決まりは [../README.md](../README.md)「lib の package.json(宣言の形)」
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/libPackage.md にある
 
@@ -10,7 +11,9 @@
 
 ### 関数
 
-- 入口 `index.mjs`。import は `@/lib/libPackage/index.mjs`、scripts から相対でも可
+- 入口 `.` = `index.mjs`(`@/lib/libPackage/index.mjs`)、`./node` = `node.mjs`(`@/lib/libPackage/node.mjs`)。scripts・eslint-rules からは相対(`../src/lib/libPackage/node.mjs`)
+- `.`: `listLibsFrom`・`libOfPath`・`findEntry`・定数。node の API を読まない(テストが字面で確かめる)
+- `./node`: `listLibs`・`hasLibPackage`・`listDeclaredLibs`・`readLibPackage`・`checkLibPackage`・`checkAllLibPackages`・`clearLibPackageCache`
 - `root` = repo の根(絶対パス)。パスは repo 相対の posix
 - `listLibs(root)` … `src/lib` 直下の lib の名前(フォルダだけ、名前順)
 - `listLibsFrom(listDir)` … 同じ一覧を、読み方を注入して返す(`listDir(rel)` = フォルダの直下の `{ name, isDir }[]`、無ければ `[]`。node:fs を使わない)。`listLibs` と地区の地図(`src/lib/districtMap`)が使う

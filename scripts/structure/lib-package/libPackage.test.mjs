@@ -10,7 +10,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { clearLibPackageCache } from "../../../src/lib/libPackage/index.mjs";
+import { clearLibPackageCache } from "../../../src/lib/libPackage/node.mjs";
 import { checkLibs } from "./check.mjs";
 import { sideEffectsInSource } from "./sideEffects.mjs";
 import { expectedTsconfig } from "./standalone.mjs";
@@ -178,6 +178,22 @@ test("d3: @lib-config/<自分> は設定のファイルがあれば読め、無�
   });
 });
 
+test("@lib-config/<自分>.ui は描画専用の config.ui.ts を持つ lib だけが読み、上書き <自分>.ui.config.ts を指す", () => {
+  const files = { ...B, ...libA(`export { a } from "./config.ui";\n`), "src/lib/a/config.ui.ts": `import override from "@lib-config/a.ui";\nexport const a = override;\n` };
+  withRepo({ ...files, "src/config/lib/a.ui.config.ts": "export default {};\n" }, { tsconfig: ["a", "b"] }, (root) => {
+    const paths = expectedTsconfig(root, "a").compilerOptions?.paths ?? {};
+    assert.deepEqual(paths["@lib-config/a.ui"], ["../../config/lib/a.ui.config.ts"]);
+    assert.equal(paths["@lib-config/a"], undefined);
+    assert.deepEqual(checkLibs(root).problems, []);
+  });
+  // 上書きが無ければ overrideMissing(と読んだ所の TS2307)
+  withRepo(files, { tsconfig: ["a", "b"] }, (root) => {
+    const result = checkLibs(root);
+    assert.ok(codes(result).includes("overrideMissing"));
+    assert.match(messages(result), /src\/lib\/a\/config\.ui\.ts があるのに上書き src\/config\/lib\/a\.ui\.config\.ts がありません/);
+  });
+});
+
 test("@lib-config/<自分> の行は設定 config.ts を持つ lib だけ。無い lib に行があれば消す行を名指しし、無い lib が読めば TS2307", () => {
   withRepo({ ...B, ...libA(`export const a = 1;\n`) }, { tsconfig: ["a", "b"] }, (root) => {
     assert.equal(expectedTsconfig(root, "a").compilerOptions?.paths?.["@lib-config/a"], undefined);
@@ -187,7 +203,7 @@ test("@lib-config/<自分> の行は設定 config.ts を持つ lib だけ。無�
     writeFileSync(path.join(root, "src/lib/a/tsconfig.json"), JSON.stringify(stale));
     const result = checkLibs(root);
     assert.deepEqual(codes(result), ["pathsExtra"]);
-    assert.match(messages(result), /paths の "@lib-config\/a" を消します\(lib に設定 config\.ts が無い\)/);
+    assert.match(messages(result), /paths の "@lib-config\/a" を消します\(lib にその設定\(config\.ts \/ config\.ui\.ts\)が無い\)/);
   });
   // 依存も設定も無い lib: compilerOptions を書かない。空の compilerOptions / paths が残っていても問題にしない
   withRepo(B, { tsconfig: ["b"] }, (root) => {

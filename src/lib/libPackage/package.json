@@ -1,6 +1,7 @@
 {
   "exports": {
-    ".": "./index.mjs"
+    ".": "./index.mjs",
+    "./node": "./node.mjs"
   },
   "libs": []
 }

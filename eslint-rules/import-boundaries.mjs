@@ -109,7 +109,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { libOfPath, readLibPackage } from "../src/lib/libPackage/index.mjs";
+import { libOfPath } from "../src/lib/libPackage/index.mjs";
+import { readLibPackage } from "../src/lib/libPackage/node.mjs";
 import { matchesPath } from "../src/lib/pathPattern/index.mjs";
 import { isUnder, moduleVisitors, repoRelative, resolveImport } from "./resolve-import.mjs";
 

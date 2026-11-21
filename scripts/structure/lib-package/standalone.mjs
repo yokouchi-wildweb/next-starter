@@ -2,7 +2,7 @@
 //
 // 宣言した lib(package.json を持つ lib)の単体用 tsconfig.json を確かめ、その tsconfig で型検査する。
 // - tsconfig.json は lib の中に手で書く(道具は lib の中に書かない)。形 = expectedTsconfig(下)、説明 = README.md
-// - paths は package.json の libs・peers を辿った閉包 + @lib-config/<自分>(設定 config.ts を持つ lib だけ。無い lib に無いファイルへの行を書かない)。ルートの "@/*" は引き継がない
+// - paths は package.json の libs・peers を辿った閉包 + 設定の上書きの行(@lib-config/<自分> = config.ts を持つ lib、@lib-config/<自分>.ui = config.ui.ts を持つ lib だけ。無い lib に無いファイルへの行を書かない)。ルートの "@/*" は引き継がない
 //   (extends は paths を丸ごと置き換える)ので、宣言していない lib・棚を読むと解決できずに落ちる
 // - 相対パスで lib の外へ出る import は paths では止まらないので、自分のファイルの import を解いて別に見る
 // - JS(.mjs / .js)のファイルを持つ lib は allowJs + checkJs で JS も型検査する(include に **/*.mjs・**/*.js を足す)。
@@ -14,10 +14,10 @@ import path from "node:path";
 
 import ts from "typescript";
 
-import { LIB_DIR, PEER_DIRS, readLibPackage } from "../../../src/lib/libPackage/index.mjs";
+import { LIB_DIR, PEER_DIRS } from "../../../src/lib/libPackage/index.mjs";
+import { readLibPackage } from "../../../src/lib/libPackage/node.mjs";
+import { LIB_CONFIG_PREFIX, libConfigSlots } from "./configSlots.mjs";
 
-/** lib の設定(指令 24 の @lib-config/<自分>)の置き場(repo 相対)。<self> = lib の名前 */
-export const LIB_CONFIG_PATH = "src/config/lib/<self>.config.ts";
 /** 単体用 tsconfig の include(lib の中の全部の ts / tsx。テストも含む) */
 export const STANDALONE_INCLUDE = Object.freeze(["**/*.ts", "**/*.tsx"]);
 /** JS のファイルを持つ lib の単体用 tsconfig の include に足す物 */
@@ -28,12 +28,17 @@ export const STANDALONE_JS_OPTIONS = Object.freeze({ allowJs: true, allowImporti
 export const STANDALONE_EXTENDS = "../../../tsconfig.json";
 
 const toPosix = (p) => p.split(path.sep).join("/");
-const configPathOf = (lib) => LIB_CONFIG_PATH.replace("<self>", lib);
 
-/** lib が設定(config.ts / config.tsx)を持つか。持つ lib だけが @lib-config/<自分> を読む(src/lib/README.md「設定の届け方」) */
-export function hasLibConfig(root, lib) {
+/**
+ * lib が持つ設定の口(持ち主のファイルがある物だけ)。持つ口の指定子だけを lib が読む(src/lib/README.md「設定の届け方」)
+ * @returns {{ kind: "value" | "ui", owner: string, override: string, specifier: string }[]}
+ */
+export function libConfigsOf(root, lib) {
   const dir = path.join(root, LIB_DIR, lib);
-  return ["config.ts", "config.tsx"].some((f) => existsSync(path.join(dir, f)));
+  return libConfigSlots(lib).flatMap((slot) => {
+    const owner = slot.owners.find((f) => existsSync(path.join(dir, f)));
+    return owner ? [{ kind: slot.kind, owner, override: slot.override, specifier: slot.specifier }] : [];
+  });
 }
 
 /**
@@ -72,7 +77,7 @@ export function expectedPaths(root, lib) {
     const peerDir = PEER_DIRS[peer];
     paths[`@/${peer}/*`] = [`${toPosix(path.relative(`${LIB_DIR}/${lib}`, peerDir))}/*`];
   }
-  if (hasLibConfig(root, lib)) paths[`@lib-config/${lib}`] = [toPosix(path.relative(`${LIB_DIR}/${lib}`, configPathOf(lib)))];
+  for (const config of libConfigsOf(root, lib)) paths[config.specifier] = [toPosix(path.relative(`${LIB_DIR}/${lib}`, config.override))];
   return Object.fromEntries(Object.entries(paths).sort(([a], [b]) => a.localeCompare(b)));
 }
 
@@ -146,7 +151,7 @@ export function compareTsconfig(root, lib) {
   }
   for (const key of Object.keys(actualPaths)) {
     if (!Object.hasOwn(expectedPathMap, key)) {
-      const why = key.startsWith("@lib-config/") ? "lib に設定 config.ts が無い" : "package.json の libs・peers に無い";
+      const why = key.startsWith(LIB_CONFIG_PREFIX) ? "lib にその設定(config.ts / config.ui.ts)が無い" : "package.json の libs・peers に無い";
       out.push(problem("pathsExtra", `paths の ${json(key)} を消します(${why})`));
     }
   }
@@ -158,7 +163,7 @@ function allowedRoots(root, lib) {
   const { libs, peers } = closureOf(root, lib);
   const dirs = [lib, ...libs].map((name) => path.join(root, LIB_DIR, name) + path.sep);
   for (const peer of peers) dirs.push(path.join(root, PEER_DIRS[peer]) + path.sep);
-  return { dirs, config: path.join(root, configPathOf(lib)) };
+  return { dirs, configs: libConfigsOf(root, lib).map((config) => path.join(root, config.override)) };
 }
 
 const isOwn = (file, ownDir) => path.resolve(file).startsWith(ownDir);
@@ -197,7 +202,7 @@ export function typecheckLib(root, lib) {
       if (!resolved || resolved.isExternalLibraryImport) continue;
       const target = path.resolve(resolved.resolvedFileName);
       if (target.split(path.sep).includes("node_modules")) continue;
-      if (allowed.dirs.some((dir) => target.startsWith(dir)) || target === allowed.config) continue;
+      if (allowed.dirs.some((dir) => target.startsWith(dir)) || allowed.configs.includes(target)) continue;
       out.push({ lib, code: "escape", message: `${rel(file)}: "${spec}" が宣言の外 ${rel(target)} を読みます(package.json の libs・peers に足すか、読むのをやめます)` });
     }
   }

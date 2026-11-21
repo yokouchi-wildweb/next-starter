@@ -13,7 +13,8 @@ import path from "node:path";
 
 import ts from "typescript";
 
-import { LIB_DIR, readLibPackage } from "../../../src/lib/libPackage/index.mjs";
+import { LIB_DIR } from "../../../src/lib/libPackage/index.mjs";
+import { readLibPackage } from "../../../src/lib/libPackage/node.mjs";
 import { globToRegExp } from "../../runner/gates/changed.mjs";
 
 const SOURCE_RE = /\.(ts|tsx|mts|mjs|js|jsx)$/;

@@ -5,13 +5,15 @@
 //   1. 棚の単位 src/components/<Category>/<Unit>: 入口 = <Unit>.<拡張子> のファイルか <Unit>/index.*。中のファイルは外から読まない
 //   2. core のドメインの部品 src/features/core/<domain>/components/(common/)<Part>: 入口 = <Part>.tsx か <Part>/index.*
 //   3. 宣言済みの lib(package.json を持つ src/lib/<name>): exports の入口だけ。宣言済みの lib の中からは
-//      "libs" に書いた lib の入口・"peers" に書いた棚・"@lib-config/<自分>" と外部パッケージだけを読む(宣言の読み手 src/lib/libPackage)
+//      "libs" に書いた lib の入口・"peers" に書いた棚・"@lib-config/<自分>"(描画専用は "@lib-config/<自分>.ui"、口の決まりは scripts/structure/lib-package/configSlots.mjs)と外部パッケージだけを読む(宣言の読み手 src/lib/libPackage)
 // - 同じ単位・同じ部品・同じ lib の中からの読みは見ない(中の組み立ては自由)
 // - 生成された一覧(…/extensions/<file>)は受け口の項目を読むのが仕事なので見ない
 // - テストのデータ __fixtures__ は、テスト(*.test.*)から読むときだけ単位として数えない
 // - 全 Tier で error。行の例外は置かない: 足りない入口は持ち主が足す
 
-import { findEntry, libOfPath, PEER_DIRS, readLibPackage } from "../src/lib/libPackage/index.mjs";
+import { LIB_CONFIG_PREFIX, libConfigSlots } from "../scripts/structure/lib-package/configSlots.mjs";
+import { findEntry, libOfPath, PEER_DIRS } from "../src/lib/libPackage/index.mjs";
+import { readLibPackage } from "../src/lib/libPackage/node.mjs";
 import { isUnder, moduleVisitors, repoRelative, resolveImport } from "./resolve-import.mjs";
 
 const SHELF_UNIT = /^src\/components\/([^/]+)\/([^/]+)\/(.+)$/;
@@ -20,7 +22,6 @@ const ENTRY = /^index(\.(ts|tsx|mts|mjs|js|cjs))?$/;
 const GENERATED_LIST = /\/extensions\/[^/]+$/;
 const TEST_FILE = /\.test\.[cm]?[jt]sx?$/;
 const FIXTURES = "__fixtures__";
-const LIB_CONFIG_PREFIX = "@lib-config/";
 
 /**
  * 解いたパスが棚の単位の中身を指すなら、その単位のフォルダ(src/components/<Category>/<Unit>)を返す。入口・単位の外なら null
@@ -73,8 +74,8 @@ const rule = {
       undeclaredLib:
         '"{{source}}": lib {{own}} は lib {{lib}} を宣言していません。読むなら {{own}}/package.json の "libs" に "{{lib}}" を足します(src/lib/README.md)',
       undeclaredPath:
-        '"{{source}}": lib {{own}} は lib の外({{resolved}})を読みません。読めるのは "libs" に書いた lib の入口、"peers" に書いた棚、"@lib-config/{{own}}" だけです(src/lib/README.md)',
-      libConfigOther: '"{{source}}": lib {{own}} が読める上書きは "@lib-config/{{own}}" だけです(src/lib/README.md)',
+        '"{{source}}": lib {{own}} は lib の外({{resolved}})を読みません。読めるのは "libs" に書いた lib の入口、"peers" に書いた棚、"@lib-config/{{own}}"(描画専用は "@lib-config/{{own}}.ui")だけです(src/lib/README.md)',
+      libConfigOther: '"{{source}}": lib {{own}} が読める上書きは "@lib-config/{{own}}" と描画専用の "@lib-config/{{own}}.ui" だけです(src/lib/README.md)',
     },
     schema: SCHEMA,
   },
@@ -88,7 +89,7 @@ const rule = {
 
     return moduleVisitors(({ node, source }) => {
       if (source.startsWith(LIB_CONFIG_PREFIX)) {
-        if (ownPkg && source !== `${LIB_CONFIG_PREFIX}${ownLib}`) {
+        if (ownPkg && !libConfigSlots(ownLib).some((slot) => slot.specifier === source)) {
           context.report({ node, messageId: "libConfigOther", data: { source, own: ownLib } });
         }
         return;

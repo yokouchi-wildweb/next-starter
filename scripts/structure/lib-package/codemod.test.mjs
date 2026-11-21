@@ -9,7 +9,7 @@ import path from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { clearLibPackageCache } from "../../../src/lib/libPackage/index.mjs";
+import { clearLibPackageCache } from "../../../src/lib/libPackage/node.mjs";
 import { entryForFile, entryIndex, planCodemod, runCodemod } from "./codemod.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");

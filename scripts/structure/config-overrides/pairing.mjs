@@ -14,7 +14,7 @@ import { join } from "node:path";
 
 import { BASE_OVERRIDE_FOLDERS, DISTRICT_KINDS, OVERRIDE_FOLDERS, OVERRIDE_ROOT } from "../../../src/lib/districtMap/index.mjs";
 import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
-import { hasLibPackage } from "../../../src/lib/libPackage/index.mjs";
+import { hasLibPackage } from "../../../src/lib/libPackage/node.mjs";
 
 /** 種類のフォルダに置ける物(上書き・描画用の上書き・README) */
 const OVERRIDE_FILE = /^[^.]+\.config\.ts$/;

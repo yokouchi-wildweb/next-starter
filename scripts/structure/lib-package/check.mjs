@@ -21,7 +21,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { listDeclaredLibs, listLibs, readLibPackage } from "../../../src/lib/libPackage/index.mjs";
+import { listDeclaredLibs, listLibs, readLibPackage } from "../../../src/lib/libPackage/node.mjs";
 import { closedLibProblems, libStates } from "./closed.mjs";
 
 /** @returns {{ checked: string[], skipped: string[], undeclared: string[], problems: { lib: string, code: string, message: string }[] }} */
