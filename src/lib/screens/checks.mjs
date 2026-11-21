@@ -212,18 +212,18 @@ export function findForkOwnedDirFiles(files) {
   return files.filter((file) => file.startsWith("src/app/") && file.split("/").slice(0, -1).includes(FORK_OWNED_DIR));
 }
 
-/** Next.js が page.tsx で認める設定 export の名前(値は page.tsx 自体に書く。Next が静的解析するため re-export 不可) */
-const PAGE_CONFIG_EXPORTS = [
-  "metadata",
-  "viewport",
-  "dynamic",
-  "revalidate",
-  "dynamicParams",
-  "fetchCache",
-  "runtime",
-  "preferredRegion",
-  "maxDuration",
-];
+/** page.tsx に書ける設定 export の名前(値は page.tsx 自体に書く。Next が静的解析するため re-export 不可) */
+const PAGE_CONFIG_EXPORTS = ["metadata", "viewport", "preferredRegion", "maxDuration"];
+
+/**
+ * cacheComponents と両立しない segment config の名(書かない)。可否は lint segment-config/cc-incompatible が判じる
+ * (上流 error・fork warn)ので、切り替えの形の検査では取り除いて形だけを見る(lint と二重に落とさない)。
+ * cacheComponents を有効にする区切りで、ここからも外して形の違反にする
+ */
+const CC_INCOMPATIBLE_SEGMENT_CONFIG = ["dynamic", "dynamicParams", "fetchCache", "revalidate", "runtime"];
+
+/** 切り替えの形の検査が取り除く設定 export の名前(書ける物と、lint が判じる 5 つ) */
+const STRIPPED_CONFIG_EXPORTS = [...PAGE_CONFIG_EXPORTS, ...CC_INCOMPATIBLE_SEGMENT_CONFIG];
 
 /** Screen のファイルから default と一緒に re-export してよい名前(Next が実行時に読む値・関数) */
 export const REEXPORTABLE_FROM_SCREEN = ["metadata", "generateMetadata", "viewport", "generateViewport"];
@@ -267,7 +267,7 @@ export function findBalancedEnd(src, start, open, close) {
  * @returns {string | null} 取り除いた後の中身。無ければ null
  */
 function stripConfigExport(src) {
-  const re = new RegExp(`export\\s+(const|let)\\s+(${PAGE_CONFIG_EXPORTS.join("|")})\\b[^=]*=\\s*`);
+  const re = new RegExp(`export\\s+(const|let)\\s+(${STRIPPED_CONFIG_EXPORTS.join("|")})\\b[^=]*=\\s*`);
   const m = re.exec(src);
   if (!m) return null;
   const valueStart = m.index + m[0].length;
@@ -387,7 +387,7 @@ function parseSwitchModule(source, kind) {
       if (REEXPORTABLE_FROM_SCREEN.includes(spec)) continue;
       if (spec === "default") {
         problems.push(`${targetLabel} は default export しない。\`export { ${example} as default } from ...\` の形で束ねる`);
-      } else if (PAGE_CONFIG_EXPORTS.includes(spec)) {
+      } else if (STRIPPED_CONFIG_EXPORTS.includes(spec)) {
         problems.push(`\`${spec}\` は ${targetLabel} から re-export できない(Next が静的解析するため ${fileLabel} 自体に書く)`);
       } else {
         problems.push(`${targetLabel} から re-export できる名前は default と ${REEXPORTABLE_FROM_SCREEN.join(" / ")} だけ(${spec})`);

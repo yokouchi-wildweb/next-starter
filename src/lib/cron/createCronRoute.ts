@@ -14,7 +14,7 @@
 // export const GET = createCronTaskRoute(cronTask);
 // ```
 
-import { NextResponse } from "next/server";
+import { NextResponse, connection } from "next/server";
 import { runAsSystem } from "@/lib/audit";
 import { verifyCronRequest } from "./auth";
 import type { CronTaskDefinition } from "./types";
@@ -57,6 +57,7 @@ export type CreateCronRouteOptions<T extends Record<string, unknown>> = {
  * cron API ルートハンドラを生成する
  *
  * - GET メソッドハンドラとして export できる形を返す
+ * - 最初の文で connection() を待つ（cacheComponents の build で早期 return が焼き付かないため。off では何も変えない）
  * - 認証失敗: 401
  * - 機能が閉じている（deps.gate が `/api/cron/<name>` を閉と答えた）: 200 { ok: true, skipped: true, reason: "closed" }
  * - 追加の条件が false: 200 { ok: true, skipped: true, reason: "disabled" }
@@ -70,6 +71,9 @@ export function createCronRoute<T extends Record<string, unknown> = Record<strin
   deps: CreateCronRouteDeps = {},
 ) {
   return async (req: Request): Promise<Response> => {
+    // 本物のリクエストが来てから動く印。cacheComponents の build は request を読む前に返す 200（closed / disabled）を
+    // 静的な応答に焼き付けるので、認証・門・追加の条件より前に置く。cacheComponents off では何も変えない
+    await connection();
     if (!verifyCronRequest(req)) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }

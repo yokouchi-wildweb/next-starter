@@ -370,6 +370,48 @@ test("quickFiles: Ship: quick が続く間のファイル、印の無い commit�
   assert.match(l.lines[0], /^safe-point: /);
 });
 
+test("quickFiles: 印の無い作業の merge では止まらず側の quick も数える、downstream-notice: の merge では止まる", () => {
+  const r = tier1(1);
+  const quick = () => {
+    const l = logs();
+    return { code: run(r.dir, ["quickFiles"], l), lines: l.lines };
+  };
+  commit(r.dir, "plain base", { "base.txt": "b" });
+  commit(r.dir, "q1\n\nShip: quick", { "a.txt": "a" });
+  git(r.dir, "switch", "-q", "-c", "side", "HEAD~1");
+  commit(r.dir, "side quick\n\nShip: quick", { "s.txt": "s" });
+  git(r.dir, "switch", "-q", "main");
+  git(r.dir, "merge", "-q", "--no-ff", "-X", "ours", "-m", "merge: work", "side");
+  commit(r.dir, "q2\n\nShip: quick", { "b.txt": "b" });
+  assert.deepEqual(quick(), { code: 0, lines: ["3 quick commits unchecked", "a.txt", "b.txt", "log.txt", "s.txt"] });
+
+  git(r.dir, "switch", "-q", "-c", "up", "HEAD~1");
+  commit(r.dir, "upstream segment", { "u.txt": "u" });
+  git(r.dir, "switch", "-q", "main");
+  git(r.dir, "merge", "-q", "--no-ff", "-X", "ours", "-m", "flux: take a segment\n\ndownstream-notice: 20261101-000000-x", "up");
+  commit(r.dir, "q3\n\nShip: quick", { "c.txt": "c" });
+  assert.deepEqual(quick(), { code: 0, lines: ["1 quick commits unchecked", "c.txt", "log.txt"] });
+});
+
+test("quickFiles --through: 出す範囲(印の無い commit)を通り抜け、push 済みで範囲の下にある quick を数える", () => {
+  const r = tier1(1);
+  const quick = (...argv) => {
+    const l = logs();
+    return { code: run(r.dir, ["quickFiles", ...argv], l), lines: l.lines };
+  };
+  commit(r.dir, "plain base", { "base.txt": "b" });
+  commit(r.dir, "q1\n\nShip: quick", { "a.txt": "a" });
+  commit(r.dir, "q2\n\nShip: quick", { "b.txt": "b" });
+  git(r.dir, "push", "-q", "origin", "main");
+  commit(r.dir, "tool c1", { "c.txt": "c" });
+  commit(r.dir, "tool c2", { "d.txt": "d" });
+  assert.deepEqual(quick(), { code: 0, lines: ["0 quick commits unchecked"] });
+  assert.deepEqual(quick("--through=origin/main"), {
+    code: 0,
+    lines: ["2 quick commits unchecked", "a.txt", "b.txt", "c.txt", "d.txt", "log.txt"],
+  });
+});
+
 test("quickChecked: 記録した HEAD で quickFiles が止まり、その後の quick だけを数える", () => {
   const r = tier1(1);
   const quick = () => {

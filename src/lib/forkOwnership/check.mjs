@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { forkIdOfTexts, PROJECT_RULES_FILE, readForkIdentity, REPO_JSON_FILE } from "./forkIds.mjs";
 import { matchIntake, parseIntake } from "./intake.mjs";
 import { judge } from "./judge.mjs";
-import { checkLineageStructure, checkOverrides, LINEAGE_FILE, parseLineage } from "./lineage.mjs";
+import { checkLineageStructure, LINEAGE_FILE, parseLineage } from "./lineage.mjs";
 import { unitIndex, unitPlaces } from "./unitNames.mjs";
 import { checkPermits, fingerprint, parsePermits, permitsPath } from "./permits.mjs";
 import { SELF_CHECK_DEFAULT, SELF_FILES, SELF_OVERVIEW_FILE, selfProblems } from "./self.mjs";
@@ -26,8 +26,8 @@ import { SELF_CHECK_DEFAULT, SELF_FILES, SELF_OVERVIEW_FILE, selfProblems } from
  *   intake: IntakeRule[], tier1: Tier1Version, tier1Files: Set<string>,
  * }} ForkContext 検査の前提(resolveForkContext の ok)
  * @typedef {{ path: string, from?: string, was: string }} MiddleTierItem 中間 Tier の物に付け替えた違反(was = 元の reason)
- * @typedef {{ enabled: true, problems: SelfProblem[], unverified: string[] } | { enabled: false }} SelfResult 型 5 self の検査(切 = enabled: false)
- * @typedef {{ checked: boolean, failures: string[], warnings: string[] }} LineageResult
+ * @typedef {{ enabled: true, problems: SelfProblem[], asks: SelfProblem[], unverified: string[] } | { enabled: false }} SelfResult 型 5 self の検査(切 = enabled: false)
+ * @typedef {{ checked: boolean, failures: string[] }} LineageResult
  * @typedef {Unverified
  *   | { status: "tier1", ownerId: string, debt: string[], self: SelfResult }
  *   | {
@@ -647,10 +647,11 @@ export function judgeFork(repoRoot, context) {
 
 /**
  * 型 5 self の検査の入力を git から集めて判定する(self.mjs)。Tier1 は自分の受け口の一覧とファイルの有無だけ
- * 「取り込みで親の版が入った」の merge = 基準 base を 2 番目以降の親に持つ、HEAD から見て最新の merge
+ * 「取り込みで親の版が入った」の merge = 基準 base を 2 番目以降の親に持つ、HEAD から見て最新の merge。
+ * その前に取り込んだ親の版 = merge の前(1 番目の親)と基準の分岐点
  * @param {string} repoRoot
  * @param {{ isTier1: boolean, base?: string | null, parentRef?: string | null }} input base / parentRef = 直接の親との基準と親の ref(fork だけ)
- * @returns {{ enabled: true, problems: SelfProblem[], unverified: string[] }}
+ * @returns {{ enabled: true, problems: SelfProblem[], asks: SelfProblem[], unverified: string[] }}
  */
 export function collectSelf(repoRoot, { isTier1, base = null, parentRef = null }) {
   const head = Object.fromEntries(SELF_FILES.map((path) => [path, show(repoRoot, "HEAD", path)]));
@@ -660,14 +661,16 @@ export function collectSelf(repoRoot, { isTier1, base = null, parentRef = null }
 
   const lines = (tryGit(repoRoot, ["rev-list", "--merges", "--parents", "--ancestry-path", `${base}..HEAD`]) ?? "").split("\n").filter(Boolean);
   const mergeLine = lines.map((line) => line.split(" ")).find(([, , ...others]) => base !== null && others.includes(base));
-  /** @type {{ found: boolean, before: Record<string, string | null>, base: Record<string, string | null> }} */
+  /** @type {{ found: boolean, before: Record<string, string | null>, base: Record<string, string | null>, prevBase?: Record<string, string | null> }} */
   let merge = { found: false, before: {}, base: {} };
-  if (mergeLine) {
+  if (mergeLine && base !== null) {
     const [, firstParent] = mergeLine;
+    const prevPoint = tryGit(repoRoot, ["merge-base", firstParent, base])?.trim() || null;
     merge = {
       found: true,
       before: Object.fromEntries(SELF_FILES.map((path) => [path, show(repoRoot, firstParent, path)])),
       base: Object.fromEntries(SELF_FILES.map((path) => [path, show(repoRoot, base, path)])),
+      prevBase: Object.fromEntries(SELF_FILES.map((path) => [path, prevPoint ? show(repoRoot, prevPoint, path) : null])),
     };
   }
   const parentNow = show(repoRoot, parentRef, SELF_OVERVIEW_FILE);
@@ -706,18 +709,15 @@ export function runCheck(repoRoot, options = {}) {
   }
   for (const leftover of leftovers) counts[`permit-${leftover.reason}`] = (counts[`permit-${leftover.reason}`] ?? 0) + 1;
 
-  // 中間層の規則(lineage.md)の並び・鍵・打ち消し。祖先の部分が基準どおりかは append の判定が見る。
+  // 中間層の規則(lineage.md)の並び・鍵。祖先の部分が基準どおりかは append の判定が見る。
   // chain は直接の親から上へ積むので、古い順は逆。lineage.md の無い fork(この版を取り込む前)は検査しない
   const lineageText = headText(LINEAGE_FILE);
   /** @type {LineageResult} */
-  const lineage = { checked: lineageText !== null, failures: [], warnings: [] };
+  const lineage = { checked: lineageText !== null, failures: [] };
   if (lineageText !== null) {
     const parsed = parseLineage(lineageText);
     const ancestorsOldestFirst = tier1.chain.map((step) => step.name).reverse();
     lineage.failures.push(...checkLineageStructure({ parsed, ancestorsOldestFirst, own: ownerId, downstream }));
-    const overrides = checkOverrides({ parsed, projectText: headText(PROJECT_RULES_FILE) ?? "", own: ownerId, projectFile: PROJECT_RULES_FILE });
-    lineage.failures.push(...overrides.failures);
-    lineage.warnings.push(...overrides.warnings);
   }
   if (lineage.failures.length > 0) counts.lineage = lineage.failures.length;
 

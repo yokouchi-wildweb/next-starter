@@ -87,7 +87,11 @@ return response;
 
 ### クライアント側
 
-- クライアントは `useAuthSession()` → `{ user, isAuthenticated, refreshSession }`。`refreshSession` は `GET /api/auth/session` を叩いて Context を更新(失敗時は user=null)
+- クライアントは `useAuthSession()` → `{ user, isAuthenticated, refreshSession }`(user が null = 未ログイン)。`refreshSession` は `GET /api/auth/session` を叩いて Context を更新(失敗時は user=null)
+  - 渡し方: root の `AuthSessionProvider`(server)は Cookie を待たず、セッションの利用者の promise を `AuthSessionClientProvider` へ渡す。`useAuthSession` がその promise を `use` で読む(解けるまで一番近い Suspense で待つ。Provider と children は待たない)
+  - `refreshSession` が決めた値は Provider の寿命の間 promise より優先する(ログイン・ログアウトの直後に、進行中の古い promise の値へ戻らない)
+  - Firebase Auth の同期と DAU の記録は Provider の中の何も描かない子(`<Suspense fallback={null}>` の内側)が行う
+  - Context(`AuthSessionContext`)を直に組むのはテストの道具だけ: 値は `{ userPromise, override: { user }, refreshSession }`(override で読ませると止まらない)
 - ログアウト: `useLogout` → `services/client/logout.ts` → `POST /api/auth/logout`(Cookie 削除)
 - パスワード再設定メール: `useForgotPassword` → `services/client/forgotPassword.ts`(`sendPasswordResetEmail`)→ `POST /api/auth/forgot-password`
 - 利用者のログイン(`/login`): セクションコンテナ `UserLogin` = メールのフォームの部品 `UserLoginEmailForm` + 外部のログインの手段 `ThirdPartySignupOptions` + 新規登録へのリンク。手段を替える fork は自分の Screen(`_components/`)で `UserLoginEmailForm`(入口 `@/features/core/auth/components/UserLogin`)と自分の手段を並べる(フォームを写さない。部品の中身は `API.md`「ログイン form」)
@@ -176,7 +180,7 @@ URL ルール              ロール + ステータス + 行き先(親子 AND)  
 
 - UI の場所はサーバーのデータを取らない(`page-authz/layout-no-server-data`。名前は互換のため据え置き): src/app の Screen・page.tsx・layout・`_layout/`・guard.ts・`_components/` の部品と `src/components`・`src/hooks`・features の components / hooks で、`services/server`・DB(`@/lib/drizzle`・`drizzle-orm` の値・`@/lib/firebase/server`・`firebase-admin`・`entities/drizzle` の表)を値で import しない。layout は loader も不可。型だけは可
   - 理由: UI で取ったデータは範囲の守りと loader の access を通った後のデータにならない。取得は loader へ集める
-  - 名前付き例外は `AuthSessionProvider`(root layout の Provider。Cookie の解析とセッション解決)
+  - 名前付き例外は `AuthSessionProvider`(root layout の Provider。Cookie の解析とセッション解決の promise を作る)
 - セッション・ガード API をページ層・UI・API で import しない(`page-authz/session-api-callsite`): `getSessionUser`・`getTokenOnlySession`・`resolveSessionUser(FromTokenOnly)`・`parseSessionCookie`・削除済みの `authGuard`・`requireCurrentUser`・`requireAuthenticated`・`requireAdmin`(fork の古い import を止めるため名前は残す)・pairedDevice の `getSessionDevice`・`deviceGuard`・`requireCurrentDevice`・`principalGuard`・`requireCurrentPrincipal`
   - 対象: `src/app` 全体(page・Screen・layout・`_layout/`・loader・guard.ts・`_components/`・API の route と補助ファイル)と UI 側。許可の場所は無い(ページの主体は createLoader の `ctx.user`、API の主体は Factory の `ctx.user`)。`AuthSessionProvider` は名前付き例外
 - データに届く wiring の import の場所(`pnpm test src/wiring/wiring.test.mjs`)・`@/lib/pageGuard` の値 import は wiring だけ(lint `import-boundaries/page-guard-via-wiring`)・features の index.ts は services/server を値で再 export しない(`import-boundaries/features-index-no-server-reexport`)

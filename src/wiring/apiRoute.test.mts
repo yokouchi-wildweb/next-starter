@@ -5,9 +5,13 @@
 // 実行: pnpm test src/wiring/apiRoute.test.mts
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { mock, test } from "node:test";
 
-import { NextRequest } from "next/server";
+import nextServer, { NextRequest } from "next/server";
+
+// 入口の芯は最初に next/server の connection() を待つ。Next のリクエストの外(ここ)では throw するので、
+// next/server は本物のまま connection だけ空にする(入口を読み込む前に置く)
+mock.module("next/server", { namedExports: { ...nextServer, connection: async () => {} } });
 
 const { createRouteFactories } = await import("@/lib/routeFactory");
 const { gateDeviceDeps } = await import("./apiRoute.ts");

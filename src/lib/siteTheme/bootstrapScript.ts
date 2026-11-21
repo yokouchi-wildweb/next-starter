@@ -1,8 +1,8 @@
 // src/lib/siteTheme/bootstrapScript.ts
 //
 // <head> に同期で埋め込む初期化スクリプトを生成する。
-// SSR では localStorage の保存値と OS 設定が分からないため、
-// body の描画前にクライアント側で resolve.ts と同じ判定をやり直し、
+// root layout は request を読まず、SSR の `<html>` に dark クラスと data-area を付けない。
+// body の描画前にクライアント側で resolve.ts と同じ判定(location.pathname・localStorage の保存値・OS 設定)を行い、
 // `<html>` の dark クラスと data-area を確定させる(初回描画のフラッシュ防止)。
 //
 // 下流はこのファイルを触らない。設定は引数で受け取り JSON として埋め込む。
@@ -30,6 +30,6 @@ export function buildSiteThemeBootstrapScript(config: SiteThemeConfig): string {
     fallback: config.fallback,
   });
 
-  // 旧ブラウザ互換のため var / function 構文。例外時は SSR の状態をそのまま使う(fail silent)。
+  // 旧ブラウザ互換のため var / function 構文。例外時は何も付けない(既定の light、fail silent)。
   return `(function(){try{var c=${payload};var p=location.pathname;var a=null;for(var i=0;i<c.areas.length&&!a;i++){var ar=c.areas[i];for(var j=0;j<ar.match.length;j++){var m=ar.match[j];if(m==="/"||p===m||p.indexOf(m+"/")===0){a=ar;break}}}if(!a){a=c.fallback}var s=null;if(a.switchable){try{s=localStorage.getItem(c.storageKey)}catch(e){}}var d;if(s==="dark"||s==="light"){d=s==="dark"}else if(a.mode==="system"){d=!!(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)}else{d=a.mode==="dark"}var r=document.documentElement;if(d){r.classList.add("dark")}else{r.classList.remove("dark")}r.setAttribute("${SITE_THEME_AREA_ATTRIBUTE}",a.key)}catch(e){}})();`;
 }

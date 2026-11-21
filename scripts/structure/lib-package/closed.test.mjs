@@ -1,21 +1,19 @@
 // scripts/structure/lib-package/closed.test.mjs
 // 閉じたかの検査(指令 26 d1): lib ごとの状態、閉じた lib の不備は落とし、宣言の無い lib は数えるだけ。
 // 実行: pnpm test scripts/structure/lib-package/closed.test.mjs
-// fixture = 一時フォルダの小さな repo(git なし → 全部を歩いて走査)。
+// fixture = 一時フォルダの小さな repo(git なし → 全部を歩いて走査)。今の repo の lib を型検査するのは門
+// pnpm check lib-package だけ(テストで回すと 1 回の --safe で同じ型検査が重なる)。
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 
-import { clearLibPackageCache, listDeclaredLibs, listLibs } from "../../../src/lib/libPackage/node.mjs";
-import { checkLibs, libReport } from "./check.mjs";
+import { clearLibPackageCache } from "../../../src/lib/libPackage/node.mjs";
+import { checkLibs } from "./check.mjs";
 import { configStateOf, libStates, mergeHelpersOf, scanInnerImports } from "./closed.mjs";
 import { expectedTsconfig } from "./standalone.mjs";
-
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
 const ROOT_TSCONFIG = {
   compilerOptions: {
@@ -145,25 +143,10 @@ test("外から中を読む import: 宣言した lib は入口の外、宣言の
   });
 });
 
-test("package.json の形に問題がある lib は skipped で、落とす検査を掛けない", () => {
+test("package.json の形に問題がある lib は skipped で、閉じていない不備 1 つで落ちる(ほかの検査は掛けない)", () => {
   withRepo({ "src/lib/a/package.json": pkg({ name: "a" }), "src/lib/a/index.ts": `export function defineAConfig() { return {}; }\n` }, {}, (root) => {
     assert.equal(row(root, "a").state, "skipped");
     assert.deepEqual(checkLibs(root).skipped, ["a"]);
-    assert.deepEqual(checkLibs(root).problems, []);
+    assert.deepEqual(codes(root), ["shape"]);
   });
-});
-
-test("d1: 今の repo: 宣言した lib はどれも閉じていて不備 0、残りは宣言の無い lib として数える", () => {
-  clearLibPackageCache();
-  const { rows, summary } = libReport(repo);
-  const closed = rows.filter((r) => r.state === "closed").map((r) => r.lib);
-  const declared = listDeclaredLibs(repo);
-  assert.ok(declared.length > 0, "宣言した lib が 1 本も無い");
-  assert.deepEqual(closed.sort(), [...declared].sort());
-  assert.equal(summary.gaps, 0);
-  assert.equal(summary.problems, 0);
-  assert.equal(summary.innerImportsDeclared, 0);
-  assert.equal(summary.undeclared, listLibs(repo).length - declared.length);
-  // 自前の合成が残る 1 本(L1.23: 閉じる波で defineConfig に寄せる。siteTheme・variantOverrides は寄せ済み)
-  assert.deepEqual(rows.filter((r) => r.mergeHelpers.length > 0).map((r) => r.lib).sort(), ["fonts"]);
 });

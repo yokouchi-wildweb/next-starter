@@ -3,8 +3,8 @@
 // 種類と方針の唯一の置き場(素の ESM)。devcheck の命令(lib.ts が型を付けて出し直す)と、許可のフック(lib.grant.mjs、
 // tsx なしの node で毎回動く)の両方がここを読む。別の対応表を作らない。
 // - KINDS: やることの種類と打つコマンドの形(上流のコード。スキーマ push・本番は種類に無い)
-// - HOOK_KINDS: 許可のフックだけが使う種類(devcheck の候補には出ない)。peer = pnpm workflow peer の送る・読む口、
-//   test / check = pnpm test・pnpm check をそのまま打つ形(/ship の手順 2 が使う。検査は出荷の道具の中だけ、D357: devcheck の確かめではない)
+// - HOOK_KINDS: 許可のフックだけが使う種類(devcheck の候補には出ない)。peer = pnpm workflow peer の送る・読む口
+//   (検査 pnpm test・pnpm check は種類でも方針の鍵でもない: フックが鍵なしで通す出荷の道具の中の命令、回す所は checks_in_ship、lib.grant.mjs)
 // - 方針: リポ直下の repo.json の agent.* の鍵(種類・peer・全体のスイッチ enabled・危険な 3 つと入口)。種類と既定値はこのファイル(上流のコード)
 // 規則と使い方: scripts/workflow/devcheck/README.md
 
@@ -37,9 +37,9 @@ export const KIND_NAMES = Object.keys(KINDS);
 
 /**
  * 許可のフックだけの種類(devcheck の計画の候補には出さない)と人が打つ命令の形(null = エージェントの道具)。方針の鍵は持つ
- * (fork が off にできる)。test / check は検査(D357: 出荷の道具の中でだけ回す)で、devcheck の確かめの種類ではない
+ * (fork が off にできる)
  */
-export const HOOK_COMMANDS = { peer: null, test: "pnpm test <path>", check: "pnpm check <target>" };
+export const HOOK_COMMANDS = { peer: null };
 export const HOOK_KINDS = Object.keys(HOOK_COMMANDS);
 
 /** 方針の鍵 = 種類 + フックだけの種類 */
@@ -70,8 +70,6 @@ export const SWITCHES = {
   dw: "db-write",
   dd: "db-delete",
   ea: "env-add",
-  ts: "test",
-  ck: "check",
   pr: "peer",
   dbp: "db_push",
   evp: "env_production",

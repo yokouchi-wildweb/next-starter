@@ -1,5 +1,7 @@
 // scripts/workflow/notices/safePoint.mjs
-// セーフポイント = 全部の検査(pnpm test 全体・pnpm check・pnpm typecheck・pnpm lint・pnpm build)が通って push された先端に付ける
+// セーフポイント = 全部の検査(pnpm test 全体・pnpm check・pnpm typecheck・pnpm lint・ビルド)が通って push された先端に付ける
+// ビルドは next build と build の後の門(check --gate=build:post)。pnpm build の頭の門(check --gate=build)は直前の pnpm check が
+// 全部回すので重ねない(普段の pnpm build — デプロイ・人の手 — は頭の門を持ったまま)
 // 注釈つきの tag `safe/<fork_id>/<YYYYMMDD>-<n>`(fork_id = 付けたリポの repo.json の repo_id、n = その fork_id と日の次の空き番号)。
 // 名前に fork_id が入るので親子の tag は重ならず、見るのは直接の親の `safe/<親の fork_id>/*` だけ。
 // 仕様 = .notices/README.md「区切り(checkpoint)と区間適用」のセーフポイント。使う所: /ship --safe(push → check → tag)、/flux の区間の報告(where)、
@@ -20,7 +22,13 @@
 //                               /ship のふつうの出荷の報告が使う(セーフポイントを作るかの提案)
 //   quickFiles                  HEAD から --first-parent でさかのぼり、`Ship: quick` の trailer がある commit が続く間(手元の自分の
 //                               safe tag の commit で止まる)を集め、1 行目に `<N> quick commits unchecked`、続けて変わったファイルを 1 行ずつ。
+//                               `Ship:` も `downstream-notice:` も無い merge(cargo が残す作業の合流など)では止まらず数に入れて辿る
+//                               (ファイルは起点からの diff なので合流の 2 番目の親の側も入る)。/flux の取り込み(downstream-notice:)では止まる
 //                               /ship のふつうの出荷が、まだ検査していない quick の分を範囲に足すのに使う。quickChecked で記録した commit でも止まる
+//   quickFiles --through=<ref>  COMMITTED RANGE のふつうの出荷: <ref>(push 先)の祖先でない commit(= 出す範囲、道具が積んだ印の無い
+//                               commit を含む)は印に関係なく通り抜け(数えない・止まらない)、<ref> から下を同じ規則で歩く。範囲の先頭の
+//                               印の無い commit で止まると、push 済みで範囲の下にある他のセッションの quick の分が検査に入らず、出荷の後は
+//                               その先端が検査した起点に見えて後の出荷でも歩かれない(注文 195 の note、計画書 33 S2)
 //   quickChecked                HEAD を「quick の分まで検査した」と記録する(<git common dir>/quick-checked。worktree をまたいで共有)。
 //                               commit の無いふつうの出荷が、push 済みの quick の先端を検査した後に使う
 //   exit 0 = 通った | 1 = 検査が落ちた・tag を付けられない | 2 = 回せない・確かめられない(理由を出す)
@@ -31,7 +39,13 @@ import { fileURLToPath } from "node:url";
 import { forkIdOfTexts, PROJECT_RULES_FILE, readForkIdentity, REPO_JSON_FILE, lastUpstreamSha, resolveParentBranch, resolveParentRemote } from "../../../src/lib/forkOwnership/node.mjs";
 
 export const SAFE_NAME = /^safe\/([a-z0-9]+(?:-[a-z0-9]+)*)\/(\d{8})-([1-9]\d*)$/;
-export const FULL_CHECKS = ["pnpm test", "pnpm check", "pnpm typecheck", "pnpm lint", "pnpm build"];
+export const FULL_CHECKS = [
+  "pnpm test",
+  "pnpm check",
+  "pnpm typecheck",
+  "pnpm lint",
+  "pnpm exec next build && pnpm check --gate=build:post",
+];
 export const PASS_FILE = "safe-point-pass";
 
 const UNSAFE_SUFFIX = "(どうしても出すなら --allow-unsafe=<理由>)";
@@ -410,8 +424,10 @@ function runStatus(repo, argv, log) {
   }
 }
 
-function runQuickFiles(repo, log) {
+function runQuickFiles(repo, log, argv = []) {
   try {
+    const throughRef = argv.find((a) => a.startsWith("--through="))?.slice("--through=".length);
+    const through = throughRef ? git(repo, ["rev-parse", "--verify", `${throughRef}^{commit}`]) : null;
     const checked = readQuickChecked(repo);
     const identity = readForkIdentity(repo);
     const own = identity.own;
@@ -422,14 +438,25 @@ function runQuickFiles(repo, log) {
           )
         : [],
     );
-    const out = git(repo, ["log", "--first-parent", `-n${QUICK_WALK_LIMIT + 1}`, "--format=%H %(trailers:key=Ship,valueonly,separator=%x2C)"]);
+    // 1 行 = sha・親の数・Ship の値・downstream-notice の有無(\x1f 区切り)
+    const out = git(repo, [
+      "log",
+      "--first-parent",
+      `-n${QUICK_WALK_LIMIT + 1}`,
+      "--format=%H%x1f%P%x1f%(trailers:key=Ship,valueonly,separator=%x2C)%x1f%(trailers:key=downstream-notice,valueonly,separator=%x2C)",
+    ]);
     const rows = out === "" ? [] : out.split("\n");
     let count = 0;
     let base = null;
     for (const row of rows) {
-      const [sha, ...rest] = row.split(" ");
-      const values = rest.join(" ").split(",").map((v) => v.trim());
-      if (safeCommits.has(sha) || sha === checked || !values.includes("quick")) {
+      const [sha, parents = "", ship = "", notice = ""] = row.split("\x1f");
+      const values = ship.split(",").map((v) => v.trim());
+      // 印の無い道具の merge(作業の合流・線の合流)は検査した点ではない: 数に入れて first-parent を辿り続ける。
+      // /flux の区切りの取り込み(downstream-notice:)はその区切りの検査を通した点なので止まる
+      const toolMerge = parents.trim().split(" ").length > 1 && ship.trim() === "" && notice.trim() === "";
+      // --through: 出す範囲(<ref> の祖先でない commit)は印に関係なく通り抜け、<ref> から下を歩く
+      if (through && !isAncestor(repo, sha, through)) continue;
+      if (safeCommits.has(sha) || sha === checked || (!values.includes("quick") && !toolMerge)) {
         base = sha;
         break;
       }
@@ -461,10 +488,10 @@ export function run(repo, argv, { log = console.log } = {}) {
   if (action === "tag") return runTag(repo, rest, log);
   if (action === "where") return runWhere(repo, rest, log);
   if (action === "status") return runStatus(repo, rest, log);
-  if (action === "quickFiles") return runQuickFiles(repo, log);
+  if (action === "quickFiles") return runQuickFiles(repo, log, rest);
   if (action === "quickChecked") return runQuickChecked(repo, log);
   log(
-    "使い方: pnpm workflow notices safePoint check [--check=<cmd> ...] | tag [--remote=origin] [--branch=<b>] [--date=YYYYMMDD] | where [--remote=<name>] [--at=<sha>] [--id=<fork_id>] | status [--remote=origin] [--commits=80] [--days=3] [--now=<unix 秒>] | quickFiles | quickChecked",
+    "使い方: pnpm workflow notices safePoint check [--check=<cmd> ...] | tag [--remote=origin] [--branch=<b>] [--date=YYYYMMDD] | where [--remote=<name>] [--at=<sha>] [--id=<fork_id>] | status [--remote=origin] [--commits=80] [--days=3] [--now=<unix 秒>] | quickFiles [--through=<ref>] | quickChecked",
   );
   return 2;
 }

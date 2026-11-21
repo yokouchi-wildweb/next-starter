@@ -1,6 +1,6 @@
 ---
 name: allow
-description: Give a one-time permit for kinds this repo's policy marks manual (switch names sv br lg dw dd ea ts ck pr, the dangerous dbp evp dep) - only on the user's own /allow or words in this tab, write it with pnpm workflow devcheck allow, then run the permitted work once (a dangerous kind through pnpm workflow devcheck danger and the exact command it prints) and report one result line | When the user types /allow with switch names, or says in their own words that the agent may do a manual kind now (e.g. reflect the dev DB, deploy)
+description: Give a one-time permit for kinds this repo's policy marks manual (switch names sv br lg dw dd ea pr, the dangerous dbp evp dep) - only on the user's own /allow or words in this tab, write it with pnpm workflow devcheck allow, then run the permitted work once (a dangerous kind through pnpm workflow devcheck danger and the exact command it prints) and report one result line | When the user types /allow with switch names, or says in their own words that the agent may do a manual kind now (e.g. reflect the dev DB, deploy)
 argument-hint: "<switch...>"
 ---
 

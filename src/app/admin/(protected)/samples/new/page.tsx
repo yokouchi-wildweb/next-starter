@@ -4,6 +4,5 @@
 // 既定画面は _screen/ 側で、pnpm generate domain のたびに再生成される(手で編集しない)。
 // 画面を差し替えるときは _components/<Name>Screen.tsx を作り、下の import 先を向ける。
 // 手順: src/lib/screens/README.md
-export const dynamic = "force-dynamic";
 
 export { AdminSampleCreateScreen as default, metadata } from "./_screen/AdminSampleCreateScreen";

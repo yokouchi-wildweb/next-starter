@@ -4,6 +4,7 @@
 //   群: 既定 = unit + fork、--db で db も、--group=<群>[,<群>] でその群だけ。引数のパス・glob(リポジトリ直下から)で絞る。
 //   --changed: 範囲(門の watch と同じ比べ方)の変更から選ぶ(changed.mjs)。辿れなかったテストは名前を出す。
 //   servers/ の下のテストは名指しの時と、--changed の範囲に servers/ の下の変更がある時だけ候補にする。
+//   門が回すテスト(gate.json の check がテスト・tests の欄)は名指しでない時は回さない(門 1 回、D389。除いた本数を出す)。
 //   --list: 選んだファイルを出すだけ(起動しない)。
 //   終わり方: ファイルのプロセスは node に任せて自然に終える。接続・タイマーが残って終わらないファイルは 1 ファイルの上限で名前付きで落ちる。
 //   --test-force-exit は付けない: 子の報告の終わりが親へ届く前にプロセスを終え、ファイルの後ろのテストが pass にも fail にも数えられず
@@ -21,6 +22,7 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { changedFiles, globToRegExp } from "../gates/changed.mjs";
+import { gateTestFiles } from "../gates/scan.mjs";
 import { scanTree, selectChanged } from "./changed.mjs";
 import { GROUPS, NAMED_ONLY, groupOf, listTestFiles, readFlags } from "./scan.mjs";
 
@@ -72,15 +74,26 @@ export function parseArgs(argv) {
 const matches = (file, pattern) => (/[*?]/.test(pattern) ? globToRegExp(pattern).test(file) : file === pattern || file.startsWith(pattern.replace(/\/?$/, "/")));
 
 /** 選ぶ: { files, notes } か { problem } */
-export async function select(opts, { repo, files, changed = changedFiles, tree = scanTree }) {
+export async function select(opts, { repo, files, changed = changedFiles, tree = scanTree, gateTests = gateTestFiles }) {
   const groups = opts.groups ?? (opts.db ? GROUPS : ["unit", "fork"]);
   // servers/ の下は引数のパス・glob がそこを名指しした時と、--changed の範囲に servers/ の下の変更がある時だけ(NAMED_ONLY)
   const range = opts.changed ? changed(repo) : null;
   const namedOnly = opts.patterns.some((p) => NAMED_ONLY.test(p)) || Boolean(range?.files?.some((f) => NAMED_ONLY.test(f)));
   const all = (files ?? listTestFiles(repo, { namedOnly })).filter((f) => namedOnly || !NAMED_ONLY.test(f));
   let picked = all.filter((f) => groups.includes(groupOf(f)));
-  if (opts.patterns.length) picked = picked.filter((f) => opts.patterns.some((p) => matches(f, p)));
   const notes = [];
+  if (opts.patterns.length) picked = picked.filter((f) => opts.patterns.some((p) => matches(f, p)));
+  else {
+    // 門の入口のテスト(gate.json の check がテスト・tests の欄)は門 1 回: 名指しでない時は回さない(D389)
+    const gated = gateTests(repo);
+    const dropped = picked.filter((f) => gated.has(f));
+    if (dropped.length) {
+      picked = picked.filter((f) => !gated.has(f));
+      const by = [...new Set(dropped.map((f) => gated.get(f)))].join("・");
+      notes.push(`門が回すテスト ${dropped.length} 本を除いた(${by}。pnpm check が回す。名指しすれば回す)`);
+      if (opts.list) for (const f of dropped) notes.push(`除いた: ${f}(門 ${gated.get(f)})`);
+    }
+  }
   if (opts.changed) {
     if (range.files === null) notes.push(`--changed: ${range.why}ので選んだ全部を回す`);
     else {

@@ -15,7 +15,9 @@ no_other_work: this turn does only the steps below
 3. write the handoff with Write to the `handoff:` path (overwrite), English, terse:
    - state: where the work stands | decisions: what the user agreed (absolute dates) | next: the next step and its end condition | files: the files in progress
    - only what nothing reloaded after the compact carries (CLAUDE.md, rules and files on disk come back by themselves)
-4. run the `next:` line: `--then` = the `then:` value unless the user or `extra` asked otherwise (continue = go on, wait = wait for the user) | the quoted line = what to re-read first
+4. run the `next:` line: `--then` = the `then:` value, another only when the user (or `extra`) says it for this compact | the quoted line = what to re-read first
+   - continue = re-read and go on | wait = the user said to wait now — never because a question or an approval is pending: that stays continue
+   - after continue: ask again what you were waiting on (a team's lead: its await too)
 5. follow its output: queued or handed to the tool → end the turn now | it prints a line for the user → show that `/compact …` line and end the turn
 
 ## RULES

@@ -66,8 +66,33 @@ export function lastNoticeFields(repo) {
 
 /** notice を足した commit を全部(--full-history: 親から先に pick した fork では上流の元の add と fork の cherry-pick の両方)。新しい順 */
 export function noticeAddCommits(repo, id) {
-  const out = git(repo, ["log", "--full-history", "--diff-filter=A", "--format=%H", "HEAD", "--", `.notices/${id}.md`, `.notices/done/${id}.md`]).trim();
-  return out ? out.split("\n") : [];
+  return noticeAddTable(repo).get(id) ?? [];
+}
+
+// 表は repo と HEAD ごとに 1 つ(HEAD が進めば作り直す)。id ごとに git log を起こすと、1 回が履歴全体を歩くので
+// fixes: の数 × 履歴の長さになった(88-base 11-21: 合流 1221 の履歴で 1 回 0.63 s × 130 回 = notices の門 73.7 s)
+const addTables = new Map();
+
+/** id → notice を足した commit(新しい順)。.notices/ と done/ を 1 回の git log で読む */
+export function noticeAddTable(repo) {
+  const head = git(repo, ["rev-parse", "-q", "--verify", "HEAD"]).trim();
+  const key = `${repo}\0${head}`;
+  const hit = addTables.get(key);
+  if (hit) return hit;
+  const table = new Map();
+  let cur = null;
+  for (const line of git(repo, ["log", "--full-history", "--diff-filter=A", "--name-only", "--format=@%H", "HEAD", "--", ".notices/"]).split("\n")) {
+    if (line.startsWith("@")) cur = line.slice(1);
+    else {
+      const id = NOTICE_FILE.exec(line)?.[1];
+      if (!id || !cur) continue;
+      const adds = table.get(id) ?? [];
+      if (!adds.includes(cur)) adds.push(cur);
+      table.set(id, adds);
+    }
+  }
+  addTables.set(key, table);
+  return table;
 }
 
 const isAncestorIn = (repo, a, b) => {

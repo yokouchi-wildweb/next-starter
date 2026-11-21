@@ -1,12 +1,17 @@
-// src/lib/cron/createCronRoute.test.ts
+// src/lib/cron/createCronRoute.test.mts
 // cron の route が handler を監査の system の文脈で走らせること(D211: 入口が包む)。実行: pnpm test src/lib/cron (node:test)
-import { after, test } from "node:test";
+import { after, mock, test } from "node:test";
 import assert from "node:assert/strict";
 
 import { setAppEnv } from "@/lib/appEnv";
 import { getAuditContext } from "@/lib/audit";
 
-import { createCronRoute } from "./createCronRoute";
+import nextServer from "next/server";
+
+// 入口の芯は最初に next/server の connection() を待つ。Next のリクエストの外(ここ)では throw するので、
+// next/server は本物のまま connection だけ空にする(入口を読み込む前に置く)
+mock.module("next/server", { namedExports: { ...nextServer, connection: async () => {} } });
+const { createCronRoute } = await import("./createCronRoute.ts");
 
 // 認証を通す(段階 development、src/lib/cron/auth.ts)
 const restoreAppEnv = setAppEnv("development");

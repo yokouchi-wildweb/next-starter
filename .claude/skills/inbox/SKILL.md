@@ -66,7 +66,7 @@ target: $ARGUMENTS
    - **judge downstream follow-up** (only when this repo has downstream forks):
      - this change makes the fork's existing code drift from the upstream spec (structure, generators, conventions, API …) → include in the proposal a migration bringing the fork's existing code to the new spec, shipped in `.notices/` in the same commit as the implementation
      - never leave compat behind for forks to sit on; prefer a clean state without drift | the notice holds what changed and markers to find the target code in the fork (grep patterns etc.) | not needed → one word why
-   - **an order with a boundary (`まだやらないこと`)**: stop at it | problems outside it are not fixed → write them in the RESOLUTION at completion (`findings:` when the order asks for it) | include how the done conditions are checked (commands, tests) in the proposal
+   - **an order with a boundary (`まだやらないこと`)**: stop at it | problems outside it are not fixed → write them in the RESOLUTION at completion (`findings:` when the order asks for it) | include how the done conditions are verified in the proposal: by reading (diff, grep, output) and by the checks /ship runs (name them; never run them during the work, core/notices.md checks_in_ship)
    - **no implementation yet**; STOP: wait for the user's approval
    - **approved → record taking before working**: `node .claude/skills/order/mailbox.mjs take <the file>` (not needed when resuming a `resumable` or already taken by yourself; never for an approval of relay / send back / withdraw) | refused (meanwhile taken by someone else / routed to another owner): give the owner; STOP: ask the human | no work
    - after taking, the order is to be parked / left to another session → let it go with `node .claude/skills/order/mailbox.mjs release <the file>`
@@ -92,7 +92,7 @@ target: $ARGUMENTS
       notes: <anything the requester needs>
       ```
       - `propagate:` (sender repo = head of from:, for an order from a named actor its `repo:`): sender is a downstream fork of this repo = `pushed to origin — fetch & merge upstream into your fork to receive it` | self-addressed = `-` | otherwise = how it reaches the sender (`-` when the sender is unaffected)
-      - the order asks for extra lines → add them after `notes:` as it says (e.g. `findings: <問題・ずれ・範囲外・未確認 | none>` / `verify: <done_when をどう確かめたか、確かめていないことは「未確認」>`) | `status: partial` = stopped at part of the order (the reason in notes or findings)
+      - the order asks for extra lines → add them after `notes:` as it says (e.g. `findings: <問題・ずれ・範囲外・未確認 | none>` / `verify: <done_when をどう確かめたか(読んだ物・/ship の検査の結果)、確かめていないことは「未確認」>`) | `status: partial` = stopped at part of the order (the reason in notes or findings)
    c. **answer** (append the RESOLUTION and move to `done/` in one go; run at the repo root):
       `node .claude/skills/order/mailbox.mjs resolve <the file> --status=done --pushed=<yes | no と理由 | -> --body=<file from b>`
       - fork-id, url, branch, commit of `by:` come from the repo it runs in (commit = the HEAD fixed in a) | no commit → `--commit=-` | committed in another repo → `--commit=<sha and place>` | stopped at part of the order → `--status=partial`

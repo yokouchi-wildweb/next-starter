@@ -52,6 +52,7 @@ router.push("/admin/samples"); // 編集済みなら確認してから
 ### 読む物
 
 - 読む物: `react`、`next/navigation`(`useRouter`・`usePathname`。`useRouter` を読むのはこの lib の中だけ = lint `import-boundaries/router-via-guard` の例外)
+- `usePathname` を読むのは Provider の中の何も描かない子(`GuardNavigationWatcher`)だけで、`<Suspense fallback={null}>` の内側に置く(住所の変化で `navigated()`。Provider と children は住所を待たない)
 - 読まない物: features・棚(src/components)・ほかの lib。確認の見た目は持たず、確認の関数を値で受ける
 
 ### 受け止める経路と手段
@@ -71,6 +72,7 @@ router.push("/admin/samples"); // 編集済みなら確認してから
 - 外す途中にまた編集済みになった(送信の失敗で戻した等)ら、着いてから番兵を積み直す
 - popstate が来なければ 500ms(`SENTINEL_REMOVAL_TIMEOUT_MS`)で待つのをやめて進む(移動を止めたままにしない)
 - 外すのは自分が積んだ番兵だけ(state の印で見分ける)。再読み込みの前に積んだ番兵は別の文書の履歴の上にあり、戻ると読み直しになるので残す
+- 印は守りが最初に番兵を積む時に 1 度だけ作り、以後同じ値(守りは描画中に作られるので、乱数は描画の外で読む)。まだ積んでいない守りは外す物が無い
 
 限界: 編集済みの間は「進む」の履歴が番兵で消える(戻った先から進めない)。編集済みのまま再読み込みしたページでは、前の番兵が残る(戻るで同じ住所に 1 回留まる)。外れてから着くまでの数 ms に押した素の `<a>`(棚の Link でない)は待たない(別の文書の読み込みになるので履歴はずれない)。
 

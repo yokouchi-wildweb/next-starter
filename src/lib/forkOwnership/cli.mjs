@@ -6,6 +6,7 @@ import { runCheck } from "./check.mjs";
 
 /**
  * @import { CheckResult, SelfResult } from "./check.mjs"
+ * @import { SelfProblem } from "./self.mjs"
  * @typedef {{ json: boolean, verbose: boolean, self?: boolean, parent?: string, branch?: string }} CheckCliOptions
  */
 
@@ -42,7 +43,7 @@ const LABELS = {
   picked: "親の緊急修正の pick(台帳の picked:)",
   "permit-same-as-base": "一時許可の残骸: 基準と同じに戻った",
   "permit-unused": "一時許可の残骸: 違反の無いファイル",
-  lineage: ".claude/rules/lineage.md の並び・鍵・打ち消しの誤り",
+  lineage: ".claude/rules/lineage.md の並び・鍵の誤り",
   self: "型 5 self の問題(project.md・behavior.md・repo.json)",
 };
 
@@ -74,7 +75,7 @@ function parseArgs(argv) {
 }
 
 /**
- * 型 5 self の検査の行(切 = 1 行、走った = 結果と問題・未検証の項)
+ * 型 5 self の検査の行(切 = 1 行、走った = 結果と問題・未検証の項・聞くこと)
  * @param {SelfResult | undefined} self
  * @returns {string[]}
  */
@@ -84,6 +85,12 @@ function selfLines(self) {
   const lines = [`self の検査: ${self.problems.length === 0 ? "問題なし" : `問題 ${self.problems.length} 件`}${self.unverified.length ? `・未検証 ${self.unverified.length} 項` : ""}`];
   for (const problem of self.problems) lines.push(`  [${problem.kind}] ${problem.message}`);
   for (const reason of self.unverified) lines.push(`  [未検証] ${reason}`);
+  /** @type {SelfProblem[]} */
+  const asks = self.asks ?? [];
+  if (asks.length > 0) {
+    lines.push(`self の聞くこと(合否は変えない、/flux が人に聞く): ${asks.length} 件`);
+    for (const ask of asks) lines.push(`  [${ask.kind}] ${ask.message}`);
+  }
   return lines;
 }
 
@@ -160,12 +167,8 @@ function print(result, { verbose }) {
     for (const error of result.permitErrors) lines.push(`  ${error.line} 行目: ${error.message}`);
   }
   if (lineageFailures.length > 0) {
-    lines.push("", "中間層の規則の誤り(.claude/rules/lineage.md・project.md の overrides:。前置きの規則に合わせて直す):");
+    lines.push("", "中間層の規則の誤り(.claude/rules/lineage.md。前置きの規則に合わせて直す):");
     for (const failure of lineageFailures) lines.push(`  ${failure}`);
-  }
-  if ((result.lineage?.warnings ?? []).length > 0) {
-    lines.push("", "警告(合否は変えない):");
-    for (const warning of result.lineage.warnings) lines.push(`  ${warning}`);
   }
   if (verbose) {
     lines.push("", "合格:");

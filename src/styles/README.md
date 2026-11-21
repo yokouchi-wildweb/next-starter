@@ -143,10 +143,9 @@ upstream 側のファイルの役割(upstream でスタイルを足すときの�
 
 | 段階 | 場所 | 役割 |
 |---|---|---|
-| SSR | `src/app/layout.tsx` | `x-pathname`(proxy.ts 付与)からエリアを判定し `<html class="dark" data-area="...">` を出力。初回描画がエリアの既定で確定する |
-| bootstrap | 同 layout の `<head>` 内 inline script | localStorage の保存値と OS 設定を body 描画前に反映(フラッシュ防止)。`@/lib/siteTheme/bootstrapScript.ts` が設定を埋め込んで生成 |
+| bootstrap | `src/app/layout.tsx` の `<head>` 内 inline script | `location.pathname` からエリアを判定し、localStorage の保存値と OS 設定も合わせて `<html class="dark" data-area="...">` を body 描画前に付ける(フラッシュ防止)。root layout は request を読まないので SSR の `<html>` には付かない(script が動かなければ既定の light)。`@/lib/siteTheme/bootstrapScript.ts` が設定を埋め込んで生成 |
 | クライアント | `SiteThemeSync`(`@/lib/siteTheme`、root layout に常駐) | クライアント遷移・切替操作・OS 設定変化のたびに再解決して `<html>` を更新する唯一の書き手 |
-| 判定ロジック | `@/lib/siteTheme`(純関数) | 上の 3 箇所が同じ判定を共有する。bootstrap script は手書き JS だが `pnpm test src/lib/siteTheme/siteTheme.test.mjs` が同一ケース集で一致を検証 |
+| 判定ロジック | `@/lib/siteTheme`(純関数) | 上の 2 箇所が同じ判定を共有する。bootstrap script は手書き JS だが `pnpm test src/lib/siteTheme/siteTheme.test.mjs` が同一ケース集で一致を検証 |
 | 設定 | `src/config/lib/siteTheme.config.ts`(`@lib-config/siteTheme`、下流所有) | `export default { ...差分 } satisfies SiteThemeOverride`(リテラルだけ)。既定値は `@/lib/siteTheme/defaults.ts`、合成は `@/lib/defineConfig`。合成済みの値は入口の `siteThemeConfig` |
 
 ### 表示と保存の分離

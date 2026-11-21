@@ -96,7 +96,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 
 ### 中間層の規則(`lineage.mjs`)
 
-- `checkLineageStructure` / `checkOverrides` / `touchedOverrides` / `formatProblems`(中身は Internals の「中間層の規則」)
+- `checkLineageStructure` / `formatProblems`(中身は Internals の「中間層の規則」)
 
 ### 検査の本体(`check.mjs`)
 
@@ -122,7 +122,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
   | debt | — | `debt`(upstream の負債の箇所。一時許可で通す) |
   | self | 書き換え → `self` | — |
 
-- self(型 5: 各リポが自分の版を持つ): `.claude/rules/project.md`・`.claude/rules/behavior.md`・`repo.json` の 3 行だけ、1 ファイル 1 行・ぴったりのパス。`pnpm workflow ownership who` は型 5 と答える。中身は見ず、`pnpm workflow ownership check` が 4 つだけ見る(既定で入、`--no-self` で外す): ファイルが無い・self の行が 3 行ちょうどでない・取り込みの merge で親の版が入ったまま・Tier1 でないリポの project.md が直接の親の版と同じまま
+- self(型 5: 各リポが自分の版を持つ): `.claude/rules/project.md`・`.claude/rules/behavior.md`・`repo.json` の 3 行だけ、1 ファイル 1 行・ぴったりのパス。`pnpm workflow ownership who` は型 5 と答える。中身は見ず、`pnpm workflow ownership check` が 3 つだけで落とす(既定で入、`--no-self` で外す): ファイルが無い・self の行が 3 行ちょうどでない・Tier1 でないリポの project.md が直接の親の版と同じまま。親の版をそのまま使うのは正式な選び方で、取り込みの前から親の版のままなら何も言わない。取り込みの merge で自分の行が消えて親の版と同じになったファイル(merge の前の版が、その前に取り込んだ親の版 = merge の前と基準の分岐点の版と違っていた)は `self.asks` の `self-parent-lost` に出し(合否は変えない)、`/flux` が「親の版に従う / 自分の行を戻す」を人に聞く
 - 載せている物(手書き = src の外だけ): リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)と README.md・`eslint.config.fork.mjs`・firebase.json / ロゴ(public/)/ room の登録点(region)と wrangler.toml / `.claude/rules` の PER_PROJECT と marker・lineage.md(append)/ 負債(debt)。src の下の行は全部生成区画(Internals の「受け口の一覧の生成区画」)
 - 外のままにした物と理由: `eslint.config.mjs`(fork の設定は `eslint.config.fork.mjs` に書く。upstream は空の配列で出荷し、`eslint.config.mjs` が最後に読み足す)/ `tsconfig.json`(paths の不足は upstream で直す。要るなら一時許可 + 依頼)/ `AGENTS.md`(`next dev` が書き足す `<!-- BEGIN:nextjs-agent-rules -->` の区画は生成器の区画として除く)/ 既存の `eslint-rules/*.mjs` の書き換え(新しい規則のファイルは追加なので合格)
 - 負債の行(debt): upstream 自身が core の中のファイルを下流の編集点として案内している箇所。理由の欄 = 案内の所在 → 受け口づくりの依頼の番号(`upreq:<id>`)。件数は Tier1 で `pnpm workflow ownership check` が「対象外 — upstream の負債の行 n」(`--verbose` でパスも)、テストが diagnostic で出す。`/inbox` の一覧の先頭にも出る
@@ -278,8 +278,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 `.claude/rules/lineage.md`(仕様 = その前置き)の検査。git に触れない純関数だけで、git を読むのは呼び手。
 
 - 構造(`checkLineageStructure`): 前置き → `<!-- end preamble -->` → `## <fork_id>` の節を古い祖先から順(自分は在れば最後)、各節は `<!-- end <fork_id> -->` で閉じる。`tier` leaf のリポが自分の節を持つ = 失敗
-- 打ち消し(`checkOverrides`): 名指せるのは祖先の節の `(default)` の鍵だけ。鍵が無い・`(default)` でない・同じ project.md か同じ節で同じ対象を 2 回 = 失敗。祖先の鍵と同じ名前の鍵が project.md に overrides の行なしである = 警告
-- 接触(`touchedOverrides`): `/flux` が取り込む前後の lineage.md を比べ、自分の打ち消しが名指す鍵が変わったら止める(`.claude/skills/flux/lineage-touch.mjs`)
+- 鍵: 節の中の `- <key>: ...` の行。下の段が祖先の鍵を変えるのは、自分の文脈に同じ鍵を `(priority)` 付きで書くこと(`.claude/rules/core/design.md` priority)。読み方の決まりなので検査はしない
 - `runCheck` の `lineage` 欄の failures は違反と同じく exit 1、件数は reason `lineage`。lineage.md の無い版は `checked: false`。祖先の部分が基準どおりかは受け口 `append .claude/rules/lineage.md` の判定が見る
 - 書式(`formatProblems`): `pnpm check rules` が全リポで同じ parser を使って見る(前置きの終わりの印・節の閉じ・節の中の鍵の重複)
 

@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { checkFields, checkSkipCheckpoint, checkUses, fixesPointsBack, lastNoticeFields } from "./noticeFields.mjs";
+import { checkFields, checkSkipCheckpoint, checkUses, fixesPointsBack, lastNoticeFields, noticeAddCommits } from "./noticeFields.mjs";
 
 function notice(id, extra = []) {
   return [`# DOWNSTREAM NOTICE id:${id}`, "from: up", "date: x", "severity: info", ...extra, "change: c", "why: w", "required_actions: none", "verify: v", "refs: -", "notes: -", ""].join("\n");
@@ -128,4 +128,14 @@ test("fixes: の前後: 親から先に pick した fork でも、後から届�
   r.put({ ".notices/20990101-000009-new.md": notice("20990101-000009-new") });
   assert.equal(fixesPointsBack(r.dir, "20990101-000002-b", "20990101-000009-new"), true);
   assert.equal(fixesPointsBack(r.dir, "20990101-000008-nope", "20990101-000009-new"), false);
+});
+
+test("noticeAddCommits: 足した commit の表は HEAD ごと(HEAD が進めば新しい add を引ける)", (t) => {
+  const r = repo(t);
+  const a = r.commit({ ".notices/20990101-000001-a.md": notice("20990101-000001-a") });
+  assert.deepEqual(noticeAddCommits(r.dir, "20990101-000001-a"), [a]);
+  assert.deepEqual(noticeAddCommits(r.dir, "20990101-000002-b"), []);
+  const b = r.commit({ ".notices/20990101-000002-b.md": notice("20990101-000002-b") });
+  assert.deepEqual(noticeAddCommits(r.dir, "20990101-000002-b"), [b]);
+  assert.deepEqual(noticeAddCommits(r.dir, "20990101-000001-a"), [a]);
 });

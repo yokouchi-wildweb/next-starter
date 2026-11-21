@@ -3,7 +3,7 @@
 // 許可のフック(PreToolUse、hook.mjs)の判定。素の node で毎回動くので、tsx も重い import も使わない。
 // 判定の順(D66):
 //   1. 固定の止め(印・方針・モードと独立。D58・D67): スキーマの反映 / 本番の確認の自動の付け足し / 本番の env への書き込み → deny
-//      (理由と人が手で打つ形を 1 行で)。repo.json の直接の書き換えも同じ止め方(書くのは pnpm workflow repo-json set)。
+//      (理由と人が手で打つ形を 1 行で)。repo.json の直接の書き換えも同じ止め方(書くのは pnpm workflow repo-json set / unset)。
 //      読む・探すだけ(grep など)は止めない
 //   2. 印(環境変数 DEVCHECK_GRANT=on)があり、その種類の方針が off でなく(manual は devcheck run … --manual-go だけ)、
 //      許可してよい形のときだけ allow
@@ -294,7 +294,7 @@ const PACKAGE_RUNNERS = ["pnpm", "npm", "yarn", "bun", "npx", "pnpx"];
 const SCRIPT_RUNNERS = [...PACKAGE_RUNNERS, "node", "tsx", "deno"];
 
 const isProdEnvPath = (/** @type {string} */ p) => /^\.env\.production/.test(path.basename(p.replace(/['"]/g, "")));
-/** 書く物を守るファイル: 本番の env と repo.json(方針の置き場。書くのは pnpm workflow repo-json set と /repo-policy だけ) */
+/** 書く物を守るファイル: 本番の env と repo.json(方針の置き場。書くのは pnpm workflow repo-json set / unset と /repo-policy だけ) */
 const isRepoJsonPath = (/** @type {string} */ p) => path.basename(p.replace(/['"]/g, "")) === "repo.json";
 /** 1 回分の許可の記録(書くのは pnpm workflow devcheck allow だけ) */
 const isPermitPath = (/** @type {string} */ p) => path.basename(p.replace(/['"]/g, "")) === path.basename(PERMIT_FILE);
@@ -348,7 +348,7 @@ const guardedFor = (cwd) => (/** @type {string} */ p) => isProdEnvPath(p) || (is
 /** 守るファイルへの書き込みの止め(理由と人がすること) */
 const guardedDeny = (/** @type {string} */ p) => {
   const name = path.basename(String(p).replace(/^of=/, "").replace(/['"]/g, ""));
-  if (isRepoJsonPath(name)) return deny("repo.json(名前・段・方針)は直接書き換えない", "pnpm workflow repo-json set <鍵> <値> か /repo-policy");
+  if (isRepoJsonPath(name)) return deny("repo.json(名前・段・方針)は直接書き換えない", "pnpm workflow repo-json set <鍵> <値>(消すのは unset <鍵>)か /repo-policy");
   if (isPermitPath(name)) return deny("1 回分の許可の記録は直接書き換えない", "/allow <スイッチ名>");
   return deny(`本番の env(${name})はエージェントが書かない`, `エディタで ${name} を直す`);
 };
@@ -433,8 +433,8 @@ export const hasShellSymbols = (/** @type {string} */ command) => {
 };
 
 /**
- * @typedef {{ kind: string; manualGo?: boolean; always?: boolean }} Match
- * kind = 方針の鍵 / always = 方針を見ない(devcheck の plan / status / cleanup)
+ * @typedef {{ kind: string; manualGo?: boolean; always?: boolean; ship?: boolean }} Match
+ * kind = 方針の鍵 / always = 方針を見ない(devcheck の plan / status / cleanup) / ship = 出荷の検査の命令(pnpm test・pnpm check、方針の鍵なしで通す)
  */
 
 /**
@@ -472,8 +472,9 @@ export const classifyBash = (command, itemKind) => {
   }
   if (a === "workflow" && b === "dev-admin" && c === "run") return rest.slice(3).every((w) => w === "--check") ? { kind: "login" } : null;
   if (a === "workflow" && b === "peer" && PEER_ACTIONS.includes(c)) return { kind: "peer" };
-  if (a === "test") return rest.slice(1).some((w) => w === "--db" || w.startsWith("--db=")) ? null : { kind: "test" };
-  if (a === "check") return { kind: "check" };
+  // 検査(出荷の道具の中の命令)は許可で開け閉めしない(D272): 方針の鍵なしで通す。回す所は core/notices.md checks_in_ship
+  if (a === "test") return rest.slice(1).some((w) => w === "--db" || w.startsWith("--db=")) ? null : { kind: "ship-check", ship: true };
+  if (a === "check") return { kind: "ship-check", ship: true };
   return null;
 };
 
@@ -608,6 +609,7 @@ export const decide = (req, deps) => {
   if (req.tool === "Bash" && typeof req.command === "string") match = classifyBash(req.command, deps.itemKind);
   else if (req.tool.startsWith(BROWSER_PREFIX)) match = classifyBrowser(req, deps);
   if (!match) return null;
+  if (match.ship) return { decision: "allow", reason: "devcheck の許可: 印あり・出荷の検査の命令(方針の鍵なし、回す所は checks_in_ship)" };
   const policy = deps.policy();
   // devcheck の入口(plan / status / cleanup・allow / danger)は種類を持たない: どれかの種類が off でない間だけ通す
   // (全体のスイッチ enabled:false = 全部 off → 印の道では何も通さない、D103)
