@@ -1,5 +1,5 @@
 // scripts/structure/lib-package/codemod.test.mjs
-// 閉じた lib の中を読む import を入口へ書き換える codemod の契約テスト。fixture の repo は一時フォルダに作る。
+// 閉じた lib の中を読む import を入口へ書き換える codemod(名前ごとの割り・改名表を含む)の契約テスト。fixture の repo は一時フォルダに作る。
 // 実行: pnpm test scripts/structure/lib-package/codemod.test.mjs (node:test)
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -10,7 +10,8 @@ import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { clearLibPackageCache } from "../../../src/lib/libPackage/node.mjs";
-import { entryForFile, entryIndex, planCodemod, runCodemod } from "./codemod.mjs";
+import { applyCodemod, entryForFile, entryIndex, planCodemod, runCodemod } from "./codemod.mjs";
+import { loadRenames, validateRenames } from "./renames.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const roots = [];
@@ -301,4 +302,181 @@ test("--base なしでは消えた束は unparsable で止まり、--base の案
     ["unparsable", "unparsable", "unparsable"],
   );
   assert.match(plan.stops[0].detail, /--base <rev> で名前ごとに引ける/);
+});
+
+/** 名前ごとの割り(D262): 入口 "." から出ていった名前(同じ lib の ./server・別の lib)と、決まらない名前 */
+const SPLIT = {
+  "src/lib/kit/package.json": { exports: { ".": "./index.ts", "./server": "./server.ts" } },
+  "src/lib/kit/index.ts": 'export { useKit } from "./useKit";\n',
+  "src/lib/kit/useKit.ts": "export function useKit() { return 1; }\n",
+  "src/lib/kit/server.ts": 'export { omit } from "./omit";\n',
+  "src/lib/kit/omit.ts": "export function omit() { return 1; }\n",
+  "src/lib/def/package.json": { exports: { ".": "./index.ts" } },
+  "src/lib/def/index.ts": 'export { ID_FIELD, type Paths } from "./fields";\n',
+  "src/lib/def/fields.ts": 'export const ID_FIELD = "id";\nexport type Paths = { index: string };\n',
+  "src/lib/a1/package.json": { exports: { ".": "./index.ts" } },
+  "src/lib/a1/index.ts": "export const twin = 1;\n",
+  "src/lib/a2/package.json": { exports: { ".": "./index.ts" } },
+  "src/lib/a2/index.ts": "export const twin = 2;\n",
+  "src/features/x/X.ts": [
+    'import { useKit, omit, ID_FIELD, type Paths } from "@/lib/kit";',
+    'import { useKit as k } from "@/lib/kit";',
+    'import { twin } from "@/lib/kit";',
+    'import { nowhere } from "@/lib/kit";',
+    'export { omit } from "@/lib/kit";',
+    "",
+  ].join("\n"),
+};
+
+test("名前ごとの割り: 入口から出ていった名前を、同じ lib の別の入口・それを出す 1 つの入口へ文を分けて書き換える。決まらない・無い名前は止まる", () => {
+  const plan = planCodemod(makeRepo(SPLIT), { table: [] });
+  assert.deepEqual(
+    plan.changes.map((c) => `${c.line} ${c.text}`),
+    [
+      '1 import { useKit } from "@/lib/kit";\nimport { omit } from "@/lib/kit/server";\nimport { ID_FIELD, type Paths } from "@/lib/def";',
+      '5 export { omit } from "@/lib/kit/server";',
+    ],
+    "名前が全部入口から出ている文(2 行目)は触らない",
+  );
+  assert.deepEqual(
+    plan.stops.map((s) => `${s.line} ${s.kind}`),
+    ["3 ambiguous", "4 notExported"],
+  );
+  assert.match(plan.stops[0].detail, /@\/lib\/a1, @\/lib\/a2/);
+});
+
+/** git の見本: <base> で lib st の CONST_A と firestore 側の createCrudService、<head> で CONST_A を lib dom へ移し(同じ名前が lib zz にも)、firestore 側を改名 */
+function makeRenamedRepo() {
+  const root = makeRepo({
+    "src/lib/st/package.json": { exports: { ".": "./index.ts", "./fire": "./fire.ts" } },
+    "src/lib/st/index.ts": 'export { createCrudService } from "./drizzle";\nexport { CONST_A } from "./consts";\n',
+    "src/lib/st/drizzle.ts": "export function createCrudService() { return 1; }\n",
+    "src/lib/st/fire.ts": "export function createCrudService() { return 2; }\n",
+    "src/lib/st/consts.ts": "export const CONST_A = 1;\n",
+    "src/lib/dom/package.json": { exports: { ".": "./index.ts" } },
+    "src/lib/dom/index.ts": "export const other = 1;\n",
+    "src/lib/zz/package.json": { exports: { ".": "./index.ts" } },
+    "src/lib/zz/index.ts": "export const CONST_A = 9;\n",
+    "src/features/b/a.ts": 'import { createCrudService } from "@/lib/st";\nimport { createCrudService as fire } from "@/lib/st/fire";\nimport { CONST_A } from "@/lib/st";\nexport const z = [createCrudService, fire, CONST_A];\n',
+  });
+  const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.test", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.test" } });
+  git("init", "-q");
+  git("add", "-A");
+  git("commit", "-q", "-m", "base");
+  const base = git("rev-parse", "HEAD").trim();
+  git("mv", "src/lib/st/consts.ts", "src/lib/dom/consts.ts");
+  writeFileSync(path.join(root, "src/lib/st/index.ts"), 'export { createCrudService } from "./drizzle";\n');
+  writeFileSync(path.join(root, "src/lib/dom/index.ts"), 'export const other = 1;\nexport { CONST_A } from "./consts";\n');
+  writeFileSync(path.join(root, "src/lib/st/fire.ts"), "export function createFirestoreCrudService() { return 2; }\n");
+  git("add", "-A");
+  git("commit", "-q", "-m", "head");
+  clearLibPackageCache();
+  return { root, base };
+}
+const FIRE_ROW = [{ segment: "k5", lib: "st", kind: "export", from: "createCrudService", to: "createFirestoreCrudService", origin: "src/lib/st/fire.ts" }];
+
+test("--base: 出ていった名前は <base> の実体を改名で辿って入口を決め(同じ名前の別物と分ける)、origin の export の行は同じ名前の別物を分けて改名する", () => {
+  const { root, base } = makeRenamedRepo();
+  const plan = planCodemod(root, { base, table: FIRE_ROW });
+  assert.deepEqual(
+    plan.changes.map((c) => `${c.line} ${c.text}`),
+    ['2 import { createFirestoreCrudService as fire } from "@/lib/st/fire";', '3 import { CONST_A } from "@/lib/dom";'],
+    "drizzle 側の createCrudService(1 行目)は触らない",
+  );
+  assert.deepEqual(plan.stops, []);
+});
+
+test("--base なし: origin の行は needsBase、実体が 2 つある名前は ambiguous で止まる", () => {
+  const { root } = makeRenamedRepo();
+  const plan = planCodemod(root, { table: FIRE_ROW });
+  assert.deepEqual(plan.changes, []);
+  assert.deepEqual(
+    plan.stops.map((s) => `${s.line} ${s.kind}`),
+    ["2 needsBase", "3 ambiguous"],
+  );
+});
+
+/** 改名の後の lib svc(サービスは delete・get、ApiClient は get・delete、型 IdStrategy)と、古い名前のままの読み手 */
+const RENAMED_SVC = {
+  "src/lib/svc/package.json": { exports: { ".": "./index.ts" } },
+  "src/lib/svc/index.ts": 'export { createService, type IdStrategy } from "./service";\nexport { createApiClient, type ApiClient } from "./client";\n',
+  "src/lib/svc/service.ts": 'export type IdStrategy = "uuid" | "db";\nexport function createService() { return { async get(id: string) { return id; }, async delete(id: string) {}, async hardDelete(id: string) {} }; }\n',
+  "src/lib/svc/client.ts": "export interface ApiClient { get(id: string): Promise<string>; delete(id: string): Promise<void> }\nexport function createApiClient(): ApiClient { return { get: async (id) => id, delete: async () => {} }; }\n",
+  "src/features/s/service.ts": [
+    'import { createService, createApiClient, type IdType } from "@/lib/svc";',
+    "const base = createService();",
+    "export const wrapped = { ...base, async remove(id: string) { await base.remove(id); } };",
+    "export const plain = { ...base, remove: base.remove };",
+    'const strategy: IdType = "uuid";',
+    "export const shape = { IdType: strategy };",
+    "export async function run() {",
+    '  await base.remove("1");',
+    '  await base["remove"]("1");',
+    "  const { remove } = base;",
+    "  const { remove: del } = base;",
+    '  await wrapped.remove("1");',
+    "  const client = createApiClient();",
+    '  await client.getById("1");',
+    "  const map = new Map<string, number>();",
+    '  map.delete("x");',
+    "  const other = { remove(id: string) { return id; } };",
+    '  other.remove("1");',
+    "  const loose: any = base;",
+    '  loose.remove("1");',
+    "  document.body.remove();",
+    "  return [remove, del];",
+    "}",
+    "",
+  ].join("\n"),
+};
+const SVC_TABLE = [
+  { segment: "k5", lib: "svc", kind: "method", from: "remove", to: "delete", receivers: "service" },
+  { segment: "k5", lib: "svc", kind: "method", from: "getById", to: "get", receivers: "ApiClient" },
+  { segment: "k5", lib: "svc", kind: "export", from: "IdType", to: "IdStrategy" },
+];
+
+test("改名表: method の行は型で受け手が lib の物と分かる所だけ(包みの上書きとその呼び出し・[\"…\"]・分割代入)、export の行は import と参照。別の型の同じ名前・any は触らない", () => {
+  const root = makeRepo(RENAMED_SVC);
+  const plan = planCodemod(root, { table: SVC_TABLE });
+  assert.deepEqual(
+    plan.changes.map((c) => `${c.line} ${c.text}`).sort(),
+    [
+      '1 import { createService, createApiClient, type IdStrategy } from "@/lib/svc";',
+      "10 delete: remove",
+      "11 delete",
+      "12 delete",
+      "14 get",
+      "3 delete",
+      "3 delete",
+      "4 delete",
+      "4 delete",
+      "5 IdStrategy",
+      "8 delete",
+      '9 "delete"',
+    ],
+    "6 行目の鍵 IdType・Map の delete・別の object の remove・DOM の remove は触らない",
+  );
+  assert.deepEqual(plan.stops.map((s) => `${s.line} ${s.kind}`), ["20 untyped"], "any の受け手は書き換えず報告");
+
+  applyCodemod(root, plan);
+  const after = readFileSync(path.join(root, "src/features/s/service.ts"), "utf8");
+  assert.match(after, /export const wrapped = \{ \.\.\.base, async delete\(id: string\) \{ await base\.delete\(id\); \} \};/);
+  assert.match(after, /const \{ delete: remove \} = base;/);
+  assert.match(after, /export const shape = \{ IdType: strategy \};/);
+  assert.match(after, /other\.remove\("1"\);/);
+  assert.deepEqual(planCodemod(root, { table: SVC_TABLE }).changes, [], "2 回目は 0");
+});
+
+test("改名表: lib を改名する前の木(受け手が古い名前を持つ)では何も書き換えない。表の形の誤りは throw", () => {
+  const before = {
+    ...RENAMED_SVC,
+    "src/lib/svc/service.ts": 'export type IdType = "uuid" | "db";\nexport function createService() { return { async get(id: string) { return id; }, async remove(id: string) {} }; }\n',
+    "src/lib/svc/index.ts": 'export { createService, type IdType } from "./service";\nexport { createApiClient, type ApiClient } from "./client";\n',
+    "src/lib/svc/client.ts": "export interface ApiClient { getById(id: string): Promise<string> }\nexport function createApiClient(): ApiClient { return { getById: async (id) => id }; }\n",
+  };
+  const plan = planCodemod(makeRepo(before), { table: SVC_TABLE });
+  assert.deepEqual(plan.changes, []);
+  assert.throws(() => validateRenames([{ segment: "k5", lib: "svc", kind: "rename", from: "a", to: "b" }]), /kind/);
+  assert.throws(() => validateRenames([{ segment: "k5", lib: "svc", kind: "method", from: "a", to: "a" }]), /from \/ to/);
+  assert.deepEqual(loadRenames().length >= 0, true, "同梱の renames.json は形が正しい");
 });
