@@ -113,7 +113,7 @@ export default { duration: 5000 } satisfies ToastOverride;
 ```
 
 - lib の中の合成は共通の [`defineConfig`](./defineConfig/README.md)(既定 + 規則 → `compose(上書き)`)。lib は `defaults`・規則・`XxxOverride` の型・`compose` の結果を自分の config.ts に持つ
-- lib ごとの合成(`defineFontsConfig` など)は、その lib を閉じる段で `defineConfig` に置き換える
+- lib ごとの合成(`defineXxxConfig` など)は、その lib を閉じる段で `defineConfig` に置き換える
 
 ## Verification
 

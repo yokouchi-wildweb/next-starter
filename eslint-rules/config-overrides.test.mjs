@@ -59,7 +59,7 @@ test("literal-only: リテラル・型・process.env・@/business・宣言した
       { filename: WALLET_UI, options, code: `import { FaCoins } from "react-icons/fa";\nimport { Icons } from "@/components/Icons";\nexport default { coin: FaCoins, gem: Icons.Gem };` },
       { filename: GACHA, options, code: `export interface Extra { a: string }\nexport type { Other } from "@/features/gacha/config";\nexport default {};` },
       // 持ち主が overrideLoaders で宣言したローダー(next/font)は const <名前> = <ローダー>(<リテラル>) で呼べ、その名前を値で読める
-      { filename: FONTS_UI, options, code: `import { Noto_Sans_JP } from "next/font/google";\nimport localFont from "next/font/local";\nimport type { FontsOverride } from "@/lib/fonts/config.ui";\nconst sans = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-sans-loaded" });\nconst mono = localFont({ src: "../../assets/fonts/Mono.woff2", variable: "--font-mono-loaded" });\nexport default { sans, mono } satisfies FontsOverride;` },
+      { filename: FONTS_UI, options, code: `import { Noto_Sans_JP } from "next/font/google";\nimport localFont from "next/font/local";\nimport type { FontsOverride } from "@/lib/fonts";\nconst sans = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-sans-loaded" });\nconst mono = localFont({ src: "../../assets/fonts/Mono.woff2", variable: "--font-mono-loaded" });\nexport default { sans, mono } satisfies FontsOverride;` },
       // 古いフォルダ・直下のファイルは対象外
       { filename: at("src/config/app/whatever.config.ts"), options, code: `export const x = () => 1;` },
       { filename: at("src/config/business.config.ts"), options, code: `export const x = () => 1;` },

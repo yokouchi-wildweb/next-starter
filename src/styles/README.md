@@ -173,7 +173,7 @@ Vercel が前回デプロイのビルドキャッシュを復元すると、キ�
 | `pnpm test scripts/structure/styles/builtCss.test.mjs` | 上記の判定ロジック(@theme / @utility の除外、相対 import の走査、missing / unverifiable の判定) |
 | `pnpm test src/lib/siteTheme/siteTheme.test.mjs` | 既定値の互換、エリア一致、ロック、bootstrap script と resolver の一致 |
 | `pnpm test src/styles/core/` | theme.css の参照変数が上流 CSS で全て定義されている / `.dark` が `:root` に無い変数を持ち込まない / 意味色の 3 変数が揃っている / 書体変数が core/typography.css にある / `core/index.css` と `global.css` の import 順 / upstream が出荷する直下の palette / typography / overrides / gradient.css はコメントだけ・global.css は @import だけ(upstream のみ) |
-| `pnpm test src/lib/fonts/fonts.test.mjs` | defineFontsConfig の既定(読み込み無し)と variable クラス連結、core/typography.css の loaded 変数参照 |
+| `pnpm test src/lib/fonts/fonts.test.mjs` | 書体の設定の合成(buildFontsConfig: 既定は読み込み無し、variable クラス連結、variable 無しは拒否)、core/typography.css の loaded 変数参照 |
 | `pnpm test src/lib/cn/cn.test.mjs` | theme.css の `--text-*` と tailwind-merge 登録のドリフト |
 | `pnpm test src/lib/variantOverrides/variantOverrides.test.mjs` | オーバーライド無しで cva と同一出力 / 結合順(cva → オーバーライド → className)/ 既定 variant の解決 / 出荷時の variants.config.ts が空 |
 | `pnpm test eslint-rules/style-tokens.test.mjs` | 生パレット色検出規則の検出・非検出ケース |

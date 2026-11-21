@@ -3,7 +3,7 @@ import "@/styles/global.css";
 import { Suspense } from "react";
 import { headers } from "next/headers";
 
-import { fontsConfig } from "@/lib/fonts/config.ui";
+import { fontsConfig } from "@/lib/fonts";
 import {
   buildSiteThemeBootstrapScript,
   resolveSiteTheme,

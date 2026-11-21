@@ -81,7 +81,7 @@ export const overrideLoaders = ["next/font/google", "next/font/local"] as const;
 
 // src/config/lib/fonts.ui.config.ts(上書き)
 import { Noto_Sans_JP } from "next/font/google";
-import type { FontsOverride } from "@/lib/fonts/config.ui";
+import type { FontsOverride } from "@/lib/fonts";
 const sans = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-sans-loaded", display: "swap" });
 export default { sans } satisfies FontsOverride;
 ```

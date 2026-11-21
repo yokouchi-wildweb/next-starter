@@ -10,6 +10,6 @@
 //   import localFont from "next/font/local";
 //   const sans = localFont({ src: "../../assets/fonts/Brand.woff2", variable: "--font-sans-loaded", display: "swap" });
 // Web フォントを使わず system フォントの並びだけ変えるなら、ここは触らず src/styles/typography.css に :root { --font-geist-sans: …; }
-import type { FontsOverride } from "@/lib/fonts/config.ui";
+import type { FontsOverride } from "@/lib/fonts";
 
 export default {} satisfies FontsOverride;

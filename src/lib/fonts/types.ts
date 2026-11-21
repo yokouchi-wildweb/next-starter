@@ -11,18 +11,8 @@ export type LoadedFont = {
   className: string;
 };
 
-/**
- * 下流が書く差分。渡したものだけ読み込まれ、渡さなければ Web フォント無し(system スタック)。
- * next/font のローダーは `variable` に下記の固定名を指定すること(リテラル必須):
- *   sans → "--font-sans-loaded" / mono → "--font-mono-loaded"
- * (src/styles/core/typography.css のスタックがこの変数名でフォールバック参照している)
- */
-export type FontsConfigInput = {
-  sans?: LoadedFont | null;
-  mono?: LoadedFont | null;
-};
-
-/** マージ済みの設定 */
+/** 合成済みの設定(上書き FontsOverride の型は ./settings.ts。next/font のローダーの variable は固定名
+ *   sans → "--font-sans-loaded" / mono → "--font-mono-loaded"、src/styles/core/typography.css がこの名前でフォールバック参照する) */
 export type FontsConfig = {
   sans: LoadedFont | null;
   mono: LoadedFont | null;

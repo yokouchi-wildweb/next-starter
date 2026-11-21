@@ -88,7 +88,7 @@ Layout 部品(Block / Section / Stack / Flex / Grid / Main)の `appearance` の�
 ```ts
 // src/config/lib/fonts.ui.config.ts
 import { Noto_Sans_JP } from "next/font/google";
-import type { FontsOverride } from "@/lib/fonts/config.ui";
+import type { FontsOverride } from "@/lib/fonts";
 const sans = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-sans-loaded", display: "swap" });
 export default { sans } satisfies FontsOverride;
 ```

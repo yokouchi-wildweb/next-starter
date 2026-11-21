@@ -36,7 +36,7 @@
 - src/lib/folderCatalog — フォルダ目録(CATALOG.md)の読み込み・検査・所有判定
 - src/lib/forkOwnership — fork の所有の検査 pnpm workflow ownership check(直接の親との merge-base 比較・受け口の一覧・一時許可・鮮度)と、その部品(受け口の一覧 intake.txt・判定の核・一時許可の照合・registry の fork の区画と生成器の区画の読み取り)
 - src/lib/formSuite — フォームの組み立て一式(AppForm・欄の枠 Field・react-hook-form の Controlled の入力・FieldRenderer・AutoSave・FormActions)。棚の入力部品(components/Input)を peers で読む
-- src/lib/fonts — Web フォントの設定(defineFontsConfig、既定はシステムフォント)
+- src/lib/fonts — Web フォントの設定(上書き @lib-config/fonts.ui を @/lib/defineConfig で合成した fontsConfig、既定はシステムフォント)
 - src/lib/frameDims — body 直下へ portal する部品に外枠の寸法変数(ヘッダー・バナー・下のナビの高さ)を写す useFrameDimsStyle(変数の名前と外枠の印は @lib-config で上書き)
 - src/lib/globalLoader — 画面全体のローダー(root layout の GlobalScreenLoader・出し入れの useGlobalLoader)。描画は棚の ScreenLoader fullscreen(peers で components を読む)
 - src/lib/googleTag — Google tag(gtag.js)と Google Ads コンバージョン計測(env 駆動、未設定なら no-op)
