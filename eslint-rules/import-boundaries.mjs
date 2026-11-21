@@ -24,7 +24,8 @@
 // 値は注入で受ける。渡し方の既定 = 組み立て側 1 モジュールが import 時に作る設定済みの版(src/wiring/**)。
 //
 // ── page-guard-via-wiring(L1.18、D5 K1 と同じ形) ──
-// @/lib/pageGuard(src/lib/pageGuard/** のどのファイルも)を値 import できるのは src/wiring/** と src/lib/pageGuard 自身だけ。
+// @/lib/pageGuard(閉じた lib。入口は @/lib/pageGuard だけで、中のファイルは entry/only-entries が止める)を値 import できるのは
+// src/wiring/** と src/lib/pageGuard 自身だけ。
 // 型だけの import は誰でも可(auth の束 pageGuardUserDeps は型だけ)。guard.ts は root を @/wiring/pageGuard から、子を親の extend で作る。
 //
 // ── features-index-no-server-reexport(D73 K5) ──

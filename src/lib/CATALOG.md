@@ -52,7 +52,7 @@
 - src/lib/mediaProbe — Storage 上のメディアをサーバーで解析しストリーム構成を返す(エンジン差し替え可)
 - src/lib/messaging — 連絡の定義の型(defineMessage・経路ごとの欄 MessageContent・上書き MessageOverride)と定義の読み手の検査(validateMessageDefinition)、経路の失敗 ChannelError
 - src/lib/metadata — Next.js の generateMetadata 生成ヘルパ(createMetadata)
-- src/lib/pageGuard — ページの守りの汎用版(範囲の guard()・createLoader・extend、親子 AND。利用者の解き方と access の評価を差し込む。値 import は src/wiring だけ、guard.ts は @/wiring/pageGuard)
+- src/lib/pageGuard — ページの守りの汎用版(範囲の guard()・createLoader・extend、親子 AND。利用者の解き方と access の評価を差し込む。値 import は src/wiring だけ、guard.ts は @/wiring/pageGuard)。閉じた lib(入口 ".")
 - src/lib/pathPattern — 住所のパターン照合(セグメント境界の前方一致と = の完全一致、ルートを覆うか)
 - src/lib/realtimeRoom — ホットパス・リアルタイム基盤の SDK(servers/room 接続、購読フック、サーバー dispatch)
 - src/lib/recaptcha — Google reCAPTCHA v3 / v2 ハイブリッドのボット対策(RecaptchaProvider は src/wiring/AppProviders が置く)

@@ -4,6 +4,7 @@
 
 - ページの認可を「範囲」(layout の隣の `guard.ts`)と「ページ」(loader の `access`)の 2 か所に置き、両方を同じ評価器で判定する仕組み。API の Factory(`src/lib/routeFactory`)のページ版
 - 範囲 = 方針の段(root → 子の guard.ts)の並び | 束 = auth が渡す利用者の解き方・access の評価・既定の status・今のパス
+- 閉じた lib: 入口は `@/lib/pageGuard`(package.json の exports ".")だけで、中のファイルは外から読まない。読む lib は `libs` の domainAccess(access の型 `DomainApiAccessRule`)だけ
 
 ## Usage
 
@@ -52,7 +53,7 @@ src/app/<範囲>/layout.tsx = await guard() の 1 行
 
 ## Verification
 
-- `pnpm test src/lib/pageGuard/createPageGuard.test.mts`(stub の束で各分岐)
+- `pnpm test src/lib/pageGuard/createPageGuard.test.mts`(stub の束で各分岐。access の評価も auth と同じ順の代わりを差し込む。閉じた lib は features を読まないので、本物の評価 `evaluateApiAccessRule` は auth のテストが見る)
 
 ## Related
 
