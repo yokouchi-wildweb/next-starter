@@ -8,8 +8,8 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 |-------------|------|
 | `(user)/` | ユーザー向けフロントエンド |
 | `(marketing)/` | ランディングページ等。`(user)/` の枠(ヘッダー・フッター)の外の兄弟の枝。枠は `_layout/MarketingLayout`(既定は素通し、`_layout/README.md`) |
-| `admin/` | 管理者向け画面 |
-| `debug/` | デバッグ用画面（管理者カテゴリ + デバッガーロール限定。範囲は `debug/guard.ts`、layout は `await guard()`） |
+| `admin/` | 管理者向け画面(守られた範囲 `(protected)/` の layout は noindex) |
+| `debug/` | デバッグ用画面（管理者カテゴリ + デバッガーロール限定。範囲は `debug/guard.ts`、layout は `await guard()` と noindex） |
 | `api/` | API ルート |
 | `_mounts/` | root layout が 1 度だけ描く、子を包まない部品(SDK を包む lib を読むので棚 src/components に置けない物。`_mounts/README.md`) |
 
