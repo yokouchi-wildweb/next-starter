@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { editTodo, run } from "./catchUp.mjs";
+import { editTodo, reshapeTip, run } from "./catchUp.mjs";
 
 const dirs = [];
 after(() => {
@@ -97,6 +97,43 @@ test("catchUp: 作業の merge は残り、main を取り込んだ merge は消�
   assert.deepEqual(git(dir, "ls-tree", "--name-only", "HEAD").split("\n"), ["base.txt", "k1.txt", "l1.txt", "l2.txt", "m1.txt", "m2.txt"]);
   assert.ok(l.lines.some((s) => s.includes("落とした合流") && s.includes("merge main into line")));
   assert.ok(l.lines.some((s) => s.includes("残した合流") && s.includes("work merge")));
+
+  const again = logs();
+  assert.equal(run(dir, ["--onto=main"], again.log), 0);
+  assert.match(again.lines[0], /載せ直し不要/);
+});
+
+test("reshapeTip: 第 2 親が onto そのもので第 1 親が onto を含まない時だけ組み直す", () => {
+  const anc = (a, b) => a === b || (a === "o" && b === "w2");
+  assert.equal(reshapeTip(["w", "o"], "o", anc), true);
+  assert.equal(reshapeTip(["w2", "o"], "o", anc), false); // 第 1 親が onto を含む(作業の合流)
+  assert.equal(reshapeTip(["w", "old"], "o", anc), false); // 第 2 親が onto より前(onto は HEAD の祖先でない: 載せ直しの道)
+  assert.equal(reshapeTip(["w"], "o", anc), false);
+  assert.equal(reshapeTip(["w", "x", "o"], "o", anc), false);
+});
+
+test("catchUp: 先頭が main を線へ取り込んだ合流なら、同じ木で第 1 親 = main の合流に組み直す(D402)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "catch-up-"));
+  dirs.push(dir);
+  git(dir, "init", "-q", "-b", "main");
+  git(dir, "config", "user.name", "t");
+  git(dir, "config", "user.email", "t@example.com");
+  git(dir, "config", "commit.gpgSign", "false");
+  commit(dir, "base");
+  git(dir, "switch", "-q", "-c", "line");
+  const l1 = commit(dir, "l1");
+  git(dir, "switch", "-q", "main");
+  const m1 = commit(dir, "m1");
+  git(dir, "switch", "-q", "line");
+  git(dir, "merge", "-q", "--no-ff", "-m", "Merge main into line", "main");
+  const tree = git(dir, "rev-parse", "HEAD^{tree}");
+  const l = logs();
+  assert.equal(run(dir, ["--onto=main"], l.log), 0, l.lines.join("\n"));
+  assert.match(l.lines[0], /組み直した/);
+  assert.equal(git(dir, "rev-parse", "HEAD^1"), m1);
+  assert.equal(git(dir, "rev-parse", "HEAD^2"), l1);
+  assert.equal(git(dir, "rev-parse", "HEAD^{tree}"), tree);
+  assert.equal(git(dir, "log", "-1", "--format=%s"), "merge: line を main へ");
 
   const again = logs();
   assert.equal(run(dir, ["--onto=main"], again.log), 0);

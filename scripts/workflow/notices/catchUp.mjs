@@ -5,11 +5,15 @@
 // git rebase --rebase-merges だけでは main を取り込んだ合流(`merge -C <元> onto`)と線の元の根元(`reset <元の根元>`)が残る。
 // - 持ち主 1 人の線(/ship する自分の枝)だけ。何人もが土台にする線(ギルドの合流地点)には使わない(道具の merge で追いつく)
 // - 並びの順は変えない(D383 の並べ直しではない): commit の順の入れ替え・区切りの前への移しはしない
-// /ship の手順 7(push が拒まれた時)と WORKTREE ROUTE(origin/main が HEAD の祖先でない時)が呼ぶ。
+// - 先頭の組み直し(D402): onto が HEAD の祖先でも、先頭が「onto そのものを線へ取り込んだ合流」(親 2 つ、第 1 親 = 線で
+//   onto を含まない、第 2 親 = onto)なら、同じ木で第 1 親 = onto・第 2 親 = 線の作業の合流に作り直す(止めない)。そのまま
+//   push すると main の first-parent が線の側へ移り、前の main の線が第 2 親側に落ちる(c63eb4306)。先頭より手前にある
+//   同じ形の合流は組み直さない(この版の範囲の外)
+// /ship の push の前に毎回(手順 7・WORKTREE ROUTE・COMMITTED RANGE)と、push が拒まれた時に呼ぶ。
 //
 // 実行: pnpm workflow notices catchUp [--onto=<ref>]
 //   onto = --onto、無ければ origin/main、無ければ @{u}
-//   onto が HEAD の祖先 → 何もしない(`catchUp: 載せ直し不要`)
+//   onto が HEAD の祖先 → 先頭が上の形なら組み直す(`catchUp: 組み直した …`)、違えば何もしない(`catchUp: 載せ直し不要`)
 //   そうでなければ git rebase -i --rebase-merges <onto> を、todo をこのファイル(--edit-todo)で書き換えて回す:
 //     - merge の行で、取り込む側が onto(label onto)か onto の祖先の commit → 消す(main を取り込んだ合流)
 //     - reset の行で、先が onto の祖先の commit → reset onto(線の根元を onto へ)
@@ -82,6 +86,32 @@ export function editTodo(text, upstream) {
   return { text: out.join("\n"), dropped, kept };
 }
 
+/**
+ * 先頭を組み直すか(D402、純粋な部分): parents = HEAD の親(順のまま)、contains(a, b) = a が b の祖先か(a = b を含む)。
+ * 親 2 つ・第 1 親が onto を含まない・第 2 親が onto そのもの → 組み直す
+ */
+export function reshapeTip(parents, ontoSha, contains) {
+  return parents.length === 2 && parents[1] === ontoSha && !contains(ontoSha, parents[0]);
+}
+
+/** 先頭の合流を、同じ木・同じ作者で、第 1 親 = onto・第 2 親 = 線の作業の合流に作り直し HEAD を移す。新しい sha を返す */
+function reshape(repo, ontoSha, onto, work) {
+  const old = git(repo, ["rev-parse", "HEAD"]);
+  const branch = tryGit(repo, ["symbolic-ref", "-q", "--short", "HEAD"]) ?? "作業の線";
+  const target = onto.replace(/^origin\//, "");
+  const [name, email, date, subject] = git(repo, ["log", "-1", "--format=%an%x00%ae%x00%aI%x00%s", old]).split("\0");
+  const msg = `merge: ${branch} を ${target} へ\n\n${target} を線へ取り込んだ合流 ${old.slice(0, 9)}(${subject})を、第 1 親 = ${target} の作業の合流へ組み直した(木は同じ、D402)\n`;
+  const tree = git(repo, ["rev-parse", "HEAD^{tree}"]);
+  const nm = execFileSync("git", ["commit-tree", tree, "-p", ontoSha, "-p", work], {
+    cwd: repo,
+    input: msg,
+    encoding: "utf8",
+    env: { ...process.env, GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_AUTHOR_DATE: date },
+  }).trim();
+  git(repo, ["reset", "-q", "--keep", nm]);
+  return nm;
+}
+
 /** GIT_SEQUENCE_EDITOR として呼ばれた時: todo を書き換え、落とした・残した合流を報告のファイルへ */
 function runEditTodo(todoPath) {
   const repo = process.cwd();
@@ -117,6 +147,13 @@ export function run(repo, argv, log = console.log) {
     return 2;
   }
   if (isAncestor(repo, ontoSha, "HEAD")) {
+    const parents = git(repo, ["rev-list", "--parents", "-n", "1", "HEAD"]).split(" ").slice(1);
+    if (reshapeTip(parents, ontoSha, (a, b) => isAncestor(repo, a, b))) {
+      const before = git(repo, ["rev-parse", "--short", "HEAD"]);
+      const nm = reshape(repo, ontoSha, onto, parents[0]);
+      log(`catchUp: 組み直した ${before} → ${nm.slice(0, 9)}(${onto} を線へ取り込んだ合流を、第 1 親 = ${onto} の作業の合流へ。木は同じ)`);
+      return 0;
+    }
     log(`catchUp: 載せ直し不要(${onto} は HEAD の祖先)`);
     return 0;
   }
