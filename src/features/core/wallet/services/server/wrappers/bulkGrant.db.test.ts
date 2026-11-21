@@ -35,7 +35,7 @@ describe("bulkGrant(実 DB)", { skip }, () => {
   before(async () => {
     mod = await import("./bulkGrant");
     reverse = (await import("./reverseHistory")).reverseHistory;
-    const { runAsSystem } = await import("@/lib/audit");
+    const { runAsSystem } = await import("@/lib/audit/server");
     asSystem = (fn) => runAsSystem(fn);
     const { db } = await import("@/lib/drizzle");
     const { and, eq, inArray, like } = await import("drizzle-orm");

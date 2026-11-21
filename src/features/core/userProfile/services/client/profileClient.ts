@@ -5,7 +5,7 @@
 
 import axios from "axios";
 import { createApiClient } from "@/lib/crud";
-import type { ApiClient, SearchParams, WithOptions } from "@/lib/crud";
+import type { SearchParams, WithOptions } from "@/lib/crud";
 import { normalizeHttpError } from "@/lib/errors";
 
 type ProfileRecord = Record<string, unknown>;
@@ -15,7 +15,7 @@ function buildBaseUrl(role: string) {
 }
 
 /** ロールのプロフィールテーブルを扱う共通の CRUD クライアント */
-function crudOf(role: string): ApiClient<ProfileRecord> {
+function crudOf(role: string) {
   return createApiClient<ProfileRecord>(buildBaseUrl(role));
 }
 

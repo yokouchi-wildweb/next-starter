@@ -32,7 +32,7 @@ const TestTable = pgTable("test_profile_audit_items", {
 
 describe("createProfileBase の audit（実 DB）", { skip }, () => {
   let db: typeof import("@/lib/drizzle").db;
-  let runAsSystem: typeof import("@/lib/audit").runAsSystem;
+  let runAsSystem: typeof import("@/lib/audit/server").runAsSystem;
   let base: import("../types").ProfileBase;
   let before0 = 0;
 
@@ -42,7 +42,7 @@ describe("createProfileBase の audit（実 DB）", { skip }, () => {
 
   before(async () => {
     ({ db } = await import("@/lib/drizzle"));
-    ({ runAsSystem } = await import("@/lib/audit"));
+    ({ runAsSystem } = await import("@/lib/audit/server"));
     const { auditLogger } = await import("@/features/core/auditLog/services/server");
     const { createProfileBase } = await import("./createProfileBase");
     before0 = await countAll();

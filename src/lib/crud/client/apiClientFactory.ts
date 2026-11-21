@@ -117,9 +117,13 @@ function buildSearchQueryParams(params: SearchParams & WithOptions): Record<stri
   return queryParams;
 }
 
+/** createApiClient が実装する操作(ApiClient の任意の操作のうち、削除済みを含む読み取り 3 つ以外はすべて持つ) */
+export type CreatedApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = ApiClient<T, CreateData, UpdateData> &
+  Required<Omit<ApiClient<T, CreateData, UpdateData>, "getAllWithDeleted" | "getWithDeleted" | "searchWithDeleted">>;
+
 export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>>(
   baseUrl: string,
-): ApiClient<T, CreateData, UpdateData> {
+): CreatedApiClient<T, CreateData, UpdateData> {
   return {
     getAll: (options?: WithOptions) =>
       handleRequest("getAll", async () => (await axios.get<T[]>(`${baseUrl}${buildWithOptionsParams(options)}`, NORMAL_REQUEST)).data),

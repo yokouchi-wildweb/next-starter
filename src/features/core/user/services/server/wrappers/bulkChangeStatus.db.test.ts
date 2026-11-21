@@ -35,7 +35,7 @@ describe("bulkChangeStatus(実 DB)", { skip }, () => {
   before(async () => {
     bulk = (await import("./bulkChangeStatus")).bulkChangeStatus;
     change = (await import("./changeStatus")).changeStatus;
-    const { runAsSystem } = await import("@/lib/audit");
+    const { runAsSystem } = await import("@/lib/audit/server");
     asSystem = (fn) => runAsSystem(fn);
     const { db } = await import("@/lib/drizzle");
     const { eq, like, inArray } = await import("drizzle-orm");

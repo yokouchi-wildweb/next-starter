@@ -58,7 +58,7 @@ describe("storage オプション（実 DB の TX）", { skip }, () => {
     const { createStorageObjectService } = await import("./services/server/storageObjectService");
     const { storageBindingFor } = await import("./services/server/crudBinding");
     const { createCrudService } = await import("@/lib/crud/server");
-    const { runWithAuditContext } = await import("@/lib/audit");
+    const { runWithAuditContext } = await import("@/lib/audit/server");
     const { uuidv7 } = await import("uuidv7");
 
     fake = createFakeStoragePort();
