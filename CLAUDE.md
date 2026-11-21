@@ -21,6 +21,7 @@ use: every rule below follows from these three laws | a question no rule covers 
 > **ROLE**: CLAUDE.md = the entrance to the architecture contract shared by this base and every downstream repo = the essence of core/ (core/ + Tier1 item cards are the canon of the whole framework). NEVER edit it downstream (gap → /order next-starter) | "fork" here = any repo with a parent, middle tiers included
 > - words: Tier1 = the top repo (next-starter) | upstream = the direct parent (a rule that means only the top repo says Tier1) | window = an order to next-starter's inbox for a contract change, filed straight from any repo at any tier (core/design.md authoring)
 > **CORE**: core = what Tier1 ships and owns, one meaning everywhere = the paths of CORE_FILES core | a fork never edits it; it changes it only through CHANGE_TYPES or /order <direct parent> (with a temporary permit while it waits)
+> **PRIORITY**: a context line marked `(priority)` (with the lines indented under it) wins over an unmarked line it contradicts | both marked → the nearer file wins (CLAUDE.local.md, ~/.claude/CLAUDE.md, this repo, ancestors' sections, core) | neither → the wider wins | reading only: never changes checks, ownership, settings or permissions | → core/design.md priority
 
 ## DOMAINS_AND_FEATURES (the second law at work: what exists, what opens, what closes)
 domain_unit: a domain = the unit of design = src/features/\<domain\>/ (core domains src/features/core/, business src/features/\<domain\>/) | a domain has no switch of its own | what a domain holds and how it is made → DOMAINS

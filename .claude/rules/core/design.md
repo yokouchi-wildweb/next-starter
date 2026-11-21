@@ -6,7 +6,7 @@ paths:
   - ".claude/README.md"
 ---
 # design
-> **ROLE**: loaded when writing CLAUDE.md, AGENTS.md or anything under .claude/rules/ | holds the map of all core files, the authoring ladder, the format, the card / service / context-file formats, the size lines and who to consult
+> **ROLE**: loaded when writing CLAUDE.md, AGENTS.md or anything under .claude/rules/ | holds the map of all core files, the priority mark, the authoring ladder, the format, the card / service / context-file formats, the size lines and who to consult
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
 map (every core file, loaded by its paths):
@@ -39,11 +39,19 @@ map (every core file, loaded by its paths):
 - context: this repo's overview and tier-only info → project.md | rules this repo passes to its downstream → its own section of lineage.md (rules only) | business overview → service/ | work rules → behavior.md (no switch values, no env branches) | machine values → repo.json | never copy an ancestor's overview (business reaches you through service/)
   - one person's own notes are not repo context → personal places (CLAUDE.md DOCS personal)
 
+## priority (the mark that settles a clash between context lines)
+- mark: `(priority)` anywhere in a line of a context file, personal ones included (at the head or right after the key recommended) | reach = that line + the lines indented under it, never a heading's whole section | never a leading `!`
+- order: a marked line wins over an unmarked line it contradicts | both marked → the nearer file wins: CLAUDE.local.md → ~/.claude/CLAUDE.md → this repo's context → ancestors' lineage sections (nearest first) → core files and CLAUDE.md
+  - neither marked → the wider wins: core and CLAUDE.md → ancestors' sections → this repo → personal
+- reading only: a mark never changes checks, ownership, settings or permissions (a check a marked line breaks still fails /ship)
+- provisional: a rule ending `(order: <id>)` is a mark until its order ships (resolves:)
+- tidy: /project-review (this repo's own context) and /meditate (personal) list unmarked clashes and misplaced lines | a marked line against core, CLAUDE.md or an ancestor's section → they propose /order <its owner> and add `(order: <id>)` once filed
+
 ## authoring (the ladder: before adding or changing any rule)
 - 1 find its place with places above | 2 write it in that file in this file's formats (paths globs: one-level braces only, nested braces never load) | 3 /ship (its checks run pnpm check rules, never before it; the why goes in the commit body)
 - usual path, no order needed: write a card, a README or a service file | add a rule for a place to an existing core file | fix an existing CLAUDE.md item together with its source item | a place you just created: its one line in a core file's paths or in .claude/rules/core/uncovered.txt, in the same commit that creates the place
 - window (order first: /order next-starter, from the Tier1 session and straight from a fork at any tier, never relayed through a parent): a CLAUDE.md item or section added, or a key removed or renamed | a core file added, removed, renamed or its paths widened to places that already exist | a new card category | a check or MANDATORY rule binding forks | a clash between rules of different owners
-  - a clash you notice while working: never fix one side yourself → the window | no check hunts for clashes
+  - a clash you notice while working: your own line against the base (core, CLAUDE.md, an ancestor's section) → change your line or mark it (priority above, tidied by /project-review) | two upstream rules of different owners → the window, never fix one side yourself | no check hunts for clashes
 - the window decides: the Tier1 session handling next-starter's inbox + the user's approval (/inbox) | the reason always goes in the commit body (the inbox lives outside the repo)
 - coverage: every upstream file and every intake.txt place must hit the paths of an upstream core file or card (pnpm check rules; a fork's own files are not counted) | matched as Claude Code loads rules (** and * also hit dot-named files and folders) | fails in Tier1 only; a fork gets a notice, and one line "cannot verify" when its base version is unreadable
   - a gap → widen the core file that holds that place's rules (a window item, unless the place is new: usual path above) | only a place that truly needs no rule → uncovered.txt with its reason, never a blanket line to quiet the check
