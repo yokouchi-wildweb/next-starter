@@ -5,6 +5,7 @@
 export const extensionPoints = {
   // 入力部品: inputs/<名前>.ts の export const formInput(名前と読み込み関数だけ。部品の本体は普通の置き場)
   inputs: {
+    change: "add",
     dir: "inputs",
     export: "formInput",
     type: { from: "@/lib/formSuite", name: "FormInputItem" },

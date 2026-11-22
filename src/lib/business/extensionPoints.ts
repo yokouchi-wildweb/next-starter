@@ -3,5 +3,5 @@
 
 export const extensionPoints = {
   // 置き場: src/business の下 = 事業の素性(フォルダごと fork の物。上流は source: "sample" の見本を出荷、設定の議会 D88)
-  businessValues: { placement: "src/business/**", kind: "edit" },
+  businessValues: { change: "counterpart", placement: "src/business/**", kind: "edit" },
 } as const;

@@ -18,10 +18,14 @@ import { overrideSwitches } from "@/featureGate/ruleList";
 function withClosed(closed: FeatureName[], fn: () => void) {
   const saved = new Map<GeneratedFeatureRule, GeneratedFeatureRule["enabled"]>();
   const savedDefaults = new Map<GeneratedFeatureRule, boolean>();
+  // when(ドメインの値の条件)も外す: 作り物の開閉は enabled の差し替えだけで決める
+  const savedWhen = new Map<GeneratedFeatureRule, string[]>();
   // fork の switches.config.ts の値も外す(規則の値を作り物だけで決める)
   const restoreSwitches = overrideSwitches();
   for (const rule of generatedRules) {
     saved.set(rule, rule.enabled);
+    savedWhen.set(rule, rule.when);
+    rule.when = [];
     // 入切の既定(defaultEnabled)は開にそろえ、開閉は enabled の差し替えだけで決める
     savedDefaults.set(rule, rule.defaultEnabled);
     rule.defaultEnabled = true;
@@ -31,6 +35,7 @@ function withClosed(closed: FeatureName[], fn: () => void) {
     fn();
   } finally {
     for (const [rule, enabled] of saved) rule.enabled = enabled;
+    for (const [rule, when] of savedWhen) rule.when = when;
     for (const [rule, value] of savedDefaults) rule.defaultEnabled = value;
     restoreSwitches();
   }

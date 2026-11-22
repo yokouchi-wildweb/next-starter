@@ -85,12 +85,12 @@ export function rulesNotCoveringCronTask(taskPath, sources, rules) {
   return owners.filter((rule) => !rule.pathPatterns.some((pattern) => matchesPath(taskPath, pattern))).map((rule) => rule.name);
 }
 
-// 規則のファイル(src/featureGate/rules/)が自分の機能のドメインの config(src/domains/<d>/config.ts、入切の値だけ)を読むのは閉じ漏れでない
-// (入切でない条件の値、例 決済の自社振込が選べるか。入切そのものは規則の defaultEnabled と switches.config.ts、D35)。config が値以外に届くかは到達の検査
-// (pnpm test src/featureGate/checks/reachability.test.mjs: 入口から services・drizzle・server-only に届かない)が見る
-const RULE_FILE = /^src\/featureGate\/rules\//;
+// 規則の when が指したドメインの config.ts(最上位の真偽の値だけ)を読む生成物 src/featureGate/extensions/whenInputs.ts は閉じ漏れでない
+// (入切でない条件の値、例 決済の自社振込が選べるか。規則は値を import しない、D28。入切そのものは規則の defaultEnabled と switches.config.ts、D35)。
+// config が値以外に届くかは到達の検査(pnpm test src/featureGate/checks/reachability.test.mjs: 入口から services・drizzle・server-only に届かない)が見る
+const WHEN_INPUTS_FILE = "src/featureGate/extensions/whenInputs.ts";
 const DOMAIN_CONFIG = /^@\/domains\/(?:core\/)?[^/]+\/config$/;
-export const isRuleConfigImport = (path, source) => RULE_FILE.test(path) && DOMAIN_CONFIG.test(source);
+export const isWhenConfigImport = (path, source) => path === WHEN_INPUTS_FILE && DOMAIN_CONFIG.test(source);
 
 /**
  * 入口の判定
@@ -106,7 +106,7 @@ export function judgeAlwaysOnEntries(entries, rules, exceptions) {
   const hits = [];
   const usedExceptions = [];
   for (const entry of entries) {
-    const imports = gatedImports(entry.text, patterns).filter((i) => !isRuleConfigImport(entry.path, i.source));
+    const imports = gatedImports(entry.text, patterns).filter((i) => !isWhenConfigImport(entry.path, i.source));
     if (imports.length === 0) continue;
     const sources = [...new Set(imports.map((i) => i.source))].join(", ");
     hits.push(`${entry.path}: ${entry.kind}`);

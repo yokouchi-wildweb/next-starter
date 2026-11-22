@@ -4,6 +4,7 @@
 export const extensionPoints = {
   // クーポン管理画面のセクションタブ: adminSectionTabs/<名前>.ts の export const tab(上流の項目は 0)
   sectionTabs: {
+    change: "add",
     dir: "adminSectionTabs",
     export: "tab",
     type: { from: "@/domains/core/coupon/types/sectionTab", name: "CouponSectionTabItem" },

@@ -84,7 +84,7 @@ test("規則: src/featureGate/rules/ の export const rule をファイル名順
   assert.ok(plan.problems.some((p) => p.includes("beta.other.ts") && p.includes("印なしの beta.ts に改名")));
   assert.match(plan.outputs[GATE_RULES], /import \{ rule as rules_alpha \} from "@\/featureGate\/rules\/alpha";/);
   assert.match(plan.outputs[GATE_RULES], /export type FeatureName = "acmeShop" \| "alpha" \| "wallet";/);
-  assert.match(plan.outputs[GATE_RULES], /export const rules: GeneratedFeatureRule\[\] = \[\n  \{ \.\.\.rules_acmeShop, name: "acmeShop", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\] \},\n  \{ \.\.\.rules_alpha, name: "alpha", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\] \},\n  \{ \.\.\.rules_wallet, name: "wallet", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\] \},\n\];/);
+  assert.match(plan.outputs[GATE_RULES], /export const rules: GeneratedFeatureRule\[\] = \[\n  \{ \.\.\.rules_acmeShop, name: "acmeShop", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\], when: \[\] \},\n  \{ \.\.\.rules_alpha, name: "alpha", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\], when: \[\] \},\n  \{ \.\.\.rules_wallet, name: "wallet", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\], when: \[\] \},\n\];/);
 });
 
 test("規則の domains: ドメインのフォルダの pgTable から表(0 でもよい)と汎用 API の住所(domainEntry のキー)を導き(fork が上流のフォルダに足した表も)、失敗の各条件で止まる", () => {
@@ -147,10 +147,10 @@ test("規則の domains: ドメインのフォルダの pgTable から表(0 で�
   assert.equal(plan.problems.length, 8, plan.problems.join("\n"));
   assert.match(
     plan.outputs[GATE_RULES],
-    /\{ \.\.\.rules_wallet, name: "wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\], domainApiPaths: \["\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\] \},/,
+    /\{ \.\.\.rules_wallet, name: "wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\], domainApiPaths: \["\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\], when: \[\] \},/,
   );
-  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_noEntry, name: "noEntry", tables: \["quotas"\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\] \},/);
-  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_tableless, name: "tableless", tables: \[\], domainApiPaths: \["\/api\/empty"\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\] \},/);
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_noEntry, name: "noEntry", tables: \["quotas"\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\], when: \[\] \},/);
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_tableless, name: "tableless", tables: \[\], domainApiPaths: \["\/api\/empty"\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\], when: \[\] \},/);
   // 汎用 API の住所と表はドメインに付く(D34 K4): 規則の pathPatterns に足さず、生成一覧の domains に載る(フォルダの順、持つ機能つき)
   assert.match(
     plan.outputs[GATE_RULES],
@@ -258,7 +258,7 @@ test("設定の節の feature から /admin/settings/<key> を導き、生成一
     itemsOf(plan, "src/featureGate", "rules").map((r) => `${r.name}:${r.fields.settingPaths.join("|")}`),
     ["payment:/admin/settings/shop", "plain:", "wallet:/admin/settings/coins|/admin/settings/shop"],
   );
-  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_payment, name: "payment", tables: \[\], domainApiPaths: \[\], settingPaths: \["\/admin\/settings\/shop"\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\] \},/);
+  assert.match(plan.outputs[GATE_RULES], /\{ \.\.\.rules_payment, name: "payment", tables: \[\], domainApiPaths: \[\], settingPaths: \["\/admin\/settings\/shop"\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\], when: \[\] \},/);
   // 名指しの読めない節(typo)は載せない。並びは住所の順
   assert.match(
     plan.outputs[GATE_RULES],
@@ -345,18 +345,19 @@ test("常時実行の入口の判定: cron は住所が規則の pathPatterns �
   );
   assert.deepEqual(oneMissing.problems.length, 1, "同じフォルダを持つ規則の 1 つでも覆わなければ失敗");
   assert.match(oneMissing.problems[0], /規則 walletAdmin/);
-  // 規則のファイルが自分の機能のドメインの config(入切の値)を読むのは閉じ漏れでない(L1.18)。config の外・規則の外は今までどおり
+  // 規則の when の生成物(src/featureGate/extensions/whenInputs.ts)がドメインの config を読むのは閉じ漏れでない(D28)。規則のファイル・config の外・ほかの結線は今までどおり
   const configImport = 'import { WALLET_CONFIG } from "@/domains/core/wallet/config";\nexport const rule = {};\n';
   const ruleConfig = judgeAlwaysOnEntries(
     [
+      { path: "src/featureGate/extensions/whenInputs.ts", kind: "wiring", text: configImport },
       { path: "src/featureGate/rules/wallet.ts", kind: "wiring", text: configImport },
-      { path: "src/featureGate/rules/walletBad.ts", kind: "wiring", text: 'import { walletService } from "@/domains/core/wallet/services/server/walletService";\n' },
+      { path: "src/featureGate/extensions/whenInputs.ts", kind: "wiring", text: 'import { walletService } from "@/domains/core/wallet/services/server/walletService";\n' },
       { path: "src/wiring/walletConfig.ts", kind: "wiring", text: configImport },
     ],
     rules,
     {},
   );
-  assert.deepEqual(ruleConfig.problems.map((p) => p.split(":")[0]), ["src/featureGate/rules/walletBad.ts", "src/wiring/walletConfig.ts"]);
+  assert.deepEqual(ruleConfig.problems.map((p) => p.split(":")[0]), ["src/featureGate/rules/wallet.ts", "src/featureGate/extensions/whenInputs.ts", "src/wiring/walletConfig.ts"]);
 });
 
 test("常時実行の入口の fork の口(L1.24): src/featureGate/alwaysOnExceptions/<名前>.ts は 1 項目 1 ファイル(exception か registry)、reason 必須、旧い置き場は止める", async () => {

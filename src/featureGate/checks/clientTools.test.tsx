@@ -36,10 +36,14 @@ function withRules(states: Partial<Record<FeatureName, boolean>>, fn: () => void
   // 生成一覧の規則の値(自分の値)を差し替える: 判定は依存先(dependsOn)まで解くので、親を閉じれば子も閉じる
   const saved = new Map<GeneratedFeatureRule, GeneratedFeatureRule["enabled"]>();
   const savedDefaults = new Map<GeneratedFeatureRule, boolean>();
+  // when(ドメインの値の条件)も外す: 作り物の開閉は enabled の差し替えだけで決める
+  const savedWhen = new Map<GeneratedFeatureRule, string[]>();
   // fork の switches.config.ts の値も外す(規則の値を作り物だけで決める)
   const restoreSwitches = overrideSwitches();
   for (const rule of generatedRules) {
     saved.set(rule, rule.enabled);
+    savedWhen.set(rule, rule.when);
+    rule.when = [];
     // 入切の既定(defaultEnabled)は開にそろえ、開閉は enabled の差し替えだけで決める
     savedDefaults.set(rule, rule.defaultEnabled);
     rule.defaultEnabled = true;
@@ -50,6 +54,7 @@ function withRules(states: Partial<Record<FeatureName, boolean>>, fn: () => void
     fn();
   } finally {
     for (const [rule, enabled] of saved) rule.enabled = enabled;
+    for (const [rule, when] of savedWhen) rule.when = when;
     for (const [rule, value] of savedDefaults) rule.defaultEnabled = value;
     restoreSwitches();
   }
@@ -243,4 +248,30 @@ test("マイページのメニュー: 条件を外した RichMenuCard は、閉�
       assert.ok(hasAnchor(renderIn(clientGateState("user"), card), href), `${name} 開`);
     });
   }
+});
+
+test("plugs: 項目のドメインか requires の相手が閉じていれば外す、lib の項目(domain null)は残す。useGate().plugs と gate.plugs は同じ答え、closedDomains は core/ を外した名前", () => {
+  stage("development");
+  const holders = rules.filter((rule) => (rule.domains ?? []).includes("core/wallet"));
+  assert.ok(holders.length > 0, "core/wallet を持つ規則がある前提");
+  const items = [
+    { domain: null, name: "fromLib", requires: [] },
+    { domain: "wallet", name: "gold", requires: [] },
+    { domain: "notGatedAnywhere", name: "pays", requires: ["wallet"] },
+    { domain: "notGatedAnywhere", name: "plain", requires: [] },
+  ];
+  withRules(Object.fromEntries(holders.map((rule) => [rule.name, false])), () => {
+    const state = clientGateState("user");
+    assert.ok(state.closedDomains.includes("wallet"));
+    assert.ok(state.closedDomains.every((name) => !name.startsWith("core/")));
+    const server = gate.plugs(items).map((item) => item.name);
+    assert.deepEqual(server, ["fromLib", "plain"]);
+    assert.deepEqual(captureGate(state).plugs(items).map((item) => item.name), server);
+  });
+  withRules({}, () => {
+    assert.deepEqual(gate.plugs(items).map((item) => item.name), ["fromLib", "gold", "pays", "plain"]);
+    assert.deepEqual(clientGateState("user").closedDomains, []);
+  });
+  stage("production");
+  assert.deepEqual(clientTools.plugs(null, items).map((item) => item.name), ["fromLib"], "Provider の外(本番)はドメインのある項目を外す");
 });

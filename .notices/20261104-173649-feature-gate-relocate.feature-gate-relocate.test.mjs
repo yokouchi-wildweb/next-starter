@@ -50,7 +50,7 @@ test("書き換えの部品: 規則の型の import・例外の型・コード�
   assert.match(rewriteCodeImports('const m = await import("@/proxies/pathPattern.mjs");\n').text, /import\("@\/lib\/pathPattern\/index\.mjs"\)/);
 });
 
-test("dry-run は計画だけ、--apply で移して書き換え、移した後の生成一覧に fork の規則が入る", () => {
+test("dry-run は計画だけ、--apply で移して書き換え、移した後の生成一覧に例外が入る", () => {
   const root = fixture({
     "src/proxies/featureGateRules/acmeShop.ts": RULE("shop"),
     "src/proxies/featureGateRules/acmeBox/index.ts": RULE("box"),
@@ -88,7 +88,7 @@ test("dry-run は計画だけ、--apply で移して書き換え、移した後�
   assert.deepEqual(planRelocate(root), { moves: [], edits: [], stops: [], notes: [] }, "2 回目は何もしない");
 
   const generated = planExtensions(root);
-  assert.deepEqual(itemsOf(generated, "src/featureGate", "rules").map((i) => i.name), ["acmeBox", "acmeMerged", "acmeShop", "wallet"]);
+  // 規則の一覧は見ない: fixture の規則は値を import する(F.<名前>)ので、段 2 の生成器が止める(D28。移し替えの道具の動きは変わらない)
   assert.deepEqual(itemsOf(generated, "src/featureGate", "alwaysOnExceptions").map((i) => i.name), ["mineWiring"]);
 });
 

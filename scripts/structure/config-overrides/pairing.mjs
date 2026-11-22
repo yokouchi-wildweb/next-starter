@@ -1,6 +1,6 @@
 // scripts/structure/config-overrides/pairing.mjs
 // 上書きと持ち主の 1 対 1 の検査(設定 D19・D38・D75)。地区の地図(src/lib/districtMap)の利用者。
-// 見る所は src/config の地区の 4 つの種類のフォルダ(lib・domains・layout・proxies)と基盤の上書きのフォルダ(featureGate、設定 D91)だけ。
+// 見る所は src/config の、地区の名前で置く種類のフォルダ(lib・domains・layout・proxies)と中身の名前で置く種類のフォルダ(featureGate、設定 D91)だけ(種類の表 KINDS の override)。
 // fork に残る古い app/・ui/ と直下のファイルは見ない(上流には無い)。
 //
 // 落とす物:
@@ -12,7 +12,7 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { BASE_OVERRIDE_FOLDERS, DISTRICT_KINDS, OVERRIDE_FOLDERS, OVERRIDE_ROOT } from "../../../src/lib/districtMap/index.mjs";
+import { CONTENTS_OVERRIDE_FOLDERS, OVERRIDE_FOLDERS, OVERRIDE_ROOT } from "../../../src/lib/districtMap/index.mjs";
 import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
 import { hasLibPackage } from "../../../src/lib/libPackage/node.mjs";
 
@@ -21,7 +21,7 @@ const OVERRIDE_FILE = /^[^.]+\.config\.ts$/;
 const UI_OVERRIDE_FILE = /^[^.]+\.ui\.config\.ts$/;
 const ALLOWED_OTHER = new Set(["README.md"]);
 
-const KIND_LABEL = { domains: "ドメイン", lib: "lib", frame: "枠", proxies: "proxies" };
+const KIND_LABEL = { domains: "ドメイン", lib: "lib", frame: "枠", featureGate: "門番", registry: "登録表", wiring: "結線", proxies: "proxies" };
 
 /** 種類のフォルダの直下の { name, isDir }(無ければ []) */
 function listFolder(root, rel) {
@@ -55,12 +55,12 @@ export function checkOverridePairs(root) {
   /** 上書きのパス → { 地区, ui か } */
   const slots = new Map();
   for (const d of districts) {
-    slots.set(d.override.path, { d, ui: false });
-    slots.set(d.uiOverride.path, { d, ui: true });
+    if (d.override.path) slots.set(d.override.path, { d, ui: false });
+    if (d.uiOverride.path) slots.set(d.uiOverride.path, { d, ui: true });
   }
 
   // 余り: 種類のフォルダの中を 1 つずつ持ち主に当てる
-  for (const kind of DISTRICT_KINDS) {
+  for (const kind of Object.keys(OVERRIDE_FOLDERS)) {
     const folder = `${OVERRIDE_ROOT}/${OVERRIDE_FOLDERS[kind]}`;
     for (const entry of listFolder(root, folder)) {
       const path = `${folder}/${entry.name}`;
@@ -89,19 +89,19 @@ export function checkOverridePairs(root) {
     }
   }
 
-  // 基盤の上書き(設定 D91): 持ち主は固定のフォルダ。名前は中身の名前で、どれを置くかは持ち主の物なので欠落は数えない
-  for (const [base, ownerDir] of Object.entries(BASE_OVERRIDE_FOLDERS)) {
+  // 中身の名前で置く上書き(設定 D91、種類 featureGate): 持ち主は固定のフォルダ。名前は中身の名前で、どれを置くかは持ち主の物なので欠落は数えない
+  for (const [base, ownerDir] of Object.entries(CONTENTS_OVERRIDE_FOLDERS)) {
     const folder = `${OVERRIDE_ROOT}/${base}`;
     const ownerExists = existsSync(join(root, ownerDir)) && statSync(join(root, ownerDir)).isDirectory();
     for (const entry of listFolder(root, folder)) {
       const path = `${folder}/${entry.name}`;
       if (entry.isDir) {
-        problems.push(`${path}/: 基盤の上書きのフォルダの中は平ら(サブフォルダを置かない、設定 D91)。上書きは ${folder}/<中身の名前>.config.ts`);
+        problems.push(`${path}/: 中身の名前で置く上書きのフォルダの中は平ら(サブフォルダを置かない、設定 D91)。上書きは ${folder}/<中身の名前>.config.ts`);
         continue;
       }
       if (ALLOWED_OTHER.has(entry.name)) continue;
       if (!OVERRIDE_FILE.test(entry.name)) {
-        problems.push(`${path}: 置けない名前。基盤の上書きは <中身の名前>.config.ts(設定 D91)`);
+        problems.push(`${path}: 置けない名前。中身の名前で置く上書きは <中身の名前>.config.ts(設定 D91)`);
         continue;
       }
       if (!ownerExists) {

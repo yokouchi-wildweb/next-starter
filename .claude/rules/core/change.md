@@ -22,7 +22,7 @@ change_types (the only 5 ways to change what a parent owns | marks = .default / 
   - porting: /flux shows the parent's diff once per segment → port by hand, in a separate commit, only what fits this repo | a self file holds only what describes this repo, never a rule a lower repo must follow
   - upstream side: nothing to declare, the list of self files is closed (intake.txt kind self) and only Tier1 extends it | a new repo.json key gets a reader default, a required one ships a notice + migration tool
 - none → /order \<direct parent\> | no means to override part of code → upstream exposes it by value / receptacle / split
-- tell: sibling .default, or a page.tsx / frame layout.tsx 1-line switch = 1 | declaration above = 2 / 3 | counterpart declaration = 4 | none = cannot change
+- tell: sibling .default, or a page.tsx / frame layout.tsx 1-line switch = 1 | a point declared in the district's extensionPoints.ts or its kind's row of src/lib/districtMap/kinds.mjs (KINDS) = its type 2 / 3 / 4 | none = cannot change
 - who: `pnpm workflow ownership who <path>` answers type 1-5 | generated | own | none (ref: src/lib/forkOwnership/README.md)
 - safety limits are never loosened: admin menu allowRoles narrow-only, core role enabled, profile fields, setting schema
 - violations: *.default.* beside a parent's file, editing a parent's .default, plain frame.ts beside an upstream route, frame.default.ts (fails) | own .default in own area OK (middle tier too)

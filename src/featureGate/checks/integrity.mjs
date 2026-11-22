@@ -4,8 +4,8 @@
 // - 外部キー(checkForeignKeys): 表 T → U で U のドメインが閉じうるのに T のドメインが開のまま残る組み合わせ(db:push が外す表を残す表が参照して止まる)。
 //   規則の中の外部キー(T のドメインを持つ機能がどれも U のドメインも持つ)は一緒に閉じるので対象外。
 //   覆う = T のドメインの requires に U のドメインがあり、かつ T のドメインを持つ機能がどれも U のドメインを持つ機能のどれかに(推移的に)依存する。
-//   T が基盤(どの機能にも載らない、常に開)なら覆えない
-// - 基盤の requires の穴(checkBaseRequires): どの機能にも載らないドメインの requires の先が閉じうるドメイン
+//   T が常設(どの機能にも載らない、常に開)なら覆えない
+// - 常設の requires の穴(checkAlwaysOpenRequires): どの機能にも載らないドメインの requires の先が閉じうるドメイン
 // - required/ の実効の閉(checkRequiredClosed): 必須の機能が規則の値(自分の値か依存先)で閉
 // - 共有のドメイン(sharedDomainsOpen): 2 つ以上の機能が持つドメインで、持つ機能の一部が閉なのに別の機能で開いたまま(落とさない、list と warn)
 
@@ -46,14 +46,14 @@ export function checkForeignKeys({ list, domains, foreignKeys, exceptions = {} }
     const e = domainOfTable.get(to);
     if (!d || !e || d.folder === e.folder) continue;
     const eHolders = holdersOf(list, e.folder);
-    if (eHolders.length === 0) continue; // 参照先は基盤(常に開)
+    if (eHolders.length === 0) continue; // 参照先は常設(常に開)
     const dHolders = holdersOf(list, d.folder);
     // 規則の中の外部キー(T のドメインを持つ機能がどれも U のドメインも持つ = 一緒に閉じる)は対象外
     if (dHolders.length > 0 && dHolders.every((h) => (h.domains ?? []).includes(e.folder))) continue;
     const key = `${from}→${to}`;
     const reasons = [];
     if (!d.requires.some((name) => (folderOfName.get(name) ?? name) === e.folder)) reasons.push(`${d.folder} の requires に ${e.name} が無い`);
-    if (dHolders.length === 0) reasons.push(`${d.folder} はどの機能にも載らない基盤(常に開)`);
+    if (dHolders.length === 0) reasons.push(`${d.folder} はどの機能にも載らない常設(常に開)`);
     for (const holder of dHolders) {
       const reach = reachOf(list, holder.name);
       if (!eHolders.some((h) => reach.has(h.name))) reasons.push(`機能 ${holder.name} が ${eHolders.map((h) => h.name).join("・")} に dependsOn していない`);
@@ -76,7 +76,7 @@ export function checkForeignKeys({ list, domains, foreignKeys, exceptions = {} }
  * @param {{ list: GateRule[], domains: DomainFact[] }} input
  * @returns {string[]}
  */
-export function checkBaseRequires({ list, domains }) {
+export function checkAlwaysOpenRequires({ list, domains }) {
   const folderOfName = new Map(domains.map((d) => [d.name, d.folder]));
   const problems = [];
   for (const d of domains) {
@@ -85,7 +85,7 @@ export function checkBaseRequires({ list, domains }) {
       const target = folderOfName.get(name) ?? name;
       const holders = holdersOf(list, target);
       if (holders.length === 0) continue;
-      problems.push(`${d.folder} はどの機能にも載らない基盤(常に開)なのに、閉じうる ${name}(${target}、機能 ${holders.map((h) => h.name).join("・")})を requires する。${d.folder} をその機能の features に入れる(か requires を見直す)`);
+      problems.push(`${d.folder} はどの機能にも載らない常設(常に開)なのに、閉じうる ${name}(${target}、機能 ${holders.map((h) => h.name).join("・")})を requires する。${d.folder} をその機能の features に入れる(か requires を見直す)`);
     }
   }
   return problems;

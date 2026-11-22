@@ -43,8 +43,8 @@ test("overrideKeysOf: 宣言が無い・点が無い・overrides の点でない
       mkdirSync(dirname(join(root, path)), { recursive: true });
       writeFileSync(join(root, path), text);
     };
-    put("src/lib/a/extensionPoints.ts", 'export const extensionPoints = {\n  tasks: { overrides: "src/a/*.ts", export: "override", side: "server", overrideOf: ["x"] },\n  roles: { writer: "role:generate", side: "shared" },\n};\n');
-    put("src/lib/b/extensionPoints.ts", 'export const extensionPoints = {\n  tasks: { overrides: "src/a/*.ts", export: "override", side: "server" },\n};\n');
+    put("src/lib/a/extensionPoints.ts", 'export const extensionPoints = {\n  tasks: { change: "override", overrides: "src/a/*.ts", export: "override", side: "server", overrideOf: ["x"] },\n  roles: { change: "add", writer: "role:generate", side: "shared" },\n};\n');
+    put("src/lib/b/extensionPoints.ts", 'export const extensionPoints = {\n  tasks: { change: "override", overrides: "src/a/*.ts", export: "override", side: "server" },\n};\n');
     assert.deepEqual(overrideKeysOf("src/lib/a/extensionPoints.ts", "tasks", root), ["x"]);
     assert.throws(() => overrideKeysOf("src/lib/none/extensionPoints.ts", "tasks", root), /が無い/);
     assert.throws(() => overrideKeysOf("src/lib/a/extensionPoints.ts", "gone", root), /点 gone が無い/);
@@ -53,4 +53,19 @@ test("overrideKeysOf: 宣言が無い・点が無い・overrides の点でない
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("change: どの点も書く。欄と合わない型・無い change は止め、増設点の max・order と差替点の欄を確かめる", async () => {
+  const { readDeclaration } = await import("./index.mjs");
+  const read = (/** @type {string} */ body) => readDeclaration("x/extensionPoints.ts", `export const extensionPoints = { p: ${body} };`).problems;
+  const T = 'type: { from: "@/x", name: "T" }';
+  assert.deepEqual(read(`{ change: "add", dir: "p", export: "p", ${T}, side: "server", max: 1, order: "declared" }`), []);
+  assert.match(read(`{ dir: "p", export: "p", ${T}, side: "server" }`)[0], /change が無い.*欄から読むと add/);
+  assert.match(read(`{ change: "override", dir: "p", export: "p", ${T}, side: "server" }`)[0], /change override が欄と合わない.*add/);
+  assert.match(read(`{ change: "add", dir: "p", export: "p", ${T}, side: "server", max: 0 }`)[0], /max は 1 以上の整数/);
+  assert.match(read(`{ change: "add", dir: "p", export: "p", ${T}, side: "server", order: "x" }`)[0], /order は file \| declared/);
+  assert.deepEqual(read(`{ change: "replace", default: "src/a/b.default.ts", ${T}, side: "server" }`), []);
+  assert.ok(read(`{ change: "replace", default: "src/a/b.default.ts", side: "server" }`).some((p) => p.includes("type は")));
+  assert.ok(read(`{ change: "replace", default: "src/a/b.default.ts", ${T}, side: "server", dir: "x" }`).some((p) => p.includes("差替点に dir は書けない")));
+  assert.deepEqual(read('{ change: "counterpart", placement: "src/app/icon.png", kind: "edit" }'), []);
 });

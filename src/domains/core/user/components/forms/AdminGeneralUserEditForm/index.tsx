@@ -45,7 +45,7 @@ export default function GeneralUserEditForm({
   const router = useRouter();
   const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateUser();
-  // ユーザータグは常時開の基盤(門番の規則を持たない、設定 D64・D115)
+  // ユーザータグは常設(門番の規則を持たない、設定 D64・D115)
   const { data: userTags = [] } = useUserTagList();
   const tagOptions = userTags.map((tag) => ({ value: tag.id, label: tag.name, color: tag.color ?? undefined }));
 

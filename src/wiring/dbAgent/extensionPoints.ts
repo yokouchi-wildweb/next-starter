@@ -5,6 +5,7 @@
 export const extensionPoints = {
   // 追加ツール: extraTools/<名前>.ts の export const tool(読み取り専用の境界を壊さないこと、lib/dbAgent/README.md)
   extraTools: {
+    change: "add",
     dir: "extraTools",
     export: "tool",
     type: { from: "@/lib/ai", name: "AgentToolDefinition" },
@@ -13,6 +14,7 @@ export const extensionPoints = {
   },
   // ドメイン知識のプロンプト断片: promptFragments/<名前>.ts の export const fragment(文字列)
   promptFragments: {
+    change: "add",
     dir: "promptFragments",
     export: "fragment",
     type: { from: "@/lib/dbAgent", name: "DbAgentPromptFragment" },
@@ -21,6 +23,7 @@ export const extensionPoints = {
   },
   // 実行時サフィックス(運営追加指示)のプロバイダ: suffixProviders/<名前>.ts の export const provider
   suffixProviders: {
+    change: "add",
     dir: "suffixProviders",
     export: "provider",
     type: { from: "@/lib/dbAgent", name: "DbAgentSystemSuffixProvider" },

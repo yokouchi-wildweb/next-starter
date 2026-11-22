@@ -20,6 +20,7 @@ src/registry の α(serviceRegistry など)は `pnpm generate registry` / `pnpm 
 ```ts
 export const extensionPoints = {
   definitions: {
+    change: "add",                                                  // 変え方の型(必須): add 増設点 | override 上書点 | counterpart 対置点 | replace 差替点
     dir: "milestones",                                              // 受け口(持ち主のフォルダからの相対、"." = 直下)
     export: "milestone",                                            // 項目が export する名前(印)
     type: { from: "@/domains/milestone/types", name: "MilestoneDefinition" }, // 一覧の要素の型
@@ -28,10 +29,34 @@ export const extensionPoints = {
 };
 ```
 
+- **change**(必須、地区の議会 D35): 点の変え方の型。欄と合う型だけ書ける(dir・files の受け口と writer の一覧 = `add`、`overrides` = `override`、`placement` = `counterpart`、`default` = `replace`)。無い・合わない点は読み手が止める。段 2 より前の宣言は `.notices/20261122-213044-district-stage2.declarations.mjs` で書き足す
+- 宣言 2 段: その地区だけの点はこのファイル、「この種類の地区は全部この点を持つ」点(config.ts ↔ src/config の対置点など)は種類の表(`src/lib/districtMap/kinds.mjs` の `kindPointsOf`)。読み手が 2 つを合わせて地区の地図の `forkCan`(fork ができること)を出す
 - **リテラルだけ**で書く: 文字列・真偽・数・配列・object。変数・式・関数呼び出し・テンプレート・spread は失敗(生成器は TypeScript の構文木で字面を読み、実行しない)
 - 点の名前 = 一覧のファイル名 = export する一覧の名前。項目の種類の複数形 camelCase(ドメイン名・Registry を付けない)
 - fork の拡張点は fork 自身のフォルダ(fork が足したドメイン・lib)の `extensionPoints.ts` に宣言する。上流の持ち主のフォルダには足さない(旧い `extensionPoints.<x>.ts` は生成が止まり、移し方 = 共有の棚の印の移行の notice を案内する)
 - 省略できるキーと受け口でない点: API「宣言のキー」
+
+### 差替点(ちょうど 1 つ要る点、D24・D53)
+
+```ts
+sender: { change: "replace", default: "src/domains/x/sender.default.ts", type: { from: "@/domains/x/types", name: "Sender" }, side: "server" },
+```
+
+- `default` = 上流の既定の出し手(リポジトリ直下からのパス)、`type` = 約束の型、`side`。fork は `<名前>.replace.ts(x)` で差し替える(足して 2 つにしない)。書けるのは change・default・type・side だけ
+
+### plugs の点(差す側の自分のフォルダから集める増設点、D38・D40・D41・D53)
+
+```ts
+routeDevices: { change: "add", plugs: true, export: "plug", type: { from: "@/lib/routeFactory/points", name: "RouteDevicePlug" }, side: "server", max: 1, target: "wiring" },
+```
+
+- 項目は差す側の自分のフォルダ `<ドメイン>/plugs/<点の名前>/<名前>.ts(x)`(フォルダ形 `<名前>/index.ts(x)`。lib の項目は `<lib>/plugs/…`)。差す側 = 地区の地図の domains と lib の地区。fork は上流のドメイン・lib の中に足さず、自分のドメインか lib に置く(intake.txt の行は無い)
+- 点の名前はリポ全体で一意(plugs/ の下の点の名前のフォルダで差す先を決める)。plugs/ の直下は点の名前のフォルダだけで、知らない点の名前は止める
+- 一覧は配列で、項目 = `{ domain, name, requires, plug }`(`load: "lazy"` は `plug` の代わりに `load: () => import(…)`)。`domain` = 差したドメインのフォルダ名(lib の項目は null)、`requires` = そのドメインの domainEntry の requires。同じ名前は `<差す側>/<名前>` で区別して許す
+- 使う時に門番で閉じたドメインの項目を外す: server・proxy は `gate.plugs(list)`、client は `useGate().plugs(list)`(項目のドメインか requires の相手のどれかが閉じていれば外す、lib の項目は外さない)。生成された登録表には掛けない(D26)
+- `max` を超える項目の数は生成で止める。空の一覧は `[]` で、点の持ち主が自分の既定で動く(例: `gate.plugs(routeDevices)[0]?.plug ?? <lib の「端末なし」>`、D53)
+- 並び = `<差す側>/<名前>` の順。`order: "declared"` は項目の `export const order = <数>`(字面)→ `<差す側>/<名前>`。`key` の点は字面で読める鍵の全体の一意を生成で止める(どの項目とぶつかったかを出す)
+- 書けないキー: `dir`・`files`・`ignore`・`shape`・`derive`・`literalKeys`・`overrideOf`・`alwaysOn`(項目のフォルダ・形・上書き・導出は受け口のフォルダの点だけ)。今の増設点を plugs へ移すのは段 3
 
 ### 項目
 
@@ -54,6 +79,7 @@ export const extensionPoints = {
 | `<名前>.default.ts(x)` | 上流の既定の実装 | 上流 |
 | `<名前>.replace.ts(x)` | fork の丸ごと置き換え(既定と同じ export の形) | 足した Tier |
 
+- 宣言(差替点、宣言 2 段の 1 段目): 既定を中に持つ地区の `extensionPoints.ts` に `<点>: { change: "replace", default: "<既定のリポジトリ直下からのパス>", type: { from, name }, side }` を書く。点の名前 = スイッチの名前の先頭を小文字、`type` = 約束の型(既定が export する `<名前>Props` など)。`default` は宣言した地区の dir の中(枠の地区の宣言だけは src/app の下を通す: 枠の部品はルートの隣にもある。例 root の枠の `forkProviders` = `src/app/_providers/ForkProviders.default.tsx`)。fork の自前の既定は段 2 の移し替えの道具 `.notices/20261122-213044-district-stage2.declarations.mjs` が書く(側・持ち主が決まらない物は `--side` / `--owner` で決める)
 - 多段: 下の Tier は同じスイッチを書き換える(親の実装を使い続けるなら触らない)
 - page.tsx の 1 行スイッチ(`_screen` / `_components` を指す)・枠の layout.tsx の 1 行スイッチ(`_layout/<Layout>` / `_layout/<Layout>.replace` を指す)は別の仕組み(`src/lib/screens/README.md`、`pnpm test scripts/structure/routes/screens.test.mjs`)
 
@@ -71,6 +97,9 @@ export const extensionPoints = {
 ### 宣言のキー
 
 - 省略できるキー:
+  - `plugs: true` … 項目を差す側の `<ドメイン>/plugs/<点の名前>/` から集める増設点(上の「plugs の点」。`dir` の代わり)
+  - `max: <1 以上の整数>` … 増設点の上限(plugs の点は超えたら生成で止める。空なら点の持ち主の既定で動く、D24・D53)
+  - `order: "file" | "declared"` … 増設点の順位の並び(plugs の点: <差す側>/<名前> の順 / 項目の `export const order`。意味がある点だけ)
   - `key: "<プロパティ>"` … 一覧を `Record<string, T>` にする(各項目の値のそのプロパティが鍵。重複は読み込み時に例外。null プロトタイプなので外から来た名前で引いても `constructor` などに当たらない)
   - `literalKeys: true` … `key` と一緒に使い、鍵の文字列を一覧の型に残す(項目の型が鍵を文字列リテラルで持つこと。登録済みの名前の union を型で導く点)
   - `load: "lazy"` … 項目を import せず `{ name, load: () => import(…) }` の配列にする(必要なときだけ読む。key・derive とは併用不可)
@@ -88,6 +117,7 @@ export const extensionPoints = {
     - 無い・位置でない書き方は止める)から `tables`(表を持たないドメインは空)と汎用 API の住所 `domainApiPaths`(フォルダの `domainEntry.ts` のキー → `/api/<キー>`)と設定の節の住所 `settingPaths`(節の `feature` → `/admin/settings/<key>`、`derive/gateSettingPaths.mjs`)と cron の task の住所 `cronPaths`(`src/app/api/cron/<名>/task.ts`・`task.override.ts` の値の import が `domains` のフォルダに当たる → `/api/cron/<名>`。
     - 規則に手書きした `/api/cron/` は止める)を導き(`tables`・`domainApiPaths`・`settingPaths`・`cronPaths` は説明用で `pathPatterns` に足さない)、生成一覧にドメインの表 `domains`(フォルダ・表・汎用 API の住所・持つ機能)・cron の task の表 `cronTasks`(住所・読むドメイン)・設定の節の表 `settingSections`(住所・名指す機能)を出し(開閉はドメインの開閉と節自身の判定、`src/featureGate/Internals.md`「ドメインの開閉(表・汎用 API・cron)と設定の節」)、規則の `dependsOn`(機能の名前の文字列リテラルの配列)を字面で読んで `dependsOn` に写し(書かない規則は空。
     - 非リテラル・自分・重複・未知の名前・輪は止める、`derive/gateDependsOn.mjs`)、項目の名前(ファイル名)を `name` に付け、名前の union `export type FeatureName` も出す(`derive/featureTables.mjs`)。fork が変換を足す口は無い
+    - 規則の `when`(`"<ドメイン>.<名前>"` の文字列リテラルの配列)を字面で読み項目に写し、指されたドメインの config.ts の最上位の真偽の export を確かめ(知らない名前・真偽でない値は止める)、指された config.ts だけを import する `extensions/whenInputs.ts` を書く。規則のファイルの値の import(import type 以外)と住所のパターンの誤り(`@/lib/pathPattern` の `patternProblem`)も止める(`derive/gateWhen.mjs`、D23・D28)
 - 受け口でない点(一覧はこの生成器が書かない。受け口のフォルダの行も無い。判定 `isListPoint`):
   - `writer: "role:generate"` + `side` … 一覧を別の生成器が書く点(ロール・プロフィール)
   - `placement: "<置き場の glob>"` + `kind: "edit" | "append"` … 置き場の点(型 4)。fork が書いてよい場所(リポジトリ直下から、`src/` 始まり)とその書き方。受け口の一覧の行になるだけ(項目も一覧も無い)
@@ -137,7 +167,7 @@ fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印�
 
 ### 1 行スイッチの検査
 
-- 検査(`pnpm check extensions`、`switches.mjs`): `<名前>.default.ts(x)` があれば隣にスイッチが要る / スイッチはコメントを除いて re-export 1 文だけ / 指す先は `<名前>.default` か `<名前>.replace` で実在する(旧い fork の名前の印つきの先は止めて移し方を案内する)/ 上流(Tier1)のスイッチは `.default` を指す / 孤立した `<名前>.replace` は下の孤立の検査
+- 検査(`pnpm check extensions`、`switches.mjs`): スイッチの組は差替点の宣言から得る(読み手 `src/lib/districtMap/declarations.mjs` の `replacePointsOf`)/ 木の `<名前>.default.ts(x)` で差替点の宣言の無い物・宣言の `default` が無い・`<名前>.default.ts(x)` の形でない・宣言した地区の外を指す・同じ既定を 2 つの点が指す、は止める / 既定の隣にスイッチが要る / スイッチはコメントを除いて re-export 1 文だけ / 指す先は `<名前>.default` か `<名前>.replace` で実在する(旧い fork の名前の印つきの先は止めて移し方を案内する)/ 上流(Tier1)のスイッチは `.default` を指す / 孤立した `<名前>.replace` は下の孤立の検査
 - `.default` は作ったリポが出す既定の共通の印で、1 行スイッチだけの物ではない。`.default` を使うほかの仕組みは自分のファイルの形を 1 か所で公開し(例 `frames.mjs` の `CLAIMED_DEFAULTS` = `src/app` の `frame.default.ts`: 枠の宣言は `.default` を使わず frames.mjs が失敗にするが、スイッチの既定と取り違えさせないため名乗る。形 `{ by, under, name | pattern }`)、`switches.mjs` の `CLAIMERS` に足す。名乗った形はスイッチの既定として扱わない
 
 ### override の検査
@@ -159,12 +189,12 @@ fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印�
 
 ### 受け口の一覧の生成区画(intake.txt)
 
-`src/lib/forkOwnership/intake.txt` の `# === AUTO-GENERATED intake START ===` 〜 `END` の間は `pnpm generate extensions` が書き、ずれは `pnpm check extensions` が止める(`intake.mjs`、区画の差し替えは `src/lib/forkOwnership/intake.mjs`)。src の下の行は全部ここ。行の種類は手書きだったときと同じ(下の Tier の書き換えの判定が変わらない。`intakeFromDeclarations.test.mjs`)。並び(最後に当たった行が効く):
+`src/lib/forkOwnership/intake.txt` の `# === AUTO-GENERATED intake START ===` 〜 `END` の間は `pnpm generate extensions` が書き、ずれは `pnpm check extensions` が止める。行を組むのは宣言 2 段の読み手 `src/lib/districtMap/intakeRows.mjs`(`intakeRowsOf`、ファイルを読まない)で、`intake.mjs` は木から入力(宣言の点・差替点のスイッチ・ルート・phase.json)を集めて呼ぶだけ(区画の差し替えは `src/lib/forkOwnership/intake.mjs`)。src の下の行は全部ここ。行の種類は手書きだったときと同じ(下の Tier の書き換えの判定が変わらない。`intakeFromDeclarations.test.mjs`)。並び(最後に当たった行が効く):
 
 1. 置き場(placement の点): `<kind> <glob>`
-2. 画面: ルートの `page.tsx`(`src/lib/screens/routeTree.mjs` の discoverRoutes = ルートの地図と同じ見つけ方を src/app から直に。`pnpm generate routes` を待たない)と枠の 1 行スイッチの `layout.tsx`(parseSwitchLayout)= `edit`。パスの `[slug]` などは `[[]`・`[]]` で包む(`literalGlob`、node:path の matchesGlob の字の組)
+2. 画面: ルートの `page.tsx`(`src/lib/screens/routeTree.mjs` の discoverRoutes = ルートの地図と同じ見つけ方を src/app から直に。`pnpm generate routes` を待たない)と枠の 1 行スイッチの `layout.tsx`(parseSwitchLayout)= `edit`。種類の表の「ルート = page.tsx の差替点・枠 = layout の差替点」(D35 (ii))は、地区と 1 対 1 でない(ルートごと)ので差替点の宣言にせず、読み手がルートの一覧を入力に取って満たす(地図の枠の地区の forkCan には `kindPointsOf` の `layout` が載る)。パスの `[slug]` などは `[[]`・`[]]` で包む(`literalGlob`、node:path の matchesGlob の字の組)
 3. 宣言の受け口のフォルダ: `add <dir>/*.{ts,tsx}` とフォルダ形 `add <dir>/*/**`(files の点は `add <持ち主>/*/<ファイル名>`)
-4. 1 行スイッチ: 素の名前 `edit <dir>/<名前>.ts(x)`(向け先を替える)と置き換え `add <dir>/<名前>.replace.{ts,tsx}`
+4. 差替点(1 行スイッチ): 素の名前 `edit <dir>/<名前>.ts(x)`(向け先を替える)と置き換え `add <dir>/<名前>.replace.{ts,tsx}`。理由の字に差替点の名前と宣言の場所
 5. 上書きの対象の点(`overrides`): 隣の上書き `edit <glob の最後の拡張子を .override.ts に>`(多段で下の Tier が親の上書きを書き換える)、`addable` の点は対象そのものも `add <glob>`
 6. route の隣の置き換え: `_layout` / `_screen` の下の `*.replace.{ts,tsx}`・下のリポの枠の宣言 `frame.override.ts`
 7. 生成器: 各 `phase.json` の `regions` = `region`、`outputs` = `generated`(最後: 同じファイルなら生成物が効く。`scripts/runner/phases/README.md`)
@@ -175,8 +205,8 @@ fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印�
 ### 役目
 
 - 宣言の探索とリテラルの読み取り(宣言の唯一の読み手)は `src/lib/districtMap/declarations.mjs`(ここには置かない)
-- `extensions.mjs` 項目の走査・一覧の組み立て・ずれと手で置いたファイルの検出 / `intake.mjs` 受け口の一覧の生成区画の行 / `frames.mjs`・`framesMove.mjs` 枠の表・名前の移し替え
-- `derive/featureTables.mjs`・`derive/gateSettingPaths.mjs` 規則の features → tables・domainApiPaths・settingSections / `derive/gateDependsOn.mjs` dependsOn の字面の読みと検査 / `derive/gateRequires.mjs` requires の被覆の検査(機能のドメインの requires の先が自分・依存先・基盤のどれか)/ `derive/settingRoles.mjs` setting の上書きは権限を絞るだけ
+- `extensions.mjs` 項目の走査・一覧の組み立て・ずれと手で置いたファイルの検出 / `plugs.mjs` plugs の点の項目の走査(差す側の plugs/、上限・順位・鍵の一意)/ `intake.mjs` 受け口の一覧の生成区画の入力(行は `src/lib/districtMap/intakeRows.mjs`)/ `frames.mjs`・`framesMove.mjs` 枠の表・名前の移し替え
+- `derive/featureTables.mjs`・`derive/gateSettingPaths.mjs` 規則の features → tables・domainApiPaths・settingSections / `derive/gateDependsOn.mjs` dependsOn の字面の読みと検査 / `derive/gateWhen.mjs` when の読みと検査・whenInputs の生成・規則の値の import の検査 / `derive/gateRequires.mjs` requires の被覆の検査(機能のドメインの requires の先が自分・依存先・常設のどれか)/ `derive/settingRoles.mjs` setting の上書きは権限を絞るだけ
 - `derive/messageGuards.mjs` 止められない連絡(required)の守り: 連絡の定義と上書きを字面で読み、enabled:false・email の除外・adminEditableOnly・throttle を止める(点 = lib/messaging の messages)
 - `pureImports.mjs` 値 import の推移の検査と override のキーの読み取り / `switches.mjs`・`overrides.mjs` 1 行スイッチの形・上流の override / `orphans.mjs`・`overrideKeys.mjs` 孤立・宣言に無い鍵 / `generate.mjs`・`check.mjs` 入口
 

@@ -4,6 +4,7 @@
 export const extensionPoints = {
   // LINE Webhook のイベント処理: webhookHandlers/<名前>.ts の export const handler(上流の項目は 0)
   webhookHandlers: {
+    change: "add",
     dir: "webhookHandlers",
     export: "handler",
     type: { from: "@/domains/core/userLineProfile/types/webhook", name: "LineWebhookEventHandler" },

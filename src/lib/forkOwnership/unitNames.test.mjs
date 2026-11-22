@@ -14,7 +14,7 @@ test("unitName: 最後の拡張子と末尾の /index を除き、.replace / .ov
   assert.equal(unitName("scripts/README"), "scripts/README");
 });
 
-const spec = (/** @type {string} */ dir) => `{ dir: "${dir}", export: "x", type: { from: "@/t", name: "T" }, side: "server" }`;
+const spec = (/** @type {string} */ dir) => `{ change: "add", dir: "${dir}", export: "x", type: { from: "@/t", name: "T" }, side: "server" }`;
 
 test("unitPlaces / placeUnitOf: 受け口・wiring・scripts は直下の項目だけ、route の隣はその下全部、それ以外は対象外", () => {
   const files = ["src/domains/core/user/extensionPoints.ts", "src/proxies/extensionPoints.ts"];
@@ -68,7 +68,7 @@ test("部品の棚: 基準の分類・hooks・utils・src/lib の直下が単位
 });
 
 test("unitPlaces: 形の誤りのある宣言は点 0(止めるのは pnpm check extensions)・overrideTargetUnit・unitIndex", () => {
-  const places = unitPlaces(["src/x/extensionPoints.ts"], () => 'export const extensionPoints = { a: { dir: DIR } };\n');
+  const places = unitPlaces(["src/x/extensionPoints.ts"], () => 'export const extensionPoints = { a: { change: "add", dir: DIR } };\n');
   assert.ok(![...places.direct].some((d) => d.startsWith("src/x")));
   assert.equal(overrideTargetUnit("src/domains/core/setting/fields/a.override.ts"), "src/domains/core/setting/fields/a");
   assert.equal(overrideTargetUnit("src/domains/core/user/roles/coreRoles/user.role.override.ts"), "src/domains/core/user/roles/coreRoles/user.role");

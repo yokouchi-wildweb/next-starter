@@ -19,10 +19,11 @@ import { fileURLToPath } from "node:url";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 
 import { readDeclaration } from "../../../src/lib/districtMap/index.mjs";
+import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
 import { checkDependsOnGraph, readDependsOn } from "./derive/gateDependsOn.mjs";
 import { checkOverrides } from "./overrides.mjs";
 import { CLAIMERS, checkSwitches, isClaimedDefault } from "./switches.mjs";
-import { intakeRows } from "./intake.mjs";
+import { intakeRowsOf } from "../../../src/lib/districtMap/index.mjs";
 import { headerFor, itemsOf, planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -42,17 +43,24 @@ function fixture(files) {
 }
 
 const point = (body) => `export const extensionPoints = {\n${body}\n};\n`;
-const MILESTONES = `  definitions: { dir: "milestones", export: "milestone", type: { from: "@/domains/milestone/types", name: "MilestoneDefinition" }, side: "server" },`;
+/** 差替点の宣言(持ち主 = 既定のフォルダ。名前 = スイッチの名前の先頭を小文字) */
+const replacesOf = (paths) =>
+  paths.map((path) => {
+    const owner = path.slice(0, path.lastIndexOf("/"));
+    const name = path.slice(owner.length + 1).replace(/\.default\.tsx?$/, "");
+    return { owner, name: name[0].toLowerCase() + name.slice(1), declaredIn: `${owner}/extensionPoints.ts`, spec: { change: "replace", default: path, type: { from: "@/t", name: "T" }, side: "server" } };
+  });
+const MILESTONES = `  definitions: { change: "add", dir: "milestones", export: "milestone", type: { from: "@/domains/milestone/types", name: "MilestoneDefinition" }, side: "server" },`;
 
 test("宣言: リテラル以外・未知のキー・点の名前の形・欠けたキーは失敗", () => {
   const bad = (body) => readDeclaration("x/extensionPoints.ts", point(body)).problems;
   assert.deepEqual(readDeclaration("x/extensionPoints.ts", point(MILESTONES)).problems, []);
-  assert.match(bad(`  definitions: { dir: DIR, export: "m", type: { from: "a", name: "T" }, side: "server" },`)[0], /リテラルでない値\(DIR\)/);
-  assert.match(bad(`  definitions: { dir: "m", export: "m", type: { from: "a", name: "T" }, side: "server", ...rest },`)[0], /リテラルでない書き方/);
-  assert.match(bad(`  definitions: { dir: \`m\${x}\`, export: "m", type: { from: "a", name: "T" }, side: "server" },`)[0], /リテラルでない値/);
-  assert.match(bad(`  definitions: { dir: "m", export: "m", type: { from: "a", name: "T" }, side: "server", order: 1 },`)[0], /未知のキー order/);
+  assert.match(bad(`  definitions: { change: "add", dir: DIR, export: "m", type: { from: "a", name: "T" }, side: "server" },`)[0], /リテラルでない値\(DIR\)/);
+  assert.match(bad(`  definitions: { change: "add", dir: "m", export: "m", type: { from: "a", name: "T" }, side: "server", ...rest },`)[0], /リテラルでない書き方/);
+  assert.match(bad(`  definitions: { change: "add", dir: \`m\${x}\`, export: "m", type: { from: "a", name: "T" }, side: "server" },`)[0], /リテラルでない値/);
+  assert.match(bad(`  definitions: { change: "add", dir: "m", export: "m", type: { from: "a", name: "T" }, side: "server", sort: 1 },`)[0], /未知のキー sort/);
   assert.match(bad(`  Definitions: { dir: "m", export: "m", type: { from: "a", name: "T" }, side: "server" },`)[0], /英小文字始まり/);
-  assert.ok(bad(`  definitions: { dir: "../m", export: "m", type: { from: "a" }, side: "edge", derive: "mine" },`).length >= 4);
+  assert.ok(bad(`  definitions: { change: "add", dir: "../m", export: "m", type: { from: "a" }, side: "edge", derive: "mine" },`).length >= 4);
   assert.match(readDeclaration("x/extensionPoints.ts", "export const other = {};\n").problems[0], /export const extensionPoints/);
 });
 
@@ -109,16 +117,16 @@ test("失敗: 旧い fork の印(移し方を案内)・export が無い・index 
   assert.match(find("helper.ts"), /export const milestone が無い/);
   assert.match(find("empty"), /index\.ts\(x\)/);
   assert.match(find("/dup.ts"), /同じ名前の項目/);
-  // x.default.ts はスイッチの検査にも掛かる(隣の素の名前が無い)
+  // x.default.ts はスイッチの検査にも掛かる(差替点の宣言が無い)
   assert.equal(plan.problems.length, 9, plan.problems.join("\n"));
 });
 
 test("fork の宣言: fork 自身のフォルダの extensionPoints.ts は上流と同じに読む。旧い extensionPoints.<x>.ts は止めて移し方を案内する", () => {
   const root = fixture({
-    "src/domains/core/user/extensionPoints.ts": point(`  cleanupHandlers: { dir: "cleanup", export: "handler", type: { from: "@/domains/user/types", name: "CleanupHandler" }, side: "server" },`),
-    "src/domains/core/user/extensionPoints.acme.ts": point(`  badges: { dir: "badges", export: "badge", type: { from: "@/domains/user/types", name: "Badge" }, side: "client" },`),
+    "src/domains/core/user/extensionPoints.ts": point(`  cleanupHandlers: { change: "add", dir: "cleanup", export: "handler", type: { from: "@/domains/user/types", name: "CleanupHandler" }, side: "server" },`),
+    "src/domains/core/user/extensionPoints.acme.ts": point(`  badges: { change: "add", dir: "badges", export: "badge", type: { from: "@/domains/user/types", name: "Badge" }, side: "client" },`),
     "src/domains/core/user/extensionPoints.test.ts": "export const x = 1;\n",
-    "src/domains/acmeBadge/extensionPoints.ts": point(`  badges: { dir: "badges", export: "badge", type: { from: "@/domains/acmeBadge/types", name: "Badge" }, side: "client" },`),
+    "src/domains/acmeBadge/extensionPoints.ts": point(`  badges: { change: "add", dir: "badges", export: "badge", type: { from: "@/domains/acmeBadge/types", name: "Badge" }, side: "client" },`),
     "src/domains/core/user/cleanup/a.ts": "export const handler = 1;\n",
     "src/domains/acmeBadge/badges/gold.tsx": "export const badge = 1;\n",
   });
@@ -150,17 +158,18 @@ test("受け口の一覧(intake.txt)の生成区画: 受け口のフォルダ(di
   const INTAKE = "edit src/config/**  # 値\n# === AUTO-GENERATED intake START ===\nadd old/*.ts  # 古い行\n# === AUTO-GENERATED intake END ===\nappend src/lib/CATALOG.md  # 目録\n";
   const files = {
     "src/domains/milestone/extensionPoints.ts": point(MILESTONES),
-    "src/proxies/extensionPoints.ts": point(`  handlers: { dir: ".", export: "handler", type: { from: "@/t", name: "H" }, side: "server" },\n  decorators: { dir: ".", export: "decorator", type: { from: "@/t", name: "D" }, side: "server" },`),
-    "src/app/demo/extensionPoints.ts": point(`  pages: { dir: ".", files: "*/_demo.ts", export: "demo", type: { from: "@/t", name: "T" }, side: "shared" },`),
-    "src/domains/core/user/extensionPoints.ts": point(`  roles: { writer: "role:generate", side: "shared" },`),
+    "src/proxies/extensionPoints.ts": point(`  handlers: { change: "add", dir: ".", export: "handler", type: { from: "@/t", name: "H" }, side: "server" },\n  decorators: { change: "add", dir: ".", export: "decorator", type: { from: "@/t", name: "D" }, side: "server" },`),
+    "src/app/demo/extensionPoints.ts": point(`  pages: { change: "add", dir: ".", files: "*/_demo.ts", export: "demo", type: { from: "@/t", name: "T" }, side: "shared" },`),
+    "src/domains/core/user/extensionPoints.ts": point(`  roles: { change: "add", writer: "role:generate", side: "shared" },`),
     "src/domains/core/payment/enricher.default.ts": "export function enrich() {}\n",
     "src/domains/core/payment/enricher.ts": 'export { enrich } from "./enricher.default";\n',
+    "src/domains/core/payment/extensionPoints.ts": point(`  enricher: { change: "replace", default: "src/domains/core/payment/enricher.default.ts", type: { from: "@/t", name: "E" }, side: "server" },`),
   };
   assert.equal(planExtensions(fixture(files)).intake, null);
   const plan = planExtensions(fixture({ ...files, "src/lib/forkOwnership/intake.txt": INTAKE }));
   assert.deepEqual(plan.problems, []);
   assert.equal(plan.intake.path, "src/lib/forkOwnership/intake.txt");
-  assert.ok(plan.intake.content.includes("\nedit src/domains/core/payment/enricher.ts  # 1 行スイッチ"), "1 行スイッチの素の名前は edit の行");
+  assert.ok(plan.intake.content.includes("\nedit src/domains/core/payment/enricher.ts  # 差替点 enricher(src/domains/core/payment/extensionPoints.ts)の 1 行スイッチ"), "1 行スイッチの素の名前は edit の行");
   const rows = plan.intake.content.split("\n").filter((l) => /^add /.test(l)).map((l) => l.split("  #")[0]);
   assert.deepEqual(rows, [
     "add src/app/demo/*/_demo.ts",
@@ -182,7 +191,7 @@ test("受け口の一覧(intake.txt)の生成区画: 受け口のフォルダ(di
   const withOverride = planExtensions(
     fixture({
       ...files,
-      "src/app/demo/extensionPoints.ts": point(`  pages: { dir: ".", files: "*/_demo.ts", export: "demo", type: { from: "@/t", name: "T" }, side: "shared", overrideOf: ["disabled"] },`),
+      "src/app/demo/extensionPoints.ts": point(`  pages: { change: "add", dir: ".", files: "*/_demo.ts", export: "demo", type: { from: "@/t", name: "T" }, side: "shared", overrideOf: ["disabled"] },`),
       "src/lib/forkOwnership/intake.txt": INTAKE,
     }),
   );
@@ -196,12 +205,12 @@ test("受け口のフォルダが無い点は項目 0 で通る(空の一覧を�
   const plan = planExtensions(root);
   assert.deepEqual(plan.problems, []);
   assert.match(plan.outputs["src/domains/milestone/extensions/definitions.ts"], /export const definitions: MilestoneDefinition\[\] = \[\];/);
-  assert.match(readDeclaration("x/extensionPoints.ts", point(`  a: { dir: "a", export: "a", type: { from: "a", name: "T" }, side: "server", alwaysOn: "yes" },`)).problems[0], /alwaysOn は真偽/);
+  assert.match(readDeclaration("x/extensionPoints.ts", point(`  a: { change: "add", dir: "a", export: "a", type: { from: "a", name: "T" }, side: "server", alwaysOn: "yes" },`)).problems[0], /alwaysOn は真偽/);
 });
 
 test("描画: literalKeys は鍵の文字列を型に残す。key なし・true 以外は失敗", () => {
   const root = fixture({
-    "src/domains/core/pairedDevice/extensionPoints.ts": point(`  kinds: { dir: "kinds", export: "kind", type: { from: "@/x", name: "K" }, side: "server", key: "kind", literalKeys: true },`),
+    "src/domains/core/pairedDevice/extensionPoints.ts": point(`  kinds: { change: "add", dir: "kinds", export: "kind", type: { from: "@/x", name: "K" }, side: "server", key: "kind", literalKeys: true },`),
     "src/domains/core/pairedDevice/kinds/terminal.ts": "export const kind = {};\n",
   });
   const out = planExtensions(root).outputs["src/domains/core/pairedDevice/extensions/kinds.ts"];
@@ -209,21 +218,21 @@ test("描画: literalKeys は鍵の文字列を型に残す。key なし・true 
   assert.match(out, /as unknown as \{ readonly \[I in \(typeof kindsList\)\[number\] as I\["kind"\]\]: I \};/);
   assert.match(out, /kind が重複/);
   const bad = (body) => readDeclaration("x/extensionPoints.ts", point(body)).problems[0];
-  assert.match(bad(`  a: { dir: "a", export: "a", type: { from: "a", name: "T" }, side: "server", literalKeys: true },`), /literalKeys は key と一緒に/);
+  assert.match(bad(`  a: { change: "add", dir: "a", export: "a", type: { from: "a", name: "T" }, side: "server", literalKeys: true },`), /literalKeys は key と一緒に/);
 });
 
 test("描画: key の Record・lazy の import・lib の target wiring は src/wiring/<lib>.ts に 1 本", () => {
   const root = fixture({
     "src/domains/core/userLineProfile/extensionPoints.ts": point(
-      `  webhookHandlers: { dir: "webhooks", export: "webhookHandler", type: { from: "@/domains/userLineProfile/types", name: "LineWebhookHandler" }, side: "server", key: "eventType" },`,
+      `  webhookHandlers: { change: "add", dir: "webhooks", export: "webhookHandler", type: { from: "@/domains/userLineProfile/types", name: "LineWebhookHandler" }, side: "server", key: "eventType" },`,
     ),
     "src/domains/core/userLineProfile/webhooks/follow.ts": "export const webhookHandler = { eventType: \"follow\" };\n",
     "src/app/_layout/adminCommand/extensionPoints.ts": point(
-      `  plugins: { dir: "plugins", export: "plugin", type: { from: "@/app/_layout/adminCommand/types", name: "AdminCommandPlugin" }, side: "client", load: "lazy" },`,
+      `  plugins: { change: "add", dir: "plugins", export: "plugin", type: { from: "@/app/_layout/adminCommand/types", name: "AdminCommandPlugin" }, side: "client", load: "lazy" },`,
     ),
     "src/app/_layout/adminCommand/plugins/search/index.tsx": "export const plugin = {};\n",
     "src/lib/dbAgent/extensionPoints.ts": point(
-      `  tools: { dir: "tools", export: "tool", type: { from: "@/lib/dbAgent/types", name: "DbAgentTool" }, side: "server", target: "wiring" },\n  prompts: { dir: "prompts", export: "prompt", type: { from: "@/lib/dbAgent/types", name: "DbAgentPrompt" }, side: "server", target: "wiring" },`,
+      `  tools: { change: "add", dir: "tools", export: "tool", type: { from: "@/lib/dbAgent/types", name: "DbAgentTool" }, side: "server", target: "wiring" },\n  prompts: { change: "add", dir: "prompts", export: "prompt", type: { from: "@/lib/dbAgent/types", name: "DbAgentPrompt" }, side: "server", target: "wiring" },`,
     ),
     "src/lib/dbAgent/tools/query.ts": "export const tool = {};\n",
     "src/lib/dbAgent/prompts/base.ts": "export const prompt = {};\n",
@@ -283,9 +292,10 @@ test("1 行スイッチ: src/app の frame.default.ts は枠の宣言の既定�
   });
   try {
     for (const isTier1 of [true, false]) {
-      const { switches, problems } = checkSwitches(root, { isTier1 });
+      const { switches, problems } = checkSwitches(root, { isTier1, points: [] });
       assert.deepEqual(switches, []);
-      assert.deepEqual(problems, ["src/domains/core/x/frame.default.ts: 隣にスイッチ frame.ts(x) が無い(呼び手が import する素の名前。中身は export … from \"./frame.default\" の 1 行)"], "src/app の外の frame.default は今どおりスイッチの既定");
+      assert.equal(problems.length, 1, problems.join("\n"));
+      assert.match(problems[0], /^src\/domains\/core\/x\/frame\.default\.ts: 差替点の宣言が無い/, "src/app の外の frame.default は今どおりスイッチの既定");
     }
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -300,9 +310,10 @@ test("1 行スイッチ: .default を使うほかの仕組みは形を名乗れ�
   });
   try {
     const claims = [...CLAIMERS, { by: "test(名前で)", under: "src/domains/core/theme", name: "palette.default.ts" }, { by: "test(形で)", under: "src/domains/core/theme/tokens", pattern: /^[a-z]+\.default\.ts$/ }];
-    const { problems } = checkSwitches(root, { isTier1: true, claims });
-    assert.deepEqual(problems, ["src/domains/core/other/x.default.ts: 隣にスイッチ x.ts(x) が無い(呼び手が import する素の名前。中身は export … from \"./x.default\" の 1 行)"]);
-    assert.equal(checkSwitches(root, { isTier1: true }).problems.length, 3, "名乗りが無ければ全部スイッチの既定");
+    const { problems } = checkSwitches(root, { isTier1: true, points: [], claims });
+    assert.equal(problems.length, 1, problems.join("\n"));
+    assert.match(problems[0], /^src\/domains\/core\/other\/x\.default\.ts: 差替点の宣言が無い/);
+    assert.equal(checkSwitches(root, { isTier1: true, points: [] }).problems.length, 3, "名乗りが無ければ全部スイッチの既定");
     assert.equal(isClaimedDefault("src/app/(user)/frame.default.ts"), true, "枠の仕組み(frames.mjs)の名乗り");
     assert.equal(isClaimedDefault("src/domains/core/x/frame.default.ts"), false);
   } finally {
@@ -320,12 +331,13 @@ test("1 行スイッチ: route の _layout の隣の既定(管理のヘッダー
   const upstream = fixture(files("default"));
   const fork = fixture(files("replace"));
   try {
-    const tier1 = checkSwitches(upstream, { isTier1: true });
+    const points = replacesOf(["src/app/admin/_layout/AdminHeader.default.tsx"]);
+    const tier1 = checkSwitches(upstream, { isTier1: true, points });
     assert.deepEqual(tier1.problems, []);
     assert.deepEqual(tier1.switches.map((sw) => sw.path), ["src/app/admin/_layout/AdminHeader.tsx"]);
-    assert.ok(intakeRows([], tier1.switches).includes("add src/app/admin/_layout/AdminHeader.replace.{ts,tsx}  # 1 行スイッチ src/app/admin/_layout/AdminHeader.tsx の丸ごと置き換え"));
-    assert.deepEqual(checkSwitches(fork, { isTier1: false }).problems, []);
-    assert.match(checkSwitches(fork, { isTier1: true }).problems.join(), /AdminHeader\.tsx/, "上流のスイッチは .default を指す");
+    assert.ok(intakeRowsOf({ points: [], switches: tier1.switches }).includes("add src/app/admin/_layout/AdminHeader.replace.{ts,tsx}  # 差替点 adminHeader の丸ごと置き換え"));
+    assert.deepEqual(checkSwitches(fork, { isTier1: false, points }).problems, []);
+    assert.match(checkSwitches(fork, { isTier1: true, points }).problems.join(), /AdminHeader\.tsx/, "上流のスイッチは .default を指す");
   } finally {
     rmSync(upstream, { recursive: true, force: true });
     rmSync(fork, { recursive: true, force: true });
@@ -355,7 +367,8 @@ test("1 行スイッチ: .default の隣の素の名前は re-export 1 文だけ
     "src/domains/core/i/t.default.ts": D,
     "src/domains/core/i/t.ts": 'export * from "./t.custom.x";\n',
   });
-  const fork = checkSwitches(root, { isTier1: false });
+  const points = replacesOf(["payment/enricher.default.ts", "a/x.default.ts", "b/y.default.tsx", "c/z.default.ts", "d/w.default.ts", "e/v.default.ts", "f/u.default.ts", "i/t.default.ts"].map((p) => `src/domains/core/${p}`));
+  const fork = checkSwitches(root, { isTier1: false, points });
   assert.deepEqual(fork.switches.map((s) => `${s.path}>${s.target}`), ["src/domains/core/a/x.ts>x.replace", "src/domains/core/payment/enricher.ts>enricher.default"]);
   const reason = (r, s) => r.problems.find((p) => p.includes(s)) ?? "";
   assert.match(reason(fork, "b/y.tsx"), /re-export 1 文だけ/);
@@ -367,9 +380,128 @@ test("1 行スイッチ: .default の隣の素の名前は re-export 1 文だけ
   assert.ok(!fork.problems.some((p) => p.includes("only.replace") || p.includes("_layout")), "孤立した .replace は孤立の検査 orphans.mjs の側");
   assert.equal(fork.problems.length, 6, fork.problems.join("\n"));
 
-  const tier1 = checkSwitches(root, { isTier1: true });
+  const tier1 = checkSwitches(root, { isTier1: true, points });
   assert.match(reason(tier1, "a/x.ts"), /上流\(Tier1\)のスイッチは x\.default を指す/);
   assert.deepEqual(tier1.switches.map((s) => s.path), ["src/domains/core/payment/enricher.ts"]);
+});
+
+test("1 行スイッチ: 組は差替点の宣言から。宣言の無い .default・default の無いファイル・宣言した地区の外(枠の地区の src/app の下は通す)・同じ default の 2 点は止める", () => {
+  const D = "export function f() {}\n";
+  const root = fixture({
+    "src/domains/core/a/x.default.ts": D,
+    "src/domains/core/a/x.ts": 'export { f } from "./x.default";\n',
+    "src/domains/core/b/undeclared.default.ts": D,
+    "src/domains/core/b/undeclared.ts": 'export { f } from "./undeclared.default";\n',
+    "src/app/_providers/P.default.tsx": D,
+    "src/app/_providers/P.tsx": 'export { f } from "./P.default";\n',
+    "src/domains/core/c/out.default.ts": D,
+    "src/domains/core/c/out.ts": 'export { f } from "./out.default";\n',
+  });
+  const spec = (path) => ({ change: "replace", default: path, type: { from: "@/t", name: "T" }, side: "server" });
+  const at = (owner, name, path) => ({ owner, name, declaredIn: `${owner}/extensionPoints.ts`, spec: spec(path) });
+  const points = [
+    at("src/domains/core/a", "x", "src/domains/core/a/x.default.ts"),
+    at("src/domains/core/a", "x2", "src/domains/core/a/x.default.ts"),
+    at("src/app/_layout", "p", "src/app/_providers/P.default.tsx"),
+    at("src/domains/core/d", "out", "src/domains/core/c/out.default.ts"),
+    at("src/domains/core/a", "gone", "src/domains/core/a/gone.default.ts"),
+    at("src/lib/m", "bad", "src/lib/m/notADefault.ts"),
+  ];
+  const { switches, problems } = checkSwitches(root, { isTier1: true, points });
+  assert.deepEqual(switches.map((s) => `${s.path}:${s.point}`), ["src/app/_providers/P.tsx:p", "src/domains/core/a/x.ts:x"]);
+  const find = (s) => problems.find((p) => p.includes(s)) ?? "";
+  assert.match(find("x2"), /と重なる/);
+  assert.match(find("out.default.ts が宣言した地区"), /の外/);
+  assert.match(find("c/out.default.ts: 差替点の宣言が無い"), /差替点の宣言が無い/, "外を指す宣言は宣言に数えない");
+  assert.match(find("undeclared.default.ts"), /差替点の宣言が無い/);
+  assert.match(find("gone"), /gone\.default\.ts が無い/);
+  assert.match(find("notADefault"), /<名前>\.default\.ts\(x\)/);
+  assert.equal(problems.length, 6, problems.join("\n"));
+});
+
+// ---- plugs の点(差す側の <ドメイン>/plugs/<点>/ から集める、D38・D40・D41・D53) ----
+
+const ENTRY_REQUIRES = (key, requires) => `export const domainEntries = { ${key}: { service: () => import("./s"), table: null, idColumn: null, requires: ${JSON.stringify(requires)} } };\n`;
+
+test("宣言: plugs は true だけで、dir・files・ignore・shape・derive・literalKeys・overrideOf・alwaysOn と併用不可", () => {
+  const read = (body) => readDeclaration("x/extensionPoints.ts", point(body)).problems;
+  assert.deepEqual(read(`  deviceHandlers: { change: "add", plugs: true, export: "plug", type: { from: "@/x", name: "D" }, side: "server", max: 1 },`), []);
+  assert.match(read(`  a: { change: "add", plugs: false, export: "plug", type: { from: "@/x", name: "D" }, side: "server" },`)[0], /plugs は true だけ/);
+  assert.match(read(`  a: { change: "add", plugs: true, dir: "a", export: "plug", type: { from: "@/x", name: "D" }, side: "server" },`)[0], /plugs の点に dir は書けない/);
+  assert.match(read(`  a: { change: "add", plugs: true, export: "plug", type: { from: "@/x", name: "D" }, side: "server", overrideOf: ["x"] },`)[0], /plugs の点に overrideOf は書けない/);
+});
+
+test("plugs の点: 全ドメイン(core・業務)と lib の plugs/<点>/ を集め、項目に domain・requires を付ける。並びは <差す側>/<名前>、lazy は load、フォルダ形も", () => {
+  const P = "export const plug = 1;\n";
+  const plan = planExtensions(
+    fixture({
+      "src/lib/routeFactory/extensionPoints.ts": point(`  routeUsers: { change: "add", plugs: true, export: "plug", type: { from: "@/lib/routeFactory/points", name: "RouteUserPlug" }, side: "server", target: "wiring" },\n  routeLazies: { change: "add", plugs: true, export: "plug", type: { from: "@/lib/routeFactory/points", name: "L" }, side: "server", load: "lazy" },`),
+      "src/domains/core/auth/services/server/domainEntry.ts": ENTRY_REQUIRES("auth", []),
+      "src/domains/core/auth/plugs/routeUsers/session.ts": P,
+      "src/domains/acme/services/server/domainEntry.ts": ENTRY_REQUIRES("acme", ["wallet", "coupon"]),
+      "src/domains/acme/plugs/routeUsers/kiosk/index.ts": P,
+      "src/domains/acme/plugs/routeUsers/session.ts": P,
+      "src/domains/acme/plugs/routeLazies/late.ts": P,
+      "src/lib/kioskKit/plugs/routeUsers/fallback.ts": P,
+      "src/lib/kioskKit/index.ts": "export {};\n",
+    }),
+  );
+  assert.deepEqual(plan.problems, []);
+  const out = plan.outputs["src/wiring/routeFactory.ts"];
+  assert.ok(out, Object.keys(plan.outputs).join("\n"));
+  assert.match(out, /import \{ plug as routeUsers_acme_kiosk \} from "@\/domains\/acme\/plugs\/routeUsers\/kiosk";/);
+  assert.match(out, /export const routeUsers: \{ domain: string \| null; name: string; requires: readonly string\[\]; plug: RouteUserPlug \}\[\] = \[/);
+  const rows = out.split("\n").filter((l) => l.startsWith("  { domain"));
+  assert.deepEqual(rows, [
+    '  { domain: "acme", name: "kiosk", requires: ["coupon", "wallet"], plug: routeUsers_acme_kiosk },',
+    '  { domain: "acme", name: "session", requires: ["coupon", "wallet"], plug: routeUsers_acme_session },',
+    '  { domain: "auth", name: "session", requires: [], plug: routeUsers_auth_session },',
+    '  { domain: null, name: "fallback", requires: [], plug: routeUsers_kioskKit_fallback },',
+  ]);
+  assert.match(plan.outputs["src/lib/routeFactory/extensions/routeLazies.ts"], /\{ domain: "acme", name: "late", requires: \["coupon", "wallet"\], load: \(\) => import\("@\/domains\/acme\/plugs\/routeLazies\/late"\)\.then\(\(m\) => m\.plug\) \}/);
+});
+
+test("plugs の点: 上限 max・順位 order declared・鍵の全体の一意・知らない点のフォルダ・点の名前の重なり・export の無い項目は止める", () => {
+  const P = (extra = "") => `export const plug = { kind: "k" };\n${extra}`;
+  const plan = planExtensions(
+    fixture({
+      "src/lib/routeFactory/extensionPoints.ts": point(`  routeDevices: { change: "add", plugs: true, export: "plug", type: { from: "@/x", name: "D" }, side: "server", max: 1 },\n  ranked: { change: "add", plugs: true, export: "plug", type: { from: "@/x", name: "R" }, side: "server", order: "declared" },\n  kinds: { change: "add", plugs: true, export: "plug", type: { from: "@/x", name: "K" }, side: "server", key: "kind" },`),
+      "src/lib/zother/extensionPoints.ts": point(`  kinds: { change: "add", plugs: true, export: "plug", type: { from: "@/x", name: "K" }, side: "server" },`),
+      "src/domains/a/plugs/routeDevices/one.ts": P(),
+      "src/domains/b/plugs/routeDevices/two.ts": P(),
+      "src/domains/a/plugs/ranked/late.ts": P("export const order = 2;\n"),
+      "src/domains/b/plugs/ranked/early.ts": P("export const order = 1;\n"),
+      "src/domains/b/plugs/ranked/none.ts": P(),
+      "src/domains/a/plugs/kinds/x.ts": P(),
+      "src/domains/b/plugs/kinds/y.ts": P(),
+      "src/domains/b/plugs/unknownPoint/z.ts": P(),
+      "src/domains/b/plugs/kinds/noExport.ts": "export const other = 1;\n",
+    }),
+  );
+  const find = (s) => plan.problems.find((p) => p.includes(s)) ?? "";
+  assert.match(find("routeDevices の項目は 1 個まで"), /src\/domains\/a\/plugs\/routeDevices\/one\.ts・src\/domains\/b\/plugs\/routeDevices\/two\.ts/);
+  assert.match(find("ranked/none.ts"), /export const order = <数> が無い/);
+  assert.match(find('kind "k"'), /src\/domains\/b\/plugs\/kinds\/y\.ts: .*src\/domains\/a\/plugs\/kinds\/x\.ts とぶつかる/);
+  assert.match(find("unknownPoint"), /plugs の点 unknownPoint が無い/);
+  assert.match(find("plugs の点 kinds は"), /にもある/);
+  assert.match(find("noExport.ts"), /export const plug が無い/);
+  assert.equal(plan.problems.length, 6, plan.problems.join("\n"));
+  const ranked = plan.outputs["src/lib/routeFactory/extensions/ranked.ts"].split("\n").filter((l) => l.startsWith("  { domain")).map((l) => /name: "(\w+)"/.exec(l)[1]);
+  assert.deepEqual(ranked, ["none", "early", "late"], "order の無い項目は 0、同じ順位は <差す側>/<名前>");
+});
+
+test("plugs の点: 空の一覧は [](空なら点の持ち主の既定で動く、D53)、intake.txt の行は出さない、地図の forkCan は自分のドメインの plugs/<点>/*", () => {
+  const files = {
+    "src/lib/routeFactory/extensionPoints.ts": point(`  routeDevices: { change: "add", plugs: true, export: "plug", type: { from: "@/x", name: "D" }, side: "server", max: 1 },`),
+    "src/lib/forkOwnership/intake.txt": "# === AUTO-GENERATED intake START ===\n# === AUTO-GENERATED intake END ===\n",
+  };
+  const root = fixture(files);
+  const plan = planExtensions(root);
+  assert.deepEqual(plan.problems, []);
+  assert.match(plan.outputs["src/lib/routeFactory/extensions/routeDevices.ts"], /export const routeDevices: .*\[\] = \[\];/);
+  assert.ok(!plan.intake.content.includes("routeDevices"));
+  const lib = readDistrictMapAt(root).districts.find((d) => d.kind === "lib" && d.name === "routeFactory");
+  assert.deepEqual(lib?.forkCan.find((f) => f.point === "routeDevices"), { point: "routeDevices", change: "add", where: "src/domains/<自分のドメイン>/plugs/routeDevices/*" });
 });
 
 test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空も中身ありも通る。cron は task.ts の隣の task.override.ts。素の override.ts は override ではない(孤立は orphans.mjs)", () => {
@@ -424,7 +556,7 @@ test("files の点: 1 段下の決まった名前のファイルが項目、fold
   try {
     put("repo.json", '{"repo_id": "next-starter", "tier": "root"}\n');
     put("src/lib/CATALOG.md", "## next-starter\n");
-    put("src/app/demo/extensionPoints.ts", 'export const extensionPoints = { pages: { dir: ".", files: "*/_demo.ts", export: "demo", type: { from: "@/t", name: "T" }, side: "shared" } };\n');
+    put("src/app/demo/extensionPoints.ts", 'export const extensionPoints = { pages: { change: "add", dir: ".", files: "*/_demo.ts", export: "demo", type: { from: "@/t", name: "T" }, side: "shared" } };\n');
     put("src/app/demo/b-page/_demo.ts", "export const demo = {};\n");
     put("src/app/demo/a-page/_demo.ts", "export const demo = {};\n");
     put("src/app/demo/no-entry/page.tsx", "");
@@ -447,7 +579,7 @@ test("files の点の override(overrideOf): 項目のファイルの隣の <フ�
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   };
-  const decl = (extra) => `export const extensionPoints = { pages: { dir: ".", files: "*/_demo.ts", export: "demo", type: { from: "@/t", name: "T" }, side: "shared"${extra} } };\n`;
+  const decl = (extra) => `export const extensionPoints = { pages: { change: "add", dir: ".", files: "*/_demo.ts", export: "demo", type: { from: "@/t", name: "T" }, side: "shared"${extra} } };\n`;
   try {
     // fork(上流は override を出荷しない)
     put("repo.json", '{"repo_id": "fork-a", "tier": "leaf"}\n');
@@ -490,7 +622,7 @@ test("key の一覧: constructor・__proto__ で引いても何も当たらず�
   try {
     put("repo.json", '{"repo_id": "next-starter", "tier": "root"}\n');
     put("src/lib/CATALOG.md", "## next-starter\n");
-    put("src/domains/x/extensionPoints.ts", 'export const extensionPoints = { rules: { dir: "rules", export: "rule", type: { from: "@/t", name: "T" }, side: "server", key: "k" } };\n');
+    put("src/domains/x/extensionPoints.ts", 'export const extensionPoints = { rules: { change: "add", dir: "rules", export: "rule", type: { from: "@/t", name: "T" }, side: "server", key: "k" } };\n');
     put("src/domains/x/rules/a.ts", 'export const rule = { k: "a" };\n');
     const out = planExtensions(root).outputs["src/domains/x/extensions/rules.ts"];
     const body = out.slice(out.indexOf("export const rules")).replace(/^export const rules: [^=]*= /, "").split("\n")[0].replace(/;$/, "");
@@ -505,8 +637,8 @@ test("key の一覧: constructor・__proto__ で引いても何も当たらず�
   }
 });
 
-const SETTING_POINTS = point(`  fields: { dir: "fields", export: "field", type: { from: "@/t", name: "F" }, side: "shared", shape: "object", pureImports: true, requireText: ".default(", overrideOf: ["ui", "public"], derive: "settingSections" },
-  sections: { dir: "sections", export: "section", type: { from: "@/t", name: "S" }, side: "client", key: "key", overrideOf: ["label"] },`);
+const SETTING_POINTS = point(`  fields: { change: "add", dir: "fields", export: "field", type: { from: "@/t", name: "F" }, side: "shared", shape: "object", pureImports: true, requireText: ".default(", overrideOf: ["ui", "public"], derive: "settingSections" },
+  sections: { change: "add", dir: "sections", export: "section", type: { from: "@/t", name: "S" }, side: "client", key: "key", overrideOf: ["label"] },`);
 const KEY = 'import { z } from "zod";\nexport const field = { schema: z.number().default(1), ui: { section: "general" } };\n';
 const SECTION = 'export const section = { key: "general", label: "x", order: 1 };\n';
 const settingPlan = (extra) =>
@@ -573,14 +705,14 @@ test("setting の点: override は許す属性だけ、既存の項目だけ、�
 
 test("writer の点: 別の生成器が書く一覧。持てるのは side だけ、ほかのキー・未知の writer は失敗", () => {
   const read = (body) => readDeclaration("x/extensionPoints.ts", `export const extensionPoints = { roles: ${body} };`);
-  assert.deepEqual(read('{ writer: "role:generate", side: "shared" }').problems, []);
-  assert.equal(read('{ writer: "other", side: "shared" }').problems.length, 1);
-  assert.equal(read('{ writer: "role:generate", side: "shared", dir: "roles" }').problems.length, 1);
+  assert.deepEqual(read('{ change: "add", writer: "role:generate", side: "shared" }').problems, []);
+  assert.equal(read('{ change: "add", writer: "other", side: "shared" }').problems.length, 1);
+  assert.equal(read('{ change: "add", writer: "role:generate", side: "shared", dir: "roles" }').problems.length, 1);
 });
 
 // setting の上書きは権限を絞るだけ(derive/settingRoles.mjs)。上流 = 項目のファイル、上書き = 隣の .override.ts
-const ROLE_POINTS = point(`  fields: { dir: "fields", export: "field", type: { from: "@/t", name: "F" }, side: "shared", shape: "object", pureImports: true, requireText: ".default(", overrideOf: ["ui", "public", "default", "allowRoles"], derive: "settingSections" },
-  sections: { dir: "sections", export: "section", type: { from: "@/t", name: "S" }, side: "client", key: "key", overrideOf: ["label", "order", "icon", "allowRoles", "description", "groups"] },`);
+const ROLE_POINTS = point(`  fields: { change: "add", dir: "fields", export: "field", type: { from: "@/t", name: "F" }, side: "shared", shape: "object", pureImports: true, requireText: ".default(", overrideOf: ["ui", "public", "default", "allowRoles"], derive: "settingSections" },
+  sections: { change: "add", dir: "sections", export: "section", type: { from: "@/t", name: "S" }, side: "client", key: "key", overrideOf: ["label", "order", "icon", "allowRoles", "description", "groups"] },`);
 const roleField = (props) => `import { z } from "zod";\nexport const field = { schema: z.number().default(1), ${props} };\n`;
 const roleSection = (key, props = "") => `export const section = { key: "${key}", label: "x", order: 1${props ? `, ${props}` : ""} };\n`;
 const S = "src/domains/core/setting/sections/";
@@ -661,14 +793,14 @@ test("fork の今の受け口の override(oripa-do の 8 本: 管理メニュー
 
 test("宣言: overrides の点(受け口でない上書きの対象)は overrides・side・overrideOf・addable だけ。受け口の一覧にならず、intake は .override の edit の行と addable の add の行", () => {
   const read = (body) => readDeclaration("x/extensionPoints.ts", point(body));
-  const OK = `  cronTasks: { overrides: "src/app/api/cron/*/task.ts", export: "override", side: "server", overrideOf: ["schedule", "disabled"] },`;
+  const OK = `  cronTasks: { change: "override", overrides: "src/app/api/cron/*/task.ts", export: "override", side: "server", overrideOf: ["schedule", "disabled"] },`;
   assert.deepEqual(read(OK).problems, []);
-  assert.match(read(`  cronTasks: { overrides: "src/a/*.ts", export: "override", side: "server" },`).problems[0], /overrideOf .*必須/);
-  assert.match(read(`  cronTasks: { overrides: "src/a/*.ts", export: "override", side: "server", overrideOf: ["a"], dir: "a" },`).problems[0], /overrides の点に dir は書けない/);
-  assert.match(read(`  cronTasks: { overrides: "src/a/*.ts", export: "override", side: "server", overrideOf: ["a"], writer: "role:generate" },`).problems[0], /overrides の点に writer は書けない/);
-  assert.match(read(`  cronTasks: { overrides: "../a/*.ts", export: "override", side: "server", overrideOf: ["a"] },`).problems[0], /overrides は対象のファイル/);
-  assert.match(read(`  cronTasks: { overrides: "src/../a.ts", export: "override", side: "server", overrideOf: ["a"] },`).problems[0], /overrides は対象のファイル/);
-  assert.match(read(`  cronTasks: { overrides: "src/a.ts", export: "override", side: "edge", overrideOf: ["a"] },`).problems[0], /side は/);
+  assert.match(read(`  cronTasks: { change: "override", overrides: "src/a/*.ts", export: "override", side: "server" },`).problems[0], /overrideOf .*必須/);
+  assert.match(read(`  cronTasks: { change: "override", overrides: "src/a/*.ts", export: "override", side: "server", overrideOf: ["a"], dir: "a" },`).problems[0], /overrides の点に dir は書けない/);
+  assert.match(read(`  cronTasks: { change: "override", overrides: "src/a/*.ts", export: "override", side: "server", overrideOf: ["a"], writer: "role:generate" },`).problems[0], /overrides の点に writer は書けない/);
+  assert.match(read(`  cronTasks: { change: "override", overrides: "../a/*.ts", export: "override", side: "server", overrideOf: ["a"] },`).problems[0], /overrides は対象のファイル/);
+  assert.match(read(`  cronTasks: { change: "override", overrides: "src/../a.ts", export: "override", side: "server", overrideOf: ["a"] },`).problems[0], /overrides は対象のファイル/);
+  assert.match(read(`  cronTasks: { change: "override", overrides: "src/a.ts", export: "override", side: "edge", overrideOf: ["a"] },`).problems[0], /side は/);
   const files = { "src/lib/cron/extensionPoints.ts": point(OK), "src/domains/milestone/extensionPoints.ts": point(MILESTONES), "src/lib/forkOwnership/intake.txt": "# === AUTO-GENERATED intake START ===\n# === AUTO-GENERATED intake END ===\n" };
   const plan = planExtensions(fixture(files));
   assert.deepEqual(plan.problems, []);
@@ -676,7 +808,7 @@ test("宣言: overrides の点(受け口でない上書きの対象)は override
   const rowsOf = (content) => content.split("\n").filter((l) => /^(add|edit) /.test(l)).map((l) => l.split("  #")[0]);
   assert.ok(rowsOf(plan.intake.content).includes("edit src/app/api/cron/*/task.override.ts"), "上書きの対象の点 = 隣の .override.ts の edit の行");
   assert.ok(!rowsOf(plan.intake.content).includes("add src/app/api/cron/*/task.ts"), "addable の無い点は対象を足す add の行を作らない");
-  const ROLES = `  roleDefinitions: { overrides: "src/domains/core/user/roles/*.role.json", export: "override", addable: true, side: "shared", overrideOf: ["label"] },\n  coreRoleDefinitions: { overrides: "src/domains/core/user/coreRoles/*.role.json", export: "override", side: "shared", overrideOf: ["label"] },`;
+  const ROLES = `  roleDefinitions: { change: "override", overrides: "src/domains/core/user/roles/*.role.json", export: "override", addable: true, side: "shared", overrideOf: ["label"] },\n  coreRoleDefinitions: { change: "override", overrides: "src/domains/core/user/coreRoles/*.role.json", export: "override", side: "shared", overrideOf: ["label"] },`;
   const withRoles = planExtensions(fixture({ ...files, "src/domains/core/user/extensionPoints.ts": point(ROLES) }));
   assert.deepEqual(withRoles.problems, []);
   const rows = rowsOf(withRoles.intake.content);
@@ -685,25 +817,27 @@ test("宣言: overrides の点(受け口でない上書きの対象)は override
     "edit src/domains/core/user/roles/*.role.override.ts",
     "add src/domains/core/user/roles/*.role.json",
   ]);
-  assert.match(read(`  roleDefinitions: { overrides: "src/a/*.json", export: "override", addable: false, side: "shared", overrideOf: ["a"] },`).problems[0], /addable は true だけ/);
+  assert.match(read(`  roleDefinitions: { change: "override", overrides: "src/a/*.json", export: "override", addable: false, side: "shared", overrideOf: ["a"] },`).problems[0], /addable は true だけ/);
 });
 
 test("宣言: placement の点(置き場)は placement・kind(edit | append)だけ。intake は置き場 → 画面 → 受け口 → … → region → generated の順", () => {
   const read = (body) => readDeclaration("x/extensionPoints.ts", point(body));
-  assert.deepEqual(read(`  values: { placement: "src/config/**", kind: "edit" },`).problems, []);
-  assert.deepEqual(read(`  catalog: { placement: "src/lib/CATALOG.md", kind: "append" },`).problems, []);
-  assert.match(read(`  values: { placement: "src/config/**", kind: "add" },`).problems[0], /kind は edit \| append/);
-  assert.match(read(`  values: { placement: "config/**", kind: "edit" },`).problems[0], /placement は置き場/);
-  assert.match(read(`  values: { placement: "src/a/**", kind: "edit", side: "server" },`).problems[0], /placement の点に side は書けない/);
+  assert.deepEqual(read(`  values: { change: "counterpart", placement: "src/config/**", kind: "edit" },`).problems, []);
+  assert.deepEqual(read(`  catalog: { change: "counterpart", placement: "src/lib/CATALOG.md", kind: "append" },`).problems, []);
+  assert.match(read(`  values: { change: "counterpart", placement: "src/config/**", kind: "add" },`).problems[0], /kind は edit \| append/);
+  assert.match(read(`  values: { change: "counterpart", placement: "config/**", kind: "edit" },`).problems[0], /placement は置き場/);
+  assert.match(read(`  values: { change: "counterpart", placement: "src/a/**", kind: "edit", side: "server" },`).problems[0], /placement の点に side は書けない/);
   assert.match(read(MILESTONES.replace('side: "server" }', 'side: "server", kind: "edit" }')).problems[0], /kind は placement の点だけ/);
-  const rows = intakeRows(
-    [
-      { owner: "src/lib/a", name: "values", declaredIn: "src/lib/a/extensionPoints.ts", spec: { placement: "src/config/**", kind: "edit" } },
-      { owner: "src/domains/milestone", name: "definitions", declaredIn: "src/domains/milestone/extensionPoints.ts", spec: { dir: "milestones", export: "m", type: { from: "a", name: "T" }, side: "server" } },
+  const rows = intakeRowsOf({
+    points: [
+      { owner: "src/lib/a", name: "values", declaredIn: "src/lib/a/extensionPoints.ts", spec: { change: "counterpart", placement: "src/config/**", kind: "edit" } },
+      { owner: "src/domains/milestone", name: "definitions", declaredIn: "src/domains/milestone/extensionPoints.ts", spec: { change: "add", dir: "milestones", export: "m", type: { from: "a", name: "T" }, side: "server" } },
     ],
-    [{ path: "src/domains/core/payment/enricher.ts" }],
-    { pages: ["src/app/(user)/wallet/[slug]/page.tsx"], frameSwitches: ["src/app/(user)/layout.tsx"], generators: [{ name: "registry", outputs: ["src/registry/a.ts"], regions: ["src/registry/**/*.ts"] }] },
-  ).filter((r) => !r.startsWith("#")).map((r) => r.split("  #")[0]);
+    switches: [{ path: "src/domains/core/payment/enricher.ts", point: "enricher", declaredIn: "src/domains/core/payment/extensionPoints.ts" }],
+    pages: ["src/app/(user)/wallet/[slug]/page.tsx"],
+    frameSwitches: ["src/app/(user)/layout.tsx"],
+    generators: [{ name: "registry", outputs: ["src/registry/a.ts"], regions: ["src/registry/**/*.ts"] }],
+  }).filter((r) => !r.startsWith("#")).map((r) => r.split("  #")[0]);
   const at = (row) => rows.indexOf(row);
   for (const row of ["edit src/config/**", "edit src/app/(user)/wallet/[[]slug[]]/page.tsx", "edit src/app/(user)/layout.tsx", "add src/domains/milestone/milestones/*.{ts,tsx}", "edit src/domains/core/payment/enricher.ts", "region src/registry/**/*.ts", "generated src/registry/a.ts"]) {
     assert.ok(at(row) >= 0, `${row} が無い`);
@@ -736,8 +870,8 @@ test("dependsOn: 字面を一覧の項目に写す(書かない規則は空、en
   );
   const out = plan.outputs["src/featureGate/extensions/rules.ts"];
   assert.match(out, /import type \{ GatedCronTask, GatedDomain, GatedSettingSection, GeneratedFeatureRule \} from "@\/featureGate";/);
-  assert.match(out, /\{ \.\.\.rules_child, name: "child", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \["parent"\], anyOf: \[\] \},/);
-  assert.match(out, /\{ \.\.\.rules_parent, name: "parent", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\] \},/);
+  assert.match(out, /\{ \.\.\.rules_child, name: "child", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \["parent"\], anyOf: \[\], when: \[\] \},/);
+  assert.match(out, /\{ \.\.\.rules_parent, name: "parent", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\], when: \[\] \},/);
 });
 
 test("dependsOn: 非リテラル・自分・重複・未知の名前・輪(推移的)を規則の名前を出して止める", () => {
@@ -790,7 +924,61 @@ test("dependsOn: 読み・輪の検査の単体(輪は 1 つにつき 1 回、�
 
 // ---- 門番の規則の requires の被覆(D24・D34 K5) ----
 
-test("requires の被覆: 機能のドメインの requires の先が自分・依存先(推移的)・基盤のどれにも無ければ止め、直し方(dependsOn に足す機能)を示す", () => {
+// ---- 門番の規則の when と値の import・住所のパターン(D23・D28・D29) ----
+
+const SHOP_CONFIG = 'import { defineConfig } from "@/lib/defineConfig";\nexport const shopConfig = defineConfig({ a: 1 });\nexport const open: boolean = shopConfig.a === 1;\nexport const closed = false;\nexport const label = "x";\nexport const nested = { on: true };\n';
+
+test("when: 字面を項目に写し、指された config.ts だけを import する whenInputs を書く(指されないドメインの config は読まない)", () => {
+  const plan = planExtensions(
+    fixture({
+      "src/featureGate/extensionPoints.ts": GATE_DECLARATION,
+      "src/featureGate/rules/shop.ts": `import type { FeatureGateRule } from "@/featureGate";\n${gateRule('when: ["shop.open", "shop.closed"],\n  defaultEnabled: true,')}`,
+      "src/featureGate/rules/plain.ts": gateRule("defaultEnabled: true,"),
+      "src/domains/core/shop/config.ts": SHOP_CONFIG,
+      "src/domains/other/config.ts": "export const unused: boolean = true;\n",
+    }),
+  );
+  assert.deepEqual(plan.problems, []);
+  assert.deepEqual(itemsOf(plan, "src/featureGate", "rules").map((item) => `${item.name}:${item.fields.when.join("|")}`), ["plain:", "shop:shop.open|shop.closed"]);
+  const inputs = plan.outputs["src/featureGate/extensions/whenInputs.ts"];
+  assert.match(inputs, /import \{ closed as shop_closed \} from "@\/domains\/core\/shop\/config";/);
+  assert.match(inputs, /import \{ open as shop_open \} from "@\/domains\/core\/shop\/config";/);
+  assert.match(inputs, /"shop\.closed": shop_closed,\n {2}"shop\.open": shop_open,/);
+  assert.ok(!inputs.includes("domains/other"), "指されないドメインの config は import しない");
+  assert.match(plan.outputs["src/featureGate/extensions/rules.ts"], /name: "shop", .*when: \["shop\.open", "shop\.closed"\] \},/);
+});
+
+test("when・値の import・住所のパターン: 知らないドメイン・config.ts が無い・名前が無い・真偽でない・入れ子・重複・非リテラル、値の import、パターンの誤りを止める", () => {
+  const plan = planExtensions(
+    fixture({
+      "src/featureGate/extensionPoints.ts": GATE_DECLARATION,
+      "src/domains/core/shop/config.ts": SHOP_CONFIG,
+      "src/domains/bare/index.ts": "export {};\n",
+      "src/featureGate/rules/unknownDomain.ts": gateRule('when: ["nowhere.open"],'),
+      "src/featureGate/rules/noConfig.ts": gateRule('when: ["bare.open"],'),
+      "src/featureGate/rules/noName.ts": gateRule('when: ["shop.missing"],'),
+      "src/featureGate/rules/notBoolean.ts": gateRule('when: ["shop.label"],'),
+      "src/featureGate/rules/nestedKey.ts": gateRule('when: ["shop.nested.on"],'),
+      "src/featureGate/rules/duplicated.ts": gateRule('when: ["shop.open", "shop.open"],'),
+      "src/featureGate/rules/variable.ts": gateRule("when: WHEN,"),
+      "src/featureGate/rules/valueImport.ts": `import { open } from "@/domains/shop/config";\n${gateRule("enabled: () => open,")}`,
+      "src/featureGate/rules/badPattern.ts": 'export const rule = {\n  pathPatterns: ["/wallet/a*b", "/ok"],\n};\n',
+    }),
+  );
+  const find = (name) => plan.problems.find((p) => p.startsWith(`src/featureGate/rules/${name}.ts: `)) ?? "";
+  assert.match(find("unknownDomain"), /ドメイン nowhere が無い/);
+  assert.match(find("noConfig"), /src\/domains\/bare\/config\.ts が無い/);
+  assert.match(find("noName"), /最上位の export const missing が無い/);
+  assert.match(find("notBoolean"), /label が真偽でない/);
+  assert.match(find("nestedKey"), /"<ドメイン>\.<名前>" の文字列リテラルでない/);
+  assert.match(find("duplicated"), /"shop\.open" が重複/);
+  assert.match(find("variable"), /when が文字列リテラルの配列でない/);
+  assert.match(find("valueImport"), /規則は値を import しない\(@\/domains\/shop\/config/);
+  assert.match(find("badPattern"), /区切りの一部の \*/);
+  assert.equal(plan.problems.length, 9, plan.problems.join("\n"));
+});
+
+test("requires の被覆: 機能のドメインの requires の先が自分・依存先(推移的)・常設のどれにも無ければ止め、直し方(dependsOn に足す機能)を示す", () => {
   const entry = (requires) => `export const domainEntries = {\n  x: { table: null${requires ? `, requires: ${JSON.stringify(requires)}` : ""} },\n} satisfies DomainEntries;\n`;
   const domains = {
     "src/domains/core/wallet/services/server/domainEntry.ts": entry(),
@@ -812,9 +1000,9 @@ test("requires の被覆: 機能のドメインの requires の先が自分・�
   );
   const of = (name) => plan.problems.filter((p) => p.includes(`rules/${name}.ts`));
   assert.equal(of("payment").length, 1, plan.problems.join("\n"));
-  assert.match(of("payment")[0], /機能 payment のドメイン core\/purchase が requires する wallet\(core\/wallet、機能 wallet\)が、この機能・依存先\(dependsOn、推移的\)・基盤のどれにも無い。dependsOn に "wallet" を足す/);
+  assert.match(of("payment")[0], /機能 payment のドメイン core\/purchase が requires する wallet\(core\/wallet、機能 wallet\)が、この機能・依存先\(dependsOn、推移的\)・常設のどれにも無い。dependsOn に "wallet" を足す/);
   assert.equal(of("bonus").length, 1, "依存先 payment は wallet を持たないので覆わない");
-  assert.deepEqual(of("logs"), [], "requires の先 audit はどの規則にも載らない基盤");
+  assert.deepEqual(of("logs"), [], "requires の先 audit はどの規則にも載らない常設");
   assert.deepEqual(of("wallet"), []);
   // payment が wallet に依存すれば payment も bonus(推移的)も覆う
   const fixed = planExtensions(
@@ -851,9 +1039,9 @@ test("files の点: 1 つのフォルダを 2 つ以上の点が別々のファ�
   const root = fixture({
     "src/domains/note/extensionPoints.ts": point(
       [
-        `  layouts: { dir: "layouts", files: "*/layout.ts", export: "layout", type: { from: "@/t", name: "L" }, side: "server", key: "key" },`,
-        `  layoutEmails: { dir: "layouts", files: "*/email.tsx", export: "emailRenderer", type: { from: "@/t", name: "E" }, side: "server", key: "layout" },`,
-        `  layoutInApps: { dir: "layouts", files: "*/inApp.tsx", export: "inAppRenderer", type: { from: "@/t", name: "I" }, side: "client", key: "layout" },`,
+        `  layouts: { change: "add", dir: "layouts", files: "*/layout.ts", export: "layout", type: { from: "@/t", name: "L" }, side: "server", key: "key" },`,
+        `  layoutEmails: { change: "add", dir: "layouts", files: "*/email.tsx", export: "emailRenderer", type: { from: "@/t", name: "E" }, side: "server", key: "layout" },`,
+        `  layoutInApps: { change: "add", dir: "layouts", files: "*/inApp.tsx", export: "inAppRenderer", type: { from: "@/t", name: "I" }, side: "client", key: "layout" },`,
       ].join("\n"),
     ),
     "src/domains/note/layouts/notice/layout.ts": 'export const layout = { key: "notice" };\n',

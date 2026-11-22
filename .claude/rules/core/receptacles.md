@@ -10,8 +10,13 @@ paths:
 
 receptacle limits (upstream):
 - only for a request with a capability that really uses it, whatever the fork count
-- order: existing means → value or part split → new receptacle | existing kinds only | a new kind goes through the window only when it brings a check or MANDATORY rule binding forks (core/design.md authoring), else the usual path
+- order: existing means → value or part split → new receptacle | existing point forms only | a new form goes through the window only when it brings a check or MANDATORY rule binding forks (core/design.md authoring), else the usual path
 - must not bypass a guard | named ReactNode stays banned in core
 - same commit: README (timing, tx, on failure) + test + intake line
-extension_points (declaring side): a district's extensionPoints.ts declares a receptacle → pnpm generate extensions lists its items into \<district\>/extensions/ (generated, a duplicate item key throws) | src/registry = generated lists, not an extension point | ref: scripts/structure/extensions/README.md, src/registry/README.md
+extension_points (declaring side): two levels, one reader: a district's own points in its extensionPoints.ts, each with its type (replace / override / add / counterpart), + the points of its kind in src/lib/districtMap/kinds.mjs (KINDS) | src/registry = generated lists, not an extension point | ref: scripts/structure/extensions/README.md, src/registry/README.md
+  - lists: pnpm generate extensions lists add items into \<district\>/extensions/ (`target: "wiring"`: a lib owner's list goes to src/wiring/\<lib\>.ts; generated, a duplicate item key throws) | intake.txt's src rows are derived from the two levels by src/lib/districtMap/intakeRows.mjs
+  - fields: `change` (required: add / override / counterpart / replace) | add point: 0+ items, `max` (empty = the owner's default), `order` where it means something, `load: "lazy"` or eager | contract type `type: { from, name }` from the owner's type-only entry (items read it as a type only)
+  - replace point: exactly one, the declaring district ships `default`, a fork replaces it with \<name\>.replace and never adds a second | the 1-line switches are declared as replace points
+  - plugs point (`plugs: true`): items sit in the plugging side's own folder \<domain\>/plugs/\<point\>/\<name\>.ts(x) (a lib: \<lib\>/plugs/…), point names unique repo-wide | today's receptacle folders move there at stage 3
+  - using a list: drop closed domains' items with gate.plugs(list) (client useGate().plugs(list)) | registries (src/registry) are never narrowed: they tell what exists, a closed domain stays 404 by path
 receptacle_or_config: a list forks add independent rows to = a receptacle (one file = one item) | a table matched by key = config (src/config/README.md)

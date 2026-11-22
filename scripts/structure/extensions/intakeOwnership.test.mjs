@@ -20,10 +20,11 @@ test("受け口の行は生成区画(宣言から): core の受け口の印な�
   const parent = makeParent();
   const intakePath = "src/lib/forkOwnership/intake.txt";
   write(parent, intakePath, `${readFileSync(join(parent, intakePath), "utf8")}# === AUTO-GENERATED intake START ===\n# === AUTO-GENERATED intake END ===\n`);
-  write(parent, "src/domains/core/user/extensionPoints.ts", 'export const extensionPoints = { cleanupHandlers: { dir: "cleanupHandlers", export: "handler", type: { from: "@/t", name: "T" }, side: "server" } };\n');
+  write(parent, "src/domains/core/user/extensionPoints.ts", 'export const extensionPoints = { cleanupHandlers: { change: "add", dir: "cleanupHandlers", export: "handler", type: { from: "@/t", name: "T" }, side: "server" } };\n');
   write(parent, "src/domains/core/user/cleanupHandlers/base.ts", "export const handler = 1;\n");
   write(parent, "src/domains/core/payment/enricher.default.ts", "export function enrich() {}\n");
   write(parent, "src/domains/core/payment/enricher.ts", 'export { enrich } from "./enricher.default";\n');
+  write(parent, "src/domains/core/payment/extensionPoints.ts", 'export const extensionPoints = { enricher: { change: "replace", default: "src/domains/core/payment/enricher.default.ts", type: { from: "@/t", name: "E" }, side: "server" } };\n');
   // 生成区画は実物の生成器(pnpm generate extensions の中身)で書く
   const plan = planExtensions(parent);
   assert.deepEqual(plan.problems, []);

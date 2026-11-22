@@ -8,7 +8,7 @@ featureGate の README の Internals を分けた文書(README が 20,000 字を
 
 ### ドメインの開閉(表・汎用 API・cron)と設定の節
 
-- ドメイン = どれかの規則の `domains` に載るフォルダ(生成一覧の `domains`: フォルダ・表・汎用 API の住所・持つ機能)。**開 = そのドメインを `domains` に持つ機能のどれかが開**(1 つのドメインを複数の機能に書いてよい)。どの機能にも載らないドメインは基盤として常に開
+- ドメイン = どれかの規則の `domains` に載るフォルダ(生成一覧の `domains`: フォルダ・表・汎用 API の住所・持つ機能)。**開 = そのドメインを `domains` に持つ機能のどれかが開**(1 つのドメインを複数の機能に書いてよい)。どの機能にも載らないドメインは常設として常に開
 - ドメインの開閉で決まる物: 表(`pnpm db:push` / `db:push:check`・`pnpm ops db seed`・`pnpm ops db clear`)・汎用 API の住所(`apiPaths`)・cron の task(`cronTasks`、読むドメインが全部開のとき開)
 - 評価は `ruleList.ts`(`closedDomainsOf`・`domainEnabled`・`closedDerivedEntries`・`closedDomainTables`)。機能の開閉は渡した一覧で読む: `rules` なら全開スイッチを通し、`configRules` なら規則の値だけ
 - 設定の節(`settingSections`)は節自身の判定: 名指す機能が全部開のときだけ開く(導出の住所の 1 種、`closedDerivedEntries`)

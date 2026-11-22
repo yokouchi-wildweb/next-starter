@@ -4,6 +4,7 @@
 export const extensionPoints = {
   // 購入完了戦略: services/server/completion/strategies/<名前>.ts の export const strategy
   completionStrategies: {
+    change: "add",
     dir: "services/server/completion/strategies",
     export: "strategy",
     type: { from: "@/domains/core/purchaseRequest/services/server/completion/types", name: "PurchaseCompletionStrategy" },
@@ -11,9 +12,17 @@ export const extensionPoints = {
   },
   // 購入完了ポストフック: services/server/hooks/definitions/<名前>.ts の export const hook(上流の項目は 0)
   completeHooks: {
+    change: "add",
     dir: "services/server/hooks/definitions",
     export: "hook",
     type: { from: "@/domains/core/purchaseRequest/services/server/hooks/purchaseCompleteHookRegistry", name: "PurchaseCompleteHook" },
+    side: "server",
+  },
+  // 差替点: 1 行スイッチ sessionEnricher(fork は隣に <名前>.replace を作りスイッチを向け替える)
+  sessionEnricher: {
+    change: "replace",
+    default: "src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.default.ts",
+    type: { from: "@/domains/core/purchaseRequest/services/server/payment/sessionEnricherTypes", name: "PaymentSessionEnricher" },
     side: "server",
   },
 };

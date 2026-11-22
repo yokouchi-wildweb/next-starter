@@ -5,6 +5,7 @@
 export const extensionPoints = {
   // ナビゲーション先: navigationItems/<名前>.ts の export const items(配列。一覧の順に連結)
   navigationItems: {
+    change: "add",
     dir: "navigationItems",
     export: "items",
     type: { from: "@/domains/core/adminCommand/types", name: "NavigationItemGroup" },

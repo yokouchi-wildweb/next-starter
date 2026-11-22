@@ -26,7 +26,7 @@ const FILES = {
   "src/app/admin/_layout/config.ts": `export const adminLayoutConfig = { frame: "admin" };\n`,
   "src/app/page.tsx": "",
   "src/proxies/index.ts": "",
-  // 基盤の上書きの持ち主(設定 D91): src/featureGate の中
+  // 中身の名前で置く上書きの持ち主(設定 D91、種類 featureGate): src/featureGate の中
   "src/featureGate/switches.ts": "",
   "src/featureGate/rules/wallet.ts": "",
 };
@@ -133,7 +133,7 @@ test("owner-reads-only: 上書きを読めるのは持ち主の config.ts(描画
 
 const SWITCHES = at("src/config/featureGate/switches.config.ts");
 
-test("基盤の上書き src/config/featureGate/(設定 D91・L1.31): リテラルだけ、読めるのは src/featureGate の中だけ", () => {
+test("中身の名前で置く上書き src/config/featureGate/(設定 D91・L1.31): リテラルだけ、読めるのは src/featureGate の中だけ", () => {
   ruleTester.run("literal-only", plugin.rules["literal-only"], {
     valid: [
       { filename: SWITCHES, options, code: `import type { FeatureSwitches } from "@/featureGate";\nexport default { wallet: false, coupon: true } satisfies FeatureSwitches;` },

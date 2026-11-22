@@ -6,6 +6,7 @@ import { domainOpen } from "./domainOpen";
 import { enabled } from "./enabled";
 import { filter } from "./filter";
 import { path } from "./path";
+import { plugs } from "./plugs";
 
 export const serverTools = {
   enabled,
@@ -13,4 +14,5 @@ export const serverTools = {
   path,
   filter,
   domainOpen,
+  plugs,
 };

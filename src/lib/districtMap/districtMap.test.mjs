@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { readOverrideLoaders } from "./index.mjs";
+import { CONTENTS_OVERRIDE_FOLDERS, DISTRICT_KINDS, KINDS, OVERRIDE_FOLDERS, kindOf, overridePathOf, readOverrideLoaders } from "./index.mjs";
 import { readDistrictMap, readDomainEntry, readFeatureRequirements, readFrameName, readOverrideImports, readRuleDomains, readTableNames, toJsonl } from "./index.mjs";
 
 /**
@@ -35,7 +35,7 @@ const BASE = {
   "src/domains/_template/entities/drizzle.ts": `export const t = pgTable("template_rows", {});`,
   "src/domains/sample/entities/drizzle.ts": `// pgTable("not_this", {})\nexport const s = pgTable("samples", {});`,
   "src/domains/sample/services/server/domainEntry.ts": entry(`  sample: { service: () => import("./s"), table: "samples", idColumn: "id" },`),
-  "src/domains/sample/extensionPoints.ts": `export const extensionPoints = { adminBulkActions: { dir: "adminBulkActions", export: "item", type: { from: "@/x", name: "X" }, side: "client" } };`,
+  "src/domains/sample/extensionPoints.ts": `export const extensionPoints = { adminBulkActions: { change: "add", dir: "adminBulkActions", export: "item", type: { from: "@/x", name: "X" }, side: "client" } };`,
   "src/domains/core/README.md": "",
   "src/domains/core/wallet/entities/drizzle.ts": `export const w = pgTable("wallets", {});\nexport const l = pgTable("wallet_lots", {});`,
   "src/domains/core/wallet/entities/drizzle.test.ts": `pgTable("test_only", {})`,
@@ -51,18 +51,18 @@ const BASE = {
   "src/config/lib/cron.config.ts": "export const c = {};",
   "src/proxies/index.ts": "",
   "src/proxies/demo/config.ts": "export const demoConfig = {};",
-  "src/proxies/extensionPoints.ts": `export const extensionPoints = { handlers: { dir: ".", export: "handler", type: { from: "@/x", name: "H" }, side: "server" } };`,
+  "src/proxies/extensionPoints.ts": `export const extensionPoints = { handlers: { change: "add", dir: ".", export: "handler", type: { from: "@/x", name: "H" }, side: "server" } };`,
   "src/app/(user)/_layout/config.ts": `export const userLayoutConfig = { frame: "user", other: 1 } as const;`,
   "src/app/(user)/(protected)/mypage/_layout/Menu.tsx": "",
   "src/app/admin/_layout/config.ts": `export const adminLayoutConfig = { frame: "admin" };`,
 };
 
-test("4 種を見つけ、種類 → 名前で並べる。_ 始まり・core の置き場・宣言の無い _layout は地区にならない", () => {
+test("種類の表の 7 種類を見つけ、種類 → 名前で並べる。_ 始まり・core の置き場・宣言の無い _layout は地区にならない", () => {
   const { districts, problems } = readDistrictMap(memorySource(BASE));
   assert.deepEqual(problems, []);
   assert.deepEqual(
     districts.map((d) => `${d.kind}:${d.name}`),
-    ["domains:purchaseRequest", "domains:sample", "domains:wallet", "lib:cron", "lib:crud", "frame:admin", "frame:user", "proxies:demo"],
+    ["domains:purchaseRequest", "domains:sample", "domains:wallet", "lib:cron", "lib:crud", "frame:admin", "frame:user", "featureGate:featureGate", "proxies:demo"],
   );
   const by = Object.fromEntries(districts.map((d) => [`${d.kind}:${d.name}`, d]));
   assert.equal(by["domains:wallet"].core, true);
@@ -161,7 +161,7 @@ test("toJsonl: 1 行 1 地区で末尾に改行、空なら空", () => {
   const text = toJsonl(districts);
   assert.equal(text.split("\n").length, districts.length + 1);
   assert.deepEqual(JSON.parse(text.split("\n")[0]), districts[0]);
-  assert.deepEqual(Object.keys(districts[0]), ["kind", "name", "core", "dir", "domainJson", "generate", "config", "override", "uiConfig", "uiOverride", "apiKeys", "tables", "requires", "gates", "receptacles", "frame", "featureRequirements"]);
+  assert.deepEqual(Object.keys(districts[0]), ["kind", "name", "core", "dir", "domainJson", "generate", "config", "override", "uiConfig", "uiOverride", "apiKeys", "tables", "requires", "gates", "receptacles", "frame", "featureRequirements", "forkCan"]);
   assert.equal(toJsonl([]), "");
 });
 
@@ -212,4 +212,74 @@ test("readOverrideLoaders: export const overrideLoaders の文字列の配列を
   assert.deepEqual(readOverrideLoaders("c.ts", `export const overrideLoaders = ["next/font/google", "next/font/local"] as const;`), { loaders: ["next/font/google", "next/font/local"], problems: [] });
   assert.deepEqual(readOverrideLoaders("c.ts", "export const fontsConfig = {};"), { loaders: [], problems: [] });
   assert.equal(readOverrideLoaders("c.ts", "export const overrideLoaders = LIST;").problems.length, 1);
+});
+
+test("種類の表: 7 種類と属性。ゲートはドメインだけ、src 直下の 4 種は Tier1 だけが足す、上書きの置き場は表から導く", () => {
+  assert.deepEqual(DISTRICT_KINDS, KINDS.map((k) => k.kind));
+  assert.deepEqual(DISTRICT_KINDS, ["domains", "lib", "frame", "featureGate", "registry", "wiring", "proxies"]);
+  assert.deepEqual(KINDS.filter((k) => k.hasGate).map((k) => k.kind), ["domains"]);
+  assert.deepEqual(KINDS.filter((k) => k.addedBy === "tier1").map((k) => k.kind), ["featureGate", "registry", "wiring", "proxies"]);
+  assert.deepEqual(KINDS.filter((k) => k.readsSet).map((k) => k.kind), ["featureGate", "registry", "wiring"]);
+  for (const k of KINDS) assert.ok(k.forkMay.every((t) => ["replace", "override", "add", "counterpart"].includes(t)), k.kind);
+  assert.deepEqual(OVERRIDE_FOLDERS, { domains: "domains", lib: "lib", frame: "layout", proxies: "proxies" });
+  assert.deepEqual(CONTENTS_OVERRIDE_FOLDERS, { featureGate: "src/featureGate" });
+  assert.equal(overridePathOf("registry", "registry"), null);
+  assert.equal(kindOf("wiring")?.dir, "src/wiring");
+});
+
+test("src 直下の 1 地区の種類: フォルダがあれば 1 地区(名前 = フォルダ名)、上書きの無い種類は override の path が null", () => {
+  const { districts, problems } = readDistrictMap(memorySource({ ...BASE, "src/registry/a.ts": "", "src/wiring/b.ts": "", "src/wiring/x/extensionPoints.ts": `export const extensionPoints = { inputs: { change: "add", dir: "inputs", export: "i", type: { from: "@/x", name: "I" }, side: "client" } };` }));
+  assert.deepEqual(problems, []);
+  const by = Object.fromEntries(districts.map((d) => [`${d.kind}:${d.name}`, d]));
+  assert.deepEqual(districts.filter((d) => ["featureGate", "registry", "wiring"].includes(d.kind)).map((d) => `${d.kind}:${d.name}:${d.dir}`), [
+    "featureGate:featureGate:src/featureGate",
+    "registry:registry:src/registry",
+    "wiring:wiring:src/wiring",
+  ]);
+  assert.deepEqual(by["registry:registry"].override, { path: null, exists: false });
+  assert.deepEqual(by["featureGate:featureGate"].override, { path: null, exists: false }, "中身の名前で置く上書きは地区の名前の 1 本でない");
+  assert.deepEqual(by["wiring:wiring"].receptacles, ["inputs"]);
+});
+
+test("forkCan: 種類の点(config.ts がある地区の config の対置点)→ 地区の宣言の点(writer は除く)、where は fork が書くファイルの glob", () => {
+  const { districts } = readDistrictMap(memorySource({
+    ...BASE,
+    "src/domains/core/wallet/config.ui.ts": "export const ui = {};",
+    "src/domains/core/wallet/extensionPoints.ts": `export const extensionPoints = {
+  roles: { change: "add", writer: "role:generate", side: "shared" },
+  hooks: { change: "add", dir: ".", files: "*/_hook.ts", export: "h", type: { from: "@/x", name: "H" }, side: "server" },
+  targets: { change: "override", overrides: "src/domains/core/wallet/t/*.json", export: "override", side: "server", overrideOf: ["a"] },
+  icon: { change: "counterpart", placement: "src/app/icon.png", kind: "edit" },
+  sender: { change: "replace", default: "src/domains/core/wallet/sender.default.ts", type: { from: "@/x", name: "S" }, side: "server" },
+};`,
+  }));
+  const wallet = districts.find((d) => d.name === "wallet");
+  assert.deepEqual(wallet?.forkCan, [
+    { point: "config", change: "counterpart", where: "src/config/domains/wallet.config.ts" },
+    { point: "configUi", change: "counterpart", where: "src/config/domains/wallet.ui.config.ts" },
+    { point: "hooks", change: "add", where: "src/domains/core/wallet/*/_hook.ts" },
+    { point: "targets", change: "override", where: "src/domains/core/wallet/t/*.override.ts" },
+    { point: "icon", change: "counterpart", where: "src/app/icon.png" },
+    { point: "sender", change: "replace", where: "src/domains/core/wallet/sender.replace.ts" },
+  ]);
+  const sample = districts.find((d) => d.name === "sample");
+  assert.deepEqual(sample?.forkCan, [{ point: "adminBulkActions", change: "add", where: "src/domains/sample/adminBulkActions/*" }], "config.ts の無い地区は種類の config の点を持たない");
+  assert.deepEqual(districts.find((d) => d.kind === "featureGate")?.forkCan, [{ point: "config", change: "counterpart", where: "src/config/featureGate/*.config.ts" }]);
+});
+
+test("forkCan: 枠の種類の点 layout(差替点)は _layout の隣の layout.tsx が ./_layout/ を指す 1 行スイッチの枠だけ。枠の宣言の差替点は src/app の下の既定も載る", () => {
+  const { districts } = readDistrictMap(memorySource({
+    ...BASE,
+    "src/app/(user)/layout.tsx": '// 枠の 1 行スイッチ\nexport { UserLayout as default } from "./_layout/UserLayout";\n',
+    "src/app/admin/layout.tsx": 'import { AdminLayout } from "./_layout/AdminLayout";\nexport default AdminLayout;\n',
+    "src/app/(user)/_layout/extensionPoints.ts": `export const extensionPoints = {
+  providers: { change: "replace", default: "src/app/_providers/P.default.tsx", type: { from: "@/x", name: "P" }, side: "shared" },
+};`,
+  }));
+  const forkCanOf = (/** @type {string} */ name) => districts.find((d) => d.kind === "frame" && d.name === name)?.forkCan.filter((f) => f.change === "replace");
+  assert.deepEqual(forkCanOf("user"), [
+    { point: "layout", change: "replace", where: "src/app/(user)/layout.tsx" },
+    { point: "providers", change: "replace", where: "src/app/_providers/P.replace.tsx" },
+  ]);
+  assert.deepEqual(forkCanOf("admin"), [], "1 行スイッチでない layout.tsx は種類の点に載せない");
 });

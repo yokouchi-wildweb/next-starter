@@ -5,6 +5,7 @@ export const extensionPoints = {
   // 管理一覧の一括操作: adminBulkActions/<名前>.tsx の export const bulkAction(上流の既定 = メール一斉送信)。
   // fork は項目を足す(一括承認など)・<名前>.override.ts で enabled・order を変える(D149・D86)
   adminBulkActions: {
+    change: "add",
     dir: "adminBulkActions",
     export: "bulkAction",
     type: { from: "@/domains/core/bankTransferReview/types/adminBulkAction", name: "BankTransferReviewAdminBulkActionItem" },

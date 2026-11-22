@@ -4,6 +4,7 @@
 export const extensionPoints = {
   // 公開 ingest の計測対象の規則: targetRules/<名前>.ts の export const rule(上流の項目は 0)
   targetRules: {
+    change: "add",
     dir: "targetRules",
     export: "rule",
     type: { from: "@/domains/core/interactionTracking/types/targetRule", name: "InteractionTargetRule" },

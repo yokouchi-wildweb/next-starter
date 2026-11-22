@@ -1,4 +1,5 @@
 import { isDevelopment } from "@/lib/appEnv";
+import { isPageNavigation } from "@/lib/request";
 import type { NextRequest, NextResponse } from 'next/server';
 
 import {
@@ -6,7 +7,6 @@ import {
   INVITE_LINK_COOKIE_NAME,
   readInviteLinkParam,
 } from '@/domains/core/referral/lib/inviteLinkCookie';
-import { isPageNavigation } from './attribution';
 import type { ProxyResponseDecorator } from './types';
 import { gate } from "@/featureGate";
 

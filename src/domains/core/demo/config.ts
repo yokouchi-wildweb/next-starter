@@ -4,7 +4,7 @@
 // - mode: デモモード(有効時、デモ利用者以外はデモの入口へ転送)。読み手は proxy の項目 src/proxies/demoMode.ts
 // - session: デモ利用者のセッションの長さ。読み手は auth(デモのログインの機能 demoLogin が開のときだけ)
 // - adminList: 管理画面のデモ利用者の一覧。読み手は user の DemoUserList
-// デモのページ・デモのログイン・デモ利用者の管理画面の住所の入切は門番の規則 demoPages・demoLogin・adminDemoUsers。このフォルダは基盤(規則の domains に載らない)
+// デモのページ・デモのログイン・デモ利用者の管理画面の住所の入切は門番の規則 demoPages・demoLogin・adminDemoUsers。このフォルダは常設(規則の domains に載らない)
 
 import override from "@/config/domains/demo.config";
 import type { FeatureRequirement } from "@/featureGate";

@@ -5,6 +5,7 @@ export const extensionPoints = {
   // 上書きの対象: 各タスクの task.ts。fork は隣の task.override.ts(export const cronOverride)で次の鍵だけを変える。
   // 値の検査(cron 式・真偽)は読み手 ./discover.ts
   cronTasks: {
+    change: "override",
     overrides: "src/app/api/cron/*/task.ts",
     export: "cronOverride",
     side: "server",

@@ -9,7 +9,7 @@ import { createContext, type ReactNode, useCallback, useContext, useMemo } from 
 
 import { LinkVisibilityProvider } from "@/components/Navigation/Link";
 
-import type { ClientGatePathResult, ClientGateState, FeatureName } from "../../types";
+import type { ClientGatePathResult, ClientGateState, FeatureName, GatedPlug } from "../../types";
 import { clientTools } from "./index";
 import { linkHidden } from "./linkHidden";
 
@@ -40,6 +40,8 @@ export type ClientGate = {
     <T extends { href?: string | null }>(items: readonly T[], getHref?: HrefGetter<T>): T[];
     <T>(items: readonly T[], getHref: HrefGetter<T>): T[];
   };
+  /** plugs の点の一覧から閉じたドメインの項目を外す(server の gate.plugs と同じ判定) */
+  plugs: <T extends GatedPlug>(items: readonly T[]) => T[];
 };
 
 export function useGate(): ClientGate {
@@ -49,6 +51,7 @@ export function useGate(): ClientGate {
       enabled: (name: FeatureName) => clientTools.enabled(state, name),
       path: (pathname: string) => clientTools.path(state, pathname),
       filter: <T,>(items: readonly T[], getHref?: HrefGetter<T>) => clientTools.filter(state, items, getHref),
+      plugs: <T extends GatedPlug>(items: readonly T[]) => clientTools.plugs(state, items),
     }),
     [state],
   );

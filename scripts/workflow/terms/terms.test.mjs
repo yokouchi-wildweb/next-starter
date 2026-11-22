@@ -37,7 +37,7 @@ test("当たる形: 置き場のパス・lint 名・段の旗とファイル・�
   assert.deepEqual(found("CLAUDE.md", "lint import-boundaries/lib-no-features"), ["lib-no-features"]);
   assert.deepEqual(found("scripts/x.mjs", 'run("pnpm check --gate=ship"); read("gate.json"); "scripts/runner/gates/run.mjs"'), ["--gate", "gate.json", "runner/gates"]);
   assert.deepEqual(found(".claude/rules/core/x.md", "門 build で回る"), ["門 build"]);
-  assert.deepEqual(found(".claude/rules/core/x.md", "受け口 に足す・src_root_bases・基盤"), ["受け口"]); // src_root_bases・基盤は段 1 では止めない(段 2 で戻す、D51)
+  assert.deepEqual(found(".claude/rules/core/x.md", "受け口 に足す・src_root_bases・基盤"), ["受け口", "src_root_bases", "基盤"]);
   assert.deepEqual(found("CLAUDE.md", "types: 1 replace | 2 overlay = x | 4 placement = src/styles/"), ["2 overlay", "4 placement"]);
   assert.deepEqual(found(".claude/rules/items/lib/a.md", "change: overlay = src/config/x | placement → src/config/y"), ["overlay =", "placement →"]);
   assert.deepEqual(found(".claude/rules/core/design.md", "the type (replace / overlay / add / placement)"), ["replace / overlay", "add / placement"]);

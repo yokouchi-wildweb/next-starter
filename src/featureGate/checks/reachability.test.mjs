@@ -1,6 +1,7 @@
 // src/featureGate/checks/reachability.test.mjs
 // 門番の到達の検査(D7): 入口 index.ts(server・proxy)と client.ts から値の import をたどり、
-// データの層と Node 専用の物に届いたら落とす。門番は proxy(Edge)と client の束に載るので、規則と config 以外を引き込まない。
+// データの層と Node 専用の物に届いたら落とす。門番は proxy と client の束に載るので、規則と config 以外を引き込まない
+// (proxy は Next 16 では Node で動く。届かせないのは束の重さと禁止の先で、client の束は Node 専用の物を読めない)。
 // - 落とす先: src/domains/**/services/**・src/lib/drizzle/**・drizzle-orm / postgres・server-only・node:*
 // - たどる辺: 静的 import / export … from / 動的 import()。型だけの import(import type・export type・名前が全部 type)は数えない
 // - 解決: eslint-rules/resolve-import.mjs(tsconfig の paths・相対)+ 拡張子と index の補完。パッケージは葉(中に入らない)
@@ -85,7 +86,7 @@ export function findForbiddenReach(root, entries) {
 }
 
 // ── proxies の鎖(目録 D20) ──
-// proxies の地区の項目(handler・decorator、上流と fork)は任意のドメインの config の入口を読んでよい。edge で読めるかは機械で止める:
+// proxies の地区の項目(handler・decorator、上流と fork)は任意のドメインの config の入口を読んでよい。束を重くせず禁止の先に届かないかは機械で止める(proxy は Node で動くが、毎リクエスト走る束に DB・サービスを載せない):
 // src/proxy.ts・src/proxies/index.ts から値の import をたどり(禁止の先と services の中には入らない)、たどり着いた config から
 // services・drizzle・server-only・node: に届いたら落とす。鎖そのもの(proxy.ts の proxyUserDeps・maintenance の settingService)は判定しない
 export const PROXY_ENTRIES = ["src/proxy.ts", "src/proxies/index.ts"];

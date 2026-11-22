@@ -5,11 +5,13 @@
 
 import { isPatternInArea } from "./area";
 import { closedPathEntries } from "./evaluate";
-import { ruleEnabled, rules } from "./ruleList";
+import { closedDomainsOf, ruleEnabled, rules } from "./ruleList";
 import type { ClientGateArea, ClientGateState, FeatureName } from "./types";
 
 export function clientGateState(area: ClientGateArea): ClientGateState {
   const enabled = Object.fromEntries(rules.map((rule) => [rule.name, ruleEnabled(rule)])) as Record<FeatureName, boolean>;
   const closed = closedPathEntries().filter((entry) => isPatternInArea(entry.pattern, area));
-  return { area, enabled, closed };
+  // 閉じたドメインの名前(core/<名前> は <名前> に。core と業務で同じ名前は無い)。範囲に依らない(項目の差し先は住所でない)
+  const closedDomains = [...closedDomainsOf(rules).keys()].map((folder) => folder.replace(/^core\//, "")).sort();
+  return { area, enabled, closed, closedDomains };
 }

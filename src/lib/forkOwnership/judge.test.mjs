@@ -189,7 +189,7 @@ describe("judge", () => {
 
   test("A: 検査する場所で基準と同じ単位は unit-clash(x.ts と x.tsx・ファイルとフォルダ)、場所の外と新しい名前は added", () => {
     const baseFiles = ["src/wiring/apiRoute.ts", "src/wiring/dbAgent/index.ts", "src/app/(user)/_layout/Header/index.tsx", "src/domains/sample/x.ts", "src/proxies/extensionPoints.ts", "src/proxies/maintenance.ts"];
-    const places = unitPlaces(baseFiles, (p) => (p === "src/proxies/extensionPoints.ts" ? 'export const extensionPoints = { h: { dir: ".", export: "handler", type: { from: "@/t", name: "T" }, side: "server" } };' : null));
+    const places = unitPlaces(baseFiles, (p) => (p === "src/proxies/extensionPoints.ts" ? 'export const extensionPoints = { h: { change: "add", dir: ".", export: "handler", type: { from: "@/t", name: "T" }, side: "server" } };' : null));
     const baseUnits = unitIndex(baseFiles);
     const one = (/** @type {string} */ path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], intake, places, baseUnits }).entries[0];
     const clash = one("src/wiring/apiRoute.tsx");

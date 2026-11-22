@@ -1,6 +1,6 @@
 // eslint-rules/config-overrides.mjs
 //
-// 上書きファイル(src/config/{lib,domains,layout,proxies}/<名前>.config.ts と <名前>.ui.config.ts、基盤の上書き src/config/featureGate/<中身>.config.ts)の
+// 上書きファイル(src/config/{lib,domains,layout,proxies}/<名前>.config.ts と <名前>.ui.config.ts、中身の名前で置く上書き src/config/featureGate/<中身>.config.ts)の
 // 2 つの規則(設定 D34・D35・D38・D91・L1.19・L1.31)。
 // 全 Tier error(新しいフォルダだけが対象なので縮む表は無い)。置き方の決まり: src/config/README.md
 //
@@ -20,17 +20,17 @@
 //   lib の中から自分の上書きを読む所は lint entry/only-entries の持ち分なので見ない(二重に落とさない)。
 //
 // 上書き → 持ち主は地区の地図(src/lib/districtMap)で引く(リポジトリごとに 1 回読んで覚える。地区を足したら eslint を起動し直す)。
-// 基盤の上書きの持ち主は固定のフォルダ(BASE_OVERRIDE_FOLDERS、例 src/featureGate)で、読めるのはその中のファイル。宣言(overrideImports)は持たない。
+// 中身の名前で置く上書きの持ち主は固定のフォルダ(種類の表 KINDS の override.shape "contents" の地区の dir、CONTENTS_OVERRIDE_FOLDERS、例 src/featureGate)で、読めるのはその中のファイル。宣言(overrideImports)は持たない。
 // 持ち主の宣言の本文は毎回読む。
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { BASE_OVERRIDE_FOLDERS, OVERRIDE_FOLDERS, OVERRIDE_ROOT, readOverrideImports, readOverrideLoaders } from "../src/lib/districtMap/index.mjs";
+import { CONTENTS_OVERRIDE_FOLDERS, OVERRIDE_FOLDERS, OVERRIDE_ROOT, readOverrideImports, readOverrideLoaders } from "../src/lib/districtMap/index.mjs";
 import { readDistrictMapAt } from "../src/lib/districtMap/node.mjs";
 import { moduleVisitors, repoRelative, resolveImport } from "./resolve-import.mjs";
 
-const FOLDERS = [...Object.values(OVERRIDE_FOLDERS), ...Object.keys(BASE_OVERRIDE_FOLDERS)];
+const FOLDERS = [...Object.values(OVERRIDE_FOLDERS), ...Object.keys(CONTENTS_OVERRIDE_FOLDERS)];
 const OVERRIDE_PATH = new RegExp(`^${OVERRIDE_ROOT}/(${FOLDERS.join("|")})/[^/]+\\.config(\\.ts)?$`);
 const BUSINESS = "@/business";
 /** 段階の判定(本部 D178 の読み手、設定 D87)。引数なしの呼び出しだけを値として許す */
@@ -44,17 +44,17 @@ function overrideSlots(root) {
   if (mapCache.has(root)) return mapCache.get(root);
   const slots = new Map();
   for (const d of readDistrictMapAt(root).districts) {
-    slots.set(d.override.path, { district: d, ui: false, owner: d.config.path });
-    slots.set(d.uiOverride.path, { district: d, ui: true, owner: d.uiConfig.path });
+    if (d.override.path) slots.set(d.override.path, { district: d, ui: false, owner: d.config.path });
+    if (d.uiOverride.path) slots.set(d.uiOverride.path, { district: d, ui: true, owner: d.uiConfig.path });
   }
   mapCache.set(root, slots);
   return slots;
 }
 
-/** 基盤の上書き(src/config/<基盤>/<名前>.config.ts)なら { ownerDir }(持ち主のフォルダが無ければ ownerDir: null = noOwner)。基盤の上書きでなければ null */
+/** 中身の名前で置く上書き(src/config/<フォルダ>/<中身の名前>.config.ts)なら { ownerDir }(持ち主のフォルダが無ければ ownerDir: null = noOwner)。そうでなければ null */
 function baseSlot(root, overridePath) {
   const match = new RegExp(`^${OVERRIDE_ROOT}/([^/]+)/[^/]+\\.config\\.ts$`).exec(overridePath);
-  const ownerDir = match ? BASE_OVERRIDE_FOLDERS[match[1]] : undefined;
+  const ownerDir = match ? CONTENTS_OVERRIDE_FOLDERS[match[1]] : undefined;
   if (!ownerDir) return null;
   return existsSync(path.join(root, ownerDir)) ? { ownerDir } : { ownerDir: null };
 }

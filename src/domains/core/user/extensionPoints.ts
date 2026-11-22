@@ -3,9 +3,10 @@
 
 export const extensionPoints = {
   // ロールの一覧: coreRoles/・roles/ の *.role.json から pnpm generate role が ./extensions/roles.ts を書く
-  roles: { writer: "role:generate", side: "shared" },
+  roles: { change: "add", writer: "role:generate", side: "shared" },
   // 上書きの対象: core ロールの JSON。隣の <JSON の名前>.override.ts が書いてよい鍵(core ロールは無効にできない = enabled は無い)
   coreRoleDefinitions: {
+    change: "override",
     overrides: "src/domains/core/user/coreRoles/*.role.json",
     export: "override",
     side: "shared",
@@ -13,6 +14,7 @@ export const extensionPoints = {
   },
   // 上書きの対象: 足したロールの JSON。隣の <JSON の名前>.override.ts が書いてよい鍵
   roleDefinitions: {
+    change: "override",
     overrides: "src/domains/core/user/roles/*.role.json",
     addable: true,
     export: "override",
@@ -21,6 +23,7 @@ export const extensionPoints = {
   },
   // 表示名の予約名プロバイダ: reservedNames/<名前>.ts の export const provider(上流の項目は 0)
   reservedNames: {
+    change: "add",
     dir: "reservedNames",
     export: "provider",
     type: { from: "@/domains/core/user/types", name: "ReservedUserNameProvider" },
@@ -28,6 +31,7 @@ export const extensionPoints = {
   },
   // 退会・ソフトデリートの後片付け: cleanupHandlers/<名前>.ts の export const handler
   cleanupHandlers: {
+    change: "add",
     dir: "cleanupHandlers",
     export: "handler",
     type: { from: "@/domains/core/user/services/server/cleanup", name: "UserCleanupItem" },
@@ -37,6 +41,7 @@ export const extensionPoints = {
   // 管理一覧の一括操作: adminBulkActions/<名前>.tsx の export const bulkAction(上流の既定 = タグの一括設定)。
   // fork は項目を足す・<名前>.override.ts で enabled・order を変える(D149)
   adminBulkActions: {
+    change: "add",
     dir: "adminBulkActions",
     export: "bulkAction",
     type: { from: "@/domains/core/user/types", name: "UserAdminBulkActionItem" },
@@ -47,6 +52,7 @@ export const extensionPoints = {
   // 管理のユーザー管理モーダルのタブ: adminManageTabs/<名前>.tsx の export const tab(上流の項目は 0)。
   // 上流の 6 つのタブの後ろに order → key の順で並ぶ。上流のタブは置き換えない(書き方: adminManageTabs/README.md)
   adminManageTabs: {
+    change: "add",
     dir: "adminManageTabs",
     export: "tab",
     type: { from: "@/domains/core/user/types", name: "UserAdminManageTabItem" },
@@ -56,6 +62,7 @@ export const extensionPoints = {
   // マイページのメニュー: mypageMenu/items/<key>.ts の export const item(リンク / 操作の 2 形、上流は 10 刻みの order)。
   // fork は項目を足す・上流の項目は隣の <key>.override.ts で変える(書き方: Extension.md「マイページのメニュー(拡張点 mypageMenu)」)
   mypageMenu: {
+    change: "add",
     dir: "mypageMenu/items",
     export: "item",
     type: { from: "@/domains/core/user/types", name: "MypageMenuItem" },

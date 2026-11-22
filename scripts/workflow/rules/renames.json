@@ -532,5 +532,11 @@
   "old": ".claude/rules/items/lib/routeFactory.md lib_knows_no_features",
   "new": ".claude/rules/items/lib/routeFactory.md lib_knows_no_domains",
   "order": 129
+ },
+ {
+  "kind": "rule-key",
+  "old": "CLAUDE.md DIRECTORY_STRUCTURE src_root_bases",
+  "new": "CLAUDE.md DOMAINS_AND_FEATURES district_map, CLAUDE.md DIRECTORY_STRUCTURE shared_src",
+  "order": 132
  }
 ]

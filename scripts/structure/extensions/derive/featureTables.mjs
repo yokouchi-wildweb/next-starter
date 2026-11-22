@@ -13,6 +13,7 @@
 // 設定の節の住所: 節の feature(規則名)から /admin/settings/<key> を導く(./gateSettingPaths.mjs、L1.17)。生成一覧の settingSections(住所・名指す機能)に載り、
 // 名指す機能が全部開のときだけ開く(節自身の判定、D34 K4)。規則の項目の settingPaths は説明用で pathPatterns に足さない。
 // 機能どうしの依存: 規則の dependsOn を字面で読み dependsOn として項目に写す(書かない規則は空。./gateDependsOn.mjs。未知の名前・輪は extensions.mjs が全規則で)。
+// ドメインの値の条件: 規則の when を字面で読み when として項目に写し、指された値を確かめる(./gateWhen.mjs)。規則のファイルの値の import と住所のパターンの誤りも止める(D23・D28・D29)。
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -22,6 +23,7 @@ import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { FEATURES_DIR } from "../../registry/tableScan.mjs";
 import { valueSpecifiers } from "../pureImports.mjs";
 import { readAnyOf, readDependsOn } from "./gateDependsOn.mjs";
+import { checkWhenRef, readPathPatternProblems, readRuleImports, readWhen } from "./gateWhen.mjs";
 import { scanSettingSectionFeatures } from "./gateSettingPaths.mjs";
 
 const DOMAINS_FIELD = /(?:^|[{,\s])domains\s*:\s*\[([\s\S]*?)\]/;
@@ -95,6 +97,9 @@ export function createFeatureTables(repoRoot) {
   // 規則の domains は src/domains からの相対("core/<d>" か "<d>")
   const districtOf = new Map(map.districts.filter((d) => d.kind === "domains").map((d) => [d.dir.slice(FEATURES_DIR.length + 1), d]));
   const sections = scanSettingSectionFeatures(repoRoot);
+  // when の値の持ち主: ドメインの名前(フォルダ名)→ 地区。config.ts の読みは 1 回だけ
+  const domainsByName = new Map(map.districts.filter((d) => d.kind === "domains").map((d) => [d.name, d]));
+  const configReads = new Map();
   const cronTasks = scanCronTaskImports(repoRoot);
   /** folders(src/domains からの相対)のどれかを値で import する task と、読むフォルダ(folders のうち当たる物、folders の順) */
   const cronTasksReading = (folders) =>
@@ -117,6 +122,18 @@ export function createFeatureTables(repoRoot) {
       if (depends.problem) return { problem: `${label}: ${depends.problem}` };
       const any = readAnyOf(text, name);
       if (any.problem) return { problem: `${label}: ${any.problem}` };
+      const imports = readRuleImports(text);
+      if (imports.length > 0) return { problem: `${label}: 規則は値を import しない(${imports.join("・")}。規則は機能の定義だけを持ち、ドメインの値は when: ["<ドメイン>.<名前>"] で指す、住所は * で書く。enabled() は環境変数と定数だけ、D23・D28)` };
+      const patternProblems = readPathPatternProblems(text);
+      if (patternProblems.length > 0) return { problem: `${label}: pathPatterns ${patternProblems.join(" / ")}` };
+      const when = readWhen(text);
+      if ("problem" in when) return { problem: `${label}: ${when.problem}` };
+      const whenRefs = [];
+      for (const ref of when.when) {
+        const checked = checkWhenRef(repoRoot, domainsByName, ref, configReads);
+        if ("problem" in checked) return { problem: `${label}: ${checked.problem}` };
+        whenRefs.push(checked);
+      }
       const tables = [];
       const domainApiPaths = [];
       const domains = [];
@@ -136,7 +153,7 @@ export function createFeatureTables(repoRoot) {
       }
       // cron の門(説明用): この規則の domains のフォルダを値で import する task の住所。開閉は cronTasks(読むドメインが全部開)で決まる
       const cronPaths = cronTasksReading(read.domains).map((task) => task.path);
-      return { fields: { tables, domainApiPaths, settingPaths: sections.pathsOf(name), cronPaths, dependsOn: depends.dependsOn, anyOf: any.anyOf }, domainFolders: read.domains, domains };
+      return { fields: { tables, domainApiPaths, settingPaths: sections.pathsOf(name), cronPaths, dependsOn: depends.dependsOn, anyOf: any.anyOf, when: when.when }, domainFolders: read.domains, domains, whenRefs };
     },
     cronTasksFor: cronTasksReading,
   };

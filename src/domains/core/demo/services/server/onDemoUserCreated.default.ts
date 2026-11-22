@@ -5,4 +5,7 @@
 //   await sampleService.create({ userId, name: "サンプル" });
 // }
 
-export async function onDemoUserCreated(_userId: string): Promise<void> {}
+/** 差替点 onDemoUserCreated の約束の型(置き換え .replace も同じ形の onDemoUserCreated を export する) */
+export type OnDemoUserCreated = (userId: string) => Promise<void>;
+
+export const onDemoUserCreated: OnDemoUserCreated = async () => {};

@@ -4,6 +4,7 @@
 export const extensionPoints = {
   // 付与の種類(reason key): reasonKeys/<名前>.ts の export const reasonKey(上流の項目 = 上流の書き手の分)
   reasonKeys: {
+    change: "add",
     dir: "reasonKeys",
     export: "reasonKey",
     type: { from: "@/domains/core/walletHistory/types/reasonKey", name: "WalletReasonKeyItem" },

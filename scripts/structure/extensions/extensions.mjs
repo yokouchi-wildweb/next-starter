@@ -7,13 +7,14 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, posix } from "node:path";
 
-import { classifyDottedName, oldMarkerProblem, DECLARATION_NAME, EXTENSIONS_DIR_NAME, SEARCH_ROOT, isListPoint } from "../../../src/lib/districtMap/index.mjs";
+import { classifyDottedName, oldMarkerProblem, DECLARATION_NAME, EXTENSIONS_DIR_NAME, PLUGS_DIR_NAME, SEARCH_ROOT, isListPoint, isPlugsPoint } from "../../../src/lib/districtMap/index.mjs";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 
 import { collectPoints } from "../../../src/lib/districtMap/node.mjs";
 import { createFeatureTables } from "./derive/featureTables.mjs";
 import { checkDependsOnGraph } from "./derive/gateDependsOn.mjs";
 import { checkRequiresCoverage } from "./derive/gateRequires.mjs";
+import { WHEN_INPUTS_NAME, renderWhenInputs } from "./derive/gateWhen.mjs";
 import { checkSettingRoles } from "./derive/settingRoles.mjs";
 import { checkOverrideKeys } from "./overrideKeys.mjs";
 import { checkOrphans, filesOverrideNamesOf, listSrcFiles, targetOf } from "./orphans.mjs";
@@ -22,6 +23,7 @@ import { checkOverrides, isBlankSource } from "./overrides.mjs";
 import { checkPureImports, overrideKeys } from "./pureImports.mjs";
 import { planFrames } from "./frames.mjs";
 import { planIntake } from "./intake.mjs";
+import { discoverPlugs } from "./plugs.mjs";
 import { checkSwitches } from "./switches.mjs";
 
 export const COMMAND = "pnpm generate extensions";
@@ -193,6 +195,7 @@ function renderPoint(point, items) {
   const { spec } = point;
   const T = spec.type.name;
   const lines = [];
+  if (isPlugsPoint(spec)) return renderPlugsPoint(point, items);
   // key の一覧は null プロトタイプ(外から来た名前で引いても "constructor" などに当たらない)
   if (spec.load === "lazy") {
     const list = items.map((item) => `  { name: ${JSON.stringify(item.name)}, load: () => import(${JSON.stringify(specifierOf(item.path))}).then((m) => m.${spec.export}) },`);
@@ -233,6 +236,25 @@ function renderPoint(point, items) {
   }
   if (spec.derive === "featureTables") lines.push(...renderGateTables(point.gateTables ?? { domains: [], cronTasks: [], settingSections: [] }));
   return { imports, lines };
+}
+
+/**
+ * plugs の点の一覧: 項目 { domain, name, requires, plug }(load "lazy" は plug の代わりに load)の配列。
+ * domain = 差したドメインのフォルダ名(lib の項目は null)、requires = そのドメインの requires。使う時に門番の gate.plugs で閉じたドメインの項目を外す(D26)
+ */
+function renderPlugsPoint(point, items) {
+  const { spec } = point;
+  const T = spec.type.name;
+  const head = (item) => `domain: ${JSON.stringify(item.plug.domain)}, name: ${JSON.stringify(item.name)}, requires: [${item.plug.requires.map((r) => JSON.stringify(r)).join(", ")}]`;
+  const shape = (value) => `{ domain: string | null; name: string; requires: readonly string[]; ${value} }`;
+  if (spec.load === "lazy") {
+    const list = items.map((item) => `  { ${head(item)}, load: () => import(${JSON.stringify(specifierOf(item.path))}).then((m) => m.${spec.export}) },`);
+    return { imports: [], lines: [`export const ${point.name}: ${shape(`load: () => Promise<${T}>`)}[] = ${list.length === 0 ? "[]" : `[\n${list.join("\n")}\n]`};`] };
+  }
+  const alias = (item) => `${point.name}_${item.plug.domain ?? item.source}_${item.name}`;
+  const imports = items.map((item) => `import { ${spec.export} as ${alias(item)} } from ${JSON.stringify(specifierOf(item.path))};`);
+  const list = items.map((item) => `  { ${head(item)}, plug: ${alias(item)} },`);
+  return { imports, lines: [`export const ${point.name}: ${shape(`plug: ${T}`)}[] = ${list.length === 0 ? "[]" : `[\n${list.join("\n")}\n]`};`] };
 }
 
 /** derive featureTables の導出の表: ドメイン(フォルダ・表・汎用 API の住所・持つ機能)と cron の task(住所・読むドメイン)。開閉は src/featureGate/ruleList.ts */
@@ -300,7 +322,7 @@ function renderFile(points, itemsByPoint) {
   }
   const out = [
     headerFor(sources),
-    ...points.map((p) => p.spec.files ? `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/${p.spec.files} の export const ${p.spec.export}(folder = フォルダ名、並びはフォルダ名の順${p.spec.overrideOf ? `。隣の ${filesOverrideNamesOf(p.spec.files)[0]} の ${p.spec.overrideOf.join("・")} を重ねる` : ""})` : `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/<名前>.ts(x) か <名前>/index.ts(x) の export const ${p.spec.export}(並びはファイル名の順)`),
+    ...points.map((p) => isPlugsPoint(p.spec) ? `// ${p.name}: 差す側の <ドメイン>/${PLUGS_DIR_NAME}/${p.name}/<名前>.ts(x) か <名前>/index.ts(x)(lib は <lib>/${PLUGS_DIR_NAME}/…)の export const ${p.spec.export}(並びは${p.spec.order === "declared" ? "項目の order → " : ""}<差す側>/<名前> の順、使う時に gate.plugs で閉じたドメインの項目を外す)` : p.spec.files ? `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/${p.spec.files} の export const ${p.spec.export}(folder = フォルダ名、並びはフォルダ名の順${p.spec.overrideOf ? `。隣の ${filesOverrideNamesOf(p.spec.files)[0]} の ${p.spec.overrideOf.join("・")} を重ねる` : ""})` : `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/<名前>.ts(x) か <名前>/index.ts(x) の export const ${p.spec.export}(並びはファイル名の順)`),
     "",
     ...[...types.entries()].sort(([a], [b]) => byName(a, b)).map(([from, names]) => `import type { ${[...names].sort(byName).join(", ")} } from ${JSON.stringify(from)};`),
   ];
@@ -323,13 +345,16 @@ export function planExtensions(repoRoot) {
   const { points: declared, problems } = collectPoints(repoRoot);
   problems.unshift(...identity.errors);
   // writer の点の一覧は別の生成器が書く・overrides の点は一覧を持たない: ここでは探さず書かない(宣言の数にだけ入る)
-  const points = declared.filter((p) => isListPoint(p.spec));
+  const listPoints = declared.filter((p) => isListPoint(p.spec));
+  const points = listPoints.filter((p) => !isPlugsPoint(p.spec));
   const dirOf = (p) => posix.normalize(posix.join(p.owner, p.spec.dir));
   const allDirs = new Set(points.map(dirOf));
   const groups = new Map();
   for (const p of points) groups.set(dirOf(p), [...(groups.get(dirOf(p)) ?? []), p]);
 
   const itemsByPoint = new Map();
+  /** 導出の生成物(規則の when の一覧 whenInputs.ts) */
+  const derivedOutputs = {};
   let featureTables = null;
   for (const [dir, group] of groups) {
     const others = new Set([...allDirs].filter((d) => d !== dir));
@@ -343,7 +368,7 @@ export function planExtensions(repoRoot) {
         for (const item of items) {
           const derived = featureTables.apply(item.path, item.text, item.name);
           if (derived.problem) problems.push(derived.problem);
-          else kept.push({ ...item, fields: { name: item.name, ...derived.fields }, domainFolders: derived.domainFolders, domains: derived.domains });
+          else kept.push({ ...item, fields: { name: item.name, ...derived.fields }, domainFolders: derived.domainFolders, domains: derived.domains, whenRefs: derived.whenRefs });
         }
         // 導出の表: ドメイン(持つ機能を集める、フォルダの順)と cron の task(住所の順)
         const domainMap = new Map();
@@ -363,13 +388,15 @@ export function planExtensions(repoRoot) {
         // dependsOn の未知の名前・輪(全規則で。読めなかった規則は名前だけ知っている物として数える)
         const unread = items.filter((item) => !kept.some((k) => k.name === item.name)).map((item) => ({ path: item.path, name: item.name, dependsOn: [] }));
         problems.push(...checkDependsOnGraph([...kept.map((item) => ({ path: item.path, name: item.name, dependsOn: item.fields.dependsOn, anyOf: item.fields.anyOf })), ...unread]));
-        // requires の被覆(機能のドメインの requires の先が自分・依存先・基盤のどれか、D24。例外は上流の規則の縮む表で、fork にも同じ規則があるので全 Tier で数える)
+        // requires の被覆(機能のドメインの requires の先が自分・依存先・常設のどれか、D24。例外は上流の規則の縮む表で、fork にも同じ規則があるので全 Tier で数える)
         problems.push(
           ...checkRequiresCoverage(
             kept.map((item) => ({ path: item.path, name: item.name, domains: item.domainFolders, dependsOn: item.fields.dependsOn })),
             featureTables.districts,
           ),
         );
+        // when が指したドメインの config.ts だけを import する一覧(<門番>/extensions/whenInputs.ts、./derive/gateWhen.mjs)
+        derivedOutputs[`${p.owner}/${EXTENSIONS_DIR_NAME}/${WHEN_INPUTS_NAME}.ts`] = renderWhenInputs(headerFor(p.declaredIn), kept.flatMap((item) => item.whenRefs));
         itemsByPoint.set(p, kept);
       } else {
         itemsByPoint.set(p, items);
@@ -377,18 +404,23 @@ export function planExtensions(repoRoot) {
     }
   }
   if (featureTables) problems.unshift(...featureTables.problems);
+  // plugs の点: 差す側の <ドメイン>/plugs/<点>/ から集める(./plugs.mjs。項目の検査は受け口のフォルダと同じ discoverDir)
+  const plugs = discoverPlugs(repoRoot, listPoints, discoverDir);
+  problems.push(...plugs.problems);
+  for (const [p, items] of plugs.itemsByPoint) itemsByPoint.set(p, items);
   problems.push(...checkSettingSections(repoRoot, points, itemsByPoint));
 
   const files = new Map();
-  for (const p of points) files.set(outputOf(p), [...(files.get(outputOf(p)) ?? []), p]);
+  for (const p of listPoints) files.set(outputOf(p), [...(files.get(outputOf(p)) ?? []), p]);
   const outputs = {};
   for (const [path, filePoints] of [...files.entries()].sort(([a], [b]) => byName(a, b))) {
     const names = filePoints.map((p) => p.name);
     if (new Set(names).size !== names.length) problems.push(`${path}: 同じ名前の点が 1 つの wiring に重なる`);
     outputs[path] = renderFile(filePoints, itemsByPoint);
   }
+  Object.assign(outputs, derivedOutputs);
   const { isTier1 } = identity;
-  const switchCheck = checkSwitches(repoRoot, { isTier1 });
+  const switchCheck = checkSwitches(repoRoot, { isTier1, points: declared });
   const overrideCheck = checkOverrides(repoRoot, { isTier1 });
   // 孤立の検査は 1 つ(.override・.replace、D165)。上書きの対象の点が受けた上書きの鍵は宣言と照らす
   const orphanCheck = checkOrphans(repoRoot, { points: declared, receptacleDirs: allDirs });
@@ -429,7 +461,7 @@ export function staleOutputs(repoRoot, outputs) {
 export function strayExtensionFiles(repoRoot, outputs, points) {
   const strays = [];
   const writerOutputs = new Set(points.filter((p) => p.spec.writer).map(outputOf));
-  const listPoints = points.filter((p) => isListPoint(p.spec));
+  const listPoints = points.filter((p) => isListPoint(p.spec) && !isPlugsPoint(p.spec));
   const walk = (dir, inside) => {
     if (!existsSync(join(repoRoot, dir))) return;
     for (const entry of readdirSync(join(repoRoot, dir), { withFileTypes: true })) {

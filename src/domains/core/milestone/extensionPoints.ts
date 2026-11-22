@@ -4,6 +4,7 @@
 export const extensionPoints = {
   // マイルストーン定義: services/server/definitions/<名前>.ts の export const milestone(普通の定義か段階のあるシリーズ。上流の項目は 0)
   definitions: {
+    change: "add",
     dir: "services/server/definitions",
     export: "milestone",
     type: { from: "@/domains/core/milestone/types/milestone", name: "MilestoneItem" },
@@ -11,6 +12,7 @@ export const extensionPoints = {
   },
   // 達成通知のレンダラー: components/renderers/<名前>.ts(x) の export const renderer(上流の項目は 0)
   renderers: {
+    change: "add",
     dir: "components/renderers",
     export: "renderer",
     type: { from: "@/domains/core/milestone/types/milestoneRenderer", name: "MilestoneRendererDefinition" },

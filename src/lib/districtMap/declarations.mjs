@@ -15,6 +15,8 @@ export const DECLARATION_NAME = "extensionPoints";
 export const SEARCH_ROOT = "src";
 /** 生成一覧の置き場の名前(持ち主のフォルダの直下) */
 export const EXTENSIONS_DIR_NAME = "extensions";
+/** 差す側の手書きの項目の置き場の名前(<ドメイン>/plugs/<点の名前>/<名前>.ts(x)、lib は <lib>/plugs/…。extensions/ = 持ち主の側の生成された一覧と対、D40) */
+export const PLUGS_DIR_NAME = "plugs";
 
 /** @typedef {LiteralValue[]} LiteralArray 再帰の型は配列だけ別の JSDoc に置く(同じ塊だと TS2456) */
 /**
@@ -30,11 +32,23 @@ const WRITERS = ["role:generate"];
 const TARGETS = ["wiring"];
 /** 組み込みの変換(一覧の項目に付け足す値)。fork が足す口は無い */
 export const DERIVES = ["featureTables", "settingSections"];
-const KEYS = ["dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable", "placement", "kind", "keyedBy"];
+const KEYS = ["change", "plugs", "max", "order", "default", "dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable", "placement", "kind", "keyedBy"];
+/**
+ * 点の変え方の型(CHANGE_TYPES 1〜4、地区の議会 D20・D35)。どの点も change を書く(段 2 の宣言の 2 段の 1 段目)。
+ * add = 増設点(dir か files の受け口、writer の一覧も fork が項目を足す点)/ override = 上書点(overrides)/ counterpart = 対置点(placement)/
+ * replace = 差替点(default の既定の出し手と type の約束の型。ちょうど 1 つ、D24・D53)
+ */
+export const CHANGES = ["add", "override", "counterpart", "replace"];
+/** 増設点の順位の並び: file = 項目のファイル名の順 / declared = 項目が宣言する順位 */
+const ORDERS = ["file", "declared"];
 /** 置き場の点が名乗れる種類(受け口の一覧 intake.txt の行の kind) */
 export const PLACEMENT_KINDS = ["edit", "append"];
 /** 上書きの対象の点(受け口でない)が持てるキー */
-const OVERRIDE_TARGET_KEYS = ["overrides", "side", "overrideOf", "addable", "export", "keyedBy"];
+const OVERRIDE_TARGET_KEYS = ["change", "overrides", "side", "overrideOf", "addable", "export", "keyedBy"];
+/** plugs の点が持てないキー(項目のフォルダ・形・上書き・導出は受け口のフォルダの点だけ) */
+const PLUGS_DENIED = ["dir", "files", "ignore", "shape", "derive", "literalKeys", "overrideOf", "alwaysOn"];
+/** 差替点が持てるキー */
+const REPLACE_KEYS = ["change", "default", "type", "side"];
 const POINT_NAME = /^[a-z][A-Za-z0-9]*$/;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -102,13 +116,18 @@ function checkPoint(name, value) {
   /** @type {PointSpec} */
   const point = value;
   for (const key of Object.keys(point)) if (!KEYS.includes(key)) problems.push(`${name}: 未知のキー ${key}(使えるのは ${KEYS.join(" / ")})`);
+  // change: どの点も変え方の型を書く。型は欄と合う(段 2 の前の形は段 2 の移し替えの道具 .notices/20261122-213044-district-stage2.declarations.mjs で書き直す)
+  const expected = changeOfFields(point);
+  if (point.change === undefined) problems.push(`${name}: change が無い(${CHANGES.join(" | ")} のどれか。欄から読むと ${expected}。段 2 の移し替えの道具で書き直す)`);
+  else if (!oneOf(CHANGES, point.change)) problems.push(`${name}: change は ${CHANGES.join(" | ")}`);
+  else if (point.change !== expected) problems.push(`${name}: change ${point.change} が欄と合わない(${fieldsNote(point)}の点は ${expected})`);
   // placement: 置き場の点。fork が書いてよい場所(リポジトリ直下からの glob)と、その書き方(intake.txt の kind)だけを持つ
   if (point.placement !== undefined) {
     if (!isString(point.placement) || !point.placement.startsWith(`${SEARCH_ROOT}/`) || point.placement.split("/").includes("..")) {
       problems.push(`${name}: placement は置き場のリポジトリ直下からの glob(${SEARCH_ROOT}/ 始まり、.. 無し)`);
     }
     if (!oneOf(PLACEMENT_KINDS, point.kind)) problems.push(`${name}: kind は ${PLACEMENT_KINDS.join(" | ")}`);
-    for (const key of Object.keys(point)) if (KEYS.includes(key) && key !== "placement" && key !== "kind") problems.push(`${name}: placement の点に ${key} は書けない(書けるのは placement / kind)`);
+    for (const key of Object.keys(point)) if (KEYS.includes(key) && !["change", "placement", "kind"].includes(key)) problems.push(`${name}: placement の点に ${key} は書けない(書けるのは change / placement / kind)`);
     return problems;
   }
   if (point.kind !== undefined) problems.push(`${name}: kind は placement の点だけ`);
@@ -133,11 +152,25 @@ function checkPoint(name, value) {
   if (point.writer !== undefined) {
     if (!oneOf(WRITERS, point.writer)) problems.push(`${name}: writer は ${WRITERS.join(" | ")}`);
     if (!oneOf(SIDES, point.side)) problems.push(`${name}: side は ${SIDES.join(" | ")}`);
-    for (const key of Object.keys(point)) if (key !== "writer" && key !== "side") problems.push(`${name}: writer の点に ${key} は書けない`);
+    for (const key of Object.keys(point)) if (!["change", "writer", "side"].includes(key)) problems.push(`${name}: writer の点に ${key} は書けない`);
+    return problems;
+  }
+  // default: 差替点。既定の出し手(リポジトリ直下からのパス)と約束の型を持つ。ちょうど 1 つ要る点で、fork は差し替える(足して 2 つにしない、D24・D53)
+  if (point.default !== undefined) {
+    if (!isString(point.default) || !point.default.startsWith(`${SEARCH_ROOT}/`) || point.default.split("/").includes("..")) problems.push(`${name}: default は既定の出し手のリポジトリ直下からのパス(${SEARCH_ROOT}/ 始まり、.. 無し)`);
+    if (typeof point.type !== "object" || point.type === null || Array.isArray(point.type) || !isString(point.type.from) || !isString(point.type.name) || !IDENTIFIER.test(point.type.name)) {
+      problems.push(`${name}: type は { from: "<import 元>", name: "<約束の型の名前>" }`);
+    }
+    if (!oneOf(SIDES, point.side)) problems.push(`${name}: side は ${SIDES.join(" | ")}`);
+    for (const key of Object.keys(point)) if (KEYS.includes(key) && !REPLACE_KEYS.includes(key)) problems.push(`${name}: 差替点に ${key} は書けない(書けるのは ${REPLACE_KEYS.join(" / ")})`);
     return problems;
   }
   if (point.keyedBy !== undefined) problems.push(`${name}: keyedBy は overrides の点だけ`);
-  if (!isString(point.dir) || point.dir.startsWith("/") || point.dir.split("/").includes("..")) problems.push(`${name}: dir は持ち主のフォルダからの相対パス("." = 持ち主の直下)`);
+  // plugs: 項目を差す側の自分のフォルダ <ドメイン>/plugs/<点の名前>/(lib は <lib>/plugs/…)から集める増設点(D38・D40)。項目のフォルダ dir は持たない
+  if (point.plugs !== undefined) {
+    if (point.plugs !== true) problems.push(`${name}: plugs は true だけ(差す側の <ドメイン>/plugs/${name}/ から集める増設点の印)`);
+    for (const key of PLUGS_DENIED) if (point[key] !== undefined) problems.push(`${name}: plugs の点に ${key} は書けない(項目は差す側の <ドメイン>/plugs/${name}/<名前>.ts(x)、一覧は配列)`);
+  } else if (!isString(point.dir) || point.dir.startsWith("/") || point.dir.split("/").includes("..")) problems.push(`${name}: dir は持ち主のフォルダからの相対パス("." = 持ち主の直下)`);
   if (!isString(point.export) || !IDENTIFIER.test(point.export)) problems.push(`${name}: export は項目が export する名前`);
   if (typeof point.type !== "object" || point.type === null || Array.isArray(point.type) || !isString(point.type.from) || !isString(point.type.name) || !IDENTIFIER.test(point.type.name)) {
     problems.push(`${name}: type は { from: "<import 元>", name: "<型の名前>" }`);
@@ -156,14 +189,36 @@ function checkPoint(name, value) {
   if (point.requireText !== undefined && !isString(point.requireText)) problems.push(`${name}: requireText は文字列`);
   if (point.overrideOf !== undefined && !(Array.isArray(point.overrideOf) && point.overrideOf.length > 0 && point.overrideOf.every(isString))) problems.push(`${name}: overrideOf は上書きしてよい属性の名前の配列`);
   if (point.load === "lazy" && (point.key !== undefined || point.derive !== undefined)) problems.push(`${name}: load "lazy" は key・derive と一緒に使えない`);
+  // 増設点の欄(D24・D53): max = 上限(空なら点の持ち主の既定で動く)、order = 順位の並び(意味がある点だけ)
+  if (point.max !== undefined && !(Number.isInteger(point.max) && Number(point.max) >= 1)) problems.push(`${name}: max は 1 以上の整数(増設点の上限)`);
+  if (point.order !== undefined && !oneOf(ORDERS, point.order)) problems.push(`${name}: order は ${ORDERS.join(" | ")}`);
   return problems;
 }
 
 /**
- * 受け口の点(項目のフォルダ dir を持ち、pnpm generate extensions が一覧を書く)か。writer の点・overrides の点・placement の点は違う
+ * 欄から読む変え方の型(change と照らす。段 2 の移し替えの道具もこれで change を書く)
+ * @param {PointSpec} point
+ * @returns {"add" | "override" | "counterpart" | "replace"}
+ */
+export function changeOfFields(point) {
+  if (point.placement !== undefined) return "counterpart";
+  if (point.overrides !== undefined) return "override";
+  if (point.default !== undefined) return "replace";
+  return "add";
+}
+
+/** @param {PointSpec} point */
+const fieldsNote = (point) =>
+  point.placement !== undefined ? "placement " : point.overrides !== undefined ? "overrides " : point.default !== undefined ? "default " : point.writer !== undefined ? "writer " : "dir・files ";
+
+/** plugs の点(差す側の <ドメイン>/plugs/<点>/ から集める増設点)か */
+export const isPlugsPoint = (/** @type {PointSpec} */ spec) => spec.plugs === true;
+
+/**
+ * 受け口の点(項目のフォルダ dir か plugs を持ち、pnpm generate extensions が一覧を書く)か。writer の点・overrides の点・placement の点・差替点は違う
  * @param {PointSpec} spec
  */
-export const isListPoint = (spec) => spec.writer === undefined && spec.overrides === undefined && spec.placement === undefined;
+export const isListPoint = (spec) => spec.writer === undefined && spec.overrides === undefined && spec.placement === undefined && spec.default === undefined;
 
 /**
  * 宣言のファイルを 1 つ読む
@@ -225,4 +280,47 @@ export function pointsFromFiles(files, readText) {
     for (const [name, spec] of Object.entries(read.points)) points.push({ owner: path.slice(0, path.lastIndexOf("/")), name, declaredIn: path, spec });
   }
   return { points: points.sort((a, b) => (a.declaredIn + a.name < b.declaredIn + b.name ? -1 : 1)), problems };
+}
+
+/** 枠の地区の宣言のフォルダ(src/app の下の _layout)。枠の差替点だけは default が src/app の下なら地区の dir の外でも通す(枠の部品はルートの隣にもある、注文 16 Q1) */
+const FRAME_OWNER = /^src\/app\/(?:.+\/)?_layout$/;
+/** 差替点の既定の出し手 <名前>.default.ts(x)(1 = 素の名前までのパス、2 = 名前、3 = 拡張子) */
+const REPLACE_DEFAULT = /^(.*\/([A-Za-z][A-Za-z0-9]*))\.default\.(ts|tsx)$/;
+
+/**
+ * 差替点(change: replace)の一覧と、既定の出し手の置き場の問題(1 行スイッチの検査・受け口の一覧・地図が読む)。
+ * default は <名前>.default.ts(x) で、宣言した地区の dir の中(枠の地区は src/app の下)。同じ default を 2 つの点が指すのも止める
+ * @param {{ owner: string, name: string, declaredIn: string, spec: PointSpec }[]} points 全拡張点
+ * @returns {{ replaces: { point: string, owner: string, declaredIn: string, default: string, stem: string, name: string, ext: string }[], problems: string[] }}
+ *   stem = 素の名前までのパス(スイッチ = <stem>.ts(x)、fork の置き換え = <stem>.replace.ts(x))
+ */
+export function replacePointsOf(points) {
+  /** @type {{ point: string, owner: string, declaredIn: string, default: string, stem: string, name: string, ext: string }[]} */
+  const replaces = [];
+  /** @type {string[]} */
+  const problems = [];
+  /** @type {Map<string, string>} */
+  const seen = new Map();
+  for (const p of points) {
+    if (p.spec.change !== "replace" || typeof p.spec.default !== "string") continue;
+    const path = p.spec.default;
+    const match = REPLACE_DEFAULT.exec(path);
+    if (!match) {
+      problems.push(`${p.declaredIn}: 差替点 ${p.name} の default ${path} は <名前>.default.ts(x)(1 行スイッチの既定)`);
+      continue;
+    }
+    const inside = path.startsWith(`${p.owner}/`) || (FRAME_OWNER.test(p.owner) && path.startsWith("src/app/"));
+    if (!inside) {
+      problems.push(`${p.declaredIn}: 差替点 ${p.name} の default ${path} が宣言した地区(${p.owner})の外(差替点は既定を持つ地区の extensionPoints.ts に書く)`);
+      continue;
+    }
+    const other = seen.get(path);
+    if (other) {
+      problems.push(`${p.declaredIn}: 差替点 ${p.name} の default ${path} は ${other} と重なる(1 つの既定に差替点は 1 つ)`);
+      continue;
+    }
+    seen.set(path, `${p.declaredIn} の ${p.name}`);
+    replaces.push({ point: p.name, owner: p.owner, declaredIn: p.declaredIn, default: path, stem: match[1], name: match[2], ext: match[3] });
+  }
+  return { replaces: replaces.sort((a, b) => (a.default < b.default ? -1 : 1)), problems };
 }

@@ -5,6 +5,7 @@
 export const extensionPoints = {
   // パレットの第 1 メニューのカテゴリ: categories/<名前>.tsx の export const category
   categories: {
+    change: "add",
     dir: "categories",
     export: "category",
     type: { from: "@/domains/core/adminCommand/base/types", name: "CategoryConfig" },
@@ -13,6 +14,7 @@ export const extensionPoints = {
   },
   // カテゴリの Provider・GlobalComponent: plugins/<名前>.tsx の export const plugin(上流の項目は 0)
   plugins: {
+    change: "add",
     dir: "plugins",
     export: "plugin",
     type: { from: "@/domains/core/adminCommand/base/types", name: "AdminCommandPlugin" },

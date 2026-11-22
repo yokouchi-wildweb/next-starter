@@ -1,11 +1,12 @@
 // src/lib/districtMap/read.mjs
-// 地区の地図の読み手(目録 D1・D2・D12)。木を歩いて 4 種の地区を見つけ、各地区の欄を字面で読む。
+// 地区の地図の読み手(目録 D1・D2・D12)。木を歩いて種類の表(kinds.mjs KINDS、7 種類)の地区を見つけ、各地区の欄を字面で読む。
 // ファイルの読み方は注入する(source.listDir・source.readText)。node:fs で今の木を読む入口は ./node.mjs。
 // 宣言は今の置き場が正本(domain.json・domainEntry・extensionPoints・門の規則・frame:・CATALOG.md)。この読み手は写しを持たない。
 // 載せない物(目録 D8・D12): 値・access・関数・門の pathPatterns と enabled・受け口の項目の一覧・所有(どのリポの物か)。
 
 import { listLibsFrom } from "../libPackage/index.mjs";
 import { readDeclaration } from "./declarations.mjs";
+import { overrideGlobOf } from "./extensionNames.mjs";
 import { readDomainEntry, readFeatureRequirements, readFrameName, readRuleDomains, readTableNames } from "./fields.mjs";
 import {
   APP_ROOT,
@@ -20,8 +21,11 @@ import {
   LIB_ROOT,
   PROXIES_DIR,
   RECEPTACLE_FILE,
+  SINGLE_DIR_KINDS,
   SKIP_DIRS,
   UI_CONFIG_FILE,
+  isFrameLayoutSwitch,
+  kindPointsOf,
   overridePathOf,
   uiOverridePathOf,
 } from "./kinds.mjs";
@@ -29,13 +33,14 @@ import {
 /**
  * @typedef {{ listDir: (rel: string) => { name: string, isDir: boolean }[], readText: (rel: string) => string | null }} DistrictSource
  *   listDir = フォルダの直下(無ければ [])、readText = ファイルの本文(無ければ null)。パスはリポジトリ直下からの相対(/ 区切り)
- * @typedef {{ path: string, exists: boolean }} FileSlot
+ * @typedef {{ path: string | null, exists: boolean }} FileSlot path null = その種類は上書きを持たない(種類の表の override)
  * @typedef {{
- *   kind: "domains" | "lib" | "frame" | "proxies", name: string, core: boolean | null, dir: string,
+ *   kind: DistrictKind, name: string, core: boolean | null, dir: string,
  *   domainJson: boolean | null, generate: boolean | null, config: FileSlot, override: FileSlot, uiConfig: FileSlot, uiOverride: FileSlot, apiKeys: string[], tables: string[], requires: string[],
- *   gates: string[], receptacles: string[], frame: string | null,
+ *   gates: string[], receptacles: string[], frame: string | null, forkCan: ForkCan[],
  *   featureRequirements: { key: string, feature: string, off: unknown, element?: true }[],
  * }} District
+ * @typedef {{ point: string, change: string, where: string }} ForkCan fork がこの地区にできること 1 つ(種類の点 + 地区の宣言の点、D35)。where = fork が書くファイルの glob
  * @typedef {(typeof DISTRICT_KINDS)[number]} DistrictKind
  * @typedef {{ kind: DistrictKind, name: string, core: boolean | null, dir: string }} FoundDistrict 見つけただけの地区(欄を読む前)
  *   featureRequirements = 持ち主の config.ts の機能を要する値の宣言(設定 D110。判定は門番の検査 src/featureGate/checks/featureRequirements.ts)
@@ -126,6 +131,13 @@ function discover(source, problems) {
     }
   };
   walkApp(APP_ROOT);
+  // src 直下の 1 地区の種類(featureGate・registry・wiring、D8・D9): フォルダがあれば 1 地区(名前 = フォルダ名)
+  for (const k of SINGLE_DIR_KINDS) {
+    const dir = k.dir ?? "";
+    const name = dir.slice(dir.lastIndexOf("/") + 1);
+    const kind = /** @type {(typeof DISTRICT_KINDS)[number]} */ (k.kind);
+    if (dirsOf(source, dir.slice(0, dir.length - name.length - 1)).some((e) => e.name === name)) found.push({ kind, name, core: null, dir });
+  }
   // proxies の地区 = src/proxies の直下のテーマのフォルダのうち config.ts を持つ物(1 テーマ 1 地区、設定 D93。上流は demo だけ)
   for (const entry of dirsOf(source, PROXIES_DIR)) {
     if (SKIP_DIRS.includes(entry.name)) continue;
@@ -221,10 +233,10 @@ export function readDistrictMap(source) {
       domainJson: null,
       generate: null,
       config: { path: configPath, exists: source.readText(configPath) !== null },
-      override: { path: overridePath, exists: source.readText(overridePath) !== null },
+      override: { path: overridePath, exists: overridePath !== null && source.readText(overridePath) !== null },
       // 描画専用の config と上書き(設定 D38、L1.18)。持つ地区だけ exists: true
       uiConfig: { path: uiConfigPath, exists: source.readText(uiConfigPath) !== null },
-      uiOverride: { path: uiOverridePath, exists: source.readText(uiOverridePath) !== null },
+      uiOverride: { path: uiOverridePath, exists: uiOverridePath !== null && source.readText(uiOverridePath) !== null },
       apiKeys: [],
       tables: [],
       requires: [],
@@ -232,6 +244,7 @@ export function readDistrictMap(source) {
       receptacles: [],
       frame: d.kind === "frame" ? d.name : null,
       featureRequirements: [],
+      forkCan: [],
     };
     // 機能を要する値の宣言(持ち主の config.ts の export const featureRequirements、設定 D110)
     const configText = source.readText(configPath);
@@ -269,9 +282,22 @@ export function readDistrictMap(source) {
         for (const name of read.tables) tableFiles.push({ name, file: path, dir: d.dir });
       }
     }
+    // fork ができること(宣言 2 段、D35): 種類の点(kinds.mjs kindPointsOf)→ 地区の宣言の点
+    for (const k of kindPointsOf(d.kind)) {
+      if ((k.when === "config" && !district.config.exists) || (k.when === "configUi" && !district.uiConfig.exists)) continue;
+      const where = k.where(d);
+      if (k.when === "layoutSwitch" && !isFrameLayoutSwitch(source.readText(where) ?? "")) continue;
+      district.forkCan.push({ point: k.point, change: k.change, where });
+    }
     // 受け口: 地区の中の extensionPoints.ts の点の名前(宣言の誤りは pnpm check extensions が出すので、ここでは読めた点だけ)
     for (const path of files.filter((f) => f.endsWith(`/${RECEPTACLE_FILE}`)).sort()) {
-      district.receptacles.push(...Object.keys(readDeclaration(path, source.readText(path) ?? "").points));
+      const owner = path.slice(0, path.lastIndexOf("/"));
+      const points = readDeclaration(path, source.readText(path) ?? "").points;
+      district.receptacles.push(...Object.keys(points));
+      for (const [name, spec] of Object.entries(points)) {
+        const where = forkWhereOf(owner, name, spec);
+        if (where !== null) district.forkCan.push({ point: name, change: String(spec.change), where });
+      }
     }
     district.receptacles.sort();
     return district;
@@ -285,6 +311,24 @@ export function readDistrictMap(source) {
   districts.sort((a, b) => order(a) - order(b) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   tableFiles.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
   return { districts, problems, tableFiles, tableProblems };
+}
+
+/**
+ * 宣言の 1 点に fork が書くファイルの glob(writer の点は null: 一覧は生成器が書き、fork は隣の addable の上書きの点で JSON を足す)
+ * @param {string} owner 宣言のフォルダ
+ * @param {string} name 点の名前
+ * @param {import("./declarations.mjs").PointSpec} spec
+ * @returns {string | null}
+ */
+function forkWhereOf(owner, name, spec) {
+  if (spec.writer !== undefined) return null;
+  if (typeof spec.placement === "string") return spec.placement;
+  if (typeof spec.overrides === "string") return overrideGlobOf(spec.overrides);
+  if (typeof spec.default === "string") return spec.default.replace(/\.default\.(tsx?)$/, ".replace.$1");
+  // plugs の点: fork は自分のドメイン(か lib)の plugs/<点>/ に項目を置く(D38・D40)
+  if (spec.plugs === true) return `src/domains/<自分のドメイン>/plugs/${name}/*`;
+  const base = spec.dir === "." || spec.dir === undefined ? owner : join(owner, String(spec.dir));
+  return typeof spec.files === "string" ? `${base}/${spec.files}` : `${base}/*`;
 }
 
 /**

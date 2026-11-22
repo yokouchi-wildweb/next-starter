@@ -43,6 +43,8 @@
     { "say": "phase の語(PhaseError・phaseList・loadPhases・phaseTestFiles など)", "words": ["GateError", "gateList", "explicitGates", "offlineGates", "watchGates", "loadGates", "gateTestFiles", "gateTestsOf", "gateNames"], "kind": "identifier", "in": "tools", "decisions": ["D48"] },
     { "say": "増設点(型 3 の点)/ 可変域(intake、fork が親の物を変えてよい所)", "pattern": "受け口", "kind": "text", "in": "context", "decisions": ["D20", "D21"] },
     { "say": "拡張点 / 増設点(差し込み口の揺れは廃す)", "pattern": "差し込み口", "kind": "text", "in": "context", "decisions": ["D17"] },
+    { "say": "地区の種類(src_root_bases は廃した)", "pattern": "src_root_bases", "kind": "text", "in": "context", "decisions": ["D8", "D19"] },
+    { "say": "地区 / 常設(総称の基盤は廃した)", "pattern": "基盤", "kind": "text", "in": "context", "decisions": ["D8", "D19"] },
     { "say": "上書型 override / 対置型 counterpart(型の名前)", "pattern": "(?<![A-Za-z0-9_-])[1-5] (?:an? )?(?:overlay|placement)(?![A-Za-z0-9_-])", "kind": "text", "in": "context", "decisions": ["D20"] },
     { "say": "上書型 override / 対置型 counterpart(型の名前)", "pattern": "(?<=change: |\\| )(?:overlay|placement)(?: declaration)? ?(?:=|→)", "kind": "text", "in": "context", "decisions": ["D20"] },
     { "say": "上書型 override / 対置型 counterpart(型の名前)", "pattern": "(?:replace|add|overlay|placement) / (?:overlay|placement)(?![A-Za-z0-9_-])|(?<![A-Za-z0-9_-])(?:overlay|placement) / (?:add|replace|placement)(?![A-Za-z0-9_-])", "kind": "text", "in": "context", "decisions": ["D20"] },

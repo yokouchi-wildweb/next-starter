@@ -105,6 +105,7 @@ test(".replace: boardgame-site の 5 本の形(枠の中の部品の .replace)�
     "src/domains/core/payment/enricher.default.ts": P,
     "src/domains/core/payment/enricher.ts": 'export * from "./enricher.replace";\n',
     "src/domains/core/payment/enricher.replace.ts": P,
+    "src/domains/core/payment/extensionPoints.ts": 'export const extensionPoints = { enricher: { change: "replace", default: "src/domains/core/payment/enricher.default.ts", type: { from: "@/t", name: "E" }, side: "server" } };\n',
     "src/domains/core/h/only.replace.ts": P,
   });
   const replaces = problems.filter((p) => p.includes(".replace"));
@@ -123,12 +124,14 @@ test(".replace: boardgame-site の 5 本の形(枠の中の部品の .replace)�
 test("ForkProviders を書き換えた fork(中身を書いたスイッチ)は 1 行スイッチの検査で止まる(中身は ForkProviders.replace.tsx へ)", () => {
   const problems = problemsOf({
     "src/app/_providers/ForkProviders.default.tsx": "export function ForkProviders() { return null; }\n",
+    "src/app/_layout/extensionPoints.ts": 'export const extensionPoints = { forkProviders: { change: "replace", default: "src/app/_providers/ForkProviders.default.tsx", type: { from: "@/t", name: "P" }, side: "shared" } };\n',
     "src/app/_providers/ForkProviders.tsx": 'import type { ReactNode } from "react";\nexport function ForkProviders({ children }: { children: ReactNode }) { return children; }\n',
   });
   assert.ok(problems.some((p) => p.startsWith("src/app/_providers/ForkProviders.tsx:") && p.includes("re-export 1 文だけ")), problems.join("\n"));
   assert.deepEqual(
     problemsOf({
       "src/app/_providers/ForkProviders.default.tsx": "export function ForkProviders() { return null; }\n",
+      "src/app/_layout/extensionPoints.ts": 'export const extensionPoints = { forkProviders: { change: "replace", default: "src/app/_providers/ForkProviders.default.tsx", type: { from: "@/t", name: "P" }, side: "shared" } };\n',
       "src/app/_providers/ForkProviders.tsx": 'export { ForkProviders } from "./ForkProviders.replace";\n',
       "src/app/_providers/ForkProviders.replace.tsx": "export function ForkProviders() { return null; }\n",
     }),

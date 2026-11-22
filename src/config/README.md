@@ -2,9 +2,9 @@
 
 ## Overview
 
-既定値と型は持ち主(地区 = lib・ドメイン・枠・proxies、と src 直下の基盤)の `config.ts` などに置き、`src/config` にはプロジェクト(fork)が変えたい値だけを書く上書きを置きます。上流は持ち主ごとに空の上書きを出荷し、fork は変えたい所だけ中身を書きます。地区の定義: [src/lib/districtMap/README.md](../lib/districtMap/README.md)。
+既定値と型は持ち主の地区(種類の表の上書きを持つ種類 = ドメイン・lib・枠・門番・proxies)の `config.ts` などに置き、`src/config` にはプロジェクト(fork)が変えたい値だけを書く上書きを置きます。上流は持ち主ごとに空の上書きを出荷し、fork は変えたい所だけ中身を書きます。地区の定義: [src/lib/districtMap/README.md](../lib/districtMap/README.md)。
 
-### 5 つのフォルダ(地区の 4 種 + 基盤の上書き、中は平ら)
+### 5 つのフォルダ(地区の名前で置く 4 種 + 中身の名前で置く門番、中は平ら)
 
 | フォルダ | 持ち主 | 上書き | 持ち主の既定 |
 |---|---|---|---|
@@ -12,10 +12,10 @@
 | `domains/` | ドメイン(`src/domains/<名前>`・`src/domains/core/<名前>`) | `domains/<名前>.config.ts` | `<ドメイン>/config.ts` |
 | `layout/` | 枠(`src/app/**/_layout/config.ts` の `frame: "<名前>"`) | `layout/<名前>.config.ts` | `<_layout>/config.ts` |
 | `proxies/` | `src/proxies` のテーマのフォルダ(`src/proxies/<テーマ>/config.ts`、上流は持たない、fork が足すテーマ) | `proxies/<テーマ>.config.ts` | `src/proxies/<テーマ>/config.ts` |
-| `featureGate/` | 基盤 `src/featureGate`(門番。固定) | `featureGate/<中身の名前>.config.ts`(例 `switches.config.ts` = 機能の入切の fork の値) | `src/featureGate` の中(門番の規則のファイル) |
+| `featureGate/` | 門番の地区 `src/featureGate`(固定) | `featureGate/<中身の名前>.config.ts`(例 `switches.config.ts` = 機能の入切の fork の値) | `src/featureGate` の中(門番の規則のファイル) |
 
 - 名前 = 地区の名前(フォルダ名、枠は `frame:` の宣言)。話題などでフォルダを分けない
-- 基盤の上書き: src 直下の基盤(今は `src/featureGate` だけ)の上書きは、その基盤の名前のフォルダに中身の名前のファイルで置く。基盤が別の上書きを持てば同じフォルダに並べる。持ち主は基盤のフォルダに固定で、読めるのはその中のファイルだけ
+- 中身の名前で置く上書き: 種類の表で上書きの形が中身の名前の種類(今は門番 `src/featureGate` だけ)は、その種類のフォルダに中身の名前のファイルで置く。別の上書きを持てば同じフォルダに並べる。持ち主は地区のフォルダに固定で、読めるのはその中のファイルだけ。登録表 `src/registry`・結線 `src/wiring` は上書きを持たない
 - `domains/` はドメインの値の上書きだけ。機能(門番の規則)の入切の fork の値は `featureGate/switches.config.ts` に書く(既定は門番の規則のファイル)
 - 描画専用の値(アイコン・部品など)を持つ持ち主だけ、2 本目 `<名前>.ui.config.ts` を並べる(持ち主の側は `config.ui.ts`)
 - **受け口か config か**: fork が互いに独立した行を足していく一覧(例: 転送の規則)は受け口(`extensionPoints.ts` の点、1 ファイル = 1 項目)。鍵で合わせて値を変える表(例: 通貨・区分)は config(上書きで鍵ごとに重ねる)
@@ -44,7 +44,7 @@
 
 ### 読むのは持ち主だけ(lint `config-overrides/owner-reads-only`、全 Tier error)
 
-上書きを import できるのは持ち主の `config.ts`(`<名前>.ui.config.ts` は `config.ui.ts`)だけ。型だけの import も同じ。基盤の上書き(`featureGate/`)は持ち主のフォルダ(`src/featureGate`)の中のファイルだけが読めます。他のコードは持ち主の入口から確定した値を読みます。lib の中は lint `entry/only-entries`(`@lib-config/<自分>` だけ)が見ます。
+上書きを import できるのは持ち主の `config.ts`(`<名前>.ui.config.ts` は `config.ui.ts`)だけ。型だけの import も同じ。中身の名前で置く上書き(`featureGate/`)は持ち主のフォルダ(`src/featureGate`)の中のファイルだけが読めます。他のコードは持ち主の入口から確定した値を読みます。lib の中は lint `entry/only-entries`(`@lib-config/<自分>` だけ)が見ます。
 
 ### 機能の入切の道具
 

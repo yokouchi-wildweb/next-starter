@@ -4,6 +4,7 @@
 export const extensionPoints = {
   // 報酬グループ: rewardGroups/<名前>.ts の export const group(上流の項目は 0)
   rewardGroups: {
+    change: "add",
     dir: "rewardGroups",
     export: "group",
     type: { from: "@/domains/core/referralReward/types/rewardConfig", name: "ReferralRewardGroupItem" },
@@ -12,6 +13,7 @@ export const extensionPoints = {
   },
   // 報酬ハンドラー: services/server/handlers/<名前>.ts の export const handler(上流の項目は 0)
   rewardHandlers: {
+    change: "add",
     dir: "services/server/handlers",
     export: "handler",
     type: { from: "@/domains/core/referralReward/services/server/rewardHandlerRegistry", name: "RewardHandlerItem" },

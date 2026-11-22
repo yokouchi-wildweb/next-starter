@@ -1,7 +1,7 @@
 // 生成器の phase.json の outputs(生成器が出力を宣言する唯一の場所)を読み、pnpm generate domain の出力の種類をパスに当てる純関数の .mjs。
 // outputs の 1 行 = glob の文字列(= every-run)か { glob, kind?, source? }(kind 省略 = every-run)。
 // データは JSON(src から scripts を import しない: 読み手が本文を渡す)。生成器の実際の書き込みとの照合は scripts/structure/domain/tests/outputs.test.mjs、
-// パスの答えは pnpm workflow ownership who(src/lib/forkOwnership/explain.mjs)、受け口の一覧の generated の行は scripts/structure/extensions/intake.mjs。
+// パスの答えは pnpm workflow ownership who(src/lib/forkOwnership/explain.mjs)、受け口の一覧の generated の行は src/lib/districtMap/intakeRows.mjs(入力を集めるのは scripts/structure/extensions/intake.mjs)。
 // glob の置き換え: {dir} = ドメインのフォルダ・{camel} = フォルダ名・{Pascal} = その PascalCase・{route} = 管理画面のルートのフォルダ。
 // [ と ] は字そのもの([id] のルート。glob の文字の組には使わない)、* と ** は glob。
 

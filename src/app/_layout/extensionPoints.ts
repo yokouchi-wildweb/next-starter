@@ -3,5 +3,12 @@
 
 export const extensionPoints = {
   // 置き場: ブランドの favicon(Next のファイルの決まり。上流は見本を出荷)
-  appIcon: { placement: "src/app/favicon.ico", kind: "edit" },
+  appIcon: { change: "counterpart", placement: "src/app/favicon.ico", kind: "edit" },
+  // 差替点: 1 行スイッチ ForkProviders(fork は隣に <名前>.replace を作りスイッチを向け替える)
+  forkProviders: {
+    change: "replace",
+    default: "src/app/_providers/ForkProviders.default.tsx",
+    type: { from: "@/app/_providers/ForkProviders.default", name: "ForkProvidersProps" },
+    side: "shared",
+  },
 } as const;

@@ -22,6 +22,7 @@ export type {
   GatedCronTask,
   GatedDomain,
   GatedFeatureRule,
+  GatedPlug,
   GatedSettingSection,
   GeneratedFeatureRule,
   GatePathResult,

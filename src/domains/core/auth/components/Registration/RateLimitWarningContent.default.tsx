@@ -6,6 +6,9 @@ import { Fragment } from "react";
 import { Para } from "@/components/TextBlocks/Para";
 import { authConfig } from "@/domains/auth/config";
 
+/** 差替点 rateLimitWarningContent の約束の型(props を受けない。置き換え .replace も同じ名前の部品を export する) */
+export type RateLimitWarningContentProps = Record<string, never>;
+
 export function RateLimitWarningContent() {
   return (
     <Para>

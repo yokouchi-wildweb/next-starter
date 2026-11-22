@@ -320,7 +320,7 @@ test("データに届く wiring を import する src/app のファイルが許�
 
 test("受け口の例外: 生成物 wiring/<名前>.ts → 宣言された受け口の中の項目と、同じ受け口の中どうしだけ", () => {
   const dirs = (bundle) => (bundle === "dbAgent" ? ["extraTools", "promptFragments", "suffixProviders"] : []);
-  const spec = (dir) => `{ dir: "${dir}", export: "x", type: { from: "@/t", name: "T" }, side: "server" }`;
+  const spec = (dir) => `{ change: "add", dir: "${dir}", export: "x", type: { from: "@/t", name: "T" }, side: "server" }`;
   assert.deepEqual(receptacleDirsOf(`export const extensionPoints = {\n  a: ${spec("promptFragments")},\n  // b: ${spec("old")},\n  c: ${spec("extraTools")},\n};`), ["promptFragments", "extraTools"]);
   assert.equal(isReceptacleImport("wiring/dbAgent.ts", "wiring/dbAgent/promptFragments/rules.acme.ts", dirs), true);
   assert.equal(isReceptacleImport("wiring/dbAgent.ts", "wiring/dbAgent/extraTools/tool/index.ts", dirs), true);

@@ -36,7 +36,7 @@ import { isGenericApiClosed } from "../../../src/lib/domain/index.ts";
 // 規則の値だけの一覧(全開スイッチを通さない。検査は env で揺れない、L2.3)
 // 住所で覆うかを見る検査は、規則の pathPatterns に規則のドメインの導出の住所(汎用 API・cron)を足した写しで見る(withCoveredPatterns、D34 K4)
 import { alwaysOnExceptions, alwaysOnRegistries, checkAddresses, configEnabled, configRules, gatedDomains, gatedSchema as applySchemaGate, readRequired, withCoveredPatterns } from "../../../src/featureGate/node.ts";
-import { checkBaseRequires, checkForeignKeys, checkRequiredClosed, sharedDomainsOpen } from "../../../src/featureGate/checks/integrity.mjs";
+import { checkAlwaysOpenRequires, checkForeignKeys, checkRequiredClosed, sharedDomainsOpen } from "../../../src/featureGate/checks/integrity.mjs";
 import { readRequiredNames } from "../../../src/featureGate/checks/dependencies.mjs";
 import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
 import { forkAddedFiles } from "../../../src/lib/forkOwnership/node.mjs";
@@ -321,8 +321,8 @@ test("外部キー: 機能をまたぐ外部キーはドメインの requires �
   assert.deepEqual(checkForeignKeys({ list: configRules, domains: domainFacts, foreignKeys, exceptions: FOREIGN_KEY_EXCEPTIONS }), []);
 });
 
-test("基盤の requires: どの機能にも載らないドメイン(常に開)は閉じうるドメインを requires しない", () => {
-  assert.deepEqual(checkBaseRequires({ list: configRules, domains: domainFacts }), []);
+test("常設の requires: どの機能にも載らないドメイン(常に開)は閉じうるドメインを requires しない", () => {
+  assert.deepEqual(checkAlwaysOpenRequires({ list: configRules, domains: domainFacts }), []);
 });
 
 test("required/ の実効の閉: 必須の機能は規則の値(自分の値と依存先)で開", async () => {

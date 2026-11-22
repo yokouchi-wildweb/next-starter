@@ -17,7 +17,8 @@ export type DeclaredRequirement = { key: string; feature: string; off: unknown; 
 export type RequirementSubject = {
   district: string;
   configPath: string;
-  overridePath: string;
+  /** null = その種類は上書きを持たない(種類の表 KINDS の override) */
+  overridePath: string | null;
   requirements: DeclaredRequirement[];
   /** 合成した設定(読めなかったら null と理由) */
   composed: Record<string, unknown> | null;
@@ -82,12 +83,12 @@ const isDef = (value: unknown): value is ConfigDef =>
   typeof value === "object" && value !== null && typeof (value as { compose?: unknown }).compose === "function";
 
 /** 地区の config.ts の defineConfig の定義に上書きを合成する(宣言のある地区だけ) */
-async function compose(repoRoot: string, configPath: string, overridePath: string, overrideExists: boolean) {
+async function compose(repoRoot: string, configPath: string, overridePath: string | null, overrideExists: boolean) {
   try {
     const owner = (await import(pathToFileURL(path.join(repoRoot, configPath)).href)) as Record<string, unknown>;
     const defs = Object.values(owner).filter(isDef);
     if (defs.length !== 1) return { composed: null, loadProblem: `defineConfig の定義が ${defs.length} つ(1 つにする)` };
-    const override = overrideExists ? ((await import(pathToFileURL(path.join(repoRoot, overridePath)).href)) as { default?: unknown }).default ?? {} : {};
+    const override = overrideExists && overridePath ? ((await import(pathToFileURL(path.join(repoRoot, overridePath)).href)) as { default?: unknown }).default ?? {} : {};
     return { composed: defs[0].compose(override) };
   } catch (error) {
     return { composed: null, loadProblem: error instanceof Error ? error.message : String(error) };
@@ -100,11 +101,13 @@ export async function checkFeatureRequirements(repoRoot: string): Promise<{ prob
   const problems = map.problems.filter((p: string) => p.includes("featureRequirements"));
   const subjects: RequirementSubject[] = [];
   for (const district of map.districts) {
-    if (district.featureRequirements.length === 0) continue;
-    const loaded = await compose(repoRoot, district.config.path, district.override.path, district.override.exists);
+    // 宣言は地区の config.ts に書く物なので、config.ts の置き場の無い地区(path null)は宣言を持たない
+    const configPath = district.config.path;
+    if (district.featureRequirements.length === 0 || configPath === null) continue;
+    const loaded = await compose(repoRoot, configPath, district.override.path, district.override.exists);
     subjects.push({
       district: `${district.kind}/${district.name}`,
-      configPath: district.config.path,
+      configPath,
       overridePath: district.override.path,
       requirements: district.featureRequirements as DeclaredRequirement[],
       ...loaded,

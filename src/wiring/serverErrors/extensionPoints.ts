@@ -5,6 +5,7 @@
 export const extensionPoints = {
   // 送り先: reporters/<名前>.ts の export const reporter(上流の項目は 0。fork が自分の監視をつなぐ)
   reporters: {
+    change: "add",
     dir: "reporters",
     export: "reporter",
     type: { from: "@/lib/serverErrorReport", name: "ServerErrorReporter" },

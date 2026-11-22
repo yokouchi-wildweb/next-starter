@@ -25,7 +25,7 @@ add scripts/workflow/devcheck/items/*.json  # 確かめの fork の項目(1 項�
 
 # src の下の行は全部この生成区画(4 つの型: 画面の差し替え = ルート・1 行スイッチ / 受け口と上書き = 拡張点の宣言 / 置き場 = placement の宣言 / 生成物と区画 = 生成器の phase.json)。fork の項目は印なしの名前(D137)
 # === AUTO-GENERATED intake START ===
-# pnpm generate extensions が拡張点の宣言(extensionPoints.ts)・ルート・1 行スイッチ・生成器の phase.json から書く。手で編集しない(ずれは pnpm check extensions が止める)
+# pnpm generate extensions が拡張点の宣言(extensionPoints.ts)・ルート・生成器の phase.json から書く(読み手 src/lib/districtMap/intakeRows.mjs)。手で編集しない(ずれは pnpm check extensions が止める)
 edit src/app/favicon.ico  # 置き場 appIcon(src/app/_layout/extensionPoints.ts)
 edit src/business/**  # 置き場 businessValues(src/lib/business/extensionPoints.ts)
 edit src/config/**  # 置き場 configValues(src/lib/districtMap/extensionPoints.ts)
@@ -259,44 +259,44 @@ add src/wiring/formInputs/inputs/*.{ts,tsx}  # 受け口 inputs
 add src/wiring/formInputs/inputs/*/**  # 受け口 inputs(フォルダ形)
 add src/wiring/serverErrors/reporters/*.{ts,tsx}  # 受け口 reporters
 add src/wiring/serverErrors/reporters/*/**  # 受け口 reporters(フォルダ形)
-edit src/app/_providers/ForkProviders.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/app/admin/_layout/AdminHeader.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/auth/components/Registration/RateLimitWarningContent.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/couponIssuerGrant/services/server/programConfig.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/demo/services/server/onDemoUserCreated.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/alert/AlertEmail.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/alert/AlertInApp.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/link/LinkEmail.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/link/LinkInApp.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/notice/NoticeEmail.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/notice/NoticeInApp.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/simple/SimpleEmail.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/simple/SimpleInApp.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/statement/StatementEmail.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/statement/StatementInApp.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/welcome/WelcomeEmail.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/welcome/WelcomeInApp.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.ts  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-edit src/lib/mail/frame/MailFrame.tsx  # 1 行スイッチ(呼び手が import する素の名前。向け先を ./<名前>.replace に替える)
-add src/app/_providers/ForkProviders.replace.{ts,tsx}  # 1 行スイッチ src/app/_providers/ForkProviders.tsx の丸ごと置き換え
-add src/app/admin/_layout/AdminHeader.replace.{ts,tsx}  # 1 行スイッチ src/app/admin/_layout/AdminHeader.tsx の丸ごと置き換え
-add src/domains/core/auth/components/Registration/RateLimitWarningContent.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/auth/components/Registration/RateLimitWarningContent.tsx の丸ごと置き換え
-add src/domains/core/couponIssuerGrant/services/server/programConfig.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/couponIssuerGrant/services/server/programConfig.ts の丸ごと置き換え
-add src/domains/core/demo/services/server/onDemoUserCreated.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/demo/services/server/onDemoUserCreated.ts の丸ごと置き換え
-add src/domains/core/messaging/layouts/alert/AlertEmail.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/messaging/layouts/alert/AlertEmail.tsx の丸ごと置き換え
-add src/domains/core/messaging/layouts/alert/AlertInApp.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/messaging/layouts/alert/AlertInApp.tsx の丸ごと置き換え
-add src/domains/core/messaging/layouts/link/LinkEmail.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/messaging/layouts/link/LinkEmail.tsx の丸ごと置き換え
-add src/domains/core/messaging/layouts/link/LinkInApp.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/messaging/layouts/link/LinkInApp.tsx の丸ごと置き換え
-add src/domains/core/messaging/layouts/notice/NoticeEmail.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/messaging/layouts/notice/NoticeEmail.tsx の丸ごと置き換え
-add src/domains/core/messaging/layouts/notice/NoticeInApp.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/messaging/layouts/notice/NoticeInApp.tsx の丸ごと置き換え
-add src/domains/core/messaging/layouts/simple/SimpleEmail.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/messaging/layouts/simple/SimpleEmail.tsx の丸ごと置き換え
-add src/domains/core/messaging/layouts/simple/SimpleInApp.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/messaging/layouts/simple/SimpleInApp.tsx の丸ごと置き換え
-add src/domains/core/messaging/layouts/statement/StatementEmail.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/messaging/layouts/statement/StatementEmail.tsx の丸ごと置き換え
-add src/domains/core/messaging/layouts/statement/StatementInApp.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/messaging/layouts/statement/StatementInApp.tsx の丸ごと置き換え
-add src/domains/core/messaging/layouts/welcome/WelcomeEmail.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/messaging/layouts/welcome/WelcomeEmail.tsx の丸ごと置き換え
-add src/domains/core/messaging/layouts/welcome/WelcomeInApp.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/messaging/layouts/welcome/WelcomeInApp.tsx の丸ごと置き換え
-add src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.replace.{ts,tsx}  # 1 行スイッチ src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.ts の丸ごと置き換え
-add src/lib/mail/frame/MailFrame.replace.{ts,tsx}  # 1 行スイッチ src/lib/mail/frame/MailFrame.tsx の丸ごと置き換え
+edit src/app/_providers/ForkProviders.tsx  # 差替点 forkProviders(src/app/_layout/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/app/admin/_layout/AdminHeader.tsx  # 差替点 adminHeader(src/app/admin/_layout/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/auth/components/Registration/RateLimitWarningContent.tsx  # 差替点 rateLimitWarningContent(src/domains/core/auth/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/couponIssuerGrant/services/server/programConfig.ts  # 差替点 programConfig(src/domains/core/couponIssuerGrant/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/demo/services/server/onDemoUserCreated.ts  # 差替点 onDemoUserCreated(src/domains/core/demo/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/layouts/alert/AlertEmail.tsx  # 差替点 alertEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/layouts/alert/AlertInApp.tsx  # 差替点 alertInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/layouts/link/LinkEmail.tsx  # 差替点 linkEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/layouts/link/LinkInApp.tsx  # 差替点 linkInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/layouts/notice/NoticeEmail.tsx  # 差替点 noticeEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/layouts/notice/NoticeInApp.tsx  # 差替点 noticeInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/layouts/simple/SimpleEmail.tsx  # 差替点 simpleEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/layouts/simple/SimpleInApp.tsx  # 差替点 simpleInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/layouts/statement/StatementEmail.tsx  # 差替点 statementEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/layouts/statement/StatementInApp.tsx  # 差替点 statementInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/layouts/welcome/WelcomeEmail.tsx  # 差替点 welcomeEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/layouts/welcome/WelcomeInApp.tsx  # 差替点 welcomeInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.ts  # 差替点 sessionEnricher(src/domains/core/purchaseRequest/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/lib/mail/frame/MailFrame.tsx  # 差替点 mailFrame(src/lib/mail/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+add src/app/_providers/ForkProviders.replace.{ts,tsx}  # 差替点 forkProviders の丸ごと置き換え
+add src/app/admin/_layout/AdminHeader.replace.{ts,tsx}  # 差替点 adminHeader の丸ごと置き換え
+add src/domains/core/auth/components/Registration/RateLimitWarningContent.replace.{ts,tsx}  # 差替点 rateLimitWarningContent の丸ごと置き換え
+add src/domains/core/couponIssuerGrant/services/server/programConfig.replace.{ts,tsx}  # 差替点 programConfig の丸ごと置き換え
+add src/domains/core/demo/services/server/onDemoUserCreated.replace.{ts,tsx}  # 差替点 onDemoUserCreated の丸ごと置き換え
+add src/domains/core/messaging/layouts/alert/AlertEmail.replace.{ts,tsx}  # 差替点 alertEmail の丸ごと置き換え
+add src/domains/core/messaging/layouts/alert/AlertInApp.replace.{ts,tsx}  # 差替点 alertInApp の丸ごと置き換え
+add src/domains/core/messaging/layouts/link/LinkEmail.replace.{ts,tsx}  # 差替点 linkEmail の丸ごと置き換え
+add src/domains/core/messaging/layouts/link/LinkInApp.replace.{ts,tsx}  # 差替点 linkInApp の丸ごと置き換え
+add src/domains/core/messaging/layouts/notice/NoticeEmail.replace.{ts,tsx}  # 差替点 noticeEmail の丸ごと置き換え
+add src/domains/core/messaging/layouts/notice/NoticeInApp.replace.{ts,tsx}  # 差替点 noticeInApp の丸ごと置き換え
+add src/domains/core/messaging/layouts/simple/SimpleEmail.replace.{ts,tsx}  # 差替点 simpleEmail の丸ごと置き換え
+add src/domains/core/messaging/layouts/simple/SimpleInApp.replace.{ts,tsx}  # 差替点 simpleInApp の丸ごと置き換え
+add src/domains/core/messaging/layouts/statement/StatementEmail.replace.{ts,tsx}  # 差替点 statementEmail の丸ごと置き換え
+add src/domains/core/messaging/layouts/statement/StatementInApp.replace.{ts,tsx}  # 差替点 statementInApp の丸ごと置き換え
+add src/domains/core/messaging/layouts/welcome/WelcomeEmail.replace.{ts,tsx}  # 差替点 welcomeEmail の丸ごと置き換え
+add src/domains/core/messaging/layouts/welcome/WelcomeInApp.replace.{ts,tsx}  # 差替点 welcomeInApp の丸ごと置き換え
+add src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.replace.{ts,tsx}  # 差替点 sessionEnricher の丸ごと置き換え
+add src/lib/mail/frame/MailFrame.replace.{ts,tsx}  # 差替点 mailFrame の丸ごと置き換え
 edit src/app/api/cron/*/task.override.ts  # 上書き cronTasks(schedule・disabled)
 edit src/domains/**/messages/*.override.ts  # 上書き messages(label・values・extras・enabled・adminEditableOnly・record・throttle・category・channelModes・adminText)
 edit src/domains/**/recordTargets/*.override.ts  # 上書き recordTargets(messages)

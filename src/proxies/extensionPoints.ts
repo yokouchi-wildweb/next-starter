@@ -6,6 +6,7 @@
 export const extensionPoints = {
   // 枠の handler: src/proxies/<名前>.ts の export const handler。骨組みの後ろでファイル名の順に走る
   handlers: {
+    change: "add",
     dir: ".",
     export: "handler",
     type: { from: "@/proxies/types", name: "ProxyHandler" },
@@ -14,6 +15,7 @@ export const extensionPoints = {
   },
   // 枠の decorator: 同じ置き場の export const decorator(1 ファイルに handler と decorator の両方は置かない)
   decorators: {
+    change: "add",
     dir: ".",
     export: "decorator",
     type: { from: "@/proxies/types", name: "ProxyResponseDecorator" },
@@ -23,6 +25,7 @@ export const extensionPoints = {
   // 転送の規則: src/proxies/redirects/<名前>.ts の export const redirects(1 ファイル = 規則の 1 組、上流の項目は 0)。
   // fork が独立した行を足す一覧なので受け口(鍵で合わせる表なら config)。同じ sourcePath が 2 つの規則にあると redirect.ts の読み込みで止まる
   redirects: {
+    change: "add",
     dir: "redirects",
     export: "redirects",
     type: { from: "@/proxies/types", name: "RedirectRuleGroup" },

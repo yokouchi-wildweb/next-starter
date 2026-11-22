@@ -1,5 +1,6 @@
 // scripts/structure/extensions/switches.mjs
 // 1 行スイッチの検査: 既定 <名前>.default.ts(x)(上流)の隣の素の名前 <名前>.ts(x) = 呼び手が import する口で、採用者所有の 1 行 re-export。
+// 組は持ち主の地区の extensionPoints.ts の差替点(change: replace、読み手 src/lib/districtMap/declarations.mjs replacePointsOf)が宣言し、宣言の無い .default は止める。
 // 中身(コメントを除く)は ./<名前>.default か ./<名前>.replace を指す re-export 1 文だけ。Tier1 は .default を指す。
 // fork の実装 = <名前>.replace.ts(x)(丸ごと置き換え。旧い <名前>.<fork の名前> は止めて移し方を案内する)。
 // .default は作ったリポが出す既定の共通の印(D171)。ほかの仕組みが名乗った形(各仕組みの CLAIMED_DEFAULTS、下の CLAIMERS)はスイッチの既定として扱わない。
@@ -8,7 +9,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { oldMarkerProblem, SEARCH_ROOT, CLAIMED_DEFAULTS, DEFAULT_FILE, isClaimedDefault } from "../../../src/lib/districtMap/index.mjs";
+import { oldMarkerProblem, SEARCH_ROOT, CLAIMED_DEFAULTS, DEFAULT_FILE, isClaimedDefault, replacePointsOf } from "../../../src/lib/districtMap/index.mjs";
 import { stripComments } from "../../../src/lib/screens/node.mjs";
 
 
@@ -38,18 +39,30 @@ function findDefaults(repoRoot, claims) {
 }
 
 /**
- * スイッチを全部検査する
+ * スイッチを全部検査する。スイッチの組は拡張点の宣言の差替点(change: replace、default = <名前>.default.ts(x))から得る(宣言 2 段、D35)。
+ * 木の .default は宣言の無い物を止めるためだけに見る(走査で黙ってスイッチに数えない)
  * @param {string} repoRoot
- * @param {{ isTier1: boolean, claims?: readonly object[] }} identity claims = ほかの仕組みが名乗った .default の形(省略 = CLAIMERS)
- * @returns {{ switches: { path: string, target: string }[], problems: string[] }}
+ * @param {{ isTier1: boolean, points: { owner: string, name: string, declaredIn: string, spec: object }[], claims?: readonly object[] }} identity
+ *   points = 全拡張点 / claims = ほかの仕組みが名乗った .default の形(省略 = CLAIMERS)
+ * @returns {{ switches: { path: string, target: string, point: string, declaredIn: string }[], problems: string[] }}
  */
-export function checkSwitches(repoRoot, { isTier1, claims = CLAIMERS }) {
+export function checkSwitches(repoRoot, { isTier1, points, claims = CLAIMERS }) {
   const switches = [];
-  const problems = [];
-  const { defaults } = findDefaults(repoRoot, claims);
-  for (const defaultPath of defaults) {
+  const { replaces, problems } = replacePointsOf(points);
+  const declared = new Set(replaces.map((r) => r.default));
+  for (const defaultPath of findDefaults(repoRoot, claims).defaults) {
+    if (!declared.has(defaultPath)) {
+      problems.push(`${defaultPath}: 差替点の宣言が無い(持ち主の地区の extensionPoints.ts に { change: "replace", default: "${defaultPath}", type, side }。fork は段 2 の移し替えの道具 .notices/20261122-213044-district-stage2.declarations.mjs で書く)`);
+    }
+  }
+  for (const replace of replaces) {
+    const defaultPath = replace.default;
+    if (!existsSync(join(repoRoot, defaultPath))) {
+      problems.push(`${replace.declaredIn}: 差替点 ${replace.point} の default ${defaultPath} が無い`);
+      continue;
+    }
     const dir = defaultPath.slice(0, defaultPath.lastIndexOf("/"));
-    const name = DEFAULT_FILE.exec(defaultPath.slice(dir.length + 1))[1];
+    const name = replace.name;
     const switchFile = ["ts", "tsx"].map((ext) => `${dir}/${name}.${ext}`).find((p) => existsSync(join(repoRoot, p)));
     if (!switchFile) {
       problems.push(`${defaultPath}: 隣にスイッチ ${name}.ts(x) が無い(呼び手が import する素の名前。中身は export … from "./${name}.default" の 1 行)`);
@@ -84,7 +97,7 @@ export function checkSwitches(repoRoot, { isTier1, claims = CLAIMERS }) {
       problems.push(`${switchFile}: 指す先 ./${target}.ts(x) が無い`);
       continue;
     }
-    switches.push({ path: switchFile, target });
+    switches.push({ path: switchFile, target, point: replace.point, declaredIn: replace.declaredIn });
   }
   return { switches, problems };
 }

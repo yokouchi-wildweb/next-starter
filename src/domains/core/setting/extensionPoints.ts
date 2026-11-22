@@ -4,6 +4,7 @@
 export const extensionPoints = {
   // 設定のキー: fields/<キー>.ts の export const field(1 キー = Zod + .default() + public + 欄)。proxy・client の両方から読む
   fields: {
+    change: "add",
     dir: "fields",
     export: "field",
     type: { from: "@/domains/core/setting/types/definition", name: "SettingFieldDefinition" },
@@ -16,6 +17,7 @@ export const extensionPoints = {
   },
   // 設定画面のセクション: sections/<名前>.ts の export const section
   sections: {
+    change: "add",
     dir: "sections",
     export: "section",
     type: { from: "@/domains/core/setting/types/definition", name: "SettingSectionDefinition" },

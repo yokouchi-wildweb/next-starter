@@ -3,7 +3,7 @@
 // - 名前: 1 つでも閉なら閉(規則は 1 機能 1 ファイルなので名前 1 つに規則 1 つ)。未知の名前は throw
 // - 開閉は ruleList.ts の包み(全開スイッチを通した規則の enabled)だけを読む
 // - 住所: 閉じた住所 = 閉じた規則の手書きの pathPatterns + 閉じたドメインの導出の住所(汎用 API・cron、ruleList.ts の closedDerivedEntries)。
-//   当たった閉じた住所のうち一番細かい一致(@/lib/pathPattern の patternSpecificity: 長い住所、同じ長さは = の完全一致)が答え(rule と redirectTo、D34)。
+//   当たった閉じた住所のうち一番細かい一致(@/lib/pathPattern の patternSpecificity: 区切りの数 → * の少なさ → = の完全一致)が答え(rule と redirectTo、D34)。
 //   同じ細かさは並びの順(手書き: 一覧の順 → 規則の中の順、その後に導出)
 
 import { matchesPath, patternSpecificity } from "@/lib/pathPattern/index.mjs";

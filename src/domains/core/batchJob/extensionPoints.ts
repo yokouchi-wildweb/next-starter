@@ -4,6 +4,7 @@
 export const extensionPoints = {
   // バッチジョブハンドラ: jobHandlers/<名前>.ts の export const jobHandler
   jobHandlers: {
+    change: "add",
     dir: "jobHandlers",
     export: "jobHandler",
     type: { from: "@/domains/core/batchJob/types", name: "BatchJobHandlerItem" },

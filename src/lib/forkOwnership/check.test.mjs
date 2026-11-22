@@ -171,7 +171,7 @@ describe("pnpm workflow ownership check", () => {
     function parentWithPlaces() {
       const parent = makeParent();
       write(parent, "src/lib/forkOwnership/intake.txt", `${readFileSync(join(parent, "src/lib/forkOwnership/intake.txt"), "utf8")}edit src/domains/core/setting/fields/**  # 受け口\n`);
-      write(parent, "src/domains/core/setting/extensionPoints.ts", 'export const extensionPoints = { fields: { dir: "fields", export: "field", type: { from: "@/t", name: "T" }, side: "server" } };\n');
+      write(parent, "src/domains/core/setting/extensionPoints.ts", 'export const extensionPoints = { fields: { change: "add", dir: "fields", export: "field", type: { from: "@/t", name: "T" }, side: "server" } };\n');
       write(parent, "src/domains/core/setting/fields/a.ts", "export const field = 1;\n");
       write(parent, "src/wiring/apiRoute.ts", "export const x = 1;\n");
       write(parent, "src/wiring/dbAgent/index.ts", "export const x = 1;\n");

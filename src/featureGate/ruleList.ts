@@ -1,6 +1,7 @@
 // src/featureGate/ruleList.ts
 // 判定の入口(門番の中で 1 つ): 生成一覧 extensions/rules を包み、各規則の enabled を依存先まで解いた開閉に差し替えた一覧を出す。
-// - 規則の値(ownValue): (src/config/featureGate/switches.config.ts の fork の値 ?? 規則の defaultEnabled(必須、D103)) && 規則の enabled()(入切でない条件、省略 = 条件なし)。D35
+// - 規則の値(ownValue): (src/config/featureGate/switches.config.ts の fork の値 ?? 規則の defaultEnabled(必須、D103)) && 規則の enabled()(環境変数と定数の条件、省略 = 条件なし)
+//   && 規則の when が指したドメインの値が全部 true(生成物 extensions/whenInputs.ts、指された config.ts だけを読む。D28)。D35
 // - 自分の開閉: rules = 全開スイッチで開いていれば true、でなければ規則の値 / configRules = 規則の値だけ(全開スイッチを通さない)
 // - 機能が開く = 自分が開 && dependsOn の機能が全部開(推移的。D24・D34)&& anyOf を書けばどれか 1 つが開(D36)。依存の解決はここ 1 か所(resolveFeatureOpen)
 // 門番の判定(evaluate・clientState・node の道具)と node.ts の rules を受け取る外の読み手(pnpm generate routes・検査)は、この一覧と ruleEnabled だけを通る。
@@ -17,6 +18,7 @@
 import switches from "@/config/featureGate/switches.config";
 
 import { cronTasks, domains, rules as generatedRules, settingSections } from "./extensions/rules";
+import { whenInputs } from "./extensions/whenInputs";
 import { currentOpenSwitch, type OpenSwitch } from "./openSwitch";
 import type { ClosedPathEntry, FeatureName, GatedDomain, GatedFeatureRule, GeneratedFeatureRule } from "./types";
 
@@ -101,7 +103,13 @@ export function transitiveDependents(list: readonly FeatureDependencyNode[], nam
 }
 
 /** 規則の値そのもの(全開スイッチも依存先も通さない): (fork の入切 ?? 規則の既定) && 入切でない条件(省略 = 条件なし) */
-const ownValue = (rule: GeneratedFeatureRule): boolean => (switchValues[rule.name] ?? rule.defaultEnabled) && (rule.enabled?.() ?? true);
+/** when の 1 つの値(知らない名前は生成器が止めるので、ここに来るのは生成物と規則のずれだけ: throw) */
+const whenValue = (ref: string): boolean => {
+  if (!Object.hasOwn(whenInputs, ref)) throw new Error(`featureGate: when の "${ref}" が生成物 extensions/whenInputs.ts に無い(pnpm generate extensions)`);
+  return whenInputs[ref];
+};
+
+const ownValue = (rule: GeneratedFeatureRule): boolean => (switchValues[rule.name] ?? rule.defaultEnabled) && (rule.enabled?.() ?? true) && rule.when.every(whenValue);
 
 /** 全開スイッチで開いているか(スイッチの値に未知の名前があれば throw)。依存先は見ない(開くかは ruleEnabled) */
 export function isOpenedBySwitch(name: FeatureName): boolean {
@@ -216,7 +224,7 @@ export const gatedDomains: readonly GatedDomain[] = domains;
 
 /**
  * 閉じたドメイン(純関数に近い: 開閉は渡した一覧の enabled で読む)。キー = フォルダ、値 = 閉じた持ち主のうち一覧の順で最初の規則。
- * 開 = 一覧の中でそのフォルダを domains に持つ規則のどれかが開。一覧のどの規則も持たないフォルダは閉じない(基盤と同じ)
+ * 開 = 一覧の中でそのフォルダを domains に持つ規則のどれかが開。一覧のどの規則も持たないフォルダは閉じない(常設と同じ)
  */
 export function closedDomainsOf<R extends DomainHolder>(list: readonly R[], domainList: readonly Pick<GatedDomain, "folder">[] = domains): Map<string, R> {
   const closed = new Map<string, R>();

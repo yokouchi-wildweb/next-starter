@@ -25,10 +25,12 @@ use: every rule below follows from these three laws | a question no rule covers 
 
 ## DOMAINS_AND_FEATURES (the second law at work: what exists, what opens, what closes)
 domain_unit: a domain = the unit of design = src/domains/\<domain\>/ | a domain has no switch of its own | what a domain holds and how it is made → DOMAINS
-feature_gate (MANDATORY): a feature = the unit a project switches on or off = a rule src/featureGate/rules/\<name\>.ts listing the domains it opens (fork values src/config/featureGate/switches.config.ts) | a domain is open while any open feature lists it, listed by none = always-open | a closed feature → its own paths 404 | a domain no open feature lists → its tables, generic API and cron close
-- dependencies: a feature on a feature → dependsOn (nested URL → dependsOn parent) | code outside a gated domain that uses it → wrap with the gate (requires / gate / required)
-- new route / feature → its rule, 1 URL = 1 feature | read the gate only via gate / useGate | unused upstream page → close its feature | pnpm ops features list|set | ref: src/featureGate/README.md, detail → core/proxy.md
-district_map: what exists and what each district holds → src/lib/districtMap (list src/registry/district-map.jsonl, generated, never imported from src) | what closes → src/featureGate | the two are the domain-driven base (src_root_bases)
+feature_gate (MANDATORY): a feature = the unit a project switches on or off = a rule src/featureGate/rules/\<name\>.ts listing the domains it opens (fork values src/config/featureGate/switches.config.ts) | a domain is open while any open feature lists it | a closed feature → its own paths 404 | a domain no open feature lists → its tables, generic API and cron close
+- always-open: a domain no rule lists stays open | its requires never point at a domain a feature can close (check) | src/featureGate holds feature definitions only, no domain parts
+- dependencies: a feature on a feature → dependsOn (nested URL → dependsOn parent) | a feature on a domain's value → when: <domain>.<name> (AND; a top-level boolean export of that domain's config.ts), never a domain import | code outside a gated domain that uses it → wrap with the gate (requires / gate / required)
+- new route / feature → its rule, 1 URL = 1 feature (a varying segment = * in pathPatterns, never built from a domain's values) | read the gate only via gate / useGate | unused upstream page → close its feature | pnpm ops features list|set | ref: src/featureGate/README.md, detail → core/proxy.md
+district_map: what exists and what each district holds → src/lib/districtMap (list src/registry/district-map.jsonl, generated, never imported from src) | district kinds (7: domains, lib, frame, featureGate, registry, wiring, proxies) and what each may do → src/lib/districtMap/kinds.mjs (KINDS) | what closes → src/featureGate
+- gateless: only domains have a gate | a district of another kind imports no domain (values or types): what it needs is passed in through its points
 
 ## TOOLS (the context and a full set of tools hold up ai_native)
 use: a step a tool covers is never built by hand → run the tool | unsure which → scripts/README.md, the .claude/skills/ descriptions
@@ -68,7 +70,7 @@ self_files (CHANGE_TYPES 5): .claude/rules/project.md (overview + tier-only info
 types: 1 replace = switch \<name\>.ts → \<name\>.default, fork \<name\>.replace (a screen: a plain _components/\<X\>Screen.tsx, no mark; a frame: _layout/\<Layout\>.replace) | 2 override = \<target\>.override.ts, declared keys only | 3 add = plain name in a receptacle (extensionPoints.ts) | 4 counterpart = src/styles/, src/config/ | 5 self = same path, each repo writes its own version (self_files)
 - marks = .default / .replace / .override only, the owner's files are plain | upstream ships no \<target\>.override.ts (the config values file of src/config/** is type 4, CORE_FILES config) | per path → pnpm workflow ownership who | detail → core/change.md
 - 5 self: your own version, or the parent's as is | a take-in that drops your lines → /flux asks | port the parent's diff by hand, only what fits | → core/change.md 5 self
-upstream_side: a repo makes its own thing changeable below only by declaring it: 1 a \<name\>.default beside a plain 1-line switch | 2 the keys an override may set (overrideOf / overrides) | 3 a receptacle in its extensionPoints.ts | 4 a counterpart for values (src/styles/core/\<name\>.css ↔ src/styles/\<name\>.css, owner config.ts ↔ src/config/) | adding a receptacle → core/receptacles.md
+upstream_side: a repo makes its own thing changeable below only by declaring it: 1 a \<name\>.default beside a plain 1-line switch | 2 the keys an override may set (overrideOf / overrides) | 3 a receptacle in its extensionPoints.ts | 4 a counterpart for values (src/styles/core/\<name\>.css ↔ src/styles/\<name\>.css, owner config.ts ↔ src/config/) | two levels, one reader → core/receptacles.md
 - 5 self: nothing to declare, the list of self files is closed and only Tier1 extends it | a new repo.json key gets a reader default, a required one ships a notice + migration tool
 order: 1 a public means is enough → use it | 2 one of the five types at a declared point | 3 none → /order <direct parent> + temporary permit | never invent another way (fork-name marks, keep-own merge settings, edits outside intake points without a permit)
 
@@ -77,7 +79,7 @@ next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), fir
 - next: its APIs, config and recommendations → node_modules/next/dist/docs/ (the installed version's docs), not memory | follow its deprecation notices
 
 ## CODE_PLACEMENT (3-tier)
-domain: src/domains/, all including entities | district = lib / domain (core, business) / frame / proxies: own namespace, config.ts + one config values file in src/config, receptacles | its reader → DOMAINS_AND_FEATURES district_map
+domain: src/domains/, all including entities | district = one of the 7 kinds (DOMAINS_AND_FEATURES district_map): own namespace, config.ts + one config values file in src/config, its declared points
 library: src/lib/\<name\>/, all except entities | owner per library in src/lib/CATALOG.md (one section per owner repo) | closed lib = read via its exports only | writing a lib → core/lib.md
 - new lib (any tier): its line in YOUR CATALOG section only | an ancestor's lib: public entry only, never edit or delete inside it (behavior change → /order <direct parent>, an own file → your own lib + re-export) | → core/lib.md library
 unit: src/components/, hooks/, utils/, small-scale (multi-file OK)
@@ -95,8 +97,7 @@ client_layer: client HTTP code lives in src/lib/** or services/client/** (axios 
 
 ## DIRECTORY_STRUCTURE
 domains/\<domain\>/: components/{Admin*/, common/} | entities/{schema,form,model,drizzle}.ts | services/{client/, server/{drizzleBase, wrappers/, \<domain\>Service}} | hooks/ | constants/, types/, presenters.ts, domain.json
-shared_src: components (index: src/components/README.md), hooks, utils, lib, config, registry, proxies, featureGate | layout frame parts are not shared_src: they live beside their layout in src/app/\<route\>/_layout/
-src_root_bases: src/ directly holds only mechanisms that cut across the set of domains (featureGate, registry, wiring) | what follows them (maintenance, demoMode, cron tasks) never goes there | forks never add one (need → /order <direct parent>; fork mechanisms → lib, business → features)
+shared_src: components (index: src/components/README.md), hooks, utils, config | the districts lib, featureGate, registry, wiring, proxies sit flat under src/ (only Tier1 adds one of the last 4; fork mechanisms → lib, business → domains) | layout frame parts are not shared_src: they live beside their layout in src/app/\<route\>/_layout/
 code_generation: domain.json `generate` (default true) = forge / pnpm generate domain rewrites the whole domain, hand logic in wrappers/ + write-once files | a generated file to hand-edit → `"generate": false` | → core/generated.md
 stores (zustand): app-wide mechanism → closed lib src/lib/\<name\>/ (state inside, read via its entry; no src/stores) | domain-specific → domains/\<domain\>/stores/ | one-frame-only → app/\<route\>/_layout/stores/ | structure and rules → core/client.md
 naming: components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: camelCase.ts | entities: lowercase files, PascalCase types | routes: kebab-case or (group) | constants: UPPER_SNAKE_CASE | index.ts: re-export only | no same-name .ts + .tsx in one folder (tsc skips the .tsx, pnpm check rules)

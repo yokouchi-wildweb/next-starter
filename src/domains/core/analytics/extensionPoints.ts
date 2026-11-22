@@ -4,6 +4,7 @@
 export const extensionPoints = {
   // 日次ロールアップのメトリクス: rollupMetrics/<名前>.ts の export const metric(上流の項目は 0)
   rollupMetrics: {
+    change: "add",
     dir: "rollupMetrics",
     export: "metric",
     type: { from: "@/domains/core/analytics/services/server/rollup/types", name: "RollupMetricConfig" },
@@ -12,6 +13,7 @@ export const extensionPoints = {
   },
   // コイン創出サマリーのソース: services/server/coinIssuance/sources/<名前>.ts の export const source
   coinIssuanceSources: {
+    change: "add",
     dir: "services/server/coinIssuance/sources",
     export: "source",
     type: { from: "@/domains/core/analytics/services/server/coinIssuance/types", name: "CoinIssuanceSource" },
@@ -20,6 +22,7 @@ export const extensionPoints = {
   },
   // 分析の除外条件のプロバイダ: exclusionProviders/<名前>.ts の export const provider(上流の項目は 0)
   exclusionProviders: {
+    change: "add",
     dir: "exclusionProviders",
     export: "provider",
     type: { from: "@/domains/core/analytics/services/server/exclusion/types", name: "AnalyticsExclusionProvider" },

@@ -4,6 +4,7 @@
 export const extensionPoints = {
   // ファイル用途: purposes/<名前>.ts の export const purposes(用途 ID → 規則。ID の重複は例外)
   purposes: {
+    change: "add",
     dir: "purposes",
     export: "purposes",
     type: { from: "@/lib/storage", name: "StoragePurposeMap" },

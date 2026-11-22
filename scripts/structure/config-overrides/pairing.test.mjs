@@ -100,7 +100,7 @@ test("描画専用: <名前>.ui.config.ts は持ち主が config.ui.ts を持つ
   one(run({ "src/config/lib/toast.ui.config.ts": EMPTY }), /toast\.ui\.config\.ts: 持ち主 src\/lib\/toast に config\.ui\.ts が無い/);
 });
 
-test("基盤の上書き src/config/featureGate/(設定 D91): 持ち主は src/featureGate 固定、平らな <中身の名前>.config.ts、欠落は数えない", () => {
+test("中身の名前で置く上書き src/config/featureGate/(設定 D91): 持ち主は src/featureGate 固定、平らな <中身の名前>.config.ts、欠落は数えない", () => {
   // 今の上流: フォルダ無し → 通る(門番の議会が switches.config.ts を置く)
   const gate = { "src/featureGate/rules/wallet.ts": "export const rule = {};\n" };
   assert.equal(run(gate).ok, true);
@@ -110,9 +110,9 @@ test("基盤の上書き src/config/featureGate/(設定 D91): 持ち主は src/f
   assert.equal(placed.pairs, 7);
   // 持ち主のフォルダが無い・サブフォルダ・置けない名前は余り
   one(run({ "src/config/featureGate/switches.config.ts": EMPTY }), /src\/config\/featureGate\/switches\.config\.ts: 持ち主 src\/featureGate が無い上書き/);
-  one(run({ ...gate, "src/config/featureGate/sub/x.config.ts": EMPTY }), /src\/config\/featureGate\/sub\/: 基盤の上書きのフォルダの中は平ら/);
-  one(run({ ...gate, "src/config/featureGate/switches.ts": EMPTY }), /src\/config\/featureGate\/switches\.ts: 置けない名前。基盤の上書きは/);
-  one(run({ ...gate, "src/config/featureGate/switches.ui.config.ts": EMPTY }), /置けない名前。基盤の上書きは/);
+  one(run({ ...gate, "src/config/featureGate/sub/x.config.ts": EMPTY }), /src\/config\/featureGate\/sub\/: 中身の名前で置く上書きのフォルダの中は平ら/);
+  one(run({ ...gate, "src/config/featureGate/switches.ts": EMPTY }), /src\/config\/featureGate\/switches\.ts: 置けない名前。中身の名前で置く上書きは/);
+  one(run({ ...gate, "src/config/featureGate/switches.ui.config.ts": EMPTY }), /置けない名前。中身の名前で置く上書きは/);
 });
 
 test("地区の地図に問題があれば照らさずに落ちる", () => {

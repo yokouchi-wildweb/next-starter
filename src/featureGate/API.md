@@ -19,7 +19,10 @@ gate.path("/wallet/history");  // { open: true } | { open: false; rule: FeatureN
 gate.filter(menuItems);        // 閉じた機能の住所を指す項目を除く(既定は item.href、順は保つ)
 gate.filter(rows, (row) => row.link); // href を持たない型は住所の取り出し方を渡す(型で必須)
 gate.domainOpen("wallet");     // ドメイン(src/domains/<名前> か core/<名前> のフォルダ名)が開いているか。載せた機能が全部閉なら false、どの規則にも載らなければ true
+gate.plugs(routeDevices);      // plugs の点の生成された一覧から、項目のドメインか requires の相手が閉じた項目を外す(lib の項目 domain null は残す、順は保つ)
 ```
+
+- `gate.plugs`: ドメインが外の仕組みに差した部品(`<ドメイン>/plugs/<点>/<名前>.ts`、生成された一覧の項目 `{ domain, name, requires, … }` = 型 `GatedPlug`)を使う時に掛ける(D26)。生成された登録表(serviceRegistry など「どんなドメインがあるか」)には掛けない。client は `useGate().plugs`(server が渡す `ClientGateState.closedDomains` で同じ判定)。書式: `scripts/structure/extensions/README.md` の「plugs の点」
 
 - `gate.assert`: service・API が自分で止まるときに使う。文言は「お探しのページは見つかりませんでした」で固定、機能の名前・`code`・`details` は出さない(閉じた機能の存在を利用者に知らせない)。未知の名前は `gate.enabled` と同じく throw
 - `gate.path`: 閉じた住所(閉じた規則の手書きの住所 + 閉じたドメインの汎用 API・cron の住所)に当たれば、当たった中で**一番細かい一致**(長い住所、同じ長さは `=` の完全一致。`@/lib/pathPattern` の `patternSpecificity`)の `{ open: false, rule, redirectTo }`(同じ細かさは一覧の順)。導出の住所の `rule`・`redirectTo` は閉じた持ち主の機能のうち一覧の順で最初。読み手は proxy の項目 `src/proxies/featureGate.ts`(応答を作る)と demo の loader(閉じたデモを一覧から外す)
@@ -41,12 +44,13 @@ const gate = useGate;
 gate.enabled("referral");        // server の gate.enabled と同じ答え。未知の名前は throw
 gate.path("/mypage/invite");     // { open: true } | { open: false; rule; redirectTo? }(範囲の中は server と同じ)
 gate.filter(menuItems);          // server の gate.filter と同じ判定(hiddenHref.ts)
+gate.plugs(items);               // server の gate.plugs と同じ判定(閉じたドメインの並び closedDomains で)
 ```
 
 - 枠(範囲): 利用者の枠(`user`)= `/admin` と `/api` の下を除く住所。管理の枠(`admin`)= 利用者の枠 + `/admin` の下。`/api` の下はどの枠にも入らない
 - 配線: root の `src/app/layout.tsx` が `clientGateState("user")` を `src/wiring/AppProviders.tsx` に渡し、AppProviders が一番外で `GateProvider` で包む。admin の守りの layout(`src/app/admin/(protected)/layout.tsx`)が guard の後に `clientGateState("admin")` で包み直す。管理の住所は守りの後にだけ渡すので、公開ページの HTML に出ない(`/admin/login`・`/admin/setup` は利用者の枠)。root layout はクライアント遷移で描き直されないので、枠の切替は入れ子の Provider で行う
 - `clientGateState`・`GateProvider` は配線用。使えるのは上の 4 ファイルだけ(lint `feature-gate-entries`)。画面・部品は `useGate` を使う
-- 範囲の外の住所・Provider の外で聞くと、dev(段階が development、`@/lib/appEnv`)は throw(書き間違いに気づかせる)、本番は閉とみなす: `enabled` は false、`path` は `{ open: false, rule: null }`、`filter` は内部の住所の項目を除く(外部 URL・住所の無い項目は残す)
+- 範囲の外の住所・Provider の外で聞くと、dev(段階が development、`@/lib/appEnv`)は throw(書き間違いに気づかせる)、本番は閉とみなす: `enabled` は false、`path` は `{ open: false, rule: null }`、`filter` は内部の住所の項目を除く(外部 URL・住所の無い項目は残す)、`plugs` はドメインのある項目を除く(lib の項目は残す)
 - 値は deploy で決まる config から作るので、ページを開いた時点の値のまま(クライアント遷移では計算し直さない)
 
 ### リンク(棚の Link・GatedLink)
@@ -63,7 +67,8 @@ gate.filter(menuItems);          // server の gate.filter と同じ判定(hidde
 
 閉じると何が閉じるか(住所・使われなくなったドメインの表・汎用 API・cron)は [README.md](./README.md) の Overview。ここは規則の書き方。
 
-- 規則 — 場所: `rules/<名前>.ts` の `export const rule`; いつ効くか: —; やること: 1 機能 1 ファイル、名前 = ファイル名 = `FeatureName`。`pathPatterns` / `domains` / `dependsOn` / `enabled` / `redirectTo`
+- 規則 — 場所: `rules/<名前>.ts` の `export const rule`; いつ効くか: —; やること: 1 機能 1 ファイル、名前 = ファイル名 = `FeatureName`。`pathPatterns`(`*` = 区切り 1 つの何でも、`@/lib/pathPattern`) / `domains` / `dependsOn` / `when` / `enabled` / `redirectTo`。規則は値を import しない(import type だけ、生成で止める)
+- when の値 — 場所: `extensions/whenInputs.ts`(生成物); いつ効くか: 規則の値の評価; やること: 規則の `when` が指したドメインの config.ts の最上位の真偽の export だけを import する(全ドメインの config は読まない)
 - 一覧 — 場所: `extensions/rules.ts`（生成物、型 `GeneratedFeatureRule`・`GatedDomain`・`GatedCronTask`・`GatedSettingSection`）; いつ効くか: —; やること: 規則 + 名前 + `dependsOn`(字面の写し、書かない規則は空) + 説明用の表名・汎用 API・設定の節・cron の住所(`tables`・`domainApiPaths`・`settingPaths`・`cronPaths`。`pathPatterns` には足さない)
   - ドメインの表 `domains`(表・汎用 API の住所・持つ機能)・cron の task の表 `cronTasks`(住所・読むドメイン)・設定の節の表 `settingSections`(住所・名指す機能)も出す。読み手は入口(`gate`・`node.ts` の `rules`)を通してこれだけを読む
 - ルートゲート — 場所: `src/proxies/featureGate.ts`(`gate.path` を呼ぶ); いつ効くか: リクエストごと; やること: `pathPatterns` に一致するページを `/404`、API を 404 にする
@@ -97,6 +102,7 @@ export const rule: FeatureGateRule = {
 - **入切の値**: 上流の既定は規則の `defaultEnabled`(必須、`true` か `false` のリテラル。型 `FeatureGateRule` で必須。fork が足す規則も書く)、fork の値は `src/config/featureGate/switches.config.ts`(上流は空 `{}` で出荷し出荷後に書かない、`{ <機能の名前>: true|false }` を並べる、型 `FeatureSwitches`、未知の名前・真偽でない値は読み込みで throw)。自分の値 = (switches の値 ?? `defaultEnabled`) && `enabled`。合成は `ruleList.ts` の 1 か所。ドメインの `config.ts` に入切を置かない(処理の切り替えはドメインの config のまま)
 - `enabled` は入切でない開く条件だけ(config の値から導いた値を読む同期関数。例 `bankTransferReview` の「自社振込が選べるか」)。省略 = 条件なし。入切そのもの(プロジェクトが開け閉めする値)を書かない
 - `anyOf` = どれか 1 つが開なら開く機能の並び(OR。例 `mypageOther` = 休会か退会)。`dependsOn` と両方あれば両方を満たすとき開
+- `when` = ドメインの値の条件の並び(全部 AND、D28): `"<ドメイン>.<名前>"` = そのドメインの config.ts の最上位の `export const <名前>: boolean`(入れ子の鍵・真偽でない値・知らない名前は生成で止める)。例 `bankTransferReview` の `["purchaseRequest.bankTransferInhouseSelectable"]`。指した値の持ち主のドメインが閉じても値は読むだけ(閉じたいなら `dependsOn`)。`enabled()` は環境変数と定数だけ。ドメインの設定値から住所を組み立てず `*` で書く(`payment` の `/wallet/*/purchase`、D23)
 - `dependsOn` = この機能が使う機能の名前(規則のファイル名)の並び。下の「機能どうしの依存(dependsOn)」
 - `redirectTo` を指定すると 404 の代わりにそこへ rewrite する（例: サインアップ停止中の `/signup-closed`）
 - **同じ住所を 2 つの機能に書かない**(URL は 1 つの機能にだけ属する): 親と子が同じ画面を閉じたいときは親から消して子が親に `dependsOn` する(親を閉じれば子も閉じる)。上流に残る組は理由つきの表だけ(`checks/ruleChains.test.ts`)。重なった住所の答え(`rule` と `redirectTo`)は当たった閉じた住所のうち一番細かい一致(同じ細かさはファイル名の順)。上流の規則どうしの行き先の違う重なりは `pnpm test src/featureGate scripts/structure/proxies` で失敗、fork の規則と上流の重なりは表示だけ
@@ -120,9 +126,9 @@ export const rule: FeatureGateRule = {
   - `configEnabled(name)`(`configRules` の `enabled`): 規則の値 && 依存先の規則の値が全部開(スイッチを通さない)
   - `ownEnabled(name)`: 規則の値そのもの = (switches の値 ?? `defaultEnabled` ?? 開) && `enabled`(全開スイッチも依存先も通さない。`pnpm ops features list` の閉の理由)
   - `isOpenedBySwitch(name)`: 全開スイッチがその名前を開けているか(依存先は見ない。開くかは `ruleEnabled`)
-- **requires の被覆**(生成で止める。`scripts/structure/extensions/derive/gateRequires.mjs`): 機能 X の `domains` のドメインが `requires`(domainEntry.ts)するドメインは、X の `domains`・X の依存先(推移的)の `domains`・基盤(どの機能にも載らないドメイン)のどれかに無ければ止める。直し方は X の `dependsOn` にそのドメインを持つ機能を足す。上流の例外は理由つきの縮む表(今は 0 行)
+- **requires の被覆**(生成で止める。`scripts/structure/extensions/derive/gateRequires.mjs`): 機能 X の `domains` のドメインが `requires`(domainEntry.ts)するドメインは、X の `domains`・X の依存先(推移的)の `domains`・常設(どの機能にも載らないドメイン)のどれかに無ければ止める。直し方は X の `dependsOn` にそのドメインを持つ機能を足す。上流の例外は理由つきの縮む表(今は 0 行)
 - **住所の検査**(読み込み後の一覧で、`node/addressCheck.ts` の `checkAddresses`、検査は `pnpm test src/featureGate scripts/structure/proxies`): 同じ住所を 2 つの機能が持つ(手書き・汎用 API・cron・設定の節の全部で)、親の前方一致の下の住所の機能が親に `dependsOn` していない(推移的で可)、を止める。fork の規則も同じ(上流の住所の下に足した規則は上流の機能に `dependsOn`)。依存の根拠が無い入れ子は両方に依存する小さな機能へ。上流の例外は 0(理由つきの縮む表 `ADDRESS_EXCEPTIONS`)
-- **組み合わせの検査**(test で止める、`checks/integrity.mjs`、実物は `scripts/structure/proxies/featureGate.test.mjs`): 機能をまたぐ外部キー(ドメインの `requires` と機能の `dependsOn` の両方で覆う。規則の中の外部キーと参照先が基盤のものは対象外)・どの機能にも載らないドメイン(基盤)の `requires` の先が閉じうる・必須の機能(`required/`)が規則の値で閉、を止める。共有のドメインが別の機能で開いたままは落とさず warn し、`pnpm ops features list` の閉じた機能に出す(`sharedDomainsOpen`)。上流の例外は 0(テスト内の縮む表)
+- **組み合わせの検査**(test で止める、`checks/integrity.mjs`、実物は `scripts/structure/proxies/featureGate.test.mjs`): 機能をまたぐ外部キー(ドメインの `requires` と機能の `dependsOn` の両方で覆う。規則の中の外部キーと参照先が常設のものは対象外)・どの機能にも載らないドメイン(常設)の `requires` の先が閉じうる・必須の機能(`required/`)が規則の値で閉、を止める。共有のドメインが別の機能で開いたままは落とさず warn し、`pnpm ops features list` の閉じた機能に出す(`sharedDomainsOpen`)。上流の例外は 0(テスト内の縮む表)
 - 全開スイッチの名前指定は依存先を開けない([Internals.md「全開スイッチ(FEATURE_GATE_OPEN)」](./Internals.md#全開スイッチfeature_gate_open))
 - `pnpm ops features list` は依存先・依存元(推移的)・閉の理由を出し、`pnpm ops features set` は必須の機能が依存する機能の off を止める(下の節)
 

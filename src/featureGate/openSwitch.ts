@@ -6,7 +6,7 @@
 //   効かない所(fork の本番など)では値を読まない(置かれていても落とさない)
 // - Tier1 の判別は isTier1Build の 1 つ: next の build では next.config.ts が fork_id から計算して inline した FEATURE_GATE_TIER1、
 //   注入の無い node(scripts・テスト)では node.ts が渡す読み手(node/tier1.ts = readForkIdentity().isTier1)。どちらも無ければ Tier1 でない
-//   このファイルは proxy(Edge)と server の束に載るので node: を引き込まない(読み手は node の入口から渡す。pnpm test src/featureGate/checks/reachability.test.mjs)
+//   このファイルは proxy と server の束に載るので node: を引き込まない(proxy は Node で動くが毎リクエスト走る束を軽く保つ。client からも読まれる道具と同じ決まり)(読み手は node の入口から渡す。pnpm test src/featureGate/checks/reachability.test.mjs)
 // 詳細: ./README.md
 
 import { getAppEnv, type AppEnv } from "@/lib/appEnv";

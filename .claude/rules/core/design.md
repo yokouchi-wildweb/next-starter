@@ -67,7 +67,7 @@ map (every core file, loaded by its paths):
 - reach: a card loads only there, never where the item is merely used → before using an item elsewhere, read its card (.claude/rules/items/\<category\>/\<name\>.md) | a rule every user of a layer needs stays in core / CLAUDE.md
 - body: `# <category>/<name>` then 5 parts in this order, no headings for the parts (a part may take several lines):
   - what: what it is and its entry, 1-2 sentences
-  - use: the feature-gate name that carries the item (always = always open) | never copy default values
+  - use: the feature-gate name that carries the item (always = an always-open domain (no rule lists it) or an item no feature carries) | never copy default values
   - change: the type (replace / override / add / counterpart) + its declaring file | none → /order <direct parent>
   - rules: split into using: and editing: | one rule per line `- <key>: <text>`, keys unique within the card | never clash with CLAUDE.md
   - read: work scene → README h2 (`→ <h2>` = the item's README, `→ <path>.md <h2>` = another file) | an item with no README: `read: none (no README; …)` naming the source file whose comments explain it

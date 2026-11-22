@@ -3,6 +3,6 @@
 
 export const extensionPoints = {
   // 置き場: 上流のルートの隣の _components/(fork の部品。./checks.mjs の FORK_OWNED_DIR)。
-  // ページ・枠の 1 行スイッチの行はルートから作る(scripts/structure/extensions/intake.mjs)
-  forkScreenParts: { placement: "src/app/**/_components/**", kind: "edit" },
+  // ページ・枠の 1 行スイッチの行はルートから作る(読み手 src/lib/districtMap/intakeRows.mjs)
+  forkScreenParts: { change: "counterpart", placement: "src/app/**/_components/**", kind: "edit" },
 } as const;

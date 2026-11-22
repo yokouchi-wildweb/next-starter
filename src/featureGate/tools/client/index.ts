@@ -5,9 +5,11 @@
 import { enabled } from "./enabled";
 import { filter } from "./filter";
 import { path } from "./path";
+import { plugs } from "./plugs";
 
 export const clientTools = {
   enabled,
   path,
   filter,
+  plugs,
 };

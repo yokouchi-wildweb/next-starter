@@ -1,4 +1,5 @@
 import { isDevelopment } from "@/lib/appEnv";
+import { isPageNavigation } from "@/lib/request";
 import type { NextRequest, NextResponse } from 'next/server';
 
 import { gate } from '@/featureGate';
@@ -14,9 +15,6 @@ import {
   getAttributionCookieMaxAgeSeconds,
 } from '@/domains/core/userAcquisition/lib/classifyVisit';
 import type { ProxyResponseDecorator } from './types';
-
-/** アセット配信など、ページナビゲーションでないパスの拡張子 (.js / .png / .ico 等) */
-const FILE_EXTENSION_PATTERN = /\.[^/]+$/;
 
 /**
  * サインアップ流入経路計測: 流入タッチを cookie へ蓄積するデコレーター。
@@ -57,17 +55,3 @@ export const attributionDecorator: ProxyResponseDecorator = (
     maxAge: getAttributionCookieMaxAgeSeconds(),
   });
 };
-
-/** ページナビゲーション（HTML ドキュメント要求）のみ対象にする（inviteLink デコレーターと共用） */
-export function isPageNavigation(request: NextRequest): boolean {
-  const pathname = request.nextUrl.pathname;
-  if (pathname.startsWith('/api/') || pathname.startsWith('/_next/')) return false;
-  if (FILE_EXTENSION_PATTERN.test(pathname)) return false;
-
-  // sec-fetch-dest が送られてくる環境ではそれを信頼し、
-  // 無い環境（古いブラウザ等）は Accept ヘッダーで代替判定する
-  const secFetchDest = request.headers.get('sec-fetch-dest');
-  if (secFetchDest) return secFetchDest === 'document';
-
-  return request.headers.get('accept')?.includes('text/html') ?? false;
-}

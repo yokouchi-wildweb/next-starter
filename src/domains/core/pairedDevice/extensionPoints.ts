@@ -4,6 +4,7 @@
 export const extensionPoints = {
   // 端末の種類: kinds/<名前>.ts の export const kind = definePairedDeviceKind({ kind: "<名前>", ... })(上流の項目は 0)
   kinds: {
+    change: "add",
     dir: "kinds",
     export: "kind",
     type: { from: "@/domains/pairedDevice/types/kind", name: "AnyPairedDeviceKindDefinition" },

@@ -65,6 +65,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - forks' existing code drifts from the new spec: deleting / renaming exports, changing argument / props / return types, adding or removing config keys, changing generator output, naming or placement conventions
    - manual work on the fork side: `db:push` (tables, columns, indexes), regeneration, env, external preparation, adding / removing / retiming cron (`pnpm generate cron`)
    - behavior or permissions change silently
+   - a top-level boolean export of a domain's config.ts (the values gate rules point at with `when`, D28) was removed or renamed: `pnpm workflow notices whenExports` prints each one (base = the push target; nothing printed = none) → the notice carries the old → new table and, in required_actions, how forks fix a rule's `when` that points at it (their `pnpm generate extensions` stops on it)
    - the rules / README of the changed area ask for a notice (conditions in CLAUDE.md, `.claude/rules/core/` or a colocated README saying `→ notice` / `ship .notices`; read those of the changed area to confirm)
    - a fix to something shipped earlier (step 4)
    - renaming / moving / removing a rule key (a `key:` at the head of a line of CLAUDE.md, a core file `.claude/rules/core/*.md`, an item card `.claude/rules/items/**` or `.claude/rules/lineage.md`): forks name upstream rules by key (provisional rules, `(priority)` lines, their own rule files) → always a notice with the key table (NOTICE COMPOSITION)

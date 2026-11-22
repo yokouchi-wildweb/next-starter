@@ -43,7 +43,13 @@ export type FeatureGateRule = {
    */
   defaultEnabled: boolean;
   /**
-   * 入切でない開く条件(config の値から導いた値を読む同期関数。例 銀行振込の方法が選べるか)。省略 = 条件なし。
+   * ドメインの値の条件(全部 AND、D28): "<ドメイン>.<名前>" = そのドメインの config.ts の最上位の export const <名前>: boolean。
+   * 文字列リテラルの配列で書く(生成器が字面で読み、指された config.ts だけを import する一覧 extensions/whenInputs.ts を書く。知らない名前・真偽でない値は生成で止める)。
+   * 指した値の持ち主のドメインが閉じても値は読むだけ(閉じたいなら dependsOn)。例 銀行振込の方法が選べるか ["purchaseRequest.bankTransferInhouseSelectable"]
+   */
+  when?: string[];
+  /**
+   * 入切でない開く条件のうち環境変数と定数だけで決まる物(同期関数)。省略 = 条件なし。規則は値を import しない(ドメインの値は when で指す、D28)。
    * 入切そのもの(プロジェクトが開け閉めする値)は defaultEnabled と switches.config.ts に置き、ここに書かない
    */
   enabled?: () => boolean;
@@ -67,6 +73,8 @@ export type GeneratedFeatureRule = FeatureGateRule & {
   dependsOn: FeatureName[];
   /** 規則の anyOf(書かない規則は空)。生成器が字面から写す */
   anyOf: FeatureName[];
+  /** 規則の when(書かない規則は空)。生成器が字面から写す */
+  when: string[];
 };
 
 /**
@@ -174,7 +182,12 @@ export type ClientGateState = {
   enabled: Record<FeatureName, boolean>;
   /** 範囲の中の閉じた住所の並び */
   closed: ClosedPathEntry[];
+  /** 閉じたドメインの名前(src/domains/<名前> か src/domains/core/<名前> のフォルダ名。useGate().plugs が読む) */
+  closedDomains: string[];
 };
+
+/** plugs の点の生成された一覧の項目の共通の欄(gate.plugs・useGate().plugs が読む)。domain = 差したドメインのフォルダ名(lib の項目は null)、requires = そのドメインの requires */
+export type GatedPlug = { domain: string | null; name: string; requires: readonly string[] };
 
 /** client の useGate().path の答え。rule: null = 範囲の外・Provider の外(本番だけ。dev は throw)で閉とみなした */
 export type ClientGatePathResult = GatePathResult | { open: false; rule: null };

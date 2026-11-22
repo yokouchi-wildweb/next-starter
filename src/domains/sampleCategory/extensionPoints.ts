@@ -6,6 +6,7 @@
 export const extensionPoints = {
   // 管理一覧の一括操作: adminBulkActions/<名前>.tsx の export const bulkAction(lib/crud の作成関数で数行。D149)
   adminBulkActions: {
+    change: "add",
     dir: "adminBulkActions",
     export: "bulkAction",
     type: { from: "@/domains/sampleCategory/types/adminBulkAction", name: "SampleCategoryAdminBulkActionItem" },

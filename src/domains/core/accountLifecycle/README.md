@@ -26,7 +26,7 @@
 ### 入切
 
 - 門番の規則 `pause`(`/api/account-lifecycle/pause`)・`withdraw`(`/api/account-lifecycle/withdraw`)と、マイページ × 機能の規則(親 `pageMypage` と子の両方に依存する規則)`mypagePause`・`mypageWithdraw`・`mypageOther` がパスを閉じる
-- このフォルダはどの規則の `domains` にも載らない基盤: 表・汎用 API・cron を持たず、閉じる物はパスだけ
+- このフォルダはどの規則の `domains` にも載らない常設: 表・汎用 API・cron を持たず、閉じる物はパスだけ
 - 門番の規則 `pause` は復帰のパス(`/reactivate` と `/api/account-lifecycle/reactivate`)を載せない(後から閉じても既に休会中の人が API で戻れるように)。画面 `/reactivate` は loader が `pause` の閉で notFound を返す
 
 ### ほかのドメインに残すもの

@@ -4,15 +4,15 @@
 
 機能(プロジェクトが開け閉めする単位、規則 1 本)を閉じると、その住所と、どの開いている機能にも挙げられていないドメインの表・汎用 API・cron を閉じる仕組み。fork が upstream の機能を「削除せず使わないまま残す」ための土台。
 
-src 直下の専用の基盤に置く(lib にも core のドメインにも置かない)。src 直下の基盤に置いてよいのは、ドメインの集合を横断する仕組みだけ(今は featureGate・registry・wiring)。maintenance・demoMode・cron のタスクなど、仕組みに従う側は置かない。
+src 直下の 1 地区(地区の種類 featureGate、src/lib/districtMap/kinds.mjs)に置く(lib にも core のドメインにも置かない)。src 直下の地区は Tier1 だけが足す種類(featureGate・registry・wiring・proxies)で、ドメインの集合を横断する仕組みだけ。maintenance・demoMode・cron のタスクなど、仕組みに従う側は置かない。
 
 ### 言葉
 
 - **住所**: 機能が閉じる URL の型(`pathPatterns`。前方一致、`=` 付きは完全一致)
 - **常時実行の入口**: どのページからも読まれる結線(provider・登録表など)。閉じた機能の物を自分で外す
-- **ドメイン**(domain): 業務か仕組みの概念の部品。表・サービス・画面の部品の持ち主(今は `src/domains/<d>/`)。**開閉の概念を持たない**: 開いた機能のどれかが規則の `domains` に持てば開、どの機能にも載らないドメインは基盤として常に開
+- **ドメイン**(domain): 業務か仕組みの概念の部品。表・サービス・画面の部品の持ち主(今は `src/domains/<d>/`)。**開閉の概念を持たない**: 開いた機能のどれかが規則の `domains` に持てば開、どの機能にも載らないドメインは常設として常に開(用語の表の「常設」は明示の宣言のある常に開のドメイン。明示の宣言は段 3 で入り、それまでは規則に載らないことが常設)
 - **機能**(feature): プロジェクトが開け閉めする単位 = 規則 1 本(`rules/<名前>.ts`、名前 = `FeatureName`)。使うドメイン(`domains`)・自分の住所(`pathPatterns`)・依存する機能(`dependsOn` / `anyOf`)・自分のスイッチ(`defaultEnabled` と fork の `switches.config.ts`)を持つ
-- **門番**(featureGate): 機能の開閉を評価し、住所・表・汎用 API・cron・設定の節・リンクに及ぼす基盤(このフォルダ)。名前(`featureGate`・`FeatureName`・`gate` / `useGate`・設定の節の `feature:`・`pnpm ops features list / set`・`rules/`)はもとから機能の意味
+- **門番**(featureGate): 機能の開閉を評価し、住所・表・汎用 API・cron・設定の節・リンクに及ぼす地区(このフォルダ。機能の定義だけを持つ唯一の地区、D29)。名前(`featureGate`・`FeatureName`・`gate` / `useGate`・設定の節の `feature:`・`pnpm ops features list / set`・`rules/`)はもとから機能の意味
 
 ### 置き場
 
@@ -73,9 +73,9 @@ export const rule: FeatureGateRule = {
 
 - upstream の機能を使わない: その機能のフラグを false にする。ルートは 404、テーブルは作られない。コードは削除しない
 - upstream の画面を使わない: 画面を消したり `_` 付きに rename したりせず（所有の検査で違反、src/lib/forkOwnership/README.md）、その画面の機能(`pageMypage`・`pageEntry`・`pageServices`・`pageTerms` ほか規約 3 種・`adminDemoUsers` など)を `pnpm ops features set <名前> off` で閉じる(`src/config/featureGate/switches.config.ts` に書かれる)。止めたページはルート地図に `gated-off(<pattern>)` と載る。置き換えたいときは止めずに 1 行スイッチで `_components/` の Screen へ向ける
-  - マイページのアカウントの項目(メール・パスワード・プロフィール・電話番号)は機能でなく user の設定 `account.editableItems` で選ぶ(`src/domains/core/user/Extension.md`)。チャットの管理画面は親の機能(`chatRoom`)の住所で子のスイッチは無い。機能は使い管理画面だけを閉じたい fork は、その住所だけを持つ自前の規則(`defaultEnabled: false`)を足す(上流の住所と重なるのは表示だけで止まらない)。ユーザータグは規則を持たない常時開の基盤
+  - マイページのアカウントの項目(メール・パスワード・プロフィール・電話番号)は機能でなく user の設定 `account.editableItems` で選ぶ(`src/domains/core/user/Extension.md`)。チャットの管理画面は親の機能(`chatRoom`)の住所で子のスイッチは無い。機能は使い管理画面だけを閉じたい fork は、その住所だけを持つ自前の規則(`defaultEnabled: false`)を足す(上流の住所と重なるのは表示だけで止まらない)。ユーザータグは規則を持たない常設
 - スイッチの無い upstream の画面を止めたい: upstream に依頼する（`/order <親>`）。fork の規則で upstream の画面を止めない（upstream の規則と重なり、merge のたびに見直しになる）
-- 新しいドメインを機能として閉じられるようにする: ドメインを作り(`pnpm forge`)、`rules/<機能の名前>.ts` に規則を手で書いて `domains` にそのドメインのフォルダを入れる(管理画面の住所は `pathPatterns`、入切の既定は `defaultEnabled`)→ `pnpm generate extensions`。汎用 API・表・cron は導出に任せる。domain.json の `closable`(閉じられる形の印)と 1 対 1 のひな形はなくした(書くと生成器が案内して止める)。どの機能にも載らないドメインは基盤として常に開
+- 新しいドメインを機能として閉じられるようにする: ドメインを作り(`pnpm forge`)、`rules/<機能の名前>.ts` に規則を手で書いて `domains` にそのドメインのフォルダを入れる(管理画面の住所は `pathPatterns`、入切の既定は `defaultEnabled`)→ `pnpm generate extensions`。汎用 API・表・cron は導出に任せる。domain.json の `closable`(閉じられる形の印)と 1 対 1 のひな形はなくした(書くと生成器が案内して止める)。どの機能にも載らないドメインは常設として常に開
 - fork 自身の機能を閉じたい: `rules/<名前>.ts`(上流の規則と違う名前)に規則を 1 つ置き、`pnpm generate extensions`。upstream の機能と一緒に開閉させるなら `dependsOn` に upstream の機能を書く（例: `dependsOn: ["payment"]`）。入切の既定は `defaultEnabled`、値を変えるのは `switches.config.ts`
 - 機能を切ったら `pnpm test src/featureGate scripts/structure/proxies` が列挙するルート・表・入口を、規則に入れるか、呼び出し側でフラグを見る
 - ウォレットと購入を外す(規則 `wallet` と `payment` を閉じる): core を編集しなくてよい。画面・汎用 API・自前の API・webhook・cron(`wallet-*`・`expire-pending-purchases`)の住所が閉じ、常時実行の項目(一括調整のジョブ・退会の後片付け・コイン発行の源)が止まり、管理メニューの行と利用者の管理一覧の残高調整・coupon の購入割引のカテゴリが消える(`scripts/structure/proxies/walletOff.test.tsx`、`pnpm test src/featureGate/checks scripts/structure/proxies/walletOff.test.tsx`)

@@ -4,6 +4,7 @@
 export const extensionPoints = {
   // デモの一覧: <route のフォルダ>/_demo.ts の export const demo
   demoPages: {
+    change: "add",
     dir: ".",
     files: "*/_demo.ts",
     export: "demo",

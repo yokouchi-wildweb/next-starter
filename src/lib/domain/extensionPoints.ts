@@ -5,6 +5,7 @@ export const extensionPoints = {
   // 上書きの対象: 各ドメインの domainEntry.ts。fork は隣の domainEntry.override.ts(export const domainEntryOverrides = { <キー>: <値> })で
   // 次の鍵の値を丸ごと差し替える(1 つのファイルで差し替えられる属性は 1 つなので、鍵は 1 つだけ)
   domainEntries: {
+    change: "override",
     overrides: "src/domains/**/services/server/domainEntry.ts",
     export: "domainEntryOverrides",
     keyedBy: "domainEntries",

@@ -36,7 +36,7 @@
 ### 入切
 
 - 門番の規則 `demoPages`(/demo・/api/demo)・`demoLogin`(/demo-login・/api/demo-login)・`adminDemoUsers`(/admin/users/demo、demoLogin に依存)が住所を閉じる
-- このフォルダはどの規則の `domains` にも載らない基盤(常に開): 表・汎用 API・cron を持たず、常時動く proxy の項目 demoMode が値を読むため
+- このフォルダはどの規則の `domains` にも載らない常設(常に開): 表・汎用 API・cron を持たず、常時動く proxy の項目 demoMode が値を読むため
 - 値の読み手はそれぞれ、その値に意味を与える機能の入切を確かめている(demoMode = demoPages、auth のセッションの長さ = demoLogin、デモ利用者の一覧 = adminDemoUsers)
 
 ### ほかのドメインに残すもの
