@@ -48,7 +48,7 @@ function resolve({ ownerConfig = owner(), child, others = {} } = {}) {
   const configs = { album: ownerConfig, ...others };
   if (child !== undefined) configs.albumPhoto = child;
   const root = makeProject({ configs, cleanup });
-  const rolesDir = path.join(root, "src", "features", "core", "user", "roles");
+  const rolesDir = path.join(root, "src", "domains", "core", "user", "roles");
   fs.mkdirSync(rolesDir, { recursive: true });
   fs.writeFileSync(path.join(rolesDir, "editor.role.json"), JSON.stringify({ id: "editor", category: "admin" }));
   fs.writeFileSync(path.join(rolesDir, "member.role.json"), JSON.stringify({ id: "member", category: "user" }));

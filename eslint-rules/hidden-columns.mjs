@@ -25,7 +25,7 @@
 //   （このディレクトリは eslint.config.mjs で対象外）。それ以外の正当な例外は理由付き eslint-disable。
 //
 // 対象テーブル:
-//   eslint.config.mjs が collectHiddenColumns() で features の地区の entities/drizzle.ts(src/lib/districtMap の表の定義ファイル)の
+//   eslint.config.mjs が collectHiddenColumns() で domains の地区の entities/drizzle.ts(src/lib/districtMap の表の定義ファイル)の
 //   defineHiddenColumns(<Table>, [...]) を集めてオプションに渡す（手書きの一覧を持たない）。
 //
 // 限界:
@@ -55,7 +55,7 @@ export function parseHiddenColumnDeclarations(source) {
 }
 
 /**
- * features の地区(src/lib/districtMap)の entities/drizzle.ts のうち表を定義するファイルから、秘匿カラム宣言を集める。
+ * domains の地区(src/lib/districtMap)の entities/drizzle.ts のうち表を定義するファイルから、秘匿カラム宣言を集める。
  * どのファイルを読むかは地区の地図の表の定義ファイル(tableFiles)に任せる(走査を自前で持たない、目録 D1)。
  * @param {string} repoRoot リポジトリ直下
  */

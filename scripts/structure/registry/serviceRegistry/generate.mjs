@@ -33,7 +33,7 @@ import {
 
 /** 移行前の手書き行の移し先を案内する */
 function legacyKeyHint(repoRoot, key, serviceImports) {
-  const features = path.join(repoRoot, "src", "features");
+  const features = path.join(repoRoot, "src", "domains");
   // 旧 import の変数名（xService / xBase）からドメインのディレクトリを引く
   const importedDir = [...serviceImports.entries()].find(([name]) => name.toLowerCase().startsWith(key.toLowerCase()))?.[1];
   // 旧 import は tsconfig の別名（@/domains/user = core/user）で書かれていることがあるので core/ も探す

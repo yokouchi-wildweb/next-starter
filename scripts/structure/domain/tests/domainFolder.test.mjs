@@ -49,7 +49,7 @@ test("一括検査は全件一致なら何もしない", () => {
 test("リポジトリ内の既存ドメインはすべて一致している", () => {
   const workspace = createWorkspace(repoRoot);
   const folders = fs
-    .readdirSync(path.join(repoRoot, "src", "features"), { withFileTypes: true })
+    .readdirSync(path.join(repoRoot, "src", "domains"), { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name);
   assert.doesNotThrow(() => assertDomainFolderNames(workspace, folders));

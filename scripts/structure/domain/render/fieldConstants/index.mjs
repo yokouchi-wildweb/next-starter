@@ -57,8 +57,8 @@ export function renderFieldConstants(ctx) {
     };
   });
 
-  const constantRelPath = path.posix.join("src", "features", camel, "constants", "field.ts");
-  const typeRelPath = path.posix.join("src", "features", camel, "types", "field.ts");
+  const constantRelPath = path.posix.join("src", "domains", camel, "constants", "field.ts");
+  const typeRelPath = path.posix.join("src", "domains", camel, "types", "field.ts");
   return [
     file(path.join(ctx.dir, "constants", "field.ts"), buildConstants(fieldMeta, constantRelPath), { label: "フィールド定数を生成しました" }),
     file(path.join(ctx.dir, "types", "field.ts"), buildTypes(fieldMeta, typeRelPath), { label: "フィールド型を生成しました" }),

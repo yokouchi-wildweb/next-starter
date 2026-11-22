@@ -19,7 +19,7 @@ function run(root, domain) {
   return applyAndCapture(renderServerServices(ctx, workspace));
 }
 
-const serverDir = (root, domain) => path.join(root, "src", "features", domain, "services", "server");
+const serverDir = (root, domain) => path.join(root, "src", "domains", domain, "services", "server");
 
 test("<domain>Service.ts が無ければ drizzleBase.ts と一緒に生成する", () => {
   const root = project(["sampleTag"]);

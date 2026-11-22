@@ -7,7 +7,7 @@ import path from "node:path";
 import { renderDrizzleEntity } from "../render/entities/drizzle/index.mjs";
 import { contextFor, makeProject, removeAll, repoRoot } from "./helpers.mjs";
 
-const baseConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "features", "sampleTag", "domain.json"), "utf8"));
+const baseConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", "sampleTag", "domain.json"), "utf8"));
 const cleanup = [];
 after(() => removeAll(cleanup));
 

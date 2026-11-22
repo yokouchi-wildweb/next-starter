@@ -159,7 +159,7 @@ test("向きの判定: cron の route.ts は cronRoute.ts だけ、task.ts は�
   assert.equal(isAllowedImporter("app/api/cron/x/route.ts", "wiring/domainRegistry.ts"), false);
   assert.equal(isAllowedImporter("app/api/cron/x/task.ts", "wiring/domainRegistry.ts"), true);
   assert.equal(isAllowedImporter("app/api/cron/x/task.override.ts", "wiring/cronRoute.ts"), false);
-  assert.equal(isAllowedImporter("features/x/y.ts", "wiring/cronRoute.ts"), false);
+  assert.equal(isAllowedImporter("domains/x/y.ts", "wiring/cronRoute.ts"), false);
 });
 
 /**

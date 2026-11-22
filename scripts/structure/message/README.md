@@ -31,7 +31,7 @@ pnpm generate message -- <domain> <name> --category <key> --label <名前> [--va
 
 ### exit
 
-- exit 2(書かない、理由を出す): 知らない引数・`<domain>` が features の地区に無い・`<name>` が英小文字始まりの camelCase でない・core のドメインに `--core` が無い(fork の持ち場の外 = `pnpm workflow ownership check` が落ちる)・`--category` が無い・`--label` が無い・受け口に無い category・カテゴリーの送信チャンネルが送信チャンネルの受け口に無い・`--var` の形が違う(3 つに分けられない・鍵の形・別名の形・説明が空・鍵か別名の重なり)
+- exit 2(書かない、理由を出す): 知らない引数・`<domain>` が domains の地区に無い・`<name>` が英小文字始まりの camelCase でない・core のドメインに `--core` が無い(fork の持ち場の外 = `pnpm workflow ownership check` が落ちる)・`--category` が無い・`--label` が無い・受け口に無い category・カテゴリーの送信チャンネルが送信チャンネルの受け口に無い・`--var` の形が違う(3 つに分けられない・鍵の形・別名の形・説明が空・鍵か別名の重なり)
 
 ## Internals
 

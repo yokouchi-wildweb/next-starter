@@ -120,7 +120,7 @@ test("名前の一意: core と業務の同名は業務の側を直す文、枠�
   const files = { ...BASE, "src/domains/wallet/index.ts": "", "src/app/(marketing)/_layout/config.ts": `export const c = { frame: "user" };` };
   const { problems } = readDistrictMap(memorySource(files));
   assert.equal(problems.length, 2, problems.join("\n"));
-  assert.match(problems[0], /features の地区の名前 wallet が重なる: core の src\/domains\/core\/wallet と業務の src\/domains\/wallet.*業務のドメイン/);
+  assert.match(problems[0], /domains の地区の名前 wallet が重なる: core の src\/domains\/core\/wallet と業務の src\/domains\/wallet.*業務のドメイン/);
   assert.match(problems[1], /枠の名前 user が重なる: .*\(marketing\)\/_layout\/config\.ts.*\(user\)\/_layout\/config\.ts/);
 });
 
@@ -134,7 +134,7 @@ test("問題: frame: の無い枠の config・規則の features の行き先な
   };
   const { problems } = readDistrictMap(memorySource(files));
   assert.ok(problems.some((p) => /\(marketing\)\/_layout\/config\.ts: 枠の config\.ts に frame: "<枠の名前>" が無い/.test(p)), problems.join("\n"));
-  assert.ok(problems.some((p) => /ghost\.ts: domains の core\/ghost に当たる features の地区が無い/.test(p)));
+  assert.ok(problems.some((p) => /ghost\.ts: domains の core\/ghost に当たる domains の地区が無い/.test(p)));
   assert.ok(problems.some((p) => /domainEntry のキー wallet が src\/domains\/core\/wallet・src\/domains\/sample で重なる/.test(p)));
   assert.ok(problems.some((p) => /more\.ts: pgTable の表名が文字列リテラルでない/.test(p)));
 });
@@ -165,7 +165,7 @@ test("toJsonl: 1 行 1 地区で末尾に改行、空なら空", () => {
   assert.equal(toJsonl([]), "");
 });
 
-test("tableFiles: features の地区の表と定義ファイル(パス順 → 出現順、雛形とテストは除く)、tableProblems は表の問題だけ", () => {
+test("tableFiles: domains の地区の表と定義ファイル(パス順 → 出現順、雛形とテストは除く)、tableProblems は表の問題だけ", () => {
   const { tableFiles, tableProblems } = readDistrictMap(memorySource(BASE));
   assert.deepEqual(tableFiles, [
     { name: "samples", file: "src/domains/sample/entities/drizzle.ts", dir: "src/domains/sample" },

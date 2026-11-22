@@ -14,7 +14,7 @@ import {
   DISTRICT_KINDS,
   DOMAIN_ENTRY_FILE,
   DOMAIN_JSON_FILE,
-  FEATURES_ROOT,
+  DOMAINS_ROOT,
   GATE_RULES_DIR,
   LAYOUT_DIR_NAME,
   LIB_ROOT,
@@ -31,7 +31,7 @@ import {
  *   listDir = フォルダの直下(無ければ [])、readText = ファイルの本文(無ければ null)。パスはリポジトリ直下からの相対(/ 区切り)
  * @typedef {{ path: string, exists: boolean }} FileSlot
  * @typedef {{
- *   kind: "features" | "lib" | "frame" | "proxies", name: string, core: boolean | null, dir: string,
+ *   kind: "domains" | "lib" | "frame" | "proxies", name: string, core: boolean | null, dir: string,
  *   domainJson: boolean | null, generate: boolean | null, config: FileSlot, override: FileSlot, uiConfig: FileSlot, uiOverride: FileSlot, apiKeys: string[], tables: string[], requires: string[],
  *   gates: string[], receptacles: string[], frame: string | null,
  *   featureRequirements: { key: string, feature: string, off: unknown, element?: true }[],
@@ -97,13 +97,13 @@ export const configSlotsOf = (district) => ({
 function discover(source, problems) {
   /** @type {FoundDistrict[]} */
   const found = [];
-  for (const entry of dirsOf(source, FEATURES_ROOT)) {
+  for (const entry of dirsOf(source, DOMAINS_ROOT)) {
     if (entry.name.startsWith("_")) continue;
     if (entry.name === CORE_DIR_NAME) {
-      for (const core of dirsOf(source, join(FEATURES_ROOT, CORE_DIR_NAME))) {
-        if (!core.name.startsWith("_")) found.push({ kind: "features", name: core.name, core: true, dir: join(FEATURES_ROOT, CORE_DIR_NAME, core.name) });
+      for (const core of dirsOf(source, join(DOMAINS_ROOT, CORE_DIR_NAME))) {
+        if (!core.name.startsWith("_")) found.push({ kind: "domains", name: core.name, core: true, dir: join(DOMAINS_ROOT, CORE_DIR_NAME, core.name) });
       }
-    } else found.push({ kind: "features", name: entry.name, core: false, dir: join(FEATURES_ROOT, entry.name) });
+    } else found.push({ kind: "domains", name: entry.name, core: false, dir: join(DOMAINS_ROOT, entry.name) });
   }
   // lib の見つけ方は libPackage の決まり 1 つ(二重に解かない、L1.14)
   for (const name of listLibsFrom(source.listDir)) found.push({ kind: "lib", name, core: null, dir: join(LIB_ROOT, name) });
@@ -149,11 +149,11 @@ function nameProblems(found) {
     for (const d of found.filter((x) => x.kind === kind)) byName.set(d.name, [...(byName.get(d.name) ?? []), d]);
     for (const [name, same] of byName) {
       if (same.length < 2) continue;
-      if (kind === "features") {
+      if (kind === "domains") {
         const core = same.find((d) => d.core);
         const others = same.filter((d) => !d.core).map((d) => d.dir);
         problems.push(
-          `features の地区の名前 ${name} が重なる: core の ${core?.dir ?? "-"} と業務の ${others.join("・")}。core は Tier1 が足した物なので、業務のドメイン(fork か中間の Tier が足した側)を改名する(目録 D3・D17)`,
+          `domains の地区の名前 ${name} が重なる: core の ${core?.dir ?? "-"} と業務の ${others.join("・")}。core は Tier1 が足した物なので、業務のドメイン(fork か中間の Tier が足した側)を改名する(目録 D3・D17)`,
         );
       } else if (kind === "frame") {
         problems.push(`枠の名前 ${name} が重なる: ${same.map((d) => `${d.dir}/${CONFIG_FILE}`).join("・")}。後から足した側の frame: を別の名前にする(目録 D17)`);
@@ -181,7 +181,7 @@ function readGates(source, featuresByFolder, problems) {
     problems.push(...read.problems);
     for (const folder of read.domains) {
       const dir = featuresByFolder.get(folder.replace(/\/+$/, ""));
-      if (!dir) problems.push(`${path}: domains の ${folder} に当たる features の地区が無い`);
+      if (!dir) problems.push(`${path}: domains の ${folder} に当たる domains の地区が無い`);
       else gates.set(dir, [...(gates.get(dir) ?? []), rule]);
     }
   }
@@ -192,7 +192,7 @@ function readGates(source, featuresByFolder, problems) {
  * 地区の地図を読む
  * @param {DistrictSource} source
  * @returns {{ districts: District[], problems: string[], tableFiles: { name: string, file: string, dir: string }[], tableProblems: string[] }}
- *   districts の並び = 種類(DISTRICT_KINDS の順)→ 名前。tableFiles = features の地区の表と定義ファイル(パス順 → 出現順。schemaRegistry が定義ファイルを使う。jsonl には載せない)、tableProblems = 表名を字面で読めない問題だけ(problems にも入る)
+ *   districts の並び = 種類(DISTRICT_KINDS の順)→ 名前。tableFiles = domains の地区の表と定義ファイル(パス順 → 出現順。schemaRegistry が定義ファイルを使う。jsonl には載せない)、tableProblems = 表名を字面で読めない問題だけ(problems にも入る)
  */
 export function readDistrictMap(source) {
   /** @type {string[]} */
@@ -204,7 +204,7 @@ export function readDistrictMap(source) {
   const found = discover(source, problems);
   problems.push(...nameProblems(found));
   // 規則の features は src/domains からの相対("core/<d>" か "<d>")
-  const featuresByFolder = new Map(found.filter((d) => d.kind === "features").map((d) => [d.dir.slice(FEATURES_ROOT.length + 1), d.dir]));
+  const featuresByFolder = new Map(found.filter((d) => d.kind === "domains").map((d) => [d.dir.slice(DOMAINS_ROOT.length + 1), d.dir]));
   const gates = readGates(source, featuresByFolder, problems);
   /** @type {Map<string, string[]>} */
   const apiKeyOwners = new Map();
@@ -240,7 +240,7 @@ export function readDistrictMap(source) {
       problems.push(...read.problems);
       district.featureRequirements = read.requirements;
     }
-    if (d.kind === "features") {
+    if (d.kind === "domains") {
       // domain.json の有無と generate(省略 = true、domain.json なし = null。生成器 pnpm generate domain が書き直すか、L1.15)
       const domainJsonPath = join(d.dir, DOMAIN_JSON_FILE);
       const domainJsonText = source.readText(domainJsonPath);

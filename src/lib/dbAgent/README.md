@@ -159,7 +159,7 @@ export function useDbAgentChat() {
   `entity_link` → `/admin/<domain>/<id>` へのリンク等にマップする
 - **ローディング表示必須** (.claude/rules/core/components.md async_feedback): ツールタイムラインが実質の
   プログレス表示になる。ストリーム開始前の接続待ちはスピナー
-- **フローティングランチャー**: fork の実装例 `features/userOpinion/components/common/OpinionBoxLauncher`(この repo には無い)
+- **フローティングランチャー**: fork の実装例 `domains/userOpinion/components/common/OpinionBoxLauncher`(この repo には無い)
 - 会話履歴はクライアント保持 (サーバーはステートレス)。ページリロードで消えてよい
   想定(永続化は基盤の拡張になるので上流への注文)
 

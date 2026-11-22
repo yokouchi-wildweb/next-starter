@@ -35,12 +35,12 @@ function walk(dir, out = []) {
 }
 
 /**
- * ファイル → 属する features の地区(src/domains からの相対のフォルダ "core/<d>" か "<d>" と、地区の名前・requires)
+ * ファイル → 属する domains の地区(src/domains からの相対のフォルダ "core/<d>" か "<d>" と、地区の名前・requires)
  * @param {import("../../lib/districtMap/read.mjs").District[]} districts
  */
 function domainLookup(districts) {
   const domains = districts
-    .filter((d) => d.kind === "features")
+    .filter((d) => d.kind === "domains")
     .map((d) => ({ folder: d.dir.slice("src/domains/".length), prefix: `${d.dir}/`, name: d.name, requires: d.requires }));
   const byFolder = new Map(domains.map((d) => [d.folder, d]));
   return {

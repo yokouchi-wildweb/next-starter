@@ -35,9 +35,9 @@ const capture = () => {
   const lines = [];
   return { io: { log: (m) => lines.push(String(m)), warn: (m) => lines.push(`WARN ${m}`) }, text: () => lines.join("\n"), lines };
 };
-const drizzle = (root, domain) => path.join(root, "src", "features", domain, "entities", "drizzle.ts");
-const domainJson = (root, domain) => path.join(root, "src", "features", domain, "domain.json");
-const order = (lines) => lines.filter((l) => /の生成を開始します|Drizzle エンティティを生成しました/.test(l)).map((l) => l.match(/features\/(\w+)\/|\[(\w+)\]/).slice(1).find(Boolean));
+const drizzle = (root, domain) => path.join(root, "src", "domains", domain, "entities", "drizzle.ts");
+const domainJson = (root, domain) => path.join(root, "src", "domains", domain, "domain.json");
+const order = (lines) => lines.filter((l) => /の生成を開始します|Drizzle エンティティを生成しました/.test(l)).map((l) => l.match(/domains\/(\w+)\/|\[(\w+)\]/).slice(1).find(Boolean));
 const generateOne = (root, domain, options = {}) => {
   const workspace = createWorkspace(root);
   const out = capture();
@@ -45,7 +45,7 @@ const generateOne = (root, domain, options = {}) => {
   generateWithPairs(ctx, workspace, GEN, { only: ONLY, io: out.io, ...options });
   return out;
 };
-const listFiles = (root) => fs.readdirSync(path.join(root, "src", "features"), { recursive: true }).sort();
+const listFiles = (root) => fs.readdirSync(path.join(root, "src", "domains"), { recursive: true }).sort();
 
 test("主を生成すると、従属の domain.json を書き出してその中身で従属も生成し、従属 → 主の順。最後に一覧を出す", () => {
   const root = makeProject({ configs: { album: base("album", [collectionField("photos", "album_photo")]) }, cleanup });
@@ -57,7 +57,7 @@ test("主を生成すると、従属の domain.json を書き出してその中�
   const text = out.text();
   assert.match(text, /\[組\] 書き出した domain\.json: .*albumPhoto\/domain\.json/);
   assert.match(text, /\[組\] db:push が要る表: album_photos（pnpm db:push を実行してください）/);
-  assert.match(text, /\[組\] コミットに含めるもの: .*features\/albumPhoto\//);
+  assert.match(text, /\[組\] コミットに含めるもの: .*domains\/albumPhoto\//);
   assert.match(fs.readFileSync(drizzle(root, "albumPhoto"), "utf8"), /album_id/);
 });
 

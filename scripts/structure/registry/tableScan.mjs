@@ -7,7 +7,7 @@
 //         scripts/structure/registry/tableScan.test.mjs(走査の集合 = schemaRegistry の全表、pnpm test scripts/structure/registry)。
 //         ./alpha/index.mjs(pnpm generate registry の schemaRegistry、親 D67)・scripts/structure/forge/tables.mjs・proxyFrame.test.mjs。
 //
-// 走査の範囲: features の地区(src/domains と src/domains/core の直下の _ で始まらないフォルダ)の下の .ts / .tsx(*.test.* を除く)。
+// 走査の範囲: domains の地区(src/domains と src/domains/core の直下の _ で始まらないフォルダ)の下の .ts / .tsx(*.test.* を除く)。
 // entities/drizzle.ts の外(entities/notificationRead.ts、userProfile/entities/profiles/<role>/drizzle.ts などの生成物)も拾う。
 // 地区の外(_ で始まる雛形・src/domains 直下のファイル)の pgTable は数えない。
 // 字面で読めない pgTable(名前を変数・定数で渡す)は problems に場所を出す(走査の漏れを黙って通さない)。
@@ -18,7 +18,7 @@ import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
 export const FEATURES_DIR = "src/domains";
 
 /**
- * features の地区の pgTable を集める
+ * domains の地区の pgTable を集める
  * @param {string} repoRoot
  * @returns {{ tables: { name: string, file: string }[], problems: string[] }} file はリポジトリ相対(/ 区切り)、並びはパス順 → 出現順
  */

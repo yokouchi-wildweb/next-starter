@@ -48,7 +48,7 @@ function readRuleDomains(text) {
  * @returns {string[]} 規則のファイル(rootDir からの相対)
  */
 export function gateRuleHolders(workspace, featureDir) {
-  const folder = path.relative(path.join(workspace.rootDir, "src", "features"), featureDir).split(path.sep).join("/");
+  const folder = path.relative(path.join(workspace.rootDir, "src", "domains"), featureDir).split(path.sep).join("/");
   const dir = path.join(workspace.rootDir, "src", "featureGate", "rules");
   if (!fs.existsSync(dir)) return [];
   const files = [];
@@ -64,7 +64,7 @@ export function gateRuleHolders(workspace, featureDir) {
 export function gateRuleStopMessage(workspace, featureDir) {
   const holders = gateRuleHolders(workspace, featureDir);
   if (holders.length === 0) return null;
-  const folder = path.relative(path.join(workspace.rootDir, "src", "features"), featureDir).split(path.sep).join("/");
+  const folder = path.relative(path.join(workspace.rootDir, "src", "domains"), featureDir).split(path.sep).join("/");
   return [
     `門番の規則がこのドメイン(${folder})を domains に持つので削除を止めました(何も消していません):`,
     ...holders.map((file) => ` - ${file}`),

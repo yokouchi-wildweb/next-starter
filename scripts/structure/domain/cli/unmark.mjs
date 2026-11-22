@@ -18,7 +18,7 @@ export const ADMIN_ROUTES = "src/app/admin/(protected)";
  * @returns {{ domains: string[], writes: { path: string, content: string }[] }}
  */
 export function planUnmark({ rows, plurals, files, readText, name = null }) {
-  const withJson = rows.filter((r) => r.kind === "features" && r.domainJson === true);
+  const withJson = rows.filter((r) => r.kind === "domains" && r.domainJson === true);
   if (name) {
     const hit = withJson.find((r) => r.name === name || r.name.toLowerCase() === name.toLowerCase() || domainNamesOf({ dir: r.dir }).Pascal === name);
     if (!hit) throw new Error(`domain.json を持つドメイン ${name} が無い`);

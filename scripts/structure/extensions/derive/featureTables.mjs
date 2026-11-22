@@ -3,7 +3,7 @@
 // domains に書けるのはドメインの位置にあるフォルダ(src/domains/core/<名前> か src/domains/<名前>。CLAUDE.md DOMAINS)。
 // 表の数は問わない(0 = Firestore のドメインなど、tables: [] になる)。無いフォルダ・ドメインの位置でない書き方(深い場所・core そのもの)は止める。
 // 規則のファイルは字面で読むだけ(import しない = 表定義を proxy の束に載せない)。ドメインの有無・表・汎用 API のキーは地区の地図の読み手
-// src/lib/districtMap の features の地区(dir・tables・apiKeys)から読む(目録 D1・D2)
+// src/lib/districtMap の domains の地区(dir・tables・apiKeys)から読む(目録 D1・D2)
 // 一覧の項目は `{ ...rule, name: "<ファイル名>", tables: [...], domainApiPaths: [...] }` になり(型 GatedFeatureRule)、生成一覧は名前の union FeatureName も出す(name は extensions.mjs が付ける)。
 // 汎用 API の住所: domains の各フォルダの services/server/domainEntry.ts の domainEntries のキー(地区の apiKeys)から /api/<key> を導く。
 // 住所はドメインに付く(D34 K4): 生成一覧の domains(フォルダ・表・汎用 API の住所・持つ機能)に載り、開閉はドメインの開閉(持つ機能のどれかが開)で決まる。
@@ -93,7 +93,7 @@ export function scanCronTaskImports(repoRoot) {
 export function createFeatureTables(repoRoot) {
   const map = readDistrictMapAt(repoRoot);
   // 規則の domains は src/domains からの相対("core/<d>" か "<d>")
-  const districtOf = new Map(map.districts.filter((d) => d.kind === "features").map((d) => [d.dir.slice(FEATURES_DIR.length + 1), d]));
+  const districtOf = new Map(map.districts.filter((d) => d.kind === "domains").map((d) => [d.dir.slice(FEATURES_DIR.length + 1), d]));
   const sections = scanSettingSectionFeatures(repoRoot);
   const cronTasks = scanCronTaskImports(repoRoot);
   /** folders(src/domains からの相対)のどれかを値で import する task と、読むフォルダ(folders のうち当たる物、folders の順) */
@@ -108,7 +108,7 @@ export function createFeatureTables(repoRoot) {
     problems: [...map.tableProblems, ...sections.problems],
     unknownFeatures: sections.unknownFeatures,
     settingSections: sections.sections,
-    /** features の地区(フォルダ・名前・requires)。requires の被覆の検査(./gateRequires.mjs)が読む */
+    /** domains の地区(フォルダ・名前・requires)。requires の被覆の検査(./gateRequires.mjs)が読む */
     districts: [...districtOf].map(([folder, d]) => ({ folder, name: d.name, requires: [...d.requires] })),
     apply(label, text, name) {
       const read = readDomains(text);

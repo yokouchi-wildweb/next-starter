@@ -13,7 +13,7 @@ const NOT_DOMAIN_DIRS = new Set(["_template", "core"]);
  * @param {string} [rootDir] リポジトリのルート（src/ を含むディレクトリ）
  */
 export function createWorkspace(rootDir = process.cwd()) {
-  const featuresDir = path.join(rootDir, "src", "features");
+  const featuresDir = path.join(rootDir, "src", "domains");
   const templateDir = path.join(featuresDir, "_template");
 
   const coreDir = path.join(featuresDir, "core");

@@ -28,7 +28,7 @@ function listFiles(dir, base = dir) {
   return result;
 }
 
-const targets = SAMPLE_DOMAINS.filter((d) => fs.existsSync(path.join(rootDir, "src", "features", d, "domain.json")));
+const targets = SAMPLE_DOMAINS.filter((d) => fs.existsSync(path.join(rootDir, "src", "domains", d, "domain.json")));
 
 test("サンプルドメインを再生成しても差分が出ない", { skip: targets.length === 0 && "サンプルドメインが無い" }, async (t) => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dc-sample-drift-"));

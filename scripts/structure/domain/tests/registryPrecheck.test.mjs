@@ -26,7 +26,7 @@ async function project() {
 }
 
 function plannedOutputs(root) {
-  const serverDir = path.join(root, "src", "features", "foo", "services", "server");
+  const serverDir = path.join(root, "src", "domains", "foo", "services", "server");
   return [
     file(path.join(serverDir, "drizzleBase.ts"), "// base\n"),
     file(path.join(serverDir, "domainEntry.ts"), renderDomainEntry({ camel: "foo", config: { apiAccess: API_ACCESS, plural: "foos" } })),
@@ -42,11 +42,11 @@ test("重ねた見え方: これから書く domainEntry.ts のキーが見え�
   const foo = domains.find((d) => d.dir === "foo");
   assert.deepEqual(foo.keys, ["foo"]);
   assert.equal(foo.hasBase, true);
-  assert.equal(fs.existsSync(path.join(root, "src", "features", "foo", "services", "server")), false);
+  assert.equal(fs.existsSync(path.join(root, "src", "domains", "foo", "services", "server")), false);
   // 既存ファイルがある writeOnce は重ねない（既存が残るので見え方も既存）
-  fs.mkdirSync(path.join(root, "src", "features", "foo", "services", "server"), { recursive: true });
-  fs.writeFileSync(path.join(root, "src", "features", "foo", "services", "server", "fooService.ts"), "// hand\n");
-  assert.equal(overlayFromOutputs(plannedOutputs(root), workspace).has(path.join(root, "src", "features", "foo", "services", "server", "fooService.ts")), false);
+  fs.mkdirSync(path.join(root, "src", "domains", "foo", "services", "server"), { recursive: true });
+  fs.writeFileSync(path.join(root, "src", "domains", "foo", "services", "server", "fooService.ts"), "// hand\n");
+  assert.equal(overlayFromOutputs(plannedOutputs(root), workspace).has(path.join(root, "src", "domains", "foo", "services", "server", "fooService.ts")), false);
 });
 
 test("作れる状態なら通り、書いた後に pnpm generate registry が同じ結論になる", async () => {
@@ -61,7 +61,7 @@ test("作れる状態なら通り、書いた後に pnpm generate registry が�
 test("他のドメインに domainEntry.ts が無ければ、書く前に止まり何も書かない", async () => {
   const root = await project();
   const workspace = createWorkspace(root);
-  const barServer = path.join(root, "src", "features", "bar", "services", "server");
+  const barServer = path.join(root, "src", "domains", "bar", "services", "server");
   fs.mkdirSync(barServer, { recursive: true });
   fs.writeFileSync(path.join(barServer, "drizzleBase.ts"), "// bar base\n");
   assert.throws(() => precheckServiceRegistry(workspace, plannedOutputs(root), { errorPrefix: "✗ " }), (err) => {
@@ -69,5 +69,5 @@ test("他のドメインに domainEntry.ts が無ければ、書く前に止ま�
     assert.match(err.message, /src\/domains\/bar\/services\/server に drizzleBase\.ts \/ firestoreBase\.ts があるのに domainEntry\.ts が無い/);
     return true;
   });
-  assert.equal(fs.existsSync(path.join(root, "src", "features", "foo", "services", "server")), false, "何も書かれていない");
+  assert.equal(fs.existsSync(path.join(root, "src", "domains", "foo", "services", "server")), false, "何も書かれていない");
 });

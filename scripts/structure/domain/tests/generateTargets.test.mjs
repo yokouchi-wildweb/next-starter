@@ -23,7 +23,7 @@ test("生成と削除の最後: 地区の地図を今のフォルダ・generate 
   const workspace = createWorkspace(root);
   assert.equal(refreshDistrictMap(workspace, SILENT), true);
   assert.equal(refreshDistrictMap(workspace, SILENT), false);
-  const rows = fs.readFileSync(path.join(root, DISTRICT_MAP_FILE), "utf8").trim().split("\n").map((line) => JSON.parse(line)).filter((d) => d.kind === "features");
+  const rows = fs.readFileSync(path.join(root, DISTRICT_MAP_FILE), "utf8").trim().split("\n").map((line) => JSON.parse(line)).filter((d) => d.kind === "domains");
   assert.deepEqual(rows.map((d) => `${d.name}:${d.domainJson}:${d.generate}`).sort(), ["alpha:true:true", "beta:true:false"]);
   fs.writeFileSync(path.join(root, "src/domains/beta/domain.json"), JSON.stringify({ singular: "beta" }));
   assert.equal(refreshDistrictMap(workspace, SILENT), true);

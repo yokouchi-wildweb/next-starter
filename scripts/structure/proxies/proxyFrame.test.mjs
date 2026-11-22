@@ -211,7 +211,7 @@ test("cron の門(目録 D10): task.ts・task.override.ts の値の import(静�
   const task = (name, text, file = "task.ts") => put(`src/app/api/cron/${name}/${file}`, text);
   task("static", 'import { s } from "@/domains/core/wallet/services/server/s";\nexport const task = s;\n');
   task("dynamic", 'export const task = { run: async () => (await import("@/domains/core/coupon/services/server/s")).s };\n');
-  task("relative", 'import { s } from "../../../../features/core/wallet/services/server/s";\nexport const task = s;\n');
+  task("relative", 'import { s } from "../../../../domains/core/wallet/services/server/s";\nexport const task = s;\n');
   task("typeOnly", 'import type { S } from "@/domains/core/wallet/services/server/s";\nimport { runBudgetedBatches } from "@/lib/cron";\nexport const task = runBudgetedBatches;\n');
   task("both", 'import { s } from "@/domains/core/wallet/services/server/s";\nimport { s as c } from "@/domains/core/coupon/services/server/s";\nexport const task = [s, c];\n');
   task("overridden", 'import { runBudgetedBatches } from "@/lib/cron";\nexport const task = runBudgetedBatches;\n');

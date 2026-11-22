@@ -13,7 +13,7 @@ const NOT_DOMAIN_DIRS = new Set(["_template", "core"]);
  * @returns {Map<string, string[]>} フォルダ名（= serviceRegistry のキー）→ 項目名。集まりを持つ主だけ
  */
 export function declaredCollections(repoRoot) {
-  const featuresDir = path.join(repoRoot, "src", "features");
+  const featuresDir = path.join(repoRoot, "src", "domains");
   const declared = new Map();
   for (const dirent of fs.readdirSync(featuresDir, { withFileTypes: true })) {
     if (!dirent.isDirectory() || NOT_DOMAIN_DIRS.has(dirent.name)) continue;

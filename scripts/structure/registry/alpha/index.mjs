@@ -26,10 +26,10 @@ export const ADMIN_LIST_ROUTE_DIR = "src/app/admin/(protected)";
 const headerOf = (source) => `// 生成物・編集不可: pnpm generate registry が ${source} から生成する`;
 const byString = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
-/** features の地区の直下の domain.json(path 順)。地区の見つけ方は src/lib/districtMap(地区の外の domain.json は読まない、目録 D1・D3) */
+/** domains の地区の直下の domain.json(path 順)。地区の見つけ方は src/lib/districtMap(地区の外の domain.json は読まない、目録 D1・D3) */
 function readDomains(repoRoot) {
   const found = readDistrictMapAt(repoRoot)
-    .districts.filter((district) => district.kind === "features")
+    .districts.filter((district) => district.kind === "domains")
     .map((district) => `${district.dir}/domain.json`)
     .filter((file) => existsSync(join(repoRoot, file)));
   const problems = [];
@@ -118,10 +118,10 @@ function renderAdminDomains(repoRoot, domains) {
   ].join("\n");
 }
 
-/** features の地区の services/server/storagePurposes.ts(path 順、ドメインの生成物か手書き)。地区の見つけ方は src/lib/districtMap */
+/** domains の地区の services/server/storagePurposes.ts(path 順、ドメインの生成物か手書き)。地区の見つけ方は src/lib/districtMap */
 function readStoragePurposeFiles(repoRoot) {
   return readDistrictMapAt(repoRoot)
-    .districts.filter((district) => district.kind === "features")
+    .districts.filter((district) => district.kind === "domains")
     .map((district) => `${district.dir}/services/server/storagePurposes.ts`)
     .filter((file) => existsSync(join(repoRoot, file)))
     .sort(byString);

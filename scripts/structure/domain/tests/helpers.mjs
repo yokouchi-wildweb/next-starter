@@ -23,15 +23,15 @@ export function makeProject({ templates = [], domains = [], configs = {}, cleanu
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "dc-test-"));
   cleanup.push(root);
   for (const rel of templates) {
-    fs.cpSync(path.join(repoRoot, "src", "features", "_template", rel), path.join(root, "src", "features", "_template", rel), { recursive: true });
+    fs.cpSync(path.join(repoRoot, "src", "domains", "_template", rel), path.join(root, "src", "domains", "_template", rel), { recursive: true });
   }
   for (const domain of domains) {
-    fs.mkdirSync(path.join(root, "src", "features", domain), { recursive: true });
-    fs.copyFileSync(path.join(repoRoot, "src", "features", domain, "domain.json"), path.join(root, "src", "features", domain, "domain.json"));
+    fs.mkdirSync(path.join(root, "src", "domains", domain), { recursive: true });
+    fs.copyFileSync(path.join(repoRoot, "src", "domains", domain, "domain.json"), path.join(root, "src", "domains", domain, "domain.json"));
   }
   for (const [folder, config] of Object.entries(configs)) {
-    fs.mkdirSync(path.join(root, "src", "features", folder), { recursive: true });
-    fs.writeFileSync(path.join(root, "src", "features", folder, "domain.json"), JSON.stringify(config));
+    fs.mkdirSync(path.join(root, "src", "domains", folder), { recursive: true });
+    fs.writeFileSync(path.join(root, "src", "domains", folder, "domain.json"), JSON.stringify(config));
   }
   return root;
 }

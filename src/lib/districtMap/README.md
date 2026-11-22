@@ -8,7 +8,7 @@
 
 | 種類 `kind` | 見つけ方 | 名前 | config | 上書き |
 |---|---|---|---|---|
-| `features`(ドメイン) | `src/domains/` と `src/domains/core/` の直下の `_` で始まらないフォルダ | フォルダ名(core は `core: true`) | `<dir>/config.ts` | `src/config/domains/<名前>.config.ts` |
+| `domains`(ドメイン) | `src/domains/` と `src/domains/core/` の直下の `_` で始まらないフォルダ | フォルダ名(core は `core: true`) | `<dir>/config.ts` | `src/config/domains/<名前>.config.ts` |
 | `lib` | `src/lib/` の直下のフォルダ(見つけ方は `src/lib/libPackage` の `listLibsFrom` と同じ 1 つの決まり) | フォルダ名 | `<dir>/config.ts` | `src/config/lib/<名前>.config.ts` |
 | `frame`(枠) | `src/app/**/_layout/config.ts` の `frame: "<名前>"` の宣言(宣言の無い `_layout` は地区でない) | 宣言の名前 | `<_layout>/config.ts` | `src/config/layout/<名前>.config.ts` |
 | `proxies` | `src/proxies/<テーマ>/`(直下のフォルダで `config.ts` を持つ物。上流は `demo`) | テーマのフォルダ名 | `src/proxies/<テーマ>/config.ts` | `src/config/proxies/<テーマ>.config.ts` |
@@ -38,7 +38,7 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 ### 地図の戻り値
 
 - `districts`(各地区の欄 `District`)・`problems`(空でなければ地図は使えない。生成器は書かない)
-- `tableFiles`(features の地区の表と定義ファイル、パス順 → 出現順。schemaRegistry が使う、jsonl には載せない)と `tableProblems`(表名を字面で読めない問題だけ)
+- `tableFiles`(domains の地区の表と定義ファイル、パス順 → 出現順。schemaRegistry が使う、jsonl には載せない)と `tableProblems`(表名を字面で読めない問題だけ)
 
 ### 各地区の欄(`District`)
 

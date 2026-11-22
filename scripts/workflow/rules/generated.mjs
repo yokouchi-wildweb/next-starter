@@ -24,7 +24,7 @@ const domains = existsSync(join(root, DISTRICT_MAP))
       .split("\n")
       .filter(Boolean)
       .map((l) => JSON.parse(l))
-      .filter((d) => d.kind === "features" && d.domainJson === true && d.generate !== false)
+      .filter((d) => d.kind === "domains" && d.domainJson === true && d.generate !== false)
       .map((d) => {
         const json = join(root, d.dir, "domain.json");
         return { dir: d.dir, plural: existsSync(json) ? JSON.parse(readFileSync(json, "utf8")).plural : undefined };

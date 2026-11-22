@@ -1,6 +1,6 @@
 // scripts/structure/registry/alpha/messageRegistry.mjs
 // 連絡の一覧 src/registry/messageRegistry.ts を走査から組み立てる(pnpm generate registry)。字面で読むだけ(定義は import しない)。
-// - 定義 = features の地区の messages/<名前>.ts(直下。.override・.test・点つきの名前は除く)の export const message = defineMessage({ key: "…", … })
+// - 定義 = domains の地区の messages/<名前>.ts(直下。.override・.test・点つきの名前は除く)の export const message = defineMessage({ key: "…", … })
 // - 鍵 = 定義の key の文字列リテラルで、<ドメインのフォルダ名>.<ファイル名> と一致すること(場所から一意に決まる。ずれ・重なりは止める)
 // - 上書き = 隣の <名前>.override.ts。描き方はレイアウト(messaging の layouts の受け口)が持つので、messages/views/ が残っていれば止める
 // 値の検査(欄・{{鍵}}・required の守り)は lib/messaging の validateMessageDefinition(実行時)と pnpm check extensions(字面の守り)
@@ -34,7 +34,7 @@ const listFiles = (repoRoot, dir) =>
 export function scanMessages(repoRoot) {
   const problems = [];
   const entries = [];
-  const districts = readDistrictMapAt(repoRoot).districts.filter((d) => d.kind === "features");
+  const districts = readDistrictMapAt(repoRoot).districts.filter((d) => d.kind === "domains");
   for (const district of districts) {
     const dir = `${district.dir}/${MESSAGES_DIR}`;
     const domain = district.dir.split("/").at(-1);

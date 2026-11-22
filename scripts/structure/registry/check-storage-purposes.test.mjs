@@ -29,7 +29,7 @@ const { FIXED_STRIP_PURPOSES } = await import("../../../src/domains/core/storage
 /** src/domains/<domain>/domain.json と src/domains/core/<domain>/domain.json（ドメイン名 = フォルダ名） */
 function listDomainConfigs() {
   const result = [];
-  for (const base of [path.join(rootDir, "src", "features"), path.join(rootDir, "src", "features", "core")]) {
+  for (const base of [path.join(rootDir, "src", "domains"), path.join(rootDir, "src", "domains", "core")]) {
     for (const dirent of fs.readdirSync(base, { withFileTypes: true })) {
       if (!dirent.isDirectory()) continue;
       const file = path.join(base, dirent.name, "domain.json");

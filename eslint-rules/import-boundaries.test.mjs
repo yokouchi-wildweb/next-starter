@@ -109,7 +109,7 @@ test("rule lib-no-domains: 値も型も、別名も相対も止める。lib の�
       { code: `import { x } from "@/domains/core/auth/services/server/foo";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
       { code: `import type { X } from "@/domains/core/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
       { code: `import { x } from "@/domains/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
-      { code: `import { x } from "../../features/sample/entities";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
+      { code: `import { x } from "../../domains/sample/entities";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
       { code: `const m = await import("@/domains/sample/entities");`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
     ],
   });
@@ -717,7 +717,7 @@ test("rule hooks-utils-no-domains: src/hooks・src/utils から features を値�
     invalid: [
       { code: `import { useUser } from "@/domains/user/hooks/useUser";`, filename: hook, errors: err("@/domains/user/hooks/useUser") },
       { code: `import type { User } from "@/domains/core/user/entities";`, filename: util, errors: err("@/domains/core/user/entities") },
-      { code: `import { x } from "../features/sample/x";`, filename: util, errors: err("../features/sample/x") },
+      { code: `import { x } from "../domains/sample/x";`, filename: util, errors: err("../domains/sample/x") },
       { code: `export * from "@/domains/sample";`, filename: hook, errors: err("@/domains/sample") },
     ],
   });

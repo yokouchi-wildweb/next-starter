@@ -29,7 +29,7 @@ export function forbiddenTarget(source, resolvedRel) {
   if (source.startsWith("node:")) return "Node 組み込み";
   if (source === "postgres" || source === "drizzle-orm" || source.startsWith("drizzle-orm/")) return "DB のパッケージ";
   if (!resolvedRel) return null;
-  if (/^src\/domains\/.+\/services(\/|$)/.test(resolvedRel)) return "features の services";
+  if (/^src\/domains\/.+\/services(\/|$)/.test(resolvedRel)) return "domains の services";
   if (resolvedRel === "src/lib/drizzle" || resolvedRel.startsWith("src/lib/drizzle/") || /^src\/lib\/drizzle\.(ts|mts|mjs)$/.test(resolvedRel)) return "src/lib/drizzle";
   return null;
 }
@@ -171,7 +171,7 @@ test("fixture: 規則が config だけを読むなら通り、型だけの impor
 
 test("fixture: services・drizzle・server-only・node: のどれに届いても落ちる(鎖を示す)", () => {
   const cases = {
-    services: ['import { walletService } from "@/domains/core/wallet/services/server/walletService";\n', /features の services/],
+    services: ['import { walletService } from "@/domains/core/wallet/services/server/walletService";\n', /domains の services/],
     drizzle: ['import { db } from "../../lib/drizzle";\n', /src\/lib\/drizzle/],
     serverOnly: ['import "server-only";\n', /server-only/],
     node: ['const fs = await import("node:fs");\n', /Node 組み込み/],
@@ -216,7 +216,7 @@ test("fixture: proxies の項目が読む config が services・drizzle・server
   const item = 'import { SHOP_CONFIG } from "@/domains/core/wallet/config";\nimport { walletService } from "@/domains/core/wallet/services/server/walletService";\nexport const handler = () => [SHOP_CONFIG, walletService];\n';
   assert.deepEqual(findProxyConfigReach(proxyFixture(item, { "src/domains/core/wallet/config.ts": "export const SHOP_CONFIG = { enabled: true };\n" })), []);
   const cases = {
-    services: ['import { walletService } from "./services/server/walletService";\n', /features の services/],
+    services: ['import { walletService } from "./services/server/walletService";\n', /domains の services/],
     drizzle: ['import { db } from "@/lib/drizzle";\n', /src\/lib\/drizzle/],
     serverOnly: ['import "server-only";\n', /server-only/],
     node: ['import { readFileSync } from "node:fs";\n', /Node 組み込み/],

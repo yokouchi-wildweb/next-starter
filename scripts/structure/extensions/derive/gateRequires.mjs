@@ -10,7 +10,7 @@ export const REQUIRES_EXCEPTIONS = {};
 
 /**
  * @param {{ path: string, name: string, domains: string[], dependsOn: string[] }[]} items 規則の項目(読めた物)
- * @param {{ folder: string, name: string, requires: string[] }[]} districts features の地区(フォルダは src/domains からの相対)
+ * @param {{ folder: string, name: string, requires: string[] }[]} districts domains の地区(フォルダは src/domains からの相対)
  * @param {Record<string, string>} [exceptions]
  * @returns {string[]} problems
  */

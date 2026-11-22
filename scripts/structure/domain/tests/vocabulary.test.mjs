@@ -31,7 +31,7 @@ const BASE = {
 test("正しい domain.json には警告が無い（このリポのサンプル 3 件を含む）", () => {
   assert.deepEqual(vocabularyWarnings(BASE), []);
   for (const domain of ["sample", "sampleCategory", "sampleTag"]) {
-    const config = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "features", domain, "domain.json"), "utf8"));
+    const config = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", domain, "domain.json"), "utf8"));
     assert.deepEqual(vocabularyWarnings(config), [], domain);
   }
 });
@@ -167,7 +167,7 @@ function withCommentsEverywhere(config) {
   };
 }
 
-const readSample = () => JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "features", "sample", "domain.json"), "utf8"));
+const readSample = () => JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", "sample", "domain.json"), "utf8"));
 
 test("$comment はどの階層でも警告なく通り、値が文字列・文字列の配列でなければ警告する", () => {
   const sample = readSample();

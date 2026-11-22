@@ -117,7 +117,7 @@ test("権限の写し: 閉じた主（none / INTERNAL_ONLY）・custom などの
 
 // ---- 書き出し（write-once） ----
 
-const childPath = (root) => path.join(root, "src", "features", "sampleImage", "domain.json");
+const childPath = (root) => path.join(root, "src", "domains", "sampleImage", "domain.json");
 const outputsFor = (root, gen = { entities: false }) => {
   const { workspace, ctx } = contextFor(root, "sample");
   return { workspace, outputs: planDomain(ctx, workspace, gen) };

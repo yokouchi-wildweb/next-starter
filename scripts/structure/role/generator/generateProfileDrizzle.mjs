@@ -28,7 +28,7 @@ function formatValue(v) {
  */
 function getForeignTableName(domainName) {
   const domainCamel = toCamelCase(domainName) || domainName;
-  const featuresDir = path.join(ROOT_DIR, "src", "features");
+  const featuresDir = path.join(ROOT_DIR, "src", "domains");
   const candidates = [
     path.join(featuresDir, domainCamel, "domain.json"),
     path.join(featuresDir, "core", domainCamel, "domain.json"),

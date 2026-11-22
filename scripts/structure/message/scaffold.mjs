@@ -4,7 +4,7 @@
 //   --var = vars の値 1 つの鍵・日本語の別名・説明、繰り返せる・任意 D133。無ければ vars は空)
 //(種別と送信チャンネルはカテゴリーから引く D81・D86。カテゴリー = 利用者から見て 1 つの出来事 D79)
 // - 引数なし = 何もしない(pnpm generate の一括でも回る)。質問はしない
-// - exit 2(書かない): 知らない引数・domain が features の地区(src/domains の下のフォルダ、地区の地図の読み手で読む)に無い・名前が camelCase でない・
+// - exit 2(書かない): 知らない引数・domain が domains の地区(src/domains の下のフォルダ、地区の地図の読み手で読む)に無い・名前が camelCase でない・
 //   core のドメインに --core が無い(fork の持ち場の外)・--category が無い・category が受け口に無い・カテゴリーの送信チャンネルが送信チャンネルの受け口に無い・
 //   --var の形が違う(鍵が camelCase でない・別名の形・説明が空・鍵か別名の重なり)
 // - 既にあるファイルは触らない(理由を出す)。書いた時だけ呼び手が src/registry を作り直す
@@ -105,9 +105,9 @@ export function runMessageScaffold(repoRoot, argv) {
   const { domain, name, category, label, vars, core } = parsed.value;
 
   if (!NAME.test(name)) return fail(`名前 ${name} は英小文字始まりの camelCase で書く(連絡の鍵 <domain>.<name> の後ろ)`);
-  const district = readDistrictMapAt(repoRoot).districts.find((d) => d.kind === "features" && d.dir.split("/").at(-1) === domain);
+  const district = readDistrictMapAt(repoRoot).districts.find((d) => d.kind === "domains" && d.dir.split("/").at(-1) === domain);
   if (!district) {
-    return fail(`ドメイン ${domain} は features の地区(src/domains/<domain> か src/domains/core/<domain>)に無い`);
+    return fail(`ドメイン ${domain} は domains の地区(src/domains/<domain> か src/domains/core/<domain>)に無い`);
   }
   if (district.dir.startsWith("src/domains/core/") && !core) {
     return fail(`${district.dir} は core のドメイン(fork は足せない: pnpm workflow ownership check が落ちる)。上流が足す時だけ --core`);

@@ -68,7 +68,7 @@ function resolveFixture(name) {
   const synthetic = path.join(fixtureRoot, name);
   if (fs.existsSync(synthetic)) return { label: name, featuresDir: synthetic, repo: null };
   const repo = path.resolve(name);
-  if (fs.existsSync(path.join(repo, "src", "features"))) return { label: path.basename(repo), featuresDir: path.join(repo, "src", "features"), repo };
+  if (fs.existsSync(path.join(repo, "src", "domains"))) return { label: path.basename(repo), featuresDir: path.join(repo, "src", "domains"), repo };
   throw new Error(`fixture が見つかりません: ${name}`);
 }
 
@@ -78,7 +78,7 @@ function buildBase({ featuresDir, repo }, variant) {
   cp(path.join(repoRoot, "src"), path.join(base, "src"));
   if (!featuresDir) return base;
   for (const d of listDomains(featuresDir)) {
-    const dest = path.join(base, "src", "features", d);
+    const dest = path.join(base, "src", "domains", d);
     fs.rmSync(dest, { recursive: true, force: true });
     if (variant === "existing" && repo) {
       cp(path.join(featuresDir, d), dest);
@@ -188,7 +188,7 @@ let cases = 0;
 let failures = 0;
 for (const name of [...fixtures, ...repos]) {
   const fixture = resolveFixture(name);
-  const domains = listDomains(fixture.featuresDir ?? path.join(repoRoot, "src", "features"));
+  const domains = listDomains(fixture.featuresDir ?? path.join(repoRoot, "src", "domains"));
   for (const variant of variants) {
     if (variant === "existing" && !fixture.repo) continue;
     const base = buildBase(fixture, variant);

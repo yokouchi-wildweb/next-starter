@@ -309,7 +309,7 @@ test("住所: 同じ住所を 2 つの機能に書かず、親の前方一致の
 
 // 機能とドメインの組み合わせ(D24・D27・D34 K5・設定 D56。判定は src/featureGate/checks/integrity.mjs)
 const domainFacts = readDistrictMapAt(ROOT)
-  .districts.filter((d) => d.kind === "features")
+  .districts.filter((d) => d.kind === "domains")
   .map((d) => ({ folder: d.dir.slice("src/domains/".length), name: d.name, requires: d.requires, tables: d.tables }));
 const foreignKeys = Object.values(schema)
   .filter((value) => is(value, PgTable))

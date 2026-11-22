@@ -17,7 +17,7 @@ import { ENTRIES_EXPORT, listDomainDirs, readObjectKeys } from "../registry/serv
 import { buildDistrictMap, checkDistrictMap, generateDistrictMap, repoRoot } from "./map.mjs";
 
 const { districts, problems } = readDistrictMapAt(repoRoot);
-const features = districts.filter((d) => d.kind === "features");
+const features = districts.filter((d) => d.kind === "domains");
 const folderOf = (d) => d.dir.slice("src/domains/".length);
 
 test("今の木に問題が無い", () => {
@@ -51,7 +51,7 @@ test("apiKeys = 各ドメインの domainEntry.ts のキー(登録表の生成�
   }
 });
 
-test("tables = schemaRegistry の元の表の全部を features の地区に 1 回ずつ割り振る(雛形 _template の外に漏れなし・二重なし)", () => {
+test("tables = schemaRegistry の元の表の全部を domains の地区に 1 回ずつ割り振る(雛形 _template の外に漏れなし・二重なし)", () => {
   const { tables } = scanFeatureTables(repoRoot);
   const expected = tables.filter((t) => !t.file.startsWith("src/domains/_")).map((t) => t.name).sort();
   const mapped = features.flatMap((d) => d.tables).sort();

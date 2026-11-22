@@ -7,9 +7,9 @@ import { GENERATED_MARK, withGeneratedMark, withoutGeneratedMark } from "../rend
 
 const marked = (path, body) => withGeneratedMark(path, body);
 const rows = [
-  { kind: "features", name: "booking", dir: "src/domains/booking", domainJson: true, generate: false },
-  { kind: "features", name: "sample", dir: "src/domains/sample", domainJson: true, generate: true },
-  { kind: "features", name: "legacy", dir: "src/domains/legacy", domainJson: false, generate: null },
+  { kind: "domains", name: "booking", dir: "src/domains/booking", domainJson: true, generate: false },
+  { kind: "domains", name: "sample", dir: "src/domains/sample", domainJson: true, generate: true },
+  { kind: "domains", name: "legacy", dir: "src/domains/legacy", domainJson: false, generate: null },
 ];
 const texts = {
   "src/domains/booking/entities/schema.ts": marked("src/domains/booking/entities/schema.ts", "// src/domains/booking/entities/schema.ts\nexport const a = 1;\n"),

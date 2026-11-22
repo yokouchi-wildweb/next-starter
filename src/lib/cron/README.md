@@ -207,7 +207,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 - **毎分など短い間隔のタスク**: 実行中（最大 maxDuration）に次の回が始まりうる（二重処理を避ける作りは札 no_double_work）。1 分より短い間隔は Vercel Cron では書けない（realtimeRoom 等の領域）
 
 - **機能の門（自動）**: タスクの住所は名前から組んだ `/api/cron/<name>`。task.ts（と fork の task.override.ts）が閉じられる機能のフォルダ
-  （規則の `features`）を値で import すると（静的・動的、型だけは数えない、直に読む物だけ）、`pnpm generate extensions` がその規則に住所を
+  （規則の `domains`）を値で import すると（静的・動的、型だけは数えない、直に読む物だけ）、`pnpm generate extensions` がその規則に住所を
   `cronPaths` として導いて `pathPatterns` に足す（規則に手書きしない。手書きは生成器が止める）。複数の機能のフォルダを読む
   task はその全部の規則が住所を持つ = 全部が開いているときだけ動く。機能のフォルダを読まない（lib だけの）task は常に開く。規則が閉じていると、route は本体を呼ばずに
   `{ ok: true, skipped: true, reason: "closed" }` を返し（proxy が先に 404 にする。route の判定は proxy を通らない呼び出しの安全網）、

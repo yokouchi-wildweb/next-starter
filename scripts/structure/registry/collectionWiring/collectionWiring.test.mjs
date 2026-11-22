@@ -21,7 +21,7 @@ const pascalOf = (camel) => camel.charAt(0).toUpperCase() + camel.slice(1);
 test("このリポ: 集まりを持つ主の表には、サービスを読まなくても集まりの登録がある（entities/drizzle.ts の defineTableCollections）", async () => {
   const missing = [];
   for (const domain of declaredCollections(repoRoot).keys()) {
-    const entities = await import(path.join(repoRoot, "src", "features", domain, "entities", "drizzle.ts"));
+    const entities = await import(path.join(repoRoot, "src", "domains", domain, "entities", "drizzle.ts"));
     const table = entities[`${pascalOf(domain)}Table`];
     if (!table || !hasTableCollections(table)) missing.push(domain);
   }

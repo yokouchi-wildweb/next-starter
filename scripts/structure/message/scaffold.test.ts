@@ -55,7 +55,7 @@ function tree() {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   };
-  // features の地区 = src/domains の下のフォルダ(業務 shop と core の wallet)
+  // domains の地区 = src/domains の下のフォルダ(業務 shop と core の wallet)
   put("src/domains/shop/README.md", "# shop\n");
   put("src/domains/core/wallet/README.md", "# wallet\n");
   for (const item of Object.values(CATEGORIES)) {
@@ -170,7 +170,7 @@ test("exit 2 と理由(何も書かない)", () => {
     [["shop", "x", "--kind", "promotion"], /--kind は無くなりました/],
     [["shop", "x", "--channels", "email"], /--channels は無くなりました/],
     [["shop"], /<domain> と <name>/],
-    [["nope", "hello", "--category", "orderShipped"], /features の地区/],
+    [["nope", "hello", "--category", "orderShipped"], /domains の地区/],
     [["shop", "Hello", "--category", "orderShipped"], /camelCase/],
     [["shop", "hello.world", "--category", "orderShipped"], /camelCase/],
     [["shop", "hello"], /--category が要る.*1 つの出来事/],

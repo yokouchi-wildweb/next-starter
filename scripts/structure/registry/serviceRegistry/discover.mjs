@@ -51,7 +51,7 @@ export const ENTRY_EXCEPTIONS = {};
  */
 export function listDomainDirs(repoRoot) {
   return readDistrictMapAt(repoRoot)
-    .districts.filter((district) => district.kind === "features")
+    .districts.filter((district) => district.kind === "domains")
     .map((district) => district.dir.slice("src/domains/".length))
     .sort();
 }
@@ -395,11 +395,11 @@ export function discoverDomainEntries(repoRoot, view = diskView) {
   /** 値の import の先の判定(ファイル → 問題)。全ドメインで共有して同じファイルを二度読まない */
   const importMemo = new Map();
   for (const dir of listDomainDirs(repoRoot)) {
-    const serverDir = path.join(repoRoot, "src", "features", dir, "services", "server");
+    const serverDir = path.join(repoRoot, "src", "domains", dir, "services", "server");
     const entryFile = path.join(serverDir, ENTRY_FILE);
     const overrideFile = path.join(serverDir, OVERRIDE_FILE);
     const hasBase = view.exists(path.join(serverDir, "drizzleBase.ts")) || view.exists(path.join(serverDir, "firestoreBase.ts"));
-    const domainJsonFile = path.join(repoRoot, "src", "features", dir, "domain.json");
+    const domainJsonFile = path.join(repoRoot, "src", "domains", dir, "domain.json");
     const hasDomainJson = view.exists(domainJsonFile);
     const camel = toCamelCase(path.basename(dir)) || path.basename(dir);
     const info = {

@@ -3,11 +3,11 @@
 // 種類は 4 つに閉じる(中間の Tier が種類を足す口は無い、目録 D15)。足りなければ /order で Tier1 が足す。
 
 /** 地区の種類。並び = district-map.jsonl の並び(種類 → 名前) */
-export const DISTRICT_KINDS = /** @type {const} */ (["features", "lib", "frame", "proxies"]);
+export const DISTRICT_KINDS = /** @type {const} */ (["domains", "lib", "frame", "proxies"]);
 
-/** features の地区を探すフォルダ(直下の _ 始まりでないフォルダ = 1 地区、目録 D3) */
-export const FEATURES_ROOT = "src/domains";
-/** core の地区を探すフォルダ(FEATURES_ROOT の直下の core は地区でなく core の置き場) */
+/** domains の地区を探すフォルダ(直下の _ 始まりでないフォルダ = 1 地区、目録 D3) */
+export const DOMAINS_ROOT = "src/domains";
+/** core の地区を探すフォルダ(DOMAINS_ROOT の直下の core は地区でなく core の置き場) */
 export const CORE_DIR_NAME = "core";
 /** lib の地区を探すフォルダ(直下のフォルダ = 1 地区)。見つけ方の決まりは src/lib/libPackage の listLibsFrom(L1.14) */
 export { LIB_DIR as LIB_ROOT } from "../libPackage/index.mjs";
@@ -24,7 +24,7 @@ export const CONFIG_FILE = "config.ts";
 export const UI_CONFIG_FILE = "config.ui.ts";
 /** 上書きの置き場(src/config/<種類のフォルダ>/<名前>.config.ts、設定 D11・D36・D75) */
 export const OVERRIDE_ROOT = "src/config";
-export const OVERRIDE_FOLDERS = /** @type {const} */ ({ features: "features", lib: "lib", frame: "layout", proxies: "proxies" });
+export const OVERRIDE_FOLDERS = /** @type {const} */ ({ domains: "domains", lib: "lib", frame: "layout", proxies: "proxies" });
 /**
  * 基盤の上書きのフォルダ(src 直下の基盤の名前 → 持ち主のフォルダ、設定 D91)。地区でない(地図に載らない)。
  * 中は平らに <中身の名前>.config.ts を並べ(例 featureGate/switches.config.ts)、持ち主は固定のフォルダ。読むのは持ち主のフォルダの中のファイルだけ

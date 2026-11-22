@@ -28,7 +28,7 @@ function generateShowcase(config = showcase) {
   const workspace = createWorkspace(root);
   const ctx = loadDomainForGenerate(workspace, "showcase", SILENT);
   generateWithPairs(ctx, workspace, { entities: true, components: true }, { only: ["entities", "components"], io: SILENT });
-  const read = (rel) => fs.readFileSync(path.join(root, "src", "features", "showcase", rel), "utf8");
+  const read = (rel) => fs.readFileSync(path.join(root, "src", "domains", "showcase", rel), "utf8");
   return { root, workspace, read };
 }
 
@@ -44,7 +44,7 @@ test("drizzle: 集まりの項目は列を出さない（型名の列関数も i
     /^defineTableCollections\(ShowcaseTable, \(\) => import\("@\/domains\/showcase\/services\/server\/collections"\)\.then\(\(m\) => m\.collections\)\);$/m,
   );
   // 従属（集まりを持たない）には出さない
-  const child = fs.readFileSync(path.join(root, "src", "features", "showcasePhoto", "entities", "drizzle.ts"), "utf8");
+  const child = fs.readFileSync(path.join(root, "src", "domains", "showcasePhoto", "entities", "drizzle.ts"), "utf8");
   assert.doesNotMatch(child, /defineTableCollections/);
 });
 

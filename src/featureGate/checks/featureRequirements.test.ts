@@ -33,7 +33,7 @@ test("値が off なら機能が閉でも通る / off でなく機能が閉な�
   assert.deepEqual(unmetRequirements([subject({ purchaseRestriction: "none" }, [req])], () => false, known), []);
   const [problem, ...rest] = unmetRequirements([subject({ purchaseRestriction: "phoneVerified" }, [req])], () => false, known);
   assert.equal(rest.length, 0);
-  assert.match(problem, /features\/wallet の purchaseRestriction = "phoneVerified" は機能 phoneVerification を要する/);
+  assert.match(problem, /domains\/wallet の purchaseRestriction = "phoneVerified" は機能 phoneVerification を要する/);
   assert.match(problem, /pnpm ops features set phoneVerification on/);
   assert.match(problem, /src\/config\/domains\/wallet\.config\.ts に purchaseRestriction = "none"/);
   assert.deepEqual(unmetRequirements([subject({ purchaseRestriction: "phoneVerified" }, [req])], () => true, known), []);

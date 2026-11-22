@@ -22,7 +22,7 @@ pnpm db:push && pnpm ops db seed --all   # 表を作ってから全部
 ### 流れ
 
 - 本体 `run.ts`(入口は `scripts/operations/db/seed.ts`): 走査 → 閉じた機能の判定 → 計画(`planSeeds`)→ 入れる
-- 走査と判定 `scan.ts`: `seed.ts` の走査と読み込み、閉じた機能の判定(`closedByOf`: ドメインのフォルダを `features` に持つ規則が閉じているか。`rules` に `src/config/featureGate/switches.config.ts` の値を当てた開閉)
+- 走査と判定 `scan.ts`: `seed.ts` の走査と読み込み、閉じた機能の判定(`closedByOf`: ドメインのフォルダを `domains` に持つ規則が閉じているか。`rules` に `src/config/featureGate/switches.config.ts` の値を当てた開閉)
 - 入れる `insert.ts`: 表 → ドメインのサービスは serviceRegistry。`seedCreate` があれば先に使う、`$unique` は `search` で探して使い回す、`ref` を id に置き換える
 - `gate.ts`: 表が無いエラー(42P01)の見分け
 
