@@ -2,7 +2,27 @@
 
 ## Overview
 
-利用者への連絡（メール・お知らせ = 受け取り箱・LINE・fork の送信チャンネル）の基盤。連絡定義（`messages/<名前>.ts`、書き方は src/lib/messaging/README.md）を送る口が送信（`message_dispatches`）と配達（`message_deliveries`、受信者 × 送信チャンネルの 1 行）に記録し、送信チャンネルの受け口の項目で送る。
+**使い分け**: 局面が決まった連絡は連絡定義（`messages/<名前>.ts`）で書き、管理者が送るなら recordTargets の項目 + 上流の汎用のモーダル（見た目を変えるなら公開の hook で自前のモーダル）。その場で書く連絡だけ自由連絡の送るモーダル。どの画面・部品を使うか、決まった文面に値を入れる 2 つの道、上流の項目の直し方は [components/README.md](components/README.md)「送る画面の使い分け」。
+
+語（開発の語 = コード・README・札・注釈 / 画面の語 = 管理画面・利用者の画面。読み手ごとに別に決め、揃えない）:
+
+| 開発の語 | コード | 画面の語 |
+| --- | --- | --- |
+| 連絡定義（コードが配る連絡の定義） | `MessageDefinition`・`defineMessage`・`messages/<名前>.ts` | システム通知（テキストの編集のタブ）・連絡の表示名 `label` |
+| 定義連絡 / 自由連絡（連絡定義で送る / その場で書いて送る） | `sendMessage`・`sendMessageToMany` / `sendFreeMessage` | — |
+| レイアウト（見た目と欄の宣言） | `layout`・`layouts/<名前>/` | レイアウト（シンプル・汎用・明細 等） |
+| テンプレート（管理者が DB に保存した文面だけ） | `message_templates` | テンプレート |
+| 送信 / 配達 | `message_dispatches` / `message_deliveries` | 送信 / 送信状況 |
+| 送信チャンネル | `channel`・`channels/` | 管理の送る画面 = 送信方法 / 利用者の通知設定 = 通知方法 |
+| inApp（お知らせの行 = `message_inbox_items`） | `inApp` | サービス内通知（受け取り箱のページ名は「お知らせ」） |
+| カテゴリー（1 つの出来事、配信停止の単位） | `category`・`categories/` | `label`（利用者）・`adminLabel`（管理、無ければ label） |
+| 種別（7 つ） | `kind`・config の `kindLabels` | `label`・`adminLabel?`（既定: 機能通知・手続き通知・セキュリティ・運営告知・個別連絡・アクティビティ・プロモーション） |
+| recordTargets（記録の宛先） | `recordTargets/<名前>.ts`・`MessageRecordTarget` | 一覧の一括操作のボタン（例「確認の連絡を送る」） |
+| テキストの編集（管理画面で DB に重ねる文言） | `message_overrides` | システム通知 |
+| 上書き（fork のコードの override） | `<名前>.override.ts` | — |
+| 埋め込み情報 | `vars`・`varNames`・enrichers | 埋め込み情報（`{{別名}}`） |
+
+利用者への連絡（メール・inApp = 受け取り箱のお知らせの行・LINE・fork の送信チャンネル）の基盤。連絡定義（`messages/<名前>.ts`、書き方は src/lib/messaging/README.md）を送る口が送信（`message_dispatches`）と配達（`message_deliveries`、受信者 × 送信チャンネルの 1 行）に記録し、送信チャンネルの受け口の項目で送る。
 
 連絡の形 = **カテゴリー + レイアウト + 欄の中身**。定義連絡（自動）も管理者のテンプレート（手動）も同じ形で、送信チャンネルはカテゴリーだけが持ち、見た目はレイアウト（`layouts/`）が全送信チャンネルの分を持つ（描けない送信チャンネルは送信チャンネルの汎用の描き方か要約で描く）。文面の `{{名前}}` は埋め込み情報（共通 = 受信者ごとに埋まる / 専用 = テンプレートごとに送る人が入れる・定義連絡の vars、英語の鍵と日本語の別名 `varNames`）。部品ごとの形と「なぜそうなっているか」（採らなかった案と理由）は [Internals.md](Internals.md)。
 
@@ -50,10 +70,10 @@ await messagingService.sendMessageToMany(campaign, {
 1. `pnpm generate message -- <domain> <name> --category <key> --label <名前> [--core]` が送る側のドメインに `messages/<名前>.ts`（鍵 `<ドメインのフォルダ名>.<名前>`、レイアウト notice と欄の中身の雛形）を書き、`src/registry/messageRegistry.ts` と拡張点を作り直す（使い方 scripts/structure/message/README.md）。core のドメインは `--core` = 上流だけ
 2. カテゴリー（category）= 利用者から見て 1 つの出来事（「〜した時」。例 likeReceived・itemSold・passwordReset）。種別（7 つ）と送信チャンネルはカテゴリーが持ち、連絡は書かない。無ければ先に `categories/<名前>.ts` を足す
 3. 上流のカテゴリー: emailVerification・passwordReset・emailChange・earlyRegistration（functional・email）/ accountLocked（security）/ registrationComplete・walletExpiring・walletExpired・walletAdjusted・bankTransferCheck（transactional。walletExpiring = 残高の失効の予告、送るかは wallet の config の段で決まり利用者は止められない（D207・D208）。bankTransferCheck = お振込の確認、振込審査の一覧から管理者が送る確認の連絡、メール・お知らせとも既定で入）
-   - promotion（promotion、管理画面「一般的なプロモーション」・利用者「キャンペーン情報」、管理者が書く宣伝の既定）/ announcement（管理画面「一般的なお知らせ」・利用者「運営からのお知らせ」）/ operatorDirect（direct、管理画面「一般的な個別連絡」・利用者「個別のご連絡」、管理者からの個別の連絡と一括の既定）
+   - promotion（promotion「キャンペーン情報」、管理者が書く宣伝の既定）/ announcement（「運営からのお知らせ」）/ operatorDirect（direct「個別のご連絡」、管理者からの個別の連絡と一括の既定）。上流のこの 3 つは `adminLabel` を持たず両画面で同じ名前（D185）
    - カテゴリーの名前は 2 つ: `label` = 利用者に見せる（好みの設定・配信停止・受け取り箱）、`adminLabel` = 管理画面（無い = `label`）
    - 種別の表示名（config の `kindLabels`: 種別ごとに `label`（利用者の画面）と任意の `adminLabel`（管理画面、無ければ label）。fork は `src/config/features/messaging.config.ts` で変える。読むのは `presenters.ts` の `messageKindLabel` / `messageKindAdminLabel`、D186・D187・D189）。上流の既定: functional 機能通知 / transactional 手続き通知 / security セキュリティ / announcement 運営告知 / direct 個別連絡 / activity アクティビティ / promotion プロモーション
-4. 見た目 = レイアウト（`layouts/<名前>/`、`layouts/README.md`）。上流は simple（シンプルなお知らせ）・notice（汎用のお知らせ）・link（認証のリンク）・welcome（ようこそ）・statement（お知らせの明細）・alert（セキュリティの警告）。定義は `layout` と `values`（レイアウトの欄の中身）を書く
+4. 見た目 = レイアウト（`layouts/<名前>/`、`layouts/README.md`）。上流は simple（シンプル）・notice（汎用）・link（認証のリンク）・welcome（ようこそ）・statement（明細）・alert（セキュリティの警告）。定義は `layout` と `values`（レイアウトの欄の中身）を書く
 5. 実例: auth の連絡（link・alert）・user の連絡（welcome）・wallet の失効の知らせ（statement、cron、`runAsSystem` + 冪等の鍵）と残高の変更（notice）・管理者が記録の宛先から送る bankTransferReview のお振込の確認（statement、`recordVars`・`adminTargets: ["records"]`）
 
 ### 運用で間違えやすい線

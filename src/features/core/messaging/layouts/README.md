@@ -6,9 +6,9 @@
 
 上流のレイアウト（どれもメールとお知らせの描き方を持つ。中身は各フォルダの README）:
 
-- `simple`（シンプルなお知らせ）: 件名・サムネイル・本文・リンクのボタン。管理者がテンプレートで選べる（送る画面・テンプレートの編集の最初のレイアウト = config の `initialLayout` の既定）
-- `notice`（汎用のお知らせ）: 件名 + ブロックの並び。管理者がテンプレートで選べる
-- `link`（認証のリンク）・`welcome`（ようこそ）・`statement`（お知らせの明細）・`alert`（セキュリティの警告）: 定義連絡だけが使う（`adminSelectable: false`）。欄は意味で名づけ（位置の段落は使わない）、メールは前の連絡の見た目と同じ部品の並び
+- `simple`（シンプル）: 件名・サムネイル・本文・リンクのボタン。管理者がテンプレートで選べる（送る画面・テンプレートの編集の最初のレイアウト = config の `initialLayout` の既定）
+- `notice`（汎用）: 件名 + ブロックの並び。管理者がテンプレートで選べる
+- `link`（認証のリンク）・`welcome`（ようこそ）・`statement`（明細）・`alert`（セキュリティの警告）: 定義連絡だけが使う（`adminSelectable: false`）。欄は意味で名づけ（位置の段落は使わない）、メールは前の連絡の見た目と同じ部品の並び
 
 ## Usage
 
@@ -23,7 +23,7 @@
 ## Extension
 
 - 見た目だけを替える: 描き方の部品を 1 行スイッチにしておく（`<部品>.tsx` = `export { <部品> } from "./<部品>.default";`、中身は `<部品>.default.tsx`）。fork は隣に `<部品>.replace.tsx` を置き、スイッチを向け替える。項目のファイル（`email.tsx` / `inApp.tsx`）はスイッチの部品を import するだけにする
-- 全メールの枠（ロゴ・色・末尾）: `src/lib/mail/frame/MailFrame.tsx` の 1 行スイッチ（既定 `MailFrame.default.tsx`）を fork の `MailFrame.replace.tsx` へ向ける（同じ export: `MAIL_FONT_FAMILY`・`MailFrame`・`MailFrameProps`）
+- 全メールの枠（ロゴ・色・末尾、全部のメールに付ける署名・会社の住所などの共通の文もここ、D178。システムテンプレートは無い）: `src/lib/mail/frame/MailFrame.tsx` の 1 行スイッチ（既定 `MailFrame.default.tsx`）を fork の `MailFrame.replace.tsx` へ向ける（同じ export: `MAIL_FONT_FAMILY`・`MailFrame`・`MailFrameProps`）
 - 上流のレイアウトの使い方を変える（型 2、宣言の `overrideOf`）: 隣に `layouts/<名前>/layout.override.ts` を置き `export const override = { disabled: true } satisfies MessageLayoutOverride;`。書けるのは `disabled`・`adminSelectable` だけ（ほかの鍵・項目の無いフォルダは `pnpm check extensions` が止める。上流は出荷しない）
   - `disabled: true`（無効）: どこにも出さない（送る画面・テンプレートの編集）。定義連絡が使えば連絡の一覧の検査（`checkMessageRegistry`）が定義とレイアウトの両方を名指して止める。このレイアウトの DB のテンプレートは一覧に「使えない」の印（`usable: false`）で並び、送る画面に出ず、送る口が 400 で断る。受け口の一覧には残る（送った記録・お知らせの行は描ける）
   - `adminSelectable`: 管理者がテンプレート・送る画面で選べるか（上流の定義連絡だけのレイアウトを選べるようにする・上流の選べるレイアウトを外す）
