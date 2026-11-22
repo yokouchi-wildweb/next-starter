@@ -13,6 +13,8 @@
 //
 // 結果: apply = 書き換える(書いた)| already = 書き換え済み | missing = ファイルが無い(写しの task を消した後の木。直す物は無い)|
 // unknown = writeReadStates が見本の形でない(fork が手で変えた。exit 2、手で直す形を出す)
+// TARGET のパス(src/features/…)は区切り messaging-switch の時点の木の名前(区切り district-stage1 で src/domains に改名される前)。
+// 道具はその木にだけ当てるので、今の木の名前に合わせて書き換えない(.notices/README.md: 道具は自分の区切りの時点の木に対して走る)
 // 手順: --apply → pnpm task messaging:copy-legacy-notifications を打ち直す → succeeded + 照合 ok(写し済みの行も GREATEST で直る)
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
