@@ -183,8 +183,6 @@ add src/features/core/interactionTracking/targetRules/*.{ts,tsx}  # 受け口 ta
 add src/features/core/interactionTracking/targetRules/*/**  # 受け口 targetRules(フォルダ形)
 add src/features/core/messaging/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkActions
 add src/features/core/messaging/adminBulkActions/*/**  # 受け口 adminBulkActions(フォルダ形)
-add src/features/core/messaging/bulkSendTargets/*.{ts,tsx}  # 受け口 bulkSendTargets
-add src/features/core/messaging/bulkSendTargets/*/**  # 受け口 bulkSendTargets(フォルダ形)
 add src/features/core/messaging/categories/*.{ts,tsx}  # 受け口 categories
 add src/features/core/messaging/categories/*/**  # 受け口 categories(フォルダ形)
 add src/features/core/messaging/categoryGroups/*.{ts,tsx}  # 受け口 categoryGroups
@@ -319,6 +317,7 @@ generated src/registry/schemaRegistry.ts  # 生成器 registry の出力
 generated src/registry/domainConfigRegistry.ts  # 生成器 registry の出力
 generated src/registry/adminDomains.ts  # 生成器 registry の出力
 generated src/registry/messageRegistry.ts  # 生成器 registry の出力
+generated src/registry/recordTargetRegistry.ts  # 生成器 registry の出力
 generated src/features/core/*/entities/display.ts  # 生成器 registry の出力
 generated src/features/*/entities/display.ts  # 生成器 registry の出力
 generated src/registry/district-map.jsonl  # 生成器 district-map の出力

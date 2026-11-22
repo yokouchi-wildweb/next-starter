@@ -56,7 +56,7 @@ const word = (old, next, order, match, note = "") => ({ kind: "word", old, new: 
 
 const S2_DISPATCH = "送信の記録の embedded_values は vars の列に 1 つ(D202・AMENDMENT 1)。DB は pnpm task messaging:merge-dispatch-vars を db:push の前に";
 const S2_SYSTEM = "システムテンプレートの廃止(D171・D201): 自由連絡はレイアウトを直に選んで送る。テンプレートは DB の物だけ。手で直す";
-const S3_TARGET = "一覧の対象の受け口 bulkSendTargets → recordTargets(D182 (5)・D190・D195)。項目は持ち主のドメインの recordTargets/<名前>.ts";
+const S3_TARGET = "一覧の対象の受け口 bulkSendTargets → 記録の宛先 recordTargets(D182 (5)・D190・D195)。受け口ではなく、項目は持ち主のドメインの recordTargets/<名前>.ts";
 
 /** 語の対応表(旧 → 新)。1 つの場所: 後の指令はここに行を足す */
 export const VOCAB = [
@@ -161,14 +161,14 @@ export const VOCAB = [
   dir(`${M}/templates`, null, "S2", `${S2_SYSTEM}(受け口 systemTemplates の項目。fork の項目は DB のテンプレートか連絡定義へ)`),
   dir(`${M}/extensions/systemTemplates.ts`, null, "S2", `${S2_SYSTEM}(生成物。pnpm generate extensions が消す)`),
 
-  // ── S3 一覧の対象の受け口 bulkSendTargets → recordTargets・resolveUserIds → resolveRecipients
-  ex("MessageBulkSendTarget", "MessageRecordTarget", "S3", S3_TARGET),
-  ex("bulkSendTargets", "recordTargets", "S3", `${S3_TARGET}(生成した一覧)`),
-  ex("bulkSendTargetsList", "recordTargetsList", "S3", S3_TARGET),
+  // ── S3 一覧の対象の受け口 bulkSendTargets → 記録の宛先 recordTargets(持ち主のドメイン、連絡定義と同じ道)・resolveUserIds → resolveRecipients
+  ex("MessageBulkSendTarget", "MessageRecordTarget", "S3", `${S3_TARGET}。型は @/lib/messaging へ移った: import の元(services/server/admin/types)を手で替える`),
+  ex("bulkSendTargets", null, "S3", `${S3_TARGET}。生成した一覧(extensions/bulkSendTargets.ts)は無くなった: 一覧は src/registry/recordTargetRegistry.ts(pnpm generate registry、絞らない)、読み手は messaging の門番 loadRecordTarget(services/server/domainGate.ts)を通す`),
+  ex("bulkSendTargetsList", null, "S3", `${S3_TARGET}。生成した一覧の中の名前(無くなった)`),
   { kind: "code-name", as: "declaration", old: "bulkSendTarget", new: "recordTarget", order: "S3", note: `${S3_TARGET}(項目のファイルの export const)`, in: [`${M}/bulkSendTargets`, "src/features/*/recordTargets"] },
-  { ...mem("resolveUserIds", "resolveRecipients", "S3", "形も変わる: (recordIds) → [{ userId, vars, recordIds }](D190)。名前は直すので中身を手で直す"), hand: true },
-  dir(`${M}/bulkSendTargets`, "src/features/{owner}/recordTargets", "S3", `${S3_TARGET}。--owner <名前>=<ドメイン> で移し先を決める`),
-  dir(`${M}/extensions/bulkSendTargets.ts`, `${M}/extensions/recordTargets.ts`, "S3", "生成物。pnpm generate extensions が作り直す(集める置き場は S3 が決める)"),
+  { ...mem("resolveUserIds", "resolveRecipients", "S3", "形も変わる: (recordIds) → [{ userId, vars, recordIds }](1 人 1 件、D190・D204)。名前は直すので中身を手で直す"), hand: true },
+  dir(`${M}/bulkSendTargets`, "src/features/{owner}/recordTargets", "S3", `${S3_TARGET}。--owner <名前>=<ドメイン> で移し先を決める。項目の key は <ドメインのフォルダ名>.<ファイル名> に手で直す(ずれは pnpm generate registry が止める。管理 API の target・adminBulkActions の target も同じ鍵へ)`),
+  dir(`${M}/extensions/bulkSendTargets.ts`, null, "S3", "生成物(受け口 bulkSendTargets は無くなり pnpm generate extensions が消す)。記録の宛先の一覧は src/registry/recordTargetRegistry.ts(pnpm generate registry)"),
 
   // ── 開発の語(D180〜D182。書き換えず一覧に出すだけ)
   word("種類", "カテゴリー", "S1", "種類", "カテゴリー(category)の意味の時だけ(D182 (2))。種別(kind)・ほかの意味の種類はそのまま"),

@@ -4,7 +4,7 @@
 // 項目の部品 = 送るモーダル MessageSendModal を一括(bulk)の開き方で描く(宛先 = 選んだ記録、POST /api/admin/messaging/bulk-send、
 // 門 messagingBroadcast の外。種別・レイアウトを選んで書き、テンプレートの読み込み・プレビュー・自分へのテスト送信が使える。予約は無い)。
 // 決まった文面・カテゴリーは渡さない(それは連絡定義の物、D195 D200)。
-// 対に要るもの: サーバーの受け口 messaging/bulkSendTargets/<名前>.ts(key = options.target。記録 → 利用者 id・afterSend)。
+// 対に要るもの: 持ち主のドメインの記録の宛先 <domain>/recordTargets/<名前>.ts(key = options.target = <ドメインのフォルダ名>.<ファイル名>。記録 → 宛先・afterSend)。
 // 使い方: src/features/core/messaging/components/README.md「管理一覧の一括送信（AdminBulkSend）」
 
 "use client";
@@ -21,7 +21,7 @@ type ItemMeta<Access> = Omit<BulkActionItem<unknown, Access>, "Component">;
 
 /** 作成関数の options */
 export type BulkMessageActionOptions = {
-  /** 受け口 bulkSendTargets の項目の鍵(サーバーが記録 → 利用者を解く) */
+  /** 記録の宛先の鍵(<ドメインのフォルダ名>.<ファイル名>。サーバーが記録 → 宛先を解く) */
   target: string;
   /** 記録の名詞(文に入る。例: "振込レビュー") */
   recordNoun: string;

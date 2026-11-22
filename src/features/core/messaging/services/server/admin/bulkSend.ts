@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/admin/bulkSend.ts
 //
 // 管理の一括送信(D40・D42・D80・D81、指令 40 の AMENDMENT 2)。中身は送る画面(/send)と同じ形で、選んだ利用者へ送る。
-// - 宛先: 利用者 id を直に({ userIds })か、受け口 bulkSendTargets の項目で選んだ記録から({ target, recordIds })
+// - 宛先: 利用者 id を直に({ userIds })か、記録の宛先(持ち主のドメインの recordTargets/<名前>.ts、門番 loadRecordTarget で読む)で選んだ記録から({ target, recordIds })
 // - 中身: 送る画面(/send)と同じ { origin(レイアウト { layout } か DB のテンプレート { id, version }), values, edited?, vars?, category, channels? }(D117・D171)。
 //   検査も組み方も send.ts の部品と同じ(種別、宛先の種類 bulk を種別の性質 adminFreeText で、選べるレイアウト・古い版 409)。
 //   予約は無い(scheduledAt は 400)
@@ -16,6 +16,7 @@
 import { z } from "zod";
 
 import { DomainError } from "@/lib/errors";
+import type { MessageRecordTarget } from "@/lib/messaging";
 
 import type { MessagePreview } from "../sendMessage/sender";
 import type { SendMessageResult } from "../sendMessage/types";
@@ -38,7 +39,7 @@ import {
   type AdminSendOptions,
   type AdminSendResult,
 } from "./send";
-import type { AdminBulkSendCounts, AdminBulkSendOrigin, MessageBulkSendTarget } from "./types";
+import type { AdminBulkSendCounts, AdminBulkSendOrigin } from "./types";
 
 /** 1 回の一括送信の利用者の上限 */
 export const ADMIN_BULK_SEND_MAX_RECIPIENTS = 10_000;
@@ -52,7 +53,7 @@ export const AdminBulkSendInputSchema = z
   .object({
     /** 利用者 id を直に */
     userIds: idList.optional(),
-    /** 受け口 bulkSendTargets の鍵と、その一覧で選んだ記録の id */
+    /** 記録の宛先の鍵(<ドメインのフォルダ名>.<ファイル名>)と、その一覧で選んだ記録の id */
     target: z.string().trim().min(1).optional(),
     recordIds: idList.optional(),
     /** 送る中身・カテゴリー(種別の性質 adminFreeText に bulk がある種別: direct・promotion)・送信チャンネルの絞り(送る画面と同じ) */
@@ -87,7 +88,8 @@ export type AdminBulkSendResult = {
 
 export type AdminBulkSendDeps = AdminContentDeps &
   Pick<AdminSendDeps, "channels" | "layouts" | "enrichers" | "initialLayout"> & {
-  targets: Readonly<Record<string, MessageBulkSendTarget>>;
+  /** 記録の宛先を鍵で読む(門番 loadRecordTarget を通す: 無い・閉じたドメイン・enabled() が false = null) */
+  recordTarget: (key: string) => Promise<MessageRecordTarget | null>;
   /** 公開中のテンプレート(選択肢。門 messagingTemplates が開の時だけ読む) */
   listPublishedTemplates: () => Promise<AdminSendOptions["templates"]>;
   /** 門 messagingTemplates が開か */
@@ -102,14 +104,13 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
   const input = parseOr400(AdminBulkSendInputSchema, rawInput);
   const category = adminContentCategory(deps, input, "bulk");
 
-  let target: MessageBulkSendTarget | null = null;
+  let target: MessageRecordTarget | null = null;
   let userIds: string[];
   if (input.target) {
-    target = deps.targets[input.target] ?? null;
-    if (!target || (target.enabled && !target.enabled())) {
-      throw new DomainError("一括送信の対象が見つかりません", { status: 400 });
-    }
-    userIds = await target.resolveUserIds(input.recordIds ?? []);
+    target = await deps.recordTarget(input.target);
+    if (!target) throw new DomainError("一括送信の対象が見つかりません", { status: 400 });
+    // 宛先の記録から埋める値(vars)は定義の送る口(指令 05)が使う。ここは利用者だけ
+    userIds = (await target.resolveRecipients(input.recordIds ?? [])).map((recipient) => recipient.userId);
   } else {
     userIds = input.userIds ?? [];
   }
@@ -126,7 +127,7 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
     source,
     reason: input.reason,
     isTest: input.isTest,
-    ...(target ? { metadata: { bulkSendTarget: target.key, recordCount: input.recordIds?.length ?? 0 } } : {}),
+    ...(target ? { metadata: { recordTarget: target.key, recordCount: input.recordIds?.length ?? 0 } } : {}),
   });
 
   const counts: AdminBulkSendCounts = {
@@ -163,7 +164,7 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
       recipientCount: counts.recipientCount,
       channelCounts: counts.channelCounts,
       status: result.status,
-      ...(target ? { bulkSendTarget: target.key, recordCount: input.recordIds?.length ?? 0, afterSend } : {}),
+      ...(target ? { recordTarget: target.key, recordCount: input.recordIds?.length ?? 0, afterSend } : {}),
     },
     reason: input.reason ?? null,
   });

@@ -47,14 +47,8 @@ export const extensionPoints = {
     side: "server",
     key: "key",
   },
-  // 管理の一括送信の対象: bulkSendTargets/<名前>.ts の export const bulkSendTarget(鍵・表示名・選んだ記録 → 利用者 id・送った後の処理。D42)
-  bulkSendTargets: {
-    dir: "bulkSendTargets",
-    export: "bulkSendTarget",
-    type: { from: "@/features/core/messaging/services/server/admin/types", name: "MessageBulkSendTarget" },
-    side: "server",
-    key: "key",
-  },
+  // 記録の宛先(管理一覧で選んだ記録 → 宛先)は受け口ではない: 持ち主のドメインの recordTargets/<名前>.ts を
+  // pnpm generate registry が src/registry/recordTargetRegistry.ts に集める(連絡定義と同じ道、D195。型 MessageRecordTarget は lib/messaging)
   // 送った後の購読: subscribers/<名前>.ts の export const subscriber(鍵・受ける事件・絞り・事件の束の処理)
   subscribers: {
     dir: "subscribers",

@@ -91,5 +91,4 @@ export type {
   AdminPage,
   ListDeliveriesQuery,
   ListDispatchesQuery,
-  MessageBulkSendTarget,
 } from "./admin";

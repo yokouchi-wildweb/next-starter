@@ -15,7 +15,7 @@ import { DomainError } from "@/lib/errors";
 
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import { assertAdminActor } from "./assertAdmin";
-import type { MessageCategory, MessageChannel, MessageSource } from "@/lib/messaging";
+import type { MessageCategory, MessageChannel, MessageRecordTarget, MessageSource } from "@/lib/messaging";
 import { sourceLabelOf } from "./sourceLabels";
 
 import { adminBulkSend, adminBulkSendOptions, adminBulkSendPreview, adminBulkSendTest, type AdminBulkSendDeps } from "./bulkSend";
@@ -23,7 +23,6 @@ import { adminContinueSending } from "./continueSending";
 import { toDeliveryRow, toDispatchDetail, toDispatchSummary } from "./dispatchDto";
 import { operationFlags } from "./operations";
 import { decodeCursor, dispatchCategoryOptions, encodeCursor, findDispatch, listDeliveries, listDispatches, type AdminDispatchStore } from "./readDispatches";
-import type { MessageBulkSendTarget } from "./types";
 import { TEST_LAYOUTS } from "../sendMessage/testHelpers";
 
 const ctx = (actorId: string | null, actorType: AuditContext["actorType"] = "admin") =>
@@ -73,10 +72,15 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
   const calls: { fn: string; args: unknown[] }[] = [];
   const audits: AuditRecordInput[] = [];
   const after: unknown[] = [];
-  const target: MessageBulkSendTarget = {
+  const target: MessageRecordTarget = {
     key: "review",
     label: "審査",
-    resolveUserIds: async (ids) => ids.map((id) => `u-${id.replace(/\d$/, "")}`),
+    // 記録 x1・x2 → 利用者 u-x(1 人 1 件にまとめる)、y1 → u-y
+    resolveRecipients: async (ids) => {
+      const byUser = new Map<string, string[]>();
+      for (const id of ids) byUser.set(`u-${id.replace(/\d$/, "")}`, [...(byUser.get(`u-${id.replace(/\d$/, "")}`) ?? []), id]);
+      return [...byUser].map(([userId, recordIds]) => ({ userId, vars: {}, recordIds }));
+    },
     afterSend: async (result) => {
       after.push(result);
       if (options.afterSendFails) throw new Error("memo failed");
@@ -84,7 +88,8 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
   };
   const deps: AdminBulkSendDeps = {
     ...check(options.context === undefined ? ctx("admin1") : options.context),
-    targets: { review: target, off: { ...target, key: "off", enabled: () => false } },
+    // 読み手(門番 loadRecordTarget)の代わり: 無い鍵・閉じた・enabled() が false はどれも null
+    recordTarget: async (key) => (key === "review" ? target : null),
     channels: {
       email: { key: "email", label: "メール" } as unknown as MessageChannel,
       inApp: { key: "inApp", label: "お知らせ" } as unknown as MessageChannel,
@@ -151,7 +156,7 @@ test("一括送信(target): 記録 → 利用者、運営からのご連絡(dire
     { recordIds: ["x1", "x2", "y1"], dispatchId: "d1", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 3 }, values, origin: { layout: "notice" } },
   ]);
   assert.deepEqual(result.afterSend, { ok: true });
-  assert.equal((audits[0].metadata as Record<string, unknown>).bulkSendTarget, "review");
+  assert.equal((audits[0].metadata as Record<string, unknown>).recordTarget, "review");
 });
 
 test("afterSend が投げても送信は戻さず結果と監査に失敗を残す", async () => {
@@ -486,16 +491,17 @@ test("送信の画面の絞りの選択肢: 受け口のカテゴリーの鍵・
   await rejects403(dispatchCategoryOptions({ ...check(ctx("user1", "user")), categories }));
 });
 
-test("送り元の表示名: 受け口 → 同じ鍵の連絡の名前 → 一括の対象、無ければ null", async () => {
+test("送り元の表示名: 受け口 → 同じ鍵の連絡の名前 → 記録の宛先の一括送信、無ければ null", async () => {
   const deps = {
     sources: { "messaging.adminSend": { key: "messaging.adminSend", label: "管理画面から送信" } as MessageSource },
     messageLabel: async (key: string) => (key === "auth.passwordReset" ? "パスワードの再設定" : null),
-    bulkTargets: { bankTransferReview: { label: "振込レビュー" } },
+    recordTargetLabel: async (key: string) => (key === "bankTransferReview.reviews" ? "振込レビュー" : null),
   };
   assert.equal(await sourceLabelOf(deps, "messaging.adminSend"), "管理画面から送信");
   assert.equal(await sourceLabelOf(deps, "auth.passwordReset"), "パスワードの再設定");
-  assert.equal(await sourceLabelOf(deps, "bankTransferReview.bulk"), "振込レビューの一括送信");
-  assert.equal(await sourceLabelOf(deps, "bankTransferReview.bulk.test"), "振込レビューの一括送信のテスト");
+  assert.equal(await sourceLabelOf(deps, "bankTransferReview.reviews.bulk"), "振込レビューの一括送信");
+  assert.equal(await sourceLabelOf(deps, "bankTransferReview.reviews.bulk.test"), "振込レビューの一括送信のテスト");
+  assert.equal(await sourceLabelOf(deps, "closed.target.bulk"), null, "閉じたドメイン・無い記録の宛先は引かない");
   assert.equal(await sourceLabelOf(deps, "fork.unknown"), null);
 });
 
@@ -544,4 +550,19 @@ test("グループ宛ての送信: 一覧・1 件に targetGroup { id, name }(1 
   const closed = await findDispatch({ ...deps, groupNames: undefined }, "d2");
   assert.deepEqual(closed.targetGroup, { id: G1, name: null });
   assert.equal(toDispatchSummary(dispatchRow()).targetGroup, null);
+});
+
+test("記録の宛先の読み手(門番 loadRecordTarget): 鍵で遅延 import、無い鍵・enabled() が false は null", async () => {
+  const { loadRecordTarget, recordTargetOpen } = await import("../domainGate");
+  const item = (enabled: boolean): MessageRecordTarget => ({ key: "", label: "店の注文", enabled: () => enabled, resolveRecipients: async () => [] });
+  // どの機能の規則にも載らないドメインは常に開(門番は項目の domain で門を見る)
+  const registry = {
+    "testOnlyDomain.orders": { key: "testOnlyDomain.orders", domain: "testOnlyDomain", target: async () => ({ recordTarget: { ...item(true), key: "testOnlyDomain.orders" } }) },
+    "testOnlyDomain.off": { key: "testOnlyDomain.off", domain: "testOnlyDomain", target: async () => ({ recordTarget: { ...item(false), key: "testOnlyDomain.off" } }) },
+  };
+  assert.equal(recordTargetOpen({ domain: "testOnlyDomain" }), true);
+  assert.equal((await loadRecordTarget(registry, "testOnlyDomain.orders"))?.label, "店の注文");
+  assert.equal(await loadRecordTarget(registry, "testOnlyDomain.off"), null);
+  assert.equal(await loadRecordTarget(registry, "nope"), null);
+  assert.equal(await loadRecordTarget(registry, "constructor"), null);
 });

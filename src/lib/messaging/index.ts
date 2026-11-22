@@ -24,6 +24,14 @@ export type {
   MessageRegistryEntry,
 } from "./definition/registry";
 export type {
+  MessageRecordRecipient,
+  MessageRecordTarget,
+  MessageRecordTargetModule,
+  MessageRecordTargetRegistry,
+  MessageRecordTargetRegistryEntry,
+  MessageRecordTargetSent,
+} from "./recordTargets/types";
+export type {
   MessageDefinition,
   MessageKey,
   MessageKind,

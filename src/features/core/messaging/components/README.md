@@ -82,7 +82,7 @@ core_ui の形: 流れとデータは hook（`hooks/index.ts` から）、部品
 
 ### 管理一覧の一括送信（AdminBulkSend）
 
-受け口 `adminBulkActions` の項目を作る関数。対にサーバーの受け口 `bulkSendTargets/<名前>.ts` が要る（../services/server/admin/README.md）。
+受け口 `adminBulkActions` の項目を作る関数。対に持ち主のドメインの記録の宛先 `<domain>/recordTargets/<名前>.ts` が要る（../services/server/admin/README.md）。
 
 ```tsx
 // src/features/<domain>/adminBulkActions/notify.tsx
@@ -90,7 +90,7 @@ import { bulkMessageAction } from "@/features/core/messaging/components/AdminBul
 
 export const bulkAction = bulkMessageAction(
   { key: "notify", order: 100 },
-  { target: "<bulkSendTargets の key>", recordNoun: "発送リクエスト" },
+  { target: "<記録の宛先の鍵 = <ドメインのフォルダ名>.<ファイル名>>", recordNoun: "発送リクエスト" },
 );
 ```
 

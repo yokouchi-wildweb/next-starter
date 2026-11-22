@@ -20,4 +20,4 @@ if (all.length > 0) {
   console.error(`✗ src/registry の検査に失敗しました(${all.length} 件):\n${all.map((e) => `  - ${e}`).join("\n")}`);
   process.exit(1);
 }
-console.log(`✓ src/registry OK(serviceRegistry ${keys.length} キー・schemaRegistry・domainConfigRegistry・storagePurposeRegistry・adminDomains・messageRegistry・drizzle-kit 0.31.8 固定)`);
+console.log(`✓ src/registry OK(serviceRegistry ${keys.length} キー・schemaRegistry・domainConfigRegistry・storagePurposeRegistry・adminDomains・messageRegistry・recordTargetRegistry・drizzle-kit 0.31.8 固定)`);
