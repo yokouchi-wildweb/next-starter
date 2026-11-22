@@ -59,8 +59,11 @@ export type DomainField = {
   validationRule?: Readonly<Record<string, unknown>>;
   /** 説明文(枠がラベルの下に描く) */
   helperText?: string;
-  /** メタデータを別の項目に保存する対応(メタデータのキー → 項目名) */
-  metadataBinding?: Readonly<Record<string, string>>;
+  /**
+   * メタデータを別の項目に保存する対応(メタデータのキー → 項目名)。キーはメディアの種類ごとに違い、どれも省ける。
+   * Partial なのは、項目ごとに鍵の違う domain.json を JSON の import で読むと、TypeScript が他の項目の鍵を `?: undefined` で足すため
+   */
+  metadataBinding?: Readonly<Partial<Record<string, string>>>;
   /** 並び替え可否 */
   reorderable?: boolean;
   /** 値の重なりを許さない(生成器が一意の索引を作る) */

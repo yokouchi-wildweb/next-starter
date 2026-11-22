@@ -1,0 +1,20 @@
+{
+  "singular": "clip",
+  "label": "クリップ",
+  "fields": [
+    {
+      "name": "videoUrl",
+      "label": "動画",
+      "fieldType": "string",
+      "formInput": "mediaUploader",
+      "metadataBinding": { "sizeBytes": "videoSize", "mimeType": "videoMime", "durationSec": "videoDuration", "width": "videoWidth", "height": "videoHeight" }
+    },
+    {
+      "name": "audioUrl",
+      "label": "音声",
+      "fieldType": "string",
+      "formInput": "mediaUploader",
+      "metadataBinding": { "sizeBytes": "audioSize", "mimeType": "audioMime", "durationSec": "audioDuration" }
+    }
+  ]
+}
