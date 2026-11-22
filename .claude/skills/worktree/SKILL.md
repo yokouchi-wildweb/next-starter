@@ -16,7 +16,7 @@ args: $ARGUMENTS
 ## NEW (create)
 1. branch name:
    - user named one → use it as is
-   - none → propose `<area>/<short English description>` from the request; STOP: create only after the user confirms
+   - none → name it `<area>/<short English description>` from the request and go on (the report gives the name)
 2. base: none given → HEAD of the place it runs in | a request that should branch from main → add `--from main` (unsure → ask)
 3. run `pnpm workflow worktree new <branch> [--from <base>]`
 4. report:
@@ -29,6 +29,5 @@ args: $ARGUMENTS
 2. the output says files were left unchanged because their content differs (`内容が違うため未変更`) → name the files, ask whether to overwrite; STOP: rerun with `--force` only after the user agrees
 
 ## REMOVE (clean up)
-1. check the branch is merged into main (`git branch --merged main` etc.) | not merged → say so; STOP: continue only after the user confirms
-2. run `pnpm workflow worktree remove <path>` | stops on uncommitted changes → show them; STOP: ask the user (never commit or discard on your own)
-3. delete the branch (`git branch -d`): STOP: only after the user confirms
+1. check the branch is merged into main (`git branch --merged main` etc.) | not merged → say so in the report and go on (remove keeps the branch and its commits)
+2. run `pnpm workflow worktree remove <path>` | stops on uncommitted changes → show them; STOP: ask the user (never commit or discard on your own) | removed and merged → `git branch -d` (it refuses an unmerged branch)
