@@ -692,6 +692,28 @@ test("送信チャンネルの固定(D212): コードの送信は off を落と�
   assert.deepEqual(store.dispatches[3].channels, ["test", "inApp"]);
 });
 
+test("上書きの category と channelModes(D166・D212): 送信は付け替えた先のカテゴリーの種別・送信チャンネルで、固定の off を落とす", async () => {
+  const registry: MessageRegistry = {
+    "shop.notice": {
+      key: "shop.notice",
+      definition: async () => ({ message: notice }),
+      override: async () => ({ messageOverride: { category: "newsInApp", channelModes: { test: "off" } } }),
+    },
+  };
+  const store = createMemoryStore();
+  store.users.push({ id: "u2", name: "利用者2", email: null });
+  store.endpoints.push({ userId: "u2", channel: "test", address: "addr-u2" });
+  const testChannel = createTestChannel();
+  const inApp = createTestChannel("inApp");
+  inApp.resolveAddresses = async (ids) => ids.map((userId) => ({ userId, address: userId }));
+  const sender = createMessageSender(createDeps({ store, channels: { test: testChannel, inApp }, registry }));
+  await sender.sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: "靴" } });
+  const dispatch = store.dispatches[0];
+  assert.deepEqual([dispatch.category, dispatch.kind, dispatch.channels], ["newsInApp", "promotion", ["inApp"]]);
+  assert.equal(testChannel.calls.flat().length, 0);
+  assert.equal(inApp.calls.flat().length, 1);
+});
+
 test("種別の性質(D80): 記録の既定は種別から、security は苦情の停止を越えて届き好みを見ない", async () => {
   const store = createMemoryStore();
   store.users.push({ id: "u2", name: "利用者2", email: "u2@example.test" });

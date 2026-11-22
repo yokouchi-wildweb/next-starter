@@ -2,7 +2,7 @@
 // 連絡の字面の守り(./derive/messageGuards.mjs)と、連絡の上書きの点(lib/messaging の extensionPoints.ts の messages)。
 // 一時ディレクトリの fork(acme、祖先 parent)の木で planExtensions を回す。種類の点(messaging の categories)・種別の性質の表は本物を写す。
 // - 定義だけ・正しい上書き・項目 0 は通る
-// - category: 全部の定義に必須・受け口の鍵(上書きでは変えられない) / layout: 全部の定義に必須・ひな形の受け口のフォルダの名前
+// - category: 全部の定義に必須・受け口の鍵。上書きで付け替えられ(D166・D167)、守りは付け替えた後のカテゴリーで見る / layout: 全部の定義に必須・ひな形の受け口のフォルダの名前
 // - required の定義: 種類の経路に email・adminEditable が空・throttle が無い / required への上書き: enabled:false・adminEditable・throttle を止める
 // - 上流の functional の連絡は上書きで止められない(fork の木の core の定義)
 // - 種類の上書き: functional・security の email は外せない、group は受け口の鍵で同じ種別だけ
@@ -98,13 +98,39 @@ test("label: 全部の定義に必須(管理画面の連絡の名前、D46)・�
   assert.deepEqual(problemsOf({ [`${M}welcome.ts`]: OPTIONAL, [`${M}welcome.override.ts`]: override('label: "ようこそ"') }), []);
 });
 
-test("category: 全部の定義に必須・受け口の鍵。上書きでは変えられない", () => {
+test("category: 全部の定義に必須・受け口の鍵。上書きで付け替えられる(種別が違っても、functional でも、D166・D167)", () => {
   expectOne({ [`${M}a.ts`]: definition("", "nope") }, `${M}a.ts`, /category "nope" は categories の受け口に無い\(account \/ alert \/ inAppOnly \/ notice\)/);
   expectOne({ [`${M}a.ts`]: definition("").replace('  category: "account",\n', "") }, `${M}a.ts`, /category\(.*\)を書く/);
   expectOne({ [`${M}a.ts`]: definition("", "@CATEGORY") }, `${M}a.ts`, /category はリテラル/);
-  const problems = problemsOf({ [`${M}a.ts`]: OPTIONAL, [`${M}a.override.ts`]: override('category: "account"') });
-  assert.equal(problems.length, 1, problems.join(" / "));
-  assert.match(problems[0], /category は上書きできない/);
+  // 付け替えは通る(transactional → functional、functional → transactional)
+  assert.deepEqual(problemsOf({ [`${M}a.ts`]: definition("", "notice"), [`${M}a.override.ts`]: override('category: "account"') }), []);
+  assert.deepEqual(problemsOf({ [`${M}a.ts`]: definition(""), [`${M}a.override.ts`]: override('category: "notice"') }), []);
+  // 付け替え先は受け口の鍵・リテラル
+  expectOne({ [`${M}a.ts`]: OPTIONAL, [`${M}a.override.ts`]: override('category: "nope"') }, `${M}a.override.ts`, /category "nope" は categories の受け口に無い/);
+  expectOne({ [`${M}a.ts`]: OPTIONAL, [`${M}a.override.ts`]: override("category: CATEGORY") }, `${M}a.override.ts`, /category はリテラル/);
+  // 守りは付け替えた後のカテゴリーで見る: required の連絡を email の無いカテゴリーへ移すと止まる
+  expectOne({ [`${M}a.ts`]: REQUIRED, [`${M}a.override.ts`]: override('category: "inAppOnly"') }, `${M}a.ts`, /"email" を含める/);
+});
+
+test("channelModes(送信チャンネルの固定、D212): required か email を外せない種別の email は off にできない。上書きは丸ごと差し替え、付け替えた後の種別で見る", () => {
+  // 定義でも上書きでも、emailFixed の種別(functional・security)の email off は止まる
+  expectOne({ [`${M}a.ts`]: definition('channelModes: { email: "off" },') }, `${M}a.ts`, /種別 functional の連絡の email は off にできない/);
+  expectOne(
+    { [`${M}a.ts`]: definition("", "alert"), [`${M}a.override.ts`]: override('channelModes: { email: "off" }') },
+    `${M}a.override.ts`,
+    /種別 security の連絡の email は off にできない/,
+  );
+  expectOne({ [`${M}a.ts`]: definition("required: true,", "notice"), [`${M}a.override.ts`]: override('channelModes: { email: "off" }') }, `${M}a.override.ts`, /required の連絡の email/);
+  // 種別が email を外せる物なら通る。付け替えた先の種別で見る(functional → transactional は通り、transactional → functional は止まる)
+  assert.deepEqual(problemsOf({ [`${M}a.ts`]: OPTIONAL, [`${M}a.override.ts`]: override('channelModes: { email: "off", inApp: "on" }') }), []);
+  assert.deepEqual(problemsOf({ [`${M}a.ts`]: definition(""), [`${M}a.override.ts`]: override('category: "notice", channelModes: { email: "off" }') }), []);
+  expectOne(
+    { [`${M}a.ts`]: OPTIONAL.replace('adminEditableOnly: ["email.subject"],', ""), [`${M}a.override.ts`]: override('category: "account", channelModes: { email: "off" }') },
+    `${M}a.override.ts`,
+    /種別 functional の連絡の email は off にできない/,
+  );
+  // 上書きが丸ごと差し替える: 定義の email off は上書きの {} で消える
+  assert.deepEqual(problemsOf({ [`${M}a.ts`]: definition('channelModes: { email: "off" },', "notice"), [`${M}a.override.ts`]: override('category: "account", channelModes: {}') }), []);
 });
 
 test("layout: 全部の定義に必須・ひな形の受け口のフォルダの名前。上書きでは変えられない", () => {

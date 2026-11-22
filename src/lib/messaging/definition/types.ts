@@ -143,6 +143,16 @@ export type MessageOverride = {
   adminEditableOnly?: readonly string[];
   record?: MessageRecord;
   throttle?: MessageThrottle | null;
+  /**
+   * 所属のカテゴリーの付け替え(categories の受け口の鍵。fork のカテゴリーも可、種別が違ってもよい、functional の連絡も可 D166・D167)。
+   * 種別と送信チャンネルは付け替えた先のカテゴリーから引き、種別の性質の検査は付け替えた後の値に掛かる
+   */
+  category?: string;
+  /**
+   * 送信チャンネルの固定(D212)を丸ごと差し替える(送信チャンネルごとに重ねない)。カテゴリーを付け替える時は新しいカテゴリーの送信チャンネルで書き直す
+   * (カテゴリーの外の送信チャンネルは誤り)。{} = 全部 free
+   */
+  channelModes?: Readonly<Record<string, MessageChannelMode>>;
 };
 
 /** 上書きを重ねた後の定義(enabled と、カテゴリーから引いた種別・送信チャンネルを持つ) */

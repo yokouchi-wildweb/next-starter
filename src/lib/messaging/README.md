@@ -38,7 +38,9 @@ export const message = defineMessage({
 
 ### 上書き(MessageOverride)
 
-`messages/<名前>.override.ts`(データだけ)。変えられるのは名前 `label`(管理画面の表示名)・レイアウトの欄の中身 `values`(欄ごとに差し替え)・`extras`・`enabled`・`adminEditableOnly`・`record`・`throttle`(`null` で外す)。`key`・`vars`・`required`・`category`・`layout` は変えられない(送信チャンネルはカテゴリーの上書き `categories/<名前>.override.ts` の `channels` で変える。上流の functional の連絡は止められない)。
+`messages/<名前>.override.ts`(データだけ)。変えられるのは名前 `label`(管理画面の表示名)・レイアウトの欄の中身 `values`(欄ごとに差し替え)・`extras`・`enabled`・`adminEditableOnly`・`record`・`throttle`(`null` で外す)・所属のカテゴリー `category`(付け替え: fork のカテゴリーも可、種別が違ってもよい、functional の連絡も可 D166・D167。上流の呼び出しはそのままで属するカテゴリーだけが変わる)・送信チャンネルの固定 `channelModes`(丸ごと差し替え。カテゴリーを付け替える時は新しいカテゴリーの送信チャンネルで書き直す、外の送信チャンネルは `unknown_channel_mode`)。`key`・`vars`・`varNames`・`required`・`layout` は変えられない(送信チャンネルの集まりはカテゴリーの上書き `categories/<名前>.override.ts` の `channels` で変える)。
+
+種別の性質の検査(required の email・テキストの編集・間引き・email を外せない種別の email の off・上流の functional を止めない)は上書きを重ねた後の値(付け替えた先のカテゴリーの種別・送信チャンネル)に掛かる。functional の連絡をほかの種別のカテゴリーへ移すと、上書きで止められるようになる(D167: 付け替える fork には理由がある)。どのカテゴリーの項目を引くかは `messageCategoryKeyOf(definition, override)`。
 
 ```ts
 // src/features/core/auth/messages/verification.override.ts(fork)
@@ -126,7 +128,7 @@ export const messageOverride = {
 - `unknown_admin_editable`: adminEditableOnly の鍵がレイアウトの欄に無い
 - `unknown_variable`: 欄の中身の `{{鍵}}` が vars ∪ 共通の文脈に無い
 - `invalid_throttle`: throttle.by が vars に無い・seconds が正でない
-- `override_forbidden_key`: 上書きが key・kind・vars・required・category・defaultChannels を持つ
+- `override_forbidden_key`: 上書きが key・kind・vars・varNames・required・defaultChannels を持つ
 - `var_origin_overlap` / `unknown_var_origin` / `secret_admin_var` / `invalid_var_input` / `invalid_admin_target`: 管理者が送る時の宣言(定義の項目の adminVars・recordVars・adminTargets)
 - `unknown_channel_mode` / `channel_all_off` / `email_off_fixed`: 送信チャンネルの固定(channelModes)
 
@@ -216,9 +218,9 @@ export const messageOverride = {
   - 例: いいねをされた時(likeReceived)・フォローされた時・出品した物が売れた時(itemSold)・投稿にコメントが付いた時・メールアドレスの確認(emailVerification)・パスワードの再設定(passwordReset)・アカウントのロック(accountLocked)・会員登録が完了した時(registrationComplete)・ポイントの失効が近づいた時(walletExpiring)・ポイントが失効した時(walletExpired)
   - 上流のカテゴリーの一覧: src/features/core/messaging/README.md「連絡を足す」
 
-#### カテゴリーと種別は付け替えない(止めて足す)
+#### カテゴリーは上書きで付け替えられ、種別はカテゴリーが持つ
 
-- 設計の意図: 上書きでカテゴリー・種別を変えると、止めた行・集計・上流の検査が知らないうちに変わる
+- 設計の意図: fork が自分のカテゴリー(例 入金の連絡)へ上流の連絡を移す道(D166・D167)。上流のコードの呼び出しは変わらず、属するカテゴリーだけが変わる。カテゴリーの種別は上書きできない(種別を変えたいならカテゴリーを作る、D70)。種別の性質の守りは付け替えた後の値で見るので、移した先の種別の決まり(email を外せない等)が効く
 
 #### 機能の連絡(functional)は止められない
 
@@ -228,9 +230,10 @@ export const messageOverride = {
 
 生成の前に字面で止める(`scripts/structure/extensions/derive/messageGuards.mjs`。実行時は送る口が同じ守りを `validateMessageDefinition` で見る):
 
-- 全部の定義: `label`(字面の空でない文字列)が無い / `category` が無い・受け口に無い / `layout` が無い・レイアウトの受け口のフォルダに無い
+- 全部の定義: `label`(字面の空でない文字列)が無い / `category` が無い・受け口に無い / `layout` が無い・レイアウトの受け口のフォルダに無い。上書きの `category`(付け替え)も受け口の鍵で、下の守りは付け替えた後のカテゴリーで見る
+- 送信チャンネルの固定(`channelModes`、上書きがあれば上書きの物を丸ごと): required か email を外せない種別(functional・security)の連絡の `email: "off"`
 - required の定義: カテゴリーの送信チャンネルに `"email"` が無い・`adminEditableOnly` が空でない・`throttle` がある。その上書き: `enabled: false`・空でない `adminEditableOnly`・`throttle`(`null` で外すのは通す)
-- 上流(`src/features/core`)の functional のカテゴリーの連絡: 上書きで `enabled: false`
+- 上流(`src/features/core`)の functional のカテゴリーの連絡(付け替えた後のカテゴリーで見る): 上書きで `enabled: false`
 - カテゴリーの上書き(`categories/<名前>.override.ts`): functional・security のカテゴリーの `channels` から `"email"` を外す・空にする。`group` が categoryGroups の受け口に無い・1 つのグループに別の種別のカテゴリー
 - 守りに関わる値が変数・式だと止まる。種別の性質は `definition/kinds.ts` を字面で読む
 
