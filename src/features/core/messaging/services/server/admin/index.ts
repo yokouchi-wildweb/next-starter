@@ -19,8 +19,8 @@ import { USER_GROUP_KIND_LABELS } from "@/features/core/userGroup/services/serve
 import { messagingConfig } from "../../../config";
 import type { MessageDispatch } from "../../../entities/model";
 import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../entities/template";
-import { bulkSendTargets } from "../../../extensions/bulkSendTargets";
 import { messageRegistry } from "@/registry/messageRegistry";
+import { recordTargetRegistry } from "@/registry/recordTargetRegistry";
 
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
@@ -35,6 +35,7 @@ import {
   sendMessageDeps,
   sendResolved,
 } from "../sendMessage";
+import { loadRecordTarget } from "../domainGate";
 import { continueSending } from "../sweep";
 import { buildContent } from "../sendMessage/content";
 import { renderValue, toVariableMap } from "../sendMessage/context";
@@ -94,7 +95,7 @@ const recordAudit = (input: Parameters<typeof auditLogger.record>[0]) => auditLo
 /** 一括送信の部品(送る画面の部品を使う。門 messagingBroadcast には入れない、テンプレートの選択肢だけ門 messagingTemplates を見る) */
 const bulkDeps = (): AdminBulkSendDeps => ({
   ...sendDeps,
-  targets: bulkSendTargets,
+  recordTarget,
   templatesOpen: () => gate.enabled("messagingTemplates"),
 });
 
@@ -191,11 +192,16 @@ async function groupNames(groupIds: readonly string[]): Promise<Map<string, stri
   return new Map(rows.map((row) => [row.id, row.name]));
 }
 
+/** 記録の宛先を鍵で読む(門番を通す唯一の口。生成の一覧 recordTargetRegistry は絞らない) */
+const recordTarget = (key: string) => loadRecordTarget(recordTargetRegistry, key);
+/** 記録の宛先の表示名(送り元の表示名が引く。閉じたドメインの物は null) */
+const recordTargetLabel = async (key: string) => (await recordTarget(key))?.label ?? null;
+
 const readDeps = {
   ...adminCheck,
   groupNames,
   dispatchStore: drizzleAdminDispatchStore,
-  sourceLabel: (source: string) => sourceLabelOf({ sources, messageLabel, bulkTargets: bulkSendTargets }, source),
+  sourceLabel: (source: string) => sourceLabelOf({ sources, messageLabel, recordTargetLabel }, source),
   async operationInputs(row: MessageDispatch) {
     const [resolved, counts] = await Promise.all([definitionOf(row), drizzleMessageOperationsStore.countFailed(null, row.id)]);
     return { policy: policyOf(resolved, row), counts };
@@ -332,4 +338,4 @@ export type {
 } from "./send";
 export type { AdminDispatchCategoryOption, AdminPage, ListDeliveriesQuery, ListDispatchesQuery } from "./readDispatches";
 export type { AdminDeliveryRow, AdminDispatchDetail, AdminDispatchSameAs, AdminDispatchSummary, AdminDispatchTargetGroup } from "./dispatchDto";
-export type { AdminBulkSendCounts, AdminMessageContent, MessageBulkSendTarget } from "./types";
+export type { AdminBulkSendCounts, AdminMessageContent } from "./types";

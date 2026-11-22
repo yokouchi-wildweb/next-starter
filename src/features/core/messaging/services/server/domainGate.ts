@@ -1,8 +1,10 @@
 // src/features/core/messaging/services/server/domainGate.ts
-// 連絡はその定義のフォルダのドメインに属する(生成の一覧の鍵 <ドメインのフォルダ名>.<ファイル名>)。
-// ドメインが門で閉じていれば、その連絡はテキストの編集に出さず・直せず・送らない(上流も fork のドメインも同じ。D77)
+// 門番(D22・D77): 連絡と記録の宛先は、置いたフォルダのドメインに属する。ドメインが門で閉じていれば使わない(上流も fork のドメインも同じ)。
+// - 連絡: 生成の一覧の鍵 <ドメインのフォルダ名>.<ファイル名>。閉じていればテキストの編集に出さず・直せず・送らない
+// - 記録の宛先: 生成の一覧(src/registry/recordTargetRegistry.ts、絞らない)の項目の domain。読み手は全部 loadRecordTarget を通す
 
 import { gate } from "@/featureGate";
+import type { MessageRecordTarget, MessageRecordTargetRegistry, MessageRecordTargetRegistryEntry } from "@/lib/messaging";
 
 /** 連絡の鍵のドメイン(最初の "." の前) */
 export function messageDomainOf(messageKey: string): string {
@@ -13,4 +15,20 @@ export function messageDomainOf(messageKey: string): string {
 /** 連絡のドメインが開いているか(どの規則にも載らないドメインは常に開) */
 export function messageDomainOpen(messageKey: string): boolean {
   return gate.domainOpen(messageDomainOf(messageKey));
+}
+
+/** 記録の宛先の項目のドメインが開いているか(門番。どの規則にも載らないドメインは常に開) */
+export function recordTargetOpen(entry: Pick<MessageRecordTargetRegistryEntry, "domain">): boolean {
+  return gate.domainOpen(entry.domain);
+}
+
+/**
+ * 記録の宛先を鍵で読む(読み手の唯一の口)。無い鍵・閉じたドメイン(recordTargetOpen)・項目の enabled() が false = null
+ */
+export async function loadRecordTarget(registry: MessageRecordTargetRegistry, key: string): Promise<MessageRecordTarget | null> {
+  const entry = Object.hasOwn(registry, key) ? registry[key] : undefined;
+  if (!entry || !recordTargetOpen(entry)) return null;
+  const { recordTarget } = await entry.target();
+  if (recordTarget.enabled && !recordTarget.enabled()) return null;
+  return recordTarget;
 }

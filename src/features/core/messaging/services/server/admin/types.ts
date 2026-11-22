@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/admin/types.ts
 //
-// 管理の送信と読む口の型。受け口 bulkSendTargets(messaging/bulkSendTargets/<名前>.ts の export const bulkSendTarget)の項目の型もここ。
+// 管理の送信と読む口の型。記録の宛先の項目の型 MessageRecordTarget は lib/messaging(項目は持ち主のドメインの recordTargets/<名前>.ts)。
 
 import type { MessageChannelCounts } from "../../../entities/schema";
 
@@ -20,30 +20,3 @@ export type AdminBulkSendCounts = {
   queuedCount: number;
 };
 
-/**
- * 一括送信の対象(受け口 bulkSendTargets の項目)。管理一覧で選んだ記録 → 利用者 id の解決と、送った後の業務の処理を持つ(D42)。
- * 項目は messaging/bulkSendTargets/<名前>.ts に export const bulkSendTarget で置き、pnpm generate extensions が一覧にする。
- */
-export type MessageBulkSendTarget = {
-  /** 鍵(管理 API の target。送り元の既定は "<鍵>.bulk") */
-  key: string;
-  /** 表示名 */
-  label: string;
-  /** 使えるか(機能の門など。省略 = 使える) */
-  enabled?: () => boolean;
-  /** 選んだ記録の id → 利用者 id(重複は送り手が除く。見つからない記録は飛ばす) */
-  resolveUserIds: (recordIds: readonly string[]) => Promise<string[]>;
-  /**
-   * 送った後の業務の処理(管理メモの追記など)。送信の受け付けの直後に 1 回呼ぶ。
-   * 投げても送信は戻らない(結果の afterSend に失敗として返し、監査ログにも残す)
-   */
-  afterSend?: (result: {
-    recordIds: readonly string[];
-    dispatchId: string | null;
-    counts: AdminBulkSendCounts;
-    /** 送った欄の中身(レイアウトの欄、差し込む前の字。汎用のお知らせの件名は values.subject) */
-    values: Record<string, unknown>;
-    /** 中身の出どころ(レイアウトか DB のテンプレート) */
-    origin: AdminBulkSendOrigin;
-  }) => Promise<void>;
-};

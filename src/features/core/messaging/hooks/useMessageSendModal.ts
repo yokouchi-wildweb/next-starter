@@ -69,7 +69,7 @@ export type MessageSendMode =
   | { type: "sameAs"; dispatch: AdminDispatchDetail }
   | {
       type: "bulk";
-      /** 受け口 bulkSendTargets の項目の鍵 */
+      /** 記録の宛先(持ち主のドメインの recordTargets/<名前>.ts)の鍵 = <ドメインのフォルダ名>.<ファイル名> */
       target: string;
       /** 選んだ記録の id */
       recordIds: string[];

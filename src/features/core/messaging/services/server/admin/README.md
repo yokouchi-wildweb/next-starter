@@ -36,7 +36,7 @@
 - `POST`: 宛先 `{ userIds }` か `{ target, recordIds }`（10,000 人まで）、中身は `/send` と同じ `origin`・`values`・`edited?`・`vars?`・`category`・`channels?`、`idempotencyKey?`（8〜128 文字）・`source?`（既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`。予約は無い（`scheduledAt` は 400）。知らない鍵は 400
   - → `{ dispatchId, status, counts: { recipientCount, channelCounts, queuedCount }, afterSend: { ok: true } | { ok: false, error } | null }`
 - `POST /preview`・`POST /test`: `/send` と同じ（テストの送り元 `messaging.adminBulk.test`）
-- 対象の受け口 `bulkSendTargets/<名前>.ts`（`MessageBulkSendTarget`、`types.ts`）: `key`・`label`・`enabled?`・`resolveUserIds(recordIds)`・`afterSend?({ recordIds, dispatchId, counts, values, origin })`（受け付けの直後に 1 回。`values` = 差し込む前の欄の中身、`origin`（`AdminBulkSendOrigin`）= `{ layout }` か `{ id, version, edited }`。投げても送信は戻らず結果と監査に失敗を残す）。上流 `bankTransferReview`（振込審査 → 申告した利用者、メールを送ったら管理メモに「YYYY/MM/DD「件名」メール送付」）
+- 記録の宛先 `<domain>/recordTargets/<名前>.ts`（`MessageRecordTarget`、lib/messaging。生成の一覧 `src/registry/recordTargetRegistry.ts`、読み手は門番 `loadRecordTarget` = 無い鍵・閉じたドメイン・`enabled()` が false は 400）: `key`（= `<ドメインのフォルダ名>.<ファイル名>`）・`label`・`enabled?`・`resolveRecipients(recordIds)` → `[{ userId, vars, recordIds }]`（一括送信は userId だけを使う。vars は定義の送る口、指令 05）・`afterSend?({ recordIds, dispatchId, counts, values, origin })`（受け付けの直後に 1 回。`values` = 差し込む前の欄の中身、`origin`（`AdminBulkSendOrigin`）= `{ layout }` か `{ id, version, edited }`。投げても送信は戻らず結果と監査に失敗を残す）。上流 `bankTransferReview.reviews`（振込審査 → 申告した利用者、メールを送ったら管理メモに「YYYY/MM/DD「件名」メール送付」）
 - 監査: `messaging.dispatch.bulk_sent`（送り元・種別・送信チャンネル・数・状態・対象の鍵・afterSend）
 
 ### 送信の読む口（readDispatches.ts・dispatchDto.ts、門 `messagingDispatches`）

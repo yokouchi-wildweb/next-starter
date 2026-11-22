@@ -112,7 +112,7 @@ HTTP の口と返す形は口のフォルダの README:
 - `categories/`（`category`: `MessageCategory`）: カテゴリー（種別・送信チャンネル・グループ・表示名・説明）。上流のカテゴリーは隣の `<名前>.override.ts` で `label`・`description`・`channels`・`defaultChannels`（送る画面で最初に入っている送信チャンネル）・`group`・`adminLabel`（管理画面の名前）を変えられる（`key`・`kind` は不可、functional・security の email は外せない = `pnpm check extensions`）
 - `categoryGroups/`（`group`: `MessageCategoryGroup`）: カテゴリーのグループ（好みのページの見出し、同じ種別のカテゴリーだけ、`order` の順）。上流は出荷しない
 - `sources/`（`source`: `MessageSource`）: 送り元の表示名。上流は管理の送り元 4 つ（`adminSend`・`adminSendTest`・`adminBulk`・`adminBulkTest`）。送信の詳細の送り元は `sources/` → 同じ鍵の連絡の `label` → 一括の対象 `<対象>.bulk(.test)` の順に引く（`services/server/admin/sourceLabels.ts`）
-- `bulkSendTargets/`（`bulkSendTarget`: `MessageBulkSendTarget`、型は `services/server/admin/types.ts`）: 管理一覧の一括送信の対象（選んだ記録 → 利用者 id・送った後の処理）。上流は `bankTransferReview`（services/server/admin/README.md）
+- 記録の宛先は受け口ではない: 持ち主のドメインの `<domain>/recordTargets/<名前>.ts`（`recordTarget`: `MessageRecordTarget`、型は lib/messaging）。管理一覧で選んだ記録 → 宛先（1 人 1 件 `{ userId, vars, recordIds }`）・送った後の処理。鍵 = `<ドメインのフォルダ名>.<ファイル名>`。`pnpm generate registry` が `src/registry/recordTargetRegistry.ts` に集め（絞らない）、読み手は門番 `loadRecordTarget`（`services/server/domainGate.ts`、閉じたドメインを落とす）を通す。fork の物は fork の自分のドメインに置く。上流は `bankTransferReview.reviews`（services/server/admin/README.md）
 - `adminBulkActions/`（`bulkAction`: `MessagingDispatchAdminBulkActionItem`、型は `types/adminBulkAction.ts`、client）: 送信一覧の一括操作。上流の既定 = `delete.tsx`（削除）。fork は項目を足す・`<名前>.override.ts` で `enabled`・`order`（作り方: src/lib/tableSuite/README.md「一括操作の受け口」）
 - `subscribers/`（`subscriber`: `MessageSubscriber`）: 送った後の事件の購読（少なくとも 1 回）。上流の項目は無い（services/server/subscribers/README.md）
 

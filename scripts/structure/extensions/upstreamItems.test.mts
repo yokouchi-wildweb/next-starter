@@ -117,7 +117,6 @@ test("上流の項目の組: 宣言と受け口がそろい、機能に閉じる
   assertUpstreamItems(names("src/features/core/user", "reservedNames"), []);
   assertUpstreamItems(names("src/features/core/purchaseRequest", "completionStrategies"), ["walletTopup"]);
   assertUpstreamItems(names("src/features/core/batchJob", "jobHandlers"), ["walletBulkAdjust"]);
-  assertUpstreamItems(names("src/features/core/messaging", "bulkSendTargets"), ["bankTransferReview"]);
   assertUpstreamItems(names("src/features/core/messaging", "enrichers"), ["displayName"]);
 });
 

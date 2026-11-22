@@ -181,6 +181,16 @@ export const messageOverride = {
 - `MessageSource`(送り元): `key`・`label`
 - `MessageSubscriber`(送った後の購読): `key`・`on`(事件の種類)・`filter?`(連絡の鍵・送信チャンネル)・`handle(事件の束)`(事件の id + 購読の鍵で冪等に。投げると次回もう一度渡る)
 
+### 記録の宛先(recordTargets/types.ts)
+
+管理一覧で選んだ記録 → 宛先を解く項目(D190・D195・D204)。受け口ではなく、連絡定義と同じ道で集める:
+
+- 置き場: 持ち主のドメインの `<domain>/recordTargets/<名前>.ts` に `export const recordTarget: MessageRecordTarget = { key, label, enabled?, resolveRecipients, afterSend? }`。fork の物は fork の自分のドメインに置く(上流のドメインの記録でも、requires を付けて自分のドメインに。D26)
+- 鍵 = `<ドメインのフォルダ名>.<ファイル名>` の文字列リテラル(場所とずれる・重なる = `pnpm generate registry` が止める)。管理 API の `target`、送り元の既定 `<鍵>.bulk`
+- `resolveRecipients(recordIds)` → `MessageRecordRecipient[]` = `{ userId, vars, recordIds }`(1 人 1 件。記録ごとか、まとめるかは項目が決める)。`vars` = 記録から埋める連絡の値
+- `afterSend?(sent: MessageRecordTargetSent)`: 送信の受け付けの直後に 1 回(投げても送信は戻らない)
+- 生成の一覧 `src/registry/recordTargetRegistry.ts`(`MessageRecordTargetRegistry` = 鍵 → `{ key, domain, target: () => import }`、絞らない)。読み手は messaging の門番 `loadRecordTarget`(`recordTargetOpen` = 項目の domain の門。閉じていれば null)を通す
+
 ## Internals
 
 ### 定義で間違えやすい線

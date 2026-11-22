@@ -16,6 +16,7 @@
   - `storagePurposeRegistry`: 全 `services/server/storagePurposes.ts`
   - `adminDomains`: 管理一覧の画面 `src/app/admin/(protected)/<kebab 複数形>/page.tsx` を持つ全ドメイン(`generate: false` も)。キー = フォルダ名 → 題名・住所・`addToAdminDataMenu`。管理メニューの項目 `domain:` と出どころ `dataMenu` が読む(`src/features/core/admin/menu/`)。管理メニューの行は受け口 `src/features/core/admin/menu/`、ドメインを「データ管理」から外す = `domain.json` の `addToAdminDataMenu: false`
   - `messageRegistry`: 全ドメインの `messages/<名前>.ts` の連絡の定義(鍵 = `<フォルダ名>.<ファイル名>` → 定義・隣の `.override.ts`・`views/<名前>.tsx` の遅延 import。key のずれ・重なり・定義の無い描き方は止める。`alpha/messageRegistry.mjs`、決まりは `src/lib/messaging/README.md`)
+  - `recordTargetRegistry`: 全ドメインの `recordTargets/<名前>.ts` の記録の宛先(鍵 = `<フォルダ名>.<ファイル名>` → ドメイン・項目の遅延 import。絞らない = 閉じたドメインは使う時に門番 `recordTargetOpen` が落とす。key のずれ・重なりは止める。`alpha/recordTargetRegistry.mjs`、決まりは `src/lib/messaging/README.md`「記録の宛先」)
 
 ## Usage
 
