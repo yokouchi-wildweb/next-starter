@@ -61,7 +61,6 @@ export {
 export { ADMIN_SEND_KEY, ADMIN_SEND_OPTIONS_KEY } from "./sendKeys";
 export { useAdminSendOptions } from "./useAdminSendOptions";
 export {
-  ADMIN_BULK_SEND_DEFAULT_CATEGORY,
   useMessageSendModal,
   scheduleErrorOf,
   kindsOf,
@@ -72,7 +71,6 @@ export {
   overLimitText,
   TARGET_GROUP_GONE_NOTE,
   type MessageSendMode,
-  type MessageSendDefaults,
   type MessageSendTarget,
   type MessageSendTargetType,
   type MessageSendResult,

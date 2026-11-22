@@ -2,7 +2,8 @@
 // 管理一覧の一括操作「一括送信」の作成関数 bulkMessageAction(どのドメインの adminBulkActions の項目からも使う。D42)。
 // @/lib/crud の bulk*Action と同じ形(meta + options → BulkActionItem)。lib は features を読めないので messaging に置く。
 // 項目の部品 = 送るモーダル MessageSendModal を一括(bulk)の開き方で描く(宛先 = 選んだ記録、POST /api/admin/messaging/bulk-send、
-// 門 messagingBroadcast の外。テンプレートの呼び出し・プレビュー・自分へのテスト送信が使える。予約は無い)。
+// 門 messagingBroadcast の外。種別・レイアウトを選んで書き、テンプレートの読み込み・プレビュー・自分へのテスト送信が使える。予約は無い)。
+// 決まった文面・カテゴリーは渡さない(それは連絡定義の物、D195 D200)。
 // 対に要るもの: サーバーの受け口 messaging/bulkSendTargets/<名前>.ts(key = options.target。記録 → 利用者 id・afterSend)。
 // 使い方: src/features/core/messaging/components/README.md「管理一覧の一括送信（AdminBulkSend）」
 
@@ -13,7 +14,6 @@ import { Mail } from "lucide-react";
 import type { BulkActionItem, BulkActionProps } from "@/lib/tableSuite";
 
 import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
-import type { MessageSendDefaults } from "@/features/core/messaging/hooks/useMessageSendModal";
 import type { AdminBulkSendResult } from "@/features/core/messaging/services/client/adminMessagingClient";
 
 /** 項目の並べ方・出し分け(BulkActionItem の Component 以外) */
@@ -27,18 +27,12 @@ export type BulkMessageActionOptions = {
   recordNoun: string;
   /** ボタンとモーダルの題(既定「一括送信」) */
   label?: string;
-  /** 書く欄の初期値({ values } = 種別の白紙のレイアウトの欄の中身に重ねる値。例 汎用のお知らせ { subject, blocks }) */
-  defaults?: MessageSendDefaults;
-  /** 既定のカテゴリー(既定 operatorDirect。選べなければ最初) */
-  defaultCategory?: string;
   /** 送り元(省略 = サーバーが "<target>.bulk") */
   source?: string;
   disabled?: boolean;
   /** 送った結果(任意) */
   onSent?: (result: AdminBulkSendResult) => void;
 };
-
-export type { MessageSendDefaults as AdminBulkSendDefaults };
 
 /** 選んだ記録に紐づく利用者へ連絡を一括で送る(送るモーダルの bulk) */
 export function bulkMessageAction<Row = unknown, Access = unknown>(
@@ -52,8 +46,6 @@ export function bulkMessageAction<Row = unknown, Access = unknown>(
         target: options.target,
         recordIds: selection.selectedIds,
         recordNoun: options.recordNoun,
-        defaults: options.defaults,
-        defaultCategory: options.defaultCategory,
         source: options.source,
       }}
       label={options.label ?? "一括送信"}

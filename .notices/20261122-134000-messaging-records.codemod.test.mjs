@@ -103,6 +103,9 @@ test("対応表: 形が正しく、指令の行がそろう", () => {
   assert.ok(has("code-name", "embedded_values", "vars", "S2"));
   assert.ok(VOCAB.some((r) => r.kind === "word" && r.old === "system_template" && r.new === null && r.order === "S2"));
   assert.ok(has("code-name", "MessageSystemTemplate", null, "S2"));
+  assert.ok(has("code-name", "MessageSendDefaults", null, "S2"));
+  assert.ok(has("code-name", "AdminBulkSendDefaults", null, "S2"));
+  assert.ok(has("code-name", "ADMIN_BULK_SEND_DEFAULT_CATEGORY", null, "S2"));
   assert.ok(has("code-name", "MessageBulkSendTarget", "MessageRecordTarget", "S3"));
   assert.ok(has("code-name", "resolveUserIds", "resolveRecipients", "S3"));
   assert.ok(has("path", "src/features/core/messaging/bulkSendTargets", "src/features/{owner}/recordTargets", "S3"));

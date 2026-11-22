@@ -154,6 +154,10 @@ export const VOCAB = [
   { ...ex("blankOfKind", "blankLayoutOf", "S2", "形も変わる: blankLayoutOf(layouts) = 管理画面で選べる最初のレイアウト"), hand: true },
   { ...ex("blankTextState", "layoutTextState", "S2", "形も変わる: layoutTextState({ key, label }, start?)"), hand: true },
   mem("currentSystem", "currentLayout", "S2", "送るモーダルの hook の戻り値(今のレイアウトの表示名)"),
+  // 一括送信の決まった文面・カテゴリーの指定は無い(D195 D200)。options の defaults / defaultCategory は手で消す(pnpm typecheck が止める)
+  ex("MessageSendDefaults", null, "S2", "一括送信の決まった文面の指定は無い。決まった文面は連絡定義(messages/<名前>.ts)へ(D195 D200)。bulkMessageAction / mode bulk の defaults は消す"),
+  ex("AdminBulkSendDefaults", null, "S2", "一括送信の決まった文面の指定は無い。決まった文面は連絡定義(messages/<名前>.ts)へ(D195 D200)。bulkMessageAction の defaults は消す"),
+  ex("ADMIN_BULK_SEND_DEFAULT_CATEGORY", null, "S2", "一括送信も新しく送ると同じく種別から選ぶ(既定のカテゴリーは無い、D195)。bulkMessageAction / mode bulk の defaultCategory は消す"),
   dir(`${M}/templates`, null, "S2", `${S2_SYSTEM}(受け口 systemTemplates の項目。fork の項目は DB のテンプレートか連絡定義へ)`),
   dir(`${M}/extensions/systemTemplates.ts`, null, "S2", `${S2_SYSTEM}(生成物。pnpm generate extensions が消す)`),
 

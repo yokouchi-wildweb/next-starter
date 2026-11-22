@@ -19,7 +19,7 @@
 // - 送る口の入力 = { category, channels?, origin: { layout } | { id, version }, values, edited?, vars? }(services/server/admin/send.ts)
 // - 見込み → 確認の段・予約の検査・二重送信を防ぐ鍵(開くたびに 1 つ、送った後に作り直す)はこの hook の中
 // - 書きかけ(dirty)の間: ページを離れる前に確かめる(@/lib/unsavedGuard)。閉じる前の確かめは closeConfirm を Modal の confirmOnClose に渡す
-// - 初めの値(sameAs の写し・bulk の既定)は state に入れず、まだ触っていない物は mode と選択肢から導く(effect で写さない)
+// - 初めの値(sameAs の写し)は state に入れず、まだ触っていない物は mode と選択肢から導く(effect で写さない)
 
 import { useCallback, useMemo, useState } from "react";
 
@@ -60,14 +60,6 @@ import { useAdminSendOptions } from "./useAdminSendOptions";
 import { useLayoutPreview } from "./useLayoutPreview";
 import { layoutTextState, varPreviewValues, templateTextState, useSendTemplateText, type SendTextState } from "./useSendTemplateText";
 
-/** 一覧の一括操作の既定のカテゴリー(種別 direct、D81) */
-export const ADMIN_BULK_SEND_DEFAULT_CATEGORY = "operatorDirect";
-
-/** 書く欄の初期値(bulk)。values = 種別の白紙のレイアウトの欄の中身に重ねる値(例 汎用のお知らせ { title, body }) */
-export type MessageSendDefaults = {
-  values?: Record<string, unknown>;
-};
-
 export type MessageSendMode =
   | {
       type: "new";
@@ -83,9 +75,6 @@ export type MessageSendMode =
       recordIds: string[];
       /** 記録の名詞(例: "振込レビュー") */
       recordNoun: string;
-      defaults?: MessageSendDefaults;
-      /** 既定のカテゴリー(既定 operatorDirect、選べなければ最初。種別もこのカテゴリーの物から) */
-      defaultCategory?: string;
       /** 送り元(省略 = サーバーが "<target>.bulk") */
       source?: string;
     };
@@ -124,11 +113,9 @@ export function kindsOf(categories: readonly AdminFreeTextCategoryOption[]): str
   return [...new Set(categories.map((option) => option.kind))];
 }
 
-/** mode から導く初めのカテゴリー(sameAs = 送信のカテゴリー、bulk = 既定のカテゴリー) */
+/** mode から導く初めのカテゴリー(sameAs = 送信のカテゴリー。new・bulk は種別から選ぶ = null、決まった文面・カテゴリーは連絡定義の物、D195) */
 function preferredCategoryOf(mode: MessageSendMode): string | null {
-  if (mode.type === "sameAs") return mode.dispatch.category;
-  if (mode.type === "bulk") return mode.defaultCategory ?? ADMIN_BULK_SEND_DEFAULT_CATEGORY;
-  return null;
+  return mode.type === "sameAs" ? mode.dispatch.category : null;
 }
 
 /**
@@ -161,10 +148,7 @@ export function initialTextOf(
 ): SendTextState | null {
   const blank = blankLayoutOf(layouts, initialLayout);
   const blankState = blank ? layoutTextState(blank) : null;
-  if (mode.type === "bulk") {
-    return blankState ? { ...blankState, start: { ...blankState.start, ...(mode.defaults?.values ?? {}) } } : null;
-  }
-  if (mode.type === "new") return blankState;
+  if (mode.type !== "sameAs") return blankState;
   // 写すのはサーバーが答えた自由連絡の写しだけ(定義連絡の送信は null = 白紙、D193)
   const same = mode.dispatch.sameAs;
   if (!same) return blankState;
@@ -292,7 +276,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     [allCategories],
   );
   const preferredCategory = preferredCategoryOf(mode);
-  // 新しく送る時は種別を選ばせる(先に選んでおかない、D110 D118)。同じ内容で送る・一括送信は送信 / 既定のカテゴリーの種別
+  // 新しく送る・一括送信は種別を選ばせる(先に選んでおかない、D110 D118 D195)。同じ内容で送るは送信のカテゴリーの種別
   const initialKind = allCategories.find((option) => option.key === preferredCategory)?.kind ?? "";
   const kind = kindState !== null && kinds.some((item) => item.key === kindState) ? kindState : initialKind;
   const kindCategories = useMemo(() => allCategories.filter((option) => option.kind === kind), [allCategories, kind]);
