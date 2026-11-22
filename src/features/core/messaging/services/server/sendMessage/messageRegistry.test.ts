@@ -13,6 +13,7 @@ import { z } from "zod";
 import { type MessageRegistry } from "@/lib/messaging";
 import { messageRegistry } from "@/registry/messageRegistry";
 
+import { messagingConfig } from "../../../config";
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
@@ -21,14 +22,14 @@ import { layouts } from "../../../extensions/layouts";
 import { checkMessageRegistry } from "./definition";
 import { TEST_CATEGORIES, TEST_LAYOUTS, createTestChannel, defineTestMessage } from "./testHelpers";
 
-test("生成の一覧の全件: 鍵が合い、上書きを重ねた定義が検査を通り、カテゴリーの送信チャンネルの全部で描ける", async () => {
+test("生成の一覧の全件: 鍵が合い、上書きを重ねた定義が検査を通り、カテゴリーの送信チャンネルの全部で描け、config の initialLayout が選べるレイアウト", async () => {
   assert.deepEqual(
-    await checkMessageRegistry({ registry: messageRegistry, channels, enrichers, categories, layouts, layoutRenderers: { email: layoutEmails } }),
+    await checkMessageRegistry({ registry: messageRegistry, channels, enrichers, categories, layouts, layoutRenderers: { email: layoutEmails }, initialLayout: messagingConfig.initialLayout }),
     [],
   );
 });
 
-const testDeps = { enrichers: {}, categories: TEST_CATEGORIES, layouts: TEST_LAYOUTS, layoutRenderers: {} };
+const testDeps = { enrichers: {}, categories: TEST_CATEGORIES, layouts: TEST_LAYOUTS, layoutRenderers: {}, initialLayout: "notice" };
 
 test("誤りを見つける: 鍵の食い違い・上書きの誤り・描けない送信チャンネル", async () => {
   const good = defineTestMessage({
@@ -75,4 +76,29 @@ test("category・レイアウト: 受け口に無い鍵は誤り、欄の中身�
   assert.match(problems[0], /^shop\.unknown: .*category nope は categories の受け口に無い/);
   assert.match(problems[1], /^shop\.noLayout: .*layout nope は layouts の受け口に無い/);
   assert.match(problems[2], /^shop\.empty: .*レイアウト「テストのカード」の欄の中身が正しくない/);
+});
+
+test("無効のレイアウト: 定義連絡が使えば定義とレイアウトの両方の名前で止まる(受け口の一覧には残る)", async () => {
+  const layouts = { ...TEST_LAYOUTS, card: { ...TEST_LAYOUTS.card!, disabled: true } };
+  const message = defineTestMessage({
+    key: "shop.onDisabled",
+    label: "テストの連絡",
+    category: "news",
+    vars: z.object({ item: z.string() }),
+    layout: "card",
+    values: { title: "{{item}}" },
+  });
+  const registry: MessageRegistry = { "shop.onDisabled": { key: "shop.onDisabled", definition: async () => ({ message }) } };
+  const problems = await checkMessageRegistry({ ...testDeps, layouts, registry, channels: { test: createTestChannel() } });
+  assert.equal(problems.length, 1, problems.join(" / "));
+  assert.match(problems[0], /^shop\.onDisabled: .*layout card(テストのカード)は無効(disabled)/);
+});
+
+test("config の initialLayout: 受け口に無い・無効・管理画面で選べないレイアウトは検査が止める(黙って替えない)", async () => {
+  const deps = { ...testDeps, registry: {}, channels: { test: createTestChannel() } };
+  assert.deepEqual(await checkMessageRegistry(deps), []);
+  assert.match((await checkMessageRegistry({ ...deps, initialLayout: "nope" }))[0], /initialLayout nope は layouts の受け口に無い/);
+  assert.match((await checkMessageRegistry({ ...deps, initialLayout: "card" }))[0], /initialLayout card(テストのカード)は管理画面で選べない/);
+  const disabled = { ...TEST_LAYOUTS, notice: { ...TEST_LAYOUTS.notice!, disabled: true } };
+  assert.match((await checkMessageRegistry({ ...deps, layouts: disabled }))[0], /initialLayout notice(.*)は無効(disabled)/);
 });

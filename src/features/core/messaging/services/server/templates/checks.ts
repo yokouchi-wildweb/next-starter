@@ -12,6 +12,8 @@ import {
   checkVarCatalog,
   varCatalog,
   findVar,
+  isLayoutAdminSelectable,
+  isLayoutUsable,
   layoutValuesSchema,
   layoutVersionOf,
   messageVarDeclarationSchema,
@@ -53,9 +55,9 @@ export function templateVarCatalog(deps: TemplateCheckDeps, own: readonly Messag
   return varCatalog({ own, enrichers: deps.enrichers });
 }
 
-/** 管理者が選べるレイアウト */
+/** 管理者が選べるレイアウト(使えて adminSelectable。無効のレイアウトは出さない) */
 export function adminSelectableLayouts(deps: Pick<TemplateCheckDeps, "layouts">): MessageLayout[] {
-  return Object.values(deps.layouts).filter((layout) => layout.adminSelectable === true);
+  return Object.values(deps.layouts).filter(isLayoutAdminSelectable);
 }
 
 /**
@@ -73,7 +75,8 @@ export function checkTemplateFields(deps: TemplateCheckDeps, fields: TemplateFie
   const layout = deps.layouts[fields.layout];
   let values: Record<string, unknown> = {};
   if (!layout) problems.push(`ひな形 ${fields.layout} はありません`);
-  else if (layout.adminSelectable !== true) problems.push(`ひな形「${layout.label}」は管理者が選べるひな形ではありません`);
+  else if (!isLayoutUsable(layout)) problems.push(`レイアウト「${layout.label}」は使えません(無効)`);
+  else if (!isLayoutAdminSelectable(layout)) problems.push(`ひな形「${layout.label}」は管理者が選べるひな形ではありません`);
   else {
     const channels = category ? category.channels.filter((key) => deps.channels[key]?.enabled !== false) : undefined;
     const parsed = layoutValuesSchema(layout, { channels }).safeParse(fields.values);

@@ -195,6 +195,7 @@ add src/features/core/messaging/enrichers/*.{ts,tsx}  # 受け口 enrichers
 add src/features/core/messaging/enrichers/*/**  # 受け口 enrichers(フォルダ形)
 add src/features/core/messaging/layouts/*/email.tsx  # 受け口 layoutEmails・layoutInApps・layouts
 add src/features/core/messaging/layouts/*/inApp.tsx  # 受け口 layoutEmails・layoutInApps・layouts
+add src/features/core/messaging/layouts/*/layout.override.{ts,tsx}  # 受け口 layoutEmails・layoutInApps・layouts
 add src/features/core/messaging/layouts/*/layout.ts  # 受け口 layoutEmails・layoutInApps・layouts
 add src/features/core/messaging/sources/*.{ts,tsx}  # 受け口 sources
 add src/features/core/messaging/sources/*/**  # 受け口 sources(フォルダ形)

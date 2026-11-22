@@ -12,7 +12,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
-import type { MessageCategory, MessageChannel, MessageEnricher } from "@/lib/messaging";
+import type { MessageCategory, MessageChannel, MessageEnricher, MessageLayout } from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 import { z } from "zod";
@@ -51,7 +51,7 @@ const layouts = { ...TEST_LAYOUTS, notice: { ...TEST_LAYOUTS.notice!, adminSelec
 
 const IMAGE = "storage://pub/notification.image/00000000-0000-4000-8000-000000000001.png";
 
-function setup(options: { role?: string; kept?: TemplateKeptDispatch[] } = {}) {
+function setup(options: { role?: string; kept?: TemplateKeptDispatch[]; layouts?: Record<string, MessageLayout> } = {}) {
   const templates: MessageTemplate[] = [];
   const versions: MessageTemplateVersion[] = [];
   const audits: AuditRecordInput[] = [];
@@ -123,7 +123,8 @@ function setup(options: { role?: string; kept?: TemplateKeptDispatch[] } = {}) {
       },
       copy: async (ref) => `${ref}#copy`,
     },
-    check: () => ({ channels, categories, layouts, enrichers }),
+    check: () => ({ channels, categories, layouts: options.layouts ?? layouts, enrichers }),
+    initialLayout: () => "notice",
     context: () => ({ actorId: ADMIN, actorType: "user" }) as never,
     roleCategoryOf: async () => options.role ?? "admin",
     recordAudit: async (input) => audits.push(input),
@@ -309,10 +310,23 @@ test("画面の選択肢: 使える送信チャンネル・3 つの種別のカ�
     { key: "operatorDirect", label: "運営からのご連絡", description: null, kind: "direct", channels: ["email"] },
   ]);
   assert.deepEqual(options.layouts.map((layout) => layout.key), ["notice"]);
+  // 作る画面が最初に開くレイアウト = config の initialLayout
+  assert.equal(options.initialLayout, "notice");
   const names = options.baseCatalog.map((entry) => entry.key);
   assert.ok(names.includes("serviceName"));
   assert.ok(names.includes("displayName"));
   assert.ok(!names.includes("discount"));
+});
+
+test("無効のレイアウト: 一覧は使えない印(usable: false)付きで並び、選択肢に出ず、そのレイアウトでは作れない", async () => {
+  const current: Record<string, MessageLayout> = { ...layouts };
+  const { service } = setup({ layouts: current });
+  await service.createTemplate(input({ name: "a" }));
+  assert.deepEqual((await service.listTemplates()).items.map((t) => [t.name, t.usable]), [["a", true]]);
+  current.notice = { ...layouts.notice, disabled: true };
+  assert.deepEqual((await service.listTemplates()).items.map((t) => [t.name, t.usable]), [["a", false]]);
+  assert.deepEqual((await service.templateOptions()).layouts, []);
+  await rejectsWith(service.createTemplate(input({ name: "b" })), 400);
 });
 
 test("管理者でなければ 403", async () => {

@@ -178,6 +178,17 @@ test("受け口の一覧(intake.txt)の生成区画: 受け口のフォルダ(di
   assert.equal(Object.keys(plan.outputs).includes("src/lib/forkOwnership/intake.txt"), false, "一覧の数には入れない");
   const broken = planExtensions(fixture({ ...files, "src/lib/forkOwnership/intake.txt": "edit src/config/**  # 値\n" }));
   assert.ok(broken.problems.some((p) => p.includes("intake.txt") && p.includes("生成区画の印の対")));
+  // files の点の overrideOf: 項目のファイルの隣の override も add の行
+  const withOverride = planExtensions(
+    fixture({
+      ...files,
+      "src/app/demo/extensionPoints.ts": point(`  pages: { dir: ".", files: "*/_demo.ts", export: "demo", type: { from: "@/t", name: "T" }, side: "shared", overrideOf: ["disabled"] },`),
+      "src/lib/forkOwnership/intake.txt": INTAKE,
+    }),
+  );
+  assert.deepEqual(withOverride.problems, []);
+  const demoRows = withOverride.intake.content.split("\n").filter((l) => l.startsWith("add src/app/demo/")).map((l) => l.split("  #")[0]);
+  assert.deepEqual(demoRows, ["add src/app/demo/*/_demo.override.{ts,tsx}", "add src/app/demo/*/_demo.ts"]);
 });
 
 test("受け口のフォルダが無い点は項目 0 で通る(空の一覧を出す)。alwaysOn は真偽だけ", () => {
@@ -425,6 +436,46 @@ test("files の点: 1 段下の決まった名前のファイルが項目、fold
     put("src/app/demo/b-page/_demo.ts", "export const other = {};\n");
     plan = planExtensions(root);
     assert.ok(plan.problems.some((p) => p.includes("export const demo が無い")));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("files の点の override(overrideOf): 項目のファイルの隣の <ファイル名>.override.ts を重ね、宣言に無い鍵・項目の無いフォルダ・overrideOf の無い点は止める、intake は add の行", () => {
+  const root = mkdtempSync(join(tmpdir(), "ext-files-override-"));
+  const put = (path, text) => {
+    mkdirSync(dirname(join(root, path)), { recursive: true });
+    writeFileSync(join(root, path), text);
+  };
+  const decl = (extra) => `export const extensionPoints = { pages: { dir: ".", files: "*/_demo.ts", export: "demo", type: { from: "@/t", name: "T" }, side: "shared"${extra} } };\n`;
+  try {
+    // fork(上流は override を出荷しない)
+    put("repo.json", '{"repo_id": "fork-a", "tier": "leaf"}\n');
+    put("src/lib/CATALOG.md", "## next-starter\n\n## fork-a\n");
+    put("src/app/demo/extensionPoints.ts", decl(', overrideOf: ["disabled"]'));
+    put("src/app/demo/a-page/_demo.ts", "export const demo = {};\n");
+    put("src/app/demo/a-page/_demo.override.ts", "export const override = { disabled: true };\n");
+    let plan = planExtensions(root);
+    assert.deepEqual(plan.problems, [], plan.problems.join("\n"));
+    const out = plan.outputs["src/app/demo/extensions/pages.ts"];
+    assert.match(out, /import \{ override as pages_a_page_override \} from "@\/app\/demo\/a-page\/_demo\.override";/);
+    assert.match(out, /\{ \.\.\.pages_a_page, \.\.\.pages_a_page_override, folder: "a-page" \}/);
+    assert.match(out, /隣の _demo\.override\.ts の disabled を重ねる/);
+
+    put("src/app/demo/a-page/_demo.override.ts", "export const override = { key: \"x\" };\n");
+    plan = planExtensions(root);
+    assert.ok(plan.problems.some((p) => p.includes("_demo.override.ts: key は上書きできない")), plan.problems.join("\n"));
+
+    put("src/app/demo/a-page/_demo.override.ts", "export const override = { disabled: true };\n");
+    put("src/app/demo/gone/_demo.override.ts", "export const override = { disabled: true };\n");
+    plan = planExtensions(root);
+    assert.ok(plan.problems.some((p) => p.includes("gone/_demo.override.ts: 項目 gone/_demo.ts が無い")), plan.problems.join("\n"));
+    rmSync(join(root, "src/app/demo/gone"), { recursive: true, force: true });
+
+    // overrideOf の無い点: 項目のフォルダの override は受ける点が無い(孤立の検査)
+    put("src/app/demo/extensionPoints.ts", decl(""));
+    plan = planExtensions(root);
+    assert.ok(plan.problems.some((p) => p.startsWith("src/app/demo/a-page/_demo.override.ts: この上書きを受ける点が無い")), plan.problems.join("\n"));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -151,6 +151,12 @@ export function emptyVarDraft(): VarDeclarationDraft {
   return { key: "", alias: "", type: "line", required: false, default: "", options: [] };
 }
 
+/** 新しく作る時の最初のレイアウト = 選択肢の initialLayout(config の messaging.initialLayout)。選べるレイアウトに無ければ空(選ばせる。ほかに替えない) */
+export function newTemplateLayoutOf(options: Pick<AdminTemplateOptions, "layouts" | "initialLayout"> | null): string {
+  if (!options) return "";
+  return options.layouts.some((item) => item.key === options.initialLayout) ? options.initialLayout : "";
+}
+
 export function useMessageTemplateForm({ template, options, onCreated, onChanged }: UseMessageTemplateFormOptions) {
   const { showToast } = useToast();
   const { mutate } = useSWRConfig();
@@ -172,7 +178,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   const [description, setDescription] = useState(template?.description ?? "");
   const [kind, setKindState] = useState(initialKind);
   const [category, setCategory] = useState(template?.category || firstCategoryOf(categories, initialKind));
-  const [layout, setLayout] = useState(template?.layout ?? (options?.layouts.length === 1 ? options.layouts[0].key : ""));
+  const [layout, setLayout] = useState(template?.layout ?? newTemplateLayoutOf(options));
   const [pendingLayout, setPendingLayout] = useState<string | null>(null);
   const [vars, setVars] = useState<VarDeclarationDraft[]>(() => draftsOf(template?.vars));
   const [createdId, setCreatedId] = useState<string | null>(null);
@@ -321,7 +327,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
         name: (template?.name ?? "").trim(),
         description: (template?.description ?? "").trim() === "" ? null : template?.description,
         category: template?.category || firstCategoryOf(categories, initialKind),
-        layout: template?.layout ?? (options?.layouts.length === 1 ? options.layouts[0].key : ""),
+        layout: template?.layout ?? newTemplateLayoutOf(options),
         values: compactLayoutValues(
           layoutFieldsDefaults(options?.layouts.find((item) => item.key === template?.layout)?.fields ?? {}, template?.values ?? null),
         ),

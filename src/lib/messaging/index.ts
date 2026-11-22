@@ -107,9 +107,12 @@ export {
 export {
   DEFAULT_LAYOUT_VERSION,
   defineMessageLayout,
+  isLayoutAdminSelectable,
+  isLayoutUsable,
   layoutVersionOf,
   type MessageLayout,
   type MessageLayoutFields,
+  type MessageLayoutOverride,
   type MessageLayoutSummary,
   type MessageLayoutValues,
 } from "./layout/types";

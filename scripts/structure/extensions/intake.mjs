@@ -41,8 +41,11 @@ export function intakeRows(points, switches, { pages = [], frameSwitches = [], g
     const dir = posix.normalize(posix.join(point.owner, point.spec.dir));
     const entry = byDir.get(dir) ?? { names: [], files: new Set(), plain: false };
     entry.names.push(point.name);
-    if (point.spec.files) entry.files.add(point.spec.files.slice("*/".length));
-    else entry.plain = true;
+    if (point.spec.files) {
+      entry.files.add(point.spec.files.slice("*/".length));
+      // files の点の override(項目のファイルの隣、overrideOf の点)
+      if (point.spec.overrideOf) entry.files.add(`${point.spec.files.slice("*/".length).replace(/\.tsx?$/, "")}.override.{ts,tsx}`);
+    } else entry.plain = true;
     byDir.set(dir, entry);
   }
   const rows = ["# pnpm generate extensions が拡張点の宣言(extensionPoints.ts)・ルート・1 行スイッチ・生成器の gate.json から書く。手で編集しない(ずれは pnpm check extensions が止める)"];

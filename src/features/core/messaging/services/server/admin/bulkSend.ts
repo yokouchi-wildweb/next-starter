@@ -32,6 +32,7 @@ import {
   testAdminContent,
   adminChannelOptions,
   adminSendLayoutOptions,
+  offeredTemplates,
   type AdminContentDeps,
   type AdminSendDeps,
   type AdminSendOptions,
@@ -85,7 +86,7 @@ export type AdminBulkSendResult = {
 };
 
 export type AdminBulkSendDeps = AdminContentDeps &
-  Pick<AdminSendDeps, "channels" | "layouts" | "enrichers"> & {
+  Pick<AdminSendDeps, "channels" | "layouts" | "enrichers" | "initialLayout"> & {
   targets: Readonly<Record<string, MessageBulkSendTarget>>;
   /** 公開中のテンプレート(選択肢。門 messagingTemplates が開の時だけ読む) */
   listPublishedTemplates: () => Promise<AdminSendOptions["templates"]>;
@@ -187,6 +188,8 @@ export type AdminBulkSendOptions = {
   templates: AdminSendOptions["templates"];
   /** 管理画面で選べるレイアウトと、並べたテンプレートが使うレイアウトの欄の宣言(send.ts adminSendLayoutOptions) */
   layouts: AdminSendOptions["layouts"];
+  /** 最初に開くレイアウト(config の messaging.initialLayout、送る画面と同じ) */
+  initialLayout: string;
 };
 
 export async function adminBulkSendOptions(
@@ -200,15 +203,17 @@ export async function adminBulkSendOptions(
     | "enrichers"
     | "listPublishedTemplates"
     | "templatesOpen"
+    | "initialLayout"
   >,
 ): Promise<AdminBulkSendOptions> {
   await assertAdminActor(deps);
   const categories = adminFreeTextCategoryOptions(deps.categories, (option) => option.targets.includes("bulk"), deps.enrichers);
-  const templates = deps.templatesOpen() ? await deps.listPublishedTemplates() : [];
+  const templates = deps.templatesOpen() ? offeredTemplates(deps.layouts, await deps.listPublishedTemplates()) : [];
   return {
     channels: adminChannelOptions(deps.channels),
     categories,
     templates,
     layouts: adminSendLayoutOptions(deps.layouts, templates),
+    initialLayout: deps.initialLayout(),
   };
 }

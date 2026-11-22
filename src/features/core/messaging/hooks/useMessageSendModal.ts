@@ -125,10 +125,13 @@ function preferredCategoryOf(mode: MessageSendMode): string | null {
   return null;
 }
 
-/** 初めのレイアウト = 管理画面で選べる最初のレイアウト(受け口の順。config の初めのレイアウトは指令 T7)。無ければ null */
-export function blankLayoutOf(layouts: readonly AdminSendLayoutOption[]): { key: string; label: string } | null {
-  const first = layouts.find((option) => option.selectable);
-  return first ? { key: first.key, label: first.label } : null;
+/**
+ * 初めのレイアウト = 選択肢の initialLayout(config の messaging.initialLayout)の管理画面で選べるレイアウト。選択肢に無ければ null
+ * (ほかのレイアウトに替えない。管理画面で選べる使えるレイアウトであることはサーバーの連絡の一覧の検査が見る)
+ */
+export function blankLayoutOf(layouts: readonly AdminSendLayoutOption[], initialLayout: string | null): { key: string; label: string } | null {
+  const found = layouts.find((option) => option.selectable && option.key === initialLayout);
+  return found ? { key: found.key, label: found.label } : null;
 }
 
 /** 送信の埋め込み情報の値のうちテンプレートの今の版が宣言する鍵だけ */
@@ -146,10 +149,11 @@ export function initialTextOf(
   mode: MessageSendMode,
   kind: string,
   layouts: readonly AdminSendLayoutOption[],
+  initialLayout: string | null,
   categories: readonly AdminFreeTextCategoryOption[],
   templates: readonly MessageSendTemplate[],
 ): SendTextState | null {
-  const blank = blankLayoutOf(layouts);
+  const blank = blankLayoutOf(layouts, initialLayout);
   const blankState = blank ? layoutTextState(blank) : null;
   if (mode.type === "bulk") {
     return blankState ? { ...blankState, start: { ...blankState.start, ...(mode.defaults?.values ?? {}) } } : null;
@@ -258,6 +262,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const allTemplates: MessageSendTemplate[] = useMemo(() => (templatesOpen ? (options?.templates ?? []) : []), [templatesOpen, options]);
   const allCategories: AdminFreeTextCategoryOption[] = useMemo(() => options?.categories ?? [], [options]);
   const layouts = options?.layouts ?? NO_LAYOUTS;
+  const initialLayout = options?.initialLayout ?? null;
   // 送信チャンネルの表示名 = 選択肢の送信チャンネル(受け口の label)。取れる前は constants の控え
   const channelLabels = useMemo(() => {
     const labels: Record<string, string> = { ...MESSAGE_CHANNEL_LABELS };
@@ -304,7 +309,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const kindOfCategory = useCallback((key: string) => allCategories.find((option) => option.key === key)?.kind ?? null, [allCategories]);
   const templates = useMemo(() => allTemplates.filter((item) => kindOfCategory(item.category) === kind), [allTemplates, kindOfCategory, kind]);
   /** 初めのレイアウト(読み込まない時・読み込みを解除した時の出どころ) */
-  const blank = useMemo(() => blankLayoutOf(layouts), [layouts]);
+  const blank = useMemo(() => blankLayoutOf(layouts, initialLayout), [layouts, initialLayout]);
   /** 選ぶ小窓の並び = 公開中のテンプレート(門 messagingTemplates が開の時) */
   const pickerTemplates = useMemo(
     () => (templatesOpen ? templates.map((item) => ({ id: item.id, name: item.name, currentVersion: item.currentVersion })) : []),
@@ -332,8 +337,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
 
   // ---- 文面 ----
   const initialText = useMemo(
-    () => (optionsLoaded ? initialTextOf(mode, kind, layouts, allCategories, allTemplates) : null),
-    [optionsLoaded, mode, kind, layouts, allCategories, allTemplates],
+    () => (optionsLoaded ? initialTextOf(mode, kind, layouts, initialLayout, allCategories, allTemplates) : null),
+    [optionsLoaded, mode, kind, layouts, initialLayout, allCategories, allTemplates],
   );
   const touchText = useCallback(() => {
     setTextTouched(true);

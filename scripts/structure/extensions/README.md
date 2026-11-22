@@ -81,6 +81,7 @@ export const extensionPoints = {
   - `pureImports: true` … 項目から値 import を推移的に辿り、`zod` と src の下の純関数・値以外(react・next・server-only・サービス・部品・DB の定義)へ届いたら失敗。型だけの import は辿らない(`pureImports.mjs`)
   - `requireText: "<字面>"` … 項目のファイルにその字面が無ければ失敗(setting の `.default(`)
   - `overrideOf: ["<属性>", …]` … 項目の隣の `<名前>.override.ts` の `export const override = { … }` を一覧に重ねる(一部の上書き)。書けるのは挙げた属性だけ。対象の項目が受け口に無ければ失敗(孤立)、`overrideOf` の無い点の受け口に置いた override も失敗。上の Tier の項目にだけ置ける(fork が自分で足した項目への override は `pnpm workflow ownership check` の override-own。fork の項目は直接書き換える)。上流は出さない(`overrides.mjs`)。空のファイルは不在と同じ
+    - `files` の点の `overrideOf`: 項目のファイルの隣の `<ファイル名>.override.ts`(例 `layouts/<名前>/layout.override.ts`)を重ねる(`{ ...項目, ...override, folder }`)。鍵の検査は同じ、項目のファイルの無いフォルダの override は失敗、`overrideOf` の無い files の点の項目のフォルダに置いた override は孤立の検査が止める。intake は `add <dir>/*/<ファイル名>.override.{ts,tsx}`
   - `alwaysOn: true` … 常に読まれる処理(cron・退会など)から走る点の印。項目が機能を閉じる規則のフォルダを import するなら項目に `enabled` が要る(`FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies`)
   - `derive: "settingSections"` … 組み込みの検査。項目の `section:` が同じ持ち主の点 `sections` の `key:` にあるかを見る。上書きが権限を広げないか(キー・セクションの `allowRoles` と `ui.section` を字面で読み、重ねる前と後の実効の権限を比べる)も見る(`derive/settingRoles.mjs`)
   - `derive: "featureTables"` … 組み込みの変換。機能を閉じる規則の `domains` のフォルダ(旧名 `features` は止めて案内する)(ドメインの位置 `core/<名前>` か `<名前>`。

@@ -14,7 +14,7 @@
 
 ### 管理の送信の形（freeText.ts・../sendMessage/templateDefinition.ts、D117・D125・D171）
 
-- 自由連絡 = カテゴリー + 出どころ `origin` = レイアウト `{ layout: 鍵 }`（管理画面で選べる `adminSelectable` の物だけ、ほかは 400）か DB のテンプレート `{ id, version }` + 欄の中身 `values`（レイアウトの欄、汎用のお知らせ notice = 件名 + ブロックの並び）+ 直した印 `edited?`（DB のテンプレートだけ）。管理用の連絡定義は無い
+- 自由連絡 = カテゴリー + 出どころ `origin` = レイアウト `{ layout: 鍵 }`（管理画面で選べる `adminSelectable` で無効（`disabled`）でない物だけ、ほかは 400）か DB のテンプレート `{ id, version }`（無効のレイアウトのテンプレートは 400） + 欄の中身 `values`（レイアウトの欄、汎用のお知らせ notice = 件名 + ブロックの並び）+ 直した印 `edited?`（DB のテンプレートだけ）。管理用の連絡定義は無い
 - **カテゴリーの種別と宛先の組は種別の性質 `adminFreeText`**: announcement = 全員・ロール・グループ・選んだ利用者 / direct = 選んだ利用者・グループ・一括（D109）/ promotion = 全部。誤りは 400。種別はカテゴリーから（レイアウトは種別を持たない）
 - 宛名は `{{displayName}}`（enricher、種別 announcement・direct・promotion に当たる）。決まった挨拶・足元の文は無い（要るなら管理者が書く）。見た目は notice の描き方の `.replace` で替えられる
 - 送信は `message_key` null + 出どころ（DB のテンプレートなら `template_id`・`template_version`・`template_edited`、レイアウトの送信は無し = `layout` だけ）。前の管理の定義の鍵での送信（`messaging.adminMessage` など）も当時の鍵・種別・カテゴリーで読める
@@ -27,7 +27,7 @@
 - `POST /send/preview`: 送信チャンネルごとの差し込み済みの欄と送信チャンネルの `preview`（メールは送る時と同じ HTML）。見本の受信者 = 操作した管理者、テンプレートは今の公開版
 - `POST /send/estimate` `{ target }` → `{ count, fixedAtSend: true, memberLimit?, overLimit? }`（全員・ロールは数、グループは一員の数と上限、選んだ利用者は居る人の数。停止・宛先なしを引く前）
 - `POST /send/test`: 宛先 = 操作した管理者だけ・`is_test`（集計と分母から外す）。予約しない。システムの操作は 400
-- `GET /send/options`: 有効な送信チャンネル `{ key, label }`・ロール・`groups`（使用中のグループ `{ id, label, kindLabel }` を名前の順に 200 件、門 `userGroups` が閉なら空。id は値としてだけ使い画面に出さない）・公開したテンプレート（版の番号・カテゴリー・文言・変数）・`categories` `{ key, label, kind, channels, defaultChannels, targets, catalog }`（`defaultChannels` = 送信方法の最初の入（カテゴリーの `defaultChannels`、無ければ `channels`）、`catalog` = そのカテゴリーで書ける埋め込み情報 = 共通 + 当たる enrichers）・`layouts`（レイアウトの欄の宣言 `{ key, label, version, fields, selectable }`、門 `messagingTemplates` の外: 管理画面で選べるレイアウト（受け口の順、`selectable: true`）→ 並べたテンプレートが使うほかのレイアウト（`selectable: false`、読み込んだテンプレートを描くだけ））・`maxScheduleDays`
+- `GET /send/options`: 有効な送信チャンネル `{ key, label }`・ロール・`groups`（使用中のグループ `{ id, label, kindLabel }` を名前の順に 200 件、門 `userGroups` が閉なら空。id は値としてだけ使い画面に出さない）・公開したテンプレート（版の番号・カテゴリー・文言・変数）・`categories` `{ key, label, kind, channels, defaultChannels, targets, catalog }`（`defaultChannels` = 送信方法の最初の入（カテゴリーの `defaultChannels`、無ければ `channels`）、`catalog` = そのカテゴリーで書ける埋め込み情報 = 共通 + 当たる enrichers）・`layouts`（レイアウトの欄の宣言 `{ key, label, version, fields, selectable }`、門 `messagingTemplates` の外: 管理画面で選べるレイアウト（受け口の順、`selectable: true`）→ 並べたテンプレートが使うほかのレイアウト（`selectable: false`、読み込んだテンプレートを描くだけ）。無効のレイアウトは出さず、そのテンプレートも並べない）・`initialLayout`（送る画面が最初に開くレイアウトの鍵 = config の `initialLayout`。管理画面で選べる使えるレイアウトであることは連絡の一覧の検査が見る）・`maxScheduleDays`
 - 監査: `messaging.dispatch.sent` / `messaging.dispatch.scheduled` / `messaging.dispatch.test_sent`（対象 `message_dispatch`、出どころ `source` = `layout`（`layout`）か `template`（`templateId`・`templateVersion`・`edited`）、本文の値は残さない）
 
 ### `/api/admin/messaging/bulk-send`（bulkSend.ts、門の外）

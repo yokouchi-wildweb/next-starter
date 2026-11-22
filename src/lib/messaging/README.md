@@ -82,10 +82,10 @@ export const messageOverride = {
 - `adminEditableOnly`: 管理画面で直せる欄の絞り(レイアウトの欄の鍵)。無い = レイアウトの欄のうちカテゴリーの送信チャンネルで使う物を全部直せる(`adminEditableFields`: 種別の性質 `adminTextOverride` が true で required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない。レイアウトに無い鍵は `unknown_admin_editable`
 - `record`: 本文の残し方 `meta` | `vars`(既定)| `full`
 - `throttle`: 会話の間引き `{ by: [vars の鍵], mode: "untilRead" | "window", seconds }`
-- `layout`(必須): レイアウトの鍵(`src/features/core/messaging/layouts/<名前>/`。上流は notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。上書きで変えられない
+- `layout`(必須): レイアウトの鍵(`src/features/core/messaging/layouts/<名前>/`。上流は simple・notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。無効(`disabled`)のレイアウトも誤り(`disabled_layout`)。上書きで変えられない
 - `values`: レイアウトの欄の中身(欄の鍵 → 値。文字列に `{{鍵}}` を書ける)。レイアウトの欄の zod(`layoutValuesSchema`、カテゴリーの送信チャンネルで使う欄だけ必須)を通る(`invalid_values`)。検査の前に空を「無い」にする(`normalizeLayoutValues` / `normalizeFieldValue`: 画像の空文字・ボタン / リンクの全部が空・空の並び。ボタンの片方だけ空・URL の無いリンクは空の側の誤り)
 - `extras`: fork が足す欄の入れ物
-- 管理者が書いて送る連絡(自由連絡): `messagingService.sendFreeMessage`(カテゴリー + 管理画面で選べるレイアウト(`adminSelectable`)か DB のテンプレート + 欄の中身)
+- 管理者が書いて送る連絡(自由連絡): `messagingService.sendFreeMessage`(カテゴリー + 管理画面で選べるレイアウト(`isLayoutAdminSelectable` = `adminSelectable` で無効でない)か DB のテンプレート(無効のレイアウトの物は 400) + 欄の中身)
 
 ### 差し込み({{鍵}})
 
@@ -116,6 +116,7 @@ export const messageOverride = {
 - `kind_admin_editable` / `kind_throttle`: 種別の性質でテキストの編集・間引きが無い種別(functional・security)
 - `unknown_channel`: カテゴリーの送信チャンネルが送信チャンネルの受け口に無い
 - `unknown_layout` / `invalid_values`: レイアウトが受け口に無い / 欄の中身がレイアウトの欄の zod(カテゴリーの送信チャンネルで使う欄)を通らない
+- `disabled_layout`: レイアウトが無効(fork の `layout.override.ts` の `disabled`)。定義の鍵とレイアウトの鍵・表示名を名指す
 - `unknown_admin_editable`: adminEditableOnly の鍵がレイアウトの欄に無い
 - `unknown_variable`: 欄の中身の `{{鍵}}` が vars ∪ 共通の文脈に無い
 - `invalid_throttle`: throttle.by が vars に無い・seconds が正でない
@@ -138,7 +139,8 @@ export const messageOverride = {
 
 連絡の見た目の型。レイアウト = 欄の宣言・仮の文・要約(必須)・管理者が選べる印・改版の対応。種別・カテゴリー・送信チャンネルを知らない(送信チャンネルだけの欄は欄の `channels` に送信チャンネルの鍵を値として持つだけ)。送信チャンネルごとの描き方はレイアウトのフォルダのファイル(server = email、client = inApp)が持ち、型は持たない。連絡定義はレイアウトの鍵と欄の中身を持ち、送る口は送信チャンネルごとに下の 3 段で描く(送信チャンネルは自分の欄を持たない。管理画面の入力とプレビューもレイアウトの欄の宣言と描き方から。なぜこの形か = src/features/core/messaging/Internals.md)。
 
-- `defineMessageLayout({ key, label, description?, fields, summary, adminSelectable?, version?, revisions? })`: 欄の宣言から中身の型(`MessageLayoutValues`)を引く。`version` = 版(既定 1、`layoutVersionOf`)
+- `defineMessageLayout({ key, label, description?, fields, summary, adminSelectable?, disabled?, version?, revisions? })`: 欄の宣言から中身の型(`MessageLayoutValues`)を引く。`version` = 版(既定 1、`layoutVersionOf`)
+- `disabled`(既定 false)= 無効: 上流のレイアウトを fork が `layouts/<名前>/layout.override.ts`(`MessageLayoutOverride` = `disabled`・`adminSelectable` だけ)で付ける。`isLayoutUsable(layout)`(disabled でない)・`isLayoutAdminSelectable(layout)`(使えて adminSelectable)が判定の 1 か所(送る画面・テンプレート・送る口・検査が使う)
 - 欄の宣言 `MessageFieldSpec`: `type`(語彙)・`label`・`placeholder?`・`required?`・`channels?`(使う送信チャンネルの鍵、無い = 全部)。`select` は `options`、`list` は `of`・`min?`・`max?`、`group` は `fields`、`blocks` は `allow?`・`min?`・`max?`
 - 欄の型の語彙(`layout/vocabulary.ts`): `line` 1行テキスト・`paragraph` 段落・`longText` 複数行テキスト・`image` 画像(storage:// の参照か URL)・`button` ボタン `{ label, url }`・`link` リンク `{ label?, url }`・`date` 日付 YYYY-MM-DD・`number` 数・`select` 選択肢・`list` 並び・`group` 組・`keyValue` ラベルと値 `[{ key, value }]`・`blocks` ブロックの並び。型ごとの zod は `fieldValueSchema(shape)`
 - ブロック(`layout/blocks.ts`): `heading` 小見出し・`paragraph` 段落・`button` ボタン・`image` 画像・`divider` 区切り・`keyValueTable` ラベルと値・`bulletList` 箇条書き。`messageBlocksSchema({ allow?, min?, max? })` が許す種類と数で絞る(知らない種類は通らない)

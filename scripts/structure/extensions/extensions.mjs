@@ -16,7 +16,7 @@ import { checkDependsOnGraph } from "./derive/gateDependsOn.mjs";
 import { checkRequiresCoverage } from "./derive/gateRequires.mjs";
 import { checkSettingRoles } from "./derive/settingRoles.mjs";
 import { checkOverrideKeys } from "./overrideKeys.mjs";
-import { checkOrphans, listSrcFiles, targetOf } from "./orphans.mjs";
+import { checkOrphans, filesOverrideNamesOf, listSrcFiles, targetOf } from "./orphans.mjs";
 import { checkMessageGuards } from "./derive/messageGuards.mjs";
 import { checkOverrides, isBlankSource } from "./overrides.mjs";
 import { checkPureImports, overrideKeys } from "./pureImports.mjs";
@@ -140,19 +140,41 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs) {
   return { items, problems };
 }
 
-/** files の点: 受け口の 1 段下の決まった名前のファイルが項目、項目名 = フォルダ名(ファイルが無いフォルダは項目でない) */
+/**
+ * files の点: 受け口の 1 段下の決まった名前のファイルが項目、項目名 = フォルダ名(ファイルが無いフォルダは項目でない)。
+ * overrideOf の点は項目のファイルの隣の <ファイル名>.override.ts(属性だけ)を重ねる(鍵の検査は素の点と同じ)
+ */
 function discoverFiles(repoRoot, rel, abs, point, items) {
   const problems = [];
   const fileName = point.spec.files.slice("*/".length);
+  const overrideNames = point.spec.overrideOf ? filesOverrideNamesOf(point.spec.files) : [];
   for (const entry of readdirSync(abs, { withFileTypes: true }).sort((a, b) => byName(a.name, b.name))) {
-    if (!entry.isDirectory() || !existsSync(join(abs, entry.name, fileName))) continue;
+    if (!entry.isDirectory()) continue;
+    const overrideName = overrideNames.find((name) => existsSync(join(abs, entry.name, name)));
+    const overrideLabel = overrideName ? `${rel}/${entry.name}/${overrideName}` : null;
+    const overrideText = overrideLabel ? readFileSync(join(repoRoot, overrideLabel), "utf8") : null;
+    const hasOverride = overrideText !== null && !isBlankSource(overrideText);
+    if (!existsSync(join(abs, entry.name, fileName))) {
+      if (hasOverride) problems.push(`${overrideLabel}: 項目 ${entry.name}/${fileName} が無い(override は同じ受け口の既存の項目の属性を上書きする)`);
+      continue;
+    }
     const label = `${rel}/${entry.name}/${fileName}`;
     const text = readFileSync(join(repoRoot, label), "utf8");
     if (!markOf(point.spec.export).test(text)) {
       problems.push(`${label}: export const ${point.spec.export} が無い`);
       continue;
     }
-    items.get(point.name).push({ name: entry.name, path: label, itemFile: label, text, folder: entry.name });
+    const item = { name: entry.name, path: label, itemFile: label, text, folder: entry.name };
+    if (hasOverride) {
+      const keys = overrideKeys(overrideLabel, overrideText);
+      if (keys === null) problems.push(`${overrideLabel}: export const override = { … } の形で書く`);
+      else {
+        const denied = keys.filter((k) => !point.spec.overrideOf.includes(k));
+        if (denied.length > 0) problems.push(`${overrideLabel}: ${denied.join("・")} は上書きできない(できるのは ${point.spec.overrideOf.join("・")}。型と検証は変えられない)`);
+        else item.override = overrideLabel;
+      }
+    }
+    items.get(point.name).push(item);
   }
   return { items, problems };
 }
@@ -187,7 +209,7 @@ function renderPoint(point, items) {
     return { imports, lines };
   }
   const values = items.map((item) =>
-    item.folder ? `  { ...${aliasOf(point, item)}, folder: ${JSON.stringify(item.folder)} },` : item.override ? `  { ...${aliasOf(point, item)}, ...${aliasOf(point, item)}_override },` : item.fields ? `  { ...${aliasOf(point, item)}, ${renderFields(aliasOf(point, item), item.fields)} },` : `  ${aliasOf(point, item)},`,
+    item.folder ? `  { ...${aliasOf(point, item)}, ${item.override ? `...${aliasOf(point, item)}_override, ` : ""}folder: ${JSON.stringify(item.folder)} },` : item.override ? `  { ...${aliasOf(point, item)}, ...${aliasOf(point, item)}_override },` : item.fields ? `  { ...${aliasOf(point, item)}, ${renderFields(aliasOf(point, item), item.fields)} },` : `  ${aliasOf(point, item)},`,
   );
   const array = values.length === 0 ? "[]" : `[\n${values.join("\n")}\n]`;
   if (spec.derive === "featureTables") {
@@ -278,7 +300,7 @@ function renderFile(points, itemsByPoint) {
   }
   const out = [
     headerFor(sources),
-    ...points.map((p) => p.spec.files ? `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/${p.spec.files} の export const ${p.spec.export}(folder = フォルダ名、並びはフォルダ名の順)` : `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/<名前>.ts(x) か <名前>/index.ts(x) の export const ${p.spec.export}(並びはファイル名の順)`),
+    ...points.map((p) => p.spec.files ? `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/${p.spec.files} の export const ${p.spec.export}(folder = フォルダ名、並びはフォルダ名の順${p.spec.overrideOf ? `。隣の ${filesOverrideNamesOf(p.spec.files)[0]} の ${p.spec.overrideOf.join("・")} を重ねる` : ""})` : `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/<名前>.ts(x) か <名前>/index.ts(x) の export const ${p.spec.export}(並びはファイル名の順)`),
     "",
     ...[...types.entries()].sort(([a], [b]) => byName(a, b)).map(([from, names]) => `import type { ${[...names].sort(byName).join(", ")} } from ${JSON.stringify(from)};`),
   ];

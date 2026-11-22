@@ -1,5 +1,5 @@
 // 生成物・編集不可: pnpm generate extensions が src/features/core/messaging/extensionPoints.ts から生成する
-// layouts: src/features/core/messaging/layouts/*/layout.ts の export const layout(folder = フォルダ名、並びはフォルダ名の順)
+// layouts: src/features/core/messaging/layouts/*/layout.ts の export const layout(folder = フォルダ名、並びはフォルダ名の順。隣の layout.override.ts の disabled・adminSelectable を重ねる)
 
 import type { MessageLayoutItem } from "@/lib/messaging";
 

@@ -441,9 +441,10 @@ const ROW = {
   categoryLabel: "お知らせ",
   createdAt: "2026-11-12T00:00:00.000Z",
   updatedAt: null,
+  usable: true,
 };
-/** 消したカテゴリーの行(種別は出せない) */
-const ORPHAN_ROW = { ...ROW, id: "t2", key: "tpl-def", name: "秋", currentVersion: 3, category: "gone", categoryLabel: null };
+/** 消したカテゴリーの行(種別は出せない)。レイアウトが無効で使えない行 */
+const ORPHAN_ROW = { ...ROW, id: "t2", key: "tpl-def", name: "秋", currentVersion: 3, category: "gone", categoryLabel: null, usable: false };
 const baseList = (): Props => ({
   kind: "",
   setKind: (v: string) => void events.push(`kind:${v}`),
@@ -503,6 +504,8 @@ test("一覧: 種別の絞り(選択肢 = 送れるカテゴリーの種別、�
   assert.equal(switches.has("template-filter-system"), false, "システムテンプレートの切り替えは無い");
   assert.doesNotMatch(view.container.textContent ?? "", /システム|送信時に選ぶ/);
   assert.match(view.container.textContent ?? "", /v3/, "行の印は版");
+  // 使えない(レイアウトが無効)の印は usable: false の行だけ
+  assert.equal(view.container.querySelectorAll("[data-slot=template-unusable]").length, 1);
   assert.match(view.container.textContent ?? "", /削除されたカテゴリー/, "消したカテゴリーの行");
   await view.unmount();
 });

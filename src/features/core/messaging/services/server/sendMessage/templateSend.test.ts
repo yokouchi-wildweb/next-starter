@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { z } from "zod";
 
-import type { MessageVarDeclaration, MessageEnricher } from "@/lib/messaging";
+import type { MessageEnricher, MessageLayout, MessageVarDeclaration } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import { bindInboxImages } from "../inbox/imageBinding";
@@ -134,6 +134,16 @@ test("レイアウトの検査: 知らない {{鍵}}・宣言の無いレイア�
   const ok = await sender.sendFreeMessage({ ...base, values: values("t"), edited: true });
   assert.equal(ok.status, "completed");
   assert.equal(ok.template, undefined);
+});
+
+test("無効のレイアウト(disabled): レイアウトを直に選んでも、そのレイアウトの DB のテンプレートでも 400(レイアウトの鍵を名指す)、送信を書かない", async () => {
+  const { world, deps, sender } = setup();
+  const mutable = deps as { layouts: Record<string, MessageLayout> };
+  mutable.layouts = { ...mutable.layouts, notice: { ...mutable.layouts.notice!, disabled: true } };
+  const base = { category: "news", recipients: [{ userId: "u1" }] };
+  await rejectsWith(sender.sendFreeMessage({ ...base, origin: LAYOUT, values: values("t") }), 400, /レイアウト notice は自由連絡で選べません/);
+  await rejectsWith(sender.sendFreeMessage({ ...base, origin: TPL, values: V1_VALUES, vars: { discount: 20 } }), 400, /レイアウト notice は使えません/);
+  assert.equal(world.store.dispatches.length, 0);
 });
 
 test("DB のテンプレート: 版を送信に固定し(message_key null)、予約の後で版を直しても cron は送信の欄の中身で送る", async () => {
