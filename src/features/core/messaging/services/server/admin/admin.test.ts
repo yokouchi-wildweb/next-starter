@@ -186,7 +186,7 @@ test("一括送信の入力の誤り・知らない / 使えない target・管�
   await rejects403(adminBulkSend(bulkSetup({ context: ctx("user1", "user") }).deps, { userIds: ["a"], ...mail }));
 });
 
-test("一括送信(DB のテンプレート): 送る画面と同じ形で送る口へ、afterSend に送った欄の中身と出どころ(直した印)", async () => {
+test("一括送信(DB のテンプレート): 送る画面と同じ形で送る口へ、afterSend は呼ばない(D196)、監査に出どころ(直した印)", async () => {
   const { deps, after, audits, sent } = bulkSetup();
   const result = await adminBulkSend(deps, {
     target: "review",
@@ -203,8 +203,8 @@ test("一括送信(DB のテンプレート): 送る画面と同じ形で送る�
   );
   assert.equal("scheduledAt" in input, false);
   assert.equal(result.dispatchId, "d2");
-  assert.deepEqual((after[0] as Record<string, unknown>).values, TEMPLATE_VALUES);
-  assert.deepEqual((after[0] as Record<string, unknown>).origin, { id: TEMPLATE, version: 2, edited: true });
+  // 自由連絡の一括送信は項目の afterSend を呼ばない(送った後の処理は定義の送信の記録の入口だけ、D196)
+  assert.deepEqual(after, []);
   assert.deepEqual([audits[0].metadata?.source, audits[0].metadata?.templateVersion], ["template", 2]);
   assert.equal(audits[0].metadata?.edited, true);
 });

@@ -91,14 +91,14 @@ test("無効のレイアウト: 定義連絡が使えば定義とレイアウト
   const registry: MessageRegistry = { "shop.onDisabled": { key: "shop.onDisabled", definition: async () => ({ message }) } };
   const problems = await checkMessageRegistry({ ...testDeps, layouts, registry, channels: { test: createTestChannel() } });
   assert.equal(problems.length, 1, problems.join(" / "));
-  assert.match(problems[0], /^shop\.onDisabled: .*layout card(テストのカード)は無効(disabled)/);
+  assert.match(problems[0], /^shop\.onDisabled: .*layout card\(テストのカード\)は無効\(disabled\)/);
 });
 
 test("config の initialLayout: 受け口に無い・無効・管理画面で選べないレイアウトは検査が止める(黙って替えない)", async () => {
   const deps = { ...testDeps, registry: {}, channels: { test: createTestChannel() } };
   assert.deepEqual(await checkMessageRegistry(deps), []);
   assert.match((await checkMessageRegistry({ ...deps, initialLayout: "nope" }))[0], /initialLayout nope は layouts の受け口に無い/);
-  assert.match((await checkMessageRegistry({ ...deps, initialLayout: "card" }))[0], /initialLayout card(テストのカード)は管理画面で選べない/);
+  assert.match((await checkMessageRegistry({ ...deps, initialLayout: "card" }))[0], /initialLayout card\(テストのカード\)は管理画面で選べない/);
   const disabled = { ...TEST_LAYOUTS, notice: { ...TEST_LAYOUTS.notice!, disabled: true } };
-  assert.match((await checkMessageRegistry({ ...deps, layouts: disabled }))[0], /initialLayout notice(.*)は無効(disabled)/);
+  assert.match((await checkMessageRegistry({ ...deps, layouts: disabled }))[0], /initialLayout notice\(.*\)は無効\(disabled\)/);
 });
