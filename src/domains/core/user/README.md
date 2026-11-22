@@ -275,7 +275,7 @@ export function ProfileCard({ user }: { user: User }) {
 
 #### UserListHeader の並び替え
 
-- `sortOptions?: { label, value }[]`: 既定 = `DEFAULT_USER_LIST_SORT_OPTIONS`（登録日順 `createdAt`・更新日順 `updatedAt`）
+- `sortOptions?: { label, value }[]`: 既定 = `DEFAULT_USER_LIST_SORT_OPTIONS`（`constants/userListSort.ts`、型 `UserListSortOption` も同じ所。登録日順 `createdAt`・更新日順 `updatedAt`）
 - `defaultSort?: string`: `?sortBy=` が無いときに選ばれている値（既定 `createdAt`）
 - 選んだ値は `?sortBy=` に乗るだけ。並べるのは loader（上流は `utils/adminUserListQuery.ts` の `buildAdminUserListQuery` が `updatedAt` 以外を `createdAt` で並べる）。値を足した fork は自前の loader でその値を解釈し、`defaultSort` は loader の既定の並びと揃える
 
@@ -353,7 +353,8 @@ export function GeneralUserListTable({ users, coinBalanceMap }: { users: User[];
 ヘッダーに並び替えを足す（loader 側で `coinBalance` を解釈する）:
 
 ```tsx
-import UserListHeader, { DEFAULT_USER_LIST_SORT_OPTIONS } from "@/domains/core/user/components/common/UserListHeader";
+import UserListHeader from "@/domains/core/user/components/common/UserListHeader";
+import { DEFAULT_USER_LIST_SORT_OPTIONS } from "@/domains/core/user/constants/userListSort"; // "use client" の外: server component でも広げられる
 
 const SORT_OPTIONS = [...DEFAULT_USER_LIST_SORT_OPTIONS, { label: "保有コイン順", value: "coinBalance" }];
 // <UserListHeader {...props} sortOptions={SORT_OPTIONS} />

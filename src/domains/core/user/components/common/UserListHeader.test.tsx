@@ -4,6 +4,8 @@
 import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 
+import { DEFAULT_USER_LIST_SORT_OPTIONS } from "@/domains/core/user/constants/userListSort";
+
 const { createElement } = require("react") as typeof import("react");
 
 type SortSelectProps = { options: { label: string; value: string }[]; selected?: string; defaultValue?: string };
@@ -23,7 +25,6 @@ mock.module("@/components/Admin/SearchBox", { defaultExport: () => null });
 mock.module("@/components/Navigation/Pagination", { defaultExport: () => null });
 
 let UserListHeader: typeof import("./UserListHeader").default;
-let DEFAULT_USER_LIST_SORT_OPTIONS: typeof import("./UserListHeader").DEFAULT_USER_LIST_SORT_OPTIONS;
 let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;
 before(async () => {
   // crud の入口を本物のまま、描かせたくない物だけ差し替える(SUT を読む前に置く)
@@ -34,7 +35,7 @@ before(async () => {
       CreateButton: () => null,
     },
   });
-  ({ default: UserListHeader, DEFAULT_USER_LIST_SORT_OPTIONS } = await import("./UserListHeader"));
+  ({ default: UserListHeader } = await import("./UserListHeader"));
   ({ renderToStaticMarkup } = await import("react-dom/server"));
 });
 beforeEach(() => {

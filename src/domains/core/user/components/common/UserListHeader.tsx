@@ -1,4 +1,4 @@
-// src/domains/user/components/admin/form/UserListHeader.tsx
+// src/domains/core/user/components/common/UserListHeader.tsx
 
 "use client";
 
@@ -8,8 +8,7 @@ import Pagination from "@/components/Navigation/Pagination";
 import SearchBox from "@/components/Admin/SearchBox";
 import SortSelect from "@/components/Admin/SortSelect";
 import { CreateButton } from "@/lib/crud";
-
-export type UserListSortOption = { label: string; value: string };
+import { DEFAULT_USER_LIST_SORT_OPTIONS, type UserListSortOption } from "@/domains/core/user/constants/userListSort";
 
 type Props = {
   title?: string;
@@ -28,11 +27,6 @@ type Props = {
 const DEFAULT_TITLE = "登録済みユーザーの一覧";
 const DEFAULT_PLACEHOLDER = "ユーザー名などで検索";
 const DEFAULT_SORT = "createdAt";
-
-export const DEFAULT_USER_LIST_SORT_OPTIONS: UserListSortOption[] = [
-  { label: "登録日順", value: "createdAt" },
-  { label: "更新日順", value: "updatedAt" },
-];
 
 const createHref = (basePath: string, search: URLSearchParams) => {
   const query = search.toString();
