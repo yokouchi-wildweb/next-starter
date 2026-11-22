@@ -120,7 +120,7 @@ FEATURE_GATE_OPEN=coupon,wallet    # 名前の規則だけ開く(区切りは , 
 
 上流(Tier1)の開発の約束: 上流は付け足しの機能を閉じて出荷するので、上流の開発の env(`.env.development`、git に入らない)は `FEATURE_GATE_OPEN=all` を置く。
 
-- 置かずに `pnpm db:push` すると、閉じた機能のドメインの表は一覧に載らず、drizzle が DROP を提案する(push の前に `pnpm db:push:check` の差分を読む)
+- 置かずに `pnpm db:push` すると、閉じた機能のドメインの表は push の両側から外れる(スキーマゲート、上の「仕組み」): 無い表は作られず、ある表はデータごと残り(DROP は出ない)、閉じている間はスキーマの変更も当たらない。上流の開発ではその表の変更を確かめられないので置く
 - `route-map.jsonl` の閉(`gatedOff`)と cron(`vercel.json`)は規則の値(本番の値)で書く。スイッチで開けても揺れない
 - fork の既定は空(規則の値のまま)。fork は使う機能を `src/config/featureGate/switches.config.ts` で開け、スイッチは開発で sample を見るときだけ使う
 
