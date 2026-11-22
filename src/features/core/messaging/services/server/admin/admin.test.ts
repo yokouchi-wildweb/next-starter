@@ -75,6 +75,7 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
   const target: MessageRecordTarget = {
     key: "review",
     label: "審査",
+    messages: [],
     // 記録 x1・x2 → 利用者 u-x(1 人 1 件にまとめる)、y1 → u-y
     resolveRecipients: async (ids) => {
       const byUser = new Map<string, string[]>();
@@ -552,16 +553,38 @@ test("グループ宛ての送信: 一覧・1 件に targetGroup { id, name }(1 
   assert.equal(toDispatchSummary(dispatchRow()).targetGroup, null);
 });
 
-test("記録の宛先の読み手(門番 loadRecordTarget): 鍵で遅延 import、無い鍵・enabled() が false は null", async () => {
+test("記録の宛先の読み手(門番 loadRecordTarget): 鍵で遅延 import、上書きの messages を重ねる、無い鍵・enabled() が false は null", async () => {
   const { loadRecordTarget, recordTargetOpen } = await import("../domainGate");
-  const item = (enabled: boolean): MessageRecordTarget => ({ key: "", label: "店の注文", enabled: () => enabled, resolveRecipients: async () => [] });
+  const item = (enabled: boolean): MessageRecordTarget => ({
+    key: "",
+    label: "店の注文",
+    messages: ["testOnlyDomain.shipped"],
+    enabled: () => enabled,
+    resolveRecipients: async () => [],
+  });
   // どの機能の規則にも載らないドメインは常に開(門番は項目の domain で門を見る)
   const registry = {
     "testOnlyDomain.orders": { key: "testOnlyDomain.orders", domain: "testOnlyDomain", target: async () => ({ recordTarget: { ...item(true), key: "testOnlyDomain.orders" } }) },
     "testOnlyDomain.off": { key: "testOnlyDomain.off", domain: "testOnlyDomain", target: async () => ({ recordTarget: { ...item(false), key: "testOnlyDomain.off" } }) },
+    "testOnlyDomain.more": {
+      key: "testOnlyDomain.more",
+      domain: "testOnlyDomain",
+      target: async () => ({ recordTarget: { ...item(true), key: "testOnlyDomain.more" } }),
+      override: async () => ({ recordTargetOverride: { messages: ["testOnlyDomain.shipped", "testOnlyDomain.sale"] } }),
+    },
+    "testOnlyDomain.blank": {
+      key: "testOnlyDomain.blank",
+      domain: "testOnlyDomain",
+      target: async () => ({ recordTarget: { ...item(true), key: "testOnlyDomain.blank" } }),
+      // 中身の空の上書き(鍵を書いていない)は項目のまま
+      override: async () => ({}),
+    },
   };
   assert.equal(recordTargetOpen({ domain: "testOnlyDomain" }), true);
   assert.equal((await loadRecordTarget(registry, "testOnlyDomain.orders"))?.label, "店の注文");
+  assert.deepEqual((await loadRecordTarget(registry, "testOnlyDomain.orders"))?.messages, ["testOnlyDomain.shipped"]);
+  assert.deepEqual((await loadRecordTarget(registry, "testOnlyDomain.more"))?.messages, ["testOnlyDomain.shipped", "testOnlyDomain.sale"]);
+  assert.deepEqual((await loadRecordTarget(registry, "testOnlyDomain.blank"))?.messages, ["testOnlyDomain.shipped"]);
   assert.equal(await loadRecordTarget(registry, "testOnlyDomain.off"), null);
   assert.equal(await loadRecordTarget(registry, "nope"), null);
   assert.equal(await loadRecordTarget(registry, "constructor"), null);

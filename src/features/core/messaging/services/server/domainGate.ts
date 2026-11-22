@@ -23,12 +23,14 @@ export function recordTargetOpen(entry: Pick<MessageRecordTargetRegistryEntry, "
 }
 
 /**
- * 記録の宛先を鍵で読む(読み手の唯一の口)。無い鍵・閉じたドメイン(recordTargetOpen)・項目の enabled() が false = null
+ * 記録の宛先を鍵で読む(読み手の唯一の口。隣の上書きの messages を重ねる)。無い鍵・閉じたドメイン(recordTargetOpen)・項目の enabled() が false = null
  */
 export async function loadRecordTarget(registry: MessageRecordTargetRegistry, key: string): Promise<MessageRecordTarget | null> {
   const entry = Object.hasOwn(registry, key) ? registry[key] : undefined;
   if (!entry || !recordTargetOpen(entry)) return null;
-  const { recordTarget } = await entry.target();
+  const [{ recordTarget }, overridden] = await Promise.all([entry.target(), entry.override?.()]);
   if (recordTarget.enabled && !recordTarget.enabled()) return null;
-  return recordTarget;
+  // 隣の <名前>.override.ts が変えられるのは messages だけ(鍵の検査は pnpm check extensions)
+  const messages = overridden?.recordTargetOverride?.messages;
+  return messages ? { ...recordTarget, messages } : recordTarget;
 }

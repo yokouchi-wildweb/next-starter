@@ -27,6 +27,8 @@ export type {
   MessageRecordRecipient,
   MessageRecordTarget,
   MessageRecordTargetModule,
+  MessageRecordTargetOverride,
+  MessageRecordTargetOverrideModule,
   MessageRecordTargetRegistry,
   MessageRecordTargetRegistryEntry,
   MessageRecordTargetSent,

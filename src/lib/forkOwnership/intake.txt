@@ -299,6 +299,7 @@ add src/features/core/purchaseRequest/services/server/payment/sessionEnricher.re
 add src/lib/mail/frame/MailFrame.replace.{ts,tsx}  # 1 行スイッチ src/lib/mail/frame/MailFrame.tsx の丸ごと置き換え
 edit src/app/api/cron/*/task.override.ts  # 上書き cronTasks(schedule・disabled)
 edit src/features/**/messages/*.override.ts  # 上書き messages(label・values・extras・enabled・adminEditableOnly・record・throttle・category・channelModes)
+edit src/features/**/recordTargets/*.override.ts  # 上書き recordTargets(messages)
 edit src/features/**/services/server/domainEntry.override.ts  # 上書き domainEntries(access)
 edit src/features/core/user/coreRoles/*.role.override.ts  # 上書き coreRoleDefinitions(label・hasProfile)
 edit src/features/core/user/roles/*.role.override.ts  # 上書き roleDefinitions(label・hasProfile・enabled)

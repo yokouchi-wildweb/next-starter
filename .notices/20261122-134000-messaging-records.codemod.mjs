@@ -162,7 +162,7 @@ export const VOCAB = [
   dir(`${M}/extensions/systemTemplates.ts`, null, "S2", `${S2_SYSTEM}(生成物。pnpm generate extensions が消す)`),
 
   // ── S3 一覧の対象の受け口 bulkSendTargets → 記録の宛先 recordTargets(持ち主のドメイン、連絡定義と同じ道)・resolveUserIds → resolveRecipients
-  ex("MessageBulkSendTarget", "MessageRecordTarget", "S3", `${S3_TARGET}。型は @/lib/messaging へ移った: import の元(services/server/admin/types)を手で替える`),
+  ex("MessageBulkSendTarget", "MessageRecordTarget", "S3", `${S3_TARGET}。型は @/lib/messaging へ移った: import の元(services/server/admin/types)を手で替える。項目に messages(この項目で送れる連絡定義の鍵の並び、空も可。名指す定義の adminTargets に records、D217・D218)を手で足す。上流の項目に連絡を足すのは隣の <名前>.override.ts の recordTargetOverride`),
   ex("bulkSendTargets", null, "S3", `${S3_TARGET}。生成した一覧(extensions/bulkSendTargets.ts)は無くなった: 一覧は src/registry/recordTargetRegistry.ts(pnpm generate registry、絞らない)、読み手は messaging の門番 loadRecordTarget(services/server/domainGate.ts)を通す`),
   ex("bulkSendTargetsList", null, "S3", `${S3_TARGET}。生成した一覧の中の名前(無くなった)`),
   { kind: "code-name", as: "declaration", old: "bulkSendTarget", new: "recordTarget", order: "S3", note: `${S3_TARGET}(項目のファイルの export const)`, in: [`${M}/bulkSendTargets`, "src/features/*/recordTargets"] },
