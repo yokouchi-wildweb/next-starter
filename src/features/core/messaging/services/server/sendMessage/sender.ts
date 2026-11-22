@@ -17,7 +17,7 @@
 // グループ宛て(D58): 送り始めに門・しまった・壊れた・人数の上限を確かめ(DomainError、送信を作らない)、定期計算は今の版を送信に固定する。
 //   一員は cron が送り始めの後に 1 文で送信の受信者の一覧へ書く(sweep/expandStep.ts)
 
-import { kindTraits, layoutVersionOf } from "@/lib/messaging";
+import { isLayoutAdminSelectable, isLayoutUsable, kindTraits, layoutVersionOf } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import type {
@@ -529,17 +529,23 @@ export function createMessageSender(deps: MessageSendDeps) {
 
   /**
    * 出どころ → 組み済みの出どころ(管理画面で選べるレイアウトか、DB のテンプレートの今の公開版)。
-   * @throws DomainError(400) 無いレイアウト・管理画面で選べないレイアウト(定義連絡の物) / (404・409・400) DB のテンプレートの状態(currentTemplateVersion)
+   * @throws DomainError(400) 無いレイアウト・管理画面で選べないレイアウト(定義連絡の物・無効の物)・無効のレイアウトのテンプレート / (404・409・400) DB のテンプレートの状態(currentTemplateVersion)
    */
   async function freeSourceOf(origin: MessageFreeOrigin): Promise<FreeSource> {
     if ("layout" in origin) {
       const layout = deps.layouts[origin.layout];
-      if (!layout || layout.adminSelectable !== true) {
+      if (!layout || !isLayoutAdminSelectable(layout)) {
         throw new DomainError(`レイアウト ${origin.layout} は自由連絡で選べません(管理画面で選べるレイアウトだけ)`, { status: 400 });
       }
       return { layout };
     }
-    return { version: await currentTemplateVersion(origin.id, origin.version) };
+    const version = await currentTemplateVersion(origin.id, origin.version);
+    // 無効のレイアウト(fork の layout.override.ts の disabled)のテンプレートは送らない(一覧は使えない印付きで並ぶ)
+    const layout = deps.layouts[version.layout];
+    if (layout && !isLayoutUsable(layout)) {
+      throw new DomainError(`レイアウト ${version.layout} は使えません(無効)。テンプレート ${version.templateKey} は送れません`, { status: 400 });
+    }
+    return { version };
   }
 
   return {

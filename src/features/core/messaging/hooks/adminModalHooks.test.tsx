@@ -54,6 +54,7 @@ const OPTIONS = {
   channels: [{ key: "email", label: "メール" }],
   categories: [{ key: "promotion", label: "お知らせ", description: null, kind: "promotion", channels: ["email"] }],
   layouts: [{ key: "notice", label: "汎用のお知らせ", description: null, version: 1, fields: { subject: { type: "line", label: "件名", required: true } } }],
+  initialLayout: "notice",
   baseCatalog: [{ key: "serviceName", alias: "サービス名", source: "common", description: null }],
 };
 

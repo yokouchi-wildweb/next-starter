@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/AdminMessageTemplateList/index.tsx
 // セクションコンテナ(管理: 保存されたテンプレートの一覧)。種別で絞る(D135)+ 無限スクロール(カーソル)。
-// 行 = 名前・版・種別とカテゴリーの表示名・更新(鍵は見せない、D46)。行を押すと直すモーダル、上の「新規作成」で作るモーダル(AdminMessageTemplateModal。D87)。
+// 行 = 名前・版・種別とカテゴリーの表示名・更新(鍵は見せない、D46)。レイアウトが無効のテンプレートは「使えない」の印(usable: false)。行を押すと直すモーダル、上の「新規作成」で作るモーダル(AdminMessageTemplateModal。D87)。
 // 流れ(絞り・モーダルの開き先)は hook useAdminMessageTemplateList。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
@@ -102,6 +102,12 @@ export function AdminMessageTemplateList() {
                       <Span weight="semiBold" className="min-w-0">
                         {template.name}
                       </Span>
+                      {/* レイアウトが無効(disabled)か無い: 送る画面に並ばず送る口が断る */}
+                      {template.usable ? null : (
+                        <SoftBadge variant="destructive" size="sm" data-slot="template-unusable">
+                          使えない
+                        </SoftBadge>
+                      )}
                     </Flex>
                     <RowDateMeta text={when(template.updatedAt ?? template.createdAt)} label="更新日時" />
                   </Flex>

@@ -106,6 +106,7 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
     recordAudit: async (input) => audits.push(input),
     listPublishedTemplates: async () => [tplRow],
     templatesOpen: () => options.templatesOpen ?? true,
+    initialLayout: () => "notice",
   };
   return { deps, sent, audits, after, calls };
 }
@@ -248,6 +249,7 @@ test("一括送信の選択肢: bulk で送れるカテゴリー、管理画面�
     [["notice", true]],
   );
   assert.deepEqual(options.templates, [tplRow]);
+  assert.equal(options.initialLayout, "notice");
   assert.deepEqual((await adminBulkSendOptions(bulkSetup({ templatesOpen: false }).deps)).templates, []);
   await rejects403(adminBulkSendOptions(bulkSetup({ context: ctx("user1", "user") }).deps));
 });

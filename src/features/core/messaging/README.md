@@ -52,7 +52,7 @@ await messagingService.sendMessageToMany(campaign, {
    - promotion（promotion、管理画面「一般的なプロモーション」・利用者「キャンペーン情報」、管理者が書く宣伝の既定）/ announcement（管理画面「一般的なお知らせ」・利用者「運営からのお知らせ」）/ operatorDirect（direct、管理画面「一般的な個別連絡」・利用者「個別のご連絡」、管理者からの個別の連絡と一括の既定）
    - カテゴリーの名前は 2 つ: `label` = 利用者に見せる（好みの設定・配信停止・受け取り箱）、`adminLabel` = 管理画面（無い = `label`）
    - 種別の表示名（`constants/kindLabels.ts` の `MESSAGE_KIND_LABELS`）: functional 機能通知 / transactional 手続き通知 / security セキュリティ / announcement 運営告知 / direct 個別連絡 / activity アクティビティ / promotion プロモーション
-4. 見た目 = レイアウト（`layouts/<名前>/`、`layouts/README.md`）。上流は notice（汎用のお知らせ）・link（認証のリンク）・welcome（ようこそ）・statement（お知らせの明細）・alert（セキュリティの警告）。定義は `layout` と `values`（レイアウトの欄の中身）を書く
+4. 見た目 = レイアウト（`layouts/<名前>/`、`layouts/README.md`）。上流は simple（シンプルなお知らせ）・notice（汎用のお知らせ）・link（認証のリンク）・welcome（ようこそ）・statement（お知らせの明細）・alert（セキュリティの警告）。定義は `layout` と `values`（レイアウトの欄の中身）を書く
 5. 実例: auth の連絡（link・alert）・user の連絡（welcome）・wallet の失効の知らせ（statement、cron、`runAsSystem` + 冪等の鍵）と残高の変更（notice）
 
 ### 運用で間違えやすい線
@@ -95,6 +95,7 @@ HTTP の口と返す形は口のフォルダの README:
 
 `config.ts` の既定、fork は `src/config/features/messaging.config.ts` で上書き:
 
+- 送る画面・テンプレートの編集: `initialLayout` `"simple"`（最初に開くレイアウト。管理画面で選べる使えるレイアウトであること = 連絡の一覧の検査）
 - 送る口: `smallSendMaxRecipients` 100（これ以下の選んだ宛先は要求の中で展開）/ `inRequestBatchSize` 50（要求の中で送る最初の束）/ `requiredRetry` { attempts 3, delaysMs [200, 1000] } / `transientRetry` { maxAttempts 5, baseDelaySeconds 60, factor 4 } / `expandChunkSize` 500 / `schedule.maxDaysAhead` 90
 - 送信チャンネル: `channels.line.enabled` false（開ける fork は `channels: { line: { enabled: true } }` と LINE の env・機能 `userLineProfile`）
 - cron: `sweep` { budgetMs 240000, deliveryChunkSize 100, expandChunksPerRun 20, leaseSeconds 300 } / `retention` { eventsDays 30, deliveriesDays 90, dispatchesDays 730, idempotencyKeyDays null, chunkSize 1000, budgetMs 240000 } / `subscribers` { lagSeconds 120, maxAttempts 5, batchSize 100, budgetMs 240000 }
@@ -106,7 +107,7 @@ HTTP の口と返す形は口のフォルダの README:
 項目は `<受け口>/<名前>.ts` に `export const <単数> = { … }` で置き、`pnpm generate extensions` が `extensions/<受け口>.ts` にする（置くだけで載る）。項目の型は `@/lib/messaging`（src/lib/messaging/README.md「受け口の項目」）。fork は自分のドメインの同じ名前のフォルダに置く。
 
 - `channels/`（`channel`: `MessageChannel`）: 送信チャンネル（プッシュ・SMS など。宛先の決め方・描き方の 3 段の宣言・送る関数・webhook・端末の帳簿の宛先の形。送信チャンネルは自分の欄を持たない）。上流は email・inApp・line（channels/README.md）
-- `layouts/`（`layout`: `MessageLayoutItem`、フォルダ 1 つ = レイアウト 1 つ。メールの描き方 `email.tsx` と お知らせの描き方 `inApp.tsx` は別の生成の一覧 `layoutEmails`（server）・`layoutInApps`（client））: 見た目。上流は notice・link・welcome・statement・alert（layouts/README.md）
+- `layouts/`（`layout`: `MessageLayoutItem`、フォルダ 1 つ = レイアウト 1 つ。メールの描き方 `email.tsx` と お知らせの描き方 `inApp.tsx` は別の生成の一覧 `layoutEmails`（server）・`layoutInApps`（client））: 見た目。上流は simple・notice・link・welcome・statement・alert。上流の物は隣の `layout.override.ts` で `disabled`（無効）・`adminSelectable` を変えられる（layouts/README.md）
 - `enrichers/`（`enricher`: `MessageEnricher`）: 連絡に足す値（当て先 = 連絡の鍵・カテゴリー・種別・全部、provides の zod と日本語の別名、値を返す関数）。上流は `displayName`（管理者の連絡の宛名、名前が無ければ「お客様」）
 - `categories/`（`category`: `MessageCategory`）: カテゴリー（種別・送信チャンネル・グループ・表示名・説明）。上流のカテゴリーは隣の `<名前>.override.ts` で `label`・`description`・`channels`・`defaultChannels`（送る画面で最初に入っている送信チャンネル）・`group`・`adminLabel`（管理画面の名前）を変えられる（`key`・`kind` は不可、functional・security の email は外せない = `pnpm check extensions`）
 - `categoryGroups/`（`group`: `MessageCategoryGroup`）: カテゴリーのグループ（好みのページの見出し、同じ種別のカテゴリーだけ、`order` の順）。上流は出荷しない

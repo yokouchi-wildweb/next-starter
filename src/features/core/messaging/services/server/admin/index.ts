@@ -242,6 +242,7 @@ const sendDeps: AdminSendDeps = {
     return rows.map((row) => ({ ...row, currentVersion: row.currentVersion ?? 0 }));
   },
   maxScheduleDays: () => messagingConfig.schedule.maxDaysAhead,
+  initialLayout: () => messagingConfig.initialLayout,
 };
 
 /** 管理の送信(テンプレートか自由連絡、今か予約) */

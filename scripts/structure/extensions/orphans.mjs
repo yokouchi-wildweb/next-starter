@@ -1,13 +1,13 @@
 // scripts/structure/extensions/orphans.mjs
 // 孤立の検査(1 つ、D165): src の下の <対象>.override.ts(x) と <名前>.replace.ts(x) を 1 回の走査で集め、どれもそれを受ける宣言・既定があるかを見る。
-// - .override: 受け口のフォルダ(overrideOf の点。項目と照らすのは extensions.mjs)/ 上書きの対象の点(宣言の overrides の隣の glob)で隣に対象がある。
+// - .override: 受け口のフォルダ(overrideOf の点。files の点は項目のフォルダの <ファイル名>.override.ts。項目と照らすのは extensions.mjs)/ 上書きの対象の点(宣言の overrides の隣の glob)で隣に対象がある。
 //   どれでもなければ「受ける点が無い」、点はあるが対象が無ければ「孤立」。空(空白とコメントだけ)は不在と同じで見ない
 // - .replace: route の _layout / _screen は src/lib/screens の findRouteReplaceProblems(_layout はスイッチの向け先か .default の隣、_screen の下は全部不可)、
 //   それ以外は隣に 1 行スイッチの既定 <名前>.default.ts(x)。fork 所有の _components/ の中は見ない
 // pnpm check extensions(門 build / ship / forge)が回す。書式: ./README.md
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, matchesGlob } from "node:path";
+import { join, matchesGlob, posix } from "node:path";
 
 import { SEARCH_ROOT, REPLACE_FILE, isOverridePath, overrideGlobOf, targetOfOverride } from "../../../src/lib/districtMap/index.mjs";
 import { DEFAULT_IMPL_DIRS, FORK_OWNED_DIR, describeRouteReplaceProblem, findRouteReplaceProblems } from "../../../src/lib/screens/node.mjs";
@@ -29,6 +29,12 @@ export function listSrcFiles(repoRoot) {
   return out.sort();
 }
 
+/** files の点の上書きのファイル名(項目のファイルの隣: layout.ts → layout.override.ts / .tsx) */
+export const filesOverrideNamesOf = (files) => {
+  const stem = files.slice("*/".length).replace(/\.tsx?$/, "");
+  return [`${stem}.override.ts`, `${stem}.override.tsx`];
+};
+
 /** 上書きの対象の点の上書きのパス → 隣の対象のパス(最後の拡張子は対象の glob の物: task.override.ts → task.ts、user.role.override.ts → user.role.json) */
 export const targetOf = (path, point) => targetOfOverride(path, point.spec.overrides);
 
@@ -42,12 +48,20 @@ export function checkOrphans(repoRoot, { points, receptacleDirs }) {
   const present = new Set(files);
   const receptacles = new Set(receptacleDirs);
   const targetPoints = points.filter((p) => p.spec.overrides !== undefined);
+  // files の点の項目のフォルダの上書き(<受け口>/<項目>/<ファイル名>.override.ts、overrideOf の点。項目と鍵を照らすのは extensions.mjs)
+  const filesOverridePlaces = points
+    .filter((p) => p.spec.files && p.spec.overrideOf && p.spec.dir !== undefined)
+    .map((p) => ({ dir: posix.normalize(posix.join(p.owner, p.spec.dir)), names: filesOverrideNamesOf(p.spec.files) }));
+  const inFilesItemFolder = (dir, name) => {
+    const parent = dir.slice(0, dir.lastIndexOf("/"));
+    return filesOverridePlaces.some((place) => place.dir === parent && place.names.includes(name));
+  };
   const problems = [];
   const accepted = [];
 
   for (const path of files.filter(isOverridePath)) {
     const dir = path.slice(0, path.lastIndexOf("/"));
-    if (receptacles.has(dir) || isBlankSource(readFileSync(join(repoRoot, path), "utf8"))) continue;
+    if (receptacles.has(dir) || inFilesItemFolder(dir, path.slice(dir.length + 1)) || isBlankSource(readFileSync(join(repoRoot, path), "utf8"))) continue;
     const point = targetPoints.find((p) => matchesGlob(path, overrideGlobOf(p.spec.overrides)));
     if (!point) {
       const globs = targetPoints.map((p) => overrideGlobOf(p.spec.overrides)).join(" / ");

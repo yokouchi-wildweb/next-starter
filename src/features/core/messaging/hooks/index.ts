@@ -54,6 +54,7 @@ export {
   type UseMessageTemplateModalOptions,
 } from "./useMessageTemplateModal";
 export {
+  newTemplateLayoutOf,
   useMessageTemplateForm,
   type UseMessageTemplateFormOptions,
 } from "./useMessageTemplateForm";

@@ -71,6 +71,7 @@ function setup(options: { role?: string; actorId?: string | null; groups?: { id:
     groupOptions: async () => options.groups ?? [],
     listPublishedTemplates: async () => [],
     maxScheduleDays: () => 90,
+    initialLayout: () => "notice",
   };
   return { deps, calls, audits };
 }
@@ -263,6 +264,22 @@ test("見込みは送る口の数(送る時に数え直す印)、選択肢は有
     ],
   );
   assert.equal(options.maxScheduleDays, 90);
+  // 最初に開くレイアウト = config の initialLayout(そのまま渡す。誤りは連絡の一覧の検査が止める)
+  assert.equal(options.initialLayout, "notice");
+});
+
+test("無効のレイアウト: 選べるレイアウトにも、並べたテンプレートが使うレイアウトにも出ず、そのレイアウトのテンプレートは並ばない", async () => {
+  const { deps } = setup();
+  deps.layouts = {
+    ...TEST_LAYOUTS,
+    notice: { ...TEST_LAYOUTS.notice!, disabled: true },
+    card: { ...TEST_LAYOUTS.card!, adminSelectable: true },
+  };
+  const tpl = (id: string, layout: string) => ({ id, key: id, name: id, category: "promotion", currentVersion: 1, layout, layoutVersion: 1, values: {}, vars: [] });
+  deps.listPublishedTemplates = async () => [tpl("a", "notice"), tpl("b", "card")];
+  const options = await adminSendOptions(deps);
+  assert.deepEqual(options.layouts.map((o) => [o.key, o.selectable]), [["card", true]]);
+  assert.deepEqual(options.templates.map((t) => t.id), ["b"]);
 });
 
 test("管理者でなければ 403", async () => {

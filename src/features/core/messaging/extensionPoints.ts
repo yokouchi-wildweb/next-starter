@@ -74,7 +74,8 @@ export const extensionPoints = {
     overrideOf: ["enabled", "order"],
   },
   // レイアウト(D122): layouts/<名前>/ のフォルダ 1 つが 1 つのレイアウト。宣言とメールの描き方は server の一覧、お知らせの描き方は client の一覧(レイアウトの鍵で引く)。
-  // 描き方の部品は 1 行スイッチ(<部品>.tsx → <部品>.default.tsx)にでき、fork は .replace で見た目だけ替える。書き方: layouts/README.md
+  // 描き方の部品は 1 行スイッチ(<部品>.tsx → <部品>.default.tsx)にでき、fork は .replace で見た目だけ替える。
+  // fork は layouts/<名前>/layout.override.ts で disabled(どこにも出さない)・adminSelectable(管理画面で選べる)だけを変える。書き方: layouts/README.md
   layouts: {
     dir: "layouts",
     files: "*/layout.ts",
@@ -82,6 +83,7 @@ export const extensionPoints = {
     type: { from: "@/lib/messaging", name: "MessageLayoutItem" },
     side: "server",
     key: "key",
+    overrideOf: ["disabled", "adminSelectable"],
   },
   layoutEmails: {
     dir: "layouts",

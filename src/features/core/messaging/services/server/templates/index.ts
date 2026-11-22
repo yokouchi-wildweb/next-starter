@@ -11,6 +11,7 @@ import { auditLogger } from "@/features/core/auditLog/services/server";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 
+import { messagingConfig } from "../../../config";
 import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
@@ -38,6 +39,7 @@ const service = createTemplateService({
   ledger: storageTemplateImageLedger,
   dispatchLedger: storageInboxImageLedger,
   check: () => ({ channels, categories, layouts, enrichers: templateEnrichers() }),
+  initialLayout: () => messagingConfig.initialLayout,
   context: () => getAuditContext(),
   async roleCategoryOf(userId) {
     const [row] = await db.select({ role: UserTable.role }).from(UserTable).where(eq(UserTable.id, userId)).limit(1);

@@ -11,6 +11,8 @@ import type { z } from "zod";
 import {
   adminEditableFields,
   applyAdminFieldValues,
+  isLayoutAdminSelectable,
+  isLayoutUsable,
   resolveMessageDefinition,
   validateMessageDefinition,
   type AdminFieldValue,
@@ -152,13 +154,29 @@ function checkEmail(resolved: AnyResolvedMessageDefinition, list: string[]): str
 }
 
 /**
+ * 送る画面・テンプレートの編集の最初のレイアウト(config の messaging.initialLayout)の誤り。受け口にあり、使えて(disabled でない)管理画面で選べること。
+ * 黙ってほかのレイアウトに替えない(管理者が受け取る物が知らずに変わらない): 誤りは検査が止める
+ * @returns 誤りの文(null = よい)
+ */
+export function initialLayoutProblem(initialLayout: string, layouts: Readonly<Record<string, MessageLayout>>): string | null {
+  const layout = layouts[initialLayout];
+  if (!layout) return `config の messaging.initialLayout ${initialLayout} は layouts の受け口に無い(${Object.keys(layouts).join(" / ") || "項目なし"})`;
+  if (!isLayoutUsable(layout)) return `config の messaging.initialLayout ${initialLayout}(${layout.label})は無効(disabled)のレイアウト。initialLayout を管理画面で選べるレイアウトに替える`;
+  if (!isLayoutAdminSelectable(layout)) return `config の messaging.initialLayout ${initialLayout}(${layout.label})は管理画面で選べないレイアウト(adminSelectable でない)。initialLayout を管理画面で選べるレイアウトに替える`;
+  return null;
+}
+
+/**
  * 生成の一覧の全件を確かめる(L2.2。テストと出荷前の検査が呼ぶ):
- * 鍵が合う・上書きを重ねカテゴリーを付けた定義が validateMessageDefinition を通る・カテゴリーの送信チャンネルの全部で描ける(組み立てを差し込み無しで通す)。
+ * 鍵が合う・上書きを重ねカテゴリーを付けた定義が validateMessageDefinition を通る(無効のレイアウトを使う定義は止まる)・カテゴリーの送信チャンネルの全部で描ける
+ * (組み立てを差し込み無しで通す)。config の initialLayout が管理画面で選べる使えるレイアウトであること(initialLayoutProblem)も同じ検査で見る。
  * @returns 誤りの文(空 = 全件よい)
  */
-export async function checkMessageRegistry(deps: ResolveDefinitionDeps & MessageContentDeps): Promise<string[]> {
+export async function checkMessageRegistry(deps: ResolveDefinitionDeps & MessageContentDeps & { initialLayout: string }): Promise<string[]> {
   const { registry } = deps;
   const problems: string[] = [];
+  const initial = initialLayoutProblem(deps.initialLayout, deps.layouts);
+  if (initial) problems.push(initial);
   for (const [key, entry] of Object.entries(registry)) {
     try {
       if (entry.key !== key) problems.push(`${key}: 項目の key が ${entry.key}`);

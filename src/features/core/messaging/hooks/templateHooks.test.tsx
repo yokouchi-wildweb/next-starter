@@ -47,6 +47,7 @@ const OPTIONS = {
     { key: "marketingSale", label: "セール", description: null, kind: "promotion", channels: ["email"] },
   ],
   layouts: [NOTICE],
+  initialLayout: "notice",
   baseCatalog: [{ key: "displayName", alias: "表示名", source: "common", description: null }],
 };
 const OPTIONS_TWO_LAYOUTS = { ...OPTIONS, layouts: [NOTICE, ALERT] };
@@ -200,12 +201,14 @@ test("useMessageTemplateForm(作る): 種別 → カテゴリー(自動)→ レ�
   );
   const form = () => view.value();
   assert.equal(form().mode, "create");
-  // 種別は先に選ばない(D110)。レイアウトは 1 つなら自動
+  // 種別は先に選ばない(D110)。レイアウトは選択肢の initialLayout(config)から
   assert.equal(form().fields.kind, "");
   assert.equal(form().fields.category, "");
   assert.deepEqual(form().fields.categoryChoices, []);
   assert.deepEqual(form().fields.kindOptions.map((option) => option.value), ["announcement", "promotion"]);
   assert.equal(form().fields.layout, "notice");
+  assert.equal(hooks.newTemplateLayoutOf({ ...OPTIONS_TWO_LAYOUTS, initialLayout: "alert" } as never), "alert", "受け口の最初でなくても initialLayout");
+  assert.equal(hooks.newTemplateLayoutOf({ ...OPTIONS, initialLayout: "alert" } as never), "", "選べるレイアウトに無ければ空(選ばせる)");
   assert.equal(form().fieldsReady, false);
   assert.equal(form().fieldsHint, "種別・カテゴリーを選ぶと入力欄が出ます");
   assert.equal(form().dirty, false);

@@ -132,6 +132,7 @@ const SEND_OPTIONS = {
   layouts,
   groups: [{ id: "g1", label: "常連", kindLabel: "動的" }],
   maxScheduleDays: 90,
+  initialLayout: "notice",
 };
 
 const calls: unknown[][] = [];
@@ -169,6 +170,7 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
       categories: categories.filter((c) => c.targets.includes("bulk")),
       templates: [template],
       layouts,
+      initialLayout: "notice",
     }),
     adminBulkSend: async (input: unknown) => {
       calls.push(["bulk", input]);
@@ -308,10 +310,12 @@ test("純粋な関数", () => {
   assert.match(hooks.scheduleErrorOf("at", new Date(now + 91 * 86_400_000).toISOString(), 90, now) ?? "", /90 日先まで/);
   assert.equal(hooks.scheduleErrorOf("at", new Date(now + 86_400_000).toISOString(), 90, now), null);
 
-  // 種別(受け口の順、重なりなし)と初めのレイアウト(管理画面で選べる最初の物)
+  // 種別(受け口の順、重なりなし)と初めのレイアウト(選択肢の initialLayout)
   assert.deepEqual(hooks.kindsOf(categories as never), ["announcement", "direct", "promotion"]);
-  assert.deepEqual(hooks.blankLayoutOf(layouts as never), { key: "notice", label: "汎用のお知らせ" });
-  assert.equal(hooks.blankLayoutOf([layouts[0]] as never), null, "選べるレイアウトが無ければ null");
+  assert.deepEqual(hooks.blankLayoutOf(layouts as never, "notice"), { key: "notice", label: "汎用のお知らせ" });
+  assert.deepEqual(hooks.blankLayoutOf(layouts as never, "letter"), { key: "letter", label: "手紙" }, "config の initialLayout から(受け口の最初でなくても)");
+  assert.equal(hooks.blankLayoutOf([layouts[0]] as never, "notice"), null, "選択肢に無ければ null(ほかに替えない)");
+  assert.equal(hooks.blankLayoutOf(layouts as never, "legacy"), null, "選べないレイアウトなら null");
 
   // 専用の埋め込み情報: 数の型は数に、空は送らない / 必須の未入力(既定値のある物は除く)/ プレビューは入れた値(空なら既定値)で埋める
   assert.deepEqual(text.varValuesForInput([discount, startAt], { discount: "15", startAt: " " }), { discount: 15 });
@@ -331,20 +335,22 @@ test("純粋な関数", () => {
     { type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録", defaults: { values: { subject: "題" } } },
     "direct",
     layouts as never,
+    "notice",
     categories as never,
     [],
   );
   assert.deepEqual([bulk?.source, bulk?.start, bulk?.unlocked], [NOTICE_SOURCE, { subject: "題" }, true]);
   assert.equal(
-    hooks.initialTextOf({ type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録" }, "direct", [layouts[0]] as never, categories as never, []),
+    hooks.initialTextOf({ type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録" }, "direct", [layouts[0]] as never, "notice", categories as never, []),
     null,
     "選べるレイアウトが無ければ文面は無い(テンプレートを読み込む)",
   );
-  assert.equal(hooks.initialTextOf(NEW, "", layouts as never, categories as never, []), null, "種別を選ぶまで文面は無い");
+  assert.equal(hooks.initialTextOf(NEW, "", layouts as never, "notice", categories as never, []), null, "種別を選ぶまで文面は無い");
   const edited = hooks.initialTextOf(
     { type: "sameAs", dispatch: dispatchOf({ templateId: TEMPLATE_ID, templateEdited: true }, { discount: "30", gone: "x" }) } as never,
     "promotion",
     layouts as never,
+    "notice",
     categories as never,
     [template] as never,
   );
@@ -355,35 +361,36 @@ test("純粋な関数", () => {
     { type: "sameAs", dispatch: dispatchOf({ templateId: TEMPLATE_ID }) } as never,
     "direct",
     layouts as never,
+    "notice",
     categories as never,
     [template] as never,
   );
   assert.deepEqual([otherKind?.source, otherKind?.start], [NOTICE_SOURCE, SAME_AS_DISPATCH.content.values], "種別を選び直した後は送信のレイアウトから");
   // その場で書いた送信: 送信のレイアウトが管理画面で選べる物ならそのレイアウトに送信の values
   const letterMode = { type: "sameAs", dispatch: dispatchOf({ content: { layout: "letter", layoutVersion: 1, values: { subject: "手紙の件名" } } }) } as never;
-  const letterText = hooks.initialTextOf(letterMode, "promotion", layouts as never, categories as never, []);
+  const letterText = hooks.initialTextOf(letterMode, "promotion", layouts as never, "notice", categories as never, []);
   assert.deepEqual([letterText?.source, letterText?.layout, letterText?.start], [{ type: "layout", layout: "letter", label: "手紙" }, "letter", { subject: "手紙の件名" }]);
   assert.equal(hooks.sameAsNoteOf(letterMode, letterText, []), null);
 
   // 写せなかった時の知らせ
   const goneMode = { type: "sameAs", dispatch: dispatchOf({ templateId: "gone" }) } as never;
-  const goneText = hooks.initialTextOf(goneMode, "promotion", layouts as never, categories as never, [template] as never);
+  const goneText = hooks.initialTextOf(goneMode, "promotion", layouts as never, "notice", categories as never, [template] as never);
   assert.deepEqual(goneText?.start, SAME_AS_DISPATCH.content.values);
   assert.match(hooks.sameAsNoteOf(goneMode, goneText, [template] as never) ?? "", /白紙のテンプレートにコピーしました/);
   const emptyMode = { type: "sameAs", dispatch: dispatchOf({ templateId: "gone", content: null }) } as never;
-  assert.match(hooks.sameAsNoteOf(emptyMode, hooks.initialTextOf(emptyMode, "promotion", layouts as never, categories as never, []), []) ?? "", /入力し直してください/);
+  assert.match(hooks.sameAsNoteOf(emptyMode, hooks.initialTextOf(emptyMode, "promotion", layouts as never, "notice", categories as never, []), []) ?? "", /入力し直してください/);
   // 定義連絡の送信はサーバーが写しを答えない(sameAs null、D193)= 中身があっても写さず初めのレイアウトの白紙
   const definitionMode = { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, sameAs: null } } as never;
-  const definitionText = hooks.initialTextOf(definitionMode, "promotion", layouts as never, categories as never, []);
+  const definitionText = hooks.initialTextOf(definitionMode, "promotion", layouts as never, "notice", categories as never, []);
   assert.deepEqual([definitionText?.source, definitionText?.start], [NOTICE_SOURCE, {}]);
   // 管理画面で選べないレイアウト(legacy)・無いレイアウトの送信 = 初めのレイアウトの白紙 + 知らせ
   for (const layout of ["legacy", "welcome"]) {
     const otherLayout = { type: "sameAs", dispatch: dispatchOf({ content: { layout, layoutVersion: 1, values: { subject: "元" } } }) } as never;
-    const otherText = hooks.initialTextOf(otherLayout, "promotion", layouts as never, categories as never, []);
+    const otherText = hooks.initialTextOf(otherLayout, "promotion", layouts as never, "notice", categories as never, []);
     assert.deepEqual([otherText?.source, otherText?.start], [NOTICE_SOURCE, {}], layout);
     assert.match(hooks.sameAsNoteOf(otherLayout, otherText, []) ?? "", /形と違うため/, layout);
   }
-  assert.equal(hooks.sameAsNoteOf(SAME_AS as never, hooks.initialTextOf(SAME_AS as never, "promotion", layouts as never, categories as never, []), []), null);
+  assert.equal(hooks.sameAsNoteOf(SAME_AS as never, hooks.initialTextOf(SAME_AS as never, "promotion", layouts as never, "notice", categories as never, []), []), null);
   assert.equal(hooks.sameAsNoteOf(NEW, null, []), null);
 
   // 初めの宛先

@@ -8,7 +8,7 @@
 import { listVariables } from "@/lib/templateVariables";
 import type { z } from "zod";
 
-import type { MessageLayout } from "../layout/types";
+import { isLayoutUsable, type MessageLayout } from "../layout/types";
 import { layoutValuesSchema } from "../layout/values";
 import type { MessageCategory, MessageCategoryGroup } from "../receptacles/types";
 import { MESSAGE_COMMON_VARS } from "../vars/common";
@@ -43,6 +43,7 @@ export type MessageDefinitionProblemCode =
   | "required_throttle"
   | "unknown_channel"
   | "unknown_layout"
+  | "disabled_layout"
   | "invalid_values"
   | "unknown_admin_editable"
   | "unknown_variable"
@@ -209,6 +210,9 @@ export function validateMessageDefinition<
   if (!layout) {
     const keys = Object.keys(options.layouts);
     add("unknown_layout", `${label}: layout ${String(definition.layout)} は layouts の受け口に無い(${keys.join(" / ") || "項目なし"})`);
+  } else if (!isLayoutUsable(layout)) {
+    // 無効のレイアウト(fork の layout.override.ts の disabled)を定義連絡は使えない。定義をほかのレイアウトに移すか disabled を外す
+    add("disabled_layout", `${label}: layout ${layout.key}(${layout.label})は無効(disabled)。定義をほかのレイアウトに移すか、layouts/${layout.key}/layout.override.ts の disabled を外す`);
   } else {
     const parsed = layoutValuesSchema(layout, { channels: resolved.channels }).safeParse(values);
     if (!parsed.success) {

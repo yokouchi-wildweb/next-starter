@@ -20,6 +20,8 @@
 import { z } from "zod";
 
 import {
+  isLayoutAdminSelectable,
+  isLayoutUsable,
   layoutVersionOf,
   type MessageAdminTarget,
   type MessageCategory,
@@ -160,6 +162,8 @@ export type AdminSendOptions = {
    * 送る画面は最初の物から始める)と、並べたテンプレートが使うほかのレイアウト(selectable: false、読み込んだテンプレートを描くだけ)
    */
   layouts: AdminSendLayoutOption[];
+  /** 送る画面が最初に開くレイアウトの鍵(config の messaging.initialLayout。管理画面で選べる使えるレイアウトであることは連絡の一覧の検査が見る) */
+  initialLayout: string;
   /** 予約できる日数(config.schedule.maxDaysAhead) */
   maxScheduleDays: number;
 };
@@ -185,6 +189,8 @@ export type AdminSendDeps = AdminCheckDeps & {
   groupOptions: () => Promise<AdminSendGroupOption[]>;
   listPublishedTemplates: () => Promise<AdminSendOptions["templates"]>;
   maxScheduleDays: () => number;
+  /** 送る画面の最初のレイアウト(config の messaging.initialLayout) */
+  initialLayout: () => string;
 };
 
 /** 中身・カテゴリーを組んで送る口へ渡すのに要る部品(/send と一括送信で共通) */
@@ -387,7 +393,7 @@ export function adminSendLayoutOptions(
     fields: layout.fields,
     selectable,
   });
-  const selectable = Object.values(layouts).filter((layout) => layout.adminSelectable === true);
+  const selectable = Object.values(layouts).filter(isLayoutAdminSelectable);
   const keys = new Set(selectable.map((layout) => layout.key));
   const others = [...new Set(templates.map((template) => template.layout))].flatMap((key) => {
     const layout = layouts[key];
@@ -396,9 +402,17 @@ export function adminSendLayoutOptions(
   return [...selectable.map((layout) => option(layout, true)), ...others];
 }
 
+/** 送る画面に並べるテンプレート: 無効のレイアウト(disabled)の物は出さない(テンプレートの一覧では使えない印付きで並ぶ・送る口が断る) */
+export function offeredTemplates<T extends { layout: string }>(layouts: Readonly<Record<string, MessageLayout>>, templates: readonly T[]): T[] {
+  return templates.filter((template) => {
+    const layout = layouts[template.layout];
+    return !layout || isLayoutUsable(layout);
+  });
+}
+
 export async function adminSendOptions(deps: AdminSendDeps): Promise<AdminSendOptions> {
   await assertAdminActor(deps);
-  const templates = await deps.listPublishedTemplates();
+  const templates = offeredTemplates(deps.layouts, await deps.listPublishedTemplates());
   // 送る画面の宛先(全員・ロール・グループ・選んだ利用者)のどれかに送れるカテゴリー
   const categories = adminFreeTextCategoryOptions(
     deps.categories,
@@ -412,6 +426,7 @@ export async function adminSendOptions(deps: AdminSendDeps): Promise<AdminSendOp
     templates,
     categories,
     layouts: adminSendLayoutOptions(deps.layouts, templates),
+    initialLayout: deps.initialLayout(),
     maxScheduleDays: deps.maxScheduleDays(),
   };
 }

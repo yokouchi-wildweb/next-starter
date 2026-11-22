@@ -66,6 +66,11 @@ export type MessagingConfig = {
    * - budgetMs: 1 回の実行の予算
    */
   subscribers: { lagSeconds: number; maxAttempts: number; batchSize: number; budgetMs: number };
+  /**
+   * 送る画面(自由連絡)とテンプレートの編集で最初に開くレイアウトの鍵(既定 "simple")。管理画面で選べる(adminSelectable)使える(disabled でない)
+   * レイアウトであること。違えば連絡の一覧の検査(checkMessageRegistry)が止める(ほかのレイアウトに黙って替えない)
+   */
+  initialLayout: string;
 };
 
 const defaults: MessagingConfig = {
@@ -87,6 +92,7 @@ const defaults: MessagingConfig = {
   inbox: { showUnreadModal: true, unreadModalPaths: ["/"] },
   schedule: { maxDaysAhead: 90 },
   subscribers: { lagSeconds: 120, maxAttempts: 5, batchSize: 100, budgetMs: 240_000 },
+  initialLayout: "simple",
 };
 
 export const messagingConfigDef = defineConfig(defaults, { label: "messaging" });

@@ -39,6 +39,11 @@ export type MessageLayout<F extends MessageLayoutFields = MessageLayoutFields> =
   summary: (values: MessageLayoutValues<F>) => MessageLayoutSummary;
   /** 管理者がテンプレートで選べるか(既定 false = 定義連絡だけが使う) */
   adminSelectable?: boolean;
+  /**
+   * 無効(既定 false)。fork が layout.override.ts で付ける。どこにも出さない(送る画面・テンプレートの編集)・定義連絡が使えば定義の検査が止める・
+   * このレイアウトの DB のテンプレートは使えない印付きで並び送る口が断る。受け口の一覧には残る(送った記録・お知らせの行は描ける)
+   */
+  disabled?: boolean;
   /** 版(既定 1)。欄の鍵を変えた・消した時に 1 上げ、revisions にその段の対応を書く。送信は送った時の版を残す(D128) */
   version?: number;
   /**
@@ -47,6 +52,19 @@ export type MessageLayout<F extends MessageLayoutFields = MessageLayoutFields> =
    */
   revisions?: Readonly<Record<number, Readonly<Record<string, string | null>>>>;
 };
+
+/** fork の layouts/<名前>/layout.override.ts の形(宣言の overrideOf の鍵だけ: `export const override = { ... } satisfies MessageLayoutOverride`) */
+export type MessageLayoutOverride = Partial<Pick<MessageLayout, "disabled" | "adminSelectable">>;
+
+/** 使えるレイアウトか(disabled でない) */
+export function isLayoutUsable(layout: Pick<MessageLayout, "disabled">): boolean {
+  return layout.disabled !== true;
+}
+
+/** 管理画面で選べるレイアウトか(使えて adminSelectable) */
+export function isLayoutAdminSelectable(layout: Pick<MessageLayout, "disabled" | "adminSelectable">): boolean {
+  return isLayoutUsable(layout) && layout.adminSelectable === true;
+}
 
 /** 型の版の既定 */
 export const DEFAULT_LAYOUT_VERSION = 1;

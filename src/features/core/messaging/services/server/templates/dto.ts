@@ -52,6 +52,8 @@ export type AdminTemplateSummary = {
   /** レイアウトの鍵と欄の中身(最新の版と同じ中身) */
   layout: string;
   values: Record<string, unknown>;
+  /** 使えるか(false = レイアウトが無効(disabled)か受け口に無い。画面は「使えない」の印を出し、送る画面に並ばず送る口が断る) */
+  usable: boolean;
 };
 
 export type AdminTemplateDetail = AdminTemplateSummary & {
@@ -98,8 +100,10 @@ export type AdminTemplateOptions = {
     /** そのカテゴリーで送る送信チャンネルの鍵(使える物だけ。プレビューのタブと送信チャンネルだけの欄はこの分) */
     channels: string[];
   }[];
-  /** 管理者が選べるレイアウト */
+  /** 管理者が選べるレイアウト(無効の物は出さない) */
   layouts: AdminTemplateLayoutOption[];
+  /** 作る画面が最初に開くレイアウトの鍵(config の messaging.initialLayout) */
+  initialLayout: string;
   /** 専用の宣言の前から書ける埋め込み情報(共通 + テンプレートに当たる enrichers) */
   baseCatalog: AdminVarEntry[];
 };

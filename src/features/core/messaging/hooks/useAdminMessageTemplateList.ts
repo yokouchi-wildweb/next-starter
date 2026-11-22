@@ -20,7 +20,7 @@ import { useMessageTemplates } from "./useMessageTemplates";
 /** 1 件の詳しい形から一覧の行の形へ */
 function summaryOf(template: AdminTemplateDetail): AdminTemplateSummary {
   const { id, key, name, description, category, categoryLabel, currentVersion, createdBy, updatedBy, createdAt, updatedAt } = template;
-  const { layout, values } = template;
+  const { layout, values, usable } = template;
   return {
     id,
     key,
@@ -35,6 +35,7 @@ function summaryOf(template: AdminTemplateDetail): AdminTemplateSummary {
     updatedAt,
     layout,
     values,
+    usable,
   };
 }
 

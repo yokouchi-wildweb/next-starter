@@ -16,7 +16,7 @@ import { randomBytes } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 
 import type { AuditRecordInput } from "@/lib/audit";
-import { buildChannelContent, categoryAdminLabel, layoutVersionOf, upgradeLayoutValues, type MessageVarDeclaration, type MessageVarEntry } from "@/lib/messaging";
+import { buildChannelContent, categoryAdminLabel, isLayoutAdminSelectable, isLayoutUsable, layoutVersionOf, upgradeLayoutValues, type MessageVarDeclaration, type MessageVarEntry } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import type { MessageTemplate, MessageTemplateVersion } from "../../../entities/model";
@@ -49,6 +49,8 @@ export type TemplateServiceDeps<Tx> = AdminCheckDeps & {
   /** 送信の画像の台帳(消す時に、残す送信の画像を送信へ結び直す。受け取り箱と同じ持ち主 messaging.dispatch) */
   dispatchLedger: InboxImageLedger<Tx>;
   check: () => TemplateCheckDeps;
+  /** 作る画面の最初のレイアウト(config の messaging.initialLayout) */
+  initialLayout: () => string;
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
   /** 送信チャンネルの鍵 → レイアウトの描き方を持つレイアウトの鍵の表(email = layoutEmails。プレビューが 3 段の 1 段目を選ぶのに使う) */
   layoutRenderers?: () => Readonly<Record<string, Readonly<Record<string, unknown>>>>;
@@ -82,7 +84,10 @@ function toEntry(entry: MessageVarEntry): AdminVarEntry {
   return { key: entry.key, alias: entry.alias, source: entry.source, description: entry.description ?? null };
 }
 
-function toSummary(row: MessageTemplate, categoryLabel: CategoryLabelOf): AdminTemplateSummary {
+/** テンプレートのレイアウトが使えるか(受け口にあり disabled でない) */
+type LayoutUsableOf = (layout: string) => boolean;
+
+function toSummary(row: MessageTemplate, categoryLabel: CategoryLabelOf, layoutUsable: LayoutUsableOf): AdminTemplateSummary {
   return {
     id: row.id,
     key: row.key,
@@ -97,6 +102,7 @@ function toSummary(row: MessageTemplate, categoryLabel: CategoryLabelOf): AdminT
     updatedAt: row.updatedAt ? row.updatedAt.toISOString() : null,
     layout: row.layout,
     values: row.values,
+    usable: layoutUsable(row.layout),
   };
 }
 
@@ -148,13 +154,14 @@ function parseOr400<T>(result: { success: true; data: T } | { success: false }, 
 
 export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
   const categoryLabel: CategoryLabelOf = (category) => { const found = deps.check().categories[category]; return found ? categoryAdminLabel(found) : null; };
+  const layoutUsable: LayoutUsableOf = (key) => { const found = deps.check().layouts[key]; return Boolean(found && isLayoutUsable(found)); };
   const actorId = () => deps.context()?.actorId ?? null;
 
   const catalogOf = (own: readonly MessageVarDeclaration[]) => templateVarCatalog(deps.check(), own).map(toEntry);
 
   function detailOf(row: MessageTemplate): AdminTemplateDetail {
     return {
-      ...toSummary(row, categoryLabel),
+      ...toSummary(row, categoryLabel, layoutUsable),
       layoutVersion: row.layout_version,
       vars: row.vars,
       catalog: catalogOf(row.vars),
@@ -215,7 +222,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       const rows = await deps.store.list({ categories, limit, after: decodeCursor(cursor) });
       const page = rows.slice(0, limit);
       return {
-        items: page.map((row) => toSummary(row, categoryLabel)),
+        items: page.map((row) => toSummary(row, categoryLabel, layoutUsable)),
         nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]) : null,
       };
     },
@@ -382,6 +389,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           version: layoutVersionOf(layout),
           fields: layout.fields,
         })),
+        initialLayout: deps.initialLayout(),
         baseCatalog: catalogOf([]),
       };
     },
@@ -398,7 +406,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       const { layout: layoutKey, channel: channelKey, values, category } = parsed.data;
       const check = deps.check();
       const layout = check.layouts[layoutKey];
-      if (!layout || layout.adminSelectable !== true) throw new DomainError("選べないひな形です", { status: 400 });
+      if (!layout || !isLayoutAdminSelectable(layout)) throw new DomainError("選べないひな形です", { status: 400 });
       const channel = check.channels[channelKey];
       if (!channel || channel.enabled === false) throw new DomainError("使えない送信方法です", { status: 400 });
       if (category && !check.categories[category]) throw new DomainError("知らない種類です", { status: 400 });
