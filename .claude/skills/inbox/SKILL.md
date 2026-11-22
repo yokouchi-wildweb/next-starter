@@ -96,7 +96,7 @@ target: $ARGUMENTS
    c. **answer** (append the RESOLUTION and move to `done/` in one go; run at the repo root):
       `node .claude/skills/order/mailbox.mjs resolve <the file> --status=done --pushed=<yes | no と理由 | -> --body=<file from b>`
       - fork-id, url, branch, commit of `by:` come from the repo it runs in (commit = the HEAD fixed in a) | no commit → `--commit=-` | committed in another repo → `--commit=<sha and place>` | stopped at part of the order → `--status=partial`
-      - a missing line → nothing is written and it stops (add the line the error names to the body, run again) | refused because the owner differs (someone else's taken / another route target) → never add `--force` yourself; STOP: ask the human
+      - a missing line is written as is, never refused (D437) | refused because the owner differs (someone else's taken / another route target) → never add `--force` yourself; STOP: ask the human
       - the written form:
         ```
         ## RESOLUTION

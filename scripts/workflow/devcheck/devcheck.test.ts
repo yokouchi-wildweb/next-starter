@@ -105,7 +105,7 @@ test("方針の入口: 危険な 3 つの入口の既定(db_push = pnpm db:push�
   assert.equal(policyKeyOf("db-write"), "agent.db_write");
 });
 
-test("fork の項目: このリポの入口だけを候補にし、知らない種類・外のコマンド・シェルの記号・本番の指定は理由つきで断る", () => {
+test("fork の項目: このリポの入口だけを候補にし、知らない種類・外のコマンド・シェルの記号は理由つきで断る(本番の指定は入口の守りが守るので断らない)", () => {
   const repo = temp("devcheck-items-");
   mkdirSync(path.join(repo, "scripts/workflow/orders"), { recursive: true });
   writeFileSync(path.join(repo, "scripts/workflow/orders/smoke.ts"), "");
@@ -118,7 +118,7 @@ test("fork の項目: このリポの入口だけを候補にし、知らない�
   put("d-foreign.json", { name: "x", kind: "login", command: "npx vitest" });
   put("e-shell.json", { name: "x", kind: "login", command: "pnpm test && rm -rf /" });
   put("f-pipe.json", { name: "x", kind: "login", command: "pnpm test | tee out" });
-  put("g-prod.json", { name: "x", kind: "db-write", command: "pnpm ops db inspect query --env production" });
+  put("g-prod.json", { name: "orders-smoke-prod", kind: "login", command: "pnpm workflow orders smoke --env production" });
   put("h-missing-action.json", { name: "x", kind: "check", command: "pnpm workflow orders nope" });
   put("i-broken.json", "{ not json");
   put("j-name.json", { name: "Bad Name", kind: "test", command: "pnpm test" });
@@ -130,15 +130,15 @@ test("fork の項目: このリポの入口だけを候補にし、知らない�
     [
       ["orders-seed", "db-write", "pnpm seed src/domains/order"],
       ["orders-smoke", "login", "pnpm workflow orders smoke"],
+      ["orders-smoke-prod", "login", "pnpm workflow orders smoke --env production"],
     ],
   );
   assert.deepEqual(
     scanned.rejected.map((r) => r.file),
-    ["c-kind.json", "d-foreign.json", "e-shell.json", "f-pipe.json", "g-prod.json", "h-missing-action.json", "i-broken.json", "j-name.json", "k-test-kind.json", "l-check-command.json"],
+    ["c-kind.json", "d-foreign.json", "e-shell.json", "f-pipe.json", "h-missing-action.json", "i-broken.json", "j-name.json", "k-test-kind.json", "l-check-command.json"],
   );
   assert.match(scanned.rejected.find((r) => r.file === "e-shell.json")?.reason ?? "", /シェルの記号/);
   assert.match(scanned.rejected.find((r) => r.file === "l-check-command.json")?.reason ?? "", /検査は出荷の道具の中だけ/);
-  assert.match(scanned.rejected.find((r) => r.file === "g-prod.json")?.reason ?? "", /本番の指定/);
   assert.deepEqual(scanItems(path.join(repo, "none"), repo, {}), { items: [], rejected: [] });
 });
 

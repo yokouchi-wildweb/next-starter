@@ -119,7 +119,6 @@ export const scanItems = (itemsDir: string, repoRoot: string, scripts: Record<st
     else if (!(KIND_NAMES as unknown[]).includes(kind)) rejected.push({ file: entry, reason: `kind は ${KIND_NAMES.join(" / ")} のどれか` });
     else if (typeof command !== "string" || command.trim() === "") rejected.push({ file: entry, reason: "command がない" });
     else if (SHELL_OPERATORS.test(command)) rejected.push({ file: entry, reason: "command にシェルの記号(; & | < > ` $()は使えない" });
-    else if (/(^|\s)(--env|--confirm)(=|\s|$)|db:push/.test(command)) rejected.push({ file: entry, reason: "command に本番の指定・db:push は使えない" });
     else if (/^pnpm\s+(-s\s+)?(test|check|typecheck|lint)(\s|$)/.test(command.trim())) rejected.push({ file: entry, reason: "command に検査(test / check / typecheck / lint)は使えない: 検査は出荷の道具の中だけ(D357)" });
     else if (!isRepoEntry(command, repoRoot, scripts)) rejected.push({ file: entry, reason: "command はこのリポの入口(pnpm <script> / pnpm workflow / pnpm ops)だけ" });
     else items.push({ name, kind: kind as KindName, command: command.trim(), what: typeof what === "string" ? what : "", file: entry });

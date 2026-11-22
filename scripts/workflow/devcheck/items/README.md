@@ -14,7 +14,7 @@
 
 - `name`: 英小文字・数字・ハイフン
 - `kind`: `pnpm workflow devcheck plan` の種類のどれか(server・browser・login・db-write・db-delete・env-add)。方針はその種類のものが効く。テスト・検査は項目にしない(検査は出荷の道具の中だけ、D357)
-- `command`: このリポの入口だけ(`pnpm <package.json の script>` / `pnpm workflow <対象> <動作>` / `pnpm ops <対象> <動作>`)。シェルの記号(`;` `&` `|` `<` `>` `` ` `` `$(`)・`--env`・`--confirm`・`db:push`・検査(`pnpm test` / `check` / `typecheck` / `lint`)は使えない
+- `command`: このリポの入口だけ(`pnpm <package.json の script>` / `pnpm workflow <対象> <動作>` / `pnpm ops <対象> <動作>`)。シェルの記号(`;` `&` `|` `<` `>` `` ` `` `$(`)・検査(`pnpm test` / `check` / `typecheck` / `lint`)は使えない
 
 ## Internals
 

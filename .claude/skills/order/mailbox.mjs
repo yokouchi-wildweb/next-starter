@@ -335,7 +335,7 @@ function orderState(path) {
   return { state: "missing", path: cur };
 }
 
-// RESOLUTION の本文（--body）に status ごとに要る行（依頼元が自分の欄を足して求める時は、依頼元が答えを読んで確かめる）
+// RESOLUTION の本文（--body）に status ごとに書く行（欠けても断らずにそのまま書く。読む側が欠けを読む、D437）
 const REQUIRED = {
   done: ["implemented", "consume", "propagate", "notice", "notes"],
   partial: ["implemented", "consume", "propagate", "notice", "notes"],
@@ -533,7 +533,7 @@ function resolveGuard(text, { actor, as, env, force }) {
 }
 
 // 指令に答える: 確かめてから RESOLUTION を追記し、先頭の status: を RESOLUTION の status に書き換えて done/ へ移す
-// （ファイルだけを読んでも状態が分かるように）。足りないものがあれば何も書かずに throw する。
+// （ファイルだけを読んでも状態が分かるように）。書く行の欠けは断らない（D437）。
 // by = { repoId, origin, branch, commit, pushed }。actor / as / env / force = 担当の守り（resolveGuard。actor が無ければ確かめない）。
 // 戻り値 = 移した先のパス
 export function resolveOrder(orderPath, { status, body, by, now = isoNow(), actor, as, env = {}, force }) {
@@ -544,13 +544,9 @@ export function resolveOrder(orderPath, { status, body, by, now = isoNow(), acto
   if (/^## RESOLUTION$/m.test(text)) throw new Error(`すでに RESOLUTION があります: ${orderPath}`);
   const forced = resolveGuard(text, { actor, as, env, force });
   const lines = body.split("\n").map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim() !== "");
-  const want = [...REQUIRED[status]];
-  const missing = want.filter((k) => !lines.some((l) => l.startsWith(`${k}:`)));
-  if (missing.length) throw new Error(`RESOLUTION の本文に ${missing.map((k) => `${k}:`).join(" ")} の行がありません`);
   const full = status === "done" || status === "partial";
-  if (full && !by.pushed) throw new Error("--pushed が要ります（yes | no と理由。commit しなかったなら -）");
   const byLine = full
-    ? `by: ${by.repoId} | ${by.origin || "-"} | branch:${by.branch || "-"} | commit:${by.commit || "-"} | pushed:${by.pushed}`
+    ? `by: ${by.repoId} | ${by.origin || "-"} | branch:${by.branch || "-"} | commit:${by.commit || "-"} | pushed:${by.pushed || "-"}`
     : `by: ${by.repoId} | commit:- | pushed:-`;
   const block = ["", "## RESOLUTION", `resolved: ${now}   status: ${status}`, byLine, ...lines, ...(forced ? [forced] : []), ""].join("\n");
   writeAtomic(orderPath, setHead(text, { status }) + (text.endsWith("\n") ? "" : "\n") + block);

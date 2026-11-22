@@ -86,7 +86,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 ### fork の項目
 
 - `items/<名前>.json` = `{ name, kind, command, what }`(書式は `items/README.md`)。受け口(上流は README だけ)
-- command はこのリポの入口(`pnpm <script>` / `pnpm workflow <対象> <動作>` / `pnpm ops <対象> <動作>` の実在する物)だけ。シェルの記号・`--env`・`--confirm`・`db:push` は断り、plan に理由を出す
+- command はこのリポの入口(`pnpm <script>` / `pnpm workflow <対象> <動作>` / `pnpm ops <対象> <動作>` の実在する物)だけ。シェルの記号と検査の命令は断り、plan に理由を出す(本番の指定は入口の守り `scripts/runner/guard` が方針と許可で守るので、項目では断らない)
 - 方針はその項目の種類のものが効く
 
 ### 文脈(DEVCHECK_CONTEXT)の約束

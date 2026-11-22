@@ -64,10 +64,10 @@ test("先頭に status: が無い古い指令は date: の次に足す。本文�
   assert.match(text, /\ndate: 2026-01-01T00:00:00Z\nstatus: done\nneed: do x\n## BODY\nstatus: keep\n/);
 });
 
-test("done: 要る行が無ければ何も書かずに止める", () => {
+test("done: 書く行が欠けていても断らず、書かれた行をそのまま書く（D437）", () => {
   const { file } = box();
-  assert.throws(() => resolveOrder(file, { status: "done", body: "implemented: x\n", by: BY }), /consume: propagate: notice: notes:/);
-  assert.equal(readFileSync(file, "utf8").includes("RESOLUTION"), false);
+  const dest = resolveOrder(file, { status: "done", body: "implemented: x\n", by: BY });
+  assert.match(readFileSync(dest, "utf8"), /\n## RESOLUTION\nresolved: .*status: done\nby: .*\nimplemented: x\n/);
 });
 
 test("発行元が何であっても要る行は status ごとの同じ組（依頼元の欄は依頼元が確かめる）", () => {
@@ -76,9 +76,10 @@ test("発行元が何であっても要る行は status ごとの同じ組（依
   assert.match(readFileSync(dest, "utf8"), /status: done\n/);
 });
 
-test("done は --pushed が要る", () => {
+test("done の --pushed が無ければ pushed:-", () => {
   const { file } = box();
-  assert.throws(() => resolveOrder(file, { status: "done", body: BODY, by: { ...BY, pushed: undefined } }), /--pushed/);
+  const dest = resolveOrder(file, { status: "done", body: BODY, by: { ...BY, pushed: undefined } });
+  assert.match(readFileSync(dest, "utf8"), /\| pushed:-\n/);
 });
 
 test("relayed / rejected / withdrawn: 短い by 行と、それぞれの要る行", () => {
@@ -86,7 +87,6 @@ test("relayed / rejected / withdrawn: 短い by 行と、それぞれの要る�
   const dest = resolveOrder(a.file, { status: "relayed", body: "relayed_to: other--repo/1.md\nnotes: theirs\n", by: BY });
   assert.match(readFileSync(dest, "utf8"), /status: relayed\nby: acme--app \| commit:- \| pushed:-\nrelayed_to: other--repo\/1\.md\n/);
   const b = box();
-  assert.throws(() => resolveOrder(b.file, { status: "rejected", body: "\n", by: BY }), /notes:/);
   resolveOrder(b.file, { status: "withdrawn", body: "notes: no longer needed\n", by: BY });
 });
 
@@ -114,9 +114,6 @@ test("CLI: by の repo-id・branch・commit は実行したリポから取る", 
   assert.match(out, /^resolved: .*\/done\/20260101-000000-x\.md\n$/);
   const text = readFileSync(join(dirname(file), "done", "20260101-000000-x.md"), "utf8");
   assert.match(text, new RegExp(`\\nby: acme--app \\| git@github\\.com:Acme/App\\.git \\| branch:main \\| commit:${sha} \\| pushed:no \\(no remote\\)\\n`));
-  const bad = box();
-  assert.throws(() => execFileSync("node", [SCRIPT, "resolve", bad.file, "--status=done", `--body=${bodyFile}`], { cwd: repo, stdio: "pipe" }));
-  assert.equal(existsSync(bad.file), true);
 });
 
 test("from: ORDER_ACTOR があれば発行元 = その名前、リポは repo: に残す", () => {
