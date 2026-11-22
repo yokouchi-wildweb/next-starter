@@ -1,9 +1,9 @@
 // scripts/operations/db/lib.pendingPrompt.ts
 //
-// pnpm db:push:check の純粋な部品(check-schema-roundtrip.ts は先頭で guard を通すので、テストはここを読む)。
+// pnpm db:push:check と pnpm db:push の純粋な部品(どちらも先頭で guard を通すので、テストはここを読む。見張りは lib.promptStop.ts)。
 // drizzle-kit の pushSchema は、表・列などが「新しく作るのか、別のものからの改名か」決められないとき、
 // 端末で選ぶ問い(hanji の選択)を出して答えを待つ。TTY のない実行(エージェント・CI・< /dev/null)では
-// 答えが来ず終わらないので、check は問いの出力を見つけた時点で止まる。読むだけを守るため、答えは決して選ばない。
+// 答えが来ず終わらないので、check も push も問いの出力を見つけた時点で止まる。答えは決して選ばない(push は差分の計算の途中なので DB は変わらない)。
 // - parsePendingPrompt: 出力から問い(何の、どの名前の、どの表の、改名元の候補)を読む
 // - findNoticeAnswers: その名前を名指す .notices の行(改名か作成かの答え)を探す
 // - formatPendingPrompt: 人と機械が読む止まりの説明
@@ -85,8 +85,11 @@ export const findNoticeAnswers = (
     .filter((answer) => answer.lines.length > 0);
 };
 
-/** 止まった理由と、決める人がすること(読むだけなので答えはしない) */
-export const formatPendingPrompt = (prompt: PendingPrompt, answers: readonly NoticeAnswer[]): string => {
+/** 止まった命令: check = 読むだけの確認(pnpm db:push:check)/ push = 反映(pnpm db:push、まだ何も実行していない) */
+export type PromptStopMode = "check" | "push";
+
+/** 止まった理由と、決める人がすること(答えはしない) */
+export const formatPendingPrompt = (prompt: PendingPrompt, answers: readonly NoticeAnswer[], mode: PromptStopMode = "check"): string => {
   const target = prompt.table ? `${prompt.table}.${prompt.name}` : prompt.name;
   const lines = [
     "",
@@ -94,7 +97,9 @@ export const formatPendingPrompt = (prompt: PendingPrompt, answers: readonly Not
     prompt.renameFrom.length > 0
       ? `改名元の候補: ${prompt.renameFrom.join(", ")}`
       : "改名元の候補: (出力から読めませんでした)",
-    "TTY のない実行では答えられないため、読むだけの確認はここで終わります(答えは選びません)。",
+    mode === "check"
+      ? "TTY のない実行では答えられないため、読むだけの確認はここで終わります(答えは選びません)。"
+      : "TTY のない実行では答えられないため、反映はここで止めます(答えは選びません。DB は変更していません)。",
     "決め方: 端末で pnpm db:push を実行して作成か改名かを選ぶ(その後 pnpm db:push:check で差分ゼロを確かめる)。",
   ];
   if (answers.length > 0) {

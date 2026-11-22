@@ -12,16 +12,20 @@
 //
 // 挙動は drizzle-kit push に合わせる:
 // - 実行する SQL を表示してから実行する（差分が無ければ何もしない）
-// - テーブル / 列の rename 判定は drizzle-kit の対話プロンプトがそのまま出る
-// - データ消失を伴う文（DROP / truncate / 型変更）を含むときは y/N で確認する（--force で省略）
+// - テーブル / 列の rename 判定は drizzle-kit の対話プロンプトがそのまま出る(TTY のない実行では出た時点で説明して exit 1、
+//   答えは選ばない、DB は変えない。見張りは lib.promptStop.ts で db:push:check と同じ)
+// - データ消失を伴う文（DROP / truncate / 型変更）を含むときは y/N で確認する（--force で省略）。TTY のない実行では問わずに中止し、
+//   --force で打ち直す形を出す(exit 1、DB は変えない。lib.push.ts)
 //
 // 詳細: scripts/structure/registry/README.md
 import { createInterface } from "node:readline/promises";
 
 import { guardEntry } from "../../runner/guard";
+import { dataLossStep, dataLossStopMessage } from "./lib.push";
+import { stopOnPromptWithoutTty } from "./lib.promptStop";
 
 // 共通の守り: 向き先(既定は開発)・段階の印・本番の確認
-const { envFile } = guardEntry({ write: true, db: true, what: "pnpm db:push" });
+const { envFile, stage, rest } = guardEntry({ write: true, db: true, what: "pnpm db:push" });
 
 const force = process.argv.includes("--force");
 
@@ -57,6 +61,7 @@ const main = async () => {
   const client = postgres(databaseUrl, { prepare: false, max: 1 });
   const db = drizzle(client);
 
+  stopOnPromptWithoutTty("push");
   try {
     const result = await pushSchema(gate.imports, db, undefined, gate.tablesFilter);
     const statements: string[] = result.statementsToExecute;
@@ -75,7 +80,12 @@ const main = async () => {
     for (const s of statements) console.log(`  ${s}`);
     for (const w of result.warnings as string[]) console.log(w);
 
-    if (result.hasDataLoss && !force) {
+    const step = dataLossStep({ hasDataLoss: result.hasDataLoss, force, interactive: Boolean(process.stdin.isTTY) });
+    if (step === "stop") {
+      console.log(dataLossStopMessage(stage, rest));
+      return 1;
+    }
+    if (step === "ask") {
       console.log("");
       console.log("注意: データ消失を伴う文を含みます。");
       if (!(await confirm("実行しますか？"))) {

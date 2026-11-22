@@ -75,4 +75,6 @@ test("formatPendingPrompt: 対象・改名元・notice の行を名指す", () =
   assert.ok(text.includes("改名元の候補: template_content"));
   assert.ok(text.includes(".notices/n1.md"));
   assert.ok(text.includes("answer rename"));
+  // 反映(pnpm db:push)で止めた時は、DB は変えていないと言う
+  assert.match(formatPendingPrompt(prompt, [], "push"), /反映はここで止めます\(答えは選びません。DB は変更していません\)/);
 });

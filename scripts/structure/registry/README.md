@@ -27,8 +27,8 @@
 `pnpm db:push` の本体は `scripts/operations/db/push.ts`（drizzle-kit CLI ではなく `drizzle-kit/api` の `pushSchema`）。理由は **スキーマゲート**: 機能フラグで無効な機能のテーブルを、push のコード側と DB 側の両方から外す（作らない・消さない）。CLI はスキーマファイルの export をそのまま拾うのでコード側から外せない。仕組みと決まりは `src/featureGate/README.md`（門番、入口 `@/featureGate/node` の `gatedSchema`）。
 
 - 実行する SQL を必ず表示してから実行する（差分が無ければ何もしない）。
-- テーブル / 列の rename 判定は drizzle-kit の対話プロンプトがそのまま出る。
-- データ消失を伴う文（DROP / truncate / 型変更）を含むときは y/N で確認する。`--force` で省略。
+- テーブル / 列の rename 判定は drizzle-kit の対話プロンプトがそのまま出る。TTY のない実行(エージェント・CI)では問いが出た時点で対象と改名元の候補を出して exit 1(答えは選ばない、DB は変えない。`pnpm db:push:check` と同じ見張り `scripts/operations/db/lib.promptStop.ts`)。
+- データ消失を伴う文（DROP / truncate / 型変更）を含むときは y/N で確認する。`--force` で省略。TTY のない実行では問わずに中止し、SQL を読んでよければ `--force` を付けて打ち直す形を出す(exit 1、DB は変えない)。
 - `drizzle-kit push` を直接叩くとスキーマゲートを通らない（無効な機能のテーブルも作られる）。使わない。
 
 1. `entities/drizzle.ts` を変更する（business ドメインは `domain.json` → `pnpm generate domain`）

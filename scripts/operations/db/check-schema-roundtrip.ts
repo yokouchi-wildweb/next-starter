@@ -20,50 +20,14 @@
 //
 // 前提: drizzle-kit/api の pushSchema はバインドパラメータを捨てるバグがあるため、
 // patches/drizzle-kit@*.patch で修正済み (pnpm install で自動適用)。詳細: scripts/structure/registry/README.md
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { guardEntry } from "../../runner/guard";
-import { findNoticeAnswers, formatPendingPrompt, parsePendingPrompt } from "./lib.pendingPrompt";
+import { stopOnPromptWithoutTty } from "./lib.promptStop";
 
 // 共通の守り(読むだけ): 向き先(既定は開発)と段階の印
 const { envFile } = guardEntry({ write: false, what: "pnpm db:push:check" });
 
 const allowDefaults = process.argv.includes("--allow-defaults");
 const DEFAULT_STATEMENT = /^ALTER TABLE .* ALTER COLUMN .* (SET|DROP) DEFAULT/;
-
-/** 本リポジトリの .notices/*.md(改名の答えを名指す行を探す) */
-const readNotices = (): { id: string; text: string }[] => {
-  const dir = join(process.cwd(), ".notices");
-  try {
-    return readdirSync(dir)
-      .filter((f) => f.endsWith(".md") && f !== "README.md")
-      .map((f) => ({ id: f.replace(/\.md$/, ""), text: readFileSync(join(dir, f), "utf8") }));
-  } catch {
-    return [];
-  }
-};
-
-/**
- * stdin が TTY でないとき、drizzle-kit の問いの出力を見張り、出た時点で説明して exit 1 にする。
- * 問いは答えを待つだけで終わらないため、ここで止める(答えは選ばない)。
- */
-const stopOnPromptWithoutTty = () => {
-  if (process.stdin.isTTY) return;
-  const write = process.stdout.write.bind(process.stdout);
-  let buffer = "";
-  process.stdout.write = ((chunk: string | Uint8Array, ...rest: unknown[]) => {
-    buffer += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8");
-    const prompt = parsePendingPrompt(buffer);
-    if (!prompt) {
-      buffer = buffer.slice(-4096);
-      return (write as (...args: unknown[]) => boolean)(chunk, ...rest);
-    }
-    process.stdout.write = write;
-    console.log(formatPendingPrompt(prompt, findNoticeAnswers(prompt, readNotices())));
-    process.exit(1);
-  }) as typeof process.stdout.write;
-};
 
 const main = async () => {
   const databaseUrl = (process.env.DATABASE_URL ?? "").trim();
@@ -88,7 +52,7 @@ const main = async () => {
   const client = postgres(databaseUrl, { prepare: false, max: 1 });
   const db = drizzle(client);
 
-  stopOnPromptWithoutTty();
+  stopOnPromptWithoutTty("check");
   try {
     // pushSchema は差分計算のみ。返される apply() は呼ばない (読み取り専用)
     const result = await pushSchema(gate.imports, db, undefined, gate.tablesFilter);
