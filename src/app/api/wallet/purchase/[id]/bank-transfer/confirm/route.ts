@@ -69,6 +69,8 @@ function buildRedirectUrl(
 export const POST = createApiRoute<Params, unknown, "authenticated">(
   {
     operation: "POST /api/wallet/purchase/[id]/bank-transfer/confirm",
+    // 自社銀行振込の完了の唯一の入口なのでメンテナンス中も通す（振込済みの人が申告できなくなる）
+    maintenance: "pass",
     operationType: "write",
     access: "authenticated",
   },

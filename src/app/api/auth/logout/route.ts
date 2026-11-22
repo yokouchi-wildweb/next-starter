@@ -10,6 +10,8 @@ import { recordLogoutEvent } from "@/domains/userLoginEvent/services/server";
 export const POST = createApiRoute(
   {
     operation: "POST /api/auth/logout",
+    // ログアウトはメンテナンス中も通す（セッションを終えるだけで業務の書き込みをしない）
+    maintenance: "pass",
     operationType: "write",
     access: "public",
     // どの status の人もログアウトできる（休会中・処分保留の人のログアウトも記録する）

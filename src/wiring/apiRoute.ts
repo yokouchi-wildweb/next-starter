@@ -1,7 +1,7 @@
 // src/wiring/apiRoute.ts
 //
 // API ルートの設定済み Factory 群。lib/routeFactory の汎用版に、利用者の束（auth）・レート制限の束（rateLimit）・端末の束（pairedDevice）・
-// 登録表（serviceRegistry）・門番（@/featureGate の gate.path）を結ぶ。src/app/**/route.ts とその補助ファイルはここから import する
+// 登録表（serviceRegistry）・門番（@/featureGate の gate.path）・メンテナンスの判定（設定ドメイン）を結ぶ。src/app/**/route.ts とその補助ファイルはここから import する
 // （@/lib/routeFactory の値 import は wiring だけ）。設計: src/wiring/README.md, src/lib/routeFactory/README.md
 
 import type { SessionUser } from "@/domains/core/auth/entities/session";
@@ -13,6 +13,8 @@ import type { PairedDeviceKind } from "@/domains/pairedDevice/types/kinds";
 import { apiRouteRateLimitDeps } from "@/domains/core/rateLimit/services/server/apiRouteRateLimitDeps";
 import type { RateLimitCategory } from "@/domains/rateLimit/config";
 import type { UserStatus } from "@/domains/core/user/types";
+import { settingService } from "@/domains/core/setting/services/server/settingService";
+import { canBypassMaintenance } from "@/domains/core/setting/utils/maintenanceBypass";
 import { gate } from "@/featureGate";
 import { createRouteFactories } from "@/lib/routeFactory";
 import { serverErrorReport } from "@/wiring/serverErrors";
@@ -66,6 +68,12 @@ const factories = createRouteFactories<DevicesByKind, SessionUser, UserStatus, A
   domains: serviceRegistry,
   // 門番: 閉じた機能の住所の API は Factory も 404（proxy の 404 の安全網、D19）
   gate: { isClosed: (pathname) => !gate.path(pathname).open },
+  // メンテナンス: 期間中の書き込みのメソッドを止める。判定は画面の proxy と同じ 1 つ(isMaintenanceActive・canBypassMaintenance)。
+  // 通す経路はルートが maintenance: "pass" で宣言する(src/lib/routeFactory/README.md)
+  maintenance: {
+    isActive: () => settingService.isMaintenanceActive(),
+    canBypass: canBypassMaintenance,
+  },
   // 想定外の失敗(500)はサーバーの失敗の記録へ(既定の 1 行 + fork の送り先。src/wiring/serverErrors/README.md)
   serverError: {
     onServerError: (error, input) =>

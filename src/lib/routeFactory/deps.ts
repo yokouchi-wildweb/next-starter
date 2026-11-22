@@ -100,6 +100,18 @@ export type RouteServerErrorDeps = {
   onServerError: (error: unknown, input: RouteServerErrorInput) => Promise<void>;
 };
 
+/**
+ * メンテナンスの口(省略可)。lib は設定も役割も知らない: wiring がメンテナンスの判定とバイパスの判定を結ぶ(src/wiring/apiRoute.ts)。
+ * 期間中、書き込みのメソッド(POST・PUT・PATCH・DELETE)は maintenance: "pass" を宣言したルートとバイパスできる利用者の外を 503 で止める。
+ * GET・HEAD・OPTIONS では isActive を呼ばない
+ */
+export type RouteMaintenanceDeps<TUser> = {
+  /** 今メンテナンスの期間か(書き込みの要求ごとに 1 回) */
+  isActive: () => Promise<boolean>;
+  /** この利用者(DB 同期、利用できない status は null)はメンテナンス中も通るか */
+  canBypass: (user: TUser | null) => boolean;
+};
+
 /** createRouteFactories に渡す束 */
 export type RouteFactoryDeps<
   TUser extends RouteUserBase<TStatus>,
@@ -116,4 +128,6 @@ export type RouteFactoryDeps<
   gate?: RouteGateDeps;
   /** 想定外の失敗の記録の口(省略時 = console.error の行だけ) */
   serverError?: RouteServerErrorDeps;
+  /** メンテナンスの口(省略時 = メンテナンスで止めない) */
+  maintenance?: RouteMaintenanceDeps<TUser>;
 };

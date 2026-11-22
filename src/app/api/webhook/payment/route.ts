@@ -59,6 +59,8 @@ async function verifySignature(
 export const POST = createApiRoute(
   {
     operation: "POST /api/webhook/payment",
+    // 決済の完了の通知はメンテナンス中も受ける（止めると進行中の支払いの完了を取りこぼす）
+    maintenance: "pass",
     operationType: "write",
     access: "public",
     skipForDemo: false,

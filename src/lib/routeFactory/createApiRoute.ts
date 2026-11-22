@@ -13,6 +13,7 @@ import { runWithUserDirtyTracking } from "@/lib/userDirty";
 
 import type { RouteGateDeps, RouteRateLimitDeps, RouteServerErrorDeps, RouteUserBase, RouteUserDeps } from "./deps";
 import { accessDenialResponse } from "./enforceAccess";
+import { maintenanceDenial, type RouteMaintenanceCheck } from "./maintenance";
 import { resolveRouteUser } from "./routeUser";
 
 /** DomainError 以外の例外で返す汎用メッセージ（内部情報をクライアントへ出さない） */
@@ -125,6 +126,13 @@ export type ApiRouteBaseConfig<TCategory extends string = string> = {
    * 指定するとリクエストボディのrecaptchaTokenを検証する
    */
   recaptcha?: RecaptchaConfig;
+  /**
+   * メンテナンス中も書き込みを通す宣言（省略 = 止める）。
+   * 期間中、書き込みのメソッド（POST・PUT・PATCH・DELETE）は 503 + code "maintenance" で止まる（管理者・debugger 等の
+   * バイパスできる利用者は通る）。止めると取りこぼす経路（決済の完了の通知・戻り、ログイン）だけが "pass" を書く。
+   * 中央の一覧は無い: 通す経路はそのルート自身が宣言する。詳細: src/lib/routeFactory/README.md
+   */
+  maintenance?: "pass";
 };
 
 /**
@@ -205,12 +213,19 @@ export function toRouteResponse(result: unknown): Response {
   return NextResponse.json(result ?? null);
 }
 
+/** 土台の呼び出しごとの付け足し（Factory が config から外した物） */
+export type RouteCoreOptions = {
+  /** access "public" の user: "skip"（メンテナンスのバイパスにも利用者を解かない） */
+  userResolution?: "skip";
+};
+
 /**
  * 全 Factory 共通の土台を作る（利用者の束を結ぶ）。
- * 認可（authorize）は各 Factory が渡す。土台が持つのは監査文脈・デモスキップ・レート制限・reCAPTCHA・
+ * 認可（authorize）は各 Factory が渡す。土台が持つのは監査文脈・メンテナンスの停止・デモスキップ・レート制限・reCAPTCHA・
  * ハンドラ実行（監査文脈と userDirty の中）・応答の生成・エラー整形。
  * 最初の文で connection() を待つ（どの早期 return より前）。門番の口（gate、省略可）があれば次に要求の住所を聞き、
  * 閉なら not_found の 404（主体の解決・認可・ハンドラの前）。
+ * メンテナンスの口（maintenance、省略可）があれば、認可の後・デモスキップの前に書き込みのメソッドを止める（./maintenance.ts）。
  * 想定外の失敗（DomainError 以外と status 500 以上の DomainError）は記録の口（serverError、省略可）へ渡して待つ。
  * 口があればその 1 行が記録（1 失敗 1 行）、無ければ console.error の行。400 番台の DomainError は口へ渡さない。
  */
@@ -219,11 +234,13 @@ export function makeRouteCore<TCategory extends string = string>(
   rateLimit: RouteRateLimitDeps<TCategory>,
   gate?: RouteGateDeps,
   serverError?: RouteServerErrorDeps,
+  maintenance?: RouteMaintenanceCheck,
 ) {
   return function runRoute<TParams, TGrant>(
     config: ApiRouteBaseConfig<TCategory>,
     authorize: RouteAuthorizer<TParams, TGrant>,
     handler: (req: NextRequest, base: { params: TParams }, grant: TGrant) => Promise<unknown>,
+    options: RouteCoreOptions = {},
   ): NextRouteHandler<TParams> {
     return async (req: NextRequest, context: { params: Promise<TParams> }) => {
       // 本物のリクエストが来てから動く印。cacheComponents の build は request を読まずに返す早期 return
@@ -246,6 +263,11 @@ export function makeRouteCore<TCategory extends string = string>(
         // アクセス制御: デモスキップより前に評価し、権限の無いユーザーにデモ成功を返さないようにする。
         const grant = await authorize(req, params);
         if (isDenial(grant)) return grant;
+
+        // メンテナンス: 期間中の書き込みのメソッドを止める（"pass" の宣言・バイパスできる利用者は通る）。
+        // 認可の後（権限の無い要求は今まで通り 401 / 403）、デモスキップの前（デモの成功を返さない）
+        const stopped = await maintenanceDenial(maintenance, req, config.maintenance, options.userResolution);
+        if (stopped) return stopped;
 
         // デモユーザーの書き込み操作をスキップ
         // skipForDemo が明示的に指定されていればその値を使用
@@ -379,7 +401,6 @@ export function makeRouteCore<TCategory extends string = string>(
         }
 
         // 将来の拡張ポイント:
-        // - メンテナンスモードチェック
         // - 監査ログ（前処理）
 
         // ===== ハンドラー実行 =====
@@ -511,8 +532,11 @@ export function makeCreateApiRoute<TUser extends RouteUserBase<TStatus>, TStatus
       );
     }
     const authorize = authorizeRouteUser(deps, access, allowStatuses, userResolution);
-    return runRoute<TParams, { user: TUser | null }>(baseConfig, () => authorize(), (req, base, grant) =>
-      handler(req, { ...base, user: grant.user as ApiRouteUser<A, TUser> }),
+    return runRoute<TParams, { user: TUser | null }>(
+      baseConfig,
+      () => authorize(),
+      (req, base, grant) => handler(req, { ...base, user: grant.user as ApiRouteUser<A, TUser> }),
+      { userResolution: userResolution === "skip" ? "skip" : undefined },
     );
   };
 }

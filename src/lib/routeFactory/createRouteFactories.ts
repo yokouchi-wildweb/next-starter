@@ -9,12 +9,14 @@ import { makeDomainRoutes } from "./createDomainRoute";
 import { makeCreateMeRoute } from "./createMeRoute";
 import type { RouteAuthenticatedDevice, RouteFactoryDeps, RouteUserBase } from "./deps";
 import { makeEnforceAccessRule } from "./enforceAccess";
+import { bindMaintenance } from "./maintenance";
 
 /**
  * API ルートの Factory 群を作る。
  * - TDevices: 端末の種類 → ハンドラに渡す端末の型 / TUser・TStatus: 利用者と status / TAuthenticated: 認証済みの端末 /
  *   TCategory: レート制限のカテゴリの名前（全部 wiring が具体の型を渡す。lib は features の型を読まない）
  * - 主体はリクエストごとに 1 回だけ deps.user.resolveUser で解き、全 access で ctx.user に渡す
+ * - deps.maintenance があれば、メンテナンス中の書き込みのメソッドを全 Factory の土台で止める（./maintenance.ts）
  */
 export function createRouteFactories<
   TDevices extends Record<string, unknown>,
@@ -23,7 +25,13 @@ export function createRouteFactories<
   TAuthenticated extends RouteAuthenticatedDevice,
   TCategory extends string = string,
 >(deps: RouteFactoryDeps<TUser, TStatus, TAuthenticated, TCategory>) {
-  const runRoute = makeRouteCore<TCategory>(deps.user, deps.rateLimit, deps.gate, deps.serverError);
+  const runRoute = makeRouteCore<TCategory>(
+    deps.user,
+    deps.rateLimit,
+    deps.gate,
+    deps.serverError,
+    bindMaintenance(deps.maintenance, deps.user),
+  );
   const createApiRoute = makeCreateApiRoute<TUser, TStatus, TCategory>(deps.user, runRoute);
   const { createDomainRoute, createDomainIdRoute } = makeDomainRoutes<TUser, TStatus, TCategory>(deps.user, deps.domains, runRoute);
   const createMeRoute = makeCreateMeRoute(createApiRoute);

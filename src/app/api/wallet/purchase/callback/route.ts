@@ -46,6 +46,8 @@ function handleRedirect(request: NextRequest): NextResponse {
 export const POST = createApiRoute(
   {
     operation: "POST /api/wallet/purchase/callback",
+    // 決済の画面からの戻り（転送だけ）はメンテナンス中も通す（支払い済みの人を戻り先へ送る）
+    maintenance: "pass",
     operationType: "read",
     access: "public",
     skipForDemo: false,

@@ -10,6 +10,8 @@ import { getClientIp } from "@/lib/request";
 export const POST = createApiRoute(
   {
     operation: "POST /api/auth/local/login",
+    // ログインはメンテナンス中も通す（管理者・debugger がログインしてメンテナンスを解けるように）
+    maintenance: "pass",
     operationType: "write",
     access: "public",
     skipForDemo: false,

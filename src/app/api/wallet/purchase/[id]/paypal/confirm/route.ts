@@ -33,6 +33,8 @@ const ConfirmBodySchema = z.object({
 export const POST = createApiRoute<Params, unknown, "authenticated">(
   {
     operation: "POST /api/wallet/purchase/[id]/paypal/confirm",
+    // 進行中の PayPal の支払いの完了はメンテナンス中も通す（止めると支払い済みの購入が完了しない）
+    maintenance: "pass",
     operationType: "write",
     access: "authenticated",
   },

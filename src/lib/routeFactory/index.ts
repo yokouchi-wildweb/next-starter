@@ -9,6 +9,7 @@ export type {
   RouteDeviceDeps,
   RouteFactoryDeps,
   RouteGateDeps,
+  RouteMaintenanceDeps,
   RouteRateLimitDeps,
   RouteRateLimitResult,
   RouteServerErrorDeps,
@@ -17,6 +18,7 @@ export type {
   RouteUserDeps,
 } from "./deps";
 export { ROUTE_USER_UNAVAILABLE_CODE, RouteUserUnavailableError } from "./routeUser";
+export { MAINTENANCE_CODE } from "./maintenance";
 export {
   type ApiRouteBaseConfig,
   type ApiRouteConfig,
