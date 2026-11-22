@@ -146,7 +146,7 @@ export function resolveTemplateDefinition(
   const { source } = input;
   const category = deps.categories[input.category];
   const label = "version" in source ? `テンプレート ${source.version.templateKey} の版 ${source.version.version}` : `レイアウト ${source.layout.key}`;
-  if (!category) throw new DomainError(`${label} の種類 ${input.category} がありません`, { status: 500 });
+  if (!category) throw new DomainError(`${label} のカテゴリー ${input.category} がありません`, { status: 500 });
   if (!isAdminSendableKind(category.kind)) {
     throw new DomainError(
       `${label} はカテゴリー ${input.category}(種別 ${category.kind})では送れません(${adminSendableKinds().join("・")} のカテゴリーで送る)`,
@@ -158,7 +158,7 @@ export function resolveTemplateDefinition(
     const outside = narrowing.filter((channel) => !category.channels.includes(channel));
     if (outside.length > 0 || narrowing.length === 0) {
       throw new DomainError(
-        `送る経路 ${outside.join(", ") || "(空)"} は種類 ${input.category} の経路(${category.channels.join(" / ")})の中の絞りにします`,
+        `送る送信方法 ${outside.join(", ") || "(空)"} はカテゴリー ${input.category} の送信方法(${category.channels.join(" / ")})の中の絞りにします`,
         { status: 400 },
       );
     }

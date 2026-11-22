@@ -53,7 +53,7 @@ export type BuiltChannelContent = {
 function layoutOf(deps: MessageContentDeps, resolved: AnyResolvedMessageDefinition): MessageLayout {
   const layout = deps.layouts[resolved.layout];
   if (!layout) {
-    throw new DomainError(`連絡 ${resolved.key} のひな形 ${resolved.layout} が layouts の受け口にありません`, { status: 500 });
+    throw new DomainError(`連絡 ${resolved.key} のレイアウト ${resolved.layout} が layouts の受け口にありません`, { status: 500 });
   }
   return layout;
 }
@@ -70,7 +70,7 @@ export async function buildContent(
 ): Promise<BuiltChannelContent> {
   const layout = layoutOf(deps, resolved);
   const channel = deps.channels[channelKey];
-  if (!channel) throw new DomainError(`経路 ${channelKey} は登録されていません(${resolved.key})`, { status: 500 });
+  if (!channel) throw new DomainError(`送信方法 ${channelKey} は登録されていません(${resolved.key})`, { status: 500 });
   // 専用の日付・日時は人が読む字にし(型の印 <鍵>@type、残す値は ISO のまま)、共通・enrichers の別名の行を足す
   const named = varMap(displayVarValues(map), messageVarCatalog(resolved, deps.enrichers ?? {}));
   const values = renderValue(resolved.values ?? {}, named) as Record<string, unknown>;

@@ -67,9 +67,9 @@ export function adminSelectableLayouts(deps: Pick<TemplateCheckDeps, "layouts">)
 export function checkTemplateFields(deps: TemplateCheckDeps, fields: TemplateFields): CheckedTemplateFields {
   const problems: string[] = [];
   const category = deps.categories[fields.category];
-  if (!category) problems.push(`種類 ${fields.category} はありません`);
+  if (!category) problems.push(`カテゴリー ${fields.category} はありません`);
   else if (!isAdminSendableKind(category.kind)) {
-    problems.push(`種類 ${fields.category}(種別 ${category.kind})はテンプレートに使えません(announcement・direct・promotion の種類)`);
+    problems.push(`カテゴリー ${fields.category}(種別 ${category.kind})はテンプレートに使えません(announcement・direct・promotion の種別のカテゴリー)`);
   }
 
   const layout = deps.layouts[fields.layout];

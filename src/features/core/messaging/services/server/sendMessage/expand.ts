@@ -105,7 +105,7 @@ export async function expandExplicit(
 
   for (const recipient of recipients) {
     if (!("userId" in recipient) && !channels.includes(recipient.channel)) {
-      throw new DomainError(`宛先の経路 ${recipient.channel} が送る経路にありません`, { status: 400 });
+      throw new DomainError(`宛先の送信方法 ${recipient.channel} が送る送信方法にありません`, { status: 400 });
     }
   }
 
