@@ -17,8 +17,9 @@
 // → 送信チャンネルの絞り(カテゴリーの送信チャンネルの中、既定は全部オン)→ 予約(bulk 以外)→ プレビュー(レイアウトの描き方 useLayoutPreview がいつも、
 // 「プレビュー」= あなた宛ての表示例を送る口で描く)・自分へのテスト送信 → 見込み → 確認 → 送る → 結果。
 // - 送る口の入力 = { category, channels?, origin: { layout } | { id, version }, values, edited?, vars? }(services/server/admin/send.ts)
-// - 見込み → 確認の段・予約の検査・二重送信を防ぐ鍵(開くたびに 1 つ、送った後に作り直す)はこの hook の中
-// - 書きかけ(dirty)の間: ページを離れる前に確かめる(@/lib/unsavedGuard)。閉じる前の確かめは closeConfirm を Modal の confirmOnClose に渡す
+// - 見込み → 確認の段・予約の検査はこの hook の中。二重送信を防ぐ鍵は開くたびに 1 つ、送った後に作り直す(useIdempotencyKey)
+// - 公開の hook だけで組む(D191): 進行と書きかけの確かめ useSendSteps(ページを離れる前の確かめ・Modal の confirmOnClose に渡す closeConfirm)・
+//   二重送信の鍵 useIdempotencyKey・表示例 useSendPreview・自分へのテスト送信 useSendTest・送信チャンネルの初めの規則 initialChannelsOff・useLayoutPreview
 // - 初めの値(sameAs の写し)は state に入れず、まだ触っていない物は mode と選択肢から導く(effect で写さない)
 
 import { useCallback, useMemo, useState } from "react";
@@ -26,7 +27,6 @@ import { useCallback, useMemo, useState } from "react";
 import { useGate } from "@/featureGate/client";
 import { useDomainMutation } from "@/lib/crud";
 import type { MessageVarEntry } from "@/lib/messaging";
-import { useUnsavedGuard } from "@/lib/unsavedGuard";
 
 import { MESSAGE_CHANNEL_LABELS } from "../constants/channelLabels";
 import { MESSAGE_KIND_LABELS } from "../constants/kindLabels";
@@ -54,10 +54,15 @@ import {
 } from "../services/client/sendClient";
 
 import { ADMIN_DISPATCHES_KEY, ADMIN_MESSAGING_KEY } from "./adminMessagingKeys";
+import { initialChannelsOff as initialChannelsOffOf } from "./sendChannels";
 import { ADMIN_SEND_KEY } from "./sendKeys";
 import { useAdminBulkSendOptions } from "./useAdminBulkSend";
 import { useAdminSendOptions } from "./useAdminSendOptions";
+import { useIdempotencyKey } from "./useIdempotencyKey";
 import { useLayoutPreview } from "./useLayoutPreview";
+import { useSendPreview } from "./useSendPreview";
+import { useSendSteps, type SendStep } from "./useSendSteps";
+import { useSendTest } from "./useSendTest";
 import { layoutTextState, varPreviewValues, templateTextState, useSendTemplateText, type SendTextState } from "./useSendTemplateText";
 
 export type MessageSendMode =
@@ -80,7 +85,7 @@ export type MessageSendMode =
     };
 
 export type MessageSendTargetType = "all" | "role" | "group" | "users";
-export type MessageSendStep = "edit" | "confirm" | "done";
+export type MessageSendStep = SendStep;
 export type MessageSendTemplate = AdminSendOptions["templates"][number];
 
 /** 宛先(group = ユーザーグループ。groupId は値としてだけ持ち、画面には名前を出す、D94) */
@@ -91,8 +96,6 @@ export type MessageSendResult =
   | { kind: "bulk"; result: AdminBulkSendResult };
 
 const TARGET_TYPES: readonly MessageSendTargetType[] = ["all", "role", "group", "users"];
-
-const newKey = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 const record = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
@@ -230,7 +233,6 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const gate = useGate();
   const isBulk = mode.type === "bulk";
   const [open, setOpenState] = useState(false);
-  const [step, setStep] = useState<MessageSendStep>("edit");
   const [kindState, setKindState] = useState<string | null>(null);
   const [chosenCategory, setChosenCategory] = useState<string | null>(null);
   const [targetState, setTargetState] = useState<MessageSendTarget | null>(null);
@@ -245,10 +247,16 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const [scheduleMode, setScheduleModeState] = useState<"now" | "at">("now");
   const [scheduledAt, setScheduledAtState] = useState("");
   const [scheduleError, setScheduleError] = useState<string | null>(null);
-  const [idempotencyKey, setIdempotencyKey] = useState(newKey);
-  const [preview, setPreview] = useState<MessagePreview | null>(null);
   const [estimate, setEstimate] = useState<RecipientEstimate | null>(null);
-  const [result, setResult] = useState<MessageSendResult | null>(null);
+  // 二重送信の鍵(開くたびに 1 つ、送った後に作り直す)・表示例・自分へのテスト送信(bulk = 一括の口、門の外)
+  const { key: idempotencyKey, renew: renewKey } = useIdempotencyKey();
+  const sendPreview = useSendPreview<AdminSendPreviewInput, MessagePreview>({
+    fetcher: (input) => (isBulk ? previewAdminBulkMessage(input) : previewAdminMessage(input)),
+  });
+  const { close: closePreview } = sendPreview;
+  const sendTestHook = useSendTest<AdminSendPreviewInput, AdminSendResult>({
+    fetcher: (input) => (isBulk ? sendAdminBulkTestMessage(input) : sendAdminTestMessage(input)),
+  });
 
   // 選択肢: bulk = GET bulk-send(門の外)、それ以外 = GET send/options(門 messagingBroadcast)。開いている間だけ取る
   const sendOptions = useAdminSendOptions(open && !isBulk);
@@ -331,11 +339,14 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   // 送信チャンネルをまだ触っていない時のオン: カテゴリーの最初の送信チャンネル(defaultChannels、無ければ全部、D119)。
   // sameAs で種別・カテゴリーをまだ触っていない = 元の送信が使った送信チャンネルだけオン(今のカテゴリーの送信チャンネルの中で。全部外れてしまう時は全部オン)
   const categoryDefaults = useMemo(() => categoryOption?.defaultChannels ?? categoryChannels, [categoryOption, categoryChannels]);
-  const initialChannelsOff = useMemo(() => {
-    const used = mode.type === "sameAs" && chosenCategory === null && kindState === null ? (mode.dispatch.channels ?? []) : categoryDefaults;
-    const off = categoryChannels.filter((key) => !used.includes(key));
-    return off.length === categoryChannels.length ? [] : off;
-  }, [mode, chosenCategory, kindState, categoryChannels, categoryDefaults]);
+  const initialChannelsOff = useMemo(
+    () =>
+      initialChannelsOffOf(
+        categoryChannels,
+        mode.type === "sameAs" && chosenCategory === null && kindState === null ? (mode.dispatch.channels ?? []) : categoryDefaults,
+      ),
+    [mode, chosenCategory, kindState, categoryChannels, categoryDefaults],
+  );
   const channelsOff = channelsOffState ?? initialChannelsOff;
   /** 使う送信チャンネル = カテゴリーの送信チャンネル − 外した送信チャンネル */
   const sendChannels = useMemo(() => categoryChannels.filter((key) => !channelsOff.includes(key)), [categoryChannels, channelsOff]);
@@ -351,8 +362,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   );
   const touchText = useCallback(() => {
     setTextTouched(true);
-    setPreview(null);
-  }, []);
+    closePreview();
+  }, [closePreview]);
   const text = useSendTemplateText({ layouts, initial: initialText, channels: sendChannels, templatesOpen, onChange: touchText });
   const sameAsNote = useMemo(() => (optionsLoaded ? sameAsNoteOf(mode, initialText, allTemplates) : null), [optionsLoaded, mode, initialText, allTemplates]);
   /** 埋め込み情報のタグ(共通 + カテゴリーに当たる enrichers + 読み込んだテンプレートの専用) */
@@ -369,6 +380,18 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     [categoryOption, text.state],
   );
   const textDirty = textTouched || text.form.formState.isDirty;
+  // 進行(書く → 確認 → 結果)と書きかけの確かめ。書きかけ = 手で触った物がある(写しただけ・開いただけは書きかけにしない)
+  const steps = useSendSteps<MessageSendResult>({
+    open,
+    editing:
+      kindState !== null ||
+      targetState !== null ||
+      chosenCategory !== null ||
+      textDirty ||
+      (channelsOffState !== null && [...channelsOffState].sort().join() !== [...initialChannelsOff].sort().join()) ||
+      scheduledAt !== "",
+  });
+  const { step, toConfirm, backToEdit, finish, reset: resetSteps } = steps;
   /** レイアウトの実際の描き方のプレビュー(送信チャンネルのタブ、未入力は仮の文、D114。書く段の間だけ) */
   // 専用の埋め込み情報は入れた値(空なら既定値)で埋めて描く(「あなた宛ての表示例」と同じ。共通・enricher は受信者ごとなので {{名前}} のまま)
   const previewValues = useMemo(
@@ -395,20 +418,20 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       setChosenCategory(allCategories.find((option) => option.kind === next)?.key ?? null);
       // 送信方法は新しいカテゴリーの最初の送信チャンネルに戻す(D119)
       setChannelsOff(null);
-      setPreview(null);
+      closePreview();
       // レイアウトは種別に関わらない → 選んだレイアウトと文はそのまま。テンプレートは種別ごと → 読み込んでいれば外す(そのレイアウトへ、文は残す)
       if (text.source?.type === "template") {
         const back = backToLayoutOf(text.state?.layout ?? null);
         text.reset(back ? text.toBlank(back) : null);
       }
     },
-    [kind, allCategories, text, backToLayoutOf],
+    [kind, allCategories, text, backToLayoutOf, closePreview],
   );
   const setCategory = useCallback((key: string) => {
     setChosenCategory(key);
     setChannelsOff(null);
-    setPreview(null);
-  }, []);
+    closePreview();
+  }, [closePreview]);
   const setTarget = useCallback(
     (patch: Partial<MessageSendTarget>) => setTargetState((prev) => ({ ...(prev ?? target), ...patch })),
     [target],
@@ -422,9 +445,9 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       if (!template) return;
       text.reset(templateTextState(template));
       setTextTouched(false);
-      setPreview(null);
+      closePreview();
     },
-    [templates, text],
+    [templates, text, closePreview],
   );
   /** 読み込む。手で直した書きかけがあれば上書きを確かめる(pendingLoad → confirmLoad / cancelLoad) */
   const loadTemplate = useCallback(
@@ -443,8 +466,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     const back = backToLayoutOf(text.state?.layout ?? null);
     text.reset(back ? text.toBlank(back) : null);
     setTextTouched(true);
-    setPreview(null);
-  }, [text, backToLayoutOf]);
+    closePreview();
+  }, [text, backToLayoutOf, closePreview]);
 
   /** レイアウトに替える(欄の中身は白紙から。前のレイアウトの値は持ち越さない。テンプレートを読み込んでいれば外れる) */
   const applyLayout = useCallback(
@@ -454,9 +477,9 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       if (!layout) return;
       text.reset(layoutTextState(layout));
       setTextTouched(false);
-      setPreview(null);
+      closePreview();
     },
-    [layoutChoices, text],
+    [layoutChoices, text, closePreview],
   );
   /** レイアウトを選ぶ。選べない物・今と同じ(レイアウトから書いている時)は何もしない。手で書いた書きかけがあれば消すのを確かめる(pendingLayout) */
   const chooseLayout = useCallback(
@@ -479,9 +502,9 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
         const base = prev ?? initialChannelsOff;
         return on ? base.filter((key) => key !== channel) : base.includes(channel) ? base : [...base, channel];
       });
-      setPreview(null);
+      closePreview();
     },
-    [initialChannelsOff],
+    [initialChannelsOff, closePreview],
   );
   const setScheduleMode = useCallback(
     (next: "now" | "at") => {
@@ -572,27 +595,9 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   }, [kind, kinds.length, category, isBulk, target, mode]);
 
   const canSend = optionsLoaded && !contentError && !targetError && !scheduleError;
-  const dirty =
-    open &&
-    step !== "done" &&
-    (kindState !== null ||
-      targetState !== null ||
-      chosenCategory !== null ||
-      textDirty ||
-      (channelsOffState !== null && [...channelsOffState].sort().join() !== [...initialChannelsOff].sort().join()) ||
-      scheduledAt !== "");
-  useUnsavedGuard(dirty);
 
   // ---- 送る口 ----
   const revalidateKeys = [ADMIN_DISPATCHES_KEY];
-  const previewMutation = useDomainMutation<MessagePreview, AdminSendPreviewInput>(`${ADMIN_SEND_KEY}/modal/preview`, (input) =>
-    isBulk ? previewAdminBulkMessage(input) : previewAdminMessage(input),
-  );
-  const testMutation = useDomainMutation<AdminSendResult, AdminSendPreviewInput & { idempotencyKey: string }>(
-    `${ADMIN_SEND_KEY}/modal/test`,
-    (input) => (isBulk ? sendAdminBulkTestMessage(input) : sendAdminTestMessage(input)),
-    revalidateKeys,
-  );
   const estimateMutation = useDomainMutation<RecipientEstimate, { target: AdminSendInput["target"] }>(
     `${ADMIN_SEND_KEY}/modal/estimate`,
     (input) => estimateAdminRecipients(input),
@@ -610,18 +615,18 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   }, [text]);
 
   /** プレビュー(投げた誤りは呼び手が出す) */
+  const { run: runSendPreview } = sendPreview;
   const runPreview = useCallback(async () => {
     await assertText();
-    const next = await previewMutation.trigger(buildContent());
-    setPreview(next);
-    return next;
-  }, [assertText, previewMutation, buildContent]);
+    return runSendPreview(buildContent());
+  }, [assertText, runSendPreview, buildContent]);
 
   /** 自分へのテスト送信(毎回新しい鍵) */
+  const { run: runSendTest } = sendTestHook;
   const sendTest = useCallback(async () => {
     await assertText();
-    return testMutation.trigger({ ...buildContent(), idempotencyKey: newKey() });
-  }, [assertText, testMutation, buildContent]);
+    return runSendTest(buildContent());
+  }, [assertText, runSendTest, buildContent]);
 
   /** 確認へ進む: 文と予約を確かめ直し、見込みを取る(bulk は選んだ記録の数) */
   const requestConfirm = useCallback(async () => {
@@ -632,11 +637,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       if (late) throw new Error(late);
       setEstimate(await estimateMutation.trigger({ target: buildTarget() }));
     }
-    setStep("confirm");
-  }, [assertText, isBulk, scheduleMode, scheduledAt, maxDays, estimateMutation, buildTarget]);
-
-  /** 確認から書く欄へ戻る */
-  const backToEdit = useCallback(() => setStep("edit"), []);
+    toConfirm();
+  }, [assertText, isBulk, scheduleMode, scheduledAt, maxDays, estimateMutation, buildTarget, toConfirm]);
 
   /** 送る(確認の段から)。成功 = 結果の段、鍵を作り直し、onSent */
   const confirmSend = useCallback(async () => {
@@ -647,29 +649,28 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       const late = scheduleErrorOf(scheduleMode, scheduledAt, maxDays, Date.now());
       if (late) {
         setScheduleError(late);
-        setStep("edit");
+        backToEdit();
         throw new Error(late);
       }
       if (estimate?.overLimit) throw new Error(overLimitText(estimate));
       sent = { kind: "send", result: await sendMutation.trigger(buildSendInput()) };
     }
-    setResult(sent);
-    setStep("done");
-    setIdempotencyKey(newKey());
+    finish(sent);
+    renewKey();
     onSent?.(sent);
     return sent;
-  }, [isBulk, bulkMutation, buildBulkInput, scheduleMode, scheduledAt, maxDays, sendMutation, buildSendInput, onSent, estimate]);
+  }, [isBulk, bulkMutation, buildBulkInput, scheduleMode, scheduledAt, maxDays, sendMutation, buildSendInput, onSent, estimate, backToEdit, finish, renewKey]);
 
   /** 『テンプレートを更新』(送るとは別、D120)。投げた誤りは呼び手が出す。unchanged = 版と同じ */
   const updateTemplate = useCallback(async () => {
     const updated = await text.updateTemplate();
-    setPreview(null);
+    closePreview();
     return updated;
-  }, [text]);
+  }, [text, closePreview]);
 
   const { reset: resetText } = text;
   const reset = useCallback(() => {
-    setStep("edit");
+    resetSteps();
     setKindState(null);
     setChosenCategory(null);
     setTargetState(null);
@@ -681,19 +682,18 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     setScheduleModeState("now");
     setScheduledAtState("");
     setScheduleError(null);
-    setPreview(null);
+    closePreview();
     setEstimate(null);
-    setResult(null);
-  }, [resetText]);
+  }, [resetText, resetSteps, closePreview]);
 
   /** 開く・閉じる(閉じたら全部を初めに戻す。書きかけの確かめは Modal の confirmOnClose) */
   const setOpen = useCallback(
     (next: boolean) => {
       setOpenState(next);
-      if (next) setIdempotencyKey(newKey());
+      if (next) renewKey();
       else reset();
     },
-    [reset],
+    [reset, renewKey],
   );
 
   const loadedTemplate = text.source?.type === "template" ? text.source : null;
@@ -708,9 +708,9 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     /** sameAs で送信の文面をそのまま写せなかった時の知らせ(書く段の上に出す) */
     sameAsNote,
     /** 書きかけ(閉じる・離れる前に確かめる) */
-    dirty,
+    dirty: steps.dirty,
     /** Modal の confirmOnClose に渡す */
-    closeConfirm: { enabled: dirty, message: "入力中の内容は送信されていません。閉じてもよろしいですか？" },
+    closeConfirm: steps.closeConfirm,
     // 種別・カテゴリー
     kinds,
     kind,
@@ -776,20 +776,20 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     contentError,
     targetError,
     canSend,
-    preview,
+    preview: sendPreview.preview,
     estimate,
     /** 見込みが人数の上限を超えている(確認の段で送れない。サーバーも 409 で断る、D64) */
     estimateOverLimit: Boolean(estimate?.overLimit),
-    result,
-    isPreviewing: previewMutation.isMutating,
-    isTesting: testMutation.isMutating,
+    result: steps.result,
+    isPreviewing: sendPreview.isPreviewing,
+    isTesting: sendTestHook.isTesting,
     isSending: sendMutation.isMutating || bulkMutation.isMutating,
     buildContent,
     buildSendInput,
     buildBulkInput,
     runPreview,
     /** 「あなた宛ての表示例」を閉じる(表示例を消す) */
-    closePreview: () => setPreview(null),
+    closePreview,
     /** 表示例のお知らせの汎用の描き方に使う今のレイアウトの欄の宣言 */
     previewLayoutFields: text.layout?.fields ?? null,
     sendTest,
