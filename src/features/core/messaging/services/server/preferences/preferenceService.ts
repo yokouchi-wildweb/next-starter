@@ -229,7 +229,7 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
 
     if ("kind" in value) {
       if (!kindTraits(value.kind)?.userStoppable) {
-        throw new DomainError("この種類の通知は受け取りを止められません", { status: 400 });
+        throw new DomainError("この種別の通知は受け取りを止められません", { status: 400 });
       }
       const row = { category: MESSAGE_ALL, channel: MESSAGE_ALL, kind: value.kind };
       await deps.store.write(userId, value.optedOut ? { add: [{ ...row, source }] } : { remove: [row] });

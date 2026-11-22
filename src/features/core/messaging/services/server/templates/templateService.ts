@@ -409,7 +409,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       if (!layout || !isLayoutAdminSelectable(layout)) throw new DomainError("選べないレイアウトです", { status: 400 });
       const channel = check.channels[channelKey];
       if (!channel || channel.enabled === false) throw new DomainError("使えない送信方法です", { status: 400 });
-      if (category && !check.categories[category]) throw new DomainError("知らない種類です", { status: 400 });
+      if (category && !check.categories[category]) throw new DomainError("知らないカテゴリーです", { status: 400 });
       const built = await buildChannelContent({
         layout,
         channelKey,

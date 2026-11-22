@@ -141,12 +141,12 @@ export function resolveChannels(
   if (requested !== undefined) {
     const list = [...new Set(requested)];
     if (list.length === 0) {
-      throw new DomainError(`送る経路を 1 つ以上選んでください(${resolved.key})`, { status: 400 });
+      throw new DomainError(`送信方法を 1 つ以上選んでください(${resolved.key})`, { status: 400 });
     }
     const outside = list.filter((key) => !allowed.includes(key));
     if (outside.length > 0) {
       throw new DomainError(
-        `経路 ${outside.join(", ")} は種類 ${resolved.category} の経路(${allowed.join(" / ")})に無いので使えません(絞ることだけができます)`,
+        `送信方法 ${outside.join(", ")} はカテゴリー ${resolved.category} の送信方法(${allowed.join(" / ")})に無いので使えません(絞ることだけができます)`,
         { status: 400 },
       );
     }

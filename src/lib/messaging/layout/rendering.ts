@@ -74,7 +74,7 @@ export function resolveRendering(input: {
   }
 
   const why = !channel.renderGeneric
-    ? "経路に汎用の描き方が無く"
-    : `経路の汎用の描き方が欄の型(${unsupported.join("・")})を描けず`;
+    ? "送信方法に汎用の描き方が無く"
+    : `送信方法の汎用の描き方が欄の型(${unsupported.join("・")})を描けず`;
   return { cannotRender: `送信方法 ${channelKey} はレイアウト「${layout.label}」を描けません: レイアウトにこの送信方法の描き方が無く、${why}、要約から描けるとも宣言していません` };
 }

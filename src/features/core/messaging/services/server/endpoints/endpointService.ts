@@ -52,7 +52,7 @@ function parseAddress(channel: MessageChannel, address: string): string {
   const parsed = channel.endpoint.address.safeParse(address);
   if (!parsed.success) {
     const issue = parsed.error.issues[0]?.message;
-    throw new DomainError(`経路 ${channel.key} の宛先の形が正しくありません${issue ? `(${issue})` : ""}`, { status: 400 });
+    throw new DomainError(`送信方法 ${channel.key} の宛先の形が正しくありません${issue ? `(${issue})` : ""}`, { status: 400 });
   }
   return parsed.data;
 }
@@ -70,7 +70,7 @@ export function createEndpointService(deps: EndpointServiceDeps) {
       }
       const { channel, kind, metadata } = parsed.data;
       if (!isLedgerChannel(deps.channels, channel)) {
-        throw new DomainError(`経路 ${channel} は端末の登録を受け付けません(帳簿を読む経路だけ)`, { status: 400 });
+        throw new DomainError(`送信方法 ${channel} は端末の登録を受け付けません(帳簿を読む送信方法だけ)`, { status: 400 });
       }
       const address = parseAddress(deps.channels[channel], parsed.data.address);
       const now = deps.now();
