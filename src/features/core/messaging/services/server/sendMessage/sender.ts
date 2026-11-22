@@ -216,9 +216,10 @@ export function createMessageSender(deps: MessageSendDeps) {
     // 受信者ごとの値: 記録から埋める鍵は定義の zod で検査した値に置き換える(ほかの鍵は上書きできない鍵の検査だけ)
     let recipientVars = input.recipientVars;
     if (recordVarKeys.length > 0) {
-      recipientVars = Object.fromEntries(
-        Object.entries(input.recipientVars ?? {}).map(([key, values]) => [key, parseRecordVars(resolved, values, recordVarKeys)]),
-      );
+      // 名指しの受信者は全員を検査する(記録の値が無い受信者も必須の欠けで 400。D195)
+      const given = input.recipientVars ?? {};
+      const keys = new Set([...Object.keys(given), ...(input.recipients ?? []).map(recipientKeyOf)]);
+      recipientVars = Object.fromEntries([...keys].map((key) => [key, parseRecordVars(resolved, given[key] ?? {}, recordVarKeys)]));
     } else {
       for (const values of Object.values(input.recipientVars ?? {})) checkRecipientVars(resolved, values);
     }

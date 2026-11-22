@@ -218,7 +218,7 @@ test("レイアウトと欄の中身: 受け口に無いレイアウト・無効
   // 無効のレイアウト(fork の layout.override.ts の disabled): 定義の鍵とレイアウトの鍵・表示名で止める
   const disabled = validate(reply, { layouts: { ...LAYOUTS, [reply.layout]: { ...LAYOUTS[reply.layout]!, disabled: true } } });
   assert.deepEqual(codes(disabled), ["disabled_layout"]);
-  assert.match(disabled[0]!.message, new RegExp(`^chat\\.reply: layout ${reply.layout}(${LAYOUTS[reply.layout]!.label})は無効(disabled)`));
+  assert.match(disabled[0]!.message, new RegExp(`^chat\\.reply: layout ${reply.layout}\\(${LAYOUTS[reply.layout]!.label}\\)は無効\\(disabled\\)`));
   assert.deepEqual(codes(validate({ ...reply, values: { subject: "", blocks: reply.values.blocks } })), ["invalid_values"]);
   assert.deepEqual(codes(validate({ ...reply, values: { ...reply.values, title: "欄の名前は変えられない" } })), ["invalid_values"]);
   assert.deepEqual(codes(validate({ ...reply, values: { subject: "s" } })), ["invalid_values"]);

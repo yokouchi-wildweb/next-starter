@@ -322,6 +322,8 @@ function channelModeProblems(
       problems.push({ code: "unknown_channel_mode", message: `${label}: channelModes の ${channel} は on / off / free のどれか(${String(mode)})` });
     }
   }
+  // 知らない値・カテゴリーの外があれば分け方の検査はしない(知らない値は on / off / free のどれにも分けられない)
+  if (problems.length > 0) return problems;
   const split = definitionChannels(resolved);
   if (resolved.channels.length > 0 && split.on.length + split.free.length === 0) {
     problems.push({ code: "channel_all_off", message: `${label}: channelModes で送信チャンネルが全部 off(送れない)` });
