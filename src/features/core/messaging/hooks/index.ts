@@ -85,7 +85,6 @@ export {
   type MessageSendTarget,
   type MessageSendTargetType,
   type MessageSendResult,
-  type MessageSendStep,
   type MessageSendTemplate,
   type MessageSendModalState,
   type UseMessageSendModalOptions,
