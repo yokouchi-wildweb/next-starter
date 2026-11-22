@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/overrides/types.ts
 
-/** 管理画面の文言の 1 行(直した欄だけある) */
+/** テキストの編集の 1 行(直した欄だけある) */
 export type MessageOverrideRecord = {
   messageKey: string;
   /** レイアウトの欄の鍵(保存した時の版の鍵) */

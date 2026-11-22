@@ -20,11 +20,11 @@
 
 ### 流れ
 
-1. 生成の一覧（`messageRegistry`）の定義に上書きを `applyMessageOverride` で重ね、`validateMessageDefinition` で検査（レイアウト・欄の中身・`{{鍵}}`）。最後に管理画面の文言（門 `messagingOverrides` が開の時、欄の道 = レイアウトの欄の鍵、../overrides/README.md）を欄ごとに重ねる（`resolveDefinition` の 1 か所。版を移せない・検査を通らない行はコードの値、警告 1 行）。重ねた値は送信の `values` に入るので、組み直しは送った時の文言のまま
+1. 生成の一覧（`messageRegistry`）の定義に上書きを `applyMessageOverride` で重ね、`validateMessageDefinition` で検査（レイアウト・欄の中身・`{{鍵}}`）。最後にテキストの編集（門 `messagingOverrides` が開の時、欄の道 = レイアウトの欄の鍵、../overrides/README.md）を欄ごとに重ねる（`resolveDefinition` の 1 か所。版を移せない・検査を通らない行はコードの値、警告 1 行）。重ねた値は送信の `values` に入るので、組み直しは送った時の文言のまま
    - 専用の日付・日時の値は差し込む時に人が読む字にする（型の印 `<鍵>@type` から、lib `displayVarValues`。送信に残す値は ISO）。共通の値 `serviceName`・`serviceNameShort`・`appBaseUrl` は `deps.context()`
    - 差し込みの表には共通の埋め込み情報と当たる enrichers の日本語の別名の行も入る（vars のうち enricher と同じ鍵の値もその別名で書ける。例 wallet の `displayName` = `{{表示名}}`）（`{{受信者名}}` = `{{recipientName}}`、D126。`content.ts` が `varMap` で足す）。定義の検査も別名を通す
    - 中身の組み立ては `content.ts` の 1 つ（`buildContent` / `buildContents`）: 定義の欄の中身に差し込む → 送信チャンネルごとに描き方の 3 段（lib/messaging `buildChannelContent`: レイアウトの描き方 > 送信チャンネルの汎用 > 要約）→ 中身と見出し（要約の題）。email = `MessageLayoutContent`（送信チャンネルが宛先ごとに描く）、inApp = `MessageLayoutContent` + レイアウトの版（送信チャンネルが受け取り箱の行に要約の列とレイアウト・欄の中身を書く、`buildRowContent` が記録の段と秘密の決まりを当てる）、line = 要約から。どの段でも描けない送信チャンネルは送信を書く前に 500（送信チャンネルと理由）
-   - 組み立てを通る所: 送信の見出し（秘密の鍵は差し込まない）・全員同文の描画（`rendered`）・その場の行・プレビュー・まとめ送りの描き直し・cron の共有のお知らせの行・cron の送る行・上書きのプレビュー
+   - 組み立てを通る所: 送信の見出し（秘密の鍵は差し込まない）・全員同文の描画（`rendered`）・その場の行・プレビュー・まとめ送りの描き直し・cron の共有のお知らせの行・cron の送る行・テキストの編集のプレビュー
    - enrichers は当て先（連絡の鍵・カテゴリー・種別・全部、D127）で選ぶ。使える鍵の検査（`enricherKeysFor`）と実行（`context.ts`）が同じ `enrichersFor`
 2. 冪等の鍵を `message_dispatches` と `message_idempotency_keys` の両方で確かめる（重複・INSERT の UNIQUE 違反は 409）
 3. 送信を 1 行書く（`message_key`・`kind`・`category`・`target`・`record`・`headings`・`channel_counts` など）
@@ -37,7 +37,7 @@
 - 送信に残す物: 出どころ（定義連絡の鍵 `message_key` / システムテンプレートの鍵 `system_template` / DB のテンプレートの `template_id`・`template_version`）・直した印（`template_edited`）・カテゴリー・種別・送信チャンネル・レイアウトの鍵と送った版（`layout`・`layout_version`）・欄の中身（`values`、差し込む前の字）
 - `values` の残し方は `vars` と同じ: record `vars` / `full` は残す、`meta` は送り残しの間だけ（送信を閉じる時に消す）、required と秘密を差し込む連絡は残さない
 - お知らせの行（`message_inbox_items`）は記録ではなく届けた中身: 記録の段・required に依らずレイアウトの鍵・版・欄の中身を残す（秘密の欄は空の字で差し込む、D120・D130）。書き手 = その場の行・cron の送る行・間引き（どれも `buildRowContent`）と cron の共有の行
-- 組み直し（cron の送る行・全員宛ての共有のお知らせの行・失敗の再送・送信の詳細の「同じ内容で送る」）は送信の物と `vars` だけで描く（`resolvedOfDispatch`）。定義・テンプレート・上書きは引き直さないので、送った後に直しても予約・後回しの中身は変わらない
+- 組み直し（cron の送る行・全員宛ての共有のお知らせの行・失敗の再送・送信の詳細の「同じ内容で送る」）は送信の物と `vars` だけで描く（`resolvedOfDispatch`）。定義・テンプレート・テキストの編集は引き直さないので、送った後に直しても予約・後回しの中身は変わらない
   - 送った版から今の版へレイアウトの改版の対応（`revisions[版]`）で読み替える。段の対応が無い・今より新しい版 = `layout_unreadable`、レイアウトが無い = `layout_missing`、欄の中身が無い = `values_missing`（cron は配達を `failed`）
   - 描かない振る舞い（間引き `throttle`・required・vars の zod の秘密の印）だけはコードの定義（`message_key` の生成の一覧の定義 + fork の上書き）から読む。定義が無ければ間引かない
 

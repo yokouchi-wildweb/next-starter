@@ -52,11 +52,11 @@ export type ResolveDefinitionDeps = {
   categories: Readonly<Record<string, MessageCategory>>;
   /** レイアウトの受け口(server の一覧 layouts) */
   layouts: Readonly<Record<string, MessageLayout>>;
-  /** 管理画面の文言(無い・enabled() が false = 重ねない。管理の上書きの service はコードの値を見るので渡さない) */
+  /** テキストの編集(無い・enabled() が false = 重ねない。テキストの編集の service はコードの値を見るので渡さない) */
   adminOverrides?: MessageAdminOverrideSource;
 };
 
-/** 管理画面の文言の読み口(門 messagingOverrides が開か・連絡の行) */
+/** テキストの編集の読み口(門 messagingOverrides が開か・連絡の行) */
 export type MessageAdminOverrideSource = {
   enabled: () => boolean;
   load: (messageKey: string) => Promise<AdminFieldValue[]>;
@@ -111,7 +111,7 @@ export async function resolveDefinition(
     variableKeys: enricherKeysFor(resolved, deps.enrichers),
   });
   for (const { fieldPath, problem } of merged.rejected) {
-    console.warn(`[messaging] 管理画面の文言を使わずコードの値で送ります(${definition.key} ${fieldPath}): ${problem.message}`);
+    console.warn(`[messaging] テキストの編集を使わずコードの値で送ります(${definition.key} ${fieldPath}): ${problem.message}`);
   }
   return merged.resolved;
 }
