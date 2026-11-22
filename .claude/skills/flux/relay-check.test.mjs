@@ -190,6 +190,27 @@ test("fork ごとの規約ファイルだけが重なる → 中継不要、印�
   }
 });
 
+test("一時許可のファイルの行を消しただけ → 中継不要(リポごとの .fork-ownership/<repo_id>.permits.txt)", () => {
+  const r = setupRepo();
+  try {
+    r.write("src/core.ts", lines(5));
+    r.write(".fork-ownership/mid.permits.txt", "src/a.ts | upreq:20990101-000001-a | why\nsrc/b.ts | upreq:20990101-000002-b | why\n");
+    const p = r.commit("P");
+    r.edit("src/core.ts", replaceLine(2, "upstream resolves 20990101-000001-a"));
+    const q = r.commit("Q");
+    const a = r.commit("A");
+    r.write(".fork-ownership/mid.permits.txt", "src/b.ts | upreq:20990101-000002-b | why\n");
+    const result = relayCheck({ cwd: r.dir, p, q, appliedFrom: a });
+    assert.equal(result.needed, false);
+    assert.deepEqual(result.outside, []);
+
+    r.write(".fork-ownership/README.md", "not a permit file\n");
+    assert.deepEqual(relayCheck({ cwd: r.dir, p, q, appliedFrom: a }).outside, [".fork-ownership/README.md"]);
+  } finally {
+    r.cleanup();
+  }
+});
+
 test("上流が削除したファイルを fork が残している → 中継が必要(①、ファイル全体)", () => {
   const r = setupRepo();
   try {
