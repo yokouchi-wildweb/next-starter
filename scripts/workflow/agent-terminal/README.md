@@ -9,6 +9,8 @@
 - `pnpm workflow agent-terminal compactPlan` — 圧縮の最初の一歩。この会話の足す手順・引き継ぎの一時ファイルの場所・続きの既定・打つ者を出す
 - `pnpm workflow agent-terminal compactSelf [--then continue|wait|none] "<残すこと>"` — エージェントが自分の会話の圧縮を頼む。今の返答が終わったら `/compact <残すこと>` が入力される
 - `pnpm workflow agent-terminal afterCompact <continue|wait|none> [--socket=<path> --pane=%<N>]` — `/compact` を自分で打つ道具が、打つ前にそのペインの圧縮の後の 1 行を決める(下「圧縮の後の 1 行」)
+- `pnpm workflow agent-terminal open [--cwd=<dir>] [--name=<名前>] [--socket=<名前>] [-- <命令…>]` — スキル `/reinforce` の open。新しい tmux のタブを、打った人の画面を奪わずに開く(下)
+- `pnpm workflow agent-terminal rc <宛先> [--socket=<名前>] [--wait=<秒>]` — スキル `/reinforce` の rc。Remote Control が切れたタブに `/remote-control` を打つ(下)
 - 圧縮の後の続き — 手で打った `/compact`(上の予約も含む)が終わったら、入力欄に 1 行が入力される(人がそう言ったのと同じ。承認の扱いは変わらない)
   - `continue`(既定。人が手で打った `/compact` も): 「必要な情報を読み返して作業を続行。」
   - `wait`(予約で `--then wait` を付けたときだけ): 「必要な情報を読み返して待機。」
@@ -46,6 +48,25 @@
   - 頼み先があるとき・打てないときは使わない(後は頼み先の仕組み・既定の続き)
 - 残すこと = 圧縮の後に何も読み直さなくても要ること(作業中のファイルのパス、未完了の手順など)を 1〜3 行。改行は空白に直す
 - エージェントが直接打つのではなく、`/coffee-break` の最後の一歩として打つ
+
+### `pnpm workflow agent-terminal open [--cwd=<dir>] [--name=<名前>] [--socket=<名前>] [-- <命令…>]`
+
+- 新しい tmux のセッションを切り離して(`-d`)作り、cwd(既定は今の場所)で命令を走らせる。attach も switch-client もしない(打った人の画面はそのまま)
+- 命令: 既定 = `claude --remote-control <名前>`(新しい通常セッション、Remote Control つき)/ `--` の後 = その命令(議会・チームの起動など。この道具はチームを知らない)。命令が終わってもタブは残る(`(命令が終わりました: exit <n>)` の後にシェル)
+- サーバー: `--socket=<名前>` = `tmux -L <名前>` / 呼んだ会話が tmux の中 = 同じサーバー / ほか(`AGENT_TERMINAL=none` も)= 既定のサーバー
+- 名前: `--name`、無ければ cwd のフォルダ名(英数と `._-` だけ)。そのサーバーに同じ名前があれば `-2`、`-3` …
+- 出す 1 行: `open: 開きました — <サーバー> のセッション <名前>(…)。見る: <サーバー> attach -t <名前>`
+- tmux が無い: 開かず `open: tmux が無いので開いていません。人が新しい端末で打つ 1 行: cd <場所> && <命令>`(exit 3)
+- 終了コード: 0 = 開いた / 1 = 使い方の誤り / 3 = 開けない
+
+### `pnpm workflow agent-terminal rc <宛先> [--socket=<名前>] [--wait=<秒>]`
+
+- 宛先からペインを 1 つに決める: `%<N>`(ペイン)/ `<セッション>[:<窓の番号か名前>]`(見えているペイン)/ ほか = 会話の名前(`claude agents --json` の名前、peer と同じ)→ その会話の id を印 `session` に持つペイン(下「記録の置き場」、`AGENT_TERMINAL=tmux` の会話だけ)
+- 探す所: `--socket=<名前>` のサーバー、省けばこのユーザーの全サーバー(`$TMUX_TMPDIR` か `/tmp` の `tmux-<uid>/`)
+- 打つのは入力欄が空で作業中の表示(`esc to interrupt`)が無い時だけ(待つ役と同じ確かめ)。`--wait` 秒(既定 120)待っても打てない形なら打たない
+- 打った後 8 秒まで画面に `rc active` を探し、出た / まだ出ない(狭い画面では出ないことがある)を 1 行で出す。結果はそのペインの `typein.log` に `rc` で 1 行
+- 打たない時(exit 3): 宛先が 2 つ以上 → 候補を 1 行ずつ / 無い・tmux の外の会話 → 「そのタブで /remote-control と打ってください」(名前の近い会話を候補に)
+- 終了コード: 0 = 打った / 1 = 使い方の誤り / 3 = 打たなかった
 
 ## API
 
