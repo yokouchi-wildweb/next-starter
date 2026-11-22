@@ -81,7 +81,7 @@ as a middle Tier, decide mechanically **by git diffs only** whether applied upst
 - **relay forgotten** (the segment's commit lacked the relay draft / the judgment was skipped) noticed → in the next commit, put the relay judgment and draft before any other work
 
 ## RELAY NOTICE COMPOSITION
-- rules shared by drafting in RELAY JUDGMENT and RELAY MODE below | schema and general writing rules: `.claude/skills/ship/SKILL.md` NOTICE COMPOSITION (English, machine-to-machine file, written out without asking first)
+- rules shared by drafting in RELAY JUDGMENT and RELAY MODE below | schema and general writing rules: `.claude/skills/ship/notice.md` NOTICE COMPOSITION (English, machine-to-machine file, written out without asking first)
 - never guess the material; collect it from:
   - the upstream notice body (change / required_actions / moved / verify)
   - `notes:` of that id's line in your ledger (deviations, ported moves, resolved conflicts, added hooks, etc.)
