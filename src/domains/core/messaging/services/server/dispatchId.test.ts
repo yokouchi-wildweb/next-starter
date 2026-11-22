@@ -61,17 +61,13 @@ test("読む口の store: 形の合わない id は DB を読まずに null(送�
 });
 
 test("操作の store: 形の合わない id は行を読まずに null で渡す(削除・再送の 404 の道)、まとめての検索は外す", async () => {
-  const seen: unknown[] = [];
-  await operationsStore.withLockedDispatch("send", async (_tx, dispatch) => {
-    seen.push(dispatch);
-  });
-  assert.deepEqual(seen, [null]);
+  // run が受けた行を返り値で見る(配列に溜めると assert.deepEqual の型の絞りで後の push が型の誤りになる)
+  const missing = await operationsStore.withLockedDispatch("send", async (_tx, dispatch) => dispatch);
+  assert.equal(missing, null);
   assert.deepEqual(dbUsed, []);
   assert.deepEqual(await operationsStore.findDispatches(["send"]), []);
   assert.deepEqual(dbUsed, []);
-  await operationsStore.withLockedDispatch(UUID, async (_tx, dispatch) => {
-    seen.push(dispatch);
-  });
-  assert.deepEqual(seen, [null, row]);
+  const found = await operationsStore.withLockedDispatch(UUID, async (_tx, dispatch) => dispatch);
+  assert.deepEqual(found, row);
   assert.deepEqual(dbUsed, ["tx.select"]);
 });
