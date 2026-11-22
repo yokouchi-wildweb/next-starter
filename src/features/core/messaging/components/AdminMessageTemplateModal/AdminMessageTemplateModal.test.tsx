@@ -306,7 +306,7 @@ test("作る: 帯は「保存」だけ、confirmOnClose・onCreated・onChanged 
   const kindCategory = parts.get("kindCategory")!;
   assert.equal(kindCategory.categories, (formState.fields as Props).categoryChoices);
   assert.equal(kindCategory.category, "notice");
-  assert.equal(kindCategory.disabled, false);
+  assert.ok(!kindCategory.disabled, "モーダルはいつも書ける(読むだけの形は無い)");
   // 中身の欄は書く欄の送信チャンネルとプレビューの送信チャンネルで描く
   const layoutFields = parts.get("layoutFields")!;
   assert.equal(layoutFields.fields, LAYOUT_FIELDS);

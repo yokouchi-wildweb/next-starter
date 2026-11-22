@@ -349,7 +349,9 @@ test("純粋な関数", () => {
     null,
     "選べるレイアウトが無ければ文面は無い(テンプレートを読み込む)",
   );
-  assert.equal(hooks.initialTextOf(NEW, "", layouts as never, "notice", categories as never, []), null, "種別を選ぶまで文面は無い");
+  // 種別に依らず初めのレイアウトから始まる(D174)
+  const beforeKind = hooks.initialTextOf(NEW, "", layouts as never, "notice", categories as never, []);
+  assert.deepEqual([beforeKind?.source, beforeKind?.start, beforeKind?.unlocked], [NOTICE_SOURCE, {}, true], "種別を選ぶ前も初めのレイアウトの白紙");
   const edited = hooks.initialTextOf(
     { type: "sameAs", dispatch: dispatchOf({ templateId: TEMPLATE_ID, templateEdited: true }, { discount: "30", gone: "x" }) } as never,
     "promotion",

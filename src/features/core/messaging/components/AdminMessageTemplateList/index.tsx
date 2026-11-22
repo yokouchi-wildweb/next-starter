@@ -102,9 +102,12 @@ export function AdminMessageTemplateList() {
                       </Span>
                       {/* レイアウトが無効(disabled)か無い: 送る画面に並ばず送る口が断る */}
                       {template.usable ? null : (
-                        <SoftBadge variant="destructive" size="sm" data-slot="template-unusable">
-                          使えない
-                        </SoftBadge>
+                        // 印は包む Span に付ける(SoftBadge は部品の印が呼び手の data-slot に勝つ)
+                        <Span size="inherit" data-slot="template-unusable">
+                          <SoftBadge variant="destructive" size="sm">
+                            使えない
+                          </SoftBadge>
+                        </Span>
                       )}
                     </Flex>
                     <RowDateMeta text={when(template.updatedAt ?? template.createdAt)} label="更新日時" />
