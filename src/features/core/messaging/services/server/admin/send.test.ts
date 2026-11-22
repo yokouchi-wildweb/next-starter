@@ -1,5 +1,5 @@
 // 管理の送信の service の検査(送る口・監査は偽物)
-// - 中身は 1 つの形 { template(白紙 { system } か DB の { id, version }), values, edited?, embedded? }(D117・D125、専用の値は embedded 指令 58)を送る口 sendTemplateMessage へ、
+// - 中身は 1 つの形 { template(白紙 { system } か DB の { id, version }), values, edited?, vars? }(D117・D125、専用の値は vars 指令 58)を送る口 sendTemplateMessage へ、
 //   宛先(全員・ロール・グループ・選んだ利用者)、予約、監査(sent / scheduled / test_sent)
 // - カテゴリー(必須): 種別 announcement・direct・promotion だけ、宛先の種類は性質 adminFreeText。経路の制限は無い(LINE・fork の経路も)。
 //   白紙の種別とカテゴリーの種別の照合は送る口(templateSend.test.ts)
@@ -104,7 +104,7 @@ test("その場で書いた中身(白紙)を全員へ今送る: 送る口に白�
   assert.deepEqual(input.values, VALUES);
   assert.equal(input.category, "announcement");
   assert.deepEqual(input.channels, ["email", "inApp"]);
-  assert.equal("embedded" in input, false);
+  assert.equal("vars" in input, false);
   assert.equal("edited" in input, false);
   assert.deepEqual(input.target, { type: "all" });
   assert.equal(input.source, "messaging.adminSend");
@@ -116,13 +116,13 @@ test("その場で書いた中身(白紙)を全員へ今送る: 送る口に白�
   assert.equal("channels" in (calls[1].args[0] as Record<string, unknown>), false);
 });
 
-test("DB のテンプレートをロール宛てに予約: 送る口に template・欄の中身・直した印・専用の値 embedded・カテゴリー、監査 scheduled", async () => {
+test("DB のテンプレートをロール宛てに予約: 送る口に template・欄の中身・直した印・専用の値 vars・カテゴリー、監査 scheduled", async () => {
   const { deps, calls, audits } = setup();
   await adminSend(deps, {
     template: TPL,
     values: TEXT,
     edited: true,
-    embedded: { discount: 10 },
+    vars: { discount: 10 },
     category: "promotion",
     target: { type: "role", roles: ["user"] },
     scheduledAt: "2026-12-01T09:00:00+09:00",
@@ -131,7 +131,7 @@ test("DB のテンプレートをロール宛てに予約: 送る口に template
   assert.deepEqual(input.template, TPL);
   assert.deepEqual(input.values, TEXT);
   assert.equal(input.edited, true);
-  assert.deepEqual(input.embedded, { discount: 10 });
+  assert.deepEqual(input.vars, { discount: 10 });
   assert.equal(input.category, "promotion");
   assert.deepEqual(input.target, { type: "role", roles: ["user"] });
   assert.deepEqual(input.scheduledAt, new Date("2026-12-01T00:00:00Z"));
@@ -157,7 +157,7 @@ test("カテゴリー: 無い・3 つの種別でない・宛先の種類が送�
   assert.deepEqual((calls[1].args[0] as Record<string, unknown>).recipients, [{ userId: "u1" }, { userId: "u2" }]);
 });
 
-test("入力の誤りは 400(形・知らない鍵・前の形の vars・白紙での直した印・予約の形)", async () => {
+test("入力の誤りは 400(形・知らない鍵・白紙での直した印・予約の形)", async () => {
   const { deps } = setup();
   const c = { category: "promotion", target: { type: "all" } };
   const cases = [
@@ -167,8 +167,6 @@ test("入力の誤りは 400(形・知らない鍵・前の形の vars・白紙�
     { ...c, values: VALUES },
     // 前の形(経路ごとの content)は黙って捨てない
     { ...c, ...ADHOC, content: { email: { subject: "s" } } },
-    // 前の形(vars)は黙って捨てない(専用の値は embedded)
-    { ...c, ...ADHOC, vars: { a: 1 } },
     { ...c, ...ADHOC, edited: true },
     { ...c, ...ADHOC, template: { id: "not-uuid", version: 3 } },
     { ...c, ...ADHOC, template: { id: TEMPLATE } },
@@ -184,7 +182,7 @@ test("入力の誤りは 400(形・知らない鍵・前の形の vars・白紙�
 
 test("プレビューとテスト送信は操作した管理者、テストは is_test で監査 test_sent", async () => {
   const { deps, calls, audits } = setup();
-  await adminSendPreview(deps, { template: TPL, values: TEXT, embedded: { a: 1 }, category: "promotion" });
+  await adminSendPreview(deps, { template: TPL, values: TEXT, vars: { a: 1 }, category: "promotion" });
   assert.deepEqual(calls[0].args, [
     { template: { template: TPL, values: TEXT, category: "promotion" } },
     { vars: { a: 1 }, channels: undefined, userId: ADMIN },

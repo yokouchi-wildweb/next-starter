@@ -26,7 +26,7 @@ import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
-import { messageEmbeddedCatalog } from "../sendMessage/enrichers";
+import { messageVarCatalog } from "../sendMessage/enrichers";
 import { defineTestMessage } from "../sendMessage/testHelpers";
 import { createOverrideService, OVERRIDE_FIELDS_INVALID } from "./overrideService";
 import type { MessageOverrideRecord } from "./types";
@@ -122,7 +122,7 @@ function setup(options: { actorId?: string | null; role?: string; rows?: Message
     },
     recordAudit: async (input) => audits.push(input),
     // 埋め込み情報の一覧は送る口と同じ組み方(共通 + enrichers + vars の名前)
-    embeddedCatalog: (resolved) => messageEmbeddedCatalog(resolved, {}),
+    varCatalog: (resolved) => messageVarCatalog(resolved, {}),
     channelContent: async (resolved, channel) => ({ channel, values: resolved.values }),
     channelPreview: async (channel, input) => {
       previews.push({ channel, content: input.content });
@@ -312,7 +312,7 @@ test("保存の誤り: 入力・直せない欄・型・使えない鍵・秘密
 test("埋め込み情報の一覧: vars は定義の varNames の別名と説明(D133)、秘密の vars は出さない", async () => {
   const { service } = setup();
   const detail = await service.getMessage("shop.notice");
-  const own = detail.embedded.filter((entry) => entry.source === "own");
+  const own = detail.vars.filter((entry) => entry.source === "own");
   assert.deepEqual(own, [{ key: "name", alias: "お名前", source: "own", description: "受け取る人の名前" }]);
 });
 

@@ -4,7 +4,7 @@
 // 経路 = 連絡の種類の経路(fork の種類の上書きの後)。欄 = 連絡のひな形の欄のうち種類の経路で使う物の全部(既定で全部直せる、D132)を
 // ひな形の宣言の順に平たく並べ、欄ごとに使う経路を持つ(経路のタブは欄の channels で絞る)
 
-import type { MessageEmbeddedEntry, MessageFieldSpec, MessageLayoutSummary } from "@/lib/messaging";
+import type { MessageVarEntry, MessageFieldSpec, MessageLayoutSummary } from "@/lib/messaging";
 
 /** 連絡の経路 1 つ(種類の経路の順) */
 export type AdminOverrideChannel = {
@@ -80,7 +80,7 @@ export type AdminOverrideMessageDetail = {
    * 埋め込み情報の一覧(部品 EmbeddedInfoTags が読む): 共通 + 当たる enrichers(日本語の別名つき)+ この連絡の vars(秘密を除く。
    * source "own"、別名なし = 鍵で書く)
    */
-  embedded: MessageEmbeddedEntry[];
+  vars: MessageVarEntry[];
   /** 種類の経路(届ける経路、欄はこの順) */
   channels: AdminOverrideChannel[];
   fields: AdminOverrideField[];

@@ -16,13 +16,13 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { InfoPopover } from "@/components/Overlays/Popover";
 import { Span } from "@/components/TextBlocks/Span";
-import type { MessageEmbeddedEntry } from "@/lib/messaging";
+import type { MessageVarEntry } from "@/lib/messaging";
 
 import { EMBEDDED_INFO_USAGE, EmbeddedInfoTags } from "@/features/core/messaging/components/common/EmbeddedInfoTags";
 
 export type EmbeddedInfoPopoverProps = {
-  common: readonly MessageEmbeddedEntry[];
-  own: readonly MessageEmbeddedEntry[];
+  common: readonly MessageVarEntry[];
+  own: readonly MessageVarEntry[];
   /** タグを押した時(別名を渡す。呼び手が {{別名}} をコピーする) */
   onCopy?: (alias: string) => void;
   /** 今の文の中の知らない名前 */
@@ -39,7 +39,7 @@ export function EmbeddedInfoPopover({ common, own, onCopy, unknownNames = [], on
   const [open, setOpen] = useState(false);
   const Chevron = side === "top" ? ChevronUp : ChevronDown;
   return (
-    <Flex align="center" gap="md" wrap="wrap" className="min-w-0" data-slot="embedded-info-popover">
+    <Flex align="center" gap="md" wrap="wrap" className="min-w-0" data-slot="vars-info-popover">
       <InfoPopover
         open={open}
         onOpenChange={setOpen}
@@ -48,7 +48,7 @@ export function EmbeddedInfoPopover({ common, own, onCopy, unknownNames = [], on
         size="xl"
         title="埋め込み情報"
         trigger={
-          <Button type="button" size="sm" variant="outline" className="gap-1.5" data-slot="embedded-info-open">
+          <Button type="button" size="sm" variant="outline" className="gap-1.5" data-slot="vars-info-open">
             <Braces className="size-4" />
             埋め込み情報
             {/* 数と矢印は文字色を受け継いで薄くする(乗った時は accent の地に合う色のまま薄く) */}
@@ -82,7 +82,7 @@ export function EmbeddedInfoPopover({ common, own, onCopy, unknownNames = [], on
         </Stack>
       </InfoPopover>
       {unknownNames.length > 0 ? (
-        <Flex align="center" gap="xs" wrap="wrap" data-slot="embedded-info-unknown">
+        <Flex align="center" gap="xs" wrap="wrap" data-slot="vars-info-unknown">
           <TriangleAlert className="size-4 text-destructive-text" aria-hidden />
           <Span size="sm" tone="destructive">
             使えない埋め込み情報:

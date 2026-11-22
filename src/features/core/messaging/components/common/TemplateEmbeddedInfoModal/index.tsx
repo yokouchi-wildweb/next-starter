@@ -3,7 +3,7 @@
 // 行 = 鍵(英数字)・日本語の別名・型(1行テキスト・数・日付・日時・URL・選択肢)・選択肢(選択肢の型だけ)・必須・既定値。
 // 見た目: 1 行 = 枠つきのカード(上の帯 = 番号・{{別名}}・必須のスイッチ・削除 / 下 = 別名 | 鍵 | 型 | 既定値 の 1 行、選択肢は中の枠)
 // 「適用」で呼び手が検査し(宣言の形・名前の重なり)、通れば閉じる。通らなければ errors を出す。
-// 行の書きかけと検査は hook(useMessageTemplateForm の embeddedEditor)が持ち、この部品は描くだけ
+// 行の書きかけと検査は hook(useMessageTemplateForm の varsEditor)が持ち、この部品は描くだけ
 
 "use client";
 
@@ -22,13 +22,13 @@ import { Stack } from "@/components/Layout/Stack";
 import Modal from "@/components/Overlays/Modal";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
-import { MESSAGE_EMBEDDED_TYPE_LABELS, MESSAGE_EMBEDDED_TYPES, type MessageEmbeddedType } from "@/lib/messaging";
+import { MESSAGE_VAR_TYPE_LABELS, MESSAGE_VAR_TYPES, type MessageVarType } from "@/lib/messaging";
 
 /** 宣言の 1 行(画面の形。既定値は文字) */
 export type TemplateEmbeddedInfoRow = {
   key: string;
   alias: string;
-  type: MessageEmbeddedType;
+  type: MessageVarType;
   required: boolean;
   default: string;
   options: { value: string; label: string }[];
@@ -48,7 +48,7 @@ export type TemplateEmbeddedInfoModalProps = {
   readOnly?: boolean;
 };
 
-const TYPE_OPTIONS = MESSAGE_EMBEDDED_TYPES.map((type) => ({ value: type, label: MESSAGE_EMBEDDED_TYPE_LABELS[type] }));
+const TYPE_OPTIONS = MESSAGE_VAR_TYPES.map((type) => ({ value: type, label: MESSAGE_VAR_TYPE_LABELS[type] }));
 
 export function TemplateEmbeddedInfoModal({
   open,
@@ -81,7 +81,7 @@ export function TemplateEmbeddedInfoModal({
   );
   return (
     <Modal open={open} onOpenChange={onOpenChange} title="専用の埋め込み情報" maxWidth="960px" footer={footer}>
-      <Stack gap="md" data-slot="template-embedded-info">
+      <Stack gap="md" data-slot="template-vars-info">
         <Para size="sm" tone="muted" className="my-0">
           このテンプレートだけで使う埋め込み情報です。本文の中に {"{{別名}}"} と書くと、送信時に入力した値が入ります。別名は共通の埋め込み情報と重ねられません。
         </Para>
@@ -91,11 +91,11 @@ export function TemplateEmbeddedInfoModal({
           </Span>
         ) : null}
         {rows.map((row, index) => {
-          const id = `embedded-${index}`;
+          const id = `vars-${index}`;
           const name = row.alias.trim() || row.key.trim();
           // 1 行 = 枠つきのカード: 上の帯(番号・書き方 {{別名}}・必須のスイッチ・削除)+ 下に 別名 | 鍵 | 型 | 既定値 を 1 行
           return (
-            <Stack key={index} gap="none" className="overflow-hidden rounded-lg border border-border bg-card shadow-xs" data-slot="template-embedded-info-row">
+            <Stack key={index} gap="none" className="overflow-hidden rounded-lg border border-border bg-card shadow-xs" data-slot="template-vars-info-row">
               <Flex align="center" justify="between" gap="md" className="border-b border-border bg-muted/50 py-1 pl-3 pr-1">
                 <Flex align="center" gap="md" className="min-w-0">
                   <Span size="xs" weight="semiBold" tone="muted" className="min-w-6 rounded-md border border-border bg-background px-1.5 py-0.5 text-center tabular-nums">
@@ -145,7 +145,7 @@ export function TemplateEmbeddedInfoModal({
                       options={TYPE_OPTIONS}
                       disabled={readOnly}
                       showPlaceholderOption={false}
-                      onChange={(v) => onUpdateRow(index, { type: (v ? String(v) : "line") as MessageEmbeddedType })}
+                      onChange={(v) => onUpdateRow(index, { type: (v ? String(v) : "line") as MessageVarType })}
                     />
                   </Stack>
                   <Stack gap="2xs" className="min-w-0">
@@ -189,7 +189,7 @@ export function TemplateEmbeddedInfoModal({
                   </Stack>
                 </Grid>
                 {row.type === "select" ? (
-                  <Stack gap="xs" className="rounded-md border border-border bg-muted/20 p-3" data-slot="template-embedded-info-options">
+                  <Stack gap="xs" className="rounded-md border border-border bg-muted/20 p-3" data-slot="template-vars-info-options">
                     <Span size="xs" weight="semiBold" tone="muted">
                       選択肢
                     </Span>
@@ -255,14 +255,14 @@ export function TemplateEmbeddedInfoModal({
             variant="none"
             className="flex h-auto w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
             onClick={onAddRow}
-            data-slot="template-embedded-info-add"
+            data-slot="template-vars-info-add"
           >
             <Plus className="size-4" />
             埋め込み情報を追加
           </Button>
         )}
         {errors.length > 0 ? (
-          <Stack gap="2xs" data-slot="template-embedded-info-errors">
+          <Stack gap="2xs" data-slot="template-vars-info-errors">
             {errors.map((message) => (
               <Span key={message} size="sm" tone="destructive">
                 {message}

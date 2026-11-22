@@ -55,7 +55,7 @@ const baseEditor = () => ({
   previewLayout: "simple",
   previewContent: null,
   previewLoading: false,
-  embeddedTags: { common: [], own: [], copy: () => {}, toAliases: <T,>(value: T) => value },
+  varTags: { common: [], own: [], copy: () => {}, toAliases: <T,>(value: T) => value },
   unusableCount: 0,
   valueOf: () => "",
   setDraft: () => {},
@@ -113,7 +113,7 @@ const stub = (name: string, text?: (props: Record<string, unknown>) => string) =
   return Stub;
 };
 mock.module("@/features/core/messaging/components/common/OverrideFieldEditor", { namedExports: { OverrideFieldEditor: stub("field") } });
-mock.module("@/features/core/messaging/components/common/EmbeddedInfoPopover", { namedExports: { EmbeddedInfoPopover: stub("embedded") } });
+mock.module("@/features/core/messaging/components/common/EmbeddedInfoPopover", { namedExports: { EmbeddedInfoPopover: stub("vars") } });
 mock.module("@/features/core/messaging/components/common/LayoutPreview", { namedExports: { LayoutPreview: stub("preview") } });
 // 種別とカテゴリーは読むだけの選び。偽物は選んでいる物の表示名を字で出す
 mock.module("@/features/core/messaging/components/common/KindCategoryFields", {
@@ -168,7 +168,7 @@ test("鍵が無い間は描かない / 欄を並べ、confirmOnClose に closeCo
   assert.equal(modalProps, null);
   await view.draw(createElement(AdminMessageOverrideModal, props(true, "user.welcome")));
   // 右 = 種別とカテゴリー(読むだけ)→ 今の経路の欄、左 = プレビュー、下の帯の左 = 埋め込み情報
-  assert.deepEqual(parts(view.container), ["kind-category", "field", "field", "preview", "embedded"]);
+  assert.deepEqual(parts(view.container), ["kind-category", "field", "field", "preview", "vars"]);
   assert.match(view.container.textContent ?? "", /プレビュー/);
   assert.deepEqual(modalProps!.confirmOnClose, { enabled: true, message: "下書き" });
   // 連絡の名前・種別とカテゴリーの表示名で、鍵は出さない(D46)

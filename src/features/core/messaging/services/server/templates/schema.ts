@@ -15,7 +15,7 @@ const templateFields = {
   /** ひな形の欄の中身({{鍵}} / {{別名}} のまま。欄の検査は checks.ts) */
   values: z.record(z.string(), z.unknown()),
   /** 専用の埋め込み情報の宣言(形の検査は checks.ts) */
-  embedded: z.array(z.unknown()).max(100).default([]),
+  vars: z.array(z.unknown()).max(100).default([]),
 };
 
 /** 作る入力。鍵は受けない(サーバーが作る、D46: 運営する人に鍵を打たせない。strict なので key を送ると 400) */
@@ -28,7 +28,7 @@ export const UpdateMessageTemplateInputSchema = z
     category: templateFields.category.optional(),
     layout: templateFields.layout.optional(),
     values: templateFields.values.optional(),
-    embedded: z.array(z.unknown()).max(100).optional(),
+    vars: z.array(z.unknown()).max(100).optional(),
   })
   .strict();
 

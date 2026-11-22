@@ -4,21 +4,21 @@
 // - 種類: 種類の受け口(categories)にあり、種別が announcement・direct・promotion(管理者が送れる種別。それ以外は 400)
 // - ひな形: ひな形の受け口(layouts)にあり、管理者が選べる物(adminSelectable)
 // - 欄の中身: そのカテゴリーの経路で使う欄の zod(layoutValuesSchema)を通る
-// - 専用の埋め込み情報: 宣言の zod(lib/messaging messageEmbeddedDeclarationSchema)を通り、一覧(共通 + テンプレートに当たる enrichers + 専用)の
-//   鍵・別名が重ならない(checkEmbeddedCatalog、D126)。秘密の型は無い(型は lib の 6 つだけ。秘密はコードの定義の secretVar に置く)
-// - 文面の {{鍵}} / {{別名}} は一覧の中だけ(findEmbedded の unknown は 400)
+// - 専用の埋め込み情報: 宣言の zod(lib/messaging messageVarDeclarationSchema)を通り、一覧(共通 + テンプレートに当たる enrichers + 専用)の
+//   鍵・別名が重ならない(checkVarCatalog、D126)。秘密の型は無い(型は lib の 6 つだけ。秘密はコードの定義の secretVar に置く)
+// - 文面の {{鍵}} / {{別名}} は一覧の中だけ(findVar の unknown は 400)
 
 import {
-  checkEmbeddedCatalog,
-  embeddedCatalog,
-  findEmbedded,
+  checkVarCatalog,
+  varCatalog,
+  findVar,
   layoutValuesSchema,
   layoutVersionOf,
-  messageEmbeddedDeclarationSchema,
+  messageVarDeclarationSchema,
   type MessageCategory,
   type MessageChannel,
-  type MessageEmbeddedDeclaration,
-  type MessageEmbeddedEntry,
+  type MessageVarDeclaration,
+  type MessageVarEntry,
   type MessageEnricher,
   type MessageLayout,
 } from "@/lib/messaging";
@@ -38,19 +38,19 @@ export type TemplateFields = {
   category: string;
   layout: string;
   values: Record<string, unknown>;
-  embedded: readonly unknown[];
+  vars: readonly unknown[];
 };
 
 export type CheckedTemplateFields = {
   layout: string;
   layoutVersion: number;
   values: Record<string, unknown>;
-  embedded: MessageEmbeddedDeclaration[];
+  vars: MessageVarDeclaration[];
 };
 
 /** テンプレートの埋め込み情報の一覧(共通 + テンプレートに当たる enrichers + 専用) */
-export function templateEmbeddedCatalog(deps: TemplateCheckDeps, own: readonly MessageEmbeddedDeclaration[]): MessageEmbeddedEntry[] {
-  return embeddedCatalog({ own, enrichers: deps.enrichers });
+export function templateVarCatalog(deps: TemplateCheckDeps, own: readonly MessageVarDeclaration[]): MessageVarEntry[] {
+  return varCatalog({ own, enrichers: deps.enrichers });
 }
 
 /** 管理者が選べるひな形 */
@@ -85,22 +85,22 @@ export function checkTemplateFields(deps: TemplateCheckDeps, fields: TemplateFie
     }
   }
 
-  const embedded: MessageEmbeddedDeclaration[] = [];
-  fields.embedded.forEach((item, index) => {
-    const parsed = messageEmbeddedDeclarationSchema.safeParse(item);
+  const vars: MessageVarDeclaration[] = [];
+  fields.vars.forEach((item, index) => {
+    const parsed = messageVarDeclarationSchema.safeParse(item);
     if (!parsed.success) {
       const detail = parsed.error.issues.map((issue) => `${issue.path.join(".") || "(全体)"}: ${issue.message}`).join(" / ");
       problems.push(`専用の埋め込み情報 ${index + 1} つ目の宣言が正しくありません(${detail})`);
     } else {
-      embedded.push(parsed.data as MessageEmbeddedDeclaration);
+      vars.push(parsed.data as MessageVarDeclaration);
     }
   });
 
-  const catalog = templateEmbeddedCatalog(deps, embedded);
-  for (const problem of checkEmbeddedCatalog(catalog)) problems.push(problem.message);
-  const { unknown } = findEmbedded(fields.values, catalog);
+  const catalog = templateVarCatalog(deps, vars);
+  for (const problem of checkVarCatalog(catalog)) problems.push(problem.message);
+  const { unknown } = findVar(fields.values, catalog);
   if (unknown.length > 0) problems.push(`使えない埋め込み ${unknown.map((name) => `{{${name}}}`).join(", ")}`);
 
   if (problems.length > 0) throw new DomainError(`テンプレートの中身が正しくありません: ${problems.join(" / ")}`, { status: 400 });
-  return { layout: fields.layout, layoutVersion: layoutVersionOf(layout!), values, embedded };
+  return { layout: fields.layout, layoutVersion: layoutVersionOf(layout!), values, vars };
 }

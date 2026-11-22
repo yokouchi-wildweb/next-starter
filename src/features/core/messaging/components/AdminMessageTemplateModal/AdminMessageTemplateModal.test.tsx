@@ -92,7 +92,7 @@ const baseForm = (): Props => ({
   layoutFields: LAYOUT_FIELDS,
   catalog: [],
   unknownNames: [],
-  embeddedEditor: {
+  varsEditor: {
     open: false,
     setOpen: () => {},
     openEditor: () => {},
@@ -132,8 +132,8 @@ mock.module("@/features/core/messaging/hooks/useLayoutPreview", {
     }),
   },
 });
-mock.module("@/features/core/messaging/hooks/useEmbeddedInfoTags", {
-  namedExports: { useEmbeddedInfoTags: () => ({ common: [], own: [], copy: () => {} }) },
+mock.module("@/features/core/messaging/hooks/useVarTags", {
+  namedExports: { useVarTags: () => ({ common: [], own: [], copy: () => {} }) },
 });
 
 // Modal は題ごとに最後の props を覚え、開いている間だけ中身と帯(footer)を描く
@@ -226,7 +226,7 @@ const stub = (name: string) => {
   Stub.displayName = `Stub(${name})`;
   return Stub;
 };
-mock.module("@/features/core/messaging/components/common/EmbeddedInfoPopover", { namedExports: { EmbeddedInfoPopover: stub("embedded") } });
+mock.module("@/features/core/messaging/components/common/EmbeddedInfoPopover", { namedExports: { EmbeddedInfoPopover: stub("vars") } });
 mock.module("@/features/core/messaging/components/common/KindCategoryFields", { namedExports: { KindCategoryFields: stub("kindCategory") } });
 mock.module("@/features/core/messaging/components/common/LayoutFields", { namedExports: { LayoutFields: stub("layoutFields") } });
 mock.module("@/features/core/messaging/components/common/LayoutPreview", { namedExports: { LayoutPreview: stub("preview") } });
@@ -322,7 +322,7 @@ test("作る: 帯は「保存」だけ、confirmOnClose・onCreated・onChanged 
 
   const footer = footerOf(view.container);
   assert.ok(footer);
-  assert.ok(footer.querySelector("[data-part=embedded]"), "そろっていれば埋め込み情報の吹き出しは帯の左");
+  assert.ok(footer.querySelector("[data-part=vars]"), "そろっていれば埋め込み情報の吹き出しは帯の左");
   assert.deepEqual(buttonTexts(footer), ["保存", "ok:保存する"], "作る時は削除が無い");
   assert.equal(confirms.has("削除する"), false);
   assert.equal(buttonOf(footer, "保存")!.disabled, false, "書きかけがあれば保存を押せる");
@@ -413,7 +413,7 @@ test("D139: そろうまで中身の欄は fieldsHint の 1 行、LayoutFields �
   assert.equal(values?.textContent, "先にカテゴリーを選んでください");
   assert.equal(has(view.container, "layoutFields"), false);
   const footer = footerOf(view.container);
-  assert.equal(footer!.querySelector("[data-part=embedded]"), null);
+  assert.equal(footer!.querySelector("[data-part=vars]"), null);
   assert.deepEqual(buttonTexts(footer), ["保存", "ok:保存する"], "右の操作は残る");
   await view.unmount();
 

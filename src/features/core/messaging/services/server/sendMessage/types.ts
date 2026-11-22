@@ -5,7 +5,7 @@
 import type {
   MessageCategory,
   MessageChannel,
-  MessageEmbeddedDeclaration,
+  MessageVarDeclaration,
   MessageEnricher,
   MessageLayout,
   MessageRegistry,
@@ -112,7 +112,7 @@ export type SendTemplateMessageInput = Omit<SendMessageToManyInput, "recipientVa
   /** 送るカテゴリー(種別は管理者がその場で送れる物。白紙は同じ種別のカテゴリー)。経路はこの種類から */
   category: string;
   /** 専用の埋め込み情報の値 { 鍵: 値 }(DB のテンプレートと、宣言を持つシステムテンプレート。宣言の型で検査、必須。回の embedded_values に残る) */
-  embedded?: Record<string, unknown>;
+  vars?: Record<string, unknown>;
 };
 
 /** 回に残すテンプレートの出どころ(システムテンプレートの鍵か、DB のテンプレートの固定した版と直した印) */
@@ -133,7 +133,7 @@ export type MessageTemplateVersionSource = {
   layoutVersion: number;
   values: Record<string, unknown>;
   /** 専用の埋め込み情報の宣言(送る人が値を入れる) */
-  embedded: MessageEmbeddedDeclaration[];
+  vars: MessageVarDeclaration[];
 };
 
 /** テンプレートの読み口(送る口と cron) */

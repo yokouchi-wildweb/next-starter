@@ -7,7 +7,7 @@
 // - 中身 = ひな形の欄(useLayoutFieldsForm)。経路は種類が決め、経路だけの欄とプレビューのタブはその分(D115)
 // - ひな形を替える: 中身があれば確かめてから消す(pendingLayout → confirmLayoutChange、D113)。中身の付け替えはしない
 // - 保存 = 作る(POST)か直す(PATCH)の 1 回で公開(作る = 版 1、直す = 中身が違えば新しい版、D134)。同じ中身なら unchanged →「変更はありません」。名前・説明・種類・ひな形・中身・専用の埋め込み情報
-// - 専用の埋め込み情報 = 『専用の埋め込み情報を管理』のモーダルで足す・直す(embeddedEditor。適用で検査を通った物だけ反映、D126)
+// - 専用の埋め込み情報 = 『専用の埋め込み情報を管理』のモーダルで足す・直す(varsEditor。適用で検査を通った物だけ反映、D126)
 // - 埋め込み情報のタグ = 選択肢の baseCatalog(共通 + enrichers)+ 専用。中身の中の知らない {{名前}} を返す
 // - システムテンプレート(system)は読むだけ(保存しない、D117)。削除 = remove(版も消え、送った回は残る、D137。成功で true)
 // - 中身の入力と埋め込み情報は fieldsReady(ひな形・種別・カテゴリーがそろい、カテゴリーに経路が 1 つ以上)まで出さない。
@@ -22,13 +22,13 @@ import { useSWRConfig } from "swr";
 import { useDomainMutation } from "@/lib/crud";
 import { err } from "@/lib/errors";
 import {
-  checkEmbeddedCatalog,
+  checkVarCatalog,
   layoutValuesSchema,
   MESSAGE_KINDS,
-  messageEmbeddedDeclarationSchema,
-  type MessageEmbeddedDeclaration,
-  type MessageEmbeddedEntry,
-  type MessageEmbeddedType,
+  messageVarDeclarationSchema,
+  type MessageVarDeclaration,
+  type MessageVarEntry,
+  type MessageVarType,
   type MessageLayout,
 } from "@/lib/messaging";
 import { listVariables } from "@/lib/templateVariables";
@@ -53,10 +53,10 @@ import { MESSAGE_TEMPLATES_KEY, messageTemplateKey, messageTemplateVersionsKey }
 const TEMPLATE_KINDS = ["announcement", "direct", "promotion"] as const;
 
 /** 専用の埋め込み情報の宣言の 1 行(画面の形。既定値は文字で持つ) */
-export type EmbeddedDeclarationDraft = {
+export type VarDeclarationDraft = {
   key: string;
   alias: string;
-  type: MessageEmbeddedType;
+  type: MessageVarType;
   required: boolean;
   default: string;
   /** 選択肢(type select だけ) */
@@ -90,7 +90,7 @@ export function compactLayoutValues(values: Readonly<Record<string, unknown>>): 
   return Object.fromEntries(Object.entries(values).filter(([, value]) => !isEmptyValue(value)));
 }
 
-function draftsOf(declarations: readonly MessageEmbeddedDeclaration[] | undefined): EmbeddedDeclarationDraft[] {
+function draftsOf(declarations: readonly MessageVarDeclaration[] | undefined): VarDeclarationDraft[] {
   return (declarations ?? []).map((declaration) => ({
     key: declaration.key,
     alias: declaration.alias,
@@ -102,7 +102,7 @@ function draftsOf(declarations: readonly MessageEmbeddedDeclaration[] | undefine
 }
 
 /** 画面の行 → 宣言(空の既定値は無し、数の型は数にする) */
-function declarationOf(draft: EmbeddedDeclarationDraft): Record<string, unknown> {
+function declarationOf(draft: VarDeclarationDraft): Record<string, unknown> {
   const fallback = draft.default.trim();
   return {
     key: draft.key.trim(),
@@ -147,7 +147,7 @@ function firstCategoryOf(categories: readonly { key: string; kind: string }[], k
 }
 
 /** 新しい宣言の行 */
-export function emptyEmbeddedDraft(): EmbeddedDeclarationDraft {
+export function emptyVarDraft(): VarDeclarationDraft {
   return { key: "", alias: "", type: "line", required: false, default: "", options: [] };
 }
 
@@ -176,7 +176,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   const [category, setCategory] = useState(template?.category || firstCategoryOf(categories, initialKind));
   const [layout, setLayout] = useState(template?.layout ?? (options?.layouts.length === 1 ? options.layouts[0].key : ""));
   const [pendingLayout, setPendingLayout] = useState<string | null>(null);
-  const [embedded, setEmbedded] = useState<EmbeddedDeclarationDraft[]>(() => draftsOf(template?.embedded));
+  const [vars, setVars] = useState<VarDeclarationDraft[]>(() => draftsOf(template?.vars));
   const [createdId, setCreatedId] = useState<string | null>(null);
 
   const categoryChoices = useMemo(
@@ -217,7 +217,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   const cancelLayoutChange = useCallback(() => setPendingLayout(null), []);
 
   // 埋め込み情報の一覧(共通 + enrichers + 専用)
-  const baseCatalog: MessageEmbeddedEntry[] = useMemo(
+  const baseCatalog: MessageVarEntry[] = useMemo(
     () =>
       (options?.baseCatalog ?? []).map((entry) => ({
         key: entry.key,
@@ -227,17 +227,17 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
       })),
     [options],
   );
-  const catalog: MessageEmbeddedEntry[] = useMemo(
+  const catalog: MessageVarEntry[] = useMemo(
     () => [
       ...baseCatalog,
-      ...embedded.map((draft) => ({
+      ...vars.map((draft) => ({
         key: draft.key.trim(),
         alias: draft.alias.trim(),
         source: "own" as const,
-        declaration: declarationOf(draft) as MessageEmbeddedDeclaration,
+        declaration: declarationOf(draft) as MessageVarDeclaration,
       })),
     ],
-    [baseCatalog, embedded],
+    [baseCatalog, vars],
   );
   const unknownNames = useMemo(() => {
     const names = new Set(catalog.flatMap((entry) => [entry.key, entry.alias]).filter(Boolean));
@@ -248,28 +248,28 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
 
   // 専用の埋め込み情報を管理するモーダル(開いた時に今の宣言を写し、適用で戻す)
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editorRows, setEditorRows] = useState<EmbeddedDeclarationDraft[]>([]);
+  const [editorRows, setEditorRows] = useState<VarDeclarationDraft[]>([]);
   const [editorErrors, setEditorErrors] = useState<string[]>([]);
   const openEditor = useCallback(() => {
-    setEditorRows(embedded.map((row) => ({ ...row, options: row.options.map((option) => ({ ...option })) })));
+    setEditorRows(vars.map((row) => ({ ...row, options: row.options.map((option) => ({ ...option })) })));
     setEditorErrors([]);
     setEditorOpen(true);
-  }, [embedded]);
+  }, [vars]);
   const updateRow = useCallback(
-    (index: number, patch: Partial<EmbeddedDeclarationDraft>) =>
+    (index: number, patch: Partial<VarDeclarationDraft>) =>
       setEditorRows((rows) => rows.map((row, i) => (i === index ? { ...row, ...patch } : row))),
     [],
   );
-  const addRow = useCallback(() => setEditorRows((rows) => [...rows, emptyEmbeddedDraft()]), []);
+  const addRow = useCallback(() => setEditorRows((rows) => [...rows, emptyVarDraft()]), []);
   const removeRow = useCallback((index: number) => setEditorRows((rows) => rows.filter((_, i) => i !== index)), []);
   /** 適用: 宣言の形と名前の重なり(共通・enrichers・専用どうし)を確かめ、通れば反映して閉じる */
   const applyEditor = useCallback(() => {
     const problems: string[] = [];
     editorRows.forEach((row, index) => {
-      const parsed = messageEmbeddedDeclarationSchema.safeParse(declarationOf(row));
+      const parsed = messageVarDeclarationSchema.safeParse(declarationOf(row));
       if (!parsed.success) problems.push(`${index + 1} 行目: ${parsed.error.issues.map((issue) => issue.message).join(" / ")}`);
     });
-    const checked = checkEmbeddedCatalog([
+    const checked = checkVarCatalog([
       ...baseCatalog,
       ...editorRows.map((row) => ({ key: row.key.trim(), alias: row.alias.trim(), source: "own" as const })),
     ]);
@@ -278,7 +278,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
       setEditorErrors(problems);
       return false;
     }
-    setEmbedded(editorRows);
+    setVars(editorRows);
     setEditorErrors([]);
     setEditorOpen(false);
     return true;
@@ -310,9 +310,9 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
       category,
       layout,
       values,
-      embedded: embedded.map(declarationOf),
+      vars: vars.map(declarationOf),
     }),
-    [name, description, category, layout, values, embedded],
+    [name, description, category, layout, values, vars],
   );
 
   // 書きかけの判定の元 = 開いた時の値をフォームと同じ道で組んだ物(欄の宣言に無い鍵は落とし、空の欄の形も同じ)
@@ -327,7 +327,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
         values: compactLayoutValues(
           layoutFieldsDefaults(options?.layouts.find((item) => item.key === template?.layout)?.fields ?? {}, template?.values ?? null),
         ),
-        embedded: draftsOf(template?.embedded).map(declarationOf),
+        vars: draftsOf(template?.vars).map(declarationOf),
       }),
     // 開いた時の値(template・options が替わる時はモーダルが formKey で作り直す)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -450,7 +450,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     /** 埋め込み情報の一覧と知らない名前 */
     catalog,
     unknownNames,
-    embeddedEditor: {
+    varsEditor: {
       open: editorOpen,
       setOpen: setEditorOpen,
       openEditor,
@@ -461,7 +461,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
       apply: applyEditor,
       errors: editorErrors,
       /** 宣言した専用の数 */
-      count: embedded.length,
+      count: vars.length,
     },
   };
 }

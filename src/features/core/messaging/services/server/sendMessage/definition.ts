@@ -26,7 +26,7 @@ import {
 import { DomainError } from "@/lib/errors";
 
 import { buildContents, type MessageContentDeps } from "./content";
-import { enricherKeysFor, messageSharedEmbedded } from "./enrichers";
+import { enricherKeysFor, messageSharedVars } from "./enrichers";
 
 /** 送る口が受ける定義 */
 export type AnyMessageDefinition = MessageDefinition<z.AnyZodObject>;
@@ -92,7 +92,7 @@ export async function resolveDefinition(
     channels: registeredChannelKeys(deps.channels),
     variableKeys: enricherKeysFor(message, deps.enrichers),
     // vars の別名(D133)が重ならないか照らす相手: 共通 + 当たる enrichers + enricher と同じ鍵の vars
-    embeddedNames: messageSharedEmbedded(message, deps.enrichers),
+    sharedVarNames: messageSharedVars(message, deps.enrichers),
   });
   if (problems.length > 0) {
     throw new DomainError(

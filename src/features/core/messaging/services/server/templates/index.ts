@@ -65,7 +65,7 @@ export const previewMessageLayout = service.previewLayout;
 
 export { existingTemplateIds } from "./templateRecords";
 export { TEMPLATE_IMAGE_RECORD_TYPE } from "./imageBinding";
-export { adminSelectableLayouts, checkTemplateFields, templateEmbeddedCatalog } from "./checks";
+export { adminSelectableLayouts, checkTemplateFields, templateVarCatalog } from "./checks";
 export { createTemplateService, isSystemTemplateId, SYSTEM_TEMPLATE_ID_PREFIX } from "./templateService";
 export type { TemplateService, TemplateServiceDeps } from "./templateService";
 export type * from "./dto";

@@ -15,7 +15,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useWatch } from "react-hook-form";
 
 import { useDomainMutation } from "@/lib/crud";
-import { embeddedVariableMap, type MessageEmbeddedDeclaration, type MessageLayoutFields } from "@/lib/messaging";
+import { varMap, type MessageVarDeclaration, type MessageLayoutFields } from "@/lib/messaging";
 import { replaceVariables } from "@/lib/templateVariables";
 
 import type { AdminSendLayoutOption } from "../services/client/sendClient";
@@ -43,9 +43,9 @@ export type SendTextState = {
   /** 全文を直せるか(白紙はいつも true) */
   unlocked: boolean;
   /** 専用の埋め込み情報の宣言(テンプレートの版・システムテンプレートの宣言。無ければ空) */
-  embeddedDeclarations: MessageEmbeddedDeclaration[];
+  varDeclarations: MessageVarDeclaration[];
   /** 専用の埋め込み情報の値(入力は文字) */
-  embedded: Record<string, string>;
+  vars: Record<string, string>;
 };
 
 export type UseSendTemplateTextOptions = {
@@ -69,7 +69,7 @@ export function blankTextState(blank: {
   label: string;
   layout: string;
   values: Record<string, unknown>;
-  embedded?: readonly MessageEmbeddedDeclaration[];
+  vars?: readonly MessageVarDeclaration[];
 }): SendTextState {
   return {
     source: { type: "system", key: blank.key, label: blank.label },
@@ -77,15 +77,15 @@ export function blankTextState(blank: {
     start: blank.values,
     versionValues: null,
     unlocked: true,
-    embeddedDeclarations: [...(blank.embedded ?? [])],
-    embedded: {},
+    varDeclarations: [...(blank.vars ?? [])],
+    vars: {},
   };
 }
 
 /** 読み込んだテンプレートの版から作る状態(文は固定から) */
 export function templateTextState(
-  template: { id: string; name: string; currentVersion: number; layout: string; values: Record<string, unknown>; embedded: MessageEmbeddedDeclaration[] },
-  overrides: { start?: Record<string, unknown>; unlocked?: boolean; embedded?: Record<string, string> } = {},
+  template: { id: string; name: string; currentVersion: number; layout: string; values: Record<string, unknown>; vars: MessageVarDeclaration[] },
+  overrides: { start?: Record<string, unknown>; unlocked?: boolean; vars?: Record<string, string> } = {},
 ): SendTextState {
   return {
     source: { type: "template", id: template.id, name: template.name, version: template.currentVersion },
@@ -93,14 +93,14 @@ export function templateTextState(
     start: overrides.start ?? template.values,
     versionValues: template.values,
     unlocked: overrides.unlocked ?? false,
-    embeddedDeclarations: template.embedded,
-    embedded: overrides.embedded ?? {},
+    varDeclarations: template.vars,
+    vars: overrides.vars ?? {},
   };
 }
 
 /** 専用の埋め込み情報の値(数の型だけ数にする。空は送らない = 既定値か、必須ならサーバーが 400) */
-export function embeddedValuesForInput(
-  declarations: readonly MessageEmbeddedDeclaration[],
+export function varValuesForInput(
+  declarations: readonly MessageVarDeclaration[],
   values: Readonly<Record<string, string>>,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -116,9 +116,9 @@ export function embeddedValuesForInput(
  * プレビューに渡す中身: 専用の埋め込み情報の {{鍵}} / {{別名}} を入れた値(空なら既定値)で埋める(文字・並び・object の中の文字の全部)。
  * 値も既定値も無い名前と、共通・enricher の名前(受信者ごとの値)は書いたまま残す
  */
-export function embeddedPreviewValues(
+export function varPreviewValues(
   values: Readonly<Record<string, unknown>>,
-  declarations: readonly MessageEmbeddedDeclaration[],
+  declarations: readonly MessageVarDeclaration[],
   entered: Readonly<Record<string, string>>,
 ): Record<string, unknown> {
   const filled: Record<string, string> = {};
@@ -128,7 +128,7 @@ export function embeddedPreviewValues(
     if (value !== null) filled[declaration.key] = value;
   }
   if (Object.keys(filled).length === 0) return values as Record<string, unknown>;
-  const map = embeddedVariableMap(
+  const map = varMap(
     filled,
     declarations.map((declaration) => ({ key: declaration.key, alias: declaration.alias, source: "own" as const })),
   );
@@ -142,7 +142,7 @@ export function embeddedPreviewValues(
 }
 
 /** 入っていない必須の専用の埋め込み情報(既定値のある物は除く) */
-export function missingEmbedded(declarations: readonly MessageEmbeddedDeclaration[], values: Readonly<Record<string, string>>) {
+export function missingVars(declarations: readonly MessageVarDeclaration[], values: Readonly<Record<string, string>>) {
   return declarations.filter((declaration) => declaration.required && declaration.default === undefined && !values[declaration.key]?.trim());
 }
 
@@ -194,14 +194,14 @@ export function useSendTemplateText({ layouts, initial, channels, templatesOpen,
   const unlock = useCallback(() => change((current) => ({ ...current, unlocked: true })), [change]);
 
   /** 専用の埋め込み情報の値を入れる */
-  const setEmbedded = useCallback(
-    (key: string, value: string) => change((current) => ({ ...current, embedded: { ...current.embedded, [key]: value } })),
+  const setVars = useCallback(
+    (key: string, value: string) => change((current) => ({ ...current, vars: { ...current.vars, [key]: value } })),
     [change],
   );
 
   /** 白紙へ移る時の状態(ひな形が同じなら今の文を白紙の文として残す。違えば白紙のまま) */
   const toBlank = useCallback(
-    (blank: { key: string; label: string; layout: string; values: Record<string, unknown>; embedded?: readonly MessageEmbeddedDeclaration[] }): SendTextState => {
+    (blank: { key: string; label: string; layout: string; values: Record<string, unknown>; vars?: readonly MessageVarDeclaration[] }): SendTextState => {
       const next = blankTextState(blank);
       return state && state.layout === blank.layout ? { ...next, start: values } : next;
     },
@@ -241,7 +241,7 @@ export function useSendTemplateText({ layouts, initial, channels, templatesOpen,
     return result;
   }, [state, form, fields, updateMutation, initial]);
 
-  const missing = useMemo(() => (state ? missingEmbedded(state.embeddedDeclarations, state.embedded) : []), [state]);
+  const missing = useMemo(() => (state ? missingVars(state.varDeclarations, state.vars) : []), [state]);
 
   return {
     state,
@@ -256,15 +256,15 @@ export function useSendTemplateText({ layouts, initial, channels, templatesOpen,
     values,
     edited,
     /** 入っていない必須の専用の埋め込み情報 */
-    missingEmbedded: missing,
-    /** 送る口の embedded(宣言のある時だけ: テンプレートの版・専用を宣言したシステムテンプレート) */
-    embeddedForInput: state && state.embeddedDeclarations.length > 0 ? embeddedValuesForInput(state.embeddedDeclarations, state.embedded) : undefined,
+    missingVars: missing,
+    /** 送る口の vars(宣言のある時だけ: テンプレートの版・専用を宣言したシステムテンプレート) */
+    varsForInput: state && state.varDeclarations.length > 0 ? varValuesForInput(state.varDeclarations, state.vars) : undefined,
     /** 『テンプレートを更新』を出すか(テンプレートを読み込み、直していて、門 messagingTemplates が開) */
     canUpdateTemplate: Boolean(templatesOpen && state?.source.type === "template" && state.unlocked),
     isUpdatingTemplate: updateMutation.isMutating,
     reset,
     unlock,
-    setEmbedded,
+    setVars,
     toBlank,
     validate,
     updateTemplate,

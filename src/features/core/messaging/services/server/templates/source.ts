@@ -19,7 +19,7 @@ function toSource(key: string, row: MessageTemplateVersion): MessageTemplateVers
     layout: row.layout,
     layoutVersion: row.layout_version,
     values: row.values,
-    embedded: row.embedded,
+    vars: row.vars,
   };
 }
 

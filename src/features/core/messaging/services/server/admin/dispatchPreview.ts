@@ -7,7 +7,7 @@
 // - 記録の段で中身を残していない回(values が無い: record meta・秘密の連絡)・ひな形が無い・版を読めない回は cannotRender に理由(経路は空)
 // - どのひな形でも描く(テンプレートの adminSelectable の絞りは使わない)。service でも管理者を確かめる(D42)
 
-import { displayEmbeddedValues, embeddedVariableMap, type MessageEmbeddedEntry, type MessageLayout } from "@/lib/messaging";
+import { displayVarValues, varMap, type MessageVarEntry, type MessageLayout } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 import type { VariableMap } from "@/lib/templateVariables";
 
@@ -30,7 +30,7 @@ export type AdminDispatchPreviewDeps = AdminCheckDeps & {
   /** 差し込みの表(sendMessage/context.ts toVariableMap) */
   toVariableMap: (values: Readonly<Record<string, unknown>>) => VariableMap;
   /** その連絡の埋め込み情報の一覧(別名の差し込み) */
-  embeddedCatalog: (resolved: AnyResolvedMessageDefinition) => MessageEmbeddedEntry[];
+  varCatalog: (resolved: AnyResolvedMessageDefinition) => MessageVarEntry[];
   /** 共通の文脈(サービス名・URL) */
   commonValues: () => Record<string, unknown>;
   /** 停止のリンクを出す回か(好みに従う連絡 = category を経路の preview に渡す) */
@@ -69,8 +69,8 @@ export async function adminDispatchPreview(deps: AdminDispatchPreviewDeps, id: s
   if (!layout) return empty(RESOLVE_ERRORS.layout_missing);
 
   // 専用の日付・日時は人が読む字に(型の印 <鍵>@type、送る口の content.ts と同じ)
-  const map = displayEmbeddedValues(deps.toVariableMap({ ...deps.commonValues(), ...(row.vars ?? {}), ...(row.embedded_values ?? {}) }));
-  const named = embeddedVariableMap(map, deps.embeddedCatalog(resolved));
+  const map = displayVarValues(deps.toVariableMap({ ...deps.commonValues(), ...(row.vars ?? {}), ...(row.embedded_values ?? {}) }));
+  const named = varMap(map, deps.varCatalog(resolved));
   const values = deps.renderValue(resolved.values ?? {}, named) as Record<string, unknown>;
   const category = resolved.category && deps.honoursPreferences(resolved) ? resolved.category : undefined;
 

@@ -84,8 +84,8 @@ export {
   useSendTemplateText,
   blankTextState,
   templateTextState,
-  embeddedValuesForInput,
-  missingEmbedded,
+  varValuesForInput,
+  missingVars,
   type SendTextSource,
   type SendTextState,
   type SendTemplateTextState,
@@ -103,6 +103,6 @@ export {
 export { useUnsubscribe, type UnsubscribeStatus } from "./useUnsubscribe";
 export { useCopyMessageVariable } from "./useCopyMessageVariable";
 export { useLayoutFieldsForm, layoutFieldsDefaults, type LayoutFieldsValues, type UseLayoutFieldsFormOptions } from "./useLayoutFieldsForm";
-export { useEmbeddedInfoTags, type UseEmbeddedInfoTagsOptions } from "./useEmbeddedInfoTags";
+export { useVarTags, type UseVarTagsOptions } from "./useVarTags";
 export { DISPATCH_DELETE_MAX, useBulkDeleteDispatches } from "./useBulkDeleteDispatches";
 export { useDispatchDeleteSummary } from "./useDispatchDeleteSummary";

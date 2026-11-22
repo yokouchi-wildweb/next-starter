@@ -6,7 +6,7 @@
 // - 種別と経路は送るカテゴリーから(D86)。カテゴリーの種別は管理者がその場で送れる種別(性質 adminFreeText)だけ、白紙は種別が同じカテゴリーだけ(400)
 // - ひな形 = 白紙のひな形か DB のテンプレートの版のひな形。欄の中身(values)はそのひな形の欄の zod で検査する
 // - 埋め込み情報: 一覧 = 共通 + 当たる enrichers + 出どころの専用の宣言(DB のテンプレートの版・システムテンプレートが宣言した物)。文面の {{鍵}} / {{別名}} が一覧に無ければ 400。
-//   専用の値は版の宣言の型で検査する(必須・既定値、embeddedValuesSchema)。値は定義の vars として差し込み、回には embedded_values に残す(sender.ts)
+//   専用の値は版の宣言の型で検査する(必須・既定値、varValuesSchema)。値は定義の vars として差し込み、回には embedded_values に残す(sender.ts)
 // - 専用の別名 {{開始日時}} は {{鍵}} に書き換えてから定義にする(回に残す中身は鍵だけ: cron の組み直しは宣言を引き直さない)。
 //   共通・enrichers の別名は差し込みの表が埋める(content.ts)
 // - 直した印 = 送る中身(書き換えの前)が版の中身(今のひな形の版へ読み替えた物)と違う
@@ -18,18 +18,18 @@ import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 
 import {
-  checkEmbeddedCatalog,
-  embeddedCatalog,
-  embeddedValuesSchema,
-  findEmbedded,
-  MESSAGE_EMBEDDED_TYPE_LABELS,
+  checkVarCatalog,
+  varCatalog,
+  varValuesSchema,
+  findVar,
+  MESSAGE_VAR_TYPE_LABELS,
   normalizeLayoutValues,
   resolveMessageDefinition,
   upgradeLayoutValues,
   validateMessageDefinition,
   type MessageCategory,
   type MessageChannel,
-  type MessageEmbeddedDeclaration,
+  type MessageVarDeclaration,
   type MessageEnricher,
   type MessageKey,
   type MessageLayout,
@@ -79,9 +79,9 @@ export function templateValuesEdited(
 }
 
 /** 欄の中身の文字の中の専用の別名 {{別名}} を {{鍵}} に書き換える(入れ子の object・配列も) */
-export function canonicalEmbeddedNames(value: unknown, embedded: readonly MessageEmbeddedDeclaration[]): unknown {
-  if (embedded.length === 0) return value;
-  const map = Object.fromEntries(embedded.map((declaration) => [declaration.alias, `{{${declaration.key}}}`]));
+export function canonicalVarNames(value: unknown, declarations: readonly MessageVarDeclaration[]): unknown {
+  if (declarations.length === 0) return value;
+  const map = Object.fromEntries(declarations.map((declaration) => [declaration.alias, `{{${declaration.key}}}`]));
   const visit = (item: unknown): unknown => {
     if (typeof item === "string") return replaceVariables(item, map);
     if (Array.isArray(item)) return item.map(visit);
@@ -95,8 +95,8 @@ export function canonicalEmbeddedNames(value: unknown, embedded: readonly Messag
 export type TemplateSource = { system: MessageSystemTemplate } | { version: MessageTemplateVersionSource };
 
 /** 出どころの専用の埋め込み情報の宣言(システムテンプレートは宣言した物だけ、例 メンテナンスの開始日時) */
-export function templateEmbeddedOf(source: TemplateSource): MessageEmbeddedDeclaration[] {
-  return "version" in source ? source.version.embedded : [...(source.system.embedded ?? [])];
+export function templateVarsOf(source: TemplateSource): MessageVarDeclaration[] {
+  return "version" in source ? source.version.vars : [...(source.system.vars ?? [])];
 }
 
 /** 中身 → 定義(検査の前)。vars = 専用の値の zod(白紙は空)、varNames = 宣言の別名 */
@@ -105,14 +105,14 @@ export function templateDefinitionOf(
   category: string,
   values: Record<string, unknown>,
 ): AnyMessageDefinition {
-  const embedded = templateEmbeddedOf(source);
+  const declarations = templateVarsOf(source);
   const label = "system" in source ? source.system.label : `テンプレート ${source.version.templateKey}`;
   const layout = "system" in source ? source.system.layout : source.version.layout;
-  const vars = embedded.length > 0 ? embeddedValuesSchema(embedded) : z.object({}).strict();
-  const canonical = canonicalEmbeddedNames(values, embedded) as Record<string, unknown>;
+  const vars = declarations.length > 0 ? varValuesSchema(declarations) : z.object({}).strict();
+  const canonical = canonicalVarNames(values, declarations) as Record<string, unknown>;
   // vars の名前(定義に必須、D133)= 専用の宣言の別名と型の表示名
   const varNames = Object.fromEntries(
-    embedded.map((declaration) => [declaration.key, { alias: declaration.alias, description: MESSAGE_EMBEDDED_TYPE_LABELS[declaration.type] }]),
+    declarations.map((declaration) => [declaration.key, { alias: declaration.alias, description: MESSAGE_VAR_TYPE_LABELS[declaration.type] }]),
   );
   return { key: TEMPLATE_MESSAGE_KEY, label, category, vars, varNames, layout, values: canonical } as unknown as AnyMessageDefinition;
 }
@@ -162,14 +162,14 @@ export function resolveTemplateDefinition(
   const message = { key: TEMPLATE_MESSAGE_KEY, category: input.category, kind: category.kind };
 
   // 埋め込み情報の一覧(共通 + 当たる enrichers + 専用)。名前の重なりと知らない名前は送る前に止める
-  const catalog = embeddedCatalog({ own: templateEmbeddedOf(source), enrichers: enrichersFor(message, deps.enrichers) });
-  const catalogProblems = checkEmbeddedCatalog(catalog);
+  const catalog = varCatalog({ own: templateVarsOf(source), enrichers: enrichersFor(message, deps.enrichers) });
+  const catalogProblems = checkVarCatalog(catalog);
   if (catalogProblems.length > 0) {
     throw new DomainError(`${label} を送れません: ${catalogProblems.map((problem) => problem.message).join(" / ")}`, { status: 400 });
   }
   // 空の任意の欄(画像の空文字・全部が空のボタン・空の並び)は「無い」(D128)。フォームは空の値のまま送ってくる
   const values = normalizedValues(deps.layouts, "system" in source ? source.system.layout : source.version.layout, input.values);
-  const { unknown } = findEmbedded(values, catalog);
+  const { unknown } = findVar(values, catalog);
   if (unknown.length > 0) {
     throw new DomainError(`${label} を送れません: ${unknown.map((name) => `{{${name}}}`).join(", ")} は埋め込み情報にありません`, { status: 400 });
   }

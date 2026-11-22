@@ -47,7 +47,7 @@ const detail = (extra: Record<string, unknown> = {}) => ({
   layout: "notice",
   values: { subject: "件名" },
   layoutVersion: 1,
-  embedded: [],
+  vars: [],
   catalog: [],
   ...extra,
 });
@@ -92,7 +92,7 @@ mock.module("@/features/core/messaging/services/client/templateClient", {
     },
     getMessageTemplateVersion: async (id: string, version: number) => {
       calls.push(["version", id, version]);
-      return { version, layout: "notice", layoutVersion: 1, values: {}, embedded: [], category: "promotion", categoryLabel: null, editedBy: null, createdAt: "2026-11-12T00:00:00.000Z" };
+      return { version, layout: "notice", layoutVersion: 1, values: {}, vars: [], category: "promotion", categoryLabel: null, editedBy: null, createdAt: "2026-11-12T00:00:00.000Z" };
     },
     // D134: 作る = 1 回で版 1 を公開
     createMessageTemplate: async (input: Record<string, unknown>) => {
@@ -186,7 +186,7 @@ mock.module("@/features/core/messaging/services/client/overrideClient", {
       category: "x",
       categoryLabel: null,
       allowedKeys: [],
-      embedded: [],
+      vars: [],
       // J126(D132): 経路の一覧と欄(ひな形の欄の鍵・宣言・使う経路)
       channels: [{ key: "email", label: "メール" }],
       fields: [
@@ -421,7 +421,7 @@ test("useMessageTemplateForm: onCreated に作った id、closeConfirm は書き
     category: "promotion",
     layout: "notice",
     values: { subject: "件名" },
-    embedded: [],
+    vars: [],
   });
   assert.equal(f().closeConfirm.enabled, false);
   assert.equal(toasts.at(-1), "success:保存しました(新しいバージョン)");
