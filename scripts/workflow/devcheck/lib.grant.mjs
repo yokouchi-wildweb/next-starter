@@ -4,7 +4,7 @@
 // 判定の順(D66):
 //   1. 固定の止め(印・方針・モードと独立。D58・D67): スキーマの反映 / 本番の確認の自動の付け足し / 本番の env への書き込み → deny
 //      (理由と人が手で打つ形を 1 行で)。repo.json の直接の書き換えも同じ止め方(書くのは pnpm workflow repo-json set / unset)。
-//      読む・探すだけ(grep など)は止めない
+//      読む・探すだけ(grep など)は止めない。素の vercel の env add / rm / pull は pnpm ops vercel の 1 行へ案内して止める(D412)
 //   2. 印(環境変数 DEVCHECK_GRANT=on)があり、その種類の方針が off でなく(manual は devcheck run … --manual-go だけ)、
 //      許可してよい形のときだけ allow
 //   3. それ以外・壊れた時(入力・方針・記録が読めない、例外)は何も返さない(= 普段どおり聞かれる)。方針 off も何も返さない
@@ -360,6 +360,36 @@ const guardedDeny = (/** @type {string} */ p) => {
  */
 
 /** @param {string} reason @param {string} human @returns {Decision} */
+/** 正しい口へ案内する止め(人の手ではなく道具の命令を 1 行で) @param {string} reason @param {string} command */
+const route = (reason, command) => ({ decision: "deny", reason: `devcheck の固定の止め: ${reason}。代わりに: ${command}` });
+
+/**
+ * 素の vercel の env add / rm / pull(npx・pnpx・bunx・pnpm|npm|yarn exec|dlx の後も)→ 案内する pnpm ops vercel の形。当たらなければ null
+ * @param {string[]} words
+ * @returns {string | null}
+ */
+export const vercelEnvWrite = (words) => {
+  let i = -1;
+  if (words[0] === "vercel") i = 0;
+  else if (["npx", "pnpx", "bunx"].includes(words[0] ?? "")) {
+    // npx [-y …] vercel(旗だけを越えた最初の語が vercel)
+    const k = words.findIndex((w, n) => n > 0 && !w.startsWith("-"));
+    if (/^vercel(@.*)?$/.test(words[k] ?? "")) i = k;
+  } else if (["pnpm", "npm", "yarn", "bun"].includes(words[0] ?? "") && ["exec", "dlx", "x"].includes(words[1] ?? "") && /^vercel(@.*)?$/.test(words[2] ?? "")) i = 2;
+  if (i < 0) return null;
+  const rest = words.slice(i + 1);
+  const e = rest.indexOf("env");
+  if (e < 0) return null;
+  const op = rest[e + 1] ?? "";
+  const action = { add: "env-add", rm: "env-rm", remove: "env-rm", pull: "env-pull" }[op];
+  if (!action) return null;
+  const pos = rest.slice(e + 2).filter((w) => !w.startsWith("-"));
+  const envFlag = rest.find((w) => w.startsWith("--environment="))?.slice("--environment=".length);
+  if (action === "env-pull") return `pnpm ops vercel env-pull ${envFlag ?? "<環境>"} ${pos[0] ?? "<書く先>"}`;
+  const tail = `${pos[0] ?? "<名前>"} ${pos[1] ?? "<環境>"}`;
+  return action === "env-add" ? `pnpm ops vercel env-add ${tail}(値は標準入力か --value-file)` : `pnpm ops vercel env-rm ${tail}`;
+};
+
 const deny = (reason, human) => ({ decision: "deny", reason: `devcheck の固定の止め: ${reason}。人が手で打つ: ${human}` });
 
 /**
@@ -390,6 +420,9 @@ export const fixedStop = (req) => {
       if (dk >= 0 && ["push", "migrate", "drop", "up"].includes(words[dk + 1] ?? "")) return deny("スキーマの反映(drizzle-kit)は人の手で", `pnpm db:push`);
     }
     if (head === "drizzle-kit" && ["push", "migrate", "drop", "up"].includes(words[1] ?? "")) return deny("スキーマの反映(drizzle-kit)は人の手で", `pnpm db:push`);
+    // 素の vercel の env の書き・取り(D412): Vercel の操作の口 pnpm ops vercel へ案内(見るだけの env ls などは通す)
+    const vercelEnv = vercelEnvWrite(words);
+    if (vercelEnv) return route("Vercel の env の書き・取りは pnpm ops vercel を通す(方針 agent.env_production と /allow evp を見る)", vercelEnv);
     // 本番の確認の自動の付け足し
     if (SCRIPT_RUNNERS.includes(head)) {
       const i = words.findIndex((w, n) => w === "--confirm=production" || (w === "--confirm" && words[n + 1] === "production"));

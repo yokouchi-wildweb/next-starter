@@ -43,10 +43,11 @@
 
 ### デプロイ
 
-`pnpm live` / `live:app` / `live:room` / `live:all`・`pnpm ops room deploy` / `secret` は env ファイルを読まない(ホスティング側の env で動く)。本番に出す時だけ同じ確認(`guardDeploy`)を、何かを打つ前に通す。
+`pnpm live` / `live:app` / `live:room` / `live:all`・`pnpm ops room deploy` / `secret`・`pnpm ops vercel env-add` / `env-rm` / `env-pull` は env ファイルを読まない(ホスティング側の env で動く)。本番に出す時だけ同じ確認(`guardDeploy`)を、何かを打つ前に通す。
 
 - プレビュー(`pnpm live -- --target=preview` など、`--prod` でない vercel)は確認なし
 - ルームの Worker は常に本番(realtimeRoom の設定 `enabled` が false なら出さないので確認も無い)
+- `pnpm ops vercel env-*`(ホスティング側の env を書く・取る)は向き先が production の時だけ確認。方針 `agent.env_production` と人の `/allow evp` の許可を通った時だけ守りまで来て、使う許可を確認として渡す(`scripts/operations/vercel/README.md`)。何も出さないのでセーフポイントは見ない
 - `live:all` は確認を 1 回だけ取り、子の `pnpm ops room deploy` に `--confirm=production` を渡す
 - 本番に出す時は、確認の後にセーフポイントを確かめる(`pnpm live`・`live:all`・`live:room`・`pnpm ops room deploy` の全部。`scripts/operations/deploy/lib.ts` の `guardSafePoint`。仕様 = `.notices/README.md`「区切り(checkpoint)と区間適用」のセーフポイント)
   - fork = 台帳の最後の `upstream:<sha>` が直接の親の `safe/<親の repo_id>/*` tag ちょうど、Tier1 = HEAD が `safe/<自分の repo_id>/*` tag ちょうど。違えば止める

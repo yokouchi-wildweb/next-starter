@@ -18,6 +18,7 @@ never: run `pnpm workflow devcheck allow` without those words | permit a kind th
    - dangerous (dbp / evp / dep): `pnpm workflow devcheck danger <switch>` → run the printed command(s) exactly, in that order (dep: the production DB push line only when this change needs the schema on production) | exit 4 → show its line; stop for that kind
    - normal manual kinds: the check it was for, `pnpm workflow devcheck run <kind> … --manual-go`
    - itv: the typing it was for, through /intervene (`pnpm workflow agent-terminal type <target> -- <text>`; it uses the permit itself)
+   - evp with agent.env_production.entry `-` (the default; danger says no upstream entry): the Vercel env work it was for, through /vercel (`pnpm ops vercel env-add|env-rm|env-pull …`; it uses the permit itself)
 4. **report** once, then STOP:
    ```
    1 回分の許可: <スイッチ名>（<言葉 | /allow>）

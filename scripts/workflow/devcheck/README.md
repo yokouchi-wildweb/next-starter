@@ -58,7 +58,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 | `agent.enabled`(全体のスイッチ) | `true` / `false` | `true` |
 | `agent.db_push`(開発の DB の反映だけ)・`agent.env_production`(本番の env を書く)・`agent.deploy`(本番へ出す、本番の DB の反映を含む) | `off` / `manual`(`auto`・知らない値は `off`) | `manual` |
 | `agent.db_push.entry` | 入口の命令 | `pnpm db:push` |
-| `agent.env_production.entry` | 同じ(`-` = 上流の入口なし、fork が自分の命令を書く) | `-` |
+| `agent.env_production.entry` | 同じ(`-` = 上流の入口なし、fork が自分の命令を書く。Vercel の env は入口に数えず `pnpm ops vercel env-*` が自分で方針と evp の許可を読む: `scripts/operations/vercel/README.md`) | `-` |
 | `agent.deploy.entry` / `agent.deploy.db_entry` | 本番へ出す命令 / 本番の DB の反映の命令 | `pnpm live` / `pnpm db:push -- --env production` |
 | `agent.intervene`(別のタブの入力欄に 1 行打つ: `/intervene`・`pnpm workflow agent-terminal type`、D411) | `off` / `manual`(`auto`・知らない値は `off`) | `manual` |
 
@@ -76,7 +76,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 4. 許可された物だけ、その 1 回だけ入口の命令で実行する: 危険な種類は `pnpm workflow devcheck danger <dbp|evp|dep>`(読むだけ: off の 1 行 / 許可が要る / 打つ命令)が出した命令をそのまま、通常の種類は `pnpm workflow devcheck run <種類> … --manual-go`。結果を 1 行で報告する(成功 / 失敗: <理由>。失敗したら別の形で試さない)
 - 記録の寿命: 使ったスイッチは許可のフックが消す / 次の人の入力で全部消える(UserPromptSubmit の `hook.mjs prompt`)= 同じ番の中だけ。直接の書き換えは固定の止め
 - 方針を manual にしても、人の言葉かはフックからは見えない(`devcheck allow` を誰が打ったかは分からない)。人の言葉が要る決まりは `/allow` スキルの文が守る。`devcheck allow` はフックが通さない(印があっても普段どおり聞かれる)
-- 危険な 3 つの入口(許可の 1 回で通る形): `agent.db_push.entry`(既定 `pnpm db:push`、開発の DB だけ)/ `agent.deploy.db_entry` + ` --confirm=production`(本番の DB の反映。dep の許可は残る)→ `agent.deploy.entry`(既定 `pnpm live` は ` -- --confirm=production` を付けた形も。dep の許可を使い切る)/ `agent.env_production.entry`(既定 `-` = 上流の入口なし、人が行う)
+- 危険な 3 つの入口(許可の 1 回で通る形): `agent.db_push.entry`(既定 `pnpm db:push`、開発の DB だけ)/ `agent.deploy.db_entry` + ` --confirm=production`(本番の DB の反映。dep の許可は残る)→ `agent.deploy.entry`(既定 `pnpm live` は ` -- --confirm=production` を付けた形も。dep の許可を使い切る)/ `agent.env_production.entry`(既定 `-` = 上流の入口なし、人が行う。Vercel の env の書き・取りは `/vercel` = `pnpm ops vercel env-add|env-rm|env-pull` が evp の許可を自分で 1 回使う。素の `vercel env add|rm|pull` は固定の止めがこの口へ案内する)
 - 結果は 1 行だけ返す(チームの道具への「DB 済み」の印は無い)
 - `agent.enabled: false` = 全部の種類(peer・危険な 3 つも)を `off` とみなす(種類ごとの値より強い)。計画は全部「手で」、run は断り、許可のフックは印の道で何も通さない(固定の止めはそのまま)
 - 宣言に無い `agent.*` の鍵・通常の種類の値の誤り・真偽値でない `agent.enabled`・空の入口は止める(exit 2、フックは壊れた方針として何も返さない)。`repo.json` が無い = 全部既定

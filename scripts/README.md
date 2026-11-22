@@ -44,6 +44,7 @@ pnpm workflow memory facts|header [--apply]        # auto-memory の事実を 1 
 pnpm workflow context facts [--personal]         # 文脈の行ごとの事実(自前の決まり・個人の 2 ファイル、/project-review と /meditate の材料)
 pnpm workflow dev-admin run                         # 確認用の管理者を開発用 DB に用意する
 pnpm ops room init | deploy | secret | check | dev  # リアルタイムルーム(servers/room/README.md)
+pnpm ops vercel status | env-ls | env-add | env-rm | env-pull  # Vercel の操作の口(書くのは agent.env_production と /allow evp、operations/vercel/README.md)
 pnpm generate cron -- --plan hobby|pro              # vercel.json の crons を作る
 ```
 
@@ -72,7 +73,7 @@ pnpm generate cron -- --plan hobby|pro              # vercel.json の crons を�
 | `structure/` | 生成器と検査器。全部どこかの門(gate.json)に乗る | `pnpm generate <対象>` / `pnpm check <対象>` | admin-menu・bundle・business・cache-components・config・config-overrides・cron・cycles・district-map・domain・eslint・extensions・forge・legal・lib-package・message・proxies・registry・role・routes・styles |
 | `workflow/` | 開発の進め方の道具(ワークツリー・規則と notice とスキルの書式の検査・所有の検査・開発サーバーのタブ・tmux・確認用の管理者・開発中の確かめの入口・普通のセッション同士の連絡・手元の Claude Code の設定・auto-memory と文脈の行の事実) | `pnpm workflow <対象> <動作>`(門に乗る物は `pnpm check <対象>` も) | agent-terminal・context・dev-admin・dev-tab・devcheck・local-migrations・local-settings・memory・notices・ownership・peer・repo-json・rules・skills・tmux-launch・worktree |
 | `runner/` | 入口と、テスト・運用コマンド・シードを動かすランナー、書く入口の守り | `pnpm test` / `pnpm task` / `pnpm check` / `pnpm ops db seed` の中身 | entries・gates・guard・preload・seed・task・test |
-| `operations/` | 手で行う操作と閲覧(DB・Firestore・データ・デプロイ・初期化・storage・ルーム・メール・機能の入切・Claude API) | `pnpm ops <対象> <動作>` | business・claude・data・db・deploy・features・firestore・legal・mail・room・setup・storage |
+| `operations/` | 手で行う操作と閲覧(DB・Firestore・データ・デプロイ・初期化・storage・ルーム・メール・機能の入切・Claude API・Vercel) | `pnpm ops <対象> <動作>` | business・claude・data・db・deploy・features・firestore・legal・mail・room・setup・storage・vercel |
 
 - 対象 = 分類の下のフォルダ 1 つ。動作 = そのフォルダの直下の `<動作>.ts` / `.mjs`(`*.test.*`・`lib.*`・下のフォルダの中は動作にならない)。`pnpm ops` / `pnpm workflow` を引数なしで打つと一覧
 - 入口の仕組み: [runner/entries/README.md](./runner/entries/README.md)

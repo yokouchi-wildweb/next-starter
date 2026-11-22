@@ -74,6 +74,25 @@ test("固定の止め: 印・方針・モードと独立に deny、人が打つ�
   assert.match(fixedStop(bash("pnpm ops x --confirm=production"))?.reason ?? "", /人が手で打つ: pnpm ops x/);
 });
 
+test("固定の止め: 素の vercel の env add / rm / pull は pnpm ops vercel の 1 行へ案内して止め、見るだけと pnpm ops vercel は通す(D412)", () => {
+  const routed = {
+    "vercel env add FOO production": "pnpm ops vercel env-add FOO production(値は標準入力か --value-file)",
+    "npx -y vercel env rm FOO preview --yes": "pnpm ops vercel env-rm FOO preview",
+    "pnpm dlx vercel@latest env pull .env.production.local --environment=production": "pnpm ops vercel env-pull production .env.production.local",
+    "vercel env remove FOO": "pnpm ops vercel env-rm FOO <環境>",
+  };
+  for (const [command, guide] of Object.entries(routed)) {
+    for (const deps of [fakeDeps(), fakeDeps({ grant: false })]) {
+      const d = decide(bash(command), deps);
+      assert.equal(d?.decision, "deny", command);
+      assert.equal(d.reason, `devcheck の固定の止め: Vercel の env の書き・取りは pnpm ops vercel を通す(方針 agent.env_production と /allow evp を見る)。代わりに: ${guide}`, command);
+    }
+  }
+  for (const command of ["vercel env ls", "vercel env ls production", "npx vercel ls", "pnpm ops vercel env-add FOO production --value-file=v.txt", "grep -n 'vercel env add' README.md"]) {
+    assert.equal(fixedStop(bash(command)), null, command);
+  }
+});
+
 test("固定の止め: Edit / Write / MultiEdit / NotebookEdit の .env.production*", () => {
   for (const tool of ["Edit", "Write", "MultiEdit", "NotebookEdit"]) {
     for (const file of ["/repo/.env.production", "/repo/.env.production.local", ".env.production"]) {
