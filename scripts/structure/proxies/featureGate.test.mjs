@@ -12,7 +12,7 @@
 // 1. features のフォルダから導いた表名(生成一覧の tables)は schemaRegistry に実在する
 // 2. 無効なルールのドメイン（規則の features のフォルダ。表の数は問わない）を
 //    import するルート（route.ts / page.tsx と、その _screen/ _components/ 配下）は、そのルールの pathPatterns で閉じている
-//    （新しいルートを足して定義に書き忘れると失敗する）。意図的に閉じないルートは ROUTE_EXCEPTIONS に理由付きで書く（upstream 用）
+//    （新しいルートを足して定義に書き忘れると失敗する）。閉じないルートはそのファイルの中で規則の名前で門番に聞く（門番で包む、例外の表は無い、D54）
 // 3. 同じドメインの汎用 CRUD（/api/<domain>）も閉じている（汎用 CRUD が全操作 "none" の INTERNAL_ONLY の行は対象外）
 //    (2・3 の判定は ./routeImports.mjs。features を持たない規則は対象外)
 // 4. 現在のフラグの組み合わせでスキーマゲートが成立する（外すテーブルを残すテーブルが外部キーで参照しない）
@@ -51,13 +51,6 @@ const schema = createRequire(import.meta.url)("../../../src/registry/schemaRegis
 
 const ROOT = resolve(import.meta.dirname, "../../..");
 const APP_DIR = join(ROOT, "src/app");
-
-// 対象ドメインを import するが、意図的にゲートで閉じないルート（src/app 相対 → 理由）。upstream のルート用
-const ROUTE_EXCEPTIONS = {
-  "api/auth/register/route.ts": "本登録(紹介・流入経路が閉でも登録は動く)。読むのは referral の lib/inviteLinkCookie の cookie 名と userAcquisition の constants・lib/attributionCookie(cookie の読み取りだけ)で、招待コードは gate.enabled(\"referral\")、流入経路は gate.enabled(\"userAcquisition\") が開のときだけ読む",
-  "api/auth/send-early-registration-link/route.ts": "事前登録のメール(紹介が閉でも動く)。読むのは referral の lib/inviteLinkCookie の cookie 名だけで、招待コードは gate.enabled(\"referral\") が開のときだけ渡す",
-  "api/auth/send-email-link/route.ts": "サインインのメール(紹介が閉でも動く)。読むのは referral の lib/inviteLinkCookie の cookie 名だけで、招待コードは gate.enabled(\"referral\") が開のときだけ渡す",
-};
 
 // FEATURE_GATE_CHECK=all: 全ルールを無効とみなして検査する（upstream 用）
 const CHECK_ALL = process.env.FEATURE_GATE_CHECK === "all";
@@ -144,36 +137,14 @@ test("無効な機能のドメインを import するルートは、そのドメ
   const routeFiles = walk(APP_DIR)
     .filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\./.test(f))
     .map((f) => ({ rel: relative(APP_DIR, f).split(sep).join("/"), segments: toUrlSegments(f), text: readFileSync(f, "utf8") }));
-  const problems = findOpenRouteImports(checkedRules, routeFiles, ROUTE_EXCEPTIONS);
-  assert.deepEqual(problems, [], `pathPatterns に追加するか ROUTE_EXCEPTIONS に理由付きで書く:\n${problems.join("\n")}`);
+  const problems = findOpenRouteImports(checkedRules, routeFiles);
+  assert.deepEqual(problems, [], `pathPatterns に追加するか、そのファイルの中で規則の名前で門番に聞く(gate.enabled("<規則>") など、D54):\n${problems.join("\n")}`);
 });
 
 test("無効な機能のドメインの汎用 CRUD（/api/<domain>）は閉じている", () => {
   // 汎用 CRUD が全操作 "none"（INTERNAL_ONLY）の行は /api/<domain> が存在しない（404）ので対象外
   const problems = findOpenGenericApis(checkedRules, (domain) => domain in serviceRegistry && !isGenericApiClosed(serviceRegistry[domain].access));
   assert.deepEqual(problems, [], `pathPatterns に追加する: ${problems.join(", ")}`);
-});
-
-test("ROUTE_EXCEPTIONS は縮むだけ: 各行は、閉じうる機能(必須で開いた物を除く)を全部閉じたとき表が無ければ出るルート(当たらない行は消す、注文 38)", () => {
-  const routeFiles = walk(APP_DIR)
-    .filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\./.test(f))
-    .map((f) => ({ rel: relative(APP_DIR, f).split(sep).join("/"), segments: toUrlSegments(f), text: readFileSync(f, "utf8") }));
-  const closable = rulesWithFeatures(featureGateRules).filter((rule) => !isRequiredOpen(rule));
-  const reported = new Set(findOpenRouteImports(closable, routeFiles, {}).map((p) => p.split("（")[0]));
-  const stale = Object.keys(ROUTE_EXCEPTIONS).filter((rel) => !reported.has(rel));
-  assert.deepEqual(stale, [], `ROUTE_EXCEPTIONS の行が当たらない(もう閉じうる機能のドメインを読まない → 行を消す): ${stale.join(", ")}`);
-});
-
-test("ROUTE_EXCEPTIONS の各行は実在するルート", () => {
-  const missing = Object.keys(ROUTE_EXCEPTIONS).filter((rel) => {
-    try {
-      readFileSync(join(APP_DIR, rel));
-      return false;
-    } catch {
-      return true;
-    }
-  });
-  assert.deepEqual(missing, [], `存在しないルートの例外行: ${missing.join(", ")}`);
 });
 
 test("現在のフラグの組み合わせでスキーマゲートが成立する", () => {
@@ -384,10 +355,9 @@ test("fixture: 表 0 のドメインの規則も、ルート・汎用 CRUD・常
     { rel: "(user)/plain/page.tsx", segments: ["plain"], text: 'import { x } from "@/domains/core/wallet/hooks/x";\n' },
   ];
   assert.deepEqual(
-    findOpenRouteImports([chat, plain], routeFiles, {}).map((p) => p.split("（")[0]),
+    findOpenRouteImports([chat, plain], routeFiles).map((p) => p.split("（")[0]),
     ["(user)/mypage/_screen/MypageScreen.tsx"],
   );
-  assert.deepEqual(findOpenRouteImports([chat], routeFiles, { "(user)/mypage/_screen/MypageScreen.tsx": "理由" }), []);
 
   const hasOpen = (domain) => domain === "chatRoom";
   assert.deepEqual(findOpenGenericApis([chat, plain], hasOpen), []);

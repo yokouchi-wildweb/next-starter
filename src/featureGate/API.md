@@ -136,13 +136,13 @@ export const rule: FeatureGateRule = {
 
 - **ゲート対象のドメインにルートを足したら、同じ規則の `pathPatterns` に追記する**（表は `domains` のフォルダから自動で入る）。`src/featureGate`・`scripts/structure/proxies` のテスト(/ship の検査が回す)が次を検査する:
   - 導いた表名が schemaRegistry に実在する（走査の表の集合 = schemaRegistry の全表は `pnpm test scripts/structure/registry/`）
-  - **今 `enabled` が false の規則について**、その規則の `domains` のドメイン（表の数は問わない）を import するルート（route.ts / page.tsx と `_screen/` `_components/` 配下）が、その規則の `pathPatterns` で閉じている（判定 `checks/routeImports.mjs`。`domains` の無い規則は対象外）
+  - **今 `enabled` が false の規則について**、その規則の `domains` のドメイン（表の数は問わない）を import するルート（route.ts / page.tsx と `_screen/` `_components/` 配下）が、その規則の `pathPatterns` で閉じているか、そのファイルの中で規則の名前で門番に聞いている（門番で包む: `gate.enabled("<規則>")`・`gate.required("<規則>")`・`useGate().enabled("<規則>")`・`const g = useGate()` の `g.enabled("<規則>")`、名前は文字列のリテラル。判定 `checks/routeImports.mjs`。`domains` の無い規則は対象外）
   - 同じく、そのドメインの汎用 CRUD（`/api/<domain>`）が閉じている
   - 現在のフラグで、外す表を残す表が外部キーで参照していない
   - 常時実行の入口の閉じ漏れ（下）
 - **有効な機能のルートは検査しない。** 開いていて正しいので、その機能を土台にした fork は何も宣言しなくてよい。機能を切ると、その機能に依存するルートと外部キーがテストで一覧になる（= 切る前に直す場所）
 - **`FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies` は upstream も fork も実行する。** 段階 build・ship の `pnpm check proxies`(`scripts/structure/proxies/testGate.mjs`)が毎回回し、落ちたら止める(全 Tier。違反と環境の依存の不足 = DB・Firebase の未設定・モジュールが見つからない、は見出しを分けて出す。どちらも止める)
-  - 全規則を無効とみなし、全機能 false でスキーマゲートが成立することも検査する(fork が `required/` で必須と宣言した機能とその dependsOn の先は、`pnpm ops features set` が閉じないので開いたまま扱う)。意図的に閉じない upstream のルートはテスト内の `ROUTE_EXCEPTIONS`(fork の例外の受け口は無い、注文 36)
+  - 全規則を無効とみなし、全機能 false でスキーマゲートが成立することも検査する(fork が `required/` で必須と宣言した機能とその dependsOn の先は、`pnpm ops features set` が閉じないので開いたまま扱う)。閉じないルートの例外の表は無い(上流も fork も、ルートのファイルの中で門番に聞く。D54)
 - **サンプルのドメイン**（`sampleDomain`、規則の `defaultEnabled: false`）: 上流の既定 閉（上流の開発は全開スイッチで開ける。fork が見るなら開ける）
   - 権限は公開読み・ログイン済みの更新・子の画像のログイン済みアップロードのままで厳しくしない → **実際の利用者がいる fork は閉じる**(`pnpm ops features set sampleDomain off` = `src/config/featureGate/switches.config.ts` に `sampleDomain: false`): 管理画面・`/api/sample*` の汎用 API・サンプルを読むデモ画面 4 つ(`demoSampleDomain`)が 404、5 表（samples ほか）は db:push で作らない（既存の表と行は消さない）。管理のメニューの行は残る
 - **機能どうしの前提**: payment は wallet を前提にする（`purchase_requests` → `wallet_histories` の外部キー。push 時に例外になる）。referral は coupon を前提にする（招待コードの実体はクーポン。テストで検査）

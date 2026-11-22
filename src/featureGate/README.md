@@ -20,7 +20,7 @@ src 直下の 1 地区(地区の種類 featureGate、src/lib/districtMap/kinds.m
 |---|---|---|
 | `rules/<名前>.ts` | 上流・fork(受け口) | 機能を閉じる規則(1 機能 1 ファイル、`export const rule`)。名前 = ファイル名 = `FeatureName` |
 | `required/<機能名>.ts` | fork(受け口) | この fork が必ず使う機能(`export const required: RequiredFeature`)。依存の検査はこの機能のフォルダを外から読むことを通す。`pnpm ops features set <名前> off` はこの機能(と必須の機能が依存する機能)を止め、`list` は「必須」と出す |
-| `extensionPoints.ts` | 上流 | 受け口の宣言(`rules`・`required`。例外の受け口は無い、注文 36) |
+| `extensionPoints.ts` | 上流 | 受け口の宣言(`rules`・`required`。例外の受け口は無い、注文 36。閉じないルートはファイルの中で規則の名前で門番に聞けば検査が通す、API.md「検査」) |
 | `points.ts` | 上流 | 型だけの入口(D33): 点の約束の型だけ(`GeneratedFeatureRule`・`RequiredFeature` と導出の型)。項目と生成一覧はここだけを型として読む |
 | `extensions/` | 生成物 | `pnpm generate extensions` が書く一覧(手で編集しない)。`rules.ts` は名前の union `FeatureName` も出す |
 | `index.ts` | 上流 | 入口(server・proxy): `gate`・配線用の `clientGateState` と型 |
