@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { areaOf, findHits, loadTerms, scan } from "./lib.terms.mjs";
+import { areaOf, findHits, loadTerms, renderTermsMd, scan, TERMS_MD } from "./lib.terms.mjs";
 
 const TABLE = readFileSync(join(import.meta.dirname, "terms.json"), "utf8");
 const { terms, wrong } = loadTerms(TABLE);
@@ -79,4 +79,21 @@ test("走査: 見る所の当たりを集め、見ない所と fork の自前の
   assert.deepEqual(scan(root).map((h) => `${h.path}:${h.line} ${h.found}`), ["CLAUDE.md:1 src/features", "scripts/mine/fork.mjs:1 --gate", "scripts/x/run.mjs:1 --gate"]);
   const tier1Files = new Set(["CLAUDE.md", "scripts/x/run.mjs", "scripts/workflow/terms/terms.json"]);
   assert.deepEqual(scan(root, tier1Files).map((h) => h.path), ["CLAUDE.md", "scripts/x/run.mjs"]);
+});
+
+test("語の表の描き core/terms.md: paths・生成物の印・1 語 1 行。誤りの行の字面は書かず、走査の外", () => {
+  const md = renderTermsMd({ terms: [{ en: "district", ja: "地区", meaning: "まとまり(旧: 受け口)" }, { en: "plug", ja: null, meaning: "差す側の項目" }], wrong: [{ say: "x", pattern: "受け口" }] });
+  const lines = md.split("\n");
+  assert.deepEqual(lines.slice(0, 7), ["---", "paths:", '  - "CLAUDE.md"', '  - "AGENTS.md"', '  - ".claude/rules/**"', '  - ".claude/skills/**"', "---"]);
+  assert.equal(lines[7], "# terms");
+  assert.ok(lines.some((l) => l.startsWith("> **GENERATED**:") && l.includes("scripts/workflow/terms/terms.json") && l.includes("pnpm generate terms")));
+  assert.ok(lines.includes("- district: 地区 | まとまり(旧: 受け口)"));
+  assert.ok(lines.includes("- plug: - | 差す側の項目"));
+  assert.ok(!md.includes('"受け口"') && md.endsWith("\n"));
+  assert.equal(areaOf(TERMS_MD), null);
+});
+
+test("上流の core/terms.md は正本 terms.json の描きそのもの(pnpm generate terms の出力)", () => {
+  const root = join(import.meta.dirname, "../../..");
+  assert.equal(readFileSync(join(root, TERMS_MD), "utf8"), renderTermsMd(JSON.parse(TABLE)));
 });

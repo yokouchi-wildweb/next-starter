@@ -9,6 +9,7 @@ paths:
   - "src/app/route-map.jsonl"
   - "src/styles/{**/gradient,z-layer}.css"
   - "vercel.json"
+  - ".claude/rules/core/terms.md"
 ---
 # generated
 > **ROLE**: loaded when touching generated files or their sources | holds DIRECTORY_STRUCTURE code_generation (generated / write-once / hand-owned)

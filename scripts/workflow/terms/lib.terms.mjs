@@ -1,7 +1,8 @@
-// scripts/workflow/terms/lib.terms.mjs — 語の表(terms.json)の読みと、必ず誤りの言い換えの当たりを探す部品(純関数と走査)。入口は check.mjs
+// scripts/workflow/terms/lib.terms.mjs — 語の表(terms.json)の読みと、必ず誤りの言い換えの当たりを探す部品(純関数と走査)、
+// 人と agent が読む語の表 .claude/rules/core/terms.md の描き。入口は check.mjs・generate.mjs
 //
 // 見る所: Tier1 の文脈ファイル(CLAUDE.md・AGENTS.md・.claude/rules/**・.claude/skills/**)と Tier1 の道具(scripts/**・eslint-rules/**・eslint.config.mjs・package.json)
-// 見ない所: 表そのものとこのフォルダ(誤りの字面を持つ)・改名の記録(名前が renames.json のファイル)・バイナリ
+// 見ない所: 表そのものとこのフォルダ(誤りの字面を持つ)・表から描いた core/terms.md(旧い語を「旧: …」として持つ)・改名の記録(名前が renames.json のファイル)・バイナリ
 // 誤りの行の種類: text = 正規表現で本文を探す / identifier = 道具のコードの中の名前(語の境目で一致)
 // 誤りの行の範囲 in: context = 文脈ファイルだけ / tools = 道具だけ / both
 
@@ -9,6 +10,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 export const TERMS_FILE = "scripts/workflow/terms/terms.json";
+export const TERMS_MD = ".claude/rules/core/terms.md";
 const SELF_DIR = "scripts/workflow/terms/";
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git", ".turbo", "dist", "coverage"]);
 const BINARY = /\.(png|jpe?g|gif|webp|avif|ico|bmp|woff2?|ttf|otf|eot|pdf|zip|gz|mp4|webm|mp3|wav|wasm)$/i;
@@ -16,7 +18,7 @@ const CODE = /\.(mjs|cjs|js|ts|tsx|mts|cts)$/;
 
 /** ファイルの置き場の種類: "context" | "tools" | null(見ない) */
 export function areaOf(path) {
-  if (path.startsWith(SELF_DIR) || /(^|\/)renames\.json$/.test(path) || BINARY.test(path)) return null;
+  if (path.startsWith(SELF_DIR) || path === TERMS_MD || /(^|\/)renames\.json$/.test(path) || BINARY.test(path)) return null;
   if (path === "CLAUDE.md" || path === "AGENTS.md" || path.startsWith(".claude/rules/") || path.startsWith(".claude/skills/")) return "context";
   if (path.startsWith("scripts/") || path.startsWith("eslint-rules/") || path === "eslint.config.mjs" || path === "package.json") return "tools";
   return null;
@@ -83,4 +85,29 @@ export function scan(root, only = null) {
     for (const hit of findHits(path, buffer.toString("utf8"), wrong)) hits.push({ path, ...hit });
   }
   return hits;
+}
+
+// 語の表の描き(指示書の議会 D285 の形): 読み込む時 = 文脈を書く時(pnpm check terms の文脈の範囲と同じ)、1 語 1 行 `- <english>: <日本語> | <意味>`
+const TERMS_MD_PATHS = ["CLAUDE.md", "AGENTS.md", ".claude/rules/**", ".claude/skills/**"];
+
+/**
+ * 表(terms.json の中身)から core/terms.md を描く(純関数)。誤りの行(wrong)の字面は書かない(検査が持つ)
+ * @param {{ terms: { en: string, ja: string | null, meaning: string }[] }} table
+ */
+export function renderTermsMd(table) {
+  const lines = [
+    "---",
+    "paths:",
+    ...TERMS_MD_PATHS.map((p) => `  - "${p}"`),
+    "---",
+    "# terms",
+    "> **ROLE**: loaded when writing context (CLAUDE.md, AGENTS.md, .claude/rules/, .claude/skills/) | holds the term table: one meaning per word, English is the canon",
+    "> Tier1-owned: forks never edit (gap → /order next-starter)",
+    `> **GENERATED**: generated file, never edit by hand | source ${TERMS_FILE} | regenerate with pnpm generate terms`,
+    "",
+    "use: write these words with these meanings | `-` = no Japanese word decided | the wrong paraphrases are stopped by pnpm check terms (phase ship)",
+    "",
+    ...(table.terms ?? []).map((t) => `- ${t.en}: ${t.ja ?? "-"} | ${t.meaning}`),
+  ];
+  return `${lines.join("\n")}\n`;
 }
