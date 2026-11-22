@@ -1,10 +1,10 @@
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { editTodo, reshapeTip, run } from "./catchUp.mjs";
+import { editTodo, mergeOwnChanges, reshapeTip, run } from "./catchUp.mjs";
 
 const dirs = [];
 after(() => {
@@ -81,6 +81,49 @@ test("editTodo: main を取り込んだ merge を消し、onto の祖先への r
     { orig: "777aaaa", subject: "merge an older main" },
   ]);
   assert.deepEqual(r.kept, [{ orig: "604a895", subject: "work merge" }]);
+});
+
+test("editTodo: 残す作業の合流の次に運びの行を足す(元の sha のある合流だけ)", () => {
+  const todo = ["label onto", "reset onto", "pick 1111111 k1", "label w", "reset onto", "merge -C 604a895 w # seg merge", "merge w # no orig", "pick 5a0552f l2"].join("\n");
+  const r = editTodo(todo, () => false, (orig) => `exec carry ${orig}`);
+  assert.deepEqual(r.text.split("\n"), ["label onto", "reset onto", "pick 1111111 k1", "label w", "reset onto", "merge -C 604a895 w # seg merge", "exec carry 604a895", "merge w # no orig", "pick 5a0552f l2"]);
+});
+
+test("mergeOwnChanges: 両方の親に無い = 足した、両方に在って消えた = 消した、両方と違う = 書き換えた、片方だけ = 側の変更", () => {
+  const p1 = new Map([["n.md", "A"], ["gone.txt", "D"], ["base.txt", "M"], ["k.txt", "A"]]);
+  const p2 = new Map([["n.md", "A"], ["gone.txt", "D"], ["base.txt", "M"]]);
+  assert.deepEqual(mergeOwnChanges(p1, p2), { added: ["n.md"], deleted: ["gone.txt"], changed: ["base.txt"] });
+});
+
+test("catchUp: 合流 commit だけが足した notice は載せ直した合流に残り、合流が書き換えた中身は運べないと 1 行(S7)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "catch-up-carry-"));
+  dirs.push(dir);
+  git(dir, "init", "-q", "-b", "main");
+  git(dir, "config", "user.name", "t");
+  git(dir, "config", "user.email", "t@example.com");
+  git(dir, "config", "commit.gpgSign", "false");
+  commit(dir, "base");
+  git(dir, "switch", "-q", "-c", "line");
+  git(dir, "switch", "-q", "-c", "craft");
+  commit(dir, "k1");
+  git(dir, "switch", "-q", "line");
+  git(dir, "merge", "-q", "--no-ff", "--no-commit", "craft");
+  mkdirSync(join(dir, ".notices"), { recursive: true });
+  writeFileSync(join(dir, ".notices", "seg-a.md"), "checkpoint: sega\n");
+  writeFileSync(join(dir, "base.txt"), "base fixed in the merge\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-q", "-m", "seg merge");
+  git(dir, "switch", "-q", "main");
+  commit(dir, "m1");
+  git(dir, "switch", "-q", "line");
+
+  const l = logs();
+  assert.equal(run(dir, ["--onto=main"], l.log), 0, l.lines.join("\n"));
+  assert.equal(git(dir, "rev-parse", "HEAD^1"), git(dir, "rev-parse", "main"));
+  assert.deepEqual(git(dir, "diff", "--name-only", "HEAD^1", "HEAD").split("\n"), [".notices/seg-a.md", "k1.txt"]);
+  assert.equal(git(dir, "log", "-1", "--format=%s"), "seg merge");
+  assert.ok(l.lines.some((s) => s.includes("足した変更を載せ直した") && s.includes(".notices/seg-a.md")), l.lines.join("\n"));
+  assert.ok(l.lines.some((s) => s.includes("書き換えた base.txt は運べない")), l.lines.join("\n"));
 });
 
 test("catchUp: 作業の merge は残り、main を取り込んだ merge は消え、線は onto の上に同じ順。木は素の rebase と同じ", () => {

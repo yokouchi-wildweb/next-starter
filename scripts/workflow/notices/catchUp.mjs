@@ -17,11 +17,15 @@
 //   そうでなければ git rebase -i --rebase-merges <onto> を、todo をこのファイル(--edit-todo)で書き換えて回す:
 //     - merge の行で、取り込む側が onto(label onto)か onto の祖先の commit → 消す(main を取り込んだ合流)
 //     - reset の行で、先が onto の祖先の commit → reset onto(線の根元を onto へ)
-//     - それ以外(取り込む側が線の中の label = 作業の merge)はそのまま
+//     - それ以外(取り込む側が線の中の label = 作業の merge)はそのまま。その次の行に exec(このファイルの --carry <元>)を足す
+//   合流だけが足した変更の運び(S7): rebase は作業の合流を merge -C で作り直すので、合流 commit そのものが足した物(区切りの
+//   notice など)は落ちる。--carry <元> は元の合流の第 1 親・第 2 親の両方に無くて元に在るファイル(合流が足した)を元の中身で、
+//   両方に在って元に無いファイル(合流が消した)を消して、作り直した合流に amend する(作者・文は元のまま)。両方の親と中身が違う
+//   書き換え(合流が直した中身・ぶつかりの解き方)は運ばず、作り直した合流の中身が元と違えば名前を報告する
 //   ぶつかりは rebase の途中で止まる(git rerere が覚えていれば解いて進む): 解いて git add → git rebase --continue
 //   exit 0 = 済み / 要らない | 1 = ぶつかりで止まった(rebase の途中) | 2 = 回せない(理由)
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -55,9 +59,10 @@ export function defaultOnto(repo) {
 
 /**
  * rebase -i --rebase-merges の todo を書き換える(純粋な部分: 祖先の判定は upstream(sha) で受ける)。
+ * carry(orig) = 残す作業の合流(元の sha があるもの)の次に足す行(無し = 足さない)
  * 返す: { text, dropped: [{ orig, subject }], kept: [{ orig, subject }] }
  */
-export function editTodo(text, upstream) {
+export function editTodo(text, upstream, carry = null) {
   const dropped = [];
   const kept = [];
   const out = [];
@@ -74,6 +79,7 @@ export function editTodo(text, upstream) {
       }
       kept.push({ orig, subject });
       out.push(line);
+      if (carry && orig !== "-") out.push(carry(orig));
       continue;
     }
     const reset = body.match(/^(?:t|reset)\s+(\S+)$/);
@@ -112,6 +118,56 @@ function reshape(repo, ontoSha, onto, work) {
   return nm;
 }
 
+/**
+ * 合流が足した・消した・書き換えたファイル(純粋な部分): p1 / p2 = 元の第 1 親・第 2 親から元への diff --name-status の
+ * Map(path → 先頭の字 A/M/D)。両方 A = 足した / 両方 D = 消した / 両方に出る他の組 = 書き換えた
+ */
+export function mergeOwnChanges(p1, p2) {
+  const added = [];
+  const deleted = [];
+  const changed = [];
+  for (const [path, a] of p1) {
+    const b = p2.get(path);
+    if (!b) continue;
+    if (a === "A" && b === "A") added.push(path);
+    else if (a === "D" && b === "D") deleted.push(path);
+    else changed.push(path);
+  }
+  return { added, deleted, changed };
+}
+
+/** rebase の exec として呼ばれた時: 元の合流だけが足した・消したファイルを、作り直した合流(HEAD)へ運んで amend する */
+function runCarry(orig) {
+  const repo = process.cwd();
+  const report = process.env.CATCHUP_REPORT;
+  const status = (from) =>
+    new Map(
+      git(repo, ["diff", "--no-renames", "--name-status", from, orig])
+        .split("\n")
+        .filter(Boolean)
+        .map((l) => {
+          const [s, ...f] = l.split("\t");
+          return [f.join("\t"), s[0]];
+        }),
+    );
+  const own = mergeOwnChanges(status(`${orig}^1`), status(`${orig}^2`));
+  const blob = (rev, path) => tryGit(repo, ["rev-parse", "-q", "--verify", `${rev}:${path}`]);
+  const add = own.added.filter((f) => blob("HEAD", f) !== blob(orig, f));
+  const del = own.deleted.filter((f) => blob("HEAD", f) !== null);
+  if (add.length) git(repo, ["checkout", orig, "--", ...add]);
+  if (del.length) git(repo, ["rm", "-q", "--", ...del]);
+  if (add.length || del.length) git(repo, ["commit", "-q", "--amend", "--no-edit"]);
+  const lost = own.changed.filter((f) => blob("HEAD", f) !== blob(orig, f));
+  const short = orig.slice(0, 9);
+  if (report) {
+    const rows = [];
+    if (add.length || del.length) rows.push(`carry\t${short}\t${[...add, ...del.map((f) => `-${f}`)].join(", ")}`);
+    if (lost.length) rows.push(`lost\t${short}\t${lost.join(", ")}`);
+    if (rows.length) appendFileSync(report, `\n${rows.join("\n")}`);
+  }
+  return 0;
+}
+
 /** GIT_SEQUENCE_EDITOR として呼ばれた時: todo を書き換え、落とした・残した合流を報告のファイルへ */
 function runEditTodo(todoPath) {
   const repo = process.cwd();
@@ -120,7 +176,7 @@ function runEditTodo(todoPath) {
   if (!onto || !report) return 2;
   // label の名前(線の中の枝)は upstream ではない。sha の形の物だけを onto の祖先かで見る
   const upstream = (ref) => /^[0-9a-f]{7,40}$/.test(ref) && isAncestor(repo, ref, onto);
-  const r = editTodo(readFileSync(todoPath, "utf8"), upstream);
+  const r = editTodo(readFileSync(todoPath, "utf8"), upstream, (orig) => `exec "${process.execPath}" "${SELF}" --carry ${orig}`);
   writeFileSync(todoPath, r.text);
   writeFileSync(
     report,
@@ -179,7 +235,9 @@ export function run(repo, argv, log = console.log) {
   rmSync(report, { force: true });
   for (const row of rows) {
     const [kind, orig, subject] = row.split("\t");
-    log(`catchUp: ${kind === "drop" ? "落とした合流(main を取り込んだ)" : "残した合流(作業)"} ${orig.slice(0, 9)} ${subject}`);
+    if (kind === "carry") log(`catchUp: 合流 ${orig} が足した変更を載せ直した: ${subject}`);
+    else if (kind === "lost") log(`catchUp: 合流 ${orig} が書き換えた ${subject} は運べない(作り直した合流の中身を確かめる)`);
+    else log(`catchUp: ${kind === "drop" ? "落とした合流(main を取り込んだ)" : "残した合流(作業)"} ${orig.slice(0, 9)} ${subject}`);
   }
   if (r.status === 0) {
     log(`catchUp: ${before} → ${git(repo, ["rev-parse", "--short", "HEAD"])}(${onto} の上へ、同じ順)`);
@@ -197,6 +255,7 @@ export function run(repo, argv, log = console.log) {
 
 function main(argv) {
   if (argv[0] === "--edit-todo") return runEditTodo(argv[1]);
+  if (argv[0] === "--carry") return runCarry(argv[1]);
   return run(join(dirname(SELF), "../../.."), argv);
 }
 
