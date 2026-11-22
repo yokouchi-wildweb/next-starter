@@ -165,19 +165,23 @@ test("lock ファイルと .notices/ だけの差分 → 中継不要", () => {
   }
 });
 
-test("fork ごとの規約ファイルだけが重なる → 中継不要、印付きファイルの重なりは数える", () => {
+test("各リポが自分の版を持つファイル(型 5 self)だけが重なる → 中継不要、印付きファイルの重なりは数える", () => {
   const r = setupRepo();
   try {
     r.write(".claude/rules/project.md", lines(30));
     r.write(".claude/rules/behavior.md", lines(10));
+    r.write("repo.json", lines(15));
     r.write(".claude/rules/shortcuts.md", lines(10));
     const p = r.commit("P");
     r.edit(".claude/rules/project.md", replaceLine(22, "upstream tier1 line"));
     r.edit(".claude/rules/behavior.md", replaceLine(3, "upstream rule"));
+    r.edit("repo.json", replaceLine(5, "upstream agent policy"));
     const q = r.commit("Q");
     r.edit(".claude/rules/project.md", replaceLine(22, "fork tier2 line"));
-    const a = r.commit("A (fork keeps its own project.md)");
+    r.edit("repo.json", replaceLine(5, "fork agent policy"));
+    const a = r.commit("A (fork keeps its own project.md and repo.json)");
     r.edit(".claude/rules/behavior.md", replaceLine(3, "fork rule while applying"));
+    r.edit("repo.json", replaceLine(2, "fork repo_id while applying"));
     const result = relayCheck({ cwd: r.dir, p, q, appliedFrom: a });
     assert.equal(result.needed, false);
     assert.deepEqual(result.overlaps, []);

@@ -12,21 +12,21 @@
 //    同じファイルで重なるか接していれば該当。接していても数えるのは git の 3-way merge が衝突とみなす基準と揃えるため。
 //    上流がファイルを追加・削除したファイル、ハンクの無い差分(バイナリ・mode 変更)はファイル全体を範囲とみなす。
 // ② A→作業ツリー(未追跡を含む)で変わったファイルのうち、上流が P→Q で変えていないもの。
-// どちらも .notices/ と lock ファイル(package.json から生成される派生物)、fork ごとの規約ファイル
-// (.claude/rules/project.md・behavior.md。各 fork が自分の版を持ち下流へは届かない)、
+// どちらも .notices/ と lock ファイル(package.json から生成される派生物)、各リポが自分の版を持つファイル
+// (型 5 self = SELF_FILES: .claude/rules/project.md・behavior.md・repo.json。下流へは届かない)、
 // リポごとの一時許可 .fork-ownership/<repo_id>.permits.txt(読むのは自分の名前のファイルだけ。下流は自分の分を持つ)を対象外にする。
 // 印付きファイル(shortcuts.md・term-aliases.md)は印より上を上流と共有するので対象に残す。
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
+import { SELF_FILES } from "../../../src/lib/forkOwnership/node.mjs";
 
 export const IGNORED_FILES = ["pnpm-lock.yaml", "package-lock.json", "yarn.lock"];
-export const FORK_RULES_FILES = [".claude/rules/project.md", ".claude/rules/behavior.md"];
 // 一時許可の行は依頼が resolves: で出荷されるたびに消えるので、数えると区間ごとに空の中継 notice が要ることになる
 export const FORK_PERMIT_FILES = ".fork-ownership/*.permits.txt";
 const PATHSPEC_EXCLUDES = [
   ":(exclude).notices",
   ...IGNORED_FILES.map((f) => `:(exclude,glob)**/${f}`),
-  ...FORK_RULES_FILES.map((f) => `:(exclude)${f}`),
+  ...SELF_FILES.map((f) => `:(exclude)${f}`),
   `:(exclude,glob)${FORK_PERMIT_FILES}`,
 ];
 
