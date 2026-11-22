@@ -22,10 +22,12 @@ export const DEFAULT_PORT_TRIES = 20;
 
 /**
  * 開発サーバーとみなすコマンドの形(外で動いているものの検出に使う)。
- * `pnpm dev` 等は dev の直後が空白か行末のときだけ当てる(`pnpm workflow dev-tab run` 自身や `dev:xxx` を外のサーバーと見誤らないため)。
+ * どの語も前後に境界を求める: 前に英数字・`_`・`-` が無く、後ろに英数字・`_`・`-`・`:` が無いときだけ当てる。
+ * - `vite` が `/mypage/invite` のような語の一部に当たると、そのパスを含む呼び出し元のシェル行を外のサーバーと見誤る
+ * - `pnpm dev` 等は `pnpm workflow dev-tab run` 自身や `dev:xxx` に当てない(パスの中の `.bin/vite`・`vite.js` には当てる)
  */
 export const DEV_COMMAND_PATTERN =
-  /next dev|next-server|next\/dist\/bin\/next|vite|nuxt dev|astro dev|remix dev|webpack serve|(pnpm|npm|yarn|bun)( run)? dev(\s|$)/;
+  /(?<![\w-])(?:next dev|next-server|next\/dist\/bin\/next|vite|nuxt dev|astro dev|remix dev|webpack serve|(?:pnpm|npm|yarn|bun)(?: run)? dev)(?![\w:-])/;
 
 /** タブで動かした記録(mode の無い古い記録もこれ) */
 export type DevTabTabState = {

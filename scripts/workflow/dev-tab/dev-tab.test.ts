@@ -98,8 +98,18 @@ test("buildDevCommand: PORT と APP_BASE_URL を合わせ、next dev には --po
   assert.equal(buildDevCommand("pnpm", "vite", 3003), "PORT=3003 APP_BASE_URL=http://localhost:3003 pnpm dev");
 });
 
-test("DEV_COMMAND_PATTERN: pnpm dev 等は当たり、pnpm workflow dev-tab run 自身や dev:xxx は当たらない", () => {
-  for (const command of ["pnpm dev", "pnpm dev --port 3001", "npm run dev", "yarn dev", "next dev --port 3001", "next-server (v16.1.1)"]) {
+test("DEV_COMMAND_PATTERN: pnpm dev 等は当たり、pnpm workflow dev-tab run 自身や dev:xxx・語の一部は当たらない", () => {
+  for (const command of [
+    "pnpm dev",
+    "pnpm dev --port 3001",
+    "npm run dev",
+    "yarn dev",
+    "next dev --port 3001",
+    "next-server (v16.1.1)",
+    "node /app/node_modules/next/dist/bin/next dev",
+    "node /app/node_modules/.bin/vite",
+    "node /app/node_modules/vite/bin/vite.js --port 5173",
+  ]) {
     assert.equal(DEV_COMMAND_PATTERN.test(command), true, command);
   }
   for (const command of [
@@ -107,6 +117,10 @@ test("DEV_COMMAND_PATTERN: pnpm dev 等は当たり、pnpm workflow dev-tab run 
     "/bin/bash -c source snapshot.sh && pnpm workflow dev-tab run",
     "pnpm workflow dev-tab run stop",
     "npm run dev:setup",
+    // 呼び出し元のシェル行が invite を含むパスを持つ(vite の語の一部)
+    "/bin/bash -c pnpm -s workflow dev-tab run; for p in / /mypage/invite; do curl -s localhost:3000$p; done",
+    "curl http://localhost:3000/invite/accept",
+    "pnpm devtools",
   ]) {
     assert.equal(DEV_COMMAND_PATTERN.test(command), false, command);
   }
