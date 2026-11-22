@@ -9,4 +9,6 @@
 .claude/settings.local.json
 CLAUDE.local.md
 .vercel/
+# next が本体に作る型(画像の import など)。無いと作業場所の tsc が TS2307 で落ちる
+next-env.d.ts
 # --- fork entries below ---

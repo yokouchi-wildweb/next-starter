@@ -54,6 +54,7 @@ pnpm workflow worktree remove <path>
 - 判定は git 自身 (`git ls-files --exclude-from` と `git check-ignore`) に任せている
 - 読むのは常に本体側の一覧。ワークツリーの中から実行しても同じ結果になる
 - `node_modules` は入れない (`pnpm workflow worktree new` が `pnpm install` する)
+- `next-env.d.ts` (next が本体に作る、画像の import などの型) も持ち込む。無いと作業場所の `tsc` が TS2307 で落ちる。既にある作業場所は `pnpm workflow worktree sync` で入る
 - fork が足すものは `# --- fork entries below ---` より下に書く (merge で衝突しにくくするため)
 
 ## Internals
