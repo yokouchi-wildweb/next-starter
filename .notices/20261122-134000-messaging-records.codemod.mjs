@@ -63,7 +63,7 @@ export const VOCAB = [
   // ── S1 埋め込み情報のコードの名前 embedded → vars(D205、議会の答え D1: 共通・enricher を含む全体も vars。enrichers の受け口の名前はそのまま)
   ex("MESSAGE_COMMON_EMBEDDED", "MESSAGE_COMMON_VARS", "S1", "", LIB),
   ex("MessageCommonEmbedded", "MessageCommonVar", "S1", "", LIB),
-  ex("MessageEmbeddedName", "MessageVarName", "S1", "", LIB),
+  ex("MessageEmbeddedName", "MessageNamedVar", "S1", "MessageVarName は定義の varNames の型として既にある", LIB),
   ex("MESSAGE_EMBEDDED_TYPES", "MESSAGE_VAR_TYPES", "S1", "", LIB),
   ex("MESSAGE_EMBEDDED_TYPE_LABELS", "MESSAGE_VAR_TYPE_LABELS", "S1", "", LIB),
   ex("EMBEDDED_TYPE_SUFFIX", "VAR_TYPE_SUFFIX", "S1", "", LIB),

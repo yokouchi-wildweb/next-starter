@@ -97,6 +97,7 @@ test("対応表: 形が正しく、指令の行がそろう", () => {
   const has = (kind, old, next, order) => VOCAB.some((r) => r.kind === kind && r.old === old && r.new === next && r.order === order);
   assert.ok(has("code-name", "MessageEmbeddedDeclaration", "MessageVarDeclaration", "S1"));
   assert.ok(has("code-name", "embedded", "vars", "S1"));
+  assert.ok(has("code-name", "MessageEmbeddedName", "MessageNamedVar", "S1"));
   assert.ok(has("code-name", "SendEmbeddedInputs", "SendVarInputs", "S1"));
   assert.ok(has("path", "src/lib/messaging/embedded", "src/lib/messaging/vars", "S1"));
   assert.ok(has("code-name", "embedded_values", "vars", "S2"));
