@@ -28,6 +28,7 @@ test("実リポ: overrides の点は受け口の一覧に入らない(writer の
     "src/lib/cron:cronTasks",
     "src/lib/domain:domainEntries",
     "src/lib/messaging:messages",
+    "src/lib/messaging:recordTargets",
   ]);
   assert.ok(points.filter((p) => p.spec.overrides !== undefined).every((p) => !isListPoint(p.spec)));
   assert.ok(points.filter((p) => p.spec.writer !== undefined).every((p) => !isListPoint(p.spec)));

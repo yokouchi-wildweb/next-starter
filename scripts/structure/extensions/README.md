@@ -105,7 +105,7 @@ fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印�
 | 1 丸ごと替える(コード) | `<名前>.default.ts(x)` + 隣の素の `<名前>.ts(x)`(1 行スイッチ)/ 画面・枠: 表の下 | `<名前>.replace.ts(x)` にしてスイッチを向け替える / 画面・枠: 表の下 | 隣に `.default` がある・ルートの `page.tsx` / 枠の `layout.tsx` | `1` |
 | 2 一部を重ねる(データ) | 素の実体 + 重ねてよい鍵の宣言(`extensionPoints.ts` の `overrideOf` / `overrides`)/ 枠: ルートを作ったリポが隣に `frame.ts` | `<対象>.override.ts`(宣言の鍵だけ)/ 枠: 下のリポは上流の `frame.ts` の有無に関わらず `frame.override.ts`(キー `layout`・`page` は隣にある範囲だけ) | 上位の `extensionPoints.ts` に上書きの宣言がある・src/app のルート | `2` |
 | 3 足す | 宣言された受け口のフォルダ(`extensionPoints.ts` の `dir`) | そのフォルダに素の新しい名前の項目 | 上位の `extensionPoints.ts` に受け口の宣言がある | `3` |
-| 4 置き場で分ける(値) | CSS: `src/styles/core/<名前>.css` / 設定: 持ち主の `config.ts`(`config.ui.ts`) | CSS: 直下の `src/styles/<名前>.css` / 設定: `src/config/{lib,features,layout,proxies}/<名前>.config.ts` に変えたいキーだけ | 宣言の `placement` に当たる・地区の `config.ts` | `4` |
+| 4 置き場で分ける(値) | CSS: `src/styles/core/<名前>.css` / 設定: 持ち主の `config.ts`(`config.ui.ts`) | CSS: 直下の `src/styles/<名前>.css` / 設定: `src/config/{lib,domains,layout,proxies}/<名前>.config.ts` に変えたいキーだけ | 宣言の `placement` に当たる・地区の `config.ts` | `4` |
 | 変えられない | — | 書かない → `/order <直接の親>`(要るまでは一時許可) | どれにも当たらない | `none` |
 
 - 型 1 の画面: 上流は `page.tsx` がスイッチ、既定は `_screen/`。fork は `<ルート>/_components/` に `<X>Screen.tsx`(と fork の部品)を置き、`page.tsx` を向け替える

@@ -1,4 +1,4 @@
-// .notices/district-stage1.domains-rename.test.mjs
+// .notices/20261122-180722-district-stage1.domains-rename.test.mjs
 // 実行: pnpm test .notices(一時フォルダの fixture。git は使わない)
 
 import assert from "node:assert/strict";
@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { applyRename, planRename, rewriteText } from "./district-stage1.domains-rename.mjs";
+import { applyRename, planRename, rewriteText } from "./20261122-180722-district-stage1.domains-rename.mjs";
 
 function fixture(files) {
   const root = mkdtempSync(join(tmpdir(), "domains-rename-"));
@@ -202,4 +202,20 @@ test("取り込みの後(移す先がある): ファイルごとに移し、両�
   // 基準が無く中身が違う: both-exist で止める
   const root3 = fixture({ "src/domains/x/a.ts": "1\n", "src/features/x/a.ts": "2\n" });
   assert.deepEqual(planRename(root3, { baseText: () => null }).stops.map((s) => s.kind), ["both-exist"]);
+});
+
+test("brace: src/ か config/ の直後の波かっこの並びの要素 features だけ domains に", () => {
+  const { text, counts } = rewriteText("eslint.config.mjs", 'files: ["src/config/{lib,features,layout}/*.config.ts", "src/{features,lib}/**"]\n// {a,features} は並びの頭が道でないので触らない\n', NAMES);
+  assert.equal(text, 'files: ["src/config/{lib,domains,layout}/*.config.ts", "src/{domains,lib}/**"]\n// {a,features} は並びの頭が道でないので触らない\n');
+  assert.equal(counts.brace, 2);
+});
+
+test("文字のファイルは NUL を含んでも書き換える(ソースに直に書いた NUL)、拡張子がバイナリの物は見ない", () => {
+  const root = fixture({
+    "src/domains/core/auth/a.ts": 'import { b } from "@/features/auth/b";\nconst key = [1, 2].join("\0");\n',
+    "public/x.png": "src/features\0",
+  });
+  const plan = planRename(root);
+  assert.deepEqual(plan.edits.map((e) => e.path), ["src/domains/core/auth/a.ts"]);
+  assert.equal(plan.skipped.binary, 1);
 });

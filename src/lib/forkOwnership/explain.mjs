@@ -23,7 +23,7 @@ import { matchIntake } from "./intake.mjs";
 /** 型の値(L1.45) */
 export const EXPLAIN_TYPES = ["1", "2", "3", "4", "5", "generated", "own", "none"];
 
-const GATE_FILE = /^scripts\/structure\/([^/]+)\/gate\.json$/;
+const PHASE_FILE = /^scripts\/structure\/([^/]+)\/phase\.json$/;
 const DOMAIN_JSON = /^src\/domains\/(?:core\/)?[^/_][^/]*\/domain\.json$/;
 const SCREEN_PART_DIRS = ["_screen", "_layout"];
 const FORK_SCREEN_DIR = "_components";
@@ -92,7 +92,7 @@ export function explainView({ files, read, intake }) {
       }),
     generators: lazy(() =>
         list.flatMap((path) => {
-          const match = GATE_FILE.exec(path);
+          const match = PHASE_FILE.exec(path);
           const decl = match ? parseJson(read(path) ?? "") : null;
           return match && isRecord(decl) ? [{ name: match[1], globs: [...intakeOutputGlobs(decl.outputs), ...stringsOf(decl.regions)] }] : [];
         }),

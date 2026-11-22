@@ -54,7 +54,8 @@ export const isDomainTemplateGlob = (/** @type {string} */ glob) => /\{(dir|came
  */
 export function intakeOutputGlobs(outputs) {
   return normalizeGateOutputs(outputs)
-    .entries.filter((entry) => entry.kind === "every-run" && !isDomainTemplateGlob(entry.glob))
+    // core の生成物(.claude/rules/core/terms.md)は Tier1 の物: fork は書かない(fork で作り直しても同じ中身)ので書き場所に載せない
+    .entries.filter((entry) => entry.kind === "every-run" && !isDomainTemplateGlob(entry.glob) && !entry.glob.startsWith(".claude/rules/core/"))
     .map((entry) => entry.glob);
 }
 

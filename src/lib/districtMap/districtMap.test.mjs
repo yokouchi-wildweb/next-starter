@@ -62,11 +62,11 @@ test("4 種を見つけ、種類 → 名前で並べる。_ 始まり・core の
   assert.deepEqual(problems, []);
   assert.deepEqual(
     districts.map((d) => `${d.kind}:${d.name}`),
-    ["features:purchaseRequest", "features:sample", "features:wallet", "lib:cron", "lib:crud", "frame:admin", "frame:user", "proxies:demo"],
+    ["domains:purchaseRequest", "domains:sample", "domains:wallet", "lib:cron", "lib:crud", "frame:admin", "frame:user", "proxies:demo"],
   );
   const by = Object.fromEntries(districts.map((d) => [`${d.kind}:${d.name}`, d]));
-  assert.equal(by["features:wallet"].core, true);
-  assert.equal(by["features:sample"].core, false);
+  assert.equal(by["domains:wallet"].core, true);
+  assert.equal(by["domains:sample"].core, false);
   assert.equal(by["lib:cron"].core, null);
   assert.equal(by["frame:user"].dir, "src/app/(user)/_layout");
   assert.equal(by["frame:user"].frame, "user");
@@ -75,15 +75,15 @@ test("4 種を見つけ、種類 → 名前で並べる。_ 始まり・core の
 
 test("欄: config・上書きのパスと有無、apiKeys・requires・tables・gates・receptacles", () => {
   const by = Object.fromEntries(readDistrictMap(memorySource(BASE)).districts.map((d) => [`${d.kind}:${d.name}`, d]));
-  const wallet = by["features:wallet"];
+  const wallet = by["domains:wallet"];
   assert.deepEqual(wallet.config, { path: "src/domains/core/wallet/config.ts", exists: true });
   assert.deepEqual(wallet.override, { path: "src/config/domains/wallet.config.ts", exists: false });
   assert.deepEqual(wallet.tables, ["wallets", "wallet_lots"]);
   assert.deepEqual(wallet.gates, ["wallet"]);
-  assert.deepEqual(by["features:purchaseRequest"].apiKeys, ["purchaseRequest", "purchaseRequestLog"]);
-  assert.deepEqual(by["features:purchaseRequest"].requires, ["wallet", "walletHistory"]);
-  assert.deepEqual(by["features:sample"].tables, ["samples"]);
-  assert.deepEqual(by["features:sample"].receptacles, ["adminBulkActions"]);
+  assert.deepEqual(by["domains:purchaseRequest"].apiKeys, ["purchaseRequest", "purchaseRequestLog"]);
+  assert.deepEqual(by["domains:purchaseRequest"].requires, ["wallet", "walletHistory"]);
+  assert.deepEqual(by["domains:sample"].tables, ["samples"]);
+  assert.deepEqual(by["domains:sample"].receptacles, ["adminBulkActions"]);
   assert.deepEqual(by["lib:cron"].override, { path: "src/config/lib/cron.config.ts", exists: true });
   assert.deepEqual(by["lib:crud"].receptacles, []);
   assert.deepEqual(by["frame:admin"].override, { path: "src/config/layout/admin.config.ts", exists: false });
@@ -100,8 +100,8 @@ test("欄: 描画専用の config.ui.ts と <名前>.ui.config.ts のパスと�
     "src/config/layout/admin.ui.config.ts": "export default {};",
   };
   const by = Object.fromEntries(readDistrictMap(memorySource(files)).districts.map((d) => [`${d.kind}:${d.name}`, d]));
-  assert.deepEqual(by["features:wallet"].uiConfig, { path: "src/domains/core/wallet/config.ui.ts", exists: true });
-  assert.deepEqual(by["features:wallet"].uiOverride, { path: "src/config/domains/wallet.ui.config.ts", exists: true });
+  assert.deepEqual(by["domains:wallet"].uiConfig, { path: "src/domains/core/wallet/config.ui.ts", exists: true });
+  assert.deepEqual(by["domains:wallet"].uiOverride, { path: "src/config/domains/wallet.ui.config.ts", exists: true });
   assert.deepEqual(by["frame:admin"].uiConfig, { path: "src/app/admin/_layout/config.ui.ts", exists: false });
   assert.deepEqual(by["frame:admin"].uiOverride, { path: "src/config/layout/admin.ui.config.ts", exists: true });
   assert.deepEqual(by["lib:cron"].uiOverride, { path: "src/config/lib/cron.ui.config.ts", exists: false });
@@ -178,12 +178,12 @@ test("tableFiles: domains の地区の表と定義ファイル(パス順 → 出
   assert.ok(broken.problems.length > broken.tableProblems.length);
 });
 
-test("domainJson・generate: features は domain.json の有無と generate(省略 = true、無し = null)、ほかの種類は null、壊れた JSON は問題", () => {
+test("domainJson・generate: domains は domain.json の有無と generate(省略 = true、無し = null)、ほかの種類は null、壊れた JSON は問題", () => {
   const files = { ...BASE, "src/domains/sample/domain.json": '{ "name": "sample" }', "src/domains/core/wallet/domain.json": '{ "generate": false }' };
   const by = Object.fromEntries(readDistrictMap(memorySource(files)).districts.map((d) => [`${d.kind}:${d.name}`, d]));
-  assert.deepEqual([by["features:sample"].domainJson, by["features:sample"].generate], [true, true]);
-  assert.deepEqual([by["features:wallet"].domainJson, by["features:wallet"].generate], [true, false]);
-  assert.deepEqual([by["features:purchaseRequest"].domainJson, by["features:purchaseRequest"].generate], [false, null]);
+  assert.deepEqual([by["domains:sample"].domainJson, by["domains:sample"].generate], [true, true]);
+  assert.deepEqual([by["domains:wallet"].domainJson, by["domains:wallet"].generate], [true, false]);
+  assert.deepEqual([by["domains:purchaseRequest"].domainJson, by["domains:purchaseRequest"].generate], [false, null]);
   assert.deepEqual([by["lib:cron"].domainJson, by["lib:cron"].generate], [null, null]);
   const broken = readDistrictMap(memorySource({ ...BASE, "src/domains/sample/domain.json": "{ nope" }));
   assert.ok(broken.problems.some((p) => /src\/domains\/sample\/domain\.json: JSON として読めない/.test(p)), broken.problems.join("\n"));

@@ -7,8 +7,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { readBaseFiles } from "../../../src/lib/forkOwnership/baseFiles.mjs";
-import { readForkIdentity } from "../../../src/lib/forkOwnership/forkIds.mjs";
+import { readBaseFiles, readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 
 import { renderTermsMd, scan, TERMS_FILE, TERMS_MD } from "./lib.terms.mjs";
 

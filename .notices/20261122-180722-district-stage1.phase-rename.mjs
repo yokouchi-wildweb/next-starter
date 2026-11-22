@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// .notices/district-stage1.phase-rename.mjs
+// .notices/20261122-180722-district-stage1.phase-rename.mjs
 // 検査の段の語 gate → phase(段階)の移し替え(地区の議会の段 1、D19・D48)。上流(Tier1)も fork も同じ道具で、リポのルートで走らせる。
-// (区切りを閉じる commit で .notices/<その notice の id>.phase-rename.mjs に改名する。それまでの仮の id = 区切りの名前)
-// 使い方: node .notices/district-stage1.phase-rename.mjs [--apply] [--json]
+// (notice .notices/20261122-180722-district-stage1.md の uses: の道具。fork が取り込みの merge の途中に走らせる。上流は出荷の次の commit で消す)
+// 使い方: node .notices/20261122-180722-district-stage1.phase-rename.mjs [--apply] [--json]
 //   既定は dry-run(移動・書き換えの計画と止める一覧を出すだけ、何も書かない)。--apply で書き換え → 移動の順に書く。
 //   何度走らせても同じ結果(2 回目の --apply は何も変えない。止める一覧は残る)
 //
@@ -47,8 +47,9 @@ const GATEKEEPER = /^(番|の規則|の入口|の外|の機能|の開|の設定|
 
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git", ".turbo", "dist", "coverage", ".vercel"]);
 const BINARY = /\.(png|jpe?g|gif|webp|avif|ico|bmp|svgz|woff2?|ttf|otf|eot|pdf|zip|gz|tgz|mp4|webm|mov|mp3|wav|ogg|wasm|sqlite|db)$/i;
+const TEXT_EXT = /\.(m?[jt]sx?|c[jt]s|mts|json|jsonl|md|mdx|txt|css|scss|ya?ml|html|sql|sh)$/i; // 文字のファイル: NUL を含んでも読む(ソースに join("\0") の NUL を直に書いた物がある)
 const NOTICE_ID = /^\.notices\/\d{8}-\d{6}-/;
-const SELF = /^\.notices\/district-stage1\./; // この道具と同じ区切りの道具(改名の後は .notices/<id>. の形で shipped-notice に入る)
+const SELF = /^\.notices\/20261122-180722-district-stage1\./; // 同じ notice の道具とテスト(本文の id の形なので shipped-notice にも当たる)
 const SELF_ID = basename(fileURLToPath(import.meta.url)).replace(/\.phase-rename\.mjs$/, "");
 
 /** 見ない物か(理由か null) */
@@ -113,8 +114,9 @@ export function rewriteText(path, text) {
     return `${dots}phases`;
   });
   out = out.replace(new RegExp(String.raw`--gate${END}`, "g"), () => (bump("flag"), "--phase"));
-  out = out.replace(/(?<![A-Za-z0-9_-])gate\.json/g, () => (bump("file"), "phase.json"));
-  out = out.replace(/(?<![A-Za-z0-9_-])gates\.json/g, () => (bump("file"), "phases.json"));
+  // 点を正規表現でエスケープした字面(gate\.json・gate\\.json)も同じに読む
+  out = out.replace(/(?<![A-Za-z0-9_-])gate((?:\\{1,2})?\.)json/g, (_m, dot) => (bump("file"), `phase${dot}json`));
+  out = out.replace(/(?<![A-Za-z0-9_-])gates((?:\\{1,2})?\.)json/g, (_m, dot) => (bump("file"), `phases${dot}json`));
   out = out.replace(/(?<![A-Za-z0-9_-])gates\.test\.mjs/g, (m, offset, whole) => (/runner\/(gates|phases)\/$/.test(whole.slice(Math.max(0, offset - 15), offset)) || path.startsWith(RUNNER_FROM) || path.startsWith(RUNNER_TO) ? (bump("file"), "phases.test.mjs") : m));
   out = out.replace(new RegExp(String.raw`runner\/gates${END}`, "g"), () => (bump("dir"), "runner/phases"));
   out = out.replace(/(?<![A-Za-z0-9_$])env\.GATE(?![A-Za-z0-9_$])/g, () => (bump("env"), "env.PHASE"));
@@ -214,7 +216,7 @@ export function planRename(root) {
       continue;
     }
     const buffer = readFileSync(join(root, path));
-    if (buffer.includes(0)) {
+    if (buffer.includes(0) && !TEXT_EXT.test(path)) {
       skipped.binary = (skipped.binary ?? 0) + 1;
       continue;
     }

@@ -645,12 +645,12 @@ const config = [
       "realtime-room/purity": "error",
     },
   },
-  // 上書きファイル(src/config/{lib,features,layout,proxies} と基盤の上書き featureGate)の 2 規則(設定 D34・D35・D38・D91・L1.19・L1.31。詳細: eslint-rules/config-overrides.mjs, src/config/README.md)。
+  // 上書きファイル(src/config/{lib,domains,layout,proxies} と基盤の上書き featureGate)の 2 規則(設定 D34・D35・D38・D91・L1.19・L1.31。詳細: eslint-rules/config-overrides.mjs, src/config/README.md)。
   // 新しいフォルダだけが対象なので全 Tier error(縮む表なし)。fork に残る古い src/config/app・ui・documents と直下のファイルには掛けない
   // - literal-only: 上書きは値のリテラル。読めるのは型・process.env・@/business・持ち主が overrideImports で宣言した指定子だけ
   // - owner-reads-only: 上書きを読めるのは持ち主の config.ts(描画用は config.ui.ts)だけ。lib の中は entry/only-entries の持ち分
   {
-    files: ["src/config/{lib,features,layout,proxies,featureGate}/*.config.ts"],
+    files: ["src/config/{lib,domains,layout,proxies,featureGate}/*.config.ts"],
     plugins: { "config-overrides": configOverridesPlugin },
     rules: {
       "config-overrides/literal-only": "error",

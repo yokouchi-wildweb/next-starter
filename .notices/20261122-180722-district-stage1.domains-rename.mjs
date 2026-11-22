@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// .notices/district-stage1.domains-rename.mjs
+// .notices/20261122-180722-district-stage1.domains-rename.mjs
 // ドメインの置き場の改名 features → domains(地区の議会 段 1、D10・D43)。上流(Tier1)も fork も同じ道具で、リポのルートで走らせる。
-// (区切りを閉じる commit で .notices/<その notice の id>.domains-rename.mjs に改名する。それまでの仮の id = 区切りの名前)
-// 使い方: node .notices/district-stage1.domains-rename.mjs [--apply] [--json]
+// (notice .notices/20261122-180722-district-stage1.md の uses: の道具。fork が取り込みの merge の途中に走らせる。上流は出荷の次の commit で消す)
+// 使い方: node .notices/20261122-180722-district-stage1.domains-rename.mjs [--apply] [--json]
 //   既定は dry-run(移動・書き換えの計画と止める一覧を出すだけ、何も書かない)。--apply で書き換え → 移動の順に書く。
 //   何度走らせても同じ結果(2 回目の --apply は何も変えない。止める一覧は残る)
 //
@@ -25,6 +25,7 @@
 // - alias:    @/features(同)→ @/domains
 // - config:   config/features(src/config/features・@/config/features。同)→ config/domains
 // - card:     items/features(.claude/rules/items/features・文書の items/features/<name>.md。同)→ items/domains
+// - brace:    src/ か config/ の直後の波かっこの並びの要素 features(src/config/{lib,features,layout}・eslint の files の glob)→ domains
 // - bare:     前に語・/・@・. の無い features/ で、後ろの部品が英数字でない(<domain>・*・（ など)か今あるドメインのフォルダ名(core を含む)
 //             の物 → domains/(文書とコメントの features/<domain>/… の書き方)。後ろが知らない名前の features/ は止める
 // - relative: 相対の指定子 ../features/・./features/ は、ファイルの置き場から解いて src/features か src/config/features に当たる物だけ
@@ -72,8 +73,9 @@ export const LINT_RENAMES = [
 
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git", ".turbo", "dist", "coverage", ".vercel"]);
 const BINARY = /\.(png|jpe?g|gif|webp|avif|ico|bmp|svgz|woff2?|ttf|otf|eot|pdf|zip|gz|tgz|mp4|webm|mov|mp3|wav|ogg|wasm|sqlite|db)$/i;
+const TEXT_EXT = /\.(m?[jt]sx?|c[jt]s|mts|json|jsonl|md|mdx|txt|css|scss|ya?ml|html|sql|sh)$/i; // 文字のファイル: NUL を含んでも読む(ソースに join("\0") の NUL を直に書いた物がある)
 const NOTICE_ID = /^\.notices\/\d{8}-\d{6}-/;
-const SELF = /^\.notices\/district-stage1\./; // この道具と同じ区切りの道具(改名の後は .notices/<id>. の形で shipped-notice に入る)
+const SELF = /^\.notices\/20261122-180722-district-stage1\./; // 同じ notice の道具とテスト(本文の id の形なので shipped-notice にも当たる)
 const SELF_ID = basename(fileURLToPath(import.meta.url)).replace(/\.domains-rename\.mjs$/, "");
 
 /** 見ない物か(理由か null) */
@@ -157,6 +159,12 @@ export function rewriteText(path, text, names) {
   out = out.replace(new RegExp(String.raw`@${S}features${END}`, "g"), (m) => (bump("alias"), m.replace(/features$/, "domains")));
   out = out.replace(new RegExp(String.raw`config${S}features${END}`, "g"), (m) => (bump("config"), m.replace(/features$/, "domains")));
   out = out.replace(new RegExp(String.raw`items${S}features${END}`, "g"), (m) => (bump("card"), m.replace(/features$/, "domains")));
+  out = out.replace(new RegExp(String.raw`((?:src|config)${S}\{)([^{}\n]*)\}`, "g"), (m, head, list) => {
+    const parts = list.split(",");
+    if (!parts.some((x) => x.trim() === "features")) return m;
+    bump("brace");
+    return `${head}${parts.map((x) => (x.trim() === "features" ? x.replace("features", "domains") : x)).join(",")}}`;
+  });
   // bare
   out = out.replace(new RegExp(String.raw`(?<![A-Za-z0-9_@./\\-])features(${S})`, "g"), (match, sep, offset, whole) => {
     const rest = whole.slice(offset + match.length);
@@ -319,7 +327,7 @@ export function planRename(root, { baseText = mergeBaseReader(root) } = {}) {
       continue;
     }
     const buffer = readFileSync(join(root, path));
-    if (buffer.includes(0)) {
+    if (buffer.includes(0) && !TEXT_EXT.test(path)) {
       skipped.binary = (skipped.binary ?? 0) + 1;
       continue;
     }

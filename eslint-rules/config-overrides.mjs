@@ -1,6 +1,6 @@
 // eslint-rules/config-overrides.mjs
 //
-// 上書きファイル(src/config/{lib,features,layout,proxies}/<名前>.config.ts と <名前>.ui.config.ts、基盤の上書き src/config/featureGate/<中身>.config.ts)の
+// 上書きファイル(src/config/{lib,domains,layout,proxies}/<名前>.config.ts と <名前>.ui.config.ts、基盤の上書き src/config/featureGate/<中身>.config.ts)の
 // 2 つの規則(設定 D34・D35・D38・D91・L1.19・L1.31)。
 // 全 Tier error(新しいフォルダだけが対象なので縮む表は無い)。置き方の決まり: src/config/README.md
 //

@@ -14,6 +14,7 @@ export const TERMS_MD = ".claude/rules/core/terms.md";
 const SELF_DIR = "scripts/workflow/terms/";
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git", ".turbo", "dist", "coverage"]);
 const BINARY = /\.(png|jpe?g|gif|webp|avif|ico|bmp|woff2?|ttf|otf|eot|pdf|zip|gz|mp4|webm|mp3|wav|wasm)$/i;
+const TEXT_EXT = /\.(m?[jt]sx?|c[jt]s|mts|json|jsonl|md|mdx|txt|css|scss|ya?ml|html|sql|sh)$/i; // 文字のファイル: NUL を含んでも読む(ソースに join("\0") の NUL を直に書いた物がある)
 const CODE = /\.(mjs|cjs|js|ts|tsx|mts|cts)$/;
 
 /** ファイルの置き場の種類: "context" | "tools" | null(見ない) */
@@ -81,7 +82,7 @@ export function scan(root, only = null) {
   const hits = [];
   for (const path of listScanned(root, only)) {
     const buffer = readFileSync(join(root, path));
-    if (buffer.includes(0)) continue;
+    if (buffer.includes(0) && !TEXT_EXT.test(path)) continue;
     for (const hit of findHits(path, buffer.toString("utf8"), wrong)) hits.push({ path, ...hit });
   }
   return hits;

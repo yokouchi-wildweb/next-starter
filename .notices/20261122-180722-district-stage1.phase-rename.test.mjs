@@ -1,4 +1,4 @@
-// .notices/district-stage1.phase-rename.test.mjs
+// .notices/20261122-180722-district-stage1.phase-rename.test.mjs
 // 実行: pnpm test .notices(一時フォルダの fixture。git は使わない)
 
 import assert from "node:assert/strict";
@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { applyRename, planRename, rewriteText } from "./district-stage1.phase-rename.mjs";
+import { applyRename, planRename, rewriteText } from "./20261122-180722-district-stage1.phase-rename.mjs";
 
 function fixture(files) {
   const root = mkdtempSync(join(tmpdir(), "phase-rename-"));
@@ -115,6 +115,11 @@ test("移す先に既に物があれば移動を止める", () => {
   const plan = planRename(root);
   assert.deepEqual(plan.moves, []);
   assert.deepEqual(plan.stops.map((s) => [s.kind, s.path]), [["target-exists", "scripts/structure/x/phase.json"]]);
+});
+
+test("file: 正規表現の字面で点をエスケープした gate\\.json・gate\\\\.json も phase に", () => {
+  const out = rewriteText("scripts/x/a.mjs", 'const A = /\\/gate\\.json$/;\nconst B = new RegExp(`/${t}/gate\\\\.json$`);\n').text;
+  assert.equal(out, 'const A = /\\/phase\\.json$/;\nconst B = new RegExp(`/${t}/phase\\\\.json$`);\n');
 });
 
 test("renames.json: 改名の記録の \"old\" は当時の名のまま、\"new\" は書き換える", () => {

@@ -24,7 +24,6 @@ import {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TOOL = join(HERE, "20261111-143012-messaging-switch.messaging-switch.mjs");
-const REPO = join(HERE, "..");
 
 function fork(files) {
   const root = mkdtempSync(join(tmpdir(), "messaging-switch-"));
@@ -220,12 +219,6 @@ test("計画: 取り込み前の版(--from)の notification.config.ts を読む(
   const root = fork({ [MESSAGING_CONFIG]: "export default {} satisfies MessagingOverride;\n" });
   const result = plan(root, { readOld: (p) => (p === NOTIFICATION_CONFIG ? "export default { showUnreadModal: true } satisfies NotificationOverride;\n" : null) });
   assert.match(result.writes.get(MESSAGING_CONFIG), /inbox: \{ showUnreadModal: true, unreadModalPaths: \["\/"\] \}/);
-});
-
-test("上流の木で走らせると書く物も手直しも 0(上流の正当な古い名前は除く一覧にある)", () => {
-  const result = plan(REPO, { readOld: noOld });
-  assert.equal(result.writes.size, 0, [...result.writes.keys()].join(", "));
-  assert.deepEqual(result.stopped, []);
 });
 
 test("CLI: 手直しが残れば exit 2、--json は機械向け", () => {

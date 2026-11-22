@@ -37,7 +37,7 @@
     { "say": "domains-index-no-server-reexport", "pattern": "(?<![A-Za-z0-9_-])features-index-no-server-reexport(?![A-Za-z0-9_-])", "kind": "text", "in": "both", "decisions": ["D10"] },
     { "say": "domain の語(DOMAINS_ROOT・domainsDir・domainDir など)", "words": ["FEATURES_ROOT", "featuresDir", "featureDir", "featurePath", "resolvedFeatureDir", "coreFeatureDir", "featureRel", "featureCandidateSet", "featureImport", "libFeatures", "libNoFeatures", "hooksUtilsFeatures", "hooksUtilsNoFeatures", "isLibFeaturesImport", "isHooksUtilsFeaturesImport", "classifyFeaturesIndexReexport", "featuresIndexNoServerReexport"], "kind": "identifier", "in": "tools", "decisions": ["D10"] },
     { "say": "--phase", "pattern": "--gate(?![A-Za-z0-9_-])", "kind": "text", "in": "both", "decisions": ["D19", "D48"] },
-    { "say": "phase.json / phases.json", "pattern": "(?<![A-Za-z0-9_-])gates?\\.json", "kind": "text", "in": "both", "decisions": ["D19", "D48"] },
+    { "say": "phase.json / phases.json", "pattern": "(?<![A-Za-z0-9_-])gates?(?:\\\\{1,2})?\\.json", "kind": "text", "in": "both", "decisions": ["D19", "D48"] },
     { "say": "runner/phases", "pattern": "runner/gates(?![A-Za-z0-9_-])", "kind": "text", "in": "both", "decisions": ["D48"] },
     { "say": "段階 <段の名前>", "pattern": "門 ?(build:post|build|ship|forge:pre|forge:post|deploy|nightly)(?![A-Za-z0-9_-])", "kind": "text", "in": "both", "decisions": ["D19"] },
     { "say": "phase の語(PhaseError・phaseList・loadPhases・phaseTestFiles など)", "words": ["GateError", "gateList", "explicitGates", "offlineGates", "watchGates", "loadGates", "gateTestFiles", "gateTestsOf", "gateNames"], "kind": "identifier", "in": "tools", "decisions": ["D48"] },

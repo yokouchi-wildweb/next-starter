@@ -21,7 +21,7 @@ const OVERRIDE_FILE = /^[^.]+\.config\.ts$/;
 const UI_OVERRIDE_FILE = /^[^.]+\.ui\.config\.ts$/;
 const ALLOWED_OTHER = new Set(["README.md"]);
 
-const KIND_LABEL = { features: "ドメイン", lib: "lib", frame: "枠", proxies: "proxies" };
+const KIND_LABEL = { domains: "ドメイン", lib: "lib", frame: "枠", proxies: "proxies" };
 
 /** 種類のフォルダの直下の { name, isDir }(無ければ []) */
 function listFolder(root, rel) {

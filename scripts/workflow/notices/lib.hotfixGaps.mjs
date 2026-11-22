@@ -48,7 +48,7 @@ export function pnpmEntries(text) {
     add(`${m[1]} ${m[2]} ${m[3]}`, (files) => [".mjs", ".js", ".ts"].some((x) => files.includes(`${dir}${m[3]}${x}`)));
   }
   for (const m of text.matchAll(/\bpnpm\s+(?:-s\s+|--silent\s+)?(?:run\s+)?(check|generate)\s+([a-z][\w-]*)/g)) {
-    add(`${m[1]} ${m[2]}`, (files) => files.some((f) => new RegExp(`^scripts/[^/]+/${m[2]}/gate\\.json$`).test(f)));
+    add(`${m[1]} ${m[2]}`, (files) => files.some((f) => new RegExp(`^scripts/[^/]+/${m[2]}/phase\\.json$`).test(f)));
   }
   for (const m of text.matchAll(/\bpnpm\s+(?:-s\s+|--silent\s+)?(?:run\s+)?test((?:\s+(?:--[\w=,-]+|[\w./()-]+))+)/g)) {
     for (const t of m[1].trim().split(/\s+/).filter((x) => !x.startsWith("--") && PATH_ROOTS_ANY.test(x))) {
