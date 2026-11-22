@@ -6,7 +6,7 @@ paths:
 # domains/chatRoom
 what: realtime chat on Firestore: the browser reads and writes chat_rooms / messages through the chatRoom clients and hooks (hooks/firestore/), no REST in between; the admin screens use the generated CRUD API
 use: chatRoom
-change: placement → src/config/domains/chatRoom.config.ts (attachment content types) | own room types, room fields and message metadata need no core edit (Firestore is schemaless)
+change: counterpart → src/config/domains/chatRoom.config.ts (attachment content types) | own room types, room fields and message metadata need no core edit (Firestore is schemaless)
 rules:
 using:
 - chat_indexes: create the Firestore composite indexes of Usage「Firestore 複合インデックス」 before use (rooms list, type filter, admin list)

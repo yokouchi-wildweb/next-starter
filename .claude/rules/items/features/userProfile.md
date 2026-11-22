@@ -5,7 +5,7 @@ paths:
 # domains/userProfile
 what: per-role profile tables (one profile.json per role with hasProfile) with one CRUD / search interface; server userProfileService and getProfileBase (utils/profileBaseHelpers), client hooks @/domains/core/userProfile/hooks
 use: always
-change: add = a profile JSON profiles/<role>.profile.json (pnpm forge) | overlay = profiles/<role>.profile.override.ts (tags, searchFields, audit; profileDefinitions in extensionPoints.ts)
+change: add = a profile JSON profiles/<role>.profile.json (pnpm forge) | override = profiles/<role>.profile.override.ts (tags, searchFields, audit; profileDefinitions in extensionPoints.ts)
 rules:
 using:
 - override_literal: an override file holds only relative `import type` and `export const override = { … }` with literal values (read as text, never run)

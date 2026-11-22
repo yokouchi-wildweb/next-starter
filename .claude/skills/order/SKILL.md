@@ -87,7 +87,7 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
 - tools file sheets they collected with the same `check file` (no Claude session needed)
 
 ## TEMPORARY PERMIT REQUEST (a fork passing an ownership-check violation)
-- violations of `pnpm workflow ownership check` that cannot move to an intake point or be reverted (features upstream lacks, upstream bug / perf / security fixes) pass by an order to the direct parent + a temporary permit (`src/lib/forkOwnership/README.md` section `一時許可`)
+- violations of `pnpm workflow ownership check` that cannot move to an intake point or be reverted (capabilities upstream lacks, upstream bug / perf / security fixes) pass by an order to the direct parent + a temporary permit (`src/lib/forkOwnership/README.md` section `一時許可`)
 1. target = the direct parent (TIER of `.claude/rules/project.md`, else the repo of a remote other than origin) | file it by the steps above | need = the violating paths and what upstream needs (intake point, fix) | refs = the check's violation lines and the draft permit line (`<path> upreq:<依頼の番号> base:… head:…`) | why = why the fork needs that edit now
    - a permit request for delete / rename is limited to "please provide an intake that switches it off (feature-gate etc.)"; an addition to an ancestor lib to "please take it into that lib / please add an intake point"
    - never file for upstream debt spots (debt of intake.txt) or orders upstream already accepted (fix orders in its inbox) | use the reason field of the intake.txt debt / the order id as is

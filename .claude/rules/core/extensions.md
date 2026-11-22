@@ -15,7 +15,7 @@ judge: first match, by what the copy would hold | never by line count or area na
 2. the copy holds only looks and layout, visual state included (open, hover) → copy, line 1 = the mark
 3. the copy holds unchanged behavior (form state, submit, effect logic, query, route, server logic) or a guard, or no means exists → /order the direct parent + temporary permit | upstream splits the part or adds a receptacle | writing your own part from scratch instead stays allowed (own_mark)
 
-not a copy (free): a new feature | a part of your own written from scratch (own_mark below) | calling public services, hooks, Factories | a fork route declaring guards on a Factory | calling walletService | a new sign-in method
+not a copy (free): a new capability | a part of your own written from scratch (own_mark below) | calling public services, hooks, Factories | a fork route declaring guards on a Factory | calling walletService | a new sign-in method
 guards: access, rateLimit, recaptcha, session cookie, token issuing, balance or payment writes | a copy holding one is not allowed, auth screens' text and looks are normal
 
 want → means:

@@ -6,7 +6,7 @@ paths:
 # domains/messaging
 what: messages to users (email, inbox, LINE, fork channels): definitions messages/<name>.ts sent by messagingService (@/domains/messaging/services/server), recorded as dispatches and deliveries
 use: sending is always open | messagingDispatches, messagingBroadcast, messagingTemplates, messagingOverrides, messagingPreferences, messagingInbox, messagingTracking
-change: placement = src/config/domains/messaging.config.ts | overlay = <name>.override.ts | add = receptacle items (extensionPoints.ts) | replace = layouts/<name>/ .replace
+change: counterpart = src/config/domains/messaging.config.ts | override = <name>.override.ts | add = receptacle items (extensionPoints.ts) | replace = layouts/<name>/ .replace
 rules:
 using:
 - send_entry: messages to users go through messagingService only: a definition (messages/<name>.ts) → sendMessage / sendMessageToMany | admin free text → sendFreeMessage (a layout or a DB template) | never lib/mail send() or a channel directly

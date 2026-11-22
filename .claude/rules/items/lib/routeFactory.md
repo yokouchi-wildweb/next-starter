@@ -6,7 +6,7 @@ paths:
 # lib/routeFactory
 what: the generic API route factories (createApiRoute, createDomainRoute / createDomainIdRoute, createMeRoute, createDeviceRoute, enforceAccessRule) | routes import the wired version @/wiring/apiRoute (src/wiring/apiRoute.ts)
 use: always
-change: placement = src/config/lib/routeFactory.config.ts (recaptcha threshold / v2Threshold defaults) | add = a fork's own principal factory in src/wiring/<name>.ts built from createRouteFactories
+change: counterpart = src/config/lib/routeFactory.config.ts (recaptcha threshold / v2Threshold defaults) | add = a fork's own principal factory in src/wiring/<name>.ts built from createRouteFactories
 rules:
 using:
 - public_read_all_public: generic read "public" only when every record is public (search, count, relations too)
@@ -22,5 +22,5 @@ using:
 editing:
 - authz_before_demo: access is evaluated before the demo skip
 - resolve_user_contract: resolveUser returns null = known absent, throws = cannot verify
-- lib_knows_no_features: principal types come as type params; never imports features
+- lib_knows_no_domains: principal types come as type params; never imports domains
 read: pick a factory, user-needed work, webhooks → Usage | access table, principal, factories, errors → API | own factory → Extension | generic build → Internals | checks → Verification

@@ -6,12 +6,12 @@ paths:
 # domains/userGroup
 what: named, reusable sets of users (kind dynamic / scheduled / static) | entry services/server: userGroupEvaluator, staticMemberWriter
 use: userGroups
-change: add = criteria/<name>.ts (receptacle criteria) | overlay = criteria/<name>.override.ts (enabled, label, description) | placement = src/config/domains/userGroup.config.ts
+change: add = criteria/<name>.ts (receptacle criteria) | override = criteria/<name>.override.ts (enabled, label, description) | counterpart = src/config/domains/userGroup.config.ts
 rules:
 using:
-- not_event_recipients: event recipients (followers etc.) are no group → the feature picks users itself, sends as sendMessageToMany `recipients`
+- not_event_recipients: event recipients (followers etc.) are no group → the calling domain picks users itself, sends as sendMessageToMany `recipients`
 - availability_by_caller: a group never filters by availability → the caller applies availableUserWhere (user)
-- gate_as_dependency: with userGroups closed the evaluator and writer throw 404 → a feature using groups hides group choices, refuses group operations
+- gate_as_dependency: with userGroups closed the evaluator and writer throw 404 → a domain using groups hides group choices, refuses group operations
 - heavy_is_scheduled: isMember on a dynamic group with a heavy part = 409 → make it scheduled
 - adhoc_evaluate: conditions for one event → evaluate(definition), never a saved group
 - non_sql_static: a condition SQL cannot express → a fork task writes a static group (runAsSystem) and conditions use inStaticGroup

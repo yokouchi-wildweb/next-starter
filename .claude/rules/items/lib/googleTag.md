@@ -15,6 +15,6 @@ using:
 editing:
 - keep_existing_gtag: reuse an existing window.gtag / dataLayer (Firebase Analytics), never overwrite it
 - client_only: the lib does nothing on the server
-- no_features_config: the lib reads neither features nor src/config; the channel table is passed in
+- no_domains_config: the lib reads neither domains nor src/config; the channel table is passed in
 - new_conversion: a new named conversion = one env + one GOOGLE_ADS_CONVERSIONS key + fire at its site
 read: env and setup → Usage | functions → API | add a conversion → Extension | referrer and invite handling → Internals

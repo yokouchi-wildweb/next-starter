@@ -26,7 +26,7 @@ mailbox: `~/.local/state/next-starter/orders/` (shared folder; real place = `roo
 target: $ARGUMENTS
 
 ## LIST (args empty)
-0. this repo is Tier1 (owner of the first section of `src/lib/CATALOG.md`) → put line 1 of `pnpm workflow ownership check` (count of upstream debt rows) as one line at the head of the list (debt = places where upstream points downstream to an edit inside core; orders to build intake points sit in the inbox; src/lib/forkOwnership/README.md `受け口の一覧`) | not Tier1 → nothing
+0. this repo is Tier1 (owner of the first section of `src/lib/CATALOG.md`) → put line 1 of `pnpm workflow ownership check` (count of upstream debt rows) as one line at the head of the list (debt = places where upstream points downstream to an edit inside core; orders to build intake points sit in the inbox; src/lib/forkOwnership/README.md, its intake.txt section) | not Tier1 → nothing
 1. get the unhandled orders to this repo with `node .claude/skills/order/mailbox.mjs inbox` (first word of each = `open` / `routed` / `taken` / `waiting` / `resumable`; `routed_to:` / `taken_by:` lines = owner; trailing `(you)` = yourself)
 2. list them, using the output's `title:`, `need:`, `from:`:
    - a `kind:` line → prefix the title with its value | one kind only → `inbox --kind=<value>`

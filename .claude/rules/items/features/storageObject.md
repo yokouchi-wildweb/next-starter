@@ -6,10 +6,10 @@ paths:
 # domains/storageObject
 what: the file ledger storage_objects: upload grants, commit (check, strip images re-rendered), discard, private reads, binding to business rows | storageObjectService, routes /api/me/storage/uploads, /api/storage/objects, /api/storage/purposes | parts in @/lib/storage
 use: always (in no rule's domains)
-change: add = purposes/<name>.ts (receptacle purposes) | placement = src/config/domains/storageObject.config.ts
+change: add = purposes/<name>.ts (receptacle purposes) | counterpart = src/config/domains/storageObject.config.ts
 rules:
 using:
-- purpose_gate: a purpose reading a closable feature's table checks gate.enabled on upload (read stays open)
+- purpose_gate: a purpose reading a closable domain's table checks gate.enabled on upload (read stays open)
 - commit_ref: business rows store the ref from the commit response, not from issue
 - server_owner: putFromServer / copy owner = the real user, null for cron / system
 - copy_outside_tx: run putFromServer / copy before the DB TX or lock when you can (strip re-render cost)

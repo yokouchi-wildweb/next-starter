@@ -15,5 +15,5 @@ using:
 - task_incomplete_idempotent: taskIncomplete and TaskRerunnableError only in idempotent tasks that resume when run again | a non-idempotent task just throws (unknown when it holds a stop key, else failed)
 - task_local_dry_run: a .local.ts migration honors `--dry-run` itself (no writes) | once downstream needs it, drop `.local` and add `notice:`
 editing:
-- task_no_deps: the lib reads no features, @/components or @/wiring
+- task_no_deps: the lib reads no domains, @/components or @/wiring
 read: add a task / migration, .local.ts → Usage | types and marks → API | stop checks, notice check, run records → Internals | taskRun, cron → Related

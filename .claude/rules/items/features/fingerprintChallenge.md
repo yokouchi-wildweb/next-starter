@@ -6,7 +6,7 @@ paths:
 # domains/fingerprintChallenge
 what: a challenge form sent to a suspected user; submitting it forces device fingerprint + behavior capture | the domain holds the lifecycle (issue → answer → review) and data contract, no UI parts | entry @/domains/core/fingerprintChallenge, hooks under its hooks/
 use: fingerprintChallenge (requires deviceFingerprint: open both)
-change: placement → open in src/config/featureGate/switches.config.ts (config.ts has no on/off key) | process values in src/config/domains/fingerprintChallenge.config.ts
+change: counterpart → open in src/config/featureGate/switches.config.ts (config.ts has no on/off key) | process values in src/config/domains/fingerprintChallenge.config.ts
 rules:
 using:
 - challenge_page_range: an answer page lives outside (user)/(protected) under its own range guard.ts whose allowStatuses = the config challenge.answerableStatuses + an `await guard()` layout (the protected range is active only) | the general rule = core/screens.md status_pages

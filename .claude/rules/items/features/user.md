@@ -6,7 +6,7 @@ paths:
 # domains/user
 what: users (admins too), roles, status history, display names, delete cleanup | userService
 use: always
-change: placement = src/config/domains/user.config.ts | overlay = <name>.override.ts | add = receptacles (extensionPoints.ts)
+change: counterpart = src/config/domains/user.config.ts | override = <name>.override.ts | add = receptacles (extensionPoints.ts)
 rules:
 using:
 - no_raw_users_write: users and names are written only via createFromProvider / userService | refuse withdrawn users via findByProvider first, not a createFromProvider option

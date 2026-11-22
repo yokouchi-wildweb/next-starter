@@ -6,7 +6,7 @@ paths:
 # domains/admin
 what: admin screen parts: sidebar menu (menu/), /admin dashboard (dashboard/, entry @/domains/admin/dashboard), fetch bodies of admin list / edit / create / sort (services/server/screenData/)
 use: always
-change: add = menu categories / items, dashboard sections in the receptacles of extensionPoints.ts | overlay = <key>.override.ts beside an upstream entry | placement = src/config/domains/admin.config.ts
+change: add = menu categories / items, dashboard sections in the receptacles of extensionPoints.ts | override = <key>.override.ts beside an upstream entry | counterpart = src/config/domains/admin.config.ts
 rules:
 using:
 - entry_key_name: an entry's file name = its `key` (camelCase), an override targets it

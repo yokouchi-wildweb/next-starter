@@ -5,7 +5,7 @@ paths:
 # lib/spacing
 what: the spacing scale (none…4xl), the spacing prop types (SpacingValue, BoxSpacingProps) and the value → class lookup over the generated class table; entry @/lib/spacing
 use: always
-change: placement → token values `--space-*` in `:root` of any root src/styles/*.css (the tokens live in src/styles/core/config.css) | the scale itself: none → /order <direct parent>
+change: counterpart → token values `--space-*` in `:root` of any root src/styles/*.css (the tokens live in src/styles/core/config.css) | the scale itself: none → /order <direct parent>
 rules:
 using:
 - spacing_entry: import `@/lib/spacing` only, never a file inside

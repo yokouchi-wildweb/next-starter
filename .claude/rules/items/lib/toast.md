@@ -6,7 +6,7 @@ paths:
 # lib/toast
 what: the closed lib of one-at-a-time toasts and toasts shown after a redirect (cookie handoff) | entry @/lib/toast (useToast, useLoadingToast, GlobalToast, RedirectToastProvider, setRedirectToastCookie)
 use: always
-change: placement → src/config/lib/toast.config.ts (@lib-config/toast: duration, position, size, ariaLabel)
+change: counterpart → src/config/lib/toast.config.ts (@lib-config/toast: duration, position, size, ariaLabel)
 rules:
 using:
 - toast_entry: read the lib only through its entry `@/lib/toast` | useToastStore only to read the store directly, otherwise useToast / useLoadingToast

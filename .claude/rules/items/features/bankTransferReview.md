@@ -5,7 +5,7 @@ paths:
 # domains/bankTransferReview
 what: the self-report and admin review of in-house bank transfers (inhouse provider, no webhook) | entry @/domains/core/bankTransferReview, admin hooks @/domains/core/bankTransferReview/hooks/<name>
 use: bankTransferReview (dependsOn payment; open only while payment method bank_transfer_inhouse is selectable)
-change: placement → src/config/domains/purchaseRequest.config.ts (payment.paymentMethods bank_transfer_inhouse status, payment.bankTransfer autoComplete / account, payment.providers.inhouse) | add → adminBulkActions (extensionPoints.ts; <name>.override.ts = enabled, order)
+change: counterpart → src/config/domains/purchaseRequest.config.ts (payment.paymentMethods bank_transfer_inhouse status, payment.bankTransfer autoComplete / account, payment.providers.inhouse) | add → adminBulkActions (extensionPoints.ts; <name>.override.ts = enabled, order)
 rules:
 using:
 - account_production: payment.bankTransfer.account ships sample values → set the business's real account before a production release

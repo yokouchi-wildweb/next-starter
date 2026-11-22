@@ -6,14 +6,14 @@ paths:
 # lib/storage
 what: engine-independent file storage parts: storage:// refs, display URLs, delivery rules, purposes (strip / keep), StoragePort + GCS, re-encoding, client upload | closed lib: entries @/lib/storage (refs, display, rules, types, config, client upload parts) and @/lib/storage/server (port, GCS, stores, purposes, legacy, re-encoding, fake) | authz and the ledger live in storageObject
 use: always
-change: placement = src/config/lib/storage.config.ts (read TTLs, imageStrip, and the env functions publicBaseUrl / stores.<pub|priv|legacy> bucket / prefix; upstream reads the same env names as before) | add = storageObject purposes/<name>.ts or domain.json field.storage
+change: counterpart = src/config/lib/storage.config.ts (read TTLs, imageStrip, and the env functions publicBaseUrl / stores.<pub|priv|legacy> bucket / prefix; upstream reads the same env names as before) | add = storageObject purposes/<name>.ts or domain.json field.storage
 rules:
 using:
-- through_base: every upload, read and delete goes through this base and storageObject
+- through_base: every upload, read and delete goes through this lib and storageObject
 - display_helpers: public URLs come only from resolveStorageSrc | display parts use toStorageDisplaySrc
 - strip_default (MANDATORY): image purposes default metadata "strip" (the server re-encodes, removing GPS / EXIF / XMP / IPTC / ICC), "keep" only when the original is needed (explicit) | user.avatar is always strip | public docs (privacy policy) name the strip purposes, never "all images"
 - purpose_decides: callers never pass strip / keep | image shrinking is declared once per purpose, never on input parts | purposeId is never renamed
-- upload_callsite: features / app UI never call uploadToStorage → MediaUploader parts or the domain's hook
+- upload_callsite: domain / app UI never call uploadToStorage → MediaUploader parts or the domain's hook
 - media_schema: media columns use storageMediaValueSchema, never z.string().url()
 - legacy_three_uses: legacy URL helpers only for delete-on-row-delete, admin copy and admin probe
 - private_media_src: private video / audio get the URL in the element's src attribute, never a <source> child | no page-wide re-sign mechanism

@@ -5,7 +5,7 @@ paths:
 # domains/setting
 what: values an admin changes in the running app: one row `global` + one jsonb holding saved keys only | key = fields/<key>.ts, section = sections/<name>.ts → generated lists | server settingService, hooks in hooks/
 use: always
-change: add = fields/<key>.ts, sections/<name>.ts (receptacles in extensionPoints.ts, then pnpm generate extensions) | overlay = <name>.override.ts beside a parent tier's key or section
+change: add = fields/<key>.ts, sections/<name>.ts (receptacles in extensionPoints.ts, then pnpm generate extensions) | override = <name>.override.ts beside a parent tier's key or section
 rules:
 using:
 - config_direction: a setting default may read config, never the reverse

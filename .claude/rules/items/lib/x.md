@@ -3,7 +3,7 @@ paths:
   - "src/lib/x/**"
 ---
 # lib/x
-what: the X (Twitter) API base over twitter-api-v2: clients (OAuth 1.0a / 2.0 / app-only), OAuth 2.0 PKCE, tweet and media helpers, error classes, webhook verification | entry @/lib/x | stored user tokens: userXProfile domain
+what: the X (Twitter) API layer over twitter-api-v2: clients (OAuth 1.0a / 2.0 / app-only), OAuth 2.0 PKCE, tweet and media helpers, error classes, webhook verification | entry @/lib/x | stored user tokens: userXProfile domain
 use: always
 change: none → /order <direct parent>
 rules:

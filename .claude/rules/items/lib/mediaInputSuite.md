@@ -9,7 +9,7 @@ use: always
 change: none → /order <direct parent>
 rules:
 using:
-- mis_upload_via_parts: UI parts of features and app never call uploadToStorage directly (domain hooks may) | forms upload through these parts (or FieldRenderer / the formAdapters)
+- mis_upload_via_parts: UI parts of domains and app never call uploadToStorage directly (domain hooks may) | forms upload through these parts (or FieldRenderer / the formAdapters)
 - mis_purpose: an uploader takes a registered purpose `<domain>.<field>` | no path, no strip / keep and no shrink option on the part (the purpose declares them)
 - mis_helper_text: size and shrink notes go in the field's helperText with the purpose's image.maxDimension numbers, never inside the part
 - mis_reencode: reencodeImage is never counted as the metadata-removal guarantee

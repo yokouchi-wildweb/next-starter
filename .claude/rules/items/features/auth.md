@@ -6,7 +6,7 @@ paths:
 # domains/auth
 what: sign-in, registration (pre → full), JWT session, user deps of the page / API guards (@/domains/auth/<path>, no barrel) | users, status, roles = user
 use: always | signup: the gate rule signup
-change: placement = src/config/domains/auth.config.ts | screens: _components/ calling the public hooks
+change: counterpart = src/config/domains/auth.config.ts | screens: _components/ calling the public hooks
 rules:
 using:
 - one_account_per_provider: identity = (provider_type, provider_uid), never merge by email | admins and users share one users table

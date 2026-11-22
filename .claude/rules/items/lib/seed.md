@@ -14,5 +14,5 @@ using:
 - seed_create_for_external: a domain whose create also writes outside the DB (Firebase …) offers `seedCreate` for seeds
 - fork_seeds_own_domain: a fork never adds seeds to a core domain; its data goes to its own domain's seed.ts (upstream rows are reachable by ref)
 editing:
-- no_deps: the lib reads no features, shelf, @/wiring or DB
+- no_deps: the lib reads no domains, shelf, @/wiring or DB
 read: write a seed.ts → Usage | exports → API | stop / skip rules → Internals | tests → Verification

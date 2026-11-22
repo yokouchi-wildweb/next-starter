@@ -1,6 +1,6 @@
 ---
 name: project-review
-description: Review this repo's own context (project.md, behavior.md, own rules) - not code - against the base (CLAUDE.md, core, ancestors' lineage sections) - take the facts from pnpm workflow context facts, clear what the facts decide in one approval per destination, ask the rest one line at a time, write only what was approved | When the user asks to review or tidy the project's own rules or context, after taking in a notice that asks for it, and periodic cleanup
+description: Review this repo's own context (project.md, behavior.md, own rules) - not code - against the wider rules (CLAUDE.md, core, ancestors' lineage sections) - take the facts from pnpm workflow context facts, clear what the facts decide in one approval per destination, ask the rest one line at a time, write only what was approved | When the user asks to review or tidy the project's own rules or context, after taking in a notice that asks for it, and periodic cleanup
 argument-hint: "[補足(任意): 見るファイル・一度に扱う件数など]"
 ---
 
@@ -29,11 +29,11 @@ judging: the table below decides mechanically | never change a decision by "look
 
 ## TABLE (from the facts row; first match wins)
 - A1 dead refs: refs n/n with n ≥ 1 all gone, none a relative path of another repo → fix the path (show the new one) or drop the line
-- A2 restates the base: `same` names CLAUDE.md, a core file or a card → drop (never restate core)
-- A3 shipped order: mark `order:<id>:done` → drop the provisional line (its order shipped; the base now holds the rule)
+- A2 restates the wider rules: `same` names CLAUDE.md, a core file or a card → drop (never restate core)
+- A3 shipped order: mark `order:<id>:done` → drop the provisional line (its order shipped; the wider rules now hold it)
 - A4 permission by hand: words has `perm`, the line is not a pointer to repo.json / /repo-policy / devcheck → move it to repo.json agent.* through /repo-policy, drop the line
-- J1 same key as the base, no mark (`base` ≥ 1, mark -) → the base already wins, so the line does nothing or misleads | options: drop | mark `(priority)` (this repo means to differ) | /order <owner> (the base is wrong) | rename the key (a different meaning) | recommend drop when the text agrees with the base
-- J2 marked against the base (mark priority, `base` ≥ 1) → options: /order <owner> then add `(order: <id>)` (recommended) | keep marked | drop the mark
+- J1 same key as a wider rule, no mark (`base` ≥ 1, mark -) → the wider rule already wins, so the line does nothing or misleads | options: drop | mark `(priority)` (this repo means to differ) | /order <owner> (the wider rule is wrong) | rename the key (a different meaning) | recommend drop when the text agrees with the wider rule
+- J2 marked against a wider rule (mark priority, `base` ≥ 1) → options: /order <owner> then add `(order: <id>)` (recommended) | keep marked | drop the mark
 - J3 unknown order: mark `order:<id>:unknown` → options: fix the id | drop the line
 - J4 misplaced (read the line): env branches or switch values in behavior.md → config or repo.json | one person's taste → CLAUDE.local.md (/meditate) | a rule only for one item → its card | usage or mechanism → its README | business overview → .claude/rules/service/ (a tier that defines a business) | an overview line in behavior.md → project.md | options = the destinations that fit, with the text
 - not asked: `order:<id>:open` (a provisional rule waiting for its order), and every row that matches none of the above

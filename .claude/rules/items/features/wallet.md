@@ -6,7 +6,7 @@ paths:
 # domains/wallet
 what: per-user in-app currencies: balance, reservation, history, expiry lots | entry walletService (services/server/walletService), types @/domains/core/wallet
 use: wallet
-change: add = a purchase bonus display in purchaseBonuses/ (extensionPoints.ts) | overlay = purchaseBonuses/<key>.override.ts (enabled, order) | placement = src/config/domains/wallet.config.ts, wallet.ui.config.ts
+change: add = a purchase bonus display in purchaseBonuses/ (extensionPoints.ts) | override = purchaseBonuses/<key>.override.ts (enabled, order) | counterpart = src/config/domains/wallet.config.ts, wallet.ui.config.ts
 rules:
 using:
 - reason_key: a grant names its kind with reasonKey, never reason text or meta

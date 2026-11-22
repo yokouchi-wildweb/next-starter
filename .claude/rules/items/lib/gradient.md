@@ -6,7 +6,7 @@ paths:
 # lib/gradient
 what: gradient design tokens with one source for TS and CSS (listGradients / getGradient, generated gradient.css utilities) and the color value model (default / solid / gradient), entry @/lib/gradient (closed lib: the one "." entry, also read by the styles generator)
 use: always
-change: placement → src/config/lib/gradient.config.ts (customGradients), then pnpm generate styles
+change: counterpart → src/config/lib/gradient.config.ts (customGradients), then pnpm generate styles
 rules:
 using:
 - grad_extend_config: a fork adds tokens in src/config/lib/gradient.config.ts, never edits gradient.css or tokens.base.ts

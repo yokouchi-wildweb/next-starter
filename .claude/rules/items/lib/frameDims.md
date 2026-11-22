@@ -6,7 +6,7 @@ paths:
 # lib/frameDims
 what: useFrameDimsStyle() (@/lib/frameDims) gives a body-portaled part the frame's size variables (header, banner, bottom nav heights) with the frame's current values
 use: always
-change: overlay = src/config/lib/frameDims.config.ts (rootSelector, vars)
+change: counterpart = src/config/lib/frameDims.config.ts (rootSelector, vars)
 rules:
 using:
 - portal_root_style: put the returned style on the portaled part's outermost element and use var() inside | never read the frame yourself

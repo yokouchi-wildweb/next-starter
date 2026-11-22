@@ -484,5 +484,53 @@
   "old": ".claude/rules/project.md request_protocol",
   "new": ".claude/rules/core/notices.md orders",
   "order": 93
+ },
+ {
+  "kind": "claude-section",
+  "old": "CLAUDE.md FEATURES",
+  "new": "CLAUDE.md ITEMS",
+  "order": 128
+ },
+ {
+  "kind": "rule-key",
+  "old": ".claude/rules/core/ownership.md config_overrides",
+  "new": ".claude/rules/core/ownership.md config_values",
+  "order": 128
+ },
+ {
+  "kind": "rule-key",
+  "old": ".claude/rules/core/scripts.md gates",
+  "new": ".claude/rules/core/scripts.md phases",
+  "order": 128
+ },
+ {
+  "kind": "rule-key",
+  "old": ".claude/rules/core/scripts.md gate_tests",
+  "new": ".claude/rules/core/scripts.md phase_tests",
+  "order": 128
+ },
+ {
+  "kind": "rule-key",
+  "old": ".claude/rules/items/features/demo.md stays_base",
+  "new": ".claude/rules/items/domains/demo.md always_open",
+  "order": 129
+ },
+ {
+  "kind": "rule-key",
+  "old": ".claude/rules/items/lib/siteTheme.md literal_override",
+  "new": ".claude/rules/items/lib/siteTheme.md literal_values",
+  "order": 129
+ },
+ {
+  "kind": "rule-key",
+  "old": ".claude/rules/items/lib/googleTag.md no_features_config",
+  "new": ".claude/rules/items/lib/googleTag.md no_domains_config",
+  "order": 129
+ },
+ {
+  "kind": "rule-key",
+  "old": ".claude/rules/items/lib/routeFactory.md lib_knows_no_features",
+  "new": ".claude/rules/items/lib/routeFactory.md lib_knows_no_domains",
+  "order": 129
  }
 ]

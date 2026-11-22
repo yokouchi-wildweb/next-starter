@@ -5,7 +5,7 @@ paths:
 # components/Button
 what: the button parts Button, LinkButton, PseudoButton, RoundedButton, BookmarkTag, TabletButton, each a unit @/components/Button/\<Part\>, and the helper unit @/components/Button/variants (buttonVariants, tabletButtonVariants and their style types)
 use: always
-change: placement → shape (radius, shadow, border, sizes) = `button` / `tabletButton` keys of src/config/lib/variantOverrides.config.ts | heights = `--control-h-*` / `--tablet-control-h-*` values in `:root` of any root src/styles/*.css (the tokens live in src/styles/core/config.css)
+change: counterpart → shape (radius, shadow, border, sizes) = `button` / `tabletButton` keys of src/config/lib/variantOverrides.config.ts | heights = `--control-h-*` / `--tablet-control-h-*` values in `:root` of any root src/styles/*.css (the tokens live in src/styles/core/config.css)
 rules:
 using:
 - button_source: a button comes from @/components/Button/\<Part\> | the style table only from @/components/Button/variants | Primitives/Button directly only when the finished buttons fall short

@@ -4,7 +4,7 @@ paths:
 ---
 # lib/fingerprint
 what: domain-free collection, normalizing and hashing of browser device signals (collectFingerprintPayload) and headless form behavior capture (useBehavioralCapture) | entry @/lib/fingerprint
-use: always (the features that store and use it: deviceFingerprint, fingerprintChallenge)
+use: always (the domains that store and use it: deviceFingerprint, fingerprintChallenge)
 change: none → /order <direct parent>
 rules:
 using:

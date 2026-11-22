@@ -6,7 +6,7 @@ paths:
 # domains/interactionTracking
 what: counts actions per content (target_type, target_id, action), anonymous users included: public ingest /api/interactions (+ /batch for impressions), interactionService on the server, lifetime and daily counters kept forever
 use: interactionTracking
-change: add → targetRules (extensionPoints.ts; an unlisted targetType is rejected) | placement → src/config/domains/interactionTracking.config.ts
+change: add → targetRules (extensionPoints.ts; an unlisted targetType is rejected) | counterpart → src/config/domains/interactionTracking.config.ts
 rules:
 using:
 - it_scope: only events that grow at the speed of a user's click | impressions → the batch ingest | streams or tens of millions a day → a separate pipeline (CLAUDE.md COUNTING NOT_for)

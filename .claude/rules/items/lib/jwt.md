@@ -6,7 +6,7 @@ paths:
 # lib/jwt
 what: thin wrappers to sign and verify user JWTs and read the session cookie, generic over injected claim schemas | entry @/lib/jwt (signUserToken, verifyUserToken, parseSessionCookie, SESSION_COOKIE_NAME, SESSION_DEFAULT_MAX_AGE_SECONDS)
 use: always
-change: placement → src/config/lib/jwt.config.ts (@lib-config/jwt: cookieName, defaultMaxAgeSeconds)
+change: counterpart → src/config/lib/jwt.config.ts (@lib-config/jwt: cookieName, defaultMaxAgeSeconds)
 rules:
 using:
 - jwt_claims_parser: verifyUserToken always gets a claimsParser that normalizes to the domain type and returns null on a verify error or schema mismatch (null = invalid token)

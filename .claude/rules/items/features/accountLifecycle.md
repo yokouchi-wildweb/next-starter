@@ -6,7 +6,7 @@ paths:
 # domains/accountLifecycle
 what: self-service pause, withdraw and reactivate of one's own account (@/domains/accountLifecycle): no table of its own, it moves users.status through user's services; screens /mypage/pause, /mypage/withdraw, /mypage/other, /reactivate, /reactivate/complete
 use: pause, withdraw, mypagePause, mypageWithdraw, mypageOther (the folder itself is in no rule's domains)
-change: placement = src/config/domains/accountLifecycle.config.ts (withdraw.description) | screens: replace per route (SCREENS)
+change: counterpart = src/config/domains/accountLifecycle.config.ts (withdraw.description) | screens: replace per route (SCREENS)
 rules:
 using:
 - withdraw_cleanup: data of your domain to clear on withdraw → an item in user's cleanupHandlers receptacle (run inside the withdraw transaction and the admin soft delete)

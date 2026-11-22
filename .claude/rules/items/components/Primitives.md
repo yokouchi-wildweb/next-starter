@@ -5,7 +5,7 @@ paths:
 # components/Primitives
 what: the low-level parts of the shelf (raw parts that bind outside behavior such as Radix; placement → core/components.md primitives_place), one folder per part (Badge, Button, Calendar, Carousel, Checkbox, Command, Dialog, HoverCard, Input, Label, Popover, RadioGroup, Select, Skeleton, Slot, Tabs, Tooltip), entry @/components/Primitives/<Part> (no Primitives/index.ts)
 use: always
-change: placement → a fork restyles a part with its own CSS on the part's `[data-slot="<name>"]` marks (root src/styles/*.css)
+change: counterpart → a fork restyles a part with its own CSS on the part's `[data-slot="<name>"]` marks (root src/styles/*.css)
 rules:
 using:
 - primitives_entry: import a part only from its entry @/components/Primitives/<Part>, never a file inside it

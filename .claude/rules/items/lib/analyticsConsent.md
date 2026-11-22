@@ -6,7 +6,7 @@ paths:
 # lib/analyticsConsent
 what: the gate that decides whether browser analytics may be sent (@/lib/analyticsConsent, client): config enabled + consent state | isAnalyticsAllowed, setAnalyticsConsent, useAnalyticsConsent
 use: always (sends nothing until the config enables it)
-change: overlay = src/config/lib/analyticsConsent.config.ts (enabled, consent)
+change: counterpart = src/config/lib/analyticsConsent.config.ts (enabled, consent)
 rules:
 using:
 - banner_owns_choice: a consent banner / CMP stores the choice itself and calls setAnalyticsConsent on load and on change

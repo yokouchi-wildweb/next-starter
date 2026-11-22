@@ -6,7 +6,7 @@ paths:
 # lib/appStatus
 what: useAppStatus watches /api/health on long-stay screens: maintenance → go to the maintenance path, new deploy → reload (callbacks replace either) | entry @/lib/appStatus
 use: always
-change: overlay = src/config/lib/appStatus.config.ts (healthPath, maintenancePath, intervalMs)
+change: counterpart = src/config/lib/appStatus.config.ts (healthPath, maintenancePath, intervalMs)
 rules:
 using:
 - one_call: call useAppStatus once in the screen's client part; never a guard component of your own around it

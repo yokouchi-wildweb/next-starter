@@ -6,7 +6,7 @@ paths:
 # lib/httpDefaults
 what: an app-wide default timeout for client axios calls that set none (one request interceptor on the default axios instance, installed by HttpDefaultsRoot in src/wiring/AppProviders.tsx) | entry @/lib/httpDefaults
 use: always
-change: placement = src/config/lib/httpDefaults.config.ts (@lib-config/httpDefaults: timeoutMs; upstream ships none)
+change: counterpart = src/config/lib/httpDefaults.config.ts (@lib-config/httpDefaults: timeoutMs; upstream ships none)
 rules:
 using:
 - no_limit_marker: a call that must run without a limit writes `defaultTimeout: false` (axios cannot tell unset from 0)

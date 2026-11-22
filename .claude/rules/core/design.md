@@ -32,6 +32,7 @@ map (every core file, loaded by its paths):
 - .claude/rules/core/services.md: CRUD_SERVICE (createCrudService) service-side rules
 - .claude/rules/core/skills.md: the skill format
 - .claude/rules/core/style.md: the style rules (COMPONENTS style)
+- .claude/rules/core/terms.md: the term table (generated from scripts/workflow/terms/terms.json; loaded when writing context)
 
 ## places (what goes where)
 - roles: core file = the architecture canon (layers, placement, ownership, each district's role, cross-cutting rules, duties of the calling layer) | card = rules only for that item + pointers to its README | README = API, mechanism, usage, options, examples, never the source of a rule
@@ -51,7 +52,7 @@ map (every core file, loaded by its paths):
 - 1 find its place with places above | 2 write it in that file in this file's formats (paths globs: one-level braces only, nested braces never load) | 3 /ship (its checks run pnpm check rules, never before it; the why goes in the commit body)
 - usual path, no order needed: write a card, a README or a service file | add a rule for a place to an existing core file | fix an existing CLAUDE.md item together with its source item | a place you just created: its one line in a core file's paths or in .claude/rules/core/uncovered.txt, in the same commit that creates the place
 - window (order first: /order next-starter, from the Tier1 session and straight from a fork at any tier, never relayed through a parent): a CLAUDE.md item or section added, or a key removed or renamed | a core file added, removed, renamed or its paths widened to places that already exist | a new card category | a check or MANDATORY rule binding forks | a clash between rules of different owners
-  - a clash you notice while working: your own line against the base (core, CLAUDE.md, an ancestor's section) → change your line or mark it (priority above, tidied by /project-review) | two upstream rules of different owners → the window, never fix one side yourself | no check hunts for clashes
+  - a clash you notice while working: your own line against the wider rules (core, CLAUDE.md, an ancestor's section) → change your line or mark it (priority above, tidied by /project-review) | two upstream rules of different owners → the window, never fix one side yourself | no check hunts for clashes
 - the window decides: the Tier1 session handling next-starter's inbox + the user's approval (/inbox) | the reason always goes in the commit body (the inbox lives outside the repo)
 - coverage: every upstream file and every intake.txt place must hit the paths of an upstream core file or card (pnpm check rules; a fork's own files are not counted) | matched as Claude Code loads rules (** and * also hit dot-named files and folders) | fails in Tier1 only; a fork gets a notice, and one line "cannot verify" when its base version is unreadable
   - a gap → widen the core file that holds that place's rules (a window item, unless the place is new: usual path above) | only a place that truly needs no rule → uncovered.txt with its reason, never a blanket line to quiet the check
@@ -60,21 +61,21 @@ map (every core file, loaded by its paths):
 - docs/!must-read/: each doc names the CLAUDE.md section it backs | changing that section → fix the doc in the same commit (and the reverse)
 
 ## cards (.claude/rules/items/<category>/<name>.md)
-- category: lib (one per library) | features (one per domain, Tier1 and business) | components (one per public category folder src/components/<Category>/, split only when too large) | no cards for hooks / utils: their common rules live in core files
+- category: lib (one per library) | domains (one per domain, Tier1 and business) | components (one per public category folder src/components/<Category>/, split only when too large) | no cards for hooks / utils: their common rules live in core files
 - who: each repo writes cards only for its own items (an ancestor's item lacking one → /order <direct parent>) | an item with a README or a mandatory rule | Tier1 items must have one, fork items may | plain names, never the repo name | never edit a Tier1 card downstream; a card a middle tier added may be fixed below it | rules forced on downstream → lineage.md
 - frontmatter: paths only = the item's folder + its config and declared receptacle places
 - reach: a card loads only there, never where the item is merely used → before using an item elsewhere, read its card (.claude/rules/items/\<category\>/\<name\>.md) | a rule every user of a layer needs stays in core / CLAUDE.md
 - body: `# <category>/<name>` then 5 parts in this order, no headings for the parts (a part may take several lines):
   - what: what it is and its entry, 1-2 sentences
   - use: the feature-gate name that carries the item (always = always open) | never copy default values
-  - change: the type (replace / overlay / add / placement) + its declaring file | none → /order <direct parent>
+  - change: the type (replace / override / add / counterpart) + its declaring file | none → /order <direct parent>
   - rules: split into using: and editing: | one rule per line `- <key>: <text>`, keys unique within the card | never clash with CLAUDE.md
   - read: work scene → README h2 (`→ <h2>` = the item's README, `→ <path>.md <h2>` = another file) | an item with no README: `read: none (no README; …)` naming the source file whose comments explain it
 - never: a hand-written dependency list | size ≤ 10,000 chars | pnpm check rules checks the format (a Tier1 card fails, a fork's own card notifies) | a Tier1 item with a README but no card, and an upstream README off the format: fail in Tier1, one count line in a fork
 
 ## service (.claude/rules/service/<business>.md)
 - written only by a tier that defines a business (a middle tier or leaf), never by Tier1 | no paths: always loaded | one or more files per tier, named by the business concept, never the repo name
-- body: what the service is | its base domains and their relations | main flows | premises and terms | pointers to cards
+- body: what the service is | its main domains and their relations | main flows | premises and terms | pointers to cards
 - an ancestor's file is never edited, deleted or renamed below (ownership check) → /order <direct parent>; add your own business in another file | size ≤ 40,000 chars | not src/business (= business identity values)
 
 ## self_files (each repo keeps its own version, or the parent's as is)

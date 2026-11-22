@@ -6,7 +6,7 @@ paths:
 # lib/drizzle
 what: the PostgreSQL (Neon) client `db`, transaction helpers (runWithTransaction, TransactionClient) and the not-configured check (isDatabaseConfigured, DatabaseNotConfiguredError); closed lib, server-only, entry @/lib/drizzle
 use: always
-change: placement = src/config/lib/drizzle.config.ts (pool values, @lib-config/drizzle)
+change: counterpart = src/config/lib/drizzle.config.ts (pool values, @lib-config/drizzle)
 rules:
 using:
 - entry_only: read only through @/lib/drizzle, from server code only

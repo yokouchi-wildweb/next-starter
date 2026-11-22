@@ -5,7 +5,7 @@ paths:
 # components/Layout
 what: layout wrappers (Block, InBlock, Flex, Stack, Grid, Section, Main, FullScreen, ScaledStage) and the kiosk page frame KioskFrame, with shared appearance (appearance.ts) and spacing props (@/lib/spacing); each part is a unit read as @/components/Layout/\<Part\>
 use: always
-change: placement → spacing = `--space-*` values in `:root` of any root src/styles/*.css (the tokens live in src/styles/core/config.css) | appearance shadows = `--appearance-shadow-<name>` in src/styles/palette.css | Main parts = their `data-slot` in fork CSS
+change: counterpart → spacing = `--space-*` values in `:root` of any root src/styles/*.css (the tokens live in src/styles/core/config.css) | appearance shadows = `--appearance-shadow-<name>` in src/styles/palette.css | Main parts = their `data-slot` in fork CSS
 rules:
 using:
 - layout_pick: plain wrapper → Block | vertical spacing between children → Stack `gap` | alignment or a row → Flex

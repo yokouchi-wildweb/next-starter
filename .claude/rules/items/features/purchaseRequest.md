@@ -6,7 +6,7 @@ paths:
 # domains/purchaseRequest
 what: external-payment purchases (purchase_requests): sessions, transitions, double-purchase guards | fulfilment = a strategy per purchase_type (built-in wallet_topup)
 use: payment
-change: overlay = src/config/domains/purchaseRequest.config.ts (payment, purchaseType) | add = completionStrategies, completeHooks | replace = payment/sessionEnricher.ts
+change: counterpart = src/config/domains/purchaseRequest.config.ts (payment, purchaseType) | add = completionStrategies, completeHooks | replace = payment/sessionEnricher.ts
 rules:
 using:
 - new_type: purchase_type = config purchaseType + a strategy item + pnpm generate extensions + db:push

@@ -6,7 +6,7 @@ paths:
 # domains/legal
 what: the legal documents (terms, privacy policy, tradelaw notice) with no table: example texts, a per-document mark (sample / own), the filled-in document and the production check | entry @/domains/legal/documents (getLegalDocument, getLegalEnactedAtFormat, buildLegalDocument)
 use: always | the pages are closed by the rules pageTerms, pagePrivacyPolicy, pageTradelaw
-change: placement = src/config/domains/legal.config.ts (`documents.<kind>`, paymentMethods, licenses, enactedAtFormat) | own text = `pnpm ops legal from-example [kind …]` then edit the copy
+change: counterpart = src/config/domains/legal.config.ts (`documents.<kind>`, paymentMethods, licenses, enactedAtFormat) | own text = `pnpm ops legal from-example [kind …]` then edit the copy
 rules:
 using:
 - own_before_release: a production build with any document still `source: "sample"` fails pnpm check legal → every document is `own` before release

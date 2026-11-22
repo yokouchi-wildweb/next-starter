@@ -6,7 +6,7 @@ paths:
 # lib/dbAgent
 what: data layer of the admin DB investigation agent (natural language → read-only PostgreSQL) on @/lib/ai: runDbAgent, POST /api/admin/db-agent (SSE), streamDbAgentChat; entries @/lib/dbAgent (client-safe), @/lib/dbAgent/server. No UI
 use: always (off while DATABASE_URL_READONLY is unset: the API answers 503)
-change: add → src/wiring/dbAgent/promptFragments | extraTools | suffixProviders (pnpm generate extensions) | placement → src/config/lib/dbAgent.config.ts, src/config/lib/ai.config.ts
+change: add → src/wiring/dbAgent/promptFragments | extraTools | suffixProviders (pnpm generate extensions) | counterpart → src/config/lib/dbAgent.config.ts, src/config/lib/ai.config.ts
 rules:
 using:
 - dbagent_role: the readonly role runs all steps of Usage (incl. REVOKE CREATE ON SCHEMA public and the role-level read only) and passes the 3 checks

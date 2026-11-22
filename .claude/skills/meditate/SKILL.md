@@ -14,7 +14,7 @@ judging: the table below decides mechanically | never change a decision by "look
 - target: the memory of this repo's main checkout, found by the command (shared with every worktree) | never touch another project's memory
 - session: run from the main checkout's session only | `git rev-parse --git-dir` differs from `git rev-parse --git-common-dir` (a worktree) → STOP: tell the user to run it from the main checkout's session
 - personal places: free form, never checked (CLAUDE.md DOCS personal) | write them as the user wants, no imposed format | never offer to reformat a personal file
-- personal lines: CLAUDE.local.md (this repo) and ~/.claude/CLAUDE.md (every repo), facts only from `pnpm workflow context facts --personal` (one row per line) | the base of a personal line = CLAUDE.md, core, ancestors' lineage sections and this repo's own context
+- personal lines: CLAUDE.local.md (this repo) and ~/.claude/CLAUDE.md (every repo), facts only from `pnpm workflow context facts --personal` (one row per line) | the wider rules of a personal line = CLAUDE.md, core, ancestors' lineage sections and this repo's own context
 - marks: core/design.md priority (marked over unmarked, the nearer mark, unmarked → the wider side: core and CLAUDE.md → ancestors → this repo → personal) | a mark changes only how a line is read
 
 ## STEPS
@@ -51,7 +51,7 @@ personal lines (P rows; first match wins; a row that matches none is not asked):
 - P1 refs n/n with n ≥ 1 all gone → fix the path or drop the line (batch)
 - P2 `same` names a repo file → drop, the repo already says it (batch)
 - P3 mark `order:<id>:done` → drop the line, its order shipped (batch)
-- PJ1 `base` ≥ 1, mark - → the wider line wins over yours now: drop | mark `(priority)` (yours wins for you) | raise to behavior.md (the repo should change) | /order <owner> (the base is wrong) | recommend drop when the text agrees with the base
+- PJ1 `base` ≥ 1, mark - → the wider line wins over yours now: drop | mark `(priority)` (yours wins for you) | raise to behavior.md (the repo should change) | /order <owner> (the wider rule is wrong) | recommend drop when the text agrees with the wider rule
 - PJ2 mark priority, `base` names CLAUDE.md, a core file or an ancestor's section, no order → /order <owner> then add `(order: <id>)` (recommended) | keep marked | drop the mark
 - PJ3 a line that reads as everyone's work rule (repo terms, no taste of one person) → raise to behavior.md / project.md | keep personal
 

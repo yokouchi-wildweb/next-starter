@@ -6,7 +6,7 @@ paths:
 # lib/zLayer
 what: the TS side of the stacking layer names (Z_LAYER_NAMES, ZLayerName, PAGE_LAYER_NAMES, zLayerClass, isAboveFloatingTarget); values and classes live in src/styles/core/z-layer.css (own layers: src/styles/z-layer.css, generated); closed lib, entry @/lib/zLayer
 use: always
-change: placement = src/config/lib/zLayer.config.ts (own layers, then pnpm generate styles)
+change: counterpart = src/config/lib/zLayer.config.ts (own layers, then pnpm generate styles)
 rules:
 using:
 - class_via_fn: a layer class comes from zLayerClass(name), never a per-part table of class names

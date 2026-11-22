@@ -7,7 +7,7 @@ what: a domain's definition and fields: domain.json reading, field types with th
   - closed lib: entry "." @/lib/domain (client and server, no React value code / hooks / HTTP client), "./server" @/lib/domain/server (registry lookups, getJunctionTable), "./node" src/lib/domain/node.mjs (the 5 .mjs tables for scripts / eslint-rules)
   - access types and presets → @/lib/domainAccess
 use: always
-change: overlay → domainEntry.override.ts beside a core domainEntry.ts (replaces `access` only)
+change: override → domainEntry.override.ts beside a core domainEntry.ts (replaces `access` only)
 rules:
 using:
 - domain_entry_literals: table / idColumn are string literals or null right after service
