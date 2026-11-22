@@ -4,6 +4,7 @@ date: 2026-11-22T19:30:48+09:00
 severity: action-required
 checkpoint: legacy-read-states-fix
 fixes: 20261111-143012-messaging-switch
+pick: -
 uses: .notices/20261122-193048-legacy-read-states-fix.legacy-read-states.mjs
 resolves: 20261121-213422-legacy-copy-read-state-precision
 change: A codemod for the messaging-switch checkpoint tree: it rewrites writeReadStates in src/features/core/messaging/scripts/migrations/lib.legacyCopyStore.ts so the legacy copy writes message_inbox_read_states by INSERT … SELECT from notification_read_states (the read watermark never passes through a JS Date). The reconciliation SQL and nextReadStates stay as they are.
