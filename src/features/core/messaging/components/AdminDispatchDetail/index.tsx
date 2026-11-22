@@ -6,7 +6,7 @@
 //   メールは送った HTML、お知らせは受け取り箱と同じ見せ方。中身の無い前の形の送信は残した本文)
 // - DispatchDeliveriesBlock = 送信状況(配達の一覧、状態・送信チャンネルで絞る、無限スクロール = カーソル)
 // - DispatchActions = 送信の操作(状態の 1 行と今できる操作だけ: 削除・失敗分を再送・送信を再開。部品 DispatchOperations)と
-//   「同じ内容で送る」(送るモーダル。門 messagingBroadcast が閉なら出さない)
+//   「同じ内容で送る」(送るモーダル。自由連絡の送信 = 詳細の sameAs が null でない時だけ、写すのは sameAs。門 messagingBroadcast が閉なら出さない、D193)
 // AdminDispatchDetail(dispatchId)= 塊をタブ(基本情報 / 送信状況 / プレビュー)と操作で並べた入れ物(fork が自分の画面に置ける)。
 // 流れ(配達の絞り・includeUnknown・操作と知らせ)は hook useAdminDispatchDetail。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
@@ -115,7 +115,7 @@ export function DispatchDetailMissing({ error }: { error: unknown }) {
   );
 }
 
-/** 送信の操作(削除・失敗分を再送・送信を再開)と「同じ内容で送る」 */
+/** 送信の操作(削除・失敗分を再送・送信を再開)と「同じ内容で送る」(自由連絡の送信だけ: 定義連絡・中身の無い前の形の送信は sameAs が null) */
 export function DispatchActions({ detail }: { detail: AdminDispatchDetailState }) {
   const canSend = useGate().enabled("messagingBroadcast");
   const { dispatch, includeUnknown, setIncludeUnknown, remove, resend, continueDispatch } = detail;
@@ -136,7 +136,7 @@ export function DispatchActions({ detail }: { detail: AdminDispatchDetailState }
         canContinue={dispatch.operations.canContinue.allowed}
         onContinue={continueDispatch}
       />
-      {canSend ? <MessageSendModal mode={{ type: "sameAs", dispatch }} /> : null}
+      {canSend && dispatch.sameAs !== null ? <MessageSendModal mode={{ type: "sameAs", dispatch }} /> : null}
     </Flex>
   );
 }
