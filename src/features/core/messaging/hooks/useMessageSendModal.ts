@@ -7,14 +7,14 @@
 // - new: 送信の一覧の「新規送信」。POST /api/admin/messaging/send(門 messagingBroadcast の内側)
 // - sameAs: 送信の詳細の「同じ内容で送る」。送信のカテゴリー(→ 種別)・送信チャンネル・宛先の形と、送信の中身(レイアウト + values、D128)を写す。
 //   テンプレートの送信でそのテンプレートが今も公開中 = 今の版を読み込んだ形(直して送信した物は直した文で、文面を直す状態から。専用の埋め込み情報の値も写す)。
-//   公開中でない・その場で書いた送信 = 種別の白紙に送信の values を入れた形(レイアウトが白紙と違えば写せない = sameAsNote)
+//   公開中でない・レイアウトから書いた送信 = 送信のレイアウトに送信の values を入れた形(管理画面で選べないレイアウトなら写せない = sameAsNote)
 // - bulk: 管理一覧の一括操作。宛先 = 選んだ記録(target + recordIds)、POST /api/admin/messaging/bulk-send(門の外)。予約は無い
 // 流れ(D110 D115): 種別 → カテゴリー(種別に 2 つ以上ある時だけ選ぶ)→ 宛先(種別が許す種類だけ。direct はグループも、D109)
-// → テンプレート(その種別の公開中の物。読み込まない = 種別の白紙、D117)→ 文面(useSendTemplateText: 読み込んだ直後は固定、
-// 『文面を直す』で全文、『テンプレートの読み込みを解除』で白紙へ、『テンプレートを更新』で新しい版、D118 D119 D120)
+// → テンプレート(その種別の公開中の物。読み込まない = 管理画面で選べる最初のレイアウトから書く、D171。レイアウトを選ぶ画面は指令 03)→ 文面(useSendTemplateText: 読み込んだ直後は固定、
+// 『文面を直す』で全文、『テンプレートの読み込みを解除』で初めのレイアウトへ、『テンプレートを更新』で新しい版、D118 D119 D120)
 // → 送信チャンネルの絞り(カテゴリーの送信チャンネルの中、既定は全部オン)→ 予約(bulk 以外)→ プレビュー(レイアウトの描き方 useLayoutPreview がいつも、
 // 「プレビュー」= あなた宛ての表示例を送る口で描く)・自分へのテスト送信 → 見込み → 確認 → 送る → 結果。
-// - 送る口の入力 = { category, channels?, template: { system } | { id, version }, values, edited?, vars? }(services/server/admin/send.ts)
+// - 送る口の入力 = { category, channels?, origin: { layout } | { id, version }, values, edited?, vars? }(services/server/admin/send.ts)
 // - 見込み → 確認の段・予約の検査・二重送信を防ぐ鍵(開くたびに 1 つ、送った後に作り直す)はこの hook の中
 // - 書きかけ(dirty)の間: ページを離れる前に確かめる(@/lib/unsavedGuard)。閉じる前の確かめは closeConfirm を Modal の confirmOnClose に渡す
 // - 初めの値(sameAs の写し・bulk の既定)は state に入れず、まだ触っていない物は mode と選択肢から導く(effect で写さない)
@@ -56,7 +56,7 @@ import { ADMIN_SEND_KEY } from "./sendKeys";
 import { useAdminBulkSendOptions } from "./useAdminBulkSend";
 import { useAdminSendOptions } from "./useAdminSendOptions";
 import { useLayoutPreview } from "./useLayoutPreview";
-import { blankTextState, varPreviewValues, templateTextState, useSendTemplateText, type SendTextState } from "./useSendTemplateText";
+import { layoutTextState, varPreviewValues, templateTextState, useSendTemplateText, type SendTextState } from "./useSendTemplateText";
 
 /** 一覧の一括操作の既定のカテゴリー(種別 direct、D81) */
 export const ADMIN_BULK_SEND_DEFAULT_CATEGORY = "operatorDirect";
@@ -97,9 +97,6 @@ export type MessageSendResult =
 
 const TARGET_TYPES: readonly MessageSendTargetType[] = ["all", "role", "group", "users"];
 
-/** 選ぶ小窓でシステムテンプレートを表す id の頭(DB のテンプレートの id は uuid) */
-const SYSTEM_PICK_PREFIX = "system:";
-
 const newKey = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 const record = (value: unknown): Record<string, unknown> =>
@@ -128,9 +125,10 @@ function preferredCategoryOf(mode: MessageSendMode): string | null {
   return null;
 }
 
-/** 種別の白紙(選択肢のその種別のカテゴリーのどれかが持つ物) */
-export function blankOfKind(categories: readonly AdminFreeTextCategoryOption[], kind: string) {
-  return categories.find((option) => option.kind === kind && option.systemTemplate)?.systemTemplate ?? null;
+/** 初めのレイアウト = 管理画面で選べる最初のレイアウト(受け口の順。config の初めのレイアウトは指令 T7)。無ければ null */
+export function blankLayoutOf(layouts: readonly AdminSendLayoutOption[]): { key: string; label: string } | null {
+  const first = layouts.find((option) => option.selectable);
+  return first ? { key: first.key, label: first.label } : null;
 }
 
 /** 送信の専用の埋め込み情報の値(テンプレートの今の版が宣言する鍵だけ) */
@@ -142,16 +140,17 @@ function embeddedOfDispatch(dispatch: AdminDispatchDetail, template: MessageSend
 /**
  * mode と選択肢から導く初めの文面(まだ触っていない時)。sameAs:
  * - テンプレートの送信で、そのテンプレートが今も公開中: 今の版を読み込んだ形。直して送信した物は送信の values で文面を直す状態から(レイアウトが今の版と同じ時)
- * - それ以外: 種別の白紙。送信のレイアウトが白紙と同じなら送信の values を入れる
+ * - それ以外: 送信のレイアウトが管理画面で選べる物なら、そのレイアウトに送信の values を入れる。選べなければ初めのレイアウト(白紙)
  */
 export function initialTextOf(
   mode: MessageSendMode,
   kind: string,
+  layouts: readonly AdminSendLayoutOption[],
   categories: readonly AdminFreeTextCategoryOption[],
   templates: readonly MessageSendTemplate[],
 ): SendTextState | null {
-  const blank = blankOfKind(categories, kind);
-  const blankState = blank ? blankTextState(blank) : null;
+  const blank = blankLayoutOf(layouts);
+  const blankState = blank ? layoutTextState(blank) : null;
   if (mode.type === "bulk") {
     return blankState ? { ...blankState, start: { ...blankState.start, ...(mode.defaults?.values ?? {}) } } : null;
   }
@@ -171,7 +170,8 @@ export function initialTextOf(
       });
     }
   }
-  if (blankState && content && content.layout === blankState.layout) return { ...blankState, start: content.values };
+  const contentLayout = content ? layouts.find((option) => option.selectable && option.key === content.layout) : undefined;
+  if (content && contentLayout) return layoutTextState(contentLayout, content.values);
   return blankState;
 }
 
@@ -300,16 +300,12 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   // ---- テンプレート(選んだ種別の物) ----
   const kindOfCategory = useCallback((key: string) => allCategories.find((option) => option.key === key)?.kind ?? null, [allCategories]);
   const templates = useMemo(() => allTemplates.filter((item) => kindOfCategory(item.category) === kind), [allTemplates, kindOfCategory, kind]);
-  const blank = categoryOption?.systemTemplate ?? blankOfKind(allCategories, kind);
-  // 選んだ種別のシステムテンプレート(シンプル・リッチ・メンテナンスなど、D119)。門 messagingTemplates の外でいつも並べる
-  const systemTemplates = useMemo(() => (options?.systemTemplates ?? []).filter((item) => item.kind === kind), [options, kind]);
-  /** 選ぶ小窓の並び = システムテンプレート(印つき)→ 公開中のテンプレート。システムの id は "system:<鍵>" */
+  /** 初めのレイアウト(読み込まない時・読み込みを解除した時の出どころ) */
+  const blank = useMemo(() => blankLayoutOf(layouts), [layouts]);
+  /** 選ぶ小窓の並び = 公開中のテンプレート(門 messagingTemplates が開の時) */
   const pickerTemplates = useMemo(
-    () => [
-      ...systemTemplates.map((item) => ({ id: `${SYSTEM_PICK_PREFIX}${item.key}`, name: item.label, currentVersion: 0, system: true })),
-      ...(templatesOpen ? templates.map((item) => ({ id: item.id, name: item.name, currentVersion: item.currentVersion, system: false })) : []),
-    ],
-    [systemTemplates, templates, templatesOpen],
+    () => (templatesOpen ? templates.map((item) => ({ id: item.id, name: item.name, currentVersion: item.currentVersion })) : []),
+    [templates, templatesOpen],
   );
 
   // ---- 送信チャンネル ----
@@ -333,8 +329,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
 
   // ---- 文面 ----
   const initialText = useMemo(
-    () => (optionsLoaded ? initialTextOf(mode, kind, allCategories, allTemplates) : null),
-    [optionsLoaded, mode, kind, allCategories, allTemplates],
+    () => (optionsLoaded ? initialTextOf(mode, kind, layouts, allCategories, allTemplates) : null),
+    [optionsLoaded, mode, kind, layouts, allCategories, allTemplates],
   );
   const touchText = useCallback(() => {
     setTextTouched(true);
@@ -383,11 +379,10 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       // 送信方法は新しいカテゴリーの最初の送信チャンネルに戻す(D119)
       setChannelsOff(null);
       setPreview(null);
-      // テンプレートは種別ごと → 白紙へ(レイアウトが同じなら今の文を残す)
-      const nextBlank = blankOfKind(allCategories, next);
-      text.reset(nextBlank ? text.toBlank(nextBlank) : null);
+      // テンプレートは種別ごと → 初めのレイアウトへ(レイアウトが同じなら今の文を残す)
+      text.reset(blank ? text.toBlank(blank) : null);
     },
-    [kind, allCategories, text],
+    [kind, allCategories, text, blank],
   );
   const setCategory = useCallback((key: string) => {
     setChosenCategory(key);
@@ -403,22 +398,13 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const applyLoad = useCallback(
     (templateId: string) => {
       setPendingLoad(null);
-      if (templateId.startsWith(SYSTEM_PICK_PREFIX)) {
-        // システムテンプレート: その中身と専用の埋め込み情報(メンテナンスの開始日時・終了日時など)で書く形
-        const system = systemTemplates.find((item) => `${SYSTEM_PICK_PREFIX}${item.key}` === templateId);
-        if (!system) return;
-        text.reset(blankTextState(system));
-        setTextTouched(false);
-        setPreview(null);
-        return;
-      }
       const template = templates.find((item) => item.id === templateId);
       if (!template) return;
       text.reset(templateTextState(template));
       setTextTouched(false);
       setPreview(null);
     },
-    [templates, systemTemplates, text],
+    [templates, text],
   );
   /** 読み込む。手で直した書きかけがあれば上書きを確かめる(pendingLoad → confirmLoad / cancelLoad) */
   const loadTemplate = useCallback(
@@ -432,7 +418,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     if (pendingLoad) applyLoad(pendingLoad);
   }, [pendingLoad, applyLoad]);
   const cancelLoad = useCallback(() => setPendingLoad(null), []);
-  /** 『テンプレートの読み込みを解除』: 種別の白紙へ(レイアウトが同じなら今の文を白紙の文として残す、D118) */
+  /** 『テンプレートの読み込みを解除』: 初めのレイアウトへ(レイアウトが同じなら今の文を残す、D118) */
   const unloadTemplate = useCallback(() => {
     text.reset(blank ? text.toBlank(blank) : null);
     setTextTouched(true);
@@ -467,11 +453,11 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   // ---- 入力を組む(送る・プレビュー・テスト送信・一括送信がこの 1 つを使う) ----
   const buildContent = useCallback((): AdminSendPreviewInput => {
     const source = text.source;
-    if (!source) throw new Error("この種別には白紙のテンプレートが無いため、テンプレートを読み込んでください");
+    if (!source) throw new Error("管理画面で選べるレイアウトが無いため、テンプレートを読み込んでください");
     const values = text.values;
     if (source.type === "template") {
       return {
-        template: { id: source.id, version: source.version },
+        origin: { id: source.id, version: source.version },
         values,
         edited: text.edited,
         vars: text.varsForInput ?? {},
@@ -480,10 +466,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       };
     }
     return {
-      template: { system: source.key },
+      origin: { layout: source.layout },
       values,
-      // 専用を宣言したシステムテンプレート(メンテナンスなど)はその値も送る
-      ...(text.varsForInput ? { vars: text.varsForInput } : {}),
       category,
       channels: sendChannels,
     };
@@ -700,12 +684,12 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     // テンプレートと文面
     /** テンプレートを読み込めるか(門 messagingTemplates が開) */
     templatesAvailable: templatesOpen,
-    /** テンプレートの選ぶ小窓の並び(選んだ種別のシステムテンプレート → 公開中のテンプレート) */
+    /** テンプレートの選ぶ小窓の並び(公開中のテンプレート) */
     pickerTemplates,
-    /** 今のシステムテンプレート(読み込んでいない時の出どころの表示名。DB のテンプレートを読み込んだ時は null) */
-    currentSystem: text.source?.type === "system" ? { label: text.source.label } : null,
+    /** 今のレイアウト(読み込んでいない時の出どころの表示名。DB のテンプレートを読み込んだ時は null) */
+    currentLayout: text.source?.type === "layout" ? { label: text.source.label } : null,
     templates,
-    /** 種別の白紙(無ければ null) */
+    /** 初めのレイアウト(選べるレイアウトが無ければ null) */
     blank,
     loadedTemplate,
     text,

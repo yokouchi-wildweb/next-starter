@@ -10,7 +10,6 @@ import type { ChannelErrorKind } from "../definition/errors";
 import type { MessageChannelRendering } from "../layout/rendering";
 import type { MessageLayout, MessageLayoutSummary, MessageLayoutValues } from "../layout/types";
 import type { MessageKey, MessageKind } from "../definition/types";
-import type { MessageVarDeclaration } from "../vars/declaration";
 
 // ---------------------------------------------------------------------------
 // channels: 送信チャンネル(上流の email・inApp・line も fork の送信チャンネルも同じ形)
@@ -279,31 +278,6 @@ export type MessageSubscriber = {
   filter?: { messages?: readonly MessageKey[]; channels?: readonly string[] };
   /** 事件の束を処理する。投げると印を進めず次回もう一度渡る */
   handle: (events: readonly MessageEvent[]) => Promise<void>;
-};
-
-// ---------------------------------------------------------------------------
-// systemTemplates: システムテンプレート(D117・D125)。管理の送信の白紙、種別ごとに 1 つ
-// ---------------------------------------------------------------------------
-
-/**
- * システムテンプレート(messaging/templates/<名前>.ts の export const systemTemplate)。自由連絡も fork のコードからの管理の送信も
- * この白紙(か DB のテンプレート)から書く。管理画面で直せない・消せない(テンプレートの一覧に印つきで並ぶ)。fork は <名前>.override.ts で label だけ変えられる
- */
-export type MessageSystemTemplate = {
-  /** 鍵(送信の system_template に残す。英数字の camelCase) */
-  key: string;
-  /** 種別(自由連絡で送れる種別 = 種別の性質 adminFreeText がある物。1 つの種別に何本でも、受け口の順で使う物の最初がその種別の既定の白紙) */
-  kind: MessageKind;
-  /** 管理画面に出す名前 */
-  label: string;
-  /** レイアウトの鍵(layouts の受け口) */
-  layout: string;
-  /** 白紙の欄の中身(レイアウトの欄の zod を通る形。送る時は管理者が書いた中身に替わる。できあがった文面も書ける) */
-  values: Record<string, unknown>;
-  /** 専用の埋め込み情報の宣言(DB のテンプレートと同じ形。送る人が送る時に値を入れる、例 メンテナンスの開始日時) */
-  vars?: readonly MessageVarDeclaration[];
-  /** false = 使わない(テンプレートの一覧・送る画面の選択肢・種別の既定の白紙から外れ、その鍵では送れない。D122)。既定 true。fork は <名前>.override.ts で切る */
-  enabled?: boolean;
 };
 
 // ---------------------------------------------------------------------------

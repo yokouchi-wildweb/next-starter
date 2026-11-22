@@ -2,8 +2,8 @@
 //
 // 管理の一括送信(D40・D42・D80・D81、指令 40 の AMENDMENT 2)。中身は送る画面(/send)と同じ形で、選んだ利用者へ送る。
 // - 宛先: 利用者 id を直に({ userIds })か、受け口 bulkSendTargets の項目で選んだ記録から({ target, recordIds })
-// - 中身: 送る画面(/send)と同じ { template(白紙 { system } か DB のテンプレート { id, version }), values, edited?, vars?, category, channels? }(D117)。
-//   検査も組み方も send.ts の部品と同じ(種別、宛先の種類 bulk を種別の性質 adminFreeText で、白紙の種別・古い版 409)。
+// - 中身: 送る画面(/send)と同じ { origin(レイアウト { layout } か DB のテンプレート { id, version }), values, edited?, vars?, category, channels? }(D117・D171)。
+//   検査も組み方も send.ts の部品と同じ(種別、宛先の種類 bulk を種別の性質 adminFreeText で、選べるレイアウト・古い版 409)。
 //   予約は無い(scheduledAt は 400)
 // - プレビュー・テスト送信: adminBulkSendPreview / adminBulkSendTest(送る画面と同じ。カテゴリーは bulk で送れる物)。門 messagingBroadcast に入れない
 // - 選択肢: adminBulkSendOptions(GET /api/admin/messaging/bulk-send)= bulk で送れるカテゴリーと、門 messagingTemplates が開の時だけ公開中のテンプレート。
@@ -11,7 +11,7 @@
 // - 宛名: enrichers/displayName.ts が受信者ごとに足す(名前が無ければ「お客様」)
 // - 管理者を service でも確かめ(assertAdmin)、監査ログに 1 行(messaging.dispatch.bulk_sent)
 // - afterSend: 項目の送った後の処理を送信の受け付けの直後に 1 回。投げても送信は戻さず結果に失敗として返す。
-//   values = 送った欄の中身(差し込む前の字)、template = 中身の出どころ(白紙の鍵か DB のテンプレートの版と直した印)
+//   values = 送った欄の中身(差し込む前の字)、origin = 中身の出どころ(レイアウトか DB のテンプレートの版と直した印)
 
 import { z } from "zod";
 
@@ -20,7 +20,7 @@ import { DomainError } from "@/lib/errors";
 import type { MessagePreview } from "../sendMessage/sender";
 import type { SendMessageResult } from "../sendMessage/types";
 import { assertAdminActor } from "./assertAdmin";
-import { adminFreeTextCategoryOptions, adminSystemTemplateOptions, type AdminFreeTextCategoryOption } from "./freeText";
+import { adminFreeTextCategoryOptions, type AdminFreeTextCategoryOption } from "./freeText";
 import {
   adminContentFields,
   adminContentCategory,
@@ -37,7 +37,7 @@ import {
   type AdminSendOptions,
   type AdminSendResult,
 } from "./send";
-import type { AdminBulkSendCounts, AdminBulkSendTemplate, MessageBulkSendTarget } from "./types";
+import type { AdminBulkSendCounts, AdminBulkSendOrigin, MessageBulkSendTarget } from "./types";
 
 /** 1 回の一括送信の利用者の上限 */
 export const ADMIN_BULK_SEND_MAX_RECIPIENTS = 10_000;
@@ -85,7 +85,7 @@ export type AdminBulkSendResult = {
 };
 
 export type AdminBulkSendDeps = AdminContentDeps &
-  Pick<AdminSendDeps, "channels" | "systemTemplates" | "layouts" | "enrichers"> & {
+  Pick<AdminSendDeps, "channels" | "layouts" | "enrichers"> & {
   targets: Readonly<Record<string, MessageBulkSendTarget>>;
   /** 公開中のテンプレート(選択肢。門 messagingTemplates が開の時だけ読む) */
   listPublishedTemplates: () => Promise<AdminSendOptions["templates"]>;
@@ -133,16 +133,16 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
     channelCounts: result.channelCounts,
     queuedCount: result.queuedCount,
   };
-  const template: AdminBulkSendTemplate =
-    "system" in input.template
-      ? { system: input.template.system }
-      : { id: input.template.id, version: input.template.version, edited: result.template?.edited ?? input.edited === true };
+  const origin: AdminBulkSendOrigin =
+    "layout" in input.origin
+      ? { layout: input.origin.layout }
+      : { id: input.origin.id, version: input.origin.version, edited: result.template?.edited ?? input.edited === true };
   const values = input.values;
 
   let afterSend: AdminBulkSendResult["afterSend"] = null;
   if (target?.afterSend) {
     try {
-      await target.afterSend({ recordIds: input.recordIds ?? [], dispatchId: result.dispatchId, counts, values, template });
+      await target.afterSend({ recordIds: input.recordIds ?? [], dispatchId: result.dispatchId, counts, values, origin });
       afterSend = { ok: true };
     } catch (error) {
       afterSend = { ok: false, error: error instanceof Error ? error.message : String(error) };
@@ -185,9 +185,7 @@ export type AdminBulkSendOptions = {
   channels: AdminSendOptions["channels"];
   categories: AdminFreeTextCategoryOption[];
   templates: AdminSendOptions["templates"];
-  /** bulk で送れる種別のシステムテンプレート(D119) */
-  systemTemplates: AdminSendOptions["systemTemplates"];
-  /** 白紙と並べたテンプレートが使うレイアウトの欄の宣言 */
+  /** 管理画面で選べるレイアウトと、並べたテンプレートが使うレイアウトの欄の宣言(send.ts adminSendLayoutOptions) */
   layouts: AdminSendOptions["layouts"];
 };
 
@@ -198,7 +196,6 @@ export async function adminBulkSendOptions(
     | "roleCategoryOf"
     | "channels"
     | "categories"
-    | "systemTemplates"
     | "layouts"
     | "enrichers"
     | "listPublishedTemplates"
@@ -206,16 +203,12 @@ export async function adminBulkSendOptions(
   >,
 ): Promise<AdminBulkSendOptions> {
   await assertAdminActor(deps);
-  const categories = adminFreeTextCategoryOptions(deps.categories, deps.systemTemplates, (option) => option.targets.includes("bulk"), deps.enrichers);
+  const categories = adminFreeTextCategoryOptions(deps.categories, (option) => option.targets.includes("bulk"), deps.enrichers);
   const templates = deps.templatesOpen() ? await deps.listPublishedTemplates() : [];
-  const system = adminSystemTemplateOptions(deps.systemTemplates).filter((template) =>
-    categories.some((option) => option.kind === template.kind),
-  );
   return {
     channels: adminChannelOptions(deps.channels),
     categories,
     templates,
-    systemTemplates: system,
-    layouts: adminSendLayoutOptions(deps.layouts, categories, templates, system),
+    layouts: adminSendLayoutOptions(deps.layouts, templates),
   };
 }

@@ -8,8 +8,8 @@
 // required と秘密を差し込む連絡(noBody)はキューに置けないので、要求の中で全部を送り切る(小さな選んだ宛先だけ)
 // 予約(scheduledAt): 送信の行だけ(status scheduled、宛先の一覧は送信の target に置く)。cron の activateScheduled が時刻に processing にして展開する
 // 会話の間引き(定義の throttle): 送信チャンネルの send の前に受信者ごとに当てる(throttle.ts。cron の送りも同じ)
-// テンプレート + 欄の中身(sendTemplateMessage、D117・D125): 管理の送信(白紙のシステムテンプレートか DB のテンプレート)は同じ組み方。
-//   送信の message_key は null で、出どころは system_template か template_id + template_version と直した印(D128)
+// 自由連絡(sendFreeMessage、D117・D125・D171): レイアウトを直に選んだ物も DB のテンプレートも同じ組み方。
+//   送信の message_key は null で、出どころはレイアウトだけか template_id + template_version と直した印(D128)
 // 送信の記録(D128): 出どころ・直した印・カテゴリー・レイアウトの鍵と版・欄の中身(values、差し込む前)。予約・cron・失敗の再送はこの送信の物と
 //   vars だけで描き直す(dispatchResolved.ts。定義・テンプレートを引き直さない)。values の残し方は vars と同じ(noBody は残さない)
 // 送信チャンネル(D86): カテゴリーの送信チャンネル。input.channels はその送信だけの絞り(カテゴリーの外・空は 400)。自動の送り手は渡さない
@@ -37,11 +37,10 @@ import {
 } from "./definition";
 import { sendDeliveries, type DeliveryJob } from "./deliver";
 import { deliveryEvents, dispatchCompletedEvent } from "../events/internalEvents";
-import { requireSystemTemplate } from "./systemTemplates";
 import {
   resolveTemplateDefinition,
   templateValuesEdited,
-  type TemplateSource,
+  type FreeSource,
 } from "./templateDefinition";
 import { expandExplicit, recipientKeyOf, type ExpansionCounts, type PlannedDelivery } from "./expand";
 import { omitKeys, recordPolicyOf, type RecordPolicy } from "./record";
@@ -57,8 +56,8 @@ import type {
   SendMessageResult,
   SendMessageToManyInput,
   MessageDispatchTemplateSource,
-  MessageTemplateRef,
-  SendTemplateMessageInput,
+  MessageFreeOrigin,
+  SendFreeMessageInput,
   MessageTargetSpec,
   MessageTemplateVersionSource,
 } from "./types";
@@ -252,7 +251,8 @@ export function createMessageSender(deps: MessageSendDeps) {
       const { id } = await deps.store.insertDispatch({
         status: scheduled ? "scheduled" : "processing",
         scheduled_at: input.scheduledAt ?? null,
-        system_template: source && "system" in source ? source.system : null,
+        // システムテンプレートの列(廃止、D171)。列は送信の記録の直し(T6)で外す
+        system_template: null,
         template_id: template?.id ?? null,
         template_version: template?.version ?? deletedTemplate?.version ?? null,
         template_edited: template?.edited ?? deletedTemplate?.edited ?? false,
@@ -268,7 +268,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         actor_type: actor.actorType,
         reason: input.reason ?? null,
         metadata: input.metadata ?? null,
-        // テンプレートからの送信は定義連絡の鍵を持たない(出どころは system_template / template_id、D128)
+        // 自由連絡の送信は定義連絡の鍵を持たない(出どころはレイアウトだけか template_id、D128)
         message_key: source ? null : resolved.key,
         kind: resolved.kind,
         category: resolved.category,
@@ -535,12 +535,18 @@ export function createMessageSender(deps: MessageSendDeps) {
   }
 
   /**
-   * 出どころ → 組み済みの出どころ(白紙の受け口の項目か、DB のテンプレートの今の公開版)。
-   * @throws DomainError(400) 無い白紙 / (404・409・400) DB のテンプレートの状態(currentTemplateVersion)
+   * 出どころ → 組み済みの出どころ(管理画面で選べるレイアウトか、DB のテンプレートの今の公開版)。
+   * @throws DomainError(400) 無いレイアウト・管理画面で選べないレイアウト(定義連絡の物) / (404・409・400) DB のテンプレートの状態(currentTemplateVersion)
    */
-  async function templateSourceOf(ref: MessageTemplateRef): Promise<TemplateSource> {
-    if ("system" in ref) return { system: requireSystemTemplate({ systemTemplates: deps.systemTemplates ?? {}, layouts: deps.layouts }, ref.system) };
-    return { version: await currentTemplateVersion(ref.id, ref.version) };
+  async function freeSourceOf(origin: MessageFreeOrigin): Promise<FreeSource> {
+    if ("layout" in origin) {
+      const layout = deps.layouts[origin.layout];
+      if (!layout || layout.adminSelectable !== true) {
+        throw new DomainError(`レイアウト ${origin.layout} は自由連絡で選べません(管理画面で選べるレイアウトだけ)`, { status: 400 });
+      }
+      return { layout };
+    }
+    return { version: await currentTemplateVersion(origin.id, origin.version) };
   }
 
   return {
@@ -571,13 +577,13 @@ export function createMessageSender(deps: MessageSendDeps) {
 
     /**
      * 描いたプレビュー(管理の送信の確認)。見本の受信者 userId の値で差し込み、送信チャンネルごとに欄と(送信チャンネルが描けるなら)HTML を返す。
-     * テンプレート + 中身は送る時と同じ組み方(DB のテンプレートは今の公開版の変数の宣言)
+     * 自由連絡の中身は送る時と同じ組み方(DB のテンプレートは今の公開版の変数の宣言)
      * @throws DomainError 送る時と同じ検査(vars・送信チャンネル・欄・テンプレートの状態)
      */
     async previewMessage(
       source:
         | { definition: AnyMessageDefinition }
-        | { template: { template: MessageTemplateRef; values: Record<string, unknown>; category: string } },
+        | { free: { origin: MessageFreeOrigin; values: Record<string, unknown>; category: string } },
       input: { vars: Record<string, unknown>; channels?: readonly string[]; userId: string | null },
     ): Promise<MessagePreview> {
       let resolved: AnyResolvedMessageDefinition;
@@ -585,8 +591,8 @@ export function createMessageSender(deps: MessageSendDeps) {
       if ("definition" in source) {
         resolved = await resolveDefinition(source.definition, deps);
       } else {
-        const { values, category, template: ref } = source.template;
-        const from = await templateSourceOf(ref);
+        const { values, category, origin } = source.free;
+        const from = await freeSourceOf(origin);
         resolved = resolveTemplateDefinition(deps, { category, values, channels: input.channels, source: from });
         if ("version" in from) template = { id: from.version.templateId, version: from.version.version };
       }
@@ -631,19 +637,19 @@ export function createMessageSender(deps: MessageSendDeps) {
     },
 
     /**
-     * テンプレート + 欄の中身で送る(D117・D125)。白紙のシステムテンプレートも DB のテンプレートも同じ組み方。
+     * 自由連絡を送る(D117・D125・D171)。レイアウトを直に選んだ物も DB のテンプレートも同じ組み方。
      * 送信チャンネル = カテゴリーの送信チャンネル ∩ 絞り。送信に欄の中身を残し、DB のテンプレートは今の公開版を固定して直した印(入力の edited か中身の違い)を残す
      * (cron は送信の欄の中身で組み直す)
-     * @throws DomainError(404) テンプレートが無い / (409) 版が無い・今の版でない版 / (400) 白紙・カテゴリー・値・送信チャンネル・中身・受信者ごとの変数の既定値
+     * @throws DomainError(404) テンプレートが無い / (409) 版が無い・今の版でない版 / (400) レイアウト・カテゴリー・値・送信チャンネル・中身・受信者ごとの変数の既定値
      */
-    async sendTemplateMessage(input: SendTemplateMessageInput): Promise<SendMessageResult> {
-      const { template: ref, values, edited, category, vars, ...rest } = input;
-      // 専用の値は出どころの宣言(DB のテンプレートの版・システムテンプレート)の zod で検査する。宣言の無い白紙に値を渡すと 400(知らない鍵)
-      const from = await templateSourceOf(ref);
+    async sendFreeMessage(input: SendFreeMessageInput): Promise<SendMessageResult> {
+      const { origin, values, edited, category, vars, ...rest } = input;
+      // 埋め込み情報の値は DB のテンプレートの版の宣言の zod で検査する。宣言の無いレイアウトに値を渡すと 400(知らない鍵)
+      const from = await freeSourceOf(origin);
       const resolved = resolveTemplateDefinition(deps, { category, values, channels: rest.channels, source: from });
       const source: MessageDispatchTemplateSource =
-        "system" in from
-          ? { system: from.system.key }
+        "layout" in from
+          ? { layout: from.layout.key }
           : {
               template: {
                 id: from.version.templateId,

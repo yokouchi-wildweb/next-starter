@@ -6,27 +6,20 @@
 
 - 門: `messagingTemplates`（`dependsOn: ["messagingDispatches"]`、既定 閉、住所 `/admin/messaging/templates` と `/api/admin/messaging/templates`）。閉の間 画面と API は 404
 - 状態は持たない: 下書きは無く（保存 = 公開、D134）、要らなくなれば消す（D137。取り下げ・アーカイブは無い）
-- システムテンプレート（受け口 `messaging/templates` の白紙、D117・D125）も同じ一覧に印つきで並ぶ（読むだけ。下の「システムテンプレート」）
+- テンプレートは DB の物だけ（システムテンプレートは廃止、D171・D201）。自由連絡はレイアウトを直に選んでも送れる（../sendMessage/README.md「自由連絡」）
 
 ## API
 
-admin のみ。返す形は `dto.ts`（一覧・版の DTO は `categoryLabel` = カテゴリーの受け口の label か null。一覧・1 件は `system`・`kind`・`layout`・`values` を持つ。DB のテンプレートは `system: false`・`kind: null`）。
+admin のみ。返す形は `dto.ts`（一覧・版の DTO は `categoryLabel` = カテゴリーの受け口の label か null。一覧・1 件は `layout`・`values` を持つ）。
 
 - 入力（作る・直す）: `{ name, description?, category, layout, values, vars? }`。直す時はどれも省略できる。レイアウトを替える時は新しいレイアウトの `values` も要る（前のレイアウトの中身は持ち越さない、D113。無ければ 400）
 - 1 件: + `layoutVersion`・`vars`（専用の宣言）・`catalog`（文面に書ける埋め込み情報の一覧 `{ key, alias, source: common | enricher | own, description }`）。直した結果（`PATCH`）は + `unchanged`（新しい版を作らなかった）= `AdminTemplateSaveResult`
 - 版: `{ version, layout, layoutVersion, values, vars, category, categoryLabel, editedBy, createdAt }`
 
-- `GET /`（`kind`・`cursor`・`limit`）/ `POST /` 作って公開（版 1）/ `GET・PATCH・DELETE /[id]`（PATCH = 直して公開、DELETE = 消す → `{ id, deleted: true }`）/ `GET /[id]/versions`（新しい順）/ `GET /[id]/versions/[version]`
+- `GET /`（`kind`（その種別のカテゴリーのテンプレートだけ、D135）・`cursor`・`limit`）/ `POST /` 作って公開（版 1）/ `GET・PATCH・DELETE /[id]`（PATCH = 直して公開、DELETE = 消す → `{ id, deleted: true }`）/ `GET /[id]/versions`（新しい順）/ `GET /[id]/versions/[version]`。id は uuid（ほかの形は 404「テンプレートがありません」）
 - `GET /options`: 有効な送信チャンネル・カテゴリー `{ key, label, description, kind, channels }`（`kind` = 種別、画面は種別 →（カテゴリー）の順に選ぶ。`channels` = そのカテゴリーで送る使える送信チャンネル、プレビューのタブと送信チャンネルだけの欄はこの分、D115）（種別 announcement・direct・promotion のカテゴリーだけ）・`layouts`（管理者が選べるレイアウト `{ key, label, description, version, fields }`）・`baseCatalog`（専用の宣言の前から書ける埋め込み情報）。どれも受け口なので fork の物も入る
 - `POST /api/admin/messaging/layouts/preview`（`previewMessageLayout`、門 `messagingTemplates` か `messagingBroadcast` が開）: `{ layout, channel, category?, values }` を保存せずに描く。管理者が選べるレイアウトだけ、描き方は送る口と同じ 3 段（`buildChannelContent`、メールはレイアウトの描き方 `layoutEmails` があればそれ）、送信チャンネルの `preview` が送る HTML を返す。`{{名前}}` は差し込まずそのまま。返す形 `{ channel, html, text, title, summary, cannotRender }`（描けなければ `cannotRender` に理由、D114・D124）
 - 監査: `messaging.template.created`（版 1）/ `updated`（版の番号・新しい版を作ったか `newVersion`）/ `deleted`（名前・最後の版 `lastVersion`）（対象 `message_template`）
-
-### システムテンプレート
-
-- 一覧: 最初のページ（`cursor` なし）の先頭に、受け口の順で `system: true`・`id` = `system:<鍵>`・`name` = 白紙の `label`・`kind`・`layout`・`values`（白紙の欄の中身）。`kind` で絞ると、その種別のカテゴリーのテンプレートと、その種別のシステムテンプレートだけ（D135）。`category` は空（送る時に選ぶ）
-- `GET /[id]`（`system:<鍵>`）: 同じ形 + `layoutVersion`（今の版）・`vars: []`（白紙は専用の埋め込み情報を持たない）・`catalog`。無い鍵は 404
-- `PATCH /[id]`・`DELETE /[id]` は 409（コードで宣言した白紙は管理画面で直せない・消せない）。`GET /[id]/versions` は空、`GET /[id]/versions/[version]` は 404
-- id は uuid でない（`system:` で始まる）。画面は id を uuid と決めつけない
 
 ## Internals
 

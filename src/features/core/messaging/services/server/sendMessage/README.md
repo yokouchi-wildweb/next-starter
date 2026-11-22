@@ -2,13 +2,13 @@
 
 ## Overview
 
-連絡定義（`defineMessage`）を受けて送信と配達を書き、送信チャンネルの項目で送る口。公開の入口は `messagingService`（`../messagingService.ts`）の `sendMessage` / `sendMessageToMany` / `sendTemplateMessage` / `previewMessage` / `estimateRecipients`。使い方と宛先の線はドメインの README（../../../README.md）。
+連絡定義（`defineMessage`）を受けて送信と配達を書き、送信チャンネルの項目で送る口。公開の入口は `messagingService`（`../messagingService.ts`）の `sendMessage` / `sendMessageToMany` / `sendFreeMessage` / `previewMessage` / `estimateRecipients`。使い方と宛先の線はドメインの README（../../../README.md）。
 
 ## API
 
 - `sendMessage(definition, { recipient, vars, idempotencyKey?, scheduledAt?, source?, … })`: 1 人（`{ userId }` か `{ channel, address }`）
 - `sendMessageToMany(definition, { target | recipients, vars, … })`: `target` = `MessageTargetSpec`（`{ type: "all" }` / `{ type: "role", roles }` / `{ type: "group", groupId }`）か `recipients: [{ userId }, …]`
-- `sendTemplateMessage({ template: { system } | { id, version }, values, edited?, category, vars?, recipients | target, channels?, scheduledAt?, … })`: テンプレート + 欄の中身で送る（管理の送信、D117・D125）。管理の送る画面・一括送信も fork のコードからの管理の送信も同じ口（下の「fork のコードから管理の送信」）
+- `sendFreeMessage({ origin: { layout } | { id, version }, values, edited?, category, vars?, recipients | target, channels?, scheduledAt?, … })`: 自由連絡 = カテゴリー + レイアウトか DB のテンプレート + 欄の中身で送る（管理の送信、D117・D125・D171）。管理の送る画面・一括送信も fork のコードからの管理の送信も同じ口（下の「fork のコードから管理の送信」）
 - `previewMessage`（送信チャンネルごとの組んだ中身 `fields` と描いた結果）・`estimateRecipients({ target })` → `{ count, fixedAtSend: true, memberLimit?, overLimit? }`（グループは一員の数と人数の上限、利用できない人を外す前の数。送る時に展開で数え直す）
 - 戻り値は送信の id・状態・数。選んだ宛先で宛先の無い受信者・止めた受信者は理由つきで返る
 - 定義の誤りは 500、`enabled: false` は送信を作らず `status: "disabled"`、vars の誤り・知らない鍵は 400、冪等の鍵の重複は 409
@@ -34,24 +34,23 @@
 
 ### 送信の記録と組み直し（dispatchResolved.ts、D128）
 
-- 送信に残す物: 出どころ（定義連絡の鍵 `message_key` / システムテンプレートの鍵 `system_template` / DB のテンプレートの `template_id`・`template_version`）・直した印（`template_edited`）・カテゴリー・種別・送信チャンネル・レイアウトの鍵と送った版（`layout`・`layout_version`）・欄の中身（`values`、差し込む前の字）
+- 送信に残す物: 出どころ（定義連絡の鍵 `message_key` / DB のテンプレートの `template_id`・`template_version`。どちらも無い = 自由連絡のレイアウトだけ）・直した印（`template_edited`）・カテゴリー・種別・送信チャンネル・レイアウトの鍵と送った版（`layout`・`layout_version`）・欄の中身（`values`、差し込む前の字）
 - `values` の残し方は `vars` と同じ: record `vars` / `full` は残す、`meta` は送り残しの間だけ（送信を閉じる時に消す）、required と秘密を差し込む連絡は残さない
 - お知らせの行（`message_inbox_items`）は記録ではなく届けた中身: 記録の段・required に依らずレイアウトの鍵・版・欄の中身を残す（秘密の欄は空の字で差し込む、D120・D130）。書き手 = その場の行・cron の送る行・間引き（どれも `buildRowContent`）と cron の共有の行
 - 組み直し（cron の送る行・全員宛ての共有のお知らせの行・失敗の再送・送信の詳細の「同じ内容で送る」）は送信の物と `vars` だけで描く（`resolvedOfDispatch`）。定義・テンプレート・テキストの編集は引き直さないので、送った後に直しても予約・後回しの中身は変わらない
   - 送った版から今の版へレイアウトの改版の対応（`revisions[版]`）で読み替える。段の対応が無い・今より新しい版 = `layout_unreadable`、レイアウトが無い = `layout_missing`、欄の中身が無い = `values_missing`（cron は配達を `failed`）
   - 描かない振る舞い（間引き `throttle`・required・vars の zod の秘密の印）だけはコードの定義（`message_key` の生成の一覧の定義 + fork の上書き）から読む。定義が無ければ間引かない
 
-### テンプレート + 欄の中身（templateDefinition.ts・systemTemplates.ts、D117・D125）
+### 自由連絡（templateDefinition.ts、D117・D125・D171）
 
-- 出どころ = 白紙のシステムテンプレート `{ system: 鍵 }`（受け口 `messaging/templates`、種別ごとに 1 つ）か DB のテンプレート `{ id, version }`。管理用の連絡定義は持たない
-- 送信: `message_key` は null（定義の鍵は `TEMPLATE_MESSAGE_KEY` = `messaging.template`。送信にも事件にも書かない）。出どころは `system_template` か `template_id`・`template_version`
-- カテゴリー（必須）の種別は自由連絡で送れる種別（性質 `adminFreeText` がある announcement・direct・promotion、`adminSendableKinds`）。白紙はカテゴリーと同じ種別の物だけ。誤りは 400
+- 出どころ `origin` = レイアウト `{ layout: 鍵 }`（管理画面で選べる `adminSelectable` の物だけ。無い・ほかのレイアウトは 400、`sender.ts` の `freeSourceOf`）か DB のテンプレート `{ id, version }`（型 `MessageFreeOrigin`）。管理用の連絡定義は持たない
+- 送信: `message_key` は null（定義の鍵は `TEMPLATE_MESSAGE_KEY` = `messaging.template`。送信にも事件にも書かない）。出どころはレイアウト（`layout`）だけか `template_id`・`template_version`
+- カテゴリー（必須）の種別は自由連絡で送れる種別（性質 `adminFreeText` がある announcement・direct・promotion、`adminSendableKinds`）。種別はカテゴリーから（レイアウトは種別を持たない）。誤りは 400
 - **送信チャンネル = カテゴリーの送信チャンネル ∩ その送信の絞り（`channels`）**。カテゴリーの外・空の絞りは 400
-- `values` = レイアウトの欄の中身（白紙のレイアウト、DB のテンプレートは版のレイアウト）。レイアウトの欄の zod で検査し、`{{鍵}}`・`{{別名}}` = 埋め込み情報の一覧（共通 + 当たる enrichers + 版の専用の宣言）の中だけ（知らない名前・名前の重なりは 400）。上書きは重ねない
+- `values` = レイアウトの欄の中身（選んだレイアウト、DB のテンプレートは版のレイアウト）。レイアウトの欄の zod で検査し、`{{鍵}}`・`{{別名}}` = 埋め込み情報の一覧（共通 + 当たる enrichers + 版の専用の宣言）の中だけ（知らない名前・名前の重なりは 400）。上書きは重ねない
 - 専用の別名（`{{開始日時}}`）は定義にする前に `{{鍵}}` へ書き換える（送信の `values` は鍵だけ: cron の組み直しは宣言を引き直さない）
-- 直した印 `template_edited` = 入力の `edited: true` か、送る中身（書き換えの前）が版の中身（今のレイアウトの版へ読み替えた物）と違う（false は信じない。白紙の送りはいつも false）
-- DB のテンプレート: 今の公開版を送信に固定（今の公開版でない・取り下げ済み・未公開は 409、無いテンプレートは 404）。専用の値 `vars`（`{ 鍵: 値 }`、送信に 1 組、白紙では 400）は版の宣言の型で検査（必須の欠け・型の違いは 400、空は既定値）。値は送信の `embedded_values` にだけ残り（テンプレートの送信の `vars` は `{}`）、残し方・消し方は `vars` と同じ。cron・再送の差し込みの表 = `vars` ∪ `embedded_values`（検査し直さない）
-- 白紙の受け口は送る時に `checkSystemTemplates` で確かめる（送れない種別・同じ種別の 2 つ目・無いレイアウトは 500）。無い鍵は 400
+- 直した印 `template_edited` = 入力の `edited: true` か、送る中身（書き換えの前）が版の中身（今のレイアウトの版へ読み替えた物）と違う（false は信じない。レイアウトの送りはいつも false、`edited: true` は 400）
+- DB のテンプレート: 今の公開版を送信に固定（今の公開版でない・取り下げ済み・未公開は 409、無いテンプレートは 404）。専用の値 `vars`（`{ 鍵: 値 }`、送信に 1 組、レイアウトの送りでは 400）は版の宣言の型で検査（必須の欠け・型の違いは 400、空は既定値）。値は送信の `embedded_values` にだけ残り（テンプレートの送信の `vars` は `{}`）、残し方・消し方は `vars` と同じ。cron・再送の差し込みの表 = `vars` ∪ `embedded_values`（検査し直さない）
 - 送信には欄の中身（`values`）を残し、予約・cron の組み直し・再送はその中身で描く（後でテンプレートを直しても送った中身のまま。再送は同じ出どころを残す）
 - 画像（`storage://`）: お知らせの行を書く時に送信へ結ぶ（../inbox/README.md「画像」）。テンプレートの画像も送信ごとに複製して送信が持つ
 
@@ -62,10 +61,10 @@
 ```ts
 import { messagingService } from "@/features/core/messaging/services/server";
 
-await messagingService.sendTemplateMessage({
-  template: { system: "announcement" }, // 白紙(種別ごとに 1 つ)。DB のテンプレートなら { id, version }(今の公開版)
-  values: { subject: "メンテナンスのお知らせ", blocks: [{ type: "paragraph", text: "{{displayName}} 様、…" }] },
-  category: "announcement", // 白紙と同じ種別のカテゴリー
+await messagingService.sendFreeMessage({
+  origin: { layout: "simple" }, // 管理画面で選べるレイアウト(adminSelectable)。DB のテンプレートなら { id, version }(今の公開版)
+  values: { subject: "メンテナンスのお知らせ", body: "{{displayName}} 様、…" }, // レイアウトの欄の中身
+  category: "announcement", // 種別 announcement・direct・promotion のカテゴリー
   target: { type: "all" }, // か recipients: [{ userId }]
   source: "myFeature.maintenance",
 });

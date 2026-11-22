@@ -9,7 +9,7 @@
 // - 保存 = 作る(POST)か直す(PATCH)の 1 回で公開(作る = 版 1、直す = 中身が違えば新しい版、D134)。同じ中身なら unchanged →「変更はありません」。名前・説明・カテゴリー・レイアウト・中身・専用の埋め込み情報
 // - 専用の埋め込み情報 = 『専用の埋め込み情報を管理』のモーダルで足す・直す(varsEditor。適用で検査を通った物だけ反映、D126)
 // - 埋め込み情報のタグ = 選択肢の baseCatalog(共通 + enrichers)+ 専用。中身の中の知らない {{名前}} を返す
-// - システムテンプレート(system)は読むだけ(保存しない、D117)。削除 = remove(版も消え、送信は残る、D137。成功で true)
+// - 削除 = remove(版も消え、送信は残る、D137。成功で true)
 // - 中身の入力と埋め込み情報は fieldsReady(レイアウト・種別・カテゴリーがそろい、カテゴリーに送信チャンネルが 1 つ以上)まで出さない。
 //   それまでは fieldsHint(先に選ぶ物の 1 行、D139)
 // - 書きかけがある間は離れる前に確かめる(@/lib/unsavedGuard。モーダルを閉じる前の確かめは closeConfirm)
@@ -155,8 +155,6 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   const { showToast } = useToast();
   const { mutate } = useSWRConfig();
   const id = template?.id ?? null;
-  const system = Boolean(template?.system);
-  const readOnly = system;
 
   const categories = useMemo(() => options?.categories ?? [], [options]);
   /** 種別の選択肢(カテゴリーのある物だけ、lib の並び) */
@@ -168,7 +166,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     [categories],
   );
   // 新しく作る時は種別を選ばせる(先に選んでおかない、D110 D118)。直す時は保存した種別
-  const initialKind = categories.find((category) => category.key === template?.category)?.kind ?? template?.kind ?? "";
+  const initialKind = categories.find((category) => category.key === template?.category)?.kind ?? "";
 
   const [name, setName] = useState(template?.name ?? "");
   const [description, setDescription] = useState(template?.description ?? "");
@@ -188,7 +186,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   // 保存した中身は保存した時のレイアウトの間だけ(レイアウトを替えたら空から、D113)
   const savedValues = useMemo(() => (template && template.layout === layout ? template.values : null), [template, layout]);
 
-  const valuesForm = useLayoutFieldsForm({ layout: layoutOption, values: savedValues, channels, readOnly });
+  const valuesForm = useLayoutFieldsForm({ layout: layoutOption, values: savedValues, channels });
   const watched = useWatch({ control: valuesForm.control }) as Record<string, unknown>;
   const values = useMemo(() => compactLayoutValues(watched ?? {}), [watched]);
 
@@ -333,7 +331,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [template, options],
   );
-  const dirty = !readOnly && createdId === null && canonicalJson(buildInput()) !== initialJson;
+  const dirty = createdId === null && canonicalJson(buildInput()) !== initialJson;
   useUnsavedGuard(dirty);
 
   /** 保存の前の検査(画面で止める物。中身の深い検査はサーバー) */
@@ -356,7 +354,6 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
 
   /** 保存 = 作る or 直す の 1 回で公開(D134)。ボタンが Promise の間 loading */
   const save = useCallback(async () => {
-    if (readOnly) return;
     valuesForm.form.clearErrors();
     const problem = validate();
     if (problem) {
@@ -380,11 +377,11 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     } catch (e) {
       showToast(err(e, "保存できませんでした"), "error");
     }
-  }, [readOnly, validate, id, updateMutation, createMutation, buildInput, showToast, onCreated, onChanged, valuesForm.form, mutate]);
+  }, [validate, id, updateMutation, createMutation, buildInput, showToast, onCreated, onChanged, valuesForm.form, mutate]);
 
   /** 削除(版も消え、送信は残る、D137)。消せたら true(呼び手がモーダルを閉じる) */
   const remove = useCallback(async (): Promise<boolean> => {
-    if (!id || system || !template) return false;
+    if (!id || !template) return false;
     try {
       await deleteMutation.trigger();
       onChanged?.(template, "delete");
@@ -394,7 +391,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
       showToast(err(e, "削除できませんでした"), "error");
       return false;
     }
-  }, [id, system, template, deleteMutation, showToast, onChanged]);
+  }, [id, template, deleteMutation, showToast, onChanged]);
 
   // 中身の入力を出せるか(D139): レイアウト・種別・カテゴリーがそろい、カテゴリーに送信チャンネルが 1 つ以上
   const missing = [!kind ? "種別" : null, !category ? "カテゴリー" : null, !layoutOption ? "ひな形" : null].filter((item): item is string => item !== null);
@@ -411,8 +408,6 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     fieldsReady,
     /** 出せない時の 1 行(先に選ぶ物) */
     fieldsHint,
-    system,
-    readOnly,
     dirty,
     createdId,
     save,

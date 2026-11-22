@@ -1,8 +1,8 @@
 // 管理の送信の service の検査(送る口・監査は偽物)
-// - 中身は 1 つの形 { template(白紙 { system } か DB の { id, version }), values, edited?, vars? }(D117・D125、専用の値は vars 指令 58)を送る口 sendTemplateMessage へ、
+// - 中身は 1 つの形 { origin(レイアウト { layout } か DB の { id, version }), values, edited?, vars? }(D117・D125・D171、専用の値は vars 指令 58)を送る口 sendFreeMessage へ、
 //   宛先(全員・ロール・グループ・選んだ利用者)、予約、監査(sent / scheduled / test_sent)
 // - カテゴリー(必須): 種別 announcement・direct・promotion だけ、宛先の種類は性質 adminFreeText。送信チャンネルの制限は無い(LINE・fork の送信チャンネルも)。
-//   白紙の種別とカテゴリーの種別の照合は送る口(templateSend.test.ts)
+//   管理画面で選べるレイアウトかの検査は送る口(templateSend.test.ts)。廃止した { system } の出どころは 400
 // - プレビュー・テスト送信の宛先は操作した管理者、見込みは送る時に数え直す印つき、選択肢
 // - グループ宛て(announcement・promotion・direct、D109 の漏れの直しで direct も。見込みは送る口のまま)、選択肢のグループ
 // - 管理者でなければ 403
@@ -10,7 +10,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import type { MessageCategory, MessageChannel, MessageSystemTemplate } from "@/lib/messaging";
+import type { MessageCategory, MessageChannel } from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 
@@ -36,8 +36,6 @@ const categories: Record<string, MessageCategory> = {
 const result = { dispatchId: "d1", status: "processing" as const, deliveries: [], queuedCount: 0, channelCounts: {} };
 
 const GROUP = "22222222-2222-4222-8222-222222222222";
-const blank = (kind: MessageSystemTemplate["kind"]): MessageSystemTemplate => ({ key: kind, kind, label: `${kind} の白紙`, layout: "notice", values: { subject: "", blocks: [] } });
-const systemTemplates: Record<string, MessageSystemTemplate> = { announcement: blank("announcement"), direct: blank("direct"), promotion: blank("promotion") };
 
 function setup(options: { role?: string; actorId?: string | null; groups?: { id: string; label: string; kindLabel: string }[] } = {}) {
   const calls: { fn: string; args: unknown[] }[] = [];
@@ -52,8 +50,8 @@ function setup(options: { role?: string; actorId?: string | null; groups?: { id:
   const deps: AdminSendDeps = {
     context: () => ({ actorId: options.actorId === undefined ? ADMIN : options.actorId, actorType: "user" }) as never,
     roleCategoryOf: async () => options.role ?? "admin",
-    sendTemplateMessage: async (...args) => {
-      calls.push({ fn: "template", args });
+    sendFreeMessage: async (...args) => {
+      calls.push({ fn: "free", args });
       return result;
     },
     previewMessage: async (...args) => {
@@ -67,7 +65,6 @@ function setup(options: { role?: string; actorId?: string | null; groups?: { id:
     recordAudit: async (input) => audits.push(input),
     channels: { email: channel("email"), inApp: channel("inApp"), line: channel("line", { enabled: false }), push: channel("push") },
     categories,
-    systemTemplates,
     layouts: TEST_LAYOUTS,
     enrichers: {},
     roles: () => [{ id: "user", label: "ユーザー" }],
@@ -89,18 +86,19 @@ async function rejectsWith(run: Promise<unknown>, status: number, message?: RegE
 
 const TEXT = { subject: "春 {{discount}}", blocks: [{ type: "paragraph", text: "本文" }] };
 const TPL = { id: TEMPLATE, version: 3 };
-const BLANK = { system: "announcement" };
+/** レイアウトを直に選んだ出どころ(notice は管理画面で選べる) */
+const LAYOUT = { layout: "notice" };
 const VALUES = { subject: "件名", blocks: [{ type: "paragraph", text: "{{displayName}} 様" }] };
-/** 自由連絡の中身(白紙 + 欄の中身) */
-const ADHOC = { template: BLANK, values: VALUES };
+/** 自由連絡の中身(レイアウト + 欄の中身) */
+const ADHOC = { origin: LAYOUT, values: VALUES };
 
-test("自由連絡(白紙)を全員へ今送る: 送る口に白紙・欄の中身・カテゴリー、監査 sent", async () => {
+test("自由連絡(レイアウト)を全員へ今送る: 送る口にレイアウト・欄の中身・カテゴリー、監査 sent", async () => {
   const { deps, calls, audits } = setup();
   const sent = await adminSend(deps, { ...ADHOC, category: "announcement", channels: ["email", "inApp"], target: { type: "all" } });
   assert.equal(sent.dispatchId, "d1");
   const [input] = calls[0].args as [Record<string, unknown>];
-  assert.equal(calls[0].fn, "template");
-  assert.deepEqual(input.template, BLANK);
+  assert.equal(calls[0].fn, "free");
+  assert.deepEqual(input.origin, LAYOUT);
   assert.deepEqual(input.values, VALUES);
   assert.equal(input.category, "announcement");
   assert.deepEqual(input.channels, ["email", "inApp"]);
@@ -110,16 +108,19 @@ test("自由連絡(白紙)を全員へ今送る: 送る口に白紙・欄の中�
   assert.equal(input.source, "messaging.adminSend");
   assert.equal(input.scheduledAt, undefined);
   assert.equal(audits[0].action, "messaging.dispatch.sent");
-  assert.deepEqual([audits[0].metadata?.source, audits[0].metadata?.category, audits[0].metadata?.kind], ["system", "announcement", "announcement"]);
+  assert.deepEqual(
+    [audits[0].metadata?.source, audits[0].metadata?.layout, audits[0].metadata?.category, audits[0].metadata?.kind],
+    ["layout", "notice", "announcement", "announcement"],
+  );
   // 送信チャンネルを省略 = カテゴリーの送信チャンネルの全部
   await adminSend(deps, { ...ADHOC, category: "promotion", target: { type: "role", roles: ["user"] } });
   assert.equal("channels" in (calls[1].args[0] as Record<string, unknown>), false);
 });
 
-test("DB のテンプレートをロール宛てに予約: 送る口に template・欄の中身・直した印・専用の値 vars・カテゴリー、監査 scheduled", async () => {
+test("DB のテンプレートをロール宛てに予約: 送る口に origin・欄の中身・直した印・専用の値 vars・カテゴリー、監査 scheduled", async () => {
   const { deps, calls, audits } = setup();
   await adminSend(deps, {
-    template: TPL,
+    origin: TPL,
     values: TEXT,
     edited: true,
     vars: { discount: 10 },
@@ -128,7 +129,7 @@ test("DB のテンプレートをロール宛てに予約: 送る口に template
     scheduledAt: "2026-12-01T09:00:00+09:00",
   });
   const [input] = calls[0].args as [Record<string, unknown>];
-  assert.deepEqual(input.template, TPL);
+  assert.deepEqual(input.origin, TPL);
   assert.deepEqual(input.values, TEXT);
   assert.equal(input.edited, true);
   assert.deepEqual(input.vars, { discount: 10 });
@@ -150,27 +151,32 @@ test("カテゴリー: 無い・3 つの種別でない・宛先の種類が送�
   await rejectsWith(adminSend(deps, { ...ADHOC, category: "nope", target: { type: "all" } }), 400, /見つかりません/);
   await rejectsWith(adminSend(deps, { ...ADHOC, channels: ["email"], target: { type: "all" } }), 400);
   assert.equal(calls.length, 0);
-  // email・inApp の外の送信チャンネル(push)を持つカテゴリーも白紙の中身で送る口へ(中身の検査は送る口)
+  // email・inApp の外の送信チャンネル(push)を持つカテゴリーもレイアウトの中身で送る口へ(中身の検査は送る口)
   await adminSend(deps, { ...ADHOC, category: "promoPush", target: { type: "all" } });
   await adminSend(deps, { ...ADHOC, category: "operatorDirect", channels: ["email"], target: { type: "users", userIds: ["u1", "u1", "u2"] } });
   assert.equal((calls[0].args[0] as Record<string, unknown>).category, "promoPush");
   assert.deepEqual((calls[1].args[0] as Record<string, unknown>).recipients, [{ userId: "u1" }, { userId: "u2" }]);
 });
 
-test("入力の誤りは 400(形・知らない鍵・白紙での直した印・予約の形)", async () => {
+test("入力の誤りは 400(形・知らない鍵・廃止した { system } の出どころ・レイアウトでの直した印・予約の形)", async () => {
   const { deps } = setup();
   const c = { category: "promotion", target: { type: "all" } };
   const cases = [
     { ...c },
-    { ...c, template: BLANK },
-    { ...c, template: BLANK, values: "文" },
+    { ...c, origin: LAYOUT },
+    { ...c, origin: LAYOUT, values: "文" },
     { ...c, values: VALUES },
     // 前の形(送信チャンネルごとの content)は黙って捨てない
     { ...c, ...ADHOC, content: { email: { subject: "s" } } },
     { ...c, ...ADHOC, edited: true },
-    { ...c, ...ADHOC, template: { id: "not-uuid", version: 3 } },
-    { ...c, ...ADHOC, template: { id: TEMPLATE } },
-    { ...c, ...ADHOC, template: { templateId: TEMPLATE, version: 3 } },
+    // 廃止したシステムテンプレートの出どころ・前の鍵 template は受けない(D171)
+    { ...c, ...ADHOC, origin: { system: "announcement" } },
+    { ...c, values: VALUES, template: LAYOUT },
+    { ...c, ...ADHOC, origin: { layout: "" } },
+    { ...c, ...ADHOC, origin: { layout: "notice", system: "announcement" } },
+    { ...c, ...ADHOC, origin: { id: "not-uuid", version: 3 } },
+    { ...c, ...ADHOC, origin: { id: TEMPLATE } },
+    { ...c, ...ADHOC, origin: { templateId: TEMPLATE, version: 3 } },
     { ...c, ...ADHOC, scheduledAt: "あした" },
     { ...c, ...ADHOC, target: { type: "users", userIds: [] } },
     // 前の形(message の包み)・知らない鍵は黙って捨てない
@@ -182,14 +188,14 @@ test("入力の誤りは 400(形・知らない鍵・白紙での直した印・
 
 test("プレビューとテスト送信は操作した管理者、テストは is_test で監査 test_sent", async () => {
   const { deps, calls, audits } = setup();
-  await adminSendPreview(deps, { template: TPL, values: TEXT, vars: { a: 1 }, category: "promotion" });
+  await adminSendPreview(deps, { origin: TPL, values: TEXT, vars: { a: 1 }, category: "promotion" });
   assert.deepEqual(calls[0].args, [
-    { template: { template: TPL, values: TEXT, category: "promotion" } },
+    { free: { origin: TPL, values: TEXT, category: "promotion" } },
     { vars: { a: 1 }, channels: undefined, userId: ADMIN },
   ]);
   await adminSendPreview(deps, { ...ADHOC, category: "announcement", channels: ["email"] });
   assert.deepEqual(calls[1].args, [
-    { template: { ...ADHOC, category: "announcement" } },
+    { free: { ...ADHOC, category: "announcement" } },
     { vars: {}, channels: ["email"], userId: ADMIN },
   ]);
 
@@ -206,7 +212,7 @@ test("プレビューとテスト送信は操作した管理者、テストは i
   await rejectsWith(adminSendTest(system.deps, { ...ADHOC, category: "promotion", channels: ["email"] }), 400);
 });
 
-test("見込みは送る口の数(送る時に数え直す印)、選択肢は有効な送信チャンネル・ロール・テンプレート", async () => {
+test("見込みは送る口の数(送る時に数え直す印)、選択肢は有効な送信チャンネル・ロール・テンプレート・管理画面で選べるレイアウト", async () => {
   const { deps, calls } = setup();
   assert.deepEqual(await adminSendEstimate(deps, { target: { type: "users", userIds: ["u1", "u2"] } }), {
     count: 7,
@@ -221,7 +227,7 @@ test("見込みは送る口の数(送る時に数え直す印)、選択肢は有
     { key: "inApp", label: "INAPP" },
     { key: "push", label: "PUSH" },
   ]);
-  // 3 つの種別のカテゴリー(受け口の順)と送れる宛先の種類・その種別の白紙
+  // 3 つの種別のカテゴリー(受け口の順)と送れる宛先の種類
   assert.deepEqual(
     options.categories.map((o) => [o.key, o.kind, o.targets.join(",")]),
     [
@@ -231,7 +237,31 @@ test("見込みは送る口の数(送る時に数え直す印)、選択肢は有
       ["promoPush", "promotion", "all,role,group,users,bulk"],
     ],
   );
-  assert.deepEqual(options.categories.map((o) => o.systemTemplate?.key), ["announcement", "direct", "promotion", "promotion"]);
+  // レイアウト = 管理画面で選べる物だけ(notice。card は adminSelectable が無い)、テンプレートが無ければほかは足さない
+  assert.deepEqual(
+    options.layouts.map((o) => [o.key, o.selectable]),
+    [["notice", true]],
+  );
+  // 並べたテンプレートが使うほかのレイアウトは選べるレイアウトの後に selectable: false(重ねない・受け口に無い物は落とす)
+  const tpl = (id: string, layout: string) => ({
+    id,
+    key: id,
+    name: id,
+    category: "promotion",
+    currentVersion: 1,
+    layout,
+    layoutVersion: 1,
+    values: {},
+    vars: [],
+  });
+  deps.listPublishedTemplates = async () => [tpl("a", "card"), tpl("b", "notice"), tpl("c", "none"), tpl("d", "card")];
+  assert.deepEqual(
+    (await adminSendOptions(deps)).layouts.map((o) => [o.key, o.selectable]),
+    [
+      ["notice", true],
+      ["card", false],
+    ],
+  );
   assert.equal(options.maxScheduleDays, 90);
 });
 

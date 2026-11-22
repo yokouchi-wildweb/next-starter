@@ -37,7 +37,7 @@ import {
   listMessageTemplateVersions,
   updateMessageTemplate,
 } from "./templates";
-import { sendMessage, sendMessageToMany, sendTemplateMessage } from "./sendMessage";
+import { sendFreeMessage, sendMessage, sendMessageToMany } from "./sendMessage";
 import { existingIdempotencyKeys } from "./sendMessage/store";
 import { continueSending } from "./sweep";
 
@@ -52,11 +52,11 @@ export const messagingService = {
   /** 定義連絡を選んだ宛先か宛先の指定(全員・ロール・グループ)へ送る(新しい送る口) */
   sendMessageToMany,
   /**
-   * テンプレート + 欄の中身で送る(管理の送信、D117・D125)。fork のコードからの管理の送信もこの口:
-   * template = { system: 白紙の鍵 } か { id, version }(DB のテンプレートの今の公開版)、values = レイアウトの欄の中身、category = 送るカテゴリー。
-   * 送信は message_key null + 出どころ(system_template か template_id + 版と直した印)。予約もできる
+   * 自由連絡を送る(管理の送信、D117・D125・D171)。fork のコードからの管理の送信もこの口:
+   * origin = { layout }(管理画面で選べるレイアウト)か { id, version }(DB のテンプレートの今の公開版)、values = レイアウトの欄の中身、
+   * category = 送るカテゴリー(種別と送信チャンネルはここから)。送信は message_key null + 出どころ(レイアウトだけか template_id + 版と直した印)。予約もできる
    */
-  sendTemplateMessage,
+  sendFreeMessage,
   /** 渡した冪等の鍵のうち使われたもの(送信の表と鍵の移し先の表の両方を見る。一括の送り手がページごとに送信済みを除く) */
   existingIdempotencyKeys,
   /** 1 つの送信を 1 束だけ進める(管理の「続きを送る」。cron が遅い環境の補い) */

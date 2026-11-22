@@ -10,15 +10,13 @@
 // - 画面の選択肢 templateOptions(使える送信チャンネル・カテゴリー・管理者が選べるレイアウト・専用の宣言の前から書ける埋め込み情報)
 // - 消す時: 欄の中身を残している送信が使う画像を、同じ取引で送信に結び直す(テンプレートの行が消えると storage の照合が外すため)
 // - service でも管理者を確かめる(D42)。監査 messaging.template.{created, updated, deleted}(created・updated は版の番号、deleted は名前と最後の版)
-// - 一覧は種別(kind)で絞れる: その種別のカテゴリーのテンプレートと、その種別のシステムテンプレート(D135)
-// - システムテンプレート(受け口 messaging/templates の白紙、D117・D125): 一覧の最初のページの先頭に印つき(system: true、id = system:<鍵>)で並び、
-//   1 件も読める。直す・消すは 409(管理画面で直せない・消せない)。版は持たない(版の一覧は空、版 1 つは 404)
+// - 一覧は種別(kind)で絞れる: その種別のカテゴリーのテンプレート(D135)。テンプレートは DB の物だけ(システムテンプレートは廃止、D171)
 
 import { randomBytes } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 
 import type { AuditRecordInput } from "@/lib/audit";
-import { buildChannelContent, categoryAdminLabel, layoutVersionOf, upgradeLayoutValues, type MessageVarDeclaration, type MessageVarEntry, type MessageSystemTemplate } from "@/lib/messaging";
+import { buildChannelContent, categoryAdminLabel, layoutVersionOf, upgradeLayoutValues, type MessageVarDeclaration, type MessageVarEntry } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import type { MessageTemplate, MessageTemplateVersion } from "../../../entities/model";
@@ -43,7 +41,7 @@ import {
   UpdateMessageTemplateInputSchema,
 } from "./schema";
 import type { MessageTemplateStore } from "./types";
-import { enabledSystemTemplates, isAdminSendableKind, isSystemTemplateEnabled } from "../sendMessage/systemTemplates";
+import { isAdminSendableKind } from "../sendMessage/templateDefinition";
 
 export type TemplateServiceDeps<Tx> = AdminCheckDeps & {
   store: MessageTemplateStore<Tx>;
@@ -52,8 +50,6 @@ export type TemplateServiceDeps<Tx> = AdminCheckDeps & {
   dispatchLedger: InboxImageLedger<Tx>;
   check: () => TemplateCheckDeps;
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
-  /** システムテンプレートの受け口(無い = 一覧に並べない) */
-  systemTemplates?: () => Readonly<Record<string, MessageSystemTemplate>>;
   /** 送信チャンネルの鍵 → レイアウトの描き方を持つレイアウトの鍵の表(email = layoutEmails。プレビューが 3 段の 1 段目を選ぶのに使う) */
   layoutRenderers?: () => Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   /** 送信チャンネルのプレビュー(送信チャンネルの受け口の preview。無い送信チャンネルは html なし) */
@@ -66,12 +62,11 @@ export type TemplateServiceDeps<Tx> = AdminCheckDeps & {
 /** プレビューで送信チャンネルへ渡す連絡の鍵(テンプレートの送信と同じ。停止のリンクの見本に使うだけ) */
 const PREVIEW_MESSAGE_KEY = "messaging.template";
 
-/** システムテンプレートの id の頭(DB のテンプレートの id は uuid) */
-export const SYSTEM_TEMPLATE_ID_PREFIX = "system:";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** システムテンプレートの id か */
-export function isSystemTemplateId(id: string): boolean {
-  return id.startsWith(SYSTEM_TEMPLATE_ID_PREFIX);
+/** テンプレートの id は uuid(形の違う id は「無い」= 404。DB に uuid でない値を渡さない) */
+function assertTemplateId(id: string): void {
+  if (!UUID.test(id)) throw new DomainError("テンプレートがありません", { status: 404 });
 }
 
 /** カテゴリーの表示名(受け口の label。無ければ null) */
@@ -100,30 +95,8 @@ function toSummary(row: MessageTemplate, categoryLabel: CategoryLabelOf): AdminT
     updatedBy: row.updated_by ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt ? row.updatedAt.toISOString() : null,
-    system: false,
-    kind: null,
     layout: row.layout,
     values: row.values,
-  };
-}
-
-function toSystemSummary(template: MessageSystemTemplate): AdminTemplateSummary {
-  return {
-    id: `${SYSTEM_TEMPLATE_ID_PREFIX}${template.key}`,
-    key: template.key,
-    name: template.label,
-    description: null,
-    category: "",
-    categoryLabel: null,
-    currentVersion: null,
-    createdBy: null,
-    updatedBy: null,
-    createdAt: null,
-    updatedAt: null,
-    system: true,
-    kind: template.kind,
-    layout: template.layout,
-    values: { ...template.values },
   };
 }
 
@@ -202,20 +175,6 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     });
   }
 
-  /** 鍵(system:<鍵>)のシステムテンプレート。無い・切った(enabled: false)物は 404 */
-  function requireSystem(id: string): MessageSystemTemplate {
-    const template = deps.systemTemplates?.()[id.slice(SYSTEM_TEMPLATE_ID_PREFIX.length)];
-    if (!template || !isSystemTemplateEnabled(template)) throw new DomainError("テンプレートがありません", { status: 404 });
-    return template;
-  }
-
-  /** システムテンプレートは直せない・消せない(409) */
-  function refuseSystem(id: string, verb: string): void {
-    if (!isSystemTemplateId(id)) return;
-    const template = requireSystem(id);
-    throw new DomainError(`システムテンプレート「${template.label}」は${verb}できません(コードで宣言した白紙です)`, { status: 409 });
-  }
-
   /**
    * 行の欄の中身を今のレイアウトの版へ読み替える(レイアウトが改版していれば revisions を当てる)。読めなければ 409
    */
@@ -228,6 +187,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
   }
 
   async function requireRow(id: string): Promise<MessageTemplate> {
+    assertTemplateId(id);
     const row = await deps.store.find(id);
     if (!row) throw new DomainError("テンプレートがありません", { status: 404 });
     return row;
@@ -254,31 +214,14 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         : null;
       const rows = await deps.store.list({ categories, limit, after: decodeCursor(cursor) });
       const page = rows.slice(0, limit);
-      // システムテンプレートは最初のページの先頭(切った物・ほかの種別は出さない)
-      const systems =
-        !cursor
-          ? enabledSystemTemplates(deps.systemTemplates?.() ?? {})
-              .filter((template) => !kind || template.kind === kind)
-              .map(toSystemSummary)
-          : [];
       return {
-        items: [...systems, ...page.map((row) => toSummary(row, categoryLabel))],
+        items: page.map((row) => toSummary(row, categoryLabel)),
         nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]) : null,
       };
     },
 
     async getTemplate(id: string): Promise<AdminTemplateDetail> {
       await assertAdminActor(deps);
-      if (isSystemTemplateId(id)) {
-        const template = requireSystem(id);
-        const layout = deps.check().layouts[template.layout];
-        return {
-          ...toSystemSummary(template),
-          layoutVersion: layout ? layoutVersionOf(layout) : 1,
-          vars: [...(template.vars ?? [])],
-          catalog: catalogOf(template.vars ?? []),
-        };
-      }
       return detailOf(await requireRow(id));
     },
 
@@ -325,11 +268,11 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     /**
      * 直す = 行を書き、中身が最新の版と違えば同じ取引で新しい版にする(保存 = 公開、D134)。
      * 名前・説明はいつも保存する。中身が版と同じなら版を作らず unchanged: true(409 にしない)
-     * @throws DomainError(400) 入力・中身の検査 / (404) 無い / (409) システムテンプレート
+     * @throws DomainError(400) 入力・中身の検査 / (404) 無い
      */
     async updateTemplate(id: string, input: unknown): Promise<AdminTemplateSaveResult> {
       await assertAdminActor(deps);
-      refuseSystem(id, "直すことは");
+      assertTemplateId(id);
       const patch = parseOr400(UpdateMessageTemplateInputSchema.safeParse(input), "テンプレートの入力が正しくありません");
       const actor = actorId();
       const { row, version } = await deps.store.transaction(async (tx) => {
@@ -378,7 +321,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
      */
     async deleteTemplate(id: string): Promise<{ id: string; deleted: true }> {
       await assertAdminActor(deps);
-      refuseSystem(id, "消すことは");
+      assertTemplateId(id);
       const row = await deps.store.transaction(async (tx) => {
         const current = await deps.store.lockForUpdate(tx, id);
         if (!current) throw new DomainError("テンプレートがありません", { status: 404 });
@@ -401,11 +344,6 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     /** 版の一覧(新しい順) */
     async listTemplateVersions(id: string): Promise<AdminTemplateVersion[]> {
       await assertAdminActor(deps);
-      // システムテンプレートは版を持たない
-      if (isSystemTemplateId(id)) {
-        requireSystem(id);
-        return [];
-      }
       await requireRow(id);
       return (await deps.store.listVersions(id)).map((row) => toVersion(row, categoryLabel));
     },
@@ -414,10 +352,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     async getTemplateVersion(id: string, version: number): Promise<AdminTemplateVersion> {
       await assertAdminActor(deps);
       if (!Number.isInteger(version) || version < 1) throw new DomainError("版の番号が正しくありません", { status: 400 });
-      if (isSystemTemplateId(id)) {
-        requireSystem(id);
-        throw new DomainError("システムテンプレートは版を持ちません", { status: 404 });
-      }
+      assertTemplateId(id);
       const row = await deps.store.findVersion(id, version);
       if (!row) throw new DomainError("その版はありません", { status: 404 });
       return toVersion(row, categoryLabel);

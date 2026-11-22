@@ -7,8 +7,8 @@ import type { MessageChannelCounts } from "../../../entities/schema";
 /** 管理者が書いて送った文面(送信チャンネルごとの欄、差し込む前の字) */
 export type AdminMessageContent = Record<string, unknown>;
 
-/** 一括送信の中身の出どころ(afterSend に渡す): 白紙のシステムテンプレートの鍵か、DB のテンプレートの固定した版と直した印 */
-export type AdminBulkSendTemplate = { system: string } | { id: string; version: number; edited: boolean };
+/** 一括送信の中身の出どころ(afterSend に渡す): 選んだレイアウトか、DB のテンプレートの固定した版と直した印 */
+export type AdminBulkSendOrigin = { layout: string } | { id: string; version: number; edited: boolean };
 
 /** 一括送信の数(呼び手と afterSend に返す) */
 export type AdminBulkSendCounts = {
@@ -43,7 +43,7 @@ export type MessageBulkSendTarget = {
     counts: AdminBulkSendCounts;
     /** 送った欄の中身(レイアウトの欄、差し込む前の字。汎用のお知らせの件名は values.subject) */
     values: Record<string, unknown>;
-    /** 中身の出どころ(白紙か DB のテンプレート) */
-    template: AdminBulkSendTemplate;
+    /** 中身の出どころ(レイアウトか DB のテンプレート) */
+    origin: AdminBulkSendOrigin;
   }) => Promise<void>;
 };

@@ -26,14 +26,13 @@ import { categories } from "../../../extensions/categories";
 import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
 import { layouts } from "../../../extensions/layouts";
-import { systemTemplates } from "../../../extensions/systemTemplates";
 import { sources } from "../../../extensions/sources";
 import {
   resolvedOfDispatch,
   estimateRecipients,
   previewMessage,
+  sendFreeMessage,
   sendMessageDeps,
-  sendTemplateMessage,
   sendResolved,
 } from "../sendMessage";
 import { continueSending } from "../sweep";
@@ -206,13 +205,12 @@ const readDeps = {
 /** 管理の送信の部品 */
 const sendDeps: AdminSendDeps = {
   ...adminCheck,
-  sendTemplateMessage,
+  sendFreeMessage,
   previewMessage,
   estimateRecipients,
   recordAudit,
   channels,
   categories,
-  systemTemplates,
   layouts,
   enrichers,
   roles: () => ALL_ROLES.map((role) => ({ id: role.id, label: role.label })),
@@ -309,7 +307,7 @@ export function adminContinueSending(dispatchId: string) {
 export { AdminBulkSendInputSchema, ADMIN_BULK_SEND_MAX_RECIPIENTS } from "./bulkSend";
 export { ListDeliveriesQuerySchema, ListDispatchesQuerySchema } from "./readDispatches";
 export type { AdminBulkSendInput, AdminBulkSendOptions, AdminBulkSendResult } from "./bulkSend";
-export type { AdminBulkSendTemplate } from "./types";
+export type { AdminBulkSendOrigin } from "./types";
 export { ADMIN_SEND_MAX_USERS } from "./send";
 export type { AdminFreeTextCategoryOption } from "./freeText";
 export { ADMIN_DELETE_MAX_IDS, AdminDispatchIdsInputSchema, AdminResendInputSchema } from "./operations";

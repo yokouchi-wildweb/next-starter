@@ -1,8 +1,8 @@
 // 管理の送信と読む口の検査(DB・送る口・監査は偽物)
 // - 管理者の再検査(service): admin の利用者と system は通る、他は 403
-// - 一括送信: userIds / target + recordIds、重複を除く、中身は送る画面と同じ { template, values, edited?, vars? }(D117、専用の値は vars 指令 58)を送る口 sendTemplateMessage へ、
+// - 一括送信: userIds / target + recordIds、重複を除く、中身は送る画面と同じ { origin, values, edited?, vars? }(D117・D171、専用の値は vars 指令 58)を送る口 sendFreeMessage へ、
 //   カテゴリー(必須、bulk で送れる種別 direct・promotion だけ)、送り元、afterSend(送った欄の中身と出どころ、失敗しても送信は戻さない)、監査 1 行、選択肢
-// - DTO の前の送る口の送信 = レイアウト(layout)が無い送信。テンプレートからの送信(message_key null)は前の送信ではない
+// - DTO の前の送る口の送信 = レイアウト(layout)が無い送信。自由連絡の送信(message_key null)は前の送信ではない
 // - 読む口: 絞り込みの検査、keyset の印、DTO(本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の送信)
 // - グループ宛ての送信: 一覧・1 件に宛先のグループ { id(値だけ), name }、名前は 1 ページに 1 回引く、引けなければ null、detail.target は形だけ
 // - 続きを送る: 監査 1 行
@@ -15,7 +15,7 @@ import { DomainError } from "@/lib/errors";
 
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import { assertAdminActor } from "./assertAdmin";
-import type { MessageCategory, MessageChannel, MessageSource, MessageSystemTemplate } from "@/lib/messaging";
+import type { MessageCategory, MessageChannel, MessageSource } from "@/lib/messaging";
 import { sourceLabelOf } from "./sourceLabels";
 
 import { adminBulkSend, adminBulkSendOptions, adminBulkSendPreview, adminBulkSendTest, type AdminBulkSendDeps } from "./bulkSend";
@@ -52,9 +52,6 @@ const bulkCategories: Record<string, MessageCategory> = {
   promotion: { key: "promotion", label: "キャンペーン情報", kind: "promotion", channels: ["email", "inApp"] },
   promoPush: { key: "promoPush", label: "プッシュ", kind: "promotion", channels: ["email", "push"] },
 };
-
-const blank = (kind: MessageSystemTemplate["kind"]): MessageSystemTemplate => ({ key: kind, kind, label: `${kind} の白紙`, layout: "notice", values: { subject: "", blocks: [] } });
-const bulkSystemTemplates: Record<string, MessageSystemTemplate> = { direct: blank("direct"), promotion: blank("promotion") };
 
 const TEMPLATE = "11111111-1111-4111-8111-111111111111";
 const TEMPLATE_VALUES = { subject: "{{name}} 様へ", blocks: [{ type: "paragraph", text: "本文" }] };
@@ -94,12 +91,11 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
       line: { key: "line", label: "LINE", enabled: false } as unknown as MessageChannel,
     },
     categories: bulkCategories,
-    systemTemplates: bulkSystemTemplates,
     layouts: TEST_LAYOUTS,
     enrichers: {},
-    sendTemplateMessage: async (input) => {
+    sendFreeMessage: async (input) => {
       sent.push(input as unknown as Record<string, unknown>);
-      return "id" in input.template
+      return "id" in input.origin
         ? { dispatchId: "d2", status: "processing", deliveries: [], queuedCount: 1, channelCounts: {}, template: { id: TEMPLATE, version: 2, edited: true } }
         : { dispatchId: "d1", status: "processing", deliveries: [], queuedCount: 3, channelCounts: {} };
     },
@@ -115,21 +111,25 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
 }
 
 const MAIL = { subject: "件名", blocks: [{ type: "paragraph", text: "本文" }] };
-const BLANK = { system: "promotion" };
-const mail = { category: "promotion", channels: ["email"], template: BLANK, values: MAIL };
+/** レイアウトを直に選んだ出どころ(notice は管理画面で選べる) */
+const LAYOUT = { layout: "notice" };
+const mail = { category: "promotion", channels: ["email"], origin: LAYOUT, values: MAIL };
 
-test("一括送信(userIds): 重複を除き送る口に白紙・欄の中身・カテゴリー、監査 1 行", async () => {
+test("一括送信(userIds): 重複を除き送る口にレイアウト・欄の中身・カテゴリー、監査 1 行", async () => {
   const { deps, sent, audits } = bulkSetup();
   const result = await adminBulkSend(deps, { userIds: ["a", "b", "a"], ...mail });
   assert.equal(sent.length, 1);
-  assert.deepEqual([sent[0].category, sent[0].template, sent[0].values, sent[0].channels], ["promotion", BLANK, MAIL, ["email"]]);
+  assert.deepEqual([sent[0].category, sent[0].origin, sent[0].values, sent[0].channels], ["promotion", LAYOUT, MAIL, ["email"]]);
   assert.deepEqual(sent[0].recipients, [{ userId: "a" }, { userId: "b" }]);
   assert.equal(sent[0].source, "messaging.adminBulk");
   assert.deepEqual(result, { dispatchId: "d1", status: "processing", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 3 }, afterSend: null });
   assert.equal(audits.length, 1);
   assert.equal(audits[0].action, "messaging.dispatch.bulk_sent");
   assert.equal(audits[0].targetId, "d1");
-  assert.deepEqual([audits[0].metadata?.source, audits[0].metadata?.category, audits[0].metadata?.kind], ["system", "promotion", "promotion"]);
+  assert.deepEqual(
+    [audits[0].metadata?.source, audits[0].metadata?.layout, audits[0].metadata?.category, audits[0].metadata?.kind],
+    ["layout", "notice", "promotion", "promotion"],
+  );
 });
 
 test("一括送信(target): 記録 → 利用者、運営からのご連絡(direct)で、afterSend に記録・送信・数・送った欄の中身・出どころ", async () => {
@@ -140,14 +140,14 @@ test("一括送信(target): 記録 → 利用者、運営からのご連絡(dire
     recordIds: ["x1", "x2", "y1"],
     category: "operatorDirect",
     channels: ["email", "inApp"],
-    template: { system: "direct" },
+    origin: LAYOUT,
     values,
   });
   assert.equal(sent[0].category, "operatorDirect");
   assert.deepEqual(sent[0].recipients, [{ userId: "u-x" }, { userId: "u-y" }]);
   assert.equal(sent[0].source, "review.bulk");
   assert.deepEqual(after, [
-    { recordIds: ["x1", "x2", "y1"], dispatchId: "d1", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 3 }, values, template: { system: "direct" } },
+    { recordIds: ["x1", "x2", "y1"], dispatchId: "d1", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 3 }, values, origin: { layout: "notice" } },
   ]);
   assert.deepEqual(result.afterSend, { ok: true });
   assert.equal((audits[0].metadata as Record<string, unknown>).bulkSendTarget, "review");
@@ -179,6 +179,10 @@ test("一括送信の入力の誤り・知らない / 使えない target・管�
   // announcement は一覧の一括(bulk)で送れない
   await bad({ userIds: ["a"], ...mail, category: "announcement" });
   await bad({ userIds: ["a"], ...mail, category: "nope" });
+  // 廃止したシステムテンプレートの出どころ・前の鍵 template は 400(D171)。レイアウトでの直した印も 400
+  await bad({ userIds: ["a"], ...mail, origin: { system: "promotion" } });
+  await bad({ userIds: ["a"], category: "promotion", channels: ["email"], template: LAYOUT, values: MAIL });
+  await bad({ userIds: ["a"], ...mail, edited: true });
   assert.equal(sent.length, 0);
   await rejects403(adminBulkSend(bulkSetup({ context: ctx("user1", "user") }).deps, { userIds: ["a"], ...mail }));
 });
@@ -189,47 +193,47 @@ test("一括送信(DB のテンプレート): 送る画面と同じ形で送る�
     target: "review",
     recordIds: ["x1"],
     category: "promoPush",
-    template: { id: TEMPLATE, version: 2 },
+    origin: { id: TEMPLATE, version: 2 },
     values: TEMPLATE_VALUES,
     vars: { name: "春" },
   });
   const input = sent[0];
   assert.deepEqual(
-    [input.template, input.values, input.vars, input.category, input.recipients, input.source],
+    [input.origin, input.values, input.vars, input.category, input.recipients, input.source],
     [{ id: TEMPLATE, version: 2 }, TEMPLATE_VALUES, { name: "春" }, "promoPush", [{ userId: "u-x" }], "review.bulk"],
   );
   assert.equal("scheduledAt" in input, false);
   assert.equal(result.dispatchId, "d2");
   assert.deepEqual((after[0] as Record<string, unknown>).values, TEMPLATE_VALUES);
-  assert.deepEqual((after[0] as Record<string, unknown>).template, { id: TEMPLATE, version: 2, edited: true });
+  assert.deepEqual((after[0] as Record<string, unknown>).origin, { id: TEMPLATE, version: 2, edited: true });
   assert.deepEqual([audits[0].metadata?.source, audits[0].metadata?.templateVersion], ["template", 2]);
   assert.equal(audits[0].metadata?.edited, true);
 });
 
 test("一括送信のプレビュー・テスト送信: bulk で送れるカテゴリー、テストは操作した管理者へ is_test", async () => {
   const { deps, calls, sent, audits } = bulkSetup();
-  await adminBulkSendPreview(deps, { template: BLANK, values: MAIL, category: "promotion", channels: ["email"] });
+  await adminBulkSendPreview(deps, { origin: LAYOUT, values: MAIL, category: "promotion", channels: ["email"] });
   assert.equal(calls[0].fn, "preview");
   assert.deepEqual(calls[0].args, [
-    { template: { template: BLANK, values: MAIL, category: "promotion" } },
+    { free: { origin: LAYOUT, values: MAIL, category: "promotion" } },
     { vars: {}, channels: ["email"], userId: "admin1" },
   ]);
-  await adminBulkSendTest(deps, { template: { system: "direct" }, values: MAIL, category: "operatorDirect", channels: ["email"] });
+  await adminBulkSendTest(deps, { origin: LAYOUT, values: MAIL, category: "operatorDirect", channels: ["email"] });
   assert.deepEqual(sent[0].recipients, [{ userId: "admin1" }]);
   assert.equal(sent[0].isTest, true);
   assert.equal(sent[0].source, "messaging.adminBulk.test");
   assert.equal(audits.at(-1)?.action, "messaging.dispatch.test_sent");
   // announcement は一括で送れないのでプレビュー・テストも 400
   for (const run of [
-    adminBulkSendPreview(deps, { template: BLANK, values: MAIL, category: "announcement" }),
-    adminBulkSendTest(deps, { template: BLANK, values: MAIL, category: "announcement" }),
+    adminBulkSendPreview(deps, { origin: LAYOUT, values: MAIL, category: "announcement" }),
+    adminBulkSendTest(deps, { origin: LAYOUT, values: MAIL, category: "announcement" }),
   ]) {
     await assert.rejects(run, (e: unknown) => e instanceof DomainError && e.status === 400);
   }
-  await rejects403(adminBulkSendPreview(bulkSetup({ context: ctx("user1", "user") }).deps, { template: BLANK, values: MAIL, category: "promotion" }));
+  await rejects403(adminBulkSendPreview(bulkSetup({ context: ctx("user1", "user") }).deps, { origin: LAYOUT, values: MAIL, category: "promotion" }));
 });
 
-test("一括送信の選択肢: bulk で送れるカテゴリー、テンプレートは門 messagingTemplates が開の時だけ、管理者でなければ 403", async () => {
+test("一括送信の選択肢: bulk で送れるカテゴリー、管理画面で選べるレイアウト、テンプレートは門 messagingTemplates が開の時だけ、管理者でなければ 403", async () => {
   const { deps } = bulkSetup();
   const options = await adminBulkSendOptions(deps);
   // 送信チャンネルは送るモーダルと同じ形(受け口の label・閉じた送信チャンネルは出さない。D83)
@@ -238,8 +242,11 @@ test("一括送信の選択肢: bulk で送れるカテゴリー、テンプレ�
     { key: "inApp", label: "お知らせ" },
   ]);
   assert.deepEqual(options.categories.map((o) => o.key), ["operatorDirect", "promotion", "promoPush"]);
-  // カテゴリーごとにその種別の白紙(自由連絡の出どころ)
-  assert.deepEqual(options.categories.map((o) => o.systemTemplate?.key), ["direct", "promotion", "promotion"]);
+  // レイアウト = 管理画面で選べる物(notice、テンプレートが使うのも notice なので重ねない)
+  assert.deepEqual(
+    options.layouts.map((o) => [o.key, o.selectable]),
+    [["notice", true]],
+  );
   assert.deepEqual(options.templates, [tplRow]);
   assert.deepEqual((await adminBulkSendOptions(bulkSetup({ templatesOpen: false }).deps)).templates, []);
   await rejects403(adminBulkSendOptions(bulkSetup({ context: ctx("user1", "user") }).deps));
@@ -330,10 +337,9 @@ test("DTO: 本文は記録の段次第、provider の生の値と誤りの文は
   );
   assert.deepEqual(oldSend.headings, { email: "旧件名" });
   assert.deepEqual(oldSend.body, { email: { subject: "旧件名", paragraphs: ["旧本文"] } });
-  // テンプレートからの送信(message_key null、レイアウトあり)は前の送信ではない: 本文は記録の段次第
-  const fromTemplate = toDispatchDetail(dispatchRow({ message_key: null, system_template: "promotion" }), FLAGS);
+  // 自由連絡の送信(message_key null、レイアウトあり)は前の送信ではない: 本文は記録の段次第。システムテンプレートの項目は無い(D171)
+  const fromTemplate = toDispatchDetail(dispatchRow({ message_key: null }), FLAGS);
   assert.equal(fromTemplate.body, null);
-  assert.equal(fromTemplate.systemTemplate, "promotion");
   assert.deepEqual(toDispatchSummary(dispatchRow({ headings: null })).headings, {});
   assert.equal(toDispatchSummary(dispatchRow()).createdAt, "2026-11-01T00:00:00.000Z");
 

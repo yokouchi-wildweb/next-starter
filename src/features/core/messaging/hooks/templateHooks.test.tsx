@@ -5,7 +5,6 @@
 //   書きかけの印と離れる前の確認 / 知らない {{名前}} = 共通 + 専用の外 / 専用の埋め込み情報のモーダル / 保存 = 1 回の POST(鍵なし、D134)・作った id
 // - useMessageTemplateForm(直す): 開いた時は書きかけでない(jsonb の鍵の順でも、J142)/ 保存 = 1 回の PATCH(新しい版 or 変更はありません)・
 //   1 件のキャッシュと版を取り直す / レイアウトを替えると確かめて中身を消す(D113)/ 削除(D137)
-// - システムテンプレートは読むだけ(保存・削除しない、D117)
 // 実行: pnpm test src/features/core/messaging/hooks/templateHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -64,8 +63,6 @@ const detail = (extra: Record<string, unknown> = {}) => ({
   updatedBy: null,
   createdAt: "2026-11-12T00:00:00.000Z",
   updatedAt: null,
-  system: false,
-  kind: null,
   layout: "notice",
   // DB の jsonb は鍵を並べ直して返す(フォームの宣言の順と違う。書きかけの判定は順に依らない、J142)
   values: { blocks: [], subject: "{{discount}} 割引" },
@@ -293,7 +290,6 @@ test("useMessageTemplateForm(作る): 種別 → カテゴリー(自動)→ レ�
 
 // 直す 1 件は描くたびに作らない(呼び手は SWR の同じ値を渡す。毎回新しい物は書く欄を作り直し続ける)
 const EDITING = detail();
-const SYSTEM_BLANK = detail({ id: "system:announcement", system: true, kind: "announcement", category: "", vars: [] });
 
 test("useMessageTemplateForm(直す): 開いた時は書きかけでない・1 回の PATCH(新しい版 / 変更はありません)・版を取り直す・削除", async () => {
   const changed: [string, string][] = [];
@@ -310,7 +306,6 @@ test("useMessageTemplateForm(直す): 開いた時は書きかけでない・1 �
   assert.equal(form().mode, "edit");
   assert.equal(form().fields.kind, "promotion", "直す時は保存したカテゴリーの種別");
   assert.equal(form().fields.category, "marketing");
-  assert.equal(form().readOnly, false);
   assert.equal(form().dirty, false, "保存した中身の鍵の順が違っても書きかけにしない(J142)");
   assert.deepEqual(form().unknownNames, [], "専用の別名 割引 は使える");
 
@@ -385,27 +380,3 @@ test("useMessageTemplateForm: レイアウトを替えると中身があれば�
   await view.unmount();
 });
 
-test("useMessageTemplateForm: システムテンプレートは読むだけ(保存・削除しない、D117)", async () => {
-  const view = await mount(() =>
-    hooks.useMessageTemplateForm({
-      template: SYSTEM_BLANK as never,
-      options: OPTIONS as never,
-    }),
-  );
-  const form = () => view.value();
-  assert.equal(form().system, true);
-  assert.equal(form().readOnly, true);
-  assert.equal(form().fields.kind, "announcement", "カテゴリーの無い白紙は種別で");
-  await act(async () => form().fields.setName("書き換え"));
-  assert.equal(form().dirty, false, "読むだけは書きかけにしない");
-  await act(async () => {
-    await form().save();
-  });
-  let removed = true;
-  await act(async () => {
-    removed = await form().remove();
-  });
-  assert.equal(removed, false);
-  assert.deepEqual(calls, []);
-  await view.unmount();
-});

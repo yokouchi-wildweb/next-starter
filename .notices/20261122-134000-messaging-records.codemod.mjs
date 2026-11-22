@@ -141,6 +141,18 @@ export const VOCAB = [
   ex("AdminSystemTemplateOption", null, "S2", S2_SYSTEM),
   ex("upstreamSystemTemplates", null, "S2", S2_SYSTEM),
   ex("bulkSystemTemplates", null, "S2", S2_SYSTEM),
+  ex("SYSTEM_TEMPLATE_ID_PREFIX", null, "S2", S2_SYSTEM),
+  // 自由連絡の出どころ: template → origin、{ system } は無い(D171)。入口 sendTemplateMessage → sendFreeMessage
+  ex("MessageTemplateRef", "MessageFreeOrigin", "S2", "{ layout: string } | { id, version }(旧 { system } は無い)"),
+  ex("SendTemplateMessageInput", "SendFreeMessageInput", "S2", "鍵 template → origin"),
+  ex("sendTemplateMessage", "sendFreeMessage", "S2", "fork のコードの入口(messagingService.sendFreeMessage)"),
+  { ...mem("sendTemplateMessage", "sendFreeMessage", "S2", "形も変わる: messagingService.sendFreeMessage({ origin: { layout } | { id, version }, … })。{ system } は管理画面で選べるレイアウトの鍵へ手で直す"), hand: true },
+  { ...mem("template", "origin", "S2", "形も変わる: 自由連絡の出どころ(送る入力・プレビュー・afterSend の引数)。{ system: 鍵 } は { layout: <管理画面で選べるレイアウト> } へ手で直す"), hand: true },
+  ex("AdminBulkSendTemplate", "AdminBulkSendOrigin", "S2", "{ layout } | { id, version, edited }"),
+  ex("AdminMessageTemplateSchema", "AdminMessageOriginSchema", "S2"),
+  { ...ex("blankOfKind", "blankLayoutOf", "S2", "形も変わる: blankLayoutOf(layouts) = 管理画面で選べる最初のレイアウト"), hand: true },
+  { ...ex("blankTextState", "layoutTextState", "S2", "形も変わる: layoutTextState({ key, label }, start?)"), hand: true },
+  mem("currentSystem", "currentLayout", "S2", "送るモーダルの hook の戻り値(今のレイアウトの表示名)"),
   dir(`${M}/templates`, null, "S2", `${S2_SYSTEM}(受け口 systemTemplates の項目。fork の項目は DB のテンプレートか連絡定義へ)`),
   dir(`${M}/extensions/systemTemplates.ts`, null, "S2", `${S2_SYSTEM}(生成物。pnpm generate extensions が消す)`),
 

@@ -334,14 +334,15 @@ export async function adminResendFailed<Tx>(
         metadata: { resendOf: dispatchId, ...(includeUnknown ? { possibleDuplicate: true } : {}) },
         isTest: dispatch.is_test ?? false,
       } as SendMessageToManyInput,
-      // 定義は送信の欄の中身から組んである(D128)。テンプレートの送信の再送は同じ出どころ(白紙の鍵か、同じ版と直した印)を残す。
-      // テンプレートを消した送信(template_id null・版の番号あり、D137)は消したテンプレートの出どころのまま(定義連絡の鍵を持たない)
-      dispatch.system_template
-        ? { system: dispatch.system_template }
-        : dispatch.template_id && dispatch.template_version
-          ? { template: { id: dispatch.template_id, version: dispatch.template_version, edited: dispatch.template_edited } }
-          : dispatch.template_version && dispatch.message_key === null
-            ? { deletedTemplate: { version: dispatch.template_version, edited: dispatch.template_edited } }
+      // 定義は送信の欄の中身から組んである(D128)。自由連絡の再送は同じ出どころ(同じ版と直した印か、レイアウトだけ)を残す。
+      // テンプレートを消した送信(template_id null・版の番号あり、D137)は消したテンプレートの出どころのまま(定義連絡の鍵を持たない)。
+      // 定義連絡の鍵もテンプレートも無い送信 = レイアウトを直に選んだ自由連絡(廃止したシステムテンプレートからの古い送信も同じ、D171)
+      dispatch.template_id && dispatch.template_version
+        ? { template: { id: dispatch.template_id, version: dispatch.template_version, edited: dispatch.template_edited } }
+        : dispatch.template_version && dispatch.message_key === null
+          ? { deletedTemplate: { version: dispatch.template_version, edited: dispatch.template_edited } }
+          : dispatch.message_key === null && dispatch.layout
+            ? { layout: dispatch.layout }
             : undefined,
     );
     const failed = rows.filter((row) => row.status === "failed").length;

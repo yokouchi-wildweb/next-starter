@@ -3,7 +3,8 @@
 //   消せる送信チャンネルの remove を commit の後に呼ぶ(失敗は failedChannels)、削除済みは remove だけを呼び直し監査は書かない、監査 deleted
 // - d2 まとめて削除(送信ごとの結果、無い id は reason not_found)と削除の見込み(書かない)
 // - d3 再送: 本文を残す連絡は failed を queued に戻す(lease 中の行は触らない、unknown は明示の時だけ・二重の可能性を残す)、
-//   record meta は送信の vars で新しい送信として送る(写しが無ければ 409。テンプレートの出どころは残し、消したテンプレートは deletedTemplate、D137)、
+//   record meta は送信の vars で新しい送信として送る(写しが無ければ 409。テンプレートの出どころは残し、消したテンプレートは deletedTemplate、D137。
+//   レイアウトを直に選んだ自由連絡は { layout }、廃止したシステムテンプレートからの古い送信も同じ D171)、
 //   秘密・required・削除・予約は 409、監査 resent
 // - 判定の印(画面のボタン)と service は同じ operationFlags
 // 実行: pnpm test src/features/core/messaging/services/server/admin
@@ -287,7 +288,7 @@ test("d3 再送(record meta): 送信の vars で新しい送信として送り�
   await rejectsWith(adminResendFailed(noCopy.deps, "d1"), 409, "no_input_copy");
 });
 
-test("d3 再送(新しい送信): テンプレートの送信は同じ出どころを残し、テンプレートを消した送信は消したテンプレートの出どころのまま(D137)", async () => {
+test("d3 再送(新しい送信): テンプレートの送信は同じ出どころを残し、テンプレートを消した送信は消したテンプレートの出どころのまま(D137)、自由連絡はレイアウト", async () => {
   const kept = setup(
     { record: "meta", message_key: null, template_id: "tpl-1", template_version: 2, template_edited: true },
     { definition: definitionOf({ record: "meta" }) },
@@ -303,10 +304,14 @@ test("d3 再送(新しい送信): テンプレートの送信は同じ出どこ�
   await adminResendFailed(deleted.deps, "d1");
   assert.deepEqual(deleted.sentNew[0].template, { deletedTemplate: { version: 2, edited: false } });
 
-  // 白紙の送信は白紙の鍵、定義連絡は出どころなし
-  const blank = setup({ record: "meta", message_key: null, system_template: "promotion" }, { definition: definitionOf({ record: "meta" }) });
-  await adminResendFailed(blank.deps, "d1");
-  assert.deepEqual(blank.sentNew[0].template, { system: "promotion" });
+  // レイアウトを直に選んだ自由連絡(定義連絡の鍵もテンプレートも無い)は送信のレイアウト、定義連絡は出どころなし
+  const free = setup({ record: "meta", message_key: null }, { definition: definitionOf({ record: "meta" }) });
+  await adminResendFailed(free.deps, "d1");
+  assert.deepEqual(free.sentNew[0].template, { layout: "card" });
+  // 廃止したシステムテンプレートからの古い送信(system_template が残る行)も送信のレイアウト(D171)
+  const legacy = setup({ record: "meta", message_key: null, system_template: "promotion" }, { definition: definitionOf({ record: "meta" }) });
+  await adminResendFailed(legacy.deps, "d1");
+  assert.deepEqual(legacy.sentNew[0].template, { layout: "card" });
   const code = setup({ record: "meta" }, { definition: definitionOf({ record: "meta" }) });
   await adminResendFailed(code.deps, "d1");
   assert.equal(code.sentNew[0].template, undefined);

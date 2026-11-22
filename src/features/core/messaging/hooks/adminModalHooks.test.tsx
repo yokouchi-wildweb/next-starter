@@ -42,8 +42,6 @@ const detail = (extra: Record<string, unknown> = {}) => ({
   updatedBy: null,
   createdAt: "2026-11-12T00:00:00.000Z",
   updatedAt: "2026-11-12T00:00:00.000Z",
-  system: false,
-  kind: null,
   layout: "notice",
   values: { subject: "件名" },
   layoutVersion: 1,
@@ -468,7 +466,7 @@ test("useAdminMessageTemplateList.onChanged: 作った = 取り直す、保存 =
   await act(async () => l().modal.onChanged(detail() as never, "delete"));
   assert.equal(l().query.items.length, 0, "削除した行は外す(取り直さない)");
   assert.equal(listCalls(), before + 1);
-  // 種別で絞っている時: DB のテンプレートの kind は null(種別はカテゴリーから)なので、保存の後は取り直す(行を消さない)
+  // 種別で絞っている時: テンプレートは種別を持たない(種別はカテゴリーから)ので、保存の後は取り直す(行を消さない)
   await act(async () => l().setKind("promotion"));
   await settle();
   const filtered = listCalls();
@@ -476,7 +474,7 @@ test("useAdminMessageTemplateList.onChanged: 作った = 取り直す、保存 =
   await act(async () => l().modal.onChanged(detail({ name: "春2" }) as never, "update"));
   await settle();
   assert.equal(listCalls(), filtered + 1, "絞りの中の保存 → 取り直す");
-  assert.equal(l().query.items.length, 1, "kind の無い DB のテンプレートの行を外さない");
+  assert.equal(l().query.items.length, 1, "種別を持たないテンプレートの行を外さない");
   await view.unmount();
 });
 

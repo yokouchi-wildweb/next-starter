@@ -5,14 +5,14 @@
 //   専用の宣言の形・名前の重なり(共通・enrichers・専用、D126)・文面の {{名前}} は一覧の中だけ。鍵はサーバーが作る
 // - 消す(D137): 行が消え(版は cascade)、欄の中身を残している送信が使う画像はその送信に結び直す。監査 deleted(名前・最後の版)
 // - 一覧(新しい順・cursor・種別で絞る D135)、画面の選択肢(使える送信チャンネル・3 つの種別のカテゴリー・選べるレイアウト・基本の埋め込み情報)
-// - システムテンプレート(白紙、D117): 一覧の最初のページの先頭に印つき、1 件も読める、直す・消すは 409、版は持たない
+// - テンプレートは DB の物だけ(システムテンプレートは廃止、D171): 一覧に system・kind の項目は無い、uuid でない id(前の system:<鍵> も)は 404
 // - 管理者でなければ 403
 // 実行: pnpm test src/features/core/messaging/services/server/templates
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
-import type { MessageCategory, MessageChannel, MessageEnricher, MessageSystemTemplate } from "@/lib/messaging";
+import type { MessageCategory, MessageChannel, MessageEnricher } from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 import { z } from "zod";
@@ -51,7 +51,7 @@ const layouts = { ...TEST_LAYOUTS, notice: { ...TEST_LAYOUTS.notice!, adminSelec
 
 const IMAGE = "storage://pub/notification.image/00000000-0000-4000-8000-000000000001.png";
 
-function setup(options: { role?: string; systemTemplates?: Record<string, MessageSystemTemplate>; kept?: TemplateKeptDispatch[] } = {}) {
+function setup(options: { role?: string; kept?: TemplateKeptDispatch[] } = {}) {
   const templates: MessageTemplate[] = [];
   const versions: MessageTemplateVersion[] = [];
   const audits: AuditRecordInput[] = [];
@@ -127,7 +127,6 @@ function setup(options: { role?: string; systemTemplates?: Record<string, Messag
     context: () => ({ actorId: ADMIN, actorType: "user" }) as never,
     roleCategoryOf: async () => options.role ?? "admin",
     recordAudit: async (input) => audits.push(input),
-    ...(options.systemTemplates ? { systemTemplates: () => options.systemTemplates! } : {}),
   });
   return { service, templates, versions, audits, dispatchWrites, dispatchAttached };
 }
@@ -324,36 +323,21 @@ test("管理者でなければ 403", async () => {
   await rejectsWith(service.deleteTemplate(randomUUID()), 403);
 });
 
-test("システムテンプレート: 最初のページの先頭に印つき(種別で絞れる)、1 件も読め、直す・消すは 409、版は持たない", async () => {
-  const blank: MessageSystemTemplate = { key: "promotion", kind: "promotion", label: "宣伝の白紙", layout: "notice", values: { subject: "", blocks: [] } };
-  const direct: MessageSystemTemplate = { key: "direct", kind: "direct", label: "個別の白紙", layout: "notice", values: { subject: "", blocks: [] } };
-  const off: MessageSystemTemplate = { ...blank, key: "off", label: "切った白紙", enabled: false };
-  const { service, audits } = setup({ systemTemplates: { promotion: blank, direct, off } });
-  await service.createTemplate(input({ name: "a" }));
-  const saved = await service.createTemplate(input({ name: "b" }));
-  const first = await service.listTemplates({ limit: "1" });
-  assert.deepEqual(
-    first.items.map((t) => [t.id, t.system, t.kind, t.layout]),
-    [
-      ["system:promotion", true, "promotion", "notice"],
-      ["system:direct", true, "direct", "notice"],
-      [saved.id, false, null, "notice"],
-    ],
-  );
-  assert.deepEqual(first.items[0]!.values, { subject: "", blocks: [] });
-  assert.equal(first.items[0]!.name, "宣伝の白紙");
-  // 種別で絞るとその種別の白紙だけ。2 ページ目には出さない
-  assert.deepEqual((await service.listTemplates({ kind: "direct" })).items.map((t) => t.id), ["system:direct"]);
-  assert.ok(first.nextCursor);
-  assert.deepEqual((await service.listTemplates({ cursor: first.nextCursor })).items.map((t) => [t.name, t.system]), [["a", false]]);
-  const detail = await service.getTemplate("system:promotion");
-  assert.deepEqual([detail.system, detail.layout], [true, "notice"]);
-  await rejectsWith(service.getTemplate("system:none"), 404);
-  await rejectsWith(service.getTemplate("system:off"), 404);
-  await rejectsWith(service.updateTemplate("system:promotion", { name: "x" }), 409, /宣伝の白紙/);
-  await rejectsWith(service.deleteTemplate("system:promotion"), 409, /消すことはできません/);
-  await rejectsWith(service.updateTemplate("system:none", { name: "x" }), 404);
-  assert.deepEqual(await service.listTemplateVersions("system:promotion"), []);
-  await rejectsWith(service.getTemplateVersion("system:promotion", 1), 404);
-  assert.equal(audits.filter((a) => a.targetId?.toString().startsWith("system:")).length, 0);
+test("テンプレートは DB の物だけ: 一覧に system・kind は無く(作った時刻はいつもある)、uuid でない id(前の system:<鍵> も)は読む・直す・消す・版のどれも 404", async () => {
+  const { service, audits } = setup();
+  const saved = await service.createTemplate(input({ name: "a" }));
+  const first = await service.listTemplates();
+  assert.deepEqual(first.items.map((t) => [t.id, t.layout]), [[saved.id, "notice"]]);
+  assert.equal("system" in first.items[0]!, false);
+  assert.equal("kind" in first.items[0]!, false);
+  assert.equal(typeof first.items[0]!.createdAt, "string");
+  const auditCount = audits.length;
+  for (const id of ["system:promotion", "not-a-uuid"]) {
+    await rejectsWith(service.getTemplate(id), 404, /テンプレートがありません/);
+    await rejectsWith(service.updateTemplate(id, { name: "x" }), 404, /テンプレートがありません/);
+    await rejectsWith(service.deleteTemplate(id), 404, /テンプレートがありません/);
+    await rejectsWith(service.listTemplateVersions(id), 404, /テンプレートがありません/);
+    await rejectsWith(service.getTemplateVersion(id, 1), 404, /テンプレートがありません/);
+  }
+  assert.equal(audits.length, auditCount);
 });

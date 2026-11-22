@@ -33,11 +33,11 @@ type Over<T> = Partial<Record<keyof T, unknown>>;
 const events: string[] = [];
 let modalConfirm: unknown = null;
 
-/** hook useSendTemplateText の偽物(白紙 = 全文を書ける形) */
+/** hook useSendTemplateText の偽物(レイアウトから書く = 全文を書ける形) */
 const baseText = () =>
   ({
     state: {
-      source: { type: "system", key: "simple", label: "シンプル" },
+      source: { type: "layout", layout: "simple", label: "シンプル" },
       layout: "simple",
       start: {},
       versionValues: null,
@@ -45,7 +45,7 @@ const baseText = () =>
       varDeclarations: [],
       vars: {},
     },
-    source: { type: "system", key: "simple", label: "シンプル" },
+    source: { type: "layout", layout: "simple", label: "シンプル" },
     layout: { key: "simple", label: "シンプル", fields: {} },
     fields: {},
     control: {},
@@ -83,9 +83,9 @@ const baseState = () =>
     groupsEnabled: false,
     targetNote: null,
     templatesAvailable: true,
-    pickerTemplates: [{ id: "t1", name: "春", currentVersion: 2, system: false }],
-    currentSystem: { label: "シンプル" },
-    blank: { key: "simple", label: "シンプル", layout: "simple", values: {} },
+    pickerTemplates: [{ id: "t1", name: "春", currentVersion: 2 }],
+    currentLayout: { label: "シンプル" },
+    blank: { key: "simple", label: "シンプル" },
     loadedTemplate: null,
     text: baseText(),
     layoutPreview: {
@@ -300,7 +300,7 @@ test("書く段: 部品を並べ、confirmOnClose に closeConfirm、ボタン�
   // プレビューのペイン → 下の帯(埋め込み情報の吹き出し)。「あなた宛ての表示例」は表示例が無い間は出さない
   assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "layoutFields", "schedule", "layoutPreview", "varPopover"]);
   assert.equal(lastProps.get("target")!.kind, "select");
-  assert.deepEqual(lastProps.get("template")!.templates, [{ id: "t1", name: "春", currentVersion: 2, system: false }]);
+  assert.deepEqual(lastProps.get("template")!.templates, [{ id: "t1", name: "春", currentVersion: 2 }]);
   assert.equal(lastProps.get("template")!.loaded, null);
   assert.deepEqual(lastProps.get("template")!.blank, { label: "シンプル" });
   assert.equal(dialogs.get("テンプレートを読み込みますか")!.open, false, "上書きの確かめは読み込みを待つ時だけ");
