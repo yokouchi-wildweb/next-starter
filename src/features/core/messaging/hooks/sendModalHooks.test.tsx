@@ -1,12 +1,15 @@
 // 送るモーダルの hook useMessageSendModal(と文面の useSendTemplateText)の検査(jsdom の上で描く。client service・門・離れる前の確認は偽物)。
 // - 純粋な関数: scheduleErrorOf / kindsOf / blankLayoutOf / initialTextOf / sameAsNoteOf / initialTargetOf / overLimitText /
 //   varValuesForInput / missingVars / varPreviewValues
-// - new(D110 D115 D118): 種別を選ぶまで止まる → 種別 → カテゴリー(1 つなら自動)→ 宛先(種別が許す種類だけ)→ テンプレート(その種別の公開中の物。読み込まない = 管理画面で選べる最初のレイアウト)。
+// - new(D110 D115 D118 D195): 開いた時から初めのレイアウト(initialLayout)。種別を選ぶまで止まる → 種別 → カテゴリー(1 つなら自動)→ 宛先(種別が許す種類だけ)→ テンプレート(その種別の公開中の物、任意)。
 //   読み込み直後は文を固定、専用の埋め込み情報の入力だけ(D119)→ 文面を直す → 直した印(D118)→ 予約の検査 → プレビュー・テスト送信 →
 //   見込み → 確認 → 送る(送る口の入力 { origin, values, edited, vars, category, channels }、鍵を作り直す)・書きかけの確認・閉じると初めに戻る
 // - 『テンプレートを更新』(D120): 直した文を 1 回の保存で新しい版に(D134)、新しい版へつなぎ直し直した印が消える / 変わらなければ unchanged
 // - 種別が 2 つ以上のカテゴリーを持つ時は選ぶ、送信方法はカテゴリーの最初の送信チャンネル(defaultChannels)。門 messagingTemplates が閉なら読み込める物は無い
-// - 読み込み: 手で直した後は確かめる / 解除は初めのレイアウトへ(レイアウトが同じなら文を残す)、送る口は origin { layout }
+// - 読み込み: 手で直した後は確かめる / 解除はそのテンプレートのレイアウトへ(レイアウトが同じなら文を残す)、送る口は origin { layout }
+// - レイアウト: 選べるのは管理画面で選べる物だけ / 替えると白紙(前の値を持ち越さない)・書きかけがあれば確かめる / 読み込んだテンプレートは外れる /
+//   種別を替えてもレイアウトと文はそのまま(テンプレートは外れる)
+// - initialRecipients(new): 宛先は「選んだ利用者」のその人たちから(重なりは 1 つ)、変えられる、/send の体の宛先
 // - sameAs: カテゴリー → 種別・宛先の形・送信の中身(レイアウト + values)を写す / テンプレートの送信は今の版を読み込む(専用の値も)/
 //   直して送信した物は直した文で文面を直す状態から / 公開中でないテンプレートは送信のレイアウト + 知らせ / 管理画面で選べないレイアウトの送信は知らせ
 // - グループ宛て: 選ぶまで止まる・体 target group・上限超えは確認で送れない / sameAs のグループ(選べなければ知らせ、全員に広げない)
@@ -417,6 +420,13 @@ test("純粋な関数", () => {
   });
   assert.deepEqual(hooks.initialTargetOf({ type: "sameAs", dispatch: { target: { type: "recipients", count: 20_000 }, targetUserIds: null } as never }).userIds, []);
   assert.deepEqual(hooks.initialTargetOf(NEW), { type: "all", roles: [], groupId: "", userIds: [] });
+  assert.deepEqual(hooks.initialTargetOf({ type: "new", initialRecipients: ["u1", "u2", "u1"] }), {
+    type: "users",
+    roles: [],
+    groupId: "",
+    userIds: ["u1", "u2"],
+  }, "初めの宛先 = 選んだ利用者(重なりは 1 つ)");
+  assert.equal(hooks.initialTargetOf({ type: "new", initialRecipients: [] }).type, "all", "空なら全員の形のまま");
   assert.equal(hooks.overLimitText({ count: 150_000, memberLimit: 100_000 }), "宛先数 150,000 人が上限 100,000 人を超えているため送信できません");
 });
 
@@ -429,7 +439,12 @@ test("new: 種別 → 宛先 → テンプレートを読み込む(固定)→ �
   assert.equal(m().kind, "");
   assert.deepEqual(m().kinds.map((kind) => kind.key), ["announcement", "direct", "promotion"]);
   assert.equal(m().targetError, "種別を選んでください");
-  assert.equal(m().text.source, null);
+  assert.deepEqual(m().text.source, NOTICE_SOURCE, "開いた時から初めのレイアウト(initialLayout、種別に関わらない)");
+  assert.deepEqual(m().layoutChoices, [
+    { key: "notice", label: "汎用のお知らせ" },
+    { key: "letter", label: "手紙" },
+  ], "選べるのは管理画面で選べるレイアウトだけ");
+  assert.equal(m().layoutKey, "notice");
   assert.equal(m().canSend, false);
   assert.equal(m().dirty, false);
 
@@ -644,6 +659,80 @@ test("読み込み: 手で直した後は確かめる / 解除は初めのレイ
   await act(async () => m().confirmLoad());
   assert.deepEqual(m().loadedTemplate, { type: "template", id: NOTICE_TEMPLATE_ID, name: "告知", version: 1 });
   assert.equal(m().currentLayout, null, "テンプレートを読み込んだ間はレイアウトの出どころは無い");
+  await view.unmount();
+});
+
+test("レイアウト: 選んで替える(白紙から・書きかけは確かめる)、読み込んだテンプレートは外れる、種別を替えてもそのまま", async () => {
+  const view = await open(NEW);
+  const m = () => view.value();
+  await act(async () => m().setKind("promotion"));
+  await act(async () => m().chooseLayout("notice"));
+  assert.equal(m().pendingLayout, null, "今と同じレイアウトは何もしない");
+  await typeField(m, "subject", "手で書いた件名");
+  await act(async () => m().chooseLayout("letter"));
+  assert.equal(m().pendingLayout, "letter", "書きかけがあれば確かめる");
+  await act(async () => m().cancelLayout());
+  assert.equal(m().pendingLayout, null);
+  assert.equal(m().layoutKey, "notice");
+  assert.equal(m().text.values.subject, "手で書いた件名", "やめれば書きかけはそのまま");
+  await act(async () => m().chooseLayout("letter"));
+  await act(async () => m().confirmLayout());
+  assert.deepEqual(m().text.source, { type: "layout", layout: "letter", label: "手紙" });
+  assert.equal(m().layoutKey, "letter");
+  assert.deepEqual(m().text.values, { subject: "" }, "替えたレイアウトは白紙から(前の値を持ち越さない)");
+  await typeField(m, "subject", "手紙の件名");
+  assert.deepEqual(m().buildContent(), {
+    origin: { layout: "letter" },
+    values: { subject: "手紙の件名" },
+    category: "campaign",
+    channels: ["email", "inApp"],
+  });
+  await act(async () => m().chooseLayout("legacy"));
+  assert.equal(m().layoutKey, "letter", "選べないレイアウトには替えない");
+  assert.equal(m().pendingLayout, null, "確かめもしない");
+
+  // テンプレートを読み込むとそのレイアウト、レイアウトを選ぶとテンプレートは外れる
+  await act(async () => m().loadTemplate(TEMPLATE_ID));
+  if (m().pendingLoad) await act(async () => m().confirmLoad());
+  assert.equal(m().loadedTemplate?.id, TEMPLATE_ID);
+  assert.equal(m().layoutKey, "notice");
+  // 種別を替えるとテンプレートは外れ、そのレイアウト(notice)へ。文は残る
+  await act(async () => m().setKind("announcement"));
+  assert.equal(m().loadedTemplate, null);
+  assert.deepEqual(m().text.source, NOTICE_SOURCE);
+  assert.deepEqual(m().text.values, template.values);
+  // レイアウトから書いている間に種別を替えても、レイアウトと文はそのまま
+  await act(async () => m().chooseLayout("letter"));
+  if (m().pendingLayout) await act(async () => m().confirmLayout());
+  await typeField(m, "subject", "残る件名");
+  await act(async () => m().setKind("promotion"));
+  assert.equal(m().layoutKey, "letter");
+  assert.equal(m().text.values.subject, "残る件名");
+  // 読み込んだ後にレイアウトを選ぶ = テンプレートは外れ、選んだレイアウトの白紙
+  await act(async () => m().loadTemplate(TEMPLATE_ID));
+  if (m().pendingLoad) await act(async () => m().confirmLoad());
+  await act(async () => m().chooseLayout("letter"));
+  if (m().pendingLayout) await act(async () => m().confirmLayout());
+  assert.equal(m().loadedTemplate, null);
+  assert.deepEqual(m().text.values, { subject: "" });
+  await view.unmount();
+});
+
+test("initialRecipients: 宛先は選んだ利用者から始まり、変えられ、/send の体の宛先になる", async () => {
+  const view = await open({ type: "new", initialRecipients: ["u1", "u2"] });
+  const m = () => view.value();
+  await act(async () => m().setKind("direct"));
+  assert.deepEqual(m().target, { type: "users", roles: [], groupId: "", userIds: ["u1", "u2"] });
+  assert.equal(m().targetError, null);
+  await act(async () => m().setTarget({ userIds: ["u2"] }));
+  assert.deepEqual(m().target.userIds, ["u2"], "管理者が変えられる");
+  await typeField(m, "subject", "お知らせ");
+  await act(async () => m().requestConfirm());
+  assert.deepEqual(calls.find(([name]) => name === "estimate")?.[1], { target: { type: "users", userIds: ["u2"] } });
+  await act(async () => m().confirmSend());
+  const sent = calls.find(([name]) => name === "send")?.[1] as Record<string, unknown>;
+  assert.deepEqual(sent.target, { type: "users", userIds: ["u2"] });
+  assert.deepEqual(sent.origin, { layout: "notice" }, "初めのレイアウトから");
   await view.unmount();
 });
 
