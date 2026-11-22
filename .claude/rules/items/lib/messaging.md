@@ -14,10 +14,10 @@ using:
 - functional_unstoppable: functional messages are never disabled, lose email, get admin text or throttle | judged on the category after the override (a moved message follows its new kind)
 - secret_vars: token URLs and one-time codes use secretVar
 - guard_literals: required, category, adminEditableOnly, enabled, kind, channels, group are literals
-- admin_free_text: admin-written messages have no definition → system template or DB template
+- admin_free_text: admin-written messages have no definition → a layout or a DB template (sendFreeMessage)
 - fixed_vocabulary: field types are fixed in the lib | a fork registers input parts in src/wiring/formInputs
 editing:
 - layout_revisions: changing or removing a layout field key bumps `version` and writes a `revisions` step for every version
 - error_vocabulary: ChannelError kinds stay the MailSendError vocabulary (transient / permanent / unknown)
 - idempotent_items: channel `remove` and subscriber `handle` give the same result when called again
-read: define, override → Usage | fields, embedding, checks, layouts → API | receptacle items → Extension | guards, design intent, registry → Internals
+read: define, override → Usage | fields, vars, checks, layouts → API | receptacle items, record targets → Extension | guards, design intent, registry → Internals
