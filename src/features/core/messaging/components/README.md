@@ -98,7 +98,6 @@ export const bulkAction = bulkMessageAction(
 
 - options（`BulkMessageActionOptions`）: `target`・`recordNoun`・`label?`（既定「一括送信」）・`source?`・`disabled?`・`onSent?(result)`
   - 決まった文面・カテゴリーの指定は無い（送るモーダルは種別から選び白紙から書く）。決まった文面を送るなら連絡定義（messages/<名前>.ts）にする（D195 D200）
-- 上流の使い手: `bankTransferReview/adminBulkActions/sendEmail.tsx`
 
 ### 定義連絡の汎用のモーダル（DefinitionSendModal）
 
@@ -118,6 +117,7 @@ export const bulkAction = definitionBulkAction({ key: "<名前>", order: 100 }, 
 - 結果の段: `SendResultView`（後処理の結果 `afterSend`）+ 送信の結果 `SendResult`（`useSendResults`）
 - hook `useDefinitionSendModal({ entry, onSent? })`（入れ物はこれを呼んで並べるだけ。fork は同じ hook と部品で自前のモーダルを組める、D191）・純粋な関数 `definitionChannelsOf` / `broadcastTypesOf` / `changedEdits`
 - 作成関数 `definitionBulkAction(meta, { recordTarget, label?, disabled?, onSent? })`: 一覧の一括操作の項目（自由連絡の `bulkMessageAction` とは別、D194）。対に持ち主のドメインの記録の宛先（`messages` に送れる連絡定義）が要る
+- 上流の使い手: `bankTransferReview/adminBulkActions/sendEmail.tsx`
 
 ## Verification
 
