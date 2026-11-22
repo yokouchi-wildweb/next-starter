@@ -118,15 +118,20 @@ export function fixesPointsBack(repo, refId, ownId) {
 
 const list = (v) => (v ?? "").split(",").map((s) => s.trim()).filter((s) => s && s !== "-");
 
-/** uses: のパスが実在し(exists(path))、.notices/ の下は .notices/<id>.<名前>.mjs、uses: を持つ notice は区切り。[理由] */
+/**
+ * uses: のパスが実在し(exists(path))、.notices/ の下は .notices/<id>.<名前>.mjs(<id> = 自分か、自分の fixes: が名指す notice: 直す元の道具を
+ * 差し替える修正、S32)、uses: を持つ notice は区切り。[理由]
+ */
 export function checkUses({ id, fields }, exists) {
   const paths = list(fields.uses);
   if (!paths.length) return [];
   const problems = [];
   if (fields.checkpoint === "-") problems.push(`${id}: uses: を持つ notice は区切り(checkpoint: - にしない。移行・codemod が消えた木に merge しうる)`);
+  const owners = [id, ...list(fields.fixes).filter((x) => !x.startsWith("commit:"))];
+  const toolOf = (p, o) => p.startsWith(`.notices/${o}.`) && p.endsWith(".mjs") && !p.slice(`.notices/${o}.`.length).includes("/");
   for (const p of paths) {
-    if (p.startsWith(".notices/") && !(p.startsWith(`.notices/${id}.`) && p.endsWith(".mjs") && !p.slice(`.notices/${id}.`.length).includes("/"))) {
-      problems.push(`${id}: uses: ${p}: .notices/ の codemod は .notices/${id}.<名前>.mjs`);
+    if (p.startsWith(".notices/") && !owners.some((o) => toolOf(p, o))) {
+      problems.push(`${id}: uses: ${p}: .notices/ の codemod は .notices/${id}.<名前>.mjs(か fixes: が名指す notice の .notices/<その id>.<名前>.mjs)`);
     }
     if (!exists(p)) problems.push(`${id}: uses: ${p} が notice を足した commit に無い(移行・codemod は notice と同じ commit で出す)`);
   }

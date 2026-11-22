@@ -216,6 +216,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - `<slug>` = a short English kebab from change | saved at `.notices/<ts>-<slug>.md`
    - never write `pick:` yourself (step 6's pick-check writes it in the body)
    - **`uses:`**: list the migrations (`src/domains/<domain>/scripts/migrations/`) and codemods (`.notices/<id>.<名前>.mjs`) required_actions run, and put them in the same commit | a notice with `uses:` makes `checkpoint:` a label (`-` not allowed) | `pnpm check notices` checks they exist and the checkpoint (`.notices/README.md` section `使う移行・codemod の欄`)
+     - the codemod's `<id>` = this notice's, or one its `fixes:` names when the fix replaces that notice's tool (the replacement then counts as the commit's body)
    - **`skip_checkpoint:`**: only when the `fixes:` origin's checkpoint does not work (the fork's checks fail there) and step 6's pick-check gives `-` → write the origin's id (each id must be in `fixes:`; the fix notice itself is a labeled checkpoint) | the origin has `uses:` → cannot be skipped
      - added to the body after the pick-check → `git commit --amend --no-edit -- .notices/<id>.md` → `pnpm check notices` (`.notices/README.md` section `区切りを外す欄`)
    - required_actions, verify and refs of a `fixes:` notice never name paths / scripts missing from the broken point's tree (tools added later etc.) (the fork takes it right after the broken point, so the pick-check's prerequisite check makes it `-`) | to mention later tools, write them in notes (the prerequisite check does not read notes)

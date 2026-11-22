@@ -87,6 +87,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 ### 使う移行・codemod の欄(uses)
 
 - 形式: `uses: <path>, <path>`。notice の手順が実行する DB 移行(ドメインの `src/domains/<domain>/scripts/migrations/`)・codemod(`.notices/<id>.<名前>.mjs`)を列挙する。本文の説明だけを手がかりに探させない
+- codemod の `<id>` は自分の id か、自分の `fixes:` が名指す notice の id(直す元の道具を差し替える修正: 元の notice の codemod を直し、修正の notice の `uses:` に書く)
 - 列挙したファイルは notice を足した commit に実在すること(`pnpm check notices`、中継 notice も同じ)。`.notices/` の下は `.notices/<その notice の id>.<名前>.mjs` の形
 - `uses:` を持つ notice は区切り(`checkpoint: -` にしない)。後の `skip_checkpoint:` でも外せない(区間が後ろにずれると、添付が消えた木に merge しうる)
 - 実行の手順は `required_actions`、確かめ方は `verify` に書く。後から取り込む fork は、添付を notice を足した commit の版から読む
@@ -210,7 +211,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 区間の merge は履歴の順に進むので、遅れている fork には修正がすぐ届かない。本番が壊れているとき、または壊れていなくても人間が先に届けると宣言したときだけ、上流が `hotfix:` を宣言した notice の commit を `/flux` が cherry-pick する。任意の commit は取らない(区間の merge を崩さないため)。
 
 - 宣言: `/ship hotfix`。人間が指示したときだけ付ける(全 fork の作業に割り込むため)
-- 上流の条件: 本体と notice を同じ 1 commit に入れる / `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含めない / `required_actions` は後の notice を前提にしない / `fixes:` があれば `pnpm workflow notices pickCheck` で壊れた地点に載ることを確かめる(`/ship`。衝突・検査の失敗なら出さない。索引を外す前の commit の索引の変更は数えない: 上の「先に取れる印」)/ 1 つの目的に絞り、ファイルの移動・改名・置き場の変更と混ぜない(fork は 1 ファイルずつ当て、移したファイルは遅れた fork では前の場所でしか見つからない)/ /flux が上流の先端から読む道具(`.claude/skills/flux/` の下)だけの直しは緊急修正にしない(fork は先端の版を読むので届いている)。上流は fork の位置を見に行かない: 遅れた fork の木で足りない物は当てる側が報告する(下の「先取りの道具」)
+- 上流の条件: 本体と notice を同じ 1 commit に入れる(本体 = `.notices/` の外のファイルか、`fixes:` が名指す notice の道具 `.notices/<その id>.<名前>.mjs` の差し替え: fork が先取りで当てる物があること)/ `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含めない / `required_actions` は後の notice を前提にしない / `fixes:` があれば `pnpm workflow notices pickCheck` で壊れた地点に載ることを確かめる(`/ship`。衝突・検査の失敗なら出さない。索引を外す前の commit の索引の変更は数えない: 上の「先に取れる印」)/ 1 つの目的に絞り、ファイルの移動・改名・置き場の変更と混ぜない(fork は 1 ファイルずつ当て、移したファイルは遅れた fork では前の場所でしか見つからない)/ /flux が上流の先端から読む道具(`.claude/skills/flux/` の下)だけの直しは緊急修正にしない(fork は先端の版を読むので届いている)。上流は fork の位置を見に行かない: 遅れた fork の木で足りない物は当てる側が報告する(下の「先取りの道具」)
 - 受け取り: 通常の `/flux` が未適用の `hotfix:` を見つけて通常の区間より先に計画する。専用のコマンドは無い。次の区間に入っているなら merge で届くので pick しない。`fixes:` の修正元が未適用の fork には不具合がまだ無いので pick しない
 - 台帳: `upstream:` は今の merge-base のまま、`picked:<元の commit>` を足す。記録済みなので後の区間の区切りにならない。後の merge では同じ変更が自動で解決される
 - 先取りの道具: `scripts/workflow/notices/hotfixApply.mjs`(/flux の HOTFIX・鉄道・艦隊が呼ぶ 1 つの部品)。いつも上流の先端の版で走らせる(`git archive <upstream>/<branch> scripts/workflow/notices scripts/workflow/rules` を一時の場所に出して node で。fork の木の版は使わない)。どの fork でも止まらずに当たることが目的で、元の commit が変えたファイルごとに人に聞かずに決める:

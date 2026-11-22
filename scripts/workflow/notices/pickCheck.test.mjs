@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { DEFAULT_CHECKS, judge, parseFixes, pickCommand, run, runChecks, writePick } from "./pickCheck.mjs";
+import { commitConditions, DEFAULT_CHECKS, judge, parseFixes, pickCommand, run, runChecks, writePick } from "./pickCheck.mjs";
 
 const OK = `node -e "process.exit(require('fs').readFileSync('src/a.txt','utf8').includes('ok')?0:1)"`;
 const NEEDS_LIB = `node -e "process.exit(require('fs').existsSync('src/lib.txt')?0:1)"`;
@@ -92,6 +92,13 @@ test("-: pnpm-lock.yaml・route-map を含む commit", (t) => {
   assert.equal(res.verdict, "-");
   assert.match(res.reasons.join("\n"), /pnpm-lock\.yaml/);
   assert.match(res.reasons.join("\n"), /route-map\.jsonl/);
+});
+
+test("本体: fixes: が名指す notice の道具だけを差し替えた commit は本体あり、関係の無い .notices の物だけは本体なし(S32)", () => {
+  const n = ".notices/20990101-000002-fix.md";
+  assert.deepEqual(commitConditions([n, ".notices/20990101-000001-orig.domains-rename.mjs", ".notices/20990101-000001-orig.domains-rename.test.mjs"], n, ["20990101-000001-orig"]), []);
+  assert.deepEqual(commitConditions([n, ".notices/20990101-000009-other.domains-rename.mjs"], n, ["20990101-000001-orig"]), ["commit に本体が無い"]);
+  assert.deepEqual(commitConditions([n], n, []), ["commit に本体が無い"]);
 });
 
 test("-: 本体と notice が別の commit", (t) => {

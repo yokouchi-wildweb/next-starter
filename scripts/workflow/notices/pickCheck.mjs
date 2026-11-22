@@ -189,11 +189,19 @@ export function stackedPicks(repo, fix, b, { at = "HEAD" } = {}) {
   return { ...b, picks: order, stacked, why: `${b.why}${stacked.map((id) => ` + 修正 ${id} を先に載せた`).join("")}` };
 }
 
-/** commit の中身から決まる条件(土台に依らない) */
-export function commitConditions(files, noticePath) {
+/** 直す元の notice の道具(.notices/<id>.<名前>.mjs、そのテスト .test.mjs も)か。fixesIds = 自分の fixes: の notice id */
+export const isFixedNoticeTool = (f, fixesIds) =>
+  fixesIds.some((id) => f.startsWith(`.notices/${id}.`) && f.endsWith(".mjs") && !f.slice(`.notices/${id}.`.length).includes("/"));
+
+/**
+ * commit の中身から決まる条件(土台に依らない)。本体 = .notices の外のファイル、または fixes: が名指す notice の道具の差し替え
+ * (.notices の中の codemod だけを直す修正、S32: 棚の議会 D284 の hotfix が「本体が無い」で止まった。守る物 = fork が先取りで当てる物が
+ * その commit にあること)
+ */
+export function commitConditions(files, noticePath, fixesIds = []) {
   const out = [];
   if (!files.includes(noticePath)) out.push("notice と本体が同じ 1 commit でない(notice をこの commit で足していない)");
-  if (!files.some((f) => !f.startsWith(".notices/"))) out.push("commit に本体が無い");
+  if (!files.some((f) => !f.startsWith(".notices/") || isFixedNoticeTool(f, fixesIds))) out.push("commit に本体が無い");
   for (const f of FORBIDDEN) if (files.includes(f)) out.push(`fork ごとに中身が違う ${f} を含む`);
   return out;
 }
@@ -286,8 +294,9 @@ export function judge(repo, commit, opts = {}) {
   const cps = checkpointCommits(index);
   const targets = [...index.entries()].filter(([, n]) => n.add === sha && n.fixes !== undefined);
   return targets.map(([id, n]) => {
-    const reasons = commitConditions(files, n.path);
-    const sb = sourcesBase(repo, parseFixes(n.fixes), sha, index, cps);
+    const fixes = parseFixes(n.fixes);
+    const reasons = commitConditions(files, n.path, fixes.filter((x) => x.id).map((x) => x.id));
+    const sb = sourcesBase(repo, fixes, sha, index, cps);
     const b = sb.base ? stackedPicks(repo, sha, sb, { at: opts.at }) : sb;
     if (b.unknown) return { id, path: n.path, verdict: null, reasons: [b.unknown], base: null, skipped: [] };
     if (b.fail) return { id, path: n.path, verdict: "-", reasons: [...reasons, b.fail], base: null, skipped: [] };

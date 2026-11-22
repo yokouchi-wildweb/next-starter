@@ -45,6 +45,12 @@ test("uses: paths exist in the adding commit, codemods are .notices/<id>.<name>.
   assert.match(text, /区切り/);
   assert.match(text, /\.notices\/20990101-000001-a\.<名前>\.mjs/);
   assert.match(text, /src\/gone\.ts が notice を足した commit に無い/);
+  // a fix that replaces the tool of the notice it fixes (S32): the fixed notice's codemod counts as its own
+  const fixHave = new Set([".notices/20990101-000000-o.fix-imports.mjs"]);
+  const fix = { id: "20990101-000001-a", fields: { severity: "info", checkpoint: "a", fixes: "20990101-000000-o", uses: ".notices/20990101-000000-o.fix-imports.mjs" } };
+  assert.deepEqual(checkUses(fix, (p) => fixHave.has(p)), []);
+  const other = { ...fix, fields: { ...fix.fields, fixes: "20990101-000009-z" } };
+  assert.match(checkUses(other, (p) => fixHave.has(p)).join("\n"), /fixes: が名指す notice/);
 });
 
 test("skip_checkpoint: only a fix that cannot be picked, on its own fixes: target with a label and no uses:, the fix itself a checkpoint", () => {
