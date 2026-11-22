@@ -2,7 +2,7 @@
 
 ## Overview
 
-札・宛名・本文の知らせ（財布の失効の予告・本通知など）のレイアウト（D122・D123）。定義連絡だけが使い、管理者はテンプレートで選べない（`adminSelectable: false`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「レイアウト」。wallet の失効の知らせ 2 本(`expiringNotice`・`expiredNotice`)が使う。
+札・宛名・本文の知らせ（財布の失効の予告・本通知など）のレイアウト（D122・D123）。定義連絡だけが使い、管理者はテンプレートで選べない（`adminSelectable: false`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「レイアウト」。wallet の失効の知らせ 2 本(`expiringNotice`・`expiredNotice`)と、管理者が振込審査の一覧から送る bankTransferReview のお振込の確認(`transferCheck`、D194: メールは件名・本文、お知らせの一覧は短い本文)が使う。
 
 ## Usage
 

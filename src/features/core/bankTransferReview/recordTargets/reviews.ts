@@ -1,37 +1,65 @@
 // src/features/core/bankTransferReview/recordTargets/reviews.ts
 //
 // 記録の宛先(recordTargets、D190): 振込審査の一覧で選んだ審査 → 申告した利用者(1 人 1 件、その人の審査の id をまとめる)。
+// 送れる連絡定義: お振込の確認のご連絡(messages/transferCheck.ts、D194)。記録から埋める値 = 宛名・金額・申告日
+// (まとめた審査の分を「、」でつなぐ)。
 // 送った後に選んだ審査の管理メモへ「YYYY/MM/DD「件名」メール送付」を 1 行足す(定義の送信でメールを送ったときだけ、D196)。
-// 自由連絡の一括送信は afterSend を呼ばないので、送る画面を定義の送信へ移すまで(S4・S5)メモは残らない。
-// このドメインが閉じていれば門番が落とす。決済(payment)が閉じていても使えない(enabled)。中身の作り直しは S5
+// 自由連絡の一括送信は afterSend を呼ばないので、送る画面を定義の送信へ移すまで(S4)メモは残らない。
+// このドメインが閉じていれば門番が落とす。決済(payment)が閉じていても使えない(enabled)
 
-import { eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 
 import { gate } from "@/featureGate";
+import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
+import { UserTable } from "@/features/core/user/entities/drizzle";
 import { db } from "@/lib/drizzle";
 import { formatDateJa } from "@/utils/date";
 
 import { BankTransferReviewTable } from "../entities/drizzle";
+import { formatJpyAmount } from "../presenters";
 
-import type { MessageRecordTarget } from "@/lib/messaging";
+import type { MessageRecordRecipient, MessageRecordTarget } from "@/lib/messaging";
+
+/** 審査の行(申告の古い順)→ 1 人 1 件。値は連絡定義 transferCheck の recordVars(宛名・金額・申告日、まとめた分を「、」でつなぐ) */
+export function recipientsOfRows(
+  rows: readonly { id: string; userId: string; submittedAt: Date; paymentAmount: number | null; userName: string | null }[],
+): MessageRecordRecipient[] {
+  const byUser = new Map<string, (typeof rows)[number][]>();
+  for (const row of rows) byUser.set(row.userId, [...(byUser.get(row.userId) ?? []), row]);
+  return [...byUser].map(([userId, own]) => ({
+    userId,
+    recordIds: own.map((row) => row.id),
+    vars: {
+      displayName: own[0]!.userName || "お客様",
+      paymentAmounts: own.map((row) => (row.paymentAmount === null ? "-" : formatJpyAmount(row.paymentAmount))).join("、"),
+      submittedDates: own.map((row) => formatDateJa(row.submittedAt, { format: "YYYY/MM/DD" }) ?? "-").join("、"),
+    },
+  }));
+}
 
 export const recordTarget: MessageRecordTarget = {
   key: "bankTransferReview.reviews",
   label: "振込審査",
-  // 送れる連絡定義(S5 で振込審査の連絡定義を足して並べる)
-  messages: [],
+  // 送れる連絡定義(管理の定義の送る口の記録の入口。fork は隣の reviews.override.ts で並びを差し替えられる)
+  messages: ["bankTransferReview.transferCheck"],
   // 振込審査の表は決済(payment)の地区。画面の機能 bankTransferReview(payment に dependsOn)も開いていること
   enabled: () => gate.enabled("payment") && gate.enabled("bankTransferReview"),
   async resolveRecipients(recordIds) {
     if (recordIds.length === 0) return [];
     const rows = await db
-      .select({ id: BankTransferReviewTable.id, userId: BankTransferReviewTable.user_id })
+      .select({
+        id: BankTransferReviewTable.id,
+        userId: BankTransferReviewTable.user_id,
+        submittedAt: BankTransferReviewTable.submitted_at,
+        paymentAmount: PurchaseRequestTable.payment_amount,
+        userName: UserTable.name,
+      })
       .from(BankTransferReviewTable)
-      .where(inArray(BankTransferReviewTable.id, [...recordIds]));
-    // 1 人 1 件(同じ人の審査はまとめる)。記録から埋める値はまだ無い(S5)
-    const byUser = new Map<string, string[]>();
-    for (const row of rows) byUser.set(row.userId, [...(byUser.get(row.userId) ?? []), row.id]);
-    return [...byUser].map(([userId, ids]) => ({ userId, vars: {}, recordIds: ids }));
+      .leftJoin(PurchaseRequestTable, eq(PurchaseRequestTable.id, BankTransferReviewTable.purchase_request_id))
+      .leftJoin(UserTable, eq(UserTable.id, BankTransferReviewTable.user_id))
+      .where(inArray(BankTransferReviewTable.id, [...recordIds]))
+      .orderBy(asc(BankTransferReviewTable.submitted_at));
+    return recipientsOfRows(rows);
   },
   async afterSend({ recordIds, channels, fields }) {
     // メールを送った時だけ(D196)。件名 = 送った欄の subject(テキストの編集の後、差し込む前の字)

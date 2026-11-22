@@ -49,12 +49,12 @@ await messagingService.sendMessageToMany(campaign, {
 
 1. `pnpm generate message -- <domain> <name> --category <key> --label <名前> [--core]` が送る側のドメインに `messages/<名前>.ts`（鍵 `<ドメインのフォルダ名>.<名前>`、レイアウト notice と欄の中身の雛形）を書き、`src/registry/messageRegistry.ts` と拡張点を作り直す（使い方 scripts/structure/message/README.md）。core のドメインは `--core` = 上流だけ
 2. カテゴリー（category）= 利用者から見て 1 つの出来事（「〜した時」。例 likeReceived・itemSold・passwordReset）。種別（7 つ）と送信チャンネルはカテゴリーが持ち、連絡は書かない。無ければ先に `categories/<名前>.ts` を足す
-3. 上流のカテゴリー: emailVerification・passwordReset・emailChange・earlyRegistration（functional・email）/ accountLocked（security）/ registrationComplete・walletExpired・walletAdjusted（transactional）/ walletExpiring（activity、利用者が止められる）
+3. 上流のカテゴリー: emailVerification・passwordReset・emailChange・earlyRegistration（functional・email）/ accountLocked（security）/ registrationComplete・walletExpired・walletAdjusted・bankTransferCheck（transactional。bankTransferCheck = お振込の確認、振込審査の一覧から管理者が送る確認の連絡、メール・お知らせとも既定で入）/ walletExpiring（activity、利用者が止められる）
    - promotion（promotion、管理画面「一般的なプロモーション」・利用者「キャンペーン情報」、管理者が書く宣伝の既定）/ announcement（管理画面「一般的なお知らせ」・利用者「運営からのお知らせ」）/ operatorDirect（direct、管理画面「一般的な個別連絡」・利用者「個別のご連絡」、管理者からの個別の連絡と一括の既定）
    - カテゴリーの名前は 2 つ: `label` = 利用者に見せる（好みの設定・配信停止・受け取り箱）、`adminLabel` = 管理画面（無い = `label`）
    - 種別の表示名（`constants/kindLabels.ts` の `MESSAGE_KIND_LABELS`）: functional 機能通知 / transactional 手続き通知 / security セキュリティ / announcement 運営告知 / direct 個別連絡 / activity アクティビティ / promotion プロモーション
 4. 見た目 = レイアウト（`layouts/<名前>/`、`layouts/README.md`）。上流は simple（シンプルなお知らせ）・notice（汎用のお知らせ）・link（認証のリンク）・welcome（ようこそ）・statement（お知らせの明細）・alert（セキュリティの警告）。定義は `layout` と `values`（レイアウトの欄の中身）を書く
-5. 実例: auth の連絡（link・alert）・user の連絡（welcome）・wallet の失効の知らせ（statement、cron、`runAsSystem` + 冪等の鍵）と残高の変更（notice）
+5. 実例: auth の連絡（link・alert）・user の連絡（welcome）・wallet の失効の知らせ（statement、cron、`runAsSystem` + 冪等の鍵）と残高の変更（notice）・管理者が記録の宛先から送る bankTransferReview のお振込の確認（statement、`recordVars`・`adminTargets: ["records"]`）
 
 ### 運用で間違えやすい線
 

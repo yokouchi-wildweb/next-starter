@@ -28,6 +28,10 @@ export const messageRegistry: MessageRegistry = {
     key: "auth.verification",
     definition: () => import("@/features/core/auth/messages/verification"),
   },
+  "bankTransferReview.transferCheck": {
+    key: "bankTransferReview.transferCheck",
+    definition: () => import("@/features/core/bankTransferReview/messages/transferCheck"),
+  },
   "user.earlyRegistrationComplete": {
     key: "user.earlyRegistrationComplete",
     definition: () => import("@/features/core/user/messages/earlyRegistrationComplete"),
