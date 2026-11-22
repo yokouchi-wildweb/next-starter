@@ -61,7 +61,7 @@ import { useAdminSendOptions } from "./useAdminSendOptions";
 import { useIdempotencyKey } from "./useIdempotencyKey";
 import { useLayoutPreview } from "./useLayoutPreview";
 import { useSendPreview } from "./useSendPreview";
-import { useSendSteps, type SendStep } from "./useSendSteps";
+import { useSendSteps } from "./useSendSteps";
 import { useSendTest } from "./useSendTest";
 import { layoutTextState, varPreviewValues, templateTextState, useSendTemplateText, type SendTextState } from "./useSendTemplateText";
 
@@ -85,7 +85,6 @@ export type MessageSendMode =
     };
 
 export type MessageSendTargetType = "all" | "role" | "group" | "users";
-export type MessageSendStep = SendStep;
 export type MessageSendTemplate = AdminSendOptions["templates"][number];
 
 /** 宛先(group = ユーザーグループ。groupId は値としてだけ持ち、画面には名前を出す、D94) */

@@ -171,6 +171,9 @@ export const VOCAB = [
   ex("BANK_TRANSFER_REVIEW_BULK", null, "S3", "MESSAGING_SOURCES の古い定数(使われていない)。送り元は \"<記録の宛先の鍵>.bulk\"(例 bankTransferReview.reviews.bulk)"),
   dir(`${M}/extensions/bulkSendTargets.ts`, null, "S3", "生成物(受け口 bulkSendTargets は無くなり pnpm generate extensions が消す)。記録の宛先の一覧は src/registry/recordTargetRegistry.ts(pnpm generate registry)"),
 
+  // ── S4 送る画面の公開の hook(D191)
+  ex("MessageSendStep", "SendStep", "S4", "送る画面の進行の段(useSendSteps と同じ型。別名は無い)", DOMAIN),
+
   // ── 開発の語(D180〜D182。書き換えず一覧に出すだけ)
   word("種類", "カテゴリー", "S1", "種類", "カテゴリー(category)の意味の時だけ(D182 (2))。種別(kind)・ほかの意味の種類はそのまま"),
   word("回", "送信", "S1", "(?<![今前次毎初数何一二三])回(?=[のにをがはでへとごも])", "dispatch の意味の時だけ(D182 (3))。配達(delivery)はそのまま"),
