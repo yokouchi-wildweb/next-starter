@@ -35,6 +35,12 @@ test("書き換えの形: --gate・gate.json・gates.json・runner/gates・相�
   assert.deepEqual(stops, []);
 });
 
+test("環境変数 env: 子の検査が読む段の名前 GATE → PHASE(GATE_X や別の名前は触らない)", () => {
+  const { text, counts } = rewriteText("scripts/structure/mine/check.ts", 'if (process.env.GATE === "build") {}\nconst g = process.env["GATE"];\nconst x = process.env.GATE_X;\n');
+  assert.equal(text, 'if (process.env.PHASE === "build") {}\nconst g = process.env["PHASE"];\nconst x = process.env.GATE_X;\n');
+  assert.deepEqual(counts, { env: 2 });
+});
+
 test("相対の指定子: 解いた先が scripts/runner/gates の物だけ", () => {
   assert.equal(rewriteText("scripts/structure/x/a.mjs", 'import "../../runner/gates/scan.mjs";\n').text, 'import "../../runner/phases/scan.mjs";\n');
   assert.equal(rewriteText("src/lib/x/a.ts", 'import "../gates/thing";\n').text, 'import "../gates/thing";\n');

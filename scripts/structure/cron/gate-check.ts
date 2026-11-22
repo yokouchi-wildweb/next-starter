@@ -4,7 +4,7 @@
 // generate の入口は gate-generate.ts(契約のプランを人が選ぶので --plan の無い呼び出しは飛ばす)
 import { existsSync } from "node:fs";
 
-if (process.env.GATE === "build") {
+if (process.env.PHASE === "build") {
   process.argv.splice(2, 0, "--vercel-build");
   void import("./check");
 } else if (!existsSync("vercel.json")) {

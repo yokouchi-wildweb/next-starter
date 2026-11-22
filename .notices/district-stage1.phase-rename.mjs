@@ -17,6 +17,7 @@
 // - relative: 相対の指定子 ../gates/・./gates/ は、ファイルの置き場から解いて scripts/runner/gates に当たる物だけ → phases
 // - key:      段の宣言(gate.json・phase.json)と段の一覧(gates.json・phases.json)の中のキー "gates" → "phases"
 // - ja:       「門 <段の名前>」(build・build:post・ship・forge:pre・forge:post・deploy・nightly)→「段階 <段の名前>」
+// - env:      段のランナーが子の検査に渡す段の名前の環境変数の読み env.GATE・env["GATE"] → env.PHASE・env["PHASE"](fork の検査器も読む)
 // 対象のファイル: git の木なら git ls-files -co --exclude-standard、でなければ SKIP_DIRS を除いた全部。文字のファイルだけ
 //
 // 見ない物: 出荷済みの notice の本文と道具(.notices/<YYYYMMDD-HHMMSS>-…)・台帳(.notices/applied/)・この道具とテスト・
@@ -111,6 +112,8 @@ export function rewriteText(path, text) {
   out = out.replace(/(?<![A-Za-z0-9_-])gates\.json/g, () => (bump("file"), "phases.json"));
   out = out.replace(/(?<![A-Za-z0-9_-])gates\.test\.mjs/g, (m, offset, whole) => (/runner\/(gates|phases)\/$/.test(whole.slice(Math.max(0, offset - 15), offset)) || path.startsWith(RUNNER_FROM) || path.startsWith(RUNNER_TO) ? (bump("file"), "phases.test.mjs") : m));
   out = out.replace(new RegExp(String.raw`runner\/gates${END}`, "g"), () => (bump("dir"), "runner/phases"));
+  out = out.replace(/(?<![A-Za-z0-9_$])env\.GATE(?![A-Za-z0-9_$])/g, () => (bump("env"), "env.PHASE"));
+  out = out.replace(/env\[(["'])GATE\1\]/g, (_m, q) => (bump("env"), `env[${q}PHASE${q}]`));
   if (isDeclaration(path)) out = out.replace(/"gates"(\s*:)/g, (_m, colon) => (bump("key"), `"phases"${colon}`));
   const names = PHASE_NAMES.join("|");
   out = out.replace(new RegExp(String.raw`門( ?)(${names})${END}`, "g"), (_m, space, name) => (bump("ja"), `段階${space}${name}`));
@@ -174,7 +177,7 @@ export function planRename(root) {
       continue;
     }
     const text = buffer.toString("utf8");
-    if (!/gate|門/.test(text)) continue;
+    if (!/gate|GATE|門/.test(text)) continue;
     const result = rewriteText(path, text);
     for (const s of result.stops) stops.push({ path, ...s });
     if (result.text !== text) {

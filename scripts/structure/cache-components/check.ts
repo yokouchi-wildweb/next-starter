@@ -7,7 +7,7 @@
 import { checkBuild, checkConfig } from "./lib.mjs";
 
 async function main() {
-  if (process.env.GATE === "build:post") {
+  if (process.env.PHASE === "build:post") {
     const result = checkBuild(".next");
     if (!result) {
       console.error("未検証: .next に build の成果物(required-server-files.json・prerender-manifest.json)が無い(先に next build)");

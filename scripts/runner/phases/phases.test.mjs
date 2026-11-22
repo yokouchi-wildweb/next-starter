@@ -156,7 +156,7 @@ test("explicit の門(build:post)だけに乗る対象は、全部を回す時�
 
 test("--phase に複数の門: どれかに乗る対象を after の順に 1 回ずつ、GATE はその対象が乗る最初の門", (t) => {
   const f = fixture(t);
-  const echo = 'console.log("GATE=" + process.env.GATE)\n';
+  const echo = 'console.log("GATE=" + process.env.PHASE)\n';
   f.add("structure", "role", { check: "check.mjs", gates: ["forge:pre"] }, { "check.mjs": echo });
   f.add("structure", "domain", { check: "check.mjs", gates: ["forge:pre", "forge:post"], after: ["role"] }, { "check.mjs": echo });
   f.add("structure", "routes", { check: "check.mjs", gates: ["forge:post"], after: ["domain"] }, { "check.mjs": echo });
