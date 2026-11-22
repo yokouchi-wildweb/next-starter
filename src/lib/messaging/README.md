@@ -38,7 +38,7 @@ export const message = defineMessage({
 
 ### 上書き(MessageOverride)
 
-`messages/<名前>.override.ts`(データだけ)。変えられるのは名前 `label`(管理画面の表示名)・レイアウトの欄の中身 `values`(欄ごとに差し替え)・`extras`・`enabled`・`adminEditableOnly`・`record`・`throttle`(`null` で外す)・所属のカテゴリー `category`(付け替え: fork のカテゴリーも可、種別が違ってもよい、functional の連絡も可 D166・D167。上流の呼び出しはそのままで属するカテゴリーだけが変わる)・管理者が送る画面の文 `adminText`(丸ごと差し替え)・送信チャンネルの固定 `channelModes`(丸ごと差し替え。カテゴリーを付け替える時は新しいカテゴリーの送信チャンネルで書き直す、外の送信チャンネルは `unknown_channel_mode`)。`key`・`vars`・`varNames`・`required`・`layout` は変えられない(送信チャンネルの集まりはカテゴリーの上書き `categories/<名前>.override.ts` の `channels` で変える)。
+`messages/<名前>.override.ts`(データだけ)。変えられるのは名前 `label`(管理画面の表示名)・レイアウトの欄の中身 `values`(欄ごとに差し替え)・`extras`・`enabled`・`adminEditableOnly`・`record`・`throttle`(`null` で外す)・所属のカテゴリー `category`(付け替え: fork のカテゴリーも可、種別が違ってもよい、functional の連絡も可 D166・D167。上流の呼び出しはそのままで属するカテゴリーだけが変わる)・管理者が送る画面の文 `adminText`(丸ごと差し替え)・送信チャンネルの固定 `channelModes`(丸ごと差し替え。カテゴリーを付け替える時は新しいカテゴリーの送信チャンネルで書き直す、外の送信チャンネルは `unknown_channel_mode`)。`key`・`vars`・`varNames`・`required`・`silent`・`layout` は変えられない(送信チャンネルの集まりはカテゴリーの上書き `categories/<名前>.override.ts` の `channels` で変える)。
 
 種別の性質の検査(required の email・テキストの編集・間引き・email を外せない種別の email の off・上流の functional を止めない)は上書きを重ねた後の値(付け替えた先のカテゴリーの種別・送信チャンネル)に掛かる。functional の連絡をほかの種別のカテゴリーへ移すと、上書きで止められるようになる(D167: 付け替える fork には理由がある)。どのカテゴリーの項目を引くかは `messageCategoryKeyOf(definition, override)`。
 
@@ -84,6 +84,7 @@ export const messageOverride = {
 - `adminEditableOnly`: 管理画面で直せる欄の絞り(レイアウトの欄の鍵)。無い = レイアウトの欄のうちカテゴリーの送信チャンネルで使う物を全部直せる(`adminEditableFields`: 種別の性質 `adminTextOverride` が true で required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない。レイアウトに無い鍵は `unknown_admin_editable`
 - `record`: 本文の残し方 `meta` | `vars`(既定)| `full`
 - `throttle`: 会話の間引き `{ by: [vars の鍵], mode: "untilRead" | "window", seconds }`
+- `silent`: 静かなお知らせ(既定 false)。true = お知らせ(inApp)の行を静かな行(`metadata.silent = true`)で書く: 受け取り箱の一覧には出し、未読の数と未読だけの一覧(未読のモーダル)には入れない。ほかの送信チャンネルには効かない。上書きで変えられない(送る口 = src/features/core/messaging/services/server/sendMessage/content.ts、読む側 = services/server/inbox/readState.ts)
 - `layout`(必須): レイアウトの鍵(`src/features/core/messaging/layouts/<名前>/`。上流は simple・notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。無効(`disabled`)のレイアウトも誤り(`disabled_layout`)。上書きで変えられない
 - `values`: レイアウトの欄の中身(欄の鍵 → 値。文字列に `{{鍵}}` を書ける)。レイアウトの欄の zod(`layoutValuesSchema`、カテゴリーの送信チャンネルで使う欄だけ必須)を通る(`invalid_values`)。検査の前に空を「無い」にする(`normalizeLayoutValues` / `normalizeFieldValue`: 画像の空文字・ボタン / リンクの全部が空・空の並び。ボタンの片方だけ空・URL の無いリンクは空の側の誤り)
 - `extras`: fork が足す欄の入れ物

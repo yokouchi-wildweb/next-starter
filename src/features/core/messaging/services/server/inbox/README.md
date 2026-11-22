@@ -28,6 +28,7 @@
 - 既読 = `message_inbox_reads` の行がある か 公開の時刻 ≤ `message_inbox_read_states.read_watermark_at`
 - 全部既読は 1 つの取引で watermark を今に進め、公開の時刻 ≤ 今の個別の既読の行を掃く
 - 静かな行（`metadata.silent = true`）は未読の数と `unreadOnly`（未読のモーダル）に入れない。ふつうの一覧には出す（`inboxSilentSql` / `isSilent`）
+  - 書き手: 定義の `silent: true` の連絡（送る口が inApp の中身に印を付け、`inAppItemRow` が行の metadata に写す。その場の行・cron の送る行・間引き・共有の行のどれも同じ）と、前のお知らせの写し
 
 ### 画像（imageBinding.ts・imageBindingLedger.ts）
 

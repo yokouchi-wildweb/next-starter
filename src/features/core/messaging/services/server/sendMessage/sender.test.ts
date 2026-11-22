@@ -717,6 +717,32 @@ test("上書きの category と channelModes(D166・D212): 送信は付け替え
   assert.equal(inApp.calls.flat().length, 1);
 });
 
+test("静かなお知らせ(定義の silent): お知らせの中身にだけ silent: true を付ける。silent の無い連絡は付けない", async () => {
+  const quiet = (silent?: boolean) =>
+    defineTestMessage({
+      key: "shop.quiet",
+      label: "テストの連絡",
+      category: "newsInApp",
+      vars: z.object({ item: z.string() }),
+      layout: "card",
+      values: { title: "{{item}}", body: "{{item}}" },
+      ...(silent === undefined ? {} : { silent }),
+    });
+  const store = createMemoryStore();
+  store.users.push({ id: "u2", name: "利用者2", email: null });
+  store.endpoints.push({ userId: "u2", channel: "test", address: "addr-u2" });
+  const testChannel = createTestChannel();
+  const inApp = createTestChannel("inApp");
+  inApp.resolveAddresses = async (ids) => ids.map((userId) => ({ userId, address: userId }));
+  const sender = createMessageSender(createDeps({ store, channels: { test: testChannel, inApp } }));
+  await sender.sendMessage(quiet(true), { recipient: { userId: "u2" }, vars: { item: "a" } });
+  assert.equal(inApp.calls.flat()[0]!.content.silent, true);
+  assert.equal("silent" in testChannel.calls.flat()[0]!.content, false, "ほかの送信チャンネルには付けない");
+  await sender.sendMessage(quiet(), { recipient: { userId: "u2" }, vars: { item: "b" } });
+  await sender.sendMessage(quiet(false), { recipient: { userId: "u2" }, vars: { item: "c" } });
+  assert.deepEqual(inApp.calls.flat().slice(1).map((target) => "silent" in target.content), [false, false]);
+});
+
 test("種別の性質(D80): 記録の既定は種別から、security は苦情の停止を越えて届き好みを見ない", async () => {
   const store = createMemoryStore();
   store.users.push({ id: "u2", name: "利用者2", email: "u2@example.test" });

@@ -171,6 +171,7 @@ async function decideRecipient(
         layout: row.layout,
         layout_version: row.layout_version,
         values: row.values,
+        metadata: row.metadata ?? null,
         published_at: now,
         collapsed_count: count,
         collapsed_dispatch_ids: item.dispatch_id === dispatchId || earlier.includes(item.dispatch_id) ? earlier : [...earlier, item.dispatch_id],

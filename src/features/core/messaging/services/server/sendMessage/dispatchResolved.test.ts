@@ -1,7 +1,7 @@
 // 送信の記録と送信から描く定義(D128)
 // - 送る口が送信に残す物: 出どころ(message_key)・カテゴリー・レイアウトの鍵と版・欄の中身(values)。values の残し方は vars と同じ
 //   (record vars / full は残す・meta は送り残しの間だけ・required と秘密の連絡は残さない)
-// - resolvedOfDispatch: 描く物は送信だけから、間引き・required・vars の zod はコードの定義から(無ければ無し)。レイアウトが無い・版を読めない = 誤り
+// - resolvedOfDispatch: 描く物は送信だけから、間引き・required・静かなお知らせ・vars の zod はコードの定義から(無ければ無し)。レイアウトが無い・版を読めない = 誤り
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage/dispatchResolved.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -85,6 +85,15 @@ test("resolvedOfDispatch: 描く物は送信から、間引き・required・vars
   );
   assert.deepEqual(resolved.throttle, throttled.throttle);
   assert.deepEqual(Object.keys(resolved.vars.shape), ["item"]);
+
+  // 静かなお知らせ(silent)もコードの定義から(cron の送る行・共有の行も静かな行になる)
+  const silentDefinition = defineTestMessage({ ...base, key: "shop.throttled", category: "account", silent: true });
+  const silent = await resolvedOfDispatch(
+    { ...deps, registry: { "shop.throttled": { key: "shop.throttled", definition: async () => ({ message: silentDefinition }) } } },
+    { ...dispatch, values: { ...dispatch.values! } },
+  );
+  assert.ok("resolved" in silent && silent.resolved.silent === true);
+  assert.equal(resolved.silent, undefined);
 
   const gone = await resolvedOfDispatch({ ...deps, registry: {} }, { ...dispatch, values: { ...dispatch.values! } });
   assert.ok("resolved" in gone && gone.resolved.throttle === undefined && gone.resolved.required === undefined);

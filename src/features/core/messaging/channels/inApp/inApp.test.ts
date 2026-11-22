@@ -6,6 +6,7 @@
 // - 配達の行が見つからない宛先は permanent
 // - 画像は要約の画像と欄の中身の中の参照を送信ごとに 1 回 bindImages で結び、結んだ参照を書く
 // - remove は送信の行を消した数を返す
+// - 静かなお知らせ(中身の silent: true)は行の metadata.silent = true(読みの側 isSilent と同じ印)。静かでない行は metadata を書かない
 // 実行: pnpm test src/features/core/messaging/channels/inApp
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -13,6 +14,7 @@ import assert from "node:assert/strict";
 import type { MessageLayoutContent } from "@/lib/messaging";
 
 import type { MessageInboxItemInsert } from "../../entities/model";
+import { isSilent } from "../../services/server/inbox/readState";
 import { createInAppChannel } from "./createInAppChannel";
 
 const IMG = "storage://pub/notification.image/00000000-0000-4000-8000-00000000000a.png";
@@ -112,4 +114,15 @@ test("remove は送信の行を消した数を返す(管理の削除)", async ()
   const { channel, removed } = setup();
   assert.deepEqual(await channel.remove!({ dispatchId: "dispatch-1" }), { removed: 3 });
   assert.deepEqual(removed, ["dispatch-1"]);
+});
+
+test("静かなお知らせ(中身の silent: true)は metadata.silent = true の行。静かでない行は metadata を書かない", async () => {
+  const { channel, inserted } = setup();
+  await channel.send([
+    { userId: "u1", address: "u1", messageKey: "shop.notice", idempotencyKey: "d1", content: { ...content, silent: true } },
+    { userId: "u2", address: "u2", messageKey: "shop.notice", idempotencyKey: "d2", content },
+  ]);
+  assert.deepEqual(inserted[0]!.metadata, { silent: true });
+  assert.equal(isSilent(inserted[0]!.metadata ?? null), true, "受け取り箱の読みの側が静かな行と読む(未読の数・未読のモーダルから外す)");
+  assert.equal("metadata" in inserted[1]!, false);
 });

@@ -8,6 +8,7 @@
 //   (rendersAtSend: 宛先ごとの停止のリンクを入れる)ので、中身は MessageLayoutContent
 // - inApp: 送信チャンネルが送る時に行を書く(rendersAtSend)ので MessageLayoutContent + レイアウトの版 layoutVersion(行が要約の列とレイアウト・欄の中身を残す、指令 60)
 // - line: 要約から
+// - 静かなお知らせ(定義の silent): inApp の中身に silent: true を足す(行の metadata.silent になり、未読の数・未読のモーダルに入らない)
 // - 差し込み: 表(鍵 → 値)に共通の埋め込み情報と当たる enrichers の日本語の別名の行を足す({{受信者名}} = {{recipientName}}、D126)。
 //   テンプレートの専用の別名は送る口が送信に残す前に {{鍵}} へ書き換える(templateDefinition.ts)ので、ここでは要らない
 // - 秘密の鍵(secretVar)は呼び手が差し込みの表から外す(見出し・全員同文の描画)。その場で送る行だけが秘密を差し込む
@@ -24,6 +25,8 @@ import {
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 import type { VariableMap } from "@/lib/templateVariables";
+
+import { IN_APP_SILENT_CONTENT_KEY } from "../../../channels/inApp/createInAppChannel";
 
 import { renderValue, toVariableMap } from "./context";
 import type { AnyResolvedMessageDefinition } from "./definition";
@@ -86,7 +89,9 @@ export async function buildContent(
   }
   // 送信チャンネルが送る時に描く中身(MessageLayoutContent)にはレイアウトの版も付ける(お知らせの行が残す、指令 60)
   const content = isMessageLayoutContent(result.content) ? { ...result.content, layoutVersion: layoutVersionOf(layout) } : result.content;
-  return { content, heading: result.title };
+  // 静かなお知らせ(定義の silent)はお知らせの中身に印を付ける(送信チャンネルが行の metadata.silent に写す)
+  const silent = channelKey === IN_APP_CHANNEL && resolved.silent === true ? { [IN_APP_SILENT_CONTENT_KEY]: true } : {};
+  return { content: { ...content, ...silent }, heading: result.title };
 }
 
 /** 送信チャンネルごとの中身(並びは channels の順) */

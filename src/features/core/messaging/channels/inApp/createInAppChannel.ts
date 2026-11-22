@@ -13,6 +13,7 @@
 //   行 = 要約の列(title = 題、body = 短い本文 ?? 本文、image、link = 行き先の URL)+ レイアウトの鍵・版・欄の中身(詳細がレイアウトの描き方で描く)。
 //   行は届けた中身で記録ではないので、記録の段・required に依らず欄の中身を残す(D120)。秘密の欄は呼び手が空の字で差し込む(D130)。
 //   前の形の中身(MessageLayoutContent でない)だけ layout・values が null = 要約のカード
+// - 静かなお知らせ(定義の silent、送る口が中身に silent: true を付ける): 行の metadata.silent = true(一覧には出し、未読の数・未読のモーダルには入れない)
 
 import { isMessageLayoutContent, type ChannelSendResult, type MessageChannel } from "@/lib/messaging";
 
@@ -45,7 +46,24 @@ export function inAppItemRow(
   content: Readonly<Record<string, unknown>>,
   params: { dispatchId: string; userId: string | null; now: Date },
 ): MessageInboxItemInsert {
-  return { ...inboxColumnsOf(content), dispatch_id: params.dispatchId, user_id: params.userId, published_at: params.now };
+  return {
+    ...inboxColumnsOf(content),
+    ...inboxMetadataOf(content),
+    dispatch_id: params.dispatchId,
+    user_id: params.userId,
+    published_at: params.now,
+  };
+}
+
+/** 送る口がお知らせの中身に付ける静かな行の印(定義の silent。services/server/sendMessage/content.ts) */
+export const IN_APP_SILENT_CONTENT_KEY = "silent";
+
+/**
+ * 中身 → 行の metadata。静かなお知らせ(中身の silent が true)は metadata.silent = true
+ * (読みの側 services/server/inbox/readState.ts の isSilent / inboxSilentSql と同じ印)。静かでない行は metadata を書かない
+ */
+export function inboxMetadataOf(content: Readonly<Record<string, unknown>>): Pick<MessageInboxItemInsert, "metadata"> {
+  return content[IN_APP_SILENT_CONTENT_KEY] === true ? { metadata: { silent: true } } : {};
 }
 
 /** 中身 → 行の要約の列とレイアウトの列 */

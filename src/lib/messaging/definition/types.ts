@@ -108,6 +108,11 @@ export type MessageDefinition<
   /** 本文の残し方(既定 = 種別の性質の recordDefault) */
   record?: MessageRecord;
   throttle?: MessageThrottle<VarKeys<Vars>>;
+  /**
+   * 静かなお知らせ(既定 false)。true = お知らせ(inApp)の行を静かな行(metadata.silent = true)で書く:
+   * 受け取り箱の一覧には出し、未読の数と未読だけの一覧(未読のモーダル)には入れない。ほかの送信チャンネルには効かない
+   */
+  silent?: boolean;
   /** レイアウトの鍵(layouts の受け口のフォルダの名前。例 notice・link) */
   layout: string;
   /** レイアウトの欄の中身(レイアウトの欄の zod を通る) */

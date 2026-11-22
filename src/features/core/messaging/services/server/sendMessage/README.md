@@ -39,7 +39,7 @@
 - お知らせの行（`message_inbox_items`）は記録ではなく届けた中身: 記録の段・required に依らずレイアウトの鍵・版・欄の中身を残す（秘密の欄は空の字で差し込む、D120・D130）。書き手 = その場の行・cron の送る行・間引き（どれも `buildRowContent`）と cron の共有の行
 - 組み直し（cron の送る行・全員宛ての共有のお知らせの行・失敗の再送・送信の詳細の「同じ内容で送る」）は送信の物と `vars` だけで描く（`resolvedOfDispatch`）。定義・テンプレート・テキストの編集は引き直さないので、送った後に直しても予約・後回しの中身は変わらない
   - 送った版から今の版へレイアウトの改版の対応（`revisions[版]`）で読み替える。段の対応が無い・今より新しい版 = `layout_unreadable`、レイアウトが無い = `layout_missing`、欄の中身が無い = `values_missing`（cron は配達を `failed`）
-  - 描かない振る舞い（間引き `throttle`・required・vars の zod の秘密の印）だけはコードの定義（`message_key` の生成の一覧の定義 + fork の上書き）から読む。定義が無ければ間引かない
+  - 描かない振る舞い（間引き `throttle`・required・静かなお知らせ `silent`・vars の zod の秘密の印）だけはコードの定義（`message_key` の生成の一覧の定義 + fork の上書き）から読む。定義が無ければ間引かない
 
 ### 自由連絡（templateDefinition.ts、D117・D125・D171）
 
