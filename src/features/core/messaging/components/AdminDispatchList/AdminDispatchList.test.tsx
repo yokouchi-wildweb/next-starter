@@ -9,6 +9,7 @@
 // - 詳細(送信状況のタブ): 配達は利用者の名前、利用者の id・お知らせの宛先は出さず、表に無い符号は決まった文
 // - 詳細(プレビューのタブ): 前の形の送信の本文を送信チャンネルごとに(生の JSON は出さない)
 // - グループ宛ての送信: 一覧の行と詳細にグループの名前(名前が無ければ「グループ」)、id は出さない
+// - 詳細の「同じ内容で送る」: 自由連絡の送信(sameAs が null でない)で門 messagingBroadcast が開の時だけ、送るモーダルを sameAs で開く(D193)
 // 実行: pnpm test src/features/core/messaging/components/AdminDispatchList/AdminDispatchList.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -162,8 +163,18 @@ mock.module("@/components/Overlays/TabbedModal", {
         )
       : null,
 });
-mock.module("@/featureGate/client", { namedExports: { useGate: () => ({ enabled: () => false }) } });
-mock.module("@/features/core/messaging/components/MessageSendModal", { namedExports: { MessageSendModal: () => null } });
+let broadcastOpen = false;
+mock.module("@/featureGate/client", { namedExports: { useGate: () => ({ enabled: (name: string) => name === "messagingBroadcast" && broadcastOpen }) } });
+// 送るモーダルは偽物: 印を描き、受けた mode を控える
+const sendModes: unknown[] = [];
+mock.module("@/features/core/messaging/components/MessageSendModal", {
+  namedExports: {
+    MessageSendModal: (props: { mode: { type: string } }) => {
+      sendModes.push(props.mode);
+      return createElement("span", { "data-send-modal": props.mode.type });
+    },
+  },
+});
 mock.module("@/features/core/messaging/components/common/DispatchOperations", { namedExports: { DispatchOperations: () => null } });
 
 const DISPATCH: AdminDispatchDetail = {
@@ -338,6 +349,8 @@ beforeEach(() => {
   detail = { ...DISPATCH };
   deliveryItems = [];
   listItems = [DISPATCH];
+  broadcastOpen = false;
+  sendModes.length = 0;
 });
 
 const render = async (element: ReturnType<typeof createElement>) => {
@@ -528,4 +541,29 @@ test("グループ宛ての送信: 一覧の行と詳細にグループの名前
   const plain = await renderDetail();
   assert.doesNotMatch(plain.text(), /宛先グループ/);
   await plain.unmount();
+});
+
+test("詳細の「同じ内容で送る」: 自由連絡の送信(sameAs あり)で門が開の時だけ出し、送るモーダルを sameAs で開く", async () => {
+  const sameAs = { layout: "notice", layoutVersion: 1, values: { subject: "元の件名" }, vars: {}, template: null };
+  broadcastOpen = true;
+  detail = { ...DISPATCH, messageKey: null, sameAs };
+  const free = await renderDetail();
+  assert.ok(free.container.querySelector('[data-send-modal="sameAs"]'), "自由連絡の送信は出す");
+  assert.deepEqual(sendModes.at(-1), { type: "sameAs", dispatch: detail });
+  await free.unmount();
+
+  // 定義連絡・中身の無い前の形の送信 = sameAs が null → 出さない(D193)
+  sendModes.length = 0;
+  detail = { ...DISPATCH, sameAs: null };
+  const definition = await renderDetail();
+  assert.equal(definition.container.querySelector("[data-send-modal]"), null);
+  assert.equal(sendModes.length, 0);
+  await definition.unmount();
+
+  // 門 messagingBroadcast が閉なら自由連絡の送信でも出さない
+  broadcastOpen = false;
+  detail = { ...DISPATCH, messageKey: null, sameAs };
+  const closed = await renderDetail();
+  assert.equal(closed.container.querySelector("[data-send-modal]"), null);
+  await closed.unmount();
 });

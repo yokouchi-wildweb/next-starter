@@ -786,6 +786,24 @@ test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプ�
   assert.match(gone.value().sameAsNote ?? "", /白紙のテンプレートにコピーしました/);
   await gone.unmount();
 
+  // 写すのは sameAs(送信の content ではない)。送る口の出どころもそこから: レイアウト = { layout }、テンプレート = { id, version }
+  const fromSameAs = await open({
+    type: "sameAs",
+    dispatch: {
+      ...SAME_AS_DISPATCH,
+      content: { layout: "notice", layoutVersion: 1, values: { subject: "content の件名", blocks: [] } },
+      sameAs: { layout: "letter", layoutVersion: 1, values: { subject: "sameAs の件名" }, vars: {}, template: null },
+    },
+  });
+  const f = () => fromSameAs.value();
+  assert.deepEqual(f().text.source, { type: "layout", layout: "letter", label: "手紙" });
+  assert.deepEqual(f().text.values, { subject: "sameAs の件名" }, "開いた時の文 = sameAs");
+  assert.deepEqual(f().buildContent().origin, { layout: "letter" });
+  await fromSameAs.unmount();
+  const templateOrigin = await open({ type: "sameAs", dispatch: dispatchOf({ templateId: TEMPLATE_ID, templateVersion: 2 }, { discount: "30" }) });
+  assert.deepEqual(templateOrigin.value().buildContent().origin, { id: TEMPLATE_ID, version: 3 }, "今の公開版の id と版");
+  await templateOrigin.unmount();
+
   const nothing = await open({ type: "sameAs", dispatch: dispatchOf({ templateId: "gone", templateVersion: 1, content: null }) });
   assert.match(nothing.value().sameAsNote ?? "", /内容を入力し直してください/);
   assert.deepEqual(nothing.value().text.values, BLANK_VALUES);

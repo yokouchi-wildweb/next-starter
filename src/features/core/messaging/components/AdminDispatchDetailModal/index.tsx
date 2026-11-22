@@ -1,7 +1,7 @@
 // src/features/core/messaging/components/AdminDispatchDetailModal/index.tsx
 // セクションコンテナ(管理: 送信 1 件のモーダル、D130)。送信一覧の上に重ねる(詳細の別の画面は無い)。
 // 開き先は呼び手(一覧)が持つ: dispatchId があれば開き、閉じると onClose(一覧は URL の ?dispatch を外す = hook useDispatchDetailParam)。
-// タブ = 基本情報 / 送信状況 / プレビュー、下の帯 = 送信の操作(削除・失敗分を再送・送信を再開)と「同じ内容で送る」。
+// タブ = 基本情報 / 送信状況 / プレビュー、下の帯 = 送信の操作(削除・失敗分を再送・送信を再開)と「同じ内容で送る」(自由連絡の送信だけ、D193)。
 // 中身の塊は AdminDispatchDetail の入口の物(DispatchSummaryBlock・DispatchDeliveriesBlock・DispatchBodyBlock・DispatchActions)。
 // 流れは hook useAdminDispatchDetail。削除が通ったら onDeleted(一覧は行を消す)
 
