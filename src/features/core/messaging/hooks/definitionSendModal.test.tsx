@@ -130,7 +130,7 @@ test("記録の入口: 開いている間だけ項目の選択肢を取り、1 �
   assert.equal(m.showSchedule, false);
   assert.deepEqual(m.channels, [
     { key: "email", label: "メール", on: false, locked: false },
-    { key: "inApp", label: "お知らせ", on: true, locked: true },
+    { key: "inApp", label: "サービス内通知", on: true, locked: true },
   ]);
   assert.equal(m.canEdit, true);
   assert.equal(m.canSend, true);

@@ -85,12 +85,12 @@ export function moveAdminFieldPath(
   fieldPath: string,
   layoutVersion: number | null,
 ): { fieldPath: string } | { unusable: string } {
-  if (layoutVersion === null) return { unusable: `${fieldPath} はひな形の版を持たない古い形の行です(使えません)` };
+  if (layoutVersion === null) return { unusable: `${fieldPath} はレイアウトの版を持たない古い形の行です(使えません)` };
   const moved = upgradeLayoutValues(layout, { [fieldPath]: true }, layoutVersion);
   if ("cannotRender" in moved) return { unusable: moved.cannotRender };
   const [next] = Object.keys(moved.values);
-  if (!next) return { unusable: `${fieldPath} はひな形「${layout.label}」の今の版(${layoutVersionOf(layout)})で捨てられた欄です` };
-  if (!(next in layout.fields)) return { unusable: `${next} はひな形「${layout.label}」の欄にありません` };
+  if (!next) return { unusable: `${fieldPath} はレイアウト「${layout.label}」の今の版(${layoutVersionOf(layout)})で捨てられた欄です` };
+  if (!(next in layout.fields)) return { unusable: `${next} はレイアウト「${layout.label}」の欄にありません` };
   return { fieldPath: next };
 }
 

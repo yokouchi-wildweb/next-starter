@@ -131,7 +131,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
             </Stack>
             <Stack gap="2xs">
               <Para size="sm" tone="muted" className="my-0">
-                編集した項目だけ、ここで設定した文言で送信します。編集は下の「保存」でまとめて保存します。編集できる項目は通知のひな形の項目すべてです(通知が絞っている時はその項目だけ)。
+                編集した項目だけ、ここで設定した文言で送信します。編集は下の「保存」でまとめて保存します。編集できる項目は通知のレイアウトの項目すべてです(通知が絞っている時はその項目だけ)。
               </Para>
               {editor.unusableCount > 0 ? (
                 <Para size="sm" tone="destructive" className="my-0">

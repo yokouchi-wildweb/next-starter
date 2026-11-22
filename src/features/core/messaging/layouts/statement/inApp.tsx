@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/statement/inApp.tsx
-// レイアウト「お知らせの明細」のお知らせの描き方(client の一覧 layoutInApps)。見た目は ./StatementInApp(1 行スイッチ)
+// レイアウト「明細」のお知らせの描き方(client の一覧 layoutInApps)。見た目は ./StatementInApp(1 行スイッチ)
 
 import type { MessageLayoutInAppRenderer } from "@/lib/messaging";
 

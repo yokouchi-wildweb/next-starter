@@ -66,7 +66,7 @@ test("汎用の描き方・要約から = 送信チャンネルが描いた物�
 
 test("描けない: 宣言の無い送信チャンネル・要約が投げる", async () => {
   const none = await buildChannelContent({ layout, channelKey: "push", channel: {}, hasLayoutRenderer: false, values });
-  assert.ok("cannotRender" in none && none.cannotRender.includes("経路 push"));
+  assert.ok("cannotRender" in none && none.cannotRender.includes("送信方法 push"));
   const broken = { ...layout, summary: () => { throw new Error("壊れた"); } } as MessageLayout;
   const thrown = await buildChannelContent({ layout: broken, channelKey: "email", channel: {}, hasLayoutRenderer: true, values });
   assert.ok("cannotRender" in thrown && thrown.cannotRender.includes("壊れた"));

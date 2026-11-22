@@ -24,6 +24,6 @@ export function layoutChannelView(layout: MessageLayout, values: Readonly<Record
     return { layout: layout.key, values: own, summary: layout.summary(own as never), cannotRender: null };
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    return { layout: layout.key, values: own, summary: null, cannotRender: `ひな形「${layout.label}」の要約を作れません(${reason})` };
+    return { layout: layout.key, values: own, summary: null, cannotRender: `レイアウト「${layout.label}」の要約を作れません(${reason})` };
   }
 }

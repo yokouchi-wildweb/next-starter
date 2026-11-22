@@ -1,7 +1,7 @@
 // src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/BankTransferReviewTable.tsx
 //
 // 銀行振込レビュー一覧テーブル。
-// 行クリックで複数行を選択でき、選択時は一括操作(受け口 adminBulkActions の項目。上流の既定 = メール一斉送信、
+// 行クリックで複数行を選択でき、選択時は一括操作(受け口 adminBulkActions の項目。上流の既定 = 確認の連絡を送る、
 // fork は項目を足す)を表示する。承認/拒否などの判定は最右の操作列「承認作業」ボタンから
 // 詳細モーダルを開いて行う。
 // レビュー側の status はタブで切り替えるため列としては表示しない。
@@ -209,7 +209,7 @@ export function BankTransferReviewTable({
       {
         header: "管理者メモ",
         // 発送リクエスト一覧と同じ表示方式: 全文を1行 truncate 表示し、
-        // セルクリックで編集ポップオーバーを開く。メール一斉送信での
+        // セルクリックで編集ポップオーバーを開く。確認の連絡を送るでの
         // 送付履歴の追記もこの列・ポップオーバーで確認できる。
         render: (item) =>
           item.review.admin_memo ? (
@@ -272,7 +272,7 @@ export function BankTransferReviewTable({
     ],
   );
 
-  // 一括操作: 受け口 adminBulkActions の項目(上流の既定 = メール一斉送信 + fork の項目。D86)
+  // 一括操作: 受け口 adminBulkActions の項目(上流の既定 = 確認の連絡を送る + fork の項目。D86)
   const bulkActionItems = useBankTransferReviewAdminBulkActions();
 
   return (

@@ -288,7 +288,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         // レイアウトを替える時は入力の欄の中身だけ(前のレイアウトの中身は持ち越さない、D113)。同じレイアウトなら入力が無ければ今の中身
         const layoutChanged = patch.layout !== undefined && patch.layout !== current.layout;
         if (layoutChanged && patch.values === undefined) {
-          throw new DomainError("ひな形を替える時は新しいひな形の欄の中身も送ってください", { status: 400 });
+          throw new DomainError("レイアウトを替える時は新しいレイアウトの欄の中身も送ってください", { status: 400 });
         }
         const category = patch.category ?? current.category;
         const checked = checkTemplateFields(deps.check(), {
@@ -406,7 +406,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       const { layout: layoutKey, channel: channelKey, values, category } = parsed.data;
       const check = deps.check();
       const layout = check.layouts[layoutKey];
-      if (!layout || !isLayoutAdminSelectable(layout)) throw new DomainError("選べないひな形です", { status: 400 });
+      if (!layout || !isLayoutAdminSelectable(layout)) throw new DomainError("選べないレイアウトです", { status: 400 });
       const channel = check.channels[channelKey];
       if (!channel || channel.enabled === false) throw new DomainError("使えない送信方法です", { status: 400 });
       if (category && !check.categories[category]) throw new DomainError("知らない種類です", { status: 400 });

@@ -80,7 +80,7 @@ export function inboxColumnsOf(
 export function createInAppChannel(deps: InAppChannelDeps): MessageChannel {
   return {
     key: "inApp",
-    label: "お知らせ",
+    label: "サービス内通知",
     addressing: "user",
     remove: async ({ dispatchId }) => ({ removed: await deps.removeDispatch(dispatchId) }),
     // レイアウトの描き方(D124): お知らせの行は要約の列 + レイアウトと欄の中身。レイアウトの inApp の描き方は client の一覧(画面が詳細で描く)。

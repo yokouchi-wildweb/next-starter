@@ -82,7 +82,7 @@ export function MessagePreferences({ emptyText = "設定できる通知はあり
           <Stack gap="none">
             <Para weight="bold">すべての通知を受け取らない</Para>
             <Para size="sm" tone="muted">
-              お知らせ・メールをまとめて停止します(お手続きなど重要なお知らせは届きます)
+              サービス内通知・メールをまとめて停止します(お手続きなど重要なお知らせは届きます)
             </Para>
           </Stack>
           <SwitchInput

@@ -68,7 +68,7 @@ export function resolveRendering(input: {
       return { from: "summary", summary: layout.summary(input.values) };
     } catch (error) {
       return {
-        cannotRender: `ひな形「${layout.label}」の要約を作れません(${error instanceof Error ? error.message : String(error)})`,
+        cannotRender: `レイアウト「${layout.label}」の要約を作れません(${error instanceof Error ? error.message : String(error)})`,
       };
     }
   }
@@ -76,5 +76,5 @@ export function resolveRendering(input: {
   const why = !channel.renderGeneric
     ? "経路に汎用の描き方が無く"
     : `経路の汎用の描き方が欄の型(${unsupported.join("・")})を描けず`;
-  return { cannotRender: `経路 ${channelKey} はひな形「${layout.label}」を描けません: ひな形にこの経路の描き方が無く、${why}、要約から描けるとも宣言していません` };
+  return { cannotRender: `送信方法 ${channelKey} はレイアウト「${layout.label}」を描けません: レイアウトにこの送信方法の描き方が無く、${why}、要約から描けるとも宣言していません` };
 }

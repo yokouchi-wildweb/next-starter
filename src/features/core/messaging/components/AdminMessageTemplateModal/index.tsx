@@ -210,7 +210,7 @@ function TemplateModalBody({
             />
           ) : (
             <Span size="sm" tone="muted">
-              {form.fieldsHint ?? "ひな形を選ぶと入力欄が出ます"}
+              {form.fieldsHint ?? "レイアウトを選ぶと入力欄が出ます"}
             </Span>
           )}
         </Stack>
@@ -219,14 +219,14 @@ function TemplateModalBody({
       <Stack gap="sm" className="min-w-0 md:sticky md:top-0 md:w-1/2" data-slot="template-editor-preview">
         <Stack gap="2xs">
           <Label htmlFor="template-layout" className="text-sm">
-            ひな形
+            レイアウト
           </Label>
           <SelectInput
             id="template-layout"
             value={fields.layout}
             disabled={locked}
             options={fields.layoutOptions.map((item) => ({ value: item.value, label: item.label }))}
-            placeholder="ひな形を選択"
+            placeholder="レイアウトを選択"
             onChange={(v) => fields.requestLayoutChange(v ? String(v) : "")}
           />
           {fields.layoutOptions.find((item) => item.value === fields.layout)?.description ? (
@@ -277,8 +277,8 @@ function TemplateModalBody({
         onOpenChange={(next) => {
           if (!next) fields.cancelLayoutChange();
         }}
-        title="ひな形を変更"
-        description="ひな形を変えると、入力中の内容はすべて消えます。よろしいですか？"
+        title="レイアウトを変更"
+        description="レイアウトを変えると、入力中の内容はすべて消えます。よろしいですか？"
         showCancelButton
         showConfirmButton
         confirmLabel="変更する"

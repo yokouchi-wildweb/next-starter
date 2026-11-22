@@ -121,7 +121,7 @@ mock.module("@/features/core/messaging/components/common/KindCategoryFields", {
     KindCategoryFields: stub("kind-category", (props) => {
       const kinds = props.kinds as { value: string; label: string }[];
       const categories = props.categories as { value: string; label: string }[];
-      return `種類: ${kinds.find((item) => item.value === props.kind)?.label} / カテゴリー: ${categories.find((item) => item.value === props.category)?.label}`;
+      return `種別: ${kinds.find((item) => item.value === props.kind)?.label} / カテゴリー: ${categories.find((item) => item.value === props.category)?.label}`;
     }),
   },
 });
@@ -173,7 +173,7 @@ test("鍵が無い間は描かない / 欄を並べ、confirmOnClose に closeCo
   assert.deepEqual(modalProps!.confirmOnClose, { enabled: true, message: "下書き" });
   // 連絡の名前・種別とカテゴリーの表示名で、鍵は出さない(D46)
   assert.equal(modalProps!.title, "文言を編集: 会員登録の完了");
-  assert.match(view.container.textContent ?? "", /種類: 手続き通知 \/ カテゴリー: お手続き/);
+  assert.match(view.container.textContent ?? "", /種別: 手続き通知 \/ カテゴリー: お手続き/);
   assert.doesNotMatch(view.container.textContent ?? "", /user\.welcome|transactional/);
   await view.unmount();
 });

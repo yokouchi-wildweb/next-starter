@@ -574,7 +574,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   // ---- 誤り ----
   const contentError = useMemo(() => {
     if (!text.state) return "この種別には白紙のテンプレートが無いため、テンプレートを読み込んでください";
-    if (!text.layout) return "テンプレートのひな形を読み込めません(ひな形が無くなった可能性があります)";
+    if (!text.layout) return "テンプレートのレイアウトを読み込めません(レイアウトが無くなった可能性があります)";
     if (text.missingVars.length > 0) return `埋め込み情報「${text.missingVars.map((item) => item.alias || item.key).join("・")}」を入力してください`;
     if (sendChannels.length === 0) return "送信方法を 1 つ以上選んでください";
     return null;

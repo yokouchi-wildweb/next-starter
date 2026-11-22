@@ -1,4 +1,4 @@
-# statement（上流のレイアウト「お知らせの明細」）
+# statement（上流のレイアウト「明細」）
 
 ## Overview
 

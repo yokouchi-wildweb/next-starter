@@ -70,7 +70,7 @@ test("数の行と届かなかった人の行", async () => {
   const rows = [...view.container.querySelectorAll("[data-slot=send-failure-row]")].map((row) => row.textContent ?? "");
   assert.equal(rows.length, 3);
   assert.match(rows[0]!, /送信エラー.*メール.*花子.*理由: 送信サービスから時間内に応答がありませんでした/);
-  assert.match(rows[1]!, /送信対象外.*お知らせ.*\(名前未設定のユーザー\).*理由: 本人が受信を停止/);
+  assert.match(rows[1]!, /送信対象外.*サービス内通知.*\(名前未設定のユーザー\).*理由: 本人が受信を停止/);
   assert.match(rows[2]!, /宛先不正.*\(利用者なし\)/);
   assert.doesNotMatch(rows[2]!, /理由/);
   assert.doesNotMatch(view.container.textContent ?? "", /u1|u2/, "利用者の id は出さない");

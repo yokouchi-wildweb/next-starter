@@ -50,7 +50,7 @@ const baseState = () => ({
   recordCount: 2,
   channels: [
     { key: "email", label: "メール", on: false, locked: false },
-    { key: "inApp", label: "お知らせ", on: true, locked: true },
+    { key: "inApp", label: "サービス内通知", on: true, locked: true },
   ],
   sendChannels: ["inApp"],
   toggleChannel: () => {},
@@ -232,7 +232,7 @@ test("確認の段: 確認の文と宛先の文、送るで confirmSend", async 
   const text = view.container.textContent ?? "";
   assert.match(text, /連絡: 振込の明細/);
   assert.match(text, /選択した 2 件の振込レビューに関連するユーザー/);
-  assert.match(text, /送信方法: お知らせ/);
+  assert.match(text, /送信方法: サービス内通知/);
   assert.match(text, /送ると取り消せません/);
   await act(async () => button(view.container, "送信する")!.click());
   await act(async () => button(view.container, "戻る")!.click());

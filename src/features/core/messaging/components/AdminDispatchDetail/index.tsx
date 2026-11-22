@@ -260,7 +260,7 @@ export function DispatchSummaryBlock({ dispatch, categoryLabel }: { dispatch: Ad
       </Flex>
 
       <Stack gap="2xs">
-        <Field label="種類" value={dispatchKindLabel(dispatch.kind) ?? "-"} />
+        <Field label="種別" value={dispatchKindLabel(dispatch.kind) ?? "-"} />
         <Field label="カテゴリー" value={categoryLabel ?? (dispatch.category ? "削除されたカテゴリー" : "-")} />
         {dispatch.sourceLabel ? <Field label="送信元" value={dispatch.sourceLabel} /> : null}
         {dispatchTemplateLabel(dispatch) ? <Field label="テンプレート" value={dispatchTemplateLabel(dispatch)!} /> : null}

@@ -5,7 +5,7 @@
 
 export const MESSAGE_CHANNEL_LABELS: Readonly<Record<string, string>> = {
   email: "メール",
-  inApp: "お知らせ",
+  inApp: "サービス内通知",
   line: "LINE",
 };
 

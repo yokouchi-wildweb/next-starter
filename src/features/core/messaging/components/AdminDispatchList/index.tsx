@@ -101,7 +101,7 @@ export function AdminDispatchList({ initialFilters = {}, limit, showSendButton =
           </Stack>
           <Stack gap="2xs" className="min-w-0">
             <Label htmlFor="dispatch-filter-kind" className="text-xs">
-              種類
+              種別
             </Label>
             <SelectInput
               id="dispatch-filter-kind"
@@ -121,7 +121,7 @@ export function AdminDispatchList({ initialFilters = {}, limit, showSendButton =
               onChange={(v) => fields.setCategory(v ? String(v) : "")}
               options={categories.optionsOf(fields.kind)}
               disabled={!fields.kind}
-              placeholder={fields.kind ? "すべて" : "種類を選択してください"}
+              placeholder={fields.kind ? "すべて" : "種別を選択してください"}
             />
           </Stack>
           <Stack gap="2xs" className="min-w-0">

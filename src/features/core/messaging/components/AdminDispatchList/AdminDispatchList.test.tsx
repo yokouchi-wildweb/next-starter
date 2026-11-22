@@ -390,7 +390,7 @@ test("一覧: 定義の鍵の欄は無く、カテゴリーは種別を選ぶま
   assert.match(text, /キャンペーン/);
   // 送信方法は送信チャンネルごとの札(表示名)
   const channels = [...view.container.querySelectorAll('[data-slot="row-meta"][aria-label="送信方法"] [data-slot="soft-badge"]')].map((el) => el.textContent);
-  assert.deepEqual(channels, ["メール", "お知らせ"]);
+  assert.deepEqual(channels, ["メール", "サービス内通知"]);
   assert.doesNotMatch(text, KEY_LIKE);
   await view.unmount();
 
@@ -433,9 +433,9 @@ test("一覧: 行は ?dispatch の住所。?dispatch があれば一覧の上に
 test("詳細: 種別・カテゴリーの表示名、送り元は表示名がある時だけ、鍵は出さない", async () => {
   const view = await renderDetail();
   const text = view.text();
-  assert.match(text, /種類プロモーション/);
+  assert.match(text, /種別プロモーション/);
   assert.match(text, /カテゴリーキャンペーン/);
-  assert.match(text, /送信方法メール \/ お知らせ/);
+  assert.match(text, /送信方法メール \/ サービス内通知/);
   assert.doesNotMatch(text, /送信元/, "表示名が無ければ行ごと出さない");
   assert.doesNotMatch(text, /定義の鍵/);
   assert.doesNotMatch(text, KEY_LIKE);
