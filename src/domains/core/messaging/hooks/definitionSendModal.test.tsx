@@ -87,7 +87,9 @@ let hook: typeof import("./useDefinitionSendModal");
 before(async () => {
   ({ act } = await import("react"));
   ({ createRoot } = await import("react-dom/client"));
-  ({ SWRConfig } = await import("swr"));
+  // hook と同じ swr の写し(tsx では hook が require で読む)の SWRConfig を使う。await import("swr") は別の写しになり、
+  // provider の新しい Map が hook に届かず、既定の cache に前のテストの選択肢(同じ入口の鍵)が残る
+  ({ SWRConfig } = (await import("node:module")).createRequire(import.meta.url)("swr") as typeof import("swr"));
   hook = await import("./useDefinitionSendModal");
 });
 after(() => dom.window.close());

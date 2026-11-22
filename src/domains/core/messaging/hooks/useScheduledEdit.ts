@@ -112,6 +112,8 @@ export function useScheduledEdit({ dispatch, onSaved }: UseScheduledEditOptions)
   const [open, setOpenState] = useState(false);
   const [step, setStep] = useState<"edit" | "confirm">("edit");
   const [scheduledAt, setScheduledAtState] = useState(dispatch.scheduledAt ?? "");
+  // 時刻の検査の「今」(描画の中で時計を読まない。開く・時刻を変える・戻す時に取り直す)
+  const [now, setNow] = useState(() => Date.now());
   const [channelsState, setChannelsState] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -197,7 +199,7 @@ export function useScheduledEdit({ dispatch, onSaved }: UseScheduledEditOptions)
     const before = dispatch.scheduledAt ? new Date(dispatch.scheduledAt).getTime() : null;
     return new Date(scheduledAt).getTime() !== before;
   }, [scheduledAt, dispatch.scheduledAt]);
-  const timeError = scheduleErrorOf("at", scheduledAt, maxDays ?? Number.POSITIVE_INFINITY, Date.now());
+  const timeError = scheduleErrorOf("at", scheduledAt, maxDays ?? Number.POSITIVE_INFINITY, now);
   const input = useMemo(
     () => scheduledEditInputOf(dispatch, { scheduledAt, edits, channels: channelsChanged ? channelsOn : undefined }),
     [dispatch, scheduledAt, edits, channelsChanged, channelsOn],
@@ -217,6 +219,7 @@ export function useScheduledEdit({ dispatch, onSaved }: UseScheduledEditOptions)
   const reset = useCallback(() => {
     setStep("edit");
     setScheduledAtState(dispatch.scheduledAt ?? "");
+    setNow(Date.now());
     setChannelsState(null);
     setError(null);
     resetTo(textForm.fields, textValues);
@@ -225,13 +228,15 @@ export function useScheduledEdit({ dispatch, onSaved }: UseScheduledEditOptions)
   const setOpen = useCallback(
     (next: boolean) => {
       setOpenState(next);
-      if (!next) reset();
+      if (next) setNow(Date.now());
+      else reset();
     },
     [reset],
   );
 
   const setScheduledAt = useCallback((at: string) => {
     setScheduledAtState(at);
+    setNow(Date.now());
     setError(null);
   }, []);
 

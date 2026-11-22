@@ -105,9 +105,12 @@ mock.module("@/domains/core/messaging/components/common/SendSchedule", {
 // 欄の部品: 渡った欄を残し、欄 1 つずつ値を変える口(field.onChange)を置く
 const fieldProps: Record<string, unknown>[] = [];
 const setField: Record<string, (value: unknown) => void> = {};
+const keepSetter = (name: string, onChange: (value: unknown) => void) => {
+  setField[name] = onChange;
+};
 function FieldProbe({ control, name }: { control: Control<Record<string, unknown>>; name: string }) {
   const { field } = useController({ control, name });
-  setField[name] = field.onChange;
+  keepSetter(name, field.onChange);
   return null;
 }
 mock.module("@/domains/core/messaging/components/common/LayoutFields", {
@@ -160,7 +163,9 @@ let modalMod: typeof import("./index");
 before(async () => {
   ({ act } = await import("react"));
   ({ createRoot } = await import("react-dom/client"));
-  ({ SWRConfig } = await import("swr"));
+  // hook と同じ swr の写し(tsx では hook が require で読む)の SWRConfig を使う。await import("swr") は別の写しになり、
+  // provider の新しい Map が hook に届かず、既定の cache に前のテストの直しの材料(同じ送信の鍵)が残る
+  ({ SWRConfig } = (await import("node:module")).createRequire(import.meta.url)("swr") as typeof import("swr"));
   hookMod = await import("@/domains/core/messaging/hooks/useScheduledEdit");
   modalMod = await import("./index");
 });

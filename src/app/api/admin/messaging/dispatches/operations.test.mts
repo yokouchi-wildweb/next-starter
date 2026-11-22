@@ -60,10 +60,11 @@ beforeEach(() => {
   refuse = false;
 });
 
-test("宣言: 1 件の GET・DELETE・bulk-delete・delete-summary・resend の 5 つが管理者だけ", () => {
+test("宣言: 1 件の GET・DELETE・PATCH(予約の直し)・bulk-delete・delete-summary・resend の 6 つが管理者だけ", () => {
   assert.deepEqual(declared.map((entry) => entry.operation).sort(), [
     "DELETE /api/admin/messaging/dispatches/[id]",
     "GET /api/admin/messaging/dispatches/[id]",
+    "PATCH /api/admin/messaging/dispatches/[id]",
     "POST /api/admin/messaging/dispatches/[id]/resend",
     "POST /api/admin/messaging/dispatches/bulk-delete",
     "POST /api/admin/messaging/dispatches/delete-summary",

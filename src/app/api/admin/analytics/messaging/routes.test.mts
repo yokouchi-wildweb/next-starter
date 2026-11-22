@@ -10,7 +10,7 @@ import { beforeEach, mock, test } from "node:test";
 import { NextRequest, NextResponse } from "next/server";
 
 const { DomainError } = await import("@/lib/errors");
-const { parseMessagingFilterParams } = await import("@/domains/core/analytics/services/server/messagingAnalytics/params");
+const { parseDispatchIdsParam, parseMessagingFilterParams } = await import("@/domains/core/analytics/services/server/messagingAnalytics/params");
 
 const declared: { operation: string; access: unknown }[] = [];
 type Handler = (req: NextRequest) => Promise<unknown>;
@@ -39,6 +39,7 @@ mock.module("@/domains/core/analytics/services/server/messagingAnalytics", {
     getMessagingSeries: record("series"),
     getMessagingBreakdown: record("breakdown"),
     getMessagingDispatches: record("dispatches"),
+    parseDispatchIdsParam,
     parseMessagingFilterParams,
   },
 });

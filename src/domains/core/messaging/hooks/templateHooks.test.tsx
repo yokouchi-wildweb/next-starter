@@ -182,8 +182,8 @@ test("useMessageTemplates: 種別を渡し、cursor で続きを取る", async (
   await act(async () => view.value().loadMore());
   assert.deepEqual(view.value().items.map((item) => item.id), [ID, "x"]);
   assert.deepEqual(listCalls, [
-    { kind: "promotion", cursor: null, limit: 1 },
-    { kind: "promotion", cursor: "c1", limit: 1 },
+    { kind: "promotion", q: undefined, cursor: null, limit: 1 },
+    { kind: "promotion", q: undefined, cursor: "c1", limit: 1 },
   ]);
   await view.unmount();
 });

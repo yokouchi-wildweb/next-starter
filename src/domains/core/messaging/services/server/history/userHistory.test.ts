@@ -200,7 +200,7 @@ test("共有のお知らせ: 規則で隠れる行(別のロール・登録よ�
     shared(4),
   ];
   const visible = await listUserMessageHistory(
-    { store: fakeStore([], { sharedRows, viewer: { createdAt: new Date(Date.UTC(2026, 0, 1, 0, 2, 30)) } }) },
+    { store: fakeStore([], { sharedRows, viewer: { createdAt: new Date(Date.UTC(2026, 0, 1, 0, 3, 30)) } }) },
     USER,
   );
   assert.deepEqual(visible.items.map((i) => i.createdAt.slice(14, 16)), ["04", "01"]);

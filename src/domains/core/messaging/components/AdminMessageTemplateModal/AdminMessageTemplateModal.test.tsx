@@ -448,6 +448,7 @@ const ORPHAN_ROW = { ...ROW, id: "t2", key: "tpl-def", name: "秋", currentVersi
 const baseList = (): Props => ({
   kind: "",
   setKind: (v: string) => void events.push(`kind:${v}`),
+  search: { text: "", setText: () => {}, q: "", apply: () => {}, clear: () => {} },
   query: {
     items: [ROW, ORPHAN_ROW],
     isInitialLoading: false,

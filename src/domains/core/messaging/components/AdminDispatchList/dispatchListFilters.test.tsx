@@ -76,14 +76,15 @@ beforeEach(() => {
 /** hook を描いて、最新の戻り値を読む */
 async function renderHook<T>(useIt: () => T) {
   const box: { current: T | null } = { current: null };
-  function Probe() {
-    box.current = useIt();
+  // 描いた値は props の callback で外へ渡す(部品の中で外の値を書き換えない)
+  function Probe({ onValue }: { onValue: (value: T) => void }) {
+    onValue(useIt());
     return null;
   }
   const container = document.createElement("div");
   const root = createRoot(container);
   const wrap = (children: ReactNode) => createElement(SWRConfig, { value: { provider: () => new Map(), dedupingInterval: 0 } }, children);
-  await act(async () => root.render(wrap(createElement(Probe))));
+  await act(async () => root.render(wrap(createElement(Probe, { onValue: (value: T) => { box.current = value; } }))));
   return {
     get: () => box.current as T,
     run: (fn: () => void) => act(async () => fn()),

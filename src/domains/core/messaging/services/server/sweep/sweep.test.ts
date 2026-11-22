@@ -364,12 +364,15 @@ test("d5b: 配達の重い列(body・vars)は deliveryContentDays で null に�
   const [old, recent, inFlight, expired] = world.store.deliveries;
   for (const row of [old, recent, inFlight, expired]) {
     assert.notEqual(row.body, null);
-    assert.notEqual(row.vars, null);
+    // 配達の行の vars は受信者ごとの値を cron へ運ぶ時だけ書く(1 人宛ての送信は null)。刈り取りを見るために置く
+    Object.assign(row, { vars: { item: "x" } });
   }
   Object.assign(old, { createdAt: ago(100) });
   Object.assign(recent, { createdAt: ago(10) });
   Object.assign(inFlight, { createdAt: ago(100), status: "queued" });
   Object.assign(expired, { createdAt: ago(731) });
+  // 送信は最近に置く(送った時の時計のままだと now から見て dispatchesDays を過ぎ、送信ごと配達が消える)
+  for (const d of world.store.dispatches) Object.assign(d, { createdAt: ago(10) });
   const oldStatus = old.status;
   const config = { ...deps.config, retention: { ...deps.config.retention, deliveriesDays: 730, deliveryContentDays: 90, chunkSize: 1 } };
 
