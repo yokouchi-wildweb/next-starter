@@ -160,18 +160,21 @@ test("受け口の読み取り: 上書きを相手に結び、相手の無い上
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   };
-  const base = "src/domains/core/admin/menu";
-  put(`${base}/categories/users.ts`, 'export const category = { key: "users", label: "U", order: 100 };\n');
-  put(`${base}/categories/users.override.ts`, 'export const override = { label: "利用者" };\n');
+  // 項目は差す側の <ドメイン>/plugs/<点>/(段 3 注文 26): カテゴリーは admin、行は admin と user にまたがる
+  const categories = "src/domains/core/admin/plugs/adminMenuCategories";
+  const adminItems = "src/domains/core/admin/plugs/adminMenuItems";
+  const base = "src/domains/core/user/plugs";
+  put(`${categories}/users.ts`, 'export const category = { key: "users", label: "U", order: 100 };\n');
+  put(`${categories}/users.override.ts`, 'export const override = { label: "利用者" };\n');
   put(
-    `${base}/items/general.ts`,
+    `${base}/adminMenuItems/general.ts`,
     'export const item = { key: "general", category: "users", order: 10, label: "G", href: "/admin/users/general" };\n',
   );
   put(
-    `${base}/items/folder/index.ts`,
+    `${adminItems}/folder/index.ts`,
     'export const item = { key: "folder", category: "users", order: 20, label: "F", href: "/admin/users/general" };\n',
   );
-  put(`${base}/items/ghost.override.ts`, "export const override = { hidden: true };\n");
+  put(`${base}/adminMenuItems/ghost.override.ts`, "export const override = { hidden: true };\n");
   const snap = await readMenuSnapshot(root);
   assert.deepEqual(
     snap.categories.map((c) => [c.name, c.override?.value]),
@@ -181,9 +184,9 @@ test("受け口の読み取り: 上書きを相手に結び、相手の無い上
     snap.items.map((i) => i.name),
     ["folder", "general"],
   );
-  assert.deepEqual(snap.orphans, [{ file: `${base}/items/ghost.override.ts`, target: "ghost" }]);
+  assert.deepEqual(snap.orphans, [{ file: `${base}/adminMenuItems/ghost.override.ts`, target: "ghost" }]);
   assert.deepEqual(checkAdminMenu(snap, domains, routes), [
-    `${base}/items/ghost.override.ts: 相手の ghost が受け口に無い上書き`,
+    `${base}/adminMenuItems/ghost.override.ts: 相手の ghost が受け口に無い上書き`,
   ]);
 });
 
@@ -227,7 +230,7 @@ test("ダッシュボードの受け口の読み取り: 上書きを相手に結
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   };
-  const base = "src/domains/core/admin/dashboard/sections";
+  const base = "src/domains/core/admin/plugs/adminDashboardSections";
   put(`${base}/metrics.ts`, 'export const section = { key: "metrics", order: 100, Section: () => null };\n');
   put(`${base}/metrics.override.ts`, "export const override = { order: 50 };\n");
   put(`${base}/ghost.override.ts`, "export const override = { hidden: true };\n");

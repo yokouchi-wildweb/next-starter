@@ -2,7 +2,7 @@
 // レート制限のカテゴリと制限の値(既定 + 上書き、設定の議会 L1.25)。上書きは src/config/domains/rateLimit.config.ts(このファイルだけが読む)。
 // 置き方: src/config/README.md。合成: @/lib/defineConfig。fork はカテゴリの値を変え、自分のカテゴリを足せる:
 // 足すカテゴリは上書きのファイルで `export type Extra = { <名前>: RateLimitRule }` を宣言し、値を書く(RateLimitCategory に入る)。
-// カテゴリの名前の型 RateLimitCategory は src/wiring/apiRoute.ts が lib/routeFactory に型引数で渡す(lib は features の型を読まない)
+// カテゴリの名前の型 RateLimitCategory は API の Factory の点の項目 plugs/routeFactoryRateLimit の型に残り、src/wiring/apiRoute.ts が取り出して lib/routeFactory に型引数で渡す
 
 import override, { type Extra } from "@/config/domains/rateLimit.config";
 import { defineConfig, type OverrideOf } from "@/lib/defineConfig";

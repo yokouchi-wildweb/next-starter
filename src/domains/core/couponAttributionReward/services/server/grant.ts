@@ -24,7 +24,7 @@ import type { CouponHistory } from "@/domains/core/couponHistory/entities/model"
 import { CouponAttributionRewardTable } from "@/domains/core/couponAttributionReward/entities/drizzle";
 import type { CouponAttributionReward } from "@/domains/core/couponAttributionReward/entities/model";
 
-/** 付与の種類(walletHistory/reasonKeys/couponAttributionReward.ts) */
+/** 付与の種類(couponAttributionReward/plugs/walletHistoryReasonKeys/couponAttributionReward.ts) */
 const COUPON_ATTRIBUTION_REWARD_REASON_KEY = "coupon_attribution_reward";
 
 export type GrantAttributionRewardParams = {

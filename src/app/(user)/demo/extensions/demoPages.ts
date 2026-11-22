@@ -1,7 +1,7 @@
 // 生成物・編集不可: pnpm generate extensions が src/app/(user)/demo/extensionPoints.ts から生成する
 // demoPages: src/app/(user)/demo/*/_demo.ts の export const demo(folder = フォルダ名、並びはフォルダ名の順)
 
-import type { DemoPage } from "@/app/(user)/demo/_data/demoPages";
+import type { DemoPage } from "@/app/(user)/demo/points";
 
 import { demo as demoPages_async_picker_modal } from "@/app/(user)/demo/async-picker-modal/_demo";
 import { demo as demoPages_bank_transfer_vision } from "@/app/(user)/demo/bank-transfer-vision/_demo";

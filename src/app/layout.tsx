@@ -9,7 +9,7 @@ import { GlobalToast, RedirectToastProvider } from "@/lib/toast";
 import { ViewportHeightWatcher } from "@/lib/viewport";
 import { Block } from "@/components/Layout/Block";
 import { MicrosoftClarity } from "@/lib/clarity";
-import { GoogleTag } from "@/wiring/GoogleTag";
+import { GoogleTag } from "@/wiring/googleTag";
 import { business } from "@/business";
 import { AppProviders } from "@/wiring/AppProviders";
 import { clientGateState } from "@/featureGate";

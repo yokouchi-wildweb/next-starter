@@ -8,10 +8,13 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
+import { planExtensions, pointsEntryProblems, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
+import { collectPoints } from "../../../src/lib/districtMap/node.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const plan = planExtensions(repoRoot);
+// 型だけの入口(D33): ドメインでない持ち主の点の type.from は @/<持ち主>/points
+plan.problems.push(...pointsEntryProblems(collectPoints(repoRoot).points));
 if (plan.problems.length > 0) {
   console.error(`[generate extensions] 書き出しを止めました(${plan.problems.length} 件):\n${plan.problems.map((p) => `  - ${p}`).join("\n")}`);
   process.exit(1);

@@ -10,7 +10,7 @@ import type { TransactionClient } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 
 import { settingTable } from "../../entities/drizzle";
-import { fields } from "../../extensions/fields";
+import { fields } from "../../definitions";
 import type { SettingFieldDefinition } from "../../types/definition";
 import { codeValueKeys } from "./codeValues";
 

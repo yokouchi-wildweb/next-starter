@@ -34,7 +34,7 @@ const READS = {
   // 生成の --dry-run(書く先の有無を見る)
   domain: {
     entries: ["scripts/structure/domain/check.mjs", "scripts/structure/domain/index.mjs"],
-    data: ["src/domains/**/domain.json", "src/app/admin/_template/**", "src/app/admin/(protected)/**/page.tsx", "src/registry/*.ts", "src/wiring/formInputs/inputs/*.ts", "src/domains/core/user/roles/*.json"],
+    data: ["src/domains/**/domain.json", "src/app/admin/_template/**", "src/app/admin/(protected)/**/page.tsx", "src/registry/*.ts", "src/**/plugs/formInputs/*.ts", "src/domains/core/user/roles/*.json"],
   },
   // 規則の強さは設定とパスで決まる(代表のファイルは有無だけが効く)
   eslint: {
@@ -44,13 +44,13 @@ const READS = {
   // 拡張点の宣言・項目・スイッチ・枠は src 全体に散る
   extensions: {
     entries: ["scripts/structure/extensions/phase-check.mjs", "scripts/structure/extensions/check.mjs"],
-    data: ["src/**/extensionPoints.ts", "src/**/*.default.{ts,tsx}", "src/**/*.override.ts", "src/lib/forkOwnership/intake.txt", "src/app/**/_layout/**", "src/domains/**/messages/*.ts"],
+    data: ["src/**/extensionPoints.ts", "src/**/*.default.{ts,tsx}", "src/**/*.override.ts", "src/lib/forkOwnership/intake.txt", "src/app/**/_layout/**", "src/domains/**/plugs/messages/*.ts"],
   },
   // 登録表の走査(domainEntry・pgTable・用途)と storageBindingFor の呼び出し(src 全体)
   registry: { entries: ["scripts/structure/registry/check.mjs"], data: ["src/domains/**", "src/registry/*.ts", "src/**/*.{ts,tsx,mts}"] },
   role: {
     entries: ["scripts/structure/role/check.mjs"],
-    data: ["src/domains/core/user/roles/*", "src/domains/core/user/coreRoles/*", "src/domains/core/userProfile/profiles/*", "src/domains/core/user/extensions/roles.ts", "src/wiring/formInputs/inputs/*.ts"],
+    data: ["src/domains/core/user/roles/*", "src/domains/core/user/coreRoles/*", "src/domains/core/userProfile/profiles/*", "src/domains/core/user/extensions/roles.ts", "src/**/plugs/formInputs/*.ts"],
   },
   // ルート地図: src/app のページ・Screen・loader・guard と地図そのもの
   routes: { entries: ["scripts/structure/routes/check.ts", "scripts/structure/routes/map.mjs"], data: ["src/app/**", "src/app/route-map.jsonl"] },

@@ -1,9 +1,9 @@
 // scripts/structure/proxies/proxyFrame.test.mjs
-// proxy の枠(src/proxies/<名前>.ts の走査と生成一覧)と常時実行の入口の判定の回帰テスト。一時ディレクトリで動かす。
+// proxy の枠(点 proxyHandlers・proxyDecorators の項目 <ドメイン>/plugs/<点>/<名前>.ts の走査と生成一覧)と常時実行の入口の判定の回帰テスト。一時ディレクトリで動かす。
 // 生成器は汎用の拡張点の生成器(scripts/structure/extensions/)で、宣言は実物の src/proxies/extensionPoints.ts をそのまま使う。
-// - 項目 = export const handler / decorator を 1 つ持つ直下の .ts、骨組み・枠・テスト・サブフォルダ・.mjs は見ない
-// - 並びはファイル名の順、上流と fork の項目はどちらも印なしで同じ枠に入る
-// - 失敗: 旧い fork の名前の印(移し方を案内) / 両方 / どちらも無い / 名前の形
+// - 項目 = 差す側の plugs/proxyHandlers・proxyDecorators の export const handler / decorator。handler は段 export const stage を選ぶ(D30)
+// - 並びは段 → <差す側>/<名前> の順、上流と fork の項目はどちらも各自のドメインから同じ一覧に入る
+// - 古い置き場(src/proxies/<名前>.ts の handler / decorator・src/proxies/redirects/)は止める(段 3 の道具が動かす)
 // - 機能を閉じる規則(門番 src/featureGate/rules/、宣言は実物の src/featureGate/extensionPoints.ts): features のフォルダから tables を導き、名前を付ける(derive featureTables)、失敗の各条件
 // 生成一覧の一致(実リポ)は pnpm test scripts/structure/extensions と pnpm check extensions
 // 実行: pnpm test scripts/structure/proxies/proxyFrame.test.mjs
@@ -23,9 +23,9 @@ import { itemsOf, planExtensions } from "../extensions/extensions.mjs";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const DECLARATION = readFileSync(join(repoRoot, "src/proxies/extensionPoints.ts"), "utf8");
 const GATE_DECLARATION = readFileSync(join(repoRoot, "src/featureGate/extensionPoints.ts"), "utf8");
-const SKELETON_FILES = ["maintenance.ts", "demoMode.ts", "featureGate.ts", "redirect.ts", "attribution.ts", "inviteLink.ts"];
-const HANDLERS = "src/proxies/extensions/handlers.ts";
-const DECORATORS = "src/proxies/extensions/decorators.ts";
+const SKELETON_FILES = ["featureGate.ts", "redirect.ts"];
+const HANDLERS = "src/proxies/extensions/proxyHandlers.ts";
+const DECORATORS = "src/proxies/extensions/proxyDecorators.ts";
 const GATE_RULES = "src/featureGate/extensions/rules.ts";
 
 /** fork(acme、祖先 parent)、骨組み + 渡したファイルを置いた一時リポ */
@@ -43,34 +43,57 @@ function fixture(files) {
   writeFileSync(join(dir, "extensionPoints.ts"), DECLARATION);
   for (const name of [...SKELETON_FILES, "index.ts", "types.ts"]) writeFileSync(join(dir, name), "export const somethingProxy = () => {};\n");
   writeFileSync(join(dir, "proxy.test.mts"), "export const handler = 1;\n");
-  // "rules/<名前>.ts" は門番の受け口、それ以外は src/proxies の直下
-  for (const [name, text] of Object.entries(files)) writeFileSync(join(name.startsWith("rules/") ? gateDir : dir, name), text);
+  // 点 proxyUser はちょうど 1 つ要る(required)。上流と同じく auth の項目を置く
+  mkdirSync(join(root, "src/domains/auth/plugs/proxyUser"), { recursive: true });
+  writeFileSync(join(root, "src/domains/auth/plugs/proxyUser/session.ts"), "export const plug = { createUser: () => async () => null };\n");
+  // ちょうど 1 つの点を埋めるのは常設のドメインか lib だけ(D53): 上流と同じく auth は常設の宣言を持つ
+  writeFileSync(join(root, "src/domains/auth/extensionPoints.ts"), "export const alwaysOpen = true;\n");
+  // "rules/<名前>.ts" は門番の受け口、"src/…" はリポ直下から、それ以外は src/proxies の直下
+  for (const [name, text] of Object.entries(files)) {
+    const path = name.startsWith("src/") ? join(root, name) : join(name.startsWith("rules/") ? gateDir : dir, name);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, text);
+  }
   return root;
 }
 
-const H = "export const handler: ProxyHandler = async (request, ctx) => {};\n";
+const H = (stage) => `export const stage = "${stage}";\nexport const handler: ProxyHandler = async (request, ctx) => {};\n`;
 const D = "export const decorator: ProxyResponseDecorator = (request, response, ctx) => {};\n";
 const names = (plan, point) => itemsOf(plan, "src/proxies", point).map((i) => i.name);
 
-test("走査: 直下の .ts の handler / decorator だけをファイル名順に集め、骨組み・枠・テスト・サブフォルダ・.mjs は見ない", () => {
-  const plan = planExtensions(fixture({ "zeta.ts": H, "alpha.ts": H, "beta.ts": D, "gamma.ts": D }));
+test("走査: 各ドメインの plugs/proxyHandlers・proxyDecorators の項目を段 → <差す側>/<名前> の順に集め、骨組み・テストは項目にしない", () => {
+  const plan = planExtensions(fixture({
+    "src/domains/a/plugs/proxyHandlers/zeta.ts": H("main"),
+    "src/domains/b/plugs/proxyHandlers/alpha.ts": H("main"),
+    "src/domains/b/plugs/proxyHandlers/stop.ts": H("maintenance"),
+    "src/domains/a/plugs/proxyDecorators/gamma.ts": D,
+    "src/domains/b/plugs/proxyDecorators/beta.ts": D,
+  }));
   assert.deepEqual(plan.problems, []);
-  assert.deepEqual(names(plan, "handlers"), ["alpha", "zeta"]);
-  assert.deepEqual(names(plan, "decorators"), ["beta", "gamma"]);
-  assert.match(plan.outputs[HANDLERS], /import \{ handler as handlers_alpha \} from "@\/proxies\/alpha";\nimport \{ handler as handlers_zeta \} from "@\/proxies\/zeta";/);
-  assert.match(plan.outputs[HANDLERS], /export const handlers: ProxyHandler\[\] = \[\n  handlers_alpha,\n  handlers_zeta,\n\];/);
-  assert.match(plan.outputs[DECORATORS], /export const decorators: ProxyResponseDecorator\[\] = \[\n  decorators_beta,\n  decorators_gamma,\n\];/);
+  assert.deepEqual(names(plan, "proxyHandlers"), ["stop", "zeta", "alpha"]);
+  assert.deepEqual(names(plan, "proxyDecorators"), ["gamma", "beta"]);
+  assert.match(plan.outputs[HANDLERS], /import \{ handler as proxyHandlers_b_stop \} from "@\/domains\/b\/plugs\/proxyHandlers\/stop";/);
+  assert.match(plan.outputs[HANDLERS], /\{ domain: "b", name: "stop", requires: \[\], stage: "maintenance", plug: proxyHandlers_b_stop \}/);
+  assert.match(plan.outputs[DECORATORS], /\{ domain: "a", name: "gamma", requires: \[\], plug: proxyDecorators_a_gamma \}/);
 });
 
-test("失敗: 旧い fork の名前の印・両方・どちらも無い・名前の形", () => {
-  const plan = planExtensions(fixture({ "a.other.ts": H, "both.ts": H + D, "helper.ts": "export function helper() {}\n", "x.a.b.ts": H, "1x.ts": H, "ok.ts": H }));
-  assert.deepEqual(names(plan, "handlers"), ["ok"]);
-  assert.equal(plan.problems.length, 5, plan.problems.join("\n"));
-  assert.ok(plan.problems.some((p) => p.includes("a.other.ts") && p.includes("印なしの a.ts に改名")));
-  assert.ok(plan.problems.some((p) => p.includes("both.ts") && p.includes("両方")));
-  assert.ok(plan.problems.some((p) => p.includes("helper.ts") && p.includes("無い")));
-  assert.ok(plan.problems.some((p) => p.includes("x.a.b.ts") && p.includes("印なしの x.ts に改名")));
-  assert.ok(plan.problems.some((p) => p.includes("1x.ts") && p.includes("名前の形")));
+test("失敗: 古い置き場(src/proxies/<名前>.ts の handler / decorator・src/proxies/redirects/)・段の無い handler・骨組みの段", () => {
+  const plan = planExtensions(fixture({
+    "old.ts": H("main"),
+    "oldDecorator.ts": D,
+    "helper.ts": "export function helper() {}\n",
+    "redirects/campaign.ts": "export const redirects = [];\n",
+    "src/domains/a/plugs/proxyHandlers/noStage.ts": "export const handler = async () => {};\n",
+    "src/domains/a/plugs/proxyHandlers/gateItem.ts": H("gate"),
+  }));
+  const text = plan.problems.join("\n");
+  assert.match(text, /src\/proxies\/old\.ts: proxy の handler の古い置き場。自分のドメインの plugs\/proxyHandlers/);
+  assert.match(text, /src\/proxies\/oldDecorator\.ts: proxy の decorator の古い置き場/);
+  assert.match(text, /src\/proxies\/redirects\/: 転送の規則の古い置き場/);
+  assert.match(text, /noStage\.ts: export const stage = "<段>" が無い/);
+  assert.match(text, /gateItem\.ts: 段 gate は点の持ち主の骨組みだけが使う/);
+  assert.ok(!text.includes("helper.ts"), "handler / decorator を出さない直下のファイルは止めない");
+  assert.equal(plan.problems.length, 5, text);
 });
 
 test("規則: src/featureGate/rules/ の export const rule をファイル名順に集め、旧い x.<fork の名前>.ts は止める", () => {
@@ -246,7 +269,7 @@ test("設定の節の feature: 字面で読む(1 つ・配列・複数行)、書
 test("設定の節の feature から /admin/settings/<key> を導き、生成一覧の settingSections(住所・名指す機能)に載せる(規則の pathPatterns には足さず settingPaths は説明用)。規則名でない feature は止める", () => {
   const R = 'export const rule: FeatureGateRule = { pathPatterns: ["/x"], enabled: () => true };\n';
   const root = fixture({ "rules/wallet.ts": R, "rules/payment.ts": R, "rules/plain.ts": R });
-  const dir = join(root, "src/domains/core/setting/sections");
+  const dir = join(root, "src/domains/core/setting/plugs/settingSections");
   mkdirSync(join(dir, "nested"), { recursive: true });
   writeFileSync(join(dir, "general.ts"), 'export const section = { key: "general", label: "基本", order: 10 };\n');
   writeFileSync(join(dir, "shop.ts"), 'export const section = { key: "shop", label: "店", order: 20, feature: ["wallet", "payment"] };\n');
@@ -265,13 +288,17 @@ test("設定の節の feature から /admin/settings/<key> を導き、生成一
     /export const settingSections: GatedSettingSection\[\] = \[\n  \{ path: "\/admin\/settings\/coins", features: \["wallet"\] \},\n  \{ path: "\/admin\/settings\/shop", features: \["wallet", "payment"\] \},\n\];/,
   );
   assert.doesNotMatch(plan.outputs[GATE_RULES], /pathPatterns: \[\.\.\.rules_/);
-  // この fixture は setting の受け口(overrideOf)を宣言しないので、shop.override.ts は孤立の検査(orphans.mjs)にも止まる
-  const problems = plan.problems.filter((p) => !p.startsWith("src/domains/core/setting/sections/shop.override.ts: この上書きを受ける点が無い"));
+  // この fixture は setting の点 settingSections(overrideOf)を宣言しないので、plugs のフォルダの点が無いことと shop.override.ts の孤立も止まる
+  const problems = plan.problems.filter(
+    (p) =>
+      !p.startsWith("src/domains/core/setting/plugs/settingSections/shop.override.ts: この上書きを受ける点が無い") &&
+      !p.startsWith("src/domains/core/setting/plugs/settingSections: plugs の点 settingSections が無い"),
+  );
   assert.equal(problems.length, 1, problems.join("\n"));
   assert.match(problems[0], /typo\.ts: feature の "walet" は機能を閉じる規則/);
 });
 
-test("常時実行の入口の判定: cron は住所が規則の pathPatterns に入る、alwaysOn の項目は enabled、登録表は条件つき spread、結線は例外表(縮む表)", async () => {
+test("常時実行の入口の判定: cron は住所が規則の pathPatterns に入る、alwaysOn の項目は enabled、結線は閉じうるドメインを import しない(例外表は無い、注文 36)", async () => {
   const { judgeAlwaysOnEntries, folderSourcePattern, cronTaskPathOf, rulesNotCoveringCronTask } = await import("../../../src/featureGate/checks/alwaysOnEntries.mjs");
   const rules = [
     { name: "wallet", domains: ["core/wallet"], pathPatterns: ["/wallet", "/api/cron/wallet-ok"] },
@@ -293,9 +320,6 @@ test("常時実行の入口の判定: cron は住所が規則の pathPatterns �
   const cronUnrelated = `export const cronTask = { run: async () => (await import("@/domains/core/auditLog/x")).run() };`;
   const itemOk = `import { x } from "@/domains/core/wallet/services/server/x";\nexport const item = { enabled: () => FLAG, run: x };`;
   const itemNg = `import { x } from "@/domains/core/wallet/services/server/x";\nexport const item = { run: x };`;
-  const regOk = `import { clear } from "@/domains/core/wallet/services/server/clear";\nimport type { T } from "@/domains/sample/types";\nexport const h = [\n  ...(FLAG.enabled ? [clear] : []),\n];`;
-  const regNg = `import { clear } from "@/domains/core/wallet/services/server/clear";\nexport const h = [clear];`;
-  const regNamespace = `import * as w from "@/domains/core/wallet";\nexport const h = [...(F ? [w.x] : [])];`;
   const wire = `import { deps } from "@/domains/sample/services/server/deps";\nexport const x = deps;`;
   const entries = [
     { path: "src/app/api/cron/wallet-ok/task.ts", kind: "cronTask", text: walletTask },
@@ -304,36 +328,28 @@ test("常時実行の入口の判定: cron は住所が規則の pathPatterns �
     { path: "src/app/api/cron/other/task.ts", kind: "cronTask", text: cronUnrelated },
     { path: "i/ok.ts", kind: "alwaysOnItem", text: itemOk },
     { path: "i/ng.ts", kind: "alwaysOnItem", text: itemNg },
-    { path: "r/ok.ts", kind: "registry", text: regOk },
-    { path: "r/ng.ts", kind: "registry", text: regNg },
-    { path: "r/ns.ts", kind: "registry", text: regNamespace },
-    { path: "w/listed.ts", kind: "wiring", text: wire },
     { path: "w/unlisted.ts", kind: "wiring", text: wire },
+    // 生成された plugs の点の一覧は使う時に gate.plugs で閉じる(注文 30・31): 閉じられるドメインを import しても閉じ漏れでない
+    { path: "src/proxies/extensions/proxyDecorators.ts", kind: "plugsList", text: wire },
   ];
-  const { problems, hits } = judgeAlwaysOnEntries(entries, rules, { "w/listed.ts": "理由", "w/gone.ts": "もう無い" });
+  const { problems, hits } = judgeAlwaysOnEntries(entries, rules);
   assert.deepEqual(hits.map((h) => h.split(":")[0]), [
     "src/app/api/cron/wallet-ok/task.ts",
     "src/app/api/cron/wallet-ng/task.ts",
     "src/app/api/cron/wallet-partial/task.ts",
     "i/ok.ts",
     "i/ng.ts",
-    "r/ok.ts",
-    "r/ng.ts",
-    "r/ns.ts",
-    "w/listed.ts",
     "w/unlisted.ts",
+    "src/proxies/extensions/proxyDecorators.ts",
   ]);
   assert.deepEqual(
     problems.map((p) => p.split(":")[0]).sort(),
     [
       "i/ng.ts",
-      "r/ng.ts",
-      "r/ns.ts",
       "src/app/api/cron/wallet-ng/task.ts", // enabled があっても住所を覆わなければ失敗(規則 2 つ分)
       "src/app/api/cron/wallet-ng/task.ts",
       "src/app/api/cron/wallet-partial/task.ts", // 表を持たない規則が覆っても足りない(2 規則とも覆わない)
       "src/app/api/cron/wallet-partial/task.ts",
-      "w/gone.ts",
       "w/unlisted.ts",
     ],
   );
@@ -341,7 +357,6 @@ test("常時実行の入口の判定: cron は住所が規則の pathPatterns �
   const oneMissing = judgeAlwaysOnEntries(
     [{ path: "src/app/api/cron/wallet-ok/task.ts", kind: "cronTask", text: walletTask }],
     [rules[0], { ...rules[1], pathPatterns: ["/admin/wallet"] }],
-    {},
   );
   assert.deepEqual(oneMissing.problems.length, 1, "同じフォルダを持つ規則の 1 つでも覆わなければ失敗");
   assert.match(oneMissing.problems[0], /規則 walletAdmin/);
@@ -355,46 +370,7 @@ test("常時実行の入口の判定: cron は住所が規則の pathPatterns �
       { path: "src/wiring/walletConfig.ts", kind: "wiring", text: configImport },
     ],
     rules,
-    {},
   );
   assert.deepEqual(ruleConfig.problems.map((p) => p.split(":")[0]), ["src/featureGate/rules/wallet.ts", "src/featureGate/extensions/whenInputs.ts", "src/wiring/walletConfig.ts"]);
 });
 
-test("常時実行の入口の fork の口(L1.24): src/featureGate/alwaysOnExceptions/<名前>.ts は 1 項目 1 ファイル(exception か registry)、reason 必須、旧い置き場は止める", async () => {
-  const { readForkAlwaysOn, staleAlwaysOnFiles, judgeAlwaysOnEntries } = await import("../../../src/featureGate/checks/alwaysOnEntries.mjs");
-  const ok = readForkAlwaysOn({
-    exceptions: [{ file: "src/wiring/x.ts", reason: "端末の解決は route でだけ走る" }],
-    registries: [{ file: "src/registry/cleanup.ts", reason: "退会の後片付け" }],
-  });
-  assert.deepEqual(ok.problems, []);
-  assert.deepEqual(ok.exceptions, { "src/wiring/x.ts": "端末の解決は route でだけ走る" });
-  assert.deepEqual(ok.registries, ["src/registry/cleanup.ts"]);
-
-  const ng = readForkAlwaysOn({
-    exceptions: [{ file: "src/wiring/y.ts", reason: " " }, { file: "", reason: "r" }],
-    registries: [{ reason: "x" }],
-  });
-  assert.equal(ng.problems.length, 3, ng.problems.join("\n"));
-  assert.deepEqual(ng.exceptions, {});
-
-  // 受け口の走査(生成器): exception と registry の両方・どちらも無い・旧い印は止まる、.mjs は項目でない
-  const X = 'export const exception: AlwaysOnException = { file: "src/wiring/x.ts", reason: "r" };\n';
-  const Y = 'export const registry: AlwaysOnException = { file: "src/registry/y.ts", reason: "r" };\n';
-  const root = fixture({});
-  const itemDir = join(root, "src/featureGate/alwaysOnExceptions");
-  mkdirSync(itemDir, { recursive: true });
-  for (const [name, text] of Object.entries({ "wire.ts": X, "cleanup.ts": Y, "both.ts": X + Y, "none.ts": "export const x = 1;\n", "old.acme.ts": X, "legacy.mjs": X })) writeFileSync(join(itemDir, name), text);
-  const plan = planExtensions(root);
-  assert.deepEqual(itemsOf(plan, "src/featureGate", "alwaysOnExceptions").map((i) => i.name), ["wire"]);
-  assert.deepEqual(itemsOf(plan, "src/featureGate", "alwaysOnRegistries").map((i) => i.name), ["cleanup"]);
-  assert.equal(plan.problems.length, 3, plan.problems.join("\n"));
-
-  const stale = staleAlwaysOnFiles(["alwaysOnEntries.mjs", "alwaysOnExceptions.acme.mjs", "proxyFrame.test.mjs"], ["deviceWiring.mjs"]);
-  assert.equal(stale.length, 2);
-  assert.match(stale[0], /alwaysOnExceptions\.acme\.mjs.*alwaysOnExceptions\/<名前>\.mjs に改名.*shared-shelf marker migration notice.*src\/featureGate\/alwaysOnExceptions/);
-  assert.match(stale[1], /scripts\/proxies\/alwaysOnExceptions\/deviceWiring\.mjs: 置き場が src\/featureGate\/alwaysOnExceptions\/<名前>\.ts に移った/);
-
-  // fork の例外の行にも縮む表の規則(当たらない行は失敗)
-  const { problems } = judgeAlwaysOnEntries([], [{ name: "wallet", domains: ["core/wallet"], pathPatterns: ["/wallet"] }], ok.exceptions);
-  assert.deepEqual(problems.map((p) => p.split(":")[0]), ["src/wiring/x.ts"]);
-});

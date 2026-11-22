@@ -5,7 +5,7 @@ import type { SessionUser } from "@/domains/core/auth/entities/session";
 
 import type { NavigationItem } from "../types";
 
-/** 遅延読み込みの一覧の項目(生成物 src/app/_layout/adminCommand/extensions/) */
+/** 遅延読み込みの一覧の項目(生成物 ../extensions/adminCommandCategories・adminCommandPlugins) */
 export type LazyItem<T> = {
   name: string;
   load: () => Promise<T>;

@@ -4,7 +4,7 @@ import type { ActionCodeSettings } from "firebase-admin/auth";
 
 import { getServerAuth } from "@/lib/firebase/server";
 import { business } from "@/business";
-import { message as earlyRegistrationMessage } from "@/domains/core/auth/messages/earlyRegistration";
+import { message as earlyRegistrationMessage } from "@/domains/core/auth/plugs/messages/earlyRegistration";
 import { sendMailMessage } from "@/domains/core/auth/services/server/sendMailMessage";
 import { toDirectSignInLink } from "@/domains/core/auth/services/server/toDirectSignInLink";
 import { appendInviteLinkParam } from "@/domains/core/referral/lib/inviteLinkCookie";

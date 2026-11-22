@@ -18,7 +18,7 @@ README があるものはリンク先が一次資料。README が無いものは
 | [user](user/README.md) | ユーザーテーブル、ロール、ステータス、表示名、退会時クリーンアップ |
 | [userProfile](userProfile/README.md) | ロール別プロフィール |
 | userTag | ユーザーへのタグ付け（管理用） |
-| [userGroup](userGroup/README.md) | ユーザーグループ（条件で引く動的・定期計算・静的の 3 種、条件の部品の受け口 criteria、門 userGroups で既定 閉）。連絡の宛先・限定ページ・参加資格などが使う |
+| [userGroup](userGroup/README.md) | ユーザーグループ（条件で引く動的・定期計算・静的の 3 種、条件の部品の点 userGroupCriteria、門 userGroups で既定 閉）。連絡の宛先・限定ページ・参加資格などが使う |
 | userLineProfile / userXProfile | LINE / X アカウント連携のプロフィール（ログイン手段ではなく紐付け。auth README 参照） |
 | [pairedDevice](pairedDevice/README.md) | 共有端末（店舗タブレット・キオスク）をユーザーとは別の認証主体として登録し、端末トークンで動かす（createDeviceRoute / deviceGuard） |
 | [userLoginEvent](userLoginEvent/README.md) | ログイン・サインアップ・ログアウトの記録（IP 軸の突き合わせ） |
@@ -77,7 +77,7 @@ README があるものはリンク先が一次資料。README が無いものは
 | [incrementalRefresh](incrementalRefresh/README.md) | 派生テーブル（read-model）の差分再計算 |
 | [adminCommand](adminCommand/README.md) | 管理者用コマンドパレット |
 | [demo](demo/README.md) | デモモード・デモのログイン・管理画面のデモ利用者の一覧（表なし、デモ利用者の印は user の列 `is_demo`） |
-| admin | 管理画面の取得本体（`services/server/screenData/`。生成される管理画面の loader.ts が `src/wiring/adminScreenParts.ts` の組を通して使う）とダッシュボード、管理メニューの受け口（`menu/`: カテゴリー・項目のファイルと組み立て器、`menu/README.md`） |
+| admin | 管理画面の取得本体（`services/server/screenData/`。生成される管理画面の loader.ts が `src/domains/core/admin/services/server/screenParts.ts` の組を通して使う）とダッシュボード、管理メニューの受け口（`menu/`: カテゴリー・項目のファイルと組み立て器、`menu/README.md`） |
 
 ## Usage
 

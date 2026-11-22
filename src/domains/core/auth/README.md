@@ -4,7 +4,7 @@
 
 認証(誰であるか)とセッション、ページ / API の認可ガードを担う core ドメイン。ユーザー属性・ステータス・ロールの定義は [user ドメイン](../user/README.md) の責務で、auth はそれを「ログイン・登録・セッション・ガード」の文脈で使う。
 
-- 置き場: サーバーの処理 `services/server/`(セッション `session/`・ページの守りに渡す部品 `authorization.ts` / `pageGuardUserDeps.ts`・API の Factory に渡す部品 `apiAccess.ts` / `apiRouteUserDeps.ts`・強制失効・仮登録 / 本登録・ログイン・認証のメール)| `/api/auth/*` を呼ぶ ClientService `services/client/` | 公開 hook `hooks/` | 部品 `components/`(SMS 認証の部品は core/phoneVerification、デモのログインは core/demo)| 連絡の定義 `messages/`
+- 置き場: サーバーの処理 `services/server/`(セッション `session/`・ページの守りに渡す部品 `authorization.ts`・API の Factory に渡す部品 `apiAccess.ts`・強制失効・仮登録 / 本登録・ログイン・認証のメール)| `/api/auth/*` を呼ぶ ClientService `services/client/` | 公開 hook `hooks/` | 部品 `components/`(SMS 認証の部品は core/phoneVerification、デモのログインは core/demo)| 連絡の定義 `plugs/messages/` | API の Factory の利用者の束 `plugs/routeFactoryUser/session.ts`(点 routeFactoryUser の上流の項目、1 行スイッチ。既定 `session.default.ts`、fork は差替点 `authRouteFactoryUser` で替える)| ページの守りの利用者の束 `plugs/pageGuardUser/session.ts`(点 pageGuardUser の上流の項目、1 行スイッチ。既定 `session.default.ts`、fork は差替点 `authPageGuardUser` で替える)
 - API ルートは `src/app/api/auth/**`、画面は `src/app/(user)/(auth)/**`(login / signup / logout / reactivate / restricted / password / email 等)と `src/app/admin/login/`
 
 ### アカウントとプロバイダ
@@ -105,7 +105,7 @@ return response;
 
 ### システムの連絡(メール)
 
-認証のメールは連絡の定義(`messages/<名前>.ts`、鍵 `auth.<名前>`)で、送る口 `messagingService.sendMessage` が送る(仕組み: src/domains/core/messaging/services/server/sendMessage/README.md・src/lib/messaging/README.md)。
+認証のメールは連絡の定義(`plugs/messages/<名前>.ts`、鍵 `auth.<名前>`)で、送る口 `messagingService.sendMessage` が送る(仕組み: src/domains/core/messaging/services/server/sendMessage/README.md・src/lib/messaging/README.md)。
 
 | 鍵 | 送り手 | 宛先 | 扱い |
 | --- | --- | --- | --- |
@@ -116,7 +116,7 @@ return response;
 | `auth.accountLocked` | `localLogin`（永続ロックの時。送りっぱなし、失敗は warn だけ） | 利用者（`users.email`） | 取引の連絡・`record: "meta"`（IP を残さない） |
 
 - required の 4 本は要求の中で短く送り直し、メールの配達が `sent` でなければ(失敗・不明・宛先の停止)DomainError(500)「…の送信に失敗しました: <理由>」(`sendMailMessage.ts`)
-- 見た目はレイアウト(`src/domains/core/messaging/layouts/`、欄は意味で名づけ)
+- 見た目はレイアウト(`src/domains/core/messaging/plugs/messagingLayouts/`、欄は意味で名づけ)
   - リンクの 4 本 = レイアウト `link`(認証のリンク): `heading` → `received` 受付の文 → `buttonGuide` → ボタン(`button`)→ `urlGuide` → ボタンの URL をそのまま出す → `footer`
   - `accountLocked` = レイアウト `alert`(セキュリティの警告): `heading` → `explanation` → 情報の箱(`details` = 発生時刻・アクセス元 IP。値が空の行は出さない)→ `notYou`・`ifYou`(最初の行を太字)→ `footer`
 
@@ -163,18 +163,18 @@ proxy (redirectProxy)  →  範囲の guard.ts(layout が guard() の 1 行)  �
 URL ルール              ロール + ステータス + 行き先(親子 AND)          ページの access を評価してから取得、主体は ctx.user
 ```
 
-1. proxy(`src/proxies/redirect.ts`): 受け口 `src/proxies/redirects/<名前>.ts` のルール(+ サインアップモードの内部ルール)で先にリダイレクト。セッションの判定は `resolveSessionUser`
+1. proxy(`src/proxies/redirect.ts`): 点 proxyRedirects の規則(`<ドメイン>/plugs/proxyRedirects/<名前>.ts`、サインアップモードの規則は user の `plugs/proxyRedirects/signupMode.ts`)で先にリダイレクト。セッションの判定は `resolveSessionUser`
 2. 範囲の guard.ts(layout の隣。root は `src/app/guard.ts`): 方針(access・allowStatuses・redirectTo・forbiddenRedirectTo・returnBack・statusRedirects・setupRedirectTo)を字面で書き、layout は `await guard()` の 1 行。子は最寄りの親の `extend` で作る(親子 AND、狭めるだけ)
    - 上流の範囲: `(user)/(protected)`(利用者・管理者カテゴリ、`/login`、status 別の行き先)/ `admin/(protected)`(管理者カテゴリ、`/admin/login`、管理者 0 人なら `/admin/setup`)/ その `users`(admin ロール、`/admin`)/ `debug`(管理者カテゴリ + debugger、`/login`)
    - setup への誘導の判定は auth の `hasUserForAccess(access)`(範囲の access を満たしうる利用者が 1 人以上いるか、真偽値だけ)を wiring が作り手に渡す。guard.ts には行き先の値だけ
 3. loader: 最寄りの guard.ts の `createLoader({ access, key?, load })`。範囲の方針とページの access を取得前に評価し、主体は `load({ user })` の `user`(DB 同期、リクエスト内 1 回)。本人の列が要るなら `requireUserRecord(user, "/login")`(user のサービス)
 
-- 結ぶのは `src/wiring/pageGuard.ts`(`lib/pageGuard` の汎用版 + auth の `pageGuardUserDeps` + `hasUserForAccess`)。書き方は [lib/pageGuard README](../../../lib/pageGuard/README.md) と [SCREENS §4](../../../lib/screens/README.md)
+- 結ぶのは生成物 `src/wiring/pageGuard.ts`(`lib/pageGuard` の結び目 `wirePageGuard` + 点 pageGuardUser の auth の項目 `plugs/pageGuardUser/session.ts`、束に `hasUserForAccess` を含む)。書き方は [lib/pageGuard README](../../../lib/pageGuard/README.md) と [SCREENS §4](../../../lib/screens/README.md)
 - page.tsx・Screen・layout にガード・取得を書かない。表示用の利用者は client の `useAuthSession`、ページ本文は loader の DTO
 - 利用できない status の利用者を案内する画面(`/restricted`・`/reactivate`)は root の public の loader に `allowStatuses` を書いて受ける(public の `user` は既定で利用可能な status だけ非 null)
 - `getSessionUser` は `cache()` 経由で、範囲の guard・loader・API の Factory・AuthSessionProvider が同じリクエストで呼んでも DB 引きは 1 回
 - API ルート側の認可はファクトリーが構造的に強制する(`createDomainRoute` は serviceRegistry の `access`、`createApiRoute` は `access` 必須(public / authenticated / { roles, roleCategories } + allowStatuses)、本人データは `createMeRoute`)→ [routeFactory README](../../../lib/routeFactory/README.md)
-- API の主体はリクエストごとに 1 回だけ DB 同期の `getSessionUser` で解き(`apiRouteUserDeps`)、ハンドラには `ctx.user` で渡す。セッションの確認と再発行(`GET /api/auth/session`)は `session/refreshSessionResponse.ts`
+- API の主体はリクエストごとに 1 回だけ DB 同期の `getSessionUser` で解き(点 routeFactoryUser の項目 `plugs/routeFactoryUser/session.ts`)、ハンドラには `ctx.user` で渡す。セッションの確認と再発行(`GET /api/auth/session`)は `session/refreshSessionResponse.ts`
 
 ### 置き場所の検査(lint `page-authz`、全 Tier で error)
 

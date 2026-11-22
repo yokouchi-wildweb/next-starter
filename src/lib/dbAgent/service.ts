@@ -20,7 +20,7 @@ import { buildDbAgentTools } from "./tools";
 
 export { isDbAgentEnabled };
 
-/** 拡張点の一覧(一覧は src/wiring/dbAgent.ts、route が渡す。lib は一覧を import しない) */
+/** 拡張点の一覧(生成物 src/wiring/dbAgent.ts を route が門番で絞って渡す。lib は一覧を import しない) */
 export type DbAgentExtensions = {
   extraTools: readonly AgentToolDefinition[];
   promptFragments: readonly DbAgentPromptFragment[];

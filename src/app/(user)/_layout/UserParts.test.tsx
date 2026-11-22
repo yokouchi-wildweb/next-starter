@@ -43,6 +43,8 @@ mock.module(here("./Header/Pc/PcNavigation.tsx"), { namedExports: { PcNavigation
 mock.module(here("./Header/Sp/SpNavigation.tsx"), { namedExports: { SpNavigation: marker("spnav") } });
 mock.module(here("./Header/Sp/SpNavSwitch.tsx"), { namedExports: { SpNavSwitch: marker("spswitch") } });
 mock.module("next/navigation", { namedExports: { usePathname: () => "/items", useRouter: () => ({ push: () => {} }) } });
+// ヘッダー右の点 userHeaderActions の部品(上流の項目は 0)= 何も描かない
+mock.module("@/app/_layout/FrameParts", { namedExports: { FrameParts: () => null } });
 
 const Icon = ({ className }: { className?: string }) => createElement("x-icon", { class: className });
 const LINK_ITEMS: BottomNavLinkItem[] = [

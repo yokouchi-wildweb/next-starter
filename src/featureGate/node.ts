@@ -8,7 +8,6 @@
 // - ownEnabled / switchMissingDependencies: 規則の値そのもの(スイッチも依存先も通さない)・名前指定のスイッチの足りない依存先(同じく見せ方)
 // - gatedSchema: db:push / db:push:check に渡す入力(閉じた機能の表を両側から外す)
 // - closedTables: 今閉じている機能の表名
-// - dependencyExceptions: 依存の検査の例外(fork の受け口)
 // - describeFeatures / readFeatureReport: 規則ごとの説明(pnpm ops features list)
 // - planFeatureSet / applyFeatureSet: 入切の書き換え(pnpm ops features set。fork = src/config/featureGate/switches.config.ts、Tier1 = 規則の defaultEnabled。必須の機能が依存する機能の off は止める)
 // - readRequired: 必須の機能(required/)
@@ -36,9 +35,6 @@ export {
 } from "./ruleList";
 export { configPath } from "./node/configPath";
 export { ADDRESS_EXCEPTIONS, checkAddresses } from "./node/addressCheck";
-export { alwaysOnExceptions } from "./extensions/alwaysOnExceptions";
-export { alwaysOnRegistries } from "./extensions/alwaysOnRegistries";
-export { dependencyExceptions } from "./extensions/dependencyExceptions";
 export { applySchemaGate as gatedSchema, closedTables, type SchemaGateResult } from "./node/gatedSchema";
 export { describeFeatures, readFeatureReport, readRequired, type FeatureDescription } from "./node/describe";
 export { checkFeatureRequirements } from "./checks/featureRequirements";

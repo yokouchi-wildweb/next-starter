@@ -18,16 +18,16 @@ pnpm check config-overrides        # build・/ship・forge:post の検査の束(
 
 ### 見る所
 
-- 種類の表(`src/lib/districtMap` の `KINDS` の `override`)の上書きのフォルダ: 地区の名前で置く `src/config/lib/`・`domains/`・`layout/`・`proxies/` と、中身の名前で置く `src/config/featureGate/`(門番の地区)の直下だけ。古い `app/`・`ui/` と `src/config` 直下のファイルは見ません(移行中、空になったら消す)
+- 種類の表(`src/lib/districtMap` の `KINDS` の `override`)の上書きのフォルダ: 地区の名前で置く `src/config/lib/`・`domains/`・`layout/` と、中身の名前で置く `src/config/featureGate/`(門番の地区)の直下だけ。古い `app/`・`ui/` と `src/config` 直下のファイルは見ません(移行中、空になったら消す)
 - 置ける物: `<名前>.config.ts`(値の上書き)・`<名前>.ui.config.ts`(描画専用の上書き)・`README.md`。サブフォルダは置けません(中は平ら)
 
 ### 落とす物
 
 - 余り(読まれず黙って効かない)
-  - 持ち主の地区が無い上書き(lib・ドメインの削除・改名・打ち間違い)。`layout/` は `_layout/config.ts` の `frame: "<名前>"` の宣言と照らし、`proxies/` は `src/proxies/<テーマ>/config.ts` を持つテーマのフォルダと照らす
+  - 持ち主の地区が無い上書き(lib・ドメインの削除・改名・打ち間違い)。`layout/` は `_layout/config.ts` の `frame: "<名前>"` の宣言と照らす(proxies はテーマの種類を畳んで上書きを持たない、D30)
   - 持ち主はいるが `config.ts` が無い上書き / 持ち主が `config.ui.ts` を持たないのに置いた `<名前>.ui.config.ts`
 - 欠落
-  - ドメイン・枠(`_layout/config.ts` の `frame:`)・proxies: `config.ts` があるのに上書きが無い(上書きを import していなければ tsc は落とさない。上流は空の上書きを同じ commit で置く)
+  - ドメイン・枠(`_layout/config.ts` の `frame:`): `config.ts` があるのに上書きが無い(上書きを import していなければ tsc は落とさない。上流は空の上書きを同じ commit で置く)
   - lib: package.json を宣言した lib は `pnpm check lib-package` が上書きの欠落を落とすので数えません。宣言の無い lib は数えます
   - 描画専用: `config.ui.ts` があるのに `<名前>.ui.config.ts` が無い(全種類)
 - 中身の名前で置く上書き `featureGate/`: 持ち主は門番の地区 `src/featureGate` に固定。置ける物は `<中身の名前>.config.ts`(例 `switches.config.ts`)と `README.md` だけで、サブフォルダ・`.ui.config.ts`・他の名前は余り。`src/featureGate` が無い木で置いた物も余り。どの名前を置くかは持ち主の物なので欠落は数えません

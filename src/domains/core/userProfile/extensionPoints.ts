@@ -16,3 +16,6 @@ export const extensionPoints = {
     overrideOf: ["tags", "searchFields", "audit"],
   },
 } as const;
+
+// 常設(どの機能の規則にも載らず常に開く、明示の宣言 D22・D53)。規則の domains に載せると地区の地図の生成で止まる
+export const alwaysOpen = true;

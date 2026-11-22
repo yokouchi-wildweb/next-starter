@@ -7,7 +7,7 @@ import { isDatabaseConfigured } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 
 import { settingConfig } from "../../config";
-import { fields } from "../../extensions/fields";
+import { fields } from "../../definitions";
 import { isMaintenanceWindowActive } from "../../utils/maintenanceWindow";
 import type { AdminSetupInput } from "../types";
 import { codeValueKeys, codeValues, isCodeKey } from "./codeValues";
@@ -24,7 +24,7 @@ const storedMemo = createReadMemo<Stored>(async () => {
   return { row: row ?? null, stored: (row?.extended as Record<string, unknown> | null | undefined) ?? null };
 }, () => settingConfig.readMemoMs);
 
-/** 保存値(行が無い・DB 未構成なら null)。DB 未構成で止めない: maintenanceProxy / (user) 配下の表示のため。接続できない場合は例外のまま(障害を隠さない) */
+/** 保存値(行が無い・DB 未構成なら null)。DB 未構成で止めない: proxy のメンテナンスの項目(plugs/proxyHandlers/maintenance.ts) / (user) 配下の表示のため。接続できない場合は例外のまま(障害を隠さない) */
 async function readStored(): Promise<Stored> {
   if (!isDatabaseConfigured()) return { row: null, stored: null };
   return storedMemo.get();

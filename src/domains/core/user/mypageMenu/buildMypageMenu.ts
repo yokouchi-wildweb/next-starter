@@ -18,7 +18,7 @@ const byOrderThenKey = (a: MypageMenuItem, b: MypageMenuItem): number =>
 export function buildMypageMenu(input: BuildMypageMenuInput): BuiltMypageMenu {
   const rows: MypageMenuBuiltRow[] = [];
   const hidden: MypageMenuHiddenEntry[] = [];
-  for (const item of Object.values(input.items).sort(byOrderThenKey)) {
+  for (const item of [...input.items].sort(byOrderThenKey)) {
     if (item.hidden) {
       hidden.push({ key: item.key, reason: "item-hidden" });
       continue;

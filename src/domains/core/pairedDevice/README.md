@@ -19,10 +19,11 @@
 
 1. 機能を開く: fork は `pnpm ops features set pairedDevice on`(`src/config/featureGate/switches.config.ts` に `pairedDevice: true`)。既定は機能の規則（feature gate）`src/featureGate/rules/pairedDevice.ts` の `defaultEnabled: false`
 2. `pnpm db:push`（`paired_devices` / `device_pairings` が作られる。無効の間は作られない）
-3. 端末の種類を `kinds/<名前>.ts` に置き `pnpm generate extensions`（下記）
+3. 端末の種類を `<ドメイン>/plugs/pairedDeviceKinds/<名前>.ts` に置き `pnpm generate extensions`（下記）
 
 無効の間は feature-gate が `/api/paired-device/**` `/api/paired-devices/**` を 404 にし、
-`getSessionDevice` は Cookie を読まずに常に null を返す。
+`getSessionDevice` は Cookie を読まずに常に null を返す。API の Factory の端末の束は点 `routeFactoryDevice`(`src/lib/routeFactory/extensionPoints.ts`、0〜1 個)の項目
+`plugs/routeFactoryDevice/pairedDevice.ts` で、無効の間は門番 `gate.plugs` が外し Factory は lib の「端末なし」で動く(端末だけのルートは 401、`orUser` のルートは利用者の枝だけ)。
 
 ### 端末を主体にするルート・ページ
 
@@ -339,7 +340,7 @@ Cookie 名・端末トークンの期間・ペアリングコード・最終ア�
 `scopeSchema` で検証するだけ。登録されていない kind の端末は作れず、認証にも失敗する（fail-closed）。
 
 ```ts
-// src/domains/core/pairedDevice/kinds/tableTerminal.ts(1 種類 1 ファイル)
+// <ドメイン>/plugs/pairedDeviceKinds/tableTerminal.ts(1 種類 1 ファイル)
 import { z } from "zod";
 import { definePairedDeviceKind } from "@/domains/pairedDevice/types/kind";
 
@@ -372,7 +373,7 @@ export const kind = definePairedDeviceKind({
 
 登録すると `kinds` の指定に型が付き、ハンドラの `device.scope` も kind ごとの型になる（未登録の kind はコンパイルエラー）。
 
-- 受け口の書き方は `kinds/README.md`
+- 点 `pairedDeviceKinds`: 差す側の `<ドメイン>/plugs/pairedDeviceKinds/<名前>.ts` に `export const kind = definePairedDeviceKind({ kind: "<kind の値>", ... })`。項目が無い kind・項目のドメインが閉じた kind の端末は作成も認証もできない(fail-closed)。型は生成の `PairedDeviceKindsMap` から `types/kinds.ts` が導く
 
 ## Internals
 

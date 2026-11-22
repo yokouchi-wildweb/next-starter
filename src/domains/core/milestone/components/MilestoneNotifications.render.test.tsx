@@ -19,15 +19,17 @@ const component = (name: string) => {
   Probe.displayName = `Probe(${name})`;
   return Probe;
 };
-mock.module("@/domains/core/milestone/extensions/renderers", {
+mock.module("@/domains/core/milestone/extensions/milestoneRenderers", {
   namedExports: {
-    renderers: {
-      rank_up: { key: "rank_up", component: component("series") },
-      rank_gold: { key: "rank_gold", component: component("gold-own") },
-      first_purchase: { key: "first_purchase", component: component("first") },
-    },
+    milestoneRenderers: [
+      { key: "rank_up", component: component("series") },
+      { key: "rank_gold", component: component("gold-own") },
+      { key: "first_purchase", component: component("first") },
+    ].map((plug) => ({ domain: "milestone", name: plug.key, requires: [], plug })),
   },
 });
+// 門番: どのドメインも開(GateProvider の外の静的描画)
+mock.module("@/featureGate/client", { namedExports: { useGate: () => ({ plugs: <T,>(items: readonly T[]) => [...items] }) } });
 mock.module("./DefaultMilestoneNotification", {
   namedExports: { DefaultMilestoneNotification: component("default") },
 });

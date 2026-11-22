@@ -14,7 +14,7 @@
 | `featureGate`(門番) | - | ○ | Tier1 だけ | add・counterpart | 中身の名前 `src/config/featureGate/<中身>.config.ts`(持ち主は `src/featureGate` に固定) |
 | `registry`(登録表) | - | ○ | Tier1 だけ | なし(生成物と fork の区画) | なし |
 | `wiring`(結線) | - | ○ | Tier1 だけ | add | なし |
-| `proxies` | - | - | Tier1 だけ | add・counterpart | 地区の名前 `src/config/proxies/<テーマ>.config.ts` |
+| `proxies` | - | - | Tier1 だけ | add | なし(テーマの種類は畳んだ、D30。項目は各ドメインの plugs から差す) |
 
 - ゲートを持つのはドメインだけ。ゲートの無い地区はドメインを読まず渡してもらいます(地区の議会 D22)。readsSet の種類は生成された一覧(地区の集合)を読みます
 - forkMay は今の CHANGE_TYPES の名前。点の宣言は 2 段(D35): 地区だけの点は各地区の `extensionPoints.ts`(各点に `change`)、種類の地区が全部持つ点は `kindPointsOf`(config.ts ↔ src/config・config.ui.ts ↔ .ui.config.ts の対置点、枠の `layout` = _layout の隣の layout.tsx の 1 行スイッチの差替点)。1 行スイッチ(`.default`)の差替点は持ち主の地区の宣言に書き、`replacePointsOf` が読む(スイッチの検査・受け口の一覧・地図が使う)。受け口の一覧(intake.txt)の生成区画の行は `intakeRowsOf`(./intakeRows.mjs、宣言の点・差替点のスイッチ・ルートの画面と枠のスイッチ・生成器を入力に取る純関数)。ルートの page.tsx の 1 行スイッチは地区と 1 対 1 でないので種類の点にせず、読み手の入力のルートの一覧で満たす。地図の各地区の `forkCan` = 2 段を合わせた `{ point, change, where }`(where = fork が書くファイルの glob。writer の一覧は除く: fork は隣の addable の上書きの点で JSON を足す)
@@ -26,8 +26,7 @@
 | `domains`(ドメイン) | `src/domains/` と `src/domains/core/` の直下の `_` で始まらないフォルダ | フォルダ名(core は `core: true`) | `<dir>/config.ts` | `src/config/domains/<名前>.config.ts` |
 | `lib` | `src/lib/` の直下のフォルダ(見つけ方は `src/lib/libPackage` の `listLibsFrom` と同じ 1 つの決まり) | フォルダ名 | `<dir>/config.ts` | `src/config/lib/<名前>.config.ts` |
 | `frame`(枠) | `src/app/**/_layout/config.ts` の `frame: "<名前>"` の宣言(宣言の無い `_layout` は地区でない) | 宣言の名前 | `<_layout>/config.ts` | `src/config/layout/<名前>.config.ts` |
-| `featureGate`・`registry`・`wiring` | `src/featureGate`・`src/registry`・`src/wiring`(src 直下の 1 地区、フォルダがあれば) | フォルダ名 | `<dir>/config.ts` | 上の表 |
-| `proxies` | `src/proxies/<テーマ>/`(直下のフォルダで `config.ts` を持つ物。上流は 0) | テーマのフォルダ名 | `src/proxies/<テーマ>/config.ts` | `src/config/proxies/<テーマ>.config.ts` |
+| `featureGate`・`registry`・`wiring`・`proxies` | `src/featureGate`・`src/registry`・`src/wiring`・`src/proxies`(src 直下の 1 地区、フォルダがあれば) | フォルダ名 | `<dir>/config.ts` | 上の表 |
 
 - 描画専用の値を持つ地区だけ、`config.ts` の隣に `config.ui.ts`、上書きは `<名前>.ui.config.ts`(同じフォルダ)を並べます。上書きの置き方と 1 対 1 の検査: [src/config/README.md](../../config/README.md)・`pnpm check config-overrides`
 - cron task・role・setting の項目・storage の用途などは地区ではなく、どこかの地区の受け口の項目です
@@ -61,7 +60,8 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 - `kind`・`name`・`core`(features だけ true / false、ほかは null)・`dir`
 - `config` と `override`(`{ path, exists }`)・`uiConfig` と `uiOverride`(描画専用の `config.ui.ts` と `<名前>.ui.config.ts`、同じ形)
 - `apiKeys`(domainEntry のキー)・`tables`(地区の中の `pgTable` の表名、テストを除く)・`requires`(domainEntry の requires)
-- `gates`(features に自分を持つ規則の名前)・`receptacles`(地区の中の extensionPoints.ts の点の名前)・`frame`(枠だけ)
+- ゲートの無い地区(種類の表の `hasGate: false`)のファイルはドメインを値も型も読まない: lint `import-boundaries/district-no-domains` がこの種類の表と地図の枠で地区を決める(D22。テストと `__tests__/` の下の補助・生成物は対象外)
+- `gates`(features に自分を持つ規則の名前)・`alwaysOpen`(domains だけ: 常設の明示の宣言 `export const alwaysOpen = true`。`gates` が空なら true、空でなければ false でないと止める)・`receptacles`(地区の中の extensionPoints.ts の点の名前)・`frame`(枠だけ)
 - `featureRequirements`(持ち主の config.ts の機能を要する値の宣言。判定は門番の検査、`src/config/README.md`)
 
 - domainEntry のキー(汎用 API・表の資源の名前)は地区の名前と別。1 ドメインが複数のキーを持ってよく、フォルダ名と違ってよい。キーは全部の地区を通して一意(重なりは problems)

@@ -41,7 +41,8 @@ import { useAdminDispatchFilterOptions } from "@/domains/core/messaging/hooks/us
 import { DISPATCH_SUBJECT_QUERY_MAX, useAdminDispatchFilters } from "@/domains/core/messaging/hooks/useAdminDispatchFilters";
 import { useAdminDispatches } from "@/domains/core/messaging/hooks/useAdminDispatches";
 import { useAdminDispatchReadCounts } from "@/domains/core/messaging/hooks/useAdminDispatchReadCounts";
-import { adminBulkActions } from "@/domains/core/messaging/extensions/adminBulkActions";
+import { useDomainAdminBulkActions } from "@/domains/core/admin/hooks/useDomainAdminBulkActions";
+import type { MessagingDispatchAdminBulkActionItem } from "@/domains/core/messaging/types/adminBulkAction";
 import type { AdminDispatchFilters, AdminDispatchSummary } from "@/domains/core/messaging/services/client/adminMessagingClient";
 
 export type AdminDispatchListProps = {
@@ -64,8 +65,6 @@ const STATUS_OPTIONS = [
 
 const NEW_MODE = { type: "new" } as const;
 
-// 一括操作の項目(受け口 adminBulkActions、上流の既定 = 削除。fork の項目も並ぶ)
-const BULK_ACTIONS = selectBulkActions(Object.values(adminBulkActions));
 const dispatchKey = (dispatch: AdminDispatchSummary) => dispatch.id;
 const selectableDispatch = (dispatch: AdminDispatchSummary) => !dispatch.deletedAt;
 
@@ -77,6 +76,9 @@ export function AdminDispatchSendButton() {
 
 export function AdminDispatchList({ initialFilters = {}, limit, showSendButton = true }: AdminDispatchListProps) {
   const canSend = useGate().enabled("messagingBroadcast");
+  // 一括操作の項目(点 adminBulkActions の messaging の項目、上流の既定 = 削除。fork の項目も並ぶ。門番で閉じた項目は外れる)
+  const domainBulkActions = useDomainAdminBulkActions<MessagingDispatchAdminBulkActionItem>("messaging");
+  const bulkActions = useMemo(() => selectBulkActions(domainBulkActions), [domainBulkActions]);
   const { filters, apply, clear, fields } = useAdminDispatchFilters(initialFilters);
   const categories = useAdminDispatchCategories();
   const filterOptions = useAdminDispatchFilterOptions();
@@ -252,7 +254,7 @@ export function AdminDispatchList({ initialFilters = {}, limit, showSendButton =
             isSelectable={selectableDispatch}
             selectionMode="toggle"
             selectLabel="送信を選ぶ"
-            bulkActions={(selection) => <BulkActionItems items={BULK_ACTIONS} selection={selection} onDone={query.revalidate} />}
+            bulkActions={(selection) => <BulkActionItems items={bulkActions} selection={selection} onDone={query.revalidate} />}
             renderItem={(dispatch) => (
               <Block onClickCapture={detailParam.markOpened}>
                 <DispatchRow

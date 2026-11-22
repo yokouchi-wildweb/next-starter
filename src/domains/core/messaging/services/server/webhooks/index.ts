@@ -6,7 +6,7 @@
 
 import { gate } from "@/featureGate";
 
-import { channels } from "../../../extensions/channels";
+import { channels } from "../lists";
 import { applyChannelWebhookEvents, type ApplyEventsResult } from "./applyEvents";
 import { WebhookNotConfiguredError } from "./errors";
 import { drizzleWebhookStore } from "./store";

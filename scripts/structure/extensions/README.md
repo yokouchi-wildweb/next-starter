@@ -35,6 +35,8 @@ export const extensionPoints = {
 - 点の名前 = 一覧のファイル名 = export する一覧の名前。項目の種類の複数形 camelCase(ドメイン名・Registry を付けない)
 - fork の拡張点は fork 自身のフォルダ(fork が足したドメイン・lib)の `extensionPoints.ts` に宣言する。上流の持ち主のフォルダには足さない(旧い `extensionPoints.<x>.ts` は生成が止まり、移し方 = 共有の棚の印の移行の notice を案内する)
 - 省略できるキーと受け口でない点: API「宣言のキー」
+- **型だけの入口**(D33、注文 37): ドメインでない持ち主(lib・枠・proxies・門番・ルート)の点の `type.from` は、その持ち主の `@/<持ち主>/points`(lib は package.json の入口 `"./points"`、ほかは `<持ち主>/points.ts`)だけ。`points.ts` は約束の型だけを出す(`export type` だけ。型の定義は元の場所に 1 つ)。差す側の項目はここだけを型として読む。外れた宣言は `pnpm generate extensions`・`pnpm check extensions` が止める。fork の項目の import は段 3 の道具 `.notices/20261123-040814-district-stage3.points-entries.mjs` が書き換える。ドメインの点は問わない
+- **常設の宣言**(ドメインだけ、D22・D53・注文 35): どの機能の規則にも載らず常に開くドメインは、自分の `extensionPoints.ts` に `export const alwaysOpen = true;`(字面の true だけ。点を持たないドメインはこの 1 行だけのファイル)。読み手は同じ `declarations.mjs`、地区の地図の行の `alwaysOpen`。規則の `domains` に載るのに宣言がある・どちらも無いドメインは `pnpm generate district-map` が止める。lib・枠などは宣言できない(門番を持たず閉じない)。点の欄 `alwaysOn`(門番を掛けずに読む一覧)とは別の物
 
 ### 差替点(ちょうど 1 つ要る点、D24・D53)
 
@@ -47,16 +49,19 @@ sender: { change: "replace", default: "src/domains/x/sender.default.ts", type: {
 ### plugs の点(差す側の自分のフォルダから集める増設点、D38・D40・D41・D53)
 
 ```ts
-routeDevices: { change: "add", plugs: true, export: "plug", type: { from: "@/lib/routeFactory/points", name: "RouteDevicePlug" }, side: "server", max: 1, target: "wiring" },
+routeFactoryDevice: { change: "add", plugs: true, export: "plug", type: { from: "@/lib/routeFactory", name: "AnyRouteDevicePlug" }, side: "server", shape: "object", max: 1, target: "wiring" },
 ```
 
 - 項目は差す側の自分のフォルダ `<ドメイン>/plugs/<点の名前>/<名前>.ts(x)`(フォルダ形 `<名前>/index.ts(x)`。lib の項目は `<lib>/plugs/…`)。差す側 = 地区の地図の domains と lib の地区。fork は上流のドメイン・lib の中に足さず、自分のドメインか lib に置く(intake.txt の行は無い)
 - 点の名前はリポ全体で一意(plugs/ の下の点の名前のフォルダで差す先を決める)。plugs/ の直下は点の名前のフォルダだけで、知らない点の名前は止める
 - 一覧は配列で、項目 = `{ domain, name, requires, plug }`(`load: "lazy"` は `plug` の代わりに `load: () => import(…)`)。`domain` = 差したドメインのフォルダ名(lib の項目は null)、`requires` = そのドメインの domainEntry の requires。同じ名前は `<差す側>/<名前>` で区別して許す
 - 使う時に門番で閉じたドメインの項目を外す: server・proxy は `gate.plugs(list)`、client は `useGate().plugs(list)`(項目のドメインか requires の相手のどれかが閉じていれば外す、lib の項目は外さない)。生成された登録表には掛けない(D26)
-- `max` を超える項目の数は生成で止める。空の一覧は `[]` で、点の持ち主が自分の既定で動く(例: `gate.plugs(routeDevices)[0]?.plug ?? <lib の「端末なし」>`、D53)
+- `max` を超える項目の数は生成で止める。空の一覧は `[]` で、点の持ち主が自分の既定で動く(例: API の Factory の端末の点 `gate.plugs(routeFactoryDevice)[0]?.plug` が無ければ lib の「端末なし」、D53)
+- ちょうど 1 つの点(`required: true`、`max: 1` と一緒だけ、D53・注文 30): 項目が 0 個なら生成で止める(2 個以上は max が止める)。上流の項目は常設のドメインが差し、1 行スイッチ(`<名前>.ts` → `<名前>.default.ts`)にして項目を差したドメインの extensionPoints.ts に差替点として宣言する。fork は 2 つ目を足さず `<名前>.replace.ts` に向け替える。集める側は素の名前のスイッチを項目にし(export は既定から読む)、`.default`・`.replace` は項目にしない。例: API の Factory の利用者 `routeFactoryUser`・レート制限 `routeFactoryRateLimit`。埋められるのは常設のドメイン(`alwaysOpen`)か lib の項目だけ(閉じうるドメインの項目は生成で止める、注文 35)
 - 並び = `<差す側>/<名前>` の順。`order: "declared"` は項目の `export const order = <数>`(字面)→ `<差す側>/<名前>`。`key` の点は字面で読める鍵の全体の一意を生成で止める(どの項目とぶつかったかを出す)
-- 書けないキー: `dir`・`files`・`ignore`・`shape`・`derive`・`literalKeys`・`overrideOf`・`alwaysOn`(項目のフォルダ・形・上書き・導出は受け口のフォルダの点だけ)。今の増設点を plugs へ移すのは段 3
+- 書けないキー: `dir`・`ignore`(項目のフォルダは差す側の plugs/<点>/ に決まる)。点の名前は持ち主の名前で始める(段 3、注文 24: userCleanupHandlers・settingFields …。adminBulkActions は core/admin の 1 点)
+- 受け口のフォルダの点と同じに使える欄(注文 25): `overrideOf`(上流の項目の隣の `<名前>.override.ts`、files の点は項目のフォルダの中の `<ファイル>.override.ts`。intake.txt に `add src/domains/**/plugs/<点>/…override…` の行)/ `key`(全体で一意)+ `literalKeys`(鍵の字面の union 型 `<点>Key`)/ `shape: "object"`(名前を鍵にした `<点>Map` と型 `<点>Map`。名前は差す側をまたいで一意。plugs の点では `key` と併用できる: 端末の種類は kind の型を `<点>Map` から導く、注文 27)/ `derive`・`pureImports`・`requireText`(plugs の項目にも効く)/ `files`(項目 = フォルダ、plug に `folder`)/ `alwaysOn`(常に読む一覧: 読み手は gate.plugs を掛けず、項目の enabled が自分で閉じる)。一覧はどれも `{ domain, name, requires, plug | load }` の配列で、使う時に門番で絞ってから鍵の表を作る。保存した行の鍵の定義(設定の欄・保管の用途・財布の履歴の理由・紹介報酬のグループの表示)は登録表と同じく絞らない(D26)。server と client の両方から呼ぶ組み立て器は絞り `PlugsFilter`(`@/featureGate/client` の型)を引数で受ける
+- `itemsOf: "<点>"`(files と一緒に): 同じ宣言の files の plugs の点の項目のフォルダ(plugs/<その点>/<名前>/)の別のファイルを読む点。1 つの項目のファイルを 1 か所に保ち、側(server・client)の違う一覧を分けて出す(例: 連絡のレイアウト messagingLayouts の layout.ts と、itemsOf の messagingLayoutEmails の email.tsx・messagingLayoutInApps の inApp.tsx)
 
 ### 項目
 
@@ -97,16 +102,23 @@ routeDevices: { change: "add", plugs: true, export: "plug", type: { from: "@/lib
 ### 宣言のキー
 
 - 省略できるキー:
-  - `plugs: true` … 項目を差す側の `<ドメイン>/plugs/<点の名前>/` から集める増設点(上の「plugs の点」。`dir` の代わり)
+  - `plugs: true` … 項目を差す側の `<ドメイン>/plugs/<点の名前>/` から集める増設点(上の「plugs の点」。`dir` の代わり)。`itemsOf: "<点>"` … 同じ宣言の files の plugs の点の項目のフォルダを読む(上の「plugs の点」)
   - `max: <1 以上の整数>` … 増設点の上限(plugs の点は超えたら生成で止める。空なら点の持ち主の既定で動く、D24・D53)
+  - `required: true` … plugs で `max: 1` の点だけ。項目がちょうど 1 つ要る(0 個は生成で止める。上の「plugs の点」のちょうど 1 つの点)
   - `order: "file" | "declared"` … 増設点の順位の並び(plugs の点: <差す側>/<名前> の順 / 項目の `export const order`。意味がある点だけ)
   - `key: "<プロパティ>"` … 一覧を `Record<string, T>` にする(各項目の値のそのプロパティが鍵。重複は読み込み時に例外。null プロトタイプなので外から来た名前で引いても `constructor` などに当たらない)
   - `literalKeys: true` … `key` と一緒に使い、鍵の文字列を一覧の型に残す(項目の型が鍵を文字列リテラルで持つこと。登録済みの名前の union を型で導く点)
   - `load: "lazy"` … 項目を import せず `{ name, load: () => import(…) }` の配列にする(必要なときだけ読む。key・derive とは併用不可)
   - `target: "wiring"` … 一覧を `src/wiring/<持ち主のフォルダ名>.ts` に出す(lib が持ち主の点。同じ lib の点は 1 本にまとめる)
-  - `ignore: ["<ファイル名・フォルダ名>", …]` … 受け口の直下にある、項目でないファイルとフォルダ(proxy の骨組み・proxies のテーマのフォルダなど)
+  - lib の結び目 `export const wire = { name, export, side, registers? }`(同じ extensionPoints.ts、点の外に 1 つ、D31): `target: "wiring"` の plugs の点の一覧と一緒に、`src/wiring/<lib>.ts` の末尾に結び目を書く。一覧は門番で閉じたドメインの項目を外してから渡す(D26)
+    - `side: "server"` → `export const <export> = <name>({ <点>: gate.plugs(<点>), … })`(`<name>` は lib の入口 `@/lib/<lib>` が出す作り手。例 `serverErrorReport` = `wireServerErrorReport(…)`)
+    - `side: "client"` → ファイルの先頭に `"use client"`、子を包む部品 `<export>` が `<name>`(lib の Provider)に `{ <点>: useGate().plugs(<点>), … }` を渡す(例 `FormInputsRoot` → `FormInputsProvider`)
+    - `registers: "<interface>"`(client だけ、key を持つ点と一緒)… 項目の key の字面(全体で一意)を lib の interface に広げる(`declare module "@/lib/<lib>"`、例 `RegisteredFormInputs`)
+    - 止める物: 未知のキー・識別子でない name / export・side が server | client でない・registers が client でない、`target: "wiring"` の plugs の点の無い lib の wire、key の点の無い registers
+    - wiring どうしは読まないので(D32)、複数の読み手が要る結び目(失敗の記録など)はここで生成物に置く
+  - `ignore: ["<ファイル名・フォルダ名>", …]` … 受け口の直下にある、項目でないファイルとフォルダ(骨組みのファイルなど)
   - `files: "*/<ファイル名>"` … 受け口の 1 段下の決まった名前のファイルが項目(デモの `*/_demo.ts`)。項目名 = フォルダ名で、一覧の各項目に `folder: "<フォルダ名>"` が付く(一覧の型は `folder` を持つ)。ファイルの無いフォルダは項目でない。フォルダの名前に fork の印は付けない
-  - `shape: "object"` … 一覧を `{ <項目の名前>: 項目 }` の null プロトタイプの object で出す(キーを型に残す。`key`・`load`・`files` とは併用不可)。同じ名前は失敗
+  - `shape: "object"` … 一覧を `{ <項目の名前>: 項目 }` の null プロトタイプの object で出す(キーを型に残す。`load`・`files` とは併用不可、`key` は plugs の点だけ併用可)。同じ名前は失敗
   - `pureImports: true` … 項目から値 import を推移的に辿り、`zod` と src の下の純関数・値以外(react・next・server-only・サービス・部品・DB の定義)へ届いたら失敗。型だけの import は辿らない(`pureImports.mjs`)
   - `requireText: "<字面>"` … 項目のファイルにその字面が無ければ失敗(setting の `.default(`)
   - `overrideOf: ["<属性>", …]` … 項目の隣の `<名前>.override.ts` の `export const override = { … }` を一覧に重ねる(一部の上書き)。書けるのは挙げた属性だけ。対象の項目が受け口に無ければ失敗(孤立)、`overrideOf` の無い点の受け口に置いた override も失敗。上の Tier の項目にだけ置ける(fork が自分で足した項目への override は `pnpm workflow ownership check` の override-own。fork の項目は直接書き換える)。上流は出さない(`overrides.mjs`)。空のファイルは不在と同じ
@@ -198,7 +210,7 @@ fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印�
 5. 上書きの対象の点(`overrides`): 隣の上書き `edit <glob の最後の拡張子を .override.ts に>`(多段で下の Tier が親の上書きを書き換える)、`addable` の点は対象そのものも `add <glob>`
 6. route の隣の置き換え: `_layout` / `_screen` の下の `*.replace.{ts,tsx}`・下のリポの枠の宣言 `frame.override.ts`
 7. 生成器: 各 `phase.json` の `regions` = `region`、`outputs` = `generated`(最後: 同じファイルなら生成物が効く。`scripts/runner/phases/README.md`)
-- scripts の受け口: なし(ドメインのタスク・移行は fork 自身のドメインの `src/domains/<ドメイン>/scripts/{tasks,migrations}/`、`src/lib/task/README.md`。常時実行の例外は門番の受け口 src/featureGate/alwaysOnExceptions/ に移った)
+- scripts の受け口: なし(ドメインのタスク・移行は fork 自身のドメインの `src/domains/<ドメイン>/scripts/{tasks,migrations}/`、`src/lib/task/README.md`。常時実行の例外の置き場は無い: 前の scripts/proxies/alwaysOnExceptions と src/featureGate/alwaysOnExceptions・dependencyExceptions は生成器が止める、注文 36)
 
 区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても `pnpm workflow ownership check` は通る(検査は基準の区画を読む)。区画の外の行は手書き。一覧の数(`一覧 N`)には数えない。
 

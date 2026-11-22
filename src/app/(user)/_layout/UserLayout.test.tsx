@@ -35,8 +35,9 @@ mock.module("@/featureGate/client", {
     }),
   },
 });
-// 未読のお知らせのモーダル(messaging の受け取り箱の部品。出すかは部品の hook が門 messagingInbox と config で決める)
-mock.module("@/domains/core/messaging/components/InboxUnreadModal", { namedExports: { InboxUnreadModal: marker("modal") } });
+// 枠に重ねる部品(点 userOverlays。上流は messaging の未読のお知らせのモーダル。出すかは部品の hook が門 messagingInbox と config で決める)。
+// 一覧を門番で絞って描く FrameParts を目印に(枠はドメインを読まない、D25)
+mock.module("@/app/_layout/FrameParts", { namedExports: { FrameParts: marker("modal") } });
 mock.module(here("./BottomNav/index.tsx"), { namedExports: { UserBottomNav: marker("bottomnav") } });
 mock.module(here("./BottomNav/BottomNavSpacer.tsx"), { namedExports: { BottomNavSpacer: marker("spacer") } });
 /** 既定のボトムナビの項目(既定 = 1 件。空のときスペーサーごと描かず高さの変数も書かないことは test ごとに書き換えて戻す) */

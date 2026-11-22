@@ -8,9 +8,9 @@
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 
-mock.module("@/domains/core/analytics/extensions/coinIssuanceSources", {
+mock.module("@/domains/core/analytics/extensions/analyticsCoinIssuanceSources", {
   namedExports: {
-    coinIssuanceSources: [
+    analyticsCoinIssuanceSources: [
       {
         key: "grant",
         kind: "issuance",
@@ -25,7 +25,7 @@ mock.module("@/domains/core/analytics/extensions/coinIssuanceSources", {
         }),
       },
       { key: "sales", kind: "revenue", aggregate: async () => ({ current: 300, previous: 200 }) },
-    ],
+    ].map((plug) => ({ domain: "analytics", name: plug.key, requires: [], plug })),
   },
 });
 

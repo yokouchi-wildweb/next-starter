@@ -15,8 +15,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import type { Setting } from "@/domains/core/setting/entities";
-import { fields } from "@/domains/core/setting/extensions/fields";
-import { sections } from "@/domains/core/setting/extensions/sections";
+import { fields, openSections } from "@/domains/core/setting/definitions";
+import { useGate } from "@/featureGate/client";
 import { buildSectionForm } from "@/domains/core/setting/utils/sectionForm";
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
@@ -25,7 +25,7 @@ import { useRouter } from "@/lib/unsavedGuard";
 import { useUpdateSetting } from "./useUpdateSetting";
 
 export type UseSettingSectionFormOptions = {
-  /** 節の key(setting/sections の定義) */
+  /** 節の key(点 settingSections の定義、definitions.ts の openSections。閉じたドメインの節は無い) */
   sectionKey: string;
   /** 今の設定値(そのロールに許されたキーだけ) */
   setting: Setting;
@@ -45,7 +45,8 @@ export function useSettingSectionForm({
   redirectPath = DEFAULT_REDIRECT_PATH,
   codeKeys = NO_CODE_KEYS,
 }: UseSettingSectionFormOptions) {
-  const section = sections[sectionKey];
+  const gate = useGate();
+  const section = openSections(gate.plugs)[sectionKey];
   const form = useMemo(
     () => buildSectionForm(sectionKey, fields, setting as unknown as Record<string, unknown>, codeKeys),
     [sectionKey, setting, codeKeys],

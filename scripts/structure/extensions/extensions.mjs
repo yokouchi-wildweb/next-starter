@@ -7,7 +7,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, posix } from "node:path";
 
-import { classifyDottedName, oldMarkerProblem, DECLARATION_NAME, EXTENSIONS_DIR_NAME, PLUGS_DIR_NAME, SEARCH_ROOT, isListPoint, isPlugsPoint } from "../../../src/lib/districtMap/index.mjs";
+import { classifyDottedName, oldMarkerProblem, DECLARATION_NAME, EXTENSIONS_DIR_NAME, PLUGS_DIR_NAME, SEARCH_ROOT, WIRE_NAME, isListPoint, isPlugsPoint } from "../../../src/lib/districtMap/index.mjs";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 
 import { collectPoints } from "../../../src/lib/districtMap/node.mjs";
@@ -36,6 +36,7 @@ const ITEM_NAME = /^[A-Za-z][A-Za-z0-9]*$/;
 // テスト・宣言(extensionPoints.<x>.ts の旧い形は宣言の読み手 src/lib/districtMap/declarations.mjs が止める)は項目でない
 const isSkippedFile = (name) => /\.(test|spec|d)\.[cm]?tsx?$/.test(name) || !/\.tsx?$/.test(name) || classifyDottedName(name).base === DECLARATION_NAME;
 const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const markOf = (exportName) => new RegExp(`^export\\s+const\\s+${exportName}\\b`, "m");
 
 /** 項目の名前の判定(印なしの <名前>.ts(x) か <名前>/ だけ。旧い fork の印は止めて移し方を案内する)。{ name } か { problem } */
@@ -77,8 +78,9 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs) {
       else if (!isBlankSource(readFileSync(join(abs, entry.name), "utf8"))) problems.push(`${label}: この受け口の点は override を受けない(宣言に overrideOf が無い)`);
       continue;
     }
-    // <名前>.replace は 1 行スイッチの既定の置き換え。受け口の項目ではない(孤立は switches.mjs が止める)
-    if (entry.isFile() && classifyDottedName(entry.name).kind === "replace") continue;
+    // <名前>.replace・<名前>.default は 1 行スイッチ <名前>.ts(x) の既定と置き換え。項目は素の名前のスイッチの方(ちょうど 1 つの点の上流の項目、
+    // 差替点の宣言は項目を差したドメインの extensionPoints.ts。スイッチの形と孤立は switches.mjs が止める、注文 30)
+    if (entry.isFile() && ["replace", "default"].includes(classifyDottedName(entry.name).kind)) continue;
     let itemFile;
     if (entry.isDirectory()) {
       if (entry.name === EXTENSIONS_DIR_NAME || entry.name.startsWith(".") || ignore.has(entry.name) || otherDirs.has(posix.join(rel, entry.name))) continue;
@@ -102,7 +104,9 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs) {
       continue;
     }
     seen.set(place.name, label);
-    const text = readFileSync(join(repoRoot, itemFile), "utf8");
+    // 1 行スイッチの項目(隣に <名前>.default.ts(x))は既定の中身で export を見る(置き換えも既定と同じ export の形)
+    const switchDefault = entry.isFile() ? [".ts", ".tsx"].map((ext) => `${rel}/${place.name}.default${ext}`).find((f) => existsSync(join(repoRoot, f))) : undefined;
+    const text = readFileSync(join(repoRoot, switchDefault ?? itemFile), "utf8");
     const hits = points.filter((p) => markOf(p.spec.export).test(text));
     const exportsList = points.map((p) => `export const ${p.spec.export}`).join(" / ");
     if (hits.length === 0) {
@@ -240,21 +244,50 @@ function renderPoint(point, items) {
 
 /**
  * plugs の点の一覧: 項目 { domain, name, requires, plug }(load "lazy" は plug の代わりに load)の配列。
- * domain = 差したドメインのフォルダ名(lib の項目は null)、requires = そのドメインの requires。使う時に門番の gate.plugs で閉じたドメインの項目を外す(D26)
+ * domain = 差したドメインのフォルダ名(lib の項目は null)、requires = そのドメインの requires。使う時に門番の gate.plugs で閉じたドメインの項目を外す(D26)。
+ * alwaysOn の点は外さない(項目の enabled が自分で閉じる)。注文 25 の欄: overrideOf = 隣の <名前>.override.ts を plug に重ねる / files = folder を付ける /
+ * shape "object" = 名前を鍵にした <点>Map と型 <点>Map も出す(名前は差す側をまたいで一意)/ literalKeys = 鍵の字面の union 型 <点>Key
  */
 function renderPlugsPoint(point, items) {
   const { spec } = point;
   const T = spec.type.name;
-  const head = (item) => `domain: ${JSON.stringify(item.plug.domain)}, name: ${JSON.stringify(item.name)}, requires: [${item.plug.requires.map((r) => JSON.stringify(r)).join(", ")}]`;
-  const shape = (value) => `{ domain: string | null; name: string; requires: readonly string[]; ${value} }`;
+  // stages の点(注文 31): 項目に段 stage を付け、型は段の名前の union(骨組みの段も含む)
+  const stageType = Array.isArray(spec.stages) ? spec.stages.map((s) => JSON.stringify(s)).join(" | ") : null;
+  const head = (item) => `domain: ${JSON.stringify(item.plug.domain)}, name: ${JSON.stringify(item.name)}, requires: [${item.plug.requires.map((r) => JSON.stringify(r)).join(", ")}]${stageType ? `, stage: ${JSON.stringify(item.stage)}` : ""}`;
+  const shape = (value) => `{ domain: string | null; name: string; requires: readonly string[]; ${stageType ? `stage: ${stageType}; ` : ""}${value} }`;
+  const typeName = cap(point.name);
+  const lines = [];
+  if (spec.literalKeys && typeof spec.key === "string") {
+    const keyPattern = new RegExp(`\\b${spec.key}:\\s*["']([^"']+)["']`);
+    const keys = [...new Set(items.map((item) => keyPattern.exec(item.text ?? "")?.[1]).filter((k) => k !== undefined))].sort(byName);
+    lines.push(`/** 項目の ${spec.key} の字面(全体で一意) */`, `export type ${typeName}Key = ${keys.length === 0 ? "never" : keys.map((k) => JSON.stringify(k)).join(" | ")};`, "");
+  }
   if (spec.load === "lazy") {
     const list = items.map((item) => `  { ${head(item)}, load: () => import(${JSON.stringify(specifierOf(item.path))}).then((m) => m.${spec.export}) },`);
-    return { imports: [], lines: [`export const ${point.name}: ${shape(`load: () => Promise<${T}>`)}[] = ${list.length === 0 ? "[]" : `[\n${list.join("\n")}\n]`};`] };
+    lines.push(`export const ${point.name}: ${shape(`load: () => Promise<${T}>`)}[] = ${list.length === 0 ? "[]" : `[\n${list.join("\n")}\n]`};`);
+    return { imports: [], lines };
   }
-  const alias = (item) => `${point.name}_${item.plug.domain ?? item.source}_${item.name}`;
+  const alias = (item) => `${point.name}_${item.plug.domain ?? item.source}_${item.name.replace(/[^A-Za-z0-9]/g, "_")}`;
   const imports = items.map((item) => `import { ${spec.export} as ${alias(item)} } from ${JSON.stringify(specifierOf(item.path))};`);
-  const list = items.map((item) => `  { ${head(item)}, plug: ${alias(item)} },`);
-  return { imports, lines: [`export const ${point.name}: ${shape(`plug: ${T}`)}[] = ${list.length === 0 ? "[]" : `[\n${list.join("\n")}\n]`};`] };
+  for (const item of items.filter((i) => i.override)) imports.push(`import { override as ${alias(item)}_override } from ${JSON.stringify(specifierOf(item.override))};`);
+  const value = (item) => {
+    const parts = [`...${alias(item)}`];
+    if (item.override) parts.push(`...${alias(item)}_override`);
+    if (item.folder) parts.push(`folder: ${JSON.stringify(item.folder)}`);
+    return parts.length === 1 ? alias(item) : `{ ${parts.join(", ")} }`;
+  };
+  if (spec.shape === "object") {
+    const map = `${point.name}Map`;
+    const entries = items.map((item) => `  ${item.name}: ${value(item)},`);
+    lines.push(`const ${map} = ${entries.length === 0 ? "{}" : `{\n${entries.join("\n")}\n}`} as const satisfies Readonly<Record<string, ${T}>>;`);
+    lines.push(`/** 名前(項目のファイル名)を鍵にした型。一覧は門番で絞ってから使う */`, `export type ${typeName}Map = typeof ${map};`);
+    const list = items.map((item) => `  { ${head(item)}, plug: ${map}.${item.name} },`);
+    lines.push(`export const ${point.name}: ${shape(`plug: ${T}`)}[] = ${list.length === 0 ? "[]" : `[\n${list.join("\n")}\n]`};`);
+    return { imports, lines };
+  }
+  const list = items.map((item) => `  { ${head(item)}, plug: ${value(item)} },`);
+  lines.push(`export const ${point.name}: ${shape(`plug: ${T}${spec.files ? " & { folder: string }" : ""}`)}[] = ${list.length === 0 ? "[]" : `[\n${list.join("\n")}\n]`};`);
+  return { imports, lines };
 }
 
 /** derive featureTables の導出の表: ドメイン(フォルダ・表・汎用 API の住所・持つ機能)と cron の task(住所・読むドメイン)。開閉は src/featureGate/ruleList.ts */
@@ -278,7 +311,8 @@ function renderGateTables({ domains, cronTasks, settingSections = [] }) {
 function checkSettingSections(repoRoot, points, itemsByPoint) {
   const problems = [];
   for (const point of points.filter((p) => p.spec.derive === "settingSections")) {
-    const sections = points.find((p) => p.owner === point.owner && p.name === "sections");
+    // 節の点: 同じ持ち主の sections(plugs の点は持ち主の名前で始まる <持ち主>Sections、注文 24 Q1)
+    const sections = points.find((p) => p.owner === point.owner && (p.name === "sections" || p.name === `${p.owner.slice(p.owner.lastIndexOf("/") + 1)}Sections`));
     const keyOf = (i) => /\bkey:\s*["']([^"']+)["']/.exec(i.text)?.[1];
     const sectionItems = sections ? itemsByPoint.get(sections) : [];
     const seen = new Map();
@@ -310,7 +344,48 @@ function renderFields(alias, fields) {
   return Object.entries(fields).map(([k, v]) => `${k}: ${literal(v)}`).join(", ");
 }
 
-function renderFile(points, itemsByPoint) {
+/**
+ * lib の結び目(D31): 宣言 export const wire から src/wiring/<lib>.ts の末尾に書く。一覧は門番で絞ってから lib に渡す(D26)。
+ * server = <export> = <name>({ <点>: gate.plugs(<点>), … })(点がどれも shape "object" なら <name><<点>Map, …>) / client = 子を包む部品 <export> が <name> に { <点>: useGate().plugs(<点>) } を渡す。
+ * registers = 項目の key の字面(全体で一意、plugs.mjs)を lib の interface に広げる(登録名を型に載せる)
+ * @returns {{ directive: string | null, imports: string[], lines: string[] }}
+ */
+function renderWire(wire, points, itemsByPoint) {
+  const { spec, owner } = wire;
+  const entry = `@/${owner.slice(`${SEARCH_ROOT}/`.length)}`;
+  const args = `{ ${points.map((p) => `${p.name}: gate.plugs(${p.name})`).join(", ")} }`;
+  if (spec.side === "server") {
+    // 点がどれも shape "object" なら、項目の具体の型を残す <点>Map の型を宣言の順に型引数で渡す(利用者の型などを lib の作り手の戻り値へ運ぶ)
+    const typeArgs = points.every((p) => p.spec.shape === "object") ? `<${points.map((p) => `${cap(p.name)}Map`).join(", ")}>` : "";
+    return { directive: null, imports: ['import { gate } from "@/featureGate";', `import { ${spec.name} } from ${JSON.stringify(entry)};`], lines: [`export const ${spec.export} = ${spec.name}${typeArgs}(${args});`] };
+  }
+  const lines = [];
+  if (spec.registers) {
+    const keys = [];
+    for (const p of points.filter((point) => typeof point.spec.key === "string")) {
+      const pattern = new RegExp(`\\b${p.spec.key}:\\s*["']([^"']+)["']`);
+      for (const item of itemsByPoint.get(p) ?? []) {
+        const key = pattern.exec(item.text ?? "")?.[1];
+        if (key !== undefined) keys.push(key);
+      }
+    }
+    const union = keys.length === 0 ? "never" : [...new Set(keys)].sort(byName).map((k) => JSON.stringify(k)).join(" | ");
+    lines.push(`declare module ${JSON.stringify(entry)} {`, `  // 登録名(項目の ${points.map((p) => p.spec.key).filter(Boolean).join("・")} の字面)を型に載せる`, `  interface ${spec.registers} extends Record<${union}, true> {}`, "}", "");
+  }
+  lines.push(
+    `export function ${spec.export}({ children }: Readonly<{ children: ReactNode }>) {`,
+    "  const gate = useGate();",
+    `  return createElement(${spec.name}, ${args}, children);`,
+    "}",
+  );
+  return {
+    directive: '"use client";',
+    imports: ['import { createElement, type ReactNode } from "react";', "", 'import { useGate } from "@/featureGate/client";', `import { ${spec.name} } from ${JSON.stringify(entry)};`],
+    lines,
+  };
+}
+
+function renderFile(points, itemsByPoint, wire = null) {
   const sources = [...new Set(points.map((p) => p.declaredIn))].join("・");
   const types = new Map();
   for (const p of points) {
@@ -320,16 +395,21 @@ function renderFile(points, itemsByPoint) {
     if (p.spec.derive === "featureTables") for (const extra of ["GatedCronTask", "GatedDomain", "GatedSettingSection"]) names.add(extra);
     types.set(p.spec.type.from, names);
   }
+  const knot = wire ? renderWire(wire, points, itemsByPoint) : null;
   const out = [
     headerFor(sources),
-    ...points.map((p) => isPlugsPoint(p.spec) ? `// ${p.name}: 差す側の <ドメイン>/${PLUGS_DIR_NAME}/${p.name}/<名前>.ts(x) か <名前>/index.ts(x)(lib は <lib>/${PLUGS_DIR_NAME}/…)の export const ${p.spec.export}(並びは${p.spec.order === "declared" ? "項目の order → " : ""}<差す側>/<名前> の順、使う時に gate.plugs で閉じたドメインの項目を外す)` : p.spec.files ? `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/${p.spec.files} の export const ${p.spec.export}(folder = フォルダ名、並びはフォルダ名の順${p.spec.overrideOf ? `。隣の ${filesOverrideNamesOf(p.spec.files)[0]} の ${p.spec.overrideOf.join("・")} を重ねる` : ""})` : `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/<名前>.ts(x) か <名前>/index.ts(x) の export const ${p.spec.export}(並びはファイル名の順)`),
+    ...points.map((p) => isPlugsPoint(p.spec) ? `// ${p.name}: 差す側の <ドメイン>/${PLUGS_DIR_NAME}/${p.spec.itemsOf ?? p.name}/${p.spec.files ? p.spec.files : "<名前>.ts(x) か <名前>/index.ts(x)"}(lib は <lib>/${PLUGS_DIR_NAME}/…)の export const ${p.spec.export}${Array.isArray(p.spec.stages) ? ` と段 export const stage` : ""}(並びは${p.spec.order === "declared" ? "項目の order → " : ""}${Array.isArray(p.spec.stages) ? `段(${p.spec.stages.join(" → ")}。骨組みだけの段 ${(p.spec.skeletonStages ?? []).join("・") || "なし"})→ ` : ""}<差す側>/<名前> の順、${p.spec.alwaysOn ? "常に読む: gate.plugs を掛けず項目の enabled で閉じる" : "使う時に gate.plugs で閉じたドメインの項目を外す"}${p.spec.overrideOf ? `。隣の <名前>.override.ts の ${p.spec.overrideOf.join("・")} を重ねる` : ""})` : p.spec.files ? `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/${p.spec.files} の export const ${p.spec.export}(folder = フォルダ名、並びはフォルダ名の順${p.spec.overrideOf ? `。隣の ${filesOverrideNamesOf(p.spec.files)[0]} の ${p.spec.overrideOf.join("・")} を重ねる` : ""})` : `// ${p.name}: ${posix.normalize(posix.join(p.owner, p.spec.dir))}/<名前>.ts(x) か <名前>/index.ts(x) の export const ${p.spec.export}(並びはファイル名の順)`),
+    ...(knot ? [`// 結び目: ${wire.declaredIn} の ${WIRE_NAME}(一覧を門番で絞って lib の ${wire.spec.name} に渡す)`] : []),
     "",
+    ...(knot?.directive ? [knot.directive, ""] : []),
+    ...(knot ? [...knot.imports, ""] : []),
     ...[...types.entries()].sort(([a], [b]) => byName(a, b)).map(([from, names]) => `import type { ${[...names].sort(byName).join(", ")} } from ${JSON.stringify(from)};`),
   ];
   const bodies = points.map((p) => renderPoint(p, itemsByPoint.get(p)));
   const imports = bodies.flatMap((b) => b.imports);
   if (imports.length > 0) out.push("", ...imports);
   for (const body of bodies) out.push("", ...body.lines);
+  if (knot) out.push("", ...knot.lines);
   out.push("");
   return out.join("\n");
 }
@@ -340,10 +420,97 @@ function renderFile(points, itemsByPoint) {
  * @returns {{ points: object[], itemsByPoint: Map<object, object[]>, outputs: Record<string, string>, intake: { path: string, content: string } | null, switches: object[], overrides: object[], problems: string[] }}
  *   intake = 受け口の一覧(intake.txt)の生成区画を作り直した中身(一覧の数には入れない。intake.txt の無い fixture は null)
  */
+/** proxy の骨組みのファイル(src/proxies の直下で項目でない物、注文 31) */
+const PROXIES_SKELETON = ["extensionPoints.ts", "featureGate.ts", "index.ts", "redirect.ts", "types.ts"];
+const OLD_PROXY_ITEM = /^export\s+const\s+(handler|decorator)\b/m;
+
+/**
+ * 古い置き場の proxy の項目(段 3 の前の受け口 src/proxies/<名前>.ts と src/proxies/redirects/)は読まれなくなるので止める。
+ * 項目は差す側の <ドメイン>/plugs/proxyHandlers・proxyDecorators・proxyRedirects/<名前>.ts(D30、段 3 の道具が動かす)
+ * @param {string} repoRoot
+ * @returns {string[]}
+ */
+export function oldProxyItemProblems(repoRoot) {
+  const dir = join(repoRoot, "src/proxies");
+  if (!existsSync(dir)) return [];
+  const problems = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory() && entry.name === "redirects") {
+      problems.push("src/proxies/redirects/: 転送の規則の古い置き場。自分のドメインの plugs/proxyRedirects/<名前>.ts へ(段 3 の道具が動かす)");
+      continue;
+    }
+    if (!entry.isFile() || !/\.tsx?$/.test(entry.name) || PROXIES_SKELETON.includes(entry.name) || /\.test\./.test(entry.name)) continue;
+    const match = OLD_PROXY_ITEM.exec(readFileSync(join(dir, entry.name), "utf8"));
+    if (match) {
+      const point = match[1] === "handler" ? "proxyHandlers" : "proxyDecorators";
+      problems.push(`src/proxies/${entry.name}: proxy の ${match[1]} の古い置き場。自分のドメインの plugs/${point}/<名前>.ts へ(${match[1] === "handler" ? 'export const stage = "<段>" も足す。' : ""}段 3 の道具が動かす)`);
+    }
+  }
+  return problems;
+}
+
+/** 段 3 で畳んだ古い置き場(注文 32): 残っていれば読まれないので移す先を出して止める */
+const OLD_FRAME_PLACES = [
+  { dir: "src/app/_providers", message: "fork の Provider の古い口(ForkProviders、注文 32 で畳んだ)。自分のドメインの plugs/rootProviders/<名前>.tsx に export const provider と export const stage = \"project\" へ(段 3 の道具が動かす)" },
+  { dir: "src/app/_layout/adminCommand", message: "管理者コマンドの点の古い置き場。カテゴリは自分のドメインの plugs/adminCommandCategories/<名前>.tsx、プラグインは plugs/adminCommandPlugins/<名前>.tsx へ(段 3 の道具が動かす)" },
+];
+
+/**
+ * 古い置き場の枠の項目(段 3 の前の src/app/_providers・src/app/_layout/adminCommand)を止める
+ * @param {string} repoRoot
+ * @returns {string[]}
+ */
+export function oldFramePlaceProblems(repoRoot) {
+  return OLD_FRAME_PLACES.filter((p) => existsSync(join(repoRoot, p.dir))).map((p) => `${p.dir}/: ${p.message}`);
+}
+
+/** 消した例外の受け口(注文 36、D22・D34)。項目が残っていれば代わりのやり方を出して止める */
+const OLD_EXCEPTION_PLACES = [
+  { dir: "src/featureGate/alwaysOnExceptions", message: "常時実行の入口の例外の受け口は無くなった。exception(結線が閉じうるドメインを読む)→ 読みをやめ、ゲートの無い地区が宣言した点の項目としてドメインから受け取る / registry(fork の手書きの登録表)→ 自分のドメインの plugs/<点>/<名前>.ts の項目にする(D22)" },
+  { dir: "src/featureGate/dependencyExceptions", message: "依存の検査の例外の受け口は無くなった。読む側のドメインの domainEntry.ts の requires・gate.enabled(\"<規則>\")・src/featureGate/required/<規則>.ts のどれかで守るか、読みを点の項目にする(D22)" },
+  { dir: "scripts/proxies/alwaysOnExceptions", message: "常時実行の入口の例外の旧い置き場(受け口そのものも無くなった)。src/featureGate/alwaysOnExceptions と同じく、読みを点の項目にする(D22)" },
+];
+
+/**
+ * 消した例外の受け口(src/featureGate/alwaysOnExceptions・dependencyExceptions と、もっと旧い scripts/proxies/alwaysOnExceptions[.<x>.mjs])を止める
+ * @param {string} repoRoot
+ * @returns {string[]}
+ */
+export function oldExceptionPlaceProblems(repoRoot) {
+  const problems = OLD_EXCEPTION_PLACES.filter((p) => existsSync(join(repoRoot, p.dir))).map((p) => `${p.dir}/: ${p.message}`);
+  const proxiesDir = join(repoRoot, "scripts/proxies");
+  if (existsSync(proxiesDir)) {
+    for (const name of readdirSync(proxiesDir).filter((n) => n.startsWith("alwaysOnExceptions."))) problems.push(`scripts/proxies/${name}: ${OLD_EXCEPTION_PLACES[2].message}`);
+  }
+  return problems;
+}
+
+/** 型だけの入口の名前(D33、注文 37): ゲートの無い地区の持ち主の点の約束の型は <持ち主>/points(lib は入口 "./points")から出す */
+export const POINTS_ENTRY_NAME = "points";
+
+/**
+ * ドメインでない持ち主(lib・枠・proxies・門番・ルート)の点の type.from は、その持ち主の型だけの入口 @/<持ち主>/points だけ(D33)。
+ * 呼ぶのは実物の木を見る入口(generate.mjs・check.mjs)。planExtensions の fixture は型の置き場を問わない
+ * @param {{ owner: string, name: string, declaredIn: string, spec: Record<string, any> }[]} points
+ * @returns {string[]}
+ */
+export function pointsEntryProblems(points) {
+  const problems = [];
+  for (const p of points) {
+    if (p.owner.startsWith("src/domains/") || !p.spec.type || typeof p.spec.type.from !== "string") continue;
+    const entry = `@/${p.owner.slice("src/".length)}/${POINTS_ENTRY_NAME}`;
+    if (p.spec.type.from !== entry) {
+      problems.push(`${p.declaredIn}: ${p.name}: 約束の型は持ち主の型だけの入口から出す(type.from は "${entry}"、今 "${p.spec.type.from}"。${p.owner}/${POINTS_ENTRY_NAME}.ts に export type { ${p.spec.type.name ?? "…"} } を置く、D33)`);
+    }
+  }
+  return problems;
+}
+
 export function planExtensions(repoRoot) {
   const identity = readForkIdentity(repoRoot);
-  const { points: declared, problems } = collectPoints(repoRoot);
+  const { points: declared, wires, problems } = collectPoints(repoRoot);
   problems.unshift(...identity.errors);
+  problems.push(...oldProxyItemProblems(repoRoot), ...oldFramePlaceProblems(repoRoot), ...oldExceptionPlaceProblems(repoRoot));
   // writer の点の一覧は別の生成器が書く・overrides の点は一覧を持たない: ここでは探さず書かない(宣言の数にだけ入る)
   const listPoints = declared.filter((p) => isListPoint(p.spec));
   const points = listPoints.filter((p) => !isPlugsPoint(p.spec));
@@ -408,15 +575,22 @@ export function planExtensions(repoRoot) {
   const plugs = discoverPlugs(repoRoot, listPoints, discoverDir);
   problems.push(...plugs.problems);
   for (const [p, items] of plugs.itemsByPoint) itemsByPoint.set(p, items);
-  problems.push(...checkSettingSections(repoRoot, points, itemsByPoint));
+  problems.push(...checkSettingSections(repoRoot, listPoints, itemsByPoint));
 
   const files = new Map();
   for (const p of listPoints) files.set(outputOf(p), [...(files.get(outputOf(p)) ?? []), p]);
   const outputs = {};
+  // 結び目(lib の export const wire)は同じ lib の wiring の点の一覧のファイルに書く。wiring の点の無い lib の結び目は止める
+  const wireOf = new Map(wires.map((w) => [w.owner, w]));
+  for (const w of wires) {
+    if (!listPoints.some((p) => p.owner === w.owner && p.spec.target === "wiring" && isPlugsPoint(p.spec))) problems.push(`${w.declaredIn}: ${WIRE_NAME} は target "wiring" の plugs の点と一緒に宣言する(結び目は src/wiring/<lib>.ts に一覧と並ぶ)`);
+    if (w.spec.registers && !listPoints.some((p) => p.owner === w.owner && typeof p.spec.key === "string")) problems.push(`${w.declaredIn}: ${WIRE_NAME} の registers は key を持つ点と一緒に(登録名 = 項目の key の字面)`);
+  }
   for (const [path, filePoints] of [...files.entries()].sort(([a], [b]) => byName(a, b))) {
     const names = filePoints.map((p) => p.name);
     if (new Set(names).size !== names.length) problems.push(`${path}: 同じ名前の点が 1 つの wiring に重なる`);
-    outputs[path] = renderFile(filePoints, itemsByPoint);
+    const wire = filePoints[0].spec.target === "wiring" ? (wireOf.get(filePoints[0].owner) ?? null) : null;
+    outputs[path] = renderFile(filePoints, itemsByPoint, wire);
   }
   Object.assign(outputs, derivedOutputs);
   const { isTier1 } = identity;

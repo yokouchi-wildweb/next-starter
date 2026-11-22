@@ -12,11 +12,7 @@ import { getRoleCategory } from "@/domains/core/user/constants";
 import { UserTable } from "@/domains/core/user/entities/drizzle";
 
 import { messagingConfig } from "../../../config";
-import { categories } from "../../../extensions/categories";
-import { channels } from "../../../extensions/channels";
-import { enrichers } from "../../../extensions/enrichers";
-import { layoutEmails } from "../../../extensions/layoutEmails";
-import { layouts } from "../../../extensions/layouts";
+import { categories, channels, enrichers, layoutEmails, layouts } from "../lists";
 import { enrichersFor } from "../sendMessage/definition";
 import { adminSendableKinds } from "../sendMessage/templateDefinition";
 import { TEMPLATE_MESSAGE_KEY } from "../sendMessage/templateDefinition";

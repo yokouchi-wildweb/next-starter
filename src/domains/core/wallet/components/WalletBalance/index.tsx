@@ -59,7 +59,7 @@ export function WalletBalance({
   const showTransferBanner = useGate().enabled("payment");
   const phoneVerificationOpen = useGate().enabled("phoneVerification");
 
-  // 購入の特典の表示(受け口 purchaseBonuses。提供元が 0 なら空 = 今まで通り)
+  // 購入の特典の表示(点 walletPurchaseBonuses。提供元が 0 なら空 = 今まで通り)
   const { forPackage: packageBonuses } = usePurchaseBonuses();
 
   // クーポン状態管理

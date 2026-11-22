@@ -84,7 +84,7 @@ access: { read: "public", write: "none" },
 
 ### メンテナンス中の書き込みの停止
 
-設定のメンテナンスの期間（`settingService.isMaintenanceActive()`）は、全 Factory の土台が書き込みを止める。
+設定のメンテナンスの期間（`settingService.isMaintenanceActive()`）は、全 Factory の土台が書き込みを止める。判定は点 `routeFactoryMaintenance`（0〜1 個、`./extensionPoints.ts`、項目の型 `RouteMaintenancePlug`）の項目で、上流は `domains/core/setting` の `plugs/routeFactoryMaintenance/maintenance.ts`。空ならメンテナンスで止めない。
 
 - 止まる物: メソッドが `POST`・`PUT`・`PATCH`・`DELETE` の要求。応答は 503 + `{ message, code: "maintenance" }`（`MAINTENANCE_CODE`、`@/lib/errors`）。`operationType` ではなくメソッドで決まる
 - 止まらない物: `GET`・`HEAD`・`OPTIONS`（期間を読みもしない）
@@ -321,7 +321,7 @@ export const POST = createApiRoute(
 - ハンドラが返した `Response`（`NextResponse` 以外も）は**そのまま**返す（redirect・binary・SSE・Cookie 付きの応答）。それ以外の値は `NextResponse.json(value ?? null)`
 - `DomainError` → `{ message, code?, details? }` + その status。`code`（機械可読な分類）・`details` は指定したときだけ載る（`src/lib/errors/README.md`）
 - それ以外の例外 → `{ message: "サーバーでエラーが発生しました" }` + 500（元の message はサーバーログだけ）
-- 想定外の失敗（DomainError 以外と status 500 以上の DomainError）は束の口 `serverError.onServerError`（省略可）へ path・method・headers・requestId・operation を渡して待つ。口があればその記録が 1 失敗 1 行（`console.error` の `<operation> failed:` は出さない）、無ければ `console.error`。400 番台の DomainError は口へ渡さない。上流の wiring はサーバーの失敗の記録（`src/wiring/serverErrors/README.md`）へ結ぶ
+- 想定外の失敗（DomainError 以外と status 500 以上の DomainError）は束の口 `serverError.onServerError`（省略可）へ path・method・headers・requestId・operation を渡して待つ。口があればその記録が 1 失敗 1 行（`console.error` の `<operation> failed:` は出さない）、無ければ `console.error`。400 番台の DomainError は口へ渡さない。上流の wiring はサーバーの失敗の記録（`src/lib/serverErrorReport/README.md`）へ結ぶ
 - 認可の拒否 → 401 / 403 の JSON（`code`、汎用 CRUD は `domain` / `operation` も）、404 は `text/plain`
 - 利用者を確かめられない（DB 障害）→ 503 の JSON（`code: "route_user_unavailable"`、上の「主体（`ctx.user`）」）。クライアントは再試行
 - レート制限で止めた → 429 + `Retry-After`(サブネット単位は `silent: true`)/ reCAPTCHA の中間スコア → 428(v2 チャレンジを求める)
@@ -330,21 +330,26 @@ export const POST = createApiRoute(
 ## Extension
 
 - fork が独自の主体の Factory を作るときは `src/wiring/<名前>.ts` で汎用版から作る（`src/wiring/README.md`）
-  - 束の `maintenance`(`RouteMaintenanceDeps`: `isActive`・`canBypass`)に `settingService.isMaintenanceActive` と `canBypassMaintenance` を結ぶ（上流の `src/wiring/apiRoute.ts` と同じ形。結ばないとその Factory のルートはメンテナンスで止まらない）
-  - 束の `serverError.onServerError` に `@/wiring/serverErrors` の `serverErrorReport.report` を結ぶ（`scope: "api"`、`name` = operation。上流の `src/wiring/apiRoute.ts` と同じ形。結ばないと 500 が既定の記録と送り先に残らない）
+  - 束の `maintenance`(`RouteMaintenanceDeps`: `isActive`・`canBypass`)に、生成物 `@/wiring/routeFactory` の点 `routeFactoryMaintenance` の項目を門番で絞って結ぶ（上流の `src/wiring/apiRoute.ts` と同じ形。結ばないとその Factory のルートはメンテナンスで止まらない）
+  - 束の `serverError.onServerError` に生成物 `@/wiring/serverErrorReport` の `serverErrorReport.report` を結ぶ（`scope: "api"`、`name` = operation。上流の `src/wiring/apiRoute.ts` と同じ形。結ばないと 500 が既定の記録と送り先に残らない）
 
 ## Internals
 
 - `createRouteFactories(deps)` が全 Factory を作る。
-  - `deps` = `{ user: RouteUserDeps, device: RouteDeviceDeps, rateLimit: RouteRateLimitDeps, domains: DomainRegistry, gate?: RouteGateDeps, serverError?: RouteServerErrorDeps, maintenance?: RouteMaintenanceDeps }`。
+  - `deps` = `{ user: RouteUserDeps, device?: RouteDeviceDeps, rateLimit: RouteRateLimitDeps, domains: DomainRegistry, gate?: RouteGateDeps, serverError?: RouteServerErrorDeps, maintenance?: RouteMaintenanceDeps }`。
+  - `device`(省略可)= 省略時は lib の「端末なし」(`noDevice.ts`: 端末を認証しない。端末だけのルートは 401、orUser のルートは利用者の枝だけ)。点 `routeFactoryDevice` が空(端末を差すドメインが閉じて門番が外した)ときの既定(D53)
   - `maintenance`(省略可): 土台が認可の後・デモスキップの前に `maintenance.ts` の判定を通す。書き込みのメソッドで宣言が無い時だけ `isActive()` を読み、期間中ならバイパスを `authorize` と同じ `resolveUser`(持ち主の cache でリクエスト内 1 回)で確かめる。lib は設定も役割も知らない
   - `gate`(省略可)= 門番の口 `{ isClosed(pathname) }`: 全 Factory の土台(`runRoute`)が最初に要求の住所を聞き、閉なら主体の解決・認可・ハンドラの前に `not_found` と同じ 404(本文 `Not Found`、機能名を出さない)。
   - proxy の門番の 404 が先に効くので、通り抜けたときの安全網。
   - 土台の最初の文は `await connection()`(next/server)で、門番の 404 を含むどの早期 return より前。cacheComponents の build は request を読まずに返す応答を静的に焼き付けるため(cacheComponents off では何も変えない)。route.ts の側には書かない。
   - lib は門番を知らず、`src/wiring/apiRoute.ts` が `gate.path` で結ぶ(Factory に機能名の指定欄は無い)。
-  - 主体の型(利用者・status・端末の種類ごとの型・認証済みの端末)は型引数で受け、lib は features を import しない(lint `import-boundaries/lib-no-domains`)。
-  - 具体の型を結ぶのは `src/wiring/apiRoute.ts`（全項目必須、型は `deps.ts`）。
-- 束の持ち主: 利用者 = `domains/core/auth` の `apiRouteUserDeps`、端末 = `domains/core/pairedDevice` の `apiRouteDeviceDeps`。結ぶのは `src/wiring/apiRoute.ts`
+  - 主体の型(利用者・status・端末の種類ごとの型・認証済みの端末)は型引数で受け、lib はドメインを import しない(lint `import-boundaries/district-no-domains`)。
+  - 具体の型を結ぶのは `src/wiring/apiRoute.ts`（型は `deps.ts`。具体の型は生成された一覧の `<点>Map` の型から `plugs.ts` の取り出しの型で導く）。
+- 束は lib の 3 つの点の項目(宣言 `extensionPoints.ts`、約束の型 `plugs.ts`、一覧は生成物 `src/wiring/routeFactory.ts`、どれも shape "object" で項目の具体の型を残す):
+  - `routeFactoryUser` = 利用者の解き方、ちょうど 1 つ(`required`)。上流の項目 `domains/core/auth/plugs/routeFactoryUser/session.ts`(1 行スイッチ、既定 `session.default.ts`、fork は差替点 `authRouteFactoryUser` で `session.replace.ts` に替える)
+  - `routeFactoryRateLimit` = レート制限、ちょうど 1 つ(`required`)。上流の項目 `domains/core/rateLimit/plugs/routeFactoryRateLimit/ipRate.ts`(1 行スイッチ、差替点 `rateLimitRouteFactoryRateLimit`)
+  - `routeFactoryDevice` = 登録端末、0〜1 個(`max: 1`)。上流の項目 `domains/core/pairedDevice/plugs/routeFactoryDevice/pairedDevice.ts`(端末の種類ごとの型は値を持たない欄 `types` で運ぶ)。pairedDevice が閉じれば門番が外し「端末なし」
+  - 結ぶのは `src/wiring/apiRoute.ts`(一覧を `gate.plugs` で絞って渡す。ドメインを読まない、D22)
 - `runRoute` はハンドラを `runWithAuditContext`(どの深さからでも `getAuditContext()` で actor / IP / UA を取れる)と `runWithUserDirtyTracking`(`markUserDirty` した対象をハンドラの後に反映)で包む
 - `makeRouteCore`（共通の前後処理）→ `makeCreateApiRoute` / `makeDomainRoutes` / `makeCreateMeRoute` / `makeCreateDeviceRoute` / `makeEnforceAccessRule`
 
@@ -357,7 +362,7 @@ export const POST = createApiRoute(
 | `page-authz/session-api-callsite` | `src/app/api/**`（補助ファイルを含む）でセッション取得・`requireRole`・token だけのセッション・Cookie の解析を import しない | `eslint-rules/page-authz.mjs` |
 | 型 | `RouteAccess` に `"custom"` が無い・ctx に `session` が無い・`ctx.user` の null 可は `"public"` だけ・`user: "skip"` は `"public"` だけ | `routeAccess.typecheck.ts`（`pnpm typecheck`） |
 
-テスト: `pnpm test src/wiring/routeFactory.test.mts`（Factory の契約）/ `pnpm test eslint-rules/route-http-export.test.mjs` / `pnpm test eslint-rules/import-boundaries.test.mjs` / `pnpm test src/lib/routeFactory/createDeviceRoute.test.mts src/domains/core/pairedDevice src/wiring/apiRoute.test.mts` / `pnpm test src/app/api/collectionEntriesRoute.test.mts` / `pnpm test src/lib/routeFactory/maintenance.test.mts`（メンテナンスの停止・宣言・バイパス）。
+テスト: `pnpm test src/wiring/routeFactory.test.mts`（Factory の契約）/ `pnpm test eslint-rules/route-http-export.test.mjs` / `pnpm test eslint-rules/import-boundaries.test.mjs` / `pnpm test src/lib/routeFactory/createDeviceRoute.test.mts src/lib/routeFactory/noDevice.test.mts src/domains/core/pairedDevice` / `pnpm test src/app/api/collectionEntriesRoute.test.mts` / `pnpm test src/lib/routeFactory/maintenance.test.mts`（メンテナンスの停止・宣言・バイパス）。
 
 ## Related
 

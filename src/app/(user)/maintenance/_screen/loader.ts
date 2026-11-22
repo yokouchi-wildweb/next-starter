@@ -3,7 +3,7 @@
 // 規則と差し替え手順: src/lib/screens/README.md §4
 //
 // 仕様: 範囲 root(src/app/guard.ts)の createLoader(access public)。グローバル設定からメンテナンス終了時刻(無ければ null)と、終了後の遷移先(設定ドメインの config の maintenance.redirectAfterEnd)を返す。
-// redirect / notFound は無い。メンテナンス時間外のサーバー側リダイレクトは Proxy 層(maintenanceProxy)が担い、
+// redirect / notFound は無い。メンテナンス時間外のサーバー側リダイレクトは Proxy 層(setting の plugs/proxyHandlers/maintenance.ts)が担い、
 // 開いたまま終了時刻を迎えたときのクライアント側リダイレクトは Screen の MaintenanceAutoRedirect が担う。
 
 import "server-only";

@@ -1,9 +1,11 @@
 ---
 paths:
-  - "src/domains/**/{domain.json,entities/**,messages/*.ts}"
+  - "src/domains/**/{domain.json,entities/**,plugs/messages/*.ts}"
   - "src/domains/*/*.ts"
-  - "src/domains/*/{components,hooks,services,constants,types,adminBulkActions}/**"
-  - "src/{registry/**,**/extensions/**,**/*.generated.ts,lib/*/generated/**,wiring/dbAgent.ts}"
+  - "src/domains/*/{components,hooks,services,constants,types}/**"
+  - "src/domains/*/plugs/adminBulkActions/**"
+  - "src/{registry/**,**/extensions/**,**/*.generated.ts,lib/*/generated/**}"
+  - "src/wiring/{cron,dbAgent,formSuite,googleTag,pageGuard,routeFactory,serverErrorReport,startup}.ts"
   - "scripts/structure/domain/**"
   - "src/app/admin/**"
   - "src/app/route-map.jsonl"
@@ -29,7 +31,7 @@ code_generation:
 - hand-owned (not in the data, never overwritten): files you add under wrappers/, formEntities.ts, any other file you add (other constants/ files, hooks with non-generated names), app/admin/(protected)/\<domains\>/**/_components/
 - role / profile: pnpm generate role (forge runs it) writes user/extensions/roles.ts, userProfile/extensions/profile{Bases,Configs,Schemas,Tables}.ts (declared writer "role:generate") and userProfile/entities/profiles/\<name\>/ | no edit
   - fork changes values only in \<json name\>.override.ts beside the JSON (added roles: label, hasProfile, enabled; core roles in coreRoles/: label, hasProfile; profiles: tags, searchFields, audit), upstream ships none | ref: src/domains/core/userProfile/README.md
-- form inputs: pnpm generate extensions writes src/wiring/formInputs/extensions/inputs.ts from inputs/\<name\>.ts | unknown formInput (not builtin, not registered) stops generation of generate:true domains and profiles | ref: src/wiring/formInputs/inputs/README.md
+- form inputs: pnpm generate extensions writes src/wiring/formSuite.ts (list + knot FormInputsRoot) from \<domain or lib\>/plugs/formInputs/\<name\>.ts | unknown formInput (not builtin, not registered) stops generation of generate:true domains and profiles | ref: src/lib/formSuite/README.md Extension
 - `generate` (domain.json, default true; a per-category generateFiles key is not supported and stops generation) | true = all categories rewritten every run (collection children: the generator picks their categories)
   - must hand-edit a generated file or re-applying hand logic gets costly → `"generate": false` = the generator never touches that domain (no writes and no checks in any run, `--only` / `-i` included; regenerate once = set it back to true)
   - after switching a domain to false: `pnpm generate domain -- --unmark <Domain>` removes the generated marks from its files (a mark left on a hand-managed file makes pnpm check rules fail)

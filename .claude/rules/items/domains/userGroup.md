@@ -6,7 +6,7 @@ paths:
 # domains/userGroup
 what: named, reusable sets of users (kind dynamic / scheduled / static) | entry services/server: userGroupEvaluator, staticMemberWriter
 use: userGroups
-change: add = criteria/<name>.ts (receptacle criteria) | override = criteria/<name>.override.ts (enabled, label, description) | counterpart = src/config/domains/userGroup.config.ts
+change: add = <domain>/plugs/userGroupCriteria/<name>.ts (point userGroupCriteria) | override = <domain>/plugs/userGroupCriteria/<name>.override.ts (enabled, label, description) | counterpart = src/config/domains/userGroup.config.ts
 rules:
 using:
 - not_event_recipients: event recipients (followers etc.) are no group → the calling domain picks users itself, sends as sendMessageToMany `recipients`

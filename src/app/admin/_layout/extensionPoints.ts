@@ -6,7 +6,16 @@ export const extensionPoints = {
   adminHeader: {
     change: "replace",
     default: "src/app/admin/_layout/AdminHeader.default.tsx",
-    type: { from: "@/app/admin/_layout/AdminHeader.default", name: "AdminHeaderProps" },
+    type: { from: "@/app/admin/_layout/points", name: "AdminHeaderProps" },
+    side: "client",
+  },
+  // 枠に重ねる部品(ランチャー・ダイアログ): <ドメイン>/plugs/adminOverlays/<名前>.tsx の export const part(型 FramePart、@/app/_layout/types)。
+  // 枠はドメインを読まない(D25)、閉じたドメインの部品は門番が外す。上流の項目は 0
+  adminOverlays: {
+    change: "add",
+    plugs: true,
+    export: "part",
+    type: { from: "@/app/admin/_layout/points", name: "FramePart" },
     side: "client",
   },
 };

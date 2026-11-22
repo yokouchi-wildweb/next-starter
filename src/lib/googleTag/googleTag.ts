@@ -5,8 +5,8 @@
  * - すべて NEXT_PUBLIC_* env 駆動。未設定なら完全 no-op
  * - Firebase Analytics と window.gtag / dataLayer を共存（既存があれば再利用・上書き禁止）
  * - クライアント専用（SSR では何もしない）
- * - 流入経路の判別表は持たない: 呼び出し側が channels で渡す（root layout は src/wiring/GoogleTag.tsx 経由で
- *   userAcquisition の getChannelDefinitions を渡す）。渡されなければ招待などの手動キャンペーン値は送らない
+ * - 流入経路の判別表は持たない: 呼び出し側が channels で渡す（root layout は生成物 src/wiring/googleTag.ts の結び目経由で、
+ *   点 googleTagChannels の項目(上流は userAcquisition の getChannelDefinitions)を渡す）。渡されなければ招待などの手動キャンペーン値は送らない
  */
 
 const GOOGLE_TAG_ID = process.env.NEXT_PUBLIC_GOOGLE_TAG_ID; // GA4: G-XXXXXXX
@@ -83,6 +83,12 @@ export type GoogleTagChannelDefinition = {
   kind: "clickId" | "link";
   channel: { source: string; medium: string } | null;
 };
+
+/** 点 googleTagChannels(./extensionPoints.ts)の項目: 判別表の行を返す(描くたびに読む。上流は userAcquisition) */
+export type GoogleTagChannelSource = {
+  definitions: () => GoogleTagChannelDefinition[];
+};
+
 
 export type GoogleTagInitOptions = {
   /**

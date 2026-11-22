@@ -166,10 +166,10 @@ await broadcast([textMessage("キャンペーン開催中！")]);
 
 ### Webhook イベント処理
 
-イベントごとの処理は `src/domains/core/userLineProfile/webhookHandlers/<名前>.ts` に置き、`pnpm generate extensions` する(上流の項目は 0)。route は署名検証・振り分け・応答だけを持つ。同じ `eventType` の項目は一覧の順に全部呼ばれ、1 つ失敗してもログに残して続行する(LINE へは 200)。
+イベントごとの処理は `<ドメイン>/plugs/userLineProfileWebhookHandlers/<名前>.ts` に置き、`pnpm generate extensions` する(上流の項目は 0)。route は署名検証・振り分け・応答だけを持つ。同じ `eventType` の項目は一覧の順に全部呼ばれ、1 つ失敗してもログに残して続行する(LINE へは 200)。
 
 ```ts
-// src/domains/core/userLineProfile/webhookHandlers/follow.ts
+// <ドメイン>/plugs/userLineProfileWebhookHandlers/follow.ts
 import type { LineWebhookEventHandler } from "@/domains/core/userLineProfile/types/webhook";
 import { replyMessage, textMessage } from "@/lib/line";
 

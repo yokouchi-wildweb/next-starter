@@ -106,7 +106,7 @@ getMetaFieldsByWalletType("regular_coin");
 区分（`reason_category`: bonus / admin_adjustment …）より細かい「どの施策の付与か」を、機械向けの名前で行に持たせる（管理画面のコイン創出の施策ごとの内訳に使う）。集計の軸の決まりは札 reason_key。
 
 - **施策を足す = 種類の項目 1 つ + 書き込みで `reasonKey` を渡す**:
-  1. `src/domains/core/walletHistory/reasonKeys/<名前>.ts` に `export const reasonKey: WalletReasonKeyItem = { key, label, category, sortOrder? }` → `pnpm generate extensions`（型: `walletHistory/types/reasonKey.ts`。key の重複は一覧の読み込みで例外）
+  1. `<ドメイン>/plugs/walletHistoryReasonKeys/<名前>.ts` に `export const reasonKey: WalletReasonKeyItem = { key, label, category, sortOrder? }` → `pnpm generate extensions`（型: `walletHistory/types/reasonKey.ts`。key の重複は一覧の読み込みで例外）
   2. 書き込み（`adjustBalance` / `consumeReservedBalance` / `debitBalance` / `bulkAdjustByType` / `bulkAdjustByUsers` / `createWalletBulkAdjustJob`）で `reasonKey: "<key>"` を渡す
 - **区分は種類から決まる**: `reasonKey` を渡せば `reason_category` は項目の `category`。`reasonCategory` も渡して食い違う・未登録の key は書き手の誤りとして `DomainError` 500（`code: wallet_reason_key_mismatch | wallet_reason_key_unknown`）
 - `reasonKey` なしは今まで通り（`reasonCategory ?? "other"`、`reason_key` は null）
@@ -142,7 +142,7 @@ export const task: OneShotTask = {
 - 列 `reason_key` に index は置かない: 集計は `type`・`reason_category`・`created_at` で絞ってから GROUP BY する（既存の `(reason_category, created_at)` で足りる）。遅いと分かったら CONCURRENTLY で足す
 
 ```ts
-// src/domains/core/walletHistory/reasonKeys/rankBonus.ts（fork の施策）
+// <ドメイン>/plugs/walletHistoryReasonKeys/rankBonus.ts（fork の施策）
 import type { WalletReasonKeyItem } from "@/domains/core/walletHistory/types/reasonKey";
 export const reasonKey: WalletReasonKeyItem = { key: "rank_bonus", label: "ランクボーナス", category: "bonus" };
 
@@ -235,7 +235,7 @@ await walletService.adjustBalance(
 設定(上書き `src/config/domains/wallet.config.ts` の `expiration`。既定は `src/domains/core/wallet/config.ts`):
 
 ```typescript
-// config は段だけ。送信チャンネルは連絡のカテゴリー(walletExpiring・walletExpired)、文面は連絡定義(messages/expiringNotice.ts・expiredNotice.ts)
+// config は段だけ。送信チャンネルは連絡のカテゴリー(walletExpiring・walletExpired)、文面は連絡定義(plugs/messages/expiringNotice.ts・expiredNotice.ts)
 expiration: {
   regular_coin: {
     expirationDays: 180,
@@ -254,12 +254,12 @@ expiration: {
 ```
 
 - `notice` は省略可（省略 = 何も送らない）。`enabled` フラグは無く、空配列 / `null` が OFF を表す
-- 送信チャンネルはカテゴリーが決める: 予告 = カテゴリー `walletExpiring`(種別 transactional = 利用者は止められず、送るかはこの段が決める D207・D208。email・inApp)、本通知 = カテゴリー `walletExpired`(transactional、email・inApp)。全部の通貨・段で変えるならカテゴリーの上書き `src/domains/core/messaging/categories/<カテゴリー>.override.ts` の `channels`
+- 送信チャンネルはカテゴリーが決める: 予告 = カテゴリー `walletExpiring`(種別 transactional = 利用者は止められず、送るかはこの段が決める D207・D208。email・inApp)、本通知 = カテゴリー `walletExpired`(transactional、email・inApp)。全部の通貨・段で変えるならカテゴリーの上書き `src/domains/core/messaging/plugs/messagingCategories/<カテゴリー>.override.ts` の `channels`
 - `messageKey`(段・本通知ごとに任意): 送る連絡の鍵(省略 = 上流の `wallet.expiringNotice` / `wallet.expiredNotice`)。通貨・段ごとに送信チャンネルを変えたい fork は、その送信チャンネルのカテゴリーと、同じ vars を受ける連絡定義を自分のドメインに足して向ける(生成の一覧に無い鍵は cron が止まる)。前の設定の `channels` は無くなった(残っていると cron が止まって知らせる)
 - メールの無い利用者: メールの行が宛先なし(no_address)になり、ほかの送信チャンネルで届く
-- **文言**: 連絡の定義 `messages/expiringNotice.ts`（予告、鍵 `wallet.expiringNotice`）・`messages/expiredNotice.ts`（本通知、`wallet.expiredNotice`）。レイアウトの欄の中身（件名・札・宛名・本文・足元）を持つ。変える fork は隣に `<名前>.override.ts` を置く（段ごと・通貨ごとの文面の設定は無い。段で変えたいときは `{{daysBefore}}` を使う）
+- **文言**: 連絡の定義 `plugs/messages/expiringNotice.ts`（予告、鍵 `wallet.expiringNotice`）・`plugs/messages/expiredNotice.ts`（本通知、`wallet.expiredNotice`）。レイアウトの欄の中身（件名・札・宛名・本文・足元）を持つ。変える fork は隣に `<名前>.override.ts` を置く（段ごと・通貨ごとの文面の設定は無い。段で変えたいときは `{{daysBefore}}` を使う）
   - 差し込む名前: 共通 `{{currencyLabel}}`・`{{amount}}`・`{{displayName}}`（宛名、名前が無ければ「お客様」）・`{{serviceNameShort}}` / 予告 `{{expiresOn}}`・`{{daysBefore}}` / 本通知 `{{expiredOn}}`・`{{balanceAfter}}`
-  - 見た目: レイアウト `statement`（明細、`src/domains/core/messaging/layouts/statement/`）。欄: `badge` 見出しの札（「… からのお知らせ」、ロゴの下）→ `addressee` 宛名（「… 様」）→ 区切り → `body` 本文（改行はそのまま）→ 区切り → `footer`。見た目を替える fork はその描き方の `.replace`、文言は上書きの `values`
+  - 見た目: レイアウト `statement`（明細、`src/domains/core/messaging/plugs/messagingLayouts/statement/`）。欄: `badge` 見出しの札（「… からのお知らせ」、ロゴの下）→ `addressee` 宛名（「… 様」）→ 区切り → `body` 本文（改行はそのまま）→ 区切り → `footer`。見た目を替える fork はその描き方の `.replace`、文言は上書きの `values`
   - inApp は受け取り箱（`message_inbox_items`）に入る。題と本文はレイアウトの要約（題 = 件名、本文 = メールと同じ本文）
 - 送り方: 送る口 `messagingService.sendMessage`(送信チャンネルを渡さない。予告も本通知も種別 transactional なので受信者の好みでは止まらない、D208)。二重送信の鍵は `wallet-expiring:<通貨>:<日数>:<利用者>:<失効日>` / `wallet-expired:<履歴の id>`。ページごとの送信済みの除外は `messagingService.existingIdempotencyKeys`（送信の表と鍵の移し先の表の両方）
 - 全体設定 `walletConfig.expirationNoticeSettings`: `targetStatuses`（送信対象のユーザーステータス。既定 active / inactive）、
@@ -278,14 +278,14 @@ expiration: {
 予告は `sweepEnabled: true` の通貨にしか送られない。没収しない通貨（告知期間モード）に「○日に失効します」と
 告げると虚偽の通知になるため。
 
-### 購入の特典の表示（拡張点 purchaseBonuses）
+### 購入の特典の表示（拡張点 walletPurchaseBonuses）
 
-購入画面にランク特典・支払い方法の特典などを出す受け口。**表示だけ**で、特典の付与はサーバーの購入完了ポストフック（purchaseRequest の受け口 `completeHooks`）が行う。上流の提供元は 0（特典を持たない fork の画面は今まで通り）。
+購入画面にランク特典・支払い方法の特典などを出す受け口。**表示だけ**で、特典の付与はサーバーの購入完了ポストフック（purchaseRequest の点 `purchaseRequestCompleteHooks`）が行う。上流の提供元は 0（特典を持たない fork の画面は今まで通り）。
 
 ```
-purchaseBonuses/<key>.ts           ← 提供元（export const provider: PurchaseBonusProvider）。fork が置く
-purchaseBonuses/<key>.override.ts  ← 上の Tier の提供元の enabled・order を変える
-extensions/purchaseBonuses.ts      ← 一覧（生成物、pnpm generate extensions）
+<ドメイン>/plugs/walletPurchaseBonuses/<key>.ts           ← 提供元（export const provider: PurchaseBonusProvider）。fork が置く
+<ドメイン>/plugs/walletPurchaseBonuses/<key>.override.ts  ← 上の Tier の提供元の enabled・order を変える
+extensions/walletPurchaseBonuses.ts ← 一覧（生成物、pnpm generate extensions）
 hooks/usePurchaseBonuses.ts        ← 全提供元をまとめる hook（と純関数 orderedProviders / combinePurchaseBonusSources）
 types/purchaseBonus.ts             ← 提供元・特典・文脈の型
 ```
@@ -316,7 +316,7 @@ export function rankBonusAmount(purchaseAmount: number, ratePercent: number): nu
 ```
 
 ```typescript
-// src/domains/core/purchaseRequest/services/server/hooks/definitions/rankBonus.ts（付与。サーバー）
+// <ドメイン>/plugs/purchaseRequestCompleteHooks/rankBonus.ts（付与。サーバー）
 import type { PurchaseCompleteHook } from "@/domains/core/purchaseRequest/services/server/hooks/purchaseCompleteHookRegistry";
 import { rankBonusAmount } from "@/domains/rankBonus/utils/rankBonusAmount";
 
@@ -332,7 +332,7 @@ export const hook: PurchaseCompleteHook = {
 ```
 
 ```typescript
-// src/domains/core/wallet/purchaseBonuses/rankBonus.ts（表示。クライアント）
+// <ドメイン>/plugs/walletPurchaseBonuses/rankBonus.ts（表示。クライアント）
 import type { PurchaseBonusProvider } from "@/domains/core/wallet/types/purchaseBonus";
 import { useMyRankRate } from "@/domains/rankBonus/hooks/useMyRankRate"; // fork の hook(SWR)
 import { rankBonusAmount } from "@/domains/rankBonus/utils/rankBonusAmount";

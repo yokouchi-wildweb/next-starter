@@ -2,28 +2,28 @@
 // analytics の拡張点の宣言(リテラルだけ。pnpm generate extensions が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
-  // 日次ロールアップのメトリクス: rollupMetrics/<名前>.ts の export const metric(上流の項目は 0)
-  rollupMetrics: {
+  // 日次ロールアップのメトリクス: <ドメイン>/plugs/analyticsRollupMetrics/<名前>.ts の export const metric(上流の項目は 0)
+  analyticsRollupMetrics: {
     change: "add",
-    dir: "rollupMetrics",
+    plugs: true,
     export: "metric",
     type: { from: "@/domains/core/analytics/services/server/rollup/types", name: "RollupMetricConfig" },
     side: "server",
     alwaysOn: true,
   },
-  // コイン創出サマリーのソース: services/server/coinIssuance/sources/<名前>.ts の export const source
-  coinIssuanceSources: {
+  // コイン創出サマリーのソース: <ドメイン>/plugs/analyticsCoinIssuanceSources/<名前>.ts の export const source
+  analyticsCoinIssuanceSources: {
     change: "add",
-    dir: "services/server/coinIssuance/sources",
+    plugs: true,
     export: "source",
     type: { from: "@/domains/core/analytics/services/server/coinIssuance/types", name: "CoinIssuanceSource" },
     side: "server",
     alwaysOn: true,
   },
-  // 分析の除外条件のプロバイダ: exclusionProviders/<名前>.ts の export const provider(上流の項目は 0)
-  exclusionProviders: {
+  // 分析の除外条件のプロバイダ: <ドメイン>/plugs/analyticsExclusionProviders/<名前>.ts の export const provider(上流の項目は 0)
+  analyticsExclusionProviders: {
     change: "add",
-    dir: "exclusionProviders",
+    plugs: true,
     export: "provider",
     type: { from: "@/domains/core/analytics/services/server/exclusion/types", name: "AnalyticsExclusionProvider" },
     side: "server",

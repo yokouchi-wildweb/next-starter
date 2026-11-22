@@ -7,7 +7,7 @@ import type { SessionUser } from "@/domains/core/auth/entities/session";
 /**
  * メンテナンスモードのバイパス判定ロジック（単一情報源）
  *
- * このファイルが proxy（src/proxies/maintenance.ts）と
+ * このファイルが proxy の項目（../plugs/proxyHandlers/maintenance.ts）と
  * /api/health（src/app/api/health/route.ts）の両方から呼び出される。
  * バイパス条件を変更したい場合はここだけを編集すれば
  * サーバ判定とクライアントポーリング判定の両方に同時反映される。

@@ -1,6 +1,6 @@
 // src/domains/core/pairedDevice/services/server/kinds.ts
 //
-// kind 定義（一覧 kinds）の解決、scope の検証、管理権限の判定。
+// kind 定義（点 pairedDeviceKinds の項目、閉じたドメインの項目は門番で外す）の解決、scope の検証、管理権限の判定。
 
 import { and, eq, or, sql, type SQL } from "drizzle-orm";
 
@@ -18,7 +18,7 @@ import type {
 import { isValidScopePattern, scopeContains } from "@/domains/pairedDevice/utils/scopeContains";
 import { getRoleCategory } from "@/domains/core/user/constants";
 import { DomainError } from "@/lib/errors";
-import { kinds } from "@/domains/pairedDevice/extensions/kinds";
+import { pairedDeviceKinds } from "@/domains/pairedDevice/extensions/pairedDeviceKinds";
 import { gate } from "@/featureGate";
 
 /**
@@ -45,11 +45,18 @@ export function assertPairedDeviceEnabled(): void {
   }
 }
 
-const registry = kinds as Record<string, PairedDeviceKindDefinition | undefined>;
+// 門番の開閉はプロセスの間変わらない → 初回に組む(読み込みの途中で一覧を触らない)
+let memo: Readonly<Record<string, PairedDeviceKindDefinition | undefined>> | null = null;
+function kindRegistry(): Readonly<Record<string, PairedDeviceKindDefinition | undefined>> {
+  return (memo ??= Object.assign(
+    Object.create(null),
+    Object.fromEntries(gate.plugs(pairedDeviceKinds).map((entry) => [entry.plug.kind, entry.plug as PairedDeviceKindDefinition])),
+  ));
+}
 
 /** 登録済みの kind 定義。未登録は null */
 export function getPairedDeviceKind(kind: string): PairedDeviceKindDefinition | null {
-  return Object.prototype.hasOwnProperty.call(registry, kind) ? (registry[kind] ?? null) : null;
+  return Object.prototype.hasOwnProperty.call(kindRegistry(), kind) ? (kindRegistry()[kind] ?? null) : null;
 }
 
 /** 既定で許可するペアリング方式 */
@@ -92,7 +99,7 @@ export async function runDeviceVerify(
 
 /** 登録済みの kind 名の一覧 */
 export function listPairedDeviceKinds(): string[] {
-  return Object.keys(registry);
+  return Object.keys(kindRegistry());
 }
 
 /**
@@ -144,7 +151,7 @@ export async function resolveManageableScopes(
   user: SessionUser,
   kind: string,
 ): Promise<PairedDeviceManageableScopes> {
-  // admin は kind が registry から外れた端末（残骸）も一覧・失効できるよう、定義より先に判定する
+  // admin は kind が 登録から外れた端末（残骸）も一覧・失効できるよう、定義より先に判定する
   if (isAdminCategory(user)) return "all";
   const definition = getPairedDeviceKind(kind);
   if (!definition?.manageableScopes) return [];
@@ -201,7 +208,7 @@ export async function buildManageableDevicesWhere(
   user: SessionUser,
   kind?: string,
 ): Promise<SQL> {
-  // admin は全件（kind が registry から外れた端末を含む）
+  // admin は全件（kind が 登録から外れた端末を含む）
   if (isAdminCategory(user)) {
     return kind ? eq(PairedDeviceTable.kind, kind) : sql`true`;
   }

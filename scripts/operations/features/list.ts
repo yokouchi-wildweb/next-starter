@@ -11,7 +11,6 @@ const ALLOWED_LABEL: Record<string, string> = {
   gate: "名前で確かめる",
   route: "閉じる住所の下",
   required: "必須",
-  exception: "例外",
 };
 
 function label(dep: FeatureDescription["dependents"][number]): string {

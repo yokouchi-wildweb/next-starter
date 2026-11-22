@@ -2,7 +2,7 @@
 // 失効通知（予告・本通知）共通の送信処理
 //
 // 1ページ分の送信ジョブを受け取り、送信済みの除外 → 送信対象の絞り込み → 送信 を行う。
-// 文面は連絡の定義(messages/expiringNotice.ts・expiredNotice.ts)、送る口は messagingService.sendMessage。
+// 文面は連絡の定義(plugs/messages/expiringNotice.ts・expiredNotice.ts)、送る口は messagingService.sendMessage。
 // ジョブは定義に差し込む値(vars)を持ち、宛名(displayName)とサービスの短い名前はここで足す。
 // 送信チャンネルは連絡のカテゴリーが決める(D86)ので渡さない。メール未登録の人はメールの行が宛先なし(no_address)になり、ほかの送信チャンネルで届く。
 

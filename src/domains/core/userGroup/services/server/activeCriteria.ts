@@ -1,11 +1,13 @@
 // src/domains/core/userGroup/services/server/activeCriteria.ts
-// 使える条件の部品の一覧: 生成の一覧(fork の上書きを重ねた後)から enabled: false と、読む機能が閉(available() が false)の部品を外す。
+// 使える条件の部品の一覧: 生成の一覧(fork の上書きを重ねた後)から閉じたドメインの部品(gate.plugs)・enabled: false・読む機能が閉(available() が false)の部品を外す。
 // - 部品の一覧の API・定義の検査・評価の口・定期計算はどれもこの一覧を読む。外れた部品を指す定義は「知らない部品」の誤り
 //   (保存の時は 400、保存済みの定義は壊れた条件の 409)
 // - available は呼ぶたびに読む(門の値を読み直す)。enabled は読み込みの時に決まる
 // - inStaticGroup は止められない(例外の人と静的グループの条件が使う): enabled: false なら読み込みの時に投げる
 
-import { criteria } from "../../extensions/criteria";
+import { userGroupCriteria } from "@/domains/core/userGroup/extensions/userGroupCriteria";
+import { gate } from "@/featureGate";
+
 import type { UserGroupCriterion } from "../../types/criterion";
 
 /** 止められない部品 */
@@ -35,4 +37,9 @@ export function createActiveCriteria(all: CriteriaMap): CriteriaMap {
 }
 
 /** 本物の使える部品の一覧(生成の一覧から) */
-export const activeCriteria = createActiveCriteria(criteria);
+/** 閉じたドメインの部品を外し key で引く表(門番の開閉はプロセスの間変わらない) */
+export function criteriaByKey(entries: readonly { plug: UserGroupCriterion }[]): CriteriaMap {
+  return Object.assign(Object.create(null), Object.fromEntries(entries.map((entry) => [entry.plug.key, entry.plug])));
+}
+
+export const activeCriteria = createActiveCriteria(criteriaByKey(gate.plugs(userGroupCriteria)));

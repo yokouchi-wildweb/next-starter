@@ -4,7 +4,7 @@ import type { z } from "zod";
 
 import type { BaseEntity } from "@/lib/crud";
 
-import type { fields } from "../extensions/fields";
+import type { fields } from "../definitions";
 
 /** 全キーの値(キーの定義 ../fields/ から導く) */
 export type SettingValues = {

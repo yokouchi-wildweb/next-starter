@@ -1,7 +1,7 @@
 // マイルストーンフレームワークの型定義
 //
 // ベースリポジトリではフレームワークのみ提供。
-// 下流プロジェクトが services/server/definitions/<名前>.ts に具体的なマイルストーンを登録する。
+// 下流プロジェクトが <ドメイン>/plugs/milestoneDefinitions/<名前>.ts に具体的なマイルストーンを登録する。
 
 import type { TransactionClient } from "@/lib/drizzle";
 
@@ -96,7 +96,7 @@ export type MilestoneSeriesMarker = {
 };
 
 /**
- * 段階のあるシリーズ(受け口 definitions の 1 項目で、段階ごとの達成を持つ)。
+ * 段階のあるシリーズ(点 milestoneDefinitions の 1 項目で、段階ごとの達成を持つ)。
  * 読み手が評価のたびに stages() を呼び、段階ごとの MilestoneDefinition に展開する。
  *
  * - stages: 段階の一覧を返す関数。評価のたびに呼ぶ(config・setting から読める)。並びがその時の評価の順
@@ -134,7 +134,7 @@ export type MilestoneSeries<S = unknown> = {
   onAchieved?: (stage: S, params: MilestoneAchievedParams) => Promise<Record<string, unknown> | void>;
 };
 
-/** 受け口 definitions の 1 項目: 普通の定義か段階のあるシリーズ */
+/** 点 milestoneDefinitions の 1 項目: 普通の定義か段階のあるシリーズ */
 export type MilestoneItem = MilestoneDefinition | MilestoneSeries<any>;
 
 /** シリーズの段階の型を推すための恒等関数(項目のファイルで使う) */

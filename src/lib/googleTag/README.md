@@ -23,12 +23,12 @@ env:
 - サインアップ完了 `domains/core/auth/hooks/useSignupComplete`(/signup/complete の公開 hook): `useTransitionGuard` の正当遷移時のみ `fire("signup")`
 - コイン購入完了 `domains/core/purchaseRequest/components/PurchaseComplete`: `status==="completed"` で `fire("coinPurchase", { value, currency:"JPY", transactionId })`
 
-リファラー無視の追加(downstream): root layout で `@/wiring/GoogleTag` の `<GoogleTag ignoreReferrerPaths={[/^\/your\/return\/path/]} ignoreReferrerDomains={["your-psp.example"]} />`
+リファラー無視の追加(downstream): root layout で `@/wiring/googleTag`(生成物)の `<GoogleTag ignoreReferrerPaths={[/^\/your\/return\/path/]} ignoreReferrerDomains={["your-psp.example"]} />`
 
 ## API
 
 - `initGoogleTag(options?): void` — 冪等。gtag.js loader を 1 回だけ注入し、存在する ID のみ `config()`。既存の `window.gtag` / `dataLayer`(Firebase 等)を再利用。`options`(`GoogleTagInitOptions`)= `channels?`(判別表)・`ignoreReferrerPaths?: RegExp[]`・`ignoreReferrerDomains?: string[]`(どちらも既定にマージ)
-- `<GoogleTag channels? ignoreReferrerPaths? ignoreReferrerDomains? />` — `"use client"`。mount 時に `initGoogleTag()` を呼ぶ。root layout body に配置済み(判別表を結んだ `src/wiring/GoogleTag.tsx` 経由)
+- `<GoogleTag channels? ignoreReferrerPaths? ignoreReferrerDomains? />` — `"use client"`。mount 時に `initGoogleTag()` を呼ぶ。root layout body に配置済み(判別表を結んだ生成物 `src/wiring/googleTag.ts` の `GoogleTag` 経由)
 - `useGoogleAdsConversion()` → `{ fire }` — named コンバージョンを発火するフック。env 解決・dedup・mount ガードを内包
 - `trackGoogleAdsConversion({ sendTo, value?, currency?, transactionId? })` — 低レベル API(`sendTo` 空 or gtag 不在で no-op)
 - `GOOGLE_ADS_CONVERSIONS` — env から解決した named send_to レジストリ(`signup` / `coinPurchase`)
@@ -66,7 +66,7 @@ env:
 GA4 は utm_* / クリック ID しか流入元判定に使わず、招待リンク(`?invite=CODE`、userAcquisition/referral 参照)の独自パラメータは無視される。X 等でシェアされた招待リンクからの流入が「t.co / referral」や「(direct) / (none)」に分類されてしまうため、`initGoogleTag()` はランディング URL が invite のみ(utm_* もクリック ID も無い)の場合、GA4 config に `campaign_source` / `campaign_medium`(既定: `invite` / `invite`)と `ignore_referrer: true` を付与し、独自チャンネルとしてセッションを分類させる。
 
 - 判別表は `initGoogleTag({ channels })` / `<GoogleTag channels={…} />` で受け取る。値のある `link` の行のうち表の先の行の channel を送り、`clickId` の行・UTM があれば何もしない。渡さなければ何も足さない
-- root layout が描く `src/wiring/GoogleTag.tsx` は userAcquisition の公開の口 `getChannelDefinitions()` を結んだ版(流入経路の機能が閉じていれば空の表、紹介の機能が閉じていれば招待の行は出ない)
+- root layout が描く生成物 `src/wiring/googleTag.ts` の `GoogleTag` は、点 `googleTagChannels`(宣言 `./extensionPoints.ts`、項目の型 `GoogleTagChannelSource`)の項目の表を結び目 `wireGoogleTag`(`./wire.ts`)でつないだ版。上流の項目は userAcquisition の公開の口 `getChannelDefinitions()`(流入経路のドメインが閉じていれば門番が項目を外して空の表、紹介の機能が閉じていれば招待の行は出ない)
 - 優先順位はサービス側 DB 解析(userAcquisition の `classifyVisit`、同じ表)と同一(UTM > クリック ID > invite)。utm 併記リンクでは何もしない(GA 本来の判定を尊重)
 - GA 管理画面の設定は不要。チャンネルグループ表示で「invite」を独自チャンネルにまとめたい場合のみ、source=invite を条件にしたカスタムチャンネルグループを作成する(任意)
 - GA4 のチャンネルグループルールは独自パラメータを条件にできないため、GA 側設定だけではこの分類は実現できない(このコード側対応が唯一の自動化手段。ignore_referrer と同じく、この lib 経由のタグ計測にのみ効く)

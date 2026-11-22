@@ -15,7 +15,7 @@ import { dbAgentConfig } from "./config";
  * リクエストごとに呼ばれ、運営が編集する追加指示テキスト (setting 由来等) を返す。
  * 空 (null / undefined / 空白のみ) は「追加指示なし」。
  *
- * 項目: src/wiring/dbAgent/suffixProviders/<名前>.ts の export const provider
+ * 項目: 差す側の <ドメイン か lib>/plugs/dbAgentSuffixProviders/<名前>.ts の export const provider
  *
  * 安全上の注意: 返すテキストは「運営 (管理者) が作成した信頼テキスト」に限定すること。
  * エンドユーザー生成テキストを流し込んではならない (プロンプトインジェクション経路になる)。
@@ -24,7 +24,7 @@ export type DbAgentSystemSuffixProvider = () => Promise<
   string | null | undefined
 >;
 
-/** ドメイン知識のプロンプト断片(項目: src/wiring/dbAgent/promptFragments/、ファイル名の順に結合) */
+/** ドメイン知識のプロンプト断片(項目: <ドメイン か lib>/plugs/dbAgentPromptFragments/、<差す側>/<名前> の順に結合) */
 export type DbAgentPromptFragment = string;
 
 const BASE_PROMPT = `あなたは管理者向けの「データベース調査アシスタント」です。管理画面から自然言語で質問する管理者に代わって PostgreSQL データベースを調査し、結果をわかりやすく報告します。

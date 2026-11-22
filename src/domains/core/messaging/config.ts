@@ -52,7 +52,7 @@ export type MessagingConfig = {
   };
   /**
    * 受け取り箱の画面の値
-   * - showUnreadModal: 未読のお知らせのモーダル(InboxUnreadModal)を出す(既定 入)。上流の利用者の枠(src/app/(user)/_layout/UserLayout.tsx)が置く。
+   * - showUnreadModal: 未読のお知らせのモーダル(InboxUnreadModal)を出す(既定 入)。上流の利用者の枠の点 userOverlays の項目(./plugs/userOverlays/inboxUnread.tsx)。
    *   お知らせの機能(門 messagingInbox)が閉なら入でも出ない(取りに行かない)
    * - unreadModalPaths: モーダルを出す住所(完全一致。末尾 * で前方一致)
    */

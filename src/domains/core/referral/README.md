@@ -53,8 +53,8 @@ const columns = useMemo(() => [...createAdminInviteListColumns(), { header: "報
   ゲートは機能 `referral` の入切のみ（流入経路解析の記録の opt-in とは独立。
   解析も有効なら紹介流入が獲得チャンネルとしても集計される）。
   パラメータ名 `INVITE_LINK_PARAM`（`"invite"`、`lib/inviteLinkCookie.ts`）は本ドメインの物。userAcquisition は
-  その名前を判別表の行（`userAcquisition/channels/invite.ts`、紹介が閉じている間は出ない）として分類と GA4 に使うだけ。
-  実装: `lib/inviteLinkCookie.ts`（パラメータ名・cookie 定義）/ `src/proxies/inviteLink.ts`(保存) /
+  その名前を判別表の行（`userAcquisition/plugs/userAcquisitionChannels/invite.ts`、紹介が閉じている間は出ない）として分類と GA4 に使うだけ。
+  実装: `lib/inviteLinkCookie.ts`（パラメータ名・cookie 定義）/ `plugs/proxyDecorators/inviteLink.ts`(保存、proxy の項目) /
   `GET /api/referral/pending-invite-code` + `hooks/usePendingInviteCode`(取得) /
   auth `useInviteCodePrefill`(プリフィル)。リンク生成レシピは `src/domains/core/userAcquisition/README.md`
 - **ブラウザまたぎ対応（アプリ内ブラウザ → デフォルトブラウザ）**: X 等のアプリ内ブラウザで招待リンクを

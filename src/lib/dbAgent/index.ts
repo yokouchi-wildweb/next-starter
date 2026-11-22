@@ -14,7 +14,7 @@ export {
   type StreamDbAgentChatOptions,
 } from "./services/client/dbAgentClient";
 
-// 拡張点の型(src/wiring/dbAgent/extensionPoints.ts)
+// 拡張点の型(宣言 ./extensionPoints.ts。項目は import type でここから読む)
 export type { DbAgentPromptFragment, DbAgentSystemSuffixProvider } from "./prompt";
 
 // 設定

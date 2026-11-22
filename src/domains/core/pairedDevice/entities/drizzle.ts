@@ -15,7 +15,7 @@ import { defineHiddenColumns } from "@/lib/crud/server";
  * → 失効（revoked_at）で即座に無効。再ペアリングでトークンを差し替える（古いトークンは無効）。
  *
  * 設計ポイント:
- * - kind / scope の語彙と形は downstream が kinds/<名前>.ts で決める。
+ * - kind / scope の語彙と形は downstream が <ドメイン>/plugs/pairedDeviceKinds/<名前>.ts で決める。
  *   アップストリームは scope の中身を解釈しない（scopeSchema で検証するだけ）。
  * - 生トークンは DB に保存しない。token_hash（SHA-256）は hiddenColumns でサービス境界から出さない。
  *   未ペアリング・失効後は token_hash = null。

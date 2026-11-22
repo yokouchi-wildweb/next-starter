@@ -18,7 +18,8 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Trophy } from "lucide-react";
 import type { PersistedMilestoneResult } from "@/domains/core/milestone/types/milestone";
 import type { MilestoneRendererDefinition, MilestoneRendererProps } from "@/domains/core/milestone/types/milestoneRenderer";
-import { renderers } from "@/domains/core/milestone/extensions/renderers";
+import { milestoneRenderers } from "@/domains/core/milestone/extensions/milestoneRenderers";
+import { useGate } from "@/featureGate/client";
 import { DefaultMilestoneNotification } from "./DefaultMilestoneNotification";
 
 type MilestoneNotificationsProps = {
@@ -26,6 +27,11 @@ type MilestoneNotificationsProps = {
 };
 
 export function MilestoneNotifications({ results }: MilestoneNotificationsProps) {
+  // 描き方の項目(点 milestoneRenderers)を鍵で引く。閉じたドメインの項目は外す(既定の描き方になる)
+  const gate = useGate();
+  const renderers: Readonly<Record<string, MilestoneRendererDefinition>> = Object.fromEntries(
+    gate.plugs(milestoneRenderers).map((entry) => [entry.plug.key, entry.plug]),
+  );
   const achieved = results.filter((r) => r.achieved);
   if (achieved.length === 0) return null;
 

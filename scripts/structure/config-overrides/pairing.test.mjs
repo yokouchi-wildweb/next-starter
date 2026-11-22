@@ -15,6 +15,7 @@ const roots = [];
 after(() => roots.forEach((r) => rmSync(r, { recursive: true, force: true })));
 
 const EMPTY = "export default {};\n";
+const ALWAYS_OPEN = "export const alwaysOpen = true;\n";
 /** 揃った木: core と業務(fork が足した)のドメイン・宣言済みと宣言の無い lib・枠・proxies */
 const BASE = {
   "src/domains/core/wallet/config.ts": "export const walletConfig = {};\n",
@@ -24,6 +25,10 @@ const BASE = {
   "src/domains/gacha/config.ts": "export const gachaConfig = {};\n",
   "src/config/domains/gacha.config.ts": EMPTY,
   "src/domains/core/user/index.ts": "",
+  // どの規則にも載らないドメインは常設の宣言を持つ(地区の地図が止める、D22・D53)
+  "src/domains/core/wallet/extensionPoints.ts": ALWAYS_OPEN,
+  "src/domains/gacha/extensionPoints.ts": ALWAYS_OPEN,
+  "src/domains/core/user/extensionPoints.ts": ALWAYS_OPEN,
   "src/lib/toast/config.ts": "export const toastConfig = {};\n",
   "src/lib/toast/package.json": JSON.stringify({ exports: { ".": "./config.ts" } }),
   "src/config/lib/toast.config.ts": EMPTY,
@@ -67,11 +72,10 @@ test("揃った木は通る(古いフォルダ app・ui・documents と直下の
   assert.match(reportLines(result)[0], /対 6 組、余り 0・欠落 0/);
 });
 
-test("余り: 持ち主の地区が無い上書き(ドメイン・lib・枠・proxies の名前)", () => {
+test("余り: 持ち主の地区が無い上書き(ドメイン・lib・枠の名前)", () => {
   one(run({ "src/config/domains/ghost.config.ts": EMPTY }), /src\/config\/domains\/ghost\.config\.ts: 持ち主の無い上書き.*ドメイン ghost が無い/);
   one(run({ "src/config/lib/gone.config.ts": EMPTY }), /src\/config\/lib\/gone\.config\.ts: 持ち主の無い上書き.*lib gone が無い/);
   one(run({ "src/config/layout/user.config.ts": EMPTY }), /src\/config\/layout\/user\.config\.ts: 持ち主の無い上書き.*frame: "user" の宣言が無い/);
-  one(run({ "src/config/proxies/redirect.config.ts": EMPTY }), /src\/config\/proxies\/redirect\.config\.ts: 持ち主の無い上書き.*src\/proxies\/redirect\/config\.ts が無い/);
 });
 
 test("余り: 持ち主はいるが config.ts が無い上書き", () => {
@@ -83,10 +87,9 @@ test("余り: 種類のフォルダのサブフォルダ・置けない名前", 
   one(run({ "src/config/domains/wallet.ts": EMPTY }), /src\/config\/domains\/wallet\.ts: 置けない名前/);
 });
 
-test("欠落: features・枠・proxies は config.ts があるのに上書きが無いと落ちる", () => {
+test("欠落: features・枠は config.ts があるのに上書きが無いと落ちる(proxies はテーマを畳んで上書きを持たない、D30)", () => {
   one(run({ "src/config/domains/gacha.config.ts": null }), /src\/domains\/gacha\/config\.ts: 上書き src\/config\/domains\/gacha\.config\.ts が無い/);
   one(run({ "src/config/layout/admin.config.ts": null }), /src\/app\/admin\/_layout\/config\.ts: 上書き src\/config\/layout\/admin\.config\.ts が無い/);
-  one(run({ "src/proxies/demo/config.ts": "export const demoConfig = {};\n" }), /src\/proxies\/demo\/config\.ts: 上書き src\/config\/proxies\/demo\.config\.ts が無い/);
 });
 
 test("欠落: lib は package.json を宣言した lib なら数えない(pnpm check lib-package の持ち分)、宣言の無い lib は落とす", () => {

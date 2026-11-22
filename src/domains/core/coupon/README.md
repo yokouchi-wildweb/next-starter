@@ -381,7 +381,7 @@ if (result.valid) {
 
 - `/admin/coupons/*` の上部タブ（公式プロモーション / アフィリエイト / ユーザー招待）は `CouponTypeOptions`（クーポン種別 enum）から生成される。ただし種別 enum と画面セクションは別物
 - downstream が種別に属さない派生クーポンの専用画面（例: フレンドクーポン、type は `affiliate` のまま）を `/admin/coupons/<slug>` に置く場合、受け口に項目を置けば core の全クーポン管理画面のタブに末尾追加される
-- 受け口: `adminSectionTabs/<名前>.ts` の `export const tab: CouponSectionTabItem`（`@/domains/core/coupon/types/sectionTab` = `PageTabItem` + `enabled?`。一覧 `extensions/sectionTabs`、upstream は空 = 3 タブ）
+- 受け口: `<ドメイン>/plugs/couponSectionTabs/<名前>.ts` の `export const tab: CouponSectionTabItem`（`@/domains/core/coupon/types/sectionTab` = `PageTabItem` + `enabled?`。一覧 `extensions/couponSectionTabs`、upstream は空 = 3 タブ）
 - 組み立て: `buildCouponAdminSectionTabs()`（`@/domains/core/coupon/lib/adminSectionTabs`）= core 3 タブ + 有効な項目（`PageTabItem[]`、`enabled` は残さない）。value の重複は例外（無効の項目も含めて判定）
 - 閉じる: 項目の `enabled: () => boolean` が false の間はタブの一覧から外れる（省略 = 常に出す）。組み立ては client（AdminCouponSectionTabs）で走る
 - 描画: 公開の部品 `AdminCouponSectionTabs`（`@/domains/core/coupon/components/AdminCouponSectionTabs`、`variant?: "body" | "header"`、既定 body）。header はヘッダーの行の中央向けの size="sm"。core ページ（official / invite / affiliate）は `<AdminPage center={<AdminCouponSectionTabs variant="header" />}>`。本文に置くなら本文に `<AdminCouponSectionTabs />`
@@ -391,7 +391,7 @@ if (result.valid) {
 downstream レシピ:
 
 ```typescript
-// 1. src/domains/core/coupon/adminSectionTabs/friendCoupon.ts → pnpm generate extensions
+// 1. <ドメイン>/plugs/couponSectionTabs/friendCoupon.ts → pnpm generate extensions
 import type { CouponSectionTabItem } from "@/domains/core/coupon/types/sectionTab";
 export const tab: CouponSectionTabItem = {
   value: "friend-coupon",

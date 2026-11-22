@@ -38,7 +38,7 @@ export type DomainField = {
   label: string;
   /** 型(表 fieldTypes.mjs の名前。表に無い型も書ける = 生成器は未知型として扱う) */
   fieldType: FieldTypeName | (string & {});
-  /** 入力種別(組み込みの名前か、src/wiring/formInputs に登録した名前) */
+  /** 入力種別(組み込みの名前か、<ドメイン か lib>/plugs/formInputs に登録した名前) */
   formInput?: BuiltinFormInput | (string & {});
   required?: boolean;
   readonly?: boolean;

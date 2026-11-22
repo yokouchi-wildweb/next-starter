@@ -1,7 +1,7 @@
-// 報酬ハンドラーの型と読み手(項目: ./handlers/<名前>.ts の export const handler、一覧は生成物)
+// 報酬ハンドラーの型と読み手(項目: 差す側の <ドメイン>/plugs/referralRewardRewardHandlers/<名前>.ts の export const handler、一覧は生成物。閉じたドメインの項目は門番で外す)
 // ベースリポジトリの項目は 0。
 //
-// 使い方（下流プロジェクト）: handlers/signupInviterBonus.ts
+// 使い方（下流プロジェクト）: <自分のドメイン>/plugs/referralRewardRewardHandlers/signupInviterBonus.ts
 // ```ts
 // export const handler: RewardHandlerItem = {
 //   rewardKey: "signup_inviter_bonus",
@@ -12,7 +12,8 @@
 // };
 // ```
 
-import { rewardHandlers } from "@/domains/core/referralReward/extensions/rewardHandlers";
+import { referralRewardRewardHandlers } from "@/domains/core/referralReward/extensions/referralRewardRewardHandlers";
+import { gate } from "@/featureGate";
 import type { Referral } from "@/domains/core/referral/entities/model";
 import type { TransactionClient } from "@/lib/drizzle";
 
@@ -41,7 +42,7 @@ export type RewardHandler = (
   params: RewardHandlerParams,
 ) => Promise<Record<string, unknown>>;
 
-/** 報酬ハンドラーの項目(./handlers/<名前>.ts の export const handler) */
+/** 報酬ハンドラーの項目(<ドメイン>/plugs/referralRewardRewardHandlers/<名前>.ts の export const handler) */
 export type RewardHandlerItem = {
   /** 報酬キー（REFERRAL_REWARD_DEFINITIONS のキーと一致させること） */
   rewardKey: string;
@@ -62,7 +63,7 @@ export function buildRewardHandlerMap(items: readonly RewardHandlerItem[]): Map<
 
 // 読み込みの途中で一覧を触らないよう初回に組み立てる
 function handlers(): Map<string, RewardHandler> {
-  memo ??= buildRewardHandlerMap(rewardHandlers);
+  memo ??= buildRewardHandlerMap(gate.plugs(referralRewardRewardHandlers).map((entry) => entry.plug));
   return memo;
 }
 

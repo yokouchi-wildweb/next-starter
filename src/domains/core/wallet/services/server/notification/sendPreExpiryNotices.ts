@@ -15,7 +15,7 @@ import { runBudgetedBatches } from "@/lib/cron";
 import { walletConfig, type WalletType } from "@/domains/wallet/config";
 import { advanceCheckpoint, findCheckpoint } from "@/domains/core/cronCheckpoint/services/server";
 import { MESSAGING_SOURCES } from "@/domains/core/messaging/constants/sources";
-import { message as expiringNoticeMessage } from "@/domains/core/wallet/messages/expiringNotice";
+import { message as expiringNoticeMessage } from "@/domains/core/wallet/plugs/messages/expiringNotice";
 import { getPreExpiryNoticeStages } from "@/domains/core/wallet/utils/expiration";
 import {
   endOfLocalDayAfter,

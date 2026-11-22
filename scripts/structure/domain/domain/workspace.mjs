@@ -73,6 +73,22 @@ export function createWorkspace(rootDir = process.cwd()) {
   const districtMapPath = path.join(rootDir, "src", "registry", "district-map.jsonl");
   const readDistrictMap = () => (fs.existsSync(districtMapPath) ? fs.readFileSync(districtMapPath, "utf8") : null);
 
+  /**
+   * 入力部品の項目の置き場: 差す側の <ドメイン か lib>/plugs/formInputs/（D40。点の宣言は src/lib/formSuite/extensionPoints.ts の formInputs）。
+   * ドメイン（business・core）と lib のフォルダごとに 1 つ（無いフォルダも並べる。読むのは listDir）
+   */
+  function formInputsDirs() {
+    const subdirs = (dir) =>
+      fs.existsSync(dir)
+        ? fs
+            .readdirSync(dir, { withFileTypes: true })
+            .filter((dirent) => dirent.isDirectory() && !NOT_DOMAIN_DIRS.has(dirent.name))
+            .map((dirent) => path.join(dir, dirent.name))
+            .sort()
+        : [];
+    return [...subdirs(domainsDir), ...subdirs(coreDir), ...subdirs(path.join(rootDir, "src", "lib"))].map((dir) => path.join(dir, "plugs", "formInputs"));
+  }
+
   /** テンプレート（src/domains/_template/...）を読む。無ければ例外 */
   function readTemplate(...segments) {
     const file = path.join(templateDir, ...segments);
@@ -92,7 +108,7 @@ export function createWorkspace(rootDir = process.cwd()) {
     adminProtectedDir: path.join(rootDir, "src", "app", "admin", "(protected)"),
     rolesDir: path.join(coreDir, "user", "roles"),
     coreRolesDir: path.join(coreDir, "user", "coreRoles"),
-    formInputsDir: path.join(rootDir, "src", "wiring", "formInputs", "inputs"),
+    formInputsDirs,
     domainPath,
     locateDomain,
     configPath,

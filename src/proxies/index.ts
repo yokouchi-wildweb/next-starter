@@ -1,37 +1,41 @@
-import type { ProxyHandler, ProxyResponseDecorator } from './types';
-import { attributionDecorator } from './attribution';
-import { inviteLinkDecorator } from './inviteLink';
-import { demoModeProxy } from './demoMode';
-import { featureGateProxy } from './featureGate';
-import { maintenanceProxy } from './maintenance';
-import { redirectProxy } from './redirect';
-import { decorators as extensionDecorators } from './extensions/decorators';
-import { handlers as extensionHandlers } from './extensions/handlers';
+// src/proxies/index.ts
+// proxy の鎖: 点 proxyHandlers の項目(<ドメイン>/plugs/proxyHandlers/<名前>.ts)を段の閉じた並びで走らせ(D30)、骨組みの段 gate(門番の 404)・
+// redirect(転送)をその間に置く。decorator は点 proxyDecorators の項目を <差す側>/<名前> の順に。どれも生成された一覧を門番(gate.plugs)で絞ってから使う
+// (閉じたドメインの項目は走らない)。fork はこのファイルを編集しない: 自分のドメインの plugs/proxyHandlers/<名前>.ts に export const handler と
+// export const stage を置き、pnpm generate extensions で一覧に入る(宣言 ./extensionPoints.ts)。走査と検査: scripts/structure/extensions/
 
-// 骨組み(上流の手書き)+ 枠(生成一覧)。fork はこのファイルを編集しない:
-// src/proxies/<名前>.ts に export const handler / decorator を置き、pnpm generate extensions で枠に入る(宣言 ./extensionPoints.ts)。
-// 枠の項目は骨組みの後ろでファイル名の順に走る(Tier 順は使わない)。項目どうしは互いに依存しない。
-// 骨組みより前に走らせたい項目は作らない(要るなら上流へ依頼し、骨組みに吸収する)。走査と検査: scripts/structure/extensions/
+import { gate } from "@/featureGate";
 
-/** 骨組みの handler(順序に意味がある) */
-const skeletonHandlers: ProxyHandler[] = [
-  maintenanceProxy,  // メンテナンスモードを最優先で実行
-  demoModeProxy,     // デモモード（メンテナンスの次に優先）
-  featureGateProxy,
-  redirectProxy,
-];
+import { proxyDecorators } from "./extensions/proxyDecorators";
+import { proxyHandlers as handlerPlugs } from "./extensions/proxyHandlers";
+import { featureGateProxy } from "./featureGate";
+import { redirectProxy } from "./redirect";
+import type { ProxyHandler, ProxyResponseDecorator } from "./types";
+
+type HandlerEntry = (typeof handlerPlugs)[number];
+type Stage = HandlerEntry["stage"];
+
+/** 骨組みの段の handler(項目は選べない段、宣言の skeletonStages) */
+const skeleton: Partial<Record<Stage, ProxyHandler>> = {
+  gate: featureGateProxy, // 閉じた機能の住所は 404(門番)
+  redirect: redirectProxy, // 転送の規則
+};
+
+/** 段の並び(宣言の stages と同じ。一覧の項目は生成器がこの順に並べてある) */
+const STAGES: readonly Stage[] = ["maintenance", "mode", "gate", "redirect", "main"];
+
+const openHandlers = gate.plugs(handlerPlugs);
+
+/** 鎖の handler(段の順: 項目 → 骨組み → 項目) */
+export const proxyHandlers: ProxyHandler[] = STAGES.flatMap((stage) => {
+  const own = skeleton[stage];
+  return [...(own ? [own] : []), ...openHandlers.filter((entry) => entry.stage === stage).map((entry) => entry.plug)];
+});
 
 /**
- * 素通しレスポンス（NextResponse.next()）に副作用を加える骨組みのデコレーター。
- * ハンドラーがインターセプトした場合は実行されない。
+ * 素通しレスポンス（NextResponse.next()）に副作用を加える decorator(点 proxyDecorators の項目、<差す側>/<名前> の順)。
+ * ハンドラーがインターセプトした場合は実行されない。項目どうしは互いに依存しない
  */
-const skeletonDecorators: ProxyResponseDecorator[] = [
-  attributionDecorator, // 流入タッチの cookie 蓄積（解析: 記録の opt-in でゲート）
-  inviteLinkDecorator,  // 招待コードの cookie 保存（機能: referral フラグでゲート、解析とは独立）
-];
+export const proxyResponseDecorators: ProxyResponseDecorator[] = gate.plugs(proxyDecorators).map((entry) => entry.plug);
 
-export const proxyHandlers: ProxyHandler[] = [...skeletonHandlers, ...extensionHandlers];
-
-export const proxyResponseDecorators: ProxyResponseDecorator[] = [...skeletonDecorators, ...extensionDecorators];
-
-export type { ProxyContext, ProxyHandler, ProxyResponseDecorator } from './types';
+export type { ProxyContext, ProxyHandler, ProxyResponseDecorator } from "./types";

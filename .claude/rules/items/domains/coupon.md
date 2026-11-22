@@ -6,7 +6,7 @@ paths:
 # domains/coupon
 what: coupon codes: issue, limits, validity, redeem and history; effects live in consumer handlers by category | entry couponService (services/server/couponService), hooks in hooks/
 use: coupon
-change: add = an admin section tab in adminSectionTabs/ (sectionTabs, extensionPoints.ts) | counterpart = src/config/domains/coupon.config.ts
+change: add = an admin section tab, an item in your own domain's plugs/couponSectionTabs/ | counterpart = src/config/domains/coupon.config.ts
 rules:
 using:
 - entry_scope_const: a new code-accepting entry puts its own scope const in the consumer domain's constants and passes it to both isUsable and redeem

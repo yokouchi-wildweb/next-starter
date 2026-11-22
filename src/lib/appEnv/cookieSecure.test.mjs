@@ -29,8 +29,8 @@ const COOKIE_WRITERS = {
   "src/domains/core/pairedDevice/services/server/session/cookies.ts": ALWAYS, // 端末トークン・ペアリング待ち
   "src/lib/line/oauthState.ts": NOT_DEV, // LINE OAuth の nonce
   "src/app/api/auth/x/login/route.ts": NOT_DEV, // X OAuth の state / code verifier
-  "src/proxies/attribution.ts": NOT_DEV, // 流入元
-  "src/proxies/inviteLink.ts": NOT_DEV, // 招待リンク
+  "src/domains/core/userAcquisition/plugs/proxyDecorators/attribution.ts": NOT_DEV, // 流入元
+  "src/domains/core/referral/plugs/proxyDecorators/inviteLink.ts": NOT_DEV, // 招待リンク
   "src/lib/toast/redirect/server.ts": NOT_DEV, // 画面の通知の一時の cookie
   "src/lib/toast/redirect/cookie.ts": CLEAR, // 上の通知を読んだ後に消す
 };

@@ -186,7 +186,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
      - 上流の単位のフォルダの中 → `inside-unit-add`。単位 = 部品の棚(基準の `src/components/<分類>`・`src/hooks`・`src/utils`・`src/lib`)の直下の項目(ファイルかフォルダ)で、基準でフォルダの単位(`src/components/<分類>/<単位>/`・祖先の lib `src/lib/<name>/` など)の中に足したファイルが当たる。自分の単位・自分の lib に置く(lib なら re-export)。上流の物かどうかは基準の git だけで決まるので、`folderCatalog` の目録は使わない
      - 分類の直下の新しい単位(ファイルかフォルダ)・`src/hooks`・`src/utils` の新しいファイル・新しい `src/lib/<name>/`・fork の分類・分類の外の `src/components` 直下は `added`
      - 基準に `src/domains/core/` があり、足したパスがその中で受け口(`intake.txt` の debt 以外の行)に当たらない → `core-add`(fork のドメインは `src/domains/<x>/`、画面の部品は route の `_components/`)
-     - 基準に `src/featureGate/`(門番)があり、足したパスがその中で受け口に当たらない → `gate-add`(足せるのは `rules/`・`alwaysOnExceptions/`・`required/` の `<名前>.ts`)
+     - 基準に `src/featureGate/`(門番)があり、足したパスがその中で受け口に当たらない → `gate-add`(足せるのは `rules/`・`required/` の `<名前>.ts`)
      - 基準に `.claude/rules/core/` があり、足したパスがその中 → `rules-core-add`(自分の決まりは `.claude/rules/` の `core/` の外に印なしの名前で、自分の品目の札は `.claude/rules/items/`。受け口の行は効かない)
      - 検査する場所への追加で、単位名が基準のファイルと同じ → `unit-clash`(`x.ts` と `x.tsx`、ファイルとフォルダの組。部品の棚では直下の項目の名前で比べる。別の名前にするか、丸ごと置き換えは `<名前>.replace`)。見つけて知らせるだけで、足すのを前もって止める仕組みは無い
      - `<対象>.override.ts(x)` で、対象が基準に無い → `override-own`(fork が自分で足した項目への override。中間 Tier の項目は下の Tier の基準にあるので可)
@@ -203,14 +203,14 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 
 - 検査する場所(これだけ)
   - 部品の棚: 基準の `src/components/<分類>`(基準にファイルのある分類だけ)・`src/hooks`・`src/utils`・`src/lib`。直下の項目が単位(直下のファイルは最後の拡張子と `/index` を除いた名前、入れ子のパスは直下のフォルダの名前)。基準の単位のフォルダの中への追加は `inside-unit-add`
-  - 直下の項目だけ: 基準の `src/**/extensionPoints.ts` の受け口のフォルダ(宣言は `src/lib/districtMap/declarations.mjs` で読む、`dir: "."` = 持ち主の直下)・`src/wiring`・`scripts`(門番の例外 `src/featureGate/alwaysOnExceptions` は宣言の受け口)
+  - 直下の項目だけ: 基準の `src/**/extensionPoints.ts` の受け口のフォルダ(宣言は `src/lib/districtMap/declarations.mjs` で読む、`dir: "."` = 持ち主の直下)・`src/wiring`・`scripts`(門番の `rules`・`required` も宣言の受け口)
   - その下全部: route の隣(`src/app/**/_layout`・`_screen`・`_components`)
 - `unit-clash`・`override-own`・`default-add`・`default-edit`・`frame-plain` は持ち主によらず止める(多段で `middle-tier` に付け替えない)
 
 ### 受け口の一覧の生成区画
 
 - 受け口の行(生成区画 `# === AUTO-GENERATED intake START ===` 〜 `END`)は `pnpm generate extensions` が書き、ずれは `pnpm check extensions` が止める(`scripts/structure/extensions/README.md`「受け口の一覧の生成区画」)。src の下の行は全部ここで、出どころは 4 つの型:
-  - 画面の差し替え(型 1): ルートの `page.tsx`(ルートの地図と同じ見つけ方、上流のルートごと)・枠の 1 行スイッチの `layout.tsx` = `edit` / 1 行スイッチ(src の下の `<名前>.default` の隣の素の名前 = `edit`、`<名前>.replace` = `add`。`src/app/_providers/ForkProviders.tsx` もこれ)/ `_layout`・`_screen` の隣の `*.replace` と下のリポの枠の宣言 `frame.override.ts` = `add`
+  - 画面の差し替え(型 1): ルートの `page.tsx`(ルートの地図と同じ見つけ方、上流のルートごと)・枠の 1 行スイッチの `layout.tsx` = `edit` / 1 行スイッチ(src の下の `<名前>.default` の隣の素の名前 = `edit`、`<名前>.replace` = `add`。ちょうど 1 つの点の上流の項目のスイッチ(例 `src/domains/core/auth/plugs/frameSession/session.ts`)もこれ)/ `_layout`・`_screen` の隣の `*.replace` と下のリポの枠の宣言 `frame.override.ts` = `add`
   - 受け口と上書き(型 2・3): 宣言の受け口のフォルダ(`<dir>/*.{ts,tsx}` とフォルダ形 `<dir>/*/**`)= `add` / 上書きの対象の点(宣言の `overrides`)の隣の `.override.ts`(cron の `task.override.ts`・`domainEntry.override.ts`・ロール / core ロール / プロフィール)= `edit`、`addable` の対象(ロール・プロフィールの JSON)= `add`
   - 置き場(型 4): 持ち主の `extensionPoints.ts` の placement の点 = `src/config/**`(src/lib/districtMap)・`src/styles/*.css`(src/styles/core)・`src/business/**`(src/lib/business)・`src/app/favicon.ico`(src/app/_layout)・`src/app/**/_components/**`(src/lib/screens)= `edit`、`src/lib/CATALOG.md`(src/lib/folderCatalog)= `append`
   - 生成物と区画: 生成器の `phase.json` の `outputs` = `generated`(registries・`src/wiring/dbAgent.ts`・地区の地図・ルートの地図・mail の色・profiles の entities・`src/**/extensions/**`・`vercel.json`)、`regions` = `region`(`src/registry/**/*.ts`)。区画の最後に並ぶ(同じファイルなら生成物が効く)
@@ -269,7 +269,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 - Tier1 の版の決め方: 自分の台帳の最後の `upstream:<sha>` の版から、その版に `.notices/applied/` があれば、その版のリポの名前(その版の repo.json の `repo_id`、古い版は project.md の `fork_id:`)の台帳の最後の `upstream:` へ … と、`.notices/applied/` の無い版(Tier1)に着くまでたどる。段数に依らない
 - 未検証(exit 2): 台帳に `upstream:` が無い・その sha が履歴に無い(squash・rebase)・途中の版に名前か、その名前の台帳が無い・循環・10 段を超える
 - override: Tier1 は override を出荷しない(`pnpm check extensions` が検査)ので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい
-- 多段にするのはファイルを足す型(setting のキーとセクション・extensions の項目・wiring と proxy の fork が足したファイル・featureGateRules・override・`.replace`(`src/app/_providers/ForkProviders.replace.tsx` も))だけで、並べ替えの仕組みは無い
+- 多段にするのはファイルを足す型(setting のキーとセクション・extensions の項目・wiring と proxy の fork が足したファイル・featureGateRules・override・`.replace`・fork の Provider(根の枠の点 rootProviders の項目))だけで、並べ替えの仕組みは無い
 - `/flux` は下の Tier が中間 Tier の物を消した・書き換えた後の取り込みの衝突を、下の Tier の判断を保って解き、報告と台帳の `notes:` に残す
 - 中間 Tier の既定の削除・rename はまだ `middle-tier`(合格)
 

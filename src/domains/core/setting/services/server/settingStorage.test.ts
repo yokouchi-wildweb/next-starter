@@ -10,8 +10,7 @@ import { test } from "node:test";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
-import { fields } from "../../extensions/fields";
-import { sections } from "../../extensions/sections";
+import { allSections as sections, fields } from "../../definitions";
 import { publicSettingKeys, settingKeysFor } from "./access";
 import { buildSectionForm, CODE_VALUE_HELPER_TEXT, firstOpenSection, listSections, settingSectionHref } from "../../utils/sectionForm";
 import { readSettingValues, settingDefaultOf } from "./read";

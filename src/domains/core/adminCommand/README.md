@@ -11,7 +11,7 @@
 
 ### ナビゲーション先を足す
 
-`src/domains/core/adminCommand/navigationItems/<名前>.ts` を置き、`pnpm generate extensions`:
+`<ドメイン>/plugs/adminCommandNavigationItems/<名前>.ts` を置き、`pnpm generate extensions`:
 
 ```ts
 import type { NavigationItemGroup } from "@/domains/core/adminCommand/types";
@@ -31,7 +31,7 @@ export const items: NavigationItemGroup = [
 
 1. 部品の置き場: 自分のドメインの `src/domains/<ドメイン>/components/<カテゴリ>/`（`index.ts`・`<カテゴリ>Renderer.tsx`・任意で `items.ts`）
 2. レンダラー: `definitions/navigation/NavigationRenderer.tsx` が手本。`Command` の `key`・`CommandInput` の `autoFocus`・入力が空の時の Backspace で `onBack()`
-3. 登録: `src/app/_layout/adminCommand/categories/<名前>.tsx` を置き、`pnpm generate extensions`
+3. 登録: `<ドメイン>/plugs/adminCommandCategories/<名前>.tsx` を置き、`pnpm generate extensions`
 
 ```tsx
 import type { CategoryConfig } from "@/domains/core/adminCommand/base/types";
@@ -47,7 +47,7 @@ export const category: CategoryConfig = {
 
 ### プラグイン（Provider・GlobalComponent）
 
-カテゴリに状態（Provider）やパレットの外の UI（GlobalComponent）が要る時に使う。`src/app/_layout/adminCommand/plugins/<名前>.tsx`:
+カテゴリに状態（Provider）やパレットの外の UI（GlobalComponent）が要る時に使う。`<ドメイン>/plugs/adminCommandPlugins/<名前>.tsx`:
 
 ```tsx
 import type { AdminCommandPlugin } from "@/domains/core/adminCommand/base/types";
@@ -111,12 +111,12 @@ const handleSearchChange = (value: string) => {
 
 | 足すもの | 置き場 |
 |---|---|
-| カテゴリ | `src/app/_layout/adminCommand/categories/<名前>.tsx` の `export const category`（並びはファイル名の順） |
-| Provider・GlobalComponent | `src/app/_layout/adminCommand/plugins/<名前>.tsx` の `export const plugin` |
-| ナビゲーション先 | `src/domains/core/adminCommand/navigationItems/<名前>.ts` の `export const items`（配列） |
+| カテゴリ | `<ドメイン>/plugs/adminCommandCategories/<名前>.tsx` の `export const category`（並びは <差す側>/<名前> の順） |
+| Provider・GlobalComponent | `<ドメイン>/plugs/adminCommandPlugins/<名前>.tsx` の `export const plugin` |
+| ナビゲーション先 | `<ドメイン>/plugs/adminCommandNavigationItems/<名前>.ts` の `export const items`（配列） |
 
 - カテゴリとプラグインは管理者のときだけ読み込む（`load: lazy`）。一般の利用者には届かない
-- React の受け口の置き場 `src/app/_layout/adminCommand/` の `AdminCommandRoot.tsx`（client）が一覧を Provider に結ぶ（`load` は関数なのでサーバーから渡せない）
+- 点 `adminCommandCategories`・`adminCommandPlugins` の宣言は `./extensionPoints.ts`。根の枠の点 rootProviders の項目 `plugs/rootProviders/adminCommand.tsx`（client、段 domain）が一覧を門番で絞って Provider に結ぶ（`load` は関数なのでサーバーから渡せない）
 
 ## Internals
 

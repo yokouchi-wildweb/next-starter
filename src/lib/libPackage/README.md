@@ -27,11 +27,11 @@
 - `libOfPath(relPath)` … `src/lib/<name>/…` → `name`、lib の外は `null`
 - `findEntry(pkg, resolvedRelPath)` … 解いたパス(`eslint-rules/resolve-import.mjs` の結果。拡張子・index は有無を問わない)が入口に当たればその行、無ければ `null`
 - `clearLibPackageCache()` … 読んだ結果は root + lib ごとに 1 プロセスの間覚えるので、それを消す
-- 定数: `LIB_DIR`(`"src/lib"`)・`PEER_DIRS`(`{ components: "src/components" }`)・`ALLOWED_KEYS`・`ENTRY_NAMES`(exports の鍵に使える入口の名前 `.`・`./server`・`./client`・`./node`)・`ENTRY_EXTENSIONS`
+- 定数: `LIB_DIR`(`"src/lib"`)・`PEER_DIRS`(`{ components: "src/components" }`)・`ALLOWED_KEYS`・`ENTRY_NAMES`(exports の鍵に使える入口の名前 `.`・`./server`・`./client`・`./node`・`./points`)・`ENTRY_EXTENSIONS`
 
 ### 問題の名前(`code`)
 
-`json` 読めない | `name` name を書いた | `unknownKey` 使えないキー | `exportsMissing` / `exportsShape` exports が無い・空・形違い | `pattern` `*` | `condition` 値が文字列でない | `keyForm` 鍵が `.` / `./<パス>` でない | `entryName` 鍵が入口の名前(`ENTRY_NAMES` = `.`・`./server`・`./client`・`./node`、D248)でない | `targetOutside` 値が lib の外 | `targetExt` 値がファイルでない | `keyMismatch` 鍵と値の実パスが違う | `targetMissing` 先が無い | `libsShape` / `libDuplicate` / `libSelf` / `libUnknown` | `peersShape` / `peerDuplicate` / `peerUnknown` | `sideEffectsShape` false か文字列の配列でない
+`json` 読めない | `name` name を書いた | `unknownKey` 使えないキー | `exportsMissing` / `exportsShape` exports が無い・空・形違い | `pattern` `*` | `condition` 値が文字列でない | `keyForm` 鍵が `.` / `./<パス>` でない | `entryName` 鍵が入口の名前(`ENTRY_NAMES` = `.`・`./server`・`./client`・`./node`、D248・`./points`、D33)でない | `targetOutside` 値が lib の外 | `targetExt` 値がファイルでない | `keyMismatch` 鍵と値の実パスが違う | `targetMissing` 先が無い | `libsShape` / `libDuplicate` / `libSelf` / `libUnknown` | `peersShape` / `peerDuplicate` / `peerUnknown` | `sideEffectsShape` false か文字列の配列でない
 
 ## Verification
 

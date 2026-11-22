@@ -1,11 +1,11 @@
 // scripts/structure/config-overrides/pairing.mjs
 // 上書きと持ち主の 1 対 1 の検査(設定 D19・D38・D75)。地区の地図(src/lib/districtMap)の利用者。
-// 見る所は src/config の、地区の名前で置く種類のフォルダ(lib・domains・layout・proxies)と中身の名前で置く種類のフォルダ(featureGate、設定 D91)だけ(種類の表 KINDS の override)。
+// 見る所は src/config の、地区の名前で置く種類のフォルダ(lib・domains・layout)と中身の名前で置く種類のフォルダ(featureGate、設定 D91)だけ(種類の表 KINDS の override)。
 // fork に残る古い app/・ui/ と直下のファイルは見ない(上流には無い)。
 //
 // 落とす物:
 //   余り   = 持ち主の地区が無い上書き / 持ち主の config.ts(ui は config.ui.ts)が無い上書き / フォルダの中の置けない名前・サブフォルダ
-//   欠落   = config.ts があるのに上書きが無い(features・frame・proxies。lib は package.json を宣言した lib なら pnpm check lib-package の持ち分なので数えない)
+//   欠落   = config.ts があるのに上書きが無い(features・frame。lib は package.json を宣言した lib なら pnpm check lib-package の持ち分なので数えない)
 //          = config.ui.ts があるのに <名前>.ui.config.ts が無い(全種類)
 // 欠落の上書きは import していれば tsc も落とすが、import していなくても揃えるのが上流の約束(D9: 持ち主ごとに上書きを一通り置く)。
 
@@ -36,7 +36,6 @@ function listFolder(root, rel) {
 /** 持ち主が見つからない上書きの直し方(種類ごと) */
 function ownerHint(kind, name) {
   if (kind === "frame") return `枠の _layout/config.ts に frame: "${name}" の宣言が無い。枠の名前を確かめるか、要らない上書きなら消す(設定 D75)`;
-  if (kind === "proxies") return `src/proxies/${name}/config.ts が無い。proxies の上書きはテーマのフォルダ(src/proxies/<テーマ>/config.ts)ごとに <テーマ>.config.ts(設定 D93)`;
   return `${KIND_LABEL[kind]} ${name} が無い(消された・改名された・打ち間違い)。持ち主の名前に合わせるか、要らない上書きなら消す`;
 }
 

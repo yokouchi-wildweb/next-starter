@@ -61,7 +61,7 @@ const { storageBinding: bankTransferReviewBinding } = await import(
 );
 const { runWithAuditContext } = await import("@/lib/audit/server");
 const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server");
-const { purposes: PURPOSE_ITEMS } = await import("@/domains/core/storageObject/extensions/purposes");
+const PURPOSE_ITEMS = (await import("@/domains/core/storageObject/extensions/storageObjectPurposes")).storageObjectPurposes.map((entry) => entry.plug);
 const { storageBindingFor } = await import("./services/server/crudBinding");
 const { createMemoryLedger } = await import("./services/server/ledger/memoryLedger");
 const { createStorageObjectService } = await import("./services/server/storageObjectService");

@@ -12,7 +12,7 @@
 新しいエージェントの作り方:
 
 1. ツールを定義する (`AgentToolDefinition[]`)。`run` に渡る input はモデル出力。ツールの安全境界 (何ができて何ができないか) はエージェントごとに設計する
-2. system プロンプトを書く。運営が編集できる実行時指示の実装例: `src/wiring/dbAgent/suffixProviders/`
+2. system プロンプトを書く。運営が編集できる実行時指示の実装例: DB 調査エージェントの増設点 `dbAgentSuffixProviders`(`src/lib/dbAgent/README.md`)
 3. サービス関数で `runAgent({system, tools, messages, signal})` を呼ぶ
 4. API ルート (routeFactory、認可を宣言) でサービスを呼び、`createAgentSSEResponse(generator, {abortController})` を返す
 5. ClientService で fetch + `parseAgentEventStream()` を使いイベントを UI へ流す (ストリーミング ClientService に限り axios ではなく fetch を使ってよい — CLAUDE.md の例外規約)

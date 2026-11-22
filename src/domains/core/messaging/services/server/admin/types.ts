@@ -1,6 +1,6 @@
 // src/domains/core/messaging/services/server/admin/types.ts
 //
-// 管理の送信と読む口の型。記録の宛先の項目の型 MessageRecordTarget は lib/messaging(項目は持ち主のドメインの recordTargets/<名前>.ts)。
+// 管理の送信と読む口の型。記録の宛先の項目の型 MessageRecordTarget は lib/messaging(項目は持ち主のドメインの plugs/recordTargets/<名前>.ts)。
 
 import type { MessageChannelCounts } from "../../../entities/schema";
 

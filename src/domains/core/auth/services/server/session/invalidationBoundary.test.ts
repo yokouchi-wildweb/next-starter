@@ -51,7 +51,7 @@ mock.module("@/domains/core/user/services/server/registration", {
   namedExports: { registerFromAuth: async () => ({ user: { ...currentUser, status: "active" } }) },
 });
 mock.module("@/domains/core/userProfile/services/server/userProfileService", { namedExports: { userProfileService: { upsertProfile: async () => {} } } });
-mock.module("@/featureGate", { namedExports: { gate: { enabled: () => false } } });
+mock.module("@/featureGate", { namedExports: { gate: { enabled: () => false, plugs: <T,>(items: readonly T[]) => [...items] } } });
 mock.module("@/domains/core/coupon/services/server/couponService", { namedExports: { couponService: {} } });
 mock.module("@/domains/core/userAcquisition/services/server", { namedExports: { recordSignupAcquisition: async () => {} } });
 mock.module("./../postRegistrationMilestones", { namedExports: { runPostRegistrationMilestones: async () => {} } });

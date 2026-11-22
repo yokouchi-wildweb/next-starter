@@ -91,7 +91,7 @@ export type AdminDispatchStore = {
 
 export type AdminReadDeps = AdminCheckDeps & {
   dispatchStore: AdminDispatchStore;
-  /** 送り元の表示名(受け口 sources → 同じ鍵の連絡の名前 → 一括の対象の「…の一括送信」、無ければ null。送信の詳細は鍵を見せない、D46) */
+  /** 送り元の表示名(点 messagingSources → 同じ鍵の連絡の名前 → 一括の対象の「…の一括送信」、無ければ null。送信の詳細は鍵を見せない、D46) */
   sourceLabel: (source: string) => Promise<string | null>;
   /** 連絡定義の表示名(定義の label、上書きの後)。知らない鍵は null */
   definitionLabel: (messageKey: string) => Promise<string | null>;

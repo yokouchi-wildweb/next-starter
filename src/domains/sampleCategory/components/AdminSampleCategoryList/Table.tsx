@@ -6,7 +6,8 @@
 import type { SampleCategory } from "@/domains/sampleCategory/entities";
 import { useMemo } from "react";
 import { BulkActionItems, DataTable, RecordSelectionTable, TableCellAction, selectBulkActions, type DataTableColumn } from "@/lib/tableSuite";
-import { adminBulkActions } from "@/domains/sampleCategory/extensions/adminBulkActions";
+import { useDomainAdminBulkActions } from "@/domains/core/admin/hooks/useDomainAdminBulkActions";
+import type { SampleCategoryAdminBulkActionItem } from "@/domains/sampleCategory/types/adminBulkAction";
 import { useAdminBulkActionCan } from "@/domains/core/user/hooks/useAdminBulkActionCan";
 import { EditButton, DeleteButton } from "@/lib/crud";
 import presenters from "@/domains/sampleCategory/presenters";
@@ -44,9 +45,10 @@ const columns: DataTableColumn<SampleCategory>[] = buildDomainColumns<SampleCate
 });
 
 export default function AdminSampleCategoryListTable({ sampleCategories }: AdminSampleCategoryListTableProps) {
-  // 一括操作: 受け口 adminBulkActions の項目(adminBulkActions/<名前>.tsx。D149)。項目が無ければ素の表
+  // 一括操作: 点 adminBulkActions の項目のうちこのドメインの物(<ドメイン>/plugs/adminBulkActions/<名前>.tsx。D149、門番で閉じた項目は外れる)。項目が無ければ素の表
   const can = useAdminBulkActionCan();
-  const bulkActionItems = useMemo(() => selectBulkActions(Object.values(adminBulkActions), { can }), [can]);
+  const domainBulkActions = useDomainAdminBulkActions<SampleCategoryAdminBulkActionItem>("sampleCategory");
+  const bulkActionItems = useMemo(() => selectBulkActions(domainBulkActions, { can }), [domainBulkActions, can]);
 
   if (bulkActionItems.length === 0) {
     return <DataTable

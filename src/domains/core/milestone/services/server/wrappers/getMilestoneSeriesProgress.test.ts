@@ -11,7 +11,14 @@ let tiers: { key: string }[] = [];
 let recorded: { key: string; achievedAt: Date }[] = [];
 let reads = 0;
 const items: MilestoneItem[] = [];
-mock.module("@/domains/core/milestone/extensions/definitions", { namedExports: { definitions: items } });
+// 生成の一覧の偽物: 項目は domain null(門番の gate.plugs が外さない)で、items をそのまま読む
+mock.module("@/domains/core/milestone/extensions/milestoneDefinitions", {
+  namedExports: {
+    get milestoneDefinitions() {
+      return items.map((plug) => ({ domain: null, name: plug.key, requires: [], plug }));
+    },
+  },
+});
 mock.module("@/lib/drizzle", {
   namedExports: {
     db: {

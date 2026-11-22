@@ -21,7 +21,7 @@ import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageInboxItemTable } from "../../../entities/inbox";
 import { MessagePreferenceTable } from "../../../entities/preference";
 import { MESSAGE_ALL } from "../../../entities/schema";
-import { categories } from "../../../extensions/categories";
+import { categories } from "../lists";
 import { groupRowOfCategory } from "../preferences/groupRows";
 
 /** 見る人(createMeRoute の ctx.user) */

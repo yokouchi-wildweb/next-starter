@@ -11,7 +11,7 @@ export type ChatAttachmentKind = "image" | "video" | "file";
 
 export type ChatRoomConfig = {
   /**
-   * チャット添付で受け付ける Content-Type(送信前の検査 utils/validation.ts と用途 storageObject/purposes/chatRoom.ts が読む)。
+   * チャット添付で受け付ける Content-Type(送信前の検査 utils/validation.ts と用途 chatRoom/plugs/storageObjectPurposes/chatRoom.ts が読む)。
    * 「その他ファイル」の既定は種別を絞らない(表示は配信規則で attachment になる)。配列の上書きは丸ごと置き換え
    */
   attachmentContentTypes: Record<ChatAttachmentKind, readonly string[]>;

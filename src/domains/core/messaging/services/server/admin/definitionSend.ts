@@ -179,7 +179,7 @@ export type AdminDefinitionSendDeps = AdminCheckDeps & {
   recordTarget: (key: string) => Promise<MessageRecordTarget | null>;
   /** 連絡定義の生成の一覧の鍵(絞らない。読む時に loadDefinition が閉じたドメインを落とす) */
   messageKeys: () => string[];
-  /** categories の受け口(上書きの後。初めの送信チャンネル defaultChannels を引く) */
+  /** 点 messagingCategories(上書きの後。初めの送信チャンネル defaultChannels を引く) */
   categories: Readonly<Record<string, MessageCategory>>;
   /** 門 messagingBroadcast が開か(全員・ロール・グループの入口) */
   broadcastOpen: () => boolean;

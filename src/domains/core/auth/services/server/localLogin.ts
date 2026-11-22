@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { SessionUser } from "@/domains/core/auth/entities/session";
 import { verifyPassword } from "@/domains/core/auth/utils/password";
 import { userService, formatShortLockMessage, PERMANENT_LOCK_MESSAGE } from "@/domains/core/user/services/server/userService";
-import { message as accountLockedMessage } from "@/domains/core/auth/messages/accountLocked";
+import { message as accountLockedMessage } from "@/domains/core/auth/plugs/messages/accountLocked";
 import { messagingService } from "@/domains/core/messaging/services/server";
 import { auditLogger } from "@/domains/core/auditLog/services/server";
 import { recordLoginFailure } from "./loginAudit";

@@ -1,6 +1,7 @@
 {
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./points": "./points.ts"
   },
   "libs": []
 }

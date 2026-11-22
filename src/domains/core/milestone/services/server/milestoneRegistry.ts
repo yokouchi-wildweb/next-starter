@@ -1,4 +1,4 @@
-// マイルストーン定義の読み手(項目: ./definitions/<名前>.ts の export const milestone、一覧は生成物)
+// マイルストーン定義の読み手(項目: 差す側の <ドメイン>/plugs/milestoneDefinitions/<名前>.ts の export const milestone、一覧は生成物。閉じたドメインの項目は門番で外す)
 // ベースリポジトリの項目は 0。項目は普通の定義か段階のあるシリーズ(MilestoneSeries)。
 // シリーズは呼ぶたびに stages() から段階ごとの定義へ展開する(段階は config・setting から毎回読む)。
 // 戻りはどれも展開後の MilestoneDefinition(段階のものは series の印付き)。
@@ -19,7 +19,8 @@
 // };
 // ```
 
-import { definitions } from "@/domains/core/milestone/extensions/definitions";
+import { milestoneDefinitions } from "@/domains/core/milestone/extensions/milestoneDefinitions";
+import { gate } from "@/featureGate";
 
 import {
   isMilestoneSeries,
@@ -75,9 +76,14 @@ export function expandMilestoneItems(items: readonly MilestoneItem[]): Milestone
   return expanded;
 }
 
+/** 開いたドメインの項目(gate.plugs) */
+function definitions() {
+  return gate.plugs(milestoneDefinitions).map((entry) => entry.plug);
+}
+
 // 呼ぶたびに組む(シリーズの段階は評価のたびに読む)。普通の定義だけでも同じ道を通る(数は小さい)
 function registry(): Map<string, MilestoneDefinition> {
-  return new Map(expandMilestoneItems(definitions).map((definition) => [definition.key, definition]));
+  return new Map(expandMilestoneItems(definitions()).map((definition) => [definition.key, definition]));
 }
 
 /**
@@ -114,5 +120,5 @@ export function getAllMilestones(): MilestoneDefinition[] {
  * @returns シリーズ、無ければ undefined(普通の定義の鍵でも undefined)
  */
 export function getMilestoneSeries(seriesKey: string): MilestoneSeries<unknown> | undefined {
-  return definitions.find((item): item is MilestoneSeries<unknown> => isMilestoneSeries(item) && item.key === seriesKey);
+  return definitions().find((item): item is MilestoneSeries<unknown> => isMilestoneSeries(item) && item.key === seriesKey);
 }

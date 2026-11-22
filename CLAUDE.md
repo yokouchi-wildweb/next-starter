@@ -26,11 +26,11 @@ use: every rule below follows from these three laws | a question no rule covers 
 ## DOMAINS_AND_FEATURES (the second law at work: what exists, what opens, what closes)
 domain_unit: a domain = the unit of design = src/domains/\<domain\>/ | a domain has no switch of its own | what a domain holds and how it is made → DOMAINS
 feature_gate (MANDATORY): a feature = the unit a project switches on or off = a rule src/featureGate/rules/\<name\>.ts listing the domains it opens (fork values src/config/featureGate/switches.config.ts) | a domain is open while any open feature lists it | a closed feature → its own paths 404 | a domain no open feature lists → its tables, generic API and cron close
-- always-open: a domain no rule lists stays open | its requires never point at a domain a feature can close (check) | src/featureGate holds feature definitions only, no domain parts
+- always-open: a domain declared so (`export const alwaysOpen = true` in its extensionPoints.ts) | the district map stops a rule listing it and a domain neither listed nor declared | only it (or a lib) fills an exactly-one point | its requires never point at a domain a feature can close (check) | src/featureGate holds feature definitions only, no domain parts
 - dependencies: a feature on a feature → dependsOn (nested URL → dependsOn parent) | a feature on a domain's value → when: <domain>.<name> (AND; a top-level boolean export of that domain's config.ts), never a domain import | code outside a gated domain that uses it → wrap with the gate (requires / gate / required)
 - new route / feature → its rule, 1 URL = 1 feature (a varying segment = * in pathPatterns, never built from a domain's values) | read the gate only via gate / useGate | unused upstream page → close its feature | pnpm ops features list|set | ref: src/featureGate/README.md, detail → core/proxy.md
 district_map: what exists and what each district holds → src/lib/districtMap (list src/registry/district-map.jsonl, generated, never imported from src) | district kinds (7: domains, lib, frame, featureGate, registry, wiring, proxies) and what each may do → src/lib/districtMap/kinds.mjs (KINDS) | what closes → src/featureGate
-- gateless: only domains have a gate | a district of another kind imports no domain (values or types): what it needs is passed in through its points
+- gateless: only domains have a gate | a district of another kind imports no domain (values or types): what it needs is passed in through its points (lint import-boundaries/district-no-domains, error) | it reads generated lists only, never another wiring file
 
 ## TOOLS (the context and a full set of tools hold up ai_native)
 use: a step a tool covers is never built by hand → run the tool | unsure which → scripts/README.md, the .claude/skills/ descriptions
@@ -67,7 +67,7 @@ shortcuts.md, term-aliases.md: upstream above the `fork entries below` marker, o
 self_files (CHANGE_TYPES 5): .claude/rules/project.md (overview + tier-only info), .claude/rules/behavior.md (work rules), repo.json (machine values, written only through its command, read only via forkIds.mjs) | → core/design.md self_files
 
 ## CHANGE_TYPES (the only five ways to change what a parent owns: the owner declares, the repo below uses)
-types: 1 replace = switch \<name\>.ts → \<name\>.default, fork \<name\>.replace (a screen: a plain _components/\<X\>Screen.tsx, no mark; a frame: _layout/\<Layout\>.replace) | 2 override = \<target\>.override.ts, declared keys only | 3 add = plain name in a receptacle (extensionPoints.ts) | 4 counterpart = src/styles/, src/config/ | 5 self = same path, each repo writes its own version (self_files)
+types: 1 replace = switch \<name\>.ts → \<name\>.default, fork \<name\>.replace (a screen: a plain _components/\<X\>Screen.tsx, no mark; a frame: _layout/\<Layout\>.replace) | 2 override = \<target\>.override.ts, declared keys only | 3 add = an item in your own plugs/\<point\>/ | 4 counterpart = src/styles/, src/config/ | 5 self = same path, each repo writes its own version (self_files)
 - marks = .default / .replace / .override only, the owner's files are plain | upstream ships no \<target\>.override.ts (the config values file of src/config/** is type 4, CORE_FILES config) | per path → pnpm workflow ownership who | detail → core/change.md
 - 5 self: your own version, or the parent's as is | a take-in that drops your lines → /flux asks | port the parent's diff by hand, only what fits | → core/change.md 5 self
 upstream_side: a repo makes its own thing changeable below only by declaring it: 1 a \<name\>.default beside a plain 1-line switch | 2 the keys an override may set (overrideOf / overrides) | 3 a receptacle in its extensionPoints.ts | 4 a counterpart for values (src/styles/core/\<name\>.css ↔ src/styles/\<name\>.css, owner config.ts ↔ src/config/) | two levels, one reader → core/receptacles.md
@@ -85,7 +85,7 @@ library: src/lib/\<name\>/, all except entities | owner per library in src/lib/C
 unit: src/components/, hooks/, utils/, small-scale (multi-file OK)
 decision: business domain? → domains/ | multi-file mechanism? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only → COMPONENTS placement, a replacement Screen → SCREENS route
 reuse_check: before creating a utility or a capability → confirm no equivalent exists (indexes: src/lib/CATALOG.md, src/domains/core/README.md) | before using an upstream item for the first time → Read its card (items/…) and its README | before creating a file in an area not read yet → Read a neighbor or its core file
-deps: lib→lib OK | lib→domains NG, values and types (lint import-boundaries/lib-no-domains, all tiers) | domains→domains (UI): use the target's hooks | domains→domains (server): through the target's public services (its services/server entry), no cycles | ref: docs/!must-read/設計思想とアーキテクチャ.md
+deps: lib→lib OK | lib→domains NG, values and types (lint import-boundaries/district-no-domains, all tiers) | domains→domains (UI): use the target's hooks | domains→domains (server): through the target's public services (its services/server entry), no cycles | ref: docs/!must-read/設計思想とアーキテクチャ.md
 tool_deps (lint import-boundaries, all tiers error): src→scripts NG, tests too (src-no-scripts; shared → src/lib) | scripts/, domains/**/scripts/, codemods, tasks, seed.ts → core/scripts.md
 
 ## ARCHITECTURE (8-layer)
@@ -96,7 +96,7 @@ errors: ServerService throws DomainError → APIRoute JSON {message} + status �
 client_layer: client HTTP code lives in src/lib/** or services/client/** (axios only there), hooks call it → core/client.md | ref: docs/!must-read/アプリ構築における構成層.md
 
 ## DIRECTORY_STRUCTURE
-domains/\<domain\>/: components/{Admin*/, common/} | entities/{schema,form,model,drizzle}.ts | services/{client/, server/{drizzleBase, wrappers/, \<domain\>Service}} | hooks/ | constants/, types/, presenters.ts, domain.json
+domains/\<domain\>/: components/{Admin*/, common/} | entities/{schema,form,model,drizzle}.ts | services/{client/, server/{drizzleBase, wrappers/, \<domain\>Service}} | hooks/ | constants/, types/, presenters.ts, domain.json | plugs/\<point\>/ = the items it plugs into points (messages, adminBulkActions too); directly under the domain only its definition
 shared_src: components (index: src/components/README.md), hooks, utils, config | the districts lib, featureGate, registry, wiring, proxies sit flat under src/ (only Tier1 adds one of the last 4; fork mechanisms → lib, business → domains) | layout frame parts are not shared_src: they live beside their layout in src/app/\<route\>/_layout/
 code_generation: domain.json `generate` (default true) = forge / pnpm generate domain rewrites the whole domain, hand logic in wrappers/ + write-once files | a generated file to hand-edit → `"generate": false` | → core/generated.md
 stores (zustand): app-wide mechanism → closed lib src/lib/\<name\>/ (state inside, read via its entry; no src/stores) | domain-specific → domains/\<domain\>/stores/ | one-frame-only → app/\<route\>/_layout/stores/ | structure and rules → core/client.md
@@ -146,11 +146,11 @@ principle: a fork may build any look and any capability | it does not copy behav
 - edit generated files: a file with a generated mark at its head, or a JSON / JSONL listed as generated (intake.txt generated rows) → edit its source | → core/generated.md
 - unpaginated full-fetch of user-scale data (base.search without limit; the default limit 100 silently drops rows) → page/limit + infinite scroll | list() only for small fixed master data
 - business.url (@/business) as runtime origin (the official URL for mail / SEO) → getAppBaseUrl() from @/lib/url | never build an origin from Host / X-Forwarded-Host (host header injection)
-- messages to users never through lib/mail send() or a channel directly → messagingService: a messages/\<name\>.ts definition → sendMessage / sendMessageToMany, admin free text → sendFreeMessage | send() = the mail channel only (lint import-boundaries/mail-send-via-messaging) | ref: src/domains/core/messaging/README.md
+- messages to users never through lib/mail send() or a channel directly → messagingService: a plugs/messages/\<name\>.ts definition → sendMessage / sendMessageToMany, admin free text → sendFreeMessage | send() = the mail channel only (lint import-boundaries/mail-send-via-messaging) | ref: src/domains/core/messaging/README.md
 - stage from NODE_ENV or a direct process.env.APP_ENV read → @/lib/appEnv (lint app-env/single-reader) | env files, production guard → core/scripts.md
 
 ## PROXY (Next.js 16 proxy, NOT middleware.ts)
-entry: src/proxy.ts | skeleton src/proxies/index.ts + items src/proxies/\<name\>.ts | user = ctx.user() only | chain, items → core/proxy.md
+entry: src/proxy.ts | stages maintenance → mode → gate → redirect → main (src/proxies; gate and redirect = its skeleton) + items \<domain\>/plugs/proxyHandlers|proxyDecorators|proxyRedirects/\<name\>.ts | user = ctx.user() only (point proxyUser) | chain, items → core/proxy.md
 features: features, domains and the gate → DOMAINS_AND_FEATURES feature_gate
 
 ## API_ROUTES
@@ -169,16 +169,16 @@ route_groups (access comes from each range's guard.ts, never the folder name): (
 route: page.tsx = 1-line switch → _screen/\<Name\>Screen.tsx (server, default) + _screen/loader.ts | 1 route = 1 Screen | a fork replaces it by copying to _components/\<X\>Screen.tsx, keeps calling the upstream loader, points page.tsx at it, never edits _screen/ (CHANGE_TYPES, FORK_EXTENSION) | → core/screens.md
 
 ## COMPONENTS
-placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ | one domain: section container → domains/\<domain\>/components/\<Name\>, shared part → …/components/common/ | ref: src/components/README.md
+placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (a domain's part shown in a frame → that domain's plugs/, at the frame's named point) | one domain: section container → domains/\<domain\>/components/\<Name\>, shared part → …/components/common/ | ref: src/components/README.md
 - page-only: a default Screen's own part (and a route the repo creates itself) → app/\<route\>/_screen/ | a fork's page-only part of an upstream route it replaces → app/\<route\>/_components/
 core_ui: core domains ship UI as fine-grained public parts (data / flow = hooks, display = props-only parts) composed into default containers | import only a part's entry, never a file inside (lint) | improve freely, breaking change → notice
 - fork changes UI: text / icons / colors → config | compose in the route Screen (_components/) from core parts + hooks, copy a container only as FORK_EXTENSION allows | missing value prop → /order <direct parent>
 essentials: structure and text → components/ wrappers (div → Layout/*, button → Button/Button …), raw tags only for decoration or effects with no wrapper | lists = InfiniteScrollList + useInfiniteScrollQuery (growing = cursor mode) | every background request shows loading | ui_layers: page (h1, no hooks) → section container (hooks) → part
 - → core/components.md wrappers, async_feedback, ui_layers
-admin_bulk_actions: admin list bulk actions = receptacle items \<domain\>/adminBulkActions/\<name\>.tsx, never hand-written bulkActions in a Table → items/lib/tableSuite.md
+admin_bulk_actions: admin list bulk actions = receptacle items \<domain\>/plugs/adminBulkActions/\<name\>.tsx, never hand-written bulkActions in a Table → items/lib/tableSuite.md
 existing_parts: before building a loading, table, selection, paging, overlay or tabs part → Read core/components.md existing_parts | your own build stays allowed (instead-of mark optional)
 overlays: src/components/Overlays/ (which one → core/components.md existing_parts, overlay) | never a raw Primitives/Dialog
-custom_inputs: own input part → register src/wiring/formInputs/inputs/\<name\>.ts, then formInput: "\<name\>" | ref: src/wiring/formInputs/inputs/README.md
+custom_inputs: own input part → register \<your domain or lib\>/plugs/formInputs/\<name\>.ts, then formInput: "\<name\>" | ref: src/lib/formSuite/README.md Extension
 style: color source of truth = CSS | before changing tokens, variants, fonts or theme → read src/styles/README.md | semantic colors, config, class groups → core/style.md | spacing (no space-y / space-x → Layout/Stack gap) → core/components.md wrappers
 
 ## CRUD_SERVICE (createCrudService)

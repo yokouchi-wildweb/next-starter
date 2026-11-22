@@ -2,7 +2,7 @@
 
 ## Overview
 
-既定値と型は持ち主の地区(種類の表の上書きを持つ種類 = ドメイン・lib・枠・門番・proxies)の `config.ts` などに置き、`src/config` にはプロジェクト(fork)が変えたい値だけを書く上書きを置きます。上流は持ち主ごとに空の上書きを出荷し、fork は変えたい所だけ中身を書きます。地区の定義: [src/lib/districtMap/README.md](../lib/districtMap/README.md)。
+既定値と型は持ち主の地区(種類の表の上書きを持つ種類 = ドメイン・lib・枠・門番)の `config.ts` などに置き、`src/config` にはプロジェクト(fork)が変えたい値だけを書く上書きを置きます。上流は持ち主ごとに空の上書きを出荷し、fork は変えたい所だけ中身を書きます。地区の定義: [src/lib/districtMap/README.md](../lib/districtMap/README.md)。
 
 ### 5 つのフォルダ(地区の名前で置く 4 種 + 中身の名前で置く門番、中は平ら)
 
@@ -11,7 +11,6 @@
 | `lib/` | `src/lib/<名前>` | `lib/<名前>.config.ts` | `src/lib/<名前>/config.ts`(`@lib-config/<名前>` で読む。[src/lib/README.md](../lib/README.md)) |
 | `domains/` | ドメイン(`src/domains/<名前>`・`src/domains/core/<名前>`) | `domains/<名前>.config.ts` | `<ドメイン>/config.ts` |
 | `layout/` | 枠(`src/app/**/_layout/config.ts` の `frame: "<名前>"`) | `layout/<名前>.config.ts` | `<_layout>/config.ts` |
-| `proxies/` | `src/proxies` のテーマのフォルダ(`src/proxies/<テーマ>/config.ts`、上流は持たない、fork が足すテーマ) | `proxies/<テーマ>.config.ts` | `src/proxies/<テーマ>/config.ts` |
 | `featureGate/` | 門番の地区 `src/featureGate`(固定) | `featureGate/<中身の名前>.config.ts`(例 `switches.config.ts` = 機能の入切の fork の値) | `src/featureGate` の中(門番の規則のファイル) |
 
 - 名前 = 地区の名前(フォルダ名、枠は `frame:` の宣言)。話題などでフォルダを分けない
@@ -45,6 +44,10 @@
 ### 読むのは持ち主だけ(lint `config-overrides/owner-reads-only`、全 Tier error)
 
 上書きを import できるのは持ち主の `config.ts`(`<名前>.ui.config.ts` は `config.ui.ts`)だけ。型だけの import も同じ。中身の名前で置く上書き(`featureGate/`)は持ち主のフォルダ(`src/featureGate`)の中のファイルだけが読めます。他のコードは持ち主の入口から確定した値を読みます。lib の中は lint `entry/only-entries`(`@lib-config/<自分>` だけ)が見ます。
+
+### 持ち主の config.ts が読み込める物(lint `config-overrides/config-imports`、ドメインの config.ts、全 Tier error)
+
+ドメインの `config.ts` が値で読み込めるのは `@/lib/defineConfig`・自分の上書き(`@/config/domains/<名前>.config`)・`zod`(値の検査)だけ。型は `import type` で何でも読める。門番の規則の `when` がドメインの `config.ts` の最上位の真偽を指す(地区の議会 D28)ので、config.ts は値の外(サービス・DB・ほかのドメイン)に届かない
 
 ### 機能の入切の道具
 

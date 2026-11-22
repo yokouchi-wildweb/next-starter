@@ -45,7 +45,7 @@
 
 ### `/api/admin/messaging/definitions/**`（definitionSend.ts、D190・D195・D196・D202）
 
-定義連絡（`messages/<名前>.ts`）を管理者が送る。中身はコードの定義が持ち、画面から受けるのは次だけ: `edits?`（テキストの編集 = レイアウトの欄の鍵 → 値。直せる欄は管理画面のテキストの編集と同じ `adminEditableFields`、required の連絡は 400）・`channels?`（送信チャンネルの絞り: 定義の固定 on はいつも入る、off・カテゴリーの外・空は 400。required は email を外せない）・`vars?`（管理者の値 = 定義の `adminVars` の鍵だけ。入力の型で変換（`adminVarValueOf`、数は数）してから定義の vars の zod で検査、合わない・宣言に無い鍵は 400）・`idempotencyKey`。埋まらない必須の vars は 400
+定義連絡（`plugs/messages/<名前>.ts`）を管理者が送る。中身はコードの定義が持ち、画面から受けるのは次だけ: `edits?`（テキストの編集 = レイアウトの欄の鍵 → 値。直せる欄は管理画面のテキストの編集と同じ `adminEditableFields`、required の連絡は 400）・`channels?`（送信チャンネルの絞り: 定義の固定 on はいつも入る、off・カテゴリーの外・空は 400。required は email を外せない）・`vars?`（管理者の値 = 定義の `adminVars` の鍵だけ。入力の型で変換（`adminVarValueOf`、数は数）してから定義の vars の zod で検査、合わない・宣言に無い鍵は 400）・`idempotencyKey`。埋まらない必須の vars は 400
 
 - `POST /definitions/send`（`AdminDefinitionSendInputSchema`）: `entry` = 次のどれか、`edits?`・`channels?`・`vars?`・`idempotencyKey`（必須、8〜128 文字）・`scheduledAt?`・`reason?`。知らない鍵は 400
   - 記録 `{ recordTarget, recordIds, message }`: 項目（門番 `loadRecordTarget`、無い・閉じた = 400）の `messages` の中の連絡定義だけ（外は 400）、定義の `adminTargets` に `records`。宛先 = `resolveRecipients` の返す形（1 人 1 件、記録ごとかまとめるかは項目、D204。10,000 人まで）、受信者ごとの値 = 記録の値のうち定義の `recordVars` の鍵だけ（定義の zod で検査）。予約は無い（400）。送り元 `<項目の鍵>.bulk`

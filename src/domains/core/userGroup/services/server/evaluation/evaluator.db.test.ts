@@ -35,7 +35,8 @@ describe("ユーザーグループの評価の口(実 DB、戻す)", { skip }, (
     const { UserTable, UserToUserTagTable } = await import("@/domains/core/user/entities/drizzle");
     const { UserTagTable } = await import("@/domains/core/userTag/entities/drizzle");
     const T = await import("../../../entities/drizzle");
-    const { criteria } = await import("../../../extensions/criteria");
+    const { userGroupCriteria } = await import("@/domains/core/userGroup/extensions/userGroupCriteria");
+    const criteria = Object.fromEntries(userGroupCriteria.map((entry) => [entry.plug.key, entry.plug]));
     const { userGroupConfigDef } = await import("../../../config");
     const { createUserGroupEvaluator } = await import("./evaluator");
 

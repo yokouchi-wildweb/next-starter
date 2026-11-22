@@ -1,5 +1,5 @@
 // src/domains/core/admin/dashboard/types.ts
-// 管理ダッシュボードのセクションの定義の型(受け口 ./sections/。一覧は ../extensions/dashboardSections.ts の生成物)と、
+// 管理ダッシュボードのセクションの定義の型(点 adminDashboardSections、項目は差す側の <ドメイン>/plugs/adminDashboardSections/。一覧は ../extensions/adminDashboardSections.ts の生成物)と、
 // 組み立て器(./buildAdminDashboard.ts)の入出力の型。仕組み: ./README.md
 
 import type { ReactNode } from "react";

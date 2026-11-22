@@ -30,7 +30,7 @@ import type {
   MessageEventRowInsert,
   MessageInboxItemInsert,
 } from "../../../entities/model";
-import { layout as noticeLayout } from "../../../layouts/notice/layout";
+import { layout as noticeLayout } from "@/domains/core/messaging/plugs/messagingLayouts/notice/layout";
 import { MessageIdempotencyConflict } from "./errors";
 import type {
   MessageSendDeps,

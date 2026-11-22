@@ -12,7 +12,7 @@ core_ui の形: 流れとデータは hook（`hooks/index.ts` から）、部品
   - hook: `useInboxItems({ unreadOnly?, limit?, enabled?, revalidateOnFocus?, observerOptions? })`（`useInfiniteScrollQuery` のカーソル、`total` は読み込み済みの数）・`useInboxUnreadCount({ enabled? })` → `{ count }`・`useMarkInboxItemRead()` → `markRead(id)`・`useMarkAllInboxRead()` → `markAllRead()`（成功で未読の数を取り直す。一覧の印は呼び手が `updateItems` で）
   - 部品: `InboxItemRow`（`onOpen(item)`、題と本文の頭）・`InboxDetailModal`（受け取り箱の表示はこれ 1 つ: 一覧で押した時も未読のモーダルも。`open`・`onOpenChange`・`item`・`detail?`・`loading?`・`showCloseButton?`・children = 中身の下の操作）・`InboxItemDetail`（`item`・`loading?` = 日時 + `InboxLayoutView`、題は包む Modal が持つ）・`InboxUnreadMark`・`InboxLayoutView`（レイアウトのお知らせの描き方 `layoutInApps` > 汎用 `GenericInAppView`（`fields` の宣言の順に欄の型とブロックの種類ごとに描く）。描けない行は「このお知らせは表示できません」、要約は描かない（D120）。管理画面のお知らせのプレビュー `LayoutPreview` も同じ部品）
 - 未読のモーダル: 入れ物 `InboxUnreadModal`、流れ `useInboxUnreadModal({ enabled?, paths? })`（住所 `isInboxModalPath`・ログイン・確かめた印 sessionStorage・古い順・見せたら既読・`next` / `skip`（全部既読）/ `close`）。上流の利用者の枠（`src/app/(user)/_layout/UserLayout.tsx`）が外枠の末尾に置く。**門 `messagingInbox` が閉なら hook は取りに行かず開かない**（`enabled` を渡しても）。開の間は `inbox.showUnreadModal`（既定 true）と `inbox.unreadModalPaths`（既定 `["/"]`）。表示は一覧の詳細と同じ `InboxDetailModal`（1 件ずつ詳しい表示を取ってレイアウトで描く、下にスキップ・次へ・確認完了と n/N。hook が `detail` / `isDetailLoading` を返す）
-- 通知の設定 `/mypage/account/notifications`（門 `messagingPreferences`、mypage のカード `src/domains/core/user/mypageMenu/items/notifications.ts`）: 入れ物 `MessagePreferences`（`emptyText?`）= 上に「すべての連絡を止める」→ 送信チャンネルの枠（送信チャンネルまるごと・宛先の無い送信チャンネルは連携の案内）→ 種別の枠（見出しだけ、種別のスイッチは出さない）→ グループの見出し → カテゴリーの行（その送信チャンネルの 1 マス）。カテゴリーまるごとの切り替えはカテゴリーが最初に出る送信チャンネルの行に 1 回だけ
+- 通知の設定 `/mypage/account/notifications`（門 `messagingPreferences`、mypage のカード `src/domains/core/user/plugs/userMypageMenu/notifications.ts`）: 入れ物 `MessagePreferences`（`emptyText?`）= 上に「すべての連絡を止める」→ 送信チャンネルの枠（送信チャンネルまるごと・宛先の無い送信チャンネルは連携の案内）→ 種別の枠（見出しだけ、種別のスイッチは出さない）→ グループの見出し → カテゴリーの行（その送信チャンネルの 1 マス）。カテゴリーまるごとの切り替えはカテゴリーが最初に出る送信チャンネルの行に 1 回だけ
   - hook `useMessagePreferences({ enabled? })` → `{ preferences, isLoading, error, retry, setCell, setCategoryWide, setChannelWide, setAll, setKind, setGroup, pendingKey }`（変更の応答を SWR に書く。`setGroup(group, stop, channel?)` = グループまるごと、channel 省略 = すべての送信チャンネル。`pendingKey` = `<カテゴリー>:<送信チャンネル>` / `<カテゴリー>:*` / `*:<送信チャンネル>` / `*:*` / `kind:<種別>` / `group:<グループ>:<送信チャンネルか *>`）
   - 広い行で止まるカテゴリーは切で理由を出す（`preferenceViaReason`）。カテゴリー・種別・送信チャンネルまるごとの下は押せてサーバーが書き分ける。全部の停止の間は全部の下のマスと広い切り替えを押せない（送信チャンネルの枠とカテゴリーまるごとは `stoppedByAll?` に `allOptedOut` を渡すと止まった状態で見せる）
   - 部品: `PreferenceChannelSection`・`PreferenceKindFrame`・`PreferenceGroupHeading`・`PreferenceCategoryRow`・`PreferenceCategoryWideToggle`・`PreferenceGroupToggle`（グループまるごと、上流の画面には置かない）。種別の枠の表示名は config の `kindLabels` の `label`（`presenters.ts` の `messageKindLabel`。管理画面は `adminLabel` があればそれ = `messageKindAdminLabel`）
@@ -49,7 +49,7 @@ core_ui の形: 流れとデータは hook（`hooks/index.ts` から）、部品
 
 - メニューの項目は 1 つ（マーケティング > メッセージ管理、`/admin/messaging`。画面の見出しも同じ）。送信一覧・テンプレート・テキストの編集の 3 画面はヘッダー中央のタブ `AdminMessagingSectionTabs`（`variant?: "body" | "header"`）で行き来する。タブの中身は `lib/adminSectionTabs.ts` の `buildMessagingAdminSectionTabs(enabled)` だけが決め、門が閉の画面（`messagingTemplates` / `messagingOverrides`）のタブは出さない。送信の詳細にはタブを出さない
 - 送信 `/admin/messaging`（門 `messagingDispatches`、タブ 送信一覧）: 入れ物 `AdminDispatchList`（`initialFilters?`・`limit?`）= 絞り込み（期間・種別 7 つ・カテゴリー（種別を選んだ後だけ）・送信チャンネル・状態・送り元・送った人（選択肢は `useAdminDispatchFilterOptions`、表示名・名前で並べ鍵・id は見せない、D46）・件名の文字検索（Enter でも確定。送る `q` は `dispatchSubjectQueryOf`（前後の空白を落とし `DISPATCH_SUBJECT_QUERY_MAX` = 100 字まで、空 = 送らない））・運営が送った物だけ（`sentBy: "admin"`、D210）、`useAdminDispatchFilters`）+ 行 `DispatchRow` の無限スクロール。行の既読数（`readCount?`: 集計の API の値 = `useAdminDispatchReadCounts`（読み込んだ行の id を analytics の公開の hook `useMessagingAnalyticsDispatchReads` へ、100 件ずつ）。門 `messagingAnalytics` が閉なら集計の口を呼ばず印ごと出さない、集計の行が無い送信（予約・取り消し・テスト）は「-」、ui.readCount）。上に「新しく送る」（門 `messagingBroadcast`）
-- 一覧の選択と一括操作（D88 D95 D98）: `RecordSelectionList`（`@/lib/tableSuite`）に `DispatchRow` を載せる。選択の出し方は `toggle`（バーの「選択モード」が入の間だけチェック）、削除した送信は選べない。操作は受け口 `adminBulkActions` の項目（上流の既定 = `adminBulkActions/delete.tsx`: 確認の Dialog に見込み `DispatchDeleteSummary`（`useDispatchDeleteSummary`）→ `useBulkDeleteDispatches`、100 件まで）。終わったら一覧を取り直す。状態の絞りの「削除済み」（`constants/dispatchFilters.ts` の `DISPATCH_FILTER_DELETED`）= 削除した送信だけ（`deleted: "only"`）
+- 一覧の選択と一括操作（D88 D95 D98）: `RecordSelectionList`（`@/lib/tableSuite`）に `DispatchRow` を載せる。選択の出し方は `toggle`（バーの「選択モード」が入の間だけチェック）、削除した送信は選べない。操作は点 `adminBulkActions` の messaging の項目（上流の既定 = `plugs/adminBulkActions/delete.tsx`: 確認の Dialog に見込み `DispatchDeleteSummary`（`useDispatchDeleteSummary`）→ `useBulkDeleteDispatches`、100 件まで）。終わったら一覧を取り直す。状態の絞りの「削除済み」（`constants/dispatchFilters.ts` の `DISPATCH_FILTER_DELETED`）= 削除した送信だけ（`deleted: "only"`）
 - 送信の詳細（D130）: 送信一覧の上のモーダル `AdminDispatchDetailModal`（`dispatchId`（null = 閉じている）・`onClose`・`onDeleted?`・`onChanged?(送信)`（予約を編集で保存できた後、一覧は行を返った送信で置き換える）)。開き先は一覧の URL の `?dispatch=<id>`（hook `useDispatchDetailParam`: `dispatchId`・`hrefOf(id)`・`markOpened`・`close`（行から開いた時は「戻る」、URL を直に開いた時は ?dispatch を外して置き換え）、住所は `dispatchDetailHref(一覧の住所, id)`）。詳細の別の画面は無い。タブ = 基本情報 / 送信状況 / プレビュー / 既読した利用者（サービス内通知を含む送信だけ、`dispatchDetailTabs(dispatch)`。開いた時だけ取る、D210）、下の帯 = 送信の操作（`DispatchOperations`: 削除・失敗分を再送・送信を再開）+ 「予約を編集」（`ScheduledEditModal`（`dispatch`・`roleLabelOf?`・`onSaved?`）、予約のままの送信だけ = `operations.canEdit` が開の時。自由連絡・定義連絡とも 1 つのモーダル。宛先とレイアウトは見せるだけ。書く段 = 文面（直せる欄だけの `LayoutFields`、直せる欄が無い送信は箱なし）・送信方法（`SendCategoryChannels`、固定 on は外せない・off は出さない）・予約の時刻（`SendSchedule` の `showNow={false}`）。`canEdit.content` が閉なら理由の 1 行と時刻だけ。PATCH の体は変えた物だけ（時刻・変えた欄だけの `edits`・集合が変わった時だけ送信方法の一覧）で、宛先は送らない（D98 D101）。確認の段で変わる物の前と後（時刻・直した欄・送信方法）→ 保存、409・400 の文は書く段に出す。流れは公開の hook `useScheduledEdit`、保存の後は送信のキーを読み直す）+ 「同じ内容で送る」（自由連絡の送信だけ = 詳細の `sameAs` が null でない時。定義連絡・中身の無い前の形の送信には出さない。写すのは `sameAs`、D193）。中身の塊は `AdminDispatchDetail` の入口から（`DispatchSummaryBlock`（種別・カテゴリー・完了日時・理由・件名・数と、部品 `DispatchTargetSummary`・`DispatchMeta`。ロールの表示名は `dispatchRoleLabelOf` = 利用者のドメインの `formatUserRoleLabel`）・`DispatchDeliveriesBlock`（状態・送信チャンネルで絞る、カーソル）・`DispatchBodyBlock`（送信の中身を残した送信は `GET /dispatches/[id]/preview` を `LayoutPreview` で、前の形の送信は残した本文を `MessagePreview` で）・`DispatchReadersBlock`（`useDispatchReaders` + `DispatchReaders`）・`DispatchActions`）。入れ物 `AdminDispatchDetail`（`dispatchId`）= 同じ塊をタブと操作で並べた物（fork が自分の画面に置ける）。流れは `useAdminDispatchDetail(dispatchId, { limit?, observerOptions?, onDeleted? })`
 - 運営する人に鍵を見せない: 種別・カテゴリー・送信チャンネル・送り元は表示名、定義の鍵・グループの id は出さない。送った人 = `actorName`、配達の行 = `userName`、表に無い失敗の符号・理由・状態は「送れませんでした(理由は記録にあります)」「そのほかの理由」「そのほかの状態」
 - テンプレート `/admin/messaging/templates`（門 `messagingTemplates`、タブ テンプレート）: 入れ物 `AdminMessageTemplateList` = 種別の絞り・名前か文面の文字の検索（Enter か「検索」で確定）（状態の絞りは無い: 下書き・アーカイブは無い、D134 D137）+ 「新しく作る」+ 行（種別 / カテゴリー。DB のテンプレートだけ、システムテンプレートは廃止、D171・D201）。モーダル `AdminMessageTemplateModal`（`open`・`onOpenChange`・`templateId?`（null = 作る）・`onChanged?`）= `TabbedModal` の 内容 / バージョン履歴（変数のタブは無い）。内容 = 左 レイアウトの選択（一番上）+ `LayoutPreview`（送信チャンネルのタブ、未入力は仮の文）、右 名前・説明・種別 →（カテゴリー: その種別に 2 つ以上の時だけ）・`VarTags` +『専用の埋め込み情報を管理』（`TemplateVarsModal`）・`LayoutFields`。レイアウトを替えると中身があれば確かめて消す。作る時は種別・カテゴリー・レイアウトがそろいカテゴリーに送信方法がある時だけ中身の入力と埋め込み情報を出す（それまでは先に選ぶ物の 1 行、D139）。下の帯 削除（ConfirmPopover「送信の記録は残ります」、消せたらモーダルを閉じ一覧から行を外す、D137）・保存（ConfirmPopover、保存 = 作る / 直す の 1 回で公開（D134: 作る = 版 1、直す = 中身が違えば新しいバージョン）、同じ中身なら「変更はありません」）。一覧の流れ = hook `useAdminMessageTemplateList`（種別 `kind`/`setKind`（D135: その種別のカテゴリーのテンプレート）・文字の検索 `search`（`text`/`setText`・確定した `q`・`apply`・`clear`。探している間の保存は取り直す）・無限スクロール・モーダルの開き先）。流れ = hook `useMessageTemplateModal`・`useMessageTemplateForm`（種別・カテゴリー・レイアウト・中身・専用の宣言の書きかけと検査）・`useLayoutPreview`・`useVarTags`
@@ -70,9 +70,9 @@ core_ui の形: 流れとデータは hook（`hooks/index.ts` から）、部品
 
 ### 送る画面の使い分け
 
-局面が決まった連絡は連絡定義（`messages/<名前>.ts`）で書き、管理者が送るなら recordTargets の項目 + 上流の汎用のモーダル（見た目を変えるなら公開の hook で自前のモーダル）。その場で書く連絡だけ自由連絡の送るモーダル。
+局面が決まった連絡は連絡定義（`plugs/messages/<名前>.ts`）で書き、管理者が送るなら recordTargets の項目 + 上流の汎用のモーダル（見た目を変えるなら公開の hook で自前のモーダル）。その場で書く連絡だけ自由連絡の送るモーダル。
 
-- 定義連絡（コードが文面を配る）: 連絡定義 + 持ち主のドメインの記録の宛先 `recordTargets/<名前>.ts`（`messages` にその定義を並べる。定義の `adminTargets` に `records`）+ 一覧の一括操作の項目 `definitionBulkAction`（上流の汎用のモーダル `DefinitionSendModal` を開く）。全員・ロール・グループへは `DefinitionSendModal` の `entry: { type: "broadcast" }`（定義の `adminTargets` に `all`・`role`・`group`、門 `messagingBroadcast`）
+- 定義連絡（コードが文面を配る）: 連絡定義 + 持ち主のドメインの記録の宛先 `plugs/recordTargets/<名前>.ts`（`messages` にその定義を並べる。定義の `adminTargets` に `records`）+ 一覧の一括操作の項目 `definitionBulkAction`（上流の汎用のモーダル `DefinitionSendModal` を開く）。全員・ロール・グループへは `DefinitionSendModal` の `entry: { type: "broadcast" }`（定義の `adminTargets` に `all`・`role`・`group`、門 `messagingBroadcast`）
   - fork は上流のモーダルを無理に使わない: 目的に合う送る画面を、公開の hook（`hooks/index.ts`: `useDefinitionSendOptions`・`useDefinitionSend`・`useIdempotencyKey`・`useSendSteps`・`useSendResults`・`useRecipientChannels` ほか、../hooks/README.md）と部品（`SendCategoryChannels`・`SendTargetPicker`・`SendVarInputs`・`LayoutFields`・`SendResult`・`RecipientChannels` ほか）で組むことを勧める。口は同じ `POST /api/admin/messaging/definitions/send`
 - 自由連絡（管理者がその場で書く）: `MessageSendModal`（送信一覧の「新しく送る」・送信の詳細の「同じ内容で送る」・利用者の詳細などから 1 人宛て）と、一覧の一括操作の `bulkMessageAction`。局面の決まった連絡をここで組まない（初めの文面を持たせる口は無い、D195・D200）
 - 決まった文面に値を入れて送る連絡（例 メンテナンスのお知らせ）は運用の都合で 2 つの道（D176）:
@@ -80,20 +80,20 @@ core_ui の形: 流れとデータは hook（`hooks/index.ts` から）、部品
   - 管理者が文面を自分で持ちたい → DB のテンプレート（専用の埋め込み情報 `vars`）を作り、自由連絡の送るモーダルで読み込んで全員・ロール・グループへ送る
 - 上流の項目を変える道（D198）:
   - 一覧の一括送信は一覧の部品の中に手で書かず、受け口 `adminBulkActions` の項目にする（`definitionBulkAction` / `bulkMessageAction`）
-  - 文面 → 連絡定義の上書き `messages/<名前>.override.ts` の `values` か、管理画面のテキストの編集
+  - 文面 → 連絡定義の上書き `plugs/messages/<名前>.override.ts` の `values` か、管理画面のテキストの編集
   - 送信チャンネル → カテゴリーの上書き `categories/<名前>.override.ts` の `channels`（定義ごとの固定は連絡定義の上書きの `channelModes`）
   - 所属のカテゴリー → 連絡定義の上書きの `category`（D166）
-  - 送れる連絡定義の並び → 記録の宛先の上書き `recordTargets/<名前>.override.ts` の `messages`
+  - 送れる連絡定義の並び → 記録の宛先の上書き `plugs/recordTargets/<名前>.override.ts` の `messages`
   - 見た目と流れ → 上流の項目を `<名前>.override.ts` で `enabled: false` にし、自前のモーダルを置く自分の項目を足す
 - 全部のメールに付ける共通の文（署名・会社の住所など）: メールの枠 `src/lib/mail/frame/MailFrame.replace.tsx`（1 行スイッチ `MailFrame.tsx` を向け替える）か、レイアウトのメールの描き方の `.replace`（../layouts/README.md、D178）。システムテンプレートは無い
 - 1 人宛ての自由連絡の入口（`MessageSendModal` の `initialRecipients`）は `/send`（門 `messagingBroadcast` の中）を通るので、使う fork は `messagingBroadcast` を開き、ボタンを門で包む（`requires` / `useGate`）
 
 ### 定義連絡の汎用のモーダル（DefinitionSendModal）
 
-連絡定義（messages/<名前>.ts）を管理者が送るモーダル 1 つ（目的の props は無い、D164）。自由連絡の送るモーダルとは別。上流の既定の形で、見た目や流れが合わなければ下の hook と部品で自前のモーダルを組む（D191）。
+連絡定義（plugs/messages/<名前>.ts）を管理者が送るモーダル 1 つ（目的の props は無い、D164）。自由連絡の送るモーダルとは別。上流の既定の形で、見た目や流れが合わなければ下の hook と部品で自前のモーダルを組む（D191）。
 
 ```tsx
-// src/domains/<domain>/adminBulkActions/<名前>.tsx
+// src/domains/<domain>/plugs/adminBulkActions/<名前>.tsx
 import { definitionBulkAction } from "@/domains/core/messaging/components/DefinitionBulkAction";
 
 export const bulkAction = definitionBulkAction({ key: "<名前>", order: 100 }, { recordTarget: "<記録の宛先の鍵>" });
@@ -106,7 +106,7 @@ export const bulkAction = definitionBulkAction({ key: "<名前>", order: 100 }, 
 - 結果の段: `SendResultView`（後処理の結果 `afterSend`）+ 送信の結果 `SendResult`（`useSendResults`）
 - hook `useDefinitionSendModal({ entry, onSent? })`（入れ物はこれを呼んで並べるだけ。fork は同じ hook と部品で自前のモーダルを組める、D191）・純粋な関数 `definitionChannelsOf` / `broadcastTypesOf` / `changedEdits`
 - 作成関数 `definitionBulkAction(meta, { recordTarget, label?, disabled?, onSent? })`: 一覧の一括操作の項目（自由連絡の `bulkMessageAction` とは別、D194）。対に持ち主のドメインの記録の宛先（`messages` に送れる連絡定義）が要る
-- 上流の使い手: `bankTransferReview/adminBulkActions/sendEmail.tsx`
+- 上流の使い手: `bankTransferReview/plugs/adminBulkActions/sendEmail.tsx`
 
 ### 自由連絡の送るモーダル（MessageSendModal）
 
@@ -141,7 +141,7 @@ export const bulkAction = bulkMessageAction(
 ```
 
 - options（`BulkMessageActionOptions`）: `target`・`recordNoun`・`label?`（既定「一括送信」）・`source?`・`disabled?`・`onSent?(result)`
-  - 決まった文面・カテゴリーの指定は無い（送るモーダルは種別から選び白紙から書く）。決まった文面を送るなら連絡定義（messages/<名前>.ts）にする（D195 D200）
+  - 決まった文面・カテゴリーの指定は無い（送るモーダルは種別から選び白紙から書く）。決まった文面を送るなら連絡定義（plugs/messages/<名前>.ts）にする（D195 D200）
 
 ## Verification
 

@@ -6,7 +6,7 @@
 //   pnpm ops mail test-send -- --to=<アドレス> --message=<連絡の鍵>     (対話なし。--message=simple は接続確認のメール)
 //
 // 連絡のメール: 生成の一覧(src/registry/messageRegistry.ts)のうちカテゴリーの送信チャンネルに email がある連絡を、
-// 上書き(<名前>.override.ts)を重ね、見本の値を差し込んでレイアウトのメールの描き方(layouts の受け口 layoutEmails、無ければ要約から)で描いて送る。
+// 上書き(<名前>.override.ts)を重ね、見本の値を差し込んでレイアウトのメールの描き方(点 messagingLayouts の messagingLayoutEmails、無ければ要約から)で描いて送る。
 // 見本の値: 定義の vars・共通の文脈・当たる enrichers の鍵ごとに、URL の欄は https://example.com/sample/<鍵>、他は「<鍵>の見本」。
 // 送る口(回・配達の記録)は通さない(見た目の確認だけ)。連絡の書き方: src/lib/messaging/README.md
 
@@ -67,11 +67,8 @@ async function messageTemplates(): Promise<TemplateConfig[]> {
   const { messageRegistry } = await import("@/registry/messageRegistry");
   const { applyMessageOverride, COMMON_CONTEXT_KEYS, enricherTargets, fieldsForChannel } = await import("@/lib/messaging");
   const { MAIL_THEME_COLORS } = await import("@/lib/mail");
-  const { enrichers } = await import("@/domains/core/messaging/extensions/enrichers");
-  const { categories } = await import("@/domains/core/messaging/extensions/categories");
-  const { layouts } = await import("@/domains/core/messaging/extensions/layouts");
-  const { layoutEmails } = await import("@/domains/core/messaging/extensions/layoutEmails");
-  const { SummaryEmailView } = await import("@/domains/core/messaging/channels/email/genericView");
+  const { enrichers, categories, layouts, layoutEmails } = await import("@/domains/core/messaging/services/server/lists");
+  const { SummaryEmailView } = await import("@/domains/core/messaging/plugs/messagingChannels/email/genericView");
 
   const templates: TemplateConfig[] = [];
   for (const entry of Object.values(messageRegistry).sort((a, b) => a.key.localeCompare(b.key))) {

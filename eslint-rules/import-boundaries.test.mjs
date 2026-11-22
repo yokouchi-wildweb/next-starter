@@ -99,18 +99,50 @@ test("rule lib-no-registry: 値も型も止める", () => {
   });
 });
 
-test("rule lib-no-domains: 値も型も、別名も相対も止める。lib の外は通す", () => {
-  ruleTester.run("lib-no-domains", plugin.rules["lib-no-domains"], {
+test("rule district-no-domains(D22・注文 38): ゲートの無い地区と proxy.ts・instrumentation.ts は値も型も止める。生成物・テスト・__tests__/・地区の外は通す", () => {
+  ruleTester.run("district-no-domains", plugin.rules["district-no-domains"], {
     valid: [
       { code: `import { x } from "@/lib/domain";`, filename: at("src/lib/foo/index.ts") },
-      { code: `import { x } from "@/domains/core/user/types";`, filename: at("src/wiring/apiRoute.ts") },
+      { code: `import { x } from "@/domains/core/user/types";`, filename: at("src/domains/core/auth/x.ts") },
+      { code: `import { x } from "@/domains/core/user/types";`, filename: at("src/app/admin/(protected)/_layout/Sidebar/x.tsx") },
+      { code: `// 生成物・編集不可: pnpm generate extensions が x から生成する\nimport { plug } from "@/domains/core/auth/plugs/x";`, filename: at("src/wiring/routeFactory.ts") },
+      { code: `import { x } from "@/domains/core/user/types";`, filename: at("src/featureGate/checks/__tests__/helper.tsx") },
+      { code: `import { x } from "@/domains/core/user/types";`, filename: at("src/wiring/x.test.mts") },
     ],
     invalid: [
-      { code: `import { x } from "@/domains/core/auth/services/server/foo";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libDomains" }] },
-      { code: `import type { X } from "@/domains/core/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libDomains" }] },
-      { code: `import { x } from "@/domains/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libDomains" }] },
-      { code: `import { x } from "../../domains/sample/entities";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libDomains" }] },
-      { code: `const m = await import("@/domains/sample/entities");`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libDomains" }] },
+      { code: `import { x } from "@/domains/core/auth/services/server/foo";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "districtDomains" }] },
+      { code: `import type { X } from "@/domains/core/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "districtDomains" }] },
+      { code: `import { x } from "../../domains/sample/entities";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "districtDomains" }] },
+      { code: `const m = await import("@/domains/sample/entities");`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "districtDomains" }] },
+      { code: `import type { X } from "@/domains/core/user/types";`, filename: at("src/wiring/x.ts"), errors: [{ messageId: "districtDomains" }] },
+      { code: `import { x } from "@/domains/core/user/types";`, filename: at("src/proxies/x.ts"), errors: [{ messageId: "districtDomains" }] },
+      { code: `import { x } from "@/domains/core/user/types";`, filename: at("src/featureGate/x.ts"), errors: [{ messageId: "districtDomains" }] },
+      { code: `import { x } from "@/domains/core/user/types";`, filename: at("src/registry/x.ts"), errors: [{ messageId: "districtDomains" }] },
+      { code: `import { x } from "@/domains/core/user/types";`, filename: at("src/app/_layout/x.tsx"), errors: [{ messageId: "districtDomains" }] },
+      { code: `import { x } from "@/domains/core/user/types";`, filename: at("src/app/admin/_layout/x.tsx"), errors: [{ messageId: "districtDomains" }] },
+      { code: `import { x } from "@/domains/core/user/types";`, filename: at("src/proxy.ts"), errors: [{ messageId: "districtDomains" }] },
+      { code: `export { x } from "@/domains/core/user/types";`, filename: at("src/instrumentation.ts"), errors: [{ messageId: "districtDomains" }] },
+    ],
+  });
+});
+
+test("rule points-entry(D33・注文 38): 項目は約束の型を持ち主の points から読む。枠・proxies の値は読まない。points.ts は型だけ", () => {
+  const item = at("src/domains/core/demo/plugs/proxyHandlers/x.ts");
+  ruleTester.run("points-entry", plugin.rules["points-entry"], {
+    valid: [
+      { code: `import type { ProxyHandler } from "@/proxies/points";`, filename: item },
+      { code: `import type { RouteUserPlug } from "@/lib/routeFactory/points";`, filename: at("src/domains/core/auth/plugs/routeFactoryUser/x.ts") },
+      { code: `import { gate } from "@/featureGate";`, filename: item },
+      { code: `import { MAIL_THEME_COLORS } from "@/lib/mail";`, filename: at("src/domains/core/messaging/plugs/messagingLayouts/x.tsx") },
+      { code: `import type { ProxyHandler } from "@/proxies/types";`, filename: at("src/domains/core/demo/services/x.ts") },
+      { code: `export type { ProxyHandler } from "./types";\nimport type { X } from "./x";`, filename: at("src/proxies/points.ts") },
+    ],
+    invalid: [
+      { code: `import type { ProxyHandler } from "@/proxies/types";`, filename: item, errors: [{ messageId: "viaPoints" }] },
+      { code: `import type { RouteUserPlug } from "@/lib/routeFactory";`, filename: at("src/domains/core/auth/plugs/routeFactoryUser/x.ts"), errors: [{ messageId: "viaPoints" }] },
+      { code: `import { createProxyChain } from "@/proxies";`, filename: item, errors: [{ messageId: "frameValue" }] },
+      { code: `import { FrameParts } from "@/app/_layout/FrameParts";`, filename: at("src/domains/core/messaging/plugs/userOverlays/x.tsx"), errors: [{ messageId: "frameValue" }] },
+      { code: `export const x = 1;`, filename: at("src/proxies/points.ts"), errors: [{ messageId: "pointsTypeOnly" }] },
     ],
   });
 });
@@ -177,15 +209,15 @@ test("config: route・features・scripts で routeFactory の値 import は erro
   assert.deepEqual(await lintAt("src/lib/foo/index.ts", REG), ["import-boundaries/lib-no-registry:2"]);
   assert.deepEqual(await lintAt("src/lib/foo/foo.test.mjs", REG), []);
   const FEAT = `import type { X } from "@/domains/core/user/types";\nexport type Y = X;\n`;
-  assert.deepEqual(await lintAt("src/lib/foo/index.ts", FEAT), ["import-boundaries/lib-no-domains:2"]);
+  assert.deepEqual(await lintAt("src/lib/foo/index.ts", FEAT), ["import-boundaries/district-no-domains:2"]);
   assert.deepEqual(await lintAt("src/lib/foo/foo.test.mjs", FEAT), []);
   assert.deepEqual(await lintAt("src/domains/sample/services/server/foo.ts", REG), []);
 });
 
 test("classify: pageGuard の値 import は wiring と pageGuard 自身だけ、型は誰でも(L1.18)", () => {
   assert.equal(classifyPageGuardImport("src/app/guard.ts", "src/lib/pageGuard", false), "pageGuard");
-  assert.equal(classifyPageGuardImport("src/domains/core/auth/services/server/pageGuardUserDeps.ts", "src/lib/pageGuard", false), "pageGuard");
-  assert.equal(classifyPageGuardImport("src/domains/core/auth/services/server/pageGuardUserDeps.ts", "src/lib/pageGuard", true), null);
+  assert.equal(classifyPageGuardImport("src/domains/core/auth/plugs/pageGuardUser/session.default.ts", "src/lib/pageGuard", false), "pageGuard");
+  assert.equal(classifyPageGuardImport("src/domains/core/auth/plugs/pageGuardUser/session.default.ts", "src/lib/pageGuard", true), null);
   assert.equal(classifyPageGuardImport("src/wiring/pageGuard.ts", "src/lib/pageGuard", false), null);
   assert.equal(classifyPageGuardImport("src/wiring/pageGuard.acme.ts", "src/lib/pageGuard", false), null);
   assert.equal(classifyPageGuardImport("src/lib/pageGuard/index.ts", "src/lib/pageGuard/createPageGuard", false), null);
@@ -238,7 +270,7 @@ test("rule page-guard-via-wiring / domains-index-no-server-reexport: 値は止�
   ruleTester.run("page-guard-via-wiring", plugin.rules["page-guard-via-wiring"], {
     valid: [
       { code: `import { defineRootGuard } from "@/wiring/pageGuard";`, filename: guard },
-      { code: `import type { PageGuardDeps } from "@/lib/pageGuard";`, filename: at("src/domains/core/auth/services/server/pageGuardUserDeps.ts") },
+      { code: `import type { PageGuardDeps } from "@/lib/pageGuard";`, filename: at("src/domains/core/auth/plugs/pageGuardUser/session.default.ts") },
       { code: `import { createPageGuard } from "@/lib/pageGuard";`, filename: at("src/wiring/pageGuard.ts") },
     ],
     invalid: [
@@ -600,9 +632,9 @@ test("classify: axios の値 import は src/lib と services/client だけ、型
 test("classify: lib/mail の send は送り口と lib/mail 自身だけ、部品・型・名前を問わない形", () => {
   const mail = "src/lib/mail";
   const named = (...names) => names.map((name) => ({ name, typeOnly: false }));
-  assert.equal(classifyMailSendImport("src/domains/core/messaging/channels/email/index.tsx", mail, false, named("send")), null);
+  assert.equal(classifyMailSendImport("src/domains/core/messaging/plugs/messagingChannels/email/index.tsx", mail, false, named("send")), null);
   assert.equal(classifyMailSendImport("src/lib/mail/resend.ts", "src/lib/mail/send", false, named("send")), null);
-  assert.equal(classifyMailSendImport("src/domains/core/user/messages/messages.test.ts", mail, false, named("MAIL_THEME_COLORS")), null);
+  assert.equal(classifyMailSendImport("src/domains/core/user/plugs/messages/messages.test.ts", mail, false, named("MAIL_THEME_COLORS")), null);
   assert.equal(classifyMailSendImport("src/domains/foo/x.ts", mail, false, [{ name: "send", typeOnly: true }]), null);
   assert.equal(classifyMailSendImport("src/domains/foo/x.ts", mail, true, null), null);
   assert.equal(classifyMailSendImport("src/domains/foo/x.ts", mail, false, named("MailFrame", "send")), "send");
@@ -627,7 +659,7 @@ test("rule axios-in-client-layer / mail-send-via-messaging: 実際の書き方�
   const other = at("src/domains/foo/services/server/notify.ts");
   ruleTester.run("mail-send-via-messaging", plugin.rules["mail-send-via-messaging"], {
     valid: [
-      { code: `import { send } from "@/lib/mail";`, filename: at("src/domains/core/messaging/channels/email/index.tsx") },
+      { code: `import { send } from "@/lib/mail";`, filename: at("src/domains/core/messaging/plugs/messagingChannels/email/index.tsx") },
       { code: `import { MailFrame, type MailTheme } from "@/lib/mail";`, filename: other },
       { code: `async function f() { const { MAIL_THEME_COLORS } = await import("@/lib/mail"); }`, filename: other },
     ],

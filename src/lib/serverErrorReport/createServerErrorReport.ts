@@ -1,5 +1,5 @@
 // src/lib/serverErrorReport/createServerErrorReport.ts
-// 受け口の芯: 既定の 1 行を必ず先に書き、その後に項目(送り先)へ互いに独立に配る。どの関数も throw しない
+// 受け口の芯: 既定の 1 行を必ず先に書き、その後に項目(送り先)へ互いに独立に配る。どの関数も throw しない。起動時の処理は @/lib/startup(注文 33)
 import { describeError, stripQuery, toJsonLine, type ServerErrorLine } from "./format";
 import type {
   RequestErrorContext,
@@ -11,8 +11,6 @@ import type {
 } from "./types";
 
 export type ServerErrorReport = {
-  /** Next の register にそのまま渡す */
-  register: () => Promise<void>;
   /** Next の onRequestError にそのまま渡す */
   onRequestError: (error: unknown, request: RequestErrorRequest, context: RequestErrorContext) => Promise<void>;
   /** 入口(route factory・cron・proxy)が自分で受け止めた失敗を同じ記録へ */
@@ -55,7 +53,7 @@ export function createServerErrorReport(
     }
   };
 
-  const fail = (reporter: string, phase: "load" | "register" | "onRequestError", reason: unknown) =>
+  const fail = (reporter: string, phase: "load" | "onRequestError", reason: unknown) =>
     write({
       level: "error",
       scope: "serverErrorReport",
@@ -106,25 +104,6 @@ export function createServerErrorReport(
   };
 
   return {
-    async register() {
-      try {
-        const list = await reporters();
-        await Promise.all(
-          list.map(async (reporter) => {
-            if (!reporter.register) return;
-            try {
-              const result = await withLimit(() => reporter.register!(), options.registerTimeoutMs);
-              if (result === TIMED_OUT) fail(reporter.name, "register", TIMED_OUT);
-            } catch (reason) {
-              fail(reporter.name, "register", reason);
-            }
-          }),
-        );
-      } catch (reason) {
-        fail("*", "register", reason);
-      }
-    },
-
     async onRequestError(error, request, context) {
       try {
         writeDefault(error, {

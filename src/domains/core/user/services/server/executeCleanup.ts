@@ -1,6 +1,6 @@
 // src/domains/core/user/services/server/executeCleanup.ts
 
-import { cleanupHandlers } from "@/domains/core/user/extensions/cleanupHandlers";
+import { userCleanupHandlers } from "@/domains/core/user/extensions/userCleanupHandlers";
 import type { DbTransaction } from "@/lib/crud/server";
 
 import { runCleanupItems } from "./cleanup";
@@ -11,5 +11,10 @@ import { runCleanupItems } from "./cleanup";
  * - それ以外: 失敗時はログを記録して続行
  */
 export async function executeCleanup(userId: string, tx: DbTransaction): Promise<void> {
-  await runCleanupItems(cleanupHandlers, userId, tx);
+  // 常に読む一覧(alwaysOn): 門番で絞らない(閉じたドメインの利用者の行も片付ける)。項目の enabled が自分で閉じる
+  await runCleanupItems(
+    userCleanupHandlers.map((entry) => entry.plug),
+    userId,
+    tx,
+  );
 }

@@ -33,7 +33,7 @@
 
 | 扱い | 対象 |
 |---|---|
-| 毎回上書き（編集しない） | 上表のファイル全部（write-once を除く）。`drizzleBase.ts`・`presenters.ts`・`constants/field.ts`・`<Domain>Fields.tsx` も含む。`components` は一括操作の受け口の宣言 `extensionPoints.ts` と型 `types/adminBulkAction.ts` も書く（生成されるドメインの宣言は生成器が持つ。別の受け口が要るなら `"generate": false` にして手で持つ）。項目の `adminBulkActions/` は触らない |
+| 毎回上書き（編集しない） | 上表のファイル全部（write-once を除く）。`drizzleBase.ts`・`presenters.ts`・`constants/field.ts`・`<Domain>Fields.tsx` も含む。`components` は一括操作の項目の型 `types/adminBulkAction.ts` も書く（点 adminBulkActions は core/admin の 1 点なので宣言は書かない。自分の点が要るドメインは自分の `extensionPoints.ts` を手で持つ）。項目の `plugs/adminBulkActions/` は触らない |
 | 初回だけ生成（write-once） | 管理画面ルートの `page.tsx`（1 行スイッチ。旧形式なら一度だけスイッチ形へ移行）、`services/server/<domain>Service.ts`（`base` にラッパー・独自処理を組み込む手書きの場所。既存の旧 `wrappers/duplicate` の組み込みは警告。テスト: `pnpm test scripts/structure/domain/tests/serverServiceWriteOnce.test.mjs`）。作り直すときはファイルを消してから生成する |
 | 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
 | 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |
@@ -46,7 +46,7 @@
 
 - 上の表のうち、ファイルごとの種類（`every-run` = 毎回書き直す / `write-once` = 無いときだけ書く）の唯一の元は [`phase.json`](phase.json) の `outputs`。1 行 = `{ glob, kind, source? }`
   - `glob` はリポジトリ直下からの glob。`{dir}` = ドメインのフォルダ・`{camel}` = フォルダ名・`{Pascal}` = その PascalCase・`{route}` = 管理画面のルートのフォルダ（複数形の kebab-case、決まりの元は `src/lib/districtMap/domainNames.mjs`）。`[id]` の `[` `]` は字そのもの
-  - `source` = その生成物を変えたいときに直す物（`{dir}/domain.json`・`{dir}/services/server/wrappers/`・`{dir}/adminBulkActions/`）
+  - `source` = その生成物を変えたいときに直す物（`{dir}/domain.json`・`{dir}/services/server/wrappers/`・`{dir}/plugs/`）
 - 受け口の一覧の generated の行にはならない（行になるのは `every-run` でドメインの置き換えを持たない glob だけ。`src/lib/districtMap/domainOutputs.mjs` の `intakeOutputGlobs`）
 - 読み手: `pnpm workflow ownership who`（`every-run` = 型 generated で直す元を案内、`write-once` と `"generate": false` のドメインは持ち主で own か none。`src/lib/forkOwnership/README.md`「型の答え(`explain.mjs`)」）。当て方は `src/lib/districtMap/domainOutputs.mjs`
 - 照合: `pnpm test scripts/structure/domain/tests/outputs.test.mjs` が、このリポの全ドメイン（`generate: false` を除く）を全カテゴリで組み立て（何も書かない）、`file` の Output は `every-run` の行に、`writeOnce` は `write-once` の行に当たり、どの行もどれかの出力に当たることを見る。生成器が書くファイルを足したら、この行も同じコミットで足す

@@ -2,14 +2,15 @@
 
 import { NextResponse } from "next/server";
 
-import { webhookHandlers } from "@/domains/core/userLineProfile/extensions/webhookHandlers";
+import { userLineProfileWebhookHandlers } from "@/domains/core/userLineProfile/extensions/userLineProfileWebhookHandlers";
+import { gate } from "@/featureGate";
 import { dispatchWebhookEvents } from "@/domains/core/userLineProfile/services/server/dispatchWebhookEvents";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { parseWebhookRequest } from "@/lib/line";
 
 /**
  * LINE Webhook 受信エンドポイント。
- * x-line-signature ヘッダーで署名検証を行い、イベントを userLineProfile の webhookHandlers へ渡す。
+ * x-line-signature ヘッダーで署名検証を行い、イベントを userLineProfile の点 userLineProfileWebhookHandlers の項目(閉じたドメインの項目は外す)へ渡す。
  *
  * LINE Platform は 200 を返さないと再送を繰り返すため、
  * イベント処理でエラーが発生しても 200 を返す。
@@ -34,7 +35,7 @@ export const POST = createApiRoute(
       );
     }
 
-    await dispatchWebhookEvents(events, webhookHandlers);
+    await dispatchWebhookEvents(events, gate.plugs(userLineProfileWebhookHandlers).map((entry) => entry.plug));
     return NextResponse.json({ success: true });
   },
 );

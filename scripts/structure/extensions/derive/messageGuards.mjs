@@ -1,19 +1,19 @@
 // scripts/structure/extensions/derive/messageGuards.mjs
-// 止められない連絡(required)の守り。連絡の定義 messages/<名前>.ts と隣の上書き <名前>.override.ts を字面で読み(実行しない)、
+// 止められない連絡(required)の守り。連絡の定義 plugs/messages/<名前>.ts と隣の上書き <名前>.override.ts を字面で読み(実行しない)、
 // - required の上書き: enabled: false にしない・adminEditableOnly(書くなら)は空・throttle(書くなら)は null だけ
 // - 守りに関わる値(定義の required・category・adminEditableOnly、上書きの enabled・adminEditableOnly、カテゴリーの kind・channels・group)はリテラルで書く
 // - label(全部の定義に必須、D46): 管理画面に出す連絡の名前。字面の空でない文字列(上書きで変えられる = 表示だけ)
-// - category(全部の定義に必須、D81): リテラルで、categories の受け口(messaging の点 categories)の項目の鍵のどれか。
-//   上書きの category(付け替え、D166・D167)もリテラルで受け口の鍵。下の守りは付け替えた後のカテゴリー(種別・送信チャンネル)で見る
+// - category(全部の定義に必須、D81): リテラルで、messaging の点 messagingCategories の項目(差す側の <ドメイン>/plugs/messagingCategories/)の鍵のどれか。
+//   上書きの category(付け替え、D166・D167)もリテラルで点の鍵。下の守りは付け替えた後のカテゴリー(種別・送信チャンネル)で見る
 // - 上書きの channelModes(送信チャンネルの固定の丸ごとの差し替え、D212)もリテラル。required か email を外せない種別の email を "off" にしない
-// - layout(全部の定義に必須、D122): リテラルで、レイアウトの受け口(messaging の点 layouts)のフォルダの名前のどれか。欄の中身(values)は
+// - layout(全部の定義に必須、D122): リテラルで、レイアウトの点 messagingLayouts の項目のフォルダ(<ドメイン>/plugs/messagingLayouts/<名前>/)の名前のどれか。欄の中身(values)は
 //   レイアウトの欄の zod で実行時に検査する(lib/messaging validateMessageDefinition)
 // - required の定義: カテゴリーの送信チャンネルに "email" がある・adminEditableOnly が空・throttle が無い
 // - 上流(src/domains/core)の functional のカテゴリーの連絡: 上書きで enabled: false にしない(D68)
-// - カテゴリーの上書き(categories/<名前>.override.ts): functional・security のカテゴリーの channels から "email" を外さない(D86)。
-//   group は categoryGroups の受け口の鍵で、1 つのグループのカテゴリーは同じ種別(D82)
+// - カテゴリーの上書き(項目の隣の <名前>.override.ts): functional・security のカテゴリーの channels から "email" を外さない(D86)。
+//   group は点 messagingCategoryGroups の項目の鍵で、1 つのグループのカテゴリーは同じ種別(D82)
 // 種別の性質(emailFixed・upstreamDisable)は src/lib/messaging/definition/kinds.ts の MESSAGE_KIND_TRAITS を字面で読む(表は 1 か所)。
-// categories の点が宣言されていない木(messaging の無い木)ではカテゴリーの検査をしない
+// messagingCategories の点が宣言されていない木(messaging の無い木)ではカテゴリーの検査をしない。plugs の点の項目は全部のドメイン・lib の plugs/<点>/ から読む(段 3 注文 28)
 // 上書きの鍵(宣言の overrideOf の中か)は ../overrideKeys.mjs、欄・{{鍵}} など値の検査は lib/messaging の validateMessageDefinition(実行時・生成時)。
 // 点 = lib/messaging の extensionPoints.ts の messages(宣言の overrides の glob の対象)。pnpm check extensions(段階 build)が回す
 
@@ -22,15 +22,15 @@ import { join, matchesGlob } from "node:path";
 
 import ts from "typescript";
 
-import { literalOf, isOverridePath, overrideGlobOf } from "../../../../src/lib/districtMap/index.mjs";
+import { literalOf, isOverridePath, isPlugsPoint, overrideGlobOf, PLUGS_DIR_NAME } from "../../../../src/lib/districtMap/index.mjs";
 
 /** 守りを当てる点(持ち主のフォルダ・点の名前) */
 export const MESSAGE_POINT = { owner: "src/lib/messaging", name: "messages" };
 /** 配信停止のカテゴリーの点(項目の鍵 = category に書ける値)とグループの点 */
-export const CATEGORY_POINT = { owner: "src/domains/core/messaging", name: "categories" };
-export const CATEGORY_GROUP_POINT = { owner: "src/domains/core/messaging", name: "categoryGroups" };
-/** レイアウトの点(layouts/<名前>/layout.ts のフォルダの名前 = layout に書ける値) */
-export const LAYOUT_POINT = { owner: "src/domains/core/messaging", name: "layouts" };
+export const CATEGORY_POINT = { owner: "src/domains/core/messaging", name: "messagingCategories" };
+export const CATEGORY_GROUP_POINT = { owner: "src/domains/core/messaging", name: "messagingCategoryGroups" };
+/** レイアウトの点(<ドメイン>/plugs/messagingLayouts/<名前>/layout.ts のフォルダの名前 = layout に書ける値) */
+export const LAYOUT_POINT = { owner: "src/domains/core/messaging", name: "messagingLayouts" };
 /** 種別の性質の表 */
 const KIND_TRAITS_FILE = "src/lib/messaging/definition/kinds.ts";
 /** 定義の export の名前(export const message = defineMessage({ … })) */
@@ -86,24 +86,37 @@ function readPresence(object, key) {
 
 const isStringArray = (v) => Array.isArray(v) && v.every((x) => typeof x === "string");
 
-/** 受け口の項目のファイル(<dir>/<名前>.ts(x) か <名前>/index.ts(x)、.override・.test は除く) */
-function itemFiles(point, files) {
+/** 点の項目のフォルダの前置き: plugs の点 = 全部のドメイン・lib の <…>/plugs/<点>/、受け口のフォルダの点 = <持ち主>/<dir>/ */
+function itemRestOf(point, file) {
+  if (isPlugsPoint(point.spec)) {
+    const marker = `/${PLUGS_DIR_NAME}/${point.name}/`;
+    const at = file.indexOf(marker);
+    return at > 0 && /^src\/(domains|lib)\//.test(file) ? file.slice(at + marker.length) : null;
+  }
   const base = `${point.owner}/${point.spec.dir}/`;
+  return file.startsWith(base) ? file.slice(base.length) : null;
+}
+
+/** 点に項目を置けるか(plugs の点か受け口のフォルダの点) */
+const hasItems = (point) => Boolean(point?.spec && (isPlugsPoint(point.spec) || point.spec.dir));
+
+/** 点の項目のファイル(<名前>.ts(x) か <名前>/index.ts(x)、.override・.test は除く) */
+function itemFiles(point, files) {
   return files.filter((f) => {
-    if (!f.startsWith(base) || /\.test\.[cm]?tsx?$/.test(f) || isOverridePath(f)) return false;
-    const rest = f.slice(base.length);
-    return /^[^/.]+\.tsx?$/.test(rest) || /^[^/.]+\/index\.tsx?$/.test(rest);
+    if (/\.test\.[cm]?tsx?$/.test(f) || isOverridePath(f)) return false;
+    const rest = itemRestOf(point, f);
+    return rest !== null && (/^[^/.]+\.tsx?$/.test(rest) || /^[^/.]+\/index\.tsx?$/.test(rest));
   });
 }
 
 /**
- * categories の受け口の項目(鍵 → { kind, channels, group, path })。字面で読む。点が宣言されていなければ null(照らさない)
+ * 点 messagingCategories の項目(鍵 → { kind, channels, group, path })。字面で読む。点が宣言されていなければ null(照らさない)
  * @param {{ owner: string, name: string, spec: { dir?: string, export?: string } }[]} points
  * @param {string[]} files
  */
 export function readCategories(repoRoot, points, files) {
   const point = points.find((p) => p.owner === CATEGORY_POINT.owner && p.name === CATEGORY_POINT.name);
-  if (!point?.spec?.dir || !point.spec.export) return null;
+  if (!hasItems(point) || !point.spec.export) return null;
   const categories = new Map();
   for (const path of itemFiles(point, files)) {
     const object = exportedObject(path, readFileSync(join(repoRoot, path), "utf8"), point.spec.export);
@@ -123,7 +136,7 @@ export function readCategories(repoRoot, points, files) {
   return categories;
 }
 
-/** categories の受け口の項目の鍵(書き出しのコマンドが使う) */
+/** 点 messagingCategories の項目の鍵(書き出しのコマンドが使う) */
 export function readCategoryKeys(repoRoot, points, files) {
   const categories = readCategories(repoRoot, points, files);
   return categories ? [...categories.keys()].sort() : null;
@@ -132,7 +145,7 @@ export function readCategoryKeys(repoRoot, points, files) {
 /** カテゴリーのグループの鍵(点が無ければ空) */
 function readGroupKeys(repoRoot, points, files) {
   const point = points.find((p) => p.owner === CATEGORY_GROUP_POINT.owner && p.name === CATEGORY_GROUP_POINT.name);
-  if (!point?.spec?.dir || !point.spec.export) return new Set();
+  if (!hasItems(point) || !point.spec.export) return new Set();
   const keys = new Set();
   for (const path of itemFiles(point, files)) {
     const object = exportedObject(path, readFileSync(join(repoRoot, path), "utf8"), point.spec.export);
@@ -162,30 +175,29 @@ export function readKindTraits(repoRoot) {
   return traits;
 }
 
-/** レイアウトの受け口のフォルダの名前(点が宣言されていない木は null) */
+/** 点 messagingLayouts のフォルダの名前(点が宣言されていない木は null) */
 export function readLayoutKeys(points, files) {
   const point = points.find((p) => p.owner === LAYOUT_POINT.owner && p.name === LAYOUT_POINT.name);
-  if (!point?.spec?.dir) return null;
-  const prefix = `${point.owner}/${point.spec.dir}/`;
+  if (!hasItems(point)) return null;
   return new Set(
     files.flatMap((file) => {
-      if (!file.startsWith(prefix)) return [];
-      const match = /^([^/]+)\/layout\.ts$/.exec(file.slice(prefix.length));
+      const rest = itemRestOf(point, file);
+      const match = rest === null ? null : /^([^/]+)\/layout\.ts$/.exec(rest);
       return match ? [match[1]] : [];
     }),
   );
 }
 
-/** 定義の layout の問題(全部の連絡に必須・レイアウトの受け口のフォルダの名前) */
+/** 定義の layout の問題(全部の連絡に必須・点 messagingLayouts のフォルダの名前) */
 function layoutProblems(path, object, layoutKeys) {
   const layout = readLiteralProperty(object, "layout");
-  if (layout.problem) return [`${path}: ${layout.problem}(layout をレイアウトの受け口と字面で照らすため)`];
+  if (layout.problem) return [`${path}: ${layout.problem}(layout を点 messagingLayouts と字面で照らすため)`];
   const list = layoutKeys ? [...layoutKeys].sort().join(" / ") || "項目なし" : "";
   if (!layout.present || typeof layout.value !== "string") {
     return [`${path}: layout(レイアウトの鍵${list ? `: ${list}` : ""})を書く(全部の連絡に必須。中身は values にレイアウトの欄の鍵で書く)`];
   }
   if (layoutKeys && !layoutKeys.has(layout.value)) {
-    return [`${path}: layout ${JSON.stringify(layout.value)} はレイアウトの受け口に無い(${list})。先に messaging/layouts/<名前>/layout.ts を足す`];
+    return [`${path}: layout ${JSON.stringify(layout.value)} は点 messagingLayouts に無い(${list})。先に <ドメイン>/plugs/messagingLayouts/<名前>/layout.ts を足す`];
   }
   return [];
 }
@@ -200,14 +212,14 @@ function labelProblems(path, object) {
   return [];
 }
 
-/** 定義の category の問題(全部の連絡に必須・受け口の鍵) */
+/** 定義の category の問題(全部の連絡に必須・点 messagingCategories の鍵) */
 function categoryProblems(path, object, categories) {
   const category = readLiteralProperty(object, "category");
-  if (category.problem) return [`${path}: ${category.problem}(category を categories の受け口と字面で照らすため)`];
+  if (category.problem) return [`${path}: ${category.problem}(category を点 messagingCategories と字面で照らすため)`];
   const list = [...categories.keys()].sort().join(" / ") || "項目なし";
   if (!category.present) return [`${path}: category(${list})を書く(全部の連絡に必須。種別と送信チャンネルはカテゴリーから引く)`];
   const item = typeof category.value === "string" ? categories.get(category.value) : undefined;
-  if (!item) return [`${path}: category ${JSON.stringify(category.value)} は categories の受け口に無い(${list})。先に categories/<名前>.ts を足す`];
+  if (!item) return [`${path}: category ${JSON.stringify(category.value)} は点 messagingCategories に無い(${list})。先に <ドメイン>/plugs/messagingCategories/<名前>.ts を足す`];
   return [];
 }
 
@@ -239,7 +251,7 @@ function categoryOverrideProblems(repoRoot, categories, files, groupKeys, traits
     effective.set(key, { ...item, channels, group });
     if (!group) continue;
     if (!groupKeys.has(group)) {
-      problems.push(`${item.path}: カテゴリー ${key} の group ${group} は categoryGroups の受け口に無い`);
+      problems.push(`${item.path}: カテゴリー ${key} の group ${group} は点 messagingCategoryGroups に無い`);
       continue;
     }
     const seen = groupKind.get(group);
@@ -295,7 +307,7 @@ export function checkMessageGuards(repoRoot, points, files) {
       if (moved.problem) problems.push(`${ownOverride}: ${moved.problem}(付け替え先のカテゴリーを字面で照らすため)`);
       else if (moved.present) {
         if (categories && (typeof moved.value !== "string" || !categories.has(moved.value))) {
-          problems.push(`${ownOverride}: category ${JSON.stringify(moved.value)} は categories の受け口に無い(${[...categories.keys()].sort().join(" / ") || "項目なし"})`);
+          problems.push(`${ownOverride}: category ${JSON.stringify(moved.value)} は点 messagingCategories に無い(${[...categories.keys()].sort().join(" / ") || "項目なし"})`);
         } else categoryKey = moved.value;
       }
     }

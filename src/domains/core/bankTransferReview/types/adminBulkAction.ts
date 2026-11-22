@@ -5,7 +5,7 @@ import type { AdminBankTransferReviewListItem } from "@/domains/core/bankTransfe
 import type { AdminBulkActionAccess } from "@/domains/core/user/types";
 
 /**
- * 振込レビューの管理一覧の一括操作の項目(src/domains/core/bankTransferReview/adminBulkActions/<名前>.tsx の export const bulkAction)。
+ * 振込レビューの管理一覧の一括操作の項目(src/domains/core/bankTransferReview/plugs/adminBulkActions/<名前>.tsx の export const bulkAction)。
  * 一覧は status ごとのタブだが受け口は 1 つなので lists は使わない(今のタブで出し分けたいときは Component の中で selection を見る)。
  * 作り方: src/lib/tableSuite/README.md「一括操作の受け口」
  */

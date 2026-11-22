@@ -5,7 +5,7 @@
 // 画面と枠の 1 行スイッチは地区と 1 対 1 でない(ルートごと、1 ルート = 1 Screen の決まりは src/lib/screens)ので、差替点の宣言でなくルートの一覧を入力に取る(注文 16 Q3)。
 // 行の kind: 受け口の項目・丸ごと置き換え・足してよい対象(addable)= add、1 行スイッチの素の名前・上書きの対象の点の <対象>.override.ts = edit。書式: scripts/structure/extensions/README.md
 
-import { isListPoint, isPlugsPoint } from "./declarations.mjs";
+import { PLUGS_DIR_NAME, isListPoint, isPlugsPoint } from "./declarations.mjs";
 import { overrideGlobOf } from "./extensionNames.mjs";
 
 /** 宣言に依らない受け口(route の隣の丸ごと置き換え・枠の宣言)。ドメインのタスクは fork 自身のドメインに置くので受け口の行は無い */
@@ -63,6 +63,14 @@ export function intakeRowsOf({ points, switches = [], pages = [], frameSwitches 
       rows.push(`add ${dir}/*/**  # ${label}(フォルダ形)`);
     }
     for (const file of [...entry.files].sort()) rows.push(`add ${dir}/*/${file}  # ${label}`);
+  }
+  // plugs の点の上書き(注文 25): 上流の項目の隣の <名前>.override.ts だけ(項目そのものは差す側の自分のフォルダ、D38)。
+  // 置き場は上流のドメインと lib の plugs/<点>/(files の点は項目のフォルダの中の <ファイル>.override)。itemsOf の点は主の点のフォルダを読む
+  for (const point of [...points].filter((p) => isPlugsPoint(p.spec) && Array.isArray(p.spec.overrideOf)).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    const folder = typeof point.spec.itemsOf === "string" ? point.spec.itemsOf : point.name;
+    const keys = /** @type {string[]} */ (point.spec.overrideOf).join("・");
+    const files = typeof point.spec.files === "string" ? `*/${point.spec.files.slice("*/".length).replace(/\.tsx?$/, "")}.override.{ts,tsx}` : "*.override.{ts,tsx}";
+    for (const root of ["src/domains/**", "src/lib/*"]) rows.push(`add ${root}/${PLUGS_DIR_NAME}/${folder}/${files}  # 上書き ${point.name}(${keys})の上流の項目の隣`);
   }
   // 差替点(replace): 呼び手が import する素の名前は edit(向け先を ./<名前>.replace に替える)、置き換えの実装は add
   const sortedSwitches = [...switches].sort((a, b) => (a.path < b.path ? -1 : 1));

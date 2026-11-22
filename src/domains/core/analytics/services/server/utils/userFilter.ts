@@ -4,7 +4,7 @@
 import { inArray, notInArray, eq, type SQL, type Column } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { UserTable } from "@/domains/core/user/entities/drizzle";
-import { exclusionProviders } from "@/domains/core/analytics/extensions/exclusionProviders";
+import { analyticsExclusionProviders } from "@/domains/core/analytics/extensions/analyticsExclusionProviders";
 import type { UserFilter } from "@/domains/core/analytics/types/common";
 import type {
   AnalyticsExclusionProvider,
@@ -70,11 +70,11 @@ export function buildExclusionConditions(
   userIdColumn: Column,
   params: Pick<UserFilter, "includeExcluded">,
   scope: AnalyticsExclusionScope,
-  providers: Readonly<Record<string, AnalyticsExclusionProvider>> = exclusionProviders,
+  providers: readonly AnalyticsExclusionProvider[] = analyticsExclusionProviders.map((entry) => entry.plug),
 ): SQL[] {
   if (params.includeExcluded) return [];
   const conditions: SQL[] = [];
-  for (const provider of Object.values(providers)) {
+  for (const provider of providers) {
     if (provider.enabled && !provider.enabled()) continue;
     const condition =
       scope.kind === "flow"

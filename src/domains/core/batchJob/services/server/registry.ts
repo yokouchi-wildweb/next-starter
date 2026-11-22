@@ -1,16 +1,16 @@
 // src/domains/core/batchJob/services/server/registry.ts
 
-import { jobHandlers } from "@/domains/core/batchJob/extensions/jobHandlers";
+import { batchJobJobHandlers } from "@/domains/core/batchJob/extensions/batchJobJobHandlers";
 import type { BatchJobHandler } from "@/domains/batchJob/types";
 
 let memo: Map<string, BatchJobHandler> | null = null;
 
-// 項目(jobHandlers/<名前>.ts の export const jobHandler)を検査して組み立てる。読み込みの途中で一覧を触らないよう初回に。
+// 項目(差す側の <ドメイン>/plugs/batchJobJobHandlers/<名前>.ts の export const jobHandler)を検査して組み立てる。常に読む一覧(alwaysOn): 門番で絞らない。読み込みの途中で一覧を触らないよう初回に。
 // enabled が false の項目は無いものとして扱う(機能が無効ならテーブルが無い場合がある)
 function handlers(): Map<string, BatchJobHandler> {
   if (memo) return memo;
   const map = new Map<string, BatchJobHandler>();
-  for (const { jobType, enabled, ...handler } of jobHandlers) {
+  for (const { jobType, enabled, ...handler } of batchJobJobHandlers.map((entry) => entry.plug)) {
     if (!(enabled?.() ?? true)) continue;
     validateHandler(jobType, handler);
     if (map.has(jobType)) {

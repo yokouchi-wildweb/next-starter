@@ -1,7 +1,7 @@
 // src/domains/core/messaging/services/server/preferences/dto.ts
 //
 // 好み(カテゴリー × 送信チャンネルの配信停止)の利用者へ返す形と、変える入力の形(型だけ。client の service も型で読む)。
-// - 入れ子 = 送信チャンネル > 種別の枠 > グループ(categoryGroups の受け口。無いカテゴリーは key null の 1 つ、見出しのグループより先)> カテゴリー(D60・D62・D82)
+// - 入れ子 = 送信チャンネル > 種別の枠 > グループ(点 messagingCategoryGroups。無いカテゴリーは key null の 1 つ、見出しのグループより先)> カテゴリー(D60・D62・D82)
 //   送信チャンネルは有効な送信チャンネルの受け口の全部(カテゴリーの無い送信チャンネルは kinds が空)。種別の枠は利用者が止められる種別(userStoppable)だけ、MESSAGE_KINDS の順
 //   カテゴリーが送信チャンネルに出る = カテゴリーの送信チャンネルにその送信チャンネルがある(列 = カテゴリーの送信チャンネル ∩ 開いている送信チャンネル、D86)
 // - optedOut = 送る側(checkStops)が止めるか。via = どの行で止まっているか

@@ -7,6 +7,6 @@ import "server-only";
 
 import type { __Domain__ } from "@/domains/__domain__/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminListParts } from "@/wiring/adminScreenParts";
+import { adminListParts } from "@/domains/core/admin/services/server/screenParts";
 
 export const loadAdmin__Domain__ListScreen = createLoader(adminListParts<__Domain__>("__domain__"));

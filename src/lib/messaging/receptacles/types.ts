@@ -80,7 +80,7 @@ export type ChannelWebhook = {
 export type ChannelRendered = { html?: string; text?: string; content?: Record<string, unknown> };
 
 /**
- * 送信チャンネルの項目(messaging/channels/<名前>.ts の export const channel)。
+ * 送信チャンネルの項目(<ドメイン>/plugs/messagingChannels/<名前>.ts の export const channel)。
  * レイアウトの描き方の 3 段(D124)の宣言 MessageChannelRendering を任意で持つ: renderGeneric(欄の型とブロックを宣言の順に描く)・
  * genericFieldTypes(描ける型、無い = 全部)・summaryRenderable + renderFromSummary(要約から描ける)。送信チャンネルは自分の欄を持たない(中身はレイアウト、D122)
  */
@@ -172,7 +172,7 @@ export function enricherTargets(
 }
 
 /**
- * 値の項目(messaging/enrichers/<名前>.ts の export const enricher)。provides の鍵が {{鍵}} で使える(実行時に zod で検査)
+ * 値の項目(<ドメイン>/plugs/messagingEnrichers/<名前>.ts の export const enricher)。provides の鍵が {{鍵}} で使える(実行時に zod で検査)
  */
 export type MessageEnricher = {
   key: string;
@@ -193,7 +193,7 @@ export type MessageEnricher = {
 // ---------------------------------------------------------------------------
 
 /**
- * カテゴリーの項目(messaging/categories/<名前>.ts の export const category)。
+ * カテゴリーの項目(<ドメイン>/plugs/messagingCategories/<名前>.ts の export const category)。
  * カテゴリー = 利用者から見て 1 つの出来事(D79)。種別と送信チャンネルを持ち、属する連絡は全部この送信チャンネルで届く(D86)。配信停止の単位 = カテゴリー × 送信チャンネル。
  * fork は上流のカテゴリーの隣の <名前>.override.ts で label・description・channels・group を変えられる(key・kind は不可。
  * functional・security の email は外せない)
@@ -219,7 +219,7 @@ export type MessageCategory = {
 };
 
 /**
- * カテゴリーのグループの項目(messaging/categoryGroups/<名前>.ts の export const group)。設定画面の見出しだけ(停止の単位ではない、D82)。上流は出荷しない
+ * カテゴリーのグループの項目(<ドメイン>/plugs/messagingCategoryGroups/<名前>.ts の export const group)。設定画面の見出しだけ(停止の単位ではない、D82)。上流は出荷しない
  */
 export type MessageCategoryGroup = {
   key: string;
@@ -233,7 +233,7 @@ export type MessageCategoryGroup = {
 // ---------------------------------------------------------------------------
 
 /**
- * 送り元の項目(messaging/sources/<名前>.ts の export const source)。定義から送る連絡は定義の鍵が既定の送り元
+ * 送り元の項目(<ドメイン>/plugs/messagingSources/<名前>.ts の export const source)。定義から送る連絡は定義の鍵が既定の送り元
  */
 export type MessageSource = {
   key: string;
@@ -267,7 +267,7 @@ export type MessageEvent = {
 };
 
 /**
- * 購読の項目(messaging/subscribers/<名前>.ts の export const subscriber)。cron(messaging-subscribers)が入った順に少なくとも 1 回渡す。
+ * 購読の項目(<ドメイン>/plugs/messagingSubscribers/<名前>.ts の export const subscriber)。cron(messaging-subscribers)が入った順に少なくとも 1 回渡す。
  * handle は事件の id で冪等にする(同じ事件が 2 回渡ることがある)。投げると印を進めず、同じ事件が上限の回数失敗すると隔離して先へ進む
  */
 export type MessageSubscriber = {

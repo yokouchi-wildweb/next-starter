@@ -9,8 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-import { useAuthSession } from "@/domains/core/auth/hooks/useAuthSession";
-import { useLogout } from "@/domains/core/auth/hooks/useLogout";
+import { useFrameSession } from "@/app/_layout/useFrameSession";
 
 import { userLayoutConfig } from "../config";
 import { userLayoutUiConfig } from "../config.ui";
@@ -61,9 +60,10 @@ export const useHeaderData = (): UseHeaderDataReturn => {
   const headerRef = useRef<HTMLElement | null>(null);
   const pathname = usePathname();
 
-  // 認証・ログアウト
-  const { isAuthenticated } = useAuthSession();
-  const { logout, isLoading: isLogoutLoading } = useLogout({
+  // 認証・ログアウト(点 frameSession の項目、上流は auth。枠はドメインを読まない)
+  const session = useFrameSession();
+  const { isAuthenticated } = session.useSession();
+  const { logout, isLoading: isLogoutLoading } = session.useLogout({
     redirectTo: userLayoutConfig.header.logout.redirectTo,
   });
 

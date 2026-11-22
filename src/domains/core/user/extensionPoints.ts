@@ -21,49 +21,38 @@ export const extensionPoints = {
     side: "shared",
     overrideOf: ["label", "hasProfile", "enabled"],
   },
-  // 表示名の予約名プロバイダ: reservedNames/<名前>.ts の export const provider(上流の項目は 0)
-  reservedNames: {
+  // 表示名の予約名プロバイダ: <ドメイン>/plugs/userReservedNames/<名前>.ts の export const provider(上流の項目は 0)
+  userReservedNames: {
     change: "add",
-    dir: "reservedNames",
+    plugs: true,
     export: "provider",
     type: { from: "@/domains/core/user/types", name: "ReservedUserNameProvider" },
     side: "server",
   },
-  // 退会・ソフトデリートの後片付け: cleanupHandlers/<名前>.ts の export const handler
-  cleanupHandlers: {
+  // 退会・ソフトデリートの後片付け: <ドメイン>/plugs/userCleanupHandlers/<名前>.ts の export const handler
+  userCleanupHandlers: {
     change: "add",
-    dir: "cleanupHandlers",
+    plugs: true,
     export: "handler",
     type: { from: "@/domains/core/user/services/server/cleanup", name: "UserCleanupItem" },
     side: "server",
     alwaysOn: true,
   },
-  // 管理一覧の一括操作: adminBulkActions/<名前>.tsx の export const bulkAction(上流の既定 = タグの一括設定)。
-  // fork は項目を足す・<名前>.override.ts で enabled・order を変える(D149)
-  adminBulkActions: {
+  // 管理のユーザー管理モーダルのタブ: <ドメイン>/plugs/userAdminManageTabs/<名前>.tsx の export const tab(上流の項目は 0)。
+  // 上流の 6 つのタブの後ろに order → key の順で並ぶ。上流のタブは置き換えない(書き方: Extension.md「管理のユーザー管理モーダルのタブ(拡張点 userAdminManageTabs)」)
+  userAdminManageTabs: {
     change: "add",
-    dir: "adminBulkActions",
-    export: "bulkAction",
-    type: { from: "@/domains/core/user/types", name: "UserAdminBulkActionItem" },
-    side: "client",
-    key: "key",
-    overrideOf: ["enabled", "order"],
-  },
-  // 管理のユーザー管理モーダルのタブ: adminManageTabs/<名前>.tsx の export const tab(上流の項目は 0)。
-  // 上流の 6 つのタブの後ろに order → key の順で並ぶ。上流のタブは置き換えない(書き方: adminManageTabs/README.md)
-  adminManageTabs: {
-    change: "add",
-    dir: "adminManageTabs",
+    plugs: true,
     export: "tab",
     type: { from: "@/domains/core/user/types", name: "UserAdminManageTabItem" },
     side: "client",
     key: "key",
   },
-  // マイページのメニュー: mypageMenu/items/<key>.ts の export const item(リンク / 操作の 2 形、上流は 10 刻みの order)。
-  // fork は項目を足す・上流の項目は隣の <key>.override.ts で変える(書き方: Extension.md「マイページのメニュー(拡張点 mypageMenu)」)
-  mypageMenu: {
+  // マイページのメニュー: <ドメイン>/plugs/userMypageMenu/<key>.ts の export const item(リンク / 操作の 2 形、上流は 10 刻みの order)。
+  // fork は項目を足す・上流の項目は隣の <key>.override.ts で変える(書き方: Extension.md「マイページのメニュー(拡張点 userMypageMenu)」)
+  userMypageMenu: {
     change: "add",
-    dir: "mypageMenu/items",
+    plugs: true,
     export: "item",
     type: { from: "@/domains/core/user/types", name: "MypageMenuItem" },
     side: "client",
@@ -71,3 +60,6 @@ export const extensionPoints = {
     overrideOf: ["hidden", "order", "title", "description", "icon", "variant", "pendingTitle"],
   },
 } as const;
+
+// 常設(どの機能の規則にも載らず常に開く、明示の宣言 D22・D53)。規則の domains に載せると地区の地図の生成で止まる
+export const alwaysOpen = true;

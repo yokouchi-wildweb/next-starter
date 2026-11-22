@@ -8,7 +8,9 @@ export {
   trackGoogleAdsConversion,
   type GoogleAdsConversionKey,
   type GoogleTagChannelDefinition,
+  type GoogleTagChannelSource,
   type GoogleTagInitOptions,
 } from "./googleTag";
 export { GoogleTag } from "./GoogleTag";
 export { useGoogleAdsConversion } from "./useGoogleAdsConversion";
+export { wireGoogleTag } from "./wire";

@@ -20,6 +20,8 @@ const onOf = (gen) => GENERATE_CATEGORIES.filter((c) => gen[c]);
 test("生成と削除の最後: 地区の地図を今のフォルダ・generate に合わせて書き、同じなら書かない。地図に問題があれば書かずに知らせる", () => {
   const root = makeProject({ configs: { alpha: { singular: "alpha" }, beta: { singular: "beta", generate: false } }, cleanup });
   fs.mkdirSync(path.join(root, "src/registry"), { recursive: true });
+  // どの規則にも載らないドメインは常設の宣言を持つ(無ければ地図が止める、D53)
+  for (const name of ["alpha", "beta"]) fs.writeFileSync(path.join(root, `src/domains/${name}/extensionPoints.ts`), "export const alwaysOpen = true;\n");
   const workspace = createWorkspace(root);
   assert.equal(refreshDistrictMap(workspace, SILENT), true);
   assert.equal(refreshDistrictMap(workspace, SILENT), false);

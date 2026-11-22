@@ -104,4 +104,5 @@ const result = await checkRateLimit("signupEmail", "192.168.1.1");
 
 ## Internals
 
-- カテゴリの型の渡し方: `RateLimitCategory` は `src/wiring/apiRoute.ts` が `lib/routeFactory` に型引数で渡す(lib は features の型を読まない)
+- API の Factory への差し方: 点 `routeFactoryRateLimit`(`src/lib/routeFactory/extensionPoints.ts`、ちょうど 1 つ)の上流の項目 `plugs/routeFactoryRateLimit/ipRate.ts`(1 行スイッチ、既定 `ipRate.default.ts`。fork は差替点 `rateLimitRouteFactoryRateLimit` で `ipRate.replace.ts` に替える)
+- カテゴリの型の渡し方: `RateLimitCategory` は項目の型に残り、`src/wiring/apiRoute.ts` が生成された一覧の型から取り出して `lib/routeFactory` に型引数で渡す(lib も wiring も domains の型を読まない)

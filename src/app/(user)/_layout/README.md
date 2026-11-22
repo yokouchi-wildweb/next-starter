@@ -93,7 +93,7 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.replace";
 | `footer` | `UserFooter`(`./Footer`、upstream では既定 Footer) | 本文の包みの後 |
 | `bottomNav` | `BottomNavSpacer` + `UserBottomNav`(スペーサーごと差し替える) | フッターの後 |
 
-- 未読のお知らせのモーダル: 既定の `UserLayout` が外枠の末尾（ボトムナビの後）に messaging の公開の部品 `InboxUnreadModal`（`@/domains/core/messaging/components/InboxUnreadModal`）を置く（slot ではない）。
+- 未読のお知らせのモーダル: 既定の `UserLayout` が外枠の末尾（ボトムナビの後）に点 `userOverlays` の部品を描く（slot ではない）。上流の項目は messaging の `plugs/userOverlays/inboxUnread.tsx`（部品 `InboxUnreadModal`。messaging が閉じれば門番が外す）。
   - お知らせの機能（門 `messagingInbox`）が閉、または `messagingConfig.inbox.showUnreadModal`（既定 入）が切なら何も描かず取りに行かない。
   - 出す住所は `inbox.unreadModalPaths`（既定 `["/"]`、上書き `src/config/domains/messaging.config.ts`）。
   - `UserLayout.replace` は既定の `UserLayout` を描けばそのまま付く（自分の枠にもう 1 つ置くと 2 重に出る）。
@@ -215,6 +215,14 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 - 高さは `var(--app-bottom-nav-height)`(1 要素 BottomNavSpacer)。枠の宣言で隠している端末・ページでは変数が 0 になり、要素も `src/styles/core/frame.css` で隠れる
 
 ## Extension
+
+### 名前付きの増設点(部品は持ち主のドメインから差す、D25)
+
+枠はドメインを値も型も読まない。部品は持ち主のドメインの `plugs/<点>/<名前>.tsx` に `export const part`(型 `FramePart`、`@/app/_layout/types`)で置き、`pnpm generate extensions`。閉じたドメインの部品は門番(`useGate().plugs`)が名前ごと一覧から外す。fork が枠を差し替えても同じ一覧(`./extensions/<点>.ts`)を `@/app/_layout/FrameParts` で描ける。
+
+- `userHeaderActions`: ヘッダーの右側(fork が `actions` を渡さないとき、既定の CTA の前)。並びは項目の `export const order` → `<差す側>/<名前>`。上流の項目は 0
+- `userOverlays`: 外枠の末尾に重ねる部品。上流は messaging の未読のお知らせのモーダル
+- ログインの状態とログアウト(ヘッダーのメニュー・ボトムナビの出し分け)は根の枠の点 `frameSession`(ちょうど 1 つ、上流は auth)を `@/app/_layout/useFrameSession` で読む
 
 ### 設定ファイル
 

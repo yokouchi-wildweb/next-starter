@@ -1,5 +1,5 @@
 // src/domains/core/walletHistory/types/reasonKey.ts
-// 付与の種類(reason key)の項目の型(受け口: walletHistory/reasonKeys/<名前>.ts の export const reasonKey)。
+// 付与の種類(reason key)の項目の型(受け口: <ドメイン>/plugs/walletHistoryReasonKeys/<名前>.ts の export const reasonKey)。
 // 1 項目 = 1 つの付与の施策(紹介報酬・登録ボーナス・ランクボーナスなど)。区分(reason_category)は種類から決まり、
 // 書き込みで reasonKey を渡せば reason_category は category になる(両方渡して食い違えば書き手の誤りとして例外)。
 // 詳細: src/domains/core/wallet/Extension.md「付与の種類（reason key）」

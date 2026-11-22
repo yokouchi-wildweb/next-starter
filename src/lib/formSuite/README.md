@@ -276,9 +276,33 @@ ControlledField / ManualField / ControlledFieldGroup / ManualFieldGroup / Config
 
 ## Extension
 
-- 独自の入力部品: `src/wiring/formInputs/inputs/` に登録し、`formInput` に名前を書く([FieldRenderer/README.md](./FieldRenderer/README.md) Usage「登録された入力部品」)。この lib は一覧を知らず、Context(`FormInputsProvider`)と型だけを持つ
+- 独自の入力部品: 増設点 `formInputs`(宣言 `./extensionPoints.ts`、plugs の点)。項目は差す側の `<ドメイン>/plugs/formInputs/<名前>.ts`(業務でない部品は `<lib>/plugs/formInputs/<名前>.ts`)に置き、`formInput` に登録名を書く(下の「独自の入力部品の登録」、描き方は [FieldRenderer/README.md](./FieldRenderer/README.md) Usage「登録された入力部品」)。この lib は一覧を知らず、Context(`FormInputsProvider`)と型だけを持つ
 - 入力部品・ボタンの高さの段とその上書き: `src/components/Input/README.md`・`src/components/Button/README.md`「高さ(size)」
 
+### 独自の入力部品の登録(点 formInputs)
+
+- 1 部品 1 ファイル。欄の定義に `formInput: "<name>"` と書ける(domain.json・profile.json・setting の欄・手書きの FieldConfig)
+- `pnpm generate extensions`(forge が回す)が一覧と結び目を生成物 `src/wiring/formSuite.ts` に書く。結び目 `FormInputsRoot`(client)が門番で閉じたドメインの項目を外して(`useGate().plugs`)`FormInputsProvider` に渡し、`src/wiring/AppProviders.tsx` が包む
+- 登録は描画だけ。初期値・Zod・列は `fieldType` が決め、一覧の表示(presenter)は含めない
+- 部品は `{ field, fieldConfig, inputClassName, id, "aria-describedby", "aria-invalid" }` を受ける(`FormInputProps`)。`id`・`aria-*` を入力要素に渡すとラベルと結び付く。Form/Input の部品(`SelectInput`・`AsyncComboboxInput`・`UserAsyncCombobox` など)を包むときは 3 つをそのまま部品へ渡す
+- `frame: false` でも共通の枠が出すのは欄そのもののエラー(全体の `refine` など)だけ。内側の欄のエラー(`rates.min` など)は部品が自分で描く(`useFormState` の `errors`)
+
+```ts
+// src/domains/foo/plugs/formInputs/ticketRates.ts(差す側のドメインの例)
+import type { FormInputItem } from "@/lib/formSuite";
+
+export const formInput = {
+  name: "ticketRates",
+  load: () => import("@/domains/foo/components/common/TicketRatesInput"),
+  frame: false,
+} as const satisfies FormInputItem;
+```
+
+- `name`: 登録名(全体で一意。組み込みの入力種別 `src/lib/domain/fields/formInputs.mjs` と同じ名前は不可)。登録名は型 `RegisteredFormInputs` に載り、一覧に無い名前は型で落ちる。字面で書く
+- `load`: 部品の本体を `import()` で返す(default export。使う画面で初めて読み込む)
+- `frame`(既定 true): true はラベル・必須印・説明(欄の `helperText`)・エラーの枠を共通で描く。部品が自分で枠や複数の欄を描くなら false
+- `blurMode`(既定 `"none"` = blur で自動保存しない): 単一値の部品で自動保存を効かせるなら `"immediate"` か `"debounce"`
+- 約束の型は入口 `@/lib/formSuite` から `import type` で読む
 ## Internals
 
 ### 送信
@@ -323,6 +347,6 @@ ControlledField / ManualField / ControlledFieldGroup / ManualFieldGroup / Config
 - ボタン(読み込み中・形を自分で付ける押し口・高さ): `src/components/Button/README.md`
 - 自動保存: `AutoSave/README.md`
 - 設定から欄を並べる: `FieldRenderer/README.md`
-- 登録する入力部品: `src/wiring/formInputs/inputs/README.md`
+- 登録する入力部品: 上の Extension「独自の入力部品の登録」
 - 余白の段: `src/components/Layout/README.md`
 - 高さのトークン: `src/styles/README.md`

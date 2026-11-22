@@ -194,11 +194,11 @@ export function useDbAgentChat() {
 
 ## Extension
 
-1. **ドメイン知識** — `src/wiring/dbAgent/promptFragments/<名前>.ts` に `export const fragment` を置き `pnpm generate extensions`
+1. **ドメイン知識** — 差す側の `<ドメイン>/plugs/dbAgentPromptFragments/<名前>.ts`(業務でない物は `<lib>/plugs/…`)に `export const fragment` を置き `pnpm generate extensions`
    (テーブルの意味・集計の定石。スキーマ全文は不要 — エージェントが自力で引ける)
-2. **ドメインツール** — `src/wiring/dbAgent/extraTools/<名前>.ts` に `export const tool: AgentToolDefinition` を置き `pnpm generate extensions`
+2. **ドメインツール** — `<差す側>/plugs/dbAgentTools/<名前>.ts` に `export const tool: AgentToolDefinition` を置き `pnpm generate extensions`
    (読取専用の操作だけ)
-3. **実行時の運営追加指示** — `src/wiring/dbAgent/suffixProviders/<名前>.ts` に `export const provider` を置き `pnpm generate extensions`(Internals「実行時指示の注入 (運営追加指示)」)
+3. **実行時の運営追加指示** — `<差す側>/plugs/dbAgentSuffixProviders/<名前>.ts` に `export const provider` を置き `pnpm generate extensions`(Internals「実行時指示の注入 (運営追加指示)」)
 
 ## Internals
 
@@ -228,7 +228,7 @@ fork がツールを足すときもこの境界は同じ (札 dbagent_tools_read
 管理者が管理画面で編集できる「AIカスタム指示」(口調ルール・追加ポリシー等) を、
 コードデプロイなしでシステムプロンプトへ注入できる。
 
-- **経路**: `src/wiring/dbAgent/suffixProviders/<名前>.ts` の `export const provider` に
+- **経路**: `<差す側>/plugs/dbAgentSuffixProviders/<名前>.ts` の `export const provider` に
   `() => Promise<string | null>` を登録する。リクエストごとに解決され、
   システムプロンプトの**最後** (基本プロンプト + promptFragments の後ろ) に
   `## 運営からの追加指示` として結合される

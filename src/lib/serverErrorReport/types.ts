@@ -10,7 +10,8 @@ export type RequestErrorContext = Parameters<Instrumentation.onRequestError>[2];
 export type ServerErrorRuntime = "nodejs" | "edge" | "both";
 
 /**
- * 送り先の項目 1 つ(fork が自分の監視をつなぐ)。register と onRequestError はどちらも任意
+ * 送り先の項目 1 つ(fork が自分の監視をつなぐ)。onRequestError は任意。起動時の初期化(SDK の init など)は起動時の処理の点
+ * startupTasks(@/lib/startup)の項目に分ける(D30、注文 33)
  * - 項目のファイルの最上位では Node 専用の物を読まない(読むなら関数の中で import())
  */
 export type ServerErrorReporter = {
@@ -18,8 +19,6 @@ export type ServerErrorReporter = {
   name: string;
   /** 動く runtime。既定 nodejs */
   runtime?: ServerErrorRuntime;
-  /** サーバーの起動ごとに 1 回(Next の register と同じ時機) */
-  register?: () => void | Promise<void>;
   /** 失敗 1 つごと。引数は Next の onRequestError と同じ */
   onRequestError?: Instrumentation.onRequestError;
 };
@@ -48,12 +47,10 @@ export type ServerErrorReportInput = {
 };
 
 export type ServerErrorReportOptions = {
-  /** いまの runtime(呼び手が process.env.NEXT_RUNTIME から渡す。lib は env を読まない) */
+  /** いまの runtime(呼び手が渡す。lib は env を読まない。結び目 ./wire.ts は currentRuntime で edge の目印を見る) */
   runtime: "nodejs" | "edge";
   /** 項目の onRequestError 1 回の待ち時間の上限(ms) */
   timeoutMs: number;
-  /** 項目の register 1 回の待ち時間の上限(ms) */
-  registerTimeoutMs: number;
   /** 1 行の書き手(既定 console.error。test が差し替える) */
   write?: (line: string) => void;
 };

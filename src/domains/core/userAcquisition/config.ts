@@ -22,7 +22,7 @@ export type UserAcquisitionConfig = {
    */
   maxTouches: number;
   /**
-   * ユーザー紹介の招待リンクから来た訪問の source / medium(判別表の行 channels/invite.ts、紹介の機能が閉じている間は行を出さない)。
+   * ユーザー紹介の招待リンクから来た訪問の source / medium(判別表の行 userAcquisition/plugs/userAcquisitionChannels/invite.ts、紹介の機能が閉じている間は行を出さない)。
    * パラメータ名("invite")は referral の物(referral/lib/inviteLinkCookie.ts の INVITE_LINK_PARAM、設定 D67)。
    * medium は GA が外部サイト流入に自動分類する "referral" と混ざらないよう別語彙。コードは extras[<パラメータ名>] に保存される
    */

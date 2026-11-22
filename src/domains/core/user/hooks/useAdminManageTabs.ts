@@ -1,5 +1,5 @@
 // src/domains/core/user/hooks/useAdminManageTabs.ts
-// 管理のユーザー管理モーダルに足すタブ(受け口 adminManageTabs)を、閉じた機能(feature、useGate)と
+// 管理のユーザー管理モーダルに足すタブ(点 userAdminManageTabs)を、閉じたドメイン(useGate().plugs)・閉じた機能(feature、useGate)と
 // 上流のタブと重なる key を外して order → key の順に並べる
 
 "use client";
@@ -7,7 +7,7 @@
 import { useMemo } from "react";
 
 import { useGate } from "@/featureGate/client";
-import { adminManageTabs } from "@/domains/core/user/extensions/adminManageTabs";
+import { userAdminManageTabs } from "@/domains/core/user/extensions/userAdminManageTabs";
 import type { UserAdminManageTabItem } from "@/domains/core/user/types";
 
 /** AdminUserManageModal の上流のタブの value(受け口の項目はこれと重ねられない) */
@@ -23,7 +23,7 @@ export function selectAdminManageTabs(
     .filter((item) => {
       if (upstream.has(item.key)) {
         // fork の置き方の誤り: 段階を問わず知らせる(上流のタブは置き換えられない)
-        console.warn(`adminManageTabs: key "${item.key}" は上流のタブと重なるので出さない(上流のタブは置き換えられない)`);
+        console.warn(`userAdminManageTabs: key "${item.key}" は上流のタブと重なるので出さない(上流のタブは置き換えられない)`);
         return false;
       }
       return item.feature === undefined || isEnabled(item.feature);
@@ -34,5 +34,8 @@ export function selectAdminManageTabs(
 /** 管理のユーザー管理モーダルに足すタブ(閉じた機能の項目は除く) */
 export function useAdminManageTabs(): UserAdminManageTabItem[] {
   const gate = useGate();
-  return useMemo(() => selectAdminManageTabs(Object.values(adminManageTabs), (feature) => gate.enabled(feature)), [gate]);
+  return useMemo(
+    () => selectAdminManageTabs(gate.plugs(userAdminManageTabs).map((entry) => entry.plug), (feature) => gate.enabled(feature)),
+    [gate],
+  );
 }

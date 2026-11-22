@@ -6,7 +6,7 @@ export const extensionPoints = {
   mailFrame: {
     change: "replace",
     default: "src/lib/mail/frame/MailFrame.default.tsx",
-    type: { from: "@/lib/mail/frame/MailFrame.default", name: "MailFrameProps" },
+    type: { from: "@/lib/mail/points", name: "MailFrameProps" },
     side: "server",
   },
 };

@@ -1,9 +1,9 @@
 // src/featureGate/checks/dependencies.test.mjs
 // 依存の検査(D20(b)・L1.12): 閉じられるフォルダ(規則の domains)を外から値で import するファイルは、
 // (1) 自分のドメインの domainEntry.ts の requires (2) 規則の名前(dependsOn でその規則にたどり着く規則の名前も)で gate.enabled / gate.assert / useGate().enabled
-// (3) その規則で閉じる住所の src/app の下 (4) 同じ規則のフォルダどうし (5) fork の required/<名前> (6) 例外、のどれかでなければ落とす。
+// (3) その規則で閉じる住所の src/app の下 (4) 同じ規則のフォルダどうし (5) fork の required/<名前>、のどれかでなければ落とす。
 // 判定: ./dependencies.mjs。実行: pnpm test src/featureGate/checks/dependencies.test.mjs
-// - 例外は受け口 src/featureGate/dependencyExceptions/<名前>.ts だけ(上流の項目は 0。上流の違反の縮む表は 0 行になって消した)
+// - 例外の表も受け口も無い(注文 36、D22。前の受け口 src/featureGate/dependencyExceptions/ は生成器が止めて移し方を案内する)
 // - 強さ(L1.13): 区切り gate-s3 から全 Tier で落とす(fork の移行は codemod .notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs が required/ を書き出す)
 
 import assert from "node:assert/strict";
@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 
-import { dependencyExceptions, rules as gateRules, withCoveredPatterns } from "../node.ts";
+import { rules as gateRules, withCoveredPatterns } from "../node.ts";
 
 // 住所の下にあるかは規則のドメインの導出の住所(汎用 API・cron)も含めて見る
 const rules = withCoveredPatterns(gateRules);
@@ -27,22 +27,11 @@ function enforce(problems, message) {
   assert.deepEqual(problems, [], `${message}\n(fork の移行: npx tsx --import ./scripts/runner/preload/serverOnly.mjs .notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs)`);
 }
 
-test("実リポ: 閉じられるフォルダを外から読むファイルは 6 つの形のどれか(違反 0)", () => {
-  const exceptionFiles = dependencyExceptions.map((e) => e.file);
-  const violations = findDependencyViolations({ root: ROOT, rules, exceptionFiles });
+test("実リポ: 閉じられるフォルダを外から読むファイルは 5 つの形のどれか(違反 0)", () => {
+  const violations = findDependencyViolations({ root: ROOT, rules });
   enforce(
     violations.map((v) => `${v.file} → ${v.folder}(規則 ${v.rule})`),
-    "閉じられる機能を確かめずに読んでいる。domainEntry.ts の requires・gate.enabled(\"<規則>\")・required/<規則>.ts・dependencyExceptions/ のどれかで通す(src/featureGate/Internals.md「依存の検査」)",
-  );
-});
-
-test("実リポ: 例外の行は当たる(縮む表)・理由は空でない", () => {
-  const all = Object.fromEntries(dependencyExceptions.map((e) => [e.file, e.reason]));
-  for (const [file, reason] of Object.entries(all)) assert.ok(reason.trim().length > 0, `${file}: reason が空`);
-  const without = findDependencyViolations({ root: ROOT, rules, exceptionFiles: [] });
-  enforce(
-    Object.keys(all).filter((file) => !without.some((v) => v.file === file)),
-    "例外が当たらない(行を消す)",
+    "閉じられる機能を確かめずに読んでいる。domainEntry.ts の requires・gate.enabled(\"<規則>\")・required/<規則>.ts のどれかで通す(src/featureGate/Internals.md「依存の検査」)",
   );
 });
 
@@ -104,8 +93,6 @@ test("fixture: 確かめずに読むと落ち、6 つの形で通る", () => {
   assert.deepEqual(run({ "src/domains/core/walletHistory/services/server/x.ts": IMPORT_WALLET }), []);
   // (5) fork の required/
   assert.deepEqual(run({ [caller]: IMPORT_WALLET }, { requiredNames: ["wallet"] }), []);
-  // (6) 例外
-  assert.deepEqual(run({ [caller]: IMPORT_WALLET }, { exceptionFiles: [caller] }), []);
 });
 
 test("fixture: 型だけの import は数えず、動的 import・副作用 import は数える。生成の一覧(src/registry)は数えない", () => {
@@ -114,6 +101,13 @@ test("fixture: 型だけの import は数えず、動的 import・副作用 impo
   assert.deepEqual(run({ [caller]: 'export const load = () => import("@/domains/core/wallet/services/server/walletService");\n' }), [`${caller} → core/wallet`]);
   assert.deepEqual(run({ [caller]: 'import "@/domains/core/coupon/services/server/couponService";\n' }), [`${caller} → core/coupon`]);
   assert.deepEqual(run({ "src/registry/serviceRegistry.ts": IMPORT_WALLET }), []);
+});
+
+test("fixture: pnpm generate extensions の生成物(plugs の点の一覧)は数えない(使う時に gate.plugs が閉じたドメインの項目を外す、注文 30)。印の無い同じ中身は数える", () => {
+  const GENERATED = "// 生成物・編集不可: pnpm generate extensions が src/lib/routeFactory/extensionPoints.ts から生成する\n";
+  assert.deepEqual(run({ "src/wiring/routeFactory.ts": GENERATED + IMPORT_WALLET }), []);
+  assert.deepEqual(run({ "src/domains/core/admin/extensions/adminBulkActions.ts": GENERATED + IMPORT_WALLET }), []);
+  assert.deepEqual(run({ "src/wiring/routeFactory.ts": IMPORT_WALLET }), ["src/wiring/routeFactory.ts → core/wallet"]);
 });
 
 test("fixture: 表を持たない閉じられるフォルダ(Firestore 版など)も、表のあるフォルダと同じに数える", () => {

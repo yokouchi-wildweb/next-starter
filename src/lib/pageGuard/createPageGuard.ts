@@ -124,7 +124,7 @@ function buildGuard<TUser extends PageGuardUser>(
 }
 
 /**
- * 束を結んだ root の範囲の作り手を返す(src/wiring/pageGuard.ts が 1 回だけ呼ぶ)。
+ * 束を結んだ root の範囲の作り手を返す(./wire.ts の wirePageGuard が 1 回だけ呼ぶ)。
  * root の guard.ts が方針を渡して範囲を作り、子の guard.ts は親の extend で作る。
  */
 export function createPageGuard<TUser extends PageGuardUser>(deps: PageGuardDeps<TUser>) {

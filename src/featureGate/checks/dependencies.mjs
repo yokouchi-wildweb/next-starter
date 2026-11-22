@@ -8,8 +8,9 @@
 //   (3) ファイルが src/app の下で、その規則の pathPatterns が覆う住所にある(page・loader・route・_screen・_components…)
 //   (4) 同じ規則のフォルダどうし
 //   (5) fork の required/<規則名>.ts(x) がある
-//   (6) 例外(上流 = 検査の中の表、fork = 受け口 dependencyExceptions/)に載る
-// 数えない: src/registry(生成の一覧)・src/featureGate・テスト(*.test.*)。import は型だけの物を除く(動的 import は数える)
+// 例外の表・受け口は無い(注文 36、D22): 字面で守れない読み(動的 import・遅延の結線)はゲートの無い地区の点にして項目として受け取る
+// 数えない: src/registry(生成の一覧)・src/featureGate・pnpm generate extensions の生成物(plugs の点の一覧は使う時に gate.plugs が閉じたドメインの項目を外す D26、
+//   alwaysOn の点の項目は enabled で閉じ常時実行の入口の検査が見る。注文 30)・テスト(*.test.*)。import は型だけの物を除く(動的 import は数える)
 // 限界: 字面だけを見る。別のモジュールを経由した到達・(2) の呼び出しが import の使い所を本当に守っているかは見ない
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -21,6 +22,8 @@ import { patternCoversRoute } from "../../lib/pathPattern/index.mjs";
 import { valueImportSources } from "./importSources.mjs";
 
 const toPosix = (p) => p.split(sep).join("/");
+/** pnpm generate extensions の生成物の先頭(点の一覧。閉じたドメインの項目は使う時に門番が外す) */
+const EXTENSIONS_GENERATED_MARK = "// 生成物・編集不可: pnpm generate extensions が";
 const SOURCE = /\.(ts|tsx|mts|mjs)$/;
 const TEST = /\.test\.[cm]?[jt]sx?$/;
 
@@ -92,17 +95,16 @@ function guardNamesOf(rules) {
 /**
  * 閉じられるフォルダを外から値で読むファイルを全部集め、どの形で許されたかを付ける(許されなければ allowedBy: null = 違反)。
  * pnpm ops features list(node/describe.ts)の依存の一覧と、違反の判定 findDependencyViolations が共有する
- * @param {{ root: string, rules: { name: string, domains?: string[], pathPatterns: string[], dependsOn?: string[] }[], exceptionFiles?: string[], requiredNames?: string[] }} input
- * @returns {{ file: string, folder: string, rule: string, allowedBy: "sameRule" | "requires" | "gate" | "route" | "required" | "exception" | null }[]}
+ * @param {{ root: string, rules: { name: string, domains?: string[], pathPatterns: string[], dependsOn?: string[] }[], requiredNames?: string[] }} input
+ * @returns {{ file: string, folder: string, rule: string, allowedBy: "sameRule" | "requires" | "gate" | "route" | "required" | null }[]}
  */
-export function scanDependencies({ root, rules, exceptionFiles = [], requiredNames = readRequiredNames(root) }) {
+export function scanDependencies({ root, rules, requiredNames = readRequiredNames(root) }) {
   const folderRules = new Map();
   for (const rule of rules) for (const folder of rule.domains ?? []) folderRules.set(folder, [...(folderRules.get(folder) ?? []), rule]);
   const folders = [...folderRules.keys()];
   const guardNames = guardNamesOf(rules);
   const folderOfTarget = (resolved) => folders.find((f) => resolved === `src/domains/${f}` || resolved.startsWith(`src/domains/${f}/`)) ?? null;
   const domains = domainLookup(readDistrictMapAt(root).districts);
-  const exceptions = new Set(exceptionFiles);
   const found = [];
   const seen = new Set();
 
@@ -110,6 +112,7 @@ export function scanDependencies({ root, rules, exceptionFiles = [], requiredNam
     const rel = toPosix(relative(root, path));
     if (rel.startsWith("src/registry/") || rel.startsWith("src/featureGate/")) continue;
     const text = readFileSync(path, "utf8");
+    if (text.startsWith(EXTENSIONS_GENERATED_MARK)) continue;
     const ownDomain = domains.of(rel);
     const ownFolder = ownDomain?.folder ?? null;
     const ownRules = ownFolder ? (folderRules.get(folders.find((f) => ownFolder === f) ?? "") ?? []) : [];
@@ -126,8 +129,6 @@ export function scanDependencies({ root, rules, exceptionFiles = [], requiredNam
         seen.add(key);
         found.push({ file: rel, folder, rule: rule.name, allowedBy: allowedBy() });
         function allowedBy() {
-          // (6) 例外
-          if (exceptions.has(rel)) return "exception";
           // (4) 同じ規則のフォルダどうし
           if (ownRules.some((r) => r.name === rule.name)) return "sameRule";
           // (1) requires
@@ -148,7 +149,7 @@ export function scanDependencies({ root, rules, exceptionFiles = [], requiredNam
 
 /**
  * 違反を集める(scanDependencies の許されなかった物)
- * @param {{ root: string, rules: { name: string, domains?: string[], pathPatterns: string[], dependsOn?: string[] }[], exceptionFiles?: string[], requiredNames?: string[] }} input
+ * @param {{ root: string, rules: { name: string, domains?: string[], pathPatterns: string[], dependsOn?: string[] }[], requiredNames?: string[] }} input
  * @returns {{ file: string, folder: string, rule: string }[]}
  */
 export function findDependencyViolations(input) {

@@ -6,6 +6,6 @@ import "server-only";
 
 import type { UserTag } from "@/domains/core/userTag/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminListParts } from "@/wiring/adminScreenParts";
+import { adminListParts } from "@/domains/core/admin/services/server/screenParts";
 
 export const loadAdminUserTagListScreen = createLoader(adminListParts<UserTag>("userTag"));

@@ -18,9 +18,9 @@ user の README の Extension を分けた文書。設定の項目・受け口�
 - プロフィール編集の部品 `EditProfile`（`components/EditProfile`）の値の指定: `showHeader`（既定 true）、`afterSaveHref`（保存の後の行き先。既定 `"/mypage/account"`、`null` = 移らずその場に留まり「プロフィールを保存しました」のトースト。他の設定と同じページに置くとき）、`backHref`（見出しの戻る先。既定 `afterSaveHref`、`null` のときは `"/mypage/account"`）
 - アカウントの画面は門番の機能 `pageMypage` のパス（項目ごとの機能は無い）。マイページごと閉じるなら `pnpm ops features set pageMypage off`。表と API は一覧に関わらず開いたまま
 
-### マイページのメニュー(拡張点 mypageMenu)
+### マイページのメニュー(拡張点 userMypageMenu)
 
-マイページのトップのカード（`components/MainMenu`）は受け口 `mypageMenu` の項目から描く。`MainMenu` は props なし。項目は `mypageMenu/items/<key>.ts`（`export const item: MypageMenuItem`）、上の Tier の項目の一部の上書きは `<key>.override.ts`、組み立ては `mypageMenu/buildMypageMenu.ts`（hidden を除く → 操作を結ぶ → order・key 順）。
+マイページのトップのカード（`components/MainMenu`）は点 `userMypageMenu` の項目から描く。`MainMenu` は props なし。項目は `<ドメイン>/plugs/userMypageMenu/<key>.ts`（`export const item: MypageMenuItem`）、上の Tier の項目の一部の上書きは `<key>.override.ts`、組み立ては `mypageMenu/buildMypageMenu.ts`（hidden を除く → 操作を結ぶ → order・key 順）。
 
 - 上流の項目: `invite`（10）・`account`（20）・`notifications`（25）・`logout`（30）・`other`（40）。order は 10 刻み、同じ値は key 順
 - 項目は 2 形
@@ -33,10 +33,10 @@ user の README の Extension を分けた文書。設定の項目・受け口�
 
 **fork が項目を足す**
 
-`src/domains/core/user/mypageMenu/items/<key>.ts` に置き `pnpm generate extensions`（名前は印なし、key = ファイル名）。並べたい位置の order を選ぶ（例: 招待とアカウントの間 = 15）。
+`<ドメイン>/plugs/userMypageMenu/<key>.ts` に置き `pnpm generate extensions`（名前は印なし、key = ファイル名）。並べたい位置の order を選ぶ（例: 招待とアカウントの間 = 15）。
 
 ```typescript
-// src/domains/core/user/mypageMenu/items/coins.ts
+// <ドメイン>/plugs/userMypageMenu/coins.ts
 import { CoinsIcon } from "lucide-react";
 
 import type { MypageMenuItem } from "@/domains/core/user/types";
@@ -57,14 +57,14 @@ export const item: MypageMenuItem = {
 上流の項目の隣に `<key>.override.ts` を置き `pnpm generate extensions`。書ける鍵は `hidden`・`order`・`title`・`description`・`icon`・`variant`・`pendingTitle` だけ（それ以外・対象の無い override は `pnpm check extensions` が止める。上流は override を出荷しない）。
 
 ```typescript
-// src/domains/core/user/mypageMenu/items/invite.override.ts — 招待のカードを隠す
+// src/domains/core/user/plugs/userMypageMenu/invite.override.ts — 招待のカードを隠す
 import type { MypageMenuItemOverride } from "@/domains/core/user/types";
 
 export const override: MypageMenuItemOverride = { hidden: true };
 ```
 
 ```typescript
-// src/domains/core/user/mypageMenu/items/logout.override.ts — ログアウトを最後にして文言を変える
+// src/domains/core/user/plugs/userMypageMenu/logout.override.ts — ログアウトを最後にして文言を変える
 import type { MypageMenuItemOverride } from "@/domains/core/user/types";
 
 export const override: MypageMenuItemOverride = { order: 90, title: "サインアウト", pendingTitle: "サインアウト中..." };
@@ -74,10 +74,10 @@ export const override: MypageMenuItemOverride = { order: 90, title: "サイン�
 - 上書きの型は `MypageMenuItemOverride`（注釈 `: MypageMenuItemOverride` でも `satisfies` でもよい）。リンクの項目に `pendingTitle` を重ねても無視される
 - 回帰: `pnpm test src/domains/core/user`（`mypageMenu/buildMypageMenu.test.ts`・上流の 4 枚の `mypageMenu/upstreamMenu.test.ts`・上書きの重ね方の型の `mypageMenu/overrideSpread.test.ts`）
 
-### 退会時のクリーンアップハンドラ(拡張点 cleanupHandlers)
+### 退会時のクリーンアップハンドラ(拡張点 userCleanupHandlers)
 
 1. 対象ドメインの `services/server/` に `UserCleanupHandler` 型 `(userId: string, tx: DbTransaction) => Promise<void>` の関数を作る
-2. `src/domains/core/user/cleanupHandlers/<名前>.ts` に項目を置き `pnpm generate extensions`:
+2. `<ドメイン>/plugs/userCleanupHandlers/<名前>.ts` に項目を置き `pnpm generate extensions`:
    `export const handler: UserCleanupItem = { required: true, enabled: () => <フラグ>, run: cleanupOnWithdraw };`
 
 ```typescript
@@ -97,6 +97,36 @@ required / optional の目安:
 
 > optional でも、ハンドラ内の SQL が失敗すると PostgreSQL のトランザクション自体が aborted 状態になり、後続の処理（監査ログ記録等）も失敗して結局ロールバックされる（`executeCleanup` は SAVEPOINT を張らない）。`tx.transaction(...)`（ネストトランザクション = SAVEPOINT）で囲んだ DB 操作は、失敗してもそこだけ巻き戻る。
 
+### 管理のユーザー管理モーダルのタブ(拡張点 userAdminManageTabs)
+
+管理のユーザー一覧から開くユーザー管理のモーダル（`components/admin/AdminUserManageModal`）は、上流の 6 つのタブ（概要・認証情報・ステータス変更・ロール変更・削除・操作履歴）の後ろに点 `userAdminManageTabs` の項目を並べる。モーダルは上流の画面から開かれ、fork は開く所を変えられない。
+
+項目は差す側の `<ドメイン>/plugs/userAdminManageTabs/<名前>.tsx`（`export const tab: UserAdminManageTabItem`、上流の項目は 0）。絞り込みと並びは `hooks/useAdminManageTabs.ts`（項目のドメインが閉じていれば外す `useGate().plugs`。`selectAdminManageTabs` は純関数）。
+
+- 項目の型 `UserAdminManageTabItem`（`@/domains/core/user/types`）: `key`（タブの value）・`label`・`order?`（小さいほど前、省略 0、同じなら key の順）・`feature?`（門番の規則の名前。閉なら出さない）・`Content`（`{ user, onClose }` を受ける部品）
+- 上流のタブは置き換えない・消さない・並べ替えない。`key` が上流のタブの value（`summary` / `auth` / `status` / `role` / `delete` / `history`）と重なる項目は出さず、`console.warn` で知らせる
+- 置いたら `pnpm generate extensions`（一覧と `src/lib/forkOwnership/intake.txt` の受け口の行は生成）。key の重なる項目が 2 つあると生成で止まる
+- 回帰: `pnpm test src/domains/core/user/components/admin/AdminUserManageModal`
+
+### 表示名の予約名プロバイダ(拡張点 userReservedNames)
+
+ボット・NPC・合成ランキングエントリなど「実ユーザーの隣に表示される非ユーザー名」や、「運営」「admin」等の予約語を実ユーザーに取らせたくない場合は、
+`<ドメイン>/plugs/userReservedNames/<名前>.ts` に `export const provider` を置き `pnpm generate extensions`（上流は項目 0 = 挙動変化なし。項目のドメインが閉じていれば照会しない）。
+
+```ts
+// 例: 静的な予約語リスト
+export const provider: ReservedUserNameProvider = {
+  key: "static-reserved-words",
+  filterReserved: async (names) => names.filter((n) => ["運営", "admin", "公式"].includes(n)),
+};
+```
+
+- `filterReserved(normalizedNames, ctx)` は「渡された正規化済み名前のうち予約済みのもの」を返す。比較の対象は `normalizeUserNameForComparison` と同じ正規化（trim + caseInsensitive 時は小文字化）
+- users スキャンで空きだった名前についてのみ照会される。サフィックス採番（restore 衝突・dedup）も予約名を自動回避する
+- advisory lock を保持したトランザクション内で呼ばれるため、遅いプロバイダは同名サインアップの直列化待ちを伸ばす
+- `ctx.executor` が渡された場合、Drizzle 参照はそれを使う（ガードと同一トランザクションで読むため）
+- 表示名の一意性: `Internals.md`「表示名の一意性」
+
 ### システムの連絡(登録の完了のメール)
 
 本登録の後（`registration/registerFromAuth.ts` → `sendRegistrationCompleteMail.ts`）に、`userConfig.signupMode` で連絡を選んで送る口 `messagingService.sendMessage` でメールアドレスへ送る。失敗しても登録は続く（呼び手が受けてログに出す）。一時の失敗で cron の送り直し待ち（`queued`）になったものは失敗にしない。仕組み: src/domains/core/messaging/services/server/sendMessage/README.md。
@@ -106,6 +136,6 @@ required / optional の目安:
 | `user.registrationComplete` | `signupMode` が `earlyRegistration` 以外 | `displayName`・`serviceNameShort`・`siteUrl`（`business.url`、ボタンの行き先） |
 | `user.earlyRegistrationComplete` | `signupMode` が `earlyRegistration` | `displayName`・`serviceNameShort`（ボタンなし） |
 
-- 取引の連絡（好みを見ない）。定義 `messages/<名前>.ts`、見た目はひな形 `welcome`（ようこそ、`src/domains/core/messaging/layouts/welcome/`。見た目を替える fork はその描き方の `.replace`、文言は上書きの `values`）
+- 取引の連絡（好みを見ない）。定義 `plugs/messages/<名前>.ts`、見た目はひな形 `welcome`（ようこそ、`src/domains/core/messaging/plugs/messagingLayouts/welcome/`。見た目を替える fork はその描き方の `.replace`、文言は上書きの `values`）
 - 欄: ロゴ（事業の設定）と `badge` 札 → `heading` お祝いの行 → `thanks` お礼 → 区切り → `guide` 案内 → `button`（あれば）→ 区切り → `footer`。改行はそのまま出す
 - 件名と文面の回帰: `pnpm test src/domains/core/user/messages`

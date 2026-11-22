@@ -4,7 +4,7 @@
 
 - 役目 = ドメインの定義と欄: `domain.json` の写しと設定(フィールド・リレーション・中間表)の読み方、欄の型の表とその schema(日時の `nullableDatetime` / `requiredDatetime`)・表示(`format*`・`FieldPresenter`)・主キーの論理名 `CRUD_ID_FIELD`、関連、ドメインの道(管理画面のパス `getAdminPaths`)。加えて、登録表(serviceRegistry)からドメイン名でサービス・表・主キーを引く正式な仕組みの汎用部分を持つ
 - React の値のコード・hooks・HTTP の client は持たない(入口 "." は server でも値で読める)。データの読み書き(サービス・hooks・client。管理画面の全件削除の `useFetchDomains` / `useTruncateDomains` / `domainClient` も)は `@/lib/crud`(crud → domain の向きだけ。domain は crud を読まない)
-- ここの関数は登録表を import せず引数で受ける(既存の例外と規則は `src/wiring/README.md`)。登録表を結んだそのまま使える関数は `src/wiring/adminScreenParts.ts`
+- ここの関数は登録表を import せず引数で受ける(既存の例外と規則は `src/wiring/README.md`)。登録表を結んだそのまま使える関数は `src/domains/core/admin/services/server/screenParts.ts`
 - 閉じた lib: 外からは入口だけを読む。`@/lib/domain`(client でも server でも)・`@/lib/domain/server`(登録表から引く関数)・`./node` = `src/lib/domain/node.mjs`(scripts・eslint-rules が読む `.mjs`)。何がどこから出るか: `API.md`「入口と関数のありか」。access の型と定型は別の閉じた lib `@/lib/domainAccess`(domainEntry.ts が値で読むので値だけで作る)
 - 登録表 `src/registry/serviceRegistry.ts` = ドメイン名(camelCase のキー)→ `{ service, access, table, idColumn }` の表。ドメインを 1 つ作ると 1 行増える一覧で、下流が中身を足す「登録口」ではない。Drizzle はモデルの登録簿を持たないので、アプリ側でここに 1 か所用意する
 

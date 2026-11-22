@@ -3,7 +3,7 @@
 import type { ActionCodeSettings } from "firebase-admin/auth";
 
 import { getServerAuth } from "@/lib/firebase/server";
-import { message as passwordResetMessage } from "@/domains/core/auth/messages/passwordReset";
+import { message as passwordResetMessage } from "@/domains/core/auth/plugs/messages/passwordReset";
 import { sendMailMessage } from "@/domains/core/auth/services/server/sendMailMessage";
 import { DomainError } from "@/lib/errors";
 

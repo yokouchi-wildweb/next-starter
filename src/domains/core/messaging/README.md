@@ -2,13 +2,13 @@
 
 ## Overview
 
-**使い分け**: 局面が決まった連絡は連絡定義（`messages/<名前>.ts`）で書き、管理者が送るなら recordTargets の項目 + 上流の汎用のモーダル（見た目を変えるなら公開の hook で自前のモーダル）。その場で書く連絡だけ自由連絡の送るモーダル。どの画面・部品を使うか、決まった文面に値を入れる 2 つの道、上流の項目の直し方は [components/README.md](components/README.md)「送る画面の使い分け」。
+**使い分け**: 局面が決まった連絡は連絡定義（`plugs/messages/<名前>.ts`）で書き、管理者が送るなら recordTargets の項目 + 上流の汎用のモーダル（見た目を変えるなら公開の hook で自前のモーダル）。その場で書く連絡だけ自由連絡の送るモーダル。どの画面・部品を使うか、決まった文面に値を入れる 2 つの道、上流の項目の直し方は [components/README.md](components/README.md)「送る画面の使い分け」。
 
 語（開発の語 = コード・README・札・注釈 / 画面の語 = 管理画面・利用者の画面。読み手ごとに別に決め、揃えない）:
 
 | 開発の語 | コード | 画面の語 |
 | --- | --- | --- |
-| 連絡定義（コードが配る連絡の定義） | `MessageDefinition`・`defineMessage`・`messages/<名前>.ts` | システム通知（テキストの編集のタブ）・連絡の表示名 `label` |
+| 連絡定義（コードが配る連絡の定義） | `MessageDefinition`・`defineMessage`・`plugs/messages/<名前>.ts` | システム通知（テキストの編集のタブ）・連絡の表示名 `label` |
 | 定義連絡 / 自由連絡（連絡定義で送る / その場で書いて送る） | `sendMessage`・`sendMessageToMany` / `sendFreeMessage` | — |
 | レイアウト（見た目と欄の宣言） | `layout`・`layouts/<名前>/` | レイアウト（シンプル・汎用・明細 等） |
 | テンプレート（管理者が DB に保存した文面だけ） | `message_templates` | テンプレート |
@@ -17,12 +17,12 @@
 | inApp（お知らせの行 = `message_inbox_items`） | `inApp` | サービス内通知（受け取り箱のページ名は「お知らせ」） |
 | カテゴリー（1 つの出来事、配信停止の単位） | `category`・`categories/` | `label`（利用者）・`adminLabel`（管理、無ければ label） |
 | 種別（7 つ） | `kind`・config の `kindLabels` | `label`・`adminLabel?`（既定: 機能通知・手続き通知・セキュリティ・運営告知・個別連絡・アクティビティ・プロモーション） |
-| recordTargets（記録の宛先） | `recordTargets/<名前>.ts`・`MessageRecordTarget` | 一覧の一括操作のボタン（例「確認の連絡を送る」） |
+| recordTargets（記録の宛先） | `plugs/recordTargets/<名前>.ts`・`MessageRecordTarget` | 一覧の一括操作のボタン（例「確認の連絡を送る」） |
 | テキストの編集（管理画面で DB に重ねる文言） | `message_overrides` | システム通知 |
 | 上書き（fork のコードの override） | `<名前>.override.ts` | — |
 | 埋め込み情報 | `vars`・`varNames`・enrichers | 埋め込み情報（`{{別名}}`） |
 
-利用者への連絡（メール・inApp = 受け取り箱のお知らせの行・LINE・fork の送信チャンネル）の基盤。連絡定義（`messages/<名前>.ts`、書き方は src/lib/messaging/README.md）を送る口が送信（`message_dispatches`）と配達（`message_deliveries`、受信者 × 送信チャンネルの 1 行）に記録し、送信チャンネルの受け口の項目で送る。
+利用者への連絡（メール・inApp = 受け取り箱のお知らせの行・LINE・fork の送信チャンネル）の基盤。連絡定義（`plugs/messages/<名前>.ts`、書き方は src/lib/messaging/README.md）を送る口が送信（`message_dispatches`）と配達（`message_deliveries`、受信者 × 送信チャンネルの 1 行）に記録し、送信チャンネルの受け口の項目で送る。
 
 連絡の形 = **カテゴリー + レイアウト + 欄の中身**。定義連絡（自動）も管理者のテンプレート（手動）も同じ形で、送信チャンネルはカテゴリーだけが持ち、見た目はレイアウト（`layouts/`）が全送信チャンネルの分を持つ（描けない送信チャンネルは送信チャンネルの汎用の描き方か要約で描く）。文面の `{{名前}}` は埋め込み情報（共通 = 受信者ごとに埋まる / 専用 = テンプレートごとに送る人が入れる・定義連絡の vars、英語の鍵と日本語の別名 `varNames`）。部品ごとの形と「なぜそうなっているか」（採らなかった案と理由）は [Internals.md](Internals.md)。
 
@@ -37,7 +37,7 @@
 
 ```ts
 import { messagingService } from "@/domains/messaging/services/server";
-import { message as orderShipped } from "@/domains/order/messages/orderShipped";
+import { message as orderShipped } from "@/domains/order/plugs/messages/orderShipped";
 
 await messagingService.sendMessage(orderShipped, {
   recipient: { userId },          // 宛先を直に渡すなら { channel: "email", address }
@@ -67,7 +67,7 @@ await messagingService.sendMessageToMany(campaign, {
 
 ### 連絡を足す
 
-1. `pnpm generate message -- <domain> <name> --category <key> --label <名前> [--core]` が送る側のドメインに `messages/<名前>.ts`（鍵 `<ドメインのフォルダ名>.<名前>`、レイアウト notice と欄の中身の雛形）を書き、`src/registry/messageRegistry.ts` と拡張点を作り直す（使い方 scripts/structure/message/README.md）。core のドメインは `--core` = 上流だけ
+1. `pnpm generate message -- <domain> <name> --category <key> --label <名前> [--core]` が送る側のドメインに `plugs/messages/<名前>.ts`（鍵 `<ドメインのフォルダ名>.<名前>`、レイアウト notice と欄の中身の雛形）を書き、`src/registry/messageRegistry.ts` と拡張点を作り直す（使い方 scripts/structure/message/README.md）。core のドメインは `--core` = 上流だけ
 2. カテゴリー（category）= 利用者から見て 1 つの出来事（「〜した時」。例 likeReceived・itemSold・passwordReset）。種別（7 つ）と送信チャンネルはカテゴリーが持ち、連絡は書かない。無ければ先に `categories/<名前>.ts` を足す
 3. 上流のカテゴリー: emailVerification・passwordReset・emailChange・earlyRegistration（functional・email）/ accountLocked（security）/ registrationComplete・walletExpiring・walletExpired・walletAdjusted・bankTransferCheck（transactional。walletExpiring = 残高の失効の予告、送るかは wallet の config の段で決まり利用者は止められない（D207・D208）。bankTransferCheck = お振込の確認、振込審査の一覧から管理者が送る確認の連絡、メール・お知らせとも既定で入）
    - promotion（promotion「キャンペーン情報」、管理者が書く宣伝の既定）/ announcement（「運営からのお知らせ」）/ operatorDirect（direct「個別のご連絡」、管理者からの個別の連絡と一括の既定）。上流のこの 3 つは `adminLabel` を持たず両画面で同じ名前（D185）
@@ -90,7 +90,7 @@ export const category: MessageCategory = { key: "itemSoldInApp", label: "出品�
 ```
 
 - その送信は送信チャンネルを絞るだけ: 管理者が手で送る時だけカテゴリーの送信チャンネルの中で絞れる(足せない、外・空は 400)。組ごとに送り分けるなら組ごとにカテゴリーを作る(例 `campaignMail` = email、`campaign` = email + inApp)
-- 種別は止められるか・好み・宛先の停止(suppression)・記録の既定を決め(`MESSAGE_KIND_TRAITS`)、カテゴリーは停止の単位と集計の軸。カテゴリーの上書きは `key`・`kind` を変えられない。連絡の上書きは所属の `category` を付け替えられ(fork のカテゴリーへも、functional の連絡も、D166・D167)、送信チャンネルの固定 `channelModes` を丸ごと差し替えられる(種別の性質の検査は付け替えた後の値で見る)。上流の連絡を止めるのは `messages/<名前>.override.ts` の `{ enabled: false }`
+- 種別は止められるか・好み・宛先の停止(suppression)・記録の既定を決め(`MESSAGE_KIND_TRAITS`)、カテゴリーは停止の単位と集計の軸。カテゴリーの上書きは `key`・`kind` を変えられない。連絡の上書きは所属の `category` を付け替えられ(fork のカテゴリーへも、functional の連絡も、D166・D167)、送信チャンネルの固定 `channelModes` を丸ごと差し替えられる(種別の性質の検査は付け替えた後の値で見る)。上流の連絡を止めるのは `plugs/messages/<名前>.override.ts` の `{ enabled: false }`
 - 機能の連絡(functional): `enabled: false`・テキストの編集・間引き・email を外すことは検査で止まる。文面 = レイアウトの描き方の `.replace`(見た目)か fork のファイルの上書きの `values`(文言) / 流れごと = 送り手(auth など)の口を替える
 - 種別まるごとの停止はデータだけ: 種別まるごとの行は後から足すカテゴリーにも当たる。上流の画面はスイッチを出さないが、送る口・受け取り箱・好みの見え方は同じ判定で見る。会員登録で宣伝に同意しなかった人 = promotion の種別まるごとの行(source `signup`)。見せたい fork は hook `useMessagePreferences` の `setKind` と `preferences.kinds`、サーバーは `messagingService.setMessagePreference(userId, { kind, optedOut }, { source })`
 - カテゴリーのグループ(`categoryGroups/`)は好みのページの見出しで、止める単位ではない(後から足したカテゴリーが止まるかが決まらないため)
@@ -134,13 +134,13 @@ HTTP の口と返す形は口のフォルダの README:
 - `categoryGroups/`（`group`: `MessageCategoryGroup`）: カテゴリーのグループ（好みのページの見出し、同じ種別のカテゴリーだけ、`order` の順）。上流は出荷しない
 - `sources/`（`source`: `MessageSource`）: 送り元の表示名。上流は管理の送り元 4 つ（`adminSend`・`adminSendTest`・`adminBulk`・`adminBulkTest`）。送信の詳細の送り元は `sources/` → 同じ鍵の連絡の `label` → 一括の対象 `<対象>.bulk(.test)` の順に引く（`services/server/admin/sourceLabels.ts`）
 - 記録の宛先は受け口ではない: 持ち主のドメインの `<domain>/recordTargets/<名前>.ts`（`recordTarget`: `MessageRecordTarget`、型は lib/messaging）。管理一覧で選んだ記録 → 宛先（1 人 1 件 `{ userId, vars, recordIds }`）・送れる連絡定義の並び `messages`・送った後の処理（定義連絡の送る口の記録の入口だけ、D196）。鍵 = `<ドメインのフォルダ名>.<ファイル名>`。`pnpm generate registry` が `src/registry/recordTargetRegistry.ts` に集め（絞らない）、読み手は門番 `loadRecordTarget`（`services/server/domainGate.ts`、閉じたドメインを落とす）を通す。fork の物は fork の自分のドメインに置く。上流は `bankTransferReview.reviews`（services/server/admin/README.md）
-- `adminBulkActions/`（`bulkAction`: `MessagingDispatchAdminBulkActionItem`、型は `types/adminBulkAction.ts`、client）: 送信一覧の一括操作。上流の既定 = `delete.tsx`（削除）。fork は項目を足す・`<名前>.override.ts` で `enabled`・`order`（作り方: src/lib/tableSuite/README.md「一括操作の受け口」）
+- `plugs/adminBulkActions/`（点 adminBulkActions は core/admin の 1 点。`bulkAction`: `MessagingDispatchAdminBulkActionItem`、型は `types/adminBulkAction.ts`、client）: 送信一覧の一括操作。上流の既定 = `delete.tsx`（削除）。fork は項目を足す・`<名前>.override.ts` で `enabled`・`order`（作り方: src/lib/tableSuite/README.md「一括操作の受け口」）
 - `subscribers/`（`subscriber`: `MessageSubscriber`）: 送った後の事件の購読（少なくとも 1 回）。上流の項目は無い（services/server/subscribers/README.md）
 
 ほかの差し替え:
 
-- 連絡の上書き `messages/<名前>.override.ts`（文言・`enabled`・`throttle`・`adminEditableOnly` など、src/lib/messaging/README.md）/ 見た目 = レイアウトの描き方の 1 行スイッチの `.replace`（`layouts/README.md`）
-- 管理一覧の一括操作の項目 `<domain>/adminBulkActions/<名前>.tsx` は `bulkMessageAction`（components/README.md）
+- 連絡の上書き `plugs/messages/<名前>.override.ts`（文言・`enabled`・`throttle`・`adminEditableOnly` など、src/lib/messaging/README.md）/ 見た目 = レイアウトの描き方の 1 行スイッチの `.replace`（`layouts/README.md`）
+- 管理一覧の一括操作の項目 `<domain>/plugs/adminBulkActions/<名前>.tsx` は `bulkMessageAction`（components/README.md）
 - 画面は fork が `_components/` の Screen で公開の入れ物・部品・hook を組む（CLAUDE.md core_ui）
 - `constants/sources.ts` の `MESSAGING_SOURCES`: 送り元の識別子（wallet の失効の知らせが使う。`USER_HUB_DETAIL_SEND` / `SHIPPING_REQUEST_BULK` は fork の送り元として残す）
 

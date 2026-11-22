@@ -21,13 +21,14 @@ const pkg = { walletType: "regular_coin", amount: 100 } as const;
 const purchase = { walletType: "regular_coin", purchaseAmount: 100, paymentMethod: "paidy" } as const;
 
 test("並び: enabled false を除き order 昇順、同じ値は key 順", () => {
-  const list = orderedProviders({
-    c: provider("c", 20),
-    b: provider("b", 10),
-    a: provider("a", 20),
-    off: provider("off", 0, { enabled: false }),
-  });
-  assert.deepEqual(list.map((p) => p.key), ["b", "a", "c"]);
+  const entry = (plug: ReturnType<typeof provider>) => ({ domain: "wallet", name: plug.key, requires: [], plug });
+  const list = orderedProviders([
+    entry(provider("c", 20)),
+    entry(provider("b", 10)),
+    entry(provider("a", 20)),
+    entry(provider("off", 0, { enabled: false })),
+  ]);
+  assert.deepEqual(list.map((p) => p.plug.key), ["b", "a", "c"]);
 });
 
 test("合流: 渡した順に呼び、null と読み方の無い物は除く", () => {

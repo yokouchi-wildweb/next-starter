@@ -35,7 +35,7 @@
 
 ### 1. 計測対象を登録（サーバー・fail-closed の解除）
 
-`src/domains/core/interactionTracking/targetRules/bulletin.ts` に置き `pnpm generate extensions`:
+`<ドメイン>/plugs/interactionTrackingTargetRules/bulletin.ts` に置き `pnpm generate extensions`:
 
 ```ts
 import { bulletinService } from "@/domains/bulletin/services/server/bulletinService";
@@ -181,7 +181,8 @@ const { items, total, isLoading, hasMore, sentinelRef } = useInfiniteScrollQuery
 
 ## Extension
 
-- 受け口 `targetRules`（`targetRules/README.md`）: 公開 ingest の計測対象の規則。項目の無い targetType は拒否
+- 点 `interactionTrackingTargetRules`: 公開 ingest(`POST /api/interactions` / `/batch`)の計測対象の規則。差す側の `<ドメイン>/plugs/interactionTrackingTargetRules/<名前>.ts` に `export const rule: InteractionTargetRule` を置き `pnpm generate extensions`(書き方は Usage「1. 計測対象を登録」)。上流の項目は 0。項目の無い targetType・項目のドメインが閉じた targetType は拒否(fail-closed、読み手 `targetRuleOf`)
+  - 型 `InteractionTargetRule`(`@/domains/core/interactionTracking/types/targetRule`): `targetType` / `allowedActions` / `batchActions`(バッチ経路で受ける action) / `validate(targetId)` / `retentionDays`(明細の保持日数の上書き) / `recordDetail`(false = 明細を書かず集計だけ)。`targetType` が鍵(重複は生成で例外)
 - 設定 `src/config/domains/interactionTracking.config.ts`: `counterShardCount`（カウンタの shard 数）/ `defaultRetentionDays`（明細の保持日数）/ `aggregationTimeZone`（日次集計の日界）(持ち主 `config.ts`)
 
 ## Internals
@@ -204,5 +205,4 @@ const { items, total, isLoading, hasMore, sentinelRef } = useInfiniteScrollQuery
 
 ## Related
 
-- `targetRules/README.md`: 計測対象の規則の受け口
 - `src/domains/core/userCounter/README.md`: per-user のカウントと、カウント要求の決定ガイド

@@ -39,10 +39,10 @@ before(async () => {
   ({ createRoot } = await import("react-dom/client"));
   ({ UserGroupCriterionFields } = await import("./index"));
   criteria = [
-    (await import("../../../criteria/signupPeriod")).criterion,
-    (await import("../../../criteria/lastLoginPeriod")).criterion,
-    (await import("../../../criteria/hasTag")).criterion,
-    (await import("../../../criteria/inStaticGroup")).criterion,
+    (await import("@/domains/core/userGroup/plugs/userGroupCriteria/signupPeriod")).criterion,
+    (await import("@/domains/core/userGroup/plugs/userGroupCriteria/lastLoginPeriod")).criterion,
+    (await import("@/domains/core/userGroup/plugs/userGroupCriteria/hasTag")).criterion,
+    (await import("@/domains/core/userGroup/plugs/userGroupCriteria/inStaticGroup")).criterion,
   ];
 });
 after(() => dom.window.close());

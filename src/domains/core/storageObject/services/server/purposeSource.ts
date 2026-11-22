@@ -1,10 +1,11 @@
 // src/domains/core/storageObject/services/server/purposeSource.ts
 //
-// 用途表の取得口。storageObjectService はここからだけ用途表を得る（項目: ../../purposes/、ドメインの生成物の一覧は src/registry/storagePurposeRegistry.ts）。
+// 用途表の取得口。storageObjectService はここからだけ用途表を得る（項目: 差す側の <ドメイン>/plugs/storageObjectPurposes/、ドメインの生成物の一覧は src/registry/storagePurposeRegistry.ts）。
+// 保存したファイルの用途の鍵の定義なので門番で絞らない(閉じたドメインのファイルも用途で読める。登録表と同じ、D26)
 // 登録表の値に関わらず metadata: "strip" で扱う用途は、ここで strip に固定する（FORK ブロックの上書きでも外れない）。
 
 import type { StoragePurposeMap } from "@/lib/storage";
-import { purposes as purposeItems } from "@/domains/core/storageObject/extensions/purposes";
+import { storageObjectPurposes } from "@/domains/core/storageObject/extensions/storageObjectPurposes";
 import { storagePurposeRegistry } from "@/registry/storagePurposeRegistry";
 
 /** 常に strip で扱う用途（アバターは公開され、位置情報を残す理由が無い。keep への上書きは upstream・fork とも不可） */
@@ -33,7 +34,7 @@ export function mergeStoragePurposes(maps: readonly StoragePurposeMap[]): Storag
 }
 
 /** 全用途(FIXED_STRIP の固定をかける前) */
-export const allStoragePurposes = (): StoragePurposeMap => mergeStoragePurposes([...purposeItems, ...storagePurposeRegistry]);
+export const allStoragePurposes = (): StoragePurposeMap => mergeStoragePurposes([...storageObjectPurposes.map((entry) => entry.plug), ...storagePurposeRegistry]);
 
 let purposes: StoragePurposeMap | null = null;
 

@@ -94,7 +94,7 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   sameAs: AdminDispatchSameAs | null;
   /** 選んだ利用者への送信の利用者 id(「同じ内容で送る」の写し)。ほかの宛先の形・多すぎる送信は null */
   targetUserIds: string[] | null;
-  /** 送り元の表示名(受け口 sources に表示名がある時だけ。画面は送り元の鍵を見せない、D46) */
+  /** 送り元の表示名(点 messagingSources に表示名がある時だけ。画面は送り元の鍵を見せない、D46) */
   sourceLabel: string | null;
   /** 連絡定義の表示名(定義の label、上書きの後。自由連絡・知らない鍵は null。画面は鍵を見せない、D46) */
   definitionLabel: string | null;

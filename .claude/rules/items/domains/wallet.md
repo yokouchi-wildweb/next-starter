@@ -6,14 +6,14 @@ paths:
 # domains/wallet
 what: per-user in-app currencies: balance, reservation, history, expiry lots | entry walletService (services/server/walletService), types @/domains/core/wallet
 use: wallet
-change: add = a purchase bonus display in purchaseBonuses/ (extensionPoints.ts) | override = purchaseBonuses/<key>.override.ts (enabled, order) | counterpart = src/config/domains/wallet.config.ts, wallet.ui.config.ts
+change: add = a purchase bonus display in <domain>/plugs/walletPurchaseBonuses/ (point walletPurchaseBonuses) | override = <domain>/plugs/walletPurchaseBonuses/<key>.override.ts (enabled, order) | counterpart = src/config/domains/wallet.config.ts, wallet.ui.config.ts
 rules:
 using:
 - reason_key: a grant names its kind with reasonKey, never reason text or meta
 - locked_wallet_arg: pass a fetched `wallet` only while holding its row lock in the same tx
 - reserve_flow: reserve → consume, and releaseReservation when the work fails
 - undo_by_reverse: a wrong transaction is undone by reverseHistory, never by deleting rows
-- bonus_display_only: a purchase bonus provider only displays; the grant is a purchaseRequest completeHooks item sharing one pure amount function
+- bonus_display_only: a purchase bonus provider only displays; the grant is a purchaseRequestCompleteHooks item sharing one pure amount function
 - lots_init: enabling expiration for a currency runs one lots init for that currency (--wallet-type) right after deploy; never --all while other currencies run; re-enabling re-inits
 - from_history_sweep: lots-init-from-history goes with sweepEnabled: true
 - notice_cron_first: the notice cron runs at least once before the first expiry date

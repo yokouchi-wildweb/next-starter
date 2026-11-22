@@ -146,7 +146,7 @@ function collectStrings(value: unknown, out: string[]): string[] {
 
 /**
  * 定義(と上書き)を検査し、問題の一覧を返す(空 = 通る)。
- * - categories: categories の受け口(鍵 → 項目、fork のカテゴリーの override を重ねた後)。定義の category を照らし、種別と送信チャンネルを引く
+ * - categories: 点 messagingCategories(鍵 → 項目、fork のカテゴリーの override を重ねた後)。定義の category を照らし、種別と送信チャンネルを引く
  * - layouts: レイアウトの受け口(鍵 → レイアウト)。定義の layout を照らし、欄の中身を検査する
  * - channels: 登録された送信チャンネルの鍵(既定 = 上流の 3 送信チャンネル email・inApp・line。送る口は送信チャンネルの受け口の鍵を渡す)。送信チャンネルの有無だけに使う
  * - variableKeys: vars と共通の文脈(鍵・別名)の他に {{名前}} で許す名前(送る口が当たる enrichers の provides の鍵と別名を渡す)
@@ -200,7 +200,7 @@ export function validateMessageDefinition<
     const where = options.override?.category !== undefined ? "上書きの category" : "category";
     add(
       "unknown_category",
-      `${label}: ${where} ${String(categoryKey)} は categories の受け口に無い(${keys.join(" / ") || "項目なし"})。先に categories/<名前>.ts を足す`,
+      `${label}: ${where} ${String(categoryKey)} は点 messagingCategories に無い(${keys.join(" / ") || "項目なし"})。先に <ドメイン>/plugs/messagingCategories/<名前>.ts を足す`,
     );
     return problems;
   }
@@ -240,7 +240,7 @@ export function validateMessageDefinition<
   const layout = typeof definition.layout === "string" ? options.layouts[definition.layout] : undefined;
   if (!layout) {
     const keys = Object.keys(options.layouts);
-    add("unknown_layout", `${label}: layout ${String(definition.layout)} は layouts の受け口に無い(${keys.join(" / ") || "項目なし"})`);
+    add("unknown_layout", `${label}: layout ${String(definition.layout)} は点 messagingLayouts に無い(${keys.join(" / ") || "項目なし"})`);
   } else if (!isLayoutUsable(layout)) {
     // 無効のレイアウト(fork の layout.override.ts の disabled)を定義連絡は使えない。定義をほかのレイアウトに移すか disabled を外す
     add("disabled_layout", `${label}: layout ${layout.key}(${layout.label})は無効(disabled)。定義をほかのレイアウトに移すか、layouts/${layout.key}/layout.override.ts の disabled を外す`);
@@ -490,7 +490,7 @@ export function validateMessageCategories(
     }
     if (category.group === undefined) continue;
     if (!groups[category.group]) {
-      problems.push({ code: "unknown_group", message: `カテゴリー ${key}: group ${category.group} は categoryGroups の受け口に無い` });
+      problems.push({ code: "unknown_group", message: `カテゴリー ${key}: group ${category.group} は点 messagingCategoryGroups に無い` });
       continue;
     }
     const seen = kindOfGroup.get(category.group);

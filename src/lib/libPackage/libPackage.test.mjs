@@ -139,7 +139,7 @@ test("形の検査: 負例はそれぞれの問題の名前で止まる", () => 
 });
 
 test("入口の名前: exports の鍵は . ./server ./client ./node の 4 つだけ(D248)。ほかの名前は実ファイルがあっても entryName で止まる", () => {
-  assert.deepEqual(ENTRY_NAMES, [".", "./server", "./client", "./node"]);
+  assert.deepEqual(ENTRY_NAMES, [".", "./server", "./client", "./node", "./points"]);
   assert.deepEqual(codesOf("ok"), [], "4 つの名前は通る");
   const messages = checkLibPackage(root, "alias").map((p) => p.message);
   assert.match(messages[0], /exports の鍵 "\.\/types" は入口の名前ではありません\(使えるのは \. \/ \.\/server \/ \.\/client \/ \.\/node/);

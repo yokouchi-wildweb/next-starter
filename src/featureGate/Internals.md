@@ -8,7 +8,7 @@ featureGate の README の Internals を分けた文書(README が 20,000 字を
 
 ### ドメインの開閉(表・汎用 API・cron)と設定の節
 
-- ドメイン = どれかの規則の `domains` に載るフォルダ(生成一覧の `domains`: フォルダ・表・汎用 API の住所・持つ機能)。**開 = そのドメインを `domains` に持つ機能のどれかが開**(1 つのドメインを複数の機能に書いてよい)。どの機能にも載らないドメインは常設として常に開
+- ドメイン = どれかの規則の `domains` に載るフォルダ(生成一覧の `domains`: フォルダ・表・汎用 API の住所・持つ機能)。**開 = そのドメインを `domains` に持つ機能のどれかが開**(1 つのドメインを複数の機能に書いてよい)。どの機能にも載らないドメインは常設として常に開(明示の宣言 `alwaysOpen`、地図の行。機能の組み合わせの検査 `checks/integrity.mjs` もこの宣言を読む)
 - ドメインの開閉で決まる物: 表(`pnpm db:push` / `db:push:check`・`pnpm ops db seed`・`pnpm ops db clear`)・汎用 API の住所(`apiPaths`)・cron の task(`cronTasks`、読むドメインが全部開のとき開)
 - 評価は `ruleList.ts`(`closedDomainsOf`・`domainEnabled`・`closedDerivedEntries`・`closedDomainTables`)。機能の開閉は渡した一覧で読む: `rules` なら全開スイッチを通し、`configRules` なら規則の値だけ
 - 設定の節(`settingSections`)は節自身の判定: 名指す機能が全部開のときだけ開く(導出の住所の 1 種、`closedDerivedEntries`)
@@ -51,21 +51,12 @@ featureGate の README の Internals を分けた文書(README が 20,000 字を
 |---|---|
 | cron の `src/app/api/cron/<name>/task.ts` | タスクの住所 `/api/cron/<name>` を、import する機能のフォルダを `domains` に持つ規則の全部が `pathPatterns` で覆う。住所は生成器が task.ts・task.override.ts の import から導いて規則の `cronPaths` に足す（規則に手書きしない。閉じた機能のタスクは route = `@/wiring/cronRoute`・`pnpm task`・`pnpm generate cron` が住所で飛ばす。task.ts に機能の入切は書かない。`src/lib/cron/README.md`「1. task.ts」） |
 | 宣言に `alwaysOn: true` の拡張点の項目（`cleanupHandlers`・`coinIssuanceSources`・`rollupMetrics`） | 項目に `enabled` |
-| fork の手書きの登録表（下の `registries`） | 使い所を `...(<フラグ> ? [x] : [])` で包む |
-| 常に読み込まれる結線（`src/app/layout.tsx`・`src/wiring/**`・`src/proxies/**`・`src/featureGate/**`） | import しない。避けられないものは理由付きの例外表 |
+| 生成された plugs の点の一覧（`src/wiring/<lib>.ts`・`<持ち主>/extensions/<点>.ts`） | 使う時に `gate.plugs` が閉じたドメインの項目を外す |
+| 常に読み込まれる結線（`src/app/layout.tsx`・`src/wiring/**`・`src/proxies/**`・`src/featureGate/**`） | import しない(例外表は無い。ドメインの値・処理は地区が宣言した点の項目として受け取る、D22・注文 36。ゲートの無い地区はドメインを値も型も読まない lint `import-boundaries/district-no-domains` も同じことを見る、テストと `__tests__/` の補助は対象外) |
 
 - 規則のファイル（`rules/<名前>.ts`）が機能のドメインの入切の値 `@/domains/<d>/config`（`config.ts`、値だけ）を読むのは閉じ漏れに数えない（入切でない条件の値、例 決済の自社振込が選べるか。入切そのものは規則の `defaultEnabled` と `switches.config.ts`）。`config.ts` が値の外（services・drizzle・server-only）に届くと到達の検査 `pnpm test src/featureGate/checks/reachability.test.mjs` が止める
 
-- 上流の例外表はテスト内の `ALWAYS_ON_EXCEPTIONS`（縮む表。当たらなくなった行は失敗）
-- **fork の分は 1 項目 1 ファイルの受け口に理由つきで**: `alwaysOnExceptions/<名前>.ts`(名前は英字始まりの英数字、fork の印は付けない。宣言の点 `alwaysOnExceptions`・`alwaysOnRegistries`)
-  ```ts
-  // src/featureGate/alwaysOnExceptions/storeMembers.ts(常に読み込まれる結線の例外)
-  import type { AlwaysOnException } from "@/featureGate";
-  export const exception: AlwaysOnException = { file: "src/wiring/storeMembers.ts", reason: "<閉じなくてよい理由>" };
-  // src/featureGate/alwaysOnExceptions/storeCleanup.ts(fork の手書きの登録表)
-  export const registry: AlwaysOnException = { file: "src/registry/storeCleanup.ts", reason: "<常に読まれる理由>" };
-  ```
-  1 ファイルに `exception` か `registry` のどちらか 1 つ(生成器が止める)、`reason` は必須、縮む表の規則は fork の行にも掛かる。旧い置き場 `scripts/proxies/alwaysOnExceptions/<名前>.mjs`・`scripts/proxies/alwaysOnExceptions.<x>.mjs` は止まり、移し方を案内する(`.notices/20261104-173649-feature-gate-relocate.feature-gate-relocate.mjs`)
+- 例外表と fork の受け口(`ALWAYS_ON_EXCEPTIONS`・`alwaysOnExceptions/`・`alwaysOnRegistries`)は消した(注文 36)。残った fork の項目は `pnpm generate extensions` が止め、代わりのやり方(点の項目・自分のドメインの plugs)を出す
 - 限界: 直接の import だけを見る（別のモジュールを経由した到達は見ない）。`enabled` の式が本当にその機能のフラグかは見ない
 - 上の外にも呼び出し側でフラグを見る経路がある（登録時の招待コード消し込み `auth/services/server/registration.ts`、管理画面ユーザー一覧の残高調整 `user/components/admin/*UserList/Table.tsx`）。サービスの層で止める仕組みは別の議題
 
@@ -78,9 +69,9 @@ featureGate の README の Internals を分けた文書(README が 20,000 字を
 3. ファイルが src/app の下で、その規則の `pathPatterns` が覆う住所にある(page・loader・route・`_screen`・`_components` など。閉じれば一緒に閉じる)
 4. 同じ規則のフォルダどうし
 5. fork の `required/<規則名>.ts` がある(この fork はその機能を必ず使う = 依存を書いたとみなす)
-6. 例外: `dependencyExceptions/<名前>.ts` に理由つきで(字面で判定できない物: 動的 import の結線・wiring の遅延 import など)。上流の例外は 0(上流の結線は確かめる側で通す。例: `src/wiring/apiRoute.ts` は端末の束を `gate.enabled("pairedDevice")` で結ぶ)
+- 例外の受け口(前の `dependencyExceptions/`)は無い(注文 36): 字面で守れない読み(動的 import の結線など)は読みをやめ、点の項目として受け取る。残った項目は `pnpm generate extensions` が止める
 
-- 数えない: 生成の一覧(`src/registry`)・`src/featureGate`・テスト・型だけの import。動的 import と副作用 import は数える
+- 数えない: 生成の一覧(`src/registry`)・`src/featureGate`・`pnpm generate extensions` の生成物(plugs の点の一覧は使う時に `gate.plugs` が閉じたドメインの項目を外す、D26。例: API の Factory の端末の束は生成物 `src/wiring/routeFactory.ts` の一覧から `src/wiring/apiRoute.ts` が門番で絞る)・テスト・型だけの import。動的 import と副作用 import は数える
 - 上流の違反は 0(全 Tier で同じ検査。上流の縮む表は 0 行になって表ごと消した)
 - 強さ: 全 Tier で落とす(区切り gate-s3 から。gate-s2 の間は Tier1 でない repo では表示だけだった)。fork の移行は codemod `.notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs`(今開いている機能の違反を `required/<規則>.ts` に書き出す。閉じた機能の違反は一覧に出すので手で直す。`.notices/README.md` の codemod の節)
 - 限界: 字面だけを見る。別のモジュールを経由した到達、2 の呼び出しが import の使い所を本当に守っているか、機能どうしの前提(payment が閉じれば wallet の画面も閉じる等)はたどらない
@@ -146,4 +137,4 @@ FEATURE_GATE_OPEN=coupon,wallet    # 名前の規則だけ開く(区切りは , 
 - 到達の検査 `pnpm test src/featureGate/checks/reachability.test.mjs`: `index.ts`・`client.ts` から値の import をたどり、domains の services・`src/lib/drizzle`・DB のパッケージ・`server-only`・`node:` に届いたら鎖を示して落とす(門番は proxy と client の束に載る。規則は config だけを読む)。`client.ts` からは規則・規則の一覧・評価(`evaluate.ts`・`clientState.ts`)・config にも届かない(client は規則を評価しない)
   - proxies の鎖(`src/proxy.ts`・`src/proxies/index.ts`)からは、たどり着いた config(`src/config/**`・地区の `config.ts`・`*.config.ts`)の先だけを同じ禁止の先で見る(proxies の項目は任意のドメインの config を読んでよいが、config は値だけ。鎖そのものの services は判定しない)
 - lint `page-authz/session-api-callsite` は `src/featureGate/**` にも掛かる(規則と判定はセッションを解かない)
-- 所有の検査(`pnpm workflow ownership check`): fork が受け口の外(`rules/`・`alwaysOnExceptions/`・`dependencyExceptions/`・`required/` の外)へ足したファイルは `gate-add` で違反(`src/lib/forkOwnership/README.md`)
+- 所有の検査(`pnpm workflow ownership check`): fork が受け口の外(`rules/`・`required/` の外)へ足したファイルは `gate-add` で違反(`src/lib/forkOwnership/README.md`)

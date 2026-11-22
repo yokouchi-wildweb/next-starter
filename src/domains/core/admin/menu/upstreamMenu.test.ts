@@ -7,8 +7,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { menuCategories } from "@/domains/core/admin/extensions/menuCategories";
-import { menuItems } from "@/domains/core/admin/extensions/menuItems";
+import { adminMenuCategories } from "@/domains/core/admin/extensions/adminMenuCategories";
+import { adminMenuItems } from "@/domains/core/admin/extensions/adminMenuItems";
+import { byKey } from "@/domains/core/admin/menu/byKey";
+
+// 上流の全項目(門番は掛けない: 上流の並びと形を見る)
+const menuCategories = byKey(adminMenuCategories);
+const menuItems = byKey(adminMenuItems);
 import { rules } from "@/featureGate/extensions/rules";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 import { adminDomains } from "@/registry/adminDomains";
@@ -22,7 +27,7 @@ const input = (isClosed: (href: string) => boolean): BuildAdminMenuInput => ({
   categories: menuCategories,
   items: menuItems,
   domains: adminDomains,
-  sources: adminMenuSources(),
+  sources: adminMenuSources((items) => [...items]),
   role: "admin",
   isClosed,
 });

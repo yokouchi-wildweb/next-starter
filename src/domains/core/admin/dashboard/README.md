@@ -2,10 +2,10 @@
 
 ## Overview
 
-- 管理画面トップ（`/admin`）のダッシュボードを、セクションのファイルを置く受け口 `sections/<名前>.ts(x)` から組み立てる仕組み
+- 管理画面トップ（`/admin`）のダッシュボードを、セクションのファイル（点 `adminDashboardSections`、差す側の `<ドメイン>/plugs/adminDashboardSections/<名前>.ts(x)`）から組み立てる仕組み。項目のドメインが閉じればそのセクションは取らず描かない（`gate.plugs`）
 - セクション 1 つ = 描画 `Section` と取得 `load` の組。描画と取得を同じ定義に並べるので、片方だけの登録漏れが起きない
 - 上流のセクションも fork のセクションも同じ受け口に置き、同じ一覧に並ぶ。fork はセクションを足す・隠す・並べ替えるために Screen を写さない
-- 受け口の宣言は `../extensionPoints.ts` の `dashboardSections`（メニューの受け口と同じファイル）。一覧は `pnpm generate extensions` が `../extensions/dashboardSections.ts` に出す（取得を含むので server で読む）
+- 点の宣言は `../extensionPoints.ts` の `adminDashboardSections`（メニューの点と同じファイル）。一覧は `pnpm generate extensions` が `../extensions/adminDashboardSections.ts` に出す（取得を含むので server で読む）
 - 入口: `@/domains/admin/dashboard`（`AdminDashboard`・`defineDashboardSection`・`buildAdminDashboard`・型）。取得は `services/server/sectionLoads.ts` の `loadAdminDashboardData(viewer)`
 - 決まり（名前・取得の置き場・見え方・設定の範囲）は札 `.claude/rules/items/domains/admin.md`
 
@@ -14,7 +14,7 @@
 セクションを 1 つ書く:
 
 ```ts
-// sections/revenue.ts
+// src/domains/revenue/plugs/adminDashboardSections/revenue.ts
 import { defineDashboardSection } from "@/domains/admin/dashboard";
 import { RevenueSection } from "@/domains/revenue/components/RevenueSection";
 import { loadRevenueSummary } from "@/domains/revenue/services/server/dashboard";
@@ -29,7 +29,7 @@ export const section = defineDashboardSection({
 });
 ```
 
-- 描画の部品と取得は自分のドメインに置き、項目のファイルは組にするだけにする。項目のファイルは `components/` の外（`sections/`）にあり、取得の関数を import してよい
+- 描画の部品と取得は自分のドメインに置き、項目のファイルは組にするだけにする。項目のファイルは `components/` の外（`plugs/adminDashboardSections/`）にあり、取得の関数を import してよい
 - セクションの部品の書き方:
   - データは props の `data` で受ける
   - `return null` で消えてよい（取得側が null を返したときなど）
@@ -63,7 +63,7 @@ export const section = defineDashboardSection({
 
 ## Extension
 
-- 足す: 自分のセクションのファイルを `sections/` に置いて `pnpm generate extensions`（受け口の外の `src/domains/core/` に足すと `pnpm workflow ownership check` が落ちる）
+- 足す: 自分のドメインの `plugs/adminDashboardSections/` にセクションのファイルを置いて `pnpm generate extensions`（上流のドメインの中に足すと `pnpm workflow ownership check` が落ちる）
 - 上流のセクションを変える・隠す: その隣に `<名前>.override.ts`（`export const override = { … } satisfies AdminDashboardSectionOverride`）。書けるのは `order`・`hidden`（true で隠す）・`allowRoles`
 - 上流のセクションの見た目を変える: `Section` は上書きできない。隠して自分のセクションを足す
 - ダッシュボードごと作り変える: `src/app/admin/(protected)/_components/` に Screen を置き page.tsx を向ける（`src/lib/screens/README.md`）。そのときもこのドメインは消さない

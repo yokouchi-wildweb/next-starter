@@ -1,7 +1,7 @@
 // src/domains/core/userGroup/services/server/definition/checkDefinition.ts
 // 条件の定義の木の検査(D103)。and / or / not の任意の木、節の数と深さの上限(設定の値)、知らない部品の鍵・引数の zod の誤りは
 // DomainError(400、どの節かを path で言う)。heavy の部品を含むかを返す(含む動的グループは 1 人の確かめを拒む、定期計算なら使える)。
-// DB を読まない(部品の一覧と上限は呼び手が渡す。本物は extensions/criteria と userGroupConfig)
+// DB を読まない(部品の一覧と上限は呼び手が渡す。本物は extensions/userGroupCriteria(activeCriteria が門番で絞る)と userGroupConfig)
 
 import { DomainError } from "@/lib/errors";
 

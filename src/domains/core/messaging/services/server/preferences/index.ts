@@ -5,9 +5,7 @@
 import { gate } from "@/featureGate";
 import type { DbTransaction } from "@/lib/crud/server";
 
-import { categories } from "../../../extensions/categories";
-import { categoryGroups } from "../../../extensions/categoryGroups";
-import { channels } from "../../../extensions/channels";
+import { categoryGroups, channels, shownCategories as categories } from "../lists";
 import { drizzleMessageSendStore } from "../sendMessage/store";
 import { createPreferenceService } from "./preferenceService";
 import { drizzleMessagePreferenceStore } from "./store";

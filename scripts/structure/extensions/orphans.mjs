@@ -56,12 +56,19 @@ export function checkOrphans(repoRoot, { points, receptacleDirs }) {
     const parent = dir.slice(0, dir.lastIndexOf("/"));
     return filesOverridePlaces.some((place) => place.dir === parent && place.names.includes(name));
   };
+  // plugs の点のフォルダ(<差す側>/plugs/<点>/ と files の点の項目のフォルダ)の上書きは受け口と同じ: 鍵と項目を照らすのは extensions.mjs の discoverDir(注文 25)
+  const plugsFolders = new Set(points.filter((p) => p.spec.plugs === true && p.spec.itemsOf === undefined).map((p) => p.name));
+  const inPlugsFolder = (dir) => {
+    const segments = dir.split("/");
+    const at = segments.lastIndexOf("plugs");
+    return at >= 0 && plugsFolders.has(segments[at + 1] ?? "") && segments.length - at <= 3;
+  };
   const problems = [];
   const accepted = [];
 
   for (const path of files.filter(isOverridePath)) {
     const dir = path.slice(0, path.lastIndexOf("/"));
-    if (receptacles.has(dir) || inFilesItemFolder(dir, path.slice(dir.length + 1)) || isBlankSource(readFileSync(join(repoRoot, path), "utf8"))) continue;
+    if (receptacles.has(dir) || inPlugsFolder(dir) || inFilesItemFolder(dir, path.slice(dir.length + 1)) || isBlankSource(readFileSync(join(repoRoot, path), "utf8"))) continue;
     const point = targetPoints.find((p) => matchesGlob(path, overrideGlobOf(p.spec.overrides)));
     if (!point) {
       const globs = targetPoints.map((p) => overrideGlobOf(p.spec.overrides)).join(" / ");

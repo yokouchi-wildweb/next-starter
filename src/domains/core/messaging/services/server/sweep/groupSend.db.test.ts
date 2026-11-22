@@ -38,7 +38,8 @@ describe("グループ宛ての送信の固定(実 DB、書いた行は消す)",
     const { DomainError } = await import("@/lib/errors");
     const { UserTable } = await import("@/domains/core/user/entities/drizzle");
     const G = await import("@/domains/core/userGroup/entities/drizzle");
-    const { criteria } = await import("@/domains/core/userGroup/extensions/criteria");
+    const { userGroupCriteria } = await import("@/domains/core/userGroup/extensions/userGroupCriteria");
+    const criteria = Object.fromEntries(userGroupCriteria.map((entry) => [entry.plug.key, entry.plug]));
     const { userGroupConfigDef } = await import("@/domains/core/userGroup/config");
     const { createUserGroupEvaluator } = await import("@/domains/core/userGroup/services/server/evaluation/evaluator");
     const { MessageDispatchTable } = await import("../../../entities/drizzle");

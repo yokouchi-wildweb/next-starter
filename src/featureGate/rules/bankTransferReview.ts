@@ -1,7 +1,7 @@
 // src/featureGate/rules/bankTransferReview.ts
 // 銀行振込レビュー(管理画面 + 管理 API)
 // 決済(payment)に dependsOn。決済方法 bank_transfer_inhouse が選択可能なときだけ露出する(選べるかの判定は決済の値も読むので二重だが害は無い)。
-// 管理メニューの行(src/domains/core/admin/menu/items/bankTransferReviews.ts)はこの規則の住所で隠れる。
+// 管理メニューの行(src/domains/core/bankTransferReview/plugs/adminMenuItems/bankTransferReviews.ts)はこの規則の住所で隠れる。
 // ユーザー側 API(申告 / 進行中取得)は購入開始時点で選択不可メソッドが弾かれるため対象外
 
 import type { FeatureGateRule } from "@/featureGate";

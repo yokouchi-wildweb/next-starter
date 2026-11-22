@@ -18,7 +18,7 @@ const CORE = ["official", "affiliate", "invite"];
 
 test("上流の項目は 0 = core 3 タブだけ", () => {
   assert.deepEqual(
-    mod.buildCouponAdminSectionTabs().map((tab) => tab.value),
+    mod.buildCouponAdminSectionTabs((items) => [...items]).map((tab) => tab.value),
     CORE,
   );
 });

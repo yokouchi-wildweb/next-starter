@@ -22,11 +22,7 @@ import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../enti
 import { messageRegistry } from "@/registry/messageRegistry";
 import { recordTargetRegistry } from "@/registry/recordTargetRegistry";
 
-import { categories } from "../../../extensions/categories";
-import { channels } from "../../../extensions/channels";
-import { enrichers } from "../../../extensions/enrichers";
-import { layouts } from "../../../extensions/layouts";
-import { sources } from "../../../extensions/sources";
+import { channels, enrichers, layouts, shownCategories as categories, sources } from "../lists";
 import {
   checkSchedule,
   resolvedOfDispatch,

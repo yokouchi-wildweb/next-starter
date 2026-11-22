@@ -21,7 +21,7 @@ import { cn } from "@/lib/cn";
 import type { CategoryRendererProps } from "@/domains/core/adminCommand/base/types";
 import { useAdminCommand } from "@/domains/core/adminCommand/base/context";
 import { filterSearchInput } from "../../utils";
-import { navigationItems } from "./items";
+import { useNavigationItems } from "./items";
 
 /**
  * ナビゲーションカテゴリのレンダラー
@@ -31,7 +31,8 @@ export function NavigationRenderer({ onClose, onBack }: CategoryRendererProps) {
   const [searchValue, setSearchValue] = useState("");
   // 管理の枠の中では閉じた機能の住所の行を除く(AdminCommandGateBridge が登録)。外では絞らない(L2.4)
   const { navigationFilter } = useAdminCommand();
-  const items = useMemo(() => (navigationFilter ? navigationFilter(navigationItems) : navigationItems), [navigationFilter]);
+  const navigationItems = useNavigationItems();
+  const items = useMemo(() => (navigationFilter ? navigationFilter(navigationItems) : navigationItems), [navigationFilter, navigationItems]);
 
   // 検索入力のハンドラ（半角英数字のみに変換）
   const handleSearchChange = useCallback((value: string) => {

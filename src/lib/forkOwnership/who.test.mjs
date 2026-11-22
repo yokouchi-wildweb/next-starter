@@ -289,7 +289,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     "src/app/(user)/about/_screen/AboutScreen.tsx": "export function AboutScreen() {}\n",
     // 受け口と上書きの対象の点(宣言は本物)
     "src/domains/core/admin/extensionPoints.ts": real("src/domains/core/admin/extensionPoints.ts"),
-    "src/domains/core/admin/menu/items/users.ts": "export const item = {};\n",
+    "src/domains/core/user/plugs/adminMenuItems/usersGeneral.ts": "export const item = {};\n",
     "src/domains/core/user/extensionPoints.ts": real("src/domains/core/user/extensionPoints.ts"),
     "src/domains/core/user/roles/editor.role.json": "{}\n",
     "src/domains/core/user/user.ts": "export const user = 1;\n",
@@ -334,7 +334,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     ["枠のスイッチが既に .replace を指す(同じファイル)", "src/app/admin/layout.tsx", { type: "1", write: "src/app/admin/_layout/AdminLayout.replace.tsx", keys: null, source: "src/app/admin/layout.tsx" }],
     ["既に置き換えた枠の既定の部品", "src/app/admin/_layout/AdminLayout.tsx", { type: "1", write: "src/app/admin/_layout/AdminLayout.replace.tsx", keys: null, source: "src/app/admin/layout.tsx" }],
     // 型 2
-    ["受け口の項目の上書き(overrideOf の鍵)", "src/domains/core/admin/menu/items/users.ts", { type: "2", write: "src/domains/core/admin/menu/items/users.override.ts", keys: ["hidden", "label", "icon", "allowRoles", "order", "category"], source: "src/domains/core/admin/extensionPoints.ts menuItems" }],
+    ["plugs の点の上流の項目の上書き(overrideOf の鍵、隣の .override)", "src/domains/core/user/plugs/adminMenuItems/usersGeneral.ts", { type: "2", write: "src/domains/core/user/plugs/adminMenuItems/usersGeneral.override.ts", keys: ["hidden", "label", "icon", "allowRoles", "order", "category"], source: "src/domains/core/admin/extensionPoints.ts adminMenuItems" }],
     ["ロール", "src/domains/core/user/roles/editor.role.json", { type: "2", write: "src/domains/core/user/roles/editor.role.override.ts", keys: ["label", "hasProfile", "enabled"], source: "src/domains/core/user/extensionPoints.ts roleDefinitions" }],
     ["プロフィール", "src/domains/core/userProfile/profiles/shop.profile.json", { type: "2", write: "src/domains/core/userProfile/profiles/shop.profile.override.ts", keys: ["tags", "searchFields", "audit"], source: "src/domains/core/userProfile/extensionPoints.ts profileDefinitions" }],
     ["cron の task.ts", "src/app/api/cron/sweep/task.ts", { type: "2", write: "src/app/api/cron/sweep/task.override.ts", keys: ["schedule", "disabled"], source: "src/lib/cron/extensionPoints.ts cronTasks" }],
@@ -343,7 +343,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     ["枠の宣言(作ったリポの frame.ts がある)", "src/app/(user)/frame.ts", { type: "2", write: "src/app/(user)/frame.override.ts", keys: ["layout", "page"], source: "src/app/(user)/frame.ts" }],
     ["枠の宣言(frame.ts が無い route = 空の基準)", "src/app/(user)/about/frame.ts", { type: "2", write: "src/app/(user)/about/frame.override.ts", keys: ["layout", "page"] }],
     // 型 3
-    ["受け口に足す", "src/domains/core/admin/menu/categories/shop.ts", { type: "3", write: "src/domains/core/admin/menu/categories/shop.ts", keys: null, source: "src/domains/core/admin/extensionPoints.ts menuCategories" }],
+    ["plugs の点に足す(差す側の自分の plugs/<点>/)", "src/domains/shop/plugs/adminMenuCategories/shop.ts", { type: "3", write: "src/domains/shop/plugs/adminMenuCategories/shop.ts", keys: null, source: "src/domains/core/admin/extensionPoints.ts adminMenuCategories" }],
     // 型 4
     ["core/<名前>.css ↔ 直下", "src/styles/core/palette.css", { type: "4", write: "src/styles/palette.css", keys: null, source: "src/styles/core/extensionPoints.ts rootStyles" }],
     ["閉じた lib の config", "src/lib/cron/config.ts", { type: "4", write: "src/config/lib/cron.config.ts", keys: null, source: "lib cron" }],

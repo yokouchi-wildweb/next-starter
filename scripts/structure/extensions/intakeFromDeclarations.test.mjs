@@ -58,7 +58,7 @@ test("宣言・1 行スイッチ・生成器から作れる行は生成区画に
     "generated src/registry/serviceRegistry.ts",
     "generated src/**/extensions/**",
     "generated vercel.json",
-    "edit src/app/_providers/ForkProviders.tsx",
+    "edit src/domains/core/auth/plugs/frameSession/session.ts",
     "edit src/app/(user)/layout.tsx",
     "edit src/app/(user)/(protected)/wallet/[[]slug[]]/page.tsx",
   ]) assert.ok(block.has(row), `${row} が生成区画に無い`);
@@ -115,9 +115,11 @@ test("効く種類(最後に当たった行)は生成区画へ移す前と同じ
     "src/wiring/dbAgent.ts": "generated",
     "src/lib/mail/generated/themeColors.ts": "generated",
     "src/domains/core/user/entities/display.ts": "generated",
-    // 指令 31 の意図した変化(Q1): ForkProviders は 1 行スイッチ(.replace を足せる)、生成器の雛形のページはルートでないので edit でない
-    "src/app/_providers/ForkProviders.tsx": "edit",
-    "src/app/_providers/ForkProviders.replace.tsx": "add",
+    // 1 行スイッチ(.replace を足せる、ちょうど 1 つの点の上流の項目)。生成器の雛形のページはルートでないので edit でない。
+    // ForkProviders の口は注文 32 で点 rootProviders に畳んだ(fork の Provider は自分のドメインの plugs)
+    "src/domains/core/auth/plugs/frameSession/session.ts": "edit",
+    "src/domains/core/auth/plugs/frameSession/session.replace.tsx": "add",
+    "src/app/_providers/ForkProviders.replace.tsx": null,
     "src/app/admin/_template/__domains__/page.tsx": null,
   };
   assert.deepEqual(Object.fromEntries(Object.keys(expected).map((path) => [path, kindOf(path)])), expected);

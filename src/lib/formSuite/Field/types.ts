@@ -8,7 +8,7 @@ import type { FormControlA11yProps } from "@/components/Input/options";
 import type { ParaProps } from "@/components/TextBlocks/Para";
 import type { BuiltinFormInput, DomainField, DomainFieldOption } from "@/lib/domain";
 
-/** 登録された入力部品の名前（src/wiring/formInputs/FormInputsRoot.tsx が一覧の鍵から広げる） */
+/** 登録された入力部品の名前（生成物 src/wiring/formSuite.ts が項目の name の字面から広げる） */
 export interface RegisteredFormInputs {}
 
 /** 登録の部品が受ける props（id・aria-* は FormControl が渡す。入力部品へそのまま渡すとラベルと結び付く） */
@@ -18,7 +18,7 @@ export type FormInputProps = {
   inputClassName?: string;
 } & FormControlA11yProps;
 
-/** 入力部品の登録の項目（src/wiring/formInputs/inputs/ の export const formInput） */
+/** 入力部品の登録の項目（差す側の <ドメイン か lib>/plugs/formInputs/<名前>.ts の export const formInput） */
 export type FormInputItem = {
   readonly name: string;
   /** 部品の本体（default export） */
@@ -51,7 +51,7 @@ export type MediaValidationRule = FileValidationRule & {
 export type FieldConfig = Omit<DomainField, "fieldType" | "formInput" | "options" | "mediaTypePreset" | "validationRule"> & {
   /** データ型(表 fieldTypes.mjs の名前。手で組む設定では省ける) */
   fieldType?: DomainField["fieldType"];
-  /** フォーム入力種別(組み込みの名前か、src/wiring/formInputs に登録した名前) */
+  /** フォーム入力種別(組み込みの名前か、<ドメイン か lib>/plugs/formInputs に登録した名前) */
   formInput: BuiltinFormInput | keyof RegisteredFormInputs;
   /** 選択肢（select, radio, checkbox, multiSelect で使用） */
   options?: readonly DomainFieldOption[];

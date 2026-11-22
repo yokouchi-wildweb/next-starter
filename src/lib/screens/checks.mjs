@@ -820,7 +820,7 @@ export function resolveImportFile(fromFile, source, fileSet) {
 }
 
 /**
- * 管理画面の共通部品の組(src/wiring/adminScreenParts.ts)と、それぞれが serviceRegistry から解く操作
+ * 管理画面の共通部品の組(src/domains/core/admin/services/server/screenParts.ts)と、それぞれが serviceRegistry から解く操作
  * @type {Readonly<Record<string, string>>}
  */
 export const ADMIN_PARTS_OPERATIONS = {
@@ -913,7 +913,7 @@ const escapeRegExp = (/** @type {string} */ s) => s.replace(/[.*+?^${}()|[\]\\]/
  * createLoader({ access: <式> }) の式が管理画面の共通部品の組の access か。組の access = domainAccess(domain, 操作) なので、
  * 引数まるごとの形(createLoader(adminListParts("d")))と同じ registry:<domain>.<operation> に読める。
  * 受け付ける形: `adminXxxParts("d"…).access` / 同じファイルで 1 回だけ `const x = adminXxxParts("d"…)` と束ねた `x.access`
- * (組の関数は `@/wiring/adminScreenParts` から import、domain は文字列の字面)。
+ * (組の関数は `@/domains/core/admin/services/server/screenParts` から import、domain は文字列の字面)。
  * それ以外(分割代入・別ファイルの組・let / var・名前の再宣言や再代入・`.access` の先まで辿る式)は null(字面で読めない扱い)。
  * @param {string} src loader の内容(コメントを除いた物)
  * @param {string} expr access の式の字面
@@ -960,8 +960,8 @@ export function parseLoaderGuard(source) {
   const partsCall = /^(admin(?:List|Edit|Create|Sort)Parts)\s*(?:<[^()]*>)?\(\s*["']([\w]+)["']/.exec(arg.text);
   if (partsCall) {
     const parts = namedImportSource(src, partsCall[1]);
-    if (!parts || parts.source !== "@/wiring/adminScreenParts") {
-      return { problems: [`${partsCall[1]} を @/wiring/adminScreenParts から import していない`], guardImport: imp.source, access: null, allowStatuses: null };
+    if (!parts || parts.source !== "@/domains/core/admin/services/server/screenParts") {
+      return { problems: [`${partsCall[1]} を @/domains/core/admin/services/server/screenParts から import していない`], guardImport: imp.source, access: null, allowStatuses: null };
     }
     return {
       problems: [],
@@ -981,8 +981,8 @@ export function parseLoaderGuard(source) {
       : null;
   if (partsAccess) {
     const parts = namedImportSource(src, partsAccess.partsName);
-    if (!parts || parts.source !== "@/wiring/adminScreenParts" || parts.imported !== partsAccess.partsName) {
-      return { problems: [`${partsAccess.partsName} を @/wiring/adminScreenParts から import していない`], guardImport: imp.source, access: null, allowStatuses: null };
+    if (!parts || parts.source !== "@/domains/core/admin/services/server/screenParts" || parts.imported !== partsAccess.partsName) {
+      return { problems: [`${partsAccess.partsName} を @/domains/core/admin/services/server/screenParts から import していない`], guardImport: imp.source, access: null, allowStatuses: null };
     }
     return {
       problems: [],

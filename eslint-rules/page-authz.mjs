@@ -23,7 +23,7 @@
 //   (src/components・src/domains/**/components・src/domains/**/hooks・src/hooks)。layout・_layout・loader.ts の許可は撤去した(D73 K4・K5)。
 //   ページの主体は guard.ts の createLoader が解いて loader の ctx.user で渡し、範囲の守りは guard()。API の主体は Factory の ctx.user(D8 K4)。
 //   token だけのセッション・lib/jwt の Cookie の解析もここで止まる。
-//   proxy の項目(src/proxies/**、上流・fork)も対象: 主体は proxy.ts が渡す ctx.user()(D10)。解決器を作る src/proxy.ts は対象外。
+//   proxy の骨組み(src/proxies/**)と項目(<ドメイン>/plugs/proxyHandlers・proxyDecorators・proxyRedirects、上流・fork)も対象: 主体は proxy.ts が渡す ctx.user()(D10)。解決器を作る src/proxy.ts は対象外。
 //   core の services/server も対象(主体を解く基盤の auth と pairedDevice の session は外す。UI の項目とは別の項目で当てる)。
 //   fork の services/server(その下の hooks/ を含む)・lib(pageGuard・routeFactory)は対象範囲の外。AuthSessionProvider は名前付き例外。
 // 禁止する import:
@@ -182,15 +182,15 @@ const sessionApiCallsite = {
       moduleApi:
         '"{{source}}" はセッション API のモジュールです。API(src/app/api/**)では import しない。主体は ctx.user(詳細: src/lib/routeFactory/README.md)',
       namedProxy:
-        "{{names}} はセッション・ガード API です。proxy の項目(src/proxies/**)では呼ばない。利用者は proxy.ts が渡す ctx.user() を使う(詳細: src/proxies/README.md)",
+        "{{names}} はセッション・ガード API です。proxy の骨組みと項目(src/proxies/**・<ドメイン>/plugs/proxyHandlers・proxyDecorators・proxyRedirects)では呼ばない。利用者は proxy.ts が渡す ctx.user() を使う(詳細: src/proxies/README.md)",
       moduleProxy:
-        '"{{source}}" はセッション API のモジュールです。proxy の項目(src/proxies/**)では import しない。利用者は ctx.user()(詳細: src/proxies/README.md)',
+        '"{{source}}" はセッション API のモジュールです。proxy の骨組みと項目(src/proxies/**・<ドメイン>/plugs/proxyHandlers・proxyDecorators・proxyRedirects)では import しない。利用者は ctx.user()(詳細: src/proxies/README.md)',
     },
     schema: [],
   },
   create(context) {
     const inApi = /(^|[\\/])src[\\/]app[\\/]api[\\/]/.test(context.filename);
-    const inProxy = /(^|[\\/])src[\\/]proxies[\\/]/.test(context.filename);
+    const inProxy = /(^|[\\/])src[\\/]proxies[\\/]|[\\/]plugs[\\/]proxy(Handlers|Decorators|Redirects)[\\/]/.test(context.filename);
     const place = inProxy ? "Proxy" : inApi ? "Api" : "";
     return moduleVisitors((sourceNode, specifiers, typeOnly) => {
       const names = classifySessionImport(sourceNode.value, specifiers, typeOnly);

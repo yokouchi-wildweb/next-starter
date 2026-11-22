@@ -3,7 +3,7 @@
 import type { ActionCodeSettings } from "firebase-admin/auth";
 
 import { getServerAuth } from "@/lib/firebase/server";
-import { message as emailChangeMessage } from "@/domains/core/auth/messages/emailChange";
+import { message as emailChangeMessage } from "@/domains/core/auth/plugs/messages/emailChange";
 import { sendMailMessage } from "@/domains/core/auth/services/server/sendMailMessage";
 import { DomainError } from "@/lib/errors";
 

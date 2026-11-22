@@ -73,8 +73,8 @@ export type MessageChannelMode = (typeof MESSAGE_CHANNEL_MODES)[number];
 export type MessageLayoutValuesSource = Readonly<Record<string, unknown>>;
 
 /**
- * 連絡定義(messages/<名前>.ts に 1 本)。データだけで、送る処理は持たない。
- * 中身 = レイアウト(layouts の受け口の鍵)+ レイアウトの欄の中身。送信チャンネルごとの中身は持たず、送る口が送信チャンネルごとに 3 段(レイアウトの描き方 >
+ * 連絡定義(plugs/messages/<名前>.ts に 1 本)。データだけで、送る処理は持たない。
+ * 中身 = レイアウト(点 messagingLayouts の鍵)+ レイアウトの欄の中身。送信チャンネルごとの中身は持たず、送る口が送信チャンネルごとに 3 段(レイアウトの描き方 >
  * 送信チャンネルの汎用 > 要約、D124)で描く
  */
 export type MessageDefinition<
@@ -87,7 +87,7 @@ export type MessageDefinition<
    */
   label: string;
   /**
-   * カテゴリー = categories の受け口の鍵(全部の連絡に必須、D81)。種別(kind)と送信チャンネル(channels)はカテゴリーから引く(D86)。
+   * カテゴリー = 点 messagingCategories の鍵(全部の連絡に必須、D81)。種別(kind)と送信チャンネル(channels)はカテゴリーから引く(D86)。
    * 受け口に無い鍵は検査で落ちる。override で付け替えられない(D74)
    */
   category: string;
@@ -113,7 +113,7 @@ export type MessageDefinition<
    * 受け取り箱の一覧には出し、未読の数と未読だけの一覧(未読のモーダル)には入れない。ほかの送信チャンネルには効かない
    */
   silent?: boolean;
-  /** レイアウトの鍵(layouts の受け口のフォルダの名前。例 notice・link) */
+  /** レイアウトの鍵(点 messagingLayouts のフォルダの名前。例 notice・link) */
   layout: string;
   /** レイアウトの欄の中身(レイアウトの欄の zod を通る) */
   values: MessageLayoutValuesSource;
@@ -144,7 +144,7 @@ export type MessageDefinitionAdminText = {
 };
 
 /**
- * 一部の上書き(messages/<名前>.override.ts、データだけ)。label(表示名)は変えられる。key・vars・varNames・required・category・layout は変えられない
+ * 一部の上書き(plugs/messages/<名前>.override.ts、データだけ)。label(表示名)は変えられる。key・vars・varNames・required・category・layout は変えられない
  * (カテゴリーの付け替えは D74 で無し。送信チャンネルはカテゴリーの override で変える)。values はレイアウトの欄ごとに重ねる(欄の鍵は変えられない)。throttle: null で外す。
  */
 export type MessageOverride = {
@@ -160,7 +160,7 @@ export type MessageOverride = {
   record?: MessageRecord;
   throttle?: MessageThrottle | null;
   /**
-   * 所属のカテゴリーの付け替え(categories の受け口の鍵。fork のカテゴリーも可、種別が違ってもよい、functional の連絡も可 D166・D167)。
+   * 所属のカテゴリーの付け替え(点 messagingCategories の鍵。fork のカテゴリーも可、種別が違ってもよい、functional の連絡も可 D166・D167)。
    * 種別と送信チャンネルは付け替えた先のカテゴリーから引き、種別の性質の検査は付け替えた後の値に掛かる
    */
   category?: string;

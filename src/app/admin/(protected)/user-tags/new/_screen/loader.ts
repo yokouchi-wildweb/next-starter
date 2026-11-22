@@ -5,6 +5,6 @@
 import "server-only";
 
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminCreateParts } from "@/wiring/adminScreenParts";
+import { adminCreateParts } from "@/domains/core/admin/services/server/screenParts";
 
 export const loadAdminUserTagCreateScreen = createLoader(adminCreateParts("userTag"));

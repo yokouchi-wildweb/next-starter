@@ -147,159 +147,81 @@ edit src/app/(user)/(protected)/mypage/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/(user)/layout.tsx  # 枠の 1 行スイッチ
 edit src/app/admin/layout.tsx  # 枠の 1 行スイッチ
 add src/app/(user)/demo/*/_demo.ts  # 受け口 demoPages
-add src/app/_layout/adminCommand/categories/*.{ts,tsx}  # 受け口 categories
-add src/app/_layout/adminCommand/categories/*/**  # 受け口 categories(フォルダ形)
-add src/app/_layout/adminCommand/plugins/*.{ts,tsx}  # 受け口 plugins
-add src/app/_layout/adminCommand/plugins/*/**  # 受け口 plugins(フォルダ形)
-add src/domains/core/admin/dashboard/sections/*.{ts,tsx}  # 受け口 dashboardSections
-add src/domains/core/admin/dashboard/sections/*/**  # 受け口 dashboardSections(フォルダ形)
-add src/domains/core/admin/menu/categories/*.{ts,tsx}  # 受け口 menuCategories
-add src/domains/core/admin/menu/categories/*/**  # 受け口 menuCategories(フォルダ形)
-add src/domains/core/admin/menu/items/*.{ts,tsx}  # 受け口 menuItems
-add src/domains/core/admin/menu/items/*/**  # 受け口 menuItems(フォルダ形)
-add src/domains/core/adminCommand/navigationItems/*.{ts,tsx}  # 受け口 navigationItems
-add src/domains/core/adminCommand/navigationItems/*/**  # 受け口 navigationItems(フォルダ形)
-add src/domains/core/analytics/exclusionProviders/*.{ts,tsx}  # 受け口 exclusionProviders
-add src/domains/core/analytics/exclusionProviders/*/**  # 受け口 exclusionProviders(フォルダ形)
-add src/domains/core/analytics/rollupMetrics/*.{ts,tsx}  # 受け口 rollupMetrics
-add src/domains/core/analytics/rollupMetrics/*/**  # 受け口 rollupMetrics(フォルダ形)
-add src/domains/core/analytics/services/server/coinIssuance/sources/*.{ts,tsx}  # 受け口 coinIssuanceSources
-add src/domains/core/analytics/services/server/coinIssuance/sources/*/**  # 受け口 coinIssuanceSources(フォルダ形)
-add src/domains/core/bankTransferReview/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkActions
-add src/domains/core/bankTransferReview/adminBulkActions/*/**  # 受け口 adminBulkActions(フォルダ形)
-add src/domains/core/batchJob/jobHandlers/*.{ts,tsx}  # 受け口 jobHandlers
-add src/domains/core/batchJob/jobHandlers/*/**  # 受け口 jobHandlers(フォルダ形)
-add src/domains/core/coupon/adminSectionTabs/*.{ts,tsx}  # 受け口 sectionTabs
-add src/domains/core/coupon/adminSectionTabs/*/**  # 受け口 sectionTabs(フォルダ形)
-add src/domains/core/interactionTracking/targetRules/*.{ts,tsx}  # 受け口 targetRules
-add src/domains/core/interactionTracking/targetRules/*/**  # 受け口 targetRules(フォルダ形)
-add src/domains/core/messaging/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkActions
-add src/domains/core/messaging/adminBulkActions/*/**  # 受け口 adminBulkActions(フォルダ形)
-add src/domains/core/messaging/categories/*.{ts,tsx}  # 受け口 categories
-add src/domains/core/messaging/categories/*/**  # 受け口 categories(フォルダ形)
-add src/domains/core/messaging/categoryGroups/*.{ts,tsx}  # 受け口 categoryGroups
-add src/domains/core/messaging/categoryGroups/*/**  # 受け口 categoryGroups(フォルダ形)
-add src/domains/core/messaging/channels/*.{ts,tsx}  # 受け口 channels
-add src/domains/core/messaging/channels/*/**  # 受け口 channels(フォルダ形)
-add src/domains/core/messaging/enrichers/*.{ts,tsx}  # 受け口 enrichers
-add src/domains/core/messaging/enrichers/*/**  # 受け口 enrichers(フォルダ形)
-add src/domains/core/messaging/layouts/*/email.tsx  # 受け口 layoutEmails・layoutInApps・layouts
-add src/domains/core/messaging/layouts/*/inApp.tsx  # 受け口 layoutEmails・layoutInApps・layouts
-add src/domains/core/messaging/layouts/*/layout.override.{ts,tsx}  # 受け口 layoutEmails・layoutInApps・layouts
-add src/domains/core/messaging/layouts/*/layout.ts  # 受け口 layoutEmails・layoutInApps・layouts
-add src/domains/core/messaging/sources/*.{ts,tsx}  # 受け口 sources
-add src/domains/core/messaging/sources/*/**  # 受け口 sources(フォルダ形)
-add src/domains/core/messaging/subscribers/*.{ts,tsx}  # 受け口 subscribers
-add src/domains/core/messaging/subscribers/*/**  # 受け口 subscribers(フォルダ形)
-add src/domains/core/milestone/components/renderers/*.{ts,tsx}  # 受け口 renderers
-add src/domains/core/milestone/components/renderers/*/**  # 受け口 renderers(フォルダ形)
-add src/domains/core/milestone/services/server/definitions/*.{ts,tsx}  # 受け口 definitions
-add src/domains/core/milestone/services/server/definitions/*/**  # 受け口 definitions(フォルダ形)
-add src/domains/core/pairedDevice/kinds/*.{ts,tsx}  # 受け口 kinds
-add src/domains/core/pairedDevice/kinds/*/**  # 受け口 kinds(フォルダ形)
-add src/domains/core/purchaseRequest/services/server/completion/strategies/*.{ts,tsx}  # 受け口 completionStrategies
-add src/domains/core/purchaseRequest/services/server/completion/strategies/*/**  # 受け口 completionStrategies(フォルダ形)
-add src/domains/core/purchaseRequest/services/server/hooks/definitions/*.{ts,tsx}  # 受け口 completeHooks
-add src/domains/core/purchaseRequest/services/server/hooks/definitions/*/**  # 受け口 completeHooks(フォルダ形)
-add src/domains/core/referralReward/rewardGroups/*.{ts,tsx}  # 受け口 rewardGroups
-add src/domains/core/referralReward/rewardGroups/*/**  # 受け口 rewardGroups(フォルダ形)
-add src/domains/core/referralReward/services/server/handlers/*.{ts,tsx}  # 受け口 rewardHandlers
-add src/domains/core/referralReward/services/server/handlers/*/**  # 受け口 rewardHandlers(フォルダ形)
-add src/domains/core/setting/fields/*.{ts,tsx}  # 受け口 fields
-add src/domains/core/setting/fields/*/**  # 受け口 fields(フォルダ形)
-add src/domains/core/setting/sections/*.{ts,tsx}  # 受け口 sections
-add src/domains/core/setting/sections/*/**  # 受け口 sections(フォルダ形)
-add src/domains/core/storageObject/purposes/*.{ts,tsx}  # 受け口 purposes
-add src/domains/core/storageObject/purposes/*/**  # 受け口 purposes(フォルダ形)
-add src/domains/core/user/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkActions
-add src/domains/core/user/adminBulkActions/*/**  # 受け口 adminBulkActions(フォルダ形)
-add src/domains/core/user/adminManageTabs/*.{ts,tsx}  # 受け口 adminManageTabs
-add src/domains/core/user/adminManageTabs/*/**  # 受け口 adminManageTabs(フォルダ形)
-add src/domains/core/user/cleanupHandlers/*.{ts,tsx}  # 受け口 cleanupHandlers
-add src/domains/core/user/cleanupHandlers/*/**  # 受け口 cleanupHandlers(フォルダ形)
-add src/domains/core/user/mypageMenu/items/*.{ts,tsx}  # 受け口 mypageMenu
-add src/domains/core/user/mypageMenu/items/*/**  # 受け口 mypageMenu(フォルダ形)
-add src/domains/core/user/reservedNames/*.{ts,tsx}  # 受け口 reservedNames
-add src/domains/core/user/reservedNames/*/**  # 受け口 reservedNames(フォルダ形)
-add src/domains/core/userAcquisition/channels/*.{ts,tsx}  # 受け口 channels
-add src/domains/core/userAcquisition/channels/*/**  # 受け口 channels(フォルダ形)
-add src/domains/core/userGroup/criteria/*.{ts,tsx}  # 受け口 criteria
-add src/domains/core/userGroup/criteria/*/**  # 受け口 criteria(フォルダ形)
-add src/domains/core/userLineProfile/webhookHandlers/*.{ts,tsx}  # 受け口 webhookHandlers
-add src/domains/core/userLineProfile/webhookHandlers/*/**  # 受け口 webhookHandlers(フォルダ形)
-add src/domains/core/wallet/purchaseBonuses/*.{ts,tsx}  # 受け口 purchaseBonuses
-add src/domains/core/wallet/purchaseBonuses/*/**  # 受け口 purchaseBonuses(フォルダ形)
-add src/domains/core/walletHistory/reasonKeys/*.{ts,tsx}  # 受け口 reasonKeys
-add src/domains/core/walletHistory/reasonKeys/*/**  # 受け口 reasonKeys(フォルダ形)
-add src/domains/sample/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkActions
-add src/domains/sample/adminBulkActions/*/**  # 受け口 adminBulkActions(フォルダ形)
-add src/domains/sampleCategory/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkActions
-add src/domains/sampleCategory/adminBulkActions/*/**  # 受け口 adminBulkActions(フォルダ形)
-add src/domains/sampleTag/adminBulkActions/*.{ts,tsx}  # 受け口 adminBulkActions
-add src/domains/sampleTag/adminBulkActions/*/**  # 受け口 adminBulkActions(フォルダ形)
-add src/featureGate/alwaysOnExceptions/*.{ts,tsx}  # 受け口 alwaysOnExceptions・alwaysOnRegistries
-add src/featureGate/alwaysOnExceptions/*/**  # 受け口 alwaysOnExceptions・alwaysOnRegistries(フォルダ形)
-add src/featureGate/dependencyExceptions/*.{ts,tsx}  # 受け口 dependencyExceptions
-add src/featureGate/dependencyExceptions/*/**  # 受け口 dependencyExceptions(フォルダ形)
 add src/featureGate/required/*.{ts,tsx}  # 受け口 required
 add src/featureGate/required/*/**  # 受け口 required(フォルダ形)
 add src/featureGate/rules/*.{ts,tsx}  # 受け口 rules
 add src/featureGate/rules/*/**  # 受け口 rules(フォルダ形)
-add src/proxies/*.{ts,tsx}  # 受け口 decorators・handlers
-add src/proxies/*/**  # 受け口 decorators・handlers(フォルダ形)
-add src/proxies/redirects/*.{ts,tsx}  # 受け口 redirects
-add src/proxies/redirects/*/**  # 受け口 redirects(フォルダ形)
-add src/wiring/dbAgent/extraTools/*.{ts,tsx}  # 受け口 extraTools
-add src/wiring/dbAgent/extraTools/*/**  # 受け口 extraTools(フォルダ形)
-add src/wiring/dbAgent/promptFragments/*.{ts,tsx}  # 受け口 promptFragments
-add src/wiring/dbAgent/promptFragments/*/**  # 受け口 promptFragments(フォルダ形)
-add src/wiring/dbAgent/suffixProviders/*.{ts,tsx}  # 受け口 suffixProviders
-add src/wiring/dbAgent/suffixProviders/*/**  # 受け口 suffixProviders(フォルダ形)
-add src/wiring/formInputs/inputs/*.{ts,tsx}  # 受け口 inputs
-add src/wiring/formInputs/inputs/*/**  # 受け口 inputs(フォルダ形)
-add src/wiring/serverErrors/reporters/*.{ts,tsx}  # 受け口 reporters
-add src/wiring/serverErrors/reporters/*/**  # 受け口 reporters(フォルダ形)
-edit src/app/_providers/ForkProviders.tsx  # 差替点 forkProviders(src/app/_layout/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+add src/domains/**/plugs/adminBulkActions/*.override.{ts,tsx}  # 上書き adminBulkActions(enabled・order)の上流の項目の隣
+add src/lib/*/plugs/adminBulkActions/*.override.{ts,tsx}  # 上書き adminBulkActions(enabled・order)の上流の項目の隣
+add src/domains/**/plugs/adminDashboardSections/*.override.{ts,tsx}  # 上書き adminDashboardSections(hidden・allowRoles・order)の上流の項目の隣
+add src/lib/*/plugs/adminDashboardSections/*.override.{ts,tsx}  # 上書き adminDashboardSections(hidden・allowRoles・order)の上流の項目の隣
+add src/domains/**/plugs/adminMenuCategories/*.override.{ts,tsx}  # 上書き adminMenuCategories(hidden・label・icon・allowRoles・order)の上流の項目の隣
+add src/lib/*/plugs/adminMenuCategories/*.override.{ts,tsx}  # 上書き adminMenuCategories(hidden・label・icon・allowRoles・order)の上流の項目の隣
+add src/domains/**/plugs/adminMenuItems/*.override.{ts,tsx}  # 上書き adminMenuItems(hidden・label・icon・allowRoles・order・category)の上流の項目の隣
+add src/lib/*/plugs/adminMenuItems/*.override.{ts,tsx}  # 上書き adminMenuItems(hidden・label・icon・allowRoles・order・category)の上流の項目の隣
+add src/domains/**/plugs/messagingCategories/*.override.{ts,tsx}  # 上書き messagingCategories(label・adminLabel・description・channels・defaultChannels・group)の上流の項目の隣
+add src/lib/*/plugs/messagingCategories/*.override.{ts,tsx}  # 上書き messagingCategories(label・adminLabel・description・channels・defaultChannels・group)の上流の項目の隣
+add src/domains/**/plugs/messagingLayouts/*/layout.override.{ts,tsx}  # 上書き messagingLayouts(disabled・adminSelectable)の上流の項目の隣
+add src/lib/*/plugs/messagingLayouts/*/layout.override.{ts,tsx}  # 上書き messagingLayouts(disabled・adminSelectable)の上流の項目の隣
+add src/domains/**/plugs/settingFields/*.override.{ts,tsx}  # 上書き settingFields(ui・public・default・allowRoles)の上流の項目の隣
+add src/lib/*/plugs/settingFields/*.override.{ts,tsx}  # 上書き settingFields(ui・public・default・allowRoles)の上流の項目の隣
+add src/domains/**/plugs/settingSections/*.override.{ts,tsx}  # 上書き settingSections(label・order・icon・allowRoles・description・groups)の上流の項目の隣
+add src/lib/*/plugs/settingSections/*.override.{ts,tsx}  # 上書き settingSections(label・order・icon・allowRoles・description・groups)の上流の項目の隣
+add src/domains/**/plugs/userGroupCriteria/*.override.{ts,tsx}  # 上書き userGroupCriteria(enabled・label・description)の上流の項目の隣
+add src/lib/*/plugs/userGroupCriteria/*.override.{ts,tsx}  # 上書き userGroupCriteria(enabled・label・description)の上流の項目の隣
+add src/domains/**/plugs/userMypageMenu/*.override.{ts,tsx}  # 上書き userMypageMenu(hidden・order・title・description・icon・variant・pendingTitle)の上流の項目の隣
+add src/lib/*/plugs/userMypageMenu/*.override.{ts,tsx}  # 上書き userMypageMenu(hidden・order・title・description・icon・variant・pendingTitle)の上流の項目の隣
+add src/domains/**/plugs/walletPurchaseBonuses/*.override.{ts,tsx}  # 上書き walletPurchaseBonuses(enabled・order)の上流の項目の隣
+add src/lib/*/plugs/walletPurchaseBonuses/*.override.{ts,tsx}  # 上書き walletPurchaseBonuses(enabled・order)の上流の項目の隣
 edit src/app/admin/_layout/AdminHeader.tsx  # 差替点 adminHeader(src/app/admin/_layout/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
 edit src/domains/core/auth/components/Registration/RateLimitWarningContent.tsx  # 差替点 rateLimitWarningContent(src/domains/core/auth/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/auth/plugs/frameSession/session.ts  # 差替点 authFrameSession(src/domains/core/auth/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/auth/plugs/pageGuardUser/session.ts  # 差替点 authPageGuardUser(src/domains/core/auth/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/auth/plugs/proxyUser/session.ts  # 差替点 authProxyUser(src/domains/core/auth/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/auth/plugs/routeFactoryUser/session.ts  # 差替点 authRouteFactoryUser(src/domains/core/auth/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
 edit src/domains/core/couponIssuerGrant/services/server/programConfig.ts  # 差替点 programConfig(src/domains/core/couponIssuerGrant/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
 edit src/domains/core/demo/services/server/onDemoUserCreated.ts  # 差替点 onDemoUserCreated(src/domains/core/demo/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/alert/AlertEmail.tsx  # 差替点 alertEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/alert/AlertInApp.tsx  # 差替点 alertInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/link/LinkEmail.tsx  # 差替点 linkEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/link/LinkInApp.tsx  # 差替点 linkInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/notice/NoticeEmail.tsx  # 差替点 noticeEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/notice/NoticeInApp.tsx  # 差替点 noticeInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/simple/SimpleEmail.tsx  # 差替点 simpleEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/simple/SimpleInApp.tsx  # 差替点 simpleInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/statement/StatementEmail.tsx  # 差替点 statementEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/statement/StatementInApp.tsx  # 差替点 statementInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/welcome/WelcomeEmail.tsx  # 差替点 welcomeEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
-edit src/domains/core/messaging/layouts/welcome/WelcomeInApp.tsx  # 差替点 welcomeInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/plugs/messagingLayouts/alert/AlertEmail.tsx  # 差替点 alertEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/plugs/messagingLayouts/alert/AlertInApp.tsx  # 差替点 alertInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/plugs/messagingLayouts/link/LinkEmail.tsx  # 差替点 linkEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/plugs/messagingLayouts/link/LinkInApp.tsx  # 差替点 linkInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/plugs/messagingLayouts/notice/NoticeEmail.tsx  # 差替点 noticeEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/plugs/messagingLayouts/notice/NoticeInApp.tsx  # 差替点 noticeInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/plugs/messagingLayouts/simple/SimpleEmail.tsx  # 差替点 simpleEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/plugs/messagingLayouts/simple/SimpleInApp.tsx  # 差替点 simpleInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/plugs/messagingLayouts/statement/StatementEmail.tsx  # 差替点 statementEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/plugs/messagingLayouts/statement/StatementInApp.tsx  # 差替点 statementInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/plugs/messagingLayouts/welcome/WelcomeEmail.tsx  # 差替点 welcomeEmail(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/messaging/plugs/messagingLayouts/welcome/WelcomeInApp.tsx  # 差替点 welcomeInApp(src/domains/core/messaging/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
 edit src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.ts  # 差替点 sessionEnricher(src/domains/core/purchaseRequest/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+edit src/domains/core/rateLimit/plugs/routeFactoryRateLimit/ipRate.ts  # 差替点 rateLimitRouteFactoryRateLimit(src/domains/core/rateLimit/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
 edit src/lib/mail/frame/MailFrame.tsx  # 差替点 mailFrame(src/lib/mail/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
-add src/app/_providers/ForkProviders.replace.{ts,tsx}  # 差替点 forkProviders の丸ごと置き換え
 add src/app/admin/_layout/AdminHeader.replace.{ts,tsx}  # 差替点 adminHeader の丸ごと置き換え
 add src/domains/core/auth/components/Registration/RateLimitWarningContent.replace.{ts,tsx}  # 差替点 rateLimitWarningContent の丸ごと置き換え
+add src/domains/core/auth/plugs/frameSession/session.replace.{ts,tsx}  # 差替点 authFrameSession の丸ごと置き換え
+add src/domains/core/auth/plugs/pageGuardUser/session.replace.{ts,tsx}  # 差替点 authPageGuardUser の丸ごと置き換え
+add src/domains/core/auth/plugs/proxyUser/session.replace.{ts,tsx}  # 差替点 authProxyUser の丸ごと置き換え
+add src/domains/core/auth/plugs/routeFactoryUser/session.replace.{ts,tsx}  # 差替点 authRouteFactoryUser の丸ごと置き換え
 add src/domains/core/couponIssuerGrant/services/server/programConfig.replace.{ts,tsx}  # 差替点 programConfig の丸ごと置き換え
 add src/domains/core/demo/services/server/onDemoUserCreated.replace.{ts,tsx}  # 差替点 onDemoUserCreated の丸ごと置き換え
-add src/domains/core/messaging/layouts/alert/AlertEmail.replace.{ts,tsx}  # 差替点 alertEmail の丸ごと置き換え
-add src/domains/core/messaging/layouts/alert/AlertInApp.replace.{ts,tsx}  # 差替点 alertInApp の丸ごと置き換え
-add src/domains/core/messaging/layouts/link/LinkEmail.replace.{ts,tsx}  # 差替点 linkEmail の丸ごと置き換え
-add src/domains/core/messaging/layouts/link/LinkInApp.replace.{ts,tsx}  # 差替点 linkInApp の丸ごと置き換え
-add src/domains/core/messaging/layouts/notice/NoticeEmail.replace.{ts,tsx}  # 差替点 noticeEmail の丸ごと置き換え
-add src/domains/core/messaging/layouts/notice/NoticeInApp.replace.{ts,tsx}  # 差替点 noticeInApp の丸ごと置き換え
-add src/domains/core/messaging/layouts/simple/SimpleEmail.replace.{ts,tsx}  # 差替点 simpleEmail の丸ごと置き換え
-add src/domains/core/messaging/layouts/simple/SimpleInApp.replace.{ts,tsx}  # 差替点 simpleInApp の丸ごと置き換え
-add src/domains/core/messaging/layouts/statement/StatementEmail.replace.{ts,tsx}  # 差替点 statementEmail の丸ごと置き換え
-add src/domains/core/messaging/layouts/statement/StatementInApp.replace.{ts,tsx}  # 差替点 statementInApp の丸ごと置き換え
-add src/domains/core/messaging/layouts/welcome/WelcomeEmail.replace.{ts,tsx}  # 差替点 welcomeEmail の丸ごと置き換え
-add src/domains/core/messaging/layouts/welcome/WelcomeInApp.replace.{ts,tsx}  # 差替点 welcomeInApp の丸ごと置き換え
+add src/domains/core/messaging/plugs/messagingLayouts/alert/AlertEmail.replace.{ts,tsx}  # 差替点 alertEmail の丸ごと置き換え
+add src/domains/core/messaging/plugs/messagingLayouts/alert/AlertInApp.replace.{ts,tsx}  # 差替点 alertInApp の丸ごと置き換え
+add src/domains/core/messaging/plugs/messagingLayouts/link/LinkEmail.replace.{ts,tsx}  # 差替点 linkEmail の丸ごと置き換え
+add src/domains/core/messaging/plugs/messagingLayouts/link/LinkInApp.replace.{ts,tsx}  # 差替点 linkInApp の丸ごと置き換え
+add src/domains/core/messaging/plugs/messagingLayouts/notice/NoticeEmail.replace.{ts,tsx}  # 差替点 noticeEmail の丸ごと置き換え
+add src/domains/core/messaging/plugs/messagingLayouts/notice/NoticeInApp.replace.{ts,tsx}  # 差替点 noticeInApp の丸ごと置き換え
+add src/domains/core/messaging/plugs/messagingLayouts/simple/SimpleEmail.replace.{ts,tsx}  # 差替点 simpleEmail の丸ごと置き換え
+add src/domains/core/messaging/plugs/messagingLayouts/simple/SimpleInApp.replace.{ts,tsx}  # 差替点 simpleInApp の丸ごと置き換え
+add src/domains/core/messaging/plugs/messagingLayouts/statement/StatementEmail.replace.{ts,tsx}  # 差替点 statementEmail の丸ごと置き換え
+add src/domains/core/messaging/plugs/messagingLayouts/statement/StatementInApp.replace.{ts,tsx}  # 差替点 statementInApp の丸ごと置き換え
+add src/domains/core/messaging/plugs/messagingLayouts/welcome/WelcomeEmail.replace.{ts,tsx}  # 差替点 welcomeEmail の丸ごと置き換え
+add src/domains/core/messaging/plugs/messagingLayouts/welcome/WelcomeInApp.replace.{ts,tsx}  # 差替点 welcomeInApp の丸ごと置き換え
 add src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.replace.{ts,tsx}  # 差替点 sessionEnricher の丸ごと置き換え
+add src/domains/core/rateLimit/plugs/routeFactoryRateLimit/ipRate.replace.{ts,tsx}  # 差替点 rateLimitRouteFactoryRateLimit の丸ごと置き換え
 add src/lib/mail/frame/MailFrame.replace.{ts,tsx}  # 差替点 mailFrame の丸ごと置き換え
 edit src/app/api/cron/*/task.override.ts  # 上書き cronTasks(schedule・disabled)
-edit src/domains/**/messages/*.override.ts  # 上書き messages(label・values・extras・enabled・adminEditableOnly・record・throttle・category・channelModes・adminText)
-edit src/domains/**/recordTargets/*.override.ts  # 上書き recordTargets(messages)
+edit src/domains/**/plugs/messages/*.override.ts  # 上書き messages(label・values・extras・enabled・adminEditableOnly・record・throttle・category・channelModes・adminText)
+edit src/domains/**/plugs/recordTargets/*.override.ts  # 上書き recordTargets(messages)
 edit src/domains/**/services/server/domainEntry.override.ts  # 上書き domainEntries(access)
 edit src/domains/core/user/coreRoles/*.role.override.ts  # 上書き coreRoleDefinitions(label・hasProfile)
 edit src/domains/core/user/roles/*.role.override.ts  # 上書き roleDefinitions(label・hasProfile・enabled)
@@ -323,6 +245,8 @@ generated src/domains/core/*/entities/display.ts  # 生成器 registry の出力
 generated src/domains/*/entities/display.ts  # 生成器 registry の出力
 generated src/registry/district-map.jsonl  # 生成器 district-map の出力
 generated src/wiring/dbAgent.ts  # 生成器 extensions の出力
+generated src/wiring/formSuite.ts  # 生成器 extensions の出力
+generated src/wiring/serverErrorReport.ts  # 生成器 extensions の出力
 generated src/**/extensions/**  # 生成器 extensions の出力
 generated src/app/route-map.jsonl  # 生成器 routes の出力
 generated src/lib/mail/generated/themeColors.ts  # 生成器 styles の出力

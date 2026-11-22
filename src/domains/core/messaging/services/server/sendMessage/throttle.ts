@@ -18,7 +18,7 @@
 import { createHash } from "node:crypto";
 
 import type { MessageDeliveryInsert, MessageDeliveryReason, MessageDeliveryStatus } from "../../../entities/model";
-import { inAppItemRow } from "../../../channels/inApp/createInAppChannel";
+import { inAppItemRow } from "@/domains/core/messaging/plugs/messagingChannels/inApp/createInAppChannel";
 import { deliveryEvents } from "../events/internalEvents";
 import { buildContent, buildRowContent } from "./content";
 import { toVariableMap } from "./context";

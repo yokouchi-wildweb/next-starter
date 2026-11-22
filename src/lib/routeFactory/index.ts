@@ -17,6 +17,24 @@ export type {
   RouteUserBase,
   RouteUserDeps,
 } from "./deps";
+export type {
+  AnyRouteDevicePlug,
+  AnyRouteMaintenancePlug,
+  AnyRouteRateLimitPlug,
+  AnyRouteUserPlug,
+  AuthenticatedDeviceOf,
+  CategoryOf,
+  DeviceKindOf,
+  DeviceOfKind,
+  DevicesOf,
+  PlugOfMap,
+  RouteDevicePlug,
+  RouteMaintenancePlug,
+  RouteRateLimitPlug,
+  RouteUserPlug,
+  StatusOf,
+  UserOf,
+} from "./plugs";
 export { ROUTE_USER_UNAVAILABLE_CODE, RouteUserUnavailableError } from "./routeUser";
 export {
   type ApiRouteBaseConfig,

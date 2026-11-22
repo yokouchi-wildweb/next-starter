@@ -8,7 +8,7 @@
 // - 流入経路の「解析」（タッチ記録・source/medium 集計）は userAcquisition が担い、
 //   その記録の opt-in でゲートされる
 // 招待リンクは解析機能のオンオフに関係なく動作する。パラメータ名 INVITE_LINK_PARAM は referral の物で、
-// userAcquisition はその名前を判別表の行(userAcquisition/channels/invite.ts)として読むだけ。
+// userAcquisition はその名前を判別表の行(userAcquisition/plugs/userAcquisitionChannels/invite.ts)として読むだけ。
 //
 // proxy（蓄積側）と API ルート（読み取り側）の両方から import されるため、
 // このファイルは drizzle / postgres 等のサーバー専用モジュールを import しないこと。
@@ -49,7 +49,7 @@ export function readInviteLinkParam(url: URL): string | null {
  * 用途: メール認証リンク（continueUrl）への引き継ぎ。
  * cookie はブラウザをまたげないため（例: X アプリ内ブラウザで招待リンクを踏み、
  * 認証メールをデフォルトブラウザで開くケース）、メールリンクの URL にコードを
- * 埋め込み、開いた先のブラウザで proxy（inviteLinkDecorator）に cookie を
+ * 埋め込み、開いた先のブラウザで proxy の項目（plugs/proxyDecorators/inviteLink.ts）に cookie を
  * 焼き直させることで紹介を成立させる。email の別ブラウザ対策と同じ手法。
  */
 export function appendInviteLinkParam(url: string, code: string): string {

@@ -5,8 +5,7 @@
 
 import type { MessageCategory, MessageChannel } from "@/lib/messaging";
 
-import { categories } from "../../../extensions/categories";
-import { channels } from "../../../extensions/channels";
+import { categories, channels } from "../lists";
 
 import { verifyUnsubscribeToken } from "./token";
 

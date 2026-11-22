@@ -7,6 +7,6 @@ import "server-only";
 
 import type { __Domain__ } from "@/domains/__domain__/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminSortParts } from "@/wiring/adminScreenParts";
+import { adminSortParts } from "@/domains/core/admin/services/server/screenParts";
 
 export const loadAdmin__Domain__SortScreen = createLoader(adminSortParts<__Domain__>("__domain__", "__SORT_ORDER_FIELD__"));

@@ -22,7 +22,9 @@ export const REQUIRED_ESLINT_RULES = [
   { rule: "import-boundaries/client-no-domain-json", files: ["src/domains/core/auth/hooks/useOAuthSignupFlow.ts"] },
   { rule: "import-boundaries/domains-index-no-server-reexport", files: ["src/domains/core/auditLog/index.ts"] },
   { rule: "import-boundaries/lib-no-registry", files: ["src/lib/drizzle/index.ts"] },
-  { rule: "import-boundaries/lib-no-domains", files: ["src/lib/drizzle/index.ts"] },
+  { rule: "import-boundaries/district-no-domains", files: ["src/lib/drizzle/index.ts", "src/wiring/apiRoute.ts", "src/proxies/index.ts", "src/featureGate/ruleList.ts", "src/proxy.ts"] },
+  { rule: "import-boundaries/points-entry", files: ["src/domains/core/auth/plugs/proxyUser/session.default.ts", "src/proxies/points.ts"] },
+  { rule: "config-overrides/config-imports", files: ["src/domains/core/wallet/config.ts"] },
   { rule: "import-boundaries/src-no-scripts", files: ["src/lib/cron/discover.ts", "src/featureGate/checks/dependencies.test.mjs"] },
   { rule: "import-boundaries/src-no-district-map", files: ["src/lib/districtMap/read.mjs", "src/lib/districtMap/districtMap.test.mjs"] },
   { rule: "import-boundaries/scripts-no-static-wiring", files: ["scripts/runner/task/run.ts", "src/domains/sample/scripts/tasks/example.ts", ".notices/20261101-000200-lib-boundaries.crud-entry-split.mjs"], example: true },
@@ -53,7 +55,7 @@ export const REQUIRED_ESLINT_RULES = [
   { rule: "realtime-room/purity", files: ["src/domains/example/room/reducer.ts"], example: true },
   { rule: "hidden-columns/no-raw-select", files: ["src/domains/core/auth/services/server/registration.ts"] },
   // 当議会 D133: メールの送り口(全 Tier error)
-  { rule: "import-boundaries/mail-send-via-messaging", files: ["src/domains/core/messaging/channels/email/index.tsx", "src/domains/core/user/services/server/userService.ts"] },
+  { rule: "import-boundaries/mail-send-via-messaging", files: ["src/domains/core/messaging/plugs/messagingChannels/email/index.tsx", "src/domains/core/user/services/server/userService.ts"] },
   { rule: "raw-sql-date/no-date-param", files: ["src/domains/core/messaging/services/server/sweep/retentionSql.ts", "scripts/runner/task/run.ts"] },
   // cacheComponents と両立しない segment config(有効化の区切りから全 Tier error。fork が false に戻す・緩める道を残さない)
   // 共有の use cache の中で利用者・権限を引数の外から読まない(cacheComponents の解禁と同時、全 Tier error)

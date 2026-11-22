@@ -34,7 +34,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 | 範囲の方針 | `src/app/<range>/guard.ts`（layout.tsx の隣、root は `src/app/guard.ts`） | 範囲を作った側 | 配下の全ページに掛かる方針（親の `extend` で狭めるだけ）。layout は `await guard()` の 1 行（API の「範囲（guard.ts）と loader の書き方」） |
 | 既定 Screen 専用の部品 | `src/app/<route>/_screen/<Part>.tsx` または `_screen/<dir>/` | ルートを作った側 | 契約外。そのルートの既定 Screen だけが使う部品（例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`、`maintenance/_screen/MaintenanceAutoRedirect.tsx`）。Screen からは相対 import。テストは Screen と `loader.ts` 以外を検査しない。複数ルートで使う部品はドメインの `components/` へ |
 | 下流の画面・page 専用部品 | `src/app/<route>/_components/` | 下流 | 下の「fork の物は `_components/`」。差し替え画面は `<Name>Screen.tsx` と命名する（部品の命名は自由。既存の部品を改名する必要はない） |
-| 管理画面の取得本体 | `src/domains/core/admin/services/server/screenData/` | 上流 | pnpm generate domain の管理画面が共有する取得の本体（service は外から受ける）。各ルートの `_screen/loader.ts` が `src/wiring/adminScreenParts.ts` の共通部品の組を通して使う |
+| 管理画面の取得本体 | `src/domains/core/admin/services/server/screenData/` | 上流 | pnpm generate domain の管理画面が共有する取得の本体（service は外から受ける）。各ルートの `_screen/loader.ts` が `src/domains/core/admin/services/server/screenParts.ts` の共通部品の組を通して使う |
 | セクションコンテナ / 部品 | `src/domains/<domain>/components/` | ドメインの所有者 | 既存どおり |
 | hook / client service | `src/domains/<domain>/hooks/`、`services/client/` | ドメインの所有者 | **契約**（既存） |
 
@@ -392,7 +392,7 @@ src/app/admin/(protected)/samples/
 | 生成物（編集しない） | `_screen/<Name>Screen.tsx`・`_screen/loader.ts` | 毎回上書き |
 | fork | `_components/` | 触らない |
 
-- `_screen/loader.ts` は最寄りの guard.ts（`admin/(protected)/guard.ts`）の `createLoader` に `src/wiring/adminScreenParts.ts` の共通部品の組（`adminListParts` / `adminEditParts` / `adminCreateParts` / `adminSortParts`）を渡す 1 行。access は serviceRegistry の entry から汎用 API と同じ解き方で操作ごとに解き、範囲の方針と合わせて取得前に評価する。取得本体と規則は `src/domains/core/admin/services/server/screenData/README.md`
+- `_screen/loader.ts` は最寄りの guard.ts（`admin/(protected)/guard.ts`）の `createLoader` に `src/domains/core/admin/services/server/screenParts.ts` の共通部品の組（`adminListParts` / `adminEditParts` / `adminCreateParts` / `adminSortParts`）を渡す 1 行。access は serviceRegistry の entry から汎用 API と同じ解き方で操作ごとに解き、範囲の方針と合わせて取得前に評価する。取得本体と規則は `src/domains/core/admin/services/server/screenData/README.md`
 - 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `pnpm generate domain` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される。ドメイン固有のサーバー側判定が要るなら `_components/loader.ts` に書く（同じ guard.ts の `createLoader` で作る）
 - 生成ルートも `pnpm test scripts/structure/routes/screens.test.mjs` が自動検出して検査する（domain.json から導出）
 
@@ -431,7 +431,7 @@ src/app/admin/(protected)/samples/
 - `state`: `verified` だけ（鎖を字面で辿れた）。`gatedOff`: feature-gate の無効な規則に当たるなら最初のパターン（proxy で 404）、無ければ null。止めたページも鎖は verified 必須（フラグを戻せば即公開されるため）。フラグを変えたら作り直す
 - `chain`: 段の並び = page.tsx → 採用 Screen（1 行スイッチの先）→ 同じルートの loader → 最寄りの guard.ts → extend の親 → root（`defineRootGuard`）。親子は AND
   - loader の `access` = `createLoader({ access })` の字面。管理画面の共通部品の組（`adminListParts("sample")` 等）は `{"registry":"sample.search"}`（serviceRegistry の entry から操作ごとに解く）。自前の load を書く loader も `access: <組>.access` なら同じ値に読む（同じファイルで 1 回だけ `const x = adminListParts("sample")` と束ねた `x.access`、またはインラインの `adminListParts("sample").access`
-    - 組の関数は `@/wiring/adminScreenParts` から import、domain は文字列の字面）。access を手書きの字面にすると domain の access が変わっても追随しないので、組を使う loader はこちらにする。`allowStatuses` は書いたときだけ（字面で読めない値は `{"expr":"USER_STATUSES"}`）
+    - 組の関数は `@/domains/core/admin/services/server/screenParts` から import、domain は文字列の字面）。access を手書きの字面にすると domain の access が変わっても追随しないので、組を使う loader はこちらにする。`allowStatuses` は書いたときだけ（字面で読めない値は `{"expr":"USER_STATUSES"}`）
   - guard の `policy` = `defineRootGuard({…})` / 親の `extend({…})` の字面（`access`・`allowStatuses`・`redirectTo`・`forbiddenRedirectTo`・`returnBack`・`statusRedirects`・`setupRedirectTo` の順）
 - 生成失敗（`pnpm generate routes` が非 0、行と理由）: page.tsx から Screen を解決できない / Screen が同じルートの loader を import して本体の最上位（最初の `return` より前）で await しない（`pnpm test scripts/structure/routes/screens.test.mjs` も同じ解析で検査）/ loader が最寄りの guard.ts の `createLoader` を使わない / access・方針・extend の親が字面で読めない / guard.ts の範囲の layout（とスイッチ先）が `authGuard` 等の旧ガードを直接呼ぶ / public でない guard.ts の隣の layout が `guard()` を呼ばない
 - 解析は `checks.mjs`（`checkScreenLoaderCall`・`parseLoaderGuard`・`parseGuardFile`・`layoutCallsGuard`・`parseLiteral`）で、地図と `pnpm test scripts/structure/routes/screens.test.mjs` が共有する

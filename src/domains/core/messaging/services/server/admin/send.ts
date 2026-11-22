@@ -182,7 +182,7 @@ export type AdminSendDeps = AdminCheckDeps & {
   categories: Readonly<Record<string, MessageCategory>>;
   /** レイアウトの受け口(自由連絡で選べるレイアウトと選択肢の欄の宣言) */
   layouts: Readonly<Record<string, MessageLayout>>;
-  /** enrichers の受け口(選択肢の埋め込み情報の一覧) */
+  /** 点 messagingEnrichers(選択肢の埋め込み情報の一覧) */
   enrichers: Readonly<Record<string, MessageEnricher>>;
   roles: () => { id: string; label: string }[];
   /** 使用中のユーザーグループ(門 userGroups が閉なら空) */

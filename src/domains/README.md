@@ -105,7 +105,7 @@ business ドメインの `entities/` は `pnpm generate domain` が生成する�
 | systemColumns | string[] | ⚪ No | `systemUpdate` / `systemBulkUpdateByQuery`（特権書き込み）で書き込みを許可するカラムの allowlist（Neon のみ）。Zod スキーマ外のシステム管理カラム（`ended_at` 等）をサービス層から正規経路で書き込むための宣言。**未宣言時は system 系メソッドは常に throw（fail-closed）**。詳細: `src/lib/crud/README.md` |
 | hiddenColumns | string[] | ⚪ No | 秘匿カラム（APIキー・トークン等「DB には保持するがレスポンスに決して含めない」カラム、Neon のみ）。プロパティ名（camelCase）で指定すると `pnpm generate domain` が `entities/drizzle.ts` に `defineHiddenColumns()` を出力し、サービスの**全戻り値**・他ドメインの **withRelations 展開**から該当カラムが null 置換される。秘匿値をサーバー内部で読む場合は `services/server/` に直接 drizzle の専用ファインダーを作ること（例: user の `findByIdWithSecrets`）。詳細: `src/lib/crud/README.md` の hiddenColumns 節 |
 | audit | object | ⚪ No | 監査ログ（`createCrudService` の `audit` のうち JSON で書ける部分。`targetType`・`actionPrefix` は `enabled: false` 以外で必須、`trackedFields` は camelCase の列名、recorder は生成器が渡す、Neon のみ）。`generate: false` のドメインでは効かないので `drizzleBase.ts` に手で書く |
-| closable | — | — | 無い。書くと生成器が止める。機能として閉じるには `src/featureGate/rules/<名前>.ts` に規則を書き `domains` にこのドメインを入れる |
+| closable | — | — | 無い。書くと生成器が止める。機能として閉じるには `src/featureGate/rules/<名前>.ts` に規則を書き `domains` にこのドメインを入れる。どの規則にも載せず常に開くなら、ドメインの `extensionPoints.ts` に常設の宣言 `export const alwaysOpen = true`(どちらも無いと `pnpm generate district-map` が止める、注文 35) |
 | apiAccess | ApiAccess | ⚪ No | 汎用 API（`/api/[domain]/**`）のアクセス制御（Extension の「ApiAccess（汎用 API アクセス制御）」）。**未宣言時は admin カテゴリのみ許可（fail-closed）** |
 | generate | boolean | ⚪ No | 生成するか（既定 true）。true = `pnpm forge` / `pnpm generate domain` がそのドメインの生成物を全部作り直す（手の実装は wrappers/ 等に置いて載せ替える）、false = 手で管理し、生成器は何も書かない（README.md の Internals「生成カテゴリ」）。区分ごとの `generateFiles` は廃止（書いてあると生成が止まる）。fork が true / false を決めるときは `pnpm check domain -- --compare`（手の変更・新しい入口・表の書き直しを出す。`scripts/structure/domain/README.md`「generate の旗を決める」） |
 | $comment | string \| string[] | ⚪ No | 開発者のメモ（JSON にはコメントが無いため）。トップレベル・Relation・Field・collection・FieldGroup のどこにでも書ける（下の「開発者のメモ（$comment）」） |
@@ -306,7 +306,7 @@ custom リレーションの UI 実装例:
 
 #### FormInput
 
-組み込みの名前の正は `src/lib/domain/fields/formInputs.mjs`。独自の部品は `src/wiring/formInputs/inputs/` に登録すると名前を書ける（`src/wiring/formInputs/inputs/README.md`。描画だけで、初期値・Zod・列は fieldType が決める）。組み込みにも登録にも無い名前は生成の前に止まる（fields・relations。`generate: false` は検査の外で、手書きの FieldConfig は TS が止める）。
+組み込みの名前の正は `src/lib/domain/fields/formInputs.mjs`。独自の部品は自分のドメインか lib の `plugs/formInputs/` に登録すると名前を書ける（`src/lib/formSuite/README.md` Extension。描画だけで、初期値・Zod・列は fieldType が決める）。組み込みにも登録にも無い名前は生成の前に止まる（fields・relations。`generate: false` は検査の外で、手書きの FieldConfig は TS が止める）。
 
 | 値 | 説明 |
 |---|---|
@@ -547,9 +547,9 @@ pnpm generate domain は、メディア項目ごとにファイル用途（`<dom
   - **一般利用者（admin 以外のカテゴリ）がアップロードできる項目 → 生成エラー**（公開か非公開かを人が決めるため）
   - 管理者だけがアップロードできる項目 → 読める人（`storage.read`、無ければ apiAccess の get）が `"public"` なら public、それ以外は private
 - private の用途には read.allow として読める人（`storage.read`、無ければ apiAccess の get の規則）を付ける。`storage.read` の `"public"` も書ける（visibility を private と明示した項目でもそのまま出す）
-- 同じ ID が項目(`src/domains/core/storageObject/purposes/`)にもあると、用途表を合成するときに例外になる（`purposeSource.ts`）。AUTO から外したい用途は項目へ移す。手書きの定義（check 関数付きなど）が優先される
+- 同じ ID が項目(`<ドメイン>/plugs/storageObjectPurposes/`)にもあると、用途表を合成するときに例外になる（`purposeSource.ts`）。AUTO から外したい用途は項目へ移す。手書きの定義（check 関数付きなど）が優先される
 - 項目を消して再生成すると、そのファイルから消える（メディア項目が 1 つも無くなるとファイルは書かれず、前の版が残るので手で消す）。pnpm generate domain -- --delete はフォルダごと消す
-- core ドメインの domain.json（notification / coupon など）は、手で管理（`generate: false`）の間は `src/domains/core/storageObject/purposes/` に手で書く。`generate: true` にすると同じ ID は重複の例外になるので、そちらからは消す。`pnpm test scripts/structure/registry/check-storage-purposes.test.mjs` が、全 domain.json のメディア項目に用途があるかと、手書き（CORE / FORK）の用途の metadata の規則（上の生成エラーと同じ規則、`user.avatar` を keep にしない）を確かめる
+- core ドメインの domain.json（notification / coupon など）は、手で管理（`generate: false`）の間は `<ドメイン>/plugs/storageObjectPurposes/` に手で書く。`generate: true` にすると同じ ID は重複の例外になるので、そちらからは消す。`pnpm test scripts/structure/registry/check-storage-purposes.test.mjs` が、全 domain.json のメディア項目に用途があるかと、手書き（CORE / FORK）の用途の metadata の規則（上の生成エラーと同じ規則、`user.avatar` を keep にしない）を確かめる
 
 ### indexes（非ユニーク検索/集計用インデックス）
 

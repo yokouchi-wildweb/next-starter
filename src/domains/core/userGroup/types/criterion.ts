@@ -1,5 +1,5 @@
 // src/domains/core/userGroup/types/criterion.ts
-// 条件の部品(受け口 criteria の項目、D103)の型。部品は users への SQL の述語だけを返す(id を集める関数の部品は置かない)。
+// 条件の部品(点 userGroupCriteria の項目、D103)の型。部品は users への SQL の述語だけを返す(id を集める関数の部品は置かない)。
 // SQL で書けない条件は静的グループへ書く上流の口(予算つきの置き換え・足す)を fork の task / cron が使い、
 // 動的からは「この静的グループの一員」の部品で使う
 
@@ -13,7 +13,7 @@ import type { InlineFieldGroup } from "@/lib/formSuite";
 export type UserGroupCriterionContext = { now: Date };
 
 /**
- * 条件の部品(criteria/<名前>.ts の export const criterion)。
+ * 条件の部品(<ドメイン>/plugs/userGroupCriteria/<名前>.ts の export const criterion)。
  * - key: 定義の木の葉 { part: key, args } が指す鍵(一意)
  * - args: 引数の zod(定義を保存する時・評価する時に通す。誤りは DomainError)
  * - fields: 管理画面の条件の欄(フォームの欄の型。name = args の鍵)

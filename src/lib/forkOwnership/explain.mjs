@@ -7,7 +7,7 @@
 
 import { matchesGlob } from "node:path";
 
-import { pointsFromFiles, isListPoint, FRAME_FILE, FRAME_OVERRIDE_FILE, FRAME_SEARCH_ROOT, overridePathOfTarget, switchSetOf, configSlotsOf, discoverDistricts } from "../districtMap/index.mjs";
+import { pointsFromFiles, isListPoint, isPlugsPoint, PLUGS_DIR_NAME, FRAME_FILE, FRAME_OVERRIDE_FILE, FRAME_SEARCH_ROOT, overridePathOfTarget, switchSetOf, configSlotsOf, discoverDistricts } from "../districtMap/index.mjs";
 import { DOMAIN_OUTPUTS_FILE, intakeOutputGlobs, matchDomainOutput, parseDomainOutputs } from "../districtMap/node.mjs";
 import { parseSwitchLayout, LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes } from "../screens/node.mjs";
 import { matchIntake } from "./intake.mjs";
@@ -223,6 +223,9 @@ const isFolderUnitGlob = (/** @type {string} */ glob) => {
   return parts.length >= 3 && parts[parts.length - 2] === "*" && !/[*?[{]/.test(parts[parts.length - 1]);
 };
 
+/** plugs の点の項目のパス(1 = 差す側の地区、2 = 点の名前) */
+const PLUGS_ITEM = new RegExp(`^(src/(?:domains|lib)/.+?)/${PLUGS_DIR_NAME}/([^/]+)/[^/]+`);
+
 /**
  * 型 2 / 3: 上書きの対象の点・受け口の項目の上書き・枠の宣言・受け口に足す
  * @param {string} path
@@ -251,6 +254,17 @@ function overlayOf(path, view) {
       const creator = view.has(`${dir}/${FRAME_FILE}`);
       return answer("2", { keys: FRAME_KEYS, write: `${dir}/${FRAME_OVERRIDE_FILE}`, source: creator ? `${dir}/${FRAME_FILE}` : null, how: creator ? `${FRAME_FILE} の上に重ねる` : `ルートを作ったリポの ${FRAME_FILE} が無い(空の基準に重ねる)` });
     }
+  }
+  // plugs の点(地区の段 3、D38): 項目は差す側の <ドメイン か lib>/plugs/<点>/。上流の項目の隣の <名前>.override が上書き(型 2)、
+  // 足すのは自分のドメインか lib の plugs/<点>/(型 3。上流のドメイン・lib の plugs には足さない)
+  const plugged = PLUGS_ITEM.exec(path);
+  const plugsPoint = plugged ? points.find((p) => p.name === plugged[2] && isPlugsPoint(p.spec)) : undefined;
+  if (plugged && plugsPoint) {
+    const dir = `${plugged[1]}/${PLUGS_DIR_NAME}/${plugged[2]}`;
+    if (dirOf(path) === dir && view.has(path) && plugsPoint.spec.overrideOf) {
+      return answer("2", { keys: stringsOf(plugsPoint.spec.overrideOf), write: overridePathOfTarget(path), source: sourceOf(plugsPoint) });
+    }
+    return answer("3", { write: view.has(path) ? `<自分のドメイン か lib>/${PLUGS_DIR_NAME}/${plugged[2]}/<名前>.ts` : path, source: sourceOf(plugsPoint), how: "差す側の自分の plugs/<点>/ に項目を足す(印なしの名前、D38)" });
   }
   for (const point of points) {
     if (!isListPoint(point.spec) || typeof point.spec.dir !== "string") continue;

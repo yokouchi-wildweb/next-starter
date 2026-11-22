@@ -1,10 +1,11 @@
 // src/domains/core/purchaseRequest/services/server/completion/strategyRegistry.ts
-// 購入完了戦略の読み手(項目: ./strategies/<名前>.ts の export const strategy、一覧は生成物)
+// 購入完了戦略の読み手(項目: 差す側の <ドメイン>/plugs/purchaseRequestCompletionStrategies/<名前>.ts の export const strategy、一覧は生成物。閉じたドメインの項目は門番で外す)
 //
 // 同じ type が複数あると例外。ビルトインを差し替えたい fork は上流へ 1 行スイッチを依頼する。
 
 import type { PurchaseTypeKey } from "@/domains/purchaseRequest/config";
-import { completionStrategies } from "@/domains/core/purchaseRequest/extensions/completionStrategies";
+import { purchaseRequestCompletionStrategies } from "@/domains/core/purchaseRequest/extensions/purchaseRequestCompletionStrategies";
+import { gate } from "@/featureGate";
 import type { PurchaseCompletionStrategy } from "./types";
 
 let memo: Map<PurchaseTypeKey, PurchaseCompletionStrategy> | null = null;
@@ -21,9 +22,9 @@ export function buildStrategyMap(items: readonly PurchaseCompletionStrategy[]): 
   return map;
 }
 
-// 読み込みの途中(循環 import)で一覧を触らないよう、初回の呼び出しで組み立てる
+// 読み込みの途中(循環 import)で一覧を触らないよう、初回の呼び出しで組み立てる(門番の開閉はプロセスの間変わらない)
 function strategyMap(): Map<PurchaseTypeKey, PurchaseCompletionStrategy> {
-  memo ??= buildStrategyMap(completionStrategies);
+  memo ??= buildStrategyMap(gate.plugs(purchaseRequestCompletionStrategies).map((entry) => entry.plug));
   return memo;
 }
 

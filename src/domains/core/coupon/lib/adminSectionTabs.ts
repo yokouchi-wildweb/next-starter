@@ -1,13 +1,15 @@
 // クーポン管理画面のセクションタブ一覧を組み立てる
 //
 // core 部分 = CouponTypeOptions（official / affiliate / invite）由来の 3 タブ。
-// downstream 追加分 = adminSectionTabs/ の項目(一覧 extensions/sectionTabs)を末尾に連結する(enabled() が false の項目は外す)。
+// downstream 追加分 = 点 couponSectionTabs の項目(差す側の <ドメイン>/plugs/couponSectionTabs/、一覧 extensions/couponSectionTabs)を末尾に連結する
+// (閉じたドメインの項目は呼び手が渡す門番の絞り plugs で外し、enabled() が false の項目も外す)。
 // クーポン管理画面（core / downstream 問わず）はローカルでタブ配列を組まず、必ずこの関数を使う。
 
 import type { PageTabItem } from "@/components/Navigation/PageTab";
 import { CouponTypeOptions } from "@/domains/core/coupon/constants/field";
-import { sectionTabs } from "@/domains/core/coupon/extensions/sectionTabs";
+import { couponSectionTabs } from "@/domains/core/coupon/extensions/couponSectionTabs";
 import type { CouponSectionTabItem } from "@/domains/core/coupon/types/sectionTab";
+import type { PlugsFilter } from "@/featureGate/client";
 
 /** クーポン管理画面のベース URL */
 export const COUPON_ADMIN_BASE_PATH = "/admin/coupons";
@@ -24,10 +26,10 @@ function buildCoreCouponAdminSectionTabs(): PageTabItem[] {
 /**
  * クーポン管理画面のセクションタブ一覧（core 3 タブ + downstream 登録分）
  *
- * value の重複は例外(core のタブの差し替えは無い)。enabled() が false の項目は外す。
+ * value の重複は例外(core のタブの差し替えは無い)。閉じたドメインの項目(plugs で外す)と enabled() が false の項目は外す。
  */
-export function buildCouponAdminSectionTabs(): PageTabItem[] {
-  return composeCouponAdminSectionTabs(sectionTabs);
+export function buildCouponAdminSectionTabs(plugs: PlugsFilter): PageTabItem[] {
+  return composeCouponAdminSectionTabs(plugs(couponSectionTabs).map((entry) => entry.plug));
 }
 
 /**

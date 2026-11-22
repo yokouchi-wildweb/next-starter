@@ -4,7 +4,7 @@
 // 守りを棚の Navigation の口(Link の移動の判定・棚の router・AppForm の編集済みの元)へ入れる(棚は lib を読まない、D50)。
 // 門番の口(GateProvider → LinkVisibilityProvider)と同じ置き方。AppProviders(server)が 1 か所で描く。
 // 確認の開閉に state を持つのでクライアント側の部品になり、server の入れ子 AppProviders には書けない → root の layout の部品
-// (管理コマンドの AdminCommandRoot と同じ置き場)。wiring には置かない(wiring どうしは import しない)
+// (根の枠の部品。入れ子の骨組みの段 inner、src/wiring/AppProviders.tsx)。wiring には置かない(wiring どうしは import しない)
 
 "use client";
 

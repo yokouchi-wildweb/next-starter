@@ -3,7 +3,7 @@
 // 読み手: settingService(読みに重ねる・DB を読まない判定)・save.ts(保存を断る)・settingActor(設定画面の欄を読み取り専用にする)
 
 import { settingConfig } from "../../config";
-import { fields } from "../../extensions/fields";
+import { fields } from "../../definitions";
 import { resolveCodeValues } from "../../utils/codeValues";
 
 export const codeValues = resolveCodeValues(settingConfig.codeValues as Record<string, unknown>, fields);

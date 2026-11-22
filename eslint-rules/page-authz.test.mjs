@@ -150,8 +150,14 @@ test("rule session-api-callsite: セッション API の名前・モジュール
         errors: [{ messageId: "namedProxy" }],
       },
       {
-        code: `import { createProxyUser } from "@/domains/core/auth/services/server/proxyUserDeps";`,
+        code: `import { createProxyUser } from "@/domains/core/auth/plugs/proxyUser/session.default";`,
         filename: "src/proxies/foo.ts",
+        errors: [{ messageId: "namedProxy" }],
+      },
+      // 項目はドメインの plugs の点の下(D30、注文 31)でも同じ
+      {
+        code: `import { getSessionUser } from "@/domains/core/auth/services/server/session/getSessionUser";`,
+        filename: "src/domains/core/setting/plugs/proxyHandlers/maintenance.ts",
         errors: [{ messageId: "namedProxy" }],
       },
       {
@@ -249,9 +255,9 @@ test("config: M3 は src/app 全体(layout・_layout・loader・guard.ts・API �
   assert.deepEqual(await lintAt("src/domains/sample/services/server/draw/hooks/drawHooks.ts", SESSION), []);
 });
 
-test("config: M3 は proxy の項目(src/proxies/**、上流・fork のドット名)と門番(src/featureGate/**)で error、解決器を作る src/proxy.ts は対象外", async () => {
+test("config: M3 は proxy の骨組み(src/proxies/**)・項目(<ドメイン>/plugs/proxyHandlers・proxyDecorators・proxyRedirects)と門番(src/featureGate/**)で error、解決器を作る src/proxy.ts と項目 plugs/proxyUser は対象外", async () => {
   const err = ["page-authz/session-api-callsite:2"];
-  for (const file of ["src/proxies/maintenance.ts", "src/proxies/playThrottle.myfork.ts", "src/featureGate/rules/foo.ts", "src/featureGate/tools/server/x.ts"]) {
+  for (const file of ["src/proxies/redirect.ts", "src/proxies/playThrottle.myfork.ts", "src/domains/core/setting/plugs/proxyHandlers/maintenance.ts", "src/domains/shop/plugs/proxyDecorators/visit.ts", "src/domains/shop/plugs/proxyRedirects/old.ts", "src/featureGate/rules/foo.ts", "src/featureGate/tools/server/x.ts"]) {
     assert.deepEqual(await lintAt(file, SESSION), err, file);
     assert.deepEqual(await lintAt(file, `import { parseSessionCookie } from "@/lib/jwt";\nexport const x = parseSessionCookie;\n`), err, file);
   }
@@ -261,7 +267,12 @@ test("config: M3 は proxy の項目(src/proxies/**、上流・fork のドット
     [],
   );
   assert.deepEqual(
-    await lintAt("src/proxy.ts", `import { createProxyUser } from "@/domains/core/auth/services/server/proxyUserDeps";\nexport const x = createProxyUser;\n`),
+    await lintAt("src/proxy.ts", `import { createProxyUser } from "@/domains/core/auth/plugs/proxyUser/session.default";\nexport const x = createProxyUser;\n`),
     [],
+  );
+  assert.deepEqual(
+    await lintAt("src/domains/core/auth/plugs/proxyUser/session.default.ts", `import { resolveSessionUser } from "../../services/server/session/token";\nexport const x = resolveSessionUser;\n`),
+    [],
+    "解決器そのもの(点 proxyUser の項目)は対象外",
   );
 });

@@ -1,6 +1,7 @@
 // src/domains/core/interactionTracking/services/server/index.ts
 
 export { interactionService } from "./interactionService";
+export { targetRuleOf } from "./targetRules";
 export { record, type RecordInteractionInput } from "./wrappers/record";
 export { recordBatch, type RecordBatchEntry } from "./wrappers/recordBatch";
 export { getCounts, getCountsBulk } from "./wrappers/getCounts";

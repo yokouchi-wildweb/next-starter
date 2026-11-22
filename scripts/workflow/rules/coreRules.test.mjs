@@ -72,7 +72,7 @@ test("staticPrefix / parsePaths の部品", () => {
 test("nestedBrace: 入れ子の波かっこだけを見分ける(Claude Code の paths は入れ子を当てない)", () => {
   assert.equal(nestedBrace("src/domains/*/{*.ts,{components,hooks}/**}"), true);
   assert.equal(nestedBrace("src/{a,{b,c}}/**"), true);
-  assert.equal(nestedBrace("src/domains/**/{domain.json,entities/**,messages/*.ts}"), false);
+  assert.equal(nestedBrace("src/domains/**/{domain.json,entities/**,plugs/messages/*.ts}"), false);
   assert.equal(nestedBrace("src/styles/{**/gradient,z-layer}.css"), false);
   assert.equal(nestedBrace("src/{a,b}/{c,d}.ts"), false);
   assert.equal(nestedBrace("src/**/*.tsx"), false);

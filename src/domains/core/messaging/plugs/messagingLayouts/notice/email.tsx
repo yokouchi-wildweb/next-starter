@@ -1,0 +1,11 @@
+// src/domains/core/messaging/plugs/messagingLayouts/notice/email.tsx
+// レイアウト「汎用」のメールの描き方(server の一覧 layoutEmails)。見た目は ./NoticeEmail(1 行スイッチ)
+
+import type { MessageLayoutEmailRenderer } from "@/lib/messaging";
+
+import { NoticeEmail } from "./NoticeEmail";
+
+export const emailRenderer: MessageLayoutEmailRenderer = {
+  layout: "notice",
+  Component: NoticeEmail as MessageLayoutEmailRenderer["Component"],
+};

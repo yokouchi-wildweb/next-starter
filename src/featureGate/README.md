@@ -10,7 +10,7 @@ src 直下の 1 地区(地区の種類 featureGate、src/lib/districtMap/kinds.m
 
 - **住所**: 機能が閉じる URL の型(`pathPatterns`。前方一致、`=` 付きは完全一致)
 - **常時実行の入口**: どのページからも読まれる結線(provider・登録表など)。閉じた機能の物を自分で外す
-- **ドメイン**(domain): 業務か仕組みの概念の部品。表・サービス・画面の部品の持ち主(今は `src/domains/<d>/`)。**開閉の概念を持たない**: 開いた機能のどれかが規則の `domains` に持てば開、どの機能にも載らないドメインは常設として常に開(用語の表の「常設」は明示の宣言のある常に開のドメイン。明示の宣言は段 3 で入り、それまでは規則に載らないことが常設)
+- **ドメイン**(domain): 業務か仕組みの概念の部品。表・サービス・画面の部品の持ち主(今は `src/domains/<d>/`)。**開閉の概念を持たない**: 開いた機能のどれかが規則の `domains` に持てば開、どの機能にも載らないドメインは常設として常に開(常設の明示の宣言 `export const alwaysOpen = true` が要る)。常設は明示の宣言(ドメインの `extensionPoints.ts` の `export const alwaysOpen = true`、地図の行の `alwaysOpen`): 規則に載るのに宣言がある・どちらも無いドメインは `pnpm generate district-map` が止める(D22・D53)
 - **機能**(feature): プロジェクトが開け閉めする単位 = 規則 1 本(`rules/<名前>.ts`、名前 = `FeatureName`)。使うドメイン(`domains`)・自分の住所(`pathPatterns`)・依存する機能(`dependsOn` / `anyOf`)・自分のスイッチ(`defaultEnabled` と fork の `switches.config.ts`)を持つ
 - **門番**(featureGate): 機能の開閉を評価し、住所・表・汎用 API・cron・設定の節・リンクに及ぼす地区(このフォルダ。機能の定義だけを持つ唯一の地区、D29)。名前(`featureGate`・`FeatureName`・`gate` / `useGate`・設定の節の `feature:`・`pnpm ops features list / set`・`rules/`)はもとから機能の意味
 
@@ -19,14 +19,13 @@ src 直下の 1 地区(地区の種類 featureGate、src/lib/districtMap/kinds.m
 | 置き場 | 持ち主 | 中身 |
 |---|---|---|
 | `rules/<名前>.ts` | 上流・fork(受け口) | 機能を閉じる規則(1 機能 1 ファイル、`export const rule`)。名前 = ファイル名 = `FeatureName` |
-| `alwaysOnExceptions/<名前>.ts` | fork(受け口、上流の項目は 0) | 常時実行の入口の例外(`export const exception` か `export const registry`) |
-| `dependencyExceptions/<名前>.ts` | fork(受け口、上流の項目は 0) | 依存の検査の例外(`export const exception: DependencyException`) |
 | `required/<機能名>.ts` | fork(受け口) | この fork が必ず使う機能(`export const required: RequiredFeature`)。依存の検査はこの機能のフォルダを外から読むことを通す。`pnpm ops features set <名前> off` はこの機能(と必須の機能が依存する機能)を止め、`list` は「必須」と出す |
-| `extensionPoints.ts` | 上流 | 受け口の宣言(`rules`・`alwaysOnExceptions`・`alwaysOnRegistries`・`dependencyExceptions`・`required`) |
+| `extensionPoints.ts` | 上流 | 受け口の宣言(`rules`・`required`。例外の受け口は無い、注文 36) |
+| `points.ts` | 上流 | 型だけの入口(D33): 点の約束の型だけ(`GeneratedFeatureRule`・`RequiredFeature` と導出の型)。項目と生成一覧はここだけを型として読む |
 | `extensions/` | 生成物 | `pnpm generate extensions` が書く一覧(手で編集しない)。`rules.ts` は名前の union `FeatureName` も出す |
 | `index.ts` | 上流 | 入口(server・proxy): `gate`・配線用の `clientGateState` と型 |
 | `client.ts` | 上流 | 入口(client): `useGate`・`GatedLink`・配線用の `GateProvider` と型 |
-| `node.ts` | 上流 | 入口(道具: scripts とテストだけ): `rules`(全開スイッチを通した一覧)・`configRules` / `configEnabled` / `configPath`(規則の値だけ)・`isOpenedBySwitch`・`gatedSchema`・`closedTables`・例外の一覧 |
+| `node.ts` | 上流 | 入口(道具: scripts とテストだけ): `rules`(全開スイッチを通した一覧)・`configRules` / `configEnabled` / `configPath`(規則の値だけ)・`isOpenedBySwitch`・`gatedSchema`・`closedTables` |
 | `ruleList.ts`・`openSwitch.ts` | 上流 | 判定の入口(生成一覧を全開スイッチと依存先(dependsOn)で包む。門番の中で生成一覧を値で読み、規則の `enabled` を直に呼ぶのはここだけ)と全開スイッチ(`Internals.md`「全開スイッチ」) |
 | `types.ts`・`evaluate.ts`・`hiddenHref.ts`・`area.ts`・`clientState.ts`・`tools/server/`・`tools/client/`・`node/` | 上流 | 型・判定の中身(外に出さない。`hiddenHref.ts` = 隠す判定・`area.ts` = 枠の判定の純関数で server と client が共有、`clientState.ts` = client に渡す値の計算)・1 道具 1 ファイルと束・道具の中身 |
 | `checks/` | 上流 | 検査(`pnpm test src/featureGate scripts/structure/proxies`。`FEATURE_GATE_CHECK=all` で全部閉じる検査) |

@@ -62,7 +62,7 @@ export function toHistoryReason(reason: ResolvedWalletReason): { reason_category
   return { reason_category: reason.reasonCategory, reason_key: reason.reasonKey };
 }
 
-/** 管理者の調整の固定キー(区分 admin_adjustment の既定の種類。walletHistory/reasonKeys/adminAdjustment.ts) */
+/** 管理者の調整の固定キー(区分 admin_adjustment の既定の種類。walletHistory/plugs/walletHistoryReasonKeys/adminAdjustment.ts) */
 export const ADMIN_ADJUSTMENT_REASON_KEY = "admin_adjustment";
 
 /**

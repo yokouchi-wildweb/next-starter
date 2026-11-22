@@ -19,7 +19,7 @@ gate.path("/wallet/history");  // { open: true } | { open: false; rule: FeatureN
 gate.filter(menuItems);        // 閉じた機能の住所を指す項目を除く(既定は item.href、順は保つ)
 gate.filter(rows, (row) => row.link); // href を持たない型は住所の取り出し方を渡す(型で必須)
 gate.domainOpen("wallet");     // ドメイン(src/domains/<名前> か core/<名前> のフォルダ名)が開いているか。載せた機能が全部閉なら false、どの規則にも載らなければ true
-gate.plugs(routeDevices);      // plugs の点の生成された一覧から、項目のドメインか requires の相手が閉じた項目を外す(lib の項目 domain null は残す、順は保つ)
+gate.plugs(routeFactoryDevice);   // plugs の点の生成された一覧から、項目のドメインか requires の相手が閉じた項目を外す(lib の項目 domain null は残す、順は保つ)
 ```
 
 - `gate.plugs`: ドメインが外の仕組みに差した部品(`<ドメイン>/plugs/<点>/<名前>.ts`、生成された一覧の項目 `{ domain, name, requires, … }` = 型 `GatedPlug`)を使う時に掛ける(D26)。生成された登録表(serviceRegistry など「どんなドメインがあるか」)には掛けない。client は `useGate().plugs`(server が渡す `ClientGateState.closedDomains` で同じ判定)。書式: `scripts/structure/extensions/README.md` の「plugs の点」
@@ -95,7 +95,7 @@ export const rule: FeatureGateRule = {
   - フォルダの一部の表だけを外す書き方は無い。表を持たないドメイン（Firestore 版の `core/chatRoom` など）も書ける: 表は 0 のまま、汎用 API の住所と依存の検査は表のあるドメインと同じに効く
 - **汎用 API の住所（`/api/<domain>`）は書かない**: 生成器が `domains` の各フォルダの `services/server/domainEntry.ts` の `domainEntries` のキーから `/api/<キー>` を導き（字面）、生成一覧の `domains` のそのドメインの `apiPaths` に載せる。住所はドメインに付き、ドメインの開閉で閉じる(下の「ドメインの開閉」。規則の `pathPatterns` には足さない、項目の `domainApiPaths` は説明用)。`domainEntry.ts` の無いフォルダは住所を持たない
   - 手書きと重なると `src/featureGate`・`scripts/structure/proxies` のテスト(/ship の検査が回す)が知らせる（上流の規則は失敗、fork の規則は表示だけ）。ドメインを足した・キーを変えたら `pnpm generate extensions`（ずれは `pnpm check extensions` が止める）
-- **設定の節の住所（`/admin/settings/<key>`）も書かない**: 設定の節（`src/domains/core/setting/sections/`）に `feature: "<規則名>"`（か配列）を書くと、生成器が節の住所と名指す機能を生成一覧の `settingSections` に載せる（`scripts/structure/extensions/derive/gateSettingPaths.mjs`）。節自身の判定で、**名指す機能が全部開のときだけ開く**(機能の `pathPatterns` には混ぜない、項目の `settingPaths` は説明用)。閉じたときの `rule` は閉じた名指しの機能のうち一覧の順で最初。管理メニューの行は住所の絞り込みで消える。規則名でない `feature` は生成で失敗
+- **設定の節の住所（`/admin/settings/<key>`）も書かない**: 設定の節（点 `settingSections` の項目、`<ドメイン>/plugs/settingSections/`）に `feature: "<規則名>"`（か配列）を書くと、生成器が節の住所と名指す機能を生成一覧の `settingSections` に載せる（`scripts/structure/extensions/derive/gateSettingPaths.mjs`）。節自身の判定で、**名指す機能が全部開のときだけ開く**(機能の `pathPatterns` には混ぜない、項目の `settingPaths` は説明用)。閉じたときの `rule` は閉じた名指しの機能のうち一覧の順で最初。管理メニューの行は住所の絞り込みで消える。規則名でない `feature` は生成で失敗
 - **cron の task の住所（`/api/cron/<name>`）も書かない**: task.ts・task.override.ts がどれかの規則の `domains` のフォルダを値で import すると、生成器が生成一覧の `cronTasks`(住所・読むドメイン)に載せ、読むドメインが全部開のときだけ開く（`scripts/structure/extensions/derive/featureTables.mjs`。項目の `cronPaths` は説明用）。規則に `/api/cron/` を手書きすると生成で失敗
 - **上流の既定**: 上流は付け足しの機能を閉じて出荷し、土台の画面は開いたまま。閉 = wallet・payment・coupon・referral・couponAttributionReward・analytics・chatRoom・milestone・deviceFingerprint・fingerprintChallenge・userAcquisition・userLineProfile・userXProfile・sampleDomain・demoPages・demoLogin・pageEntry・pageServices・interactionTracking・userCounter・phoneVerification・pause・pairedDevice・messagingTracking ほか(依存先に従う子も閉)
   - 開 = signup・pageMypage・利用規約などの法務の画面・withdraw ほか。使う機能は fork が `switches.config.ts` で開ける(`pnpm ops features set <名前> on`)。上流の開発は全開スイッチで全部開ける(「全開スイッチ」)
@@ -142,7 +142,7 @@ export const rule: FeatureGateRule = {
   - 常時実行の入口の閉じ漏れ（下）
 - **有効な機能のルートは検査しない。** 開いていて正しいので、その機能を土台にした fork は何も宣言しなくてよい。機能を切ると、その機能に依存するルートと外部キーがテストで一覧になる（= 切る前に直す場所）
 - **`FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies` は upstream も fork も実行する。** 段階 build・ship の `pnpm check proxies`(`scripts/structure/proxies/testGate.mjs`)が毎回回し、落ちたら止める(全 Tier。違反と環境の依存の不足 = DB・Firebase の未設定・モジュールが見つからない、は見出しを分けて出す。どちらも止める)
-  - 全規則を無効とみなし、全機能 false でスキーマゲートが成立することも検査する(fork が `required/` で必須と宣言した機能とその dependsOn の先は、`pnpm ops features set` が閉じないので開いたまま扱う)。意図的に閉じない upstream のルートはテスト内の `ROUTE_EXCEPTIONS`、fork の例外は `alwaysOnExceptions/<名前>.ts` に理由付きで書く
+  - 全規則を無効とみなし、全機能 false でスキーマゲートが成立することも検査する(fork が `required/` で必須と宣言した機能とその dependsOn の先は、`pnpm ops features set` が閉じないので開いたまま扱う)。意図的に閉じない upstream のルートはテスト内の `ROUTE_EXCEPTIONS`(fork の例外の受け口は無い、注文 36)
 - **サンプルのドメイン**（`sampleDomain`、規則の `defaultEnabled: false`）: 上流の既定 閉（上流の開発は全開スイッチで開ける。fork が見るなら開ける）
   - 権限は公開読み・ログイン済みの更新・子の画像のログイン済みアップロードのままで厳しくしない → **実際の利用者がいる fork は閉じる**(`pnpm ops features set sampleDomain off` = `src/config/featureGate/switches.config.ts` に `sampleDomain: false`): 管理画面・`/api/sample*` の汎用 API・サンプルを読むデモ画面 4 つ(`demoSampleDomain`)が 404、5 表（samples ほか）は db:push で作らない（既存の表と行は消さない）。管理のメニューの行は残る
 - **機能どうしの前提**: payment は wallet を前提にする（`purchase_requests` → `wallet_histories` の外部キー。push 時に例外になる）。referral は coupon を前提にする（招待コードの実体はクーポン。テストで検査）

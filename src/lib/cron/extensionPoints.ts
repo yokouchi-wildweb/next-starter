@@ -11,4 +11,15 @@ export const extensionPoints = {
     side: "server",
     overrideOf: ["schedule", "disabled"],
   },
+  // メンテナンスの判定: 差す側の <ドメイン>/plugs/cronMaintenance/<名前>.ts の export const plug({ deps: { isActive } })。
+  // 0〜1 個: 上流は setting が差す。空ならメンテナンスで飛ばさない(lib の既定)。一覧は生成物 src/wiring/cron.ts、結ぶのは src/wiring/cronRoute.ts
+  cronMaintenance: {
+    change: "add",
+    plugs: true,
+    export: "plug",
+    type: { from: "@/lib/cron/points", name: "CronMaintenancePlug" },
+    side: "server",
+    max: 1,
+    target: "wiring",
+  },
 } as const;

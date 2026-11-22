@@ -2,7 +2,7 @@
 // インタラクション計測の公開 ingest エンドポイント
 //
 // 匿名ユーザーを含む行動イベント（クリック等）を記録する。
-// - 一覧 targetRules に無い targetType は fail-closed で拒否
+// - 規則(点 interactionTrackingTargetRules、閉じたドメインの項目は外す)に無い targetType は fail-closed で拒否
 //   （存在しない対象・非公開対象へのカウント水増し防止）
 // - ログイン中（利用可能な status）は ctx.user から userId を自動付与（クライアント申告は受け付けない）
 // - IP / サブネットのハイブリッドレート制限でボットによる水増しを緩和
@@ -10,8 +10,7 @@
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { InteractionIngestSchema } from "@/domains/core/interactionTracking/entities/schema";
-import { record } from "@/domains/core/interactionTracking/services/server";
-import { targetRules } from "@/domains/core/interactionTracking/extensions/targetRules";
+import { record, targetRuleOf } from "@/domains/core/interactionTracking/services/server";
 
 export const POST = createApiRoute(
   {
@@ -28,7 +27,7 @@ export const POST = createApiRoute(
     }
     const { targetType, targetId, action, source } = parsed.data;
 
-    const rule = targetRules[targetType];
+    const rule = targetRuleOf(targetType);
     if (!rule) {
       throw new DomainError("計測対象として登録されていません。", { status: 400 });
     }

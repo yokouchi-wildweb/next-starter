@@ -1,5 +1,5 @@
 // src/domains/core/analytics/services/server/exclusion/types.ts
-// 分析の除外条件のプロバイダの型(項目: analytics/exclusionProviders/<名前>.ts の export const provider、一覧は生成物)。
+// 分析の除外条件のプロバイダの型(項目: <ドメイン>/plugs/analyticsExclusionProviders/<名前>.ts の export const provider、一覧は生成物)。
 //
 // 上流は口だけを持ち、除外の表と条件は fork が持つ(上流の項目は 0)。core の表に列や部分 index は足さず、
 // fork の衛星表(例: analytics_excluded_rows(source, row_id, exclusion_id))と行の id で突き合わせる。

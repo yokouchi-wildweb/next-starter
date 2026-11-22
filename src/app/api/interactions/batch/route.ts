@@ -13,8 +13,7 @@
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { InteractionBatchIngestSchema } from "@/domains/core/interactionTracking/entities/schema";
-import { recordBatch, type RecordBatchEntry } from "@/domains/core/interactionTracking/services/server";
-import { targetRules } from "@/domains/core/interactionTracking/extensions/targetRules";
+import { recordBatch, targetRuleOf, type RecordBatchEntry } from "@/domains/core/interactionTracking/services/server";
 
 export const POST = createApiRoute(
   {
@@ -36,7 +35,7 @@ export const POST = createApiRoute(
     const validationCache = new Map<string, Promise<boolean>>();
 
     for (const entry of parsed.data.events) {
-      const rule = targetRules[entry.targetType];
+      const rule = targetRuleOf(entry.targetType);
       // batchActions 未設定の targetType はバッチ経路を一切受け付けない（fail-closed）
       if (!rule?.batchActions?.includes(entry.action)) {
         rejected += 1;

@@ -11,10 +11,10 @@
 ### 組み立て
 
 ```
-lib/pageGuard(汎用版: createPageGuard)
-  ↑ 束: domains/core/auth の pageGuardUserDeps(利用者の解き方・access の評価・既定の status・今のパス)
-  ↑ setup 誘導の判定: auth の hasUserForAccess
-src/wiring/pageGuard.ts → defineRootGuard
+lib/pageGuard(汎用版: createPageGuard、結び目 wirePageGuard)
+  ↑ 束: 点 pageGuardUser の項目(ちょうど 1 つ。上流は domains/core/auth の plugs/pageGuardUser/session.ts:
+        利用者の解き方・access の評価・既定の status・今のパス・setup 誘導の判定 hasUserForAccess。fork は差替点 authPageGuardUser)
+生成物 src/wiring/pageGuard.ts → defineRootGuard(型引数 PageGuardUserMap で項目の利用者の型を運ぶ)
 src/app/guard.ts(root)= defineRootGuard({ access: "public" }) → { guard, createLoader, extend }
 src/app/<範囲>/guard.ts(子)= 最寄りの親の extend({ ... }) → { guard, createLoader, extend }
 src/app/<範囲>/layout.tsx = await guard() の 1 行
@@ -49,7 +49,7 @@ src/app/<範囲>/layout.tsx = await guard() の 1 行
 
 - 範囲は方針の段の並び。`extend` は段を 1 つ足すだけで、guard() と loader は root から順に全段を評価する(親子 AND。子は狭めるだけで、親の拒否を子が覆せない)
 - 段ごとの順: setup 誘導 → access(未認証 → `redirectTo`、status だけ不可 → `statusRedirects`、それ以外の拒否 → `forbiddenRedirectTo`、行き先が無ければ notFound)
-- 利用者の解き方・access の評価・既定の status・今のパスは束(`domains/core/auth` の `pageGuardUserDeps`)が持ち、setup 誘導の判定は auth の `hasUserForAccess`。lib は束を `src/wiring/pageGuard.ts` から受ける
+- 利用者の解き方・access の評価・既定の status・今のパス・setup 誘導の判定は束(点 `pageGuardUser` の項目、上流は `domains/core/auth` の `plugs/pageGuardUser/session.ts`)が持つ。lib は束を生成物 `src/wiring/pageGuard.ts` の結び目 `wirePageGuard` から受ける(宣言 `./extensionPoints.ts`、約束の型 `./plugs.ts`)
 
 ## Verification
 

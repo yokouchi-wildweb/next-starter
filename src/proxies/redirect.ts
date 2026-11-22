@@ -1,43 +1,17 @@
+// src/proxies/redirect.ts
+// 骨組みの handler(段 redirect、門番の後): 点 proxyRedirects の規則(<ドメイン>/plugs/proxyRedirects/<名前>.ts、閉じたドメインの規則は門番が外す)に
+// 当たった住所を転送する。規則の利用者の条件は ctx.user()(当たったときだけ解く)
+
 import { NextResponse } from "next/server";
 
-import { userConfig } from "@/domains/user/config";
-import type { SessionUser } from "@/domains/core/auth/entities/session";
+import { gate } from "@/featureGate";
 import { setRedirectToastCookie } from "@/lib/toast";
 
-import { redirects } from "./extensions/redirects";
-import type { ProxyHandler, RedirectRule } from "./types";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 内部リダイレクトルール（システム定義）
-// fork の規則（受け口 src/proxies/redirects/<名前>.ts）とは分離して管理
-// ─────────────────────────────────────────────────────────────────────────────
+import { proxyRedirects } from "./extensions/proxyRedirects";
+import type { ProxyHandler, ProxyUser, RedirectRule } from "./types";
 
 /**
- * サインアップモードに応じたリダイレクトルール
- * - earlyRegistration: /signup → /entry
- * - normal: /entry → /signup
- */
-const getSignupModeRules = (): RedirectRule[] => {
-  const mode = userConfig.signupMode;
-
-  if (mode === "earlyRegistration") {
-    return [{ sourcePaths: ["/signup"], destination: "/entry", authedOnly: false }];
-  }
-  return [{ sourcePaths: ["/entry"], destination: "/signup", authedOnly: false }];
-};
-
-/**
- * 内部リダイレクトルールを取得
- * 新しいルールを追加する場合はここに追加
- */
-const getInternalRedirectRules = (): RedirectRule[] => [
-  ...getSignupModeRules(),
-];
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * 受け口の規則を 1 本にし、同じ sourcePath が 2 つの規則に出たら止める(どちらが効くかが並びで黙って決まらないように)
+ * 規則の組を 1 本にし、同じ sourcePath が 2 つの規則に出たら止める(どちらが効くかが並びで黙って決まらないように)
  */
 export function flattenRedirectRules(groups: readonly (readonly RedirectRule[])[]): RedirectRule[] {
   const rules = groups.flat();
@@ -45,7 +19,7 @@ export function flattenRedirectRules(groups: readonly (readonly RedirectRule[])[
   rules.forEach((rule, index) => {
     for (const path of rule.sourcePaths) {
       if (seen.has(path)) {
-        throw new Error(`[proxies] 転送の規則で sourcePath "${path}" が重複しています(src/proxies/redirects/ の項目を確かめてください)`);
+        throw new Error(`[proxies] 転送の規則で sourcePath "${path}" が重複しています(<ドメイン>/plugs/proxyRedirects/ の項目を確かめてください)`);
       }
       seen.set(path, index);
     }
@@ -53,16 +27,13 @@ export function flattenRedirectRules(groups: readonly (readonly RedirectRule[])[
   return rules;
 }
 
-const configuredRedirectRules = flattenRedirectRules(redirects);
+const redirectRules = flattenRedirectRules(gate.plugs(proxyRedirects).map((entry) => entry.plug));
 
-const findRedirectRule = (pathname: string) => {
-  const allRules = [...getInternalRedirectRules(), ...configuredRedirectRules];
-  return allRules.find((rule) => rule.sourcePaths.includes(pathname));
-};
+const findRedirectRule = (pathname: string) => redirectRules.find((rule) => rule.sourcePaths.includes(pathname));
 
 const shouldRedirectForRule = (
   rule: RedirectRule,
-  sessionUser: SessionUser | null,
+  sessionUser: ProxyUser | null,
 ): boolean => {
   const guestOnly = rule.guestOnly ?? false;
   const authedOnly = rule.authedOnly ?? true;

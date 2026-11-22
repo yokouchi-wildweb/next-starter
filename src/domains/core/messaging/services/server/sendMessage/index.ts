@@ -16,12 +16,7 @@ import { drizzleMessageTemplateSource } from "../templates/source";
 import { buildUnsubscribeUrl, isUnsubscribeConfigured } from "../unsubscribe/token";
 
 import { messagingConfig } from "../../../config";
-import { categories } from "../../../extensions/categories";
-import { channels } from "../../../extensions/channels";
-import { enrichers } from "../../../extensions/enrichers";
-import { layoutEmails } from "../../../extensions/layoutEmails";
-import { layouts } from "../../../extensions/layouts";
-import { subscribers } from "../../../extensions/subscribers";
+import { categories, channels, enrichers, layoutEmails, layouts, subscribers } from "../lists";
 import { subscribedEventTypes } from "../events/internalEvents";
 import { createMessageSender } from "./sender";
 import { drizzleMessageSendStore } from "./store";

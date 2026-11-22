@@ -50,10 +50,9 @@ mock.module("../services/client/adminSetupClient", {
     },
   },
 });
-mock.module("@/domains/core/setting/extensions/sections", {
-  namedExports: { sections: { site: { key: "site", label: "サイト", order: 1, groups: [] } } },
+mock.module("@/domains/core/setting/definitions", {
+  namedExports: { openSections: () => ({ site: { key: "site", label: "サイト", order: 1, groups: [] } }), fields: {} },
 });
-mock.module("@/domains/core/setting/extensions/fields", { namedExports: { fields: {} } });
 mock.module("@/domains/core/setting/utils/sectionForm", {
   namedExports: {
     buildSectionForm: () => ({ keys: [], fieldConfigs: [], schema: z.object({}), defaultValues: {} }),

@@ -28,7 +28,7 @@ export const MessageTemplateTable = pgTable(
     description: text("description"),
     /** カテゴリーの鍵（配信停止の単位） */
     category: text("category").notNull().default("promotion"),
-    /** レイアウトの鍵（messaging/layouts の受け口の管理者が選べる物） */
+    /** レイアウトの鍵（点 messagingLayouts の管理者が選べる物） */
     layout: text("layout").notNull(),
     /** 保存した時のレイアウトの版（読む時に改版の対応で今の版へ読み替える） */
     layout_version: integer("layout_version").notNull().default(1),

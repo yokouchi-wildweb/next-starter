@@ -1,7 +1,7 @@
 // src/domains/core/messaging/services/server/admin/bulkSend.ts
 //
 // 管理の一括送信(D40・D42・D80・D81、指令 40 の AMENDMENT 2)。中身は送る画面(/send)と同じ形で、選んだ利用者へ送る。
-// - 宛先: 利用者 id を直に({ userIds })か、記録の宛先(持ち主のドメインの recordTargets/<名前>.ts、門番 loadRecordTarget で読む)で選んだ記録から({ target, recordIds })
+// - 宛先: 利用者 id を直に({ userIds })か、記録の宛先(持ち主のドメインの plugs/recordTargets/<名前>.ts、門番 loadRecordTarget で読む)で選んだ記録から({ target, recordIds })
 // - 中身: 送る画面(/send)と同じ { origin(レイアウト { layout } か DB のテンプレート { id, version }), values, edited?, vars?, category, channels? }(D117・D171)。
 //   検査も組み方も send.ts の部品と同じ(種別、宛先の種類 bulk を種別の性質 adminFreeText で、選べるレイアウト・古い版 409)。
 //   予約は無い(scheduledAt は 400)

@@ -13,7 +13,8 @@ import type { ScreenProps } from "@/lib/screens";
 import type { Setting } from "@/domains/core/setting/entities";
 import { getSettingForActor } from "@/domains/core/setting/services/server/settingActor";
 import { settingService } from "@/domains/core/setting/services/server/settingService";
-import { sections } from "@/domains/core/setting/extensions/sections";
+import { openSections } from "@/domains/core/setting/definitions";
+import { gate } from "@/featureGate";
 import type { SettingSectionDefinition } from "@/domains/core/setting/types/definition";
 import { createLoader } from "@/app/admin/(protected)/guard";
 
@@ -36,7 +37,8 @@ export const loadAdminSettingSectionScreen = createLoader({
     return [section];
   },
   load: async ({ allows, user }, sectionKey): Promise<AdminSettingSectionScreenData> => {
-    const section = sections[sectionKey];
+    // 閉じたドメインの節は無いのと同じ(404)
+    const section = openSections(gate.plugs)[sectionKey];
     if (!section) notFound();
 
     if (section.allowRoles && section.allowRoles.length > 0) {

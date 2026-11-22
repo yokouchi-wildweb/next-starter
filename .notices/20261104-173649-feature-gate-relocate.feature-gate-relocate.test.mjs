@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 
-import { itemsOf, planExtensions } from "../scripts/structure/extensions/extensions.mjs";
+import { planExtensions } from "../scripts/structure/extensions/extensions.mjs";
 
 import { applyRelocate, convertAlwaysOn, planRelocate, rewriteCodeImports, rewriteRuleImport } from "./20261104-173649-feature-gate-relocate.feature-gate-relocate.mjs";
 
@@ -89,7 +89,8 @@ test("dry-run は計画だけ、--apply で移して書き換え、移した後�
 
   const generated = planExtensions(root);
   // 規則の一覧は見ない: fixture の規則は値を import する(F.<名前>)ので、段 2 の生成器が止める(D28。移し替えの道具の動きは変わらない)
-  assert.deepEqual(itemsOf(generated, "src/featureGate", "alwaysOnExceptions").map((i) => i.name), ["mineWiring"]);
+  // 例外の受け口は地区の段 3(注文 36)で消えた: 移した例外は生成器が古い置き場として止める(段 3 の道具の手の作業に出る)
+  assert.ok(generated.problems.some((p) => p.startsWith("src/featureGate/alwaysOnExceptions")), generated.problems.join("\n"));
 });
 
 test("止める: 印付き・上流と同名・例外の名前がハイフン・例外の形・旧い 1 ファイルの例外表", () => {

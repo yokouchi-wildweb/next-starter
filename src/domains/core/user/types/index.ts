@@ -12,7 +12,7 @@ export type UserRoleType = (typeof USER_ROLES)[number];
 export type UserStatus = (typeof USER_STATUSES)[number];
 
 /**
- * 表示名の「予約名」プロバイダ（src/domains/core/user/reservedNames/<名前>.ts の export const provider）。
+ * 表示名の「予約名」プロバイダ（<ドメイン>/plugs/userReservedNames/<名前>.ts の export const provider）。
  * users テーブル外で表示名を占有する存在（ボット・NPC・合成ランキング・予約語等）を
  * 一意性チェック (services/server/helpers/nameAvailability.ts) に参加させる。
  *
@@ -63,8 +63,8 @@ export type UserAdminBulkActionItem = import("@/lib/tableSuite").BulkActionItem<
 };
 
 /**
- * 管理のユーザー管理モーダル(AdminUserManageModal)に足すタブ(受け口 adminManageTabs:
- * src/domains/core/user/adminManageTabs/<名前>.tsx の export const tab)。上流の 6 つのタブの後ろに order → key の順で並ぶ。
+ * 管理のユーザー管理モーダル(AdminUserManageModal)に足すタブ(点 userAdminManageTabs:
+ * <ドメイン>/plugs/userAdminManageTabs/<名前>.tsx の export const tab)。上流の 6 つのタブの後ろに order → key の順で並ぶ。
  * key は上流のタブの value(summary / auth / status / role / delete / history)と重ねない(重なる項目は出さない)
  */
 export type UserAdminManageTabItem = {
@@ -83,7 +83,7 @@ export type UserAdminManageTabItem = {
   }>;
 };
 
-// マイページのメニューの項目の型(受け口 mypageMenu。書き方: src/domains/core/user/Extension.md「マイページのメニュー(拡張点 mypageMenu)」)
+// マイページのメニューの項目の型(点 userMypageMenu。書き方: src/domains/core/user/Extension.md「マイページのメニュー(拡張点 userMypageMenu)」)
 export type {
   MypageMenuAction,
   MypageMenuVariant,

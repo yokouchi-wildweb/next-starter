@@ -16,7 +16,7 @@
 ### ソースを足す
 
 1. `CoinIssuanceSource` を満たす値を作成する
-2. `services/server/coinIssuance/sources/<名前>.ts` に `export const source` を置き `pnpm generate extensions`（閉じられる機能を読むソースは `enabled` が必須）
+2. `<ドメイン>/plugs/analyticsCoinIssuanceSources/<名前>.ts` に `export const source` を置き `pnpm generate extensions`（閉じられる機能を読むソースは `enabled` が必須）
    - 一覧の順 = ファイル名の順で、応答の `sources` の順もこれ。順序のキーは無い。表示順を決めたい fork は画面側でキーの並びを持って並べる（数値は変わらない）
 3. (任意) `src/domains/core/analytics/config.ts` の `coinIssuanceLabels` に表示名を足す
 
@@ -59,7 +59,7 @@ export const gachaProfitSource: CoinIssuanceSource = {
 ```
 
 ```typescript
-// src/domains/core/analytics/services/server/coinIssuance/sources/gachaProfit.ts
+// <ドメイン>/plugs/analyticsCoinIssuanceSources/gachaProfit.ts
 import { gachaProfitSource } from "@/domains/gacha/analytics/coinIssuance/gachaProfitSource";
 
 export const source = gachaProfitSource;

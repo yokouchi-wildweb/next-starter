@@ -18,7 +18,7 @@ import { Shuffle } from "lucide-react";
 import { domainDisplay } from "@/domains/core/coupon/entities/display";
 import { generateCouponCode } from "@/domains/core/coupon/utils/generateCode";
 
-// メディア列の用途 ID（storageObject/purposes/coupon.ts の登録名）
+// メディア列の用途 ID（coupon/plugs/storageObjectPurposes/coupon.ts の登録名）
 const STORAGE_PURPOSES: Record<string, string> = {
   image_url: "coupon.image_url",
 };

@@ -5,18 +5,18 @@
 
 export const extensionPoints = {
   // 送信チャンネル: channels/<名前>.ts の export const channel(鍵・表示名・宛先の決め方・欄の zod・送る関数・webhook の表)
-  channels: {
+  messagingChannels: {
     change: "add",
-    dir: "channels",
+    plugs: true,
     export: "channel",
     type: { from: "@/lib/messaging", name: "MessageChannel" },
     side: "server",
     key: "key",
   },
   // 値: enrichers/<名前>.ts の export const enricher(当てる連絡・足す変数の zod・値を返す関数)
-  enrichers: {
+  messagingEnrichers: {
     change: "add",
-    dir: "enrichers",
+    plugs: true,
     export: "enricher",
     type: { from: "@/lib/messaging", name: "MessageEnricher" },
     side: "server",
@@ -25,9 +25,9 @@ export const extensionPoints = {
   // カテゴリー(利用者から見て 1 つの出来事、D79): categories/<名前>.ts の export const category(鍵・表示名・説明・種別・送信チャンネル・グループ)。
   // fork は上流のカテゴリーの隣の <名前>.override.ts で label・description・channels・group を変えられる(鍵・種別は不可 D70・D166、
   // functional・security の email は外せない D86 = pnpm check extensions の messageGuards)
-  categories: {
+  messagingCategories: {
     change: "add",
-    dir: "categories",
+    plugs: true,
     export: "category",
     type: { from: "@/lib/messaging", name: "MessageCategory" },
     side: "server",
@@ -35,51 +35,40 @@ export const extensionPoints = {
     overrideOf: ["label", "adminLabel", "description", "channels", "defaultChannels", "group"],
   },
   // カテゴリーのグループ(設定画面の見出しだけ、同じ種別のカテゴリーだけ D82): categoryGroups/<名前>.ts の export const group(鍵・表示名・並び順)。上流は出荷しない
-  categoryGroups: {
+  messagingCategoryGroups: {
     change: "add",
-    dir: "categoryGroups",
+    plugs: true,
     export: "group",
     type: { from: "@/lib/messaging", name: "MessageCategoryGroup" },
     side: "server",
     key: "key",
   },
   // 送り元: sources/<名前>.ts の export const source(鍵・表示名)
-  sources: {
+  messagingSources: {
     change: "add",
-    dir: "sources",
+    plugs: true,
     export: "source",
     type: { from: "@/lib/messaging", name: "MessageSource" },
     side: "server",
     key: "key",
   },
-  // 記録の宛先(管理一覧で選んだ記録 → 宛先)は受け口ではない: 持ち主のドメインの recordTargets/<名前>.ts を
+  // 記録の宛先(管理一覧で選んだ記録 → 宛先)は受け口ではない: 持ち主のドメインの plugs/recordTargets/<名前>.ts を
   // pnpm generate registry が src/registry/recordTargetRegistry.ts に集める(連絡定義と同じ道、D195。型 MessageRecordTarget は lib/messaging)
   // 送った後の購読: subscribers/<名前>.ts の export const subscriber(鍵・受ける事件・絞り・事件の束の処理)
-  subscribers: {
+  messagingSubscribers: {
     change: "add",
-    dir: "subscribers",
+    plugs: true,
     export: "subscriber",
     type: { from: "@/lib/messaging", name: "MessageSubscriber" },
     side: "server",
     key: "key",
   },
-  // 送信一覧の一括操作(client、D95): adminBulkActions/<名前>.tsx の export const bulkAction(上流の既定 = 削除)。
-  // fork は項目を足す・<名前>.override.ts で enabled・order を変える(user の受け口と同じ形)
-  adminBulkActions: {
-    change: "add",
-    dir: "adminBulkActions",
-    export: "bulkAction",
-    type: { from: "@/domains/core/messaging/types/adminBulkAction", name: "MessagingDispatchAdminBulkActionItem" },
-    side: "client",
-    key: "key",
-    overrideOf: ["enabled", "order"],
-  },
   // レイアウト(D122): layouts/<名前>/ のフォルダ 1 つが 1 つのレイアウト。宣言とメールの描き方は server の一覧、お知らせの描き方は client の一覧(レイアウトの鍵で引く)。
   // 描き方の部品は 1 行スイッチ(<部品>.tsx → <部品>.default.tsx)にでき、fork は .replace で見た目だけ替える。
   // fork は layouts/<名前>/layout.override.ts で disabled(どこにも出さない)・adminSelectable(管理画面で選べる)だけを変える。書き方: layouts/README.md
-  layouts: {
+  messagingLayouts: {
     change: "add",
-    dir: "layouts",
+    plugs: true,
     files: "*/layout.ts",
     export: "layout",
     type: { from: "@/lib/messaging", name: "MessageLayoutItem" },
@@ -87,18 +76,18 @@ export const extensionPoints = {
     key: "key",
     overrideOf: ["disabled", "adminSelectable"],
   },
-  layoutEmails: {
+  messagingLayoutEmails: {
     change: "add",
-    dir: "layouts",
+    plugs: true, itemsOf: "messagingLayouts",
     files: "*/email.tsx",
     export: "emailRenderer",
     type: { from: "@/lib/messaging", name: "MessageLayoutEmailRenderer" },
     side: "server",
     key: "layout",
   },
-  layoutInApps: {
+  messagingLayoutInApps: {
     change: "add",
-    dir: "layouts",
+    plugs: true, itemsOf: "messagingLayouts",
     files: "*/inApp.tsx",
     export: "inAppRenderer",
     type: { from: "@/lib/messaging", name: "MessageLayoutInAppRenderer" },
@@ -108,85 +97,88 @@ export const extensionPoints = {
   // 差替点: 1 行スイッチ AlertEmail(fork は隣に <名前>.replace を作りスイッチを向け替える)
   alertEmail: {
     change: "replace",
-    default: "src/domains/core/messaging/layouts/alert/AlertEmail.default.tsx",
-    type: { from: "@/domains/core/messaging/layouts/alert/AlertEmail.default", name: "AlertEmailProps" },
+    default: "src/domains/core/messaging/plugs/messagingLayouts/alert/AlertEmail.default.tsx",
+    type: { from: "@/domains/core/messaging/plugs/messagingLayouts/alert/AlertEmail.default", name: "AlertEmailProps" },
     side: "server",
   },
   // 差替点: 1 行スイッチ AlertInApp(fork は隣に <名前>.replace を作りスイッチを向け替える)
   alertInApp: {
     change: "replace",
-    default: "src/domains/core/messaging/layouts/alert/AlertInApp.default.tsx",
-    type: { from: "@/domains/core/messaging/layouts/alert/AlertInApp.default", name: "AlertInAppProps" },
+    default: "src/domains/core/messaging/plugs/messagingLayouts/alert/AlertInApp.default.tsx",
+    type: { from: "@/domains/core/messaging/plugs/messagingLayouts/alert/AlertInApp.default", name: "AlertInAppProps" },
     side: "client",
   },
   // 差替点: 1 行スイッチ LinkEmail(fork は隣に <名前>.replace を作りスイッチを向け替える)
   linkEmail: {
     change: "replace",
-    default: "src/domains/core/messaging/layouts/link/LinkEmail.default.tsx",
-    type: { from: "@/domains/core/messaging/layouts/link/LinkEmail.default", name: "LinkEmailProps" },
+    default: "src/domains/core/messaging/plugs/messagingLayouts/link/LinkEmail.default.tsx",
+    type: { from: "@/domains/core/messaging/plugs/messagingLayouts/link/LinkEmail.default", name: "LinkEmailProps" },
     side: "server",
   },
   // 差替点: 1 行スイッチ LinkInApp(fork は隣に <名前>.replace を作りスイッチを向け替える)
   linkInApp: {
     change: "replace",
-    default: "src/domains/core/messaging/layouts/link/LinkInApp.default.tsx",
-    type: { from: "@/domains/core/messaging/layouts/link/LinkInApp.default", name: "LinkInAppProps" },
+    default: "src/domains/core/messaging/plugs/messagingLayouts/link/LinkInApp.default.tsx",
+    type: { from: "@/domains/core/messaging/plugs/messagingLayouts/link/LinkInApp.default", name: "LinkInAppProps" },
     side: "client",
   },
   // 差替点: 1 行スイッチ NoticeEmail(fork は隣に <名前>.replace を作りスイッチを向け替える)
   noticeEmail: {
     change: "replace",
-    default: "src/domains/core/messaging/layouts/notice/NoticeEmail.default.tsx",
-    type: { from: "@/domains/core/messaging/layouts/notice/NoticeEmail.default", name: "NoticeEmailProps" },
+    default: "src/domains/core/messaging/plugs/messagingLayouts/notice/NoticeEmail.default.tsx",
+    type: { from: "@/domains/core/messaging/plugs/messagingLayouts/notice/NoticeEmail.default", name: "NoticeEmailProps" },
     side: "server",
   },
   // 差替点: 1 行スイッチ NoticeInApp(fork は隣に <名前>.replace を作りスイッチを向け替える)
   noticeInApp: {
     change: "replace",
-    default: "src/domains/core/messaging/layouts/notice/NoticeInApp.default.tsx",
-    type: { from: "@/domains/core/messaging/layouts/notice/NoticeInApp.default", name: "NoticeInAppProps" },
+    default: "src/domains/core/messaging/plugs/messagingLayouts/notice/NoticeInApp.default.tsx",
+    type: { from: "@/domains/core/messaging/plugs/messagingLayouts/notice/NoticeInApp.default", name: "NoticeInAppProps" },
     side: "client",
   },
   // 差替点: 1 行スイッチ SimpleEmail(fork は隣に <名前>.replace を作りスイッチを向け替える)
   simpleEmail: {
     change: "replace",
-    default: "src/domains/core/messaging/layouts/simple/SimpleEmail.default.tsx",
-    type: { from: "@/domains/core/messaging/layouts/simple/SimpleEmail.default", name: "SimpleEmailProps" },
+    default: "src/domains/core/messaging/plugs/messagingLayouts/simple/SimpleEmail.default.tsx",
+    type: { from: "@/domains/core/messaging/plugs/messagingLayouts/simple/SimpleEmail.default", name: "SimpleEmailProps" },
     side: "server",
   },
   // 差替点: 1 行スイッチ SimpleInApp(fork は隣に <名前>.replace を作りスイッチを向け替える)
   simpleInApp: {
     change: "replace",
-    default: "src/domains/core/messaging/layouts/simple/SimpleInApp.default.tsx",
-    type: { from: "@/domains/core/messaging/layouts/simple/SimpleInApp.default", name: "SimpleInAppProps" },
+    default: "src/domains/core/messaging/plugs/messagingLayouts/simple/SimpleInApp.default.tsx",
+    type: { from: "@/domains/core/messaging/plugs/messagingLayouts/simple/SimpleInApp.default", name: "SimpleInAppProps" },
     side: "client",
   },
   // 差替点: 1 行スイッチ StatementEmail(fork は隣に <名前>.replace を作りスイッチを向け替える)
   statementEmail: {
     change: "replace",
-    default: "src/domains/core/messaging/layouts/statement/StatementEmail.default.tsx",
-    type: { from: "@/domains/core/messaging/layouts/statement/StatementEmail.default", name: "StatementEmailProps" },
+    default: "src/domains/core/messaging/plugs/messagingLayouts/statement/StatementEmail.default.tsx",
+    type: { from: "@/domains/core/messaging/plugs/messagingLayouts/statement/StatementEmail.default", name: "StatementEmailProps" },
     side: "server",
   },
   // 差替点: 1 行スイッチ StatementInApp(fork は隣に <名前>.replace を作りスイッチを向け替える)
   statementInApp: {
     change: "replace",
-    default: "src/domains/core/messaging/layouts/statement/StatementInApp.default.tsx",
-    type: { from: "@/domains/core/messaging/layouts/statement/StatementInApp.default", name: "StatementInAppProps" },
+    default: "src/domains/core/messaging/plugs/messagingLayouts/statement/StatementInApp.default.tsx",
+    type: { from: "@/domains/core/messaging/plugs/messagingLayouts/statement/StatementInApp.default", name: "StatementInAppProps" },
     side: "client",
   },
   // 差替点: 1 行スイッチ WelcomeEmail(fork は隣に <名前>.replace を作りスイッチを向け替える)
   welcomeEmail: {
     change: "replace",
-    default: "src/domains/core/messaging/layouts/welcome/WelcomeEmail.default.tsx",
-    type: { from: "@/domains/core/messaging/layouts/welcome/WelcomeEmail.default", name: "WelcomeEmailProps" },
+    default: "src/domains/core/messaging/plugs/messagingLayouts/welcome/WelcomeEmail.default.tsx",
+    type: { from: "@/domains/core/messaging/plugs/messagingLayouts/welcome/WelcomeEmail.default", name: "WelcomeEmailProps" },
     side: "server",
   },
   // 差替点: 1 行スイッチ WelcomeInApp(fork は隣に <名前>.replace を作りスイッチを向け替える)
   welcomeInApp: {
     change: "replace",
-    default: "src/domains/core/messaging/layouts/welcome/WelcomeInApp.default.tsx",
-    type: { from: "@/domains/core/messaging/layouts/welcome/WelcomeInApp.default", name: "WelcomeInAppProps" },
+    default: "src/domains/core/messaging/plugs/messagingLayouts/welcome/WelcomeInApp.default.tsx",
+    type: { from: "@/domains/core/messaging/plugs/messagingLayouts/welcome/WelcomeInApp.default", name: "WelcomeInAppProps" },
     side: "client",
   },
 };
+
+// 常設(どの機能の規則にも載らず常に開く、明示の宣言 D22・D53)。規則の domains に載せると地区の地図の生成で止まる
+export const alwaysOpen = true;

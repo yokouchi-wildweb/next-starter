@@ -10,7 +10,14 @@ import assert from "node:assert/strict";
 import type { MilestoneDefinition, MilestoneItem, MilestoneSeries } from "../../types/milestone";
 
 const items: MilestoneItem[] = [];
-mock.module("@/domains/core/milestone/extensions/definitions", { namedExports: { definitions: items } });
+// 生成の一覧の偽物: 項目は domain null(門番の gate.plugs が外さない)で、items をそのまま読む
+mock.module("@/domains/core/milestone/extensions/milestoneDefinitions", {
+  namedExports: {
+    get milestoneDefinitions() {
+      return items.map((plug) => ({ domain: null, name: plug.key, requires: [], plug }));
+    },
+  },
+});
 
 let registry: typeof import("./milestoneRegistry");
 let defineMilestoneSeries: typeof import("../../types/milestone").defineMilestoneSeries;

@@ -1,7 +1,7 @@
 // src/domains/core/demo/config.ts
 // デモの設定(既定 + 上書き、設定の議会 D112)。上書きは src/config/domains/demo.config.ts(このファイルだけが読む)。
 // 置き方: src/config/README.md。合成: @/lib/defineConfig。読み手は demoConfig.<鍵>
-// - mode: デモモード(有効時、デモ利用者以外はデモの入口へ転送)。読み手は proxy の項目 src/proxies/demoMode.ts
+// - mode: デモモード(有効時、デモ利用者以外はデモの入口へ転送)。読み手は proxy の項目 ./plugs/proxyHandlers/demoMode.ts
 // - session: デモ利用者のセッションの長さ。読み手は auth(デモのログインの機能 demoLogin が開のときだけ)
 // - adminList: 管理画面のデモ利用者の一覧。読み手は user の DemoUserList
 // デモのページ・デモのログイン・デモ利用者の管理画面の住所の入切は門番の規則 demoPages・demoLogin・adminDemoUsers。このフォルダは常設(規則の domains に載らない)

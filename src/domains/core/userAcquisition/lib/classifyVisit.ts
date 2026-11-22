@@ -10,7 +10,8 @@
 import { userAcquisitionConfig } from "@/domains/core/userAcquisition/config";
 import { REFERRAL_MEDIUM } from "@/domains/core/userAcquisition/constants";
 import type { AttributionCookieTouch } from "@/domains/core/userAcquisition/entities/schema";
-import { channels } from "@/domains/core/userAcquisition/extensions/channels";
+import { userAcquisitionChannels } from "@/domains/core/userAcquisition/extensions/userAcquisitionChannels";
+import { gate } from "@/featureGate";
 import type {
   AcquisitionChannel,
   AcquisitionChannelDefinition,
@@ -31,14 +32,14 @@ export function getAttributionCookieMaxAgeSeconds(): number {
 /**
  * 判別表(シリアライズできる値)。並び = 優先順位: clickId の行が先、link の行が後、
  * 同じ種類の中は表の順(clickId = config の clickIdParams の順 → 受け口の項目のファイル名の順)。
- * 受け口 channels/ の項目は、持ち主の機能が閉じている間(enabled() が false)出さない。
+ * 点 userAcquisitionChannels の項目は、項目のドメインが閉じている間(gate.plugs)と持ち主の機能が閉じている間(enabled() が false)出さない。
  * 同じ param が config と項目の両方にあれば例外(どちらが勝つかを黙って決めない)。
  */
 export function getChannelDefinitions(): AcquisitionChannelDefinition[] {
   const rows: AcquisitionChannelDefinition[] = Object.entries(userAcquisitionConfig.clickIdParams).map(
     ([param, channel]) => ({ param, kind: "clickId", channel: channel ? { ...channel } : null }),
   );
-  for (const item of Object.values(channels)) {
+  for (const { plug: item } of gate.plugs(userAcquisitionChannels)) {
     if (item.enabled && !item.enabled()) continue;
     if (rows.some((row) => row.param === item.param)) {
       throw new Error(`userAcquisition channels: param "${item.param}" が clickIdParams と重複している`);

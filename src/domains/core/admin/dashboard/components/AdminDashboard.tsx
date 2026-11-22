@@ -1,6 +1,10 @@
 // src/domains/core/admin/dashboard/components/AdminDashboard.tsx
 
-import { dashboardSections } from "@/domains/core/admin/extensions/dashboardSections";
+import { adminDashboardSections } from "@/domains/core/admin/extensions/adminDashboardSections";
+import { byKey } from "@/domains/core/admin/menu/byKey";
+
+// 描き方の表(描くのは loader が門番で絞って取った data の key だけ)
+const dashboardSections = byKey(adminDashboardSections);
 
 import type { AdminDashboardData } from "../types";
 

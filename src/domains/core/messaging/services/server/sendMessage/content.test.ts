@@ -11,10 +11,8 @@ import { z } from "zod";
 import { isMessageLayoutContent, type MessageChannel } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
-import { message as verification } from "../../../../auth/messages/verification";
-import { categories } from "../../../extensions/categories";
-import { layoutEmails } from "../../../extensions/layoutEmails";
-import { layouts } from "../../../extensions/layouts";
+import { message as verification } from "@/domains/core/auth/plugs/messages/verification";
+import { categories, layoutEmails, layouts } from "../lists";
 import { buildContent } from "./content";
 import { resolveDefinition } from "./definition";
 import { createMessageSender } from "./sender";

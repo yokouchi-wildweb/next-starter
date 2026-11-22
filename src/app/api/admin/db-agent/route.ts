@@ -17,7 +17,8 @@ import { auditLogger } from "@/domains/core/auditLog/services/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { createAgentSSEResponse } from "@/lib/ai/server";
 import { isDbAgentEnabled, runDbAgent } from "@/lib/dbAgent/server";
-import { extraTools, promptFragments, suffixProviders } from "@/wiring/dbAgent";
+import { gate } from "@/featureGate";
+import { dbAgentPromptFragments, dbAgentSuffixProviders, dbAgentTools } from "@/wiring/dbAgent";
 
 // Vercel 等のサーバーレス環境ではストリーミング中も関数実行時間にカウントされる。
 // エージェントの1ターンは数分に及びうるため上限を引き上げる
@@ -69,7 +70,12 @@ export const POST = createApiRoute(
     req.signal.addEventListener("abort", () => abortController.abort());
 
     const generator = runDbAgent({
-      extensions: { extraTools, promptFragments, suffixProviders },
+      // 拡張点の一覧(生成物 src/wiring/dbAgent.ts、宣言 src/lib/dbAgent/extensionPoints.ts)は閉じたドメインの項目を外してから渡す(D26)
+      extensions: {
+        extraTools: gate.plugs(dbAgentTools).map((item) => item.plug),
+        promptFragments: gate.plugs(dbAgentPromptFragments).map((item) => item.plug),
+        suffixProviders: gate.plugs(dbAgentSuffixProviders).map((item) => item.plug),
+      },
       messages: parsed.data.messages,
       signal: abortController.signal,
       auditRecorder: auditLogger,

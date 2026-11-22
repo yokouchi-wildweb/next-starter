@@ -62,11 +62,12 @@
 - src/lib/routeFactory — 全 API ルートの生成ファクトリの汎用版(主体の解き方・access の評価・登録表を差し込む。値 import は src/wiring だけ、route は @/wiring/apiRoute)
 - src/lib/screens — page 層の構造(1 行スイッチ + _screen/ + loader)の型 ScreenProps と規律テスト、src/app 全体のページ発見とルート地図(pnpm generate routes)
 - src/lib/seamlessVideo — 変換済み fmp4 を MSE で継ぎ目なく連結再生(映像 + 音声・A/V 同期・BGM)。閉じた lib: 入口 "."(再生・フック・部品・検証・マニフェスト・保存の ClientService)・"./server"(マニフェストの Firestore の保存)
-- src/lib/serverErrorReport — サーバーの失敗の既定の記録(console.error に JSON 1 行)と送り先の項目への独立した配送(待ち時間の上限)。一覧は src/wiring/serverErrors が渡し、入口は src/instrumentation.ts
+- src/lib/serverErrorReport — サーバーの失敗の既定の記録(console.error に JSON 1 行)と送り先の項目への独立した配送(待ち時間の上限)。一覧と結び目は生成物 src/wiring/serverErrorReport.ts、入口は src/instrumentation.ts
 - src/lib/siteTheme — エリア別のライト / ダーク解決と SSR 時のちらつき防止(設定 @lib-config/siteTheme、<html> を書く唯一の SiteThemeSync、切替の useSiteThemeStore)
 - src/lib/sortableList — ドラッグ & ドロップの並べ替えリスト UI
 - src/lib/spacing — 余白の段(none…4xl)・余白 prop の型と class の引き当て・生成した class の表(Layout 部品と生成器が読む)
 - src/lib/spamGuard — 使い捨てメール / Hide My Email 等の検出とガード
+- src/lib/startup — サーバーの起動時の処理(項目ごとに独立、待ち時間の上限、失敗は 1 行)。一覧と結び目は生成物 src/wiring/startup.ts、入口は src/instrumentation.ts の register(段 3 で serverErrorReport の register から分けた)
 - src/lib/storage — ファイル保存の基盤(storage:// ref と表示解決、inline/attachment 配信規則、StoragePort と GCS 実装、保存先の解決、strip 用途の画像のメタデータ除去(サーバーの描き直し)、クライアントの uploadToStorage)。閉じた lib: 入口 "."(ref・表示・規則・型・設定・アップロードの部品)・"./server"(ポート・GCS・保存先・用途・旧 URL・描き直し・fake)、保存先と公開 base は上書き src/config/lib/storage.config.ts の env の関数
 - src/lib/storageCors — 別ドメインの Storage バイト読み取りの CORS 未設定を開発時に自己診断・案内。閉じた lib(入口 ".")
 - src/lib/stringCase — 名前の書き方の変換(camelCase / PascalCase / kebab-case / snake_case。生成器・lib・画面から同じ物を読む .mjs)

@@ -5,11 +5,11 @@ paths:
 ---
 # domains/accountLifecycle
 what: self-service pause, withdraw and reactivate of one's own account (@/domains/accountLifecycle): no table of its own, it moves users.status through user's services; screens /mypage/pause, /mypage/withdraw, /mypage/other, /reactivate, /reactivate/complete
-use: pause, withdraw, mypagePause, mypageWithdraw, mypageOther (the folder itself is in no rule's domains)
+use: pause, withdraw, mypagePause, mypageWithdraw, mypageOther (the folder itself is always-open, declared)
 change: counterpart = src/config/domains/accountLifecycle.config.ts (withdraw.description) | screens: replace per route (SCREENS)
 rules:
 using:
-- withdraw_cleanup: data of your domain to clear on withdraw → an item in user's cleanupHandlers receptacle (run inside the withdraw transaction and the admin soft delete)
+- withdraw_cleanup: data of your domain to clear on withdraw → an item in user's userCleanupHandlers point (<domain>/plugs/userCleanupHandlers/) (run inside the withdraw transaction and the admin soft delete)
 editing:
 - status_write: every users.status change goes through user's recordStatusTransition (CLAUDE.md user_status_history)
 - withdraw_tx: the withdraw status change, executeCleanup and audit run in one transaction

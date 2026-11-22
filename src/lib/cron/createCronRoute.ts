@@ -43,11 +43,16 @@ export type CronServerErrorInput = {
 };
 
 /**
- * メンテナンスの判定（省略可の依存）。lib は設定を読まないので、wiring（src/wiring/cronRoute.ts）が設定ドメインの判定で結ぶ
+ * メンテナンスの判定（省略可の依存）。lib は設定を読まないので、点 cronMaintenance の項目(上流は setting が差す)を wiring（src/wiring/cronRoute.ts）が結ぶ
  */
 export type CronRouteMaintenance = {
   /** 今メンテナンスの期間か（飛ばすかを決める時だけ読む） */
   isActive: () => Promise<boolean>;
+};
+
+/** 点 cronMaintenance の項目(./extensionPoints.ts。上流は setting が差す) */
+export type CronMaintenancePlug = {
+  deps: CronRouteMaintenance;
 };
 
 export type CreateCronRouteDeps = {

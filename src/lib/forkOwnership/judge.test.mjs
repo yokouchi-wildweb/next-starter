@@ -81,21 +81,21 @@ describe("実リポジトリの intake.txt", () => {
       ["src/lib/CATALOG.md", "append"],
       [".claude/rules/lineage.md", "append"],
       ["src/domains/core/user/services/server/userService.ts", null],
-      ["src/domains/core/setting/fields/x.ts", "add"],
-      ["src/domains/core/setting/fields/adminListPerPage.override.ts", "add"],
-      ["src/domains/core/setting/fields/adminListPerPage.ts", "add"],
-      ["src/domains/core/userLineProfile/webhookHandlers/postback.ts", "add"],
+      ["src/domains/core/setting/plugs/settingFields/x.ts", null],
+      ["src/domains/core/setting/plugs/settingFields/adminListPerPage.override.ts", "add"],
+      ["src/domains/core/setting/plugs/settingFields/adminListPerPage.ts", null],
+      ["src/domains/core/userLineProfile/plugs/userLineProfileWebhookHandlers/postback.ts", null],
       ["src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.replace.ts", "add"],
       ["src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.ts", "edit"],
       ["src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.default.ts", null],
       ["src/domains/core/user/scripts/tasks/mine.ts", null],
-      ["src/featureGate/alwaysOnExceptions/mine.ts", "add"],
+      ["src/featureGate/required/mine.ts", "add"],
       ["src/domains/core/user/extensionPoints.acme.ts", null],
       ["src/domains/core/user/coreRoles/user.role.override.ts", "edit"],
       ["src/domains/core/user/coreRoles/user.role.json", null],
       ["src/domains/core/user/roles/editor.role.override.ts", "edit"],
-      ["src/wiring/formInputs/inputs/ticketRates.ts", "add"],
-      ["src/wiring/formInputs/FormInputsRoot.tsx", null],
+      ["src/wiring/formSuite.ts", "generated"],
+      ["src/lib/formSuite/plugs/formInputs/ticketRates.ts", null],
       ["src/domains/core/userProfile/profiles/user.profile.override.ts", "edit"],
       ["src/domains/core/userProfile/profiles/user.profile.json", "add"],
       ["src/domains/core/userProfile/profiles/index.ts", null],
@@ -188,7 +188,7 @@ describe("judge", () => {
   });
 
   test("A: 検査する場所で基準と同じ単位は unit-clash(x.ts と x.tsx・ファイルとフォルダ)、場所の外と新しい名前は added", () => {
-    const baseFiles = ["src/wiring/apiRoute.ts", "src/wiring/dbAgent/index.ts", "src/app/(user)/_layout/Header/index.tsx", "src/domains/sample/x.ts", "src/proxies/extensionPoints.ts", "src/proxies/maintenance.ts"];
+    const baseFiles = ["src/wiring/apiRoute.ts", "src/wiring/oldBundle/index.ts", "src/app/(user)/_layout/Header/index.tsx", "src/domains/sample/x.ts", "src/proxies/extensionPoints.ts", "src/proxies/maintenance.ts"];
     const places = unitPlaces(baseFiles, (p) => (p === "src/proxies/extensionPoints.ts" ? 'export const extensionPoints = { h: { change: "add", dir: ".", export: "handler", type: { from: "@/t", name: "T" }, side: "server" } };' : null));
     const baseUnits = unitIndex(baseFiles);
     const one = (/** @type {string} */ path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], intake, places, baseUnits }).entries[0];
@@ -196,7 +196,7 @@ describe("judge", () => {
     assert.equal(clash.reason, "unit-clash");
     assert.equal(clash.verdict, "violation");
     assert.equal(clash.clash, "src/wiring/apiRoute.ts");
-    assert.equal(one("src/wiring/dbAgent.ts").reason, "unit-clash", "ファイルとフォルダ");
+    assert.equal(one("src/wiring/oldBundle.ts").reason, "unit-clash", "ファイルとフォルダ");
     assert.equal(one("src/app/(user)/_layout/Header.tsx").reason, "unit-clash");
     assert.equal(one("src/proxies/maintenance.tsx").reason, "unit-clash", "受け口(dir: \".\")の直下");
     assert.equal(one("src/domains/sample/x.tsx").reason, "added", "場所の外は見ない");
@@ -312,10 +312,10 @@ describe("judge", () => {
   });
 
   test("A: 門番の中は受け口の項目だけ。受け口の外・debt は gate-add、基準に門番が無ければ added", () => {
-    const { rules } = parseIntake(["add src/featureGate/rules/*.{ts,tsx}  # r", "add src/featureGate/alwaysOnExceptions/*.{ts,tsx}  # r", "add src/featureGate/required/*.{ts,tsx}  # r", "debt src/featureGate/tools/**  # r"].join("\n"));
+    const { rules } = parseIntake(["add src/featureGate/rules/*.{ts,tsx}  # r", "add src/featureGate/required/*.{ts,tsx}  # r", "debt src/featureGate/tools/**  # r"].join("\n"));
     const add = (/** @type {string} */ path, baseHasGate = true) =>
       judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], baseHasCore: true, baseHasGate, intake: rules }).entries[0];
-    for (const path of ["src/featureGate/rules/mine.ts", "src/featureGate/alwaysOnExceptions/mine.ts", "src/featureGate/required/wallet.ts"]) assert.equal(add(path).reason, "added", path);
+    for (const path of ["src/featureGate/rules/mine.ts", "src/featureGate/required/wallet.ts"]) assert.equal(add(path).reason, "added", path);
     const outside = add("src/featureGate/foo.ts");
     assert.equal(outside.reason, "gate-add");
     assert.equal(outside.verdict, "violation");

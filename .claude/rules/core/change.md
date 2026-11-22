@@ -3,7 +3,7 @@ paths:
   - "src/config/**"
   - "src/business/**"
   - "src/styles/*.css"
-  - "**/*.override.ts"
+  - "**/*.override.*"
   - "**/*.replace*"
   - "**/*.default*"
   - "src/app/**/{_components/**,_layout/**,frame*.ts,favicon.ico}"
@@ -16,8 +16,8 @@ paths:
 change_types (the only 5 ways to change what a parent owns | marks = .default / .replace / .override, upstream files are plain | table → scripts/structure/extensions/README.md Extension):
 - 1 replace (whole code): \<name\>.default + plain 1-line switch → fork \<name\>.replace, repoint the switch | screens carry no mark: the page.tsx 1-line switch is the declaration, default _screen/ → fork plain _components/\<X\>Screen.tsx | frame: layout.tsx switch → fork _layout/\<Layout\>.replace.tsx beside the default (fork frame parts → route's _components/, plain names)
 - 2 override (data): plain target + declared keys (overrideOf / overrides) → fork \<target\>.override.ts, declared keys only | frame: creator frame.ts → lower repo frame.override.ts
-- 3 add: plain new name in a declared receptacle folder | 4 counterpart (values): src/styles/core/\<name\>.css → src/styles/\<name\>.css, owner config.ts → src/config/\<area\>/\<name\>.config.ts (lib, domains, frame, proxies, featureGate)
-  - add items: a plain \<name\>.ts(x) in the declared folder, no repo-name mark (the same name as a parent's unit = ownership unit-clash) → pnpm generate extensions
+- 3 add: an item in the plugging side's own plugs/\<point\>/ (your domain or lib) | 4 counterpart (values): src/styles/core/\<name\>.css → src/styles/\<name\>.css, owner config.ts → src/config/\<area\>/\<name\>.config.ts (lib, domains, frame, proxies, featureGate)
+  - add items: a plain \<name\>.ts(x) (or \<name\>/index.ts(x)) under \<domain\>/plugs/\<point\>/ of your own domain or lib, never inside an upstream domain or lib, no repo-name mark → pnpm generate extensions (items are told apart by \<domain\>/\<name\>)
 - 5 self: the self files each repo writes its own version of (.claude/rules/project.md, .claude/rules/behavior.md, repo.json) | using the parent's version as is is a valid choice | a take-in that drops your own lines → /flux asks: follow the parent's version / restore your lines (pnpm workflow ownership check never fails on it) → core/design.md self_files
   - porting: /flux shows the parent's diff once per segment → port by hand, in a separate commit, only what fits this repo | a self file holds only what describes this repo, never a rule a lower repo must follow
   - upstream side: nothing to declare, the list of self files is closed (intake.txt kind self) and only Tier1 extends it | a new repo.json key gets a reader default, a required one ships a notice + migration tool

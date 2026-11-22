@@ -122,7 +122,7 @@ async function playGacha(userId: string, cost: number) {
 }
 ```
 
-- 文面は連絡定義 `messages/adjustmentNotice.ts`（題「{{currencyLabel}}残高が変更されました」、本文「操作 / 金額 / 残高」の行 + `{{reasonLine}}`）。変える fork は隣に `adjustmentNotice.override.ts` を置く（[messaging README](../messaging/README.md)・src/lib/messaging/README.md）
+- 文面は連絡定義 `plugs/messages/adjustmentNotice.ts`（題「{{currencyLabel}}残高が変更されました」、本文「操作 / 金額 / 残高」の行 + `{{reasonLine}}`）。変える fork は隣に `adjustmentNotice.override.ts` を置く（[messaging README](../messaging/README.md)・src/lib/messaging/README.md）
 - 差し込む値は送り手 `services/server/notification/sendAdjustmentNotification.ts` の `adjustmentNoticeVars` が組む: `currencyLabel`（通貨の label）・`methodLabel`（`config.ts` の `adjustmentNotification.changeMethodLabels`、知らない操作はそのまま）・`delta`（符号付きの額）・`balance`（変更後の残高）・`reasonLine`（理由があれば「改行 + 理由: <理由>」、無ければ空）
 - 送信の失敗は残高の変更に影響しない（送り手は投げずにログに出す）。取引の連絡なので受信者の好みでは止まらない
 
@@ -213,7 +213,7 @@ import { AdminWalletAdjustModal } from "@/domains/core/wallet/components/AdminWa
 
 ## Extension
 
-- 通貨設定・付与の種類（reason key）・有効期限の導入と運用ルール・失効通知の設定・購入の特典の表示（拡張点 purchaseBonuses）は `Extension.md`
+- 通貨設定・付与の種類（reason key）・有効期限の導入と運用ルール・失効通知の設定・購入の特典の表示（拡張点 walletPurchaseBonuses）は `Extension.md`
 
 ## Internals
 
@@ -230,5 +230,5 @@ import { AdminWalletAdjustModal } from "@/domains/core/wallet/components/AdminWa
 ## Related
 
 - [purchaseRequest ドメイン（コイン購入の決済フロー・外部決済連携）](../purchaseRequest/README.md)
-- walletHistory ドメイン（付与の種類の受け口 reasonKeys・backfill）: `src/domains/core/walletHistory/`
+- walletHistory ドメイン（付与の種類の点 walletHistoryReasonKeys・backfill）: `src/domains/core/walletHistory/`
 - 監査の判断軸の横展開: [auditLog/README.md](../auditLog/README.md)

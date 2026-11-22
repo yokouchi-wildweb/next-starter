@@ -9,7 +9,7 @@
 ### 足したいとき
 
 - 機能ごとの差し込み(ハンドラ・用途・タブなど): 持ち主のドメインの受け口にファイルを置いて `pnpm generate extensions`(`scripts/structure/extensions/README.md`)
-- 連絡(メール・お知らせ・LINE): ドメインの `messages/<名前>.ts` に定義を置いて `pnpm generate registry`(`messageRegistry.ts` に載る。`src/lib/messaging/README.md`)
+- 連絡(メール・お知らせ・LINE): ドメインの `plugs/messages/<名前>.ts` に定義を置いて `pnpm generate registry`(`messageRegistry.ts` に載る。`src/lib/messaging/README.md`)
 - 値: `src/config/`
 - 管理画面「データ管理」のメニューからドメインを外す: `domain.json` の `addToAdminDataMenu: false`(`adminDomains.ts` の印。メニューの出どころ `dataMenu` が読む)
 - 管理メニューの行・カテゴリー: 受け口 `src/domains/core/admin/menu/`(`README.md`)

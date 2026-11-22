@@ -52,7 +52,7 @@ export type ResolveDefinitionDeps = {
   registry: MessageRegistry;
   channels: Readonly<Record<string, MessageChannel>>;
   enrichers: Readonly<Record<string, MessageEnricher>>;
-  /** categories の受け口(fork のカテゴリーの override を重ねた後) */
+  /** 点 messagingCategories(fork のカテゴリーの override を重ねた後) */
   categories: Readonly<Record<string, MessageCategory>>;
   /** レイアウトの受け口(server の一覧 layouts) */
   layouts: Readonly<Record<string, MessageLayout>>;
@@ -173,7 +173,7 @@ function checkEmail(resolved: AnyResolvedMessageDefinition, list: string[]): str
  */
 export function initialLayoutProblem(initialLayout: string, layouts: Readonly<Record<string, MessageLayout>>): string | null {
   const layout = layouts[initialLayout];
-  if (!layout) return `config の messaging.initialLayout ${initialLayout} は layouts の受け口に無い(${Object.keys(layouts).join(" / ") || "項目なし"})`;
+  if (!layout) return `config の messaging.initialLayout ${initialLayout} は点 messagingLayouts に無い(${Object.keys(layouts).join(" / ") || "項目なし"})`;
   if (!isLayoutUsable(layout)) return `config の messaging.initialLayout ${initialLayout}(${layout.label})は無効(disabled)のレイアウト。initialLayout を管理画面で選べるレイアウトに替える`;
   if (!isLayoutAdminSelectable(layout)) return `config の messaging.initialLayout ${initialLayout}(${layout.label})は管理画面で選べないレイアウト(adminSelectable でない)。initialLayout を管理画面で選べるレイアウトに替える`;
   return null;

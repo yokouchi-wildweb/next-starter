@@ -1,7 +1,8 @@
 {
   "exports": {
     ".": "./index.ts",
-    "./node": "./node.ts"
+    "./node": "./node.ts",
+    "./points": "./points.ts"
   },
   "libs": ["appEnv", "audit", "districtMap"]
 }

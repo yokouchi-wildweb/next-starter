@@ -12,7 +12,7 @@ import { JSDOM } from "jsdom";
 
 import { fieldsForChannel, type MessageLayout } from "@/lib/messaging";
 
-import { layout as noticeLayout } from "../../layouts/notice/layout";
+import { layout as noticeLayout } from "@/domains/core/messaging/plugs/messagingLayouts/notice/layout";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", { pretendToBeVisual: true });
 const g = globalThis as Record<string, unknown>;

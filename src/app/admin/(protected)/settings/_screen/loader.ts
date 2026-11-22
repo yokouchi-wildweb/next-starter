@@ -9,14 +9,14 @@ import "server-only";
 import { redirect } from "next/navigation";
 
 import { gate } from "@/featureGate";
-import { sections } from "@/domains/core/setting/extensions/sections";
+import { openSections } from "@/domains/core/setting/definitions";
 import { firstOpenSection, settingSectionHref } from "@/domains/core/setting/utils/sectionForm";
 import { createLoader } from "@/app/admin/(protected)/guard";
 
 export const loadAdminSettingIndexScreen = createLoader({
   access: { roleCategories: ["admin"] },
   load: async (): Promise<void> => {
-    const first = firstOpenSection(sections, (href) => gate.path(href).open);
+    const first = firstOpenSection(openSections(gate.plugs), (href) => gate.path(href).open);
     if (!first) throw new Error("[setting] 開いているセクションがありません");
     redirect(settingSectionHref(first.key));
   },

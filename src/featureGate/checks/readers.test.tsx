@@ -14,12 +14,12 @@ import { rules as generatedRules } from "@/featureGate/extensions/rules";
 import { derivedPaths, rules } from "@/featureGate/node";
 import { coveredPatternsOf, overrideSwitches } from "@/featureGate/ruleList";
 import type { DerivedPath } from "@/featureGate/ruleList";
-import { menuItems } from "@/domains/core/admin/extensions/menuItems";
+import { adminMenuItems } from "@/domains/core/admin/extensions/adminMenuItems";
 import { buildAdminMenu } from "@/domains/core/admin/menu/buildAdminMenu";
 import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
-import { adminSidebar, adminSidebarHrefs } from "./adminSidebar";
+import { adminSidebar, adminSidebarHrefs } from "./__tests__/adminSidebar";
 
 function withRules<T>(states: Partial<Record<FeatureName, boolean>>, fn: () => T): T {
   // 生成一覧の規則の値(自分の値)を差し替える: 判定は依存先(dependsOn)まで解くので、親を閉じれば子も閉じる
@@ -115,7 +115,7 @@ test("サイドバー: 銀行振込レビューを閉じると「リクエスト
     t.skip(UPSTREAM_MENU_ONLY);
     return;
   }
-  assert.ok(Object.values(menuItems).some((item) => item.category === "requests"), "上流の項目に requests がある前提");
+  assert.ok(adminMenuItems.some((entry) => entry.plug.category === "requests"), "上流の項目に requests がある前提");
   withRules({ bankTransferReview: false }, () => {
     assert.equal(adminSidebar().some((c) => c.key === "requests"), false);
   });
@@ -143,7 +143,7 @@ test("/demo: sampleDomain を閉じると sample のデモが一覧と数から�
 });
 
 test("設定の節(L1.17・D34 K4): 節の feature が名指す機能が閉じると節の住所(/admin/settings/<key>)が閉じ、サイドバーの行が消え、既定の節は次の開いた節", async () => {
-  const { sections } = await import("@/domains/core/setting/extensions/sections");
+  const { openSections } = await import("@/domains/core/setting/definitions");
   const { firstOpenSection, settingSectionHref } = await import("@/domains/core/setting/utils/sectionForm");
   const sample = rules.find((r) => r.name === "sampleDomain");
   assert.ok(sample);
@@ -159,7 +159,7 @@ test("設定の節(L1.17・D34 K4): 節の feature が名指す機能が閉じ�
       assert.ok(!hrefs.includes(href));
       assert.ok(hrefs.includes(settingSectionHref("maintenance")));
       assert.equal(gate.path(href).open, false);
-      assert.notEqual(firstOpenSection(sections, (h) => gate.path(h).open)?.key, "general");
+      assert.notEqual(firstOpenSection(openSections(gate.plugs), (h) => gate.path(h).open)?.key, "general");
     });
     withRules({}, () => {
       assert.ok(adminSidebarHrefs().includes(href));

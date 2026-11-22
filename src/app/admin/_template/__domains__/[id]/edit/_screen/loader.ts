@@ -8,7 +8,7 @@ import "server-only";
 import type { __Domain__ } from "@/domains/__domain__/entities/model";
 __LOADER_RELATION_IMPORT__
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminEditParts } from "@/wiring/adminScreenParts";
+import { adminEditParts } from "@/domains/core/admin/services/server/screenParts";
 
 export const loadAdmin__Domain__EditScreen = createLoader(
   adminEditParts<__Domain__>("__domain__", { fallbackPath: "/admin/__domainsSlug__"__EDIT_RELATIONS_ARG__ }),

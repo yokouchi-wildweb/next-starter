@@ -132,7 +132,7 @@ test("未知の formInput: fields・relations とも止まり、登録名は通�
   assert.match(none, /relations "y": formInput "nope"/);
   const registered = formInputNameIssues(config, new Set(["ticketRates"]));
   assert.equal(registered.length, 2);
-  assert.ok(registered.every((issue) => /"(fileUploader|nope)"/.test(issue) && issue.includes("src/wiring/formInputs/inputs/")));
+  assert.ok(registered.every((issue) => /"(fileUploader|nope)"/.test(issue) && issue.includes("plugs/formInputs/")));
   const pair = { ...BASE, relations: [{ domain: "x", fieldName: "x_id", fieldType: "uuid", relationType: "belongsTo", onDelete: "RESTRICT", formInput: "ticketRates" }] };
   assert.match(vocabularyWarnings(pair).join("\n"), /ticketRates/);
   assert.doesNotMatch(vocabularyWarnings(pair, new Set(["ticketRates"])).join("\n"), /ticketRates/);
@@ -143,7 +143,7 @@ test("登録名の読み手: 項目の name を字面で読み、ファイル形
   assert.equal(formInputNameOf(text), "ticketRates");
   assert.equal(formInputNameOf("export const other = 1;\n"), null);
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "form-input-names-"));
-  const dir = path.join(root, "src/wiring/formInputs/inputs");
+  const dir = path.join(root, "src/domains/foo/plugs/formInputs");
   fs.mkdirSync(path.join(dir, "b.acme"), { recursive: true });
   fs.writeFileSync(path.join(dir, "a.acme.ts"), text);
   fs.writeFileSync(path.join(dir, "b.acme/index.ts"), text.replace("ticketRates", "pick"));

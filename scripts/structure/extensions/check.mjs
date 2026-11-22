@@ -7,7 +7,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { planExtensions, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
+import { planExtensions, pointsEntryProblems, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
+import { collectPoints } from "../../../src/lib/districtMap/node.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -20,6 +21,8 @@ async function main() {
     return runFramesMove(repoRoot, actionArgs.slice(1));
   }
   const plan = planExtensions(repoRoot);
+  // 型だけの入口(D33): ドメインでない持ち主の点の type.from は @/<持ち主>/points
+  plan.problems.push(...pointsEntryProblems(collectPoints(repoRoot).points));
   // --no-stale: 宣言・項目の問題だけを見る(一覧のずれは pnpm generate extensions で直るので見ない。forge の事前検査)
   const noStale = process.argv.includes("--no-stale");
   const stale = noStale || plan.problems.length > 0 ? [] : staleOutputs(repoRoot, plan.outputs);

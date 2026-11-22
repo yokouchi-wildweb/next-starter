@@ -3,8 +3,8 @@
 import { business } from "@/business";
 import { userConfig } from "@/domains/user/config";
 import { messagingService } from "@/domains/core/messaging/services/server";
-import { message as earlyRegistrationCompleteMessage } from "@/domains/core/user/messages/earlyRegistrationComplete";
-import { message as registrationCompleteMessage } from "@/domains/core/user/messages/registrationComplete";
+import { message as earlyRegistrationCompleteMessage } from "@/domains/core/user/plugs/messages/earlyRegistrationComplete";
+import { message as registrationCompleteMessage } from "@/domains/core/user/plugs/messages/registrationComplete";
 import { DomainError } from "@/lib/errors";
 
 export type SendRegistrationCompleteMailParams = {

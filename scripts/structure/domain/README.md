@@ -9,7 +9,7 @@
 - core の生成の違い:
   - 生成物は `@/domains/<domain>/...` で import するので、`tsconfig.json` の `paths` に `"@/domains/<domain>/*": ["./src/domains/core/<domain>/*"]` が要る（無ければ何も書かずに止まり、足す 1 行を出す）
   - `src/registry/` の一覧は core も business も `pnpm generate registry` が走査で作る（生成器は serviceRegistry 以外を書かない）
-  - 手で管理の core のファイル用途は `src/domains/core/storageObject/purposes/` に手で。`domainEntry.ts` は書くので `serviceRegistry.ts` には載る（core の手書きの domainEntry.ts と同じ経路）
+  - 手で管理の core のファイル用途は `<ドメイン>/plugs/storageObjectPurposes/` に手で。`domainEntry.ts` は書くので `serviceRegistry.ts` には載る（core の手書きの domainEntry.ts と同じ経路）
 - 今ある core の `domain.json` は `generate: false`（手で管理。生成器は何も書かない）
 - `domain.json` は手で書く（対話で組み立てる入口は無い）。書き方の規則は生成前の検査（`checks/`）が止める・警告する
 - 生成元テンプレート: `src/domains/_template/`（ドメイン側）、`src/app/admin/_template/`（管理画面ルート）
@@ -138,7 +138,7 @@ fork が各ドメインを生成に任せる（true）か手で管理する（fa
 - **フォームに独自項目・差し込み UI** → 生成された `<Domain>Form` / `<Domain>Fields` は FieldRenderer の props（`fieldPatches` / `insertBefore` / `insertAfter` / `fieldGroups` / `beforeField` 等）を受け取る。fork 所有の `_components/` から渡す（[`src/lib/formSuite/FieldRenderer/README.md`](../../../src/lib/formSuite/FieldRenderer/README.md)）
 - **管理画面のレイアウト** → `_screen/` を同じルートの `_components/` にコピーして `page.tsx` を向ける
 - **CRUD の振る舞い** → `services/server/wrappers/` に置き、write-once の `<domain>Service.ts` で組み込む
-- **一覧の一括操作** → 生成された受け口 `adminBulkActions/` に項目を 1 ファイルずつ置いて `pnpm generate extensions`（`Table.tsx` には書かない。書き方: [`src/lib/tableSuite/README.md`](../../../src/lib/tableSuite/README.md)「一括操作の受け口」）。項目が無ければ一覧は選択の無い素の表
+- **一覧の一括操作** → 点 adminBulkActions(core/admin の 1 点)の項目を自分のドメインの `plugs/adminBulkActions/` に 1 ファイルずつ置いて `pnpm generate extensions`（`Table.tsx` には書かない。書き方: [`src/lib/tableSuite/README.md`](../../../src/lib/tableSuite/README.md)「一括操作の受け口」）。項目が無ければ一覧は選択の無い素の表
 - 生成ファイルを手で直す必要が出た・載せ替えが手間になった → そのドメインを `"generate": false` にする（以後は生成器が何も書かない。`--only` で名指ししても書かない）
 
 ## Internals

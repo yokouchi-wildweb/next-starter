@@ -5,7 +5,7 @@ paths:
 # domains/milestone
 what: detects and records a user reaching a condition at integration points (purchase_completed, user_registered, own triggers) and runs onAchieved | entry evaluateMilestones (services/server/wrappers), client MilestoneNotifications
 use: milestone
-change: add → src/domains/core/milestone/extensionPoints.ts: definitions (services/server/definitions/<name>.ts) and renderers (components/renderers/<name>.ts(x)), then pnpm generate extensions
+change: add → src/domains/core/milestone/extensionPoints.ts: definitions (<domain>/plugs/milestoneDefinitions/<name>.ts) and renderers (<domain>/plugs/milestoneRenderers/<name>.ts(x)), then pnpm generate extensions
 rules:
 using:
 - milestone_gate_check: a new integration point checks gate.enabled("milestone") before calling evaluateMilestones

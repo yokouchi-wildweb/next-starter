@@ -20,7 +20,7 @@ using:
 - oneshot_apart: one-shot tasks (backfill, migration) live in the domain's scripts/{tasks,migrations}/, never under src/app/api/cron/
 - pii_prune_kept: a personal-data retention prune never uses `enabled`; its gate comes from its imports like any task (a closable domain's prune stops with the domain, whose tables are not created) | turn an always-open one off only when its domain is unused and its table empty
 - regenerate_after_override: placing or changing task.override.ts is followed by pnpm generate cron -- --plan <hobby|pro>
-- maintenance_pass_only: scheduled runs skip during maintenance | `maintenance: "pass"` in task.ts only for a task whose skip loses data | an upstream task a fork must keep running → disable it in task.override.ts + its own task folder with pass (task.override.ts has no maintenance key)
+- maintenance_pass_only: scheduled runs skip during maintenance (the cronMaintenance item, upstream from setting; empty = never) | `maintenance: "pass"` in task.ts only for a task whose skip loses data | an upstream task a fork must keep running → disable it in task.override.ts + its own task folder with pass (task.override.ts has no maintenance key)
 editing:
 - index_exports_all: index.ts exports every name the README and task files import from @/lib/cron
 read: add a task → Usage | budgeted batches → Usage | override an upstream task → Extension | gate, enabled → Internals | checks → Verification | schedulers → Usage | auth → API

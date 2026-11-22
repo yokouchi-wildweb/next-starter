@@ -45,8 +45,8 @@ test("通る: fork の今の上書きの形(core ロール・ロール・プロ�
     "src/app/api/cron/other/task.override.ts": "// 親の上書きを外す\n",
     "src/domains/core/user/services/server/domainEntry.ts": ENTRY,
     "src/domains/core/user/services/server/domainEntry.override.ts": "export const domainEntryOverrides = { user: PUBLIC_READ } satisfies DomainEntryOverrides;\n",
-    "src/domains/core/admin/menu/items/users.ts": 'export const item = { key: "users" };\n',
-    "src/domains/core/admin/menu/items/users.override.ts": "export const override = { hidden: true };\n",
+    "src/domains/core/user/plugs/adminMenuItems/usersGeneral.ts": 'export const item = { key: "usersGeneral" };\n',
+    "src/domains/core/user/plugs/adminMenuItems/usersGeneral.override.ts": "export const override = { hidden: true };\n",
   });
   assert.deepEqual(problems, []);
 });
@@ -121,19 +121,20 @@ test(".replace: boardgame-site の 5 本の形(枠の中の部品の .replace)�
   assert.match(replaces[5], /隣に既定 only\.default\.ts\(x\) が無い/);
 });
 
-test("ForkProviders を書き換えた fork(中身を書いたスイッチ)は 1 行スイッチの検査で止まる(中身は ForkProviders.replace.tsx へ)", () => {
+test("中身を書いたスイッチは 1 行スイッチの検査で止まる(中身は <名前>.replace へ。前の ForkProviders の形、口は段 3 で rootProviders に畳んだ)", () => {
+  const declaration = 'export const extensionPoints = { banner: { change: "replace", default: "src/app/_layout/Banner.default.tsx", type: { from: "@/t", name: "P" }, side: "shared" } };\n';
   const problems = problemsOf({
-    "src/app/_providers/ForkProviders.default.tsx": "export function ForkProviders() { return null; }\n",
-    "src/app/_layout/extensionPoints.ts": 'export const extensionPoints = { forkProviders: { change: "replace", default: "src/app/_providers/ForkProviders.default.tsx", type: { from: "@/t", name: "P" }, side: "shared" } };\n',
-    "src/app/_providers/ForkProviders.tsx": 'import type { ReactNode } from "react";\nexport function ForkProviders({ children }: { children: ReactNode }) { return children; }\n',
+    "src/app/_layout/Banner.default.tsx": "export function Banner() { return null; }\n",
+    "src/app/_layout/extensionPoints.ts": declaration,
+    "src/app/_layout/Banner.tsx": 'import type { ReactNode } from "react";\nexport function Banner({ children }: { children: ReactNode }) { return children; }\n',
   });
-  assert.ok(problems.some((p) => p.startsWith("src/app/_providers/ForkProviders.tsx:") && p.includes("re-export 1 文だけ")), problems.join("\n"));
+  assert.ok(problems.some((p) => p.startsWith("src/app/_layout/Banner.tsx:") && p.includes("re-export 1 文だけ")), problems.join("\n"));
   assert.deepEqual(
     problemsOf({
-      "src/app/_providers/ForkProviders.default.tsx": "export function ForkProviders() { return null; }\n",
-      "src/app/_layout/extensionPoints.ts": 'export const extensionPoints = { forkProviders: { change: "replace", default: "src/app/_providers/ForkProviders.default.tsx", type: { from: "@/t", name: "P" }, side: "shared" } };\n',
-      "src/app/_providers/ForkProviders.tsx": 'export { ForkProviders } from "./ForkProviders.replace";\n',
-      "src/app/_providers/ForkProviders.replace.tsx": "export function ForkProviders() { return null; }\n",
+      "src/app/_layout/Banner.default.tsx": "export function Banner() { return null; }\n",
+      "src/app/_layout/extensionPoints.ts": declaration,
+      "src/app/_layout/Banner.tsx": 'export { Banner } from "./Banner.replace";\n',
+      "src/app/_layout/Banner.replace.tsx": "export function Banner() { return null; }\n",
     }),
     [],
   );

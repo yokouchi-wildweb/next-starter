@@ -23,14 +23,14 @@ test("ドメインの雛形: 作り直しの対象のドメインの名で埋め
 
 test("出力の宣言 → ファイル: 文字列は every-run、generate:false のドメインのファイルは入らない", () => {
   const gates = [
-    { gate: "structure/registry", outputs: ["src/registry/a.ts", { glob: "src/domains/**/messages/*.ts", kind: "write-once" }] },
+    { gate: "structure/registry", outputs: ["src/registry/a.ts", { glob: "src/domains/**/plugs/messages/*.ts", kind: "write-once" }] },
     { gate: "structure/domain", outputs: [{ glob: "{dir}/entities/schema.ts", kind: "every-run" }] },
   ];
-  const files = ["src/registry/a.ts", "src/domains/a/entities/schema.ts", "src/domains/off/entities/schema.ts", "src/domains/a/messages/m.ts"];
+  const files = ["src/registry/a.ts", "src/domains/a/entities/schema.ts", "src/domains/off/entities/schema.ts", "src/domains/a/plugs/messages/m.ts"];
   const out = outputFiles(gates, files, [{ dir: "src/domains/a" }]);
   assert.deepEqual(out.map((e) => [e.glob, e.kind, e.domain, e.files]), [
     ["src/registry/a.ts", "every-run", false, ["src/registry/a.ts"]],
-    ["src/domains/**/messages/*.ts", "write-once", false, ["src/domains/a/messages/m.ts"]],
+    ["src/domains/**/plugs/messages/*.ts", "write-once", false, ["src/domains/a/plugs/messages/m.ts"]],
     ["{dir}/entities/schema.ts", "every-run", true, ["src/domains/a/entities/schema.ts"]],
   ]);
   assert.equal(outputFiles([{ gate: "g", outputs: "x" }], [], [])[0].problems.length, 1);

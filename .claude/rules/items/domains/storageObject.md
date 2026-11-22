@@ -5,8 +5,8 @@ paths:
 ---
 # domains/storageObject
 what: the file ledger storage_objects: upload grants, commit (check, strip images re-rendered), discard, private reads, binding to business rows | storageObjectService, routes /api/me/storage/uploads, /api/storage/objects, /api/storage/purposes | parts in @/lib/storage
-use: always (in no rule's domains)
-change: add = purposes/<name>.ts (receptacle purposes) | counterpart = src/config/domains/storageObject.config.ts
+use: always (always-open, declared)
+change: add = <domain>/plugs/storageObjectPurposes/<name>.ts (point storageObjectPurposes, read ungated: keys of stored files) | counterpart = src/config/domains/storageObject.config.ts
 rules:
 using:
 - purpose_gate: a purpose reading a closable domain's table checks gate.enabled on upload (read stays open)

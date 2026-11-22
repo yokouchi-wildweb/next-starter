@@ -21,7 +21,7 @@ import { overrideSwitches } from "@/featureGate/ruleList";
 import { GateProvider, useGate, type ClientGate } from "@/featureGate/client";
 import { rules } from "@/featureGate/node";
 
-import { adminSidebarHrefs } from "../../../src/featureGate/checks/adminSidebar";
+import { adminSidebarHrefs } from "../../../src/featureGate/checks/__tests__/adminSidebar";
 import { folderSourcePattern, gatedImports } from "../../../src/featureGate/checks/alwaysOnEntries.mjs";
 import { loadCronTasks } from "../cron/discover";
 import { planExtensions } from "../extensions/extensions.mjs";
@@ -101,9 +101,9 @@ test("(b) 常時実行の拡張点: wallet / payment のフォルダを読む項
     .filter((item) => gatedImports(readFileSync(join(ROOT, item.file), "utf8"), patterns).length > 0);
   const files = items.map((item) => item.file);
   for (const expected of [
-    "src/domains/core/batchJob/jobHandlers/walletBulkAdjust.ts",
-    "src/domains/core/user/cleanupHandlers/wallet.ts",
-    "src/domains/core/user/cleanupHandlers/purchaseRequest.ts",
+    "src/domains/core/wallet/plugs/batchJobJobHandlers/walletBulkAdjust.ts",
+    "src/domains/core/wallet/plugs/userCleanupHandlers/wallet.ts",
+    "src/domains/core/purchaseRequest/plugs/userCleanupHandlers/purchaseRequest.ts",
   ]) assert.ok(files.includes(expected), `${expected} が常時の項目の走査に入らない(走査を確認)`);
   // 規則の enabled と同じ config の式を直に読む項目(gate を通らない。L1.10: 設定の議会の指令 03 が gate に直す)。
   // 本物の config では規則と同じ値で閉じるので、式が同じことだけ確かめて既知として出す

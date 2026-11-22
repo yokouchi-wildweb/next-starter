@@ -1,9 +1,7 @@
-// 生成カテゴリ components の一部: 管理一覧の一括操作の受け口(棚の評議会 D149)。
-// - <domain>/extensionPoints.ts: 受け口 adminBulkActions の宣言(生成されるドメインの宣言は生成器が持つ。生成のたびに書き直す。
-//   別の受け口が要るドメインは generate: false にして手で持つ)
+// 生成カテゴリ components の一部: 管理一覧の一括操作の項目の型(棚の評議会 D149)。
 // - <domain>/types/adminBulkAction.ts: 項目の型(BulkActionItem<Row, AdminBulkActionAccess>)
-// 一覧(<domain>/extensions/adminBulkActions.ts)は pnpm generate extensions が書く(forge は続けて回す)。
-// 一覧の Table(Admin__Domain__List/Table.tsx)が一覧を読み、項目があれば選択の表と一括操作のバーを出す
+// 点 adminBulkActions は core/admin の 1 点(段 3 注文 24 Q2)なので、生成するドメインは宣言を持たない。項目は <domain>/plugs/adminBulkActions/<名前>.tsx。
+// 一覧の Table(Admin__Domain__List/Table.tsx)が core/admin の useDomainAdminBulkActions で自分の項目を読み、項目があれば選択の表と一括操作のバーを出す
 
 import path from "node:path";
 
@@ -13,26 +11,6 @@ import { file } from "../output.mjs";
 /** 生成するドメインの import の住所(src/domains/<x>/ → @/domains/<x>) */
 const domainImport = (ctx) => `@/domains/${domainRel(ctx).replace(/^src\/domains\//, "").replace(/^core\//, "")}`;
 
-export function extensionPointsContent(ctx) {
-  return `// ${domainRel(ctx)}/extensionPoints.ts
-// ${ctx.label}の拡張点の宣言(pnpm generate domain が生成する。生成のたびに書き直すので手で編集しない。
-// 別の受け口が要るなら domain.json を generate: false にして手で持つ)。書式: scripts/structure/extensions/README.md
-
-export const extensionPoints = {
-  // 管理一覧の一括操作: adminBulkActions/<名前>.tsx の export const bulkAction(lib/crud の作成関数で数行。D149)
-  adminBulkActions: {
-    change: "add",
-    dir: "adminBulkActions",
-    export: "bulkAction",
-    type: { from: "${domainImport(ctx)}/types/adminBulkAction", name: "${ctx.pascal}AdminBulkActionItem" },
-    side: "client",
-    key: "key",
-    overrideOf: ["enabled", "order"],
-  },
-};
-`;
-}
-
 export function adminBulkActionTypeContent(ctx) {
   return `// ${domainRel(ctx)}/types/adminBulkAction.ts
 // ${ctx.label}の管理一覧の一括操作の項目の型(pnpm generate domain が生成する。手で編集しない)
@@ -41,7 +19,7 @@ import type { BulkActionItem } from "@/lib/tableSuite";
 import type { ${ctx.pascal} } from "${domainImport(ctx)}/entities";
 import type { AdminBulkActionAccess } from "@/domains/core/user/types";
 
-/** ${domainRel(ctx)}/adminBulkActions/<名前>.tsx の export const bulkAction。作り方: src/lib/tableSuite/README.md「一括操作の受け口」 */
+/** ${domainRel(ctx)}/plugs/adminBulkActions/<名前>.tsx の export const bulkAction。作り方: src/lib/tableSuite/README.md「一括操作の受け口」 */
 export type ${ctx.pascal}AdminBulkActionItem = BulkActionItem<${ctx.pascal}, AdminBulkActionAccess>;
 `;
 }
@@ -49,7 +27,6 @@ export type ${ctx.pascal}AdminBulkActionItem = BulkActionItem<${ctx.pascal}, Adm
 /** @returns {import("../output.mjs").Output[]} */
 export function renderBulkActionFiles(ctx) {
   return [
-    file(path.join(ctx.dir, "extensionPoints.ts"), extensionPointsContent(ctx), { label: "受け口の宣言を生成しました" }),
     file(path.join(ctx.dir, "types", "adminBulkAction.ts"), adminBulkActionTypeContent(ctx), { label: "型を生成しました" }),
   ];
 }

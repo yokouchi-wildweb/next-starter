@@ -1,6 +1,7 @@
 // src/domains/core/messaging/components/common/InboxLayoutView/index.tsx
 // 部品(props だけ): お知らせ 1 件の中身をレイアウトで描く(受け取り箱の詳細のモーダルと、管理画面のお知らせのプレビューが同じ部品)。
-// 描き方は 1 つ(D120): 1. レイアウトのお知らせの描き方(client の一覧 layoutInApps、レイアウトの鍵で引く)> 2. 汎用の描き方(欄の宣言 fields
+// 描き方は 1 つ(D120): 1. レイアウトのお知らせの描き方(点 messagingLayoutInApps の一覧、レイアウトの鍵で引く。保存したお知らせの行を描くので
+// 門番で絞らない(行の鍵の定義と同じ、段 3 注文 28)。props だけの部品のまま)> 2. 汎用の描き方(欄の宣言 fields
 // があれば GenericInAppView)。どちらでも描けない(レイアウト・中身が無い = fork がレイアウトを外した等)時は「このお知らせは表示できません」。
 // 要約は描かない(レイアウトの描き方に渡すだけ)。
 // 題(要約の題 = メールの件名)は既定で描かない(受け取り箱は包む Modal が持つ)。showTitle = 中身の上に見出しで描く(管理画面のお知らせのプレビュー)
@@ -12,7 +13,13 @@ import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import type { MessageLayoutFields, MessageLayoutSummary, MessageLayoutValues } from "@/lib/messaging";
 
-import { layoutInApps } from "@/domains/core/messaging/extensions/layoutInApps";
+import { messagingLayoutInApps } from "@/domains/core/messaging/extensions/messagingLayoutInApps";
+
+/** レイアウトの鍵 → お知らせの描き方 */
+const layoutInApps = Object.assign(
+  Object.create(null),
+  Object.fromEntries(messagingLayoutInApps.map((entry) => [entry.plug.layout, entry.plug])),
+) as Readonly<Record<string, (typeof messagingLayoutInApps)[number]["plug"]>>;
 
 import { GenericInAppView } from "./GenericInAppView";
 

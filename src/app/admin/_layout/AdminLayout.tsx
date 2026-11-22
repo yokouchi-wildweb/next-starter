@@ -2,10 +2,12 @@
 
 import type { ReactNode } from "react";
 
+import { FrameParts } from "@/app/_layout/FrameParts";
 import { useFrameAttributes } from "@/app/_layout/frame/useFrameAttributes";
 import { Flex } from "@/components/Layout/Flex";
 import { cn } from "@/lib/cn";
 
+import { adminOverlays } from "./extensions/adminOverlays";
 import { frameTable } from "./extensions/frameTable";
 import { useAdminLayoutStore } from "./stores/adminLayout";
 
@@ -58,6 +60,8 @@ export function AdminLayout({ children, className }: AdminLayoutProps) {
       <Flex direction="column" className="flex-1 min-h-0 overflow-clip pt-[var(--app-header-height,0px)]">
         {children}
       </Flex>
+      {/* 枠に重ねる部品(点 adminOverlays、各ドメインが差す。閉じたドメインの部品は門番が外す。上流の項目は 0) */}
+      <FrameParts items={adminOverlays} />
     </Flex>
   );
 }

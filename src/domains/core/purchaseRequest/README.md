@@ -73,7 +73,7 @@ export function DirectSaleCallback() {
 ### purchase_type を足す
 
 1. 上書き `src/config/domains/purchaseRequest.config.ts` の `purchaseType`(Extra で型も足す。既定は `config.ts`)に項目(`label`, `requiresWalletType`)を足す。enum が変わるので `pnpm db:push`
-2. `services/server/completion/strategies/<name>.ts` に `export const strategy: PurchaseCompletionStrategy` を書く
+2. `<ドメイン>/plugs/purchaseRequestCompletionStrategies/<name>.ts` に `export const strategy: PurchaseCompletionStrategy` を書く
 3. `pnpm generate extensions`
 4. 呼び手で `initiatePurchase({ purchaseType: "<name>", walletType: null, amount, paymentAmount, paymentMethod, baseUrl, metadata, ... })`
 
@@ -138,8 +138,8 @@ export const strategy: PurchaseCompletionStrategy = {
 ## Extension
 
 - 設定: 持ち主 `config.ts`、上書き `src/config/domains/purchaseRequest.config.ts`(`payment` = 支払い方法・プロバイダ・Webhook の署名ヘッダー・`debugLog`、`purchaseType` = 購入の種類)。決済プロバイダの足し方は [services/server/payment/README.md](services/server/payment/README.md)
-- 受け口 `completionStrategies`: `services/server/completion/strategies/<name>.ts` の `strategy`(Usage「purchase_type を足す」)
-- 受け口 `completeHooks`(購入完了ポストフック): `services/server/hooks/definitions/<名前>.ts` に `export const hook: PurchaseCompleteHook`(`{ key, priority?, handler }`)を置き `pnpm generate extensions`。`walletResult.history` は非ウォレット型で `null`
+- 点 `purchaseRequestCompletionStrategies`: `<ドメイン>/plugs/purchaseRequestCompletionStrategies/<name>.ts` の `strategy`(Usage「purchase_type を足す」)
+- 点 `purchaseRequestCompleteHooks`(購入完了ポストフック): `<ドメイン>/plugs/purchaseRequestCompleteHooks/<名前>.ts` に `export const hook: PurchaseCompleteHook`(`{ key, priority?, handler }`)を置き `pnpm generate extensions`。`walletResult.history` は非ウォレット型で `null`
 - セッションのエンリッチャー(1 行スイッチ `sessionEnricher.ts`): 購入者の住所などをプロバイダに渡す(payment/README.md API)
 
 ## Internals
@@ -194,7 +194,7 @@ export const strategy: PurchaseCompletionStrategy = {
 
 - `expirePendingRequests()`: `status='pending' AND expires_at < now` を `expired` に(`processing` は対象外)+ `releaseQuota`
 - 実行: Vercel Cron が 15 分ごとに `GET /api/cron/expire-pending-purchases`(`CRON_SECRET` 認証)を呼ぶ(Vercel Hobby では 1 日 1 回。`vercel.json` の項目は `pnpm generate cron` が作る)。手動は `pnpm task expire-pending-purchases`。準備は [src/lib/cron/README.md](../../../lib/cron/README.md)「スケジュールのセットアップ」
-- `cancelPending`: ユーザー削除の時に pending / processing をまとめて expired(user の受け口 cleanupHandlers から呼ばれる)
+- `cancelPending`: ユーザー削除の時に pending / processing をまとめて expired(user の点 userCleanupHandlers から呼ばれる)
 
 ### 二重購入の防止(多層)
 

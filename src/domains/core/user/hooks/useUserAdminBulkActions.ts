@@ -1,5 +1,5 @@
 // src/domains/core/user/hooks/useUserAdminBulkActions.ts
-// user の管理一覧に出す一括操作の項目(受け口 adminBulkActions を、一覧の名前・enabled・access・閉じた機能(feature、useGate)で絞って並べる)
+// user の管理一覧に出す一括操作の項目(点 adminBulkActions の user の項目を、一覧の名前・enabled・access・閉じた機能(feature、useGate)で絞って並べる。閉じたドメインの項目は useDomainAdminBulkActions が外す)
 
 "use client";
 
@@ -7,7 +7,7 @@ import { useMemo } from "react";
 
 import { useGate } from "@/featureGate/client";
 import { selectBulkActions } from "@/lib/tableSuite";
-import { adminBulkActions } from "@/domains/core/user/extensions/adminBulkActions";
+import { useDomainAdminBulkActions } from "@/domains/core/admin/hooks/useDomainAdminBulkActions";
 import type { UserAdminBulkActionItem } from "@/domains/core/user/types";
 
 import { useAdminBulkActionCan } from "./useAdminBulkActionCan";
@@ -16,12 +16,13 @@ import { useAdminBulkActionCan } from "./useAdminBulkActionCan";
 export function useUserAdminBulkActions(list: "general" | "managerial" | "demo"): UserAdminBulkActionItem[] {
   const can = useAdminBulkActionCan();
   const gate = useGate();
+  const items = useDomainAdminBulkActions<UserAdminBulkActionItem>("user");
   return useMemo(
     () =>
       selectBulkActions(
-        Object.values(adminBulkActions).filter((item) => item.feature === undefined || gate.enabled(item.feature)),
+        items.filter((item) => item.feature === undefined || gate.enabled(item.feature)),
         { list, can },
       ),
-    [list, can, gate],
+    [items, list, can, gate],
   );
 }

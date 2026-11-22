@@ -19,7 +19,7 @@
 
 報酬定義（`rewardDefinitions.ts`）:
 
-- `REFERRAL_REWARD_DEFINITIONS`: 一覧 `extensions/rewardGroups` そのもの（key = グループキー）
+- `REFERRAL_REWARD_DEFINITIONS`: 点 `referralRewardRewardGroups` の全項目（key = グループキー。保存した報酬の行の鍵の定義なので門番で絞らない。報酬を始める `getRewardKeysByTrigger` は閉じたドメインのグループを外す）
 - 2 階層: グループ（表示単位） > 個別報酬（`reward_key` → `{ label, trigger, recipientRole }`）。管理画面ではグループ単位でバッジ表示し、同一シナリオの inviter / invitee 報酬をまとめる
 - `getRewardDefinition(rewardKey)`: reward_key からフラットな定義を取得(`utils/rewardDefinitionLookup.ts`)
 - `getRewardGroupKey(rewardKey)`: reward_key が属するグループキーを取得(`utils/rewardDefinitionLookup.ts`)
@@ -44,7 +44,7 @@
 
 下流での報酬の足し方:
 
-1. 報酬グループ: `rewardGroups/<名前>.ts` に `export const group: ReferralRewardGroupItem`（`key`・`label`・`rewards`）
+1. 報酬グループ: `<ドメイン>/plugs/referralRewardRewardGroups/<名前>.ts` に `export const group: ReferralRewardGroupItem`（`key`・`label`・`rewards`）
 
 ```ts
 export const group: ReferralRewardGroupItem = {
@@ -57,7 +57,7 @@ export const group: ReferralRewardGroupItem = {
 };
 ```
 
-2. ハンドラー: `services/server/handlers/<名前>.ts` に `export const handler: RewardHandlerItem`（`rewardKey`・`handler`）
+2. ハンドラー: `<ドメイン>/plugs/referralRewardRewardHandlers/<名前>.ts` に `export const handler: RewardHandlerItem`（`rewardKey`・`handler`）
 3. `pnpm generate extensions` で一覧を作る（ハンドラーは一覧から読まれるので別途 import しない）
 4. トリガー: 任意のタイミングで `referralRewardService.triggerRewards("trigger_name", referral, context?, tx?)` を呼ぶ
 

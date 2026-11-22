@@ -68,7 +68,7 @@ LIMIT 50;
 単発クエリなら上記で十分。管理画面に常設するなら（analytics の README「レスポンスキャッシュ（withAnalyticsCache）」）:
 
 1. まず `withAnalyticsCache` でクエリ結果をキャッシュ
-2. 日次系列が必要になったら analytics の拡張点 `rollupMetrics` に flow メトリクス（例: `signup_by_source`、dimensions=first_utm_source）を登録して事前集計に載せる
+2. 日次系列が必要になったら analytics の拡張点 `analyticsRollupMetrics` に flow メトリクス（例: `signup_by_source`、dimensions=first_utm_source）を登録して事前集計に載せる
 
 ## API
 
@@ -85,8 +85,8 @@ import {
 
 | 関数 | 返すもの | 使い手 |
 | --- | --- | --- |
-| `classifyVisit({ url, referrer, now }, definitions?)` | 流入タッチ（cookie の圧縮表現）か null | `src/proxies/attribution.ts` |
-| `getChannelDefinitions()` | 判別表 `AcquisitionChannelDefinition[]`（シリアライズできる値） | `src/wiring/GoogleTag.tsx`（GA4 へ） |
+| `classifyVisit({ url, referrer, now }, definitions?)` | 流入タッチ（cookie の圧縮表現）か null | `plugs/proxyDecorators/attribution.ts` |
+| `getChannelDefinitions()` | 判別表 `AcquisitionChannelDefinition[]`（シリアライズできる値） | 点 googleTagChannels の項目 `plugs/googleTagChannels/channels.ts` → 生成物 `src/wiring/googleTag.ts`（GA4 へ） |
 | `getAttributionCookieMaxAgeSeconds()` | タッチ cookie の maxAge（秒） | proxy |
 
 cookie の読み書き（`parseAttributionCookie` ほか）は `lib/attributionCookie.ts`、cookie 名は `constants`。
@@ -106,9 +106,9 @@ cookie の読み書き（`parseAttributionCookie` ほか）は `lib/attributionC
 - UTM と外部リファラーは行ではなく分類の判定のルール（UTM が常に最優先、リファラーは最後）
 - 行の出どころ:
   - clickId の行 = config の `clickIdParams`（値は fork が config で変える）
-  - それ以外 = 受け口 `channels/<名前>.ts` の `export const channel: AcquisitionChannelItem`（`pnpm generate extensions` → `extensions/channels.ts`、鍵 = `param`）。上流の項目は招待 `channels/invite.ts` 1 つ
+  - それ以外 = 点 `userAcquisitionChannels`（差す側の `<ドメイン>/plugs/userAcquisitionChannels/<名前>.ts`）の `export const channel: AcquisitionChannelItem`（`pnpm generate extensions` → `extensions/userAcquisitionChannels.ts`、鍵 = `param`。項目のドメインが閉じていれば行を出さない）。上流の項目は招待 `userAcquisition/plugs/userAcquisitionChannels/invite.ts` 1 つ
 - 項目の `enabled?: () => boolean`: 持ち主の機能が閉じている間は行を出さない。招待の行は `gate.enabled("referral")`（パラメータ名は referral の `INVITE_LINK_PARAM`、source / medium は config の `referralParam`）
-- 同じ `param` が config と項目の両方にあると `getChannelDefinitions()` が例外（項目どうしの重複は一覧の読み込みで例外）
+- 同じ `param` が config と項目の両方にあると `getChannelDefinitions()` が例外（項目どうしの重複は生成で止まる）
 
 ### テーブル
 
@@ -127,7 +127,7 @@ cookie の読み書き（`parseAttributionCookie` ほか）は `lib/attributionC
 
 ## Extension
 
-- 独自の印（例: 自前のアフィリエイト `?aff=`）を経路にする: `channels/<名前>.ts` に `export const channel: AcquisitionChannelItem` を 1 つ置いて `pnpm generate extensions`（core の編集は不要）
+- 独自の印（例: 自前のアフィリエイト `?aff=`）を経路にする: `<ドメイン>/plugs/userAcquisitionChannels/<名前>.ts` に `export const channel: AcquisitionChannelItem` を 1 つ置いて `pnpm generate extensions`（core の編集は不要）
 - 設定: `config.ts`（`userAcquisitionConfig`: cookieMaxAgeDays=30 / maxTouches=15 / referralParam の source・medium / clickIdParams）、上書き `src/config/domains/userAcquisition.config.ts`（型 `UserAcquisitionOverride`）。clickId の行の値は fork が config で変える
 
 ## Internals
@@ -144,7 +144,7 @@ httpOnly cookie (acq_touches) に            → register() → recordSignupAcqu
                                             → cookie 削除
 ```
 
-- **cookie 蓄積**: `src/proxies/attribution.ts`（proxy のレスポンスデコレーター）
+- **cookie 蓄積**: `plugs/proxyDecorators/attribution.ts`（proxy のレスポンスデコレーター、点 proxyDecorators の項目）
 - **cookie コーデック**: `lib/attributionCookie.ts`（edge-safe）
 - **確定保存**: `services/server/recordSignupAcquisition.ts`（bestEffort）
 - 訪問の分類と判別表: `lib/classifyVisit.ts`
@@ -171,10 +171,10 @@ referral の招待リンクのパラメータ（`INVITE_LINK_PARAM` = `invite`�
   referral 専用 cookie（`pending_invite`、last-touch 優先で上書き・30日）に保持され、
   サインアップフォームへのプリフィルと本登録時の自動適用が動く。
   **解析が無効でも招待リンクは機能する**。実装は `referral/lib/inviteLinkCookie.ts` /
-  `src/proxies/inviteLink.ts` / `GET /api/referral/pending-invite-code`、
+  `src/domains/core/referral/plugs/proxyDecorators/inviteLink.ts` / `GET /api/referral/pending-invite-code`、
   挙動の詳細（プリフィル・明示的拒否の意味論）は referral README を参照
 
-パラメータ名は referral の物（`referral/lib/inviteLinkCookie.ts` の `INVITE_LINK_PARAM`）。本ドメインはその名前を判別表の行（`channels/invite.ts`）として分類に使うだけで、招待リンクの cookie は referral が自分の名前だけで動かす。
+パラメータ名は referral の物（`referral/lib/inviteLinkCookie.ts` の `INVITE_LINK_PARAM`）。本ドメインはその名前を判別表の行（`userAcquisition/plugs/userAcquisitionChannels/invite.ts`）として分類に使うだけで、招待リンクの cookie は referral が自分の名前だけで動かす。
 
 ### 制限
 

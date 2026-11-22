@@ -1,6 +1,6 @@
 // eslint-rules/config-overrides.mjs
 //
-// 上書きファイル(src/config/{lib,domains,layout,proxies}/<名前>.config.ts と <名前>.ui.config.ts、中身の名前で置く上書き src/config/featureGate/<中身>.config.ts)の
+// 上書きファイル(src/config/{lib,domains,layout}/<名前>.config.ts と <名前>.ui.config.ts、中身の名前で置く上書き src/config/featureGate/<中身>.config.ts)の
 // 2 つの規則(設定 D34・D35・D38・D91・L1.19・L1.31)。
 // 全 Tier error(新しいフォルダだけが対象なので縮む表は無い)。置き方の決まり: src/config/README.md
 //
@@ -18,6 +18,10 @@
 // - owner-reads-only(src と scripts の全ファイルに掛ける): 上書きを読めるのは持ち主の config.ts(<名前>.ui.config.ts は config.ui.ts)だけ。
 //   @/config/… ・相対・"src/…"・@lib-config/<名前> のどれで読んでも解いた実パスで判定し、型だけの import も止める。
 //   lib の中から自分の上書きを読む所は lint entry/only-entries の持ち分なので見ない(二重に落とさない)。
+//
+// - config-imports(ドメインの config.ts に掛ける、地区の議会 D28・注文 38): 読み込めるのは @/lib/defineConfig・自分の上書き
+//   (src/config/domains/<名前>.config、持ち主 = このファイル)・zod(値の検査)と、型だけの import。規則の when が config.ts の最上位の真偽を
+//   指す(D28)ので、config.ts は値の外(services・drizzle・ほかのドメイン)を読まない
 //
 // 上書き → 持ち主は地区の地図(src/lib/districtMap)で引く(リポジトリごとに 1 回読んで覚える。地区を足したら eslint を起動し直す)。
 // 中身の名前で置く上書きの持ち主は固定のフォルダ(種類の表 KINDS の override.shape "contents" の地区の dir、CONTENTS_OVERRIDE_FOLDERS、例 src/featureGate)で、読めるのはその中のファイル。宣言(overrideImports)は持たない。
@@ -316,9 +320,36 @@ const ownerReadsOnly = {
   },
 };
 
+/** ドメインの config.ts が値で読んでよい指定子(自分の上書きは持ち主の判定で別に通す) */
+const CONFIG_VALUE_IMPORTS = ["@/lib/defineConfig", "zod"];
+
+const configImports = {
+  meta: {
+    type: "problem",
+    docs: { description: "ドメインの config.ts が読み込めるのは @/lib/defineConfig・自分の上書き・zod と型だけ(D28)" },
+    schema: [{ type: "object", properties: { root: { type: "string" } }, additionalProperties: false }],
+    messages: {
+      configImport:
+        '"{{source}}": ドメインの config.ts が値で読めるのは @/lib/defineConfig・自分の上書き・zod だけ(型は import type で可、D28)。値の中身はドメインのほかのファイルに置き、config.ts は値だけにする',
+    },
+  },
+  create(context) {
+    const root = rootOf(context);
+    const file = repoRelative(context.filename, root);
+    if (!/^src\/domains\/(?:.+\/)?config\.ts$/.test(file)) return {};
+    return moduleVisitors(({ node, source, typeOnly }) => {
+      if (typeOnly || CONFIG_VALUE_IMPORTS.includes(source)) return;
+      const override = asOverridePath(resolveImport(source, context.filename, root));
+      const slot = override ? overrideSlots(root).get(override) : null;
+      if (slot && stripExt(file) === stripExt(slot.owner)) return;
+      context.report({ node, messageId: "configImport", data: { source } });
+    });
+  },
+};
+
 const plugin = {
   meta: { name: "eslint-plugin-local-config-overrides", version: "1.0.0" },
-  rules: { "literal-only": literalOnly, "owner-reads-only": ownerReadsOnly },
+  rules: { "literal-only": literalOnly, "owner-reads-only": ownerReadsOnly, "config-imports": configImports },
 };
 
 export default plugin;

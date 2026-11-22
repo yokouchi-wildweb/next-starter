@@ -1,0 +1,12 @@
+// src/domains/core/wallet/plugs/messagingCategories/walletExpired.ts
+// 上流のカテゴリー: 残高の失効(種別 transactional)。wallet.expiredNotice
+
+import type { MessageCategory } from "@/lib/messaging";
+
+export const category: MessageCategory = {
+  key: "walletExpired",
+  label: "残高の失効",
+  description: "残高が有効期限で失効した時のお知らせ",
+  kind: "transactional",
+  channels: ["email", "inApp"],
+};

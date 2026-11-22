@@ -10,7 +10,7 @@ import type { MessageDefinition } from "./types";
  *
  * @example
  * ```ts
- * // messages/verification.ts(定義は export const message。pnpm check extensions が字面で読む)
+ * // plugs/messages/verification.ts(定義は export const message。pnpm check extensions が字面で読む)
  * export const message = defineMessage({
  *   key: "auth.verification",
  *   label: "メールアドレスの確認",

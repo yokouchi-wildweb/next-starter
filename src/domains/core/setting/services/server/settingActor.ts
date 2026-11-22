@@ -5,8 +5,7 @@
 import { DomainError } from "@/lib/errors";
 
 import type { Setting, SettingValues } from "../../entities";
-import { fields } from "../../extensions/fields";
-import { sections } from "../../extensions/sections";
+import { allSections as sections, fields } from "../../definitions";
 import { publicSettingKeys, settingKeysFor } from "./access";
 import { settingService } from "./settingService";
 

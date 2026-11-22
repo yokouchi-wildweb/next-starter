@@ -2,7 +2,7 @@
 
 ## Overview
 
-- 管理画面のサイドバーのメニューを、カテゴリーのファイル（`categories/<名前>.ts`、見出し 1 つ）と項目のファイル（`items/<名前>.ts`、項目 1 つ）の 2 つの受け口から組み立てる仕組み
+- 管理画面のサイドバーのメニューを、カテゴリーのファイル（点 `adminMenuCategories`、見出し 1 つ）と項目のファイル（点 `adminMenuItems`、項目 1 つ）から組み立てる仕組み。どちらも差す側のドメインの `<ドメイン>/plugs/adminMenuCategories/<名前>.ts`・`<ドメイン>/plugs/adminMenuItems/<名前>.ts`（その画面の概念のドメイン。例 クーポンの行は `src/domains/core/coupon/plugs/adminMenuItems/coupons.ts`）に置き、項目のドメインが閉じれば出ない（`useGate().plugs`）
 - 上流の物も fork の物も同じ受け口に置き、同じ一覧に並ぶ
 - 枠の部品（ホーム・サイトへのリンク・ログアウト）はメニューではなく管理の枠の側が持つ
 - 受け口の宣言は `../extensionPoints.ts`（`menuCategories` / `menuItems`）。一覧は `pnpm generate extensions` が `../extensions/` に出す
@@ -21,7 +21,7 @@
 
 - link: `label` + `href`（1 行）
 - domain: `domain: "<ドメインのフォルダ名>"`（`label` で題名だけ差し替え可。1 行）。題名と住所は生成の一覧 `@/registry/adminDomains`（管理一覧の画面を持つドメイン、`pnpm generate registry`）
-- source: `source: "dataMenu"` / `"settingSections"`。その位置に複数行を展開する。行の中身は出どころで編集する: `dataMenu` = `domain.json` の `addToAdminDataMenu: true` のドメイン、`settingSections` = 設定の節（`src/domains/core/setting/sections/`）
+- source: `source: "dataMenu"` / `"settingSections"`。その位置に複数行を展開する。行の中身は出どころで編集する: `dataMenu` = `domain.json` の `addToAdminDataMenu: true` のドメイン、`settingSections` = 設定の節（点 `settingSections`、`<ドメイン>/plugs/settingSections/`）
 
 - どの形も `category`（カテゴリーの名前）・`order`・`icon`・`allowRoles` を持つ
 - 生成の出力（dataMenu・settingSections・domain）はどれも 1 項目なので、どのカテゴリーのどの位置にも置ける
@@ -46,7 +46,7 @@
 道具は `scripts/structure/admin-menu/`（検査の関段階 build・ship = pnpm build / /ship の時に走る検査に乗る）:
 
 - `pnpm check admin-menu -- show`: ロールごとにカテゴリーと行の木を出す。行ごとに当たる門番の規則（今の開閉）か `常時`、重複、描かない物と理由。`--role=<ロール>` で 1 ロール、`--closed=now`（既定・今の開閉）/ `all`（全部閉じた）/ `none`（全部開いた）。fork の取り込みの前後比較にも使う
-- `pnpm check admin-menu`: 置き間違いを止める（段階 build・ship、`extensions` の後。`phase.json`）。止める物: 知らないカテゴリー（上書きで移した先も）・管理一覧に無いドメイン・相手の無い上書き・上流より `allowRoles` を広げる上書き（空も広げる扱い）・`/admin` の住所でページが `src/app/route-map.jsonl` に無いもの（動的セグメントも照らす）・`key` とファイル名の食い違い。管理ダッシュボードの受け口（`../dashboard/sections`）も同じ段階で見る
+- `pnpm check admin-menu`: 置き間違いを止める（段階 build・ship、`extensions` の後。`phase.json`）。止める物: 知らないカテゴリー（上書きで移した先も）・管理一覧に無いドメイン・相手の無い上書き・上流より `allowRoles` を広げる上書き（空も広げる扱い）・`/admin` の住所でページが `src/app/route-map.jsonl` に無いもの（動的セグメントも照らす）・`key` とファイル名の食い違い。管理ダッシュボードの点（`<ドメイン>/plugs/adminDashboardSections/`）も同じ段階で見る
 - 中身は純関数 `scripts/structure/admin-menu/inspect.ts`、読むのは `collect.ts`（受け口は生成の一覧でなく素のファイルを読む: 上書きの前の上流の値と比べるため）
 - テスト: `pnpm test src/domains/core/admin scripts/structure/admin-menu`（組み立て器・上流の中身・サイドバーの中身・点検）
 

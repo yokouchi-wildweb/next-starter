@@ -23,7 +23,7 @@
 
 | 鍵 | 既定 | 読み手 |
 |---|---|---|
-| `mode.enabled` | `false` | proxy の項目 `src/proxies/demoMode.ts`(有効ならデモ利用者以外を `mode.redirectTo` へ転送) |
+| `mode.enabled` | `false` | proxy の項目 `plugs/proxyHandlers/demoMode.ts`(有効ならデモ利用者以外を `mode.redirectTo` へ転送) |
 | `mode.allowedPaths` / `mode.allowedPrefixes` | `["/demo"]` / `["/_next", "/api", "/admin", "/assets"]` | 同上(完全一致 / 前方一致で転送しないパス) |
 | `mode.redirectTo` | `"/demo"` | 同上 |
 | `session.maxAgeSeconds` | `600` | auth の `demoSessionMaxAgeSeconds`(デモのログインの機能 `demoLogin` が開のときだけ、閉なら通常の長さ) |

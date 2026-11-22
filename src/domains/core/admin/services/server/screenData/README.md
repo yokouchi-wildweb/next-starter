@@ -3,7 +3,7 @@
 ## Overview
 
 - `pnpm generate domain` が出す管理画面ルート（`src/app/admin/(protected)/<domains>/{,new/,[id]/edit/,sort/}`）と、同じ形の手書きの core 管理画面が共有する取得の本体
-- 認可と cache は持たない。各ルートの `_screen/loader.ts` が最寄りの guard.ts の `createLoader` に、`src/wiring/adminScreenParts.ts` の共通部品の組を渡して使う
+- 認可と cache は持たない。各ルートの `_screen/loader.ts` が最寄りの guard.ts の `createLoader` に、`src/domains/core/admin/services/server/screenParts.ts` の共通部品の組を渡して使う
 - service と関連先は外から受け取り、登録表（serviceRegistry）は読まない（結ぶのは wiring）
 - 決まり（cache・認可を持たない、関連の判定の置き場）は札 `.claude/rules/items/domains/admin.md`
 
@@ -11,7 +11,7 @@
 _screen/<Name>Screen.tsx ──▶ _screen/loader.ts = createLoader(adminXParts("sample", …))
                                  │  createLoader(admin/(protected)/guard.ts): 範囲の方針 + 組の access を取得前に評価、key で cache
                                  ▼
-                            src/wiring/adminScreenParts.ts の adminXParts: access(serviceRegistry の entry から操作ごと)・key・load
+                            src/domains/core/admin/services/server/screenParts.ts の adminXParts: access(serviceRegistry の entry から操作ごと)・key・load
                                  ▼
                             screenData/adminX.ts: fetchAdminX(service, …)
 ```
@@ -26,7 +26,7 @@ import "server-only";
 import type { Sample } from "@/domains/sample/entities/model";
 import domainConfig from "@/domains/sample/domain.json"; // 全件取得する関連があるときだけ
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminEditParts } from "@/wiring/adminScreenParts";
+import { adminEditParts } from "@/domains/core/admin/services/server/screenParts";
 
 export const loadAdminSampleEditScreen = createLoader(
   adminEditParts<Sample>("sample", { fallbackPath: "/admin/samples", relations: domainConfig }),
@@ -39,7 +39,7 @@ export const loadAdminSampleEditScreen = createLoader(
 
 ## API
 
-共通部品の組（`src/wiring/adminScreenParts.ts`。access は serviceRegistry の entry から resolveAccessRule）:
+共通部品の組（`src/domains/core/admin/services/server/screenParts.ts`。access は serviceRegistry の entry から resolveAccessRule）:
 
 - `adminListParts<T>(domainKey, options?)`: 一覧。access `search`（read）。key `?page=`・`?searchQuery=`。返り値 `{ page, limit, searchQuery, results, total }`（`limit` = 設定 adminListPerPage）
 - `adminEditParts<T>(domainKey, { fallbackPath, relations? })`: 編集。access `get`（read）。key `id`・`?returnTo=`。返り値 `{ id, record, redirectPath, relationFallback }`。レコード無し → 404
@@ -76,4 +76,4 @@ access:
 
 ## Verification
 
-- テスト: `pnpm test src/wiring/adminScreenParts.test.mts`（組の access・key、関連選択肢の拒否・ログ）
+- テスト: `pnpm test src/domains/core/admin/services/server/screenParts.test.mts`（組の access・key、関連選択肢の拒否・ログ）

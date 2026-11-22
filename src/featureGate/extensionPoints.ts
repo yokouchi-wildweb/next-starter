@@ -8,40 +8,16 @@ export const extensionPoints = {
     change: "add",
     dir: "rules",
     export: "rule",
-    type: { from: "@/featureGate", name: "GeneratedFeatureRule" },
+    type: { from: "@/featureGate/points", name: "GeneratedFeatureRule" },
     side: "shared",
     derive: "featureTables",
-  },
-  // 常時実行の入口の例外(結線): alwaysOnExceptions/<名前>.ts の export const exception
-  alwaysOnExceptions: {
-    change: "add",
-    dir: "alwaysOnExceptions",
-    export: "exception",
-    type: { from: "@/featureGate", name: "AlwaysOnException" },
-    side: "shared",
-  },
-  // 常時実行の入口の例外(fork の手書きの登録表): 同じ置き場の export const registry(1 ファイルに両方は置かない)
-  alwaysOnRegistries: {
-    change: "add",
-    dir: "alwaysOnExceptions",
-    export: "registry",
-    type: { from: "@/featureGate", name: "AlwaysOnException" },
-    side: "shared",
-  },
-  // 依存の検査の例外: dependencyExceptions/<名前>.ts の export const exception(閉じられる機能のフォルダを外から読んでよいファイル)
-  dependencyExceptions: {
-    change: "add",
-    dir: "dependencyExceptions",
-    export: "exception",
-    type: { from: "@/featureGate", name: "DependencyException" },
-    side: "shared",
   },
   // この fork が必ず使う機能: required/<機能名>.ts の export const required(依存の検査が依存を書いたとみなす)
   required: {
     change: "add",
     dir: "required",
     export: "required",
-    type: { from: "@/featureGate", name: "RequiredFeature" },
+    type: { from: "@/featureGate/points", name: "RequiredFeature" },
     side: "shared",
   },
 };

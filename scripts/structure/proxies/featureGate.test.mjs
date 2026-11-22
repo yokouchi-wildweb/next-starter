@@ -24,7 +24,7 @@
 //    (判定はファイル名の順で最初の無効な規則の行き先)。一覧は規則ファイルと同じ並び
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, relative, resolve, sep } from "node:path";
 
@@ -35,13 +35,13 @@ import { serviceRegistry } from "../../../src/registry/serviceRegistry.ts";
 import { isGenericApiClosed } from "../../../src/lib/domain/index.ts";
 // 規則の値だけの一覧(全開スイッチを通さない。検査は env で揺れない、L2.3)
 // 住所で覆うかを見る検査は、規則の pathPatterns に規則のドメインの導出の住所(汎用 API・cron)を足した写しで見る(withCoveredPatterns、D34 K4)
-import { alwaysOnExceptions, alwaysOnRegistries, checkAddresses, configEnabled, configRules, gatedDomains, gatedSchema as applySchemaGate, readRequired, withCoveredPatterns } from "../../../src/featureGate/node.ts";
+import { checkAddresses, configEnabled, configRules, gatedDomains, gatedSchema as applySchemaGate, readRequired, withCoveredPatterns } from "../../../src/featureGate/node.ts";
 import { checkAlwaysOpenRequires, checkForeignKeys, checkRequiredClosed, sharedDomainsOpen } from "../../../src/featureGate/checks/integrity.mjs";
 import { readRequiredNames } from "../../../src/featureGate/checks/dependencies.mjs";
 import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
 import { forkAddedFiles } from "../../../src/lib/forkOwnership/node.mjs";
 import { itemsOf, planExtensions } from "../extensions/extensions.mjs";
-import { ALWAYS_ON_DIR, judgeAlwaysOnEntries, readForkAlwaysOn, staleAlwaysOnFiles } from "../../../src/featureGate/checks/alwaysOnEntries.mjs";
+import { judgeAlwaysOnEntries } from "../../../src/featureGate/checks/alwaysOnEntries.mjs";
 import { findOpenGenericApis, findOpenRouteImports, rulesWithFeatures } from "../../../src/featureGate/checks/routeImports.mjs";
 import { matchesPath, patternCoversRoute } from "../../../src/lib/pathPattern/index.mjs";
 
@@ -57,7 +57,6 @@ const ROUTE_EXCEPTIONS = {
   "api/auth/register/route.ts": "本登録(紹介・流入経路が閉でも登録は動く)。読むのは referral の lib/inviteLinkCookie の cookie 名と userAcquisition の constants・lib/attributionCookie(cookie の読み取りだけ)で、招待コードは gate.enabled(\"referral\")、流入経路は gate.enabled(\"userAcquisition\") が開のときだけ読む",
   "api/auth/send-early-registration-link/route.ts": "事前登録のメール(紹介が閉でも動く)。読むのは referral の lib/inviteLinkCookie の cookie 名だけで、招待コードは gate.enabled(\"referral\") が開のときだけ渡す",
   "api/auth/send-email-link/route.ts": "サインインのメール(紹介が閉でも動く)。読むのは referral の lib/inviteLinkCookie の cookie 名だけで、招待コードは gate.enabled(\"referral\") が開のときだけ渡す",
-  "(user)/_layout/UserLayout.tsx": "利用者の枠(常に描く)。既定の未読のお知らせのモーダルは useGate().enabled(\"notification\") が開のときだけ描く(閉なら描かず未読数も取りに行かない)",
 };
 
 // FEATURE_GATE_CHECK=all: 全ルールを無効とみなして検査する（upstream 用）
@@ -153,6 +152,16 @@ test("無効な機能のドメインの汎用 CRUD（/api/<domain>）は閉じ�
   // 汎用 CRUD が全操作 "none"（INTERNAL_ONLY）の行は /api/<domain> が存在しない（404）ので対象外
   const problems = findOpenGenericApis(checkedRules, (domain) => domain in serviceRegistry && !isGenericApiClosed(serviceRegistry[domain].access));
   assert.deepEqual(problems, [], `pathPatterns に追加する: ${problems.join(", ")}`);
+});
+
+test("ROUTE_EXCEPTIONS は縮むだけ: 各行は、閉じうる機能(必須で開いた物を除く)を全部閉じたとき表が無ければ出るルート(当たらない行は消す、注文 38)", () => {
+  const routeFiles = walk(APP_DIR)
+    .filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\./.test(f))
+    .map((f) => ({ rel: relative(APP_DIR, f).split(sep).join("/"), segments: toUrlSegments(f), text: readFileSync(f, "utf8") }));
+  const closable = rulesWithFeatures(featureGateRules).filter((rule) => !isRequiredOpen(rule));
+  const reported = new Set(findOpenRouteImports(closable, routeFiles, {}).map((p) => p.split("（")[0]));
+  const stale = Object.keys(ROUTE_EXCEPTIONS).filter((rel) => !reported.has(rel));
+  assert.deepEqual(stale, [], `ROUTE_EXCEPTIONS の行が当たらない(もう閉じうる機能のドメインを読まない → 行を消す): ${stale.join(", ")}`);
 });
 
 test("ROUTE_EXCEPTIONS の各行は実在するルート", () => {
@@ -310,7 +319,7 @@ test("住所: 同じ住所を 2 つの機能に書かず、親の前方一致の
 // 機能とドメインの組み合わせ(D24・D27・D34 K5・設定 D56。判定は src/featureGate/checks/integrity.mjs)
 const domainFacts = readDistrictMapAt(ROOT)
   .districts.filter((d) => d.kind === "domains")
-  .map((d) => ({ folder: d.dir.slice("src/domains/".length), name: d.name, requires: d.requires, tables: d.tables }));
+  .map((d) => ({ folder: d.dir.slice("src/domains/".length), name: d.name, requires: d.requires, tables: d.tables, alwaysOpen: d.alwaysOpen }));
 const foreignKeys = Object.values(schema)
   .filter((value) => is(value, PgTable))
   .flatMap((table) => getTableConfig(table).foreignKeys.map((fk) => ({ from: getTableName(table), to: getTableName(fk.reference().foreignTable) })));
@@ -337,43 +346,30 @@ test("共有のドメイン: 持つ機能の一部が閉で別の機能で開い
 
 // 常時実行の入口の閉じ漏れ(D17・D30・D20 K4)
 // 後片付け・照合など常に読まれる項目は、宣言の alwaysOn: true の点(項目ごとに enabled で閉じる)。手書きの登録表は fork の口だけ
-// 常に読み込まれる結線のうち、規則の features の機能のフォルダを import してよいもの(path → 理由)。縮む表。
-// fork の分は src/featureGate/alwaysOnExceptions/<名前>.ts に 1 項目 1 ファイルで理由つきで(L1.24。ここは編集しない)
-const ALWAYS_ON_EXCEPTIONS = {
-  "src/wiring/apiRoute.ts":
-    "pairedDevice の apiRouteDeviceDeps を Factory に結ぶだけ。端末の解決(表の読み取り)は createDeviceRoute の route が呼ばれたときだけ走り、その route は pairedDevice の規則で閉じる",
-  "src/proxies/attribution.ts":
-    "proxy の項目。読むのは userAcquisition の constants と lib/attributionCookie・lib/classifyVisit(edge で動く cookie の読み書きと訪問の分類だけ、表に届かない)。処理は先頭の gate.enabled(\"userAcquisition\") で閉じる",
-  "src/wiring/GoogleTag.tsx":
-    "root layout が描く GoogleTag に判別表を結ぶだけ。読むのは userAcquisition の lib/classifyVisit(config と受け口の項目から表を作る値だけ、表に届かない)。gate.enabled(\"userAcquisition\") が閉なら空の表を渡す",
-  "src/proxies/inviteLink.ts":
-    "proxy の項目。読むのは referral の lib/inviteLinkCookie(edge で動く cookie 名と URL の読み取りだけ、表に届かない)。処理は先頭の gate.enabled(\"referral\") で閉じる",
-};
-
-test("常時実行の入口: 規則の features の機能を import するなら閉じられる(cron は住所が規則の pathPatterns に入る、alwaysOn の点の項目は enabled、手書きの登録表は条件つき spread、結線は例外表)", async () => {
-  const oldDir = join(ROOT, "scripts/proxies", ALWAYS_ON_DIR);
-  const stale = staleAlwaysOnFiles(
-    existsSync(join(ROOT, "scripts/proxies")) ? readdirSync(join(ROOT, "scripts/proxies")) : [],
-    existsSync(oldDir) ? readdirSync(oldDir) : [],
-  );
-  assert.deepEqual(stale, [], stale.join("\n"));
-  const fork = readForkAlwaysOn({ exceptions: alwaysOnExceptions, registries: alwaysOnRegistries });
-  assert.deepEqual(fork.problems, [], fork.problems.join("\n"));
+// 常に読み込まれる結線(src/wiring・src/proxies・src/featureGate・root layout)は閉じうるドメインを import しない。例外表は無い(D22・注文 36)。
+// 生成された plugs の点の一覧(src/wiring/<lib>.ts・src/proxies/extensions/<点>.ts など)は門番の gate.plugs で閉じるので数えない
+test("常時実行の入口: 規則の features の機能を import するなら閉じられる(cron は住所が規則の pathPatterns に入る、alwaysOn の点の項目は enabled、結線は import しない)", async () => {
   const rel = (abs) => relative(ROOT, abs).split(sep).join("/");
   const code = (f) => /\.(ts|tsx|mts|mjs)$/.test(f) && !/\.test\./.test(f);
   const plan = planExtensions(ROOT);
+  // 生成された plugs の点の一覧(lib の点は src/wiring/<lib>.ts、ほかは持ち主の extensions/<点>.ts)。使う時に gate.plugs で閉じる(注文 30・31)
+  const plugsLists = new Set(
+    plan.points
+      .filter((p) => p.spec.plugs === true && !p.spec.alwaysOn)
+      .map((p) => (p.spec.target === "wiring" ? `src/wiring/${p.owner.split("/").pop()}.ts` : `${p.owner}/extensions/${p.name}.ts`)),
+  );
   const alwaysOnItems = plan.points.filter((p) => p.spec.alwaysOn).flatMap((p) => plan.itemsByPoint.get(p).map((item) => item.itemFile));
   assert.ok(alwaysOnItems.length > 0, "alwaysOn の点の項目が無い(宣言の読み取りを確認)");
   const entries = [
     ...walk(join(APP_DIR, "api/cron")).filter((f) => /[\\/]task\.ts$/.test(f)).map((f) => ({ path: rel(f), kind: "cronTask" })),
     ...alwaysOnItems.map((path) => ({ path, kind: "alwaysOnItem" })),
-    ...fork.registries.map((path) => ({ path, kind: "registry" })),
     ...[join(APP_DIR, "layout.tsx"), ...walk(join(ROOT, "src/wiring")), ...walk(join(ROOT, "src/proxies")), ...walk(join(ROOT, "src/featureGate"))]
       .filter(code)
-      .map((f) => ({ path: rel(f), kind: "wiring" })),
+      // 生成された plugs の点の一覧は使う時に gate.plugs で閉じる(plugsList、注文 30・31: API の Factory の端末の点・proxy の項目)
+      .map((f) => ({ path: rel(f), kind: plugsLists.has(rel(f)) ? "plugsList" : "wiring" })),
   ].map((entry) => ({ ...entry, text: readFileSync(join(ROOT, entry.path), "utf8") }));
   assert.ok(featureGateRules.some((rule) => (rule.domains ?? []).length > 0), "domains を持つ規則が無い(domains の読み取りを確認)");
-  const { problems, hits } = judgeAlwaysOnEntries(entries, featureGateRules, { ...ALWAYS_ON_EXCEPTIONS, ...fork.exceptions });
+  const { problems, hits } = judgeAlwaysOnEntries(entries, featureGateRules);
   assert.deepEqual(problems, [], `常時実行の入口の閉じ漏れ:\n${problems.join("\n")}\n該当: ${hits.join(" / ")}`);
 });
 
@@ -401,7 +397,6 @@ test("fixture: 表 0 のドメインの規則も、ルート・汎用 CRUD・常
     judgeAlwaysOnEntries(
       [{ path: "src/app/api/cron/chat-sweep/task.ts", kind: "cronTask", text: 'import { sweep } from "@/domains/core/chatRoom/services/server/sweep";\nexport const run = sweep;\n' }],
       [{ ...chat, pathPatterns }],
-      {},
     ).problems;
   assert.deepEqual(task(chat.pathPatterns), []);
   assert.equal(task(["/chat"]).length, 1);

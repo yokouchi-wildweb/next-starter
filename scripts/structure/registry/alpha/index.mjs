@@ -134,7 +134,7 @@ function renderStoragePurposeRegistry(repoRoot) {
     headerOf(`${FEATURES_DIR}/**/services/server/storagePurposes.ts`),
     `// ${STORAGE_PURPOSE_REGISTRY_FILE}`,
     "//",
-    "// ドメインのファイル用途の一覧。core と fork の項目は domains/core/storageObject/purposes/、合成は storageObject/services/server/purposeSource.ts。型と規則: src/lib/storage/README.md",
+    "// ドメインのファイル用途の一覧。core と fork の項目は <ドメイン>/plugs/storageObjectPurposes/、合成は storageObject/services/server/purposeSource.ts。型と規則: src/lib/storage/README.md",
     "",
     'import "server-only";',
     "",

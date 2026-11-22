@@ -1,5 +1,5 @@
 // src/domains/core/user/mypageMenu/upstreamMenu.test.ts
-// 上流のマイページのメニュー(items/ の生成の一覧)を組み立て器に通した形の回帰: 5 枚のカードの並び・文言・住所・見た目
+// 上流のマイページのメニュー(点 userMypageMenu の生成の一覧)を組み立て器に通した形の回帰: 5 枚のカードの並び・文言・住所・見た目
 // 実行: pnpm test src/domains/core/user
 
 import assert from "node:assert/strict";
@@ -7,7 +7,7 @@ import { test } from "node:test";
 
 import { BellIcon, EllipsisIcon, GiftIcon, LogOutIcon, UserCircleIcon } from "lucide-react";
 
-import { mypageMenu } from "@/domains/core/user/extensions/mypageMenu";
+import { userMypageMenu } from "@/domains/core/user/extensions/userMypageMenu";
 import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 import { buildMypageMenu } from "./buildMypageMenu";
@@ -25,7 +25,7 @@ const upstreamTest = (name: string, fn: () => void) =>
   });
 
 const view = (pending: boolean) =>
-  buildMypageMenu({ items: mypageMenu, actions: { logout: { run: () => {}, pending } } }).rows.map((row) => ({
+  buildMypageMenu({ items: userMypageMenu.map((entry) => entry.plug), actions: { logout: { run: () => {}, pending } } }).rows.map((row) => ({
     key: row.key,
     kind: row.kind,
     icon: row.icon,

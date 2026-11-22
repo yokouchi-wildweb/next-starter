@@ -27,7 +27,9 @@ const TABLE = [
 const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 mock.module(here("./extensions/frameTable.ts"), { namedExports: { frameTable: TABLE } });
 mock.module("@/lib/siteTheme", { namedExports: { useDarkModeSwitch: () => ({ isDark: false, switchable: false, toggle: () => {} }) } });
-mock.module("@/domains/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
+// 枠のログインの状態(点 frameSession の項目、上流は auth。枠はドメインを読まない)と、枠に重ねる部品(点 adminOverlays、上流の項目は 0)
+mock.module("@/app/_layout/useFrameSession", { namedExports: { useFrameSession: () => ({ useSession: () => ({ isAuthenticated: false }), useLogout: () => ({ logout: () => {}, isLoading: false }) }) } });
+mock.module("@/app/_layout/FrameParts", { namedExports: { FrameParts: () => null } });
 
 const repo = join(__dirname, "../../../..");
 const read = (path: string) => readFileSync(join(repo, path), "utf8");

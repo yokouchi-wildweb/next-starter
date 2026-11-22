@@ -23,24 +23,24 @@ import { activeCoinIssuanceSources } from "@/domains/core/analytics/services/ser
 import type { CoinIssuanceSource } from "@/domains/core/analytics/services/server/coinIssuance/types";
 import { runCleanupItems } from "@/domains/core/user/services/server/cleanup";
 
-import { webhookHandlers } from "@/domains/core/userLineProfile/extensions/webhookHandlers";
+import { userLineProfileWebhookHandlers } from "@/domains/core/userLineProfile/extensions/userLineProfileWebhookHandlers";
 import { dispatchWebhookEvents } from "@/domains/core/userLineProfile/services/server/dispatchWebhookEvents";
 
-import { categories } from "@/app/_layout/adminCommand/extensions/categories";
-import { plugins } from "@/app/_layout/adminCommand/extensions/plugins";
+import { adminCommandCategories as categories } from "@/domains/core/adminCommand/extensions/adminCommandCategories";
+import { adminCommandPlugins as plugins } from "@/domains/core/adminCommand/extensions/adminCommandPlugins";
 import { DEMO_CATEGORIES, groupDemoPagesByCategory, openDemoPages } from "@/app/(user)/demo/_data/demoPages";
 import { demoPages } from "@/app/(user)/demo/extensions/demoPages";
 import { chatRoomConfig } from "@/domains/chatRoom/config";
 import { loadForAdmin } from "@/domains/core/adminCommand/base/loadForAdmin";
-import { navigationItems } from "@/domains/core/adminCommand/definitions/navigation/items";
+import { adminCommandNavigationItems } from "@/domains/core/adminCommand/extensions/adminCommandNavigationItems";
 import { validateChatFile } from "@/domains/core/chatRoom/utils/validation";
-import { renderers } from "@/domains/core/milestone/extensions/renderers";
+import { milestoneRenderers } from "@/domains/core/milestone/extensions/milestoneRenderers";
 import { buildStrategyMap } from "@/domains/core/purchaseRequest/services/server/completion/strategyRegistry";
 import { buildRewardHandlerMap } from "@/domains/core/referralReward/services/server/rewardHandlerRegistry";
 import { ROOT_LAYOUT_CONFIG } from "@/app/_layout/config";
 import { EXAMPLE_BUSINESS } from "@/lib/business";
 import { messageRegistry } from "@/registry/messageRegistry";
-import { layouts } from "@/domains/core/messaging/extensions/layouts";
+import { messagingLayouts } from "@/domains/core/messaging/extensions/messagingLayouts";
 import { configEnabled } from "@/featureGate/node";
 import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 import { listOneShotTasks, loadOneShotTask } from "../../runner/task/discover";
@@ -106,18 +106,18 @@ test("上流の項目の組: 宣言と受け口がそろい、機能に閉じる
   const plan = planExtensions(ROOT);
   assert.deepEqual(plan.problems, [], plan.problems.join("\n"));
   const names = (owner: string, point: string) => itemsOf(plan, owner, point).map((i: { name: string }) => i.name);
-  assertUpstreamItems(names("src/domains/core/user", "cleanupHandlers"), ["messagingEndpoints", "messagingPreferences", "purchaseRequest", "wallet"]);
-  assertUpstreamItems(names("src/domains/core/analytics", "coinIssuanceSources"), ["purchaseBonusGap", "walletBonusGrant"]);
-  assertUpstreamItems(names("src/domains/core/analytics", "rollupMetrics"), [
+  assertUpstreamItems(names("src/domains/core/user", "userCleanupHandlers"), ["messagingEndpoints", "messagingPreferences", "purchaseRequest", "wallet"]);
+  assertUpstreamItems(names("src/domains/core/analytics", "analyticsCoinIssuanceSources"), ["purchaseBonusGap", "walletBonusGrant"]);
+  assertUpstreamItems(names("src/domains/core/analytics", "analyticsRollupMetrics"), [
     "messagingBounced", "messagingClicked", "messagingComplained", "messagingDelivered", "messagingFailed", "messagingOpened",
     "messagingRead", "messagingSent", "messagingSuppressed", "messagingTargeted", "messagingUnsubscribed",
   ]);
-  assertUpstreamItems(names("src/domains/core/analytics", "exclusionProviders"), []);
-  assertUpstreamItems(names("src/domains/core/walletHistory", "reasonKeys"), ["adminAdjustment", "compensation", "couponAttributionReward"]);
-  assertUpstreamItems(names("src/domains/core/user", "reservedNames"), []);
-  assertUpstreamItems(names("src/domains/core/purchaseRequest", "completionStrategies"), ["walletTopup"]);
-  assertUpstreamItems(names("src/domains/core/batchJob", "jobHandlers"), ["walletBulkAdjust"]);
-  assertUpstreamItems(names("src/domains/core/messaging", "enrichers"), ["displayName"]);
+  assertUpstreamItems(names("src/domains/core/analytics", "analyticsExclusionProviders"), []);
+  assertUpstreamItems(names("src/domains/core/walletHistory", "walletHistoryReasonKeys"), ["couponAttributionReward", "adminAdjustment", "compensation"]);
+  assertUpstreamItems(names("src/domains/core/user", "userReservedNames"), []);
+  assertUpstreamItems(names("src/domains/core/purchaseRequest", "purchaseRequestCompletionStrategies"), ["walletTopup"]);
+  assertUpstreamItems(names("src/domains/core/batchJob", "batchJobJobHandlers"), ["walletBulkAdjust"]);
+  assertUpstreamItems(names("src/domains/core/messaging", "messagingEnrichers"), ["displayName"]);
 });
 
 test("1 行スイッチの既定: 何も足さない状態で今までと同じ(エンリッチャーなし・プログラムなし・フックは何もしない)", tier1Only, async () => {
@@ -127,17 +127,16 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   assert.equal(await onDemoUserCreated("u1"), undefined);
   const plan = planExtensions(ROOT);
   // 上流のスイッチは全部 .default を指す(今と同じ振る舞い)。AdminHeader.default は管理のヘッダーの行の既定の部品
-  // (src/app/admin/_layout、指令 17 d2): AdminPage が描く行そのもので、fork の差し替えの口は隣の AdminHeader.replace(1 行スイッチ)。ForkProviders.default は fork の providers の空の素通し(src/app/_providers、指令 31)
+  // (src/app/admin/_layout、指令 17 d2): AdminPage が描く行そのもので、fork の差し替えの口は隣の AdminHeader.replace(1 行スイッチ)。ちょうど 1 つの点の上流の項目(auth の routeFactoryUser・proxyUser・frameSession・pageGuardUser の session.default、rateLimit の ipRate.default)は差す側の plugs/<点>/ の 1 行スイッチ(地区の段 3、D53。ForkProviders は rootProviders に畳んだ)
   // MailFrame.default は全メールの枠(src/lib/mail/frame、指令 54 D122: fork は MailFrame.replace で一度に替える)
-  // NoticeEmail.default・NoticeInApp.default は上流のレイアウト「汎用」の見た目(messaging/layouts/notice、指令 54 d5)
+  // NoticeEmail.default・NoticeInApp.default は上流のレイアウト「汎用」の見た目(messaging/plugs/messagingLayouts/notice、指令 54 d5)
   // Link・Welcome・Statement・Alert の Email / InApp.default は上流のレイアウト「認証のリンク」「ようこそ」「明細」「セキュリティの警告」の見た目(指令 55 d4)
-  // SimpleEmail.default・SimpleInApp.default は上流のレイアウト「シンプル」の見た目(messaging/layouts/simple、D119)
+  // SimpleEmail.default・SimpleInApp.default は上流のレイアウト「シンプル」の見た目(messaging/plugs/messagingLayouts/simple、D119)
   const targets = plan.switches.map((s: { target: string }) => s.target).sort();
   assert.deepEqual(targets, [
     "AdminHeader.default",
     "AlertEmail.default",
     "AlertInApp.default",
-    "ForkProviders.default",
     "LinkEmail.default",
     "LinkInApp.default",
     "MailFrame.default",
@@ -150,8 +149,13 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
     "StatementInApp.default",
     "WelcomeEmail.default",
     "WelcomeInApp.default",
+    "ipRate.default",
     "onDemoUserCreated.default",
     "programConfig.default",
+    "session.default",
+    "session.default",
+    "session.default",
+    "session.default",
     "sessionEnricher.default",
   ]);
 });
@@ -162,15 +166,15 @@ test("config へ移した値の読み手: 既定の表示と未定義のとき�
   assert.deepEqual(Object.keys(getAllCoinIssuanceLabels()).sort(), ["coupon_attribution_reward", "purchase_bonus_gap", "referral_reward", "wallet_bonus_grant"]);
   assert.equal(formatActionLabel("wallet.balance.cleared"), "残高クリア");
   assert.equal(formatActionLabel("unknown.action.done"), "unknown.action.done");
-  assert.deepEqual(buildCouponAdminSectionTabs().map((tab) => tab.value), ["official", "affiliate", "invite"]);
+  assert.deepEqual(buildCouponAdminSectionTabs((items) => [...items]).map((tab) => tab.value), ["official", "affiliate", "invite"]);
 });
 
 const ENTRIES = [
   ["src/domains/core/purchaseRequest/services/server/completion/index.ts", "getPurchaseCompletionStrategy", "wallet_topup"],
-  ["src/domains/core/purchaseRequest/services/server/completion/strategies/walletTopup.ts", null, null],
+  ["src/domains/core/wallet/plugs/purchaseRequestCompletionStrategies/walletTopup.ts", null, null],
   ["src/domains/core/purchaseRequest/services/server/wrappers/purchaseService.ts", null, null],
   ["src/domains/core/batchJob/services/server/index.ts", "getHandler", "wallet_bulk_adjust"],
-  ["src/domains/core/batchJob/jobHandlers/walletBulkAdjust.ts", null, null],
+  ["src/domains/core/wallet/plugs/batchJobJobHandlers/walletBulkAdjust.ts", null, null],
   ["src/domains/core/wallet/services/server/handlers/walletBulkAdjustHandler.ts", null, null],
   ["src/domains/core/wallet/services/server/walletService.ts", null, null],
   ["src/domains/core/milestone/services/server/wrappers/evaluateMilestones.ts", null, null],
@@ -178,8 +182,8 @@ const ENTRIES = [
 ] as const;
 
 for (const [entry, rawFn, arg] of ENTRIES) {
-  // ジョブのハンドラは wallet を閉じた fork では enabled で外れる
-  const fn = rawFn === "getHandler" && !configEnabled("wallet") ? null : rawFn;
+  // ジョブのハンドラ・購入完了の戦略(どちらも wallet の plugs の項目)は wallet が閉じている間は門番で外れる(gate.plugs、地区の段 3)
+  const fn = (rawFn === "getHandler" || rawFn === "getPurchaseCompletionStrategy") && !configEnabled("wallet") ? null : rawFn;
   test(`読み込み: ${entry} から読んでも壊れない${fn ? `、${fn}("${arg}") が引ける` : ""}`, () => {
     const code = `const m = await import(${JSON.stringify(`${ROOT}/${entry}`)});${fn ? `const r = m.${fn}(${JSON.stringify(arg)}); if (!r) throw new Error("not found");` : ""}process.exit(0);`;
     const result = spawnSync("npx", ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", "--input-type=module", "-e", code], { cwd: ROOT, encoding: "utf8", env: { ...process.env, DATABASE_URL: "" } });
@@ -205,7 +209,7 @@ test("LINE Webhook: 一致する項目を順に全部呼ぶ、失敗は続行、
     console.error = originalError;
   }
   assert.deepEqual(log, ["a", "b", "c"]);
-  if (isTier1) assert.deepEqual(webhookHandlers, []);
+  if (isTier1) assert.deepEqual(userLineProfileWebhookHandlers, []);
 });
 
 test("タスクの走査: 上流のドメインのタスク・移行 15 本、名前の一致と読み込み(置き方の誤りの形は scripts/runner/task/discover.test.ts)", async () => {
@@ -243,7 +247,7 @@ test("システムの連絡: 上流の auth・user の連絡は生成の一覧�
   ]);
   for (const key of keys) {
     const { message } = await messageRegistry[key].definition();
-    assert.ok(layouts[message.layout], key);
+    assert.ok(messagingLayouts.some((entry) => entry.plug.key === message.layout), key);
   }
 });
 
@@ -254,7 +258,7 @@ test("管理者コマンド: 非管理者は読み込まない、管理者は上
   assert.equal(calls, 0);
   assertUpstreamItems(categories.map((c) => c.name), ["navigation", "settings", "userSession"]);
   if (isTier1) assert.deepEqual(plugins, []);
-  assertUpstreamItems(navigationItems.map((i) => i.id), ["nav-admin-home", "nav-admin-users-general", "nav-admin-settings"]);
+  assertUpstreamItems(adminCommandNavigationItems.flatMap((entry) => entry.plug).map((i) => i.id), ["nav-admin-home", "nav-admin-users-general", "nav-admin-settings"]);
 });
 
 test("デモ: カテゴリ分けと項目の集合が移設前と同じ、カテゴリの中はフォルダ名の順、閉じたデモは除く", () => {
@@ -275,9 +279,8 @@ test("デモ: カテゴリ分けと項目の集合が移設前と同じ、カテ
   assert.equal(open.some((p) => p.folder === "tables"), false);
 });
 
-test("マイルストーンのレンダラー: 上流の項目は 0、プロトタイプに当たらない", () => {
-  if (isTier1) assert.deepEqual(Object.keys(renderers), []);
-  assert.equal(renderers["constructor"], undefined);
+test("マイルストーンのレンダラー: 上流の項目は 0", () => {
+  if (isTier1) assert.deepEqual(milestoneRenderers, []);
 });
 
 test("チャット添付: 既定の許可種別、種別が空は通す、サイズ上限は今までどおり", tier1Only, () => {

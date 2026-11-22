@@ -1,5 +1,5 @@
 // src/domains/core/messaging/components/common/PreferenceGroupHeading/index.tsx
-// 部品(props だけ): 種別の枠の中のグループの見出し(categoryGroups の受け口)。label null(グループの無いカテゴリー)は何も描かない
+// 部品(props だけ): 種別の枠の中のグループの見出し(点 messagingCategoryGroups)。label null(グループの無いカテゴリー)は何も描かない
 
 import { Para } from "@/components/TextBlocks/Para";
 

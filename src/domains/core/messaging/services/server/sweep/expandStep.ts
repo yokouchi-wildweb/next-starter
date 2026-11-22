@@ -18,7 +18,7 @@ import { listVariables } from "@/lib/templateVariables";
 
 import type { MessageDispatch, MessageDispatchInsert, MessageInboxItemInsert } from "../../../entities/model";
 import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
-import { inAppItemRow } from "../../../channels/inApp/createInAppChannel";
+import { inAppItemRow } from "@/domains/core/messaging/plugs/messagingChannels/inApp/createInAppChannel";
 import { buildContent } from "../sendMessage/content";
 import { toVariableMap } from "../sendMessage/context";
 import { resolvedOfDispatch } from "../sendMessage/dispatchResolved";

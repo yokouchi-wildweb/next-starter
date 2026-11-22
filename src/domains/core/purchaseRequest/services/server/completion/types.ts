@@ -5,9 +5,9 @@
 // - initiatePurchase: 戦略の validateInitiation を呼んでパッケージ検証等を委譲
 // - completePurchase: 戦略の complete を呼んでウォレット加算等の実処理を委譲
 //
-// ビルトイン戦略: wallet_topup (strategies/walletTopup.ts)
+// ビルトイン戦略: wallet_topup (wallet/plugs/purchaseRequestCompletionStrategies/walletTopup.ts)
 // 下流で追加する戦略（例: direct_sale, subscription）は
-// ./strategies/<名前>.ts に export const strategy で置く。
+// <ドメイン>/plugs/purchaseRequestCompletionStrategies/<名前>.ts に export const strategy で置く。
 
 import type { PurchaseTypeKey } from "@/domains/purchaseRequest/config";
 import type { PurchaseRequest } from "@/domains/core/purchaseRequest/entities/model";

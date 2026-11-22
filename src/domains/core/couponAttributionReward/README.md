@@ -45,7 +45,7 @@ registerCouponHandler("purchase_discount", {
 
 ### 通知（tx コミット後に送る）
 
-連絡の書き込みは tx に乗らないため、`grant` 内で送ると外側 tx のロールバック時に「付与されていないのに通知だけ届く」不整合が起きる。そのため通知は内蔵しない。送るのは利用者への連絡の口 `messagingService.sendMessage`（連絡の定義 `messages/<名前>.ts` は下流のドメインに置く。書き方は src/domains/core/messaging/README.md）。
+連絡の書き込みは tx に乗らないため、`grant` 内で送ると外側 tx のロールバック時に「付与されていないのに通知だけ届く」不整合が起きる。そのため通知は内蔵しない。送るのは利用者への連絡の口 `messagingService.sendMessage`（連絡の定義 `plugs/messages/<名前>.ts` は下流のドメインに置く。書き方は src/domains/core/messaging/README.md）。
 
 ```typescript
 // 例: purchaseCompleteHook / routeFactory コミット後処理などから

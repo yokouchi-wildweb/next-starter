@@ -8,7 +8,7 @@ export const extensionPoints = {
     dir: ".",
     files: "*/_demo.ts",
     export: "demo",
-    type: { from: "@/app/(user)/demo/_data/demoPages", name: "DemoPage" },
+    type: { from: "@/app/(user)/demo/points", name: "DemoPage" },
     side: "shared",
   },
 };

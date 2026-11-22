@@ -1,5 +1,5 @@
 // src/domains/core/user/components/MainMenu.tsx
-// マイページのメニュー。項目は受け口 mypageMenu(mypageMenu/items/、生成の一覧 ../extensions/mypageMenu)から読む。
+// マイページのメニュー。項目は点 userMypageMenu(差す側の <ドメイン>/plugs/userMypageMenu/、生成の一覧 ../extensions/userMypageMenu)から読み、閉じたドメインの項目は外す(useGate().plugs)。
 // 閉じた機能(招待 = 規則 referral、その他の操作 = 規則 mypageOther)のカードは棚の Link が描かない
 
 "use client";
@@ -11,15 +11,21 @@ import { Stack } from "@/components/Layout/Stack";
 import { useLogout } from "@/domains/core/auth/hooks/useLogout";
 
 import { RichMenuCard } from "@/domains/core/user/components/common/RichMenuCard";
-import { mypageMenu } from "@/domains/core/user/extensions/mypageMenu";
+import { userMypageMenu } from "@/domains/core/user/extensions/userMypageMenu";
+import { useGate } from "@/featureGate/client";
 import { buildMypageMenu } from "@/domains/core/user/mypageMenu/buildMypageMenu";
 
 export function MainMenu() {
   const { logout, isLoading: isLoggingOut } = useLogout();
+  const gate = useGate();
 
   const { rows } = useMemo(
-    () => buildMypageMenu({ items: mypageMenu, actions: { logout: { run: logout, pending: isLoggingOut } } }),
-    [logout, isLoggingOut],
+    () =>
+      buildMypageMenu({
+        items: gate.plugs(userMypageMenu).map((entry) => entry.plug),
+        actions: { logout: { run: logout, pending: isLoggingOut } },
+      }),
+    [gate, logout, isLoggingOut],
   );
 
   return (

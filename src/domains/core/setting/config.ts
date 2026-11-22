@@ -3,7 +3,7 @@
 // 置き方: src/config/README.md。合成: @/lib/defineConfig
 // maintenance = メンテナンス中の振る舞いの構造的な値。入切と期間はキー maintenance(既定は管理画面のシステム設定 = DB、
 // /admin/settings/maintenance。codeValues に書けばコードの値)。サーバーの判定 settingService.isMaintenanceActive()。
-// 読み手は proxy の項目 src/proxies/maintenance.ts・バイパスの判定 ./utils/maintenanceBypass.ts・メンテナンスの画面の loader
+// 読み手は proxy の項目 ./plugs/proxyHandlers/maintenance.ts・バイパスの判定 ./utils/maintenanceBypass.ts・メンテナンスの画面の loader
 // codeValues = コードで持つキーとその値(読み手 ./utils/codeValues.ts)| readMemoMs = 設定の読みのメモの期限(読み手 settingService)
 
 import override from "@/config/domains/setting.config";

@@ -1,6 +1,14 @@
-// src/domains/core/adminCommand/definitions/navigation/items.ts
+"use client";
 
-import { navigationItems as groups } from "../../extensions/navigationItems";
+import { useMemo } from "react";
 
-/** ナビゲーション先の一覧。足すときは navigationItems/<名前>.ts */
-export const navigationItems = groups.flat();
+import { useGate } from "@/featureGate/client";
+
+import { adminCommandNavigationItems } from "../../extensions/adminCommandNavigationItems";
+import type { NavigationItem } from "../../types";
+
+/** ナビゲーション先の一覧(閉じたドメインの項目は門番 useGate().plugs で外す)。足すときは <ドメイン>/plugs/adminCommandNavigationItems/<名前>.ts */
+export function useNavigationItems(): NavigationItem[] {
+  const gate = useGate();
+  return useMemo(() => gate.plugs(adminCommandNavigationItems).flatMap((entry) => entry.plug), [gate]);
+}

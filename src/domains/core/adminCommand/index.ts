@@ -33,7 +33,7 @@ export type { NavigationItem, NavigationItemGroup, SettingFieldConfig, SettingIn
 // ========================================
 // Definitions
 // ========================================
-export { navigationItems } from "./definitions/navigation";
+export { useNavigationItems } from "./definitions/navigation";
 export { settingFields } from "./definitions/settings";
 
 // ========================================

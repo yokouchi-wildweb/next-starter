@@ -6,5 +6,5 @@ import type { BulkActionItem } from "@/lib/tableSuite";
 import type { SampleTag } from "@/domains/sampleTag/entities";
 import type { AdminBulkActionAccess } from "@/domains/core/user/types";
 
-/** src/domains/sampleTag/adminBulkActions/<名前>.tsx の export const bulkAction。作り方: src/lib/tableSuite/README.md「一括操作の受け口」 */
+/** src/domains/sampleTag/plugs/adminBulkActions/<名前>.tsx の export const bulkAction。作り方: src/lib/tableSuite/README.md「一括操作の受け口」 */
 export type SampleTagAdminBulkActionItem = BulkActionItem<SampleTag, AdminBulkActionAccess>;

@@ -4,7 +4,7 @@
 
 import type { DbTransaction } from "@/lib/crud/server";
 
-import { channels } from "../../../extensions/channels";
+import { channels } from "../lists";
 import { createEndpointService } from "./endpointService";
 import { drizzleMessageEndpointStore } from "./store";
 

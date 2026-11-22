@@ -1,5 +1,5 @@
 // scripts/structure/message/scaffold.mjs
-// 新しい連絡の定義 messages/<名前>.ts を無い時だけ書く(pnpm generate message の中身)。描き方はレイアウト(messaging/layouts)が持つ。
+// 新しい連絡の定義 plugs/messages/<名前>.ts を無い時だけ書く(pnpm generate message の中身)。描き方はレイアウト(messaging/layouts)が持つ。
 // 引数: <domain> <name> --category <key> --label <名前> [--var <鍵>:<別名>:<説明> ...] [--core](名前 = 管理画面に出す連絡の名前、必須 D46。
 //   --var = vars の値 1 つの鍵・日本語の別名・説明、繰り返せる・任意 D133。無ければ vars は空)
 //(種別と送信チャンネルはカテゴリーから引く D81・D86。カテゴリー = 利用者から見て 1 つの出来事 D79)
@@ -10,44 +10,32 @@
 // - 既にあるファイルは触らない(理由を出す)。書いた時だけ呼び手が src/registry を作り直す
 // 雛形: ./templates.mjs
 
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
 import { CATEGORY_POINT, readCategories } from "../extensions/derive/messageGuards.mjs";
+import { listSrcFiles } from "../extensions/orphans.mjs";
 import { definitionTemplate } from "./templates.mjs";
 
 const NAME = /^[a-z][A-Za-z0-9]*$/;
 /** 埋め込み情報の別名の形(lib/messaging vars/names.ts の VAR_ALIAS_PATTERN と同じ。scripts は src の lib を読まない) */
 const ALIAS = /^(?=.*[^A-Za-z0-9_])[\p{L}\p{N}_]+$/u;
-const MESSAGING_DIR = "src/domains/core/messaging";
 const USAGE = "使い方: pnpm generate message -- <domain> <name> --category <key> --label <名前> [--var <鍵>:<別名>:<説明> ...] [--core]";
 /** カテゴリーの名前の付け方の案内(D79) */
 const NAMING =
   "カテゴリー = 利用者から見て 1 つの出来事(「〜した時」と言える単位: 例 likeReceived・itemSold・passwordReset・pointExpiring)。" +
-  "ドメイン・機能の単位(shop・account・wallet)にはしない。無ければ先に src/domains/core/messaging/categories/<名前>.ts を足す(種別と送信チャンネルを持つ)";
+  "ドメイン・機能の単位(shop・account・wallet)にはしない。無ければ先にその出来事のドメインの plugs/messagingCategories/<名前>.ts を足す(種別と送信チャンネルを持つ)";
 
-/** 受け口の項目の名前(<dir>/<名前>.ts(x) か <名前>/index.ts(x)) */
-function receptacleItemNames(repoRoot, dir) {
-  const abs = join(repoRoot, dir);
-  if (!existsSync(abs)) return [];
-  return readdirSync(abs, { withFileTypes: true }).flatMap((entry) => {
-    if (entry.isFile()) {
-      const match = /^([^.]+)\.tsx?$/.exec(entry.name);
-      return match && !/\.test\./.test(entry.name) ? [match[1]] : [];
-    }
-    if (entry.isDirectory() && ["index.ts", "index.tsx"].some((file) => existsSync(join(abs, entry.name, file)))) return [entry.name];
-    return [];
-  });
+/** plugs の点の項目の名前(全部のドメイン・lib の <…>/plugs/<点>/<名前>.ts(x) か <名前>/index.ts(x)。.test・.override は除く) */
+function plugItemNames(files, point) {
+  const pattern = new RegExp(`^src/(?:domains|lib)/.+/plugs/${point}/([^/.]+)(?:\\.tsx?|/index\\.tsx?)$`);
+  return [...new Set(files.flatMap((file) => pattern.exec(file)?.[1] ?? []))].sort();
 }
 
-/** categories の受け口の項目(字面。鍵 → { kind, channels }) */
-function categoriesOf(repoRoot) {
-  const dir = `${MESSAGING_DIR}/categories`;
-  const files = receptacleItemNames(repoRoot, dir).flatMap((name) =>
-    [`${dir}/${name}.ts`, `${dir}/${name}.tsx`, `${dir}/${name}/index.ts`, `${dir}/${name}/index.tsx`].filter((path) => existsSync(join(repoRoot, path))),
-  );
-  return readCategories(repoRoot, [{ ...CATEGORY_POINT, spec: { dir: "categories", export: "category" } }], files) ?? new Map();
+/** 点 messagingCategories の項目(字面。鍵 → { kind, channels }) */
+function categoriesOf(repoRoot, files) {
+  return readCategories(repoRoot, [{ ...CATEGORY_POINT, spec: { plugs: true, export: "category" } }], files) ?? new Map();
 }
 
 /**
@@ -112,7 +100,8 @@ export function runMessageScaffold(repoRoot, argv) {
   if (district.dir.startsWith("src/domains/core/") && !core) {
     return fail(`${district.dir} は core のドメイン(fork は足せない: pnpm workflow ownership check が落ちる)。上流が足す時だけ --core`);
   }
-  const categories = categoriesOf(repoRoot);
+  const srcFiles = listSrcFiles(repoRoot);
+  const categories = categoriesOf(repoRoot, srcFiles);
   const keys = [...categories.keys()].sort().join(" / ") || "項目なし";
   if (category === null) return fail(`--category が要る(${keys})。${NAMING}`);
   if (label === null || label.trim() === "") return fail("--label が要る(管理画面に出す連絡の名前。例 --label 注文の受付)");
@@ -123,16 +112,16 @@ export function runMessageScaffold(repoRoot, argv) {
     if (vars.findIndex((other) => other.alias === item.alias) !== index) return fail(`--var の別名 ${item.alias} が 2 回あります`);
   }
   const item = categories.get(category);
-  if (!item) return fail(`category ${category} は categories の受け口に無い(${keys})。${NAMING}`);
+  if (!item) return fail(`category ${category} は点 messagingCategories に無い(${keys})。${NAMING}`);
   const channels = item.channels ?? [];
-  const known = receptacleItemNames(repoRoot, `${MESSAGING_DIR}/channels`);
+  const known = plugItemNames(srcFiles, "messagingChannels");
   const unknown = channels.filter((channel) => !known.includes(channel));
   if (channels.length === 0 || unknown.length > 0) {
-    return fail(`カテゴリー ${category} の送信チャンネル ${unknown.join(", ") || "(空)"} は送信チャンネルの受け口に無い(${known.join(" / ")})`);
+    return fail(`カテゴリー ${category} の送信チャンネル ${unknown.join(", ") || "(空)"} は点 messagingChannels に無い(${known.join(" / ")})`);
   }
 
   const key = `${domain}.${name}`;
-  const dir = `${district.dir}/messages`;
+  const dir = `${district.dir}/plugs/messages`;
   const files = [{ path: `${dir}/${name}.ts`, content: (path) => definitionTemplate({ path, key, label, category, kind: item.kind, channels, vars }) }];
   const lines = [];
   const written = [];

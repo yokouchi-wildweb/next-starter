@@ -2,7 +2,7 @@
 // slot / props と、props なしの描画が slot 化の前(a77da63d)と同じことの検査(足したのは枠の根の data-frame-root・部位の data-slot="admin-*" だけ。data-slot の一覧と枠の表の結線は ./AdminFrame.test.tsx)。
 // 実行: pnpm test src/app/admin/_layout/AdminLayout.test.tsx(pnpm test 'src/app/(user)/_layout/' と同じ方式: tsx + node:test のモジュールモック + react-dom/server の静的描画)
 //
-// 重い部品(BaseSidebar・Button)と useHeaderHeight・useAuthSession・useDarkModeSwitch は目印にモックし、
+// 重い部品(BaseSidebar・Button)と useHeaderHeight・useFrameSession・useDarkModeSwitch は目印にモックし、
 // 枠そのもの(外枠・Header・受け口・サイドバーの殻・リサイズのつまみ・Footer・並び順)は本物を描く。
 // サイドバー幅の調整は有効 = fork の設定値に左右されない。
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
@@ -37,7 +37,9 @@ mock.module("@/app/_layout/useHeaderHeight", {
 mock.module("@/lib/siteTheme", { namedExports: { useDarkModeSwitch: () => ({ isDark: false, switchable: true, toggle: () => {} }) } });
 // 編集画面の「前後の項目へ移る」のデータ: 名前がとても長い今の項目 1 件(SP で行の幅を超える名前)
 const LONG_LABEL = "z".repeat(400);
-mock.module("@/domains/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
+// 枠のログインの状態(点 frameSession の項目、上流は auth。枠はドメインを読まない)と、枠に重ねる部品(点 adminOverlays、上流の項目は 0)
+mock.module("@/app/_layout/useFrameSession", { namedExports: { useFrameSession: () => ({ useSession: () => ({ isAuthenticated: false }), useLogout: () => ({ logout: () => {}, isLoading: false }) }) } });
+mock.module("@/app/_layout/FrameParts", { namedExports: { FrameParts: () => null } });
 mock.module("@/components/Button/Button", {
   namedExports: {
     Button: (p: { variant?: string; "aria-label"?: string; "aria-pressed"?: boolean; className?: string }) =>

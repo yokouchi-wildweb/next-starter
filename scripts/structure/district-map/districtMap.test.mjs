@@ -24,12 +24,12 @@ test("今の木に問題が無い", () => {
   assert.deepEqual(problems, []);
 });
 
-test("features = src/domains と core の直下の _ でないフォルダ(登録表の走査と同じ集合)、lib = src/lib 直下、proxies = テーマのフォルダ(上流は持たない、D113)、枠 = frame: の宣言", () => {
+test("features = src/domains と core の直下の _ でないフォルダ(登録表の走査と同じ集合)、lib = src/lib 直下、proxies = src 直下の 1 地区 src/proxies(テーマを畳んだ、D30)、枠 = frame: の宣言", () => {
   assert.deepEqual(features.map(folderOf).sort(), listDomainDirs(repoRoot));
   assert.ok(!features.some((d) => d.name.startsWith("_")));
   const libs = readdirSync(join(repoRoot, "src/lib"), { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith(".")).map((e) => e.name).sort();
   assert.deepEqual(districts.filter((d) => d.kind === "lib").map((d) => d.name), libs);
-  assert.deepEqual(districts.filter((d) => d.kind === "proxies").map((d) => d.dir), []);
+  assert.deepEqual(districts.filter((d) => d.kind === "proxies").map((d) => d.dir), ["src/proxies"]);
   // 枠の宣言(_layout/config.ts の frame:)。admin・root・user(地区のクエストで書いた、L1.13)
   assert.deepEqual(districts.filter((d) => d.kind === "frame").map((d) => [d.name, d.dir]), [
     ["admin", "src/app/admin/_layout"],
@@ -83,9 +83,8 @@ test("receptacles = 地区の中の extensionPoints.ts の点(地区の外の宣
     assert.deepEqual(d.receptacles, inside, d.dir);
   }
   const outside = points.filter((p) => !districts.some((d) => p.owner === d.dir || p.owner.startsWith(`${d.dir}/`))).map((p) => p.owner);
-  // src/proxies = 枠(handlers・decorators・redirects)の受け口。proxies の地区はテーマのフォルダ(src/proxies/<テーマ>/、設定 D93)なので枠の直下は地区の外
-  // (src/featureGate・src/wiring の下は種類の表の featureGate・wiring の地区の中、D8)
-  assert.deepEqual([...new Set(outside)].sort(), ["src/app/(user)/demo", "src/proxies", "src/styles/core"]);
+  // src/proxies は proxies の 1 地区(テーマを畳んだ、D30)の中、src/featureGate・src/wiring の下は種類の表の featureGate・wiring の地区の中(D8)
+  assert.deepEqual([...new Set(outside)].sort(), ["src/app/(user)/demo", "src/styles/core"]);
 });
 
 test("domainJson・generate = 各ドメインの domain.json の有無と generate(省略 = true)。生成器が書き直さないドメインが地図で分かる(L1.15)", () => {
@@ -122,6 +121,7 @@ test("生成器と検査器: 作る → 一致、手で直す・無い → 失�
   };
   try {
     put("src/domains/core/wallet/index.ts", "");
+    put("src/domains/core/wallet/extensionPoints.ts", "export const alwaysOpen = true;\n"); // どの規則にも載らないドメインは常設の宣言(D53)
     put("src/lib/crud/index.ts", "");
     mkdirSync(join(root, "src/registry"), { recursive: true });
     assert.equal(checkDistrictMap(root).ok, false); // 無い

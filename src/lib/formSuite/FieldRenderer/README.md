@@ -36,7 +36,7 @@
 
 ### 登録された入力部品
 
-`formInput` に `src/wiring/formInputs/inputs/` の登録名を書くと、登録の部品を描く(本体は遅延読み込み。書き方: `src/wiring/formInputs/inputs/README.md`)。
+`formInput` に登録名(増設点 `formInputs` の項目、`<ドメイン か lib>/plugs/formInputs/<名前>.ts`)を書くと、登録の部品を描く(本体は遅延読み込み。書き方: `../README.md` Extension「独自の入力部品の登録」)。
 
 - 枠(ラベル・必須印・説明・エラー)は共通で描く。部品が自分で枠や複数の欄を描くなら項目に `frame: false`(エラーの表示は残る)
 - 自動保存は項目の `blurMode`(省略 = blur で保存しない)。単一値の部品で自動保存を効かせるなら書く
@@ -130,5 +130,5 @@
 
 - フォームの部品一式: `../README.md`
 - domain.json の欄・fieldGroups・custom: `src/domains/README.md`
-- 登録する入力部品: `src/wiring/formInputs/inputs/README.md`
+- 登録する入力部品: `../README.md` Extension「独自の入力部品の登録」
 - メディアの入力: `src/lib/mediaInputSuite/README.md`

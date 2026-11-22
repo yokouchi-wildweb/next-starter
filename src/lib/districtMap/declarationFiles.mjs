@@ -70,7 +70,8 @@ export function overrideKeysOf(declaredIn, pointName, repoRoot = OWN_REPO_ROOT) 
  * 全宣言を読んで点の一覧にする。宣言は 1 フォルダ 1 ファイル(extensionPoints.ts)なので 持ち主:点の名前 は重ならない。
  * fork の点は fork 自身のフォルダ(fork が足したドメイン・lib)の extensionPoints.ts に書く
  * @param {string} repoRoot
- * @returns {{ points: { owner: string, name: string, declaredIn: string, spec: import("./declarations.mjs").PointSpec }[], problems: string[] }}
+ * @returns {{ points: { owner: string, name: string, declaredIn: string, spec: import("./declarations.mjs").PointSpec }[], wires: { owner: string, declaredIn: string, spec: import("./declarations.mjs").WireSpec }[], alwaysOpen: string[], problems: string[] }}
+ *   wires = lib の結び目の宣言(export const wire、生成器が src/wiring/<lib>.ts に書く)/ alwaysOpen = 常設を宣言したドメインのフォルダ(export const alwaysOpen = true)
  */
 export function collectPoints(repoRoot) {
   /** @type {string[]} */
@@ -80,5 +81,5 @@ export function collectPoints(repoRoot) {
     problems.push(`${oldMarkerProblem(path, `${DECLARATION_NAME}.ts`)}。fork の拡張点は fork 自身のフォルダの ${DECLARATION_NAME}.ts に宣言する`);
   }
   const read = pointsFromFiles(files, (path) => readFileSync(join(repoRoot, path), "utf8"));
-  return { points: read.points, problems: [...problems, ...read.problems] };
+  return { points: read.points, wires: read.wires, alwaysOpen: read.alwaysOpen, problems: [...problems, ...read.problems] };
 }

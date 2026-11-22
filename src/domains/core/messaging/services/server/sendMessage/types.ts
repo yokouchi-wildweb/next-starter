@@ -300,7 +300,7 @@ export type MessageSendDeps = {
   actor: () => { actorId: string | null; actorType: string | null };
   /** 登録した購読が聞いている事件の種類(内部の事件はこれだけ書く。無い・空 = 書かない) */
   eventTypes?: ReadonlySet<string>;
-  /** categories の受け口(fork のカテゴリーの override を重ねた後)。定義のカテゴリーを照らし、種別と送信チャンネルを引く */
+  /** 点 messagingCategories(fork のカテゴリーの override を重ねた後)。定義のカテゴリーを照らし、種別と送信チャンネルを引く */
   categories: Readonly<Record<string, MessageCategory>>;
   /** 会話の間引き(throttle のある連絡)。無ければ間引かない(throttle を見ないテスト) */
   throttle?: MessageThrottleStore;

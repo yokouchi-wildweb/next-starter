@@ -1,6 +1,6 @@
 // src/domains/core/user/types/mypageMenu.ts
-// マイページのメニューの項目の型(受け口 mypageMenu: src/domains/core/user/mypageMenu/items/<key>.ts の export const item)と、
-// 組み立て器(mypageMenu/buildMypageMenu.ts)の入出力の型。書き方: src/domains/core/user/Extension.md「マイページのメニュー(拡張点 mypageMenu)」
+// マイページのメニューの項目の型(点 userMypageMenu: <ドメイン>/plugs/userMypageMenu/<key>.ts の export const item)と、
+// 組み立て器(mypageMenu/buildMypageMenu.ts)の入出力の型。書き方: src/domains/core/user/Extension.md「マイページのメニュー(拡張点 userMypageMenu)」
 
 import type { LucideIcon } from "lucide-react";
 
@@ -44,7 +44,7 @@ export type MypageMenuActionItem = MypageMenuItemBase & {
   showChevron?: never;
 };
 
-/** 1 項目の定義(mypageMenu/items/<key>.ts の export const item) */
+/** 1 項目の定義(<ドメイン>/plugs/userMypageMenu/<key>.ts の export const item) */
 export type MypageMenuItem = MypageMenuLinkItem | MypageMenuActionItem;
 
 /** 上流の項目の隣の <key>.override.ts で変えられる属性(受け口の overrideOf と同じ) */
@@ -79,7 +79,8 @@ export type MypageMenuBuiltRow = MypageMenuBuiltLinkRow | MypageMenuBuiltActionR
 export type MypageMenuHiddenEntry = { key: string; reason: "item-hidden" | "unknown-action" };
 
 export type BuildMypageMenuInput = {
-  items: Readonly<Record<string, MypageMenuItem>>;
+  /** 項目(点 userMypageMenu の門番で絞った後の plug) */
+  items: readonly MypageMenuItem[];
   /** 結んでいない操作の項目は描かない(hidden に unknown-action) */
   actions: Readonly<Partial<Record<MypageMenuAction, MypageMenuActionBinding>>>;
 };

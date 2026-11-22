@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm generate registry が src/domains/**/recordTargets/*.ts・*.override.ts から生成する
+// 生成物・編集不可: pnpm generate registry が src/domains/**/plugs/recordTargets/*.ts・*.override.ts から生成する
 // src/registry/recordTargetRegistry.ts
 //
 // 記録の宛先の一覧(鍵 = <ドメインのフォルダ名>.<ファイル名> → ドメイン・項目と上書きの遅延 import)。絞らない: 読み手は loadRecordTarget(門番 recordTargetOpen)を通す
@@ -12,11 +12,11 @@ export const recordTargetRegistry: MessageRecordTargetRegistry = {
   "bankTransferReview.reviews": {
     key: "bankTransferReview.reviews",
     domain: "bankTransferReview",
-    target: () => import("@/domains/core/bankTransferReview/recordTargets/reviews"),
+    target: () => import("@/domains/core/bankTransferReview/plugs/recordTargets/reviews"),
   },
   "user.users": {
     key: "user.users",
     domain: "user",
-    target: () => import("@/domains/core/user/recordTargets/users"),
+    target: () => import("@/domains/core/user/plugs/recordTargets/users"),
   },
 };

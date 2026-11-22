@@ -2,8 +2,8 @@
 //
 // 汎用の Factory に差し込む値の型。lib/routeFactory は主体（ログイン中の利用者・登録端末）の解き方と
 // access の評価、ドメイン名 → 登録行の表を自分で import せず、ここで決めた形で受け取る。
-// 束を作るのは持ち主のドメイン（利用者 = domains/core/auth、端末 = domains/core/pairedDevice）、
-// 結ぶのは src/wiring/apiRoute.ts。全項目必須（足りない束は型で止まる）。
+// 束を差すのは持ち主のドメインの plugs の項目（点の宣言 ./extensionPoints.ts、利用者 = domains/core/auth、端末 = domains/core/pairedDevice、
+// レート制限 = domains/core/rateLimit）、結ぶのは src/wiring/apiRoute.ts（生成された一覧を門番で絞って渡す）。端末の束だけ省略できる（「端末なし」）。
 // 主体の具体の型（利用者・status・端末）も lib は持たず、型引数で受ける（lib は features を import しない）。
 
 import type { NextRequest, NextResponse } from "next/server";
@@ -26,7 +26,7 @@ export type RouteUserBase<TStatus extends string = string> = {
   isDemo: boolean;
 };
 
-/** 利用者の束（domains/core/auth が export する） */
+/** 利用者の束（点 routeFactoryUser の項目の deps。上流は domains/core/auth） */
 export type RouteUserDeps<TUser extends RouteUserBase<TStatus>, TStatus extends string> = {
   /**
    * Cookie から DB 同期の利用者を解く。
@@ -53,7 +53,7 @@ export type RouteUserDeps<TUser extends RouteUserBase<TStatus>, TStatus extends 
 /** 認証済みの登録端末（持ち主 domains/core/pairedDevice の形を Factory は中身まで見ない） */
 export type RouteAuthenticatedDevice<TDevice = unknown> = { device: TDevice & { deviceId: string; kind: string } };
 
-/** 登録端末の束（domains/core/pairedDevice が export する） */
+/** 登録端末の束（点 routeFactoryDevice の項目の deps。上流は domains/core/pairedDevice） */
 export type RouteDeviceDeps<TAuthenticated extends RouteAuthenticatedDevice = RouteAuthenticatedDevice, TCategory extends string = string> = {
   /** リクエストの Cookie から端末を認証する（無い・失効・期限切れなら null） */
   authenticateRequestDevice: (req: NextRequest) => Promise<TAuthenticated | null>;
@@ -71,7 +71,7 @@ export type RouteRateLimitResult = {
   resetAt: Date;
 };
 
-/** レート制限の束（domains/core/rateLimit が export する）。TCategory = カテゴリの名前(wiring が渡す、既定 string) */
+/** レート制限の束（点 routeFactoryRateLimit の項目の deps。上流は domains/core/rateLimit）。TCategory = カテゴリの名前(wiring が渡す、既定 string) */
 export type RouteRateLimitDeps<TCategory extends string = string> = {
   /** IP・サブネット単位の判定。呼ぶとカウントが進む */
   checkRateLimit: (category: TCategory, identifier: string) => Promise<RouteRateLimitResult>;
@@ -120,7 +120,8 @@ export type RouteFactoryDeps<
   TCategory extends string = string,
 > = {
   user: RouteUserDeps<TUser, TStatus>;
-  device: RouteDeviceDeps<TAuthenticated, TCategory>;
+  /** 登録端末の束(省略時 = 「端末なし」: 端末を認証しない。端末だけのルートは 401、orUser のルートは利用者の枝だけ。./noDevice.ts) */
+  device?: RouteDeviceDeps<TAuthenticated, TCategory>;
   rateLimit: RouteRateLimitDeps<TCategory>;
   /** 汎用 CRUD（/api/[domain]/**）がドメイン名から行（access・遅延 service）を引く登録表 */
   domains: DomainRegistry;

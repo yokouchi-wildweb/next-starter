@@ -1,7 +1,7 @@
 // 生成物・編集不可: pnpm generate registry が src/domains/**/services/server/storagePurposes.ts から生成する
 // src/registry/storagePurposeRegistry.ts
 //
-// ドメインのファイル用途の一覧。core と fork の項目は domains/core/storageObject/purposes/、合成は storageObject/services/server/purposeSource.ts。型と規則: src/lib/storage/README.md
+// ドメインのファイル用途の一覧。core と fork の項目は <ドメイン>/plugs/storageObjectPurposes/、合成は storageObject/services/server/purposeSource.ts。型と規則: src/lib/storage/README.md
 
 import "server-only";
 

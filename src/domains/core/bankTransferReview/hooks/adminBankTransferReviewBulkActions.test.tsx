@@ -1,5 +1,5 @@
-// 振込レビューの管理一覧の受け口 adminBulkActions の検査。
-// - 生成の一覧(extensions/adminBulkActions)に上流の既定の項目 sendEmail がある
+// 振込レビューの管理一覧の一括操作(点 adminBulkActions の bankTransferReview の項目)の検査。
+// - 生成の一覧(core/admin の extensions/adminBulkActions)に上流の既定の項目 sendEmail がある
 // - override で enabled: false にした形(生成器が重ねる)は出ない / fork の項目は order で並ぶ(selectBulkActions の上で)
 // - sendEmail は連絡の作成関数 definitionBulkAction の項目で、定義連絡の汎用の送るモーダルを記録の入口(項目の鍵・選んだ id。目的の props は無い、D164 D194)で描き、
 //   送った後に onDone(モーダルは偽物)。自由連絡の一括送信は残っていない
@@ -19,11 +19,12 @@ mock.module("@/domains/core/messaging/components/DefinitionSendModal", {
   },
 });
 
-let adminBulkActions: typeof import("../extensions/adminBulkActions").adminBulkActions;
+let adminBulkActions: Record<string, import("../types/adminBulkAction").BankTransferReviewAdminBulkActionItem>;
 let selectBulkActions: typeof import("@/lib/tableSuite").selectBulkActions;
 let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;
 before(async () => {
-  ({ adminBulkActions } = await import("../extensions/adminBulkActions"));
+  const { adminBulkActions: all } = await import("@/domains/core/admin/extensions/adminBulkActions");
+  adminBulkActions = Object.fromEntries(all.filter((entry) => entry.domain === "bankTransferReview").map((entry) => [entry.plug.key, entry.plug as import("../types/adminBulkAction").BankTransferReviewAdminBulkActionItem]));
   ({ selectBulkActions } = await import("@/lib/tableSuite"));
   ({ renderToStaticMarkup } = await import("react-dom/server"));
 });

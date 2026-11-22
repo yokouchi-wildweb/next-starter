@@ -19,14 +19,21 @@
 // src/lib/** から src/registry/** を import しない(値も型も)。lib の関数は登録表を引数・注入で受け、結ぶのは src/wiring/**。
 // 一覧の行(file + target)に当たる import は通す。一覧の行のファイルにその import が無くなったら、行を消すよう error。
 //
-// ── lib-no-domains(親 D8) ──
-// src/lib/** から src/domains/** を import しない(値も型も、例外の一覧なし)。型は lib が持つか型引数で受け、
-// 値は注入で受ける。渡し方の既定 = 組み立て側 1 モジュールが import 時に作る設定済みの版(src/wiring/**)。
+// ── district-no-domains(地区の議会 D22、注文 38。lib だけを見た前の規則を、ゲートの無い地区の全部に広げた 1 本) ──
+// ゲートの無い地区(lib・枠・門番・登録表・結線・proxies = 地区の種類の表 src/lib/districtMap の hasGate: false)と src/proxy.ts・
+// src/instrumentation.ts は src/domains/** を import しない(値も型も・動的 import も、例外の一覧なし)。要る物は地区が点(extensionPoints.ts)を
+// 宣言してドメインが項目で差す。型は地区が持つか型引数で受ける。数えない物: 生成物(先頭の生成の印。plugs の一覧は門番の gate.plugs で閉じる)・
+// テスト(*.test.*)・テストの補助(**/__tests__/** の下、注文 34 Q2 a / 38 Q1 a: 門番を通らず本物のドメインを確かめるのが役)
+//
+// ── points-entry(D33、注文 38) ──
+// 差す側の項目(src の下の plugs/ の中、テストも)は、ゲートの無い持ち主の点の約束の型を、その持ち主の型だけの入口 @/<持ち主>/points
+// (lib は入口 "./points")からだけ読む: 持ち主の中のほかの場所から、その入口が出す名前を読めば止める。枠(_layout)と proxies からは値を読まない。
+// 型だけの入口のファイル <持ち主>/points.ts は型だけ(export type … / import type …)。持ち主と名前は宣言(type.from が <持ち主>/points)から読む
 //
 // ── page-guard-via-wiring(L1.18、D5 K1 と同じ形) ──
 // @/lib/pageGuard(閉じた lib。入口は @/lib/pageGuard だけで、中のファイルは entry/only-entries が止める)を値 import できるのは
 // src/wiring/** と src/lib/pageGuard 自身だけ。
-// 型だけの import は誰でも可(auth の束 pageGuardUserDeps は型だけ)。guard.ts は root を @/wiring/pageGuard から、子を親の extend で作る。
+// 型だけの import は誰でも可(点 pageGuardUser の項目 auth/plugs/pageGuardUser は型だけ)。guard.ts は root を生成物 @/wiring/pageGuard から、子を親の extend で作る。
 //
 // ── domains-index-no-server-reexport(D73 K5) ──
 // src/domains/**/index.ts(services/server の外の barrel)は services/server を値で再 export しない(export … from / export * from)。
@@ -43,7 +50,7 @@
 // 門番 src/featureGate/ の外からは入口 3 つ(index.ts = @/featureGate・client.ts・node.ts)だけを読む(値も型も)。
 // - lib(src/lib/**)は門番を読まない(入口も。値も型も)。lib の関数は規則や判定を引数で受ける(例 routeMap の gateRules)
 // - node.ts(規則の一覧・gatedSchema・closedTables)は scripts/** とテストだけ。アプリ・proxy は index.ts / client.ts
-// - テスト(*.test.*)はこの規則の対象外(中の部品を確かめるのが役。lib-no-domains がテストを外すのと同じ)
+// - テスト(*.test.*)はこの規則の対象外(中の部品を確かめるのが役。district-no-domains がテストを外すのと同じ)
 // - 配線用の 2 名(L1.7: index.ts の clientGateState・client.ts の GateProvider)は root layout・AppProviders・admin の守りの layout 2 つだけ
 //   (名前で読む import / re-export を見る。namespace import・dynamic import は名前が分からないので見ない)
 // 門番の中どうし(生成一覧 → 規則、道具 → evaluate、規則 → @/featureGate の型)は自由。到達の検査は src/featureGate/checks/reachability.test.mjs
@@ -97,7 +104,7 @@
 // 強さは Tier で切り替える: 上流(目録の先頭の節)= error、fork = warn(eslint.config.mjs)。
 //
 // ── mail-send-via-messaging(当議会 D133) ──
-// @/lib/mail の send(値)を読めるのは src/lib/mail 自身と messaging の送り口 src/domains/core/messaging/channels/email/** だけ。
+// @/lib/mail の send(値)を読めるのは src/lib/mail 自身と messaging の送り口 src/domains/core/messaging/plugs/messagingChannels/email/** だけ。
 // 利用者への連絡は messagingService.sendMessage / sendMessageToMany(記録と配信停止を通す)。
 // テンプレートの部品(Mail*)・型・MAIL_THEME_COLORS・MailSendError・webhook の関数は誰でも可。名前を問わない形(namespace・
 // 動的 import・export *)は send を含みうるので止める(動的 import を `const { 名前 } = await import(…)` で受ける形は名前で見る)。強さ: 全 Tier error(必須の規則の一覧)。
@@ -107,9 +114,11 @@
 // ── lib-self-relative(D100、L1.21) ──
 // 宣言済みの lib の中で、自分を @/lib/<自分>(や "src/lib/<自分>/…")で読まない。自分の中は相対パスで読む。
 
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { KINDS } from "../src/lib/districtMap/index.mjs";
+import { collectPoints, readDistrictMapAt } from "../src/lib/districtMap/node.mjs";
 import { libOfPath } from "../src/lib/libPackage/index.mjs";
 import { readLibPackage } from "../src/lib/libPackage/node.mjs";
 import { matchesPath } from "../src/lib/pathPattern/index.mjs";
@@ -125,7 +134,7 @@ const LIB = "src/lib";
 const REGISTRY = "src/registry";
 const FEATURES = "src/domains";
 const FEATURE_GATE = "src/featureGate";
-const FEATURE_GATE_ENTRIES = ["src/featureGate", "src/featureGate/index", "src/featureGate/client", "src/featureGate/node"];
+const FEATURE_GATE_ENTRIES = ["src/featureGate", "src/featureGate/index", "src/featureGate/client", "src/featureGate/node", "src/featureGate/points"];
 /** 配線用の名前(L1.7)と、それを読んでよいファイル */
 const FEATURE_GATE_WIRING_NAMES = ["clientGateState", "GateProvider"];
 const FEATURE_GATE_WIRING_FILES = [
@@ -162,7 +171,7 @@ export function classifyCronFactoryImport(importerRel, resolved, typeOnly, speci
 }
 
 const MAIL_LIB = "src/lib/mail";
-const MAIL_SEND_POINT = "src/domains/core/messaging/channels/email";
+const MAIL_SEND_POINT = "src/domains/core/messaging/plugs/messagingChannels/email";
 const MAIL_SEND_NAMES = ["send"];
 const CLIENT_SERVICE_DIR = /(^|\/)services\/client(\/|$)/;
 
@@ -520,24 +529,127 @@ const toolsNoDbWrite = {
   },
 };
 
-/** lib のファイルが features を指す import か */
-export const isLibDomainsImport = (importerRel, resolved) => isUnder(importerRel, LIB) && isUnder(resolved, FEATURES);
+const GENERATED_MARK = "// 生成物・編集不可: ";
+/** src 直下のゲートの無いファイル(地区の外の仕組みの入口) */
+const GATELESS_ROOT_FILES = ["src/proxy.ts", "src/instrumentation.ts"];
+/** テストとテストの補助(数えない) */
+export const isTestOrHelper = (rel) => /\.test\.[cm]?[jt]sx?$/.test(rel) || /(^|\/)__tests__\//.test(rel);
 
-const libNoDomains = {
+/** @type {Map<string, string[]>} リポ → ゲートの無い地区のフォルダ(1 回の lint で 1 回だけ読む) */
+const gatelessDirsCache = new Map();
+/**
+ * ゲートの無い地区のフォルダ: 種類の表の hasGate: false の種類のうち、置き場が決まった物(src 直下の 1 地区)と lib(src/lib の下全部)、
+ * 枠は地区の地図の読み手が見つけた _layout(宣言 frame: のある物)
+ * @param {string} repoRoot
+ */
+export function gatelessDirsAt(repoRoot) {
+  const cached = gatelessDirsCache.get(repoRoot);
+  if (cached) return cached;
+  const dirs = [LIB];
+  for (const k of KINDS) if (!k.hasGate && k.dir) dirs.push(k.dir);
+  for (const d of readDistrictMapAt(repoRoot).districts) if (d.kind === "frame") dirs.push(d.dir);
+  gatelessDirsCache.set(repoRoot, dirs);
+  return dirs;
+}
+
+/** ゲートの無い地区のファイルか(テスト・補助を除く) */
+export const isGatelessFile = (importerRel, dirs) => !isTestOrHelper(importerRel) && (GATELESS_ROOT_FILES.includes(importerRel) || dirs.some((dir) => isUnder(importerRel, dir)));
+
+const districtNoDomains = {
   meta: {
     type: "problem",
-    docs: { description: "src/lib から src/domains を import しない(値も型も)" },
+    docs: { description: "ゲートの無い地区(lib・枠・門番・登録表・結線・proxies)と proxy.ts・instrumentation.ts は src/domains を import しない(値も型も、D22)" },
     messages: {
-      libDomains: '"{{source}}": lib は features を import しません(値も型も)。型は lib が持つか型引数で受け、値は注入で受けて src/wiring で結びます(CLAUDE.md CODE_PLACEMENT deps)',
+      districtDomains:
+        '"{{source}}": ゲートの無い地区はドメインを読みません(値も型も、D22)。要る物は地区が点を宣言してドメインが項目で差す(読めるのは生成された一覧だけ)。型は地区が持つか型引数で受ける(テストと __tests__/ の補助は対象外)',
     },
     schema: [],
   },
   create(context) {
     const repoRoot = context.cwd ?? process.cwd();
     const importerRel = repoRelative(context.filename, repoRoot);
+    if (!isGatelessFile(importerRel, gatelessDirsAt(repoRoot))) return {};
+    if ((context.sourceCode ?? context.getSourceCode()).text.startsWith(GENERATED_MARK)) return {};
     return moduleVisitors(({ node, source }) => {
-      if (!isLibDomainsImport(importerRel, resolveImport(source, context.filename, repoRoot))) return;
-      context.report({ node, messageId: "libDomains", data: { source } });
+      if (!isUnder(resolveImport(source, context.filename, repoRoot) ?? "", FEATURES)) return;
+      context.report({ node, messageId: "districtDomains", data: { source } });
+    });
+  },
+};
+
+// ── points-entry ──
+const POINTS_FILE = "points";
+/** @type {Map<string, { dir: string, entry: string, names: Set<string>, kind: string }[]>} */
+const pointsOwnersCache = new Map();
+/** 型だけの入口の出す名前(export type { A } from …・export type A = …) */
+export function pointsNamesOf(text) {
+  const names = new Set();
+  for (const m of text.matchAll(/export\s+type\s*\{([^}]*)\}/g)) for (const part of m[1].split(",")) if (part.trim()) names.add(part.trim().split(/\s+as\s+/).pop().trim());
+  for (const m of text.matchAll(/export\s+(?:type|interface)\s+([A-Za-z_$][\w$]*)/g)) names.add(m[1]);
+  return names;
+}
+/**
+ * 型だけの入口を持つ持ち主: 宣言の type.from が @/<持ち主>/points の点の持ち主(ドメインでない)
+ * @param {string} repoRoot
+ */
+export function pointsOwnersAt(repoRoot) {
+  const cached = pointsOwnersCache.get(repoRoot);
+  if (cached) return cached;
+  const owners = new Map();
+  for (const p of collectPoints(repoRoot).points) {
+    if (isUnder(p.owner, FEATURES) || !p.spec.type) continue;
+    const entry = `@/${p.owner.slice("src/".length)}/${POINTS_FILE}`;
+    if (p.spec.type.from !== entry || owners.has(p.owner)) continue;
+    const file = ["ts", "tsx"].map((ext) => join(repoRoot, `${p.owner}/${POINTS_FILE}.${ext}`)).find((f) => existsSync(f));
+    if (!file) continue;
+    owners.set(p.owner, { dir: p.owner, entry, names: pointsNamesOf(readFileSync(file, "utf8")), kind: isUnder(p.owner, LIB) || isUnder(p.owner, FEATURE_GATE) ? "lib" : "frame" });
+  }
+  const list = [...owners.values()].sort((a, b) => b.dir.length - a.dir.length);
+  pointsOwnersCache.set(repoRoot, list);
+  return list;
+}
+
+/** 型だけの入口のファイルの文が型だけか(違う文の範囲を返す) */
+const isTypeOnlyStatement = (st) =>
+  (st.type === "ImportDeclaration" && st.importKind === "type") ||
+  (st.type === "ExportNamedDeclaration" && (st.exportKind === "type" || (st.declaration && /^TS(TypeAlias|Interface)Declaration$/.test(st.declaration.type)))) ||
+  (st.type === "ExportAllDeclaration" && st.exportKind === "type");
+
+const pointsEntry = {
+  meta: {
+    type: "problem",
+    docs: { description: "差す側の項目は点の約束の型を持ち主の型だけの入口 points からだけ読む。points.ts は型だけ(D33)" },
+    messages: {
+      viaPoints: '"{{source}}" の {{names}}: 点の約束の型は持ち主の型だけの入口 "{{entry}}" から import type で読む(D33。.notices/20261123-040814-district-stage3.points-entries.mjs が書き換える)',
+      frameValue: '"{{source}}": 項目は枠・proxies から値を読まない(型は "{{entry}}" から import type で、D33)',
+      pointsTypeOnly: "型だけの入口 points.ts は export type / import type だけを書く(値・ほかの文は置かない、D33)",
+    },
+    schema: [],
+  },
+  create(context) {
+    const repoRoot = context.cwd ?? process.cwd();
+    const importerRel = repoRelative(context.filename, repoRoot);
+    const owners = pointsOwnersAt(repoRoot);
+    // 型だけの入口のファイル
+    if (owners.some((o) => importerRel === `${o.dir}/${POINTS_FILE}.ts` || importerRel === `${o.dir}/${POINTS_FILE}.tsx`)) {
+      return {
+        Program(program) {
+          for (const st of program.body) if (!isTypeOnlyStatement(st)) context.report({ node: st, messageId: "pointsTypeOnly" });
+        },
+      };
+    }
+    if (!/(^|\/)plugs\//.test(importerRel) || !isUnder(importerRel, "src")) return {};
+    return moduleVisitors(({ node, source, specifiers, typeOnly }) => {
+      const resolved = resolveImport(source, context.filename, repoRoot);
+      if (!resolved) return;
+      const owner = owners.find((o) => isUnder(resolved, o.dir));
+      if (!owner || resolved === `${owner.dir}/${POINTS_FILE}`) return;
+      if (owner.kind === "frame" && !typeOnly) {
+        context.report({ node, messageId: "frameValue", data: { source, entry: owner.entry } });
+        return;
+      }
+      const hit = (specifiers ?? []).filter((s) => owner.names.has(s.name)).map((s) => s.name);
+      if (hit.length > 0) context.report({ node, messageId: "viaPoints", data: { source, names: hit.join("・"), entry: owner.entry } });
     });
   },
 };
@@ -772,7 +884,7 @@ const mailSendViaMessaging = {
     docs: { description: "lib/mail の send を読めるのは messaging の送り口(channels/email)と lib/mail 自身だけ" },
     messages: {
       mailSend:
-        '"{{source}}" の {{name}} は送信の本体です。利用者への連絡は messagingService.sendMessage / sendMessageToMany(@/domains/messaging/services/server、messages/<名前>.ts の定義)を使います。send を読めるのは messaging の送り口 src/domains/core/messaging/channels/email/** だけ(テンプレートの部品・型・MAIL_THEME_COLORS は可。詳細: src/domains/core/messaging/README.md)',
+        '"{{source}}" の {{name}} は送信の本体です。利用者への連絡は messagingService.sendMessage / sendMessageToMany(@/domains/messaging/services/server、plugs/messages/<名前>.ts の定義)を使います。send を読めるのは messaging の送り口 src/domains/core/messaging/plugs/messagingChannels/email/** だけ(テンプレートの部品・型・MAIL_THEME_COLORS は可。詳細: src/domains/core/messaging/README.md)',
     },
     schema: [],
   },
@@ -999,7 +1111,8 @@ const plugin = {
     "cron-route-via-wiring": cronRouteViaWiring,
     "domains-index-no-server-reexport": domainsIndexNoServerReexport,
     "lib-no-registry": libNoRegistry,
-    "lib-no-domains": libNoDomains,
+    "district-no-domains": districtNoDomains,
+    "points-entry": pointsEntry,
     "hooks-utils-no-domains": hooksUtilsNoDomains,
     "client-no-domain-json": clientNoDomainJson,
     "feature-gate-entries": featureGateEntries,

@@ -2,7 +2,7 @@
 
 ## Overview
 
-配信停止の単位 = カテゴリー × 送信チャンネル。連絡定義の `category` がカテゴリーの鍵（受け口 `categories/`）。本人が好みを見て切り替える口（`messagingService.getMessagePreferences` / `setMessagePreference`）と、送る口・受け取り箱が使う停止の判定を持つ。画面は ../../../components/README.md。
+配信停止の単位 = カテゴリー × 送信チャンネル。連絡定義の `category` がカテゴリーの鍵（点 `messagingCategories/`）。本人が好みを見て切り替える口（`messagingService.getMessagePreferences` / `setMessagePreference`）と、送る口・受け取り箱が使う停止の判定を持つ。画面は ../../../components/README.md。
 
 - 好みに従う連絡 = 種別の性質 `userStoppable`（activity・promotion）で required でない連絡。ほかの種別と required は好みを見ない
 - 門: `messagingPreferences`（住所 ページ `/mypage/account/notifications` と API `/api/me/messaging/preferences`、`dependsOn: ["pageMypage"]`、既定 閉）。閉の間ページと API は 404。表とワンクリックの受け口は門に関わらず開。住所の定数は `constants/preferences.ts`（`MESSAGE_PREFERENCES_PAGE_PATH` / `MESSAGE_PREFERENCES_API_PATH`）
@@ -10,7 +10,7 @@
 ## API
 
 - `GET /api/me/messaging/preferences` → `MessagePreferencesDto`（`dto.ts`）= `{ allOptedOut, categories[{ key, optedOut }], kinds[{ kind, optedOut }], groups[{ key, label, kind, optedOut }], channels[{ key, label, hasAddress, connectHref, optedOut, kinds[{ kind, groups[{ key, label, optedOut, categories[{ key, label, description, optedOut, via }] }] }] }] }`
-  - 形 = 送信チャンネル（有効な送信チャンネル）> 種別の枠（`userStoppable` の種別、`MESSAGE_KINDS` の順）> グループ（受け口 `categoryGroups`。グループの無いカテゴリーは `key` null で先、見出しは `order` の順）> カテゴリー。送信チャンネルに出るカテゴリー = カテゴリーの送信チャンネルにその送信チャンネルがある。カテゴリーの無い送信チャンネルは `kinds` が空
+  - 形 = 送信チャンネル（有効な送信チャンネル）> 種別の枠（`userStoppable` の種別、`MESSAGE_KINDS` の順）> グループ（点 `messagingCategoryGroups`。グループの無いカテゴリーは `key` null で先、見出しは `order` の順）> カテゴリー。送信チャンネルに出るカテゴリー = カテゴリーの送信チャンネルにその送信チャンネルがある。カテゴリーの無い送信チャンネルは `kinds` が空
   - 広い停止の状態: `allOptedOut`（全部）・`categories[].optedOut`（カテゴリーまるごと）・`channels[].optedOut`（送信チャンネルまるごと）・`kinds[].optedOut`（種別まるごと）・`groups[].optedOut`（グループまるごと、全送信チャンネル `"*"`。利用者が止められるカテゴリーを持つ見出しのグループごと）・`channels[].kinds[].groups[].optedOut`（グループ × その送信チャンネル）。全部の停止はほかの行の値を書き換えない（画面が `allOptedOut` から見せ方を決める）
   - `via`（`cell` / `category` / `group` / `kind` / `channel` / `all` / null）= どの行で止まっているか（この順で先に当たった物）
   - `hasAddress` = 送信チャンネルの `resolveAddresses`、無ければ端末の帳簿の有効な行（送る側の展開と同じ）/ `connectHref` = 送信チャンネルの項目の宣言（サイト内の住所は門で閉じていれば null。上流は line だけ: `/api/auth/line/login?redirect_after=<好みのページ>`）

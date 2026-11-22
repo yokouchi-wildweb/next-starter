@@ -130,7 +130,7 @@ export const UserTable = pgTable("users", {
 
 ### クリーンアップハンドラの仕組み
 
-退会・ソフトデリート時に、他ドメインのリソース後始末を実行する仕組み。項目は `cleanupHandlers/<名前>.ts`（`export const handler: UserCleanupItem`）、実行は `services/server/cleanup.ts` の `runCleanupItems`、呼び手の入口は `services/server/executeCleanup.ts`。
+退会・ソフトデリート時に、他ドメインのリソース後始末を実行する仕組み。項目は `<ドメイン>/plugs/userCleanupHandlers/<名前>.ts`（`export const handler: UserCleanupItem`）、実行は `services/server/cleanup.ts` の `runCleanupItems`、呼び手の入口は `services/server/executeCleanup.ts`。
 
 - accountLifecycle の `withdraw.ts` / `wrappers/softDelete.ts` の両方がトランザクション内で `executeCleanup(userId, tx)` を呼ぶ
 - ステータス変更（`withdrawn` への更新）は項目の責務外。呼び出し元が自前で行う（softDelete は `setStatusWithdrawn`）

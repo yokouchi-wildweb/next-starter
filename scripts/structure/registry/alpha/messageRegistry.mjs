@@ -1,19 +1,22 @@
 // scripts/structure/registry/alpha/messageRegistry.mjs
 // 連絡の一覧 src/registry/messageRegistry.ts を走査から組み立てる(pnpm generate registry)。字面で読むだけ(定義は import しない)。
-// - 定義 = domains の地区の messages/<名前>.ts(直下。.override・.test・点つきの名前は除く)の export const message = defineMessage({ key: "…", … })
+// - 定義 = domains の地区の plugs/messages/<名前>.ts(D42。直下。.override・.test・点つきの名前は除く)の export const message = defineMessage({ key: "…", … })
 // - 鍵 = 定義の key の文字列リテラルで、<ドメインのフォルダ名>.<ファイル名> と一致すること(場所から一意に決まる。ずれ・重なりは止める)
-// - 上書き = 隣の <名前>.override.ts。描き方はレイアウト(messaging の layouts の受け口)が持つので、messages/views/ が残っていれば止める
+// - 上書き = 隣の <名前>.override.ts。描き方はレイアウト(messaging の 点 messagingLayouts)が持つので、messages/views/ が残っていれば止める
 // 値の検査(欄・{{鍵}}・required の守り)は lib/messaging の validateMessageDefinition(実行時)と pnpm check extensions(字面の守り)
 // 書式と読み手: src/lib/messaging/README.md「生成の一覧」
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { PLUGS_DIR_NAME } from "../../../../src/lib/districtMap/index.mjs";
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { MESSAGE_EXPORT, exportedObject, readLiteralProperty } from "../../extensions/derive/messageGuards.mjs";
 
 export const MESSAGE_REGISTRY_FILE = "src/registry/messageRegistry.ts";
-const MESSAGES_DIR = "messages";
+const MESSAGES_DIR = `${PLUGS_DIR_NAME}/messages`;
+/** 段 3 の前の置き場(<ドメイン>/messages/)。残っていれば止めて移し方を案内する */
+const OLD_MESSAGES_DIR = "messages";
 /** 前の連絡ごとの描き方のフォルダ(もう使わない。残っていれば止める) */
 const VIEWS_DIR = "views";
 const PLAIN_NAME = /^[a-z][A-Za-z0-9]*$/;
@@ -36,6 +39,9 @@ export function scanMessages(repoRoot) {
   const entries = [];
   const districts = readDistrictMapAt(repoRoot).districts.filter((d) => d.kind === "domains");
   for (const district of districts) {
+    if (existsSync(join(repoRoot, district.dir, OLD_MESSAGES_DIR))) {
+      problems.push(`${district.dir}/${OLD_MESSAGES_DIR}/: 連絡の定義は ${district.dir}/${MESSAGES_DIR}/ に置く(D42。fork は段 3 の notice の道具が動かす)`);
+    }
     const dir = `${district.dir}/${MESSAGES_DIR}`;
     const domain = district.dir.split("/").at(-1);
     const files = listFiles(repoRoot, dir);
@@ -72,7 +78,7 @@ export function scanMessages(repoRoot) {
     }
     for (const file of listFiles(repoRoot, `${dir}/${VIEWS_DIR}`)) {
       problems.push(
-        `${dir}/${VIEWS_DIR}/${file}: 連絡ごとの描き方(messages/views/)は使わない。描き方はレイアウト(messaging/layouts/<名前>/)に置き、定義の layout で選ぶ`,
+        `${dir}/${VIEWS_DIR}/${file}: 連絡ごとの描き方(plugs/messages/views/)は使わない。描き方はレイアウト(messaging/plugs/messagingLayouts/<名前>/)に置き、定義の layout で選ぶ`,
       );
     }
   }
@@ -100,7 +106,7 @@ export function renderMessageRegistry(repoRoot) {
     "  },",
   ]);
   const text = [
-    "// 生成物・編集不可: pnpm generate registry が src/domains/**/messages/*.ts・*.override.ts から生成する",
+    "// 生成物・編集不可: pnpm generate registry が src/domains/**/plugs/messages/*.ts・*.override.ts から生成する",
     `// ${MESSAGE_REGISTRY_FILE}`,
     "//",
     "// 連絡の一覧(鍵 = <ドメインのフォルダ名>.<ファイル名> → 定義・上書きの遅延 import)。送る口・管理画面・プレビューが読む。型と決まり: src/lib/messaging/README.md",

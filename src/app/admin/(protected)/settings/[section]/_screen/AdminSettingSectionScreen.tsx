@@ -10,7 +10,8 @@ import AdminPage from "@/app/admin/_layout/AdminPage";
 import type { ScreenProps } from "@/lib/screens";
 import { Section } from "@/components/Layout/Section";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
-import { sections } from "@/domains/core/setting/extensions/sections";
+import { openSections } from "@/domains/core/setting/definitions";
+import { gate } from "@/featureGate";
 
 import EditSettingSectionForm from "./EditSettingSectionForm";
 import { loadAdminSettingSectionScreen, type AdminSettingSectionScreenParams } from "./loader";
@@ -18,7 +19,7 @@ import { loadAdminSettingSectionScreen, type AdminSettingSectionScreenParams } f
 /** タイトル = セクション名(未知のキーは既定の「システム設定」。404 にするのは loader) */
 export async function generateMetadata({ params }: { params: Promise<AdminSettingSectionScreenParams> }): Promise<Metadata> {
   const { section } = await params;
-  return { title: sections[section]?.label ?? "システム設定" };
+  return { title: openSections(gate.plugs)[section]?.label ?? "システム設定" };
 }
 
 export async function AdminSettingSectionScreen(props: ScreenProps<AdminSettingSectionScreenParams>) {

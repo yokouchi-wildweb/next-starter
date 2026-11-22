@@ -8,7 +8,7 @@ import { initGoogleTag, type GoogleTagInitOptions } from "./googleTag";
 type GoogleTagProps = {
   /**
    * 流入経路の判別表（招待などの独自のリンクの印を GA4 の campaign_source / medium にする）。
-   * root layout は src/wiring/GoogleTag.tsx 経由で userAcquisition の表を渡す。省略 = 送らない
+   * root layout は生成物 src/wiring/googleTag.ts の結び目(./wire.ts)経由で点 googleTagChannels の表を渡す。省略 = 送らない
    */
   channels?: GoogleTagInitOptions["channels"];
   /**
@@ -27,7 +27,7 @@ type GoogleTagProps = {
  * Google tag 初期化コンポーネント
  * - マウント時に gtag.js を初期化
  * - NEXT_PUBLIC_GOOGLE_TAG_ID / NEXT_PUBLIC_GOOGLE_ADS_ID が未設定なら何もしない
- * - ルートレイアウト body 内に配置する（root layout は判別表を結んだ src/wiring/GoogleTag.tsx を描く）
+ * - ルートレイアウト body 内に配置する（root layout は判別表を結んだ生成物 src/wiring/googleTag.ts の GoogleTag を描く）
  */
 export function GoogleTag({
   channels,

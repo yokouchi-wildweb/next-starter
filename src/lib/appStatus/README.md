@@ -53,4 +53,4 @@ export default { maintenancePath: "/closed" } satisfies AppStatusOverride;
 ## Related
 
 - 状態を返す route: `src/app/api/health/route.ts`
-- メンテナンスの門: `src/proxies/maintenance.ts`
+- メンテナンスの門: `src/domains/core/setting/plugs/proxyHandlers/maintenance.ts`(proxy の項目)

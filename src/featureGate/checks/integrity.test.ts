@@ -12,7 +12,9 @@ import type { GatedFeatureRule } from "@/featureGate";
 import { checkAlwaysOpenRequires, checkForeignKeys, checkRequiredClosed, sharedDomainsOpen } from "./integrity.mjs";
 
 const rule = (name: string, domains: string[] = [], dependsOn: string[] = []) => ({ name, domains, dependsOn });
-const domain = (folder: string, requires: string[] = [], tables: string[] = [`${folder.split("/").pop()}s`]) => ({ folder, name: folder.split("/").pop()!, requires, tables });
+const domain = (folder: string, requires: string[] = [], tables: string[] = [`${folder.split("/").pop()}s`], alwaysOpen = false) => ({ folder, name: folder.split("/").pop()!, requires, tables, alwaysOpen });
+/** 常設のドメイン(明示の宣言 alwaysOpen、注文 35) */
+const standing = (folder: string, requires: string[] = []) => domain(folder, requires, undefined, true);
 const fk = (from: string, to: string) => ({ from, to });
 
 test("外部キー: 機能をまたぐ外部キーは requires と dependsOn の両方で覆う(どちらかが欠ければ止める)", () => {
@@ -30,23 +32,24 @@ test("外部キー: 機能をまたぐ外部キーは requires と dependsOn の
 });
 
 test("外部キー: 規則の中(一緒に閉じる)・参照先が常設は対象外、参照元が常設は止める。例外の表と当たらない行", () => {
-  const domains = [domain("sample"), domain("sampleImage"), domain("core/user"), domain("core/log")];
+  const domains = [domain("sample"), domain("sampleImage"), standing("core/user"), standing("core/log")];
   const inRule = [rule("sampleDomain", ["sample", "sampleImage"])];
   assert.deepEqual(checkForeignKeys({ list: inRule, domains, foreignKeys: [fk("sampleImages", "samples")] }), [], "同じ機能の中");
   assert.deepEqual(checkForeignKeys({ list: inRule, domains, foreignKeys: [fk("samples", "users")] }), [], "参照先は常設(常に開)");
-  const fromBase = checkForeignKeys({ list: inRule, domains: [...domains.slice(0, 2), domain("core/log", ["sample"])], foreignKeys: [fk("logs", "samples")] });
-  assert.match(fromBase[0], /core\/log はどの機能にも載らない常設\(常に開\)/);
+  const fromBase = checkForeignKeys({ list: inRule, domains: [...domains.slice(0, 2), standing("core/log", ["sample"])], foreignKeys: [fk("logs", "samples")] });
+  assert.match(fromBase[0], /core\/log は常設\(常に開\)/);
   const key = "logs→samples";
-  assert.deepEqual(checkForeignKeys({ list: inRule, domains: [...domains.slice(0, 2), domain("core/log", ["sample"])], foreignKeys: [fk("logs", "samples")], exceptions: { [key]: "理由" } }), []);
+  assert.deepEqual(checkForeignKeys({ list: inRule, domains: [...domains.slice(0, 2), standing("core/log", ["sample"])], foreignKeys: [fk("logs", "samples")], exceptions: { [key]: "理由" } }), []);
   assert.match(checkForeignKeys({ list: inRule, domains, foreignKeys: [], exceptions: { [key]: "理由" } })[0], /外部キーの例外 logs→samples はもう当たらない/);
 });
 
-test("常設の requires: どの機能にも載らないドメインが閉じうるドメインを requires すれば止める(常設どうし・機能に載るドメインは通る)", () => {
-  const domains = [domain("core/wallet"), domain("core/report", ["wallet"]), domain("core/audit"), domain("core/log", ["audit"])];
+test("常設の requires: 常設(明示の宣言 alwaysOpen)のドメインが閉じうるドメインを requires すれば止める(常設どうし・機能に載るドメインは通る)", () => {
+  const domains = [domain("core/wallet"), standing("core/report", ["wallet"]), standing("core/audit"), standing("core/log", ["audit"])];
   const problems = checkAlwaysOpenRequires({ list: [rule("wallet", ["core/wallet"])], domains });
   assert.equal(problems.length, 1);
-  assert.match(problems[0], /core\/report はどの機能にも載らない常設\(常に開\)なのに、閉じうる wallet\(core\/wallet、機能 wallet\)を requires する/);
-  assert.deepEqual(checkAlwaysOpenRequires({ list: [rule("wallet", ["core/wallet", "core/report"])], domains }), []);
+  assert.match(problems[0], /core\/report は常設\(常に開\)なのに、閉じうる wallet\(core\/wallet、機能 wallet\)を requires する/);
+  const listed = [domain("core/wallet"), domain("core/report", ["wallet"]), standing("core/audit"), standing("core/log", ["audit"])];
+  assert.deepEqual(checkAlwaysOpenRequires({ list: [rule("wallet", ["core/wallet", "core/report"])], domains: listed }), []);
 });
 
 test("required/ の実効の閉: 必須の機能が規則の値で閉なら止め、閉じた依存先を出す", () => {

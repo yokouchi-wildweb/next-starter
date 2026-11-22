@@ -11,7 +11,7 @@ rules:
 using:
 - shared_client: every AI capability uses the shared client getAnthropicClient, never its own
 - tool_input_untrusted: a tool's `run` input is model output → validate it with zod | the agent designs its tools' safety boundary (the runtime only guarantees nothing beyond the given tools)
-- prompt_stable_first: put the stable prompt part (role, tool policy) first and variable parts last (prompt cache = prefix match) | operator-editable instructions = stable prompt + a suffix resolved per request (src/wiring/dbAgent/suffixProviders/)
+- prompt_stable_first: put the stable prompt part (role, tool policy) first and variable parts last (prompt cache = prefix match) | operator-editable instructions = stable prompt + a suffix resolved per request (\<domain or lib\>/plugs/dbAgentSuffixProviders/)
 - ui_forward_compat: a UI ignores unknown event types and unknown `v`
 - done_is_last: `agent.done` always ends a turn | `agent.error` reports and is still followed by `agent.done`
 - server_only_lazy_client: Anthropic callers are server-only and create the client lazily (getAnthropicClient): a missing ANTHROPIC_API_KEY fails at call time, never at import

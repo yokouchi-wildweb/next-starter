@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createProxyUser } from '@/domains/core/auth/services/server/proxyUserDeps';
 import { proxyHandlers, proxyResponseDecorators } from './proxies';
-import type { ProxyContext } from './proxies';
-import { serverErrorReport } from '@/wiring/serverErrors';
+import type { ProxyContext, ProxyUser } from './proxies/types';
+import { proxyUser } from './proxies/extensions/proxyUser';
+import { gate } from '@/featureGate';
+import { serverErrorReport } from '@/wiring/serverErrorReport';
 
 // proxy を走らせる住所の絞り込み(Next.js の matcher。ビルド時に読むのでリテラルだけで書く。fork は変えない)。
 // 外すのは、どの項目(メンテナンス・デモ・門番・転送・cookie)も要らない静的なファイルだけ:
@@ -27,9 +28,14 @@ export default async function proxy(request: NextRequest) {
   }
 }
 
+// 利用者の解き方: 点 proxyUser の項目(ちょうど 1 つ、上流は常設の auth。生成の検査が 0 個・2 個以上を止める)。ドメインは読まない(D22・D30)
+const [userEntry] = gate.plugs(proxyUser);
+if (!userEntry) throw new Error("proxyUser: 項目がありません(常設のドメインの項目がちょうど 1 つ要る。pnpm generate extensions)");
+const createUser: (cookies: NextRequest["cookies"]) => () => Promise<ProxyUser | null> = userEntry.plug.createUser;
+
 async function runProxy(request: NextRequest) {
   // 利用者は項目が ctx.user() を呼んだときだけ 1 回解決する(呼ばれなければ DB を引かない)
-  const ctx: ProxyContext = { user: createProxyUser(request.cookies) };
+  const ctx: ProxyContext = { user: createUser(request.cookies) };
 
   for (const handler of proxyHandlers) {
     const result = await handler(request, ctx);

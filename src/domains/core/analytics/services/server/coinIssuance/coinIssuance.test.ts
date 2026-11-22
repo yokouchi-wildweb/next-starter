@@ -9,11 +9,11 @@
 import { before, test } from "node:test";
 import assert from "node:assert/strict";
 
-let sources: typeof import("@/domains/core/analytics/extensions/coinIssuanceSources").coinIssuanceSources;
+let sources: import("@/domains/core/analytics/services/server/coinIssuance/types").CoinIssuanceSource[];
 let issuanceReasonCategories: typeof import("./issuanceCategories").issuanceReasonCategories;
 let coinIssuanceWalletTypes: readonly string[];
 before(async () => {
-  ({ coinIssuanceSources: sources } = await import("@/domains/core/analytics/extensions/coinIssuanceSources"));
+  sources = (await import("@/domains/core/analytics/extensions/analyticsCoinIssuanceSources")).analyticsCoinIssuanceSources.map((entry) => entry.plug);
   ({ issuanceReasonCategories } = await import("./issuanceCategories"));
   ({ coinIssuanceWalletTypes } = (await import("@/domains/analytics/config")).analyticsConfig);
 });

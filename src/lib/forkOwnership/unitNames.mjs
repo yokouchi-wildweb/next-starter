@@ -7,7 +7,7 @@
 // - 部品の棚(src/components の基準の各分類 <分類>・src/hooks・src/utils・src/lib)… 直下の項目 = 単位(ファイルかフォルダ)。
 //   基準の単位のフォルダの中への追加は inside-unit-add(judge.mjs)、新しい単位は可、基準の単位と同じ名前は同名
 // - 受け口のフォルダ(基準の src/**/extensionPoints.ts の dir:、"." = 持ち主の直下)・src/wiring・scripts・
-//   … 直下の項目だけ(項目のフォルダの中の部品は見ない。門番の例外 src/featureGate/alwaysOnExceptions も宣言の受け口)
+//   … 直下の項目だけ(項目のフォルダの中の部品は見ない。門番の rules・required も宣言の受け口)
 // - route の隣(src/app/**/_layout・_screen・_components)… その下全部
 // <対象>.override.ts(x) の対象の単位 = 同じフォルダの <対象>(fork が足した override の対象が基準に無い = override-own)。
 

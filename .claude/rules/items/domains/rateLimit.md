@@ -13,5 +13,5 @@ using:
 - rate_limit_own_category: a fork's category is added only through its config values file with its name in `Extra` (unknown names fail the type check)
 - rate_limit_user_identifier: a per-user limit takes the userId from the route's ctx.user, never from a session
 editing:
-- rate_limit_type_param: the category type reaches lib/routeFactory only as a type parameter from src/wiring/apiRoute.ts (the lib never reads domains' types)
+- rate_limit_type_param: the category type reaches lib/routeFactory only through its routeFactoryRateLimit item's type (CategoryOf in src/wiring/apiRoute.ts) (the lib never reads domains' types)
 read: apply to a route, config values, identifiers → Usage | rule fields, helpers, 429 response, table → API | config values place → Extension | category type wiring → Internals

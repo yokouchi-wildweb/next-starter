@@ -416,7 +416,7 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 
 ## Extension
 
-- `src/config/domains/chatRoom.config.ts`: `attachmentContentTypes`(添付の種別ごとの許可 Content-Type。送信前の検査と用途 `storageObject/purposes/chatRoom.ts` が読む)
+- `src/config/domains/chatRoom.config.ts`: `attachmentContentTypes`(添付の種別ごとの許可 Content-Type。送信前の検査と用途 `chatRoom/plugs/storageObjectPurposes/chatRoom.ts` が読む)
 
 ## Internals
 
@@ -514,7 +514,7 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 
 ### ファイル添付
 
-- `sendFile` は種類ごとの用途 `chatRoom.image` / `chatRoom.video` / `chatRoom.file`（private）に `scopeId = roomId` で上げ、`content` に ref を入れる（用途: storageObject/purposes/chatRoom.ts）
+- `sendFile` は種類ごとの用途 `chatRoom.image` / `chatRoom.video` / `chatRoom.file`（private）に `scopeId = roomId` で上げ、`content` に ref を入れる（用途: chatRoom/plugs/storageObjectPurposes/chatRoom.ts）
   - 上げられるのも読めるのも、そのルームの現参加者だけ（`isChatParticipant`）。退室すると次の読み取りから署名が出ない
   - チャットの用途は業務行に紐付けない（`attach: false`）。送信済みの添付は掃除の対象外
   - 送信に失敗した添付は `dismiss` / `cancelUpload` / `retry`（再アップロード）のときに取り消す（discard）。送信済みのものは取り消さない

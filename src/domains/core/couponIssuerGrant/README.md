@@ -76,7 +76,7 @@ const { issue, isIssuing } = useIssueMyCoupon();
 
 ### 通知（内蔵しない）
 
-- 承認 / 却下 / 停止の本人通知は、下流が管理ルートの呼び出し後に `messagingService.sendMessage`（`@/domains/messaging/services/server`、送る物の定義は `messages/<name>.ts`）で送る（テンプレートや文言は下流の物）
+- 承認 / 却下 / 停止の本人通知は、下流が管理ルートの呼び出し後に `messagingService.sendMessage`（`@/domains/messaging/services/server`、送る物の定義は `plugs/messages/<name>.ts`）で送る（テンプレートや文言は下流の物）
 
 ## API
 

@@ -59,7 +59,7 @@ function Form({ formInput, extra, description }: FormProps) {
 }
 const renderField = (formInput: string, extra?: Partial<FieldConfig>, description?: { text: string }) =>
   renderAll(
-    <FormInputsProvider inputs={INPUTS}>
+    <FormInputsProvider formInputs={Object.values(INPUTS).map((plug) => ({ plug }))}>
       <Form formInput={formInput} extra={extra} description={description} />
     </FormInputsProvider>,
   );

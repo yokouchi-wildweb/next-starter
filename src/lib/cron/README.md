@@ -219,7 +219,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 - **enabled**: 機能以外の追加の実行条件（例: 失効を有効にした通貨があるか）。同期関数（札 enabled_config_only）。
   false のときルートは本体を呼ばず `{ ok: true, skipped: true, reason: "disabled" }` を返す。vercel.json には載る（値を変えても再生成は要らない）。
   個人情報の retention prune は enabled に載せない。門は他の task と同じく import から付く: 閉じられる機能の prune（`device-fingerprint-prune` / `fingerprint-challenge-access-prune`）はその機能を閉じると止まり（その機能の表は作られない）、常に開く機能の prune（`audit-log-prune` / `user-login-event-prune`）は止まらない
-- **メンテナンス**: 認証・門・enabled の後、設定のメンテナンスの期間（`settingService.isMaintenanceActive()`、API・画面と同じ判定。`src/wiring/cronRoute.ts` が結ぶ）なら、route は本体を呼ばず
+- **メンテナンス**: 認証・門・enabled の後、設定のメンテナンスの期間（`settingService.isMaintenanceActive()`、API・画面と同じ判定。点 `cronMaintenance`（0〜1 個、`./extensionPoints.ts`）の項目で、上流は `domains/core/setting` の `plugs/cronMaintenance/maintenance.ts`。生成物 `src/wiring/cron.ts` を `src/wiring/cronRoute.ts` が結ぶ。空なら飛ばさない）なら、route は本体を呼ばず
   `{ ok: true, skipped: true, reason: "maintenance" }` を返す。`pnpm task --due` も同じに飛ばす（期間は走らせる候補が出た時に 1 回だけ読む）。名前指定の `pnpm task <name>` は運用者の意図なので飛ばさない。
   `maintenance: "pass"` のタスクは走る。期間は閉・無効のタスクでは読まない。切り替わりは設定の読みのメモ（`readMemoMs`、既定 10 秒）だけ遅れる（`src/domains/core/setting/README.md`「メンテナンスで止まる物と確かめ方」）。
   期間中に飛んだ回は取り戻さない（次の時刻の回が走る）
@@ -230,7 +230,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 
 ### 運用上の注意
 
-- 失敗時は API ルートが 500 `{ ok: false, error }` を返す。記録は束の口 `onServerError`（省略可）があればその 1 行（上流の wiring はサーバーの失敗の記録へ結ぶ: `{ level: "error", scope: "cron", path: "/api/cron/<name>", method, routeType: "route", requestId, name: <タスク名>, ok: false, durationMs, error: { name, message, stack } }`、`src/wiring/serverErrors/README.md`）、無ければ stderr に JSON ログ（`scope: "cron"`、`task`・`error` は message）。成功時も stdout に JSON ログ（`durationMs` + 結果）。CLI は `scope: "task-cli"` で同形式、失敗時は exit 1
+- 失敗時は API ルートが 500 `{ ok: false, error }` を返す。記録は束の口 `onServerError`（省略可）があればその 1 行（上流の wiring はサーバーの失敗の記録へ結ぶ: `{ level: "error", scope: "cron", path: "/api/cron/<name>", method, routeType: "route", requestId, name: <タスク名>, ok: false, durationMs, error: { name, message, stack } }`、`src/lib/serverErrorReport/README.md`）、無ければ stderr に JSON ログ（`scope: "cron"`、`task`・`error` は message）。成功時も stdout に JSON ログ（`durationMs` + 結果）。CLI は `scope: "task-cli"` で同形式、失敗時は exit 1
 - Vercel Cron は失敗を自動リトライしないため、失敗の監視はログ側で行う
 
 ## Verification

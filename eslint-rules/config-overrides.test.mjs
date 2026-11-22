@@ -157,3 +157,18 @@ test("中身の名前で置く上書き src/config/featureGate/(設定 D91・L1.
   });
 });
 
+
+test("config-imports(D28・注文 38): ドメインの config.ts が値で読めるのは @/lib/defineConfig・自分の上書き・zod だけ。型は何でも、ほかのファイルは見ない", () => {
+  ruleTester.run("config-imports", plugin.rules["config-imports"], {
+    valid: [
+      { filename: at("src/domains/core/wallet/config.ts"), options, code: `import override from "@/config/domains/wallet.config";\nimport { defineConfig } from "@/lib/defineConfig";\nimport { z } from "zod";` },
+      { filename: at("src/domains/core/wallet/config.ts"), options, code: `import type { Wallet } from "@/domains/core/wallet/types";\nimport { type X } from "@/lib/messaging";` },
+      { filename: at("src/domains/core/wallet/components/Balance.tsx"), options, code: `import { send } from "@/lib/messaging";` },
+    ],
+    invalid: [
+      { filename: at("src/domains/core/wallet/config.ts"), options, code: `import { send } from "@/lib/messaging";`, errors: [{ messageId: "configImport" }] },
+      { filename: at("src/domains/core/wallet/config.ts"), options, code: `import override from "@/config/domains/gacha.config";`, errors: [{ messageId: "configImport" }] },
+      { filename: at("src/domains/gacha/config.ts"), options, code: `import { walletConfig } from "@/domains/core/wallet/config";`, errors: [{ messageId: "configImport" }] },
+    ],
+  });
+});

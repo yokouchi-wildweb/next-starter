@@ -16,7 +16,7 @@ import { AnalyticsDailyRollupTable } from "@/domains/core/analytics/entities/dri
 import { DEFAULT_TIMEZONE } from "@/domains/core/analytics/constants";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
-import { rollupMetrics } from "@/domains/core/analytics/extensions/rollupMetrics";
+import { analyticsRollupMetrics } from "@/domains/core/analytics/extensions/analyticsRollupMetrics";
 import { invalidateAnalyticsCache } from "../utils/analyticsCache";
 import { formatDateKeyTz, resolveDayBounds } from "../utils/dateRange";
 import { buildRollupRegistry } from "./rollupRegistry";
@@ -26,6 +26,9 @@ import type {
   RollupMetricValue,
   RollupRunMetricResult,
 } from "./types";
+
+// 常に読む一覧(alwaysOn): 門番で絞らない。項目の enabled が自分で閉じる
+const rollupMetrics = analyticsRollupMetrics.map((entry) => entry.plug);
 
 const t = AnalyticsDailyRollupTable;
 

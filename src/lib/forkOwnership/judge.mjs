@@ -44,7 +44,7 @@ export const REASONS = {
   renamed: "violation", // 基準にあるファイルの rename・移動
   "inside-unit-add": "violation", // 上流の単位の中へのファイル追加(部品の棚 src/components/<分類>/<単位>/・src/hooks|utils/<単位>/ と祖先の lib src/lib/<名前>/)
   "core-add": "violation", // src/domains/core/ の中への受け口の項目でない追加(fork のドメインは src/domains/<x>)
-  "gate-add": "violation", // 門番 src/featureGate/ の中への受け口の項目でない追加(受け口は rules/・alwaysOnExceptions/・dependencyExceptions/・required/)
+  "gate-add": "violation", // 門番 src/featureGate/ の中への受け口の項目でない追加(受け口は rules/・required/)
   "rules-core-add": "violation", // 上流の決まりのファイル .claude/rules/core/ の中への追加(自分の決まりは .claude/rules/ の core/ の外、D131)
   "unit-clash": "violation", // 検査する場所(部品の棚・受け口・wiring・route の隣・scripts の直下)への追加が基準の単位と同名(x.ts と x.tsx、ファイルとフォルダ)
   "override-own": "violation", // fork が足した <対象>.override の対象が基準に無い(override は上の Tier の項目にだけ)

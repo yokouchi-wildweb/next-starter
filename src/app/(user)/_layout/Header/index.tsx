@@ -4,7 +4,9 @@ import type { ReactNode } from "react";
 
 import { Button } from "@/components/Button/Button";
 import { Section } from "@/components/Layout/Section";
+import { FrameParts } from "@/app/_layout/FrameParts";
 
+import { userHeaderActions } from "../extensions/userHeaderActions";
 import { useHeaderData } from "../hooks";
 import { Brand } from "./Brand";
 import { HeaderShell } from "./HeaderShell";
@@ -20,7 +22,7 @@ export type UserNavigationProps = {
   /** ブランドの前(header-left の先頭)。例: 戻るボタン。既定 = なし */
   readonly leading?: ReactNode;
   /**
-   * ヘッダー右(SP メニューの開閉ボタンの前)。既定 = PC だけに出る「お問い合わせ」。
+   * ヘッダー右(SP メニューの開閉ボタンの前)。既定 = 点 userHeaderActions の部品(各ドメインが差す、閉じたドメインの部品は消える)+ PC だけに出る「お問い合わせ」。
    * 要素はそのまま描く = SP のヘッダーにも出る(PC だけにするなら要素側で `hidden sm:flex` 等)
    */
   readonly actions?: ReactNode;
@@ -60,10 +62,14 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
         right={
           <>
             {actions === undefined ? (
-              /* PC版: ヘッダー右側にCTAボタン */
-              <Button variant="default" size="sm" className="hidden sm:inline-flex">
-                お問い合わせ
-              </Button>
+              <>
+                {/* 点 userHeaderActions の部品(上流の項目は 0) */}
+                <FrameParts items={userHeaderActions} />
+                {/* PC版: ヘッダー右側にCTAボタン */}
+                <Button variant="default" size="sm" className="hidden sm:inline-flex">
+                  お問い合わせ
+                </Button>
+              </>
             ) : (
               actions
             )}

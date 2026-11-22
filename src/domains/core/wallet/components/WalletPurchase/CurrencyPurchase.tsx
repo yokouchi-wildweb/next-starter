@@ -77,7 +77,7 @@ function CurrencyPurchaseBody({
     setSelectedPaymentMethod(null);
   }
 
-  // 購入の特典の表示(受け口 purchaseBonuses。提供元が 0 なら空 = 今まで通り)
+  // 購入の特典の表示(点 walletPurchaseBonuses。提供元が 0 なら空 = 今まで通り)
   const purchaseBonuses = usePurchaseBonuses();
   const summaryBonuses = purchaseBonuses.forPurchase({
     walletType,

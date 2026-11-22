@@ -19,7 +19,6 @@ import {
   GATE_RULES_DIR,
   LAYOUT_DIR_NAME,
   LIB_ROOT,
-  PROXIES_DIR,
   RECEPTACLE_FILE,
   SINGLE_DIR_KINDS,
   SKIP_DIRS,
@@ -37,7 +36,7 @@ import {
  * @typedef {{
  *   kind: DistrictKind, name: string, core: boolean | null, dir: string,
  *   domainJson: boolean | null, generate: boolean | null, config: FileSlot, override: FileSlot, uiConfig: FileSlot, uiOverride: FileSlot, apiKeys: string[], tables: string[], requires: string[],
- *   gates: string[], receptacles: string[], frame: string | null, forkCan: ForkCan[],
+ *   gates: string[], alwaysOpen: boolean, receptacles: string[], frame: string | null, forkCan: ForkCan[],
  *   featureRequirements: { key: string, feature: string, off: unknown, element?: true }[],
  * }} District
  * @typedef {{ point: string, change: string, where: string }} ForkCan fork がこの地区にできること 1 つ(種類の点 + 地区の宣言の点、D35)。where = fork が書くファイルの glob
@@ -138,12 +137,6 @@ function discover(source, problems) {
     const kind = /** @type {(typeof DISTRICT_KINDS)[number]} */ (k.kind);
     if (dirsOf(source, dir.slice(0, dir.length - name.length - 1)).some((e) => e.name === name)) found.push({ kind, name, core: null, dir });
   }
-  // proxies の地区 = src/proxies の直下のテーマのフォルダのうち config.ts を持つ物(1 テーマ 1 地区、設定 D93。上流は demo だけ)
-  for (const entry of dirsOf(source, PROXIES_DIR)) {
-    if (SKIP_DIRS.includes(entry.name)) continue;
-    const dir = `${PROXIES_DIR}/${entry.name}`;
-    if (source.readText(join(dir, CONFIG_FILE)) !== null) found.push({ kind: "proxies", name: entry.name, core: null, dir });
-  }
   return found;
 }
 
@@ -241,6 +234,8 @@ export function readDistrictMap(source) {
       tables: [],
       requires: [],
       gates: [...new Set(gates.get(d.dir) ?? [])].sort(),
+      // 常設の明示の宣言(地区の extensionPoints.ts の export const alwaysOpen = true、D22・D53)。domains だけ
+      alwaysOpen: false,
       receptacles: [],
       frame: d.kind === "frame" ? d.name : null,
       featureRequirements: [],
@@ -288,6 +283,19 @@ export function readDistrictMap(source) {
       const where = k.where(d);
       if (k.when === "layoutSwitch" && !isFrameLayoutSwitch(source.readText(where) ?? "")) continue;
       district.forkCan.push({ point: k.point, change: k.change, where });
+    }
+    // 常設: 地区の直下の extensionPoints.ts の宣言(domains だけ。ほかの種類の宣言は declarations.mjs の pointsFromFiles が止める)
+    if (d.kind === "domains") {
+      const ownPath = join(d.dir, RECEPTACLE_FILE);
+      const ownText = source.readText(ownPath);
+      district.alwaysOpen = ownText !== null && readDeclaration(ownPath, ownText).alwaysOpen === true;
+      // 規則に載る(閉じられる)か常設の宣言か、どちらか 1 つ(D53: 規則の domains に常設を載せたら止める・暗黙の常設は無い)
+      if (district.alwaysOpen && district.gates.length > 0) {
+        problems.push(`${ownPath}: ${d.name} は常設の宣言(alwaysOpen)があるのに規則 ${district.gates.join("・")} が domains に載せている(常設は閉じない。規則から外すか宣言を消す)`);
+      }
+      if (!district.alwaysOpen && district.gates.length === 0) {
+        problems.push(`${d.dir}: ${d.name} はどの規則の domains にも載らず常設の宣言も無い(閉じられるなら機能の規則に載せる、常に開くなら ${ownPath} に export const alwaysOpen = true)`);
+      }
     }
     // 受け口: 地区の中の extensionPoints.ts の点の名前(宣言の誤りは pnpm check extensions が出すので、ここでは読めた点だけ)
     for (const path of files.filter((f) => f.endsWith(`/${RECEPTACLE_FILE}`)).sort()) {

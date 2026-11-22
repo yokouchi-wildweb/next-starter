@@ -5,7 +5,7 @@ import { type CSSProperties, type ReactNode, useState } from "react";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/app/_layout/useHeaderHeight";
-import { InboxUnreadModal } from "@/domains/core/messaging/components/InboxUnreadModal";
+import { FrameParts } from "@/app/_layout/FrameParts";
 
 import { BackgroundLayer } from "./BackgroundLayer";
 import { Banner } from "./Banner";
@@ -16,6 +16,7 @@ import { UserFooter } from "./Footer";
 import { UserNavigation } from "./Header";
 import { useFrameAttributes } from "@/app/_layout/frame/useFrameAttributes";
 import { frameTable } from "./extensions/frameTable";
+import { userOverlays } from "./extensions/userOverlays";
 import { userLayoutConfig } from "./config";
 
 type LayoutStyle = CSSProperties & {
@@ -117,8 +118,9 @@ export function UserLayout({
         ) : (
           bottomNav
         )}
-        {/* 未読のお知らせのモーダル(slot ではない)。門 messagingInbox が閉・showUnreadModal が切なら何も描かず取りに行かない */}
-        <InboxUnreadModal />
+        {/* 枠に重ねる部品(点 userOverlays、slot ではない)。上流は messaging の未読のお知らせのモーダル
+            (門 messagingInbox が閉・showUnreadModal が切なら何も描かず取りに行かない。messaging が閉じれば門番が外す) */}
+        <FrameParts items={userOverlays} />
       </Flex>
     </>
   );

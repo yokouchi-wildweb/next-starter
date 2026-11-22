@@ -9,18 +9,19 @@ import { normalizeUserNameForComparison } from "@/domains/core/user/utils/userNa
 import type { DbExecutor, DbTransaction } from "@/lib/crud/server";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
-import { reservedNames } from "@/domains/core/user/extensions/reservedNames";
+import { userReservedNames } from "@/domains/core/user/extensions/userReservedNames";
+import { gate } from "@/featureGate";
 
 export type UserNameAvailabilityParams = {
   /** 自分自身を重複判定から除外する (更新・復元時に指定) */
   excludeUserId?: string;
   executor?: DbExecutor;
-  /** 照会する予約名プロバイダ (省略時は 一覧 reservedNames。テストで差し替える用) */
+  /** 照会する予約名プロバイダ (省略時は点 userReservedNames の開いたドメインの項目。テストで差し替える用) */
   reservedProviders?: readonly ReservedUserNameProvider[];
 };
 
 /**
- * 予約名プロバイダ (一覧 reservedNames) を順に照会し、予約済みの正規化名を返す。
+ * 予約名プロバイダ (点 userReservedNames) を順に照会し、予約済みの正規化名を返す。
  * 既に予約と判明した名前は後続プロバイダに渡さない。上流はレジストリ空 = 常に空集合。
  */
 async function filterReservedUserNames(
@@ -48,14 +49,14 @@ async function filterReservedUserNames(
  * - users スキャン: ソフトデリート済みとデモユーザーは名前を占有しない。
  *   候補は大文字小文字を無視して引き (users_name_norm_idx が両モードで効く)、
  *   厳密判定は normalizeUserNameForComparison による JS 側比較で行う
- * - users で空きだった名前は予約名プロバイダ (一覧 reservedNames) にも照会する
+ * - users で空きだった名前は予約名プロバイダ (点 userReservedNames、閉じたドメインの項目は外す) にも照会する
  */
 export async function isUserNamesTaken(
   names: string[],
   {
     excludeUserId,
     executor = db,
-    reservedProviders = reservedNames,
+    reservedProviders = gate.plugs(userReservedNames).map((entry) => entry.plug),
   }: UserNameAvailabilityParams = {},
 ): Promise<Set<string>> {
   const taken = new Set<string>();

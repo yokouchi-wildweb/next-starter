@@ -128,7 +128,7 @@ const config = [
   // - cron-route-via-wiring: @/lib/cron の作り手 createCronTaskRoute / createCronRoute の値 import は src/wiring/** だけ(D19。cron の route は @/wiring/cronRoute)
   // - domains-index-no-server-reexport: features の index.ts は services/server を値で再 export しない(D73 K5)
   // - lib-no-registry: src/lib/** → src/registry/** は値も型も禁止(D23 K3、例外の一覧なし)
-  // - lib-no-domains: src/lib/** → src/domains/** は値も型も禁止(親 D8、例外の一覧なし)
+  // - district-no-domains(下のブロック): ゲートの無い地区 → src/domains/** は値も型も禁止(D22。lib だけを見た前の規則を広げた 1 本)
   // - feature-gate-entries: 門番 src/featureGate の外からは入口 3 つだけ、lib は読まない、node.ts は scripts だけ(D7。テストは対象外 L1.3)
   // 詳細: eslint-rules/import-boundaries.mjs
   {
@@ -207,7 +207,7 @@ const config = [
       "import-boundaries/ui-libs-in-primitives": "error",
     },
   },
-  // hooks-utils-no-domains: src/hooks・src/utils → src/domains は値も型も禁止(D87、lib-no-domains と同じくテストは対象外)。上流も fork も error
+  // hooks-utils-no-domains: src/hooks・src/utils → src/domains は値も型も禁止(D87、district-no-domains と同じくテストは対象外)。上流も fork も error
   {
     files: ["src/hooks/**/*.{ts,tsx,mts,mjs}", "src/utils/**/*.{ts,tsx,mts,mjs}"],
     ignores: ["src/hooks/**/*.test.{ts,tsx,mts,mjs}", "src/utils/**/*.test.{ts,tsx,mts,mjs}"],
@@ -240,7 +240,24 @@ const config = [
     plugins: { "import-boundaries": importBoundariesPlugin },
     rules: {
       "import-boundaries/lib-no-registry": "error",
-      "import-boundaries/lib-no-domains": "error",
+    },
+  },
+  // district-no-domains: ゲートの無い地区(lib・枠・門番・登録表・結線・proxies)と src/proxy.ts・src/instrumentation.ts → src/domains/** は値も型も禁止
+  // (地区の議会 D22、lib だけを見た前の規則を広げた 1 本。どのファイルが地区かは規則が地区の地図の読み手で決める。生成物・テスト・__tests__/ の補助は対象外)。上流も fork も error
+  // points-entry: 差す側の項目(plugs/**)は点の約束の型を持ち主の型だけの入口 points から読み、枠・proxies の値を読まない。points.ts は型だけ(D33)
+  {
+    files: ["src/**/*.{ts,tsx,mts,mjs}"],
+    ignores: ["src/**/*.test.{ts,tsx,mts,mjs}", "src/**/__tests__/**"],
+    plugins: { "import-boundaries": importBoundariesPlugin },
+    rules: {
+      "import-boundaries/district-no-domains": "error",
+    },
+  },
+  {
+    files: ["src/**/*.{ts,tsx,mts}"],
+    plugins: { "import-boundaries": importBoundariesPlugin },
+    rules: {
+      "import-boundaries/points-entry": "error",
     },
   },
   // 見出しの直下の <Span> に size / weight を書かせる(Span の既定 text-base font-normal が見出しを上書きするため。
@@ -576,7 +593,7 @@ const config = [
   // セッション・ガード API(authGuard・getSessionUser・requireCurrentUser 等)をページ層・UI・API で import しない(M3、D73 K4・K5)。
   // 対象 = src/app 全体(page・Screen・layout・_layout・loader.ts・guard.ts・_components・API)と UI 側。許可の場所は無い:
   // ページの主体は guard.ts の createLoader が loader の ctx.user で渡し、範囲の守りは guard()。API の主体は Factory の ctx.user(D8 K4)。
-  // proxy の項目(src/proxies/**、上流・fork)の主体は proxy.ts が渡す ctx.user()(D10)。解決器を作る src/proxy.ts は対象外。
+  // proxy の骨組み(src/proxies/**)と項目(<ドメイン>/plugs/proxyHandlers・proxyDecorators・proxyRedirects、上流・fork)の主体は proxy.ts が渡す ctx.user()(D10)。解決器を作る src/proxy.ts と項目 plugs/proxyUser は対象外。
   // 門番(src/featureGate/**、規則と判定。proxy の鎖に載る)もセッションを解かない(規則は config だけを読む)。
   // AuthSessionProvider は認証基盤の名前付き例外(root layout の Provider)。
   // セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。詳細: eslint-rules/page-authz.mjs
@@ -588,6 +605,10 @@ const config = [
       "src/domains/**/hooks/**/*.{ts,tsx}",
       "src/hooks/**/*.{ts,tsx}",
       "src/proxies/**/*.{ts,tsx,mts,mjs}",
+      // proxy の項目は各ドメインの plugs の点の下(D30、注文 31)。利用者の解き方の項目 plugs/proxyUser は対象外(解決器そのもの)
+      "src/domains/**/plugs/proxyHandlers/**/*.{ts,tsx,mts,mjs}",
+      "src/domains/**/plugs/proxyDecorators/**/*.{ts,tsx,mts,mjs}",
+      "src/domains/**/plugs/proxyRedirects/**/*.{ts,tsx,mts,mjs}",
       "src/featureGate/**/*.{ts,tsx,mts,mjs}",
     ],
     ignores: [
@@ -645,12 +666,20 @@ const config = [
       "realtime-room/purity": "error",
     },
   },
-  // 上書きファイル(src/config/{lib,domains,layout,proxies} と中身の名前で置く上書き featureGate)の 2 規則(設定 D34・D35・D38・D91・L1.19・L1.31。詳細: eslint-rules/config-overrides.mjs, src/config/README.md)。
+  // ドメインの config.ts の読み込み(地区の議会 D28): @/lib/defineConfig・自分の上書き・zod と型だけ。全 Tier error
+  {
+    files: ["src/domains/**/config.ts"],
+    plugins: { "config-overrides": configOverridesPlugin },
+    rules: {
+      "config-overrides/config-imports": "error",
+    },
+  },
+  // 上書きファイル(src/config/{lib,domains,layout} と中身の名前で置く上書き featureGate)の 2 規則(設定 D34・D35・D38・D91・L1.19・L1.31。詳細: eslint-rules/config-overrides.mjs, src/config/README.md)。
   // 新しいフォルダだけが対象なので全 Tier error(縮む表なし)。fork に残る古い src/config/app・ui・documents と直下のファイルには掛けない
   // - literal-only: 上書きは値のリテラル。読めるのは型・process.env・@/business・持ち主が overrideImports で宣言した指定子だけ
   // - owner-reads-only: 上書きを読めるのは持ち主の config.ts(描画用は config.ui.ts)だけ。lib の中は entry/only-entries の持ち分
   {
-    files: ["src/config/{lib,domains,layout,proxies,featureGate}/*.config.ts"],
+    files: ["src/config/{lib,domains,layout,featureGate}/*.config.ts"],
     plugins: { "config-overrides": configOverridesPlugin },
     rules: {
       "config-overrides/literal-only": "error",

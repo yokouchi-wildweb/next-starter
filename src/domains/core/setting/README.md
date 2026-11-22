@@ -5,7 +5,7 @@
 - 管理者が稼働中に画面から変える値を持つコアドメイン。デプロイで決まる値・コードが構造として依存する値は config(`src/config/`)
 - 使う時・直す時の決まりは札 .claude/rules/items/domains/setting.md にある。この README は使い方と仕組み
 - **1 行 + jsonb 1 列**: `settings` 表の `id: "global"` の 1 行の `extended` に、保存したキーだけを持つ
-- **1 キー = 1 ファイル**: `fields/` のキーと `sections/` のセクションから、一覧を生成する(`extensions/`、編集不可)
+- **1 キー = 1 ファイル**: 点 `settingFields` のキーと `settingSections` のセクション(差す側の `<ドメイン>/plugs/settingFields/`・`plugs/settingSections/`)から、一覧を生成する(`extensions/`、編集不可)。キーとセクションの表は `definitions.ts`(門番で絞らない: 保存された値のキーの定義)
 - **キーの置き場はリポごとに 1 つ**: 既定は管理画面 + DB。config の `codeValues` に書いたキーはコードの値(Extension「コードで持つキー」)
 - **画面は route**: フォームは route の `_screen/` にある。core の setting は hook・型・保存処理だけ
 - 画面: `src/app/admin/(protected)/settings/[section]/_screen/`(`EditSettingSectionForm`)、`src/app/admin/setup/_screen/`(`AdminSetupForm`)
@@ -72,7 +72,7 @@ await saveSettingAsActor(user, { adminListPerPage: 50 }); // 主体のロール�
 
 | 経路 | 止め方 | 通す宣言 |
 |---|---|---|
-| 画面の移動 | proxy(`src/proxies/maintenance.ts`)が `/maintenance` へ送る。`/api` などの許可パスは通す | config の `maintenance.allowedPaths` / `allowedPrefixes` |
+| 画面の移動 | proxy の項目(`plugs/proxyHandlers/maintenance.ts`)が `/maintenance` へ送る。`/api` などの許可パスは通す | config の `maintenance.allowedPaths` / `allowedPrefixes` |
 | API の書き込み(`POST`・`PUT`・`PATCH`・`DELETE`) | API ルートの Factory が 503 + `code: "maintenance"`。`GET` は通る | ルートの `maintenance: "pass"`(`src/lib/routeFactory/README.md`「メンテナンス中の書き込みの停止」) |
 | 定期タスク(Vercel Cron・`pnpm task --due`) | 本体を呼ばずに skipped(`reason: "maintenance"`)。名前指定の `pnpm task <name>` は走る | `task.ts` の `maintenance: "pass"`(`src/lib/cron/README.md` Internals「メンテナンス」) |
 
@@ -119,7 +119,7 @@ await saveSettingAsActor(user, { adminListPerPage: 50 }); // 主体のロール�
 
 ### キーを足す
 
-`fields/<キー>.ts` を置き、`pnpm generate extensions` を実行する。ファイル名がキーの名前になる(上流も fork も同じ形。名前に fork の印は付けない)。DB の変更は要らない。
+自分のドメインの `plugs/settingFields/<キー>.ts` を置き、`pnpm generate extensions` を実行する。ファイル名がキーの名前になる(全体で一意。上流も fork も同じ形。名前に fork の印は付けない)。DB の変更は要らない。
 
 ```ts
 import { z } from "zod";
@@ -140,11 +140,11 @@ export const field = {
 - 値 import が React・`server-only`・DB・サービスを推移的に辿ると生成で失敗する
 - 同じ名前のキー・無いセクションを指すキーは生成で失敗する
 - 欄の説明文: `ui.field` に `helperText` を書くと、設定画面の枠がラベルの下に描く(組み込みの入力も、`frame: true` の登録部品も同じ)
-- 独自の入力部品の欄: 部品を `src/wiring/formInputs/inputs/<名前>.ts` に登録し、欄の `ui.field` に `formInput: "<登録名>"` と書く(書き方: `src/wiring/formInputs/inputs/README.md`)。欄の定義は名前だけなので値 import の決まりに当たらない
+- 独自の入力部品の欄: 部品を自分のドメインか lib の `plugs/formInputs/<名前>.ts` に登録し、欄の `ui.field` に `formInput: "<登録名>"` と書く(書き方: `src/lib/formSuite/README.md` Extension)。欄の定義は名前だけなので値 import の決まりに当たらない
 
 ### セクションを足す
 
-`sections/<名前>.ts`(上流も fork も同じ形)を置き、`pnpm generate extensions` を実行する。管理メニューと `/admin/settings/<key>` は一覧から作られる。
+自分のドメインの `plugs/settingSections/<名前>.ts`(上流も fork も同じ形)を置き、`pnpm generate extensions` を実行する。管理メニューと `/admin/settings/<key>` は一覧から作られる。
 
 ```ts
 import { Sliders } from "lucide-react";
@@ -169,7 +169,7 @@ export const section: SettingSectionDefinition = {
 片方だけ変えると意味が壊れる値(入切とその期間など)は、部分を持つ 1 つのキーにする(別々のキーにしない)。
 
 - `schema` を `z.object({ ... }).default({})` にし、`ui.parts` に部分ごとの欄(`order`・`field`)を書く。設定画面は部分ごとに `<キー>.<部分>` の欄を並べる(`ui.field` と `ui.parts` はどちらか一方)
-- 例: `fields/maintenance.ts`(`{ enabled, startAt, endAt }`)
+- 例: `plugs/settingFields/maintenance.ts`(`{ enabled, startAt, endAt }`)
 - 保存済みの別々のキーを 1 つにまとめるときは、移す task を付け、notice で「取り込んだら先に回す」と案内する(例: `pnpm task setting:merge-maintenance-keys`、Internals)
 
 ### コードで持つキー

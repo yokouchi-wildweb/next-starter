@@ -1,8 +1,8 @@
 // 連絡の一覧の全件の検査(L2.2): 生成の一覧(src/registry/messageRegistry.ts)の項目ごとに
 // - 定義のモジュールが export const message を持ち、その鍵が一覧の鍵と同じ
-// - 上書き(fork の <名前>.override.ts)を重ねても validateMessageDefinition が通る(レイアウト = layouts の受け口、送信チャンネル = 送信チャンネルの受け口の項目、変数 = 当たる enrichers の鍵)
+// - 上書き(fork の <名前>.override.ts)を重ねても validateMessageDefinition が通る(レイアウト = 点 messagingLayouts、送信チャンネル = 送信チャンネルの受け口の項目、変数 = 当たる enrichers の鍵)
 // - カテゴリーの送信チャンネルの全部で描ける(描き方の 3 段のどれかがある。描けない送信チャンネルは止める)
-// - category は categories の受け口の鍵(全部の連絡に必須)。種別と送信チャンネルはカテゴリーから
+// - category は 点 messagingCategories の鍵(全部の連絡に必須)。種別と送信チャンネルはカテゴリーから
 // 送る時に初めて分かる定義の誤りを、出荷の前のテストで止める。項目が 0 件でも通る
 // 実行: pnpm test src/domains/core/messaging/services/server/sendMessage/messageRegistry.test.ts
 import { test } from "node:test";
@@ -14,11 +14,7 @@ import { type MessageRegistry } from "@/lib/messaging";
 import { messageRegistry } from "@/registry/messageRegistry";
 
 import { messagingConfig } from "../../../config";
-import { categories } from "../../../extensions/categories";
-import { channels } from "../../../extensions/channels";
-import { enrichers } from "../../../extensions/enrichers";
-import { layoutEmails } from "../../../extensions/layoutEmails";
-import { layouts } from "../../../extensions/layouts";
+import { categories, channels, enrichers, layoutEmails, layouts } from "../lists";
 import { checkMessageRegistry } from "./definition";
 import { TEST_CATEGORIES, TEST_LAYOUTS, createTestChannel, defineTestMessage } from "./testHelpers";
 
@@ -73,8 +69,8 @@ test("category・レイアウト: 受け口に無い鍵は誤り、欄の中身�
   );
   const problems = await checkMessageRegistry({ ...testDeps, registry, channels: { test: createTestChannel() } });
   assert.equal(problems.length, 3, problems.join(" / "));
-  assert.match(problems[0], /^shop\.unknown: .*category nope は categories の受け口に無い/);
-  assert.match(problems[1], /^shop\.noLayout: .*layout nope は layouts の受け口に無い/);
+  assert.match(problems[0], /^shop\.unknown: .*category nope は点 messagingCategories に無い/);
+  assert.match(problems[1], /^shop\.noLayout: .*layout nope は点 messagingLayouts に無い/);
   assert.match(problems[2], /^shop\.empty: .*レイアウト「テストのカード」の欄の中身が正しくない/);
 });
 
@@ -97,7 +93,7 @@ test("無効のレイアウト: 定義連絡が使えば定義とレイアウト
 test("config の initialLayout: 受け口に無い・無効・管理画面で選べないレイアウトは検査が止める(黙って替えない)", async () => {
   const deps = { ...testDeps, registry: {}, channels: { test: createTestChannel() } };
   assert.deepEqual(await checkMessageRegistry(deps), []);
-  assert.match((await checkMessageRegistry({ ...deps, initialLayout: "nope" }))[0], /initialLayout nope は layouts の受け口に無い/);
+  assert.match((await checkMessageRegistry({ ...deps, initialLayout: "nope" }))[0], /initialLayout nope は点 messagingLayouts に無い/);
   assert.match((await checkMessageRegistry({ ...deps, initialLayout: "card" }))[0], /initialLayout card\(テストのカード\)は管理画面で選べない/);
   const disabled = { ...TEST_LAYOUTS, notice: { ...TEST_LAYOUTS.notice!, disabled: true } };
   assert.match((await checkMessageRegistry({ ...deps, layouts: disabled }))[0], /initialLayout notice\(.*\)は無効\(disabled\)/);

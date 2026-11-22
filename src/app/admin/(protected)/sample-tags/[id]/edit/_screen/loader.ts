@@ -8,7 +8,7 @@ import "server-only";
 
 import type { SampleTag } from "@/domains/sampleTag/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminEditParts } from "@/wiring/adminScreenParts";
+import { adminEditParts } from "@/domains/core/admin/services/server/screenParts";
 
 export const loadAdminSampleTagEditScreen = createLoader(
   adminEditParts<SampleTag>("sampleTag", { fallbackPath: "/admin/sample-tags" }),

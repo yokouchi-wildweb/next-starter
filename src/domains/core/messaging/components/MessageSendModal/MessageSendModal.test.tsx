@@ -253,7 +253,7 @@ mock.module("@/domains/core/messaging/hooks/useAdminDispatchCategories", {
   namedExports: { useAdminDispatchCategories: () => ({ categories: [], loaded: true, error: null, isLoading: false, optionsOf: () => [], labelOf: () => null }) },
 });
 mock.module("@/domains/core/messaging/components/AdminDispatchDetailModal", { namedExports: { AdminDispatchDetailModal: () => null } });
-mock.module("@/domains/core/messaging/extensions/adminBulkActions", { namedExports: { adminBulkActions: {} } });
+mock.module("@/domains/core/admin/hooks/useDomainAdminBulkActions", { namedExports: { useDomainAdminBulkActions: () => [] } });
 mock.module("@/lib/tableSuite", {
   namedExports: {
     selectBulkActions: (items: unknown[]) => items,

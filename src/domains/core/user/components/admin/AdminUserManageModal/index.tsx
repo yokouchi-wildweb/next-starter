@@ -19,7 +19,7 @@ type Props = {
 };
 
 export default function AdminUserManageModal({ open, user, onClose }: Props) {
-  // 受け口 adminManageTabs の項目(上流のタブの後ろに足す)
+  // 点 userAdminManageTabs の項目(上流のタブの後ろに足す)
   const extraTabs = useAdminManageTabs();
 
   if (!user) {

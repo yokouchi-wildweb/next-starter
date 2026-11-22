@@ -13,7 +13,7 @@
 ### 向き（import してよい場所）
 
 - `src/app/**`（API ルート・Screen・loader）、`src/proxies/**`、`src/proxy.ts`
-- `src/instrumentation.ts`（Next の instrumentation の入口）は `serverErrors/` の入口 `@/wiring/serverErrors` だけ
+- `src/instrumentation.ts`（Next の instrumentation の入口）は失敗の記録の結び目 `@/wiring/serverErrorReport` と起動時の処理の結び目 `@/wiring/startup`（どちらも生成物）だけ
 - cron のフォルダ `src/app/api/cron/<name>/` では `task.ts` と、1 行の `route.ts` からの `cronRoute.ts` だけ（fork 所有の `task.override.ts` は不可）。task.ts の `run` の中で動的 import する（`const { lookupDomainService } = await import("@/wiring/domainRegistry")`）
 - `business.ts` だけは例外: `@/business` の名前で features・app・proxies・scripts(`await import`)と、上書きファイル(`src/config/lib/{mail,url,metadata}.config.ts` ほか)から読む(データに届かず、`src/business` と `lib/business` だけを読む。lib と utils は読まず値を引数で受ける)
 - features / lib / components / registry からは import しない（`domainConfig.ts` も同じ。features の server は自分の domain.json、client は写し entities/display.ts を読む）。lib がドメイン名からサービスを引きたいときは、呼び手（ルート）が wiring の関数を注入する（例: `src/lib/dataMigration` の `services` オプション、`storageObject` の sweep の `lookupService`）
@@ -30,40 +30,45 @@
 ### 目録（置いてよいファイル）
 
 - `apiRoute.ts`: データに届くか = 届く（serviceRegistry → domainEntry.ts → 遅延 import でサービスに届く）
-  - `lib/routeFactory` の汎用版 + 利用者の束（`domains/core/auth` の `apiRouteUserDeps`）
-  - + レート制限の束（`domains/core/rateLimit` の `apiRouteRateLimitDeps`）
-  - + 端末の束（`domains/core/pairedDevice` の `apiRouteDeviceDeps`。端末の機能が閉じている間は `gateDeviceDeps` が端末の認証を「端末なし」にする、テスト `apiRoute.test.mts`）
-  - + 主体の具体の型 + `serviceRegistry` → `createApiRoute` / `createDomainRoute` / `createDomainIdRoute` / `createMeRoute` / `createDeviceRoute` / `enforceAccessRule` / `ownerWhere`（API ルートとその補助ファイルはここから import する）
-  - + 想定外の失敗(500)の口 `serverError` → `serverErrors/index.ts` の `serverErrorReport.report`（scope api、name = operation）
-  - + メンテナンスの口 `maintenance` → `domains/core/setting` の `settingService.isMaintenanceActive` と `canBypassMaintenance`（期間中の書き込みのメソッドを 503 で止める。`src/lib/routeFactory/README.md`「メンテナンス中の書き込みの停止」）
+  - `lib/routeFactory` の汎用版 + 生成物 `routeFactory.ts` の 3 つの点の項目を門番 `gate.plugs` で絞った物: 利用者の束 `routeFactoryUser`（ちょうど 1 つ、上流は `domains/core/auth`）・レート制限の束 `routeFactoryRateLimit`（ちょうど 1 つ、上流は `domains/core/rateLimit`）・端末の束 `routeFactoryDevice`（0〜1 個、上流は `domains/core/pairedDevice`。閉じて外れたら lib の「端末なし」、テスト `src/lib/routeFactory/noDevice.test.mts`）
+  - + 主体の具体の型（一覧の `<点>Map` の型から `@/lib/routeFactory` の取り出しの型で導く。ドメインを読まない）+ `serviceRegistry` → `createApiRoute` / `createDomainRoute` / `createDomainIdRoute` / `createMeRoute` / `createDeviceRoute` / `enforceAccessRule` / `ownerWhere`（API ルートとその補助ファイルはここから import する）
+  - + 想定外の失敗(500)の口 `serverError` → 生成物 `serverErrorReport.ts` の `serverErrorReport.report`（scope api、name = operation）
+  - + メンテナンスの口 `maintenance` → 生成物 `routeFactory.ts` の点 `routeFactoryMaintenance`（0〜1 個、上流は `domains/core/setting` の項目。空ならメンテナンスで止めない。期間中の書き込みのメソッドを 503 で止める。`src/lib/routeFactory/README.md`「メンテナンス中の書き込みの停止」）
   - テスト `routeFactory.test.mts`: Factory の契約（主体の解き方・allowStatuses・拒否の body・DomainError）を、汎用版に本物の認可の判定（`domains/core/auth` の `evaluateApiAccessRule`）を差し込んで回す。閉じた lib は features を読めず、汎用版を値で読めるのは wiring だけ（lint `route-factory-via-wiring`）なのでここに置く
-- `cronRoute.ts`: データに届くか = 届く（`settingService` → 設定の DB の読み。import してよいのは cron の `route.ts`）
+- `cronRoute.ts`: データに届くか = 届く（生成物 `cron.ts` の項目 → 設定の DB の読み。import してよいのは cron の `route.ts`）
   - `lib/cron` の `createCronTaskRoute` + 門番（`@/featureGate` の `gate.path`）→ `createCronTaskRoute`（cron の `route.ts` はここから import する。タスクの住所 `/api/cron/<name>` が閉じていれば本体を呼ばずに skipped。`src/lib/cron/README.md`）
-  - + メンテナンスの口 `maintenance` → `domains/core/setting` の `settingService.isMaintenanceActive`（期間中は `maintenance: "pass"` でないタスクを skipped。`src/lib/cron/README.md` Internals「メンテナンス」）
-  - + 失敗したタスクの口 `onServerError` → `serverErrors/index.ts` の `serverErrorReport.report`（scope cron、name = タスク名、extra ok:false・durationMs）
+  - + メンテナンスの口 `maintenance` → 生成物 `cron.ts` の点 `cronMaintenance`（0〜1 個、上流は `domains/core/setting` の項目。空ならメンテナンスで飛ばさない。期間中は `maintenance: "pass"` でないタスクを skipped。`src/lib/cron/README.md` Internals「メンテナンス」）
+  - + 失敗したタスクの口 `onServerError` → 生成物 `serverErrorReport.ts` の `serverErrorReport.report`（scope cron、name = タスク名、extra ok:false・durationMs）
 - `business.ts`: データに届くか = 届かない
   - `src/business/business.ts`(fork の値と印 source)+ `lib/business` の `resolveBusiness` → `business` / `businessSource`(受付係。tsconfig.json の `"@/business"` がここを指し、読み手は `@/business` を読む。sample のときは例の値。`src/lib/business/README.md`)
 - `domainRegistry.ts`: データに届くか = 届く（registry → domainEntry.ts → 遅延 import でサービスに届く）
   - `serviceRegistry` + `domainConfigMap` → `getService` / `getServiceOrThrow` / `hasService` / `lookupDomainService` / `getJunctionTable` / `findDomainByTable` / `getDomainTable` / `getDomainAccess` / `getDomainList` / `getDomainListWithCount` / `withRecordCounts` / `isValidDomainKey` / `getInvalidDomainKeys`
 - `domainConfig.ts`: データに届くか = 届かない
   - 全ドメインの設定 → `getDomainConfig` / `hasDomainConfig`（server 専用）
-- `adminScreenParts.ts`: データに届くか = 届く（registry → domainEntry.ts → 遅延 import でサービスに届く）
-  - `serviceRegistry` + `domains/core/admin/services/server/screenData` → 管理画面の共通部品の組 `adminListParts` / `adminEditParts` / `adminCreateParts` / `adminSortParts`（各ルートの `_screen/loader.ts` が最寄りの guard.ts の `createLoader` に渡す。access は serviceRegistry の entry から操作ごと。テスト `adminScreenParts.test.mts`）
-- `pageGuard.ts`: データに届くか = 届く（auth → getSessionUser → DB）
-  - `lib/pageGuard` の汎用版 + 利用者の束（`domains/core/auth` の `pageGuardUserDeps`）+ setup 誘導の判定（auth の `hasUserForAccess`）→ `defineRootGuard`（root の `src/app/guard.ts` だけが呼ぶ。子の guard.ts は親の `extend` で作る）
+- `pageGuard.ts`（生成物）: データに届くか = 届く（項目の利用者の束 → auth → getSessionUser → DB）
+  - ページの守りの利用者の束の一覧 `pageGuardUser`（ちょうど 1 つ、上流は `domains/core/auth` の 1 行スイッチ、差替点 `authPageGuardUser`）+ `lib/pageGuard` の `wirePageGuard`（型引数 `PageGuardUserMap` で利用者の型を運ぶ）→ `defineRootGuard`（root の `src/app/guard.ts` だけが呼ぶ。子の guard.ts は親の `extend` で作る。宣言 `src/lib/pageGuard/extensionPoints.ts`）
+- 管理画面の共通部品の組（前の `adminScreenParts.ts`）は admin の概念なので `src/domains/core/admin/services/server/screenParts.ts` にある（注文 34）
 - `AppProviders.tsx`: データに届くか = 届く（AuthSessionProvider → セッション解決。データとセッションを読む場所の名前付き例外）
   - アプリ全体の Provider の入れ子。root の `src/app/layout.tsx` が 1 か所で描く（server。自分ではデータを取らない）。並び:
     - 門番 `GateProvider`（root layout が計算した利用者の枠の値を prop `gate` で受ける。`src/featureGate/README.md`）
     - → Tooltip → reCAPTCHA → 認証セッション `AuthSessionProvider` → 管理コマンド → 画像ビューア → 入力部品
     - → 未保存の編集の守り `src/app/_layout/unsavedGuard/UnsavedGuardRoot.tsx`（`src/lib/unsavedGuard` + Overlays の Dialog + `src/config/lib/unsavedGuard.config.ts` の文 → 棚の Navigation の口）
-      - 確認の開閉に state を持つ root の枠のクライアント側の Provider で、この入れ子は server なので中に書けない → 管理コマンドの `AdminCommandRoot` と同じく root の layout の部品に置く。wiring へ戻さない（wiring どうしは import しない）
-    - → fork の口 `src/app/_providers/ForkProviders.tsx`（1 行スイッチ。上流の既定は空の素通し。fork の Provider は `ForkProviders.replace.tsx` に書いてスイッチを向ける、多段は同じ `.replace` を書き換える。`src/app/_providers/README.md`）
-- `GoogleTag.tsx`: データに届くか = 届かない
-  - `lib/googleTag` の `<GoogleTag>`（client）+ 流入経路の判別表（`domains/core/userAcquisition/lib/classifyVisit` の `getChannelDefinitions`。招待などの独自のリンクの印を GA4 の `campaign_source` / `campaign_medium` にする）→ `GoogleTag`（server。root の `src/app/layout.tsx` が描き、表はシリアライズできる値として prop で渡る。lib は features を読まないので結ぶのはここ）
-- `formInputs/`: データに届くか = いいえ
-  - 独自の入力部品の一覧 → `@/lib/formSuite` の Provider（`FormInputsRoot.tsx`、受け口 `inputs/`。書き方は `inputs/README.md`）
-- `serverErrors/`: データに届くか = いいえ（上流の項目は 0。fork の項目がデータに届くなら届く wiring になる）
-  - サーバーの失敗の送り先の一覧（受け口 `reporters/`、lazy）+ `lib/serverErrorReport` → `serverErrorReport`（`register` / `onRequestError` / `report`。読み手は `src/instrumentation.ts`。書き方は `serverErrors/README.md`）
+      - 確認の開閉に state を持つ root の枠のクライアント側の Provider で、この入れ子は server なので中に書けない → root の枠の部品に置く。wiring へ戻さない（wiring どうしは import しない）
+    - ドメインと fork の Provider は根の枠の点 `rootProviders` の項目(`<ドメイン>/plugs/rootProviders/<名前>.tsx`、生成された一覧 `@/app/_layout/extensions/rootProviders` を門番で絞る)。段 session(上流 auth の認証セッション)→ domain(上流 adminCommand の管理者コマンド)→ project(fork の Provider、前の ForkProviders の口、注文 32)。並べ方 `src/app/_layout/rootProviders.ts`
+- `googleTag.ts`（生成物）: データに届くか = 届かない
+  - 流入経路の判別表の一覧 `googleTagChannels`（上流は `domains/core/userAcquisition` の項目 = `getChannelDefinitions`。招待などの独自のリンクの印を GA4 の `campaign_source` / `campaign_medium` にする）+ `lib/googleTag` の `wireGoogleTag` → `GoogleTag`（server。root の `src/app/layout.tsx` が描き、表はシリアライズできる値として prop で渡る。宣言 `src/lib/googleTag/extensionPoints.ts`）
+- `formSuite.ts`（生成物）: データに届くか = いいえ
+  - 独自の入力部品の一覧 `formInputs` → `@/lib/formSuite` の `FormInputsProvider`（結び目 `FormInputsRoot`、client。宣言 `src/lib/formSuite/extensionPoints.ts`、書き方は `src/lib/formSuite/README.md`）
+- `serverErrorReport.ts`（生成物）: データに届くか = いいえ（上流の項目は 0。fork の項目がデータに届くなら届く wiring になる）
+  - サーバーの失敗の送り先の一覧 `serverErrorReporters`（lazy）+ `lib/serverErrorReport` の `wireServerErrorReport` → `serverErrorReport`（`onRequestError` / `report`。宣言 `src/lib/serverErrorReport/extensionPoints.ts`、書き方は `src/lib/serverErrorReport/README.md`）
+- `dbAgent.ts`（生成物）: データに届くか = いいえ（上流の項目は 0）
+- `startup.ts`（生成物）: データに届くか = いいえ（上流の項目は 0。fork の項目がデータに届くなら届く wiring になる）
+  - 起動時の処理の一覧 `startupTasks`（lazy）+ `lib/startup` の `wireStartup` → `startup`（`register`。宣言 `src/lib/startup/extensionPoints.ts`、書き方は `src/lib/startup/README.md`。読み手は `src/instrumentation.ts` だけ）
+  - DB 調査エージェントの一覧 `dbAgentTools`・`dbAgentPromptFragments`・`dbAgentSuffixProviders`（宣言 `src/lib/dbAgent/extensionPoints.ts`。結び目なし、route が渡す）
+- `routeFactory.ts`（生成物）: データに届くか = 届く（項目の利用者の束 → auth の services/server）。import するのは `apiRoute.ts` だけ
+  - API ルートの Factory の点の一覧 `routeFactoryUser`・`routeFactoryRateLimit`・`routeFactoryDevice`・`routeFactoryMaintenance` と型 `RouteFactoryUserMap` ほか（宣言 `src/lib/routeFactory/extensionPoints.ts`。結び目なし、`apiRoute.ts` が門番で絞って渡す）
+- `cron.ts`（生成物）: データに届くか = 届く（項目のメンテナンスの判定 → setting の services/server）。import するのは `cronRoute.ts` だけ
+  - cron のメンテナンスの判定の一覧 `cronMaintenance`（宣言 `src/lib/cron/extensionPoints.ts`。結び目なし、`cronRoute.ts` が門番で絞って渡す）
 
 ## Extension
 
@@ -77,19 +82,21 @@
 - 目録（`WIRING_FILES` との完全一致）は Tier1 だけで検査する。fork の所有は git の分岐点で `pnpm workflow ownership check` が見る（上流と同じ単位名は unit-clash）。旧い fork の名前の印つきの名前は全 Tier で `pnpm test src/wiring/wiring.test.mjs` が止め、移し方 = 共有の棚の印の移行の notice を案内する
 - 向き・データ到達・wiring どうし不可は fork のファイルにも同じに掛かる
 - 上流の wiring のファイルを置き換える口（`<対象>.override.ts`）は無い。上流の結び方を変えたいときは `/order <upstream>`
-- 差し込む値の束は持ち主のドメインが 1 つ export する（利用者 = `domains/core/auth` の `apiRouteUserDeps` 等）。全項目必須
+- API の Factory に差し込む束は lib/routeFactory の点の項目（`<ドメイン>/plugs/routeFactoryUser|routeFactoryRateLimit|routeFactoryDevice/<名前>.ts`）。利用者・レート制限はちょうど 1 つで、fork は上流の項目の 1 行スイッチを `<名前>.replace.ts` に向けて替える（足して 2 つにしない、D53）
 
-### dbAgent
+### lib の点の一覧と結び目（formSuite・serverErrorReport・startup・dbAgent・routeFactory）
 
-DB 調査エージェントの拡張点は `src/wiring/dbAgent/`(宣言と受け口。fork は祖先の lib の中にファイルを足せない)、一覧は生成物 `dbAgent.ts`。lib は一覧を import しないので、route(`src/app/api/admin/db-agent/route.ts`)が `extensions` で渡す。
+lib の拡張点は lib 自身の `extensionPoints.ts` が宣言し、項目は差す側の `<ドメイン か lib>/plugs/<点>/<名前>.ts`（D31・D38）。生成器（`pnpm generate extensions`）が一覧を `src/wiring/<lib>.ts` に書き、lib が `export const wire` を宣言していれば結び目も同じファイルに書く（一覧を門番で絞って lib の作り手に渡す）。
+
+- `formSuite.ts`: 入力部品の一覧 `formInputs` と結び目 `FormInputsRoot`（client。`AppProviders.tsx` が包む。登録名は `RegisteredFormInputs` に載る）
+- `serverErrorReport.ts`: 失敗の送り先の一覧 `serverErrorReporters` と結び目 `serverErrorReport`（`src/instrumentation.ts`・`src/proxy.ts`・`apiRoute.ts`・`cronRoute.ts` が読む）
+- `startup.ts`: 起動時の処理の一覧 `startupTasks` と結び目 `startup`（`src/instrumentation.ts` の `register` が読む。失敗の記録の送り先から分けた、D30）
+- `dbAgent.ts`: 一覧 `dbAgentTools`・`dbAgentPromptFragments`・`dbAgentSuffixProviders`（結び目なし。route `src/app/api/admin/db-agent/route.ts` が門番で絞って `extensions` で渡す）
+- `routeFactory.ts`: 一覧 `routeFactoryUser`・`routeFactoryRateLimit`・`routeFactoryDevice`（結び目なし。`apiRoute.ts` が門番で絞り、型は `<点>Map` から取り出す）
 
 ## Internals
 
-wiring どうしの import の例外は次の 2 つだけ（`pnpm test src/wiring/wiring.test.mjs` の `isReceptacleImport` / `isBundleImport` と同じ）:
-
-- 受け口: 生成物 `wiring/<束>.ts` → その束の受け口の項目 `wiring/<束>/<受け口>/…`（受け口 = `wiring/<束>/extensionPoints.ts` が宣言した `dir`）と、同じ受け口の中の項目どうし。項目は fork が足した物を含み、名前に fork の印は付けない。例: 生成物 `dbAgent.ts` → `dbAgent/extraTools/<名前>.ts`・`dbAgent/promptFragments/<名前>.ts`
-- 閉じた束: `AppProviders.tsx` → `formInputs/FormInputsRoot.tsx` と、束のフォルダ（`formInputs/`・`serverErrors/`）の中どうし（入口 → 生成物の一覧 → 受け口の項目）
-- 失敗の記録の束: `serverErrors/` の外のどの wiring のファイル（fork が足したものを含む）→ `serverErrors/index.ts`（入口だけ。API の Factory・cron・fork の自前の Factory の失敗を同じ記録へ結ぶ。項目の読み込みと上限を 1 か所に保つ）
+wiring どうしは読まない、例外なし（D32、`pnpm test src/wiring/wiring.test.mjs`）: wiring のファイルが読めるのは lib の入口・登録表・生成された一覧だけで、`src/wiring` の中で読めるのは生成物（先頭に生成の印の `src/wiring/<lib>.ts`）だけ。複数の wiring が同じ物を要る時は lib の入口か生成物の側に置く（例: 失敗の記録は生成物 `serverErrorReport.ts` の結び目を `apiRoute.ts`・`cronRoute.ts` が読む）。`src/wiring` はフォルダを持たない（D38）
 
 ## Verification
 

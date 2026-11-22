@@ -21,8 +21,8 @@ export type WalletPurchaseRestriction = "none" | "phoneVerified";
 /**
  * 失効予告の1段（「何日前に」送るか）。送るかはこの段が決める(上流のカテゴリー walletExpiring は種別 transactional で、利用者は止められない D207・D208)。
  * 送信チャンネルはカテゴリーが決める(D86。上流 = カテゴリー walletExpiring の email・inApp、
- * 変えるならカテゴリーの override src/domains/core/messaging/categories/walletExpiring.override.ts の channels)。
- * 文面は連絡定義 src/domains/core/wallet/messages/expiringNotice.ts(変えるなら隣に expiringNotice.override.ts。
+ * 変えるならカテゴリーの override src/domains/core/wallet/plugs/messagingCategories/walletExpiring.override.ts の channels)。
+ * 文面は連絡定義 src/domains/core/wallet/plugs/messages/expiringNotice.ts(変えるなら隣に expiringNotice.override.ts。
  * 段ごとに変えたいときは {{daysBefore}} を使う)
  */
 export type WalletPreExpiryNoticeStage = {
@@ -35,7 +35,7 @@ export type WalletPreExpiryNoticeStage = {
   messageKey?: string;
 };
 
-/** 失効時の本通知(文面は連絡定義 messages/expiredNotice.ts、送信チャンネルはカテゴリー walletExpired) */
+/** 失効時の本通知(文面は連絡定義 plugs/messages/expiredNotice.ts、送信チャンネルはカテゴリー walletExpired) */
 export type WalletExpiredNotice = {
   /** 送る連絡の鍵(省略 = 上流の wallet.expiredNotice。vars は同じ物を受けること) */
   messageKey?: string;
@@ -198,7 +198,7 @@ export type WalletConfig = {
   /** 消費し尽くしたロット（remaining = 0）を物理削除するまでの保持日数 */
   lotPruneRetentionDays: number;
   /**
-   * 管理者による残高変更通知の値の表示(文面は連絡定義 messages/adjustmentNotice.ts。
+   * 管理者による残高変更通知の値の表示(文面は連絡定義 plugs/messages/adjustmentNotice.ts。
    * 送り手: services/server/notification/sendAdjustmentNotification.ts)
    */
   adjustmentNotification: {
@@ -242,7 +242,7 @@ const defaults: WalletConfig = {
    *   },
    *   30日前だけメールにしたいなど段ごとに送信チャンネルを変えるなら、その送信チャンネルのカテゴリーと連絡定義を fork が足して
    *   { daysBefore: 30, messageKey: "<自分のドメイン>.<名前>" } と向ける
-   *   (文面は連絡定義 messages/expiringNotice.ts・expiredNotice.ts。変えるなら隣の <名前>.override.ts)
+   *   (文面は連絡定義 plugs/messages/expiringNotice.ts・expiredNotice.ts。変えるなら隣の <名前>.override.ts)
    */
   expiration: {
     regular_coin: { expirationDays: null, sweepEnabled: false },

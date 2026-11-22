@@ -12,7 +12,7 @@
 
 ### 連絡を定義する(defineMessage)
 
-連絡 1 本 = 起こすドメインの `messages/<名前>.ts` に定義 1 つ(データだけ。送る処理は持たない)。`pnpm check extensions` が字面で読む(default export・別名は止まる)。中身 = レイアウト(`layout`、下の「レイアウト」)+ レイアウトの欄の中身(`values`)。送信チャンネルごとの中身は持たず、送る口が送信チャンネルごとに描き方の 3 段(レイアウトの描き方 > 送信チャンネルの汎用 > 要約)で描く。
+連絡 1 本 = 起こすドメインの `plugs/messages/<名前>.ts` に定義 1 つ(データだけ。送る処理は持たない)。`pnpm check extensions` が字面で読む(default export・別名は止まる)。中身 = レイアウト(`layout`、下の「レイアウト」)+ レイアウトの欄の中身(`values`)。送信チャンネルごとの中身は持たず、送る口が送信チャンネルごとに描き方の 3 段(レイアウトの描き方 > 送信チャンネルの汎用 > 要約)で描く。
 
 ```ts
 import { z } from "zod";
@@ -25,7 +25,7 @@ export const message = defineMessage({
   varNames: { verificationUrl: { alias: "確認のURL", description: "メールアドレスを確かめるリンク" } },
   required: true,
   record: "meta",
-  layout: "link", // レイアウト(messaging の layouts の受け口のフォルダの名前)
+  layout: "link", // レイアウト(messaging の 点 messagingLayouts のフォルダの名前)
   values: {
     subject: "メールアドレスの確認",
     heading: "メールアドレスの確認",
@@ -38,12 +38,12 @@ export const message = defineMessage({
 
 ### 上書き(MessageOverride)
 
-`messages/<名前>.override.ts`(データだけ)。変えられるのは名前 `label`(管理画面の表示名)・レイアウトの欄の中身 `values`(欄ごとに差し替え)・`extras`・`enabled`・`adminEditableOnly`・`record`・`throttle`(`null` で外す)・所属のカテゴリー `category`(付け替え: fork のカテゴリーも可、種別が違ってもよい、functional の連絡も可 D166・D167。上流の呼び出しはそのままで属するカテゴリーだけが変わる)・管理者が送る画面の文 `adminText`(丸ごと差し替え)・送信チャンネルの固定 `channelModes`(丸ごと差し替え。カテゴリーを付け替える時は新しいカテゴリーの送信チャンネルで書き直す、外の送信チャンネルは `unknown_channel_mode`)。`key`・`vars`・`varNames`・`required`・`silent`・`layout` は変えられない(送信チャンネルの集まりはカテゴリーの上書き `categories/<名前>.override.ts` の `channels` で変える)。
+`plugs/messages/<名前>.override.ts`(データだけ)。変えられるのは名前 `label`(管理画面の表示名)・レイアウトの欄の中身 `values`(欄ごとに差し替え)・`extras`・`enabled`・`adminEditableOnly`・`record`・`throttle`(`null` で外す)・所属のカテゴリー `category`(付け替え: fork のカテゴリーも可、種別が違ってもよい、functional の連絡も可 D166・D167。上流の呼び出しはそのままで属するカテゴリーだけが変わる)・管理者が送る画面の文 `adminText`(丸ごと差し替え)・送信チャンネルの固定 `channelModes`(丸ごと差し替え。カテゴリーを付け替える時は新しいカテゴリーの送信チャンネルで書き直す、外の送信チャンネルは `unknown_channel_mode`)。`key`・`vars`・`varNames`・`required`・`silent`・`layout` は変えられない(送信チャンネルの集まりはカテゴリーの上書き `categories/<名前>.override.ts` の `channels` で変える)。
 
 種別の性質の検査(required の email・テキストの編集・間引き・email を外せない種別の email の off・上流の functional を止めない)は上書きを重ねた後の値(付け替えた先のカテゴリーの種別・送信チャンネル)に掛かる。functional の連絡をほかの種別のカテゴリーへ移すと、上書きで止められるようになる(D167: 付け替える fork には理由がある)。どのカテゴリーの項目を引くかは `messageCategoryKeyOf(definition, override)`。
 
 ```ts
-// src/domains/core/auth/messages/verification.override.ts(fork)
+// src/domains/core/auth/plugs/messages/verification.override.ts(fork)
 import type { MessageOverride } from "@/lib/messaging";
 
 export const messageOverride = {
@@ -51,7 +51,7 @@ export const messageOverride = {
 } satisfies MessageOverride;
 ```
 
-- 上書きの点 = この lib の `extensionPoints.ts` の `messages`(`overrides: "src/domains/**/messages/*.ts"`、直下だけ。見た目はレイアウトの描き方の 1 行スイッチの `.replace`)。書ける鍵は宣言の `overrideOf`(`MessageOverride` の鍵と同じ。テストが固定)
+- 上書きの点 = この lib の `extensionPoints.ts` の `messages`(`overrides: "src/domains/**/plugs/messages/*.ts"`、直下だけ。見た目はレイアウトの描き方の 1 行スイッチの `.replace`)。書ける鍵は宣言の `overrideOf`(`MessageOverride` の鍵と同じ。テストが固定)
 - 形は `export const messageOverride = { … }`(`satisfies MessageOverride` 可。関数で包むと字面で読めず止まる)
 - `applyMessageOverride(definition, override)` で重ねた結果(`enabled` つき)を得る。元の定義は変えない
 
@@ -63,7 +63,7 @@ export const messageOverride = {
 
 - `key`: `<domain>.<name>`(英数字の camelCase)
 - `label`(必須): 管理画面に出す連絡の名前(日本語。例 `"パスワードの再設定"`)。運営する人は鍵を読まないので、管理画面(テキストの編集・送信の送り元)は鍵でなくこれを出す。表示だけなので上書きで変えられる(カテゴリーの label と同じ)。無い・空は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition`(`missing_label`)。`pnpm generate message` は `--label` で書く
-- `category`(必須): カテゴリー = categories の受け口の鍵。カテゴリーは利用者から見て 1 つの出来事で、種別(kind)と送信チャンネル(channels)を持つ。連絡は種別も送信チャンネルも書かず、カテゴリーから引く。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `categories`(`unknown_category`)。
+- `category`(必須): カテゴリー = 点 messagingCategories の鍵。カテゴリーは利用者から見て 1 つの出来事で、種別(kind)と送信チャンネル(channels)を持つ。連絡は種別も送信チャンネルも書かず、カテゴリーから引く。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `categories`(`unknown_category`)。
 - 種別(カテゴリーが持つ、7 つ・fork は増やせない): `functional`(機能に組み込まれた連絡)/ `transactional`(本人の手続きの知らせ)/ `security`(セキュリティの警告)/ `announcement`(運営の告知)/ `direct`(運営から特定の利用者へ)/ `activity`(利用者が止められる、利用に伴う知らせ)/ `promotion`(宣伝)。
   - 性質は `MESSAGE_KIND_TRAITS`(`definition/kinds.ts`):
     - 上流の物を止められるか(`upstreamDisable`、functional だけ不可)
@@ -85,7 +85,7 @@ export const messageOverride = {
 - `record`: 本文の残し方 `meta` | `vars`(既定)| `full`
 - `throttle`: 会話の間引き `{ by: [vars の鍵], mode: "untilRead" | "window", seconds }`
 - `silent`: 静かなお知らせ(既定 false)。true = お知らせ(inApp)の行を静かな行(`metadata.silent = true`)で書く: 受け取り箱の一覧には出し、未読の数と未読だけの一覧(未読のモーダル)には入れない。ほかの送信チャンネルには効かない。上書きで変えられない(送る口 = src/domains/core/messaging/services/server/sendMessage/content.ts、読む側 = services/server/inbox/readState.ts)
-- `layout`(必須): レイアウトの鍵(`src/domains/core/messaging/layouts/<名前>/`。上流は simple・notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。無効(`disabled`)のレイアウトも誤り(`disabled_layout`)。上書きで変えられない
+- `layout`(必須): レイアウトの鍵(`src/domains/core/messaging/plugs/messagingLayouts/<名前>/`。上流は simple・notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。無効(`disabled`)のレイアウトも誤り(`disabled_layout`)。上書きで変えられない
 - `values`: レイアウトの欄の中身(欄の鍵 → 値。文字列に `{{鍵}}` を書ける)。レイアウトの欄の zod(`layoutValuesSchema`、カテゴリーの送信チャンネルで使う欄だけ必須)を通る(`invalid_values`)。検査の前に空を「無い」にする(`normalizeLayoutValues` / `normalizeFieldValue`: 画像の空文字・ボタン / リンクの全部が空・空の並び。ボタンの片方だけ空・URL の無いリンクは空の側の誤り)
 - `extras`: fork が足す欄の入れ物
 - 管理者が送る時の宣言(D175・D195。どれも省略でき、今の上流の定義は書かない):
@@ -192,7 +192,7 @@ export const messageOverride = {
 - `MessageEnricher`(値): `key`・`target`(当て先 = `{ messages?: 連絡の鍵[], categories?: カテゴリーの鍵[], kinds?: 種別[], all?: true }`、どれかに当たれば当てる。判定 `enricherTargets(target, { key, category, kind })`。使える鍵の検査と実行の両方がこれで選ぶ)・`provides`(足す変数の zod)・`resolve(文脈)`
 - `MessageCategory`(カテゴリー = 1 つの出来事、配信停止の単位 = カテゴリー × 送信チャンネル): `key`・`label`(利用者に見せる名前: 好みの設定・配信停止・受け取り箱)・`adminLabel?`(管理画面の名前: 送る・テンプレート・テキストの編集・送信の画面。無い = `label`、`categoryAdminLabel(category)` で引く)・`description?`・`kind`(7 つ)・`channels`(届ける送信チャンネル)・`defaultChannels?`(管理の送る画面で最初に入っている送信チャンネル = `channels` の中の 1 つ以上、無い = 全部。停止の単位は変えない)・`group?`(設定画面の見出し `MessageCategoryGroup` の鍵、同じ種別だけ)。
   - fork は上流のカテゴリーの `<名前>.override.ts` で `label`・`adminLabel`・`description`・`channels`・`defaultChannels`・`group` を変えられる(鍵・種別は不可)
-- `MessageCategoryGroup`(カテゴリーのグループ、`messaging/categoryGroups/<名前>.ts` の `export const group`): `key`・`label`・`order`。見出しだけで停止の単位ではない。上流は出荷しない
+- `MessageCategoryGroup`(カテゴリーのグループ、`messaging/plugs/messagingCategoryGroups/<名前>.ts` の `export const group`): `key`・`label`・`order`。見出しだけで停止の単位ではない。上流は出荷しない
 - `MessageSource`(送り元): `key`・`label`
 - `MessageSubscriber`(送った後の購読): `key`・`on`(事件の種類)・`filter?`(連絡の鍵・送信チャンネル)・`handle(事件の束)`(事件の id + 購読の鍵で冪等に。投げると次回もう一度渡る)
 
@@ -241,14 +241,14 @@ export const messageOverride = {
 - 送信チャンネルの固定(`channelModes`、上書きがあれば上書きの物を丸ごと): required か email を外せない種別(functional・security)の連絡の `email: "off"`
 - required の定義: カテゴリーの送信チャンネルに `"email"` が無い・`adminEditableOnly` が空でない・`throttle` がある。その上書き: `enabled: false`・空でない `adminEditableOnly`・`throttle`(`null` で外すのは通す)
 - 上流(`src/domains/core`)の functional のカテゴリーの連絡(付け替えた後のカテゴリーで見る): 上書きで `enabled: false`
-- カテゴリーの上書き(`categories/<名前>.override.ts`): functional・security のカテゴリーの `channels` から `"email"` を外す・空にする。`group` が categoryGroups の受け口に無い・1 つのグループに別の種別のカテゴリー
+- カテゴリーの上書き(`categories/<名前>.override.ts`): functional・security のカテゴリーの `channels` から `"email"` を外す・空にする。`group` が 点 messagingCategoryGroups に無い・1 つのグループに別の種別のカテゴリー
 - 守りに関わる値が変数・式だと止まる。種別の性質は `definition/kinds.ts` を字面で読む
 
 ### 生成の一覧(src/registry/messageRegistry.ts)
 
-`pnpm generate registry` が全ドメインの `messages/<名前>.ts`(直下。`.override`・`.test` を除く)を字面で読み、鍵 → 項目の一覧を書く(`scripts/structure/registry/alpha/messageRegistry.mjs`)。送る口・管理画面・プレビューはこれを読む(server-only)。
+`pnpm generate registry` が全ドメインの `plugs/messages/<名前>.ts`(直下。`.override`・`.test` を除く)を字面で読み、鍵 → 項目の一覧を書く(`scripts/structure/registry/alpha/messageRegistry.mjs`)。送る口・管理画面・プレビューはこれを読む(server-only)。
 
-- 鍵 = `<ドメインのフォルダ名>.<ファイル名>`(例 `src/domains/core/auth/messages/verification.ts` → `auth.verification`)。定義の `key` はこの値の文字列リテラルで書く(ずれ・重なりは生成が止める)
+- 鍵 = `<ドメインのフォルダ名>.<ファイル名>`(例 `src/domains/core/auth/plugs/messages/verification.ts` → `auth.verification`)。定義の `key` はこの値の文字列リテラルで書く(ずれ・重なりは生成が止める)
 - 項目 `MessageRegistryEntry` = `{ key, definition, override? }`。どれも遅延 import(`definition` → `{ message }`、`override` → `{ messageOverride }`)。描き方はレイアウトが持つ(連絡ごとの描き方のフォルダは持たない。前の形の view のフォルダが残っていれば生成が止まる)
 - ファイル名は英小文字始まりの camelCase(点や印は付けない)
 - 全件の検査: `src/domains/core/messaging/services/server/sendMessage/messageRegistry.test.ts` が一覧の全件に上書きを重ねて `validateMessageDefinition` をかけ、鍵の一致とカテゴリーの送信チャンネルの全部で描けることを確かめる(`checkMessageRegistry`)

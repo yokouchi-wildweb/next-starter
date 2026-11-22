@@ -3,7 +3,7 @@
 import type { ActionCodeSettings } from "firebase-admin/auth";
 
 import { getServerAuth } from "@/lib/firebase/server";
-import { message as verificationMessage } from "@/domains/core/auth/messages/verification";
+import { message as verificationMessage } from "@/domains/core/auth/plugs/messages/verification";
 import { sendMailMessage } from "@/domains/core/auth/services/server/sendMailMessage";
 import { toDirectSignInLink } from "@/domains/core/auth/services/server/toDirectSignInLink";
 import { appendInviteLinkParam } from "@/domains/core/referral/lib/inviteLinkCookie";
@@ -24,7 +24,7 @@ export type SendSignInLinkParams = {
 };
 
 /**
- * Firebase Admin SDK でサインインリンクを生成し、連絡 auth.verification(messages/verification.ts)を送る口(messagingService.sendMessage)で送ります。
+ * Firebase Admin SDK でサインインリンクを生成し、連絡 auth.verification(plugs/messages/verification.ts)を送る口(messagingService.sendMessage)で送ります。
  * 生成リンクは firebaseapp.com の中継ページを経由しないアプリ直リンクに
  * 組み直して送信します（toDirectSignInLink 参照）。
  */

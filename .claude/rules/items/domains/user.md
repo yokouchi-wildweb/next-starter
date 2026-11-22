@@ -6,7 +6,7 @@ paths:
 # domains/user
 what: users (admins too), roles, status history, display names, delete cleanup | userService
 use: always
-change: counterpart = src/config/domains/user.config.ts | override = <name>.override.ts | add = receptacles (extensionPoints.ts)
+change: counterpart = src/config/domains/user.config.ts | override = <name>.override.ts | add = items in your own domain's plugs/<point>/ (user's points)
 rules:
 using:
 - no_raw_users_write: users and names are written only via createFromProvider / userService | refuse withdrawn users via findByProvider first, not a createFromProvider option
@@ -19,8 +19,8 @@ using:
 - no_user_columns: no analytics columns on users → per-concern satellite tables (aggregation axes = typed columns, long tail = jsonb extras)
 - delete_one_by_one: delete users one by one (softDelete)
 - bulk_fields: no side-effect columns in bulkUpdate.fields (status, role, name, email, phone, password, isDemo)
-- reserved_fast: reservedNames providers read locally only (memory / local table; run under an advisory lock), names normalized as normalizeUserNameForComparison
-- no_copy: modal tabs → adminManageTabs | mypage cards → mypageMenu (no gate checks) | avatar → useAvatarChange | user list → useGeneralUserListTable
+- reserved_fast: userReservedNames providers read locally only (memory / local table; run under an advisory lock), names normalized as normalizeUserNameForComparison
+- no_copy: modal tabs → userAdminManageTabs | mypage cards → userMypageMenu (no gate checks) | avatar → useAvatarChange | user list → useGeneralUserListTable
 - menu_own: edit your own mypage item in place, no override | new action kind → /order
 - wallet_gate: a file importing wallet parts checks useGate().enabled("wallet")
 - cleanup_tx: handlers write only via the passed tx | unsure → required | optional writes in tx.transaction

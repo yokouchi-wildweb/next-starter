@@ -10,11 +10,9 @@ export const gate = serverTools;
 export { clientGateState } from "./clientState";
 
 export type {
-  AlwaysOnException,
   ClientGateArea,
   ClientGatePathResult,
   ClientGateState,
-  DependencyException,
   FeatureGateRule,
   FeatureName,
   FeatureRequirement,
@@ -23,6 +21,7 @@ export type {
   GatedDomain,
   GatedFeatureRule,
   GatedPlug,
+  PlugsFilter,
   GatedSettingSection,
   GeneratedFeatureRule,
   GatePathResult,

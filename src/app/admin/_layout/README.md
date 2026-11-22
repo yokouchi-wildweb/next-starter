@@ -93,6 +93,11 @@ export function AdminHeader({ title, center, actions, className }: AdminHeaderPr
 // src/app/admin/_layout/AdminHeader.tsx: export { AdminHeader, type AdminHeaderProps } from "./AdminHeader.replace";
 ```
 
+### 名前付きの増設点(部品は持ち主のドメインから差す、D25)
+
+- `adminOverlays`: 枠に重ねる部品(ランチャー・ダイアログ)。持ち主のドメインの `plugs/adminOverlays/<名前>.tsx` に `export const part`(型 `FramePart`、`@/app/_layout/types`)。閉じたドメインの部品は門番が外す。上流の項目は 0
+- ログインの状態は根の枠の点 `frameSession`(上流は auth)を `@/app/_layout/useFrameSession` で読む(枠はドメインを読まない)
+
 ### 枠の宣言(部位の出し入れと fill)
 
 - ページ・ルートの隣の枠の宣言(ルートを作ったリポ = 隣の `frame.ts` の `frame` / 下のリポ = `frame.override.ts` の `override`、型 `AdminFrameDeclaration`)に、隠す部位(`header`・`sidebar`・`footer` × `sp` / `pc`)と `fill` を書く。書式・重ねる順・生成する表: [src/app/_layout/frame/README.md](../../_layout/frame/README.md)

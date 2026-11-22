@@ -8,6 +8,6 @@ import "server-only";
 
 import type { Sample } from "@/domains/sample/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminSortParts } from "@/wiring/adminScreenParts";
+import { adminSortParts } from "@/domains/core/admin/services/server/screenParts";
 
 export const loadAdminSampleSortScreen = createLoader(adminSortParts<Sample>("sample", "sort_order"));

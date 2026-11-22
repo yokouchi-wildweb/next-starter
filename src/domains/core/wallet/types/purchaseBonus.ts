@@ -1,6 +1,6 @@
 // src/domains/core/wallet/types/purchaseBonus.ts
-// 購入の特典の表示(受け口 purchaseBonuses: purchaseBonuses/<key>.ts の export const provider)の型。
-// 表示だけ: 特典の付与はサーバーの purchaseRequest の completeHooks が行う。書き方: src/domains/core/wallet/Extension.md「購入の特典の表示（拡張点 purchaseBonuses）」
+// 購入の特典の表示(点 walletPurchaseBonuses: <ドメイン>/plugs/walletPurchaseBonuses/<key>.ts の export const provider)の型。
+// 表示だけ: 特典の付与はサーバーの purchaseRequest の completeHooks が行う。書き方: src/domains/core/wallet/Extension.md「購入の特典の表示（拡張点 walletPurchaseBonuses）」
 
 import type { WalletType } from "@/domains/wallet/config";
 
@@ -30,7 +30,7 @@ export type PurchaseBonusSource = {
   forPurchase?: (ctx: PurchaseBonusPurchaseContext) => PurchaseBonus | null;
 };
 
-/** 1 提供元の定義(purchaseBonuses/<key>.ts の export const provider) */
+/** 1 提供元の定義(<ドメイン>/plugs/walletPurchaseBonuses/<key>.ts の export const provider) */
 export type PurchaseBonusProvider = {
   /** 一意の名前 = ファイル名(英字始まりの英数字、camelCase)。override の対象もこの名前 */
   key: string;

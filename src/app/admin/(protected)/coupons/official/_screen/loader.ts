@@ -6,6 +6,6 @@ import "server-only";
 
 import type { Coupon } from "@/domains/core/coupon/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminListParts } from "@/wiring/adminScreenParts";
+import { adminListParts } from "@/domains/core/admin/services/server/screenParts";
 
 export const loadAdminCouponOfficialListScreen = createLoader(adminListParts<Coupon>("coupon", { where: { field: "type", op: "eq", value: "official" } }));

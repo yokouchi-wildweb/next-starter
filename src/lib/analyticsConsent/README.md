@@ -19,7 +19,7 @@
 
 ```tsx
 "use client";
-// 例: fork の同意バナー。全ページに出すなら src/app/_providers/ForkProviders.replace.tsx（fork の口。スイッチ ForkProviders.tsx をそちらへ向ける）で children の隣に描く
+// 例: fork の同意バナー。全ページに出すなら自分のドメインの plugs/rootProviders/<名前>.tsx(根の枠の点 rootProviders、段 project)の Provider で children の隣に描く
 import { useEffect } from "react";
 import { setAnalyticsConsent, useAnalyticsConsent } from "@/lib/analyticsConsent";
 import { useLocalStorage } from "@/lib/browserStorage";

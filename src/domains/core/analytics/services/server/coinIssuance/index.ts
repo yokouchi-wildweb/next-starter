@@ -11,10 +11,10 @@
 //  - aggregator は kind による符号反転と Σ 計算、レスポンス整形のみを行う
 //
 // downstream 拡張:
-//  - sources/<名前>.ts に export const source を置き pnpm generate extensions するだけで
+//  - <ドメイン>/plugs/analyticsCoinIssuanceSources/<名前>.ts に export const source を置き pnpm generate extensions するだけで
 //    レスポンスの sources にそのキーが自動で追加される
 
-import { coinIssuanceSources } from "@/domains/core/analytics/extensions/coinIssuanceSources";
+import { analyticsCoinIssuanceSources } from "@/domains/core/analytics/extensions/analyticsCoinIssuanceSources";
 
 import type {
   DateRangeParams,
@@ -28,6 +28,9 @@ import type {
   CoinIssuanceSourceEntry,
   CoinIssuanceSummaryData,
 } from "./types";
+
+// 常に読む一覧(alwaysOn): 門番で絞らない。項目の enabled が自分で閉じる
+const coinIssuanceSources = analyticsCoinIssuanceSources.map((entry) => entry.plug);
 
 export type CoinIssuanceSummaryParams = DateRangeParams & UserFilter;
 

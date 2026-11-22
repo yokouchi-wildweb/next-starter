@@ -12,7 +12,6 @@ import { pathToFileURL } from "node:url";
 
 import { readRequiredNames, scanDependencies } from "../checks/dependencies.mjs";
 import { sharedDomainsOpen } from "../checks/integrity.mjs";
-import { dependencyExceptions } from "../extensions/dependencyExceptions";
 import {
   configEnabled,
   isOpenedBySwitch,
@@ -25,7 +24,7 @@ import {
 } from "../ruleList";
 import type { GatedFeatureRule } from "../types";
 
-export type DependencyAllowedBy = "sameRule" | "requires" | "gate" | "route" | "required" | "exception" | null;
+export type DependencyAllowedBy = "sameRule" | "requires" | "gate" | "route" | "required" | null;
 export type FeatureDependent = { file: string; folder: string; allowedBy: DependencyAllowedBy };
 
 /** 閉の理由: self = 自分の値が閉(スイッチにも無い)、dependencies = 閉じた直の依存先(anyOf が全部閉ならその名前も) */
@@ -170,19 +169,16 @@ export async function readRequired(root: string): Promise<Record<string, string>
 
 /**
  * repo を読んで説明を作る(pnpm ops features list の入口)。
- * exceptionFiles の省略 = 受け口 dependencyExceptions/ の項目(依存の検査と同じ例外で数える。渡すのは試験で差し替えるときだけ)
  */
 export async function readFeatureReport(
   root: string,
   rules: readonly GatedFeatureRule[],
-  exceptionFiles: readonly string[] = dependencyExceptions.map((e) => e.file),
 ): Promise<FeatureDescription[]> {
   const required = await readRequired(root);
   const dependencies = scanDependencies({
     root,
     // 住所の下にあるかは規則のドメインの導出の住所も含めて見る(依存の検査と同じ入力)
     rules: withCoveredPatterns(rules),
-    exceptionFiles: [...exceptionFiles],
     requiredNames: Object.keys(required),
   });
   const callSites = findCallSites(root, rules.map((rule) => rule.name));

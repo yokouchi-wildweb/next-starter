@@ -4,7 +4,7 @@
 // レイアウトの描き方 > 送信チャンネルの汎用 > 要約)→ 中身と見出し(要約の題)。どの段でも描けない送信チャンネルは送る前に止める(DomainError、送信チャンネルと理由)。
 // 呼び手: 送信の見出し・全員同文の描画・その場の行・プレビュー・まとめ送りの描き直し・cron の共有のお知らせの行・cron の送る行・
 // テキストの編集のプレビュー(どれも同じこの組み立てを通す)。
-// - email: レイアウトにメールの描き方(layouts の受け口 layoutEmails)があればそれ、無ければ送信チャンネルの汎用、無ければ要約。送信チャンネルが送る時に描く
+// - email: レイアウトにメールの描き方(点 messagingLayouts layoutEmails)があればそれ、無ければ送信チャンネルの汎用、無ければ要約。送信チャンネルが送る時に描く
 //   (rendersAtSend: 宛先ごとの停止のリンクを入れる)ので、中身は MessageLayoutContent
 // - inApp: 送信チャンネルが送る時に行を書く(rendersAtSend)ので MessageLayoutContent + レイアウトの版 layoutVersion(行が要約の列とレイアウト・欄の中身を残す、指令 60)
 // - line: 要約から
@@ -26,7 +26,7 @@ import {
 import { DomainError } from "@/lib/errors";
 import type { VariableMap } from "@/lib/templateVariables";
 
-import { IN_APP_SILENT_CONTENT_KEY } from "../../../channels/inApp/createInAppChannel";
+import { IN_APP_SILENT_CONTENT_KEY } from "@/domains/core/messaging/plugs/messagingChannels/inApp/createInAppChannel";
 
 import { renderValue, toVariableMap } from "./context";
 import type { AnyResolvedMessageDefinition } from "./definition";
@@ -40,7 +40,7 @@ export type MessageContentDeps = {
   layouts: Readonly<Record<string, MessageLayout>>;
   /** 送信チャンネルの鍵 → レイアウトの描き方を持つレイアウトの鍵の表(email = layoutEmails。inApp の描き方は client の一覧なので S6 まで渡さない) */
   layoutRenderers: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
-  /** enrichers の受け口(別名の表に使う。無ければ共通の別名だけ) */
+  /** 点 messagingEnrichers(別名の表に使う。無ければ共通の別名だけ) */
   enrichers?: Readonly<Record<string, MessageEnricher>>;
 };
 
@@ -56,7 +56,7 @@ export type BuiltChannelContent = {
 function layoutOf(deps: MessageContentDeps, resolved: AnyResolvedMessageDefinition): MessageLayout {
   const layout = deps.layouts[resolved.layout];
   if (!layout) {
-    throw new DomainError(`連絡 ${resolved.key} のレイアウト ${resolved.layout} が layouts の受け口にありません`, { status: 500 });
+    throw new DomainError(`連絡 ${resolved.key} のレイアウト ${resolved.layout} が 点 messagingLayouts にありません`, { status: 500 });
   }
   return layout;
 }

@@ -6,7 +6,7 @@ paths:
 # lib/routeFactory
 what: the generic API route factories (createApiRoute, createDomainRoute / createDomainIdRoute, createMeRoute, createDeviceRoute, enforceAccessRule) | routes import the wired version @/wiring/apiRoute (src/wiring/apiRoute.ts)
 use: always
-change: counterpart = src/config/lib/routeFactory.config.ts (recaptcha threshold / v2Threshold defaults) | add = a fork's own principal factory in src/wiring/<name>.ts built from createRouteFactories
+change: counterpart = src/config/lib/routeFactory.config.ts (recaptcha threshold / v2Threshold defaults) | add = a fork's own principal factory in src/wiring/<name>.ts built from createRouteFactories | points routeFactoryUser, routeFactoryRateLimit (exactly one: auth, rateLimit) and routeFactoryDevice (0-1: pairedDevice; empty = no device routes)
 rules:
 using:
 - public_read_all_public: generic read "public" only when every record is public (search, count, relations too)
@@ -18,7 +18,7 @@ using:
 - device_scope: device routes take store / table from device.scope, never a client id | a device never joins createApiRoute access | an existing route opened to devices adds the scope check
 - demo_by_factory: demo skipping is the factory's
 - return_url_confirms_nothing: a provider return route only redirects
-- maintenance_pass_only: during maintenance every POST / PUT / PATCH / DELETE stops with 503 code "maintenance" | `maintenance: "pass"` only on a route whose stop loses data or locks admins out (payment webhook / completion / provider return, login, logout) | never as a convenience; the stop is the safe default
+- maintenance_pass_only: during maintenance (the routeFactoryMaintenance item, upstream from setting; empty = never) every POST / PUT / PATCH / DELETE stops with 503 code "maintenance" | `maintenance: "pass"` only on a route whose stop loses data or locks admins out (payment webhook / completion / provider return, login, logout) | never as a convenience; the stop is the safe default
 - proxy_create_admin_entry: creating a record on behalf of another user goes through a separate admin entry, never the generic or the self route
 editing:
 - authz_before_demo: access is evaluated before the demo skip

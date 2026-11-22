@@ -7,7 +7,7 @@
 
 ## Usage
 
-- 項目: `exclusionProviders/<名前>.ts` の `export const provider: AnalyticsExclusionProvider` → `pnpm generate extensions`（型: `services/server/exclusion/types.ts`。`key` の重複は一覧の読み込みで例外）
+- 項目: `<ドメイン>/plugs/analyticsExclusionProviders/<名前>.ts` の `export const provider: AnalyticsExclusionProvider` → `pnpm generate extensions`（型: `services/server/exclusion/types.ts`。`key` の重複は一覧の読み込みで例外）
 - 集計の性質ごとに呼び手が scope を渡し、項目の対応する方だけが呼ばれる（返す SQL = 残す行の条件、AND で足す。関係なければ `undefined`）:
   - `flow`（期間の事実の行: 収支・購入・DAU・付与）→ `flow({ source, rowId, userId })`。除外した**行**だけを落とす
   - `stock`（残高・流通量など人ごとの状態）→ `stock({ userId })`。不正なコインは除外の期間の外の残高にも残るので、除外した**人**を丸ごと落とす
@@ -25,7 +25,7 @@ export const AnalyticsExcludedRowTable = pgTable("analytics_excluded_rows", {
   exclusion_id: uuid("exclusion_id").notNull(),
 }, (t) => [primaryKey({ columns: [t.source, t.row_id] })]);
 
-// fork: src/domains/core/analytics/exclusionProviders/fraudRollback.ts → pnpm generate extensions
+// fork: <ドメイン>/plugs/analyticsExclusionProviders/fraudRollback.ts → pnpm generate extensions
 import { and, eq, sql } from "drizzle-orm";
 import type { AnalyticsExclusionProvider } from "@/domains/core/analytics/services/server/exclusion/types";
 import { AnalyticsExcludedRowTable as x, AnalyticsExclusionTable as ex } from "@/domains/analyticsExclusion/entities/drizzle";

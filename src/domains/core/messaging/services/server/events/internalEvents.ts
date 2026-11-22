@@ -2,7 +2,7 @@
 //
 // 内部の事件(D47 の outbox): dispatch.completed・delivery.sent / delivery.failed / delivery.suppressed。
 // - 元の状態の更新(配達の行・送信の行)と同じ取引で message_events に書く(store の書く口が events を受ける)
-// - 書くのは登録した購読のどれかが聞いている種類だけ(生成の一覧 extensions/subscribers から求める。購読が 0 なら何も書かない)
+// - 書くのは登録した購読のどれかが聞いている種類だけ(生成の一覧 extensions/messagingSubscribers から求める。購読が 0 なら何も書かない)
 // - provider = "internal"、provider_event_id = 自前の uuid(UNIQUE(provider, provider_event_id) に当たらない)
 
 import { randomUUID } from "node:crypto";

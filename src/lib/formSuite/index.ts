@@ -18,7 +18,7 @@ export {
   useCustomFormInput,
   useCustomFormInputs,
 } from "./Field/Configured/customInputs";
-export type { ResolvedFormInput } from "./Field/Configured/customInputs";
+export type { FormInputPlug, ResolvedFormInput } from "./Field/Configured/customInputs";
 
 // Controlled の入力(react-hook-form の field を受ける。名前は Controlled + 棚の部品の名前)
 export * from "./inputs";

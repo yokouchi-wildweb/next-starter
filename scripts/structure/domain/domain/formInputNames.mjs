@@ -1,4 +1,4 @@
-// 登録された入力部品の名前（src/wiring/formInputs/inputs/ の項目の name）。
+// 登録された入力部品の名前（差す側の <ドメイン か lib>/plugs/formInputs/ の項目の name、点 formInputs の宣言は src/lib/formSuite/extensionPoints.ts）。
 // 生成の検査が使う。生成一覧は forge の後段で作るので項目を直接読む（構文木で字面を読み、実行しない）
 
 import ts from "typescript";
@@ -26,14 +26,15 @@ export function formInputNameOf(text) {
  * @returns {Set<string>} 登録名
  */
 export function readRegisteredFormInputs(workspace) {
-  const dir = workspace.formInputsDir;
   const names = new Set();
-  for (const entry of workspace.listDir(dir)) {
-    const candidates = /\.tsx?$/.test(entry) ? [`${dir}/${entry}`] : [`${dir}/${entry}/index.ts`, `${dir}/${entry}/index.tsx`];
-    const file = candidates.find((candidate) => workspace.exists(candidate));
-    if (!file) continue;
-    const name = formInputNameOf(workspace.readText(file));
-    if (name) names.add(name);
+  for (const dir of workspace.formInputsDirs()) {
+    for (const entry of workspace.listDir(dir)) {
+      const candidates = /\.tsx?$/.test(entry) ? [`${dir}/${entry}`] : [`${dir}/${entry}/index.ts`, `${dir}/${entry}/index.tsx`];
+      const file = candidates.find((candidate) => workspace.exists(candidate));
+      if (!file) continue;
+      const name = formInputNameOf(workspace.readText(file));
+      if (name) names.add(name);
+    }
   }
   return names;
 }

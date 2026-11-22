@@ -1,7 +1,7 @@
 // scripts/structure/registry/alpha/recordTargetRegistry.mjs
 // 記録の宛先の一覧 src/registry/recordTargetRegistry.ts を走査から組み立てる(pnpm generate registry)。字面で読むだけ(項目は import しない)。
 // 連絡定義(./messageRegistry.mjs)と同じ道(決定 D195、指令 04 の AMENDMENT 1):
-// - 項目 = features の地区の recordTargets/<名前>.ts(直下。.test・点つきの名前は除く)の export const recordTarget = { key: "…", … }
+// - 項目 = domains の地区の plugs/recordTargets/<名前>.ts(D42。直下。.test・点つきの名前は除く)の export const recordTarget = { key: "…", … }
 // - 鍵 = 項目の key の文字列リテラルで、<ドメインのフォルダ名>.<ファイル名> と一致すること(場所から一意に決まる。ずれ・重なりは止める)
 // - 送れる連絡定義の並び = 項目の messages(文字列リテラルの配列、空も可)。隣の <名前>.override.ts の recordTargetOverride.messages が
 //   書いてあれば丸ごと差し替える(上書きの点 = lib/messaging の extensionPoints.ts の recordTargets、鍵の検査は pnpm check extensions)
@@ -13,12 +13,15 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { PLUGS_DIR_NAME } from "../../../../src/lib/districtMap/index.mjs";
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { MESSAGE_EXPORT, exportedObject, readLiteralProperty } from "../../extensions/derive/messageGuards.mjs";
 import { scanMessages } from "./messageRegistry.mjs";
 
 export const RECORD_TARGET_REGISTRY_FILE = "src/registry/recordTargetRegistry.ts";
-const RECORD_TARGETS_DIR = "recordTargets";
+const RECORD_TARGETS_DIR = `${PLUGS_DIR_NAME}/recordTargets`;
+/** 段 3 の前の置き場(<ドメイン>/recordTargets/)。残っていれば止めて移し方を案内する */
+const OLD_RECORD_TARGETS_DIR = "recordTargets";
 const RECORD_TARGET_EXPORT = "recordTarget";
 /** 上書きの export(lib/messaging の extensionPoints.ts の recordTargets の export と同じ名前) */
 const RECORD_TARGET_OVERRIDE_EXPORT = "recordTargetOverride";
@@ -67,6 +70,9 @@ export function scanRecordTargets(repoRoot) {
   const entries = [];
   const districts = readDistrictMapAt(repoRoot).districts.filter((d) => d.kind === "domains");
   for (const district of districts) {
+    if (existsSync(join(repoRoot, district.dir, OLD_RECORD_TARGETS_DIR))) {
+      problems.push(`${district.dir}/${OLD_RECORD_TARGETS_DIR}/: 記録の宛先は ${district.dir}/${RECORD_TARGETS_DIR}/ に置く(D42。fork は段 3 の notice の道具が動かす)`);
+    }
     const dir = `${district.dir}/${RECORD_TARGETS_DIR}`;
     const domain = district.dir.split("/").at(-1);
     for (const file of listFiles(repoRoot, dir)) {
@@ -156,7 +162,7 @@ export function renderRecordTargetRegistry(repoRoot) {
     "  },",
   ]);
   const text = [
-    "// 生成物・編集不可: pnpm generate registry が src/domains/**/recordTargets/*.ts・*.override.ts から生成する",
+    "// 生成物・編集不可: pnpm generate registry が src/domains/**/plugs/recordTargets/*.ts・*.override.ts から生成する",
     `// ${RECORD_TARGET_REGISTRY_FILE}`,
     "//",
     "// 記録の宛先の一覧(鍵 = <ドメインのフォルダ名>.<ファイル名> → ドメイン・項目と上書きの遅延 import)。絞らない: 読み手は loadRecordTarget(門番 recordTargetOpen)を通す",

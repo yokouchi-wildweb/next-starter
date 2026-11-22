@@ -112,31 +112,6 @@ export type GatedSettingSection = {
 export type GatedFeatureRule = Omit<GeneratedFeatureRule, "enabled"> & { enabled: () => boolean };
 
 /**
- * 常時実行の入口の例外(1 項目 1 ファイル: src/featureGate/alwaysOnExceptions/<名前>.ts)。
- * - `export const exception`: 常に読み込まれる結線のうち、表を持つ機能のフォルダを import してよいもの
- * - `export const registry`: fork の手書きの登録表(中の名前は条件つき spread の内側で使う)
- * どちらか 1 つ、reason は必須(空は失敗)。当たらない行は失敗(縮む表)。検査: checks/featureGate.test.mjs
- */
-export type AlwaysOnException = {
-  /** リポジトリ直下からの相対パス */
-  file: string;
-  /** 閉じなくてよい理由 / 常に読まれる理由 */
-  reason: string;
-};
-
-/**
- * 依存の検査の例外(1 項目 1 ファイル: src/featureGate/dependencyExceptions/<名前>.ts の `export const exception`)。
- * 閉じられる機能のフォルダを外から import してよいファイル(字面で判定できない物: 動的 import・wiring の遅延 import など)。
- * reason は必須(空は失敗)。当たらない行は失敗(縮む表)。検査: checks/dependencies.test.mjs
- */
-export type DependencyException = {
-  /** リポジトリ直下からの相対パス */
-  file: string;
-  /** 閉じられる機能を確かめずに読んでよい理由 */
-  reason: string;
-};
-
-/**
  * この fork が必ず使う機能(1 機能 1 ファイル: src/featureGate/required/<機能名>.ts の `export const required`)。
  * 依存の検査は「この機能のフォルダを外から読むこと」を依存を書いたとみなして通す。pnpm ops features list は必須と出し、pnpm ops features set は off にしない
  */
@@ -188,6 +163,9 @@ export type ClientGateState = {
 
 /** plugs の点の生成された一覧の項目の共通の欄(gate.plugs・useGate().plugs が読む)。domain = 差したドメインのフォルダ名(lib の項目は null)、requires = そのドメインの requires */
 export type GatedPlug = { domain: string | null; name: string; requires: readonly string[] };
+
+/** 門番の絞りそのもの(server の gate.plugs・client の useGate().plugs)。server と client の両方から呼ばれる組み立て器は、これを引数で受ける */
+export type PlugsFilter = <T extends GatedPlug>(items: readonly T[]) => T[];
 
 /** client の useGate().path の答え。rule: null = 範囲の外・Provider の外(本番だけ。dev は throw)で閉とみなした */
 export type ClientGatePathResult = GatePathResult | { open: false; rule: null };

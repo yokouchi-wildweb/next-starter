@@ -21,7 +21,6 @@ function setup(items: ServerErrorReporter[], extra: ServerErrorReporterLoader[] 
   const report = createServerErrorReport(loaders, {
     runtime,
     timeoutMs: 50,
-    registerTimeoutMs: 50,
     write: (line) => lines.push(JSON.parse(line)),
   });
   return { report, lines };
@@ -81,7 +80,6 @@ test("書き手が throw しても onRequestError は throw しない", async ()
   const report = createServerErrorReport([], {
     runtime: "nodejs",
     timeoutMs: 50,
-    registerTimeoutMs: 50,
     write: () => { throw new Error("stdout closed"); },
   });
   await report.onRequestError(new Error("boom"), request, context);
@@ -96,18 +94,6 @@ test("runtime: 既定 nodejs の項目は edge で呼ばれない、both は両�
   ];
   await setup(items, [], "edge").report.onRequestError(new Error("e"), request, context);
   assert.deepEqual(got.sort(), ["both", "edge"]);
-});
-
-test("register: 項目ごとに独立、遅れと throw は別の 1 行", async () => {
-  let ran = 0;
-  const { report, lines } = setup([
-    { name: "slow", register: () => new Promise(() => {}) },
-    { name: "bad", register: () => { throw new Error("init failed"); } },
-    { name: "good", register: () => void ran++ },
-  ]);
-  await report.register();
-  assert.equal(ran, 1);
-  assert.deepEqual(lines.map((l) => `${l.reporter}:${l.phase}`).sort(), ["bad:register", "slow:register"]);
 });
 
 test("report: 入口の失敗も既定の 1 行 + 項目へ(proxy は routeType proxy、名前と requestId)", async () => {

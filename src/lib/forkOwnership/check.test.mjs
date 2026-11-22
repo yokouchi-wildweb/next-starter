@@ -174,7 +174,7 @@ describe("pnpm workflow ownership check", () => {
       write(parent, "src/domains/core/setting/extensionPoints.ts", 'export const extensionPoints = { fields: { change: "add", dir: "fields", export: "field", type: { from: "@/t", name: "T" }, side: "server" } };\n');
       write(parent, "src/domains/core/setting/fields/a.ts", "export const field = 1;\n");
       write(parent, "src/wiring/apiRoute.ts", "export const x = 1;\n");
-      write(parent, "src/wiring/dbAgent/index.ts", "export const x = 1;\n");
+      write(parent, "src/wiring/oldBundle/index.ts", "export const x = 1;\n");
       write(parent, "src/app/(user)/_layout/Header/index.tsx", "export const Header = 1;\n");
       commitAll(parent, "places");
       return parent;
@@ -184,7 +184,7 @@ describe("pnpm workflow ownership check", () => {
       const fork = makeFork(parentWithPlaces());
       write(fork, "src/domains/core/setting/fields/a.tsx", "export const field = 2;\n");
       write(fork, "src/wiring/apiRoute.tsx", "export const x = 2;\n");
-      write(fork, "src/wiring/dbAgent.ts", "export const x = 2;\n");
+      write(fork, "src/wiring/oldBundle.ts", "export const x = 2;\n");
       write(fork, "src/app/(user)/_layout/Header.tsx", "export const Header = 2;\n");
       write(fork, "src/domains/core/setting/fields/mine.ts", "export const field = 3;\n");
       write(fork, "src/domains/core/setting/fields/mine.override.ts", "export const override = {};\n");
@@ -192,16 +192,16 @@ describe("pnpm workflow ownership check", () => {
       const result = runCheck(fork);
       assert.equal(result.status, "fail");
       const reasonOf = (/** @type {string} */ path) => result.entries.find((entry) => entry.path === path)?.reason;
-      for (const path of ["src/domains/core/setting/fields/a.tsx", "src/wiring/apiRoute.tsx", "src/wiring/dbAgent.ts", "src/app/(user)/_layout/Header.tsx"]) {
+      for (const path of ["src/domains/core/setting/fields/a.tsx", "src/wiring/apiRoute.tsx", "src/wiring/oldBundle.ts", "src/app/(user)/_layout/Header.tsx"]) {
         assert.equal(reasonOf(path), "unit-clash", path);
       }
-      assert.equal(result.entries.find((entry) => entry.path === "src/wiring/dbAgent.ts")?.clash, "src/wiring/dbAgent/index.ts");
+      assert.equal(result.entries.find((entry) => entry.path === "src/wiring/oldBundle.ts")?.clash, "src/wiring/oldBundle/index.ts");
       assert.equal(reasonOf("src/domains/core/setting/fields/mine.override.ts"), "override-own");
       assert.equal(reasonOf("src/domains/core/setting/fields/mine.ts"), "added");
       assert.deepEqual(result.middleTier, []);
       const out = cli(fork);
       assert.equal(out.status, 1);
-      assert.match(out.stdout, /\[unit-clash\] src\/wiring\/dbAgent\.ts\(基準の src\/wiring\/dbAgent\/index\.ts と同じ単位\)/);
+      assert.match(out.stdout, /\[unit-clash\] src\/wiring\/oldBundle\.ts\(基準の src\/wiring\/oldBundle\/index\.ts と同じ単位\)/);
     });
 
     test("正しい形(印なしの新しい名前・.replace・上流の項目への override)は合格(0)", () => {

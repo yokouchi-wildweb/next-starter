@@ -1,7 +1,7 @@
 // scripts/structure/admin-menu/check.ts — 段階の入口(pnpm check admin-menu [-- show <引数>]。段階 build・ship、extensions の後)
 //   引数なし = 管理メニューの受け口の置き間違いを止める(書かない): 知らないカテゴリー・管理一覧に無いドメイン・相手の無い上書き・
 //     allowRoles を広げる上書き・/admin の住所でページが route-map に無いもの・key とファイル名の食い違い(./inspect.ts の checkAdminMenu)。
-//     管理ダッシュボードの受け口(dashboard/sections)も: 相手の無い上書き・allowRoles を広げる上書き・key とファイル名・描画の無い定義(checkAdminDashboard)
+//     管理ダッシュボードの点(<差す側>/plugs/adminDashboardSections)も: 相手の無い上書き・allowRoles を広げる上書き・key とファイル名・描画の無い定義(checkAdminDashboard)
 //   show [--role=<ロール>] [--closed=now|all|none] = ロールごとの木を描く(読むだけ)。行ごとに当たる門番の規則(開/閉)か 常時、重複、
 //     描かない物と理由。--closed: now = 今の規則の開閉(既定)、all = 全部閉じた、none = 全部開いた。fork の取り込みの前後比較に使う
 // DB・外部に届かない(段階 build の守りが確かめる)。仕組み: src/domains/core/admin/menu/README.md・src/domains/core/admin/dashboard/README.md

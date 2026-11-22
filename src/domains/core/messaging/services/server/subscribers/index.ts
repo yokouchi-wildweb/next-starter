@@ -7,7 +7,7 @@ import { runAsSystem } from "@/lib/audit/server";
 import { createDeadline } from "@/lib/cron";
 
 import { messagingConfig } from "../../../config";
-import { subscribers } from "../../../extensions/subscribers";
+import { subscribers } from "../lists";
 import { reprocessQuarantined, runSubscribers, type ReprocessResult, type SubscriberRunResult } from "./runSubscribers";
 import { drizzleSubscriberStore } from "./store";
 

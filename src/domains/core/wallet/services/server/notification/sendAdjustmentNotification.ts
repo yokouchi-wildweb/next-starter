@@ -2,7 +2,7 @@
 // 管理者による残高変更時の通知送信(連絡 wallet.adjustmentNotice、受け取り箱 = inApp)
 
 import { messagingService } from "@/domains/core/messaging/services/server/messagingService";
-import { message as adjustmentNoticeMessage } from "@/domains/core/wallet/messages/adjustmentNotice";
+import { message as adjustmentNoticeMessage } from "@/domains/core/wallet/plugs/messages/adjustmentNotice";
 import { walletConfig, type WalletType } from "@/domains/wallet/config";
 
 import { CHANGE_METHOD_LABELS, REASON_LABEL, formatAmount, formatDelta } from "./adjustmentNotificationFormat";

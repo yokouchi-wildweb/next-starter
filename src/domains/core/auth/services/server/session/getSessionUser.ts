@@ -49,7 +49,7 @@ export class SessionUserUnavailableError extends Error {
 }
 
 /**
- * API の Factory 用（apiRouteUserDeps.resolveUser）。getSessionUser と同じ 1 回の引きを使い、
+ * API の Factory 用（点 routeFactoryUser の項目の deps.resolveUser）。getSessionUser と同じ 1 回の引きを使い、
  * null = 利用者なし（未ログイン・失効）、DB 障害 = SessionUserUnavailableError を throw。
  * Factory（lib/routeFactory）は throw を 503（code "route_user_unavailable"）にする。route・業務コードは直接使わない
  */

@@ -5,7 +5,7 @@ paths:
 # lib/formSuite
 what: the form assembly (closed lib, entry @/lib/formSuite only): AppForm, the field frames Field (Manual / Controlled / Configured), the react-hook-form inputs ControlledTextInput … (over the shelf's @/components/Input units), FieldRenderer, AutoSave, FormActions, FormInputsProvider
 use: always
-change: add → own input parts registered in src/wiring/formInputs/inputs/\<name\>.ts (formInput: "\<name\>") | none else → /order <direct parent>
+change: add → own input parts registered in \<your domain or lib\>/plugs/formInputs/\<name\>.ts (formInput: "\<name\>") | none else → /order <direct parent>
 rules:
 using:
 - fs_entry: read only @/lib/formSuite (no inner path) | plain inputs, Label, options types (FormControlA11yProps) come from the shelf @/components/Input/\<Unit\>, never from here

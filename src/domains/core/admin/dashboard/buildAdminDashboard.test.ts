@@ -6,7 +6,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { FeatureName } from "@/featureGate";
-import { dashboardSections } from "@/domains/core/admin/extensions/dashboardSections";
+import { adminDashboardSections } from "@/domains/core/admin/extensions/adminDashboardSections";
+import { byKey } from "@/domains/core/admin/menu/byKey";
+
+const dashboardSections = byKey(adminDashboardSections);
 import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 import { buildAdminDashboard, defineDashboardSection } from "./buildAdminDashboard";

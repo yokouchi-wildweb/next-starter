@@ -6,10 +6,10 @@ paths:
 what: table UI library: DataTable (read-only), RecordSelectionTable / RecordSelectionList (selection + bulk actions), EditableGridTable (inline edit), PlainTable (the plain table parts Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter, TableCaption), with column sort, row reorder, unsaved guard and infinite footer
   - closed lib: one entry @/lib/tableSuite, shelf @/components as peers
 use: always
-change: none → /order <direct parent> (admin bulk actions = items of each domain's adminBulkActions)
+change: none → /order <direct parent> (admin bulk actions = items in each domain's plugs/adminBulkActions/)
 rules:
 using:
-- admin_bulk_actions: admin list bulk actions = receptacle items <domain>/adminBulkActions/<name>.tsx (BulkActionItem, @/lib/crud bulk*Action creators), never hand-written bulkActions in a Table | generic bulk buttons only for side-effect-free columns, recorded ops → upstream service + API + creator | item access = show / hide only (authz is the API)
+- admin_bulk_actions: admin list bulk actions = receptacle items <domain>/plugs/adminBulkActions/<name>.tsx (BulkActionItem, @/lib/crud bulk*Action creators), never hand-written bulkActions in a Table | generic bulk buttons only for side-effect-free columns, recorded ops → upstream service + API + creator | item access = show / hide only (authz is the API)
 - messaging_bulk_send: a bulk send from an admin list = definitionBulkAction (fixed text from a definition) or bulkMessageAction (text the admin writes) as that list's adminBulkActions item → src/domains/core/messaging/components/README.md Usage
 - selection_hook: selection outside a table uses useRecordSelection + BulkActionBar, never a hand-built Set
 - sort_by_caller: tables only show sort state and report changes; the caller sorts, and a paginated list sorts on the server through the URL, never sortItems on one page | SortState → search orderBy = toOrderBySpec from @/lib/crud

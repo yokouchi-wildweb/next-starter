@@ -6,7 +6,8 @@
 import "server-only";
 
 import { gate } from "@/featureGate";
-import { dashboardSections } from "@/domains/core/admin/extensions/dashboardSections";
+import { adminDashboardSections } from "@/domains/core/admin/extensions/adminDashboardSections";
+import { byKey } from "@/domains/core/admin/menu/byKey";
 
 import { buildAdminDashboard } from "../../buildAdminDashboard";
 import type { AdminDashboardData } from "../../types";
@@ -20,7 +21,8 @@ export type AdminDashboardViewer = { role?: string | null };
  */
 export async function loadAdminDashboardData(viewer: AdminDashboardViewer = {}): Promise<AdminDashboardData> {
   const { sections } = buildAdminDashboard({
-    sections: dashboardSections,
+    // 閉じたドメインのセクション(<ドメイン>/plugs/adminDashboardSections/)は外す
+    sections: byKey(gate.plugs(adminDashboardSections)),
     role: viewer.role ?? undefined,
     isEnabled: (feature) => gate.enabled(feature),
   });

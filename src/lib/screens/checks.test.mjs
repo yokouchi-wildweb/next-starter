@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 
 import { checkAdminPageScreen, findMarkerNamedFiles, parseLoaderGuard } from "./checks.mjs";
 
-const HEAD = `import { createLoader } from "@/app/admin/(protected)/guard";\nimport { adminListParts, adminEditParts, adminCreateParts, adminSortParts } from "@/wiring/adminScreenParts";\n`;
+const HEAD = `import { createLoader } from "@/app/admin/(protected)/guard";\nimport { adminListParts, adminEditParts, adminCreateParts, adminSortParts } from "@/domains/core/admin/services/server/screenParts";\n`;
 const loader = (/** @type {string} */ body) => parseLoaderGuard(HEAD + body);
 const UNREADABLE = /access が字面で読めない/;
 
@@ -65,12 +65,12 @@ test("access: 証明できない形は従来どおり「字面で読めない」
   }
 });
 
-test("access: 組の関数を @/wiring/adminScreenParts 以外から import していれば止める", () => {
+test("access: 組の関数を @/domains/core/admin/services/server/screenParts 以外から import していれば止める", () => {
   const r = parseLoaderGuard(
     `import { createLoader } from "./guard";\nimport { adminListParts } from "@/somewhere/else";\nconst p = adminListParts("d");\nexport const l = createLoader({ access: p.access, load: async () => 1 });\n`,
   );
   assert.equal(r.access, null);
-  assert.match(r.problems.join(""), /adminListParts を @\/wiring\/adminScreenParts から import していない/);
+  assert.match(r.problems.join(""), /adminListParts を @\/domains\/core\/admin\/services\/server\/screenParts から import していない/);
 });
 
 test("access: 字面のオブジェクトは従来どおり", () => {

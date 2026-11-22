@@ -1,7 +1,7 @@
 // src/domains/core/user/mypageMenu/overrideSpread.test.ts
 // 上書きの重ね方の回帰(型と実行): 型注釈つきの `const override: MypageMenuItemOverride` を、
-// 生成の一覧(extensions/mypageMenu.ts)と同じ { ...項目, ...上書き } の形でリンク・操作の両方の項目に重ねる。
-// 型が合わなければ tsc(pnpm typecheck)がこのファイルで止まる。items/ に上書きのファイルは置かない(上流は出荷しない)
+// 生成の一覧(extensions/userMypageMenu.ts)と同じ { ...項目, ...上書き } の形でリンク・操作の両方の項目に重ねる。
+// 型が合わなければ tsc(pnpm typecheck)がこのファイルで止まる。plugs/userMypageMenu/ に上書きのファイルは置かない(上流は出荷しない)
 // 実行: pnpm test src/domains/core/user
 
 import assert from "node:assert/strict";
@@ -12,8 +12,8 @@ import { CoinsIcon } from "lucide-react";
 import type { MypageMenuItem, MypageMenuItemOverride } from "@/domains/core/user/types";
 
 import { buildMypageMenu } from "./buildMypageMenu";
-import { item as account } from "./items/account";
-import { item as logout } from "./items/logout";
+import { item as account } from "@/domains/core/user/plugs/userMypageMenu/account";
+import { item as logout } from "@/domains/core/user/plugs/userMypageMenu/logout";
 
 // fork が書く形そのまま(注釈つき)。全部の鍵を使う
 const accountOverride: MypageMenuItemOverride = {
@@ -31,7 +31,7 @@ const list: MypageMenuItem[] = [
   { ...account, ...accountOverride },
   { ...logout, ...logoutOverride },
 ];
-const items: Record<string, MypageMenuItem> = Object.fromEntries(list.map((item) => [item.key, item]));
+const items = list;
 
 test("注釈つきの上書きをリンクと操作の項目に重ねられ、組み立て器が値を使う", () => {
   const rows = buildMypageMenu({ items, actions: { logout: { run: () => {}, pending: true } } }).rows;
@@ -48,7 +48,7 @@ test("注釈つきの上書きをリンクと操作の項目に重ねられ、�
 
 test("hidden の上書きは項目を描かない", () => {
   const hidden: MypageMenuItemOverride = { hidden: true };
-  const built = buildMypageMenu({ items: { account: { ...account, ...hidden } }, actions: {} });
+  const built = buildMypageMenu({ items: [{ ...account, ...hidden }], actions: {} });
   assert.deepEqual(built.rows, []);
   assert.deepEqual(built.hidden, [{ key: "account", reason: "item-hidden" }]);
 });

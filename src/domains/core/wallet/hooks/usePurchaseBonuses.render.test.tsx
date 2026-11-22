@@ -48,7 +48,11 @@ const providers: Record<string, PurchaseBonusProvider> = {
     },
   },
 };
-mock.module("@/domains/core/wallet/extensions/purchaseBonuses", { namedExports: { purchaseBonuses: providers } });
+mock.module("@/domains/core/wallet/extensions/walletPurchaseBonuses", {
+  namedExports: { walletPurchaseBonuses: Object.values(providers).map((plug) => ({ domain: "wallet", name: plug.key, requires: [], plug })) },
+});
+// 門番: どのドメインも開(GateProvider の外の検査)
+mock.module("@/featureGate/client", { namedExports: { useGate: () => ({ plugs: <T,>(items: readonly T[]) => [...items] }) } });
 
 let act: typeof import("react").act;
 let createRoot: typeof import("react-dom/client").createRoot;

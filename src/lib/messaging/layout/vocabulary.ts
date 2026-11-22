@@ -1,7 +1,7 @@
 // src/lib/messaging/layout/vocabulary.ts
 //
 // レイアウトの欄の型の語彙(D123)。lib に 1 か所で固定し、入力・zod・記録・要約・プレビューの 5 か所が読む。
-// fork は型を増やさない(入力の部品は src/wiring/formInputs の受け口に登録する)。
+// fork は型を増やさない(入力の部品は自分のドメインか lib の plugs/formInputs に登録する)。
 // - line 1行テキスト / paragraph 段落 / longText 複数行テキスト / image 画像(storage:// の参照か URL)/ button ボタン {label, url} /
 //   link リンク {label?, url} / date 日付 YYYY-MM-DD / number 数 / select 選択肢 / list 並び(1 つの型の並び)/
 //   group 組(名前つきの欄)/ keyValue ラベルと値 [{key, value}] / blocks ブロックの並び

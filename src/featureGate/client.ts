@@ -7,4 +7,4 @@
 
 export { GateProvider, useGate, type ClientGate } from "./tools/client/GateProvider";
 export { GatedLink, type GatedLinkProps } from "./tools/client/GatedLink";
-export type { ClientGateArea, ClientGatePathResult, ClientGateState, FeatureName } from "./types";
+export type { ClientGateArea, ClientGatePathResult, ClientGateState, FeatureName, GatedPlug, PlugsFilter } from "./types";

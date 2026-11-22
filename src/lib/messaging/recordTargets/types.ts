@@ -60,15 +60,15 @@ export type MessageRecordTarget = {
   afterSend?: (sent: MessageRecordTargetSent) => Promise<void>;
 };
 
-/** 項目の上書き(recordTargets/<名前>.override.ts の export const recordTargetOverride)。変えられるのは messages だけ */
+/** 項目の上書き(plugs/recordTargets/<名前>.override.ts の export const recordTargetOverride)。変えられるのは messages だけ */
 export type MessageRecordTargetOverride = Partial<Pick<MessageRecordTarget, "messages">>;
 
-/** 項目のモジュール(recordTargets/<名前>.ts) */
+/** 項目のモジュール(plugs/recordTargets/<名前>.ts) */
 export type MessageRecordTargetModule = {
   recordTarget: MessageRecordTarget;
 };
 
-/** 上書きのモジュール(recordTargets/<名前>.override.ts。中身が空のファイルもあり得る) */
+/** 上書きのモジュール(plugs/recordTargets/<名前>.override.ts。中身が空のファイルもあり得る) */
 export type MessageRecordTargetOverrideModule = {
   recordTargetOverride?: MessageRecordTargetOverride;
 };

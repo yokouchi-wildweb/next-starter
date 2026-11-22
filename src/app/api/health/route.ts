@@ -18,7 +18,7 @@ const BUILD_ID = process.env.NEXT_BUILD_ID ?? "unknown";
  *
  * クライアントは `active && !bypassed` のときに「ブロックされている」と解釈する。
  * バイパス判定は src/domains/core/setting/utils/maintenanceBypass.ts に集約されており、
- * proxy（src/proxies/maintenance.ts）と完全に同じロジックで判定される。
+ * proxy の項目（src/domains/core/setting/plugs/proxyHandlers/maintenance.ts）と完全に同じロジックで判定される。
  */
 export const GET = createApiRoute(
   {

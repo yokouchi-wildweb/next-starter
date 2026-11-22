@@ -9,13 +9,13 @@
 
 import { useMemo } from "react";
 
-import { useAuthSession } from "@/domains/core/auth/hooks/useAuthSession";
+import { useFrameSession } from "@/app/_layout/useFrameSession";
 
 import { userLayoutConfig } from "../config";
 import { userLayoutUiConfig } from "../config.ui";
 
 export const useBottomNavItems = () => {
-  const { isAuthenticated } = useAuthSession();
+  const { isAuthenticated } = useFrameSession().useSession();
 
   const items = useMemo(
     () => (isAuthenticated ? userLayoutUiConfig.bottomMenu.authenticatedMenuItems : userLayoutUiConfig.bottomMenu.guestMenuItems),

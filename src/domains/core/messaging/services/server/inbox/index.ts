@@ -2,7 +2,7 @@
 //
 // 受け取り箱の利用者の service の結び(本物の部品)。/api/me/messaging/inbox が呼ぶ。
 
-import { layouts } from "../../../extensions/layouts";
+import { layouts } from "../lists";
 import { createInboxService } from "./inboxService";
 import { drizzleInboxStore } from "./store";
 

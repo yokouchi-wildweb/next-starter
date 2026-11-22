@@ -1,4 +1,4 @@
-// 管理のユーザー管理モーダルのタブの受け口(adminManageTabs)の検査(jsdom。タブの中身の部品・受け口の一覧・門番は偽物)。
+// 管理のユーザー管理モーダルのタブの点(userAdminManageTabs)の検査(jsdom。タブの中身の部品・受け口の一覧・門番は偽物)。
 // - 項目が無い時: タブの列と中身が変更の前に記録した出力(__fixtures__/adminUserManageModal.before.json)と同じ
 // - 項目は上流の 6 つのタブの後ろに order → key の順、Content に user と onClose、feature が閉の項目と上流と重なる key は出さない
 // 実行: pnpm test src/domains/core/user/components/admin/AdminUserManageModal
@@ -46,16 +46,16 @@ for (const name of [
 
 type Item = import("@/domains/core/user/types").UserAdminManageTabItem;
 let items: Record<string, Item> = {};
-mock.module("@/domains/core/user/extensions/adminManageTabs", {
+mock.module("@/domains/core/user/extensions/userAdminManageTabs", {
   namedExports: {
-    get adminManageTabs() {
-      return items;
+    get userAdminManageTabs() {
+      return Object.values(items).map((plug) => ({ domain: "user", name: plug.key, requires: [], plug }));
     },
   },
 });
 const closed = new Set<string>();
 mock.module("@/featureGate/client", {
-  namedExports: { useGate: () => ({ enabled: (feature: string) => !closed.has(feature) }) },
+  namedExports: { useGate: () => ({ enabled: (feature: string) => !closed.has(feature), plugs: <T,>(list: readonly T[]) => [...list] }) },
 });
 
 const BEFORE = JSON.parse(

@@ -10,7 +10,7 @@
 
 ### 1. マイルストーン定義を置く
 
-`services/server/definitions/<名前>.ts` を置き、`pnpm generate extensions`(`extensions/definitions.ts` に入る)。これだけで `evaluateMilestones()` の呼び出しで評価される。
+`<ドメイン>/plugs/milestoneDefinitions/<名前>.ts` を置き、`pnpm generate extensions`(`extensions/milestoneDefinitions.ts` に入る。項目のドメインが閉じていれば評価しない)。これだけで `evaluateMilestones()` の呼び出しで評価される。
 
 ```ts
 // services/server/definitions/firstPurchase.ts
@@ -85,7 +85,7 @@ export const milestone = defineMilestoneSeries({
 
 ```ts
 // 1. src/domains/core/setting/fields/signupBonusCoinAmount.ts（setting の項目の受け口。書式は setting README）
-// 2. src/domains/core/milestone/services/server/definitions/signupBonus.ts → pnpm generate extensions
+// 2. <ドメイン>/plugs/milestoneDefinitions/signupBonus.ts → pnpm generate extensions
 import { gate } from "@/featureGate";
 import type { MilestoneDefinition } from "@/domains/core/milestone/types/milestone";
 import { settingService } from "@/domains/core/setting/services/server/settingService";
@@ -179,7 +179,7 @@ export function FirstPurchaseCelebration({ result }: MilestoneRendererProps) {
 }
 ```
 
-2. 受け口 `components/renderers/<名前>.ts` に項目を置き、`pnpm generate extensions`
+2. 受け口 `<ドメイン>/plugs/milestoneRenderers/<名前>.ts` に項目を置き、`pnpm generate extensions`
 
 ```ts
 // components/renderers/firstPurchase.ts
@@ -217,8 +217,8 @@ export const renderer: MilestoneRendererDefinition = {
 
 ## Extension
 
-- マイルストーン定義: 受け口 `services/server/definitions/<名前>.ts` の `export const milestone`(型 `MilestoneItem`、上流の項目は 0)
-- 達成通知のレンダラー: 受け口 `components/renderers/<名前>.ts(x)` の `export const renderer`(型 `MilestoneRendererDefinition`、上流の項目は 0 = 全キーが既定の通知 `DefaultMilestoneNotification`)
+- マイルストーン定義: 受け口 `<ドメイン>/plugs/milestoneDefinitions/<名前>.ts` の `export const milestone`(型 `MilestoneItem`、上流の項目は 0)
+- 達成通知のレンダラー: 受け口 `<ドメイン>/plugs/milestoneRenderers/<名前>.ts(x)` の `export const renderer`(型 `MilestoneRendererDefinition`、上流の項目は 0 = 全キーが既定の通知 `DefaultMilestoneNotification`)
 - どちらも置いた・消したら `pnpm generate extensions`(仕組み: `scripts/structure/extensions/README.md`)
 
 ## Internals

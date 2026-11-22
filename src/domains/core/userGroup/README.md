@@ -63,9 +63,9 @@ if (result.status === "incomplete") return { ok: true, pending: true }; // 次�
 
 ## Extension
 
-### 条件の部品（受け口 `criteria`）
+### 条件の部品（点 `userGroupCriteria`）
 
-`criteria/<名前>.ts` に `export const criterion`（型 `UserGroupCriterion`、`@/domains/userGroup/types`）を置き、`pnpm generate extensions` で一覧に入れる。fork も同じ受け口に項目として足す。
+`<ドメイン>/plugs/userGroupCriteria/<名前>.ts` に `export const criterion`（型 `UserGroupCriterion`、`@/domains/userGroup/types`）を置き、`pnpm generate extensions` で一覧に入れる。fork も同じ受け口に項目として足す。
 
 ```ts
 // criteria/registeredDays.ts
@@ -100,7 +100,7 @@ export const criterion: UserGroupCriterion<typeof args> = {
 - 日付は `.toISOString()` か drizzle の演算子に渡す
 - 部品は全員を相手に毎回引く。索引を足したら `pnpm db:push` の後に `pnpm db:push:check` = 0（`.desc()` を使い、普通の列と式を 1 つの索引に混ぜない）。users の status / deleted_at / created_at / last_authenticated_at / role と user_to_user_tag の user_tag_id には索引がある
 
-fork は上流の部品の隣に `criteria/<名前>.override.ts` を置き、`export const override = { enabled?, label?, description? }` で止める・名前と説明を変えられる。`inStaticGroup` は例外の人と静的グループの条件が使う（`enabled: false` はサーバーの読み込みで止まる）。
+fork は上流の部品の隣に `<ドメイン>/plugs/userGroupCriteria/<名前>.override.ts` を置き、`export const override = { enabled?, label?, description? }` で止める・名前と説明を変えられる。`inStaticGroup` は例外の人と静的グループの条件が使う（`enabled: false` はサーバーの読み込みで止まる）。
 
 上流の部品（5 つ）:
 

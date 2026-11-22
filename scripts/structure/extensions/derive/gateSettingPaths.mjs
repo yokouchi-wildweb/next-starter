@@ -1,5 +1,5 @@
 // scripts/structure/extensions/derive/gateSettingPaths.mjs
-// 変換 "featureTables" の一部: 設定の節(src/domains/core/setting/sections/<名前>.ts か <名前>/index.ts の export const section)の
+// 変換 "featureTables" の一部: 設定の節(点 settingSections の項目 = 差す側の <ドメイン か lib>/plugs/settingSections/<名前>.ts か <名前>/index.ts の export const section)の
 // key と feature を字面で読み、規則名 → 閉じる住所 /admin/settings/<key> を導く(L1.17)。
 // 節の住所は節自身の判定(D34 K4): 生成一覧の settingSections(住所・名指す機能)に載り、名指す機能が全部開のときだけ開く(src/featureGate/ruleList.ts)。
 // 規則の生成一覧の項目の settingPaths は説明用(pnpm ops features list)で、pathPatterns には足さない。
@@ -7,7 +7,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-export const SETTING_SECTIONS_DIR = "src/domains/core/setting/sections";
+/** 設定の節の点(項目のフォルダ <地区>/plugs/settingSections/、段 3 注文 26) */
+export const SETTING_SECTIONS_POINT = "settingSections";
 export const settingSectionHref = (key) => `/admin/settings/${key}`;
 
 const strip = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/[^\n]*$/gm, "");
@@ -41,15 +42,29 @@ export function readSectionFeature(text) {
   return { key, features };
 }
 
+/** 節の項目のフォルダ: 全ドメイン(業務・core)と lib の <地区>/plugs/settingSections/(有る物だけ) */
+function sectionDirs(repoRoot) {
+  const districtsIn = (dir) =>
+    existsSync(join(repoRoot, dir))
+      ? readdirSync(join(repoRoot, dir), { withFileTypes: true })
+          .filter((e) => e.isDirectory() && e.name !== "core" && !e.name.startsWith("_"))
+          .map((e) => `${dir}/${e.name}`)
+      : [];
+  return [...districtsIn("src/domains"), ...districtsIn("src/domains/core"), ...districtsIn("src/lib")]
+    .map((dir) => `${dir}/plugs/${SETTING_SECTIONS_POINT}`)
+    .filter((dir) => existsSync(join(repoRoot, dir)))
+    .sort();
+}
+
 function sectionFiles(repoRoot) {
-  const dir = join(repoRoot, SETTING_SECTIONS_DIR);
-  if (!existsSync(dir)) return [];
   const files = [];
-  for (const name of readdirSync(dir).sort()) {
-    const path = join(dir, name);
-    if (statSync(path).isDirectory()) {
-      for (const index of ["index.ts", "index.tsx"]) if (existsSync(join(path, index))) files.push(`${SETTING_SECTIONS_DIR}/${name}/${index}`);
-    } else if (/\.tsx?$/.test(name) && !/\.(override|test)\.tsx?$/.test(name)) files.push(`${SETTING_SECTIONS_DIR}/${name}`);
+  for (const rel of sectionDirs(repoRoot)) {
+    for (const name of readdirSync(join(repoRoot, rel)).sort()) {
+      const path = join(repoRoot, rel, name);
+      if (statSync(path).isDirectory()) {
+        for (const index of ["index.ts", "index.tsx"]) if (existsSync(join(path, index))) files.push(`${rel}/${name}/${index}`);
+      } else if (/\.tsx?$/.test(name) && !/\.(override|test)\.tsx?$/.test(name)) files.push(`${rel}/${name}`);
+    }
   }
   return files;
 }

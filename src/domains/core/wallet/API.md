@@ -266,7 +266,7 @@ const { items, nextCursor } = await walletService.listExpirationResults({
 - `WALLET_EXPIRATION_CONFIG` → `.expiration`
 - `WALLET_EXPIRATION_NOTICE_SETTINGS` → `.expirationNoticeSettings`
 - `WALLET_LOT_PRUNE_RETENTION_DAYS` → `.lotPruneRetentionDays`
-- `WALLET_PRE_EXPIRY_NOTICE_COPY` / `WALLET_EXPIRED_NOTICE_COPY` → 連絡の定義 `messages/expiringNotice.ts` / `expiredNotice.ts`
-- `WALLET_ADJUSTMENT_NOTIFICATION` → 文言は `messages/adjustmentNotice.ts`、操作の表示だけ `.adjustmentNotification.changeMethodLabels`
+- `WALLET_PRE_EXPIRY_NOTICE_COPY` / `WALLET_EXPIRED_NOTICE_COPY` → 連絡の定義 `plugs/messages/expiringNotice.ts` / `expiredNotice.ts`
+- `WALLET_ADJUSTMENT_NOTIFICATION` → 文言は `plugs/messages/adjustmentNotice.ts`、操作の表示だけ `.adjustmentNotification.changeMethodLabels`
 - `APP_FEATURES.wallet.{enableAdminBalanceAdjust,purchaseRestriction,purchaseSuspension,notifyOnAdjust}` → `walletConfig.<同じ鍵>`
 - `CURRENCY_ICONS` → `walletUiConfig.currencyIcons`(`config.ui.ts`)。機能の入切 `wallet.enabled` は門番の規則の持ち物で、ここには無い

@@ -90,7 +90,7 @@ export const MessageDispatchTable = pgTable(
      * 編集した字そのものは values（記録の段が残す時）
      */
     edited_fields: text("edited_fields").array(),
-    /** レイアウトの鍵（messaging/layouts の受け口、D122）。送った時の定義・テンプレートのレイアウト */
+    /** レイアウトの鍵（点 messagingLayouts、D122）。送った時の定義・テンプレートのレイアウト */
     layout: text("layout"),
     /** 送った時のレイアウトの版（D128）。組み直しはレイアウトの改版の対応で今の版へ読み替え、読めなければ止める */
     layout_version: integer("layout_version"),

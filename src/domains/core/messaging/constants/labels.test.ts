@@ -7,8 +7,8 @@ import assert from "node:assert/strict";
 
 import { MESSAGE_KINDS } from "@/lib/messaging";
 
-import { createInAppChannel } from "../channels/inApp/createInAppChannel";
-import { createLineChannel } from "../channels/line/createLineChannel";
+import { createInAppChannel } from "@/domains/core/messaging/plugs/messagingChannels/inApp/createInAppChannel";
+import { createLineChannel } from "@/domains/core/messaging/plugs/messagingChannels/line/createLineChannel";
 import { MESSAGE_CHANNEL_LABELS, messageChannelLabel } from "./channelLabels";
 import { messagingConfig } from "../config";
 import { messageKindAdminLabel, messageKindAdminOptions, messageKindLabel } from "../presenters";

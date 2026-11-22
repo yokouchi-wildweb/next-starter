@@ -320,13 +320,13 @@
  {
   "kind": "readme-heading",
   "old": "src/features/core/user/README.md「管理のユーザー管理モーダルのタブ」",
-  "new": "src/domains/core/user/adminManageTabs/README.md",
+  "new": "src/domains/core/user/Extension.md「管理のユーザー管理モーダルのタブ(拡張点 userAdminManageTabs)」",
   "order": 65
  },
  {
   "kind": "readme-heading",
   "old": "src/features/core/user/README.md「マイページのメニュー」",
-  "new": "src/domains/core/user/Extension.md「マイページのメニュー(拡張点 mypageMenu)」",
+  "new": "src/domains/core/user/Extension.md「マイページのメニュー(拡張点 userMypageMenu)」",
   "order": 65
  },
  {
@@ -368,7 +368,7 @@
  {
   "kind": "readme-heading",
   "old": "src/features/core/wallet/README.md「購入の特典の表示」",
-  "new": "src/domains/core/wallet/Extension.md「購入の特典の表示（拡張点 purchaseBonuses）」",
+  "new": "src/domains/core/wallet/Extension.md「購入の特典の表示（拡張点 walletPurchaseBonuses）」",
   "order": 65
  },
  {
@@ -538,5 +538,23 @@
   "old": "CLAUDE.md DIRECTORY_STRUCTURE src_root_bases",
   "new": "CLAUDE.md DOMAINS_AND_FEATURES district_map, CLAUDE.md DIRECTORY_STRUCTURE shared_src",
   "order": 132
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/domains/core/user/Extension.md「マイページのメニュー(拡張点 mypageMenu)」",
+  "new": "src/domains/core/user/Extension.md「マイページのメニュー(拡張点 userMypageMenu)」",
+  "order": 27
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/domains/core/user/Extension.md「退会時のクリーンアップハンドラ(拡張点 cleanupHandlers)」",
+  "new": "src/domains/core/user/Extension.md「退会時のクリーンアップハンドラ(拡張点 userCleanupHandlers)」",
+  "order": 27
+ },
+ {
+  "kind": "readme-heading",
+  "old": "src/domains/core/wallet/Extension.md「購入の特典の表示（拡張点 purchaseBonuses）」",
+  "new": "src/domains/core/wallet/Extension.md「購入の特典の表示（拡張点 walletPurchaseBonuses）」",
+  "order": 27
  }
 ]

@@ -5,7 +5,7 @@ paths:
 # domains/batchJob
 what: a generic base that processes large data in chunks with progress tracking, idempotency and crash recovery; entry @/domains/batchJob/services/server (batchJobService), handler types @/domains/core/batchJob/types
 use: always
-change: add = a job handler in jobHandlers/ (receptacle jobHandlers in extensionPoints.ts)
+change: add = a job handler in <domain>/plugs/batchJobJobHandlers/ (point batchJobJobHandlers, always-on list)
 rules:
 using:
 - service_entry: entry points (API routes etc.) import from @/domains/batchJob/services/server (its index guarantees the handler list)

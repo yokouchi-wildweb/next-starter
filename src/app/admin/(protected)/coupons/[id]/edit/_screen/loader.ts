@@ -6,6 +6,6 @@ import "server-only";
 
 import type { Coupon } from "@/domains/core/coupon/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
-import { adminEditParts } from "@/wiring/adminScreenParts";
+import { adminEditParts } from "@/domains/core/admin/services/server/screenParts";
 
 export const loadAdminCouponEditScreen = createLoader(adminEditParts<Coupon>("coupon", { fallbackPath: "/admin/coupons/official" }));

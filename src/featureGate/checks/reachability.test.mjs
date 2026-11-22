@@ -88,7 +88,7 @@ export function findForbiddenReach(root, entries) {
 // ── proxies の鎖(目録 D20) ──
 // proxies の地区の項目(handler・decorator、上流と fork)は任意のドメインの config の入口を読んでよい。束を重くせず禁止の先に届かないかは機械で止める(proxy は Node で動くが、毎リクエスト走る束に DB・サービスを載せない):
 // src/proxy.ts・src/proxies/index.ts から値の import をたどり(禁止の先と services の中には入らない)、たどり着いた config から
-// services・drizzle・server-only・node: に届いたら落とす。鎖そのもの(proxy.ts の proxyUserDeps・maintenance の settingService)は判定しない
+// services・drizzle・server-only・node: に届いたら落とす。鎖そのもの(proxy.ts が読む点 proxyUser の項目・メンテナンスの項目の settingService)は判定しない
 export const PROXY_ENTRIES = ["src/proxy.ts", "src/proxies/index.ts"];
 
 /** config のファイルか(src/config の下・地区の config.ts・*.config.ts) */

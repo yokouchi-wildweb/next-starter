@@ -54,11 +54,11 @@ import { continueSending } from "./sweep";
 
 /**
  * 連絡(メール・お知らせ・fork の送信チャンネル)の送信・管理・受け取り箱の公開 API。
- * 利用者向けの送信は必ず連絡定義(messages/<名前>.ts)+ sendMessage / sendMessageToMany を通す
+ * 利用者向けの送信は必ず連絡定義(plugs/messages/<名前>.ts)+ sendMessage / sendMessageToMany を通す
  * (送信・配達の記録と配信停止・本文の残し方を 1 か所で守る)。lib/mail の send() を直に呼ぶのはメールの送信チャンネルの項目だけ。
  */
 export const messagingService = {
-  /** 定義連絡(messages/<名前>.ts)を 1 人へ送る(新しい送る口。src/domains/core/messaging/README.md「送る」) */
+  /** 定義連絡(plugs/messages/<名前>.ts)を 1 人へ送る(新しい送る口。src/domains/core/messaging/README.md「送る」) */
   sendMessage,
   /** 定義連絡を選んだ宛先か宛先の指定(全員・ロール・グループ)へ送る(新しい送る口) */
   sendMessageToMany,

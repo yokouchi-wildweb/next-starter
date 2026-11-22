@@ -39,8 +39,8 @@ before(async () => {
   ({ UserGroupConditionBuilder } = await import("./index"));
   ({ conditionFromDefinition } = await import("../../../hooks/useUserGroupConditionBuilder"));
   const parts = [
-    (await import("../../../criteria/signupPeriod")).criterion,
-    (await import("../../../criteria/hasTag")).criterion,
+    (await import("@/domains/core/userGroup/plugs/userGroupCriteria/signupPeriod")).criterion,
+    (await import("@/domains/core/userGroup/plugs/userGroupCriteria/hasTag")).criterion,
   ];
   catalog = parts.map((c) => ({ key: c.key, label: c.label, description: c.description ?? null, weight: c.weight, weightLabel: "軽い", fields: [...c.fields] }));
 });

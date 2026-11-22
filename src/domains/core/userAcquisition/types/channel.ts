@@ -26,7 +26,7 @@ export type AcquisitionChannelDefinition = {
 };
 
 /**
- * 受け口 channels/<名前>.ts の項目(export const channel)。
+ * 点 userAcquisitionChannels/<名前>.ts の項目(export const channel)。
  * 一覧の鍵は param(重複は読み込み時に例外)。
  */
 export type AcquisitionChannelItem = AcquisitionChannelDefinition & {

@@ -18,10 +18,11 @@ import { DomainError } from "@/lib/errors";
 import type * as ReasonKeyModule from "./reasonKey";
 
 let m: typeof ReasonKeyModule;
-let reasonKeys: Readonly<Record<string, { key: string; category: string }>>;
+let reasonKeys: Readonly<Record<string, { key: string; category: string } | undefined>>;
 before(async () => {
   m = await import("./reasonKey");
-  ({ reasonKeys } = await import("@/domains/core/walletHistory/extensions/reasonKeys"));
+  const { walletHistoryReasonKeys } = await import("@/domains/core/walletHistory/extensions/walletHistoryReasonKeys");
+  reasonKeys = Object.fromEntries(walletHistoryReasonKeys.map((entry) => [entry.plug.key, entry.plug]));
 });
 
 const items = {

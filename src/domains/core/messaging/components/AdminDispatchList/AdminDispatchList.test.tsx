@@ -176,6 +176,7 @@ mock.module("@/featureGate/client", {
   namedExports: {
     useGate: () => ({
       enabled: (name: string) => (name === "messagingBroadcast" ? broadcastOpen : name === "messagingAnalytics" ? analyticsOpen : false),
+      plugs: <T,>(items: readonly T[]) => [...items],
     }),
   },
 });

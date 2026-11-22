@@ -174,11 +174,11 @@
 
 ### 管理一覧の一括操作（受け口 `adminBulkActions`）
 
-一覧の表の一括操作は受け口 `src/domains/core/bankTransferReview/adminBulkActions/<名前>.tsx` の `export const bulkAction`(型 `BankTransferReviewAdminBulkActionItem` = `BulkActionItem<AdminBankTransferReviewListItem, AdminBulkActionAccess>`)。表は `useBankTransferReviewAdminBulkActions()` の項目を `BulkActionItems` で描くだけ。作り方は `src/lib/tableSuite/README.md`「一括操作の受け口」。
+一覧の表の一括操作は点 adminBulkActions(core/admin)の項目 `src/domains/core/bankTransferReview/plugs/adminBulkActions/<名前>.tsx` の `export const bulkAction`(型 `BankTransferReviewAdminBulkActionItem` = `BulkActionItem<AdminBankTransferReviewListItem, AdminBulkActionAccess>`)。表は `useBankTransferReviewAdminBulkActions()` の項目を `BulkActionItems` で描くだけ。作り方は `src/lib/tableSuite/README.md`「一括操作の受け口」。
 
-- 上流の既定の項目: `sendEmail`(order 100、文言「確認の連絡を送る」、D220)= 選んだレビューの申告者へ連絡定義を送る。連絡の作成関数 `definitionBulkAction`(`@/domains/core/messaging/components/DefinitionBulkAction`)で定義連絡の汎用の送るモーダルを記録の入口で置き(D194)、送り先は管理 API `POST /api/admin/messaging/definitions/send` の記録の入口 `recordTarget: "bankTransferReview.reviews"`。送る連絡定義は記録の宛先の `messages`(お振込の確認のご連絡、1 つなのでそれ)。レビュー → 申告者の解決(1 人 1 件、その人のレビューをまとめる)と送付履歴の管理者メモへの追記(メールを使った時だけ、D196)はこのドメインの記録の宛先 `recordTargets/reviews.ts`(`export const recordTarget: MessageRecordTarget`、鍵 = `bankTransferReview.reviews`。`pnpm generate registry` が `src/registry/recordTargetRegistry.ts` に集め、このドメインが閉じていれば messaging の門番が落とす)。送った回は `/admin/messaging` で見る
-- お振込の確認のご連絡(上流の手本、D194): 連絡定義 `messages/transferCheck.ts`(鍵 `bankTransferReview.transferCheck`、レイアウト statement = メールは件名・本文、inApp の一覧は短い本文。カテゴリー `bankTransferCheck` = 種別 transactional・email と inApp が既定で入、D165)。記録の宛先 `recordTargets/reviews.ts` の `messages` が名指し、管理の定義の送る口 `POST /api/admin/messaging/definitions/send` の記録の入口で送る(管理者は送る時にテキストを編集する)。記録から埋める値 `recordVars` = 宛名 `displayName`(名前が無ければ「お客様」)・金額 `paymentAmounts`・申告日 `submittedDates`(同じ人の審査はまとめるので「、」でつなぐ)。送った後(`afterSend`)は使う送信チャンネルに email がある時だけ、選んだ審査の管理メモに「YYYY/MM/DD「件名」メール送付」を足す(D196)
-- fork: お振込の確認の文面は `messages/transferCheck.override.ts`(label・values など)、カテゴリーの送信チャンネルは `categories/bankTransferCheck.override.ts`、この一覧から送る連絡を足すのは `recordTargets/reviews.override.ts` の `messages`(並べる定義は `adminTargets` に `records`)
+- 上流の既定の項目: `sendEmail`(order 100、文言「確認の連絡を送る」、D220)= 選んだレビューの申告者へ連絡定義を送る。連絡の作成関数 `definitionBulkAction`(`@/domains/core/messaging/components/DefinitionBulkAction`)で定義連絡の汎用の送るモーダルを記録の入口で置き(D194)、送り先は管理 API `POST /api/admin/messaging/definitions/send` の記録の入口 `recordTarget: "bankTransferReview.reviews"`。送る連絡定義は記録の宛先の `messages`(お振込の確認のご連絡、1 つなのでそれ)。レビュー → 申告者の解決(1 人 1 件、その人のレビューをまとめる)と送付履歴の管理者メモへの追記(メールを使った時だけ、D196)はこのドメインの記録の宛先 `plugs/recordTargets/reviews.ts`(`export const recordTarget: MessageRecordTarget`、鍵 = `bankTransferReview.reviews`。`pnpm generate registry` が `src/registry/recordTargetRegistry.ts` に集め、このドメインが閉じていれば messaging の門番が落とす)。送った回は `/admin/messaging` で見る
+- お振込の確認のご連絡(上流の手本、D194): 連絡定義 `plugs/messages/transferCheck.ts`(鍵 `bankTransferReview.transferCheck`、レイアウト statement = メールは件名・本文、inApp の一覧は短い本文。カテゴリー `bankTransferCheck` = 種別 transactional・email と inApp が既定で入、D165)。記録の宛先 `plugs/recordTargets/reviews.ts` の `messages` が名指し、管理の定義の送る口 `POST /api/admin/messaging/definitions/send` の記録の入口で送る(管理者は送る時にテキストを編集する)。記録から埋める値 `recordVars` = 宛名 `displayName`(名前が無ければ「お客様」)・金額 `paymentAmounts`・申告日 `submittedDates`(同じ人の審査はまとめるので「、」でつなぐ)。送った後(`afterSend`)は使う送信チャンネルに email がある時だけ、選んだ審査の管理メモに「YYYY/MM/DD「件名」メール送付」を足す(D196)
+- fork: お振込の確認の文面は `plugs/messages/transferCheck.override.ts`(label・values など)、カテゴリーの送信チャンネルは `categories/bankTransferCheck.override.ts`、この一覧から送る連絡を足すのは `plugs/recordTargets/reviews.override.ts` の `messages`(並べる定義は `adminTargets` に `records`)
 - fork: 項目を足す(例: 一括承認・一括拒否 = fork の route と hook を呼ぶ部品)、上流の項目を `sendEmail.override.ts` で外す・並べ替える(書けるのは `enabled`・`order`)
 - 時機: 管理者が表で行を選んだ後に押す。選択は表示中のページ内だけ(ページ・タブ・検索語が変わると空になる)
 - トランザクション: 受け口は持たない。1 回の操作の中身(API・サービスの tx)は項目が呼ぶ API の側
@@ -210,7 +210,7 @@
 
 ### 振込明細画像の守り
 
-画像は非公開の用途 `purchaseRequest.bankProof`（storageObject/purposes/purchaseRequest.ts）に置き、`proof_image_url` には storage ref を保存する。
+画像は非公開の用途 `purchaseRequest.bankProof`（purchaseRequest/plugs/storageObjectPurposes/purchaseRequest.ts）に置き、`proof_image_url` には storage ref を保存する。
 
 1. アップロード（`useBankTransferProofUpload`）: `scopeId = requestId` で発行を求め、サーバーが「本人の・申告できる振込依頼か」を判定する（`isOwnPendingPurchaseRequest`）
 2. 申告（`submitReview`）: base の storage binding（`services/server/drizzleBase.ts`）が保存と同じ TX で台帳に紐付ける。通るのは「アップロードした本人」「scopeId = この行の purchase_request_id」「未紐付け」の ref だけで、外れたら 400 で TX ごと巻き戻る

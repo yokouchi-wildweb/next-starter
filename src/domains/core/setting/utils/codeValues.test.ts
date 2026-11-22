@@ -9,7 +9,7 @@ import { z } from "zod";
 
 import { DomainError } from "@/lib/errors";
 
-import { fields } from "../extensions/fields";
+import { fields } from "../definitions";
 import { createReadMemo } from "../services/server/readMemo";
 import { assertNotCodeValues } from "../services/server/save";
 import { resolveCodeValues } from "./codeValues";

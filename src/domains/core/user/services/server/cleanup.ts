@@ -1,11 +1,11 @@
 // src/domains/core/user/services/server/cleanup.ts
-// 退会・ソフトデリートの後片付けの項目の型と実行(一覧は読まない。一覧: ../../extensions/cleanupHandlers.ts、呼び手: ./executeCleanup.ts)
+// 退会・ソフトデリートの後片付けの項目の型と実行(一覧は読まない。一覧: ../../extensions/userCleanupHandlers.ts、呼び手: ./executeCleanup.ts)
 
 import type { DbTransaction } from "@/lib/crud/server";
 
 export type UserCleanupHandler = (userId: string, tx: DbTransaction) => Promise<void>;
 
-/** 後片付けの項目(src/domains/core/user/cleanupHandlers/<名前>.ts の export const handler) */
+/** 後片付けの項目(<ドメイン>/plugs/userCleanupHandlers/<名前>.ts の export const handler) */
 export type UserCleanupItem = {
   /** true: 失敗したら全体をロールバック / false: 失敗してもログを記録して続行 */
   required: boolean;

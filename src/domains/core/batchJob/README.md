@@ -88,7 +88,7 @@ const progress = await batchJobService.getProgress(job.id);
 
 新しいバッチジョブの追加:
 
-1. ハンドラを `src/domains/core/batchJob/jobHandlers/<名前>.ts` に置き、`pnpm generate extensions` で一覧に入れる（受け口 `jobHandlers`、`extensionPoints.ts`）
+1. ハンドラを `<ドメイン>/plugs/batchJobJobHandlers/<名前>.ts` に置き、`pnpm generate extensions` で一覧に入れる（点 `batchJobJobHandlers`、`extensionPoints.ts`）
 
 ```typescript
 import { defineBatchJobHandler } from "@/domains/core/batchJob/types";
@@ -101,7 +101,7 @@ export const jobHandler = defineBatchJobHandler<MyParams>({
   jobType: MY_BATCH_JOB_TYPE, // ファサードと共有する定数は別のファイル
   // processChunk か processItem のどちらか一方
   processItem: async (itemKey, params, tx) => {
-    // 利用者への連絡は messagingService.sendMessage(連絡の定義 messages/<名前>.ts)
+    // 利用者への連絡は messagingService.sendMessage(連絡の定義 plugs/messages/<名前>.ts)
     await messagingService.sendMessage(orderShipped, { recipient: { userId: itemKey }, vars: { orderNo: params.orderNo } });
   },
   recoveryTimeoutMs: 60_000, // processItem 専用（省略時: 5 分）
@@ -160,9 +160,9 @@ processItem:  pending → processing → completed | failed
               processing → pending（リカバリ: recoverStaleItems）
 ```
 
-- ハンドラの読み手は `services/server/registry.ts`（一覧 `extensions/jobHandlers`）。`services/server/index.ts` が登録を保証して公開する
+- ハンドラの読み手は `services/server/registry.ts`（一覧 `extensions/batchJobJobHandlers`、常に読む一覧）。`services/server/index.ts` が登録を保証して公開する
 - `createJobFromQuery` は `services/server/helpers.ts`
 
 ## Related
 
-- ウォレット一括調整: ファサード `src/domains/core/wallet/services/server/handlers/walletBulkAdjustHandler.ts`、処理の本体 `jobHandlers/walletBulkAdjust.ts`、バルク調整ロジック `src/domains/core/wallet/services/server/wrappers/bulkAdjustByUsers.ts`
+- ウォレット一括調整: ファサード `src/domains/core/wallet/services/server/handlers/walletBulkAdjustHandler.ts`、処理の本体 `wallet/plugs/batchJobJobHandlers/walletBulkAdjust.ts`、バルク調整ロジック `src/domains/core/wallet/services/server/wrappers/bulkAdjustByUsers.ts`

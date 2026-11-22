@@ -2,18 +2,18 @@
 // purchaseRequest の拡張点の宣言(リテラルだけ。pnpm generate extensions が読み ./extensions/<点>.ts を生成する)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
-  // 購入完了戦略: services/server/completion/strategies/<名前>.ts の export const strategy
-  completionStrategies: {
+  // 購入完了戦略: <ドメイン>/plugs/purchaseRequestCompletionStrategies/<名前>.ts の export const strategy
+  purchaseRequestCompletionStrategies: {
     change: "add",
-    dir: "services/server/completion/strategies",
+    plugs: true,
     export: "strategy",
     type: { from: "@/domains/core/purchaseRequest/services/server/completion/types", name: "PurchaseCompletionStrategy" },
     side: "server",
   },
-  // 購入完了ポストフック: services/server/hooks/definitions/<名前>.ts の export const hook(上流の項目は 0)
-  completeHooks: {
+  // 購入完了ポストフック: <ドメイン>/plugs/purchaseRequestCompleteHooks/<名前>.ts の export const hook(上流の項目は 0)
+  purchaseRequestCompleteHooks: {
     change: "add",
-    dir: "services/server/hooks/definitions",
+    plugs: true,
     export: "hook",
     type: { from: "@/domains/core/purchaseRequest/services/server/hooks/purchaseCompleteHookRegistry", name: "PurchaseCompleteHook" },
     side: "server",
