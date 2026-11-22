@@ -87,8 +87,9 @@ import {
   type ListDeliveriesQuery,
   type ListDispatchesQuery,
 } from "./readDispatches";
+import { sendResults as sendResultsWith, type SendResultsQuery } from "./sendResults";
 import { sourceLabelOf } from "./sourceLabels";
-import { drizzleAdminDispatchStore } from "./store";
+import { drizzleAdminDispatchStore, drizzleSendResultsStore } from "./store";
 
 const adminCheck: AdminCheckDeps = {
   context: () => getAuditContext(),
@@ -343,6 +344,11 @@ export function listDeliveries(dispatchId: string, query?: ListDeliveriesQuery) 
   return listDeliveriesWith(readDeps, dispatchId, query);
 }
 
+/** 送信の結果(送信チャンネルごとの数 + 届かなかった人と理由のページ送り。門の外、管理者だけ) */
+export function sendResults(dispatchId: string, query?: SendResultsQuery) {
+  return sendResultsWith({ ...adminCheck, sendResultsStore: drizzleSendResultsStore }, dispatchId, query);
+}
+
 /** 管理の「続きを送る」 */
 export function adminContinueSending(dispatchId: string) {
   return adminContinueSendingWith({ ...adminCheck, continueSending, recordAudit }, dispatchId);
@@ -382,5 +388,7 @@ export type {
   AdminSendTestInput,
 } from "./send";
 export type { AdminDispatchCategoryOption, AdminPage, ListDeliveriesQuery, ListDispatchesQuery } from "./readDispatches";
+export { SendResultsQuerySchema } from "./sendResults";
+export type { AdminSendResultFailure, AdminSendResults, SendResultsQuery, UndeliveredStatus } from "./sendResults";
 export type { AdminDeliveryRow, AdminDispatchDetail, AdminDispatchSameAs, AdminDispatchSummary, AdminDispatchTargetGroup } from "./dispatchDto";
 export type { AdminBulkSendCounts, AdminMessageContent } from "./types";

@@ -9,6 +9,7 @@
 - `messagingDispatches`（既定 開）: 送信の読む口・送信の操作・続きを送る（`/api/admin/messaging/dispatches/**`）と画面 `/admin/messaging`
 - `messagingBroadcast`（`dependsOn: ["messagingDispatches"]`、既定 閉）: `/api/admin/messaging/send/**` と送るモーダルの口（送信の一覧「新しく送る」・送信の詳細「同じ内容で送る」。部品が `useGate` で出し分ける）。閉でも送る口と cron の予約の拾いは動く
 - 一括送信 `/api/admin/messaging/bulk-send/**` はどの門にも入れない（管理一覧の一括操作が使うので、画面を閉じても送れる）
+- 送信の結果 `/api/admin/messaging/send-results/**` はどの門にも入れない（送れる所で結果も見られるよう、一括送信と同じ）
 - 定義連絡の送る口 `/api/admin/messaging/definitions/**`: 記録の入口と記録の宛先の選択肢は門の外（一括送信と同じ）。全員・ロール・グループの入口は門 `messagingBroadcast` の中だが、同じ道なので道の印に載せず service が `gate.enabled` で見て閉なら 404（プレビュー・テストも）
 
 ## API
@@ -56,6 +57,15 @@
 - `GET /definitions/record-targets` → `[{ key, label, messages: [{ key, label }] }]`（門番を通った項目と、読める連絡定義だけ）
 - 監査: `messaging.dispatch.sent` / `scheduled` / `test_sent`（`message`・`entry`（`{ recordTarget, recordCount }` か宛先の指定）・`editedFields`・`channels`・`category`・`kind`・状態・記録の入口は `afterSend`）
 
+### `/api/admin/messaging/send-results`（sendResults.ts、門の外、D214 (1)）
+
+自由連絡・定義連絡・一括送信の結果に同じ口。送る画面が送った後に出す結果の材料だけで、送信の詳細（下の読む口）の代わりにはしない。
+
+- `GET /send-results/[dispatchId]`: `cursor`・`limit`（既定 50、最大 100）→ `AdminSendResults` `{ channels, failed: { items, nextCursor } }`。無い・削除した送信は 404
+- `channels` = 送信の `channel_counts`（送信チャンネルごとの `targeted`・`sent`・`failed`・`skipped_no_address`・`skipped_throttled`・`suppressed`。まだ数の無い送信は `{}`）。どのページも返す
+- `failed.items` = 届かなかった配達 `{ userId, name, channel, status, reason }`（`status` = `failed` / `bounced`（失敗）か `suppressed`（送らなかった）。`canceled`・`unknown`・送る前の行は入れない）。古い順の keyset（印は読む口と同じ形）。`name` = users.name（無い・消えた利用者は null）。`reason` = `suppressed` は配達の理由（`no_address`・`preference`・`suppression`・`throttled`・`channel_off`）、`failed` / `bounced` は `last_error` の符号（文は `constants/deliveryErrors.ts`、分からなければ null）。宛先と provider の文は返さない
+- 全員・ロール宛てのお知らせは配達の行が無いので `failed` に出ない（数は `channels` にある）
+
 ### 送信の読む口（readDispatches.ts・dispatchDto.ts、門 `messagingDispatches`）
 
 汎用 CRUD の search には乗せない。
@@ -86,4 +96,4 @@
 
 ## Verification
 
-- `pnpm test src/features/core/messaging/services/server/admin`（`admin` / `send` / `operations`）と `pnpm test src/features/core/messaging/services/server/history`
+- `pnpm test src/features/core/messaging/services/server/admin`（`admin` / `send` / `operations` / `sendResults`）と `pnpm test src/features/core/messaging/services/server/history`

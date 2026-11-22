@@ -74,7 +74,7 @@ export const category: MessageCategory = { key: "itemSoldInApp", label: "出品�
 - 機能の連絡(functional): `enabled: false`・テキストの編集・間引き・email を外すことは検査で止まる。文面 = レイアウトの描き方の `.replace`(見た目)か fork のファイルの上書きの `values`(文言) / 流れごと = 送り手(auth など)の口を替える
 - 種別まるごとの停止はデータだけ: 種別まるごとの行は後から足すカテゴリーにも当たる。上流の画面はスイッチを出さないが、送る口・受け取り箱・好みの見え方は同じ判定で見る。会員登録で宣伝に同意しなかった人 = promotion の種別まるごとの行(source `signup`)。見せたい fork は hook `useMessagePreferences` の `setKind` と `preferences.kinds`、サーバーは `messagingService.setMessagePreference(userId, { kind, optedOut }, { source })`
 - カテゴリーのグループ(`categoryGroups/`)は好みのページの見出しで、止める単位ではない(後から足したカテゴリーが止まるかが決まらないため)
-- 全員・ロール宛てのお知らせは共有の 1 行で配達の行が無く、届かなかった人を数えられない。email を含むカテゴリーなら、届かなかった人は `GET /api/admin/messaging/dispatches/[id]/deliveries?status=failed`(`bounced`・`suppressed`・`unknown` も)の `reason`・`errorCode` で見る
+- 全員・ロール宛てのお知らせは共有の 1 行で配達の行が無く、届かなかった人を数えられない。email を含むカテゴリーなら、届かなかった人は `GET /api/admin/messaging/send-results/[dispatchId]`(送信チャンネルごとの数と `failed` / `bounced` / `suppressed` の人と理由)か、`unknown` も見るなら `GET /api/admin/messaging/dispatches/[id]/deliveries?status=…` の `reason`・`errorCode` で見る
 - 間引き `untilRead` が見るのは受け取り箱の既読だけ(会話の既読とは別)。既読にする口は `POST /api/me/messaging/inbox/[id]/read` か messagingService の既読
 
 ## API
@@ -82,7 +82,7 @@ export const category: MessageCategory = { key: "itemSoldInApp", label: "出品�
 HTTP の口と返す形は口のフォルダの README:
 
 - 送る口（`sendMessage` / `sendMessageToMany` / `sendFreeMessage`・プレビュー・見込み・間引き・本文の残し方・送信の結果）→ services/server/sendMessage/README.md
-- 管理の口 `/api/admin/messaging/**`（自由連絡を送る・一括送信・定義連絡を管理者が送る `definitions/**`・送信の読む口・送信の操作・続きを送る・利用者ごとの履歴）→ services/server/admin/README.md
+- 管理の口 `/api/admin/messaging/**`（自由連絡を送る・一括送信・定義連絡を管理者が送る `definitions/**`・送信の結果 `send-results/[dispatchId]`・送信の読む口・送信の操作・続きを送る・利用者ごとの履歴）→ services/server/admin/README.md
 - テンプレート `/api/admin/messaging/templates/**`・レイアウトのプレビュー `/api/admin/messaging/layouts/preview` → services/server/templates/README.md / テキストの編集 `/api/admin/messaging/overrides/**` → services/server/overrides/README.md
 - 本人の受け取り箱 `/api/me/messaging/inbox/**` → services/server/inbox/README.md / 好み `/api/me/messaging/preferences` → services/server/preferences/README.md / 端末の帳簿 `/api/me/messaging/endpoints` → services/server/endpoints/README.md
 - 配信停止 `/api/messaging/unsubscribe` と確認のページ `/unsubscribe` → services/server/unsubscribe/README.md
