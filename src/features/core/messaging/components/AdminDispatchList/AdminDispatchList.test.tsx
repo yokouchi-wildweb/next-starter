@@ -204,6 +204,7 @@ const DISPATCH: AdminDispatchDetail = {
   templateVersion: null,
   templateDeleted: false,
   templateEdited: false,
+  editedFields: null,
   content: null,
   targetUserIds: null,
   sourceLabel: null,

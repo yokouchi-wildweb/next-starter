@@ -419,15 +419,14 @@ test("確認の段: 送信する → confirmSend、戻る → backToEdit / 予�
   assert.equal(result.status, "queued");
   assert.equal(result.queuedCount, 0);
   assert.equal(result.dispatchHref, "/admin/messaging?dispatch=d1");
-  assert.equal(result.afterSend, null);
   await act(async () => exact(done.container, "閉じる")!.click());
   assert.deepEqual(events, ["open:false"]);
   await done.unmount();
 
-  // bulk の結果: 数は counts、後処理と記録の名詞を渡す。一覧の住所を替えればリンクもそこ
+  // bulk の結果: 数は counts、記録の名詞を渡す(自由連絡の一括送信は送った後の処理を持たない)。一覧の住所を替えればリンクもそこ
   state = make({
     step: "done",
-    result: { kind: "bulk", result: { status: "processing", counts: { queuedCount: 3 }, dispatchId: "d2", afterSend: { ok: true } } },
+    result: { kind: "bulk", result: { status: "processing", counts: { queuedCount: 3 }, dispatchId: "d2" } },
   });
   const bulkDone = await render(
     createElement(MessageSendModal, {
@@ -437,7 +436,6 @@ test("確認の段: 送信する → confirmSend、戻る → backToEdit / 予�
   );
   const bulkResult = lastProps.get("result")!;
   assert.equal(bulkResult.queuedCount, 3);
-  assert.deepEqual(bulkResult.afterSend, { ok: true });
   assert.equal(bulkResult.recordNoun, "記録");
   assert.equal(bulkResult.dispatchHref, "/admin/other?dispatch=d2");
   await bulkDone.unmount();

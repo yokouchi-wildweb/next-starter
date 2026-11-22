@@ -89,7 +89,8 @@ export const messageOverride = {
 - `extras`: fork が足す欄の入れ物
 - 管理者が送る時の宣言(D175・D195。どれも省略でき、今の上流の定義は書かない):
   - `adminVars`: 管理者が画面で入れる vars `{ [vars の鍵]: { type, options?, required, default? } }`(`MessageVarInput` = DB のテンプレートの専用の埋め込み情報と同じ型: line・number・date・datetime・url・select。別名は `varNames`)
-  - `recordVars`: 記録の宛先が記録から引く vars(同じ形。`resolveRecipients` の `vars`)
+  - `recordVars`: 記録の宛先が記録から引く vars(同じ形。`resolveRecipients` の `vars`。送る口は受信者ごとにこの鍵だけを定義の zod で検査する)
+  - 管理者が入れた値は入力の型で変換してから定義の vars の zod で検査する: `adminVarValueOf(input, 値)`(vars/declaration.ts。空は既定値、数は数、ほかは型の形の字、形が違えば problem)
   - 同じ鍵が両方にある = `var_origin_overlap`(鍵を名指す)/ vars に無い鍵 = `unknown_var_origin` / 秘密の値(`secretVar`)を管理者が入れる = `secret_admin_var` / 型の形の誤り(select の options・既定値)= `invalid_var_input`。どちらにも無い vars はコードだけが渡す(管理者の送る口は required の値が埋まらなければ断る)
   - `adminTargets`: 管理者が送れる宛先 `records`(記録の宛先がこの定義を名指す)・`all`・`role`・`group`。書かない = `["records"]`(全員・ロール・グループは書いた時だけ。種別では縛らない)。ほかの値 = `invalid_admin_target`
 - `channelModes`: 送信チャンネルの固定 `{ [送信チャンネル]: "on" | "off" | "free" }`(D212、書かない = free)。集まりはカテゴリーが決め、定義はその中を固定するだけ。送る口の `resolveChannels` が効かせる: コードの送信は off を落とす / 管理者の絞りは free の中から選び、on はいつも入り、off を名指すと 400(既定のオンはカテゴリーの `defaultChannels`、D213)。分け方は `definitionChannels(resolved)` → `{ on, free, off }`。カテゴリーの外 = `unknown_channel_mode` / 全部 off = `channel_all_off` / required か `emailFixed` の種別の email を off = `email_off_fixed`
@@ -198,7 +199,7 @@ export const messageOverride = {
 - 置き場: 持ち主のドメインの `<domain>/recordTargets/<名前>.ts` に `export const recordTarget: MessageRecordTarget = { key, label, messages, enabled?, resolveRecipients, afterSend? }`。fork の物は fork の自分のドメインに置く(上流のドメインの記録でも、requires を付けて自分のドメインに。D26)
 - 鍵 = `<ドメインのフォルダ名>.<ファイル名>` の文字列リテラル(場所とずれる・重なる = `pnpm generate registry` が止める)。管理 API の `target`、送り元の既定 `<鍵>.bulk`
 - `resolveRecipients(recordIds)` → `MessageRecordRecipient[]` = `{ userId, vars, recordIds }`(1 人 1 件。記録ごとか、まとめるかは項目が決める)。`vars` = 記録から埋める連絡の値
-- `afterSend?(sent: MessageRecordTargetSent)`: 送信の受け付けの直後に 1 回(投げても送信は戻らない)
+- `afterSend?(sent: MessageRecordTargetSent)`: 定義連絡の送る口の記録の入口で、送信の受け付けの直後に 1 回(投げても送信は戻らない。自由連絡の一括送信は呼ばない、D196)。`sent` = `{ recordIds, dispatchId, counts, channels, message, fields }`(`channels` = 使うと決めた送信チャンネル、`message` = 送った連絡定義の鍵、`fields` = テキストの編集の後の欄の中身、差し込む前の字)
 - `messages`: この項目で送れる連絡定義の鍵の並び(文字列リテラルの配列。空も可、D217)。どの鍵も連絡定義があり、その定義の `adminTargets` に `records` があること(書いていない = records)。外れたら `pnpm generate registry` が項目(上書きならそのファイル)と鍵を名指して止める(D218)
 - 上書き: fork は隣の `<名前>.override.ts` に `export const recordTargetOverride = { messages: [...] } satisfies MessageRecordTargetOverride` で `messages` だけを丸ごと差し替える(上書きの点 = `extensionPoints.ts` の `recordTargets`、ほかの鍵は `pnpm check extensions` が止める)。上流の項目(`user.users`・`bankTransferReview.reviews`)に連絡を足す道
 - 生成の一覧 `src/registry/recordTargetRegistry.ts`(`MessageRecordTargetRegistry` = 鍵 → `{ key, domain, target: () => import, override?: () => import }`、絞らない)。読み手は messaging の門番 `loadRecordTarget`(`recordTargetOpen` = 項目の domain の門。閉じていれば null。上書きの `messages` を重ねて返す)を通す

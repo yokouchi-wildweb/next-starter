@@ -163,7 +163,6 @@ export function MessageSendModal({
           status={res.status}
           queuedCount={m.result.kind === "send" ? m.result.result.queuedCount : m.result.result.counts.queuedCount}
           dispatchHref={res.dispatchId ? dispatchDetailHref(dispatchBasePath, res.dispatchId) : null}
-          afterSend={m.result.kind === "bulk" ? m.result.result.afterSend : null}
           recordNoun={bulk?.recordNoun}
         />
       );

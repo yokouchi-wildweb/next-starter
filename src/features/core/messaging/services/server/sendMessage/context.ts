@@ -19,18 +19,53 @@ import type { MessageSendDeps, MessageUserRow } from "./types";
 const PROTECTED_KEYS: readonly string[] = [...COMMON_CONTEXT_KEYS, ...THROTTLE_CONTEXT_KEYS];
 
 /**
- * 呼び手の vars を定義の zod で検査する。
+ * 呼び手の vars を定義の zod で検査する。recordVarKeys = 受信者ごとに記録から埋める鍵(管理の定義の送信の記録の入口だけが渡す)
  * @throws DomainError(400) vars が定義に合わない
  */
 export function parseVars(
   resolved: AnyResolvedMessageDefinition,
   vars: Record<string, unknown>,
+  recordVarKeys: readonly string[] = [],
 ): Record<string, unknown> {
-  const parsed = resolved.vars.safeParse(vars);
+  // 受信者ごとに記録から埋める鍵(recordVarKeys)は送信の vars では見ない(受信者ごとに parseRecordVars が見る)
+  const schema = recordVarKeys.length > 0 ? resolved.vars.omit(keyMask(resolved, recordVarKeys)) : resolved.vars;
+  return parseWith(resolved, schema, vars, "連絡の vars");
+}
+
+/**
+ * 受信者ごとに記録から埋める値(定義の recordVars の鍵、D195)を定義の zod のその鍵だけで検査する。ほかの鍵は受信者ごとの値の決まり(checkRecipientVars)
+ * @throws DomainError(400) 型が合わない・必須の値が無い・上書きできない鍵
+ */
+export function parseRecordVars(
+  resolved: AnyResolvedMessageDefinition,
+  recipientVars: Record<string, unknown>,
+  recordVarKeys: readonly string[],
+): Record<string, unknown> {
+  const own: Record<string, unknown> = {};
+  const rest: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(recipientVars)) (recordVarKeys.includes(key) ? own : rest)[key] = value;
+  checkRecipientVars(resolved, rest);
+  const parsed = parseWith(resolved, resolved.vars.pick(keyMask(resolved, recordVarKeys)), own, "記録から埋める vars");
+  return { ...rest, ...parsed };
+}
+
+/** zod の pick / omit の鍵の印(定義の vars に無い鍵は入れない) */
+function keyMask(resolved: AnyResolvedMessageDefinition, keys: readonly string[]): Record<string, true> {
+  const shape = resolved.vars.shape as Record<string, unknown>;
+  return Object.fromEntries(keys.filter((key) => key in shape).map((key) => [key, true as const]));
+}
+
+function parseWith(
+  resolved: AnyResolvedMessageDefinition,
+  schema: AnyResolvedMessageDefinition["vars"],
+  vars: Record<string, unknown>,
+  label: string,
+): Record<string, unknown> {
+  const parsed = schema.safeParse(vars);
   if (!parsed.success) {
     // 値そのものはエラーに載せない(秘密の値が混ざりうる)。鍵の場所だけ
     const paths = parsed.error.issues.map((issue) => issue.path.join(".") || "(root)");
-    throw new DomainError(`連絡の vars が定義に合いません(${resolved.key}): ${paths.join(", ")}`, { status: 400 });
+    throw new DomainError(`${label} が定義に合いません(${resolved.key}): ${paths.join(", ")}`, { status: 400 });
   }
   return parsed.data as Record<string, unknown>;
 }

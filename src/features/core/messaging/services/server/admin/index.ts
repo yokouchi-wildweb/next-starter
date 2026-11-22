@@ -35,7 +35,8 @@ import {
   sendMessageDeps,
   sendResolved,
 } from "../sendMessage";
-import { loadRecordTarget } from "../domainGate";
+import { loadRecordTarget, messageDomainOpen } from "../domainGate";
+import { resolveDefinition } from "../sendMessage/definition";
 import { continueSending } from "../sweep";
 import { buildContent } from "../sendMessage/content";
 import { renderValue, toVariableMap } from "../sendMessage/context";
@@ -52,6 +53,13 @@ import {
   type AdminBulkSendInput,
 } from "./bulkSend";
 import { adminContinueSending as adminContinueSendingWith } from "./continueSending";
+import {
+  adminDefinitionPreview as adminDefinitionPreviewWith,
+  adminDefinitionSend as adminDefinitionSendWith,
+  adminDefinitionTest as adminDefinitionTestWith,
+  adminRecordTargetOptions as adminRecordTargetOptionsWith,
+  type AdminDefinitionSendDeps,
+} from "./definitionSend";
 import { adminDispatchPreview as adminDispatchPreviewWith, type AdminDispatchPreviewDeps } from "./dispatchPreview";
 import {
   adminBulkDeleteDispatches as adminBulkDeleteDispatchesWith,
@@ -262,6 +270,35 @@ export const adminSendTest = (input: unknown) => adminSendTestWith(sendDeps, inp
 /** 送る画面の選択肢 */
 export const adminSendOptions = () => adminSendOptionsWith(sendDeps);
 
+/** 定義連絡を管理者が送る部品(記録の入口は門 messagingBroadcast の外、全員・ロール・グループの入口は service が門を見る) */
+const definitionDeps: AdminDefinitionSendDeps = {
+  ...adminCheck,
+  async loadDefinition(messageKey) {
+    const entry = Object.hasOwn(messageRegistry, messageKey) ? messageRegistry[messageKey] : undefined;
+    if (!entry || !messageDomainOpen(messageKey)) return null;
+    const { message } = await entry.definition();
+    return resolveDefinition(message, sendMessageDeps);
+  },
+  messageLabel: (messageKey) => (messageDomainOpen(messageKey) ? messageLabel(messageKey) : Promise.resolve(null)),
+  recordTarget,
+  recordTargetKeys: () => Object.keys(recordTargetRegistry),
+  broadcastOpen: () => gate.enabled("messagingBroadcast"),
+  layouts,
+  enrichers,
+  sendResolved,
+  previewMessage,
+  recordAudit,
+};
+
+/** 定義連絡を送る(POST /api/admin/messaging/definitions/send) */
+export const adminDefinitionSend = (input: unknown) => adminDefinitionSendWith(definitionDeps, input);
+/** 定義連絡のプレビュー(見本 = 操作した管理者、記録の入口は最初の記録の値) */
+export const adminDefinitionPreview = (input: unknown) => adminDefinitionPreviewWith(definitionDeps, input);
+/** 定義連絡の自分へのテスト送信 */
+export const adminDefinitionTest = (input: unknown) => adminDefinitionTestWith(definitionDeps, input);
+/** 記録の宛先の選択肢(GET /api/admin/messaging/definitions/record-targets) */
+export const adminRecordTargetOptions = () => adminRecordTargetOptionsWith(definitionDeps);
+
 /** 送信の一覧 */
 export function listDispatches(query?: ListDispatchesQuery) {
   return listDispatchesWith(readDeps, query);
@@ -314,7 +351,15 @@ export function adminContinueSending(dispatchId: string) {
 export { AdminBulkSendInputSchema, ADMIN_BULK_SEND_MAX_RECIPIENTS } from "./bulkSend";
 export { ListDeliveriesQuerySchema, ListDispatchesQuerySchema } from "./readDispatches";
 export type { AdminBulkSendInput, AdminBulkSendOptions, AdminBulkSendResult } from "./bulkSend";
-export type { AdminBulkSendOrigin } from "./types";
+export { AdminDefinitionSendInputSchema } from "./definitionSend";
+export type {
+  AdminDefinitionEntry,
+  AdminDefinitionPreviewInput,
+  AdminDefinitionSendInput,
+  AdminDefinitionSendResult,
+  AdminDefinitionTestInput,
+  AdminRecordTargetOption,
+} from "./definitionSend";
 export { ADMIN_SEND_MAX_USERS } from "./send";
 export type { AdminFreeTextCategoryOption } from "./freeText";
 export { ADMIN_DELETE_MAX_IDS, AdminDispatchIdsInputSchema, AdminResendInputSchema } from "./operations";

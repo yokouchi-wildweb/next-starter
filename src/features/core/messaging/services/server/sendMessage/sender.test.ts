@@ -7,6 +7,8 @@
 // - 小さな送信は最初の束だけ要求の中、残りは queued。大きな送信・target は送信の行だけ
 // - グループ宛て(D58): 送り始めに門・しまった・壊れた・人数の上限を確かめ(DomainError、送信を作らない)、定期計算の版を送信に固定する。見込みは数と上限
 // - 帳簿を読む送信チャンネルで送れた宛先は端末の帳簿の last_used_at を送信チャンネルごとに 1 回記録する(自前の引き方の送信チャンネル・送れなかった宛先は記録しない、記録の失敗は送信を変えない)
+// - 管理の定義の送信(sendResolved の options): 記録から埋める vars の鍵は受信者ごとに定義の zod で検査して差し込み、送信の vars はその鍵を除いて検査。
+//   編集した欄は送信の edited_fields(D202)。コードの送信はその鍵を受信者ごとの値で渡せない
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -16,6 +18,7 @@ import { z } from "zod";
 import { ChannelError, secretVar, type MessageRegistry } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
+import { resolveDefinition } from "./definition";
 import { expandBroadcastChunk, resolveTargetChunk } from "./expand";
 import { hashAddress } from "./stops";
 import { createMessageSender } from "./sender";
@@ -763,4 +766,57 @@ test("security: 旧い住所({ channel, address }、利用者なし)へ送れる
   assert.equal(result.status, "completed");
   assert.equal(channel.calls.flat()[0].address, "old@example.test");
   assert.equal(store.deliveries[0].user_id, null);
+});
+
+test("管理の定義の送信: 記録から埋める vars は受信者ごとに定義の zod で検査して差し込み、編集した欄を edited_fields に残す", async () => {
+  const shipped = defineTestMessage({
+    key: "shop.shipped",
+    label: "発送",
+    category: "news",
+    vars: z.object({ item: z.string(), orderNo: z.string() }),
+    layout: "card",
+    values: { title: "{{item}} {{orderNo}}", body: "{{recipientName}} 様" },
+    recordVars: { orderNo: { type: "line", required: true } },
+  });
+  const { sender, store, channel, deps } = setup();
+  const resolved = await resolveDefinition(shipped, deps);
+  const recipients = [{ userId: "u1" }, { userId: "u2" }];
+  await sender.sendResolved(
+    resolved,
+    { recipients, vars: { item: "靴" }, recipientVars: { "user:u1": { orderNo: "A-1" }, "user:u2": { orderNo: "B-2" } } },
+    undefined,
+    { recordVarKeys: ["orderNo"], editedFields: ["title"] },
+  );
+  const titles = Object.fromEntries(channel.calls[0].map((target) => [target.userId, target.content.title]));
+  assert.deepEqual(titles, { u1: "靴 A-1", u2: "靴 B-2" });
+  assert.equal(store.dispatches[0].message_key, "shop.shipped");
+  assert.deepEqual(store.dispatches[0].edited_fields, ["title"]);
+  // 送信の vars は記録の値を持たない(受信者ごとの行の vars に残る)
+  assert.deepEqual(store.dispatches[0].vars, { item: "靴" });
+
+  // 記録の値が無い・型が合わない受信者は 400(送信を作らない)
+  const before = store.dispatches.length;
+  await assertDomainError(
+    sender.sendResolved(resolved, { recipients, vars: { item: "靴" }, recipientVars: { "user:u1": { orderNo: "A-1" } } }, undefined, {
+      recordVarKeys: ["orderNo"],
+    }),
+    400,
+  );
+  await assertDomainError(
+    sender.sendResolved(
+      resolved,
+      { recipients, vars: { item: "靴" }, recipientVars: { "user:u1": { orderNo: "A-1" }, "user:u2": { orderNo: 2 } } },
+      undefined,
+      { recordVarKeys: ["orderNo"] },
+    ),
+    400,
+  );
+  // コードの送信(鍵を渡さない): 定義の vars の鍵は受信者ごとの値で渡せない・編集の印は付かない
+  await assertDomainError(
+    sender.sendMessageToMany(shipped, { recipients, vars: { item: "靴" }, recipientVars: { "user:u1": { orderNo: "A-1" } } }),
+    400,
+  );
+  assert.equal(store.dispatches.length, before);
+  await sender.sendMessageToMany(shipped, { recipients: [{ userId: "u1" }], vars: { item: "靴", orderNo: "C-3" } });
+  assert.equal(store.dispatches.at(-1)!.edited_fields, null);
 });

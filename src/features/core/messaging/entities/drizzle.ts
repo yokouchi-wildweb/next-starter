@@ -73,7 +73,7 @@ export const MessageDispatchTable = pgTable(
     // ---- 新しい連絡の基盤の列（S2 で追加。既存行のため null 可か既定値つき）----
 
     /**
-     * 出どころ（D202。どれか 1 つ）: 定義連絡の鍵（messaging/messages/<名前>.ts の key）/ DB のテンプレート（template_id +
+     * 出どころ（D202。どれか 1 つ）: 定義連絡の鍵（messaging/messages/<名前>.ts の key、送る時のテキストの編集は edited_fields）/ DB のテンプレート（template_id +
      * template_version + template_edited）/ 自由連絡でレイアウトを直に選んだ送信はレイアウト（layout）だけ。自由連絡は message_key が null
      */
     message_key: text("message_key"),
@@ -85,6 +85,11 @@ export const MessageDispatchTable = pgTable(
     template_version: integer("template_version"),
     /** テンプレートを呼び出した送信で、版の文面から直したか（D85。テンプレートを呼び出していない送信は false） */
     template_edited: boolean("template_edited").notNull().default(false),
+    /**
+     * 定義連絡の送信で管理者がテキストを編集した欄（レイアウトの欄の鍵、D202）。null = 編集していない（コードの送信・自由連絡も null）。
+     * 編集した字そのものは values（記録の段が残す時）
+     */
+    edited_fields: text("edited_fields").array(),
     /** レイアウトの鍵（messaging/layouts の受け口、D122）。送った時の定義・テンプレートのレイアウト */
     layout: text("layout"),
     /** 送った時のレイアウトの版（D128）。組み直しはレイアウトの改版の対応で今の版へ読み替え、読めなければ止める */

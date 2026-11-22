@@ -7,10 +7,7 @@ import type { MessageChannelCounts } from "../../../entities/schema";
 /** 管理者が書いて送った文面(送信チャンネルごとの欄、差し込む前の字) */
 export type AdminMessageContent = Record<string, unknown>;
 
-/** 一括送信の中身の出どころ(afterSend に渡す): 選んだレイアウトか、DB のテンプレートの固定した版と直した印 */
-export type AdminBulkSendOrigin = { layout: string } | { id: string; version: number; edited: boolean };
-
-/** 一括送信の数(呼び手と afterSend に返す) */
+/** 送った数(自由連絡の一括送信・定義の送信の結果と、記録の宛先の afterSend に返す) */
 export type AdminBulkSendCounts = {
   /** 重複を除いた利用者の数 */
   recipientCount: number;

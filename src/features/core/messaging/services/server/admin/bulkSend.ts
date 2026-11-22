@@ -10,8 +10,8 @@
 //   一覧の一括操作の既定は direct のカテゴリー(operatorDirect、D81)
 // - 宛名: enrichers/displayName.ts が受信者ごとに足す(名前が無ければ「お客様」)
 // - 管理者を service でも確かめ(assertAdmin)、監査ログに 1 行(messaging.dispatch.bulk_sent)
-// - afterSend: 項目の送った後の処理を送信の受け付けの直後に 1 回。投げても送信は戻さず結果に失敗として返す。
-//   values = 送った欄の中身(差し込む前の字)、origin = 中身の出どころ(レイアウトか DB のテンプレートの版と直した印)
+// - 記録の宛先は利用者を解くだけ(記録から埋める値は使わない)。項目の afterSend は呼ばない(送った後の処理は定義の送信の記録の入口だけ、
+//   D190・D196: ./definitionSend.ts)
 
 import { z } from "zod";
 
@@ -39,7 +39,7 @@ import {
   type AdminSendOptions,
   type AdminSendResult,
 } from "./send";
-import type { AdminBulkSendCounts, AdminBulkSendOrigin } from "./types";
+import type { AdminBulkSendCounts } from "./types";
 
 /** 1 回の一括送信の利用者の上限 */
 export const ADMIN_BULK_SEND_MAX_RECIPIENTS = 10_000;
@@ -82,8 +82,6 @@ export type AdminBulkSendResult = {
   dispatchId: string | null;
   status: SendMessageResult["status"];
   counts: AdminBulkSendCounts;
-  /** 項目の afterSend の結果(項目に無い・userIds 指定なら null) */
-  afterSend: { ok: true } | { ok: false; error: string } | null;
 };
 
 export type AdminBulkSendDeps = AdminContentDeps &
@@ -109,7 +107,7 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
   if (input.target) {
     target = await deps.recordTarget(input.target);
     if (!target) throw new DomainError("一括送信の対象が見つかりません", { status: 400 });
-    // 宛先の記録から埋める値(vars)は定義の送る口(指令 05)が使う。ここは利用者だけ
+    // 記録から埋める値(vars)は定義の送信の記録の入口だけが使う。自由連絡は利用者だけ
     userIds = (await target.resolveRecipients(input.recordIds ?? [])).map((recipient) => recipient.userId);
   } else {
     userIds = input.userIds ?? [];
@@ -135,21 +133,6 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
     channelCounts: result.channelCounts,
     queuedCount: result.queuedCount,
   };
-  const origin: AdminBulkSendOrigin =
-    "layout" in input.origin
-      ? { layout: input.origin.layout }
-      : { id: input.origin.id, version: input.origin.version, edited: result.template?.edited ?? input.edited === true };
-  const values = input.values;
-
-  let afterSend: AdminBulkSendResult["afterSend"] = null;
-  if (target?.afterSend) {
-    try {
-      await target.afterSend({ recordIds: input.recordIds ?? [], dispatchId: result.dispatchId, counts, values, origin });
-      afterSend = { ok: true };
-    } catch (error) {
-      afterSend = { ok: false, error: error instanceof Error ? error.message : String(error) };
-    }
-  }
 
   await deps.recordAudit({
     targetType: "message_dispatch",
@@ -164,12 +147,12 @@ export async function adminBulkSend(deps: AdminBulkSendDeps, rawInput: AdminBulk
       recipientCount: counts.recipientCount,
       channelCounts: counts.channelCounts,
       status: result.status,
-      ...(target ? { recordTarget: target.key, recordCount: input.recordIds?.length ?? 0, afterSend } : {}),
+      ...(target ? { recordTarget: target.key, recordCount: input.recordIds?.length ?? 0 } : {}),
     },
     reason: input.reason ?? null,
   });
 
-  return { dispatchId: result.dispatchId, status: result.status, counts, afterSend };
+  return { dispatchId: result.dispatchId, status: result.status, counts };
 }
 
 /** 一括送信のプレビュー(見本の受信者 = 操作した管理者。カテゴリーは bulk で送れる物) */
