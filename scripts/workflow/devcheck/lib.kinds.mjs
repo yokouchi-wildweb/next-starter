@@ -61,6 +61,16 @@ export const DANGER_NAMES = Object.keys(DANGER_KINDS);
 export const DANGER_VALUES = ["off", "manual"];
 
 /**
+ * 別のタブへの打ち込み(/intervene、D411)。値は危険な 3 つと同じ読み: off | manual だけ(auto・知らない値は off)、書いていなければ
+ * manual、agent.enabled false も off。manual = 人の /allow itv(か言葉の許可)の 1 回分の許可で 1 回だけ打つ。許可を使うのは
+ * pnpm workflow agent-terminal type 自身(宛先が決まった時)で、許可のフックの 1 回分の許可の道・devcheck danger には入れない
+ */
+export const INTERVENE_KINDS = {
+  intervene: { what: "別のタブの入力欄に 1 行打つ(/intervene)", command: "pnpm workflow agent-terminal type <宛先> -- <打つ文字>" },
+};
+export const INTERVENE_NAMES = Object.keys(INTERVENE_KINDS);
+
+/**
  * 打つための呼び名(スイッチ名、D126)。/allow <スイッチ名…> と devcheck allow / danger が使う。種類 ↔ repo.json の鍵は policyKeyOf
  */
 export const SWITCHES = {
@@ -74,6 +84,7 @@ export const SWITCHES = {
   dbp: "db_push",
   evp: "env_production",
   dep: "deploy",
+  itv: "intervene",
 };
 /** 種類 → スイッチ名 */
 export const switchOf = (kind) => Object.keys(SWITCHES).find((sw) => SWITCHES[sw] === kind) ?? null;
@@ -93,11 +104,12 @@ export const declaredAgentKeys = () => [
   ...POLICY_KEYS.map(policyKeyOf),
   `${AGENT_PREFIX}${POLICY_SWITCH}`,
   ...DANGER_NAMES.flatMap((d) => [policyKeyOf(d), ...Object.keys(DANGER_KINDS[d].entries).map((e) => `${policyKeyOf(d)}.${e}`)]),
+  ...INTERVENE_NAMES.map(policyKeyOf),
 ];
 
 /**
  * repo.json の値 → 効いている方針。通常の種類は auto | manual | off(書いていなければ manual、誤りは DevcheckError)、
- * enabled は真偽値(既定 true、誤りは DevcheckError)、危険な 3 つは off | manual(書いていなければ manual、知らない値は off)、入口は文字列(既定は上流の命令)。
+ * enabled は真偽値(既定 true、誤りは DevcheckError)、危険な 3 つと intervene は off | manual(書いていなければ manual、知らない値は off)、入口は文字列(既定は上流の命令)。
  * 書いていない時に manual なのは、方針を書いていない fork で何も人の確認なしに走らせないため(D265)。自動にするのは repo.json(/repo-policy)
  * 宣言に無い agent.* の鍵は DevcheckError
  * @param {Record<string, string | boolean>} values
@@ -131,6 +143,10 @@ export const agentPolicyOf = (values) => {
       if (typeof v !== "string" || v.trim() === "") throw new DevcheckError(`${POLICY_FILE}: ${key} は命令の文字列(上流の入口なしは "-")`);
       entries[d][e] = v.trim();
     }
+  }
+  for (const k of INTERVENE_NAMES) {
+    const raw = values[policyKeyOf(k)];
+    policy[k] = enabled && (raw === undefined || raw === "manual") ? "manual" : "off";
   }
   return { policy, entries, enabled };
 };
@@ -214,7 +230,7 @@ export const humanCommandOf = (kind, entries) => {
     const e = entries?.[kind]?.entry ?? DANGER_KINDS[kind].entries.entry;
     return e === "-" ? "(上流の入口なし。人が手で行う)" : kind === "deploy" ? `${e}(本番の DB の反映が要るなら先に ${entries?.deploy?.db_entry ?? DANGER_KINDS.deploy.entries.db_entry})` : e;
   }
-  return KINDS[kind]?.command ?? HOOK_COMMANDS[kind] ?? "(エージェントの道具で行う種類)";
+  return KINDS[kind]?.command ?? HOOK_COMMANDS[kind] ?? INTERVENE_KINDS[kind]?.command ?? "(エージェントの道具で行う種類)";
 };
 
 /** off の時の 1 行(D125): 実行せず人に頼む */

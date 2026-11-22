@@ -6,7 +6,7 @@
 //                               で選ぶ: wait = 読み返して待つ / ほか = 読み返して続ける。印はどの start でも消す
 //                               圧縮の後(source=compact)は、端末に関係なく引き継ぎの一時ファイル(compactPlan の場所)を読み戻して
 //                               文脈へ出し、消す(一度きり。古い物は読まない)。どの start でも古い一時ファイルを掃除する
-//   busy (UserPromptSubmit)   — 返答の始まりの時刻。/intervene の 1 回分の許可を消す(端末に関係なく: 許可は同じ番の中だけ、lib.intervene.mjs)
+//   busy (UserPromptSubmit)   — 返答の始まりの時刻
 //   stop (Stop)               — 返答の終わりの時刻
 //   precompact (PreCompact)   — 圧縮の起こり方(manual | auto)。auto は返答の途中で起きてそのまま続くので、続きは打たない
 // 標準出力に出すのは start の案内と読み戻す引き継ぎだけ(UserPromptSubmit / SessionStart の出力は文脈に入る)。記録・案内・打ち込みは
@@ -17,7 +17,6 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { HERE, currentPane, guideFile, handoffFile, paneDir, readAgentTerminal, readMark, sweepHandoffs, takeHandoff, writeMark } from "./lib.mjs";
-import { clearPermit } from "./lib.intervene.mjs";
 
 // 圧縮の後に打つ 1 行(印 after の値ごと。無い・知らない値 = continue)
 const AFTER_TEXT = {
@@ -54,8 +53,6 @@ const readStdin = async () => {
 try {
   const event = process.argv[2] ?? "";
   const input = await readStdin();
-  // 人の次の入力で /intervene の許可は終わる(打ち込みの許可は許した番の中だけ)
-  if (event === "busy" && typeof input.session_id === "string") clearPermit(input.session_id, "the next human input");
   const pane = currentPane();
   // 引き継ぎは端末より先に用意する(打ち込みがあるかどうかに関係なく読み戻す)
   let handoff = "";

@@ -99,6 +99,8 @@ test("方針の入口: 危険な 3 つの入口の既定(db_push = pnpm db:push�
   const own = await loadPolicy(path.join(import.meta.dirname, "../../.."));
   for (const k of [...KIND_NAMES, "peer"] as (keyof Policy)[]) assert.equal(own[k], "auto", k);
   for (const d of DANGER_NAMES) assert.equal(own[d], "manual", d);
+  assert.equal(own.intervene, "manual");
+  assert.ok(declaredAgentKeys().includes("agent.intervene"));
   assert.ok(declaredAgentKeys().includes("agent.deploy.db_entry"));
   assert.equal(policyKeyOf("db-write"), "agent.db_write");
 });

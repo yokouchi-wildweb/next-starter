@@ -53,7 +53,9 @@ export const HOOK_KINDS = HOOK_KINDS_DATA as HookKindName[];
 /** 危険な 3 つ(off | manual だけ、書いていなければ manual) */
 export type DangerName = "db_push" | "env_production" | "deploy";
 export const DANGER_NAMES = DANGER_NAMES_DATA as DangerName[];
-export type PolicyKey = KindName | HookKindName | DangerName;
+/** 別のタブへの打ち込み(/intervene、off | manual だけ、書いていなければ manual、D411) */
+export type IntervenName = "intervene";
+export type PolicyKey = KindName | HookKindName | DangerName | IntervenName;
 export const POLICY_KEYS = POLICY_KEYS_DATA as PolicyKey[];
 
 /** サーバーの種類の打つコマンド(文脈が裏を求めれば --background) */

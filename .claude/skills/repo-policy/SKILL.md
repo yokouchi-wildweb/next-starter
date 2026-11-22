@@ -1,6 +1,6 @@
 ---
 name: repo-policy
-description: Change what this repo lets the agent do - show the agent.* policy keys of repo.json (normal kinds auto, manual or off, the whole switch, the dangerous three off or manual and their entry commands), show the change as current to new, take one yes, write it with pnpm workflow repo-json set and show the result | When the user asks to allow, stop or change a kind the agent may run, or a message points to /repo-policy
+description: Change what this repo lets the agent do - show the agent.* policy keys of repo.json (normal kinds auto, manual or off, the whole switch, the dangerous three and intervene off or manual, the entry commands), show the change as current to new, take one yes, write it with pnpm workflow repo-json set and show the result | When the user asks to allow, stop or change a kind the agent may run, or a message points to /repo-policy
 argument-hint: "[key value]"
 ---
 
@@ -11,7 +11,7 @@ never: edit repo.json yourself (the hook stops Edit / Write and shell writes) | 
 
 ## STEPS
 1. **now**: `pnpm workflow repo-json show` and `pnpm workflow devcheck plan` (its `方針` line = the values in effect, defaults included)
-2. **what changes**: from the args or the user's words, the keys and values (`agent.<kind>`: server · browser · login · db_write · db_delete · env_add · peer = auto | manual | off; `agent.enabled` = true | false; `agent.db_push` · `agent.env_production` · `agent.deploy` = off | manual; `agent.<danger>.entry` / `agent.deploy.db_entry` = a command) | unclear → ask which key; STOP
+2. **what changes**: from the args or the user's words, the keys and values (`agent.<kind>`: server · browser · login · db_write · db_delete · env_add · peer = auto | manual | off; `agent.enabled` = true | false; `agent.db_push` · `agent.env_production` · `agent.deploy` · `agent.intervene` = off | manual; `agent.<danger>.entry` / `agent.deploy.db_entry` = a command) | unclear → ask which key; STOP
 3. **ask once**:
    ```
    repo.json の方針を変えます:

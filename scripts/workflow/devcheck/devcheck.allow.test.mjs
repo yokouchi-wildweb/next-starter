@@ -17,8 +17,9 @@ const tmp = () => {
 };
 const KINDS_API = { SWITCHES, DANGER_NAMES, offLine, policyKeyOf };
 
-test("スイッチ名: 種類ごとに 1 つ、危険な 3 つは dbp・evp・dep", () => {
-  assert.deepEqual(Object.keys(SWITCHES), ["sv", "br", "lg", "dw", "dd", "ea", "pr", "dbp", "evp", "dep"]);
+test("スイッチ名: 種類ごとに 1 つ、危険な 3 つは dbp・evp・dep、打ち込みは itv", () => {
+  assert.deepEqual(Object.keys(SWITCHES), ["sv", "br", "lg", "dw", "dd", "ea", "pr", "dbp", "evp", "dep", "itv"]);
+  assert.equal(switchOf("intervene"), "itv");
   assert.equal(switchOf("db-write"), "dw");
   assert.equal(switchOf("deploy"), "dep");
   assert.equal(new Set(Object.values(SWITCHES)).size, Object.keys(SWITCHES).length);
@@ -82,4 +83,15 @@ test("danger: off の 1 行 / 許可なしは /allow が要る / 許可ありは
   // 読むだけ: 許可は消えない
   assert.deepEqual(readPermit(root).switches, ["dbp", "dep", "evp"]);
   assert.ok(readFileSync(path.join(root, PERMIT_FILE), "utf8").includes('"v":1'));
+});
+
+test("agent.intervene: off / manual だけ、書いていなければ manual、auto・知らない値・enabled false は off(D411)", () => {
+  assert.equal(agentPolicyOf({}).policy.intervene, "manual");
+  assert.equal(agentPolicyOf({ "agent.intervene": "manual" }).policy.intervene, "manual");
+  assert.equal(agentPolicyOf({ "agent.intervene": "off" }).policy.intervene, "off");
+  assert.equal(agentPolicyOf({ "agent.intervene": "auto" }).policy.intervene, "off");
+  assert.equal(agentPolicyOf({ "agent.intervene": "maybe" }).policy.intervene, "off");
+  assert.equal(agentPolicyOf({ "agent.enabled": false }).policy.intervene, "off");
+  assert.equal(policyKeyOf("intervene"), "agent.intervene");
+  assert.match(offLine("intervene", {}), /pnpm workflow agent-terminal type/);
 });

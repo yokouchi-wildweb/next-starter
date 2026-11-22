@@ -60,11 +60,13 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 | `agent.db_push.entry` | 入口の命令 | `pnpm db:push` |
 | `agent.env_production.entry` | 同じ(`-` = 上流の入口なし、fork が自分の命令を書く) | `-` |
 | `agent.deploy.entry` / `agent.deploy.db_entry` | 本番へ出す命令 / 本番の DB の反映の命令 | `pnpm live` / `pnpm db:push -- --env production` |
+| `agent.intervene`(別のタブの入力欄に 1 行打つ: `/intervene`・`pnpm workflow agent-terminal type`、D411) | `off` / `manual`(`auto`・知らない値は `off`) | `manual` |
 
-- 書いていない鍵は全部 `manual`(危険な 3 つも): 方針を書いていない fork では、確かめも人の 1 回分の許可の後にだけ走る。自動にしたい種類は `/repo-policy`(か `pnpm workflow repo-json set agent.<種類> auto`)で書く。next-starter 自身は自動にできる種類を全部 `auto`、危険な 3 つを `manual` と書いている(`repo.json`)
+- 書いていない鍵は全部 `manual`(危険な 3 つ・`agent.intervene` も): 方針を書いていない fork では、確かめも人の 1 回分の許可の後にだけ走る。自動にしたい種類は `/repo-policy`(か `pnpm workflow repo-json set agent.<種類> auto`)で書く。next-starter 自身は自動にできる種類を全部 `auto`、危険な 3 つを `manual` と書いている(`repo.json`)
 
 - `auto` = go 1 回の中で実行 | `manual` = 人の 1 回分の許可(`/allow <スイッチ名>` か言葉)の後に 1 回だけ実行 | `off` = 実行せず人に頼む 1 行(「人が打つなら <コマンド>、任せるなら /repo-policy で <鍵> を manual に」。人が言ってもやらない。計画で「手で」、run は exit 4)
-- スイッチ名(打つための呼び名、`lib.kinds.mjs` の `SWITCHES`): `sv` server・`br` browser・`lg` login・`dw` db-write・`dd` db-delete・`ea` env-add・`pr` peer・`dbp` db_push・`evp` env_production・`dep` deploy
+- スイッチ名(打つための呼び名、`lib.kinds.mjs` の `SWITCHES`): `sv` server・`br` browser・`lg` login・`dw` db-write・`dd` db-delete・`ea` env-add・`pr` peer・`dbp` db_push・`evp` env_production・`dep` deploy・`itv` intervene
+- `agent.intervene` の許可(`itv`)を使うのは `pnpm workflow agent-terminal type` 自身(宛先が 1 つに決まった時に 1 回分を消す)。許可のフックの 1 回分の許可の道と `devcheck danger` には入らない
 
 #### 1 回分の許可(manual の流れ)
 

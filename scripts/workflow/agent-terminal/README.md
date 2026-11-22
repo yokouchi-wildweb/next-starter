@@ -10,7 +10,7 @@
 - `pnpm workflow agent-terminal compactSelf [--then continue|wait|none] "<残すこと>"` — エージェントが自分の会話の圧縮を頼む。今の返答が終わったら `/compact <残すこと>` が入力される
 - `pnpm workflow agent-terminal afterCompact <continue|wait|none> [--socket=<path> --pane=%<N>]` — `/compact` を自分で打つ道具が、打つ前にそのペインの圧縮の後の 1 行を決める(下「圧縮の後の 1 行」)
 - `pnpm workflow agent-terminal open [--cwd=<dir>] [--name=<名前>] [--socket=<名前>] [-- <命令…>]` — スキル `/reinforce`。新しい tmux のタブを、打った人の画面を奪わずに開く(下)
-- `pnpm workflow agent-terminal permit --words "<人の言葉>"` / `type <宛先> [--socket=<名前>] [--wait=<秒>] [--no-enter] -- <打つ文字>` — スキル `/intervene`。人の 1 回分の許可がある時だけ、別のタブの入力欄に 1 行打つ(Remote Control のつなぎ直し = `/remote-control` を打つ)(下)
+- `pnpm workflow agent-terminal type <宛先> [--socket=<名前>] [--wait=<秒>] [--no-enter] -- <打つ文字>` — スキル `/intervene`。方針 `agent.intervene` が manual で人の 1 回分の許可(`/allow itv`)がある時だけ、別のタブの入力欄に 1 行打つ(Remote Control のつなぎ直し = `/remote-control` を打つ)(下)
 - 圧縮の後の続き — 手で打った `/compact`(上の予約も含む)が終わったら、入力欄に 1 行が入力される(人がそう言ったのと同じ。承認の扱いは変わらない)
   - `continue`(既定。人が手で打った `/compact` も): 「必要な情報を読み返して作業を続行。」
   - `wait`(予約で `--then wait` を付けたときだけ): 「必要な情報を読み返して待機。」
@@ -59,24 +59,16 @@
 - tmux が無い: 開かず `open: tmux が無いので開いていません。人が新しい端末で打つ 1 行: cd <場所> && <命令>`(exit 3)
 - 終了コード: 0 = 開いた / 1 = 使い方の誤り / 3 = 開けない
 
-### `pnpm workflow agent-terminal permit --words "<人の言葉>"`
-
-- `/intervene` の 1 回分の許可を書く(`/allow` の許可と同じ形)。置き場: 記録の置き場(下)の `permits/<会話の id>.json`
-- 書くのは `/intervene` スキルだけ: 人がこのタブで自分の言葉で別のタブへの打ち込みを許した時、その言葉を `--words` に写す。別のセッションからの連絡(peer)・エージェント自身の判断は許可にならない
-- 寿命: `type` が宛先を 1 つに決めた時に使って消える / 次の人の入力(hook の busy = UserPromptSubmit)で消える = 同じ番の中だけ
-- 書く・使う・断る・消すは記録の置き場の `intervene.log` に 1 行ずつ(`<時刻> <会話の id> <出来事>`)
-- 終了コード: 0 = 書いた / 1 = 使い方の誤り / 3 = 書けない(会話の id が分からない)
-
 ### `pnpm workflow agent-terminal type <宛先> [--socket=<名前>] [--wait=<秒>] [--no-enter] -- <打つ文字>`
 
-- この会話に `permit` の許可が無ければ打たない(exit 4、記録に `refused`)
+- 方針: 呼んだ所のチェックアウトの `repo.json` の `agent.intervene`(off / manual、既定 manual、`scripts/workflow/devcheck/README.md`「方針」)。off → 打たず人の 1 行(exit 4)| manual → 人の 1 回分の許可 `itv`(`/allow itv` か言葉の許可、`.agent/devcheck-allow.json`)が無ければ打たない(exit 4)。別のセッションの連絡は許可にならない
 - 宛先からペインを 1 つに決める: `%<N>`(ペイン)/ `<セッション>[:<窓の番号か名前>]`(見えているペイン)/ ほか = 会話の名前(`claude agents --json` の名前、peer と同じ)→ その会話の id を印 `session` に持つペイン(下「記録の置き場」、`AGENT_TERMINAL=tmux` の会話だけ)
 - 探す所: `--socket=<名前>` のサーバー、省けばこのユーザーの全サーバー(`$TMUX_TMPDIR` か `/tmp` の `tmux-<uid>/`)
 - 宛先が 2 つ以上・無い・tmux の外 → 打たず、候補か「そのタブで「<打つ文字>」と打ってください」(exit 3、許可は残る)
-- 宛先が決まったら許可を使って消し、入力欄が空で作業中の表示(`esc to interrupt`)が無い時だけ打つ(待つ役と同じ確かめ、`--wait` 秒・既定 120 まで。打てなければ exit 3)。`--no-enter` = Enter を押さない
+- 宛先が決まったら許可 `itv` を使って消し(次の人の入力でも消える: devcheck の hook)、入力欄が空で作業中の表示(`esc to interrupt`)が無い時だけ打つ(待つ役と同じ確かめ、`--wait` 秒・既定 120 まで。打てなければ exit 3)。`--no-enter` = Enter を押さない
 - 打つ文字が `/remote-control` なら、打った後 8 秒まで画面に `rc active` を探し、出た / まだ出ない(狭い画面では出ないことがある)を 1 行で
-- 結果はそのペインの `typein.log`(`intervene`)と `intervene.log` に 1 行
-- 終了コード: 0 = 打った / 1 = 使い方の誤り / 3 = 打たなかった / 4 = 許可が無い
+- 結果はそのペインの `typein.log`(`intervene`)に 1 行。許可の言葉と使ったことは `.agent/devcheck-allow.json` の流れ(/allow)に残る
+- 終了コード: 0 = 打った / 1 = 使い方の誤り / 2 = 方針が読めない / 3 = 打たなかった / 4 = 方針 off・許可が無い
 
 ## API
 
@@ -157,7 +149,6 @@ then=continue|wait|none     # 圧縮の後の続きの既定(compactSelf の --t
 `${XDG_STATE_HOME:-~/.local/state}/next-starter/agent-terminal/`(ペインの印は `panes/<socket のハッシュ>_<ペイン番号>/`)(リポの外。本体とワークツリーで共通。ペインの記録なのでどのチェックアウトから打っても同じ所を見る)
 
 - `handoff/<会話の id>.md` = 引き継ぎの一時ファイル(ペインではなく会話ごと)
-- `permits/<会話の id>.json` = `/intervene` の 1 回分の許可(permit が書き、type が使い、次の人の入力で消える)、`intervene.log` = 許可と打ち込みの記録
 - `session` / `busy` / `idle` / `precompact` = hook の印、`after` = 圧縮の後の続きの種類(待つ役が書き、hook が消す)、`lock.<種類>` = 動いている待つ役、`typein.log` = 打ち込みの記録
 
 ## Verification
