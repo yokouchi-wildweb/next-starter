@@ -94,6 +94,9 @@ export type {
   AdminDispatchSummary,
   AdminMessageContent,
   AdminPage,
+  AdminSendResultFailure,
+  AdminSendResults,
   ListDeliveriesQuery,
   ListDispatchesQuery,
+  SendResultsQuery,
 } from "./admin";

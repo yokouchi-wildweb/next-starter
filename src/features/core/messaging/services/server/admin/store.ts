@@ -1,6 +1,7 @@
 // src/features/core/messaging/services/server/admin/store.ts
 //
 // 送信の読む口の DB(drizzle)。keyset: 送信は (created_at, id) の降順、配達は昇順。
+// 送信の結果の口(sendResults.ts)は送信 1 件・届かなかった配達(昇順の keyset)・利用者の名前を読む。
 // 送信の宛先の利用者 = 配達の user_id の重なりを除いた並び(「同じ内容で送る」の写し。送信チャンネルごとの行を 1 人にまとめる)
 
 import { and, arrayContains, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, or, type SQL } from "drizzle-orm";
@@ -13,6 +14,7 @@ import { MessageDeliveryTable } from "../../../entities/delivery";
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import type { MessageDeliveryStatus } from "../../../entities/model";
 import type { AdminDispatchStore } from "./readDispatches";
+import { UNDELIVERED_STATUSES, type SendResultsStore } from "./sendResults";
 
 export const drizzleAdminDispatchStore: AdminDispatchStore = {
   async listDispatches(filter, after, limit) {
@@ -74,5 +76,24 @@ export const drizzleAdminDispatchStore: AdminDispatchStore = {
     if (userIds.length === 0) return new Map();
     const rows = await db.select({ id: UserTable.id, name: UserTable.name }).from(UserTable).where(inArray(UserTable.id, [...userIds]));
     return new Map(rows.flatMap((row) => (row.name && row.name.trim() !== "" ? [[row.id, row.name] as [string, string]] : [])));
+  },
+};
+
+export const drizzleSendResultsStore: SendResultsStore = {
+  findDispatch: (id) => drizzleAdminDispatchStore.findDispatch(id),
+  userNames: (userIds) => drizzleAdminDispatchStore.userNames(userIds),
+
+  async listUndelivered(dispatchId, after, limit) {
+    const t = MessageDeliveryTable;
+    const conditions: SQL[] = [eq(t.dispatch_id, dispatchId), inArray(t.status, [...UNDELIVERED_STATUSES])];
+    if (after) {
+      conditions.push(or(gt(t.createdAt, after.createdAt), and(eq(t.createdAt, after.createdAt), gt(t.id, after.id)))!);
+    }
+    return db
+      .select()
+      .from(t)
+      .where(and(...conditions))
+      .orderBy(asc(t.createdAt), asc(t.id))
+      .limit(limit);
   },
 };

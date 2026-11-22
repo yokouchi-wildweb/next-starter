@@ -26,6 +26,7 @@ import {
   findDispatch,
   listDeliveries,
   listDispatches,
+  sendResults,
 } from "./admin";
 import { listEndpoints, registerEndpoint, removeEndpoint } from "./endpoints";
 import { listUserMessageHistory } from "./history";
@@ -99,6 +100,8 @@ export const messagingService = {
   /** 送信のプレビュー(送信のレイアウトと欄の中身を送信の vars・埋め込み情報の値で描く。GET dispatches/[id]/preview) */
   adminDispatchPreview,
   listDeliveries,
+  /** 送信の結果(送信チャンネルごとの数 + 届かなかった人と理由のページ送り。D214 (1)、門の外・管理者だけ、送信の詳細の代わりにはしない) */
+  sendResults,
   /** 送信の画面の絞りの選択肢(カテゴリーの鍵・表示名・種別。管理) */
   dispatchCategoryOptions,
   /** 利用者ごとの履歴(D37。配達を送信と結び新しい順、本文・宛先なし)。server だけ・route なし: 読める人は呼び手の route が決める(管理者を確かめない) */
