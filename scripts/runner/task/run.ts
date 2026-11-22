@@ -16,6 +16,7 @@
 //
 // 定期タスクは src/app/api/cron/<name>/task.ts を走査して読み込む（ここには書かない。API ルートと同じ定義を使う）。
 // 機能が閉じた定期タスク（住所 /api/cron/<name> を規則が閉じている。scripts/structure/cron/discover.ts の closedBy）は、--due でも名前指定でも飛ばす。
+// メンテナンスの期間(settingService.isMaintenanceActive)は、--due は task.ts で maintenance: "pass" を宣言したタスクだけ走らせる(route と同じ)。名前指定は運用者の意図なので走らせる。
 // ワンショット・任意タスクはドメインの src/domains/<ドメイン>/scripts/tasks/<名前>.ts、1 回きりの移行は scripts/migrations/<名前>.ts を走査する
 // （名前 = <ドメイン>:<名前>、src/lib/task/README.md）。
 //
@@ -104,6 +105,15 @@ async function runTask(name: string, task: TaskFn): Promise<boolean> {
 async function runDue(cronTasks: LoadedCronTask[]) {
   const now = new Date();
   let failed = 0;
+  // メンテナンスの期間か(route と同じ判定 settingService.isMaintenanceActive)。走らせる候補が出た時に 1 回だけ読む
+  let maintenanceActive: boolean | undefined;
+  const isMaintenanceActive = async () => {
+    if (maintenanceActive === undefined) {
+      const { settingService } = await import("@/domains/core/setting/services/server/settingService");
+      maintenanceActive = await settingService.isMaintenanceActive();
+    }
+    return maintenanceActive;
+  };
   for (const task of cronTasks) {
     if (task.disabled || !matchesCronExpression(task.schedule, now)) continue;
     if (task.closedBy !== null) {
@@ -112,6 +122,11 @@ async function runDue(cronTasks: LoadedCronTask[]) {
     }
     if (task.enabled && !task.enabled()) {
       log("info", { task: task.name, ok: true, skipped: true, reason: "disabled" });
+      continue;
+    }
+    // メンテナンス中は "pass" を宣言したタスクだけ(名指しの pnpm task <name> は運用者の意図なので止めない)
+    if (task.maintenance !== "pass" && (await isMaintenanceActive())) {
+      log("info", { task: task.name, ok: true, skipped: true, reason: "maintenance" });
       continue;
     }
     if (!(await runTask(task.name, task.run))) failed += 1;

@@ -29,6 +29,14 @@ export type CronTaskDefinition<T extends CronTaskResult = CronTaskResult> = {
    */
   enabled?: () => boolean;
   /**
+   * メンテナンス中も走らせる宣言（省略 = メンテナンス中は飛ばす）。
+   * 期間中、route と `pnpm task --due` は本体を呼ばずに skipped（reason "maintenance"）を返す。
+   * 止めると取りこぼすタスクだけが "pass" を書く（API ルートの maintenance: "pass" と同じ語）。
+   * task.override.ts では変えられない（上書きは配備・CLI の時にだけ読まれ、route は読まない）。fork が上流のタスクを
+   * 期間中も走らせたいときは、上流のタスクを task.override.ts の disabled で外し、同じ公開のサービスを呼ぶ自分のタスクに "pass" を書く
+   */
+  maintenance?: "pass";
+  /**
    * 実行本体。処理はドメイン側に置き、ここでは動的 import で呼ぶだけにする
    * （task.ts を読むだけで DB などの依存を読み込まないため。vercel.json の生成は task.ts を読む）
    */

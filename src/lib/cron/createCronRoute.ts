@@ -42,8 +42,18 @@ export type CronServerErrorInput = {
   durationMs: number;
 };
 
+/**
+ * メンテナンスの判定（省略可の依存）。lib は設定を読まないので、wiring（src/wiring/cronRoute.ts）が設定ドメインの判定で結ぶ
+ */
+export type CronRouteMaintenance = {
+  /** 今メンテナンスの期間か（飛ばすかを決める時だけ読む） */
+  isActive: () => Promise<boolean>;
+};
+
 export type CreateCronRouteDeps = {
   gate?: CronRouteGate;
+  /** メンテナンスの口。省略時 = メンテナンスで飛ばさない */
+  maintenance?: CronRouteMaintenance;
   /** 失敗の記録の口(結ぶのは src/wiring。throw しない Promise)。省略時 = 下の JSON の error 行 */
   onServerError?: (error: unknown, input: CronServerErrorInput) => Promise<void>;
 };
@@ -64,6 +74,8 @@ export type CreateCronRouteOptions<T extends Record<string, unknown>> = {
    * 200 { ok: true, skipped: true, reason: "disabled" } を返す。省略時は常に有効。
    */
   enabled?: () => boolean;
+  /** メンテナンス中も走らせる宣言（CronTaskDefinition の maintenance と同じ）。省略時 = 期間中は飛ばす */
+  maintenance?: "pass";
 };
 
 /**
@@ -74,6 +86,7 @@ export type CreateCronRouteOptions<T extends Record<string, unknown>> = {
  * - 認証失敗: 401
  * - 機能が閉じている（deps.gate が `/api/cron/<name>` を閉と答えた）: 200 { ok: true, skipped: true, reason: "closed" }
  * - 追加の条件が false: 200 { ok: true, skipped: true, reason: "disabled" }
+ * - メンテナンスの期間（deps.maintenance が active と答え、"pass" の宣言が無い）: 200 { ok: true, skipped: true, reason: "maintenance" }
  * - 実行成功: 200 { ok: true, ...result }
  * - 実行失敗: 500 { ok: false, error }。記録は口（deps.onServerError）があればその 1 行、無ければ JSON の error 行
  *
@@ -100,6 +113,12 @@ export function createCronRoute<T extends Record<string, unknown> = Record<strin
     if (options.enabled && !options.enabled()) {
       console.log(JSON.stringify({ level: "info", scope: "cron", task: options.name, ok: true, skipped: true, reason: "disabled" }));
       return NextResponse.json({ ok: true, skipped: true, reason: "disabled" });
+    }
+
+    // メンテナンス中は飛ばす（期間の判定は閉・無効でない時だけ読む）。止めてはいけないタスクは "pass" を宣言する
+    if (deps.maintenance && options.maintenance !== "pass" && (await deps.maintenance.isActive())) {
+      console.log(JSON.stringify({ level: "info", scope: "cron", task: options.name, ok: true, skipped: true, reason: "maintenance" }));
+      return NextResponse.json({ ok: true, skipped: true, reason: "maintenance" });
     }
 
     const startedAt = Date.now();
@@ -142,5 +161,5 @@ export function createCronTaskRoute<T extends Record<string, unknown>>(
   task: CronTaskDefinition<T>,
   deps: CreateCronRouteDeps = {},
 ) {
-  return createCronRoute<T>({ name: task.name, handler: task.run, enabled: task.enabled }, deps);
+  return createCronRoute<T>({ name: task.name, handler: task.run, enabled: task.enabled, maintenance: task.maintenance }, deps);
 }

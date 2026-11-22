@@ -80,3 +80,58 @@ test("handler が投げても 500 で返し、文脈は外に漏れない", asyn
   }
   assert.equal(getAuditContext(), null);
 });
+
+test("メンテナンスの期間は本体を呼ばずに skipped(reason maintenance)、pass の宣言は走る、口が無ければ今の通り", async () => {
+  let ran = 0;
+  const handler = async () => {
+    ran += 1;
+    return {};
+  };
+  const active = { maintenance: { isActive: async () => true } };
+  const original = console.log;
+  console.log = () => {};
+  try {
+    const skipped = await createCronRoute({ name: "m-skip", handler }, active)(new Request("http://localhost/api/cron/m-skip"));
+    assert.equal(skipped.status, 200);
+    assert.deepEqual(await skipped.json(), { ok: true, skipped: true, reason: "maintenance" });
+    assert.equal(ran, 0);
+
+    const passed = await createCronRoute({ name: "m-pass", handler, maintenance: "pass" }, active)(
+      new Request("http://localhost/api/cron/m-pass"),
+    );
+    assert.equal((await passed.json()).skipped, undefined);
+    assert.equal(ran, 1);
+
+    await createCronRoute({ name: "m-none", handler })(new Request("http://localhost/api/cron/m-none"));
+    assert.equal(ran, 2);
+  } finally {
+    console.log = original;
+  }
+});
+
+test("閉じた・無効のタスクではメンテナンスの期間を読まない", async () => {
+  let reads = 0;
+  const deps = {
+    gate: { isClosed: (pathname: string) => pathname.endsWith("/m-closed") },
+    maintenance: {
+      isActive: async () => {
+        reads += 1;
+        return true;
+      },
+    },
+  };
+  const handler = async () => ({});
+  const original = console.log;
+  console.log = () => {};
+  try {
+    const closed = await createCronRoute({ name: "m-closed", handler }, deps)(new Request("http://localhost/api/cron/m-closed"));
+    assert.equal((await closed.json()).reason, "closed");
+    const disabled = await createCronRoute({ name: "m-disabled", handler, enabled: () => false }, deps)(
+      new Request("http://localhost/api/cron/m-disabled"),
+    );
+    assert.equal((await disabled.json()).reason, "disabled");
+  } finally {
+    console.log = original;
+  }
+  assert.equal(reads, 0);
+});
