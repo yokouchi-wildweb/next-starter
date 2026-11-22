@@ -77,6 +77,8 @@ test("計画と当て: 2 つのフォルダを動かし、見ない物は触ら�
     ".notices/20261101-000000-old.md": "src/features/core/auth\n",
     ".notices/20261101-000000-old.tool.mjs": 'const P = "src/features";\n',
     ".notices/applied/acme.md": "src/features\n",
+    ".notices/shipped/acme.md": "src/features\n",
+    ".notices/done/20261101-x.md": "src/features\n",
     ".notices/README.md": "移行は src/features/<domain>/scripts/migrations/\n",
     "docs/journal/2026-01-01--acme--x.md": "src/features/core/auth\n",
     "scripts/workflow/terms/terms.json": "src/features --gate gate.json\n",
@@ -89,7 +91,7 @@ test("計画と当て: 2 つのフォルダを動かし、見ない物は触ら�
   ]);
   assert.deepEqual(plan.stops, []);
   assert.equal(plan.skipped["shipped-notice"], 2);
-  assert.equal(plan.skipped.ledger, 1);
+  assert.equal(plan.skipped["notices-record"], 3);
   assert.equal(plan.skipped.journal, 1);
   assert.equal(plan.skipped.terms, 1);
   assert.equal(plan.skipped.binary, 1);
@@ -110,6 +112,8 @@ test("計画と当て: 2 つのフォルダを動かし、見ない物は触ら�
   assert.equal(read(root, ".notices/20261101-000000-old.md"), "src/features/core/auth\n");
   assert.equal(read(root, ".notices/20261101-000000-old.tool.mjs"), 'const P = "src/features";\n');
   assert.equal(read(root, ".notices/applied/acme.md"), "src/features\n");
+  assert.equal(read(root, ".notices/shipped/acme.md"), "src/features\n");
+  assert.equal(read(root, ".notices/done/20261101-x.md"), "src/features\n");
   assert.equal(read(root, "docs/journal/2026-01-01--acme--x.md"), "src/features/core/auth\n");
   assert.equal(read(root, "scripts/workflow/terms/terms.json"), "src/features --gate gate.json\n");
 
@@ -127,4 +131,16 @@ test("移す先に既にファイルがあれば移動を止める(書き換え�
   assert.deepEqual(plan.moves, []);
   assert.deepEqual(plan.stops.map((s) => [s.kind, s.path]), [["target-exists", "src/domains"]]);
   assert.equal(plan.edits.length, 1);
+});
+
+test("lineage.md: fork は自分の節だけを書き換え、前書きと祖先の節は書かない / Tier1 は全体", () => {
+  const lineage = (body) => `# lineage\n> 前書き src/features/a\n\n## parent\n- k: src/features/a\n<!-- end parent -->\n\n## acme\n- k: ${body}\n<!-- end acme -->\n`;
+  const fork = fixture({ "repo.json": '{ "repo_id": "acme", "tier": "middle" }\n', ".claude/rules/lineage.md": lineage("src/features/a") });
+  applyRename(fork, planRename(fork));
+  assert.equal(read(fork, ".claude/rules/lineage.md"), lineage("src/domains/a"));
+  const leafNoSection = fixture({ "repo.json": '{ "repo_id": "leafy", "tier": "leaf" }\n', ".claude/rules/lineage.md": lineage("src/features/a") });
+  assert.deepEqual(planRename(leafNoSection).edits, []);
+  const tier1 = fixture({ "repo.json": '{ "repo_id": "next-starter", "tier": "root" }\n', ".claude/rules/lineage.md": "# lineage\n> 前書き src/features/a\n" });
+  applyRename(tier1, planRename(tier1));
+  assert.equal(read(tier1, ".claude/rules/lineage.md"), "# lineage\n> 前書き src/domains/a\n");
 });

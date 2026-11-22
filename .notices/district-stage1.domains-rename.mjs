@@ -26,7 +26,7 @@
 //   tsconfig.json・.claude/rules(core・カード・自前の規則)・README・docs も同じ形で書き換える
 //
 // 見ない物(書き換えない):
-// - 出荷済みの notice の本文と道具(.notices/<YYYYMMDD-HHMMSS>-…)・取り込みの台帳(.notices/applied/)・この道具自身とそのテスト
+// - 出荷済みの notice の本文と道具(.notices/<YYYYMMDD-HHMMSS>-…)・取り込みの台帳と記録(.notices/ の下の README のほか: applied/・shipped/・done/)・この道具自身とそのテスト
 // - 日付つきの記録 docs/journal/(当時の事実、D47)・語の表 scripts/workflow/terms/(誤りの字面を持つ)・pnpm-lock.yaml
 // - カードの置き場 .claude/rules/items/features/ の名前(動かすかは指示書の議会の判断、D43)。中のファイルの文字列のパスは書き換える
 //
@@ -44,6 +44,8 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { readForkIdentity } from "../src/lib/forkOwnership/forkIds.mjs";
 
 export const MOVES = [
   { from: "src/features", to: "src/domains" },
@@ -64,8 +66,9 @@ const SELF_ID = basename(fileURLToPath(import.meta.url)).replace(/\.domains-rena
 /** 見ない物か(理由か null) */
 export function skipReason(path) {
   if (SELF.test(path) || path.startsWith(`.notices/${SELF_ID}.domains-rename.`)) return "self";
-  if (path.startsWith(".notices/applied/")) return "ledger";
   if (NOTICE_ID.test(path)) return "shipped-notice";
+  // 取り込みの台帳(applied/)・中間 Tier の出荷の台帳(shipped/)・済んだ注文(done/)など .notices の下は README のほか全部が記録
+  if (path.startsWith(".notices/") && path !== ".notices/README.md") return "notices-record";
   if (path.startsWith("docs/journal/")) return "journal";
   if (path.startsWith("scripts/workflow/terms/")) return "terms"; // 語の表(誤りの字面を持つ)
   if (path === "pnpm-lock.yaml" || path.endsWith("/pnpm-lock.yaml")) return "lockfile";
@@ -171,9 +174,33 @@ export function rewriteText(path, text, names) {
   return { text: out, counts, stops };
 }
 
+const LINEAGE = ".claude/rules/lineage.md";
+/**
+ * lineage.md は祖先の節を書かない: Tier1(tier root)は全体、fork は自分の節(## <repo_id> 〜 <!-- end <repo_id> -->)だけを書き換える
+ * (祖先の節と前書きは祖先が自分の取り込みで直して届ける。fork が書けば所有の違反)
+ */
+export function rewriteLineage(text, own, isRoot, rewrite) {
+  if (isRoot) return rewrite(text);
+  if (!own) return { text, counts: {}, stops: [] };
+  const head = `## ${own}\n`;
+  const start = text.startsWith(head) ? 0 : text.indexOf(`\n${head}`) + 1;
+  if (start === 0 && !text.startsWith(head)) return { text, counts: {}, stops: [] }; // 自分の節が無い
+  const endAt = text.indexOf(`<!-- end ${own} -->`, start);
+  const end = endAt < 0 ? text.length : endAt;
+  const r = rewrite(text.slice(start, end));
+  const offset = text.slice(0, start).split("\n").length - 1;
+  return { text: text.slice(0, start) + r.text + text.slice(end), counts: r.counts, stops: r.stops.map((s) => ({ ...s, line: s.line + offset })) };
+}
+
+/** 1 ファイルの書き換え(lineage.md は自分の節だけ) */
+function fileRewriter(root, names) {
+  const ident = readForkIdentity(root);
+  return (path, text) => (path === LINEAGE ? rewriteLineage(text, ident.own, ident.tier === "root", (t) => rewriteText(path, t, names)) : rewriteText(path, text, names));
+}
+
 /** 計画(何も書かない) */
 export function planRename(root) {
-  const names = domainNames(root);
+  const rewriteFile = fileRewriter(root, domainNames(root));
   const files = listFiles(root);
   const moves = [];
   const stops = [];
@@ -202,7 +229,7 @@ export function planRename(root) {
     }
     const text = buffer.toString("utf8");
     if (!/features/.test(text)) continue;
-    const result = rewriteText(path, text, names);
+    const result = rewriteFile(path, text);
     for (const s of result.stops) stops.push({ path, ...s });
     if (result.text !== text) {
       edits.push({ path, counts: result.counts });
@@ -214,10 +241,10 @@ export function planRename(root) {
 
 /** 計画を当てる: 書き換え(移す前の場所で)→ 移動 */
 export function applyRename(root, plan) {
-  const names = domainNames(root);
+  const rewriteFile = fileRewriter(root, domainNames(root));
   for (const edit of plan.edits) {
     const abs = join(root, edit.path);
-    writeFileSync(abs, rewriteText(edit.path, readFileSync(abs, "utf8"), names).text);
+    writeFileSync(abs, rewriteFile(edit.path, readFileSync(abs, "utf8")).text);
   }
   const isGit = existsSync(join(root, ".git"));
   for (const move of plan.moves) {

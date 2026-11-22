@@ -72,6 +72,8 @@ test("計画と当て: 宣言・ランナーのフォルダ・一覧とテスト
     "scripts/runner/gates/scan.mjs": 'const p = "runner/gates/gates.json"; // 各 gate.json\n',
     ".notices/20261101-000000-old.md": "pnpm check --gate=ship\n",
     ".notices/applied/acme.md": "--gate\n",
+    ".notices/shipped/acme.md": "--gate\n",
+    ".notices/done/20261101-x.md": "--gate\n",
     "docs/journal/2026-01-01--acme--x.md": "gate.json\n",
     "scripts/workflow/terms/terms.json": "src/features --gate gate.json\n",
   });
@@ -95,6 +97,8 @@ test("計画と当て: 宣言・ランナーのフォルダ・一覧とテスト
   assert.equal(read(root, "scripts/runner/phases/scan.mjs"), 'const p = "runner/phases/phases.json"; // 各 phase.json\n');
   assert.equal(read(root, ".notices/20261101-000000-old.md"), "pnpm check --gate=ship\n");
   assert.equal(read(root, ".notices/applied/acme.md"), "--gate\n");
+  assert.equal(read(root, ".notices/shipped/acme.md"), "--gate\n");
+  assert.equal(read(root, ".notices/done/20261101-x.md"), "--gate\n");
   assert.equal(read(root, "docs/journal/2026-01-01--acme--x.md"), "gate.json\n");
   assert.equal(read(root, "scripts/workflow/terms/terms.json"), "src/features --gate gate.json\n");
 
@@ -111,4 +115,16 @@ test("移す先に既に物があれば移動を止める", () => {
   const plan = planRename(root);
   assert.deepEqual(plan.moves, []);
   assert.deepEqual(plan.stops.map((s) => [s.kind, s.path]), [["target-exists", "scripts/structure/x/phase.json"]]);
+});
+
+test("lineage.md: fork は自分の節だけを書き換え、前書きと祖先の節は書かない / Tier1 は全体", () => {
+  const lineage = (body) => `# lineage\n> 前書き pnpm check --gate=ship\n\n## parent\n- k: pnpm check --gate=ship\n<!-- end parent -->\n\n## acme\n- k: ${body}\n<!-- end acme -->\n`;
+  const fork = fixture({ "repo.json": '{ "repo_id": "acme", "tier": "middle" }\n', ".claude/rules/lineage.md": lineage("pnpm check --gate=ship") });
+  applyRename(fork, planRename(fork));
+  assert.equal(read(fork, ".claude/rules/lineage.md"), lineage("pnpm check --phase=ship"));
+  const leafNoSection = fixture({ "repo.json": '{ "repo_id": "leafy", "tier": "leaf" }\n', ".claude/rules/lineage.md": lineage("pnpm check --gate=ship") });
+  assert.deepEqual(planRename(leafNoSection).edits, []);
+  const tier1 = fixture({ "repo.json": '{ "repo_id": "next-starter", "tier": "root" }\n', ".claude/rules/lineage.md": "# lineage\n> 前書き pnpm check --gate=ship\n" });
+  applyRename(tier1, planRename(tier1));
+  assert.equal(read(tier1, ".claude/rules/lineage.md"), "# lineage\n> 前書き pnpm check --phase=ship\n");
 });
