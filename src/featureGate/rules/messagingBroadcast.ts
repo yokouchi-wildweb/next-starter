@@ -3,7 +3,8 @@
 // 回の一覧・詳細の送るモーダルの口(「新しく送る」「同じ内容で送る」。部品が useGate で出し分ける)。送る画面のページは無い(モーダルにたたんだ)。
 // 閉の間、API は 404、口は出ない。管理一覧の一括送信(bulkMessageAction・/api/admin/messaging/bulk-send/**)はこの門の外。
 // 定義連絡の送る口 /api/admin/messaging/definitions/**(D190): 全員・ロール・グループの入口はこの門の中だが、記録の入口と同じ道なので
-// 道の印には載せず、service(messaging/services/server/admin/definitionSend.ts)が gate.enabled で見て閉なら 404。記録の入口と選択肢は門の外。
+// 道の印には載せず、service(messaging/services/server/admin/definitionSend.ts)が gate.enabled で見て閉なら 404(選択肢 definitions/options の
+// ?entry=broadcast も)。記録の入口と選択肢の ?recordTarget= は門の外。
 // 送る口(sendMessage / sendTemplate)と cron の予約の拾いは門に関わらず動く(domains は持たない)。
 // /admin/messaging の下の機能なので messagingDispatches に依存する。
 // 入切の既定は閉。fork が開ける値は src/config/featureGate/switches.config.ts

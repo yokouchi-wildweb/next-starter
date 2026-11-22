@@ -372,6 +372,19 @@ test("上書きの channelModes: 丸ごと差し替え、種別の性質の検�
   assert.ok(codes(validate(plain, { override: { category: "alert", channelModes: { email: "off" } } })).includes("email_off_fixed"));
 });
 
+test("管理者が送る画面の文(adminText、D214 (3)): description / confirm だけ、各 1〜500 字。上書きは丸ごと差し替え", () => {
+  assert.deepEqual(validate({ ...reply, adminText: { description: "返信を送ります", confirm: "送りますか" } }), []);
+  assert.deepEqual(validate({ ...reply, adminText: {} }), []);
+  assert.deepEqual(codes(validate({ ...reply, adminText: { description: "  " } })), ["invalid_admin_text"]);
+  assert.deepEqual(codes(validate({ ...reply, adminText: { confirm: "あ".repeat(501) } })), ["invalid_admin_text"]);
+  assert.deepEqual(codes(validate({ ...reply, adminText: { heading: "再送" } } as never)), ["invalid_admin_text"]);
+  assert.deepEqual(codes(validate({ ...reply, adminText: "説明" } as never)), ["invalid_admin_text"]);
+  // 上書きの文も同じ検査、重ねると丸ごと差し替え
+  assert.deepEqual(codes(validate(defineMessage(reply), { override: { adminText: { description: "" } } })), ["invalid_admin_text"]);
+  const withText = defineMessage({ ...reply, adminText: { description: "上流の説明", confirm: "上流の確認" } });
+  assert.deepEqual(applyMessageOverride(withText, { adminText: { confirm: "fork の確認" } }).adminText, { confirm: "fork の確認" });
+});
+
 test("ChannelError は lib/mail と同じ 3 分類を持つ Error", () => {
   assert.deepEqual([...CHANNEL_ERROR_KINDS], ["transient", "permanent", "unknown"]);
   const error = new ChannelError({ message: "届かない", kind: "permanent", channel: "line", reason: "invalid_address" });
@@ -420,6 +433,7 @@ test("上書きの型の鍵と宣言の overrideOf は同じ", () => {
   assert.equal(overrideKeysMatch, true);
   assert.deepEqual([...extensionPoints.messages.overrideOf].sort(), [
     "adminEditableOnly",
+    "adminText",
     "category",
     "channelModes",
     "enabled",

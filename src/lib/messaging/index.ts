@@ -37,6 +37,7 @@ export type {
   MessageChannelMode,
   MessageDefinition,
   MessageDefinitionAdminTarget,
+  MessageDefinitionAdminText,
   MessageKey,
   MessageKind,
   MessageOverride,
@@ -51,6 +52,7 @@ export type {
 export { DEFAULT_DEFINITION_ADMIN_TARGETS, MESSAGE_CHANNEL_MODES, MESSAGE_DEFINITION_ADMIN_TARGETS } from "./definition/types";
 export { channelModeOf, definitionChannels } from "./definition/channels";
 export {
+  ADMIN_TEXT_MAX_LENGTH,
   COMMON_CONTEXT_KEYS,
   THROTTLE_CONTEXT_KEYS,
   applyMessageOverride,

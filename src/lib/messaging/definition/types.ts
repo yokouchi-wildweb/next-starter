@@ -125,6 +125,17 @@ export type MessageDefinition<
   adminTargets?: readonly MessageDefinitionAdminTarget[];
   /** 送信チャンネルの固定(送信チャンネルの鍵 → on / off / free、D212)。書かない送信チャンネルは free */
   channelModes?: Readonly<Record<string, MessageChannelMode>>;
+  /**
+   * 管理者が送る画面の文(D214 (3)、表示だけ・差し込みなし): description = モーダルの説明 / confirm = 送る前の確認の文。
+   * 書かない = 画面の既定の文。再送の頭書きは持たない(呼び手の vars で書く、D214 (4))。上書きで丸ごと差し替えられる
+   */
+  adminText?: MessageDefinitionAdminText;
+};
+
+/** 管理者が送る画面の文(各 1〜500 字) */
+export type MessageDefinitionAdminText = {
+  description?: string;
+  confirm?: string;
 };
 
 /**
@@ -153,6 +164,8 @@ export type MessageOverride = {
    * (カテゴリーの外の送信チャンネルは誤り)。{} = 全部 free
    */
   channelModes?: Readonly<Record<string, MessageChannelMode>>;
+  /** 管理者が送る画面の文の丸ごとの差し替え(表示だけ、label と同じ) */
+  adminText?: MessageDefinitionAdminText;
 };
 
 /** 上書きを重ねた後の定義(enabled と、カテゴリーから引いた種別・送信チャンネルを持つ) */

@@ -34,7 +34,7 @@ await messagingService.sendMessageToMany(campaign, {
 - 冪等の鍵 `idempotencyKey`: 同じ鍵の 2 回目は送る前に 409（送信の UNIQUE と、保持の掃除で移した鍵の表 `message_idempotency_keys` の両方を見る）。画面はフォームを開くたびに `crypto.randomUUID()`、同じフォームの再送信は同じ鍵。バッチの再実行で送った対象を除くのは `messagingService.existingIdempotencyKeys(keys)`。並走した実行が先に送った時も 409（実例: wallet の失効の知らせ `src/features/core/wallet/services/server/notification/expirationNoticeSender.ts`）
 - cron・CLI からの送信は `runAsSystem`（`@/lib/audit`）の中。送り元 `source` の既定は定義の鍵
 - 予約は `scheduledAt`（過ぎた時刻と `schedule.maxDaysAhead` 日より先は 400）。required と秘密を差し込む連絡は予約・全員宛てにできない（400）
-- 管理者が定義連絡を送る口（記録の宛先から・全員・ロール・グループへ、テキストの編集・送信チャンネルの絞り・管理者の値だけを受ける）は `/api/admin/messaging/definitions/**`（services/server/admin/README.md）。定義の `adminVars`（管理者が入れる値）・`recordVars`（記録から埋める値）・`adminTargets`（送れる宛先）・`channelModes`（送信チャンネルの固定）が受ける物を決める
+- 管理者が定義連絡を送る口（記録の宛先から・全員・ロール・グループへ、テキストの編集・送信チャンネルの絞り・管理者の値だけを受ける）は `/api/admin/messaging/definitions/**`（services/server/admin/README.md）。定義の `adminVars`（管理者が入れる値）・`recordVars`（記録から埋める値）・`adminTargets`（送れる宛先）・`channelModes`（送信チャンネルの固定）が受ける物を決め、`adminText`（送るモーダルの説明・送る前の確認の文）を画面が出す。汎用の送るモーダルの材料は `GET /api/admin/messaging/definitions/options`
 
 ### 宛先（target）
 

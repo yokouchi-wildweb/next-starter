@@ -3,7 +3,7 @@
 // - 400: 項目の messages の外・adminTargets の外・off / カテゴリーの外の送信チャンネル・required のテキストの編集・管理者の値の型・宣言に無い管理者の値
 // - 404: 連絡定義が無い・門 messagingBroadcast が閉(全員などの入口だけ、記録の入口は門の外)
 // - プレビュー・テストは最初の記録の値、テキストの編集の欄を送る口に渡す、afterSend の引数(D196)、投げても送信は戻さない
-// - 記録の宛先の選択肢: 門番を通った項目と読める連絡定義だけ
+// - 選択肢(definitions/options): 記録の入口 = 項目と並んだ定義 / 全員などの入口 = 門の中、定義ごとの直せる欄・今の中身・管理者の値・送信チャンネルの固定と初めの状態・画面の文
 // 実行: pnpm test src/features/core/messaging/services/server/admin/definitionSend.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -28,7 +28,7 @@ import {
   adminDefinitionPreview,
   adminDefinitionSend,
   adminDefinitionTest,
-  adminRecordTargetOptions,
+  adminDefinitionOptions,
   type AdminDefinitionSendDeps,
 } from "./definitionSend";
 
@@ -85,17 +85,26 @@ function item(over: Partial<MessageRecordTarget> = {}): MessageRecordTarget {
   };
 }
 
-function setup(options: { definition?: AnyResolvedMessageDefinition | null; item?: MessageRecordTarget | null; broadcastOpen?: boolean } = {}) {
+function setup(
+  options: {
+    definition?: AnyResolvedMessageDefinition | null;
+    item?: MessageRecordTarget | null;
+    broadcastOpen?: boolean;
+    /** shop.shipped 以外の定義(選択肢の検査) */
+    others?: Record<string, AnyResolvedMessageDefinition>;
+  } = {},
+) {
   const sent: { resolved: AnyResolvedMessageDefinition; input: SendMessageToManyInput; options: unknown }[] = [];
   const previews: { resolved: AnyResolvedMessageDefinition; input: Record<string, unknown> }[] = [];
   const audits: AuditRecordInput[] = [];
   const deps: AdminDefinitionSendDeps = {
     context: () => ({ actorId: "admin1", actorType: "user" }) as never,
     roleCategoryOf: async () => "admin",
-    loadDefinition: async (key) => (key === "shop.shipped" ? (options.definition === undefined ? resolved() : options.definition) : null),
-    messageLabel: async (key) => (key === "shop.shipped" ? "発送のお知らせ" : null),
+    loadDefinition: async (key) =>
+      key === "shop.shipped" ? (options.definition === undefined ? resolved() : options.definition) : (options.others?.[key] ?? null),
     recordTarget: async (key) => (key === "shop.orders" ? (options.item === undefined ? item() : options.item) : null),
-    recordTargetKeys: () => ["shop.orders", "shop.closed"],
+    messageKeys: () => ["shop.shipped", ...Object.keys(options.others ?? {}), "shop.gone"],
+    categories: { shop: { key: "shop", label: "ショップ", kind: "transactional", channels: ["email", "inApp", "line"], defaultChannels: ["email"] } },
     broadcastOpen: () => options.broadcastOpen ?? true,
     layouts: { notice: LAYOUT },
     enrichers: {},
@@ -248,9 +257,57 @@ test("プレビュー・テストは選んだ最初の記録の値(見本の受�
   assert.deepEqual(calls, []);
 });
 
-test("記録の宛先の選択肢: 門番を通った項目と、読める連絡定義だけ", async () => {
-  const { deps } = setup({ item: item({ messages: ["shop.shipped", "shop.gone"] }) });
-  assert.deepEqual(await adminRecordTargetOptions(deps), [
-    { key: "shop.orders", label: "注文", messages: [{ key: "shop.shipped", label: "発送のお知らせ" }] },
-  ]);
+test("選択肢 ?recordTarget=: 項目と、並びのうち読める・止められていない・records を許す定義(並びの順)", async () => {
+  const others = {
+    "shop.off": { ...resolved({ key: "shop.off" }), enabled: false },
+    "shop.broadcastOnly": resolved({ key: "shop.broadcastOnly", adminTargets: ["all"] }),
+  };
+  const { deps } = setup({ item: item({ messages: ["shop.gone", "shop.off", "shop.broadcastOnly", "shop.shipped"] }), others });
+  const options = await adminDefinitionOptions(deps, { recordTarget: "shop.orders" });
+  assert.deepEqual(options.recordTarget, { key: "shop.orders", label: "注文" });
+  assert.deepEqual(options.definitions.map((d) => d.key), ["shop.shipped"]);
+  await assert.rejects(adminDefinitionOptions(deps, { recordTarget: "shop.closed" }), status(404));
+});
+
+test("選択肢の定義 1 本: レイアウトの欄・直せる欄と今の中身・管理者の値・送信チャンネルの固定と初めの状態(on ∪ defaultChannels ∩ free)・画面の文", async () => {
+  const definition = resolved({ channelModes: { line: "off", inApp: "on" }, adminText: { description: "発送を知らせます", confirm: "送りますか" } });
+  const { deps } = setup({ definition });
+  const [option] = (await adminDefinitionOptions(deps, { recordTarget: "shop.orders" })).definitions;
+  assert.deepEqual(option, {
+    key: "shop.shipped",
+    label: "発送のお知らせ",
+    layout: { key: "notice", label: "お知らせ", version: 1, fields: LAYOUT.fields },
+    editableFields: ["subject", "blocks"],
+    values: { subject: "{{orderNo}} を発送しました", blocks: [] },
+    adminVars: [
+      { key: "discount", alias: "割引", type: "number", required: false },
+      { key: "note", alias: "備考", type: "line", required: true },
+    ],
+    channels: { email: "free", inApp: "on", line: "off" },
+    initialChannels: ["email", "inApp"],
+    required: false,
+    adminTargets: ["records", "all"],
+    adminText: { description: "発送を知らせます", confirm: "送りますか" },
+  });
+});
+
+test("選択肢: required の定義は直せる欄も今の中身も空、画面の文が無ければ null", async () => {
+  const { deps } = setup({ definition: resolved({ required: true }) });
+  const [option] = (await adminDefinitionOptions(deps, { recordTarget: "shop.orders" })).definitions;
+  assert.deepEqual(option!.editableFields, []);
+  assert.deepEqual(option!.values, {});
+  assert.equal(option!.required, true);
+  assert.equal(option!.adminText, null);
+});
+
+test("選択肢 ?entry=broadcast: 全員・ロール・グループのどれかを許す定義(生成の一覧の順)、門 messagingBroadcast が閉なら 404、条件の誤りは 400", async () => {
+  const others = { "shop.recordsOnly": resolved({ key: "shop.recordsOnly", adminTargets: undefined }) };
+  const { deps } = setup({ others });
+  const options = await adminDefinitionOptions(deps, { entry: "broadcast" });
+  assert.equal(options.recordTarget, null);
+  assert.deepEqual(options.definitions.map((d) => d.key), ["shop.shipped"], "adminTargets を書かない定義は records だけ");
+  await assert.rejects(adminDefinitionOptions(setup({ broadcastOpen: false }).deps, { entry: "broadcast" }), status(404));
+  await assert.rejects(adminDefinitionOptions(deps, {}), status(400));
+  await assert.rejects(adminDefinitionOptions(deps, { entry: "broadcast", recordTarget: "shop.orders" }), status(400));
+  await assert.rejects(adminDefinitionOptions(deps, { entry: "all" } as never), status(400));
 });
