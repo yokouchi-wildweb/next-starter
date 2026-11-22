@@ -20,7 +20,7 @@
 
 ### 流れ
 
-1. 生成の一覧（`messageRegistry`）の定義に上書きを `applyMessageOverride` で重ね、`validateMessageDefinition` で検査（レイアウト・欄の中身・`{{鍵}}`）。最後にテキストの編集（門 `messagingOverrides` が開の時、欄の道 = レイアウトの欄の鍵、../overrides/README.md）を欄ごとに重ねる（`resolveDefinition` の 1 か所。版を移せない・検査を通らない行はコードの値、警告 1 行）。重ねた値は送信の `values` に入るので、組み直しは送った時の文言のまま
+1. 生成の一覧（`messageRegistry`）の定義に上書きを `applyMessageOverride` で重ね（所属のカテゴリー = 送る時に決めた物（送信に残したカテゴリー、組み直し）> 上書きの付け替え `category`（D166）> 定義。種別・送信チャンネルは付け替えた先のカテゴリーから、上書きの `channelModes` は固定を丸ごと差し替える）、`validateMessageDefinition` で検査（レイアウト・欄の中身・`{{鍵}}`）。最後にテキストの編集（門 `messagingOverrides` が開の時、欄の道 = レイアウトの欄の鍵、../overrides/README.md）を欄ごとに重ねる（`resolveDefinition` の 1 か所。版を移せない・検査を通らない行はコードの値、警告 1 行）。重ねた値は送信の `values` に入るので、組み直しは送った時の文言のまま
    - 専用の日付・日時の値は差し込む時に人が読む字にする（型の印 `<鍵>@type` から、lib `displayVarValues`。送信に残す値は ISO）。共通の値 `serviceName`・`serviceNameShort`・`appBaseUrl` は `deps.context()`
    - 差し込みの表には共通の埋め込み情報と当たる enrichers の日本語の別名の行も入る（vars のうち enricher と同じ鍵の値もその別名で書ける。例 wallet の `displayName` = `{{表示名}}`）（`{{受信者名}}` = `{{recipientName}}`、D126。`content.ts` が `varMap` で足す）。定義の検査も別名を通す
    - 中身の組み立ては `content.ts` の 1 つ（`buildContent` / `buildContents`）: 定義の欄の中身に差し込む → 送信チャンネルごとに描き方の 3 段（lib/messaging `buildChannelContent`: レイアウトの描き方 > 送信チャンネルの汎用 > 要約）→ 中身と見出し（要約の題）。email = `MessageLayoutContent`（送信チャンネルが宛先ごとに描く）、inApp = `MessageLayoutContent` + レイアウトの版（送信チャンネルが受け取り箱の行に要約の列とレイアウト・欄の中身を書く、`buildRowContent` が記録の段と秘密の決まりを当てる）、line = 要約から。どの段でも描けない送信チャンネルは送信を書く前に 500（送信チャンネルと理由）

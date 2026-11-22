@@ -52,6 +52,7 @@ export {
   COMMON_CONTEXT_KEYS,
   THROTTLE_CONTEXT_KEYS,
   applyMessageOverride,
+  messageCategoryKeyOf,
   resolveMessageDefinition,
   validateMessageCategories,
   validateMessageDefinition,

@@ -36,8 +36,8 @@ export const COMMON_CONTEXT_KEYS: readonly string[] = MESSAGE_COMMON_VARS.filter
 /** throttle のある連絡だけで差し込める鍵(まとめた回数) */
 export const THROTTLE_CONTEXT_KEYS: readonly string[] = MESSAGE_COMMON_VARS.filter((item) => item.throttleOnly).map((item) => item.key);
 
-/** 上書きで変えられない項目(category は付け替えない D74、kind・defaultChannels は定義に無い、varNames は vars と対 D133) */
-const OVERRIDE_FORBIDDEN_KEYS = ["key", "kind", "vars", "varNames", "required", "category", "defaultChannels"] as const;
+/** 上書きで変えられない項目(kind・defaultChannels は定義に無くカテゴリーが持つ、varNames は vars と対 D133)。category は付け替えられる(D166) */
+const OVERRIDE_FORBIDDEN_KEYS = ["key", "kind", "vars", "varNames", "required", "defaultChannels"] as const;
 
 export type MessageDefinitionProblemCode =
   | "invalid_key"
@@ -100,6 +100,9 @@ export function applyMessageOverride<Vars extends z.AnyZodObject>(
   if (override.enabled !== undefined) resolved.enabled = override.enabled;
   if (override.adminEditableOnly) resolved.adminEditableOnly = override.adminEditableOnly;
   if (override.record !== undefined) resolved.record = override.record;
+  if (override.category !== undefined) resolved.category = override.category;
+  // 送信チャンネルの固定は丸ごと差し替える(付け替えた先のカテゴリーの送信チャンネルで書き直す)
+  if (override.channelModes !== undefined) resolved.channelModes = override.channelModes;
   if (override.throttle === null) {
     delete resolved.throttle;
   } else if (override.throttle !== undefined) {
@@ -108,7 +111,12 @@ export function applyMessageOverride<Vars extends z.AnyZodObject>(
   return resolved;
 }
 
-/** 上書きを重ね、属するカテゴリー(category)から種別と送信チャンネルを付ける(D81・D86) */
+/** 属するカテゴリーの鍵(上書きの付け替えがあればその先、D166)。カテゴリーの項目を引く呼び手はこれで引く */
+export function messageCategoryKeyOf(definition: Pick<MessageDefinition, "category">, override?: Pick<MessageOverride, "category">): string {
+  return override?.category ?? definition.category;
+}
+
+/** 上書きを重ね、属するカテゴリー(category、上書きの付け替えの後)から種別と送信チャンネルを付ける(D81・D86)。category = その鍵の項目 */
 export function resolveMessageDefinition<Vars extends z.AnyZodObject>(
   definition: MessageDefinition<Vars>,
   override: MessageOverride | undefined,
@@ -180,13 +188,16 @@ export function validateMessageDefinition<
     }
   }
 
-  // カテゴリー(全部の連絡に必須、D81): 受け口に無い鍵は誤り。種別と送信チャンネルはカテゴリーから引く
-  const category = typeof definition.category === "string" ? options.categories[definition.category] : undefined;
+  // カテゴリー(全部の連絡に必須、D81): 受け口に無い鍵は誤り。種別と送信チャンネルはカテゴリー(上書きの付け替えの後、D166)から引き、
+  // 種別の性質の検査(required の email・テキストの編集・間引き・email の off)も付け替えた後の値に掛ける
+  const categoryKey = messageCategoryKeyOf(definition, options.override);
+  const category = typeof categoryKey === "string" ? options.categories[categoryKey] : undefined;
   if (!category) {
     const keys = Object.keys(options.categories);
+    const where = options.override?.category !== undefined ? "上書きの category" : "category";
     add(
       "unknown_category",
-      `${label}: category ${String(definition.category)} は categories の受け口に無い(${keys.join(" / ") || "項目なし"})。先に categories/<名前>.ts を足す`,
+      `${label}: ${where} ${String(categoryKey)} は categories の受け口に無い(${keys.join(" / ") || "項目なし"})。先に categories/<名前>.ts を足す`,
     );
     return problems;
   }
@@ -214,7 +225,7 @@ export function validateMessageDefinition<
 
   for (const channel of resolved.channels) {
     if (!channels.has(channel)) {
-      add("unknown_channel", `${label}: カテゴリー ${definition.category} の送信チャンネル ${channel} は登録されていない`);
+      add("unknown_channel", `${label}: カテゴリー ${resolved.category} の送信チャンネル ${channel} は登録されていない`);
     }
   }
   problems.push(...channelModeProblems(resolved, label, traits.emailFixed));

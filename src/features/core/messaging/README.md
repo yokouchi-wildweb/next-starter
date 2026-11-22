@@ -69,7 +69,7 @@ export const category: MessageCategory = { key: "itemSoldInApp", label: "出品�
 ```
 
 - その送信は送信チャンネルを絞るだけ: 管理者が手で送る時だけカテゴリーの送信チャンネルの中で絞れる(足せない、外・空は 400)。組ごとに送り分けるなら組ごとにカテゴリーを作る(例 `campaignMail` = email、`campaign` = email + inApp)
-- 種別は止められるか・好み・宛先の停止(suppression)・記録の既定を決め(`MESSAGE_KIND_TRAITS`)、カテゴリーは停止の単位と集計の軸。上書きは連絡の `category`・カテゴリーの `key`・`kind` を変えられない。上流の連絡を止めるのは `messages/<名前>.override.ts` の `{ enabled: false }`
+- 種別は止められるか・好み・宛先の停止(suppression)・記録の既定を決め(`MESSAGE_KIND_TRAITS`)、カテゴリーは停止の単位と集計の軸。カテゴリーの上書きは `key`・`kind` を変えられない。連絡の上書きは所属の `category` を付け替えられ(fork のカテゴリーへも、functional の連絡も、D166・D167)、送信チャンネルの固定 `channelModes` を丸ごと差し替えられる(種別の性質の検査は付け替えた後の値で見る)。上流の連絡を止めるのは `messages/<名前>.override.ts` の `{ enabled: false }`
 - 機能の連絡(functional): `enabled: false`・テキストの編集・間引き・email を外すことは検査で止まる。文面 = レイアウトの描き方の `.replace`(見た目)か fork のファイルの上書きの `values`(文言) / 流れごと = 送り手(auth など)の口を替える
 - 種別まるごとの停止はデータだけ: 種別まるごとの行は後から足すカテゴリーにも当たる。上流の画面はスイッチを出さないが、送る口・受け取り箱・好みの見え方は同じ判定で見る。会員登録で宣伝に同意しなかった人 = promotion の種別まるごとの行(source `signup`)。見せたい fork は hook `useMessagePreferences` の `setKind` と `preferences.kinds`、サーバーは `messagingService.setMessagePreference(userId, { kind, optedOut }, { source })`
 - カテゴリーのグループ(`categoryGroups/`)は好みのページの見出しで、止める単位ではない(後から足したカテゴリーが止まるかが決まらないため)

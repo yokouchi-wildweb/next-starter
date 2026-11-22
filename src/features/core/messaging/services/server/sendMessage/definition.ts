@@ -14,6 +14,7 @@ import {
   definitionChannels,
   isLayoutAdminSelectable,
   isLayoutUsable,
+  messageCategoryKeyOf,
   resolveMessageDefinition,
   validateMessageDefinition,
   type AdminFieldValue,
@@ -76,11 +77,14 @@ export async function resolveDefinition(
   deps: ResolveDefinitionDeps,
   options: { category?: string } = {},
 ): Promise<AnyResolvedMessageDefinition> {
-  const definition = options.category ? ({ ...source, category: options.category } as AnyMessageDefinition) : source;
-  const entry = deps.registry[definition.key];
-  const override: MessageOverride | undefined = entry?.override
+  const entry = deps.registry[source.key];
+  const loaded: MessageOverride | undefined = entry?.override
     ? (await entry.override()).messageOverride
     : undefined;
+  // 属するカテゴリー = 送る時に決めた物(送信に残したカテゴリー)> 上書きの付け替え(D166)> 定義。送る時に決めた物があれば上書きの付け替えは使わない
+  const definition = { ...source, category: options.category ?? messageCategoryKeyOf(source, loaded) } as AnyMessageDefinition;
+  // 付け替えは定義の category に写したので、上書きの category は外す(送る時に決めた物を上書きが替えない)
+  const override: MessageOverride | undefined = loaded ? { ...loaded, category: undefined } : undefined;
 
   const message = {
     key: definition.key,

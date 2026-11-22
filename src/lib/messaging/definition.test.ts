@@ -15,6 +15,7 @@ import {
   MESSAGE_KINDS,
   MESSAGE_KIND_TRAITS,
   applyMessageOverride,
+  messageCategoryKeyOf,
   defineMessage,
   defineMessageLayout,
   extensionPoints,
@@ -144,14 +145,30 @@ test("上書きを重ねた結果を検査: required への enabled:false・emai
   ]);
 });
 
-test("上書きで key・kind・vars・required・category・defaultChannels は変えられない", () => {
-  const override = { required: false, key: "auth.other", label: "テストの連絡", category: "chat", defaultChannels: ["email"] } as never;
-  assert.deepEqual(codes(validate(verification, { override })), [
-    "override_forbidden_key",
-    "override_forbidden_key",
-    "override_forbidden_key",
-    "override_forbidden_key",
-  ]);
+test("上書きで key・kind・vars・required・defaultChannels は変えられない(category は付け替えられる)", () => {
+  const override = { required: false, key: "auth.other", label: "テストの連絡", defaultChannels: ["email"] } as never;
+  assert.deepEqual(codes(validate(verification, { override })), ["override_forbidden_key", "override_forbidden_key", "override_forbidden_key"]);
+});
+
+test("上書きの category(付け替え、D166・D167): 種別が違っても functional でも通り、種別・送信チャンネルは付け替えた先から引く", () => {
+  // activity(chat)→ transactional(accountInApp): 種別・送信チャンネルは先のカテゴリーから
+  const moved = { category: "accountInApp" };
+  assert.deepEqual(validate(reply, { override: moved }), []);
+  const resolved = resolveMessageDefinition(reply, moved, CATEGORIES.accountInApp!);
+  assert.deepEqual([resolved.category, resolved.kind, resolved.channels], ["accountInApp", "transactional", ["inApp"]]);
+  assert.equal(messageCategoryKeyOf(reply, moved), "accountInApp");
+  assert.equal(messageCategoryKeyOf(reply, {}), "chat");
+  // functional の連絡(required でない)も付け替えられる(D167)
+  const plainFunctional = defineMessage({ ...verification, required: false });
+  assert.deepEqual(validate(plainFunctional, { override: { category: "alert" } }), []);
+  // 受け口に無い付け替え先は誤り(上書きの category と名指す)
+  const unknown = validate(reply, { override: { category: "nope" } });
+  assert.deepEqual(codes(unknown), ["unknown_category"]);
+  assert.match(unknown[0]!.message, /上書きの category nope/);
+  // 種別の性質の検査は付け替えた後の値に掛かる: functional へ移すとテキストの編集・間引きが止まる
+  assert.deepEqual(codes(validate(reply, { override: { category: "account" } })), ["kind_admin_editable", "kind_throttle"]);
+  // required の連絡を email の無いカテゴリーへ移すと止まる
+  assert.ok(codes(validate(verification, { override: { category: "accountInApp" } })).includes("required_without_email"));
 });
 
 test("上書きの重ね方: 欄の中身は欄ごとに差し替え、throttle: null で外す", () => {
@@ -336,6 +353,25 @@ test("送信チャンネルの固定(channelModes、D212): カテゴリーの外
   assert.ok(codes(validate(security)).includes("email_off_fixed"));
 });
 
+test("上書きの channelModes: 丸ごと差し替え、種別の性質の検査は上書きの後の値に掛かる(ticket 04 AMENDMENT 1)", () => {
+  // email を外せない種別(security)の連絡で上書きが email を off にすると止まる
+  const security = defineMessage({ ...verification, required: false, category: "alert" });
+  assert.deepEqual(validate(security), []);
+  assert.ok(codes(validate(security, { override: { channelModes: { email: "off" } } })).includes("email_off_fixed"));
+  // 外せる種別なら通り、定義の固定を丸ごと差し替える({} = 全部 free)
+  const fixed = defineMessage({ ...reply, channelModes: { email: "off", inApp: "on" } });
+  assert.deepEqual(applyMessageOverride(fixed, { channelModes: { inApp: "free" } }).channelModes, { inApp: "free" });
+  assert.deepEqual(applyMessageOverride(fixed, { channelModes: {} }).channelModes, {});
+  assert.deepEqual(validate(fixed, { override: { channelModes: { email: "on" } } }), []);
+  // 付け替えた先のカテゴリーの外の送信チャンネルを固定に残すと誤り(付け替える時は書き直す)
+  assert.deepEqual(codes(validate(fixed, { override: { category: "accountInApp" } })), ["unknown_channel_mode"]);
+  assert.deepEqual(validate(fixed, { override: { category: "accountInApp", channelModes: { inApp: "on" } } }), []);
+  // 付け替えた先の種別で見る: email を外せる種別(activity)なら通り、外せない種別(security)なら止まる
+  const plain = defineMessage({ ...verification, required: false, category: "accountInApp" });
+  assert.deepEqual(validate(plain, { override: { category: "chat", channelModes: { email: "off" } } }), []);
+  assert.ok(codes(validate(plain, { override: { category: "alert", channelModes: { email: "off" } } })).includes("email_off_fixed"));
+});
+
 test("ChannelError は lib/mail と同じ 3 分類を持つ Error", () => {
   assert.deepEqual([...CHANNEL_ERROR_KINDS], ["transient", "permanent", "unknown"]);
   const error = new ChannelError({ message: "届かない", kind: "permanent", channel: "line", reason: "invalid_address" });
@@ -384,6 +420,8 @@ test("上書きの型の鍵と宣言の overrideOf は同じ", () => {
   assert.equal(overrideKeysMatch, true);
   assert.deepEqual([...extensionPoints.messages.overrideOf].sort(), [
     "adminEditableOnly",
+    "category",
+    "channelModes",
     "enabled",
     "extras",
     "label",

@@ -4,7 +4,8 @@
 // - 守りに関わる値(定義の required・category・adminEditableOnly、上書きの enabled・adminEditableOnly、種類の kind・channels・group)はリテラルで書く
 // - label(全部の定義に必須、D46): 管理画面に出す連絡の名前。字面の空でない文字列(上書きで変えられる = 表示だけ)
 // - category(全部の定義に必須、D81): リテラルで、categories の受け口(messaging の点 categories)の項目の鍵のどれか。
-//   上書きでは category を変えられない(宣言の overrideOf に無い = ../overrideKeys.mjs)
+//   上書きの category(付け替え、D166・D167)もリテラルで受け口の鍵。下の守りは付け替えた後のカテゴリー(種別・経路)で見る
+// - 上書きの channelModes(送信チャンネルの固定の丸ごとの差し替え、D212)もリテラル。required か email を外せない種別の email を "off" にしない
 // - layout(全部の定義に必須、D122): リテラルで、ひな形の受け口(messaging の点 layouts)のフォルダの名前のどれか。欄の中身(values)は
 //   ひな形の欄の zod で実行時に検査する(lib/messaging validateMessageDefinition)
 // - required の定義: 種類の経路に "email" がある・adminEditableOnly が空・throttle が無い
@@ -284,14 +285,35 @@ export function checkMessageGuards(repoRoot, points, files) {
     if (categories) problems.push(...categoryProblems(path, definition, categories));
     problems.push(...labelProblems(path, definition));
     problems.push(...layoutProblems(path, definition, layoutKeys));
-    const categoryItem = categories?.get(readLiteralProperty(definition, "category").value);
     const ownOverride = path.replace(/\.[A-Za-z]+$/, ".override.ts");
     const hasOverride = files.includes(ownOverride) && matchesGlob(ownOverride, overrideGlob);
+    const overrideObject = hasOverride ? exportedObject(ownOverride, readFileSync(join(repoRoot, ownOverride), "utf8"), overrideExport) : null;
+    // 付け替えた後のカテゴリー(上書きの category、D166)。守りはこのカテゴリーの種別・経路で見る
+    let categoryKey = readLiteralProperty(definition, "category").value;
+    if (overrideObject) {
+      const moved = readLiteralProperty(overrideObject, "category");
+      if (moved.problem) problems.push(`${ownOverride}: ${moved.problem}(付け替え先のカテゴリーを字面で照らすため)`);
+      else if (moved.present) {
+        if (categories && (typeof moved.value !== "string" || !categories.has(moved.value))) {
+          problems.push(`${ownOverride}: category ${JSON.stringify(moved.value)} は categories の受け口に無い(${[...categories.keys()].sort().join(" / ") || "項目なし"})`);
+        } else categoryKey = moved.value;
+      }
+    }
+    const categoryItem = categories?.get(categoryKey);
+    // 送信チャンネルの固定(上書きがあれば丸ごと差し替え、D212): required か email を外せない種別(emailFixed)の email を off にしない
+    const modesSource = overrideObject && readLiteralProperty(overrideObject, "channelModes").present ? { path: ownOverride, object: overrideObject } : { path, object: definition };
+    const modes = readLiteralProperty(modesSource.object, "channelModes");
+    if (modes.problem) problems.push(`${modesSource.path}: ${modes.problem}(email の固定を字面で確かめるため)`);
+    else if (modes.present && modes.value && typeof modes.value === "object" && modes.value.email === "off") {
+      const requiredFlag = readLiteralProperty(definition, "required").value === true;
+      if (requiredFlag || (categoryItem && traits.emailFixed.has(categoryItem.kind))) {
+        problems.push(`${modesSource.path}: ${requiredFlag ? "required の連絡" : `種別 ${categoryItem.kind} の連絡`}の email は off にできない(channelModes、D212)`);
+      }
+    }
     // 上流の functional の連絡は止められない(fork の自分の連絡は自由、D68)。required の連絡は下の守りが言う
     const isRequired = readLiteralProperty(definition, "required").value === true;
     if (!isRequired && hasOverride && categoryItem && traits.noUpstreamDisable.has(categoryItem.kind) && path.startsWith("src/features/core/")) {
-      const object = exportedObject(ownOverride, readFileSync(join(repoRoot, ownOverride), "utf8"), overrideExport);
-      const enabled = object ? readLiteralProperty(object, "enabled") : { present: false };
+      const enabled = overrideObject ? readLiteralProperty(overrideObject, "enabled") : { present: false };
       if (enabled.problem) problems.push(`${ownOverride}: ${enabled.problem}(上流の ${categoryItem.kind} の連絡のため)`);
       else if (enabled.present && enabled.value !== true) {
         problems.push(`${ownOverride}: 上流の種別 ${categoryItem.kind} の連絡は止められない(enabled: false にしない。止めたいなら機能を閉じる、D68)`);

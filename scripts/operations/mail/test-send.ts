@@ -76,11 +76,12 @@ async function messageTemplates(): Promise<TemplateConfig[]> {
   const templates: TemplateConfig[] = [];
   for (const entry of Object.values(messageRegistry).sort((a, b) => a.key.localeCompare(b.key))) {
     const { message } = await entry.definition();
-    const category = categories[message.category];
-    const layout = layouts[message.layout];
-    if (!category?.channels.includes("email") || !layout) continue;
+    // 上書きを先に重ねる(所属のカテゴリーは上書きで付け替えられる、D166)
     const override = entry.override ? (await entry.override()).messageOverride : undefined;
     const resolved = applyMessageOverride(message, override);
+    const category = categories[resolved.category];
+    const layout = layouts[message.layout];
+    if (!category?.channels.includes("email") || !layout) continue;
     const renderer = layoutEmails[layout.key];
     templates.push({
       key: entry.key,
@@ -91,7 +92,7 @@ async function messageTemplates(): Promise<TemplateConfig[]> {
         const enricherShape = Object.assign(
           {},
           ...Object.values(enrichers)
-            .filter((enricher) => enricherTargets(enricher.target, { key: entry.key, category: message.category, kind: category.kind }))
+            .filter((enricher) => enricherTargets(enricher.target, { key: entry.key, category: resolved.category, kind: category.kind }))
             .map((enricher) => enricher.provides.shape as Record<string, ZodLike>),
         ) as Record<string, ZodLike>;
         const values = sampleValues(

@@ -21,7 +21,7 @@ export const extensionPoints = {
     key: "key",
   },
   // カテゴリー(利用者から見て 1 つの出来事、D79): categories/<名前>.ts の export const category(鍵・表示名・説明・種別・送信チャンネル・グループ)。
-  // fork は上流のカテゴリーの隣の <名前>.override.ts で label・description・channels・group を変えられる(鍵・種別は不可 D70 D74、
+  // fork は上流のカテゴリーの隣の <名前>.override.ts で label・description・channels・group を変えられる(鍵・種別は不可 D70・D166、
   // functional・security の email は外せない D86 = pnpm check extensions の messageGuards)
   categories: {
     dir: "categories",

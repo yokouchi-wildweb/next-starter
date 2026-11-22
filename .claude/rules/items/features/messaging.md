@@ -14,8 +14,8 @@ using:
 - system_send: cron / CLI sends run inside runAsSystem
 - category: every message has a category (one user-facing event) | new one → pnpm generate message
 - channels: set by the category, never per message (code sends pass none) | other channels → another category
-- no_reassign: never move a message to another category / kind → enabled: false, add your own
-- functional: functional messages are never disabled, throttled, admin-overridden or stripped of email
+- no_reassign: a category's kind never changes (another kind → another category) | an upstream message moves to another category only through its override's category, never by editing it
+- functional: functional messages are never disabled, throttled, admin-overridden or stripped of email | judged on the category after the override
 - stop_unit: a category group is a heading only | stop together → one category
 - audience: condition-based audience → userGroup | event recipient → recipient, not a group
 - legal_notice: a legally required notice uses a category with email
