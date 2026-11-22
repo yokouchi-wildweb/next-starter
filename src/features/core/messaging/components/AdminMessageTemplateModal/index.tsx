@@ -103,7 +103,6 @@ function TemplateModalBody({
     mode: "template",
   });
   const tags = useVarTags({ catalog: form.catalog });
-  const locked = form.readOnly;
   const [versionsOpen, setVersionsOpen] = useState(false);
 
   // 埋め込み情報 = 下の操作の帯の左(モーダルに固定でいつも押せる)。吹き出しは上に開く(VarPopover)
@@ -113,7 +112,7 @@ function TemplateModalBody({
       own={tags.own}
       onCopy={tags.copy}
       unknownNames={form.unknownNames}
-      onManage={locked ? undefined : varsEditor.openEditor}
+      onManage={varsEditor.openEditor}
       manageCount={varsEditor.count}
     />
   );
@@ -122,37 +121,35 @@ function TemplateModalBody({
     <Flex align="center" justify="between" gap="md" wrap="wrap">
       {/* 埋め込み情報は入力欄と同じく、そろうまで出さない(D139)。右の操作は右に寄せたまま */}
       {form.fieldsReady ? varControls : null}
-      {locked ? null : (
-        <Flex justify="end" gap="xs" wrap="wrap" className="ml-auto">
-          {template ? (
-            <ConfirmPopover
-              trigger={
-                <Button type="button" size="sm" variant="outline" disabled={form.dirty}>
-                  削除
-                </Button>
-              }
-              title="削除"
-              description="テンプレートを削除します。送信の記録は残ります(どのテンプレートから送ったかは表示されなくなります)"
-              confirmLabel="削除する"
-              confirmVariant="destructive"
-              onConfirm={async () => {
-                if (await form.remove()) onOpenChange(false);
-              }}
-            />
-          ) : null}
+      <Flex justify="end" gap="xs" wrap="wrap" className="ml-auto">
+        {template ? (
           <ConfirmPopover
             trigger={
-              <Button type="button" size="sm" variant="primary" disabled={!form.dirty}>
-                保存
+              <Button type="button" size="sm" variant="outline" disabled={form.dirty}>
+                削除
               </Button>
             }
-            title="保存"
-            description="現在の内容をこのテンプレートの新しいバージョンとして保存します。保存したバージョンは変更できません。"
-            confirmLabel="保存する"
-            onConfirm={form.save}
+            title="削除"
+            description="テンプレートを削除します。送信の記録は残ります(どのテンプレートから送ったかは表示されなくなります)"
+            confirmLabel="削除する"
+            confirmVariant="destructive"
+            onConfirm={async () => {
+              if (await form.remove()) onOpenChange(false);
+            }}
           />
-        </Flex>
-      )}
+        ) : null}
+        <ConfirmPopover
+          trigger={
+            <Button type="button" size="sm" variant="primary" disabled={!form.dirty}>
+              保存
+            </Button>
+          }
+          title="保存"
+          description="現在の内容をこのテンプレートの新しいバージョンとして保存します。保存したバージョンは変更できません。"
+          confirmLabel="保存する"
+          onConfirm={form.save}
+        />
+      </Flex>
     </Flex>
   );
 
@@ -179,7 +176,7 @@ function TemplateModalBody({
             <Label htmlFor="template-name" className="text-sm">
               テンプレート名
             </Label>
-            <Input id="template-name" value={fields.name} disabled={locked} onChange={(e) => fields.setName(e.target.value)} />
+            <Input id="template-name" value={fields.name} onChange={(e) => fields.setName(e.target.value)} />
           </Stack>
           <KindCategoryFields
             idPrefix="template"
@@ -189,13 +186,12 @@ function TemplateModalBody({
             categories={fields.categoryChoices}
             category={fields.category}
             onCategoryChange={fields.setCategory}
-            disabled={locked}
           />
           <Stack gap="2xs">
             <Label htmlFor="template-description" className="text-sm">
               説明(任意)
             </Label>
-            <Textarea id="template-description" value={fields.description} rows={2} disabled={locked} onChange={(e) => fields.setDescription(e.target.value)} />
+            <Textarea id="template-description" value={fields.description} rows={2} onChange={(e) => fields.setDescription(e.target.value)} />
           </Stack>
         </Stack>
 
@@ -206,7 +202,6 @@ function TemplateModalBody({
               fields={form.layoutFields}
               channels={fields.channels}
               activeChannel={preview.channel}
-              readOnly={locked}
             />
           ) : (
             <Span size="sm" tone="muted">
@@ -224,7 +219,6 @@ function TemplateModalBody({
           <SelectInput
             id="template-layout"
             value={fields.layout}
-            disabled={locked}
             options={fields.layoutOptions.map((item) => ({ value: item.value, label: item.label }))}
             placeholder="レイアウトを選択"
             onChange={(v) => fields.requestLayoutChange(v ? String(v) : "")}
@@ -296,7 +290,6 @@ function TemplateModalBody({
           varsEditor.apply();
         }}
         errors={varsEditor.errors}
-        readOnly={locked}
       />
     </>
   );

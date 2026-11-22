@@ -276,6 +276,16 @@ export const testConfig: MessagingConfig = {
   inbox: { showUnreadModal: false, unreadModalPaths: ["/"] },
   schedule: { maxDaysAhead: 30 },
   subscribers: { lagSeconds: 120, maxAttempts: 3, batchSize: 2, budgetMs: 60_000 },
+  initialLayout: "simple",
+  kindLabels: {
+    functional: { label: "機能通知" },
+    transactional: { label: "手続き通知" },
+    security: { label: "セキュリティ" },
+    announcement: { label: "運営告知" },
+    direct: { label: "個別連絡" },
+    activity: { label: "アクティビティ" },
+    promotion: { label: "プロモーション" },
+  },
 };
 
 export const FIXED_NOW = new Date("2026-11-10T00:00:00.000Z");
