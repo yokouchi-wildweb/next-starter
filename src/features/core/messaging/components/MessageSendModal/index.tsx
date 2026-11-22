@@ -4,8 +4,8 @@
 // new / sameAs の口を門 messagingBroadcast で出し分けるのは置き場の入れ物(AdminDispatchList / AdminDispatchDetail)。bulk は門の外。
 // fork は自分の画面(例 発送リクエストの一覧)にもこの入れ物をそのまま置ける(公開の部品と hook)。
 // 画面(D126): 左右 2 つのペイン(左 = プレビュー、右 = 操作。狭い画面は操作が上)。「あなた宛ての表示例」は上に重ねるモーダル(SampleForYouModal、D129)。
-// 並び(D110 D115 D118): 種別とカテゴリーの 1 行 → 送信方法 → 宛先(種別が許す物)→ テンプレート(その種別の物、読み込まない = 白紙)
-// → 内容 → 送る時刻。内容(D118 D119 D120): テンプレートを読み込んだ直後は文を固定して見せ、専用の埋め込み情報の入力だけ。
+// 並び(D110 D115 D118 D195): 種別とカテゴリーの 1 行 → 送信方法 → 宛先(種別が許す物。new の initialRecipients があればその利用者から)
+// → レイアウト(初めは initialLayout、替えると白紙)→ テンプレート(任意の読み込み、その種別の物)→ 内容 → 送る時刻。内容(D118 D119 D120): テンプレートを読み込んだ直後は文を固定して見せ、専用の埋め込み情報の入力だけ。
 // 『文面を直す』でレイアウトの欄の入力(LayoutFields)と埋め込み情報のタグ、『テンプレートを更新』(Dialog で確かめる、送るとは別)。
 // プレビュー = レイアウトの実際の描き方(LayoutPreview、送信チャンネルのタブ、未入力は仮の文。種別を選ぶまでは案内だけ)。「あなた宛ての表示例」のボタン = 送る口で描いた表示例(埋め込み情報を差し込む)
 // 手で直した書きかけの上に読み込む時は Dialog で確かめる。書きかけのまま閉じる = Modal の confirmOnClose。ページの移動は hook の中の @/lib/unsavedGuard
@@ -40,6 +40,7 @@ import { SendTargetPicker } from "@/features/core/messaging/components/common/Se
 import { KindCategoryFields } from "@/features/core/messaging/components/common/KindCategoryFields";
 import { SendCategoryChannels } from "@/features/core/messaging/components/common/SendCategoryChannels";
 import { SendConfirmView, SendResultView } from "@/features/core/messaging/components/common/SendConfirmView";
+import { SendLayoutPicker } from "@/features/core/messaging/components/common/SendLayoutPicker";
 import { SendSchedule } from "@/features/core/messaging/components/common/SendSchedule";
 import { SendVarInputs, SendTemplatePicker } from "@/features/core/messaging/components/common/SendTemplatePicker";
 import { useVarTags } from "@/features/core/messaging/hooks/useVarTags";
@@ -225,14 +226,20 @@ export function MessageSendModal({
                 allowedTypes={m.allowedTargetTypes}
               />
             )}
-            <SettingLabel>テンプレート</SettingLabel>
-            <SendTemplatePicker
-              templates={m.pickerTemplates}
-              blank={m.currentLayout ?? m.blank}
-              loaded={m.loadedTemplate ? { ...m.loadedTemplate, edited: text.edited } : null}
-              onLoad={m.loadTemplate}
-              onUnload={m.unloadTemplate}
-            />
+            <SettingLabel>レイアウト</SettingLabel>
+            <SendLayoutPicker hideLabel layouts={m.layoutChoices} value={m.layoutKey} onChange={m.chooseLayout} />
+            {/* テンプレートは任意の読み込みの道具(門 messagingTemplates が閉なら行ごと出さない) */}
+            {m.templatesAvailable ? (
+              <>
+                <SettingLabel>テンプレート</SettingLabel>
+                <SendTemplatePicker
+                  templates={m.pickerTemplates}
+                  loaded={m.loadedTemplate ? { ...m.loadedTemplate, edited: text.edited } : null}
+                  onLoad={m.loadTemplate}
+                  onUnload={m.unloadTemplate}
+                />
+              </>
+            ) : null}
           </Grid>
         </Block>
         <Block title="内容">
@@ -419,6 +426,17 @@ export function MessageSendModal({
         confirmLabel="置き換える"
         cancelLabel="キャンセル"
         onConfirm={m.confirmLoad}
+      />
+      <Dialog
+        open={m.pendingLayout !== null}
+        onOpenChange={(next) => {
+          if (!next) m.cancelLayout();
+        }}
+        title="レイアウトを替えますか"
+        description="入力中の内容は消え、選んだレイアウトの白紙から書き直します。"
+        confirmLabel="替える"
+        cancelLabel="キャンセル"
+        onConfirm={m.confirmLayout}
       />
       <Dialog
         open={confirmingUpdate}

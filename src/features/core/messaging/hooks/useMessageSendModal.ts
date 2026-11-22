@@ -4,14 +4,16 @@
 //
 // 管理: 送るモーダルの流れ(1 つの hook。入れ物 MessageSendModal はこれを呼んで部品を並べるだけ、CLAUDE.md core_ui)。
 // 開き方(mode):
-// - new: 送信の一覧の「新規送信」。POST /api/admin/messaging/send(門 messagingBroadcast の内側)
+// - new: 送信の一覧の「新規送信」。POST /api/admin/messaging/send(門 messagingBroadcast の内側)。initialRecipients(利用者 id)を渡すと
+//   宛先が「選んだ利用者」のその人たちから始まる(管理者が変えられる。利用者の詳細などの入口、D177)。/send を通るので呼び手は門 messagingBroadcast で包む
 // - sameAs: 送信の詳細の「同じ内容で送る」。送信のカテゴリー(→ 種別)・送信チャンネル・宛先の形と、送信の中身(レイアウト + values、D128)を写す。
 //   テンプレートの送信でそのテンプレートが今も公開中 = 今の版を読み込んだ形(直して送信した物は直した文で、文面を直す状態から。専用の埋め込み情報の値も写す)。
 //   公開中でない・レイアウトから書いた送信 = 送信のレイアウトに送信の values を入れた形(管理画面で選べないレイアウトなら写せない = sameAsNote)
 // - bulk: 管理一覧の一括操作。宛先 = 選んだ記録(target + recordIds)、POST /api/admin/messaging/bulk-send(門の外)。予約は無い
 // 流れ(D110 D115): 種別 → カテゴリー(種別に 2 つ以上ある時だけ選ぶ)→ 宛先(種別が許す種類だけ。direct はグループも、D109)
-// → テンプレート(その種別の公開中の物。読み込まない = 管理画面で選べる最初のレイアウトから書く、D171。レイアウトを選ぶ画面は指令 03)→ 文面(useSendTemplateText: 読み込んだ直後は固定、
-// 『文面を直す』で全文、『テンプレートの読み込みを解除』で初めのレイアウトへ、『テンプレートを更新』で新しい版、D118 D119 D120)
+// → レイアウト(初めは選択肢の initialLayout。選べるのは管理画面で選べて無効でない物。替えると欄の中身は白紙、D171 D195)
+// → テンプレート(任意の読み込みの道具。その種別の公開中の物、使えないレイアウトの物はサーバーが出さない)→ 文面(useSendTemplateText: 読み込んだ直後は固定、
+// 『文面を直す』で全文、『テンプレートの読み込みを解除』でそのテンプレートのレイアウト(選べなければ初めのレイアウト)へ、『テンプレートを更新』で新しい版、D118 D119 D120)
 // → 送信チャンネルの絞り(カテゴリーの送信チャンネルの中、既定は全部オン)→ 予約(bulk 以外)→ プレビュー(レイアウトの描き方 useLayoutPreview がいつも、
 // 「プレビュー」= あなた宛ての表示例を送る口で描く)・自分へのテスト送信 → 見込み → 確認 → 送る → 結果。
 // - 送る口の入力 = { category, channels?, origin: { layout } | { id, version }, values, edited?, vars? }(services/server/admin/send.ts)
@@ -67,7 +69,11 @@ export type MessageSendDefaults = {
 };
 
 export type MessageSendMode =
-  | { type: "new" }
+  | {
+      type: "new";
+      /** 初めの宛先(利用者 id)。あれば宛先は「選んだ利用者」のこの人たちから始まる(管理者が変えられる)。/send を通るので呼び手は門 messagingBroadcast で包む */
+      initialRecipients?: readonly string[];
+    }
   | { type: "sameAs"; dispatch: AdminDispatchDetail }
   | {
       type: "bulk";
@@ -201,9 +207,16 @@ export function sameAsNoteOf(
   return null;
 }
 
-/** mode から導く初めの宛先(sameAs = 送信の宛先の形。グループ宛ての送信は同じグループ、選んだ利用者への送信は同じ利用者を選んだ形) */
+/**
+ * mode から導く初めの宛先(new + initialRecipients = その利用者を選んだ形。sameAs = 送信の宛先の形: グループ宛ての送信は同じグループ、
+ * 選んだ利用者への送信は同じ利用者を選んだ形)
+ */
 export function initialTargetOf(mode: MessageSendMode): MessageSendTarget {
   const blank: MessageSendTarget = { type: "all", roles: [], groupId: "", userIds: [] };
+  if (mode.type === "new") {
+    const userIds = [...new Set(mode.initialRecipients ?? [])];
+    return userIds.length > 0 ? { ...blank, type: "users", userIds } : blank;
+  }
   if (mode.type !== "sameAs") return blank;
   if (mode.dispatch.targetGroup) return { ...blank, type: "group", groupId: mode.dispatch.targetGroup.id };
   const target = record(mode.dispatch.target);
@@ -241,6 +254,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const [textTouched, setTextTouched] = useState(false);
   /** 上書きを確かめている読み込み(テンプレートの id) */
   const [pendingLoad, setPendingLoad] = useState<string | null>(null);
+  /** 書きかけを消すのを確かめているレイアウトの切り替え(レイアウトの鍵) */
+  const [pendingLayout, setPendingLayout] = useState<string | null>(null);
   /** 外した送信チャンネル(null = まだ触っていない = mode から導く。sameAs は元の送信が使わなかった送信チャンネルを外した形) */
   const [channelsOffState, setChannelsOff] = useState<string[] | null>(null);
   const [scheduleMode, setScheduleModeState] = useState<"now" | "at">("now");
@@ -308,8 +323,18 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   // ---- テンプレート(選んだ種別の物) ----
   const kindOfCategory = useCallback((key: string) => allCategories.find((option) => option.key === key)?.kind ?? null, [allCategories]);
   const templates = useMemo(() => allTemplates.filter((item) => kindOfCategory(item.category) === kind), [allTemplates, kindOfCategory, kind]);
-  /** 初めのレイアウト(読み込まない時・読み込みを解除した時の出どころ) */
+  /** 初めのレイアウト(開いた時の出どころ。読み込みを解除してテンプレートのレイアウトが選べない時も) */
   const blank = useMemo(() => blankLayoutOf(layouts, initialLayout), [layouts, initialLayout]);
+  /** 選べるレイアウト(管理画面で選べて無効でない物、受け口の順) */
+  const layoutChoices = useMemo(
+    () => layouts.filter((option) => option.selectable).map((option) => ({ key: option.key, label: option.label })),
+    [layouts],
+  );
+  /** レイアウトから書く形へ戻る先: そのレイアウトが選べればそれ(今の文を残す)、選べなければ初めのレイアウト */
+  const backToLayoutOf = useCallback(
+    (key: string | null) => layoutChoices.find((option) => option.key === key) ?? blank,
+    [layoutChoices, blank],
+  );
   /** 選ぶ小窓の並び = 公開中のテンプレート(門 messagingTemplates が開の時) */
   const pickerTemplates = useMemo(
     () => (templatesOpen ? templates.map((item) => ({ id: item.id, name: item.name, currentVersion: item.currentVersion })) : []),
@@ -387,10 +412,13 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       // 送信方法は新しいカテゴリーの最初の送信チャンネルに戻す(D119)
       setChannelsOff(null);
       setPreview(null);
-      // テンプレートは種別ごと → 初めのレイアウトへ(レイアウトが同じなら今の文を残す)
-      text.reset(blank ? text.toBlank(blank) : null);
+      // レイアウトは種別に関わらない → 選んだレイアウトと文はそのまま。テンプレートは種別ごと → 読み込んでいれば外す(そのレイアウトへ、文は残す)
+      if (text.source?.type === "template") {
+        const back = backToLayoutOf(text.state?.layout ?? null);
+        text.reset(back ? text.toBlank(back) : null);
+      }
     },
-    [kind, allCategories, text, blank],
+    [kind, allCategories, text, backToLayoutOf],
   );
   const setCategory = useCallback((key: string) => {
     setChosenCategory(key);
@@ -426,12 +454,40 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     if (pendingLoad) applyLoad(pendingLoad);
   }, [pendingLoad, applyLoad]);
   const cancelLoad = useCallback(() => setPendingLoad(null), []);
-  /** 『テンプレートの読み込みを解除』: 初めのレイアウトへ(レイアウトが同じなら今の文を残す、D118) */
+  /** 『テンプレートの読み込みを解除』: そのテンプレートのレイアウトへ(選べなければ初めのレイアウト。レイアウトが同じなら今の文を残す、D118) */
   const unloadTemplate = useCallback(() => {
-    text.reset(blank ? text.toBlank(blank) : null);
+    const back = backToLayoutOf(text.state?.layout ?? null);
+    text.reset(back ? text.toBlank(back) : null);
     setTextTouched(true);
     setPreview(null);
-  }, [text, blank]);
+  }, [text, backToLayoutOf]);
+
+  /** レイアウトに替える(欄の中身は白紙から。前のレイアウトの値は持ち越さない。テンプレートを読み込んでいれば外れる) */
+  const applyLayout = useCallback(
+    (key: string) => {
+      setPendingLayout(null);
+      const layout = layoutChoices.find((option) => option.key === key);
+      if (!layout) return;
+      text.reset(layoutTextState(layout));
+      setTextTouched(false);
+      setPreview(null);
+    },
+    [layoutChoices, text],
+  );
+  /** レイアウトを選ぶ。選べない物・今と同じ(レイアウトから書いている時)は何もしない。手で書いた書きかけがあれば消すのを確かめる(pendingLayout) */
+  const chooseLayout = useCallback(
+    (key: string) => {
+      if (!layoutChoices.some((option) => option.key === key)) return;
+      if (text.source?.type === "layout" && text.source.layout === key) return;
+      if (textDirty) setPendingLayout(key);
+      else applyLayout(key);
+    },
+    [layoutChoices, text.source, textDirty, applyLayout],
+  );
+  const confirmLayout = useCallback(() => {
+    if (pendingLayout) applyLayout(pendingLayout);
+  }, [pendingLayout, applyLayout]);
+  const cancelLayout = useCallback(() => setPendingLayout(null), []);
 
   const toggleChannel = useCallback(
     (channel: string, on: boolean) => {
@@ -636,6 +692,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     resetText(null);
     setTextTouched(false);
     setPendingLoad(null);
+    setPendingLayout(null);
     setChannelsOff(null);
     setScheduleModeState("now");
     setScheduledAtState("");
@@ -699,6 +756,15 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     templates,
     /** 初めのレイアウト(選べるレイアウトが無ければ null) */
     blank,
+    /** 選べるレイアウト(管理画面で選べて無効でない物) */
+    layoutChoices,
+    /** 選んでいるレイアウトの鍵(テンプレートを読み込んだ間はそのテンプレートのレイアウト) */
+    layoutKey: text.state?.layout ?? null,
+    chooseLayout,
+    /** 書きかけを消すのを確かめているレイアウトの切り替え(入れ物が確かめの Dialog を出す) */
+    pendingLayout,
+    confirmLayout,
+    cancelLayout,
     loadedTemplate,
     text,
     layoutPreview,

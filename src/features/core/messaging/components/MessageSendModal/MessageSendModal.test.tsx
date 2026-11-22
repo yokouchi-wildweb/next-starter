@@ -1,9 +1,9 @@
 // 送るモーダルの入れ物と、開く口の検査(jsdom の上で描く。hook・Modal・Dialog・部品は偽物)。
-// - 入れ物: ボタンで開く / 書く段は部品を並べる(左右 2 つのペイン: 操作 = 種別とカテゴリー → 送信方法 → 宛先 → テンプレート → 内容 → 送信日時、
+// - 入れ物: ボタンで開く / 書く段は部品を並べる(左右 2 つのペイン: 操作 = 種別とカテゴリー → 送信方法 → 宛先 → レイアウト → テンプレート(門 messagingTemplates が開の時だけ)→ 内容 → 送信日時、
 //   プレビュー = LayoutPreview。種別を選ぶまでは案内だけ)/ テンプレートを読み込んだ直後は専用の埋め込み情報の入力と『文面を直す』だけ /
 //   予約は bulk で出さない / confirmOnClose に hook の closeConfirm を渡す / 下の帯のボタンで hook を呼ぶ
 // - 確認の段は「送信する」(予約なら「予約する」)で confirmSend、「戻る」で backToEdit、上限を超えたら送れない / 結果の段(送信へのリンクは dispatchDetailHref)
-// - 手で直した書きかけの上に読み込む時は Dialog で確かめる(置き換える → confirmLoad、閉じる → cancelLoad)
+// - 手で直した書きかけの上に読み込む時は Dialog で確かめる(置き換える → confirmLoad、閉じる → cancelLoad)。レイアウトを替える時も同じ(confirmLayout / cancelLayout)
 // - 開く口: 送信の一覧の「新規送信」は門 messagingBroadcast が開の時だけ
 // 実行: pnpm test src/features/core/messaging/components/MessageSendModal/MessageSendModal.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -86,6 +86,15 @@ const baseState = () =>
     pickerTemplates: [{ id: "t1", name: "春", currentVersion: 2 }],
     currentLayout: { label: "シンプル" },
     blank: { key: "simple", label: "シンプル" },
+    layoutChoices: [
+      { key: "simple", label: "シンプル" },
+      { key: "notice", label: "汎用のお知らせ" },
+    ],
+    layoutKey: "simple",
+    chooseLayout: (key: string) => events.push(`layout:${key}`),
+    pendingLayout: null,
+    confirmLayout: () => events.push("confirmLayout"),
+    cancelLayout: () => events.push("cancelLayout"),
     loadedTemplate: null,
     text: baseText(),
     layoutPreview: {
@@ -155,7 +164,7 @@ mock.module("@/components/Overlays/Modal", {
     return open ? createElement("section", { "data-testid": "modal" }, title as never, children as never, footer as never) : null;
   },
 });
-// Dialog は 2 つ(読み込みの上書き・テンプレートの更新)。題で分けて props を控える
+// Dialog は 3 つ(読み込みの上書き・レイアウトの切り替え・テンプレートの更新)。題で分けて props を控える
 const dialogs = new Map<string, Record<string, unknown>>();
 const FakeDialog = (props: Record<string, unknown>) => {
   dialogs.set(String(props.title), props);
@@ -190,6 +199,7 @@ const COMMON = "@/features/core/messaging/components/common";
 mock.module(`${COMMON}/KindCategoryFields`, { namedExports: { KindCategoryFields: stub("kindCategory") } });
 mock.module(`${COMMON}/SendCategoryChannels`, { namedExports: { SendCategoryChannels: stub("channels") } });
 mock.module(`${COMMON}/SendTargetPicker`, { namedExports: { SendTargetPicker: stub("target") } });
+mock.module(`${COMMON}/SendLayoutPicker`, { namedExports: { SendLayoutPicker: stub("layout") } });
 mock.module(`${COMMON}/SendTemplatePicker`, {
   namedExports: { SendTemplatePicker: stub("template"), SendVarInputs: stub("vars") },
 });
@@ -296,14 +306,21 @@ const NEW = { type: "new" } as const;
 
 test("書く段: 部品を並べ、confirmOnClose に closeConfirm、ボタンで hook を呼ぶ", async () => {
   const view = await render(createElement(MessageSendModal, { mode: NEW }));
-  // 並び(D110 D115 D118): 種別とカテゴリー → 送信方法 → 宛先 → テンプレート → 内容(白紙 = レイアウトの欄)→ 送信日時、
+  // 並び(D110 D115 D118 D195): 種別とカテゴリー → 送信方法 → 宛先 → レイアウト → テンプレート → 内容(白紙 = レイアウトの欄)→ 送信日時、
   // プレビューのペイン → 下の帯(埋め込み情報の吹き出し)。「あなた宛ての表示例」は表示例が無い間は出さない
-  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "layoutFields", "schedule", "layoutPreview", "varPopover"]);
+  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "layout", "template", "layoutFields", "schedule", "layoutPreview", "varPopover"]);
   assert.equal(lastProps.get("target")!.kind, "select");
   assert.deepEqual(lastProps.get("template")!.templates, [{ id: "t1", name: "春", currentVersion: 2 }]);
   assert.equal(lastProps.get("template")!.loaded, null);
-  assert.deepEqual(lastProps.get("template")!.blank, { label: "シンプル" });
+  assert.deepEqual(lastProps.get("layout")!.layouts, [
+    { key: "simple", label: "シンプル" },
+    { key: "notice", label: "汎用のお知らせ" },
+  ]);
+  assert.equal(lastProps.get("layout")!.value, "simple");
+  (lastProps.get("layout")!.onChange as (key: string) => void)("notice");
+  assert.deepEqual(events.splice(0), ["layout:notice"], "レイアウトの選択は hook の chooseLayout");
   assert.equal(dialogs.get("テンプレートを読み込みますか")!.open, false, "上書きの確かめは読み込みを待つ時だけ");
+  assert.equal(dialogs.get("レイアウトを替えますか")!.open, false, "消す確かめは切り替えを待つ時だけ");
   assert.deepEqual(modalConfirm, { enabled: true, message: "書きかけ" });
   await act(async () => button(view.container, "新規送信")!.click());
   await act(async () => button(view.container, "あなた宛ての表示例")!.click());
@@ -318,6 +335,12 @@ test("書く段: 部品を並べ、confirmOnClose に closeConfirm、ボタン�
   assert.equal(noKind.container.querySelector("[data-part=layoutPreview]"), null);
   assert.match(noKind.container.textContent ?? "", /種別を選ぶとプレビューが出ます/);
   await noKind.unmount();
+
+  // 門 messagingTemplates が閉 = テンプレートの行ごと出さない(レイアウトから書くだけ)
+  state = make({ templatesAvailable: false });
+  const noTemplates = await render(createElement(MessageSendModal, { mode: NEW }));
+  assert.deepEqual(parts(noTemplates.container), ["kindCategory", "channels", "target", "layout", "layoutFields", "schedule", "layoutPreview", "varPopover"]);
+  await noTemplates.unmount();
 });
 
 test("テンプレートを読み込んだ直後: 専用の埋め込み情報の入力と『文面を直す』だけ(レイアウトの欄・吹き出しは出さない)", async () => {
@@ -332,7 +355,7 @@ test("テンプレートを読み込んだ直後: 専用の埋め込み情報の
     },
   });
   const view = await render(createElement(MessageSendModal, { mode: NEW }));
-  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "vars", "schedule", "layoutPreview"]);
+  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "layout", "template", "vars", "schedule", "layoutPreview"]);
   assert.deepEqual(lastProps.get("template")!.loaded, { type: "template", id: "t1", name: "春", version: 2, edited: false });
   assert.deepEqual(lastProps.get("vars")!.declarations, declarations);
   assert.deepEqual(lastProps.get("vars")!.values, { discount: "10" });
@@ -348,7 +371,7 @@ test("bulk は宛先 = 選んだ記録の数、予約を出さない", async () 
   const view = await render(
     createElement(MessageSendModal, { mode: { type: "bulk", target: "t", recordIds: ["r1", "r2"], recordNoun: "記録" } }),
   );
-  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "layoutFields", "layoutPreview", "varPopover"]);
+  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "layout", "template", "layoutFields", "layoutPreview", "varPopover"]);
   assert.equal(lastProps.get("target")!.kind, "bulk");
   assert.equal(lastProps.get("target")!.recordCount, 2);
   assert.equal(lastProps.get("target")!.recordNoun, "記録");
@@ -448,5 +471,18 @@ test("手で直した書きかけの上に読み込む時は Dialog で確かめ
   await act(async () => (dialog.onOpenChange as (v: boolean) => void)(true));
   await act(async () => (dialog.onOpenChange as (v: boolean) => void)(false));
   assert.deepEqual(events, ["confirmLoad", "cancelLoad"], "開いたままの知らせでは取り消さない");
+  await view.unmount();
+});
+
+test("レイアウトを替える時、書きかけがあれば Dialog で確かめる", async () => {
+  state = make({ pendingLayout: "notice" });
+  const view = await render(createElement(MessageSendModal, { mode: NEW }));
+  const dialog = dialogs.get("レイアウトを替えますか")!;
+  assert.equal(dialog.open, true);
+  assert.equal(dialog.confirmLabel, "替える");
+  await act(async () => (dialog.onConfirm as () => void)());
+  await act(async () => (dialog.onOpenChange as (v: boolean) => void)(true));
+  await act(async () => (dialog.onOpenChange as (v: boolean) => void)(false));
+  assert.deepEqual(events, ["confirmLayout", "cancelLayout"], "開いたままの知らせでは取り消さない");
   await view.unmount();
 });

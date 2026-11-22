@@ -1,6 +1,7 @@
 // 送るモーダルの部品(props だけ)の検査。jsdom の上で描く(押す操作のある部品)・文字で見る。
-// - SendTemplatePicker: 読み込んでいない = 今のレイアウト(印「レイアウト」)/「テンプレートを読み込む」の小窓で選ぶ(公開中は版)/
-//   読み込んだ後は名前・版・直した印・別の読み込み・「テンプレートの読み込みを解除」/ 管理画面で選べるレイアウトが無ければ読み込みを促す
+// - SendLayoutPicker: 選べるレイアウトの選択(値 = 今のレイアウト、選ぶと onChange(鍵))/ 選べるレイアウトが無ければテンプレートの読み込みを促す
+// - SendTemplatePicker: 任意の読み込みの道具。「テンプレートを読み込む」の小窓で選ぶ(公開中は版)/ 無ければその知らせ /
+//   読み込んだ後は名前・版・直した印・別の読み込み・「テンプレートの読み込みを解除」
 // - SendVarInputs: 読み込んだテンプレートの専用の埋め込み情報の入力(別名・必須の印・{{別名}}・型ごとの入力・既定値は仮の文・未入力の印・値の受け渡し)
 // - SendTargetPicker: bulk は選んだ記録の数だけ / select は種類の選び、グループは名前(種類)で選び id は出さない、
 //   グループが無く門 userGroups も閉なら選択肢に出さない(門が開なら 0 件でも出す)
@@ -118,6 +119,7 @@ mock.module("@/features/core/user/components/common/UserAsyncMultiSelect", {
 let act: typeof import("react").act;
 let createRoot: typeof import("react-dom/client").createRoot;
 let parts: {
+  SendLayoutPicker: typeof import("../common/SendLayoutPicker").SendLayoutPicker;
   SendTemplatePicker: typeof import("../common/SendTemplatePicker").SendTemplatePicker;
   SendVarInputs: typeof import("../common/SendTemplatePicker").SendVarInputs;
   SendTargetPicker: typeof import("../common/SendTargetPicker").SendTargetPicker;
@@ -131,6 +133,7 @@ before(async () => {
   ({ act } = await import("react"));
   ({ createRoot } = await import("react-dom/client"));
   parts = {
+    ...(await import("../common/SendLayoutPicker")),
     ...(await import("../common/SendTemplatePicker")),
     ...(await import("../common/SendTargetPicker")),
     ...(await import("../common/SendCategoryChannels")),
@@ -161,15 +164,13 @@ test("SendTemplatePicker: 「テンプレートを読み込む」の小窓で選
   const view = await render(
     createElement(parts.SendTemplatePicker, {
       templates,
-      blank: { label: "シンプル" },
       loaded: null,
       onLoad: (id: string) => void loaded.push(id),
       onUnload: () => void (unloaded += 1),
     }),
   );
-  // 読み込んでいない = 今のレイアウトから書く形
-  assert.match(view.container.textContent ?? "", /レイアウト/);
-  assert.match(view.container.textContent ?? "", /シンプル/);
+  // 読み込んでいない = 読み込む口だけ(レイアウトは SendLayoutPicker)
+  assert.doesNotMatch(view.container.textContent ?? "", /シンプル/);
   assert.ok(button(view.container, "テンプレートを読み込む"));
   assert.equal(button(view.container, "呼び出す"), undefined, "呼び出すの段は無い");
   assert.equal(popoverProps!.confirmLabel, "読み込む");
@@ -182,17 +183,17 @@ test("SendTemplatePicker: 「テンプレートを読み込む」の小窓で選
   assert.deepEqual(loaded, ["t1"]);
   await view.unmount();
 
-  // 管理画面で選べるレイアウトが無ければ読み込みを促す
-  const noBlank = await render(
-    createElement(parts.SendTemplatePicker, { templates, blank: null, loaded: null, onLoad: () => {}, onUnload: () => {} }),
+  // その種別のテンプレートが無い = 読み込む口は押せず、知らせ
+  const none = await render(
+    createElement(parts.SendTemplatePicker, { templates: [], loaded: null, onLoad: () => {}, onUnload: () => {} }),
   );
-  assert.match(noBlank.container.textContent ?? "", /管理画面で選べるレイアウトが無いため、テンプレートを読み込んでください/);
-  await noBlank.unmount();
+  assert.equal(button(none.container, "テンプレートを読み込む")!.disabled, true);
+  assert.match(none.container.textContent ?? "", /この種別のテンプレートはありません/);
+  await none.unmount();
 
   const on = await render(
     createElement(parts.SendTemplatePicker, {
       templates,
-      blank: { label: "シンプル" },
       loaded: { id: "t1", name: "春", version: 2, edited: true },
       onLoad: () => {},
       onUnload: () => void (unloaded += 1),
@@ -204,6 +205,36 @@ test("SendTemplatePicker: 「テンプレートを読み込む」の小窓で選
   await act(async () => button(on.container, "テンプレートの読み込みを解除")!.click());
   assert.equal(unloaded, 1);
   await on.unmount();
+});
+
+test("SendLayoutPicker: 選べるレイアウトの選択 / 無ければテンプレートの読み込みを促す", async () => {
+  const chosen: string[] = [];
+  selects.length = 0;
+  const view = await render(
+    createElement(parts.SendLayoutPicker, {
+      layouts: [
+        { key: "simple", label: "シンプル" },
+        { key: "notice", label: "汎用のお知らせ" },
+      ],
+      value: "simple",
+      onChange: (key: string) => void chosen.push(key),
+    }),
+  );
+  assert.equal(view.container.querySelector("[data-select=send-layout]")?.textContent, "シンプル|汎用のお知らせ");
+  assert.equal(inputs.get("send-layout")!.value, "simple");
+  await act(async () => selects.at(-1)!.onChange("notice"));
+  await act(async () => selects.at(-1)!.onChange(""));
+  assert.deepEqual(chosen, ["notice"], "空の値は渡さない");
+  await view.unmount();
+
+  // テンプレートを読み込んだ間(選べないレイアウト)= 値は空の表示
+  const off = await render(createElement(parts.SendLayoutPicker, { layouts: [{ key: "simple", label: "シンプル" }], value: "legacy", onChange: () => {} }));
+  assert.equal(inputs.get("send-layout")!.value, "");
+  await off.unmount();
+
+  const none = await render(createElement(parts.SendLayoutPicker, { layouts: [], value: null, onChange: () => {} }));
+  assert.match(none.container.textContent ?? "", /管理画面で選べるレイアウトが無いため、テンプレートを読み込んでください/);
+  await none.unmount();
 });
 
 test("SendVarInputs: 専用の埋め込み情報の欄 / 必須と未入力の印 / 既定値は仮の文 / 値の受け渡し", async () => {
