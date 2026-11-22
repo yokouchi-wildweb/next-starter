@@ -35,9 +35,11 @@
   - + 端末の束（`domains/core/pairedDevice` の `apiRouteDeviceDeps`。端末の機能が閉じている間は `gateDeviceDeps` が端末の認証を「端末なし」にする、テスト `apiRoute.test.mts`）
   - + 主体の具体の型 + `serviceRegistry` → `createApiRoute` / `createDomainRoute` / `createDomainIdRoute` / `createMeRoute` / `createDeviceRoute` / `enforceAccessRule` / `ownerWhere`（API ルートとその補助ファイルはここから import する）
   - + 想定外の失敗(500)の口 `serverError` → `serverErrors/index.ts` の `serverErrorReport.report`（scope api、name = operation）
+  - + メンテナンスの口 `maintenance` → `domains/core/setting` の `settingService.isMaintenanceActive` と `canBypassMaintenance`（期間中の書き込みのメソッドを 503 で止める。`src/lib/routeFactory/README.md`「メンテナンス中の書き込みの停止」）
   - テスト `routeFactory.test.mts`: Factory の契約（主体の解き方・allowStatuses・拒否の body・DomainError）を、汎用版に本物の認可の判定（`domains/core/auth` の `evaluateApiAccessRule`）を差し込んで回す。閉じた lib は features を読めず、汎用版を値で読めるのは wiring だけ（lint `route-factory-via-wiring`）なのでここに置く
-- `cronRoute.ts`: データに届くか = 届かない
+- `cronRoute.ts`: データに届くか = 届く（`settingService` → 設定の DB の読み。import してよいのは cron の `route.ts`）
   - `lib/cron` の `createCronTaskRoute` + 門番（`@/featureGate` の `gate.path`）→ `createCronTaskRoute`（cron の `route.ts` はここから import する。タスクの住所 `/api/cron/<name>` が閉じていれば本体を呼ばずに skipped。`src/lib/cron/README.md`）
+  - + メンテナンスの口 `maintenance` → `domains/core/setting` の `settingService.isMaintenanceActive`（期間中は `maintenance: "pass"` でないタスクを skipped。`src/lib/cron/README.md` Internals「メンテナンス」）
   - + 失敗したタスクの口 `onServerError` → `serverErrors/index.ts` の `serverErrorReport.report`（scope cron、name = タスク名、extra ok:false・durationMs）
 - `business.ts`: データに届くか = 届かない
   - `src/business/business.ts`(fork の値と印 source)+ `lib/business` の `resolveBusiness` → `business` / `businessSource`(受付係。tsconfig.json の `"@/business"` がここを指し、読み手は `@/business` を読む。sample のときは例の値。`src/lib/business/README.md`)

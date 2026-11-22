@@ -252,7 +252,7 @@ test("データに届く wiring: domainRegistry.ts は registry → domainEntry.
 });
 
 /** 上流のデータに届く wiring（README の表） */
-const UPSTREAM_DATA_REACHING = ["AppProviders.tsx", "adminScreenParts.ts", "apiRoute.ts", "domainRegistry.ts", "pageGuard.ts"];
+const UPSTREAM_DATA_REACHING = ["AppProviders.tsx", "adminScreenParts.ts", "apiRoute.ts", "cronRoute.ts", "domainRegistry.ts", "pageGuard.ts"];
 
 test("データに届く wiring を import するのも同じ場所だけ（WIRING_FILES の .ts / .tsx 全部を判定して記録する。fork のファイルは向きの検査で同じ場所に限る）", () => {
   const dataReaching = WIRING_FILES.filter((name) => /\.tsx?$/.test(name) && reachesServicesServer(join(wiringDir, name)).reached);
