@@ -226,12 +226,12 @@ const stub = (name: string) => {
   Stub.displayName = `Stub(${name})`;
   return Stub;
 };
-mock.module("@/features/core/messaging/components/common/EmbeddedInfoPopover", { namedExports: { EmbeddedInfoPopover: stub("vars") } });
+mock.module("@/features/core/messaging/components/common/VarPopover", { namedExports: { VarPopover: stub("vars") } });
 mock.module("@/features/core/messaging/components/common/KindCategoryFields", { namedExports: { KindCategoryFields: stub("kindCategory") } });
 mock.module("@/features/core/messaging/components/common/LayoutFields", { namedExports: { LayoutFields: stub("layoutFields") } });
 mock.module("@/features/core/messaging/components/common/LayoutPreview", { namedExports: { LayoutPreview: stub("preview") } });
-mock.module("@/features/core/messaging/components/common/TemplateEmbeddedInfoModal", {
-  namedExports: { TemplateEmbeddedInfoModal: stub("embeddedModal") },
+mock.module("@/features/core/messaging/components/common/TemplateVarsModal", {
+  namedExports: { TemplateVarsModal: stub("varsModal") },
 });
 mock.module("@/features/core/messaging/components/common/TemplateVersionList", { namedExports: { TemplateVersionList: stub("versions") } });
 

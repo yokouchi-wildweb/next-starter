@@ -1,4 +1,4 @@
-// src/features/core/messaging/components/common/SendTemplatePicker/SendEmbeddedInputs.tsx
+// src/features/core/messaging/components/common/SendTemplatePicker/SendVarInputs.tsx
 // 部品(props だけ): 読み込んだテンプレートの専用の埋め込み情報の値(回に 1 組、D111 D126)。宣言の順に、日本語の別名を見出しにして型ごとの入力を出す
 // (1行テキスト・数・URL = 文字、日付、日時 = ISO、選択肢)。値はいつも文字で持ち、数への読み替えは hook。既定値は仮の文に出す
 
@@ -13,7 +13,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks/Span";
 import type { MessageVarDeclaration } from "@/lib/messaging";
 
-export type SendEmbeddedInputsProps = {
+export type SendVarInputsProps = {
   declarations: readonly MessageVarDeclaration[];
   values: Readonly<Record<string, string>>;
   onChange: (key: string, value: string) => void;
@@ -21,7 +21,7 @@ export type SendEmbeddedInputsProps = {
   missing?: readonly string[];
 };
 
-export function SendEmbeddedInputs({ declarations, values, onChange, missing = [] }: SendEmbeddedInputsProps) {
+export function SendVarInputs({ declarations, values, onChange, missing = [] }: SendVarInputsProps) {
   if (declarations.length === 0) {
     return (
       <Span size="sm" tone="muted" data-slot="send-vars-inputs">

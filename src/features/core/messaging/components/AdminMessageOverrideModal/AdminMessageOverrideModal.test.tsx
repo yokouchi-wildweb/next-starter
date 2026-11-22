@@ -113,7 +113,7 @@ const stub = (name: string, text?: (props: Record<string, unknown>) => string) =
   return Stub;
 };
 mock.module("@/features/core/messaging/components/common/OverrideFieldEditor", { namedExports: { OverrideFieldEditor: stub("field") } });
-mock.module("@/features/core/messaging/components/common/EmbeddedInfoPopover", { namedExports: { EmbeddedInfoPopover: stub("vars") } });
+mock.module("@/features/core/messaging/components/common/VarPopover", { namedExports: { VarPopover: stub("vars") } });
 mock.module("@/features/core/messaging/components/common/LayoutPreview", { namedExports: { LayoutPreview: stub("preview") } });
 // 種別とカテゴリーは読むだけの選び。偽物は選んでいる物の表示名を字で出す
 mock.module("@/features/core/messaging/components/common/KindCategoryFields", {

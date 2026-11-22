@@ -1,4 +1,4 @@
-// src/features/core/messaging/components/common/TemplateEmbeddedInfoModal/index.tsx
+// src/features/core/messaging/components/common/TemplateVarsModal/index.tsx
 // 部品(props だけ): 『専用の埋め込み情報を管理』のモーダル(D111 D126)。テンプレートの専用の埋め込み情報の宣言を足す・直す・消す。
 // 行 = 鍵(英数字)・日本語の別名・型(1行テキスト・数・日付・日時・URL・選択肢)・選択肢(選択肢の型だけ)・必須・既定値。
 // 見た目: 1 行 = 枠つきのカード(上の帯 = 番号・{{別名}}・必須のスイッチ・削除 / 下 = 別名 | 鍵 | 型 | 既定値 の 1 行、選択肢は中の枠)
@@ -25,7 +25,7 @@ import { Span } from "@/components/TextBlocks/Span";
 import { MESSAGE_VAR_TYPE_LABELS, MESSAGE_VAR_TYPES, type MessageVarType } from "@/lib/messaging";
 
 /** 宣言の 1 行(画面の形。既定値は文字) */
-export type TemplateEmbeddedInfoRow = {
+export type TemplateVarRow = {
   key: string;
   alias: string;
   type: MessageVarType;
@@ -34,11 +34,11 @@ export type TemplateEmbeddedInfoRow = {
   options: { value: string; label: string }[];
 };
 
-export type TemplateEmbeddedInfoModalProps = {
+export type TemplateVarsModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  rows: readonly TemplateEmbeddedInfoRow[];
-  onUpdateRow: (index: number, patch: Partial<TemplateEmbeddedInfoRow>) => void;
+  rows: readonly TemplateVarRow[];
+  onUpdateRow: (index: number, patch: Partial<TemplateVarRow>) => void;
   onAddRow: () => void;
   onRemoveRow: (index: number) => void;
   /** 適用(通れば呼び手が閉じる) */
@@ -50,7 +50,7 @@ export type TemplateEmbeddedInfoModalProps = {
 
 const TYPE_OPTIONS = MESSAGE_VAR_TYPES.map((type) => ({ value: type, label: MESSAGE_VAR_TYPE_LABELS[type] }));
 
-export function TemplateEmbeddedInfoModal({
+export function TemplateVarsModal({
   open,
   onOpenChange,
   rows,
@@ -60,7 +60,7 @@ export function TemplateEmbeddedInfoModal({
   onApply,
   errors = [],
   readOnly,
-}: TemplateEmbeddedInfoModalProps) {
+}: TemplateVarsModalProps) {
   // このモーダルでは保存しない(D121): 「適用」はテンプレートの書きかけに入れるだけ。確定はテンプレートの保存
   const footer = (
     <Flex align="center" justify="end" gap="xs" wrap="wrap">

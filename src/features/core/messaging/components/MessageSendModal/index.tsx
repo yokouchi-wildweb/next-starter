@@ -31,7 +31,7 @@ import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 
 import { SoftBadge } from "@/components/Badge/SoftBadge";
-import { EmbeddedInfoPopover } from "@/features/core/messaging/components/common/EmbeddedInfoPopover";
+import { VarPopover } from "@/features/core/messaging/components/common/VarPopover";
 import { LayoutFields } from "@/features/core/messaging/components/common/LayoutFields";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
 import { dispatchDetailHref } from "@/features/core/messaging/hooks/useDispatchDetailParam";
@@ -41,7 +41,7 @@ import { KindCategoryFields } from "@/features/core/messaging/components/common/
 import { SendCategoryChannels } from "@/features/core/messaging/components/common/SendCategoryChannels";
 import { SendConfirmView, SendResultView } from "@/features/core/messaging/components/common/SendConfirmView";
 import { SendSchedule } from "@/features/core/messaging/components/common/SendSchedule";
-import { SendEmbeddedInputs, SendTemplatePicker } from "@/features/core/messaging/components/common/SendTemplatePicker";
+import { SendVarInputs, SendTemplatePicker } from "@/features/core/messaging/components/common/SendTemplatePicker";
 import { useVarTags } from "@/features/core/messaging/hooks/useVarTags";
 import {
   useMessageSendModal,
@@ -243,7 +243,7 @@ export function MessageSendModal({
                   <SecTitle as="h4" size="sm">
                     専用の埋め込み情報
                   </SecTitle>
-                  <SendEmbeddedInputs
+                  <SendVarInputs
                     declarations={text.state.varDeclarations}
                     values={text.state.vars}
                     onChange={text.setVars}
@@ -365,7 +365,7 @@ export function MessageSendModal({
     return (
       <Flex align="center" justify="between" gap="md" wrap="wrap">
         {text.state && !text.locked ? (
-          <EmbeddedInfoPopover common={tags.common} own={tags.own} onCopy={(alias) => void tags.copy(alias)} />
+          <VarPopover common={tags.common} own={tags.own} onCopy={(alias) => void tags.copy(alias)} />
         ) : (
           <Span size="xs">{null}</Span>
         )}

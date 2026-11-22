@@ -1,6 +1,6 @@
 // src/features/core/messaging/hooks/useCopyMessageVariable.ts
 // 変数のチップを押した時の流れ: '{{変数名}}' をクリップボードに写し、短い知らせを出す(D78)。
-// クリップボードが使えない(権限・古いブラウザ)時は黙って何もしない。埋め込み情報のタグ(EmbeddedInfoTags)のコピーに使う
+// クリップボードが使えない(権限・古いブラウザ)時は黙って何もしない。埋め込み情報のタグ(VarTags)のコピーに使う
 
 "use client";
 

@@ -4,7 +4,7 @@
 // 使えない行の数 + 2 つのペイン(テンプレート・送るモーダルと同じ形):
 // 左 = 今の経路のプレビュー(上書きと下書きを重ねたひな形の描き方。部品 LayoutPreview: 経路のタブはここだけ、メールは描いた HTML で
 // 入力中の欄を枠で示す、お知らせはひな形のお知らせの描き方)、右 = 名前・種別とカテゴリー(読むだけ)・欄ごとの編集。
-// 埋め込み情報は下の帯の左の吹き出し(EmbeddedInfoPopover)。高さは固定。
+// 埋め込み情報は下の帯の左の吹き出し(VarPopover)。高さは固定。
 // 変数の名前は別名で見せる(D133: 入力・元の文言・使えない名前・プレビューの {{鍵}} → {{別名}}、hook が変える)。
 // 下の帯の左に「すべてデフォルトに戻す」(D136: 確かめて、保存してある欄の全部に戻す印・下書きを捨てる。保存で当たる)
 // 保存は 1 回(D132、テンプレートのモーダルと同じ): 下の帯の右の「保存」が直した欄の全部をまとめて保存する(確かめ・保存の間 loading、
@@ -25,7 +25,7 @@ import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
 
 import { dispatchKindLabel } from "@/features/core/messaging/components/common/DispatchRow";
-import { EmbeddedInfoPopover } from "@/features/core/messaging/components/common/EmbeddedInfoPopover";
+import { VarPopover } from "@/features/core/messaging/components/common/VarPopover";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
 import { KindCategoryFields } from "@/features/core/messaging/components/common/KindCategoryFields";
 import { OverrideFieldEditor } from "@/features/core/messaging/components/common/OverrideFieldEditor";
@@ -64,7 +64,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
         detail ? (
           <Flex align="center" justify="between" gap="md" wrap="wrap">
             <Flex align="center" gap="md" wrap="wrap" className="min-w-0">
-              <EmbeddedInfoPopover common={editor.varTags.common} own={editor.varTags.own} onCopy={editor.varTags.copy} />
+              <VarPopover common={editor.varTags.common} own={editor.varTags.own} onCopy={editor.varTags.copy} />
               <ConfirmPopover
                 trigger={
                   <Button type="button" size="sm" variant="outline" disabled={!editor.canResetAll || editor.isSaving} data-slot="override-reset-all">

@@ -1,7 +1,7 @@
 // 送るモーダルの部品(props だけ)の検査。jsdom の上で描く(押す操作のある部品)・文字で見る。
 // - SendTemplatePicker: 「テンプレートを読み込む」の小窓で選ぶ(システムは印、公開中は版)/ 読み込んだ後は名前・版・直した印・別の読み込み・
 //   「テンプレートの読み込みを解除」/ 白紙が無い種別は読み込みを促す
-// - SendEmbeddedInputs: 読み込んだテンプレートの専用の埋め込み情報の入力(別名・必須の印・{{別名}}・型ごとの入力・既定値は仮の文・未入力の印・値の受け渡し)
+// - SendVarInputs: 読み込んだテンプレートの専用の埋め込み情報の入力(別名・必須の印・{{別名}}・型ごとの入力・既定値は仮の文・未入力の印・値の受け渡し)
 // - SendTargetPicker: bulk は選んだ記録の数だけ / select は種類の選び、グループは名前(種類)で選び id は出さない、
 //   グループが無く門 userGroups も閉なら選択肢に出さない(門が開なら 0 件でも出す)
 // - SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・未入力の印(オンの経路だけ)
@@ -119,7 +119,7 @@ let act: typeof import("react").act;
 let createRoot: typeof import("react-dom/client").createRoot;
 let parts: {
   SendTemplatePicker: typeof import("../common/SendTemplatePicker").SendTemplatePicker;
-  SendEmbeddedInputs: typeof import("../common/SendTemplatePicker").SendEmbeddedInputs;
+  SendVarInputs: typeof import("../common/SendTemplatePicker").SendVarInputs;
   SendTargetPicker: typeof import("../common/SendTargetPicker").SendTargetPicker;
   SendCategoryChannels: typeof import("../common/SendCategoryChannels").SendCategoryChannels;
   SendSchedule: typeof import("../common/SendSchedule").SendSchedule;
@@ -206,11 +206,11 @@ test("SendTemplatePicker: 「テンプレートを読み込む」の小窓で選
   await on.unmount();
 });
 
-test("SendEmbeddedInputs: 専用の埋め込み情報の欄 / 必須と未入力の印 / 既定値は仮の文 / 値の受け渡し", async () => {
+test("SendVarInputs: 専用の埋め込み情報の欄 / 必須と未入力の印 / 既定値は仮の文 / 値の受け渡し", async () => {
   const changes: [string, string][] = [];
   inputs.clear();
   const view = await render(
-    createElement(parts.SendEmbeddedInputs, {
+    createElement(parts.SendVarInputs, {
       declarations: [
         { key: "discount", alias: "割引", type: "number", required: true },
         { key: "plan", alias: "プラン", type: "select", required: false, options: [{ value: "gold", label: "ゴールド" }], default: "gold" },
@@ -235,7 +235,7 @@ test("SendEmbeddedInputs: 専用の埋め込み情報の欄 / 必須と未入力
   assert.deepEqual(changes, [["discount", "20"]]);
   await view.unmount();
 
-  const none = await render(createElement(parts.SendEmbeddedInputs, { declarations: [], values: {}, onChange: () => {} }));
+  const none = await render(createElement(parts.SendVarInputs, { declarations: [], values: {}, onChange: () => {} }));
   assert.match(none.container.textContent ?? "", /このテンプレートに専用の埋め込み情報はありません/);
   await none.unmount();
 });
