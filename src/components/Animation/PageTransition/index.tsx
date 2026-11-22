@@ -32,6 +32,13 @@ type PageTransitionProps = {
   children: ReactNode;
   /** アニメーション時間（秒） @default 0.3 */
   duration?: number;
+  /**
+   * 包む要素に CSS Containment(contain: layout paint)を掛けるか @default true
+   * 掛けると popLayout の切り替えのリフローが外へ波及せず、ちらつかない。代わりに包む要素が position: fixed の子孫の
+   * 包含ブロックになり、ページの中の fixed の重なり(下に固定のボタン・自前のモーダルなど)が画面でなくこの要素に付く。
+   * そうした重なりを持つページでは false にする(ちらつき止めは無くなる)
+   */
+  contain?: boolean;
 };
 
 /**
@@ -44,8 +51,10 @@ type PageTransitionProps = {
  * @example
  * // app/mypage/layout.tsx
  * <PageTransition>{children}</PageTransition>
+ * // position: fixed の重なりを持つページ
+ * <PageTransition contain={false}>{children}</PageTransition>
  */
-export function PageTransition({ children, duration = 0.3 }: PageTransitionProps) {
+export function PageTransition({ children, duration = 0.3, contain = true }: PageTransitionProps) {
   const pathname = usePathname();
   const currentDepth = getDepth(pathname);
   // 深さの差分でスライド方向を決定（1=前進, -1=後退）
@@ -58,7 +67,7 @@ export function PageTransition({ children, duration = 0.3 }: PageTransitionProps
   }
 
   return (
-    <div className="overflow-hidden" style={{ contain: "layout paint" }}>
+    <div className="overflow-hidden" style={contain ? { contain: "layout paint" } : undefined}>
       <AnimatePresence initial={false} custom={direction} mode="popLayout">
         <motion.div
           key={pathname}
