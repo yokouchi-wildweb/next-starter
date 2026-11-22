@@ -24,7 +24,7 @@ const LAYOUT = {
   key: "simple",
   label: "シンプル",
   version: 1,
-  fields: { title: { type: "text", label: "件名" }, body: { type: "paragraph", label: "本文" } },
+  fields: { title: { type: "line", label: "件名" }, body: { type: "paragraph", label: "本文" } },
 };
 const definition = (key: string, over: Record<string, unknown> = {}) => ({
   key,
@@ -95,6 +95,8 @@ beforeEach(() => {
 type State = ReturnType<typeof import("./useDefinitionSendModal").useDefinitionSendModal>;
 type Options = Parameters<typeof import("./useDefinitionSendModal").useDefinitionSendModal>[0];
 const RECORDS: Options["entry"] = { type: "records", recordTarget: "bankTransferReview.reviews", recordIds: ["r1", "r2"] };
+/** 連絡定義の並びを替えるテストは項目の鍵(= 選択肢の SWR の鍵)を分ける(前のテストの取得を持ち越さない) */
+const recordsOf = (recordTarget: string): Options["entry"] => ({ type: "records", recordTarget, recordIds: ["r1", "r2"] });
 
 const mount = async (options: Options) => {
   const latest: { current: State | null } = { current: null };
@@ -143,7 +145,7 @@ test("記録の入口: 開いている間だけ項目の選択肢を取り、1 �
 
 test("連絡定義が 2 つ以上は選ぶまで送れない、0 個は送れる連絡がない", async () => {
   definitions = [definition("a.one"), definition("a.two")];
-  const view = await mount({ entry: RECORDS });
+  const view = await mount({ entry: recordsOf("t.many") });
   await openIt(view);
   assert.equal(view.m().definition, null);
   assert.equal(view.m().definitionError, "送る連絡を選んでください");
@@ -154,7 +156,7 @@ test("連絡定義が 2 つ以上は選ぶまで送れない、0 個は送れる
   await view.unmount();
 
   definitions = [];
-  const none = await mount({ entry: RECORDS });
+  const none = await mount({ entry: recordsOf("t.none") });
   await openIt(none);
   assert.equal(none.m().definitionError, "送れる連絡がありません");
   assert.equal(none.m().canSend, false);
@@ -195,7 +197,7 @@ test("broadcast: 門が閉なら使えず取らない。開なら宛先の種類
 
 test("required: 文面の箱なし・メールは外せない", async () => {
   definitions = [definition("legal.terms", { required: true, editableFields: [], channels: { email: "free", inApp: "free" }, initialChannels: ["inApp"] })];
-  const view = await mount({ entry: RECORDS });
+  const view = await mount({ entry: recordsOf("t.required") });
   await openIt(view);
   const m = view.m();
   assert.equal(m.canEdit, false);
@@ -220,7 +222,7 @@ test("管理者の値: 必須が空なら送れない、数は読み替えて送
       ],
     }),
   ];
-  const view = await mount({ entry: RECORDS });
+  const view = await mount({ entry: recordsOf("t.vars") });
   await openIt(view);
   assert.equal(view.m().canSend, false);
   assert.match(view.m().contentError ?? "", /金額/);
