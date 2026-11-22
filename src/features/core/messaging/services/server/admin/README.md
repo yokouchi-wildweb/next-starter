@@ -10,6 +10,7 @@
 - `messagingBroadcast`（`dependsOn: ["messagingDispatches"]`、既定 閉）: `/api/admin/messaging/send/**` と送るモーダルの口（送信の一覧「新しく送る」・送信の詳細「同じ内容で送る」。部品が `useGate` で出し分ける）。閉でも送る口と cron の予約の拾いは動く
 - 一括送信 `/api/admin/messaging/bulk-send/**` はどの門にも入れない（管理一覧の一括操作が使うので、画面を閉じても送れる）
 - 送信の結果 `/api/admin/messaging/send-results/**` はどの門にも入れない（送れる所で結果も見られるよう、一括送信と同じ）
+- 受け取れる送信チャンネル `/api/admin/messaging/recipients/**` はどの門にも入れない（1 人宛ての送る画面の材料、一括送信と同じ）
 - 定義連絡の送る口 `/api/admin/messaging/definitions/**`: 記録の入口と記録の宛先の選択肢は門の外（一括送信と同じ）。全員・ロール・グループの入口は門 `messagingBroadcast` の中だが、同じ道なので道の印に載せず service が `gate.enabled` で見て閉なら 404（プレビュー・テストも）
 
 ## API
@@ -66,6 +67,16 @@
 - `failed.items` = 届かなかった配達 `{ userId, name, channel, status, reason }`（`status` = `failed` / `bounced`（失敗）か `suppressed`（送らなかった）。`canceled`・`unknown`・送る前の行は入れない）。古い順の keyset（印は読む口と同じ形）。`name` = users.name（無い・消えた利用者は null）。`reason` = `suppressed` は配達の理由（`no_address`・`preference`・`suppression`・`throttled`・`channel_off`）、`failed` / `bounced` は `last_error` の符号（文は `constants/deliveryErrors.ts`、分からなければ null）。宛先と provider の文は返さない
 - 全員・ロール宛てのお知らせは配達の行が無いので `failed` に出ない（数は `channels` にある）
 
+### `/api/admin/messaging/recipients`（recipientChannels.ts、門の外、D214 (2)）
+
+1 人宛ての送る画面が出す情報だけ（届かない送信チャンネルを選べなくする等の見せ方は画面と fork が決める）。
+
+- `GET /recipients/[userId]/channels`: 条件 `message`（連絡定義の鍵）か `category`（自由連絡のカテゴリー）のどちらか 1 つか無し → `AdminRecipientChannels` `{ <channel>: { available: true } | { available: false, reason } }`（見る送信チャンネルの順）
+- 見る送信チャンネル: `message` = 定義の送信チャンネル（上書きの後のカテゴリーの物）/ `category` = カテゴリーの送信チャンネル / 無し = 送信チャンネルの受け口の全部（`enabled: false` も）
+- `reason` = 送る口がその配達に書く理由と同じ符号（表示名は画面の `DELIVERY_REASON_LABELS`）を先に当たった順に: `channel_off`（項目が無い・`enabled: false`）→ `no_address`（宛先なし。email = メールアドレスなし、line = LINE 未連携は送信チャンネルの鍵で分ける）→ `preference`（本人が止めた）→ `suppression`（宛先が全部止まっている）
+- 宛先の引き方（`resolveUserAddresses`）と停止の判定（`checkStops`）は送る口の物そのまま。停止の文脈: `message` = 定義の種別・カテゴリー・`required`（required の連絡は好みで止まらず、宛先の停止は hard bounce だけ）/ `category` = カテゴリーの種別、required なし / 無し = 好みは見ず、カテゴリーに依らず当たる宛先の停止だけ（`one_click` は範囲 `"*"` だけ）。間引き（throttled）は送る時の数で決まるので見ない
+- 無い・削除した利用者と読めない連絡定義（閉じたドメインも）は 404、知らないカテゴリー・両方の指定は 400
+
 ### 送信の読む口（readDispatches.ts・dispatchDto.ts、門 `messagingDispatches`）
 
 汎用 CRUD の search には乗せない。
@@ -96,4 +107,4 @@
 
 ## Verification
 
-- `pnpm test src/features/core/messaging/services/server/admin`（`admin` / `send` / `operations` / `sendResults`）と `pnpm test src/features/core/messaging/services/server/history`
+- `pnpm test src/features/core/messaging/services/server/admin`（`admin` / `send` / `operations` / `sendResults` / `recipientChannels`）と `pnpm test src/features/core/messaging/services/server/history`
