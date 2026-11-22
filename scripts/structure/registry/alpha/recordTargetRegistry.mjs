@@ -65,7 +65,7 @@ function definitionAdminTargets(repoRoot) {
 export function scanRecordTargets(repoRoot) {
   const problems = [];
   const entries = [];
-  const districts = readDistrictMapAt(repoRoot).districts.filter((d) => d.kind === "features");
+  const districts = readDistrictMapAt(repoRoot).districts.filter((d) => d.kind === "domains");
   for (const district of districts) {
     const dir = `${district.dir}/${RECORD_TARGETS_DIR}`;
     const domain = district.dir.split("/").at(-1);
