@@ -4,6 +4,7 @@ date: 2026-11-22T21:51:56Z
 severity: info
 checkpoint: dep-permit-db-keeps
 fixes: 20261122-215627-entry-guard
+pick: -
 change: scripts/runner/guard: the human's one-time permit (dep / evp) is consumed only by the deploy entries (guardDeploy: pnpm live, pnpm ops vercel env-*, room deploy / secret) | the write entries (guardEntry, incl. the production DB push `pnpm db:push -- --env production` = agent.deploy.db_entry) read it and leave it, so the `pnpm live` that follows passes on the same permit | confirmProduction returns the gate it passed (null on a TTY) and no longer consumes
 why: after entry-guard a non-interactive production DB push used up `dep`, and the `pnpm live` the human allowed with it stopped (「許可がある時だけ」) — the deploy that dep was given for could not run
 required_actions: none
