@@ -80,6 +80,22 @@ access: { read: "public", write: "none" },
 - **webhook**（`POST /api/webhook/payment`）: provider の署名を検証し、無効なら何もしない。`skipForDemo: false`
 - **ルームサーバーのコールバック**: `verifyRoomCallback(req)` で検証（`src/lib/realtimeRoom/README.md`）
 - **決済サービスからの戻り先**（`/api/wallet/purchase/callback`）: 利用者のブラウザが戻る入口。クエリを戻り先ページへ写して redirect する。支払いの確定は status route（本人照合 + provider 照会）と webhook（署名検証）が守る
+- 決済の完了の通知・戻りの POST は `maintenance: "pass"` を書く（下の「メンテナンス中の書き込みの停止」。止めると進行中の支払いの完了を取りこぼす）
+
+### メンテナンス中の書き込みの停止
+
+設定のメンテナンスの期間（`settingService.isMaintenanceActive()`）は、全 Factory の土台が書き込みを止める。
+
+- 止まる物: メソッドが `POST`・`PUT`・`PATCH`・`DELETE` の要求。応答は 503 + `{ message, code: "maintenance" }`（`MAINTENANCE_CODE`、`@/lib/errors`）。`operationType` ではなくメソッドで決まる
+- 止まらない物: `GET`・`HEAD`・`OPTIONS`（期間を読みもしない）
+- 通る人: `canBypassMaintenance`（`src/domains/core/setting/utils/maintenanceBypass.ts`、既定は設定の `maintenance.bypassRoles` = 管理者・debugger）が true の利用者。画面の proxy と同じ判定で、DB 同期・利用できる status の利用者だけ（停止中の管理者は止まる）
+- 通らない物: `user: "skip"` のルート（利用者を解かない）と端末の主体（利用者がいない）
+- 通す宣言: そのルート自身が設定に `maintenance: "pass"` を書く（中央の一覧は無い）。止めると取りこぼす経路だけに書く: 決済の webhook・完了・戻り、ログイン・ログアウト（ログインを止めると管理者がメンテナンスを解けない）
+- 汎用 CRUD（`createDomainRoute` / `createDomainIdRoute`）には宣言の鍵が無く、期間中の書き込みはいつも止まる（管理者は通る）
+- Tier1 で `"pass"` を書いているルート: `POST /api/webhook/payment`・`POST /api/wallet/purchase/callback`・`POST /api/wallet/purchase/[id]/paidy/confirm`・`…/paypal/confirm`・`…/bank-transfer/confirm`（自社振込の完了の唯一の入口）・`POST /api/auth/firebase/login`・`POST /api/auth/local/login`・`POST /api/auth/logout`。一覧は `git grep -n 'maintenance: "pass"' -- src/app`
+- 既定で止まる例: `wallet/purchase/initiate`・`auth/register`・`auth/pre-register`・`webhook/line`・`webhook/messaging/**`（provider は 503 を受けて自分の方針で再送する）・端末のルート
+- クライアントは `isMaintenanceError(error)`（`@/lib/errors`）で見分け、文言は `err(error, fallback)` で出す
+- 期間の切り替わりは設定の読みのメモ（`readMemoMs`、既定 10 秒）だけ遅れる。止まったかの確かめ方は `src/domains/core/setting/README.md` の「メンテナンスで止まる物と確かめ方」
 
 ### トラブルシューティング
 
@@ -165,6 +181,7 @@ export const POST = createApiRoute(
 | `skipForDemo` | `boolean` | 下の表 |
 | `rateLimit` / `rateLimitSubnet` | `TCategory`(wiring が `RateLimitCategory` を渡す) | IP / サブネット（/24）単位のレート制限(カテゴリの持ち主 `src/domains/core/rateLimit/config.ts`。lib はカテゴリの名前を知らず、`createRouteFactories` の型引数 `TCategory` で受ける) |
 | `recaptcha` | `RecaptchaConfig` | reCAPTCHA v3（中間スコアは v2 チャレンジ） |
+| `maintenance` | `"pass"` | メンテナンス中も書き込みを通す宣言（省略 = 止める。Usage の「メンテナンス中の書き込みの停止」）。`createMeRoute` / `createDeviceRoute` も同じ |
 
 `skipForDemo`: 省略 = `operationType: "write"` なら自動スキップ / `true` = 常にスキップ / `false` = デモでも実行（ログイン処理・決済の戻り先など）。スキップ時の応答は `{ success: true, demo: true }`。認可はデモスキップより前に評価する。
 
@@ -308,16 +325,19 @@ export const POST = createApiRoute(
 - 認可の拒否 → 401 / 403 の JSON（`code`、汎用 CRUD は `domain` / `operation` も）、404 は `text/plain`
 - 利用者を確かめられない（DB 障害）→ 503 の JSON（`code: "route_user_unavailable"`、上の「主体（`ctx.user`）」）。クライアントは再試行
 - レート制限で止めた → 429 + `Retry-After`(サブネット単位は `silent: true`)/ reCAPTCHA の中間スコア → 428(v2 チャレンジを求める)
+- メンテナンスで止めた → 503 の JSON（`code: "maintenance"`）。`DomainError` ではないので失敗の記録の口へは渡らない
 
 ## Extension
 
 - fork が独自の主体の Factory を作るときは `src/wiring/<名前>.ts` で汎用版から作る（`src/wiring/README.md`）
+  - 束の `maintenance`(`RouteMaintenanceDeps`: `isActive`・`canBypass`)に `settingService.isMaintenanceActive` と `canBypassMaintenance` を結ぶ（上流の `src/wiring/apiRoute.ts` と同じ形。結ばないとその Factory のルートはメンテナンスで止まらない）
   - 束の `serverError.onServerError` に `@/wiring/serverErrors` の `serverErrorReport.report` を結ぶ（`scope: "api"`、`name` = operation。上流の `src/wiring/apiRoute.ts` と同じ形。結ばないと 500 が既定の記録と送り先に残らない）
 
 ## Internals
 
 - `createRouteFactories(deps)` が全 Factory を作る。
-  - `deps` = `{ user: RouteUserDeps, device: RouteDeviceDeps, rateLimit: RouteRateLimitDeps, domains: DomainRegistry, gate?: RouteGateDeps }`。
+  - `deps` = `{ user: RouteUserDeps, device: RouteDeviceDeps, rateLimit: RouteRateLimitDeps, domains: DomainRegistry, gate?: RouteGateDeps, serverError?: RouteServerErrorDeps, maintenance?: RouteMaintenanceDeps }`。
+  - `maintenance`(省略可): 土台が認可の後・デモスキップの前に `maintenance.ts` の判定を通す。書き込みのメソッドで宣言が無い時だけ `isActive()` を読み、期間中ならバイパスを `authorize` と同じ `resolveUser`(持ち主の cache でリクエスト内 1 回)で確かめる。lib は設定も役割も知らない
   - `gate`(省略可)= 門番の口 `{ isClosed(pathname) }`: 全 Factory の土台(`runRoute`)が最初に要求の住所を聞き、閉なら主体の解決・認可・ハンドラの前に `not_found` と同じ 404(本文 `Not Found`、機能名を出さない)。
   - proxy の門番の 404 が先に効くので、通り抜けたときの安全網。
   - 土台の最初の文は `await connection()`(next/server)で、門番の 404 を含むどの早期 return より前。cacheComponents の build は request を読まずに返す応答を静的に焼き付けるため(cacheComponents off では何も変えない)。route.ts の側には書かない。
@@ -337,7 +357,7 @@ export const POST = createApiRoute(
 | `page-authz/session-api-callsite` | `src/app/api/**`（補助ファイルを含む）でセッション取得・`requireRole`・token だけのセッション・Cookie の解析を import しない | `eslint-rules/page-authz.mjs` |
 | 型 | `RouteAccess` に `"custom"` が無い・ctx に `session` が無い・`ctx.user` の null 可は `"public"` だけ・`user: "skip"` は `"public"` だけ | `routeAccess.typecheck.ts`（`pnpm typecheck`） |
 
-テスト: `pnpm test src/wiring/routeFactory.test.mts`（Factory の契約）/ `pnpm test eslint-rules/route-http-export.test.mjs` / `pnpm test eslint-rules/import-boundaries.test.mjs` / `pnpm test src/lib/routeFactory/createDeviceRoute.test.mts src/domains/core/pairedDevice src/wiring/apiRoute.test.mts` / `pnpm test src/app/api/collectionEntriesRoute.test.mts`。
+テスト: `pnpm test src/wiring/routeFactory.test.mts`（Factory の契約）/ `pnpm test eslint-rules/route-http-export.test.mjs` / `pnpm test eslint-rules/import-boundaries.test.mjs` / `pnpm test src/lib/routeFactory/createDeviceRoute.test.mts src/domains/core/pairedDevice src/wiring/apiRoute.test.mts` / `pnpm test src/app/api/collectionEntriesRoute.test.mts` / `pnpm test src/lib/routeFactory/maintenance.test.mts`（メンテナンスの停止・宣言・バイパス）。
 
 ## Related
 

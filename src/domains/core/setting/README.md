@@ -66,6 +66,24 @@ await saveSettingAsActor(user, { adminListPerPage: 50 }); // 主体のロール�
 
 `useMaintenanceAutoRedirect({ endTime, redirectTo }): void`(公開 hook、client)。`endTime` = 終了時刻(ISO8601、`maintenance.endAt` を /maintenance の loader が渡す。`null` = 遷移しない)、`redirectTo` = 終了時の遷移先。終了時刻に `router.replace(redirectTo)`、過ぎていれば即時、unmount で timer を解く。既定の `_screen/MaintenanceAutoRedirect` はこれを呼ぶだけ。
 
+### メンテナンスで止まる物と確かめ方
+
+キー `maintenance` の期間(`settingService.isMaintenanceActive()`)に止まる物。どれも同じ判定を読み、管理者・debugger(`canBypassMaintenance`、config の `maintenance.bypassRoles`)は通る。
+
+| 経路 | 止め方 | 通す宣言 |
+|---|---|---|
+| 画面の移動 | proxy(`src/proxies/maintenance.ts`)が `/maintenance` へ送る。`/api` などの許可パスは通す | config の `maintenance.allowedPaths` / `allowedPrefixes` |
+| API の書き込み(`POST`・`PUT`・`PATCH`・`DELETE`) | API ルートの Factory が 503 + `code: "maintenance"`。`GET` は通る | ルートの `maintenance: "pass"`(`src/lib/routeFactory/README.md`「メンテナンス中の書き込みの停止」) |
+| 定期タスク(Vercel Cron・`pnpm task --due`) | 本体を呼ばずに skipped(`reason: "maintenance"`)。名前指定の `pnpm task <name>` は走る | `task.ts` の `maintenance: "pass"`(`src/lib/cron/README.md` Internals「メンテナンス」) |
+
+期間に入れてから、書き込みが本当に止まったかを確かめる:
+
+1. 待つ: 設定の読みのメモ `readMemoMs`(既定 10 秒)+ 動いている要求の最長の時間(長い route は `maxDuration` まで)。ほかのインスタンスは最大でこの間、前の値を読む(Internals「読みのメモ」)。キーを `codeValues` で持つ場合は、その値の配備が行き渡った時が切り替わり
+2. 状態: `GET /api/health` の `maintenance.active` が `true`(管理者でない閲覧で `bypassed: false`)
+3. API: 管理者でない利用者(またはログアウト中)で書き込みの操作をすると 503 + `code: "maintenance"`(画面には「メンテナンス中」の文言が出る)
+4. 定期タスク: ログ(`scope: "cron"` / `scope: "task-cli"`)の各タスクに `skipped: true, reason: "maintenance"` が出る
+5. DB: `pnpm ops db inspect query "SQL"` で書き込みの多い表の最新の行(`max(created_at)` / `max(updated_at)` や件数)を時間をおいて 2 回読み、動いていない。動いているなら、`maintenance: "pass"` のルート・タスク(決済の完了の通知など、止めない経路)か管理者の操作かを確かめる
+
 ## API
 
 ### ルート
@@ -194,6 +212,7 @@ export default {
 
 - `settingService` の DB の読み(`global` の 1 行)を、インスタンスのメモリに config の `readMemoMs`(既定 10 秒、0 = 毎回読む)の間覚える(`services/server/readMemo.ts`)。同時の読みは 1 本にまとめ、失敗は覚えない
 - 保存(`updateFields`・初回セットアップ)はそのインスタンスのメモを捨てる。ほかのインスタンスは最大で `readMemoMs` だけ古い値を読む(管理画面でメンテナンスを入れても、ほかのインスタンスでは最大その長さ遅れる)。Vercel では proxy と API が別のインスタンスで動くことがある
+- API の書き込みの停止と定期タスクの飛ばしも同じ判定を読むので、同じだけ遅れる(Usage「メンテナンスで止まる物と確かめ方」)
 - メモは問い合わせの回数を減らすだけで、DB を眠らせはしない。DB を眠らせたい読み(proxy の判定など)はキーを `codeValues` で持つ
 - cacheComponents 専用の API(`use cache`・`cacheTag`)は使わない
 

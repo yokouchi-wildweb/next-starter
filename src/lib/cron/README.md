@@ -35,6 +35,7 @@ export const cronTask: CronTaskDefinition = {
 ```
 
 - 閉じられる機能のタスクは、機能のフォルダを import すれば門が付く（`pnpm generate extensions` で規則の `cronPaths` に出る）
+- 設定のメンテナンスの期間は飛ばされる（下の Internals「メンテナンス」）。飛ばすと取りこぼすタスクだけ `maintenance: "pass"` を書く（API ルートと同じ語。Tier1 のタスクは書いていない: 掃除・集計・期限切れの処理は次の回で追いつく）
 - `run` は動的 import（`pnpm generate cron` や `pnpm task --list` が task.ts を読むだけで DB などの依存を読み込まない）
 - ドメイン名からサービスを引く処理に登録表を渡すときは、`run` の中で `src/wiring/domainRegistry.ts` を動的 import して渡す（例: storage-sweep の `lookupService`。wiring を読めるのは task.ts だけ: `pnpm test src/wiring/wiring.test.mjs`）
 
@@ -141,7 +142,7 @@ env ファイルを置かずホストの環境変数で動かすときは、`APP
 - `types.ts` — タスク定義の型 `CronTaskDefinition`
 - `cronExpression.ts` — cron 式の検証・照合（`isValidCronExpression` / `isAtMostDailySchedule` / `matchesCronExpression`）
 - `auth.ts` — 共通認証（`CRON_SECRET` の Bearer 検証）
-- `createCronRoute.ts` — API ルート生成ファクトリ（`createCronRoute`、task.ts の定義から作る `createCronTaskRoute`）。省略可の依存 `gate`（住所 → 閉か）で機能の門を受ける。route.ts は直接読まず、門番を結んだ `@/wiring/cronRoute` を使う
+- `createCronRoute.ts` — API ルート生成ファクトリ（`createCronRoute`、task.ts の定義から作る `createCronTaskRoute`）。省略可の依存 `gate`（住所 → 閉か）で機能の門を、`maintenance`（`CronRouteMaintenance` = `{ isActive }`）でメンテナンスの期間を受ける。route.ts は直接読まず、門番を結んだ `@/wiring/cronRoute` を使う
 - `vercelCrons.ts` — `vercel.json` の crons の生成・検査（純関数）
 - `extensionPoints.ts` — 上書きの対象の点 `cronTasks` の宣言（`task.override.ts` が書いてよい鍵 = `schedule`・`disabled`。読み手は `discover.ts`、値の検査 = cron 式・真偽はそちら）
 - `discover.ts` — task を探す処理（`src/app/api/cron/<name>/` の走査・`task.override.ts` の反映・`listCronTaskDirs` / `loadCronTasks` / `scheduledCronTasks`）。入口 `./node`（`node.ts` が出す。`@/lib/cron/node`。node:fs を使う。画面からは読まない）。門番は読まず、閉じているかは呼ぶ側が `closedBy` で渡す。生成器・検査（`scripts/structure/cron`）と `pnpm task` が共有する
@@ -179,6 +180,7 @@ export const cronOverride: CronTaskOverride = {
   機能を閉じたいだけなら要らない（閉じた機能のタスクは自動で外れる）。機能以外の理由で外すときに使う
 - 置いた・変えたら `pnpm generate cron -- --plan <hobby|pro>` で再生成する（忘れると Vercel のビルドで止まる）
 - upstream がそのタスクを消すと `task.override.ts` だけが残り、`pnpm check cron` / `pnpm test scripts/structure/cron/cronWiring.test.mjs` が失敗する → `task.override.ts` も消す
+- メンテナンス中も走らせる宣言（`maintenance`）は `task.override.ts` に書けない（上書きは配備・CLI の時にだけ読まれ、route は `task.ts` だけを読む）。upstream のタスクを期間中も走らせたいときは、そのタスクを `disabled: true` で外し、同じ公開のサービスを呼ぶ自分のタスクのフォルダを足して `maintenance: "pass"` を書く
 - 名前は `task.ts` の一部の上書き = 他の上書きと同じ `<対象>.override.ts` の形（`scripts/structure/extensions/README.md`「override」）。旧名の `override.ts` が残っていると `pnpm check cron` / `pnpm generate cron` / `pnpm task` が改名を案内して止まる（`git mv <dir>/override.ts <dir>/task.override.ts`、中身はそのまま）
 - 個人情報を含むデータの削除タスク（`audit-log-prune` / `user-login-event-prune` / `device-fingerprint-prune` /
   `fingerprint-challenge-access-prune`）を外すと保持期限が守られなくなる（外してよい条件は札 pii_prune_kept）
@@ -190,7 +192,7 @@ export const cronOverride: CronTaskOverride = {
 
 ```
 src/app/api/cron/<name>/
-  task.ts   … cronTask = { name, description, schedule, enabled?, run }（run はドメインの関数を動的 import で呼ぶだけ）
+  task.ts   … cronTask = { name, description, schedule, enabled?, maintenance?, run }（run はドメインの関数を動的 import で呼ぶだけ）
   route.ts  … export const GET = createCronTaskRoute(cronTask)（@/wiring/cronRoute から）
 
 pnpm generate cron ── フォルダを走査 ──▶ vercel.json の crons（タスクごとに 1 エントリ）
@@ -217,6 +219,10 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 - **enabled**: 機能以外の追加の実行条件（例: 失効を有効にした通貨があるか）。同期関数（札 enabled_config_only）。
   false のときルートは本体を呼ばず `{ ok: true, skipped: true, reason: "disabled" }` を返す。vercel.json には載る（値を変えても再生成は要らない）。
   個人情報の retention prune は enabled に載せない。門は他の task と同じく import から付く: 閉じられる機能の prune（`device-fingerprint-prune` / `fingerprint-challenge-access-prune`）はその機能を閉じると止まり（その機能の表は作られない）、常に開く機能の prune（`audit-log-prune` / `user-login-event-prune`）は止まらない
+- **メンテナンス**: 認証・門・enabled の後、設定のメンテナンスの期間（`settingService.isMaintenanceActive()`、API・画面と同じ判定。`src/wiring/cronRoute.ts` が結ぶ）なら、route は本体を呼ばず
+  `{ ok: true, skipped: true, reason: "maintenance" }` を返す。`pnpm task --due` も同じに飛ばす（期間は走らせる候補が出た時に 1 回だけ読む）。名前指定の `pnpm task <name>` は運用者の意図なので飛ばさない。
+  `maintenance: "pass"` のタスクは走る。期間は閉・無効のタスクでは読まない。切り替わりは設定の読みのメモ（`readMemoMs`、既定 10 秒）だけ遅れる（`src/domains/core/setting/README.md`「メンテナンスで止まる物と確かめ方」）。
+  期間中に飛んだ回は取り戻さない（次の時刻の回が走る）
 - **最初の文は connection()**: route の作り手（`createCronRoute`）は認証・門・enabled より前に `await connection()`（next/server）を待つ。
   cacheComponents の build は request を読む前に返す 200（closed / disabled）を静的な応答に焼き付けるため（cacheComponents off では何も変えない）。route.ts の側には書かない
 - **配線漏れの防止**: `vercel.json` は人が書かない。タスクの増減で生成結果とずれると、Vercel 上のビルド
@@ -238,6 +244,8 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 - `vercel.json`（あれば）が task.ts（+ task.override.ts、閉じた機能のタスクを除く）からの生成結果と一致する
 - 機能の門: 閉じた住所のタスクは `closedBy` が付いて生成と検査から外れる、route の作り手は閉なら認証の後・本体の前に skipped
 - task.ts が門番（`@/featureGate`）を読まない（機能の入切は住所で自動。Tier1 は失敗、fork は一覧を出すだけ）
+
+メンテナンスの飛ばし（期間中は skipped、`"pass"` は走る、口が無ければ今の通り、閉・無効では期間を読まない）は `pnpm test src/lib/cron/createCronRoute.test.mts` が見る。
 
 閉じられる機能のフォルダを import する task.ts の住所が規則の `pathPatterns` に載っているかは、`FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies` の常時実行の入口の検査が見る（`src/featureGate/README.md`）。
 
