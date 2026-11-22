@@ -1,17 +1,17 @@
 // 送るモーダルの hook useMessageSendModal(と文面の useSendTemplateText)の検査(jsdom の上で描く。client service・門・離れる前の確認は偽物)。
-// - 純粋な関数: scheduleErrorOf / kindsOf / blankOfKind / initialTextOf / sameAsNoteOf / initialTargetOf / overLimitText /
+// - 純粋な関数: scheduleErrorOf / kindsOf / blankLayoutOf / initialTextOf / sameAsNoteOf / initialTargetOf / overLimitText /
 //   varValuesForInput / missingVars / varPreviewValues
-// - new(D110 D115 D118): 種別を選ぶまで止まる → 種別 → カテゴリー(1 つなら自動)→ 宛先(種別が許す種類だけ)→ テンプレート(その種別の物 + システム)。
+// - new(D110 D115 D118): 種別を選ぶまで止まる → 種別 → カテゴリー(1 つなら自動)→ 宛先(種別が許す種類だけ)→ テンプレート(その種別の公開中の物。読み込まない = 管理画面で選べる最初のレイアウト)。
 //   読み込み直後は文を固定、専用の埋め込み情報の入力だけ(D119)→ 文面を直す → 直した印(D118)→ 予約の検査 → プレビュー・テスト送信 →
-//   見込み → 確認 → 送る(送る口の入力 { template, values, edited, vars, category, channels }、鍵を作り直す)・書きかけの確認・閉じると初めに戻る
+//   見込み → 確認 → 送る(送る口の入力 { origin, values, edited, vars, category, channels }、鍵を作り直す)・書きかけの確認・閉じると初めに戻る
 // - 『テンプレートを更新』(D120): 直した文を 1 回の保存で新しい版に(D134)、新しい版へつなぎ直し直した印が消える / 変わらなければ unchanged
-// - 種別が 2 つ以上のカテゴリーを持つ時は選ぶ、送信方法はカテゴリーの最初の送信チャンネル(defaultChannels)。門 messagingTemplates が閉ならシステムだけ
-// - 読み込み: 手で直した後は確かめる / 解除は白紙へ(レイアウトが同じなら文を残す)/ システムテンプレートの専用の埋め込み情報
+// - 種別が 2 つ以上のカテゴリーを持つ時は選ぶ、送信方法はカテゴリーの最初の送信チャンネル(defaultChannels)。門 messagingTemplates が閉なら読み込める物は無い
+// - 読み込み: 手で直した後は確かめる / 解除は初めのレイアウトへ(レイアウトが同じなら文を残す)、送る口は origin { layout }
 // - sameAs: カテゴリー → 種別・宛先の形・送信の中身(レイアウト + values)を写す / テンプレートの送信は今の版を読み込む(専用の値も)/
-//   直して送信した物は直した文で文面を直す状態から / 公開中でないテンプレートは白紙 + 知らせ / 写せない送信は知らせ
+//   直して送信した物は直した文で文面を直す状態から / 公開中でないテンプレートは送信のレイアウト + 知らせ / 管理画面で選べないレイアウトの送信は知らせ
 // - グループ宛て: 選ぶまで止まる・体 target group・上限超えは確認で送れない / sameAs のグループ(選べなければ知らせ、全員に広げない)
 // - sameAs の送信チャンネル: 元の送信が使った送信チャンネルだけオン(今のカテゴリーの中で)、触るまで書きかけにしない
-// - bulk: 選んだ記録が宛先、defaults の values を白紙に重ねる、bulk-send の API と bulk のプレビュー・テスト、予約は無い、見込みは取らない
+// - bulk: 選んだ記録が宛先、defaults の values を初めのレイアウトに重ねる、bulk-send の API と bulk のプレビュー・テスト、予約は無い、見込みは取らない
 // 実行: pnpm test src/features/core/messaging/hooks/sendModalHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -52,7 +52,15 @@ const noticeTemplate = {
   values: { subject: "告知", blocks: [] },
   vars: [],
 };
+// 管理画面で選べないレイアウト(legacy)を頭に置き、初めのレイアウト = 選べる最初の物(notice)を確かめる
 const layouts = [
+  {
+    key: "legacy",
+    label: "旧版",
+    version: 1,
+    fields: { subject: { type: "line", label: "件名", required: true } },
+    selectable: false,
+  },
   {
     key: "notice",
     label: "汎用のお知らせ",
@@ -61,9 +69,18 @@ const layouts = [
       subject: { type: "line", label: "件名", required: true },
       blocks: { type: "blocks", label: "本文", allow: ["heading", "paragraph"] },
     },
+    selectable: true,
+  },
+  {
+    key: "letter",
+    label: "手紙",
+    version: 1,
+    fields: { subject: { type: "line", label: "件名", required: true } },
+    selectable: true,
   },
 ];
-const blankOf = (key: string, label: string) => ({ key, label, layout: "notice", values: BLANK_VALUES });
+/** 読み込まない時の出どころ = 初めのレイアウト(notice) */
+const NOTICE_SOURCE = { type: "layout", layout: "notice", label: "汎用のお知らせ" };
 const catalog = [{ key: "displayName", alias: "表示名", source: "common", description: null }];
 const categories = [
   {
@@ -73,7 +90,6 @@ const categories = [
     channels: ["email", "inApp"],
     defaultChannels: ["email", "inApp"],
     targets: ["all", "role"],
-    systemTemplate: blankOf("announcement", "シンプル"),
     catalog,
   },
   {
@@ -83,7 +99,6 @@ const categories = [
     channels: ["email", "inApp", "line"],
     defaultChannels: ["inApp"],
     targets: ["all", "role"],
-    systemTemplate: blankOf("announcement", "シンプル"),
     catalog,
   },
   {
@@ -93,7 +108,6 @@ const categories = [
     channels: ["email", "inApp"],
     defaultChannels: ["email", "inApp"],
     targets: ["users", "bulk", "group"],
-    systemTemplate: blankOf("direct", "個別の白紙"),
     catalog,
   },
   {
@@ -103,17 +117,10 @@ const categories = [
     channels: ["email", "inApp"],
     defaultChannels: ["email", "inApp"],
     targets: ["all", "group", "users", "bulk"],
-    systemTemplate: blankOf("promotion", "宣伝の白紙"),
     catalog,
   },
 ];
 const startAt = { key: "startAt", alias: "開始", type: "line", required: true } as const;
-const systemTemplates = [
-  { ...blankOf("announcement", "シンプル"), kind: "announcement", vars: [] },
-  { key: "maintenance", label: "メンテナンス", kind: "announcement", layout: "notice", values: { subject: "メンテナンス {{開始}}", blocks: [] }, vars: [startAt] },
-  { ...blankOf("direct", "個別の白紙"), kind: "direct", vars: [] },
-  { ...blankOf("promotion", "宣伝の白紙"), kind: "promotion", vars: [] },
-];
 const SEND_OPTIONS = {
   channels: [
     { key: "email", label: "メール" },
@@ -122,7 +129,6 @@ const SEND_OPTIONS = {
   roles: [{ id: "user", label: "利用者" }],
   templates: [template, noticeTemplate],
   categories,
-  systemTemplates,
   layouts,
   groups: [{ id: "g1", label: "常連", kindLabel: "動的" }],
   maxScheduleDays: 90,
@@ -162,7 +168,6 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
       channels: SEND_OPTIONS.channels,
       categories: categories.filter((c) => c.targets.includes("bulk")),
       templates: [template],
-      systemTemplates: systemTemplates.filter((s) => s.kind !== "announcement"),
       layouts,
     }),
     adminBulkSend: async (input: unknown) => {
@@ -288,10 +293,10 @@ test("純粋な関数", () => {
   assert.match(hooks.scheduleErrorOf("at", new Date(now + 91 * 86_400_000).toISOString(), 90, now) ?? "", /90 日先まで/);
   assert.equal(hooks.scheduleErrorOf("at", new Date(now + 86_400_000).toISOString(), 90, now), null);
 
-  // 種別(受け口の順、重なりなし)と種別の白紙
+  // 種別(受け口の順、重なりなし)と初めのレイアウト(管理画面で選べる最初の物)
   assert.deepEqual(hooks.kindsOf(categories as never), ["announcement", "direct", "promotion"]);
-  assert.equal(hooks.blankOfKind(categories as never, "direct")?.key, "direct");
-  assert.equal(hooks.blankOfKind(categories as never, "security"), null);
+  assert.deepEqual(hooks.blankLayoutOf(layouts as never), { key: "notice", label: "汎用のお知らせ" });
+  assert.equal(hooks.blankLayoutOf([layouts[0]] as never), null, "選べるレイアウトが無ければ null");
 
   // 専用の埋め込み情報: 数の型は数に、空は送らない / 必須の未入力(既定値のある物は除く)/ プレビューは入れた値(空なら既定値)で埋める
   assert.deepEqual(text.varValuesForInput([discount, startAt], { discount: "15", startAt: " " }), { discount: 15 });
@@ -310,33 +315,56 @@ test("純粋な関数", () => {
   const bulk = hooks.initialTextOf(
     { type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録", defaults: { values: { subject: "題" } } },
     "direct",
+    layouts as never,
     categories as never,
     [],
   );
-  assert.deepEqual([bulk?.source, bulk?.start, bulk?.unlocked], [{ type: "system", key: "direct", label: "個別の白紙" }, { subject: "題", blocks: [] }, true]);
-  assert.equal(hooks.initialTextOf(NEW, "", categories as never, []), null, "種別を選ぶまで文面は無い");
+  assert.deepEqual([bulk?.source, bulk?.start, bulk?.unlocked], [NOTICE_SOURCE, { subject: "題" }, true]);
+  assert.equal(
+    hooks.initialTextOf({ type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録" }, "direct", [layouts[0]] as never, categories as never, []),
+    null,
+    "選べるレイアウトが無ければ文面は無い(テンプレートを読み込む)",
+  );
+  assert.equal(hooks.initialTextOf(NEW, "", layouts as never, categories as never, []), null, "種別を選ぶまで文面は無い");
   const edited = hooks.initialTextOf(
     { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: TEMPLATE_ID, templateEdited: true, embeddedValues: { discount: "30", gone: "x" } } } as never,
     "promotion",
+    layouts as never,
     categories as never,
     [template] as never,
   );
   assert.deepEqual(edited?.source, { type: "template", id: TEMPLATE_ID, name: "春", version: 3 });
   assert.deepEqual([edited?.start, edited?.versionValues, edited?.unlocked], [SAME_AS_DISPATCH.content.values, template.values, true], "直した送信は直した文で直す状態から");
   assert.deepEqual(edited?.vars, { discount: "30" }, "今の版が宣言する鍵だけ");
-  const otherKind = hooks.initialTextOf({ type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: TEMPLATE_ID } } as never, "direct", categories as never, [template] as never);
-  assert.equal(otherKind?.source.type, "system", "種別を選び直した後は白紙から");
+  const otherKind = hooks.initialTextOf(
+    { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: TEMPLATE_ID } } as never,
+    "direct",
+    layouts as never,
+    categories as never,
+    [template] as never,
+  );
+  assert.deepEqual([otherKind?.source, otherKind?.start], [NOTICE_SOURCE, SAME_AS_DISPATCH.content.values], "種別を選び直した後は送信のレイアウトから");
+  // その場で書いた送信: 送信のレイアウトが管理画面で選べる物ならそのレイアウトに送信の values
+  const letterMode = { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, content: { layout: "letter", layoutVersion: 1, values: { subject: "手紙の件名" } } } } as never;
+  const letterText = hooks.initialTextOf(letterMode, "promotion", layouts as never, categories as never, []);
+  assert.deepEqual([letterText?.source, letterText?.layout, letterText?.start], [{ type: "layout", layout: "letter", label: "手紙" }, "letter", { subject: "手紙の件名" }]);
+  assert.equal(hooks.sameAsNoteOf(letterMode, letterText, []), null);
 
   // 写せなかった時の知らせ
   const goneMode = { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: "gone" } } as never;
-  const goneText = hooks.initialTextOf(goneMode, "promotion", categories as never, [template] as never);
+  const goneText = hooks.initialTextOf(goneMode, "promotion", layouts as never, categories as never, [template] as never);
   assert.deepEqual(goneText?.start, SAME_AS_DISPATCH.content.values);
   assert.match(hooks.sameAsNoteOf(goneMode, goneText, [template] as never) ?? "", /白紙のテンプレートにコピーしました/);
   const emptyMode = { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: "gone", content: null } } as never;
-  assert.match(hooks.sameAsNoteOf(emptyMode, hooks.initialTextOf(emptyMode, "promotion", categories as never, []), []) ?? "", /入力し直してください/);
-  const otherLayout = { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, content: { layout: "welcome", layoutVersion: 1, values: {} } } } as never;
-  assert.match(hooks.sameAsNoteOf(otherLayout, hooks.initialTextOf(otherLayout, "promotion", categories as never, []), []) ?? "", /形と違うため/);
-  assert.equal(hooks.sameAsNoteOf(SAME_AS as never, hooks.initialTextOf(SAME_AS as never, "promotion", categories as never, []), []), null);
+  assert.match(hooks.sameAsNoteOf(emptyMode, hooks.initialTextOf(emptyMode, "promotion", layouts as never, categories as never, []), []) ?? "", /入力し直してください/);
+  // 管理画面で選べないレイアウト(legacy)・無いレイアウトの送信 = 初めのレイアウトの白紙 + 知らせ
+  for (const layout of ["legacy", "welcome"]) {
+    const otherLayout = { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, content: { layout, layoutVersion: 1, values: { subject: "元" } } } } as never;
+    const otherText = hooks.initialTextOf(otherLayout, "promotion", layouts as never, categories as never, []);
+    assert.deepEqual([otherText?.source, otherText?.start], [NOTICE_SOURCE, {}], layout);
+    assert.match(hooks.sameAsNoteOf(otherLayout, otherText, []) ?? "", /形と違うため/, layout);
+  }
+  assert.equal(hooks.sameAsNoteOf(SAME_AS as never, hooks.initialTextOf(SAME_AS as never, "promotion", layouts as never, categories as never, []), []), null);
   assert.equal(hooks.sameAsNoteOf(NEW, null, []), null);
 
   // 初めの宛先
@@ -382,16 +410,11 @@ test("new: 種別 → 宛先 → テンプレートを読み込む(固定)→ �
   await act(async () => m().setKind("promotion"));
   assert.equal(m().category, "campaign", "カテゴリーが 1 つなら自動");
   assert.deepEqual(m().allowedTargetTypes, ["all", "group", "users"]);
-  assert.deepEqual(m().text.source, { type: "system", key: "promotion", label: "宣伝の白紙" }, "読み込まない = 種別の白紙");
+  assert.deepEqual(m().text.source, NOTICE_SOURCE, "読み込まない = 初めのレイアウト");
+  assert.deepEqual([m().currentLayout, m().blank], [{ label: "汎用のお知らせ" }, { key: "notice", label: "汎用のお知らせ" }]);
   assert.equal(m().text.locked, false);
-  // テンプレートはその種別の物だけ(システム → 公開中)
-  assert.deepEqual(
-    m().pickerTemplates.map((item) => [item.id, item.system]),
-    [
-      ["system:promotion", true],
-      [TEMPLATE_ID, false],
-    ],
-  );
+  // テンプレートはその種別の公開中の物だけ
+  assert.deepEqual(m().pickerTemplates, [{ id: TEMPLATE_ID, name: "春", currentVersion: 3 }]);
   assert.equal(m().dirty, true);
   assert.equal(guarded.at(-1), true);
 
@@ -434,7 +457,7 @@ test("new: 種別 → 宛先 → テンプレートを読み込む(固定)→ �
     await m().sendTest();
   });
   const expected = {
-    template: { id: TEMPLATE_ID, version: 3 },
+    origin: { id: TEMPLATE_ID, version: 3 },
     values: { subject: "{{割引}} 割引!", blocks: [{ type: "paragraph", text: "本文" }] },
     edited: true,
     vars: { discount: 20 },
@@ -491,7 +514,7 @@ test("テンプレートを更新: 直した文を新しい版にし、つなぎ
   assert.deepEqual(calls.at(-1), ["updateTemplate", TEMPLATE_ID, { values: { subject: "直した件名", blocks: [{ type: "paragraph", text: "本文" }] } }]);
   assert.equal(m().loadedTemplate?.version, 4, "新しい版へつなぎ直す");
   assert.equal(m().text.edited, false, "直した印は消える");
-  assert.deepEqual((m().buildContent() as { template: unknown }).template, { id: TEMPLATE_ID, version: 4 });
+  assert.deepEqual((m().buildContent() as { origin: unknown }).origin, { id: TEMPLATE_ID, version: 4 });
 
   saveResult = { currentVersion: 4, unchanged: true };
   await act(async () => {
@@ -513,7 +536,8 @@ test("テンプレートを更新: 直した文を新しい版にし、つなぎ
   const closed = await open(NEW);
   await act(async () => closed.value().setKind("promotion"));
   assert.equal(closed.value().templatesAvailable, false);
-  assert.deepEqual(closed.value().pickerTemplates.map((item) => item.id), ["system:promotion"], "門が閉ならシステムだけ");
+  assert.deepEqual(closed.value().pickerTemplates, [], "門が閉なら読み込める物は無い");
+  assert.deepEqual(closed.value().text.source, NOTICE_SOURCE, "初めのレイアウトから書ける");
   assert.equal(closed.value().text.canUpdateTemplate, false);
   await closed.unmount();
 });
@@ -541,7 +565,7 @@ test("種別: 宛先は種別が許す種類だけ、カテゴリーが 2 つ以
   assert.deepEqual(m().categories.map((c) => c.key), ["notice", "lineNotice"]);
   assert.equal(m().category, "notice", "種別を替えると最初のカテゴリー");
   assert.deepEqual(m().allowedTargetTypes, ["all", "role"]);
-  assert.deepEqual(m().pickerTemplates.map((item) => item.id), ["system:announcement", "system:maintenance", NOTICE_TEMPLATE_ID], "種別のテンプレートだけ");
+  assert.deepEqual(m().pickerTemplates.map((item) => item.id), [NOTICE_TEMPLATE_ID], "種別のテンプレートだけ");
   await act(async () => m().setCategory("lineNotice"));
   assert.deepEqual(m().channels.map((c) => [c.key, c.on]), [
     ["email", false],
@@ -554,7 +578,7 @@ test("種別: 宛先は種別が許す種類だけ、カテゴリーが 2 つ以
   await view.unmount();
 });
 
-test("読み込み: 手で直した後は確かめる / 解除は白紙へ(レイアウトが同じなら文を残す)/ システムテンプレートの専用の埋め込み情報", async () => {
+test("読み込み: 手で直した後は確かめる / 解除は初めのレイアウトへ(レイアウトが同じなら文を残す)、送る口は origin { layout }", async () => {
   const view = await open(NEW);
   const m = () => view.value();
   await act(async () => m().setKind("promotion"));
@@ -571,42 +595,39 @@ test("読み込み: 手で直した後は確かめる / 解除は白紙へ(レ�
   assert.equal(m().loadedTemplate?.id, TEMPLATE_ID);
   assert.deepEqual(m().text.values, template.values);
 
-  // 解除: 白紙へ。レイアウトが同じ(notice)なので今の文は白紙の文として残る。専用の埋め込み情報は無くなる
+  // 解除: 初めのレイアウトへ。レイアウトが同じ(notice)なので今の文は残る。テンプレートの埋め込み情報は無くなる
   await act(async () => m().unloadTemplate());
   assert.equal(m().loadedTemplate, null);
-  assert.deepEqual(m().text.source, { type: "system", key: "promotion", label: "宣伝の白紙" });
+  assert.deepEqual(m().text.source, NOTICE_SOURCE);
+  assert.deepEqual(m().currentLayout, { label: "汎用のお知らせ" });
   assert.deepEqual(m().text.values, template.values);
   assert.equal(m().text.locked, false);
   assert.deepEqual(m().text.state?.varDeclarations, []);
-  assert.deepEqual((m().buildContent() as { template: unknown }).template, { system: "promotion" });
-
-  // システムテンプレート(メンテナンス): 中身と専用の埋め込み情報の入力、送る口に vars
-  await act(async () => m().setKind("announcement"));
-  await act(async () => m().loadTemplate("system:maintenance"));
-  assert.equal(m().pendingLoad, "system:maintenance", "解除の後の文(手で触った形)の上に読み込む時も確かめる");
-  await act(async () => m().confirmLoad());
-  assert.deepEqual(m().text.source, { type: "system", key: "maintenance", label: "メンテナンス" });
-  assert.equal(m().text.values.subject, "メンテナンス {{開始}}");
-  assert.match(m().contentError ?? "", /埋め込み情報「開始」を入力してください/);
-  await act(async () => m().text.setVars("startAt", "10 時"));
-  assert.equal(m().contentError, null);
+  // レイアウトから書く送る口 = origin { layout }(vars は送らない)
   assert.deepEqual(m().buildContent(), {
-    template: { system: "maintenance" },
-    values: { subject: "メンテナンス {{開始}}", blocks: [] },
-    vars: { startAt: "10 時" },
-    category: "notice",
+    origin: { layout: "notice" },
+    values: template.values,
+    category: "campaign",
     channels: ["email", "inApp"],
   });
+
+  // 解除の後の文(手で触った形)の上に読み込む時も確かめる
+  await act(async () => m().setKind("announcement"));
+  await act(async () => m().loadTemplate(NOTICE_TEMPLATE_ID));
+  assert.equal(m().pendingLoad, NOTICE_TEMPLATE_ID);
+  await act(async () => m().confirmLoad());
+  assert.deepEqual(m().loadedTemplate, { type: "template", id: NOTICE_TEMPLATE_ID, name: "告知", version: 1 });
+  assert.equal(m().currentLayout, null, "テンプレートを読み込んだ間はレイアウトの出どころは無い");
   await view.unmount();
 });
 
-test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプレートの送信は今の版を読み込み、直した送信は直した文、公開中でなければ白紙 + 知らせ", async () => {
+test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプレートの送信は今の版を読み込み、直した送信は直した文、公開中でなければ送信のレイアウト + 知らせ", async () => {
   const roleDispatch = { ...SAME_AS_DISPATCH, category: "notice", target: { type: "role", roles: ["user"] } };
   const view = await open({ type: "sameAs", dispatch: roleDispatch });
   const m = () => view.value();
   assert.deepEqual([m().kind, m().category], ["announcement", "notice"]);
   assert.deepEqual([m().target.type, m().target.roles], ["role", ["user"]]);
-  assert.deepEqual(m().text.source, { type: "system", key: "announcement", label: "シンプル" });
+  assert.deepEqual(m().text.source, NOTICE_SOURCE);
   assert.deepEqual(m().text.values, { subject: "元の件名", blocks: [] });
   assert.equal(m().sameAsNote, null);
   assert.equal(m().dirty, false, "写しただけでは書きかけにしない");
@@ -644,9 +665,9 @@ test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプ�
   assert.deepEqual([e().target.type, e().target.userIds], ["users", ["u9"]]);
   await edited.unmount();
 
-  // 公開中でないテンプレート: 白紙に送信の values を写し、知らせを出す
+  // 公開中でないテンプレート: 送信のレイアウトに送信の values を写し、知らせを出す
   const gone = await open({ type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: "gone", templateVersion: 1, templateEdited: true } });
-  assert.deepEqual(gone.value().text.source, { type: "system", key: "promotion", label: "宣伝の白紙" });
+  assert.deepEqual(gone.value().text.source, NOTICE_SOURCE);
   assert.deepEqual(gone.value().text.values, SAME_AS_DISPATCH.content.values);
   assert.match(gone.value().sameAsNote ?? "", /白紙のテンプレートにコピーしました/);
   await gone.unmount();
@@ -657,7 +678,7 @@ test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプ�
   await nothing.unmount();
 });
 
-test("bulk: 選んだ記録が宛先、defaults を白紙に重ねる、bulk の API、予約は無い、見込みは取らない、onSent", async () => {
+test("bulk: 選んだ記録が宛先、defaults を初めのレイアウトに重ねる、bulk の API、予約は無い、見込みは取らない、onSent", async () => {
   const sentResults: unknown[] = [];
   const view = await open(
     {
@@ -694,7 +715,8 @@ test("bulk: 選んだ記録が宛先、defaults を白紙に重ねる、bulk の
   const input = calls[2][1] as Record<string, unknown>;
   assert.equal(input.target, "bankTransferReview");
   assert.deepEqual(input.recordIds, ["r1", "r2"]);
-  assert.deepEqual(input.template, { system: "direct" });
+  assert.deepEqual(input.origin, { layout: "notice" });
+  assert.equal("vars" in input, false);
   assert.deepEqual(input.values, { subject: "題", blocks: [{ type: "paragraph", text: "本文" }] });
   assert.equal(input.category, "operatorDirect");
   assert.deepEqual(input.channels, ["inApp"]);

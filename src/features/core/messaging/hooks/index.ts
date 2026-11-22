@@ -64,7 +64,7 @@ export {
   useMessageSendModal,
   scheduleErrorOf,
   kindsOf,
-  blankOfKind,
+  blankLayoutOf,
   initialTextOf,
   initialTargetOf,
   sameAsNoteOf,
@@ -82,7 +82,7 @@ export {
 } from "./useMessageSendModal";
 export {
   useSendTemplateText,
-  blankTextState,
+  layoutTextState,
   templateTextState,
   varValuesForInput,
   missingVars,

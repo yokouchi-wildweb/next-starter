@@ -228,7 +228,7 @@ export function MessageSendModal({
             <SettingLabel>テンプレート</SettingLabel>
             <SendTemplatePicker
               templates={m.pickerTemplates}
-              blank={m.currentSystem ?? m.blank}
+              blank={m.currentLayout ?? m.blank}
               loaded={m.loadedTemplate ? { ...m.loadedTemplate, edited: text.edited } : null}
               onLoad={m.loadTemplate}
               onUnload={m.unloadTemplate}

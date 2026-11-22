@@ -1,17 +1,15 @@
 // src/features/core/messaging/components/AdminMessageTemplateList/index.tsx
 // セクションコンテナ(管理: 保存されたテンプレートの一覧)。種別で絞る(D135)+ 無限スクロール(カーソル)。
-// 行 = 名前・版・種別とカテゴリーの表示名・更新(鍵は見せない、D46)。システムテンプレート(白紙)は「システム(読むだけ)」の印(D117)。行を押すと直すモーダル、上の「新規作成」で作るモーダル(AdminMessageTemplateModal。D87)。
+// 行 = 名前・版・種別とカテゴリーの表示名・更新(鍵は見せない、D46)。行を押すと直すモーダル、上の「新規作成」で作るモーダル(AdminMessageTemplateModal。D87)。
 // 流れ(絞り・モーダルの開き先)は hook useAdminMessageTemplateList。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
 
-import { useState } from "react";
 import { AlignLeft } from "lucide-react";
 
 import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Button } from "@/components/Button/Button";
 import { SelectInput } from "@/components/Input/Select";
-import { SwitchInput } from "@/components/Input/SwitchInput";
 import { Label } from "@/components/Input/Label";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
@@ -36,20 +34,16 @@ const when = (iso: string | null) => {
 
 export function AdminMessageTemplateList() {
   const { kind, setKind, query, modal } = useAdminMessageTemplateList({ observerOptions: OBSERVER_OPTIONS });
-  // システムテンプレートを見せるか(画面の中だけの見せ方。既定は隠す)。システムテンプレートはサーバーが 1 ページ目の頭にだけ付けるので、
-  // 行を隠しても次のページの取り方は変わらない
-  const [showSystem, setShowSystem] = useState(false);
-  // 種別の表示名: システムテンプレートは自分の種別、ほかはカテゴリーの受け口の種別から(送信一覧と同じ「種別 › カテゴリー」)
+  // 種別の表示名: カテゴリーの受け口の種別から(送信一覧と同じ「種別 › カテゴリー」)
   const categories = useAdminDispatchCategories();
   // 種別の絞り込みの選択肢 = 管理画面から送れるカテゴリーの種別(重ねない、表の並び)
   const kindOptions = (Object.keys(MESSAGE_KIND_LABELS) as (keyof typeof MESSAGE_KIND_LABELS)[])
     .filter((key) => categories.categories.some((category) => category.kind === key))
     .map((key) => ({ value: key, label: MESSAGE_KIND_LABELS[key] }));
-  const kindLabelOf = (template: { kind: string | null; category: string }) => {
-    const kind = template.kind ?? categories.categories.find((category) => category.key === template.category)?.kind ?? null;
+  const kindLabelOf = (template: { category: string }) => {
+    const kind = categories.categories.find((category) => category.key === template.category)?.kind ?? null;
     return kind && kind in MESSAGE_KIND_LABELS ? MESSAGE_KIND_LABELS[kind as keyof typeof MESSAGE_KIND_LABELS] : null;
   };
-  const items = showSystem ? query.items : query.items.filter((template) => !template.system);
 
   return (
     <Stack gap="md">
@@ -67,19 +61,11 @@ export function AdminMessageTemplateList() {
               placeholder="すべて"
             />
           </Stack>
-          <SwitchInput
-            id="template-filter-system"
-            size="sm"
-            label="システムテンプレートを表示"
-            value={showSystem}
-            onChange={(on) => setShowSystem(Boolean(on))}
-            className="pb-3"
-          />
         </Flex>
         <CreateButton onClick={modal.openNew} />
       </Flex>
       <InfiniteScrollList
-        items={items}
+        items={query.items}
         isInitialLoading={query.isInitialLoading}
         isFetchingMore={query.isFetchingMore}
         hasMore={query.hasMore}
@@ -108,11 +94,7 @@ export function AdminMessageTemplateList() {
                 <Stack gap="xs">
                   <Flex align="center" justify="between" gap="md" wrap="wrap">
                     <Flex align="center" gap="xs" wrap="wrap" className="min-w-0">
-                      {template.system ? (
-                        <SoftBadge variant="secondary" size="sm">
-                          システム
-                        </SoftBadge>
-                      ) : template.currentVersion ? (
+                      {template.currentVersion ? (
                         <SoftBadge variant="success" size="sm">
                           v{template.currentVersion}
                         </SoftBadge>
@@ -121,12 +103,12 @@ export function AdminMessageTemplateList() {
                         {template.name}
                       </Span>
                     </Flex>
-                    {template.updatedAt ?? template.createdAt ? <RowDateMeta text={when(template.updatedAt ?? template.createdAt)} label="更新日時" /> : null}
+                    <RowDateMeta text={when(template.updatedAt ?? template.createdAt)} label="更新日時" />
                   </Flex>
                   <Flex align="center" gap="lg" wrap="wrap">
                     <KindCategoryMeta
                       kindLabel={kindLabelOf(template)}
-                      categoryLabel={template.system ? "送信時に選ぶ" : (template.categoryLabel ?? "削除されたカテゴリー")}
+                      categoryLabel={template.categoryLabel ?? "削除されたカテゴリー"}
                     />
                     {template.description ? (
                       <RowMetaItem icon={AlignLeft} label="説明">

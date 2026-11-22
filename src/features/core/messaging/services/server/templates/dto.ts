@@ -42,18 +42,14 @@ export type AdminTemplateSummary = {
   category: string;
   /** カテゴリーの表示名(受け口の label。受け口に無ければ null。画面は鍵でなくこれを出す、D46) */
   categoryLabel: string | null;
-  /** 最新の版(保存 = 公開なので DB のテンプレートは 1 以上。システムテンプレートは null) */
+  /** 最新の版(保存 = 公開なので 1 以上) */
   currentVersion: number | null;
   createdBy: string | null;
   updatedBy: string | null;
-  /** 作った時刻(システムテンプレートは null: コードの物で DB の時刻が無い) */
-  createdAt: string | null;
+  /** 作った時刻 */
+  createdAt: string;
   updatedAt: string | null;
-  /** システムテンプレート(受け口 messaging/templates の白紙、D117・D125)。直せない・取り下げできない(API が 409) */
-  system: boolean;
-  /** システムテンプレートの種別(DB のテンプレートは null) */
-  kind: string | null;
-  /** レイアウトの鍵と欄の中身(DB のテンプレートは最新の版と同じ中身、システムテンプレートは白紙) */
+  /** レイアウトの鍵と欄の中身(最新の版と同じ中身) */
   layout: string;
   values: Record<string, unknown>;
 };
@@ -61,7 +57,7 @@ export type AdminTemplateSummary = {
 export type AdminTemplateDetail = AdminTemplateSummary & {
   /** 保存した時のレイアウトの版 */
   layoutVersion: number;
-  /** 専用の埋め込み情報の宣言(システムテンプレートは空) */
+  /** テンプレートの埋め込み情報の宣言 */
   vars: MessageVarDeclaration[];
   /** 文面に書ける埋め込み情報の一覧(共通 + テンプレートに当たる enrichers + 専用) */
   catalog: AdminVarEntry[];

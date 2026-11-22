@@ -1,11 +1,11 @@
 // src/features/core/messaging/services/server/sendMessage/templateDefinition.ts
 //
-// 管理の送信(テンプレート + 欄の中身、D117・D125、指令 58)→ 送る口の定義。システムテンプレート(白紙)も DB のテンプレートも同じ組み方:
-// - 出どころ: { system: 鍵 }(受け口 messaging/templates の白紙)か { id, version }(DB のテンプレートの今の公開版)
-// - 鍵は TEMPLATE_MESSAGE_KEY(定義連絡の鍵ではない。送信の message_key は null で、出どころは system_template か template_id + 版)
-// - 種別と送信チャンネルは送るカテゴリーから(D86)。カテゴリーの種別は自由連絡で送れる種別(性質 adminFreeText)だけ、白紙は種別が同じカテゴリーだけ(400)
-// - レイアウト = 白紙のレイアウトか DB のテンプレートの版のレイアウト。欄の中身(values)はそのレイアウトの欄の zod で検査する
-// - 埋め込み情報: 一覧 = 共通 + 当たる enrichers + 出どころの専用の宣言(DB のテンプレートの版・システムテンプレートが宣言した物)。文面の {{鍵}} / {{別名}} が一覧に無ければ 400。
+// 自由連絡(カテゴリー + レイアウト + 欄の中身、D117・D125・D171)→ 送る口の定義。レイアウトを直に選んだ物も DB のテンプレートも同じ組み方:
+// - 出どころ: { layout }(管理画面で選べるレイアウト = adminSelectable だけ、sender.ts が確かめる)か { id, version }(DB のテンプレートの今の公開版)
+// - 鍵は TEMPLATE_MESSAGE_KEY(定義連絡の鍵ではない。送信の message_key は null で、出どころはレイアウトだけか template_id + 版)
+// - 種別と送信チャンネルは送るカテゴリーから(D86)。カテゴリーの種別は自由連絡で送れる種別(性質 adminFreeText)だけ(400)
+// - レイアウト = 選んだレイアウトか DB のテンプレートの版のレイアウト。欄の中身(values)はそのレイアウトの欄の zod で検査する
+// - 埋め込み情報: 一覧 = 共通 + 当たる enrichers + DB のテンプレートの版が宣言した物。文面の {{鍵}} / {{別名}} が一覧に無ければ 400。
 //   専用の値は版の宣言の型で検査する(必須・既定値、varValuesSchema)。値は定義の vars として差し込み、送信には embedded_values に残す(sender.ts)
 // - 専用の別名 {{開始日時}} は {{鍵}} に書き換えてから定義にする(送信に残す中身は鍵だけ: cron の組み直しは宣言を引き直さない)。
 //   共通・enrichers の別名は差し込みの表が埋める(content.ts)
@@ -22,6 +22,8 @@ import {
   varCatalog,
   varValuesSchema,
   findVar,
+  kindsWhere,
+  kindTraits,
   MESSAGE_VAR_TYPE_LABELS,
   normalizeLayoutValues,
   resolveMessageDefinition,
@@ -32,17 +34,26 @@ import {
   type MessageVarDeclaration,
   type MessageEnricher,
   type MessageKey,
+  type MessageKind,
   type MessageLayout,
-  type MessageSystemTemplate,
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 import { replaceVariables } from "@/lib/templateVariables";
 
 import { enricherKeysFor, enrichersFor, type AnyMessageDefinition, type AnyResolvedMessageDefinition, registeredChannelKeys } from "./definition";
-import { adminSendableKinds, isAdminSendableKind } from "./systemTemplates";
 import type { MessageTemplateVersionSource } from "./types";
 
-/** テンプレートからの送信の定義の鍵(定義連絡の鍵ではない。送信の message_key には書かない) */
+/** 自由連絡で送れる種別(種別の性質 adminFreeText がある物) */
+export function adminSendableKinds(): MessageKind[] {
+  return kindsWhere((traits) => traits.adminFreeText.length > 0);
+}
+
+/** 自由連絡で送れる種別か */
+export function isAdminSendableKind(kind: string | null | undefined): kind is MessageKind {
+  return (kindTraits(kind)?.adminFreeText.length ?? 0) > 0;
+}
+
+/** 自由連絡の送信の定義の鍵(定義連絡の鍵ではない。送信の message_key には書かない) */
 export const TEMPLATE_MESSAGE_KEY = "messaging.template" as MessageKey;
 
 /**
@@ -91,23 +102,25 @@ export function canonicalVarNames(value: unknown, declarations: readonly Message
   return visit(value);
 }
 
-/** 送る中身の出どころ(組み済み): 白紙か DB のテンプレートの版 */
-export type TemplateSource = { system: MessageSystemTemplate } | { version: MessageTemplateVersionSource };
+/** 自由連絡の出どころ(組み済み): 選んだレイアウトか DB のテンプレートの版 */
+export type FreeSource = { layout: MessageLayout } | { version: MessageTemplateVersionSource };
 
-/** 出どころの専用の埋め込み情報の宣言(システムテンプレートは宣言した物だけ、例 メンテナンスの開始日時) */
-export function templateVarsOf(source: TemplateSource): MessageVarDeclaration[] {
-  return "version" in source ? source.version.vars : [...(source.system.vars ?? [])];
+/** 出どころの埋め込み情報の宣言(DB のテンプレートの版だけが持つ) */
+export function templateVarsOf(source: FreeSource): MessageVarDeclaration[] {
+  return "version" in source ? source.version.vars : [];
 }
 
-/** 中身 → 定義(検査の前)。vars = 専用の値の zod(白紙は空)、varNames = 宣言の別名 */
+const layoutKeyOf = (source: FreeSource) => ("version" in source ? source.version.layout : source.layout.key);
+
+/** 中身 → 定義(検査の前)。vars = テンプレートの埋め込み情報の値の zod(レイアウトを直に選んだ物は空)、varNames = 宣言の別名 */
 export function templateDefinitionOf(
-  source: TemplateSource,
+  source: FreeSource,
   category: string,
   values: Record<string, unknown>,
 ): AnyMessageDefinition {
   const declarations = templateVarsOf(source);
-  const label = "system" in source ? source.system.label : `テンプレート ${source.version.templateKey}`;
-  const layout = "system" in source ? source.system.layout : source.version.layout;
+  const label = "version" in source ? `テンプレート ${source.version.templateKey}` : source.layout.label;
+  const layout = layoutKeyOf(source);
   const vars = declarations.length > 0 ? varValuesSchema(declarations) : z.object({}).strict();
   const canonical = canonicalVarNames(values, declarations) as Record<string, unknown>;
   // vars の名前(定義に必須、D133)= 専用の宣言の別名と型の表示名
@@ -118,8 +131,8 @@ export function templateDefinitionOf(
 }
 
 /**
- * テンプレート + 中身を送れる定義にする(検査を通す。上書きは重ねない)。
- * @throws DomainError(400) カテゴリーの種別・白紙の種別・絞り・欄・埋め込みの名前 / (500) カテゴリーが無い
+ * 自由連絡の中身を送れる定義にする(検査を通す。テキストの編集・fork の上書きは重ねない)。
+ * @throws DomainError(400) カテゴリーの種別・絞り・欄・埋め込みの名前 / (500) カテゴリーが無い
  */
 export function resolveTemplateDefinition(
   deps: {
@@ -128,22 +141,15 @@ export function resolveTemplateDefinition(
     categories: Readonly<Record<string, MessageCategory>>;
     layouts: Readonly<Record<string, MessageLayout>>;
   },
-  input: { category: string; values: Record<string, unknown>; channels?: readonly string[]; source: TemplateSource },
+  input: { category: string; values: Record<string, unknown>; channels?: readonly string[]; source: FreeSource },
 ): AnyResolvedMessageDefinition {
   const { source } = input;
   const category = deps.categories[input.category];
-  const label =
-    "system" in source ? `システムテンプレート ${source.system.key}` : `テンプレート ${source.version.templateKey} の版 ${source.version.version}`;
+  const label = "version" in source ? `テンプレート ${source.version.templateKey} の版 ${source.version.version}` : `レイアウト ${source.layout.key}`;
   if (!category) throw new DomainError(`${label} の種類 ${input.category} がありません`, { status: 500 });
   if (!isAdminSendableKind(category.kind)) {
     throw new DomainError(
       `${label} はカテゴリー ${input.category}(種別 ${category.kind})では送れません(${adminSendableKinds().join("・")} のカテゴリーで送る)`,
-      { status: 400 },
-    );
-  }
-  if ("system" in source && source.system.kind !== category.kind) {
-    throw new DomainError(
-      `${label}(種別 ${source.system.kind})はカテゴリー ${input.category}(種別 ${category.kind})では送れません(同じ種別のカテゴリーで送る)`,
       { status: 400 },
     );
   }
@@ -168,7 +174,7 @@ export function resolveTemplateDefinition(
     throw new DomainError(`${label} を送れません: ${catalogProblems.map((problem) => problem.message).join(" / ")}`, { status: 400 });
   }
   // 空の任意の欄(画像の空文字・全部が空のボタン・空の並び)は「無い」(D128)。フォームは空の値のまま送ってくる
-  const values = normalizedValues(deps.layouts, "system" in source ? source.system.layout : source.version.layout, input.values);
+  const values = normalizedValues(deps.layouts, layoutKeyOf(source), input.values);
   const { unknown } = findVar(values, catalog);
   if (unknown.length > 0) {
     throw new DomainError(`${label} を送れません: ${unknown.map((name) => `{{${name}}}`).join(", ")} は埋め込み情報にありません`, { status: 400 });

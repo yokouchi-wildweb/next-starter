@@ -9,7 +9,6 @@ import type {
   MessageEnricher,
   MessageLayout,
   MessageRegistry,
-  MessageSystemTemplate,
 } from "@/lib/messaging";
 
 import type { SQL } from "drizzle-orm";
@@ -95,29 +94,30 @@ export type SendMessageToManyInput = CommonSendInput &
     showToLaterSignups?: boolean;
   };
 
-/** 送る中身の出どころ: システムテンプレート(白紙)の鍵か、DB のテンプレートの今の公開版(読み込んだ版。今の公開版でなければ 409) */
-export type MessageTemplateRef = { system: string } | { id: string; version: number };
+/** 自由連絡の出どころ: レイアウトを直に(管理画面で選べるレイアウト = adminSelectable だけ)か、DB のテンプレートの今の公開版(読み込んだ版。今の公開版でなければ 409) */
+export type MessageFreeOrigin = { layout: string } | { id: string; version: number };
 
 /**
- * テンプレート + 欄の中身で送る(sendTemplateMessage、D117・D125)。管理の送る画面・一括送信も fork のコードからの管理の送信も同じ口。
- * テンプレートは送る時の公開版を送信に固定する(予約なら予約の時の版)。専用の埋め込み情報の値は送信に 1 組(受信者ごとの値は無い)
+ * 自由連絡を送る(sendFreeMessage、D117・D125・D171): カテゴリー + レイアウト + 欄の中身か、DB のテンプレート + 欄の中身。
+ * 管理の送る画面・一括送信も fork のコードからの管理の送信も同じ口。
+ * テンプレートは送る時の公開版を送信に固定する(予約なら予約の時の版)。テンプレートの埋め込み情報の値は送信に 1 組(受信者ごとの値は無い)
  */
-export type SendTemplateMessageInput = Omit<SendMessageToManyInput, "recipientVars" | "vars"> & {
-  /** 出どころ(白紙か DB のテンプレート) */
-  template: MessageTemplateRef;
-  /** レイアウトの欄の中身(白紙・DB のテンプレートの版のレイアウト。{{鍵}} / {{別名}} のまま) */
+export type SendFreeMessageInput = Omit<SendMessageToManyInput, "recipientVars" | "vars"> & {
+  /** 出どころ(レイアウトか DB のテンプレート) */
+  origin: MessageFreeOrigin;
+  /** レイアウトの欄の中身(選んだレイアウト・DB のテンプレートの版のレイアウト。{{鍵}} / {{別名}} のまま) */
   values: Record<string, unknown>;
   /** 版の中身から直したか(DB のテンプレートだけ。送る口は中身の違いでも直した印を付ける。false は信じない) */
   edited?: boolean;
-  /** 送るカテゴリー(種別は自由連絡で送れる物。白紙は同じ種別のカテゴリー)。送信チャンネルはこのカテゴリーから */
+  /** 送るカテゴリー(種別は自由連絡で送れる物)。種別と送信チャンネルはこのカテゴリーから */
   category: string;
-  /** 専用の埋め込み情報の値 { 鍵: 値 }(DB のテンプレートと、宣言を持つシステムテンプレート。宣言の型で検査、必須。送信の embedded_values に残る) */
+  /** テンプレートの埋め込み情報の値 { 鍵: 値 }(DB のテンプレートの宣言の型で検査、必須。送信に残る) */
   vars?: Record<string, unknown>;
 };
 
-/** 送信に残すテンプレートの出どころ(システムテンプレートの鍵か、DB のテンプレートの固定した版と直した印) */
+/** 送信に残す自由連絡の出どころ(レイアウトだけか、DB のテンプレートの固定した版と直した印) */
 export type MessageDispatchTemplateSource =
-  | { system: string }
+  | { layout: string }
   | { template: { id: string; version: number; edited: boolean } }
   /** 消したテンプレートの送信の送り直し(D137): template_id は null、版の番号と直した印は送信のまま */
   | { deletedTemplate: { version: number; edited: boolean } };
@@ -165,7 +165,7 @@ export type SendMessageResult = {
   /** queued のまま cron に任せた配達の行の数 */
   queuedCount: number;
   channelCounts: MessageChannelCounts;
-  /** DB のテンプレートで送った時の出どころ(sendTemplateMessage だけ。edited = 版の中身から直したか) */
+  /** DB のテンプレートで送った時の出どころ(sendFreeMessage だけ。edited = 版の中身から直したか) */
   template?: { id: string; version: number; edited: boolean };
 };
 
@@ -306,9 +306,7 @@ export type MessageSendDeps = {
   throttle?: MessageThrottleStore;
   /** 管理画面のテキストの編集(無い = 重ねない。resolveDefinition が門の開閉を見て定義ごとに 1 回読む) */
   adminOverrides?: MessageAdminOverrideSource;
-  /** システムテンプレートの受け口(管理の送信の白紙、D117)。無い = 白紙から送れない(400) */
-  systemTemplates?: Readonly<Record<string, MessageSystemTemplate>>;
-  /** 保存されたテンプレート(sendTemplateMessage の版の固定)。無ければテンプレートを呼び出して送れない */
+  /** 保存されたテンプレート(sendFreeMessage の版の固定)。無ければテンプレートを呼び出して送れない */
   templates?: MessageTemplateSource;
   /** ワンクリックの配信停止(鍵の env があるか・停止の URL) */
   unsubscribe: {

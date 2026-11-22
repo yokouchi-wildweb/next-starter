@@ -2,11 +2,10 @@
 // - confirmOnClose に form の closeConfirm、form に onCreated・onChanged を渡す / 鍵の欄は無い / 書く欄に送信チャンネルとプレビューの送信チャンネルを渡す
 // - 下の帯: 作る = 「保存」だけ / 直す = 「削除」(destructive の確かめ。消せたら閉じる、消せなければ閉じない)+「保存」
 //   削除は書きかけの間は押せない・保存は書きかけの間だけ押せる / 保存の確かめで form.save
-// - システムテンプレート = 帯なし・読むだけの一言・説明と中身の欄なし・バージョン履歴なし(D117)
 // - 中身の入力と埋め込み情報はそろってから(D139): fieldsReady でない間は fieldsHint の 1 行、LayoutFields と埋め込み情報の吹き出しは出さない
 // - バージョン履歴はボタンから重ねた Modal / レイアウトを替える確かめの Dialog は pendingLayout の間だけ
 // - 読み込み中・取れない時は普通の Modal(書く欄なし)
-// - 一覧: 「新規作成」と行でモーダルの開き先を変える / 種別の絞り / システムテンプレートは既定で隠す
+// - 一覧: 「新規作成」と行でモーダルの開き先を変える / 種別の絞り / 行は版の印と更新日時(システムテンプレートの切り替え・印は無い)
 // 実行: pnpm test src/features/core/messaging/components/AdminMessageTemplateModal/AdminMessageTemplateModal.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -35,7 +34,7 @@ type Props = Record<string, unknown>;
 const DELETE_TEXT = "テンプレートを削除します。送信の記録は残ります(どのテンプレートから送ったかは表示されなくなります)";
 const events: string[] = [];
 const OPTIONS = { layouts: [{ key: "basic", label: "基本", description: "基本のひな形", fields: [] }], categories: [] };
-const TEMPLATE = { id: "t1", name: "春", system: false, currentVersion: 2, layout: "basic", values: {}, updatedAt: null };
+const TEMPLATE = { id: "t1", name: "春", currentVersion: 2, layout: "basic", values: {}, updatedAt: null };
 const LAYOUT_FIELDS = [{ key: "title" }];
 let modalState: Props = {};
 let formState: Props = {};
@@ -57,8 +56,6 @@ const baseForm = (): Props => ({
   mode: "create",
   fieldsReady: true,
   fieldsHint: null,
-  system: false,
-  readOnly: false,
   dirty: true,
   createdId: null,
   closeConfirm: { enabled: true, message: "書きかけ" },
@@ -385,27 +382,6 @@ test("直す: バージョン履歴はボタンから重ねた Modal で見る",
   await view.unmount();
 });
 
-test("システムテンプレート: 帯なし・読むだけの一言・説明と中身の欄なし・バージョン履歴なし(D117)", async () => {
-  modalState = editModal({ ...TEMPLATE, system: true });
-  formState = withFields({ mode: "edit", system: true, readOnly: true, dirty: false });
-  const view = await render(createElement(AdminMessageTemplateModal, { ...open, templateId: "t1" }));
-  const main = modals.get("テンプレートを編集: 春")!;
-  assert.equal(main.footer, null);
-  assert.equal(footerOf(view.container), null);
-  assert.match(view.container.textContent ?? "", /システムテンプレートは編集できません/);
-  assert.equal(buttonOf(view.container, "バージョン履歴"), undefined);
-  assert.equal([...modals.keys()].some((t) => t.startsWith("バージョン履歴")), false);
-  assert.equal(view.container.querySelector("#template-description"), null);
-  assert.equal(view.container.querySelector("[data-slot=template-values]"), null);
-  assert.equal(has(view.container, "layoutFields"), false);
-  // カテゴリーは「送信時に選ぶ」だけ(最初のカテゴリーを出さない)、触れない
-  const kindCategory = parts.get("kindCategory")!;
-  assert.deepEqual((kindCategory.categories as { label: string }[]).map((c) => c.label), ["送信時に選ぶ"]);
-  assert.equal(kindCategory.disabled, true);
-  assert.equal(selects.get("template-layout")!.disabled, true);
-  await view.unmount();
-});
-
 test("D139: そろうまで中身の欄は fieldsHint の 1 行、LayoutFields と埋め込み情報の吹き出しは出さない", async () => {
   formState = withFields({ fieldsReady: false, fieldsHint: "先にカテゴリーを選んでください" });
   const view = await render(createElement(AdminMessageTemplateModal, open));
@@ -460,20 +436,19 @@ const ROW = {
   key: "tpl-abc",
   name: "春",
   description: null,
-  system: false,
-  kind: null,
   currentVersion: 1,
   category: "notice",
   categoryLabel: "お知らせ",
-  createdAt: null,
+  createdAt: "2026-11-12T00:00:00.000Z",
   updatedAt: null,
 };
-const SYSTEM_ROW = { ...ROW, id: "s1", key: "system-blank", name: "白紙", system: true, kind: "announcement", category: "" };
+/** 消したカテゴリーの行(種別は出せない) */
+const ORPHAN_ROW = { ...ROW, id: "t2", key: "tpl-def", name: "秋", currentVersion: 3, category: "gone", categoryLabel: null };
 const baseList = (): Props => ({
   kind: "",
   setKind: (v: string) => void events.push(`kind:${v}`),
   query: {
-    items: [SYSTEM_ROW, ROW],
+    items: [ROW, ORPHAN_ROW],
     isInitialLoading: false,
     isFetchingMore: false,
     hasMore: false,
@@ -511,7 +486,7 @@ test("一覧: 「新規作成」と行でモーダルの開き先を変える。
   await view.unmount();
 });
 
-test("一覧: 種別の絞り(選択肢 = 送れるカテゴリーの種別、空 = すべて)/ システムテンプレートは既定で隠す", async () => {
+test("一覧: 種別の絞り(選択肢 = 送れるカテゴリーの種別、空 = すべて)/ 行は全部出す(システムテンプレートの切り替え・印は無い)", async () => {
   const { AdminMessageTemplateList } = await import("../AdminMessageTemplateList");
   listState = baseList();
   const view = await render(createElement(AdminMessageTemplateList));
@@ -524,10 +499,10 @@ test("一覧: 種別の絞り(選択肢 = 送れるカテゴリーの種別、�
   assert.deepEqual(events, ["kind:announcement", "kind:"]);
 
   const rows = () => [...view.container.querySelectorAll("button")].map((b) => b.textContent ?? "");
-  assert.equal(rows().some((t) => t.includes("白紙")), false, "システムテンプレートは既定で隠す");
-  assert.equal(switches.get("template-filter-system")!.value, false);
-  await click(view.container, "システムテンプレートを表示");
-  assert.equal(rows().some((t) => t.includes("白紙")), true);
-  assert.match(view.container.textContent ?? "", /送信時に選ぶ/, "システムテンプレートのカテゴリーは送信時に選ぶ");
+  assert.equal(rows().filter((t) => t.includes("春") || t.includes("秋")).length, 2, "行は絞らずに全部出す");
+  assert.equal(switches.has("template-filter-system"), false, "システムテンプレートの切り替えは無い");
+  assert.doesNotMatch(view.container.textContent ?? "", /システム|送信時に選ぶ/);
+  assert.match(view.container.textContent ?? "", /v3/, "行の印は版");
+  assert.match(view.container.textContent ?? "", /削除されたカテゴリー/, "消したカテゴリーの行");
   await view.unmount();
 });

@@ -3,10 +3,10 @@
 // src/features/core/messaging/hooks/useSendTemplateText.ts
 //
 // 管理: 送る画面の文面(D118 D119 D120)。送るモーダルの hook useMessageSendModal がこれを 1 つ持つ。
-// - 出どころ: 種別の白紙(システムテンプレート { system })か、読み込んだ DB のテンプレートの版({ id, version })
-// - 白紙はいつも全文を書ける。テンプレートを読み込んだ直後は文を固定し(locked)、プレビューと専用の埋め込み情報の入力だけを出す
+// - 出どころ: 選んだレイアウト({ layout }、白紙から書く)か、読み込んだ DB のテンプレートの版({ id, version })
+// - レイアウトから書く時はいつも全文を書ける。テンプレートを読み込んだ直後は文を固定し(locked)、プレビューと専用の埋め込み情報の入力だけを出す
 // - 『文面を直す』(unlock)で全文を直せる。つながりは残り、版の中身と違えば直した印(edited)が付く(送る口も中身の違いで付ける)
-// - 『テンプレートの読み込みを解除』は呼び手が白紙で reset する(今の文は、レイアウトが同じなら白紙の文として残す = toBlank)
+// - 『テンプレートの読み込みを解除』は呼び手が初めのレイアウトで reset する(今の文は、レイアウトが同じなら残す = toBlank)
 // - 『テンプレートを更新』(updateTemplate)= 今の文をそのテンプレートの新しい版にする(1 回の保存で公開、送るとは別。テンプレートの保存と同じ、D134)。
 //   成功したら新しい版へつなぎ直し、直した印は消える。変更が無ければ unchanged →「変更はありません」
 // 欄のフォーム = useLayoutFieldsForm(検査は lib の layoutValuesSchema、使う送信チャンネルだけの欄は使う送信チャンネルで必須を決める)
@@ -28,7 +28,7 @@ import { layoutFieldsDefaults, useLayoutFieldsForm } from "./useLayoutFieldsForm
 
 /** 文面の出どころ */
 export type SendTextSource =
-  | { type: "system"; key: string; label: string }
+  | { type: "layout"; layout: string; label: string }
   | { type: "template"; id: string; name: string; version: number };
 
 /** 文面の状態(呼び手が reset で入れ替える) */
@@ -36,13 +36,13 @@ export type SendTextState = {
   source: SendTextSource;
   /** レイアウトの鍵 */
   layout: string;
-  /** フォームの初めの中身(読み込んだ版・白紙・同じ内容で送る元の送信の values) */
+  /** フォームの初めの中身(読み込んだ版・レイアウトの白紙 {}・同じ内容で送る元の送信の values) */
   start: Record<string, unknown>;
-  /** 直した印の比べ先(テンプレートの版の中身。白紙は null) */
+  /** 直した印の比べ先(テンプレートの版の中身。レイアウトから書く時は null) */
   versionValues: Record<string, unknown> | null;
-  /** 全文を直せるか(白紙はいつも true) */
+  /** 全文を直せるか(レイアウトから書く時はいつも true) */
   unlocked: boolean;
-  /** 専用の埋め込み情報の宣言(テンプレートの版・システムテンプレートの宣言。無ければ空) */
+  /** テンプレートの埋め込み情報の宣言(テンプレートの版の宣言。レイアウトから書く時は空) */
   varDeclarations: MessageVarDeclaration[];
   /** 専用の埋め込み情報の値(入力は文字) */
   vars: Record<string, string>;
@@ -63,21 +63,15 @@ export type UseSendTemplateTextOptions = {
 
 const NO_FIELDS: MessageLayoutFields = {};
 
-/** システムテンプレート(白紙・リッチ・メンテナンスなど)から作る状態。専用の埋め込み情報を宣言していればその入力も出す(D119) */
-export function blankTextState(blank: {
-  key: string;
-  label: string;
-  layout: string;
-  values: Record<string, unknown>;
-  vars?: readonly MessageVarDeclaration[];
-}): SendTextState {
+/** レイアウトから書く状態(start = 初めの欄の中身、既定は白紙 {})。テンプレートの埋め込み情報は無い */
+export function layoutTextState(layout: { key: string; label: string }, start: Record<string, unknown> = {}): SendTextState {
   return {
-    source: { type: "system", key: blank.key, label: blank.label },
-    layout: blank.layout,
-    start: blank.values,
+    source: { type: "layout", layout: layout.key, label: layout.label },
+    layout: layout.key,
+    start,
     versionValues: null,
     unlocked: true,
-    varDeclarations: [...(blank.vars ?? [])],
+    varDeclarations: [],
     vars: {},
   };
 }
@@ -199,12 +193,10 @@ export function useSendTemplateText({ layouts, initial, channels, templatesOpen,
     [change],
   );
 
-  /** 白紙へ移る時の状態(レイアウトが同じなら今の文を白紙の文として残す。違えば白紙のまま) */
+  /** レイアウトから書く形へ移る時の状態(レイアウトが同じなら今の文を残す。違えば白紙) */
   const toBlank = useCallback(
-    (blank: { key: string; label: string; layout: string; values: Record<string, unknown>; vars?: readonly MessageVarDeclaration[] }): SendTextState => {
-      const next = blankTextState(blank);
-      return state && state.layout === blank.layout ? { ...next, start: values } : next;
-    },
+    (layout: { key: string; label: string }): SendTextState =>
+      layoutTextState(layout, state && state.layout === layout.key ? values : {}),
     [state, values],
   );
 

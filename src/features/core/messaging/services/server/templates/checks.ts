@@ -24,7 +24,7 @@ import {
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
-import { isAdminSendableKind } from "../sendMessage/systemTemplates";
+import { isAdminSendableKind } from "../sendMessage/templateDefinition";
 
 export type TemplateCheckDeps = {
   channels: Readonly<Record<string, MessageChannel>>;

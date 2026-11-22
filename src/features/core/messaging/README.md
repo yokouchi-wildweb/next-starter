@@ -80,7 +80,7 @@ export const category: MessageCategory = { key: "itemSoldInApp", label: "出品�
 
 HTTP の口と返す形は口のフォルダの README:
 
-- 送る口（`sendMessage` / `sendMessageToMany` / `sendTemplateMessage`・プレビュー・見込み・間引き・本文の残し方・送信の結果）→ services/server/sendMessage/README.md
+- 送る口（`sendMessage` / `sendMessageToMany` / `sendFreeMessage`・プレビュー・見込み・間引き・本文の残し方・送信の結果）→ services/server/sendMessage/README.md
 - 管理の口 `/api/admin/messaging/**`（送る・一括送信・送信の読む口・送信の操作・続きを送る・利用者ごとの履歴）→ services/server/admin/README.md
 - テンプレート `/api/admin/messaging/templates/**`・レイアウトのプレビュー `/api/admin/messaging/layouts/preview` → services/server/templates/README.md / テキストの編集 `/api/admin/messaging/overrides/**` → services/server/overrides/README.md
 - 本人の受け取り箱 `/api/me/messaging/inbox/**` → services/server/inbox/README.md / 好み `/api/me/messaging/preferences` → services/server/preferences/README.md / 端末の帳簿 `/api/me/messaging/endpoints` → services/server/endpoints/README.md
@@ -113,7 +113,6 @@ HTTP の口と返す形は口のフォルダの README:
 - `sources/`（`source`: `MessageSource`）: 送り元の表示名。上流は管理の送り元 4 つ（`adminSend`・`adminSendTest`・`adminBulk`・`adminBulkTest`）。送信の詳細の送り元は `sources/` → 同じ鍵の連絡の `label` → 一括の対象 `<対象>.bulk(.test)` の順に引く（`services/server/admin/sourceLabels.ts`）
 - `bulkSendTargets/`（`bulkSendTarget`: `MessageBulkSendTarget`、型は `services/server/admin/types.ts`）: 管理一覧の一括送信の対象（選んだ記録 → 利用者 id・送った後の処理）。上流は `bankTransferReview`（services/server/admin/README.md）
 - `adminBulkActions/`（`bulkAction`: `MessagingDispatchAdminBulkActionItem`、型は `types/adminBulkAction.ts`、client）: 送信一覧の一括操作。上流の既定 = `delete.tsx`（削除）。fork は項目を足す・`<名前>.override.ts` で `enabled`・`order`（作り方: src/lib/tableSuite/README.md「一括操作の受け口」）
-- `templates/`（`systemTemplate`: `MessageSystemTemplate`）: システムテンプレート = 管理の送信の白紙とできあがった文面。上流は 6 本: 種別ごとにシンプル（`announcement`・`direct`・`promotion`、レイアウト simple = 種別の既定の白紙）とリッチ（`…Rich`、レイアウト notice）。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` と `enabled`（false = 一覧・送る画面・既定の白紙から外す）だけ（templates/README.md）
 - `subscribers/`（`subscriber`: `MessageSubscriber`）: 送った後の事件の購読（少なくとも 1 回）。上流の項目は無い（services/server/subscribers/README.md）
 
 ほかの差し替え:

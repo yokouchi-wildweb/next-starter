@@ -1,13 +1,13 @@
 // src/features/core/messaging/services/server/admin/send.ts
 //
-// 管理の送信(D34・D40・D41・D42・D65・D80・D85・D117・D125)。どの送信も『テンプレートを選んで送る』1 つの流れ(自由連絡 = 白紙のシステムテンプレート)。
-// - 中身: template = 出どころ { system: 白紙の鍵 } か { id, version }(DB のテンプレートの読み込んだ版。今の公開版でなければ 409)・
+// 管理の送信(D34・D40・D41・D42・D65・D80・D85・D117・D125・D171)。自由連絡 = カテゴリー + レイアウト + 欄の中身(レイアウトを直に選ぶか DB のテンプレートを読み込む)。
+// - 中身: origin = 出どころ { layout }(管理画面で選べるレイアウト = adminSelectable)か { id, version }(DB のテンプレートの読み込んだ版。今の公開版でなければ 409)・
 //   values = レイアウトの欄の中身({{鍵}} のまま、レイアウトの欄の zod で検査)・edited? = 版の中身から直したか(DB のテンプレートだけ。中身の違いでも付く)・
-//   vars? = 専用の埋め込み情報の値 { 鍵: 値 }(DB のテンプレートの版かシステムテンプレートの宣言の型で検査、送信の embedded_values に残る)。組み方は sendMessage/templateDefinition.ts(fork のコードからは messagingService.sendTemplateMessage)
+//   vars? = テンプレートの埋め込み情報の値 { 鍵: 値 }(DB のテンプレートの版の宣言の型で検査、送信に残る)。組み方は sendMessage/templateDefinition.ts(fork のコードからは messagingService.sendFreeMessage)
 // - 宛先 target: 全員 / ロール / ユーザーグループ(groupId。門 userGroups が閉・しまった・壊れた・人数の上限は送る口が拒む)/
 //   選んだ利用者(userIds)
 // - カテゴリー(必須): 管理者が送れる種別(announcement・direct・promotion)のカテゴリーの鍵。宛先の種類は種別の性質 adminFreeText で確かめる
-//   (./freeText.ts。誤りは 400)。白紙はカテゴリーと同じ種別の物だけ(400)
+//   (./freeText.ts。誤りは 400)。種別はカテゴリーから(レイアウトは種別を持たない)
 // - 送信チャンネル: カテゴリーの送信チャンネルの中の絞り(省略 = 全部、D86)。LINE・fork の送信チャンネルも送れる
 // - 予約: scheduledAt(ISO 8601)。過ぎた・遠すぎる時刻は送る口が 400。拾うのは cron の周期(Hobby は 1 日 1 回)
 // - プレビュー: 操作した管理者を見本の受信者にして送信チャンネルごとに描く(メールは送る時と同じ描き方の HTML)
@@ -28,7 +28,6 @@ import {
   type MessageEnricher,
   type MessageLayout,
   type MessageLayoutFields,
-  type MessageSystemTemplate,
 } from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
@@ -37,29 +36,27 @@ import type { AnyMessageDefinition } from "../sendMessage/definition";
 import { activeChannel } from "../sendMessage/expand";
 import type { MessagePreview, RecipientEstimate } from "../sendMessage/sender";
 import type {
+  MessageFreeOrigin,
   MessageTargetSpec,
-  MessageTemplateRef,
+  SendFreeMessageInput,
   SendMessageResult,
   SendMessageToManyInput,
-  SendTemplateMessageInput,
 } from "../sendMessage/types";
 import type { AdminChannelOption } from "../templates/dto";
 import { assertAdminActor, type AdminCheckDeps } from "./assertAdmin";
 import {
   adminFreeTextCategoryOf,
   adminFreeTextCategoryOptions,
-  adminSystemTemplateOptions,
   type AdminFreeTextCategoryOption,
-  type AdminSystemTemplateOption,
 } from "./freeText";
 
 /** 選んだ利用者の上限 */
 export const ADMIN_SEND_MAX_USERS = 10_000;
 const SEND_SOURCE = "messaging.adminSend";
 
-/** 送る中身の出どころ: 白紙のシステムテンプレートの鍵か、DB のテンプレートの読み込んだ版(今の公開版でなければ 409) */
-export const AdminMessageTemplateSchema = z.union([
-  z.object({ system: z.string().trim().min(1).max(100) }).strict(),
+/** 自由連絡の出どころ: 管理画面で選べるレイアウトの鍵か、DB のテンプレートの読み込んだ版(今の公開版でなければ 409)。ほかの形(廃止した { system } も)は 400 */
+export const AdminMessageOriginSchema = z.union([
+  z.object({ layout: z.string().trim().min(1).max(100) }).strict(),
   z.object({ id: z.string().uuid(), version: z.number().int().min(1) }).strict(),
 ]);
 
@@ -72,9 +69,9 @@ const targetSchema = z.discriminatedUnion("type", [
 
 /** 送る中身。/send・一括送信 bulk-send とそのプレビュー・テスト送信が同じ形を受ける */
 export const adminContentFields = {
-  /** 出どころ(白紙 { system } か DB のテンプレート { id, version }) */
-  template: AdminMessageTemplateSchema,
-  /** レイアウトの欄の中身(白紙・DB のテンプレートの版のレイアウト。{{鍵}} / {{別名}} のまま) */
+  /** 出どころ(レイアウト { layout } か DB のテンプレート { id, version }) */
+  origin: AdminMessageOriginSchema,
+  /** レイアウトの欄の中身(選んだレイアウト・DB のテンプレートの版のレイアウト。{{鍵}} / {{別名}} のまま) */
   values: z.record(z.string(), z.unknown()),
   /** 版の中身から直したか(DB のテンプレートだけ。送る口は中身の違いでも直した印を付ける) */
   edited: z.boolean().optional(),
@@ -87,10 +84,10 @@ export const adminContentFields = {
 };
 
 export function checkAdminContent(
-  value: { template: MessageTemplateRef; vars?: Record<string, unknown>; edited?: boolean },
+  value: { origin: MessageFreeOrigin; vars?: Record<string, unknown>; edited?: boolean },
   ctx: z.RefinementCtx,
 ): void {
-  if ("system" in value.template && value.edited) {
+  if ("layout" in value.origin && value.edited) {
     ctx.addIssue({ code: "custom", message: "直した印はテンプレートを読み込んだ時だけ指定できます" });
   }
 }
@@ -135,7 +132,7 @@ export type AdminSendResult = {
 export type AdminSendGroupOption = { id: string; label: string; kindLabel: string };
 
 /** 送る画面が欄を描くレイアウト 1 つ(鍵・表示名・版・欄の宣言) */
-export type AdminSendLayoutOption = { key: string; label: string; version: number; fields: MessageLayoutFields };
+export type AdminSendLayoutOption = { key: string; label: string; version: number; fields: MessageLayoutFields; selectable: boolean };
 
 /** 送る画面の選択肢 */
 export type AdminSendOptions = {
@@ -156,31 +153,30 @@ export type AdminSendOptions = {
     /** 今の公開版の専用の埋め込み情報の宣言(送る画面が値を入れる) */
     vars: MessageVarDeclaration[];
   }[];
-  /** 送れるカテゴリー(種別 announcement・direct・promotion、宛先の種類で絞る。その種別の既定の白紙・最初の送信方法・埋め込み情報の一覧つき) */
+  /** 送れるカテゴリー(種別 announcement・direct・promotion、宛先の種類で絞る。最初の送信方法・埋め込み情報の一覧つき) */
   categories: AdminFreeTextCategoryOption[];
-  /** 使うシステムテンプレート全部(送る画面がテンプレートとして並べる。種別ごとにシンプル・リッチ、切った物は出さない、D119・D122) */
-  systemTemplates: AdminSystemTemplateOption[];
-  /** 白紙と並べたテンプレートが使うレイアウトの欄の宣言(門 messagingTemplates の外。送る画面はこれで欄を描く) */
+  /**
+   * レイアウトの欄の宣言(門 messagingTemplates の外。送る画面はこれで欄を描く): 管理画面で選べるレイアウト(selectable、受け口の順。
+   * 送る画面は最初の物から始める)と、並べたテンプレートが使うほかのレイアウト(selectable: false、読み込んだテンプレートを描くだけ)
+   */
   layouts: AdminSendLayoutOption[];
   /** 予約できる日数(config.schedule.maxDaysAhead) */
   maxScheduleDays: number;
 };
 
 export type AdminSendDeps = AdminCheckDeps & {
-  sendTemplateMessage: (input: SendTemplateMessageInput) => Promise<SendMessageResult>;
+  sendFreeMessage: (input: SendFreeMessageInput) => Promise<SendMessageResult>;
   previewMessage: (
     source:
       | { definition: AnyMessageDefinition }
-      | { template: { template: MessageTemplateRef; values: Record<string, unknown>; category: string } },
+      | { free: { origin: MessageFreeOrigin; values: Record<string, unknown>; category: string } },
     input: { vars: Record<string, unknown>; channels?: readonly string[]; userId: string | null },
   ) => Promise<MessagePreview>;
   estimateRecipients: (target: { target: MessageTargetSpec } | { userIds: readonly string[] }) => Promise<RecipientEstimate>;
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
   channels: Readonly<Record<string, MessageChannel>>;
   categories: Readonly<Record<string, MessageCategory>>;
-  /** システムテンプレートの受け口(選択肢のカテゴリーに種別の白紙を付ける) */
-  systemTemplates: Readonly<Record<string, MessageSystemTemplate>>;
-  /** レイアウトの受け口(選択肢の欄の宣言) */
+  /** レイアウトの受け口(自由連絡で選べるレイアウトと選択肢の欄の宣言) */
   layouts: Readonly<Record<string, MessageLayout>>;
   /** enrichers の受け口(選択肢の埋め込み情報の一覧) */
   enrichers: Readonly<Record<string, MessageEnricher>>;
@@ -194,7 +190,7 @@ export type AdminSendDeps = AdminCheckDeps & {
 /** 中身・カテゴリーを組んで送る口へ渡すのに要る部品(/send と一括送信で共通) */
 export type AdminContentDeps = Pick<
   AdminSendDeps,
-  "context" | "roleCategoryOf" | "sendTemplateMessage" | "previewMessage" | "recordAudit" | "categories"
+  "context" | "roleCategoryOf" | "sendFreeMessage" | "previewMessage" | "recordAudit" | "categories"
 >;
 
 export function parseOr400<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, input: unknown): T {
@@ -205,7 +201,7 @@ export function parseOr400<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, input
 
 /** 送る中身(出どころ・欄の中身・直した印・専用の値)・カテゴリー・送信チャンネルの絞り */
 export type AdminContent = {
-  template: MessageTemplateRef;
+  origin: MessageFreeOrigin;
   values: Record<string, unknown>;
   edited?: boolean;
   vars?: Record<string, unknown>;
@@ -215,21 +211,21 @@ export type AdminContent = {
 type Content = AdminContent;
 
 /**
- * 選んだカテゴリーを確かめる(種別・宛先の種類)。白紙の種別・中身・送信チャンネルの検査は送る口(templateDefinition)
+ * 選んだカテゴリーを確かめる(種別・宛先の種類)。レイアウト・中身・送信チャンネルの検査は送る口(sender・templateDefinition)
  * @throws DomainError(400)
  */
 export function adminContentCategory(deps: AdminContentDeps, content: Content, target: MessageAdminTarget | null): MessageCategory {
   return adminFreeTextCategoryOf(deps.categories, content.category, { target });
 }
 
-/** 監査の metadata の中身の部分(白紙 / DB のテンプレート) */
+/** 監査の metadata の中身の部分(レイアウト / DB のテンプレート) */
 export function auditContentOf(content: Content, result?: SendMessageResult): Record<string, unknown> {
-  return "system" in content.template
-    ? { source: "system", systemTemplate: content.template.system }
+  return "layout" in content.origin
+    ? { source: "layout", layout: content.origin.layout }
     : {
         source: "template",
-        templateId: content.template.id,
-        templateVersion: content.template.version,
+        templateId: content.origin.id,
+        templateVersion: content.origin.version,
         ...(result?.template ? { edited: result.template.edited } : {}),
       };
 }
@@ -248,9 +244,9 @@ export async function dispatchAdminContent(
   rest: Omit<SendMessageToManyInput, "vars" | "channels" | "recipients" | "target" | "recipientVars"> &
     ({ target: MessageTargetSpec } | { recipients: { userId: string }[] }),
 ): Promise<SendMessageResult> {
-  return deps.sendTemplateMessage({
-    ...(rest as Omit<SendTemplateMessageInput, "template" | "values" | "category">),
-    template: content.template,
+  return deps.sendFreeMessage({
+    ...(rest as Omit<SendFreeMessageInput, "origin" | "values" | "category">),
+    origin: content.origin,
     values: content.values,
     category: category.key,
     ...(content.edited !== undefined ? { edited: content.edited } : {}),
@@ -310,7 +306,7 @@ export async function previewAdminContent(
   const userId = deps.context()?.actorId ?? null;
   const category = adminContentCategory(deps, input, target);
   return deps.previewMessage(
-    { template: { template: input.template, values: input.values, category: category.key } },
+    { free: { origin: input.origin, values: input.values, category: category.key } },
     { vars: input.vars ?? {}, channels: input.channels, userId },
   );
 }
@@ -376,23 +372,28 @@ export function adminChannelOptions(channels: Readonly<Record<string, MessageCha
   });
 }
 
-/** 送る画面の選択肢 */
-/** 選択肢の白紙とテンプレートが使うレイアウト(受け口に無いレイアウトは落とす。送る口がその時に断る) */
+/**
+ * 送る画面のレイアウトの選択肢: 管理画面で選べるレイアウト(受け口の順、selectable)と、並べたテンプレートが使うほかのレイアウト
+ * (selectable: false。受け口に無いレイアウトは落とす。送る口がその時に断る)
+ */
 export function adminSendLayoutOptions(
   layouts: Readonly<Record<string, MessageLayout>>,
-  categories: readonly AdminFreeTextCategoryOption[],
   templates: readonly { layout: string }[],
-  systemTemplates: readonly { layout: string }[] = [],
 ): AdminSendLayoutOption[] {
-  const keys = new Set<string>([
-    ...categories.flatMap((option) => (option.systemTemplate ? [option.systemTemplate.layout] : [])),
-    ...systemTemplates.map((template) => template.layout),
-    ...templates.map((template) => template.layout),
-  ]);
-  return [...keys].flatMap((key) => {
-    const layout = layouts[key];
-    return layout ? [{ key: layout.key, label: layout.label, version: layoutVersionOf(layout), fields: layout.fields }] : [];
+  const option = (layout: MessageLayout, selectable: boolean): AdminSendLayoutOption => ({
+    key: layout.key,
+    label: layout.label,
+    version: layoutVersionOf(layout),
+    fields: layout.fields,
+    selectable,
   });
+  const selectable = Object.values(layouts).filter((layout) => layout.adminSelectable === true);
+  const keys = new Set(selectable.map((layout) => layout.key));
+  const others = [...new Set(templates.map((template) => template.layout))].flatMap((key) => {
+    const layout = layouts[key];
+    return layout && !keys.has(key) ? [option(layout, false)] : [];
+  });
+  return [...selectable.map((layout) => option(layout, true)), ...others];
 }
 
 export async function adminSendOptions(deps: AdminSendDeps): Promise<AdminSendOptions> {
@@ -401,12 +402,8 @@ export async function adminSendOptions(deps: AdminSendDeps): Promise<AdminSendOp
   // 送る画面の宛先(全員・ロール・グループ・選んだ利用者)のどれかに送れるカテゴリー
   const categories = adminFreeTextCategoryOptions(
     deps.categories,
-    deps.systemTemplates,
     (option) => option.targets.some((target) => target !== "bulk"),
     deps.enrichers,
-  );
-  const system = adminSystemTemplateOptions(deps.systemTemplates).filter((template) =>
-    categories.some((option) => option.kind === template.kind),
   );
   return {
     channels: adminChannelOptions(deps.channels),
@@ -414,8 +411,7 @@ export async function adminSendOptions(deps: AdminSendDeps): Promise<AdminSendOp
     groups: await deps.groupOptions(),
     templates,
     categories,
-    systemTemplates: system,
-    layouts: adminSendLayoutOptions(deps.layouts, categories, templates, system),
+    layouts: adminSendLayoutOptions(deps.layouts, templates),
     maxScheduleDays: deps.maxScheduleDays(),
   };
 }

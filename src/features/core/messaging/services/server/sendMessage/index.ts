@@ -21,7 +21,6 @@ import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
 import { layoutEmails } from "../../../extensions/layoutEmails";
 import { layouts } from "../../../extensions/layouts";
-import { systemTemplates } from "../../../extensions/systemTemplates";
 import { subscribers } from "../../../extensions/subscribers";
 import { subscribedEventTypes } from "../events/internalEvents";
 import { createMessageSender } from "./sender";
@@ -38,7 +37,6 @@ export const sendMessageDeps: MessageSendDeps = {
   enrichers,
   // レイアウト(D122)と、送信チャンネルごとのレイアウトの描き方の表(email = layoutEmails。inApp の描き方は client の一覧なので S6 まで渡さない)
   layouts,
-  systemTemplates,
   layoutRenderers: { email: layoutEmails },
   // グループ宛て(門 userGroups が閉なら拒む。評価の口も閉なら 404)
   groups: {
@@ -78,13 +76,12 @@ const sender = createMessageSender(sendMessageDeps);
 
 export const sendMessage = sender.sendMessage;
 export const sendMessageToMany = sender.sendMessageToMany;
-export const sendTemplateMessage = sender.sendTemplateMessage;
+export const sendFreeMessage = sender.sendFreeMessage;
 export const previewMessage = sender.previewMessage;
 export const estimateRecipients = sender.estimateRecipients;
 export const sendResolved = sender.sendResolved;
 export { resolvedOfDispatch, type DispatchResolveError } from "./dispatchResolved";
-export { TEMPLATE_MESSAGE_KEY } from "./templateDefinition";
-export { adminSendableKinds, checkSystemTemplates, isAdminSendableKind, systemTemplateOfKind } from "./systemTemplates";
+export { adminSendableKinds, isAdminSendableKind, TEMPLATE_MESSAGE_KEY } from "./templateDefinition";
 
 export { createMessageSender, type MessagePreview, type MessageSender, type RecipientEstimate } from "./sender";
 export { MessageIdempotencyConflict } from "./errors";

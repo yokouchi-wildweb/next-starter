@@ -81,7 +81,6 @@ export type {
   MessageEventType,
   MessageSource,
   MessageSubscriber,
-  MessageSystemTemplate,
 } from "./receptacles/types";
 export { categoryAdminLabel, enricherTargets } from "./receptacles/types";
 export {

@@ -16,9 +16,8 @@ import { channels } from "../../../extensions/channels";
 import { enrichers } from "../../../extensions/enrichers";
 import { layoutEmails } from "../../../extensions/layoutEmails";
 import { layouts } from "../../../extensions/layouts";
-import { systemTemplates } from "../../../extensions/systemTemplates";
 import { enrichersFor } from "../sendMessage/definition";
-import { adminSendableKinds } from "../sendMessage/systemTemplates";
+import { adminSendableKinds } from "../sendMessage/templateDefinition";
 import { TEMPLATE_MESSAGE_KEY } from "../sendMessage/templateDefinition";
 import { storageInboxImageLedger } from "../inbox/imageBindingLedger";
 import { storageTemplateImageLedger } from "./imageBindingLedger";
@@ -45,7 +44,6 @@ const service = createTemplateService({
     return row ? (getRoleCategory(row.role) ?? null) : null;
   },
   recordAudit: (input) => auditLogger.record(input),
-  systemTemplates: () => systemTemplates,
   layoutRenderers: () => ({ email: layoutEmails }),
   channelPreview(channel, input) {
     const item = channels[channel];
@@ -66,7 +64,7 @@ export const previewMessageLayout = service.previewLayout;
 export { existingTemplateIds } from "./templateRecords";
 export { TEMPLATE_IMAGE_RECORD_TYPE } from "./imageBinding";
 export { adminSelectableLayouts, checkTemplateFields, templateVarCatalog } from "./checks";
-export { createTemplateService, isSystemTemplateId, SYSTEM_TEMPLATE_ID_PREFIX } from "./templateService";
+export { createTemplateService } from "./templateService";
 export type { TemplateService, TemplateServiceDeps } from "./templateService";
 export type * from "./dto";
 export type { CreateMessageTemplateInput, ListMessageTemplatesQuery, PreviewMessageLayoutInput, UpdateMessageTemplateInput } from "./schema";

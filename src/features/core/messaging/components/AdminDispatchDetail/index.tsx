@@ -239,9 +239,8 @@ function DispatchContentPreview({ preview }: { preview: NonNullable<DispatchPrev
  * DTO にテンプレートの名前は無いので版の番号で見せる
  */
 export function dispatchTemplateLabel(
-  dispatch: Pick<AdminDispatchDetailDto, "templateVersion" | "templateDeleted" | "templateEdited" | "systemTemplate">,
+  dispatch: Pick<AdminDispatchDetailDto, "templateVersion" | "templateDeleted" | "templateEdited">,
 ): string | null {
-  if (dispatch.systemTemplate) return "システムテンプレート";
   if (dispatch.templateVersion === null) return null;
   const edited = dispatch.templateEdited ? "・文言を直して送信" : "";
   return dispatch.templateDeleted ? `削除されたテンプレート(v${dispatch.templateVersion}${edited})` : `v${dispatch.templateVersion}${edited ? `(${edited.slice(1)})` : ""}`;

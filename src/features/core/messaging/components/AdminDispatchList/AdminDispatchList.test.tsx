@@ -5,7 +5,7 @@
 // - 一覧の行は ?dispatch=<id> の住所(ほかの検索の値は残す)。?dispatch があれば一覧の上にモーダルが開き、閉じると ?dispatch を外す
 //   (URL を直に開いた時 = 置き換え、行から開いた時 = 「戻る」)
 // - 詳細(基本情報のタブ): 種別・カテゴリーの表示名、送り元は表示名がある時だけ、送った人は名前、テンプレートの行
-//   (v<n>・消したテンプレートは「削除されたテンプレート(v<n>)」・システムテンプレート)、定義の鍵・送り元の鍵・送信チャンネルの鍵は出ない
+//   (v<n>・消したテンプレートは「削除されたテンプレート(v<n>)」、テンプレートでない送信は行なし)、定義の鍵・送り元の鍵・送信チャンネルの鍵は出ない
 // - 詳細(送信状況のタブ): 配達は利用者の名前、利用者の id・お知らせの宛先は出さず、表に無い符号は決まった文
 // - 詳細(プレビューのタブ): 前の形の送信の本文を送信チャンネルごとに(生の JSON は出さない)
 // - グループ宛ての送信: 一覧の行と詳細にグループの名前(名前が無ければ「グループ」)、id は出さない
@@ -193,7 +193,6 @@ const DISPATCH: AdminDispatchDetail = {
   templateVersion: null,
   templateDeleted: false,
   templateEdited: false,
-  systemTemplate: null,
   content: null,
   targetUserIds: null,
   sourceLabel: null,
@@ -436,7 +435,7 @@ test("詳細: 種別・カテゴリーの表示名、送り元は表示名があ
   await labeled.unmount();
 });
 
-test("詳細: テンプレートの行は版の番号、消したテンプレートは「削除されたテンプレート(v<n>)」、システムテンプレートは鍵を出さない", async () => {
+test("詳細: テンプレートの行は版の番号、消したテンプレートは「削除されたテンプレート(v<n>)」、テンプレートでない送信は行を出さない", async () => {
   const none = await renderDetail();
   assert.doesNotMatch(none.text(), /テンプレート/, "テンプレートからの送信でなければ行ごと出さない");
   await none.unmount();
@@ -449,13 +448,12 @@ test("詳細: テンプレートの行は版の番号、消したテンプレー
       over: { templateId: null, templateVersion: 4, templateDeleted: true, templateEdited: true },
       expected: /テンプレート削除されたテンプレート\(v4・文言を直して送信\)送信方法/,
     },
-    { over: { systemTemplate: "blank.noticeSystem" }, expected: /テンプレートシステムテンプレート送信方法/ },
   ];
   for (const { over, expected } of cases) {
     detail = { ...DISPATCH, ...over };
     const view = await renderDetail();
     assert.match(view.text(), expected, JSON.stringify(over));
-    assert.doesNotMatch(view.text(), /\bt1\b|blank\.noticeSystem/, "テンプレートの id・システムテンプレートの鍵は出さない");
+    assert.doesNotMatch(view.text(), /\bt1\b/, "テンプレートの id は出さない");
     await view.unmount();
   }
 });

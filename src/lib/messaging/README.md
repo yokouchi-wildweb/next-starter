@@ -85,7 +85,7 @@ export const messageOverride = {
 - `layout`(必須): レイアウトの鍵(`src/features/core/messaging/layouts/<名前>/`。上流は notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。上書きで変えられない
 - `values`: レイアウトの欄の中身(欄の鍵 → 値。文字列に `{{鍵}}` を書ける)。レイアウトの欄の zod(`layoutValuesSchema`、カテゴリーの送信チャンネルで使う欄だけ必須)を通る(`invalid_values`)。検査の前に空を「無い」にする(`normalizeLayoutValues` / `normalizeFieldValue`: 画像の空文字・ボタン / リンクの全部が空・空の並び。ボタンの片方だけ空・URL の無いリンクは空の側の誤り)
 - `extras`: fork が足す欄の入れ物
-- 管理者が書いて送る連絡: `messagingService.sendTemplateMessage`(システムテンプレート `MessageSystemTemplate` か DB のテンプレート + 欄の中身)
+- 管理者が書いて送る連絡(自由連絡): `messagingService.sendFreeMessage`(カテゴリー + 管理画面で選べるレイアウト(`adminSelectable`)か DB のテンプレート + 欄の中身)
 
 ### 差し込み({{鍵}})
 
@@ -177,8 +177,6 @@ export const messageOverride = {
   - fork は上流のカテゴリーの `<名前>.override.ts` で `label`・`adminLabel`・`description`・`channels`・`defaultChannels`・`group` を変えられる(鍵・種別は不可)
 - `MessageCategoryGroup`(カテゴリーのグループ、`messaging/categoryGroups/<名前>.ts` の `export const group`): `key`・`label`・`order`。見出しだけで停止の単位ではない。上流は出荷しない
 - `MessageSource`(送り元): `key`・`label`
-- `MessageSystemTemplate`(システムテンプレート、`messaging/templates/<名前>.ts` の `export const systemTemplate`): `key`・`kind`(自由連絡で送れる種別 = 性質 `adminFreeText` がある物。1 つの種別に何本でも、受け口の順で使う物の最初がその種別の既定の白紙)・`label`・`layout`・`values`(白紙かできあがった文面)・`vars?`(専用の埋め込み情報の宣言、DB のテンプレートと同じ形・同じ検査)。
-  - `enabled?`(false = 使わない: 一覧・送る画面の選択肢・既定の白紙から外れ、その鍵では送れない。送れる種別ごとに使う物が 1 本は要る)。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` と `enabled` だけ変えられる。上流は 6 本(種別ごとにシンプル `simple`・リッチ `notice` の白紙。templates/README.md)
 - `MessageSubscriber`(送った後の購読): `key`・`on`(事件の種類)・`filter?`(連絡の鍵・送信チャンネル)・`handle(事件の束)`(事件の id + 購読の鍵で冪等に。投げると次回もう一度渡る)
 
 ## Internals

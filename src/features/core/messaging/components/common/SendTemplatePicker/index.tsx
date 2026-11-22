@@ -1,9 +1,8 @@
 // src/features/core/messaging/components/common/SendTemplatePicker/index.tsx
 // 部品(props だけ): 送るモーダルのテンプレート(D110 D117 D118)。選んだ種別のテンプレートだけを並べる(呼び手が絞る)。
-// - 読み込んでいない = システムテンプレート(既定は種別の白紙、印つき)で書く形。「テンプレートを読み込む」で選ぶ小窓:
-//   選んだ種別のシステムテンプレート(シンプル・リッチ・メンテナンスなど、説明「システム」)→ 公開中のテンプレート(説明は版、D119)
-//   (SelectPopover、多ければ検索)、選ぶと onLoad(id)
-// - 読み込んだ後: 名前と版、直した印(edited)、「別のテンプレートを読み込む」「テンプレートの読み込みを解除」(解除 = 白紙に戻す。今の文はレイアウトが同じなら残る = hook)
+// - 読み込んでいない = レイアウトから書く形(今のレイアウトの名前、印「レイアウト」。レイアウトを選ぶ部品は指令 03)。「テンプレートを読み込む」で選ぶ小窓:
+//   公開中のテンプレート(説明は版、D119)(SelectPopover、多ければ検索)、選ぶと onLoad(id)
+// - 読み込んだ後: 名前と版、直した印(edited)、「別のテンプレートを読み込む」「テンプレートの読み込みを解除」(解除 = 初めのレイアウトに戻す。今の文はレイアウトが同じなら残る = hook)
 // 専用の埋め込み情報の入力は SendVarInputs(このフォルダ)
 
 "use client";
@@ -17,9 +16,9 @@ import { Span } from "@/components/TextBlocks/Span";
 export { SendVarInputs, type SendVarInputsProps } from "./SendVarInputs";
 
 export type SendTemplatePickerProps = {
-  /** 選べるテンプレート(選んだ種別のシステムテンプレート(system)と公開中の物) */
-  templates: { id: string; name: string; currentVersion: number; system?: boolean }[];
-  /** 今のシステムテンプレート(読み込んでいない時の出どころ。無ければ null = テンプレートを読み込まないと送れない) */
+  /** 選べるテンプレート(選んだ種別の公開中の物) */
+  templates: { id: string; name: string; currentVersion: number }[];
+  /** 今のレイアウト(読み込んでいない時の出どころ。無ければ null = テンプレートを読み込まないと送れない) */
   blank: { label: string } | null;
   /** 読み込んでいるテンプレート(無ければ null) */
   loaded: { id: string; name: string; version: number; edited: boolean } | null;
@@ -39,7 +38,7 @@ export function SendTemplatePicker({ templates, blank, loaded, onLoad, onUnload 
         </Button>
       }
       title="テンプレートを選ぶ"
-      options={templates.map((item) => ({ value: item.id, label: item.name, description: item.system ? "システム" : `v${item.currentVersion}` }))}
+      options={templates.map((item) => ({ value: item.id, label: item.name, description: `v${item.currentVersion}` }))}
       // 初めから値を渡す(undefined だと小窓の RadioGroup が非制御から制御に替わって警告が出る)。"" = まだ選んでいない
       value={loaded?.id ?? ""}
       confirmLabel="読み込む"
@@ -77,7 +76,7 @@ export function SendTemplatePicker({ templates, blank, loaded, onLoad, onUnload 
       {blank ? (
         <>
           <SoftBadge variant="secondary" size="sm">
-            システム
+            レイアウト
           </SoftBadge>
           <Span size="sm" weight="semiBold">
             {blank.label}
@@ -85,7 +84,7 @@ export function SendTemplatePicker({ templates, blank, loaded, onLoad, onUnload 
         </>
       ) : (
         <Span size="sm" tone="muted">
-          この種別には白紙のテンプレートが無いため、テンプレートを読み込んでください
+          管理画面で選べるレイアウトが無いため、テンプレートを読み込んでください
         </Span>
       )}
       {chooser("テンプレートを読み込む")}

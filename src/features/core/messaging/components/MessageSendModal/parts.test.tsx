@@ -1,6 +1,6 @@
 // 送るモーダルの部品(props だけ)の検査。jsdom の上で描く(押す操作のある部品)・文字で見る。
-// - SendTemplatePicker: 「テンプレートを読み込む」の小窓で選ぶ(システムは印、公開中は版)/ 読み込んだ後は名前・版・直した印・別の読み込み・
-//   「テンプレートの読み込みを解除」/ 白紙が無い種別は読み込みを促す
+// - SendTemplatePicker: 読み込んでいない = 今のレイアウト(印「レイアウト」)/「テンプレートを読み込む」の小窓で選ぶ(公開中は版)/
+//   読み込んだ後は名前・版・直した印・別の読み込み・「テンプレートの読み込みを解除」/ 管理画面で選べるレイアウトが無ければ読み込みを促す
 // - SendVarInputs: 読み込んだテンプレートの専用の埋め込み情報の入力(別名・必須の印・{{別名}}・型ごとの入力・既定値は仮の文・未入力の印・値の受け渡し)
 // - SendTargetPicker: bulk は選んだ記録の数だけ / select は種類の選び、グループは名前(種類)で選び id は出さない、
 //   グループが無く門 userGroups も閉なら選択肢に出さない(門が開なら 0 件でも出す)
@@ -155,8 +155,8 @@ test("SendTemplatePicker: 「テンプレートを読み込む」の小窓で選
   const loaded: string[] = [];
   let unloaded = 0;
   const templates = [
-    { id: "system:rich", name: "リッチ", currentVersion: 0, system: true },
-    { id: "t1", name: "春", currentVersion: 2, system: false },
+    { id: "t0", name: "秋", currentVersion: 1 },
+    { id: "t1", name: "春", currentVersion: 2 },
   ];
   const view = await render(
     createElement(parts.SendTemplatePicker, {
@@ -167,26 +167,26 @@ test("SendTemplatePicker: 「テンプレートを読み込む」の小窓で選
       onUnload: () => void (unloaded += 1),
     }),
   );
-  // 読み込んでいない = 今のシステムテンプレートで書く形
-  assert.match(view.container.textContent ?? "", /システム/);
+  // 読み込んでいない = 今のレイアウトから書く形
+  assert.match(view.container.textContent ?? "", /レイアウト/);
   assert.match(view.container.textContent ?? "", /シンプル/);
   assert.ok(button(view.container, "テンプレートを読み込む"));
   assert.equal(button(view.container, "呼び出す"), undefined, "呼び出すの段は無い");
   assert.equal(popoverProps!.confirmLabel, "読み込む");
   assert.deepEqual(
     popoverProps!.options.map((o) => o.description),
-    ["システム", "v2"],
-    "システムは印、公開中は版",
+    ["v1", "v2"],
+    "公開中は版",
   );
   await act(async () => button(view.container, "読む:春")!.click());
   assert.deepEqual(loaded, ["t1"]);
   await view.unmount();
 
-  // 白紙が無い種別は読み込みを促す
+  // 管理画面で選べるレイアウトが無ければ読み込みを促す
   const noBlank = await render(
     createElement(parts.SendTemplatePicker, { templates, blank: null, loaded: null, onLoad: () => {}, onUnload: () => {} }),
   );
-  assert.match(noBlank.container.textContent ?? "", /白紙のテンプレートが無いため、テンプレートを読み込んでください/);
+  assert.match(noBlank.container.textContent ?? "", /管理画面で選べるレイアウトが無いため、テンプレートを読み込んでください/);
   await noBlank.unmount();
 
   const on = await render(

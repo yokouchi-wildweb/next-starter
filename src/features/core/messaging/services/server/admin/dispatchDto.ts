@@ -60,8 +60,6 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   templateDeleted: boolean;
   /** 版の文言を直した送信か(D85) */
   templateEdited: boolean;
-  /** 白紙のシステムテンプレートからの送信の鍵(D128。ほかの送信は null) */
-  systemTemplate: string | null;
   /** 送信の中身(レイアウトの鍵と送った版・欄の中身、差し込む前の字)。欄の中身を残していない送信は null */
   content: AdminDispatchContent | null;
   /** 選んだ利用者への送信の利用者 id(「同じ内容で送る」の写し)。ほかの宛先の形・多すぎる送信は null */
@@ -181,7 +179,6 @@ export function toDispatchDetail(
     templateVersion: row.template_version,
     templateDeleted: row.template_id === null && row.template_version !== null,
     templateEdited: row.template_edited,
-    systemTemplate: row.system_template,
     content: row.values && row.layout ? { layout: row.layout, layoutVersion: row.layout_version ?? null, values: row.values } : null,
     targetUserIds,
     sourceLabel,
