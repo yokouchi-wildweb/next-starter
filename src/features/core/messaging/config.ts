@@ -1,9 +1,10 @@
 // src/features/core/messaging/config.ts
 // 連絡(messaging)の処理の値(既定 + 上書き)。上書きは src/config/features/messaging.config.ts(このファイルだけが読む)。
-// 置き方: src/config/README.md。合成: @/lib/defineConfig。入切のスイッチではなく、送る口の処理の数。
+// 置き方: src/config/README.md。合成: @/lib/defineConfig。入切のスイッチではなく、送る口の処理の数と画面の値(種別の表示名など)。
 
 import override from "@/config/features/messaging.config";
 import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
+import type { MessageKind } from "@/lib/messaging";
 
 export type MessagingConfig = {
   /**
@@ -71,6 +72,11 @@ export type MessagingConfig = {
    * レイアウトであること。違えば連絡の一覧の検査(checkMessageRegistry)が止める(ほかのレイアウトに黙って替えない)
    */
   initialLayout: string;
+  /**
+   * 種別(kind)の表示名(D186・D187・D189): label = 利用者の画面(通知設定の種別の枠の見出し)、adminLabel = 管理画面(無ければ label)。
+   * 並びは lib の MESSAGE_KINDS(管理画面の種別の選択肢はこの順)。読むのは presenters.ts の messageKindLabel / messageKindAdminLabel
+   */
+  kindLabels: Record<MessageKind, { label: string; adminLabel?: string }>;
 };
 
 const defaults: MessagingConfig = {
@@ -93,6 +99,15 @@ const defaults: MessagingConfig = {
   schedule: { maxDaysAhead: 90 },
   subscribers: { lagSeconds: 120, maxAttempts: 5, batchSize: 100, budgetMs: 240_000 },
   initialLayout: "simple",
+  kindLabels: {
+    functional: { label: "機能通知" },
+    transactional: { label: "手続き通知" },
+    security: { label: "セキュリティ" },
+    announcement: { label: "運営告知" },
+    direct: { label: "個別連絡" },
+    activity: { label: "アクティビティ" },
+    promotion: { label: "プロモーション" },
+  },
 };
 
 export const messagingConfigDef = defineConfig(defaults, { label: "messaging" });

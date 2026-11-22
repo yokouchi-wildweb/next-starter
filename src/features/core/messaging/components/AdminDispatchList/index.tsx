@@ -24,7 +24,7 @@ import { useGate } from "@/featureGate/client";
 import { BulkActionItems, RecordSelectionList, selectBulkActions } from "@/lib/tableSuite";
 
 import { ADMIN_CHANNEL_FILTER_OPTIONS } from "@/features/core/messaging/constants/channelLabels";
-import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLabels";
+import { messageKindAdminOptions } from "@/features/core/messaging/presenters";
 import { MessageSendModal } from "@/features/core/messaging/components/MessageSendModal";
 import { DISPATCH_STATUS_DISPLAY } from "@/features/core/messaging/components/common/DispatchStatusBadge";
 import { DispatchRow } from "@/features/core/messaging/components/common/DispatchRow";
@@ -48,8 +48,8 @@ export type AdminDispatchListProps = {
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
 
-// 種別は 7 つ(constants/kindLabels.ts の表 = lib の MESSAGE_KINDS の順。lib の入口は client に持ち込まない)
-const KIND_OPTIONS = Object.entries(MESSAGE_KIND_LABELS).map(([value, label]) => ({ value, label }));
+// 種別は 7 つ(config の kindLabels の管理画面の名前 = lib の MESSAGE_KINDS の順。lib の入口は client に持ち込まない)
+const KIND_OPTIONS = messageKindAdminOptions();
 const STATUS_OPTIONS = [
   ...Object.entries(DISPATCH_STATUS_DISPLAY).map(([value, { label }]) => ({ value, label })),
   { value: DISPATCH_FILTER_DELETED, label: "削除済み" },

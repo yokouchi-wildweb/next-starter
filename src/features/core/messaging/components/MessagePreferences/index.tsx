@@ -2,7 +2,7 @@
 // セクションコンテナ(本人の通知の設定)。応答の入れ子のまま 送信チャンネル > 種別の枠 > グループ > カテゴリー に並べる(D60・D62・D82・D86):
 // - 上に「すべての連絡を止める」(全部)
 // - 送信チャンネルの枠(PreferenceChannelSection)ごとに送信チャンネルまるごとの切り替え、宛先の無い送信チャンネルは連携の案内
-// - 種別の枠(PreferenceKindFrame)は見出しだけ(種別のスイッチは出さない、D62。表示名は constants の MESSAGE_KIND_LABELS = 仮)
+// - 種別の枠(PreferenceKindFrame)は見出しだけ(種別のスイッチは出さない、D62。表示名は config の kindLabels の label、presenters の messageKindLabel)
 // - グループの見出し(PreferenceGroupHeading、グループの無いカテゴリーは見出し無しで先)→ カテゴリーの行(PreferenceCategoryRow = その送信チャンネルの 1 マス)
 // - カテゴリーまるごと(すべての送信チャンネル)の切り替え(PreferenceCategoryWideToggle)は、そのカテゴリーが最初に出る送信チャンネルの行に 1 回だけ置く
 // - 全部を止めている間は広い切り替え(送信チャンネルまるごと・カテゴリーまるごと)も止まった状態で見せて押せない(stoppedByAll)
@@ -28,7 +28,7 @@ import { PreferenceCategoryWideToggle } from "@/features/core/messaging/componen
 import { PreferenceChannelSection } from "@/features/core/messaging/components/common/PreferenceChannelSection";
 import { PreferenceGroupHeading } from "@/features/core/messaging/components/common/PreferenceGroupHeading";
 import { PreferenceKindFrame } from "@/features/core/messaging/components/common/PreferenceKindFrame";
-import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLabels";
+import { messageKindLabel } from "@/features/core/messaging/presenters";
 import { useMessagePreferences } from "@/features/core/messaging/hooks/useMessagePreferences";
 
 export type MessagePreferencesProps = {
@@ -107,7 +107,7 @@ export function MessagePreferences({ emptyText = "設定できる通知はあり
             onChannelWideChange={(stop) => guard(() => setChannelWide(channel.key, stop))}
           >
             {channel.kinds.map((frame) => (
-              <PreferenceKindFrame key={frame.kind} label={MESSAGE_KIND_LABELS[frame.kind]}>
+              <PreferenceKindFrame key={frame.kind} label={messageKindLabel(frame.kind)}>
                 {frame.groups.map((group) => (
                   <Stack key={group.key ?? "-"} gap="xs">
                     <PreferenceGroupHeading label={group.label} />

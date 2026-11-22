@@ -15,7 +15,7 @@ import { dispatchDetailHref } from "@/features/core/messaging/hooks/useDispatchD
 import { Span } from "@/components/TextBlocks/Span";
 
 import { messageChannelLabel } from "@/features/core/messaging/constants/channelLabels";
-import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLabels";
+import { messageKindAdminLabel } from "@/features/core/messaging/presenters";
 import type { AdminDispatchSummary } from "@/features/core/messaging/services/client/adminMessagingClient";
 
 import { DispatchStatusBadge } from "../DispatchStatusBadge";
@@ -46,9 +46,9 @@ export function dispatchTargetText(dispatch: Pick<AdminDispatchSummary, "targetG
   return group ? `宛先: ${group} ${dispatch.recipientCount} 名` : `宛先数 ${dispatch.recipientCount} 名`;
 }
 
-/** 種別の表示名(知らない値・null は null) */
+/** 種別の管理画面の表示名(null は null、知らない値は鍵のまま) */
 export function dispatchKindLabel(kind: string | null | undefined): string | null {
-  return kind ? ((MESSAGE_KIND_LABELS as Record<string, string>)[kind] ?? null) : null;
+  return kind ? messageKindAdminLabel(kind) : null;
 }
 
 export type DispatchRowProps = {

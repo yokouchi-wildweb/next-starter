@@ -1,6 +1,6 @@
 // user のシステムの連絡(登録の完了の知らせ 2 本)の検査:
 // - 件名と見える文面が前のテンプレート(createMailTemplate の user/mail/*Email.tsx)と同じ(文面は前のテンプレートを描いて写した値)
-// - 送る口と同じくひな形 welcome(ようこそ)のメールの描き方で描く
+// - 送る口と同じくレイアウト welcome(ようこそ)のメールの描き方で描く
 // 実行: pnpm test src/features/core/user/messages
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -41,7 +41,7 @@ function visibleText(html: string): string {
 
 async function draw(definition: { vars: { parse: (v: unknown) => unknown }; layout: string; values: Readonly<Record<string, unknown>> }, vars: Record<string, string>) {
   definition.vars.parse(vars);
-  // 送る口と同じく、ひな形のメールの描き方で描く(件名 = 要約の題)
+  // 送る口と同じく、レイアウトのメールの描き方で描く(件名 = 要約の題)
   const layout = layouts[definition.layout]!;
   const values = fill(definition.values, vars) as Record<string, unknown>;
   const summary = layout.summary(values);
@@ -76,7 +76,7 @@ test("earlyRegistrationComplete: 件名と文面が前のテンプレートと�
   );
 });
 
-test("種類 registrationComplete(取引、好みを見ない、メール)、秘密の値は無い", () => {
+test("カテゴリー registrationComplete(取引、好みを見ない、メール)、秘密の値は無い", () => {
   for (const definition of [registrationComplete, earlyRegistrationComplete]) {
     assert.equal(definition.category, "registrationComplete", definition.key);
     assert.equal(definition.required, undefined);
@@ -85,7 +85,7 @@ test("種類 registrationComplete(取引、好みを見ない、メール)、秘
   assert.deepEqual(categories.registrationComplete.channels, ["email"]);
 });
 
-test("ひな形: 2 本とも welcome(ようこそ)", () => {
+test("レイアウト: 2 本とも welcome(ようこそ)", () => {
   assert.equal(registrationComplete.layout, "welcome");
   assert.equal(earlyRegistrationComplete.layout, "welcome");
 });

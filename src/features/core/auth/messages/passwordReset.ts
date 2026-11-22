@@ -1,7 +1,7 @@
 // src/features/core/auth/messages/passwordReset.ts
 //
 // パスワードの再設定のリンク。送り手: services/server/sendPasswordResetLink.ts
-// 止められない連絡(required)。リンクは秘密。ひな形: link(認証のリンク、messaging/layouts/link)
+// 止められない連絡(required)。リンクは秘密。レイアウト: link(認証のリンク、messaging/layouts/link)
 
 import { z } from "zod";
 

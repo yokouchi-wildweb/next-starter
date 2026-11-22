@@ -29,7 +29,7 @@ import { useDomainMutation } from "@/lib/crud";
 import type { MessageVarEntry } from "@/lib/messaging";
 
 import { MESSAGE_CHANNEL_LABELS } from "../constants/channelLabels";
-import { MESSAGE_KIND_LABELS } from "../constants/kindLabels";
+import { messageKindAdminLabel } from "../presenters";
 import {
   adminBulkSend,
   previewAdminBulkMessage,
@@ -279,7 +279,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
 
   // ---- 種別 → カテゴリー ----
   const kinds = useMemo(
-    () => kindsOf(allCategories).map((key) => ({ key, label: MESSAGE_KIND_LABELS[key as keyof typeof MESSAGE_KIND_LABELS] ?? key })),
+    () => kindsOf(allCategories).map((key) => ({ key, label: messageKindAdminLabel(key) })),
     [allCategories],
   );
   const preferredCategory = preferredCategoryOf(mode);

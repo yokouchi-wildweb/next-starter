@@ -22,7 +22,7 @@ export const MESSAGE_KINDS = [
  * - security: セキュリティの警告(アカウントのロックなど)
  * - announcement: 運営の告知
  * - direct: 運営から特定の利用者への直接の連絡
- * - activity: 利用者が止められる、サービスの利用に伴う知らせ(いいね・リマインダー・失効の予告など)
+ * - activity: 利用者が止められる、サービスの利用に伴う知らせ(いいね・リマインダーなど。残高の失効の予告は送るかを wallet の config が決めるので transactional、D207)
  * - promotion: 宣伝
  */
 export type MessageKind = (typeof MESSAGE_KINDS)[number];

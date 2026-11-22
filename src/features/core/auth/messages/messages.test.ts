@@ -1,7 +1,7 @@
-// auth のシステムの連絡(messages/<名前>.ts、ひな形 link・alert)の検査:
+// auth のシステムの連絡(messages/<名前>.ts、レイアウト link・alert)の検査:
 // - 件名と見える文面が前のテンプレート(createMailTemplate の auth/mail/*Email.tsx)と同じ(文面は前のテンプレートを描いて写した値)
 // - トークン入りのリンクは秘密の印(secretVar)、認証の流れが依る 4 本は required
-// - 送る口と同じくひな形のメールの描き方(layoutEmails)で描く
+// - 送る口と同じくレイアウトのメールの描き方(layoutEmails)で描く
 // 実行: pnpm test src/features/core/auth/messages
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -46,7 +46,7 @@ function visibleText(html: string): string {
 
 async function draw(definition: { vars: { parse: (v: unknown) => unknown }; layout: string; values: Readonly<Record<string, unknown>> }, vars: Record<string, string>) {
   definition.vars.parse(vars);
-  // 送る口と同じく、ひな形のメールの描き方で描く(件名 = 要約の題)
+  // 送る口と同じく、レイアウトのメールの描き方で描く(件名 = 要約の題)
   const layout = layouts[definition.layout]!;
   const values = fill(definition.values, vars) as Record<string, unknown>;
   const summary = layout.summary(values);
@@ -109,7 +109,7 @@ test("accountLocked: 件名と文面が前のテンプレートと同じ(IP が�
   assert.equal(noIp.text, `${LOCKED_HEAD} 発生時刻 2026/11/11 9:00:00 ${LOCKED_TAIL}`);
 });
 
-test("秘密の印・required・記録・種類: リンクの 4 本は required で functional の種類、ロックの知らせは security の種類", () => {
+test("秘密の印・required・記録・カテゴリー: リンクの 4 本は required で種別 functional のカテゴリー、ロックの知らせは種別 security のカテゴリー", () => {
   assert.deepEqual(listSecretVarKeys(verification.vars), ["verificationUrl"]);
   assert.deepEqual(listSecretVarKeys(earlyRegistration.vars), ["verificationUrl"]);
   assert.deepEqual(listSecretVarKeys(passwordReset.vars), ["resetUrl"]);
@@ -125,14 +125,14 @@ test("秘密の印・required・記録・種類: リンクの 4 本は required 
   assert.equal(accountLocked.category, "accountLocked");
   assert.equal(categories.accountLocked.kind, "security");
   assert.deepEqual(categories.accountLocked.channels, ["email"]);
-  // 出来事の粒の種類(D79): 1 本ずつ別の種類
+  // 出来事の粒のカテゴリー(D79): 1 本ずつ別のカテゴリー
   assert.deepEqual(
     [verification, earlyRegistration, passwordReset, emailChange].map((definition) => definition.category),
     ["emailVerification", "earlyRegistration", "passwordReset", "emailChange"],
   );
 });
 
-test("ひな形: リンクの 4 本は link(認証のリンク)、ロックの知らせは alert(セキュリティの警告)", () => {
+test("レイアウト: リンクの 4 本は link(認証のリンク)、ロックの知らせは alert(セキュリティの警告)", () => {
   for (const definition of [verification, earlyRegistration, passwordReset, emailChange]) assert.equal(definition.layout, "link", definition.key);
   assert.equal(accountLocked.layout, "alert");
 });

@@ -1,8 +1,8 @@
 // src/features/core/auth/messages/accountLocked.ts
 //
 // アカウントの永続ロックの知らせ。送り手: services/server/localLogin.ts(送りっぱなし。失敗はログだけ)
-// 種類 accountLocked(種別 security、利用者は止められない)。IP は個人の情報なので本文と vars を記録に残さない(record meta)。
-// ひな形: alert(セキュリティの警告、messaging/layouts/alert)。ラベルと値の値が空の行(IP が分からない)は描かない。心当たりの段落は最初の行を太字
+// カテゴリー accountLocked(種別 security、利用者は止められない)。IP は個人の情報なので本文と vars を記録に残さない(record meta)。
+// レイアウト: alert(セキュリティの警告、messaging/layouts/alert)。ラベルと値の値が空の行(IP が分からない)は描かない。心当たりの段落は最初の行を太字
 
 import { z } from "zod";
 

@@ -2,7 +2,7 @@
 //
 // 管理者による残高の変更の知らせ(お知らせ = 受け取り箱だけ)。送り手: services/server/notification/sendAdjustmentNotification.ts
 // (管理の残高の変更 /api/admin/wallet/[userId]/adjust で walletConfig.notifyOnAdjust が立つ操作、一括付与 wallet:bulk-grant の notify)
-// 種類 walletAdjusted(種別 transactional)。{{reasonLine}} = 理由があれば「\n理由: <理由>」、無ければ空(送り手が組む)
+// カテゴリー walletAdjusted(種別 transactional)。{{reasonLine}} = 理由があれば「\n理由: <理由>」、無ければ空(送り手が組む)
 // {{methodLabel}} = walletConfig.adjustmentNotification.changeMethodLabels の表示(知らない操作はそのまま)
 
 import { z } from "zod";
