@@ -145,7 +145,7 @@ principle: a fork may build any look and any feature | it does not copy behavior
 - edit generated files: a file with a generated mark at its head, or a JSON / JSONL listed as generated (intake.txt generated rows) → edit its source | → core/generated.md
 - unpaginated full-fetch of user-scale data (base.search without limit; the default limit 100 silently drops rows) → page/limit + infinite scroll | list() only for small fixed master data
 - business.url (@/business) as runtime origin (the official URL for mail / SEO) → getAppBaseUrl() from @/lib/url | never build an origin from Host / X-Forwarded-Host (host header injection)
-- messages to users never through lib/mail send() or a channel directly → messagingService.sendMessage / sendMessageToMany with a messages/\<name\>.ts definition | send() = the mail channel only (lint import-boundaries/mail-send-via-messaging) | ref: src/features/core/messaging/README.md
+- messages to users never through lib/mail send() or a channel directly → messagingService: a messages/\<name\>.ts definition → sendMessage / sendMessageToMany, admin free text → sendFreeMessage | send() = the mail channel only (lint import-boundaries/mail-send-via-messaging) | ref: src/features/core/messaging/README.md
 - stage from NODE_ENV or a direct process.env.APP_ENV read → @/lib/appEnv (lint app-env/single-reader) | env files, production guard → core/scripts.md
 
 ## PROXY (Next.js 16 proxy, NOT middleware.ts)
