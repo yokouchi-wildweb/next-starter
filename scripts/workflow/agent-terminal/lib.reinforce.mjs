@@ -1,6 +1,6 @@
 // scripts/workflow/agent-terminal/lib.reinforce.mjs
 //
-// /reinforce の 2 つの動作(open.mjs・rc.mjs)が使う tmux の共通処理: tmux が入っているか、どのサーバー(socket)に向けるか、
+// /reinforce の open.mjs と /intervene の type.mjs が使う tmux の共通処理: tmux が入っているか、どのサーバー(socket)に向けるか、
 // このユーザーの tmux のサーバーとペインの一覧。打ち込みの確かめ(入力欄が空・作業中でない)は lib.mjs boxText と同じ形。
 // 説明: scripts/workflow/agent-terminal/README.md
 
