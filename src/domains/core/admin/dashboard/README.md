@@ -7,7 +7,7 @@
 - 上流のセクションも fork のセクションも同じ受け口に置き、同じ一覧に並ぶ。fork はセクションを足す・隠す・並べ替えるために Screen を写さない
 - 受け口の宣言は `../extensionPoints.ts` の `dashboardSections`（メニューの受け口と同じファイル）。一覧は `pnpm generate extensions` が `../extensions/dashboardSections.ts` に出す（取得を含むので server で読む）
 - 入口: `@/domains/admin/dashboard`（`AdminDashboard`・`defineDashboardSection`・`buildAdminDashboard`・型）。取得は `services/server/sectionLoads.ts` の `loadAdminDashboardData(viewer)`
-- 決まり（名前・取得の置き場・見え方・設定の範囲）は札 `.claude/rules/items/features/admin.md`
+- 決まり（名前・取得の置き場・見え方・設定の範囲）は札 `.claude/rules/items/domains/admin.md`
 
 ## Usage
 

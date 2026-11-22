@@ -38,8 +38,8 @@ test("書き換えの形: src/features・@/features・config/features・正規�
   assert.match(out, /\^src\\\/domains\\\//);
   assert.match(out, /domains\/<domain>\/hooks、core は domains\/core\/、表は `domains\/`/);
   assert.match(out, /lib-no-domains, import-boundaries\/hooks-utils-no-domains, import-boundaries\/domains-index-no-server-reexport/);
-  assert.match(out, /pnpm ops features list"; \/\/ src\/featureGate・scripts\/operations\/features\/set\.ts・items\/features\/wallet\.md/);
-  assert.deepEqual(counts, { srcPath: 2, alias: 1, config: 1, bare: 3, lintName: 3 });
+  assert.match(out, /pnpm ops features list"; \/\/ src\/featureGate・scripts\/operations\/features\/set\.ts・items\/domains\/wallet\.md/);
+  assert.deepEqual(counts, { srcPath: 2, alias: 1, config: 1, card: 1, bare: 3, lintName: 3 });
   assert.deepEqual(stops, []);
 });
 
@@ -63,7 +63,7 @@ test("止める物: \"features\" 1 語・知らない名前の bare・残った 
   assert.deepEqual(stops.map((s) => [s.kind, s.line]), [["bare", 2], ["lone", 1], ["leftover", 3]]);
 });
 
-test("計画と当て: 2 つのフォルダを動かし、見ない物は触らず、2 回目は何も変えない", () => {
+test("計画と当て: 3 つのフォルダ(ドメイン・設定値・札)を動かし、見ない物は触らず、2 回目は何も変えない", () => {
   const root = fixture({
     "tsconfig.json": '{ "compilerOptions": { "paths": { "@/features/auth/*": ["./src/features/core/auth/*"] } } }\n',
     "src/features/core/auth/a.ts": 'import { b } from "@/features/auth/b";\nexport const a = b;\n',
@@ -73,7 +73,9 @@ test("計画と当て: 2 つのフォルダを動かし、見ない物は触ら�
     "src/lib/x/README.md": "[auth](../../features/core/auth/README.md)\n",
     "eslint.config.mjs": '"import-boundaries/lib-no-features": "error",\n',
     ".fork-ownership/acme.permits.txt": "src/features/core/auth/a.ts upreq:20261101-000000-x\n",
-    ".claude/rules/items/features/auth.md": "paths: src/features/core/auth/**\n",
+    ".claude/rules/items/features/auth.md": "paths: src/features/core/auth/**\n# features/auth\n",
+    "src/features/core/auth/README.md": "決まりは札 .claude/rules/items/features/auth.md\n",
+    "scripts/workflow/rules/renames.json": '[\n {\n  "kind": "readme-heading",\n  "old": "src/features/README.md「A」",\n  "new": "src/features/README.md「B」"\n }\n]\n',
     ".notices/20261101-000000-old.md": "src/features/core/auth\n",
     ".notices/20261101-000000-old.tool.mjs": 'const P = "src/features";\n',
     ".notices/applied/acme.md": "src/features\n",
@@ -86,8 +88,9 @@ test("計画と当て: 2 つのフォルダを動かし、見ない物は触ら�
   });
   const plan = planRename(root);
   assert.deepEqual(plan.moves.map((m) => [m.from, m.to, m.files]), [
-    ["src/features", "src/domains", 3],
+    ["src/features", "src/domains", 4],
     ["src/config/features", "src/config/domains", 1],
+    [".claude/rules/items/features", ".claude/rules/items/domains", 1],
   ]);
   assert.deepEqual(plan.stops, []);
   assert.equal(plan.skipped["shipped-notice"], 2);
@@ -106,7 +109,11 @@ test("計画と当て: 2 つのフォルダを動かし、見ない物は触ら�
   assert.equal(read(root, "src/lib/x/README.md"), "[auth](../../domains/core/auth/README.md)\n");
   assert.equal(read(root, "eslint.config.mjs"), '"import-boundaries/lib-no-domains": "error",\n');
   assert.equal(read(root, ".fork-ownership/acme.permits.txt"), "src/domains/core/auth/a.ts upreq:20261101-000000-x\n");
-  assert.equal(read(root, ".claude/rules/items/features/auth.md"), "paths: src/domains/core/auth/**\n");
+  assert.ok(!existsSync(join(root, ".claude/rules/items/features")));
+  assert.equal(read(root, ".claude/rules/items/domains/auth.md"), "paths: src/domains/core/auth/**\n# domains/auth\n");
+  assert.equal(read(root, "src/domains/core/auth/README.md"), "決まりは札 .claude/rules/items/domains/auth.md\n");
+  // 改名の記録: "old" は当時の名のまま、"new" は今の置き場
+  assert.equal(read(root, "scripts/workflow/rules/renames.json"), '[\n {\n  "kind": "readme-heading",\n  "old": "src/features/README.md「A」",\n  "new": "src/domains/README.md「B」"\n }\n]\n');
   assert.equal(read(root, ".notices/README.md"), "移行は src/domains/<domain>/scripts/migrations/\n");
   // 見ない物
   assert.equal(read(root, ".notices/20261101-000000-old.md"), "src/features/core/auth\n");

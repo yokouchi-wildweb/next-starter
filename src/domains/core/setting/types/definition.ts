@@ -33,7 +33,7 @@ export type SettingFieldUi = SettingFieldUiPlace &
         field?: undefined;
         /**
          * 部分を持つキー(schema が z.object)の欄。部分ごとに 1 つの欄を並べる(名前は <キー>.<部分>)。
-         * 片方だけ変えると意味が壊れる値は部分を持つ 1 つのキーにする(札 items/features/setting.md one_key_groups)
+         * 片方だけ変えると意味が壊れる値は部分を持つ 1 つのキーにする(札 items/domains/setting.md one_key_groups)
          */
         parts: Readonly<Record<string, SettingFieldPartUi>>;
       }

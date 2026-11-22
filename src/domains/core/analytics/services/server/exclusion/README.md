@@ -3,7 +3,7 @@
 ## Overview
 
 - 不正だった期間の行や不正だった人を管理画面の集計から外す条件を、fork が差し込む口。上流は口だけ（項目 0）で、除外の表・判定・解除の運用は fork が持つ。項目が無い間は集計の結果は変わらない。
-- 使う時の決まりは札 .claude/rules/items/features/analytics.md にある
+- 使う時の決まりは札 .claude/rules/items/domains/analytics.md にある
 
 ## Usage
 

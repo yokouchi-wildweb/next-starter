@@ -1,6 +1,6 @@
 // scripts/structure/config-overrides/pairing.mjs
 // 上書きと持ち主の 1 対 1 の検査(設定 D19・D38・D75)。地区の地図(src/lib/districtMap)の利用者。
-// 見る所は src/config の地区の 4 つの種類のフォルダ(lib・features・layout・proxies)と基盤の上書きのフォルダ(featureGate、設定 D91)だけ。
+// 見る所は src/config の地区の 4 つの種類のフォルダ(lib・domains・layout・proxies)と基盤の上書きのフォルダ(featureGate、設定 D91)だけ。
 // fork に残る古い app/・ui/ と直下のファイルは見ない(上流には無い)。
 //
 // 落とす物:

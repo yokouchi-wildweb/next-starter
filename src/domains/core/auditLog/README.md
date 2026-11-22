@@ -3,7 +3,7 @@
 ## Overview
 
 - 「**誰が** / **いつ** / **どのレコードに** / **誰に対して** / **何をしたか** / **何が変わったか**」を全ドメイン横断の append-only テーブル `audit_logs` に残す基盤
-- 使う時の決まり(何を記録するか・subject の渡し方・tx・bulk・strict など)は札 .claude/rules/items/features/auditLog.md、記録の仕方の層の決まり(action 名・context・本人開示・denylist)は .claude/rules/core/audit.md にある。この README は使い方と仕組み
+- 使う時の決まり(何を記録するか・subject の渡し方・tx・bulk・strict など)は札 .claude/rules/items/domains/auditLog.md、記録の仕方の層の決まり(action 名・context・本人開示・denylist)は .claude/rules/core/audit.md にある。この README は使い方と仕組み
 - 記録方法 = `createCrudService` の `audit:` による自動記録 (A) と `auditLogger.record()` の手動記録 (B) の併用。A で広く拾い、B でドメイン固有イベントを足す
 - 純粋ロジック(context の ALS・型・差分・denylist・検査)は `src/lib/audit/` にあり、recorder の実体はこのドメインが持つ(lib → features 禁止のため)
 

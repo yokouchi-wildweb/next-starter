@@ -6,7 +6,7 @@
 - クーポンドメインは「コード・使用制限・有効期限の管理」に徹する。具体的な特典効果（割引、機能解放など）はクーポンドメイン側に定義せず、消費側ドメインがハンドラーとして実装する
 - 入口: サーバー `couponService`（`@/domains/core/coupon/services/server/couponService`）、クライアントは `hooks/` のフック
 - 機能の入切は門番の規則 `coupon`（`src/featureGate/rules/coupon.ts`）
-- 決まり（入口スコープの定数・ハンドラーの書き方・管理画面のタブと一覧）は札 `.claude/rules/items/features/coupon.md`。入口スコープ・自己消込・理由の文言の必須の決まりは CLAUDE.md FEATURES coupon_entry_scope と札
+- 決まり（入口スコープの定数・ハンドラーの書き方・管理画面のタブと一覧）は札 `.claude/rules/items/domains/coupon.md`。入口スコープ・自己消込・理由の文言の必須の決まりは CLAUDE.md ITEMS coupon_entry_scope と札
 
 ## Usage
 

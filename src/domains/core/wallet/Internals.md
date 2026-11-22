@@ -2,7 +2,7 @@
 
 ## Overview
 
-- `README.md` の Internals の節を分けた文書（トランザクションとロック・残高予約・監査の範囲・ロット・失効通知の仕組み）。決まりは札 `.claude/rules/items/features/wallet.md`
+- `README.md` の Internals の節を分けた文書（トランザクションとロック・残高予約・監査の範囲・ロット・失効通知の仕組み）。決まりは札 `.claude/rules/items/domains/wallet.md`
 
 ## Internals
 

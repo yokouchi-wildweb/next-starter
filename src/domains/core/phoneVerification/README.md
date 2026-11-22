@@ -4,7 +4,7 @@
 
 - SMS 認証(電話番号の認証)。表を持たない core ドメインで、Firebase Phone Auth で利用者の電話番号を確かめ、認証済みの印を user の列(`phoneNumber`・`phoneVerifiedAt`)に書く
 - Firebase 側の準備は [SMS認証（電話番号認証）のセットアップ方法](../../../../docs/setup/SMS認証（電話番号認証）のセットアップ方法.md)
-- 使う時・直す時の決まりは札 .claude/rules/items/features/phoneVerification.md にある
+- 使う時・直す時の決まりは札 .claude/rules/items/domains/phoneVerification.md にある
 
 ### 入切
 

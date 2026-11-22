@@ -4,7 +4,7 @@
 
 - ドメインデータを時系列で集計・分析するためのフレームワーク。他ドメインのテーブルを読み取り専用で参照し、共通の集計パターン（日別・期間サマリー・ランキング・残高推移）を提供する
 - 上流はデータの取り出しだけを出荷する（集計のサービス・管理 API `/api/admin/analytics/**`・rollup）。管理画面のページも管理メニューの項目も持たない。画面は fork が自分の業務に合わせて作り（`src/app/admin/(protected)/` の自分のルート + 管理メニューの受け口 `src/domains/core/admin/menu/` に項目）、この API を呼ぶ
-- 使う時・直す時の決まりは札 .claude/rules/items/features/analytics.md にある
+- 使う時・直す時の決まりは札 .claude/rules/items/domains/analytics.md にある
 - core ドメイン（domain.json なし、手動管理）
 - 閉じられる機能(門番の規則 `src/featureGate/rules/analytics.ts`、既定は閉 `defaultEnabled: false`。開くのは fork の `src/config/featureGate/switches.config.ts` か `pnpm ops features set analytics on`)
 - 閉じると `/api/admin/analytics`・`/api/activity/dau`・rollup の cron が 404 で、表も push から外れる
@@ -211,7 +211,7 @@ const { history, walletTypes } = await getWalletBalanceSeries({
 ### エンティティの追加
 
 アップストリームが持つのは `user_daily_activities`（DAU）と `analytics_daily_rollups`（日次ロールアップ）のみ。
-日次の事前集計は、独自テーブルより先にロールアップ(`rollupMetrics/README.md`)で足りるかを見る（CLAUDE.md FEATURES analytics_perf）。
+日次の事前集計は、独自テーブルより先にロールアップ(`rollupMetrics/README.md`)で足りるかを見る（CLAUDE.md ITEMS analytics_perf）。
 それ以外の集計キャッシュ、スナップショット、ダッシュボード設定等が必要になった場合、`entities/` にテーブル定義を追加する。
 
 - 基底型(`types/entities.ts`): `AnalyticsCacheBase`（集計キャッシュテーブル用）/ `AnalyticsSnapshotBase`（スナップショットテーブル用）/ `DashboardConfigBase`（ダッシュボード設定テーブル用）

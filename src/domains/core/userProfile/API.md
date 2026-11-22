@@ -3,7 +3,7 @@
 ## Overview
 
 - `README.md` の API の節を分けた文書（一覧・ProfileBase・API ルート・ユーティリティ）
-- 使い方は `README.md` の Usage、決まりは札 `.claude/rules/items/features/userProfile.md`
+- 使い方は `README.md` の Usage、決まりは札 `.claude/rules/items/domains/userProfile.md`
 
 ## API
 

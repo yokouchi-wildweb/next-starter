@@ -22,6 +22,7 @@
 //
 // 見ない物: 出荷済みの notice の本文と道具(.notices/<YYYYMMDD-HHMMSS>-…)・台帳と記録(.notices/ の下の README のほか: applied/・shipped/・done/)・この道具とテスト・
 //   docs/journal(当時の記録、D47)・語の表 scripts/workflow/terms/(誤りの字面を持つ)・pnpm-lock.yaml・バイナリ
+//   名前が renames.json のファイルの "old": の行(改名の記録の旧い名は当時の名のまま。"new" は書き換える)
 //
 // 止める物(書き換えず候補つきで出す。手で決めてから --apply をもう一度):
 // - ja:       段の文脈のファイル(gate.json・--gate・runner/gates・gates.json・phase の語を書くファイル)の中の、上の形でない「門」
@@ -183,7 +184,19 @@ export function rewriteLineage(text, own, isRoot, rewrite) {
 /** 1 ファイルの書き換え(lineage.md は自分の節だけ) */
 function fileRewriter(root) {
   const ident = readForkIdentity(root);
-  return (path, text) => (path === LINEAGE ? rewriteLineage(text, ident.own, ident.tier === "root", (t) => rewriteText(path, t)) : rewriteText(path, text));
+  const one = (path, text) => (path === LINEAGE ? rewriteLineage(text, ident.own, ident.tier === "root", (t) => rewriteText(path, t)) : rewriteText(path, text));
+  return (path, text) => (basename(path) === "renames.json" ? rewriteKeepingOld(text, (t) => one(path, t)) : one(path, text));
+}
+
+/**
+ * renames.json(改名の記録)は "old": の行を書かない: 旧い名は当時の名のまま読まれる(staleRefs が旧い名指しを探す)。
+ * "old": の行を印に置き換えて書き換え、戻す(1 行 = 1 行なので止めの行番号は変わらない)
+ */
+export function rewriteKeepingOld(text, rewrite) {
+  const kept = [];
+  const masked = text.replace(/^[ \t]*"old"[ \t]*:.*$/gm, (line) => `\u0000${kept.push(line) - 1}\u0000`);
+  const r = rewrite(masked);
+  return { ...r, text: r.text.replace(/\u0000(\d+)\u0000/g, (_m, i) => kept[Number(i)]) };
 }
 
 /** 計画(何も書かない) */

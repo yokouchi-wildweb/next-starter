@@ -8,7 +8,7 @@
   - 閉じると: 表 `referrals`・`referral_rewards` と `/api/referral/**`・`/api/admin/referral`・招待クーポンの管理画面 `/admin/coupons/invite` が閉じる(404)
   - 閉じたときの呼び手: 招待コードのカテゴリをクーポンに登録しない(`registerReferralCouponHandler`)・登録画面の招待コードの欄とマイページのメニュー「招待コードを取得」を描かない・サーバーの招待コードの処理をしない・紹介の集計(analytics)は 0
   - `/mypage/invite` の住所は規則 `mypageInvite`(`pageMypage` と `referral` に依存)が持つ。loader も `referral` が閉なら `/mypage` へ redirect する
-- 使う時・直す時の決まりは札 .claude/rules/items/features/referral.md にある。この README は使い方と仕組み
+- 使う時・直す時の決まりは札 .claude/rules/items/domains/referral.md にある。この README は使い方と仕組み
 
 ## Usage
 

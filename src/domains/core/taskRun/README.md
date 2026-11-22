@@ -6,7 +6,7 @@
 - 止める鍵(二度流すと困る物を自動で二度走らせない)と結果不明の土台
 - HTTP ルート・管理画面は持たない(登録表の access は `INTERNAL_ONLY`)。常に開いている(機能の門で閉じない)
 - 書き手: タスクのランナー `scripts/runner/task` の流れ(`scripts/runner/task/execute.ts`。`pnpm ops data` も同じ流れを使う)
-- 使う時・直す時の決まりは札 `.claude/rules/items/features/taskRun.md`
+- 使う時・直す時の決まりは札 `.claude/rules/items/domains/taskRun.md`
 - 記録しない物: `pnpm task --due`(毎分の自動の回し)・Vercel Cron の HTTP 呼び出し・機能が閉じて飛ばした定期タスク
 
 ## Usage

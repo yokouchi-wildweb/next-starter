@@ -4,7 +4,7 @@
 
 - Firestore ベースのリアルタイムチャット機能を提供するコアドメイン。fork はこの上に、プロジェクト固有の UI や拡張機能を作る
 - リアルタイム性が要るので、通常のドメインと違い REST API を経由せず Firestore SDK を直接操作する。管理画面向けには自動生成の CRUD（API 経由）も並行して存在する
-- 使う時・直す時の決まりは札 .claude/rules/items/features/chatRoom.md にある
+- 使う時・直す時の決まりは札 .claude/rules/items/domains/chatRoom.md にある
 
 ```
 ┌─ 統合 Hook ──────────────────────────────────────────────────┐

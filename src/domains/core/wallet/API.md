@@ -2,7 +2,7 @@
 
 ## Overview
 
-- `README.md` の API の節を分けた文書。使い方は `README.md`、決まりは札 `.claude/rules/items/features/wallet.md`
+- `README.md` の API の節を分けた文書。使い方は `README.md`、決まりは札 `.claude/rules/items/domains/wallet.md`
 
 ## API
 

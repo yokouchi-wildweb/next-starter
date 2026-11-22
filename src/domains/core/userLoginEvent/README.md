@@ -23,7 +23,7 @@ const rows = await findUsersBySameIp("203.0.113.10", { excludeUserId: currentUse
 const onSubnet = await findUsersBySubnet("203.0.113.0/24", { limit: 200 });
 ```
 
-- 3 関数は event_type を区別せず全行を数える(開始回数の数え方は `.claude/rules/items/features/userLoginEvent.md` の login_event_starts)
+- 3 関数は event_type を区別せず全行を数える(開始回数の数え方は `.claude/rules/items/domains/userLoginEvent.md` の login_event_starts)
 - `/16` のような極端に広い範囲を大規模テーブルに対して引くときは、別の集計テーブル (materialized view 等) が要りうる
 
 ### 端末受け渡しを調べる

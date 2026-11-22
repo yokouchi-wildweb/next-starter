@@ -3,7 +3,7 @@
 ## Overview
 
 - 管理者が稼働中に画面から変える値を持つコアドメイン。デプロイで決まる値・コードが構造として依存する値は config(`src/config/`)
-- 使う時・直す時の決まりは札 .claude/rules/items/features/setting.md にある。この README は使い方と仕組み
+- 使う時・直す時の決まりは札 .claude/rules/items/domains/setting.md にある。この README は使い方と仕組み
 - **1 行 + jsonb 1 列**: `settings` 表の `id: "global"` の 1 行の `extended` に、保存したキーだけを持つ
 - **1 キー = 1 ファイル**: `fields/` のキーと `sections/` のセクションから、一覧を生成する(`extensions/`、編集不可)
 - **キーの置き場はリポごとに 1 つ**: 既定は管理画面 + DB。config の `codeValues` に書いたキーはコードの値(Extension「コードで持つキー」)

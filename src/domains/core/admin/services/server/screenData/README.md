@@ -5,7 +5,7 @@
 - `pnpm generate domain` が出す管理画面ルート（`src/app/admin/(protected)/<domains>/{,new/,[id]/edit/,sort/}`）と、同じ形の手書きの core 管理画面が共有する取得の本体
 - 認可と cache は持たない。各ルートの `_screen/loader.ts` が最寄りの guard.ts の `createLoader` に、`src/wiring/adminScreenParts.ts` の共通部品の組を渡して使う
 - service と関連先は外から受け取り、登録表（serviceRegistry）は読まない（結ぶのは wiring）
-- 決まり（cache・認可を持たない、関連の判定の置き場）は札 `.claude/rules/items/features/admin.md`
+- 決まり（cache・認可を持たない、関連の判定の置き場）は札 `.claude/rules/items/domains/admin.md`
 
 ```
 _screen/<Name>Screen.tsx ──▶ _screen/loader.ts = createLoader(adminXParts("sample", …))

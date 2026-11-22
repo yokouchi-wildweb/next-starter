@@ -113,8 +113,8 @@ schema_registry (MANDATORY): src/registry/schemaRegistry.ts = the only push entr
 service_registry (MANDATORY): serviceRegistry = the one way to resolve a domain name ↔ service / table / id column (never a per-domain map) | server callers → src/wiring/domainRegistry.ts, a lib takes the registry passed in | → core/api-routes.md lookup
 push_roundtrip (MANDATORY when adding/changing an index): after `pnpm db:push` (who runs it = repo.json agent.db_push), `pnpm db:push:check` must report zero statements (a read-only DB check, not a code check: the agent may run it)
 - never `sql\`${col} DESC\`` (use .desc()) or plain columns mixed with sql expressions in one index (DROP+CREATE on every push = write lock) | push may lock tables → maintenance / low traffic | → core/db.md
-setting (core): admin changes it while running = setting, fixed at deploy or structural = config | values that mean nothing apart are one key with parts | keys and sections → items/features/setting.md
-- each key has one home per repo: the admin + DB by default, or code when listed in the setting config's codeValues (→ items/features/setting.md code_values) | no other switch
+setting (core): admin changes it while running = setting, fixed at deploy or structural = config | values that mean nothing apart are one key with parts | keys and sections → items/domains/setting.md
+- each key has one home per repo: the admin + DB by default, or code when listed in the setting config's codeValues (→ items/domains/setting.md code_values) | no other switch
 field_types: a fieldType's meaning = only the table src/lib/domain/fields/fieldTypes.mjs | never compare or list fieldType names outside it (lint field-type-guard) | → core/domain-definition.md field_types
 domain_config: client = \<domain\>/entities/display.ts domainDisplay, never domain.json (lint client-no-domain-json) | server: one domain = its domain.json + normalizeDomainJsonConfig, all domains = @/wiring/domainConfig | → core/components.md domain_config
 config_utils: src/lib/domain/ (extractFields, getRelationsOf and the other *Of functions take a domain copy; client index.ts, server server.ts)
@@ -159,7 +159,7 @@ ownership_routes: user-owned ("self only") → createMeRoute (/api/me/**), scope
 principal: handlers use ctx.user only (the Factory resolves the DB-synced user once per request) | access = public | authenticated | {roles, roleCategories} (+ allowStatuses), no self-guarded route
 
 ## ROLES & PAGE_GUARD
-roles: core roles (admin, user, debugger) cannot be deleted or disabled by a fork | added roles = *.role.json → pnpm forge | a fork changes values only in \<json name\>.override.ts | an unused added role → enabled:false | ref: items/features/user.md
+roles: core roles (admin, user, debugger) cannot be deleted or disabled by a fork | added roles = *.role.json → pnpm forge | a fork changes values only in \<json name\>.override.ts | an unused added role → enabled:false | ref: items/domains/user.md
 page_guard: range policy = guard.ts beside the layout (child narrows only), layout = `await guard()` | ranges: admin/(protected) | (user)/(protected) | debug/ | every page loader = nearest guard.ts createLoader({ access, … }) | never re-implement guards | → core/screens.md range
 
 ## SCREENS (page layer that downstream replaces without editing core)
@@ -186,21 +186,21 @@ audit: auto = createCrudService audit option | manual = auditLogger.record({...,
 
 ## COUNTING (check BEFORE building any count / tracking capability)
 matrix: user × key (login only) → userCounter | content × action (anonymous OK) → interactionTracking | user × day "visited?" (DAU / active days / most active users) → analytics DAU (user_daily_activities), not a userCounter key | userCounter and interactionTracking both keep lifetime + daily counts
-NOT_for: game telemetry, scroll / mousemove streams, tens of millions of events per day → separate pipeline, never retrofit these domains | auditLog = compliance record, never reuse it for behavior aggregation | ref: items/features/{userCounter,interactionTracking,analytics}.md
+NOT_for: game telemetry, scroll / mousemove streams, tens of millions of events per day → separate pipeline, never retrofit these domains | auditLog = compliance record, never reuse it for behavior aggregation | ref: items/domains/{userCounter,interactionTracking,analytics}.md
 
 ## ITEMS
 scope: rules that apply even outside that item | detail in its card and README
 - users_table: no analytics columns on users → per-concern satellite tables
-- user_acquisition: signup attribution, opt-in default disabled | the invite link cookie (pending_invite) is gated by referral alone | → items/features/{userAcquisition,referral}.md
-- user_name: every write path to users.name MUST use the shared schemas and withUserNameGuard → items/features/user.md
-- user_status_history (MANDATORY): any code that writes users.status → recordStatusTransition → items/features/user.md
-- coupon_entry_scope (MANDATORY): every code-accepting entry passes one `scope` const to isUsable and redeem / redeemWithEffect → items/features/coupon.md
-- fingerprint: opt-in default OFF, signals are reference evidence, never proof → items/features/{deviceFingerprint,fingerprintChallenge}.md
+- user_acquisition: signup attribution, opt-in default disabled | the invite link cookie (pending_invite) is gated by referral alone | → items/domains/{userAcquisition,referral}.md
+- user_name: every write path to users.name MUST use the shared schemas and withUserNameGuard → items/domains/user.md
+- user_status_history (MANDATORY): any code that writes users.status → recordStatusTransition → items/domains/user.md
+- coupon_entry_scope (MANDATORY): every code-accepting entry passes one `scope` const to isUsable and redeem / redeemWithEffect → items/domains/coupon.md
+- fingerprint: opt-in default OFF, signals are reference evidence, never proof → items/domains/{deviceFingerprint,fingerprintChallenge}.md
 - storage_metadata (MANDATORY): image purposes default metadata "strip", "keep" only when the original is needed | public docs name strip purposes, never "all images" → items/lib/storage.md
 - ops_tasks: all via `pnpm task <name>`, no ad-hoc | tasks → core/scripts.md
 - cron_wiring (MANDATORY): 1 task = 1 folder src/app/api/cron/\<name\>/ (task.ts + 1-line route.ts, a fork retimes or turns it off with task.override.ts), no list file | vercel.json crons = `pnpm generate cron` output only | upstream add / remove / retime → notice | → items/lib/cron.md
 - budgeted_cron (MANDATORY): sweeps over unbounded-growth tables use runBudgetedBatches + createDeadline (@/lib/cron); read models refresh via createIncrementalRefresh → items/lib/cron.md
-- analytics_perf: before adding per-domain caches or snapshot tables → withAnalyticsCache or analytics rollups → items/features/analytics.md
+- analytics_perf: before adding per-domain caches or snapshot tables → withAnalyticsCache or analytics rollups → items/domains/analytics.md
 - ai_agent: generic runtime src/lib/ai/, each agent owns its safety boundary → items/lib/{ai,dbAgent}.md
 
 ## DOCS

@@ -47,9 +47,9 @@ export function h2Of(text) {
  */
 export function cardProblems({ path, text, itemFolder, readmeH2 }) {
   const id = cardId(path);
-  if (!id) return [`置き場が .claude/rules/items/<lib|features|components>/<name>.md でない`];
+  if (!id) return [`置き場が .claude/rules/items/<lib|domains|components>/<name>.md でない`];
   const problems = [];
-  if (!["lib", "features", "components"].includes(id.category)) problems.push(`category ${id.category} は lib・features・components のどれでもない`);
+  if (!["lib", "domains", "components"].includes(id.category)) problems.push(`category ${id.category} は lib・domains・components のどれでもない`);
   if (text.length > CARD_MAX_CHARS) problems.push(`${text.length} 字(1 枚 ${CARD_MAX_CHARS} 字まで)`);
   if (!itemFolder) problems.push(`品目のフォルダが無い(${id.category}/${id.name})`);
 

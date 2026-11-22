@@ -11,7 +11,7 @@
 - 端末の Cookie はユーザーセッションと別。端末で `/api/me/**` やユーザー向けのルートは通らない
 - 監査ログには actor `device`（actorId = 端末 id）で残る
 - core にはドメイン画面を置かない。ペアリング画面・管理画面は downstream が下記のパーツで組み立てる
-- 決まり（scope の取り方・レート制限の単位・ペアリング方式・端末ページの置き場・一括失効・actor）は札（カード）`.claude/rules/items/features/pairedDevice.md`
+- 決まり（scope の取り方・レート制限の単位・ペアリング方式・端末ページの置き場・一括失効・actor）は札（カード）`.claude/rules/items/domains/pairedDevice.md`
 
 ## Usage
 

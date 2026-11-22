@@ -7,7 +7,7 @@ import { readBaseFiles, CATALOG_FILE, catalogSectionNames, readForkIdentity } fr
 export const CORE_DIR = ".claude/rules/core";
 export const ITEMS_DIR = ".claude/rules/items";
 export const SERVICE_DIR = ".claude/rules/service";
-export const CARD_CATEGORIES = ["lib", "features", "components"];
+export const CARD_CATEGORIES = ["lib", "domains", "components"];
 
 /** dir の下の .md(リポ直下からのパス、並べ替え済み) */
 export function mdUnder(root, dir) {
@@ -41,8 +41,8 @@ const dirsIn = (root, dir) =>
     : [];
 
 /**
- * 品目の一覧(札の対象の候補): lib = src/lib/CATALOG.md の行、features = src/domains/core/* と業務の src/domains/*、components = src/components/<Category>/
- * tier1 = Tier1 の品目(lib は CATALOG.md の先頭の節、features は core のドメイン、components は全部)
+ * 品目の一覧(札の対象の候補): lib = src/lib/CATALOG.md の行、domains = src/domains/core/* と業務の src/domains/*、components = src/components/<Category>/
+ * tier1 = Tier1 の品目(lib は CATALOG.md の先頭の節、domains は core のドメイン、components は全部)
  * @returns {{ category: string, name: string, folder: string, tier1: boolean, hasReadme: boolean }[]}
  */
 export function listItems(root) {
@@ -59,8 +59,8 @@ export function listItems(root) {
       if (m && section) items.push({ category: "lib", name: m[1], folder: `src/lib/${m[1]}`, tier1: section === first });
     }
   }
-  for (const n of dirsIn(root, "src/domains/core")) items.push({ category: "features", name: n, folder: `src/domains/core/${n}`, tier1: true });
-  for (const n of dirsIn(root, "src/domains").filter((n) => n !== "core")) items.push({ category: "features", name: n, folder: `src/domains/${n}`, tier1: false });
+  for (const n of dirsIn(root, "src/domains/core")) items.push({ category: "domains", name: n, folder: `src/domains/core/${n}`, tier1: true });
+  for (const n of dirsIn(root, "src/domains").filter((n) => n !== "core")) items.push({ category: "domains", name: n, folder: `src/domains/${n}`, tier1: false });
   for (const n of dirsIn(root, "src/components")) items.push({ category: "components", name: n, folder: `src/components/${n}`, tier1: true });
   return items.map((it) => ({ ...it, hasReadme: existsSync(join(root, it.folder, "README.md")) }));
 }

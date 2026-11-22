@@ -5,7 +5,7 @@
 - IP アドレスなどの識別子ごとのリクエスト制限。スパム登録や過剰アクセスを防ぐ
 - 制限はカテゴリ(窓の秒数と上限回数)ごと。上流のカテゴリと既定値は `config.ts`
 - 入切の機能を持たない(門番の規則なし、常に開)
-- 使う時・直す時の決まりは札 .claude/rules/items/features/rateLimit.md にある。この README は使い方と仕組み
+- 使う時・直す時の決まりは札 .claude/rules/items/domains/rateLimit.md にある。この README は使い方と仕組み
 
 ## Usage
 

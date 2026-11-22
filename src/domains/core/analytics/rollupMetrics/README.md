@@ -5,7 +5,7 @@
 - 日次ロールアップ（事前集計）のフレームワーク（`services/server/rollup/`）と、そのメトリクスの受け口 `rollupMetrics/`
 - 「確定した過去日の値を `analytics_daily_rollups` に日次で焼き込み、読み取りは PK ルックアップ + 当日だけライブ計算」に置き換えることで、**サービス運用年数に比例して重くなる集計**（特にランニングバランス系のベースライン全履歴スキャン）を構造的に解消する。
 - 役割分担: フレームワーク（保存・cron・マージ読み）= 上流、メトリクス定義（compute）= 受け口の項目。上流の項目は連絡の日まとめ（`messaging<Measure>.ts` の 11 本、中身は `services/server/messagingAnalytics/rollup.ts`）だけ
-- 使う時の決まりは札 .claude/rules/items/features/analytics.md にある。受け口の仕組み: `scripts/structure/extensions/README.md`
+- 使う時の決まりは札 .claude/rules/items/domains/analytics.md にある。受け口の仕組み: `scripts/structure/extensions/README.md`
 
 ### 採用判断
 

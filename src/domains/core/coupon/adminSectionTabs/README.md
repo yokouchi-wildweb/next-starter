@@ -3,7 +3,7 @@
 ## Overview
 
 - 種別 enum に属さない派生クーポン画面(例: フレンドクーポン)を `/admin/coupons/<slug>` に置いたとき、全クーポン管理画面のタブの末尾に足す受け口。上流の項目は 0
-- 決まり(閉じ方)は札 `.claude/rules/items/features/coupon.md`
+- 決まり(閉じ方)は札 `.claude/rules/items/domains/coupon.md`
 
 ## Usage
 

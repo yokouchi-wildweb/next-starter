@@ -117,6 +117,14 @@ test("移す先に既に物があれば移動を止める", () => {
   assert.deepEqual(plan.stops.map((s) => [s.kind, s.path]), [["target-exists", "scripts/structure/x/phase.json"]]);
 });
 
+test("renames.json: 改名の記録の \"old\" は当時の名のまま、\"new\" は書き換える", () => {
+  const root = fixture({
+    "scripts/workflow/rules/renames.json": '[\n {\n  "kind": "rule-key",\n  "old": "scripts/runner/gates/README.md gates",\n  "new": "scripts/runner/gates/README.md x"\n }\n]\n',
+  });
+  applyRename(root, planRename(root));
+  assert.equal(read(root, "scripts/workflow/rules/renames.json"), '[\n {\n  "kind": "rule-key",\n  "old": "scripts/runner/gates/README.md gates",\n  "new": "scripts/runner/phases/README.md x"\n }\n]\n');
+});
+
 test("lineage.md: fork は自分の節だけを書き換え、前書きと祖先の節は書かない / Tier1 は全体", () => {
   const lineage = (body) => `# lineage\n> 前書き pnpm check --gate=ship\n\n## parent\n- k: pnpm check --gate=ship\n<!-- end parent -->\n\n## acme\n- k: ${body}\n<!-- end acme -->\n`;
   const fork = fixture({ "repo.json": '{ "repo_id": "acme", "tier": "middle" }\n', ".claude/rules/lineage.md": lineage("pnpm check --gate=ship") });

@@ -4,7 +4,7 @@
 
 - イベント発生ごとに per-user で原子加算する汎用プリミティブ（汎用 per-user カウンタ）。ゲーミフィケーション・進捗・利用回数表示・コレクション解放などに横断的に使う。このカウンタが count の source of truth
 - 閉じられる機能(門番の規則 `src/featureGate/rules/userCounter.ts`、既定は閉。開けるのは `pnpm ops features set userCounter on`)。閉じると汎用 API `/api/userCounter` と日次の掃除の cron が 404 で、表も db:push から外れる
-- 使う時・直す時の決まりは札 .claude/rules/items/features/userCounter.md にある
+- 使う時・直す時の決まりは札 .claude/rules/items/domains/userCounter.md にある
 
 ### カウント要求の決定ガイド（どのプリミティブを使うか）
 

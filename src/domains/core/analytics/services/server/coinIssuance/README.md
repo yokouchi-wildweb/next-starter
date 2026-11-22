@@ -3,7 +3,7 @@
 ## Overview
 
 - `GET /api/admin/analytics/coin-issuance/summary` は拡張可能な集計レジストリで、各ドメインが「コイン創出ソース (`CoinIssuanceSource`)」を登録するだけでサービス全体の `finalProfit` 計算に組み込まれる。上流と fork の双方がソースを登録でき、「最終収支」の定義がサービス間でぶれない
-- 使う時の決まりは札 .claude/rules/items/features/analytics.md にある
+- 使う時の決まりは札 .claude/rules/items/domains/analytics.md にある
 各ソースは 1 種類のコイン収支寄与を表す。
 
 - `kind: "revenue"` … 収入源 (例: ガチャ売上)。`finalProfit` に加算される

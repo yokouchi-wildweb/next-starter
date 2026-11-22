@@ -6,7 +6,7 @@
 - 閉じられる機能（門番の規則 `src/featureGate/rules/userAcquisition.ts`、上流の既定は閉）。記録するかは規則の入切だけで決まる: 流入経路の proxy・本登録の route・本登録の保存は `gate.enabled("userAcquisition")` が開のときだけ動く。閉じると DB の表（user_acquisitions / user_acquisition_touches）も db:push から外れ、GA4 へ判別表も渡さない
 - 有効化した時点以降のサインアップから蓄積される（過去のサインアップには遡及できない）
 - 集計 UI は core に同梱しない（データレイヤーのみ）
-- 使う時・直す時の決まりは札 `.claude/rules/items/features/userAcquisition.md`
+- 使う時・直す時の決まりは札 `.claude/rules/items/domains/userAcquisition.md`
 
 ## Usage
 

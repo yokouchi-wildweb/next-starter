@@ -3,7 +3,7 @@
 ## Overview
 
 - 帰属ユーザー付きクーポン（`type=invite|affiliate`、`attribution_user_id` あり）が消込されたとき、発行者へウォレット報酬を 1 回だけ付与し、専用台帳に記録する基盤。アフィリエイト / アンバサダー / フレンドクーポンの「使われたら発行者に○%還元」を支える
-- 使う時・直す時の決まりは札 .claude/rules/items/features/couponAttributionReward.md にある。この README は使い方と仕組み
+- 使う時・直す時の決まりは札 .claude/rules/items/domains/couponAttributionReward.md にある。この README は使い方と仕組み
 - 本ドメインが保証するのは「渡された額を冪等に・安全に付与する」ことだけ。金額・通貨・率は下流のクーポンカテゴリのハンドラーが決める
 - 今は UI の部品を持たない。画面は下流が下の Usage のレシピで組む（core の UI の決まりは CLAUDE.md `core_ui`）
 - referralReward（登録招待の紹介関係に紐づく報酬）とは別物。こちらは消込 1 件ごとの任意発行者への payout

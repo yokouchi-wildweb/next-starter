@@ -9,12 +9,14 @@
 // 動かす物(フォルダごと。fork が足したファイルも一緒に動く。git の木なら git mv):
 // - src/features → src/domains
 // - src/config/features → src/config/domains
+// - .claude/rules/items/features → .claude/rules/items/domains(機能の札の置き場、D43。fork が自分で書いた札も動く)
 //   移す先に既にファイルがあれば移動を止める(stop: target-exists)
 //
 // 書き換える形(文字列のパスだけ。語としての feature(門番の機能)は触らない。`\/` の正規表現の字面も同じに読む):
 // - srcPath:  src/features(後ろが / か語の終わり)→ src/domains
 // - alias:    @/features(同)→ @/domains
 // - config:   config/features(src/config/features・@/config/features。同)→ config/domains
+// - card:     items/features(.claude/rules/items/features・文書の items/features/<name>.md。同)→ items/domains
 // - bare:     前に語・/・@・. の無い features/ で、後ろの部品が英数字でない(<domain>・*・（ など)か今あるドメインのフォルダ名(core を含む)
 //             の物 → domains/(文書とコメントの features/<domain>/… の書き方)。後ろが知らない名前の features/ は止める
 // - relative: 相対の指定子 ../features/・./features/ は、ファイルの置き場から解いて src/features か src/config/features に当たる物だけ
@@ -28,13 +30,13 @@
 // 見ない物(書き換えない):
 // - 出荷済みの notice の本文と道具(.notices/<YYYYMMDD-HHMMSS>-…)・取り込みの台帳と記録(.notices/ の下の README のほか: applied/・shipped/・done/)・この道具自身とそのテスト
 // - 日付つきの記録 docs/journal/(当時の事実、D47)・語の表 scripts/workflow/terms/(誤りの字面を持つ)・pnpm-lock.yaml
-// - カードの置き場 .claude/rules/items/features/ の名前(動かすかは指示書の議会の判断、D43)。中のファイルの文字列のパスは書き換える
+// - 名前が renames.json のファイルの "old": の行(改名の記録の旧い名は当時の名のまま。"new" は今の置き場なので書き換える)
 //
 // 止める物(書き換えず、候補つきで一覧に出す。手で決めてから --apply をもう一度):
 // - lone:     "features" 1 語の文字列(join("src", "features") の類。門番の機能の意味の物もあるので道具は決めない)
 // - bare:     上の bare の条件に当たらない features/(後ろが知らない名前)
 // - relative: 解いた先が src/features・src/config/features でない相対の features/
-// - leftover: 書き換えた後に残る features/(上のどれでもない形。items/features/(カード)と scripts/operations/features/(門番の機能の道具)は除く)
+// - leftover: 書き換えた後に残る features/(上のどれでもない形。scripts/operations/features/(門番の機能の道具)は除く)
 // - target-exists: 移す先 src/domains・src/config/domains に既にファイルがある
 //
 // fork の手順: 上流の段 1 の notice の区間を取り込む → dry-run → 止めた物を片付ける(自分のコードなら直す、門番の機能の意味なら残す)
@@ -50,6 +52,7 @@ import { readForkIdentity } from "../src/lib/forkOwnership/forkIds.mjs";
 export const MOVES = [
   { from: "src/features", to: "src/domains" },
   { from: "src/config/features", to: "src/config/domains" },
+  { from: ".claude/rules/items/features", to: ".claude/rules/items/domains" },
 ];
 export const LINT_RENAMES = [
   ["hooks-utils-no-features", "hooks-utils-no-domains"],
@@ -143,6 +146,7 @@ export function rewriteText(path, text, names) {
   out = out.replace(new RegExp(String.raw`src${S}features${END}`, "g"), (m) => (bump("srcPath"), m.replace(/features$/, "domains")));
   out = out.replace(new RegExp(String.raw`@${S}features${END}`, "g"), (m) => (bump("alias"), m.replace(/features$/, "domains")));
   out = out.replace(new RegExp(String.raw`config${S}features${END}`, "g"), (m) => (bump("config"), m.replace(/features$/, "domains")));
+  out = out.replace(new RegExp(String.raw`items${S}features${END}`, "g"), (m) => (bump("card"), m.replace(/features$/, "domains")));
   // bare
   out = out.replace(new RegExp(String.raw`(?<![A-Za-z0-9_@./\\-])features(${S})`, "g"), (match, sep, offset, whole) => {
     const rest = whole.slice(offset + match.length);
@@ -166,8 +170,8 @@ export function rewriteText(path, text, names) {
   for (const m of out.matchAll(new RegExp(String.raw`(?<![A-Za-z0-9_-])features${END}`, "g"))) {
     const after = out.slice(m.index + "features".length, m.index + "features".length + 2);
     if (!/^(\/|\\\/)/.test(after)) continue; // フォルダとして続く物だけ(features.ts・"features の …" は見ない)
-    // カードの置き場(D43)・門番の機能の道具 scripts/operations/features
-    if (/(items|operations)(\/|\\\/)$/.test(out.slice(Math.max(0, m.index - 12), m.index))) continue;
+    // 門番の機能の道具 scripts/operations/features
+    if (/operations(\/|\\\/)$/.test(out.slice(Math.max(0, m.index - 12), m.index))) continue;
     if (stops.some((s) => s.line === lineOf(out, m.index) && (s.kind === "bare" || s.kind === "relative"))) continue;
     stops.push({ line: lineOf(out, m.index), kind: "leftover", text: excerpt(out, m.index) });
   }
@@ -192,10 +196,22 @@ export function rewriteLineage(text, own, isRoot, rewrite) {
   return { text: text.slice(0, start) + r.text + text.slice(end), counts: r.counts, stops: r.stops.map((s) => ({ ...s, line: s.line + offset })) };
 }
 
-/** 1 ファイルの書き換え(lineage.md は自分の節だけ) */
+/**
+ * renames.json(改名の記録)は "old": の行を書かない: 旧い名は当時の名のまま読まれる(staleRefs が旧い名指しを探す)。
+ * "old": の行を印に置き換えて書き換え、戻す(1 行 = 1 行なので止めの行番号は変わらない)
+ */
+export function rewriteKeepingOld(text, rewrite) {
+  const kept = [];
+  const masked = text.replace(/^[ \t]*"old"[ \t]*:.*$/gm, (line) => `\u0000${kept.push(line) - 1}\u0000`);
+  const r = rewrite(masked);
+  return { ...r, text: r.text.replace(/\u0000(\d+)\u0000/g, (_m, i) => kept[Number(i)]) };
+}
+
+/** 1 ファイルの書き換え(lineage.md は自分の節だけ、renames.json は "old" の行を残す) */
 function fileRewriter(root, names) {
   const ident = readForkIdentity(root);
-  return (path, text) => (path === LINEAGE ? rewriteLineage(text, ident.own, ident.tier === "root", (t) => rewriteText(path, t, names)) : rewriteText(path, text, names));
+  const one = (path, text) => (path === LINEAGE ? rewriteLineage(text, ident.own, ident.tier === "root", (t) => rewriteText(path, t, names)) : rewriteText(path, text, names));
+  return (path, text) => (basename(path) === "renames.json" ? rewriteKeepingOld(text, (t) => one(path, t)) : one(path, text));
 }
 
 /** 計画(何も書かない) */

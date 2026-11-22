@@ -9,7 +9,7 @@
 - 冪等性: UNIQUE(job_type, job_key) + UNIQUE(job_id, item_key)
 - ステータス: pending → running → completed / failed / cancelled
 - 入口: `@/domains/batchJob/services/server`（`batchJobService`・`getHandler`・`createJobFromQuery`）。型は `@/domains/core/batchJob/types`
-- 決まり（入口・ハンドラの書き方・ファサード）は札 `.claude/rules/items/features/batchJob.md`
+- 決まり（入口・ハンドラの書き方・ファサード）は札 `.claude/rules/items/domains/batchJob.md`
 
 ## Usage
 

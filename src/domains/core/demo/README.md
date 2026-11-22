@@ -3,7 +3,7 @@
 ## Overview
 
 - デモモード・デモのログイン・管理画面のデモ利用者の一覧を持つ、表を持たない core ドメイン。デモ利用者の印は user の列 `is_demo`(user に残す)
-- 使う時・直す時の決まりは札 .claude/rules/items/features/demo.md にある。この README は使い方と仕組み
+- 使う時・直す時の決まりは札 .claude/rules/items/domains/demo.md にある。この README は使い方と仕組み
 
 ## API
 

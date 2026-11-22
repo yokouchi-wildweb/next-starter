@@ -5,7 +5,7 @@
 - 紹介成立時の報酬配布を管理する。テーブルは「配布済み/未配布」の状態追跡のみを担い、報酬の具体的な中身（ポイント付与、クーポン発行等）はハンドラーに委ねる
 - ベースリポジトリは拡張基盤のみ提供（報酬グループ・ハンドラーの項目は 0）。下流プロジェクトが報酬グループとハンドラーを受け口に足して使う
 - 機能の入切は門番の規則 `referral`（`src/featureGate/rules/referral.ts`）
-- 決まり（足し方・amount の規約・トリガーの呼び方・テーブルの役目）は札 `.claude/rules/items/features/referralReward.md`。この README は使い方と仕組み
+- 決まり（足し方・amount の規約・トリガーの呼び方・テーブルの役目）は札 `.claude/rules/items/domains/referralReward.md`。この README は使い方と仕組み
 
 ## API
 

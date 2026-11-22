@@ -8,7 +8,7 @@
 - 残高: `balance`（総残高）- `locked_balance`（予約済み）= 利用可能残高
 - ウォレットは遅延作成（初回操作時に自動作成）
 - 閉じた機能との連携（画面）: 残高・購入画面は相手の入切を `useGate()` で見る。クーポン欄 `CouponInput` はクーポンか決済が閉じていれば描かない・`CurrencyPurchase` は決済が閉じていれば描かない・振込の案内 `ActiveTransferBanner` は決済が閉じていれば出さない
-- 決まり（付与の種類・ロックした wallet の渡し方・予約の流れ・取り消し・購入特典・有効期限の導入・監査の範囲）は札 `.claude/rules/items/features/wallet.md`
+- 決まり（付与の種類・ロックした wallet の渡し方・予約の流れ・取り消し・購入特典・有効期限の導入・監査の範囲）は札 `.claude/rules/items/domains/wallet.md`
 - 長さのため分けた文書: `API.md`（データモデル・サービス API・型）、`Extension.md`（通貨・付与の種類・有効期限・特典）、`Internals.md`（トランザクションとロック・予約・監査・ロット・失効通知の仕組み）
 
 ## Usage

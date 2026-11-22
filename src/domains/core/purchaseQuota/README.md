@@ -4,7 +4,7 @@
 
 - 1 ユーザーが特定の期間内に購入できる金額に上限を設ける汎用フレームワーク
 - ベースリポジトリでは仕組みのみ提供する。具体的なクォータルールは下流プロジェクトが設定で宣言する(Extension)
-- 使う時・直す時の決まりは札 .claude/rules/items/features/purchaseQuota.md にある。この README は使い方と仕組み
+- 使う時・直す時の決まりは札 .claude/rules/items/domains/purchaseQuota.md にある。この README は使い方と仕組み
 
 ## Usage
 

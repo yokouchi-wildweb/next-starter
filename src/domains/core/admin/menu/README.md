@@ -7,7 +7,7 @@
 - 枠の部品（ホーム・サイトへのリンク・ログアウト）はメニューではなく管理の枠の側が持つ
 - 受け口の宣言は `../extensionPoints.ts`（`menuCategories` / `menuItems`）。一覧は `pnpm generate extensions` が `../extensions/` に出す
 - 組み立て器 `buildAdminMenu.ts`（純関数）。サイドバーと `pnpm check admin-menu -- show` が同じ物を呼ぶ
-- 決まり（名前・並び・ロールの絞り・データ管理から外す方法）は札 `.claude/rules/items/features/admin.md`
+- 決まり（名前・並び・ロールの絞り・データ管理から外す方法）は札 `.claude/rules/items/domains/admin.md`
 
 ## Usage
 

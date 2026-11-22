@@ -2,7 +2,7 @@
 
 ## Overview
 
-- `README.md` の Extension の節を分けた文書（通貨設定・付与の種類・有効期限の導入・失効通知の設定・購入の特典の表示）。決まりは札 `.claude/rules/items/features/wallet.md`
+- `README.md` の Extension の節を分けた文書（通貨設定・付与の種類・有効期限の導入・失効通知の設定・購入の特典の表示）。決まりは札 `.claude/rules/items/domains/wallet.md`
 
 ## Extension
 

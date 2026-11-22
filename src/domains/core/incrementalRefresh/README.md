@@ -6,7 +6,7 @@
 - `@/lib/cron` の `runBudgetedBatches`（締切をチャンク境界で判定する再開可能ループ）と `@/domains/cronCheckpoint`（単調ウォータマーク）を合成した完成品
 - 集計式・スナップショットのスキーマ・どのソースを見るかは消費側ドメインの責務で、ここはドメインを持たない
 - 入口: `createIncrementalRefresh`（`@/domains/incrementalRefresh/services/server`）
-- 決まり（recompute の冪等・index・余白・予算・物理削除）は札 `.claude/rules/items/features/incrementalRefresh.md`。read-model をこれで更新する必須の決まりは CLAUDE.md FEATURES budgeted_cron
+- 決まり（recompute の冪等・index・余白・予算・物理削除）は札 `.claude/rules/items/domains/incrementalRefresh.md`。read-model をこれで更新する必須の決まりは CLAUDE.md ITEMS budgeted_cron
 
 いつ使うか:
 

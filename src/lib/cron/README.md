@@ -6,7 +6,7 @@
 - 1 タスク = 1 フォルダ `src/app/api/cron/<name>/`。一覧ファイル（レジストリ）は持たない。API ルート・CLI（`pnpm task`）・`vercel.json` の生成は、どれもこのフォルダを走査して同じ定義を読む
 - upstream / fork / さらに下流の Tier も、タスクを足すときはフォルダを 1 つ足すだけで、共有ファイルを編集しない
 - CLI 側のランナーは `pnpm task <task-name>`（`scripts/runner/task/run.ts`）。定期タスクに加えて、バックフィル・データ移行などのワンショット運用タスクも扱う（置き場は持ち主のドメインの `src/domains/<ドメイン>/scripts/{tasks,migrations}/<名前>.ts`、名前 `<ドメイン>:<名前>`、`src/lib/task/README.md`）
-- 決まり（task.ts の役目・動的 import・門番を読まない・enabled・wiring・二重処理・ワンショットの置き場・個人情報の prune・上書き後の再生成）は札 `.claude/rules/items/lib/cron.md`。1 タスク 1 フォルダと vercel.json の生成は CLAUDE.md FEATURES cron_wiring、時間予算付きバッチは budgeted_cron
+- 決まり（task.ts の役目・動的 import・門番を読まない・enabled・wiring・二重処理・ワンショットの置き場・個人情報の prune・上書き後の再生成）は札 `.claude/rules/items/lib/cron.md`。1 タスク 1 フォルダと vercel.json の生成は CLAUDE.md ITEMS cron_wiring、時間予算付きバッチは budgeted_cron
 
 ## Usage
 

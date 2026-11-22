@@ -3,7 +3,7 @@
 ## Overview
 
 - 表を持たない core ドメイン。文書の例文・文書ごとの印(sample / own)・差し込み済みの文書を返す公開の入口(`documents.ts`)・本番の検査を持つ。作りは事業の素性 `src/lib/business` の結び(`@/business`)と同じ
-- 使う時・直す時の決まりは札 .claude/rules/items/features/legal.md にある。この README は使い方と仕組み
+- 使う時・直す時の決まりは札 .claude/rules/items/domains/legal.md にある。この README は使い方と仕組み
 
 ## Usage
 

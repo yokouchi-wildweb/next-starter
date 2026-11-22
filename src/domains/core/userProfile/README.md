@@ -5,7 +5,7 @@
 - ロール別プロフィールを管理するコアドメイン。ロールに応じたプロフィールテーブルの CRUD・検索操作を統一的なインターフェースで提供する
 - パターン: Registry + Factory。設定は JSON（1 ロール 1 ファイル）
 - アクセス: サーバー直接呼び出し + API ルート + クライアント hooks
-- 決まり（上書きの形・メディア項目・入口の使い分け・import の仕方・extraWhere・URL の名前・型付きラッパー・タグ）は札 `.claude/rules/items/features/userProfile.md`
+- 決まり（上書きの形・メディア項目・入口の使い分け・import の仕方・extraWhere・URL の名前・型付きラッパー・タグ）は札 `.claude/rules/items/domains/userProfile.md`
 
 ## Usage
 

@@ -5,7 +5,7 @@
 - 匿名ユーザーを含む行動イベント（クリック等）を (target_type, target_id, action) 単位で記録・集計する汎用計測基盤
 - 答える問い: 「匿名を含む不特定多数が、コンテンツ単位で何回アクションしたか」。管理画面での累計表示（例: バナーAのクリック合計）と、マーケティング用の長期時系列分析（例: 月別クリック推移・導線別内訳。日次集計は永久保持）
 - 閉じられる機能(門番の規則 `src/featureGate/rules/interactionTracking.ts`、既定は閉 `defaultEnabled: false`。開くのは `pnpm ops features set interactionTracking on`)。閉じると `/api/interactions`・`/api/admin/interactions`・`domains` から導く汎用 API `/api/interactionEvent`・掃除の cron が 404 で、表も push から外れる
-- 使う時・直す時の決まりは札 .claude/rules/items/features/interactionTracking.md にある
+- 使う時・直す時の決まりは札 .claude/rules/items/domains/interactionTracking.md にある
 
 ### 守備範囲
 
